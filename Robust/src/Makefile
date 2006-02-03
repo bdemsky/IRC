@@ -15,7 +15,14 @@ all: Parse/Sym.class Parse/Parser.class $(CLASSFILES)
 
 Parse/Parser.java Parse/Sym.java: Parse/java14.cup
 	cd Parse && \
-        java java_cup.Main -parser Parser -symbols Sym < java14.cup
+        java -cp ../../cup:$CLASSPATH java_cup.Main -parser Parser -symbols Sym < java14.cup
 
 %.class: %.java
-	javac $<
+	javac -cp ../cup:.:$CLASSPATH $<
+
+clean:
+	rm Tree/*.class Main/*.class Lex/*.class
+	rm Parse/*.class Parse/Sym.java Parse/Parser.java
+		
+	
+	
