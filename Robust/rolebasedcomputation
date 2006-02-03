@@ -1,0 +1,34 @@
+Input:
+trigger role specification for tasks:
+role mutator operation:
+role definition:
+
+Generate:
+Role transition diagram
+
+
+Initial features:
+methods
+structs
+type system
+
+Language features:
+Single Inheritance
+Virtual methods
+Objects
+
+object metastate:
+1. flags: flag role1
+2. tags: tag tag1
+
+tag operations:
+tag tag1=new tag;
+tag tag2=incrementtag(tag tag1);
+tag tag3=no tag;
+
+metastate operations:
+
+task foo(type1 o1{role1||role2}, type2 o2{role3}) {
+	
+  exit(o1{role1'=false},o2{role3'=false},onew{role4=true});
+}
