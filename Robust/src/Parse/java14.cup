@@ -221,7 +221,7 @@ start with goal;
 // 19.2) The Syntactic Grammar
 goal ::=	compilation_unit:cu
 	{:
-	RESULT = (new ParseNode("goal")).addChild(cu).getRoot();
+	RESULT = cu;
 	:}
 	;
 
@@ -324,7 +324,7 @@ compilation_unit ::=
 //              import_declarations_opt
 		type_declarations_opt:tdo {: 
 		ParseNode pn=new ParseNode("compilation_unit");
-		pn.addChild("types").addChild(tdo);
+		pn.addChild(tdo);
 		RESULT=pn;
 		:}
 		;
@@ -370,7 +370,7 @@ type_declarations ::=
 type_declaration ::=
 		class_declaration:cd 
 		{:
-		RESULT=(new ParseNode("type_declaration")).addChild("class").addChild(cd);
+			RESULT=cd;
 		:}
 //      |       interface_declaration
 	|	SEMICOLON {: RESULT=new ParseNode("empty"); :}
@@ -412,28 +412,19 @@ modifier ::=
 
 // 19.8.1) Class Declaration:
 class_declaration ::= 
-	modifiers_opt:mo CLASS IDENTIFIER:id super_opt:so {:
-	ParseNode pn=new ParseNode("class_declaration");
-	pn.addChild("modifiers").addChild(mo);
-	pn.addChild("name").addChild(id);
-	pn.addChild("super").addChild(so);
-	RESULT=pn;
-	:}
-//interfaces_opt
+	modifiers_opt:mo CLASS IDENTIFIER:id super_opt:so //interfaces_opt
 class_body:body 
 	{:
 	ParseNode pn=new ParseNode("class_declaration");
 	pn.addChild("modifiers").addChild(mo);
 	pn.addChild("name").addChild(id);
 	pn.addChild("super").addChild(so);
-	pn.addChild("body").addChild(body);
+	pn.addChild("classbody").addChild(body);
 	RESULT=pn;
 	:}
 	;
 super ::=	EXTENDS class_type:classtype {: 
-		ParseNode pn=new ParseNode("super");
-		pn.addChild(classtype);
-		RESULT=pn;
+		RESULT=classtype;
 	:}
 	;
 super_opt ::=	
@@ -474,22 +465,22 @@ class_body_declarations ::=
 
 class_body_declaration ::=
 		class_member_declaration:member {: 
-		RESULT=(new ParseNode("class_body_declaration")).addChild("member").addChild(member).getRoot();
+		RESULT=(new ParseNode("member")).addChild(member).getRoot();
 	:}
 //	|	static_initializer
 	|	constructor_declaration:constructor {: 
-		RESULT=(new ParseNode("class_body_declaration")).addChild("constructor").addChild(constructor).getRoot();
+		RESULT=(new ParseNode("constructor")).addChild(constructor).getRoot();
 	:}
 	|	block:block {:
-		RESULT=(new ParseNode("class_body_declaration")).addChild("block").addChild(block).getRoot();
+		RESULT=(new ParseNode("block")).addChild(block).getRoot();
 :}
 	;
 class_member_declaration ::=
 	field_declaration:field {: 
-	RESULT=(new ParseNode("class_member_declaration")).addChild("field").addChild(field).getRoot(); 
+	RESULT=(new ParseNode("field")).addChild(field).getRoot(); 
 	:}
 	|	method_declaration:method {:
-	RESULT=(new ParseNode("class_member_declaration")).addChild("method").addChild(method).getRoot(); 
+	RESULT=(new ParseNode("method")).addChild(method).getRoot(); 
 	:}
 	/* repeat the prod for 'class_declaration' here: */
 //	|	modifiers_opt CLASS IDENTIFIER super_opt class_body

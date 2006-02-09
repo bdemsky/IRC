@@ -9,7 +9,10 @@ Lex/NumericLiteral.class Lex/Operator.class Lex/Separator.class		\
 Lex/StringLiteral.class Lex/Token.class Lex/TraditionalComment.class	\
 Lex/WhiteSpace.class IR/Tree/ParseNode.class				\
 IR/Tree/ParseNodeDOTVisitor.class IR/Tree/ParseNodeVector.class		\
-IR/Tree/Walkable.class
+IR/Tree/Walkable.class IR/State.class IR/SymbolTable.class		\
+IR/Descriptor.class IR/Tree/Modifiers.class IR/Tree/FileNode.class	\
+IR/Tree/ClassNode.java IR/Tree/TreeNode.class IR/Tree/BuildIR.class	\
+IR/TypeDescriptor.java IR/FieldDescriptor.java
 
 all: Parse/Sym.class Parse/Parser.class $(CLASSFILES)
 

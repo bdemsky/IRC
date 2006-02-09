@@ -4,6 +4,8 @@ import java.io.Reader;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import IR.Tree.ParseNode;
+import IR.Tree.BuildIR;
+import IR.State;
 
 /* Test skeleton for java parser/lexer.
  * Copyright (C) 1998 C. Scott Ananian <cananian@alumni.princeton.edu>
@@ -23,6 +25,9 @@ public class Main {
     g = new Parse.Parser(l);
     ParseNode p=(ParseNode) g./*debug_*/parse().value;
     System.out.println(p.PPrint(4,true));
+    State state=new State(p);
+    BuildIR bir=new BuildIR(state);
+    bir.buildtree();
     System.exit(l.numErrors());
   }
 }
