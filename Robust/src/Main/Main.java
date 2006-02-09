@@ -3,6 +3,7 @@ package Main;
 import java.io.Reader;
 import java.io.BufferedReader;
 import java.io.FileReader;
+import Tree.ParseNode;
 
 /* Test skeleton for java parser/lexer.
  * Copyright (C) 1998 C. Scott Ananian <cananian@alumni.princeton.edu>
@@ -20,7 +21,8 @@ public class Main {
     Lex.Lexer l = new Lex.Lexer(fr);
     java_cup.runtime.lr_parser g;
     g = new Parse.Parser(l);
-    g./*debug_*/parse();
+    ParseNode p=(ParseNode) g./*debug_*/parse().value;
+    System.out.println(p.PPrint(4,true));
     System.exit(l.numErrors());
   }
 }
