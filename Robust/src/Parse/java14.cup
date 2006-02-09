@@ -2,7 +2,7 @@ package Parse;
 
 import java_cup.runtime.*;
 import Lex.Lexer;
-import Tree.*;
+import IR.Tree.*;
 
 /* Java 1.4 parser for CUP.  
  * Copyright (C) 2002-2003 C. Scott Ananian <cananian@alumni.princeton.edu>

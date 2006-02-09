@@ -3,7 +3,7 @@ package Main;
 import java.io.Reader;
 import java.io.BufferedReader;
 import java.io.FileReader;
-import Tree.ParseNode;
+import IR.Tree.ParseNode;
 
 /* Test skeleton for java parser/lexer.
  * Copyright (C) 1998 C. Scott Ananian <cananian@alumni.princeton.edu>
