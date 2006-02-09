@@ -7,9 +7,9 @@ Lex/IntegerLiteral.class Lex/Keyword.class Lex/Lexer.class		\
 Lex/Literal.class Lex/LongLiteral.class Lex/NullLiteral.class		\
 Lex/NumericLiteral.class Lex/Operator.class Lex/Separator.class		\
 Lex/StringLiteral.class Lex/Token.class Lex/TraditionalComment.class	\
-Lex/WhiteSpace.class Tree/ParseNode.class				\
-Tree/ParseNodeDOTVisitor.class Tree/ParseNodeVector.class		\
-Tree/Walkable.class
+Lex/WhiteSpace.class IR/Tree/ParseNode.class				\
+IR/Tree/ParseNodeDOTVisitor.class IR/Tree/ParseNodeVector.class		\
+IR/Tree/Walkable.class
 
 all: Parse/Sym.class Parse/Parser.class $(CLASSFILES)
 
@@ -21,4 +21,4 @@ Parse/Parser.java Parse/Sym.java: Parse/java14.cup
 	javac -cp ../cup:.:$(CLASSPATH) $<
 
 clean:
-	rm Tree/*.class Main/*.class Lex/*.class Parse/*.class Parse/Sym.java Parse/Parser.java
+	rm IR/*.class IR/Tree/*.class Main/*.class Lex/*.class Parse/*.class Parse/Sym.java Parse/Parser.java
