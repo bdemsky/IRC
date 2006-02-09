@@ -39,11 +39,9 @@ class Keyword extends Token {
     key_table.put("for", new Integer(Sym.FOR));
     key_table.put("goto", new Integer(Sym.GOTO));
     key_table.put("if", new Integer(Sym.IF));
-    key_table.put("implements", new Integer(Sym.IMPLEMENTS));
     key_table.put("import", new Integer(Sym.IMPORT));
     key_table.put("instanceof", new Integer(Sym.INSTANCEOF));
     key_table.put("int", new Integer(Sym.INT));
-    key_table.put("interface", new Integer(Sym.INTERFACE));
     key_table.put("long", new Integer(Sym.LONG));
     key_table.put("native", new Integer(Sym.NATIVE));
     key_table.put("new", new Integer(Sym.NEW));

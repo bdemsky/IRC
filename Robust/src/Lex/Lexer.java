@@ -63,7 +63,6 @@ public class Lexer {
     case Sym.GT:
     case Sym.COMMA:
     case Sym.EXTENDS:
-    case Sym.IMPLEMENTS:
       return true;
     }
   }
