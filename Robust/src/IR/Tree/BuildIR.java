@@ -61,8 +61,7 @@ public class BuildIR {
 	ParseNode fieldnode=pn.getChild("field");
 
 	if (fieldnode!=null) {
-	    FieldDescriptor fd=parseFieldDecl(fieldnode.getChild("field_declaration"));
-	    cn.addField(fd);
+	    parseFieldDecl(cn,fieldnode.getChild("field_declaration"));
 	    return;
 	}
 	ParseNode methodnode=pn.getChild("method");
@@ -73,11 +72,67 @@ public class BuildIR {
 	throw new Error();
     }
 
-    private FieldDescriptor parseFieldDecl(ParseNode pn) {
+    private TypeDescriptor parseTypeDescriptor(ParseNode pn) {
+	ParseNode tn=pn.getChild("type");
+	String type_st=tn.getTerminal();
+	if(type_st.equals("byte")) {
+	    return state.getTypeDescriptor(TypeDescriptor.BYTE);
+	} else if(type_st.equals("short")) {
+	    return state.getTypeDescriptor(TypeDescriptor.SHORT);
+	} else if(type_st.equals("int")) {
+	    return state.getTypeDescriptor(TypeDescriptor.INT);
+	} else if(type_st.equals("long")) {
+	    return state.getTypeDescriptor(TypeDescriptor.LONG);
+	} else if(type_st.equals("char")) {
+	    return state.getTypeDescriptor(TypeDescriptor.CHAR);
+	} else if(type_st.equals("float")) {
+	    return state.getTypeDescriptor(TypeDescriptor.FLOAT);
+	} else if(type_st.equals("double")) {
+	    return state.getTypeDescriptor(TypeDescriptor.DOUBLE);
+	} else if(type_st.equals("class")) {
+	    ParseNode nn=tn.getChild("class");
+	    return state.getTypeDescriptor(parseName(nn));
+	} else
+	    throw new Error();
+    }
+
+    private NameDescriptor parseName(ParseNode pn) {
+	ParseNode nn=pn.getChild("name");
+	ParseNode base=nn.getChild("base");
+	ParseNode id=nn.getChild("identifier");
+	
+	if (base==null)
+	    return new NameDescriptor(id.getTerminal());
+
+	return new NameDescriptor(parseName(base),id.getTerminal());
+	
+    }
+
+    private void parseFieldDecl(ClassNode cn,ParseNode pn) {
 	ParseNode mn=pn.getChild("modifier");
 	Modifiers m=parseModifiersList(mn);
-	return new FieldDescriptor(m,null,null);
+	ParseNode tn=pn.getChild("type");
+	TypeDescriptor t=parseTypeDescriptor(tn);
+	ParseNode vn=pn.getChild("variables").getChild("variable_declarators_list");
+	ParseNodeVector pnv=vn.getChildren();
+	for(int i=0;i<pnv.size();i++) {
+	    ParseNode vardecl=pnv.elementAt(i);
+	    String identifier=vardecl.getChild("identifier").getChild("single").getTerminal();
+	    ParseNode epn=vardecl.getChild("initializer");
+	    
+	    ExpressionNode en=null;
+	    if (epn!=null)
+		en=parseExpression(epn);
+  
+	    cn.addField(new FieldDescriptor(m,t,identifier, en));
+	}
+	
     }
+
+    private ExpressionNode parseExpression(ParseNode pn) {
+	return null;
+    }
+
 
     private void parseMethodDecl(ClassNode cn, ParseNode pn) {
 	
@@ -126,7 +181,6 @@ public class BuildIR {
 	else
 	    return false;
     }
-	
 
     /** Throw an exception if something is unexpected */
     private void check(ParseNode pn, String label) {
@@ -137,5 +191,4 @@ public class BuildIR {
             throw new Error(pn+ "IE: Expected '" + label + "', got '"+pn.getLabel()+"'");
         }
     }
-
 }

@@ -525,9 +525,9 @@ variable_declarator ::=
 	;
 variable_declarator_id ::=
 		IDENTIFIER:id {: 
-		RESULT=(new ParseNode("variable_declarator_id")).addChild("name").addChild(id);:}
+		RESULT=(new ParseNode("single")).addChild(id).getRoot();:}
 //	|	variable_declarator_id:id LBRACK RBRACK {:
-//		RESULT=(new ParseNode("variable_declarator_id")).addChild("array").addChild(id);:}
+//		RESULT=(new ParseNode("array")).addChild(id).getRoot();:}
 	;
 variable_initializer ::=
 		expression:exp {: RESULT=exp; :}
