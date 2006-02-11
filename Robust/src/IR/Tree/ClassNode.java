@@ -1,6 +1,7 @@
 package IR.Tree;
 import java.util.Vector;
 import IR.FieldDescriptor;
+import IR.MethodDescriptor;
 import IR.NameDescriptor;
 
 class ClassNode extends TreeNode {
@@ -8,6 +9,7 @@ class ClassNode extends TreeNode {
 	classname=null;
 	superclass=null;
 	fields=new Vector();
+	methods=new Vector();
     }
     String classname;
     NameDescriptor superclass;

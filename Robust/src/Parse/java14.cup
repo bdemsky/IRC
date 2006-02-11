@@ -513,12 +513,12 @@ variable_declarators ::=
 variable_declarator ::=
 		variable_declarator_id:id {:
 		ParseNode pn=new ParseNode("variable_declarator");
-		pn.addChild("identifier").addChild(id);
+		pn.addChild(id);
 		RESULT=pn;
 	:}
 	|	variable_declarator_id:id EQ variable_initializer:init {: 
 		ParseNode pn=new ParseNode("variable_declarator");
-		pn.addChild("identifier").addChild(id);
+		pn.addChild(id);
 		pn.addChild("initializer").addChild(init);
 		RESULT=pn;
 	:}
@@ -538,7 +538,7 @@ variable_initializer ::=
 method_declaration ::=
 		method_header:header method_body:body {:
 		ParseNode pn=new ParseNode("method_declaration");
-		pn.addChild("header").addChild(header);
+		pn.addChild(header);
 		pn.addChild("body").addChild(body);
 		RESULT=pn;
 	:}
@@ -549,14 +549,14 @@ method_header ::=
 		ParseNode pn=new ParseNode("method_header");
 		pn.addChild("modifiers").addChild(mo);
 		pn.addChild("returntype").addChild(type);
-		pn.addChild("declarator").addChild(decl);
+		pn.addChild(decl);
 		RESULT=pn;
 	:}
 	|	modifiers_opt:mo VOID method_declarator:decl //throws_opt
 	{:
 		ParseNode pn=new ParseNode("method_header");
 		pn.addChild("modifiers").addChild(mo);
-		pn.addChild("declarator").addChild(decl);
+		pn.addChild(decl);
 		RESULT=pn;
 	:}
 	;
@@ -590,8 +590,8 @@ formal_parameter_list ::=
 formal_parameter ::=
 		type:type variable_declarator_id:name {:
 		ParseNode pn=new ParseNode("formal_parameter");
-		pn.addChild("type").addChild(type);
-		pn.addChild("name").addChild(name);
+		pn.addChild(type);
+		pn.addChild(name);
 		RESULT=pn;
 	:}
 //	|	FINAL type variable_declarator_id

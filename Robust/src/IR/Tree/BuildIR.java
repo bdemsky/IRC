@@ -66,7 +66,7 @@ public class BuildIR {
 	}
 	ParseNode methodnode=pn.getChild("method");
 	if (methodnode!=null) {
-	    parseMethodDecl(cn,methodnode);
+	    parseMethodDecl(cn,methodnode.getChild("method_declaration"));
 	    return;
 	}
 	throw new Error();
@@ -79,6 +79,8 @@ public class BuildIR {
 	    return state.getTypeDescriptor(TypeDescriptor.BYTE);
 	} else if(type_st.equals("short")) {
 	    return state.getTypeDescriptor(TypeDescriptor.SHORT);
+	} else if(type_st.equals("boolean")) {
+	    return state.getTypeDescriptor(TypeDescriptor.BOOLEAN);
 	} else if(type_st.equals("int")) {
 	    return state.getTypeDescriptor(TypeDescriptor.INT);
 	} else if(type_st.equals("long")) {
@@ -92,8 +94,9 @@ public class BuildIR {
 	} else if(type_st.equals("class")) {
 	    ParseNode nn=tn.getChild("class");
 	    return state.getTypeDescriptor(parseName(nn));
-	} else
+	} else {
 	    throw new Error();
+	}
     }
 
     private NameDescriptor parseName(ParseNode pn) {
@@ -117,7 +120,7 @@ public class BuildIR {
 	ParseNodeVector pnv=vn.getChildren();
 	for(int i=0;i<pnv.size();i++) {
 	    ParseNode vardecl=pnv.elementAt(i);
-	    String identifier=vardecl.getChild("identifier").getChild("single").getTerminal();
+	    String identifier=vardecl.getChild("single").getTerminal();
 	    ParseNode epn=vardecl.getChild("initializer");
 	    
 	    ExpressionNode en=null;
@@ -170,19 +173,48 @@ public class BuildIR {
 
 
     private void parseMethodDecl(ClassNode cn, ParseNode pn) {
-	ParseNode headern=pn.getChild("header");
+	ParseNode headern=pn.getChild("method_header");
 	ParseNode bodyn=pn.getChild("body");
 	MethodDescriptor md=parseMethodHeader(headern);
+	MethodBodyNode mbn=parseMethodBody(bodyn);
+	cn.addMethod(md);
+    }
+
+    public MethodBodyNode parseMethodBody(ParseNode pn) {
+	
     }
 
     public MethodDescriptor parseMethodHeader(ParseNode pn) {
-	ParseNode mn=pn.getChild("modifier");
+	ParseNode mn=pn.getChild("modifiers");
 	Modifiers m=parseModifiersList(mn);
 	
 	ParseNode tn=pn.getChild("returntype");
-	TypeDescriptor returntype=parseTypeDescriptor(tn);
-	MethodDescriptor md=new MethodDescriptor(m, returntype, null);
+	TypeDescriptor returntype;
+	if (tn!=null) 
+	    returntype=parseTypeDescriptor(tn);
+	else
+	    returntype=new TypeDescriptor(TypeDescriptor.VOID);
+
+	ParseNode pmd=pn.getChild("method_declarator");
+	String name=pmd.getChild("name").getTerminal();
+	MethodDescriptor md=new MethodDescriptor(m, returntype, name);
+       
+	ParseNode paramnode=pmd.getChild("parameters");
+	parseParameterList(md,paramnode);
 	return md;
+    }
+
+    public void parseParameterList(MethodDescriptor md, ParseNode pn) {
+	ParseNode paramlist=pn.getChild("formal_parameter_list");
+	if (paramlist==null)
+	    return;
+	 ParseNodeVector pnv=paramlist.getChildren();
+	 for(int i=0;i<pnv.size();i++) {
+	     ParseNode paramn=pnv.elementAt(i);
+	     TypeDescriptor type=parseTypeDescriptor(paramn);
+	     String paramname=paramn.getChild("single").getTerminal();
+	     md.addParameter(type,paramname);
+	 }
     }
 
     public Modifiers parseModifiersList(ParseNode pn) {

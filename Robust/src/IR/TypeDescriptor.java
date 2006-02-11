@@ -12,10 +12,11 @@ public class TypeDescriptor extends Descriptor {
     public static final int INT=3;
     public static final int LONG=4;
     public static final int CHAR=5;
-    public static final int FLOAT=6;
-    public static final int DOUBLE=7;
-    public static final int VOID=8;
-    public static final int CLASS=9;
+    public static final int BOOLEAN=6;
+    public static final int FLOAT=7;
+    public static final int DOUBLE=8;
+    public static final int VOID=9;
+    public static final int CLASS=10;
 
 
     int type;
@@ -42,6 +43,8 @@ public class TypeDescriptor extends Descriptor {
     private static String decodeInt(int type) {
 	if (type==BYTE)
 	    return "byte";
+	else if (type==BOOLEAN)
+	    return "boolean";
 	else if (type==SHORT)
 	    return "short";
 	else if (type==INT)
