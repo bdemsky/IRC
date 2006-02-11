@@ -122,7 +122,7 @@ public class BuildIR {
 	    
 	    ExpressionNode en=null;
 	    if (epn!=null)
-		en=parseExpression(epn);
+		en=parseExpression(epn.getFirstChild());
   
 	    cn.addField(new FieldDescriptor(m,t,identifier, en));
 	}
@@ -130,12 +130,59 @@ public class BuildIR {
     }
 
     private ExpressionNode parseExpression(ParseNode pn) {
+	if (isNode(pn,"assignment"))
+	    return parseAssignmentExpression(pn);
+	else if (isNode(pn,"logical_or")||isNode(pn,"logical_and")||
+		 isNode(pn,"bitwise_or")||isNode(pn,"bitwise_xor")||
+		 isNode(pn,"bitwise_and")||isNode(pn,"equal")||
+		 isNode(pn,"not_equal")||isNode(pn,"comp_lt")||
+		 isNode(pn,"comp_lte")||isNode(pn,"comp_gt")||
+		 isNode(pn,"comp_gte")||isNode(pn,"leftshift")||
+		 isNode(pn,"rightshift")||isNode(pn,"sub")||
+		 isNode(pn,"add")||isNode(pn,"mult")||
+		 isNode(pn,"div")||isNode(pn,"mod")) {
+	    ParseNodeVector pnv=pn.getChildren();
+	    ParseNode left=pnv.elementAt(0);
+	    ParseNode right=pnv.elementAt(1);
+	    Operation op=new Operation(pn.getLabel());
+   	    return new OpNode(parseExpression(left),parseExpression(right),op);
+	} else if (isNode(pn,"unaryplus")||
+		   isNode(pn,"unaryminus")||
+		   isNode(pn,"postinc")||
+		   isNode(pn,"postdec")||
+		   isNode(pn,"preinc")||
+		   isNode(pn,"predec")) {
+	    ParseNode left=pn.getFirstChild();
+	    Operation op=new Operation(pn.getLabel());
+   	    return new OpNode(parseExpression(left),op);
+	} else if (isNode(pn,"literal")) {
+	    String literaltype=pn.getTerminal();
+	    ParseNode literalnode=pn.getChild(literaltype);
+	    Object literal_obj=literalnode.getLiteral();
+	    return new LiteralNode(literaltype, literal_obj);
+	}
+	throw new Error();
+    }
+
+    private ExpressionNode parseAssignmentExpression(ParseNode pn) {
 	return null;
     }
 
 
     private void parseMethodDecl(ClassNode cn, ParseNode pn) {
+	ParseNode headern=pn.getChild("header");
+	ParseNode bodyn=pn.getChild("body");
+	MethodDescriptor md=parseMethodHeader(headern);
+    }
+
+    public MethodDescriptor parseMethodHeader(ParseNode pn) {
+	ParseNode mn=pn.getChild("modifier");
+	Modifiers m=parseModifiersList(mn);
 	
+	ParseNode tn=pn.getChild("returntype");
+	TypeDescriptor returntype=parseTypeDescriptor(tn);
+	MethodDescriptor md=new MethodDescriptor(m, returntype, null);
+	return md;
     }
 
     public Modifiers parseModifiersList(ParseNode pn) {

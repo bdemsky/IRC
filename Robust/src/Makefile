@@ -11,8 +11,10 @@ Lex/WhiteSpace.class IR/Tree/ParseNode.class				\
 IR/Tree/ParseNodeDOTVisitor.class IR/Tree/ParseNodeVector.class		\
 IR/Tree/Walkable.class IR/State.class IR/SymbolTable.class		\
 IR/Descriptor.class IR/Tree/Modifiers.class IR/Tree/FileNode.class	\
-IR/Tree/ClassNode.java IR/Tree/TreeNode.class IR/Tree/BuildIR.class	\
-IR/TypeDescriptor.java IR/FieldDescriptor.java
+IR/Tree/ClassNode.class IR/Tree/TreeNode.class IR/Tree/BuildIR.class	\
+IR/TypeDescriptor.class IR/FieldDescriptor.class IR/Operation.class	\
+IR/Tree/OpNode.class IR/Tree/LiteralNode.class				\
+IR/Tree/ExpressionNode.class
 
 all: Parse/Sym.class Parse/Parser.class $(CLASSFILES)
 

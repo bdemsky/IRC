@@ -13,6 +13,7 @@ class ClassNode extends TreeNode {
     NameDescriptor superclass;
     Modifiers modifiers;
     Vector fields;
+    Vector methods;
     
     public String printNode() {
 	String st=modifiers.toString()+classname;
@@ -23,12 +24,21 @@ class ClassNode extends TreeNode {
 	    FieldDescriptor fd=(FieldDescriptor)fields.get(i);
 	    st+=fd.toString()+"\n";
 	}
+
+	for(int i=0;i<methods.size();i++) {
+	    MethodDescriptor md=(MethodDescriptor)methods.get(i);
+	    st+=md.toString()+"\n";
+	}
 	st+="}\n";
 	return st;
     }
 
     public void addField(FieldDescriptor fd) {
 	fields.add(fd);
+    }
+
+    public void addMethod(MethodDescriptor md) {
+	methods.add(md);
     }
 
     public void setModifiers(Modifiers modifiers) {

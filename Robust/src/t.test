@@ -1,21 +1,9 @@
-/*
- 
- Class: ParseNode
- Author: Dan Roy
- Purpose: ParseNode is used to represent a parse production
-
-*/
-
-package IR.Tree;
-
-import java.util.*;
-
-public class ParseNode implements Walkable {
+public class ParseNode {
 
     private String label;
     private ParseNode parent;
     private ParseNodeVector children;
-    private int line;
+    private int line=-1;
     private Object literal;
 
     //private SymbolTable st;
@@ -48,7 +36,7 @@ public class ParseNode implements Walkable {
 	literal=o;
     }
 
-    public Object getLiteral() {
+    public Object getLiteral(Object o) {
 	return literal;
     }
 
@@ -95,7 +83,6 @@ public class ParseNode implements Walkable {
 
     public ParseNode insertChild(ParseNode child) {
 	if (child == null) {
-	    throw new NullPointerException("Can't add null node to parse tree");
 	}
 
 	children.insertElementAt(child, 0);
@@ -111,7 +98,6 @@ public class ParseNode implements Walkable {
     public ParseNode addChild( ParseNode child ) {
 
 	if (child == null) {
-	    throw new NullPointerException("Can't add null node to parse tree");
 	}
 
 	children.addElement (child);
@@ -153,7 +139,8 @@ public class ParseNode implements Walkable {
     }
 
     public ParseNode getRoot() {
-        return (parent == null) ? this : parent.getRoot();
+	if (parent==null)
+        return 	this; else return parent.getRoot();
     }
 
     public String getTerminal () {
@@ -165,9 +152,6 @@ public class ParseNode implements Walkable {
 	}
     }
 
-    public ParseNode getFirstChild() {
-	return children.elementAt(0);
-    }
 
     public ParseNodeVector getChildren(String label) {
 	int i;

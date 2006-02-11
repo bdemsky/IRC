@@ -8,27 +8,22 @@ import IR.Tree.ExpressionNode;
  * represents a symbol in the language (var name, function name, etc).
  */
 
-public class FieldDescriptor extends Descriptor {
+public class MethodDescriptor extends Descriptor {
 
     protected Modifiers modifier;
-    protected TypeDescriptor td;
+    protected TypeDescriptor returntype;
     protected String identifier;
-    protected ExpressionNode en;
     
-    public FieldDescriptor(Modifiers m, TypeDescriptor t, String identifier, ExpressionNode e) {
+    public MethodDescriptor(Modifiers m, TypeDescriptor rt, String identifier) {
 	super(identifier);
 	this.modifier=m;
-	this.td=t;
+	this.returntype=rt;
 	this.identifier=identifier;
-	this.en=e;
         this.safename = "__" + name + "__";
 	this.uniqueid=count++;
     }
 
     public String toString() {
-	if (en==null)
-	    return modifier.toString()+td.toString()+" "+identifier+";";
-	else
-	    return modifier.toString()+td.toString()+" "+identifier+"="+en.printNode()+";";
+	    return modifier.toString()+td.toString()+" "+identifier+"()";
     }
 }

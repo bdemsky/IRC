@@ -14,7 +14,9 @@ public class TypeDescriptor extends Descriptor {
     public static final int CHAR=5;
     public static final int FLOAT=6;
     public static final int DOUBLE=7;
-    public static final int CLASS=8;
+    public static final int VOID=8;
+    public static final int CLASS=9;
+
 
     int type;
     NameDescriptor name_desc;
@@ -52,6 +54,8 @@ public class TypeDescriptor extends Descriptor {
 	    return "float";
 	else if (type==DOUBLE)
 	    return "double";
+	else if (type==VOID)
+	    return "void";
 	else throw new Error();
     }
 }
