@@ -176,12 +176,13 @@ public class BuildIR {
 	ParseNode headern=pn.getChild("method_header");
 	ParseNode bodyn=pn.getChild("body");
 	MethodDescriptor md=parseMethodHeader(headern);
-	MethodBodyNode mbn=parseMethodBody(bodyn);
+	BlockNode bn=parseBlock(bodyn);
 	cn.addMethod(md);
     }
 
-    public MethodBodyNode parseMethodBody(ParseNode pn) {
-	
+    public BlockNode parseBlock(ParseNode pn) {
+
+
     }
 
     public MethodDescriptor parseMethodHeader(ParseNode pn) {
