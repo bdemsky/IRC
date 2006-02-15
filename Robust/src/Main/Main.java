@@ -24,7 +24,7 @@ public class Main {
     java_cup.runtime.lr_parser g;
     g = new Parse.Parser(l);
     ParseNode p=(ParseNode) g./*debug_*/parse().value;
-    System.out.println(p.PPrint(4,true));
+    //    System.out.println(p.PPrint(2,true));
     State state=new State(p);
     BuildIR bir=new BuildIR(state);
     bir.buildtree();

@@ -1120,13 +1120,13 @@ cast_expression ::=
 		LPAREN primitive_type:type
 	//dims_opt 
 		RPAREN unary_expression:exp {: 
-		ParseNode pn=new ParseNode("cast");
+		ParseNode pn=new ParseNode("cast1");
 		pn.addChild("type").addChild(type);
 		pn.addChild("exp").addChild(exp);
 		RESULT=pn;
 	:}
 	|	LPAREN expression:type RPAREN unary_expression_not_plus_minus:exp {: 
-		ParseNode pn=new ParseNode("cast");
+		ParseNode pn=new ParseNode("cast2");
 		pn.addChild("type").addChild(type);
 		pn.addChild("exp").addChild(exp);
 		RESULT=pn;
