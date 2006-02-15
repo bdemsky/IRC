@@ -29,6 +29,6 @@ public class FieldDescriptor extends Descriptor {
 	if (en==null)
 	    return modifier.toString()+td.toString()+" "+identifier+";";
 	else
-	    return modifier.toString()+td.toString()+" "+identifier+"="+en.printNode()+";";
+	    return modifier.toString()+td.toString()+" "+identifier+"="+en.printNode(0)+";";
     }
 }

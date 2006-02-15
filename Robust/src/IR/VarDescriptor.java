@@ -25,8 +25,8 @@ public class VarDescriptor extends Descriptor {
 
     public String toString() {
 	if (en==null)
-	    return td.toString()+" "+identifier+";";
+	    return td.toString()+" "+identifier;
 	else
-	    return td.toString()+" "+identifier+"="+en.printNode()+";";
+	    return td.toString()+" "+identifier+"="+en.printNode(0);
     }
 }
