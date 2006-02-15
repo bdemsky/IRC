@@ -3,6 +3,11 @@ import java.util.Vector;
 
 class BlockNode extends TreeNode {
     Vector blockstatements;
+    int printStyle=0;
+    public final static int NORMAL=0;
+    public final static int NOBRACES=1;
+    public final static int EXPRLIST=2;
+    
     public BlockNode() {
 	blockstatements=new Vector();
     }
@@ -10,14 +15,45 @@ class BlockNode extends TreeNode {
     public void addBlockStatement(BlockStatementNode bsn) {
 	blockstatements.add(bsn);
     }
+    public void setStyle(int style) {
+	printStyle=style;
+    }
 
-    public String printNode() {
-	String st="{\n";
-	for(int i=0;i<blockstatements.size();i++) {
-	    BlockStatementNode bsn=(BlockStatementNode)blockstatements.get(i);
-	    st+=bsn.printNode()+"\n";
-	}
-	st+="}\n";
-	return st;
+    public String printNode(int indent) {
+	if (printStyle==NORMAL) {
+	    String st="{\n";
+	    for(int i=0;i<blockstatements.size();i++) {
+		BlockStatementNode bsn=(BlockStatementNode)blockstatements.get(i);
+		st+=printSpace(indent+INDENT)+bsn.printNode(indent+INDENT);
+		if (!((bsn instanceof SubBlockNode)||
+		      (bsn instanceof LoopNode)||
+		      (bsn instanceof IfStatementNode)))
+		    st+=";\n";
+		if (bsn instanceof IfStatementNode)
+		    st+="\n";
+	    }
+	    st+=printSpace(indent)+"}";
+	    return st;
+	} else if (printStyle==NOBRACES) {
+	    String st="";
+	    for(int i=0;i<blockstatements.size();i++) {
+		BlockStatementNode bsn=(BlockStatementNode)blockstatements.get(i);
+		st+=printSpace(indent)+bsn.printNode(indent);
+		if (!((bsn instanceof SubBlockNode)||
+		      (bsn instanceof LoopNode)||
+		      (bsn instanceof IfStatementNode)))
+		    st+=";";
+	    }
+	    return st;
+	} else if (printStyle==EXPRLIST) {
+	    String st="";
+	    for(int i=0;i<blockstatements.size();i++) {
+		BlockStatementNode bsn=(BlockStatementNode)blockstatements.get(i);
+		st+=bsn.printNode(0);
+		if ((i+1)!=blockstatements.size())
+		    st+=", ";
+	    }
+	    return st;
+	} else throw new Error();
     }
 }

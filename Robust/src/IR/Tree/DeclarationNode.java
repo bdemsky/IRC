@@ -7,7 +7,7 @@ class DeclarationNode extends BlockStatementNode {
 	vd=var;
     }
     
-    public String printNode() {
+    public String printNode(int indent) {
 	return vd.toString();
     }
 

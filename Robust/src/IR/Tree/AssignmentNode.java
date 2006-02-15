@@ -12,7 +12,7 @@ public class AssignmentNode extends ExpressionNode {
 	this.op=op;
     }
 
-    public String printNode() {
-	return left.printNode()+" "+op.toString()+" "+right.printNode();
+    public String printNode(int indent) {
+	return left.printNode(indent)+" "+op.toString()+" "+right.printNode(indent);
     }
 }

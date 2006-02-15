@@ -18,10 +18,10 @@ public class OpNode extends ExpressionNode {
 	op=o;
     }
 
-    public String printNode() {
+    public String printNode(int indent) {
 	if (right==null)
-	    return op.toString()+"("+left.printNode()+")";
+	    return op.toString()+"("+left.printNode(indent)+")";
 	else
-	    return left.printNode()+" "+op.toString()+" "+right.printNode();
+	    return left.printNode(indent)+" "+op.toString()+" "+right.printNode(indent);
     }
 }

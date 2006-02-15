@@ -20,21 +20,24 @@ class ClassNode extends TreeNode {
     Vector methods;
     Hashtable methodmap;
     
-    public String printNode() {
+    public String printNode(int indent) {
 	String st=modifiers.toString()+"class "+classname;
 	if (superclass!=null) 
 	    st+="extends "+superclass.toString();
 	st+=" {\n";
+	indent+=INDENT;
 	for(int i=0;i<fields.size();i++) {
 	    FieldDescriptor fd=(FieldDescriptor)fields.get(i);
-	    st+=fd.toString()+"\n";
+	    st+=printSpace(indent)+fd.toString()+"\n";
 	}
+	if (fields.size()>0)
+	    st+="\n";
 
 	for(int i=0;i<methods.size();i++) {
 	    MethodDescriptor md=(MethodDescriptor)methods.get(i);
-	    st+=md.toString()+"\n";
+	    st+=printSpace(indent)+md.toString()+" ";
 	    BlockNode bn=(BlockNode)methodmap.get(md);
-	    st+=bn.printNode();
+	    st+=bn.printNode(indent)+"\n\n";
 	}
 	st+="}\n";
 	return st;

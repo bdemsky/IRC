@@ -6,7 +6,7 @@ class BlockExpressionNode extends BlockStatementNode {
 	this.en=e;
     }
     
-    public String printNode() {
-	return en.printNode()+";";
+    public String printNode(int indent) {
+	return en.printNode(indent);
     }
 }

@@ -50,9 +50,24 @@ public class LiteralNode extends ExpressionNode {
 
     }
 
-    public String printNode() {
+    public String printNode(int indent) {
 	if (type==NULL)
 	    return "null";
+	if (type==STRING) {
+	    return '"'+escapeString(value.toString())+'"';
+	}
 	return "/*"+getType()+ "*/"+value.toString();
+    }
+    private static String escapeString(String st) {
+	String new_st="";
+	for(int i=0;i<st.length();i++) {
+	    char x=st.charAt(i);
+	    if (x=='\n')
+		new_st+="\\n";
+	    else if (x=='"')
+		new_st+="'"+'"'+"'";
+	    else new_st+=x;
+	}
+	return new_st;
     }
 }

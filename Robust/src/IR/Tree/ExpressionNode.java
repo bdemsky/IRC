@@ -2,7 +2,7 @@ package IR.Tree;
 
 public class ExpressionNode extends TreeNode {
 
-    public String printNode() {
+    public String printNode(int indentlevel) {
 	return null;
     }
 }

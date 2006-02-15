@@ -6,8 +6,8 @@ class SubBlockNode extends BlockStatementNode {
 	this.bn=bn;
     }
     
-    public String printNode() {
-	return bn.printNode();
+    public String printNode(int indent) {
+	return bn.printNode(indent);
     }
 
 }

@@ -4,7 +4,7 @@ class BlockStatementNode extends TreeNode {
     public BlockStatementNode() {
     }
     
-    public String printNode() {
+    public String printNode(int indent) {
 	return null;
     }
 

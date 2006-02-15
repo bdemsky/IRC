@@ -14,11 +14,11 @@ public class CreateObjectNode extends ExpressionNode {
 	argumentlist.add(en);
     }
 
-    public String printNode() {
+    public String printNode(int indent) {
 	String st="new "+td.toString()+"(";
 	for(int i=0;i<argumentlist.size();i++) {
 	    ExpressionNode en=(ExpressionNode)argumentlist.get(i);
-	    st+=en.printNode();
+	    st+=en.printNode(indent);
 	    if ((i+1)!=argumentlist.size())
 		st+=", ";
 	}

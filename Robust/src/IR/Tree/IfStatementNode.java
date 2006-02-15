@@ -11,11 +11,10 @@ class IfStatementNode extends BlockStatementNode {
 	this.else_st=else_st;
     }
     
-    public String printNode() {
+    public String printNode(int indent) {
 	if (else_st==null)
-	    return "if("+cond.printNode()+") {\n"+true_st.printNode()+"\n}\n";
+	    return "if("+cond.printNode(indent)+") "+true_st.printNode(indent);
 	else 
-	    return "if("+cond.printNode()+") {\n"+true_st.printNode()+"\n} else {\n"+
-		else_st.printNode()+"}\n";
+	    return "if("+cond.printNode(indent)+") "+true_st.printNode(indent)+" else "+	else_st.printNode(indent);
     }
 }

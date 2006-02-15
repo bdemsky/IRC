@@ -7,7 +7,7 @@ public class NameNode extends ExpressionNode {
 	this.name=nd;
     }
 
-    public String printNode() {
+    public String printNode(int indent) {
 	return name.toString();
     }
 }

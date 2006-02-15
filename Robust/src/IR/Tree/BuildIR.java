@@ -10,7 +10,7 @@ public class BuildIR {
     public void buildtree() {
 	ParseNode pn=state.parsetree;
 	FileNode fn=parseFile(pn);
-	System.out.println(fn.printNode());
+	System.out.println(fn.printNode(0));
     }
 
     /** Parse the classes in this file */
@@ -103,10 +103,8 @@ public class BuildIR {
     private NameDescriptor parseName(ParseNode nn) {
 	ParseNode base=nn.getChild("base");
 	ParseNode id=nn.getChild("identifier");
-	
 	if (base==null)
 	    return new NameDescriptor(id.getTerminal());
-
 	return new NameDescriptor(parseName(base.getChild("name")),id.getTerminal());
 	
     }
@@ -114,7 +112,6 @@ public class BuildIR {
     private void parseFieldDecl(ClassNode cn,ParseNode pn) {
 	ParseNode mn=pn.getChild("modifier");
 	Modifiers m=parseModifiersList(mn);
-
 
 	ParseNode tn=pn.getChild("type");
 	TypeDescriptor t=parseTypeDescriptor(tn);
@@ -200,6 +197,10 @@ public class BuildIR {
 	    ExpressionNode en=parseExpression(pn.getChild("base").getFirstChild());
 	    String fieldname=pn.getChild("field").getTerminal();
 	    return new FieldAccessNode(en,fieldname);
+	} else if (isNode(pn,"cast1")) { 
+	    return new CastNode(parseTypeDescriptor(pn.getChild("type")),parseExpression(pn.getChild("exp").getFirstChild()));
+	} else if (isNode(pn,"cast2")) { 
+	    return new CastNode(parseExpression(pn.getChild("type").getFirstChild()),parseExpression(pn.getChild("exp").getFirstChild()));
 	} else {
 	    System.out.println("---------------------");
 	    System.out.println(pn.PPrint(3,true));
@@ -261,6 +262,7 @@ public class BuildIR {
 	for(int j=0;j<bsv.size();j++) {
 	    bn.addBlockStatement((BlockStatementNode)bsv.get(j));
 	}
+	bn.setStyle(BlockNode.NOBRACES);
 	return bn;
     }
 
@@ -301,11 +303,25 @@ public class BuildIR {
 	    blockstatements.add(new SubBlockNode(bn));
 	} else if (isNode(pn,"empty")) {
 	    /* nop */
-	} /*else {
+	} else if (isNode(pn,"statement_expression_list")) {
+	    ParseNodeVector pnv=pn.getChildren();
+	    BlockNode bn=new BlockNode();
+	    for(int i=0;i<pnv.size();i++) {
+		ExpressionNode en=parseExpression(pnv.elementAt(i));
+		blockstatements.add(new BlockExpressionNode(en));
+	    }
+	    bn.setStyle(BlockNode.EXPRLIST);
+	} else if (isNode(pn,"forstatement")) {
+	    BlockNode init=parseSingleBlock(pn.getChild("initializer").getFirstChild());
+	    BlockNode update=parseSingleBlock(pn.getChild("update").getFirstChild());
+	    ExpressionNode condition=parseExpression(pn.getChild("condition").getFirstChild());
+	    BlockNode body=parseSingleBlock(pn.getChild("statement").getFirstChild());
+	    blockstatements.add(new LoopNode(init,condition,update,body));
+   	} else {
 	    System.out.println("---------------");
 	    System.out.println(pn.PPrint(3,true));
 	    throw new Error();
-	    }*/
+	}
 	return blockstatements;
     }
 

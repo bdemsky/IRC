@@ -11,11 +11,11 @@ class ReturnNode extends BlockStatementNode {
 	this.en=en;
     }
 
-    public String printNode() {
+    public String printNode(int indent) {
 	if (en==null)
 	    return "return";
 	else
-	    return "return "+en.printNode();
+	    return "return "+en.printNode(indent);
     }
 
 }

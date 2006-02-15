@@ -12,11 +12,11 @@ class FileNode extends TreeNode {
 	type_decls.add(tdn);
     }
 
-    public String printNode() {
+    public String printNode(int indent) {
 	String st="";
 	for(int i=0;i<type_decls.size();i++) {
 	    ClassNode cn=(ClassNode) type_decls.get(i);
-	    st+=cn.printNode();
+	    st+=cn.printNode(indent);
 
 	}
 	return st;

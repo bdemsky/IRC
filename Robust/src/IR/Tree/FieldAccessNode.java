@@ -9,7 +9,7 @@ public class FieldAccessNode extends ExpressionNode {
 	left=l;
     }
 
-    public String printNode() {
-	return left.printNode()+"."+fieldname;
+    public String printNode(int indent) {
+	return left.printNode(indent)+"."+fieldname;
     }
 }
