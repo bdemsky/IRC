@@ -1,5 +1,6 @@
 package IR.Tree;
 import IR.*;
+import java.util.Vector;
 
 public class BuildIR {
     State state;
@@ -93,27 +94,28 @@ public class BuildIR {
 	    return state.getTypeDescriptor(TypeDescriptor.DOUBLE);
 	} else if(type_st.equals("class")) {
 	    ParseNode nn=tn.getChild("class");
-	    return state.getTypeDescriptor(parseName(nn));
+	    return state.getTypeDescriptor(parseName(nn.getChild("name")));
 	} else {
 	    throw new Error();
 	}
     }
 
-    private NameDescriptor parseName(ParseNode pn) {
-	ParseNode nn=pn.getChild("name");
+    private NameDescriptor parseName(ParseNode nn) {
 	ParseNode base=nn.getChild("base");
 	ParseNode id=nn.getChild("identifier");
 	
 	if (base==null)
 	    return new NameDescriptor(id.getTerminal());
 
-	return new NameDescriptor(parseName(base),id.getTerminal());
+	return new NameDescriptor(parseName(base.getChild("name")),id.getTerminal());
 	
     }
 
     private void parseFieldDecl(ClassNode cn,ParseNode pn) {
 	ParseNode mn=pn.getChild("modifier");
 	Modifiers m=parseModifiersList(mn);
+
+
 	ParseNode tn=pn.getChild("type");
 	TypeDescriptor t=parseTypeDescriptor(tn);
 	ParseNode vn=pn.getChild("variables").getChild("variable_declarators_list");
@@ -163,12 +165,66 @@ public class BuildIR {
 	    ParseNode literalnode=pn.getChild(literaltype);
 	    Object literal_obj=literalnode.getLiteral();
 	    return new LiteralNode(literaltype, literal_obj);
+	} else if (isNode(pn,"createobject")) {
+	    TypeDescriptor td=parseTypeDescriptor(pn);
+	    Vector args=parseArgumentList(pn);
+	    CreateObjectNode con=new CreateObjectNode(td);
+	    for(int i=0;i<args.size();i++) {
+		con.addArgument((ExpressionNode)args.get(i));
+	    }
+	    return con;
+	} else if (isNode(pn,"name")) {
+	    NameDescriptor nd=parseName(pn);
+	    return new NameNode(nd);
+	} else if (isNode(pn,"this")) {
+	    NameDescriptor nd=new NameDescriptor("this");
+	    return new NameNode(nd);
+	} else if (isNode(pn,"methodinvoke1")) {
+	    NameDescriptor nd=parseName(pn.getChild("name"));
+	    Vector args=parseArgumentList(pn);
+	    MethodInvokeNode min=new MethodInvokeNode(nd);
+	    for(int i=0;i<args.size();i++) {
+		min.addArgument((ExpressionNode)args.get(i));
+	    }
+	    return min;
+	} else if (isNode(pn,"methodinvoke2")) {
+	    String methodid=pn.getChild("id").getTerminal();
+	    ExpressionNode exp=parseExpression(pn.getChild("base").getFirstChild());
+	    Vector args=parseArgumentList(pn);
+	    MethodInvokeNode min=new MethodInvokeNode(methodid,exp);
+	    for(int i=0;i<args.size();i++) {
+		min.addArgument((ExpressionNode)args.get(i));
+	    }
+	    return min;
+	} else if (isNode(pn,"fieldaccess")) { 
+	    ExpressionNode en=parseExpression(pn.getChild("base").getFirstChild());
+	    String fieldname=pn.getChild("field").getTerminal();
+	    return new FieldAccessNode(en,fieldname);
+	} else {
+	    System.out.println("---------------------");
+	    System.out.println(pn.PPrint(3,true));
+	    throw new Error();
 	}
-	throw new Error();
+    }
+
+    private Vector parseArgumentList(ParseNode pn) {
+	Vector arglist=new Vector();
+	ParseNode an=pn.getChild("argument_list");
+	if (an==null)   /* No argument list */
+	    return arglist;
+	ParseNodeVector anv=an.getChildren();
+	for(int i=0;i<anv.size();i++) {
+	    arglist.add(parseExpression(anv.elementAt(i)));
+	}
+	return arglist;
     }
 
     private ExpressionNode parseAssignmentExpression(ParseNode pn) {
-	return null;
+	AssignOperation ao=new AssignOperation(pn.getChild("op").getTerminal());
+	ParseNodeVector pnv=pn.getChild("args").getChildren();
+	
+	AssignmentNode an=new AssignmentNode(parseExpression(pnv.elementAt(0)),parseExpression(pnv.elementAt(1)),ao);
+	return an;
     }
 
 
@@ -177,12 +233,80 @@ public class BuildIR {
 	ParseNode bodyn=pn.getChild("body");
 	MethodDescriptor md=parseMethodHeader(headern);
 	BlockNode bn=parseBlock(bodyn);
-	cn.addMethod(md);
+	cn.addMethod(md,bn);
     }
 
     public BlockNode parseBlock(ParseNode pn) {
+	if (isEmpty(pn.getTerminal()))
+	    return new BlockNode();
+	ParseNode bsn=pn.getChild("block_statement_list");
+	return parseBlockHelper(bsn);
+    }
+    
+    private BlockNode parseBlockHelper(ParseNode pn) {
+	ParseNodeVector pnv=pn.getChildren();
+	BlockNode bn=new BlockNode();
+	for(int i=0;i<pnv.size();i++) {
+	    Vector bsv=parseBlockStatement(pnv.elementAt(i));
+	    for(int j=0;j<bsv.size();j++) {
+		bn.addBlockStatement((BlockStatementNode)bsv.get(j));
+	    }
+	}
+	return bn;
+    }
 
+    public BlockNode parseSingleBlock(ParseNode pn) {
+	BlockNode bn=new BlockNode();
+	Vector bsv=parseBlockStatement(pn);
+	for(int j=0;j<bsv.size();j++) {
+	    bn.addBlockStatement((BlockStatementNode)bsv.get(j));
+	}
+	return bn;
+    }
 
+    public Vector parseBlockStatement(ParseNode pn) {
+	Vector blockstatements=new Vector();
+	if (isNode(pn,"local_variable_declaration")) {
+	    TypeDescriptor t=parseTypeDescriptor(pn);
+	    ParseNode vn=pn.getChild("variable_declarators_list");
+	    ParseNodeVector pnv=vn.getChildren();
+	    for(int i=0;i<pnv.size();i++) {
+		ParseNode vardecl=pnv.elementAt(i);
+		String identifier=vardecl.getChild("single").getTerminal();
+		ParseNode epn=vardecl.getChild("initializer");
+		
+		ExpressionNode en=null;
+		if (epn!=null)
+		    en=parseExpression(epn.getFirstChild());
+		
+		blockstatements.add(new DeclarationNode(new VarDescriptor(t,identifier, en)));
+	    }
+	} else if (isNode(pn,"nop")) {
+	    /* Do Nothing */
+	} else if (isNode(pn,"expression")) {
+	    blockstatements.add(new BlockExpressionNode(parseExpression(pn.getFirstChild())));
+	} else if (isNode(pn,"ifstatement")) {
+	    blockstatements.add(new IfStatementNode(parseExpression(pn.getChild("condition").getFirstChild()),
+				       parseSingleBlock(pn.getChild("statement").getFirstChild()),
+				       pn.getChild("else_statement")!=null?parseSingleBlock(pn.getChild("else_statement").getFirstChild()):null));
+	} else if (isNode(pn,"return")) {
+	    if (isEmpty(pn.getTerminal()))
+		blockstatements.add(new ReturnNode());
+	    else {
+		ExpressionNode en=parseExpression(pn.getFirstChild());
+		blockstatements.add(new ReturnNode(en));
+	    }
+	} else if (isNode(pn,"block_statement_list")) {
+	    BlockNode bn=parseBlockHelper(pn);
+	    blockstatements.add(new SubBlockNode(bn));
+	} else if (isNode(pn,"empty")) {
+	    /* nop */
+	} /*else {
+	    System.out.println("---------------");
+	    System.out.println(pn.PPrint(3,true));
+	    throw new Error();
+	    }*/
+	return blockstatements;
     }
 
     public MethodDescriptor parseMethodHeader(ParseNode pn) {

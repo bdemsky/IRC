@@ -1,5 +1,6 @@
 package IR.Tree;
 import java.util.Vector;
+import java.util.Hashtable;
 import IR.FieldDescriptor;
 import IR.MethodDescriptor;
 import IR.NameDescriptor;
@@ -10,15 +11,17 @@ class ClassNode extends TreeNode {
 	superclass=null;
 	fields=new Vector();
 	methods=new Vector();
+	methodmap=new Hashtable();
     }
     String classname;
     NameDescriptor superclass;
     Modifiers modifiers;
     Vector fields;
     Vector methods;
+    Hashtable methodmap;
     
     public String printNode() {
-	String st=modifiers.toString()+classname;
+	String st=modifiers.toString()+"class "+classname;
 	if (superclass!=null) 
 	    st+="extends "+superclass.toString();
 	st+=" {\n";
@@ -30,6 +33,8 @@ class ClassNode extends TreeNode {
 	for(int i=0;i<methods.size();i++) {
 	    MethodDescriptor md=(MethodDescriptor)methods.get(i);
 	    st+=md.toString()+"\n";
+	    BlockNode bn=(BlockNode)methodmap.get(md);
+	    st+=bn.printNode();
 	}
 	st+="}\n";
 	return st;
@@ -39,10 +44,11 @@ class ClassNode extends TreeNode {
 	fields.add(fd);
     }
 
-    public void addMethod(MethodDescriptor md) {
+    public void addMethod(MethodDescriptor md, BlockNode b) {
 	methods.add(md);
+	methodmap.put(md,b);
     }
-
+  
     public void setModifiers(Modifiers modifiers) {
 	this.modifiers=modifiers;
     }

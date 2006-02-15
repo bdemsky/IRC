@@ -709,17 +709,13 @@ constructor_body ::=
 
 // 19.11) Blocks and Statements
 block ::=	LBRACE block_statements_opt:bso RBRACE {: 
-	ParseNode pn=new ParseNode("block");
-	pn.addChild("block_statements_opt").addChild(bso);
-	RESULT=pn;
+	RESULT=bso;
 	:}
 	;
 block_statements_opt ::=
 	{: RESULT=new ParseNode("empty"); :}
 	|	block_statements:bs {: 
-	ParseNode pn=new ParseNode("block_statements_opt");
-	pn.addChild("block_statements").addChild(bs);
-	RESULT=pn;
+	RESULT=bs;
 	:}
 	;
 block_statements ::=
@@ -730,19 +726,15 @@ block_statements ::=
 	:}
 	|	block_statements:bss block_statement:bs {: 
 	bss.addChild(bs);
-	RESULT=bs;
+	RESULT=bss;
 	:}
 	;
 block_statement ::=
 		local_variable_declaration_statement:lvds {: 
-		ParseNode pn=new ParseNode("block_statement");
-		pn.addChild("local_variable_declaration").addChild(lvds);
-		RESULT=pn;
+		RESULT=lvds;
 	:}
 	|	statement:statement {: 
-		ParseNode pn=new ParseNode("statement");
-		pn.addChild("statement").addChild(statement);
-		RESULT=pn;
+		RESULT=statement;
 	:}
 //	|	class_declaration
 //	|	interface_declaration
@@ -753,10 +745,10 @@ local_variable_declaration_statement ::=
 	:}
 	;
 local_variable_declaration ::=
-		type:type variable_declarators:var_decls {: 
+		type:type variable_declarators:var {: 
 		ParseNode pn=new ParseNode("local_variable_declaration");
-		pn.addChild("type").addChild(type);
-		pn.addChild("variables").addChild(var_decls);
+		pn.addChild(type);
+		pn.addChild(var);
 		RESULT=pn;
 :}
 //	|	FINAL type variable_declarators
@@ -801,7 +793,10 @@ empty_statement ::=
 //		IDENTIFIER COLON statement_no_short_if
 //	;
 expression_statement ::=
-		statement_expression:se SEMICOLON {: RESULT=se; :}
+		statement_expression:se SEMICOLON {: 
+		ParseNode pn=new ParseNode("expression");
+		pn.addChild(se);
+		RESULT=pn; :}
 	;
 statement_expression ::=
 		assignment:st {: RESULT=st; :}
@@ -947,7 +942,7 @@ SEMICOLON
 	;
 return_statement ::=
 		RETURN expression_opt:exp SEMICOLON {: 
-	RESULT=(new ParseNode("return")).addChild("retvalue").addChild(exp).getRoot(); :}
+	RESULT=(new ParseNode("return")).addChild(exp).getRoot(); :}
 	;
 //throw_statement ::=
 //		THROW expression SEMICOLON
@@ -998,8 +993,8 @@ primary_no_new_array ::=
 class_instance_creation_expression ::=
 		NEW class_or_interface_type:type LPAREN argument_list_opt:args RPAREN {: 
 		ParseNode pn=new ParseNode("createobject");
-		pn.addChild("type").addChild(type);
-		pn.addChild("args").addChild(args);
+		pn.addChild(type);
+		pn.addChild(args);
 		RESULT=pn;
 	:}
 //	|	NEW class_or_interface_type LPAREN argument_list_opt RPAREN class_body
@@ -1060,16 +1055,16 @@ field_access ::=
 	;
 method_invocation ::=
 		name:name LPAREN argument_list_opt:args RPAREN {: 
-		ParseNode pn=new ParseNode("methodinvoke");
-		pn.addChild("name").addChild(name);
-		pn.addChild("args").addChild(args);
+		ParseNode pn=new ParseNode("methodinvoke1");
+		pn.addChild(name);
+		pn.addChild(args);
 		RESULT=pn;
 	:}
 	|	primary:base DOT IDENTIFIER:name LPAREN argument_list_opt:args RPAREN {: 
-		ParseNode pn=new ParseNode("methodinvoke");
+		ParseNode pn=new ParseNode("methodinvoke2");
 		pn.addChild("base").addChild(base);
-		pn.addChild("name").addChild(name);
-		pn.addChild("args").addChild(args);
+		pn.addChild("id").addChild(name);
+		pn.addChild(args);
 		RESULT=pn;
 	:}
 //	|	SUPER DOT IDENTIFIER LPAREN argument_list_opt RPAREN
@@ -1316,18 +1311,18 @@ assignment ::=	postfix_expression:lvalue assignment_operator:op assignment_expre
 	 :}
 	;
 assignment_operator ::=
-		EQ {: RESULT=(new ParseNode("assignment_operator")).addChild("eq"); :}
-	|	MULTEQ {: RESULT=(new ParseNode("assignment_operator")).addChild("multeq"); :}
-	|	DIVEQ {: RESULT=(new ParseNode("assignment_operator")).addChild("diveq"); :}
-	|	MODEQ {: RESULT=(new ParseNode("assignment_operator")).addChild("modeq"); :}
-	|	PLUSEQ {: RESULT=(new ParseNode("assignment_operator")).addChild("pluseq"); :}
-	|	MINUSEQ {: RESULT=(new ParseNode("assignment_operator")).addChild("minuseq"); :}
-	|	LSHIFTEQ {: RESULT=(new ParseNode("assignment_operator")).addChild("lshifteq"); :}
-	|	RSHIFTEQ {: RESULT=(new ParseNode("assignment_operator")).addChild("rshifteq"); :}
-//	|	URSHIFTEQ {: RESULT=(new ParseNode("assignment_operator")).addChild("urshifteq"); :}
-	|	ANDEQ {: RESULT=(new ParseNode("assignment_operator")).addChild("andeq"); :}
-	|	XOREQ {: RESULT=(new ParseNode("assignment_operator")).addChild("xoreq"); :}
-	|	OREQ {: RESULT=(new ParseNode("assignment_operator")).addChild("oreq"); :}
+		EQ {: RESULT=new ParseNode("eq"); :}
+	|	MULTEQ {: RESULT=new ParseNode("multeq"); :}
+	|	DIVEQ {: RESULT=new ParseNode("diveq"); :}
+	|	MODEQ {: RESULT=new ParseNode("modeq"); :}
+	|	PLUSEQ {: RESULT=new ParseNode("pluseq"); :}
+	|	MINUSEQ {: RESULT=new ParseNode("minuseq"); :}
+	|	LSHIFTEQ {: RESULT=new ParseNode("lshifteq"); :}
+	|	RSHIFTEQ {: RESULT=new ParseNode("rshifteq"); :}
+//	|	URSHIFTEQ {: RESULT=new ParseNode("urshifteq"); :}
+	|	ANDEQ {: RESULT=new ParseNode("andeq"); :}
+	|	XOREQ {: RESULT=new ParseNode("xoreq"); :}
+	|	OREQ {: RESULT=new ParseNode("oreq"); :}
 	;
 expression_opt ::=
 	{: 	RESULT=new ParseNode("empty"); :}
