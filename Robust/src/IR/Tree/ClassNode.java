@@ -5,7 +5,7 @@ import IR.FieldDescriptor;
 import IR.MethodDescriptor;
 import IR.NameDescriptor;
 
-class ClassNode extends TreeNode {
+public class ClassNode extends TreeNode {
     ClassNode() {
 	classname=null;
 	superclass=null;

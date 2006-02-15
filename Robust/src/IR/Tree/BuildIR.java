@@ -9,13 +9,11 @@ public class BuildIR {
     }
     public void buildtree() {
 	ParseNode pn=state.parsetree;
-	FileNode fn=parseFile(pn);
-	System.out.println(fn.printNode(0));
+	parseFile(pn);
     }
 
     /** Parse the classes in this file */
-    public FileNode parseFile(ParseNode pn) {
-	FileNode fn=new FileNode();
+    public void parseFile(ParseNode pn) {
 	ParseNode tpn=pn.getChild("type_declaration_list");
 	if (tpn!=null) {
 	    ParseNodeVector pnv=tpn.getChildren();
@@ -24,10 +22,9 @@ public class BuildIR {
 		if (isEmpty(type_pn)) /* Skip the semicolon */
 		    continue;
 		ClassNode cn=parseTypeDecl(type_pn);
-		fn.addClass(cn);
+		state.addClass(cn);
 	    }
 	}
-	return fn;
     }
 
     public ClassNode parseTypeDecl(ParseNode pn) {

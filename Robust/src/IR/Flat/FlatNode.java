@@ -1,3 +1,5 @@
+package IR.Flat;
+
 public class FlatNode {
 
     public String toString() {
