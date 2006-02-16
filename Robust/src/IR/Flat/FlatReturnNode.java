@@ -1,9 +1,9 @@
 package IR.Flat;
 
-public class ReturnNode extends FlatNode {
+public class FlatReturnNode extends FlatNode {
     TempDescriptor tempdesc;
 
-    public ReturnNode(TempDescriptor td) {
+    public FlatReturnNode(TempDescriptor td) {
 	this.tempdesc=td;
     }
 

@@ -279,7 +279,7 @@ public class BuildIR {
 		if (epn!=null)
 		    en=parseExpression(epn.getFirstChild());
 		
-		blockstatements.add(new DeclarationNode(new VarDescriptor(t,identifier, en)));
+		blockstatements.add(new DeclarationNode(new VarDescriptor(t,identifier),en));
 	    }
 	} else if (isNode(pn,"nop")) {
 	    /* Do Nothing */

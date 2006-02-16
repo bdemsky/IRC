@@ -53,7 +53,57 @@ public class BuildFlat {
 	return flattenExpressionNode(en.getExpression(),tmp);
     }
 
+    private NodePair flattenAssignmentNode(AssignmentNode an,TempDescriptor out_temp) {
+	throw new Error();
+    }
+
+    private NodePair flattenCastNode(CastNode cn,TempDescriptor out_temp) {
+	throw new Error();
+    }
+
+    private NodePair flattenCreateObjectNode(CreateObjectNode con,TempDescriptor out_temp) {
+	throw new Error();
+    }
+
+    private NodePair flattenFieldAccessNode(FieldAccessNode fan,TempDescriptor out_temp) {
+	throw new Error();
+    }
+
+    private NodePair flattenLiteralNode(LiteralNode ln,TempDescriptor out_temp) {
+	throw new Error();
+    }
+
+    private NodePair flattenMethodInvokeNode(MethodInvokeNode min,TempDescriptor out_temp) {
+	throw new Error();
+    }
+
+    private NodePair flattenNameNode(NameNode nn,TempDescriptor out_temp) {
+	throw new Error();
+    }
+
+    private NodePair flattenOpNode(OpNode on,TempDescriptor out_temp) {
+	throw new Error();
+    }
+
     private NodePair flattenExpressionNode(ExpressionNode en, TempDescriptor out_temp) {
+	switch(en.kind()) {
+	case Kind.AssignmentNode:
+	    return flattenAssignmentNode((AssignmentNode)en,out_temp);
+	case Kind.CastNode:
+	    return flattenCastNode((CastNode)en,out_temp);
+	case Kind.CreateObjectNode:
+	    return flattenCreateObjectNode((CreateObjectNode)en,out_temp);
+	case Kind.FieldAccessNode:
+	    return flattenFieldAccessNode((FieldAccessNode)en,out_temp);
+	case Kind.LiteralNode:
+	    return flattenLiteralNode((LiteralNode)en,out_temp);
+	case Kind.MethodInvokeNode:
+	    return flattenMethodInvokeNode((MethodInvokeNode)en,out_temp);
+	case Kind.NameNode:
+	    return flattenNameNode((NameNode)en,out_temp);
+	case Kind.OpNode:
+	    return flattenOpNode((OpNode)en,out_temp);
+	}
 	throw new Error();
     }
 
@@ -131,10 +181,10 @@ public class BuildFlat {
 	} else throw new Error();
     }
 	    
-    private NodePair flattenReturnNode(IR.Tree.ReturnNode rntree) {
+    private NodePair flattenReturnNode(ReturnNode rntree) {
 	TempDescriptor retval=TempDescriptor.tempFactory("ret_value");
 	NodePair cond=flattenExpressionNode(rntree.getReturnExpression(),retval);
-	ReturnNode rnflat=new IR.Flat.ReturnNode(retval);
+	FlatReturnNode rnflat=new FlatReturnNode(retval);
 	cond.getEnd().addNext(rnflat);
 	return new NodePair(cond.getBegin(),rnflat);
     }
