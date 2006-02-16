@@ -48,34 +48,81 @@ public class BuildFlat {
 	return new NodePair(begin,end);
     }
 
-    private NodePair flattenExpressionNode(ExpressionNode en) {
+    private NodePair flattenBlockExpressionNode(BlockExpressionNode en) {
+	throw new Error();
+    }
 
+    private NodePair flattenExpressionNode(ExpressionNode en) {
+	throw new Error();
     }
 
     private NodePair flattenDeclarationNode(DeclarationNode dn) {
-
+	throw new Error();
     }
         
     private NodePair flattenIfStatementNode(IfStatementNode isn) {
-
+	throw new Error();
     }
 	    
     private NodePair flattenLoopNode(LoopNode ln) {
+	if (ln.getType()==LoopNode.FORLOOP) {
+	    NodePair initializer=flattenBlockNode(ln.getInitializer());
+	    TempDescriptor cond_temp=TempDescriptor.tempFactory("condition");
+	    NodePair condition=flattenExpressionNode(ln.getCondition());
+	    NodePair update=flattenBlockNode(ln.getUpdate());
+	    NodePair body=flattenBlockNode(ln.getBody());
+	    FlatNode begin=initializer.getBegin();
+	    FlatCondBranch fcb=new FlatCondBranch(cond_temp);
+	    FlatNop nopend=new FlatNop();
 
+	    initializer.getEnd().addNext(condition.getBegin());
+	    body.getEnd().addNext(update.getBegin());
+	    update.getEnd().addNext(condition.getBegin());
+	    condition.getEnd().addNext(fcb);
+	    fcb.addFalseNext(nopend);
+	    fcb.addTrueNext(body.getBegin());
+	    return new NodePair(begin,nopend);
+	} else if (ln.getType()==LoopNode.WHILELOOP) {
+	    TempDescriptor cond_temp=TempDescriptor.tempFactory("condition");
+	    NodePair condition=flattenExpressionNode(ln.getCondition());
+	    NodePair body=flattenBlockNode(ln.getBody());
+	    FlatNode begin=condition.getBegin();
+	    FlatCondBranch fcb=new FlatCondBranch(cond_temp);
+	    FlatNop nopend=new FlatNop();
+
+	    body.getEnd().addNext(condition.getBegin());
+	    condition.getEnd().addNext(fcb);
+	    fcb.addFalseNext(nopend);
+	    fcb.addTrueNext(body.getBegin());
+	    return new NodePair(begin,nopend);
+	} else if (ln.getType()==LoopNode.DOWHILELOOP) {
+	    TempDescriptor cond_temp=TempDescriptor.tempFactory("condition");
+	    NodePair condition=flattenExpressionNode(ln.getCondition());
+	    NodePair body=flattenBlockNode(ln.getBody());
+	    FlatNode begin=body.getBegin();
+	    FlatCondBranch fcb=new FlatCondBranch(cond_temp);
+	    FlatNop nopend=new FlatNop();
+
+	    body.getEnd().addNext(condition.getBegin());
+	    condition.getEnd().addNext(fcb);
+	    fcb.addFalseNext(nopend);
+	    fcb.addTrueNext(body.getBegin());
+	    return new NodePair(begin,nopend);
+	} else throw new Error();
     }
 	    
-    private NodePair flattenReturnNode(ReturnNode rn) {
-
+    private NodePair flattenReturnNode(IR.Tree.ReturnNode rntree) {
+	throw new Error();
     }
 	    
     private NodePair flattenSubBlockNode(SubBlockNode sbn) {
-
+	return flattenBlockNode(sbn.getBlockNode());
     }
 
     private NodePair flattenBlockStatementNode(BlockStatementNode bsn) {
 	switch(bsn.kind()) {
 	case Kind.BlockExpressionNode:
-	    return flattenExpressionNode((ExpressionNode)bsn);
+	    return flattenBlockExpressionNode((BlockExpressionNode)bsn);
 	    
 	case Kind.DeclarationNode:
 	    return flattenDeclarationNode((DeclarationNode)bsn);
@@ -87,7 +134,7 @@ public class BuildFlat {
 	    return flattenLoopNode((LoopNode)bsn);
 	    
 	case Kind.ReturnNode:
-	    return flattenReturnNode((ReturnNode)bsn);
+	    return flattenReturnNode((IR.Tree.ReturnNode)bsn);
 	    
 	case Kind.SubBlockNode:
 	    return flattenSubBlockNode((SubBlockNode)bsn);

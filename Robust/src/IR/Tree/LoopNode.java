@@ -1,6 +1,6 @@
 package IR.Tree;
 
-class LoopNode extends BlockStatementNode {
+public class LoopNode extends BlockStatementNode {
     BlockNode initializer;
     ExpressionNode condition;
     BlockNode update;
@@ -26,6 +26,22 @@ class LoopNode extends BlockStatementNode {
 	this.type=type;
     }
     
+    public BlockNode getInitializer() {
+	return initializer;
+    }
+
+    public ExpressionNode getCondition() {
+	return condition;
+    }
+
+    public BlockNode getUpdate() {
+	return update;
+    }
+
+    public BlockNode getBody() {
+	return body;
+    }
+
     public String printNode(int indent) {
 	if (type==FORLOOP) {
 	    return "for("+initializer.printNode(0)+";"+condition.printNode(0)+
@@ -36,6 +52,10 @@ class LoopNode extends BlockStatementNode {
 	    return "do "+ body.printNode(indent+INDENT)+
 		"while("+condition.printNode(0)+")\n";
 	} else throw new Error();
+    }
+
+    public int getType() {
+	return type;
     }
 
     public int kind() {

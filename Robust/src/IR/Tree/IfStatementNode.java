@@ -1,6 +1,6 @@
 package IR.Tree;
 
-class IfStatementNode extends BlockStatementNode {
+public class IfStatementNode extends BlockStatementNode {
     ExpressionNode cond;
     BlockNode true_st;
     BlockNode else_st;

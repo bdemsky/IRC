@@ -1,6 +1,6 @@
 package IR.Tree;
 
-class ReturnNode extends BlockStatementNode {
+public class ReturnNode extends BlockStatementNode {
     ExpressionNode en;
 
     public ReturnNode() {
