@@ -48,7 +48,51 @@ public class BuildFlat {
 	return new NodePair(begin,end);
     }
 
+    private NodePair flattenExpressionNode(ExpressionNode en) {
+
+    }
+
+    private NodePair flattenDeclarationNode(DeclarationNode dn) {
+
+    }
+        
+    private NodePair flattenIfStatementNode(IfStatementNode isn) {
+
+    }
+	    
+    private NodePair flattenLoopNode(LoopNode ln) {
+
+    }
+	    
+    private NodePair flattenReturnNode(ReturnNode rn) {
+
+    }
+	    
+    private NodePair flattenSubBlockNode(SubBlockNode sbn) {
+
+    }
+
     private NodePair flattenBlockStatementNode(BlockStatementNode bsn) {
-	return null;
+	switch(bsn.kind()) {
+	case Kind.BlockExpressionNode:
+	    return flattenExpressionNode((ExpressionNode)bsn);
+	    
+	case Kind.DeclarationNode:
+	    return flattenDeclarationNode((DeclarationNode)bsn);
+	    
+	case Kind.IfStatementNode:
+	    return flattenIfStatementNode((IfStatementNode)bsn);
+	    
+	case Kind.LoopNode:
+	    return flattenLoopNode((LoopNode)bsn);
+	    
+	case Kind.ReturnNode:
+	    return flattenReturnNode((ReturnNode)bsn);
+	    
+	case Kind.SubBlockNode:
+	    return flattenSubBlockNode((SubBlockNode)bsn);
+	    
+	}
+    	throw new Error();
     }
 }
