@@ -4,10 +4,9 @@ IR/NameDescriptor.class IR/Operation.class IR/State.class		\
 IR/SymbolTable.class IR/Tree/AssignmentNode.class			\
 IR/Tree/BlockExpressionNode.class IR/Tree/BlockNode.class		\
 IR/Tree/BlockStatementNode.class IR/Tree/BuildIR.class			\
-IR/Tree/CastNode.class IR/Tree/ClassNode.class				\
-IR/Tree/CreateObjectNode.class IR/Tree/DeclarationNode.class		\
-IR/Tree/ExpressionNode.class IR/Tree/FieldAccessNode.class		\
-IR/Tree/FileNode.class IR/Tree/IfStatementNode.class			\
+IR/Tree/CastNode.class IR/Tree/CreateObjectNode.class			\
+IR/Tree/DeclarationNode.class IR/Tree/ExpressionNode.class		\
+IR/Tree/FieldAccessNode.class IR/Tree/IfStatementNode.class		\
 IR/Tree/LiteralNode.class IR/Tree/LoopNode.class			\
 IR/Tree/MethodInvokeNode.class IR/Tree/Modifiers.class			\
 IR/Tree/NameNode.class IR/Tree/OpNode.class IR/Tree/ParseNode.class	\
