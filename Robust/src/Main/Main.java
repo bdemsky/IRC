@@ -25,7 +25,7 @@ public class Main {
     bir.buildtree();
     
     BuildFlat bf=new BuildFlat(state);
-    bf.buildflat();
+    bf.buildFlat();
 
     System.exit(l.numErrors());
   }

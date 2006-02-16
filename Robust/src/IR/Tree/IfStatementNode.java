@@ -10,6 +10,18 @@ public class IfStatementNode extends BlockStatementNode {
 	this.true_st=true_st;
 	this.else_st=else_st;
     }
+
+    public ExpressionNode getCondition() {
+	return cond;
+    }
+
+    public BlockNode getTrueBlock() {
+	return true_st;
+    }
+
+    public BlockNode getFalseBlock() {
+	return else_st;
+    }
     
     public String printNode(int indent) {
 	if (else_st==null)

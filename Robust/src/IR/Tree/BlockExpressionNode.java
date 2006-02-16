@@ -10,6 +10,10 @@ public class BlockExpressionNode extends BlockStatementNode {
 	return en.printNode(indent);
     }
 
+    public ExpressionNode getExpression() {
+	return en;
+    }
+
     public int kind() {
 	return Kind.BlockExpressionNode;
     }

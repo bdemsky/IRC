@@ -11,6 +11,10 @@ public class ReturnNode extends BlockStatementNode {
 	this.en=en;
     }
 
+    public ExpressionNode getReturnExpression() {
+	return en;
+    }
+
     public String printNode(int indent) {
 	if (en==null)
 	    return "return";

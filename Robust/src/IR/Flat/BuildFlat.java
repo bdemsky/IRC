@@ -9,7 +9,7 @@ public class BuildFlat {
 	state=st;
     }
 
-    public void buildflat() {
+    public void buildFlat() {
 	Iterator it=state.classset.iterator();
 	while(it.hasNext()) {
 	    ClassDescriptor cn=(ClassDescriptor)it.next();
@@ -49,10 +49,11 @@ public class BuildFlat {
     }
 
     private NodePair flattenBlockExpressionNode(BlockExpressionNode en) {
-	throw new Error();
+	TempDescriptor tmp=TempDescriptor.tempFactory("neverused");
+	return flattenExpressionNode(en.getExpression(),tmp);
     }
 
-    private NodePair flattenExpressionNode(ExpressionNode en) {
+    private NodePair flattenExpressionNode(ExpressionNode en, TempDescriptor out_temp) {
 	throw new Error();
     }
 
@@ -61,14 +62,33 @@ public class BuildFlat {
     }
         
     private NodePair flattenIfStatementNode(IfStatementNode isn) {
-	throw new Error();
+	TempDescriptor cond_temp=TempDescriptor.tempFactory("condition");
+	NodePair cond=flattenExpressionNode(isn.getCondition(),cond_temp);
+	FlatCondBranch fcb=new FlatCondBranch(cond_temp);
+	NodePair true_np=flattenBlockNode(isn.getTrueBlock());
+	NodePair false_np;
+	FlatNop nopend=new FlatNop();
+
+	if (isn.getFalseBlock()!=null)
+	    false_np=flattenBlockNode(isn.getFalseBlock());
+	else {
+	    FlatNop nop=new FlatNop();
+	    false_np=new NodePair(nop,nop);
+	}
+
+	cond.getEnd().addNext(fcb);
+	fcb.addTrueNext(true_np.getBegin());
+	fcb.addFalseNext(false_np.getBegin());
+	true_np.getEnd().addNext(nopend);
+	false_np.getEnd().addNext(nopend);
+	return new NodePair(cond.getBegin(), nopend);
     }
 	    
     private NodePair flattenLoopNode(LoopNode ln) {
 	if (ln.getType()==LoopNode.FORLOOP) {
 	    NodePair initializer=flattenBlockNode(ln.getInitializer());
 	    TempDescriptor cond_temp=TempDescriptor.tempFactory("condition");
-	    NodePair condition=flattenExpressionNode(ln.getCondition());
+	    NodePair condition=flattenExpressionNode(ln.getCondition(),cond_temp);
 	    NodePair update=flattenBlockNode(ln.getUpdate());
 	    NodePair body=flattenBlockNode(ln.getBody());
 	    FlatNode begin=initializer.getBegin();
@@ -84,7 +104,7 @@ public class BuildFlat {
 	    return new NodePair(begin,nopend);
 	} else if (ln.getType()==LoopNode.WHILELOOP) {
 	    TempDescriptor cond_temp=TempDescriptor.tempFactory("condition");
-	    NodePair condition=flattenExpressionNode(ln.getCondition());
+	    NodePair condition=flattenExpressionNode(ln.getCondition(),cond_temp);
 	    NodePair body=flattenBlockNode(ln.getBody());
 	    FlatNode begin=condition.getBegin();
 	    FlatCondBranch fcb=new FlatCondBranch(cond_temp);
@@ -97,7 +117,7 @@ public class BuildFlat {
 	    return new NodePair(begin,nopend);
 	} else if (ln.getType()==LoopNode.DOWHILELOOP) {
 	    TempDescriptor cond_temp=TempDescriptor.tempFactory("condition");
-	    NodePair condition=flattenExpressionNode(ln.getCondition());
+	    NodePair condition=flattenExpressionNode(ln.getCondition(),cond_temp);
 	    NodePair body=flattenBlockNode(ln.getBody());
 	    FlatNode begin=body.getBegin();
 	    FlatCondBranch fcb=new FlatCondBranch(cond_temp);
@@ -112,7 +132,11 @@ public class BuildFlat {
     }
 	    
     private NodePair flattenReturnNode(IR.Tree.ReturnNode rntree) {
-	throw new Error();
+	TempDescriptor retval=TempDescriptor.tempFactory("ret_value");
+	NodePair cond=flattenExpressionNode(rntree.getReturnExpression(),retval);
+	ReturnNode rnflat=new IR.Flat.ReturnNode(retval);
+	cond.getEnd().addNext(rnflat);
+	return new NodePair(cond.getBegin(),rnflat);
     }
 	    
     private NodePair flattenSubBlockNode(SubBlockNode sbn) {
