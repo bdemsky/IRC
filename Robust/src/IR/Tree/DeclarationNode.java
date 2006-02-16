@@ -11,4 +11,7 @@ class DeclarationNode extends BlockStatementNode {
 	return vd.toString();
     }
 
+    public int kind() {
+	return Kind.DeclarationNode;
+    }
 }

@@ -10,4 +10,7 @@ public class NameNode extends ExpressionNode {
     public String printNode(int indent) {
 	return name.toString();
     }
+    public int kind() {
+	return Kind.NameNode;
+    }
 }

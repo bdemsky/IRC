@@ -1,6 +1,6 @@
 package IR.Tree;
 
-class TreeNode {
+public class TreeNode {
     public static final int INDENT=2;
 
     public String printNode(int indent) {
@@ -11,5 +11,8 @@ class TreeNode {
 	for(int i=0;i<x;i++)
 	    sp+=" ";
 	return sp;
+    }
+    public int kind() {
+	throw new Error();
     }
 }

@@ -1,6 +1,6 @@
 package IR.Tree;
 
-class BlockStatementNode extends TreeNode {
+public class BlockStatementNode extends TreeNode {
     public BlockStatementNode() {
     }
     

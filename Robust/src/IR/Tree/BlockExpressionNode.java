@@ -9,4 +9,8 @@ class BlockExpressionNode extends BlockStatementNode {
     public String printNode(int indent) {
 	return en.printNode(indent);
     }
+
+    public int kind() {
+	return Kind.BlockExpressionNode;
+    }
 }

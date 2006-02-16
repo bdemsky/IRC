@@ -21,15 +21,15 @@ public class BuildIR {
 		ParseNode type_pn=pnv.elementAt(i);
 		if (isEmpty(type_pn)) /* Skip the semicolon */
 		    continue;
-		ClassNode cn=parseTypeDecl(type_pn);
+		ClassDescriptor cn=parseTypeDecl(type_pn);
 		state.addClass(cn);
 	    }
 	}
     }
 
-    public ClassNode parseTypeDecl(ParseNode pn) {
+    public ClassDescriptor parseTypeDecl(ParseNode pn) {
 	if (isNode(pn, "class_declaration")) {
-	    ClassNode cn=new ClassNode();
+	    ClassDescriptor cn=new ClassDescriptor();
 	    cn.setName(pn.getChild("name").getTerminal());
 	    if (!isEmpty(pn.getChild("super").getTerminal())) {
 		/* parse superclass name */
@@ -40,7 +40,7 @@ public class BuildIR {
 	} else throw new Error();
     }
 
-    private void parseClassBody(ClassNode cn, ParseNode pn) {
+    private void parseClassBody(ClassDescriptor cn, ParseNode pn) {
 	ParseNode decls=pn.getChild("class_body_declaration_list");
 	if (decls!=null) {
 	    ParseNodeVector pnv=decls.getChildren();
@@ -55,7 +55,7 @@ public class BuildIR {
 	}
     }
 
-    private void parseClassMember(ClassNode cn, ParseNode pn) {
+    private void parseClassMember(ClassDescriptor cn, ParseNode pn) {
 	ParseNode fieldnode=pn.getChild("field");
 
 	if (fieldnode!=null) {
@@ -106,7 +106,7 @@ public class BuildIR {
 	
     }
 
-    private void parseFieldDecl(ClassNode cn,ParseNode pn) {
+    private void parseFieldDecl(ClassDescriptor cn,ParseNode pn) {
 	ParseNode mn=pn.getChild("modifier");
 	Modifiers m=parseModifiersList(mn);
 
@@ -226,12 +226,13 @@ public class BuildIR {
     }
 
 
-    private void parseMethodDecl(ClassNode cn, ParseNode pn) {
+    private void parseMethodDecl(ClassDescriptor cn, ParseNode pn) {
 	ParseNode headern=pn.getChild("method_header");
 	ParseNode bodyn=pn.getChild("body");
 	MethodDescriptor md=parseMethodHeader(headern);
 	BlockNode bn=parseBlock(bodyn);
-	cn.addMethod(md,bn);
+	cn.addMethod(md);
+	state.addTreeCode(md,bn);
     }
 
     public BlockNode parseBlock(ParseNode pn) {

@@ -5,13 +5,8 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import IR.Tree.ParseNode;
 import IR.Tree.BuildIR;
+import IR.Flat.BuildFlat;
 import IR.State;
-
-/* Test skeleton for java parser/lexer.
- * Copyright (C) 1998 C. Scott Ananian <cananian@alumni.princeton.edu>
- * This is released under the terms of the GPL with NO WARRANTY.
- * See the file COPYING for more details.
- */
 
 public class Main {
   public static void main(String args[]) throws Exception {
@@ -28,6 +23,10 @@ public class Main {
     State state=new State(p);
     BuildIR bir=new BuildIR(state);
     bir.buildtree();
+    
+    BuildFlat bf=new BuildFlat(state);
+    bf.buildflat();
+
     System.exit(l.numErrors());
   }
 }

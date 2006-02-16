@@ -15,4 +15,8 @@ public class AssignmentNode extends ExpressionNode {
     public String printNode(int indent) {
 	return left.printNode(indent)+" "+op.toString()+" "+right.printNode(indent);
     }
+
+    public int kind() {
+	return Kind.AssignmentNode;
+    }
 }

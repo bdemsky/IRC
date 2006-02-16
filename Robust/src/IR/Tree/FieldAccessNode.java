@@ -12,4 +12,7 @@ public class FieldAccessNode extends ExpressionNode {
     public String printNode(int indent) {
 	return left.printNode(indent)+"."+fieldname;
     }
+    public int kind() {
+	return Kind.FieldAccessNode;
+    }
 }

@@ -38,4 +38,7 @@ class LoopNode extends BlockStatementNode {
 	} else throw new Error();
     }
 
+    public int kind() {
+	return Kind.LoopNode;
+    }
 }

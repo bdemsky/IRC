@@ -24,4 +24,8 @@ public class CastNode extends ExpressionNode  {
 	else
 	    return "("+etd.printNode(indentlevel)+")"+exp.printNode(indentlevel);
     }
+
+    public int kind() {
+	return Kind.CastNode;
+    }
 }

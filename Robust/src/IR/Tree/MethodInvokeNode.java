@@ -41,4 +41,7 @@ public class MethodInvokeNode extends ExpressionNode {
 	}
 	return st+")";
     }
+    public int kind() {
+	return Kind.MethodInvokeNode;
+    }
 }

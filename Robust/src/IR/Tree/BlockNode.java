@@ -1,7 +1,7 @@
 package IR.Tree;
 import java.util.Vector;
 
-class BlockNode extends TreeNode {
+public class BlockNode extends TreeNode {
     Vector blockstatements;
     int printStyle=0;
     public final static int NORMAL=0;
@@ -15,8 +15,17 @@ class BlockNode extends TreeNode {
     public void addBlockStatement(BlockStatementNode bsn) {
 	blockstatements.add(bsn);
     }
+
     public void setStyle(int style) {
 	printStyle=style;
+    }
+
+    public int size() {
+	return blockstatements.size();
+    }
+
+    public BlockStatementNode get(int i) {
+	return (BlockStatementNode) blockstatements.get(i);
     }
 
     public String printNode(int indent) {
@@ -55,5 +64,9 @@ class BlockNode extends TreeNode {
 	    }
 	    return st;
 	} else throw new Error();
+    }
+    
+    public int kind() {
+	return Kind.BlockNode;
     }
 }

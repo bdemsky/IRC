@@ -24,4 +24,7 @@ public class OpNode extends ExpressionNode {
 	else
 	    return left.printNode(indent)+" "+op.toString()+" "+right.printNode(indent);
     }
+    public int kind() {
+	return Kind.OpNode;
+    }
 }

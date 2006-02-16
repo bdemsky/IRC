@@ -24,4 +24,8 @@ public class CreateObjectNode extends ExpressionNode {
 	}
 	return st+")";
     }
+
+    public int kind() {
+	return Kind.CreateObjectNode;
+    }
 }

@@ -17,5 +17,7 @@ class ReturnNode extends BlockStatementNode {
 	else
 	    return "return "+en.printNode(indent);
     }
-
+    public int kind() {
+	return Kind.ReturnNode;
+    }
 }

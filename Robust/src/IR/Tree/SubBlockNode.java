@@ -9,5 +9,7 @@ class SubBlockNode extends BlockStatementNode {
     public String printNode(int indent) {
 	return bn.printNode(indent);
     }
-
+    public int kind() {
+	return Kind.SubBlockNode;
+    }
 }

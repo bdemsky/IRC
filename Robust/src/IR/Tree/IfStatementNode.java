@@ -17,4 +17,7 @@ class IfStatementNode extends BlockStatementNode {
 	else 
 	    return "if("+cond.printNode(indent)+") "+true_st.printNode(indent)+" else "+	else_st.printNode(indent);
     }
+    public int kind() {
+	return Kind.IfStatementNode;
+    }
 }

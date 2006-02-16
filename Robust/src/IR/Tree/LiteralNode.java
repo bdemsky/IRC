@@ -70,4 +70,7 @@ public class LiteralNode extends ExpressionNode {
 	}
 	return new_st;
     }
+    public int kind() {
+	return Kind.LiteralNode;
+    }
 }
