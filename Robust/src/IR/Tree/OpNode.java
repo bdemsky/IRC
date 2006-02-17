@@ -18,6 +18,18 @@ public class OpNode extends ExpressionNode {
 	op=o;
     }
 
+    public ExpressionNode getLeft() {
+	return left;
+    }
+
+    public ExpressionNode getRight() {
+	return right;
+    }
+
+    public Operation getOp() {
+	return op;
+    }
+
     public String printNode(int indent) {
 	if (right==null)
 	    return op.toString()+"("+left.printNode(indent)+")";

@@ -85,7 +85,21 @@ public class BuildFlat {
     }
 
     private NodePair flattenOpNode(OpNode on,TempDescriptor out_temp) {
-	throw new Error();
+	TempDescriptor temp_left=TempDescriptor.tempFactory("leftop");
+	TempDescriptor temp_right=TempDescriptor.tempFactory("rightop");
+	NodePair left=flattenExpressionNode(on.getLeft(),temp_left);
+	NodePair right;
+	if (on.getRight()!=null)
+	    right=flattenExpressionNode(on.getRight(),temp_right);
+	else {
+	    FlatNop nop=new FlatNop();
+	    right=new NodePair(nop,nop);
+	}
+	Operation op=on.getOp();
+	FlatOpNode fon=new FlatOpNode(out_temp,temp_left,temp_right,op);
+	left.getEnd().addNext(right.getBegin());
+	right.getEnd().addNext(fon);
+	return new NodePair(left.getBegin(),fon);
     }
 
     private NodePair flattenExpressionNode(ExpressionNode en, TempDescriptor out_temp) {
