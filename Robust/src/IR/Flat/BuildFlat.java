@@ -5,8 +5,11 @@ import java.util.*;
 
 public class BuildFlat {
     State state;
+    Hashtable temptovar;
+
     public BuildFlat(State st) {
 	state=st;
+	temptovar=new Hashtable();
     }
 
     public void buildFlat() {
@@ -108,9 +111,21 @@ public class BuildFlat {
     }
 
     private NodePair flattenDeclarationNode(DeclarationNode dn) {
-	throw new Error();
+	VarDescriptor vd=dn.getVarDescriptor();
+	TempDescriptor td=getTempforVar(vd);
+	return flattenExpressionNode(dn.getExpression(),td);
     }
         
+    private TempDescriptor getTempforVar(VarDescriptor vd) {
+	if (temptovar.containsKey(vd))
+	    return (TempDescriptor)temptovar.get(vd);
+	else {
+	    TempDescriptor td=TempDescriptor.tempFactory(vd.getName());
+	    temptovar.put(vd,td);
+	    return td;
+	}
+    }
+
     private NodePair flattenIfStatementNode(IfStatementNode isn) {
 	TempDescriptor cond_temp=TempDescriptor.tempFactory("condition");
 	NodePair cond=flattenExpressionNode(isn.getCondition(),cond_temp);

@@ -21,6 +21,10 @@ public class VarDescriptor extends Descriptor {
 	this.uniqueid=count++;
     }
 
+    public String getName() {
+	return identifier;
+    }
+
     public String toString() {
 	    return td.toString()+" "+identifier;
     }

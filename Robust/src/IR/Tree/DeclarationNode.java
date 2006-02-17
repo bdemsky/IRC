@@ -15,6 +15,14 @@ public class DeclarationNode extends BlockStatementNode {
 	else return vd.toString()+"="+init_en.printNode(0);
     }
 
+    public ExpressionNode getExpression() {
+	return init_en;
+    }
+    
+    public VarDescriptor getVarDescriptor() {
+	return vd;
+    }
+
     public int kind() {
 	return Kind.DeclarationNode;
     }
