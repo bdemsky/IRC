@@ -29,10 +29,12 @@ public class BuildIR {
 
     public ClassDescriptor parseTypeDecl(ParseNode pn) {
 	if (isNode(pn, "class_declaration")) {
-	    ClassDescriptor cn=new ClassDescriptor();
-	    cn.setName(pn.getChild("name").getTerminal());
+	    ClassDescriptor cn=new ClassDescriptor(pn.getChild("name").getTerminal());
 	    if (!isEmpty(pn.getChild("super").getTerminal())) {
 		/* parse superclass name */
+		ParseNode snn=pn.getChild("super").getChild("type").getChild("class").getChild("name");
+		NameDescriptor nd=parseName(snn);
+		cn.setSuper(nd.toString());
 	    }
 	    cn.setModifiers(parseModifiersList(pn.getChild("modifiers")));
 	    parseClassBody(cn, pn.getChild("classbody"));
@@ -315,6 +317,14 @@ public class BuildIR {
 	    ExpressionNode condition=parseExpression(pn.getChild("condition").getFirstChild());
 	    BlockNode body=parseSingleBlock(pn.getChild("statement").getFirstChild());
 	    blockstatements.add(new LoopNode(init,condition,update,body));
+	} else if (isNode(pn,"whilestatement")) {
+	    ExpressionNode condition=parseExpression(pn.getChild("condition").getFirstChild());
+	    BlockNode body=parseSingleBlock(pn.getChild("statement").getFirstChild());
+	    blockstatements.add(new LoopNode(condition,body,LoopNode.WHILELOOP));
+	} else if (isNode(pn,"dowhilestatement")) {
+	    ExpressionNode condition=parseExpression(pn.getChild("condition").getFirstChild());
+	    BlockNode body=parseSingleBlock(pn.getChild("statement").getFirstChild());
+	    blockstatements.add(new LoopNode(condition,body,LoopNode.DOWHILELOOP));
    	} else {
 	    System.out.println("---------------");
 	    System.out.println(pn.PPrint(3,true));

@@ -11,6 +11,18 @@ public class AssignmentNode extends ExpressionNode {
 	right=r;
 	this.op=op;
     }
+    
+    public ExpressionNode getDest() {
+	return left;
+    }
+
+    public ExpressionNode getSrc() {
+	return right;
+    }
+
+    public AssignOperation getOperation() {
+	return op;
+    }
 
     public String printNode(int indent) {
 	return left.printNode(indent)+" "+op.toString()+" "+right.printNode(indent);

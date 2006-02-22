@@ -178,7 +178,7 @@ non terminal ParseNode if_then_else_statement, if_then_else_statement_no_short_i
 //non terminal ParseNode switch_block_statement_group;
 //non terminal ParseNode switch_labels, switch_label;
 non terminal ParseNode while_statement, while_statement_no_short_if;
-//non terminal ParseNode do_statement;
+non terminal ParseNode do_statement;
 non terminal ParseNode for_statement, for_statement_no_short_if;
 non terminal ParseNode for_init_opt, for_init;
 non terminal ParseNode for_update_opt, for_update;
@@ -774,7 +774,7 @@ statement_without_trailing_substatement ::=
 	|	empty_statement:st {: RESULT=st; :}
 	|	expression_statement:st {: RESULT=st; :}
 //	|	switch_statement
-//	|	do_statement
+	|	do_statement
 	|	break_statement:st {: RESULT=st; :}
 	|	continue_statement:st {: RESULT=st; :}
 	|	return_statement:st {: RESULT=st; :}
@@ -876,9 +876,14 @@ while_statement_no_short_if ::=
 		RESULT=pn;
 		:}
 	;
-//do_statement ::=
-//		DO statement WHILE LPAREN expression RPAREN SEMICOLON
-//	;
+do_statement ::=
+		DO statement:st WHILE LPAREN expression:exp RPAREN SEMICOLON {: 
+		ParseNode pn=new ParseNode("dowhilestatement");
+		pn.addChild("condition").addChild(exp);
+		pn.addChild("statement").addChild(st);
+		RESULT=pn;
+	:}
+	;
 for_statement ::=
 		FOR LPAREN for_init_opt:init SEMICOLON expression_opt:exp SEMICOLON
 			for_update_opt:update RPAREN statement:st {: 

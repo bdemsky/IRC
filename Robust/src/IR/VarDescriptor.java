@@ -25,6 +25,10 @@ public class VarDescriptor extends Descriptor {
 	return identifier;
     }
 
+    public TypeDescriptor getType() {
+	return td;
+    }
+
     public String toString() {
 	    return td.toString()+" "+identifier;
     }

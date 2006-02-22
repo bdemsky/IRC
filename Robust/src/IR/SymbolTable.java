@@ -17,17 +17,12 @@ public class SymbolTable {
 	this.parent = parent;
     }
 
-    //public void add(String name, Descriptor d) {
-	//table.put(name, d);
-    //}
-
     public void add(Descriptor d) {
-	table.put(d.getSymbol(), d);
+	add(d.getSymbol(), d);
     }
     
     public void add(String name, Descriptor d) {
 	table.put(name, d);
-	
     }
 
     public void dump() {
@@ -59,8 +54,16 @@ public class SymbolTable {
 	return table.keys();
     }
 
+    public Iterator getNamesIterator() {
+	return table.keySet().iterator();
+    }
+
     public Enumeration getDescriptors() {
 	return table.elements();
+    }
+
+    public Iterator getDescriptorsIterator() {
+	return table.values().iterator();
     }
 
     public Iterator descriptors() {

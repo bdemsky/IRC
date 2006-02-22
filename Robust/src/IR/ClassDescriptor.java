@@ -1,27 +1,40 @@
 package IR;
 import java.util.*;
 import IR.Tree.*;
+import IR.SymbolTable;
 import IR.FieldDescriptor;
 import IR.MethodDescriptor;
 import IR.NameDescriptor;
 
-public class ClassDescriptor {
-    public ClassDescriptor() {
-	classname=null;
+public class ClassDescriptor extends Descriptor {
+    public ClassDescriptor(String classname) {
+	super(classname);
+	this.classname=classname;
 	superclass=null;
-	fields=new Vector();
-	methods=new Vector();
+	fields=new SymbolTable();
+	methods=new SymbolTable();
     }
+
     String classname;
-    NameDescriptor superclass;
+    String superclass;
     Modifiers modifiers;
-    Vector fields;
-    Vector methods;
+
+    SymbolTable fields;
+    SymbolTable methods;
+
     
     public Iterator getMethods() {
-	return methods.iterator();
+	return methods.getDescriptorsIterator();
+    }
+
+    public Iterator getFields() {
+	return fields.getDescriptorsIterator();
     }
     
+    public SymbolTable getFieldTable() {
+	return fields;
+    }
+
     public String printTree(State state) {
 	int indent;
 	String st=modifiers.toString()+"class "+classname;
@@ -29,15 +42,16 @@ public class ClassDescriptor {
 	    st+="extends "+superclass.toString();
 	st+=" {\n";
 	indent=TreeNode.INDENT;
-	for(int i=0;i<fields.size();i++) {
-	    FieldDescriptor fd=(FieldDescriptor)fields.get(i);
+	
+	for(Iterator it=getFields();it.hasNext();) {
+	    FieldDescriptor fd=(FieldDescriptor)it.next();
 	    st+=TreeNode.printSpace(indent)+fd.toString()+"\n";
 	}
 	if (fields.size()>0)
 	    st+="\n";
 
-	for(int i=0;i<methods.size();i++) {
-	    MethodDescriptor md=(MethodDescriptor)methods.get(i);
+	for(Iterator it=getMethods();it.hasNext();) {
+	    MethodDescriptor md=(MethodDescriptor)it.next();
 	    st+=TreeNode.printSpace(indent)+md.toString()+" ";
 	    BlockNode bn=state.getMethodBody(md);
 	    st+=bn.printNode(indent)+"\n\n";
@@ -47,6 +61,8 @@ public class ClassDescriptor {
     }
 
     public void addField(FieldDescriptor fd) {
+	if (fields.contains(fd.getSymbol()))
+	    throw new Error(fd.getSymbol()+" already defined");
 	fields.add(fd);
     }
 
@@ -62,7 +78,7 @@ public class ClassDescriptor {
 	classname=name;
     }
 
-    public void setSuper(NameDescriptor superclass) {
+    public void setSuper(String superclass) {
 	this.superclass=superclass;
     }
 }

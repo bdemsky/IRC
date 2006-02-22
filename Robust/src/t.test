@@ -216,3 +216,8 @@ public class ParseNode {
 
 }
 
+public class String {}
+
+public class ParseNodeVector {}
+
+public class Object {}

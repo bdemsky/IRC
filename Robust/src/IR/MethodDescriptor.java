@@ -16,6 +16,7 @@ public class MethodDescriptor extends Descriptor {
     protected String identifier;
     protected Vector param_name;
     protected Vector param_type;
+    protected SymbolTable paramtable;
     
     public MethodDescriptor(Modifiers m, TypeDescriptor rt, String identifier) {
 	super(identifier);
@@ -26,10 +27,35 @@ public class MethodDescriptor extends Descriptor {
 	this.uniqueid=count++;
 	param_name=new Vector();
 	param_type=new Vector();
+	paramtable=new SymbolTable();
     }
+    public TypeDescriptor getReturnType() {
+	return returntype;
+    }
+
+    public SymbolTable getParameterTable() {
+	return paramtable;
+    }
+
     public void addParameter(TypeDescriptor type, String paramname) {
 	param_name.add(paramname);
 	param_type.add(type);
+	if (paramtable.getFromSameScope(paramname)!=null) {
+	    throw new Error("Parameter "+paramname+" already defined");
+	}
+	paramtable.add(paramname,type);
+    }
+
+    public int numParameters() {
+	return param_name.size();
+    }
+
+    public String getParamName(int i) {
+	return (String) param_name.get(i);
+    }
+
+    public TypeDescriptor getParamType(int i) {
+	return (TypeDescriptor) param_type.get(i);
     }
 
     public String toString() {

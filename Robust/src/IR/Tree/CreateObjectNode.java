@@ -1,10 +1,12 @@
 package IR.Tree;
 import java.util.Vector;
 import IR.TypeDescriptor;
+import IR.MethodDescriptor;
 
 public class CreateObjectNode extends ExpressionNode {
     TypeDescriptor td;
     Vector argumentlist;
+    MethodDescriptor md;
 
     public CreateObjectNode(TypeDescriptor type) {
 	td=type;
@@ -12,6 +14,26 @@ public class CreateObjectNode extends ExpressionNode {
     }
     public void addArgument(ExpressionNode en) {
 	argumentlist.add(en);
+    }
+
+    public void setConstructor(MethodDescriptor md) {
+	this.md=md;
+    }
+
+    public MethodDescriptor getConstructor() {
+	return md;
+    }
+
+    public TypeDescriptor getType() {
+	return td;
+    }
+
+    public int numArgs() {
+	return argumentlist.size();
+    }
+
+    public ExpressionNode getArg(int i) {
+	return (ExpressionNode) argumentlist.get(i);
     }
 
     public String printNode(int indent) {

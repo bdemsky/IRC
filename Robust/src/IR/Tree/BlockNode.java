@@ -1,15 +1,23 @@
 package IR.Tree;
 import java.util.Vector;
+import IR.*;
 
 public class BlockNode extends TreeNode {
     Vector blockstatements;
     int printStyle=0;
+    protected SymbolTable table;
+
     public final static int NORMAL=0;
     public final static int NOBRACES=1;
     public final static int EXPRLIST=2;
     
     public BlockNode() {
 	blockstatements=new Vector();
+	table=new SymbolTable();
+    }
+
+    public SymbolTable getVarTable() {
+	return table;
     }
 
     public void addBlockStatement(BlockStatementNode bsn) {

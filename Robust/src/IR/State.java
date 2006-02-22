@@ -6,16 +6,14 @@ import java.util.*;
 
 public class State {
     public State(ParseNode parsetree) {
-	globals=new SymbolTable();
 	this.parsetree=parsetree;
-	this.classset=new HashSet();
+	this.classes=new SymbolTable();
 	this.treemethodmap=new Hashtable();
 	this.flatmethodmap=new Hashtable();
     }
 
-    public SymbolTable globals;
+    public SymbolTable classes;
     public ParseNode parsetree;
-    public HashSet classset;
     public Hashtable treemethodmap;
     public Hashtable flatmethodmap;
 
@@ -30,12 +28,17 @@ public class State {
     }
 
     public void addClass(ClassDescriptor tdn) {
-	classset.add(tdn);
+	if (classes.contains(tdn.getSymbol()))
+	    throw new Error("Class "+tdn.getSymbol()+" defined twice");
+	classes.add(tdn);
     }
 
     public BlockNode getMethodBody(MethodDescriptor md) {
 	return (BlockNode)treemethodmap.get(md);
-	
+    }
+
+    public SymbolTable getClassSymbolTable() {
+	return classes;
     }
 
     public FlatMethod getMethodFlat(MethodDescriptor md) {

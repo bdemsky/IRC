@@ -13,7 +13,7 @@ public class BuildFlat {
     }
 
     public void buildFlat() {
-	Iterator it=state.classset.iterator();
+	Iterator it=state.getClassSymbolTable().getDescriptorsIterator();
 	while(it.hasNext()) {
 	    ClassDescriptor cn=(ClassDescriptor)it.next();
 	    flattenClass(cn);
@@ -56,27 +56,114 @@ public class BuildFlat {
 	return flattenExpressionNode(en.getExpression(),tmp);
     }
 
-    private NodePair flattenAssignmentNode(AssignmentNode an,TempDescriptor out_temp) {
-	throw new Error();
-    }
-
     private NodePair flattenCastNode(CastNode cn,TempDescriptor out_temp) {
-	throw new Error();
-    }
-
-    private NodePair flattenCreateObjectNode(CreateObjectNode con,TempDescriptor out_temp) {
-	throw new Error();
-    }
-
-    private NodePair flattenFieldAccessNode(FieldAccessNode fan,TempDescriptor out_temp) {
-	throw new Error();
+	TempDescriptor tmp=TempDescriptor.tempFactory("tocast");
+	NodePair np=flattenExpressionNode(cn.getExpression(), tmp);
+	FlatCastNode fcn=new FlatCastNode(cn.getType(), tmp, out_temp);
+	np.getEnd().addNext(fcn);
+	return new NodePair(np.getBegin(),fcn);
     }
 
     private NodePair flattenLiteralNode(LiteralNode ln,TempDescriptor out_temp) {
-	throw new Error();
+	FlatLiteralNode fln=new FlatLiteralNode(ln.getType(), ln.getValue(), out_temp);
+	return new NodePair(fln,fln);
+    }
+
+
+    private NodePair flattenCreateObjectNode(CreateObjectNode con,TempDescriptor out_temp) {
+	TypeDescriptor td=con.getType();
+	FlatNew fn=new FlatNew(td, out_temp);
+	TempDescriptor[] temps=new TempDescriptor[con.numArgs()];
+	FlatNode last=fn;
+	//Build arguments
+	for(int i=0;i<con.numArgs();i++) {
+	    ExpressionNode en=con.getArg(i);
+	    TempDescriptor tmp=TempDescriptor.tempFactory("arg");
+	    temps[i]=tmp;
+	    NodePair np=flattenExpressionNode(en, tmp);
+	    last.addNext(np.getBegin());
+	    last=np.getEnd();
+	}
+	MethodDescriptor md=con.getConstructor();
+	//Call to constructor
+	FlatCall fc=new FlatCall(md, null, out_temp, temps);
+	last.addNext(fc);
+	return new NodePair(fn,fc);
     }
 
     private NodePair flattenMethodInvokeNode(MethodInvokeNode min,TempDescriptor out_temp) {
+	TempDescriptor[] temps=new TempDescriptor[min.numArgs()];
+	FlatNode first=null;
+	FlatNode last=null;
+	TempDescriptor thisarg=null;
+
+	if (min.getExpression()==null) {
+	    thisarg=TempDescriptor.tempFactory("thisarg");
+	    NodePair np=flattenExpressionNode(min.getExpression(),temps[0]);
+	    first=np.getBegin();
+	    last=np.getEnd();
+	}
+	
+	//Build arguments
+	for(int i=0;i<min.numArgs();i++) {
+	    ExpressionNode en=min.getArg(i);
+	    TempDescriptor td=TempDescriptor.tempFactory("arg");
+	    temps[i]=td;
+	    NodePair np=flattenExpressionNode(en, td);
+	    if (first==null)
+		first=np.getBegin();
+	    else 
+		last.addNext(np.getBegin());
+	    last=np.getEnd();
+	}
+
+	MethodDescriptor md=min.getMethod();
+	
+	//Call to constructor
+	FlatCall fc=new FlatCall(md, out_temp, thisarg, temps);
+	if (first==null) {
+	    first=fc;
+	} else
+	    last.addNext(fc);
+	return new NodePair(first,fc);
+    }
+
+    private NodePair flattenFieldAccessNode(FieldAccessNode fan,TempDescriptor out_temp) {
+	TempDescriptor tmp=TempDescriptor.tempFactory("temp");
+	NodePair npe=flattenExpressionNode(fan.getExpression(),tmp);
+	FlatFieldNode fn=new FlatFieldNode(fan.getField(),tmp,out_temp);
+	npe.getEnd().addNext(fn);
+	return new NodePair(npe.getBegin(),fn);
+    }
+
+    private NodePair flattenAssignmentNode(AssignmentNode an,TempDescriptor out_temp) {
+	// Two cases:
+	// left side is variable
+	// left side is field
+	
+	Operation base=an.getOperation().getBaseOp();
+	TempDescriptor src_tmp=TempDescriptor.tempFactory("src");
+	NodePair np_src=flattenExpressionNode(an.getSrc(),src_tmp);
+	FlatNode last=np_src.getEnd();
+	if (base!=null) {
+	    TempDescriptor src_tmp2=TempDescriptor.tempFactory("tmp");
+	    NodePair np_dst_init=flattenExpressionNode(an.getDest(),src_tmp2);
+	    last.addNext(np_dst_init.getBegin());
+	    TempDescriptor dst_tmp=TempDescriptor.tempFactory("dst_tmp");
+	    FlatOpNode fon=new FlatOpNode(dst_tmp, src_tmp,src_tmp2, base);
+	    np_dst_init.getEnd().addNext(fon);
+	    last=fon;
+	    src_tmp=dst_tmp;
+	}
+	
+	if (an.getDest().kind()==Kind.FieldAccessNode) {
+	    FieldAccessNode fan=(FieldAccessNode)an.getDest();
+
+
+	    // Need to assign field
+	} else if (an.getDest().kind()==Kind.NameNode) {
+	    
+	} 
 	throw new Error();
     }
 

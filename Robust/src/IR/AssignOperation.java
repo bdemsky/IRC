@@ -23,6 +23,34 @@ public class AssignOperation {
 	this.operation=parseOp(op);
     }
 
+    public Operation getBaseOp() {
+	switch(operation) {
+	case EQ:
+	    return null;
+	case MULTEQ:
+	    return new Operation(Operation.MULT);
+	case DIVEQ:
+	    return new Operation(Operation.DIV);
+	case MODEQ:
+	    return new Operation(Operation.MOD);
+	case PLUSEQ:
+	    return new Operation(Operation.ADD);
+	case MINUSEQ:
+	    return new Operation(Operation.SUB);
+	case LSHIFTEQ:
+	    return new Operation(Operation.LEFTSHIFT);
+	case RSHIFTEQ:
+	    return new Operation(Operation.RIGHTSHIFT);
+	case ANDEQ:
+	    return new Operation(Operation.BIT_AND);
+	case XOREQ:
+	    return new Operation(Operation.BIT_XOR);
+	case OREQ:
+	    return new Operation(Operation.BIT_OR);
+	}
+	throw new Error();
+    }
+
     public static int parseOp(String st) {
 	if (st.equals("eq"))
 	    return EQ;

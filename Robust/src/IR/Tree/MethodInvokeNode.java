@@ -1,18 +1,21 @@
 package IR.Tree;
 import java.util.Vector;
 import IR.NameDescriptor;
+import IR.MethodDescriptor;
 
 public class MethodInvokeNode extends ExpressionNode {
     NameDescriptor nd;
     Vector argumentlist;
     String methodid;
     ExpressionNode en;
+    MethodDescriptor md;
 
     public MethodInvokeNode(NameDescriptor name) {
 	nd=name;
 	argumentlist=new Vector();
 	methodid=null;
 	en=null;
+	md=null;
     }
 
     public MethodInvokeNode(String methodid, ExpressionNode exp) {
@@ -20,10 +23,31 @@ public class MethodInvokeNode extends ExpressionNode {
 	this.en=exp;
 	nd=null;
 	argumentlist=new Vector();
+	md=null;
+    }
+
+    public ExpressionNode getExpression() {
+	return en;
+    }
+
+    public void setMethod(MethodDescriptor md) {
+	this.md=md;
+    }
+
+    public MethodDescriptor getMethod() {
+	return md;
     }
 
     public void addArgument(ExpressionNode en) {
 	argumentlist.add(en);
+    }
+
+    public int numArgs() {
+	return argumentlist.size();
+    }
+
+    public ExpressionNode getArg(int i) {
+	return (ExpressionNode) argumentlist.get(i);
     }
 
     public String printNode(int indent) {

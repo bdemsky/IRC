@@ -8,13 +8,16 @@ public class LiteralNode extends ExpressionNode {
     public final static int STRING=5;
     public final static int NULL=6;
 
-
     Object value;
     int type;
     
     public LiteralNode(String type, Object o) {
 	this.type=parseType(type);
 	value=o;
+    }
+
+    public Object getValue() {
+	return value;
     }
 
     private static int parseType(String type) {
@@ -33,7 +36,7 @@ public class LiteralNode extends ExpressionNode {
 	else throw new Error();
     }
 
-    private String getType() {
+    private String getStringType() {
 	if (type==INTEGER)
 	    return "integer";
 	else if (type==FLOAT)

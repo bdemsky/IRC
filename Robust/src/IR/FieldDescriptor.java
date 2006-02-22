@@ -25,6 +25,10 @@ public class FieldDescriptor extends Descriptor {
 	this.uniqueid=count++;
     }
 
+    public TypeDescriptor getType() {
+	return td;
+    }
+
     public String toString() {
 	if (en==null)
 	    return modifier.toString()+td.toString()+" "+identifier+";";

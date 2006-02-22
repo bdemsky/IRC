@@ -5,6 +5,7 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import IR.Tree.ParseNode;
 import IR.Tree.BuildIR;
+import IR.Tree.SemanticCheck;
 import IR.Flat.BuildFlat;
 import IR.State;
 
@@ -21,8 +22,12 @@ public class Main {
     ParseNode p=(ParseNode) g./*debug_*/parse().value;
     //    System.out.println(p.PPrint(2,true));
     State state=new State(p);
+
     BuildIR bir=new BuildIR(state);
     bir.buildtree();
+
+    SemanticCheck sc=new SemanticCheck(state);
+    sc.semanticCheck();
     
     BuildFlat bf=new BuildFlat(state);
     bf.buildFlat();
