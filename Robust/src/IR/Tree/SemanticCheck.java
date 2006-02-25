@@ -5,9 +5,11 @@ import IR.*;
 
 public class SemanticCheck {
     State state;
+    TypeUtil typeutil;
 
-    public SemanticCheck(State state) {
+    public SemanticCheck(State state, TypeUtil tu) {
 	this.state=state;
+	this.typeutil=tu;
     }
 
     public void semanticCheck() {
@@ -112,7 +114,8 @@ public class SemanticCheck {
 	    nametable.add(vd);
 	} else
 	    throw new Error(vd.getSymbol()+" defined a second time");
-	checkExpressionNode(md, nametable, dn.getExpression(), vd.getType());
+	if (dn.getExpression()!=null)
+	    checkExpressionNode(md, nametable, dn.getExpression(), vd.getType());
     }
     
     void checkSubBlockNode(MethodDescriptor md, SymbolTable nametable, SubBlockNode sbn) {
@@ -173,6 +176,7 @@ public class SemanticCheck {
     }
 
     void checkLiteralNode(MethodDescriptor md, SymbolTable nametable, LiteralNode ln, TypeDescriptor td) {
+	
     }
 
     void checkMethodInvokeNode(MethodDescriptor md, SymbolTable nametable, MethodInvokeNode min, TypeDescriptor td) {

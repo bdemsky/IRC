@@ -5,6 +5,11 @@ public class FlatNode {
     protected Vector next;
     protected Vector prev;
 
+    public FlatNode() {
+	next=new Vector();
+	prev=new Vector();
+    }
+
     public String toString() {
 	throw new Error();
     }

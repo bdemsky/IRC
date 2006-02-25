@@ -81,4 +81,8 @@ public class ClassDescriptor extends Descriptor {
     public void setSuper(String superclass) {
 	this.superclass=superclass;
     }
+
+    protected String getSuper() {
+	return superclass;
+    }
 }

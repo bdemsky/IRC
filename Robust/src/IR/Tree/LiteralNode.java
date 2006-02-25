@@ -1,4 +1,7 @@
 package IR.Tree;
+import IR.TypeDescriptor;
+import IR.TypeUtil;
+
 
 public class LiteralNode extends ExpressionNode {
     public final static int INTEGER=1;
@@ -9,57 +12,34 @@ public class LiteralNode extends ExpressionNode {
     public final static int NULL=6;
 
     Object value;
-    int type;
-    
+    TypeDescriptor type;
+    String typestr;
+
     public LiteralNode(String type, Object o) {
-	this.type=parseType(type);
+	typestr=type;
 	value=o;
+	type=null;
+    }
+
+    public TypeDescriptor getType() {
+	return type;
+    }
+
+    public void setType(TypeDescriptor td) {
+	type=td;
     }
 
     public Object getValue() {
 	return value;
     }
 
-    private static int parseType(String type) {
-	if (type.equals("integer"))
-	    return INTEGER;
-	else if (type.equals("float"))
-	    return FLOAT;
-	else if (type.equals("boolean"))
-	    return BOOLEAN;
-	else if (type.equals("char"))
-	    return CHAR;
-	else if (type.equals("string"))
-	    return STRING;
-	else if (type.equals("null"))
-	    return NULL;
-	else throw new Error();
-    }
-
-    private String getStringType() {
-	if (type==INTEGER)
-	    return "integer";
-	else if (type==FLOAT)
-	    return "float";	
-	else if (type==BOOLEAN)
-	    return "boolean";
-	else if (type==CHAR)
-	    return "char";
-	else if (type==STRING)
-	    return "string";
-	else if (type==NULL)
-	    return "null";
-	else throw new Error();
-
-    }
-
     public String printNode(int indent) {
-	if (type==NULL)
+	if (typestr.equals("null"))
 	    return "null";
-	if (type==STRING) {
+	if (typestr.equals("string")) {
 	    return '"'+escapeString(value.toString())+'"';
 	}
-	return "/*"+getType()+ "*/"+value.toString();
+	return "/*"+typestr+ "*/"+value.toString();
     }
     private static String escapeString(String st) {
 	String new_st="";

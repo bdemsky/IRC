@@ -8,6 +8,7 @@ import IR.Tree.BuildIR;
 import IR.Tree.SemanticCheck;
 import IR.Flat.BuildFlat;
 import IR.State;
+import IR.TypeUtil;
 
 public class Main {
   public static void main(String args[]) throws Exception {
@@ -26,7 +27,9 @@ public class Main {
     BuildIR bir=new BuildIR(state);
     bir.buildtree();
 
-    SemanticCheck sc=new SemanticCheck(state);
+    TypeUtil tu=new TypeUtil(state);
+    
+    SemanticCheck sc=new SemanticCheck(state,tu);
     sc.semanticCheck();
     
     BuildFlat bf=new BuildFlat(state);

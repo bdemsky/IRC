@@ -69,7 +69,6 @@ public class BuildFlat {
 	return new NodePair(fln,fln);
     }
 
-
     private NodePair flattenCreateObjectNode(CreateObjectNode con,TempDescriptor out_temp) {
 	TypeDescriptor td=con.getType();
 	FlatNew fn=new FlatNew(td, out_temp);
@@ -97,9 +96,9 @@ public class BuildFlat {
 	FlatNode last=null;
 	TempDescriptor thisarg=null;
 
-	if (min.getExpression()==null) {
+	if (min.getExpression()!=null) {
 	    thisarg=TempDescriptor.tempFactory("thisarg");
-	    NodePair np=flattenExpressionNode(min.getExpression(),temps[0]);
+	    NodePair np=flattenExpressionNode(min.getExpression(),thisarg);
 	    first=np.getBegin();
 	    last=np.getEnd();
 	}
