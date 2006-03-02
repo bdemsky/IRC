@@ -22,7 +22,6 @@ public class TypeDescriptor extends Descriptor {
 
 
     int type;
-    NameDescriptor name_desc;
     ClassDescriptor class_desc;
 
     public void setClassDescriptor(ClassDescriptor cd) {
@@ -44,8 +43,17 @@ public class TypeDescriptor extends Descriptor {
     public TypeDescriptor(NameDescriptor name) {
 	super(name.toString());
 	this.type=CLASS;
-	this.name_desc=name;
 	this.class_desc=null;
+    }
+
+    public ClassDescriptor getClassDesc() {
+	return class_desc;
+    }
+
+    public TypeDescriptor(ClassDescriptor cd) {
+	super(cd.getSymbol());
+	this.type=CLASS;
+	this.class_desc=cd;
     }
 
     public TypeDescriptor(int t) {
@@ -55,7 +63,7 @@ public class TypeDescriptor extends Descriptor {
 
     public String toString() {
 	if (type==CLASS)
-	    return name_desc.toString();
+	    return name;
 	else 
 	    return decodeInt(type);
     }

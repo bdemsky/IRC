@@ -26,6 +26,14 @@ public class CastNode extends ExpressionNode  {
 	return exp;
     }
 
+    public void setType(TypeDescriptor td) {
+	this.td=td;
+    }
+
+    public NameNode getTypeName() {
+	return (NameNode) etd;
+    }
+
     public String printNode(int indentlevel) {
 	if (etd==null)
 	    return "("+td.toString()+")"+exp.printNode(indentlevel);

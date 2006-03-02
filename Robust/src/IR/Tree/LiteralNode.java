@@ -21,6 +21,10 @@ public class LiteralNode extends ExpressionNode {
 	type=null;
     }
 
+    public String getTypeString() {
+	return typestr;
+    }
+
     public TypeDescriptor getType() {
 	return type;
     }

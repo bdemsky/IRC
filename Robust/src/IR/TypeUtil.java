@@ -33,6 +33,14 @@ public class TypeUtil {
 	return (ClassDescriptor)supertable.get(cd);
     }
 
+    public boolean isSuperorType(TypeDescriptor possiblesuper, TypeDescriptor cd2) {
+	if ((possiblesuper.getClassDesc()==null)||
+	    cd2.getClassDesc()==null)
+	    throw new Error();
+	return isSuperorType(possiblesuper.getClassDesc(), cd2.getClassDesc());
+    }
+
+
     public boolean isSuperorType(ClassDescriptor possiblesuper, ClassDescriptor cd2) {
 	if (possiblesuper==cd2)
 	    return true;

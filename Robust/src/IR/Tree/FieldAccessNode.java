@@ -1,5 +1,6 @@
 package IR.Tree;
 import IR.FieldDescriptor;
+import IR.TypeDescriptor;
 
 public class FieldAccessNode extends ExpressionNode {
     ExpressionNode left;
@@ -13,6 +14,10 @@ public class FieldAccessNode extends ExpressionNode {
 
     public void setField(FieldDescriptor fd) {
 	field=fd;
+    }
+
+    public String getFieldName() {
+	return fieldname;
     }
 
     public FieldDescriptor getField() {
@@ -29,4 +34,8 @@ public class FieldAccessNode extends ExpressionNode {
     public int kind() {
 	return Kind.FieldAccessNode;
     }
+    public TypeDescriptor getType() {
+	return getField().getType();
+    }
+
 }

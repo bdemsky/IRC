@@ -17,6 +17,8 @@ public class ClassDescriptor extends Descriptor {
 
     String classname;
     String superclass;
+    ClassDescriptor superdesc;
+
     Modifiers modifiers;
 
     SymbolTable fields;
@@ -33,6 +35,10 @@ public class ClassDescriptor extends Descriptor {
     
     public SymbolTable getFieldTable() {
 	return fields;
+    }
+
+    public SymbolTable getMethodTable() {
+	return methods;
     }
 
     public String printTree(State state) {
@@ -82,7 +88,15 @@ public class ClassDescriptor extends Descriptor {
 	this.superclass=superclass;
     }
 
-    protected String getSuper() {
+    public ClassDescriptor getSuperDesc() {
+	return superdesc;
+    }
+
+    public void setSuper(ClassDescriptor scd) {
+	this.superdesc=scd;
+    }
+
+    public String getSuper() {
 	return superclass;
     }
 }
