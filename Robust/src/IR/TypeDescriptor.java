@@ -24,10 +24,36 @@ public class TypeDescriptor extends Descriptor {
     int type;
     ClassDescriptor class_desc;
 
+    public boolean isByte() {
+	return type==BYTE;
+    }
+    public boolean isShort() {
+	return type==SHORT;
+    }
+    public boolean isInt() {
+	return type==INT;
+    }
+    public boolean isLong() {
+	return type==LONG;
+    }
+    public boolean isChar() {
+	return type==CHAR;
+    }
+    public boolean isBoolean() {
+	return type==BOOLEAN;
+    }
+    public boolean isFloat() {
+	return type==FLOAT;
+    }
+    public boolean isDouble() {
+	return type==DOUBLE;
+    }
+
+
     public void setClassDescriptor(ClassDescriptor cd) {
 	class_desc=cd;
     }
-
+  
     public boolean isVoid() {
 	return type==VOID;
     }

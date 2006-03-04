@@ -309,7 +309,35 @@ public class SemanticCheck {
     }
 
 
-    void checkOpNode(MethodDescriptor md, SymbolTable nametable, OpNode on,TypeDescriptor td) {
+    void checkOpNode(MethodDescriptor md, SymbolTable nametable, OpNode on, TypeDescriptor td) {
+	checkExpressionNode(md, nametable, on.getLeft(), null);
+	if (on.getRight()!=null)
+	    checkExpressionNode(md, nametable, on.getRight(), null);
+	TypeDescriptor ltd=on.getLeft().getType();
+	TypeDescriptor rtd=on.getRight()!=null?on.getRight().getType():null;
+	TypeDescriptor thistype=null;
+	if (rtd!=null) {
+	    // 5.6.2 Binary Numeric Promotion
+	    //TODO unboxing of reference objects
+	    if (ltd.isDouble()||rtd.isDouble())
+		thistype=new TypeDescriptor(TypeDescriptor.DOUBLE);
+	    else if (ltd.isFloat()||rtd.isFloat())
+		thistype=new TypeDescriptor(TypeDescriptor.FLOAT);
+	    else if (ltd.isLong()||rtd.isLong())
+		thistype=new TypeDescriptor(TypeDescriptor.LONG);
+	    else 
+		thistype=new TypeDescriptor(TypeDescriptor.INT);
+	    
+	} else {
+	    //5.6.1 Unary Numeric Promotion
+	    if (ltd.isByte()||ltd.isShort()||ltd.isInt())
+		thistype=new TypeDescriptor(TypeDescriptor.INT);
+	    else
+		thistype=ltd;
+	}
+	on.setType(thistype);
+	if (!typeutil.isSuperorType(td, thistype))
+	    throw new Error("Type of rside not compatible with type of lside"+on.printNode(0));	
     }
 
 
