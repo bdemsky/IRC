@@ -2,7 +2,6 @@ public class ParseNode {
 
     private String label;
     private ParseNode parent;
-    private ParseNodeVector children;
     private int line=-1;
     private Object literal;
 
@@ -13,7 +12,6 @@ public class ParseNode {
 	this.line = -1;
 	this.parent = null;
 	this.literal=null;
-	children = new ParseNodeVector();
     }
 
     public ParseNode ( String label, int line ) {
@@ -21,7 +19,6 @@ public class ParseNode {
 	this.line = line;
 	this.parent = null;
 	this.literal=null;
-	children = new ParseNodeVector();
     }
 
     public void setLabel( String label ) {
@@ -85,7 +82,6 @@ public class ParseNode {
 	if (child == null) {
 	}
 
-	children.insertElementAt(child, 0);
 	child.setParent(this);
 	return child;
     }
@@ -100,40 +96,27 @@ public class ParseNode {
 	if (child == null) {
 	}
 
-	children.addElement (child);
 	child.setParent(this);
 	return child;
     }
 
     public ParseNode addChild( String newlabel ) {
-	
 	ParseNode child = new ParseNode(newlabel, -1);
-	children.addElement(child);
 	child.setParent(this);
 	return child;
     }
 
     public ParseNode addChild (String newlabel, int line) {
 	ParseNode child = new ParseNode(newlabel, line);
-	children.addElement(child);
 	child.setParent(this);
 	return child;
     }
 
-    public ParseNodeVector getChildren() {
-	return children;
-    }
 
     public ParseNode getChild (String label) {
 	int i;
 	ParseNode p;
 
-	for (i = 0; i < children.size(); i++) {
-	    p = children.elementAt(i);
-	    if (p.getLabel().equals(label)) {
-		return p;
-	    }
-	}
 
 	return null;
     }
@@ -144,38 +127,13 @@ public class ParseNode {
     }
 
     public String getTerminal () {
-	ParseNode pn = children.elementAt(0);
-	if (pn == null) {
-	    return null;
-	} else {
-	    return pn.getLabel();
-	}
+	return null;
     }
 
 
-    public ParseNodeVector getChildren(String label) {
-	int i;
-	ParseNodeVector v = new ParseNodeVector();
-
-	for (i = 0; i < children.size(); i++) {
-	    ParseNode pn = children.elementAt(i);
-	    if (pn.getLabel().equals(label))
-		v.addElement(pn);
-	}
-
-	return v;
-    }
 
     public String getNodeName() {
 	return label + " - " + getLine();
-    }
-
-    public int getNeighborCount() {
-	return children.size();
-    }
-
-    public Object getNeighbor(int index) {
-	return children.elementAt(index);
     }
 
     public String doIndent(int indent) {
@@ -183,35 +141,6 @@ public class ParseNode {
 	String output = new String();
         for(int i=0;i<indent;i++) output += " ";
 	return output;
-    }
-
-    public String PPrint(int indent, boolean recursive) {
-
-        String output = new String();
-
-	if (children.size()==0) {
-	    output += doIndent(indent) + "<" + label + "/>\n";
-	} else {
-	    output += doIndent(indent) + "<" + label + ">\n";
-	    indent += 2;
-	    
-	    if (recursive) {
-		for (int i = 0; i < children.size(); i++) {
-		    Walkable w = (Walkable)children.elementAt(i);
-		    output += w.PPrint(indent, true);
-		}
-	    } else {
-		for (int i = 0; i < children.size(); i++) {
-		    Walkable w = (Walkable)children.elementAt(i);
-		    output += doIndent(indent) + "<" + w.getNodeName() + "/>\n";
-		}	   
-	    }
-	    
-	    indent -= 2;
-	    output += doIndent(indent) + "</" + label + ">\n";
-	}
-
-	return output;	
     }
 
 }
