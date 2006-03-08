@@ -14,10 +14,12 @@ public class MethodDescriptor extends Descriptor {
     protected Modifiers modifier;
     protected TypeDescriptor returntype;
     protected String identifier;
-    protected Vector param_name;
-    protected Vector param_type;
+    protected Vector params;
     protected SymbolTable paramtable;
-    
+    protected ClassDescriptor cd;
+    protected VarDescriptor thisvd;
+
+
     public MethodDescriptor(Modifiers m, TypeDescriptor rt, String identifier) {
 	super(identifier);
 	this.modifier=m;
@@ -25,12 +27,46 @@ public class MethodDescriptor extends Descriptor {
 	this.identifier=identifier;
         this.safename = "__" + name + "__";
 	this.uniqueid=count++;
-	param_name=new Vector();
-	param_type=new Vector();
+	params=new Vector();
 	paramtable=new SymbolTable();
+	thisvd=null;
     }
+
+    public MethodDescriptor(Modifiers m, String identifier) {
+	super(identifier);
+	this.modifier=m;
+	this.returntype=null;
+	this.identifier=identifier;
+        this.safename = "__" + name + "__";
+	this.uniqueid=count++;
+	params=new Vector();
+	paramtable=new SymbolTable();
+	thisvd=null;
+    }
+
+    public void setThis(VarDescriptor vd) {
+	thisvd=vd;
+	paramtable.add(vd);
+    }
+
+    public boolean isStatic() {
+	return modifier.isStatic();
+    }
+
+    public boolean isConstructor() {
+	return (returntype==null);
+    }
+
     public TypeDescriptor getReturnType() {
 	return returntype;
+    }
+
+    public void setClassDesc(ClassDescriptor cd) {
+	this.cd=cd;
+    }
+
+    public ClassDescriptor getClassDesc() {
+	return cd;
     }
 
     public SymbolTable getParameterTable() {
@@ -38,31 +74,38 @@ public class MethodDescriptor extends Descriptor {
     }
 
     public void addParameter(TypeDescriptor type, String paramname) {
-	param_name.add(paramname);
-	param_type.add(type);
+	if (paramname.equals("this"))
+	    throw new Error("Can't have parameter named this");
+	VarDescriptor vd=new VarDescriptor(type, paramname);
+
+	params.add(vd);
 	if (paramtable.getFromSameScope(paramname)!=null) {
 	    throw new Error("Parameter "+paramname+" already defined");
 	}
-	paramtable.add(paramname,type);
+	paramtable.add(vd);
     }
 
     public int numParameters() {
-	return param_name.size();
+	return params.size();
     }
 
     public String getParamName(int i) {
-	return (String) param_name.get(i);
+	return ((VarDescriptor)params.get(i)).getName();
     }
 
     public TypeDescriptor getParamType(int i) {
-	return (TypeDescriptor) param_type.get(i);
+	return ((VarDescriptor)params.get(i)).getType();
     }
 
     public String toString() {
-	String st=modifier.toString()+returntype.toString()+" "+identifier+"(";
-	for(int i=0;i<param_type.size();i++) {
-	    st+=param_type.get(i).toString()+" "+param_name.get(i).toString();
-	    if ((i+1)!=param_type.size())
+	String st="";
+	if (returntype!=null)
+	    st=modifier.toString()+returntype.toString()+" "+identifier+"(";
+	else
+	    st=modifier.toString()+" "+identifier+"(";
+	for(int i=0;i<params.size();i++) {
+	    st+=getParamName(i)+" "+getParamType(i);
+	    if ((i+1)!=params.size())
 		st+=", ";
 	}
 	st+=")";

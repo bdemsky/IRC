@@ -48,12 +48,14 @@ public class ClassDescriptor extends Descriptor {
 	    st+="extends "+superclass.toString();
 	st+=" {\n";
 	indent=TreeNode.INDENT;
-	
+	boolean printcr=false;
+
 	for(Iterator it=getFields();it.hasNext();) {
 	    FieldDescriptor fd=(FieldDescriptor)it.next();
 	    st+=TreeNode.printSpace(indent)+fd.toString()+"\n";
+	    printcr=true;
 	}
-	if (fields.size()>0)
+	if (printcr)
 	    st+="\n";
 
 	for(Iterator it=getMethods();it.hasNext();) {

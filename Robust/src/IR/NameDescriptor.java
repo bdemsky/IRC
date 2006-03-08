@@ -15,6 +15,21 @@ public class NameDescriptor extends Descriptor {
 	nd=null;
     }
 
+    public String getIdentifier() {
+	return identifier;
+    }
+
+    public NameDescriptor getBase() {
+	return nd;
+    }
+
+    public String getRoot() {
+	if (nd==null)
+	    return identifier;
+	else 
+	    return nd.getRoot();
+    }
+
     public String toString() {
 	if (nd==null) 
 	    return identifier;

@@ -51,6 +51,7 @@ public class BuildIR {
 		if (isNode(decl,"member")) {
 		    parseClassMember(cn,decl);
 		} else if (isNode(decl,"constructor")) {
+		    parseConstructorDecl(cn,decl.getChild("constructor_declaration"));
 		} else if (isNode(decl,"block")) {
 		} else throw new Error();
 	    }
@@ -235,6 +236,23 @@ public class BuildIR {
 	BlockNode bn=parseBlock(bodyn);
 	cn.addMethod(md);
 	state.addTreeCode(md,bn);
+    }
+
+    private void parseConstructorDecl(ClassDescriptor cn, ParseNode pn) {
+	ParseNode mn=pn.getChild("modifiers");
+	Modifiers m=parseModifiersList(mn);
+	ParseNode cdecl=pn.getChild("constructor_declarator");
+	String name=cdecl.getChild("name").getChild("identifier").getTerminal();
+	MethodDescriptor md=new MethodDescriptor(m, name);
+	ParseNode paramnode=cdecl.getChild("parameters");
+	parseParameterList(md,paramnode);
+	ParseNode bodyn0=pn.getChild("body");
+	ParseNode bodyn=bodyn0.getChild("constructor_body");
+	cn.addMethod(md);
+	if (bodyn!=null) {
+	    BlockNode bn=parseBlock(bodyn);
+	    state.addTreeCode(md,bn);
+	}
     }
 
     public BlockNode parseBlock(ParseNode pn) {

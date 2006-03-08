@@ -49,7 +49,6 @@ public class TypeDescriptor extends Descriptor {
 	return type==DOUBLE;
     }
 
-
     public void setClassDescriptor(ClassDescriptor cd) {
 	class_desc=cd;
     }

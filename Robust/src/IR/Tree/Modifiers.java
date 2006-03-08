@@ -23,6 +23,10 @@ public class Modifiers {
 	value|=mod;
     }
 
+    public boolean isStatic() {
+	return ((value&STATIC)!=0);
+    }
+
     public String toString() {
 	String st="";
 	if ((value&PUBLIC)!=0)

@@ -1,10 +1,12 @@
 package IR.Tree;
 import IR.Operation;
+import IR.TypeDescriptor;
 
 public class OpNode extends ExpressionNode {
     ExpressionNode left;
     ExpressionNode right;
     Operation op;
+    TypeDescriptor td;
 
     public OpNode(ExpressionNode l, ExpressionNode r, Operation o) {
 	left=l;
@@ -36,6 +38,15 @@ public class OpNode extends ExpressionNode {
 	else
 	    return left.printNode(indent)+" "+op.toString()+" "+right.printNode(indent);
     }
+
+    public TypeDescriptor getType() {
+	return td;
+    }
+
+    public void setType(TypeDescriptor td) {
+	this.td=td;
+    }
+
     public int kind() {
 	return Kind.OpNode;
     }

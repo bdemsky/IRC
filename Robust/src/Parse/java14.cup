@@ -622,8 +622,8 @@ constructor_declaration ::=
 //throws_opt 
 			constructor_body:body	{:
 		ParseNode pn=new ParseNode("constructor_declaration");
-		pn.addChild("modifier").addChild(mo);
-		pn.addChild("declarator").addChild(cd);
+		pn.addChild("modifiers").addChild(mo);
+		pn.addChild(cd);
 		pn.addChild("body").addChild(body);
 		RESULT=pn;
 	:}
@@ -631,7 +631,7 @@ constructor_declaration ::=
 constructor_declarator ::=
 		simple_name:name LPAREN formal_parameter_list_opt:fplo RPAREN {: 
 		ParseNode pn=new ParseNode("constructor_declarator");
-		pn.addChild("name").addChild(name);
+		pn.addChild(name);
 		pn.addChild("parameters").addChild(fplo);
 		RESULT=pn;
 	:}
@@ -641,7 +641,7 @@ constructor_body ::=
 //		LBRACE explicit_constructor_invocation RBRACE |
 		LBRACE block_statements:block RBRACE {: 
 		ParseNode pn=new ParseNode("constructor_body");
-		pn.addChild("block").addChild(block);
+		pn.addChild(block);
 		RESULT=pn;
 	:}
 	|	LBRACE RBRACE {: RESULT=new ParseNode("empty"); :}

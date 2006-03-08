@@ -4,16 +4,18 @@ import IR.NameDescriptor;
 import IR.MethodDescriptor;
 
 public class MethodInvokeNode extends ExpressionNode {
-    NameDescriptor nd;
     Vector argumentlist;
     String methodid;
+    NameDescriptor basename;
     ExpressionNode en;
     MethodDescriptor md;
 
     public MethodInvokeNode(NameDescriptor name) {
-	nd=name;
+	methodid=name.getIdentifier();
+	if (name.getBase()!=null) {
+	    basename=name.getBase();
+	}
 	argumentlist=new Vector();
-	methodid=null;
 	en=null;
 	md=null;
     }
@@ -21,13 +23,25 @@ public class MethodInvokeNode extends ExpressionNode {
     public MethodInvokeNode(String methodid, ExpressionNode exp) {
 	this.methodid=methodid;
 	this.en=exp;
-	nd=null;
 	argumentlist=new Vector();
 	md=null;
+	this.basename=null;
+    }
+
+    public NameDescriptor getBaseName() {
+	return basename;
+    }
+
+    public String getMethodName() {
+	return methodid;
     }
 
     public ExpressionNode getExpression() {
 	return en;
+    }
+
+    public void setExpression(ExpressionNode en) {
+	this.en=en;
     }
 
     public void setMethod(MethodDescriptor md) {
@@ -52,11 +66,8 @@ public class MethodInvokeNode extends ExpressionNode {
 
     public String printNode(int indent) {
 	String st;
-	if (nd==null) {
-	    st=en.printNode(indent)+"."+methodid+"(";
-   	} else {
-	    st=nd.toString()+"(";
-	}
+	st=en.printNode(indent)+"."+methodid+"(";
+
 	for(int i=0;i<argumentlist.size();i++) {
 	    ExpressionNode en=(ExpressionNode)argumentlist.get(i);
 	    st+=en.printNode(indent);

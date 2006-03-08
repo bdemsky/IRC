@@ -69,14 +69,21 @@ public class SemanticCheck {
 
     public void checkMethod(ClassDescriptor cd, MethodDescriptor md) {
 	/* Check return type */
-	if (!md.getReturnType().isVoid())
-	    checkTypeDescriptor(md.getReturnType());
+	if (!md.isConstructor())
+	    if (!md.getReturnType().isVoid())
+		checkTypeDescriptor(md.getReturnType());
+
 	for(int i=0;i<md.numParameters();i++) {
 	    TypeDescriptor param_type=md.getParamType(i);
 	    checkTypeDescriptor(param_type);
 	}
 	/* Link the naming environments */
 	md.getParameterTable().setParent(cd.getFieldTable());
+	md.setClassDesc(cd);
+	if (!md.isStatic()) {
+	    VarDescriptor thisvd=new VarDescriptor(new TypeDescriptor(cd),"this");
+	    md.setThis(thisvd);
+	}
     }
 
     public void checkMethodBody(ClassDescriptor cd, MethodDescriptor md) {
@@ -257,11 +264,15 @@ public class SemanticCheck {
     void checkNameNode(MethodDescriptor md, SymbolTable nametable, NameNode nn, TypeDescriptor td) {
 	NameDescriptor nd=nn.getName();
 	String varname=nd.toString();
-	VarDescriptor vd=(VarDescriptor)nametable.get(varname);
-	if (vd==null) {
-	    throw new Error("Variable "+varname+" undefined");
+	Descriptor d=(Descriptor)nametable.get(varname);
+	if (d==null) {
+	    throw new Error("Name "+varname+" undefined");
 	}
-	nn.setVar(vd);
+	if (d instanceof VarDescriptor) {
+	    nn.setVar((VarDescriptor)d);
+	} else if (d instanceof FieldDescriptor) {
+	    nn.setField((FieldDescriptor)d);
+	}
 	if (td!=null)
 	    if (!typeutil.isSuperorType(td,nn.getType()))
 		throw new Error("Field node returns "+nn.getType()+", but need "+td);
@@ -300,12 +311,144 @@ public class SemanticCheck {
 
 
     void checkCreateObjectNode(MethodDescriptor md, SymbolTable nametable, CreateObjectNode con, TypeDescriptor td) {
+	TypeDescriptor[] tdarray=new TypeDescriptor[con.numArgs()];
+	for(int i=0;i<con.numArgs();i++) {
+	    ExpressionNode en=con.getArg(i);
+	    checkExpressionNode(md,nametable,en,null);
+	    tdarray[i]=en.getType();
+	}
+
+	TypeDescriptor typetolookin=con.getType();
+	checkTypeDescriptor(typetolookin);
+	if (!typetolookin.isClass()) 
+	    throw new Error();
+
+	ClassDescriptor classtolookin=typetolookin.getClassDesc();
+	System.out.println("Looking for "+typetolookin.getSymbol());
+	System.out.println(classtolookin.getMethodTable());
+
+	Set methoddescriptorset=classtolookin.getMethodTable().getSet(typetolookin.getSymbol());
+	MethodDescriptor bestmd=null;
+	NextMethod:
+	for(Iterator methodit=methoddescriptorset.iterator();methodit.hasNext();) {
+	    MethodDescriptor currmd=(MethodDescriptor)methodit.next();
+	    /* Need correct number of parameters */
+	    System.out.println("Examining: "+currmd);
+	    if (con.numArgs()!=currmd.numParameters())
+		continue;
+	    for(int i=0;i<con.numArgs();i++) {
+		if (!typeutil.isSuperorType(currmd.getParamType(i),tdarray[i]))
+		    continue NextMethod;
+	    }
+	    /* Method okay so far */
+	    if (bestmd==null)
+		bestmd=currmd;
+	    else {
+		if (isMoreSpecific(currmd,bestmd)) {
+		    bestmd=currmd;
+		} else if (!isMoreSpecific(bestmd, currmd))
+		    throw new Error("No method is most specific");
+		
+		/* Is this more specific than bestmd */
+	    }
+	}
+	if (bestmd==null)
+	    throw new Error("No method found for "+con.printNode(0));
+	con.setConstructor(bestmd);
+
 	
     }
 
 
-    void checkMethodInvokeNode(MethodDescriptor md, SymbolTable nametable, MethodInvokeNode min, TypeDescriptor td) {
+    /** Check to see if md1 is more specific than md2...  Informally
+	if md2 could always be called given the arguments passed into
+	md1 */
 
+    boolean isMoreSpecific(MethodDescriptor md1, MethodDescriptor md2) {
+	/* Checks if md1 is more specific than md2 */
+	if (md1.numParameters()!=md2.numParameters())
+	    throw new Error();
+	for(int i=0;i<md1.numParameters();i++) {
+	    if (!typeutil.isSuperorType(md2.getParamType(i), md1.getParamType(i)))
+		return false;
+	}
+	if (!typeutil.isSuperorType(md2.getReturnType(), md1.getReturnType()))
+		return false;
+	return true;
+    }
+
+    ExpressionNode translateNameDescriptorintoExpression(NameDescriptor nd) {
+	String id=nd.getIdentifier();
+	NameDescriptor base=nd.getBase();
+	if (base==null) 
+	    return new NameNode(nd);
+	else 
+	    return new FieldAccessNode(translateNameDescriptorintoExpression(base),id);
+    }
+
+
+    void checkMethodInvokeNode(MethodDescriptor md, SymbolTable nametable, MethodInvokeNode min, TypeDescriptor td) {
+	/*Typecheck subexpressions
+	  and get types for expressions*/
+
+	TypeDescriptor[] tdarray=new TypeDescriptor[min.numArgs()];
+	for(int i=0;i<min.numArgs();i++) {
+	    ExpressionNode en=min.getArg(i);
+	    checkExpressionNode(md,nametable,en,null);
+	    tdarray[i]=en.getType();
+	}
+	TypeDescriptor typetolookin=null;
+	if (min.getExpression()!=null) {
+	    checkExpressionNode(md,nametable,min.getExpression(),null);
+	    typetolookin=min.getExpression().getType();
+	} else if (min.getBaseName()!=null) {
+	    String rootname=min.getBaseName().getRoot();
+	    if (nametable.get(rootname)!=null) {
+		//we have an expression
+		min.setExpression(translateNameDescriptorintoExpression(min.getBaseName()));
+		checkExpressionNode(md, nametable, min.getExpression(), null);
+		typetolookin=min.getExpression().getType();
+	    } else {
+		//we have a type
+		ClassDescriptor cd=typeutil.getClass(min.getBaseName().getSymbol());
+		if (cd==null)
+		    throw new Error(min.getBaseName()+" undefined");
+		typetolookin=new TypeDescriptor(cd);
+	    }
+	} else {
+	    typetolookin=new TypeDescriptor(md.getClassDesc());
+	}
+	if (!typetolookin.isClass()) 
+	    throw new Error();
+	ClassDescriptor classtolookin=typetolookin.getClassDesc();
+	System.out.println("Method name="+min.getMethodName());
+	Set methoddescriptorset=classtolookin.getMethodTable().getSet(min.getMethodName());
+	MethodDescriptor bestmd=null;
+	NextMethod:
+	for(Iterator methodit=methoddescriptorset.iterator();methodit.hasNext();) {
+	    MethodDescriptor currmd=(MethodDescriptor)methodit.next();
+	    /* Need correct number of parameters */
+	    if (min.numArgs()!=currmd.numParameters())
+		continue;
+	    for(int i=0;i<min.numArgs();i++) {
+		if (!typeutil.isSuperorType(currmd.getParamType(i),tdarray[i]))
+		    continue NextMethod;
+	    }
+	    /* Method okay so far */
+	    if (bestmd==null)
+		bestmd=currmd;
+	    else {
+		if (isMoreSpecific(currmd,bestmd)) {
+		    bestmd=currmd;
+		} else if (!isMoreSpecific(bestmd, currmd))
+		    throw new Error("No method is most specific");
+		
+		/* Is this more specific than bestmd */
+	    }
+	}
+	if (bestmd==null)
+	    throw new Error("No method found for :"+min.printNode(0));
+	min.setMethod(bestmd);
     }
 
 
@@ -336,8 +479,9 @@ public class SemanticCheck {
 		thistype=ltd;
 	}
 	on.setType(thistype);
-	if (!typeutil.isSuperorType(td, thistype))
-	    throw new Error("Type of rside not compatible with type of lside"+on.printNode(0));	
+	if (td!=null)
+	    if (!typeutil.isSuperorType(td, thistype))
+		throw new Error("Type of rside not compatible with type of lside"+on.printNode(0));	
     }
 
 
