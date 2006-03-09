@@ -1,4 +1,4 @@
-public class ParseNode {
+public class ParseNode extends Object {
 
     private String label;
     private ParseNode parent;
@@ -133,20 +133,20 @@ public class ParseNode {
 
 
     public String getNodeName() {
-	return label + " - " + getLine();
+	return label;
     }
 
     public String doIndent(int indent) {
 
-	String output = new String();
+	String output = null;
         for(int i=0;i<indent;i++) output += " ";
 	return output;
     }
 
 }
 
-public class String {}
+public class String extends Object {}
 
-public class ParseNodeVector {}
+public class ParseNodeVector extends Object {}
 
 public class Object {}
