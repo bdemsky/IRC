@@ -27,6 +27,7 @@ public class BuildFlat {
 	    BlockNode bn=state.getMethodBody(md);
 	    FlatNode fn=flattenBlockNode(bn).getBegin();
 	    FlatMethod fm=new FlatMethod(md, fn);
+	    System.out.println(fm.printMethod());
 	    state.addFlatCode(md,fm);
 	}
     }
@@ -48,7 +49,10 @@ public class BuildFlat {
 		end=np_end;
 	    }
 	}
-	return new NodePair(begin,end);
+	if (begin==null) {
+	    end=begin=new FlatNop();
+	}
+    	return new NodePair(begin,end);
     }
 
     private NodePair flattenBlockExpressionNode(BlockExpressionNode en) {
@@ -157,17 +161,31 @@ public class BuildFlat {
 	
 	if (an.getDest().kind()==Kind.FieldAccessNode) {
 	    FieldAccessNode fan=(FieldAccessNode)an.getDest();
-
-
-	    // Need to assign field
+	    ExpressionNode en=fan.getExpression();
+	    TempDescriptor dst_tmp=TempDescriptor.tempFactory("dst");
+	    NodePair np_baseexp=flattenExpressionNode(en, dst_tmp);
+	    last.addNext(np_baseexp.getBegin());
+	    FlatSetFieldNode fsfn=new FlatSetFieldNode(dst_tmp, fan.getField(), src_tmp);
+	    np_baseexp.getEnd().addNext(fsfn);
+	    return new NodePair(np_src.getBegin(), fsfn);
 	} else if (an.getDest().kind()==Kind.NameNode) {
-	    
-	} 
-	throw new Error();
+
+	    //TODO: FIXME
+	    FlatNop nop=new FlatNop();
+	    return new NodePair(nop,nop);
+	} else throw new Error();
     }
 
     private NodePair flattenNameNode(NameNode nn,TempDescriptor out_temp) {
-	throw new Error();
+	if (nn.getField()!=null) {
+	    TempDescriptor tmp=getTempforVar(nn.getVar());
+	    FlatFieldNode ffn=new FlatFieldNode(nn.getField(), tmp, out_temp); 
+	    return new NodePair(ffn,ffn);
+	} else {
+	    TempDescriptor tmp=getTempforVar(nn.getVar());
+	    FlatOpNode fon=new FlatOpNode(out_temp, tmp, null, new Operation(Operation.ASSIGN));
+	    return new NodePair(fon,fon);
+	}
     }
 
     private NodePair flattenOpNode(OpNode on,TempDescriptor out_temp) {
@@ -213,7 +231,12 @@ public class BuildFlat {
     private NodePair flattenDeclarationNode(DeclarationNode dn) {
 	VarDescriptor vd=dn.getVarDescriptor();
 	TempDescriptor td=getTempforVar(vd);
-	return flattenExpressionNode(dn.getExpression(),td);
+	if (dn.getExpression()!=null)
+	    return flattenExpressionNode(dn.getExpression(),td);
+	else {
+	    FlatNop fn=new FlatNop();
+	    return new NodePair(fn,fn);
+	}
     }
         
     private TempDescriptor getTempforVar(VarDescriptor vd) {

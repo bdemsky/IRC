@@ -7,6 +7,8 @@ public class OpNode extends ExpressionNode {
     ExpressionNode right;
     Operation op;
     TypeDescriptor td;
+    TypeDescriptor lefttype;
+    TypeDescriptor righttype;
 
     public OpNode(ExpressionNode l, ExpressionNode r, Operation o) {
 	left=l;
@@ -37,6 +39,22 @@ public class OpNode extends ExpressionNode {
 	    return op.toString()+"("+left.printNode(indent)+")";
 	else
 	    return left.printNode(indent)+" "+op.toString()+" "+right.printNode(indent);
+    }
+
+    public void setLeftType(TypeDescriptor argtype) {
+	this.lefttype=argtype;
+    }
+
+    public TypeDescriptor getLeftType() {
+	return lefttype;
+    }
+
+    public void setRightType(TypeDescriptor argtype) {
+	this.righttype=argtype;
+    }
+
+    public TypeDescriptor getRightType() {
+	return righttype;
     }
 
     public TypeDescriptor getType() {

@@ -1,12 +1,12 @@
 package IR.Flat;
 import IR.FieldDescriptor;
 
-public class FlatFieldNode extends FlatNode {
+public class FlatSetFieldNode extends FlatNode {
     TempDescriptor src;
     TempDescriptor dst;
     FieldDescriptor field;
     
-    public FlatFieldNode(FieldDescriptor field, TempDescriptor src, TempDescriptor dst) {
+    public FlatSetFieldNode(TempDescriptor dst, FieldDescriptor field, TempDescriptor src) {
 	this.field=field;
 	this.src=src;
 	this.dst=dst;
@@ -17,6 +17,6 @@ public class FlatFieldNode extends FlatNode {
     }
 
     public String toString() {
-	return dst.toString()+"="+src.toString()+"."+field.getSymbol();
+	return dst.toString()+"."+field.getSymbol()+"="+src.toString();
     }
 }

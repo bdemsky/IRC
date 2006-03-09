@@ -9,11 +9,14 @@ public class FlatCondBranch extends FlatNode {
     }
 
     public void addTrueNext(FlatNode n) {
+	if (next.size()==0)
+	    next.setSize(1);
 	next.setElementAt(n,0);
 	n.addPrev(this);
     }
 
     public void addFalseNext(FlatNode n) {
+	next.setSize(2);
 	next.setElementAt(n,1);
 	n.addPrev(this);
     }

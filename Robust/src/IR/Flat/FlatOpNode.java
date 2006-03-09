@@ -32,6 +32,11 @@ public class FlatOpNode extends FlatNode {
     }
 
     public String toString() {
-	return dest.toString()+"="+left.toString()+op.toString()+right.toString();
+	if (right!=null)
+	    return dest.toString()+"="+left.toString()+op.toString()+right.toString();
+	else if (op.getOp()==Operation.ASSIGN)
+	    return dest.toString()+" = "+left.toString();
+	else
+	    return dest.toString()+" "+op.toString() +" "+left.toString();
     }
 }

@@ -23,8 +23,11 @@ public class Operation {
     public static final int UNARYMINUS=20;
     public static final int POSTINC=21;
     public static final int POSTDEC=22;
-    public static final int PREINC=21;
-    public static final int PREDEC=22;
+    public static final int PREINC=23;
+    public static final int PREDEC=24;
+
+    /* Flat Operations */
+    public static final int ASSIGN=100;
 
     private int operation;
     public Operation(int op) {
@@ -35,6 +38,10 @@ public class Operation {
 	this.operation=parseOp(op);
     }
 
+    public int getOp() {
+	return operation;
+    }
+    
     public static int parseOp(String st) {
 	if (st.equals("logical_or"))
 	    return LOGIC_OR;
@@ -137,6 +144,8 @@ public class Operation {
 	    return "preinc";
 	else if (operation==PREDEC)
 	    return "predec";
+	else if (operation==ASSIGN)
+	    return "assign";
 	else throw new Error();
     }
 

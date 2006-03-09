@@ -78,7 +78,8 @@ public class SemanticCheck {
 	    checkTypeDescriptor(param_type);
 	}
 	/* Link the naming environments */
-	md.getParameterTable().setParent(cd.getFieldTable());
+	if (!md.isStatic()) /* Fields aren't accessible directly in a static method, so don't link in this table */
+	    md.getParameterTable().setParent(cd.getFieldTable());
 	md.setClassDesc(cd);
 	if (!md.isStatic()) {
 	    VarDescriptor thisvd=new VarDescriptor(new TypeDescriptor(cd),"this");
@@ -87,6 +88,7 @@ public class SemanticCheck {
     }
 
     public void checkMethodBody(ClassDescriptor cd, MethodDescriptor md) {
+	System.out.println("Processing method:"+md);
 	BlockNode bn=state.getMethodBody(md);
 	checkBlockNode(md, md.getParameterTable(),bn);
     }
@@ -157,7 +159,8 @@ public class SemanticCheck {
     void checkIfStatementNode(MethodDescriptor md, SymbolTable nametable, IfStatementNode isn) {
 	checkExpressionNode(md, nametable, isn.getCondition(), new TypeDescriptor(TypeDescriptor.BOOLEAN));
 	checkBlockNode(md, nametable, isn.getTrueBlock());
-	checkBlockNode(md, nametable, isn.getFalseBlock());
+	if (isn.getFalseBlock()!=null)
+	    checkBlockNode(md, nametable, isn.getFalseBlock());
     }
     
     void checkExpressionNode(MethodDescriptor md, SymbolTable nametable, ExpressionNode en, TypeDescriptor td) {
@@ -272,6 +275,7 @@ public class SemanticCheck {
 	    nn.setVar((VarDescriptor)d);
 	} else if (d instanceof FieldDescriptor) {
 	    nn.setField((FieldDescriptor)d);
+	    nn.setVar((VarDescriptor)nametable.get("this")); /* Need a pointer to this */
 	}
 	if (td!=null)
 	    if (!typeutil.isSuperorType(td,nn.getType()))
@@ -285,8 +289,9 @@ public class SemanticCheck {
 	      (an.getDest() instanceof NameNode)))
 	    throw new Error("Bad lside in "+an.printNode(0));
 	checkExpressionNode(md, nametable, an.getDest(), null);
-	if (!typeutil.isSuperorType(an.getDest().getType(),an.getSrc().getType()))
-	    throw new Error("Type of rside not compatible with type of lside"+an.printNode(0));
+	if (!typeutil.isSuperorType(an.getDest().getType(),an.getSrc().getType())) {
+	    throw new Error("Type of rside ("+an.getSrc().getType()+") not compatible with type of lside ("+an.getDest().getType()+")"+an.printNode(0));
+	}
     }
 
     void checkLoopNode(MethodDescriptor md, SymbolTable nametable, LoopNode ln) {
@@ -458,31 +463,160 @@ public class SemanticCheck {
 	    checkExpressionNode(md, nametable, on.getRight(), null);
 	TypeDescriptor ltd=on.getLeft().getType();
 	TypeDescriptor rtd=on.getRight()!=null?on.getRight().getType():null;
-	TypeDescriptor thistype=null;
-	if (rtd!=null) {
+	TypeDescriptor lefttype=null;
+	TypeDescriptor righttype=null;
+	Operation op=on.getOp();
+
+	switch(op.getOp()) {
+	case Operation.LOGIC_OR:
+	case Operation.LOGIC_AND:
+	    if (!(ltd.isBoolean()&&rtd.isBoolean()))
+		throw new Error();
+	    //no promotion
+	    on.setLeftType(ltd);
+	    on.setRightType(rtd);
+	    on.setType(new TypeDescriptor(TypeDescriptor.BOOLEAN));
+   	    break;
+
+	case Operation.BIT_OR:
+	case Operation.BIT_XOR:
+	case Operation.BIT_AND:
 	    // 5.6.2 Binary Numeric Promotion
 	    //TODO unboxing of reference objects
 	    if (ltd.isDouble()||rtd.isDouble())
-		thistype=new TypeDescriptor(TypeDescriptor.DOUBLE);
+		throw new Error();
 	    else if (ltd.isFloat()||rtd.isFloat())
-		thistype=new TypeDescriptor(TypeDescriptor.FLOAT);
+		throw new Error();
 	    else if (ltd.isLong()||rtd.isLong())
-		thistype=new TypeDescriptor(TypeDescriptor.LONG);
+		lefttype=new TypeDescriptor(TypeDescriptor.LONG);
 	    else 
-		thistype=new TypeDescriptor(TypeDescriptor.INT);
+		lefttype=new TypeDescriptor(TypeDescriptor.INT);
+	    righttype=lefttype;
+
+	    on.setLeftType(lefttype);
+	    on.setRightType(righttype);
+	    on.setType(lefttype);
+	    break;
+
+	case Operation.EQUAL:
+	case Operation.NOTEQUAL:
+	    // 5.6.2 Binary Numeric Promotion
+	    //TODO unboxing of reference objects
+	    if (ltd.isBoolean()||rtd.isBoolean()) {
+		if (!(ltd.isBoolean()&&rtd.isBoolean()))
+		    throw new Error();
+		righttype=lefttype=new TypeDescriptor(TypeDescriptor.BOOLEAN);
+	    } else if (ltd.isPtr()||rtd.isPtr()) {
+		if (!(ltd.isPtr()&&rtd.isPtr()))
+		    throw new Error();
+		righttype=rtd;
+		lefttype=ltd;
+	    } else if (ltd.isDouble()||rtd.isDouble())
+		righttype=lefttype=new TypeDescriptor(TypeDescriptor.DOUBLE);
+	    else if (ltd.isFloat()||rtd.isFloat())
+		righttype=lefttype=new TypeDescriptor(TypeDescriptor.FLOAT);
+	    else if (ltd.isLong()||rtd.isLong())
+		righttype=lefttype=new TypeDescriptor(TypeDescriptor.LONG);
+	    else 
+		righttype=lefttype=new TypeDescriptor(TypeDescriptor.INT);
+
+	    on.setLeftType(lefttype);
+	    on.setRightType(righttype);
+	    on.setType(new TypeDescriptor(TypeDescriptor.BOOLEAN));
+	    break;
+
+
+
+	case Operation.LT:
+	case Operation.GT:
+	case Operation.LTE:
+	case Operation.GTE:
+	    // 5.6.2 Binary Numeric Promotion
+	    //TODO unboxing of reference objects
+	    if (!ltd.isNumber()||!rtd.isNumber())
+		throw new Error();
+
+	    if (ltd.isDouble()||rtd.isDouble())
+		lefttype=new TypeDescriptor(TypeDescriptor.DOUBLE);
+	    else if (ltd.isFloat()||rtd.isFloat())
+		lefttype=new TypeDescriptor(TypeDescriptor.FLOAT);
+	    else if (ltd.isLong()||rtd.isLong())
+		lefttype=new TypeDescriptor(TypeDescriptor.LONG);
+	    else 
+		lefttype=new TypeDescriptor(TypeDescriptor.INT);
+	    righttype=lefttype;
+	    on.setLeftType(lefttype);
+	    on.setRightType(righttype);
+	    on.setType(new TypeDescriptor(TypeDescriptor.BOOLEAN));
+	    break;
+
+	case Operation.ADD:
+	    //TODO: Need special case for strings eventually
 	    
-	} else {
+	    
+	case Operation.SUB:
+	case Operation.MULT:
+	case Operation.DIV:
+	case Operation.MOD:
+	    // 5.6.2 Binary Numeric Promotion
+	    //TODO unboxing of reference objects
+	    if (!ltd.isNumber()||!rtd.isNumber())
+		throw new Error("Error in "+on.printNode(0));
+
+	    if (ltd.isDouble()||rtd.isDouble())
+		lefttype=new TypeDescriptor(TypeDescriptor.DOUBLE);
+	    else if (ltd.isFloat()||rtd.isFloat())
+		lefttype=new TypeDescriptor(TypeDescriptor.FLOAT);
+	    else if (ltd.isLong()||rtd.isLong())
+		lefttype=new TypeDescriptor(TypeDescriptor.LONG);
+	    else 
+		lefttype=new TypeDescriptor(TypeDescriptor.INT);
+	    righttype=lefttype;
+	    on.setLeftType(lefttype);
+	    on.setRightType(righttype);
+	    on.setType(lefttype);
+	    break;
+
+	case Operation.LEFTSHIFT:
+	case Operation.RIGHTSHIFT:
+	    if (!rtd.isIntegerType())
+		throw new Error();
+	    //5.6.1 Unary Numeric Promotion
+	    if (rtd.isByte()||rtd.isShort()||rtd.isInt())
+		righttype=new TypeDescriptor(TypeDescriptor.INT);
+	    else
+		righttype=rtd;
+
+	    on.setRightType(righttype);
+	    if (!ltd.isIntegerType())
+		throw new Error();
+	case Operation.UNARYPLUS:
+	case Operation.UNARYMINUS:
+	case Operation.POSTINC:
+	case Operation.POSTDEC:
+	case Operation.PREINC:
+	case Operation.PREDEC:
+	    if (!ltd.isNumber())
+		throw new Error();
 	    //5.6.1 Unary Numeric Promotion
 	    if (ltd.isByte()||ltd.isShort()||ltd.isInt())
-		thistype=new TypeDescriptor(TypeDescriptor.INT);
+		lefttype=new TypeDescriptor(TypeDescriptor.INT);
 	    else
-		thistype=ltd;
+		lefttype=ltd;
+	    on.setLeftType(lefttype);
+	    on.setType(lefttype);
+	    break;
+	default:
+	    throw new Error();
 	}
-	on.setType(thistype);
+
+     
+
 	if (td!=null)
-	    if (!typeutil.isSuperorType(td, thistype))
+	    if (!typeutil.isSuperorType(td, on.getType())) {
+		System.out.println(td);
+		System.out.println(on.getType());
 		throw new Error("Type of rside not compatible with type of lside"+on.printNode(0));	
+	    }
     }
-
-
 }

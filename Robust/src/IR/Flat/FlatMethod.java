@@ -16,7 +16,7 @@ public class FlatMethod extends FlatNode {
     }
     
     public String printMethod() {
-	String st="";
+	String st=method+"\n";
 	HashSet tovisit=new HashSet();
 	HashSet visited=new HashSet();
 	int labelindex=0;
@@ -48,7 +48,7 @@ public class FlatMethod extends FlatNode {
 	tovisit=new HashSet();
 	visited=new HashSet();
 	tovisit.add(method_entry);
-	while(!tovisit.isEmpty()) {
+	while(current_node!=null||!tovisit.isEmpty()) {
 	    if (current_node==null) {
 		current_node=(FlatNode)tovisit.iterator().next();
 		tovisit.remove(current_node);
@@ -56,10 +56,11 @@ public class FlatMethod extends FlatNode {
 	    visited.add(current_node);
 	    if (nodetolabel.containsKey(current_node))
 		st+="L"+nodetolabel.get(current_node)+":\n";
-	    st+=current_node.toString();
 	    if (current_node.numNext()==0) {
+		st+="   "+current_node.toString()+"\n";
 		current_node=null;
 	    } else if(current_node.numNext()==1) {
+		st+="   "+current_node.toString()+"\n";
 		FlatNode nextnode=current_node.getNext(0);
 		if (visited.contains(nextnode)) {
 		    st+="goto L"+nodetolabel.get(nextnode)+"\n";
@@ -68,14 +69,14 @@ public class FlatMethod extends FlatNode {
 		    current_node=nextnode;
 	    } else if (current_node.numNext()==2) {
 		/* Branch */
-		st+=((FlatCondBranch)current_node).toString("L"+nodetolabel.get(current_node.getNext(1)));
+		st+="   "+((FlatCondBranch)current_node).toString("L"+nodetolabel.get(current_node.getNext(1)))+"\n";
+		if (!visited.contains(current_node.getNext(1)))
+		    tovisit.add(current_node.getNext(1));
 		if (visited.contains(current_node.getNext(0))) {
 		    st+="goto L"+nodetolabel.get(current_node.getNext(0))+"\n";
 		    current_node=null;
 		} else
 		    current_node=current_node.getNext(0);
-		if (!visited.contains(current_node.getNext(1)))
-		    tovisit.add(current_node.getNext(1));
 	    } else throw new Error();
 	}
 	return st;

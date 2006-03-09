@@ -16,14 +16,11 @@ public class FlatLiteralNode extends FlatNode {
 	return value;
     }
 
-    public String printNode(int indent) {
-	/*	if (type==NULL)
+    public String toString() {
+	if (value==null)
 	    return dst+"=null";
-	    if (type==STRING) {
-	    return dst+"="+'"'+escapeString(value.toString())+'"';
-	    }*/
-	//return dst+"="+"/*"+getType()+ "*/"+value.toString();
-	return "";
+	else
+	    return dst+"="+escapeString(value.toString());
     }
     private static String escapeString(String st) {
 	String new_st="";

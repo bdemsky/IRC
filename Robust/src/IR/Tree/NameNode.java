@@ -23,11 +23,19 @@ public class NameNode extends ExpressionNode {
 	this.fd=fd;
     }
 
+    public FieldDescriptor getField() {
+	return fd;
+    }
+
+    public VarDescriptor getVar() {
+	return vd;
+    }
+
     public TypeDescriptor getType() {
-	if (vd!=null)
-	    return vd.getType();
-	else
+	if (fd!=null)
 	    return fd.getType();
+	else
+	    return vd.getType();
     }
 
     NameDescriptor getName() {

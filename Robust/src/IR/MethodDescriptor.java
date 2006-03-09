@@ -104,7 +104,7 @@ public class MethodDescriptor extends Descriptor {
 	else
 	    st=modifier.toString()+" "+identifier+"(";
 	for(int i=0;i<params.size();i++) {
-	    st+=getParamName(i)+" "+getParamType(i);
+	    st+=getParamType(i)+" "+getParamName(i);
 	    if ((i+1)!=params.size())
 		st+=", ";
 	}

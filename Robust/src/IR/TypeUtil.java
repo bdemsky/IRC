@@ -2,7 +2,7 @@ package IR;
 import java.util.*;
 
 public class TypeUtil {
-    public static final String StringClass="java.lang.String";
+    public static final String StringClass="String";
     State state;
     Hashtable supertable;
 
@@ -34,10 +34,45 @@ public class TypeUtil {
     }
 
     public boolean isSuperorType(TypeDescriptor possiblesuper, TypeDescriptor cd2) {
-	if ((possiblesuper.getClassDesc()==null)||
-	    cd2.getClassDesc()==null)
-	    throw new Error();
-	return isSuperorType(possiblesuper.getClassDesc(), cd2.getClassDesc());
+	if (possiblesuper.isClass()&&
+	     cd2.isClass())
+	    return isSuperorType(possiblesuper.getClassDesc(), cd2.getClassDesc());
+	else if (possiblesuper.isClass()&&
+		 cd2.isNull())
+	    return true;
+	else if (possiblesuper.isNull())
+	    throw new Error(); //not sure when this case would occur
+	else if (possiblesuper.isPrimitive()&&
+		 cd2.isPrimitive()) {
+	    ///Primitive widenings from 5.1.2
+	    if (cd2.isByte()&&(possiblesuper.isByte()||possiblesuper.isShort()||
+			       possiblesuper.isInt()||possiblesuper.isLong()||
+			       possiblesuper.isFloat()||possiblesuper.isDouble()))
+		return true;
+	    if (cd2.isShort()&&(possiblesuper.isShort()||
+				possiblesuper.isInt()||possiblesuper.isLong()||
+				possiblesuper.isFloat()||possiblesuper.isDouble()))
+		return true;
+	    if (cd2.isChar()&&(possiblesuper.isChar()||
+			       possiblesuper.isInt()||possiblesuper.isLong()||
+			       possiblesuper.isFloat()||possiblesuper.isDouble()))
+		return true;
+	    if (cd2.isInt()&&(possiblesuper.isInt()||possiblesuper.isLong()||
+			      possiblesuper.isFloat()||possiblesuper.isDouble()))
+		return true;
+	    if (cd2.isLong()&&(possiblesuper.isLong()||
+			       possiblesuper.isFloat()||possiblesuper.isDouble()))
+		return true;
+	    if (cd2.isFloat()&&(possiblesuper.isFloat()||possiblesuper.isDouble()))
+		return true;
+	    if (cd2.isDouble()&&possiblesuper.isDouble())
+		
+		return true;
+	    if (cd2.isBoolean()&&possiblesuper.isBoolean())
+		return true;
+	    
+	    return false;
+	} else throw new Error();
     }
 
 

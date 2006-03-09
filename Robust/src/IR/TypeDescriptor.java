@@ -24,8 +24,15 @@ public class TypeDescriptor extends Descriptor {
     int type;
     ClassDescriptor class_desc;
 
+    public boolean isNumber() {
+	return (isIntegerType()||isFloat()||isDouble());
+    }
+
     public boolean isByte() {
 	return type==BYTE;
+    }
+    public boolean isNull() {
+	return type==NULL;
     }
     public boolean isShort() {
 	return type==SHORT;
@@ -48,15 +55,22 @@ public class TypeDescriptor extends Descriptor {
     public boolean isDouble() {
 	return type==DOUBLE;
     }
+    public boolean isVoid() {
+	return type==VOID;
+    }
+
+    public boolean isPtr() {
+	return (isClass()||isNull());
+    }
+
+    public boolean isIntegerType() {
+	return (isInt()||isLong()||isShort()||isChar()||isByte());
+    }
 
     public void setClassDescriptor(ClassDescriptor cd) {
 	class_desc=cd;
     }
   
-    public boolean isVoid() {
-	return type==VOID;
-    }
-
     public boolean isPrimitive() {
 	return ((type>=BYTE)&&(type<=DOUBLE));
     }
