@@ -169,15 +169,36 @@ public class BuildFlat {
 	    np_baseexp.getEnd().addNext(fsfn);
 	    return new NodePair(np_src.getBegin(), fsfn);
 	} else if (an.getDest().kind()==Kind.NameNode) {
-
-	    //TODO: FIXME
-	    FlatNop nop=new FlatNop();
-	    return new NodePair(nop,nop);
-	} else throw new Error();
+	    NameNode nn=(NameNode)an.getDest();
+	    if (nn.getExpression()!=null) {
+		FieldAccessNode fan=(FieldAccessNode)nn.getExpression();
+		ExpressionNode en=fan.getExpression();
+		TempDescriptor dst_tmp=TempDescriptor.tempFactory("dst");
+		NodePair np_baseexp=flattenExpressionNode(en, dst_tmp);
+		last.addNext(np_baseexp.getBegin());
+		FlatSetFieldNode fsfn=new FlatSetFieldNode(dst_tmp, fan.getField(), src_tmp);
+		np_baseexp.getEnd().addNext(fsfn);
+		return new NodePair(np_src.getBegin(), fsfn);
+	    } else {
+		if (nn.getField()!=null) {
+		    FlatSetFieldNode fsfn=new FlatSetFieldNode(getTempforVar(nn.getVar()), nn.getField(), src_tmp);
+		    last.addNext(fsfn);
+		    return new NodePair(np_src.getBegin(), fsfn);
+		} else {
+		    FlatOpNode fon=new FlatOpNode(getTempforVar(nn.getVar()), src_tmp, null, new Operation(Operation.ASSIGN));
+		    last.addNext(fon);
+		    return new NodePair(np_src.getBegin(),fon);
+		}
+	    }
+	} 
+	throw new Error();
     }
 
     private NodePair flattenNameNode(NameNode nn,TempDescriptor out_temp) {
-	if (nn.getField()!=null) {
+	if (nn.getExpression()!=null) {
+	    /* Hack - use subtree instead */
+	    return flattenExpressionNode(nn.getExpression(),out_temp);
+	} else if (nn.getField()!=null) {
 	    TempDescriptor tmp=getTempforVar(nn.getVar());
 	    FlatFieldNode ffn=new FlatFieldNode(nn.getField(), tmp, out_temp); 
 	    return new NodePair(ffn,ffn);

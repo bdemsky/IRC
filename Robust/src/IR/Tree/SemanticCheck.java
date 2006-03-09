@@ -266,20 +266,28 @@ public class SemanticCheck {
 
     void checkNameNode(MethodDescriptor md, SymbolTable nametable, NameNode nn, TypeDescriptor td) {
 	NameDescriptor nd=nn.getName();
-	String varname=nd.toString();
-	Descriptor d=(Descriptor)nametable.get(varname);
-	if (d==null) {
-	    throw new Error("Name "+varname+" undefined");
+	if (nd.getBase()!=null) {
+	    /* Big hack */
+	    /* Rewrite NameNode */
+	    ExpressionNode en=translateNameDescriptorintoExpression(nd);
+	    nn.setExpression(en);
+	    checkExpressionNode(md,nametable,en,td);
+	} else {
+	    String varname=nd.toString();
+	    Descriptor d=(Descriptor)nametable.get(varname);
+	    if (d==null) {
+		throw new Error("Name "+varname+" undefined");
+	    }
+	    if (d instanceof VarDescriptor) {
+		nn.setVar((VarDescriptor)d);
+	    } else if (d instanceof FieldDescriptor) {
+		nn.setField((FieldDescriptor)d);
+		nn.setVar((VarDescriptor)nametable.get("this")); /* Need a pointer to this */
+	    }
+	    if (td!=null)
+		if (!typeutil.isSuperorType(td,nn.getType()))
+		    throw new Error("Field node returns "+nn.getType()+", but need "+td);
 	}
-	if (d instanceof VarDescriptor) {
-	    nn.setVar((VarDescriptor)d);
-	} else if (d instanceof FieldDescriptor) {
-	    nn.setField((FieldDescriptor)d);
-	    nn.setVar((VarDescriptor)nametable.get("this")); /* Need a pointer to this */
-	}
-	if (td!=null)
-	    if (!typeutil.isSuperorType(td,nn.getType()))
-		throw new Error("Field node returns "+nn.getType()+", but need "+td);
     }
 
     void checkAssignmentNode(MethodDescriptor md, SymbolTable nametable, AssignmentNode an, TypeDescriptor td) {

@@ -8,11 +8,21 @@ public class NameNode extends ExpressionNode {
     NameDescriptor name;
     VarDescriptor vd;
     FieldDescriptor fd;
+    ExpressionNode en;
 
     public NameNode(NameDescriptor nd) {
 	this.name=nd;
 	this.vd=null;
 	this.fd=null;
+    }
+
+    public ExpressionNode getExpression() {
+	return en;
+    }
+
+    /* Gross hack */
+    public void setExpression(ExpressionNode en) {
+	this.en=en;
     }
 
     public void setVar(VarDescriptor vd) {
@@ -32,7 +42,9 @@ public class NameNode extends ExpressionNode {
     }
 
     public TypeDescriptor getType() {
-	if (fd!=null)
+	if (en!=null)
+	    return en.getType();
+	else if (fd!=null)
 	    return fd.getType();
 	else
 	    return vd.getType();
