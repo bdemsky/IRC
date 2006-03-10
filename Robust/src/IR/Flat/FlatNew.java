@@ -13,4 +13,12 @@ public class FlatNew extends FlatNode {
     public String toString() {
 	return dst.toString()+"= NEW "+type.toString();
     }
+
+    public int kind() {
+	return FKind.FlatNew;
+    }
+
+    public TempDescriptor [] writesTemps() {
+	return new TempDescriptor[] {dst};
+    }
 }

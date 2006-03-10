@@ -32,4 +32,12 @@ public class FlatCondBranch extends FlatNode {
     public void addNext(FlatNode n) {
 	throw new Error();
     }
+
+    public int kind() {
+	return FKind.FlatCondBranch;
+    }
+
+    public TempDescriptor [] readsTemps() {
+	return new TempDescriptor[] {test_cond};
+    }
 }

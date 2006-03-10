@@ -8,4 +8,8 @@ public class FlatNop extends FlatNode {
     public String toString() {
 	return "nop";
     }
+
+    public int kind() {
+	return FKind.FlatNop;
+    }
 }

@@ -19,4 +19,16 @@ public class FlatFieldNode extends FlatNode {
     public String toString() {
 	return dst.toString()+"="+src.toString()+"."+field.getSymbol();
     }
+
+    public int kind() {
+	return FKind.FlatFieldNode;
+    }
+
+    public TempDescriptor [] writesTemps() {
+	return new TempDescriptor[] {dst};
+    }
+
+    public TempDescriptor [] readsTemps() {
+	return new TempDescriptor[] {src};
+    }
 }

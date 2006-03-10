@@ -7,6 +7,7 @@ import IR.Tree.ParseNode;
 import IR.Tree.BuildIR;
 import IR.Tree.SemanticCheck;
 import IR.Flat.BuildFlat;
+import IR.Flat.BuildCode;
 import IR.State;
 import IR.TypeUtil;
 
@@ -21,7 +22,6 @@ public class Main {
     java_cup.runtime.lr_parser g;
     g = new Parse.Parser(l);
     ParseNode p=(ParseNode) g./*debug_*/parse().value;
-    //    System.out.println(p.PPrint(2,true));
     State state=new State(p);
 
     BuildIR bir=new BuildIR(state);
@@ -34,6 +34,9 @@ public class Main {
     
     BuildFlat bf=new BuildFlat(state);
     bf.buildFlat();
+
+    BuildCode bc=new BuildCode(state, bf.getMap());
+    
 
     System.exit(l.numErrors());
   }

@@ -34,4 +34,12 @@ public class FlatLiteralNode extends FlatNode {
 	}
 	return new_st;
     }
+
+    public int kind() {
+	return FKind.FlatLiteralNode;
+    }
+
+    public TempDescriptor [] writesTemps() {
+	return new TempDescriptor[] {dst};
+    }
 }

@@ -39,4 +39,19 @@ public class FlatOpNode extends FlatNode {
 	else
 	    return dest.toString()+" "+op.toString() +" "+left.toString();
     }
+
+    public int kind() {
+	return FKind.FlatOpNode;
+    }
+
+    public TempDescriptor [] readsTemps() {
+	if (right!=null)
+	    return new TempDescriptor [] {left,right};
+	else
+	    return new TempDescriptor [] {left};
+    }
+
+    public TempDescriptor [] writesTemps() {
+	return new TempDescriptor [] {dest};
+    }
 }

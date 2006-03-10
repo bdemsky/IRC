@@ -33,4 +33,28 @@ public class FlatCall extends FlatNode {
 	}
 	return st+")";
     }
+
+    public int kind() {
+	return FKind.FlatCall;
+    }
+
+    public TempDescriptor [] readsTemps() {
+	int size=args.length;
+	if (this_temp!=null)
+	    size++;
+	TempDescriptor [] t=new TempDescriptor[size];
+	int offset=0;
+	if (this_temp!=null)
+	    t[offset++]=this_temp;
+	for(int i=0;i<args.length;i++)
+	    t[offset++]=args[i];
+	return t;
+    }
+
+    public TempDescriptor [] writesTemps() {
+	if (dst!=null)
+	    return new TempDescriptor[] {dst};
+	else
+	    return new TempDescriptor[0];
+    }
 }

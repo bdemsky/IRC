@@ -12,6 +12,10 @@ public class BuildFlat {
 	temptovar=new Hashtable();
     }
 
+    public Hashtable getMap() {
+	return temptovar;
+    }
+
     public void buildFlat() {
 	Iterator it=state.getClassSymbolTable().getDescriptorsIterator();
 	while(it.hasNext()) {
@@ -27,6 +31,11 @@ public class BuildFlat {
 	    BlockNode bn=state.getMethodBody(md);
 	    FlatNode fn=flattenBlockNode(bn).getBegin();
 	    FlatMethod fm=new FlatMethod(md, fn);
+	    if (!md.isStatic())
+		fm.addParameterTemp(getTempforVar(md.getThis()));
+	    for(int i=0;i<md.numParameters();i++) {
+		fm.addParameterTemp(getTempforVar(md.getParameter(i)));
+	    }
 	    System.out.println(fm.printMethod());
 	    state.addFlatCode(md,fm);
 	}
@@ -56,12 +65,12 @@ public class BuildFlat {
     }
 
     private NodePair flattenBlockExpressionNode(BlockExpressionNode en) {
-	TempDescriptor tmp=TempDescriptor.tempFactory("neverused");
+	TempDescriptor tmp=TempDescriptor.tempFactory("neverused",en.getExpression().getType());
 	return flattenExpressionNode(en.getExpression(),tmp);
     }
 
     private NodePair flattenCastNode(CastNode cn,TempDescriptor out_temp) {
-	TempDescriptor tmp=TempDescriptor.tempFactory("tocast");
+	TempDescriptor tmp=TempDescriptor.tempFactory("tocast",cn.getExpression().getType());
 	NodePair np=flattenExpressionNode(cn.getExpression(), tmp);
 	FlatCastNode fcn=new FlatCastNode(cn.getType(), tmp, out_temp);
 	np.getEnd().addNext(fcn);
@@ -81,7 +90,7 @@ public class BuildFlat {
 	//Build arguments
 	for(int i=0;i<con.numArgs();i++) {
 	    ExpressionNode en=con.getArg(i);
-	    TempDescriptor tmp=TempDescriptor.tempFactory("arg");
+	    TempDescriptor tmp=TempDescriptor.tempFactory("arg",en.getType());
 	    temps[i]=tmp;
 	    NodePair np=flattenExpressionNode(en, tmp);
 	    last.addNext(np.getBegin());
@@ -101,7 +110,7 @@ public class BuildFlat {
 	TempDescriptor thisarg=null;
 
 	if (min.getExpression()!=null) {
-	    thisarg=TempDescriptor.tempFactory("thisarg");
+	    thisarg=TempDescriptor.tempFactory("thisarg",min.getExpression().getType());
 	    NodePair np=flattenExpressionNode(min.getExpression(),thisarg);
 	    first=np.getBegin();
 	    last=np.getEnd();
@@ -110,7 +119,7 @@ public class BuildFlat {
 	//Build arguments
 	for(int i=0;i<min.numArgs();i++) {
 	    ExpressionNode en=min.getArg(i);
-	    TempDescriptor td=TempDescriptor.tempFactory("arg");
+	    TempDescriptor td=TempDescriptor.tempFactory("arg",en.getType());
 	    temps[i]=td;
 	    NodePair np=flattenExpressionNode(en, td);
 	    if (first==null)
@@ -132,7 +141,7 @@ public class BuildFlat {
     }
 
     private NodePair flattenFieldAccessNode(FieldAccessNode fan,TempDescriptor out_temp) {
-	TempDescriptor tmp=TempDescriptor.tempFactory("temp");
+	TempDescriptor tmp=TempDescriptor.tempFactory("temp",fan.getExpression().getType());
 	NodePair npe=flattenExpressionNode(fan.getExpression(),tmp);
 	FlatFieldNode fn=new FlatFieldNode(fan.getField(),tmp,out_temp);
 	npe.getEnd().addNext(fn);
@@ -145,14 +154,14 @@ public class BuildFlat {
 	// left side is field
 	
 	Operation base=an.getOperation().getBaseOp();
-	TempDescriptor src_tmp=TempDescriptor.tempFactory("src");
+	TempDescriptor src_tmp=TempDescriptor.tempFactory("src",an.getSrc().getType());
 	NodePair np_src=flattenExpressionNode(an.getSrc(),src_tmp);
 	FlatNode last=np_src.getEnd();
 	if (base!=null) {
-	    TempDescriptor src_tmp2=TempDescriptor.tempFactory("tmp");
+	    TempDescriptor src_tmp2=TempDescriptor.tempFactory("tmp", an.getDest().getType());
 	    NodePair np_dst_init=flattenExpressionNode(an.getDest(),src_tmp2);
 	    last.addNext(np_dst_init.getBegin());
-	    TempDescriptor dst_tmp=TempDescriptor.tempFactory("dst_tmp");
+	    TempDescriptor dst_tmp=TempDescriptor.tempFactory("dst_tmp",an.getDest().getType());
 	    FlatOpNode fon=new FlatOpNode(dst_tmp, src_tmp,src_tmp2, base);
 	    np_dst_init.getEnd().addNext(fon);
 	    last=fon;
@@ -162,7 +171,7 @@ public class BuildFlat {
 	if (an.getDest().kind()==Kind.FieldAccessNode) {
 	    FieldAccessNode fan=(FieldAccessNode)an.getDest();
 	    ExpressionNode en=fan.getExpression();
-	    TempDescriptor dst_tmp=TempDescriptor.tempFactory("dst");
+	    TempDescriptor dst_tmp=TempDescriptor.tempFactory("dst",en.getType());
 	    NodePair np_baseexp=flattenExpressionNode(en, dst_tmp);
 	    last.addNext(np_baseexp.getBegin());
 	    FlatSetFieldNode fsfn=new FlatSetFieldNode(dst_tmp, fan.getField(), src_tmp);
@@ -173,7 +182,7 @@ public class BuildFlat {
 	    if (nn.getExpression()!=null) {
 		FieldAccessNode fan=(FieldAccessNode)nn.getExpression();
 		ExpressionNode en=fan.getExpression();
-		TempDescriptor dst_tmp=TempDescriptor.tempFactory("dst");
+		TempDescriptor dst_tmp=TempDescriptor.tempFactory("dst",en.getType());
 		NodePair np_baseexp=flattenExpressionNode(en, dst_tmp);
 		last.addNext(np_baseexp.getBegin());
 		FlatSetFieldNode fsfn=new FlatSetFieldNode(dst_tmp, fan.getField(), src_tmp);
@@ -210,13 +219,15 @@ public class BuildFlat {
     }
 
     private NodePair flattenOpNode(OpNode on,TempDescriptor out_temp) {
-	TempDescriptor temp_left=TempDescriptor.tempFactory("leftop");
-	TempDescriptor temp_right=TempDescriptor.tempFactory("rightop");
+	TempDescriptor temp_left=TempDescriptor.tempFactory("leftop",on.getLeft().getType());
+	TempDescriptor temp_right=null;
+
 	NodePair left=flattenExpressionNode(on.getLeft(),temp_left);
 	NodePair right;
-	if (on.getRight()!=null)
+	if (on.getRight()!=null) {
+	    temp_right=TempDescriptor.tempFactory("rightop",on.getRight().getType());
 	    right=flattenExpressionNode(on.getRight(),temp_right);
-	else {
+	} else {
 	    FlatNop nop=new FlatNop();
 	    right=new NodePair(nop,nop);
 	}
@@ -264,14 +275,14 @@ public class BuildFlat {
 	if (temptovar.containsKey(vd))
 	    return (TempDescriptor)temptovar.get(vd);
 	else {
-	    TempDescriptor td=TempDescriptor.tempFactory(vd.getName());
+	    TempDescriptor td=TempDescriptor.tempFactory(vd.getName(),vd.getType());
 	    temptovar.put(vd,td);
 	    return td;
 	}
     }
 
     private NodePair flattenIfStatementNode(IfStatementNode isn) {
-	TempDescriptor cond_temp=TempDescriptor.tempFactory("condition");
+	TempDescriptor cond_temp=TempDescriptor.tempFactory("condition",new TypeDescriptor(TypeDescriptor.BOOLEAN));
 	NodePair cond=flattenExpressionNode(isn.getCondition(),cond_temp);
 	FlatCondBranch fcb=new FlatCondBranch(cond_temp);
 	NodePair true_np=flattenBlockNode(isn.getTrueBlock());
@@ -296,7 +307,7 @@ public class BuildFlat {
     private NodePair flattenLoopNode(LoopNode ln) {
 	if (ln.getType()==LoopNode.FORLOOP) {
 	    NodePair initializer=flattenBlockNode(ln.getInitializer());
-	    TempDescriptor cond_temp=TempDescriptor.tempFactory("condition");
+	    TempDescriptor cond_temp=TempDescriptor.tempFactory("condition", new TypeDescriptor(TypeDescriptor.BOOLEAN));
 	    NodePair condition=flattenExpressionNode(ln.getCondition(),cond_temp);
 	    NodePair update=flattenBlockNode(ln.getUpdate());
 	    NodePair body=flattenBlockNode(ln.getBody());
@@ -312,7 +323,7 @@ public class BuildFlat {
 	    fcb.addTrueNext(body.getBegin());
 	    return new NodePair(begin,nopend);
 	} else if (ln.getType()==LoopNode.WHILELOOP) {
-	    TempDescriptor cond_temp=TempDescriptor.tempFactory("condition");
+	    TempDescriptor cond_temp=TempDescriptor.tempFactory("condition", new TypeDescriptor(TypeDescriptor.BOOLEAN));
 	    NodePair condition=flattenExpressionNode(ln.getCondition(),cond_temp);
 	    NodePair body=flattenBlockNode(ln.getBody());
 	    FlatNode begin=condition.getBegin();
@@ -325,7 +336,7 @@ public class BuildFlat {
 	    fcb.addTrueNext(body.getBegin());
 	    return new NodePair(begin,nopend);
 	} else if (ln.getType()==LoopNode.DOWHILELOOP) {
-	    TempDescriptor cond_temp=TempDescriptor.tempFactory("condition");
+	    TempDescriptor cond_temp=TempDescriptor.tempFactory("condition", new TypeDescriptor(TypeDescriptor.BOOLEAN));
 	    NodePair condition=flattenExpressionNode(ln.getCondition(),cond_temp);
 	    NodePair body=flattenBlockNode(ln.getBody());
 	    FlatNode begin=body.getBegin();
@@ -341,7 +352,7 @@ public class BuildFlat {
     }
 	    
     private NodePair flattenReturnNode(ReturnNode rntree) {
-	TempDescriptor retval=TempDescriptor.tempFactory("ret_value");
+	TempDescriptor retval=TempDescriptor.tempFactory("ret_value", rntree.getReturnExpression().getType());
 	NodePair cond=flattenExpressionNode(rntree.getReturnExpression(),retval);
 	FlatReturnNode rnflat=new FlatReturnNode(retval);
 	cond.getEnd().addNext(rnflat);

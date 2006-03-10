@@ -10,5 +10,13 @@ public class FlatReturnNode extends FlatNode {
     public String toString() {
 	return "return "+tempdesc;
     }
-
+    public int kind() {
+	return FKind.FlatReturnNode;
+    }
+    public TempDescriptor [] readsTemps() {
+	if (tempdesc==null)
+	    return new TempDescriptor [0];
+	else
+	    return new TempDescriptor [] {tempdesc};
+    }
 }

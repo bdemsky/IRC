@@ -15,4 +15,17 @@ public class FlatCastNode extends FlatNode {
     public String toString() {
 	return dst.toString()+"=("+type.toString()+")"+src.toString();
     }
+
+    public int kind() {
+	return FKind.FlatCastNode;
+    }
+
+    public TempDescriptor [] writesTemps() {
+	return new TempDescriptor[] {dst};
+    }
+
+    public TempDescriptor [] readsTemps() {
+	return new TempDescriptor[] {src};
+    }
+
 }

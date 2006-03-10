@@ -5,18 +5,24 @@ import java.util.*;
 public class FlatMethod extends FlatNode {
     FlatNode method_entry;
     MethodDescriptor method;
+    Vector parameterTemps;
 
     FlatMethod(MethodDescriptor md, FlatNode entry) {
 	method=md;
 	method_entry=entry;
+	parameterTemps=new Vector();
     }
-    
+
     public String toString() {
 	return method.toString();
     }
     
+    public void addParameterTemp(TempDescriptor t) {
+	parameterTemps.add(t);
+    }
+
     public String printMethod() {
-	String st=method+"\n";
+	String st=method+" {\n";
 	HashSet tovisit=new HashSet();
 	HashSet visited=new HashSet();
 	int labelindex=0;
@@ -79,7 +85,10 @@ public class FlatMethod extends FlatNode {
 		    current_node=current_node.getNext(0);
 	    } else throw new Error();
 	}
-	return st;
+	return st+"}\n";
     }
-
+    
+    public TempDescriptor [] writesTemps() {
+	return (TempDescriptor[]) parameterTemps.toArray(new TempDescriptor[ parameterTemps.size()]);
+    }
 }

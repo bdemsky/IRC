@@ -19,4 +19,12 @@ public class FlatSetFieldNode extends FlatNode {
     public String toString() {
 	return dst.toString()+"."+field.getSymbol()+"="+src.toString();
     }
+
+    public int kind() {
+	return FKind.FlatSetFieldNode;
+    }
+    
+    public TempDescriptor [] readsTemps() {
+	return new TempDescriptor [] {src,dst};
+    }
 }

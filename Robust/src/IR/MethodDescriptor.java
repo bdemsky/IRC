@@ -49,6 +49,10 @@ public class MethodDescriptor extends Descriptor {
 	paramtable.add(vd);
     }
 
+    public VarDescriptor getThis() {
+	return thisvd;
+    }
+
     public boolean isStatic() {
 	return modifier.isStatic();
     }
@@ -87,6 +91,10 @@ public class MethodDescriptor extends Descriptor {
 
     public int numParameters() {
 	return params.size();
+    }
+
+    public VarDescriptor getParameter(int i) {
+	return (VarDescriptor)params.get(i);
     }
 
     public String getParamName(int i) {

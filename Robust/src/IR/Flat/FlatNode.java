@@ -34,4 +34,15 @@ public class FlatNode {
     protected void addPrev(FlatNode p) {
 	prev.add(p);
     }
+    public int kind() {
+	throw new Error();
+    }
+
+    public TempDescriptor [] readsTemps() {
+	return new TempDescriptor[0];
+    }
+
+    public TempDescriptor [] writesTemps() {
+	return new TempDescriptor[0];
+    }
 }
