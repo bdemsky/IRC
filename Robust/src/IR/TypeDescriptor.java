@@ -24,6 +24,28 @@ public class TypeDescriptor extends Descriptor {
     int type;
     ClassDescriptor class_desc;
 
+    public String getSafeSymbol() {
+	if (isClass())
+	    return class_desc.getSafeSymbol();
+	else if (isByte())
+	    return "char";
+	else if (isChar())
+	    return "short";
+	else if (isShort())
+	    return "short";
+	else if (isInt())
+	    return "int";
+	else if (isLong())
+	    return "long long";
+	else if (isVoid())
+	    return "void";
+	else if (isDouble())
+	    return "double";
+	else if (isFloat())
+	    return "float";
+	else throw new Error();
+    }
+
     public boolean isNumber() {
 	return (isIntegerType()||isFloat()||isDouble());
     }

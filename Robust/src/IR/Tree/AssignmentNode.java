@@ -1,5 +1,6 @@
 package IR.Tree;
 import IR.AssignOperation;
+import IR.TypeDescriptor;
 
 public class AssignmentNode extends ExpressionNode {
     ExpressionNode left;
@@ -26,6 +27,10 @@ public class AssignmentNode extends ExpressionNode {
 
     public String printNode(int indent) {
 	return left.printNode(indent)+" "+op.toString()+" "+right.printNode(indent);
+    }
+
+    public TypeDescriptor getType() {
+	return left.getType();
     }
 
     public int kind() {

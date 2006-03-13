@@ -2,6 +2,7 @@ package IR.Tree;
 import java.util.Vector;
 import IR.NameDescriptor;
 import IR.MethodDescriptor;
+import IR.TypeDescriptor;
 
 public class MethodInvokeNode extends ExpressionNode {
     Vector argumentlist;
@@ -38,6 +39,10 @@ public class MethodInvokeNode extends ExpressionNode {
 
     public ExpressionNode getExpression() {
 	return en;
+    }
+
+    public TypeDescriptor getType() {
+	return md.getReturnType();
     }
 
     public void setExpression(ExpressionNode en) {

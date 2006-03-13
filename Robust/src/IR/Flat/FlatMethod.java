@@ -16,11 +16,41 @@ public class FlatMethod extends FlatNode {
     public String toString() {
 	return method.toString();
     }
+
+    public MethodDescriptor getMethod() {
+	return method;
+    }
     
     public void addParameterTemp(TempDescriptor t) {
 	parameterTemps.add(t);
     }
 
+    public int numParameters() {
+	return parameterTemps.size();
+    }
+
+    public TempDescriptor getParameter(int i) {
+	return (TempDescriptor) parameterTemps.get(i);
+    }
+
+
+    public Set getNodeSet() {
+	HashSet tovisit=new HashSet();
+	HashSet visited=new HashSet();
+	tovisit.add(method_entry);
+	while(!tovisit.isEmpty()) {
+	    FlatNode fn=(FlatNode)tovisit.iterator().next();
+	    tovisit.remove(fn);
+	    visited.add(fn);
+	    for(int i=0;i<fn.numNext();i++) {
+		FlatNode nn=fn.getNext(i);
+		if (!visited.contains(nn))
+		    tovisit.add(nn);
+	    }
+	}
+	return visited;
+    }
+    
     public String printMethod() {
 	String st=method+" {\n";
 	HashSet tovisit=new HashSet();

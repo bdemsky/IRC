@@ -36,7 +36,7 @@ public class Main {
     bf.buildFlat();
 
     BuildCode bc=new BuildCode(state, bf.getMap());
-    
+    bc.buildCode();
 
     System.exit(l.numErrors());
   }

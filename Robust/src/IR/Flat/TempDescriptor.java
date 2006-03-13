@@ -1,14 +1,14 @@
 package IR.Flat;
 import IR.*;
 
-public class TempDescriptor {
+public class TempDescriptor extends Descriptor {
     static int currentid=0;
     int id;
-    String safename;
+    //    String safename;
     TypeDescriptor type;
 
     public TempDescriptor(String name) {
-	safename="__"+name+"__";
+	super(name);
 	id=currentid++;
     }
 
