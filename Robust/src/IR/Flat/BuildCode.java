@@ -325,9 +325,9 @@ public class BuildCode {
 	output.print("       ");
 
 	/* TODO: Virtual dispatch */
-	if (fc.getReturnType()!=null)
-	    output.print(generateTemp(fm,fc.getReturnType())+"=");
-	output.print(cn.getSafeSymbol()+md.getSafeSymbol()++"_"+md.getSafeMethodDescriptor()+"(");
+	if (fc.getReturnTemp()!=null)
+	    output.print(generateTemp(fm,fc.getReturnTemp())+"=");
+	output.print(cn.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"(");
 	needcomma=false;
 	if (GENERATEPRECISEGC) {
 	    output.println("__parameterlist__");
@@ -380,7 +380,7 @@ public class BuildCode {
 	
 	if (md.getReturnType()!=null)
 	    output.print(md.getReturnType().getSafeSymbol()+" ");
-	output.print(cn.getSafeSymbol()+md.getSafeSymbol()++"_"+md.getSafeMethodDescriptor()+"(");
+	output.print(cn.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"(");
 	
 	boolean printcomma=false;
 	if (GENERATEPRECISEGC) {
