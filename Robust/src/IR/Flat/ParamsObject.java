@@ -8,7 +8,7 @@ public class ParamsObject {
     private MethodDescriptor method;
     private int tag;
     private Hashtable paramtotemp;
-    private Hashtable temptostore;
+    protected Hashtable temptostore;
     private int count;
 
     public ParamsObject(MethodDescriptor md, int tag) {

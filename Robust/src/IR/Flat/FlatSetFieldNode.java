@@ -12,6 +12,14 @@ public class FlatSetFieldNode extends FlatNode {
 	this.dst=dst;
     }
 
+    public TempDescriptor getSrc() {
+	return src;
+    }
+
+    public TempDescriptor getDst() {
+	return dst;
+    }
+
     public FieldDescriptor getField() {
 	return field;
     }

@@ -14,6 +14,18 @@ public class FlatCall extends FlatNode {
 	this.args=args;
     }
 
+    public MethodDescriptor getMethod() {
+	return method;
+    }
+
+    public TempDescriptor getThis() {
+	return this_temp;
+    }
+
+    public TempDescriptor getReturnTemp() {
+	return dst;
+    }
+
     public String toString() {
 	String st="";
 	if (dst==null)

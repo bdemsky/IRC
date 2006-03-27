@@ -16,6 +16,14 @@ public class FlatFieldNode extends FlatNode {
 	return field;
     }
 
+    public TempDescriptor getSrc() {
+	return src;
+    }
+
+    public TempDescriptor getDst() {
+	return dst;
+    }
+
     public String toString() {
 	return dst.toString()+"="+src.toString()+"."+field.getSymbol();
     }

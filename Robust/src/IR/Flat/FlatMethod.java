@@ -33,6 +33,10 @@ public class FlatMethod extends FlatNode {
 	return (TempDescriptor) parameterTemps.get(i);
     }
 
+    public FlatNode methodEntryNode() {
+	return method_entry;
+    }
+
 
     public Set getNodeSet() {
 	HashSet tovisit=new HashSet();

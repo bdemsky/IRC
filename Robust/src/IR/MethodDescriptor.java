@@ -53,6 +53,16 @@ public class MethodDescriptor extends Descriptor {
 	return thisvd;
     }
 
+    public String getSafeMethodDescriptor() {
+	String st="";
+	for(int i=0;i<numParameters();i++) {
+	    st+=getParamType(i).getSafeDescriptor();
+	    if ((i+1)<numParameters())
+		st+="_";
+	}
+	return st;
+    }
+
     public boolean isStatic() {
 	return modifier.isStatic();
     }

@@ -12,7 +12,6 @@ public class TempObject {
     private Hashtable temptostore;
     private int count;
 
-
     public TempObject(ParamsObject p, MethodDescriptor md, int tag) {
 	params=p;
 	pointerparams=new Vector();
@@ -42,6 +41,38 @@ public class TempObject {
 	}
     }
 
+    public boolean isLocalPtr(TempDescriptor t) {
+	if (!params.containsTemp(t)) {
+	    Position p=(Position)temptostore.get(t);
+	    return p.inStruct;
+	}
+	return false;
+    }
+
+    public boolean isLocalPrim(TempDescriptor t) {
+	if (!params.containsTemp(t)) {
+	    Position p=(Position)temptostore.get(t);
+	    return !p.inStruct;
+	}
+	return false;
+    }
+
+    public boolean isParamPtr(TempDescriptor t) {
+	if (params.containsTemp(t)) {
+	    ParamsObject.Position p=(ParamsObject.Position)params.temptostore.get(t);
+	    return p.inStruct;
+	}
+	return false;
+    }
+
+    public boolean isParamPrim(TempDescriptor t) {
+	if (params.containsTemp(t)) {
+	    ParamsObject.Position p=(ParamsObject.Position)params.temptostore.get(t);
+	    return !p.inStruct;
+	}
+	return false;
+    }
+
     int numPointers() {
 	return pointerparams.size();
     }
@@ -49,12 +80,15 @@ public class TempObject {
     TempDescriptor getPointer(int i) {
 	return (TempDescriptor) pointerparams.get(i);
     }
+
     int numPrimitives() {
 	return primitiveparams.size();
     }
+
     TempDescriptor getPrimitive(int i) {
 	return (TempDescriptor) primitiveparams.get(i);
     }
+
     static class Position {
 	boolean inStruct;
 	int position;

@@ -41,6 +41,10 @@ public class ClassDescriptor extends Descriptor {
 	return methods;
     }
 
+    public String getSafeDescriptor() {
+	return "L"+safename.replace('.','/');
+    }
+
     public String printTree(State state) {
 	int indent;
 	String st=modifiers.toString()+"class "+classname;

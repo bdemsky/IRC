@@ -20,6 +20,18 @@ public class FlatCastNode extends FlatNode {
 	return FKind.FlatCastNode;
     }
 
+    public TypeDescriptor getType() {
+	return type;
+    }
+
+    public TempDescriptor getSrc() {
+	return src;
+    }
+
+    public TempDescriptor getDst() {
+	return dst;
+    }
+
     public TempDescriptor [] writesTemps() {
 	return new TempDescriptor[] {dst};
     }

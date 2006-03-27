@@ -35,6 +35,8 @@ public class TypeDescriptor extends Descriptor {
 	    return "short";
 	else if (isInt())
 	    return "int";
+	else if (isBoolean()) //Booleans are ints in C
+	    return "int";
 	else if (isLong())
 	    return "long long";
 	else if (isVoid())
@@ -44,6 +46,28 @@ public class TypeDescriptor extends Descriptor {
 	else if (isFloat())
 	    return "float";
 	else throw new Error();
+    }
+
+    public String getSafeDescriptor() {
+	if (isClass())
+	    return class_desc.getSafeDescriptor();
+	else if (isByte())
+	    return "C";
+	else if (isChar())
+	    return "C";
+	else if (isShort())
+	    return "S";
+	else if (isBoolean())
+	    return "Z";
+	else if (isInt())
+	    return "I";
+	else if (isLong())
+	    return "J";
+	else if (isDouble())
+	    return "D";
+	else if (isFloat())
+	    return "F";
+	else throw new Error();	
     }
 
     public boolean isNumber() {

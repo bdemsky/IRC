@@ -21,6 +21,10 @@ public class FlatCondBranch extends FlatNode {
 	n.addPrev(this);
     }
 
+    public TempDescriptor getTest() {
+	return test_cond;
+    }
+
     public String toString() {
 	return "conditional branch";
     }
