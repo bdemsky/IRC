@@ -89,7 +89,7 @@ public class BuildCode {
 		if (type.isPtr()&&GENERATEPRECISEGC)
 		    objecttemps.addPtr(temp);
 		else
-		    objecttemps.addPrim(temp);		
+		    objecttemps.addPrim(temp);
 	    }
 	}
     }
@@ -194,7 +194,6 @@ public class BuildCode {
 	Hashtable nodetolabel=new Hashtable();
 	tovisit.add(fm.methodEntryNode());
 	FlatNode current_node=null;
-
 
 	//Assign labels 1st
 	//Node needs a label if it is
@@ -312,7 +311,7 @@ public class BuildCode {
     private void generateFlatCall(FlatMethod fm, FlatCall fc, PrintWriter output) {
 	MethodDescriptor md=fm.getMethod();
 	ClassDescriptor cn=md.getClassDesc();
-	output.println("   {");
+	output.println("{");
 	boolean needcomma=false;
 	if (GENERATEPRECISEGC) {
 	    output.print("       struct "+cn.getSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_params __paramlist__={");
@@ -346,23 +345,43 @@ public class BuildCode {
     }
 
     private void generateFlatNew(FlatMethod fm, FlatNew fn, PrintWriter output) {
+	output.println(generateTemp(fm,fn.getDst())+"=allocate_new("+fn.getType().getClassDesc().getId()+");");
     }
 
     private void generateFlatOpNode(FlatMethod fm, FlatOpNode fon, PrintWriter output) {
-	if (fon.getOp().getOp()==Operation.ASSIGN)
-	    output.println(generateTemp(fm, fon.getDest())+" = "+generateTemp(fm, fon.getLeft())+";");
-	else if (fon.getRight()!=null)
+
+	if (fon.getRight()!=null)
 	    output.println(generateTemp(fm, fon.getDest())+" = "+generateTemp(fm, fon.getLeft())+fon.getOp().toString()+generateTemp(fm,fon.getRight())+";");
+	else if (fon.getOp().getOp()==Operation.ASSIGN)
+	    output.println(generateTemp(fm, fon.getDest())+" = "+generateTemp(fm, fon.getLeft())+";");
+	else if (fon.getOp().getOp()==Operation.UNARYPLUS)
+	    output.println(generateTemp(fm, fon.getDest())+" = "+generateTemp(fm, fon.getLeft())+";");
+	else if (fon.getOp().getOp()==Operation.UNARYMINUS)
+	    output.println(generateTemp(fm, fon.getDest())+" = -"+generateTemp(fm, fon.getLeft())+";");
+	else if (fon.getOp().getOp()==Operation.POSTINC)
+	    output.println(generateTemp(fm, fon.getDest())+" = "+generateTemp(fm, fon.getLeft())+"++;");
+	else if (fon.getOp().getOp()==Operation.POSTDEC)
+	    output.println(generateTemp(fm, fon.getDest())+" = "+generateTemp(fm, fon.getLeft())+"--;");
+	else if (fon.getOp().getOp()==Operation.PREINC)
+	    output.println(generateTemp(fm, fon.getDest())+" = ++"+generateTemp(fm, fon.getLeft())+";");
+	else if (fon.getOp().getOp()==Operation.PREDEC)
+	    output.println(generateTemp(fm, fon.getDest())+" = --"+generateTemp(fm, fon.getLeft())+";");
 	else
 	    output.println(generateTemp(fm, fon.getDest())+fon.getOp().toString()+generateTemp(fm, fon.getLeft())+";");
     }
 
     private void generateFlatCastNode(FlatMethod fm, FlatCastNode fcn, PrintWriter output) {
 	/* TODO: Make call into runtime */
-	output.println(fcn.getDst()+"=("+fcn.getType().getSafeSymbol()+")"+fcn.getSrc()+";");
+	output.println(generateTemp(fm,fcn.getDst())+"=("+fcn.getType().getSafeSymbol()+")"+generateTemp(fm,fcn.getSrc())+";");
     }
 
     private void generateFlatLiteralNode(FlatMethod fm, FlatLiteralNode fln, PrintWriter output) {
+	if (fln.getValue()==null)
+	    output.println(generateTemp(fm, fln.getDst())+"=0;");
+	else if (fln.getType().getSymbol().equals(TypeUtil.StringClass))
+	    output.println(generateTemp(fm, fln.getDst())+"=newstring(\""+FlatLiteralNode.escapeString((String)fln.getValue())+"\");");
+	else
+	    output.println(generateTemp(fm, fln.getDst())+"="+fln.getValue()+";");
     }
 
     private void generateFlatReturnNode(FlatMethod fm, FlatReturnNode frn, PrintWriter output) {

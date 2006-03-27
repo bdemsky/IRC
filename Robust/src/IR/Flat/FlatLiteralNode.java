@@ -12,6 +12,14 @@ public class FlatLiteralNode extends FlatNode {
 	this.dst=dst;
     }
 
+    public TypeDescriptor getType() {
+	return type;
+    }
+
+    public TempDescriptor getDst() {
+	return dst;
+    }
+
     public Object getValue() {
 	return value;
     }
@@ -22,7 +30,7 @@ public class FlatLiteralNode extends FlatNode {
 	else
 	    return dst+"="+escapeString(value.toString());
     }
-    private static String escapeString(String st) {
+    protected static String escapeString(String st) {
 	String new_st="";
 	for(int i=0;i<st.length();i++) {
 	    char x=st.charAt(i);

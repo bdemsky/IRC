@@ -13,8 +13,10 @@ public class ClassDescriptor extends Descriptor {
 	superclass=null;
 	fields=new SymbolTable();
 	methods=new SymbolTable();
+	classid=UIDCount++;
     }
-
+    private static int UIDCount=0;
+    private final int classid;
     String classname;
     String superclass;
     ClassDescriptor superdesc;
@@ -24,6 +26,9 @@ public class ClassDescriptor extends Descriptor {
     SymbolTable fields;
     SymbolTable methods;
 
+    public int getId() {
+	return classid;
+    }
     
     public Iterator getMethods() {
 	return methods.getDescriptorsIterator();

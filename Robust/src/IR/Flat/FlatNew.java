@@ -21,4 +21,12 @@ public class FlatNew extends FlatNode {
     public TempDescriptor [] writesTemps() {
 	return new TempDescriptor[] {dst};
     }
+
+    public TempDescriptor getDst() {
+	return dst;
+    }
+
+    public TypeDescriptor getType() {
+	return type;
+    }
 }
