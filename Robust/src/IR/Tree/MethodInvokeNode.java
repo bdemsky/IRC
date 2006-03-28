@@ -71,7 +71,10 @@ public class MethodInvokeNode extends ExpressionNode {
 
     public String printNode(int indent) {
 	String st;
-	st=en.printNode(indent)+"."+methodid+"(";
+	if (en!=null)
+	    st=en.printNode(indent)+"."+methodid+"(";
+	else
+	    st=methodid+"(";
 
 	for(int i=0;i<argumentlist.size();i++) {
 	    ExpressionNode en=(ExpressionNode)argumentlist.get(i);

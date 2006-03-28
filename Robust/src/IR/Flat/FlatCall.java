@@ -26,6 +26,14 @@ public class FlatCall extends FlatNode {
 	return dst;
     }
 
+    public int numArgs() {
+	return args.length;
+    }
+
+    public TempDescriptor getArg(int i) {
+	return args[i];
+    }
+
     public String toString() {
 	String st="";
 	if (dst==null)

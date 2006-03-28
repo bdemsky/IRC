@@ -21,7 +21,7 @@ public class FieldDescriptor extends Descriptor {
 	this.td=t;
 	this.identifier=identifier;
 	this.en=e;
-        this.safename = "__" + name + "__";
+        this.safename = "___" + name + "___";
 	this.uniqueid=count++;
     }
 

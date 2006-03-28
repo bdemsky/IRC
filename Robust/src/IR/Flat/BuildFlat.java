@@ -132,7 +132,12 @@ public class BuildFlat {
 	MethodDescriptor md=min.getMethod();
 	
 	//Call to constructor
-	FlatCall fc=new FlatCall(md, out_temp, thisarg, temps);
+	
+	FlatCall fc;
+	if(md.getReturnType()==null||md.getReturnType().isVoid())
+	    fc=new FlatCall(md, null, thisarg, temps);
+	else 
+	    fc=new FlatCall(md, out_temp, thisarg, temps);
 	if (first==null) {
 	    first=fc;
 	} else

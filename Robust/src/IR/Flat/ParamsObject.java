@@ -8,7 +8,7 @@ public class ParamsObject {
     private MethodDescriptor method;
     private int tag;
     private Hashtable paramtotemp;
-    protected Hashtable temptostore;
+    private Hashtable temptostore;
     private int count;
 
     public ParamsObject(MethodDescriptor md, int tag) {
@@ -21,11 +21,31 @@ public class ParamsObject {
 	count=0;
     }
 
+    public int getUID() {
+	return tag;
+    }
+
     public void addPtr(TempDescriptor t) {
 	Position p=new Position(true, pointerparams.size());
 	pointerparams.add(t);
 	paramtotemp.put(new Integer(count++), t);
 	temptostore.put(t,p);
+    }
+
+    public boolean isParamPtr(TempDescriptor t) {
+	if (containsTemp(t)) {
+	    ParamsObject.Position p=(ParamsObject.Position)temptostore.get(t);
+	    return p.inStruct;
+	}
+	return false;
+    }
+
+    public boolean isParamPrim(TempDescriptor t) {
+	if (containsTemp(t)) {
+	    ParamsObject.Position p=(ParamsObject.Position)temptostore.get(t);
+	    return !p.inStruct;
+	}
+	return false;
     }
 
     public boolean containsTemp(TempDescriptor t) {

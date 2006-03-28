@@ -15,7 +15,7 @@ public abstract class Descriptor {
     
     public Descriptor(String name) {
 	this.name = name;
-        this.safename = "__" + name + "__";
+        this.safename = "___" + name + "___";
 	this.uniqueid=count++;
     }
 

@@ -24,7 +24,7 @@ public class TempObject {
     }
 
     public void addPtr(TempDescriptor t) {
-	if (!params.containsTemp(t)) {
+	if (!params.containsTemp(t)&&!pointerparams.contains(t)) {
 	    Position p=new Position(true, pointerparams.size());
 	    pointerparams.add(t);
 	    paramtotemp.put(new Integer(count++), t);
@@ -33,7 +33,7 @@ public class TempObject {
     }
 
     public void addPrim(TempDescriptor t) {
-	if (!params.containsTemp(t)) {
+	if (!params.containsTemp(t)&&!primitiveparams.contains(t)) {
 	    Position p=new Position(false, primitiveparams.size());
 	    primitiveparams.add(t);
 	    paramtotemp.put(new Integer(count++), t);
@@ -58,19 +58,11 @@ public class TempObject {
     }
 
     public boolean isParamPtr(TempDescriptor t) {
-	if (params.containsTemp(t)) {
-	    ParamsObject.Position p=(ParamsObject.Position)params.temptostore.get(t);
-	    return p.inStruct;
-	}
-	return false;
+	return params.isParamPtr(t);
     }
 
     public boolean isParamPrim(TempDescriptor t) {
-	if (params.containsTemp(t)) {
-	    ParamsObject.Position p=(ParamsObject.Position)params.temptostore.get(t);
-	    return !p.inStruct;
-	}
-	return false;
+	return params.isParamPrim(t);
     }
 
     int numPointers() {

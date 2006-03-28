@@ -17,7 +17,7 @@ public class VarDescriptor extends Descriptor {
 	super(identifier);
 	this.td=t;
 	this.identifier=identifier;
-        this.safename = "__" + name + "__";
+        this.safename = "___" + name + "___";
 	this.uniqueid=count++;
     }
 

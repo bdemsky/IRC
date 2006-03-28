@@ -25,7 +25,7 @@ public class MethodDescriptor extends Descriptor {
 	this.modifier=m;
 	this.returntype=rt;
 	this.identifier=identifier;
-        this.safename = "__" + name + "__";
+        this.safename = "___" + name + "___";
 	this.uniqueid=count++;
 	params=new Vector();
 	paramtable=new SymbolTable();
@@ -37,7 +37,7 @@ public class MethodDescriptor extends Descriptor {
 	this.modifier=m;
 	this.returntype=null;
 	this.identifier=identifier;
-        this.safename = "__" + name + "__";
+        this.safename = "___" + name + "___";
 	this.uniqueid=count++;
 	params=new Vector();
 	paramtable=new SymbolTable();
