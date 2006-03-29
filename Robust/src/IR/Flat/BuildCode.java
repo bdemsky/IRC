@@ -225,7 +225,7 @@ public class BuildCode {
 		    //1) Edge >1 of node
 		    nodetolabel.put(nn,new Integer(labelindex++));
 		}
-		if (!visited.contains(nn)) {
+		if (!visited.contains(nn)&&!tovisit.contains(nn)) {
 		    tovisit.add(nn);
 		} else {
 		    //2) Join point

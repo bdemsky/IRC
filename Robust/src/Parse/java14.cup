@@ -784,7 +784,7 @@ statement_without_trailing_substatement ::=
 //	|	assert_statement
 	;
 empty_statement ::=
-		SEMICOLON {: RESULT=(new ParseNode("statement")).addChild("nop").getRoot(); :}
+		SEMICOLON {: RESULT=new ParseNode("nop"); :}
 	;
 //labeled_statement ::=
 //		IDENTIFIER COLON statement
