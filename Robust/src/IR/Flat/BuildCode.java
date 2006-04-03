@@ -11,7 +11,8 @@ public class BuildCode {
     int tag=0;
     String localsprefix="___locals___";
     String paramsprefix="___params___";
-    private static final boolean GENERATEPRECISEGC=true;
+    public static boolean GENERATEPRECISEGC=false;
+    public static String PREFIX="";
 
     public BuildCode(State st, Hashtable temptovar) {
 	state=st;
@@ -27,13 +28,13 @@ public class BuildCode {
 	PrintWriter outmethodheader=null;
 	PrintWriter outmethod=null;
 	try {
-	    OutputStream str=new FileOutputStream("structdefs.h");
+	    OutputStream str=new FileOutputStream(PREFIX+"structdefs.h");
 	    outstructs=new java.io.PrintWriter(str, true);
-	    str=new FileOutputStream("methodheaders.h");
+	    str=new FileOutputStream(PREFIX+"methodheaders.h");
 	    outmethodheader=new java.io.PrintWriter(str, true);
-	    str=new FileOutputStream("classdefs.h");
+	    str=new FileOutputStream(PREFIX+"classdefs.h");
 	    outclassdefs=new java.io.PrintWriter(str, true);
-	    str=new FileOutputStream("methods.c");
+	    str=new FileOutputStream(PREFIX+"methods.c");
 	    outmethod=new java.io.PrintWriter(str, true);
 	} catch (Exception e) {
 	    e.printStackTrace();
@@ -60,6 +61,7 @@ public class BuildCode {
 
 	/* Build the actual methods */
 	outmethod.println("#include \"methodheaders.h\"");
+	outmethod.println("#include <runtime.h>");
 	Iterator classit=state.getClassSymbolTable().getDescriptorsIterator();
 	while(classit.hasNext()) {
 	    ClassDescriptor cn=(ClassDescriptor)classit.next();
@@ -176,7 +178,10 @@ public class BuildCode {
 		if (printcomma)
 		    headersout.print(", ");
 		printcomma=true;
-		headersout.print(temp.getType().getSafeSymbol()+" "+temp.getSafeSymbol());
+		if (temp.getType().isClass())
+		    headersout.print("struct " + temp.getType().getSafeSymbol()+" * "+temp.getSafeSymbol());
+		else
+		    headersout.print(temp.getType().getSafeSymbol()+" "+temp.getSafeSymbol());
 	    }
 	    headersout.println(");\n");
    	}
@@ -184,7 +189,7 @@ public class BuildCode {
 
     private void generateFlatMethod(FlatMethod fm, PrintWriter output) {
 	MethodDescriptor md=fm.getMethod();
-	ClassDescriptor cn=md.getClassDesc();
+       	ClassDescriptor cn=md.getClassDesc();
 	ParamsObject objectparams=(ParamsObject)paramstable.get(md);
 
 	generateHeader(md,output);
@@ -198,7 +203,10 @@ public class BuildCode {
 	for(int i=0;i<objecttemp.numPrimitives();i++) {
 	    TempDescriptor td=objecttemp.getPrimitive(i);
 	    TypeDescriptor type=td.getType();
-	    if (type.isClass())
+	    System.out.println(td.getSafeSymbol());
+	    if (type.isNull())
+		output.println("   void * "+td.getSafeSymbol()+";");
+	    else if (type.isClass())
 		output.println("   struct "+type.getSafeSymbol()+" * "+td.getSafeSymbol()+";");
 	    else
 		output.println("   "+type.getSafeSymbol()+" "+td.getSafeSymbol()+";");
@@ -361,6 +369,11 @@ public class BuildCode {
 	if (GENERATEPRECISEGC) {
 	    output.print("&__parameterlist__");
 	    needcomma=true;
+	} else {
+	    if (fc.getThis()!=null) {
+		output.print(generateTemp(fm,fc.getThis()));
+		needcomma=true;
+	    }
 	}
 	for(int i=0;i<fc.numArgs();i++) {
 	    VarDescriptor var=md.getParameter(i);
@@ -459,7 +472,10 @@ public class BuildCode {
 	    if (printcomma)
 		output.print(", ");
 	    printcomma=true;
-	    output.print(temp.getType().getSafeSymbol()+" "+temp.getSafeSymbol());
+	    if (temp.getType().isClass())
+		output.print("struct "+temp.getType().getSafeSymbol()+" * "+temp.getSafeSymbol());
+	    else
+		output.print(temp.getType().getSafeSymbol()+" "+temp.getSafeSymbol());
 	}
 	output.print(")");
     }

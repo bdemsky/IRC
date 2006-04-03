@@ -462,6 +462,15 @@ public class SemanticCheck {
 	if (bestmd==null)
 	    throw new Error("No method found for :"+min.printNode(0));
 	min.setMethod(bestmd);
+	/* Check whether we need to set this parameter to implied this */
+	if (!bestmd.isStatic()) {
+	    if (min.getExpression()==null) {
+		ExpressionNode en=new NameNode(new NameDescriptor("this"));
+		min.setExpression(en);
+		checkExpressionNode(md, nametable, min.getExpression(), null);
+	    }
+	}
+
     }
 
 

@@ -45,7 +45,7 @@ public class TypeDescriptor extends Descriptor {
 	    return "double";
 	else if (isFloat())
 	    return "float";
-	else throw new Error();
+	else throw new Error("Error Type: "+type);
     }
 
     public String getSafeDescriptor() {

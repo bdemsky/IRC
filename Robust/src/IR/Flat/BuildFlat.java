@@ -227,6 +227,27 @@ public class BuildFlat {
 	TempDescriptor temp_left=TempDescriptor.tempFactory("leftop",on.getLeft().getType());
 	TempDescriptor temp_right=null;
 
+	Operation op=on.getOp();
+	if (op.getOp()==Operation.POSTINC||
+	    op.getOp()==Operation.POSTDEC||
+	    op.getOp()==Operation.PREINC||
+	    op.getOp()==Operation.PREDEC) {
+	    LiteralNode ln=new LiteralNode("int",new Integer(1));
+	    ln.setType(new TypeDescriptor(TypeDescriptor.INT));
+	    AssignmentNode an=new AssignmentNode(on.getLeft(),ln,
+			       new AssignOperation((op.getOp()==Operation.POSTINC||op.getOp()==Operation.PREINC)?AssignOperation.PLUSEQ:AssignOperation.MINUSEQ));
+	    if (op.getOp()==Operation.POSTINC||
+		op.getOp()==Operation.POSTDEC) {
+		NodePair left=flattenExpressionNode(on.getLeft(),out_temp);
+		NodePair assign=flattenAssignmentNode(an,temp_left);
+		left.getEnd().addNext(assign.getBegin());
+		return new NodePair(left.getBegin(),assign.getEnd());
+	    } else {
+		NodePair assign=flattenAssignmentNode(an,out_temp);
+		return assign;
+	    }
+ 	} 
+	
 	NodePair left=flattenExpressionNode(on.getLeft(),temp_left);
 	NodePair right;
 	if (on.getRight()!=null) {
@@ -236,7 +257,35 @@ public class BuildFlat {
 	    FlatNop nop=new FlatNop();
 	    right=new NodePair(nop,nop);
 	}
-	Operation op=on.getOp();
+
+	if (op.getOp()==Operation.LOGIC_OR) {
+	    /* Need to do shortcircuiting */
+	    FlatCondBranch fcb=new FlatCondBranch(temp_left);
+	    FlatOpNode fon1=new FlatOpNode(out_temp,temp_left,null,new Operation(Operation.ASSIGN));
+	    FlatOpNode fon2=new FlatOpNode(out_temp,temp_right,null,new Operation(Operation.ASSIGN));
+	    FlatNop fnop=new FlatNop();
+	    left.getEnd().addNext(fcb);
+	    fcb.addFalseNext(right.getBegin());
+	    right.getEnd().addNext(fon2);
+	    fon2.addNext(fnop);
+	    fcb.addTrueNext(fon1);
+	    fon1.addNext(fnop);
+ 	    return new NodePair(left.getBegin(), fnop);
+	} else if (op.getOp()==Operation.LOGIC_AND) {
+	    /* Need to do shortcircuiting */
+	    FlatCondBranch fcb=new FlatCondBranch(temp_left);
+	    FlatOpNode fon1=new FlatOpNode(out_temp,temp_left,null,new Operation(Operation.ASSIGN));
+	    FlatOpNode fon2=new FlatOpNode(out_temp,temp_right,null,new Operation(Operation.ASSIGN));
+	    FlatNop fnop=new FlatNop();
+	    left.getEnd().addNext(fcb);
+	    fcb.addTrueNext(right.getBegin());
+	    right.getEnd().addNext(fon2);
+	    fon2.addNext(fnop);
+	    fcb.addFalseNext(fon1);
+	    fon1.addNext(fnop);
+ 	    return new NodePair(left.getBegin(), fnop);
+	}
+
 	FlatOpNode fon=new FlatOpNode(out_temp,temp_left,temp_right,op);
 	left.getEnd().addNext(right.getBegin());
 	right.getEnd().addNext(fon);
