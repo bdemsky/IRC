@@ -8,17 +8,21 @@ public class BuildCode {
     Hashtable temptovar;
     Hashtable paramstable;
     Hashtable tempstable;
+    Hashtable fieldorder;
     int tag=0;
     String localsprefix="___locals___";
     String paramsprefix="___params___";
     public static boolean GENERATEPRECISEGC=false;
     public static String PREFIX="";
+    Virtual virtualcalls;
 
     public BuildCode(State st, Hashtable temptovar) {
 	state=st;
 	this.temptovar=temptovar;
 	paramstable=new Hashtable();	
 	tempstable=new Hashtable();
+	fieldorder=new Hashtable();
+	virtualcalls=new Virtual(state);
     }
 
     public void buildCode() {
@@ -27,6 +31,8 @@ public class BuildCode {
 	PrintWriter outstructs=null;
 	PrintWriter outmethodheader=null;
 	PrintWriter outmethod=null;
+	PrintWriter outvirtual=null;
+
 	try {
 	    OutputStream str=new FileOutputStream(PREFIX+"structdefs.h");
 	    outstructs=new java.io.PrintWriter(str, true);
@@ -36,10 +42,14 @@ public class BuildCode {
 	    outclassdefs=new java.io.PrintWriter(str, true);
 	    str=new FileOutputStream(PREFIX+"methods.c");
 	    outmethod=new java.io.PrintWriter(str, true);
+	    str=new FileOutputStream(PREFIX+"virtualtable.h");
+	    outvirtual=new java.io.PrintWriter(str, true);
 	} catch (Exception e) {
 	    e.printStackTrace();
 	    System.exit(-1);
 	}
+
+	buildVirtualTables(outvirtual);
 	outstructs.println("#include \"classdefs.h\"");
 	outmethodheader.println("#include \"structdefs.h\"");
 
@@ -61,6 +71,7 @@ public class BuildCode {
 
 	/* Build the actual methods */
 	outmethod.println("#include \"methodheaders.h\"");
+	outmethod.println("#include \"virtualtable.h\"");
 	outmethod.println("#include <runtime.h>");
 	Iterator classit=state.getClassSymbolTable().getDescriptorsIterator();
 	while(classit.hasNext()) {
@@ -74,6 +85,58 @@ public class BuildCode {
 	    }
 	}
 	outmethod.close();
+    }
+
+    private void buildVirtualTables(PrintWriter outvirtual) {
+	int numclasses=0;
+	int maxcount=0;
+    	Iterator classit=state.getClassSymbolTable().getDescriptorsIterator();
+	while(classit.hasNext()) {
+	    ClassDescriptor cd=(ClassDescriptor)classit.next();
+	    if (virtualcalls.getMethodCount(cd)>maxcount)
+		maxcount=virtualcalls.getMethodCount(cd);
+	    numclasses++;
+	}
+	MethodDescriptor[][] virtualtable=new MethodDescriptor[numclasses][maxcount];
+
+	/* Fill in virtual table */
+	classit=state.getClassSymbolTable().getDescriptorsIterator();
+	while(classit.hasNext()) {
+	    ClassDescriptor cd=(ClassDescriptor)classit.next();
+	    fillinRow(cd, virtualtable, cd.getId());
+	}
+	outvirtual.print("void * virtualtable[]={");
+	boolean needcomma=false;
+	for(int i=0;i<numclasses;i++) {
+	    for(int j=0;j<maxcount;j++) {
+		if (needcomma)
+		    outvirtual.print(", ");
+		if (virtualtable[i][j]!=null) {
+		    MethodDescriptor md=virtualtable[i][j];
+		    outvirtual.print("& "+md.getClassDesc().getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor());
+		} else {
+		    outvirtual.print("0");
+		}
+		needcomma=true;
+	    }
+	    outvirtual.println("");
+	}
+	outvirtual.println("};");
+	outvirtual.close();
+    }
+
+    private void fillinRow(ClassDescriptor cd, MethodDescriptor[][] virtualtable, int rownum) {
+	/* Get inherited methods */
+	if (cd.getSuperDesc()!=null)
+	    fillinRow(cd.getSuperDesc(), virtualtable, rownum);
+	/* Override them with our methods */
+	for(Iterator it=cd.getMethods();it.hasNext();) {
+	    MethodDescriptor md=(MethodDescriptor)it.next();
+	    if (md.isStatic()||md.getReturnType()==null)
+		continue;
+	    int methodnum=virtualcalls.getMethodNumber(md);
+	    virtualtable[rownum][methodnum]=md;
+	}
     }
 
     private void generateTempStructs(FlatMethod fm) {
@@ -104,19 +167,39 @@ public class BuildCode {
 	    }
 	}
     }
+    
+    /* Force consistent field ordering between inherited classes */
+    private void printClassStruct(ClassDescriptor cn, PrintWriter classdefout) {
+	ClassDescriptor sp=cn.getSuperDesc();
+	if (sp!=null)
+	    printClassStruct(sp, classdefout);
+	
+	if (!fieldorder.containsKey(cn)) {
+	    Vector fields=new Vector();
+	    fieldorder.put(cn,fields);
+	    Iterator fieldit=cn.getFields();
+	    while(fieldit.hasNext()) {
+		FieldDescriptor fd=(FieldDescriptor)fieldit.next();
+		if (sp==null||!sp.getFieldTable().contains(fd.getSymbol()))
+		    fields.add(fd);
+	    }
+	}
+	Vector fields=(Vector)fieldorder.get(cn);
 
-    private void generateCallStructs(ClassDescriptor cn, PrintWriter classdefout, PrintWriter output, PrintWriter headersout) {
-	/* Output class structure */
-	Iterator fieldit=cn.getFields();
-	classdefout.println("struct "+cn.getSafeSymbol()+" {");
-	classdefout.println("  int type;");
-	while(fieldit.hasNext()) {
-	    FieldDescriptor fd=(FieldDescriptor)fieldit.next();
+	for(int i=0;i<fields.size();i++) {
+	    FieldDescriptor fd=(FieldDescriptor)fields.get(i);
 	    if (fd.getType().isClass())
 		classdefout.println("  struct "+fd.getType().getSafeSymbol()+" * "+fd.getSafeSymbol()+";");
 	    else 
 		classdefout.println("  "+fd.getType().getSafeSymbol()+" "+fd.getSafeSymbol()+";");
 	}
+    }
+
+    private void generateCallStructs(ClassDescriptor cn, PrintWriter classdefout, PrintWriter output, PrintWriter headersout) {
+	/* Output class structure */
+	classdefout.println("struct "+cn.getSafeSymbol()+" {");
+	classdefout.println("  int type;");
+	printClassStruct(cn, classdefout);
 	classdefout.println("};\n");
 
 	/* Cycle through methods */
@@ -203,7 +286,6 @@ public class BuildCode {
 	for(int i=0;i<objecttemp.numPrimitives();i++) {
 	    TempDescriptor td=objecttemp.getPrimitive(i);
 	    TypeDescriptor type=td.getType();
-	    System.out.println(td.getSafeSymbol());
 	    if (type.isNull())
 		output.println("   void * "+td.getSafeSymbol()+";");
 	    else if (type.isClass())

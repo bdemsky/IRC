@@ -24,6 +24,19 @@ public class TypeDescriptor extends Descriptor {
     int type;
     ClassDescriptor class_desc;
 
+    public boolean equals(Object o) {
+	if (o instanceof TypeDescriptor) {
+	    TypeDescriptor t=(TypeDescriptor)o;
+	    if (t.type!=type)
+		return false;
+	    if ((type==CLASS)&&(t.class_desc!=class_desc))
+		return false;
+	    return true;
+	}
+	return false;
+    }
+
+
     public String getSafeSymbol() {
 	if (isClass())
 	    return class_desc.getSafeSymbol();

@@ -32,6 +32,21 @@ public class MethodDescriptor extends Descriptor {
 	thisvd=null;
     }
 
+    public boolean matches(MethodDescriptor md) {
+	/* Check the name */
+	if (!identifier.equals(md.identifier))
+	    return false;
+	if (numParameters()!=md.numParameters())
+	    return false;
+	for(int i=0;i<numParameters();i++) {
+	    TypeDescriptor td1=getParameter(i).getType();
+	    TypeDescriptor td2=md.getParameter(i).getType();
+	    if (!td1.equals(td2))
+		return false;
+	}
+	return true;
+    }
+
     public MethodDescriptor(Modifiers m, String identifier) {
 	super(identifier);
 	this.modifier=m;
