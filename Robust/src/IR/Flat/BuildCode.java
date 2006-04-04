@@ -15,13 +15,16 @@ public class BuildCode {
     public static boolean GENERATEPRECISEGC=false;
     public static String PREFIX="";
     Virtual virtualcalls;
+    TypeUtil typeutil;
 
-    public BuildCode(State st, Hashtable temptovar) {
+
+    public BuildCode(State st, Hashtable temptovar, TypeUtil typeutil) {
 	state=st;
 	this.temptovar=temptovar;
 	paramstable=new Hashtable();	
 	tempstable=new Hashtable();
 	fieldorder=new Hashtable();
+	this.typeutil=typeutil;
 	virtualcalls=new Virtual(state);
     }
 
@@ -87,9 +90,10 @@ public class BuildCode {
 	outmethod.close();
     }
 
+    private int maxcount=0;
+
     private void buildVirtualTables(PrintWriter outvirtual) {
 	int numclasses=0;
-	int maxcount=0;
     	Iterator classit=state.getClassSymbolTable().getDescriptorsIterator();
 	while(classit.hasNext()) {
 	    ClassDescriptor cd=(ClassDescriptor)classit.next();
@@ -256,6 +260,7 @@ public class BuildCode {
 		headersout.print("struct "+cn.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_params * "+paramsprefix);
 		printcomma=true;
 	    }
+
 	    for(int i=0;i<objectparams.numPrimitives();i++) {
 		TempDescriptor temp=objectparams.getPrimitive(i);
 		if (printcomma)
@@ -443,10 +448,43 @@ public class BuildCode {
 	}
 	output.print("       ");
 
-	/* TODO: Virtual dispatch */
+
 	if (fc.getReturnTemp()!=null)
 	    output.print(generateTemp(fm,fc.getReturnTemp())+"=");
-	output.print(cn.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"(");
+
+	if (md.isStatic()||md.getReturnType()==null||singleCall(fc.getThis().getType().getClassDesc(),md)) {
+	    output.print(cn.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor());
+	} else {
+	    
+	    output.print("((");
+	    if (md.getReturnType().isClass())
+		output.print("struct " + md.getReturnType().getSafeSymbol()+" * ");
+	    else
+		output.print(md.getReturnType().getSafeSymbol()+" ");
+	    output.print("(*)(");
+
+	    boolean printcomma=false;
+	    if (GENERATEPRECISEGC) {
+		output.print("struct "+cn.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_params * ");
+		printcomma=true;
+	    } 
+
+
+	    for(int i=0;i<objectparams.numPrimitives();i++) {
+		TempDescriptor temp=objectparams.getPrimitive(i);
+		if (printcomma)
+		    output.print(", ");
+		printcomma=true;
+		if (temp.getType().isClass())
+		    output.print("struct " + temp.getType().getSafeSymbol()+" * ");
+		else
+		    output.print(temp.getType().getSafeSymbol());
+	    }
+
+	    output.print("))virtualtable["+generateTemp(fm,fc.getThis())+"->type*"+maxcount+"+"+virtualcalls.getMethodNumber(md)+"])");
+	}
+
+	output.print("(");
 	boolean needcomma=false;
 	if (GENERATEPRECISEGC) {
 	    output.print("&__parameterlist__");
@@ -470,6 +508,22 @@ public class BuildCode {
 	}
 	output.println(");");
 	output.println("   }");
+    }
+
+    private boolean singleCall(ClassDescriptor thiscd, MethodDescriptor md) {
+	Set subclasses=typeutil.getSubClasses(thiscd);
+	if (subclasses==null)
+	    return true;
+	for(Iterator classit=subclasses.iterator();classit.hasNext();) {
+	    ClassDescriptor cd=(ClassDescriptor)classit.next();
+	    Set possiblematches=cd.getMethodTable().getSet(md.getSymbol());
+	    for(Iterator matchit=possiblematches.iterator();matchit.hasNext();) {
+		MethodDescriptor matchmd=(MethodDescriptor)matchit.next();
+		if (md.matches(matchmd))
+		    return false;
+	    }
+	}
+	return true;
     }
 
     private void generateFlatFieldNode(FlatMethod fm, FlatFieldNode ffn, PrintWriter output) {
@@ -548,7 +602,8 @@ public class BuildCode {
 	if (GENERATEPRECISEGC) {
 	    output.print("struct "+cn.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_params * "+paramsprefix);
 	    printcomma=true;
-	}
+	} 
+
 	for(int i=0;i<objectparams.numPrimitives();i++) {
 	    TempDescriptor temp=objectparams.getPrimitive(i);
 	    if (printcomma)

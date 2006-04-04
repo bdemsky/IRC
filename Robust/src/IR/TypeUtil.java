@@ -5,6 +5,7 @@ public class TypeUtil {
     public static final String StringClass="String";
     State state;
     Hashtable supertable;
+    Hashtable subclasstable;
 
     public TypeUtil(State state) {
 	this.state=state;
@@ -18,6 +19,8 @@ public class TypeUtil {
 
     private void createTables() {
 	supertable=new Hashtable();
+	subclasstable=new Hashtable();
+
 	Iterator classit=state.getClassSymbolTable().getDescriptorsIterator();
 	while(classit.hasNext()) {
 	    ClassDescriptor cd=(ClassDescriptor)classit.next();
@@ -26,7 +29,20 @@ public class TypeUtil {
 		ClassDescriptor cd_super=getClass(superc);
 		supertable.put(cd,cd_super);
 	    }
+	    
+	    ClassDescriptor tmp=cd.getSuperDesc();
+	    while(tmp!=null) {
+		if (!subclasstable.containsKey(tmp))
+		    subclasstable.put(tmp,new HashSet());
+		HashSet hs=(HashSet)subclasstable.get(tmp);
+		hs.add(cd);
+		tmp=tmp.getSuperDesc();
+	    }
 	}
+    }
+
+    public Set getSubClasses(ClassDescriptor cd) {
+	return (Set)subclasstable.get(cd);
     }
 
     public ClassDescriptor getSuper(ClassDescriptor cd) {

@@ -48,7 +48,7 @@ public class Main {
       BuildFlat bf=new BuildFlat(state);
       bf.buildFlat();
       
-      BuildCode bc=new BuildCode(state, bf.getMap());
+      BuildCode bc=new BuildCode(state, bf.getMap(), tu);
       bc.buildCode();
       
       System.exit(l.numErrors());
