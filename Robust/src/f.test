@@ -9,6 +9,5 @@ public class Test {
 	return 0;
     }
 
-    public static int bar(int x) {
-    }
+    public native static int bar(int x);
 }

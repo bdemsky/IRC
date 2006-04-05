@@ -1,4 +1,4 @@
-public class ParseNode extends Object {
+public class ParseNode  {
 
     private String label;
     private ParseNode parent;
@@ -144,8 +144,6 @@ public class ParseNode extends Object {
 
 }
 
-public class String extends Object {}
+public class String {}
 
-public class ParseNodeVector extends Object {}
-
-public class Object {}
+public class ParseNodeVector {}
