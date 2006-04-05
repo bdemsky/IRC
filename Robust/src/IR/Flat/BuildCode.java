@@ -69,6 +69,7 @@ public class BuildCode {
 	    ClassDescriptor cn=(ClassDescriptor)it.next();
 	    generateCallStructs(cn, outclassdefs, outstructs, outmethodheader);
 	}
+
 	outstructs.close();
 	outmethodheader.close();
 
@@ -76,6 +77,10 @@ public class BuildCode {
 	outmethod.println("#include \"methodheaders.h\"");
 	outmethod.println("#include \"virtualtable.h\"");
 	outmethod.println("#include <runtime.h>");
+
+	outclassdefs.println("extern int classsize[];");
+	generateSizeArray(outmethod);
+
 	Iterator classit=state.getClassSymbolTable().getDescriptorsIterator();
 	while(classit.hasNext()) {
 	    ClassDescriptor cn=(ClassDescriptor)classit.next();
@@ -109,15 +114,13 @@ public class BuildCode {
     private int maxcount=0;
 
     private void buildVirtualTables(PrintWriter outvirtual) {
-	int numclasses=0;
     	Iterator classit=state.getClassSymbolTable().getDescriptorsIterator();
 	while(classit.hasNext()) {
 	    ClassDescriptor cd=(ClassDescriptor)classit.next();
 	    if (virtualcalls.getMethodCount(cd)>maxcount)
 		maxcount=virtualcalls.getMethodCount(cd);
-	    numclasses++;
 	}
-	MethodDescriptor[][] virtualtable=new MethodDescriptor[numclasses][maxcount];
+	MethodDescriptor[][] virtualtable=new MethodDescriptor[state.numClasses()][maxcount];
 
 	/* Fill in virtual table */
 	classit=state.getClassSymbolTable().getDescriptorsIterator();
@@ -127,7 +130,7 @@ public class BuildCode {
 	}
 	outvirtual.print("void * virtualtable[]={");
 	boolean needcomma=false;
-	for(int i=0;i<numclasses;i++) {
+	for(int i=0;i<state.numClasses();i++) {
 	    for(int j=0;j<maxcount;j++) {
 		if (needcomma)
 		    outvirtual.print(", ");
@@ -157,6 +160,24 @@ public class BuildCode {
 	    int methodnum=virtualcalls.getMethodNumber(md);
 	    virtualtable[rownum][methodnum]=md;
 	}
+    }
+
+    private void generateSizeArray(PrintWriter outclassdefs) {
+	outclassdefs.print("int classsize[]={");
+	Iterator it=state.getClassSymbolTable().getDescriptorsIterator();
+	ClassDescriptor[] cdarray=new ClassDescriptor[state.numClasses()];
+	while(it.hasNext()) {
+	    ClassDescriptor cd=(ClassDescriptor)it.next();
+	    cdarray[cd.getId()]=cd;
+	}
+	boolean needcomma=false;
+	for(int i=0;i<state.numClasses();i++) {
+	    if (needcomma)
+		outclassdefs.print(", ");
+	    outclassdefs.print("sizeof(struct "+cdarray[i].getSafeSymbol()+")");	    
+	    needcomma=true;
+	}
+	outclassdefs.println("};");
     }
 
     private void generateTempStructs(FlatMethod fm) {

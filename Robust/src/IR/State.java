@@ -22,6 +22,8 @@ public class State {
     public Set parsetrees;
     public Hashtable treemethodmap;
     public Hashtable flatmethodmap;
+    private int numclasses=0;
+
 
     public static TypeDescriptor getTypeDescriptor(int t) {
 	TypeDescriptor td=new TypeDescriptor(t);
@@ -37,6 +39,11 @@ public class State {
 	if (classes.contains(tdn.getSymbol()))
 	    throw new Error("Class "+tdn.getSymbol()+" defined twice");
 	classes.add(tdn);
+	numclasses++;
+    }
+
+    public int numClasses() {
+	return numclasses;
     }
 
     public BlockNode getMethodBody(MethodDescriptor md) {
