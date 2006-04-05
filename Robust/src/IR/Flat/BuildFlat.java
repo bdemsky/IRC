@@ -406,11 +406,21 @@ public class BuildFlat {
     }
 	    
     private NodePair flattenReturnNode(ReturnNode rntree) {
-	TempDescriptor retval=TempDescriptor.tempFactory("ret_value", rntree.getReturnExpression().getType());
-	NodePair cond=flattenExpressionNode(rntree.getReturnExpression(),retval);
+	TempDescriptor retval=null;
+	NodePair cond=null;
+	if (rntree.getReturnExpression()!=null) {
+	    retval=TempDescriptor.tempFactory("ret_value", rntree.getReturnExpression().getType());
+	    cond=flattenExpressionNode(rntree.getReturnExpression(),retval);
+	}
+
 	FlatReturnNode rnflat=new FlatReturnNode(retval);
-	cond.getEnd().addNext(rnflat);
-	return new NodePair(cond.getBegin(),rnflat);
+
+	if (cond!=null) {
+	    cond.getEnd().addNext(rnflat);
+	    return new NodePair(cond.getBegin(),rnflat);
+	} else
+	    return new NodePair(rnflat,rnflat);
+	
     }
 	    
     private NodePair flattenSubBlockNode(SubBlockNode sbn) {

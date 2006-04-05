@@ -88,6 +88,21 @@ public class BuildCode {
 		    generateFlatMethod(fm,outmethod);
 	    }
 	}
+	if (state.main!=null) {
+	    outmethod.println("int main(int argc, const char *argv[]) {");
+	    ClassDescriptor cd=typeutil.getClass(state.main);
+	    Set mainset=cd.getMethodTable().getSet("main");
+	    for(Iterator mainit=mainset.iterator();mainit.hasNext();) {
+		MethodDescriptor md=(MethodDescriptor)mainit.next();
+		if (md.numParameters()!=0)
+		    continue;
+		if (!md.getModifiers().isStatic())
+		    throw new Error("Error: Non static main");
+		outmethod.println("   "+cd.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"();");
+		break;
+	    }
+	    outmethod.println("}");
+	}
 	outmethod.close();
     }
 
@@ -345,6 +360,9 @@ public class BuildCode {
 	    if (current_node.numNext()==0) {
 		output.print("   ");
 		generateFlatNode(fm, current_node, output);
+		if (current_node.kind()!=FKind.FlatReturnNode) {
+		    output.println("   return;");
+		}
 		current_node=null;
 	    } else if(current_node.numNext()==1) {
 		output.print("   ");
@@ -571,12 +589,20 @@ public class BuildCode {
 	    output.println(generateTemp(fm, fln.getDst())+"=0;");
 	else if (fln.getType().getSymbol().equals(TypeUtil.StringClass))
 	    output.println(generateTemp(fm, fln.getDst())+"=newstring(\""+FlatLiteralNode.escapeString((String)fln.getValue())+"\");");
-	else
+	else if (fln.getType().isBoolean()) {
+	    if (((Boolean)fln.getValue()).booleanValue())
+		output.println(generateTemp(fm, fln.getDst())+"=1;");
+	    else
+		output.println(generateTemp(fm, fln.getDst())+"=0;");
+	} else
 	    output.println(generateTemp(fm, fln.getDst())+"="+fln.getValue()+";");
     }
 
     private void generateFlatReturnNode(FlatMethod fm, FlatReturnNode frn, PrintWriter output) {
-	output.println("return "+generateTemp(fm, frn.getReturnTemp())+";");
+	if (frn.getReturnTemp()!=null)
+	    output.println("return "+generateTemp(fm, frn.getReturnTemp())+";");
+	else
+	    output.println("return;");
     }
 
     private void generateFlatCondBranch(FlatMethod fm, FlatCondBranch fcb, String label, PrintWriter output) {

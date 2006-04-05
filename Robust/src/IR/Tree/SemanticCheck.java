@@ -153,7 +153,11 @@ public class SemanticCheck {
     }
 
     void checkReturnNode(MethodDescriptor md, SymbolTable nametable, ReturnNode rn) {
-	checkExpressionNode(md, nametable, rn.getReturnExpression(), md.getReturnType());
+	if (rn.getReturnExpression()!=null)
+	    checkExpressionNode(md, nametable, rn.getReturnExpression(), md.getReturnType());
+	else
+	    if (md.getReturnType()!=null&&!md.getReturnType().isVoid())
+		throw new Error("Need to return something for "+md);
     }
 
     void checkIfStatementNode(MethodDescriptor md, SymbolTable nametable, IfStatementNode isn) {

@@ -14,10 +14,6 @@ import IR.TypeUtil;
 public class Main {
   public static void main(String args[]) throws Exception {
       String ClassLibraryPrefix="./ClassLibrary/";
-      if (args.length<1) {
-	  System.out.println("Must input source file");
-	  System.exit(-1);
-      }
       State state=new State();
       
       for(int i=0;i<args.length;i++) {
@@ -44,6 +40,7 @@ public class Main {
       }
       
       readSourceFile(state, ClassLibraryPrefix+"Object.java");
+      readSourceFile(state, ClassLibraryPrefix+"System.java");
 
       BuildIR bir=new BuildIR(state);
       bir.buildtree();
