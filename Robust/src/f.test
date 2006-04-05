@@ -1,13 +1,14 @@
 public class Test {
 
-    public static int main() {
-	int j=0;
-	for(int i=0;i<10;i++) {
-		j+=i;
-		bar(j);
+    public static void main() {
+	for(int i=3;i<100000;i++) {
+		boolean flag=true;
+		for(int j=2;flag&&j<i;j++) {
+			if ((i%j)==0)
+                            flag=false;
+		}
+//		if (flag)
+//			System.printInt(i);
 	}
-	return 0;
     }
-
-    public native static int bar(int x);
 }
