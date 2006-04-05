@@ -32,6 +32,11 @@ public class MethodDescriptor extends Descriptor {
 	thisvd=null;
     }
 
+
+    public Modifiers getModifiers() {
+	return modifier;
+    }
+    
     public boolean matches(MethodDescriptor md) {
 	/* Check the name */
 	if (!identifier.equals(md.identifier))

@@ -27,6 +27,10 @@ public class Modifiers {
 	return ((value&STATIC)!=0);
     }
 
+    public boolean isNative() {
+	return ((value&NATIVE)!=0);
+    }
+
     public String toString() {
 	String st="";
 	if ((value&PUBLIC)!=0)

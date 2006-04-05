@@ -3,6 +3,7 @@ import java.util.*;
 
 public class TypeUtil {
     public static final String StringClass="String";
+    public static final String ObjectClass="Object";
     State state;
     Hashtable supertable;
     Hashtable subclasstable;

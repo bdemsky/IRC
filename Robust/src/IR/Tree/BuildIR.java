@@ -1,6 +1,7 @@
 package IR.Tree;
 import IR.*;
-import java.util.Vector;
+import java.util.*;
+
 
 public class BuildIR {
     State state;
@@ -8,8 +9,10 @@ public class BuildIR {
 	this.state=state;
     }
     public void buildtree() {
-	ParseNode pn=state.parsetree;
-	parseFile(pn);
+	for(Iterator it=state.parsetrees.iterator();it.hasNext();) {
+	    ParseNode pn=(ParseNode)it.next();
+	    parseFile(pn);
+	}
     }
 
     /** Parse the classes in this file */
@@ -35,6 +38,9 @@ public class BuildIR {
 		ParseNode snn=pn.getChild("super").getChild("type").getChild("class").getChild("name");
 		NameDescriptor nd=parseName(snn);
 		cn.setSuper(nd.toString());
+	    } else {
+		if (!cn.getSymbol().equals(TypeUtil.ObjectClass))
+		    cn.setSuper(TypeUtil.ObjectClass);
 	    }
 	    cn.setModifiers(parseModifiersList(pn.getChild("modifiers")));
 	    parseClassBody(cn, pn.getChild("classbody"));

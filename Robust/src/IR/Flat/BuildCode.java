@@ -84,7 +84,8 @@ public class BuildCode {
 		/* Classify parameters */
 		MethodDescriptor md=(MethodDescriptor)methodit.next();
 		FlatMethod fm=state.getMethodFlat(md);
-		generateFlatMethod(fm,outmethod);
+		if (!md.getModifiers().isNative())
+		    generateFlatMethod(fm,outmethod);
 	    }
 	}
 	outmethod.close();

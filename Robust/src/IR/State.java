@@ -5,15 +5,21 @@ import IR.*;
 import java.util.*;
 
 public class State {
-    public State(ParseNode parsetree) {
-	this.parsetree=parsetree;
+    public String main;
+
+    public State() {
 	this.classes=new SymbolTable();
 	this.treemethodmap=new Hashtable();
 	this.flatmethodmap=new Hashtable();
+	this.parsetrees=new HashSet();
+    }
+
+    public void addParseNode(ParseNode parsetree) {
+	parsetrees.add(parsetree);
     }
 
     public SymbolTable classes;
-    public ParseNode parsetree;
+    public Set parsetrees;
     public Hashtable treemethodmap;
     public Hashtable flatmethodmap;
 

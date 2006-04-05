@@ -251,13 +251,15 @@ public class SemanticCheck {
 	    ln.setType(new TypeDescriptor(TypeDescriptor.LONG));
       	} else if (o instanceof Float) {
 	    ln.setType(new TypeDescriptor(TypeDescriptor.FLOAT));
+      	} else if (o instanceof Boolean) {
+	    ln.setType(new TypeDescriptor(TypeDescriptor.BOOLEAN));
       	} else if (o instanceof Double) {
 	    ln.setType(new TypeDescriptor(TypeDescriptor.DOUBLE));
       	} else if (o instanceof Character) {
 	    ln.setType(new TypeDescriptor(TypeDescriptor.CHAR));
       	} else if (o instanceof String) {
 	    ln.setType(new TypeDescriptor(typeutil.getClass(TypeUtil.StringClass)));
-      	} 
+      	}
 
 	if (td!=null)
 	    if (!typeutil.isSuperorType(td,ln.getType()))
