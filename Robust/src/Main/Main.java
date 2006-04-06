@@ -49,7 +49,8 @@ public class Main {
       
       SemanticCheck sc=new SemanticCheck(state,tu);
       sc.semanticCheck();
-      
+      tu.createFullTable();
+
       BuildFlat bf=new BuildFlat(state);
       bf.buildFlat();
       

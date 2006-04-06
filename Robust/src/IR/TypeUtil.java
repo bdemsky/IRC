@@ -20,7 +20,6 @@ public class TypeUtil {
 
     private void createTables() {
 	supertable=new Hashtable();
-	subclasstable=new Hashtable();
 
 	Iterator classit=state.getClassSymbolTable().getDescriptorsIterator();
 	while(classit.hasNext()) {
@@ -30,8 +29,17 @@ public class TypeUtil {
 		ClassDescriptor cd_super=getClass(superc);
 		supertable.put(cd,cd_super);
 	    }
-	    
+	}
+    }
+
+    public void createFullTable() {
+	subclasstable=new Hashtable();
+    
+	Iterator classit=state.getClassSymbolTable().getDescriptorsIterator();
+	while(classit.hasNext()) {
+	    ClassDescriptor cd=(ClassDescriptor)classit.next();
 	    ClassDescriptor tmp=cd.getSuperDesc();
+	    
 	    while(tmp!=null) {
 		if (!subclasstable.containsKey(tmp))
 		    subclasstable.put(tmp,new HashSet());

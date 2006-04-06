@@ -491,7 +491,6 @@ public class BuildCode {
 
 	if (fc.getReturnTemp()!=null)
 	    output.print(generateTemp(fm,fc.getReturnTemp())+"=");
-
 	if (md.isStatic()||md.getReturnType()==null||singleCall(fc.getThis().getType().getClassDesc(),md)) {
 	    output.print(cn.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor());
 	} else {
