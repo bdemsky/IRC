@@ -11,5 +11,6 @@ public class FKind {
     public static final int FlatLiteralNode=7;
     public static final int FlatReturnNode=8;
     public static final int FlatCondBranch=9;
-    public static final int FlatNop=10;
+    public static final int FlatNop=10;    
+    public static final int FlatSetElementNode=11;
 }

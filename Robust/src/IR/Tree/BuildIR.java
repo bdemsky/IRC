@@ -101,6 +101,13 @@ public class BuildIR {
 	} else if(type_st.equals("class")) {
 	    ParseNode nn=tn.getChild("class");
 	    return state.getTypeDescriptor(parseName(nn.getChild("name")));
+	} else if(type_st.equals("array")) {
+	    ParseNode nn=tn.getChild("array");
+	    TypeDescriptor td=parseTypeDescriptor(nn.getChild("basetype"));
+	    Integer numdims=(Integer)nn.getChild("dims").getLiteral();
+	    for(int i=0;i<numdims.intValue();i++)
+		td=td.makeArray();
+	    return td;
 	} else {
 	    throw new Error();
 	}
@@ -125,14 +132,23 @@ public class BuildIR {
 	ParseNodeVector pnv=vn.getChildren();
 	for(int i=0;i<pnv.size();i++) {
 	    ParseNode vardecl=pnv.elementAt(i);
-	    String identifier=vardecl.getChild("single").getTerminal();
+
+	    
+	    ParseNode tmp=vardecl;
+	    TypeDescriptor arrayt=t;
+	    while (tmp.getChild("single")==null) {
+		arrayt=arrayt.makeArray();
+		tmp=tmp.getChild("array");
+	    }
+	    String identifier=tmp.getChild("single").getTerminal();
+
 	    ParseNode epn=vardecl.getChild("initializer");
 	    
 	    ExpressionNode en=null;
 	    if (epn!=null)
 		en=parseExpression(epn.getFirstChild());
   
-	    cn.addField(new FieldDescriptor(m,t,identifier, en));
+	    cn.addField(new FieldDescriptor(m,arrayt,identifier, en));
 	}
 	
     }
@@ -176,6 +192,19 @@ public class BuildIR {
 		con.addArgument((ExpressionNode)args.get(i));
 	    }
 	    return con;
+	} else if (isNode(pn,"createarray")) {
+	    TypeDescriptor td=parseTypeDescriptor(pn);
+	    Vector args=parseDimExprs(pn);
+	    int num=0;
+	    if (pn.getChild("dims_opt").getLiteral()!=null)
+		num=((Integer)pn.getChild("dims_opt").getLiteral()).intValue();
+	    for(int i=0;i<args.size()+num;i++)
+		td=td.makeArray();
+	    CreateObjectNode con=new CreateObjectNode(td);
+	    for(int i=0;i<args.size();i++) {
+		con.addArgument((ExpressionNode)args.get(i));
+	    }
+	    return con;
 	} else if (isNode(pn,"name")) {
 	    NameDescriptor nd=parseName(pn);
 	    return new NameNode(nd);
@@ -200,9 +229,12 @@ public class BuildIR {
 	    }
 	    return min;
 	} else if (isNode(pn,"fieldaccess")) { 
-	    ExpressionNode en=parseExpression(pn.getChild("base").getFirstChild());
-	    String fieldname=pn.getChild("field").getTerminal();
+	    ExpressionNode en=parseExpression(pn.getChild("base").getFirstChild());	    String fieldname=pn.getChild("field").getTerminal();
 	    return new FieldAccessNode(en,fieldname);
+	} else if (isNode(pn,"arrayaccess")) { 
+	    ExpressionNode en=parseExpression(pn.getChild("base").getFirstChild());
+	    ExpressionNode index=parseExpression(pn.getChild("index"));
+	    return new ArrayAccessNode(en,index);
 	} else if (isNode(pn,"cast1")) { 
 	    return new CastNode(parseTypeDescriptor(pn.getChild("type")),parseExpression(pn.getChild("exp").getFirstChild()));
 	} else if (isNode(pn,"cast2")) { 
@@ -212,6 +244,18 @@ public class BuildIR {
 	    System.out.println(pn.PPrint(3,true));
 	    throw new Error();
 	}
+    }
+
+    private Vector parseDimExprs(ParseNode pn) {
+	Vector arglist=new Vector();
+	ParseNode an=pn.getChild("dim_exprs");
+	if (an==null)   /* No argument list */
+	    return arglist;
+	ParseNodeVector anv=an.getChildren();
+	for(int i=0;i<anv.size();i++) {
+	    arglist.add(parseExpression(anv.elementAt(i)));
+	}
+	return arglist;
     }
 
     private Vector parseArgumentList(ParseNode pn) {
@@ -298,14 +342,24 @@ public class BuildIR {
 	    ParseNodeVector pnv=vn.getChildren();
 	    for(int i=0;i<pnv.size();i++) {
 		ParseNode vardecl=pnv.elementAt(i);
-		String identifier=vardecl.getChild("single").getTerminal();
-		ParseNode epn=vardecl.getChild("initializer");
+
+	    
+		ParseNode tmp=vardecl;
+		TypeDescriptor arrayt=t;
+		while (tmp.getChild("single")==null) {
+		    arrayt=arrayt.makeArray();
+		    tmp=tmp.getChild("array");
+		}
+		String identifier=tmp.getChild("single").getTerminal();
 		
+		ParseNode epn=vardecl.getChild("initializer");
+	    
+
 		ExpressionNode en=null;
 		if (epn!=null)
 		    en=parseExpression(epn.getFirstChild());
 		
-		blockstatements.add(new DeclarationNode(new VarDescriptor(t,identifier),en));
+		blockstatements.add(new DeclarationNode(new VarDescriptor(arrayt, identifier),en));
 	    }
 	} else if (isNode(pn,"nop")) {
 	    /* Do Nothing */
@@ -385,7 +439,14 @@ public class BuildIR {
 	 for(int i=0;i<pnv.size();i++) {
 	     ParseNode paramn=pnv.elementAt(i);
 	     TypeDescriptor type=parseTypeDescriptor(paramn);
-	     String paramname=paramn.getChild("single").getTerminal();
+
+	     ParseNode tmp=paramn;
+	     while (tmp.getChild("single")==null) {
+		 type=type.makeArray();
+		 tmp=tmp.getChild("array");
+	     }
+	     String paramname=tmp.getChild("single").getTerminal();
+	    
 	     md.addParameter(type,paramname);
 	 }
     }

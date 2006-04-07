@@ -20,7 +20,7 @@ public class TypeDescriptor extends Descriptor {
     public static final int CLASS=11;
 
 
-
+    int arraycount;
     int type;
     ClassDescriptor class_desc;
 
@@ -36,6 +36,27 @@ public class TypeDescriptor extends Descriptor {
 	return false;
     }
 
+    public TypeDescriptor makeArray() {
+	TypeDescriptor td=new TypeDescriptor(getSymbol());
+	td.arraycount=arraycount+1;
+	td.type=type;
+	td.class_desc=class_desc;
+	return td;
+    }
+
+    public boolean isArray() {
+	return arraycount>0;
+    }
+
+    public TypeDescriptor dereference() {
+	TypeDescriptor td=new TypeDescriptor(getSymbol());
+	if (arraycount==0)
+	    throw new Error();
+	td.arraycount=arraycount-1;
+	td.type=type;
+	td.class_desc=class_desc;
+	return td;
+    }
 
     public String getSafeSymbol() {
 	if (isClass())
@@ -142,6 +163,11 @@ public class TypeDescriptor extends Descriptor {
 	super(name.toString());
 	this.type=CLASS;
 	this.class_desc=null;
+	this.arraycount=0;
+    }
+
+    private TypeDescriptor(String st) {
+	super(st);
     }
 
     public ClassDescriptor getClassDesc() {
@@ -152,11 +178,13 @@ public class TypeDescriptor extends Descriptor {
 	super(cd.getSymbol());
 	this.type=CLASS;
 	this.class_desc=cd;
+	this.arraycount=0;
     }
 
     public TypeDescriptor(int t) {
 	super(decodeInt(t));
 	this.type=t;
+	this.arraycount=0;
     }
 
     public String toString() {

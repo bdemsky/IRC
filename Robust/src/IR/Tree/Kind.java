@@ -16,4 +16,5 @@ public class Kind {
     public final static int MethodInvokeNode=13;
     public final static int DeclarationNode=14;
     public final static int NameNode=15;
+    public final static int ArrayAccessNode=16;
 }

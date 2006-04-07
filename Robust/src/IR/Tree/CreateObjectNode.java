@@ -12,6 +12,7 @@ public class CreateObjectNode extends ExpressionNode {
 	td=type;
 	argumentlist=new Vector();
     }
+
     public void addArgument(ExpressionNode en) {
 	argumentlist.add(en);
     }

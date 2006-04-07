@@ -114,7 +114,7 @@ non terminal ParseNode reference_type;
 non terminal ParseNode class_or_interface_type;
 non terminal ParseNode class_type;
 //non terminal ParseNode interface_type;
-//non terminal ParseNode array_type;
+non terminal ParseNode array_type;
 // 19.5) Names
 non terminal ParseNode name, simple_name, qualified_name;
 // 19.6) Packages
@@ -196,10 +196,12 @@ non terminal ParseNode return_statement;
 non terminal ParseNode primary, primary_no_new_array;
 non terminal ParseNode class_instance_creation_expression;
 non terminal ParseNode argument_list_opt, argument_list;
-//non terminal ParseNode array_creation_init, array_creation_uninit;
-//non terminal ParseNode dim_exprs, dim_expr, dims_opt, dims;
+//non terminal ParseNode array_creation_init;
+non terminal ParseNode array_creation_uninit;
+non terminal ParseNode dim_exprs, dim_expr;
+non terminal Integer dims_opt, dims;
 non terminal ParseNode field_access, method_invocation;
-//non terminal ParseNode array_access;
+non terminal ParseNode array_access;
 non terminal ParseNode postfix_expression;
 non terminal ParseNode postincrement_expression, postdecrement_expression;
 non terminal ParseNode unary_expression, unary_expression_not_plus_minus;
@@ -268,6 +270,7 @@ literal ::=	INTEGER_LITERAL:integer_lit
 type	::=	primitive_type:type {: RESULT=type; :}
 	|	reference_type:type {: RESULT=type; :}
 	;
+
 primitive_type ::=
 		numeric_type:type {: RESULT=type; :}
 	|	BOOLEAN {: RESULT=(new ParseNode("type")).addChild("boolean").getRoot(); :}
@@ -289,7 +292,7 @@ floating_point_type ::=
 
 reference_type ::=
 		class_or_interface_type:type {: RESULT=type; :}
-//	|	array_type:type {: RESULT=type; :}
+	|	array_type:type {: RESULT=type; :}
 	;
 class_or_interface_type ::= name:name {: 
 	RESULT=(new ParseNode("type")).addChild("class").addChild(name).getRoot(); 
@@ -298,9 +301,19 @@ class_or_interface_type ::= name:name {:
 class_type ::=	class_or_interface_type:type {: RESULT=type; :};
 //interface_type ::= class_or_interface_type;
 
-//array_type ::=	primitive_type dims
-//	|	name dims
-//	;
+array_type ::=	primitive_type:prim dims:dims {: 
+		ParseNode pn=(new ParseNode("type")).addChild("array");
+		pn.addChild("basetype").addChild(prim);
+		pn.addChild("dims").setLiteral(dims);
+		RESULT=pn;
+	:}
+	|	name:name dims:dims {: 
+		ParseNode pn=(new ParseNode("type")).addChild("array");
+		pn.addChild("basetype").addChild("type").addChild("class").addChild(name);
+		pn.addChild("dims").setLiteral(dims);
+		RESULT=pn;
+	:}
+	;
 
 // 19.5) Names
 name	::=	simple_name:name {: RESULT=name; :}
@@ -526,8 +539,8 @@ variable_declarator ::=
 variable_declarator_id ::=
 		IDENTIFIER:id {: 
 		RESULT=(new ParseNode("single")).addChild(id).getRoot();:}
-//	|	variable_declarator_id:id LBRACK RBRACK {:
-//		RESULT=(new ParseNode("array")).addChild(id).getRoot();:}
+	|	variable_declarator_id:id LBRACK RBRACK {:
+		RESULT=(new ParseNode("array")).addChild(id).getRoot();:}
 	;
 variable_initializer ::=
 		expression:exp {: RESULT=exp; :}
@@ -978,8 +991,12 @@ return_statement ::=
 // 19.12) Expressions
 primary ::=	primary_no_new_array:st {: 
 		RESULT=st; :}
-//	|	array_creation_init
-//	|	array_creation_uninit
+//	|	array_creation_init:st {: 
+//		RESULT=st;
+//	:}
+	|	array_creation_uninit:st {:
+		RESULT=st;
+	:}
 	;
 primary_no_new_array ::=
 		literal:lit {: RESULT=lit; :}
@@ -988,7 +1005,7 @@ primary_no_new_array ::=
 	|	class_instance_creation_expression:exp {: RESULT=exp; :}
 	|	field_access:exp {: RESULT=exp; :}
 	|	method_invocation:exp {: RESULT=exp; :}
-//	|	array_access
+	|	array_access:exp {: RESULT=exp; :}
 //	|	primitive_type DOT CLASS
 //	|	VOID DOT CLASS
 //	|	array_type DOT CLASS
@@ -1024,30 +1041,50 @@ argument_list ::=
 		pn.addChild(exp);
 		RESULT=pn;
 	:}
-	|	argument_list:list COMMA expression:exp {: 
+	|	argument_list:list COMMA expression:exp {:
 		list.addChild(exp);
 		RESULT=list;
 	:}
 	;
-//array_creation_uninit ::=
-//		NEW primitive_type dim_exprs dims_opt
-//	|	NEW class_or_interface_type dim_exprs dims_opt
-//	;
+array_creation_uninit ::=
+		NEW primitive_type:type dim_exprs:dimexpr dims_opt:dims {: 
+		ParseNode pn=new ParseNode("createarray");
+		pn.addChild(type);
+		pn.addChild(dimexpr);
+		pn.addChild("dims_opt").setLiteral(dims);
+		RESULT=pn;
+		:}
+	|	NEW class_or_interface_type:type dim_exprs:dimexpr dims_opt:dims {: 
+		ParseNode pn=new ParseNode("createarray");
+		pn.addChild(type);
+		pn.addChild(dimexpr);
+		pn.addChild("dims_opt").setLiteral(dims);
+		RESULT=pn;
+	:}
+	;
 //array_creation_init ::=
 //		NEW primitive_type dims array_initializer
 //	|	NEW class_or_interface_type dims array_initializer
 //	;
-//dim_exprs ::=	dim_expr
-//	|	dim_exprs dim_expr
-//	;
-//dim_expr ::=	LBRACK expression RBRACK
-//	;
-//dims_opt ::=
-//	|	dims
-//	;
-//dims ::=	LBRACK RBRACK
-//	|	dims LBRACK RBRACK
-//	;
+dim_exprs ::=	dim_expr:exp {: 
+		ParseNode pn=new ParseNode("dim_exprs");
+		pn.addChild("expr").addChild(exp);
+		RESULT=exp; :}
+	|	dim_exprs:base dim_expr:exp {: 
+		base.addChild(exp);
+		RESULT=base;
+	:}
+	;
+dim_expr ::=	LBRACK expression:exp RBRACK {: RESULT=exp; :}
+	;
+dims_opt ::= {: RESULT=null; :}
+	|	dims:dims {: RESULT = dims; :}
+	;
+
+dims ::=	LBRACK RBRACK {: RESULT=new Integer(0); :}
+	|	dims:dims LBRACK RBRACK {: RESULT=new Integer(dims.intValue()+1); :}
+	;
+
 field_access ::=
 		primary:base DOT IDENTIFIER:id {: 
 		ParseNode pn=new ParseNode("fieldaccess");
@@ -1075,11 +1112,26 @@ method_invocation ::=
 //	|	SUPER DOT IDENTIFIER LPAREN argument_list_opt RPAREN
 //	|	name DOT SUPER DOT IDENTIFIER LPAREN argument_list_opt RPAREN
 	;
-//array_access ::=
-//		name LBRACK expression RBRACK
-//	|	primary_no_new_array LBRACK expression RBRACK
-//	|	array_creation_init LBRACK expression RBRACK
-//	;
+array_access ::=
+		name:name LBRACK expression:exp RBRACK {: 
+		ParseNode pn=new ParseNode("arrayaccess");
+		pn.addChild("base").addChild(name);
+		pn.addChild("index").addChild(exp);
+		RESULT=pn;
+	:}
+	|	primary_no_new_array:base LBRACK expression:exp RBRACK {: 
+		ParseNode pn=new ParseNode("arrayaccess");
+		pn.addChild("base").addChild(base);
+		pn.addChild("index").addChild(exp);
+		RESULT=pn;
+	:}
+//	|	array_creation_init:init LBRACK expression:exp RBRACK {: 
+//		ParseNode pn=new ParseNode("arrayaccess");
+//		pn.addChild("init").addChild(init);
+//		pn.addChild("index").addChild(exp);
+//		RESULT=pn;
+//	:}
+	;
 postfix_expression ::=
 		primary:exp {: 
 	RESULT=exp; :}

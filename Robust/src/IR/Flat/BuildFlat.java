@@ -84,23 +84,88 @@ public class BuildFlat {
 
     private NodePair flattenCreateObjectNode(CreateObjectNode con,TempDescriptor out_temp) {
 	TypeDescriptor td=con.getType();
-	FlatNew fn=new FlatNew(td, out_temp);
-	TempDescriptor[] temps=new TempDescriptor[con.numArgs()];
-	FlatNode last=fn;
-	//Build arguments
-	for(int i=0;i<con.numArgs();i++) {
-	    ExpressionNode en=con.getArg(i);
-	    TempDescriptor tmp=TempDescriptor.tempFactory("arg",en.getType());
-	    temps[i]=tmp;
-	    NodePair np=flattenExpressionNode(en, tmp);
-	    last.addNext(np.getBegin());
-	    last=np.getEnd();
+	if (!td.isArray()) {
+	    FlatNew fn=new FlatNew(td, out_temp);
+	    TempDescriptor[] temps=new TempDescriptor[con.numArgs()];
+	    FlatNode last=fn;
+	    //Build arguments
+	    for(int i=0;i<con.numArgs();i++) {
+		ExpressionNode en=con.getArg(i);
+		TempDescriptor tmp=TempDescriptor.tempFactory("arg",en.getType());
+		temps[i]=tmp;
+		NodePair np=flattenExpressionNode(en, tmp);
+		last.addNext(np.getBegin());
+		last=np.getEnd();
+	    }
+	    MethodDescriptor md=con.getConstructor();
+	    //Call to constructor
+	    FlatCall fc=new FlatCall(md, null, out_temp, temps);
+	    last.addNext(fc);
+	    return new NodePair(fn,fc); 
+	} else {
+	    FlatNode first=null;
+	    FlatNode last=null;
+	    TempDescriptor[] temps=new TempDescriptor[con.numArgs()];
+	    for (int i=0;i<con.numArgs();i++) {
+		ExpressionNode en=con.getArg(i);
+		TempDescriptor tmp=TempDescriptor.tempFactory("arg",en.getType());
+		temps[i]=tmp;		
+		NodePair np=flattenExpressionNode(en, tmp);
+		if (first==null)
+		    first=np.getBegin();
+		else
+		    last.addNext(np.getBegin());
+		last=np.getEnd();
+		
+		TempDescriptor tmp2=(i==0)?
+		    out_temp:
+		TempDescriptor.tempFactory("arg",en.getType());
+	    }
+	    FlatNew fn=new FlatNew(td, out_temp, temps[0]);
+	    last.addNext(fn);
+	    NodePair np=generateNewArrayLoop(temps, td.dereference(), out_temp, 0);
+	    fn.addNext(np.getBegin());
+	    return new NodePair(first,np.getEnd()); 
 	}
-	MethodDescriptor md=con.getConstructor();
-	//Call to constructor
-	FlatCall fc=new FlatCall(md, null, out_temp, temps);
-	last.addNext(fc);
-	return new NodePair(fn,fc);
+    }
+
+    private NodePair generateNewArrayLoop(TempDescriptor[] temparray, TypeDescriptor td, TempDescriptor tmp, int i) {
+	TempDescriptor index=TempDescriptor.tempFactory("index",new TypeDescriptor(TypeDescriptor.INT));
+	TempDescriptor tmpone=TempDescriptor.tempFactory("index",new TypeDescriptor(TypeDescriptor.INT));
+	FlatNop fnop=new FlatNop();//last node
+
+	//index=0
+	FlatLiteralNode fln=new FlatLiteralNode(index.getType(),new Integer(0),index);
+	//tmpone=1
+	FlatLiteralNode fln2=new FlatLiteralNode(tmpone.getType(),new Integer(1),tmpone);
+
+	TempDescriptor tmpbool=TempDescriptor.tempFactory("comp",new TypeDescriptor(TypeDescriptor.BOOLEAN));
+
+	FlatOpNode fcomp=new FlatOpNode(tmpbool,index,temparray[i],new Operation(Operation.LT));
+	FlatCondBranch fcb=new FlatCondBranch(tmpbool);
+	//is index<temp[i]
+	TempDescriptor new_tmp=TempDescriptor.tempFactory("tmp",td);
+	FlatNew fn=new FlatNew(td, new_tmp, temparray[i+1]);
+	FlatSetElementNode fsen=new FlatSetElementNode(tmp,index,new_tmp);
+	// index=index+1
+	FlatOpNode fon=new FlatOpNode(index,index,tmpone,new Operation(Operation.ADD));
+	//jump out
+	fln.addNext(fln2);
+	fln2.addNext(fcomp);
+	fcomp.addNext(fcb);
+	fcb.addTrueNext(fn);
+	fcb.addFalseNext(fnop);
+	fn.addNext(fsen);
+	//Recursive call here
+	if ((i+1)<temparray.length) {
+	    NodePair np2=generateNewArrayLoop(temparray, td.dereference(), new_tmp, i+1);
+	    fsen.addNext(np2.getBegin());
+	    np2.getEnd().addNext(fon);
+	} else {
+	    fsen.addNext(fon);
+	}
+	fon.addNext(fcomp);
+	return new NodePair(fln, fnop);
     }
 
     private NodePair flattenMethodInvokeNode(MethodInvokeNode min,TempDescriptor out_temp) {
