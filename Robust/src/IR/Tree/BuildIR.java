@@ -106,7 +106,7 @@ public class BuildIR {
 	    TypeDescriptor td=parseTypeDescriptor(nn.getChild("basetype"));
 	    Integer numdims=(Integer)nn.getChild("dims").getLiteral();
 	    for(int i=0;i<numdims.intValue();i++)
-		td=td.makeArray();
+		td=td.makeArray(state);
 	    return td;
 	} else {
 	    throw new Error();
@@ -137,7 +137,7 @@ public class BuildIR {
 	    ParseNode tmp=vardecl;
 	    TypeDescriptor arrayt=t;
 	    while (tmp.getChild("single")==null) {
-		arrayt=arrayt.makeArray();
+		arrayt=arrayt.makeArray(state);
 		tmp=tmp.getChild("array");
 	    }
 	    String identifier=tmp.getChild("single").getTerminal();
@@ -199,7 +199,7 @@ public class BuildIR {
 	    if (pn.getChild("dims_opt").getLiteral()!=null)
 		num=((Integer)pn.getChild("dims_opt").getLiteral()).intValue();
 	    for(int i=0;i<args.size()+num;i++)
-		td=td.makeArray();
+		td=td.makeArray(state);
 	    CreateObjectNode con=new CreateObjectNode(td);
 	    for(int i=0;i<args.size();i++) {
 		con.addArgument((ExpressionNode)args.get(i));
@@ -347,7 +347,7 @@ public class BuildIR {
 		ParseNode tmp=vardecl;
 		TypeDescriptor arrayt=t;
 		while (tmp.getChild("single")==null) {
-		    arrayt=arrayt.makeArray();
+		    arrayt=arrayt.makeArray(state);
 		    tmp=tmp.getChild("array");
 		}
 		String identifier=tmp.getChild("single").getTerminal();
@@ -442,7 +442,7 @@ public class BuildIR {
 
 	     ParseNode tmp=paramn;
 	     while (tmp.getChild("single")==null) {
-		 type=type.makeArray();
+		 type=type.makeArray(state);
 		 tmp=tmp.getChild("array");
 	     }
 	     String paramname=tmp.getChild("single").getTerminal();

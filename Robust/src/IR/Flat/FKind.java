@@ -1,7 +1,6 @@
 package IR.Flat;
 
 public class FKind {
-
     public static final int FlatCall=1;
     public static final int FlatFieldNode=2;
     public static final int FlatSetFieldNode=3;
@@ -13,4 +12,5 @@ public class FKind {
     public static final int FlatCondBranch=9;
     public static final int FlatNop=10;    
     public static final int FlatSetElementNode=11;
+    public static final int FlatElementNode=12;
 }

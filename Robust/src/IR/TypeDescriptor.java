@@ -31,16 +31,26 @@ public class TypeDescriptor extends Descriptor {
 		return false;
 	    if ((type==CLASS)&&(t.class_desc!=class_desc))
 		return false;
+	    if (t.arraycount!=arraycount)
+		return false;
 	    return true;
 	}
 	return false;
     }
 
-    public TypeDescriptor makeArray() {
+    public int hashCode() {
+	int hashcode=type^arraycount;
+	if (type==CLASS)
+	    hashcode^=class_desc.hashCode();
+	return hashcode;
+    }
+
+    public TypeDescriptor makeArray(State state) {
 	TypeDescriptor td=new TypeDescriptor(getSymbol());
 	td.arraycount=arraycount+1;
 	td.type=type;
 	td.class_desc=class_desc;
+	state.addArrayType(td);
 	return td;
     }
 

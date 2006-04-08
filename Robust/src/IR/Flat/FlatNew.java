@@ -44,6 +44,10 @@ public class FlatNew extends FlatNode {
 	return dst;
     }
 
+    public TempDescriptor getSize() {
+	return size;
+    }
+
     public TypeDescriptor getType() {
 	return type;
     }

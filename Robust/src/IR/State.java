@@ -12,6 +12,8 @@ public class State {
 	this.treemethodmap=new Hashtable();
 	this.flatmethodmap=new Hashtable();
 	this.parsetrees=new HashSet();
+	this.arraytypes=new HashSet();
+	this.arraytonumber=new Hashtable();
     }
 
     public void addParseNode(ParseNode parsetree) {
@@ -22,8 +24,27 @@ public class State {
     public Set parsetrees;
     public Hashtable treemethodmap;
     public Hashtable flatmethodmap;
+    private HashSet arraytypes;
+    public Hashtable arraytonumber;
     private int numclasses=0;
+    private int arraycount=0;
 
+    public void addArrayType(TypeDescriptor td) {
+	arraytypes.add(td);
+	arraytonumber.put(td,new Integer(arraycount++));
+    }
+
+    public Iterator getArrayIterator() {
+	return arraytypes.iterator();
+    }
+
+    public int getArrayNumber(TypeDescriptor td) {
+	return ((Integer)arraytonumber.get(td)).intValue();
+    }
+
+    public int numArrays() {
+	return arraytypes.size();
+    }
 
     public static TypeDescriptor getTypeDescriptor(int t) {
 	TypeDescriptor td=new TypeDescriptor(t);

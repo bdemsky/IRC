@@ -218,6 +218,17 @@ public class BuildFlat {
 	return new NodePair(npe.getBegin(),fn);
     }
 
+    private NodePair flattenArrayAccessNode(ArrayAccessNode aan,TempDescriptor out_temp) {
+	TempDescriptor tmp=TempDescriptor.tempFactory("temp",aan.getExpression().getType());
+	TempDescriptor tmpindex=TempDescriptor.tempFactory("temp",aan.getIndex().getType());
+	NodePair npe=flattenExpressionNode(aan.getExpression(),tmp);
+	NodePair npi=flattenExpressionNode(aan.getIndex(),tmpindex);
+	FlatElementNode fn=new FlatElementNode(tmp,tmpindex,out_temp);
+	npe.getEnd().addNext(npi.getBegin());
+	npi.getEnd().addNext(fn);
+	return new NodePair(npe.getBegin(),fn);
+    }
+
     private NodePair flattenAssignmentNode(AssignmentNode an,TempDescriptor out_temp) {
 	// Two cases:
 	// left side is variable
@@ -247,6 +258,19 @@ public class BuildFlat {
 	    FlatSetFieldNode fsfn=new FlatSetFieldNode(dst_tmp, fan.getField(), src_tmp);
 	    np_baseexp.getEnd().addNext(fsfn);
 	    return new NodePair(np_src.getBegin(), fsfn);
+	} else if (an.getDest().kind()==Kind.ArrayAccessNode) {
+	    ArrayAccessNode aan=(ArrayAccessNode)an.getDest();
+	    ExpressionNode en=aan.getExpression();
+	    ExpressionNode enindex=aan.getIndex();
+	    TempDescriptor dst_tmp=TempDescriptor.tempFactory("dst",en.getType());
+	    TempDescriptor index_tmp=TempDescriptor.tempFactory("index",enindex.getType());
+	    NodePair np_baseexp=flattenExpressionNode(en, dst_tmp);
+	    NodePair np_indexexp=flattenExpressionNode(enindex, index_tmp);
+	    last.addNext(np_baseexp.getBegin());
+	    np_baseexp.getEnd().addNext(np_indexexp.getBegin());
+	    FlatSetElementNode fsen=new FlatSetElementNode(dst_tmp, index_tmp, src_tmp);
+	    np_indexexp.getEnd().addNext(fsen);
+	    return new NodePair(np_src.getBegin(), fsen);
 	} else if (an.getDest().kind()==Kind.NameNode) {
 	    NameNode nn=(NameNode)an.getDest();
 	    if (nn.getExpression()!=null) {
@@ -367,6 +391,8 @@ public class BuildFlat {
 	    return flattenCreateObjectNode((CreateObjectNode)en,out_temp);
 	case Kind.FieldAccessNode:
 	    return flattenFieldAccessNode((FieldAccessNode)en,out_temp);
+	case Kind.ArrayAccessNode:
+	    return flattenArrayAccessNode((ArrayAccessNode)en,out_temp);
 	case Kind.LiteralNode:
 	    return flattenLiteralNode((LiteralNode)en,out_temp);
 	case Kind.MethodInvokeNode:

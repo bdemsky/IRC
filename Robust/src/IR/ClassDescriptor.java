@@ -15,7 +15,17 @@ public class ClassDescriptor extends Descriptor {
 	methods=new SymbolTable();
 	classid=UIDCount++;
     }
-    private static int UIDCount=0;
+    private static int UIDCount=10; /* 0 is for Arrays */
+    /*    For element types we use as defined in TypeDescriptor
+	  public static final int BYTE=1;
+	  public static final int SHORT=2;
+	  public static final int INT=3;
+	  public static final int LONG=4;
+	  public static final int CHAR=5;
+	  public static final int BOOLEAN=6;
+	  public static final int FLOAT=7;
+	  public static final int DOUBLE=8;*/
+
     private final int classid;
     String classname;
     String superclass;

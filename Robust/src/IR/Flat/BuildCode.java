@@ -14,6 +14,7 @@ public class BuildCode {
     String paramsprefix="___params___";
     public static boolean GENERATEPRECISEGC=false;
     public static String PREFIX="";
+    public static String arraytype="___array___";
     Virtual virtualcalls;
     TypeUtil typeutil;
 
@@ -58,12 +59,20 @@ public class BuildCode {
 
 	// Output the C declarations
 	// These could mutually reference each other
+	outclassdefs.println("struct "+arraytype+";");
 	while(it.hasNext()) {
 	    ClassDescriptor cn=(ClassDescriptor)it.next();
 	    outclassdefs.println("struct "+cn.getSafeSymbol()+";");
 	}
 	outclassdefs.println("");
-
+	{
+	    //Print out definition for array type
+	    outclassdefs.println("struct "+arraytype+" {");
+	    outclassdefs.println("  int type;");
+	    printClassStruct(typeutil.getClass(TypeUtil.ObjectClass), outclassdefs);
+	    outclassdefs.println("  int length;");
+	    outclassdefs.println("};\n");
+	}
 	it=state.getClassSymbolTable().getDescriptorsIterator();
 	while(it.hasNext()) {
 	    ClassDescriptor cn=(ClassDescriptor)it.next();
@@ -120,7 +129,7 @@ public class BuildCode {
 	    if (virtualcalls.getMethodCount(cd)>maxcount)
 		maxcount=virtualcalls.getMethodCount(cd);
 	}
-	MethodDescriptor[][] virtualtable=new MethodDescriptor[state.numClasses()][maxcount];
+	MethodDescriptor[][] virtualtable=new MethodDescriptor[state.numClasses()+state.numArrays()][maxcount];
 
 	/* Fill in virtual table */
 	classit=state.getClassSymbolTable().getDescriptorsIterator();
@@ -128,9 +137,18 @@ public class BuildCode {
 	    ClassDescriptor cd=(ClassDescriptor)classit.next();
 	    fillinRow(cd, virtualtable, cd.getId());
 	}
+
+	ClassDescriptor objectcd=typeutil.getClass(TypeUtil.ObjectClass);
+	Iteratory arrait=state.getArrayIterator();
+	while(arrayit.hasNext()) {
+	    TypeDescriptor td=(TypeDescriptor)arrayit.next();
+	    int id=getArrayNumber(td);
+	    fillinRow(objectcd, virtualtable, id+state.numClasses());
+	}
+	
 	outvirtual.print("void * virtualtable[]={");
 	boolean needcomma=false;
-	for(int i=0;i<state.numClasses();i++) {
+	for(int i=0;i<state.numClasses()+state.numArrays();i++) {
 	    for(int j=0;j<maxcount;j++) {
 		if (needcomma)
 		    outvirtual.print(", ");
@@ -574,7 +592,11 @@ public class BuildCode {
     }
 
     private void generateFlatNew(FlatMethod fm, FlatNew fn, PrintWriter output) {
-	output.println(generateTemp(fm,fn.getDst())+"=allocate_new("+fn.getType().getClassDesc().getId()+");");
+	if (fm.getType().isArray()) {
+	    int arrayid=state.getArrayNumber(fm.getType())+state.numClasses();
+	    output.println(generateTemp(fm,fn.getDst())+"=allocate_newarray("+arrayid+", "+generateTemp(fm, fn.getSize())+");");
+	} else
+	    output.println(generateTemp(fm,fn.getDst())+"=allocate_new("+fn.getType().getClassDesc().getId()+");");
     }
 
     private void generateFlatOpNode(FlatMethod fm, FlatOpNode fon, PrintWriter output) {
