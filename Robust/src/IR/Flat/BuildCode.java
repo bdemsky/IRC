@@ -631,7 +631,7 @@ public class BuildCode {
     }
 
     private void generateFlatSetElementNode(FlatMethod fm, FlatSetElementNode fsen, PrintWriter output) {
-	//TODO need dynamic check to make sure this assignment is actually legal
+	//TODO: need dynamic check to make sure this assignment is actually legal
 	//Because Object[] could actually be something more specific...ie. Integer[]
 	TypeDescriptor elementtype=fsen.getDst().getType().dereference();
 	String type="";
@@ -675,7 +675,7 @@ public class BuildCode {
     }
 
     private void generateFlatCastNode(FlatMethod fm, FlatCastNode fcn, PrintWriter output) {
-	/* TODO: Make call into runtime */
+	/* TODO: Do type check here */
 	output.println(generateTemp(fm,fcn.getDst())+"=("+fcn.getType().getSafeSymbol()+")"+generateTemp(fm,fcn.getSrc())+";");
     }
 
