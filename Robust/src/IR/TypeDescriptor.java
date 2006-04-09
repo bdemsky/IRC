@@ -55,7 +55,11 @@ public class TypeDescriptor extends Descriptor {
     }
 
     public boolean isArray() {
-	return arraycount>0;
+	return (arraycount>0);
+    }
+
+    public int getArrayCount() {
+	return arraycount;
     }
 
     public TypeDescriptor dereference() {
@@ -69,7 +73,9 @@ public class TypeDescriptor extends Descriptor {
     }
 
     public String getSafeSymbol() {
-	if (isClass())
+	if (isArray()) 
+	    return IR.Flat.BuildCode.arraytype;
+	else if (isClass())
 	    return class_desc.getSafeSymbol();
 	else if (isByte())
 	    return "char";

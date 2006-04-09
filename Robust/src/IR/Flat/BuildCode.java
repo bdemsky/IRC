@@ -14,7 +14,7 @@ public class BuildCode {
     String paramsprefix="___params___";
     public static boolean GENERATEPRECISEGC=false;
     public static String PREFIX="";
-    public static String arraytype="___array___";
+    public static String arraytype="ArrayObject";
     Virtual virtualcalls;
     TypeUtil typeutil;
 
@@ -88,6 +88,7 @@ public class BuildCode {
 	outmethod.println("#include <runtime.h>");
 
 	outclassdefs.println("extern int classsize[];");
+	//Store the sizes of classes & array elements
 	generateSizeArray(outmethod);
 
 	Iterator classit=state.getClassSymbolTable().getDescriptorsIterator();
@@ -139,10 +140,10 @@ public class BuildCode {
 	}
 
 	ClassDescriptor objectcd=typeutil.getClass(TypeUtil.ObjectClass);
-	Iteratory arrait=state.getArrayIterator();
+	Iterator arrayit=state.getArrayIterator();
 	while(arrayit.hasNext()) {
 	    TypeDescriptor td=(TypeDescriptor)arrayit.next();
-	    int id=getArrayNumber(td);
+	    int id=state.getArrayNumber(td);
 	    fillinRow(objectcd, virtualtable, id+state.numClasses());
 	}
 	
@@ -195,6 +196,27 @@ public class BuildCode {
 	    outclassdefs.print("sizeof(struct "+cdarray[i].getSafeSymbol()+")");	    
 	    needcomma=true;
 	}
+
+	TypeDescriptor[] sizetable=new TypeDescriptor[state.numArrays()];
+
+	Iterator arrayit=state.getArrayIterator();
+	while(arrayit.hasNext()) {
+	    TypeDescriptor td=(TypeDescriptor)arrayit.next();
+	    int id=state.getArrayNumber(td);
+	    sizetable[id]=td;
+	}
+	
+	for(int i=0;i<state.numArrays();i++) {
+	    if (needcomma)
+		outclassdefs.print(", ");
+	    TypeDescriptor tdelement=sizetable[i].dereference();
+	    if (tdelement.isArray()||tdelement.isClass())
+		outclassdefs.print("sizeof(void *)");
+	    else
+		outclassdefs.print("sizeof("+tdelement.getSafeSymbol()+")");
+	    needcomma=true;
+	}
+
 	outclassdefs.println("};");
     }
 
@@ -247,7 +269,7 @@ public class BuildCode {
 
 	for(int i=0;i<fields.size();i++) {
 	    FieldDescriptor fd=(FieldDescriptor)fields.get(i);
-	    if (fd.getType().isClass())
+	    if (fd.getType().isClass()||fd.getType().isArray())
 		classdefout.println("  struct "+fd.getType().getSafeSymbol()+" * "+fd.getSafeSymbol()+";");
 	    else 
 		classdefout.println("  "+fd.getType().getSafeSymbol()+" "+fd.getSafeSymbol()+";");
@@ -301,7 +323,7 @@ public class BuildCode {
 	    
 	    /* Output method declaration */
 	    if (md.getReturnType()!=null) {
-		if (md.getReturnType().isClass())
+		if (md.getReturnType().isClass()||md.getReturnType().isArray())
 		    headersout.print("struct " + md.getReturnType().getSafeSymbol()+" * ");
 		else
 		    headersout.print(md.getReturnType().getSafeSymbol()+" ");
@@ -321,7 +343,7 @@ public class BuildCode {
 		if (printcomma)
 		    headersout.print(", ");
 		printcomma=true;
-		if (temp.getType().isClass())
+		if (temp.getType().isClass()||temp.getType().isArray())
 		    headersout.print("struct " + temp.getType().getSafeSymbol()+" * "+temp.getSafeSymbol());
 		else
 		    headersout.print(temp.getType().getSafeSymbol()+" "+temp.getSafeSymbol());
@@ -348,7 +370,7 @@ public class BuildCode {
 	    TypeDescriptor type=td.getType();
 	    if (type.isNull())
 		output.println("   void * "+td.getSafeSymbol()+";");
-	    else if (type.isClass())
+	    else if (type.isClass()||type.isArray())
 		output.println("   struct "+type.getSafeSymbol()+" * "+td.getSafeSymbol()+";");
 	    else
 		output.println("   "+type.getSafeSymbol()+" "+td.getSafeSymbol()+";");
@@ -453,6 +475,12 @@ public class BuildCode {
 	case FKind.FlatFieldNode:
 	    generateFlatFieldNode(fm, (FlatFieldNode) fn,output);
 	    return;
+	case FKind.FlatElementNode:
+	    generateFlatElementNode(fm, (FlatElementNode) fn,output);
+	    return;
+	case FKind.FlatSetElementNode:
+	    generateFlatSetElementNode(fm, (FlatSetElementNode) fn,output);
+	    return;
 	case FKind.FlatSetFieldNode:
 	    generateFlatSetFieldNode(fm, (FlatSetFieldNode) fn,output);
 	    return;
@@ -514,7 +542,7 @@ public class BuildCode {
 	} else {
 	    
 	    output.print("((");
-	    if (md.getReturnType().isClass())
+	    if (md.getReturnType().isClass()||md.getReturnType().isArray())
 		output.print("struct " + md.getReturnType().getSafeSymbol()+" * ");
 	    else
 		output.print(md.getReturnType().getSafeSymbol()+" ");
@@ -532,7 +560,7 @@ public class BuildCode {
 		if (printcomma)
 		    output.print(", ");
 		printcomma=true;
-		if (temp.getType().isClass())
+		if (temp.getType().isClass()||temp.getType().isArray())
 		    output.print("struct " + temp.getType().getSafeSymbol()+" * ");
 		else
 		    output.print(temp.getType().getSafeSymbol());
@@ -591,9 +619,34 @@ public class BuildCode {
 	output.println(generateTemp(fm, fsfn.getDst())+"->"+ fsfn.getField().getSafeSymbol()+"="+ generateTemp(fm,fsfn.getSrc())+";");
     }
 
+    private void generateFlatElementNode(FlatMethod fm, FlatElementNode fen, PrintWriter output) {
+	TypeDescriptor elementtype=fen.getSrc().getType().dereference();
+	String type="";
+
+	if (elementtype.isArray()||elementtype.isClass())
+	    type="void *";
+	else 
+	    type=elementtype.getSafeSymbol()+" ";
+	output.println(generateTemp(fm, fen.getDst())+"=(("+ type+"*)(((char *) &("+ generateTemp(fm,fen.getSrc())+"->length))+sizeof(int)))["+generateTemp(fm, fen.getIndex())+"];");
+    }
+
+    private void generateFlatSetElementNode(FlatMethod fm, FlatSetElementNode fsen, PrintWriter output) {
+	//TODO need dynamic check to make sure this assignment is actually legal
+	//Because Object[] could actually be something more specific...ie. Integer[]
+	TypeDescriptor elementtype=fsen.getDst().getType().dereference();
+	String type="";
+
+	if (elementtype.isArray()||elementtype.isClass())
+	    type="void *";
+	else 
+	    type=elementtype.getSafeSymbol()+" ";
+
+	output.println("(("+type +"*)(((char *) &("+ generateTemp(fm,fsen.getDst())+"->length))+sizeof(int)))["+generateTemp(fm, fsen.getIndex())+"]="+generateTemp(fm,fsen.getSrc())+";");
+    }
+
     private void generateFlatNew(FlatMethod fm, FlatNew fn, PrintWriter output) {
-	if (fm.getType().isArray()) {
-	    int arrayid=state.getArrayNumber(fm.getType())+state.numClasses();
+	if (fn.getType().isArray()) {
+	    int arrayid=state.getArrayNumber(fn.getType())+state.numClasses();
 	    output.println(generateTemp(fm,fn.getDst())+"=allocate_newarray("+arrayid+", "+generateTemp(fm, fn.getSize())+");");
 	} else
 	    output.println(generateTemp(fm,fn.getDst())+"=allocate_new("+fn.getType().getClassDesc().getId()+");");
@@ -657,7 +710,7 @@ public class BuildCode {
 	ClassDescriptor cn=md.getClassDesc();
 	
 	if (md.getReturnType()!=null) {
-	    if (md.getReturnType().isClass())
+	    if (md.getReturnType().isClass()||md.getReturnType().isArray())
 		output.print("struct " + md.getReturnType().getSafeSymbol()+" * ");
 	    else
 		output.print(md.getReturnType().getSafeSymbol()+" ");
@@ -678,7 +731,7 @@ public class BuildCode {
 	    if (printcomma)
 		output.print(", ");
 	    printcomma=true;
-	    if (temp.getType().isClass())
+	    if (temp.getType().isClass()||temp.getType().isArray())
 		output.print("struct "+temp.getType().getSafeSymbol()+" * "+temp.getSafeSymbol());
 	    else
 		output.print(temp.getType().getSafeSymbol()+" "+temp.getSafeSymbol());

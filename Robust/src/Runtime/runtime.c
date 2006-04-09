@@ -15,3 +15,10 @@ void * allocate_new(int type) {
   *((int *)v)=type;
   return v;
 }
+
+void * allocate_newarray(int type, int length) {
+  void * v=calloc(1,sizeof(struct ArrayObject)+length*classsize[type]);
+  ((int *)v)[0]=type;
+  ((int *)v)[1]=length;
+  return v;
+}

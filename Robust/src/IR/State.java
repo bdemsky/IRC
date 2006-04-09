@@ -30,8 +30,10 @@ public class State {
     private int arraycount=0;
 
     public void addArrayType(TypeDescriptor td) {
-	arraytypes.add(td);
-	arraytonumber.put(td,new Integer(arraycount++));
+	if (!arraytypes.contains(td)) {
+	    arraytypes.add(td);
+	    arraytonumber.put(td,new Integer(arraycount++));
+	}
     }
 
     public Iterator getArrayIterator() {

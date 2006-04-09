@@ -59,6 +59,30 @@ public class TypeUtil {
     }
 
     public boolean isSuperorType(TypeDescriptor possiblesuper, TypeDescriptor cd2) {
+	//Matching type are always okay
+	if (possiblesuper.equals(cd2))
+	    return true;
+
+	//Handle arrays
+	if (cd2.isArray()||possiblesuper.isArray()) {
+	    // Object is super class of all arrays
+	    if (possiblesuper.getSymbol().equals(ObjectClass)&&!possiblesuper.isArray())
+		return true;
+
+	    // If we have the same dimensionality of arrays & both are classes, we can default to the normal test
+	    if (cd2.isClass()&&possiblesuper.isClass()
+		&&(possiblesuper.getArrayCount()==cd2.getArrayCount())&&
+		isSuperorType(possiblesuper.getClassDesc(), cd2.getClassDesc()))
+		return true;
+
+	    // Object is superclass of all array classes
+	    if (possiblesuper.getSymbol().equals(ObjectClass)&&cd2.isClass()
+		&&(possiblesuper.getArrayCount()<cd2.getArrayCount()))
+		return true;
+
+	    return false;
+	}
+
 	if (possiblesuper.isClass()&&
 	     cd2.isClass())
 	    return isSuperorType(possiblesuper.getClassDesc(), cd2.getClassDesc());
@@ -101,14 +125,14 @@ public class TypeUtil {
     }
 
 
-    public boolean isSuperorType(ClassDescriptor possiblesuper, ClassDescriptor cd2) {
+    private boolean isSuperorType(ClassDescriptor possiblesuper, ClassDescriptor cd2) {
 	if (possiblesuper==cd2)
 	    return true;
 	else
 	    return isSuper(possiblesuper, cd2);
     }
 
-    public boolean isSuper(ClassDescriptor possiblesuper, ClassDescriptor cd2) {
+    private boolean isSuper(ClassDescriptor possiblesuper, ClassDescriptor cd2) {
 	while(cd2!=null) {
 	    cd2=getSuper(cd2);
 	    if (cd2==possiblesuper)

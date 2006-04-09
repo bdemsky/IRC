@@ -1068,8 +1068,8 @@ array_creation_uninit ::=
 //	;
 dim_exprs ::=	dim_expr:exp {: 
 		ParseNode pn=new ParseNode("dim_exprs");
-		pn.addChild("expr").addChild(exp);
-		RESULT=exp; :}
+		pn.addChild(exp);
+		RESULT=pn; :}
 	|	dim_exprs:base dim_expr:exp {: 
 		base.addChild(exp);
 		RESULT=base;

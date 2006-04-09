@@ -193,12 +193,13 @@ public class BuildIR {
 	    }
 	    return con;
 	} else if (isNode(pn,"createarray")) {
+	    System.out.println(pn.PPrint(3,true));
 	    TypeDescriptor td=parseTypeDescriptor(pn);
 	    Vector args=parseDimExprs(pn);
 	    int num=0;
 	    if (pn.getChild("dims_opt").getLiteral()!=null)
 		num=((Integer)pn.getChild("dims_opt").getLiteral()).intValue();
-	    for(int i=0;i<args.size()+num;i++)
+	    for(int i=0;i<(args.size()+num);i++)
 		td=td.makeArray(state);
 	    CreateObjectNode con=new CreateObjectNode(td);
 	    for(int i=0;i<args.size();i++) {
@@ -233,7 +234,7 @@ public class BuildIR {
 	    return new FieldAccessNode(en,fieldname);
 	} else if (isNode(pn,"arrayaccess")) { 
 	    ExpressionNode en=parseExpression(pn.getChild("base").getFirstChild());
-	    ExpressionNode index=parseExpression(pn.getChild("index"));
+	    ExpressionNode index=parseExpression(pn.getChild("index").getFirstChild());
 	    return new ArrayAccessNode(en,index);
 	} else if (isNode(pn,"cast1")) { 
 	    return new CastNode(parseTypeDescriptor(pn.getChild("type")),parseExpression(pn.getChild("exp").getFirstChild()));

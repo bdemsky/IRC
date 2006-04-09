@@ -181,6 +181,9 @@ public class SemanticCheck {
         case Kind.FieldAccessNode:
 	    checkFieldAccessNode(md,nametable,(FieldAccessNode)en,td);
 	    return;
+        case Kind.ArrayAccessNode:
+	    checkArrayAccessNode(md,nametable,(ArrayAccessNode)en,td);
+	    return;
         case Kind.LiteralNode:
 	    checkLiteralNode(md,nametable,(LiteralNode)en,td);
 	    return;
@@ -244,6 +247,18 @@ public class SemanticCheck {
 		throw new Error("Field node returns "+fan.getType()+", but need "+td);
     }
 
+    void checkArrayAccessNode(MethodDescriptor md, SymbolTable nametable, ArrayAccessNode aan, TypeDescriptor td) {
+	ExpressionNode left=aan.getExpression();
+	checkExpressionNode(md,nametable,left,null);
+
+	checkExpressionNode(md,nametable,aan.getIndex(),new TypeDescriptor(TypeDescriptor.INT));
+	TypeDescriptor ltd=left.getType();
+
+	if (td!=null)
+	    if (!typeutil.isSuperorType(td,aan.getType()))
+		throw new Error("Field node returns "+aan.getType()+", but need "+td);
+    }
+
     void checkLiteralNode(MethodDescriptor md, SymbolTable nametable, LiteralNode ln, TypeDescriptor td) {
 	/* Resolve the type */
 	Object o=ln.getValue();
@@ -300,6 +315,7 @@ public class SemanticCheck {
 	checkExpressionNode(md, nametable, an.getSrc() ,td);
 	//TODO: Need check on validity of operation here
 	if (!((an.getDest() instanceof FieldAccessNode)||
+	      (an.getDest() instanceof ArrayAccessNode)||
 	      (an.getDest() instanceof NameNode)))
 	    throw new Error("Bad lside in "+an.printNode(0));
 	checkExpressionNode(md, nametable, an.getDest(), null);
@@ -339,43 +355,44 @@ public class SemanticCheck {
 
 	TypeDescriptor typetolookin=con.getType();
 	checkTypeDescriptor(typetolookin);
-	if (!typetolookin.isClass()) 
-	    throw new Error();
+	if ((!typetolookin.isClass())&&(!typetolookin.isArray())) 
+	    throw new Error("Can't allocate primitive type:"+con.printNode(0));
 
-	ClassDescriptor classtolookin=typetolookin.getClassDesc();
-	System.out.println("Looking for "+typetolookin.getSymbol());
-	System.out.println(classtolookin.getMethodTable());
-
-	Set methoddescriptorset=classtolookin.getMethodTable().getSet(typetolookin.getSymbol());
-	MethodDescriptor bestmd=null;
+	if (!typetolookin.isArray()) {
+	    //Array's don't need constructor calls
+	    ClassDescriptor classtolookin=typetolookin.getClassDesc();
+	    System.out.println("Looking for "+typetolookin.getSymbol());
+	    System.out.println(classtolookin.getMethodTable());
+	    
+	    Set methoddescriptorset=classtolookin.getMethodTable().getSet(typetolookin.getSymbol());
+	    MethodDescriptor bestmd=null;
 	NextMethod:
-	for(Iterator methodit=methoddescriptorset.iterator();methodit.hasNext();) {
-	    MethodDescriptor currmd=(MethodDescriptor)methodit.next();
-	    /* Need correct number of parameters */
-	    System.out.println("Examining: "+currmd);
-	    if (con.numArgs()!=currmd.numParameters())
-		continue;
-	    for(int i=0;i<con.numArgs();i++) {
-		if (!typeutil.isSuperorType(currmd.getParamType(i),tdarray[i]))
-		    continue NextMethod;
-	    }
-	    /* Method okay so far */
-	    if (bestmd==null)
-		bestmd=currmd;
-	    else {
-		if (isMoreSpecific(currmd,bestmd)) {
+	    for(Iterator methodit=methoddescriptorset.iterator();methodit.hasNext();) {
+		MethodDescriptor currmd=(MethodDescriptor)methodit.next();
+		/* Need correct number of parameters */
+		System.out.println("Examining: "+currmd);
+		if (con.numArgs()!=currmd.numParameters())
+		    continue;
+		for(int i=0;i<con.numArgs();i++) {
+		    if (!typeutil.isSuperorType(currmd.getParamType(i),tdarray[i]))
+			continue NextMethod;
+		}
+		/* Method okay so far */
+		if (bestmd==null)
 		    bestmd=currmd;
-		} else if (!isMoreSpecific(bestmd, currmd))
-		    throw new Error("No method is most specific");
-		
-		/* Is this more specific than bestmd */
+		else {
+		    if (isMoreSpecific(currmd,bestmd)) {
+			bestmd=currmd;
+		    } else if (!isMoreSpecific(bestmd, currmd))
+			throw new Error("No method is most specific");
+		    
+		    /* Is this more specific than bestmd */
+		}
 	    }
+	    if (bestmd==null)
+		throw new Error("No method found for "+con.printNode(0));
+	    con.setConstructor(bestmd);
 	}
-	if (bestmd==null)
-	    throw new Error("No method found for "+con.printNode(0));
-	con.setConstructor(bestmd);
-
-	
     }
 
 

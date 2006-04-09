@@ -38,14 +38,26 @@ public class CreateObjectNode extends ExpressionNode {
     }
 
     public String printNode(int indent) {
-	String st="new "+td.toString()+"(";
+	String st;
+	boolean isarray=td.isArray();
+	if (isarray)
+	    st="new "+td.toString()+"[";
+	else
+	    st="new "+td.toString()+"(";
 	for(int i=0;i<argumentlist.size();i++) {
 	    ExpressionNode en=(ExpressionNode)argumentlist.get(i);
 	    st+=en.printNode(indent);
-	    if ((i+1)!=argumentlist.size())
-		st+=", ";
+	    if ((i+1)!=argumentlist.size()) {
+		if (isarray) 
+		    st+="][";
+		else
+		    st+=", ";
+	    }
 	}
-	return st+")";
+	if (isarray)
+	    return st+"]";
+	else
+	    return st+")";
     }
 
     public int kind() {

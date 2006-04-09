@@ -123,9 +123,12 @@ public class BuildFlat {
 	    }
 	    FlatNew fn=new FlatNew(td, out_temp, temps[0]);
 	    last.addNext(fn);
-	    NodePair np=generateNewArrayLoop(temps, td.dereference(), out_temp, 0);
-	    fn.addNext(np.getBegin());
-	    return new NodePair(first,np.getEnd()); 
+	    if (temps.length>1) {
+		NodePair np=generateNewArrayLoop(temps, td.dereference(), out_temp, 0);
+		fn.addNext(np.getBegin());
+		return new NodePair(first,np.getEnd()); 
+	    } else
+		return new NodePair(first, fn);
 	}
     }
 
@@ -157,7 +160,7 @@ public class BuildFlat {
 	fcb.addFalseNext(fnop);
 	fn.addNext(fsen);
 	//Recursive call here
-	if ((i+1)<temparray.length) {
+	if ((i+2)<temparray.length) {
 	    NodePair np2=generateNewArrayLoop(temparray, td.dereference(), new_tmp, i+1);
 	    fsen.addNext(np2.getBegin());
 	    np2.getEnd().addNext(fon);
