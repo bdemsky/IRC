@@ -19,6 +19,10 @@ public class Modifiers {
 	value=0;
     }
 
+    public Modifiers(int v) {
+	value=v;
+    }
+
     public void addModifier(int mod) {
 	value|=mod;
     }

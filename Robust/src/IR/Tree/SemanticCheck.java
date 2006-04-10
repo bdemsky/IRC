@@ -238,7 +238,12 @@ public class SemanticCheck {
 	checkExpressionNode(md,nametable,left,null);
 	TypeDescriptor ltd=left.getType();
 	String fieldname=fan.getFieldName();
-	FieldDescriptor fd=(FieldDescriptor) ltd.getClassDesc().getFieldTable().get(fieldname);
+
+	FieldDescriptor fd=null;
+	if (ltd.isArray()&&fieldname.equals("length"))
+	    fd=FieldDescriptor.arrayLength;
+	else
+	    fd=(FieldDescriptor) ltd.getClassDesc().getFieldTable().get(fieldname);
 	if (fd==null)
 	    throw new Error("Unknown field "+fieldname);
 	fan.setField(fd);

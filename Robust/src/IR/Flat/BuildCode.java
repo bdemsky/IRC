@@ -57,6 +57,11 @@ public class BuildCode {
 	outstructs.println("#include \"classdefs.h\"");
 	outmethodheader.println("#include \"structdefs.h\"");
 
+	/* Output types for short array and string */
+	outstructs.println("#define STRINGTYPE "+typeutil.getClass(TypeUtil.StringClass).getId());
+	outstructs.println("#define CHARARRAYTYPE "+
+			   (state.getArrayNumber((new TypeDescriptor(TypeDescriptor.CHAR)).makeArray(state))+state.numClasses()));
+
 	// Output the C declarations
 	// These could mutually reference each other
 	outclassdefs.println("struct "+arraytype+";");
@@ -70,7 +75,7 @@ public class BuildCode {
 	    outclassdefs.println("struct "+arraytype+" {");
 	    outclassdefs.println("  int type;");
 	    printClassStruct(typeutil.getClass(TypeUtil.ObjectClass), outclassdefs);
-	    outclassdefs.println("  int length;");
+	    outclassdefs.println("  int ___length___;");
 	    outclassdefs.println("};\n");
 	}
 	it=state.getClassSymbolTable().getDescriptorsIterator();
@@ -78,6 +83,8 @@ public class BuildCode {
 	    ClassDescriptor cn=(ClassDescriptor)it.next();
 	    generateCallStructs(cn, outclassdefs, outstructs, outmethodheader);
 	}
+
+
 
 	outstructs.close();
 	outmethodheader.close();
@@ -616,6 +623,8 @@ public class BuildCode {
     }
 
     private void generateFlatSetFieldNode(FlatMethod fm, FlatSetFieldNode fsfn, PrintWriter output) {
+	if (fsfn.getField().getSymbol().equals("length")&&fsfn.getDst().getType().isArray())
+	    throw new Error("Can't set array length");
 	output.println(generateTemp(fm, fsfn.getDst())+"->"+ fsfn.getField().getSafeSymbol()+"="+ generateTemp(fm,fsfn.getSrc())+";");
     }
 
@@ -627,7 +636,7 @@ public class BuildCode {
 	    type="void *";
 	else 
 	    type=elementtype.getSafeSymbol()+" ";
-	output.println(generateTemp(fm, fen.getDst())+"=(("+ type+"*)(((char *) &("+ generateTemp(fm,fen.getSrc())+"->length))+sizeof(int)))["+generateTemp(fm, fen.getIndex())+"];");
+	output.println(generateTemp(fm, fen.getDst())+"=(("+ type+"*)(((char *) &("+ generateTemp(fm,fen.getSrc())+"->___length___))+sizeof(int)))["+generateTemp(fm, fen.getIndex())+"];");
     }
 
     private void generateFlatSetElementNode(FlatMethod fm, FlatSetElementNode fsen, PrintWriter output) {
@@ -641,7 +650,7 @@ public class BuildCode {
 	else 
 	    type=elementtype.getSafeSymbol()+" ";
 
-	output.println("(("+type +"*)(((char *) &("+ generateTemp(fm,fsen.getDst())+"->length))+sizeof(int)))["+generateTemp(fm, fsen.getIndex())+"]="+generateTemp(fm,fsen.getSrc())+";");
+	output.println("(("+type +"*)(((char *) &("+ generateTemp(fm,fsen.getDst())+"->___length___))+sizeof(int)))["+generateTemp(fm, fsen.getIndex())+"]="+generateTemp(fm,fsen.getSrc())+";");
     }
 
     private void generateFlatNew(FlatMethod fm, FlatNew fn, PrintWriter output) {
@@ -683,7 +692,7 @@ public class BuildCode {
 	if (fln.getValue()==null)
 	    output.println(generateTemp(fm, fln.getDst())+"=0;");
 	else if (fln.getType().getSymbol().equals(TypeUtil.StringClass))
-	    output.println(generateTemp(fm, fln.getDst())+"=newstring(\""+FlatLiteralNode.escapeString((String)fln.getValue())+"\");");
+	    output.println(generateTemp(fm, fln.getDst())+"=NewString(\""+FlatLiteralNode.escapeString((String)fln.getValue())+"\","+((String)fln.getValue()).length()+");");
 	else if (fln.getType().isBoolean()) {
 	    if (((Boolean)fln.getValue()).booleanValue())
 		output.println(generateTemp(fm, fln.getDst())+"=1;");

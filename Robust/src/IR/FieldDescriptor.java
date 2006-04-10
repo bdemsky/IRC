@@ -10,6 +10,8 @@ import IR.Tree.ExpressionNode;
 
 public class FieldDescriptor extends Descriptor {
 
+    public static FieldDescriptor arrayLength=new FieldDescriptor(new Modifiers(Modifiers.PUBLIC|Modifiers.FINAL), new TypeDescriptor(TypeDescriptor.INT), "length", null);
+
     protected Modifiers modifier;
     protected TypeDescriptor td;
     protected String identifier;
@@ -23,6 +25,7 @@ public class FieldDescriptor extends Descriptor {
 	this.en=e;
         this.safename = "___" + name + "___";
 	this.uniqueid=count++;
+	if (en!=null) throw new Error("Field initializers not implemented");
     }
 
     public TypeDescriptor getType() {

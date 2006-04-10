@@ -41,6 +41,7 @@ public class Main {
       
       readSourceFile(state, ClassLibraryPrefix+"Object.java");
       readSourceFile(state, ClassLibraryPrefix+"System.java");
+      readSourceFile(state, ClassLibraryPrefix+"String.java");
 
       BuildIR bir=new BuildIR(state);
       bir.buildtree();
