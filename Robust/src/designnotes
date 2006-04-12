@@ -1,0 +1,58 @@
+Objects have:
+Collection of Flags
+Collection of Tags
+----------------------------------------------------------------------
+Tasks:
+Have list of parameters w/ flag/tag specifications
+Flag/Tag transitions at task exit
+-----------------------------------------------------------------------
+Problems:
+How do we efficiently do task dispatch?
+
+Idea:
+Flags - efficiently
+Build static state transition diagram : explore full space for now
+Then for each state transition we consider:
+1) What task activations have we added
+2) What task activations have we removed
+Collapse state transition diagram to 
+
+
+Tags - search once we match a flag
+
+
+
+Input:
+trigger role specification for tasks:
+role mutator operation:
+role definition:
+
+Generate:
+Role transition diagram
+
+
+Initial features:
+methods
+structs
+type system
+
+Language features:
+Single Inheritance
+Virtual methods
+Objects
+
+object metastate:
+1. flags: flag role1
+2. tags: tag tag1
+
+tag operations:
+tag tag1=new tag;
+tag tag2=incrementtag(tag tag1);
+tag tag3=no tag;
+
+metastate operations:
+
+task foo(type1 o1{role1||role2}, type2 o2{role3}) {
+	
+  exit(o1{role1'=false},o2{role3'=false},onew{role4=true});
+}
