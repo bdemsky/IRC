@@ -1,10 +1,6 @@
 package IR;
 import java.util.*;
 import IR.Tree.*;
-import IR.SymbolTable;
-import IR.FieldDescriptor;
-import IR.MethodDescriptor;
-import IR.NameDescriptor;
 
 public class ClassDescriptor extends Descriptor {
     public ClassDescriptor(String classname) {
@@ -24,6 +20,7 @@ public class ClassDescriptor extends Descriptor {
     Modifiers modifiers;
 
     SymbolTable fields;
+    SymbolTable flags;
     SymbolTable methods;
 
     public int getId() {
@@ -37,9 +34,17 @@ public class ClassDescriptor extends Descriptor {
     public Iterator getFields() {
 	return fields.getDescriptorsIterator();
     }
+
+    public Iterator getFlags() {
+	return flags.getDescriptorsIterator();
+    }
     
     public SymbolTable getFieldTable() {
 	return fields;
+    }
+
+    public SymbolTable getFlagTable() {
+	return flags;
     }
 
     public SymbolTable getMethodTable() {
@@ -59,6 +64,16 @@ public class ClassDescriptor extends Descriptor {
 	indent=TreeNode.INDENT;
 	boolean printcr=false;
 
+	for(Iterator it=getFlags();it.hasNext();) {
+	    FlagDescriptor fd=(FlagDescriptor)it.next();
+	    st+=TreeNode.printSpace(indent)+fd.toString()+"\n";
+	    printcr=true;
+	}
+	if (printcr)
+	    st+="\n";
+
+	printcr=false;
+
 	for(Iterator it=getFields();it.hasNext();) {
 	    FieldDescriptor fd=(FieldDescriptor)it.next();
 	    st+=TreeNode.printSpace(indent)+fd.toString()+"\n";
@@ -75,6 +90,12 @@ public class ClassDescriptor extends Descriptor {
 	}
 	st+="}\n";
 	return st;
+    }
+
+    public void addFlag(FlagDescriptor fd) {
+	if (flags.contains(fd.getSymbol()))
+	    throw new Error(fd.getSymbol()+" already defined");
+	flags.add(fd);
     }
 
     public void addField(FieldDescriptor fd) {

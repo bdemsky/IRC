@@ -1,6 +1,14 @@
 Objects have:
 Collection of Flags
+   Flags have type/name associated with them
+   Are either present or not present
 Collection of Tags
+   Tags have type/name associated with them   
+   Also have UID associated with them
+   Two basic types:
+     Ordered: Initial/Next / Preserves Sequencing 
+     Non-ordered: New  / Groups items together
+     
 ----------------------------------------------------------------------
 Tasks:
 Have list of parameters w/ flag/tag specifications

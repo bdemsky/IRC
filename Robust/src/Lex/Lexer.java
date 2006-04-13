@@ -251,7 +251,9 @@ public class Lexer {
     "native", "new", "package", "private", "protected", "public", 
     "return", "short", "static", "strictfp", "super", "switch",
     "synchronized", "this", "throw", "throws", "transient", "try", "void",
-    "volatile", "while" };
+    "volatile", "while", 
+    //keywords for failure aware computation
+    "flag", "tag", "task"};
   Token getIdentifier() {
     // Get id string.
     StringBuffer sb = new StringBuffer().append(consume());

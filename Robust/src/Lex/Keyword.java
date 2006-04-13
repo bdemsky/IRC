@@ -64,5 +64,9 @@ class Keyword extends Token {
     key_table.put("void", new Integer(Sym.VOID));
     key_table.put("volatile", new Integer(Sym.VOLATILE));
     key_table.put("while", new Integer(Sym.WHILE));
+    //Keywords for failure aware computation
+    key_table.put("flag", new Integer(Sym.FLAG));
+    key_table.put("tag", new Integer(Sym.TAG));
+    key_table.put("task", new Integer(Sym.TASK));
   }
 }

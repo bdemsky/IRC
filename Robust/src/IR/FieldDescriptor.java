@@ -21,7 +21,6 @@ public class FieldDescriptor extends Descriptor {
 	super(identifier);
 	this.modifier=m;
 	this.td=t;
-	this.identifier=identifier;
 	this.en=e;
         this.safename = "___" + name + "___";
 	this.uniqueid=count++;
@@ -34,8 +33,8 @@ public class FieldDescriptor extends Descriptor {
 
     public String toString() {
 	if (en==null)
-	    return modifier.toString()+td.toString()+" "+identifier+";";
+	    return modifier.toString()+td.toString()+" "+getSymbol()+";";
 	else
-	    return modifier.toString()+td.toString()+" "+identifier+"="+en.printNode(0)+";";
+	    return modifier.toString()+td.toString()+" "+getSymbol()+"="+en.printNode(0)+";";
     }
 }
