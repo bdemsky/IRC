@@ -103,11 +103,6 @@ terminal ASSERT; // assert_statement
 terminal ELLIPSIS;
 terminal ENUM;
 
-//failure aware computation keywords
-terminal FLAG;
-terminal TAG;
-terminal TASK;
-non terminal ParseNode flag_declaration;
 
 // 19.2) The Syntactic Grammar
 non terminal ParseNode goal;
@@ -223,8 +218,142 @@ non terminal ParseNode assignment;
 non terminal ParseNode assignment_operator;
 non terminal ParseNode expression_opt, expression;
 //non terminal ParseNode constant_expression;
+//failure aware computation keywords
+terminal FLAG;
+terminal TAG;
+terminal TASK;
+terminal TASKEXIT;
+non terminal ParseNode flag_declaration;
+non terminal ParseNode task_declaration;
+non terminal ParseNode task_parameter_list;
+non terminal ParseNode task_parameter;
+non terminal ParseNode flag_expression;
+non terminal ParseNode flag_andexpression;
+non terminal ParseNode flag_notexpression;
+non terminal ParseNode task_exitstatement;
+non terminal ParseNode flag_effects_opt;
+non terminal ParseNode flag_effects;
+non terminal ParseNode flag_effect;
+non terminal ParseNode flag_list;
+non terminal ParseNode flag_change;
 
 start with goal;
+
+
+// Task declarations
+task_declaration ::= 
+	TASK IDENTIFIER:id LPAREN task_parameter_list:tpl RPAREN 
+	flag_effects_opt:feo
+	method_body:body 
+	{: 
+	ParseNode pn=new ParseNode("task_declaration");
+	pn.addChild("name").addChild(id);
+	pn.addChild(tpl);
+	pn.addChild(feo);
+	pn.addChild("body").addChild(body);	
+	RESULT=pn;
+	:};
+
+task_parameter_list ::=
+		task_parameter:fp {: 
+		ParseNode pn=new ParseNode("task_parameter_list");
+		pn.addChild(fp);
+		RESULT=pn;
+	:}
+	|	task_parameter_list:fpl COMMA task_parameter:fp {: 
+		fpl.addChild(fp);
+		RESULT=fpl;
+	:}
+	;
+
+task_parameter ::=
+		type:type variable_declarator_id:name LBRACE flag_expression:exp RBRACE {:
+		ParseNode pn=new ParseNode("task_parameter");
+		pn.addChild(type);
+		pn.addChild(name);
+		pn.addChild(exp);
+		RESULT=pn;
+	:}
+	;
+
+flag_expression ::= 
+	flag_andexpression:exp {: 
+		RESULT=exp;
+	:}
+	| flag_expression:exp1 OROR flag_andexpression:exp2 {: 
+		ParseNode pn=new ParseNode("or");
+		pn.addChild(exp1);
+		pn.addChild(exp2);
+		RESULT=pn;
+	:}
+	;
+
+flag_andexpression ::= 
+	flag_notexpression:exp {: RESULT=exp; :}
+	| flag_notexpression:exp1 ANDAND flag_andexpression:exp2 {: 
+		ParseNode pn=new ParseNode("and");
+		pn.addChild(exp1);
+		pn.addChild(exp2);
+		RESULT=pn;
+	:}
+	;
+
+flag_notexpression ::=
+	NOT flag_notexpression:exp {: 
+		ParseNode pn=new ParseNode("not");
+		pn.addChild(exp);
+		RESULT=pn;
+	:}
+	| LPAREN flag_expression:exp RPAREN {: 
+		RESULT=exp;
+	:}
+	| IDENTIFIER:id {:
+		ParseNode pn=new ParseNode("name");
+		pn.addChild(id);
+		RESULT=pn;
+	:}
+	;
+
+task_exitstatement ::= TASKEXIT flag_effects_opt SEMICOLON{: 
+		RESULT=new ParseNode("taskexit");
+	:};
+
+flag_effects_opt ::= LPAREN flag_effects:fe RPAREN {:RESULT=fe;:}
+	| {: RESULT = null; :}
+	;
+
+flag_effects ::= flag_effect:fe {: 
+		ParseNode pn=new ParseNode("flag_effects_list");
+		pn.addChild(fe);
+		RESULT=pn;
+	:}
+	|	flag_effects:fes COMMA flag_effect:fe {: 
+		fes.addChild(fe);
+		RESULT=fes;
+	:};
+
+flag_effect ::= IDENTIFIER:id LBRACE flag_list:fl RBRACE {: 
+		ParseNode pn=new ParseNode("flag_effect");
+		pn.addChild(fl);
+		RESULT=pn;
+	:};
+
+flag_list ::= flag_change:fc {: 
+		ParseNode pn=new ParseNode("flag_list");
+		pn.addChild(fc);
+		RESULT=pn;
+	:}
+	|	flag_list:fl COMMA flag_change:fc {: 
+		fl.addChild(fc);
+		RESULT=fl;
+	:};
+
+flag_change ::= IDENTIFIER:id {: 
+		RESULT=new ParseNode("name").addChild(id).getRoot();
+	:} |
+	NOT IDENTIFIER:id {: 
+		RESULT=new ParseNode("not").addChild("name").addChild(id).getRoot();
+	:};
 
 // 19.2) The Syntactic Grammar
 goal ::=	compilation_unit:cu
@@ -390,6 +519,10 @@ type_declaration ::=
 		class_declaration:cd 
 		{:
 			RESULT=cd;
+		:}
+	|	task_declaration:td 
+		{:
+			RESULT=td;
 		:}
 //      |       interface_declaration
 	|	SEMICOLON {: RESULT=new ParseNode("empty"); :}
@@ -811,6 +944,7 @@ statement_without_trailing_substatement ::=
 	|	break_statement:st {: RESULT=st; :}
 	|	continue_statement:st {: RESULT=st; :}
 	|	return_statement:st {: RESULT=st; :}
+	|	task_exitstatement:st {: RESULT=st; :}
 //	|	synchronized_statement
 //	|	throw_statement
 //	|	try_statement

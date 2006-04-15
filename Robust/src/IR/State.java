@@ -85,6 +85,10 @@ public class State {
 	treemethodmap.put(md,bn);
     }
 
+    public void addTreeCode(TaskDescriptor td, BlockNode bn) {
+	treemethodmap.put(td,bn);
+    }
+
     public void addFlatCode(MethodDescriptor md, FlatMethod bn) {
 	flatmethodmap.put(md,bn);
     }

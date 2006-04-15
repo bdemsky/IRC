@@ -253,7 +253,7 @@ public class Lexer {
     "synchronized", "this", "throw", "throws", "transient", "try", "void",
     "volatile", "while", 
     //keywords for failure aware computation
-    "flag", "tag", "task"};
+    "flag", "tag", "task", "taskexit"};
   Token getIdentifier() {
     // Get id string.
     StringBuffer sb = new StringBuffer().append(consume());

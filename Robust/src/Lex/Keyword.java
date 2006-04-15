@@ -68,5 +68,6 @@ class Keyword extends Token {
     key_table.put("flag", new Integer(Sym.FLAG));
     key_table.put("tag", new Integer(Sym.TAG));
     key_table.put("task", new Integer(Sym.TASK));
+    key_table.put("taskexit", new Integer(Sym.TASKEXIT));
   }
 }
