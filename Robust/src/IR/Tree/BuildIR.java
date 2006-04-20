@@ -24,28 +24,63 @@ public class BuildIR {
 		ParseNode type_pn=pnv.elementAt(i);
 		if (isEmpty(type_pn)) /* Skip the semicolon */
 		    continue;
-		ClassDescriptor cn=parseTypeDecl(type_pn);
-		state.addClass(cn);
+		if (isNode(type_pn,"class_declaration")) {
+		    ClassDescriptor cn=parseTypeDecl(type_pn);
+		    state.addClass(cn);
+		} else if (isNode(type_pn,"task_declaration")) {
+		    TaskDescriptor td=parseTaskDecl(type_pn);
+		    state.addTask(td);
+		} throw new Error();
 	    }
 	}
     }
 
+    public TaskDescriptor parseTaskDecl(ParseNode pn) {
+	TaskDescriptor td=new TaskDescriptor(pn.getChild("name").getTerminal());
+	
+	ParseNode bodyn=pn.getChild("body");
+	BlockNode bn=parseBlock(bodyn);
+	parseParameterList(td, pn);
+	state.addTreeCode(td,bn);
+	return td;
+    }
+
+
+    public void parseParameterList(TaskDescriptor td, ParseNode pn) {
+	ParseNode paramlist=pn.getChild("task_parameter_list");
+	if (paramlist==null)
+	    return;
+	 ParseNodeVector pnv=paramlist.getChildren();
+	 for(int i=0;i<pnv.size();i++) {
+	     ParseNode paramn=pnv.elementAt(i);
+	     TypeDescriptor type=parseTypeDescriptor(paramn);
+
+	     ParseNode tmp=paramn;
+	     while (tmp.getChild("single")==null) {
+		 type=type.makeArray(state);
+		 tmp=tmp.getChild("array");
+	     }
+	     String paramname=tmp.getChild("single").getTerminal();
+	     
+	     
+	     td.addParameter(type,paramname);
+	 }
+    }
+
     public ClassDescriptor parseTypeDecl(ParseNode pn) {
-	if (isNode(pn, "class_declaration")) {
-	    ClassDescriptor cn=new ClassDescriptor(pn.getChild("name").getTerminal());
-	    if (!isEmpty(pn.getChild("super").getTerminal())) {
-		/* parse superclass name */
-		ParseNode snn=pn.getChild("super").getChild("type").getChild("class").getChild("name");
-		NameDescriptor nd=parseName(snn);
-		cn.setSuper(nd.toString());
-	    } else {
-		if (!cn.getSymbol().equals(TypeUtil.ObjectClass))
-		    cn.setSuper(TypeUtil.ObjectClass);
-	    }
-	    cn.setModifiers(parseModifiersList(pn.getChild("modifiers")));
-	    parseClassBody(cn, pn.getChild("classbody"));
-	    return cn;
-	} else throw new Error();
+	ClassDescriptor cn=new ClassDescriptor(pn.getChild("name").getTerminal());
+	if (!isEmpty(pn.getChild("super").getTerminal())) {
+	    /* parse superclass name */
+	    ParseNode snn=pn.getChild("super").getChild("type").getChild("class").getChild("name");
+	    NameDescriptor nd=parseName(snn);
+	    cn.setSuper(nd.toString());
+	} else {
+	    if (!cn.getSymbol().equals(TypeUtil.ObjectClass))
+		cn.setSuper(TypeUtil.ObjectClass);
+	}
+	cn.setModifiers(parseModifiersList(pn.getChild("modifiers")));
+	parseClassBody(cn, pn.getChild("classbody"));
+	return cn;
     }
 
     private void parseClassBody(ClassDescriptor cn, ParseNode pn) {

@@ -9,6 +9,7 @@ public class State {
 
     public State() {
 	this.classes=new SymbolTable();
+	this.tasks=new SymbolTable();
 	this.treemethodmap=new Hashtable();
 	this.flatmethodmap=new Hashtable();
 	this.parsetrees=new HashSet();
@@ -21,12 +22,14 @@ public class State {
     }
 
     public SymbolTable classes;
+    public SymbolTable tasks;
     public Set parsetrees;
     public Hashtable treemethodmap;
     public Hashtable flatmethodmap;
     private HashSet arraytypes;
     public Hashtable arraytonumber;
     private int numclasses=0;
+    private int numtasks=0;
     private int arraycount=0;
 
     public void addArrayType(TypeDescriptor td) {
@@ -91,5 +94,12 @@ public class State {
 
     public void addFlatCode(MethodDescriptor md, FlatMethod bn) {
 	flatmethodmap.put(md,bn);
+    }
+
+    public void addTask(TaskDescriptor td) {
+	if (tasks.contains(td.getSymbol()))
+	    throw new Error("Task "+td.getSymbol()+" defined twice");
+	tasks.add(td);
+	numtasks++;
     }
 }
