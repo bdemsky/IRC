@@ -37,7 +37,6 @@ public class BuildIR {
 
     public TaskDescriptor parseTaskDecl(ParseNode pn) {
 	TaskDescriptor td=new TaskDescriptor(pn.getChild("name").getTerminal());
-	
 	ParseNode bodyn=pn.getChild("body");
 	BlockNode bn=parseBlock(bodyn);
 	parseParameterList(td, pn);
@@ -45,6 +44,26 @@ public class BuildIR {
 	return td;
     }
 
+    public FlagExpressionNode parseFlagExpression(ParseNode pn) {
+	if (paramn.getChild("or")!=null) {
+	    ParseNodeVector pnv=paramn.getChild("or").getChildren();
+	    ParseNode left=pnv.elementAt(0);
+	    ParseNode right=pnv.elementAt(1);
+	    return new FlagOpNode(parseFlagExpression(left), parseFlagExpression(right), new Operation(Operation.LOGIC_OR));
+	} else if (paramn.getChild("and")!=null) {
+	    ParseNodeVector pnv=paramn.getChild("and").getChildren();
+	    ParseNode left=pnv.elementAt(0);
+	    ParseNode right=pnv.elementAt(1);
+	    return new FlagOpNode(parseFlagExpression(left), parseFlagExpression(right), new Operation(Operation.LOGIC_AND));
+	} else if (paramn.getChild("not")!=null) {
+	    ParseNodeVector pnv=paramn.getChild("not").getChildren();
+	    ParseNode left=pnv.elementAt(0);
+	    return new FlagOpNode(parseFlagExpression(left), new Operation(Operation.LOGIC_NOT));	    
+
+	} else if (paramn.getChild("name")!=null) {
+	    return new FlagNode(paramn.getChild("name").getTerminal());
+	} else throw new Error();
+    }
 
     public void parseParameterList(TaskDescriptor td, ParseNode pn) {
 	ParseNode paramlist=pn.getChild("task_parameter_list");
@@ -61,7 +80,7 @@ public class BuildIR {
 		 tmp=tmp.getChild("array");
 	     }
 	     String paramname=tmp.getChild("single").getTerminal();
-	     
+	     FlagExpressionNode fen=parseFlagExpression(paramn.getChild("flag"));
 	     
 	     td.addParameter(type,paramname);
 	 }
@@ -210,6 +229,7 @@ public class BuildIR {
 		   isNode(pn,"postinc")||
 		   isNode(pn,"postdec")||
 		   isNode(pn,"preinc")||
+		   isNode(pn,"not")||
 		   isNode(pn,"predec")) {
 	    ParseNode left=pn.getFirstChild();
 	    Operation op=new Operation(pn.getLabel());

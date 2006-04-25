@@ -271,7 +271,7 @@ task_parameter ::=
 		ParseNode pn=new ParseNode("task_parameter");
 		pn.addChild(type);
 		pn.addChild(name);
-		pn.addChild(exp);
+		pn.addChild("flag").addChild(exp);
 		RESULT=pn;
 	:}
 	;
@@ -334,6 +334,7 @@ flag_effects ::= flag_effect:fe {:
 
 flag_effect ::= IDENTIFIER:id LBRACE flag_list:fl RBRACE {: 
 		ParseNode pn=new ParseNode("flag_effect");
+		pn.addChild("name").addChild(id);
 		pn.addChild(fl);
 		RESULT=pn;
 	:};

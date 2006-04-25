@@ -25,7 +25,7 @@ public class Operation {
     public static final int POSTDEC=22;
     public static final int PREINC=23;
     public static final int PREDEC=24;
-
+    public static final int LOGIC_NOT=25;
     /* Flat Operations */
     public static final int ASSIGN=100;
 
@@ -91,6 +91,8 @@ public class Operation {
 	    return PREINC;
 	else if (st.equals("predec"))
 	    return PREDEC;
+	else if (st.equals("not"))
+	    return LOGIC_NOT;
 	else
 	    throw new Error();
     }
@@ -100,6 +102,8 @@ public class Operation {
 	    return "||";
 	else if (operation==LOGIC_AND)
 	    return "&&";
+	else if (operation==LOGIC_NOT)
+	    return "not";
 	else if (operation==BIT_OR)
 	    return "|";
 	else if (operation==BIT_XOR)
