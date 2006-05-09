@@ -23,3 +23,4 @@
 # If the name "ALL" appears as a regular expression it is always used
 # in addition to the first matching regex or "DEFAULT".
 #ALL $CVSROOT/CVSROOT/commit_prep -u -r
+DEFAULT     $CVSROOT/CVSROOT/cvsprep -- %r/%p
