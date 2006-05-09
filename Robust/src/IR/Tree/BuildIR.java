@@ -41,27 +41,33 @@ public class BuildIR {
 	BlockNode bn=parseBlock(bodyn);
 	parseParameterList(td, pn);
 	state.addTreeCode(td,bn);
+	if (pn.getChild("flag_effects_list")!=null)
+	    td.addFlagEffects(parseFlagEffects(pn.getChild("flag_effects_list")));
 	return td;
     }
 
+    public FlagEffects parseFlagEffects(ParseNode pn) {
+	return null;
+    }
+
     public FlagExpressionNode parseFlagExpression(ParseNode pn) {
-	if (paramn.getChild("or")!=null) {
-	    ParseNodeVector pnv=paramn.getChild("or").getChildren();
+	if (pn.getChild("or")!=null) {
+	    ParseNodeVector pnv=pn.getChild("or").getChildren();
 	    ParseNode left=pnv.elementAt(0);
 	    ParseNode right=pnv.elementAt(1);
 	    return new FlagOpNode(parseFlagExpression(left), parseFlagExpression(right), new Operation(Operation.LOGIC_OR));
-	} else if (paramn.getChild("and")!=null) {
-	    ParseNodeVector pnv=paramn.getChild("and").getChildren();
+	} else if (pn.getChild("and")!=null) {
+	    ParseNodeVector pnv=pn.getChild("and").getChildren();
 	    ParseNode left=pnv.elementAt(0);
 	    ParseNode right=pnv.elementAt(1);
 	    return new FlagOpNode(parseFlagExpression(left), parseFlagExpression(right), new Operation(Operation.LOGIC_AND));
-	} else if (paramn.getChild("not")!=null) {
-	    ParseNodeVector pnv=paramn.getChild("not").getChildren();
+	} else if (pn.getChild("not")!=null) {
+	    ParseNodeVector pnv=pn.getChild("not").getChildren();
 	    ParseNode left=pnv.elementAt(0);
 	    return new FlagOpNode(parseFlagExpression(left), new Operation(Operation.LOGIC_NOT));	    
 
-	} else if (paramn.getChild("name")!=null) {
-	    return new FlagNode(paramn.getChild("name").getTerminal());
+	} else if (pn.getChild("name")!=null) {
+	    return new FlagNode(pn.getChild("name").getTerminal());
 	} else throw new Error();
     }
 
@@ -82,7 +88,7 @@ public class BuildIR {
 	     String paramname=tmp.getChild("single").getTerminal();
 	     FlagExpressionNode fen=parseFlagExpression(paramn.getChild("flag"));
 	     
-	     td.addParameter(type,paramname);
+	     td.addParameter(type,paramname,fen);
 	 }
     }
 
@@ -425,6 +431,11 @@ public class BuildIR {
 	    blockstatements.add(new IfStatementNode(parseExpression(pn.getChild("condition").getFirstChild()),
 				       parseSingleBlock(pn.getChild("statement").getFirstChild()),
 				       pn.getChild("else_statement")!=null?parseSingleBlock(pn.getChild("else_statement").getFirstChild()):null));
+	} else if (isNode(pn,"taskexit")) {
+	    FlagEffects fe=null;
+	    if (pn.getChild("flag_effects_list")!=null)
+		fe=parseFlagEffects(pn.getChild("flag_effects_list"));
+	    blockstatements.add(new TaskExitNode(fe));
 	} else if (isNode(pn,"return")) {
 	    if (isEmpty(pn.getTerminal()))
 		blockstatements.add(new ReturnNode());

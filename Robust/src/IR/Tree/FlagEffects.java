@@ -1,6 +1,7 @@
 package IR.Tree;
 
 import IR.*;
+import java.util.*;
 
 public class FlagEffects {
     Vector effects;

@@ -19,4 +19,5 @@ public class Kind {
     public final static int ArrayAccessNode=16;
     public final static int FlagNode=17;
     public final static int FlagOpNode=18;
+    public final static int TaskExitNode=19;
 }
