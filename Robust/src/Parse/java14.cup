@@ -314,12 +314,12 @@ flag_notexpression ::=
 	:}
 	;
 
-task_exitstatement ::= TASKEXIT flag_effects_opt SEMICOLON{: 
-		RESULT=new ParseNode("taskexit");
+task_exitstatement ::= TASKEXIT flag_effects_opt:opt SEMICOLON{: 
+		RESULT=(new ParseNode("taskexit")).addChild(opt).getRoot();
 	:};
 
 flag_effects_opt ::= LPAREN flag_effects:fe RPAREN {:RESULT=fe;:}
-	| {: RESULT = null; :}
+	| {: RESULT = new ParseNode("empty"); :}
 	;
 
 flag_effects ::= flag_effect:fe {: 
