@@ -11,5 +11,6 @@
 #	[<whitespace>]<filename>[<whitespace><error message>]<end-of-line>
 #
 # comment lines begin with '#'
-log_accum,v
+log_accum
+
 
