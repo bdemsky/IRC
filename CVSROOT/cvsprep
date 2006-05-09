@@ -1,0 +1,185 @@
+#!/usr/bin/perl
+$ID = q(cvsprep,v 1.6 2004/06/12 02:07:09 eagle Exp );
+#
+# cvsprep -- Prep a multi-directory commit.
+#
+# Written by Russ Allbery <rra@stanford.edu>
+# Copyright 2001, 2002, 2003, 2004
+#     Board of Trustees, Leland Stanford Jr. University
+#
+# This program is free software; you can redistribute it and/or modify it
+# under the same terms as Perl itself.
+
+use Getopt::Long qw(GetOptions);
+use vars qw($ID);
+
+Getopt::Long::config ('require_order');
+GetOptions ('help|h' => \$help, 'version|v' => \$version) or exit 1;
+if ($help) {
+    print "Feeding myself to perldoc, please wait....\n";
+    exec ('perldoc', '-t', $0);
+} elsif ($version) {
+    my @version = split (' ', $ID);
+    shift @version if $ID =~ /^\$Id/;
+    my $version = join (' ', @version[0..2]);
+    $version =~ s/,v\b//;
+    $version =~ s/(\S+)$/($1)/;
+    $version =~ tr%/%-%;
+    print $version, "\n";
+    exit;
+}
+
+my $directory = shift;
+die "$0: CVS didn't provide a directory\n" unless $directory;
+my $tmp = $ENV{TMPDIR} || '/tmp';
+$tmp .= '/cvs.' . $< . '.' . getpgrp;
+if (!mkdir ($tmp, 0700)) {
+    if (-l $tmp || !-d _ || (lstat _)[4] != $<) {
+        die "$0: can't create $tmp: $!\n";
+    }
+}
+open (LOG, "> $tmp/directory") or die "$0: can't create $tmp/directory: $!\n";
+print LOG "$directory\n";
+close LOG;
+exit 0;
+__END__
+
+=head1 NAME
+
+cvsprep - Prep for a multi-directory CVS commit
+
+=head1 SYNOPSIS
+
+B<cvsprep>
+
+=head1 DESCRIPTION
+
+This program is designed to run from CVS's F<commitinfo> administrative file
+and make a note of the last directorie involved in the commit.  It is used to
+support merging of multi-directory CVS commits into a single notification by
+B<cvslog> (B<cvslog> knows to stop merging commits when it sees the
+notification for the final directory recorded by B<cvsprep>).
+
+It should be run from F<commitinfo> with something like:
+
+    DEFAULT     $CVSROOT/CVSROOT/cvsprep
+
+If you are using CVS version 1.12.6 or later, the format strings for
+F<commitinfo> rules have changed.  This line should instead be:
+
+    DEFAULT     $CVSROOT/CVSROOT/cvsprep -- %r/%p
+
+once you've set UseNewInfoFmtStrings=yes in F<config>.
+
+The directory in which the commit is occurring is saved in a file named
+F<directory> in a directory in TMPDIR named cvs.<uid>.<group>, where <uid> is
+the UID of the committing user and <group> is the process group of the commit
+process.  If TMPDIR is not used, F</tmp> is used as the parent directory.
+
+For details on how to install this program as part of a B<cvslog>
+installation, see cvslog(1).
+
+=head1 OPTIONS
+
+=over 4
+
+=item B<-h>, B<--help>
+
+Print out this documentation (which is done simply by feeding the script to
+C<perldoc -t>).
+
+=item B<-v>, B<--version>
+
+Print out the version of B<cvsprep> and exit.
+
+=head1 DIAGNOSTICS
+
+=item can't create %s: %s
+
+(Fatal) B<cvsprep> was unable to create either the directory or the file in
+that directory needed to pass information to B<cvslog>, or the directory
+already exists and is owned by someone other than the current user.  The
+directory for this commit won't be recorded, and B<cvslog> will therefore not
+merge this multi-directory commit.
+
+=item CVS didn't provide a directory
+
+(Fatal) No directory was given on the B<cvsprep> command line.  If run out of
+F<commitinfo> as described above, CVS should pass the name of the directory in
+which the commit is happening as the first argument to B<cvsprep>.
+
+=back
+
+=head1 FILES
+
+=over 4
+
+=item TMPDIR/cvs.%d.%d/directory
+
+B<cvslog> expects this file to contain the name of the final directory
+affected by a multidirectory commit.  B<cvsprep> creates the parent directory
+and stores its first argument in this file.
+
+The first %d is the numeric UID of the user running B<cvslog>.  The second %d
+is the process group B<cvslog> is part of.  The process group is included in
+the directory name so that if you're running a shell that calls setpgrp() (any
+modern shell with job control should), multiple commits won't collide with
+each other even when done from the same shell.
+
+If TMPDIR isn't set in the environment, F</tmp> is used for TMPDIR.
+
+=back
+
+=head1 ENVIRONMENT
+
+=over 4
+
+=item TMPDIR
+
+If set, specifies the temporary directory to use instead of F</tmp> for
+storing information about multidirectory commits.  Setting this to some
+private directory is recommended if you're doing CVS commits on a multiuser
+machine with other untrusted users due to the standard troubles with safely
+creating files in F</tmp>.  (Note that other programs besides B<cvslog> also
+use TMPDIR.)
+
+=back
+
+=head1 WARNINGS
+
+B<cvsprep> inherently creates directories in TMPDIR (F</tmp> by default) with
+very predictable names.  It creates directories rather than files because this
+should be less risky, but this is still something of a security risk.  Because
+of this, I highly recommend that you set TMPDIR to some other directory that
+only you have write access to, such as a subdirectory of your home directory.
+
+For more warnings, see cvslog(1).
+
+=head1 NOTES
+
+This process of noting the final directory of a commit so that B<cvslog> knows
+when to stop merging is a horrible hack.  There's just no better way to do it
+given how CVS handles commit notification, which is completely undocumented
+and truly bizarre.
+
+=head1 SEE ALSO
+
+cvs(1), cvsprep(1).
+
+Current versions of this program are available from the cvslog web site at
+L<http://www.eyrie.org/~eagle/software/cvslog/>.  B<cvslog> is available from
+this same location.
+
+=head1 AUTHOR
+
+Russ Allbery <rra@stanford.edu>.
+
+=head1 COPYRIGHT AND LICENSE
+
+Copyright 2001, 2002, 2003, 2004  Board of Trustees, Leland Stanford Jr.
+University.
+
+This program is free software; you can redistribute it and/or modify it under
+the same terms as Perl itself.
+
+=cut
