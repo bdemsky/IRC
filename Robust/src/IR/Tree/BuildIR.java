@@ -47,7 +47,28 @@ public class BuildIR {
     }
 
     public FlagEffects parseFlagEffects(ParseNode pn) {
-	return null;
+	 ParseNodeVector pnv=pn.getChildren();
+	 FlagEffects fes=new FlagEffects();
+	 for(int i=0;i<pnv.size();i++) {
+	     ParseNode fn=pnv.elementAt(i);
+	     Vector vfe=parseFlagEffect(fn);
+	     for (int j=0;j<vfe.size();j++) {
+		 FlagEffect fe=(FlagEffect)vfe.get(j);
+		 fes.addEffect(fe);
+	     }
+	 }
+	 return fes;
+    }
+
+    public Vector parseFlagEffect(ParseNode pn) {
+	
+	if (pn.isNode("flag_effect")) {
+	    Vector v=new Vector();
+	    String flagname=pn.getChild("name").getTerminal();
+	    
+	    
+	    return v;
+	} else throw new Error();
     }
 
     public FlagExpressionNode parseFlagExpression(ParseNode pn) {

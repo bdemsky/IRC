@@ -8,8 +8,8 @@ public class FlagEffects {
     String name;
 
     public FlagEffects(String name) {
-	this.name=name;
 	effects=new Vector();
+	this.name=name;
     }
 
     public void addEffect(FlagEffect fe) {
