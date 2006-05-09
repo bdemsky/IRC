@@ -30,3 +30,4 @@
 # or
 #DEFAULT (echo ""; id; echo %{sVv}; date; cat) >> $CVSROOT/CVSROOT/commitlog
 ALL $CVSROOT/CVSROOT/log_accum -u -s -m bdemsky %s
+
