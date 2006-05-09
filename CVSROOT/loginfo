@@ -29,5 +29,5 @@
 #DEFAULT (echo ""; id; echo %s; date; cat) >> $CVSROOT/CVSROOT/commitlog
 # or
 #DEFAULT (echo ""; id; echo %{sVv}; date; cat) >> $CVSROOT/CVSROOT/commitlog
-ALL $CVSROOT/CVSROOT/log_accum -u -s -d -m bdemsky %s
+#ALL $CVSROOT/CVSROOT/log_accum -u -s -d -m bdemsky %s
 
