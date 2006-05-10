@@ -30,7 +30,9 @@ public class BuildIR {
 		} else if (isNode(type_pn,"task_declaration")) {
 		    TaskDescriptor td=parseTaskDecl(type_pn);
 		    state.addTask(td);
-		} throw new Error();
+		} else {
+		    throw new Error(type_pn.getLabel());
+		}
 	    }
 	}
     }
