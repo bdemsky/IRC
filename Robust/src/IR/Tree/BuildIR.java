@@ -42,32 +42,29 @@ public class BuildIR {
 	parseParameterList(td, pn);
 	state.addTreeCode(td,bn);
 	if (pn.getChild("flag_effects_list")!=null)
-	    td.addFlagEffects(parseFlagEffects(pn.getChild("flag_effects_list")));
+	    td.addFlagEffects(parseFlags(pn.getChild("flag_effects_list")));
 	return td;
     }
 
-    public FlagEffects parseFlagEffects(ParseNode pn) {
-	 ParseNodeVector pnv=pn.getChildren();
-	 FlagEffects fes=new FlagEffects();
-	 for(int i=0;i<pnv.size();i++) {
-	     ParseNode fn=pnv.elementAt(i);
-	     Vector vfe=parseFlagEffect(fn);
-	     for (int j=0;j<vfe.size();j++) {
-		 FlagEffect fe=(FlagEffect)vfe.get(j);
-		 fes.addEffect(fe);
-	     }
-	 }
-	 return fes;
+    public Vector parseFlags(ParseNode pn) {
+	Vector vfe=new Vector();
+	ParseNodeVector pnv=pn.getChildren();
+	for(int i=0;i<pnv.size();i++) {
+	    ParseNode fn=pnv.elementAt(i);
+	    FlagEffects fe=parseFlagEffects(fn);
+	    vfe.add(fe);
+	}
+	return vfe;
     }
 
-    public Vector parseFlagEffect(ParseNode pn) {
-	
-	if (pn.isNode("flag_effect")) {
-	    Vector v=new Vector();
+    public FlagEffects parseFlagEffects(ParseNode pn) {
+	if (isNode(pn,"flag_effect")) {
 	    String flagname=pn.getChild("name").getTerminal();
+	    FlagEffects fe=new FlagEffects(flagname);
+
 	    
 	    
-	    return v;
+	    return fe;
 	} else throw new Error();
     }
 
@@ -453,10 +450,10 @@ public class BuildIR {
 				       parseSingleBlock(pn.getChild("statement").getFirstChild()),
 				       pn.getChild("else_statement")!=null?parseSingleBlock(pn.getChild("else_statement").getFirstChild()):null));
 	} else if (isNode(pn,"taskexit")) {
-	    FlagEffects fe=null;
+	    Vector vfe=null;
 	    if (pn.getChild("flag_effects_list")!=null)
-		fe=parseFlagEffects(pn.getChild("flag_effects_list"));
-	    blockstatements.add(new TaskExitNode(fe));
+		vfe=parseFlags(pn.getChild("flag_effects_list"));
+	    blockstatements.add(new TaskExitNode(vfe));
 	} else if (isNode(pn,"return")) {
 	    if (isEmpty(pn.getTerminal()))
 		blockstatements.add(new ReturnNode());

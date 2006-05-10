@@ -1,9 +1,10 @@
 package IR.Tree;
+import java.util.Vector;
 
 public class TaskExitNode extends BlockStatementNode {
-    FlagEffects fe;
-    public TaskExitNode(FlagEffects fe) {
-	this.fe=fe;
+    Vector vfe;
+    public TaskExitNode(Vector vfe) {
+	this.vfe=vfe;
     }
 
     public String printNode(int indent) {

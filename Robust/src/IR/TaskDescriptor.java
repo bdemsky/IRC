@@ -16,7 +16,7 @@ public class TaskDescriptor extends Descriptor {
     protected SymbolTable paramtable;
     protected VarDescriptor thisvd;
     protected Hashtable flagstable;
-    protected FlagEffects fe;
+    protected Vector vfe;
 
     public TaskDescriptor(String identifier) {
 	super(identifier);
@@ -28,8 +28,8 @@ public class TaskDescriptor extends Descriptor {
 	thisvd=null;
     }
 
-    public void addFlagEffects(FlagEffects fe) {
-	this.fe=fe;
+    public void addFlagEffects(Vector vfe) {
+	this.vfe=vfe;
     }
 
     public String getSafeMethodDescriptor() {
