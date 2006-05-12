@@ -31,7 +31,8 @@ III. Using Garbage Collection
 
 2) Make a directory called gc in the Runtime directory & untar the gc into this directory
 
-3) ./configure --prefix=/root/rep/Robust/src/Runtime/; make;make install to build
+3) ./configure --prefix={RUNTIME DIRECTORY}; make;make install to build
+(Modify the prefix to the appropriate path for the runtime directory.
 
 4) Make sure the gc libraries are placed in Runtime/lib and the include files in Runtime/include
 
