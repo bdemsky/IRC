@@ -9,6 +9,7 @@ make
 3) To run the compiler on a source file (For example to compile
 Tests/Array.java):
 java -cp ../cup/:. Main.Main -mainclass Array Tests/Array.java
+NOTE: The mainclass option specifies the class that contains the main method
 
 4) To compiler and link the output of the compiler do:
 gcc -IRuntime -I. -O0 -g methods.c Runtime/runtime.c
