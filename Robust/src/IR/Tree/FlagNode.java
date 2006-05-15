@@ -18,6 +18,10 @@ public class FlagNode extends FlagExpressionNode {
 	return flag;
     }
 
+    public String getFlagName() {
+	return name;
+    }
+
     public int kind() {
 	return Kind.FlagNode;
     }

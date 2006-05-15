@@ -58,6 +58,10 @@ public class TaskDescriptor extends Descriptor {
 	paramtable.add(vd);
     }
 
+    public FlagExpressionNode getFlag(VarDescriptor vd) {
+	return (FlagExpressionNode) flagstable.get(vd);
+    }
+
     public int numParameters() {
 	return params.size();
     }

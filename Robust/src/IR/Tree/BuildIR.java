@@ -63,11 +63,22 @@ public class BuildIR {
 	if (isNode(pn,"flag_effect")) {
 	    String flagname=pn.getChild("name").getTerminal();
 	    FlagEffects fe=new FlagEffects(flagname);
-
-	    
-	    
+	    parseFlagEffect(fe, pn.getChild("flag_list"));
 	    return fe;
 	} else throw new Error();
+    }
+
+    public void parseFlagEffect(FlagEffects fes, ParseNode pn) {
+	ParseNodeVector pnv=pn.getChildren();
+	for(int i=0;i<pnv.size();i++) {
+	    boolean status=true;
+	    if (pn.getChild("not")!=null) {
+		status=false;
+		pn=pn.getChild("not");
+	    }
+	    String name=pn.getChild("name").getTerminal();
+	    fes.addEffect(new FlagEffect(name,status));
+	}
     }
 
     public FlagExpressionNode parseFlagExpression(ParseNode pn) {
@@ -156,6 +167,10 @@ public class BuildIR {
 	    parseMethodDecl(cn,methodnode.getChild("method_declaration"));
 	    return;
 	}
+	ParseNode flagnode=pn.getChild("flag");
+	if (flagnode!=null) {
+	    parseFlagDecl(cn, flagnode.getChild("flag_declaration"));
+	}
 	throw new Error();
     }
 
@@ -200,6 +215,11 @@ public class BuildIR {
 	    return new NameDescriptor(id.getTerminal());
 	return new NameDescriptor(parseName(base.getChild("name")),id.getTerminal());
 	
+    }
+
+    private void parseFlagDecl(ClassDescriptor cn,ParseNode pn) {
+	String name=pn.getChild("name").getTerminal();
+	cn.addFlag(new FlagDescriptor(name));
     }
 
     private void parseFieldDecl(ClassDescriptor cn,ParseNode pn) {

@@ -80,6 +80,10 @@ public class State {
 	return classes;
     }
 
+    public SymbolTable getTaskSymbolTable() {
+	return tasks;
+    }
+
     public FlatMethod getMethodFlat(MethodDescriptor md) {
 	return (FlatMethod)flatmethodmap.get(md);
     }

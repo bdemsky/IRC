@@ -22,16 +22,20 @@ public class SemanticCheck {
 	    //Set superclass link up
 	    if (cd.getSuper()!=null) {
 		cd.setSuper(typeutil.getClass(cd.getSuper()));
-		// Link together Field and Method tables
+		// Link together Field, Method, and Flag tables so classes
+		// inherit these from their superclasses
 		cd.getFieldTable().setParent(cd.getSuperDesc().getFieldTable());
 		cd.getMethodTable().setParent(cd.getSuperDesc().getMethodTable());
+		cd.getFlagTable().setParent(cd.getSuperDesc().getFlagTable());
 	    }
 	    
+	    /* Check to see that fields are well typed */
 	    for(Iterator field_it=cd.getFields();field_it.hasNext();) {
 		FieldDescriptor fd=(FieldDescriptor)field_it.next();
 		System.out.println("Checking field: "+fd);
 		checkField(cd,fd);
 	    }
+
 	    for(Iterator method_it=cd.getMethods();method_it.hasNext();) {
 		MethodDescriptor md=(MethodDescriptor)method_it.next();
 		checkMethod(cd,md);
@@ -47,6 +51,13 @@ public class SemanticCheck {
 		checkMethodBody(cd,md);
 	    }
 	}
+
+	for(Iterator task_it=state.getTaskSymbolTable().getDescriptorsIterator();task_it.hasNext();) {
+	    TaskDescriptor td=(TaskDescriptor)task_it.next();
+	    
+	    
+	}
+
     }
 
     public void checkTypeDescriptor(TypeDescriptor td) {
@@ -65,6 +76,46 @@ public class SemanticCheck {
 
     public void checkField(ClassDescriptor cd, FieldDescriptor fd) {
 	checkTypeDescriptor(fd.getType());
+    }
+
+    public void checkTask(TaskDescriptor td) {
+	for(int i=0;i<td.numParameters();i++) {
+	    /* Check that parameter is well typed */
+	    TypeDescriptor param_type=td.getParamType(i);
+	    checkTypeDescriptor(param_type);
+
+	    /* Check the parameter's flag expression is well formed */
+	    FlagExpressionNode fen=td.getFlag(td.getParameter(i));
+	    if (!param_type.isClass())
+		throw new Error("Cannot have non-object argument to a task");
+	    ClassDescriptor cd=param_type.getClassDesc();
+	    checkFlagExpressionNode(cd, fen);
+	}
+    }
+
+    public void checkFlagExpressionNode(ClassDescriptor cd, FlagExpressionNode fen) {
+	switch(fen.kind()) {
+	case Kind.FlagOpNode: 
+	    {
+		FlagOpNode fon=(FlagOpNode)fen;
+		checkFlagExpressionNode(cd, fon.getLeft());
+		if (fon.getRight()!=null)
+		    checkFlagExpressionNode(cd, fon.getRight());
+		break;
+	    }
+	case Kind.FlagNode:
+	    {
+		FlagNode fn=(FlagNode)fen;
+		String name=fn.getFlagName();
+		FlagDescriptor fd=(FlagDescriptor)cd.getFlagTable().get(name);
+		if (fd==null)
+		    throw new Error("Undeclared flag: "+name);
+		fn.setFlag(fd);
+		break;
+	    }
+	default:
+	    throw new Error("Unrecognized FlagExpressionNode");
+	}
     }
 
     public void checkMethod(ClassDescriptor cd, MethodDescriptor md) {
