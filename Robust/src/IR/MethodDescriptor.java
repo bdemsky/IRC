@@ -21,7 +21,7 @@ public class MethodDescriptor extends Descriptor {
 
 
     public MethodDescriptor(Modifiers m, TypeDescriptor rt, String identifier) {
-	super(identifier);
+	this(identifier);
 	this.modifier=m;
 	this.returntype=rt;
 	this.identifier=identifier;
@@ -32,6 +32,9 @@ public class MethodDescriptor extends Descriptor {
 	thisvd=null;
     }
 
+    protected MethodDescriptor(String s) {
+	super(s);
+    }
 
     public Modifiers getModifiers() {
 	return modifier;
@@ -53,7 +56,7 @@ public class MethodDescriptor extends Descriptor {
     }
 
     public MethodDescriptor(Modifiers m, String identifier) {
-	super(identifier);
+	this(identifier);
 	this.modifier=m;
 	this.returntype=null;
 	this.identifier=identifier;

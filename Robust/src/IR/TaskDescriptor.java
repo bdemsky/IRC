@@ -3,18 +3,15 @@ import IR.Tree.FlagExpressionNode;
 import IR.Tree.FlagEffects;
 import java.util.Vector;
 import java.util.Hashtable;
+import IR.Tree.Modifiers;
 
 /**
  * Descriptor 
  *
  */
 
-public class TaskDescriptor extends Descriptor {
+public class TaskDescriptor extends MethodDescriptor {
 
-    protected String identifier;
-    protected Vector params;
-    protected SymbolTable paramtable;
-    protected VarDescriptor thisvd;
     protected Hashtable flagstable;
     protected Vector vfe;
 
@@ -25,25 +22,45 @@ public class TaskDescriptor extends Descriptor {
 	flagstable=new Hashtable();
 	params=new Vector();
 	paramtable=new SymbolTable();
-	thisvd=null;
     }
 
     public void addFlagEffects(Vector vfe) {
 	this.vfe=vfe;
     }
 
-    public String getSafeMethodDescriptor() {
-	String st="";
-	for(int i=0;i<numParameters();i++) {
-	    st+=getParamType(i).getSafeDescriptor();
-	    if ((i+1)<numParameters())
-		st+="_";
-	}
-	return st;
+    public Vector getFlagEffects() {
+	return vfe;
     }
 
-    public SymbolTable getParameterTable() {
-	return paramtable;
+    public Modifiers getModifiers() {
+	throw new Error();
+    }
+    public boolean matches(MethodDescriptor md) {
+	throw new Error();
+    }
+    public void setThis(VarDescriptor vd) {
+	throw new Error();
+    }
+    public VarDescriptor getThis() {
+	throw new Error();
+    }
+    public String getSafeMethodDescriptor() {
+	throw new Error();
+    }
+    public boolean isStatic() {
+	throw new Error();
+    }
+    public boolean isConstructor() {
+	throw new Error();
+    }
+    public TypeDescriptor getReturnType() {
+	throw new Error();
+    }
+    public void setClassDesc(ClassDescriptor cd) {
+	throw new Error();
+    }
+    public ClassDescriptor getClassDesc() {
+	throw new Error();
     }
 
     public void addParameter(TypeDescriptor type, String paramname, FlagExpressionNode fen) {
@@ -60,22 +77,6 @@ public class TaskDescriptor extends Descriptor {
 
     public FlagExpressionNode getFlag(VarDescriptor vd) {
 	return (FlagExpressionNode) flagstable.get(vd);
-    }
-
-    public int numParameters() {
-	return params.size();
-    }
-
-    public VarDescriptor getParameter(int i) {
-	return (VarDescriptor)params.get(i);
-    }
-
-    public String getParamName(int i) {
-	return ((VarDescriptor)params.get(i)).getName();
-    }
-
-    public TypeDescriptor getParamType(int i) {
-	return ((VarDescriptor)params.get(i)).getType();
     }
 
     public String toString() {

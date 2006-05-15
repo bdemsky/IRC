@@ -6,14 +6,35 @@ import java.util.*;
 public class FlagEffects {
     Vector effects;
     String name;
+    VarDescriptor vd;
 
     public FlagEffects(String name) {
 	effects=new Vector();
 	this.name=name;
     }
 
+    public void setVar(VarDescriptor vd) {
+	this.vd=vd;
+    }
+
+    public VarDescriptor getVar() {
+	return vd;
+    }
+
+    public String getName() {
+	return name;
+    }
+
     public void addEffect(FlagEffect fe) {
 	effects.add(fe);
+    }
+
+    public int numEffects() {
+	return effects.size();
+    }
+
+    public FlagEffect getEffect(int i) {
+	return (FlagEffect) effects.get(i);
     }
 
     public String printNode(int indent) {

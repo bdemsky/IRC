@@ -5,15 +5,14 @@ import IR.Tree.*;
 public class ClassDescriptor extends Descriptor {
     public ClassDescriptor(String classname) {
 	super(classname);
-	this.classname=classname;
 	superclass=null;
+	flags=new SymbolTable();
 	fields=new SymbolTable();
 	methods=new SymbolTable();
 	classid=UIDCount++;
     }
     private static int UIDCount=0; 
     private final int classid;
-    String classname;
     String superclass;
     ClassDescriptor superdesc;
 
@@ -57,7 +56,7 @@ public class ClassDescriptor extends Descriptor {
 
     public String printTree(State state) {
 	int indent;
-	String st=modifiers.toString()+"class "+classname;
+	String st=modifiers.toString()+"class "+getSymbol();
 	if (superclass!=null) 
 	    st+="extends "+superclass.toString();
 	st+=" {\n";
@@ -110,10 +109,6 @@ public class ClassDescriptor extends Descriptor {
   
     public void setModifiers(Modifiers modifiers) {
 	this.modifiers=modifiers;
-    }
-
-    public void setName(String name) {
-	classname=name;
     }
 
     public void setSuper(String superclass) {

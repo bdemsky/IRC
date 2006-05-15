@@ -76,6 +76,10 @@ public class State {
 	return (BlockNode)treemethodmap.get(md);
     }
 
+    public BlockNode getMethodBody(TaskDescriptor td) {
+	return (BlockNode)treemethodmap.get(td);
+    }
+
     public SymbolTable getClassSymbolTable() {
 	return classes;
     }

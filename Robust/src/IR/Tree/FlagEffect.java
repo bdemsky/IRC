@@ -20,6 +20,10 @@ public class FlagEffect {
 	return flag;
     }
 
+    public String getName() {
+	return name;
+    }
+
     public int kind() {
 	return Kind.FlagNode;
     }

@@ -11,6 +11,10 @@ public class TaskExitNode extends BlockStatementNode {
 	return "taskexit";
     }
 
+    public Vector getFlagEffects() {
+	return vfe;
+    }
+
     public int kind() {
 	return Kind.TaskExitNode;
     }

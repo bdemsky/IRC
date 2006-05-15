@@ -54,7 +54,7 @@ public class SemanticCheck {
 
 	for(Iterator task_it=state.getTaskSymbolTable().getDescriptorsIterator();task_it.hasNext();) {
 	    TaskDescriptor td=(TaskDescriptor)task_it.next();
-	    
+	    checkTask(td);
 	    
 	}
 
@@ -78,6 +78,34 @@ public class SemanticCheck {
 	checkTypeDescriptor(fd.getType());
     }
 
+    public void checkFlagEffects(TaskDescriptor td, Vector vfe) {
+	for(int i=0;i<vfe.size();i++) {
+	    FlagEffects fe=(FlagEffects) vfe.get(i);
+	    String varname=fe.getName();
+	    //Make sure the variable is declared as a parameter to the task
+	    VarDescriptor vd=(VarDescriptor)td.getParameterTable().get(varname);
+	    if (vd==null)
+		throw new Error("Parameter "+varname+" in Flag Effects not declared");
+	    fe.setVar(vd);
+
+	    //Make sure it correspods to a class
+	    TypeDescriptor type_d=vd.getType();
+	    if (!type_d.isClass())
+		throw new Error("Cannot have non-object argument for flag_effect");
+
+	    ClassDescriptor cd=type_d.getClassDesc();
+	    for(int j=0;j<fe.numEffects();j++) {
+		FlagEffect flag=fe.getEffect(j);
+		String name=flag.getName();
+		FlagDescriptor flag_d=(FlagDescriptor)cd.getFlagTable().get(name);
+		//Make sure the flag is declared
+		if (flag_d==null)
+		    throw new Error("Flag descriptor "+name+" undefined in class: "+cd.getSymbol());
+		flag.setFlag(flag_d);
+	    }
+	}
+    }
+
     public void checkTask(TaskDescriptor td) {
 	for(int i=0;i<td.numParameters();i++) {
 	    /* Check that parameter is well typed */
@@ -90,6 +118,11 @@ public class SemanticCheck {
 		throw new Error("Cannot have non-object argument to a task");
 	    ClassDescriptor cd=param_type.getClassDesc();
 	    checkFlagExpressionNode(cd, fen);
+	    checkFlagEffects(td, td.getFlagEffects());
+
+	    /* Check that the task code is valid */
+	    BlockNode bn=state.getMethodBody(td);
+	    checkBlockNode(td, td.getParameterTable(),bn);
 	}
     }
 
@@ -175,6 +208,10 @@ public class SemanticCheck {
 	    checkReturnNode(md, nametable, (ReturnNode)bsn);
 	    return;
 
+	case Kind.TaskExitNode:
+	    checkTaskExitNode(md, nametable, (TaskExitNode)bsn);
+	    return;
+
 	case Kind.SubBlockNode:
 	    checkSubBlockNode(md, nametable, (SubBlockNode)bsn);
 	    return;
@@ -204,11 +241,19 @@ public class SemanticCheck {
     }
 
     void checkReturnNode(MethodDescriptor md, SymbolTable nametable, ReturnNode rn) {
+	if (md instanceof TaskDescriptor)
+	    throw new Error("Illegal return appears in Task: "+md.getSymbol());
 	if (rn.getReturnExpression()!=null)
 	    checkExpressionNode(md, nametable, rn.getReturnExpression(), md.getReturnType());
 	else
 	    if (md.getReturnType()!=null&&!md.getReturnType().isVoid())
 		throw new Error("Need to return something for "+md);
+    }
+
+    void checkTaskExitNode(MethodDescriptor md, SymbolTable nametable, TaskExitNode ten) {
+	if (!(md instanceof TaskDescriptor))
+	    throw new Error("Illegal taskexit appears in Method: "+md.getSymbol());
+	checkFlagEffects((TaskDescriptor)md, ten.getFlagEffects());
     }
 
     void checkIfStatementNode(MethodDescriptor md, SymbolTable nametable, IfStatementNode isn) {
@@ -507,8 +552,11 @@ public class SemanticCheck {
 		    throw new Error(min.getBaseName()+" undefined");
 		typetolookin=new TypeDescriptor(cd);
 	    }
-	} else {
+	} else if (!(md instanceof TaskDescriptor)) {
 	    typetolookin=new TypeDescriptor(md.getClassDesc());
+	} else {
+	    /* If this a task descriptor we throw an error at this point */
+	    throw new Error("Unknown method call to "+min.getMethodName()+"in task"+md.getSymbol());
 	}
 	if (!typetolookin.isClass()) 
 	    throw new Error();
