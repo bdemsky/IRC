@@ -10,10 +10,13 @@ import IR.Tree.Modifiers;
  *
  */
 
-public class TaskDescriptor extends MethodDescriptor {
+public class TaskDescriptor extends Descriptor {
 
     protected Hashtable flagstable;
     protected Vector vfe;
+    protected String identifier;
+    protected Vector params;
+    protected SymbolTable paramtable;
 
     public TaskDescriptor(String identifier) {
 	super(identifier);
@@ -32,35 +35,8 @@ public class TaskDescriptor extends MethodDescriptor {
 	return vfe;
     }
 
-    public Modifiers getModifiers() {
-	throw new Error();
-    }
-    public boolean matches(MethodDescriptor md) {
-	throw new Error();
-    }
-    public void setThis(VarDescriptor vd) {
-	throw new Error();
-    }
-    public VarDescriptor getThis() {
-	throw new Error();
-    }
-    public String getSafeMethodDescriptor() {
-	throw new Error();
-    }
-    public boolean isStatic() {
-	throw new Error();
-    }
-    public boolean isConstructor() {
-	throw new Error();
-    }
-    public TypeDescriptor getReturnType() {
-	throw new Error();
-    }
-    public void setClassDesc(ClassDescriptor cd) {
-	throw new Error();
-    }
-    public ClassDescriptor getClassDesc() {
-	throw new Error();
+    public SymbolTable getParameterTable() {
+	return paramtable;
     }
 
     public void addParameter(TypeDescriptor type, String paramname, FlagExpressionNode fen) {
@@ -73,6 +49,22 @@ public class TaskDescriptor extends MethodDescriptor {
 	    throw new Error("Parameter "+paramname+" already defined");
 	}
 	paramtable.add(vd);
+    }
+
+    public int numParameters() {
+	return params.size();
+    }
+
+    public VarDescriptor getParameter(int i) {
+	return (VarDescriptor)params.get(i);
+    }
+
+    public String getParamName(int i) {
+	return ((VarDescriptor)params.get(i)).getName();
+    }
+
+    public TypeDescriptor getParamType(int i) {
+	return ((VarDescriptor)params.get(i)).getType();
     }
 
     public FlagExpressionNode getFlag(VarDescriptor vd) {

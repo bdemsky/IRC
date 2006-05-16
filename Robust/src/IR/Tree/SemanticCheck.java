@@ -177,7 +177,7 @@ public class SemanticCheck {
 	checkBlockNode(md, md.getParameterTable(),bn);
     }
     
-    public void checkBlockNode(MethodDescriptor md, SymbolTable nametable, BlockNode bn) {
+    public void checkBlockNode(Descriptor md, SymbolTable nametable, BlockNode bn) {
 	/* Link in the naming environment */
 	bn.getVarTable().setParent(nametable);
 	for(int i=0;i<bn.size();i++) {
@@ -186,7 +186,7 @@ public class SemanticCheck {
 	}
     }
     
-    public void checkBlockStatementNode(MethodDescriptor md, SymbolTable nametable, BlockStatementNode bsn) {
+    public void checkBlockStatementNode(Descriptor md, SymbolTable nametable, BlockStatementNode bsn) {
 	switch(bsn.kind()) {
 	case Kind.BlockExpressionNode:
 	    checkBlockExpressionNode(md, nametable,(BlockExpressionNode)bsn);
@@ -219,11 +219,11 @@ public class SemanticCheck {
 	throw new Error();
     }
 
-    void checkBlockExpressionNode(MethodDescriptor md, SymbolTable nametable, BlockExpressionNode ben) {
+    void checkBlockExpressionNode(Descriptor md, SymbolTable nametable, BlockExpressionNode ben) {
 	checkExpressionNode(md, nametable, ben.getExpression(), null);
     }
 
-    void checkDeclarationNode(MethodDescriptor md, SymbolTable nametable,  DeclarationNode dn) {
+    void checkDeclarationNode(Descriptor md, SymbolTable nametable,  DeclarationNode dn) {
 	VarDescriptor vd=dn.getVarDescriptor();
 	checkTypeDescriptor(vd.getType());
 	Descriptor d=nametable.get(vd.getSymbol());
@@ -236,13 +236,14 @@ public class SemanticCheck {
 	    checkExpressionNode(md, nametable, dn.getExpression(), vd.getType());
     }
     
-    void checkSubBlockNode(MethodDescriptor md, SymbolTable nametable, SubBlockNode sbn) {
+    void checkSubBlockNode(Descriptor md, SymbolTable nametable, SubBlockNode sbn) {
 	checkBlockNode(md, nametable, sbn.getBlockNode());
     }
 
-    void checkReturnNode(MethodDescriptor md, SymbolTable nametable, ReturnNode rn) {
-	if (md instanceof TaskDescriptor)
-	    throw new Error("Illegal return appears in Task: "+md.getSymbol());
+    void checkReturnNode(Descriptor d, SymbolTable nametable, ReturnNode rn) {
+	if (d instanceof TaskDescriptor)
+	    throw new Error("Illegal return appears in Task: "+d.getSymbol());
+	MethodDescriptor md=(MethodDescriptor)d;
 	if (rn.getReturnExpression()!=null)
 	    checkExpressionNode(md, nametable, rn.getReturnExpression(), md.getReturnType());
 	else
@@ -250,20 +251,20 @@ public class SemanticCheck {
 		throw new Error("Need to return something for "+md);
     }
 
-    void checkTaskExitNode(MethodDescriptor md, SymbolTable nametable, TaskExitNode ten) {
-	if (!(md instanceof TaskDescriptor))
+    void checkTaskExitNode(Descriptor md, SymbolTable nametable, TaskExitNode ten) {
+	if (md instanceof MethodDescriptor)
 	    throw new Error("Illegal taskexit appears in Method: "+md.getSymbol());
 	checkFlagEffects((TaskDescriptor)md, ten.getFlagEffects());
     }
 
-    void checkIfStatementNode(MethodDescriptor md, SymbolTable nametable, IfStatementNode isn) {
+    void checkIfStatementNode(Descriptor md, SymbolTable nametable, IfStatementNode isn) {
 	checkExpressionNode(md, nametable, isn.getCondition(), new TypeDescriptor(TypeDescriptor.BOOLEAN));
 	checkBlockNode(md, nametable, isn.getTrueBlock());
 	if (isn.getFalseBlock()!=null)
 	    checkBlockNode(md, nametable, isn.getFalseBlock());
     }
     
-    void checkExpressionNode(MethodDescriptor md, SymbolTable nametable, ExpressionNode en, TypeDescriptor td) {
+    void checkExpressionNode(Descriptor md, SymbolTable nametable, ExpressionNode en, TypeDescriptor td) {
 	switch(en.kind()) {
         case Kind.AssignmentNode:
             checkAssignmentNode(md,nametable,(AssignmentNode)en,td);
@@ -296,7 +297,7 @@ public class SemanticCheck {
 	throw new Error();
     }
 
-    void checkCastNode(MethodDescriptor md, SymbolTable nametable, CastNode cn, TypeDescriptor td) {
+    void checkCastNode(Descriptor md, SymbolTable nametable, CastNode cn, TypeDescriptor td) {
 	/* Get type descriptor */
 	if (cn.getType()==null) {
 	    NameDescriptor typenamed=cn.getTypeName().getName();
@@ -329,7 +330,7 @@ public class SemanticCheck {
 	throw new Error("Cast will always fail\n"+cn.printNode(0));
     }
 
-    void checkFieldAccessNode(MethodDescriptor md, SymbolTable nametable, FieldAccessNode fan, TypeDescriptor td) {
+    void checkFieldAccessNode(Descriptor md, SymbolTable nametable, FieldAccessNode fan, TypeDescriptor td) {
 	ExpressionNode left=fan.getExpression();
 	checkExpressionNode(md,nametable,left,null);
 	TypeDescriptor ltd=left.getType();
@@ -348,7 +349,7 @@ public class SemanticCheck {
 		throw new Error("Field node returns "+fan.getType()+", but need "+td);
     }
 
-    void checkArrayAccessNode(MethodDescriptor md, SymbolTable nametable, ArrayAccessNode aan, TypeDescriptor td) {
+    void checkArrayAccessNode(Descriptor md, SymbolTable nametable, ArrayAccessNode aan, TypeDescriptor td) {
 	ExpressionNode left=aan.getExpression();
 	checkExpressionNode(md,nametable,left,null);
 
@@ -360,7 +361,7 @@ public class SemanticCheck {
 		throw new Error("Field node returns "+aan.getType()+", but need "+td);
     }
 
-    void checkLiteralNode(MethodDescriptor md, SymbolTable nametable, LiteralNode ln, TypeDescriptor td) {
+    void checkLiteralNode(Descriptor md, SymbolTable nametable, LiteralNode ln, TypeDescriptor td) {
 	/* Resolve the type */
 	Object o=ln.getValue();
 	if (ln.getTypeString().equals("null")) {
@@ -386,7 +387,7 @@ public class SemanticCheck {
 		throw new Error("Field node returns "+ln.getType()+", but need "+td);
     }
 
-    void checkNameNode(MethodDescriptor md, SymbolTable nametable, NameNode nn, TypeDescriptor td) {
+    void checkNameNode(Descriptor md, SymbolTable nametable, NameNode nn, TypeDescriptor td) {
 	NameDescriptor nd=nn.getName();
 	if (nd.getBase()!=null) {
 	    /* Big hack */
@@ -412,7 +413,7 @@ public class SemanticCheck {
 	}
     }
 
-    void checkAssignmentNode(MethodDescriptor md, SymbolTable nametable, AssignmentNode an, TypeDescriptor td) {
+    void checkAssignmentNode(Descriptor md, SymbolTable nametable, AssignmentNode an, TypeDescriptor td) {
 	checkExpressionNode(md, nametable, an.getSrc() ,td);
 	//TODO: Need check on validity of operation here
 	if (!((an.getDest() instanceof FieldAccessNode)||
@@ -425,7 +426,7 @@ public class SemanticCheck {
 	}
     }
 
-    void checkLoopNode(MethodDescriptor md, SymbolTable nametable, LoopNode ln) {
+    void checkLoopNode(Descriptor md, SymbolTable nametable, LoopNode ln) {
 	if (ln.getType()==LoopNode.WHILELOOP||ln.getType()==LoopNode.DOWHILELOOP) {
 	    checkExpressionNode(md, nametable, ln.getCondition(), new TypeDescriptor(TypeDescriptor.BOOLEAN));
 	    checkBlockNode(md, nametable, ln.getBody());
@@ -446,7 +447,7 @@ public class SemanticCheck {
     }
 
 
-    void checkCreateObjectNode(MethodDescriptor md, SymbolTable nametable, CreateObjectNode con, TypeDescriptor td) {
+    void checkCreateObjectNode(Descriptor md, SymbolTable nametable, CreateObjectNode con, TypeDescriptor td) {
 	TypeDescriptor[] tdarray=new TypeDescriptor[con.numArgs()];
 	for(int i=0;i<con.numArgs();i++) {
 	    ExpressionNode en=con.getArg(i);
@@ -524,7 +525,7 @@ public class SemanticCheck {
     }
 
 
-    void checkMethodInvokeNode(MethodDescriptor md, SymbolTable nametable, MethodInvokeNode min, TypeDescriptor td) {
+    void checkMethodInvokeNode(Descriptor md, SymbolTable nametable, MethodInvokeNode min, TypeDescriptor td) {
 	/*Typecheck subexpressions
 	  and get types for expressions*/
 
@@ -552,8 +553,8 @@ public class SemanticCheck {
 		    throw new Error(min.getBaseName()+" undefined");
 		typetolookin=new TypeDescriptor(cd);
 	    }
-	} else if (!(md instanceof TaskDescriptor)) {
-	    typetolookin=new TypeDescriptor(md.getClassDesc());
+	} else if (md instanceof MethodDescriptor) {
+	    typetolookin=new TypeDescriptor(((MethodDescriptor)md).getClassDesc());
 	} else {
 	    /* If this a task descriptor we throw an error at this point */
 	    throw new Error("Unknown method call to "+min.getMethodName()+"in task"+md.getSymbol());
@@ -601,7 +602,7 @@ public class SemanticCheck {
     }
 
 
-    void checkOpNode(MethodDescriptor md, SymbolTable nametable, OpNode on, TypeDescriptor td) {
+    void checkOpNode(Descriptor md, SymbolTable nametable, OpNode on, TypeDescriptor td) {
 	checkExpressionNode(md, nametable, on.getLeft(), null);
 	if (on.getRight()!=null)
 	    checkExpressionNode(md, nametable, on.getRight(), null);

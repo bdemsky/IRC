@@ -1,14 +1,24 @@
 package IR.Flat;
 import IR.MethodDescriptor;
+import IR.TaskDescriptor;
 import java.util.*;
 
 public class FlatMethod extends FlatNode {
     FlatNode method_entry;
     MethodDescriptor method;
+    TaskDescriptor task;
     Vector parameterTemps;
 
     FlatMethod(MethodDescriptor md, FlatNode entry) {
 	method=md;
+	task=null;
+	method_entry=entry;
+	parameterTemps=new Vector();
+    }
+
+    FlatMethod(TaskDescriptor td, FlatNode entry) {
+	task=td;
+	method=null;
 	method_entry=entry;
 	parameterTemps=new Vector();
     }

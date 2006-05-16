@@ -22,8 +22,25 @@ public class BuildFlat {
 	    ClassDescriptor cn=(ClassDescriptor)it.next();
 	    flattenClass(cn);
 	}
+	
+	Iterator task_it=state.getTaskSymbolTable().getDescriptorsIterator();
+	while(task_it.hasNext()) {
+	    TaskDescriptor td=(TaskDescriptor)task_it.next();
+	    flattenTask(td);
+	}
     }
     
+    private void flattenTask(TaskDescriptor td) {
+	BlockNode bn=state.getMethodBody(td);
+	FlatNode fn=flattenBlockNode(bn).getBegin();
+	FlatMethod fm=new FlatMethod(td, fn);
+
+	for(int i=0;i<td.numParameters();i++) {
+	    fm.addParameterTemp(getTempforVar(td.getParameter(i)));
+	}
+	state.addFlatCode(td,fm);
+    }
+
     private void flattenClass(ClassDescriptor cn) {
 	Iterator methodit=cn.getMethods();
 	while(methodit.hasNext()) {

@@ -104,6 +104,10 @@ public class State {
 	flatmethodmap.put(md,bn);
     }
 
+    public void addFlatCode(TaskDescriptor td, FlatMethod bn) {
+	flatmethodmap.put(td,bn);
+    }
+
     public void addTask(TaskDescriptor td) {
 	if (tasks.contains(td.getSymbol()))
 	    throw new Error("Task "+td.getSymbol()+" defined twice");
