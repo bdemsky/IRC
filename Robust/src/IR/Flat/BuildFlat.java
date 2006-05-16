@@ -531,7 +531,11 @@ public class BuildFlat {
 	    return new NodePair(cond.getBegin(),rnflat);
 	} else
 	    return new NodePair(rnflat,rnflat);
-	
+    }
+
+    private NodePair flattenTaskExitNode(TaskExitNode ten) {
+	FlatTaskExitNode tenflat=new FlatTaskExitNode();
+	return new NodePair(tenflat,tenflat);
     }
 	    
     private NodePair flattenSubBlockNode(SubBlockNode sbn) {
@@ -554,6 +558,9 @@ public class BuildFlat {
 	    
 	case Kind.ReturnNode:
 	    return flattenReturnNode((IR.Tree.ReturnNode)bsn);
+
+	case Kind.TaskExitNode:
+	    return flattenTaskExitNode((IR.Tree.TaskExitNode)bsn);
 	    
 	case Kind.SubBlockNode:
 	    return flattenSubBlockNode((SubBlockNode)bsn);

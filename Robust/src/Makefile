@@ -7,11 +7,12 @@ IR/Flat/FlatElementNode.class IR/Flat/FlatFieldNode.class		\
 IR/Flat/FlatLiteralNode.class IR/Flat/FlatMethod.class			\
 IR/Flat/FlatNew.class IR/Flat/FlatNode.class IR/Flat/FlatNop.class	\
 IR/Flat/FlatOpNode.class IR/Flat/FlatReturnNode.class			\
-IR/Flat/FlatSetElementNode.class IR/Flat/FlatSetFieldNode.class		\
-IR/Flat/NodePair.class IR/Flat/ParamsObject.class			\
-IR/Flat/TempDescriptor.class IR/Flat/TempObject.class			\
-IR/MethodDescriptor.class IR/NameDescriptor.class IR/Operation.class	\
-IR/State.class IR/SymbolTable.class IR/TaskDescriptor.class		\
+IR/Flat/FlatTaskExitNode.class IR/Flat/FlatSetElementNode.class		\
+IR/Flat/FlatSetFieldNode.class IR/Flat/NodePair.class			\
+IR/Flat/ParamsObject.class IR/Flat/TempDescriptor.class			\
+IR/Flat/TempObject.class IR/MethodDescriptor.class			\
+IR/NameDescriptor.class IR/Operation.class IR/State.class		\
+IR/SymbolTable.class IR/TaskDescriptor.class				\
 IR/Tree/ArrayAccessNode.class IR/Tree/AssignmentNode.class		\
 IR/Tree/BlockExpressionNode.class IR/Tree/BlockNode.class		\
 IR/Tree/BlockStatementNode.class IR/Tree/BuildIR.class			\
