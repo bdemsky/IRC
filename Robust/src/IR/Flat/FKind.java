@@ -14,4 +14,5 @@ public class FKind {
     public static final int FlatSetElementNode=11;
     public static final int FlatElementNode=12;
     public static final int FlatTaskExitNode=13;
+    public static final int FlatFlagActionNode=14;
 }

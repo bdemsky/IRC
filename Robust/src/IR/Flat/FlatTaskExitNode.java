@@ -7,8 +7,4 @@ public class FlatTaskExitNode extends FlatNode {
     public int kind() {
 	return FKind.FlatTaskExitNode;
     }
-
-    public TempDescriptor [] readsTemps() {
-	return new TempDescriptor [0];
-    }
 }

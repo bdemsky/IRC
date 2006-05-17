@@ -33,12 +33,32 @@ public class BuildFlat {
     private void flattenTask(TaskDescriptor td) {
 	BlockNode bn=state.getMethodBody(td);
 	FlatNode fn=flattenBlockNode(bn).getBegin();
-	FlatMethod fm=new FlatMethod(td, fn);
+	FlatFlagActionNode ffan=new FlatFlagActionNode();
+	ffan.addNext(fn);
+	FlatMethod fm=new FlatMethod(td, ffan);
 
 	for(int i=0;i<td.numParameters();i++) {
 	    fm.addParameterTemp(getTempforVar(td.getParameter(i)));
 	}
+
+	/* Flatten Vector of Flag Effects */
+	Vector flags=td.getFlagEffects();
+	updateFlagActionNode(ffan,flags);
+
 	state.addFlatCode(td,fm);
+    }
+
+
+    /* This method transforms a vector of FlagEffects into the FlatFlagActionNode */
+    private void updateFlagActionNode(FlatFlagActionNode ffan, Vector flags) {
+	for(int i=0;i<flags.size();i++) {
+	    FlagEffects fes=(FlagEffects)flags.get(i);
+	    TempDescriptor flagtemp=getTempforVar(fes.getVar());
+	    for(int j=0;j<fes.numEffects();j++) {
+		FlagEffect fe=fes.getEffect(j);
+		ffan.addFlagAction(flagtemp, fe.getFlag(), fe.getStatus());
+	    }
+	}
     }
 
     private void flattenClass(ClassDescriptor cn) {

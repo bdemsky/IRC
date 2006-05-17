@@ -28,6 +28,10 @@ public class FlagEffect {
 	return Kind.FlagNode;
     }
 
+    public boolean getStatus() {
+	return status;
+    }
+
     public String printNode(int indent) {
 	if (status)
 	    return name;
