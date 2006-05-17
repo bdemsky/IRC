@@ -6,9 +6,11 @@ import java.util.Iterator;
 
 public class FlatFlagActionNode extends FlatNode {
     Hashtable tempflagpairs; 
+    boolean taskexit;
 
-    public FlatFlagActionNode() {
+    public FlatFlagActionNode(boolean taskexit) {
 	tempflagpairs=new Hashtable();
+	this.taskexit=taskexit;
     }
 
     public void addFlagAction(TempDescriptor td, FlagDescriptor fd, boolean status) {

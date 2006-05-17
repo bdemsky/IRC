@@ -33,7 +33,7 @@ public class BuildFlat {
     private void flattenTask(TaskDescriptor td) {
 	BlockNode bn=state.getMethodBody(td);
 	FlatNode fn=flattenBlockNode(bn).getBegin();
-	FlatFlagActionNode ffan=new FlatFlagActionNode();
+	FlatFlagActionNode ffan=new FlatFlagActionNode(false);
 	ffan.addNext(fn);
 	FlatMethod fm=new FlatMethod(td, ffan);
 
@@ -554,10 +554,11 @@ public class BuildFlat {
     }
 
     private NodePair flattenTaskExitNode(TaskExitNode ten) {
-	FlatTaskExitNode tenflat=new FlatTaskExitNode();
-	return new NodePair(tenflat,tenflat);
+	FlatFlagActionNode ffan=new FlatFlagActionNode(true);
+	updateFlagActionNode(ffan, ten.getFlagEffects());
+	return new NodePair(ffan, ffan);
     }
-	    
+
     private NodePair flattenSubBlockNode(SubBlockNode sbn) {
 	return flattenBlockNode(sbn.getBlockNode());
     }
