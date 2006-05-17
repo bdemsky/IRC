@@ -7,7 +7,7 @@ IR/Flat/FlatElementNode.class IR/Flat/FlatFieldNode.class		\
 IR/Flat/FlatLiteralNode.class IR/Flat/FlatMethod.class			\
 IR/Flat/FlatNew.class IR/Flat/FlatNode.class IR/Flat/FlatNop.class	\
 IR/Flat/FlatOpNode.class IR/Flat/FlatReturnNode.class			\
-IR/Flat/FlatTaskExitNode.class IR/Flat/FlatSetElementNode.class		\
+IR/Flat/FlatFlagActionNode.class IR/Flat/FlatSetElementNode.class	\
 IR/Flat/FlatSetFieldNode.class IR/Flat/NodePair.class			\
 IR/Flat/ParamsObject.class IR/Flat/TempDescriptor.class			\
 IR/Flat/TempObject.class IR/MethodDescriptor.class			\
