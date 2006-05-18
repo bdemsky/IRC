@@ -2,6 +2,23 @@ Objects have:
 Collection of Flags
    Flags have type/name associated with them
    Are either present or not present
+
+Assumptions:
+Task parameters can't be modified
+
+How do we handle new object allocation?
+Idea #1: Simply lose precision -- don't even attempt analysis
+         Improvement - let set flags at allocation
+
+Non parameter variables: 
+1) Type must contain flags
+2) Apply flag additions to all states
+
+------------------------------------------------------------------------------
+
+
+
+
 Collection of Tags
    Tags have type/name associated with them   
    Also have UID associated with them
