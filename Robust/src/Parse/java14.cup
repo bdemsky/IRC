@@ -235,6 +235,7 @@ non terminal ParseNode flag_effects_opt;
 non terminal ParseNode flag_effects;
 non terminal ParseNode flag_effect;
 non terminal ParseNode flag_list;
+non terminal ParseNode flag_list_opt;
 non terminal ParseNode flag_change;
 
 start with goal;
@@ -338,6 +339,10 @@ flag_effect ::= IDENTIFIER:id LBRACE flag_list:fl RBRACE {:
 		pn.addChild(fl);
 		RESULT=pn;
 	:};
+
+flag_list_opt ::= LPAREN flag_list:fl RPAREN {:RESULT=fl;:}
+	| {: RESULT = new ParseNode("empty"); :}
+	;
 
 flag_list ::= flag_change:fc {: 
 		ParseNode pn=new ParseNode("flag_list");
@@ -1168,10 +1173,11 @@ primary_no_new_array ::=
 //	|	name DOT THIS
 	;
 class_instance_creation_expression ::=
-		NEW class_or_interface_type:type LPAREN argument_list_opt:args RPAREN {: 
+		NEW class_or_interface_type:type LPAREN argument_list_opt:args RPAREN flag_effects_opt:feo {: 
 		ParseNode pn=new ParseNode("createobject");
 		pn.addChild(type);
 		pn.addChild(args);
+		pn.addChild(feo);
 		RESULT=pn;
 	:}
 //	|	NEW class_or_interface_type LPAREN argument_list_opt RPAREN class_body

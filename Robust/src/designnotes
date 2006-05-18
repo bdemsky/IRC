@@ -7,8 +7,8 @@ Assumptions:
 Task parameters can't be modified
 
 How do we handle new object allocation?
-Idea #1: Simply lose precision -- don't even attempt analysis
-         Improvement - let set flags at allocation
+Idea #1: Set flags at allocation
+	 Only allow flag setting at exit for parameters
 
 Non parameter variables: 
 1) Type must contain flags

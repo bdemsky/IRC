@@ -457,6 +457,24 @@ public class SemanticCheck {
 
 	TypeDescriptor typetolookin=con.getType();
 	checkTypeDescriptor(typetolookin);
+
+	/* Check flag effects */
+	if (con.getFlagEffects()!=null) {
+	    FlagEffects fe=con.getFlagEffects();
+	    ClassDescriptor cd=typetolookin.getClassDesc();
+	    
+	    for(int j=0;j<fe.numEffects();j++) {
+		FlagEffect flag=fe.getEffect(j);
+		String name=flag.getName();
+		FlagDescriptor flag_d=(FlagDescriptor)cd.getFlagTable().get(name);
+		//Make sure the flag is declared
+		if (flag_d==null)
+		    throw new Error("Flag descriptor "+name+" undefined in class: "+cd.getSymbol());
+		flag.setFlag(flag_d);
+	    }
+	}
+
+
 	if ((!typetolookin.isClass())&&(!typetolookin.isArray())) 
 	    throw new Error("Can't allocate primitive type:"+con.printNode(0));
 
@@ -754,9 +772,7 @@ public class SemanticCheck {
 	default:
 	    throw new Error();
 	}
-
-     
-
+   
 	if (td!=null)
 	    if (!typeutil.isSuperorType(td, on.getType())) {
 		System.out.println(td);

@@ -138,7 +138,19 @@ public class BuildFlat {
 	    //Call to constructor
 	    FlatCall fc=new FlatCall(md, null, out_temp, temps);
 	    last.addNext(fc);
-	    return new NodePair(fn,fc); 
+	    last=fc;
+	    if (con.getFlagEffects()!=null) {
+		FlatFlagActionNode ffan=new FlatFlagActionNode(false);
+		FlagEffects fes=con.getFlagEffects();
+		TempDescriptor flagtemp=outtemp;
+		for(int j=0;j<fes.numEffects();j++) {
+		    FlagEffect fe=fes.getEffect(j);
+		    ffan.addFlagAction(flagtemp, fe.getFlag(), fe.getStatus());
+		}
+		last.addNext(ffan);
+		last=ffan;
+	    }
+	    return new NodePair(fn,last); 
 	} else {
 	    FlatNode first=null;
 	    FlatNode last=null;

@@ -292,6 +292,12 @@ public class BuildIR {
 	    for(int i=0;i<args.size();i++) {
 		con.addArgument((ExpressionNode)args.get(i));
 	    }
+	    /* Could have flag set here */
+	    if (pn.getChild("flag_list")!=null) {
+		FlagEffects fe=new FlagEffects(null);
+		parseFlagEffect(fe, pn.getChild("flag_list"));
+		con.addFlagEffects(fe);
+	    }
 	    return con;
 	} else if (isNode(pn,"createarray")) {
 	    System.out.println(pn.PPrint(3,true));

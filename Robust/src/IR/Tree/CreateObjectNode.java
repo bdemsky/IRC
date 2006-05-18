@@ -7,10 +7,19 @@ public class CreateObjectNode extends ExpressionNode {
     TypeDescriptor td;
     Vector argumentlist;
     MethodDescriptor md;
+    FlagEffects fe;
 
     public CreateObjectNode(TypeDescriptor type) {
 	td=type;
 	argumentlist=new Vector();
+    }
+
+    public void addFlagEffects(FlagEffects fe) {
+	this.fe=fe;
+    }
+
+    public FlagEffects getFlagEffects() {
+	return fe;
     }
 
     public void addArgument(ExpressionNode en) {
