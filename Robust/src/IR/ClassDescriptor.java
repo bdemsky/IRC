@@ -15,6 +15,7 @@ public class ClassDescriptor extends Descriptor {
     private final int classid;
     String superclass;
     ClassDescriptor superdesc;
+    boolean hasFlags=false;
 
     Modifiers modifiers;
 
@@ -94,7 +95,12 @@ public class ClassDescriptor extends Descriptor {
     public void addFlag(FlagDescriptor fd) {
 	if (flags.contains(fd.getSymbol()))
 	    throw new Error(fd.getSymbol()+" already defined");
+	hasFlags=true;
 	flags.add(fd);
+    }
+
+    public boolean hasFlags() {
+	return hasFlags;
     }
 
     public void addField(FieldDescriptor fd) {

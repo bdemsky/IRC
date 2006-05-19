@@ -142,7 +142,7 @@ public class BuildFlat {
 	    if (con.getFlagEffects()!=null) {
 		FlatFlagActionNode ffan=new FlatFlagActionNode(false);
 		FlagEffects fes=con.getFlagEffects();
-		TempDescriptor flagtemp=outtemp;
+		TempDescriptor flagtemp=out_temp;
 		for(int j=0;j<fes.numEffects();j++) {
 		    FlagEffect fe=fes.getEffect(j);
 		    ffan.addFlagAction(flagtemp, fe.getFlag(), fe.getStatus());
