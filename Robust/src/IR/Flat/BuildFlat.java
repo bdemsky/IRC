@@ -125,6 +125,18 @@ public class BuildFlat {
 	    FlatNew fn=new FlatNew(td, out_temp);
 	    TempDescriptor[] temps=new TempDescriptor[con.numArgs()];
 	    FlatNode last=fn;
+
+	    if (con.getFlagEffects()!=null) {
+		FlatFlagActionNode ffan=new FlatFlagActionNode(false);
+		FlagEffects fes=con.getFlagEffects();
+		TempDescriptor flagtemp=out_temp;
+		for(int j=0;j<fes.numEffects();j++) {
+		    FlagEffect fe=fes.getEffect(j);
+		    ffan.addFlagAction(flagtemp, fe.getFlag(), fe.getStatus());
+		}
+		last.addNext(ffan);
+		last=ffan;
+	    }
 	    //Build arguments
 	    for(int i=0;i<con.numArgs();i++) {
 		ExpressionNode en=con.getArg(i);
@@ -139,17 +151,6 @@ public class BuildFlat {
 	    FlatCall fc=new FlatCall(md, null, out_temp, temps);
 	    last.addNext(fc);
 	    last=fc;
-	    if (con.getFlagEffects()!=null) {
-		FlatFlagActionNode ffan=new FlatFlagActionNode(false);
-		FlagEffects fes=con.getFlagEffects();
-		TempDescriptor flagtemp=out_temp;
-		for(int j=0;j<fes.numEffects();j++) {
-		    FlagEffect fe=fes.getEffect(j);
-		    ffan.addFlagAction(flagtemp, fe.getFlag(), fe.getStatus());
-		}
-		last.addNext(ffan);
-		last=ffan;
-	    }
 	    return new NodePair(fn,last); 
 	} else {
 	    FlatNode first=null;

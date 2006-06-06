@@ -39,7 +39,8 @@ Lex/Keyword.class Lex/Lexer.class Lex/Literal.class			\
 Lex/LongLiteral.class Lex/NullLiteral.class Lex/NumericLiteral.class	\
 Lex/Operator.class Lex/Separator.class Lex/StringLiteral.class		\
 Lex/Token.class Lex/TraditionalComment.class Lex/WhiteSpace.class	\
-Analysis/Flag/FlagState.class Analysis/CallGraph/CallGraph.class
+Analysis/Flag/FlagState.class Analysis/Flag/FlagAnalysis.class		\
+Analysis/CallGraph/CallGraph.class
 
 all: Parse/Sym.class Parse/Parser.class $(CLASSFILES)
 
@@ -51,4 +52,4 @@ Parse/Parser.java Parse/Sym.java: Parse/java14.cup
 	javac -cp ../cup:.:$(CLASSPATH) $<
 
 clean:
-	rm IR/*.class IR/Tree/*.class Main/*.class Lex/*.class Parse/*.class Parse/Sym.java Parse/Parser.java IR/Flat/*.class classdefs.h methodheaders.h methods.c structdefs.h virtualtable.h Analysis/*.class Analysis/Flag/*.class
+	rm IR/*.class IR/Tree/*.class Main/*.class Lex/*.class Parse/*.class Parse/Sym.java Parse/Parser.java IR/Flat/*.class classdefs.h methodheaders.h methods.c structdefs.h virtualtable.h Analysis/*.class Analysis/Flag/*.class Analysis/CallGraph/*.class

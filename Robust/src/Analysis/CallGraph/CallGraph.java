@@ -64,6 +64,20 @@ public class CallGraph {
 	return ns;
     }
 
+    /** Given a call to MethodDescriptor, lists the methods which
+        could actually be call by that method. */
+    public Set getMethodCalls(MethodDescriptor md) {
+	HashSet ns=new HashSet();
+	ns.add(md);
+	Set s=(Set)methodmap.get(md);
+	if (s!=null)
+	    for(Iterator it=s.iterator();it.hasNext();) {
+		MethodDescriptor md2=(MethodDescriptor)it.next();
+		ns.addAll(getMethodCalls(md2));
+	    }
+	return ns;
+    }
+
     private void buildGraph() { 
 	Iterator it=state.getClassSymbolTable().getDescriptorsIterator();
 	while(it.hasNext()) {
