@@ -12,6 +12,10 @@ public class FlatElementNode extends FlatNode {
 	this.dst=dst;
     }
 
+    public boolean needsBoundsCheck() {
+	return true;
+    }
+
     public TempDescriptor getIndex() {
 	return index;
     }

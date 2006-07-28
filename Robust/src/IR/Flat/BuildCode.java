@@ -636,6 +636,12 @@ public class BuildCode {
 	    type="void *";
 	else 
 	    type=elementtype.getSafeSymbol()+" ";
+
+	if (fen.needsBoundsCheck()) {
+	    output.println("if ("+generateTemp(fm, fen.getIndex())+"< 0 || "+generateTemp(fm, fen.getIndex())+" >= "+generateTemp(fm,fen.getSrc()) + "->___length___)");
+	    output.println("failedboundschk();");
+	}
+
 	output.println(generateTemp(fm, fen.getDst())+"=(("+ type+"*)(((char *) &("+ generateTemp(fm,fen.getSrc())+"->___length___))+sizeof(int)))["+generateTemp(fm, fen.getIndex())+"];");
     }
 
@@ -649,6 +655,11 @@ public class BuildCode {
 	    type="void *";
 	else 
 	    type=elementtype.getSafeSymbol()+" ";
+
+	if (fsen.needsBoundsCheck()) {
+	    output.println("if ("+generateTemp(fm, fsen.getIndex())+"< 0 || "+generateTemp(fm, fsen.getIndex())+" >= "+generateTemp(fm,fsen.getDst()) + "->___length___)");
+	    output.println("failedboundschk();");
+	}
 
 	output.println("(("+type +"*)(((char *) &("+ generateTemp(fm,fsen.getDst())+"->___length___))+sizeof(int)))["+generateTemp(fm, fsen.getIndex())+"]="+generateTemp(fm,fsen.getSrc())+";");
     }

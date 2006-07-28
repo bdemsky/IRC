@@ -340,7 +340,7 @@ flag_effect ::= IDENTIFIER:id LBRACE flag_list:fl RBRACE {:
 		RESULT=pn;
 	:};
 
-flag_list_opt ::= LPAREN flag_list:fl RPAREN {:RESULT=fl;:}
+flag_list_opt ::= LBRACE flag_list:fl RBRACE {:RESULT=fl;:}
 	| {: RESULT = new ParseNode("empty"); :}
 	;
 
@@ -1173,7 +1173,7 @@ primary_no_new_array ::=
 //	|	name DOT THIS
 	;
 class_instance_creation_expression ::=
-		NEW class_or_interface_type:type LPAREN argument_list_opt:args RPAREN flag_effects_opt:feo {: 
+		NEW class_or_interface_type:type LPAREN argument_list_opt:args RPAREN flag_list_opt:feo {: 
 		ParseNode pn=new ParseNode("createobject");
 		pn.addChild(type);
 		pn.addChild(args);

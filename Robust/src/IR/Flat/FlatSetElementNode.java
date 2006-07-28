@@ -12,6 +12,10 @@ public class FlatSetElementNode extends FlatNode {
 	this.dst=dst;
     }
 
+    public boolean needsBoundsCheck() {
+	return true;
+    }
+
     public TempDescriptor getSrc() {
 	return src;
     }

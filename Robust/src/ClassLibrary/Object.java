@@ -1,6 +1,11 @@
 public class Object {
     public native int hashcode();
 
+    public String toString() {
+	return String.valueOf(this);
+    }
+
+
     public boolean equals(Object o) {
 	if (o==this)
 	    return true;

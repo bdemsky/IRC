@@ -1,0 +1,7 @@
+#!/bin/bash
+ROBUSTROOT=~/research/Robust/src
+MAINFILE=$1
+shift
+mkdir tmpbuilddirectory
+java -cp $ROBUSTROOT/../cup/:$ROBUSTROOT Main.Main -classlibrary $ROBUSTROOT/ClassLibrary/ -dir tmpbuilddirectory -mainclass $MAINFILE $@
+gcc -I$ROBUSTROOT/Runtime -Itmpbuilddirectory -O0 -g tmpbuilddirectory/methods.c $ROBUSTROOT/Runtime/runtime.c -o $MAINFILE.bin

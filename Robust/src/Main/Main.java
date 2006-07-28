@@ -65,7 +65,7 @@ public class Main {
 	Lex.Lexer l = new Lex.Lexer(fr);
 	java_cup.runtime.lr_parser g;
 	g = new Parse.Parser(l);
-	ParseNode p=(ParseNode) g./*debug_*/parse().value;
+	ParseNode p=(ParseNode) g.debug_parse().value;
 	state.addParseNode(p);
 	if (l.numErrors()!=0) {
 	    System.out.println("Error parsing Object.java");

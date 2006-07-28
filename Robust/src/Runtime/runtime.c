@@ -13,7 +13,7 @@ int ___Object______hashcode____(struct ___Object___ * ___this___) {
 }
 
 void ___System______printInt____I(int x) {
-  printf("%d\n",x);
+  printf("%d",x);
 }
 
 void ___System______printString____L___String___(struct ___String___ * s) {
@@ -47,4 +47,14 @@ struct ___String___ * NewString(char *str,int length) {
   for(i=0;i<length;i++) {
     ((short *)(((char *)& chararray->___length___)+sizeof(int)))[i]=(short)str[i];  }
   return strobj;
+}
+
+void failedboundschk() {
+  printf("Array out of bounds\n");
+  exit(-1);
+}
+
+void failednullptr() {
+  printf("Dereferenced a null pointer\n");
+  exit(-1);
 }

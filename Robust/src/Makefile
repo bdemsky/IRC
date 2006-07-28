@@ -46,7 +46,7 @@ all: Parse/Sym.class Parse/Parser.class $(CLASSFILES)
 
 Parse/Parser.java Parse/Sym.java: Parse/java14.cup
 	cd Parse && \
-        java -cp ../../cup:$(CLASSPATH) java_cup.Main -parser Parser -symbols Sym < java14.cup
+        java -cp ../../cup:$(CLASSPATH) java_cup.Main -debug -nonterms -parser Parser -symbols Sym < java14.cup
 
 %.class: %.java
 	javac -cp ../cup:.:$(CLASSPATH) $<
