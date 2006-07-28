@@ -5,6 +5,7 @@ class A {
 
    void foo(int x) {
        System.printInt(x);
+       System.printString("\n");
    }
 }
 
@@ -34,7 +35,7 @@ public class virtualcalltest {
 	A a=null;
 	B b=new B();
 	C c=new C();
-	for(int i=0;i<100000000;i++) {
+	for(int i=0;i<1000000;i++) {
 		if (i%2==0)
 			a=b;
 		else

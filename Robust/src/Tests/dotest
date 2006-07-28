@@ -1,0 +1,6 @@
+#!/bin/bash
+echo Doing Test $1
+../buildscript $1 $2 &>/dev/null
+$1.bin &> output/$1.output
+diff output/$1.output output/$1.output.goal
+rm $1.bin
