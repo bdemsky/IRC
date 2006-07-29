@@ -283,9 +283,10 @@ public class BuildFlat {
     }
 
     private NodePair flattenAssignmentNode(AssignmentNode an,TempDescriptor out_temp) {
-	// Two cases:
+	// Three cases:
 	// left side is variable
 	// left side is field
+	// left side is array
 	
 	Operation base=an.getOperation().getBaseOp();
 	TempDescriptor src_tmp=TempDescriptor.tempFactory("src",an.getSrc().getType());
@@ -303,6 +304,7 @@ public class BuildFlat {
 	}
 	
 	if (an.getDest().kind()==Kind.FieldAccessNode) {
+	    //We are assigning an object field
 	    FieldAccessNode fan=(FieldAccessNode)an.getDest();
 	    ExpressionNode en=fan.getExpression();
 	    TempDescriptor dst_tmp=TempDescriptor.tempFactory("dst",en.getType());
@@ -310,8 +312,11 @@ public class BuildFlat {
 	    last.addNext(np_baseexp.getBegin());
 	    FlatSetFieldNode fsfn=new FlatSetFieldNode(dst_tmp, fan.getField(), src_tmp);
 	    np_baseexp.getEnd().addNext(fsfn);
-	    return new NodePair(np_src.getBegin(), fsfn);
+	    FlatOpNode fon2=new FlatOpNode(out_temp, src_tmp, null, new Operation(Operation.ASSIGN));
+	    fsfn.addNext(fon2);
+	    return new NodePair(np_src.getBegin(), fon2);
 	} else if (an.getDest().kind()==Kind.ArrayAccessNode) {
+	    //We are assigning an array element
 	    ArrayAccessNode aan=(ArrayAccessNode)an.getDest();
 	    ExpressionNode en=aan.getExpression();
 	    ExpressionNode enindex=aan.getIndex();
@@ -323,10 +328,14 @@ public class BuildFlat {
 	    np_baseexp.getEnd().addNext(np_indexexp.getBegin());
 	    FlatSetElementNode fsen=new FlatSetElementNode(dst_tmp, index_tmp, src_tmp);
 	    np_indexexp.getEnd().addNext(fsen);
-	    return new NodePair(np_src.getBegin(), fsen);
+	    FlatOpNode fon2=new FlatOpNode(out_temp, src_tmp, null, new Operation(Operation.ASSIGN));
+	    fsen.addNext(fon2);
+	    return new NodePair(np_src.getBegin(), fon2);
 	} else if (an.getDest().kind()==Kind.NameNode) {
+	    //We could be assigning a field or variable
 	    NameNode nn=(NameNode)an.getDest();
 	    if (nn.getExpression()!=null) {
+		//It is a field
 		FieldAccessNode fan=(FieldAccessNode)nn.getExpression();
 		ExpressionNode en=fan.getExpression();
 		TempDescriptor dst_tmp=TempDescriptor.tempFactory("dst",en.getType());
@@ -334,16 +343,24 @@ public class BuildFlat {
 		last.addNext(np_baseexp.getBegin());
 		FlatSetFieldNode fsfn=new FlatSetFieldNode(dst_tmp, fan.getField(), src_tmp);
 		np_baseexp.getEnd().addNext(fsfn);
-		return new NodePair(np_src.getBegin(), fsfn);
+		FlatOpNode fon2=new FlatOpNode(out_temp, src_tmp, null, new Operation(Operation.ASSIGN));
+		fsfn.addNext(fon2);
+		return new NodePair(np_src.getBegin(), fon2);
 	    } else {
 		if (nn.getField()!=null) {
+		    //It is a field
 		    FlatSetFieldNode fsfn=new FlatSetFieldNode(getTempforVar(nn.getVar()), nn.getField(), src_tmp);
 		    last.addNext(fsfn);
-		    return new NodePair(np_src.getBegin(), fsfn);
+		    FlatOpNode fon2=new FlatOpNode(out_temp, src_tmp, null, new Operation(Operation.ASSIGN));
+		    fsfn.addNext(fon2);
+		    return new NodePair(np_src.getBegin(), fon2);
 		} else {
+		    //It is a variable
 		    FlatOpNode fon=new FlatOpNode(getTempforVar(nn.getVar()), src_tmp, null, new Operation(Operation.ASSIGN));
 		    last.addNext(fon);
-		    return new NodePair(np_src.getBegin(),fon);
+		    FlatOpNode fon2=new FlatOpNode(out_temp, src_tmp, null, new Operation(Operation.ASSIGN));
+		    fon.addNext(fon2);
+		    return new NodePair(np_src.getBegin(),fon2);
 		}
 	    }
 	} 
@@ -376,10 +393,14 @@ public class BuildFlat {
 	    op.getOp()==Operation.PREDEC) {
 	    LiteralNode ln=new LiteralNode("int",new Integer(1));
 	    ln.setType(new TypeDescriptor(TypeDescriptor.INT));
-	    AssignmentNode an=new AssignmentNode(on.getLeft(),ln,
-			       new AssignOperation((op.getOp()==Operation.POSTINC||op.getOp()==Operation.PREINC)?AssignOperation.PLUSEQ:AssignOperation.MINUSEQ));
+	    
+	    AssignmentNode an=new AssignmentNode(on.getLeft(),
+						 new OpNode(on.getLeft(),ln, 
+							    new Operation((op.getOp()==Operation.POSTINC||op.getOp()==Operation.PREINC)?Operation.PLUS:Operation.MINUS))
+						 );
 	    if (op.getOp()==Operation.POSTINC||
 		op.getOp()==Operation.POSTDEC) {
+		//Can't do, this could have side effects
 		NodePair left=flattenExpressionNode(on.getLeft(),out_temp);
 		NodePair assign=flattenAssignmentNode(an,temp_left);
 		left.getEnd().addNext(assign.getBegin());

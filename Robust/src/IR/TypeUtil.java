@@ -121,7 +121,14 @@ public class TypeUtil {
 		return true;
 	    
 	    return false;
-	} else throw new Error();
+	} else if (possiblesuper.isPrimitive()&&(!possiblesuper.isArray())&&
+		   (cd2.isArray()||cd2.isPtr()))
+	    return false;
+	else if (cd2.isPrimitive()&&(!cd2.isArray())&&
+		 (possiblesuper.isArray()||possiblesuper.isPtr()))
+	    return false;
+	else
+	    throw new Error();
     }
 
 

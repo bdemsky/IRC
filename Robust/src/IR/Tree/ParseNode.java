@@ -111,7 +111,7 @@ public class ParseNode implements Walkable {
     public ParseNode addChild( ParseNode child ) {
 
 	if (child == null) {
-	    throw new NullPointerException("Can't add null node to parse tree");
+	    throw new NullPointerException("Can't add null node to parse tree: "+getLabel());
 	}
 
 	children.addElement (child);

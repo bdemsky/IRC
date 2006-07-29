@@ -446,13 +446,13 @@ array_type ::=	primitive_type:prim dims:dims {:
 		ParseNode pn=(new ParseNode("type")).addChild("array");
 		pn.addChild("basetype").addChild(prim);
 		pn.addChild("dims").setLiteral(dims);
-		RESULT=pn;
+		RESULT=pn.getRoot();
 	:}
 	|	name:name dims:dims {: 
 		ParseNode pn=(new ParseNode("type")).addChild("array");
 		pn.addChild("basetype").addChild("type").addChild("class").addChild(name);
 		pn.addChild("dims").setLiteral(dims);
-		RESULT=pn;
+		RESULT=pn.getRoot();
 	:}
 	;
 
@@ -946,7 +946,7 @@ statement_without_trailing_substatement ::=
 	|	empty_statement:st {: RESULT=st; :}
 	|	expression_statement:st {: RESULT=st; :}
 //	|	switch_statement
-	|	do_statement
+	|	do_statement:dos {:RESULT=dos; :}
 	|	break_statement:st {: RESULT=st; :}
 	|	continue_statement:st {: RESULT=st; :}
 	|	return_statement:st {: RESULT=st; :}
@@ -1238,11 +1238,11 @@ dim_exprs ::=	dim_expr:exp {:
 	;
 dim_expr ::=	LBRACK expression:exp RBRACK {: RESULT=exp; :}
 	;
-dims_opt ::= {: RESULT=null; :}
+dims_opt ::= {: RESULT=new Integer(0); :}
 	|	dims:dims {: RESULT = dims; :}
 	;
 
-dims ::=	LBRACK RBRACK {: RESULT=new Integer(0); :}
+dims ::=	LBRACK RBRACK {: RESULT=new Integer(1); :}
 	|	dims:dims LBRACK RBRACK {: RESULT=new Integer(dims.intValue()+1); :}
 	;
 

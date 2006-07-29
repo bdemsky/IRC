@@ -89,7 +89,7 @@ public class Lexer {
     } while (!(ie instanceof Token));
     endpos = lineL.head + line_pos - 1;
 
-    //System.out.println(ie.toString()); // uncomment to debug lexer.
+    // System.out.println(ie.toString()); // uncomment to debug lexer.
     java_cup.runtime.Symbol sym = ((Token)ie).token();
     // fix up left/right positions.
     sym.left = startpos; sym.right = endpos;
@@ -246,14 +246,15 @@ public class Lexer {
   static final String[] keywords = new String[] {
     "abstract", "assert", "boolean", "break", "byte", "case", "catch", "char",
     "class", "const", "continue", "default", "do", "double", "else", "enum",
-    "extends", "final", "finally", "float", "for", "goto", "if", 
+    "extends", "final", "finally", 
+    "flag", //keyword for failure aware computation
+    "float", "for", "goto", "if", 
     "implements", "import", "instanceof", "int", "interface", "long", 
     "native", "new", "package", "private", "protected", "public", 
-    "return", "short", "static", "strictfp", "super", "switch",
-    "synchronized", "this", "throw", "throws", "transient", "try", "void",
-    "volatile", "while", 
-    //keywords for failure aware computation
-    "flag", "tag", "task", "taskexit"};
+    "return", "short", "static", "strictfp", "super", "switch", "synchronized",
+    "tag", "task", "taskexit", //keywords for failure aware computation
+    "this", "throw", "throws", "transient", "try", "void",
+    "volatile", "while"};
   Token getIdentifier() {
     // Get id string.
     StringBuffer sb = new StringBuffer().append(consume());

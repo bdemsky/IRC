@@ -176,6 +176,7 @@ public class BuildIR {
 
     private TypeDescriptor parseTypeDescriptor(ParseNode pn) {
 	ParseNode tn=pn.getChild("type");
+
 	String type_st=tn.getTerminal();
 	if(type_st.equals("byte")) {
 	    return state.getTypeDescriptor(TypeDescriptor.BYTE);

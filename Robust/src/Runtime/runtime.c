@@ -12,9 +12,9 @@ int ___Object______hashcode____(struct ___Object___ * ___this___) {
   return (int) ___this___;
 }
 
-void ___System______printInt____I(int x) {
+/*void ___System______printInt____I(int x) {
   printf("%d",x);
-}
+  }*/
 
 void ___System______printString____L___String___(struct ___String___ * s) {
     struct ArrayObject * chararray=s->___string___;

@@ -648,6 +648,7 @@ public class BuildCode {
     private void generateFlatSetElementNode(FlatMethod fm, FlatSetElementNode fsen, PrintWriter output) {
 	//TODO: need dynamic check to make sure this assignment is actually legal
 	//Because Object[] could actually be something more specific...ie. Integer[]
+
 	TypeDescriptor elementtype=fsen.getDst().getType().dereference();
 	String type="";
 
@@ -711,6 +712,8 @@ public class BuildCode {
 		output.println(generateTemp(fm, fln.getDst())+"=1;");
 	    else
 		output.println(generateTemp(fm, fln.getDst())+"=0;");
+	} else if (fln.getType().isChar()) {
+	    output.println(generateTemp(fm, fln.getDst())+"='"+fln.getValue()+"';");
 	} else
 	    output.println(generateTemp(fm, fln.getDst())+"="+fln.getValue()+";");
     }
