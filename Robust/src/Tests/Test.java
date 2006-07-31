@@ -6,12 +6,12 @@ public class Test {
     public static void main() {
 	Test t=new Test();
 	for(int i=3;i<10000;i++) {
-		boolean flag=true;
-		for(int j=2;flag&&j<i;j++) {
+		boolean flagx=true;
+		for(int j=2;flagx&&j<i;j++) {
 			if ((i%j)==0)
-                            flag=false;
+                            flagx=false;
 		}
-		if (flag) {
+		if (flagx) {
 			System.printInt(i);
 			System.printString("\n");
 		}

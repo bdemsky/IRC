@@ -273,14 +273,22 @@ public class BuildIR {
    	    return new OpNode(parseExpression(left),parseExpression(right),op);
 	} else if (isNode(pn,"unaryplus")||
 		   isNode(pn,"unaryminus")||
-		   isNode(pn,"postinc")||
-		   isNode(pn,"postdec")||
-		   isNode(pn,"preinc")||
-		   isNode(pn,"not")||
-		   isNode(pn,"predec")) {
+		   isNode(pn,"not")) {
 	    ParseNode left=pn.getFirstChild();
 	    Operation op=new Operation(pn.getLabel());
    	    return new OpNode(parseExpression(left),op);
+	} else if (isNode(pn,"postinc")||
+		   isNode(pn,"postdec")) {
+	    ParseNode left=pn.getFirstChild();
+	    AssignOperation op=new AssignOperation(pn.getLabel());
+   	    return new AssignmentNode(parseExpression(left),null,op);
+
+	} else if (isNode(pn,"preinc")||
+		   isNode(pn,"predec")) {
+	    ParseNode left=pn.getFirstChild();
+	    AssignOperation op=isNode(pn,"preinc")?new AssignOperation(AssignOperation.PLUSEQ):new AssignOperation(AssignOperation.MINUSEQ);
+   	    return new AssignmentNode(parseExpression(left),
+				      new LiteralNode("integer",new Integer(1)),op);
 	} else if (isNode(pn,"literal")) {
 	    String literaltype=pn.getTerminal();
 	    ParseNode literalnode=pn.getChild(literaltype);

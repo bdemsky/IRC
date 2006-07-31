@@ -685,14 +685,6 @@ public class BuildCode {
 	    output.println(generateTemp(fm, fon.getDest())+" = -"+generateTemp(fm, fon.getLeft())+";");
 	else if (fon.getOp().getOp()==Operation.LOGIC_NOT)
 	    output.println(generateTemp(fm, fon.getDest())+" = !"+generateTemp(fm, fon.getLeft())+";");
-	else if (fon.getOp().getOp()==Operation.POSTINC)
-	    output.println(generateTemp(fm, fon.getDest())+" = "+generateTemp(fm, fon.getLeft())+"++;");
-	else if (fon.getOp().getOp()==Operation.POSTDEC)
-	    output.println(generateTemp(fm, fon.getDest())+" = "+generateTemp(fm, fon.getLeft())+"--;");
-	else if (fon.getOp().getOp()==Operation.PREINC)
-	    output.println(generateTemp(fm, fon.getDest())+" = ++"+generateTemp(fm, fon.getLeft())+";");
-	else if (fon.getOp().getOp()==Operation.PREDEC)
-	    output.println(generateTemp(fm, fon.getDest())+" = --"+generateTemp(fm, fon.getLeft())+";");
 	else
 	    output.println(generateTemp(fm, fon.getDest())+fon.getOp().toString()+generateTemp(fm, fon.getLeft())+";");
     }

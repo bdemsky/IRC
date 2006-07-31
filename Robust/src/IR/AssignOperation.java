@@ -13,6 +13,8 @@ public class AssignOperation {
     public static final int ANDEQ=10;
     public static final int XOREQ=11;
     public static final int OREQ=12;
+    public static final int POSTINC=13;
+    public static final int POSTDEC=14;
 
     private int operation;
     public AssignOperation(int op) {
@@ -47,6 +49,10 @@ public class AssignOperation {
 	    return new Operation(Operation.BIT_XOR);
 	case OREQ:
 	    return new Operation(Operation.BIT_OR);
+	case POSTINC:
+	    return new Operation(Operation.POSTINC);
+	case POSTDEC:
+	    return new Operation(Operation.POSTDEC);
 	}
 	throw new Error();
     }
@@ -74,6 +80,10 @@ public class AssignOperation {
 	    return XOREQ;
 	else if (st.equals("oreq"))
 	    return OREQ;
+	else if (st.equals("postinc"))
+	    return POSTINC;
+	else if (st.equals("postdec"))
+	    return POSTDEC;
 	else throw new Error();
     }
 
@@ -100,6 +110,10 @@ public class AssignOperation {
 	    return "^=";
 	else if (operation==OREQ)
 	    return "|=";
+	else if (operation==POSTINC)
+	    return "postinc";
+	else if (operation==POSTDEC)
+	    return "postdec";
 	else throw new Error();
     }
 

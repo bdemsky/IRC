@@ -289,34 +289,68 @@ public class BuildFlat {
 	// left side is array
 	
 	Operation base=an.getOperation().getBaseOp();
-	TempDescriptor src_tmp=TempDescriptor.tempFactory("src",an.getSrc().getType());
-	NodePair np_src=flattenExpressionNode(an.getSrc(),src_tmp);
-	FlatNode last=np_src.getEnd();
-	if (base!=null) {
-	    TempDescriptor src_tmp2=TempDescriptor.tempFactory("tmp", an.getDest().getType());
-	    NodePair np_dst_init=flattenExpressionNode(an.getDest(),src_tmp2);
-	    last.addNext(np_dst_init.getBegin());
-	    TempDescriptor dst_tmp=TempDescriptor.tempFactory("dst_tmp",an.getDest().getType());
-	    FlatOpNode fon=new FlatOpNode(dst_tmp, src_tmp,src_tmp2, base);
-	    np_dst_init.getEnd().addNext(fon);
-	    last=fon;
-	    src_tmp=dst_tmp;
+	boolean pre=base==null||(base.getOp()!=Operation.POSTINC&&base.getOp()!=Operation.POSTDEC);
+	
+	if (!pre) {
+	    //rewrite the base operation
+	    base=base.getOp()==Operation.POSTINC?new Operation(Operation.ADD):new Operation(Operation.SUB);
+	}
+	FlatNode first=null;
+	FlatNode last=null;
+	TempDescriptor src_tmp=an.getSrc()==null?TempDescriptor.tempFactory("srctmp",an.getDest().getType()):TempDescriptor.tempFactory("srctmp",an.getSrc().getType());
+
+	//Get src value
+	if (an.getSrc()!=null) {
+	    NodePair np_src=flattenExpressionNode(an.getSrc(),src_tmp);
+	    first=np_src.getBegin();
+	    last=np_src.getEnd();
+	} else if (!pre) {
+	    FlatLiteralNode fln=new FlatLiteralNode(new TypeDescriptor(TypeDescriptor.INT) ,new Integer(1),src_tmp);
+	    first=fln;
+	    last=fln;
 	}
 	
 	if (an.getDest().kind()==Kind.FieldAccessNode) {
 	    //We are assigning an object field
+
 	    FieldAccessNode fan=(FieldAccessNode)an.getDest();
 	    ExpressionNode en=fan.getExpression();
 	    TempDescriptor dst_tmp=TempDescriptor.tempFactory("dst",en.getType());
 	    NodePair np_baseexp=flattenExpressionNode(en, dst_tmp);
-	    last.addNext(np_baseexp.getBegin());
+	    if (first==null)
+		first=np_baseexp.getBegin();
+	    else
+		last.addNext(np_baseexp.getBegin());
+	    last=np_baseexp.getEnd();
+
+	    //See if we need to perform an operation
+	    if (base!=null) {
+		//If it is a preinc we need to store the initial value
+		TempDescriptor src_tmp2=pre?TempDescriptor.tempFactory("src",an.getDest().getType()):out_temp;
+		TempDescriptor tmp=TempDescriptor.tempFactory("srctmp3",an.getDest().getType());
+
+		FlatFieldNode ffn=new FlatFieldNode(fan.getField(), dst_tmp, src_tmp2);
+		last.addNext(ffn);
+		last=ffn;
+		FlatOpNode fon=new FlatOpNode(tmp, src_tmp2, src_tmp, base);
+		src_tmp=tmp;
+		last.addNext(fon);
+		last=fon;
+	    }
+
 	    FlatSetFieldNode fsfn=new FlatSetFieldNode(dst_tmp, fan.getField(), src_tmp);
-	    np_baseexp.getEnd().addNext(fsfn);
-	    FlatOpNode fon2=new FlatOpNode(out_temp, src_tmp, null, new Operation(Operation.ASSIGN));
-	    fsfn.addNext(fon2);
-	    return new NodePair(np_src.getBegin(), fon2);
+	    last.addNext(fsfn);
+	    last=fsfn;
+	    if (pre) {
+		FlatOpNode fon2=new FlatOpNode(out_temp, src_tmp, null, new Operation(Operation.ASSIGN));
+		fsfn.addNext(fon2);
+		last=fon2;
+	    }
+	    return new NodePair(first, last);
 	} else if (an.getDest().kind()==Kind.ArrayAccessNode) {
 	    //We are assigning an array element
+
+
 	    ArrayAccessNode aan=(ArrayAccessNode)an.getDest();
 	    ExpressionNode en=aan.getExpression();
 	    ExpressionNode enindex=aan.getIndex();
@@ -324,13 +358,38 @@ public class BuildFlat {
 	    TempDescriptor index_tmp=TempDescriptor.tempFactory("index",enindex.getType());
 	    NodePair np_baseexp=flattenExpressionNode(en, dst_tmp);
 	    NodePair np_indexexp=flattenExpressionNode(enindex, index_tmp);
-	    last.addNext(np_baseexp.getBegin());
+	    if (first==null)
+		first=np_baseexp.getBegin();
+	    else
+		last.addNext(np_baseexp.getBegin());
 	    np_baseexp.getEnd().addNext(np_indexexp.getBegin());
+	    last=np_indexexp.getEnd();
+
+	    //See if we need to perform an operation
+	    if (base!=null) {
+		//If it is a preinc we need to store the initial value
+		TempDescriptor src_tmp2=pre?TempDescriptor.tempFactory("src",an.getDest().getType()):out_temp;
+		TempDescriptor tmp=TempDescriptor.tempFactory("srctmp3",an.getDest().getType());
+
+		FlatElementNode fen=new FlatElementNode(dst_tmp, index_tmp, src_tmp2);
+		last.addNext(fen);
+		last=fen;
+		FlatOpNode fon=new FlatOpNode(tmp, src_tmp2, src_tmp, base);
+		src_tmp=tmp;
+		last.addNext(fon);
+		last=fon;
+	    }
+
+
 	    FlatSetElementNode fsen=new FlatSetElementNode(dst_tmp, index_tmp, src_tmp);
-	    np_indexexp.getEnd().addNext(fsen);
-	    FlatOpNode fon2=new FlatOpNode(out_temp, src_tmp, null, new Operation(Operation.ASSIGN));
-	    fsen.addNext(fon2);
-	    return new NodePair(np_src.getBegin(), fon2);
+	    last.addNext(fsen);
+	    last=fsen;
+	    if (pre) {
+		FlatOpNode fon2=new FlatOpNode(out_temp, src_tmp, null, new Operation(Operation.ASSIGN));
+		fsen.addNext(fon2);
+		last=fon2;
+	    }
+	    return new NodePair(first, last);
 	} else if (an.getDest().kind()==Kind.NameNode) {
 	    //We could be assigning a field or variable
 	    NameNode nn=(NameNode)an.getDest();
@@ -340,27 +399,109 @@ public class BuildFlat {
 		ExpressionNode en=fan.getExpression();
 		TempDescriptor dst_tmp=TempDescriptor.tempFactory("dst",en.getType());
 		NodePair np_baseexp=flattenExpressionNode(en, dst_tmp);
-		last.addNext(np_baseexp.getBegin());
+		if (first==null)
+		    first=np_baseexp.getBegin();
+		else
+		    last.addNext(np_baseexp.getBegin());
+		last=np_baseexp.getEnd();
+
+		//See if we need to perform an operation
+		if (base!=null) {
+		    //If it is a preinc we need to store the initial value
+		    TempDescriptor src_tmp2=pre?TempDescriptor.tempFactory("src",an.getDest().getType()):out_temp;
+		    TempDescriptor tmp=TempDescriptor.tempFactory("srctmp3",an.getDest().getType());
+		    
+		    FlatFieldNode ffn=new FlatFieldNode(fan.getField(), dst_tmp, src_tmp2);
+		    last.addNext(ffn);
+		    last=ffn;
+		    FlatOpNode fon=new FlatOpNode(tmp, src_tmp2, src_tmp, base);
+		    src_tmp=tmp;
+		    last.addNext(fon);
+		    last=fon;
+		}
+
+
 		FlatSetFieldNode fsfn=new FlatSetFieldNode(dst_tmp, fan.getField(), src_tmp);
-		np_baseexp.getEnd().addNext(fsfn);
-		FlatOpNode fon2=new FlatOpNode(out_temp, src_tmp, null, new Operation(Operation.ASSIGN));
-		fsfn.addNext(fon2);
-		return new NodePair(np_src.getBegin(), fon2);
+		last.addNext(fsfn);
+		last=fsfn;
+		if (pre) {
+		    FlatOpNode fon2=new FlatOpNode(out_temp, src_tmp, null, new Operation(Operation.ASSIGN));
+		    fsfn.addNext(fon2);
+		    last=fon2;
+		}
+		return new NodePair(first, last);
 	    } else {
 		if (nn.getField()!=null) {
 		    //It is a field
+		    //Get src value
+
+		    //See if we need to perform an operation
+		    if (base!=null) {
+			//If it is a preinc we need to store the initial value
+			TempDescriptor src_tmp2=pre?TempDescriptor.tempFactory("src",an.getDest().getType()):out_temp;
+			TempDescriptor tmp=TempDescriptor.tempFactory("srctmp3",an.getDest().getType());
+			
+			FlatFieldNode ffn=new FlatFieldNode(nn.getField(), getTempforVar(nn.getVar()), src_tmp2);
+			if (first==null)
+			    first=ffn;
+			else {
+			    last.addNext(ffn);
+			}
+			last=ffn;
+			FlatOpNode fon=new FlatOpNode(tmp, src_tmp2, src_tmp, base);
+			src_tmp=tmp;
+			last.addNext(fon);
+			last=fon;
+		    }		    
+
 		    FlatSetFieldNode fsfn=new FlatSetFieldNode(getTempforVar(nn.getVar()), nn.getField(), src_tmp);
-		    last.addNext(fsfn);
-		    FlatOpNode fon2=new FlatOpNode(out_temp, src_tmp, null, new Operation(Operation.ASSIGN));
-		    fsfn.addNext(fon2);
-		    return new NodePair(np_src.getBegin(), fon2);
+		    if (first==null) {
+			first=fsfn;
+		    } else {
+			last.addNext(fsfn);
+		    }
+		    last=fsfn;
+		    if (pre) {
+			FlatOpNode fon2=new FlatOpNode(out_temp, src_tmp, null, new Operation(Operation.ASSIGN));
+			fsfn.addNext(fon2);
+			last=fon2;
+		    }
+		    return new NodePair(first, last);
 		} else {
 		    //It is a variable
+		    //See if we need to perform an operation
+
+		    if (base!=null) {
+			//If it is a preinc we need to store the initial value
+			TempDescriptor src_tmp2=getTempforVar(nn.getVar());
+			TempDescriptor tmp=TempDescriptor.tempFactory("srctmp3",an.getDest().getType());
+			if (!pre) {
+			    FlatOpNode fon=new FlatOpNode(out_temp, src_tmp2, null, new Operation(Operation.ASSIGN));
+			    if (first==null)
+				first=fon;
+			    else
+				last.addNext(fon);
+			    last=fon;
+			}
+
+			FlatOpNode fon=new FlatOpNode(tmp, src_tmp2, src_tmp, base);
+			if (first==null) 
+			    first=fon;
+			else 
+			    last.addNext(fon);
+			src_tmp=tmp;
+			last=fon;
+		    }
+
 		    FlatOpNode fon=new FlatOpNode(getTempforVar(nn.getVar()), src_tmp, null, new Operation(Operation.ASSIGN));
 		    last.addNext(fon);
-		    FlatOpNode fon2=new FlatOpNode(out_temp, src_tmp, null, new Operation(Operation.ASSIGN));
-		    fon.addNext(fon2);
-		    return new NodePair(np_src.getBegin(),fon2);
+		    last=fon;
+		    if (pre) {
+			FlatOpNode fon2=new FlatOpNode(out_temp, src_tmp, null, new Operation(Operation.ASSIGN));
+			fon.addNext(fon2);
+			last=fon2;
+		    }
+		    return new NodePair(first, last);
 		}
 	    }
 	} 
@@ -387,6 +528,8 @@ public class BuildFlat {
 	TempDescriptor temp_right=null;
 
 	Operation op=on.getOp();
+	/* We've moved this to assignment nodes
+
 	if (op.getOp()==Operation.POSTINC||
 	    op.getOp()==Operation.POSTDEC||
 	    op.getOp()==Operation.PREINC||
@@ -409,7 +552,7 @@ public class BuildFlat {
 		NodePair assign=flattenAssignmentNode(an,out_temp);
 		return assign;
 	    }
- 	} 
+	    } */
 	
 	NodePair left=flattenExpressionNode(on.getLeft(),temp_left);
 	NodePair right;

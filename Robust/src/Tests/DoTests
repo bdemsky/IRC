@@ -9,3 +9,4 @@ dotest BoundsFail4 BoundsFail4.java
 dotest StringTest StringTest.java
 dotest Test Test.java
 dotest virtualcalltest virtualcalltest.java
+dotest IncTest IncTest.java

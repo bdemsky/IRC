@@ -414,7 +414,14 @@ public class SemanticCheck {
     }
 
     void checkAssignmentNode(Descriptor md, SymbolTable nametable, AssignmentNode an, TypeDescriptor td) {
-	checkExpressionNode(md, nametable, an.getSrc() ,td);
+	boolean postinc=true;
+	if (an.getOperation().getBaseOp()==null||
+	    (an.getOperation().getBaseOp().getOp()!=Operation.POSTINC&&
+	     an.getOperation().getBaseOp().getOp()!=Operation.POSTDEC))
+	    postinc=false;
+
+	if (!postinc)
+	    checkExpressionNode(md, nametable, an.getSrc() ,td);
 	//TODO: Need check on validity of operation here
 	if (!((an.getDest() instanceof FieldAccessNode)||
 	      (an.getDest() instanceof ArrayAccessNode)||
@@ -433,7 +440,7 @@ public class SemanticCheck {
 	    }
 	}
 	
-	if (!typeutil.isSuperorType(an.getDest().getType(),an.getSrc().getType())) {
+	if (!postinc&&!typeutil.isSuperorType(an.getDest().getType(),an.getSrc().getType())) {
 	    throw new Error("Type of rside ("+an.getSrc().getType()+") not compatible with type of lside ("+an.getDest().getType()+")"+an.printNode(0));
 	}
     }
@@ -767,10 +774,10 @@ public class SemanticCheck {
 		throw new Error();
 	case Operation.UNARYPLUS:
 	case Operation.UNARYMINUS:
-	case Operation.POSTINC:
-	case Operation.POSTDEC:
-	case Operation.PREINC:
-	case Operation.PREDEC:
+	    /*	case Operation.POSTINC:
+		case Operation.POSTDEC:
+		case Operation.PREINC:
+		case Operation.PREDEC:*/
 	    if (!ltd.isNumber())
 		throw new Error();
 	    //5.6.1 Unary Numeric Promotion
