@@ -79,6 +79,8 @@ public class SemanticCheck {
     }
 
     public void checkFlagEffects(TaskDescriptor td, Vector vfe) {
+	if (vfe==null)
+	    return; /* No flag effects to check */
 	for(int i=0;i<vfe.size();i++) {
 	    FlagEffects fe=(FlagEffects) vfe.get(i);
 	    String varname=fe.getName();

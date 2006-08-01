@@ -1,7 +1,9 @@
 class Example {
     flag needoperation;
     flag needprinting;
-    
+    public Example() {}
+
+   
     int operation;
     int x;
     int y;
@@ -41,5 +43,5 @@ task DoOperation(Example e{needoperation}) {
 
 task DoPrint(Example e{needprinting}) {
     System.printInt(e.z);
-    taskexit(e {!needprinting};
+    taskexit(e {!needprinting});
 }

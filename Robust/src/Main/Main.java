@@ -12,6 +12,7 @@ import IR.State;
 import IR.TypeUtil;
 
 public class Main {
+
   public static void main(String args[]) throws Exception {
       String ClassLibraryPrefix="./ClassLibrary/";
       State state=new State();
@@ -26,6 +27,8 @@ public class Main {
 	      ClassLibraryPrefix=args[++i]+"/";
 	  else if (option.equals("-mainclass"))
 	      state.main=args[++i];
+	  else if (option.equals("-task"))
+	      state.TASK=true;
 	  else if (option.equals("-help")) {
 	      System.out.println("-classlibrary classlibrarydirectory -- directory where classlibrary is located");
 	      System.out.println("-dir outputdirectory -- output code in outputdirectory");
@@ -42,6 +45,8 @@ public class Main {
       readSourceFile(state, ClassLibraryPrefix+"Object.java");
       readSourceFile(state, ClassLibraryPrefix+"System.java");
       readSourceFile(state, ClassLibraryPrefix+"String.java");
+      if (state.TASK)      
+	  readSourceFile(state, ClassLibraryPrefix+"StartupObject.java");
 
       BuildIR bir=new BuildIR(state);
       bir.buildtree();

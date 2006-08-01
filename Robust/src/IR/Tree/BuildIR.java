@@ -170,6 +170,7 @@ public class BuildIR {
 	ParseNode flagnode=pn.getChild("flag");
 	if (flagnode!=null) {
 	    parseFlagDecl(cn, flagnode.getChild("flag_declaration"));
+	    return;
 	}
 	throw new Error();
     }
@@ -416,14 +417,12 @@ public class BuildIR {
 	ParseNode bodyn0=pn.getChild("body");
 	ParseNode bodyn=bodyn0.getChild("constructor_body");
 	cn.addMethod(md);
-	if (bodyn!=null) {
-	    BlockNode bn=parseBlock(bodyn);
-	    state.addTreeCode(md,bn);
-	}
+	BlockNode bn=parseBlock(bodyn);
+	state.addTreeCode(md,bn);
     }
 
     public BlockNode parseBlock(ParseNode pn) {
-	if (isEmpty(pn.getTerminal()))
+	if (pn==null||isEmpty(pn.getTerminal()))
 	    return new BlockNode();
 	ParseNode bsn=pn.getChild("block_statement_list");
 	return parseBlockHelper(bsn);

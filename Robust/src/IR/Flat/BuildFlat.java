@@ -51,6 +51,9 @@ public class BuildFlat {
 
     /* This method transforms a vector of FlagEffects into the FlatFlagActionNode */
     private void updateFlagActionNode(FlatFlagActionNode ffan, Vector flags) {
+	if (flags==null) // Do nothing if the flag effects vector is empty
+	    return;
+
 	for(int i=0;i<flags.size();i++) {
 	    FlagEffects fes=(FlagEffects)flags.get(i);
 	    TempDescriptor flagtemp=getTempforVar(fes.getVar());

@@ -21,6 +21,10 @@ public class State {
 	parsetrees.add(parsetree);
     }
 
+    /** Boolean flag which indicates whether compiler is compiling a task-based
+     * program. */
+    public boolean TASK;
+
     public SymbolTable classes;
     public SymbolTable tasks;
     public Set parsetrees;
