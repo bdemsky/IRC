@@ -71,12 +71,13 @@ public class BuildIR {
     public void parseFlagEffect(FlagEffects fes, ParseNode pn) {
 	ParseNodeVector pnv=pn.getChildren();
 	for(int i=0;i<pnv.size();i++) {
+	    ParseNode pn2=pnv.elementAt(i);
 	    boolean status=true;
-	    if (pn.getChild("not")!=null) {
+	    if (isNode(pn2,"not")) {
 		status=false;
-		pn=pn.getChild("not");
+		pn2=pn2.getChild("name");
 	    }
-	    String name=pn.getChild("name").getTerminal();
+	    String name=pn2.getTerminal();
 	    fes.addEffect(new FlagEffect(name,status));
 	}
     }

@@ -92,8 +92,16 @@ public class State {
 	return tasks;
     }
 
+    /** Returns Flat IR representation of MethodDescriptor md. */
+
     public FlatMethod getMethodFlat(MethodDescriptor md) {
 	return (FlatMethod)flatmethodmap.get(md);
+    }
+
+    /** Returns Flat IR representation of TaskDescriptor td. */
+
+    public FlatMethod getMethodFlat(TaskDescriptor td) {
+	return (FlatMethod)flatmethodmap.get(td);
     }
 
     public void addTreeCode(MethodDescriptor md, BlockNode bn) {

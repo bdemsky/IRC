@@ -30,6 +30,10 @@ public class FlatMethod extends FlatNode {
     public MethodDescriptor getMethod() {
 	return method;
     }
+
+    public TaskDescriptor getTask() {
+	return task;
+    }
     
     public void addParameterTemp(TempDescriptor t) {
 	parameterTemps.add(t);

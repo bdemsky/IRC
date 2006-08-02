@@ -7,6 +7,7 @@ public class TempObject {
     private Vector pointerparams;
     private Vector primitiveparams;
     private MethodDescriptor method;
+    private TaskDescriptor task;
     private int tag;
     private Hashtable paramtotemp;
     private Hashtable temptostore;
@@ -19,6 +20,17 @@ public class TempObject {
 	paramtotemp=new Hashtable();
 	temptostore=new Hashtable();
 	this.method=md;
+	this.tag=tag;
+	count=0;
+    }
+
+    public TempObject(ParamsObject p, TaskDescriptor task, int tag) {
+	params=p;
+	pointerparams=new Vector();
+	primitiveparams=new Vector();
+	paramtotemp=new Hashtable();
+	temptostore=new Hashtable();
+	this.task=task;
 	this.tag=tag;
 	count=0;
     }

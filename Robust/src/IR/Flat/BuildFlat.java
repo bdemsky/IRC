@@ -76,7 +76,6 @@ public class BuildFlat {
 	    for(int i=0;i<md.numParameters();i++) {
 		fm.addParameterTemp(getTempforVar(md.getParameter(i)));
 	    }
-	    System.out.println(fm.printMethod());
 	    state.addFlatCode(md,fm);
 	}
     }

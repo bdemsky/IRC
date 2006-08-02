@@ -62,7 +62,7 @@ public class BuildCode {
 	outstructs.println("#define CHARARRAYTYPE "+
 			   (state.getArrayNumber((new TypeDescriptor(TypeDescriptor.CHAR)).makeArray(state))+state.numClasses()));
 
-	// Output the C declarations
+	// Output the C class declarations
 	// These could mutually reference each other
 	outclassdefs.println("struct "+arraytype+";");
 	while(it.hasNext()) {
@@ -78,16 +78,18 @@ public class BuildCode {
 	    outclassdefs.println("  int ___length___;");
 	    outclassdefs.println("};\n");
 	}
+
+	// Output function prototypes and structures for parameters
 	it=state.getClassSymbolTable().getDescriptorsIterator();
 	while(it.hasNext()) {
 	    ClassDescriptor cn=(ClassDescriptor)it.next();
 	    generateCallStructs(cn, outclassdefs, outstructs, outmethodheader);
 	}
-
-
-
 	outstructs.close();
 	outmethodheader.close();
+
+	if (state.TASK)
+	    generateTaskStructs(outstructs, outmethodheader);
 
 	/* Build the actual methods */
 	outmethod.println("#include \"methodheaders.h\"");
@@ -110,7 +112,17 @@ public class BuildCode {
 		    generateFlatMethod(fm,outmethod);
 	    }
 	}
-	if (state.main!=null) {
+
+	if (state.TASK) {
+	    /* Compile task based program */
+	    Iterator taskit=state.getTaskSymbolTable().getDescriptorsIterator();
+	    while(taskit.hasNext()) {
+		TaskDescriptor td=(TaskDescriptor)taskit.next();
+		FlatMethod fm=state.getMethodFlat(td);
+		generateFlatMethod(fm, outmethod);
+	    }
+	} else if (state.main!=null) {
+	    /* Compile method based program */
 	    outmethod.println("int main(int argc, const char *argv[]) {");
 	    ClassDescriptor cd=typeutil.getClass(state.main);
 	    Set mainset=cd.getMethodTable().getSet("main");
@@ -188,6 +200,10 @@ public class BuildCode {
 	}
     }
 
+    /** Generate array that contains the sizes of class objects.  The
+     * object allocation functions in the runtime use this
+     * information. */
+
     private void generateSizeArray(PrintWriter outclassdefs) {
 	outclassdefs.print("int classsize[]={");
 	Iterator it=state.getClassSymbolTable().getDescriptorsIterator();
@@ -227,10 +243,20 @@ public class BuildCode {
 	outclassdefs.println("};");
     }
 
+    /** Constructs params and temp objects for each method or task.
+     * These objects tell the compiler which temps need to be
+     * allocated.  */
+
     private void generateTempStructs(FlatMethod fm) {
 	MethodDescriptor md=fm.getMethod();
-	ParamsObject objectparams=new ParamsObject(md,tag++);
-	paramstable.put(md, objectparams);
+	TaskDescriptor task=fm.getTask();
+
+	ParamsObject objectparams=md!=null?new ParamsObject(md,tag++):new ParamsObject(task, tag++);
+	if (md!=null)
+	    paramstable.put(md, objectparams);
+	else
+	    paramstable.put(task, objectparams);
+
 	for(int i=0;i<fm.numParameters();i++) {
 	    TempDescriptor temp=fm.getParameter(i);
 	    TypeDescriptor type=temp.getType();
@@ -240,8 +266,12 @@ public class BuildCode {
 		objectparams.addPrim(temp);
 	}
 
-	TempObject objecttemps=new TempObject(objectparams,md,tag++);
-	tempstable.put(md, objecttemps);
+	TempObject objecttemps=md!=null?new TempObject(objectparams,md,tag++):new TempObject(objectparams, task, tag++);
+	if (md!=null)
+	    tempstable.put(md, objecttemps);
+	else
+	    tempstable.put(task, objecttemps);
+
 	for(Iterator nodeit=fm.getNodeSet().iterator();nodeit.hasNext();) {
 	    FlatNode fn=(FlatNode)nodeit.next();
 	    TempDescriptor[] writes=fn.writesTemps();
@@ -256,7 +286,8 @@ public class BuildCode {
 	}
     }
     
-    /* Force consistent field ordering between inherited classes */
+    /* Force consistent field ordering between inherited classes. */
+
     private void printClassStruct(ClassDescriptor cn, PrintWriter classdefout) {
 	ClassDescriptor sp=cn.getSuperDesc();
 	if (sp!=null)
@@ -282,6 +313,10 @@ public class BuildCode {
 		classdefout.println("  "+fd.getType().getSafeSymbol()+" "+fd.getSafeSymbol()+";");
 	}
     }
+
+    /** This function outputs (1) structures that parameters are
+     * passed in (when PRECISE GC is enabled) and (2) function
+     * prototypes for the methods */
 
     private void generateCallStructs(ClassDescriptor cn, PrintWriter classdefout, PrintWriter output, PrintWriter headersout) {
 	/* Output class structure */
@@ -345,6 +380,76 @@ public class BuildCode {
 		printcomma=true;
 	    }
 
+	    //output parameter list
+	    for(int i=0;i<objectparams.numPrimitives();i++) {
+		TempDescriptor temp=objectparams.getPrimitive(i);
+		if (printcomma)
+		    headersout.print(", ");
+		printcomma=true;
+		if (temp.getType().isClass()||temp.getType().isArray())
+		    headersout.print("struct " + temp.getType().getSafeSymbol()+" * "+temp.getSafeSymbol());
+		else
+		    headersout.print(temp.getType().getSafeSymbol()+" "+temp.getSafeSymbol());
+	    }
+	    headersout.println(");\n");
+   	}
+    }
+
+
+    /** This function outputs (1) structures that parameters are
+     * passed in (when PRECISE GC is enabled) and (2) function
+     * prototypes for the tasks */
+
+    private void generateTaskStructs(PrintWriter output, PrintWriter headersout) {
+	/* Cycle through tasks */
+	Iterator taskit=state.getTaskSymbolTable().getDescriptorsIterator();
+
+	while(taskit.hasNext()) {
+	    /* Classify parameters */
+	    TaskDescriptor task=(TaskDescriptor)taskit.next();
+	    FlatMethod fm=state.getMethodFlat(task);
+	    generateTempStructs(fm);
+
+	    ParamsObject objectparams=(ParamsObject) paramstable.get(task);
+	    TempObject objecttemps=(TempObject) tempstable.get(task);
+
+	    /* Output parameter structure */
+	    if (GENERATEPRECISEGC) {
+		output.println("struct "+task.getSafeSymbol()+"_params {");
+		output.println("  int type;");
+		output.println("  void * next;");
+		for(int i=0;i<objectparams.numPointers();i++) {
+		    TempDescriptor temp=objectparams.getPointer(i);
+		    output.println("  struct "+temp.getType().getSafeSymbol()+" * "+temp.getSafeSymbol()+";");
+		}
+		output.println("};\n");
+	    }
+
+	    /* Output temp structure */
+	    if (GENERATEPRECISEGC) {
+		output.println("struct "+task.getSafeSymbol()+"_locals {");
+		output.println("  int type;");
+		output.println("  void * next;");
+		for(int i=0;i<objecttemps.numPointers();i++) {
+		    TempDescriptor temp=objecttemps.getPointer(i);
+		    if (temp.getType().isNull())
+			output.println("  void * "+temp.getSafeSymbol()+";");
+		    else
+			output.println("  struct "+temp.getType().getSafeSymbol()+" * "+temp.getSafeSymbol()+";");
+		}
+		output.println("};\n");
+	    }
+	    
+	    /* Output task declaration */
+	    headersout.print("void " + task.getSafeSymbol()+"_"+"(");
+	    
+	    boolean printcomma=false;
+	    if (GENERATEPRECISEGC) {
+		headersout.print("struct "+task.getSafeSymbol()+"_params * "+paramsprefix);
+		printcomma=true;
+	    }
+
+	    //output parameter list
 	    for(int i=0;i<objectparams.numPrimitives();i++) {
 		TempDescriptor temp=objectparams.getPrimitive(i);
 		if (printcomma)
@@ -361,17 +466,24 @@ public class BuildCode {
 
     private void generateFlatMethod(FlatMethod fm, PrintWriter output) {
 	MethodDescriptor md=fm.getMethod();
-       	ClassDescriptor cn=md.getClassDesc();
-	ParamsObject objectparams=(ParamsObject)paramstable.get(md);
+	TaskDescriptor task=fm.getTask();
 
-	generateHeader(md,output);
+       	ClassDescriptor cn=md!=null?md.getClassDesc():null;
+
+	ParamsObject objectparams=(ParamsObject)paramstable.get(md!=null?md:task);
+
+	generateHeader(md!=null?md:task,output);
+
 	/* Print code */
 	output.println(" {");
 	
 	if (GENERATEPRECISEGC) {
-	    output.println("   struct "+cn.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_locals "+localsprefix+";");
+	    if (md!=null)
+		output.println("   struct "+cn.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_locals "+localsprefix+";");
+	    else
+		output.println("   struct "+task.getSafeSymbol()+"_locals "+localsprefix+";");
 	}
-	TempObject objecttemp=(TempObject) tempstable.get(md);
+	TempObject objecttemp=(TempObject) tempstable.get(md!=null?md:task);
 	for(int i=0;i<objecttemp.numPrimitives();i++) {
 	    TempDescriptor td=objecttemp.getPrimitive(i);
 	    TypeDescriptor type=td.getType();
@@ -459,7 +571,8 @@ public class BuildCode {
 
     private String generateTemp(FlatMethod fm, TempDescriptor td) {
 	MethodDescriptor md=fm.getMethod();
-	TempObject objecttemps=(TempObject) tempstable.get(md);
+	TaskDescriptor task=fm.getTask();
+	TempObject objecttemps=(TempObject) tempstable.get(md!=null?md:task);
 	if (objecttemps.isLocalPrim(td)||objecttemps.isParamPrim(td)) {
 	    return td.getSafeSymbol();
 	}
@@ -508,6 +621,9 @@ public class BuildCode {
 	    return;
 	case FKind.FlatNop:
 	    output.println("/* nop */");
+	    return;
+	case FKind.FlatFlagActionNode:
+	    generateFlatFlagActionNode(fm, (FlatFlagActionNode) fn, output);
 	    return;
 	}
 	throw new Error();
@@ -721,12 +837,19 @@ public class BuildCode {
 	output.println("if (!"+generateTemp(fm, fcb.getTest())+") goto "+label+";");
     }
 
-    private void generateHeader(MethodDescriptor md, PrintWriter output) {
+    private void generateHeader(Descriptor des, PrintWriter output) {
 	/* Print header */
-	ParamsObject objectparams=(ParamsObject)paramstable.get(md);
-	ClassDescriptor cn=md.getClassDesc();
+	ParamsObject objectparams=(ParamsObject)paramstable.get(des);
+	MethodDescriptor md=null;
+	TaskDescriptor task=null;
+	if (des instanceof MethodDescriptor)
+	    md=(MethodDescriptor) des;
+	else
+	    task=(TaskDescriptor) des;
+
+	ClassDescriptor cn=md!=null?md.getClassDesc():null;
 	
-	if (md.getReturnType()!=null) {
+	if (md!=null&&md.getReturnType()!=null) {
 	    if (md.getReturnType().isClass()||md.getReturnType().isArray())
 		output.print("struct " + md.getReturnType().getSafeSymbol()+" * ");
 	    else
@@ -734,12 +857,17 @@ public class BuildCode {
 	} else 
 	    //catch the constructor case
 	    output.print("void ");
-
-	output.print(cn.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"(");
+	if (md!=null)
+	    output.print(cn.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"(");
+	else
+	    output.print(task.getSafeSymbol()+"(");
 	
 	boolean printcomma=false;
 	if (GENERATEPRECISEGC) {
-	    output.print("struct "+cn.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_params * "+paramsprefix);
+	    if (md!=null)
+		output.print("struct "+cn.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_params * "+paramsprefix);
+	    else
+		output.print("struct "+task.getSafeSymbol()+"_params * "+paramsprefix);
 	    printcomma=true;
 	} 
 
@@ -754,5 +882,9 @@ public class BuildCode {
 		output.print(temp.getType().getSafeSymbol()+" "+temp.getSafeSymbol());
 	}
 	output.print(")");
+    }
+
+    public void generateFlatFlagActionNode(FlatMethod fm, FlatFlagActionNode ffann, PrintWriter output) {
+	output.print("/* FlatFlagActionNode will go here */");
     }
 }

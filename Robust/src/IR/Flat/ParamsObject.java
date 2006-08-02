@@ -6,6 +6,7 @@ public class ParamsObject {
     private Vector pointerparams;
     private Vector primitiveparams;
     private MethodDescriptor method;
+    private TaskDescriptor task;
     private int tag;
     private Hashtable paramtotemp;
     private Hashtable temptostore;
@@ -17,6 +18,16 @@ public class ParamsObject {
 	paramtotemp=new Hashtable();
 	temptostore=new Hashtable();
 	this.method=md;
+	this.tag=tag;
+	count=0;
+    }
+
+    public ParamsObject(TaskDescriptor task, int tag) {
+	pointerparams=new Vector();
+	primitiveparams=new Vector();
+	paramtotemp=new Hashtable();
+	temptostore=new Hashtable();
+	this.task=task;
 	this.tag=tag;
 	count=0;
     }
