@@ -81,3 +81,18 @@ task foo(type1 o1{role1||role2}, type2 o2{role3}) {
 	
   exit(o1{role1'=false},o2{role3'=false},onew{role4=true});
 }
+----------------------------------------------------------------
+----------------------------------------------------------------
+
+Initial design:
+----------------------------------------------------------------
+
+Provide runtime with:
+1) List of tasks
+   a) Task names
+   b) Parameter types
+   c) Flag settings
+
+2) List of flags for each type
+
+3) Flag transition calls

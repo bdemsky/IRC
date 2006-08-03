@@ -9,6 +9,7 @@ public class BuildCode {
     Hashtable paramstable;
     Hashtable tempstable;
     Hashtable fieldorder;
+    Hashtable flagorder;
     int tag=0;
     String localsprefix="___locals___";
     String paramsprefix="___params___";
@@ -25,6 +26,7 @@ public class BuildCode {
 	paramstable=new Hashtable();	
 	tempstable=new Hashtable();
 	fieldorder=new Hashtable();
+	flagorder=new Hashtable();
 	this.typeutil=typeutil;
 	virtualcalls=new Virtual(state);
     }
@@ -141,6 +143,7 @@ public class BuildCode {
     }
 
     private int maxcount=0;
+    /** This function outputs the virtual dispatch tables for methods. */
 
     private void buildVirtualTables(PrintWriter outvirtual) {
     	Iterator classit=state.getClassSymbolTable().getDescriptorsIterator();
@@ -311,6 +314,39 @@ public class BuildCode {
 		classdefout.println("  struct "+fd.getType().getSafeSymbol()+" * "+fd.getSafeSymbol()+";");
 	    else 
 		classdefout.println("  "+fd.getType().getSafeSymbol()+" "+fd.getSafeSymbol()+";");
+	}
+    }
+
+
+    /* Map flags to integers consistently between inherited
+     * classes. */
+
+    private void mapFlags(ClassDescriptor cn) {
+	ClassDescriptor sp=cn.getSuperDesc();
+	if (sp!=null)
+	    mapFlags(sp);
+	int max=0;
+	if (!flagorder.containsKey(cn)) {
+	    Hashtable flags=new Hashtable();
+	    flagorder.put(cn,flags);
+	    if (sp!=null) {
+		Hashtable superflags=(Hashtable)flagorder.get(sp);
+		Iterator superflagit=superflags.keySet().iterator();
+		while(superflagit.hasNext()) {
+		    FlagDescriptor fd=(FlagDescriptor)superflagit.next();
+		    Integer number=(Integer)superflags.get(fd);
+		    flags.put(fd, number);
+		    if (number.intValue()>max)
+			max=number.intValue();
+		}
+	    }
+	    
+	    Iterator flagit=cn.getFlags();
+	    while(flagit.hasNext()) {
+		FlagDescriptor fd=(FlagDescriptor)flagit.next();
+		if (sp==null||!sp.getFlagTable().contains(fd.getSymbol()))
+		    flags.put(fd, new Integer(++max));
+	    }
 	}
     }
 
