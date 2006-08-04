@@ -31,8 +31,12 @@ public class BuildCode {
 	virtualcalls=new Virtual(state);
     }
 
+    /** The buildCode method outputs C code for all the methods.  The Flat
+     * versions of the methods must already be generated and stored in
+     * the State object. */
+
     public void buildCode() {
-	Iterator it=state.getClassSymbolTable().getDescriptorsIterator();
+	/* Create output streams to write to */
 	PrintWriter outclassdefs=null;
 	PrintWriter outstructs=null;
 	PrintWriter outmethodheader=null;
@@ -55,7 +59,11 @@ public class BuildCode {
 	    System.exit(-1);
 	}
 
+	/* Build the virtual dispatch tables */
+
 	buildVirtualTables(outvirtual);
+
+	/* Output includes */
 	outstructs.println("#include \"classdefs.h\"");
 	outmethodheader.println("#include \"structdefs.h\"");
 
@@ -67,6 +75,8 @@ public class BuildCode {
 	// Output the C class declarations
 	// These could mutually reference each other
 	outclassdefs.println("struct "+arraytype+";");
+
+	Iterator it=state.getClassSymbolTable().getDescriptorsIterator();
 	while(it.hasNext()) {
 	    ClassDescriptor cn=(ClassDescriptor)it.next();
 	    outclassdefs.println("struct "+cn.getSafeSymbol()+";");
@@ -90,18 +100,27 @@ public class BuildCode {
 	outstructs.close();
 	outmethodheader.close();
 
-	if (state.TASK)
+	if (state.TASK) {
+	    /* Map flags to integers */
+	    it=state.getClassSymbolTable().getDescriptorsIterator();
+	    while(it.hasNext()) {
+		ClassDescriptor cn=(ClassDescriptor)it.next();
+		mapFlags(cn);
+	    }
+	    /* Generate Tasks */
 	    generateTaskStructs(outstructs, outmethodheader);
+	}
 
 	/* Build the actual methods */
 	outmethod.println("#include \"methodheaders.h\"");
 	outmethod.println("#include \"virtualtable.h\"");
 	outmethod.println("#include <runtime.h>");
-
 	outclassdefs.println("extern int classsize[];");
+
 	//Store the sizes of classes & array elements
 	generateSizeArray(outmethod);
 
+	/* Generate code for methods */
 	Iterator classit=state.getClassSymbolTable().getDescriptorsIterator();
 	while(classit.hasNext()) {
 	    ClassDescriptor cn=(ClassDescriptor)classit.next();
@@ -124,7 +143,7 @@ public class BuildCode {
 		generateFlatMethod(fm, outmethod);
 	    }
 	} else if (state.main!=null) {
-	    /* Compile method based program */
+	    /* Generate main method */
 	    outmethod.println("int main(int argc, const char *argv[]) {");
 	    ClassDescriptor cd=typeutil.getClass(state.main);
 	    Set mainset=cd.getMethodTable().getSet("main");
@@ -143,7 +162,9 @@ public class BuildCode {
     }
 
     private int maxcount=0;
-    /** This function outputs the virtual dispatch tables for methods. */
+
+    /** The buildVirtualTables method outputs the virtual dispatch
+     * tables for methods. */
 
     private void buildVirtualTables(PrintWriter outvirtual) {
     	Iterator classit=state.getClassSymbolTable().getDescriptorsIterator();
@@ -500,6 +521,8 @@ public class BuildCode {
    	}
     }
 
+    /** Generate code for flatmethod fm. */
+
     private void generateFlatMethod(FlatMethod fm, PrintWriter output) {
 	MethodDescriptor md=fm.getMethod();
 	TaskDescriptor task=fm.getTask();
@@ -605,6 +628,7 @@ public class BuildCode {
 	output.println("}\n\n");
     }
 
+    /** Generate text string that corresponds to the Temp td. */
     private String generateTemp(FlatMethod fm, TempDescriptor td) {
 	MethodDescriptor md=fm.getMethod();
 	TaskDescriptor task=fm.getTask();

@@ -42,7 +42,8 @@ Lex/Token.class Lex/TraditionalComment.class Lex/WhiteSpace.class	\
 Analysis/Flag/FlagState.class Analysis/Flag/FlagAnalysis.class		\
 Analysis/CallGraph/CallGraph.class
 
-all: Parse/Sym.class Parse/Parser.class $(CLASSFILES)
+
+all: Parse/Sym.class Parse/Parser.class $(CLASSFILES) javadoc
 
 Parse/Parser.java Parse/Sym.java: Parse/java14.cup
 	cd Parse && \
@@ -51,5 +52,9 @@ Parse/Parser.java Parse/Sym.java: Parse/java14.cup
 %.class: %.java
 	javac -cp ../cup:.:$(CLASSPATH) $<
 
+javadoc:
+	mkdir javadoc
+	javadoc -classpath ../cup:.:$(CLASSPATH) -sourcepath .:./ClassLibrary -private -d javadoc Lex Util ClassLibrary IR IR.Tree IR.Flat Analysis Analysis.CallGraph Analysis.Flag Main ClassLibrary/*.java
+
 clean:
-	rm IR/*.class IR/Tree/*.class Main/*.class Lex/*.class Parse/*.class Parse/Sym.java Parse/Parser.java IR/Flat/*.class classdefs.h methodheaders.h methods.c structdefs.h virtualtable.h Analysis/*.class Analysis/Flag/*.class Analysis/CallGraph/*.class
+	rm IR/*.class IR/Tree/*.class Main/*.class Lex/*.class Parse/*.class Parse/Sym.java Parse/Parser.java IR/Flat/*.class classdefs.h methodheaders.h methods.c structdefs.h virtualtable.h Analysis/*.class Analysis/Flag/*.class Analysis/CallGraph/*.class -r javadoc
