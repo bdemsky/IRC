@@ -1,4 +1,5 @@
 package IR.Tree;
+import java.util.Vector;
 
 import IR.*;
 
@@ -28,5 +29,9 @@ public class FlagNode extends FlagExpressionNode {
 
     public String printNode(int indent) {
 	return name;
+    }
+
+    public DNFFlag getDNF() {
+	return new DNFFlag(this);
     }
 }

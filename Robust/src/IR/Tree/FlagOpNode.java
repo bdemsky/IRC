@@ -40,4 +40,17 @@ public class FlagOpNode extends FlagExpressionNode {
     public int kind() {
 	return Kind.FlagOpNode;
     }
+
+    public DNFFlag getDNF() {
+	DNFFlag leftflag=left.getDNF();
+	DNFFlag rightflag=right!=null?right.getDNF():null;
+
+	if (op.getOp()==Operation.LOGIC_NOT) {
+	    return leftflag.not();
+	} else if (op.getOp()==Operation.LOGIC_OR) {
+	    return leftflag.or(rightflag);
+	} else if (op.getOp()==Operation.LOGIC_AND) {
+	    return leftflag.and(rightflag);
+	} else throw new Error();
+    }
 }
