@@ -163,6 +163,15 @@ public class BuildCode {
 
     private int maxcount=0;
 
+    /** This method outputs TaskDescriptor information */
+    void generateTaskDescriptor(PrintWriter output, TaskDescriptor task) {
+	output.println("struct taskdescriptor task_"+task.getSafeSymbol()+"={");
+	output.println("&"+task.getSafeSymbol()+",");
+	
+	output.println("};");
+    }
+
+
     /** The buildVirtualTables method outputs the virtual dispatch
      * tables for methods. */
 
