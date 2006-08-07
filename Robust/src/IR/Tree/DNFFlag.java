@@ -3,7 +3,7 @@ import java.util.Vector;
 import IR.*;
 
 public class DNFFlag {
-    Vector conjunctions;
+    private Vector conjunctions;
     public DNFFlag(FlagNode flag) {
 	DNFFlagAtom dfa=new DNFFlagAtom(flag, false);
 	conjunctions=new Vector();
@@ -15,6 +15,18 @@ public class DNFFlag {
 	conjunctions=new Vector();
     }
 
+    /** Returns the number of conjunctions in the DNF form. */
+
+    public int size() {
+	return conjunctions.size();
+    }
+
+    /** Returns a Vector containing the terms in the n'th conjunction. */
+
+    public Vector get(int n) {
+	return (Vector) conjunctions.get(n);
+    }
+
     /** This method negates a DNFFlag expression. */
 
     public DNFFlag not() {
@@ -24,7 +36,7 @@ public class DNFFlag {
             DNFFlag newflag=null;
             for (int j=0;j<conj.size();j++) {
                 DNFFlagAtom dfa=(DNFFlagAtom) conj.get(j);
-		DNFFlagAtom negdfa=new DNFFlagAtom(dfa.flag,!dfa.negated);
+		DNFFlagAtom negdfa=new DNFFlagAtom(dfa.getFlagNode(),!dfa.getNegated());
 		DNFFlag tmp=new DNFFlag();
 		Vector v=new Vector();
 		tmp.conjunctions.add(v);

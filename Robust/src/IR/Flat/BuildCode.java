@@ -1,4 +1,7 @@
 package IR.Flat;
+import IR.Tree.FlagExpressionNode;
+import IR.Tree.DNFFlag;
+import IR.Tree.DNFFlagAtom;
 import IR.*;
 import java.util.*;
 import java.io.*;
@@ -89,6 +92,21 @@ public class BuildCode {
 	    printClassStruct(typeutil.getClass(TypeUtil.ObjectClass), outclassdefs);
 	    outclassdefs.println("  int ___length___;");
 	    outclassdefs.println("};\n");
+
+	    if (state.TASK) {
+	    //Print out definitions for task types
+		outclassdefs.println("struct parameterdescriptor {");
+		outclassdefs.println("int type;");
+		outclassdefs.println("int numberterms;");
+		outclassdefs.println("int **intarray;");
+		outclassdefs.println("};");
+
+		outclassdefs.println("struct taskdescriptor {");
+		outclassdefs.println("void * taskptr;");
+		outclassdefs.println("int numParameters;");
+		outclassdefs.println("struct parameterdescriptor **descriptorarray;");
+		outclassdefs.println("};");
+	    }
 	}
 
 	// Output function prototypes and structures for parameters
@@ -165,9 +183,54 @@ public class BuildCode {
 
     /** This method outputs TaskDescriptor information */
     void generateTaskDescriptor(PrintWriter output, TaskDescriptor task) {
+	for (int i=0;i<task.numParameters();i++) {
+	    VarDescriptor param_var=task.getParameter(i);
+	    TypeDescriptor param_type=task.getParamType(i);
+	    FlagExpressionNode param_flag=task.getFlag(param_var);
+	    DNFFlag dflag=param_flag.getDNF();
+	    
+	    Hashtable flags=(Hashtable)flagorder.get(param_type.getClassDesc());
+			
+	    output.println("int [] parameterdnf_"+i+"_"+task.getSafeSymbol()+"={");
+	    for(int j=0;j<dflag.size();j++) {
+		if (j!=0)
+		    output.println(",");
+		Vector term=dflag.get(j);
+		int andmask=0;
+		int checkmask=0;
+		for(int k=0;k<term.size();k++) {
+		    DNFFlagAtom dfa=(DNFFlagAtom)term.get(k);
+		    FlagDescriptor fd=dfa.getFlag();
+		    boolean negated=dfa.getNegated();
+		    int flagid=((Integer)flags.get(fd)).intValue();
+		    andmask|=flagid;
+		    if (!negated)
+			checkmask|=flagid;
+		}
+		output.print(andmask+", "+checkmask);
+	    }
+	    output.println("};");
+
+	    output.println("struct parameterdescriptor parameter_"+i+"_"+task.getSafeSymbol()+"={");
+	    output.println("/* type */"+param_type.getClassDesc().getId()+",");
+	    output.println("/* number of DNF terms */"+dflag.size()+",");
+	    output.println("&parameterdnf_"+i+"_"+task.getSafeSymbol());
+	    output.println("};");
+	}
+
+
+	output.println("struct * parameterdescriptor parameterdescriptors_"+task.getSafeSymbol()+" [] = {");
+	for (int i=0;i<task.numParameters();i++) {
+	    if (i!=0)
+		output.println(",");
+	    output.print("&parameter_"+i+"_"+task.getSafeSymbol());
+	}
+	output.println("};");
+
 	output.println("struct taskdescriptor task_"+task.getSafeSymbol()+"={");
 	output.println("&"+task.getSafeSymbol()+",");
-	
+	output.println("/* number of parameters */" +task.numParameters() + ",");
+	output.println("&parameterdescriptors_"+task.getSafeSymbol());
 	output.println("};");
     }
 

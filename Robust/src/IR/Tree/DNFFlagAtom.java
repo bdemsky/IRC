@@ -3,11 +3,23 @@ package IR.Tree;
 import IR.*;
 
 public class DNFFlagAtom {
-    final FlagNode flag;
-    final boolean negated;
+    private final FlagNode flag;
+    private final boolean negated;
 
     public DNFFlagAtom(FlagNode flag, boolean negated) {
 	this.flag=flag;
 	this.negated=negated;
+    }
+
+    public FlagNode getFlagNode() {
+	return flag;
+    }
+
+    public FlagDescriptor getFlag() {
+	return flag.getFlag();
+    }
+
+    public boolean getNegated() {
+	return negated;
     }
 }
