@@ -45,6 +45,8 @@ public class BuildCode {
 	PrintWriter outmethodheader=null;
 	PrintWriter outmethod=null;
 	PrintWriter outvirtual=null;
+	PrintWriter outtask=null;
+	PrintWriter outtaskdefs=null;
 
 	try {
 	    OutputStream str=new FileOutputStream(PREFIX+"structdefs.h");
@@ -57,6 +59,12 @@ public class BuildCode {
 	    outmethod=new java.io.PrintWriter(str, true);
 	    str=new FileOutputStream(PREFIX+"virtualtable.h");
 	    outvirtual=new java.io.PrintWriter(str, true);
+	    if (state.TASK) {
+		str=new FileOutputStream(PREFIX+"task.h");
+		outtask=new java.io.PrintWriter(str, true);
+		str=new FileOutputStream(PREFIX+"taskdefs.c");
+		outtaskdefs=new java.io.PrintWriter(str, true);
+	    }
 	} catch (Exception e) {
 	    e.printStackTrace();
 	    System.exit(-1);
@@ -74,6 +82,8 @@ public class BuildCode {
 	outstructs.println("#define STRINGTYPE "+typeutil.getClass(TypeUtil.StringClass).getId());
 	outstructs.println("#define CHARARRAYTYPE "+
 			   (state.getArrayNumber((new TypeDescriptor(TypeDescriptor.CHAR)).makeArray(state))+state.numClasses()));
+	if (state.TASK)
+	    outstructs.println("#define STARTUPTYPE "+typeutil.getClass(TypeUtil.StartupClass).getId());
 
 	// Output the C class declarations
 	// These could mutually reference each other
@@ -95,17 +105,19 @@ public class BuildCode {
 
 	    if (state.TASK) {
 	    //Print out definitions for task types
-		outclassdefs.println("struct parameterdescriptor {");
-		outclassdefs.println("int type;");
-		outclassdefs.println("int numberterms;");
-		outclassdefs.println("int **intarray;");
-		outclassdefs.println("};");
+		outtask.println("struct parameterdescriptor {");
+		outtask.println("int type;");
+		outtask.println("int numberterms;");
+		outtask.println("int *intarray;");
+		outtask.println("};");
 
-		outclassdefs.println("struct taskdescriptor {");
-		outclassdefs.println("void * taskptr;");
-		outclassdefs.println("int numParameters;");
-		outclassdefs.println("struct parameterdescriptor **descriptorarray;");
-		outclassdefs.println("};");
+		outtask.println("struct taskdescriptor {");
+		outtask.println("void * taskptr;");
+		outtask.println("int numParameters;");
+		outtask.println("struct parameterdescriptor **descriptorarray;");
+		outtask.println("};");
+		outtask.println("extern struct taskdescriptor * taskarray[];");
+		outtask.println("extern numtasks;");
 	    }
 	}
 
@@ -116,7 +128,6 @@ public class BuildCode {
 	    generateCallStructs(cn, outclassdefs, outstructs, outmethodheader);
 	}
 	outstructs.close();
-	outmethodheader.close();
 
 	if (state.TASK) {
 	    /* Map flags to integers */
@@ -128,6 +139,8 @@ public class BuildCode {
 	    /* Generate Tasks */
 	    generateTaskStructs(outstructs, outmethodheader);
 	}
+
+	outmethodheader.close();
 
 	/* Build the actual methods */
 	outmethod.println("#include \"methodheaders.h\"");
@@ -154,12 +167,30 @@ public class BuildCode {
 
 	if (state.TASK) {
 	    /* Compile task based program */
+	    outtaskdefs.println("#include \"task.h\"");
+	    outtaskdefs.println("#include \"methodheaders.h\"");
 	    Iterator taskit=state.getTaskSymbolTable().getDescriptorsIterator();
 	    while(taskit.hasNext()) {
 		TaskDescriptor td=(TaskDescriptor)taskit.next();
 		FlatMethod fm=state.getMethodFlat(td);
 		generateFlatMethod(fm, outmethod);
+		generateTaskDescriptor(outtaskdefs, td);
 	    }
+
+	    taskit=state.getTaskSymbolTable().getDescriptorsIterator();
+	    outtaskdefs.println("struct taskdescriptor * taskarray[]= {");
+	    boolean first=true;
+	    while(taskit.hasNext()) {
+		TaskDescriptor td=(TaskDescriptor)taskit.next();
+		if (first)
+		    first=false;
+		else
+		    outtaskdefs.println(",");
+		outtaskdefs.print("&task_"+td.getSafeSymbol());
+	    }
+	    outtaskdefs.println("};");
+	    outtaskdefs.println("int numtasks="+state.getTaskSymbolTable().getValueSet().size()+";");
+
 	} else if (state.main!=null) {
 	    /* Generate main method */
 	    outmethod.println("int main(int argc, const char *argv[]) {");
@@ -191,7 +222,7 @@ public class BuildCode {
 	    
 	    Hashtable flags=(Hashtable)flagorder.get(param_type.getClassDesc());
 			
-	    output.println("int [] parameterdnf_"+i+"_"+task.getSafeSymbol()+"={");
+	    output.println("int parameterdnf_"+i+"_"+task.getSafeSymbol()+"[]={");
 	    for(int j=0;j<dflag.size();j++) {
 		if (j!=0)
 		    output.println(",");
@@ -214,12 +245,12 @@ public class BuildCode {
 	    output.println("struct parameterdescriptor parameter_"+i+"_"+task.getSafeSymbol()+"={");
 	    output.println("/* type */"+param_type.getClassDesc().getId()+",");
 	    output.println("/* number of DNF terms */"+dflag.size()+",");
-	    output.println("&parameterdnf_"+i+"_"+task.getSafeSymbol());
+	    output.println("parameterdnf_"+i+"_"+task.getSafeSymbol());
 	    output.println("};");
 	}
 
 
-	output.println("struct * parameterdescriptor parameterdescriptors_"+task.getSafeSymbol()+" [] = {");
+	output.println("struct parameterdescriptor * parameterdescriptors_"+task.getSafeSymbol()+"[] = {");
 	for (int i=0;i<task.numParameters();i++) {
 	    if (i!=0)
 		output.println(",");
@@ -230,7 +261,7 @@ public class BuildCode {
 	output.println("struct taskdescriptor task_"+task.getSafeSymbol()+"={");
 	output.println("&"+task.getSafeSymbol()+",");
 	output.println("/* number of parameters */" +task.numParameters() + ",");
-	output.println("&parameterdescriptors_"+task.getSafeSymbol());
+	output.println("parameterdescriptors_"+task.getSafeSymbol());
 	output.println("};");
     }
 
@@ -570,7 +601,7 @@ public class BuildCode {
 	    }
 	    
 	    /* Output task declaration */
-	    headersout.print("void " + task.getSafeSymbol()+"_"+"(");
+	    headersout.print("void " + task.getSafeSymbol()+"(");
 	    
 	    boolean printcomma=false;
 	    if (GENERATEPRECISEGC) {

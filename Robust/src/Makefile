@@ -57,4 +57,4 @@ javadoc:
 	javadoc -classpath ../cup:.:$(CLASSPATH) -sourcepath .:./ClassLibrary -private -d javadoc Lex Util ClassLibrary IR IR.Tree IR.Flat Analysis Analysis.CallGraph Analysis.Flag Main ClassLibrary/*.java
 
 clean:
-	rm IR/*.class IR/Tree/*.class Main/*.class Lex/*.class Parse/*.class Parse/Sym.java Parse/Parser.java IR/Flat/*.class classdefs.h methodheaders.h methods.c structdefs.h virtualtable.h Analysis/*.class Analysis/Flag/*.class Analysis/CallGraph/*.class -r javadoc
+	rm IR/*.class IR/Tree/*.class Main/*.class Lex/*.class Parse/*.class Parse/Sym.java Parse/Parser.java IR/Flat/*.class classdefs.h methodheaders.h methods.c structdefs.h virtualtable.h task.h taskdefs.c taskdefs.h Analysis/*.class Analysis/Flag/*.class Analysis/CallGraph/*.class -r javadoc
