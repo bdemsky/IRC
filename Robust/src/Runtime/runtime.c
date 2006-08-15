@@ -15,6 +15,8 @@ int main(int argc, char **argv) {
   int i;
   /* Allocate startup object */
   struct ___StartupObject___ *startupobject=(struct ___StartupObject___*) allocate_new(STARTUPTYPE);
+  /* Set flag */
+  flagor(startupobject,1);
 
   /* Build array of strings */
   struct ArrayObject * stringarray=allocate_newarray(STRINGARRAYTYPE, argc); 
@@ -23,11 +25,20 @@ int main(int argc, char **argv) {
   for(i=0;i<argc;i++) {
     int length=strlen(argv[i]);
     struct ___String___ *newstring=NewString(argv[i],length);
-    ((void **)(((char *)& stringarray->___length___)+sizeof(int)))[i]=newstring;  
+    ((void **)(((char *)& stringarray->___length___)+sizeof(int)))[i]=newstring;
   }
-
-
+  processtasks();
 }
+
+void flagor(void * ptr, int ormask) {
+  ((int *)ptr)[1]|=ormask;
+}
+
+void flagand(void * ptr, int andmask) {
+  ((int *)ptr)[1]&=andmask;
+}
+
+void processtasks();
 #endif
 
 int ___Object______hashcode____(struct ___Object___ * ___this___) {

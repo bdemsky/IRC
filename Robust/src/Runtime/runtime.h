@@ -10,4 +10,7 @@ struct ___String___ * NewString(char *str,int length);
 
 void failedboundschk();
 void failednullptr();
+void flagor(void * ptr, int ormask);
+void flagand(void * ptr, int andmask);
+
 #endif

@@ -17,6 +17,10 @@ public class TempFlagPair {
 	return td;
     }
 
+    public FlagDescriptor getFlag() {
+	return fd;
+    }
+
     public boolean equals(Object o) {
 	if (!(o instanceof TempFlagPair))
 	    return false;

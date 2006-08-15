@@ -237,12 +237,12 @@ public class BuildCode {
 		    DNFFlagAtom dfa=(DNFFlagAtom)term.get(k);
 		    FlagDescriptor fd=dfa.getFlag();
 		    boolean negated=dfa.getNegated();
-		    int flagid=((Integer)flags.get(fd)).intValue();
+		    int flagid=1<<((Integer)flags.get(fd)).intValue();
 		    andmask|=flagid;
 		    if (!negated)
 			checkmask|=flagid;
 		}
-		output.print(andmask+", "+checkmask);
+		output.print("0x"+Integer.toHexString(andmask)+", 0x"+Integer.toHexString(checkmask));
 	    }
 	    output.println("};");
 
@@ -464,8 +464,8 @@ public class BuildCode {
 		    FlagDescriptor fd=(FlagDescriptor)superflagit.next();
 		    Integer number=(Integer)superflags.get(fd);
 		    flags.put(fd, number);
-		    if (number.intValue()>max)
-			max=number.intValue();
+		    if ((number.intValue()+1)>max)
+			max=number.intValue()+1;
 		}
 	    }
 	    
@@ -473,7 +473,7 @@ public class BuildCode {
 	    while(flagit.hasNext()) {
 		FlagDescriptor fd=(FlagDescriptor)flagit.next();
 		if (sp==null||!sp.getFlagTable().contains(fd.getSymbol()))
-		    flags.put(fd, new Integer(++max));
+		    flags.put(fd, new Integer(max++));
 	    }
 	}
     }
@@ -486,6 +486,8 @@ public class BuildCode {
 	/* Output class structure */
 	classdefout.println("struct "+cn.getSafeSymbol()+" {");
 	classdefout.println("  int type;");
+	if (cn.hasFlags())
+	    classdefout.println("  int flag;");
 	printClassStruct(cn, classdefout);
 	classdefout.println("};\n");
 
@@ -1051,8 +1053,47 @@ public class BuildCode {
 	output.print(")");
     }
 
-    public void generateFlatFlagActionNode(FlatMethod fm, FlatFlagActionNode ffann, PrintWriter output) {
-	output.print("/* FlatFlagActionNode will go here */");
-	
+    public void generateFlatFlagActionNode(FlatMethod fm, FlatFlagActionNode ffan, PrintWriter output) {
+	output.println("/* FlatFlagActionNode */");
+	Hashtable flagandtable=new Hashtable();
+	Hashtable flagortable=new Hashtable();
+
+
+	Iterator flagsit=ffan.getTempFlagPairs();
+	while(flagsit.hasNext()) {
+	    TempFlagPair tfp=(TempFlagPair)flagsit.next();
+	    TempDescriptor temp=tfp.getTemp();
+	    Hashtable flagtable=(Hashtable)flagorder.get(temp.getType().getClassDesc());
+	    FlagDescriptor flag=tfp.getFlag();
+	    int flagid=1<<((Integer)flagtable.get(flag)).intValue();
+	    boolean flagstatus=ffan.getFlagChange(tfp);
+	    if (flagstatus) {
+		int mask=0;
+		if (flagortable.containsKey(temp)) {
+		    mask=((Integer)flagortable.get(temp)).intValue();
+		}
+		mask|=flagid;
+		flagortable.put(temp,new Integer(mask));
+	    } else {
+		int mask=0xFFFFFFFF;
+		if (flagandtable.containsKey(temp)) {
+		    mask=((Integer)flagandtable.get(temp)).intValue();
+		}
+		mask&=(0xFFFFFFFF^flagid);
+		flagandtable.put(temp,new Integer(mask));
+	    }
+	}
+	Iterator orit=flagortable.keySet().iterator();
+	while(orit.hasNext()) {
+	    TempDescriptor temp=(TempDescriptor)orit.next();
+	    int ormask=((Integer)flagortable.get(temp)).intValue();
+	    output.println("flagor("+generateTemp(fm, temp)+", 0x"+Integer.toHexString(ormask)+");");
+	}
+	Iterator andit=flagandtable.keySet().iterator();
+	while(andit.hasNext()) {
+	    TempDescriptor temp=(TempDescriptor)andit.next();
+	    int andmask=((Integer)flagandtable.get(temp)).intValue();
+	    output.println("flagand("+generateTemp(fm, temp)+", 0x"+Integer.toHexString(andmask)+");");
+	}
     }
 }
