@@ -79,6 +79,10 @@ public class BuildCode {
 	outmethodheader.println("#include \"structdefs.h\"");
 
 	/* Output types for short array and string */
+	outstructs.println("#define STRINGARRAYTYPE "+
+			   (state.getArrayNumber(
+						 (new TypeDescriptor(typeutil.getClass(TypeUtil.StringClass))).makeArray(state))+state.numClasses()));
+
 	outstructs.println("#define STRINGTYPE "+typeutil.getClass(TypeUtil.StringClass).getId());
 	outstructs.println("#define CHARARRAYTYPE "+
 			   (state.getArrayNumber((new TypeDescriptor(TypeDescriptor.CHAR)).makeArray(state))+state.numClasses()));
@@ -1049,5 +1053,6 @@ public class BuildCode {
 
     public void generateFlatFlagActionNode(FlatMethod fm, FlatFlagActionNode ffann, PrintWriter output) {
 	output.print("/* FlatFlagActionNode will go here */");
+	
     }
 }

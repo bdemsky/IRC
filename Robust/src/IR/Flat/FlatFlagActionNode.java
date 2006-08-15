@@ -24,6 +24,16 @@ public class FlatFlagActionNode extends FlatNode {
     public int kind() {
         return FKind.FlatFlagActionNode;
     }
+    
+    /** This method returns an iterator over the Temp/Flag pairs. */
+    
+    public Iterator getTempFlagPairs() {
+	return tempflagpairs.keySet().iterator();
+    }
+
+    public boolean getFlagChange(TempFlagPair tfp) {
+	return ((Boolean)tempflagpairs.get(tfp)).booleanValue();
+    }
 
     public TempDescriptor [] readsTemps() {
         if (tempflagpairs.size()==0)
