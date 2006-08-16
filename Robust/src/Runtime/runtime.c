@@ -11,12 +11,14 @@ extern int classsize[];
 #endif
 
 #ifdef TASK
+#include "tasks.h"
+
 int main(int argc, char **argv) {
   int i;
   /* Allocate startup object */
   struct ___StartupObject___ *startupobject=(struct ___StartupObject___*) allocate_new(STARTUPTYPE);
-  /* Set flag */
-  flagor(startupobject,1);
+  /* Set flags */
+  flagorand(startupobject,1,0xFFFFFFFF);
 
   /* Build array of strings */
   struct ArrayObject * stringarray=allocate_newarray(STRINGARRAYTYPE, argc); 
@@ -30,15 +32,25 @@ int main(int argc, char **argv) {
   processtasks();
 }
 
-void flagor(void * ptr, int ormask) {
+void flagorand(void * ptr, int ormask, int andmask) {
   ((int *)ptr)[1]|=ormask;
-}
-
-void flagand(void * ptr, int andmask) {
   ((int *)ptr)[1]&=andmask;
 }
 
-void processtasks();
+void processtasks() {
+  int i;
+
+  for(i=0;i<numtasks;i++) {
+    struct taskdescriptor * task=taskarray[i];
+    int j;
+
+    for(j=0;j<task->numParameters;j++) {
+      struct parameterdescriptor *param=task->descriptorarray[j];
+      
+    }
+  }
+
+}
 #endif
 
 int ___Object______hashcode____(struct ___Object___ * ___this___) {

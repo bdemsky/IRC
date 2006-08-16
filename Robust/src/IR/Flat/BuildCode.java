@@ -86,6 +86,7 @@ public class BuildCode {
 	outstructs.println("#define STRINGTYPE "+typeutil.getClass(TypeUtil.StringClass).getId());
 	outstructs.println("#define CHARARRAYTYPE "+
 			   (state.getArrayNumber((new TypeDescriptor(TypeDescriptor.CHAR)).makeArray(state))+state.numClasses()));
+	outstructs.println("#define NUMCLASSES "+state.numClasses());
 	if (state.TASK)
 	    outstructs.println("#define STARTUPTYPE "+typeutil.getClass(TypeUtil.StartupClass).getId());
 
@@ -486,8 +487,10 @@ public class BuildCode {
 	/* Output class structure */
 	classdefout.println("struct "+cn.getSafeSymbol()+" {");
 	classdefout.println("  int type;");
-	if (cn.hasFlags())
+	if (cn.hasFlags()) {
 	    classdefout.println("  int flag;");
+	    classdefout.println("  void * flagptr;");
+	}
 	printClassStruct(cn, classdefout);
 	classdefout.println("};\n");
 
@@ -1087,13 +1090,17 @@ public class BuildCode {
 	while(orit.hasNext()) {
 	    TempDescriptor temp=(TempDescriptor)orit.next();
 	    int ormask=((Integer)flagortable.get(temp)).intValue();
-	    output.println("flagor("+generateTemp(fm, temp)+", 0x"+Integer.toHexString(ormask)+");");
+	    int andmask=0xFFFFFFF;
+	    if (flagandtable.containsKey(temp))
+		andmask=((Integer)flagandtable.get(temp)).intValue();
+	    output.println("flagorand("+generateTemp(fm, temp)+", 0x"+Integer.toHexString(ormask)+", 0x"+Integer.toHexString(andmask)+");");
 	}
 	Iterator andit=flagandtable.keySet().iterator();
 	while(andit.hasNext()) {
 	    TempDescriptor temp=(TempDescriptor)andit.next();
 	    int andmask=((Integer)flagandtable.get(temp)).intValue();
-	    output.println("flagand("+generateTemp(fm, temp)+", 0x"+Integer.toHexString(andmask)+");");
+	    if (!flagortable.containsKey(temp))
+		output.println("flagorand("+generateTemp(fm, temp)+", 0, 0x"+Integer.toHexString(andmask)+");");
 	}
     }
 }
