@@ -54,21 +54,24 @@ void flagorand(void * ptr, int ormask, int andmask) {
     struct parameterwrapper * parameter=objectqueues[((int *)ptr)[0]];
     int i;
     flagptr=NULL;
-    for(i=0;i<parameter->numberofterms;i++) {
-      int andmask=parameter->intarray[i*2];
-      int checkmask=parameter->intarray[i*2+1];
-      if ((flag&andmask)==checkmask) {
-	struct QueueItem * qitem=addNewItem(parameter->queue, ptr);
-	if (flagptr==NULL) {
-	  flagptr=qitem;
-	  tmpptr=flagptr;
-	} else {
-	  tmpptr->nextqueue=qitem;
-	  tmpptr=qitem;
+    while(parameter!=NULL) {
+      for(i=0;i<parameter->numberofterms;i++) {
+	int andmask=parameter->intarray[i*2];
+	int checkmask=parameter->intarray[i*2+1];
+	if ((flag&andmask)==checkmask) {
+	  struct QueueItem * qitem=addNewItem(parameter->queue, ptr);
+	  if (flagptr==NULL) {
+	    flagptr=qitem;
+	    tmpptr=flagptr;
+	  } else {
+	    tmpptr->nextqueue=qitem;
+	    tmpptr=qitem;
+	  }
+	  SimpleHashadd(activetasks, (int)parameter->task, (int)parameter->task);
+	  break;
 	}
-	SimpleHashadd(activetasks, (int)parameter->task, (int)parameter->task);
-	break;
       }
+      parameter=parameter->next;
     }
     ((struct QueueItem **)ptr)[2]=flagptr;
   }
@@ -76,13 +79,10 @@ void flagorand(void * ptr, int ormask, int andmask) {
 
 void executetasks() {
   void * pointerarray[MAXTASKPARAMS];
-  while(1) {
   newtask:
-    {
+  while(SimpleHashcountset(activetasks)!=0) {
     struct taskdescriptor * task=(struct taskdescriptor *) SimpleHashfirstkey(activetasks);
     int i;
-    if (task==NULL)
-      break;
     for(i=0;i<task->numParameters;i++) {
       struct parameterwrapper * parameter=(struct parameterwrapper *) task->descriptorarray[i]->queue;
       struct Queue * queue=parameter->queue;
@@ -93,7 +93,6 @@ void executetasks() {
       pointerarray[i]=getTail(queue)->objectptr;
     }
     ((void (*) (void **)) task->taskptr)(pointerarray);
-    }
   }
 }
 
@@ -114,7 +113,7 @@ void processtasks() {
       parameter->intarray=param->intarray;
       parameter->task=task;
       /* Link new queue in */
-      while(*ptr!=NULL)
+      while((*ptr)!=NULL)
 	ptr=&((*ptr)->next);
       (*ptr)=parameter;
     }

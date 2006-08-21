@@ -21,7 +21,7 @@ struct parameterwrapper {
   int numberofterms;
   int * intarray;
   struct taskdescriptor * task;
-}
+};
 #endif
 
 #endif

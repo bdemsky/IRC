@@ -16,7 +16,7 @@ class Example {
 task Startup(StartupObject s {initialstate}) {
     for(int i=0;i<10;i++) {
 	Example e=new Example() {needoperation};
-	e.x=i;
+	e.x=i+2;
 	e.y=2;
 	e.operation=i%2;
     }
@@ -43,5 +43,6 @@ task DoOperation(Example e{needoperation}) {
 
 task DoPrint(Example e{needprinting}) {
     System.printInt(e.z);
+    System.printString("\n");
     taskexit(e {!needprinting});
 }
