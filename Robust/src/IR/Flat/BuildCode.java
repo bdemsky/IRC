@@ -21,7 +21,7 @@ public class BuildCode {
     public static String arraytype="ArrayObject";
     Virtual virtualcalls;
     TypeUtil typeutil;
-
+    private int maxtaskparams=0;
 
     public BuildCode(State st, Hashtable temptovar, TypeUtil typeutil) {
 	state=st;
@@ -114,6 +114,7 @@ public class BuildCode {
 		outtask.println("int type;");
 		outtask.println("int numberterms;");
 		outtask.println("int *intarray;");
+		outtask.println("void * queue;");
 		outtask.println("};");
 
 		outtask.println("struct taskdescriptor {");
@@ -132,7 +133,7 @@ public class BuildCode {
 	    ClassDescriptor cn=(ClassDescriptor)it.next();
 	    generateCallStructs(cn, outclassdefs, outstructs, outmethodheader);
 	}
-	outstructs.close();
+
 
 	if (state.TASK) {
 	    /* Map flags to integers */
@@ -212,6 +213,9 @@ public class BuildCode {
 	    }
 	    outmethod.println("}");
 	}
+	if (state.TASK)
+	    outstructs.println("#define MAXTASKPARAMS "+maxtaskparams);
+	outstructs.close();
 	outmethod.close();
     }
 
@@ -250,7 +254,8 @@ public class BuildCode {
 	    output.println("struct parameterdescriptor parameter_"+i+"_"+task.getSafeSymbol()+"={");
 	    output.println("/* type */"+param_type.getClassDesc().getId()+",");
 	    output.println("/* number of DNF terms */"+dflag.size()+",");
-	    output.println("parameterdnf_"+i+"_"+task.getSafeSymbol());
+	    output.println("parameterdnf_"+i+"_"+task.getSafeSymbol()+",");
+	    output.println("0");
 	    output.println("};");
 	}
 
@@ -585,6 +590,7 @@ public class BuildCode {
 	    /* Output parameter structure */
 	    if (GENERATEPRECISEGC) {
 		output.println("struct "+task.getSafeSymbol()+"_params {");
+
 		output.println("  int type;");
 		output.println("  void * next;");
 		for(int i=0;i<objectparams.numPointers();i++) {
@@ -592,6 +598,8 @@ public class BuildCode {
 		    output.println("  struct "+temp.getType().getSafeSymbol()+" * "+temp.getSafeSymbol()+";");
 		}
 		output.println("};\n");
+		if (objectparams.numPointers()>maxtaskparams)
+		    maxtaskparams=objectparams.numPointers();
 	    }
 
 	    /* Output temp structure */
@@ -615,20 +623,8 @@ public class BuildCode {
 	    boolean printcomma=false;
 	    if (GENERATEPRECISEGC) {
 		headersout.print("struct "+task.getSafeSymbol()+"_params * "+paramsprefix);
-		printcomma=true;
-	    }
-
-	    //output parameter list
-	    for(int i=0;i<objectparams.numPrimitives();i++) {
-		TempDescriptor temp=objectparams.getPrimitive(i);
-		if (printcomma)
-		    headersout.print(", ");
-		printcomma=true;
-		if (temp.getType().isClass()||temp.getType().isArray())
-		    headersout.print("struct " + temp.getType().getSafeSymbol()+" * "+temp.getSafeSymbol());
-		else
-		    headersout.print(temp.getType().getSafeSymbol()+" "+temp.getSafeSymbol());
-	    }
+	    } else
+		headersout.print("void * parameterarray[]");
 	    headersout.println(");\n");
    	}
     }
@@ -646,7 +642,6 @@ public class BuildCode {
 	generateHeader(md!=null?md:task,output);
 
 	/* Print code */
-	output.println(" {");
 	
 	if (GENERATEPRECISEGC) {
 	    if (md!=null)
@@ -1043,17 +1038,27 @@ public class BuildCode {
 	    printcomma=true;
 	} 
 
-	for(int i=0;i<objectparams.numPrimitives();i++) {
-	    TempDescriptor temp=objectparams.getPrimitive(i);
-	    if (printcomma)
-		output.print(", ");
-	    printcomma=true;
-	    if (temp.getType().isClass()||temp.getType().isArray())
-		output.print("struct "+temp.getType().getSafeSymbol()+" * "+temp.getSafeSymbol());
-	    else
-		output.print(temp.getType().getSafeSymbol()+" "+temp.getSafeSymbol());
-	}
-	output.print(")");
+	if (md!=null) {
+	    for(int i=0;i<objectparams.numPrimitives();i++) {
+		TempDescriptor temp=objectparams.getPrimitive(i);
+		if (printcomma)
+		    output.print(", ");
+		printcomma=true;
+		if (temp.getType().isClass()||temp.getType().isArray())
+		    output.print("struct "+temp.getType().getSafeSymbol()+" * "+temp.getSafeSymbol());
+		else
+		    output.print(temp.getType().getSafeSymbol()+" "+temp.getSafeSymbol());
+	    }
+	    output.println(") {");
+	} else if (!GENERATEPRECISEGC) {
+	    output.println("void * parameterarray[]) {");
+	    for(int i=0;i<objectparams.numPrimitives();i++) {
+		TempDescriptor temp=objectparams.getPrimitive(i);
+		output.println("struct "+temp.getType().getSafeSymbol()+" * "+temp.getSafeSymbol()+"=parameterarray["+i+"];");
+	    }
+	    if (objectparams.numPrimitives()>maxtaskparams)
+		maxtaskparams=objectparams.numPrimitives();
+	} else output.println(" {");
     }
 
     public void generateFlatFlagActionNode(FlatMethod fm, FlatFlagActionNode ffan, PrintWriter output) {

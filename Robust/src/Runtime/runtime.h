@@ -1,7 +1,5 @@
 #ifndef RUNTIME
 #define RUNTIME
-#include<stdlib.h>
-#include<stdio.h>
 
 
 void * allocate_new(int type);
@@ -10,7 +8,20 @@ struct ___String___ * NewString(char *str,int length);
 
 void failedboundschk();
 void failednullptr();
-void flagorand(void * ptr, int ormask, int andmask);
 
+#ifdef TASK
+#include "Queue.h"
+void flagorand(void * ptr, int ormask, int andmask);
+void executetasks();
+void processtasks();
+
+struct parameterwrapper {
+  struct parameterwrapper *next;
+  struct Queue * queue;
+  int numberofterms;
+  int * intarray;
+  struct taskdescriptor * task;
+}
+#endif
 
 #endif

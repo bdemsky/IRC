@@ -3,25 +3,29 @@
 #include <string.h>
 
 extern int classsize[];
-#ifdef BOEHM_GC
-#include "gc.h"
-#define FREEMALLOC(x) GC_malloc(x)
-#else
-#define FREEMALLOC(x) calloc(1,x)
-#endif
+#include "mem.h"
 
 #ifdef TASK
-#include "tasks.h"
+#include "Queue.h"
+#include "SimpleHash.h"
+#include "task.h"
+struct SimpleHash * activetasks;
+struct parameterwrapper * objectqueues[NUMCLASSES];
 
 int main(int argc, char **argv) {
   int i;
   /* Allocate startup object */
   struct ___StartupObject___ *startupobject=(struct ___StartupObject___*) allocate_new(STARTUPTYPE);
+  struct ArrayObject * stringarray=allocate_newarray(STRINGARRAYTYPE, argc); 
+
+  activetasks=allocateSimpleHash(50);
+
   /* Set flags */
+  processtasks();
   flagorand(startupobject,1,0xFFFFFFFF);
 
   /* Build array of strings */
-  struct ArrayObject * stringarray=allocate_newarray(STRINGARRAYTYPE, argc); 
+
   startupobject->___parameters___=stringarray;
 
   for(i=0;i<argc;i++) {
@@ -29,27 +33,92 @@ int main(int argc, char **argv) {
     struct ___String___ *newstring=NewString(argv[i],length);
     ((void **)(((char *)& stringarray->___length___)+sizeof(int)))[i]=newstring;
   }
-  processtasks();
+  executetasks();
 }
 
 void flagorand(void * ptr, int ormask, int andmask) {
-  ((int *)ptr)[1]|=ormask;
-  ((int *)ptr)[1]&=andmask;
+  int flag=((int *)ptr)[1];
+  struct QueueItem *flagptr=(struct QueueItem *)(((int*)ptr)[2]);
+  flag|=ormask;
+  flag&=andmask;
+  ((int*)ptr)[1]=flag;
+  /*Remove from all queues */
+  while(flagptr!=NULL) {
+    struct QueueItem * next=flagptr->nextqueue;
+    removeItem(flagptr->queue, flagptr);
+    flagptr=next;
+  }
+  
+  {
+    struct QueueItem *tmpptr;
+    struct parameterwrapper * parameter=objectqueues[((int *)ptr)[0]];
+    int i;
+    flagptr=NULL;
+    for(i=0;i<parameter->numberofterms;i++) {
+      int andmask=parameter->intarray[i*2];
+      int checkmask=parameter->intarray[i*2+1];
+      if ((flag&andmask)==checkmask) {
+	struct QueueItem * qitem=addNewItem(parameter->queue, ptr);
+	if (flagptr==NULL) {
+	  flagptr=qitem;
+	  tmpptr=flagptr;
+	} else {
+	  tmpptr->nextqueue=qitem;
+	  tmpptr=qitem;
+	}
+	SimpleHashadd(activetasks, (int)parameter->task, (int)parameter->task);
+	break;
+      }
+    }
+    ((struct QueueItem **)ptr)[2]=flagptr;
+  }
+}
+
+void executetasks() {
+  void * pointerarray[MAXTASKPARAMS];
+  while(1) {
+  newtask:
+    {
+    struct taskdescriptor * task=(struct taskdescriptor *) SimpleHashfirstkey(activetasks);
+    int i;
+    if (task==NULL)
+      break;
+    for(i=0;i<task->numParameters;i++) {
+      struct parameterwrapper * parameter=(struct parameterwrapper *) task->descriptorarray[i]->queue;
+      struct Queue * queue=parameter->queue;
+      if (isEmpty(queue)) {
+	SimpleHashremove(activetasks, (int)task, (int)task);
+	goto newtask;
+      }
+      pointerarray[i]=getTail(queue)->objectptr;
+    }
+    ((void (*) (void **)) task->taskptr)(pointerarray);
+    }
+  }
 }
 
 void processtasks() {
   int i;
-
   for(i=0;i<numtasks;i++) {
     struct taskdescriptor * task=taskarray[i];
     int j;
 
     for(j=0;j<task->numParameters;j++) {
       struct parameterdescriptor *param=task->descriptorarray[j];
-      
+      struct parameterwrapper * parameter=RUNMALLOC(sizeof(struct parameterwrapper));
+      struct parameterwrapper ** ptr=&objectqueues[param->type];
+
+      param->queue=parameter;
+      parameter->queue=createQueue();
+      parameter->numberofterms=param->numberterms;
+      parameter->intarray=param->intarray;
+      parameter->task=task;
+      /* Link new queue in */
+      while(*ptr!=NULL)
+	ptr=&((*ptr)->next);
+      (*ptr)=parameter;
     }
   }
-
 }
 #endif
 
