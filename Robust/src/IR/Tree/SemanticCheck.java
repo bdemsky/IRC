@@ -690,8 +690,8 @@ public class SemanticCheck {
 		if (!(ltd.isBoolean()&&rtd.isBoolean()))
 		    throw new Error();
 		righttype=lefttype=new TypeDescriptor(TypeDescriptor.BOOLEAN);
-	    } else if (ltd.isPtr()||rtd.isPtr()) {
-		if (!(ltd.isPtr()&&rtd.isPtr()))
+	    } else if (ltd.isPtr()||ltd.isArray()||rtd.isPtr()||rtd.isArray()) {
+		if (!((ltd.isPtr()||ltd.isArray())&&(rtd.isPtr()||rtd.isArray())))
 		    throw new Error();
 		righttype=rtd;
 		lefttype=ltd;

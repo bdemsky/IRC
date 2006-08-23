@@ -22,6 +22,8 @@ public class BuildCode {
     Virtual virtualcalls;
     TypeUtil typeutil;
     private int maxtaskparams=0;
+    ClassDescriptor[] cdarray;
+    TypeDescriptor[] arraytable;
 
     public BuildCode(State st, Hashtable temptovar, TypeUtil typeutil) {
 	state=st;
@@ -153,9 +155,13 @@ public class BuildCode {
 	outmethod.println("#include \"virtualtable.h\"");
 	outmethod.println("#include <runtime.h>");
 	outclassdefs.println("extern int classsize[];");
+	outclassdefs.println("extern int * pointerarray[];");
 
 	//Store the sizes of classes & array elements
 	generateSizeArray(outmethod);
+	
+	//Store the layout of classes
+	generateLayoutStructs(outmethod);
 
 	/* Generate code for methods */
 	Iterator classit=state.getClassSymbolTable().getDescriptorsIterator();
@@ -344,7 +350,7 @@ public class BuildCode {
     private void generateSizeArray(PrintWriter outclassdefs) {
 	outclassdefs.print("int classsize[]={");
 	Iterator it=state.getClassSymbolTable().getDescriptorsIterator();
-	ClassDescriptor[] cdarray=new ClassDescriptor[state.numClasses()];
+	cdarray=new ClassDescriptor[state.numClasses()];
 	while(it.hasNext()) {
 	    ClassDescriptor cd=(ClassDescriptor)it.next();
 	    cdarray[cd.getId()]=cd;
@@ -357,19 +363,19 @@ public class BuildCode {
 	    needcomma=true;
 	}
 
-	TypeDescriptor[] sizetable=new TypeDescriptor[state.numArrays()];
+	arraytable=new TypeDescriptor[state.numArrays()];
 
 	Iterator arrayit=state.getArrayIterator();
 	while(arrayit.hasNext()) {
 	    TypeDescriptor td=(TypeDescriptor)arrayit.next();
 	    int id=state.getArrayNumber(td);
-	    sizetable[id]=td;
+	    arraytable[id]=td;
 	}
 	
 	for(int i=0;i<state.numArrays();i++) {
 	    if (needcomma)
 		outclassdefs.print(", ");
-	    TypeDescriptor tdelement=sizetable[i].dereference();
+	    TypeDescriptor tdelement=arraytable[i].dereference();
 	    if (tdelement.isArray()||tdelement.isClass())
 		outclassdefs.print("sizeof(void *)");
 	    else
@@ -397,7 +403,7 @@ public class BuildCode {
 	for(int i=0;i<fm.numParameters();i++) {
 	    TempDescriptor temp=fm.getParameter(i);
 	    TypeDescriptor type=temp.getType();
-	    if (type.isPtr()&&GENERATEPRECISEGC)
+	    if ((type.isPtr()||type.isArray())&&GENERATEPRECISEGC)
 		objectparams.addPtr(temp);
 	    else
 		objectparams.addPrim(temp);
@@ -415,7 +421,7 @@ public class BuildCode {
 	    for(int i=0;i<writes.length;i++) {
 		TempDescriptor temp=writes[i];
 		TypeDescriptor type=temp.getType();
-		if (type.isPtr()&&GENERATEPRECISEGC)
+		if ((type.isPtr()||type.isArray())&&GENERATEPRECISEGC)
 		    objecttemps.addPtr(temp);
 		else
 		    objecttemps.addPrim(temp);
@@ -423,6 +429,55 @@ public class BuildCode {
 	}
     }
     
+    private void generateLayoutStructs(PrintWriter output) {
+	Iterator it=state.getClassSymbolTable().getDescriptorsIterator();
+	while(it.hasNext()) {
+	    ClassDescriptor cn=(ClassDescriptor)it.next();
+	    output.println("int "+cn.getSafeSymbol()+"_pointers[]={");
+	    Iterator allit=cn.getFieldTable().getAllDescriptorsIterator();
+	    int count=0;
+	    while(allit.hasNext()) {
+		FieldDescriptor fd=(FieldDescriptor)allit.next();
+		TypeDescriptor type=fd.getType();
+		if (type.isPtr()||type.isArray())
+		    count++;
+	    }
+	    output.print(count);
+	    allit=cn.getFieldTable().getAllDescriptorsIterator();
+	    while(allit.hasNext()) {
+		FieldDescriptor fd=(FieldDescriptor)allit.next();
+		TypeDescriptor type=fd.getType();
+		if (type.isPtr()||type.isArray()) {
+		    output.println(",");
+		    output.print("((int)&(((struct "+cn.getSafeSymbol() +" *)0)->"+fd.getSafeSymbol()+"))");
+		}
+	    }
+	    output.println("};");
+	}
+	output.println("int * pointerarray[]={");
+	boolean needcomma=false;
+	for(int i=0;i<state.numClasses();i++) {
+	    ClassDescriptor cn=cdarray[i];
+	    if (needcomma)
+		output.println(",");
+	    needcomma=true;
+	    output.print(cn.getSafeSymbol()+"_pointers");
+	}
+
+	for(int i=0;i<state.numArrays();i++) {
+	    if (needcomma)
+		output.println(",");
+	    TypeDescriptor tdelement=arraytable[i].dereference();
+	    if (tdelement.isArray()||tdelement.isClass())
+		output.print("((int *)1)");
+	    else
+		output.print("0");
+	    needcomma=true;
+	}
+	
+	output.println("};");
+    }
+
     /* Force consistent field ordering between inherited classes. */
 
     private void printClassStruct(ClassDescriptor cn, PrintWriter classdefout) {
@@ -483,6 +538,7 @@ public class BuildCode {
 	    }
 	}
     }
+
 
     /** This function outputs (1) structures that parameters are
      * passed in (when PRECISE GC is enabled) and (2) function
