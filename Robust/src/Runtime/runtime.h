@@ -1,6 +1,7 @@
 #ifndef RUNTIME
 #define RUNTIME
-
+#include <setjmp.h>
+extern jmp_buf error_handler;
 
 void * allocate_new(int type);
 struct ArrayObject * allocate_newarray(int type, int length);

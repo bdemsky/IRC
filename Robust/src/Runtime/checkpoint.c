@@ -3,12 +3,21 @@
 #include "structdefs.h"
 #include <string.h>
 
-void ** makecheckpoint(int numparams, void ** pointerarray, struct SimpleHash * forward, struct SimpleHash * reverse) {
+void ** makecheckpoint(int numparams, void ** srcpointer, struct SimpleHash * forward, struct SimpleHash * reverse) {
   void **newarray=RUNMALLOC(sizeof(void *)*numparams);
   struct SimpleHash *todo=allocateSimpleHash(100);
   int i;
   for(i=0;i<numparams;i++) {
-    SimpleHashadd(todo, (int) pointerarray[i], (int) pointerarray[i]);
+    void * objptr=srcpointer[i];
+    if (SimpleHashcontainskey(forward, (int) objptr))
+      SimpleHashget(forward,(int) objptr,(int *) &newarray[i]);
+    else {
+      void * copy=createcopy(objptr);
+      SimpleHashadd(forward, (int) objptr, (int)copy);
+      SimpleHashadd(reverse, (int) copy, (int) objptr);
+      SimpleHashadd(todo, (int) objptr, (int) objptr);
+      newarray[i]=copy;
+    }
   }
   while(SimpleHashcountset(todo)!=0) {
     void * ptr=(void *) SimpleHashfirstkey(todo);
@@ -60,22 +69,26 @@ void ** makecheckpoint(int numparams, void ** pointerarray, struct SimpleHash * 
 }
 
 void * createcopy(void * orig) {
-  int type=((int *)orig)[0];
-  if (type<NUMCLASSES) {
-    /* We have a normal object */
-    int size=classsize[type];
-    void *newobj=RUNMALLOC(size);
-    memcpy(newobj, orig, size);
-    return newobj;
-  } else {
-    /* We have an array */
-    struct ArrayObject *ao=(struct ArrayObject *)orig;
-    int elementsize=classsize[type];
-    int length=ao->___length___;
-    int size=sizeof(struct ArrayObject)+length*elementsize;
-    void *newobj=RUNMALLOC(size);
-    memcpy(newobj, orig, size);
-    return newobj;
+  if (orig==0)
+    return 0;
+  else {
+    int type=((int *)orig)[0];
+    if (type<NUMCLASSES) {
+      /* We have a normal object */
+      int size=classsize[type];
+      void *newobj=RUNMALLOC(size);
+      memcpy(newobj, orig, size);
+      return newobj;
+    } else {
+      /* We have an array */
+      struct ArrayObject *ao=(struct ArrayObject *)orig;
+      int elementsize=classsize[type];
+      int length=ao->___length___;
+      int size=sizeof(struct ArrayObject)+length*elementsize;
+      void *newobj=RUNMALLOC(size);
+      memcpy(newobj, orig, size);
+      return newobj;
+    }
   }
 }
 

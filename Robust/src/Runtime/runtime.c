@@ -1,14 +1,24 @@
 #include "runtime.h"
 #include "structdefs.h"
 #include <string.h>
+#include <signal.h>
+#include "mem.h"
+#include<fcntl.h>
+#include<sys/types.h>
+#include<sys/mman.h>
+#include<errno.h>
+#include<signal.h>
+#include<stdio.h>
 
 extern int classsize[];
-#include "mem.h"
+jmp_buf error_handler;
 
 #ifdef TASK
+#include "checkpoint.h"
 #include "Queue.h"
 #include "SimpleHash.h"
 #include "task.h"
+
 struct SimpleHash * activetasks;
 struct parameterwrapper * objectqueues[NUMCLASSES];
 
@@ -77,8 +87,29 @@ void flagorand(void * ptr, int ormask, int andmask) {
   }
 }
 
+/* Handler for signals */
+void myhandler(int sig, struct __siginfo *info, void *uap) {
+  printf("sig=%d\n",sig);
+  printf("signal\n");
+  longjmp(error_handler,1);
+}
+
 void executetasks() {
   void * pointerarray[MAXTASKPARAMS];
+  /* Set up signal handlers */
+  struct sigaction sig;
+  sig.sa_sigaction=&myhandler;
+  sig.sa_flags=SA_SIGINFO;
+  sig.sa_mask=0;
+
+  /* Catch bus errors, segmentation faults, and floating point exceptions*/
+  sigaction(SIGBUS,&sig,0);
+  sigaction(SIGSEGV,&sig,0);
+  sigaction(SIGFPE,&sig,0);
+
+  /* Map first block of memory to protected, anonymous page */
+  mmap(0, 0x1000, 0, MAP_SHARED|MAP_FIXED|MAP_ANON, -1, 0);
+
   newtask:
   while(SimpleHashcountset(activetasks)!=0) {
     struct taskdescriptor * task=(struct taskdescriptor *) SimpleHashfirstkey(activetasks);
@@ -92,7 +123,19 @@ void executetasks() {
       }
       pointerarray[i]=getTail(queue)->objectptr;
     }
-    ((void (*) (void **)) task->taskptr)(pointerarray);
+    {
+      struct SimpleHash * forward=allocateSimpleHash(100);
+      struct SimpleHash * reverse=allocateSimpleHash(100);
+      void ** checkpoint=makecheckpoint(task->numParameters, pointerarray, forward, reverse);
+      if (setjmp(error_handler)) {
+	/* Recover */
+	restorecheckpoint(task->numParameters, pointerarray, checkpoint, forward, reverse);
+	/* TODO: REMOVE TASK FROM QUEUE */
+      } else {
+	/* Actually call task */
+	((void (*) (void **)) task->taskptr)(pointerarray);
+      }
+    }
   }
 }
 
@@ -158,11 +201,19 @@ struct ___String___ * NewString(char *str,int length) {
 }
 
 void failedboundschk() {
+#ifndef TASK
   printf("Array out of bounds\n");
   exit(-1);
+#else
+  longjmp(error_handler,2);
+#endif
 }
 
 void failednullptr() {
+#ifndef TASK
   printf("Dereferenced a null pointer\n");
   exit(-1);
+#else
+  longjmp(error_handler,3);
+#endif
 }
