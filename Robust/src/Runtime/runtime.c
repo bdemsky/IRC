@@ -18,6 +18,7 @@ jmp_buf error_handler;
 #include "Queue.h"
 #include "SimpleHash.h"
 #include "task.h"
+#include "GenericHashtable.h"
 
 struct SimpleHash * activetasks;
 struct parameterwrapper * objectqueues[NUMCLASSES];
@@ -44,6 +45,25 @@ int main(int argc, char **argv) {
     ((void **)(((char *)& stringarray->___length___)+sizeof(int)))[i]=newstring;
   }
   executetasks();
+}
+
+int hashCodeftd(struct failedtaskdescriptor *ftd) {
+  int hash=ftd->task;
+  int i;
+  for(i=0;i<ftd->numParameters;i++) {
+    hash^=(int)parameterArray[i];
+  }
+  return hash;
+}
+
+int compareftd(struct failedtaskdescriptor *ftd1, failedtaskdescriptor *ftd2) {
+  int i;
+  if (ftd1->task!=ftd2->task)
+    return 0;
+  for(i=0;i<ftd1->numParameters;i++)
+    if (ftd1->parameterArray[i]!=ftd2->parameterArray[i])
+      return 0;
+  return 1;
 }
 
 void flagorand(void * ptr, int ormask, int andmask) {
@@ -96,6 +116,8 @@ void myhandler(int sig, struct __siginfo *info, void *uap) {
 
 void executetasks() {
   void * pointerarray[MAXTASKPARAMS];
+  struct genhashtable * failedtasks=genallocatehashtable(&hashCodeftd, &compareftd);
+
   /* Set up signal handlers */
   struct sigaction sig;
   sig.sa_sigaction=&myhandler;
@@ -129,6 +151,15 @@ void executetasks() {
       void ** checkpoint=makecheckpoint(task->numParameters, pointerarray, forward, reverse);
       if (setjmp(error_handler)) {
 	/* Recover */
+	struct failedtaskdescriptor *ftd=RUNMALLOC(sizeof(struct failedtaskdescriptor));
+	int h;
+	ftd->task=task;
+	ftd->numParameters=task->numParameters;
+	ftd->parameterArray=RUNMALLOC(task->numParameters*sizeof(void *));
+	for(j=0;j<task->numParameters;j++) {
+	  ftd->parameterArray[j]=pointerarray[j];
+	}
+	genputtable(failedtasks,ftd,ftd);
 	restorecheckpoint(task->numParameters, pointerarray, checkpoint, forward, reverse);
 	/* TODO: REMOVE TASK FROM QUEUE */
       } else {

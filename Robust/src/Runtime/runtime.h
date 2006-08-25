@@ -23,6 +23,15 @@ struct parameterwrapper {
   int * intarray;
   struct taskdescriptor * task;
 };
+
+struct failedtaskdescriptor {
+  struct taskdescriptor * task;
+  int numParameters;
+  void ** parameterArray;
+};
+
+int hashCodeftd(struct failedtaskdescriptor *);
+int compareftd(struct failedtaskdescriptor *, failedtaskdescriptor *);
 #endif
 
 #endif
