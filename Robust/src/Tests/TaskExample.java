@@ -16,7 +16,7 @@ class Example {
 task Startup(StartupObject s {initialstate}) {
     for(int i=0;i<10;i++) {
 	Example e=new Example() {needoperation};
-	e.x=i+2;
+	e.x=i;
 	e.y=2;
 	e.operation=i%2;
     }

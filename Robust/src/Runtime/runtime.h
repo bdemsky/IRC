@@ -11,27 +11,28 @@ void failedboundschk();
 void failednullptr();
 
 #ifdef TASK
-#include "Queue.h"
+#include "SimpleHash.h"
+#include "task.h"
 void flagorand(void * ptr, int ormask, int andmask);
 void executetasks();
 void processtasks();
 
 struct parameterwrapper {
   struct parameterwrapper *next;
-  struct Queue * queue;
+  struct SimpleHash * objectset;
   int numberofterms;
   int * intarray;
   struct taskdescriptor * task;
 };
 
-struct failedtaskdescriptor {
+struct taskparamdescriptor {
   struct taskdescriptor * task;
   int numParameters;
   void ** parameterArray;
 };
 
-int hashCodeftd(struct failedtaskdescriptor *);
-int compareftd(struct failedtaskdescriptor *, failedtaskdescriptor *);
+int hashCodetpd(struct taskparamdescriptor *);
+int comparetpd(struct taskparamdescriptor *, struct taskparamdescriptor *);
 #endif
 
 #endif

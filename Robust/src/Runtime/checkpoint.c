@@ -66,6 +66,7 @@ void ** makecheckpoint(int numparams, void ** srcpointer, struct SimpleHash * fo
       }
     }
   }
+  return newarray;
 }
 
 void * createcopy(void * orig) {

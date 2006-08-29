@@ -26,11 +26,16 @@ public class String {
 	    chararray=new char[length+1];
 	else
 	    chararray=new char[length];
+	int offset;
 	if (x<0) {
 	    chararray[0]='-';
-	}
+	    offset=1;
+	    x=-x;
+	} else
+	    offset=0;
+       	
 	do {
-	    chararray[--length]=(char)(x%10+'0');
+	    chararray[--length+offset]=(char)(x%10+'0');
 	    x=x/10;
 	} while (length!=0);
 	return new String(chararray);

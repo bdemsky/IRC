@@ -42,4 +42,6 @@ struct QueueItem * getTail(struct Queue * queue) {
   return queue->tail;
 }
 
-
+struct QueueItem * getNext(struct QueueItem * qi) {
+  return qi->next;
+}

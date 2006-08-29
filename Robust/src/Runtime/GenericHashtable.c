@@ -3,10 +3,12 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <stdlib.h>
-#include <values.h>
+#include <limits.h>
+
 #include "GenericHashtable.h"
 #include "mem.h"
 //#include "dmalloc.h"
+
 
 int genputtable(struct genhashtable *ht, void * key, void * object) {
   unsigned int bin=genhashfunction(ht,key);
@@ -27,9 +29,9 @@ int genputtable(struct genhashtable *ht, void * key, void * object) {
   }
   ht->bins[bin]=newptrlist;
   ht->counter++;
-  if(ht->counter>ht->currentsize&&ht->currentsize!=MAXINT) {
+  if(ht->counter>ht->currentsize&&ht->currentsize!=INT_MAX) {
     /* Expand hashtable */
-    long newcurrentsize=(ht->currentsize<(MAXINT/2))?ht->currentsize*2:MAXINT;
+    long newcurrentsize=(ht->currentsize<(INT_MAX/2))?ht->currentsize*2:INT_MAX;
     long oldcurrentsize=ht->currentsize;
     struct genpointerlist **newbins=(struct genpointerlist **) RUNMALLOC(sizeof (struct genpointerlist *)*newcurrentsize);
     struct genpointerlist **oldbins=ht->bins;

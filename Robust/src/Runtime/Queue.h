@@ -11,7 +11,6 @@ struct QueueItem {
   struct Queue * queue;
   struct QueueItem * next;
   struct QueueItem * prev;
-  struct QueueItem * nextqueue;
 };
 
 struct Queue * createQueue();
