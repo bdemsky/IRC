@@ -158,8 +158,10 @@ void flagorand(void * ptr, int ormask, int andmask) {
 
 /* Handler for signals */
 void myhandler(int sig, struct __siginfo *info, void *uap) {
+#ifdef DEBUG
   printf("sig=%d\n",sig);
   printf("signal\n");
+#endif
   longjmp(error_handler,1);
 }
 
@@ -202,7 +204,9 @@ void executetasks() {
       if (setjmp(error_handler)) {
 	/* Recover */
 	int h;
+#ifdef DEBUG
 	printf("Recovering\n");
+#endif
 	genputtable(failedtasks,tpd,tpd);
 	restorecheckpoint(tpd->task->numParameters, taskpointerarray, checkpoint, forward, reverse);
       } else {
