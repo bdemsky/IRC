@@ -44,6 +44,7 @@ public class BuildCode {
 	/* Create output streams to write to */
 	PrintWriter outclassdefs=null;
 	PrintWriter outstructs=null;
+	PrintWriter outrepairstructs=null;
 	PrintWriter outmethodheader=null;
 	PrintWriter outmethod=null;
 	PrintWriter outvirtual=null;
@@ -67,13 +68,16 @@ public class BuildCode {
 		str=new FileOutputStream(PREFIX+"taskdefs.c");
 		outtaskdefs=new java.io.PrintWriter(str, true);
 	    }
+	    if (state.structfile!=null) {
+		str=new FileOutputStream(PREFIX+state.structfile+".struct");
+		outrepairstructs=new java.io.PrintWriter(str, true);
+	    }
 	} catch (Exception e) {
 	    e.printStackTrace();
 	    System.exit(-1);
 	}
 
 	/* Build the virtual dispatch tables */
-
 	buildVirtualTables(outvirtual);
 
 	/* Output includes */
@@ -221,11 +225,68 @@ public class BuildCode {
 	}
 	if (state.TASK)
 	    outstructs.println("#define MAXTASKPARAMS "+maxtaskparams);
+
+
+	/* Output structure definitions for repair tool */
+	if (state.structfile!=null) {
+	    buildRepairStructs(outrepairstructs);
+	    outrepairstructs.close();
+	}
+
 	outstructs.close();
 	outmethod.close();
     }
 
     private int maxcount=0;
+
+    private void buildRepairStructs(PrintWriter outrepairstructs) {
+	Iterator classit=state.getClassSymbolTable().getDescriptorsIterator();
+	while(classit.hasNext()) {
+	    ClassDescriptor cn=(ClassDescriptor)classit.next();
+	    outrepairstructs.println("structure "+cn.getSymbol()+" {");
+	    outrepairstructs.println("  int __type__;");
+	    if (cn.hasFlags()) {
+		outrepairstructs.println("  int __flag__;");
+		outrepairstructs.println("  int __flagptr__;");
+	    }
+	    printRepairStruct(cn, outrepairstructs);
+	    outrepairstructs.println("}\n");
+	}
+	
+	for(int i=0;i<state.numArrays();i++) {
+	    TypeDescriptor tdarray=arraytable[i];
+	    TypeDescriptor tdelement=tdarray.dereference();
+	    outrepairstructs.println("structure "+arraytype+"_"+state.getArrayNumber(tdarray)+" {");
+	    outrepairstructs.println("  int __type__;");
+	    printRepairStruct(typeutil.getClass(TypeUtil.ObjectClass), outrepairstructs);
+	    outrepairstructs.println("  int length;");
+	    if (tdelement.isClass()||tdelement.isArray())
+		outrepairstructs.println("  "+tdelement.getRepairSymbol()+" * elem[this.length];");
+	    else
+		outrepairstructs.println("  "+tdelement.getRepairSymbol()+" elem[this.length];");
+
+	    outrepairstructs.println("}\n");
+	}
+
+    }
+
+    private void printRepairStruct(ClassDescriptor cn, PrintWriter output) {
+	ClassDescriptor sp=cn.getSuperDesc();
+	if (sp!=null)
+	    printRepairStruct(sp, output);
+	
+	Vector fields=(Vector)fieldorder.get(cn);
+
+	for(int i=0;i<fields.size();i++) {
+	    FieldDescriptor fd=(FieldDescriptor)fields.get(i);
+	    if (fd.getType().isArray()) {
+		output.println("  "+arraytype+"_"+ state.getArrayNumber(fd.getType()) +" * "+fd.getSymbol()+";");
+	    } else if (fd.getType().isClass())
+		output.println("  "+fd.getType().getRepairSymbol()+" * "+fd.getSymbol()+";");
+	    else 
+		output.println("  "+fd.getType().getRepairSymbol()+" "+fd.getSymbol()+";");
+	}
+    }
 
     /** This method outputs TaskDescriptor information */
     void generateTaskDescriptor(PrintWriter output, TaskDescriptor task) {

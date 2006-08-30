@@ -103,6 +103,26 @@ public class BuildIR {
 	} else throw new Error();
     }
 
+    public Vector parseChecks(ParseNode pn) {
+	Vector ccs=new Vector();
+	ParseNodeVector pnv=pn.getChildren();
+	for(int i=0;i<pnv.size();i++) {
+	    ParseNode fn=pnv.elementAt(i);
+	    ConstraintCheck cc=parseConstraintCheck(fn);
+	    ccs.add(cc);
+	}
+	return ccs;
+    }
+
+    public ConstraintCheck parseConstraintCheck(ParseNode pn) {
+	if (isNode(pn,"cons_check")) {
+	    String varname=pn.getChild("name").getTerminal();
+	    String specname=pn.getChild("spec").getTerminal();
+	    ConstraintCheck cc=new ConstraintCheck(varname, specname);
+	    return cc;
+	} else throw new Error();
+    }
+
     public void parseParameterList(TaskDescriptor td, ParseNode pn) {
 	ParseNode paramlist=pn.getChild("task_parameter_list");
 	if (paramlist==null)
@@ -490,7 +510,11 @@ public class BuildIR {
 	    Vector vfe=null;
 	    if (pn.getChild("flag_effects_list")!=null)
 		vfe=parseFlags(pn.getChild("flag_effects_list"));
-	    blockstatements.add(new TaskExitNode(vfe));
+	    Vector ccs=null;
+	    if (pn.getChild("cons_checks")!=null)
+		ccs=parseChecks(pn.getChild("cons_checks"));
+	    
+	    blockstatements.add(new TaskExitNode(vfe, ccs));
 	} else if (isNode(pn,"return")) {
 	    if (isEmpty(pn.getTerminal()))
 		blockstatements.add(new ReturnNode());

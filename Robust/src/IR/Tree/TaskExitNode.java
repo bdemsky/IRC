@@ -3,8 +3,10 @@ import java.util.Vector;
 
 public class TaskExitNode extends BlockStatementNode {
     Vector vfe;
-    public TaskExitNode(Vector vfe) {
+    Vector ccs;
+    public TaskExitNode(Vector vfe, Vector ccs) {
 	this.vfe=vfe;
+	this.ccs=ccs;
     }
 
     public String printNode(int indent) {
@@ -13,6 +15,10 @@ public class TaskExitNode extends BlockStatementNode {
 
     public Vector getFlagEffects() {
 	return vfe;
+    }
+
+    public Vector getChecks() {
+	return ccs;
     }
 
     public int kind() {

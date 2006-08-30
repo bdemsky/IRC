@@ -5,8 +5,6 @@ import IR.*;
 import java.util.*;
 
 public class State {
-    public String main;
-
     public State() {
 	this.classes=new SymbolTable();
 	this.tasks=new SymbolTable();
@@ -24,6 +22,8 @@ public class State {
     /** Boolean flag which indicates whether compiler is compiling a task-based
      * program. */
     public boolean TASK;
+    public String structfile;
+    public String main;
 
     public SymbolTable classes;
     public SymbolTable tasks;

@@ -27,11 +27,14 @@ public class Main {
 	      ClassLibraryPrefix=args[++i]+"/";
 	  else if (option.equals("-mainclass"))
 	      state.main=args[++i];
+	  else if (option.equals("-struct"))
+	      state.structfile=args[++i];
 	  else if (option.equals("-task"))
 	      state.TASK=true;
 	  else if (option.equals("-help")) {
 	      System.out.println("-classlibrary classlibrarydirectory -- directory where classlibrary is located");
 	      System.out.println("-dir outputdirectory -- output code in outputdirectory");
+	      System.out.println("-struct structfile -- output structure declarations for repair tool");
 	      System.out.println("-mainclass -- main function to call");
 	      System.out.println("-precise -- use precise garbage collection");
 

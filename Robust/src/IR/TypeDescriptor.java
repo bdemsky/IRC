@@ -98,8 +98,37 @@ public class TypeDescriptor extends Descriptor {
 	else throw new Error("Error Type: "+type);
     }
 
+    public String getRepairSymbol() {
+	if (isArray())
+	    return IR.Flat.BuildCode.arraytype;
+	else if (isClass())
+	    return class_desc.getSymbol();
+	else if (isByte())
+	    return "char";
+	else if (isChar())
+	    return "short";
+	else if (isShort())
+	    return "short";
+	else if (isInt())
+	    return "int";
+	else if (isBoolean()) //Booleans are ints in C
+	    return "int";
+	else if (isLong())
+	    return "long long";
+	else if (isVoid())
+	    return "void";
+	else if (isDouble())
+	    return "double";
+	else if (isFloat())
+	    return "float";
+	else throw new Error("Error Type: "+type);
+    }
+
     public String getSafeDescriptor() {
-	if (isClass())
+	//Can't safely use [ in C
+	if (isArray()) 
+	    return "_AR_"+this.dereference().getSafeDescriptor();
+	else if (isClass())
 	    return class_desc.getSafeDescriptor();
 	else if (isByte())
 	    return "C";

@@ -24,10 +24,6 @@ public class FlagEffect {
 	return name;
     }
 
-    public int kind() {
-	return Kind.FlagNode;
-    }
-
     public boolean getStatus() {
 	return status;
     }
