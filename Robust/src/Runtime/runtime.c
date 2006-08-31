@@ -172,7 +172,7 @@ void executetasks() {
   struct sigaction sig;
   sig.sa_sigaction=&myhandler;
   sig.sa_flags=SA_SIGINFO;
-  sig.sa_mask=0;
+  sigemptyset(&sig.sa_mask);
 
   /* Catch bus errors, segmentation faults, and floating point exceptions*/
   sigaction(SIGBUS,&sig,0);
