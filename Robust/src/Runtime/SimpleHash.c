@@ -24,9 +24,9 @@ struct SimpleHash * allocateSimpleHash(int size) {
         exit(-1);
     }
     thisvar->size = size;
-    thisvar->bucket = (struct SimpleNode **) calloc(sizeof(struct SimpleNode *)*size,1);
+    thisvar->bucket = (struct SimpleNode **) RUNMALLOC(sizeof(struct SimpleNode *)*size);
     /* Set allocation blocks*/
-    thisvar->listhead=(struct ArraySimple *) calloc(sizeof(struct ArraySimple),1);
+    thisvar->listhead=(struct ArraySimple *) RUNMALLOC(sizeof(struct ArraySimple));
     thisvar->listtail=thisvar->listhead;
     thisvar->tailindex=0;
     /*Set data counts*/
@@ -101,7 +101,7 @@ int SimpleHashadd(struct SimpleHash * thisvar,int key, int data) {
 
   if (thisvar->numelements>=thisvar->size) {
     int newsize=2*thisvar->size+1;
-    struct SimpleNode ** newbucket = (struct SimpleNode **) calloc(sizeof(struct SimpleNode *)*newsize,1);
+    struct SimpleNode ** newbucket = (struct SimpleNode **) RUNMALLOC(sizeof(struct SimpleNode *)*newsize);
     int i;
     for(i=thisvar->size-1;i>=0;i--) {
         struct SimpleNode *ptr;
@@ -131,7 +131,7 @@ int SimpleHashadd(struct SimpleHash * thisvar,int key, int data) {
     ptr = &((*ptr)->next);
   }
   if (thisvar->tailindex==ARRAYSIZE) {
-    thisvar->listtail->nextarray=(struct ArraySimple *) calloc(sizeof(struct ArraySimple),1);
+    thisvar->listtail->nextarray=(struct ArraySimple *) RUNMALLOC(sizeof(struct ArraySimple));
     thisvar->tailindex=0;
     thisvar->listtail=thisvar->listtail->nextarray;
   }
