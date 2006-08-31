@@ -735,7 +735,21 @@ public class BuildFlat {
     private NodePair flattenTaskExitNode(TaskExitNode ten) {
 	FlatFlagActionNode ffan=new FlatFlagActionNode(true);
 	updateFlagActionNode(ffan, ten.getFlagEffects());
-	return new NodePair(ffan, ffan);
+	NodePair fcn=flattenConstraintCheck(ten.getChecks());
+	ffan.addNext(fcn.getBegin());
+	return new NodePair(ffan, fcn.getEnd());
+    }
+
+    private NodePair flattenConstraintCheck(Vector ccs) {
+	FlatNode begin=new FlatNop();
+	FlatNode last=begin;
+	for(int i=0;i<ccs.size();i++) {
+	    ConstraintCheck cc=(ConstraintCheck) ccs.get(i);
+	    FlatCheckNode fcn=new FlatCheckNode(getTempforVar(cc.getVar()), cc.getSpec());
+	    last.addNext(fcn);
+	    last=fcn;
+	}
+	return new NodePair(begin,last);
     }
 
     private NodePair flattenSubBlockNode(SubBlockNode sbn) {

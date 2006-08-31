@@ -78,6 +78,27 @@ public class SemanticCheck {
 	checkTypeDescriptor(fd.getType());
     }
 
+    public void checkConstraintCheck(TaskDescriptor td, Vector ccs) {
+	if (ccs==null)
+	    return; /* No constraint checks to check */
+	for(int i=0;i<ccs.size();i++) {
+	    ConstraintCheck cc=(ConstraintCheck) ccs.get(i);
+	    String varname=cc.getVarName();
+
+	    //Make sure the variable is declared as a parameter to the task
+	    VarDescriptor vd=(VarDescriptor)td.getParameterTable().get(varname);
+	    if (vd==null)
+		throw new Error("Parameter "+varname+" in Constraint Check not declared");
+	    cc.setVar(vd);
+
+	    //Make sure it correspods to a class
+	    TypeDescriptor type_d=vd.getType();
+	    if (!type_d.isClass())
+		throw new Error("Cannot have non-object argument for flag_effect");
+
+	}
+    }
+
     public void checkFlagEffects(TaskDescriptor td, Vector vfe) {
 	if (vfe==null)
 	    return; /* No flag effects to check */
@@ -257,6 +278,7 @@ public class SemanticCheck {
 	if (md instanceof MethodDescriptor)
 	    throw new Error("Illegal taskexit appears in Method: "+md.getSymbol());
 	checkFlagEffects((TaskDescriptor)md, ten.getFlagEffects());
+	checkConstraintCheck((TaskDescriptor) md, ten.getChecks());
     }
 
     void checkIfStatementNode(Descriptor md, SymbolTable nametable, IfStatementNode isn) {
