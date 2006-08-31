@@ -1,19 +1,27 @@
 package IR.Flat;
 
 public class FlatCheckNode extends FlatNode {
-    TempDescriptor td;
+    TempDescriptor [] temps;
     String spec;
 
-    public FlatCheckNode(TempDescriptor td, String spec) {
-	this.td=td;
+    public FlatCheckNode(String spec, TempDescriptor[] temps) {
 	this.spec=spec;
+	this.temps=temps;
     }
 
     public int kind() {
         return FKind.FlatCheckNode;
     }
+
+    public String getSpec() {
+	return spec;
+    }
+
+    public TempDescriptor [] getTemps() {
+	return temps;
+    }
     
     public TempDescriptor [] readsTemps() {
-	return new TempDescriptor[] {td};
+	return temps;
     }
 }

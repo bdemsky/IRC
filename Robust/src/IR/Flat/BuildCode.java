@@ -906,12 +906,26 @@ public class BuildCode {
 	case FKind.FlatNop:
 	    output.println("/* nop */");
 	    return;
+	case FKind.FlatCheckNode:
+	    generateFlatCheckNode(fm, (FlatCheckNode) fn, output);
+	    return;
 	case FKind.FlatFlagActionNode:
 	    generateFlatFlagActionNode(fm, (FlatFlagActionNode) fn, output);
 	    return;
 	}
 	throw new Error();
 
+    }
+
+    private void generateFlatCheckNode(FlatMethod fm,  FlatCheckNode fcn, PrintWriter output) {
+	output.print(fcn.getSpec()+"(");
+	TempDescriptor[] temps=fcn.getTemps();
+	for(int i=0;i<temps.length;i++) {
+	    if (i!=0)
+		output.print(", ");
+	    output.print(generateTemp(fm, temps[i]));
+	}
+	output.println(");");
     }
 
     private void generateFlatCall(FlatMethod fm, FlatCall fc, PrintWriter output) {

@@ -116,9 +116,12 @@ public class BuildIR {
 
     public ConstraintCheck parseConstraintCheck(ParseNode pn) {
 	if (isNode(pn,"cons_check")) {
-	    String varname=pn.getChild("name").getTerminal();
-	    String specname=pn.getChild("spec").getTerminal();
-	    ConstraintCheck cc=new ConstraintCheck(varname, specname);
+	    String specname=pn.getChild("name").getChild("identifier").getTerminal();
+	    Vector args=parseArgumentList(pn);
+	    ConstraintCheck cc=new ConstraintCheck(specname);
+	    for(int i=0;i<args.size();i++) {
+		cc.addArgument((ExpressionNode)args.get(i));
+	    }
 	    return cc;
 	} else throw new Error();
     }

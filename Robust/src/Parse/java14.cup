@@ -337,10 +337,10 @@ cons_checks ::= cons_check:cc {:
 		RESULT=ccs;
 	:};
 
-cons_check ::=	IDENTIFIER:id LBRACE IDENTIFIER:spec RBRACE {: 
+cons_check ::=	IDENTIFIER:name LPAREN argument_list_opt:args RPAREN {: 
 		ParseNode pn=new ParseNode("cons_check");
-		pn.addChild("name").addChild(id);
-		pn.addChild("spec").addChild(spec);
+		pn.addChild("name").addChild("identifier").addChild(name);
+		pn.addChild(args);
 		RESULT=pn;
 	:};
 

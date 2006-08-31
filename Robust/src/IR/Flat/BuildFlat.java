@@ -742,10 +742,23 @@ public class BuildFlat {
 
     private NodePair flattenConstraintCheck(Vector ccs) {
 	FlatNode begin=new FlatNop();
+	if (ccs==null)
+	    return new NodePair(begin,begin);
 	FlatNode last=begin;
 	for(int i=0;i<ccs.size();i++) {
 	    ConstraintCheck cc=(ConstraintCheck) ccs.get(i);
-	    FlatCheckNode fcn=new FlatCheckNode(getTempforVar(cc.getVar()), cc.getSpec());
+	    /* Flatten the arguments */
+	    TempDescriptor[] temps=new TempDescriptor[cc.numArgs()];	    
+	    for(int j=0;j<cc.numArgs();j++) {
+		ExpressionNode en=cc.getArg(j);
+		TempDescriptor td=TempDescriptor.tempFactory("arg",en.getType());
+		temps[j]=td;
+		NodePair np=flattenExpressionNode(en, td);
+		last.addNext(np.getBegin());
+		last=np.getEnd();
+	    }
+	    
+	    FlatCheckNode fcn=new FlatCheckNode(cc.getSpec(), temps);
 	    last.addNext(fcn);
 	    last=fcn;
 	}
