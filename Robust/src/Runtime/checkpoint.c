@@ -60,7 +60,7 @@ void ** makecheckpoint(int numparams, void ** srcpointer, struct SimpleHash * fo
 	    SimpleHashadd(forward, (int) objptr, (int) copy);
 	    SimpleHashadd(reverse, (int) copy, (int) objptr);
 	    SimpleHashadd(todo, (int) objptr, (int) objptr);
-	    *((void **) ((int)cpy)+offset)=copy;
+	    *((void **) (((int)cpy)+offset))=copy;
 	  }
 	}
       }

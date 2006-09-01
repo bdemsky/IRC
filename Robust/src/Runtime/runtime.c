@@ -24,6 +24,8 @@ struct parameterwrapper * objectqueues[NUMCLASSES];
 struct genhashtable * failedtasks;
 
 int main(int argc, char **argv) {
+  GC_init();
+  {
   int i;
   /* Allocate startup object */
   struct ___StartupObject___ *startupobject=(struct ___StartupObject___*) allocate_new(STARTUPTYPE);
@@ -47,6 +49,7 @@ int main(int argc, char **argv) {
     ((void **)(((char *)& stringarray->___length___)+sizeof(int)))[i]=newstring;
   }
   executetasks();
+  }
 }
 
 int hashCodetpd(struct taskparamdescriptor *ftd) {
