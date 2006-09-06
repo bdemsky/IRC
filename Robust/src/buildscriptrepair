@@ -32,7 +32,7 @@ for i in *
 do
 cd $SPECDIR/$i
 cat $BUILDDIR/structfile.struct $i.label > $i.struct
-java -cp $REPAIRROOT/:. MCC.Compiler -checkonly $i
+java -cp $REPAIRROOT/:. MCC.Compiler -name $i -checkonly $i
 ls
 cp size.[c,h] $BUILDDIR/specdir
 cp $i.c $i\_aux.[c,h] $BUILDDIR/specdir
