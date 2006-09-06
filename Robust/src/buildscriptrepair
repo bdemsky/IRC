@@ -19,7 +19,7 @@ shift
 mkdir $BUILDDIR
 java -cp $ROBUSTROOT/../cup/:$ROBUSTROOT Main.Main -classlibrary \
 $ROBUSTROOT/ClassLibrary/ -dir $BUILDDIR -struct $MAINFILE -struct \
-structfile.struct -task $@
+structfile -task $@
 
 # Build all of the consistency specs
 
@@ -31,24 +31,26 @@ cp $REPAIRROOT/MCC/CRuntime/* $BUILDDIR/specdir
 for i in *
 do
 cd $SPECDIR/$i
-cp $BUILDDIR/structfile.struct $i.struct
+cat $BUILDDIR/structfile.struct $i.label > $i.struct
 java -cp $REPAIRROOT/:. MCC.Compiler -checkonly $i
+ls
 cp size.[c,h] $BUILDDIR/specdir
-cp $i.c $i_aux.[c,h] $BUILDDIR/specdir
+cp $i.c $i\_aux.[c,h] $BUILDDIR/specdir
 echo $i >> $BUILDDIR/specs
 done
 
 #compile C code
 
 cd $BUILDDIR/specdir
-./buildruntime
+./buildrobust
 for i in `cat $BUILDDIR/specs`
 do
-gcc -O0 -g -c $i.c
+gcc -O0 -g -c $i\_aux.c
 done
 
 #build and link everything
 
+cd $CURDIR
 gcc -I$ROBUSTROOT/Runtime -I. -IRuntime/include -Itmpbuilddirectory \
 -O0 -DBOEHM_GC -LRuntime/lib/ -lgc -DTASK -g \
 tmpbuilddirectory/methods.c tmpbuilddirectory/taskdefs.c \

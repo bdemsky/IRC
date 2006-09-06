@@ -2,31 +2,31 @@
 #include <stdio.h>
 
 /* SIMPLE HASH ********************************************************/
-struct SimpleIterator* SimpleHashcreateiterator(struct SimpleHash * thisvar) {
-    return allocateSimpleIterator(thisvar->listhead,thisvar->listtail,thisvar->tailindex/*,thisvar*/);
+struct RuntimeIterator* RuntimeHashcreateiterator(struct RuntimeHash * thisvar) {
+    return allocateRuntimeIterator(thisvar->listhead,thisvar->listtail,thisvar->tailindex/*,thisvar*/);
 }
 
-void SimpleHashiterator(struct SimpleHash *thisvar, struct SimpleIterator * it) {
+void RuntimeHashiterator(struct RuntimeHash *thisvar, struct RuntimeIterator * it) {
   it->cur=thisvar->listhead;
   it->index=0;
   it->tailindex=thisvar->tailindex;
   it->tail=thisvar->listtail;
 }
 
-struct SimpleHash * noargallocateSimpleHash() {
-    return allocateSimpleHash(100);
+struct RuntimeHash * noargallocateRuntimeHash() {
+    return allocateRuntimeHash(100);
 }
 
-struct SimpleHash * allocateSimpleHash(int size) {
-    struct SimpleHash *thisvar=(struct SimpleHash *)RUNMALLOC(sizeof(struct SimpleHash));
+struct RuntimeHash * allocateRuntimeHash(int size) {
+    struct RuntimeHash *thisvar=(struct RuntimeHash *)RUNMALLOC(sizeof(struct RuntimeHash));
     if (size <= 0) {
         printf("Negative Hashtable size Exception\n");
         exit(-1);
     }
     thisvar->size = size;
-    thisvar->bucket = (struct SimpleNode **) RUNMALLOC(sizeof(struct SimpleNode *)*size);
+    thisvar->bucket = (struct RuntimeNode **) RUNMALLOC(sizeof(struct RuntimeNode *)*size);
     /* Set allocation blocks*/
-    thisvar->listhead=(struct ArraySimple *) RUNMALLOC(sizeof(struct ArraySimple));
+    thisvar->listhead=(struct ArrayRuntime *) RUNMALLOC(sizeof(struct ArrayRuntime));
     thisvar->listtail=thisvar->listhead;
     thisvar->tailindex=0;
     /*Set data counts*/
@@ -34,23 +34,23 @@ struct SimpleHash * allocateSimpleHash(int size) {
     return thisvar;
 }
 
-void freeSimpleHash(struct SimpleHash *thisvar) {
-    struct ArraySimple *ptr=thisvar->listhead;
+void freeRuntimeHash(struct RuntimeHash *thisvar) {
+    struct ArrayRuntime *ptr=thisvar->listhead;
     RUNFREE(thisvar->bucket);
     while(ptr) {
-        struct ArraySimple *next=ptr->nextarray;
+        struct ArrayRuntime *next=ptr->nextarray;
         RUNFREE(ptr);
         ptr=next;
     }
     RUNFREE(thisvar);
 }
 
-inline int SimpleHashcountset(struct SimpleHash * thisvar) {
+inline int RuntimeHashcountset(struct RuntimeHash * thisvar) {
     return thisvar->numelements;
 }
 
-int SimpleHashfirstkey(struct SimpleHash *thisvar) {
-  struct ArraySimple *ptr=thisvar->listhead;
+int RuntimeHashfirstkey(struct RuntimeHash *thisvar) {
+  struct ArrayRuntime *ptr=thisvar->listhead;
   int index=0;
   while((index==ARRAYSIZE)||!ptr->nodes[index].inuse) {
     if (index==ARRAYSIZE) {
@@ -62,15 +62,15 @@ int SimpleHashfirstkey(struct SimpleHash *thisvar) {
   return ptr->nodes[index].key;
 }
 
-int SimpleHashremove(struct SimpleHash *thisvar, int key, int data) {
+int RuntimeHashremove(struct RuntimeHash *thisvar, int key, int data) {
     unsigned int hashkey = (unsigned int)key % thisvar->size;
 
-    struct SimpleNode **ptr = &thisvar->bucket[hashkey];
+    struct RuntimeNode **ptr = &thisvar->bucket[hashkey];
     int i;
 
     while (*ptr) {
         if ((*ptr)->key == key && (*ptr)->data == data) {
-	  struct SimpleNode *toremove=*ptr;
+	  struct RuntimeNode *toremove=*ptr;
 	  *ptr=(*ptr)->next;
 
 	  toremove->inuse=0; /* Marked as unused */
@@ -84,29 +84,29 @@ int SimpleHashremove(struct SimpleHash *thisvar, int key, int data) {
     return 0;
 }
 
-void SimpleHashaddAll(struct SimpleHash *thisvar, struct SimpleHash * set) {
-    struct SimpleIterator it;
-    SimpleHashiterator(set, &it);
-    while(hasNext(&it)) {
-        int keyv=key(&it);
-        int data=next(&it);
-        SimpleHashadd(thisvar,keyv,data);
+void RuntimeHashaddAll(struct RuntimeHash *thisvar, struct RuntimeHash * set) {
+    struct RuntimeIterator it;
+    RuntimeHashiterator(set, &it);
+    while(RunhasNext(&it)) {
+        int keyv=Runkey(&it);
+        int data=Runnext(&it);
+        RuntimeHashadd(thisvar,keyv,data);
     }
 }
 
-int SimpleHashadd(struct SimpleHash * thisvar,int key, int data) {
+int RuntimeHashadd(struct RuntimeHash * thisvar,int key, int data) {
   /* Rehash code */
   unsigned int hashkey;
-  struct SimpleNode **ptr;
+  struct RuntimeNode **ptr;
 
   if (thisvar->numelements>=thisvar->size) {
     int newsize=2*thisvar->size+1;
-    struct SimpleNode ** newbucket = (struct SimpleNode **) RUNMALLOC(sizeof(struct SimpleNode *)*newsize);
+    struct RuntimeNode ** newbucket = (struct RuntimeNode **) RUNMALLOC(sizeof(struct RuntimeNode *)*newsize);
     int i;
     for(i=thisvar->size-1;i>=0;i--) {
-        struct SimpleNode *ptr;
+        struct RuntimeNode *ptr;
         for(ptr=thisvar->bucket[i];ptr!=NULL;) {
-            struct SimpleNode * nextptr=ptr->next;
+            struct RuntimeNode * nextptr=ptr->next;
             unsigned int newhashkey=(unsigned int)ptr->key % newsize;
             ptr->next=newbucket[newhashkey];
             newbucket[newhashkey]=ptr;
@@ -131,7 +131,7 @@ int SimpleHashadd(struct SimpleHash * thisvar,int key, int data) {
     ptr = &((*ptr)->next);
   }
   if (thisvar->tailindex==ARRAYSIZE) {
-    thisvar->listtail->nextarray=(struct ArraySimple *) RUNMALLOC(sizeof(struct ArraySimple));
+    thisvar->listtail->nextarray=(struct ArrayRuntime *) RUNMALLOC(sizeof(struct ArrayRuntime));
     thisvar->tailindex=0;
     thisvar->listtail=thisvar->listtail->nextarray;
   }
@@ -145,10 +145,10 @@ int SimpleHashadd(struct SimpleHash * thisvar,int key, int data) {
   return 1;
 }
 
-bool SimpleHashcontainskey(struct SimpleHash *thisvar,int key) {
+bool RuntimeHashcontainskey(struct RuntimeHash *thisvar,int key) {
     unsigned int hashkey = (unsigned int)key % thisvar->size;
 
-    struct SimpleNode *ptr = thisvar->bucket[hashkey];
+    struct RuntimeNode *ptr = thisvar->bucket[hashkey];
     while (ptr) {
         if (ptr->key == key) {
             /* we already have thisvar object
@@ -160,10 +160,10 @@ bool SimpleHashcontainskey(struct SimpleHash *thisvar,int key) {
     return false;
 }
 
-bool SimpleHashcontainskeydata(struct SimpleHash *thisvar, int key, int data) {
+bool RuntimeHashcontainskeydata(struct RuntimeHash *thisvar, int key, int data) {
     unsigned int hashkey = (unsigned int)key % thisvar->size;
 
-    struct SimpleNode *ptr = thisvar->bucket[hashkey];
+    struct RuntimeNode *ptr = thisvar->bucket[hashkey];
     while (ptr) {
         if (ptr->key == key && ptr->data == data) {
             /* we already have thisvar object
@@ -175,11 +175,11 @@ bool SimpleHashcontainskeydata(struct SimpleHash *thisvar, int key, int data) {
     return false;
 }
 
-int SimpleHashcount(struct SimpleHash *thisvar,int key) {
+int RuntimeHashcount(struct RuntimeHash *thisvar,int key) {
     unsigned int hashkey = (unsigned int)key % thisvar->size;
     int count = 0;
 
-    struct SimpleNode *ptr = thisvar->bucket[hashkey];
+    struct RuntimeNode *ptr = thisvar->bucket[hashkey];
     while (ptr) {
         if (ptr->key == key) {
             count++;
@@ -189,24 +189,24 @@ int SimpleHashcount(struct SimpleHash *thisvar,int key) {
     return count;
 }
 
-struct SimpleHash * SimpleHashimageSet(struct SimpleHash *thisvar, int key) {
-  struct SimpleHash * newset=allocateSimpleHash(2*SimpleHashcount(thisvar,key)+4);
+struct RuntimeHash * RuntimeHashimageSet(struct RuntimeHash *thisvar, int key) {
+  struct RuntimeHash * newset=allocateRuntimeHash(2*RuntimeHashcount(thisvar,key)+4);
   unsigned int hashkey = (unsigned int)key % thisvar->size;
 
-  struct SimpleNode *ptr = thisvar->bucket[hashkey];
+  struct RuntimeNode *ptr = thisvar->bucket[hashkey];
   while (ptr) {
     if (ptr->key == key) {
-        SimpleHashadd(newset,ptr->data,ptr->data);
+        RuntimeHashadd(newset,ptr->data,ptr->data);
     }
     ptr = ptr->next;
   }
   return newset;
 }
 
-int SimpleHashget(struct SimpleHash *thisvar, int key, int *data) {
+int RuntimeHashget(struct RuntimeHash *thisvar, int key, int *data) {
     unsigned int hashkey = (unsigned int)key % thisvar->size;
 
-    struct SimpleNode *ptr = thisvar->bucket[hashkey];
+    struct RuntimeNode *ptr = thisvar->bucket[hashkey];
     while (ptr) {
         if (ptr->key == key) {
             *data = ptr->data;
@@ -218,9 +218,9 @@ int SimpleHashget(struct SimpleHash *thisvar, int key, int *data) {
     return 0; /* failure */
 }
 
-int SimpleHashcountdata(struct SimpleHash *thisvar,int data) {
+int RuntimeHashcountdata(struct RuntimeHash *thisvar,int data) {
     int count = 0;
-    struct ArraySimple *ptr = thisvar->listhead;
+    struct ArrayRuntime *ptr = thisvar->listhead;
     while(ptr) {
       if (ptr->nextarray) {
           int i;
@@ -242,12 +242,12 @@ int SimpleHashcountdata(struct SimpleHash *thisvar,int data) {
     return count;
 }
 
-inline struct SimpleIterator * noargallocateSimpleIterator() {
-    return (struct SimpleIterator*)RUNMALLOC(sizeof(struct SimpleIterator));
+inline struct RuntimeIterator * noargallocateRuntimeIterator() {
+    return (struct RuntimeIterator*)RUNMALLOC(sizeof(struct RuntimeIterator));
 }
 
-inline struct SimpleIterator * allocateSimpleIterator(struct ArraySimple *start, struct ArraySimple *tl, int tlindex) {
-    struct SimpleIterator *thisvar=(struct SimpleIterator*)RUNMALLOC(sizeof(struct SimpleIterator));
+inline struct RuntimeIterator * allocateRuntimeIterator(struct ArrayRuntime *start, struct ArrayRuntime *tl, int tlindex) {
+    struct RuntimeIterator *thisvar=(struct RuntimeIterator*)RUNMALLOC(sizeof(struct RuntimeIterator));
     thisvar->cur = start;
     thisvar->index=0;
     thisvar->tailindex=tlindex;
@@ -255,7 +255,7 @@ inline struct SimpleIterator * allocateSimpleIterator(struct ArraySimple *start,
     return thisvar;
 }
 
-inline int hasNext(struct SimpleIterator *thisvar) {
+inline int RunhasNext(struct RuntimeIterator *thisvar) {
     if (thisvar->cur==thisvar->tail &&
 	thisvar->index==thisvar->tailindex)
         return 0;
@@ -272,10 +272,10 @@ inline int hasNext(struct SimpleIterator *thisvar) {
         return 0;
 }
 
-inline int next(struct SimpleIterator *thisvar) {
+inline int Runnext(struct RuntimeIterator *thisvar) {
     return thisvar->cur->nodes[thisvar->index++].data;
 }
 
-inline int key(struct SimpleIterator *thisvar) {
+inline int Runkey(struct RuntimeIterator *thisvar) {
     return thisvar->cur->nodes[thisvar->index].key;
 }

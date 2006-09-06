@@ -73,15 +73,15 @@ int comparetpd(struct taskparamdescriptor *ftd1, struct taskparamdescriptor *ftd
 
 void flagorand(void * ptr, int ormask, int andmask) {
   int flag=((int *)ptr)[1];
-  struct SimpleHash *flagptr=(struct SimpleHash *)(((int*)ptr)[2]);
+  struct RuntimeHash *flagptr=(struct RuntimeHash *)(((int*)ptr)[2]);
   flag|=ormask;
   flag&=andmask;
   ((int*)ptr)[1]=flag;
   /*Remove from all queues */
   while(flagptr!=NULL) {
-    struct SimpleHash *next;
-    SimpleHashget(flagptr, (int) ptr, (int *) &next);
-    SimpleHashremove(flagptr, (int)ptr, (int) next);
+    struct RuntimeHash *next;
+    RuntimeHashget(flagptr, (int) ptr, (int *) &next);
+    RuntimeHashremove(flagptr, (int)ptr, (int) next);
     flagptr=next;
   }
   
@@ -89,16 +89,16 @@ void flagorand(void * ptr, int ormask, int andmask) {
     struct QueueItem *tmpptr;
     struct parameterwrapper * parameter=objectqueues[((int *)ptr)[0]];
     int i;
-    struct SimpleHash * prevptr=NULL;
+    struct RuntimeHash * prevptr=NULL;
     while(parameter!=NULL) {
       for(i=0;i<parameter->numberofterms;i++) {
 	int andmask=parameter->intarray[i*2];
 	int checkmask=parameter->intarray[i*2+1];
 	if ((flag&andmask)==checkmask) {
-	  SimpleHashadd(parameter->objectset, (int) ptr, (int) prevptr);
+	  RuntimeHashadd(parameter->objectset, (int) ptr, (int) prevptr);
 	  prevptr=parameter->objectset;
 	  {
-	    struct SimpleIterator iteratorarray[MAXTASKPARAMS];
+	    struct RuntimeIterator iteratorarray[MAXTASKPARAMS];
 	    void * taskpointerarray[MAXTASKPARAMS];
 	    int j;
 	    int numparams=parameter->task->numParameters;
@@ -111,9 +111,9 @@ void flagorand(void * ptr, int ormask, int andmask) {
 		taskpointerarray[j]=ptr;
 		newindex=j;
 	      } else {
-		SimpleHashiterator(pw->objectset, &iteratorarray[j]);
-		if (hasNext(&iteratorarray[j]))
-		  taskpointerarray[j]=(void *) next(&iteratorarray[j]);
+		RuntimeHashiterator(pw->objectset, &iteratorarray[j]);
+		if (RunhasNext(&iteratorarray[j]))
+		  taskpointerarray[j]=(void *) Runnext(&iteratorarray[j]);
 		else
 		  break; /* No tasks to dispatch */
 	      }
@@ -138,11 +138,11 @@ void flagorand(void * ptr, int ormask, int andmask) {
 		    done=0;
 		  continue;
 		}
-		if (hasNext(&iteratorarray[j])) {
-		  taskpointerarray[j]=(void *) next(&iteratorarray[j]);
+		if (RunhasNext(&iteratorarray[j])) {
+		  taskpointerarray[j]=(void *) Runnext(&iteratorarray[j]);
 		  break;
 		} else if ((j+1)!=numparams) {
-		  SimpleHashiterator(task->descriptorarray[j]->queue, &iteratorarray[j]);
+		  RuntimeHashiterator(task->descriptorarray[j]->queue, &iteratorarray[j]);
 		} else {
 		  done=0;
 		  break;
@@ -155,7 +155,7 @@ void flagorand(void * ptr, int ormask, int andmask) {
       }
       parameter=parameter->next;
     }
-    ((struct SimpleHash **)ptr)[2]=prevptr;
+    ((struct RuntimeHash **)ptr)[2]=prevptr;
   }
 }
 
@@ -196,13 +196,13 @@ void executetasks() {
       void * parameter=tpd->parameterArray[i];
       struct parameterdescriptor * pd=tpd->task->descriptorarray[i];
       struct parameterwrapper *pw=(struct parameterwrapper *) pd->queue;
-      if (!SimpleHashcontainskey(pw->objectset, (int) parameter))
+      if (!RuntimeHashcontainskey(pw->objectset, (int) parameter))
 	goto newtask;
       taskpointerarray[i]=parameter;
     }
     {
-      struct SimpleHash * forward=allocateSimpleHash(100);
-      struct SimpleHash * reverse=allocateSimpleHash(100);
+      struct RuntimeHash * forward=allocateRuntimeHash(100);
+      struct RuntimeHash * reverse=allocateRuntimeHash(100);
       void ** checkpoint=makecheckpoint(tpd->task->numParameters, taskpointerarray, forward, reverse);
       if (setjmp(error_handler)) {
 	/* Recover */
@@ -232,7 +232,7 @@ void processtasks() {
       struct parameterwrapper ** ptr=&objectqueues[param->type];
 
       param->queue=parameter;
-      parameter->objectset=allocateSimpleHash(10);
+      parameter->objectset=allocateRuntimeHash(10);
       parameter->numberofterms=param->numberterms;
       parameter->intarray=param->intarray;
       parameter->task=task;

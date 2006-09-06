@@ -19,7 +19,7 @@ void processtasks();
 
 struct parameterwrapper {
   struct parameterwrapper *next;
-  struct SimpleHash * objectset;
+  struct RuntimeHash * objectset;
   int numberofterms;
   int * intarray;
   struct taskdescriptor * task;

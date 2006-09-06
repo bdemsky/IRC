@@ -3,29 +3,29 @@
 #include "structdefs.h"
 #include <string.h>
 
-void ** makecheckpoint(int numparams, void ** srcpointer, struct SimpleHash * forward, struct SimpleHash * reverse) {
+void ** makecheckpoint(int numparams, void ** srcpointer, struct RuntimeHash * forward, struct RuntimeHash * reverse) {
   void **newarray=RUNMALLOC(sizeof(void *)*numparams);
-  struct SimpleHash *todo=allocateSimpleHash(100);
+  struct RuntimeHash *todo=allocateRuntimeHash(100);
   int i;
   for(i=0;i<numparams;i++) {
     void * objptr=srcpointer[i];
-    if (SimpleHashcontainskey(forward, (int) objptr))
-      SimpleHashget(forward,(int) objptr,(int *) &newarray[i]);
+    if (RuntimeHashcontainskey(forward, (int) objptr))
+      RuntimeHashget(forward,(int) objptr,(int *) &newarray[i]);
     else {
       void * copy=createcopy(objptr);
-      SimpleHashadd(forward, (int) objptr, (int)copy);
-      SimpleHashadd(reverse, (int) copy, (int) objptr);
-      SimpleHashadd(todo, (int) objptr, (int) objptr);
+      RuntimeHashadd(forward, (int) objptr, (int)copy);
+      RuntimeHashadd(reverse, (int) copy, (int) objptr);
+      RuntimeHashadd(todo, (int) objptr, (int) objptr);
       newarray[i]=copy;
     }
   }
-  while(SimpleHashcountset(todo)!=0) {
-    void * ptr=(void *) SimpleHashfirstkey(todo);
+  while(RuntimeHashcountset(todo)!=0) {
+    void * ptr=(void *) RuntimeHashfirstkey(todo);
     int type=((int *)ptr)[0];
-    SimpleHashremove(todo, (int) ptr, (int) ptr);
+    RuntimeHashremove(todo, (int) ptr, (int) ptr);
     {
       void *cpy;
-      SimpleHashget(forward, (int) ptr, (int *) &cpy);
+      RuntimeHashget(forward, (int) ptr, (int *) &cpy);
       int * pointer=pointerarray[type];
       if (pointer==0) {
 	/* Array of primitives */
@@ -37,13 +37,13 @@ void ** makecheckpoint(int numparams, void ** srcpointer, struct SimpleHash * fo
 	int i;
 	for(i=0;i<length;i++) {
 	  void *objptr=((void **)(((char *)& ao->___length___)+sizeof(int)))[i];
-	  if (SimpleHashcontainskey(forward, (int) objptr))
-	    SimpleHashget(forward,(int) objptr,(int *) &((void **)(((char *)& ao->___length___)+sizeof(int)))[i]);
+	  if (RuntimeHashcontainskey(forward, (int) objptr))
+	    RuntimeHashget(forward,(int) objptr,(int *) &((void **)(((char *)& ao->___length___)+sizeof(int)))[i]);
 	  else {
 	    void * copy=createcopy(objptr);
-	    SimpleHashadd(forward, (int) objptr, (int)copy);
-	    SimpleHashadd(reverse, (int) copy, (int) objptr);
-	    SimpleHashadd(todo, (int) objptr, (int) objptr);
+	    RuntimeHashadd(forward, (int) objptr, (int)copy);
+	    RuntimeHashadd(reverse, (int) copy, (int) objptr);
+	    RuntimeHashadd(todo, (int) objptr, (int) objptr);
 	    ((void **)(((char *)& ao->___length___)+sizeof(int)))[i]=copy;
 	  }
 	}
@@ -53,13 +53,13 @@ void ** makecheckpoint(int numparams, void ** srcpointer, struct SimpleHash * fo
 	for(i=1;i<=size;i++) {
 	  int offset=pointer[i];
 	  void * objptr=*((void **)(((int)ptr)+offset));
-	  if (SimpleHashcontainskey(forward, (int) objptr))
-	    SimpleHashget(forward, (int) objptr, (int *) &(((char *)cpy)[offset]));
+	  if (RuntimeHashcontainskey(forward, (int) objptr))
+	    RuntimeHashget(forward, (int) objptr, (int *) &(((char *)cpy)[offset]));
 	  else {
 	    void * copy=createcopy(objptr);
-	    SimpleHashadd(forward, (int) objptr, (int) copy);
-	    SimpleHashadd(reverse, (int) copy, (int) objptr);
-	    SimpleHashadd(todo, (int) objptr, (int) objptr);
+	    RuntimeHashadd(forward, (int) objptr, (int) copy);
+	    RuntimeHashadd(reverse, (int) copy, (int) objptr);
+	    RuntimeHashadd(todo, (int) objptr, (int) objptr);
 	    *((void **) (((int)cpy)+offset))=copy;
 	  }
 	}
@@ -93,21 +93,21 @@ void * createcopy(void * orig) {
   }
 }
 
-void restorecheckpoint(int numparams, void ** original, void ** checkpoint, struct SimpleHash *forward, struct SimpleHash * reverse) {
-  struct SimpleHash *todo=allocateSimpleHash(100);
+void restorecheckpoint(int numparams, void ** original, void ** checkpoint, struct RuntimeHash *forward, struct RuntimeHash * reverse) {
+  struct RuntimeHash *todo=allocateRuntimeHash(100);
   int i;
 
   for(i=0;i<numparams;i++) {
-    SimpleHashadd(todo, (int) checkpoint[i], (int) checkpoint[i]);
+    RuntimeHashadd(todo, (int) checkpoint[i], (int) checkpoint[i]);
   }
 
-  while(SimpleHashcountset(todo)!=0) {
-    void * ptr=(void *) SimpleHashfirstkey(todo);
+  while(RuntimeHashcountset(todo)!=0) {
+    void * ptr=(void *) RuntimeHashfirstkey(todo);
     int type=((int *)ptr)[0];
-    SimpleHashremove(todo, (int) ptr, (int) ptr);
+    RuntimeHashremove(todo, (int) ptr, (int) ptr);
     {
       void *cpy;
-      SimpleHashget(reverse, (int) ptr, (int *) &cpy);
+      RuntimeHashget(reverse, (int) ptr, (int *) &cpy);
       int * pointer=pointerarray[type];
       if (pointer==0) {
 	/* Array of primitives */
@@ -119,7 +119,7 @@ void restorecheckpoint(int numparams, void ** original, void ** checkpoint, stru
 	int i;
 	for(i=0;i<length;i++) {
 	  void *objptr=((void **)(((char *)& ao->___length___)+sizeof(int)))[i];
-	  SimpleHashget(reverse, (int) objptr, (int *) &((void **)(((char *)& ao->___length___)+sizeof(int)))[i]);
+	  RuntimeHashget(reverse, (int) objptr, (int *) &((void **)(((char *)& ao->___length___)+sizeof(int)))[i]);
 	}
       } else {
 	int size=pointer[0];
@@ -127,7 +127,7 @@ void restorecheckpoint(int numparams, void ** original, void ** checkpoint, stru
 	for(i=1;i<=size;i++) {
 	  int offset=pointer[i];
 	  void * objptr=*((void **)(((int)ptr)+offset));
-	  SimpleHashget(reverse, (int) objptr, (int *) &(((char *)cpy)[offset]));
+	  RuntimeHashget(reverse, (int) objptr, (int *) &(((char *)cpy)[offset]));
 	}
       }
     }

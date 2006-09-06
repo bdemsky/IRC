@@ -260,11 +260,13 @@ public class BuildCode {
 	    outrepairstructs.println("  int __type__;");
 	    printRepairStruct(typeutil.getClass(TypeUtil.ObjectClass), outrepairstructs);
 	    outrepairstructs.println("  int length;");
-	    if (tdelement.isClass()||tdelement.isArray())
+	    /*
+	      // Need to add support to repair tool for this
+	      if (tdelement.isClass()||tdelement.isArray())
 		outrepairstructs.println("  "+tdelement.getRepairSymbol()+" * elem[this.length];");
 	    else
 		outrepairstructs.println("  "+tdelement.getRepairSymbol()+" elem[this.length];");
-
+	    */
 	    outrepairstructs.println("}\n");
 	}
 

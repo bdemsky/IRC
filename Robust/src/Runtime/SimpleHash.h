@@ -17,69 +17,69 @@
 
 /* SimpleHash *********************************************************/
 
-struct SimpleHash * noargallocateSimpleHash();
-struct SimpleHash * allocateSimpleHash(int size);
-void SimpleHashaddChild(struct SimpleHash *thisvar, struct SimpleHash * child);
-void freeSimpleHash(struct SimpleHash *);
+struct RuntimeHash * noargallocateRuntimeHash();
+struct RuntimeHash * allocateRuntimeHash(int size);
+void RuntimeHashaddChild(struct RuntimeHash *thisvar, struct RuntimeHash * child);
+void freeRuntimeHash(struct RuntimeHash *);
 
 
-int SimpleHashadd(struct SimpleHash *, int key, int data);
-int SimpleHashremove(struct SimpleHash *,int key, int data);
-bool SimpleHashcontainskey(struct SimpleHash *,int key);
-bool SimpleHashcontainskeydata(struct SimpleHash *,int key, int data);
-int SimpleHashget(struct SimpleHash *,int key, int* data);
-int SimpleHashcountdata(struct SimpleHash *,int data);
-void SimpleHashaddParent(struct SimpleHash *,struct SimpleHash* parent);
-int SimpleHashfirstkey(struct SimpleHash *);
-struct SimpleIterator* SimpleHashcreateiterator(struct SimpleHash *);
-void SimpleHashiterator(struct SimpleHash *, struct SimpleIterator * it);
-int SimpleHashcount(struct SimpleHash *, int key);
-void SimpleHashaddAll(struct SimpleHash *, struct SimpleHash * set);
-struct SimpleHash * SimpleHashimageSet(struct SimpleHash *, int key);
+int RuntimeHashadd(struct RuntimeHash *, int key, int data);
+int RuntimeHashremove(struct RuntimeHash *,int key, int data);
+bool RuntimeHashcontainskey(struct RuntimeHash *,int key);
+bool RuntimeHashcontainskeydata(struct RuntimeHash *,int key, int data);
+int RuntimeHashget(struct RuntimeHash *,int key, int* data);
+int RuntimeHashcountdata(struct RuntimeHash *,int data);
+void RuntimeHashaddParent(struct RuntimeHash *,struct RuntimeHash* parent);
+int RuntimeHashfirstkey(struct RuntimeHash *);
+struct RuntimeIterator* RuntimeHashcreateiterator(struct RuntimeHash *);
+void RuntimeHashiterator(struct RuntimeHash *, struct RuntimeIterator * it);
+int RuntimeHashcount(struct RuntimeHash *, int key);
+void RuntimeHashaddAll(struct RuntimeHash *, struct RuntimeHash * set);
+struct RuntimeHash * RuntimeHashimageSet(struct RuntimeHash *, int key);
 
-struct SimpleHash {
+struct RuntimeHash {
     int numelements;
     int size;
-    struct SimpleNode **bucket;
-    struct ArraySimple *listhead;
-    struct ArraySimple *listtail;
+    struct RuntimeNode **bucket;
+    struct ArrayRuntime *listhead;
+    struct ArrayRuntime *listtail;
     int tailindex;
 };
 
-inline int SimpleHashcountset(struct SimpleHash * thisvar);
+inline int RuntimeHashcountset(struct RuntimeHash * thisvar);
 
-/* SimpleHashException  *************************************************/
+/* RuntimeHashException  *************************************************/
 
 
-/* SimpleIterator *****************************************************/
+/* RuntimeIterator *****************************************************/
 #define ARRAYSIZE 100
 
-struct SimpleNode {
-  struct SimpleNode *next;
+struct RuntimeNode {
+  struct RuntimeNode *next;
   int data;
   int key;
   int inuse;
 };
 
-struct ArraySimple {
-  struct SimpleNode nodes[ARRAYSIZE];
-  struct ArraySimple * nextarray;
+struct ArrayRuntime {
+  struct RuntimeNode nodes[ARRAYSIZE];
+  struct ArrayRuntime * nextarray;
 };
 
 
-struct SimpleIterator {
-  struct ArraySimple *cur, *tail;
+struct RuntimeIterator {
+  struct ArrayRuntime *cur, *tail;
   int index,tailindex;
 };
 
-inline struct SimpleIterator * noargallocateSimpleIterator();
+inline struct RuntimeIterator * noargallocateRuntimeIterator();
 
-inline struct SimpleIterator * allocateSimpleIterator(struct ArraySimple *start, struct ArraySimple *tl, int tlindex);
+inline struct RuntimeIterator * allocateRuntimeIterator(struct ArrayRuntime *start, struct ArrayRuntime *tl, int tlindex);
 
-inline int hasNext(struct SimpleIterator *thisvar);
+inline int RunhasNext(struct RuntimeIterator *thisvar);
 
-inline int next(struct SimpleIterator *thisvar);
+inline int Runnext(struct RuntimeIterator *thisvar);
 
-inline int key(struct SimpleIterator *thisvar);
+inline int Runkey(struct RuntimeIterator *thisvar);
 
 #endif
