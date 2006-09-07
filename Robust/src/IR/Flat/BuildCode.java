@@ -158,6 +158,9 @@ public class BuildCode {
 	outmethod.println("#include \"methodheaders.h\"");
 	outmethod.println("#include \"virtualtable.h\"");
 	outmethod.println("#include <runtime.h>");
+	if (state.CONSCHECK) {
+	    outmethod.println("#include \"checkers.h\"");
+	}
 	outclassdefs.println("extern int classsize[];");
 	outclassdefs.println("extern int * pointerarray[];");
 
@@ -920,14 +923,29 @@ public class BuildCode {
     }
 
     private void generateFlatCheckNode(FlatMethod fm,  FlatCheckNode fcn, PrintWriter output) {
-	output.print(fcn.getSpec()+"(");
-	TempDescriptor[] temps=fcn.getTemps();
-	for(int i=0;i<temps.length;i++) {
-	    if (i!=0)
-		output.print(", ");
-	    output.print(generateTemp(fm, temps[i]));
+
+	if (state.CONSCHECK) {
+	    String specname=fcn.getSpec();
+	    String varname="repairstate___";
+	    output.println("{");
+
+	    output.println("struct "+specname+"_state * "+varname+"=allocate"+specname+"_state();");
+
+
+	    TempDescriptor[] temps=fcn.getTemps();
+	    String[] vars=fcn.getVars();
+	    for(int i=0;i<temps.length;i++) {
+		output.println(varname+"->"+vars[i]+"=(int)"+generateTemp(fm, temps[i])+";");
+	    }
+
+	    output.println("if (doanalysis"+specname+"("+varname+")) {");
+	    output.println("free"+specname+"_state("+varname+");");
+	    output.println("} else {");
+	    output.println("free"+specname+"_state("+varname+");");
+	    output.println("}");
+
+	    output.println("}");
 	}
-	output.println(");");
     }
 
     private void generateFlatCall(FlatMethod fm, FlatCall fc, PrintWriter output) {

@@ -117,10 +117,11 @@ public class BuildIR {
     public ConstraintCheck parseConstraintCheck(ParseNode pn) {
 	if (isNode(pn,"cons_check")) {
 	    String specname=pn.getChild("name").getChild("identifier").getTerminal();
-	    Vector args=parseArgumentList(pn);
+	    Vector[] args=parseConsArgumentList(pn);
 	    ConstraintCheck cc=new ConstraintCheck(specname);
-	    for(int i=0;i<args.size();i++) {
-		cc.addArgument((ExpressionNode)args.get(i));
+	    for(int i=0;i<args[0].size();i++) {
+		cc.addVariable((String)args[0].get(i));
+		cc.addArgument((ExpressionNode)args[1].get(i));
 	    }
 	    return cc;
 	} else throw new Error();
@@ -410,6 +411,23 @@ public class BuildIR {
 	    arglist.add(parseExpression(anv.elementAt(i)));
 	}
 	return arglist;
+    }
+
+    private Vector[] parseConsArgumentList(ParseNode pn) {
+	Vector arglist=new Vector();
+	Vector varlist=new Vector();
+	ParseNode an=pn.getChild("cons_argument_list");
+	if (an==null)   /* No argument list */
+	    return new Vector[] {varlist, arglist};
+	ParseNodeVector anv=an.getChildren();
+	for(int i=0;i<anv.size();i++) {
+	    ParseNode cpn=anv.elementAt(i);
+	    ParseNode var=cpn.getChild("var");
+	    ParseNode exp=cpn.getChild("exp");
+	    varlist.add(var.getTerminal());
+	    arglist.add(parseExpression(exp));
+	}
+	return new Vector[] {varlist, arglist};
     }
 
     private ExpressionNode parseAssignmentExpression(ParseNode pn) {

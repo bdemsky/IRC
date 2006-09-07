@@ -24,6 +24,7 @@ public class State {
     public boolean TASK;
     public String structfile;
     public String main;
+    public boolean CONSCHECK=false;
 
     public SymbolTable classes;
     public SymbolTable tasks;

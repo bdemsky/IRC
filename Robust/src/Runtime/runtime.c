@@ -18,6 +18,9 @@ jmp_buf error_handler;
 #include "Queue.h"
 #include "SimpleHash.h"
 #include "GenericHashtable.h"
+#ifdef CONSCHECK
+#include "initialize.h"
+#endif
 
 struct Queue * activetasks;
 struct parameterwrapper * objectqueues[NUMCLASSES];
@@ -25,6 +28,9 @@ struct genhashtable * failedtasks;
 
 int main(int argc, char **argv) {
   GC_init();
+#ifdef CONSCHECK
+  initializemmap();
+#endif
   {
   int i;
   /* Allocate startup object */

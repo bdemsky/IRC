@@ -196,6 +196,7 @@ non terminal ParseNode return_statement;
 // 19.12) Expressions
 non terminal ParseNode primary, primary_no_new_array;
 non terminal ParseNode class_instance_creation_expression;
+non terminal ParseNode cons_argument_list_opt, cons_argument_list;
 non terminal ParseNode argument_list_opt, argument_list;
 //non terminal ParseNode array_creation_init;
 non terminal ParseNode array_creation_uninit;
@@ -337,7 +338,7 @@ cons_checks ::= cons_check:cc {:
 		RESULT=ccs;
 	:};
 
-cons_check ::=	IDENTIFIER:name LPAREN argument_list_opt:args RPAREN {: 
+cons_check ::=	IDENTIFIER:name LPAREN cons_argument_list_opt:args RPAREN {: 
 		ParseNode pn=new ParseNode("cons_check");
 		pn.addChild("name").addChild("identifier").addChild(name);
 		pn.addChild(args);
@@ -1217,10 +1218,33 @@ class_instance_creation_expression ::=
 //	|	name DOT NEW IDENTIFIER
 //			LPAREN argument_list_opt RPAREN class_body
 	;
+cons_argument_list_opt ::=
+	{: RESULT=new ParseNode("empty"); :}
+	|	argument_list:args {: RESULT=args; :}
+	;
+
+cons_argument_list ::=
+		IDENTIFIER:id COLON expression:exp {:
+		ParseNode pn=new ParseNode("cons_argument_list");
+		ParseNode pnarg=pn.addChild("binding");
+		pnarg.addChild("var").addChild(id);
+		pnarg.addChild("exp").addChild(exp);
+		RESULT=pn;
+	:}
+	|	argument_list:list COMMA IDENTIFIER:id COLON expression:exp {:
+		ParseNode pnarg=new ParseNode("binding");
+		pnarg.addChild("var").addChild(id);
+		pnarg.addChild("exp").addChild(exp);
+		list.addChild(pnarg);
+		RESULT=list;
+	:}
+	;
+
 argument_list_opt ::=
 	{: RESULT=new ParseNode("empty"); :}
 	|	argument_list:args {: RESULT=args; :}
 	;
+
 argument_list ::=
 		expression:exp {:
 		ParseNode pn=new ParseNode("argument_list");

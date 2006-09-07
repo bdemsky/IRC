@@ -748,17 +748,19 @@ public class BuildFlat {
 	for(int i=0;i<ccs.size();i++) {
 	    ConstraintCheck cc=(ConstraintCheck) ccs.get(i);
 	    /* Flatten the arguments */
-	    TempDescriptor[] temps=new TempDescriptor[cc.numArgs()];	    
+	    TempDescriptor[] temps=new TempDescriptor[cc.numArgs()];
+	    String[] vars=new String[cc.numArgs()];
 	    for(int j=0;j<cc.numArgs();j++) {
 		ExpressionNode en=cc.getArg(j);
 		TempDescriptor td=TempDescriptor.tempFactory("arg",en.getType());
 		temps[j]=td;
+		vars[j]=cc.getVar(j);
 		NodePair np=flattenExpressionNode(en, td);
 		last.addNext(np.getBegin());
 		last=np.getEnd();
 	    }
 	    
-	    FlatCheckNode fcn=new FlatCheckNode(cc.getSpec(), temps);
+	    FlatCheckNode fcn=new FlatCheckNode(cc.getSpec(), vars, temps);
 	    last.addNext(fcn);
 	    last=fcn;
 	}

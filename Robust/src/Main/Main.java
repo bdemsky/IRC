@@ -29,6 +29,8 @@ public class Main {
 	      state.main=args[++i];
 	  else if (option.equals("-struct"))
 	      state.structfile=args[++i];
+	  else if (option.equals("-conscheck"))
+	      state.CONSCHECK=true;
 	  else if (option.equals("-task"))
 	      state.TASK=true;
 	  else if (option.equals("-help")) {
@@ -38,6 +40,7 @@ public class Main {
 	      System.out.println("-mainclass -- main function to call");
 	      System.out.println("-precise -- use precise garbage collection");
 
+	      System.out.println("-conscheck -- turn on consistency checking");
 	      System.out.println("-help -- print out help");
 	      System.exit(0);
 	  } else {
