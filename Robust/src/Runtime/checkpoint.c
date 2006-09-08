@@ -107,31 +107,50 @@ void restorecheckpoint(int numparams, void ** original, void ** checkpoint, stru
     RuntimeHashremove(todo, (int) ptr, (int) ptr);
     {
       void *cpy;
+      int *pointer;
+      int size;
       RuntimeHashget(reverse, (int) ptr, (int *) &cpy);
-      int * pointer=pointerarray[type];
+      pointer=pointerarray[type];
+      size=classsize[type];
+
       if (pointer==0) {
 	/* Array of primitives */
-	/* Do nothing */
+	struct ArrayObject *ao=(struct ArrayObject *) ptr;
+	int length=ao->___length___;
+	int cpysize=sizeof(struct ArrayObject)+length*size;
+	memcpy(cpy, ptr, cpysize);
+
       } else if ((int)pointer==1) {
 	/* Array of pointers */
 	struct ArrayObject *ao=(struct ArrayObject *) ptr;
+	struct ArrayObject *ao_cpy=(struct ArrayObject *) cpy;
 	int length=ao->___length___;
 	int i;
+	int cpysize=sizeof(struct ArrayObject)+length*size;
+	memcpy(ao_cpy, ao, cpysize);
+
 	for(i=0;i<length;i++) {
 	  void *objptr=((void **)(((char *)& ao->___length___)+sizeof(int)))[i];
-	  RuntimeHashget(reverse, (int) objptr, (int *) &((void **)(((char *)& ao->___length___)+sizeof(int)))[i]);
+	  RuntimeHashget(reverse, (int) objptr, (int *) &((void **)(((char *)& ao_cpy->___length___)+sizeof(int)))[i]);
 	}
       } else {
-	int size=pointer[0];
+	int numptr=pointer[0];
 	int i;
-	for(i=1;i<=size;i++) {
+	void *flagptr;
+	if (hasflags[type]) {
+	  flagptr=(void *) (((int *)cpy)[2]);
+	}
+	memcpy(cpy, ptr, size);
+	for(i=1;i<=numptr;i++) {
 	  int offset=pointer[i];
 	  void * objptr=*((void **)(((int)ptr)+offset));
 	  RuntimeHashget(reverse, (int) objptr, (int *) &(((char *)cpy)[offset]));
+	}
+	if (hasflags[type]) {
+	  (((void **)cpy)[2])=flagptr;
+	  flagorand(cpy, 1, 0xFFFFFFFF);
 	}
       }
     }
   }
 }
-
-

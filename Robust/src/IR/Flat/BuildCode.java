@@ -162,6 +162,7 @@ public class BuildCode {
 	    outmethod.println("#include \"checkers.h\"");
 	}
 	outclassdefs.println("extern int classsize[];");
+	outclassdefs.println("extern int hasflags[];");
 	outclassdefs.println("extern int * pointerarray[];");
 
 	//Store the sizes of classes & array elements
@@ -532,7 +533,7 @@ public class BuildCode {
 
 	for(int i=0;i<state.numArrays();i++) {
 	    if (needcomma)
-		output.println(",");
+		output.println(", ");
 	    TypeDescriptor tdelement=arraytable[i].dereference();
 	    if (tdelement.isArray()||tdelement.isClass())
 		output.print("((int *)1)");
@@ -541,6 +542,19 @@ public class BuildCode {
 	    needcomma=true;
 	}
 	
+	output.println("};");
+	needcomma=false;
+	output.println("int hasflags[]={");
+	for(int i=0;i<state.numClasses();i++) {
+	    ClassDescriptor cn=cdarray[i];
+	    if (needcomma)
+		output.println(", ");
+	    needcomma=true;
+	    if (cn.hasFlags())
+		output.print("1");
+	    else
+		output.print("0");
+	}
 	output.println("};");
     }
 
