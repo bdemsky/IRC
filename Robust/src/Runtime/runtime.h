@@ -9,6 +9,7 @@ struct ___String___ * NewString(char *str,int length);
 
 void failedboundschk();
 void failednullptr();
+void abort_task();
 
 #ifdef TASK
 #include "SimpleHash.h"

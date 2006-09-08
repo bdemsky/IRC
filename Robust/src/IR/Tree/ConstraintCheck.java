@@ -35,7 +35,7 @@ public class ConstraintCheck {
     }
 
     public String getVar(int i) {
-	return (String) args.get(i);
+	return (String) vars.get(i);
     }
 
     public String printNode(int indent) {

@@ -941,7 +941,9 @@ public class BuildCode {
 	    output.println("if (doanalysis"+specname+"("+varname+")) {");
 	    output.println("free"+specname+"_state("+varname+");");
 	    output.println("} else {");
+	    output.println("/* Bad invariant */");
 	    output.println("free"+specname+"_state("+varname+");");
+	    output.println("abort_task();");
 	    output.println("}");
 
 	    output.println("}");

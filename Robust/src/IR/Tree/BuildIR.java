@@ -423,7 +423,7 @@ public class BuildIR {
 	for(int i=0;i<anv.size();i++) {
 	    ParseNode cpn=anv.elementAt(i);
 	    ParseNode var=cpn.getChild("var");
-	    ParseNode exp=cpn.getChild("exp");
+	    ParseNode exp=cpn.getChild("exp").getFirstChild();
 	    varlist.add(var.getTerminal());
 	    arglist.add(parseExpression(exp));
 	}

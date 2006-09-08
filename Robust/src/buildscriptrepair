@@ -53,7 +53,8 @@ done
 
 #build and link everything
 
-cd $CURDIR gcc -I$ROBUSTROOT/Runtime -I. -I$BUILDDIR/specdir \
+cd $CURDIR 
+gcc -I$ROBUSTROOT/Runtime -I. -I$BUILDDIR/specdir \
 -IRuntime/include -I$BUILDDIR -O0 -DBOEHM_GC -DCONSCHECK \
 -LRuntime/lib/ -lgc -DTASK -g tmpbuilddirectory/methods.c \
 tmpbuilddirectory/taskdefs.c $ROBUSTROOT/Runtime/runtime.c \

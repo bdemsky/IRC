@@ -1220,7 +1220,7 @@ class_instance_creation_expression ::=
 	;
 cons_argument_list_opt ::=
 	{: RESULT=new ParseNode("empty"); :}
-	|	argument_list:args {: RESULT=args; :}
+	|	cons_argument_list:args {: RESULT=args; :}
 	;
 
 cons_argument_list ::=

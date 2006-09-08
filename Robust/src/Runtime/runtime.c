@@ -19,7 +19,7 @@ jmp_buf error_handler;
 #include "SimpleHash.h"
 #include "GenericHashtable.h"
 #ifdef CONSCHECK
-#include "initialize.h"
+#include "instrument.h"
 #endif
 
 struct Queue * activetasks;
@@ -302,5 +302,14 @@ void failednullptr() {
   exit(-1);
 #else
   longjmp(error_handler,3);
+#endif
+}
+
+void abort_task() {
+#ifndef TASK
+  printf("Aborting\n");
+  exit(-1);
+#else
+  longjmp(error_handler,4);
 #endif
 }
