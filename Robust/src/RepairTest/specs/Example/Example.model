@@ -1,0 +1,4 @@
+[], true => e in Example;
+[forall l in Example], true => <l, l.x> in X;
+[forall l in Example], true => <l, l.y> in Y;
+[forall l in Example], true => <l, l.z> in Z;
