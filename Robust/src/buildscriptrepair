@@ -28,9 +28,12 @@ mkdir $BUILDDIR/specdir
 cp $REPAIRROOT/MCC/CRuntime/* $BUILDDIR/specdir
 
 echo > $BUILDDIR/specs
+
 # compile specs into C code
 for i in *
 do
+if [ "$i" != "CVS" ]
+then
 cd $SPECDIR/$i
 cat $BUILDDIR/structfile.struct $i.label > $i.struct
 java -cp $REPAIRROOT/:. MCC.Compiler -name $i -checkonly $i
@@ -38,6 +41,7 @@ ls
 cp size.[c,h] $BUILDDIR/specdir
 cp $i.c $i\_aux.[c,h] $BUILDDIR/specdir
 echo $i >> $BUILDDIR/specs
+fi
 done
 
 #compile C code
