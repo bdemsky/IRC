@@ -1,0 +1,6 @@
+// Space Definition Language File
+
+set Example(Example);
+X: Example -> int;
+Y: Example -> int;
+Z: Example -> int;
