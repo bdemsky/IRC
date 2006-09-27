@@ -35,7 +35,7 @@ int main(int argc, char **argv) {
   int i;
   /* Allocate startup object */
   struct ___StartupObject___ *startupobject=(struct ___StartupObject___*) allocate_new(STARTUPTYPE);
-  struct ArrayObject * stringarray=allocate_newarray(STRINGARRAYTYPE, argc); 
+  struct ArrayObject * stringarray=allocate_newarray(STRINGARRAYTYPE, argc-1); 
   failedtasks=genallocatehashtable((unsigned int (*)(void *)) &hashCodetpd, 
 				   (int (*)(void *,void *)) &comparetpd);
   
@@ -49,10 +49,10 @@ int main(int argc, char **argv) {
 
   startupobject->___parameters___=stringarray;
 
-  for(i=0;i<argc;i++) {
+  for(i=1;i<argc;i++) {
     int length=strlen(argv[i]);
     struct ___String___ *newstring=NewString(argv[i],length);
-    ((void **)(((char *)& stringarray->___length___)+sizeof(int)))[i]=newstring;
+    ((void **)(((char *)& stringarray->___length___)+sizeof(int)))[i-1]=newstring;
   }
   executetasks();
   }
@@ -277,7 +277,7 @@ struct ArrayObject * allocate_newarray(int type, int length) {
   return v;
 }
 
-struct ___String___ * NewString(char *str,int length) {
+struct ___String___ * NewString(const char *str,int length) {
   struct ArrayObject * chararray=allocate_newarray(CHARARRAYTYPE, length);
   struct ___String___ * strobj=allocate_new(STRINGTYPE);
   int i;

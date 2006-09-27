@@ -30,7 +30,7 @@ class C extends A {
 }
 
 public class virtualcalltest {
-    public static void main() {
+    public static void main(String str[]) {
 
 	A a=null;
 	B b=new B();

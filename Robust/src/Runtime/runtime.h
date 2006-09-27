@@ -5,7 +5,7 @@ extern jmp_buf error_handler;
 
 void * allocate_new(int type);
 struct ArrayObject * allocate_newarray(int type, int length);
-struct ___String___ * NewString(char *str,int length);
+struct ___String___ * NewString(const char *str,int length);
 
 void failedboundschk();
 void failednullptr();

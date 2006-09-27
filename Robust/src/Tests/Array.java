@@ -1,6 +1,6 @@
 public class Array {
     int a;
-    public static void main() {
+    public static void main(String[] st) {
 	int a[]=new int[10];
 	int i=2;
 	a[i]=4;

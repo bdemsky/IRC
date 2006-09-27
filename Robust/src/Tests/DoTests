@@ -10,3 +10,4 @@ dotest StringTest StringTest.java
 dotest Test Test.java
 dotest virtualcalltest virtualcalltest.java
 dotest IncTest IncTest.java
+dotest CommandLineTest CommandLineTest.java hello hi

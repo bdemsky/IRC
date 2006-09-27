@@ -1,6 +1,6 @@
 public class IncTest {
 
-    public static void main() {
+    public static void main(String str[]) {
 	int x[]=new int[20];
 	for(int i=0;i<10;) {
 	    x[i++]++;

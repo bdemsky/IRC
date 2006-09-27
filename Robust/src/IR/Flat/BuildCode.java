@@ -158,6 +158,10 @@ public class BuildCode {
 	outmethod.println("#include \"methodheaders.h\"");
 	outmethod.println("#include \"virtualtable.h\"");
 	outmethod.println("#include <runtime.h>");
+	if (state.main!=null) {
+	    outmethod.println("#include <string.h>");	    
+	}
+
 	if (state.CONSCHECK) {
 	    outmethod.println("#include \"checkers.h\"");
 	}
@@ -214,15 +218,29 @@ public class BuildCode {
 	} else if (state.main!=null) {
 	    /* Generate main method */
 	    outmethod.println("int main(int argc, const char *argv[]) {");
+	    outmethod.println("int i;");
+	    outmethod.println("struct ArrayObject * stringarray=allocate_newarray(STRINGARRAYTYPE, argc-1);");
+	    outmethod.println("for(i=1;i<argc;i++) {");
+	    outmethod.println("int length=strlen(argv[i]);");
+	    outmethod.println("struct ___String___ *newstring=NewString(argv[i],length);");
+	    outmethod.println("((void **)(((char *)& stringarray->___length___)+sizeof(int)))[i-1]=newstring;");
+	    outmethod.println("}");
+
+
 	    ClassDescriptor cd=typeutil.getClass(state.main);
 	    Set mainset=cd.getMethodTable().getSet("main");
 	    for(Iterator mainit=mainset.iterator();mainit.hasNext();) {
 		MethodDescriptor md=(MethodDescriptor)mainit.next();
-		if (md.numParameters()!=0)
+		if (md.numParameters()!=1)
 		    continue;
+		if (md.getParameter(0).getType().getArrayCount()!=1)
+		    continue;
+		if (!md.getParameter(0).getType().getSymbol().equals("String"))
+		    continue;
+
 		if (!md.getModifiers().isStatic())
 		    throw new Error("Error: Non static main");
-		outmethod.println("   "+cd.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"();");
+		outmethod.println("   "+cd.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"(stringarray);");
 		break;
 	    }
 	    outmethod.println("}");

@@ -3,7 +3,7 @@ public class Test {
       ;
     }
     int a;
-    public static void main() {
+    public static void main(String str[]) {
 	Test t=new Test();
 	for(int i=3;i<10000;i++) {
 		boolean flagx=true;
