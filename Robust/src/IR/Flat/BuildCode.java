@@ -267,7 +267,7 @@ public class BuildCode {
 	    ClassDescriptor cn=(ClassDescriptor)classit.next();
 	    outrepairstructs.println("structure "+cn.getSymbol()+" {");
 	    outrepairstructs.println("  int __type__;");
-	    if (cn.hasFlags()) {
+	    if (state.TASK) {
 		outrepairstructs.println("  int __flag__;");
 		outrepairstructs.println("  int __flagptr__;");
 	    }
@@ -646,7 +646,7 @@ public class BuildCode {
 	/* Output class structure */
 	classdefout.println("struct "+cn.getSafeSymbol()+" {");
 	classdefout.println("  int type;");
-	if (cn.hasFlags()) {
+	if (state.TASK) {
 	    classdefout.println("  int flag;");
 	    classdefout.println("  void * flagptr;");
 	}
