@@ -19,9 +19,9 @@ jmp_buf error_handler;
 #include "SimpleHash.h"
 #include "GenericHashtable.h"
 #include <sys/select.h>
-#include <sys/types.h>
 #include <sys/socket.h>
-
+#include <fcntl.h>
+#include <arpa/inet.h>
 
 #ifdef CONSCHECK
 #include "instrument.h"
@@ -297,6 +297,90 @@ void processtasks() {
       (*ptr)=parameter;
     }
   }
+}
+
+
+
+int ___ServerSocket______createSocket____I(struct ___ServerSocket___ * sock, int port) {
+  int fd=socket(AF_INET, SOCK_STREAM, 0);
+  int n=1;
+  struct sockaddr_in sin;
+
+  bzero (&sin, sizeof (sin));
+  sin.sin_family = AF_INET;
+  sin.sin_port = htons (port);
+  sin.sin_addr.s_addr = htonl (INADDR_ANY);
+  
+  if (fd<0)
+    longjmp(error_handler,5);
+  
+  if (setsockopt (fd, SOL_SOCKET, SO_REUSEADDR, (char *)&n, sizeof (n)) < 0) {
+    close(fd);
+    longjmp(error_handler, 6);
+  }
+  fcntl(fd, F_SETFD, 1);
+  fcntl(fd, F_SETFL, fcntl(fd, F_GETFL)|O_NONBLOCK);
+
+  /* bind to port */
+  if (bind(fd, (struct sockaddr *) &sin, sizeof(sin))<0) { 
+    close (fd);
+    longjmp(error_handler, 7);
+  }
+
+  /* listen */
+  if (listen(fd, 10)<0) { 
+    close (fd);
+    longjmp(error_handler, 8);
+  }
+
+  /* Store the fd/socket object mapping */
+  RuntimeHashadd(fdtoobject, fd, (int) sock);
+  addreadfd(fd);
+
+  return fd;
+}
+
+int ___ServerSocket______nativeaccept____L___Socket____I(struct ___Socket___ * sock, int fd) {
+  struct sockaddr_in sin;
+  unsigned int sinlen=sizeof(sin);
+  int newfd=accept(fd, (struct sockaddr *)&sin, &sinlen);
+
+  if (newfd<0) { 
+    longjmp(error_handler, 9);
+  }
+  fcntl(newfd, F_SETFL, fcntl(fd, F_GETFL)|O_NONBLOCK);
+
+  RuntimeHashadd(fdtoobject, fd, (int) sock);
+  addreadfd(fd);
+  return newfd;
+}
+
+void ___Socket______nativeWrite_____AR_C_I(struct ArrayObject * ao, int fd) {
+  int length=ao->___length___;
+  char * charstr=((char *)& ao->___length___)+sizeof(int);
+  int bytewritten=write(fd, charstr, length);
+  if (bytewritten!=length) {
+    printf("ERROR IN NATIVEWRITE\n");
+  }
+}
+
+int ___Socket______nativeRead_____AR_C_I(struct ArrayObject * ao, int fd) {
+  int length=ao->___length___;
+  char * charstr=((char *)& ao->___length___)+sizeof(int);
+  int byteread=read(fd, charstr, length);
+  
+  if (byteread<0) {
+    printf("ERROR IN NATIVEREAD\n");
+  }
+  return byteread;
+}
+
+void ___Socket______nativeClose____I(int fd) {
+  int data;
+  RuntimeHashget(fdtoobject, fd, &data);
+  RuntimeHashremove(fdtoobject, fd, data);
+  removereadfd(fd);
+  close(fd);
 }
 #endif
 

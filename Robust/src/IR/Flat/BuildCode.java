@@ -110,6 +110,10 @@ public class BuildCode {
 	    //Print out definition for array type
 	    outclassdefs.println("struct "+arraytype+" {");
 	    outclassdefs.println("  int type;");
+	    if (state.TASK) {
+		outclassdefs.println("  int flag;");
+		outclassdefs.println("  void * flagptr;");
+	    }
 	    printClassStruct(typeutil.getClass(TypeUtil.ObjectClass), outclassdefs);
 	    outclassdefs.println("  int ___length___;");
 	    outclassdefs.println("};\n");

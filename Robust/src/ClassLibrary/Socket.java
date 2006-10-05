@@ -4,11 +4,25 @@ public class Socket {
     /* File Descriptor */
     int fd;
     
-    private Socket(int fd) {
-	this.fd=fd;
+    Socket() {
     }
     
-    public int read(byte[] b);
-    public void write(byte[] b);
-    void close();
+    int setFD(int filed) {
+	fd=filed;
+    }
+
+    public int read(byte[] b) {
+	return nativeRead(b, fd);
+    }
+    public void write(byte[] b) {
+	nativeWrite(b, fd);
+    }
+
+    private native static int nativeRead(byte[] b, int fd);
+    private native static void nativeWrite(byte[] b, int fd);
+    private native static void nativeClose(int fd);
+
+    public void close() {
+	nativeClose(fd);
+    }
 }
