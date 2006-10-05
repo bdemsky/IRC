@@ -51,8 +51,11 @@ public class Main {
       readSourceFile(state, ClassLibraryPrefix+"Object.java");
       readSourceFile(state, ClassLibraryPrefix+"System.java");
       readSourceFile(state, ClassLibraryPrefix+"String.java");
-      if (state.TASK)      
+      if (state.TASK) {
 	  readSourceFile(state, ClassLibraryPrefix+"StartupObject.java");
+	  readSourceFile(state, ClassLibraryPrefix+"Socket.java");
+	  readSourceFile(state, ClassLibraryPrefix+"ServerSocket.java");
+      }
 
       BuildIR bir=new BuildIR(state);
       bir.buildtree();
