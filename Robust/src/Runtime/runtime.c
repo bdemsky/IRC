@@ -18,6 +18,11 @@ jmp_buf error_handler;
 #include "Queue.h"
 #include "SimpleHash.h"
 #include "GenericHashtable.h"
+#include <sys/select.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+
+
 #ifdef CONSCHECK
 #include "instrument.h"
 #endif
@@ -174,6 +179,26 @@ void myhandler(int sig, struct __siginfo *info, void *uap) {
   longjmp(error_handler,1);
 }
 
+
+fd_set readfds;
+int maxreadfd;
+struct RuntimeHash *fdtoobject;
+
+void addreadfd(int fd) {
+  if (fd>maxreadfd)
+    fd=maxreadfd;
+  FD_SET(fd, &readfds);
+}
+
+void removereadfd(int fd) {
+  FD_CLR(fd, &readfds);
+  if (maxreadfd==fd) {
+    maxreadfd--;
+    while(!FD_ISSET(maxreadfd, &readfds)&&maxreadfd>0)
+      maxreadfd--;
+  }
+}
+
 void executetasks() {
   void * taskpointerarray[MAXTASKPARAMS];
 
@@ -188,6 +213,11 @@ void executetasks() {
   sigaction(SIGSEGV,&sig,0);
   sigaction(SIGFPE,&sig,0);
 
+  /* Zero fd set */
+  FD_ZERO(&readfds);
+  maxreadfd=0;
+  fdtoobject=allocateRuntimeHash(100);
+
   /* Map first block of memory to protected, anonymous page */
   mmap(0, 0x1000, 0, MAP_SHARED|MAP_FIXED|MAP_ANON, -1, 0);
 
@@ -196,6 +226,25 @@ void executetasks() {
     struct QueueItem * qi=(struct QueueItem *) getTail(activetasks);
     struct taskparamdescriptor *tpd=(struct taskparamdescriptor *) qi->objectptr;
     int i;
+    struct timeval timeout={0,0};
+    fd_set tmpreadfds;
+    int numselect;
+    FD_COPY(&readfds, &tmpreadfds);
+    numselect=select(maxreadfd, &tmpreadfds, NULL, NULL, &timeout);
+    if (numselect>0) {
+      /* Process ready fd's */
+      int fd;
+      for(fd=0;fd<maxreadfd;fd++) {
+	if (FD_ISSET(fd, &readfds)) {
+	  /* Set ready flag on object */
+	  void * objptr;
+	  if (RuntimeHashget(fdtoobject, fd,(int *) &objptr)) {
+	    flagorand(objptr,1,0xFFFFFFFF); /* Set the first flag to 1 */
+	  }
+	}
+      }
+    }
+    
     removeItem(activetasks, qi);
     
     for(i=0;i<tpd->task->numParameters;i++) {
