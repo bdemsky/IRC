@@ -221,6 +221,7 @@ non terminal ParseNode expression_opt, expression;
 //non terminal ParseNode constant_expression;
 //failure aware computation keywords
 terminal FLAG;
+terminal EXTERNAL;
 terminal TAG;
 terminal TASK;
 terminal TASKEXIT;
@@ -682,6 +683,12 @@ flag_declaration ::=
 		FLAG IDENTIFIER:id SEMICOLON {: 
 		ParseNode pn=new ParseNode("flag_declaration");
 		pn.addChild("name").addChild(id);
+		RESULT=pn;
+	:}	|
+		EXTERNAL FLAG IDENTIFIER:id SEMICOLON {: 
+		ParseNode pn=new ParseNode("flag_declaration");
+		pn.addChild("name").addChild(id);
+		pn.addChild("external");
 		RESULT=pn;
 	:}
 	;

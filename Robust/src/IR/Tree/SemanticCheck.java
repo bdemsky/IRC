@@ -116,6 +116,8 @@ public class SemanticCheck {
 		//Make sure the flag is declared
 		if (flag_d==null)
 		    throw new Error("Flag descriptor "+name+" undefined in class: "+cd.getSymbol());
+		if (flag_d.getExternal())
+		    throw new Error("Attempting to modify external flag: "+name);
 		flag.setFlag(flag_d);
 	    }
 	}
@@ -505,6 +507,8 @@ public class SemanticCheck {
 		//Make sure the flag is declared
 		if (flag_d==null)
 		    throw new Error("Flag descriptor "+name+" undefined in class: "+cd.getSymbol());
+		if (flag_d.getExternal())
+		    throw new Error("Attempting to modify external flag: "+name);
 		flag.setFlag(flag_d);
 	    }
 	}

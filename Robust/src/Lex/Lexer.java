@@ -246,7 +246,7 @@ public class Lexer {
   static final String[] keywords = new String[] {
     "abstract", "assert", "boolean", "break", "byte", "case", "catch", "char",
     "class", "const", "continue", "default", "do", "double", "else", "enum",
-    "extends", "final", "finally", 
+    "extends", "external", "final", "finally", 
     "flag", //keyword for failure aware computation
     "float", "for", "goto", "if", 
     "implements", "import", "instanceof", "int", "interface", "long", 

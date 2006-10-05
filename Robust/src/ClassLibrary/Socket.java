@@ -1,6 +1,6 @@
 public class Socket {
     /* Data pending flag */
-    flag IOPending;    
+    external flag IOPending;    
     /* File Descriptor */
     int fd;
     
@@ -12,17 +12,17 @@ public class Socket {
     }
 
     public int read(byte[] b) {
-	return nativeRead(b, fd);
+	return nativeRead(b);
     }
     public void write(byte[] b) {
-	nativeWrite(b, fd);
+	nativeWrite(b);
     }
 
-    private native static int nativeRead(byte[] b, int fd);
-    private native static void nativeWrite(byte[] b, int fd);
-    private native static void nativeClose(int fd);
+    private native int nativeRead(byte[] b);
+    private native void nativeWrite(byte[] b);
+    private native void nativeClose();
 
     public void close() {
-	nativeClose(fd);
+	nativeClose();
     }
 }

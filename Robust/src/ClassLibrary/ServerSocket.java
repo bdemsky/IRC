@@ -1,6 +1,6 @@
 public class ServerSocket {
     /* Socket pending flag */
-    flag SocketPending;    
+    external flag SocketPending;    
     /* File Descriptor */
     int fd;
 
@@ -12,12 +12,12 @@ public class ServerSocket {
     
     public Socket accept() {
 	Socket s=new Socket();
-	int newfd=nativeaccept(s, fd);
+	int newfd=nativeaccept(s);
 	s.setFD(newfd);
 	return s;
     }
 
-    private static native int nativeaccept(Socket s,int fd);
+    private native int nativeaccept(Socket s);
     
     public void close();
 

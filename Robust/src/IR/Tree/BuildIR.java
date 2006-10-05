@@ -246,7 +246,10 @@ public class BuildIR {
 
     private void parseFlagDecl(ClassDescriptor cn,ParseNode pn) {
 	String name=pn.getChild("name").getTerminal();
-	cn.addFlag(new FlagDescriptor(name));
+	FlagDescriptor flag=new FlagDescriptor(name);
+	if (pn.getChild("external")!=null)
+	    flag.makeExternal();
+	cn.addFlag(flag);
     }
 
     private void parseFieldDecl(ClassDescriptor cn,ParseNode pn) {

@@ -12,6 +12,15 @@ public class FlagDescriptor extends Descriptor {
 	super(identifier);
     }
 
+    private boolean isExternal=false;
+    public void makeExternal() {
+	isExternal=true;
+    }
+
+    public boolean getExternal() {
+	return isExternal;
+    }
+
     public String toString() {
 	return "Flag "+getSymbol();
     }
