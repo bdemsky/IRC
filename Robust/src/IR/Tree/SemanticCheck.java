@@ -262,7 +262,10 @@ public class SemanticCheck {
 	    throw new Error("Illegal return appears in Task: "+d.getSymbol());
 	MethodDescriptor md=(MethodDescriptor)d;
 	if (rn.getReturnExpression()!=null)
-	    checkExpressionNode(md, nametable, rn.getReturnExpression(), md.getReturnType());
+	    if (md.getReturnType().isVoid())
+		throw new Error(md+" is void");
+	    else
+		checkExpressionNode(md, nametable, rn.getReturnExpression(), md.getReturnType());
 	else
 	    if (md.getReturnType()!=null&&!md.getReturnType().isVoid())
 		throw new Error("Need to return something for "+md);
