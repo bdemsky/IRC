@@ -59,6 +59,24 @@ public class TypeUtil {
 	return (ClassDescriptor)supertable.get(cd);
     }
 
+    public boolean isCastable(TypeDescriptor original, TypeDescriptor casttype) {
+	if (original.isChar()&&
+	    (casttype.isByte()||
+	     casttype.isShort()))
+	    return true;
+
+	if (casttype.isChar()&&
+	    (original.isByte()||
+	     original.isShort()||
+	     original.isInt()||
+	     original.isLong()||
+	     original.isFloat()||
+	     original.isDouble()))
+	    return true;
+	    
+	return false;
+    }
+
     public boolean isSuperorType(TypeDescriptor possiblesuper, TypeDescriptor cd2) {
 	//Matching type are always okay
 	if (possiblesuper.equals(cd2))

@@ -345,7 +345,9 @@ public class SemanticCheck {
 
 	if (typeutil.isSuperorType(etd,cast_type)) /* Cast may succeed */
 	    return;
-
+	if (typeutil.isCastable(etd, cast_type))
+	    return;
+	
 	/* Different branches */
 	/* TODO: change if add interfaces */
 	throw new Error("Cast will always fail\n"+cn.printNode(0));
