@@ -12,18 +12,26 @@ public class String {
 	this.string=charstr;
     }
 
-    char[] getCharArray() {
+    char[] toCharArray() {
 	char str[]=new char[string.length];
 	for(int i=0;i<string.length;i++)
 	    str[i]=string[i];
 	return str;
     }
 
-    byte[] getByteArray() {
+    byte[] getBytes() {
 	byte str[]=new byte[string.length];
 	for(int i=0;i<string.length;i++)
 	    str[i]=(byte)string[i];
 	return str;
+    }
+
+    public int length() {
+	return string.length;
+    }
+
+    public char charAt(int x) {
+	return string[x];
     }
 
     public static String valueOf(Object o) {
