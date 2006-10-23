@@ -131,7 +131,7 @@ public class TypeDescriptor extends Descriptor {
 	else if (isClass())
 	    return class_desc.getSafeDescriptor();
 	else if (isByte())
-	    return "C";
+	    return "B";
 	else if (isChar())
 	    return "C";
 	else if (isShort())

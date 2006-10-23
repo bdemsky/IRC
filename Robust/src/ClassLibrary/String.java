@@ -5,6 +5,27 @@ public class String {
 	this.string=string;
     }
 
+    public String(byte str[]) {
+	char charstr[]=new char[str.length];
+	for(int i=0;i<str.length;i++)
+	    charstr[i]=(char)charstr[i];
+	this.string=charstr;
+    }
+
+    char[] getCharArray() {
+	char str[]=new char[string.length];
+	for(int i=0;i<string.length;i++)
+	    str[i]=string[i];
+	return str;
+    }
+
+    byte[] getByteArray() {
+	byte str[]=new byte[string.length];
+	for(int i=0;i<string.length;i++)
+	    str[i]=(byte)string[i];
+	return str;
+    }
+
     public static String valueOf(Object o) {
 	return o.toString();
     }
