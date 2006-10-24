@@ -4,7 +4,7 @@ public class String {
     public String(char str[]) {
 	char charstr[]=new char[str.length];
 	for(int i=0;i<str.length;i++)
-	    charstr[i]=charstr[i];
+	    charstr[i]=str[i];
 	this.string=charstr;
     }
 
