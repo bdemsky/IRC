@@ -1,14 +1,17 @@
 public class String {
     char string[];
 
-    public String(char string[]) {
-	this.string=string;
+    public String(char str[]) {
+	char charstr[]=new char[str.length];
+	for(int i=0;i<str.length;i++)
+	    charstr[i]=charstr[i];
+	this.string=charstr;
     }
 
     public String(byte str[]) {
 	char charstr[]=new char[str.length];
 	for(int i=0;i<str.length;i++)
-	    charstr[i]=(char)charstr[i];
+	    charstr[i]=(char)str[i];
 	this.string=charstr;
     }
 

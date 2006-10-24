@@ -62,6 +62,7 @@ gcc -I$ROBUSTROOT/Runtime -I. -I$BUILDDIR/specdir \
 -IRuntime/include -I$BUILDDIR -O0 -DBOEHM_GC -DCONSCHECK \
 -LRuntime/lib/ -lgc -DTASK -g tmpbuilddirectory/methods.c \
 tmpbuilddirectory/taskdefs.c $ROBUSTROOT/Runtime/runtime.c \
+$ROBUSTROOT/Runtime/file.c \
 $ROBUSTROOT/Runtime/Queue.c $ROBUSTROOT/Runtime/SimpleHash.c \
 $ROBUSTROOT/Runtime/checkpoint.c \
 $ROBUSTROOT/Runtime/GenericHashtable.c $BUILDDIR/specdir/*.o -o \
