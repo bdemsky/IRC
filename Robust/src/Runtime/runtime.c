@@ -387,7 +387,7 @@ int ___ServerSocket______nativeaccept____L___Socket___(struct ___ServerSocket___
 }
 
 
-void ___Socket______nativeWrite_____AR_C(struct ___Socket___ * sock, struct ArrayObject * ao) {
+void ___Socket______nativeWrite_____AR_B(struct ___Socket___ * sock, struct ArrayObject * ao) {
   int fd=sock->___fd___;
   int length=ao->___length___;
   char * charstr=((char *)& ao->___length___)+sizeof(int);
@@ -398,7 +398,7 @@ void ___Socket______nativeWrite_____AR_C(struct ___Socket___ * sock, struct Arra
   flagorand(sock,0,0xFFFFFFFE);
 }
 
-int ___Socket______nativeRead_____AR_C(struct ___Socket___ * sock, struct ArrayObject * ao) {
+int ___Socket______nativeRead_____AR_B(struct ___Socket___ * sock, struct ArrayObject * ao) {
   int fd=sock->___fd___;
   int length=ao->___length___;
   char * charstr=((char *)& ao->___length___)+sizeof(int);
