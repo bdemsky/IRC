@@ -427,10 +427,11 @@ int ___Object______hashcode____(struct ___Object___ * ___this___) {
 }
 
 void ___System______printString____L___String___(struct ___String___ * s) {
-    struct ArrayObject * chararray=s->___string___;
+    struct ArrayObject * chararray=s->___value___;
     int i;
-    for(i=0;i<chararray->___length___;i++) {
-	short s= ((short *)(((char *)& chararray->___length___)+sizeof(int)))[i];
+    int offset=s->___offset___;
+    for(i=0;i<s->___count___;i++) {
+	short s= ((short *)(((char *)& chararray->___length___)+sizeof(int)))[i+offset];
 	putchar(s);
     }
 }
@@ -452,7 +453,10 @@ struct ___String___ * NewString(const char *str,int length) {
   struct ArrayObject * chararray=allocate_newarray(CHARARRAYTYPE, length);
   struct ___String___ * strobj=allocate_new(STRINGTYPE);
   int i;
-  strobj->___string___=chararray;
+  strobj->___value___=chararray;
+  strobj->___count___=length;
+  strobj->___offset___=0;
+
   for(i=0;i<length;i++) {
     ((short *)(((char *)& chararray->___length___)+sizeof(int)))[i]=(short)str[i];  }
   return strobj;
