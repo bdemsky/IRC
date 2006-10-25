@@ -37,7 +37,9 @@ void ** makecheckpoint(int numparams, void ** srcpointer, struct RuntimeHash * f
 	int i;
 	for(i=0;i<length;i++) {
 	  void *objptr=((void **)(((char *)& ao->___length___)+sizeof(int)))[i];
-	  if (RuntimeHashcontainskey(forward, (int) objptr))
+	  if (objptr==NULL) {
+	    ((void **)(((char *)& ao->___length___)+sizeof(int)))[i]=NULL;
+	  } else if (RuntimeHashcontainskey(forward, (int) objptr))
 	    RuntimeHashget(forward,(int) objptr,(int *) &((void **)(((char *)& ao->___length___)+sizeof(int)))[i]);
 	  else {
 	    void * copy=createcopy(objptr);
@@ -53,7 +55,9 @@ void ** makecheckpoint(int numparams, void ** srcpointer, struct RuntimeHash * f
 	for(i=1;i<=size;i++) {
 	  int offset=pointer[i];
 	  void * objptr=*((void **)(((int)ptr)+offset));
-	  if (RuntimeHashcontainskey(forward, (int) objptr))
+	  if (objptr==NULL) {
+	    *((void **) (((int)cpy)+offset))=NULL;
+	  } else if (RuntimeHashcontainskey(forward, (int) objptr))
 	    RuntimeHashget(forward, (int) objptr, (int *) &(((char *)cpy)[offset]));
 	  else {
 	    void * copy=createcopy(objptr);
@@ -131,7 +135,10 @@ void restorecheckpoint(int numparams, void ** original, void ** checkpoint, stru
 
 	for(i=0;i<length;i++) {
 	  void *objptr=((void **)(((char *)& ao->___length___)+sizeof(int)))[i];
-	  RuntimeHashget(reverse, (int) objptr, (int *) &((void **)(((char *)& ao_cpy->___length___)+sizeof(int)))[i]);
+	  if (objptr==NULL)
+	    ((void **)(((char *)& ao_cpy->___length___)+sizeof(int)))[i]=NULL;
+	  else
+	    RuntimeHashget(reverse, (int) objptr, (int *) &((void **)(((char *)& ao_cpy->___length___)+sizeof(int)))[i]);
 	}
       } else {
 	int numptr=pointer[0];
@@ -144,7 +151,10 @@ void restorecheckpoint(int numparams, void ** original, void ** checkpoint, stru
 	for(i=1;i<=numptr;i++) {
 	  int offset=pointer[i];
 	  void * objptr=*((void **)(((int)ptr)+offset));
-	  RuntimeHashget(reverse, (int) objptr, (int *) &(((char *)cpy)[offset]));
+	  if (objptr==NULL)
+	    *((void **) (((int)cpy)+offset))=NULL;
+	  else
+	    RuntimeHashget(reverse, (int) objptr, (int *) &(((char *)cpy)[offset]));
 	}
 	if (hasflags[type]) {
 	  (((void **)cpy)[2])=flagptr;
