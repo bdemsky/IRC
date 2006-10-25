@@ -43,6 +43,25 @@ public class StringBuffer {
 	}
     }
 
+    public void append(StringBuffer s) {
+	if ((s.count+count+offset)>value.length) {
+	    // Need to allocate
+	    char newvalue[]=new char[s.count+count+16]; //16 is DEFAULTSIZE
+	    for(int i=0;i<count;i++)
+		newvalue[i]=value[i+offset];
+	    for(int i=0;i<s.count;i++)
+		newvalue[i+count]=s.value[i+s.offset];
+	    value=newvalue;
+	    count+=s.count;
+	    offset=0;
+	} else {
+	    for(int i=0;i<s.count;i++) {
+		value[i+count+offset]=s.value[i+s.offset];
+	    }
+	    count+=s.count;
+	}
+    }
+
     public String toString() {
 	return new String(this);
     }
