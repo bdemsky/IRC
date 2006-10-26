@@ -19,29 +19,12 @@ task AcceptConnection(ServerSocket ss{SocketPending}) {
 	System.printString("W> Connected... \n");
 }
 
-/*
-task Request(Socket s{IOPending}) {
-
-} 
-*/
-
 /* Send a Write Request to Client*/
-
 task WriteIO(WebServerSocket web{WritePending}) {
 	System.printString("W> Before doing WriteIO 0\n");
-	web.datawrite();
+	web.httpresponse();
 	System.printString("W> After doing WriteIO\n");
-	
-//	taskexit(s {!WritePending});
-}
-
-//task ReadIO(WebServerSocket web{ReadPending}, Socket s {IOPending}) {
-/*	web.datawrite();
-	System.printString("Reading String\n");
-	taskexit(s {!ReadPending});
-}
-
-task CloseSocket(WebServerSocket web{WritePending}) {
 	web.close();
+ 	taskexit(web {!WritePending});	
 }
-*/
+
