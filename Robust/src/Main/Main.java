@@ -54,6 +54,7 @@ public class Main {
       readSourceFile(state, ClassLibraryPrefix+"StringBuffer.java");
       readSourceFile(state, ClassLibraryPrefix+"FileInputStream.java");
       readSourceFile(state, ClassLibraryPrefix+"FileOutputStream.java");
+      readSourceFile(state, ClassLibraryPrefix+"File.java");
       if (state.TASK) {
 	  readSourceFile(state, ClassLibraryPrefix+"StartupObject.java");
 	  readSourceFile(state, ClassLibraryPrefix+"Socket.java");

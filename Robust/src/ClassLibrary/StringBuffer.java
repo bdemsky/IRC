@@ -5,7 +5,7 @@ public class StringBuffer {
     //    private static final int DEFAULTSIZE=16;
 
     public StringBuffer(String str) {
-	value=new char[str.value+16];//16 is DEFAULTSIZE
+	value=new char[str.count+16];//16 is DEFAULTSIZE
 	count=str.count;
 	offset=0;
 	for(int i=0;i<count;i++)

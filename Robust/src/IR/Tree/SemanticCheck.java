@@ -63,7 +63,7 @@ public class SemanticCheck {
     public void checkTypeDescriptor(TypeDescriptor td) {
 	if (td.isPrimitive())
 	    return; /* Done */
-	if (td.isClass()) {
+	else if (td.isClass()) {
 	    String name=td.toString();
 	    ClassDescriptor field_cd=(ClassDescriptor)state.getClassSymbolTable().get(name);
 	    if (field_cd==null)
@@ -767,7 +767,7 @@ public class SemanticCheck {
 	case Operation.MOD:
 	    // 5.6.2 Binary Numeric Promotion
 	    //TODO unboxing of reference objects
-	    if (!ltd.isNumber()||!rtd.isNumber())
+	    if (ltd.isArray()||rtd.isArray()||!ltd.isNumber()||!rtd.isNumber())
 		throw new Error("Error in "+on.printNode(0));
 
 	    if (ltd.isDouble()||rtd.isDouble())

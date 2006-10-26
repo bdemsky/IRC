@@ -5,6 +5,10 @@ public class FileInputStream {
 	fd=nativeOpen(pathname.getBytes());
     }
 
+    public FileInputStream(File path) {
+	fd=nativeOpen(path.getPath().getBytes());
+    }
+
     private static native int nativeOpen(byte[] filename);
     private static native int nativeRead(int fd, byte[] array, int numBytes);
     private static native void nativeClose(int fd);

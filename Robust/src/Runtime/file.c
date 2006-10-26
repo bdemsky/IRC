@@ -46,3 +46,11 @@ int ___FileInputStream______nativeRead____I__AR_B_I(int fd, struct ArrayObject *
   status=read(fd, string, toread);
   return status;
 }
+
+long long ___File______nativeLength_____AR_B(struct ArrayObject * ao) {
+  int length=ao->___length___;
+  char* filename= (((char *)& ao->___length___)+sizeof(int));
+  struct stat st;
+  stat(filename, &st);
+  return st.st_size;
+}
