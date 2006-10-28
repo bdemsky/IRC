@@ -24,6 +24,13 @@ int ___FileOutputStream______nativeOpen_____AR_B(struct ArrayObject * ao) {
   return fd;
 }
 
+int ___FileOutputStream______nativeAppend_____AR_B(struct ArrayObject * ao) {
+  int length=ao->___length___;
+  char* filename= (((char *)& ao->___length___)+sizeof(int));
+  int fd=open(filename, O_WRONLY|O_CREAT|O_APPEND, S_IRWXU);
+  return fd;
+}
+
 int ___FileInputStream______nativeOpen_____AR_B(struct ArrayObject * ao) {
   int length=ao->___length___;
   char* filename= (((char *)& ao->___length___)+sizeof(int));
