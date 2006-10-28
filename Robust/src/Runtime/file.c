@@ -17,6 +17,10 @@ void ___FileOutputStream______nativeClose____I(int fd) {
   close(fd);
 }
 
+void ___FileOutputStream______nativeFlush____I(int fd) {
+  fsync(fd);
+}
+
 int ___FileOutputStream______nativeOpen_____AR_B(struct ArrayObject * ao) {
   int length=ao->___length___;
   char* filename= (((char *)& ao->___length___)+sizeof(int));

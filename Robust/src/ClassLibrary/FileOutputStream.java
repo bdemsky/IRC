@@ -21,6 +21,7 @@ public class FileOutputStream {
     private static native int nativeAppend(byte[] filename);
     private static native void nativeWrite(int fd, byte[] array);
     private static native void nativeClose(int fd);
+    private static native void nativeFlush(int fd);
     
     public void write(int ch) {
 	byte b[]=new byte[1];
@@ -30,6 +31,10 @@ public class FileOutputStream {
 
     public void write(byte[] b) {
 	nativeWrite(fd, b);
+    }
+
+    public void flush() {
+	nativeFlush(fd);
     }
 
     public void close() {
