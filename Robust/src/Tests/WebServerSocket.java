@@ -2,12 +2,11 @@ public class WebServerSocket extends Socket {
 	// Websocket flag
 	flag ReadPending;
 	flag WritePending;
-	//File Descriptor
-	int fd;
-
+	
 	//Constructor
 	public WebServerSocket(){
-
+		Logger log = new Logger();
+		log.logrequest();		
 	}
 	
 	public void datawrite(){ 
@@ -24,30 +23,38 @@ public class WebServerSocket extends Socket {
 		b[9] =(byte)'T';
 		write(b);
 	}
-	
+
+	//Send the http header for web browser display	
 	public void httpresponse(){
-	
 		StringBuffer header = new StringBuffer("HTTP/1.0 200 OK\n");
 		StringBuffer htmlBuffer = new StringBuffer("<HTML>\n");
 
 		header.append("Content-type: text/html\n");
-		header.append("Content-length: 88");
 		header.append("\n\n");
-		
-
-		htmlBuffer.append("<HEAD>\n<TITLE>Test HTML Document</TITLE>\n");
-		htmlBuffer.append(" </HEAD>\n");
-		htmlBuffer.append("          \n");
-		htmlBuffer.append("   <BODY>\n");
-		htmlBuffer.append("   <h1>This is your java web server's default page.</h1>");
-		htmlBuffer.append("   </BODY>\n");
-		htmlBuffer.append("</HTML>\n"); 
-	
-		header.append(htmlBuffer.toString());
-		
 		String temp_str = new String(header);
 		write(temp_str.getBytes());
 		return;
+
 	}
+	
+	//Send the html file , read from file one byte at a time	
+	public void sendfile() {
+		String filepath = new String("./Tests/htmlfiles/index2.html");
+		FileInputStream def_file = new FileInputStream(filepath);
+		byte buf[] = new byte[16];
+		int ret;
+		
+		while ((ret = def_file.read(buf)) > 0) {
+			byte tosend[] = new byte[ret];
+			for (int i = 0; i < ret; i++) {
+				tosend[i] = buf[i];
+			}
+			write(tosend);
+			String str = new String(tosend);
+		}
+		def_file.close();
+	}
+
+
 }
 

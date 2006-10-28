@@ -21,9 +21,11 @@ task AcceptConnection(ServerSocket ss{SocketPending}) {
 
 /* Send a Write Request to Client*/
 task WriteIO(WebServerSocket web{WritePending}) {
-	System.printString("W> Before doing WriteIO 0\n");
+	System.printString("W> Before sending response\n");
 	web.httpresponse();
-	System.printString("W> After doing WriteIO\n");
+	System.printString("W> After sending response\n");
+	web.sendfile();
+	System.printString("W> After sending file\n");
 	web.close();
  	taskexit(web {!WritePending});	
 }
