@@ -3,6 +3,9 @@ public class String {
     int count;
     int offset;
 
+    private String() {
+    }
+
     public String(char str[]) {
 	char charstr[]=new char[str.length];
 	for(int i=0;i<str.length;i++)
@@ -35,14 +38,63 @@ public class String {
 	    value[i]=strbuf.value[i];
     }
 
-    char[] toCharArray() {
+    public String subString(int beginIndex, int endIndex) {
+	String str=new String();
+	if (beginIndex>this.count||endIndex>this.count||beginIndex>endIndex) {
+	    // FIXME
+	}
+	str.value=this.value;
+	str.count=endIndex-beginIndex;
+	str.offset=this.offset+beginIndex;
+	return str;
+    }
+
+    public String subString(int beginIndex) {
+	return this.subString(beginIndex, this.count);
+    }
+
+    public int indexOf(int ch) {
+	return this.indexOf(ch, 0);
+    }
+
+    public int indexOf(int ch, int fromIndex) {
+	for(int i=fromIndex;i<count;i++)
+	    if (this.charAt(i)==ch)
+		return i;
+	return -1;
+    }
+
+    public int indexOf(String str) {
+	return this.indexOf(str, 0);
+    }
+
+    public int indexOf(String str, int fromIndex) {
+	if (fromIndex<0)
+	    fromIndex=0;
+	for(int i=fromIndex;i<(count-str.count);i++)
+	    if (regionMatches(i, str, 0, str.count))
+		return i;
+	return -1;
+    }
+
+    public boolean regionMatches(int toffset, String other, int ooffset, int len) {
+	if (toffset<0 || ooffset <0 || (toffset+len)>count || (ooffset+len)>other.count)
+	    return false;
+	for(int i=0;i<len;i++)
+	    if (other.value[i+other.offset+ooffset]!=
+		this.value[i+this.offset+toffset])
+		return false;
+	return true;
+    }
+
+    public char[] toCharArray() {
 	char str[]=new char[count];
 	for(int i=0;i<count;i++)
 	    str[i]=value[i+offset];
 	return str;
     }
 
-    byte[] getBytes() {
+    public byte[] getBytes() {
 	byte str[]=new byte[count];
 	for(int i=0;i<value.length;i++)
 	    str[i]=(byte)value[i+offset];
