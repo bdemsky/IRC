@@ -15,3 +15,4 @@ dotest CommandLineTest CommandLineTest.java hello hi
 dotest WriteFile WriteFile.java
 dotest ReadFile ReadFile.java
 dotest FileLength FileLength.java
+dotest IntegerTest IntegerTest.java

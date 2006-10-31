@@ -5,4 +5,8 @@ public class System {
     }
 
     public static native void printString(String s);
+
+    public static void error() {
+	System.printString("Error");
+    }
 }

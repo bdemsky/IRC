@@ -109,6 +109,10 @@ public class String {
 	return value[i+offset];
     }
 
+    public String toString() {
+	return this;
+    }
+
     public static String valueOf(Object o) {
 	return o.toString();
     }
