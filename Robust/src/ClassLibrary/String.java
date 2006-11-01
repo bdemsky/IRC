@@ -77,6 +77,10 @@ public class String {
 	return -1;
     }
 
+    public boolean startsWith(String str) {
+	return regionMatches(0, str, 0, str.count);
+    }
+
     public boolean regionMatches(int toffset, String other, int ooffset, int len) {
 	if (toffset<0 || ooffset <0 || (toffset+len)>count || (ooffset+len)>other.count)
 	    return false;
