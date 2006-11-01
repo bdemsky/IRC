@@ -71,7 +71,7 @@ public class String {
     public int indexOf(String str, int fromIndex) {
 	if (fromIndex<0)
 	    fromIndex=0;
-	for(int i=fromIndex;i<(count-str.count);i++)
+	for(int i=fromIndex;i<=(count-str.count);i++)
 	    if (regionMatches(i, str, 0, str.count))
 		return i;
 	return -1;
