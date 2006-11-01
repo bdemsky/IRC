@@ -340,7 +340,7 @@ public class BuildIR {
 	    }
 	    return con;
 	} else if (isNode(pn,"createarray")) {
-	    System.out.println(pn.PPrint(3,true));
+	    //System.out.println(pn.PPrint(3,true));
 	    TypeDescriptor td=parseTypeDescriptor(pn);
 	    Vector args=parseDimExprs(pn);
 	    int num=0;

@@ -18,7 +18,7 @@ public class SemanticCheck {
 	// Do descriptors first
 	while(it.hasNext()) {
 	    ClassDescriptor cd=(ClassDescriptor)it.next();
-	    System.out.println("Checking class: "+cd);
+	    //System.out.println("Checking class: "+cd);
 	    //Set superclass link up
 	    if (cd.getSuper()!=null) {
 		cd.setSuper(typeutil.getClass(cd.getSuper()));
@@ -32,7 +32,7 @@ public class SemanticCheck {
 	    /* Check to see that fields are well typed */
 	    for(Iterator field_it=cd.getFields();field_it.hasNext();) {
 		FieldDescriptor fd=(FieldDescriptor)field_it.next();
-		System.out.println("Checking field: "+fd);
+		//System.out.println("Checking field: "+fd);
 		checkField(cd,fd);
 	    }
 
@@ -189,7 +189,7 @@ public class SemanticCheck {
     }
 
     public void checkMethodBody(ClassDescriptor cd, MethodDescriptor md) {
-	System.out.println("Processing method:"+md);
+	//System.out.println("Processing method:"+md);
 	BlockNode bn=state.getMethodBody(md);
 	checkBlockNode(md, md.getParameterTable(),bn);
     }
@@ -527,8 +527,8 @@ public class SemanticCheck {
 	if (!typetolookin.isArray()) {
 	    //Array's don't need constructor calls
 	    ClassDescriptor classtolookin=typetolookin.getClassDesc();
-	    System.out.println("Looking for "+typetolookin.getSymbol());
-	    System.out.println(classtolookin.getMethodTable());
+	    //System.out.println("Looking for "+typetolookin.getSymbol());
+	    //System.out.println(classtolookin.getMethodTable());
 	    
 	    Set methoddescriptorset=classtolookin.getMethodTable().getSet(typetolookin.getSymbol());
 	    MethodDescriptor bestmd=null;
@@ -536,7 +536,7 @@ public class SemanticCheck {
 	    for(Iterator methodit=methoddescriptorset.iterator();methodit.hasNext();) {
 		MethodDescriptor currmd=(MethodDescriptor)methodit.next();
 		/* Need correct number of parameters */
-		System.out.println("Examining: "+currmd);
+		//System.out.println("Examining: "+currmd);
 		if (con.numArgs()!=currmd.numParameters())
 		    continue;
 		for(int i=0;i<con.numArgs();i++) {
@@ -626,7 +626,7 @@ public class SemanticCheck {
 	if (!typetolookin.isClass()) 
 	    throw new Error("Error with method call to "+min.getMethodName());
 	ClassDescriptor classtolookin=typetolookin.getClassDesc();
-	System.out.println("Method name="+min.getMethodName());
+	//System.out.println("Method name="+min.getMethodName());
 
 	Set methoddescriptorset=classtolookin.getMethodTable().getSet(min.getMethodName());
 	MethodDescriptor bestmd=null;
