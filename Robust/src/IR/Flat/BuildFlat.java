@@ -737,7 +737,9 @@ public class BuildFlat {
 	updateFlagActionNode(ffan, ten.getFlagEffects());
 	NodePair fcn=flattenConstraintCheck(ten.getChecks());
 	ffan.addNext(fcn.getBegin());
-	return new NodePair(ffan, fcn.getEnd());
+	FlatReturnNode rnflat=new FlatReturnNode(null);
+	fcn.getEnd().addNext(rnflat);
+	return new NodePair(ffan, rnflat);
     }
 
     private NodePair flattenConstraintCheck(Vector ccs) {

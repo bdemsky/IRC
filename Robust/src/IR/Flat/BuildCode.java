@@ -848,6 +848,8 @@ public class BuildCode {
 		}
 	    }
 	}
+	if (task!=null&&state.TASKDEBUG)
+	    output.println("printf(\"ENTER "+task.getSymbol()+"\\n\");");
 
 	//Do the actual code generation
 	tovisit=new HashSet();
@@ -865,6 +867,8 @@ public class BuildCode {
 		output.print("   ");
 		generateFlatNode(fm, current_node, output);
 		if (current_node.kind()!=FKind.FlatReturnNode) {
+		    if (task!=null&&state.TASKDEBUG)
+			output.println("printf(\"EXIT "+task.getSymbol()+"\\n\");");
 		    output.println("   return;");
 		}
 		current_node=null;
@@ -890,6 +894,8 @@ public class BuildCode {
 		    current_node=current_node.getNext(0);
 	    } else throw new Error();
 	}
+
+
 	output.println("}\n\n");
     }
 
@@ -1191,6 +1197,9 @@ public class BuildCode {
     }
 
     private void generateFlatReturnNode(FlatMethod fm, FlatReturnNode frn, PrintWriter output) {
+	
+	if (fm.getTask()!=null&&state.TASKDEBUG)
+	    output.println("printf(\"EXIT "+fm.getTask().getSymbol()+"\\n\");");
 	if (frn.getReturnTemp()!=null)
 	    output.println("return "+generateTemp(fm, frn.getReturnTemp())+";");
 	else
