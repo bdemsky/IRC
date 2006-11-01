@@ -1177,7 +1177,8 @@ public class BuildCode {
 	    else
 		output.println(generateTemp(fm, fln.getDst())+"=0;");
 	} else if (fln.getType().isChar()) {
-	    output.println(generateTemp(fm, fln.getDst())+"='"+fln.getValue()+"';");
+	    String st=FlatLiteralNode.escapeString(fln.getValue().toString());
+	    output.println(generateTemp(fm, fln.getDst())+"='"+st+"';");
 	} else
 	    output.println(generateTemp(fm, fln.getDst())+"="+fln.getValue()+";");
     }

@@ -34,4 +34,8 @@ public class FlagNode extends FlagExpressionNode {
     public DNFFlag getDNF() {
 	return new DNFFlag(this);
     }
+
+    public String toString() {
+	return name;
+    }
 }

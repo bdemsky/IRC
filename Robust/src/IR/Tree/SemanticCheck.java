@@ -624,7 +624,7 @@ public class SemanticCheck {
 	    throw new Error("Unknown method call to "+min.getMethodName()+"in task"+md.getSymbol());
 	}
 	if (!typetolookin.isClass()) 
-	    throw new Error();
+	    throw new Error("Error with method call to "+min.getMethodName());
 	ClassDescriptor classtolookin=typetolookin.getClassDesc();
 	System.out.println("Method name="+min.getMethodName());
 	Set methoddescriptorset=classtolookin.getMethodTable().getSet(min.getMethodName());

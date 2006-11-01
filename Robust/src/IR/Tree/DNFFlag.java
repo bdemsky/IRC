@@ -84,7 +84,7 @@ public class DNFFlag {
 	for(int i=0;i<conjunctions.size();i++) {
 	    for(int i2=0;i2<dnf2.conjunctions.size();i2++) {
 		Vector conjunct=(Vector)conjunctions.get(i);
-		Vector conjunct2=(Vector)conjunctions.get(i2);
+		Vector conjunct2=(Vector)dnf2.conjunctions.get(i2);
 		Vector newconjunct=new Vector();
 		result.conjunctions.add(newconjunct);
 		for(int j=0;j<conjunct.size();j++) {
@@ -96,5 +96,20 @@ public class DNFFlag {
 	    }
 	}
 	return result;
+    }
+
+    public String toString() {
+	String value="";
+	for(int i=0;i<conjunctions.size();i++) {
+	    if (i!=0)
+		value+=" || ";
+	    Vector conjunct=(Vector)conjunctions.get(i);
+	    for(int j=0;j<conjunct.size();j++) {
+		if (j!=0)
+		    value+="&&";
+		value+=conjunct.get(j);
+	    }
+	}
+	return value;
     }
 }

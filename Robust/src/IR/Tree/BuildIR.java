@@ -83,24 +83,26 @@ public class BuildIR {
     }
 
     public FlagExpressionNode parseFlagExpression(ParseNode pn) {
-	if (pn.getChild("or")!=null) {
-	    ParseNodeVector pnv=pn.getChild("or").getChildren();
+	if (isNode(pn,"or")) {
+	    ParseNodeVector pnv=pn.getChildren();
 	    ParseNode left=pnv.elementAt(0);
 	    ParseNode right=pnv.elementAt(1);
 	    return new FlagOpNode(parseFlagExpression(left), parseFlagExpression(right), new Operation(Operation.LOGIC_OR));
-	} else if (pn.getChild("and")!=null) {
-	    ParseNodeVector pnv=pn.getChild("and").getChildren();
+	} else if (isNode(pn,"and")) {
+	    ParseNodeVector pnv=pn.getChildren();
 	    ParseNode left=pnv.elementAt(0);
 	    ParseNode right=pnv.elementAt(1);
 	    return new FlagOpNode(parseFlagExpression(left), parseFlagExpression(right), new Operation(Operation.LOGIC_AND));
-	} else if (pn.getChild("not")!=null) {
-	    ParseNodeVector pnv=pn.getChild("not").getChildren();
+	} else if (isNode(pn, "not")) {
+	    ParseNodeVector pnv=pn.getChildren();
 	    ParseNode left=pnv.elementAt(0);
 	    return new FlagOpNode(parseFlagExpression(left), new Operation(Operation.LOGIC_NOT));	    
 
-	} else if (pn.getChild("name")!=null) {
-	    return new FlagNode(pn.getChild("name").getTerminal());
-	} else throw new Error();
+	} else if (isNode(pn,"name")) {
+	    return new FlagNode(pn.getTerminal());
+	} else {
+	    throw new Error();
+	}
     }
 
     public Vector parseChecks(ParseNode pn) {
@@ -142,7 +144,7 @@ public class BuildIR {
 		 tmp=tmp.getChild("array");
 	     }
 	     String paramname=tmp.getChild("single").getTerminal();
-	     FlagExpressionNode fen=parseFlagExpression(paramn.getChild("flag"));
+	     FlagExpressionNode fen=parseFlagExpression(paramn.getChild("flag").getFirstChild());
 	     
 	     td.addParameter(type,paramname,fen);
 	 }

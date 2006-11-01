@@ -22,4 +22,11 @@ public class DNFFlagAtom {
     public boolean getNegated() {
 	return negated;
     }
+
+    public String toString() {
+	if (negated)
+	    return "!"+flag.toString();
+	else
+	    return flag.toString();
+    }
 }
