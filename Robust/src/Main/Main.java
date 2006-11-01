@@ -33,8 +33,6 @@ public class Main {
 	      state.CONSCHECK=true;
 	  else if (option.equals("-task"))
 	      state.TASK=true;
-	  else if (option.equals("-taskdebug"))
-	      state.TASKDEBUG=true;
 	  else if (option.equals("-help")) {
 	      System.out.println("-classlibrary classlibrarydirectory -- directory where classlibrary is located");
 	      System.out.println("-dir outputdirectory -- output code in outputdirectory");

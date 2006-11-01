@@ -30,12 +30,49 @@ jmp_buf error_handler;
 struct Queue * activetasks;
 struct parameterwrapper * objectqueues[NUMCLASSES];
 struct genhashtable * failedtasks;
+extern char ** environ;
+char *options;
+int injectfailures=0;
+float failurechance=0;
+int debugtask=0;
 
 int main(int argc, char **argv) {
   GC_init();
 #ifdef CONSCHECK
   initializemmap();
 #endif
+  {
+    int i;
+    options=NULL;
+    for(i=0;environ[i]!=0;i++) {
+      if (strncmp(environ[i],"BRISTLECONE=",12)==0) {
+	options=environ[i]+12;
+	break;
+      }
+    }
+
+    while(options!=NULL) {
+      if (strncmp(options,"-injectfailures",sizeof("-injectfailures")-1)==0) {
+	options=strchr(options,' ');
+	if (options!=NULL) options++;
+	if (options==NULL)
+	  break;
+	sscanf(options, "%f", &failurechance);
+	injectfailures=1;
+	printf("Injecting errors with chance=%f\n",failurechance);
+	options=strchr(options,' ');
+	if (options!=NULL) options++;
+      } else if (strncmp(options, "-debugtask",sizeof("-debugtask")-1)==0) {
+	options=strchr(options,' ');
+	if (options!=NULL) options++;
+	debugtask=1;
+	printf("Debug task option on\n");
+      } else
+	break;
+    }
+  }
+
+
   {
   int i;
   /* Allocate startup object */
@@ -268,17 +305,29 @@ void executetasks() {
 	struct RuntimeHash * forward=allocateRuntimeHash(100);
 	struct RuntimeHash * reverse=allocateRuntimeHash(100);
 	void ** checkpoint=makecheckpoint(tpd->task->numParameters, taskpointerarray, forward, reverse);
-	if (setjmp(error_handler)) {
+	int x;
+	if (x=setjmp(error_handler)) {
 	  /* Recover */
 	  int h;
 #ifdef DEBUG
-	  printf("Fatal Error! Recovering!\n");
+	  printf("Fatal Error=%d, Recovering!\n",x);
 #endif
 	  genputtable(failedtasks,tpd,tpd);
 	  restorecheckpoint(tpd->task->numParameters, taskpointerarray, checkpoint, forward, reverse);
 	} else {
+	  if (injectfailures) {
+	    if ((((double)random())/RAND_MAX)<failurechance) {
+	      printf("\nINJECTING TASK FAILURE to %s\n", tpd->task->name);
+	      longjmp(error_handler,10);
+	    }
+	  }
 	  /* Actually call task */
-	  ((void (*) (void **)) tpd->task->taskptr)(taskpointerarray);
+	  if (debugtask) {
+	    printf("ENTER %s\n",tpd->task->name);
+	    ((void (*) (void **)) tpd->task->taskptr)(taskpointerarray);
+	    printf("EXIT %s\n",tpd->task->name);
+	  } else
+	    ((void (*) (void **)) tpd->task->taskptr)(taskpointerarray);
 	}
       }
     }

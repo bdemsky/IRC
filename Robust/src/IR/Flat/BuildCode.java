@@ -131,6 +131,7 @@ public class BuildCode {
 		outtask.println("void * taskptr;");
 		outtask.println("int numParameters;");
 		outtask.println("struct parameterdescriptor **descriptorarray;");
+		outtask.println("char * name;");
 		outtask.println("};");
 		outtask.println("extern struct taskdescriptor * taskarray[];");
 		outtask.println("extern numtasks;");
@@ -205,18 +206,22 @@ public class BuildCode {
 		generateTaskDescriptor(outtaskdefs, td);
 	    }
 
-	    taskit=state.getTaskSymbolTable().getDescriptorsIterator();
-	    outtaskdefs.println("struct taskdescriptor * taskarray[]= {");
-	    boolean first=true;
-	    while(taskit.hasNext()) {
-		TaskDescriptor td=(TaskDescriptor)taskit.next();
-		if (first)
-		    first=false;
-		else
-		    outtaskdefs.println(",");
-		outtaskdefs.print("&task_"+td.getSafeSymbol());
+	    {
+		//Output task descriptors
+		taskit=state.getTaskSymbolTable().getDescriptorsIterator();
+		outtaskdefs.println("struct taskdescriptor * taskarray[]= {");
+		boolean first=true;
+		while(taskit.hasNext()) {
+		    TaskDescriptor td=(TaskDescriptor)taskit.next();
+		    if (first)
+			first=false;
+		    else
+			outtaskdefs.println(",");
+		    outtaskdefs.print("&task_"+td.getSafeSymbol());
+		}
+		outtaskdefs.println("};");
 	    }
-	    outtaskdefs.println("};");
+
 	    outtaskdefs.println("int numtasks="+state.getTaskSymbolTable().getValueSet().size()+";");
 
 	} else if (state.main!=null) {
@@ -366,7 +371,8 @@ public class BuildCode {
 	output.println("struct taskdescriptor task_"+task.getSafeSymbol()+"={");
 	output.println("&"+task.getSafeSymbol()+",");
 	output.println("/* number of parameters */" +task.numParameters() + ",");
-	output.println("parameterdescriptors_"+task.getSafeSymbol());
+	output.println("parameterdescriptors_"+task.getSafeSymbol()+",");
+	output.println("\""+task.getSymbol()+"\"");
 	output.println("};");
     }
 
@@ -848,8 +854,6 @@ public class BuildCode {
 		}
 	    }
 	}
-	if (task!=null&&state.TASKDEBUG)
-	    output.println("printf(\"ENTER "+task.getSymbol()+"\\n\");");
 
 	//Do the actual code generation
 	tovisit=new HashSet();
@@ -867,8 +871,6 @@ public class BuildCode {
 		output.print("   ");
 		generateFlatNode(fm, current_node, output);
 		if (current_node.kind()!=FKind.FlatReturnNode) {
-		    if (task!=null&&state.TASKDEBUG)
-			output.println("printf(\"EXIT "+task.getSymbol()+"\\n\");");
 		    output.println("   return;");
 		}
 		current_node=null;
@@ -1198,8 +1200,6 @@ public class BuildCode {
 
     private void generateFlatReturnNode(FlatMethod fm, FlatReturnNode frn, PrintWriter output) {
 	
-	if (fm.getTask()!=null&&state.TASKDEBUG)
-	    output.println("printf(\"EXIT "+fm.getTask().getSymbol()+"\\n\");");
 	if (frn.getReturnTemp()!=null)
 	    output.println("return "+generateTemp(fm, frn.getReturnTemp())+";");
 	else
