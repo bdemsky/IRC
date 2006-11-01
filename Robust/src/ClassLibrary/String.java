@@ -96,7 +96,7 @@ public class String {
 
     public byte[] getBytes() {
 	byte str[]=new byte[count];
-	for(int i=0;i<value.length;i++)
+	for(int i=0;i<count;i++)
 	    str[i]=(byte)value[i+offset];
 	return str;
     }

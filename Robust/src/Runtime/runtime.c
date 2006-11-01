@@ -123,10 +123,13 @@ void flagorand(void * ptr, int ormask, int andmask) {
 		newindex=j;
 	      } else {
 		RuntimeHashiterator(pw->objectset, &iteratorarray[j]);
-		if (RunhasNext(&iteratorarray[j]))
-		  taskpointerarray[j]=(void *) Runnext(&iteratorarray[j]);
-		else
+		if (RunhasNext(&iteratorarray[j])) {
+		  taskpointerarray[j]=(void *) Runkey(&iteratorarray[j]);
+		  Runnext(&iteratorarray[j]);
+		} else {
+		  done=0;
 		  break; /* No tasks to dispatch */
+		}
 	      }
 	    }
 	    /* Queue task items... */
@@ -142,7 +145,7 @@ void flagorand(void * ptr, int ormask, int andmask) {
 	      if (!gencontains(failedtasks, tpd))
 		addNewItem(activetasks, tpd);
 	      
-	      /* This loop iterates to the next paramter combination */
+	      /* This loop iterates to the next parameter combination */
 	      for(j=0;j<numparams;j++) {
 		if (j==newindex) {
 		  if ((j+1)==numparams)
@@ -150,7 +153,8 @@ void flagorand(void * ptr, int ormask, int andmask) {
 		  continue;
 		}
 		if (RunhasNext(&iteratorarray[j])) {
-		  taskpointerarray[j]=(void *) Runnext(&iteratorarray[j]);
+		  taskpointerarray[j]=(void *) Runkey(&iteratorarray[j]);
+		  Runnext(&iteratorarray[j]);
 		  break;
 		} else if ((j+1)!=numparams) {
 		  RuntimeHashiterator(task->descriptorarray[j]->queue, &iteratorarray[j]);

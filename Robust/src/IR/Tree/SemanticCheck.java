@@ -135,12 +135,12 @@ public class SemanticCheck {
 		throw new Error("Cannot have non-object argument to a task");
 	    ClassDescriptor cd=param_type.getClassDesc();
 	    checkFlagExpressionNode(cd, fen);
-	    checkFlagEffects(td, td.getFlagEffects());
-
-	    /* Check that the task code is valid */
-	    BlockNode bn=state.getMethodBody(td);
-	    checkBlockNode(td, td.getParameterTable(),bn);
 	}
+
+	checkFlagEffects(td, td.getFlagEffects());
+	/* Check that the task code is valid */
+	BlockNode bn=state.getMethodBody(td);
+	checkBlockNode(td, td.getParameterTable(),bn);
     }
 
     public void checkFlagExpressionNode(ClassDescriptor cd, FlagExpressionNode fen) {
@@ -627,6 +627,7 @@ public class SemanticCheck {
 	    throw new Error("Error with method call to "+min.getMethodName());
 	ClassDescriptor classtolookin=typetolookin.getClassDesc();
 	System.out.println("Method name="+min.getMethodName());
+
 	Set methoddescriptorset=classtolookin.getMethodTable().getSet(min.getMethodName());
 	MethodDescriptor bestmd=null;
 	NextMethod:

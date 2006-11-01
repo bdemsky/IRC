@@ -36,6 +36,8 @@ public class FlatLiteralNode extends FlatNode {
 	    char x=st.charAt(i);
 	    if (x=='\n')
 		new_st+="\\n";
+	    else if (x=='\r')
+		new_st+="\\r";
 	    else if (x=='"')
 		new_st+="'"+'"'+"'";
 	    else new_st+=x;
