@@ -1055,6 +1055,9 @@ public class BuildCode {
 	    needcomma=true;
 	} else {
 	    if (fc.getThis()!=null) {
+		TypeDescriptor ptd=md.getThis().getType();
+		if (ptd.isClass()&&!ptd.isArray())
+		    output.print("(struct "+ptd.getSafeSymbol()+" *) ");
 		output.print(generateTemp(fm,fc.getThis()));
 		needcomma=true;
 	    }
@@ -1066,6 +1069,10 @@ public class BuildCode {
 		TempDescriptor targ=fc.getArg(i);
 		if (needcomma)
 		    output.print(", ");
+
+		TypeDescriptor ptd=md.getParamType(i);
+		if (ptd.isClass()&&!ptd.isArray())
+		    output.print("(struct "+ptd.getSafeSymbol()+" *) ");
 		output.print(generateTemp(fm, targ));
 		needcomma=true;
 	    }
