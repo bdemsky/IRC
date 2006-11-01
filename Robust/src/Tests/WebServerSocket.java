@@ -2,6 +2,7 @@ public class WebServerSocket extends Socket {
 	// Websocket flag
 	flag LogPending;
 	flag WritePending;
+	//Filename requested by the client 
 	String filename;
 	
 	//Constructor
@@ -21,32 +22,34 @@ public class WebServerSocket extends Socket {
 	
 	// Send the html file , read from file one byte at a time	
 	public void sendfile() {
-		//String filepath = new String("./Tests/htmlfiles/index1.html");
 		StringBuffer req_file = new StringBuffer("./Tests/htmlfiles/");
 		req_file.append(filename);
 		String filepath = new String(req_file);
 		FileInputStream def_file = new FileInputStream(filepath);
-		int status = def_file.getfd();	
+		int status = def_file.getfd();//Checks if the file is present in 
+					      //current directory	
 		httpresponse();
 		if (status == -1){
-			StringBuffer response = new StringBuffer("404: not found: ");
+			StringBuffer response = new StringBuffer("404: not found: ");//Send 404 error if
+										     // file not found
 			response.append(filename);
 			String buffer = new String(response);
 			write(buffer.getBytes());
-			//System.printString("File does not  exist");
 			def_file.close();
 			return;
 		}
 		byte buf[] = new byte[16];
 		int ret;
 		
-		while ((ret = def_file.read(buf)) > 0) {
+		while ((ret = def_file.read(buf)) > 0) {// Read from file and write 
+							// one byte at a time into the socket 
+
 			byte tosend[] = new byte[ret];
 			for (int i = 0; i < ret; i++) {
 				tosend[i] = buf[i];
 			}
 			write(tosend);
-			String str = new String(tosend);
+			//String str = new String(tosend);
 		}
 		def_file.close();
 	}
@@ -54,14 +57,11 @@ public class WebServerSocket extends Socket {
 	//Discover what the client wants and handle their request	
 	public int clientrequest(){
 		byte b1[] = new byte[1024];
-		read(b1);
+		read(b1);//Read client request from web server socket
 		String clientreq = new String(b1);
-		int index = clientreq.indexOf('/');
+		int index = clientreq.indexOf('/');//Parse the GET client request to find filename
 		int end = clientreq.indexOf('H');
 		filename = clientreq.subString((index+1), (end-1));
-		System.printString("DEBUG -> Client requested: ");
-		System.printString(filename);
-		System.printString("\n");
 		return 0;
 	}
 }
