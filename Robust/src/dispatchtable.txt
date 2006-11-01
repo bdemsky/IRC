@@ -1,4 +1,0 @@
-Idea:
-Start at root of hierarchy
-Assign each method an integer value unless it already has an assigned value
-
