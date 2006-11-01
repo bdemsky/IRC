@@ -1,18 +1,25 @@
 public class Logger extends FileOutputStream {
 	//Logging flag
 	flag LogPending;
-	
+
 	//Constructor
 	public Logger(){
+		FileOutputStreamOpen("./Tests/htmlfiles/request.log");
+	}
+
+	public void logrequest(String filename){
+		String request = new String("\nNew Request received: ");
+		write(request.getBytes());
+		write(filename.getBytes());
+		flush();
 	}
 
 	public void logrequest(){
-		String filepath = new String("./Tests/htmlfiles/request.log");
-		String request = new String(" New Request received\n");
-		int mode=0;
-		FileOutputStream logfile = new FileOutputStream(filepath,mode);
-		logfile.write(request.getBytes());
-		logfile.close();	
+		String request = new String("\nNew Request received: ");
+		flush();
 	}
 
+	public void closerequest() {
+		close();	
+ 	}
 }

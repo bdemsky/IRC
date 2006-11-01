@@ -6,7 +6,7 @@ task Startup(StartupObject s {initialstate}) {
 	System.printString("W> Starting\n");
 	ServerSocket ss = new ServerSocket(9000);
 	System.printString("W> Creating ServerSocket\n");
-	Logger log = new Logger() {LogPending};
+	Logger log = new Logger() {!LogPending};
 	taskexit(s {!initialstate}); /* Turns initial state flag off, so this task won't refire */
 }
 
@@ -21,26 +21,17 @@ task AcceptConnection(ServerSocket ss{SocketPending}) {
 /* Process the incoming http request */
 task ProcessRequest(WebServerSocket web{IOPending}) {
 	System.printString("W> Inside ProcessRequest... \n");
-	//web.clientrequest();
-	web.debug_read();
+	web.clientrequest();
 	taskexit(web {WritePending});
 }
 
-task testWritePending(WebServerSocket web{WritePending}) {
-	System.printString("W> Testing WritePending");
-	//taskexit(web {!WritePending, testflag});
+task SendFile(WebServerSocket web{WritePending}) {
+	System.printString("W> Inside SendFile ... \n");
+	web.sendfile();
+	web.close();
 	taskexit(web {!WritePending});
 }
 
-task testflag(WebServerSocket web{testflag}) {
-	System.printString("DEBUG -> Test flag is true");
-	taskexit(web {!testflag});
-}
-
-/*
-task LogRequest(Logger log{LogPending}) {
+task LogFile( Logger log {LogPending}){
 	log.logrequest();
-	System.printString("L> Inside logrequest");
-	taskexit(log {!LogPending});
 }
-*/
