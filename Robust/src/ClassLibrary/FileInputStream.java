@@ -8,6 +8,9 @@ public class FileInputStream {
     public FileInputStream(File path) {
 	fd=nativeOpen(path.getPath().getBytes());
     }
+    public int getfd() {
+	return fd;
+    }
 
     private static native int nativeOpen(byte[] filename);
     private static native int nativeRead(int fd, byte[] array, int numBytes);

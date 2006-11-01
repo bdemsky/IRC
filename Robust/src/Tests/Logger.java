@@ -5,7 +5,7 @@ public class Logger extends FileOutputStream {
 	//Constructor
 	public Logger(){
 	        System.printString(" Log Object Created\n");
-		FileOutputStreamOpen("./Tests/htmlfiles/request.log");
+		//FileOutputStreamOpen("./Tests/htmlfiles/request.log");
 	}
 /*
 	public void logrequest(String filename){

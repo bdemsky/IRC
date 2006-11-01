@@ -272,7 +272,7 @@ void executetasks() {
 	  /* Recover */
 	  int h;
 #ifdef DEBUG
-	  printf("Recovering\n");
+	  printf("Fatal Error! Recovering!\n");
 #endif
 	  genputtable(failedtasks,tpd,tpd);
 	  restorecheckpoint(tpd->task->numParameters, taskpointerarray, checkpoint, forward, reverse);
