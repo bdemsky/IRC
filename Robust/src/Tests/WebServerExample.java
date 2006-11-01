@@ -6,7 +6,7 @@ task Startup(StartupObject s {initialstate}) {
 	System.printString("W> Starting\n");
 	ServerSocket ss = new ServerSocket(9000);
 	System.printString("W> Creating ServerSocket\n");
-	Logger log = new Logger() {!LogPending};
+	Logger log = new Logger() {Initialize};
 	taskexit(s {!initialstate}); /* Turns initial state flag off, so this task won't refire */
 }
 
@@ -22,9 +22,10 @@ task AcceptConnection(ServerSocket ss{SocketPending}) {
 task ProcessRequest(WebServerSocket web{IOPending}) {
 	System.printString("W> Inside ProcessRequest... \n");
 	web.clientrequest();
-	taskexit(web {WritePending});
+	taskexit(web {WritePending, LogPending});
 }
 
+/* Do the WriteIO on server socket and send the requested file to Client*/
 task SendFile(WebServerSocket web{WritePending}) {
 	System.printString("W> Inside SendFile ... \n");
 	web.sendfile();
@@ -32,6 +33,12 @@ task SendFile(WebServerSocket web{WritePending}) {
 	taskexit(web {!WritePending});
 }
 
-task LogFile( Logger log {LogPending}){
-	log.logrequest();
+/* Log the Client request*/
+task LogRequest(WebServerSocket web{LogPending}, Logger log{Initialize}) {
+//task LogRequest(Logger log{Initialize}) {
+//	System.printString("L > Inside logrequest");
+//	log.logrequest();
+	log.logtesting();
+	taskexit(web {!LogPending});
+//	taskexit(log {!Initialize});
 }

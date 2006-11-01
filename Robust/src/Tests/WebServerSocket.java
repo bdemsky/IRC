@@ -1,6 +1,6 @@
 public class WebServerSocket extends Socket {
 	// Websocket flag
-	flag ReadPending;
+	flag LogPending;
 	flag WritePending;
 	String filename;
 	
@@ -54,7 +54,6 @@ public class WebServerSocket extends Socket {
 	//Discover what the client wants and handle their request	
 	public int clientrequest(){
 		byte b1[] = new byte[1024];
-		//while(read(b1)<0);
 		read(b1);
 		String clientreq = new String(b1);
 		int index = clientreq.indexOf('/');
