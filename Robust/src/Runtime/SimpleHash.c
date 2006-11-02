@@ -3,14 +3,11 @@
 
 /* SIMPLE HASH ********************************************************/
 struct RuntimeIterator* RuntimeHashcreateiterator(struct RuntimeHash * thisvar) {
-    return allocateRuntimeIterator(thisvar->listhead,thisvar->listtail,thisvar->tailindex/*,thisvar*/);
+    return allocateRuntimeIterator(thisvar->listhead);
 }
 
 void RuntimeHashiterator(struct RuntimeHash *thisvar, struct RuntimeIterator * it) {
   it->cur=thisvar->listhead;
-  it->index=0;
-  it->tailindex=thisvar->tailindex;
-  it->tail=thisvar->listtail;
 }
 
 struct RuntimeHash * noargallocateRuntimeHash() {
@@ -26,19 +23,18 @@ struct RuntimeHash * allocateRuntimeHash(int size) {
     thisvar->size = size;
     thisvar->bucket = (struct RuntimeNode **) RUNMALLOC(sizeof(struct RuntimeNode *)*size);
     /* Set allocation blocks*/
-    thisvar->listhead=(struct ArrayRuntime *) RUNMALLOC(sizeof(struct ArrayRuntime));
-    thisvar->listtail=thisvar->listhead;
-    thisvar->tailindex=0;
+    thisvar->listhead=NULL;
+    thisvar->listtail=NULL;
     /*Set data counts*/
     thisvar->numelements = 0;
     return thisvar;
 }
 
 void freeRuntimeHash(struct RuntimeHash *thisvar) {
-    struct ArrayRuntime *ptr=thisvar->listhead;
+    struct RuntimeNode *ptr=thisvar->listhead;
     RUNFREE(thisvar->bucket);
     while(ptr) {
-        struct ArrayRuntime *next=ptr->nextarray;
+        struct RuntimeNode *next=ptr->next;
         RUNFREE(ptr);
         ptr=next;
     }
@@ -50,16 +46,8 @@ inline int RuntimeHashcountset(struct RuntimeHash * thisvar) {
 }
 
 int RuntimeHashfirstkey(struct RuntimeHash *thisvar) {
-  struct ArrayRuntime *ptr=thisvar->listhead;
-  int index=0;
-  while((index==ARRAYSIZE)||!ptr->nodes[index].inuse) {
-    if (index==ARRAYSIZE) {
-      index=0;
-      ptr=ptr->nextarray;
-    } else
-      index++;
-  }
-  return ptr->nodes[index].key;
+  struct RuntimeNode *ptr=thisvar->listhead;
+  return ptr->key;
 }
 
 int RuntimeHashremove(struct RuntimeHash *thisvar, int key, int data) {
@@ -73,7 +61,15 @@ int RuntimeHashremove(struct RuntimeHash *thisvar, int key, int data) {
 	  struct RuntimeNode *toremove=*ptr;
 	  *ptr=(*ptr)->next;
 
-	  toremove->inuse=0; /* Marked as unused */
+	  if (toremove->lprev!=NULL)
+	    toremove->lprev->lnext=toremove->lnext;
+	  else
+	    thisvar->listhead=toremove->lnext;
+	  if (toremove->lnext!=NULL)
+	    toremove->lnext->lprev=toremove->lprev;
+	  else
+	    thisvar->listtail=toremove->lprev;
+	  RUNFREE(toremove);
 
 	  thisvar->numelements--;
 	  return 1;
@@ -82,16 +78,6 @@ int RuntimeHashremove(struct RuntimeHash *thisvar, int key, int data) {
     }
 
     return 0;
-}
-
-void RuntimeHashaddAll(struct RuntimeHash *thisvar, struct RuntimeHash * set) {
-    struct RuntimeIterator it;
-    RuntimeHashiterator(set, &it);
-    while(RunhasNext(&it)) {
-        int keyv=Runkey(&it);
-        int data=Runnext(&it);
-        RuntimeHashadd(thisvar,keyv,data);
-    }
 }
 
 int RuntimeHashadd(struct RuntimeHash * thisvar,int key, int data) {
@@ -130,16 +116,25 @@ int RuntimeHashadd(struct RuntimeHash * thisvar,int key, int data) {
     }
     ptr = &((*ptr)->next);
   }
-  if (thisvar->tailindex==ARRAYSIZE) {
-    thisvar->listtail->nextarray=(struct ArrayRuntime *) RUNMALLOC(sizeof(struct ArrayRuntime));
-    thisvar->tailindex=0;
-    thisvar->listtail=thisvar->listtail->nextarray;
-  }
 
-  *ptr = &thisvar->listtail->nodes[thisvar->tailindex++];
-  (*ptr)->key=key;
-  (*ptr)->data=data;
-  (*ptr)->inuse=1;
+  {
+    struct RuntimeNode *node=RUNMALLOC(sizeof(struct RuntimeNode));
+    node->data=data;
+    node->key=key;
+    node->next=(*ptr);
+    *ptr=node;
+    if (thisvar->listhead==NULL) {
+      thisvar->listhead=node;
+      thisvar->listtail=node;
+      node->lnext=NULL;
+      node->lprev=NULL;
+    } else {
+      node->lprev=NULL;
+      node->lnext=thisvar->listhead;
+      thisvar->listhead->lprev=node;
+      thisvar->listhead=node;
+    }
+  }
 
   thisvar->numelements++;
   return 1;
@@ -218,64 +213,25 @@ int RuntimeHashget(struct RuntimeHash *thisvar, int key, int *data) {
     return 0; /* failure */
 }
 
-int RuntimeHashcountdata(struct RuntimeHash *thisvar,int data) {
-    int count = 0;
-    struct ArrayRuntime *ptr = thisvar->listhead;
-    while(ptr) {
-      if (ptr->nextarray) {
-          int i;
-          for(i=0;i<ARRAYSIZE;i++)
-              if (ptr->nodes[i].data == data
-                  &&ptr->nodes[i].inuse) {
-                  count++;
-              }
-      } else {
-          int i;
-          for(i=0;i<thisvar->tailindex;i++)
-              if (ptr->nodes[i].data == data
-                  &&ptr->nodes[i].inuse) {
-                  count++;
-              }
-      }
-      ptr = ptr->nextarray;
-    }
-    return count;
-}
-
 inline struct RuntimeIterator * noargallocateRuntimeIterator() {
     return (struct RuntimeIterator*)RUNMALLOC(sizeof(struct RuntimeIterator));
 }
 
-inline struct RuntimeIterator * allocateRuntimeIterator(struct ArrayRuntime *start, struct ArrayRuntime *tl, int tlindex) {
+inline struct RuntimeIterator * allocateRuntimeIterator(struct RuntimeNode *start) {
     struct RuntimeIterator *thisvar=(struct RuntimeIterator*)RUNMALLOC(sizeof(struct RuntimeIterator));
     thisvar->cur = start;
-    thisvar->index=0;
-    thisvar->tailindex=tlindex;
-    thisvar->tail=tl;
     return thisvar;
 }
 
 inline int RunhasNext(struct RuntimeIterator *thisvar) {
-    if (thisvar->cur==thisvar->tail &&
-	thisvar->index==thisvar->tailindex)
-        return 0;
-    while((thisvar->index==ARRAYSIZE)||!thisvar->cur->nodes[thisvar->index].inuse) {
-        if (thisvar->index==ARRAYSIZE) {
-            thisvar->index=0;
-            thisvar->cur=thisvar->cur->nextarray;
-        } else
-            thisvar->index++;
-    }
-    if (thisvar->cur->nodes[thisvar->index].inuse)
-        return 1;
-    else
-        return 0;
+  return (thisvar->cur!=NULL);
 }
 
 inline int Runnext(struct RuntimeIterator *thisvar) {
-    return thisvar->cur->nodes[thisvar->index++].data;
+  int curr=thisvar->cur->data;
+  thisvar->cur=thisvar->cur->next;
 }
 
 inline int Runkey(struct RuntimeIterator *thisvar) {
-    return thisvar->cur->nodes[thisvar->index].key;
+  return thisvar->cur->key;
 }

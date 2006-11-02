@@ -28,22 +28,19 @@ int RuntimeHashremove(struct RuntimeHash *,int key, int data);
 bool RuntimeHashcontainskey(struct RuntimeHash *,int key);
 bool RuntimeHashcontainskeydata(struct RuntimeHash *,int key, int data);
 int RuntimeHashget(struct RuntimeHash *,int key, int* data);
-int RuntimeHashcountdata(struct RuntimeHash *,int data);
 void RuntimeHashaddParent(struct RuntimeHash *,struct RuntimeHash* parent);
 int RuntimeHashfirstkey(struct RuntimeHash *);
 struct RuntimeIterator* RuntimeHashcreateiterator(struct RuntimeHash *);
 void RuntimeHashiterator(struct RuntimeHash *, struct RuntimeIterator * it);
 int RuntimeHashcount(struct RuntimeHash *, int key);
-void RuntimeHashaddAll(struct RuntimeHash *, struct RuntimeHash * set);
 struct RuntimeHash * RuntimeHashimageSet(struct RuntimeHash *, int key);
 
 struct RuntimeHash {
     int numelements;
     int size;
     struct RuntimeNode **bucket;
-    struct ArrayRuntime *listhead;
-    struct ArrayRuntime *listtail;
-    int tailindex;
+    struct RuntimeNode *listhead;
+    struct RuntimeNode *listtail;
 };
 
 inline int RuntimeHashcountset(struct RuntimeHash * thisvar);
@@ -56,25 +53,19 @@ inline int RuntimeHashcountset(struct RuntimeHash * thisvar);
 
 struct RuntimeNode {
   struct RuntimeNode *next;
+  struct RuntimeNode *lnext;
+  struct RuntimeNode *lprev;
   int data;
   int key;
-  int inuse;
 };
-
-struct ArrayRuntime {
-  struct RuntimeNode nodes[ARRAYSIZE];
-  struct ArrayRuntime * nextarray;
-};
-
 
 struct RuntimeIterator {
-  struct ArrayRuntime *cur, *tail;
-  int index,tailindex;
+  struct RuntimeNode *cur, *tail;
 };
 
 inline struct RuntimeIterator * noargallocateRuntimeIterator();
 
-inline struct RuntimeIterator * allocateRuntimeIterator(struct ArrayRuntime *start, struct ArrayRuntime *tl, int tlindex);
+inline struct RuntimeIterator * allocateRuntimeIterator(struct RuntimeNode *start);
 
 inline int RunhasNext(struct RuntimeIterator *thisvar);
 

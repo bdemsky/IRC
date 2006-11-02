@@ -351,6 +351,10 @@ void executetasks() {
       struct QueueItem * qi=(struct QueueItem *) getTail(activetasks);
       struct taskparamdescriptor *tpd=(struct taskparamdescriptor *) qi->objectptr;
       removeItem(activetasks, qi);
+
+      /* Check if this task has failed */
+      if (gencontains(failedtasks, tpd))
+	goto newtask;
       
       /* Make sure that the parameters are still in the queues */
       for(i=0;i<tpd->task->numParameters;i++) {
