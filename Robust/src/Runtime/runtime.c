@@ -495,7 +495,7 @@ struct ___String___ * NewString(const char *str,int length) {
   return strobj;
 }
 
-/* Generated code calls this if we fail a bounds check *.
+/* Generated code calls this if we fail a bounds check */
 void failedboundschk() {
 #ifndef TASK
   printf("Array out of bounds\n");
