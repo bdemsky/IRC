@@ -233,7 +233,9 @@ void flagorand(void * ptr, int ormask, int andmask) {
   }
 }
 
-/* Handler for signals */
+/* Handler for signals. The signals catch null pointer errors and
+   arithmatic errors. */
+
 void myhandler(int sig, struct __siginfo *info, void *uap) {
 #ifdef DEBUG
   printf("sig=%d\n",sig);
@@ -241,7 +243,6 @@ void myhandler(int sig, struct __siginfo *info, void *uap) {
 #endif
   longjmp(error_handler,1);
 }
-
 
 fd_set readfds;
 int maxreadfd;
@@ -321,6 +322,7 @@ void executetasks() {
   newtask:
   while(!isEmpty(activetasks)||(maxreadfd>0)) {
 
+    /* Check if any filedescriptors have IO pending */
     if (maxreadfd>0) {
       int i;
       struct timeval timeout={0,0};
@@ -343,12 +345,14 @@ void executetasks() {
       }
     }
 
+    /* See if there are any active tasks */
     if (!isEmpty(activetasks)) {
       int i;
       struct QueueItem * qi=(struct QueueItem *) getTail(activetasks);
       struct taskparamdescriptor *tpd=(struct taskparamdescriptor *) qi->objectptr;
       removeItem(activetasks, qi);
       
+      /* Make sure that the parameters are still in the queues */
       for(i=0;i<tpd->task->numParameters;i++) {
 	void * parameter=tpd->parameterArray[i];
 	struct parameterdescriptor * pd=tpd->task->descriptorarray[i];
@@ -358,6 +362,7 @@ void executetasks() {
 	taskpointerarray[i]=parameter;
       }
       {
+	/* Checkpoint the state */
 	struct RuntimeHash * forward=allocateRuntimeHash(100);
 	struct RuntimeHash * reverse=allocateRuntimeHash(100);
 	void ** checkpoint=makecheckpoint(tpd->task->numParameters, taskpointerarray, forward, reverse);
@@ -406,6 +411,9 @@ void executetasks() {
   }
 }
 
+/* This function processes the task information to create queues for
+   each parameter type. */
+
 void processtasks() {
   int i;
   for(i=0;i<numtasks;i++) {
@@ -432,6 +440,7 @@ void processtasks() {
 
 #endif
 
+/* This function inject failures */
 
 void injectinstructionfailure() {
 #ifdef TASK
@@ -486,6 +495,7 @@ struct ___String___ * NewString(const char *str,int length) {
   return strobj;
 }
 
+/* Generated code calls this if we fail a bounds check *.
 void failedboundschk() {
 #ifndef TASK
   printf("Array out of bounds\n");
@@ -495,20 +505,11 @@ void failedboundschk() {
 #endif
 }
 
-void failednullptr() {
-#ifndef TASK
-  printf("Dereferenced a null pointer\n");
-  exit(-1);
-#else
-  longjmp(error_handler,3);
-#endif
-}
-
 void abort_task() {
-#ifndef TASK
+#ifdef TASK
+  longjmp(error_handler,4);
+#else
   printf("Aborting\n");
   exit(-1);
-#else
-  longjmp(error_handler,4);
 #endif
 }
