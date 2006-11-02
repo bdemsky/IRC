@@ -12,6 +12,7 @@
 
 extern int classsize[];
 jmp_buf error_handler;
+int instructioncount;
 
 #ifdef TASK
 #include "checkpoint.h"
@@ -19,9 +20,6 @@ jmp_buf error_handler;
 #include "SimpleHash.h"
 #include "GenericHashtable.h"
 #include <sys/select.h>
-#include <sys/socket.h>
-#include <fcntl.h>
-#include <arpa/inet.h>
 
 #ifdef CONSCHECK
 #include "instrument.h"
@@ -30,48 +28,71 @@ jmp_buf error_handler;
 struct Queue * activetasks;
 struct parameterwrapper * objectqueues[NUMCLASSES];
 struct genhashtable * failedtasks;
+/*struct genhashtable * failedobjects;*/
 extern char ** environ;
 char *options;
 int injectfailures=0;
 float failurechance=0;
 int debugtask=0;
+int injectinstructionfailures;
+int failurecount;
+float instfailurechance=0;
+
+void processOptions() {
+  int i;
+  options=NULL;
+  for(i=0;environ[i]!=0;i++) {
+    if (strncmp(environ[i],"BRISTLECONE=",12)==0) {
+      options=environ[i]+12;
+      break;
+    }
+  }
+  
+  while(options!=NULL) {
+    if (strncmp(options,"-injectfailures",sizeof("-injectfailures")-1)==0) {
+      options=strchr(options,' ');
+      if (options!=NULL) options++;
+      if (options==NULL)
+	break;
+      sscanf(options, "%f", &failurechance);
+      injectfailures=1;
+      printf("Injecting errors with chance=%f\n",failurechance);
+      options=strchr(options,' ');
+      if (options!=NULL) options++;
+    } else if (strncmp(options,"-injectinstructionfailures",sizeof("-injectinstructionfailures")-1)==0) {
+      options=strchr(options,' ');
+      if (options!=NULL) options++;
+      if (options==NULL)
+	break;
+      sscanf(options, "%d", &failurecount);
+      options=strchr(options,' ');
+      if (options!=NULL) options++;
+      if (options==NULL)
+	break;
+      sscanf(options, "%f", &instfailurechance);
+      options=strchr(options,' ');
+      if (options!=NULL) options++;
+      instructioncount=failurecount;
+      injectinstructionfailures=1;
+      printf("Injecting errors with count=%d\n",failurecount);
+      printf("Injecting errors with chance=%f\n",instfailurechance);
+
+    } else if (strncmp(options, "-debugtask",sizeof("-debugtask")-1)==0) {
+      options=strchr(options,' ');
+      if (options!=NULL) options++;
+      debugtask=1;
+      printf("Debug task option on.\n");
+    } else
+      break;
+  }
+}
 
 int main(int argc, char **argv) {
-  GC_init();
+  GC_init(); // Initialize the garbage collector
 #ifdef CONSCHECK
   initializemmap();
 #endif
-  {
-    int i;
-    options=NULL;
-    for(i=0;environ[i]!=0;i++) {
-      if (strncmp(environ[i],"BRISTLECONE=",12)==0) {
-	options=environ[i]+12;
-	break;
-      }
-    }
-
-    while(options!=NULL) {
-      if (strncmp(options,"-injectfailures",sizeof("-injectfailures")-1)==0) {
-	options=strchr(options,' ');
-	if (options!=NULL) options++;
-	if (options==NULL)
-	  break;
-	sscanf(options, "%f", &failurechance);
-	injectfailures=1;
-	printf("Injecting errors with chance=%f\n",failurechance);
-	options=strchr(options,' ');
-	if (options!=NULL) options++;
-      } else if (strncmp(options, "-debugtask",sizeof("-debugtask")-1)==0) {
-	options=strchr(options,' ');
-	if (options!=NULL) options++;
-	debugtask=1;
-	printf("Debug task option on\n");
-      } else
-	break;
-    }
-  }
-
+  processOptions();
 
   {
   int i;
@@ -80,6 +101,7 @@ int main(int argc, char **argv) {
   struct ArrayObject * stringarray=allocate_newarray(STRINGARRAYTYPE, argc-1); 
   failedtasks=genallocatehashtable((unsigned int (*)(void *)) &hashCodetpd, 
 				   (int (*)(void *,void *)) &comparetpd);
+  /*  failedobjects=genallocatehashtable(NULL,NULL);*/
   
   activetasks=createQueue();
 
@@ -240,6 +262,40 @@ void removereadfd(int fd) {
   }
 }
 
+/*
+void restoreObject(void * obj) {
+  if (gencontains(failedobjects, obj)) {
+    struct tpdlist *tpd=gengettable(failedobjects, obj);
+    genfreekey(failedobjects, obj);
+    while(tpd!=NULL) {
+      int i;
+      struct taskparamdescriptor *task=tpd->task;
+      genfreekey(failedtasks, task);
+      for(i=0;i<task->numParameters;i++) {
+	void *objother=task->parameterArray[i];
+	struct tpdlist *tpdother=gengettable(failedobjects, objother);
+	struct tpdlist *tmpptr;
+	genfreekey(failedobjects, objother);
+	struct tpdlist **tpdptr=&tpdother;
+	while((*tpdptr)->task!=task)
+	  tpdptr=&((*tpdptr)->next);
+	tmpptr=*tpdptr;
+	(*tpdptr)=(*tpdptr)->next;
+	RUNFREE(tmpptr);
+	if (tpdother!=NULL)
+	  genputtable(failedobjects, objother, tpdother);
+      }
+      RUNFREE(task);
+      {
+	struct tpdlist *old=tpd;
+	tpd=tpd->next;
+	RUNFREE(old);
+      }
+    }
+  }
+}
+*/
+
 void executetasks() {
   void * taskpointerarray[MAXTASKPARAMS];
 
@@ -313,6 +369,22 @@ void executetasks() {
 	  printf("Fatal Error=%d, Recovering!\n",x);
 #endif
 	  genputtable(failedtasks,tpd,tpd);
+       /* for(i=0;i<tpd->task->numParameters;i++) {
+	    void *parameter=tpd->parameterArray[i];
+	    {
+	      // Create mapping from object -> failed tasks 
+	      struct tpdlist * tpnew=RUNMALLOC(sizeof(struct tpdlist));
+	      tpnew->task=tpd;
+	      if (gencontains(failedobjects, parameter)) {
+		struct tpdlist * tpdptr=gengettable(failedobjects, parameter);
+		tpnew->next=tpdptr->next;
+		tpdptr->next=tpnew;
+	      } else {
+		tpnew->next=NULL;
+		genputtable(failedobjects, parameter, tpnew);
+	      }
+	    }
+	  }  */
 	  restorecheckpoint(tpd->task->numParameters, taskpointerarray, checkpoint, forward, reverse);
 	} else {
 	  if (injectfailures) {
@@ -358,122 +430,21 @@ void processtasks() {
   }
 }
 
-
-
-int ___ServerSocket______createSocket____I(struct ___ServerSocket___ * sock, int port) {
-  int fd;
-
-  int n=1;
-  struct sockaddr_in sin;
-
-  bzero (&sin, sizeof (sin));
-  sin.sin_family = AF_INET;
-  sin.sin_port = htons (port);
-  sin.sin_addr.s_addr = htonl (INADDR_ANY);
-  fd=socket(AF_INET, SOCK_STREAM, 0);
-  if (fd<0) {
-#ifdef DEBUG
-    perror(NULL);
-    printf("createSocket error #1\n");
 #endif
-    longjmp(error_handler,5);
-  }
 
-  if (setsockopt (fd, SOL_SOCKET, SO_REUSEADDR, (char *)&n, sizeof (n)) < 0) {
-    close(fd);
-#ifdef DEBUG
-    perror(NULL);
-    printf("createSocket error #2\n");
+
+void injectinstructionfailure() {
+#ifdef TASK
+  if (injectinstructionfailures) {
+    instructioncount=failurecount;    
+    if ((((double)random())/RAND_MAX)<instfailurechance) {
+      printf("FAILURE!!!\n");
+      longjmp(error_handler,11);
+    }
+  }
+#else
 #endif
-    longjmp(error_handler, 6);
-  }
-  fcntl(fd, F_SETFD, 1);
-  fcntl(fd, F_SETFL, fcntl(fd, F_GETFL)|O_NONBLOCK);
-
-  /* bind to port */
-  if (bind(fd, (struct sockaddr *) &sin, sizeof(sin))<0) { 
-    close (fd);
-#ifdef DEBUG
-    perror(NULL);
-    printf("createSocket error #3\n");
-#endif
-    longjmp(error_handler, 7);
-  }
-
-  /* listen */
-  if (listen(fd, 5)<0) { 
-    close (fd);
-#ifdef DEBUG
-    perror(NULL);
-    printf("createSocket error #4\n");
-#endif
-    longjmp(error_handler, 8);
-  }
-
-  /* Store the fd/socket object mapping */
-  RuntimeHashadd(fdtoobject, fd, (int) sock);
-  addreadfd(fd);
-  return fd;
 }
-
-int ___ServerSocket______nativeaccept____L___Socket___(struct ___ServerSocket___ * serversock, struct ___Socket___ * sock) {
-  struct sockaddr_in sin;
-  unsigned int sinlen=sizeof(sin);
-  int fd=serversock->___fd___;
-  int newfd;
-  newfd=accept(fd, (struct sockaddr *)&sin, &sinlen);
-
-
-  if (newfd<0) { 
-#ifdef DEBUG
-    perror(NULL);
-    printf("acceptSocket error #1\n");
-#endif
-    longjmp(error_handler, 9);
-  }
-  fcntl(newfd, F_SETFL, fcntl(fd, F_GETFL)|O_NONBLOCK);
-
-  RuntimeHashadd(fdtoobject, newfd, (int) sock);
-  addreadfd(newfd);
-  flagorand(serversock,0,0xFFFFFFFE);
-  return newfd;
-}
-
-
-void ___Socket______nativeWrite_____AR_B(struct ___Socket___ * sock, struct ArrayObject * ao) {
-  int fd=sock->___fd___;
-  int length=ao->___length___;
-  char * charstr=((char *)& ao->___length___)+sizeof(int);
-  int bytewritten=write(fd, charstr, length);
-  if (bytewritten!=length) {
-    printf("ERROR IN NATIVEWRITE\n");
-  }
-  flagorand(sock,0,0xFFFFFFFE);
-}
-
-int ___Socket______nativeRead_____AR_B(struct ___Socket___ * sock, struct ArrayObject * ao) {
-  int fd=sock->___fd___;
-  int length=ao->___length___;
-  char * charstr=((char *)& ao->___length___)+sizeof(int);
-  int byteread=read(fd, charstr, length);
-  
-  if (byteread<0) {
-    printf("ERROR IN NATIVEREAD\n");
-  }
-  flagorand(sock,0,0xFFFFFFFE);
-  return byteread;
-}
-
-void ___Socket______nativeClose____(struct ___Socket___ * sock) {
-  int fd=sock->___fd___;
-  int data;
-  RuntimeHashget(fdtoobject, fd, &data);
-  RuntimeHashremove(fdtoobject, fd, data);
-  removereadfd(fd);
-  close(fd);
-  flagorand(sock,0,0xFFFFFFFE);
-}
-#endif
 
 int ___Object______hashcode____(struct ___Object___ * ___this___) {
   return (int) ___this___;

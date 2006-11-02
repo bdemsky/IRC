@@ -2,6 +2,7 @@
 #define RUNTIME
 #include <setjmp.h>
 extern jmp_buf error_handler;
+extern int instructioncount;
 
 void * allocate_new(int type);
 struct ArrayObject * allocate_newarray(int type, int length);
@@ -10,6 +11,7 @@ struct ___String___ * NewString(const char *str,int length);
 void failedboundschk();
 void failednullptr();
 void abort_task();
+void injectinstructionfailure();
 
 #ifdef TASK
 #include "SimpleHash.h"
@@ -30,6 +32,11 @@ struct taskparamdescriptor {
   struct taskdescriptor * task;
   int numParameters;
   void ** parameterArray;
+};
+
+struct tpdlist {
+  struct taskparamdescriptor * task;
+  struct tpdlist * next;
 };
 
 int hashCodetpd(struct taskparamdescriptor *);

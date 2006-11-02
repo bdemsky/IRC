@@ -33,6 +33,8 @@ public class Main {
 	      state.CONSCHECK=true;
 	  else if (option.equals("-task"))
 	      state.TASK=true;
+	  else if (option.equals("-instructionfailures"))
+	      state.INSTRUCTIONFAILURE=true;
 	  else if (option.equals("-help")) {
 	      System.out.println("-classlibrary classlibrarydirectory -- directory where classlibrary is located");
 	      System.out.println("-dir outputdirectory -- output code in outputdirectory");
@@ -41,6 +43,8 @@ public class Main {
 	      System.out.println("-precise -- use precise garbage collection");
 
 	      System.out.println("-conscheck -- turn on consistency checking");
+	      System.out.println("-task -- compiler for tasks");
+	      System.out.println("-instructionfailures -- insert code for instruction level failures");
 	      System.out.println("-help -- print out help");
 	      System.exit(0);
 	  } else {

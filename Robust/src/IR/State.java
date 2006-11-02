@@ -22,6 +22,7 @@ public class State {
     /** Boolean flag which indicates whether compiler is compiling a task-based
      * program. */
     public boolean TASK;
+    public boolean INSTRUCTIONFAILURE=false;
     public String structfile;
     public String main;
     public boolean CONSCHECK=false;

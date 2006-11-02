@@ -867,6 +867,9 @@ public class BuildCode {
 	    visited.add(current_node);
 	    if (nodetolabel.containsKey(current_node))
 		output.println("L"+nodetolabel.get(current_node)+":");
+	    if (state.INSTRUCTIONFAILURE) {
+		output.println("if ((--instructioncount)==0) injectinstructionfailure();");
+	    }
 	    if (current_node.numNext()==0) {
 		output.print("   ");
 		generateFlatNode(fm, current_node, output);
