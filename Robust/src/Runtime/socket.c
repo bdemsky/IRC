@@ -96,7 +96,7 @@ void ___Socket______nativeWrite_____AR_B(struct ___Socket___ * sock, struct Arra
   if (bytewritten!=length) {
     printf("ERROR IN NATIVEWRITE\n");
   }
-  flagorand(sock,0,0xFFFFFFFE);
+  //  flagorand(sock,0,0xFFFFFFFE);
 }
 
 int ___Socket______nativeRead_____AR_B(struct ___Socket___ * sock, struct ArrayObject * ao) {

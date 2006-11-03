@@ -22,11 +22,16 @@ public class Integer {
 	boolean isNeg=false;
 	int start=0;
 	byte[] chars=str.getBytes();
-	if (chars[0]=='-') {
+
+	while(chars[start]==' '||chars[start]=='\t')
+	    start++;
+
+	if (chars[start]=='-') {
 	    isNeg=true;
-	    start=1;
+	    start++;
 	}
-	for(int i=start;i<str.length();i++) {
+	boolean cont=true;
+	for(int i=start;cont&&i<str.length();i++) {
 	    byte b=chars[i];
 	    int val;
 	    if (b>='0'&&b<='9')
@@ -35,9 +40,12 @@ public class Integer {
 		val=10+b-'a';
 	    else if (b>='A'&&b<='Z')
 		val=10+b-'A';
-	    if (val>=radix)
-		System.error();
-	    value=value*radix+val;
+	    else cont=false;
+	    if (cont) {
+		if (val>=radix)
+		    System.error();
+		value=value*radix+val;
+	    }
 	}
 	if (isNeg)
 	    value=-value;

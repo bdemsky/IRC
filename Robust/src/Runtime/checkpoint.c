@@ -33,6 +33,7 @@ void ** makecheckpoint(int numparams, void ** srcpointer, struct RuntimeHash * f
       } else if (((int)pointer)==1) {
 	/* Array of pointers */
 	struct ArrayObject *ao=(struct ArrayObject *) ptr;
+	struct ArrayObject *ao_cpy=(struct ArrayObject *) cpy;
 	int length=ao->___length___;
 	int i;
 	for(i=0;i<length;i++) {
@@ -40,13 +41,13 @@ void ** makecheckpoint(int numparams, void ** srcpointer, struct RuntimeHash * f
 	  if (objptr==NULL) {
 	    ((void **)(((char *)& ao->___length___)+sizeof(int)))[i]=NULL;
 	  } else if (RuntimeHashcontainskey(forward, (int) objptr))
-	    RuntimeHashget(forward,(int) objptr,(int *) &((void **)(((char *)& ao->___length___)+sizeof(int)))[i]);
+	    RuntimeHashget(forward,(int) objptr,(int *) &((void **)(((char *)& ao_cpy->___length___)+sizeof(int)))[i]);
 	  else {
 	    void * copy=createcopy(objptr);
 	    RuntimeHashadd(forward, (int) objptr, (int)copy);
 	    RuntimeHashadd(reverse, (int) copy, (int) objptr);
 	    RuntimeHashadd(todo, (int) objptr, (int) objptr);
-	    ((void **)(((char *)& ao->___length___)+sizeof(int)))[i]=copy;
+	    ((void **)(((char *)& ao_cpy->___length___)+sizeof(int)))[i]=copy;
 	  }
 	}
       } else {

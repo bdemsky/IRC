@@ -1181,7 +1181,12 @@ public class BuildCode {
 
     private void generateFlatCastNode(FlatMethod fm, FlatCastNode fcn, PrintWriter output) {
 	/* TODO: Do type check here */
-	output.println(generateTemp(fm,fcn.getDst())+"=("+fcn.getType().getSafeSymbol()+")"+generateTemp(fm,fcn.getSrc())+";");
+	if (fcn.getType().isArray()) {
+	    ;
+	} else if (fcn.getType().isClass())
+	    output.println(generateTemp(fm,fcn.getDst())+"=(struct "+fcn.getType().getSafeSymbol()+" *)"+generateTemp(fm,fcn.getSrc())+";");
+	else
+	    output.println(generateTemp(fm,fcn.getDst())+"=("+fcn.getType().getSafeSymbol()+")"+generateTemp(fm,fcn.getSrc())+";");
     }
 
     private void generateFlatLiteralNode(FlatMethod fm, FlatLiteralNode fln, PrintWriter output) {

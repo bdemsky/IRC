@@ -65,6 +65,7 @@ public class HashMap {
 		numItems--;
 		return oldvalue;
 	    }
+	    ptr=ptr.next;
 	}
 	return null;
     }
@@ -76,6 +77,7 @@ public class HashMap {
 	    if (ptr.key.equals(key)) {
 		return ptr.value;
 	    }
+	    ptr=ptr.next;
 	}
 	return null;
     }
@@ -87,6 +89,7 @@ public class HashMap {
 	    if (ptr.key.equals(key)) {
 		return true;
 	    }
+	    ptr=ptr.next;
 	}
 	return false;
     }
@@ -105,6 +108,7 @@ public class HashMap {
 		ptr.value=value;
 		return oldvalue;
 	    }
+	    ptr=ptr.next;
 	}
 	HashEntry he=new HashEntry();
 	he.value=value;
@@ -113,5 +117,4 @@ public class HashMap {
 	table[bin]=he;
 	return null;
     }
-
 }

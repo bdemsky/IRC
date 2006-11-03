@@ -12,16 +12,16 @@ class HashMapIterator {
     }
 
     public boolean hasNext() {
-	if (he.next!=null)
+	if (he!=null&&he.next!=null)
 	    return true;
 	int i=bin;
-	while(map.table[i]==null&&(i<map.table.length))
+	while((i<map.table.length)&&map.table[i]==null)
 	    i++;
 	return (i<map.table.length);
     }
 
     public Object next() {
-	if (he.next!=null) {
+	if (he!=null&&he.next!=null) {
 	    he=he.next;
 	    Object o;
 	    if (type==0)
@@ -30,10 +30,11 @@ class HashMapIterator {
 		o=he.value;
 	    return o;
 	}
-	while((map.table[bin]==null)&&(bin<map.table.length))
+	while((bin<map.table.length)&&
+	      (map.table[bin]==null))
 	    bin++;
 	if (bin<map.table.length) {
-	    he=map.table[bin];
+	    he=map.table[bin++];
 	    Object o;
 	    if (type==0)
 		o=he.key;
@@ -42,5 +43,4 @@ class HashMapIterator {
 	    return o;
 	} else System.error();
     }
-
 }
