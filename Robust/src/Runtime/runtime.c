@@ -463,6 +463,10 @@ int ___Object______hashCode____(struct ___Object___ * ___this___) {
   return (int) ___this___;
 }
 
+int ___Object______getType____(struct ___Object___ * ptr) {
+  return ((int *)ptr)[0];
+}
+
 void ___System______printString____L___String___(struct ___String___ * s) {
     struct ArrayObject * chararray=s->___value___;
     int i;

@@ -152,4 +152,24 @@ public class String {
 	} while (length!=0);
 	return new String(chararray);
     }
+
+    public int hashCode() {
+	int hashcode=0;
+	for(int i=0;i<count;i++)
+	    hashcode=hashcode*31+value[i+offset];
+	return hashcode;
+    }
+
+    public boolean equals(Object o) {
+	if (o.getType()!=getType())
+	    return false;
+	String s=(String)o;
+	if (s.count!=count)
+	    return false;
+	for(int i=0;i<count;i++) {
+	    if (s.value[i+s.offset]!=value[i+offset])
+		return false;
+	}
+	return true;
+    }
 }
