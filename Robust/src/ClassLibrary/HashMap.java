@@ -53,13 +53,13 @@ public class HashMap {
     Object remove(Object key) {
 	int bin=key.hashCode()%table.length;
 	HashEntry ptr=table[bin];
-	if (ptr.key==key) {
+	if (ptr.key.equals(key)) {
 	    table[bin]=ptr.next;
 	    numItems--;
 	    return ptr.value;
 	}
 	while(ptr.next!=null) {
-	    if (ptr.next.key==key) {
+	    if (ptr.next.key.equals(key)) {
 		Object oldvalue=ptr.value;
 		ptr.next=ptr.next.next;
 		numItems--;
@@ -73,7 +73,7 @@ public class HashMap {
 	int bin=key.hashCode()%table.length;
 	HashEntry ptr=table[bin];
 	while(ptr!=null) {
-	    if (ptr.key==key) {
+	    if (ptr.key.equals(key)) {
 		return ptr.value;
 	    }
 	}
@@ -84,7 +84,7 @@ public class HashMap {
 	int bin=key.hashCode()%table.length;
 	HashEntry ptr=table[bin];
 	while(ptr!=null) {
-	    if (ptr.key==key) {
+	    if (ptr.key.equals(key)) {
 		return true;
 	    }
 	}
@@ -100,7 +100,7 @@ public class HashMap {
 	int bin=key.hashCode()%table.length;
 	HashEntry ptr=table[bin];
 	while(ptr!=null) {
-	    if (ptr.key==key) {
+	    if (ptr.key.equals(key)) {
 		Object oldvalue=ptr.value;
 		ptr.value=value;
 		return oldvalue;

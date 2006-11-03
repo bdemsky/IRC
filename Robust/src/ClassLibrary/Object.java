@@ -5,7 +5,6 @@ public class Object {
 	return String.valueOf(this);
     }
 
-
     public boolean equals(Object o) {
 	if (o==this)
 	    return true;

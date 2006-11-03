@@ -47,8 +47,4 @@ public class Integer {
     public String toString() {
 	return String.valueOf(value);
     }
-
-    public int hashCode() {
-	return value;
-    }
 }
