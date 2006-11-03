@@ -45,6 +45,11 @@ public class HashMap {
 	return numItems;
     }
 
+    /* 0=keys, 1=values */
+    public HashMapIterator iterator(int type) {
+	return new HashMapIterator(this, type);
+    }
+
     Object remove(Object key) {
 	int bin=key.hashCode()%table.length;
 	HashEntry ptr=table[bin];

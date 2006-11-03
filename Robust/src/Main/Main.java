@@ -56,6 +56,7 @@ public class Main {
       readSourceFile(state, ClassLibraryPrefix+"System.java");
       readSourceFile(state, ClassLibraryPrefix+"String.java");
       readSourceFile(state, ClassLibraryPrefix+"HashMap.java");
+      readSourceFile(state, ClassLibraryPrefix+"HashMapIterator.java");
       readSourceFile(state, ClassLibraryPrefix+"HashEntry.java");
       readSourceFile(state, ClassLibraryPrefix+"Integer.java");
       readSourceFile(state, ClassLibraryPrefix+"StringBuffer.java");
