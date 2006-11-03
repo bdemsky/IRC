@@ -1,5 +1,5 @@
 public class Object {
-    public native int hashcode();
+    public native int hashCode();
 
     public String toString() {
 	return String.valueOf(this);

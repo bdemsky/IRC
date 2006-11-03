@@ -459,7 +459,7 @@ void injectinstructionfailure() {
 #endif
 }
 
-int ___Object______hashcode____(struct ___Object___ * ___this___) {
+int ___Object______hashCode____(struct ___Object___ * ___this___) {
   return (int) ___this___;
 }
 
