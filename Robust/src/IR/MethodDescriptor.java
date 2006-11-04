@@ -136,10 +136,13 @@ public class MethodDescriptor extends Descriptor {
 
     public String toString() {
 	String st="";
+	String type="";
+	if (cd!=null)
+	    type=cd+".";
 	if (returntype!=null)
-	    st=modifier.toString()+returntype.toString()+" "+identifier+"(";
+	    st=modifier.toString()+returntype.toString()+" "+type+identifier+"(";
 	else
-	    st=modifier.toString()+" "+identifier+"(";
+	    st=modifier.toString()+" "+type+identifier+"(";
 	for(int i=0;i<params.size();i++) {
 	    st+=getParamType(i)+" "+getParamName(i);
 	    if ((i+1)!=params.size())

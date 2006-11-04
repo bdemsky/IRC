@@ -150,8 +150,8 @@ public class TypeUtil {
 	    throw new Error();
     }
 
-
-    private boolean isSuperorType(ClassDescriptor possiblesuper, ClassDescriptor cd2) {
+    
+    public boolean isSuperorType(ClassDescriptor possiblesuper, ClassDescriptor cd2) {
 	if (possiblesuper==cd2)
 	    return true;
 	else

@@ -576,6 +576,10 @@ public class SemanticCheck {
 	}
 	if (!typeutil.isSuperorType(md2.getReturnType(), md1.getReturnType()))
 		return false;
+
+	if (!typeutil.isSuperorType(md2.getClassDesc(), md1.getClassDesc()))
+		return false;
+
 	return true;
     }
 
@@ -663,7 +667,6 @@ public class SemanticCheck {
 		checkExpressionNode(md, nametable, min.getExpression(), null);
 	    }
 	}
-
     }
 
 
