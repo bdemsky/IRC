@@ -25,7 +25,6 @@ public class ChatSocket extends Socket {
         return false;
     }
     public void processRoom(RoomObject ro) {
-	int i=Integer.parseInt(roomrequest);
-	ro.getChatRoom(i).addParticipant(this);
+	ro.getChatRoom(roomrequest).addParticipant(this);
     }
 }

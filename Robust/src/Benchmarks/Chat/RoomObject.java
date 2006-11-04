@@ -1,13 +1,15 @@
 public class RoomObject {
     flag Initialized;
-    Room[] rooms;
+    HashMap rooms;
     public RoomObject() {
-	rooms=new Room[10];
-	for(int i=0;i<rooms.length;i++)
-	    rooms[i]=new Room(i);
+	rooms=new HashMap();
     }
 
-    Room getChatRoom(int i) {
-	return rooms[i];
+    Room getChatRoom(String name) {
+	if (rooms.containsKey(name))
+	    return (Room) rooms.get(name);
+	Room r=new Room(name);
+	rooms.put(name, r);
+	return r;
     }
 }

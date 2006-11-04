@@ -1,8 +1,8 @@
 public class Room {
     String name;
     HashSet participants;
-    public Room(int i) {
-	name=String.valueOf(i);
+    public Room(String n) {
+	name=n;
 	participants=new HashSet();
     }
     
