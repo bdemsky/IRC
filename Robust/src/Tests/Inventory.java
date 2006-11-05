@@ -4,88 +4,77 @@ public class Inventory {
 
 	// Transaction variables
 	int numitems;
-	int current;//keeps track of current position
-	int totalvalue;
+	HashMap map;
 	
-	// Item properties
-	String item_name[];
-	int item_quantity[];
-	int item_price[];
-
 	// Constructor
 	public Inventory(){
-		current = 0;
 	}
 
 	public Inventory(int howmany) {
 		numitems = howmany;// howmany keeps track of the number of items 
 				   // in the inventory
-		current = 0;
-		item_name = new String[howmany];
-		item_quantity = new int [howmany];
-		item_price = new int [howmany];
-		for (int i = 0; i < howmany; i++) {
-			item_name[i] = "";
-			item_quantity[i] = 0;
-			item_price[i] = 0;
- 		}
+		map = new HashMap(numitems);
 	}
 
 	// Add item to a list of inventory
 	public int additem(String name, int quantity, int price){
-		//check current value
-		if(current>=numitems){
-			System.printString("Cannot add any further items");
-			return -1;
-		}
-		// Search thru existing items
-		for(int i=0; i<numitems;i++){
-			if(item_name[i]== name){
-				item_quantity[i]+= quantity;
-				return 0;
+		ItemInfo newitem = new ItemInfo(quantity, price);
+		
+		// Get the item from hash
+		if (map.containsKey(name) == false) {
+			if (map.size() > numitems) {
+				System.printString("Error - Items overflow");
+				return -1;
 			}
+			map.put(name, newitem);
+		} else {
+			ItemInfo i = map.get(name);
+			i.quantity += quantity;
+			i.price = price;
+			map.put(name, i);
 		}
-		// Add new item if not found
-		item_name[current]= name;
-		item_quantity[current]= quantity;
-		item_price[current]= price;
-		current++;
+		
 		return 0;
 	}	
 
 	// Buy item from a given list of inventory	
 	public int buyitem(String name, int quantity, int price){
-		//Search through existing items	
-		for(int i=0; i<numitems;i++){
-			if(item_name[i]== name){
-				item_quantity[i]-= quantity;
-				if (item_quantity[i]<=0){// if the quantity falls 
-							// to zero 
-					current--;
-				}
-				totalvalue = quantity*price;
-				return 0;
+		if (map.containsKey(name) == false) {
+			System.printString(name);
+			System.printString("Error - Item does not exist");
+			return -1;
+		} else {
+			ItemInfo i = map.get(name);
+			if (i.quantity == 0) {
+				System.printString("Error - Item unavailable");
+				return -1;
 			}
+			i.quantity -= quantity;
+			map.put(name, i);
+			return 0;
 		}
-		System.printString("Cannot find the item in the inventory");
-		return -1;
-			
 	}
 
 	//Display the inventory list
-	public int inventory(){
-		Integer tmp;
-		for(int i=0; i<current; i++){
-			System.printString(" The items are ");
-			System.printString(item_name[i]);	
-		//	System.printString(" The sale is ");
-			System.printString(" The quantity of item is ");
-			tmp = new Integer(item_quantity[i]);
-			System.printString(tmp.toString());
-			System.printString(" The price of item is ");
-			tmp = new Integer(item_price[i]);
-			System.printString(tmp.toString());
+	public String inventory(){
+		HashMapIterator i = new HashMapIterator(map, 0);
+		HashMapIterator j = new HashMapIterator(map, 1);
+		StringBuffer sb = new StringBuffer("");
+		while (i.hasNext() == true) {
+			Object o = i.next();
+			String name = o.toString();
+			System.printString(name);
+			ItemInfo oo = j.next();
+			sb.append(name);
+			sb.append(" ");
+			Integer q = new Integer(oo.quantity);
+			sb.append(q.toString());
+			sb.append(" ");
+			Integer p = new Integer(oo.price);
+			sb.append(p.toString());
+			sb.append("\n");
 		}
-		return 0;
+		String item = new String(sb);	
+		return item;	
 	}	
 }

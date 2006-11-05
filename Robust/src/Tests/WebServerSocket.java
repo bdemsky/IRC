@@ -46,7 +46,6 @@ public class WebServerSocket extends Socket {
 		
 		while ((ret = def_file.read(buf)) > 0) {// Read from file and write 
 							// one byte at a time into the socket 
-
 			byte tosend[] = new byte[ret];
 			for (int i = 0; i < ret; i++) {
 				tosend[i] = buf[i];
@@ -81,24 +80,14 @@ public class WebServerSocket extends Socket {
 			return false;
 		}
 	}
+
  	
 	//Process special request
-	public void parseTransaction() {
+	public int parseTransaction() {
 		//System.printString("DEBUG -> Inside parseTransaction");	
 		int start = filename.indexOf('_');
 		String s = filename.subString(start+1);
 		int n = 4;
-/*
-		if (s.startsWith("add")== true) {
-			n = 4;
-		}
-		if (s.startsWith("buy")== true) {
-			n = 3;
-		}
-		if (s.startsWith("inventory")== true) {
-			n = 1;
-		}
-*/
 		for (int i = 0; i < n; i++) {
 			int index;
 			if (i == n-1) 
@@ -113,6 +102,8 @@ public class WebServerSocket extends Socket {
 			System.printString("\n Parsing : ");
 			System.printString(parsed[i]);
 		}
-		return;
+		System.printString(" DEBUG > INSIDE PARSE TRANSACTION");
+
+		return 0;
 	}	
 }
