@@ -21,20 +21,30 @@ public class HashMap {
 	this.numItems=0;
     }
 
+    private int hash(Object o) {
+	if (o==null)
+	    return 0;
+	int value=o.hashCode()%table.length;
+	if (value<0)
+	    return -value;
+	return value;
+    }
+
     void resize() {
 	int newCapacity=2*table.length+1;
-	HashEntry[] newtable=new HashEntry[newCapacity];
-	for(int i=0;i<table.length;i++) {
-	    HashEntry e=table[i];
+	HashEntry[] oldtable=table;	
+	this.table=new HashEntry[newCapacity];
+
+	for(int i=0;i<oldtable.length;i++) {
+	    HashEntry e=oldtable[i];
 	    while(e!=null) {
 		HashEntry next=e.next;
-		int bin=e.key.hashCode()%newCapacity;
-		e.next=newtable[bin];
-		newtable[bin]=e;
+		int bin=hash(e.key);
+		e.next=table[bin];
+		table[bin]=e;
 		e=next;
 	    }
 	}
-	this.table=newtable;
     }
 
     public boolean isEmpty() {
@@ -51,7 +61,7 @@ public class HashMap {
     }
 
     Object remove(Object key) {
-	int bin=key.hashCode()%table.length;
+	int bin=hash(key);
 	HashEntry ptr=table[bin];
 	if (ptr.key.equals(key)) {
 	    table[bin]=ptr.next;
@@ -71,7 +81,7 @@ public class HashMap {
     }
 
     Object get(Object key) {
-	int bin=key.hashCode()%table.length;
+	int bin=hash(key);
 	HashEntry ptr=table[bin];
 	while(ptr!=null) {
 	    if (ptr.key.equals(key)) {
@@ -83,7 +93,7 @@ public class HashMap {
     }
 
     boolean containsKey(Object key) {
-	int bin=key.hashCode()%table.length;
+	int bin=hash(key);
 	HashEntry ptr=table[bin];
 	while(ptr!=null) {
 	    if (ptr.key.equals(key)) {
@@ -100,7 +110,7 @@ public class HashMap {
 	    //Resize the table
 	    resize();
 	}
-	int bin=key.hashCode()%table.length;
+	int bin=hash(key);
 	HashEntry ptr=table[bin];
 	while(ptr!=null) {
 	    if (ptr.key.equals(key)) {
