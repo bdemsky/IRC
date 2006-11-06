@@ -8,37 +8,41 @@ public class Inventory {
 	
 	// Constructor
 	public Inventory(){
+		map = new HashMap();
 	}
 
 	public Inventory(int howmany) {
 		numitems = howmany;// howmany keeps track of the number of items 
 				   // in the inventory
-		map = new HashMap(numitems);
+		map = new HashMap();
 	}
 
 	// Add item to a list of inventory
 	public int additem(String name, int quantity, int price){
 		ItemInfo newitem = new ItemInfo(quantity, price);
+		//System.printString("DEBUG -> Inside add item method ");
 		
 		// Get the item from hash
 		if (map.containsKey(name) == false) {
-			if (map.size() > numitems) {
-				System.printString("Error - Items overflow");
-				return -1;
-			}
+			//System.printString("DEBUG -> Inside if of addmethod");
+//			if (map.size() > numitems) {
+//				System.printString("Error - Items overflow");
+//				return -1;
+//			}
 			map.put(name, newitem);
+			//System.printString("DEBUG -> after if ");
 		} else {
+			//System.printString("DEBUG -> Inside else ");
 			ItemInfo i = map.get(name);
 			i.quantity += quantity;
 			i.price = price;
 			map.put(name, i);
 		}
-		
 		return 0;
 	}	
 
 	// Buy item from a given list of inventory	
-	public int buyitem(String name, int quantity, int price){
+	public int buyitem(String name, int quantity){
 		if (map.containsKey(name) == false) {
 			System.printString(name);
 			System.printString("Error - Item does not exist");
@@ -51,7 +55,7 @@ public class Inventory {
 			}
 			i.quantity -= quantity;
 			map.put(name, i);
-			return 0;
+			return i.price;
 		}
 	}
 

@@ -61,12 +61,12 @@ public class WebServerSocket extends Socket {
 		byte b1[] = new byte[1024];
 		read(b1);//Read client request from web server socket
 		String clientreq = new String(b1);
-		System.printString(clientreq);
-		System.printString("\n");
+		//System.printString(clientreq);
+		//System.printString("\n");
 		int index = clientreq.indexOf('/');//Parse the GET client request to find filename
 		int end = clientreq.indexOf('H');
 		filename = clientreq.subString((index+1), (end-1));
-		System.printString(filename);
+		//System.printString(filename);
 		System.printString("\n");
 		return 0;
 	}
@@ -82,28 +82,51 @@ public class WebServerSocket extends Socket {
 	}
 
  	
-	//Process special request
-	public int parseTransaction() {
-		//System.printString("DEBUG -> Inside parseTransaction");	
+	public int parseTransaction(){
 		int start = filename.indexOf('_');
 		String s = filename.subString(start+1);
-		int n = 4;
-		for (int i = 0; i < n; i++) {
-			int index;
-			if (i == n-1) 
-				index = s.indexOf('.');
-			else 
-				index = s.indexOf('_');
-			parsed[i]  = s.subString(0,index);
-			String tmp = s.subString(index+1);
-			s = tmp;
-		}
-		for (int i = 0; i < 4; i++) {
-			System.printString("\n Parsing : ");
-			System.printString(parsed[i]);
-		}
-		System.printString(" DEBUG > INSIDE PARSE TRANSACTION");
 
-		return 0;
-	}	
+		if (s.startsWith("add")==true){
+			System.printString("DEBUG > ADD\n");
+			int i1 = s.indexOf('_');
+			parsed[0] = new String(s.subString(0,i1));
+
+			String s1 = s.subString(i1+1);
+			int i2 = s1.indexOf('_');
+			parsed[1] = new String(s1.subString(0,i2));
+			
+			String s2 = s1.subString(i2+1);
+			int i3 = s2.indexOf('_');
+			parsed[2] = new String(s2.subString(0,i3));
+			
+			String s3 = s2.subString(i3+1);
+			parsed[3] = s3;
+			
+			return 0;
+			
+		}
+		if (s.startsWith("buy")==true){
+			System.printString("DEBUG > BUY\n");
+			int i1 = s.indexOf('_');
+			parsed[0] = s.subString(0,i1);
+
+			String s1 = s.subString(i1+1);
+			int i2 = s1.indexOf('_');
+			parsed[1] = s1.subString(0,i2);
+			
+			String s2 = s1.subString(i2+1);
+			parsed[2] = s2;
+			
+			parsed[3] = "";
+		
+			return 1;
+		}
+		if (s.startsWith("inventory")==true){
+			System.printString("DEBUG > INVENTORY\n");
+			return 2;
+
+		}
+		// Error transaction
+		return -1;
+	}
 }

@@ -7,7 +7,7 @@ task Startup(StartupObject s {initialstate}) {
 	ServerSocket ss = new ServerSocket(9000);
 	System.printString("W> Creating ServerSocket\n");
 	Logger log = new Logger() {Initialize};
-	Inventory inventorylist = new Inventory(4){TransInitialize};
+	Inventory inventorylist = new Inventory(){TransInitialize};
 	taskexit(s {!initialstate}); /* Turns initial state flag off, so this task won't refire */
 }
 
@@ -51,19 +51,20 @@ task LogRequest(WebServerSocket web{LogPending}, Logger log{Initialize}) {
 //Transaction on Inventory
 task Transaction(WebServerSocket web{TransPending}, Inventory inventorylist{TransInitialize}){ //Task for WebServerTransactions
 	System.printString("T > Inside Transaction\n");
-	char[] op = new char[10];
 	// Parse
-	web.parseTransaction();
+	int op = web.parseTransaction();
 	// Check for the kind of operation
-	System.printString("DEBUG > After Web parse transaction call\n");
-	op = web.parsed[0].toCharArray();
-	if (op[0] == 'a') {
+	if (op == 0 ) { /* Add */
 		System.printString("DEBUG > Calling add transaction\n");
+		System.printString(web.parsed[2]);
+		System.printString(web.parsed[3]);
 		Integer qty = new Integer(web.parsed[2]);
 		Integer price = new Integer(web.parsed[3]);
+		System.printString(web.parsed[1]);
 		int ret = inventorylist.additem(web.parsed[1], qty.intValue(), price.intValue());
 		if (ret == 0) {
 			web.httpresponse();
+			//System.printString("DEBUG -> Inside ret = 0");
 			StringBuffer s = new StringBuffer("Added Item ");
 			s.append(web.parsed[1]);
 			s.append(" Quantity ");
@@ -77,21 +78,21 @@ task Transaction(WebServerSocket web{TransPending}, Inventory inventorylist{Tran
 			web.httpresponse();
 			String s = new String("Error encountered");
 			web.write(s.getBytes());
-		}
-	} else if (op[0] == 'b') {
+		}	
+	} else if (op == 1) { /* Buy */
 		System.printString("DEBUG > Calling buy transaction\n");
 		Integer qty = new Integer(web.parsed[2]);
-		Integer price = new Integer(web.parsed[3]);
-		int ret = inventorylist.buyitem(web.parsed[1], qty.intValue(), price.intValue());
-		if (ret == 0) {
+		int ret = inventorylist.buyitem(web.parsed[1], qty.intValue());
+		if (ret >= 0) {
 			web.httpresponse();
 			StringBuffer s = new StringBuffer("Bought item ");
 			s.append(web.parsed[1]);
 			s.append(" Quantity ");
 			s.append(web.parsed[2]);
-			s.append(" Price ");
-			s.append(web.parsed[3]);
-			s.append("<br />");
+			s.append(" Cost ");
+			Integer cost = new Integer(ret*qty.intValue());
+			String c = cost.toString();
+			s.append(c);
 			String towrite = new String(s);
 			web.write(towrite.getBytes());
 		} else {
@@ -99,17 +100,14 @@ task Transaction(WebServerSocket web{TransPending}, Inventory inventorylist{Tran
 			String s = new String("Error encountered");
 			web.write(s.getBytes());
 		}
-	} else if (op[0] == 'i') {
+	} else if (op == 2) { /* Inventory */
 		System.printString("DEBUG > Calling inventory transaction\n");
-		//inventorylist.inventory();
 		String towrite = inventorylist.inventory();	
 		web.write(towrite.getBytes());
-		
-	} else {
+	} else { /* Error */ 
 		System.printString("T > Error - Unknown transaction\n");
 	}
 	//Invoke operations
-
 	web.close();
 	taskexit(web {!TransPending});
 }
