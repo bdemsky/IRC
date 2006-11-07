@@ -20,19 +20,10 @@ public class Inventory {
 	// Add item to a list of inventory
 	public int additem(String name, int quantity, int price){
 		ItemInfo newitem = new ItemInfo(quantity, price);
-		//System.printString("DEBUG -> Inside add item method ");
-		
 		// Get the item from hash
 		if (map.containsKey(name) == false) {
-			//System.printString("DEBUG -> Inside if of addmethod");
-//			if (map.size() > numitems) {
-//				System.printString("Error - Items overflow");
-//				return -1;
-//			}
 			map.put(name, newitem);
-			//System.printString("DEBUG -> after if ");
 		} else {
-			//System.printString("DEBUG -> Inside else ");
 			ItemInfo i = map.get(name);
 			i.quantity += quantity;
 			i.price = price;
@@ -44,7 +35,6 @@ public class Inventory {
 	// Buy item from a given list of inventory	
 	public int buyitem(String name, int quantity){
 		if (map.containsKey(name) == false) {
-			System.printString(name);
 			System.printString("Error - Item does not exist");
 			return -1;
 		} else {
@@ -53,10 +43,16 @@ public class Inventory {
 				System.printString("Error - Item unavailable");
 				return -1;
 			}
-			i.quantity -= quantity;
-			map.put(name, i);
-			return i.price;
+			if ((i.quantity-quantity) < 0 ) {
+				System.printString("Error - Available qty is less: Cannot Buy\n");
+				return -1;
+			} else {
+				i.quantity -= quantity;
+				map.put(name, i);
+				return i.price;
+			}
 		}
+		return 0;
 	}
 
 	//Display the inventory list
@@ -67,7 +63,6 @@ public class Inventory {
 		while (i.hasNext() == true) {
 			Object o = i.next();
 			String name = o.toString();
-			System.printString(name);
 			ItemInfo oo = j.next();
 			sb.append(name);
 			sb.append(" ");
