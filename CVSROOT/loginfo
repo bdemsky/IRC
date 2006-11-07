@@ -31,4 +31,4 @@
 #DEFAULT (echo ""; id; echo %{sVv}; date; cat) >> $CVSROOT/CVSROOT/commitlog
 #ALL $CVSROOT/CVSROOT/log_accum -u -s -d -m bdemsky %s
 ALL ( chgrp -R -f cvs $CVSROOT/Robust/. ; chmod -R -f go+rX,o-w $CVSROOT/Robust/. )
-DEFAULT $CVSROOT/CVSROOT/cvslog -m -d -a bdemsky -a adash@uci.edu -- %p %{sVv}
+DEFAULT $CVSROOT/CVSROOT/cvslog -m -d -a bdemsky -a adash@uci.edu -a srsundar@uci.edu -- %p %{sVv}
