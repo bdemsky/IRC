@@ -235,8 +235,11 @@ void flagorand(void * ptr, int ormask, int andmask) {
 
 /* Handler for signals. The signals catch null pointer errors and
    arithmatic errors. */
-
+#ifdef LINUX
+void myhandler(int sig, siginfo_t *info, void *uap) {
+#else
 void myhandler(int sig, struct __siginfo *info, void *uap) {
+#endif
 #ifdef DEBUG
   printf("sig=%d\n",sig);
   printf("signal\n");
@@ -328,7 +331,7 @@ void executetasks() {
       struct timeval timeout={0,0};
       fd_set tmpreadfds;
       int numselect;
-      FD_COPY(&readfds, &tmpreadfds);
+      tmpreadfds=readfds;
       numselect=select(maxreadfd, &tmpreadfds, NULL, NULL, &timeout);
       if (numselect>0) {
 	/* Process ready fd's */
