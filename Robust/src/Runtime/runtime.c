@@ -37,6 +37,7 @@ int debugtask=0;
 int injectinstructionfailures;
 int failurecount;
 float instfailurechance=0;
+int numfailures;
 
 void processOptions() {
   int i;
@@ -69,14 +70,23 @@ void processOptions() {
       if (options!=NULL) options++;
       if (options==NULL)
 	break;
+
+
       sscanf(options, "%f", &instfailurechance);
       options=strchr(options,' ');
       if (options!=NULL) options++;
+      if (options==NULL)
+	break;
+
+      sscanf(options, "%d", &numfailures);
+      options=strchr(options,' ');
+      if (options!=NULL) options++;
+
       instructioncount=failurecount;
       injectinstructionfailures=1;
+      printf("Number of failures=%d\n",numfailures);
       printf("Injecting errors with count=%d\n",failurecount);
       printf("Injecting errors with chance=%f\n",instfailurechance);
-
     } else if (strncmp(options, "-debugtask",sizeof("-debugtask")-1)==0) {
       options=strchr(options,' ');
       if (options!=NULL) options++;
@@ -448,6 +458,10 @@ void processtasks() {
 void injectinstructionfailure() {
 #ifdef TASK
   if (injectinstructionfailures) {
+    if (numfailures==0)
+      return;
+    if (numfailures>0)
+      numfailures--;
     instructioncount=failurecount;    
     if ((((double)random())/RAND_MAX)<instfailurechance) {
       printf("FAILURE!!!\n");
