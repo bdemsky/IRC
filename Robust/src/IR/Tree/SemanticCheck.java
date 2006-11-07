@@ -659,6 +659,9 @@ public class SemanticCheck {
 	if (bestmd==null)
 	    throw new Error("No method found for :"+min.printNode(0));
 	min.setMethod(bestmd);
+
+	if ((td!=null)&&(min.getType()!=null)&&!typeutil.isSuperorType(td,  min.getType()))
+	    throw new Error(min.getType()+ " is not equal to or a subclass of "+td);
 	/* Check whether we need to set this parameter to implied this */
 	if (!bestmd.isStatic()) {
 	    if (min.getExpression()==null) {

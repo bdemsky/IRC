@@ -24,7 +24,7 @@ public class Inventory {
 		if (map.containsKey(name) == false) {
 			map.put(name, newitem);
 		} else {
-			ItemInfo i = map.get(name);
+			ItemInfo i = (ItemInfo) map.get(name);
 			i.quantity += quantity;
 			i.price = price;
 			map.put(name, i);
@@ -38,7 +38,7 @@ public class Inventory {
 			System.printString("Error - Item does not exist");
 			return -1;
 		} else {
-			ItemInfo i = map.get(name);
+			ItemInfo i = (ItemInfo) map.get(name);
 			if (i.quantity == 0) {
 				System.printString("Error - Item unavailable");
 				return -1;
@@ -63,7 +63,7 @@ public class Inventory {
 		while (i.hasNext() == true) {
 			Object o = i.next();
 			String name = o.toString();
-			ItemInfo oo = j.next();
+			ItemInfo oo = (ItemInfo) j.next();
 			sb.append(name);
 			sb.append(" ");
 			Integer q = new Integer(oo.quantity);
