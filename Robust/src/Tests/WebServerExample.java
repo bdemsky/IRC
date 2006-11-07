@@ -56,15 +56,11 @@ task Transaction(WebServerSocket web{TransPending}, Inventory inventorylist{Tran
 	// Check for the kind of operation
 	if (op == 0 ) { /* Add */
 		System.printString("DEBUG > Calling add transaction\n");
-		System.printString(web.parsed[2]);
-		System.printString(web.parsed[3]);
 		Integer qty = new Integer(web.parsed[2]);
 		Integer price = new Integer(web.parsed[3]);
-		System.printString(web.parsed[1]);
 		int ret = inventorylist.additem(web.parsed[1], qty.intValue(), price.intValue());
 		if (ret == 0) {
 			web.httpresponse();
-			//System.printString("DEBUG -> Inside ret = 0");
 			StringBuffer s = new StringBuffer("Added Item ");
 			s.append(web.parsed[1]);
 			s.append(" Quantity ");
@@ -102,6 +98,7 @@ task Transaction(WebServerSocket web{TransPending}, Inventory inventorylist{Tran
 		}
 	} else if (op == 2) { /* Inventory */
 		System.printString("DEBUG > Calling inventory transaction\n");
+		web.httpresponse();
 		String towrite = inventorylist.inventory();	
 		web.write(towrite.getBytes());
 	} else { /* Error */ 
