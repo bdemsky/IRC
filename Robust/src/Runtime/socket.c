@@ -4,8 +4,10 @@
 #include <fcntl.h>
 #include <arpa/inet.h>
 #include <strings.h>
+#include <errno.h>
 #include "SimpleHash.h"
 #include "GenericHashtable.h"
+
 extern struct RuntimeHash *fdtoobject;
 
 int ___ServerSocket______createSocket____I(struct ___ServerSocket___ * sock, int port) {
@@ -92,9 +94,15 @@ void ___Socket______nativeWrite_____AR_B(struct ___Socket___ * sock, struct Arra
   int fd=sock->___fd___;
   int length=ao->___length___;
   char * charstr=((char *)& ao->___length___)+sizeof(int);
-  int bytewritten=write(fd, charstr, length);
-  if (bytewritten!=length) {
-    printf("ERROR IN NATIVEWRITE\n");
+  while(1) {
+    int bytewritten=write(fd, charstr, length);
+    if (bytewritten==-1&&errno==EAGAIN)
+      continue;
+
+    if (bytewritten!=length) {
+      perror("ERROR IN NATIVEWRITE");
+    }
+    break;
   }
   //  flagorand(sock,0,0xFFFFFFFE);
 }
