@@ -14,21 +14,22 @@ task Startup(StartupObject s {initialstate}) {
 //Listen for a request and accept request 
 task AcceptConnection(ServerSocket ss{SocketPending}) {
 	System.printString("W> Waiting for connection...\n");
-	WebServerSocket web = new WebServerSocket() {!WritePending, !TransPending};
+	WebServerSocket web = new WebServerSocket() {!WritePending, !TransPending, WebInitialize};
 	ss.accept(web);
 	System.printString("W> Connected... \n");
 }
 
 // Process the incoming http request 
-task ProcessRequest(WebServerSocket web{IOPending}) {
+task ProcessRequest(WebServerSocket web{IOPending && WebInitialize}) {
+//task ProcessRequest(WebServerSocket web{IOPending}) {
 	System.printString("W> Inside ProcessRequest... \n");
 	web.clientrequest();
 	if(web.checktrans()==false)
 		// Not special transaction , do normal filesending	
-		taskexit(web {WritePending, LogPending}); //Sets the WritePending and LogPending flag true 
+		taskexit(web {WritePending, LogPending,!WebInitialize}); //Sets the WritePending and LogPending flag true 
 	else 
 		// Invoke special inventory transaction
-		taskexit(web {TransPending, LogPending});
+		taskexit(web {TransPending, LogPending,!WebInitialize});
 }
 
 //Do the WriteIO on server socket and send the requested file to Client
@@ -104,7 +105,7 @@ task Transaction(WebServerSocket web{TransPending}, Inventory inventorylist{Tran
 	} else { /* Error */ 
 		System.printString("T > Error - Unknown transaction\n");
 	}
-	//Invoke operations
+	//Invoke close operations
 	web.close();
 	taskexit(web {!TransPending});
 }

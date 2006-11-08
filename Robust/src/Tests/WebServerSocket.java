@@ -3,6 +3,8 @@ public class WebServerSocket extends Socket {
 	flag LogPending;
 	flag WritePending;
 	flag TransPending;
+	flag WebInitialize;
+	
 	//Filename requested by the client 
 	String filename;
 	String[] parsed; 
@@ -61,12 +63,9 @@ public class WebServerSocket extends Socket {
 		byte b1[] = new byte[1024];
 		read(b1);//Read client request from web server socket
 		String clientreq = new String(b1);
-		//System.printString(clientreq);
-		//System.printString("\n");
 		int index = clientreq.indexOf('/');//Parse the GET client request to find filename
 		int end = clientreq.indexOf('H');
 		filename = clientreq.subString((index+1), (end-1));
-		//System.printString(filename);
 		System.printString("\n");
 		return 0;
 	}
@@ -81,7 +80,10 @@ public class WebServerSocket extends Socket {
 		}
 	}
 
- 	
+ 	//Parse for the substrings in the filename and use it to obtain the
+	//kind of operation, name of item, quantity of item, price of item
+	//e.g. trans_add_car_2_10000 is the filename
+	//store in the parsed[] string , add,car,2,1000
 	public int parseTransaction(){
 		int start = filename.indexOf('_');
 		String s = filename.subString(start+1);
