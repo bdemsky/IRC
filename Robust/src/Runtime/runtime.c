@@ -38,6 +38,7 @@ int injectinstructionfailures;
 int failurecount;
 float instfailurechance=0;
 int numfailures;
+int instaccum=0;
 
 void processOptions() {
   int i;
@@ -82,6 +83,7 @@ void processOptions() {
       options=strchr(options,' ');
       if (options!=NULL) options++;
 
+      instaccum=failurecount;
       instructioncount=failurecount;
       injectinstructionfailures=1;
       printf("Number of failures=%d\n",numfailures);
@@ -413,9 +415,9 @@ void executetasks() {
 	  }
 	  /* Actually call task */
 	  if (debugtask) {
-	    printf("ENTER %s\n",tpd->task->name);
+	    printf("ENTER %s count=%d\n",tpd->task->name, (instaccum-instructioncount));
 	    ((void (*) (void **)) tpd->task->taskptr)(taskpointerarray);
-	    printf("EXIT %s\n",tpd->task->name);
+	    printf("EXIT %s count=%d\n",tpd->task->name, (instaccum-instructioncount));
 	  } else
 	    ((void (*) (void **)) tpd->task->taskptr)(taskpointerarray);
 	}
@@ -463,6 +465,7 @@ void injectinstructionfailure() {
     if (numfailures>0)
       numfailures--;
     instructioncount=failurecount;    
+    instaccum+=failurecount;
     if ((((double)random())/RAND_MAX)<instfailurechance) {
       printf("FAILURE!!!\n");
       longjmp(error_handler,11);
