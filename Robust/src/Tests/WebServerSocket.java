@@ -7,7 +7,8 @@ public class WebServerSocket extends Socket {
 	
 	//Filename requested by the client 
 	String filename;
-	String[] parsed; 
+        String[] parsed; 
+        String prefix;
 		
 	//Constructor
 	public WebServerSocket(){
@@ -59,15 +60,25 @@ public class WebServerSocket extends Socket {
 	}
 
 	//Read the client request and extract the filename from it	
-	public int clientrequest(){
+	public boolean clientrequest(){
 		byte b1[] = new byte[1024];
-		read(b1);//Read client request from web server socket
-		String clientreq = new String(b1);
-		int index = clientreq.indexOf('/');//Parse the GET client request to find filename
-		int end = clientreq.indexOf('H');
-		filename = clientreq.subString((index+1), (end-1));
-		System.printString("\n");
-		return 0;
+		int numbytes=read(b1);//Read client request from web server socket
+		String curr=(new String(b1)).subString(0, numbytes);
+		if (prefix!=null) {
+		    StringBuffer sb=new StringBuffer(prefix);
+		    sb.append(curr);
+		    curr=sb.toString();
+		}
+		prefix=curr;
+		if(prefix.indexOf("\r\n\r\n")>=0) {
+
+		    int index = prefix.indexOf('/');//Parse the GET client request to find filename
+		    int end = prefix.indexOf('H');
+		    filename = prefix.subString((index+1), (end-1));
+		    System.printString("\n");
+		    return true;
+		}
+		return false;
 	}
 	
 	// Parse  for the prefix in the client request

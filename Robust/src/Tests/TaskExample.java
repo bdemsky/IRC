@@ -14,14 +14,6 @@ class Example {
  *  system to start the computation up */
 
 task Startup(StartupObject s {initialstate}) {
-    String a = new String("hello\n");
-    String b = new String("hello\n");
-    System.printString(a);
-    System.printString(b);
-    System.printInt(b.hashCode());
-	System.printString("\n");
-    System.printInt(a.hashCode());
-
     for(int i=0;i<10;i++) {
 	Example e=new Example() {needoperation};
 	e.x=i;

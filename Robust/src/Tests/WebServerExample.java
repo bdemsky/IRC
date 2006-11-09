@@ -23,13 +23,14 @@ task AcceptConnection(ServerSocket ss{SocketPending}) {
 task ProcessRequest(WebServerSocket web{IOPending && WebInitialize}) {
 //task ProcessRequest(WebServerSocket web{IOPending}) {
 	System.printString("W> Inside ProcessRequest... \n");
-	web.clientrequest();
-	if(web.checktrans()==false)
+	if (web.clientrequest()) {
+	    if(web.checktrans()==false)
 		// Not special transaction , do normal filesending	
 		taskexit(web {WritePending, LogPending,!WebInitialize}); //Sets the WritePending and LogPending flag true 
-	else 
+	    else 
 		// Invoke special inventory transaction
 		taskexit(web {TransPending, LogPending,!WebInitialize});
+	}
 }
 
 //Do the WriteIO on server socket and send the requested file to Client
