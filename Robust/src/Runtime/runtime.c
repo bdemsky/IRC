@@ -466,11 +466,11 @@ void injectinstructionfailure() {
   if (injectinstructionfailures) {
     if (numfailures==0)
       return;
-    if (numfailures>0)
-      numfailures--;
     instructioncount=failurecount;    
     instaccum+=failurecount;
     if ((((double)random())/RAND_MAX)<instfailurechance) {
+      if (numfailures>0)
+	numfailures--;
       printf("FAILURE!!!\n");
       longjmp(error_handler,11);
     }
