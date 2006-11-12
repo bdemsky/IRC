@@ -72,7 +72,6 @@ void processOptions() {
       if (options==NULL)
 	break;
 
-
       sscanf(options, "%f", &instfailurechance);
       options=strchr(options,' ');
       if (options!=NULL) options++;
@@ -94,6 +93,11 @@ void processOptions() {
       if (options!=NULL) options++;
       debugtask=1;
       printf("Debug task option on.\n");
+    } else if (strncmp(options, "-initializerandom", sizeof("-initializerandom")-1)==0) {
+      options=strchr(options,' ');
+      if (options!=NULL) options++;
+      printf("Initializing random number generator.\n");
+      srandomdev();
     } else
       break;
   }
