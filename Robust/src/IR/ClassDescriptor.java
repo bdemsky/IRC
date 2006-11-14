@@ -3,25 +3,32 @@ import java.util.*;
 import IR.Tree.*;
 
 public class ClassDescriptor extends Descriptor {
-    public ClassDescriptor(String classname) {
-	super(classname);
-	superclass=null;
-	flags=new SymbolTable();
-	fields=new SymbolTable();
-	methods=new SymbolTable();
-	classid=UIDCount++;
-    }
     private static int UIDCount=0; 
     private final int classid;
     String superclass;
     ClassDescriptor superdesc;
     boolean hasFlags=false;
+    String packagename;
 
     Modifiers modifiers;
 
     SymbolTable fields;
     SymbolTable flags;
     SymbolTable methods;
+
+    public ClassDescriptor(String classname) {
+	this("", classname);
+    }
+
+    public ClassDescriptor(String packagename, String classname) {
+	super(classname);
+	superclass=null;
+	flags=new SymbolTable();
+	fields=new SymbolTable();
+	methods=new SymbolTable();
+	classid=UIDCount++;
+	this.packagename=packagename;
+    }
 
     public int getId() {
 	return classid;

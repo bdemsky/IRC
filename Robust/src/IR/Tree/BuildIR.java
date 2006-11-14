@@ -17,6 +17,26 @@ public class BuildIR {
 
     /** Parse the classes in this file */
     public void parseFile(ParseNode pn) {
+	NameDescriptor packages;
+	Vector singleimports=new Vector();
+	Vector multiimports=new Vector();
+
+	ParseNode ipn=pn.getChild("imports").getChild("import_decls_list");
+	if (ipn!=null) {
+	    ParseNodeVector pnv=ipn.getChildren();
+	    for(int i=0;i<pnv.size();i++) {
+		ParseNode pnimport=pnv.elementAt(i);
+		NameDescriptor nd=parseName(pnimport.getChild("name"));
+		if (isNode(pnimport,"import_single"))
+		    singleimports.add(nd);
+		else
+		    multiimports.add(nd);
+	    }
+	}
+	ParseNode ppn=pn.getChild("packages").getChild("package");
+	if (ppn!=null) {
+	    packages=parseName(pn.getChild("name"));
+	}
 	ParseNode tpn=pn.getChild("type_declaration_list");
 	if (tpn!=null) {
 	    ParseNodeVector pnv=tpn.getChildren();

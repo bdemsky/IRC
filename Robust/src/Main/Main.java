@@ -95,7 +95,7 @@ public class Main {
 	ParseNode p=(ParseNode) g./*debug_*/parse().value;
 	state.addParseNode(p);
 	if (l.numErrors()!=0) {
-	    System.out.println("Error parsing Object.java");
+	    System.out.println("Error parsing "+sourcefile);
 	    System.exit(l.numErrors());
 	}
     }

@@ -120,12 +120,12 @@ non terminal ParseNode array_type;
 non terminal ParseNode name, simple_name, qualified_name;
 // 19.6) Packages
 non terminal ParseNode compilation_unit;
-//non terminal ParseNode package_declaration_opt, package_declaration;
-//non terminal ParseNode import_declarations_opt, import_declarations;
+non terminal ParseNode package_declaration_opt, package_declaration;
+non terminal ParseNode import_declarations_opt, import_declarations;
 non terminal ParseNode type_declarations_opt, type_declarations;
-//non terminal ParseNode import_declaration;
-//non terminal ParseNode single_type_import_declaration;
-//non terminal ParseNode type_import_on_demand_declaration;
+non terminal ParseNode import_declaration;
+non terminal ParseNode single_type_import_declaration;
+non terminal ParseNode type_import_on_demand_declaration;
 non terminal ParseNode type_declaration;
 // 19.7) Productions used only in the LALR(1) grammar
 non terminal ParseNode modifiers_opt, modifiers, modifier;
@@ -501,26 +501,44 @@ qualified_name ::= name:name DOT IDENTIFIER:id {:
 
 // 19.6) Packages
 compilation_unit ::=
-//              package_declaration_opt
-//              import_declarations_opt
+                package_declaration_opt:pdo
+                import_declarations_opt:ido
 		type_declarations_opt:tdo {: 
 		ParseNode pn=new ParseNode("compilation_unit");
 		pn.addChild(tdo);
+		pn.addChild("packages").addChild(pdo);
+		pn.addChild("imports").addChild(ido);
 		RESULT=pn;
 		:}
 		;
-//package_declaration_opt ::= package_declaration | ;
-//import_declarations_opt ::= import_declarations | ;
+package_declaration_opt ::= package_declaration:pdo {:
+		RESULT=pdo;
+	:} |
+	{: RESULT=new ParseNode("empty"); :}
+;
+
+import_declarations_opt ::= import_declarations:ido {: 
+		RESULT=ido;
+	:} | 
+	{: RESULT=new ParseNode("empty"); :}
+;
 type_declarations_opt   ::= type_declarations:tds {:
 		RESULT=tds;
 		:}   | 
 	{: RESULT=new ParseNode("empty"); :}
 	;
 
-//import_declarations ::=
-//               import_declaration
-//       |       import_declarations import_declaration
-//       ;
+import_declarations ::=
+               import_declaration:id {: 
+		ParseNode pn=new ParseNode("import_decls_list");
+		pn.addChild(id);
+		RESULT=pn;
+	:}
+       |       import_declarations:ids import_declaration:id {: 
+		ids.addChild(id);
+		RESULT=ids;
+	:}
+       ;
 
 type_declarations ::= 
 		type_declaration:td {:
@@ -534,19 +552,31 @@ type_declarations ::=
 		:}
 	;
 
-//package_declaration ::=
-//               PACKAGE name SEMICOLON
-//       ;
-//import_declaration ::=
-//               single_type_import_declaration
-//       |       type_import_on_demand_declaration
-//       ;
-//single_type_import_declaration ::=
-//               IMPORT name SEMICOLON
-//       ;
-//type_import_on_demand_declaration ::=
-//               IMPORT name DOT MULT SEMICOLON
-//       ;
+package_declaration ::=
+               PACKAGE name:name SEMICOLON {: 
+	ParseNode pn=new ParseNode("package");
+	pn.addChild(name);
+	RESULT=pn;
+	:}
+       ;
+import_declaration ::=
+               single_type_import_declaration:sid {: RESULT=sid; :}
+       |       type_import_on_demand_declaration:iod {: RESULT=iod; :}
+       ;
+single_type_import_declaration ::=
+               IMPORT name:name SEMICOLON {: 
+	ParseNode pn=new ParseNode("import_single");
+	pn.addChild(name);
+	RESULT=pn;
+:}
+       ;
+type_import_on_demand_declaration ::=
+               IMPORT name:name DOT MULT SEMICOLON {:
+	ParseNode pn=new ParseNode("import_ondemand");
+	pn.addChild(name);
+	RESULT=pn;
+	:}       
+	;
 
 type_declaration ::=
 		class_declaration:cd 
