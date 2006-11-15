@@ -1,0 +1,2 @@
+#!/bin/bash
+./buildscripttaskerror trans WebServerSocket.java WebServerExample.java Logger.java ItemInfo.java Inventory.java
