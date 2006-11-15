@@ -28,7 +28,7 @@ public class WebServerSocket extends Socket {
 	
 	// Send the html file , read from file one byte at a time	
 	public void sendfile() {
-		StringBuffer req_file = new StringBuffer("./Tests/htmlfiles/");
+		StringBuffer req_file = new StringBuffer("../../Tests/htmlfiles/");
 		req_file.append(filename);
 		String filepath = new String(req_file);
 		FileInputStream def_file = new FileInputStream(filepath);
