@@ -9,6 +9,7 @@
 #include<errno.h>
 #include<signal.h>
 #include<stdio.h>
+#include "option.h"
 
 extern int classsize[];
 jmp_buf error_handler;
@@ -28,8 +29,6 @@ int instructioncount;
 struct Queue * activetasks;
 struct parameterwrapper * objectqueues[NUMCLASSES];
 struct genhashtable * failedtasks;
-/*struct genhashtable * failedobjects;*/
-extern char ** environ;
 char *options;
 int injectfailures=0;
 float failurechance=0;
@@ -40,71 +39,10 @@ float instfailurechance=0;
 int numfailures;
 int instaccum=0;
 
-void processOptions() {
-  int i;
-  options=NULL;
-  for(i=0;environ[i]!=0;i++) {
-    if (strncmp(environ[i],"BRISTLECONE=",12)==0) {
-      options=environ[i]+12;
-      break;
-    }
-  }
-  
-  while(options!=NULL) {
-    if (strncmp(options,"-injectfailures",sizeof("-injectfailures")-1)==0) {
-      options=strchr(options,' ');
-      if (options!=NULL) options++;
-      if (options==NULL)
-	break;
-      sscanf(options, "%f", &failurechance);
-      injectfailures=1;
-      printf("Injecting errors with chance=%f\n",failurechance);
-      options=strchr(options,' ');
-      if (options!=NULL) options++;
-    } else if (strncmp(options,"-injectinstructionfailures",sizeof("-injectinstructionfailures")-1)==0) {
-      options=strchr(options,' ');
-      if (options!=NULL) options++;
-      if (options==NULL)
-	break;
-      sscanf(options, "%d", &failurecount);
-      options=strchr(options,' ');
-      if (options!=NULL) options++;
-      if (options==NULL)
-	break;
-
-      sscanf(options, "%f", &instfailurechance);
-      options=strchr(options,' ');
-      if (options!=NULL) options++;
-      if (options==NULL)
-	break;
-
-      sscanf(options, "%d", &numfailures);
-      options=strchr(options,' ');
-      if (options!=NULL) options++;
-
-      instaccum=failurecount;
-      instructioncount=failurecount;
-      injectinstructionfailures=1;
-      printf("Number of failures=%d\n",numfailures);
-      printf("Injecting errors with count=%d\n",failurecount);
-      printf("Injecting errors with chance=%f\n",instfailurechance);
-    } else if (strncmp(options, "-debugtask",sizeof("-debugtask")-1)==0) {
-      options=strchr(options,' ');
-      if (options!=NULL) options++;
-      debugtask=1;
-      printf("Debug task option on.\n");
-    } else if (strncmp(options, "-initializerandom", sizeof("-initializerandom")-1)==0) {
-      options=strchr(options,' ');
-      if (options!=NULL) options++;
-      printf("Initializing random number generator.\n");
-      srandomdev();
-    } else
-      break;
-  }
-}
-
 int main(int argc, char **argv) {
+#ifdef BOEHM_GC
   GC_init(); // Initialize the garbage collector
+#endif
 #ifdef CONSCHECK
   initializemmap();
 #endif
@@ -117,8 +55,6 @@ int main(int argc, char **argv) {
   struct ArrayObject * stringarray=allocate_newarray(STRINGARRAYTYPE, argc-1); 
   failedtasks=genallocatehashtable((unsigned int (*)(void *)) &hashCodetpd, 
 				   (int (*)(void *,void *)) &comparetpd);
-  /*  failedobjects=genallocatehashtable(NULL,NULL);*/
-  
   activetasks=createQueue();
 
   /* Set flags */
@@ -157,13 +93,17 @@ int comparetpd(struct taskparamdescriptor *ftd1, struct taskparamdescriptor *ftd
   return 1;
 }
 
+/* This function updates the flag for object ptr.  It or's the flag
+   with the or mask and and's it with the andmask. */
+
 void flagorand(void * ptr, int ormask, int andmask) {
   int flag=((int *)ptr)[1];
   struct RuntimeHash *flagptr=(struct RuntimeHash *)(((int*)ptr)[2]);
   flag|=ormask;
   flag&=andmask;
   ((int*)ptr)[1]=flag;
-  /*Remove from all queues */
+
+  /*Remove object from all queues */
   while(flagptr!=NULL) {
     struct RuntimeHash *next;
     RuntimeHashget(flagptr, (int) ptr, (int *) &next);
@@ -251,6 +191,7 @@ void flagorand(void * ptr, int ormask, int andmask) {
 
 /* Handler for signals. The signals catch null pointer errors and
    arithmatic errors. */
+
 void myhandler(int sig, siginfo_t *info, void *uap) {
 #ifdef DEBUG
   printf("sig=%d\n",sig);
@@ -277,40 +218,6 @@ void removereadfd(int fd) {
       maxreadfd--;
   }
 }
-
-/*
-void restoreObject(void * obj) {
-  if (gencontains(failedobjects, obj)) {
-    struct tpdlist *tpd=gengettable(failedobjects, obj);
-    genfreekey(failedobjects, obj);
-    while(tpd!=NULL) {
-      int i;
-      struct taskparamdescriptor *task=tpd->task;
-      genfreekey(failedtasks, task);
-      for(i=0;i<task->numParameters;i++) {
-	void *objother=task->parameterArray[i];
-	struct tpdlist *tpdother=gengettable(failedobjects, objother);
-	struct tpdlist *tmpptr;
-	genfreekey(failedobjects, objother);
-	struct tpdlist **tpdptr=&tpdother;
-	while((*tpdptr)->task!=task)
-	  tpdptr=&((*tpdptr)->next);
-	tmpptr=*tpdptr;
-	(*tpdptr)=(*tpdptr)->next;
-	RUNFREE(tmpptr);
-	if (tpdother!=NULL)
-	  genputtable(failedobjects, objother, tpdother);
-      }
-      RUNFREE(task);
-      {
-	struct tpdlist *old=tpd;
-	tpd=tpd->next;
-	RUNFREE(old);
-      }
-    }
-  }
-}
-*/
 
 #ifdef PRECISE_GC
 #define OFFSET 2
@@ -508,11 +415,15 @@ void CALL01(___System______printString____L___String___,struct ___String___ * __
     }
 }
 
+/* Object allocation function */
+
 void * allocate_new(int type) {
   void * v=FREEMALLOC(classsize[type]);
   *((int *)v)=type;
   return v;
 }
+
+/* Array allocation function */
 
 struct ArrayObject * allocate_newarray(int type, int length) {
   struct ArrayObject * v=FREEMALLOC(sizeof(struct ArrayObject)+length*classsize[type]);
@@ -520,6 +431,8 @@ struct ArrayObject * allocate_newarray(int type, int length) {
   v->___length___=length;
   return v;
 }
+
+/* Converts C character arrays into Java strings */
 
 struct ___String___ * NewString(const char *str,int length) {
   struct ArrayObject * chararray=allocate_newarray(CHARARRAYTYPE, length);
@@ -535,6 +448,7 @@ struct ___String___ * NewString(const char *str,int length) {
 }
 
 /* Generated code calls this if we fail a bounds check */
+
 void failedboundschk() {
 #ifndef TASK
   printf("Array out of bounds\n");
@@ -544,6 +458,7 @@ void failedboundschk() {
 #endif
 }
 
+/* Abort task call */
 void abort_task() {
 #ifdef TASK
   longjmp(error_handler,4);

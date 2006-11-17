@@ -4,4 +4,4 @@ MAINFILE=$1
 shift
 mkdir tmpbuilddirectory
 java -cp $ROBUSTROOT/../cup/:$ROBUSTROOT Main.Main -classlibrary $ROBUSTROOT/ClassLibrary/ -dir tmpbuilddirectory -precise -mainclass $MAINFILE $@
-gcc -I$ROBUSTROOT/Runtime -Itmpbuilddirectory -DPRECISE_GC -O0 -g tmpbuilddirectory/methods.c $ROBUSTROOT/Runtime/runtime.c  $ROBUSTROOT/Runtime/file.c -o $MAINFILE.bin
+gcc -I$ROBUSTROOT/Runtime -Itmpbuilddirectory -DPRECISE_GC -O0 -g tmpbuilddirectory/methods.c $ROBUSTROOT/Runtime/runtime.c $ROBUSTROOT/Runtime/file.c $ROBUSTROOT/Runtime/option.c -o $MAINFILE.bin

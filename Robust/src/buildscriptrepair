@@ -66,5 +66,6 @@ $ROBUSTROOT/Runtime/file.c \
 $ROBUSTROOT/Runtime/socket.c \
 $ROBUSTROOT/Runtime/Queue.c $ROBUSTROOT/Runtime/SimpleHash.c \
 $ROBUSTROOT/Runtime/checkpoint.c \
+$ROBUSTROOT/Runtime/option.c \
 $ROBUSTROOT/Runtime/GenericHashtable.c $BUILDDIR/specdir/*.o -o \
 $MAINFILE.bin
