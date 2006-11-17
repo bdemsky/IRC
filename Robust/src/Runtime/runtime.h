@@ -13,6 +13,24 @@ void failednullptr();
 void abort_task();
 void injectinstructionfailure();
 
+#ifdef PRECISE_GC
+#define VAR(name) ___params___->name
+#define CALL01(name, alt) name(struct name ## _params * ___params___)
+#define CALL02(name, alt1, alt2) name(struct name ## _params * ___params___)
+#define CALL11(name,rest, alt) name(struct name ## _params * ___params___, rest)
+#define CALL12(name,rest, alt1, alt2) name(struct name ## _params * ___params___, rest)
+#define CALL21(name,rest, rest2, alt) name(struct name ## _params * ___params___, rest, rest2)
+#define CALL23(name, rest, rest2, alt1, alt2, alt3) name(struct name ## _params * ___params___, rest, rest2)
+#else
+#define VAR(name) name
+#define CALL01(name, alt) name(alt)
+#define CALL02(name, alt1, alt2) name(alt1, alt2)
+#define CALL11(name,rest, alt) name(alt)
+#define CALL12(name,rest, alt1, alt2) name(alt1, alt2)
+#define CALL21(name,rest, rest2, alt) name(alt)
+#define CALL23(name, rest, rest2, alt1, alt2, alt3) name(alt1, alt2, alt3)
+#endif
+
 #ifdef TASK
 #include "SimpleHash.h"
 #include "task.h"

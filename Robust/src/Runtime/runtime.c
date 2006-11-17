@@ -312,8 +312,14 @@ void restoreObject(void * obj) {
 }
 */
 
+#ifdef PRECISE_GC
+#define OFFSET 2
+#else
+#define OFFSET 0
+#endif
+
 void executetasks() {
-  void * taskpointerarray[MAXTASKPARAMS];
+  void * taskpointerarray[MAXTASKPARAMS+OFFSET];
 
   /* Set up signal handlers */
   struct sigaction sig;
@@ -378,13 +384,13 @@ void executetasks() {
 	struct parameterwrapper *pw=(struct parameterwrapper *) pd->queue;
 	if (!RuntimeHashcontainskey(pw->objectset, (int) parameter))
 	  goto newtask;
-	taskpointerarray[i]=parameter;
+	taskpointerarray[i+OFFSET]=parameter;
       }
       {
 	/* Checkpoint the state */
 	struct RuntimeHash * forward=allocateRuntimeHash(100);
 	struct RuntimeHash * reverse=allocateRuntimeHash(100);
-	void ** checkpoint=makecheckpoint(tpd->task->numParameters, taskpointerarray, forward, reverse);
+	void ** checkpoint=makecheckpoint(tpd->task->numParameters, &taskpointerarray[OFFSET], forward, reverse);
 	int x;
 	if (x=setjmp(error_handler)) {
 	  /* Recover */
@@ -409,7 +415,7 @@ void executetasks() {
 	      }
 	    }
 	  }  */
-	  restorecheckpoint(tpd->task->numParameters, taskpointerarray, checkpoint, forward, reverse);
+	  restorecheckpoint(tpd->task->numParameters, &taskpointerarray[OFFSET], checkpoint, forward, reverse);
 	} else {
 	  if (injectfailures) {
 	    if ((((double)random())/RAND_MAX)<failurechance) {
@@ -418,6 +424,11 @@ void executetasks() {
 	    }
 	  }
 	  /* Actually call task */
+#ifdef PRECISE_GC
+	  ((int *)taskpointerarray)[0]=tpd->task->numParameters;
+	  taskpointerarray[1]=NULL;
+#endif
+
 	  if (debugtask) {
 	    printf("ENTER %s count=%d\n",tpd->task->name, (instaccum-instructioncount));
 	    ((void (*) (void **)) tpd->task->taskptr)(taskpointerarray);
@@ -479,21 +490,21 @@ void injectinstructionfailure() {
 #endif
 }
 
-int ___Object______hashCode____(struct ___Object___ * ___this___) {
-  return (int) ___this___;
+int CALL01(___Object______hashCode____, struct ___Object___ * ___this___) {
+  return (int) VAR(___this___);
 }
 
-int ___Object______getType____(struct ___Object___ * ptr) {
-  return ((int *)ptr)[0];
+int CALL01(___Object______getType____, struct ___Object___ * ___this___) {
+  return ((int *)VAR(___this___))[0];
 }
 
-void ___System______printString____L___String___(struct ___String___ * s) {
-    struct ArrayObject * chararray=s->___value___;
+void CALL01(___System______printString____L___String___,struct ___String___ * ___s___) {
+    struct ArrayObject * chararray=VAR(___s___)->___value___;
     int i;
-    int offset=s->___offset___;
-    for(i=0;i<s->___count___;i++) {
-	short s= ((short *)(((char *)& chararray->___length___)+sizeof(int)))[i+offset];
-	putchar(s);
+    int offset=VAR(___s___)->___offset___;
+    for(i=0;i<VAR(___s___)->___count___;i++) {
+	short sc=((short *)(((char *)& chararray->___length___)+sizeof(int)))[i+offset];
+	putchar(sc);
     }
 }
 

@@ -227,13 +227,13 @@ public class BuildCode {
 	} else if (state.main!=null) {
 	    /* Generate main method */
 	    outmethod.println("int main(int argc, const char *argv[]) {");
-	    outmethod.println("int i;");
-	    outmethod.println("struct ArrayObject * stringarray=allocate_newarray(STRINGARRAYTYPE, argc-1);");
-	    outmethod.println("for(i=1;i<argc;i++) {");
-	    outmethod.println("int length=strlen(argv[i]);");
-	    outmethod.println("struct ___String___ *newstring=NewString(argv[i],length);");
-	    outmethod.println("((void **)(((char *)& stringarray->___length___)+sizeof(int)))[i-1]=newstring;");
-	    outmethod.println("}");
+	    outmethod.println("  int i;");
+	    outmethod.println("  struct ArrayObject * stringarray=allocate_newarray(STRINGARRAYTYPE, argc-1);");
+	    outmethod.println("  for(i=1;i<argc;i++) {");
+	    outmethod.println("    int length=strlen(argv[i]);");
+	    outmethod.println("    struct ___String___ *newstring=NewString(argv[i],length);");
+	    outmethod.println("    ((void **)(((char *)& stringarray->___length___)+sizeof(int)))[i-1]=newstring;");
+	    outmethod.println("  }");
 
 
 	    ClassDescriptor cd=typeutil.getClass(state.main);
@@ -249,7 +249,14 @@ public class BuildCode {
 
 		if (!md.getModifiers().isStatic())
 		    throw new Error("Error: Non static main");
-		outmethod.println("   "+cd.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"(stringarray);");
+		outmethod.println("   {");
+		if (GENERATEPRECISEGC) {
+		    outmethod.print("       struct "+cd.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_params __parameterlist__={");
+		    outmethod.println("1, NULL,"+"stringarray};");
+		    outmethod.println("     "+cd.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"(& __parameterlist__);");
+		} else
+		    outmethod.println("     "+cd.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"(stringarray);");
+		outmethod.println("   }");
 		break;
 	    }
 	    outmethod.println("}");
@@ -677,7 +684,7 @@ public class BuildCode {
 	    /* Output parameter structure */
 	    if (GENERATEPRECISEGC) {
 		output.println("struct "+cn.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_params {");
-		output.println("  int type;");
+		output.println("  int size;");
 		output.println("  void * next;");
 		for(int i=0;i<objectparams.numPointers();i++) {
 		    TempDescriptor temp=objectparams.getPointer(i);
@@ -689,7 +696,7 @@ public class BuildCode {
 	    /* Output temp structure */
 	    if (GENERATEPRECISEGC) {
 		output.println("struct "+cn.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_locals {");
-		output.println("  int type;");
+		output.println("  int size;");
 		output.println("  void * next;");
 		for(int i=0;i<objecttemps.numPointers();i++) {
 		    TempDescriptor temp=objecttemps.getPointer(i);
@@ -755,7 +762,7 @@ public class BuildCode {
 	    if (GENERATEPRECISEGC) {
 		output.println("struct "+task.getSafeSymbol()+"_params {");
 
-		output.println("  int type;");
+		output.println("  int size;");
 		output.println("  void * next;");
 		for(int i=0;i<objectparams.numPointers();i++) {
 		    TempDescriptor temp=objectparams.getPointer(i);
@@ -769,7 +776,7 @@ public class BuildCode {
 	    /* Output temp structure */
 	    if (GENERATEPRECISEGC) {
 		output.println("struct "+task.getSafeSymbol()+"_locals {");
-		output.println("  int type;");
+		output.println("  int size;");
 		output.println("  void * next;");
 		for(int i=0;i<objecttemps.numPointers();i++) {
 		    TempDescriptor temp=objecttemps.getPointer(i);
@@ -806,7 +813,6 @@ public class BuildCode {
 	generateHeader(md!=null?md:task,output);
 
 	/* Print code */
-	
 	if (GENERATEPRECISEGC) {
 	    if (md!=null)
 		output.println("   struct "+cn.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_locals "+localsprefix+";");
@@ -824,7 +830,14 @@ public class BuildCode {
 	    else
 		output.println("   "+type.getSafeSymbol()+" "+td.getSafeSymbol()+";");
 	}
-	
+
+	/* Link the local pointers into chain. */
+	if (GENERATEPRECISEGC) {
+	    if (md!=null) {
+		output.println(localsprefix+".size="+objecttemp.numPointers()+";");
+		output.println(localsprefix+".next="+paramsprefix+";");
+	    }
+	}
 
 	/* Generate labels first */
 	HashSet tovisit=new HashSet();
@@ -909,6 +922,7 @@ public class BuildCode {
 	MethodDescriptor md=fm.getMethod();
 	TaskDescriptor task=fm.getTask();
 	TempObject objecttemps=(TempObject) tempstable.get(md!=null?md:task);
+
 	if (objecttemps.isLocalPrim(td)||objecttemps.isParamPrim(td)) {
 	    return td.getSafeSymbol();
 	}
@@ -1005,11 +1019,12 @@ public class BuildCode {
 	if (GENERATEPRECISEGC) {
 	    output.print("       struct "+cn.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_params __parameterlist__={");
 	    
-	    output.print(objectparams.getUID());
+	    output.print(objectparams.numPointers());
+	    //	    output.print(objectparams.getUID());
 	    output.print(", & "+localsprefix);
 	    if (fc.getThis()!=null) {
 		output.print(", ");
-		output.print(generateTemp(fm,fc.getThis()));
+		output.print("(struct "+md.getThis().getType().getSafeSymbol() +" *)"+ generateTemp(fm,fc.getThis()));
 	    }
 	    for(int i=0;i<fc.numArgs();i++) {
 		VarDescriptor var=md.getParameter(i);
@@ -1017,7 +1032,7 @@ public class BuildCode {
 		if (objectparams.isParamPtr(paramtemp)) {
 		    TempDescriptor targ=fc.getArg(i);
 		    output.print(", ");
-		    output.print(generateTemp(fm, targ));
+		    output.print("(struct "+md.getParamType(i).getSafeSymbol()  +" *)"+generateTemp(fm, targ));
 		}
 	    }
 	    output.println("};");
@@ -1266,7 +1281,7 @@ public class BuildCode {
 		    output.print(temp.getType().getSafeSymbol()+" "+temp.getSafeSymbol());
 	    }
 	    output.println(") {");
-	} else if (!GENERATEPRECISEGC) {
+	} else if (!GENERATEPRECISEGC){
 	    output.println("void * parameterarray[]) {");
 	    for(int i=0;i<objectparams.numPrimitives();i++) {
 		TempDescriptor temp=objectparams.getPrimitive(i);
@@ -1274,7 +1289,7 @@ public class BuildCode {
 	    }
 	    if (objectparams.numPrimitives()>maxtaskparams)
 		maxtaskparams=objectparams.numPrimitives();
-	} else output.println(" {");
+	} else output.println(") {");
     }
 
     public void generateFlatFlagActionNode(FlatMethod fm, FlatFlagActionNode ffan, PrintWriter output) {

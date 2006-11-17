@@ -5,50 +5,50 @@
 #include <unistd.h>
 #include "structdefs.h"
 #include "mem.h"
+#include "runtime.h"
 
-
-void ___FileOutputStream______nativeWrite____I__AR_B(int fd, struct ArrayObject * ao) {
-  int length=ao->___length___;
-  char * string= (((char *)& ao->___length___)+sizeof(int));
+void CALL12(___FileOutputStream______nativeWrite____I__AR_B, int fd, int fd, struct ArrayObject * ___array___) {
+  int length=VAR(___array___)->___length___;
+  char * string= (((char *)& VAR(___array___)->___length___)+sizeof(int));
   int status=write(fd, string, length);
 }
 
-void ___FileOutputStream______nativeClose____I(int fd) {
+void CALL11(___FileOutputStream______nativeClose____I, int fd, int fd) {
   close(fd);
 }
 
-void ___FileOutputStream______nativeFlush____I(int fd) {
+void CALL11(___FileOutputStream______nativeFlush____I, int fd, int fd) {
   fsync(fd);
 }
 
-int ___FileOutputStream______nativeOpen_____AR_B(struct ArrayObject * ao) {
-  int length=ao->___length___;
-  char* filename= (((char *)& ao->___length___)+sizeof(int));
+int CALL01(___FileOutputStream______nativeOpen_____AR_B, struct ArrayObject * ___filename___) {
+  int length=VAR(___filename___)->___length___;
+  char* filename= (((char *)& VAR(___filename___)->___length___)+sizeof(int));
   int fd=open(filename, O_WRONLY|O_CREAT|O_TRUNC, S_IRWXU);
   return fd;
 }
 
-int ___FileOutputStream______nativeAppend_____AR_B(struct ArrayObject * ao) {
-  int length=ao->___length___;
-  char* filename= (((char *)& ao->___length___)+sizeof(int));
+int CALL01(___FileOutputStream______nativeAppend_____AR_B, struct ArrayObject * ___filename___) {
+  int length=VAR(___filename___)->___length___;
+  char* filename= (((char *)& VAR(___filename___)->___length___)+sizeof(int));
   int fd=open(filename, O_WRONLY|O_CREAT|O_APPEND, S_IRWXU);
   return fd;
 }
 
-int ___FileInputStream______nativeOpen_____AR_B(struct ArrayObject * ao) {
-  int length=ao->___length___;
-  char* filename= (((char *)& ao->___length___)+sizeof(int));
+int CALL01(___FileInputStream______nativeOpen_____AR_B, struct ArrayObject * ___filename___) {
+  int length=VAR(___filename___)->___length___;
+  char* filename= (((char *)& VAR(___filename___)->___length___)+sizeof(int));
   int fd=open(filename, O_RDONLY, 0);
   return fd;
 }
 
-void ___FileInputStream______nativeClose____I(int fd) {
+void CALL11(___FileInputStream______nativeClose____I, int fd, int fd) {
   close(fd);
 }
 
-int ___FileInputStream______nativeRead____I__AR_B_I(int fd, struct ArrayObject * ao, int numBytes) {
-  int toread=ao->___length___;
-  char* string= (((char *)& ao->___length___)+sizeof(int));
+int CALL23(___FileInputStream______nativeRead____I__AR_B_I, int fd, int numBytes, int fd, struct ArrayObject * ___array___, int numBytes) {
+  int toread=VAR(___array___)->___length___;
+  char* string= (((char *)& VAR(___array___)->___length___)+sizeof(int));
   int status;
 
   if (numBytes<toread)
@@ -58,9 +58,9 @@ int ___FileInputStream______nativeRead____I__AR_B_I(int fd, struct ArrayObject *
   return status;
 }
 
-long long ___File______nativeLength_____AR_B(struct ArrayObject * ao) {
-  int length=ao->___length___;
-  char* filename= (((char *)& ao->___length___)+sizeof(int));
+long long CALL01(___File______nativeLength_____AR_B, struct ArrayObject * ___pathname___) {
+  int length=VAR(___pathname___)->___length___;
+  char* filename= (((char *)& VAR(___pathname___)->___length___)+sizeof(int));
   struct stat st;
   stat(filename, &st);
   return st.st_size;

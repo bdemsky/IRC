@@ -3,6 +3,5 @@ ROBUSTROOT=~/research/Robust/src
 MAINFILE=$1
 shift
 mkdir tmpbuilddirectory
-java -cp $ROBUSTROOT/../cup/:$ROBUSTROOT Main.Main -classlibrary $ROBUSTROOT/ClassLibrary/ -dir tmpbuilddirectory -struct $MAINFILE -task $@
-#gcc -I$ROBUSTROOT/Runtime -Itmpbuilddirectory -O0 -DTASK -g tmpbuilddirectory/methods.c tmpbuilddirectory/taskdefs.c $ROBUSTROOT/Runtime/runtime.c $ROBUSTROOT/Runtime/Queue.c $ROBUSTROOT/Runtime/SimpleHash.c $ROBUSTROOT/Runtime/checkpoint.c $ROBUSTROOT/Runtime/GenericHashtable.c -o $MAINFILE.bin
-gcc -I$ROBUSTROOT/Runtime -I. -IRuntime/include -Itmpbuilddirectory -O0 -DBOEHM_GC -LRuntime/lib/ -lgc -DTASK -DDEBUG -g tmpbuilddirectory/methods.c tmpbuilddirectory/taskdefs.c $ROBUSTROOT/Runtime/runtime.c $ROBUSTROOT/Runtime/file.c $ROBUSTROOT/Runtime/socket.c $ROBUSTROOT/Runtime/Queue.c $ROBUSTROOT/Runtime/SimpleHash.c $ROBUSTROOT/Runtime/checkpoint.c $ROBUSTROOT/Runtime/GenericHashtable.c -o $MAINFILE.bin
+java -cp $ROBUSTROOT/../cup/:$ROBUSTROOT Main.Main -classlibrary $ROBUSTROOT/ClassLibrary/ -dir tmpbuilddirectory -precise -struct $MAINFILE -task $@
+gcc -DPRECISE_GC -I$ROBUSTROOT/Runtime -I. -IRuntime/include -Itmpbuilddirectory -O0 -DBOEHM_GC -LRuntime/lib/ -lgc -DTASK -DDEBUG -g tmpbuilddirectory/methods.c tmpbuilddirectory/taskdefs.c $ROBUSTROOT/Runtime/runtime.c $ROBUSTROOT/Runtime/file.c $ROBUSTROOT/Runtime/socket.c $ROBUSTROOT/Runtime/Queue.c $ROBUSTROOT/Runtime/SimpleHash.c $ROBUSTROOT/Runtime/checkpoint.c $ROBUSTROOT/Runtime/GenericHashtable.c -o $MAINFILE.bin

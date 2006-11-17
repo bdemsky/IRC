@@ -72,9 +72,9 @@ public class BuildFlat {
 	    FlatNode fn=flattenBlockNode(bn).getBegin();
 	    FlatMethod fm=new FlatMethod(md, fn);
 	    if (!md.isStatic())
-		fm.addParameterTemp(getTempforVar(md.getThis()));
+		fm.addParameterTemp(getTempforParam(md.getThis()));
 	    for(int i=0;i<md.numParameters();i++) {
-		fm.addParameterTemp(getTempforVar(md.getParameter(i)));
+		fm.addParameterTemp(getTempforParam(md.getParameter(i)));
 	    }
 	    state.addFlatCode(md,fm);
 	}
@@ -634,7 +634,17 @@ public class BuildFlat {
 	    return new NodePair(fn,fn);
 	}
     }
-        
+
+    private TempDescriptor getTempforParam(VarDescriptor vd) {
+	if (temptovar.containsKey(vd))
+	    return (TempDescriptor)temptovar.get(vd);
+	else {
+	    TempDescriptor td=TempDescriptor.paramtempFactory(vd.getName(),vd.getType());
+	    temptovar.put(vd,td);
+	    return td;
+	}
+    }
+
     private TempDescriptor getTempforVar(VarDescriptor vd) {
 	if (temptovar.containsKey(vd))
 	    return (TempDescriptor)temptovar.get(vd);

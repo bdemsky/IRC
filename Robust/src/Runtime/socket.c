@@ -10,7 +10,7 @@
 
 extern struct RuntimeHash *fdtoobject;
 
-int ___ServerSocket______createSocket____I(struct ___ServerSocket___ * sock, int port) {
+int CALL12(___ServerSocket______createSocket____I, int port, struct ___ServerSocket___ * ___this___, int port) {
   int fd;
 
   int n=1;
@@ -61,15 +61,15 @@ int ___ServerSocket______createSocket____I(struct ___ServerSocket___ * sock, int
   }
 
   /* Store the fd/socket object mapping */
-  RuntimeHashadd(fdtoobject, fd, (int) sock);
+  RuntimeHashadd(fdtoobject, fd, (int) VAR(___this___));
   addreadfd(fd);
   return fd;
 }
 
-int ___ServerSocket______nativeaccept____L___Socket___(struct ___ServerSocket___ * serversock, struct ___Socket___ * sock) {
+int CALL02(___ServerSocket______nativeaccept____L___Socket___,struct ___ServerSocket___ * ___this___, struct ___Socket___ * ___s___) {
   struct sockaddr_in sin;
   unsigned int sinlen=sizeof(sin);
-  int fd=serversock->___fd___;
+  int fd=VAR(___this___)->___fd___;
   int newfd;
   newfd=accept(fd, (struct sockaddr *)&sin, &sinlen);
 
@@ -83,17 +83,17 @@ int ___ServerSocket______nativeaccept____L___Socket___(struct ___ServerSocket___
   }
   fcntl(newfd, F_SETFL, fcntl(fd, F_GETFL)|O_NONBLOCK);
 
-  RuntimeHashadd(fdtoobject, newfd, (int) sock);
+  RuntimeHashadd(fdtoobject, newfd, (int) VAR(___s___));
   addreadfd(newfd);
-  flagorand(serversock,0,0xFFFFFFFE);
+  flagorand(VAR(___this___),0,0xFFFFFFFE);
   return newfd;
 }
 
 
-void ___Socket______nativeWrite_____AR_B(struct ___Socket___ * sock, struct ArrayObject * ao) {
-  int fd=sock->___fd___;
-  int length=ao->___length___;
-  char * charstr=((char *)& ao->___length___)+sizeof(int);
+void CALL02(___Socket______nativeWrite_____AR_B, struct ___Socket___ * ___this___, struct ArrayObject * ___b___) {
+  int fd=VAR(___this___)->___fd___;
+  int length=VAR(___b___)->___length___;
+  char * charstr=((char *)& VAR(___b___)->___length___)+sizeof(int);
   while(1) {
     int bytewritten=write(fd, charstr, length);
     if (bytewritten==-1&&errno==EAGAIN)
@@ -104,28 +104,28 @@ void ___Socket______nativeWrite_____AR_B(struct ___Socket___ * sock, struct Arra
     }
     break;
   }
-  //  flagorand(sock,0,0xFFFFFFFE);
+  //  flagorand(VAR(___this___),0,0xFFFFFFFE);
 }
 
-int ___Socket______nativeRead_____AR_B(struct ___Socket___ * sock, struct ArrayObject * ao) {
-  int fd=sock->___fd___;
-  int length=ao->___length___;
-  char * charstr=((char *)& ao->___length___)+sizeof(int);
+int CALL02(___Socket______nativeRead_____AR_B, struct ___Socket___ * ___this___, struct ArrayObject * ___b___) {
+  int fd=VAR(___this___)->___fd___;
+  int length=VAR(___b___)->___length___;
+  char * charstr=((char *)& VAR(___b___)->___length___)+sizeof(int);
   int byteread=read(fd, charstr, length);
   
   if (byteread<0) {
     printf("ERROR IN NATIVEREAD\n");
   }
-  flagorand(sock,0,0xFFFFFFFE);
+  flagorand(VAR(___this___),0,0xFFFFFFFE);
   return byteread;
 }
 
-void ___Socket______nativeClose____(struct ___Socket___ * sock) {
-  int fd=sock->___fd___;
+void CALL01(___Socket______nativeClose____, struct ___Socket___ * ___this___) {
+  int fd=VAR(___this___)->___fd___;
   int data;
   RuntimeHashget(fdtoobject, fd, &data);
   RuntimeHashremove(fdtoobject, fd, data);
   removereadfd(fd);
   close(fd);
-  flagorand(sock,0,0xFFFFFFFE);
+  flagorand(VAR(___this___),0,0xFFFFFFFE);
 }

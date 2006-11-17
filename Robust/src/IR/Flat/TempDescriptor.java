@@ -29,6 +29,10 @@ public class TempDescriptor extends Descriptor {
 	return new TempDescriptor(name+currentid,td);
     }
 
+    public static TempDescriptor paramtempFactory(String name, TypeDescriptor td) {
+	return new TempDescriptor(name,td);
+    }
+
 
     public String toString() {
 	return safename;
