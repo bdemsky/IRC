@@ -80,6 +80,25 @@ int RuntimeHashremove(struct RuntimeHash *thisvar, int key, int data) {
     return 0;
 }
 
+void RuntimeHashrehash(struct RuntimeHash * thisvar) {
+  int newsize=thisvar->size;
+  struct RuntimeNode ** newbucket = (struct RuntimeNode **) RUNMALLOC(sizeof(struct RuntimeNode *)*newsize);
+  int i;
+  for(i=thisvar->size-1;i>=0;i--) {
+    struct RuntimeNode *ptr;
+    for(ptr=thisvar->bucket[i];ptr!=NULL;) {
+      struct RuntimeNode * nextptr=ptr->next;
+      unsigned int newhashkey=(unsigned int)ptr->key % newsize;
+      ptr->next=newbucket[newhashkey];
+      newbucket[newhashkey]=ptr;
+      ptr=nextptr;
+    }
+  }
+  thisvar->size=newsize;
+  RUNFREE(thisvar->bucket);
+  thisvar->bucket=newbucket;
+}
+
 int RuntimeHashadd(struct RuntimeHash * thisvar,int key, int data) {
   /* Rehash code */
   unsigned int hashkey;

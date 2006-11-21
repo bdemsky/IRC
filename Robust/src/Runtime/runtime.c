@@ -15,6 +15,18 @@ extern int classsize[];
 jmp_buf error_handler;
 int instructioncount;
 
+char *options;
+int injectfailures=0;
+float failurechance=0;
+int debugtask=0;
+int injectinstructionfailures;
+int failurecount;
+float instfailurechance=0;
+int numfailures;
+int instaccum=0;
+
+
+
 #ifdef TASK
 #include "checkpoint.h"
 #include "Queue.h"
@@ -29,15 +41,9 @@ int instructioncount;
 struct Queue * activetasks;
 struct parameterwrapper * objectqueues[NUMCLASSES];
 struct genhashtable * failedtasks;
-char *options;
-int injectfailures=0;
-float failurechance=0;
-int debugtask=0;
-int injectinstructionfailures;
-int failurecount;
-float instfailurechance=0;
-int numfailures;
-int instaccum=0;
+struct RuntimeHash * forward;
+struct RuntimeHash * reverse;
+
 
 int main(int argc, char **argv) {
 #ifdef BOEHM_GC
@@ -48,30 +54,47 @@ int main(int argc, char **argv) {
 #endif
   processOptions();
 
-  {
-  int i;
-  /* Allocate startup object */
-  struct ___StartupObject___ *startupobject=(struct ___StartupObject___*) allocate_new(STARTUPTYPE);
-  struct ArrayObject * stringarray=allocate_newarray(STRINGARRAYTYPE, argc-1); 
+  /* Create table for failed tasks */
   failedtasks=genallocatehashtable((unsigned int (*)(void *)) &hashCodetpd, 
 				   (int (*)(void *,void *)) &comparetpd);
+  /* Create queue of active tasks */
   activetasks=createQueue();
-
-  /* Set flags */
+  
+  /* Process task information */
   processtasks();
-  flagorand(startupobject,1,0xFFFFFFFF);
 
+  /* Create startup object */
+  createstartupobject(argc, argv);
+
+  /* Start executing the tasks */
+  executetasks();
+}
+
+void createstartupobject(int argc, char ** argv) {
+  int i;
+  
+  /* Allocate startup object     */
+#ifdef PRECISE_GC
+  struct ___StartupObject___ *startupobject=(struct ___StartupObject___*) allocate_new(NULL, STARTUPTYPE);
+  struct ArrayObject * stringarray=allocate_newarray(NULL, STRINGARRAYTYPE, argc-1); 
+#else
+  struct ___StartupObject___ *startupobject=(struct ___StartupObject___*) allocate_new(STARTUPTYPE);
+  struct ArrayObject * stringarray=allocate_newarray(STRINGARRAYTYPE, argc-1); 
+#endif
   /* Build array of strings */
-
   startupobject->___parameters___=stringarray;
-
   for(i=1;i<argc;i++) {
     int length=strlen(argv[i]);
+#ifdef PRECISE_GC
+    struct ___String___ *newstring=NewString(NULL, argv[i],length);
+#else
     struct ___String___ *newstring=NewString(argv[i],length);
+#endif
     ((void **)(((char *)& stringarray->___length___)+sizeof(int)))[i-1]=newstring;
   }
-  executetasks();
-  }
+  
+  /* Set initialized flag for startup object */
+  flagorand(startupobject,1,0xFFFFFFFF);
 }
 
 int hashCodetpd(struct taskparamdescriptor *ftd) {
@@ -295,8 +318,8 @@ void executetasks() {
       }
       {
 	/* Checkpoint the state */
-	struct RuntimeHash * forward=allocateRuntimeHash(100);
-	struct RuntimeHash * reverse=allocateRuntimeHash(100);
+	forward=allocateRuntimeHash(100);
+	reverse=allocateRuntimeHash(100);
 	void ** checkpoint=makecheckpoint(tpd->task->numParameters, &taskpointerarray[OFFSET], forward, reverse);
 	int x;
 	if (x=setjmp(error_handler)) {
@@ -306,23 +329,12 @@ void executetasks() {
 	  printf("Fatal Error=%d, Recovering!\n",x);
 #endif
 	  genputtable(failedtasks,tpd,tpd);
-       /* for(i=0;i<tpd->task->numParameters;i++) {
-	    void *parameter=tpd->parameterArray[i];
-	    {
-	      // Create mapping from object -> failed tasks 
-	      struct tpdlist * tpnew=RUNMALLOC(sizeof(struct tpdlist));
-	      tpnew->task=tpd;
-	      if (gencontains(failedobjects, parameter)) {
-		struct tpdlist * tpdptr=gengettable(failedobjects, parameter);
-		tpnew->next=tpdptr->next;
-		tpdptr->next=tpnew;
-	      } else {
-		tpnew->next=NULL;
-		genputtable(failedobjects, parameter, tpnew);
-	      }
-	    }
-	  }  */
 	  restorecheckpoint(tpd->task->numParameters, &taskpointerarray[OFFSET], checkpoint, forward, reverse);
+	  freeRuntimeHash(forward);
+	  freeRuntimeHash(reverse);
+	  freemalloc();
+	  forward=NULL;
+	  reverse=NULL;
 	} else {
 	  if (injectfailures) {
 	    if ((((double)random())/RAND_MAX)<failurechance) {
@@ -342,6 +354,11 @@ void executetasks() {
 	    printf("EXIT %s count=%d\n",tpd->task->name, (instaccum-instructioncount));
 	  } else
 	    ((void (*) (void **)) tpd->task->taskptr)(taskpointerarray);
+	  freeRuntimeHash(forward);
+	  freeRuntimeHash(reverse);
+	  freemalloc();
+	  forward=NULL;
+	  reverse=NULL;
 	}
       }
     }
@@ -417,6 +434,23 @@ void CALL01(___System______printString____L___String___,struct ___String___ * __
 
 /* Object allocation function */
 
+#ifdef PRECISE_GC
+void * allocate_new(void * ptr, int type) {
+  void * v=mygcmalloc((struct garbagelist *) ptr, classsize[type]);
+  *((int *)v)=type;
+  return v;
+}
+
+/* Array allocation function */
+
+struct ArrayObject * allocate_newarray(void * ptr, int type, int length) {
+  struct ArrayObject * v=mygcmalloc((struct garbagelist *) ptr, sizeof(struct ArrayObject)+length*classsize[type]);
+  v->type=type;
+  v->___length___=length;
+  return v;
+}
+
+#else
 void * allocate_new(int type) {
   void * v=FREEMALLOC(classsize[type]);
   *((int *)v)=type;
@@ -431,12 +465,22 @@ struct ArrayObject * allocate_newarray(int type, int length) {
   v->___length___=length;
   return v;
 }
+#endif
+
 
 /* Converts C character arrays into Java strings */
-
+#ifdef PRECISE_GC
+struct ___String___ * NewString(void * ptr, const char *str,int length) {
+#else
 struct ___String___ * NewString(const char *str,int length) {
+#endif
+#ifdef PRECISE_GC
+  struct ArrayObject * chararray=allocate_newarray((struct garbagelist *)ptr, CHARARRAYTYPE, length);
+  struct ___String___ * strobj=allocate_new((struct garbagelist *) ptr, STRINGTYPE);
+#else
   struct ArrayObject * chararray=allocate_newarray(CHARARRAYTYPE, length);
   struct ___String___ * strobj=allocate_new(STRINGTYPE);
+#endif
   int i;
   strobj->___value___=chararray;
   strobj->___count___=length;

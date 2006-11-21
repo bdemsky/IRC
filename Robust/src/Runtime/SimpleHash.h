@@ -22,7 +22,7 @@ struct RuntimeHash * allocateRuntimeHash(int size);
 void RuntimeHashaddChild(struct RuntimeHash *thisvar, struct RuntimeHash * child);
 void freeRuntimeHash(struct RuntimeHash *);
 
-
+void RuntimeHashrehash(struct RuntimeHash * thisvar);
 int RuntimeHashadd(struct RuntimeHash *, int key, int data);
 int RuntimeHashremove(struct RuntimeHash *,int key, int data);
 bool RuntimeHashcontainskey(struct RuntimeHash *,int key);

@@ -18,7 +18,7 @@ shift
 
 mkdir $BUILDDIR
 java -cp $ROBUSTROOT/../cup/:$ROBUSTROOT Main.Main -classlibrary \
-$ROBUSTROOT/ClassLibrary/ -dir $BUILDDIR -struct $MAINFILE -conscheck \
+$ROBUSTROOT/ClassLibrary/ -dir $BUILDDIR -precise -struct $MAINFILE -conscheck \
 -struct structfile -task $@
 
 # Build all of the consistency specs
@@ -59,7 +59,7 @@ done
 
 cd $CURDIR 
 gcc -I$ROBUSTROOT/Runtime -I. -I$BUILDDIR/specdir \
--IRuntime/include -I$BUILDDIR -O0 -DBOEHM_GC -DCONSCHECK \
+-IRuntime/include -I$BUILDDIR -O0 -DPRECISE_GC -DCONSCHECK \
 -LRuntime/lib/ -lgc -DTASK -g tmpbuilddirectory/methods.c \
 tmpbuilddirectory/taskdefs.c $ROBUSTROOT/Runtime/runtime.c \
 $ROBUSTROOT/Runtime/file.c \
@@ -67,5 +67,6 @@ $ROBUSTROOT/Runtime/socket.c \
 $ROBUSTROOT/Runtime/Queue.c $ROBUSTROOT/Runtime/SimpleHash.c \
 $ROBUSTROOT/Runtime/checkpoint.c \
 $ROBUSTROOT/Runtime/option.c \
+$ROBUSTROOT/Runtime/garbage.c \
 $ROBUSTROOT/Runtime/GenericHashtable.c $BUILDDIR/specdir/*.o -o \
 $MAINFILE.bin

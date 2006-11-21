@@ -58,6 +58,26 @@ int hashsize(struct genhashtable *ht) {
   return ht->counter;
 }
 
+void genrehash(struct genhashtable * ht) {
+  /* Expand hashtable */
+  struct genpointerlist **newbins=(struct genpointerlist **) RUNMALLOC(sizeof (struct genpointerlist *)*ht->currentsize);
+  struct genpointerlist **oldbins=ht->bins;
+  long j,i;
+
+  for(i=0;i<ht->currentsize;i++) {
+    struct genpointerlist * tmpptr=oldbins[i];
+    while(tmpptr!=NULL) {
+      int hashcode=genhashfunction(ht, tmpptr->src);
+      struct genpointerlist *nextptr=tmpptr->next;
+      tmpptr->next=newbins[hashcode];
+      newbins[hashcode]=tmpptr;
+      tmpptr=nextptr;
+    }
+  }
+  ht->bins=newbins;
+  RUNFREE(oldbins);
+}
+
 void * gengettable(struct genhashtable *ht, void * key) {
   struct genpointerlist * ptr=ht->bins[genhashfunction(ht,key)];
   while(ptr!=NULL) {

@@ -7,5 +7,5 @@ void ** makecheckpoint(int numparams, void ** pointerarray, struct RuntimeHash *
 void restorecheckpoint(int numparams, void ** original, void ** checkpoint, struct RuntimeHash *forward, struct RuntimeHash * reverse);
 
 void * createcopy(void * orig);
-
+void freemalloc();
 #endif

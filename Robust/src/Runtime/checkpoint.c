@@ -3,8 +3,50 @@
 #include "structdefs.h"
 #include <string.h>
 
+#define MALLOCSIZE 20*1024
+
+struct malloclist {
+  struct malloclist *next;
+  int size;
+  char space[];
+};
+
+struct malloclist * top=NULL;
+int offset=0;
+
+void * cpmalloc(int size) {
+  int endoffset=offset+size;
+  if (top==NULL||endoffset>top->size) {
+    int basesize=MALLOCSIZE;
+    struct malloclist *tmp;
+    if (size>basesize)
+      basesize=size;
+    tmp=RUNMALLOC(sizeof(struct malloclist)+basesize);
+    tmp->next=top;
+    top=tmp;
+    top->size=basesize;
+    offset=0;
+  }
+  int tmpoffset=offset;
+  offset+=size;
+  return &top->space[tmpoffset];
+}
+
+void freemalloc() {
+  while(top!=NULL) {
+    struct malloclist *next=top->next;
+    RUNFREE(top);
+    top=next;
+  }
+}
+
+
 void ** makecheckpoint(int numparams, void ** srcpointer, struct RuntimeHash * forward, struct RuntimeHash * reverse) {
+#ifdef PRECISE_GC
+  void **newarray=cpmalloc(sizeof(void *)*numparams);
+#else
   void **newarray=RUNMALLOC(sizeof(void *)*numparams);
+#endif
   struct RuntimeHash *todo=allocateRuntimeHash(100);
   int i;
   for(i=0;i<numparams;i++) {
@@ -82,7 +124,11 @@ void * createcopy(void * orig) {
     if (type<NUMCLASSES) {
       /* We have a normal object */
       int size=classsize[type];
+#ifdef PRECISE_GC
+      void *newobj=cpmalloc(size);
+#else
       void *newobj=RUNMALLOC(size);
+#endif
       memcpy(newobj, orig, size);
       return newobj;
     } else {
@@ -91,7 +137,11 @@ void * createcopy(void * orig) {
       int elementsize=classsize[type];
       int length=ao->___length___;
       int size=sizeof(struct ArrayObject)+length*elementsize;
+#ifdef PRECISE_GC
+      void *newobj=cpmalloc(size);
+#else
       void *newobj=RUNMALLOC(size);
+#endif
       memcpy(newobj, orig, size);
       return newobj;
     }

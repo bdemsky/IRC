@@ -4,14 +4,22 @@
 extern jmp_buf error_handler;
 extern int instructioncount;
 
-void * allocate_new(int type);
+#ifdef PRECISE_GC
+#include "garbage.h"
+void * allocate_new(void *, int type);
+struct ArrayObject * allocate_newarray(void *, int type, int length);
+struct ___String___ * NewString(void *, const char *str,int length);
+#else
+void * allocate_new(struct int type);
 struct ArrayObject * allocate_newarray(int type, int length);
 struct ___String___ * NewString(const char *str,int length);
+#endif
 
 void failedboundschk();
 void failednullptr();
 void abort_task();
 void injectinstructionfailure();
+void createstartupobject();
 
 #ifdef PRECISE_GC
 #define VAR(name) ___params___->name
