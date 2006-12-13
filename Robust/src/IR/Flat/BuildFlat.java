@@ -33,7 +33,7 @@ public class BuildFlat {
     private void flattenTask(TaskDescriptor td) {
 	BlockNode bn=state.getMethodBody(td);
 	FlatNode fn=flattenBlockNode(bn).getBegin();
-	FlatFlagActionNode ffan=new FlatFlagActionNode(false);
+	FlatFlagActionNode ffan=new FlatFlagActionNode(FlatFlagActionNode.PRE);
 	ffan.addNext(fn);
 	FlatMethod fm=new FlatMethod(td, ffan);
 
@@ -129,7 +129,7 @@ public class BuildFlat {
 	    FlatNode last=fn;
 
 	    if (con.getFlagEffects()!=null) {
-		FlatFlagActionNode ffan=new FlatFlagActionNode(false);
+		FlatFlagActionNode ffan=new FlatFlagActionNode(FlatFlagActionNode.NEWOBJECT);
 		FlagEffects fes=con.getFlagEffects();
 		TempDescriptor flagtemp=out_temp;
 		for(int j=0;j<fes.numEffects();j++) {
@@ -743,7 +743,7 @@ public class BuildFlat {
     }
 
     private NodePair flattenTaskExitNode(TaskExitNode ten) {
-	FlatFlagActionNode ffan=new FlatFlagActionNode(true);
+	FlatFlagActionNode ffan=new FlatFlagActionNode(FlatFlagActionNode.TASKEXIT);
 	updateFlagActionNode(ffan, ten.getFlagEffects());
 	NodePair fcn=flattenConstraintCheck(ten.getChecks());
 	ffan.addNext(fcn.getBegin());

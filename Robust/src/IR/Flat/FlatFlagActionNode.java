@@ -6,9 +6,13 @@ import java.util.Iterator;
 
 public class FlatFlagActionNode extends FlatNode {
     Hashtable tempflagpairs; 
-    boolean taskexit;
+    int taskexit;
+    public static final int NEWOBJECT=0;
+    public static final int PRE=1;
+    public static final int TASKEXIT=2;
 
-    public FlatFlagActionNode(boolean taskexit) {
+
+    public FlatFlagActionNode(int taskexit) {
 	tempflagpairs=new Hashtable();
 	this.taskexit=taskexit;
     }
