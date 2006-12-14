@@ -10,7 +10,7 @@ void * allocate_new(void *, int type);
 struct ArrayObject * allocate_newarray(void *, int type, int length);
 struct ___String___ * NewString(void *, const char *str,int length);
 #else
-void * allocate_new(struct int type);
+void * allocate_new(int type);
 struct ArrayObject * allocate_newarray(int type, int length);
 struct ___String___ * NewString(const char *str,int length);
 #endif
