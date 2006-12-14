@@ -1,6 +1,7 @@
 #include "option.h"
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 #include "runtime.h"
 
 extern char *options;
@@ -71,7 +72,7 @@ void processOptions() {
       options=strchr(options,' ');
       if (options!=NULL) options++;
       printf("Initializing random number generator.\n");
-      srandomdev();
+      srandom(time(NULL));
     } else
       break;
   }
