@@ -51,4 +51,8 @@ public class FlatFlagActionNode extends FlatNode {
             return (TempDescriptor[]) temps.toArray(new TempDescriptor [temps.size()]);
 	}
     }
+
+    public String toString() {
+	return "FlatFlagActionNode";
+    }
 }

@@ -11,7 +11,7 @@ public class FlatNode {
     }
 
     public String toString() {
-	throw new Error();
+	throw new Error(this.getClass().getName() + "does not implement toString!");
     }
     public int numNext() {
 	return next.size();
