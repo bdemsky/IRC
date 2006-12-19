@@ -69,6 +69,9 @@ public class FlatMethod extends FlatNode {
 	return visited;
     }
     
+    /** This method returns a string that is a human readable
+     * representation of this method. */
+
     public String printMethod() {
 	String st=method+" {\n";
 	HashSet tovisit=new HashSet();
