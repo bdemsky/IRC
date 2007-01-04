@@ -282,7 +282,7 @@ void * mygcmalloc(struct garbagelist * stackptr, int size) {
     collect(stackptr);
 
     /* Update stat on previous gc size */
-    lastgcsize=to_heapptr-to_heapbase;
+    lastgcsize=(to_heapptr-to_heapbase)+size;
 
     /* Flip to/curr heaps */
     {
@@ -299,7 +299,10 @@ void * mygcmalloc(struct garbagelist * stackptr, int size) {
       curr_heapgcpoint=((char *) curr_heapbase)+GCPOINT(curr_heaptop-curr_heapbase);
       to_heapptr=to_heapbase;
       
-      //XXXXX Need check here in case we allocate a really big object
+      /* Not enough room :(, redo gc */
+      if (curr_heapptr>curr_heapgcpoint)
+	return mygcmalloc(stackptr, size);
+      
       bzero(tmp, curr_heaptop-tmp);
       return tmp;
     }

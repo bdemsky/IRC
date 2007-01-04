@@ -13,6 +13,8 @@ import IR.TypeUtil;
 
 public class Main {
 
+    /** Main method for the compiler.  */
+
   public static void main(String args[]) throws Exception {
       String ClassLibraryPrefix="./ClassLibrary/";
       State state=new State();
@@ -86,6 +88,8 @@ public class Main {
       bc.buildCode();
       System.exit(0);
   }
+
+    /** Reads in a source file and adds the parse tree to the state object. */
     
     private static void readSourceFile(State state, String sourcefile) throws Exception {
 	Reader fr = new BufferedReader(new FileReader(sourcefile));

@@ -174,10 +174,14 @@ public class BuildCode {
 	outclassdefs.println("extern int classsize[];");
 	outclassdefs.println("extern int hasflags[];");
 	outclassdefs.println("extern int * pointerarray[];");
+	outclassdefs.println("extern int supertypes[];");
 
 	//Store the sizes of classes & array elements
 	generateSizeArray(outmethod);
 	
+	//Store table of supertypes
+	generateSuperTypeTable(outmethod);
+
 	//Store the layout of classes
 	generateLayoutStructs(outmethod);
 
@@ -602,7 +606,25 @@ public class BuildCode {
 	output.println("};");
     }
 
-    /* Force consistent field ordering between inherited classes. */
+    /** Print out table to give us supertypes */
+    private void generateSuperTypeTable(PrintWriter output) {
+	output.println("int supertypes[]={");
+	boolean needcomma=false;
+	for(int i=0;i<state.numClasses();i++) {
+	    ClassDescriptor cn=cdarray[i];
+	    if (needcomma)
+		output.println(",");
+	    needcomma=true;
+	    if (cn.getSuperDesc()!=null) {
+		ClassDescriptor cdsuper=cn.getSuperDesc();
+		output.print(cdsuper.getId());
+	    } else
+		output.print("-1");
+	}
+	output.println("};");
+    }
+
+    /** Force consistent field ordering between inherited classes. */
 
     private void printClassStruct(ClassDescriptor cn, PrintWriter classdefout) {
 	ClassDescriptor sp=cn.getSuperDesc();
@@ -1216,7 +1238,7 @@ public class BuildCode {
     private void generateFlatCastNode(FlatMethod fm, FlatCastNode fcn, PrintWriter output) {
 	/* TODO: Do type check here */
 	if (fcn.getType().isArray()) {
-	    ;
+	    throw new Error();
 	} else if (fcn.getType().isClass())
 	    output.println(generateTemp(fm,fcn.getDst())+"=(struct "+fcn.getType().getSafeSymbol()+" *)"+generateTemp(fm,fcn.getSrc())+";");
 	else
