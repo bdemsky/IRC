@@ -113,6 +113,7 @@ void ** makecheckpoint(int numparams, void ** srcpointer, struct RuntimeHash * f
       }
     }
   }
+  freeRuntimeHash(todo);
   return newarray;
 }
 
@@ -214,4 +215,5 @@ void restorecheckpoint(int numparams, void ** original, void ** checkpoint, stru
       }
     }
   }
+  freeRuntimeHash(todo);
 }
