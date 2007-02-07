@@ -1,9 +1,172 @@
 #!/bin/bash
+
+printhelp() {
+echo -check generate check code
+echo -recover compile task code
+echo -specdir directory
+echo -debug generate debug symbols
+echo -runtimedebug printout runtime debug messages
+echo "-optimize call gcc with -O9 (optimize)"
+echo "-nooptimize call gcc with -O0 (do not optimize)"
+echo -curdir directory 
+echo -mainclass class with main method
+echo -o binary
+echo -instructionfailures inject code for instructionfailures
+echo -help help
+}
+
 ROBUSTROOT=~/research/Robust/src
-MAINFILE=$1
+REPAIRROOT=~/research/Repair/RepairCompiler/
+CURDIR=`pwd`
+CHECKFLAG=false
+RECOVERFLAG=false
+SPECDIR=`pwd`
+SRCFILES=''
+EXTRAOPTIONS=''
+MAINFILE='a'
+JAVAOPTS=''
+
+if [[ -z $1 ]]
+then
+printhelp
+exit
+fi
+
+while [[ -n $1 ]]
+do
+if [[ $1 = '-help' ]]
+then
+printhelp
+exit
+elif [[ $1 = '-o' ]]
+then
+MAINFILE="$2"
 shift
-mkdir tmpbuilddirectory
+elif [[ $1 = '-mainclass' ]]
+then
+JAVAOPTS="$JAVAOPTS -mainclass $2"
+shift
+elif [[ $1 = '-recover' ]]
+then
+RECOVERFLAG=true
+JAVAOPTS="$JAVAOPTS -task"
+elif [[ $1 = '-instructionfailures' ]]
+then
+JAVAOPTS="$JAVAOPTS -instructionfailures"
+elif [[ $1 = '-check' ]]
+then
+CHECKFLAG=true
+JAVAOPTS="$JAVAOPTS -conscheck"
+elif [[ $1 = '-specdir' ]]
+then
+cd $2
+SPECDIR=`pwd`
+cd $CURDIR
+shift
+elif [[ $1 = '-debug' ]]
+then
+EXTRAOPTIONS="$EXTRAOPTIONS -g"
+elif [[ $1 = '-runtimedebug' ]]
+then
+EXTRAOPTIONS="$EXTRAOPTIONS -DDEBUG"
+elif [[ $1 = '-nooptimize' ]]
+then
+EXTRAOPTIONS="$EXTRAOPTIONS -O0"
+elif [[ $1 = '-optimize' ]]
+then
+EXTRAOPTIONS="$EXTRAOPTIONS -O9"
+elif [[ $1 = '-curdir' ]]
+then
+CURDIR=$2
+shift
+else
+SRCFILES="$SRCFILES $1"
+fi
+shift
+done
 
-java -cp $ROBUSTROOT/../cup/:$ROBUSTROOT Main.Main -classlibrary $ROBUSTROOT/ClassLibrary/ -dir tmpbuilddirectory -precise -mainclass $MAINFILE $@
+BUILDDIR="$CURDIR/tmpbuilddirectory"
 
-gcc -I$ROBUSTROOT/Runtime -Itmpbuilddirectory -DPRECISE_GC -O0 -g tmpbuilddirectory/methods.c $ROBUSTROOT/Runtime/runtime.c $ROBUSTROOT/Runtime/file.c $ROBUSTROOT/Runtime/garbage.c $ROBUSTROOT/Runtime/option.c -o $MAINFILE.bin
+cd $1
+cd $CURDIR
+shift
+
+mkdir $BUILDDIR
+
+if $CHECKFLAG #Generate structure files for repair tool
+then
+JAVAOPTS="$JAVAOPTS -struct structfile"
+fi
+
+# Build bristlecone/java sources
+
+java -cp $ROBUSTROOT/../cup/:$ROBUSTROOT Main.Main -classlibrary \
+$ROBUSTROOT/ClassLibrary/ -dir $BUILDDIR -precise \
+$JAVAOPTS $SRCFILES
+
+# Build all of the consistency specs
+
+if $CHECKFLAG # CHECKFLAG
+then
+cd $SPECDIR
+mkdir $BUILDDIR/specdir
+cp $REPAIRROOT/MCC/CRuntime/* $BUILDDIR/specdir
+
+echo > $BUILDDIR/specs
+
+# compile specs into C code
+for i in * # iterate over all directories
+do
+if [[ "$i" != "CVS" ]] # CVSDIR CHECK
+then
+cd $SPECDIR/$i
+cat $BUILDDIR/structfile.struct $i.label > $i.struct
+java -cp $REPAIRROOT/:. MCC.Compiler -name $i -checkonly $i
+cp size.[c,h] $BUILDDIR/specdir
+cp $i.c $i\_aux.[c,h] $BUILDDIR/specdir
+echo $i >> $BUILDDIR/specs
+fi # CVSDIR CHECK
+done # iterate over all directories
+
+#compile C code
+
+cd $BUILDDIR/specdir
+./buildrobust
+echo > $BUILDDIR/checkers.h
+for i in `cat $BUILDDIR/specs`
+do
+gcc -O0 -g -c $i\_aux.c
+echo \#include \"specdir\/$i\_aux.h\" >> $BUILDDIR/checkers.h
+done
+fi # CHECKFLAG
+
+#build and link everything
+
+cd $CURDIR 
+
+
+INCLUDES="$INCLUDES -I$ROBUSTROOT/Runtime -I. -IRuntime/include \
+-I$BUILDDIR"
+
+FILES="$ROBUSTROOT/Runtime/runtime.c $ROBUSTROOT/Runtime/file.c \
+$ROBUSTROOT/Runtime/Queue.c $ROBUSTROOT/Runtime/SimpleHash.c \
+$ROBUSTROOT/Runtime/option.c $ROBUSTROOT/Runtime/garbage.c \
+$ROBUSTROOT/Runtime/GenericHashtable.c"
+
+if $RECOVERFLAG
+then
+EXTRAOPTIONS="$EXTRAOPTIONS -DTASK"
+FILES="$FILES $ROBUSTROOT/Runtime/socket.c tmpbuilddirectory/taskdefs.c $ROBUSTROOT/Runtime/checkpoint.c "
+fi
+
+if $CHECKFLAG
+then
+EXTRAOPTIONS="$EXTRAOPTIONS -DCONSCHECK $BUILDDIR/specdir/*.o"
+INCLUDES="$INCLUDES -I$BUILDDIR/specdir"
+fi
+
+gcc $INCLUDES $EXTRAOPTIONS -DPRECISE_GC \
+tmpbuilddirectory/methods.c $FILES -o $MAINFILE.bin
+exit
+
+

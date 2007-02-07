@@ -336,6 +336,8 @@ public class BuildCode {
 		output.println("  "+arraytype+"_"+ state.getArrayNumber(fd.getType()) +" * "+fd.getSymbol()+";");
 	    } else if (fd.getType().isClass())
 		output.println("  "+fd.getType().getRepairSymbol()+" * "+fd.getSymbol()+";");
+	    else if (fd.getType().isFloat())
+		output.println("  int "+fd.getSymbol()+"; /* really float */");
 	    else 
 		output.println("  "+fd.getType().getRepairSymbol()+" "+fd.getSymbol()+";");
 	}
