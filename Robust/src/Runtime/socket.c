@@ -37,8 +37,11 @@ int CALL12(___ServerSocket______createSocket____I, int port, struct ___ServerSoc
 #endif
     longjmp(error_handler, 6);
   }
+
+#ifdef TASK
   fcntl(fd, F_SETFD, 1);
   fcntl(fd, F_SETFL, fcntl(fd, F_GETFL)|O_NONBLOCK);
+#endif
 
   /* bind to port */
   if (bind(fd, (struct sockaddr *) &sin, sizeof(sin))<0) { 
@@ -61,8 +64,10 @@ int CALL12(___ServerSocket______createSocket____I, int port, struct ___ServerSoc
   }
 
   /* Store the fd/socket object mapping */
+#ifdef TASK
   RuntimeHashadd(fdtoobject, fd, (int) VAR(___this___));
   addreadfd(fd);
+#endif
   return fd;
 }
 
@@ -81,11 +86,13 @@ int CALL02(___ServerSocket______nativeaccept____L___Socket___,struct ___ServerSo
 #endif
     longjmp(error_handler, 9);
   }
+#ifdef TASK
   fcntl(newfd, F_SETFL, fcntl(fd, F_GETFL)|O_NONBLOCK);
-
   RuntimeHashadd(fdtoobject, newfd, (int) VAR(___s___));
   addreadfd(newfd);
   flagorand(VAR(___this___),0,0xFFFFFFFE);
+#endif
+
   return newfd;
 }
 
@@ -104,7 +111,6 @@ void CALL02(___Socket______nativeWrite_____AR_B, struct ___Socket___ * ___this__
     }
     break;
   }
-  //  flagorand(VAR(___this___),0,0xFFFFFFFE);
 }
 
 int CALL02(___Socket______nativeRead_____AR_B, struct ___Socket___ * ___this___, struct ArrayObject * ___b___) {
@@ -116,16 +122,20 @@ int CALL02(___Socket______nativeRead_____AR_B, struct ___Socket___ * ___this___,
   if (byteread<0) {
     printf("ERROR IN NATIVEREAD\n");
   }
+#ifdef TASK
   flagorand(VAR(___this___),0,0xFFFFFFFE);
+#endif
   return byteread;
 }
 
 void CALL01(___Socket______nativeClose____, struct ___Socket___ * ___this___) {
   int fd=VAR(___this___)->___fd___;
   int data;
+#ifdef TASK
   RuntimeHashget(fdtoobject, fd, &data);
   RuntimeHashremove(fdtoobject, fd, data);
   removereadfd(fd);
-  close(fd);
   flagorand(VAR(___this___),0,0xFFFFFFFE);
+#endif
+  close(fd);
 }

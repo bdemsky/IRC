@@ -149,19 +149,18 @@ fi # CHECKFLAG
 
 cd $CURDIR 
 
-
 INCLUDES="$INCLUDES -I$ROBUSTROOT/Runtime -I. -IRuntime/include \
 -I$BUILDDIR"
 
 FILES="$ROBUSTROOT/Runtime/runtime.c $ROBUSTROOT/Runtime/file.c \
 $ROBUSTROOT/Runtime/Queue.c $ROBUSTROOT/Runtime/SimpleHash.c \
 $ROBUSTROOT/Runtime/option.c $ROBUSTROOT/Runtime/garbage.c \
-$ROBUSTROOT/Runtime/GenericHashtable.c"
+$ROBUSTROOT/Runtime/socket.c $ROBUSTROOT/Runtime/GenericHashtable.c"
 
 if $RECOVERFLAG
 then
 EXTRAOPTIONS="$EXTRAOPTIONS -DTASK"
-FILES="$FILES $ROBUSTROOT/Runtime/socket.c tmpbuilddirectory/taskdefs.c $ROBUSTROOT/Runtime/checkpoint.c"
+FILES="$FILES tmpbuilddirectory/taskdefs.c $ROBUSTROOT/Runtime/checkpoint.c"
 else
 FILES="$FILES $ROBUSTROOT/Runtime/thread.c"
 fi
@@ -175,5 +174,3 @@ fi
 gcc $INCLUDES $EXTRAOPTIONS -DPRECISE_GC \
 tmpbuilddirectory/methods.c $FILES -o $MAINFILE.bin
 exit
-
-

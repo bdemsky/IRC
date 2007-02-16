@@ -73,7 +73,10 @@ public class Main {
 	  readSourceFile(state, ClassLibraryPrefix+"StartupObject.java");
 	  readSourceFile(state, ClassLibraryPrefix+"Socket.java");
 	  readSourceFile(state, ClassLibraryPrefix+"ServerSocket.java");
-      } 
+      } else {
+	  readSourceFile(state, ClassLibraryPrefix+"SocketJava.java");
+	  readSourceFile(state, ClassLibraryPrefix+"ServerSocketJava.java");
+      }
 
       if (state.THREAD) {
 	  readSourceFile(state, ClassLibraryPrefix+"Thread.java");
