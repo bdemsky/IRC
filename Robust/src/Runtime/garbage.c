@@ -84,6 +84,8 @@ void collect(struct garbagelist * stackptr) {
     pthread_mutex_lock(&gclistlock);
     pthread_mutex_lock(&threadtable);
     if ((listcount+1)==threadcount) {
+      pthread_mutex_unlock(&threadtable);
+      pthread_mutex_unlock(&gclistlock);      
       break; /* Have all other threads stopped */
     }
     pthread_mutex_unlock(&threadtable);
@@ -286,6 +288,7 @@ void checkcollect(void * ptr) {
     struct listitem * tmp=stopforgc((struct garbagelist *)ptr);
     pthread_mutex_lock(&gclock);
     restartaftergc(tmp);
+    pthread_mutex_unlock(&gclock);
   }
 }
 

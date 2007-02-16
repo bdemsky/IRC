@@ -31,6 +31,9 @@ void initthread(struct ___Thread___ * ___this___) {
   pthread_mutex_lock(&threadtable);
   threadcount--;
   pthread_mutex_unlock(&threadtable);
+  pthread_mutex_lock(&gclistlock);
+  pthread_cond_signal(&gccond);
+  pthread_mutex_unlock(&gclistlock);
 }
 
 void CALL01(___Thread______nativeCreate____, struct ___Thread___ * ___this___) {

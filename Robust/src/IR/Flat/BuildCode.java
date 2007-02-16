@@ -175,6 +175,8 @@ public class BuildCode {
 	outmethod.println("#include \"methodheaders.h\"");
 	outmethod.println("#include \"virtualtable.h\"");
 	outmethod.println("#include <runtime.h>");
+	if (state.THREAD)
+	    outmethod.println("#include <thread.h>");
 	if (state.main!=null) {
 	    outmethod.println("#include <string.h>");	    
 	}
@@ -249,6 +251,9 @@ public class BuildCode {
 	    } else {
 		outmethod.println("  struct ArrayObject * stringarray=allocate_newarray(STRINGARRAYTYPE, argc-1);");
 	    }
+	    if (state.THREAD) {
+		outmethod.println("initializethreads();");
+	    }
 	    outmethod.println("  for(i=1;i<argc;i++) {");
 	    outmethod.println("    int length=strlen(argv[i]);");
 	    if (GENERATEPRECISEGC) {
@@ -283,8 +288,15 @@ public class BuildCode {
 		outmethod.println("   }");
 		break;
 	    }
-	    if (state.THREAD)
-		outmethod.println("pthread_exit();");
+	    if (state.THREAD) {
+		outmethod.println("pthread_mutex_lock(&threadtable);");
+		outmethod.println("threadcount--;");
+		outmethod.println("pthread_mutex_unlock(&threadtable);");
+		outmethod.println("pthread_mutex_lock(&gclistlock);");
+		outmethod.println("pthread_cond_signal(&gccond);");
+		outmethod.println("pthread_mutex_unlock(&gclistlock);");
+		outmethod.println("pthread_exit(NULL);");
+	    }
 	    outmethod.println("}");
 	}
 	if (state.TASK)
