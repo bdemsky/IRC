@@ -80,9 +80,18 @@ public class BuildCode {
 	/* Build the virtual dispatch tables */
 	buildVirtualTables(outvirtual);
 
+
 	/* Output includes */
-	outstructs.println("#include \"classdefs.h\"");
+
+	outmethodheader.println("#ifndef METHODHEADERS_H");
+	outmethodheader.println("#define METHODHEADERS_H");
 	outmethodheader.println("#include \"structdefs.h\"");
+
+	outstructs.println("#ifndef STRUCTDEFS_H");
+	outstructs.println("#define STRUCTDEFS_H");
+	outstructs.println("#include \"classdefs.h\"");
+
+
 
 	/* Output types for short array and string */
 	outstructs.println("#define STRINGARRAYTYPE "+
@@ -157,6 +166,8 @@ public class BuildCode {
 	    /* Generate Tasks */
 	    generateTaskStructs(outstructs, outmethodheader);
 	}
+
+	outmethodheader.println("#endif");
 
 	outmethodheader.close();
 
@@ -272,6 +283,8 @@ public class BuildCode {
 		outmethod.println("   }");
 		break;
 	    }
+	    if (state.THREAD)
+		outmethod.println("pthread_exit();");
 	    outmethod.println("}");
 	}
 	if (state.TASK)
@@ -283,6 +296,7 @@ public class BuildCode {
 	    buildRepairStructs(outrepairstructs);
 	    outrepairstructs.close();
 	}
+	outstructs.println("#endif");
 
 	outstructs.close();
 	outmethod.close();
@@ -902,6 +916,10 @@ public class BuildCode {
 	    }
 	}
 
+	if (state.THREAD&&GENERATEPRECISEGC) {
+	    output.println("checkcollect(&"+localsprefix+");");
+	}
+	
 	//Do the actual code generation
 	tovisit=new HashSet();
 	visited=new HashSet();
@@ -1005,6 +1023,12 @@ public class BuildCode {
 	    return;
 	case FKind.FlatNop:
 	    output.println("/* nop */");
+	    return;
+	case FKind.FlatBackEdge:
+	    if (state.THREAD&&GENERATEPRECISEGC) {
+		output.println("checkcollect(&"+localsprefix+");");
+	    } else
+		output.println("/* nop */");
 	    return;
 	case FKind.FlatCheckNode:
 	    generateFlatCheckNode(fm, (FlatCheckNode) fn, output);

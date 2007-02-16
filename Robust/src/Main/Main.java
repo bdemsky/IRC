@@ -35,6 +35,8 @@ public class Main {
 	      state.CONSCHECK=true;
 	  else if (option.equals("-task"))
 	      state.TASK=true;
+	  else if (option.equals("-thread"))
+	      state.THREAD=true;
 	  else if (option.equals("-instructionfailures"))
 	      state.INSTRUCTIONFAILURE=true;
 	  else if (option.equals("-help")) {
@@ -46,6 +48,7 @@ public class Main {
 
 	      System.out.println("-conscheck -- turn on consistency checking");
 	      System.out.println("-task -- compiler for tasks");
+	      System.out.println("-thread -- threads");
 	      System.out.println("-instructionfailures -- insert code for instruction level failures");
 	      System.out.println("-help -- print out help");
 	      System.exit(0);
@@ -70,6 +73,10 @@ public class Main {
 	  readSourceFile(state, ClassLibraryPrefix+"StartupObject.java");
 	  readSourceFile(state, ClassLibraryPrefix+"Socket.java");
 	  readSourceFile(state, ClassLibraryPrefix+"ServerSocket.java");
+      } 
+
+      if (state.THREAD) {
+	  readSourceFile(state, ClassLibraryPrefix+"Thread.java");
       }
 
       BuildIR bir=new BuildIR(state);

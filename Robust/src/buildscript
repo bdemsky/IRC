@@ -6,6 +6,7 @@ echo -recover compile task code
 echo -specdir directory
 echo -debug generate debug symbols
 echo -runtimedebug printout runtime debug messages
+echo "-thread use support for multiple threads"
 echo "-optimize call gcc with -O9 (optimize)"
 echo "-nooptimize call gcc with -O0 (do not optimize)"
 echo -curdir directory 
@@ -75,6 +76,10 @@ EXTRAOPTIONS="$EXTRAOPTIONS -O0"
 elif [[ $1 = '-optimize' ]]
 then
 EXTRAOPTIONS="$EXTRAOPTIONS -O9"
+elif [[ $1 = '-thread' ]]
+then
+JAVAOPTS="$JAVAOPTS -thread"
+EXTRAOPTIONS="$EXTRAOPTIONS -DTHREADS"
 elif [[ $1 = '-curdir' ]]
 then
 CURDIR=$2
@@ -156,7 +161,9 @@ $ROBUSTROOT/Runtime/GenericHashtable.c"
 if $RECOVERFLAG
 then
 EXTRAOPTIONS="$EXTRAOPTIONS -DTASK"
-FILES="$FILES $ROBUSTROOT/Runtime/socket.c tmpbuilddirectory/taskdefs.c $ROBUSTROOT/Runtime/checkpoint.c "
+FILES="$FILES $ROBUSTROOT/Runtime/socket.c tmpbuilddirectory/taskdefs.c $ROBUSTROOT/Runtime/checkpoint.c"
+else
+FILES="$FILES $ROBUSTROOT/Runtime/thread.c"
 fi
 
 if $CHECKFLAG

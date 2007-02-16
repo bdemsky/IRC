@@ -15,4 +15,5 @@ public class FKind {
     public static final int FlatElementNode=12;
     public static final int FlatFlagActionNode=13;
     public static final int FlatCheckNode=14;
+    public static final int FlatBackEdge=15;    
 }

@@ -5,6 +5,10 @@
 #include "SimpleHash.h"
 #include "GenericHashtable.h"
 #include <string.h>
+#ifdef THREADS
+#include "thread.h"
+#endif
+
 
 #define NUMPTRS 100
 
@@ -22,6 +26,12 @@ extern struct RuntimeHash *reverse;
 extern struct RuntimeHash *fdtoobject;
 #endif
 
+#ifdef THREADS
+int needtocollect=0;
+struct listitem * list=NULL;
+int listcount=0;
+#endif
+
 struct pointerblock {
   void * ptrs[NUMPTRS];
   struct pointerblock *next;
@@ -32,7 +42,6 @@ int headindex=0;
 struct pointerblock *tail=NULL;
 int tailindex=0;
 struct pointerblock *spare=NULL;
-
 
 void enqueue(void *ptr) {
   if (headindex==NUMPTRS) {
@@ -69,12 +78,32 @@ int moreItems() {
 }
 
 void collect(struct garbagelist * stackptr) {
+#ifdef THREADS
+  needtocollect=1;
+  while(1) {
+    pthread_mutex_lock(&gclistlock);
+    pthread_mutex_lock(&threadtable);
+    if ((listcount+1)==threadcount) {
+      break; /* Have all other threads stopped */
+    }
+    pthread_mutex_unlock(&threadtable);
+    pthread_cond_wait(&gccond, &gclistlock);
+    pthread_mutex_unlock(&gclistlock);
+  }
+#endif
+
   if (head==NULL) {
     headindex=0;
     tailindex=0;
     head=tail=malloc(sizeof(struct pointerblock));
   }
   /* Check current stack */
+#ifdef THREADS
+ {
+   struct listitem *listptr=list;
+   while(stackptr!=NULL) {
+#endif
+     
   while(stackptr!=NULL) {
     int i;
     for(i=0;i<stackptr->size;i++) {
@@ -86,6 +115,15 @@ void collect(struct garbagelist * stackptr) {
     }
     stackptr=stackptr->next;
   }
+#ifdef THREADS
+  /* Go to next thread */
+  if (listptr!=NULL) {
+    stackptr=listptr->stackptr;
+    listptr=listptr->next;
+  }
+   }
+ }
+#endif
   
 #ifdef TASK
   {
@@ -218,6 +256,9 @@ void collect(struct garbagelist * stackptr) {
       }
     }
   }
+#ifdef THREADS
+  needtocollect=0;
+#endif
 }
 
 void * curr_heapbase=0;
@@ -238,8 +279,57 @@ void * tomalloc(int size) {
   return ptr;
 }
 
+#ifdef THREADS
+
+void checkcollect(void * ptr) {
+  if (needtocollect) {
+    struct listitem * tmp=stopforgc((struct garbagelist *)ptr);
+    pthread_mutex_lock(&gclock);
+    restartaftergc(tmp);
+  }
+}
+
+struct listitem * stopforgc(struct garbagelist * ptr) {
+  struct listitem * litem=malloc(sizeof(struct listitem));
+  litem->stackptr=ptr;
+  litem->prev=NULL;
+  pthread_mutex_lock(&gclistlock);
+  litem->next=list;
+  if(list!=NULL)
+    list->prev=litem;
+  list=litem;
+  listcount++;
+  pthread_cond_signal(&gccond);
+  pthread_mutex_unlock(&gclistlock);
+  return litem;
+}
+
+void restartaftergc(struct listitem * litem) {
+  pthread_mutex_lock(&gclistlock);
+  if (litem->prev==NULL) {
+    list=litem->next;
+  } else {
+    litem->prev->next=litem->next;
+  }
+  if (litem->next!=NULL) {
+    litem->next->prev=litem->prev;
+  }
+  listcount--;
+  pthread_mutex_unlock(&gclistlock);
+  free(litem);
+}
+#endif
+
 void * mygcmalloc(struct garbagelist * stackptr, int size) {
-  void *ptr=curr_heapptr;
+  void *ptr;
+#ifdef THREADS
+  if (pthread_mutex_trylock(&gclock)!=0) {
+    struct listitem *tmp=stopforgc(stackptr);
+    pthread_mutex_lock(&gclock);
+    restartaftergc(tmp);
+  }
+#endif
+  ptr=curr_heapptr;
   if ((size%4)!=0)
     size+=(4-(size%4));
   curr_heapptr+=size;
@@ -255,7 +345,11 @@ void * mygcmalloc(struct garbagelist * stackptr, int size) {
       to_heapbase=malloc(INITIALHEAPSIZE);
       to_heaptop=to_heapbase+INITIALHEAPSIZE;
       to_heapptr=to_heapbase;
-      return curr_heapbase;
+      ptr=curr_heapbase;
+#ifdef THREADS
+      pthread_mutex_unlock(&gclock);
+#endif
+      return ptr;
     }
 
     /* Grow the to heap if necessary */
@@ -300,14 +394,25 @@ void * mygcmalloc(struct garbagelist * stackptr, int size) {
       to_heapptr=to_heapbase;
       
       /* Not enough room :(, redo gc */
-      if (curr_heapptr>curr_heapgcpoint)
+      if (curr_heapptr>curr_heapgcpoint) {
+#ifdef THREADS
+	pthread_mutex_unlock(&gclock);
+#endif
 	return mygcmalloc(stackptr, size);
+      }
       
       bzero(tmp, curr_heaptop-tmp);
+#ifdef THREADS
+      pthread_mutex_unlock(&gclock);
+#endif
       return tmp;
     }
-  } else
+  } else {
+#ifdef THREADS
+    pthread_mutex_unlock(&gclock);
+#endif
     return ptr;
+  }
 }
 
 

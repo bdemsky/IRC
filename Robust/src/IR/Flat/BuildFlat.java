@@ -688,10 +688,12 @@ public class BuildFlat {
 	    FlatNode begin=initializer.getBegin();
 	    FlatCondBranch fcb=new FlatCondBranch(cond_temp);
 	    FlatNop nopend=new FlatNop();
+	    FlatBackEdge backedge=new FlatBackEdge();
 
 	    initializer.getEnd().addNext(condition.getBegin());
 	    body.getEnd().addNext(update.getBegin());
-	    update.getEnd().addNext(condition.getBegin());
+	    update.getEnd().addNext(backedge);
+	    backedge.addNext(condition.getBegin());
 	    condition.getEnd().addNext(fcb);
 	    fcb.addFalseNext(nopend);
 	    fcb.addTrueNext(body.getBegin());
@@ -703,8 +705,11 @@ public class BuildFlat {
 	    FlatNode begin=condition.getBegin();
 	    FlatCondBranch fcb=new FlatCondBranch(cond_temp);
 	    FlatNop nopend=new FlatNop();
+	    FlatBackEdge backedge=new FlatBackEdge();
 
-	    body.getEnd().addNext(condition.getBegin());
+	    body.getEnd().addNext(backedge);
+	    backedge.addNext(condition.getBegin());
+
 	    condition.getEnd().addNext(fcb);
 	    fcb.addFalseNext(nopend);
 	    fcb.addTrueNext(body.getBegin());
@@ -716,11 +721,13 @@ public class BuildFlat {
 	    FlatNode begin=body.getBegin();
 	    FlatCondBranch fcb=new FlatCondBranch(cond_temp);
 	    FlatNop nopend=new FlatNop();
+	    FlatBackEdge backedge=new FlatBackEdge();
 
 	    body.getEnd().addNext(condition.getBegin());
 	    condition.getEnd().addNext(fcb);
 	    fcb.addFalseNext(nopend);
-	    fcb.addTrueNext(body.getBegin());
+	    fcb.addTrueNext(backedge);
+	    backedge.addNext(body.getBegin());
 	    return new NodePair(begin,nopend);
 	} else throw new Error();
     }

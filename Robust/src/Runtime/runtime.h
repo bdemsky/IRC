@@ -23,6 +23,7 @@ void createstartupobject();
 
 #ifdef PRECISE_GC
 #define VAR(name) ___params___->name
+#define CALL00(name) name(struct name ## _params * ___params___)
 #define CALL01(name, alt) name(struct name ## _params * ___params___)
 #define CALL02(name, alt1, alt2) name(struct name ## _params * ___params___)
 #define CALL11(name,rest, alt) name(struct name ## _params * ___params___, rest)
@@ -31,6 +32,7 @@ void createstartupobject();
 #define CALL23(name, rest, rest2, alt1, alt2, alt3) name(struct name ## _params * ___params___, rest, rest2)
 #else
 #define VAR(name) name
+#define CALL00(name) name()
 #define CALL01(name, alt) name(alt)
 #define CALL02(name, alt1, alt2) name(alt1, alt2)
 #define CALL11(name,rest, alt) name(alt)
