@@ -57,7 +57,7 @@ public class Main {
 	  }
       }
       
-      readSourceFile(state, ClassLibraryPrefix+"Object.java");
+
       readSourceFile(state, ClassLibraryPrefix+"System.java");
       readSourceFile(state, ClassLibraryPrefix+"String.java");
       readSourceFile(state, ClassLibraryPrefix+"HashSet.java");
@@ -70,10 +70,12 @@ public class Main {
       readSourceFile(state, ClassLibraryPrefix+"FileOutputStream.java");
       readSourceFile(state, ClassLibraryPrefix+"File.java");
       if (state.TASK) {
+	  readSourceFile(state, ClassLibraryPrefix+"Object.java");
 	  readSourceFile(state, ClassLibraryPrefix+"StartupObject.java");
 	  readSourceFile(state, ClassLibraryPrefix+"Socket.java");
 	  readSourceFile(state, ClassLibraryPrefix+"ServerSocket.java");
       } else {
+	  readSourceFile(state, ClassLibraryPrefix+"ObjectJava.java");
 	  readSourceFile(state, ClassLibraryPrefix+"SocketJava.java");
 	  readSourceFile(state, ClassLibraryPrefix+"ServerSocketJava.java");
       }
@@ -91,7 +93,7 @@ public class Main {
       sc.semanticCheck();
       tu.createFullTable();
 
-      BuildFlat bf=new BuildFlat(state);
+      BuildFlat bf=new BuildFlat(state,tu);
       bf.buildFlat();
       
       BuildCode bc=new BuildCode(state, bf.getMap(), tu);

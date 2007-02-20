@@ -6,10 +6,13 @@ import java.util.*;
 public class BuildFlat {
     State state;
     Hashtable temptovar;
+    MethodDescriptor currmd;
+    TypeUtil typeutil;
 
-    public BuildFlat(State st) {
+    public BuildFlat(State st, TypeUtil typeutil) {
 	state=st;
 	temptovar=new Hashtable();
+	this.typeutil=typeutil;
     }
 
     public Hashtable getMap() {
@@ -67,16 +70,30 @@ public class BuildFlat {
     private void flattenClass(ClassDescriptor cn) {
 	Iterator methodit=cn.getMethods();
 	while(methodit.hasNext()) {
-	    MethodDescriptor md=(MethodDescriptor)methodit.next();
-	    BlockNode bn=state.getMethodBody(md);
-	    FlatNode fn=flattenBlockNode(bn).getBegin();
-	    FlatMethod fm=new FlatMethod(md, fn);
-	    if (!md.isStatic())
-		fm.addParameterTemp(getTempforParam(md.getThis()));
-	    for(int i=0;i<md.numParameters();i++) {
-		fm.addParameterTemp(getTempforParam(md.getParameter(i)));
+	    currmd=(MethodDescriptor)methodit.next();
+	    BlockNode bn=state.getMethodBody(currmd);
+	    NodePair np=flattenBlockNode(bn);
+	    FlatNode fn=np.getBegin();
+	    if (state.THREAD&&currmd.getModifiers().isSynchronized()) {
+		MethodDescriptor memd=(MethodDescriptor)typeutil.getClass("Object").getMethodTable().get("MonitorEnter");
+		TempDescriptor thistd=getTempforVar(currmd.getThis());
+		FlatCall fc=new FlatCall(memd, null, thistd, new TempDescriptor[0]);
+		fc.addNext(fn);
+		fn=fc;
+		if (np.getEnd().kind()!=FKind.FlatReturnNode) {
+		    MethodDescriptor memdex=(MethodDescriptor)typeutil.getClass("Object").getMethodTable().get("MonitorExit");
+		    FlatCall fcunlock=new FlatCall(memdex, null, thistd, new TempDescriptor[0]);
+		    np.getEnd().addNext(fcunlock);
+		}
 	    }
-	    state.addFlatCode(md,fm);
+
+	    FlatMethod fm=new FlatMethod(currmd, fn);
+	    if (!currmd.isStatic())
+		fm.addParameterTemp(getTempforParam(currmd.getThis()));
+	    for(int i=0;i<currmd.numParameters();i++) {
+		fm.addParameterTemp(getTempforParam(currmd.getParameter(i)));
+	    }
+	    state.addFlatCode(currmd,fm);
 	}
     }
 
@@ -741,12 +758,20 @@ public class BuildFlat {
 	}
 
 	FlatReturnNode rnflat=new FlatReturnNode(retval);
+	FlatNode ln=rnflat;
+	if (state.THREAD&&currmd.getModifiers().isSynchronized()) {
+	    MethodDescriptor memd=(MethodDescriptor)typeutil.getClass("Object").getMethodTable().get("MonitorExit");
+	    TempDescriptor thistd=getTempforVar(currmd.getThis());
+	    FlatCall fc=new FlatCall(memd, null, thistd, new TempDescriptor[0]);
+	    fc.addNext(rnflat);
+	    ln=fc;
+	}
 
 	if (cond!=null) {
-	    cond.getEnd().addNext(rnflat);
+	    cond.getEnd().addNext(ln);
 	    return new NodePair(cond.getBegin(),rnflat);
 	} else
-	    return new NodePair(rnflat,rnflat);
+	    return new NodePair(ln,rnflat);
     }
 
     private NodePair flattenTaskExitNode(TaskExitNode ten) {

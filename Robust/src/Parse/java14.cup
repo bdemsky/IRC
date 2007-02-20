@@ -615,8 +615,8 @@ modifier ::=
 	STATIC {: RESULT=new ParseNode("static"); :} |
 //	ABSTRACT |
 	FINAL {: RESULT=new ParseNode("final"); :}|
-	NATIVE {: RESULT=new ParseNode("native"); :}
-//	SYNCHRONIZED | 
+	NATIVE {: RESULT=new ParseNode("native"); :} |
+	SYNCHRONIZED {: RESULT=new ParseNode("synchronized"); :}
 //	TRANSIENT | 
 //	VOLATILE |
 //	STRICTFP // note that semantic analysis must check that the

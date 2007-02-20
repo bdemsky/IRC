@@ -414,14 +414,6 @@ void injectinstructionfailure() {
 #endif
 }
 
-int CALL01(___Object______hashCode____, struct ___Object___ * ___this___) {
-  return (int) VAR(___this___);
-}
-
-int CALL01(___Object______getType____, struct ___Object___ * ___this___) {
-  return ((int *)VAR(___this___))[0];
-}
-
 void CALL01(___System______printString____L___String___,struct ___String___ * ___s___) {
     struct ArrayObject * chararray=VAR(___s___)->___value___;
     int i;
@@ -436,8 +428,12 @@ void CALL01(___System______printString____L___String___,struct ___String___ * __
 
 #ifdef PRECISE_GC
 void * allocate_new(void * ptr, int type) {
-  void * v=mygcmalloc((struct garbagelist *) ptr, classsize[type]);
-  *((int *)v)=type;
+  struct ___Object___ * v=(struct ___Object___ *) mygcmalloc((struct garbagelist *) ptr, classsize[type]);
+  v->type=type;
+#ifdef THREADS
+  v->tid=0;
+  v->lockcount=0;
+#endif
   return v;
 }
 
@@ -447,6 +443,10 @@ struct ArrayObject * allocate_newarray(void * ptr, int type, int length) {
   struct ArrayObject * v=mygcmalloc((struct garbagelist *) ptr, sizeof(struct ArrayObject)+length*classsize[type]);
   v->type=type;
   v->___length___=length;
+#ifdef THREADS
+  v->tid=0;
+  v->lockcount=0;
+#endif
   return v;
 }
 

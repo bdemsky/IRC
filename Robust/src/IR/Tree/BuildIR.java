@@ -652,16 +652,19 @@ public class BuildIR {
 		ParseNode modn=pnv.elementAt(i);
 		if (isNode(modn,"public"))
 		    m.addModifier(Modifiers.PUBLIC);
-		if (isNode(modn,"protected"))
+		else if (isNode(modn,"protected"))
 		    m.addModifier(Modifiers.PROTECTED);
-		if (isNode(modn,"private"))
+		else if (isNode(modn,"private"))
 		    m.addModifier(Modifiers.PRIVATE);
-		if (isNode(modn,"static"))
+		else if (isNode(modn,"static"))
 		    m.addModifier(Modifiers.STATIC);
-		if (isNode(modn,"final"))
+		else if (isNode(modn,"final"))
 		    m.addModifier(Modifiers.FINAL);
-		if (isNode(modn,"native"))
+		else if (isNode(modn,"native"))
 		    m.addModifier(Modifiers.NATIVE);
+		else if (isNode(modn,"synchronized"))
+		    m.addModifier(Modifiers.SYNCHRONIZED);
+		else throw new Error("Unrecognized Modifier");
 	    }
 	}
 	return m;

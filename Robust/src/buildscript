@@ -155,7 +155,8 @@ INCLUDES="$INCLUDES -I$ROBUSTROOT/Runtime -I. -IRuntime/include \
 FILES="$ROBUSTROOT/Runtime/runtime.c $ROBUSTROOT/Runtime/file.c \
 $ROBUSTROOT/Runtime/Queue.c $ROBUSTROOT/Runtime/SimpleHash.c \
 $ROBUSTROOT/Runtime/option.c $ROBUSTROOT/Runtime/garbage.c \
-$ROBUSTROOT/Runtime/socket.c $ROBUSTROOT/Runtime/GenericHashtable.c"
+$ROBUSTROOT/Runtime/socket.c $ROBUSTROOT/Runtime/GenericHashtable.c \
+$ROBUSTROOT/Runtime/object.c"
 
 if $RECOVERFLAG
 then

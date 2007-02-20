@@ -107,6 +107,9 @@ public class BuildCode {
 
 	// Output the C class declarations
 	// These could mutually reference each other
+	if (state.THREAD)
+	    outclassdefs.println("#include <pthread.h>");
+
 	outclassdefs.println("struct "+arraytype+";");
 
 	Iterator it=state.getClassSymbolTable().getDescriptorsIterator();
@@ -119,9 +122,13 @@ public class BuildCode {
 	    //Print out definition for array type
 	    outclassdefs.println("struct "+arraytype+" {");
 	    outclassdefs.println("  int type;");
-	    outclassdefs.println("  int flag;");
+	    if (state.THREAD) {
+		outclassdefs.println("  pthread_t tid;");
+		outclassdefs.println("  int lockcount;");
+	    }
 		
 	    if (state.TASK) {
+		outclassdefs.println("  int flag;");
 		outclassdefs.println("  void * flagptr;");
 	    }
 	    printClassStruct(typeutil.getClass(TypeUtil.ObjectClass), outclassdefs);
@@ -289,10 +296,8 @@ public class BuildCode {
 		break;
 	    }
 	    if (state.THREAD) {
-		outmethod.println("pthread_mutex_lock(&threadtable);");
-		outmethod.println("threadcount--;");
-		outmethod.println("pthread_mutex_unlock(&threadtable);");
 		outmethod.println("pthread_mutex_lock(&gclistlock);");
+		outmethod.println("threadcount--;");
 		outmethod.println("pthread_cond_signal(&gccond);");
 		outmethod.println("pthread_mutex_unlock(&gclistlock);");
 		outmethod.println("pthread_exit(NULL);");
@@ -722,9 +727,13 @@ public class BuildCode {
 	/* Output class structure */
 	classdefout.println("struct "+cn.getSafeSymbol()+" {");
 	classdefout.println("  int type;");
-	classdefout.println("  int flag;");
+	if (state.THREAD) {
+	    classdefout.println("  pthread_t tid;");
+	    classdefout.println("  int lockcount;");
+	}
 
 	if (state.TASK) {
+	    classdefout.println("  int flag;");
 	    classdefout.println("  void * flagptr;");
 	}
 	printClassStruct(cn, classdefout);

@@ -80,17 +80,12 @@ int moreItems() {
 void collect(struct garbagelist * stackptr) {
 #ifdef THREADS
   needtocollect=1;
+  pthread_mutex_lock(&gclistlock);
   while(1) {
-    pthread_mutex_lock(&gclistlock);
-    pthread_mutex_lock(&threadtable);
     if ((listcount+1)==threadcount) {
-      pthread_mutex_unlock(&threadtable);
-      pthread_mutex_unlock(&gclistlock);      
       break; /* Have all other threads stopped */
     }
-    pthread_mutex_unlock(&threadtable);
     pthread_cond_wait(&gccond, &gclistlock);
-    pthread_mutex_unlock(&gclistlock);
   }
 #endif
 
@@ -260,6 +255,7 @@ void collect(struct garbagelist * stackptr) {
   }
 #ifdef THREADS
   needtocollect=0;
+  pthread_mutex_unlock(&gclistlock);
 #endif
 }
 
@@ -286,9 +282,10 @@ void * tomalloc(int size) {
 void checkcollect(void * ptr) {
   if (needtocollect) {
     struct listitem * tmp=stopforgc((struct garbagelist *)ptr);
-    pthread_mutex_lock(&gclock);
+    pthread_mutex_lock(&gclock); // Wait for GC
     restartaftergc(tmp);
     pthread_mutex_unlock(&gclock);
+
   }
 }
 

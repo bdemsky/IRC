@@ -686,11 +686,15 @@ public class SemanticCheck {
 	switch(op.getOp()) {
 	case Operation.LOGIC_OR:
 	case Operation.LOGIC_AND:
-	    if (!(ltd.isBoolean()&&rtd.isBoolean()))
+	    if (!(rtd.isBoolean()))
+		throw new Error();
+	    on.setRightType(rtd);
+	case Operation.LOGIC_NOT:
+	    if (!(ltd.isBoolean()))
 		throw new Error();
 	    //no promotion
 	    on.setLeftType(ltd);
-	    on.setRightType(rtd);
+
 	    on.setType(new TypeDescriptor(TypeDescriptor.BOOLEAN));
    	    break;
 
@@ -823,7 +827,7 @@ public class SemanticCheck {
 	    on.setType(lefttype);
 	    break;
 	default:
-	    throw new Error();
+	    throw new Error(op.toString());
 	}
    
 	if (td!=null)
