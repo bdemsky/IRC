@@ -4,7 +4,7 @@
 #include <errno.h>
 #include <stdlib.h>
 #include "thread.h"
-
+#include "option.h"
 
 #include <stdio.h>
 int threadcount;
@@ -28,6 +28,10 @@ void threadexit() {
   pthread_mutex_lock(&objlock);//wake everyone up
   pthread_cond_broadcast(&objcond);
   pthread_mutex_unlock(&objlock);
+  pthread_mutex_lock(&gclistlock);
+  threadcount--;
+  pthread_cond_signal(&gccond);
+  pthread_mutex_unlock(&gclistlock);
   pthread_exit(NULL);
 }
 
@@ -48,6 +52,7 @@ void initializethreads() {
   pthread_mutex_init(&objlock,NULL);
   pthread_cond_init(&objcond,NULL);
   pthread_key_create(&threadlocks, NULL);
+  processOptions();
 
   sig.sa_sigaction=&threadhandler;
   sig.sa_flags=SA_SIGINFO;

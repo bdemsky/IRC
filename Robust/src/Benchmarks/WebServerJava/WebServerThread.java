@@ -15,7 +15,7 @@ public class WebServerThread extends Thread {
 	this.inventorylist=inventory;
     }
     
-    public void start() {
+    public void run() {
 	// Process the incoming http request 
 	while (!clientrequest()) {
 	}

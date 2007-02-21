@@ -20,18 +20,19 @@ int CALL01(___Object______MonitorEnter____, struct ___Object___ * ___this___) {
   if (self==VAR(___this___)->tid) {
     VAR(___this___)->lockcount++;
   } else {
-#ifdef PRECISEGC
-    struct listitem *tmp=stopforgc(stackptr);
+#ifdef PRECISE_GC
+    struct listitem *tmp=stopforgc((struct garbagelist *)___params___);
 #endif
     pthread_mutex_lock(&objlock);
-#ifdef PRECISEGC
+#ifdef PRECISE_GC
     restartaftergc(tmp);
 #endif
     while(1) {
       if (VAR(___this___)->tid==0) {
 	VAR(___this___)->___prevlockobject___=NULL;
 	VAR(___this___)->___nextlockobject___=(struct ___Object___ *)pthread_getspecific(threadlocks);
-	VAR(___this___)->___nextlockobject___->___prevlockobject___=VAR(___this___);
+	if (VAR(___this___)->___nextlockobject___!=NULL)
+	  VAR(___this___)->___nextlockobject___->___prevlockobject___=VAR(___this___);
 	pthread_setspecific(threadlocks, VAR(___this___));
 	VAR(___this___)->lockcount=1;
 	VAR(___this___)->tid=self;
@@ -39,11 +40,11 @@ int CALL01(___Object______MonitorEnter____, struct ___Object___ * ___this___) {
 	break;
       }
       {
-#ifdef PRECISEGC
-	struct listitem *tmp=stopforgc(stackptr);
+#ifdef PRECISE_GC
+	struct listitem *tmp=stopforgc((struct garbagelist *)___params___);
 #endif
 	pthread_cond_wait(&objcond, &objlock);
-#ifdef PRECISEGC
+#ifdef PRECISE_GC
 	restartaftergc(tmp);
 #endif
       }

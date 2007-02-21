@@ -16,7 +16,7 @@ let x=0;
 for file in `ls *sorted`
 do
 	echo -n "Diffing $file...";
-	diff $file ../pure/trans_inventory.sorted
+	diff $file ./pure/trans_inventory.sorted
 	if [ $? -ne 0 ]
 	then
 		let "x+=1";

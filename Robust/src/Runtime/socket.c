@@ -26,7 +26,15 @@ int CALL12(___ServerSocket______createSocket____I, int port, struct ___ServerSoc
     perror(NULL);
     printf("createSocket error #1\n");
 #endif
+#ifdef TASK
     longjmp(error_handler,5);
+#else
+#ifdef THREADS
+    threadexit();
+#else
+    exit(-1);
+#endif
+#endif
   }
 
   if (setsockopt (fd, SOL_SOCKET, SO_REUSEADDR, (char *)&n, sizeof (n)) < 0) {
@@ -35,7 +43,15 @@ int CALL12(___ServerSocket______createSocket____I, int port, struct ___ServerSoc
     perror(NULL);
     printf("createSocket error #2\n");
 #endif
-    longjmp(error_handler, 6);
+#ifdef TASK
+    longjmp(error_handler,6);
+#else
+#ifdef THREADS
+    threadexit();
+#else
+    exit(-1);
+#endif
+#endif
   }
 
 #ifdef TASK
@@ -50,7 +66,15 @@ int CALL12(___ServerSocket______createSocket____I, int port, struct ___ServerSoc
     perror(NULL);
     printf("createSocket error #3\n");
 #endif
-    longjmp(error_handler, 7);
+#ifdef TASK
+    longjmp(error_handler,7);
+#else
+#ifdef THREADS
+    threadexit();
+#else
+    exit(-1);
+#endif
+#endif
   }
 
   /* listen */
@@ -60,7 +84,15 @@ int CALL12(___ServerSocket______createSocket____I, int port, struct ___ServerSoc
     perror(NULL);
     printf("createSocket error #4\n");
 #endif
-    longjmp(error_handler, 8);
+#ifdef TASK
+    longjmp(error_handler,8);
+#else
+#ifdef THREADS
+    threadexit();
+#else
+    exit(-1);
+#endif
+#endif
   }
 
   /* Store the fd/socket object mapping */
@@ -76,15 +108,33 @@ int CALL02(___ServerSocket______nativeaccept____L___Socket___,struct ___ServerSo
   unsigned int sinlen=sizeof(sin);
   int fd=VAR(___this___)->___fd___;
   int newfd;
+#ifdef THREADS
+#ifdef PRECISE_GC
+  struct listitem *tmp=stopforgc((struct garbagelist *)___params___);
+#endif
+#endif
   newfd=accept(fd, (struct sockaddr *)&sin, &sinlen);
-
+#ifdef THREADS 
+#ifdef PRECISE_GC
+  restartaftergc(tmp);
+#endif
+#endif
 
   if (newfd<0) { 
 #ifdef DEBUG
     perror(NULL);
     printf("acceptSocket error #1\n");
 #endif
-    longjmp(error_handler, 9);
+#ifdef TASK
+    longjmp(error_handler,9);
+#else
+#ifdef THREADS
+    threadexit();
+#else
+    exit(-1);
+#endif
+#endif
+
   }
 #ifdef TASK
   fcntl(newfd, F_SETFL, fcntl(fd, F_GETFL)|O_NONBLOCK);
@@ -117,7 +167,17 @@ int CALL02(___Socket______nativeRead_____AR_B, struct ___Socket___ * ___this___,
   int fd=VAR(___this___)->___fd___;
   int length=VAR(___b___)->___length___;
   char * charstr=((char *)& VAR(___b___)->___length___)+sizeof(int);
+#ifdef THREADS
+#ifdef PRECISE_GC
+  struct listitem *tmp=stopforgc((struct garbagelist *)___params___);
+#endif
+#endif
   int byteread=read(fd, charstr, length);
+#ifdef THREADS
+#ifdef PRECISE_GC
+  restartaftergc(tmp);
+#endif
+#endif
   
   if (byteread<0) {
     printf("ERROR IN NATIVEREAD\n");
