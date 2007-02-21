@@ -115,6 +115,11 @@ void collect(struct garbagelist * stackptr) {
 #ifdef THREADS
   /* Go to next thread */
   if (listptr!=NULL) {
+    void * orig=listptr->locklist;
+    void * copy;
+    if (gc_createcopy(orig,&copy))
+      enqueue(orig);
+    listptr->locklist=copy;
     stackptr=listptr->stackptr;
     listptr=listptr->next;
   }
@@ -292,6 +297,7 @@ void checkcollect(void * ptr) {
 struct listitem * stopforgc(struct garbagelist * ptr) {
   struct listitem * litem=malloc(sizeof(struct listitem));
   litem->stackptr=ptr;
+  litem->locklist=pthread_getspecific(threadlocks);
   litem->prev=NULL;
   pthread_mutex_lock(&gclistlock);
   litem->next=list;
@@ -306,6 +312,7 @@ struct listitem * stopforgc(struct garbagelist * ptr) {
 
 void restartaftergc(struct listitem * litem) {
   pthread_mutex_lock(&gclistlock);
+  pthread_setspecific(threadlocks, litem->locklist);
   if (litem->prev==NULL) {
     list=litem->next;
   } else {

@@ -10,6 +10,7 @@ struct listitem {
   struct listitem * prev;
   struct listitem * next;
   struct garbagelist * stackptr;
+  struct ___Object___ * locklist;
 };
 
 #ifdef THREADS

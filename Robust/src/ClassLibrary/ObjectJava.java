@@ -1,5 +1,8 @@
 public class Object {
     public native int hashCode();
+    private Object nextlockobject;
+    private Object prevlockobject;
+
 
     /* DON'T USE THIS METHOD UNLESS NECESSARY */
     /* WE WILL DEPRECATE IT AS SOON AS INSTANCEOF WORKS */

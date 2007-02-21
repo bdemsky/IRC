@@ -124,6 +124,7 @@ public class BuildCode {
 	    outclassdefs.println("  int type;");
 	    if (state.THREAD) {
 		outclassdefs.println("  pthread_t tid;");
+		outclassdefs.println("  void * lockentry;");
 		outclassdefs.println("  int lockcount;");
 	    }
 		
@@ -729,6 +730,7 @@ public class BuildCode {
 	classdefout.println("  int type;");
 	if (state.THREAD) {
 	    classdefout.println("  pthread_t tid;");
+	    classdefout.println("  void * lockentry;");
 	    classdefout.println("  int lockcount;");
 	}
 

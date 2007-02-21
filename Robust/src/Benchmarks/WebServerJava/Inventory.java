@@ -18,7 +18,7 @@ public class Inventory {
 	}
 
 	// Add item to a list of inventory
-	public int additem(String name, int quantity, int price){
+	public synchronized int additem(String name, int quantity, int price){
 		ItemInfo newitem = new ItemInfo(quantity, price);
 		// Get the item from hash
 		if (map.containsKey(name) == false) {
@@ -33,7 +33,7 @@ public class Inventory {
 	}	
 
 	// Buy item from a given list of inventory	
-	public int buyitem(String name, int quantity){
+	public synchronized int buyitem(String name, int quantity){
 		if (map.containsKey(name) == false) {
 	//		System.printString("Error - Item does not exist");
 			return -1;
@@ -56,7 +56,7 @@ public class Inventory {
 	}
 
 	//Display the inventory list
-	public String inventory(){
+	public synchronized String inventory(){
 		HashMapIterator i = new HashMapIterator(map, 0);// Gets key from the hashmap= name of item
 		HashMapIterator j = new HashMapIterator(map, 1);//Gets the value from hashmap 
 		StringBuffer sb = new StringBuffer("");
