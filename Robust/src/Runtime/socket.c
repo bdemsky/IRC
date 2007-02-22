@@ -119,7 +119,6 @@ int CALL02(___ServerSocket______nativeaccept____L___Socket___,struct ___ServerSo
   restartaftergc(tmp);
 #endif
 #endif
-
   if (newfd<0) { 
 #ifdef DEBUG
     perror(NULL);
@@ -134,7 +133,6 @@ int CALL02(___ServerSocket______nativeaccept____L___Socket___,struct ___ServerSo
     exit(-1);
 #endif
 #endif
-
   }
 #ifdef TASK
   fcntl(newfd, F_SETFL, fcntl(fd, F_GETFL)|O_NONBLOCK);
@@ -142,10 +140,8 @@ int CALL02(___ServerSocket______nativeaccept____L___Socket___,struct ___ServerSo
   addreadfd(newfd);
   flagorand(VAR(___this___),0,0xFFFFFFFE);
 #endif
-
   return newfd;
 }
-
 
 void CALL02(___Socket______nativeWrite_____AR_B, struct ___Socket___ * ___this___, struct ArrayObject * ___b___) {
   int fd=VAR(___this___)->___fd___;
@@ -166,7 +162,9 @@ void CALL02(___Socket______nativeWrite_____AR_B, struct ___Socket___ * ___this__
 int CALL02(___Socket______nativeRead_____AR_B, struct ___Socket___ * ___this___, struct ArrayObject * ___b___) {
   int fd=VAR(___this___)->___fd___;
   int length=VAR(___b___)->___length___;
-  char * charstr=((char *)& VAR(___b___)->___length___)+sizeof(int);
+
+  char * charstr=malloc(length);
+  
 #ifdef THREADS
 #ifdef PRECISE_GC
   struct listitem *tmp=stopforgc((struct garbagelist *)___params___);
@@ -178,7 +176,16 @@ int CALL02(___Socket______nativeRead_____AR_B, struct ___Socket___ * ___this___,
   restartaftergc(tmp);
 #endif
 #endif
-  
+
+  {
+    int i;
+    for(i=0;i<byteread;i++) {
+      (((char *)& VAR(___b___)->___length___)+sizeof(int))[i]=charstr[i];
+    }
+    free(charstr);
+  }
+
+
   if (byteread<0) {
     printf("ERROR IN NATIVEREAD\n");
   }
