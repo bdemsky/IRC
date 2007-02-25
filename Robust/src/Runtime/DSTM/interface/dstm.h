@@ -68,6 +68,13 @@ int getObjSize(obj_header_t h);
 void createObject(unsigned short type); 
 /* end object header */
 
+/* Prototypes for hash*/
+void createHash(int);
+int hashkey(unsigned int);
+void addKey(unsigned int, obj_header_t *);
+obj_header_t *findKey(unsigned int);
+int removeKey(unsigned int);
+/* end for hash */
 
 
 /*
