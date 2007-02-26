@@ -2,6 +2,7 @@
 
 printhelp() {
 echo -check generate check code
+echo -dmalloc link in dmalloc
 echo -recover compile task code
 echo -specdir directory
 echo -debug generate debug symbols
@@ -21,6 +22,7 @@ REPAIRROOT=~/research/Repair/RepairCompiler/
 CURDIR=`pwd`
 CHECKFLAG=false
 RECOVERFLAG=false
+USEDMALLOC=false
 SPECDIR=`pwd`
 SRCFILES=''
 EXTRAOPTIONS=''
@@ -47,6 +49,9 @@ elif [[ $1 = '-mainclass' ]]
 then
 JAVAOPTS="$JAVAOPTS -mainclass $2"
 shift
+elif [[ $1 = '-dmalloc' ]]
+then
+USEDMALLOC=true
 elif [[ $1 = '-recover' ]]
 then
 RECOVERFLAG=true
@@ -172,6 +177,12 @@ EXTRAOPTIONS="$EXTRAOPTIONS -DCONSCHECK $BUILDDIR/specdir/*.o"
 INCLUDES="$INCLUDES -I$BUILDDIR/specdir"
 fi
 
+if $USEDMALLOC
+then
+EXTRAOPTIONS="$EXTRAOPTIONS -ldmalloc -DDMALLOC"
+fi
+
 gcc $INCLUDES $EXTRAOPTIONS -DPRECISE_GC \
 tmpbuilddirectory/methods.c $FILES -o $MAINFILE.bin
+
 exit
