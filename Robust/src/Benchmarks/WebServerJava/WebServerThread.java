@@ -190,15 +190,13 @@ public class WebServerThread extends Thread {
 	    int i1 = s.indexOf('_');
 	    parsed[0] = new String(s.subString(0,i1));
 	    
-	    String s1 = s.subString(i1+1);
-	    int i2 = s1.indexOf('_');
-	    parsed[1] = new String(s1.subString(0,i2));
+	    int i2 = s.indexOf('_',i1+1);
+	    parsed[1] = new String(s.subString(i1+1,i2));
 	    
-	    String s2 = s1.subString(i2+1);
-	    int i3 = s2.indexOf('_');
-	    parsed[2] = new String(s2.subString(0,i3));
+	    int i3 = s.indexOf('_',i2+1);
+	    parsed[2] = new String(s.subString(i2+1,i3));
 	    
-	    String s3 = s2.subString(i3+1);
+	    String s3 = s.subString(i3+1);
 	    parsed[3] = s3;
 	    
 	    return 0;
@@ -209,11 +207,10 @@ public class WebServerThread extends Thread {
 	    int i1 = s.indexOf('_');
 	    parsed[0] = s.subString(0,i1);
 	    
-	    String s1 = s.subString(i1+1);
-	    int i2 = s1.indexOf('_');
-	    parsed[1] = s1.subString(0,i2);
+	    int i2 = s.indexOf('_', i1+1);
+	    parsed[1] = s.subString(i1+1,i2);
 	    
-	    String s2 = s1.subString(i2+1);
+	    String s2 = s.subString(i2+1);
 	    parsed[2] = s2;
 	    
 	    parsed[3] = "";

@@ -95,51 +95,48 @@ public class WebServerSocket extends Socket {
 	//kind of operation, name of item, quantity of item, price of item
 	//e.g. trans_add_car_2_10000 is the filename
 	//store in the parsed[] string , add,car,2,1000
-	public int parseTransaction(){
-		int start = filename.indexOf('_');
-		String s = filename.subString(start+1);
-
-		if (s.startsWith("add")==true){
-	//		System.printString("DEBUG > ADD\n");
-			int i1 = s.indexOf('_');
-			parsed[0] = new String(s.subString(0,i1));
-
-			String s1 = s.subString(i1+1);
-			int i2 = s1.indexOf('_');
-			parsed[1] = new String(s1.subString(0,i2));
-			
-			String s2 = s1.subString(i2+1);
-			int i3 = s2.indexOf('_');
-			parsed[2] = new String(s2.subString(0,i3));
-			
-			String s3 = s2.subString(i3+1);
-			parsed[3] = s3;
-			
-			return 0;
-			
-		}
-		if (s.startsWith("buy")==true){
-	//		System.printString("DEBUG > BUY\n");
-			int i1 = s.indexOf('_');
-			parsed[0] = s.subString(0,i1);
-
-			String s1 = s.subString(i1+1);
-			int i2 = s1.indexOf('_');
-			parsed[1] = s1.subString(0,i2);
-			
-			String s2 = s1.subString(i2+1);
-			parsed[2] = s2;
-			
-			parsed[3] = "";
-		
-			return 1;
-		}
-		if (s.startsWith("inventory")==true){
-	//		System.printString("DEBUG > INVENTORY\n");
-			return 2;
-
-		}
-		// Error transaction
-		return -1;
+    public int parseTransaction(){
+	int start = filename.indexOf('_');
+	String s = filename.subString(start+1);
+	
+	if (s.startsWith("add")==true){
+	    //		System.printString("DEBUG > ADD\n");
+	    int i1 = s.indexOf('_');
+	    parsed[0] = new String(s.subString(0,i1));
+	    
+	    int i2 = s.indexOf('_',i1+1);
+	    parsed[1] = new String(s.subString(i1+1,i2));
+	    
+	    int i3 = s.indexOf('_',i2+1);
+	    parsed[2] = new String(s.subString(i2+1,i3));
+	    
+	    String s3 = s.subString(i3+1);
+	    parsed[3] = s3;
+	    
+	    return 0;
+	    
 	}
+	if (s.startsWith("buy")==true){
+	    //		System.printString("DEBUG > BUY\n");
+	    int i1 = s.indexOf('_');
+	    parsed[0] = s.subString(0,i1);
+	    
+	    int i2 = s.indexOf('_', i1+1);
+	    parsed[1] = s.subString(i1+1,i2);
+	    
+	    String s2 = s.subString(i2+1);
+	    parsed[2] = s2;
+	    
+	    parsed[3] = "";
+	    
+	    return 1;
+	}
+	if (s.startsWith("inventory")==true){
+	    //		System.printString("DEBUG > INVENTORY\n");
+	    return 2;
+	    
+	}
+	// Error transaction
+	return -1;
+    }
 }

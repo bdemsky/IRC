@@ -2,6 +2,7 @@ public class String {
     char value[];
     int count;
     int offset;
+    private int cachedHashcode;
 
     private String() {
     }
@@ -154,9 +155,12 @@ public class String {
     }
 
     public int hashCode() {
+	if (cachedHashcode!=0)
+	    return cachedHashcode;
 	int hashcode=0;
 	for(int i=0;i<count;i++)
 	    hashcode=hashcode*31+value[i+offset];
+	cachedHashcode=hashcode;
 	return hashcode;
     }
 

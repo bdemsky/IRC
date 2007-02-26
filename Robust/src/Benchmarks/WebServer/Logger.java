@@ -6,7 +6,7 @@ public class Logger {
 
     //Constructor
     public Logger(){
-	fos=new FileOutputStream("../../Tests/htmlfiles/request.log");//Open request.log file 
+	fos=new FileOutputStream("request.log");//Open request.log file 
     }
 
     //Logs filename as per client requests

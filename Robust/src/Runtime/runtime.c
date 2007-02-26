@@ -415,7 +415,6 @@ void injectinstructionfailure() {
   if (injectinstructionfailures) {
     if (numfailures==0)
       return;
-    instructioncount=failurecount;    
     instaccum+=failurecount;
     if ((((double)random())/RAND_MAX)<instfailurechance) {
       if (numfailures>0)

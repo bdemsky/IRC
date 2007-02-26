@@ -212,12 +212,16 @@ void collect(struct garbagelist * stackptr) {
   {
     struct genpointerlist * ptr=failedtasks->list;
     while(ptr!=NULL) {
-      void *orig=ptr->src;
+      struct taskparamdescriptor *tpd=ptr->src;
+      void *orig;
       void *copy;
-      if (gc_createcopy(orig, &copy))
-	enqueue(orig);
-      ptr->src=copy;
-      ptr->object=copy;
+      int i;
+      for(i=0;i<tpd->numParameters;i++) {
+	orig=tpd->parameterArray[i];
+	if (gc_createcopy(orig, &copy))
+	  enqueue(orig);
+	tpd->parameterArray[i]=copy;
+      }
       ptr=ptr->inext;
     }
     genrehash(failedtasks);

@@ -5,11 +5,12 @@ public class Inventory {
     // Transaction variables
     int numitems;
     HashMap map;
-    int balance=100000;
+    int balance;
     
     // Constructor
     public Inventory(){
 	map = new HashMap();
+	balance=100000;
     }
     
     public Inventory(int howmany) {
@@ -80,7 +81,7 @@ public class Inventory {
 	    totalvalue+=oo.quantity*oo.price;
 	}
 	sb.append("Total value: ");
-	sb.append(new Integer(totalvalue));
+	sb.append((new Integer(totalvalue)).toString());
 	sb.append("\n");
 	return sb.toString();	
     }	

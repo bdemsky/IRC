@@ -3,6 +3,7 @@
 #include <setjmp.h>
 extern jmp_buf error_handler;
 extern int instructioncount;
+extern int failurecount;
 
 #ifdef PRECISE_GC
 #include "garbage.h"

@@ -956,7 +956,11 @@ public class BuildCode {
 	    if (nodetolabel.containsKey(current_node))
 		output.println("L"+nodetolabel.get(current_node)+":");
 	    if (state.INSTRUCTIONFAILURE) {
-		output.println("if ((--instructioncount)==0) injectinstructionfailure();");
+		if (state.THREAD) {
+		    output.println("if ((++instructioncount)>failurecount) {instructioncount=0;injectinstructionfailure();}");
+		}
+		else
+		    output.println("if ((--instructioncount)==0) injectinstructionfailure();");
 	    }
 	    if (current_node.numNext()==0) {
 		output.print("   ");
