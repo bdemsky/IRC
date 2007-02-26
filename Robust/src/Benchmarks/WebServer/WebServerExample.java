@@ -101,8 +101,7 @@ task Transaction(WebServerSocket web{TransPending}, Inventory inventorylist{Tran
 	} else if (op == 2) { /* Inventory */
 //		System.printString("DEBUG > Calling inventory transaction\n");
 		web.httpresponse();
-		String towrite = inventorylist.inventory();	
-		web.write(towrite.getBytes());
+		inventorylist.inventory(web);	
 	} else { /* Error */ 
 //		System.printString("T > Error - Unknown transaction\n");
 	}

@@ -24,6 +24,7 @@
 extern struct Queue * activetasks;
 extern struct parameterwrapper * objectqueues[NUMCLASSES];
 extern struct genhashtable * failedtasks;
+extern struct taskparamdescriptor *currtpd;
 extern struct RuntimeHash *forward;
 extern struct RuntimeHash *reverse;
 extern struct RuntimeHash *fdtoobject;
@@ -194,6 +195,18 @@ void collect(struct garbagelist * stackptr) {
     }
   }
 
+  {
+    /* Update current task descriptor */
+    int i;
+    for(i=0;i<currtpd->numParameters;i++) {
+      void *orig=currtpd->parameterArray[i];
+      void *copy;
+      if (gc_createcopy(orig, &copy))
+	enqueue(orig);
+      currtpd->parameterArray[i]=copy;
+    }
+
+  }
 
   {
     /* Update active tasks */
@@ -216,11 +229,10 @@ void collect(struct garbagelist * stackptr) {
     struct genpointerlist * ptr=failedtasks->list;
     while(ptr!=NULL) {
       struct taskparamdescriptor *tpd=ptr->src;
-      void *orig;
-      void *copy;
       int i;
       for(i=0;i<tpd->numParameters;i++) {
-	orig=tpd->parameterArray[i];
+	void * orig=tpd->parameterArray[i];
+	void * copy;
 	if (gc_createcopy(orig, &copy))
 	  enqueue(orig);
 	tpd->parameterArray[i]=copy;

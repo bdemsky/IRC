@@ -154,16 +154,21 @@ void * createcopy(void * orig) {
 
 void restorecheckpoint(int numparams, void ** original, void ** checkpoint, struct RuntimeHash *forward, struct RuntimeHash * reverse) {
   struct RuntimeHash *todo=allocateRuntimeHash(100);
+  struct RuntimeHash *visited=allocateRuntimeHash(100);
   int i;
 
   for(i=0;i<numparams;i++) {
-    RuntimeHashadd(todo, (int) checkpoint[i], (int) checkpoint[i]);
+    if (checkpoint[i]!=NULL) {
+      RuntimeHashadd(todo, (int) checkpoint[i], (int) checkpoint[i]);
+      RuntimeHashadd(visited, (int) checkpoint[i], (int) checkpoint[i]);
+    }
   }
-
+  
   while(RuntimeHashcountset(todo)!=0) {
     void * ptr=(void *) RuntimeHashfirstkey(todo);
     int type=((int *)ptr)[0];
     RuntimeHashremove(todo, (int) ptr, (int) ptr);
+
     {
       void *cpy;
       int *pointer;
@@ -192,8 +197,13 @@ void restorecheckpoint(int numparams, void ** original, void ** checkpoint, stru
 	  void *objptr=((void **)(((char *)& ao->___length___)+sizeof(int)))[i];
 	  if (objptr==NULL)
 	    ((void **)(((char *)& ao_cpy->___length___)+sizeof(int)))[i]=NULL;
-	  else
+	  else {
+	    if (!RuntimeHashcontainskey(visited, (int) objptr)) {
+	      RuntimeHashadd(visited, (int) objptr, (int) objptr);
+	      RuntimeHashadd(todo, (int) objptr, (int) objptr);
+	    }
 	    RuntimeHashget(reverse, (int) objptr, (int *) &((void **)(((char *)& ao_cpy->___length___)+sizeof(int)))[i]);
+	  }
 	}
       } else {
 	int numptr=pointer[0];
@@ -208,8 +218,13 @@ void restorecheckpoint(int numparams, void ** original, void ** checkpoint, stru
 	  void * objptr=*((void **)(((int)ptr)+offset));
 	  if (objptr==NULL)
 	    *((void **) (((int)cpy)+offset))=NULL;
-	  else
+	  else {
+	    if (!RuntimeHashcontainskey(visited, (int) objptr)) {
+	      RuntimeHashadd(visited, (int) objptr, (int) objptr);
+	      RuntimeHashadd(todo, (int) objptr, (int) objptr);
+	    }
 	    RuntimeHashget(reverse, (int) objptr, (int *) &(((char *)cpy)[offset]));
+	  }
 	}
 	if (hasflags[type]) {
 	  (((void **)cpy)[2])=flagptr;
@@ -219,4 +234,5 @@ void restorecheckpoint(int numparams, void ** original, void ** checkpoint, stru
     }
   }
   freeRuntimeHash(todo);
+  freeRuntimeHash(visited);
 }

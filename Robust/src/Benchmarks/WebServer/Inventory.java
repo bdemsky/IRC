@@ -61,28 +61,31 @@ public class Inventory {
     }
 
     //Display the inventory list
-    public String inventory(){
-	HashMapIterator i = new HashMapIterator(map, 0);// Gets key from the hashmap= name of item
-	HashMapIterator j = new HashMapIterator(map, 1);//Gets the value from hashmap 
-	StringBuffer sb = new StringBuffer("");
+    //Display the inventory list
+    public synchronized void inventory(Socket s){
+        HashMapIterator i = new HashMapIterator(map, 0);// Gets key from the hashmap= name of item
+        HashMapIterator j = new HashMapIterator(map, 1);//Gets the value from hashmap 
 	int totalvalue=balance;
-	while (i.hasNext() == true) {
-	    Object o = i.next();
-	    String name = o.toString();
-	    ItemInfo oo = (ItemInfo) j.next();
-	    sb.append(name);
-	    sb.append(" ");
-	    Integer q = new Integer(oo.quantity);
-	    sb.append(q.toString());
-	    sb.append(" ");
-	    Integer p = new Integer(oo.price);
-	    sb.append(p.toString());
-	    sb.append("\n");
-	    totalvalue+=oo.quantity*oo.price;
-	}
-	sb.append("Total value: ");
-	sb.append((new Integer(totalvalue)).toString());
-	sb.append("\n");
-	return sb.toString();	
-    }	
+        while (i.hasNext() == true) {
+            StringBuffer sb = new StringBuffer("");
+            Object o = i.next();
+            String name = o.toString();
+            ItemInfo oo = (ItemInfo) j.next();
+            sb.append(name);
+            sb.append(" ");
+            Integer q = new Integer(oo.quantity);
+            sb.append(q.toString());
+            sb.append(" ");
+            Integer p = new Integer(oo.price);
+            sb.append(p.toString());
+            sb.append("\n");
+            totalvalue+=oo.quantity*oo.price;
+            s.write(sb.toString().getBytes());
+        }
+        StringBuffer sb=new StringBuffer("");
+        sb.append("Total value: ");
+        sb.append((new Integer(totalvalue)).toString());
+        sb.append("\n");
+        s.write(sb.toString().getBytes());
+    }   
 }

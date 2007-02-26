@@ -41,6 +41,7 @@ int instaccum=0;
 struct Queue * activetasks;
 struct parameterwrapper * objectqueues[NUMCLASSES];
 struct genhashtable * failedtasks;
+struct taskparamdescriptor * currtpd;
 struct RuntimeHash * forward;
 struct RuntimeHash * reverse;
 
@@ -120,10 +121,12 @@ int comparetpd(struct taskparamdescriptor *ftd1, struct taskparamdescriptor *ftd
    with the or mask and and's it with the andmask. */
 
 void flagorand(void * ptr, int ormask, int andmask) {
-  int flag=((int *)ptr)[1];
+  int oldflag=((int *)ptr)[1];
   struct RuntimeHash *flagptr=(struct RuntimeHash *)(((int*)ptr)[2]);
-  flag|=ormask;
+  int flag=ormask|oldflag;
   flag&=andmask;
+  if (flag==oldflag) /* Don't do anything */
+    return;
   ((int*)ptr)[1]=flag;
 
   /*Remove object from all queues */
@@ -182,7 +185,11 @@ void flagorand(void * ptr, int ormask, int andmask) {
 	      /* Queue task */
 	      if (!gencontains(failedtasks, tpd))
 		addNewItem(activetasks, tpd);
-	      
+	      else {
+		RUNFREE(tpd->parameterArray);
+		RUNFREE(tpd);
+	      }
+
 	      /* This loop iterates to the next parameter combination */
 	      for(j=0;j<numparams;j++) {
 		if (j==newindex) {
@@ -261,6 +268,7 @@ void executetasks() {
   sigaction(SIGBUS,&sig,0);
   sigaction(SIGSEGV,&sig,0);
   sigaction(SIGFPE,&sig,0);
+  sigaction(SIGPIPE,&sig,0);
 
   /* Zero fd set */
   FD_ZERO(&readfds);
@@ -300,27 +308,34 @@ void executetasks() {
     if (!isEmpty(activetasks)) {
       int i;
       struct QueueItem * qi=(struct QueueItem *) getTail(activetasks);
-      struct taskparamdescriptor *tpd=(struct taskparamdescriptor *) qi->objectptr;
+      currtpd=(struct taskparamdescriptor *) qi->objectptr;
       removeItem(activetasks, qi);
 
       /* Check if this task has failed */
-      if (gencontains(failedtasks, tpd))
+      if (gencontains(failedtasks, currtpd)) {
+	// Free up task parameter descriptor
+	RUNFREE(currtpd->parameterArray);
+	RUNFREE(currtpd);
 	goto newtask;
+      }
       
       /* Make sure that the parameters are still in the queues */
-      for(i=0;i<tpd->task->numParameters;i++) {
-	void * parameter=tpd->parameterArray[i];
-	struct parameterdescriptor * pd=tpd->task->descriptorarray[i];
+      for(i=0;i<currtpd->task->numParameters;i++) {
+	void * parameter=currtpd->parameterArray[i];
+	struct parameterdescriptor * pd=currtpd->task->descriptorarray[i];
 	struct parameterwrapper *pw=(struct parameterwrapper *) pd->queue;
-	if (!RuntimeHashcontainskey(pw->objectset, (int) parameter))
+	if (!RuntimeHashcontainskey(pw->objectset, (int) parameter)) {
+	  RUNFREE(currtpd->parameterArray);
+	  RUNFREE(currtpd);
 	  goto newtask;
+	}
 	taskpointerarray[i+OFFSET]=parameter;
       }
       {
 	/* Checkpoint the state */
 	forward=allocateRuntimeHash(100);
 	reverse=allocateRuntimeHash(100);
-	void ** checkpoint=makecheckpoint(tpd->task->numParameters, &taskpointerarray[OFFSET], forward, reverse);
+	void ** checkpoint=makecheckpoint(currtpd->task->numParameters, currtpd->parameterArray, forward, reverse);
 	int x;
 	if (x=setjmp(error_handler)) {
 	  /* Recover */
@@ -328,8 +343,8 @@ void executetasks() {
 #ifdef DEBUG
 	  printf("Fatal Error=%d, Recovering!\n",x);
 #endif
-	  genputtable(failedtasks,tpd,tpd);
-	  restorecheckpoint(tpd->task->numParameters, &taskpointerarray[OFFSET], checkpoint, forward, reverse);
+	  genputtable(failedtasks,currtpd,currtpd);
+	  restorecheckpoint(currtpd->task->numParameters, currtpd->parameterArray, checkpoint, forward, reverse);
 	  freeRuntimeHash(forward);
 	  freeRuntimeHash(reverse);
 	  freemalloc();
@@ -338,25 +353,28 @@ void executetasks() {
 	} else {
 	  if (injectfailures) {
 	    if ((((double)random())/RAND_MAX)<failurechance) {
-	      printf("\nINJECTING TASK FAILURE to %s\n", tpd->task->name);
+	      printf("\nINJECTING TASK FAILURE to %s\n", currtpd->task->name);
 	      longjmp(error_handler,10);
 	    }
 	  }
 	  /* Actually call task */
 #ifdef PRECISE_GC
-	  ((int *)taskpointerarray)[0]=tpd->task->numParameters;
+	  ((int *)taskpointerarray)[0]=currtpd->task->numParameters;
 	  taskpointerarray[1]=NULL;
 #endif
 
 	  if (debugtask) {
-	    printf("ENTER %s count=%d\n",tpd->task->name, (instaccum-instructioncount));
-	    ((void (*) (void **)) tpd->task->taskptr)(taskpointerarray);
-	    printf("EXIT %s count=%d\n",tpd->task->name, (instaccum-instructioncount));
+	    printf("ENTER %s count=%d\n",currtpd->task->name, (instaccum-instructioncount));
+	    ((void (*) (void **)) currtpd->task->taskptr)(taskpointerarray);
+	    printf("EXIT %s count=%d\n",currtpd->task->name, (instaccum-instructioncount));
 	  } else
-	    ((void (*) (void **)) tpd->task->taskptr)(taskpointerarray);
+	    ((void (*) (void **)) currtpd->task->taskptr)(taskpointerarray);
 	  freeRuntimeHash(forward);
 	  freeRuntimeHash(reverse);
 	  freemalloc();
+	  // Free up task parameter descriptor
+	  RUNFREE(currtpd->parameterArray);
+	  RUNFREE(currtpd);
 	  forward=NULL;
 	  reverse=NULL;
 	}

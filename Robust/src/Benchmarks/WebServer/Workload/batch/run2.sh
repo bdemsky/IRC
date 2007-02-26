@@ -7,7 +7,7 @@ rm output #Errors and total number of run count are redirected to this file
 #Sets the BRISTLECONE parameter with a certain instruction count, probability and 
 #number of failures that can be injected
 #export BRISTLECONE="-initializerandom -injectinstructionfailures 10 0.00001667 1 -debugtask"
-export BRISTLECONE="-initializerandom -injectinstructionfailures 35 0.00001667 50 -debugtask"
+export BRISTLECONE="-initializerandom -injectinstructionfailures 35 0.00001667 50"
 rm -rf results
 mkdir results
 cd results
