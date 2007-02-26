@@ -95,7 +95,7 @@ public class Main {
 
       BuildFlat bf=new BuildFlat(state,tu);
       bf.buildFlat();
-      
+
       BuildCode bc=new BuildCode(state, bf.getMap(), tu);
       bc.buildCode();
       System.exit(0);
