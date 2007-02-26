@@ -7,8 +7,9 @@
 
 #include "GenericHashtable.h"
 #include "mem.h"
-//#include "dmalloc.h"
-
+#ifdef DMALLOC
+#include "dmalloc.h"
+#endif
 
 int genputtable(struct genhashtable *ht, void * key, void * object) {
   unsigned int bin=genhashfunction(ht,key);

@@ -1,5 +1,8 @@
 #include "SimpleHash.h"
 #include <stdio.h>
+#ifdef DMALLOC
+#include "dmalloc.h"
+#endif
 
 /* SIMPLE HASH ********************************************************/
 struct RuntimeIterator* RuntimeHashcreateiterator(struct RuntimeHash * thisvar) {
@@ -34,7 +37,7 @@ void freeRuntimeHash(struct RuntimeHash *thisvar) {
     struct RuntimeNode *ptr=thisvar->listhead;
     RUNFREE(thisvar->bucket);
     while(ptr) {
-        struct RuntimeNode *next=ptr->next;
+        struct RuntimeNode *next=ptr->lnext;
         RUNFREE(ptr);
         ptr=next;
     }

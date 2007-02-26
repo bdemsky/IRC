@@ -2,6 +2,9 @@
 #include "runtime.h"
 #include "structdefs.h"
 #include <string.h>
+#ifdef DMALLOC
+#include "dmalloc.h"
+#endif
 
 #define MALLOCSIZE 20*1024
 

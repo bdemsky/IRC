@@ -8,6 +8,9 @@
 #ifdef THREADS
 #include "thread.h"
 #endif
+#ifdef DMALLOC
+#include "dmalloc.h"
+#endif
 
 
 #define NUMPTRS 100
