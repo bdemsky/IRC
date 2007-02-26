@@ -91,8 +91,7 @@ public class WebServerThread extends Thread {
 	} else if (op == 2) { /* Inventory */
 	    //		System.printString("DEBUG > Calling inventory transaction\n");
 	    httpresponse();
-	    String towrite = inventorylist.inventory();	
-	    sock.write(towrite.getBytes());
+	    inventorylist.inventory(sock);	
 	} else { /* Error */ 
 	    //		System.printString("T > Error - Unknown transaction\n");
 	}

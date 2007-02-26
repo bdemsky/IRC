@@ -61,12 +61,12 @@ public class Inventory {
     }
 
     //Display the inventory list
-    public synchronized String inventory(){
+    public synchronized void inventory(Socket s){
 	HashMapIterator i = new HashMapIterator(map, 0);// Gets key from the hashmap= name of item
 	HashMapIterator j = new HashMapIterator(map, 1);//Gets the value from hashmap 
-	StringBuffer sb = new StringBuffer("");
 	int totalvalue=balance;
 	while (i.hasNext() == true) {
+	    StringBuffer sb = new StringBuffer("");
 	    Object o = i.next();
 	    String name = o.toString();
 	    ItemInfo oo = (ItemInfo) j.next();
@@ -79,10 +79,12 @@ public class Inventory {
 	    sb.append(p.toString());
 	    sb.append("\n");
 	    totalvalue+=oo.quantity*oo.price;
+	    s.write(sb.toString().getBytes());
 	}
+	StringBuffer sb=new StringBuffer("");
 	sb.append("Total value: ");
 	sb.append((new Integer(totalvalue)).toString());
 	sb.append("\n");
-	return sb.toString();	
+	s.write(sb.toString().getBytes());
     }	
 }

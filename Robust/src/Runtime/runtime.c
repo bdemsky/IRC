@@ -406,7 +406,7 @@ void injectinstructionfailure() {
     if ((((double)random())/RAND_MAX)<instfailurechance) {
       if (numfailures>0)
 	numfailures--;
-      printf("FAILURE!!!\n");
+      printf("FAILURE!!! %d\n",numfailures);
       longjmp(error_handler,11);
     }
   }
@@ -419,7 +419,7 @@ void injectinstructionfailure() {
     if ((((double)random())/RAND_MAX)<instfailurechance) {
       if (numfailures>0)
 	numfailures--;
-      printf("FAILURE!!!\n");
+      printf("FAILURE!!! %d\n",numfailures);
       threadexit();
     }
   }
