@@ -1,8 +1,7 @@
 #include "dstm.h"
 
 obj_store_t *obj_begin; 		// points to the first location of the object store linked list
-obj_listnode_t **hash;			// points to beginning of hash table
-unsigned int hash_size;			// number of entries in hash table
+//unsigned int hash_size;			// number of entries in hash table
 
 extern int classsize[];
 
@@ -10,8 +9,6 @@ extern int classsize[];
 // Initializes the pointers...currently invoked inside main()
 void dstm_init(void) {
 	obj_begin = NULL;
-	hash = NULL;
-	hash_size = 0;
 	return;
 }
 // Create a new object store of a given "size"  as a linked list
@@ -28,9 +25,11 @@ void create_objstr(unsigned int size) {
 		exit(-1);
 	}
 	tmp->size = size;
+	printf("The object store size is : %d\n", tmp->size);
 	tmp->top = tmp->base;
 	tmp->id = id++;
-	tmp->next = obj_begin;
+	printf("The object store id is : %d\n", tmp->id);
+	tmp->next = obj_begin;		//adds new object store to the linked list and updates obj_begin pointer to new object store node
 	obj_begin = tmp;
 	return;
 }
@@ -56,21 +55,25 @@ int get_newID(void) {
 }
 // Insert the object header and object into the object store
 int insertObject(obj_header_t h) {
+	extern obj_addr_table_t mlut;		//declared in the main mlut=>machine look up table
 	unsigned int left, req;  		// Keeps track of the space available in the current object store
 	obj_header_t *header;
-
+	
 	left = obj_begin->size - (obj_begin->top - obj_begin->base);
 	req = getObjSize(h) + sizeof(obj_header_t);
 	if (req < left) {
 		memcpy(obj_begin->top, &h, sizeof(obj_header_t));
 		header = (obj_header_t *) obj_begin->top;
-		obj_begin->top = obj_begin->top + sizeof(obj_header_t) + getObjSize(h);
+		printf("The header points to : %d\n", header);
+		obj_begin->top = obj_begin->top + sizeof(obj_header_t) + getObjSize(h); //increment object store top when new object is inserted
+		printf("Top now points to :%d\n", obj_begin->top);
 	} else {
 		return -1;
 	}
-	//TODO Update obj_addr_table
-	addKey(h.oid, header);
-
+	printf("header: %d\n", header);
+	printf("The oid is : %d\n", h.oid);
+	addKey(h.oid, header, &mlut);			//Update obj_addr_table
+	printf("Object id = %d\n",h.oid);
 	return 0;
 }
 // Get the size of the object for a given type
@@ -91,53 +94,75 @@ void createObject(unsigned short type) {
 /* END object header */
 
 /* BEGIN hash*/
-
-//hash table is an array of pointers that point to the beginning of a obj_listnode_t DS
+//obj_addr_table is a generic hash table structure
+//hash is an array of pointers that point to the beginning of a obj_listnode_t DS
 // "size" in hash table is the no of indices in the hash table  and each index points to a pointer for an object_header  
-void createHash(int size)  {
+void createHash(obj_addr_table_t *table, int size, float loadfactor)  {
 	int i;
 
-	if ((hash = (obj_listnode_t **) malloc(sizeof(obj_listnode_t *)*size)) == NULL) {
+	if ((table->hash = (obj_listnode_t **) malloc(sizeof(obj_listnode_t *)*size)) == NULL) {
 		printf("Malloc error %s %d\n", __FILE__, __LINE__);
 		exit(-1);
 	}
 	for (i = 0; i < size; i++) {		// initialize the hash elements
-		hash[i] = NULL;
+		table->hash[i] = NULL;
 	}
-	hash_size = size;
+
+	table->size = size;
+	table->numelements = 0;
+	table->loadfactor = loadfactor;
+	
 	return;
 }
 
+// Hash Resize
+void resize(obj_addr_table_t * table){
+	int newCapacity = 2*(table->size) + 1;
+	obj_listnode_t **old;
+	//if ((table->hash = (obj_listnode_t **) malloc(sizeof(obj_listnode_t *)*size)) == NULL) {
+}
+
 // Hashing for the Key
-int hashkey(unsigned int oid) {
-	//TODO: Design a better hash function
-//	return (hash_size % oid);
-	return (oid % hash_size);
+int hashKey(unsigned int oid, obj_addr_table_t *table) {
+	// hash32shiftmult
+	int c2=0x27d4eb2d; // a prime or an odd constant
+	oid = (oid ^ 61) ^ (oid >> 16);
+	oid = oid + (oid << 3);
+	oid = oid ^ (oid >> 4);
+	oid = oid * c2;
+	oid = oid ^ (oid >> 15);
+	printf("The bucket number is %d\n", oid % (table->size));
+	return (oid % (table->size));
 }
 
 //Add oid and its address to the new ob_listnode_t 
-void addKey(unsigned int oid, obj_header_t *ptr) {
+void addKey(unsigned int oid, obj_header_t *ptr, obj_addr_table_t *table) {
 	int index;
 	obj_listnode_t *node;
+	
+	table->numelements++;
+	if(table->numelements > (table->loadfactor * table->size)){
+	//TODO : check if table is nearly full and then resize
+	}
 
-	index = hashkey(oid);
+	index = hashKey(oid,table);
 	if ((node = (obj_listnode_t *) malloc(sizeof(obj_listnode_t))) == NULL) {
 		printf("Malloc error %s %d\n", __FILE__, __LINE__);
 		exit(-1);
 	}
 	node->oid = oid;
 	node->object = ptr; 
-	node->next = hash[index];
-	hash[index] = node;
+	node->next = table->hash[index];
+	table->hash[index] = node;
 	return;
 }
 // Get the address of the object header for a given oid
-obj_header_t *findKey(unsigned int oid) {
+obj_header_t *findKey(unsigned int oid, obj_addr_table_t *table) {
 	int index;
 	obj_listnode_t *ptr;
 
-	index = hashkey(oid);
-	ptr = hash[index];
+	index = hashKey(oid,table);
+	ptr = table->hash[index];
 	while(ptr != NULL) {
 		if (ptr->oid == oid) {
 			return ptr->object;
@@ -147,17 +172,18 @@ obj_header_t *findKey(unsigned int oid) {
 	return NULL;
 }
 // Remove the pointer to the object header from a linked list of obj_listnode_t given an oid
-int removeKey(unsigned int oid) {
+int removeKey(unsigned int oid, obj_addr_table_t *table) {
 	int index;
 	obj_listnode_t *curr, *prev;		// prev points to previous node and curr points to the node to be deleted
 
-	index = hashKey(oid);
-	prev = curr = hash[index];
+	index = hashKey(oid,table);
+	prev = curr = table->hash[index];
 	for (; curr != NULL; curr = curr->next) {
 		if (curr->oid == oid) {		// Find a match in the hash table
+			table->numelements--;
 			prev->next = curr->next;
-			if (hash[index] == curr) { // Special case when there is one element pointed by  the hash table
-				hash[index] = NULL;
+			if (table->hash[index] == curr) { // Special case when there is one element pointed by  the hash table
+				table->hash[index] = NULL;
 			}
 			free(curr);
 			return 0;

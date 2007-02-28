@@ -5,6 +5,9 @@
 #include <stdio.h>
 #include <string.h>
 
+#define LOADFACTOR 0.75
+#define HASH_SIZE 100
+
 enum status {CLEAN, DIRTY};
 
 typedef struct obj_header {
@@ -31,10 +34,19 @@ typedef struct obj_lnode{
 	struct obj_lnode *next;
 } obj_listnode_t;
 
+/*
 typedef struct obj_addr_table {
 	unsigned int size; 	//number of elements, not bytes
 	obj_listnode_t *table; 	//this should point to an array of object lists, of the specified size
 } obj_addr_table_t;
+*/
+
+typedef struct hash_table {
+	obj_listnode_t **hash;	// points to beginning of hash table
+	float loadfactor;
+	unsigned int numelements;
+	unsigned int size;
+}obj_addr_table_t;
 
 typedef struct trans_record {
 	obj_listnode_t *obj_list;
@@ -69,11 +81,12 @@ void createObject(unsigned short type);
 /* end object header */
 
 /* Prototypes for hash*/
-void createHash(int);
-int hashkey(unsigned int);
-void addKey(unsigned int, obj_header_t *);
-obj_header_t *findKey(unsigned int);
-int removeKey(unsigned int);
+void createHash(obj_addr_table_t *, int , float);
+void resize(obj_addr_table_t * table);
+int hashkey(unsigned int, obj_addr_table_t *);
+void addKey(unsigned int, obj_header_t *, obj_addr_table_t *);
+obj_header_t *findKey(unsigned int,obj_addr_table_t *);
+int removeKey(unsigned int, obj_addr_table_t *);
 /* end for hash */
 
 
