@@ -35,7 +35,6 @@ void dstmInit(void);
 unsigned int getNewOID(void);
 unsigned int objSize(objheader_t *object);
 void objInsert(objheader_t *object); //copies object to main object store
-unsigned int objCreate(unsigned short type); //returns oid
 /* end object header */
 
 /* Prototypes for object store */
@@ -52,6 +51,7 @@ void *dstmAccept(void *);
 /* Prototypes for transactions */
 transrecord_t *transStart();
 objheader_t *transRead(transrecord_t *record, unsigned int oid);
+objheader_t *transCreateObj(transrecort_t *record, unsigned short type); //returns oid
 int transCommit(transrecord_t *record); //return 0 if successful
 /* end transactions */
 
