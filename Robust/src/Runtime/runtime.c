@@ -24,7 +24,9 @@ int failurecount;
 float instfailurechance=0;
 int numfailures;
 int instaccum=0;
-
+#ifdef DMALLOC
+#include "dmalloc.h"
+#endif
 
 
 #ifdef TASK

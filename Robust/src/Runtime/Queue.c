@@ -1,5 +1,8 @@
 #include "mem.h"
 #include "Queue.h"
+#ifdef DMALLOC
+#include "dmalloc.h"
+#endif
 
 struct Queue * createQueue() {
   return RUNMALLOC(sizeof(struct Queue));
