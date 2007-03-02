@@ -160,7 +160,7 @@ public class WebServerThread extends Thread {
 	    int index = prefix.indexOf('/');//Parse the GET client request to find filename
 	    int end = prefix.indexOf('H');
 	    filename = prefix.subString((index+1), (end-1));
-	    System.printString("\n");
+	    //	    System.printString("\n");
 	    return true;
 	}
 	return false;

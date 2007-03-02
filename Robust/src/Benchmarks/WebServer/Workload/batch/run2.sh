@@ -11,13 +11,13 @@ export BRISTLECONE="-initializerandom -injectinstructionfailures 35 0.00001667 5
 rm -rf results
 mkdir results
 cd results
-while [ $i -le 299 ]; # The number of runs 
+while [ $i -le 201 ]; # The number of runs 
   do
   mkdir trial$i
   cd trial$i
   let errorcount=0
   let count=0
-  ../../trans.bin & #Launch server executable in background
+  ../../trans.bin &> log & #Launch server executable in background
   sleep 2;
   ../../Workload/workload 127.0.0.1 2>/dev/null & #Run the first workload
   echo $i >> ../output;
@@ -54,7 +54,7 @@ echo Errorcount=$errorcount >> ../output
 let "i+=1";
 process=`ps | grep workload | grep -v grep | awk '{print $1}'`
 kill -9 $process
-ps | grep trans | grep -v grep | awk '{print $1}' | xargs kill -9 #Kill the server 
+ps | grep trans | grep -v grep | awk '{print $1}' | xargs kill #Kill the server 
 sleep 1;
 cd ..
 done

@@ -75,7 +75,6 @@ public class WebServerSocket extends Socket {
 		    int index = prefix.indexOf('/');//Parse the GET client request to find filename
 		    int end = prefix.indexOf('H');
 		    filename = prefix.subString((index+1), (end-1));
-		    System.printString("\n");
 		    return true;
 		}
 		return false;
