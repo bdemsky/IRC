@@ -17,8 +17,7 @@ typedef struct objheader {
 } objheader_t;
 
 typedef struct objstr {
-	void *base;
-	unsigned int size;
+	unsigned int size; //this many bytes are allocated after this header
 	void *top;
 	struct objstr *next;
 } objstr_t;
@@ -51,7 +50,7 @@ void *dstmAccept(void *);
 /* Prototypes for transactions */
 transrecord_t *transStart();
 objheader_t *transRead(transrecord_t *record, unsigned int oid);
-objheader_t *transCreateObj(transrecort_t *record, unsigned short type); //returns oid
+objheader_t *transCreateObj(transrecord_t *record, unsigned short type); //returns oid
 int transCommit(transrecord_t *record); //return 0 if successful
 /* end transactions */
 
