@@ -23,6 +23,7 @@ unsigned int lhashFunction(lhashtable_t table, unsigned int oid) {
 	return( oid % (table.size));
 }
 
+// Insert oid and mid mapping into the hash table
 void lhashInsert(lhashtable_t table, unsigned int oid, unsigned int mid) {
 	unsigned int newsize;
 	int index;
@@ -38,10 +39,10 @@ void lhashInsert(lhashtable_t table, unsigned int oid, unsigned int mid) {
 	}
 	
 	index = lhashFunction(table, oid);
-	if(ptr[index].next == NULL) {
+	if(ptr[index].next == NULL) {	// Insert at the first position
 		ptr[index].oid = oid;
 		ptr[index].mid = mid;
-	} else {
+	} else {			// Insert in the linked list
 		if ((node = calloc(1, sizeof(lhashlistnode_t))) == NULL) {
 			printf("Calloc error %s, %d\n", __FILE__, __LINE__);
 			exit(-1);
@@ -53,12 +54,13 @@ void lhashInsert(lhashtable_t table, unsigned int oid, unsigned int mid) {
 	}
 }
 
+// Search for a value in the hash table
 int lhashSearch(lhashtable_t table, unsigned int oid) {
 	int index;
 	lhashlistnode_t *ptr;
 	lhashlistnode_t *tmp;
 
-	ptr = table.table;	
+	ptr = table.table;	// Address of the beginning of hash table	
 	index = lhashFunction(table, oid);
 	tmp = ptr[index].next;
 	while(tmp != NULL) {
@@ -70,22 +72,7 @@ int lhashSearch(lhashtable_t table, unsigned int oid) {
 	return -1;
 }
 
-/*
-int lhashRemove(lhashtable_t table, unsigned int oid) {
-	int index;
-	lhashlistnode_t *ptr;
-	lhashlistnode_t *tmp;
-	
-	index = lhashFunction(table, oid);
-	ptr = table.table;
-	tmp = ptr[index].next;
-	if(ptr[index].oid == oid) {
-		ptr[index] = tmp ;
-		table.numelements--;
-	}
-}
-*/
-
+// Remove an entry from the hash table
 int lhashRemove(lhashtable_t table, unsigned int oid) {
 	int index;
 	lhashlistnode_t *curr, *prev;
@@ -99,8 +86,10 @@ int lhashRemove(lhashtable_t table, unsigned int oid) {
 		if (curr->oid == oid) {         // Find a match in the hash table
 			table.numelements--;
 			prev->next = curr->next;
-			if( &ptr[index] == curr) {
-				ptr[index].next = NULL; // TO DO: Debug
+			if (curr == &ptr[index]) {
+				ptr[index].oid = 0;
+				ptr[index].mid = 0;
+		// TO DO: Delete the first element in the hash table	
 			}
 			free(curr);
 			return 0;
@@ -110,16 +99,20 @@ int lhashRemove(lhashtable_t table, unsigned int oid) {
 	return -1;
 }
 
+// Resize table
 void lhashResize(lhashtable_t table, unsigned int newsize) {
-	int i, index;
+	int i;
 	lhashtable_t oldtable;
 	lhashlistnode_t *ptr;
 	lhashlistnode_t *node;
 	lhashlistnode_t *new;
-	lhashlistnode_t *tmp;
 	
-	oldtable = table;
+	oldtable.table = table.table;
+	oldtable.size = table.size;
+	oldtable.numelements = table.numelements;
+	oldtable.loadfactor = table.loadfactor;
 	ptr = oldtable.table;
+
 	//Allocate new space	
 	if((node = calloc(newsize, sizeof(lhashlistnode_t))) == NULL) {
 		printf("Calloc error %s %d\n", __FILE__, __LINE__);
@@ -127,16 +120,17 @@ void lhashResize(lhashtable_t table, unsigned int newsize) {
 	}
 	
 	table.table = node;
-	for(i=0; i< oldtable.size ; i++) {
+	table.numelements = 0;
+	for(i=0; i< oldtable.size ; i++) { 	//For each entry in the old hashtable insert
+	       					//the element into the new hash table 
 		new = &ptr[i];	
 		while ( new != NULL) {
-			tmp = new->next;	
-			index = lhashFunction(table, new->oid);
-			new->next = &table.table[index];	
-			table.table[index].next = new; // TO DO : Debug
+			lhashInsert(table, new->oid, new->mid);
 			new = new->next;
 		}
 	}
+	free(oldtable.table);			// Free the oldhash table
+	table.size = newsize;
 }
 
 
