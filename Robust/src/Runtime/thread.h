@@ -1,7 +1,7 @@
 #ifndef THREAD_H
 #define THREAD_H
 #include "methodheaders.h"
-#include "pthread.h"
+#include <pthread.h>
 
 extern int threadcount;
 extern pthread_mutex_t gclock;

@@ -84,7 +84,7 @@ EXTRAOPTIONS="$EXTRAOPTIONS -O9"
 elif [[ $1 = '-thread' ]]
 then
 JAVAOPTS="$JAVAOPTS -thread"
-EXTRAOPTIONS="$EXTRAOPTIONS -DTHREADS"
+EXTRAOPTIONS="$EXTRAOPTIONS -DTHREADS -lpthread"
 elif [[ $1 = '-curdir' ]]
 then
 CURDIR=$2

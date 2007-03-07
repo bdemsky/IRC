@@ -10,14 +10,14 @@ public class Logger {
     }
 
     //Logs filename as per client requests
-    public void logrequest(String filename){
+    public synchronized void logrequest(String filename){
 	String request = new String("\nNew Request received: ");
 	fos.write(request.getBytes());
 	fos.write(filename.getBytes());
 	fos.flush();
     }
 
-    public void logrequest(){
+    public synchronized void logrequest(){
 	String request = new String("\nNew Request received: ");
 	fos.write(request.getBytes());
 	fos.flush();

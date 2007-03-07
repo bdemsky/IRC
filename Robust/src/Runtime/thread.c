@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include "thread.h"
 #include "option.h"
+#include <signal.h>
 
 #include <stdio.h>
 int threadcount;
@@ -79,8 +80,20 @@ void initthread(struct ___Thread___ * ___this___) {
 
 void CALL01(___Thread______nativeCreate____, struct ___Thread___ * ___this___) {
   pthread_t thread;
+  int retval;
+  pthread_attr_t nattr;
+
   pthread_mutex_lock(&gclistlock);
   threadcount++;
   pthread_mutex_unlock(&gclistlock);
-  pthread_create(&thread, NULL,(void * (*)(void *)) &initthread, VAR(___this___));
+  pthread_attr_init(&nattr);
+  pthread_attr_setdetachstate(&nattr, PTHREAD_CREATE_DETACHED);
+  
+  do {
+    retval=pthread_create(&thread, &nattr, (void * (*)(void *)) &initthread, VAR(___this___));
+    if (retval!=0)
+      usleep(1);
+  } while(retval!=0);
+
+  pthread_attr_destroy(&nattr);
 }
