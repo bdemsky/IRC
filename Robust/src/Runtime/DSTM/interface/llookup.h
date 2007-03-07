@@ -1,6 +1,9 @@
 #ifndef _LLOOKUP_H_
 #define _LLOOKUP_H_
 
+#include <stdlib.h>
+#include <stdio.h>
+
 #define LOADFACTOR 0.75
 #define HASH_SIZE 100
 
