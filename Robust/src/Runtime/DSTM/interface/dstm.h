@@ -33,7 +33,6 @@ void dstmInit(void);
 /* Prototypes for object header */
 unsigned int getNewOID(void);
 unsigned int objSize(objheader_t *object);
-void objInsert(objheader_t *object); //copies object to main object store
 /* end object header */
 
 /* Prototypes for object store */
@@ -55,4 +54,3 @@ int transCommit(transrecord_t *record); //return 0 if successful
 /* end transactions */
 
 #endif
-

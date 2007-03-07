@@ -18,12 +18,12 @@ typedef struct hashtable {
 } mhashtable_t;
 
 /* Prototypes for hash*/
-mhashtable_t *mhashCreate(unsigned int size, float loadfactor);
-unsigned int mhashFunction(mhashtable_t *table, unsigned int key);
-void mhashInsert(mhashtable_t *table, unsigned int key, void *val);
-void *mhashSearch(mhashtable_t *table, unsigned int key); //returns val, NULL if not found
-int mhashRemove(mhashtable_t *table, unsigned int key); //returns -1 if not found
-void mhashResize(mhashtable_t *table, unsigned int newsize);
+mhashtable_t mhashCreate(unsigned int size, float loadfactor);
+unsigned int mhashFunction(mhashtable_t table, unsigned int key);
+void mhashInsert(mhashtable_t table, unsigned int key, void *val);
+void *mhashSearch(mhashtable_t table, unsigned int key); //returns val, NULL if not found
+int mhashRemove(mhashtable_t table, unsigned int key); //returns -1 if not found
+void mhashResize(mhashtable_t table, unsigned int newsize);
 /* end hash */
 
 #endif
