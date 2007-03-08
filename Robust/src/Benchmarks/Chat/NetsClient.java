@@ -32,7 +32,7 @@ public class NetsClient extends Thread {
 
 	NetsClient[] tarray=new NetsClient[numberofclients];
 	for (int i = 0; i < numberofclients; i++) {
-	    String room="room";
+	    String room="test";
 	    tarray[i] = new NetsClient(i, host, port,
 				       numberofmessages, numberofclients, room);
 	    if (debug)
@@ -53,6 +53,10 @@ public class NetsClient extends Thread {
 	}
 	long endtime=System.currentTimeMillis();
 
+	int messages=0;
+	for(int i=0;i<numberofclients;i++)
+	    messages+=tarray[i].lines;
+
 	System.out.println("ChatClient");
 	System.out.println("numclients:" + numberofclients);
 	System.out.println("port:" + port);
@@ -61,6 +65,7 @@ public class NetsClient extends Thread {
 	System.out.println("Throughput:" + (double) numberofclients*
 			   ((sendoption==4) ? 1 : numberofclients) *
 			   numberofmessages/((double) (endtime-starttime)));
+	System.out.println("Lines="+messages+" out of "+numberofclients*(numberofclients-1)*numberofmessages);
     }
 
     public NetsClient(int clientnumber, String host,
@@ -82,6 +87,7 @@ public class NetsClient extends Thread {
     OutputStream out;
     //DataInputStream din;
     BufferedReader d;
+    int lines=0;
 
     public void connectt() {
 	try{
@@ -92,7 +98,6 @@ public class NetsClient extends Thread {
 	    out = sock.getOutputStream();
 	    pout = new PrintStream(out);
 	    //din = new DataInputStream(in);
-	    d = new BufferedReader(new InputStreamReader(in));  
 	    pout.println(room);
 	}
 	catch (UnknownHostException e ) {
@@ -109,16 +114,27 @@ public class NetsClient extends Thread {
 	int ns=0;
 
         try {
-	    for(int nr=0;nr<noc*nom;) {
-		if ((ns<nom)&&((nr%noc)==clientnumber)) {
+	    for(int nr=0;nr<noc*nom;nr++) {
+		if ((nr%noc)==clientnumber) {
 		    ns++;
 		    pout.println("0|"+clientnumber+"|hello#"+ns+"**");
 		}
-		String request = d.readLine();
-		if (debug)
-		    System.out.println(request+nr);
+		while(in.available()>0) {
+		    int nchar=in.read();
+		    if (nchar==10)
+			lines++;
+		}
             }
 	    pout.flush();
+	    long time=System.currentTimeMillis();
+	    while((System.currentTimeMillis()-time)<5*1000) {
+		if(in.available()>0) {
+		    int nchar=in.read();
+		    time=System.currentTimeMillis();
+		    if (nchar==10)
+			lines++;
+		}
+	    }
 	}
 
         catch (UnknownHostException e ) {System.out.println("can't find host"); }
