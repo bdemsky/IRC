@@ -6,13 +6,13 @@ import java.util.*;
 public class NetsClient extends Thread {
 
     static boolean debug;
-    static int sendoption=0;
 
     public static void main(String argv[]) {
 
 	String host=null;
 	int numberofclients=0;
 	int numberofmessages=0;
+	int groups=0;
 	int port=4321;
 
 	NetsClient.debug=false;
@@ -21,51 +21,53 @@ public class NetsClient extends Thread {
 	    port=Integer.parseInt(argv[1]);
 	    numberofclients=Integer.parseInt(argv[2]);
 	    numberofmessages=Integer.parseInt(argv[3]);
+	    groups=Integer.parseInt(argv[4]);
 	}
 	catch (Exception e) {
 	    System.out.println("NetsClient host port numberofclients numberofmessages debugflag");
 	}
 	try {
-	    NetsClient.debug=(Integer.parseInt(argv[4])==1);
-	    NetsClient.sendoption=Integer.parseInt(argv[5]);
+	    NetsClient.debug=(Integer.parseInt(argv[5])==1);
 	} catch (Exception e) {}
 
-	NetsClient[] tarray=new NetsClient[numberofclients];
-	for (int i = 0; i < numberofclients; i++) {
-	    String room="test";
-	    tarray[i] = new NetsClient(i, host, port,
-				       numberofmessages, numberofclients, room);
-	    if (debug)
-		System.out.println("Attempting to start "+i);
-	    tarray[i].connectt();
-	}
-
-	long starttime=System.currentTimeMillis();
+	NetsClient[][] tarray=new NetsClient[groups][numberofclients];
+	for (int g=0;g<groups;g++) {
+	    for (int i = 0; i < numberofclients; i++) {
+		String room="group"+g;
+		tarray[g][i] = new NetsClient(i, host, port,
+					   numberofmessages, numberofclients, room);
+		if (debug)
+		    System.out.println("Attempting to start "+i);
+		tarray[g][i].connectt();
+	    }
+	    
+	try {
+	    Thread.sleep(1000);
+	} catch (Exception e) {};
 	for (int i = 0; i < numberofclients; i++)
-	    tarray[i].start();
+	    tarray[g][i].start();
 	try {
 	    for (int i = 0; i < numberofclients; i++) {
-		tarray[i].join();
+		tarray[g][i].join();
 	    }
 	} catch (InterruptedException e) {
 	    e.printStackTrace();
 	    System.out.println(e);
 	}
-	long endtime=System.currentTimeMillis();
+	}
 
 	int messages=0;
-	for(int i=0;i<numberofclients;i++)
-	    messages+=tarray[i].lines;
+	for (int g=0;g<groups;g++)
+	    for(int i=0;i<numberofclients;i++)
+		messages+=tarray[g][i].lines;
 
 	System.out.println("ChatClient");
 	System.out.println("numclients:" + numberofclients);
+	System.out.println("groups:"+groups);
 	System.out.println("port:" + port);
 	System.out.println("number of messages:" + numberofmessages);
-	System.out.println("Elapsed time:(mS)" + (endtime - starttime));
-	System.out.println("Throughput:" + (double) numberofclients*
-			   ((sendoption==4) ? 1 : numberofclients) *
-			   numberofmessages/((double) (endtime-starttime)));
-	System.out.println("Lines="+messages+" out of "+numberofclients*(numberofclients-1)*numberofmessages);
+
+	System.out.println("Lines="+messages+" out of "+groups*numberofclients*(numberofclients-1)*numberofmessages);
     }
 
     public NetsClient(int clientnumber, String host,
@@ -99,6 +101,7 @@ public class NetsClient extends Thread {
 	    pout = new PrintStream(out);
 	    //din = new DataInputStream(in);
 	    pout.println(room);
+	    pout.flush();
 	}
 	catch (UnknownHostException e ) {
 	    System.out.println("can't find host");
@@ -117,7 +120,7 @@ public class NetsClient extends Thread {
 	    for(int nr=0;nr<noc*nom;nr++) {
 		if ((nr%noc)==clientnumber) {
 		    ns++;
-		    pout.println("0|"+clientnumber+"|hello#"+ns+"**");
+		    pout.println(room+"|"+clientnumber+"|hello#"+ns);
 		}
 		while(in.available()>0) {
 		    int nchar=in.read();
@@ -127,13 +130,13 @@ public class NetsClient extends Thread {
             }
 	    pout.flush();
 	    long time=System.currentTimeMillis();
-	    while((System.currentTimeMillis()-time)<5*1000) {
+	    while((System.currentTimeMillis()-time)<8*1000) {
 		if(in.available()>0) {
 		    int nchar=in.read();
 		    time=System.currentTimeMillis();
 		    if (nchar==10)
 			lines++;
-		}
+	    } else try {Thread.sleep(2);} catch (Exception e) {}
 	    }
 	}
 
