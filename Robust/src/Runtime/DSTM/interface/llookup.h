@@ -20,11 +20,11 @@ typedef struct hashtable {
 	float loadfactor;
 } lhashtable_t;
 
-unsigned int lhashCreate(unsigned int size, float loadfactor);// returns 1 for success and 0 for failure
-unsigned int lhashFunction(unsigned int oid); // returns 1 for success and 0 for failure
-unsigned int lhashInsert(unsigned int oid, unsigned int mid); // returns 1 for success and 0 for failure
+unsigned int lhashCreate(unsigned int size, float loadfactor);// returns 0 for success and 0 for failure
+unsigned int lhashFunction(unsigned int oid); // returns 0 for success and 0 for failure
+unsigned int lhashInsert(unsigned int oid, unsigned int mid); // returns 0 for success and 0 for failure
 unsigned int lhashSearch(unsigned int oid); //returns mid, 0 if not found
 unsigned int lhashRemove(unsigned int oid); //returns 0 if not success
-unsigned int lhashResize(unsigned int newsize);  // returns 1 for success and 0 for failure
+unsigned int lhashResize(unsigned int newsize);  // returns 0 for success and 0 for failure
 
 #endif

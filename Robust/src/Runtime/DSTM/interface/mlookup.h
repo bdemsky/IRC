@@ -1,6 +1,9 @@
 #ifndef _MLOOKUP_H_
 #define _MLOOKUP_H_
 
+#include <stdlib.h>
+#include <stdio.h>
+
 #define LOADFACTOR 0.75
 #define HASH_SIZE 100
 
@@ -17,14 +20,12 @@ typedef struct hashtable {
 	float loadfactor;
 } mhashtable_t;
 
-/* Prototypes for hash*/
-mhashtable_t mhashCreate(unsigned int size, float loadfactor);
-unsigned int mhashFunction(mhashtable_t table, unsigned int key);
-void mhashInsert(mhashtable_t table, unsigned int key, void *val);
-void *mhashSearch(mhashtable_t table, unsigned int key); //returns val, NULL if not found
-int mhashRemove(mhashtable_t table, unsigned int key); //returns -1 if not found
-void mhashResize(mhashtable_t table, unsigned int newsize);
-/* end hash */
+unsigned int mhashCreate(unsigned int size, float loadfactor);
+unsigned int mhashFunction(unsigned int key);
+unsigned mhashInsert(unsigned int key, void *val);
+void *mhashSearch(unsigned int key); //returns val, NULL if not found
+unsigned int mhashRemove(unsigned int key); //returns -1 if not found
+unsigned int mhashResize(unsigned int newsize);
 
 #endif
 

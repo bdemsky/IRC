@@ -6,7 +6,7 @@ main()
 {
 	int i, mid;
 
-	if (lhashCreate(10, 0.80) == 1) {
+	if (lhashCreate(10, 0.20) == 1) {
 		printf("lhashCreate error\n");	//creates hashtable
 	}
 	for (i = 1; i <= 7; i++) {	// Checks the insert() and resize() 
@@ -14,7 +14,7 @@ main()
 			printf("lhashInsert error\n");
 	}
 
-	i = lhashRemove(60);//Delete first element in the  hashtable
+	i = lhashRemove(10);//Delete first element in the  hashtable
 	if(i == 1)
 		printf("lhashRemove error ");
 	
@@ -26,7 +26,7 @@ main()
 			printf("lhashSearch oid = %d mid = %d\n",10*i, mid);
 	}
 
-	i = lhashRemove(30);
+	i = lhashRemove(60);
 	if(i == 1)
 		printf("lhashRemove error ");
 	

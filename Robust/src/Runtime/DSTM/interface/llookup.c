@@ -47,6 +47,9 @@ unsigned int lhashInsert(unsigned int oid, unsigned int mid) {
 	llookup.numelements++;
 	
 	index = lhashFunction(oid);
+#ifdef DEBUG
+	printf("DEBUG(insert) oid = %d, mid =%d, index =%d\n",oid,mid, index);
+#endif
 	if(ptr[index].next == NULL && ptr[index].oid == 0) {	// Insert at the first position in the hashtable
 		ptr[index].oid = oid;
 		ptr[index].mid = mid;
@@ -141,12 +144,11 @@ unsigned int lhashResize(unsigned int newsize) {
 				break;			//oid = mid =0 for element if not present within the hash table
 			}
 			next = curr->next;
-			
 			index = lhashFunction(curr->oid);
 			// Insert into the new table
-			if(ptr[index].next == NULL && ptr[index].oid == 0) {
-				ptr[index].oid = curr->oid;
-				ptr[index].mid = curr->mid;
+			if(llookup.table[index].next == NULL && llookup.table[index].oid == 0) {
+				llookup.table[index].oid = curr->oid;
+				llookup.table[index].mid = curr->mid;
 				llookup.numelements++;
 			}else {
 				if((newnode = calloc(1, sizeof(lhashlistnode_t))) == NULL) {
@@ -155,8 +157,8 @@ unsigned int lhashResize(unsigned int newsize) {
 				}
 				newnode->oid = curr->oid;
 				newnode->mid = curr->mid;
-				newnode->next = ptr[index].next;
-				ptr[index].next = newnode;	
+				newnode->next = llookup.table[index].next;
+				llookup.table[index].next = newnode;	
 				llookup.numelements++;
 			}
 			
