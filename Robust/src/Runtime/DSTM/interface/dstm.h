@@ -4,8 +4,11 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include "clookup.h"
 
-enum status {CLEAN, DIRTY};
+//bit designations for status field of objheader
+#define DIRTY 0x01
+#define NEW   0x02
 
 typedef struct objheader {
 	unsigned int oid;
@@ -23,11 +26,11 @@ typedef struct objstr {
 
 typedef struct transrecord {
 	objstr_t *cache;
-	hashtable_t *lookupTable;
+	cachehashtable_t *lookupTable;
 } transrecord_t;
 
 /* Initialize main object store and lookup tables, start server thread. */
-void dstmInit(void);
+int dstmInit(void);
 
 /* Prototypes for object header */
 unsigned int getNewOID(void);

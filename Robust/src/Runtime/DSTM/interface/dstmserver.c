@@ -4,11 +4,32 @@
 #include <pthread.h>
 #include <netdb.h>
 #include <fcntl.h>
-#include "dstmserver.h"
+#include "dstm.h"
+#include "mlookup.h"
+#include "llookup.h"
 
 #define LISTEN_PORT 2153
 #define BACKLOG 10 //max pending connections
 #define RECIEVE_BUFFER_SIZE 1500
+
+
+int dstmInit(void)
+{
+	//todo:initialize main object store
+	//do we want this to be a global variable, or provide
+	//separate access funtions and hide the structure?
+	
+	if (mhashCreate(HASH_SIZE, LOADFACTOR))
+		return 1; //failure
+	
+	if (lhashCreate(HASH_SIZE, LOADFACTOR))
+		return 1; //failure
+	
+	pthread_t threadListen;
+	pthread_create(&threadListen, NULL, dstmListen, NULL);
+	
+	return 0;
+}
 
 void *dstmListen()
 {

@@ -7,13 +7,13 @@
 #define LOADFACTOR 0.75
 #define HASH_SIZE 100
 
-typedef struct hashlistnode {
+typedef struct lhashlistnode {
 	unsigned int oid;
 	unsigned int mid;
-	struct hashlistnode *next;
+	struct lhashlistnode *next;
 } lhashlistnode_t;
 
-typedef struct hashtable {
+typedef struct lhashtable {
 	lhashlistnode_t *table;	// points to beginning of hash table
 	unsigned int size;
 	unsigned int numelements;

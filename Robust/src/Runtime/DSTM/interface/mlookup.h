@@ -7,13 +7,13 @@
 #define LOADFACTOR 0.75
 #define HASH_SIZE 100
 
-typedef struct hashlistnode {
+typedef struct mhashlistnode {
 	unsigned int key;
 	void *val; //this can be cast to another type or used to point to a larger structure
-	struct hashlistnode *next;
+	struct mhashlistnode *next;
 } mhashlistnode_t;
 
-typedef struct hashtable {
+typedef struct mhashtable {
 	mhashlistnode_t *table;	// points to beginning of hash table
 	unsigned int size;
 	unsigned int numelements;
