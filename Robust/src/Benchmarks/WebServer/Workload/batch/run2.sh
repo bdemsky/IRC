@@ -54,7 +54,11 @@ echo Errorcount=$errorcount >> ../output
 let "i+=1";
 process=`ps | grep workload | grep -v grep | awk '{print $1}'`
 kill -9 $process
-ps | grep trans | grep -v grep | awk '{print $1}' | xargs kill #Kill the server 
+process=`ps | grep trans | grep -v grep | awk '{print $1}'`
+cat ../../gdbquery | gdb ../../trans.bin $process &> output
+kill -1 $process
+sleep 1
+kill $process
 sleep 1;
 cd ..
 done

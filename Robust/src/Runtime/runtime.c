@@ -476,6 +476,10 @@ void * allocate_new(void * ptr, int type) {
 struct ArrayObject * allocate_newarray(void * ptr, int type, int length) {
   struct ArrayObject * v=mygcmalloc((struct garbagelist *) ptr, sizeof(struct ArrayObject)+length*classsize[type]);
   v->type=type;
+  if (length<0) {
+    printf("ERROR: negative array\n");
+    return NULL;
+  }
   v->___length___=length;
 #ifdef THREADS
   v->tid=0;
@@ -509,14 +513,16 @@ struct ___String___ * NewString(void * ptr, const char *str,int length) {
 #else
 struct ___String___ * NewString(const char *str,int length) {
 #endif
+  int i;
 #ifdef PRECISE_GC
   struct ArrayObject * chararray=allocate_newarray((struct garbagelist *)ptr, CHARARRAYTYPE, length);
-  struct ___String___ * strobj=allocate_new((struct garbagelist *) ptr, STRINGTYPE);
+  int ptrarray[]={1, (int) ptr, (int) chararray};
+  struct ___String___ * strobj=allocate_new((struct garbagelist *) &ptrarray, STRINGTYPE);
+  chararray=(struct ArrayObject *) ptrarray[2];
 #else
   struct ArrayObject * chararray=allocate_newarray(CHARARRAYTYPE, length);
   struct ___String___ * strobj=allocate_new(STRINGTYPE);
 #endif
-  int i;
   strobj->___value___=chararray;
   strobj->___count___=length;
   strobj->___offset___=0;

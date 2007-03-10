@@ -101,6 +101,13 @@ public class BuildCode {
 	outstructs.println("#define STRINGTYPE "+typeutil.getClass(TypeUtil.StringClass).getId());
 	outstructs.println("#define CHARARRAYTYPE "+
 			   (state.getArrayNumber((new TypeDescriptor(TypeDescriptor.CHAR)).makeArray(state))+state.numClasses()));
+
+	outstructs.println("#define BYTEARRAYTYPE "+
+			   (state.getArrayNumber((new TypeDescriptor(TypeDescriptor.BYTE)).makeArray(state))+state.numClasses()));
+
+	outstructs.println("#define BYTEARRAYARRAYTYPE "+
+			   (state.getArrayNumber((new TypeDescriptor(TypeDescriptor.BYTE)).makeArray(state).makeArray(state))+state.numClasses()));
+	
 	outstructs.println("#define NUMCLASSES "+state.numClasses());
 	if (state.TASK)
 	    outstructs.println("#define STARTUPTYPE "+typeutil.getClass(TypeUtil.StartupClass).getId());
