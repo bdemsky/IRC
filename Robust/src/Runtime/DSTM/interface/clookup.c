@@ -1,17 +1,17 @@
  #include "clookup.h"
 
-cachehashtable_t *cachehashCreate(unsigned int size, float loadfactor) {
-	cachehashtable_t *ctable;
-	cachehashlistnode_t *nodes; 
+chashtable_t *chashCreate(unsigned int size, float loadfactor) {
+	chashtable_t *ctable;
+	chashlistnode_t *nodes; 
         int i; 
       	
-	if((ctable = calloc(1, sizeof(cachehashtable_t))) == NULL) {
+	if((ctable = calloc(1, sizeof(chashtable_t))) == NULL) {
 		printf("Calloc error %s %d\n", __FILE__, __LINE__);
 		return NULL;
 	}	
 
         // Allocate space for the hash table 
-	if((nodes = calloc(HASH_SIZE, sizeof(cachehashlistnode_t))) == NULL) { 
+	if((nodes = calloc(size, sizeof(chashlistnode_t))) == NULL) { 
 		printf("Calloc error %s %d\n", __FILE__, __LINE__);
 		return NULL;
 	}       
@@ -25,25 +25,25 @@ cachehashtable_t *cachehashCreate(unsigned int size, float loadfactor) {
 }
 
 //Finds the right bin in the hash table
-unsigned int cachehashFunction(cachehashtable_t *table, unsigned int key) {
+unsigned int chashFunction(chashtable_t *table, unsigned int key) {
 	return ( key % (table->size));
 }
 
 //Store objects and their pointers into hash
-unsigned int cachehashInsert(cachehashtable_t *table, unsigned int key, void *val) {
+unsigned int chashInsert(chashtable_t *table, unsigned int key, void *val) {
 	unsigned int newsize;
 	int index;
-	cachehashlistnode_t *ptr, *node;
+	chashlistnode_t *ptr, *node;
 
 	if(table->numelements > (table->loadfactor * table->size)) {
 		//Resize
 		newsize = 2 * table->size + 1;
-		cachehashResize(table,newsize);
+		chashResize(table,newsize);
 	}
 
 	ptr = table->table;
 	table->numelements++;
-	index = cachehashFunction(table, key);
+	index = chashFunction(table, key);
 #ifdef DEBUG
 	printf("DEBUG -> index = %d, key = %d, val = %x\n", index, key, val);
 #endif
@@ -51,7 +51,7 @@ unsigned int cachehashInsert(cachehashtable_t *table, unsigned int key, void *va
 		ptr[index].key = key;
 		ptr[index].val = val;
 	} else {			// Insert in the beginning of linked list
-		if ((node = calloc(1, sizeof(cachehashlistnode_t))) == NULL) {
+		if ((node = calloc(1, sizeof(chashlistnode_t))) == NULL) {
 			printf("Calloc error %s, %d\n", __FILE__, __LINE__);
 			return 1;
 		}
@@ -64,12 +64,12 @@ unsigned int cachehashInsert(cachehashtable_t *table, unsigned int key, void *va
 }
 
 // Search for an address for a given oid
-void *cachehashSearch(cachehashtable_t *table, unsigned int key) {
+void *chashSearch(chashtable_t *table, unsigned int key) {
 	int index;
-	cachehashlistnode_t *ptr, *node;
+	chashlistnode_t *ptr, *node;
 
 	ptr = table->table;
-	index = cachehashFunction(table, key);
+	index = chashFunction(table, key);
 	node = &ptr[index];
 	while(node != NULL) {
 		if(node->key == key) {
@@ -80,22 +80,22 @@ void *cachehashSearch(cachehashtable_t *table, unsigned int key) {
 	return NULL;
 }
 
-unsigned int cachehashRemove(cachehashtable_t *table, unsigned int key) {
+unsigned int chashRemove(chashtable_t *table, unsigned int key) {
 	int index;
-	cachehashlistnode_t *curr, *prev;
-	cachehashlistnode_t *ptr, *node;
+	chashlistnode_t *curr, *prev;
+	chashlistnode_t *ptr, *node;
 	
 	ptr = table->table;
-	index = cachehashFunction(table,key);
+	index = chashFunction(table,key);
 	curr = &ptr[index];
 
 	for (; curr != NULL; curr = curr->next) {
 		if (curr->key == key) {         // Find a match in the hash table
 			table->numelements--;  // Decrement the number of elements in the global hashtable
-			if ((curr == &ptr[index]) && (curr->next == NULL))  { // Delete the first item inside the hashtable with no linked list of cachehashlistnode_t 
+			if ((curr == &ptr[index]) && (curr->next == NULL))  { // Delete the first item inside the hashtable with no linked list of chashlistnode_t 
 				curr->key = 0;
 				curr->val = NULL;
-			} else if ((curr == &ptr[index]) && (curr->next != NULL)) { //Delete the first item with a linked list of cachehashlistnode_t  connected 
+			} else if ((curr == &ptr[index]) && (curr->next != NULL)) { //Delete the first item with a linked list of chashlistnode_t  connected 
 				curr->key = curr->next->key;
 				curr->val = curr->next->val;
 				node = curr->next;
@@ -112,17 +112,17 @@ unsigned int cachehashRemove(cachehashtable_t *table, unsigned int key) {
 	return 1;
 }
 
-unsigned int cachehashResize(cachehashtable_t *table, unsigned int newsize) {
-	cachehashlistnode_t *node, *ptr, *curr, *next;	// curr and next keep track of the current and the next cachehashlistnodes in a linked list
+unsigned int chashResize(chashtable_t *table, unsigned int newsize) {
+	chashlistnode_t *node, *ptr, *curr, *next;	// curr and next keep track of the current and the next chashlistnodes in a linked list
 	unsigned int oldsize;
-	int isfirst;    // Keeps track of the first element in the cachehashlistnode_t for each bin in hashtable
+	int isfirst;    // Keeps track of the first element in the chashlistnode_t for each bin in hashtable
 	int i,index;   	
-	cachehashlistnode_t *newnode; 		
+	chashlistnode_t *newnode; 		
 	
 	ptr = table->table;
 	oldsize = table->size;
 	
-	if((node = calloc(newsize, sizeof(cachehashlistnode_t))) == NULL) {
+	if((node = calloc(newsize, sizeof(chashlistnode_t))) == NULL) {
 		printf("Calloc error %s %d\n", __FILE__, __LINE__);
 		return 1;
 	}
@@ -140,7 +140,7 @@ unsigned int cachehashResize(cachehashtable_t *table, unsigned int newsize) {
 			}
 			next = curr->next;
 
-			index = cachehashFunction(table, curr->key);
+			index = chashFunction(table, curr->key);
 #ifdef DEBUG
 			printf("DEBUG(resize) -> index = %d, key = %d, val = %x\n", index, curr->key, curr->val);
 #endif
@@ -150,7 +150,7 @@ unsigned int cachehashResize(cachehashtable_t *table, unsigned int newsize) {
 				table->table[index].val = curr->val;
 				table->numelements++;
 			}else { 
-				if((newnode = calloc(1, sizeof(cachehashlistnode_t))) == NULL) { 
+				if((newnode = calloc(1, sizeof(chashlistnode_t))) == NULL) { 
 					printf("Calloc error %s, %d\n", __FILE__, __LINE__);
 					return 1;
 				}       
@@ -161,7 +161,7 @@ unsigned int cachehashResize(cachehashtable_t *table, unsigned int newsize) {
 				table->numelements++;
 			}       
 
-			//free the linked list of cachehashlistnode_t if not the first element in the hash table
+			//free the linked list of chashlistnode_t if not the first element in the hash table
 			if (isfirst != 1) {
 				free(curr);
 			} 
@@ -176,9 +176,9 @@ unsigned int cachehashResize(cachehashtable_t *table, unsigned int newsize) {
 }
 
 //Delete the entire hash table
-void cachehashDelete(cachehashtable_t *table) {
+void chashDelete(chashtable_t *table) {
 	int i, isFirst;
-	cachehashlistnode_t *ptr, *curr, *next;
+	chashlistnode_t *ptr, *curr, *next;
 	ptr = table->table;
 
 	for(i=0 ; i<table->size ; i++) {
@@ -196,4 +196,5 @@ void cachehashDelete(cachehashtable_t *table) {
 
 	free(ptr);
 	free(table);
+	table = NULL;
 }

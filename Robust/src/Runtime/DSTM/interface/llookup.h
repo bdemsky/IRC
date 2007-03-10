@@ -3,6 +3,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <pthread.h>
 
 #define LOADFACTOR 0.75
 #define HASH_SIZE 100
@@ -18,6 +19,7 @@ typedef struct lhashtable {
 	unsigned int size;
 	unsigned int numelements;
 	float loadfactor;
+	pthread_mutex_t locktable;
 } lhashtable_t;
 
 unsigned int lhashCreate(unsigned int size, float loadfactor);// returns 0 for success and 0 for failure

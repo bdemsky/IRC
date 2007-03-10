@@ -3,6 +3,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <pthread.h>
 
 #define LOADFACTOR 0.75
 #define HASH_SIZE 100
@@ -18,6 +19,7 @@ typedef struct mhashtable {
 	unsigned int size;
 	unsigned int numelements;
 	float loadfactor;
+	pthread_mutex_t locktable;
 } mhashtable_t;
 
 unsigned int mhashCreate(unsigned int size, float loadfactor);

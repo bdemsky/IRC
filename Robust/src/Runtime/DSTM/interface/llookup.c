@@ -4,18 +4,20 @@
    llookup hash is an array of lhashlistnode_t
    oid = mid = 0 in a given lhashlistnode_t for each bin in the hash table ONLY if the entry is empty =>
    the OID's can be any unsigned int except 0
+
+   Uses pthreads. compile using -lpthread option
 ***************************************************************************************************/
 #include "llookup.h"
 
 lhashtable_t llookup;		//Global Hash table
 
-// Creates a hash table with default size HASH_SIZE and an array of lhashlistnode_t 
+// Creates a hash table with size and an array of lhashlistnode_t 
 unsigned int lhashCreate(unsigned int size, float loadfactor) {
 	lhashlistnode_t *nodes;
 	int i;
 
 	// Allocate space for the hash table 
-	if((nodes = calloc(HASH_SIZE, sizeof(lhashlistnode_t))) == NULL) {
+	if((nodes = calloc(size, sizeof(lhashlistnode_t))) == NULL) {
 		printf("Calloc error %s %d\n", __FILE__, __LINE__);
 		return 1;
 	}
@@ -24,6 +26,8 @@ unsigned int lhashCreate(unsigned int size, float loadfactor) {
 	llookup.size = size;
 	llookup.numelements = 0; // Initial number of elements in the hash
 	llookup.loadfactor = loadfactor;
+	//Initialize the pthread_mutex variable 	
+	pthread_mutex_init(&llookup.locktable, NULL);
 	return 0;
 }
 
@@ -41,8 +45,11 @@ unsigned int lhashInsert(unsigned int oid, unsigned int mid) {
 	if (llookup.numelements > (llookup.loadfactor * llookup.size)) {
 		//Resize Table
 		newsize = 2 * llookup.size + 1;		
+		pthread_mutex_lock(&llookup.locktable);
 		lhashResize(newsize);
+		pthread_mutex_unlock(&llookup.locktable);
 	}
+	
 	ptr = llookup.table;
 	llookup.numelements++;
 	
@@ -50,6 +57,7 @@ unsigned int lhashInsert(unsigned int oid, unsigned int mid) {
 #ifdef DEBUG
 	printf("DEBUG(insert) oid = %d, mid =%d, index =%d\n",oid,mid, index);
 #endif
+	pthread_mutex_lock(&llookup.locktable);
 	if(ptr[index].next == NULL && ptr[index].oid == 0) {	// Insert at the first position in the hashtable
 		ptr[index].oid = oid;
 		ptr[index].mid = mid;
@@ -63,6 +71,8 @@ unsigned int lhashInsert(unsigned int oid, unsigned int mid) {
 		node->next = ptr[index].next;
 		ptr[index].next = node;
 	}
+	
+	pthread_mutex_unlock(&llookup.locktable);
 	return 0;
 }
 
@@ -74,12 +84,14 @@ unsigned int lhashSearch(unsigned int oid) {
 	ptr = llookup.table;	// Address of the beginning of hash table	
 	index = lhashFunction(oid);
 	node = &ptr[index];
+	pthread_mutex_lock(&llookup.locktable);
 	while(node != NULL) {
 		if(node->oid == oid) {
 			return node->mid;
 		}
 		node = node->next;
 	}
+	pthread_mutex_unlock(&llookup.locktable);
 	return 0;
 }
 
@@ -92,7 +104,8 @@ unsigned int lhashRemove(unsigned int oid) {
 	ptr = llookup.table;
 	index = lhashFunction(oid);
 	curr = &ptr[index];
-
+	
+	pthread_mutex_lock(&llookup.locktable);
 	for (; curr != NULL; curr = curr->next) {
 		if (curr->oid == oid) {         // Find a match in the hash table
 			llookup.numelements--;  // Decrement the number of elements in the global hashtable
@@ -113,6 +126,7 @@ unsigned int lhashRemove(unsigned int oid) {
 		}       
 		prev = curr; 
 	}
+	pthread_mutex_unlock(&llookup.locktable);
 	return 1;
 }
 

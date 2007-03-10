@@ -2,12 +2,13 @@
 
 mhashtable_t mlookup; 	//Global hash table
 
+// Creates a machine lookup table with size =" size" 
 unsigned int mhashCreate(unsigned int size, float loadfactor)  {
 	mhashlistnode_t *nodes;
 	int i;
 
 	// Allocate space for the hash table 
-	if((nodes = calloc(HASH_SIZE, sizeof(mhashlistnode_t))) == NULL) {
+	if((nodes = calloc(size, sizeof(mhashlistnode_t))) == NULL) {
 		printf("Calloc error %s %d\n", __FILE__, __LINE__);
 		return 1;
 	}
@@ -16,6 +17,8 @@ unsigned int mhashCreate(unsigned int size, float loadfactor)  {
 	mlookup.size = size;
 	mlookup.numelements = 0; // Initial number of elements in the hash
 	mlookup.loadfactor = loadfactor;
+	//Initialize the pthread_mutex variable 	
+	pthread_mutex_init(&mlookup.locktable, NULL);
 	return 0;
 }
 
@@ -33,7 +36,9 @@ unsigned int mhashInsert(unsigned int key, void *val) {
 	if (mlookup.numelements > (mlookup.loadfactor * mlookup.size)) {
 		//Resize Table
 		newsize = 2 * mlookup.size + 1;		
+		pthread_mutex_lock(&mlookup.locktable);
 		mhashResize(newsize);
+		pthread_mutex_unlock(&mlookup.locktable);
 	}
 	ptr = mlookup.table;
 	mlookup.numelements++;
@@ -42,6 +47,7 @@ unsigned int mhashInsert(unsigned int key, void *val) {
 #ifdef DEBUG
 	printf("DEBUG -> index = %d, key = %d, val = %x\n", index, key, val);
 #endif
+	pthread_mutex_lock(&mlookup.locktable);
 	if(ptr[index].next == NULL && ptr[index].key == 0) {	// Insert at the first position in the hashtable
 		ptr[index].key = key;
 		ptr[index].val = val;
@@ -55,6 +61,7 @@ unsigned int mhashInsert(unsigned int key, void *val) {
 		node->next = ptr[index].next;
 		ptr[index].next = node;
 	}
+	pthread_mutex_unlock(&mlookup.locktable);
 	return 0;
 }
 
@@ -66,12 +73,14 @@ void *mhashSearch(unsigned int key) {
 	ptr = mlookup.table;	// Address of the beginning of hash table	
 	index = mhashFunction(key);
 	node = &ptr[index];
+	pthread_mutex_lock(&mlookup.locktable);
 	while(node != NULL) {
 		if(node->key == key) {
 			return node->val;
 		}
 		node = node->next;
 	}
+	pthread_mutex_unlock(&mlookup.locktable);
 	return NULL;
 }
 
@@ -85,6 +94,7 @@ unsigned int mhashRemove(unsigned int key) {
 	index = mhashFunction(key);
 	curr = &ptr[index];
 
+	pthread_mutex_lock(&mlookup.locktable);
 	for (; curr != NULL; curr = curr->next) {
 		if (curr->key == key) {         // Find a match in the hash table
 			mlookup.numelements--;  // Decrement the number of elements in the global hashtable
@@ -105,6 +115,7 @@ unsigned int mhashRemove(unsigned int key) {
 		}       
 		prev = curr; 
 	}
+	pthread_mutex_unlock(&mlookup.locktable);
 	return 1;
 }
 
