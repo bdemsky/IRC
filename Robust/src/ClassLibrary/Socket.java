@@ -20,7 +20,7 @@ public class Socket {
 
     public static native int nativeBind(byte[] address, int port);
 
-    public static native int nativeConnect(int fd, byte[] address, int port);
+    public native int nativeConnect(int fd, byte[] address, int port);
     
     int setFD(int filed) {
 	fd=filed;

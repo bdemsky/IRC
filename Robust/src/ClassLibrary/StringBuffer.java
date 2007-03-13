@@ -12,6 +12,12 @@ public class StringBuffer {
 	    value[i]=str.value[i+str.offset];
     }
 
+    public StringBuffer() {
+	value=new char[16];//16 is DEFAULTSIZE
+	count=0;
+	offset=0;
+    }
+
     public int length() {
 	return count;
     }

@@ -124,11 +124,22 @@ int comparetpd(struct taskparamdescriptor *ftd1, struct taskparamdescriptor *ftd
 
 void flagorand(void * ptr, int ormask, int andmask) {
   int oldflag=((int *)ptr)[1];
-  struct RuntimeHash *flagptr=(struct RuntimeHash *)(((int*)ptr)[2]);
   int flag=ormask|oldflag;
   flag&=andmask;
   if (flag==oldflag) /* Don't do anything */
     return;
+  else flagbody(ptr, flag);
+}
+
+void flagorandinit(void * ptr, int ormask, int andmask) {
+  int oldflag=((int *)ptr)[1];
+  int flag=ormask|oldflag;
+  flag&=andmask;
+  flagbody(ptr,flag);
+}
+
+void flagbody(void *ptr, int flag) {
+  struct RuntimeHash *flagptr=(struct RuntimeHash *)(((int*)ptr)[2]);
   ((int*)ptr)[1]=flag;
 
   /*Remove object from all queues */

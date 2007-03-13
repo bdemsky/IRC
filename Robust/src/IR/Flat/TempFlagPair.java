@@ -10,7 +10,10 @@ public class TempFlagPair {
 	this.td=td;
     }
     public int hashCode() {
-	return fd.hashCode()^td.hashCode();
+	if (fd!=null)
+	    return fd.hashCode()^td.hashCode();
+	else
+	    return td.hashCode();
     }
 
     public TempDescriptor getTemp() {

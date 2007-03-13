@@ -1407,22 +1407,31 @@ public class BuildCode {
 	    TempDescriptor temp=tfp.getTemp();
 	    Hashtable flagtable=(Hashtable)flagorder.get(temp.getType().getClassDesc());
 	    FlagDescriptor flag=tfp.getFlag();
-	    int flagid=1<<((Integer)flagtable.get(flag)).intValue();
-	    boolean flagstatus=ffan.getFlagChange(tfp);
-	    if (flagstatus) {
-		int mask=0;
+	    if (flag==null) {
+		//Newly allocate objects that don't set any flags case
 		if (flagortable.containsKey(temp)) {
-		    mask=((Integer)flagortable.get(temp)).intValue();
+		    throw new Error();
 		}
-		mask|=flagid;
+		int mask=0;
 		flagortable.put(temp,new Integer(mask));
 	    } else {
-		int mask=0xFFFFFFFF;
-		if (flagandtable.containsKey(temp)) {
-		    mask=((Integer)flagandtable.get(temp)).intValue();
+		int flagid=1<<((Integer)flagtable.get(flag)).intValue();
+		boolean flagstatus=ffan.getFlagChange(tfp);
+		if (flagstatus) {
+		    int mask=0;
+		    if (flagortable.containsKey(temp)) {
+			mask=((Integer)flagortable.get(temp)).intValue();
+		    }
+		    mask|=flagid;
+		    flagortable.put(temp,new Integer(mask));
+		} else {
+		    int mask=0xFFFFFFFF;
+		    if (flagandtable.containsKey(temp)) {
+			mask=((Integer)flagandtable.get(temp)).intValue();
+		    }
+		    mask&=(0xFFFFFFFF^flagid);
+		    flagandtable.put(temp,new Integer(mask));
 		}
-		mask&=(0xFFFFFFFF^flagid);
-		flagandtable.put(temp,new Integer(mask));
 	    }
 	}
 	Iterator orit=flagortable.keySet().iterator();
@@ -1432,14 +1441,22 @@ public class BuildCode {
 	    int andmask=0xFFFFFFF;
 	    if (flagandtable.containsKey(temp))
 		andmask=((Integer)flagandtable.get(temp)).intValue();
-	    output.println("flagorand("+generateTemp(fm, temp)+", 0x"+Integer.toHexString(ormask)+", 0x"+Integer.toHexString(andmask)+");");
+	    if (ffan.getTaskType()==FlatFlagActionNode.NEWOBJECT) {
+		output.println("flagorandinit("+generateTemp(fm, temp)+", 0x"+Integer.toHexString(ormask)+", 0x"+Integer.toHexString(andmask)+");");
+	    } else {
+		output.println("flagorand("+generateTemp(fm, temp)+", 0x"+Integer.toHexString(ormask)+", 0x"+Integer.toHexString(andmask)+");");
+	    }
 	}
 	Iterator andit=flagandtable.keySet().iterator();
 	while(andit.hasNext()) {
 	    TempDescriptor temp=(TempDescriptor)andit.next();
 	    int andmask=((Integer)flagandtable.get(temp)).intValue();
-	    if (!flagortable.containsKey(temp))
-		output.println("flagorand("+generateTemp(fm, temp)+", 0, 0x"+Integer.toHexString(andmask)+");");
+	    if (!flagortable.containsKey(temp)) {
+		if (ffan.getTaskType()==FlatFlagActionNode.NEWOBJECT)
+		    output.println("flagorandinit("+generateTemp(fm, temp)+", 0, 0x"+Integer.toHexString(andmask)+");");
+		else
+		    output.println("flagorand("+generateTemp(fm, temp)+", 0, 0x"+Integer.toHexString(andmask)+");");
+	    }
 	}
     }
 }

@@ -367,7 +367,7 @@ public class SemanticCheck {
 	else
 	    fd=(FieldDescriptor) ltd.getClassDesc().getFieldTable().get(fieldname);
 	if (fd==null)
-	    throw new Error("Unknown field "+fieldname);
+	    throw new Error("Unknown field "+fieldname + " in "+fan.printNode(0));
 	fan.setField(fd);
 	if (td!=null)
 	    if (!typeutil.isSuperorType(td,fan.getType()))

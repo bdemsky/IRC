@@ -54,6 +54,17 @@ public class String {
 	return this.subString(beginIndex, this.count);
     }
 
+    public int lastindexOf(int ch) {
+	return this.lastindexOf(ch, count - 1);
+    }
+
+    public int lastindexOf(int ch, int fromIndex) {
+	for(int i=fromIndex;i>0;i--)
+	    if (this.charAt(i)==ch)
+		return i;
+	return -1;
+    }
+
     public int indexOf(int ch) {
 	return this.indexOf(ch, 0);
     }

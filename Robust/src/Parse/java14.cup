@@ -368,7 +368,9 @@ flag_effect ::= IDENTIFIER:id LBRACE flag_list:fl RBRACE {:
 	:};
 
 flag_list_opt ::= LBRACE flag_list:fl RBRACE {:RESULT=fl;:}
-	| {: RESULT = new ParseNode("empty"); :}
+	| LBRACE RBRACE {: RESULT = new ParseNode("empty"); :}	
+	| 
+	{: RESULT = new ParseNode("empty"); :}
 	;
 
 flag_list ::= flag_change:fc {: 

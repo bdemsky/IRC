@@ -11,19 +11,28 @@
 
 extern struct RuntimeHash *fdtoobject;
 
-int CALL23(___Socket______nativeConnect____I__AR_B_I, int ___fd___, int ___port___, int ___fd___, struct ArrayObject * ___address___ ,int ___port___) {
+int CALL24(___Socket______nativeConnect____I__AR_B_I, int ___fd___, int ___port___, struct ___Socket___ * ___this___, int ___fd___, struct ArrayObject * ___address___ ,int ___port___) {
   struct sockaddr_in sin;
   int rc;
   
   bzero(&sin, sizeof(sin));
   sin.sin_family= AF_INET;
   sin.sin_port=htons(___port___);
-  sin.sin_addr.s_addr=htonl(*(((char *)&VAR(___address___)->___length___)+sizeof(int)));
+  sin.sin_addr.s_addr=htonl(*(int *)(((char *)&VAR(___address___)->___length___)+sizeof(int)));
   do {
     rc = connect(___fd___, (struct sockaddr *) &sin, sizeof(sin));
   } while (rc<0 && errno==EINTR); /* repeat if interrupted */
   
   if (rc<0) goto error;
+
+#ifdef TASK
+  //Make non-blocking
+  fcntl(___fd___, F_SETFD, 1);
+  fcntl(___fd___, F_SETFL, fcntl(___fd___, F_GETFL)|O_NONBLOCK);
+  RuntimeHashadd(fdtoobject, ___fd___, (int) VAR(___this___));
+  addreadfd(___fd___);
+#endif
+
   return 0;
   
  error:
@@ -39,8 +48,8 @@ int CALL12(___Socket______nativeBind_____AR_B_I, int ___port___,  struct ArrayOb
   struct sockaddr_in sin;
   bzero(&sin, sizeof(sin));
   sin.sin_family= AF_INET;
-  sin.sin_port=htons(___port___);
-  sin.sin_addr.s_addr=htonl(*(((char *) &VAR(___address___)->___length___)+sizeof(int)));
+  sin.sin_port=0;
+  sin.sin_addr.s_addr=INADDR_ANY;
   
   fd=socket(AF_INET, SOCK_STREAM, 0);
   if (fd<0) {
@@ -59,12 +68,6 @@ int CALL12(___Socket______nativeBind_____AR_B_I, int ___port___,  struct ArrayOb
 #endif
   }
   
-#ifdef TASK
-  //Make non-blocking
-  fcntl(fd, F_SETFD, 1);
-  fcntl(fd, F_SETFL, fcntl(fd, F_GETFL)|O_NONBLOCK);
-#endif
-
   rc = bind(fd, (struct sockaddr *) &sin, sizeof(sin));
   if (rc<0) goto error;
 
@@ -124,8 +127,9 @@ struct ArrayObject * CALL01(___InetAddress______getHostByName_____AR_B, struct _
     bytearray=allocate_newarray(BYTEARRAYTYPE,h->h_length);
 #endif
     ((void **)&((&arraybytearray->___length___)[1]))[i]=bytearray;
-    for(j=0;j<h->h_length;j++) {
-      ((char *)&((&bytearray->___length___)[1]))[j]=h->h_addr_list[i][j];
+    {
+      int ha=ntohl(*(int *)h->h_addr_list[i]);
+      (&bytearray->___length___)[1]=ha;
     }
   }
   

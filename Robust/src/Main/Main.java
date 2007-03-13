@@ -109,7 +109,14 @@ public class Main {
 	Lex.Lexer l = new Lex.Lexer(fr);
 	java_cup.runtime.lr_parser g;
 	g = new Parse.Parser(l);
-	ParseNode p=(ParseNode) g./*debug_*/parse().value;
+	ParseNode p=null;
+	try {
+	    p=(ParseNode) g./*debug_*/parse().value;
+	} catch (Exception e) {
+	    System.err.println("Error parsing file:"+sourcefile);
+	    e.printStackTrace();
+	    System.exit(-1);
+	}
 	state.addParseNode(p);
 	if (l.numErrors()!=0) {
 	    System.out.println("Error parsing "+sourcefile);

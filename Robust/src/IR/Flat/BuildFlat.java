@@ -144,15 +144,19 @@ public class BuildFlat {
 	    FlatNew fn=new FlatNew(td, out_temp);
 	    TempDescriptor[] temps=new TempDescriptor[con.numArgs()];
 	    FlatNode last=fn;
-
-	    if (con.getFlagEffects()!=null) {
+	    if (td.getClassDesc().hasFlags()) {
+		//	    if (con.getFlagEffects()!=null) {
 		FlatFlagActionNode ffan=new FlatFlagActionNode(FlatFlagActionNode.NEWOBJECT);
 		FlagEffects fes=con.getFlagEffects();
 		TempDescriptor flagtemp=out_temp;
-		for(int j=0;j<fes.numEffects();j++) {
-		    FlagEffect fe=fes.getEffect(j);
-		    ffan.addFlagAction(flagtemp, fe.getFlag(), fe.getStatus());
-		}
+		if (fes!=null)
+		    for(int j=0;j<fes.numEffects();j++) {
+			FlagEffect fe=fes.getEffect(j);
+			ffan.addFlagAction(flagtemp, fe.getFlag(), fe.getStatus());
+		    } else {
+			ffan.addFlagAction(flagtemp, null, false);
+		    }
+		
 		last.addNext(ffan);
 		last=ffan;
 	    }

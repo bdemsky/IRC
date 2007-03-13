@@ -17,6 +17,10 @@ public class FlatFlagActionNode extends FlatNode {
 	this.taskexit=taskexit;
     }
 
+    public int getTaskType() {
+	return taskexit;
+    }
+
     public void addFlagAction(TempDescriptor td, FlagDescriptor fd, boolean status) {
 	TempFlagPair tfp=new TempFlagPair(td,fd);
 	if (tempflagpairs.containsKey(tfp)) {
