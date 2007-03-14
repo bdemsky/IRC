@@ -78,6 +78,20 @@ void initthread(struct ___Thread___ * ___this___) {
   pthread_mutex_unlock(&gclistlock);
 }
 
+void CALL11(___Thread______sleep____J, long long ___millis___, long long ___millis___) {
+#ifdef THREADS
+#ifdef PRECISE_GC
+  struct listitem *tmp=stopforgc((struct garbagelist *)___params___);
+#endif
+#endif
+  usleep(___millis___);  
+#ifdef THREADS
+#ifdef PRECISE_GC
+  restartaftergc(tmp);
+#endif
+#endif
+}
+
 void CALL01(___Thread______nativeCreate____, struct ___Thread___ * ___this___) {
   pthread_t thread;
   int retval;

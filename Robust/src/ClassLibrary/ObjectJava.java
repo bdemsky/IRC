@@ -1,8 +1,18 @@
 public class Object {
-    public native int hashCode();
+    public int cachedCode;
+    public boolean cachedHash;
+
+    public native int nativehashCode();
     private Object nextlockobject;
     private Object prevlockobject;
 
+    public int hashCode() {
+	if (!cachedHash) {
+	    cachedCode=nativehashCode();
+	    cachedHash=true;
+	}
+	return cachedCode;
+    }
 
     /* DON'T USE THIS METHOD UNLESS NECESSARY */
     /* WE WILL DEPRECATE IT AS SOON AS INSTANCEOF WORKS */

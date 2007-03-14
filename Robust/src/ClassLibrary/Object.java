@@ -1,5 +1,15 @@
 public class Object {
-    public native int hashCode();
+    public native int nativehashCode();
+    private int cachedCode;
+    private boolean cachedHash;
+
+    public int hashCode() {
+	if (!cachedHash) {
+	    cachedCode=nativehashCode();
+	    cachedHash=true;
+	}
+	return cachedCode;
+    }
 
     /* DON'T USE THIS METHOD UNLESS NECESSARY */
     /* WE WILL DEPRECATE IT AS SOON AS INSTANCEOF WORKS */

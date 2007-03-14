@@ -63,19 +63,21 @@ public class HashMap {
     Object remove(Object key) {
 	int bin=hash(key);
 	HashEntry ptr=table[bin];
-	if (ptr.key.equals(key)) {
-	    table[bin]=ptr.next;
-	    numItems--;
-	    return ptr.value;
-	}
-	while(ptr.next!=null) {
-	    if (ptr.next.key.equals(key)) {
-		Object oldvalue=ptr.value;
-		ptr.next=ptr.next.next;
+	if (ptr!=null) {
+	    if (ptr.key.equals(key)) {
+		table[bin]=ptr.next;
 		numItems--;
-		return oldvalue;
+		return ptr.value;
 	    }
-	    ptr=ptr.next;
+	    while(ptr.next!=null) {
+		if (ptr.next.key.equals(key)) {
+		    Object oldvalue=ptr.value;
+		    ptr.next=ptr.next.next;
+		    numItems--;
+		    return oldvalue;
+		}
+		ptr=ptr.next;
+	    }
 	}
 	return null;
     }

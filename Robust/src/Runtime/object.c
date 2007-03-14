@@ -6,7 +6,7 @@
 #include "thread.h"
 #endif
 
-int CALL01(___Object______hashCode____, struct ___Object___ * ___this___) {
+int CALL01(___Object______nativehashCode____, struct ___Object___ * ___this___) {
   return (int) VAR(___this___);
 }
 

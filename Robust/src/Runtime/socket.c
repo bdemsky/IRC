@@ -19,9 +19,20 @@ int CALL24(___Socket______nativeConnect____I__AR_B_I, int ___fd___, int ___port_
   sin.sin_family= AF_INET;
   sin.sin_port=htons(___port___);
   sin.sin_addr.s_addr=htonl(*(int *)(((char *)&VAR(___address___)->___length___)+sizeof(int)));
+#ifdef THREADS
+#ifdef PRECISE_GC
+  struct listitem *tmp=stopforgc((struct garbagelist *)___params___);
+#endif
+#endif
   do {
     rc = connect(___fd___, (struct sockaddr *) &sin, sizeof(sin));
   } while (rc<0 && errno==EINTR); /* repeat if interrupted */
+#ifdef THREADS
+#ifdef PRECISE_GC
+  restartaftergc(tmp);
+#endif
+#endif
+
   
   if (rc<0) goto error;
 
