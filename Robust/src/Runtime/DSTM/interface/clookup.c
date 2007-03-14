@@ -13,6 +13,7 @@ chashtable_t *chashCreate(unsigned int size, float loadfactor) {
         // Allocate space for the hash table 
 	if((nodes = calloc(size, sizeof(chashlistnode_t))) == NULL) { 
 		printf("Calloc error %s %d\n", __FILE__, __LINE__);
+		free(ctable);
 		return NULL;
 	}       
 

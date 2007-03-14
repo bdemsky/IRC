@@ -26,7 +26,7 @@ typedef struct objstr {
 
 typedef struct transrecord {
 	objstr_t *cache;
-	cachehashtable_t *lookupTable;
+	chashtable_t *lookupTable;
 } transrecord_t;
 
 /* Initialize main object store and lookup tables, start server thread. */
