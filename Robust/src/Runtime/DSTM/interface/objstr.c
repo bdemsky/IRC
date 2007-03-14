@@ -1,7 +1,5 @@
 #include "dstm.h"
 
-#define DEFAULT_OBJ_STORE_SIZE 1048510 //1MB
-
 objstr_t *objstrCreate(unsigned int size)
 {
 	objstr_t *tmp = malloc(sizeof(objstr_t) + size);

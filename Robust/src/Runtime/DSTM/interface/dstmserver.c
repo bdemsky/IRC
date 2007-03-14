@@ -13,12 +13,15 @@
 #define RECIEVE_BUFFER_SIZE 1500
 
 
+objstr_t *mainobjstore;
+mainobjstore = objstrCreate(DEFAULT_OBJ_STORE_SIZE);	
+
 int dstmInit(void)
 {
 	//todo:initialize main object store
 	//do we want this to be a global variable, or provide
 	//separate access funtions and hide the structure?
-	
+
 	if (mhashCreate(HASH_SIZE, LOADFACTOR))
 		return 1; //failure
 	

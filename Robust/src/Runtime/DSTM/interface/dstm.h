@@ -6,6 +6,7 @@
 #include <string.h>
 #include "clookup.h"
 
+#define DEFAULT_OBJ_STORE_SIZE 1048510 //1MB
 //bit designations for status field of objheader
 #define DIRTY 0x01
 #define NEW   0x02
