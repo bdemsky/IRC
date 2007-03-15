@@ -26,5 +26,10 @@ task Message(ChatSocket cs{InRoom && IOPending}) {
     byte buffer[]=new byte[1024];
     int length=cs.read(buffer);
     String st=(new String(buffer)).subString(0, length);
-    cs.room.sendToRoom(cs, st.getBytes());
+    Message m=new Message(st, cs){};
+}
+
+task SendMessage(Message m{!Sent}) {
+    m.cs.room.sendToRoom(m.cs,m.st.getBytes());
+    taskexit(m {Sent});
 }

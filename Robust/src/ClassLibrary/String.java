@@ -65,6 +65,17 @@ public class String {
 	return -1;
     }
 
+    public String replace(char oldch, char newch) {
+	char[] buffer=new char[count];
+	for(int i=0;i<count;i++) {
+	    char x=charAt(i);
+	    if (x==oldch)
+		x=newch;
+	    buffer[i]=x;
+	}
+	return new String(buffer);
+    }
+
     public int indexOf(int ch) {
 	return this.indexOf(ch, 0);
     }

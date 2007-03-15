@@ -54,6 +54,7 @@ void initializethreads() {
   pthread_cond_init(&objcond,NULL);
   pthread_key_create(&threadlocks, NULL);
   processOptions();
+  initializeexithandler();
 
   sig.sa_sigaction=&threadhandler;
   sig.sa_flags=SA_SIGINFO;

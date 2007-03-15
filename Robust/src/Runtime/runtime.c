@@ -56,7 +56,7 @@ int main(int argc, char **argv) {
   initializemmap();
 #endif
   processOptions();
-
+  initializeexithandler();
   /* Create table for failed tasks */
   failedtasks=genallocatehashtable((unsigned int (*)(void *)) &hashCodetpd, 
 				   (int (*)(void *,void *)) &comparetpd);
@@ -309,6 +309,7 @@ void executetasks() {
 	  if (FD_ISSET(fd, &tmpreadfds)) {
 	    /* Set ready flag on object */
 	    void * objptr;
+	    //	    printf("Setting fd %d\n",fd);
 	    if (RuntimeHashget(fdtoobject, fd,(int *) &objptr)) {
 	      flagorand(objptr,1,0xFFFFFFFF); /* Set the first flag to 1 */
 	    }
@@ -424,6 +425,19 @@ void processtasks() {
 }
 
 #endif
+
+void exithandler(int sig, siginfo_t *info, void * uap) {
+  exit(0);
+}
+
+void initializeexithandler() {
+  struct sigaction sig;
+  sig.sa_sigaction=&exithandler;
+  sig.sa_flags=SA_SIGINFO;
+  sigemptyset(&sig.sa_mask);
+  sigaction(SIGUSR2, &sig, 0);
+}
+
 
 /* This function inject failures */
 

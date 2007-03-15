@@ -16,6 +16,7 @@ struct ArrayObject * allocate_newarray(int type, int length);
 struct ___String___ * NewString(const char *str,int length);
 #endif
 
+void initializeexithandler();
 void failedboundschk();
 void failednullptr();
 void abort_task();

@@ -292,6 +292,7 @@ void CALL02(___Socket______nativeWrite_____AR_B, struct ___Socket___ * ___this__
 
     if (bytewritten!=length) {
       perror("ERROR IN NATIVEWRITE");
+      printf("Supposed to write %d, wrote %d\n", length, bytewritten);
     }
     break;
   }
@@ -308,13 +309,20 @@ int CALL02(___Socket______nativeRead_____AR_B, struct ___Socket___ * ___this___,
   struct listitem *tmp=stopforgc((struct garbagelist *)___params___);
 #endif
 #endif
-  int byteread=read(fd, charstr, length);
+  int byteread;
+
+  //  printf("Doing read on %d\n",fd);
+  while(1) {
+    byteread=read(fd, charstr, length);
+    
+    break;
+  }
 #ifdef THREADS
 #ifdef PRECISE_GC
   restartaftergc(tmp);
 #endif
 #endif
-
+  
   {
     int i;
     for(i=0;i<byteread;i++) {
@@ -326,7 +334,8 @@ int CALL02(___Socket______nativeRead_____AR_B, struct ___Socket___ * ___this___,
 
   if (byteread<0) {
     printf("ERROR IN NATIVEREAD\n");
-    return 0;
+    perror("");
+    byteread=0;
   }
 #ifdef TASK
   flagorand(VAR(___this___),0,0xFFFFFFFE);

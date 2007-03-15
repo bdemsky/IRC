@@ -30,10 +30,6 @@ public class ChatThread extends Thread {
 	byte buffer[]=new byte[1024];
 	int length=sock.read(buffer);
 	String st=(new String(buffer)).subString(0, length);
-	System.printString(st);
-	System.printString("\n");
-	System.printInt(length);
-	System.printString("\n");
 	room.sendToRoom(this, st.getBytes());
     }
     

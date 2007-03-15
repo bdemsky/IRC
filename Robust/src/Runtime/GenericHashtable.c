@@ -42,7 +42,7 @@ int genputtable(struct genhashtable *ht, void * key, void * object) {
     for(i=0;i<oldcurrentsize;i++) {
       struct genpointerlist * tmpptr=oldbins[i];
       while(tmpptr!=NULL) {
-        int hashcode=genhashfunction(ht, tmpptr->src);
+        unsigned int hashcode=genhashfunction(ht, tmpptr->src);
         struct genpointerlist *nextptr=tmpptr->next;
         tmpptr->next=newbins[hashcode];
         newbins[hashcode]=tmpptr;
@@ -60,7 +60,6 @@ int hashsize(struct genhashtable *ht) {
 }
 
 void genrehash(struct genhashtable * ht) {
-  /* Expand hashtable */
   struct genpointerlist **newbins=(struct genpointerlist **) RUNMALLOC(sizeof (struct genpointerlist *)*ht->currentsize);
   struct genpointerlist **oldbins=ht->bins;
   long j,i;
@@ -68,7 +67,7 @@ void genrehash(struct genhashtable * ht) {
   for(i=0;i<ht->currentsize;i++) {
     struct genpointerlist * tmpptr=oldbins[i];
     while(tmpptr!=NULL) {
-      int hashcode=genhashfunction(ht, tmpptr->src);
+      unsigned int hashcode=genhashfunction(ht, tmpptr->src);
       struct genpointerlist *nextptr=tmpptr->next;
       tmpptr->next=newbins[hashcode];
       newbins[hashcode]=tmpptr;

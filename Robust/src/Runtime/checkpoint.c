@@ -228,7 +228,7 @@ void restorecheckpoint(int numparams, void ** original, void ** checkpoint, stru
 	}
 	if (hasflags[type]) {
 	  (((void **)cpy)[2])=flagptr;
-	  flagorand(cpy, 1, 0xFFFFFFFF);
+	  flagorandinit(cpy, 0, 0xFFFFFFFF);
 	}
       }
     }
