@@ -1,0 +1,7 @@
+#!/bin/bash
+./runtest.sh taskchat.bin &> tasklog
+mkdir task
+mv *.log task
+./runtest.sh threadchat.bin &> threadlog
+mkdir thread
+mv *.log thread

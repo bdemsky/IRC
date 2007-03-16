@@ -25,11 +25,11 @@ task ProcessRoom(ChatSocket cs{ProcessRoom}, RoomObject ro{Initialized}) {
 task Message(ChatSocket cs{InRoom && IOPending}) {
     byte buffer[]=new byte[1024];
     int length=cs.read(buffer);
-    String st=(new String(buffer)).subString(0, length);
-    Message m=new Message(st, cs){};
+    Message m=new Message(buffer, length, cs){};
 }
 
 task SendMessage(Message m{!Sent}) {
-    m.cs.room.sendToRoom(m.cs,m.st.getBytes());
+    String st=(new String(m.buffer)).subString(0, m.length);
+    m.cs.room.sendToRoom(m.cs,st.getBytes());
     taskexit(m {Sent});
 }
