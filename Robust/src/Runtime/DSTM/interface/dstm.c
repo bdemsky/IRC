@@ -7,12 +7,12 @@ extern int classsize[];
 // Get a new object id
 unsigned int getNewOID(void) {
 	static int id = 1;
-	return ++id;
+	return id++;
 }
 
 // Get the size of the object for a given type
 unsigned int objSize(objheader_t *object) {
-	return classsize[h.type];
+	return classsize[object->type];
 }
 
 /* END object header */

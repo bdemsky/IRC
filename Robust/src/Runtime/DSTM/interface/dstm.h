@@ -56,4 +56,6 @@ objheader_t *transCreateObj(transrecord_t *record, unsigned short type); //retur
 int transCommit(transrecord_t *record); //return 0 if successful
 /* end transactions */
 
+void *getRemoteObj(transrecord_t *, unsigned int, unsigned int);
+
 #endif

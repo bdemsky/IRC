@@ -8,28 +8,28 @@
 #include "mlookup.h"
 #include "llookup.h"
 
-#define LISTEN_PORT 2153
+#define LISTEN_PORT 2156
 #define BACKLOG 10 //max pending connections
-#define RECIEVE_BUFFER_SIZE 1500
+#define RECIEVE_BUFFER_SIZE 2048
 
+extern int classsize[];
 
 objstr_t *mainobjstore;
-mainobjstore = objstrCreate(DEFAULT_OBJ_STORE_SIZE);	
 
 int dstmInit(void)
 {
 	//todo:initialize main object store
 	//do we want this to be a global variable, or provide
 	//separate access funtions and hide the structure?
-
+	mainobjstore = objstrCreate(DEFAULT_OBJ_STORE_SIZE);	
 	if (mhashCreate(HASH_SIZE, LOADFACTOR))
 		return 1; //failure
 	
 	if (lhashCreate(HASH_SIZE, LOADFACTOR))
 		return 1; //failure
 	
-	pthread_t threadListen;
-	pthread_create(&threadListen, NULL, dstmListen, NULL);
+	//pthread_t threadListen;
+	//pthread_create(&threadListen, NULL, dstmListen, NULL);
 	
 	return 0;
 }
@@ -43,7 +43,7 @@ void *dstmListen()
 	pthread_t thread_dstm_accept;
 	int i;
 
-	listenfd = socket(PF_INET, SOCK_STREAM, 0);
+	listenfd = socket(AF_INET, SOCK_STREAM, 0);
 	if (listenfd == -1)
 	{
 		perror("socket");
@@ -78,9 +78,13 @@ void *dstmListen()
 
 void *dstmAccept(void *acceptfd)
 {
-	int numbytes;
+	int numbytes,i,choice, oid;
 	char buffer[RECIEVE_BUFFER_SIZE];
-	int fd_flags = fcntl((int)acceptfd, F_GETFD);
+	char opcode[10];
+	void *srcObj;
+	objheader_t *h;
+	int fd_flags = fcntl((int)acceptfd, F_GETFD), size;
+
 	printf("Recieved connection: fd = %d\n", (int)acceptfd);
 	do
 	{
@@ -93,19 +97,38 @@ void *dstmAccept(void *acceptfd)
 		}
 		else
 		{
-			printf("Read %d bytes from %d\n", numbytes, (int)acceptfd);
-			printf("%s", buffer);
+			sscanf(buffer, "%s %d\n", opcode, &oid);
+			
+			if (strcmp(opcode, "TRANS_RD") == 0) {
+				printf("DEBUG -> Requesting:  %s %d\n", opcode, oid);
+				srcObj = mhashSearch(oid);
+				h = (objheader_t *) srcObj;
+				printf("DEBUG -> Sending oid = %d, type %d\n", h->oid, h->type);
+				size = sizeof(objheader_t) + sizeof(classsize[h->type]);
+				if(send((int)acceptfd, srcObj, size, 0) < 0) {
+					perror("");
+				}
+				//printf("DEBUG -> sent ...%d\n", write(acceptfd, srcObj, size));
+			}
+			else if (strcmp(opcode, "TRANS_COMMIT") == 0)
+				printf(" This is a Commit\n");
+			else if (strcmp(opcode,"TRANS_ABORT") == 0)
+				printf(" This is a Abort\n");
+			else 
+				printf(" This is a Broadcastt\n");
+					
+			//printf("Read %d bytes from %d\n", numbytes, (int)acceptfd);
+			//printf("%s", buffer);
 		}
 		
-	} while (numbytes != 0);
+	//} while (numbytes != 0);
+	} while (0);
 	if (close((int)acceptfd) == -1)
 	{
 		perror("close");
-		pthread_exit(NULL);
 	}
 	else
 		printf("Closed connection: fd = %d\n", (int)acceptfd);
 	pthread_exit(NULL);
 }
-
 
