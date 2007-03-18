@@ -1,0 +1,70 @@
+control = 1 byte, number = 2 bytes
+
+Client messages:
+<READ_REQUEST      - control, oid
+<READ_MULT_REQUEST - control, number, oids
+<MOVE_REQUEST      - control, oid
+<MOVE_MULT_REQUEST - control, number, oids
+<TRANS_REQUEST     - control, number read, number modified, read oids, modified objects
+<TRANS_ABORT       - control
+<TRANS_COMMIT      - control
+
+Server messages:
+>OBJECT_FOUND      - control, object
+>OBJECT_NOT_FOUND  - control
+>OBJECTS_FOUND     - control, number, objects
+>OBJECTS_NOT_FOUND - control, number, oids
+>TRANS_AGREE       - control
+>TRANS_DISAGREE    - control
+>TRANS_SUCCESSFUL  - control
+
+possible conversations (conversation means a tcp connection is maintained throughout):
+
+<READ_REQUEST
+>OBJECT_FOUND
+
+<READ_REQUEST
+>OBJECT_NOT_FOUND
+
+<READ_MULT_REQUEST
+>OBJECTS_FOUND
+
+<READ_MULT_REQUEST
+>OBJECTS_NOT_FOUND
+
+(some objects found, others not)
+<READ_MULT_REQUEST
+>OBJECTS_NOT_FOUND
+>OBJECTS_FOUND
+
+<MOVE_REQUEST
+>OBJECT_FOUND
+
+<MOVE_REQUEST
+>OBJECT_NOT_FOUND
+
+<MOVE_MULT_REQUEST
+>OBJECTS_FOUND
+
+<MOVE_MULT_REQUEST
+>OBJECTS_NOT_FOUND
+
+(some objects found, others not)
+<MOVE_MULT_REQUEST
+>OBJECTS_NOT_FOUND
+>OBJECTS_FOUND
+
+<TRANS_REQUEST
+>TRANS_DISAGREE
+<TRANS_ABORT
+
+(another host disagreed or failed to respond)
+<TRANS_REQUEST
+>TRANS_AGREE
+<TRANS_ABORT
+
+<TRANS_REQUEST
+>TRANS_AGREE
+<TRANS_COMMIT
+>TRANS_SUCCESSFUL
+
