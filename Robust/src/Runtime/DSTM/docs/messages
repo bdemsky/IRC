@@ -1,19 +1,19 @@
-control = 1 byte, number = 2 bytes
+control = 1 byte, number of objects = 2 bytes
 
 Client messages:
 <READ_REQUEST      - control, oid
-<READ_MULT_REQUEST - control, number, oids
+<READ_MULT_REQUEST - control, number of objects, oids
 <MOVE_REQUEST      - control, oid
-<MOVE_MULT_REQUEST - control, number, oids
-<TRANS_REQUEST     - control, number read, number modified, read oids, modified objects
+<MOVE_MULT_REQUEST - control, number of objects, oids
+<TRANS_REQUEST     - control, number of objects read, number of objects modified, read headers, modified objects
 <TRANS_ABORT       - control
 <TRANS_COMMIT      - control
 
 Server messages:
 >OBJECT_FOUND      - control, object
 >OBJECT_NOT_FOUND  - control
->OBJECTS_FOUND     - control, number, objects
->OBJECTS_NOT_FOUND - control, number, oids
+>OBJECTS_FOUND     - control, number of objects, objects
+>OBJECTS_NOT_FOUND - control, number of objects, oids
 >TRANS_AGREE       - control
 >TRANS_DISAGREE    - control
 >TRANS_SUCCESSFUL  - control
