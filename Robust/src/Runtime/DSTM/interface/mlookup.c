@@ -54,6 +54,7 @@ unsigned int mhashInsert(unsigned int key, void *val) {
 	} else {			// Insert in the beginning of linked list
 		if ((node = calloc(1, sizeof(mhashlistnode_t))) == NULL) {
 			printf("Calloc error %s, %d\n", __FILE__, __LINE__);
+			pthread_mutex_unlock(&mlookup.locktable);
 			return 1;
 		}
 		node->key = key;
@@ -76,6 +77,7 @@ void *mhashSearch(unsigned int key) {
 	pthread_mutex_lock(&mlookup.locktable);
 	while(node != NULL) {
 		if(node->key == key) {
+			pthread_mutex_unlock(&mlookup.locktable);
 			return node->val;
 		}
 		node = node->next;
@@ -111,6 +113,7 @@ unsigned int mhashRemove(unsigned int key) {
 				prev->next = curr->next;
 				free(curr);
 			}
+			pthread_mutex_unlock(&mlookup.locktable);
 			return 0;
 		}       
 		prev = curr; 

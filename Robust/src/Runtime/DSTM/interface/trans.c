@@ -9,7 +9,7 @@
 
 #define LISTEN_PORT 2156
 #define MACHINE_IP "127.0.0.1"
-#define RECIEVE_BUFFER_SIZE 2048
+#define RECEIVE_BUFFER_SIZE 2048
 
 extern int classsize[];
 
@@ -33,7 +33,7 @@ objheader_t *transRead(transrecord_t *record, unsigned int oid)
 		return(objheader);
 	} else if ((objheader = (objheader_t *) mhashSearch(oid)) != NULL) {
 		//Look up in Machine lookup table and found
-		printf(" oid not found in cache\n");
+		printf("oid not found in local cache\n");
 		tmp = mhashSearch(oid);
 		size = sizeof(objheader_t)+classsize[tmp->type];
 		//Copy into cache
@@ -43,15 +43,13 @@ objheader_t *transRead(transrecord_t *record, unsigned int oid)
 		chashInsert(record->lookupTable, objheader->oid, objcopy); 
 		return(objcopy);
 	} else {
-		printf(" oid not found in Machine Lookup\n");
+		printf("oid not found in local machine lookup\n");
 		machinenumber = lhashSearch(oid);
-		//Get object from a given machine 
-	/*	if (getRemoteObj(record, machinenumber, oid) != 0) {
-			printf("Error getRemoteObj");
-		}
-	*/
 		objcopy = getRemoteObj(record, machinenumber, oid);
-		return(objcopy);
+		if(objcopy == NULL)
+			printf("Object not found in Machine %d\n", machinenumber);
+		else
+			return(objcopy);
 	} 
 }
 
@@ -81,7 +79,7 @@ void *getRemoteObj(transrecord_t *record, unsigned int mnum, unsigned int oid) {
 	int sd, size;
 	struct sockaddr_in serv_addr;
 	struct hostent *server;
-	char buffer[RECIEVE_BUFFER_SIZE];
+	char buffer[RECEIVE_BUFFER_SIZE],control;
 	objheader_t *h;
 	void *objcopy;
 
@@ -99,24 +97,31 @@ void *getRemoteObj(transrecord_t *record, unsigned int mnum, unsigned int oid) {
 		return NULL;
 	}
 	bzero((char *)buffer,sizeof(buffer));
-	sprintf(buffer, "TRANS_RD %d\n", oid);
+	control = READ_REQUEST;
+	buffer[0] = control;
+	memcpy(buffer+1, &oid, sizeof(int));
 	if (write(sd, buffer, sizeof(buffer)) < 0) {
 		perror("Error sending message");
 		return NULL;
 	}
+
+#ifdef DEBUG1
 	printf("DEBUG -> ready to rcv ...\n");
-	/*
-	while (read(sd, buffer, sizeof(buffer)) != 0) {
-		;
-	}
-	*/
+#endif
 	read(sd, buffer, sizeof(buffer));
-	h = (objheader_t *) buffer;
-	size = sizeof(objheader_t) + sizeof(classsize[h->type]);
+	close(sd);
+	if (buffer[0] == OBJECT_NOT_FOUND) {
+		return NULL;
+	} else {
+
+		h = (objheader_t *) buffer+1;
+		size = sizeof(objheader_t) + sizeof(classsize[h->type]);
+#ifdef DEBUG1
 	printf("DEBUG -> Received: oid = %d, type = %d\n", h->oid, h->type);
-	fflush(stdout);
+#endif
+	}
 	objcopy = objstrAlloc(record->cache, size);
-	memcpy(objcopy, (void *)buffer, size);
+	memcpy(objcopy, (void *)buffer+1, size);
 	//Insert into cache's lookup table
 	chashInsert(record->lookupTable, oid, objcopy); 
 	return objcopy;

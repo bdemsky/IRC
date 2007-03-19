@@ -1,6 +1,24 @@
 #ifndef _DSTM_H_
 #define _DSTM_H_
 
+//Client Messages
+#define READ_REQUEST 		1
+#define READ_MULT_REQUEST 	2
+#define MOVE_REQUEST 		3
+#define MOVE_MULT_REQUEST	4
+#define	TRANS_REQUEST		5
+#define	TRANS_ABORT		6
+#define TRANS_COMMIT 		7
+
+//Server Messages
+#define OBJECT_FOUND		8
+#define OBJECT_NOT_FOUND	9
+#define OBJECTS_FOUND 		10
+#define OBJECTS_NOT_FOUND	11
+#define TRANS_AGREE 		12
+#define TRANS_DISAGREE		13
+#define TRANS_SUCESSFUL		14
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>

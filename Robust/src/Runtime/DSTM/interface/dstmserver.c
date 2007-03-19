@@ -10,7 +10,7 @@
 
 #define LISTEN_PORT 2156
 #define BACKLOG 10 //max pending connections
-#define RECIEVE_BUFFER_SIZE 2048
+#define RECEIVE_BUFFER_SIZE 2048
 
 extern int classsize[];
 
@@ -79,50 +79,62 @@ void *dstmListen()
 void *dstmAccept(void *acceptfd)
 {
 	int numbytes,i,choice, oid;
-	char buffer[RECIEVE_BUFFER_SIZE];
-	char opcode[10];
+	char buffer[RECEIVE_BUFFER_SIZE], control;
 	void *srcObj;
 	objheader_t *h;
 	int fd_flags = fcntl((int)acceptfd, F_GETFD), size;
 
 	printf("Recieved connection: fd = %d\n", (int)acceptfd);
-	do
+	numbytes = recv((int)acceptfd, (void *)buffer, sizeof(buffer), 0);
+	if (numbytes == -1)
 	{
-		numbytes = recv((int)acceptfd, (void *)buffer, sizeof(buffer), 0);
-		buffer[numbytes] = '\0';
-		if (numbytes == -1)
-		{
-			perror("recv");
-			pthread_exit(NULL);
-		}
-		else
-		{
-			sscanf(buffer, "%s %d\n", opcode, &oid);
-			
-			if (strcmp(opcode, "TRANS_RD") == 0) {
-				printf("DEBUG -> Requesting:  %s %d\n", opcode, oid);
+		perror("recv");
+		pthread_exit(NULL);
+	}
+	else
+	{
+		control = buffer[0];
+		switch(control) {
+			case READ_REQUEST:
+				oid = *((int *)(buffer+1));
+#ifdef DEBUG1
+				printf("DEBUG -> Received oid is %d\n", oid);
+#endif
 				srcObj = mhashSearch(oid);
 				h = (objheader_t *) srcObj;
+				if (h == NULL) {
+					buffer[0] = OBJECT_NOT_FOUND;
+				} else {
+					buffer[0] = OBJECT_FOUND;
+					size = sizeof(objheader_t) + sizeof(classsize[h->type]);
+					memcpy(buffer+1, srcObj, size);
+				}
+#ifdef DEBUG1
 				printf("DEBUG -> Sending oid = %d, type %d\n", h->oid, h->type);
-				size = sizeof(objheader_t) + sizeof(classsize[h->type]);
-				if(send((int)acceptfd, srcObj, size, 0) < 0) {
+#endif
+
+				if(send((int)acceptfd, (void *)buffer, sizeof(buffer), 0) < 0) {
 					perror("");
 				}
-				//printf("DEBUG -> sent ...%d\n", write(acceptfd, srcObj, size));
-			}
-			else if (strcmp(opcode, "TRANS_COMMIT") == 0)
-				printf(" This is a Commit\n");
-			else if (strcmp(opcode,"TRANS_ABORT") == 0)
-				printf(" This is a Abort\n");
-			else 
-				printf(" This is a Broadcastt\n");
-					
-			//printf("Read %d bytes from %d\n", numbytes, (int)acceptfd);
-			//printf("%s", buffer);
+				break;
+			case READ_MULT_REQUEST:
+				break;
+			case MOVE_REQUEST:
+				break;
+			case MOVE_MULT_REQUEST:
+				break;
+			case TRANS_REQUEST:
+				break;
+			case TRANS_ABORT:
+				break;
+			case TRANS_COMMIT:
+				break;
+			default:
+				printf("Error receiving");
 		}
-		
-	//} while (numbytes != 0);
-	} while (0);
+		//printf("Read %d bytes from %d\n", numbytes, (int)acceptfd);
+		//printf("%s", buffer);
+	}
 	if (close((int)acceptfd) == -1)
 	{
 		perror("close");

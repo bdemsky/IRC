@@ -64,6 +64,7 @@ unsigned int lhashInsert(unsigned int oid, unsigned int mid) {
 	} else {			// Insert in the linked list
 		if ((node = calloc(1, sizeof(lhashlistnode_t))) == NULL) {
 			printf("Calloc error %s, %d\n", __FILE__, __LINE__);
+			pthread_mutex_unlock(&llookup.locktable);
 			return 1;
 		}
 		node->oid = oid;
@@ -87,6 +88,7 @@ unsigned int lhashSearch(unsigned int oid) {
 	pthread_mutex_lock(&llookup.locktable);
 	while(node != NULL) {
 		if(node->oid == oid) {
+			pthread_mutex_unlock(&llookup.locktable);
 			return node->mid;
 		}
 		node = node->next;
@@ -122,6 +124,7 @@ unsigned int lhashRemove(unsigned int oid) {
 				prev->next = curr->next;
 				free(curr);
 			}
+			pthread_mutex_unlock(&llookup.locktable);
 			return 0;
 		}       
 		prev = curr; 
