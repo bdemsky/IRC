@@ -124,6 +124,12 @@ void *dstmAccept(void *acceptfd)
 			case MOVE_MULT_REQUEST:
 				break;
 			case TRANS_REQUEST:
+				printf("Client sent %d\n",buffer[0]);
+				int offset = 1;
+				printf("Num Read  %d\n",*((short*)(buffer+offset)));
+				offset += sizeof(short);
+				printf("Num modified  %d\n",*((short*)(buffer+offset)));
+				handleTransReq(acceptfd, buffer);
 				break;
 			case TRANS_ABORT:
 				break;
@@ -144,3 +150,170 @@ void *dstmAccept(void *acceptfd)
 	pthread_exit(NULL);
 }
 
+//TOOD put __FILE__ __LINE__ for all error conditions
+int handleTransReq(int acceptfd, char *buf) {
+	short numread = 0, nummod = 0;
+	char control;
+	int offset = 0, size,i;
+	int objnotfound = 0, transdis = 0, transabort = 0, transagree = 0;
+	objheader_t *headptr = NULL;
+	objstr_t *tmpholder;
+	void *top, *mobj;
+	char sendbuf[RECEIVE_BUFFER_SIZE];
+
+	control = buf[0];
+	offset = 1;
+	numread = *((short *)(buf+offset));
+	offset += sizeof(short);
+	nummod = *((short *)(buf+offset));
+	offset += sizeof(short);
+	if (numread) {
+		//Make an array to store the object headers for all objects that are only read
+		if ((headptr = calloc(numread, sizeof(objheader_t))) == NULL) {
+			perror("handleTransReq: Calloc error");
+			return 1;
+		}
+		//Process each object id that is only read
+		for (i = 0; i < numread; i++) {
+			objheader_t *tmp;
+			tmp = (objheader_t *) (buf + offset);
+			//find if object is still present in the same machine since TRANS_REQUEST
+			if ((mobj = mhashSearch(tmp->oid)) == NULL) {
+				objnotfound++;
+				/*
+				sendbuf[0] = OBJECT_NOT_FOUND;
+				if(send((int)acceptfd, (void *)sendbuf, sizeof(sendbuf), 0) < 0) {
+					perror("");
+				}
+				*/
+				} else { // If obj found in machine (i.e. has not moved)
+				//Check if obj is locked
+				if ((((objheader_t *)mobj)->status >> 3) == 1) {
+					//Check version of the object
+					if (tmp->version == ((objheader_t *)mobj)->version) {//If version match
+						transdis++;
+						/*
+						sendbuf[0] = TRANS_DISAGREE;
+						if(send((int)acceptfd, (void *)sendbuf, sizeof(sendbuf), 0) < 0) {
+							perror("");
+						}
+					*/
+					} else {//If versions don't match ..HARD ABORT
+						transabort++;
+						/*
+						sendbuf[0] = TRANS_DISAGREE_ABORT;
+						if(send((int)acceptfd, (void *)sendbuf, sizeof(sendbuf), 0) < 0) {
+							perror("");
+						}
+						*/
+					}
+				} else {// If object not locked then lock it
+					((objheader_t *)mobj)->status |= LOCK;
+					if (tmp->version == ((objheader_t *)mobj)->version) {//If versions match
+						transagree++;
+						/*
+						sendbuf[0] = TRANS_AGREE;
+						if(send((int)acceptfd, (void *)sendbuf, sizeof(sendbuf), 0) < 0) {
+							perror("");
+						}
+						*/
+					} else {//If versions don't match
+						transabort++;
+						/*
+						sendbuf[0] = TRANS_DISAGREE_ABORT;
+						if(send((int)acceptfd, (void *)sendbuf, sizeof(sendbuf), 0) < 0) {
+							perror("");
+						}
+						*/
+					}
+				}
+			}	
+			memcpy(headptr, buf+offset, sizeof(objheader_t));
+			offset += sizeof(objheader_t);
+		}
+	}
+	if (nummod) {
+		if((tmpholder = objstrCreate(RECEIVE_BUFFER_SIZE)) == NULL) {
+			perror("handleTransReq: Calloc error");
+			return 1;
+		}
+		
+		//Process each object id that is only modified
+		for(i = 0; i < nummod; i++) {
+			objheader_t *tmp;
+			tmp = (objheader_t *)(buf + offset);
+			//find if object is still present in the same machine since TRANS_REQUEST
+			if ((mobj = mhashSearch(tmp->oid)) == NULL) {
+				objnotfound++;
+				/*
+				   sendbuf[0] = OBJECT_NOT_FOUND;
+				   if(send((int)acceptfd, (void *)sendbuf, sizeof(sendbuf), 0) < 0) {
+				   perror("");
+				   }
+				 */
+			} else { // If obj found in machine (i.e. has not moved)
+				//Check if obj is locked
+				if ((((objheader_t *)mobj)->status >> 3) == 1) {
+					//Check version of the object
+					if (tmp->version == ((objheader_t *)mobj)->version) {//If version match
+						transdis++;
+						/*
+						   sendbuf[0] = TRANS_DISAGREE;
+						   if(send((int)acceptfd, (void *)sendbuf, sizeof(sendbuf), 0) < 0) {
+						   perror("");
+						   }
+						 */
+					} else {//If versions don't match ..HARD ABORT
+						transabort++;
+						/*
+						   sendbuf[0] = TRANS_DISAGREE_ABORT;
+						   if(send((int)acceptfd, (void *)sendbuf, sizeof(sendbuf), 0) < 0) {
+						   perror("");
+						   }
+						 */
+					}
+				} else {// If object not locked then lock it
+					((objheader_t *)mobj)->status |= LOCK;
+					if (tmp->version == ((objheader_t *)mobj)->version) {//If versions match
+						transagree++;
+						/*
+						   sendbuf[0] = TRANS_AGREE;
+						   if(send((int)acceptfd, (void *)sendbuf, sizeof(sendbuf), 0) < 0) {
+						   perror("");
+						   }
+						 */
+					} else {//If versions don't match
+						transabort++;
+						/*
+						   sendbuf[0] = TRANS_DISAGREE_ABORT;
+						   if(send((int)acceptfd, (void *)sendbuf, sizeof(sendbuf), 0) < 0) {
+						   perror("");
+						   }
+						 */
+					}
+				}
+			}	
+
+			size = sizeof(objheader_t) + classsize[tmp->type];
+			if ((top = objstrAlloc(tmpholder, size)) == NULL) {
+					perror("handleTransReq: Calloc error");
+					return 1;
+			}
+			memcpy(top, buf+offset, size);
+			offset += size;
+		}
+	}
+	if(transabort > 0) {
+		sendbuf[0] = TRANS_DISAGREE_ABORT;
+		if(send((int)acceptfd, (void *)sendbuf, sizeof(sendbuf), 0) < 0) {
+			perror("");
+		}
+	
+	} else {
+		sendbuf[0] = TRANS_AGREE;
+		if(send((int)acceptfd, (void *)sendbuf, sizeof(sendbuf), 0) < 0) {
+			perror("");
+		}
+	}
+	return 0;
+}

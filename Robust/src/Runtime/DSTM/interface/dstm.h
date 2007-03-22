@@ -16,8 +16,9 @@
 #define OBJECTS_FOUND 		10
 #define OBJECTS_NOT_FOUND	11
 #define TRANS_AGREE 		12
-#define TRANS_DISAGREE		13
-#define TRANS_SUCESSFUL		14
+#define TRANS_DISAGREE		13//for soft abort
+#define TRANS_DISAGREE_ABORT	14//for hard abort
+#define TRANS_SUCESSFUL		15//Not necessary for now
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -28,6 +29,7 @@
 //bit designations for status field of objheader
 #define DIRTY 0x01
 #define NEW   0x02
+#define LOCK  0x04
 
 typedef struct objheader {
 	unsigned int oid;
@@ -47,6 +49,12 @@ typedef struct transrecord {
 	objstr_t *cache;
 	chashtable_t *lookupTable;
 } transrecord_t;
+
+typedef struct pile {
+	unsigned int mid;
+	unsigned int oid;
+	struct pile *next;
+}pile_t;
 
 /* Initialize main object store and lookup tables, start server thread. */
 int dstmInit(void);

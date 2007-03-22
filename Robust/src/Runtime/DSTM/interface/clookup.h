@@ -13,7 +13,7 @@ typedef struct chashlistnode {
 	struct chashlistnode *next;
 } chashlistnode_t;
 
-typedef struct cashehashtable {
+typedef struct chashtable {
 	chashlistnode_t *table;	// points to beginning of hash table
 	unsigned int size;
 	unsigned int numelements;
