@@ -5,7 +5,7 @@ Client messages:
 <READ_MULT_REQUEST - control, number of objects, oids
 <MOVE_REQUEST      - control, oid
 <MOVE_MULT_REQUEST - control, number of objects, oids
-<TRANS_REQUEST     - control, number of objects read, number of objects modified, read headers, modified objects
+<TRANS_REQUEST     - control, tid, number of machines, number of objects read, number of objects modified, total bytes of modified objects (headers+bytes), list mid's, <oid, version> tuples for read objects, modified objects
 <TRANS_ABORT       - control
 <TRANS_COMMIT      - control
 
