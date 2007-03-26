@@ -15,11 +15,11 @@ plistnode_t *pCreate(int objects) {
 		return NULL;
 	}
 	pile->index = 0;
-	pile->vote = 0;
+	//pile->vote = 0;
 	return pile;
 }
 
-unsigned int pInsert(plistnode_t *pile, unsigned int mid, unsigned int oid, int num_objs) {
+plistnode_t *pInsert(plistnode_t *pile, unsigned int mid, unsigned int oid, int num_objs) {
 	plistnode_t *ptr, *tmp;
 	int found = 0;
 
@@ -37,13 +37,37 @@ unsigned int pInsert(plistnode_t *pile, unsigned int mid, unsigned int oid, int 
 	//Add oid for any new machine 
 	if (!found) {
 		if((ptr = pCreate(num_objs)) == NULL) {
-			return 1;
+			return NULL;
 		}
 		ptr->mid = mid;
 		ptr->obj[ptr->index] = oid;
 		ptr->index++;
 		ptr->next = pile;
 		pile = ptr;
+	}
+	return pile;
+}
+
+//Count the number of machine groups
+int pCount(plistnode_t *pile) {
+	plistnode_t *tmp;
+	int pcount = 0;
+	tmp = pile;
+	while(tmp != NULL) {
+		pcount++;
+		tmp = tmp->next;
+	}
+	return pcount;
+}
+
+//Make a list of mid's for each machine group
+int pListMid(plistnode_t *pile, unsigned int *list) {
+        int i = 0;
+	plistnode_t *tmp;
+	tmp = pile;
+	while (tmp != NULL) {
+		list[i] = tmp->mid;
+		i++;
 	}
 	return 0;
 }

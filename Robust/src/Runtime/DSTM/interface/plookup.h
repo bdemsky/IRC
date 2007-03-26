@@ -13,7 +13,9 @@ typedef struct plistnode {
 } plistnode_t;
 
 plistnode_t  *pCreate(int);
-unsigned int pInsert(plistnode_t*, unsigned int mid, unsigned int oid, int);
+plistnode_t  *pInsert(plistnode_t*, unsigned int mid, unsigned int oid, int);
+int pCount(plistnode_t *pile);
+int pListMid(plistnode_t *pile, unsigned int *list);
 unsigned int *pSearch(plistnode_t *, unsigned int mid);
 void pDelete(plistnode_t *);
 
