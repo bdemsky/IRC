@@ -21,7 +21,7 @@
 #define TRANS_DISAGREE		15
 #define TRANS_AGREE_BUT_MISSING_OBJECTS	16
 #define TRANS_SOFT_ABORT	17
-#define TRANS_SUCESSFUL		18//Not necessary for now
+#define TRANS_SUCESSFUL		18
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -61,16 +61,40 @@ typedef struct pile {
 	struct pile *next;
 }pile_t;
 
+// Structure that keeps track of responses from the participants
+typedef struct thread_response {
+	char rcv_status;
+}thread_response_t;
+
+// Structure that holds  fixed data sizes to be sent along with TRANS_REQUEST
+typedef struct fixed_data {
+	char control;
+	char trans_id[TID_LEN];	
+	int mcount;		// Machine count
+	short numread;		// Number of objects read
+	short nummod;		// Number of objects modified
+	int sum_bytes;	// Total bytes modified
+}fixed_data_t;
+
+// Structure that holds  variable data sizes per machine participant
+typedef struct trans_req_data {
+	fixed_data_t f;
+	unsigned int *listmid;
+	char *objread;
+	unsigned int *oidmod;
+}trans_req_data_t;
+
 //structure for passing multiple arguments to thread
 typedef struct thread_data_array {
 	int thread_id;
 	int mid;    
 	int pilecount;
-	char *buffer;           //buffer contains the packet for trans req
-	char *recvmsg;          //shared datastructure to keep track of the control message receiv
+	trans_req_data_t *buffer;
+	thread_response_t *recvmsg;//shared datastructure to keep track of the control message receiv
 	pthread_cond_t *threshold; //threshhold for waking up a thread
 	pthread_mutex_t *lock;    //lock the count variable
 	int *count;             //count variable
+	transrecord_t *rec;	// To send modified objects
 }thread_data_array_t;
 
 /* Initialize main object store and lookup tables, start server thread. */
@@ -96,8 +120,9 @@ void *dstmAccept(void *);
 transrecord_t *transStart();
 objheader_t *transRead(transrecord_t *record, unsigned int oid);
 objheader_t *transCreateObj(transrecord_t *record, unsigned short type); //returns oid
-void *transRequest(void *);
+void *transRequest(void *);	//the C routine that the thread will execute when TRANS_REQUEST begins
 int transCommit(transrecord_t *record); //return 0 if successful
+int decideResponse(thread_data_array_t *tdata, char *buffer, int sd);// Coordinator decides what response to send to the participant
 /* end transactions */
 
 void *getRemoteObj(transrecord_t *, unsigned int, unsigned int);

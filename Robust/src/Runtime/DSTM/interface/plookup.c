@@ -1,4 +1,5 @@
- #include "plookup.h"
+#include "plookup.h"
+extern int classsize[];
 
 plistnode_t *pCreate(int objects) {
 	plistnode_t *pile;
@@ -9,26 +10,45 @@ plistnode_t *pCreate(int objects) {
 		return NULL;
 	}	
 	pile->next = NULL;
-	//Create array of objects
-	if((pile->obj = calloc(objects, sizeof(unsigned int))) == NULL) {
+	if ((pile->oidmod = calloc(objects, sizeof(unsigned int))) == NULL) {
 		printf("Calloc error %s %d\n", __FILE__, __LINE__);
 		return NULL;
 	}
-	pile->index = 0;
-	//pile->vote = 0;
+	if ((pile->oidread = calloc(objects, sizeof(unsigned int))) == NULL) {
+		printf("Calloc error %s %d\n", __FILE__, __LINE__);
+		return NULL;
+	}
+	pile->nummod = pile->numread = pile->sum_bytes = 0;
+	if ((pile->objread = calloc(objects, sizeof(int) + sizeof(short))) == NULL) {
+		printf("Calloc error %s %d\n", __FILE__, __LINE__);
+		return NULL;
+	}
+	pile->objmodified = NULL;
+	pile->nummod = pile->numread = pile->sum_bytes = 0;
+
 	return pile;
 }
 
-plistnode_t *pInsert(plistnode_t *pile, unsigned int mid, unsigned int oid, int num_objs) {
+plistnode_t *pInsert(plistnode_t *pile, objheader_t *headeraddr, unsigned int mid, int num_objs) {
 	plistnode_t *ptr, *tmp;
-	int found = 0;
+	int found = 0, offset;
 
 	tmp = pile;
 	//Add oid into a machine that is a part of the pile linked list structure
 	while(tmp != NULL) {
 		if (tmp->mid == mid) {
-			tmp->obj[tmp->index] = oid;
-			tmp->index++;
+			if ((headeraddr->status >> 1) == 1) {
+				tmp->oidmod[tmp->nummod] = headeraddr->oid;
+				tmp->nummod = tmp->nummod + 1;
+				tmp->sum_bytes += sizeof(objheader_t) + classsize[headeraddr->type];
+			} else {
+				tmp->oidread[tmp->numread] = headeraddr->oid;
+				offset = (sizeof(unsigned int) + sizeof(short)) * tmp->numread;
+				memcpy(tmp->objread, &headeraddr->oid, sizeof(unsigned int));
+				offset += sizeof(unsigned int);
+				memcpy(tmp->objread + offset, &headeraddr->version, sizeof(short));
+				tmp->numread = tmp->numread + 1;
+			}
 			found = 1;
 			break;
 		}
@@ -40,8 +60,16 @@ plistnode_t *pInsert(plistnode_t *pile, unsigned int mid, unsigned int oid, int 
 			return NULL;
 		}
 		ptr->mid = mid;
-		ptr->obj[ptr->index] = oid;
-		ptr->index++;
+		if ((headeraddr->status >> 1) == 1) {
+			ptr->oidmod[ptr->nummod] = headeraddr->oid;
+			ptr->nummod = ptr->nummod + 1;
+			ptr->sum_bytes += sizeof(objheader_t) + classsize[headeraddr->type];
+		} else {
+			ptr->oidread[ptr->numread] = headeraddr->oid;
+			memcpy(ptr->objread, &headeraddr->oid, sizeof(unsigned int));
+			memcpy(ptr->objread + sizeof(unsigned int), &headeraddr->version, sizeof(short));
+			ptr->numread = ptr->numread + 1;
+		}
 		ptr->next = pile;
 		pile = ptr;
 	}
@@ -72,26 +100,15 @@ int pListMid(plistnode_t *pile, unsigned int *list) {
 	return 0;
 }
 
-// Return objects for a given mid
-unsigned int *pSearch(plistnode_t *pile, unsigned int mid) {
-	plistnode_t *tmp;
-	tmp = pile;
-	while(tmp != NULL) {
-		if(tmp->mid == mid) {
-			return(tmp->obj);
-		}
-		tmp = tmp->next;
-	}
-	return NULL;
-}
-
 //Delete the entire pile
 void pDelete(plistnode_t *pile) {
 	plistnode_t *next, *tmp;
 	tmp = pile;
 	while(tmp != NULL) {
 		next = tmp->next;
-		free(tmp->obj);
+		free(tmp->oidmod);
+		free(tmp->oidread);
+		free(tmp->objread);
 		free(tmp);
 		tmp = next;
 	}
