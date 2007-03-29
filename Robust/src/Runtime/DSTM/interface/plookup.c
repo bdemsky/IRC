@@ -96,6 +96,7 @@ int pListMid(plistnode_t *pile, unsigned int *list) {
 	while (tmp != NULL) {
 		list[i] = tmp->mid;
 		i++;
+		tmp = tmp->next;
 	}
 	return 0;
 }

@@ -46,7 +46,7 @@ objheader_t *transRead(transrecord_t *record, unsigned int oid)
 		return(objcopy);
 	} else {
 		//Get the object from the remote location
-		printf("oid not found in local machine lookup\n");
+		//printf("oid not found in local machine lookup\n");
 		machinenumber = lhashSearch(oid);
 		objcopy = getRemoteObj(record, machinenumber, oid);
 		if(objcopy == NULL)
@@ -119,6 +119,7 @@ void *transRequest(void *threadarg) {
 	char buffer[RECEIVE_BUFFER_SIZE], control, recvcontrol;
 
 	tdata = (thread_data_array_t *) threadarg;
+	printf("DEBUG -> New thread id %d\n", tdata->thread_id);
 	//Send Trans Request
 	if ((sd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
 		perror("Error in socket for TRANS_REQUEST");
@@ -137,16 +138,20 @@ void *transRequest(void *threadarg) {
 
 	//Multiple writes for sending packets of data 
 	//Send first few fixed bytes of the TRANS_REQUEST protocol
+	printf("DEBUG -> Start sending commit data...\n", tdata->buffer->f.control);
+	printf("Bytes sent in first write: %d\n", sizeof(fixed_data_t));
 	if (write(sd, tdata->buffer->f, (sizeof(fixed_data_t))) < 0) {
 		perror("Error sending fixed bytes for thread");
 		return NULL;
 	}
 	//Send list of machines involved in the transaction
+	printf("Bytes sent in second write: %d\n", sizeof(unsigned int) * tdata->pilecount);
 	if (write(sd, tdata->buffer->listmid, (sizeof(unsigned int) * tdata->pilecount )) < 0) {
 		perror("Error sending list of machines for thread");
 		return NULL;
 	}
 	//Send oids and version number tuples for objects that are read
+	printf("Bytes sent in the third write: %d\n", sizeof(unsigned int) + sizeof(short) * tdata->pilecount);
 	if (write(sd, tdata->buffer->objread, ((sizeof(unsigned int) + sizeof(short)) * tdata->pilecount )) < 0) {
 		perror("Error sending tuples for thread");
 		return NULL;
@@ -154,6 +159,7 @@ void *transRequest(void *threadarg) {
 	//Send objects that are modified
 	for( i = 0; i < tdata->buffer->f.nummod ; i++) {
 		headeraddr = chashSearch(tdata->rec->lookupTable, tdata->buffer->oidmod[i]);
+		printf("Bytes sent for %d obj modified %d\n", i+1, sizeof(objheader_t) + classsize[headeraddr->type]);
 		if (write(sd, &headeraddr, sizeof(objheader_t) + classsize[headeraddr->type])  < 0) {
 			perror("Error sending obj modified for thread");
 			return NULL;
@@ -187,7 +193,7 @@ void *transRequest(void *threadarg) {
 	pthread_exit(NULL);
 }
 
-int transCommit(transrecord_t *record){	
+int transCommit(transrecord_t *record) {	
 	chashlistnode_t *curr, *ptr, *next;
 	unsigned int size;//Represents number of bins in the chash table
 	unsigned int machinenum, tot_bytes_mod;
@@ -212,10 +218,14 @@ int transCommit(transrecord_t *record){
 			}
 			next = curr->next;
 			//Get machine location for object id
+			/*
 			if ((machinenum = lhashSearch(curr->key)) == 0) {
 			       printf("Error: No such machine\n");
 			       return 1;
 			}		
+			*/
+			//TODO only for debug
+			machinenum = 1;
 			if ((headeraddr = chashSearch(record->lookupTable, curr->key)) == NULL) {
 				printf("Error: No such oid\n");
 				return 1;
@@ -253,6 +263,7 @@ int transCommit(transrecord_t *record){
 	pListMid(pile, listmid);
 	//Process each machine group
 	while(tmp != NULL) {
+		printf("DEBUG -> Created thread %d... \n", numthreads);
 		//Create transaction id
 		newtid++;
 		trans_req_data_t *tosend;
@@ -279,7 +290,7 @@ int transCommit(transrecord_t *record){
 		thread_data_array[numthreads].count = &trecvcount;
 		thread_data_array[numthreads].rec = record;
 
-		rc = pthread_create(&thread[numthreads], &attr, transRequest, (void *) &thread_data_array[numthreads]);  
+		rc = pthread_create(&thread[numthreads], NULL, transRequest, (void *) &thread_data_array[numthreads]);  
 		if (rc) {
 			perror("Error in pthread create");
 			return 1;

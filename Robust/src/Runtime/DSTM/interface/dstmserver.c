@@ -85,17 +85,13 @@ void *dstmAccept(void *acceptfd)
 	int fd_flags = fcntl((int)acceptfd, F_GETFD), size;
 
 	printf("Recieved connection: fd = %d\n", (int)acceptfd);
-	numbytes = recv((int)acceptfd, (void *)buffer, sizeof(buffer), 0);
-	if (numbytes == -1)
+	while((numbytes = recv((int)acceptfd, (void *) buffer, sizeof(buffer), 0)) != 0) 
 	{
-		perror("recv");
-		pthread_exit(NULL);
-	}
-	else
-	{
+		printf("DEBUG -> dstmserver: numbytes = %d\n", numbytes);
 		control = buffer[0];
 		switch(control) {
 			case READ_REQUEST:
+				printf("DEBUG -> READ_REQUEST\n");
 				oid = *((int *)(buffer+1));
 #ifdef DEBUG1
 				printf("DEBUG -> Received oid is %d\n", oid);
@@ -118,29 +114,35 @@ void *dstmAccept(void *acceptfd)
 				}
 				break;
 			case READ_MULT_REQUEST:
+				printf("DEBUG-> READ_MULT_REQUEST\n");
 				break;
 			case MOVE_REQUEST:
+				printf("DEBUG -> MOVE_REQUEST\n");
 				break;
 			case MOVE_MULT_REQUEST:
+				printf("DEBUG -> MOVE_MULT_REQUEST\n");
 				break;
 			case TRANS_REQUEST:
+				printf("DEBUG -> TRANS_REQUEST\n");
 				printf("Client sent %d\n",buffer[0]);
-				int offset = 1;
-				printf("Num Read  %d\n",*((short*)(buffer+offset)));
-				offset += sizeof(short);
-				printf("Num modified  %d\n",*((short*)(buffer+offset)));
-				handleTransReq(acceptfd, buffer);
+	//			handleTransReq(acceptfd, buffer);
 				break;
 			case TRANS_ABORT:
+				printf("DEBUG -> TRANS_ABORT\n");
 				break;
 			case TRANS_COMMIT:
+				printf("DEBUG -> TRANS_COMMIT\n");
+				printf("Client sent %d\n",buffer[0]);
+				//TODO copy the objects into the machine 
+				/*copy the object into the object store from its old 
+				  location in the objstore(pointer to its header is already stored before)*/
 				break;
 			default:
 				printf("Error receiving");
 		}
 		//printf("Read %d bytes from %d\n", numbytes, (int)acceptfd);
 		//printf("%s", buffer);
-	}
+	} 
 	if (close((int)acceptfd) == -1)
 	{
 		perror("close");
@@ -151,6 +153,7 @@ void *dstmAccept(void *acceptfd)
 }
 
 //TOOD put __FILE__ __LINE__ for all error conditions
+#if 0
 int handleTransReq(int acceptfd, char *buf) {
 	short numread = 0, nummod = 0;
 	char control;
@@ -159,11 +162,12 @@ int handleTransReq(int acceptfd, char *buf) {
 	objheader_t *headptr = NULL;
 	objstr_t *tmpholder;
 	void *top, *mobj;
+	
 	char sendbuf[RECEIVE_BUFFER_SIZE];
 
 	control = buf[0];
-	offset = 1;
-	numread = *((short *)(buf+offset));
+	offset = sizeof(fixed_data_t);
+	list = *((short *)(buf+offset));
 	offset += sizeof(short);
 	nummod = *((short *)(buf+offset));
 	offset += sizeof(short);
@@ -303,17 +307,25 @@ int handleTransReq(int acceptfd, char *buf) {
 			offset += size;
 		}
 	}
+	/*
 	if(transabort > 0) {
 		sendbuf[0] = TRANS_DISAGREE_ABORT;
 		if(send((int)acceptfd, (void *)sendbuf, sizeof(sendbuf), 0) < 0) {
 			perror("");
 		}
 	
-	} else {
+	} else if(transagree == numread+nummod) {
 		sendbuf[0] = TRANS_AGREE;
 		if(send((int)acceptfd, (void *)sendbuf, sizeof(sendbuf), 0) < 0) {
 			perror("");
 		}
+	} else {
+		sendbuf[0] = TRANS_DISAGREE;
+		if(send((int)acceptfd, (void *)sendbuf, sizeof(sendbuf), 0) < 0) {
+			perror("");
+		}
 	}
+	*/
 	return 0;
 }
+#endif
