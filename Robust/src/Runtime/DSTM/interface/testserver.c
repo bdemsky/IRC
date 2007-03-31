@@ -16,6 +16,9 @@ unsigned int createObjects(transrecord_t *record, unsigned short type) {
 	memcpy(tmp, header, size);
 	mhashInsert(tmp->oid, tmp);
 	lhashInsert(tmp->oid, 1);
+	//Lock oid 3 object
+//	if(tmp->oid == 3)
+//		tmp->status |= LOCK;
 	return 0;
 }
 

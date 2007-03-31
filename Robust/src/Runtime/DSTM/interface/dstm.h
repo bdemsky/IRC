@@ -13,15 +13,18 @@
 #define TRANS_ABORT_BUT_RETRY_COMMIT_WITH_RELOCATING	9
 
 //Participant Messages
-#define OBJECT_FOUND		10
-#define OBJECT_NOT_FOUND	11
-#define OBJECTS_FOUND 		12
-#define OBJECTS_NOT_FOUND	13
-#define TRANS_AGREE 		14
-#define TRANS_DISAGREE		15
-#define TRANS_AGREE_BUT_MISSING_OBJECTS	16
-#define TRANS_SOFT_ABORT	17
-#define TRANS_SUCESSFUL		18
+#define OBJECT_FOUND			10
+#define OBJECT_NOT_FOUND		11
+#define OBJECTS_FOUND 			12
+#define OBJECTS_NOT_FOUND		13
+#define OBJ_LOCKED_BUT_VERSION_MATCH	14
+#define OBJ_UNLOCK_BUT_VERSION_MATCH	15
+#define VERSION_NO_MATCH		16
+#define TRANS_AGREE 			17
+#define TRANS_DISAGREE			18
+#define TRANS_AGREE_BUT_MISSING_OBJECTS	19
+#define TRANS_SOFT_ABORT		20
+#define TRANS_SUCESSFUL			21
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -97,6 +100,12 @@ typedef struct thread_data_array {
 	transrecord_t *rec;	// To send modified objects
 }thread_data_array_t;
 
+// Structure to save information about an oid necesaary for the decideControl()
+typedef struct objinfo {
+	unsigned int oid;
+	int poss_val; //Status of object(locked but version matches, version mismatch, oid not present in machine etc) 
+}objinfo_t;
+
 /* Initialize main object store and lookup tables, start server thread. */
 int dstmInit(void);
 
@@ -114,15 +123,18 @@ void *objstrAlloc(objstr_t *store, unsigned int size); //size in bytes
 /* Prototypes for server portion */
 void *dstmListen();
 void *dstmAccept(void *);
+int readClientReq(int);
+int handleTransReq(int, fixed_data_t *, unsigned int *, char *, void *);
 /* end server portion */
 
 /* Prototypes for transactions */
 transrecord_t *transStart();
 objheader_t *transRead(transrecord_t *record, unsigned int oid);
 objheader_t *transCreateObj(transrecord_t *record, unsigned short type); //returns oid
+int decideResponse(thread_data_array_t *tdata, int sd);// Coordinator decides what response to send to the participant
 void *transRequest(void *);	//the C routine that the thread will execute when TRANS_REQUEST begins
 int transCommit(transrecord_t *record); //return 0 if successful
-int decideResponse(thread_data_array_t *tdata, char *buffer, int sd);// Coordinator decides what response to send to the participant
+void *getRemoteObj(transrecord_t *, unsigned int, unsigned int);
 /* end transactions */
 
 void *getRemoteObj(transrecord_t *, unsigned int, unsigned int);
