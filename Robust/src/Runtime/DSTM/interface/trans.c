@@ -88,6 +88,7 @@ int decideResponse(thread_data_array_t *tdata, int sd) {
 				//Free transaction records
 				objstrDelete(tdata->rec->cache);
 				chashDelete(tdata->rec->lookupTable);
+				free(tdata->rec);
 				//send Abort
 				ctrl = TRANS_ABORT;
 				if (write(sd, &ctrl, sizeof(char)) < 0) {
@@ -105,17 +106,21 @@ int decideResponse(thread_data_array_t *tdata, int sd) {
 				printf("DEBUG-> Inside TRANS_SOFT_ABORT\n");
 				transsoftabort++;
 				//Read list of objects missing
-			 	read(sd, &oidcount, sizeof(int));
-				N = oidcount * sizeof(unsigned int);
-				if((oidnotfound[i] = calloc(oidcount, sizeof(unsigned int))) == NULL) {
-					printf("Calloc error %s, %d\n", __FILE__, __LINE__);
+				if(read(sd, &oidcount, sizeof(int)) != 0) {
+					if (oidcount == 0) {
+						sleep(2);
+						break;
+					}
+					N = oidcount * sizeof(unsigned int);
+					if((oidnotfound[i] = calloc(oidcount, sizeof(unsigned int))) == NULL) {
+						printf("Calloc error %s, %d\n", __FILE__, __LINE__);
+					}
+					ptr = (char *) oidnotfound[i];
+					do {
+						n = read(sd, ptr+sum, N-sum);
+						sum += n;
+					} while(sum < N	&& n !=0);
 				}
-				ptr = (char *) oidnotfound[i];
-				do {
-					n = read(sd, ptr+sum, N-sum);
-					sum += n;
-				} while(sum < N	&& n !=0);
-
 				break;
 				
 			case TRANS_AGREE_BUT_MISSING_OBJECTS:
@@ -151,6 +156,7 @@ int decideResponse(thread_data_array_t *tdata, int sd) {
 	if(transagree == tdata->pilecount){
 		//Send Commit
 		ctrl = TRANS_COMMIT;
+		printf("Sending TRANS_COMMIT\n");
 		if (write(sd, &ctrl, sizeof(char)) < 0) {
 			perror("Error sending ctrl message for participant\n");
 			return 1;
@@ -160,17 +166,29 @@ int decideResponse(thread_data_array_t *tdata, int sd) {
 	if(transsoftabort > 0 && transdisagree == 0) {
 		//Send abort but retry commit
 		ctrl = TRANS_ABORT_BUT_RETRY_COMMIT;
+		printf("Sending TRANS_ABORT_BUT_RETRY_COMMIT\n");
 		if (write(sd, &ctrl, sizeof(char)) < 0) {
 			perror("Error sending ctrl message for participant\n");
 			return 1;
 		}
-		//lookup objects and then retry commit 
+		//TODO
+		//Relookup all missing objects
 		//set up a new connection readClientReq()
 		//rebuilt the pile and llookup table
 		//i.e. wait at the participant end and then resend either agree or disagree
 	}
 	if(transmiss > 0 && transsoftabort == 0 && transdisagree == 0) {
+		//Send abort but retry commit
+		ctrl = TRANS_ABORT_BUT_RETRY_COMMIT_WITH_RELOCATING;
+		printf("Sending TRANS_ABORT_BUT_RETRY_COMMIT_WITH_RELOCATING\n");
+		if (write(sd, &ctrl, sizeof(char)) < 0) {
+			perror("Error sending ctrl message for participant\n");
+			return 1;
+		}
+		//TODO
 		//Relookup all missing objects
+		//set up a new connection readClientReq()
+		//rebuilt the pile and llookup table
 		//send missing mising object/ objects
 	}
 	
@@ -178,6 +196,7 @@ int decideResponse(thread_data_array_t *tdata, int sd) {
 	for(i=0 ; i< tdata->pilecount; i++) {
 		free(oidnotfound[i]);
 	}
+	
 
 	return 0;
 }
@@ -211,20 +230,20 @@ void *transRequest(void *threadarg) {
 	//Multiple writes for sending packets of data 
 	//Send first few fixed bytes of the TRANS_REQUEST protocol
 	printf("DEBUG -> Start sending commit data... %d\n", tdata->buffer->f.control);
-//	printf("Bytes sent in first write: %d\n", sizeof(fixed_data_t));
+//	printf("DEBUG-> Bytes sent in first write: %d\n", sizeof(fixed_data_t));
 //	printf("Machine count = %d\tnumread = %d\tnummod = %d\tsum_bytes = %d\n", tdata->buffer->f.mcount, tdata->buffer->f.numread, tdata->buffer->f.nummod, tdata->buffer->f.sum_bytes);
 	if (write(sd, &(tdata->buffer->f), (sizeof(fixed_data_t))) < 0) {
 		perror("Error sending fixed bytes for thread");
 		return NULL;
 	}
 	//Send list of machines involved in the transaction
-//	printf("Bytes sent in second write: %d\n", sizeof(unsigned int) * tdata->pilecount);
+//	printf("DEBUG-> Bytes sent in second write: %d\n", sizeof(unsigned int) * tdata->pilecount);
 	if (write(sd, tdata->buffer->listmid, (sizeof(unsigned int) * tdata->pilecount )) < 0) {
 		perror("Error sending list of machines for thread");
 		return NULL;
 	}
 	//Send oids and version number tuples for objects that are read
-//	printf("Bytes sent in the third write: %d\n", (sizeof(unsigned int) + sizeof(short)) * tdata->buffer->f.numread);
+//	printf("DEBUG-> Bytes sent in the third write: %d\n", (sizeof(unsigned int) + sizeof(short)) * tdata->buffer->f.numread);
 //	printf(" DEBUG->Read oids are %d %x %d %d\n", *(tdata->buffer->objread), (tdata->buffer->objread + 6), *(tdata->buffer->objread + 12), *(tdata->buffer->objread +18)); 
 	if (write(sd, tdata->buffer->objread, ((sizeof(unsigned int) + sizeof(short)) * tdata->buffer->f.numread )) < 0) {
 		perror("Error sending tuples for thread");
@@ -258,7 +277,7 @@ void *transRequest(void *threadarg) {
 	if(*(tdata->count) == tdata->pilecount) {
 		pthread_cond_broadcast(tdata->threshold);
 		//process the participant's request
-		if (decideResponse(tdata, sd) == 1) {
+		if (decideResponse(tdata, sd) != 0) {
 			printf("decideResponse returned error %s. %d\n", __FILE__, __LINE__);
 			return NULL;
 		}
@@ -397,6 +416,7 @@ int transCommit(transrecord_t *record) {
 	pthread_cond_destroy(&tcond);
 	pthread_mutex_destroy(&tlock);
 	free(listmid);
+	pDelete(pile);
 	return 0;
 }
 
@@ -443,6 +463,23 @@ void *getRemoteObj(transrecord_t *record, unsigned int mnum, unsigned int oid) {
 #ifdef DEBUG1
 	printf("DEBUG -> ready to rcv ...\n");
 #endif
+	//Read response from the Participant
+	read(sd, &control, sizeof(char));
+	switch(control) {
+		case OBJECT_NOT_FOUND:
+			return NULL;
+			break;
+		case OBJECT_FOUND:
+			read(sd, &size, sizeof(int));
+			objcopy = objstrAlloc(record->cache, size);
+			read(sd, objcopy, size);		
+			break;
+		default:
+			printf("Error in recv request from participant on a READ_REQUEST\n");
+			return NULL;
+	}
+
+#if 0
 	read(sd, buffer, sizeof(buffer));
 	close(sd);
 	if (buffer[0] == OBJECT_NOT_FOUND) {
@@ -457,6 +494,8 @@ void *getRemoteObj(transrecord_t *record, unsigned int mnum, unsigned int oid) {
 	}
 	objcopy = objstrAlloc(record->cache, size);
 	memcpy(objcopy, (void *)buffer+1, size);
+
+#endif
 	//Insert into cache's lookup table
 	chashInsert(record->lookupTable, oid, objcopy); 
 	return objcopy;

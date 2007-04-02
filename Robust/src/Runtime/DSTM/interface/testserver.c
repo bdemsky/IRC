@@ -14,6 +14,7 @@ unsigned int createObjects(transrecord_t *record, unsigned short type) {
 	header = transCreateObj(record, type);
 	tmp = (objheader_t *) objstrAlloc(mainobjstore, size);
 	memcpy(tmp, header, size);
+//	printf("Insert oid = %d at address %x\n",tmp->oid, tmp);
 	mhashInsert(tmp->oid, tmp);
 	lhashInsert(tmp->oid, 1);
 	//Lock oid 3 object

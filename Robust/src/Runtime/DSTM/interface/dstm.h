@@ -17,14 +17,20 @@
 #define OBJECT_NOT_FOUND		11
 #define OBJECTS_FOUND 			12
 #define OBJECTS_NOT_FOUND		13
-#define OBJ_LOCKED_BUT_VERSION_MATCH	14
-#define OBJ_UNLOCK_BUT_VERSION_MATCH	15
-#define VERSION_NO_MATCH		16
 #define TRANS_AGREE 			17
 #define TRANS_DISAGREE			18
 #define TRANS_AGREE_BUT_MISSING_OBJECTS	19
 #define TRANS_SOFT_ABORT		20
 #define TRANS_SUCESSFUL			21
+
+//Control bits for status of objects in Machine pile
+#define OBJ_LOCKED_BUT_VERSION_MATCH	14
+#define OBJ_UNLOCK_BUT_VERSION_MATCH	15
+#define VERSION_NO_MATCH		16
+//TODO REMOVE THIS
+#define NO_MISSING_OIDS			22
+#define MISSING_OIDS_PRESENT		23
+
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -106,6 +112,14 @@ typedef struct objinfo {
 	int poss_val; //Status of object(locked but version matches, version mismatch, oid not present in machine etc) 
 }objinfo_t;
 
+// Structure passed to dstmAcceptinfo() on server side to complete TRANS_COMMIT process 
+typedef struct trans_commit_data{
+	unsigned int *objmod;
+	unsigned int *objlocked;
+	void *modptr;
+	int nummod;
+	int numlocked;
+}trans_commit_data_t;
 /* Initialize main object store and lookup tables, start server thread. */
 int dstmInit(void);
 
@@ -123,8 +137,8 @@ void *objstrAlloc(objstr_t *store, unsigned int size); //size in bytes
 /* Prototypes for server portion */
 void *dstmListen();
 void *dstmAccept(void *);
-int readClientReq(int);
-int handleTransReq(int, fixed_data_t *, unsigned int *, char *, void *);
+int readClientReq(int, trans_commit_data_t *);
+char handleTransReq(int, fixed_data_t *, trans_commit_data_t *, unsigned int *, char *, void *);
 /* end server portion */
 
 /* Prototypes for transactions */
@@ -135,6 +149,7 @@ int decideResponse(thread_data_array_t *tdata, int sd);// Coordinator decides wh
 void *transRequest(void *);	//the C routine that the thread will execute when TRANS_REQUEST begins
 int transCommit(transrecord_t *record); //return 0 if successful
 void *getRemoteObj(transrecord_t *, unsigned int, unsigned int);
+int transCommitProcess(trans_commit_data_t *, int);
 /* end transactions */
 
 void *getRemoteObj(transrecord_t *, unsigned int, unsigned int);
