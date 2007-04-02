@@ -97,17 +97,17 @@ void *dstmAccept(void *acceptfd)
 			if (h == NULL) {
 				ctrl = OBJECT_NOT_FOUND;
 			} else {
-				ctrl = OBJECT_FOUND;
-				size = sizeof(objheader_t) + sizeof(classsize[h->type]);
-				if(send((int)acceptfd, &ctrl, sizeof(char), 0) < 0) {
-					perror("Error sending control msg to coordinator\n");
-				}
-				if(send((int)acceptfd, &size, sizeof(int), 0) < 0) {
-					perror("Error sending size of object to coordinator\n");
-				}
-				if(send((int)acceptfd, h, size, 0) < 0) {
-					perror("Error in sending object\n");
-				}
+			  char responsemessage[sizeof(char)+sizeof(int)];
+			  /* Type */
+			  responsemessage[0]=OBJECT_FOUND;
+			  /* Size of object */
+			  *((int *)(&responsemessage[1])) = sizeof(objheader_t) + classsize[h->type];
+			  if(send((int)acceptfd, &responsemessage, sizeof(responsemessage), 0) < 0) {
+			    perror("Error sending control msg to coordinator\n");
+			  }
+			  if(send((int)acceptfd, h, size, 0) < 0) {
+			    perror("Error in sending object\n");
+			  }
 			}
 			break;
 		
