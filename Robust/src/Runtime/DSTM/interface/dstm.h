@@ -63,13 +63,13 @@ typedef struct transrecord {
 	objstr_t *cache;
 	chashtable_t *lookupTable;
 } transrecord_t;
-
+/*
 typedef struct pile {
 	unsigned int mid;
 	unsigned int oid;
 	struct pile *next;
 }pile_t;
-
+*/
 // Structure that keeps track of responses from the participants
 typedef struct thread_response {
 	char rcv_status;
@@ -102,7 +102,7 @@ typedef struct thread_data_array {
 	thread_response_t *recvmsg;//shared datastructure to keep track of the control message receiv
 	pthread_cond_t *threshold; //threshhold for waking up a thread
 	pthread_mutex_t *lock;    //lock the count variable
-	int *count;             //count variable
+	int *count;             //variable to count responses of TRANS_REQUEST protocol from all participants
 	transrecord_t *rec;	// To send modified objects
 }thread_data_array_t;
 
@@ -116,9 +116,11 @@ typedef struct objinfo {
 typedef struct trans_commit_data{
 	unsigned int *objmod;
 	unsigned int *objlocked;
+	unsigned int *objnotfound;
 	void *modptr;
 	int nummod;
 	int numlocked;
+	int numnotfound;
 }trans_commit_data_t;
 /* Initialize main object store and lookup tables, start server thread. */
 int dstmInit(void);
@@ -145,7 +147,7 @@ char handleTransReq(int, fixed_data_t *, trans_commit_data_t *, unsigned int *, 
 transrecord_t *transStart();
 objheader_t *transRead(transrecord_t *record, unsigned int oid);
 objheader_t *transCreateObj(transrecord_t *record, unsigned short type); //returns oid
-int decideResponse(thread_data_array_t *tdata, int sd);// Coordinator decides what response to send to the participant
+int decideResponse(thread_data_array_t *tdata, int sd, int status);// Coordinator decides what response to send to the participant
 void *transRequest(void *);	//the C routine that the thread will execute when TRANS_REQUEST begins
 int transCommit(transrecord_t *record); //return 0 if successful
 void *getRemoteObj(transrecord_t *, unsigned int, unsigned int);

@@ -69,12 +69,12 @@ objheader_t *transCreateObj(transrecord_t *record, unsigned short type)
 	chashInsert(record->lookupTable, tmp->oid, tmp);
 	return tmp;
 }
-//TODO Change the values inside write() to exact size of the message being sent 
 //int decideResponse(thread_data_array_t *tdata, char *control, int sd) {
-int decideResponse(thread_data_array_t *tdata, int sd) {
-	int i, j, n, N, sum, oidcount = 0, transagree = 0, transdisagree = 0, transsoftabort = 0, transmiss = 0;
+int decideResponse(thread_data_array_t *tdata, int sd, int val) {
+	int i, n, N, sum, oidcount = 0;
+	int transagree = 0, transdisagree = 0, transsoftabort = 0, transsoftabortmiss = 0;
 	char ctrl, control, *ptr;
-	unsigned int *oidnotfound[tdata->pilecount];
+	unsigned int *oidnotfound;
 	objheader_t *header;
 
 	//Check common data structure 
@@ -95,8 +95,8 @@ int decideResponse(thread_data_array_t *tdata, int sd) {
 					perror("Error sending ctrl message for participant\n");
 					return 1;
 				}
-				break;
-				
+				return 0;
+
 			case TRANS_AGREE:
 				printf("DEBUG-> Inside TRANS_AGREE\n");
 				transagree++;
@@ -105,39 +105,26 @@ int decideResponse(thread_data_array_t *tdata, int sd) {
 			case TRANS_SOFT_ABORT:
 				printf("DEBUG-> Inside TRANS_SOFT_ABORT\n");
 				transsoftabort++;
-				//Read list of objects missing
-				if(read(sd, &oidcount, sizeof(int)) != 0) {
-					if (oidcount == 0) {
-						sleep(2);
-						break;
+				/* Do a socket read only if TRANS_SOFT_ABORT was meant for this thread */
+				if ((i == tdata->thread_id) && (val == 0)) {
+					//Read list of objects missing
+					if(read(sd, &oidcount, sizeof(int)) != 0) {
+						//Break if only objs are locked at the Participant side
+						if (oidcount == 0) {
+							break;
+						}
+						transsoftabortmiss++;
+						N = oidcount * sizeof(unsigned int);
+						if((oidnotfound = calloc(oidcount, sizeof(unsigned int))) == NULL) {
+							printf("Calloc error %s, %d\n", __FILE__, __LINE__);
+						}
+						ptr = (char *) oidnotfound;
+						do {
+							n = read(sd, ptr+sum, N-sum);
+							sum += n;
+						} while(sum < N	&& n !=0);
 					}
-					N = oidcount * sizeof(unsigned int);
-					if((oidnotfound[i] = calloc(oidcount, sizeof(unsigned int))) == NULL) {
-						printf("Calloc error %s, %d\n", __FILE__, __LINE__);
-					}
-					ptr = (char *) oidnotfound[i];
-					do {
-						n = read(sd, ptr+sum, N-sum);
-						sum += n;
-					} while(sum < N	&& n !=0);
 				}
-				break;
-				
-			case TRANS_AGREE_BUT_MISSING_OBJECTS:
-				printf("DEBUG-> Inside TRANS_AGREE_BUT_MISSING_OBJECTS\n");
-				transmiss++;
-				//Read list of objects missing
-				read(sd, &oidcount, sizeof(int));
-				N = oidcount * sizeof(unsigned int);
-				if((oidnotfound[i] = calloc(oidcount, sizeof(unsigned int))) == NULL) {
-					printf("Calloc error %s, %d\n", __FILE__, __LINE__);
-				}
-				ptr = (char *) oidnotfound[i];
-				do {
-					n = read(sd, ptr+sum, N-sum);
-					sum += n;
-				} while(sum < N	&& n !=0);
-
 
 				break;
 			default:
@@ -145,13 +132,6 @@ int decideResponse(thread_data_array_t *tdata, int sd) {
 		}
 	}
 	
-	//For Debug purposes 
-	for(i=0 ; i< tdata->pilecount; i++) {
-		for(j=0 ; j < oidcount; j++) {
-			printf("DEBUG-> Oid %d missing for pilecount: %d\n", oidnotfound[j], i+1);
-		}
-	}
-
 	//Decide what control message to send to Participant 	
 	if(transagree == tdata->pilecount){
 		//Send Commit
@@ -163,7 +143,7 @@ int decideResponse(thread_data_array_t *tdata, int sd) {
 		}
 	}
 
-	if(transsoftabort > 0 && transdisagree == 0) {
+	if(transsoftabort > 0 && transdisagree == 0 && transsoftabortmiss == 0) {
 		//Send abort but retry commit
 		ctrl = TRANS_ABORT_BUT_RETRY_COMMIT;
 		printf("Sending TRANS_ABORT_BUT_RETRY_COMMIT\n");
@@ -171,33 +151,33 @@ int decideResponse(thread_data_array_t *tdata, int sd) {
 			perror("Error sending ctrl message for participant\n");
 			return 1;
 		}
-		//TODO
-		//Relookup all missing objects
-		//set up a new connection readClientReq()
-		//rebuilt the pile and llookup table
-		//i.e. wait at the participant end and then resend either agree or disagree
+		//Sleep
+		sleep(5);
+		//Read new control message from Participant
+		n = read(sd, &control, sizeof(char));
+		
+		//Update common data structure and increment count
+		tdata->recvmsg[tdata->thread_id].rcv_status = control;
+		val = 1;
+		decideResponse(tdata, sd, val);		//Second call to decideResponse(); indicated by parameter val = 1
 	}
-	if(transmiss > 0 && transsoftabort == 0 && transdisagree == 0) {
-		//Send abort but retry commit
-		ctrl = TRANS_ABORT_BUT_RETRY_COMMIT_WITH_RELOCATING;
+
+	if(transsoftabort > 0 && transsoftabortmiss > 0 && transdisagree == 0) {
+		//Send abort but retry commit after relloking up objects
+		//ctrl = TRANS_ABORT_BUT_RETRY_COMMIT_WITH_RELOCATING;
+		ctrl = TRANS_ABORT;
 		printf("Sending TRANS_ABORT_BUT_RETRY_COMMIT_WITH_RELOCATING\n");
 		if (write(sd, &ctrl, sizeof(char)) < 0) {
 			perror("Error sending ctrl message for participant\n");
 			return 1;
 		}
 		//TODO
-		//Relookup all missing objects
-		//set up a new connection readClientReq()
-		//rebuilt the pile and llookup table
-		//send missing mising object/ objects
+		//Relook up objects
+		//update location table
+		//Free pointers
+		free(oidnotfound);
 	}
 	
-	//Free pointers
-	for(i=0 ; i< tdata->pilecount; i++) {
-		free(oidnotfound[i]);
-	}
-	
-
 	return 0;
 }
 
@@ -207,6 +187,7 @@ void *transRequest(void *threadarg) {
 	struct hostent *server;
 	thread_data_array_t *tdata;
 	objheader_t *headeraddr;
+	//unsigned int *oidnotfound;
 	char buffer[RECEIVE_BUFFER_SIZE], control, recvcontrol;
 
 	tdata = (thread_data_array_t *) threadarg;
@@ -263,9 +244,6 @@ void *transRequest(void *threadarg) {
 	n = read(sd, &control, sizeof(char));
 	recvcontrol = control;
 	printf("DEBUG -> After TRANS_REQUEST, message control recv is %d\n", recvcontrol);
-//	while(n != 0) {
-//		n = read(sd, buffer, sizeof(buffer));
-//	}
 	
 	//Update common data structure and increment count
 	tdata->recvmsg[tdata->thread_id].rcv_status = recvcontrol;
@@ -277,14 +255,16 @@ void *transRequest(void *threadarg) {
 	if(*(tdata->count) == tdata->pilecount) {
 		pthread_cond_broadcast(tdata->threshold);
 		//process the participant's request
-		if (decideResponse(tdata, sd) != 0) {
+		if (decideResponse(tdata, sd, 0) != 0) { // Send the first call to decideResponse() ; indicated by parameter 0
 			printf("decideResponse returned error %s. %d\n", __FILE__, __LINE__);
+			pthread_mutex_unlock(tdata->lock);
 			return NULL;
 		}
 	} else {
 		pthread_cond_wait(tdata->threshold, tdata->lock);
 	}	
 	pthread_mutex_unlock(tdata->lock);
+
 	close(sd);
 	pthread_exit(NULL);
 }
@@ -296,7 +276,7 @@ int transCommit(transrecord_t *record) {
 	objheader_t *headeraddr;
 	plistnode_t *tmp, *pile = NULL;
 	int i, rc;
-	int pilecount = 0, offset, numthreads = 0, trecvcount = 0;
+	int pilecount = 0, offset, numthreads = 0, trecvcount = 0, tmachcount = 0;
 	char buffer[RECEIVE_BUFFER_SIZE],control;
 	char transid[TID_LEN];
 	static int newtid = 0;
@@ -344,6 +324,7 @@ int transCommit(transrecord_t *record) {
 	pthread_attr_t attr;			
 	pthread_cond_t tcond;
 	pthread_mutex_t tlock;
+	pthread_mutex_t tlshrd;
 	thread_data_array_t thread_data_array[pilecount];
 	
 	thread_response_t rcvd_control_msg[pilecount];	//Shared thread array that keeps track of responses of participants
@@ -420,21 +401,12 @@ int transCommit(transrecord_t *record) {
 	return 0;
 }
 
-int transSoftAbort(transrecord_t *record){
-
-}
-
-int transAbort(transrecord_t *record){
-
-
-}
-
 //mnun will be used to represent the machine IP address later
 void *getRemoteObj(transrecord_t *record, unsigned int mnum, unsigned int oid) {
 	int sd, size;
 	struct sockaddr_in serv_addr;
 	struct hostent *server;
-	char buffer[RECEIVE_BUFFER_SIZE],control;
+	char control;
 	objheader_t *h;
 	void *objcopy;
 
@@ -451,11 +423,14 @@ void *getRemoteObj(transrecord_t *record, unsigned int mnum, unsigned int oid) {
 		perror("Error in connect");
 		return NULL;
 	}
-	bzero((char *)buffer,sizeof(buffer));
-	control = READ_REQUEST;
-	buffer[0] = control;
-	memcpy(buffer+1, &oid, sizeof(int));
-	if (write(sd, buffer, sizeof(int) + 1) < 0) {
+//	bzero((char *)buffer,sizeof(buffer));
+	char readrequest[sizeof(char)+sizeof(unsigned int)];
+	readrequest[0] = READ_REQUEST;
+	*((unsigned int *)(&readrequest[1])) = oid;
+	//buffer[0] = READ_REQUEST;
+	//memcpy(buffer+1, &oid, sizeof(int));
+	//if (write(sd, buffer, sizeof(int) + sizeof(char)) < 0) {
+	if (write(sd, &readrequest, sizeof(readrequest)) < 0) {
 		perror("Error sending message");
 		return NULL;
 	}
@@ -478,24 +453,6 @@ void *getRemoteObj(transrecord_t *record, unsigned int mnum, unsigned int oid) {
 			printf("Error in recv request from participant on a READ_REQUEST\n");
 			return NULL;
 	}
-
-#if 0
-	read(sd, buffer, sizeof(buffer));
-	close(sd);
-	if (buffer[0] == OBJECT_NOT_FOUND) {
-		return NULL;
-	} else {
-
-		h = (objheader_t *) buffer+1;
-		size = sizeof(objheader_t) + sizeof(classsize[h->type]);
-#ifdef DEBUG1
-	printf("DEBUG -> Received: oid = %d, type = %d\n", h->oid, h->type);
-#endif
-	}
-	objcopy = objstrAlloc(record->cache, size);
-	memcpy(objcopy, (void *)buffer+1, size);
-
-#endif
 	//Insert into cache's lookup table
 	chashInsert(record->lookupTable, oid, objcopy); 
 	return objcopy;
