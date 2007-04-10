@@ -36,7 +36,7 @@ public class TagVarDescriptor extends Descriptor {
     }
 
     public int hashCode() {
-	return identifier.hashCode()^td.hashcode();
+	return identifier.hashCode()^td.hashCode();
     }
 
     public String toString() {

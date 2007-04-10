@@ -1,11 +1,14 @@
 package IR.Flat;
 import IR.FlagDescriptor;
+import IR.TagVarDescriptor;
 import java.util.Hashtable;
 import java.util.HashSet;
 import java.util.Iterator;
 
 public class FlatFlagActionNode extends FlatNode {
     Hashtable tempflagpairs; 
+    Hashtable temptagpairs; 
+
     int taskexit;
     public static final int NEWOBJECT=0;
     public static final int PRE=1;
@@ -14,6 +17,7 @@ public class FlatFlagActionNode extends FlatNode {
 
     public FlatFlagActionNode(int taskexit) {
 	tempflagpairs=new Hashtable();
+	temptagpairs=new Hashtable();
 	this.taskexit=taskexit;
     }
 
@@ -29,6 +33,14 @@ public class FlatFlagActionNode extends FlatNode {
 	tempflagpairs.put(tfp, new Boolean(status));
     }
 
+    public void addTagAction(TempDescriptor td, TagVarDescriptor tvd, boolean status) {
+	TempTagPair ttp=new TempTagPair(td,tvd);
+	if (temptagpairs.containsKey(ttp)) {
+	    throw new Error("Temp/Tag combination used twice: "+ttp);
+	}
+	temptagpairs.put(ttp, new Boolean(status));
+    }
+
     public int kind() {
         return FKind.FlatFlagActionNode;
     }
@@ -39,8 +51,16 @@ public class FlatFlagActionNode extends FlatNode {
 	return tempflagpairs.keySet().iterator();
     }
 
+    public Iterator getTempTagPairs() {
+	return temptagpairs.keySet().iterator();
+    }
+
     public boolean getFlagChange(TempFlagPair tfp) {
 	return ((Boolean)tempflagpairs.get(tfp)).booleanValue();
+    }
+
+    public boolean getTagChange(TempTagPair ttp) {
+	return ((Boolean)temptagpairs.get(ttp)).booleanValue();
     }
 
     public TempDescriptor [] readsTemps() {
@@ -51,6 +71,10 @@ public class FlatFlagActionNode extends FlatNode {
 	    for(Iterator it=tempflagpairs.keySet().iterator();it.hasNext();) {
 		TempFlagPair tfp=(TempFlagPair)it.next();
 		temps.add(tfp.getTemp());
+	    }
+	    for(Iterator it=temptagpairs.keySet().iterator();it.hasNext();) {
+		TempTagPair ttp=(TempTagPair)it.next();
+		temps.add(ttp.getTemp());
 	    }
             return (TempDescriptor[]) temps.toArray(new TempDescriptor [temps.size()]);
 	}

@@ -38,6 +38,7 @@ public class BuildFlat {
 	FlatNode fn=flattenBlockNode(bn).getBegin();
 	FlatFlagActionNode ffan=new FlatFlagActionNode(FlatFlagActionNode.PRE);
 	ffan.addNext(fn);
+
 	FlatMethod fm=new FlatMethod(td, ffan);
 
 	for(int i=0;i<td.numParameters();i++) {
