@@ -303,6 +303,7 @@ int readClientReq(int acceptfd, trans_commit_data_t *transinfo) {
 			break;
 		default:
 			printf("No response to TRANS_AGREE OR DISAGREE protocol\n");
+			//TODO Use fixed.trans_id  TID since Client may have died
 			break;
 	}
 
@@ -330,6 +331,8 @@ char handleTransReq(int acceptfd, fixed_data_t *fixed, trans_commit_data_t *tran
 	
 	//Process each object present in the pile 
 	ptr = modptr;
+	printf("DEBUG -> Total objs involved in trans is %d\n",fixed->nummod + fixed->numread);
+	fflush(stdout);
 	//Process each oid in the machine pile/ group
 	for (i = 0; i < fixed->numread + fixed->nummod; i++) {
 		if (i < fixed->numread) {//Object is read
@@ -368,6 +371,7 @@ char handleTransReq(int acceptfd, fixed_data_t *fixed, trans_commit_data_t *tran
 				((objheader_t *)mobj)->status |= LOCK;
 				//Save all object oids that are locked on this machine during this transaction request call
 				oidlocked[objlocked] = ((objheader_t *)mobj)->oid;
+				printf("DEBUG-> Object to be locked is %d\n", ((objheader_t *)mobj)->oid);
 				objlocked++;
 				if (version == ((objheader_t *)mobj)->version) { //If versions match
 					v_matchnolock++;
@@ -473,3 +477,4 @@ int transCommitProcess(trans_commit_data_t *transinfo, int acceptfd) {
 
 	return 0;
 }
+

@@ -1,4 +1,5 @@
 #include "dstm.h"
+#include "ip.h"
 #include "clookup.h"
 #include "mlookup.h"
 #include "llookup.h"
@@ -25,6 +26,7 @@ transrecord_t *transStart()
 
 objheader_t *transRead(transrecord_t *record, unsigned int oid)
 {	
+	printf("Enter TRANS_READ\n");
 	unsigned int machinenumber;
 	objheader_t *tmp, *objheader;
 	void *objcopy;
@@ -32,6 +34,7 @@ objheader_t *transRead(transrecord_t *record, unsigned int oid)
 	void *buf;
 		//check cache
 	if((objheader =(objheader_t *)chashSearch(record->lookupTable, oid)) != NULL){
+		printf("DEBUG -> transRead oid %d found local\n", oid);
 		return(objheader);
 	} else if ((objheader = (objheader_t *) mhashSearch(oid)) != NULL) {
 		//Look up in Machine lookup table and found
@@ -47,11 +50,16 @@ objheader_t *transRead(transrecord_t *record, unsigned int oid)
 	} else {
 		//Get the object from the remote location
 		//printf("oid not found in local machine lookup\n");
+		printf("machinenumber = %d\n",machinenumber);
+		printf("oid = %d\n",oid);
 		machinenumber = lhashSearch(oid);
+		printf("machinenumber = %d\n",machinenumber);
 		objcopy = getRemoteObj(record, machinenumber, oid);
-		if(objcopy == NULL)
+		if(objcopy == NULL) {
 			//If object is not found in Remote location
 			printf("Object not found in Machine %d\n", machinenumber);
+			return NULL;
+		}
 		else
 			return(objcopy);
 	} 
@@ -189,6 +197,7 @@ void *transRequest(void *threadarg) {
 	objheader_t *headeraddr;
 	//unsigned int *oidnotfound;
 	char buffer[RECEIVE_BUFFER_SIZE], control, recvcontrol;
+	char machineip[16];
 
 	tdata = (thread_data_array_t *) threadarg;
 	printf("DEBUG -> New thread id %d\n", tdata->thread_id);
@@ -200,7 +209,10 @@ void *transRequest(void *threadarg) {
 	bzero((char*) &serv_addr, sizeof(serv_addr));
 	serv_addr.sin_family = AF_INET;
 	serv_addr.sin_port = htons(LISTEN_PORT);
-	serv_addr.sin_addr.s_addr = inet_addr(MACHINE_IP);
+	//serv_addr.sin_addr.s_addr = inet_addr(MACHINE_IP);
+	midtoIP(tdata->mid,machineip);
+	machineip[15] = '\0';
+	serv_addr.sin_addr.s_addr = inet_addr(machineip);
 	//serv_addr.sin_addr.s_addr = inet_addr(tdata->mid);
 
 	if (connect(sd, (struct sockaddr *) &serv_addr, sizeof(struct sockaddr)) < 0) {
@@ -294,14 +306,14 @@ int transCommit(transrecord_t *record) {
 			}
 			next = curr->next;
 			//Get machine location for object id
-			/*
+			
 			if ((machinenum = lhashSearch(curr->key)) == 0) {
 			       printf("Error: No such machine\n");
 			       return 1;
-			}		
-			*/
+			}
+					
 			//TODO only for debug
-			machinenum = 1;
+			//machinenum = 1;
 			if ((headeraddr = chashSearch(record->lookupTable, curr->key)) == NULL) {
 				printf("Error: No such oid\n");
 				return 1;
@@ -407,6 +419,7 @@ void *getRemoteObj(transrecord_t *record, unsigned int mnum, unsigned int oid) {
 	struct sockaddr_in serv_addr;
 	struct hostent *server;
 	char control;
+	char machineip[16];
 	objheader_t *h;
 	void *objcopy;
 
@@ -417,19 +430,18 @@ void *getRemoteObj(transrecord_t *record, unsigned int mnum, unsigned int oid) {
 	bzero((char*) &serv_addr, sizeof(serv_addr));
 	serv_addr.sin_family = AF_INET;
 	serv_addr.sin_port = htons(LISTEN_PORT);
-	serv_addr.sin_addr.s_addr = inet_addr(MACHINE_IP);
+	//serv_addr.sin_addr.s_addr = inet_addr(MACHINE_IP);
+	midtoIP(mnum,machineip);
+	machineip[15] = '\0';
+	serv_addr.sin_addr.s_addr = inet_addr(machineip);
 
 	if (connect(sd, (struct sockaddr *) &serv_addr, sizeof(struct sockaddr)) < 0) {
 		perror("Error in connect");
 		return NULL;
 	}
-//	bzero((char *)buffer,sizeof(buffer));
 	char readrequest[sizeof(char)+sizeof(unsigned int)];
 	readrequest[0] = READ_REQUEST;
 	*((unsigned int *)(&readrequest[1])) = oid;
-	//buffer[0] = READ_REQUEST;
-	//memcpy(buffer+1, &oid, sizeof(int));
-	//if (write(sd, buffer, sizeof(int) + sizeof(char)) < 0) {
 	if (write(sd, &readrequest, sizeof(readrequest)) < 0) {
 		perror("Error sending message");
 		return NULL;
@@ -448,12 +460,12 @@ void *getRemoteObj(transrecord_t *record, unsigned int mnum, unsigned int oid) {
 			read(sd, &size, sizeof(int));
 			objcopy = objstrAlloc(record->cache, size);
 			read(sd, objcopy, size);		
+			//Insert into cache's lookup table
+			chashInsert(record->lookupTable, oid, objcopy); 
 			break;
 		default:
 			printf("Error in recv request from participant on a READ_REQUEST\n");
 			return NULL;
 	}
-	//Insert into cache's lookup table
-	chashInsert(record->lookupTable, oid, objcopy); 
 	return objcopy;
 }

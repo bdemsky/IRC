@@ -1,5 +1,8 @@
 #include <pthread.h>
 #include "dstm.h"
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 
 extern objstr_t *mainobjstore;
 int classsize[]={sizeof(int),sizeof(char),sizeof(short), sizeof(void *)};
@@ -9,14 +12,15 @@ int test2(void);
 
 unsigned int createObjects(transrecord_t *record, unsigned short type) {
 	objheader_t *header, *tmp;
-	unsigned int size;
+	struct sockaddr_in antelope;
+	unsigned int size, mid;
 	size = sizeof(objheader_t) + classsize[type] ;
 	header = transCreateObj(record, type);
 	tmp = (objheader_t *) objstrAlloc(mainobjstore, size);
 	memcpy(tmp, header, size);
-//	printf("Insert oid = %d at address %x\n",tmp->oid, tmp);
 	mhashInsert(tmp->oid, tmp);
-	lhashInsert(tmp->oid, 1);
+	mid = iptoMid("127.0.0.1");
+	lhashInsert(tmp->oid, mid);
 	//Lock oid 3 object
 //	if(tmp->oid == 3)
 //		tmp->status |= LOCK;
@@ -70,11 +74,19 @@ int test1()
 
 int test2() {
 	
-	unsigned int val;
+	unsigned int val, mid;
 	transrecord_t *myTrans;
 	pthread_t thread_Listen;
 
 	dstmInit();	
+	mid = iptoMid("127.0.0.1");
+	lhashInsert(20, mid);
+	lhashInsert(21, mid);
+	lhashInsert(22, mid);
+	lhashInsert(23, mid);
+	lhashInsert(30, mid);
+	lhashInsert(28, mid);
+	lhashInsert(29, mid);
 	pthread_create(&thread_Listen, NULL, dstmListen, NULL);
 	// Start Transaction	
 	myTrans = transStart();
