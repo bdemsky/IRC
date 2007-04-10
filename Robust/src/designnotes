@@ -14,6 +14,26 @@ Non parameter variables:
 1) Type must contain flags
 2) Apply flag additions to all states
 
+Tags operations:
+create_tag operation(type)
+
+tag name=new tag(type);
+
+associate_with_tag operation(object, tag)
+
+Dispatch:
+after flag status, allow tag status...
+each tag state is of the form: Type(name)
+
+Other approach:
+Tag sets:  {x, y, z, ... in R
+
+Allow additions/removals of tuples in taskexit:
+remove <x, y, z, ...> from R
+add <x, y> to R
+
+Allow addition of new tuples in object allocation
+add <new, y> to R
 ------------------------------------------------------------------------------
 
 

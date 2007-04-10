@@ -83,9 +83,26 @@ public class BuildIR {
 	if (isNode(pn,"flag_effect")) {
 	    String flagname=pn.getChild("name").getTerminal();
 	    FlagEffects fe=new FlagEffects(flagname);
-	    parseFlagEffect(fe, pn.getChild("flag_list"));
+	    if (pn.getChild("flag_list")!=null)
+		parseFlagEffect(fe, pn.getChild("flag_list"));
+	    if (pn.getChild("tag_list")!=null)
+		parseTagEffect(fe, pn.getChild("tag_list"));
 	    return fe;
 	} else throw new Error();
+    }
+    
+    public void parseTagEffect(FlagEffects fes, ParseNode pn) {
+	ParseNodeVector pnv=pn.getChildren();
+	for(int i=0;i<pnv.size();i++) {
+	    ParseNode pn2=pnv.elementAt(i);
+	    boolean status=true;
+	    if (isNode(pn2,"not")) {
+		status=false;
+		pn2=pn2.getChild("name");
+	    }
+	    String name=pn2.getTerminal();
+	    fes.addTagEffect(new TagEffect(name,status));
+	}
     }
 
     public void parseFlagEffect(FlagEffects fes, ParseNode pn) {
@@ -158,16 +175,30 @@ public class BuildIR {
 	     ParseNode paramn=pnv.elementAt(i);
 	     TypeDescriptor type=parseTypeDescriptor(paramn);
 
-	     ParseNode tmp=paramn;
-	     while (tmp.getChild("single")==null) {
-		 type=type.makeArray(state);
-		 tmp=tmp.getChild("array");
-	     }
-	     String paramname=tmp.getChild("single").getTerminal();
+	     String paramname=paramn.getChild("single").getTerminal();
 	     FlagExpressionNode fen=parseFlagExpression(paramn.getChild("flag").getFirstChild());
+
+	     ParseNode tagnode=paramn.getChild("tag");
+
+	     TagExpressionList tel=null;
+	     if (tagnode!=null) {
+		 tel=parseTagExpressionList(tagnode);
+	     }
 	     
-	     td.addParameter(type,paramname,fen);
+	     td.addParameter(type,paramname,fen, tel);
 	 }
+    }
+
+    public TagExpressionList parseTagExpressionList(ParseNode pn) {
+	ParseNodeVector pnv=pn.getChildren();
+	TagExpressionList tel=new TagExpressionList();
+	for(int i=0;i<pnv.size();i++) {
+	    ParseNode tn=pnv.elementAt(i);
+	    String type=tn.getChild("type").getTerminal();
+	    String name=tn.getChild("single").getTerminal();
+	    tel.addTag(type, name);
+	}
+	return tel;
     }
 
     public ClassDescriptor parseTypeDecl(ParseNode pn) {
@@ -352,12 +383,17 @@ public class BuildIR {
 	    for(int i=0;i<args.size();i++) {
 		con.addArgument((ExpressionNode)args.get(i));
 	    }
-	    /* Could have flag set here */
-	    if (pn.getChild("flag_list")!=null) {
+	    /* Could have flag set or tag added here */
+	    if (pn.getChild("flag_list")!=null||pn.getChild("tag_list")!=null) {
 		FlagEffects fe=new FlagEffects(null);
-		parseFlagEffect(fe, pn.getChild("flag_list"));
+		if (pn.getChild("flag_list")!=null)
+		    parseFlagEffect(fe, pn.getChild("flag_list"));
+
+		if (pn.getChild("tag_list")!=null)
+		    parseTagEffect(fe, pn.getChild("tag_list"));
 		con.addFlagEffects(fe);
 	    }
+	    
 	    return con;
 	} else if (isNode(pn,"createarray")) {
 	    //System.out.println(pn.PPrint(3,true));
@@ -519,7 +555,12 @@ public class BuildIR {
 
     public Vector parseBlockStatement(ParseNode pn) {
 	Vector blockstatements=new Vector();
-	if (isNode(pn,"local_variable_declaration")) {
+	if (isNode(pn,"tag_declaration")) {
+	    String name=pn.getChild("single").getTerminal();
+	    String type=pn.getChild("type").getTerminal();
+	    
+	    blockstatements.add(new TagDeclarationNode(name, type));
+	} else if (isNode(pn,"local_variable_declaration")) {
 	    TypeDescriptor t=parseTypeDescriptor(pn);
 	    ParseNode vn=pn.getChild("variable_declarators_list");
 	    ParseNodeVector pnv=vn.getChildren();

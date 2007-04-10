@@ -1,5 +1,6 @@
 package IR;
 import IR.Tree.FlagExpressionNode;
+import IR.Tree.TagExpressionList;
 import IR.Tree.FlagEffects;
 import java.util.Vector;
 import java.util.Hashtable;
@@ -13,6 +14,7 @@ import IR.Tree.Modifiers;
 public class TaskDescriptor extends Descriptor {
 
     protected Hashtable flagstable;
+    protected Hashtable tagstable;
     protected Vector vfe;
     protected String identifier;
     protected Vector params;
@@ -23,6 +25,7 @@ public class TaskDescriptor extends Descriptor {
 	this.identifier=identifier;
 	this.uniqueid=count++;
 	flagstable=new Hashtable();
+	tagstable=new Hashtable(); //BUGFIX - added initialization here
 	params=new Vector();
 	paramtable=new SymbolTable();
     }
@@ -39,12 +42,22 @@ public class TaskDescriptor extends Descriptor {
 	return paramtable;
     }
 
-    public void addParameter(TypeDescriptor type, String paramname, FlagExpressionNode fen) {
+    public void addParameter(TypeDescriptor type, String paramname, FlagExpressionNode fen, TagExpressionList tel) {
 	if (paramname.equals("this"))
 	    throw new Error("Can't have parameter named this");
 	VarDescriptor vd=new VarDescriptor(type, paramname);
 	params.add(vd);
 	flagstable.put(vd, fen);
+	if (tel!=null) {//BUGFIX - added null check here...test with any bristlecone program
+	    tagstable.put(vd, tel);
+	    for(int i=0;i<tel.numTags();i++) {
+		TagVarDescriptor tvd=new TagVarDescriptor(new TagDescriptor(tel.getType(i)), tel.getName(i));
+		if (!(paramtable.getFromSameScope(tel.getName(i)) instanceof TagVarDescriptor))
+		    throw new Error("Parameter "+paramname+" already defined");
+		paramtable.add(tvd);
+	    }
+	}
+
 	if (paramtable.getFromSameScope(paramname)!=null) {
 	    throw new Error("Parameter "+paramname+" already defined");
 	}
@@ -69,6 +82,10 @@ public class TaskDescriptor extends Descriptor {
 
     public FlagExpressionNode getFlag(VarDescriptor vd) {
 	return (FlagExpressionNode) flagstable.get(vd);
+    }
+
+    public TagExpressionList getTag(VarDescriptor vd) {
+	return (TagExpressionList) flagstable.get(vd);
     }
 
     public String toString() {

@@ -20,4 +20,5 @@ public class Kind {
     public final static int FlagNode=17;
     public final static int FlagOpNode=18;
     public final static int TaskExitNode=19;
+    public final static int TagDeclarationNode=20;
 }

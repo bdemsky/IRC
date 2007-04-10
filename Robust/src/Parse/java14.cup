@@ -244,6 +244,13 @@ non terminal ParseNode cons_checks_opt;
 non terminal ParseNode cons_checks;
 non terminal ParseNode cons_check;
 
+non terminal ParseNode tag_variable_declaration_statement;
+non terminal ParseNode tag_expression_list;
+non terminal ParseNode tag_expression;
+non terminal ParseNode tag_list;
+non terminal ParseNode tag_list_opt;
+non terminal ParseNode tag_change;
+
 start with goal;
 
 
@@ -280,8 +287,57 @@ task_parameter ::=
 		pn.addChild(name);
 		pn.addChild("flag").addChild(exp);
 		RESULT=pn;
+	:} 
+        | type:type variable_declarator_id:name LBRACE flag_expression:exp RBRACE LBRACE tag_expression_list:texp RBRACE {:
+		ParseNode pn=new ParseNode("task_parameter");
+		pn.addChild(type);
+		pn.addChild(name);
+		pn.addChild("flag").addChild(exp);
+		pn.addChild("tag").addChild(texp);
+		RESULT=pn;
 	:}
 	;
+
+tag_expression_list ::= tag_expression:te {: 
+	ParseNode pn=new ParseNode("tag_expression_list");
+	pn.addChild(te);
+	RESULT=pn;
+	:}
+	| tag_expression_list:tel COMMA tag_expression:te {: 
+	tel.addChild(te);
+	RESULT=tel;
+	:}
+	;
+
+tag_expression ::= IDENTIFIER:type IDENTIFIER:id {: 
+		ParseNode pn=new ParseNode("tag_expression");
+		pn.addChild("type").addChild(type);
+		pn.addChild("single").addChild(id);
+		RESULT=pn;
+	:}
+	;
+
+tag_list_opt ::= LBRACE tag_list:fl RBRACE {:RESULT=fl;:}
+	| LBRACE RBRACE {: RESULT = new ParseNode("empty"); :}	
+	| {: RESULT = new ParseNode("empty"); :}
+	;
+
+tag_list ::= tag_change:fc {: 
+		ParseNode pn=new ParseNode("tag_list");
+		pn.addChild(fc);
+		RESULT=pn;
+	:}
+	| tag_list:fl COMMA tag_change:fc {: 
+		fl.addChild(fc);
+		RESULT=fl;
+	:};
+
+tag_change ::= IDENTIFIER:id {: 
+		RESULT=new ParseNode("name").addChild(id).getRoot();
+	:}
+	| NOT IDENTIFIER:id {: 
+		RESULT=new ParseNode("not").addChild("name").addChild(id).getRoot();
+	:};
 
 flag_expression ::= 
 	flag_andexpression:exp {: 
@@ -360,10 +416,17 @@ flag_effects ::= flag_effect:fe {:
 		RESULT=fes;
 	:};
 
-flag_effect ::= IDENTIFIER:id LBRACE flag_list:fl RBRACE {: 
+flag_effect ::= IDENTIFIER:id LBRACE flag_list:fl RBRACE tag_list_opt:tlo {: 
 		ParseNode pn=new ParseNode("flag_effect");
 		pn.addChild("name").addChild(id);
 		pn.addChild(fl);
+		pn.addChild(tlo);
+		RESULT=pn;
+	:}
+	| IDENTIFIER:id LBRACE RBRACE LBRACE tag_list:tl RBRACE {: 
+		ParseNode pn=new ParseNode("flag_effect");
+		pn.addChild("name").addChild(id);
+		pn.addChild(tl);
 		RESULT=pn;
 	:};
 
@@ -967,7 +1030,10 @@ block_statements ::=
 	:}
 	;
 block_statement ::=
-		local_variable_declaration_statement:lvds {: 
+	tag_variable_declaration_statement:tvds {:
+		RESULT=tvds;
+	:}		
+	|       local_variable_declaration_statement:lvds {: 
 		RESULT=lvds;
 	:}
 	|	statement:statement {: 
@@ -975,6 +1041,14 @@ block_statement ::=
 	:}
 //	|	class_declaration
 //	|	interface_declaration
+	;
+tag_variable_declaration_statement ::=
+		TAG IDENTIFIER:id EQ NEW TAG LPAREN IDENTIFIER:type RPAREN SEMICOLON {: 
+		ParseNode pn=new ParseNode("tag_declaration");
+		pn.addChild("single").addChild(id);
+		pn.addChild("type").addChild(type);
+		RESULT=pn;
+	:}
 	;
 local_variable_declaration_statement ::=
 		local_variable_declaration:lvd SEMICOLON {: 
@@ -1245,6 +1319,22 @@ class_instance_creation_expression ::=
 		pn.addChild(feo);
 		RESULT=pn;
 	:}
+	| NEW class_or_interface_type:type LPAREN argument_list_opt:args RPAREN LBRACE RBRACE LBRACE tag_list:tl RBRACE {: 
+		ParseNode pn=new ParseNode("createobject");
+		pn.addChild(type);
+		pn.addChild(args);
+		pn.addChild(tl);
+		RESULT=pn;
+	:}
+	| NEW class_or_interface_type:type LPAREN argument_list_opt:args RPAREN LBRACE flag_list:fl RBRACE LBRACE tag_list:tl RBRACE {: 
+		ParseNode pn=new ParseNode("createobject");
+		pn.addChild(type);
+		pn.addChild(args);
+		pn.addChild(fl);
+		pn.addChild(tl);
+		RESULT=pn;
+	:}
+
 //	|	NEW class_or_interface_type LPAREN argument_list_opt RPAREN class_body
 //	|	primary DOT NEW IDENTIFIER
 //			LPAREN argument_list_opt RPAREN {: 

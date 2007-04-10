@@ -5,11 +5,13 @@ import java.util.*;
 
 public class FlagEffects {
     Vector effects;
+    Vector tageffects;
     String name;
     VarDescriptor vd;
 
     public FlagEffects(String name) {
 	effects=new Vector();
+	tageffects=new Vector();
 	this.name=name;
     }
 
@@ -27,6 +29,18 @@ public class FlagEffects {
 
     public void addEffect(FlagEffect fe) {
 	effects.add(fe);
+    }
+
+    public void addTagEffect(TagEffect te) {
+	tageffects.add(te);
+    }
+
+    public int numTagEffects() {
+	return tageffects.size();
+    }
+
+    public TagEffect getTagEffect(int i) {
+	return (TagEffect) tageffects.get(i);
     }
 
     public int numEffects() {

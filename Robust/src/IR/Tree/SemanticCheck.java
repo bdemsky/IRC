@@ -91,7 +91,7 @@ public class SemanticCheck {
 	}
     }
 
-    public void checkFlagEffects(TaskDescriptor td, Vector vfe) {
+    public void checkFlagEffects(TaskDescriptor td, Vector vfe, SymbolTable nametable) {
 	if (vfe==null)
 	    return; /* No flag effects to check */
 	for(int i=0;i<vfe.size();i++) {
@@ -120,6 +120,17 @@ public class SemanticCheck {
 		    throw new Error("Attempting to modify external flag: "+name);
 		flag.setFlag(flag_d);
 	    }
+	    for(int j=0;j<fe.numTagEffects();j++) {
+		TagEffect tag=fe.getTagEffect(j);
+		String name=tag.getName();
+		
+		Descriptor d=(Descriptor)nametable.get(name);
+		if (d==null)
+		    throw new Error("Tag descriptor "+name+" undeclared");
+		else if (!(d instanceof TagVarDescriptor))
+		    throw new Error(name+" is not a tag descriptor");
+		tag.setTag((TagVarDescriptor)d);
+	    }
 	}
     }
 
@@ -137,7 +148,7 @@ public class SemanticCheck {
 	    checkFlagExpressionNode(cd, fen);
 	}
 
-	checkFlagEffects(td, td.getFlagEffects());
+	checkFlagEffects(td, td.getFlagEffects(),td.getParameterTable());
 	/* Check that the task code is valid */
 	BlockNode bn=state.getMethodBody(td);
 	checkBlockNode(td, td.getParameterTable(),bn);
@@ -212,6 +223,10 @@ public class SemanticCheck {
 	case Kind.DeclarationNode:
 	    checkDeclarationNode(md, nametable, (DeclarationNode)bsn);
 	    return;
+
+	case Kind.TagDeclarationNode:
+	    checkTagDeclarationNode(md, nametable, (TagDeclarationNode)bsn);
+	    return;
 	    
 	case Kind.IfStatementNode:
 	    checkIfStatementNode(md, nametable, (IfStatementNode)bsn);
@@ -252,6 +267,16 @@ public class SemanticCheck {
 	if (dn.getExpression()!=null)
 	    checkExpressionNode(md, nametable, dn.getExpression(), vd.getType());
     }
+
+    void checkTagDeclarationNode(Descriptor md, SymbolTable nametable,  TagDeclarationNode dn) {
+	TagVarDescriptor vd=dn.getTagVarDescriptor();
+	Descriptor d=nametable.get(vd.getSymbol());
+	if ((d==null)||
+	    (d instanceof FieldDescriptor)) {
+	    nametable.add(vd);
+	} else
+	    throw new Error(vd.getSymbol()+" defined a second time");
+    }
     
     void checkSubBlockNode(Descriptor md, SymbolTable nametable, SubBlockNode sbn) {
 	checkBlockNode(md, nametable, sbn.getBlockNode());
@@ -276,7 +301,7 @@ public class SemanticCheck {
     void checkTaskExitNode(Descriptor md, SymbolTable nametable, TaskExitNode ten) {
 	if (md instanceof MethodDescriptor)
 	    throw new Error("Illegal taskexit appears in Method: "+md.getSymbol());
-	checkFlagEffects((TaskDescriptor)md, ten.getFlagEffects());
+	checkFlagEffects((TaskDescriptor)md, ten.getFlagEffects(),nametable);
 	checkConstraintCheck((TaskDescriptor) md, nametable, ten.getChecks());
     }
 
@@ -431,7 +456,7 @@ public class SemanticCheck {
 	    } else if (d instanceof FieldDescriptor) {
 		nn.setField((FieldDescriptor)d);
 		nn.setVar((VarDescriptor)nametable.get("this")); /* Need a pointer to this */
-	    }
+	    } else throw new Error("Wrong type of descriptor");
 	    if (td!=null)
 		if (!typeutil.isSuperorType(td,nn.getType()))
 		    throw new Error("Field node returns "+nn.getType()+", but need "+td);
@@ -517,6 +542,17 @@ public class SemanticCheck {
 		if (flag_d.getExternal())
 		    throw new Error("Attempting to modify external flag: "+name);
 		flag.setFlag(flag_d);
+	    }
+	    for(int j=0;j<fe.numTagEffects();j++) {
+		TagEffect tag=fe.getTagEffect(j);
+		String name=tag.getName();
+		
+		Descriptor d=(Descriptor)nametable.get(name);
+		if (d==null)
+		    throw new Error("Tag descriptor "+name+" undeclared");
+		else if (!(d instanceof TagVarDescriptor))
+		    throw new Error(name+" is not a tag descriptor");
+		tag.setTag((TagVarDescriptor)d);
 	    }
 	}
 
