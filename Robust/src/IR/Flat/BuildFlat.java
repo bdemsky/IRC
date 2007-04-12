@@ -42,7 +42,11 @@ public class BuildFlat {
 	FlatMethod fm=new FlatMethod(td, ffan);
 
 	for(int i=0;i<td.numParameters();i++) {
-	    fm.addParameterTemp(getTempforVar(td.getParameter(i)));
+	    VarDescriptor paramvd=td.getParameter(i);
+	    fm.addParameterTemp(getTempforVar(paramvd));
+	    //Don't need to get temps for tag variables
+	    //If they are used, this will be done automatically
+	    //If they aren't we won't pass them in
 	}
 
 	/* Flatten Vector of Flag Effects */

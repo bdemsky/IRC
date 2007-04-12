@@ -52,12 +52,13 @@ public class TaskDescriptor extends Descriptor {
 	    tagstable.put(vd, tel);
 	    for(int i=0;i<tel.numTags();i++) {
 		TagVarDescriptor tvd=new TagVarDescriptor(new TagDescriptor(tel.getType(i)), tel.getName(i));
-		if (!(paramtable.getFromSameScope(tel.getName(i)) instanceof TagVarDescriptor))
+		if (paramtable.getFromSameScope(tel.getName(i))==null) {
+		    paramtable.add(tvd);
+		} else if (!(((paramtable.getFromSameScope(tel.getName(i)) instanceof TagVarDescriptor)&&paramtable.getFromSameScope(tel.getName(i))).equals(tvd))) 
 		    throw new Error("Parameter "+paramname+" already defined");
-		paramtable.add(tvd);
 	    }
 	}
-
+	
 	if (paramtable.getFromSameScope(paramname)!=null) {
 	    throw new Error("Parameter "+paramname+" already defined");
 	}

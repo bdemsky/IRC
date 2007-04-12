@@ -1,13 +1,16 @@
 package IR.Tree;
 import java.util.Vector;
+import IR.Flat.TempDescriptor;
 
 public class TagExpressionList {
     Vector names;
     Vector types;
+    Vector temps;
 
     public TagExpressionList() {
 	names=new Vector();
 	types=new Vector();
+	temps=new Vector();
     }
     
     public void addTag(String type, String name) {
