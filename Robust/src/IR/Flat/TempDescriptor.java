@@ -6,6 +6,7 @@ public class TempDescriptor extends Descriptor {
     int id;
     //    String safename;
     TypeDescriptor type;
+    TagDescriptor tag;
 
     public TempDescriptor(String name) {
 	super(name);
@@ -15,6 +16,11 @@ public class TempDescriptor extends Descriptor {
     public TempDescriptor(String name, TypeDescriptor td) {
 	this(name);
 	type=td;
+    }
+
+    public TempDescriptor(String name, TagDescriptor td) {
+	this(name);
+	tag=td;
     }
     
     public static TempDescriptor tempFactory() {
@@ -29,10 +35,17 @@ public class TempDescriptor extends Descriptor {
 	return new TempDescriptor(name+currentid,td);
     }
 
+    public static TempDescriptor tempFactory(String name, TagDescriptor tag) {
+	return new TempDescriptor(name+currentid,tag);
+    }
+
     public static TempDescriptor paramtempFactory(String name, TypeDescriptor td) {
 	return new TempDescriptor(name,td);
     }
 
+    public static TempDescriptor paramtempFactory(String name, TagDescriptor tag) {
+	return new TempDescriptor(name,tag);
+    }
 
     public String toString() {
 	return safename;
@@ -44,5 +57,9 @@ public class TempDescriptor extends Descriptor {
 
     public TypeDescriptor getType() {
 	return type;
+    }
+
+    public TagDescriptor getTag() {
+	return tag;
     }
 }

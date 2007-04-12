@@ -15,7 +15,7 @@ public class TagDescriptor extends Descriptor {
     public boolean equals(Object o) {
 	if (o instanceof TagDescriptor) {
 	    TagDescriptor t=(TagDescriptor) o;
-	    return getSymbol()==t.getSymbol();
+	    return getSymbol().equals(t.getSymbol());
 	} else return false;
     }
     

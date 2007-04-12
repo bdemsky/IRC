@@ -61,9 +61,17 @@ public class BuildFlat {
 	for(int i=0;i<flags.size();i++) {
 	    FlagEffects fes=(FlagEffects)flags.get(i);
 	    TempDescriptor flagtemp=getTempforVar(fes.getVar());
+	    // Process the flags
 	    for(int j=0;j<fes.numEffects();j++) {
 		FlagEffect fe=fes.getEffect(j);
 		ffan.addFlagAction(flagtemp, fe.getFlag(), fe.getStatus());
+	    }
+	    // Process the tags
+	    for(int j=0;j<fes.numTagEffects();j++) {
+		TagEffect te=fes.getTagEffect(j);
+		TempDescriptor tagtemp=getTempforVar(te.getTag());
+		
+		ffan.addTagAction(flagtemp, te.getTag().getTag(), tagtemp, te.getStatus());
 	    }
 	}
     }
@@ -150,14 +158,20 @@ public class BuildFlat {
 		FlatFlagActionNode ffan=new FlatFlagActionNode(FlatFlagActionNode.NEWOBJECT);
 		FlagEffects fes=con.getFlagEffects();
 		TempDescriptor flagtemp=out_temp;
-		if (fes!=null)
+		if (fes!=null) {
 		    for(int j=0;j<fes.numEffects();j++) {
 			FlagEffect fe=fes.getEffect(j);
 			ffan.addFlagAction(flagtemp, fe.getFlag(), fe.getStatus());
-		    } else {
-			ffan.addFlagAction(flagtemp, null, false);
-		    }
+		    } 
+		    for(int j=0;j<fes.numTagEffects();j++) {
+			TagEffect te=fes.getTagEffect(j);
+			TempDescriptor tagtemp=getTempforVar(te.getTag());
 		
+			ffan.addTagAction(flagtemp, te.getTag().getTag(), tagtemp, te.getStatus());
+		    }
+		} else {
+		    ffan.addFlagAction(flagtemp, null, false);
+		}
 		last.addNext(ffan);
 		last=ffan;
 	    }
@@ -657,23 +671,47 @@ public class BuildFlat {
 	}
     }
 
-    private TempDescriptor getTempforParam(VarDescriptor vd) {
-	if (temptovar.containsKey(vd))
-	    return (TempDescriptor)temptovar.get(vd);
-	else {
-	    TempDescriptor td=TempDescriptor.paramtempFactory(vd.getName(),vd.getType());
-	    temptovar.put(vd,td);
-	    return td;
-	}
+    private NodePair flattenTagDeclarationNode(TagDeclarationNode dn) {
+	TagVarDescriptor tvd=dn.getTagVarDescriptor();
+	TagDescriptor tag=tvd.getTag();
+	TempDescriptor tmp=getTempforVar(tvd);
+	FlatTagDeclaration ftd=new FlatTagDeclaration(tag, tmp);
+	return new NodePair(ftd,ftd);
     }
 
-    private TempDescriptor getTempforVar(VarDescriptor vd) {
-	if (temptovar.containsKey(vd))
-	    return (TempDescriptor)temptovar.get(vd);
+    private TempDescriptor getTempforParam(Descriptor d) {
+	if (temptovar.containsKey(d))
+	    return (TempDescriptor)temptovar.get(d);
 	else {
-	    TempDescriptor td=TempDescriptor.tempFactory(vd.getName(),vd.getType());
-	    temptovar.put(vd,td);
-	    return td;
+	    if (d instanceof VarDescriptor) {
+		VarDescriptor vd=(VarDescriptor)d;
+		TempDescriptor td=TempDescriptor.paramtempFactory(vd.getName(),vd.getType());
+		temptovar.put(vd,td);
+		return td;
+	    } else if (d instanceof TagVarDescriptor) {
+		TagVarDescriptor tvd=(TagVarDescriptor)d;
+		TempDescriptor td=TempDescriptor.paramtempFactory(tvd.getName(),tvd.getTag());
+		temptovar.put(tvd,td);
+		return td;
+	    } else throw new Error("Unreconized Descriptor");
+	}
+    }
+    
+    private TempDescriptor getTempforVar(Descriptor d) {
+	if (temptovar.containsKey(d))
+	    return (TempDescriptor)temptovar.get(d);
+	else {
+	    if (d instanceof VarDescriptor) {
+		VarDescriptor vd=(VarDescriptor)d;
+		TempDescriptor td=TempDescriptor.tempFactory(vd.getName(),vd.getType());
+		temptovar.put(vd,td);
+		return td;
+	    } else if (d instanceof TagVarDescriptor) {
+		TagVarDescriptor tvd=(TagVarDescriptor)d;
+		TempDescriptor td=TempDescriptor.tempFactory(tvd.getName(),tvd.getTag());
+		temptovar.put(tvd,td);
+		return td;
+	    } else throw new Error("Unrecognized Descriptor");
 	}
     }
 
@@ -827,6 +865,9 @@ public class BuildFlat {
 	    
 	case Kind.DeclarationNode:
 	    return flattenDeclarationNode((DeclarationNode)bsn);
+
+	case Kind.TagDeclarationNode:
+	    return flattenTagDeclarationNode((TagDeclarationNode)bsn);
 	    
 	case Kind.IfStatementNode:
 	    return flattenIfStatementNode((IfStatementNode)bsn);

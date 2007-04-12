@@ -1,6 +1,6 @@
 package IR.Flat;
 import IR.FlagDescriptor;
-import IR.TagVarDescriptor;
+import IR.TagDescriptor;
 import java.util.Hashtable;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -33,8 +33,8 @@ public class FlatFlagActionNode extends FlatNode {
 	tempflagpairs.put(tfp, new Boolean(status));
     }
 
-    public void addTagAction(TempDescriptor td, TagVarDescriptor tvd, boolean status) {
-	TempTagPair ttp=new TempTagPair(td,tvd);
+    public void addTagAction(TempDescriptor td, TagDescriptor tagd, TempDescriptor tagt, boolean status) {
+	TempTagPair ttp=new TempTagPair(td,tagd, tagt);
 	if (temptagpairs.containsKey(ttp)) {
 	    throw new Error("Temp/Tag combination used twice: "+ttp);
 	}
