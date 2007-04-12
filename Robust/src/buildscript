@@ -23,6 +23,7 @@ CURDIR=`pwd`
 CHECKFLAG=false
 RECOVERFLAG=false
 USEDMALLOC=false
+THREADFLAG=false
 SPECDIR=`pwd`
 SRCFILES=''
 EXTRAOPTIONS=''
@@ -85,6 +86,7 @@ elif [[ $1 = '-thread' ]]
 then
 JAVAOPTS="$JAVAOPTS -thread"
 EXTRAOPTIONS="$EXTRAOPTIONS -DTHREADS -lpthread"
+THREADFLAG=true
 elif [[ $1 = '-curdir' ]]
 then
 CURDIR=$2
@@ -167,7 +169,10 @@ if $RECOVERFLAG
 then
 EXTRAOPTIONS="$EXTRAOPTIONS -DTASK"
 FILES="$FILES tmpbuilddirectory/taskdefs.c $ROBUSTROOT/Runtime/checkpoint.c"
-else
+fi
+
+if $THREADFLAG
+then
 FILES="$FILES $ROBUSTROOT/Runtime/thread.c"
 fi
 

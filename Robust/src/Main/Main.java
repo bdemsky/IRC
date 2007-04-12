@@ -70,19 +70,20 @@ public class Main {
       readSourceFile(state, ClassLibraryPrefix+"FileOutputStream.java");
       readSourceFile(state, ClassLibraryPrefix+"File.java");
       readSourceFile(state, ClassLibraryPrefix+"InetAddress.java");
-      if (state.TASK) {
+
+      if (state.THREAD) {
+	  readSourceFile(state, ClassLibraryPrefix+"Thread.java");
+	  readSourceFile(state, ClassLibraryPrefix+"ObjectJava.java");
+      } else
 	  readSourceFile(state, ClassLibraryPrefix+"Object.java");
+
+      if (state.TASK) {
 	  readSourceFile(state, ClassLibraryPrefix+"StartupObject.java");
 	  readSourceFile(state, ClassLibraryPrefix+"Socket.java");
 	  readSourceFile(state, ClassLibraryPrefix+"ServerSocket.java");
       } else {
-	  readSourceFile(state, ClassLibraryPrefix+"ObjectJava.java");
 	  readSourceFile(state, ClassLibraryPrefix+"SocketJava.java");
 	  readSourceFile(state, ClassLibraryPrefix+"ServerSocketJava.java");
-      }
-
-      if (state.THREAD) {
-	  readSourceFile(state, ClassLibraryPrefix+"Thread.java");
       }
 
       BuildIR bir=new BuildIR(state);
