@@ -1,0 +1,32 @@
+Basic design of scheduler:
+
+activetask: Queue of active tasks
+failedtasks: Hashtable of failed task/parameter combinations
+objectqueues: For each class we have a list of parameterwrapper objects
+
+1. ObjectQueues
+
+Each parameterwrapper object is a set of objects that can serve as a
+specific parameter for a specific task.  This set is stored in the
+hashtable referenced by the objectset field.  A reference to the
+relevant taskdescriptor is stored in the task field.
+
+Each parameterwrapper object has an array of ints: intarray This array
+contains numberofterms pairs of integere: i*2 and i*2+1. The first
+integer in a pair contains an "and" mask of the flags that the task
+cares about.  The second integer in the pair contains the flag
+settings.  If the flag of an object matches any of these masks, then
+the object should be placed in the object set.
+
+1.1 Objectsets
+
+Each objectset is implemented using a hashtable.  If an object is in
+the objectset, the objectset hashtable maps that object to either NULL
+or the next objectset the object is a member of.
+
+1.2
+
+Each object with a flag contains a flagptr field ((struct RuntimeHash
+*) ptr)[2].  This field points to the first objectset hashtable that
+the object is a member of.
+
