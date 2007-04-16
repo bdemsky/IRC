@@ -5,16 +5,17 @@ public class generate {
 	int MAX=100;
 	int current=0;
 	int currentref=1;
-	while(current<currentref) {
+	while(current<MAX) {
 	    try {
 	    String filename=current+".html";
 	    FileOutputStream fos=new FileOutputStream(filename);
 	    PrintStream ps=new PrintStream(fos);
 	    int count=0;
-	    while(currentref<MAX) {
+	    while(true) {
 		if ((count++)>2)
 		    break;
-		String reffile=currentref+".html";
+		int cc=currentref%MAX;
+		String reffile=cc+".html";
 		ps.println("<a href=\""+reffile+"\">"+reffile+"</a>");
 		currentref++;
 	    }
