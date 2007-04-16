@@ -1,0 +1,8 @@
+#!/bin/bash
+let i=62
+while [ $i -le 100 ]
+do
+./dotest THREAD$i threadspider.bin
+./dotest TASK$i taskspider.bin
+let "i+=1"
+done

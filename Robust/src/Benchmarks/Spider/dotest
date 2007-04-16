@@ -1,0 +1,25 @@
+#!/bin/bash
+mkdir $1
+cd $1
+../$2 127.0.0.1 test/0.html &> log &
+fcount=`ls -al 127*`
+let "count=0"
+while true
+do
+sleep 60
+fnewcount=`ls -al 127*`
+if [ "$fnewcount" != "$fcount" ]
+  then
+    let "count=0"
+    fcount="$fnewcount"
+fi
+let "count+=1"
+if [ $count = "3" ]
+then
+break
+fi
+done
+killall -SIGUSR2 $2
+sleep 1
+killall -9 $2
+cd ..
