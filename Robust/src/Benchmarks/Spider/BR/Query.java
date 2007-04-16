@@ -7,7 +7,6 @@ public class Query extends Socket {
     private String hostname;
     private String path;
 
-    private Socket connection;
     private StringBuffer response;
 
     public Query(String hostname, String path) {
@@ -24,16 +23,20 @@ public class Query extends Socket {
         nativeConnect(fd, address.getAddress(), port);
     }
 
-    public void setSocket(Socket s) {
-	connection=s;
-    }
-
     public String getHostName() {
 	return hostname;
     }
 
     public String getPath() {
 	return path;
+    }
+
+    public void outputFile() {
+	StringBuffer sb=new StringBuffer(hostname);
+	sb.append(path);
+	FileOutputStream fos=new FileOutputStream(sb.toString().replace('/','#'));
+	fos.write(response.toString().getBytes());
+	fos.close();
     }
     
     public String makewebcanonical(String page) {
@@ -50,8 +53,11 @@ public class Query extends Socket {
 	} else {
 	    int beginindex=page.indexOf(http)+http.length();
 	    int endindex=page.indexOf('/',beginindex+1);
-	    if ((beginindex==-1)||(endindex==-1))
+	    if ((beginindex==-1)) {
 		System.printString("ERROR");
+	    }
+	    if (endindex==-1)
+		endindex=page.length();
 	    return page.subString(beginindex, endindex);
 	}
     }
@@ -71,7 +77,7 @@ public class Query extends Socket {
 	    int beginindex=page.indexOf(http)+http.length();
 	    int nextindex=page.indexOf('/',beginindex+1);
 	    if ((beginindex==-1)||(nextindex==-1))
-		System.printString("ERROR");
+		return new String("index.html");
 	    return page.subString(nextindex+1, page.length()-1);
 	}
     }

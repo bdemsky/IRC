@@ -15,9 +15,15 @@ public class QueryThread extends Thread {
 		    Thread.sleep(2);
 	    }
 	    String hostname=q.getHostName();
+	    System.printString("Processing ");
+	    System.printString(hostname);
+	    System.printString(" ");
+	    System.printString(q.getPath());
+	    System.printString("\n");
 	    Socket s=new Socket(hostname, 80);
 	    requestQuery(q, s);
 	    readResponse(q, s);
+	    q.outputFile();
 	    processPage(q, ql);
 	    s.close();
 	}
@@ -48,7 +54,6 @@ public class QueryThread extends Thread {
 		    if ((numchars==1)) {
 			if (b[0]=='\r') {
 			    state++;
-			    System.printString(new String(b));
 			}
 		    } else
 			return;
@@ -60,7 +65,6 @@ public class QueryThread extends Thread {
 			    state++;
 			else
 			    state=0;
-			System.printString(new String(b));
 		    } else return;
 		} else if (state==2) {
 		    byte[] b=new byte[1];
@@ -70,7 +74,6 @@ public class QueryThread extends Thread {
 			    state++;
 			else
 			    state=0;
-			System.printString(new String(b));
 		    } else return;
 		} else if (state==3) {
 		    byte[] b=new byte[1];
@@ -80,7 +83,6 @@ public class QueryThread extends Thread {
 			    state++;
 			else
 			    state=0;
-			System.printString(new String(b));
 		    } else return;
 		}
 	    } else {
@@ -90,7 +92,6 @@ public class QueryThread extends Thread {
 		    return;
 		else {
 		    String curr=(new String(buffer)).subString(0,numchars);
-		    System.printString(curr);
 		    q.response.append(curr);
 		}
 	    }

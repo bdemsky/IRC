@@ -31,7 +31,6 @@ task readResponse(Query q{requested && ! received && IOPending}) {
 	    int numchars=q.read(b);
 	    if ((numchars==1) && (b[0]=='\r'))
 		q.state++;
-	    System.printString(new String(b));
 	} else if (q.state==1) {
 	    byte[] b=new byte[1];
 	    int numchars=q.read(b);
@@ -40,7 +39,6 @@ task readResponse(Query q{requested && ! received && IOPending}) {
 		    q.state++;
 		else
 		    q.state=0;
-		System.printString(new String(b));
 	    }
 	} else if (q.state==2) {
 	    byte[] b=new byte[1];
@@ -50,7 +48,6 @@ task readResponse(Query q{requested && ! received && IOPending}) {
 		    q.state++;
 		else
 		    q.state=0;
-		System.printString(new String(b));
 	    }
 	} else if (q.state==3) {
 	    byte[] b=new byte[1];
@@ -60,17 +57,16 @@ task readResponse(Query q{requested && ! received && IOPending}) {
 		    q.state++;
 		else
 		    q.state=0;
-		System.printString(new String(b));
 	    }
 	}
     } else {
 	byte[] buffer=new byte[1024];
 	int numchars=q.read(buffer);
-	if (numchars==0)
+	if (numchars==0) {
+	    q.close();
 	    taskexit(q{received});
-	else {
+	} else {
 	    String curr=(new String(buffer)).subString(0,numchars);
-	    System.printString(curr);
 	    q.response.append(curr);
 	}
     }
@@ -81,6 +77,8 @@ task processPage(Query q{received&&!processed}, QueryList ql{initialized}) {
     String href=new String("href=\"");
     String searchstr=q.response.toString();
     boolean cont=true;
+    q.outputFile();
+
     while(cont) {
 	int mindex=searchstr.indexOf(href,index);
 	if (mindex!=-1) {
