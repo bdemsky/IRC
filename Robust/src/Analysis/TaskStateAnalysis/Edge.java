@@ -5,26 +5,45 @@ import IR.Tree.*;
 import IR.Flat.*;
 import java.util.*;
 
-public class Edge
-{
-	FlagState fs;
-	String name;
 
-	public Edge(FlagState fs, String name)
-	{
-		this.fs=fs;
-		this.name=name;
+/* Edge *****************/
+
+public static class Edge {
+
+    private String label;
+    private FlagState target;
+    private FlagState source;
+    private String dotnodeparams = new String();
+    
+    public Edge(FlagState target, String label) {
+	this.label = label;
+	this.target = target;
+    }
+    
+    public String getLabel() {
+	return label;
+    }
+    
+    public void setSource(FlagState s) {
+	this.source=s;
+    }
+    
+    public FlagState getSource() {
+	return source;
+    }
+    
+    public FlagState getTarget() {
+	return target;
+    }
+    
+    public void setDotNodeParameters(String param) {
+	if (param == null) {
+	    throw new NullPointerException();
 	}
-
-	public FlagState getState()
-	{
-		return fs;
+	if (param.length() > 0) {
+	    dotnodeparams = "," + param;
+	} else {
+	    dotnodeparams = new String();
 	}
-
-	public String getName()
-	{
-		return name;
-	}
-
+    }
 }
-
