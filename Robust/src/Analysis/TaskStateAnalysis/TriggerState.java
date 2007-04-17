@@ -25,5 +25,18 @@ public class TriggerState
 	{
 		return fs;
 	}
+
+	public boolean equals(TriggerState ts)
+	{
+		if ((this.getClassDescriptor().getNum()==ts.getClassDescriptor().getNum()) && (this.getState().isEqual(ts.getState())))
+		{
+			return true;
+		}
+		else
+		{
+			return false;
+		}
+	}
+
 }
 

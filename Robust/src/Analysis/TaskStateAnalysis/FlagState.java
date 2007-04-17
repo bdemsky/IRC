@@ -7,6 +7,8 @@ import java.util.*;
 
 
 
+
+
 public class FlagState
 {
 	Hashtable flagstate;
@@ -48,7 +50,7 @@ public class FlagState
 		}
 	}
 
-	
+
 	public String toString()
 	{
 		StringBuffer sb = new StringBuffer(flagstate.size());
@@ -63,17 +65,17 @@ public class FlagState
 		}
 		return new String(sb);
 	}
-	
+
 	public String toString(FlagDescriptor[] flags)
 	{
 		StringBuffer sb = new StringBuffer(flagstate.size());
-		
+
 		Enumeration e;
-		
+
 		for(int i=0;i < flags.length; i++)
 		{
 			e = flagstate.keys();
-			
+
 			while (e.hasMoreElements())
 			{
 				FlagDescriptor fdtemp=(FlagDescriptor)e.nextElement();
@@ -93,15 +95,15 @@ public class FlagState
 	{
 		return flagstate.keys();
 	}
-	
+
 	public boolean isEqual(FlagState fs)
 	{
 		Enumeration en = fs.getFlags();
 		while(en.hasMoreElements())
 		{
-				
+
 			FlagDescriptor flag=(FlagDescriptor)en.nextElement();
-			
+
 			//System.out.println(flag.toString()+" "+fs.get(flag)+"   "+this.get(flag));
 			if (fs.get(flag) != this.get(flag))
 			    return false;
