@@ -10,11 +10,11 @@ public class TriggerState
 	ClassDescriptor cd;
 	FlagState fs;
 
-	public TriggerState(ClassDescriptor cd, FlagState fs)
-	{
-		this.cd = cd;
-		this.fs = fs;
-	}
+    public TriggerState(ClassDescriptor cd, FlagState fs) {
+	throw new Error("Just use FlagState...roll classdescriptor into it");
+	this.cd = cd;
+	this.fs = fs;
+    }
 
 	public ClassDescriptor getClassDescriptor()
 	{

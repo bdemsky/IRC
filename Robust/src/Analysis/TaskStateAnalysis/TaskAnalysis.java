@@ -386,21 +386,11 @@ public class TaskAnalysis {
     }
 
     private boolean existsInQueue(TriggerState ts) {
-	for(Iterator it_queue=q_main.iterator();it_queue.hasNext();) {
-	    TriggerState ts_local=(TriggerState)it_queue.next();
-
-	    if (ts_local.equals(ts))
-		return true;
-	}
-	return false;
+	throw new Error("Use hashcode/contains of set method to find...no linear search allowed");
     }
 
     private boolean existsInFSQueue(Queue q,FlagState fs) {
-	for (Iterator it_q=q.iterator();it_q.hasNext();) {
-	    if(((FlagState)it_q.next()).isEqual(fs))
-		return true;
-	}
-	return false;
+	throw new Error("Use hashcode/contains of set method to find...no linear search allowed");
     }
 
     public void printAdjList(ClassDescriptor cd) {
