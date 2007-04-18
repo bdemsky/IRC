@@ -123,14 +123,14 @@ public class TaskAnalysis {
 	}
 	while (q_main.size() > 0) {
 	    // ****debug block********
+	    
+	    System.out.println("/***********contents of main q**********/");
 	    for (Iterator it_qm=q_main.iterator();it_qm.hasNext();)
 		{
 		    TriggerState ts_qm=(TriggerState)it_qm.next();
 		    FlagState fs_qm=ts_qm.getState();
-		    System.out.println("/***********contents of main q**********/");
+		    
 		    System.out.println("FS : "+fs_qm.toString((FlagDescriptor [])flags.get(ts_qm.getClassDescriptor())));
-		    
-		    
 		}
 	    System.out.println("/*********************************/");
 	    // ****debug block********
@@ -191,10 +191,9 @@ public class TaskAnalysis {
 	    //***Debug Block***
 	    FlagDescriptor[] ftemp=(FlagDescriptor[])flags.get(cd);
 	    System.out.println("Processing state: "+cd.getSymbol()+" " + fsworking.toString(ftemp));
-
 	    //***Debug Block***
 
-	    
+	    	    
 	    for(Iterator it_tasks=state.getTaskSymbolTable().getDescriptorsIterator();it_tasks.hasNext();) {
 		TaskDescriptor td = (TaskDescriptor)it_tasks.next();
 		boolean taskistriggered=false;
