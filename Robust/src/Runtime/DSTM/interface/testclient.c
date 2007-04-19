@@ -1,10 +1,11 @@
 #include<stdio.h>
+#include<pthread.h>
 #include "dstm.h"
 #include "llookup.h"
 #include "ip.h"
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
+//#include <sys/socket.h>
+//#include <netinet/in.h>
+//#include <arpa/inet.h>
 
 extern objstr_t *mainobjstore;
 //extern lhashtable_t llookup;		//Global Hash table
@@ -17,7 +18,6 @@ int test2(void);
 
 unsigned int createObjects(transrecord_t *record) {
 	objheader_t *header, *tmp;
-	struct sockaddr_in antelope;
 	unsigned int size, mid;
 	int i = 0;
 	for(i = 20 ; i< 23; i++) {
@@ -33,11 +33,9 @@ unsigned int createObjects(transrecord_t *record) {
 		header = (objheader_t *) objstrAlloc(mainobjstore, size);
 		memcpy(header, tmp, size);
 		mhashInsert(header->oid, header);
-		//inet_aton("127.0.0.1", &antelope.sin_addr); // store IP in antelope
-	        //mid = iptoMid(inet_ntoa(antelope.sin_addr));
-		mid = iptoMid("127.0.0.1");
+		mid = iptoMid("128.200.9.27");//machine d-2
+		printf("DEBUG -> createObjects mid is %x\n", mid);
 		lhashInsert(header->oid, mid);
-	//	lhashInsert(header->oid, 1);
 	}
 	//      printf("Insert oid = %d at address %x\n",tmp->oid, tmp);
 	size = sizeof(objheader_t) + classsize[0] ;
@@ -49,9 +47,7 @@ unsigned int createObjects(transrecord_t *record) {
 	header->status = 0;
 	header->status |= NEW;
 	mhashInsert(header->oid, header);
-	//inet_aton("127.0.0.1", &antelope.sin_addr); // store IP in antelope
-	//mid = iptoMid(inet_ntoa(antelope.sin_addr));
-	mid = iptoMid("127.0.0.1");
+	mid = iptoMid("128.200.9.27");
 	lhashInsert(header->oid, mid);
 	size = sizeof(objheader_t) + classsize[1] ;
 	header = (objheader_t *) objstrAlloc(mainobjstore, size);
@@ -62,9 +58,7 @@ unsigned int createObjects(transrecord_t *record) {
 	header->status = 0;
 	header->status |= LOCK;
 	mhashInsert(header->oid, header);
-	//inet_aton("127.0.0.1", &antelope.sin_addr); // store IP in antelope
-	//mid = iptoMid(inet_ntoa(antelope.sin_addr));
-	mid = iptoMid("127.0.0.1");
+	mid = iptoMid("128.200.9.27");
 	lhashInsert(header->oid, mid);
 	size = sizeof(objheader_t) + classsize[2] ;
 	header = (objheader_t *) objstrAlloc(mainobjstore, size);
@@ -75,9 +69,7 @@ unsigned int createObjects(transrecord_t *record) {
 	header->status = 0;
 	header->status |= LOCK;
 	mhashInsert(header->oid, header);
-	//inet_aton("127.0.0.1", &antelope.sin_addr); // store IP in antelope
-	//mid = iptoMid(inet_ntoa(antelope.sin_addr));
-	mid = iptoMid("127.0.0.1");
+	mid = iptoMid("128.200.9.27");
 	lhashInsert(header->oid, mid);
 	return 0;
 }
@@ -207,20 +199,53 @@ int test4(void) {
 //trans commit 
 int test5(void) {
 	transrecord_t *record;
-	unsigned int mid;
+	objheader_t *header;
+	unsigned int size, mid;
+	pthread_t thread_Listen;
+	pthread_attr_t attr;
 	objheader_t *h1,*h2, *h3, *h4;
 
 	dstmInit();
+	pthread_attr_init(&attr);
+	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
+	//pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+
 	record = transStart();
 	printf("DEBUG -> Init done\n");
-	mid = iptoMid("127.0.0.1");	
+	mid = iptoMid("128.200.9.10");// Machine demsky.eecs.uci.edu	
 	lhashInsert(1,mid);
 	lhashInsert(2,mid);
 	lhashInsert(3,mid);
 	lhashInsert(4,mid);
 	lhashInsert(5,mid);
 	lhashInsert(6,mid);
-	createObjects(record);
+	pthread_create(&thread_Listen, &attr, dstmListen, NULL);
+	
+	//Create and Insert Oid 20
+	size = sizeof(objheader_t) + classsize[2] ;
+	header = (objheader_t *) objstrAlloc(mainobjstore, size);
+	header->oid = 20;
+	header->type = 2;
+	header->version = 1;
+	header->rcount = 0; //? not sure how to handle this yet
+	header->status = 0;
+	header->status |= NEW;
+	mhashInsert(header->oid, header);
+	mid = iptoMid("128.200.9.27");
+	lhashInsert(header->oid, mid);
+
+	//Create and Insert Oid 21
+	size = sizeof(objheader_t) + classsize[1] ;
+	header = (objheader_t *) objstrAlloc(mainobjstore, size);
+	header->oid = 21;
+	header->type = 1;
+	header->version = 1;
+	header->rcount = 0; //? not sure how to handle this yet
+	header->status = 0;
+	header->status |= NEW;
+	mhashInsert(header->oid, header);
+	mid = iptoMid("128.200.9.27");
+	lhashInsert(header->oid, mid);
 	//read object 1
 	if((h1 = transRead(record, 1)) == NULL){
 		printf("Object not found\n");
@@ -239,4 +264,5 @@ int test5(void) {
 	}
 	
 	transCommit(record);
+	pthread_join(thread_Listen, NULL);
 }

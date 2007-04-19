@@ -19,7 +19,7 @@ unsigned int createObjects(transrecord_t *record, unsigned short type) {
 	tmp = (objheader_t *) objstrAlloc(mainobjstore, size);
 	memcpy(tmp, header, size);
 	mhashInsert(tmp->oid, tmp);
-	mid = iptoMid("127.0.0.1");
+	mid = iptoMid("128.200.9.10");
 	lhashInsert(tmp->oid, mid);
 	//Lock oid 3 object
 //	if(tmp->oid == 3)
@@ -79,7 +79,8 @@ int test2() {
 	pthread_t thread_Listen;
 
 	dstmInit();	
-	mid = iptoMid("127.0.0.1");
+	mid = iptoMid("128.200.9.27");
+	//Inserting into lhashtable
 	lhashInsert(20, mid);
 	lhashInsert(21, mid);
 	lhashInsert(22, mid);
@@ -117,6 +118,4 @@ int test2() {
 		printf("Error transCreateObj6");
 	}
 	pthread_join(thread_Listen, NULL);
-
-
 }

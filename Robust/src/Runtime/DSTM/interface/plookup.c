@@ -48,6 +48,7 @@ plistnode_t *pInsert(plistnode_t *pile, objheader_t *headeraddr, unsigned int mi
 				offset += sizeof(unsigned int);
 				memcpy(tmp->objread + offset, &headeraddr->version, sizeof(short));
 				tmp->numread = tmp->numread + 1;
+			//	printf("DEBUG->pInsert() No of obj read = %d\n", tmp->numread);
 			}
 			found = 1;
 			break;
@@ -67,13 +68,13 @@ plistnode_t *pInsert(plistnode_t *pile, objheader_t *headeraddr, unsigned int mi
 		} else {
 			ptr->oidread[ptr->numread] = headeraddr->oid;
 			memcpy(ptr->objread, &headeraddr->oid, sizeof(unsigned int));
-			//printf("DEBUG -> objread oid is %d\n", *(ptr->objread));
 			memcpy(ptr->objread + sizeof(unsigned int), &headeraddr->version, sizeof(short));
 			ptr->numread = ptr->numread + 1;
 		}
 		ptr->next = pile;
 		pile = ptr;
 	}
+
 	return pile;
 }
 

@@ -76,7 +76,7 @@ void *dstmListen()
 
 void *dstmAccept(void *acceptfd)
 {
-	int numbytes,i, val;
+	int numbytes,i, val, retval;
 	unsigned int oid;
 	char buffer[RECEIVE_BUFFER_SIZE], control,ctrl;
 	char *ptr;
@@ -87,11 +87,17 @@ void *dstmAccept(void *acceptfd)
 	int fd_flags = fcntl((int)acceptfd, F_GETFD), size;
 
 	printf("Recieved connection: fd = %d\n", (int)acceptfd);
-	recv((int)acceptfd, &control, sizeof(char), 0);
+	if((retval = recv((int)acceptfd, &control, sizeof(char), 0)) <= 0) {
+		perror("Error in receiving control from coordinator\n");
+		return;
+	}
 	switch(control) {
 		case READ_REQUEST:
 			printf("DEBUG -> Recv READ_REQUEST from Coordinator\n");
-			recv((int)acceptfd, &oid, sizeof(unsigned int), 0);
+			if((retval = recv((int)acceptfd, &oid, sizeof(unsigned int), 0)) <= 0) {
+				perror("Error receiving object from cooridnator\n");
+				return;
+			}
 			srcObj = mhashSearch(oid);
 			h = (objheader_t *) srcObj;
 			size = sizeof(objheader_t) + sizeof(classsize[h->type]);
@@ -145,7 +151,7 @@ void *dstmAccept(void *acceptfd)
 			break;
 
 		default:
-			printf("Error receiving\n");
+			printf("DEBUG -> dstmAccept: Error Unknown opcode %d\n", control);
 	}
 	if (close((int)acceptfd) == -1)
 	{
@@ -166,7 +172,7 @@ int readClientReq(int acceptfd, trans_commit_data_t *transinfo) {
 	void *modptr, *header;
 	objheader_t *tmp_header;
 	fixed_data_t fixed;
-	int sum = 0, i, N, n, val;
+	int sum = 0, i, N, n, val, retval;
 
 	//Reads to process the TRANS_REQUEST protocol further
 	// Read fixed_data
@@ -196,33 +202,43 @@ int readClientReq(int acceptfd, trans_commit_data_t *transinfo) {
 	int numread = fixed.numread;
 	N = numread * (sizeof(unsigned int) + sizeof(short));
 	char objread[N];
-	sum = 0;
-	do {
-		n = recv((int)acceptfd, (void *) objread, N, 0);
-	//	printf("DEBUG -> 3. Reading %d bytes cap = %d\n", n, N);
-		sum += n;
-	} while(sum < N && n != 0);
-	//printf("DEBUG -> %d %d %d %d\n", *objread, *(objread + 6), *(objread + 12), *(objread + 18));
-
-	// Read modified objects
-	if ((modptr = objstrAlloc(mainobjstore, fixed.sum_bytes)) == NULL) {
-		printf("objstrAlloc error for modified objects %s, %d", __FILE__, __LINE__);
-		return 1;
+	if(numread != 0) { // If pile contains objects to be read 
+	//	N = numread * (sizeof(unsigned int) + sizeof(short));
+	//	char objread[N];
+		sum = 0;
+		do {
+			n = recv((int)acceptfd, (void *) objread, N, 0);
+		//	printf("DEBUG -> 3. Reading %d bytes cap = %d\n", n, N);
+			sum += n;
+		} while(sum < N && n != 0);
+//		printf("DEBUG -> Recv objs from Coordinator %d %d %d %d\n", *objread, *(objread + 6), *(objread + 12), *(objread + 18));
 	}
-	sum = 0;
-	do {
-		n = recv((int)acceptfd, modptr+sum, fixed.sum_bytes-sum, 0);
-		//printf("DEBUG -> 4. Reading %d bytes cap = %d, oid = %d\n", n, fixed.sum_bytes, *((int *)modptr));
-		sum += n;
-	} while (sum < fixed.sum_bytes && n != 0);
 	
+	// Read modified objects
+	if(fixed.nummod != 0) { // If pile contains modified objects 
+		if ((modptr = objstrAlloc(mainobjstore, fixed.sum_bytes)) == NULL) {
+			printf("objstrAlloc error for modified objects %s, %d", __FILE__, __LINE__);
+			return 1;
+		}
+		sum = 0;
+		do { // Recv the objs that are modified at Coordinator
+			n = recv((int)acceptfd, modptr+sum, fixed.sum_bytes-sum, 0);
+		//	printf("DEBUG -> 4. Reading %d bytes cap = %d, oid = %d\n", n, fixed.sum_bytes, *((int *)modptr));
+			sum += n;
+		} while (sum < fixed.sum_bytes && n != 0);
+	}
+
 	//Send control message as per all votes from all oids in the machine
 	if((prevctrl = handleTransReq(acceptfd, &fixed, transinfo, listmid, objread, modptr)) == 0 ) {
 		printf("Handle req error\n");
 	}
-		
+
 	//Read for new control message from Coordiator
-	recv((int)acceptfd, &control, sizeof(char), 0);
+	if((retval = recv((int)acceptfd, &control, sizeof(char), 0)) <= 0 ) {
+		perror("Error in receiving control message");
+		return 1;
+	}
+
 	switch(control) {
 		case TRANS_ABORT:
 			printf("DEBUG -> Recv TRANS_ABORT from Coordinator\n");
@@ -230,6 +246,7 @@ int readClientReq(int acceptfd, trans_commit_data_t *transinfo) {
 			sendctrl = TRANS_SUCESSFUL;
 			if(send((int)acceptfd, &sendctrl, sizeof(char), 0) < 0) {
 				perror("Error sending ACK to coordinator\n");
+				return 1;
 			}
 			//Mark all ref counts as 1 and do garbage collection
 			ptr = modptr;
@@ -292,10 +309,10 @@ int readClientReq(int acceptfd, trans_commit_data_t *transinfo) {
 							perror("Error sending ACK to coordinator\n");
 						}
 					}
-						
+
 					break;
 			}
-			
+
 			break;
 		case TRANS_ABORT_BUT_RETRY_COMMIT_WITH_RELOCATING:
 			//TODO expect another transrequest from client
@@ -313,6 +330,7 @@ int readClientReq(int acceptfd, trans_commit_data_t *transinfo) {
 //This function runs a decision after all objects are weighed under one of the 4 possibilities 
 //and returns the appropriate control message to the Ccordinator 
 char handleTransReq(int acceptfd, fixed_data_t *fixed, trans_commit_data_t *transinfo, unsigned int *listmid, char *objread, void *modptr) {
+	int val;
 	short version;
 	char control = 0, ctrlmissoid, *ptr;
 	int i, j = 0;
@@ -331,7 +349,7 @@ char handleTransReq(int acceptfd, fixed_data_t *fixed, trans_commit_data_t *tran
 	
 	//Process each object present in the pile 
 	ptr = modptr;
-	printf("DEBUG -> Total objs involved in trans is %d\n",fixed->nummod + fixed->numread);
+	//printf("DEBUG -> Total objs involved in trans is %d\n",fixed->nummod + fixed->numread);
 	fflush(stdout);
 	//Process each oid in the machine pile/ group
 	for (i = 0; i < fixed->numread + fixed->nummod; i++) {
@@ -363,7 +381,10 @@ char handleTransReq(int acceptfd, fixed_data_t *fixed, trans_commit_data_t *tran
 					v_nomatch++;
 					//send TRANS_DISAGREE to Coordinator
 					control = TRANS_DISAGREE;
-					write(acceptfd, &control, sizeof(char));
+					if((val = write(acceptfd, &control, sizeof(char))) <= 0) {
+						perror("Error in sending control to the Coordinator\n");
+						return 0;
+					}
 					printf("DEBUG -> Sending TRANS_DISAGREE\n");
 					return control;
 				}
@@ -371,7 +392,6 @@ char handleTransReq(int acceptfd, fixed_data_t *fixed, trans_commit_data_t *tran
 				((objheader_t *)mobj)->status |= LOCK;
 				//Save all object oids that are locked on this machine during this transaction request call
 				oidlocked[objlocked] = ((objheader_t *)mobj)->oid;
-				printf("DEBUG-> Object to be locked is %d\n", ((objheader_t *)mobj)->oid);
 				objlocked++;
 				if (version == ((objheader_t *)mobj)->version) { //If versions match
 					v_matchnolock++;
@@ -379,7 +399,10 @@ char handleTransReq(int acceptfd, fixed_data_t *fixed, trans_commit_data_t *tran
 					v_nomatch++;
 					//send TRANS_DISAGREE to Coordinator
 					control = TRANS_DISAGREE;
-					write(acceptfd, &control, sizeof(char));
+					if((val = write(acceptfd, &control, sizeof(char))) <= 0) {
+						perror("Error in sending control to the Coordinator\n");
+						return 0;
+					}
 					printf("DEBUG -> Sending TRANS_DISAGREE\n");
 					return control;
 				}
@@ -387,30 +410,43 @@ char handleTransReq(int acceptfd, fixed_data_t *fixed, trans_commit_data_t *tran
 		}
 	}
 
-	printf("No of objs locked = %d\n", objlocked);
-	printf("No of v_nomatch = %d\n", v_nomatch);
-	printf("No of objs v_match but are did not have locks before = %d\n", v_matchnolock);
-	printf("No of objs v_match but had locks before = %d\n", v_matchlock);
-	printf("No of objs not found = %d\n", objnotfound);
-	printf("No of objs modified but not found = %d\n", objmodnotfound);
+	//printf("No of objs locked = %d\n", objlocked);
+	//printf("No of v_nomatch = %d\n", v_nomatch);
+	//printf("No of objs v_match but are did not have locks before = %d\n", v_matchnolock);
+	//printf("No of objs v_match but had locks before = %d\n", v_matchlock);
+	//printf("No of objs not found = %d\n", objnotfound);
+	//printf("No of objs modified but not found = %d\n", objmodnotfound);
 
 	//Decide what control message(s) to send
 	if(v_matchnolock == fixed->numread + fixed->nummod) {
 		//send TRANS_AGREE to Coordinator
 		control = TRANS_AGREE;
-		write(acceptfd, &control, sizeof(char));
+		if((val = write(acceptfd, &control, sizeof(char))) <= 0) {
+			perror("Error in sending control to Coordinator\n");
+			return 0;
+		}
 		printf("DEBUG -> Sending TRANS_AGREE\n");
 	}
 
 	if((v_matchlock > 0 && v_nomatch == 0) || (objnotfound > 0 && v_nomatch == 0)) {
 		//send TRANS_SOFT_ABORT to Coordinator
 		control = TRANS_SOFT_ABORT;
-		write(acceptfd, &control, sizeof(char));
+		if((val = write(acceptfd, &control, sizeof(char))) <=0 ) {
+			perror("Error in sending control back to coordinator\n");
+			return 0;
+		}
 		printf("DEBUG -> Sending TRANS_SOFT_ABORT\n");
 		//send number of oids not found and the missing oids 
-		write(acceptfd, &objnotfound, sizeof(int));
-		if(objnotfound != 0) 
-			write(acceptfd, oidnotfound, (sizeof(unsigned int) * objnotfound));
+		if((val = write(acceptfd, &objnotfound, sizeof(int))) <= 0) {
+			perror("Error in sending no of objects that are not found\n");
+			return 0;
+		}
+		if(objnotfound != 0) { 
+			if((val = write(acceptfd, oidnotfound, (sizeof(unsigned int) * objnotfound))) <= 0) {
+				perror("Error in sending objects that are not found\n");
+				return 0;
+			}
+		}
 	}
 	
 	//Do the following when TRANS_DISAGREE is sent
