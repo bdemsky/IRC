@@ -83,7 +83,7 @@ public class TaskAnalysis {
 	getFlagsfromClasses();
 	
 	int externs;
-	q_main=new LinkedList<TriggerState>();
+	q_main=new LinkedList<FlagState>();
 	
 	for(Iterator it_classes=(Iterator)flags.keys();it_classes.hasNext();) {
 	    ClassDescriptor cd=(ClassDescriptor)it_classes.next();
