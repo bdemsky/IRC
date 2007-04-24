@@ -1,14 +1,20 @@
-Baz a {}{Tag Foo x}, Bar b {}{Tag Foo x, Tag Far y}
+Example:
+task test(Baz a {}{tag Foo x}, Bar b {}{tag Foo x, Tag Far y}) {
+}
 
+Idea: Each parameter with a tag has its own queue and a hashtable that
+is indexed by the tag
 
-Idea: Each parameter has its own queue and a hashtable that is indexed by 
-the tag
+When adding the object to the queue, the runtime: 
 
-When adding the object to the queue, the system:
-cycles through each tag of the appropriate type in that object and indexes 
-into the other queues for that tag...if multiple objects have that tag, 
-have to search each possible one...if the parameter is specified to have a 
-second tag, search through each possible second tag
+1) cycles through each tag of the appropriate type in that object and
+index into the other queues for that tag
 
-Each flag object has tag pointer - it can either point to a tag object or 
-a list of tags...
+2) if multiple objects have that tag, have to search each possible
+one...
+
+3) if the parameter is specified to have a second tag, search through
+each possible second tag
+
+Each flag object has tag pointer - it can either point to a tag object
+or a list of tags...

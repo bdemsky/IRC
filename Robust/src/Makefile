@@ -41,7 +41,7 @@ IR/Flat/FlatOpNode.class IR/Flat/FlatReturnNode.class			\
 IR/Flat/FlatSetElementNode.class IR/Flat/FlatSetFieldNode.class		\
 IR/Flat/NodePair.class IR/Flat/ParamsObject.class			\
 IR/Flat/TempDescriptor.class IR/Flat/TempFlagPair.class			\
-IR/Flat/TempObject.class
+IR/Flat/TempObject.class Util/Relation.class
 
 all: Parse/Sym.class Parse/Parser.class $(CLASSFILES) javadoc
 

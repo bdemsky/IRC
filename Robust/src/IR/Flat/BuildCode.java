@@ -5,6 +5,7 @@ import IR.Tree.DNFFlagAtom;
 import IR.*;
 import java.util.*;
 import java.io.*;
+import Util.Relation;
 
 public class BuildCode {
     State state;
@@ -1025,6 +1026,9 @@ public class BuildCode {
 
     private void generateFlatNode(FlatMethod fm, FlatNode fn, PrintWriter output) {
 	switch(fn.kind()) {
+	case FKind.FlatTagDeclaration:
+	    generateFlatTagDeclaration(fm, (FlatTagDeclaration) fn,output);
+	    return;
 	case FKind.FlatCall:
 	    generateFlatCall(fm, (FlatCall) fn,output);
 	    return;
@@ -1279,6 +1283,15 @@ public class BuildCode {
 	}
     }
 
+
+    private void generateFlatTagDeclaration(FlatMethod fm, FlatTagDeclaration fn, PrintWriter output) {
+	if (GENERATEPRECISEGC) {
+	    output.println(generateTemp(fm,fn.getDst())+"=allocate_tag(&"+localsprefix+", "+state.getTagId(fn.getType())+");");
+	} else {
+	    output.println(generateTemp(fm,fn.getDst())+"=allocate_tag("+state.getTagId(fn.getType())+");");
+	}
+    }
+
     private void generateFlatOpNode(FlatMethod fm, FlatOpNode fon, PrintWriter output) {
 
 	if (fon.getRight()!=null)
@@ -1400,7 +1413,7 @@ public class BuildCode {
 	Hashtable flagandtable=new Hashtable();
 	Hashtable flagortable=new Hashtable();
 
-
+	/* Process flag changes */
 	Iterator flagsit=ffan.getTempFlagPairs();
 	while(flagsit.hasNext()) {
 	    TempFlagPair tfp=(TempFlagPair)flagsit.next();
@@ -1434,6 +1447,7 @@ public class BuildCode {
 		}
 	    }
 	}
+
 	Iterator orit=flagortable.keySet().iterator();
 	while(orit.hasNext()) {
 	    TempDescriptor temp=(TempDescriptor)orit.next();
@@ -1456,6 +1470,46 @@ public class BuildCode {
 		    output.println("flagorandinit("+generateTemp(fm, temp)+", 0, 0x"+Integer.toHexString(andmask)+");");
 		else
 		    output.println("flagorand("+generateTemp(fm, temp)+", 0, 0x"+Integer.toHexString(andmask)+");");
+	    }
+	}
+
+	/* Process tag changes */
+	Relation tagsettable=new Relation();
+	Relation tagcleartable=new Relation();
+
+	Iterator tagsit=ffan.getTempTagPairs(); 
+	while (tagsit.hasNext()) {
+	    TempTagPair ttp=(TempTagPair) tagsit.next();
+	    TempDescriptor objtmp=ttp.getTemp();
+	    TagDescriptor tag=ttp.getTag();
+	    TempDescriptor tagtmp=ttp.getTagTemp();
+	    boolean tagstatus=ffan.getTagChange(ttp);
+	    if (tagstatus) {
+		tagsettable.put(objtmp, tagtmp);
+	    } else {
+		tagcleartable.put(objtmp, tagtmp);
+	    }
+	}
+
+	Iterator clearit=tagcleartable.keySet().iterator();
+	while(clearit.hasNext()) {
+	    TempDescriptor objtmp=(TempDescriptor)clearit.next();
+	    Set tagtmps=tagcleartable.get(objtmp);
+	    Iterator tagit=tagtmps.iterator();
+	    while(tagit.hasNext()) {
+		TempDescriptor tagtmp=(TempDescriptor)tagit.next();
+		output.println("tagclear("+generateTemp(fm, objtmp)+", "+generateTemp(fm,tagtmp)+");");
+	    }
+	}
+
+	Iterator setit=tagsettable.keySet().iterator();
+	while(setit.hasNext()) {
+	    TempDescriptor objtmp=(TempDescriptor)setit.next();
+	    Set tagtmps=tagcleartable.get(objtmp);
+	    Iterator tagit=tagtmps.iterator();
+	    while(tagit.hasNext()) {
+		TempDescriptor tagtmp=(TempDescriptor)tagit.next();
+		output.println("tagset("+generateTemp(fm, objtmp)+", "+generateTemp(fm,tagtmp)+");");
 	    }
 	}
     }

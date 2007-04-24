@@ -13,6 +13,7 @@ public class State {
 	this.parsetrees=new HashSet();
 	this.arraytypes=new HashSet();
 	this.arraytonumber=new Hashtable();
+	this.tagmap=new Hashtable();
     }
 
     public void addParseNode(ParseNode parsetree) {
@@ -39,6 +40,9 @@ public class State {
     private int numtasks=0;
     private int arraycount=0;
 
+    private Hashtable tagmap;
+    private int numtags=0;
+
     public void addArrayType(TypeDescriptor td) {
 	if (!arraytypes.contains(td)) {
 	    arraytypes.add(td);
@@ -48,6 +52,15 @@ public class State {
 
     public Iterator getArrayIterator() {
 	return arraytypes.iterator();
+    }
+
+    public int getTagId(TagDescriptor tag) {
+	if (tagmap.containsKey(tag)) {
+	    return ((Integer) tagmap.get(tag)).intValue();
+	} else {
+	    tagmap.put(tag, new Integer(numtags));
+	    return numtags++;
+	}
     }
 
     public int getArrayNumber(TypeDescriptor td) {
