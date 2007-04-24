@@ -2,31 +2,47 @@ Task Analysis:
 
 Algorithm:
 
-1.	Obtain the flags for each class in the program(Incase, a class has a super class, the super's flags, if any, are included
-    in the list of flags for the class)
-2.	Create a new flagstate for the StartupObject class with the initialstate flag set to true.  Append this flagstate to the 
-    queue, QMAIN.  
-3.	For each class that has only externs,  add all the possible runtime transitions(flagstates) to QMAIN.
-4.	Pop the head of QMAIN and use this flagstate FS to evaluate which task triggers on this.
-5.	Add all runtime transitions from FS to QMAIN and ADJLIST(as edges from FS) ensuring that the new states don't exist in QMAIN.
-6.	Iterate through the list of tasks using FS.
-7.	If a task is triggered, 
-	a.  If FS satisfies more than one parameter of the task,  throw an error stating that this is an illegal operation.
-	b.  If 7a is not true, then add FS to the ADJLIST for that particular class.  Before adding, ensure that the flagstate 
-    doesn't already exist in the ADJLIST.  Keep track of the temp (as TEMP) whose flags form the triggering flagstate.
-8.	Search through the FFANS in this task:
+1. Obtain the flags for each class in the program(Incase, a class has
+a super class, the super's flags, if any, are included in the list of
+flags for the class)
+
+2. Create a new flagstate for the StartupObject class with the
+initialstate flag set to true.  Append this flagstate to the queue,
+QMAIN.
+
+3. Pop the head of QMAIN and use this flagstate FS to evaluate which
+task triggers on this.
+
+4. Add all runtime transitions (external flag changes) from FS to
+QMAIN and ADJLIST(as edges from FS) ensuring that the new states don't
+exist in QMAIN.
+
+5. Iterate through the list of tasks using FS.
+
+6.	If a task is triggered, 
+
+	a.  If FS satisfies more than one parameter of the task, throw
+an error stating that this is an illegal operation.
+
+	b.  If 6a is not true, then add a transition for this task to
+FS using step 7.  Before performing step 7, make sure that the task
+doesn't already exist as a transition to FS. Keep track of the temp
+(as TEMP) whose flags form the triggering flagstate.
+
+7.	Search through the FFANS in this task:
+
 	a.	For NewObject node,  
-		i.	If the new object is of a class which has only externs, create a new flagstate with all flags set to false and 
-		    push into QMAIN ensuring that it doesn't already exist in QMAIN and ADJLIST. 
-		ii.	If the new object is of a class which has both types of flags, create the new flagstate and append to QMAIN and 
-			ADJLIST ensuring that the state doesn't already exist.
-		iii.If new object is of a class which has no externs, then create the new flagstate and append to QMAIN and ADJLIST
-			 ensuring that the state doesn't already exist.
-	b.	For the task exit node, apply the flag changes to the tempflag pairs corresponding to TEMP and create the new flagstate.  
-	    Add this state alongwith the task as an Edge to FS in the ADJLIST.
-		i.	If the class has no external flags, append the new flagstate to QMAIN ensuring that it doesn't already exist.
-		ii.	If the class has both types of flags, create the possible runtime states from the base state obtained in 6b;  
-			Also add the Runtime edges to the base state in ADJLIST.  Append the states to QMAIN ensuring that they are not there 
-			already.
-	c.	For the PRE node, throw an error stating that this type of node isn't supported anymore in Bristlecone.
-9.	Repeat steps 4-8 until QMAIN is empty.
+
+		i. If the new object is of a class which has both
+types of flags, create the new flagstate and append to QMAIN.  Set its
+set of transitions to the empty set.
+
+	b. For the task exit node, apply the flag changes to the
+tempflag pairs corresponding to TEMP and create the new flagstate.
+Add this state along with the task as an Edge to FS in the FS
+transition set.  Add the state to QMAIN.
+
+	c. For the PRE node, throw an error stating that this type of
+node isn't supported anymore in Bristlecone.
+
+8. Repeat steps 3-7 until QMAIN is empty.
