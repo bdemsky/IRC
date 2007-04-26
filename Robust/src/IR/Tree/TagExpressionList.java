@@ -22,6 +22,16 @@ public class TagExpressionList {
 	return names.size();
     }
 
+    public void setTemp(int i, TempDescriptor tmp) {
+	if (i>=temps.size())
+	    temps.setSize(i+1);
+	temps.set(i, tmp);
+    }
+
+    public TempDescriptor getTemp(int i) {
+	return (TempDescriptor) temps.get(i);
+    }
+
     public String getName(int i) {
 	return (String) names.get(i);
     }
@@ -30,3 +40,4 @@ public class TagExpressionList {
 	return (String) types.get(i);
     }
 }
+

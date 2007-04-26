@@ -2,6 +2,7 @@ package IR.Flat;
 import IR.Tree.FlagExpressionNode;
 import IR.Tree.DNFFlag;
 import IR.Tree.DNFFlagAtom;
+import IR.Tree.TagExpressionList;
 import IR.*;
 import java.util.*;
 import java.io.*;
@@ -151,6 +152,8 @@ public class BuildCode {
 		outtask.println("int numberterms;");
 		outtask.println("int *intarray;");
 		outtask.println("void * queue;");
+		outtask.println("int numbertags;");
+		outtask.println("int *tagarray;");
 		outtask.println("};");
 
 		outtask.println("struct taskdescriptor {");
@@ -170,7 +173,6 @@ public class BuildCode {
 	    ClassDescriptor cn=(ClassDescriptor)it.next();
 	    generateCallStructs(cn, outclassdefs, outstructs, outmethodheader);
 	}
-
 
 	if (state.TASK) {
 	    /* Map flags to integers */
@@ -237,7 +239,7 @@ public class BuildCode {
 		TaskDescriptor td=(TaskDescriptor)taskit.next();
 		FlatMethod fm=state.getMethodFlat(td);
 		generateFlatMethod(fm, outmethod);
-		generateTaskDescriptor(outtaskdefs, td);
+		generateTaskDescriptor(outtaskdefs, fm, td);
 	    }
 
 	    {
@@ -384,15 +386,16 @@ public class BuildCode {
     }
 
     /** This method outputs TaskDescriptor information */
-    void generateTaskDescriptor(PrintWriter output, TaskDescriptor task) {
+    void generateTaskDescriptor(PrintWriter output, FlatMethod fm, TaskDescriptor task) {
 	for (int i=0;i<task.numParameters();i++) {
 	    VarDescriptor param_var=task.getParameter(i);
 	    TypeDescriptor param_type=task.getParamType(i);
 	    FlagExpressionNode param_flag=task.getFlag(param_var);
+	    TagExpressionList param_tag=task.getTag(param_var);
+
 	    DNFFlag dflag=param_flag.getDNF();
 	    
 	    Hashtable flags=(Hashtable)flagorder.get(param_type.getClassDesc());
-			
 	    output.println("int parameterdnf_"+i+"_"+task.getSafeSymbol()+"[]={");
 	    for(int j=0;j<dflag.size();j++) {
 		if (j!=0)
@@ -413,11 +416,34 @@ public class BuildCode {
 	    }
 	    output.println("};");
 
+	    output.println("int parametertag_"+i+"_"+task.getSafeSymbol()+"[]={");
+	    //BUG...added next line to fix, test with any task program
+	    if (param_tag!=null)
+		for(int j=0;j<param_tag.numTags();j++) {
+		    if (j!=0)
+			output.println(",");
+		    /* for each tag we need */
+		    /* which slot it is */
+		    /* what type it is */
+		    TagVarDescriptor tvd=(TagVarDescriptor)task.getParameterTable().get(param_tag.getName(j));
+		    TempDescriptor tmp=param_tag.getTemp(j);
+		    int slot=fm.getTagInt(tmp);
+		    output.println(slot+", "+state.getTagId(tvd.getTag()));
+		}
+	    output.println("};");
+
 	    output.println("struct parameterdescriptor parameter_"+i+"_"+task.getSafeSymbol()+"={");
 	    output.println("/* type */"+param_type.getClassDesc().getId()+",");
 	    output.println("/* number of DNF terms */"+dflag.size()+",");
 	    output.println("parameterdnf_"+i+"_"+task.getSafeSymbol()+",");
-	    output.println("0");
+	    output.println("0,");
+	    //BUG, added next line to fix and else statement...test
+	    //with any task program
+	    if (param_tag!=null)
+		output.println("/* number of tags */"+param_tag.numTags()+",");
+	    else
+		output.println("/* number of tags */ 0,");
+	    output.println("parametertag_"+i+"_"+task.getSafeSymbol());
 	    output.println("};");
 	}
 
@@ -847,9 +873,15 @@ public class BuildCode {
 		    TempDescriptor temp=objectparams.getPointer(i);
 		    output.println("  struct "+temp.getType().getSafeSymbol()+" * "+temp.getSafeSymbol()+";");
 		}
+		for(int i=0;i<fm.numTags();i++) {
+		    TempDescriptor temp=fm.getTag(i);
+		    output.println("  struct TagDescriptor * "+temp.getSafeSymbol()+";");
+		}
+
 		output.println("};\n");
-		if (objectparams.numPointers()>maxtaskparams)
-		    maxtaskparams=objectparams.numPointers();
+		if ((objectparams.numPointers()+fm.numTags())>maxtaskparams) {
+		    maxtaskparams=objectparams.numPointers()+fm.numTags();
+		}
 	    }
 
 	    /* Output temp structure */
@@ -889,7 +921,7 @@ public class BuildCode {
 
 	ParamsObject objectparams=(ParamsObject)paramstable.get(md!=null?md:task);
 
-	generateHeader(md!=null?md:task,output);
+	generateHeader(fm, md!=null?md:task,output);
 
 	TempObject objecttemp=(TempObject) tempstable.get(md!=null?md:task);
 
@@ -1351,7 +1383,7 @@ public class BuildCode {
 	output.println("if (!"+generateTemp(fm, fcb.getTest())+") goto "+label+";");
     }
 
-    private void generateHeader(Descriptor des, PrintWriter output) {
+    private void generateHeader(FlatMethod fm, Descriptor des, PrintWriter output) {
 	/* Print header */
 	ParamsObject objectparams=(ParamsObject)paramstable.get(des);
 	MethodDescriptor md=null;
@@ -1383,9 +1415,10 @@ public class BuildCode {
 	    else
 		output.print("struct "+task.getSafeSymbol()+"_params * "+paramsprefix);
 	    printcomma=true;
-	} 
+	}
 
 	if (md!=null) {
+	    /* Method */
 	    for(int i=0;i<objectparams.numPrimitives();i++) {
 		TempDescriptor temp=objectparams.getPrimitive(i);
 		if (printcomma)
@@ -1397,17 +1430,25 @@ public class BuildCode {
 		    output.print(temp.getType().getSafeSymbol()+" "+temp.getSafeSymbol());
 	    }
 	    output.println(") {");
-	} else if (!GENERATEPRECISEGC){
+	} else if (!GENERATEPRECISEGC) {
+	    /* Imprecise Task */
 	    output.println("void * parameterarray[]) {");
+	    /* Unpack variables */
 	    for(int i=0;i<objectparams.numPrimitives();i++) {
 		TempDescriptor temp=objectparams.getPrimitive(i);
 		output.println("struct "+temp.getType().getSafeSymbol()+" * "+temp.getSafeSymbol()+"=parameterarray["+i+"];");
 	    }
-	    if (objectparams.numPrimitives()>maxtaskparams)
-		maxtaskparams=objectparams.numPrimitives();
+	    for(int i=0;i<fm.numTags();i++) {
+		TempDescriptor temp=fm.getTag(i);
+		int offset=i+objectparams.numPrimitives();
+		output.println("struct TagDescriptor * "+temp.getSafeSymbol()+"=parameterarray["+offset+"];");
+	    }
+
+	    if ((objectparams.numPrimitives()+fm.numTags())>maxtaskparams)
+		maxtaskparams=objectparams.numPrimitives()+fm.numTags();
 	} else output.println(") {");
     }
-
+    
     public void generateFlatFlagActionNode(FlatMethod fm, FlatFlagActionNode ffan, PrintWriter output) {
 	output.println("/* FlatFlagActionNode */");
 	Hashtable flagandtable=new Hashtable();

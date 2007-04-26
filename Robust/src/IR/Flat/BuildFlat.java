@@ -44,9 +44,19 @@ public class BuildFlat {
 	for(int i=0;i<td.numParameters();i++) {
 	    VarDescriptor paramvd=td.getParameter(i);
 	    fm.addParameterTemp(getTempforVar(paramvd));
-	    //Don't need to get temps for tag variables
-	    //If they are used, this will be done automatically
-	    //If they aren't we won't pass them in
+	    TagExpressionList tel=td.getTag(paramvd);
+	    HashSet visitedset=new HashSet();
+	    //BUG added next line to fix...to test feed in any task program
+	    if (tel!=null)
+		for(int j=0;j<tel.numTags();j++) {
+		    TagVarDescriptor tvd=(TagVarDescriptor) td.getParameterTable().getFromSameScope(tel.getName(j));
+		    if (!visitedset.contains(tvd)) {
+			visitedset.add(tvd);
+			TempDescriptor tagtmp=getTempforVar(tvd);
+			fm.addTagTemp(tagtmp);
+			tel.setTemp(j, tagtmp);
+		    }
+		}
 	}
 
 	/* Flatten Vector of Flag Effects */

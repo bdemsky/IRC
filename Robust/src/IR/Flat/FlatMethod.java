@@ -8,12 +8,16 @@ public class FlatMethod extends FlatNode {
     MethodDescriptor method;
     TaskDescriptor task;
     Vector parameterTemps;
+    Vector tagTemps;
+    Hashtable tagtointmap;
 
     FlatMethod(MethodDescriptor md, FlatNode entry) {
 	method=md;
 	task=null;
 	method_entry=entry;
 	parameterTemps=new Vector();
+	tagTemps=new Vector();
+	tagtointmap=new Hashtable();
     }
 
     FlatMethod(TaskDescriptor td, FlatNode entry) {
@@ -21,6 +25,8 @@ public class FlatMethod extends FlatNode {
 	method=null;
 	method_entry=entry;
 	parameterTemps=new Vector();
+	tagTemps=new Vector();
+	tagtointmap=new Hashtable();
     }
 
     public String toString() {
@@ -43,6 +49,23 @@ public class FlatMethod extends FlatNode {
 	return parameterTemps.size();
     }
 
+    public void addTagTemp(TempDescriptor t) {
+	tagtointmap.put(t, new Integer(tagTemps.size()));
+	tagTemps.add(t);
+    }
+
+    public int getTagInt(TempDescriptor t) {
+	return ((Integer)tagtointmap.get(t)).intValue();
+    }
+
+    public int numTags() {
+	return tagTemps.size();
+    }
+
+    public TempDescriptor getTag(int i) {
+	return (TempDescriptor) tagTemps.get(i);
+    }
+    
     public TempDescriptor getParameter(int i) {
 	return (TempDescriptor) parameterTemps.get(i);
     }

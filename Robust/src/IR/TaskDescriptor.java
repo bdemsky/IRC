@@ -86,7 +86,9 @@ public class TaskDescriptor extends Descriptor {
     }
 
     public TagExpressionList getTag(VarDescriptor vd) {
-	return (TagExpressionList) flagstable.get(vd);
+	//BUG did lookup in wrong table (originally flagstable)...to
+	//test, use any task program
+	return (TagExpressionList) tagstable.get(vd);
     }
 
     public String toString() {
