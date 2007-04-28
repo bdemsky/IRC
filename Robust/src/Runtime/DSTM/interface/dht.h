@@ -1,58 +1,21 @@
 #ifndef _DHT_H
 #define _DHT_H
 
-#define INIT_NUM_BLOCKS 16
-
-//messages
-#define DHT_INSERT 1
-#define DHT_REMOVE 2
-#define DHT_SEARCH 3
-#define DHT_ACK 4
-#define DHT_JOIN 5
-#define DHT_LEAVE 6
-#define DHT_REBUILD 7
-//etc...
-
-struct hostData {
-	unsigned int ipAddr;
-	unsigned int maxKeyCapacity;
-	struct hostData *next;
-};
-
-struct dhtInsertMsg {
-	unsigned char msgType;
-	unsigned int unused:12;
-	unsigned int key;
-	unsigned int val;
-};
-
-struct dhtRemoveMsg {
-	unsigned char msgType;
-	unsigned int unused:12;
-	unsigned int key;
-};
-
-struct dhtSearchMsg {
-	unsigned char msgType;
-	unsigned int unused:12;
-	unsigned int key;
-};
-
-struct dhtJoinMsg {
-	unsigned char msgType;
-	unsigned int unused:12;
-	struct hostData newHost;
-};
+#define DHT_NO_KEY_LIMIT 0xFFFFFFFF
 
 //called by host which joins (or starts) the system
-void dhtInit();
+void dhtInit(unsigned int maxKeyCapaciy);
 //exit system, cleanup
 void dhtExit();
 
 //called by whoever performs the creation, move, deletion
+
+//returns 0 if successful, -1 if an error occurred
 int dhtInsert(unsigned int key, unsigned int val);
+//returns 0 if successful, -1 if an error occurred
 int dhtRemove(unsigned int key);
-int dhtSearch(unsigned int key);
+//returns 0 if successful and copies val into *val, 1 if key not found, -1 if an error occurred
+int dhtSearch(unsigned int key, unsigned int *val);
 
 #endif
 
