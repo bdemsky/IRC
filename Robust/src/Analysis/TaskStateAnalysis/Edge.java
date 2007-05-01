@@ -8,12 +8,12 @@ import java.util.*;
 
 /* Edge *****************/
 
-public static class Edge {
+public class Edge {
 
     private String label;
     private FlagState target;
     private FlagState source;
-    private String dotnodeparams = new String();
+    protected String dotnodeparams = new String();
     
     public Edge(FlagState target, String label) {
 	this.label = label;
@@ -36,7 +36,11 @@ public static class Edge {
 	return target;
     }
     
-    public void setDotNodeParameters(String param) {
+    public int hashCode(){
+		return target.hashCode()^label.hashCode();
+	}
+	
+	public void setDotNodeParameters(String param) {
 	if (param == null) {
 	    throw new NullPointerException();
 	}
@@ -46,4 +50,15 @@ public static class Edge {
 	    dotnodeparams = new String();
 	}
     }
+    public boolean equals(Object o) {
+        if (o instanceof Edge) {
+            Edge e=(Edge)o;
+            if (e.label.compareTo(label)!=0)
+                return false;
+	    return e.target.equals(target);
+        }
+        return false;
+    }
+
+    
 }

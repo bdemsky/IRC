@@ -3,6 +3,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include "runtime.h"
+#include <stdlib.h>
 
 extern char *options;
 extern int injectfailures;

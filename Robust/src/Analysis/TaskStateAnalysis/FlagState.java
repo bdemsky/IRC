@@ -27,7 +27,7 @@ public class FlagState {
     Vector edges = new Vector();
     Vector inedges = new Vector();
     NodeStatus status = UNVISITED;
-    String dotnodeparams = new String();
+    protected String dotnodeparams = new String();
     boolean merge=false;
     String nodeoption="";
 
@@ -41,12 +41,17 @@ public class FlagState {
     public void setMerge() {
 	merge=true;
     }
-
-    public FlagState(HashSet flagstate, ClassDescriptor cd) {
-	this.flagstate=flagstate;
+    
+    public FlagState(ClassDescriptor cd) {
+	this.flagstate=new HashSet();
 	this.cd=cd;
     }
 
+    private FlagState(HashSet flagstate, ClassDescriptor cd) {
+	this.flagstate=flagstate;
+	this.cd=cd;
+    }
+    
     public boolean get(FlagDescriptor fd) {
 	return flagstate.contains(fd);
     }
@@ -58,13 +63,33 @@ public class FlagState {
     public Iterator getFlags() {
 	return flagstate.iterator();
     }
+    
+	public String toString(FlagDescriptor[] flags)
+	{
+		StringBuffer sb = new StringBuffer(flagstate.size());
+		for(int i=0;i < flags.length; i++)
+		{
+			if (get(flags[i]))
+				sb.append(1);
+			else
+				sb.append(0);
+		}
+			
+		return new String(sb);
+	}
+
+	
+	public ClassDescriptor getClassDescriptor(){
+	return cd;
+	}
 
     public FlagState setFlag(FlagDescriptor fd, boolean status) {
 	HashSet newset=(HashSet) flagstate.clone();
 	if (status)
 	    newset.add(fd);
-	else
+	else if (newset.contains(fd)){
 	    newset.remove(fd);
+	}
 	return new FlagState(newset, cd);
     }
     
@@ -150,11 +175,11 @@ public class FlagState {
     public String getTextLabel() {
 	String label=null;
 	for(Iterator it=getFlags();it.hasNext();) {
-	    FlagState fs=(FlagState) it.next();
+	    FlagDescriptor fd=(FlagDescriptor) it.next();
 	    if (label==null)
-		label=fs.toString();
+		label=fd.toString();
 	    else
-		label+=", "+fs.toString();
+		label+=", "+fd.toString();
 	}
 	return label;
     }
@@ -247,11 +272,11 @@ public class FlagState {
 			  output.println("\tremincross=true;");*/
             output.println("\tnode [fontsize=10,height=\"0.1\", width=\"0.1\"];");
             output.println("\tedge [fontsize=6];");
-            traverse();
+            //traverse();
             output.println("}\n");
         }
 
-        private void traverse() {
+       private void traverse() {
 	    Set cycleset=FlagState.findcycles(nodes);
 
             Iterator i = nodes.iterator();
@@ -272,13 +297,14 @@ public class FlagState {
 		    if (nodes.contains(node)) {
 			for(Iterator nodeit=nonmerge(node).iterator();nodeit.hasNext();) {
 			    FlagState node2=(FlagState)nodeit.next();
-			    String edgelabel = Compiler.DEBUGGRAPH ? "label=\"" + edge.getLabel() + "\"" : "label=\"\"";
+			    String edgelabel = "label=\"" + edge.getLabel() + "\"";
 			    output.println("\t" + gn.getLabel() + " -> " + node2.getLabel() + " [" + edgelabel + edge.dotnodeparams + "];");
 			}
 		    }
                 }
             }
         }
+        
 
 	Set nonmerge(FlagState gn) {
 	    HashSet newset=new HashSet();

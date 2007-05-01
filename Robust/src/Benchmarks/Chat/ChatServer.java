@@ -22,7 +22,7 @@ task ProcessRoom(ChatSocket cs{ProcessRoom}, RoomObject ro{Initialized}) {
     taskexit(cs{!ProcessRoom, InRoom});
 }
 
-task Message(ChatSocket cs{InRoom && IOPending}) {
+task Messages(ChatSocket cs{InRoom && IOPending}) {
     byte buffer[]=new byte[1024];
     int length=cs.read(buffer);
     Message m=new Message(buffer, length, cs){};

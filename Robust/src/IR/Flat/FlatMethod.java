@@ -109,6 +109,9 @@ public class FlatMethod extends FlatNode {
 	    FlatNode fn=(FlatNode)tovisit.iterator().next();
 	    tovisit.remove(fn);
 	    visited.add(fn);
+
+//	    System.out.println("Next : "+fn.numNext());
+
 	    for(int i=0;i<fn.numNext();i++) {
 		FlatNode nn=fn.getNext(i);
 		if(i>0) {

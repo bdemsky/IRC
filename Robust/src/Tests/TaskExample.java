@@ -42,7 +42,7 @@ task DoOperation(Example e{needoperation}) {
  * expressions.  For example, needprinting && ! needoperation would
  * also be a legal flag expression */
 
-task DoPrint(Example e{needprinting}) {
+task DoPrint(Example e{needprinting && ! needoperation}) {
     System.printInt(e.z);
     System.printString("\n");
     taskexit(e {!needprinting});

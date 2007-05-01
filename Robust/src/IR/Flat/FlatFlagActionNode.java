@@ -80,6 +80,11 @@ public class FlatFlagActionNode extends FlatNode {
 	}
     }
 
+    public int getFFANType()
+    {
+    	return taskexit;
+    }
+
     public String toString() {
 	return "FlatFlagActionNode";
     }

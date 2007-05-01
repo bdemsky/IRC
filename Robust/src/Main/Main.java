@@ -10,6 +10,8 @@ import IR.Flat.BuildFlat;
 import IR.Flat.BuildCode;
 import IR.State;
 import IR.TypeUtil;
+//import IR.PrintTree;
+import Analysis.TaskStateAnalysis.TaskAnalysis;
 
 public class Main {
 
@@ -89,6 +91,9 @@ public class Main {
       BuildIR bir=new BuildIR(state);
       bir.buildtree();
       
+//      PrintTree ptree=new PrintTree(state);
+ //     ptree.buildtree();
+
       TypeUtil tu=new TypeUtil(state);
       
       SemanticCheck sc=new SemanticCheck(state,tu);
@@ -97,6 +102,16 @@ public class Main {
 
       BuildFlat bf=new BuildFlat(state,tu);
       bf.buildFlat();
+
+//      System.out.println("Flat");
+//    PrintTree ptree1=new PrintTree(state);
+//  ptree1.buildtree();
+
+	TaskAnalysis ta=new TaskAnalysis(state,bf.getMap());
+	ta.taskAnalysis();
+//	ta.printAdjList();
+
+
 
       BuildCode bc=new BuildCode(state, bf.getMap(), tu);
       bc.buildCode();
