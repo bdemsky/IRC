@@ -5,7 +5,9 @@ import IR.Tree.*;
 import IR.Flat.*;
 import java.util.*;
 import java.io.File;
+import java.io.FileWriter;
 import java.io.FileOutputStream;
+
 
 public class TaskAnalysis {
     State state;
@@ -430,10 +432,38 @@ public class TaskAnalysis {
 	   
 	File dotfile= new File("graph"+cd.getSymbol()+".dot");
 
-	FileOutputStream dotstream=new FileOutputStream(dotfile,true);
+	/*FileOutputStream dotstream=new FileOutputStream(dotfile,true);
 	
 	FlagState.DOTVisitor.visit(dotstream,((Hashtable)flagstates.get(cd)).values());
+	*/
+	
+	FileWriter dotwriter=new FileWriter(dotfile,true);
 
+	dotwriter.write("digraph G{ \n");
+	dotwriter.write("center=true;\norientation=landscape;\n");
+	
+	//***debug***
+	FlagDescriptor[] flg=(FlagDescriptor [])flags.get(cd);
+	for(int i = 0; i < flg.length ; i++)
+	{
+		dotwriter.write(flg[i].toString()+"\n");
+	}
+
+	//*** debug***	
+	Iterator it_sourcenodes=((Hashtable)flagstates.get(cd)).values().iterator();
+	while(it_sourcenodes.hasNext()) {
+	    FlagState fsv = (FlagState)(it_sourcenodes.next());
+	    System.out.println(fsv.toString());
+	    
+	    for(Iterator it_edges=fsv.edges();it_edges.hasNext();) {
+		    Edge tonode=(Edge)it_edges.next();
+			dotwriter.write(fsv.toString(flg)+" -> "+tonode.getTarget().toString(flg)+"[label=\""+tonode.getLabel()+"\"];\n");
+	    }
+
+	}
+	dotwriter.write("}\n");
+	dotwriter.flush();
+	dotwriter.close();
 	}
 	
 

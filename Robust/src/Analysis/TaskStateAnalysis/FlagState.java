@@ -272,7 +272,7 @@ public class FlagState {
 			  output.println("\tremincross=true;");*/
             output.println("\tnode [fontsize=10,height=\"0.1\", width=\"0.1\"];");
             output.println("\tedge [fontsize=6];");
-            //traverse();
+            traverse();
             output.println("}\n");
         }
 
