@@ -5,6 +5,7 @@ echo -check generate check code
 echo -dmalloc link in dmalloc
 echo -recover compile task code
 echo -specdir directory
+echo -taskstate do task state analysis
 echo -debug generate debug symbols
 echo -runtimedebug printout runtime debug messages
 echo "-thread use support for multiple threads"
@@ -50,6 +51,9 @@ elif [[ $1 = '-mainclass' ]]
 then
 JAVAOPTS="$JAVAOPTS -mainclass $2"
 shift
+elif [[ $1 = '-taskstate' ]]
+then
+JAVAOPTS="$JAVAOPTS -taskstate"
 elif [[ $1 = '-dmalloc' ]]
 then
 USEDMALLOC=true
