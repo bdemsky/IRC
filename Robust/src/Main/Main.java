@@ -76,8 +76,10 @@ public class Main {
       if (state.THREAD) {
 	  readSourceFile(state, ClassLibraryPrefix+"Thread.java");
 	  readSourceFile(state, ClassLibraryPrefix+"ObjectJava.java");
-      } else
+      } else {
 	  readSourceFile(state, ClassLibraryPrefix+"Object.java");
+	  //	  readSourceFile(state, ClassLibraryPrefix+"TagDescriptor.java");
+      }
 
       if (state.TASK) {
 	  readSourceFile(state, ClassLibraryPrefix+"StartupObject.java");
@@ -107,8 +109,8 @@ public class Main {
 //    PrintTree ptree1=new PrintTree(state);
 //  ptree1.buildtree();
 
-	TaskAnalysis ta=new TaskAnalysis(state,bf.getMap());
-	ta.taskAnalysis();
+//	TaskAnalysis ta=new TaskAnalysis(state,bf.getMap());
+//	ta.taskAnalysis();
 //	ta.printAdjList();
 
 

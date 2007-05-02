@@ -191,3 +191,4 @@ gcc $INCLUDES $EXTRAOPTIONS -DPRECISE_GC \
 tmpbuilddirectory/methods.c $FILES -o $MAINFILE.bin
 
 exit
+
