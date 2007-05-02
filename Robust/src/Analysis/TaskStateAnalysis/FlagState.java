@@ -30,6 +30,8 @@ public class FlagState {
     protected String dotnodeparams = new String();
     boolean merge=false;
     String nodeoption="";
+    private int uid;
+    private static int nodeid=0;
 
     private final HashSet flagstate;
     private final ClassDescriptor cd;
@@ -45,11 +47,13 @@ public class FlagState {
     public FlagState(ClassDescriptor cd) {
 	this.flagstate=new HashSet();
 	this.cd=cd;
+	this.uid=FlagState.nodeid++;
     }
 
     private FlagState(HashSet flagstate, ClassDescriptor cd) {
 	this.flagstate=flagstate;
 	this.cd=cd;
+	this.uid=FlagState.nodeid++;
     }
     
     public boolean get(FlagDescriptor fd) {
@@ -169,7 +173,7 @@ public class FlagState {
     }
 
     public String getLabel() {
-        return getTextLabel();
+	return "N"+uid;
     }
 
     public String getTextLabel() {
@@ -277,8 +281,6 @@ public class FlagState {
         }
 
        private void traverse() {
-	    Set cycleset=FlagState.findcycles(nodes);
-
             Iterator i = nodes.iterator();
             while (i.hasNext()) {
                 FlagState gn = (FlagState) i.next();
