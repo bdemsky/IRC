@@ -82,7 +82,7 @@ public class FlatFlagActionNode extends FlatNode {
 
     public int getFFANType()
     {
-    	return taskexit;
+	throw new Error("Use getTaskType() instead and remove this method");
     }
 
     public String toString() {
