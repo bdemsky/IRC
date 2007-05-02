@@ -29,8 +29,10 @@ public class ChatThread extends Thread {
     public void Message() {
 	byte buffer[]=new byte[1024];
 	int length=sock.read(buffer);
+	if (length>0) {
 	String st=(new String(buffer)).subString(0, length);
 	room.sendToRoom(this, st.getBytes());
+	}
     }
     
     public boolean processRead() {
