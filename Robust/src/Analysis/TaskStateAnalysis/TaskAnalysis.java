@@ -262,12 +262,8 @@ public class TaskAnalysis {
 		    //***Debug Block***
 		    
 		    taskistriggered=false;
-		    if (!wasFlagStateProcessed(sourcenodes,fs)){
-				sourcenodes.put(fs,fs);
-			}
-			else{
-				fs=sourcenodes.get(fs);
-			}
+		   
+		    fs=canonicalizeFlagState(sourcenodes, fs);
 					
 			//Iterating through the nodes
 		    FlatMethod fm = state.getMethodFlat(td);
@@ -300,12 +296,15 @@ public class TaskAnalysis {
 				        System.out.println("TaskExit");
 				    //***Debug Block***
 				    FlagState fs_taskexit=evalTaskExitNode(nn,cd,fs);
+				    
+				    fs_taskexit=canonicalizeFlagState(sourcenodes,fs_taskexit);
 		    
 				    Edge newedge=new Edge(fs_taskexit,taskname);
 				    if (!edgeexists(fs,newedge)) {
 						fs.addEdge(newedge);
 				    }
-				    if ((!wasFlagStateProcessed(sourcenodes,fs_taskexit)) && (!existsInQMain(fs_taskexit)) && (!existsInQ(q_retval,fs_taskexit))){
+				   // if ((!existsInQMain(fs_taskexit)) && (!existsInQ(q_retval,fs_taskexit)) && !wasFlagStateAnalyzed(sourcenodes,fs_taskexit)){
+					    if ((!existsInQMain(fs_taskexit)) && (!existsInQ(q_retval,fs_taskexit)) && !wasFlagStateAnalyzed(sourcenodes,fs_taskexit)){
 					q_retval.offer(fs_taskexit);
 				    }
 				}
@@ -394,13 +393,30 @@ public class TaskAnalysis {
 	}		
 	    
 
-    private boolean wasFlagStateProcessed(Hashtable sourcenodes,FlagState fs) {
+    private boolean wasFlagStateCreated(Hashtable sourcenodes,FlagState fs) {
 		if (sourcenodes.containsKey(fs))
 			return true;
 		else
 			return false;
     }
-
+    
+    private boolean wasFlagStateAnalyzed(Hashtable sourcenodes, FlagState fs){
+	    Iterator it_edges=((FlagState)sourcenodes.get(fs)).edges();
+		if (it_edges.hasNext())
+		   	return true;
+		else
+		  	return false;
+	}
+    
+    private FlagState canonicalizeFlagState(Hashtable sourcenodes, FlagState fs){
+	   	if (wasFlagStateCreated(sourcenodes, fs))
+		   	return (FlagState)sourcenodes.get(fs);
+		else{
+			sourcenodes.put(fs,fs);
+			return fs;
+		}
+	}
+	
    /* private boolean existsInQueue(TriggerState ts) {
 	throw new Error("Use hashcode/contains of set method to find...no linear search allowed");
     }*/
@@ -493,12 +509,12 @@ public class TaskAnalysis {
 		BoolValTable[i]=fs.get(fd[i]);
 	    }
 
-	   /* if (! wasFlagStateProcessed(Adj_List_temp,fs)) {
+	   /* if (! wasFlagStateCreated(Adj_List_temp,fs)) {
 			Adj_List_temp.put(fs,new Vector());
 	    }
 	    */
 	    if (externs > 0){
-	    	sourcenodes.put(fs,fs);
+	    	fs=canonicalizeFlagState(sourcenodes,fs);
 	    
 		   	for(int k=0; k<noOfIterations; k++) {
 				for(int j=0; j < externs ;j++) {
@@ -511,9 +527,10 @@ public class TaskAnalysis {
 				for(int i=0; i < externs;i++) {
 				    fstemp=fstemp.setFlag(fd[i],BoolValTable[i]);
 				}
+				fstemp=canonicalizeFlagState(sourcenodes,fstemp);
 				fs.addEdge(new Edge(fstemp,"Runtime"));
 			
-				if (!existsInQMain(fstemp) && ! wasFlagStateProcessed(sourcenodes,fstemp)){
+				if (!existsInQMain(fstemp) && ! wasFlagStateAnalyzed(sourcenodes, fstemp)){
 					q_ret.add(fstemp);
 				}
 		
