@@ -14,7 +14,7 @@ public class TaskAnalysis {
     Hashtable flagstates;
     Hashtable flags;
     Hashtable extern_flags;
-    Queue<FlagState> q_main;
+    Queue<FlagState> toprocess;
     Hashtable map;
     TempDescriptor temp;
     TypeUtil typeutil;
@@ -84,7 +84,7 @@ public class TaskAnalysis {
 	    }
 	}
     }
-
+    
     public void taskAnalysis() throws java.io.IOException {
 	flagstates=new Hashtable();
 	Hashtable<FlagState,FlagState> sourcenodes;
@@ -92,7 +92,7 @@ public class TaskAnalysis {
 	getFlagsfromClasses();
 	
 	int externs;
-	q_main=new LinkedList<FlagState>();
+	toprocess=new LinkedList<FlagState>();
 	
 	for(Iterator it_classes=(Iterator)flags.keys();it_classes.hasNext();) {
 	    ClassDescriptor cd=(ClassDescriptor)it_classes.next();
@@ -105,7 +105,7 @@ public class TaskAnalysis {
 	    System.out.println("No of flags: "+fd.length);
 	    //Debug block
 	    
-	   flagstates.put(cd,new Hashtable<FlagState,FlagState>());
+	    flagstates.put(cd,new Hashtable<FlagState,FlagState>());
 	}	
 	
 	
@@ -115,251 +115,118 @@ public class TaskAnalysis {
 	
 	FlagState fsstartup=new FlagState(startupobject);
 	FlagDescriptor[] fd=(FlagDescriptor[])flags.get(startupobject);
-		    
+	
 	fsstartup=fsstartup.setFlag(fd[0],true);
 	
 	sourcenodes.put(fsstartup,fsstartup);
-		    	    
-	Queue<FlagState> q_temp=analyseTasks(fsstartup);
-
-	if ( q_temp != null) {
-		q_main.addAll(q_temp);
-	}
+	toprocess.add(fsstartup);
 	
-	while (q_main.size() > 0) {
-	    // ****debug block********
-	    
-	    System.out.println("/***********contents of main q before pop**********/");
-	    for (Iterator it_qm=q_main.iterator();it_qm.hasNext();)
-		{
-		    
-		    FlagState fs_qm=(FlagState)it_qm.next();
-		    
-		    System.out.println("FS : "+fs_qm.getClassDescriptor().toString()+" : "+fs_qm.toString((FlagDescriptor [])flags.get(fs_qm.getClassDescriptor())));
-		} 
-	    System.out.println("/*********************************/");
-	    // ****debug block********
-	    FlagState trigger=q_main.poll();
-	    
-	   
-	    q_temp=createPossibleRuntimeStates(trigger);
-	    
-	    if ( q_temp != null){
-		    q_main.addAll(q_temp);
-		    
-		// ****debug block********
-	    
-	    System.out.println("/***********contents of main q**********/");
-	    for (Iterator it_qm=q_main.iterator();it_qm.hasNext();)
-		{
-		    
-		    FlagState fs_qm=(FlagState)it_qm.next();
-		    
-		    System.out.println("FS : "+fs_qm.getClassDescriptor().toString()+" : "+fs_qm.toString((FlagDescriptor [])flags.get(fs_qm.getClassDescriptor())));
-		} 
-	    System.out.println("/*********************************/");
-	    // ****debug block********
-	    
-	    q_temp=analyseTasks(trigger);
-	    
-	    if ( q_temp != null) 
-			q_main.addAll(q_temp);
-			
-		// ****debug block********
-	    
-	    System.out.println("/***********contents of main q after analyse tasks**********/");
-	    for (Iterator it_qm=q_main.iterator();it_qm.hasNext();)
-		{
-		    
-		    FlagState fs_qm=(FlagState)it_qm.next();
-		    
-		    System.out.println("FS : "+fs_qm.getClassDescriptor().toString()+" : "+fs_qm.toString((FlagDescriptor [])flags.get(fs_qm.getClassDescriptor())));
-		} 
-	    System.out.println("/*********************************/");
-	    // ****debug block********
-	    
-	}
+	while (!toprocess.isEmpty()) {
+	    FlagState trigger=toprocess.poll();
+	    createPossibleRuntimeStates(trigger);
+	    analyseTasks(trigger);
 	}
 	
 	//Creating DOT files
 	Enumeration e=flagstates.keys();
-
+	
 	while (e.hasMoreElements()) {
 	    System.out.println("creating dot file");
 	    ClassDescriptor cdtemp=(ClassDescriptor)e.nextElement();
 	    System.out.println((cdtemp.getSymbol()));
 	    createDOTfile(cdtemp);
 	}
-	
+    }
+
+
+private void analyseTasks(FlagState fs) {
+    Hashtable<FlagState,FlagState> sourcenodes;
+
+    ClassDescriptor cd=fs.getClassDescriptor();
     
+    sourcenodes=(Hashtable<FlagState,FlagState>)flagstates.get(cd);
+    
+    for(Iterator it_tasks=state.getTaskSymbolTable().getDescriptorsIterator();it_tasks.hasNext();) {
+	TaskDescriptor td = (TaskDescriptor)it_tasks.next();
+	String taskname=td.getSymbol();
+	int trigger_ctr=0;
+	
+	for(int i=0; i < td.numParameters(); i++) {
+	    FlagExpressionNode fen=td.getFlag(td.getParameter(i));
+	    if (typeutil.isSuperorType(td.getParamType(i).getClassDesc(),cd)
+		&& isTaskTrigger(fen,fs)) {
+		temp=(TempDescriptor)map.get(td.getParameter(i));
+		trigger_ctr++;
+	    }
 	}
+	
+	if (trigger_ctr==0)
+	    return;
+	
+	if (trigger_ctr>1)
+	    throw new Error("Illegal Operation: A single flagstate cannot satisfy more than one parameter of a task.");
+	
+	//Iterating through the nodes
+	FlatMethod fm = state.getMethodFlat(td);
+	FlatNode fn=fm.methodEntryNode();
+	
+	HashSet tovisit= new HashSet();
+	HashSet visited= new HashSet();
+	
+	tovisit.add(fn);
+	while(!tovisit.isEmpty()) {
+	    FlatNode fn1 = (FlatNode)tovisit.iterator().next();
+	    tovisit.remove(fn1);
+	    visited.add(fn1);
+	    // Queue all of the next nodes
+	    for(int i = 0; i < fn1.numNext(); i++) {
+		FlatNode nn=fn1.getNext(i);
+		if (!visited.contains(nn))
+		    tovisit.add(nn);
+	    }
 
-
-    public Queue<FlagState> analyseTasks(FlagState fs) throws java.io.IOException {
-	
-	
-	Hashtable<FlagState,FlagState> sourcenodes;
-	Queue<FlagState> q_retval;
-	
-	
-	
-	ClassDescriptor cd=fs.getClassDescriptor();
-	
-	sourcenodes=(Hashtable<FlagState,FlagState>)flagstates.get(cd);
-	
-	int externs=((Integer)extern_flags.get(cd)).intValue();
-	FlagDescriptor[] fd=(FlagDescriptor[])flags.get(cd);
-
-	q_retval=new LinkedList<FlagState>();
-	//***Debug Block***
-
-	//while (q.size() != 0) {
-	    System.out.println("inside while loop in analysetasks \n");
-	    
-	    //***Debug Block***
-	    //FlagDescriptor[] ftemp=(FlagDescriptor[])flags.get(cd);
-	    //System.out.println("Processing state: "+cd.getSymbol()+" " + fsworking.toString(ftemp));
-	    //***Debug Block***
-
-	    	    
-	    for(Iterator it_tasks=state.getTaskSymbolTable().getDescriptorsIterator();it_tasks.hasNext();) {
-		TaskDescriptor td = (TaskDescriptor)it_tasks.next();
-		boolean taskistriggered=false;
-		int trigger_ctr=0;
-		String taskname=getTaskName(td);
-		
-		
-
-		//***Debug Block***
-		
-		System.out.println("Method: AnalyseTasks");
-		System.out.println(taskname);
-		System.out.println();
-		
-		//***Debug Block***
-		
-		
-		
-		for(int i=0; i < td.numParameters(); i++) {
-		    FlagExpressionNode fen=td.getFlag(td.getParameter(i));
-		    //if ( (td.getParamType(i).equals(cd))&&(isTaskTrigger(fen,fs))){
-			if ((isParamOfSameClass(td.getParamType(i),cd)) && (isTaskTrigger(fen,fs))){
-				taskistriggered = true;
-				System.out.println(td.getParamType(i).toString()+"   "+cd.toString());
-				temp=(TempDescriptor)map.get(td.getParameter(i));
-				trigger_ctr++;
-			}
+	    if (fn.kind()==FKind.FlatFlagActionNode) {
+		if (((FlatFlagActionNode)fn).getTaskType() == FlatFlagActionNode.PRE) {
+		    throw new Error("PRE FlagActions not supported");
+		    
+		} else if (((FlatFlagActionNode)fn).getTaskType() == FlatFlagActionNode.NEWOBJECT) {
+		    FlagState fsnew=evalNewObjNode(fn);
+		    //Have we seen this node yet
+		    if (!sourcenodes.containsKey(fsnew)) {
+			sourcenodes.put(fsnew, fsnew);
+			toprocess.add(fsnew);
+		    }
+		} else if (((FlatFlagActionNode)fn).getTaskType() == FlatFlagActionNode.TASKEXIT) {
+		    FlagState fs_taskexit=evalTaskExitNode(fn,cd,fs);
+		    
+		    if (!sourcenodes.containsKey(fs_taskexit)) {
+			toprocess.add(fs_taskexit);
+		    }
+		    //seen this node already
+		    fs_taskexit=canonicalizeFlagState(sourcenodes,fs_taskexit);
+		    Edge newedge=new Edge(fs_taskexit,taskname);
+		    fs.addEdge(newedge);
 		}
-		
-		if (trigger_ctr>1)
-			throw new Error("Illegal Operation: A single flagstate cannot satisfy more than one parameter of a task.");
-
-		if (taskistriggered) {
-		    //***Debug Block***
-		    //
-		    System.out.println("inside taskistriggered");
-		    
-		    //***Debug Block***
-		    
-		    taskistriggered=false;
-		   
-		    fs=canonicalizeFlagState(sourcenodes, fs);
-					
-			//Iterating through the nodes
-		    FlatMethod fm = state.getMethodFlat(td);
-		    FlatNode fn=fm.methodEntryNode();
-		    
-		    HashSet tovisit= new HashSet();
-		    HashSet visited= new HashSet();
-		    
-		    tovisit.add(fn);
-		    while(!tovisit.isEmpty()) {
-			FlatNode fn1 = (FlatNode)tovisit.iterator().next();
-			tovisit.remove(fn1);
-			visited.add(fn1);
-			for(int i = 0; i < fn1.numNext(); i++) {
-			    FlatNode nn=fn1.getNext(i);
-			    if (nn.kind()==FKind.FlatFlagActionNode) {
-				//***Debug Block***
-				if (((FlatFlagActionNode)nn).getTaskType() == FlatFlagActionNode.PRE) {
-				    throw new Error("PRE FlagActions not supported");
-				    
-				} else if (((FlatFlagActionNode)nn).getTaskType() == FlatFlagActionNode.NEWOBJECT) {
-				    //***Debug Block***
-				    System.out.println("NEWObject");
-				    //***Debug Block***
-				    
-				    q_retval.offer(evalNewObjNode(nn));
-				}
-				if (((FlatFlagActionNode)nn).getTaskType() == FlatFlagActionNode.TASKEXIT) {
-				    //***Debug Block***
-				        System.out.println("TaskExit");
-				    //***Debug Block***
-				    FlagState fs_taskexit=evalTaskExitNode(nn,cd,fs);
-				    
-				    fs_taskexit=canonicalizeFlagState(sourcenodes,fs_taskexit);
-		    
-				    Edge newedge=new Edge(fs_taskexit,taskname);
-				    if (!edgeexists(fs,newedge)) {
-						fs.addEdge(newedge);
-				    }
-				   // if ((!existsInQMain(fs_taskexit)) && (!existsInQ(q_retval,fs_taskexit)) && !wasFlagStateAnalyzed(sourcenodes,fs_taskexit)){
-					    if ((!existsInQMain(fs_taskexit)) && (!existsInQ(q_retval,fs_taskexit)) && !wasFlagStateAnalyzed(sourcenodes,fs_taskexit)){
-					q_retval.offer(fs_taskexit);
-				    }
-				}
-			    }
-			    
-			    if (!visited.contains(nn) && !tovisit.contains(nn)) {
-				tovisit.add(nn);
-			    }
-			}
-		    
-			}
 	    }
 	}
-	if (q_retval.size()==0)
-	    return null;
-	else
-	    return q_retval;
     }
+}
 
-    private boolean isTaskTrigger(FlagExpressionNode fen,FlagState fs) {
-	if (fen instanceof FlagNode)
-	    return fs.get(((FlagNode)fen).getFlag());
-	else
-	    switch (((FlagOpNode)fen).getOp().getOp()) {
-	    case Operation.LOGIC_AND:
-		return ((isTaskTrigger(((FlagOpNode)fen).getLeft(),fs)) && (isTaskTrigger(((FlagOpNode)fen).getRight(),fs)));
-	    case Operation.LOGIC_OR:
-		return ((isTaskTrigger(((FlagOpNode)fen).getLeft(),fs)) || (isTaskTrigger(((FlagOpNode)fen).getRight(),fs)));
-	    case Operation.LOGIC_NOT:
-		return !(isTaskTrigger(((FlagOpNode)fen).getLeft(),fs));
-	    default:
-		return false;
-	    }
-    }
-    
-    private boolean isParamOfSameClass(TypeDescriptor typedesc, ClassDescriptor classdesc){
-	   /* Set subclasses=typeutil.getSubClasses(classdesc);
-	    if (subclasses!=null){
-	   		if (subclasses.contains(typedesc.getClassDesc()) || typedesc.getClassDesc().equals(classdesc))
-	   			return true;
-	   		else
-	   			return false;
-   		}
-   		else{
-	   		if (typedesc.getClassDesc().equals(classdesc))
-	   			return true;
-	   		else
-	   			return false;
-   		}*/
-   		
-   		 return typeutil.isSuperorType(classdesc,typedesc.getClassDesc());
-   			
-	   		
+private boolean isTaskTrigger(FlagExpressionNode fen,FlagState fs) {
+    if (fen instanceof FlagNode)
+	return fs.get(((FlagNode)fen).getFlag());
+    else
+	switch (((FlagOpNode)fen).getOp().getOp()) {
+	case Operation.LOGIC_AND:
+	    return ((isTaskTrigger(((FlagOpNode)fen).getLeft(),fs)) && (isTaskTrigger(((FlagOpNode)fen).getRight(),fs)));
+	case Operation.LOGIC_OR:
+	    return ((isTaskTrigger(((FlagOpNode)fen).getLeft(),fs)) || (isTaskTrigger(((FlagOpNode)fen).getRight(),fs)));
+	case Operation.LOGIC_NOT:
+	    return !(isTaskTrigger(((FlagOpNode)fen).getLeft(),fs));
+	default:
+	    return false;
 	}
-    
+}
     
     private FlagState evalNewObjNode(FlatNode nn){
 	    TempDescriptor[] tdArray = ((FlatFlagActionNode)nn).readsTemps();
@@ -393,63 +260,18 @@ public class TaskAnalysis {
 	}		
 	    
 
-    private boolean wasFlagStateCreated(Hashtable sourcenodes,FlagState fs) {
-		if (sourcenodes.containsKey(fs))
-			return true;
-		else
-			return false;
-    }
-    
-    private boolean wasFlagStateAnalyzed(Hashtable sourcenodes, FlagState fs){
-	    Iterator it_edges=((FlagState)sourcenodes.get(fs)).edges();
-		if (it_edges.hasNext())
-		   	return true;
-		else
-		  	return false;
-	}
-    
     private FlagState canonicalizeFlagState(Hashtable sourcenodes, FlagState fs){
-	   	if (wasFlagStateCreated(sourcenodes, fs))
-		   	return (FlagState)sourcenodes.get(fs);
-		else{
-			sourcenodes.put(fs,fs);
-			return fs;
-		}
+	if (sourcenodes.containsKey(fs))
+	    return (FlagState)sourcenodes.get(fs);
+	else{
+	    sourcenodes.put(fs,fs);
+	    return fs;
 	}
-	
-   /* private boolean existsInQueue(TriggerState ts) {
-	throw new Error("Use hashcode/contains of set method to find...no linear search allowed");
-    }*/
-
-    private boolean existsInQMain(FlagState fs) {
-		if (q_main.contains(fs))
-			return true;
-		else
-			return false;    
     }
-    
-    private boolean existsInQ(Queue q,FlagState fs) {
-		if (q.contains(fs))
-			return true;
-		else
-			return false;    
-    }
-
-
-   /* public void printAdjList(ClassDescriptor cd) {
-	Enumeration e=((Hashtable)Adj_List.get(cd)).keys();
-	while(e.hasMoreElements()) {
-	    FlagState fsv = (FlagState)(e.nextElement());
-	    System.out.println(fsv.toString((FlagDescriptor [])flags.get(cd)));
-	}
-    }*/
 
    public void createDOTfile(ClassDescriptor cd) throws java.io.IOException {
-	   
 	File dotfile= new File("graph"+cd.getSymbol()+".dot");
-
 	FileOutputStream dotstream=new FileOutputStream(dotfile,true);
-	
 	FlagState.DOTVisitor.visit(dotstream,((Hashtable)flagstates.get(cd)).values());
    }
 	
@@ -459,97 +281,39 @@ public class TaskAnalysis {
 	return st.nextToken();
     }
 
-   /* private boolean edgeexists(Hashtable Adj_List_local,FlagState v1, FlagState v2,String label) {
-	Vector edges=(Vector)Adj_List_local.get(v1);
-	
-	if (edges != null) {
-	    for(int i=0;i < edges.size();i++) {
-		FlagState fs=((Edge)edges.get(i)).getTarget();
-		if (fs.equals(v2) && (label.compareTo(((Edge)edges.get(i)).getLabel())==0))
-		    return true;
-	    }
-	}
-	return false;
-    }*/
-    
-    private boolean edgeexists(FlagState fs, Edge newedge){
-		for(Iterator it_edges=fs.edges();it_edges.hasNext();){
-				Edge e=(Edge)it_edges.next();
-				if (newedge.equals(e))
-					return true;
-		}
-		return false;
-	}
+private void createPossibleRuntimeStates(FlagState fs) {
+    ClassDescriptor cd = fs.getClassDescriptor();
+    Hashtable<FlagState,FlagState> sourcenodes=(Hashtable<FlagState,FlagState>)flagstates.get(cd);
+    FlagDescriptor[] fd=(FlagDescriptor[])flags.get(cd);	
+    int externs=((Integer)extern_flags.get(cd)).intValue();
+    if(externs==0)
+	return;
 
-    private Queue createPossibleRuntimeStates(FlagState fs) throws java.io.IOException {
-	
-		int noOfIterations, externs;
-		Hashtable<FlagState,FlagState> sourcenodes;
-	
-	
-		System.out.println("Inside CreatePossible runtime states");
-	
-		ClassDescriptor cd = fs.getClassDescriptor();
-	
-		sourcenodes=(Hashtable<FlagState,FlagState>)flagstates.get(cd);
-		FlagDescriptor[] fd=(FlagDescriptor[])flags.get(cd);	
-		externs=((Integer)extern_flags.get(cd)).intValue();
-		//System.out.println("No of externs:"+externs);
-	
-
-		Queue<FlagState>  q_ret=new LinkedList<FlagState>();
-
-	
-	    noOfIterations=(1<<externs) - 1;
-	   // System.out.println("No of iterations: "+noOfIterations);
-	    boolean BoolValTable[]=new boolean[externs];
-
-	    for(int i=0; i < externs ; i++) {
-		System.out.println(fd[i].getSymbol());
-		BoolValTable[i]=fs.get(fd[i]);
-	    }
-
-	   /* if (! wasFlagStateCreated(Adj_List_temp,fs)) {
-			Adj_List_temp.put(fs,new Vector());
-	    }
-	    */
-	    if (externs > 0){
-	    	fs=canonicalizeFlagState(sourcenodes,fs);
-	    
-		   	for(int k=0; k<noOfIterations; k++) {
-				for(int j=0; j < externs ;j++) {
-			   	    if ((k% (1<<j)) == 0)
-						BoolValTable[j]=(!BoolValTable[j]);
-				}
-
-				FlagState fstemp=fs;
-		
-				for(int i=0; i < externs;i++) {
-				    fstemp=fstemp.setFlag(fd[i],BoolValTable[i]);
-				}
-				fstemp=canonicalizeFlagState(sourcenodes,fstemp);
-				fs.addEdge(new Edge(fstemp,"Runtime"));
-			
-				if (!existsInQMain(fstemp) && ! wasFlagStateAnalyzed(sourcenodes, fstemp)){
-					q_ret.add(fstemp);
-				}
-		
-			}
-		} 
-		return q_ret;
-	}
-	    
+    int noOfIterations=(1<<externs) - 1;
+    boolean BoolValTable[]=new boolean[externs];
 
 
-
-    private void processTasksWithPost(ClassDescriptor cd, Hashtable pre) {
+    for(int i=0; i < externs ; i++) {
+	BoolValTable[i]=fs.get(fd[i]);
     }
 
-    private ClassDescriptor processFlatNew(FlatNode fn) {
-	if (! (fn.getNext(0).kind() == 13)) {
-	    return (((FlatNew)fn).getType().getClassDesc());
-	}
-	return null;
-    }
 
+    for(int k=0; k<noOfIterations; k++) {
+	for(int j=0; j < externs ;j++) {
+	    if ((k% (1<<j)) == 0)
+		BoolValTable[j]=(!BoolValTable[j]);
+	}
+	
+	FlagState fstemp=fs;
+	
+	for(int i=0; i < externs;i++) {
+	    fstemp=fstemp.setFlag(fd[i],BoolValTable[i]);
+	}
+	if (!sourcenodes.containsKey(fstemp))
+	    toprocess.add(fstemp);
+
+	fstemp=canonicalizeFlagState(sourcenodes,fstemp);
+	fs.addEdge(new Edge(fstemp,"Runtime"));
+    }
+} 
 }
