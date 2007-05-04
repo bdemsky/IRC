@@ -15,8 +15,6 @@ public class TaskAnalysis {
     Hashtable flags;
     Hashtable extern_flags;
     Queue<FlagState> toprocess;
-    Hashtable map;
-    TempDescriptor temp;
     TypeUtil typeutil;
     
     /** 
@@ -29,7 +27,6 @@ public class TaskAnalysis {
     public TaskAnalysis(State state,Hashtable map)
     {
 	this.state=state;
-	this.map=map;
 	this.typeutil=new TypeUtil(state);
     }
     
@@ -140,34 +137,33 @@ public class TaskAnalysis {
 
 
 private void analyseTasks(FlagState fs) {
-    Hashtable<FlagState,FlagState> sourcenodes;
-
     ClassDescriptor cd=fs.getClassDescriptor();
-    
-    sourcenodes=(Hashtable<FlagState,FlagState>)flagstates.get(cd);
+    Hashtable<FlagState,FlagState> sourcenodes=(Hashtable<FlagState,FlagState>)flagstates.get(cd);
     
     for(Iterator it_tasks=state.getTaskSymbolTable().getDescriptorsIterator();it_tasks.hasNext();) {
 	TaskDescriptor td = (TaskDescriptor)it_tasks.next();
 	String taskname=td.getSymbol();
 	int trigger_ctr=0;
-	
+	TempDescriptor temp=null;
+	FlatMethod fm = state.getMethodFlat(td);	
+
 	for(int i=0; i < td.numParameters(); i++) {
 	    FlagExpressionNode fen=td.getFlag(td.getParameter(i));
+
 	    if (typeutil.isSuperorType(td.getParamType(i).getClassDesc(),cd)
 		&& isTaskTrigger(fen,fs)) {
-		temp=(TempDescriptor)map.get(td.getParameter(i));
+		temp=fm.getParameter(i);
 		trigger_ctr++;
 	    }
 	}
 	
-	if (trigger_ctr==0)
-	    return;
+	if (trigger_ctr==0) //Look at next task
+	    continue;
 	
 	if (trigger_ctr>1)
 	    throw new Error("Illegal Operation: A single flagstate cannot satisfy more than one parameter of a task.");
 	
 	//Iterating through the nodes
-	FlatMethod fm = state.getMethodFlat(td);
 	FlatNode fn=fm.methodEntryNode();
 	
 	HashSet tovisit= new HashSet();
@@ -184,21 +180,20 @@ private void analyseTasks(FlagState fs) {
 		if (!visited.contains(nn))
 		    tovisit.add(nn);
 	    }
-
-	    if (fn.kind()==FKind.FlatFlagActionNode) {
-		if (((FlatFlagActionNode)fn).getTaskType() == FlatFlagActionNode.PRE) {
-		    throw new Error("PRE FlagActions not supported");
-		    
-		} else if (((FlatFlagActionNode)fn).getTaskType() == FlatFlagActionNode.NEWOBJECT) {
-		    FlagState fsnew=evalNewObjNode(fn);
+	    if (fn1.kind()==FKind.FlatFlagActionNode) {
+		FlatFlagActionNode ffan=(FlatFlagActionNode)fn1;
+		if (ffan.getTaskType() == FlatFlagActionNode.PRE) {
+		    if (ffan.getTempFlagPairs().hasNext()||ffan.getTempTagPairs().hasNext())
+			throw new Error("PRE FlagActions not supported");
+		} else if (ffan.getTaskType() == FlatFlagActionNode.NEWOBJECT) {
+		    FlagState fsnew=evalNewObjNode(ffan);
 		    //Have we seen this node yet
 		    if (!sourcenodes.containsKey(fsnew)) {
 			sourcenodes.put(fsnew, fsnew);
 			toprocess.add(fsnew);
 		    }
-		} else if (((FlatFlagActionNode)fn).getTaskType() == FlatFlagActionNode.TASKEXIT) {
-		    FlagState fs_taskexit=evalTaskExitNode(fn,cd,fs);
-		    
+		} else if (ffan.getTaskType() == FlatFlagActionNode.TASKEXIT) {
+		    FlagState fs_taskexit=evalTaskExitNode(ffan,cd,fs,temp);
 		    if (!sourcenodes.containsKey(fs_taskexit)) {
 			toprocess.add(fs_taskexit);
 		    }
@@ -248,13 +243,13 @@ private boolean isTaskTrigger(FlagExpressionNode fen,FlagState fs) {
 		return fstemp;
 	}
 	
-	private FlagState evalTaskExitNode(FlatNode nn,ClassDescriptor cd,FlagState fs){
+	private FlagState evalTaskExitNode(FlatNode nn,ClassDescriptor cd,FlagState fs, TempDescriptor temp){
 		FlagState fstemp=fs;
 				    
 		for(Iterator it_tfp=((FlatFlagActionNode)nn).getTempFlagPairs();it_tfp.hasNext();) {
 			TempFlagPair tfp=(TempFlagPair)it_tfp.next();
-			if (temp.toString().equals(tfp.getTemp().toString()))
-				fstemp=fstemp.setFlag(tfp.getFlag(),((FlatFlagActionNode)nn).getFlagChange(tfp));
+			if (temp==tfp.getTemp())
+			    fstemp=fstemp.setFlag(tfp.getFlag(),((FlatFlagActionNode)nn).getFlagChange(tfp));
 		}
 		return fstemp;
 	}		
