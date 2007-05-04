@@ -105,7 +105,7 @@ public class Main {
       bf.buildFlat();
 
       if (state.TASKSTATE) {
-	  TaskAnalysis ta=new TaskAnalysis(state,bf.getMap());
+	  TaskAnalysis ta=new TaskAnalysis(state);
 	  ta.taskAnalysis();
       }
       

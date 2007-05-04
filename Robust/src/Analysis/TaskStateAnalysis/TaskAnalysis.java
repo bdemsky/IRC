@@ -22,9 +22,8 @@ public class TaskAnalysis {
      *
      * @param state a flattened State object
      * @see State
-     * @param map Hashtable containing the temp to var mapping
      */
-    public TaskAnalysis(State state,Hashtable map)
+    public TaskAnalysis(State state)
     {
 	this.state=state;
 	this.typeutil=new TypeUtil(state);
