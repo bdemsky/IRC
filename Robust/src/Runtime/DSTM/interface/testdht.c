@@ -14,6 +14,7 @@ int main()
 	chashtable_t *localHash;
 
 	dhtInit(DHT_NO_KEY_LIMIT);
+
 	localHash = chashCreate(HASH_SIZE, LOADFACTOR);
 	srandom(time(0));
 
@@ -151,6 +152,8 @@ int main()
 		printf("test completed successfully\n");
 	else
 		printf("one or more errors occurred\n");
+
+	sleep(60);
 
 	return 0;
 }
