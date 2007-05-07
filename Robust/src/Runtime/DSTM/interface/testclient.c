@@ -6,6 +6,7 @@
 //#include <sys/socket.h>
 //#include <netinet/in.h>
 //#include <arpa/inet.h>
+#define LISTEN_PORT 2156
 
 extern objstr_t *mainobjstore;
 //extern lhashtable_t llookup;		//Global Hash table
@@ -79,7 +80,9 @@ int main()
 //	test2();
 //	test3();
 //	test4();
-	test5();
+	//test5();
+	test6();
+
 }
 
 int test1(void) {
@@ -265,4 +268,94 @@ int test5(void) {
 	
 	transCommit(record);
 	pthread_join(thread_Listen, NULL);
+}
+
+int test6(void) {
+	transrecord_t *record;
+	objheader_t *header;
+	unsigned int size, mid;
+	pthread_t thread_Listen;
+	pthread_attr_t attr;
+	objheader_t *h1,*h2, *h3, *h4, *h5, *h6;
+	int tmpsd;
+
+	dstmInit();
+	pthread_attr_init(&attr);
+	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
+	//pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+
+	record = transStart();
+	//printf("DEBUG -> Init done\n");
+	mid = iptoMid("128.200.9.10");// Machine demsky.eecs.uci.edu	
+	lhashInsert(1,mid);
+	lhashInsert(2,mid);
+	lhashInsert(3,mid);
+	lhashInsert(4,mid);
+	lhashInsert(5,mid);
+	lhashInsert(6,mid);
+	
+	mid = iptoMid("128.200.9.26");// Machine demsky.eecs.uci.edu	
+	lhashInsert(31,mid);
+	lhashInsert(32,mid);
+	lhashInsert(33,mid);
+	
+	pthread_create(&thread_Listen, &attr, dstmListen, NULL);
+	
+	checkServer(mid, "128.200.9.26");
+	mid = iptoMid("128.200.9.10");
+	checkServer(mid, "128.200.9.10");
+
+	//Create and Insert Oid 20
+	size = sizeof(objheader_t) + classsize[2] ;
+	header = (objheader_t *) objstrAlloc(mainobjstore, size);
+	header->oid = 20;
+	header->type = 2;
+	header->version = 1;
+	header->rcount = 0; //? not sure how to handle this yet
+	header->status = 0;
+	header->status |= NEW;
+	mhashInsert(header->oid, header);
+	mid = iptoMid("128.200.9.27");
+	lhashInsert(header->oid, mid);
+
+	//Create and Insert Oid 21
+	size = sizeof(objheader_t) + classsize[1] ;
+	header = (objheader_t *) objstrAlloc(mainobjstore, size);
+	header->oid = 21;
+	header->type = 1;
+	header->version = 1;
+	header->rcount = 0; //? not sure how to handle this yet
+	header->status = 0;
+	header->status |= NEW;
+	mhashInsert(header->oid, header);
+	mid = iptoMid("128.200.9.27");
+	lhashInsert(header->oid, mid);
+	sleep(3);	
+	//read object 1  //from demsky
+	if((h1 = transRead(record, 1)) == NULL){
+		printf("Object not found\n");
+	}
+	//read object 2
+	if((h2 = transRead(record, 2)) == NULL) {
+		printf("Object not found\n");
+	}
+	//read object 31 //Found in d-1
+	if((h2 = transRead(record, 31)) == NULL) {
+		printf("Object not found\n");
+	}
+	//read object 32 //Found in d-1
+	if((h2 = transRead(record, 32)) == NULL) {
+		printf("Object not found\n");
+	}
+	//read object 20(present in local machine)
+	if((h3 = transRead(record, 20)) == NULL) {
+		printf("Object not found\n");
+	}
+	//read object 21(present in local machine)
+	if((h4 = transRead(record, 21)) == NULL) {
+		printf("Object not found\n");
+	}
+	transCommit(record);
+	pthread_join(thread_Listen, NULL);
+	return 0;
 }

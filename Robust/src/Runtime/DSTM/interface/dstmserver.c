@@ -160,11 +160,9 @@ void *dstmAccept(void *acceptfd)
 	else
 		printf("Closed connection: fd = %d\n", (int)acceptfd);
 	
-	//Free memory
-	free(transinfo.objmod);
-	free(transinfo.objlocked);
-	free(transinfo.objnotfound);
+	
 	pthread_exit(NULL);
+	printf("DEBUG -> Exiting dstmAccept\n");
 }
 
 int readClientReq(int acceptfd, trans_commit_data_t *transinfo) {
@@ -323,7 +321,21 @@ int readClientReq(int acceptfd, trans_commit_data_t *transinfo) {
 			//TODO Use fixed.trans_id  TID since Client may have died
 			break;
 	}
-
+	//Free memory
+	printf("DEBUG -> Freeing...");
+	fflush(stdout);
+	if (transinfo->objmod != NULL) {
+		free(transinfo->objmod);
+		transinfo->objmod = NULL;
+	}
+	if (transinfo->objlocked != NULL) {
+		free(transinfo->objlocked);
+		transinfo->objlocked = NULL;
+	}
+	if (transinfo->objnotfound != NULL) {
+		free(transinfo->objnotfound);
+		transinfo->objnotfound = NULL;
+	}
 	return 0;
 }
 
@@ -340,7 +352,6 @@ char handleTransReq(int acceptfd, fixed_data_t *fixed, trans_commit_data_t *tran
 	oidnotfound = (unsigned int *) calloc(fixed->numread + fixed->nummod, sizeof(unsigned int)); 
 	oidlocked = (unsigned int *) calloc(fixed->numread + fixed->nummod, sizeof(unsigned int)); 
 	oidmod = (unsigned int *) calloc(fixed->nummod, sizeof(unsigned int));
-
 	// Counters and arrays to formulate decision on control message to be sent
 	int objnotfound = 0, objlocked = 0, objmod =0, v_nomatch = 0, v_matchlock = 0, v_matchnolock = 0;
 	int objmodnotfound = 0, nummodfound = 0;
@@ -392,6 +403,7 @@ char handleTransReq(int acceptfd, fixed_data_t *fixed, trans_commit_data_t *tran
 				((objheader_t *)mobj)->status |= LOCK;
 				//Save all object oids that are locked on this machine during this transaction request call
 				oidlocked[objlocked] = ((objheader_t *)mobj)->oid;
+				printf("DEBUG-> Obj locked are %d\n",((objheader_t *)mobj)->oid);
 				objlocked++;
 				if (version == ((objheader_t *)mobj)->version) { //If versions match
 					v_matchnolock++;
@@ -410,12 +422,12 @@ char handleTransReq(int acceptfd, fixed_data_t *fixed, trans_commit_data_t *tran
 		}
 	}
 
-	//printf("No of objs locked = %d\n", objlocked);
-	//printf("No of v_nomatch = %d\n", v_nomatch);
-	//printf("No of objs v_match but are did not have locks before = %d\n", v_matchnolock);
-	//printf("No of objs v_match but had locks before = %d\n", v_matchlock);
-	//printf("No of objs not found = %d\n", objnotfound);
-	//printf("No of objs modified but not found = %d\n", objmodnotfound);
+	printf("No of objs locked = %d\n", objlocked);
+	printf("No of v_nomatch = %d\n", v_nomatch);
+	printf("No of objs v_match but are did not have locks before = %d\n", v_matchnolock);
+	printf("No of objs v_match but had locks before = %d\n", v_matchlock);
+	printf("No of objs not found = %d\n", objnotfound);
+	printf("No of objs modified but not found = %d\n", objmodnotfound);
 
 	//Decide what control message(s) to send
 	if(v_matchnolock == fixed->numread + fixed->nummod) {
@@ -510,7 +522,8 @@ int transCommitProcess(trans_commit_data_t *transinfo, int acceptfd) {
 	if(send((int)acceptfd, &control, sizeof(char), 0) < 0) {
 		perror("Error sending ACK to coordinator\n");
 	}
-
+	
+	printf("DEBUG-> Completed the pending transaction\n");
 	return 0;
 }
 

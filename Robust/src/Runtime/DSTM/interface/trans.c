@@ -38,7 +38,8 @@ objheader_t *transRead(transrecord_t *record, unsigned int oid)
 		return(objheader);
 	} else if ((objheader = (objheader_t *) mhashSearch(oid)) != NULL) {
 		//Look up in Machine lookup table and found
-		printf("oid is found in Local mlookup\n");
+
+		//printf("oid is found in Local machinelookup\n");
 		tmp = mhashSearch(oid);
 		size = sizeof(objheader_t)+classsize[tmp->type];
 		//Copy into cache
@@ -49,7 +50,7 @@ objheader_t *transRead(transrecord_t *record, unsigned int oid)
 		return(objcopy);
 	} else {
 		//Get the object from the remote location
-		printf("oid is found in remote machine\n");
+		//printf("oid is found in remote machine\n");
 		machinenumber = lhashSearch(oid);
 		objcopy = getRemoteObj(record, machinenumber, oid);
 		if(objcopy == NULL) {
@@ -470,7 +471,6 @@ void *getRemoteObj(transrecord_t *record, unsigned int mnum, unsigned int oid) {
 	switch(control) {
 		case OBJECT_NOT_FOUND:
 			return NULL;
-			break;
 		case OBJECT_FOUND:
 			if((val = read(sd, &size, sizeof(int))) <= 0) {
 				perror("No size is read from the participant\n");

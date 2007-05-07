@@ -1,6 +1,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "ip.h"
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netdb.h>
+#include <netinet/in.h>
+#include <string.h>
+
+#define LISTEN_PORT 2156
 
 unsigned int iptoMid(char *addr) {
 	ip_t i;
@@ -8,6 +15,7 @@ unsigned int iptoMid(char *addr) {
 
 	sscanf(addr, "%d.%d.%d.%d", &i.a, &i.b, &i.c, &i.d);
 	mid = (i.a << 24) | (i.b << 16) | (i.c << 8) | i.d;
+	fflush(stdout);
 	return mid;
 }
 
@@ -22,6 +30,31 @@ void midtoIP(unsigned int mid, char *ptr) {
 	return;
 }
 
+int checkServer(int mid, char *machineip) {
+	int tmpsd;
+	struct sockaddr_in serv_addr;
+	char m[20];
+
+	strncpy(m, machineip, strlen(machineip));
+	// Foreach machine you want to transact with
+	// check if its up and running
+	if ((tmpsd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+		perror("");
+		return(-1);
+	}
+	bzero((char*) &serv_addr, sizeof(serv_addr));
+	serv_addr.sin_family = AF_INET;
+	serv_addr.sin_port = htons(LISTEN_PORT);
+	midtoIP(mid, m);
+	m[15] = '\0';
+	serv_addr.sin_addr.s_addr = inet_addr(m);
+	while (connect(tmpsd, (struct sockaddr *) &serv_addr, sizeof(struct sockaddr)) < 0) {
+		sleep(1);
+	}
+	printf("DEBUG -> Connection established with %s\n", machineip);
+	close(tmpsd);
+	return 0;
+}
 /*
 main() {
 	unsigned int mid;
