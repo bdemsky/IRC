@@ -60,7 +60,7 @@ struct RuntimeNode {
 };
 
 struct RuntimeIterator {
-  struct RuntimeNode *cur, *tail;
+  struct RuntimeNode *cur;
 };
 
 inline struct RuntimeIterator * noargallocateRuntimeIterator();

@@ -21,7 +21,7 @@
 #define HEAPSIZE(x,y) (((int)((x)/0.6))+y)
 
 #ifdef TASK
-extern struct Queue * activetasks;
+extern struct genhashtable * activetasks;
 extern struct parameterwrapper * objectqueues[NUMCLASSES];
 extern struct genhashtable * failedtasks;
 extern struct taskparamdescriptor *currtpd;
@@ -208,22 +208,24 @@ void collect(struct garbagelist * stackptr) {
 
   }
 
-  {
     /* Update active tasks */
-    struct QueueItem * ptr=activetasks->head;
-    while (ptr!=NULL) {
-      struct taskparamdescriptor *tpd=ptr->objectptr;
+  {
+    struct genpointerlist * ptr=activetasks->list;
+    while(ptr!=NULL) {
+      struct taskparamdescriptor *tpd=ptr->src;
       int i;
       for(i=0;i<tpd->numParameters;i++) {
-	void *orig=tpd->parameterArray[i];
-	void *copy;
+	void * orig=tpd->parameterArray[i];
+	void * copy;
 	if (gc_createcopy(orig, &copy))
 	  enqueue(orig);
 	tpd->parameterArray[i]=copy;
       }
-      ptr=ptr->next;
+      ptr=ptr->inext;
     }
+    genrehash(activetasks);
   }
+
     /* Update failed tasks */
   {
     struct genpointerlist * ptr=failedtasks->list;

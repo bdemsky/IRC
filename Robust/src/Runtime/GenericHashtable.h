@@ -32,6 +32,7 @@ struct geniterator {
 };
 
 struct genhashtable * genallocatehashtable(unsigned int (*hash_function)(void *),int (*comp_function)(void *,void *));
+void * getfirstkey(struct genhashtable *ht);
 void genfreehashtable(struct genhashtable * ht);
 void genrehash(struct genhashtable * ht);
 void * getnext(struct genhashtable *,void *);

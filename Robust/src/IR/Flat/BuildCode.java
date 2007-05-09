@@ -100,6 +100,11 @@ public class BuildCode {
 			   (state.getArrayNumber(
 						 (new TypeDescriptor(typeutil.getClass(TypeUtil.StringClass))).makeArray(state))+state.numClasses()));
 
+	outstructs.println("#define OBJECTARRAYTYPE "+
+			   (state.getArrayNumber(
+						 (new TypeDescriptor(typeutil.getClass(TypeUtil.ObjectClass))).makeArray(state))+state.numClasses()));
+
+
 	outstructs.println("#define STRINGTYPE "+typeutil.getClass(TypeUtil.StringClass).getId());
 	outstructs.println("#define CHARARRAYTYPE "+
 			   (state.getArrayNumber((new TypeDescriptor(TypeDescriptor.CHAR)).makeArray(state))+state.numClasses()));
@@ -111,9 +116,13 @@ public class BuildCode {
 			   (state.getArrayNumber((new TypeDescriptor(TypeDescriptor.BYTE)).makeArray(state).makeArray(state))+state.numClasses()));
 	
 	outstructs.println("#define NUMCLASSES "+state.numClasses());
-	if (state.TASK)
+	if (state.TASK) {
 	    outstructs.println("#define STARTUPTYPE "+typeutil.getClass(TypeUtil.StartupClass).getId());
-
+	    outstructs.println("#define TAGTYPE "+typeutil.getClass(TypeUtil.TagClass).getId());
+	    outstructs.println("#define TAGARRAYTYPE "+
+			       (state.getArrayNumber(new TypeDescriptor(typeutil.getClass(TypeUtil.TagClass)).makeArray(state))+state.numClasses()));
+	}
+	
 	// Output the C class declarations
 	// These could mutually reference each other
 	if (state.THREAD)
@@ -159,6 +168,7 @@ public class BuildCode {
 		outtask.println("struct taskdescriptor {");
 		outtask.println("void * taskptr;");
 		outtask.println("int numParameters;");
+		outtask.println("int numTotal;");
 		outtask.println("struct parameterdescriptor **descriptorarray;");
 		outtask.println("char * name;");
 		outtask.println("};");
@@ -459,6 +469,8 @@ public class BuildCode {
 	output.println("struct taskdescriptor task_"+task.getSafeSymbol()+"={");
 	output.println("&"+task.getSafeSymbol()+",");
 	output.println("/* number of parameters */" +task.numParameters() + ",");
+	int numtotal=task.numParameters()+fm.numTags();
+	output.println("/* number total parameters */" +numtotal + ",");
 	output.println("parameterdescriptors_"+task.getSafeSymbol()+",");
 	output.println("\""+task.getSymbol()+"\"");
 	output.println("};");
@@ -875,7 +887,7 @@ public class BuildCode {
 		}
 		for(int i=0;i<fm.numTags();i++) {
 		    TempDescriptor temp=fm.getTag(i);
-		    output.println("  struct TagDescriptor * "+temp.getSafeSymbol()+";");
+		    output.println("  struct ___TagDescriptor___ * "+temp.getSafeSymbol()+";");
 		}
 
 		output.println("};\n");
@@ -1441,7 +1453,7 @@ public class BuildCode {
 	    for(int i=0;i<fm.numTags();i++) {
 		TempDescriptor temp=fm.getTag(i);
 		int offset=i+objectparams.numPrimitives();
-		output.println("struct TagDescriptor * "+temp.getSafeSymbol()+"=parameterarray["+offset+"];");
+		output.println("struct ___TagDescriptor___ * "+temp.getSafeSymbol()+"=parameterarray["+offset+"];");
 	    }
 
 	    if ((objectparams.numPrimitives()+fm.numTags())>maxtaskparams)
@@ -1451,6 +1463,27 @@ public class BuildCode {
     
     public void generateFlatFlagActionNode(FlatMethod fm, FlatFlagActionNode ffan, PrintWriter output) {
 	output.println("/* FlatFlagActionNode */");
+
+
+	/* Process tag changes */
+	Relation tagsettable=new Relation();
+	Relation tagcleartable=new Relation();
+
+	Iterator tagsit=ffan.getTempTagPairs(); 
+	while (tagsit.hasNext()) {
+	    TempTagPair ttp=(TempTagPair) tagsit.next();
+	    TempDescriptor objtmp=ttp.getTemp();
+	    TagDescriptor tag=ttp.getTag();
+	    TempDescriptor tagtmp=ttp.getTagTemp();
+	    boolean tagstatus=ffan.getTagChange(ttp);
+	    if (tagstatus) {
+		tagsettable.put(objtmp, tagtmp);
+	    } else {
+		tagcleartable.put(objtmp, tagtmp);
+	    }
+	}
+
+
 	Hashtable flagandtable=new Hashtable();
 	Hashtable flagortable=new Hashtable();
 
@@ -1489,68 +1522,53 @@ public class BuildCode {
 	    }
 	}
 
-	Iterator orit=flagortable.keySet().iterator();
-	while(orit.hasNext()) {
-	    TempDescriptor temp=(TempDescriptor)orit.next();
-	    int ormask=((Integer)flagortable.get(temp)).intValue();
+
+	HashSet flagtagset=new HashSet();
+	flagtagset.addAll(flagortable.keySet());
+	flagtagset.addAll(flagandtable.keySet());
+	flagtagset.addAll(tagsettable.keySet());
+	flagtagset.addAll(tagcleartable.keySet());
+
+	Iterator ftit=flagtagset.iterator();
+	while(ftit.hasNext()) {
+	    TempDescriptor temp=(TempDescriptor)ftit.next();
+	    
+	    
+	    Set tagtmps=tagcleartable.get(temp);
+	    if (tagtmps!=null) {
+		Iterator tagit=tagtmps.iterator();
+		while(tagit.hasNext()) {
+		    TempDescriptor tagtmp=(TempDescriptor)tagit.next();
+		    if (GENERATEPRECISEGC) 
+			output.println("tagclear(&"+localsprefix+", (struct ___Object___ *)"+generateTemp(fm, temp)+", "+generateTemp(fm,tagtmp)+");");
+		    else
+			output.println("tagclear((struct ___Object___ *)"+generateTemp(fm, temp)+", "+generateTemp(fm,tagtmp)+");");
+		}
+	    }
+
+	    tagtmps=tagsettable.get(temp);
+	    if (tagtmps!=null) {
+		Iterator tagit=tagtmps.iterator();
+		while(tagit.hasNext()) {
+		    TempDescriptor tagtmp=(TempDescriptor)tagit.next();
+		    if (GENERATEPRECISEGC)
+			output.println("tagset(&"+localsprefix+", (struct ___Object___ *)"+generateTemp(fm, temp)+", "+generateTemp(fm,tagtmp)+");");
+		    else
+			output.println("tagset((struct ___Object___ *)"+generateTemp(fm, temp)+", "+generateTemp(fm,tagtmp)+");");
+		}
+	    }
+
+	    int ormask=0;
 	    int andmask=0xFFFFFFF;
+	    
+	    if (flagortable.containsKey(temp))
+		ormask=((Integer)flagortable.get(temp)).intValue();
 	    if (flagandtable.containsKey(temp))
 		andmask=((Integer)flagandtable.get(temp)).intValue();
 	    if (ffan.getTaskType()==FlatFlagActionNode.NEWOBJECT) {
 		output.println("flagorandinit("+generateTemp(fm, temp)+", 0x"+Integer.toHexString(ormask)+", 0x"+Integer.toHexString(andmask)+");");
 	    } else {
 		output.println("flagorand("+generateTemp(fm, temp)+", 0x"+Integer.toHexString(ormask)+", 0x"+Integer.toHexString(andmask)+");");
-	    }
-	}
-	Iterator andit=flagandtable.keySet().iterator();
-	while(andit.hasNext()) {
-	    TempDescriptor temp=(TempDescriptor)andit.next();
-	    int andmask=((Integer)flagandtable.get(temp)).intValue();
-	    if (!flagortable.containsKey(temp)) {
-		if (ffan.getTaskType()==FlatFlagActionNode.NEWOBJECT)
-		    output.println("flagorandinit("+generateTemp(fm, temp)+", 0, 0x"+Integer.toHexString(andmask)+");");
-		else
-		    output.println("flagorand("+generateTemp(fm, temp)+", 0, 0x"+Integer.toHexString(andmask)+");");
-	    }
-	}
-
-	/* Process tag changes */
-	Relation tagsettable=new Relation();
-	Relation tagcleartable=new Relation();
-
-	Iterator tagsit=ffan.getTempTagPairs(); 
-	while (tagsit.hasNext()) {
-	    TempTagPair ttp=(TempTagPair) tagsit.next();
-	    TempDescriptor objtmp=ttp.getTemp();
-	    TagDescriptor tag=ttp.getTag();
-	    TempDescriptor tagtmp=ttp.getTagTemp();
-	    boolean tagstatus=ffan.getTagChange(ttp);
-	    if (tagstatus) {
-		tagsettable.put(objtmp, tagtmp);
-	    } else {
-		tagcleartable.put(objtmp, tagtmp);
-	    }
-	}
-
-	Iterator clearit=tagcleartable.keySet().iterator();
-	while(clearit.hasNext()) {
-	    TempDescriptor objtmp=(TempDescriptor)clearit.next();
-	    Set tagtmps=tagcleartable.get(objtmp);
-	    Iterator tagit=tagtmps.iterator();
-	    while(tagit.hasNext()) {
-		TempDescriptor tagtmp=(TempDescriptor)tagit.next();
-		output.println("tagclear("+generateTemp(fm, objtmp)+", "+generateTemp(fm,tagtmp)+");");
-	    }
-	}
-
-	Iterator setit=tagsettable.keySet().iterator();
-	while(setit.hasNext()) {
-	    TempDescriptor objtmp=(TempDescriptor)setit.next();
-	    Set tagtmps=tagcleartable.get(objtmp);
-	    Iterator tagit=tagtmps.iterator();
-	    while(tagit.hasNext()) {
-		TempDescriptor tagtmp=(TempDescriptor)tagit.next();
-		output.println("tagset("+generateTemp(fm, objtmp)+", "+generateTemp(fm,tagtmp)+");");
 	    }
 	}
     }

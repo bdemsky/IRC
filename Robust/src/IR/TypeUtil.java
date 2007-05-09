@@ -5,6 +5,7 @@ public class TypeUtil {
     public static final String StringClass="String";
     public static final String ObjectClass="Object";
     public static final String StartupClass="StartupObject";
+    public static final String TagClass="TagDescriptor";
     State state;
     Hashtable supertable;
     Hashtable subclasstable;

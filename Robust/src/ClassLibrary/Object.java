@@ -3,6 +3,9 @@ public class Object {
     private int cachedCode;
     private boolean cachedHash;
 
+    /* DO NOT USE ANY OF THESE - THEY ARE FOR IMPLEMENTING TAGS */
+    private Object tags;
+
     public int hashCode() {
 	if (!cachedHash) {
 	    cachedCode=nativehashCode();

@@ -8,6 +8,10 @@ struct Queue * createQueue() {
   return RUNMALLOC(sizeof(struct Queue));
 }
 
+void freeQueue(struct Queue * q) {
+  RUNFREE(q);
+}
+
 int isEmpty(struct Queue *queue) {
   return queue->head==NULL;
 }
@@ -25,6 +29,16 @@ struct QueueItem * addNewItem(struct Queue * queue, void * ptr) {
     queue->head=item;
   }
   return item;
+}
+
+struct QueueItem * findItem(struct Queue * queue, void *ptr) {
+  struct QueueItem * item=queue->head;
+  while(item!=NULL) {
+    if (item->objectptr==ptr)
+      return item;
+    item=item->next;
+  }
+  return NULL;
 }
 
 void removeItem(struct Queue * queue, struct QueueItem * item) {

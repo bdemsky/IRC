@@ -80,7 +80,7 @@ public class Main {
 	  readSourceFile(state, ClassLibraryPrefix+"ObjectJava.java");
       } else {
 	  readSourceFile(state, ClassLibraryPrefix+"Object.java");
-	  //	  readSourceFile(state, ClassLibraryPrefix+"TagDescriptor.java");
+	  readSourceFile(state, ClassLibraryPrefix+"TagDescriptor.java");
       }
 
       if (state.TASK) {

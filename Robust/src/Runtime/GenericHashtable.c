@@ -11,6 +11,10 @@
 #include "dmalloc.h"
 #endif
 
+void * getfirstkey(struct genhashtable *ht) {
+  return ht->list->src;
+}
+
 int genputtable(struct genhashtable *ht, void * key, void * object) {
   unsigned int bin=genhashfunction(ht,key);
   struct genpointerlist * newptrlist=(struct genpointerlist *) RUNMALLOC(sizeof(struct genpointerlist));

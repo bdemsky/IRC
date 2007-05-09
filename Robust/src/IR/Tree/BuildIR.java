@@ -209,7 +209,8 @@ public class BuildIR {
 	    NameDescriptor nd=parseName(snn);
 	    cn.setSuper(nd.toString());
 	} else {
-	    if (!cn.getSymbol().equals(TypeUtil.ObjectClass))
+	    if (!(cn.getSymbol().equals(TypeUtil.ObjectClass)||
+		  cn.getSymbol().equals(TypeUtil.TagClass)))
 		cn.setSuper(TypeUtil.ObjectClass);
 	}
 	cn.setModifiers(parseModifiersList(pn.getChild("modifiers")));

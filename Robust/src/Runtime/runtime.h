@@ -46,18 +46,37 @@ void createstartupobject();
 #ifdef TASK
 #include "SimpleHash.h"
 #include "task.h"
+#include "structdefs.h"
+
 void flagorand(void * ptr, int ormask, int andmask);
 void flagorandinit(void * ptr, int ormask, int andmask);
-void flagbody(void *ptr, int flag);
 void executetasks();
 void processtasks();
+
+struct tagobjectiterator {
+  int istag; /* 0 if object iterator, 1 if tag iterator */
+  struct RuntimeIterator it; /* Object iterator */
+  struct RuntimeHash * objectset;
+  int slot;
+  int tagobjindex; /* Index for tag or object depending on use */
+  /*if tag we have an object binding */
+  int tagid;
+  int tagobjectslot;
+  /*if object, we may have one or more tag bindings */
+  int numtags;
+  int tagbindings[MAXTASKPARAMS-1]; /* list slots */
+};
 
 struct parameterwrapper {
   struct parameterwrapper *next;
   struct RuntimeHash * objectset;
   int numberofterms;
   int * intarray;
+  int numbertags;
+  int * tagarray;
   struct taskdescriptor * task;
+  int slot;
+  struct tagobjectiterator iterators[MAXTASKPARAMS-1];
 };
 
 struct taskparamdescriptor {
@@ -66,13 +85,17 @@ struct taskparamdescriptor {
   void ** parameterArray;
 };
 
-struct tpdlist {
-  struct taskparamdescriptor * task;
-  struct tpdlist * next;
-};
-
 int hashCodetpd(struct taskparamdescriptor *);
 int comparetpd(struct taskparamdescriptor *, struct taskparamdescriptor *);
+
+void toiReset(struct tagobjectiterator * it);
+int toiHasNext(struct tagobjectiterator *it, void ** objectarray);
+void toiNext(struct tagobjectiterator *it , void ** objectarray);
+void processobject(struct parameterwrapper *parameter, int index, struct parameterdescriptor *pd, int *iteratorcount, int * statusarray, int numparams);
+void processtags(struct parameterdescriptor *pd, int index, struct parameterwrapper *parameter, int * iteratorcount, int *statusarray, int numparams);
+void builditerators(struct taskdescriptor * task, int index, struct parameterwrapper * parameter);
+void enqueuetasks(struct parameterwrapper *parameter, struct parameterwrapper *prevptr, struct ___Object___ *ptr);
+
 #endif
 
 #endif
