@@ -291,12 +291,12 @@ void tagclear(struct ___Object___ * obj, struct ___TagDescriptor___ * tagd) {
 /* This function allocates a new tag. */
 #ifdef PRECISE_GC
 struct ___TagDescriptor___ * allocate_tag(void *ptr, int index) {
-  struct ___TagDescriptor___ * v=(struct ___TagDescriptor___ *) mygcmalloc((struct garbagelist *) ptr, classsize[STARTUPTYPE]);
+  struct ___TagDescriptor___ * v=(struct ___TagDescriptor___ *) mygcmalloc((struct garbagelist *) ptr, classsize[TAGTYPE]);
 #else
 struct ___TagDescriptor___ * allocate_tag(int index) {
-  struct ___TagDescriptor___ * v=FREEMALLOC(classsize[STARTUPTYPE]);
+  struct ___TagDescriptor___ * v=FREEMALLOC(classsize[TAGTYPE]);
 #endif
-  v->type=STARTUPTYPE;
+  v->type=TAGTYPE;
   v->flag=index;
   return v;
 } 
