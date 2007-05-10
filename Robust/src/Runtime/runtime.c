@@ -11,12 +11,6 @@
 #include<stdio.h>
 #include "option.h"
 
-#define ARRAYSET(array, type, index, value) \
-((type *)(&(& array->___length___)[1]))[index]=value
-
-#define ARRAYGET(array, type, index) \
-((type *)(&(& array->___length___)[1]))[index]
-
 extern int classsize[];
 jmp_buf error_handler;
 int instructioncount;
@@ -127,8 +121,6 @@ int comparetpd(struct taskparamdescriptor *ftd1, struct taskparamdescriptor *ftd
   return 1;
 }
 
-#define TAGARRAYINTERVAL 10
-#define OBJECTARRAYINTERVAL 10
 
 /* This function sets a tag. */
 #ifdef PRECISE_GC
@@ -190,10 +182,10 @@ void tagset(struct ___Object___ * obj, struct ___TagDescriptor___ * tagd) {
   }
 
   {
-    struct ___Object___ * tagset=tagd->___tagset___;
+    struct ___Object___ * tagset=tagd->flagptr;
     
     if(tagset==NULL) {
-      tagd->___tagset___=obj;
+      tagd->flagptr=obj;
     } else if (tagset->type!=OBJECTARRAYTYPE) {
 #ifdef PRECISE_GC
       int ptrarray[]={2, (int) ptr, (int) obj, (int)tagd};
@@ -203,10 +195,10 @@ void tagset(struct ___Object___ * obj, struct ___TagDescriptor___ * tagd) {
 #else
       struct ArrayObject * ao=allocate_newarray(OBJECTARRAYTYPE,OBJECTARRAYINTERVAL);
 #endif
-      ARRAYSET(ao, struct ___Object___ *, 0, tagd->___tagset___);
+      ARRAYSET(ao, struct ___Object___ *, 0, tagd->flagptr);
       ARRAYSET(ao, struct ___Object___ *, 1, obj);
       ao->___cachedCode___=2;
-      tagd->___tagset___=(struct ___Object___ *)ao;
+      tagd->flagptr=(struct ___Object___ *)ao;
     } else {
       struct ArrayObject *ao=(struct ArrayObject *) tagset;
       if (ao->___cachedCode___<ao->___length___) {
@@ -218,7 +210,7 @@ void tagset(struct ___Object___ * obj, struct ___TagDescriptor___ * tagd) {
 	struct ArrayObject * aonew=allocate_newarray(&ptrarray,OBJECTARRAYTYPE,OBJECTARRAYINTERVAL+ao->___length___);
 	obj=(struct ___Object___ *)ptrarray[2];
 	tagd=(struct ___TagDescriptor___ *)ptrarray[3];
-	ao=(struct ArrayObject *)tagd->___tagset___;
+	ao=(struct ArrayObject *)tagd->flagptr;
 #else
 	struct ArrayObject * aonew=allocate_newarray(OBJECTARRAYTYPE,OBJECTARRAYINTERVAL);
 #endif
@@ -227,7 +219,7 @@ void tagset(struct ___Object___ * obj, struct ___TagDescriptor___ * tagd) {
 	  ARRAYSET(aonew, struct ___Object___*, i, ARRAYGET(ao, struct ___Object___*, i));
 	}
 	ARRAYSET(aonew, struct ___Object___ *, ao->___cachedCode___, obj);
-	tagd->___tagset___=(struct ___Object___ *) ao;
+	tagd->flagptr=(struct ___Object___ *) ao;
       }
     }
   }
@@ -267,10 +259,10 @@ void tagclear(struct ___Object___ * obj, struct ___TagDescriptor___ * tagd) {
   }
  PROCESSCLEAR:
   {
-    struct ___Object___ *tagset=tagd->___tagset___;
+    struct ___Object___ *tagset=tagd->flagptr;
     if (tagset->type!=OBJECTARRAYTYPE) {
       if (tagset==obj)
-	tagd->___tagset___=NULL;
+	tagd->flagptr=NULL;
       else
 	printf("ERROR 3 in tagclear\n");
     } else {
@@ -284,7 +276,7 @@ void tagclear(struct ___Object___ * obj, struct ___TagDescriptor___ * tagd) {
 	    ARRAYSET(ao, struct ___Object___ *, i, ARRAYGET(ao, struct ___Object___ *, ao->___cachedCode___));
 	  ARRAYSET(ao, struct ___Object___ *, ao->___cachedCode___, NULL);
 	  if (ao->___cachedCode___==0)
-	    tagd->___tagset___=NULL;
+	    tagd->flagptr=NULL;
 	  goto ENDCLEAR;
 	}
       }
@@ -838,7 +830,7 @@ int toiHasNext(struct tagobjectiterator *it, void ** objectarray) {
   } else if (it->numtags>0) {
     /* Use tags to locate appropriate objects */
     struct ___TagDescriptor___ *tag=objectarray[it->tagbindings[0]];
-    struct ___Object___ *objptr=tag->___tagset___;
+    struct ___Object___ *objptr=tag->flagptr;
     int i;
     if (objptr->type!=OBJECTARRAYTYPE) {
       if (it->tagobjindex>0)
@@ -878,7 +870,7 @@ int toiHasNext(struct tagobjectiterator *it, void ** objectarray) {
 
 int containstag(struct ___Object___ *ptr, struct ___TagDescriptor___ *tag) {
   int j;
-  struct ___Object___ * objptr=tag->___tagset___;
+  struct ___Object___ * objptr=tag->flagptr;
   if (objptr->type==OBJECTARRAYTYPE) {
     struct ArrayObject *ao=(struct ArrayObject *)objptr;
     for(j=0;j<ao->___cachedCode___;j++) {
@@ -907,7 +899,7 @@ void toiNext(struct tagobjectiterator *it , void ** objectarray) {
   } else if (it->numtags>0) {
     /* Use tags to locate appropriate objects */
     struct ___TagDescriptor___ *tag=objectarray[it->tagbindings[0]];
-    struct ___Object___ *objptr=tag->___tagset___;
+    struct ___Object___ *objptr=tag->flagptr;
     if (objptr->type!=OBJECTARRAYTYPE) {
       it->tagobjindex++;
       objectarray[it->slot]=objptr;

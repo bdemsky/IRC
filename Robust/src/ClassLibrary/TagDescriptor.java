@@ -2,5 +2,4 @@
  * internal use to keep track of tags. */
 
 private class TagDescriptor {
-    Object tagset;
 }

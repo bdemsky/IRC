@@ -13,11 +13,16 @@ struct listitem {
   struct ___Object___ * locklist;
 };
 
+#ifdef TASK
+void fixtags();
+#endif
+
 #ifdef THREADS
 void checkcollect(void * ptr);
 struct listitem * stopforgc(struct garbagelist * ptr);
 void restartaftergc(struct listitem * litem);
 #endif
+void * tomalloc(int size);
 void collect(struct garbagelist *stackptr);
 int gc_createcopy(void * orig, void **);
 void * mygcmalloc(struct garbagelist * ptr, int size);

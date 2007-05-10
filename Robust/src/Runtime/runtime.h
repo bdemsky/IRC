@@ -5,6 +5,15 @@ extern jmp_buf error_handler;
 extern int instructioncount;
 extern int failurecount;
 
+#define TAGARRAYINTERVAL 10
+#define OBJECTARRAYINTERVAL 10
+
+#define ARRAYSET(array, type, index, value) \
+((type *)(&(& array->___length___)[1]))[index]=value
+
+#define ARRAYGET(array, type, index) \
+((type *)(&(& array->___length___)[1]))[index]
+
 #ifdef PRECISE_GC
 #include "garbage.h"
 void * allocate_new(void *, int type);

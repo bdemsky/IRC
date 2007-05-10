@@ -81,6 +81,22 @@ int moreItems() {
   return 1;
 }
 
+#ifdef TASK
+struct pointerblock *taghead=NULL;
+int tagindex=0;
+
+void enqueuetag(struct ___TagDescriptor___ *ptr) {
+  if (tagindex==NUMPTRS) {
+    struct pointerblock * tmp=malloc(sizeof(struct pointerblock));
+    tmp->next=taghead;
+    taghead=tmp;
+    tagindex=0;
+  }
+  taghead->ptrs[tagindex++]=ptr;
+}
+#endif
+
+
 void collect(struct garbagelist * stackptr) {
 #ifdef THREADS
   needtocollect=1;
@@ -98,11 +114,20 @@ void collect(struct garbagelist * stackptr) {
     tailindex=0;
     head=tail=malloc(sizeof(struct pointerblock));
   }
+
+#ifdef TASK
+  if (taghead==NULL) {
+    tagindex=0;
+    taghead=malloc(sizeof(struct pointerblock));
+    taghead->next=NULL;
+  }
+#endif
+
   /* Check current stack */
 #ifdef THREADS
  {
    struct listitem *listptr=list;
-   while(stackptr!=NULL) {
+   while(1) {
 #endif
      
   while(stackptr!=NULL) {
@@ -126,7 +151,8 @@ void collect(struct garbagelist * stackptr) {
     listptr->locklist=copy;
     stackptr=listptr->stackptr;
     listptr=listptr->next;
-  }
+  } else
+    break;
    }
  }
 #endif
@@ -249,7 +275,16 @@ void collect(struct garbagelist * stackptr) {
     void * ptr=dequeue();
     void *cpy=((void **)ptr)[1];
     int type=((int *)cpy)[0];
-    int * pointer=pointerarray[type];
+    int * pointer;
+#ifdef TASK
+    if(type==TAGTYPE) {
+      /* Enqueue Tag */
+      /* Nothing is inside */
+      enqueuetag(ptr);
+      continue;
+    }
+#endif
+    pointer=pointerarray[type];
     if (pointer==0) {
       /* Array of primitives */
       /* Do nothing */
@@ -279,11 +314,68 @@ void collect(struct garbagelist * stackptr) {
       }
     }
   }
+#ifdef TASK
+  fixtags();
+#endif
+
 #ifdef THREADS
   needtocollect=0;
   pthread_mutex_unlock(&gclistlock);
 #endif
 }
+
+#ifdef TASK
+void fixtags() {
+  while(taghead!=NULL) {
+    int i;
+    struct pointerblock *tmp=taghead->next;
+    for(i=0;i<tagindex;i++) {
+      struct ___TagDescriptor___ *tagd=taghead->ptrs[i];
+      struct ___Object___ *obj=tagd->flagptr;
+      struct ___TagDescriptor___ *copy=((struct ___TagDescriptor___**)tagd)[1];
+      if (obj->type==-1) {
+	/* Single object case */
+	copy->flagptr=((struct ___Object___**)obj)[1];
+      } else if (obj->type==OBJECTARRAYTYPE) {
+	/* Array case */
+	struct ArrayObject *ao=(struct ArrayObject *) obj;
+	int livecount=0;
+	int j;
+	int k=0;
+	struct ArrayObject *aonew;
+	
+	/* Count live objects */
+	for(j=0;j<ao->___cachedCode___;j++) {
+	  struct ___Object___ * tobj=ARRAYGET(ao, struct ___Object___ *, j);
+	  if (tobj->type==-1)
+	    livecount++;
+	}
+	
+	livecount=((livecount-1)/OBJECTARRAYINTERVAL+1)*OBJECTARRAYINTERVAL;
+	aonew=(struct ArrayObject *) tomalloc(sizeof(struct ArrayObject)+sizeof(struct ___Object___*)*livecount);
+	aonew->type=OBJECTARRAYTYPE;
+	aonew->___length___=livecount;
+	copy->flagptr=aonew;
+	for(j=0;j<ao->___cachedCode___;j++) {
+	  struct ___Object___ * tobj=ARRAYGET(ao, struct ___Object___ *, j);
+	  if (tobj->type==-1) {
+	    struct ___Object___ * tobjcpy=((struct ___Object___**)tobj)[1];
+	    ARRAYSET(aonew, struct ___Object___*, k++,tobjcpy);
+	  }
+	}
+	aonew->___cachedCode___=k;
+	
+      } else {
+	/* No object live anymore */
+	copy->flagptr=NULL;
+      }
+    }
+    free(taghead);
+    taghead=tmp;
+    tagindex=NUMPTRS;
+  }
+}
+#endif
 
 void * curr_heapbase=0;
 void * curr_heapptr=0;
