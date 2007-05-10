@@ -18,8 +18,9 @@ public class TempDescriptor extends Descriptor {
 	type=td;
     }
 
-    public TempDescriptor(String name, TagDescriptor td) {
+    public TempDescriptor(String name, TypeDescriptor type, TagDescriptor td) {
 	this(name);
+	this.type=type;
 	tag=td;
     }
     
@@ -35,16 +36,16 @@ public class TempDescriptor extends Descriptor {
 	return new TempDescriptor(name+currentid,td);
     }
 
-    public static TempDescriptor tempFactory(String name, TagDescriptor tag) {
-	return new TempDescriptor(name+currentid,tag);
+    public static TempDescriptor tempFactory(String name, TypeDescriptor type, TagDescriptor tag) {
+	return new TempDescriptor(name+currentid,type,tag);
     }
 
     public static TempDescriptor paramtempFactory(String name, TypeDescriptor td) {
 	return new TempDescriptor(name,td);
     }
 
-    public static TempDescriptor paramtempFactory(String name, TagDescriptor tag) {
-	return new TempDescriptor(name,tag);
+    public static TempDescriptor paramtempFactory(String name, TypeDescriptor tagtype, TagDescriptor tag) {
+	return new TempDescriptor(name, tagtype, tag);
     }
 
     public String toString() {

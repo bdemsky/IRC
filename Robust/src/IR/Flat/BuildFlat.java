@@ -41,21 +41,22 @@ public class BuildFlat {
 
 	FlatMethod fm=new FlatMethod(td, ffan);
 
+	HashSet visitedset=new HashSet();
+
 	for(int i=0;i<td.numParameters();i++) {
 	    VarDescriptor paramvd=td.getParameter(i);
 	    fm.addParameterTemp(getTempforVar(paramvd));
 	    TagExpressionList tel=td.getTag(paramvd);
-	    HashSet visitedset=new HashSet();
 	    //BUG added next line to fix...to test feed in any task program
 	    if (tel!=null)
 		for(int j=0;j<tel.numTags();j++) {
 		    TagVarDescriptor tvd=(TagVarDescriptor) td.getParameterTable().getFromSameScope(tel.getName(j));
+		    TempDescriptor tagtmp=getTempforVar(tvd);
 		    if (!visitedset.contains(tvd)) {
 			visitedset.add(tvd);
-			TempDescriptor tagtmp=getTempforVar(tvd);
 			fm.addTagTemp(tagtmp);
-			tel.setTemp(j, tagtmp);
 		    }
+		    tel.setTemp(j, tagtmp);
 		}
 	}
 
@@ -704,7 +705,8 @@ public class BuildFlat {
 		return td;
 	    } else if (d instanceof TagVarDescriptor) {
 		TagVarDescriptor tvd=(TagVarDescriptor)d;
-		TempDescriptor td=TempDescriptor.paramtempFactory(tvd.getName(),tvd.getTag());
+		TypeDescriptor tagtype=new TypeDescriptor(typeutil.getClass(TypeUtil.TagClass));
+		TempDescriptor td=TempDescriptor.paramtempFactory(tvd.getName(), tagtype, tvd.getTag());
 		temptovar.put(tvd,td);
 		return td;
 	    } else throw new Error("Unreconized Descriptor");
@@ -717,12 +719,17 @@ public class BuildFlat {
 	else {
 	    if (d instanceof VarDescriptor) {
 		VarDescriptor vd=(VarDescriptor)d;
-		TempDescriptor td=TempDescriptor.tempFactory(vd.getName(),vd.getType());
+		TempDescriptor td=TempDescriptor.tempFactory(vd.getName(), vd.getType());
 		temptovar.put(vd,td);
 		return td;
 	    } else if (d instanceof TagVarDescriptor) {
 		TagVarDescriptor tvd=(TagVarDescriptor)d;
-		TempDescriptor td=TempDescriptor.tempFactory(tvd.getName(),tvd.getTag());
+		//BUGFIX TAGTYPE - add next line, modify following
+		//line to tag this new type descriptor, modify
+		//TempDescriptor constructor & factory to set type
+		//using this Type To test, use any program with tags
+		TypeDescriptor tagtype=new TypeDescriptor(typeutil.getClass(TypeUtil.TagClass));
+		TempDescriptor td=TempDescriptor.tempFactory(tvd.getName(),tagtype, tvd.getTag());
 		temptovar.put(tvd,td);
 		return td;
 	    } else throw new Error("Unrecognized Descriptor");

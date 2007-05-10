@@ -190,7 +190,9 @@ public class BuildIR {
     }
 
     public TagExpressionList parseTagExpressionList(ParseNode pn) {
-	ParseNodeVector pnv=pn.getChildren();
+	//BUG FIX: change pn.getChildren() to pn.getChild("tag_expression_list").getChildren()
+	//To test, feed in any input program that uses tags
+	ParseNodeVector pnv=pn.getChild("tag_expression_list").getChildren();
 	TagExpressionList tel=new TagExpressionList();
 	for(int i=0;i<pnv.size();i++) {
 	    ParseNode tn=pnv.elementAt(i);
