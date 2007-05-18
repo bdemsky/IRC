@@ -219,14 +219,18 @@ public class TaskAnalysis {
 			toprocess.add(fsnew);
 		    }
 		} else if (ffan.getTaskType() == FlatFlagActionNode.TASKEXIT) {
-		    FlagState fs_taskexit=evalTaskExitNode(ffan,cd,fs,temp);
-		    if (!sourcenodes.containsKey(fs_taskexit)) {
-			toprocess.add(fs_taskexit);
-		    }
-		    //seen this node already
-		    fs_taskexit=canonicalizeFlagState(sourcenodes,fs_taskexit);
-		    Edge newedge=new Edge(fs_taskexit,taskname);
-		    fs.addEdge(newedge);
+		    Vector<FlagState> fsv_taskexit=evalTaskExitNode(ffan,cd,fs,temp);
+		    
+		    for(Enumeration en=fsv_taskexit.elements();en.hasMoreElements();){
+			    FlagState fs_taskexit=(FlagState)en.nextElement();
+		    	if (!sourcenodes.containsKey(fs_taskexit)) {
+					toprocess.add(fs_taskexit);
+		    	}
+		    	//seen this node already
+		    	fs_taskexit=canonicalizeFlagState(sourcenodes,fs_taskexit);
+		    	Edge newedge=new Edge(fs_taskexit,taskname);
+		    	fs.addEdge(newedge);
+	    	}
 		}
 	    }
 	}
@@ -250,11 +254,11 @@ private boolean isTaskTrigger_flag(FlagExpressionNode fen,FlagState fs) {
     else
 	switch (((FlagOpNode)fen).getOp().getOp()) {
 	case Operation.LOGIC_AND:
-	    return ((isTaskTrigger(((FlagOpNode)fen).getLeft(),fs)) && (isTaskTrigger(((FlagOpNode)fen).getRight(),fs)));
+	    return ((isTaskTrigger_flag(((FlagOpNode)fen).getLeft(),fs)) && (isTaskTrigger_flag(((FlagOpNode)fen).getRight(),fs)));
 	case Operation.LOGIC_OR:
-	    return ((isTaskTrigger(((FlagOpNode)fen).getLeft(),fs)) || (isTaskTrigger(((FlagOpNode)fen).getRight(),fs)));
+	    return ((isTaskTrigger_flag(((FlagOpNode)fen).getLeft(),fs)) || (isTaskTrigger_flag(((FlagOpNode)fen).getRight(),fs)));
 	case Operation.LOGIC_NOT:
-	    return !(isTaskTrigger(((FlagOpNode)fen).getLeft(),fs));
+	    return !(isTaskTrigger_flag(((FlagOpNode)fen).getLeft(),fs));
 	default:
 	    return false;
 	}
@@ -266,15 +270,14 @@ private boolean isTaskTrigger_tag(TagExpressionList tel, FlagState fs){
 	for (int i=0;i<tel.numTags() ; i++){
 		switch (fs.getTagCount(tel.getType(i))){
 			case FlagState.ONETAG:
-			case FlagState.MULTITAG:
-				retval=true;
+			case FlagState.MULTITAGS:
 				break;
-			case FlagState.NOTAG:
+			case FlagState.NOTAGS:
 				return false;
-				break;		
 		}
-		return true;
+		
 	}
+	return true;
 }
 
 /*private int tagTypeCount(TagExpressionList tel, String tagtype){
@@ -319,33 +322,48 @@ private boolean isTaskTrigger_tag(TagExpressionList tel, FlagState fs){
 			}
 			else
 				break;	
+		
+		}
 		return fstemp;
-	}
+}
 	
 	private Vector<FlagState> evalTaskExitNode(FlatNode nn,ClassDescriptor cd,FlagState fs, TempDescriptor temp){
 		FlagState fstemp=fs;
 		//FlagState[] fstemparray=new FlagState[3];
-		Vector<FlagState> fsv=new Vector<FlagState>();
-		
-				    
+		Vector<FlagState> inprocess=new Vector<FlagState>();
+		Vector<FlagState> processed=new Vector<FlagState>();
+			    
 		for(Iterator it_tfp=((FlatFlagActionNode)nn).getTempFlagPairs();it_tfp.hasNext();) {
 			TempFlagPair tfp=(TempFlagPair)it_tfp.next();
 			if (temp==tfp.getTemp())
 			    fstemp=fstemp.setFlag(tfp.getFlag(),((FlatFlagActionNode)nn).getFlagChange(tfp));
 		}
 		
+		inprocess.add(fstemp);
+		processed.add(fstemp);
+		
 		for(Iterator it_ttp=((FlatFlagActionNode)nn).getTempTagPairs();it_ttp.hasNext();) {
 			TempTagPair ttp=(TempTagPair)it_ttp.next();
-			if (temp==ttp.getTemp()){
-				if (((FlatFlagActionNode)nn).getTagChange(ttp)){
-					fstemp=fstemp.setTag(ttp.getTag());
-					fstemp
-				else
-					fstemparray	
+			
+			if (temp==ttp.getTemp()){	
+				processed=new Vector<FlagState>();			
+				for (Enumeration en=inprocess.elements();en.hasMoreElements();){
+					FlagState fsworking=(FlagState)en.nextElement();
+					if (((FlatFlagActionNode)nn).getTagChange(ttp)){
+						fsworking=fsworking.setTag(ttp.getTag());
+						processed.add(fsworking);
+					}
+					else
+					{	
+						processed.addAll(Arrays.asList(fsworking.clearTag(ttp.getTag())));
+					}
+				}
+				inprocess=processed;
 		}
-		
-		return fstemp;
-	}		
+		}
+		return processed;
+	
+}		
 	    
 
     private FlagState canonicalizeFlagState(Hashtable sourcenodes, FlagState fs){
@@ -408,5 +426,6 @@ private boolean isTaskTrigger_tag(TagExpressionList tel, FlagState fs){
 	fstemp=canonicalizeFlagState(sourcenodes,fstemp);
 	fs.addEdge(new Edge(fstemp,"Runtime"));
     }
+	}
 } 
-}
+
