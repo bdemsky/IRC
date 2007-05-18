@@ -2,6 +2,8 @@ Task Analysis:
 
 Algorithm:
 
+
+
 1. Obtain the flags for each class in the program(Incase, a class has
 a super class, the super's flags, if any, are included in the list of
 flags for the class)

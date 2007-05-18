@@ -6,14 +6,22 @@ import IR.Flat.*;
 import java.util.*;
 import java.io.*;
 
-
+/** This class is used to hold the flag states that a class in the Bristlecone 
+ *  program can exist in, during runtime.
+ */
 public class FlagState {
     /* NodeStatus enumeration pattern ***********/
 
     public static final NodeStatus UNVISITED = new NodeStatus("UNVISITED");
     public static final NodeStatus PROCESSING = new NodeStatus("PROCESSING");
     public static final NodeStatus FINISHED = new NodeStatus("FINISHED");
+    public static final int ONETAG=1;
+    public static final int NOTAGS=0;
+    public static final int MULTITAGS=-1;
+    
+    
 
+    
     public static class NodeStatus {
         private static String name;
         private NodeStatus(String name) { this.name = name; }
@@ -24,6 +32,7 @@ public class FlagState {
     int discoverytime = -1;
     int finishingtime = -1; /* used for searches */
 
+    //Hashtable<String,Integer> tags=new Hashtable<String,Integer>();
     Vector edges = new Vector();
     Vector inedges = new Vector();
     NodeStatus status = UNVISITED;
@@ -35,6 +44,7 @@ public class FlagState {
 
     private final HashSet flagstate;
     private final ClassDescriptor cd;
+    private final Hashtable<String,Integer> tags;
 
     public void setOption(String option) {
 	this.nodeoption=","+option;
@@ -43,31 +53,120 @@ public class FlagState {
     public void setMerge() {
 	merge=true;
     }
-    
+    /** Class constructor
+     *  Creates a new flagstate with all flags set to false.
+     *	@param cd ClassDescriptor
+     */
     public FlagState(ClassDescriptor cd) {
 	this.flagstate=new HashSet();
 	this.cd=cd;
+	this.tags=new Hashtable<String,Integer>();
 	this.uid=FlagState.nodeid++;
     }
 
-    private FlagState(HashSet flagstate, ClassDescriptor cd) {
+    /** Class constructor
+     *  Creates a new flagstate with flags set according to the HashSet.
+     *  If the flag exists in the hashset, it's set to true else set to false.
+     *	@param cd ClassDescriptor
+     *  @param flagstate a <CODE>HashSet</CODE> containing FlagDescriptors
+     */
+    private FlagState(HashSet flagstate, ClassDescriptor cd,Hashtable<String,Integer> tags) {
 	this.flagstate=flagstate;
 	this.cd=cd;
+	this.tags=tags;
 	this.uid=FlagState.nodeid++;
+	
     }
     
+    /** Accessor method
+      *  @param fd FlagDescriptor
+      *  @return true if the flagstate contains fd else false.
+      */
     public boolean get(FlagDescriptor fd) {
 	return flagstate.contains(fd);
     }
 
+    
     public String toString() {
 	return cd.toString()+getTextLabel();
     }
 
+    /** @return Iterator over the flags in the flagstate.
+     */
+     
     public Iterator getFlags() {
 	return flagstate.iterator();
     }
     
+    public FlagState setTag(TagDescriptor tag){
+	   
+	    HashSet newset=flagstate.clone();
+	    Hashtable<String,Integer> newtags=tags.clone();
+	    
+	    if (newtags.containsKey(tag)){
+		   switch (newtags.get(tag).intValue()){
+			   case ONETAG:
+			   		newtags.put(tag,new Integer(MULTITAG));
+			   		break;
+			   case MULTITAG:
+			   		newtags.put(tag,new Integer(MULTITAG));
+			   		break;
+			}
+		}
+		else{
+			newtags.put(tag,new Integer(ONETAG));
+		}
+		
+		return new FlagState(newset,cd,newtags);
+			   	
+    }
+    public int getTagCount(String tagtype){
+	    	for (Enumeration en=getTags();en.hasMoreElements();){
+		    	TagDescriptor td=(TagDescriptor)en.nextElement();
+		    	if (tagtype.equals(td.getSymbol()))
+		    		return tags.get(td).intValue();   //returns either ONETAG or MULTITAG
+	    	}
+	    	return NOTAG;
+	    	
+    }
+    
+   
+    
+    public FlagState[] clearTag(TagDescriptor tag){
+	    
+	    if (tags.containsKey(tag)){
+	    switch(tags.get(tag).intValue()){
+		    case ONETAG:
+		    	HashSet newset=flagstate.clone();
+	    		Hashtable<String,Integer> newtags=tags.clone();
+		    	newtags.remove(tag);
+		    	return new FlagState(newset,cd,newtags);
+		    	break;
+		    case MULTITAG:
+		        //when tagcount is more than 2, COUNT stays at MULTITAG
+		    	FlagState[] retstates=new FlagState[2];
+		    	HashSet newset1=flagstate.clone();
+	    		Hashtable<String,Integer> newtags1=tags.clone();
+	    		retstates[1]=new FlagState(newset1,cd,newtags1);
+	    		//when tagcount is 2, COUNT changes to ONETAG
+	    		HashSet newset2=flagstate.clone();
+	    		Hashtable<String,Integer> newtags2=tags.clone();
+	    		newtags1.put(tag,new Integer(ONETAG));
+	    		retstates[1]=new FlagState(newset2,cd,newtags2);
+	    		return retstates;
+	    		break;
+    	}
+		}else{
+			throw new Error("Invalid Operation: Can not clear a tag that doesn't exist.");
+		}
+		
+    }
+    
+    /** Creates a string description of the flagstate
+     *  e.g.  a flagstate with five flags could look like 01001
+     *  @param flags an array of flagdescriptors.
+     *  @return string representation of the flagstate.
+     */
 	public String toString(FlagDescriptor[] flags)
 	{
 		StringBuffer sb = new StringBuffer(flagstate.size());
@@ -82,11 +181,20 @@ public class FlagState {
 		return new String(sb);
 	}
 
-	
+	/** Accessor method
+	 *  @return returns the classdescriptor of the flagstate.
+	 */
+	 
 	public ClassDescriptor getClassDescriptor(){
 	return cd;
 	}
 
+	/** Sets the status of a specific flag in a flagstate after cloning it.
+	 *  @param	fd FlagDescriptor of the flag whose status is being set.
+	 *  @param  status boolean value
+	 *  @return the new flagstate with <CODE>fd</CODE> set to <CODE>status</CODE>.
+	 */
+	 
     public FlagState setFlag(FlagDescriptor fd, boolean status) {
 	HashSet newset=(HashSet) flagstate.clone();
 	if (status)
@@ -97,18 +205,21 @@ public class FlagState {
 	return new FlagState(newset, cd);
     }
     
+    /** Tests for equality of two flagstate objects.
+    */
+    
     public boolean equals(Object o) {
         if (o instanceof FlagState) {
             FlagState fs=(FlagState)o;
             if (fs.cd!=cd)
                 return false;
-	    return fs.flagstate.equals(flagstate);
+	    return (fs.flagstate.equals(flagstate) & fs.tags.equals(tags));
         }
         return false;
     }
 
     public int hashCode() {
-        return cd.hashCode()^flagstate.hashCode();
+        return cd.hashCode()^flagstate.hashCode()^tags.hashCode();
     }
 
     public static void computeclosure(Collection nodes, Collection removed) {
@@ -185,8 +296,25 @@ public class FlagState {
 	    else
 		label+=", "+fd.toString();
 	}
+	for (Enumeration en_tags=getTags();en_tags.hasMoreElements();){
+		TagDescriptor td=(TagDescriptor)en_tags.nextElement();
+		switch (tags.get(td).intValue()){
+			case ONETAG:
+				label+=", "+td.toString()+"(1)";
+				break;
+			case MULTITAG:
+				label+=", "+td.toString()+"(n)";
+				break;
+			default:
+				break;
+		}
+	}
 	return label;
     }
+    
+    public Enumeration getTags(){
+	    return tags.keys();
+   	}
 
     public NodeStatus getStatus() {
         return this.status;
@@ -286,24 +414,23 @@ public class FlagState {
                 FlagState gn = (FlagState) i.next();
                 Iterator edges = gn.edges();
                 String label = gn.getTextLabel(); // + " [" + gn.discoverytime + "," + gn.finishingtime + "];";
-		String option=gn.nodeoption;
-		if (special!=null&&special.contains(gn))
-		    option+=",shape=box";
-		if (!gn.merge)
+				String option=gn.nodeoption;
+				if (special!=null&&special.contains(gn))
+		    		option+=",shape=box";
+				if (!gn.merge)
                     output.println("\t" + gn.getLabel() + " [label=\"" + label + "\"" + gn.dotnodeparams + option+"];");
-
-		if (!gn.merge)
-                while (edges.hasNext()) {
-                    Edge edge = (Edge) edges.next();
-                    FlagState node = edge.getTarget();
-		    if (nodes.contains(node)) {
-			for(Iterator nodeit=nonmerge(node).iterator();nodeit.hasNext();) {
-			    FlagState node2=(FlagState)nodeit.next();
-			    String edgelabel = "label=\"" + edge.getLabel() + "\"";
-			    output.println("\t" + gn.getLabel() + " -> " + node2.getLabel() + " [" + edgelabel + edge.dotnodeparams + "];");
-			}
-		    }
-                }
+				if (!gn.merge)
+        	        while (edges.hasNext()) {
+            	        Edge edge = (Edge) edges.next();
+                	    FlagState node = edge.getTarget();
+		    			if (nodes.contains(node)) {
+							for(Iterator nodeit=nonmerge(node).iterator();nodeit.hasNext();) {
+			    				FlagState node2=(FlagState)nodeit.next();
+			    				String edgelabel = "label=\"" + edge.getLabel() + "\"";
+			   					output.println("\t" + gn.getLabel() + " -> " + node2.getLabel() + " [" + edgelabel + edge.dotnodeparams + "];");
+							}
+		    			}
+                	}
             }
         }
         

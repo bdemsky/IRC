@@ -9,6 +9,9 @@ import java.io.FileWriter;
 import java.io.FileOutputStream;
 
 
+
+
+
 public class TaskAnalysis {
     State state;
     Hashtable flagstates;
@@ -29,12 +32,18 @@ public class TaskAnalysis {
 	this.typeutil=new TypeUtil(state);
     }
     
-    /** This function builds a table of flags for each class **/
+    /** Builds a table of flags for each class in the Bristlecone program.  
+     *	It creates two hashtables: one which holds the ClassDescriptors and arrays of
+     *  FlagDescriptors as key-value pairs; the other holds the ClassDescriptor and the 
+     *  number of external flags for that specific class.
+     */
 
     private void getFlagsfromClasses() {
 	flags=new Hashtable();
 	extern_flags = new Hashtable();
 	
+	/** Iterate through the classes used in the program to build the table of flags
+	 */
 	for(Iterator it_classes=state.getClassSymbolTable().getDescriptorsIterator();it_classes.hasNext();) {
 		
 	    ClassDescriptor cd = (ClassDescriptor)it_classes.next();
@@ -57,7 +66,6 @@ public class TaskAnalysis {
 
 	    for(Iterator it_cflags=cd.getFlags();it_cflags.hasNext();) {
 		FlagDescriptor fd = (FlagDescriptor)it_cflags.next();
-		System.out.println(fd.toString());
 		vFlags.add(fd);
 	    }
 
@@ -80,10 +88,14 @@ public class TaskAnalysis {
 	    }
 	}
     }
+    /** Method which starts up the analysis  
+     *  
+    */
     
     public void taskAnalysis() throws java.io.IOException {
 	flagstates=new Hashtable();
 	Hashtable<FlagState,FlagState> sourcenodes;
+	
 	
 	getFlagsfromClasses();
 	
@@ -117,13 +129,14 @@ public class TaskAnalysis {
 	sourcenodes.put(fsstartup,fsstartup);
 	toprocess.add(fsstartup);
 	
+	/** Looping through the flagstates in the toprocess queue to perform the state analysis */
 	while (!toprocess.isEmpty()) {
 	    FlagState trigger=toprocess.poll();
 	    createPossibleRuntimeStates(trigger);
 	    analyseTasks(trigger);
 	}
 	
-	//Creating DOT files
+	/** Creating DOT files */
 	Enumeration e=flagstates.keys();
 	
 	while (e.hasMoreElements()) {
@@ -133,24 +146,38 @@ public class TaskAnalysis {
 	    createDOTfile(cdtemp);
 	}
     }
+    
+    
+    /** Analyses the set of tasks based on the given flagstate, checking
+     *  to see which tasks are triggered and what new flagstates are created
+     *  from the base flagstate.
+     *  @param fs A FlagState object which is used to analyse the task
+     *  @see FlagState
+     */
 
-
-private void analyseTasks(FlagState fs) {
+    private void analyseTasks(FlagState fs) {
     ClassDescriptor cd=fs.getClassDescriptor();
     Hashtable<FlagState,FlagState> sourcenodes=(Hashtable<FlagState,FlagState>)flagstates.get(cd);
     
     for(Iterator it_tasks=state.getTaskSymbolTable().getDescriptorsIterator();it_tasks.hasNext();) {
 	TaskDescriptor td = (TaskDescriptor)it_tasks.next();
 	String taskname=td.getSymbol();
+	/** counter to keep track of the number of parameters (of the task being analyzed) that 
+	 *  are satisfied by the flagstate.
+	 */
 	int trigger_ctr=0;
 	TempDescriptor temp=null;
 	FlatMethod fm = state.getMethodFlat(td);	
 
 	for(int i=0; i < td.numParameters(); i++) {
 	    FlagExpressionNode fen=td.getFlag(td.getParameter(i));
+	    TagExpressionList tel=td.getTag(td.getParameter(i));
 
+	    /** Checking to see if the parameter is of the same type/class as the 
+	     *  flagstate's and also if the flagstate fs triggers the given task*/
 	    if (typeutil.isSuperorType(td.getParamType(i).getClassDesc(),cd)
-		&& isTaskTrigger(fen,fs)) {
+		&& isTaskTrigger_flag(fen,fs)
+		&& isTaskTrigger_tag(tel,fs)) {
 		temp=fm.getParameter(i);
 		trigger_ctr++;
 	    }
@@ -206,7 +233,18 @@ private void analyseTasks(FlagState fs) {
     }
 }
 
-private boolean isTaskTrigger(FlagExpressionNode fen,FlagState fs) {
+/** Determines whether the given flagstate satisfies a 
+ *  single parameter in the given task.
+ *  @param fen FlagExpressionNode
+ *  @see FlagExpressionNode
+ *  @param fs  FlagState
+ *  @see FlagState
+ *  @return <CODE>true</CODE> if fs satisfies the boolean expression
+    denoted by fen else <CODE>false</CODE>.
+ */
+
+
+private boolean isTaskTrigger_flag(FlagExpressionNode fen,FlagState fs) {
     if (fen instanceof FlagNode)
 	return fs.get(((FlagNode)fen).getFlag());
     else
@@ -221,6 +259,40 @@ private boolean isTaskTrigger(FlagExpressionNode fen,FlagState fs) {
 	    return false;
 	}
 }
+
+private boolean isTaskTrigger_tag(TagExpressionList tel, FlagState fs){
+	
+	
+	for (int i=0;i<tel.numTags() ; i++){
+		switch (fs.getTagCount(tel.getType(i))){
+			case FlagState.ONETAG:
+			case FlagState.MULTITAG:
+				retval=true;
+				break;
+			case FlagState.NOTAG:
+				return false;
+				break;		
+		}
+		return true;
+	}
+}
+
+/*private int tagTypeCount(TagExpressionList tel, String tagtype){
+	int ctr=0;
+	for(int i=0;i<tel.numTags() ; i++){
+		if (tel.getType(i).equals(tagtype))
+			ctr++;
+	}
+	return ctr;
+} */
+
+/** Evaluates a NewObject Node and returns the newly created 
+ *  flagstate to add to the process queue.
+ *	@param nn FlatNode
+ *  @return FlagState
+ *  @see FlatNode
+ *  @see FlagState
+ */
     
     private FlagState evalNewObjNode(FlatNode nn){
 	    TempDescriptor[] tdArray = ((FlatFlagActionNode)nn).readsTemps();
@@ -236,20 +308,42 @@ private boolean isTaskTrigger(FlagExpressionNode fen,FlagState fs) {
 			{					
 			   	fstemp=fstemp.setFlag(tfp.getFlag(),((FlatFlagActionNode)nn).getFlagChange(tfp));
 			}
+		
 			else
 				break;
-		}	
+		}
+		for(Iterator it_ttp=((FlatFlagActionNode)nn).getTempTagPairs();it_ttp.hasNext();) {
+			TempTagPair ttp=(TempTagPair)it_ttp.next();
+			if (! (ttp.getTag()==null)){
+				fstemp=fstemp.setTag(ttp.getTag());
+			}
+			else
+				break;	
 		return fstemp;
 	}
 	
-	private FlagState evalTaskExitNode(FlatNode nn,ClassDescriptor cd,FlagState fs, TempDescriptor temp){
+	private Vector<FlagState> evalTaskExitNode(FlatNode nn,ClassDescriptor cd,FlagState fs, TempDescriptor temp){
 		FlagState fstemp=fs;
+		//FlagState[] fstemparray=new FlagState[3];
+		Vector<FlagState> fsv=new Vector<FlagState>();
+		
 				    
 		for(Iterator it_tfp=((FlatFlagActionNode)nn).getTempFlagPairs();it_tfp.hasNext();) {
 			TempFlagPair tfp=(TempFlagPair)it_tfp.next();
 			if (temp==tfp.getTemp())
 			    fstemp=fstemp.setFlag(tfp.getFlag(),((FlatFlagActionNode)nn).getFlagChange(tfp));
 		}
+		
+		for(Iterator it_ttp=((FlatFlagActionNode)nn).getTempTagPairs();it_ttp.hasNext();) {
+			TempTagPair ttp=(TempTagPair)it_ttp.next();
+			if (temp==ttp.getTemp()){
+				if (((FlatFlagActionNode)nn).getTagChange(ttp)){
+					fstemp=fstemp.setTag(ttp.getTag());
+					fstemp
+				else
+					fstemparray	
+		}
+		
 		return fstemp;
 	}		
 	    
@@ -263,6 +357,12 @@ private boolean isTaskTrigger(FlagExpressionNode fen,FlagState fs) {
 	}
     }
 
+   /** Creates a DOT file using the flagstates for a given class
+    *  @param cd ClassDescriptor of the class
+    *  @throws java.io.IOException
+    *  @see ClassDescriptor
+    */
+    
    public void createDOTfile(ClassDescriptor cd) throws java.io.IOException {
 	File dotfile= new File("graph"+cd.getSymbol()+".dot");
 	FileOutputStream dotstream=new FileOutputStream(dotfile,true);
@@ -275,7 +375,7 @@ private boolean isTaskTrigger(FlagExpressionNode fen,FlagState fs) {
 	return st.nextToken();
     }
 
-private void createPossibleRuntimeStates(FlagState fs) {
+	private void createPossibleRuntimeStates(FlagState fs) {
     ClassDescriptor cd = fs.getClassDescriptor();
     Hashtable<FlagState,FlagState> sourcenodes=(Hashtable<FlagState,FlagState>)flagstates.get(cd);
     FlagDescriptor[] fd=(FlagDescriptor[])flags.get(cd);	
@@ -291,8 +391,7 @@ private void createPossibleRuntimeStates(FlagState fs) {
 	BoolValTable[i]=fs.get(fd[i]);
     }
 
-
-    for(int k=0; k<noOfIterations; k++) {
+	for(int k=0; k<noOfIterations; k++) {
 	for(int j=0; j < externs ;j++) {
 	    if ((k% (1<<j)) == 0)
 		BoolValTable[j]=(!BoolValTable[j]);
