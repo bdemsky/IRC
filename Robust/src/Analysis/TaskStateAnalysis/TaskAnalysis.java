@@ -228,7 +228,7 @@ public class TaskAnalysis {
 		    	}
 		    	//seen this node already
 		    	fs_taskexit=canonicalizeFlagState(sourcenodes,fs_taskexit);
-		    	Edge newedge=new Edge(fs_taskexit,taskname);
+		    	FEdge newedge=new FEdge(fs_taskexit,taskname);
 		    	fs.addEdge(newedge);
 	    	}
 		}
@@ -424,7 +424,7 @@ private boolean isTaskTrigger_tag(TagExpressionList tel, FlagState fs){
 	    toprocess.add(fstemp);
 
 	fstemp=canonicalizeFlagState(sourcenodes,fstemp);
-	fs.addEdge(new Edge(fstemp,"Runtime"));
+	fs.addEdge(new FEdge(fstemp,"Runtime"));
     }
 	}
 } 
