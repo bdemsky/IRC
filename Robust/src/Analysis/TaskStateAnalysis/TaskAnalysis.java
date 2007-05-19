@@ -15,6 +15,7 @@ public class TaskAnalysis {
     Hashtable flags;
     Hashtable extern_flags;
     Queue<FlagState> toprocess;
+    
     TypeUtil typeutil;
     
     /** 
@@ -251,6 +252,7 @@ public class TaskAnalysis {
 		    	//seen this node already
 		    	fs_taskexit=canonicalizeFlagState(sourcenodes,fs_taskexit);
 		    	FEdge newedge=new FEdge(fs_taskexit,taskname);
+		    	//FEdge newedge=new FEdge(fs_taskexit,td);
 		    	fs.addEdge(newedge);
 	    	}
 		}
@@ -411,9 +413,13 @@ private boolean isTaskTrigger_tag(TagExpressionList tel, FlagState fs){
     */
     
     public void createDOTfile(ClassDescriptor cd) throws java.io.IOException {
-		File dotfile= new File("graph"+cd.getSymbol()+".dot");
-		FileOutputStream dotstream=new FileOutputStream(dotfile,true);
+		File dotfile_flagstates= new File("graph"+cd.getSymbol()+".dot");
+		FileOutputStream dotstream=new FileOutputStream(dotfile_flagstates,true);
 		FlagState.DOTVisitor.visit(dotstream,((Hashtable)flagstates.get(cd)).values());
+		
+		File dotfile_tasknodes=new File("graph"+cd.getSymbol()+"_task.dot");
+		dotstream=new FileOutputStream(dotfile_tasknodes,true);
+		TaskNode.DOTVisitor.visit(dotstream,(produceTaskNodes((Hashtable)flagstates.get(cd))).values());
     }
 	
 
@@ -452,5 +458,43 @@ private boolean isTaskTrigger_tag(TagExpressionList tel, FlagState fs){
 	fs.addEdge(new FEdge(fstemp,"Runtime"));
     }
 	}
+	
+	private TaskNode canonicalizeTaskNode(Hashtable nodes, TaskNode node){
+	if (nodes.containsKey(node))
+	    return (TaskNode)nodes.get(node);
+	else{
+	    nodes.put(node,node);
+	    return (TaskNode)node;
+	}
+    }
+	
+	public Hashtable produceTaskNodes(Hashtable<FlagState,FlagState> fsnodes){
+		
+		Hashtable<TaskNode,TaskNode> tasknodes=new Hashtable<TaskNode,TaskNode>();
+		for(Enumeration en=fsnodes.keys();en.hasMoreElements();){
+			FlagState fs=(FlagState)en.nextElement();
+			
+			Iterator it_inedges=fs.inedges();	
+			TaskNode tn;
+			do{
+				if (!fs.inedges().hasNext()){
+					tn=new TaskNode("Start Node");
+				}else{
+					FEdge inedge=(FEdge)it_inedges.next();
+					tn=new TaskNode(inedge.getLabel());
+				}
+				if(fs.edges().hasNext()){
+					tn=(TaskNode)canonicalizeTaskNode(tasknodes, tn);
+					for (Iterator it_edges=fs.edges();it_edges.hasNext();){
+						TaskNode target=new TaskNode(((FEdge)it_edges.next()).getLabel());
+						target=(TaskNode)canonicalizeTaskNode(tasknodes,target);
+						tn.addEdge(new TEdge(target));
+					}
+				}
+			}while(it_inedges.hasNext());
+		}
+		return tasknodes;
+	}
+	
 } 
 
