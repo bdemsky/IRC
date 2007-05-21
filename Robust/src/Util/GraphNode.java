@@ -21,14 +21,10 @@ public class GraphNode {
 
     protected Vector edges = new Vector();
     protected Vector inedges = new Vector();
+
     NodeStatus status = UNVISITED;
     String dotnodeparams = new String();
     public boolean merge=false;
-    public String nodeoption="";
-
-    public void setOption(String option) {
-	this.nodeoption=","+option;
-    }
 
     public void setMerge() {
 	merge=true;
@@ -155,11 +151,13 @@ public class GraphNode {
         java.io.PrintWriter output;
         int tokennumber;
         int color;
+	Vector namers;
 
-        private DOTVisitor(java.io.OutputStream output) {
+        private DOTVisitor(java.io.OutputStream output, Vector namers) {
             tokennumber = 0;
             color = 0;
             this.output = new java.io.PrintWriter(output, true);
+	    this.namers=namers;
         }
 
         private String getNewID(String name) {
@@ -168,15 +166,18 @@ public class GraphNode {
         }
 
         Collection nodes;
-	Collection special;
+
+
+        public static void visit(java.io.OutputStream output, Collection nodes, Vector namers) {
+            DOTVisitor visitor = new DOTVisitor(output, namers);
+            visitor.nodes = nodes;
+            visitor.make();
+        }
 
         public static void visit(java.io.OutputStream output, Collection nodes) {
-	    visit(output,nodes,null);
-	}
-
-        public static void visit(java.io.OutputStream output, Collection nodes, Collection special) {
-            DOTVisitor visitor = new DOTVisitor(output);
-	    visitor.special=special;
+	    Vector v=new Vector();
+	    v.add(new Namer());
+            DOTVisitor visitor = new DOTVisitor(output, v);
             visitor.nodes = nodes;
             visitor.make();
         }
@@ -198,16 +199,29 @@ public class GraphNode {
         private void traverse() {
 	    Set cycleset=GraphNode.findcycles(nodes);
 
-            Iterator i = nodes.iterator();
-            while (i.hasNext()) {
-                GraphNode gn = (GraphNode) i.next();
+            Iterator it = nodes.iterator();
+            while (it.hasNext()) {
+                GraphNode gn = (GraphNode) it.next();
                 Iterator edges = gn.edges();
-                String label = gn.getTextLabel();
-		String option=gn.nodeoption;
-		if (special!=null&&special.contains(gn))
-		    option+=",shape=box";
+                String label = "";
+		String dotnodeparams="";
+
+		for(int i=0;i<namers.size();i++) {
+		    Namer name=(Namer) namers.get(i);
+		    String newlabel=name.nodeLabel(gn);
+		    String newparams=name.nodeOption(gn);
+
+		    if (!newlabel.equals("") && !label.equals("")) {
+			label+=", ";
+		    }
+		    if (!newparams.equals("")) {
+			dotnodeparams+=", " + name.nodeOption(gn);
+		    }
+		    label+=name.nodeLabel(gn);
+		}
+
 		if (!gn.merge)
-                    output.println("\t" + gn.getLabel() + " [label=\"" + label + "\"" + gn.dotnodeparams + option+"];");
+                    output.println("\t" + gn.getLabel() + " [label=\"" + label + "\"" + dotnodeparams + "];");
 
 		if (!gn.merge)
                 while (edges.hasNext()) {
@@ -216,8 +230,21 @@ public class GraphNode {
 		    if (nodes.contains(node)) {
 			for(Iterator nodeit=nonmerge(node).iterator();nodeit.hasNext();) {
 			    GraphNode node2=(GraphNode)nodeit.next();
-			    String edgelabel = "label=\"" + edge.getLabel() + "\"" ;
-			    output.println("\t" + gn.getLabel() + " -> " + node2.getLabel() + " [" + edgelabel + edge.dotnodeparams + "];");
+			    String edgelabel = "";
+			    String edgedotnodeparams="";
+
+			    for(int i=0;i<namers.size();i++) {
+				Namer name=(Namer) namers.get(i);
+				String newlabel=name.edgeLabel(gn, edge);
+				String newoption=name.edgeOption(gn, edge);
+				if (!newlabel.equals("")&& ! edgelabel.equals(""))
+				    edgelabel+=", ";
+				edgelabel+=newlabel;
+				if (!newoption.equals(""))
+				    edgedotnodeparams+=", "+newoption;
+			    }
+			    
+			    output.println("\t" + gn.getLabel() + " -> " + node2.getLabel() + " [" + "label=\"" + edgelabel + "\"" + edgedotnodeparams + "];");
 			}
 		    }
                 }
