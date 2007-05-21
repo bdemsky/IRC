@@ -47,7 +47,8 @@ public class TaskDescriptor extends Descriptor {
 	    throw new Error("Can't have parameter named this");
 	VarDescriptor vd=new VarDescriptor(type, paramname);
 	params.add(vd);
-	flagstable.put(vd, fen);
+	if (fen!=null)
+	    flagstable.put(vd, fen);
 	if (tel!=null) {//BUGFIX - added null check here...test with any bristlecone program
 	    tagstable.put(vd, tel);
 	    for(int i=0;i<tel.numTags();i++) {

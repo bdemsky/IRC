@@ -296,6 +296,13 @@ task_parameter ::=
 		pn.addChild("tag").addChild(texp);
 		RESULT=pn;
 	:}
+        | type:type variable_declarator_id:name LBRACE RBRACE LBRACE tag_expression_list:texp RBRACE {:
+		ParseNode pn=new ParseNode("task_parameter");
+		pn.addChild(type);
+		pn.addChild(name);
+		pn.addChild("tag").addChild(texp);
+		RESULT=pn;
+	:}
 	;
 
 tag_expression_list ::= tag_expression:te {: 

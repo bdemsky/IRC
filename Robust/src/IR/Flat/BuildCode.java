@@ -405,28 +405,37 @@ public class BuildCode {
 	    FlagExpressionNode param_flag=task.getFlag(param_var);
 	    TagExpressionList param_tag=task.getTag(param_var);
 
-	    DNFFlag dflag=param_flag.getDNF();
-	    
-	    Hashtable flags=(Hashtable)flagorder.get(param_type.getClassDesc());
-	    output.println("int parameterdnf_"+i+"_"+task.getSafeSymbol()+"[]={");
-	    for(int j=0;j<dflag.size();j++) {
-		if (j!=0)
-		    output.println(",");
-		Vector term=dflag.get(j);
-		int andmask=0;
-		int checkmask=0;
-		for(int k=0;k<term.size();k++) {
-		    DNFFlagAtom dfa=(DNFFlagAtom)term.get(k);
-		    FlagDescriptor fd=dfa.getFlag();
-		    boolean negated=dfa.getNegated();
-		    int flagid=1<<((Integer)flags.get(fd)).intValue();
-		    andmask|=flagid;
-		    if (!negated)
-			checkmask|=flagid;
+	    int dnfterms;
+	    if (param_flag==null) {
+		output.println("int parameterdnf_"+i+"_"+task.getSafeSymbol()+"[]={");
+		output.println("0x0, 0x0 };");
+		dnfterms=1;
+	    } else {
+
+		DNFFlag dflag=param_flag.getDNF();
+		dnfterms=dflag.size();
+		
+		Hashtable flags=(Hashtable)flagorder.get(param_type.getClassDesc());
+		output.println("int parameterdnf_"+i+"_"+task.getSafeSymbol()+"[]={");
+		for(int j=0;j<dflag.size();j++) {
+		    if (j!=0)
+			output.println(",");
+		    Vector term=dflag.get(j);
+		    int andmask=0;
+		    int checkmask=0;
+		    for(int k=0;k<term.size();k++) {
+			DNFFlagAtom dfa=(DNFFlagAtom)term.get(k);
+			FlagDescriptor fd=dfa.getFlag();
+			boolean negated=dfa.getNegated();
+			int flagid=1<<((Integer)flags.get(fd)).intValue();
+			andmask|=flagid;
+			if (!negated)
+			    checkmask|=flagid;
+		    }
+		    output.print("0x"+Integer.toHexString(andmask)+", 0x"+Integer.toHexString(checkmask));
 		}
-		output.print("0x"+Integer.toHexString(andmask)+", 0x"+Integer.toHexString(checkmask));
+		output.println("};");
 	    }
-	    output.println("};");
 
 	    output.println("int parametertag_"+i+"_"+task.getSafeSymbol()+"[]={");
 	    //BUG...added next line to fix, test with any task program
@@ -446,7 +455,7 @@ public class BuildCode {
 
 	    output.println("struct parameterdescriptor parameter_"+i+"_"+task.getSafeSymbol()+"={");
 	    output.println("/* type */"+param_type.getClassDesc().getId()+",");
-	    output.println("/* number of DNF terms */"+dflag.size()+",");
+	    output.println("/* number of DNF terms */"+dnfterms+",");
 	    output.println("parameterdnf_"+i+"_"+task.getSafeSymbol()+",");
 	    output.println("0,");
 	    //BUG, added next line to fix and else statement...test

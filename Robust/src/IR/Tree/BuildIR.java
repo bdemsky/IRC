@@ -176,7 +176,9 @@ public class BuildIR {
 	     TypeDescriptor type=parseTypeDescriptor(paramn);
 
 	     String paramname=paramn.getChild("single").getTerminal();
-	     FlagExpressionNode fen=parseFlagExpression(paramn.getChild("flag").getFirstChild());
+	     FlagExpressionNode fen=null;
+	     if (paramn.getChild("flag")!=null)
+		 fen=parseFlagExpression(paramn.getChild("flag").getFirstChild());
 
 	     ParseNode tagnode=paramn.getChild("tag");
 

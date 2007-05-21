@@ -147,7 +147,8 @@ public class SemanticCheck {
 	    if (!param_type.isClass())
 		throw new Error("Cannot have non-object argument to a task");
 	    ClassDescriptor cd=param_type.getClassDesc();
-	    checkFlagExpressionNode(cd, fen);
+	    if (fen!=null)
+		checkFlagExpressionNode(cd, fen);
 	}
 
 	checkFlagEffects(td, td.getFlagEffects(),td.getParameterTable());
