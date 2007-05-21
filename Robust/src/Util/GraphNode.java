@@ -19,8 +19,8 @@ public class GraphNode {
     int discoverytime = -1;
     int finishingtime = -1; /* used for searches */
 
-    Vector edges = new Vector();
-    Vector inedges = new Vector();
+    protected Vector edges = new Vector();
+    protected Vector inedges = new Vector();
     NodeStatus status = UNVISITED;
     String dotnodeparams = new String();
     public boolean merge=false;
