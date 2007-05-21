@@ -4,17 +4,17 @@ import IR.TagDescriptor;
 
 public class TagDeclarationNode extends BlockStatementNode {
     String name;
-    String type;
+    String tagtype;
     TagVarDescriptor tvd;
 
-    public TagDeclarationNode(String name, String type) {
+    public TagDeclarationNode(String name, String tagtype) {
 	this.name=name;
-	this.type=type;
-	tvd=new TagVarDescriptor(new TagDescriptor(type), name);
+	this.tagtype=tagtype;
+	tvd=new TagVarDescriptor(new TagDescriptor(tagtype), name);
     }
     
     public String printNode(int indent) {
-	return "Tag "+name+"=new("+type+")";
+	return "Tag "+name+"=new("+tagtype+")";
     }
     
     public TagVarDescriptor getTagVarDescriptor() {
@@ -25,8 +25,8 @@ public class TagDeclarationNode extends BlockStatementNode {
 	return name;
     }
 
-    public String getType() {
-	return type;
+    public String getTagType() {
+	return tagtype;
     }
 
     public int kind() {

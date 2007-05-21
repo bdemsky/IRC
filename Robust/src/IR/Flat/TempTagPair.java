@@ -12,7 +12,7 @@ public class TempTagPair {
 	this.td=td;
     }
     public int hashCode() {
-	return tagd.hashCode()^td.hashCode()^tagt.hashCode();
+	return td.hashCode()^tagt.hashCode();
     }
     
     public TempDescriptor getTemp() {
@@ -31,7 +31,15 @@ public class TempTagPair {
 	if (!(o instanceof TempTagPair))
 	    return false;
 	TempTagPair ttp=(TempTagPair)o;
-	return ttp.tagd.equals(tagd)&&ttp.tagt==tagt&&ttp.td==td;
+	if (ttp.tagt==tagt&&ttp.td==td) {
+	    if (ttp.tagd!=null) {
+		if (!ttp.tagd.equals(tagd))
+		    throw new Error();
+	    } else if (tagd!=null)
+		throw new Error();
+	    
+	    return true;
+	} else return false;
     }
 
     public String toString() {

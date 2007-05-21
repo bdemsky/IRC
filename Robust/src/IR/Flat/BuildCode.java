@@ -299,9 +299,11 @@ public class BuildCode {
 		MethodDescriptor md=(MethodDescriptor)mainit.next();
 		if (md.numParameters()!=1)
 		    continue;
-		if (md.getParameter(0).getType().getArrayCount()!=1)
+		Descriptor pd=md.getParameter(0);
+		TypeDescriptor tpd=(pd instanceof TagVarDescriptor)?((TagVarDescriptor)pd).getType():((VarDescriptor)pd).getType();
+		if (tpd.getArrayCount()!=1)
 		    continue;
-		if (!md.getParameter(0).getType().getSymbol().equals("String"))
+		if (!tpd.getSymbol().equals("String"))
 		    continue;
 
 		if (!md.getModifiers().isStatic())
@@ -905,6 +907,9 @@ public class BuildCode {
 		    TempDescriptor temp=objecttemps.getPointer(i);
 		    if (temp.getType().isNull())
 			output.println("  void * "+temp.getSafeSymbol()+";");
+		    else if(temp.getType().isTag())
+			output.println("  struct "+
+				       (new TypeDescriptor(typeutil.getClass(TypeUtil.TagClass))).getSafeSymbol()+" * "+temp.getSafeSymbol()+";");
 		    else
 			output.println("  struct "+temp.getType().getSafeSymbol()+" * "+temp.getSafeSymbol()+";");
 		}
@@ -1165,12 +1170,16 @@ public class BuildCode {
 		output.print("(struct "+md.getThis().getType().getSafeSymbol() +" *)"+ generateTemp(fm,fc.getThis()));
 	    }
 	    for(int i=0;i<fc.numArgs();i++) {
-		VarDescriptor var=md.getParameter(i);
+		Descriptor var=md.getParameter(i);
 		TempDescriptor paramtemp=(TempDescriptor)temptovar.get(var);
 		if (objectparams.isParamPtr(paramtemp)) {
 		    TempDescriptor targ=fc.getArg(i);
 		    output.print(", ");
-		    output.print("(struct "+md.getParamType(i).getSafeSymbol()  +" *)"+generateTemp(fm, targ));
+		    TypeDescriptor td=md.getParamType(i);
+		    if (td.isTag())
+			output.print("(struct "+(new TypeDescriptor(typeutil.getClass(TypeUtil.TagClass))).getSafeSymbol()  +" *)"+generateTemp(fm, targ));
+		    else
+			output.print("(struct "+md.getParamType(i).getSafeSymbol()  +" *)"+generateTemp(fm, targ));
 		}
 	    }
 	    output.println("};");
@@ -1229,7 +1238,7 @@ public class BuildCode {
 	    }
 	}
 	for(int i=0;i<fc.numArgs();i++) {
-	    VarDescriptor var=md.getParameter(i);
+	    Descriptor var=md.getParameter(i);
 	    TempDescriptor paramtemp=(TempDescriptor)temptovar.get(var);
 	    if (objectparams.isParamPrim(paramtemp)) {
 		TempDescriptor targ=fc.getArg(i);

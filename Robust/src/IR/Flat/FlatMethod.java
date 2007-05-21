@@ -41,6 +41,10 @@ public class FlatMethod extends FlatNode {
 	return task;
     }
     
+    public int kind() {
+	return FKind.FlatMethod;
+    }
+
     public void addParameterTemp(TempDescriptor t) {
 	parameterTemps.add(t);
     }
@@ -74,6 +78,7 @@ public class FlatMethod extends FlatNode {
 	return method_entry;
     }
 
+    /** This method returns a set of the nodes in this flat representation */
 
     public Set getNodeSet() {
 	HashSet tovisit=new HashSet();

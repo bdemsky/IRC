@@ -11,6 +11,8 @@ import IR.Flat.BuildCode;
 import IR.State;
 import IR.TypeUtil;
 import Analysis.TaskStateAnalysis.TaskAnalysis;
+import Analysis.CallGraph.CallGraph;
+import Analysis.TaskStateAnalysis.TagAnalysis;
 
 public class Main {
 
@@ -105,7 +107,10 @@ public class Main {
       bf.buildFlat();
 
       if (state.TASKSTATE) {
-	  TaskAnalysis ta=new TaskAnalysis(state);
+	  CallGraph callgraph=new CallGraph(state);
+	  TagAnalysis taganalysis=new TagAnalysis(state, callgraph);
+	  
+	  TaskAnalysis ta=new TaskAnalysis(state, taganalysis);
 	  ta.taskAnalysis();
       }
       

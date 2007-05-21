@@ -8,10 +8,8 @@ task Startup(StartupObject s{initialstate}) {
 task AcceptConnection(ServerSocket ss{SocketPending}) {
     tag t=new tag(link);
     ChatSocket cs=new ChatSocket() {Initialized}{t};
-    Socket s=new Socket() {}{t};
-    cs.sock=s;
-    ss.accept(s);
-    s.write("Please choose a chatroom".getBytes());
+    cs.sock=ss.accept(t);
+    cs.sock.write("Please choose a chatroom".getBytes());
 }
 
 task ReadRequest(ChatSocket cs{Initialized}{link l}, Socket s{IOPending}{link l}) {

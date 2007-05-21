@@ -11,9 +11,22 @@ Lex/TraditionalComment.class Lex/WhiteSpace.class			\
 IR/AssignOperation.class IR/ClassDescriptor.class IR/Descriptor.class	\
 IR/FieldDescriptor.class IR/FlagDescriptor.class			\
 IR/MethodDescriptor.class IR/NameDescriptor.class IR/Operation.class	\
-IR/State.class IR/SymbolTable.class IR/TaskDescriptor.class		\
+IR/State.class IR/SymbolTable.class IR/TagDescriptor.class		\
+IR/TagVarDescriptor.class IR/TaskDescriptor.class			\
 IR/TypeDescriptor.class IR/TypeUtil.class IR/VarDescriptor.class	\
-IR/Virtual.class IR/Tree/ArrayAccessNode.class				\
+IR/Virtual.class IR/Flat/BuildCode.class IR/Flat/BuildFlat.class	\
+IR/Flat/FKind.class IR/Flat/FlatBackEdge.class IR/Flat/FlatCall.class	\
+IR/Flat/FlatCastNode.class IR/Flat/FlatCheckNode.class			\
+IR/Flat/FlatCondBranch.class IR/Flat/FlatElementNode.class		\
+IR/Flat/FlatFieldNode.class IR/Flat/FlatFlagActionNode.class		\
+IR/Flat/FlatLiteralNode.class IR/Flat/FlatMethod.class			\
+IR/Flat/FlatNew.class IR/Flat/FlatNode.class IR/Flat/FlatNop.class	\
+IR/Flat/FlatOpNode.class IR/Flat/FlatReturnNode.class			\
+IR/Flat/FlatSetElementNode.class IR/Flat/FlatSetFieldNode.class		\
+IR/Flat/FlatTagDeclaration.class IR/Flat/NodePair.class			\
+IR/Flat/ParamsObject.class IR/Flat/TempDescriptor.class			\
+IR/Flat/TempFlagPair.class IR/Flat/TempObject.class			\
+IR/Flat/TempTagPair.class IR/Tree/ArrayAccessNode.class			\
 IR/Tree/AssignmentNode.class IR/Tree/BlockExpressionNode.class		\
 IR/Tree/BlockNode.class IR/Tree/BlockStatementNode.class		\
 IR/Tree/BuildIR.class IR/Tree/CastNode.class				\
@@ -29,19 +42,19 @@ IR/Tree/MethodInvokeNode.class IR/Tree/Modifiers.class			\
 IR/Tree/NameNode.class IR/Tree/OpNode.class IR/Tree/ParseNode.class	\
 IR/Tree/ParseNodeDOTVisitor.class IR/Tree/ParseNodeVector.class		\
 IR/Tree/ReturnNode.class IR/Tree/SemanticCheck.class			\
-IR/Tree/SubBlockNode.class IR/Tree/TaskExitNode.class			\
-IR/Tree/TreeNode.class IR/Tree/Walkable.class IR/Flat/BuildCode.class	\
-IR/Flat/BuildFlat.class IR/Flat/FKind.class IR/Flat/FlatCall.class	\
-IR/Flat/FlatCastNode.class IR/Flat/FlatCheckNode.class			\
-IR/Flat/FlatCondBranch.class IR/Flat/FlatElementNode.class		\
-IR/Flat/FlatFieldNode.class IR/Flat/FlatFlagActionNode.class		\
-IR/Flat/FlatLiteralNode.class IR/Flat/FlatMethod.class			\
-IR/Flat/FlatNew.class IR/Flat/FlatNode.class IR/Flat/FlatNop.class	\
-IR/Flat/FlatOpNode.class IR/Flat/FlatReturnNode.class			\
-IR/Flat/FlatSetElementNode.class IR/Flat/FlatSetFieldNode.class		\
-IR/Flat/NodePair.class IR/Flat/ParamsObject.class			\
-IR/Flat/TempDescriptor.class IR/Flat/TempFlagPair.class			\
-IR/Flat/TempObject.class Util/Relation.class
+IR/Tree/SubBlockNode.class IR/Tree/TagDeclarationNode.class		\
+IR/Tree/TagEffect.class IR/Tree/TagExpressionList.class			\
+IR/Tree/TaskExitNode.class IR/Tree/TreeNode.class			\
+IR/Tree/Walkable.class Analysis/TaskStateAnalysis/FEdge.class		\
+Analysis/TaskStateAnalysis/FlagState.class				\
+Analysis/TaskStateAnalysis/TEdge.class					\
+Analysis/TaskStateAnalysis/TagAnalysis.class				\
+Analysis/TaskStateAnalysis/TagBinding.class				\
+Analysis/TaskStateAnalysis/TaskAnalysis.class				\
+Analysis/TaskStateAnalysis/TaskNode.class				\
+Analysis/CallGraph/CallGraph.class Util/Edge.class			\
+Util/GraphNode.class Util/Relation.class
+
 
 all: Parse/Sym.class Parse/Parser.class $(CLASSFILES) javadoc
 

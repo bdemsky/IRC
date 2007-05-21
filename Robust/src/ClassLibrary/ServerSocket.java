@@ -17,6 +17,13 @@ public class ServerSocket {
 	return s;
     }
 
+    public Socket accept(tag td) {
+	Socket s=new Socket(){}{td};
+	int newfd=nativeaccept(s);
+	s.setFD(newfd);
+	return s;
+    }
+
     /* Lets caller pass in their own Socket object. */
     public void accept(Socket s) {
 	int newfd=nativeaccept(s);

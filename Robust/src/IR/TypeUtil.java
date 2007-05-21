@@ -83,6 +83,10 @@ public class TypeUtil {
 	if (possiblesuper.equals(cd2))
 	    return true;
 
+	if ((possiblesuper.isTag() && !cd2.isTag())||
+	    (!possiblesuper.isTag() && cd2.isTag()))
+	    return false;
+
 	//Handle arrays
 	if (cd2.isArray()||possiblesuper.isArray()) {
 	    // Object is super class of all arrays
@@ -148,7 +152,7 @@ public class TypeUtil {
 		 (possiblesuper.isArray()||possiblesuper.isPtr()))
 	    return false;
 	else
-	    throw new Error();
+	    throw new Error("Case not handled:"+possiblesuper+" "+cd2);
     }
 
     

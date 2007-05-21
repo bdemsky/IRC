@@ -43,8 +43,10 @@ public class MethodDescriptor extends Descriptor {
 	if (numParameters()!=md.numParameters())
 	    return false;
 	for(int i=0;i<numParameters();i++) {
-	    TypeDescriptor td1=getParameter(i).getType();
-	    TypeDescriptor td2=md.getParameter(i).getType();
+	    Descriptor d1=getParameter(i);
+	    Descriptor d2=md.getParameter(i);
+	    TypeDescriptor td1=(d1 instanceof TagVarDescriptor)?((TagVarDescriptor)d1).getType():((VarDescriptor)d1).getType();
+	    TypeDescriptor td2=(d2 instanceof TagVarDescriptor)?((TagVarDescriptor)d2).getType():((VarDescriptor)d2).getType();
 	    if (!td1.equals(td2))
 		return false;
 	}
@@ -118,20 +120,37 @@ public class MethodDescriptor extends Descriptor {
 	paramtable.add(vd);
     }
 
+    public void addTagParameter(TypeDescriptor type, String paramname) {
+	if (paramname.equals("this"))
+	    throw new Error("Can't have parameter named this");
+	TagVarDescriptor vd=new TagVarDescriptor(null, paramname);
+
+	params.add(vd);
+	if (paramtable.getFromSameScope(paramname)!=null) {
+	    throw new Error("Parameter "+paramname+" already defined");
+	}
+	paramtable.add(vd);
+    }
+
     public int numParameters() {
 	return params.size();
     }
 
-    public VarDescriptor getParameter(int i) {
-	return (VarDescriptor)params.get(i);
+    public Descriptor getParameter(int i) {
+	return (Descriptor) params.get(i);
     }
 
     public String getParamName(int i) {
-	return ((VarDescriptor)params.get(i)).getName();
+	return ((Descriptor)params.get(i)).getSymbol();
     }
 
     public TypeDescriptor getParamType(int i) {
-	return ((VarDescriptor)params.get(i)).getType();
+	Descriptor d=(Descriptor)params.get(i);
+	if (d instanceof VarDescriptor)
+	    return ((VarDescriptor)params.get(i)).getType();
+	else if (d instanceof TagVarDescriptor)
+	    return new TypeDescriptor(TypeDescriptor.TAG);
+	else throw new Error();
     }
 
     public String toString() {

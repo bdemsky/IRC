@@ -220,16 +220,24 @@ public class FlagState extends GraphNode {
 	for (Enumeration en_tags=getTags();en_tags.hasMoreElements();){
 		TagDescriptor td=(TagDescriptor)en_tags.nextElement();
 		switch (tags.get(td).intValue()){
-			case ONETAG:
-				label+=", "+td.toString()+"(1)";
-				break;
-			case MULTITAGS:
-				label+=", "+td.toString()+"(n)";
-				break;
-			default:
-				break;
+		case ONETAG:
+		    if (label==null)
+			label=td.toString()+"(1)";
+		    else
+			label+=", "+td.toString()+"(1)";
+		    break;
+		case MULTITAGS:
+		    if (label==null)
+			label=td.toString()+"(n)";
+		    else
+			label+=", "+td.toString()+"(n)";
+		    break;
+		default:
+		    break;
 		}
 	}
+	if (label==null)
+	    return "";
 	return label;
     }
     

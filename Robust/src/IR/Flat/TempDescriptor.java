@@ -63,4 +63,8 @@ public class TempDescriptor extends Descriptor {
     public TagDescriptor getTag() {
 	return tag;
     }
+
+    public void setTag(TagDescriptor tag) {
+	this.tag=tag;
+    }
 }

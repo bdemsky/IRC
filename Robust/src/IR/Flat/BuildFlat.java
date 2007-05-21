@@ -570,7 +570,11 @@ public class BuildFlat {
 	    FlatFieldNode ffn=new FlatFieldNode(nn.getField(), tmp, out_temp); 
 	    return new NodePair(ffn,ffn);
 	} else {
-	    TempDescriptor tmp=getTempforVar(nn.getVar());
+	    TempDescriptor tmp=getTempforVar(nn.isTag()?nn.getTagVar():nn.getVar());
+	    if (nn.isTag()) {
+		//propagate tag
+		out_temp.setTag(tmp.getTag());
+	    }
 	    FlatOpNode fon=new FlatOpNode(out_temp, tmp, null, new Operation(Operation.ASSIGN));
 	    return new NodePair(fon,fon);
 	}

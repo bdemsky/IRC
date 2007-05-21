@@ -8,26 +8,27 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.FileOutputStream;
 
-
 public class TaskAnalysis {
     State state;
     Hashtable flagstates;
     Hashtable flags;
     Hashtable extern_flags;
     Queue<FlagState> toprocess;
-    
+    TagAnalysis taganalysis;
+
     TypeUtil typeutil;
-    
+
     /** 
      * Class Constructor
      *
      * @param state a flattened State object
      * @see State
      */
-    public TaskAnalysis(State state)
+    public TaskAnalysis(State state, TagAnalysis taganalysis)
     {
 	this.state=state;
 	this.typeutil=new TypeUtil(state);
+	this.taganalysis=taganalysis;
     }
     
     /** Builds a table of flags for each class in the Bristlecone program.  
@@ -154,7 +155,7 @@ public class TaskAnalysis {
      *  @see FlagState
      */
 
-    private void analyseTasks(FlagState fs) {
+private void analyseTasks(FlagState fs) {
     ClassDescriptor cd=fs.getClassDescriptor();
     Hashtable<FlagState,FlagState> sourcenodes=(Hashtable<FlagState,FlagState>)flagstates.get(cd);
     
@@ -168,19 +169,17 @@ public class TaskAnalysis {
 	System.out.println("Task: "+taskname);
 	//***********
 	
-	
-	
 	/** counter to keep track of the number of parameters (of the task being analyzed) that 
 	 *  are satisfied by the flagstate.
 	 */
 	int trigger_ctr=0;
 	TempDescriptor temp=null;
 	FlatMethod fm = state.getMethodFlat(td);	
-
+	
 	for(int i=0; i < td.numParameters(); i++) {
 	    FlagExpressionNode fen=td.getFlag(td.getParameter(i));
 	    TagExpressionList tel=td.getTag(td.getParameter(i));
-
+	    
 	    /** Checking to see if the parameter is of the same type/class as the 
 	     *  flagstate's and also if the flagstate fs triggers the given task*/
 	    if (typeutil.isSuperorType(td.getParamType(i).getClassDesc(),cd)
@@ -197,69 +196,57 @@ public class TaskAnalysis {
 	if (trigger_ctr>1)
 	    throw new Error("Illegal Operation: A single flagstate cannot satisfy more than one parameter of a task.");
 	
-	    
+	
 	//** debug
 	System.out.println("Task:" + taskname +" is triggered");	
-    
-	    
-	//Iterating through the nodes
-	FlatNode fn=fm.methodEntryNode();
 	
-	HashSet tovisit= new HashSet();
-	HashSet visited= new HashSet();
 	
-	tovisit.add(fn);
-	while(!tovisit.isEmpty()) {
-	    FlatNode fn1 = (FlatNode)tovisit.iterator().next();
-	    tovisit.remove(fn1);
-	    visited.add(fn1);
-	    // Queue all of the next nodes
-	    for(int i = 0; i < fn1.numNext(); i++) {
-		FlatNode nn=fn1.getNext(i);
-		if (!visited.contains(nn))
-		    tovisit.add(nn);
+	Set newstates=taganalysis.getFlagStates(td);
+	for(Iterator fsit=newstates.iterator();fsit.hasNext();) {
+	    FlagState fsnew=(FlagState) fsit.next();
+	    if (! ((Hashtable<FlagState,FlagState>)flagstates.get(fsnew.getClassDescriptor())).containsKey(fsnew)) {
+		((Hashtable<FlagState,FlagState>)flagstates.get(fsnew.getClassDescriptor())).put(fsnew, fsnew);
+		toprocess.add(fsnew);
 	    }
+	}
+	
+	//Iterating through the nodes
+	Set nodeset=fm.getNodeSet();
+	
+	for(Iterator nodeit=nodeset.iterator();nodeit.hasNext();) {
+	    FlatNode fn1 = (FlatNode) nodeit.next();
+	    
 	    if (fn1.kind()==FKind.FlatFlagActionNode) {
 		FlatFlagActionNode ffan=(FlatFlagActionNode)fn1;
 		if (ffan.getTaskType() == FlatFlagActionNode.PRE) {
 		    if (ffan.getTempFlagPairs().hasNext()||ffan.getTempTagPairs().hasNext())
 			throw new Error("PRE FlagActions not supported");
-		} else if (ffan.getTaskType() == FlatFlagActionNode.NEWOBJECT) {
-			//***
-			System.out.println("NEWOBJ");
-			//***
-		    FlagState fsnew=evalNewObjNode(ffan);
-		    //Have we seen this node yet
-		    if(fsnew!=null){
-		    if (! ((Hashtable<FlagState,FlagState>)flagstates.get(fsnew.getClassDescriptor())).containsKey(fsnew)) {
-			((Hashtable<FlagState,FlagState>)flagstates.get(fsnew.getClassDescriptor())).put(fsnew, fsnew);
-			toprocess.add(fsnew);
-		    }
-	    	}
+		    
 		} else if (ffan.getTaskType() == FlatFlagActionNode.TASKEXIT) {
 		    //***
 		    System.out.println("TASKEXIT");
 		    //***
-			
-			Vector<FlagState> fsv_taskexit=evalTaskExitNode(ffan,cd,fs,temp);
+		    
+		    Vector<FlagState> fsv_taskexit=evalTaskExitNode(ffan,cd,fs,temp);
 		    
 		    for(Enumeration en=fsv_taskexit.elements();en.hasMoreElements();){
-			    FlagState fs_taskexit=(FlagState)en.nextElement();
-		    	if (!sourcenodes.containsKey(fs_taskexit)) {
-					toprocess.add(fs_taskexit);
-					
-		    	}
-		    	//seen this node already
-		    	fs_taskexit=canonicalizeFlagState(sourcenodes,fs_taskexit);
-		    	FEdge newedge=new FEdge(fs_taskexit,taskname);
-		    	//FEdge newedge=new FEdge(fs_taskexit,td);
-		    	fs.addEdge(newedge);
-	    	}
+			FlagState fs_taskexit=(FlagState)en.nextElement();
+			if (!sourcenodes.containsKey(fs_taskexit)) {
+			    toprocess.add(fs_taskexit);
+			    
+			}
+			//seen this node already
+			fs_taskexit=canonicalizeFlagState(sourcenodes,fs_taskexit);
+			FEdge newedge=new FEdge(fs_taskexit,taskname);
+			//FEdge newedge=new FEdge(fs_taskexit,td);
+			fs.addEdge(newedge);
+		    }
 		}
 	    }
 	}
     }
 }
+
 
 /** Determines whether the given flagstate satisfies a 
  *  single parameter in the given task.
@@ -321,41 +308,41 @@ private boolean isTaskTrigger_tag(TagExpressionList tel, FlagState fs){
  *  @see FlagState
  */
     
-    private FlagState evalNewObjNode(FlatNode nn){
+private FlagState evalNewObjNode(FlatNode nn){
 	    
-	    ClassDescriptor cd_new=((FlatNew)nn.getPrev(0)).getType().getClassDesc();
+    ClassDescriptor cd_new=((FlatNew)nn.getPrev(0)).getType().getClassDesc();
 	    
 	    
-	    //TempDescriptor[] tdArray = ((FlatFlagActionNode)nn).readsTemps();
-	    
-	    //if (tdArray.length==0)
-	    //	return null;
-				    
-		//Under the safe assumption that all the temps in FFAN.NewObject node are of the same type(class)
-		//ClassDescriptor cd_new=tdArray[0].getType().getClassDesc();
-				    
-		FlagState fstemp=new FlagState(cd_new);
-				    
-		for(Iterator it_tfp=((FlatFlagActionNode)nn).getTempFlagPairs();it_tfp.hasNext();) {
-			TempFlagPair tfp=(TempFlagPair)it_tfp.next();
-			if (! (tfp.getFlag()==null))// condition checks if the new object was created without any flag setting
-			{					
-			   	fstemp=fstemp.setFlag(tfp.getFlag(),((FlatFlagActionNode)nn).getFlagChange(tfp));
-			}
-		
-			else
-				break;
-		}
-		for(Iterator it_ttp=((FlatFlagActionNode)nn).getTempTagPairs();it_ttp.hasNext();) {
-			TempTagPair ttp=(TempTagPair)it_ttp.next();
-			if (! (ttp.getTag()==null)){
-				fstemp=fstemp.setTag(ttp.getTag());
-			}
-			else
-				break;	
-		
-		}
-		return fstemp;
+    //TempDescriptor[] tdArray = ((FlatFlagActionNode)nn).readsTemps();
+    
+    //if (tdArray.length==0)
+    //	return null;
+    
+    //Under the safe assumption that all the temps in FFAN.NewObject node are of the same type(class)
+    //ClassDescriptor cd_new=tdArray[0].getType().getClassDesc();
+    
+    FlagState fstemp=new FlagState(cd_new);
+    
+    for(Iterator it_tfp=((FlatFlagActionNode)nn).getTempFlagPairs();it_tfp.hasNext();) {
+	TempFlagPair tfp=(TempFlagPair)it_tfp.next();
+	if (! (tfp.getFlag()==null))// condition checks if the new object was created without any flag setting
+	    {					
+		fstemp=fstemp.setFlag(tfp.getFlag(),((FlatFlagActionNode)nn).getFlagChange(tfp));
+	    }
+	
+	else
+	    break;
+    }
+    for(Iterator it_ttp=((FlatFlagActionNode)nn).getTempTagPairs();it_ttp.hasNext();) {
+	TempTagPair ttp=(TempTagPair)it_ttp.next();
+	if (! (ttp.getTag()==null)){
+	    fstemp=fstemp.setTag(ttp.getTag());
+	}
+	else
+	    break;	
+	
+    }
+    return fstemp;
 }
 	
 	private Vector<FlagState> evalTaskExitNode(FlatNode nn,ClassDescriptor cd,FlagState fs, TempDescriptor temp){

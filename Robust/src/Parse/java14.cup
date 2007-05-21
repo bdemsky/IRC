@@ -894,6 +894,12 @@ formal_parameter ::=
 		pn.addChild(name);
 		RESULT=pn;
 	:}
+	|
+		TAG variable_declarator_id:name {:
+		ParseNode pn=new ParseNode("tag_parameter");
+		pn.addChild(name);
+		RESULT=pn;
+	:}
 //	|	FINAL type variable_declarator_id
 	;
 //throws_opt ::=	

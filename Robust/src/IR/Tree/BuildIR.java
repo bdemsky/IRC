@@ -674,16 +674,23 @@ public class BuildIR {
 	 ParseNodeVector pnv=paramlist.getChildren();
 	 for(int i=0;i<pnv.size();i++) {
 	     ParseNode paramn=pnv.elementAt(i);
-	     TypeDescriptor type=parseTypeDescriptor(paramn);
 
-	     ParseNode tmp=paramn;
-	     while (tmp.getChild("single")==null) {
-		 type=type.makeArray(state);
-		 tmp=tmp.getChild("array");
+	     if (isNode(paramn, "tag_parameter")) {
+		 String paramname=paramn.getChild("single").getTerminal();
+		 TypeDescriptor type=new TypeDescriptor(TypeDescriptor.TAG);
+		 md.addTagParameter(type, paramname);
+	     } else {
+		 TypeDescriptor type=parseTypeDescriptor(paramn);
+		 
+		 ParseNode tmp=paramn;
+		 while (tmp.getChild("single")==null) {
+		     type=type.makeArray(state);
+		     tmp=tmp.getChild("array");
+		 }
+		 String paramname=tmp.getChild("single").getTerminal();
+		 
+		 md.addParameter(type, paramname);
 	     }
-	     String paramname=tmp.getChild("single").getTerminal();
-	    
-	     md.addParameter(type,paramname);
 	 }
     }
 

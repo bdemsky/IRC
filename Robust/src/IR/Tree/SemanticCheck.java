@@ -70,8 +70,10 @@ public class SemanticCheck {
 		throw new Error("Undefined class "+name);
 	    td.setClassDescriptor(field_cd);
 	    return;
-	}
-	throw new Error();
+	} else if (td.isTag())
+	    return;
+	else
+	    throw new Error();
     }
 
     public void checkField(ClassDescriptor cd, FieldDescriptor fd) {
@@ -452,10 +454,12 @@ public class SemanticCheck {
 		throw new Error("Name "+varname+" undefined");
 	    }
 	    if (d instanceof VarDescriptor) {
-		nn.setVar((VarDescriptor)d);
+		nn.setVar(d);
 	    } else if (d instanceof FieldDescriptor) {
 		nn.setField((FieldDescriptor)d);
 		nn.setVar((VarDescriptor)nametable.get("this")); /* Need a pointer to this */
+	    } else if (d instanceof TagVarDescriptor) {
+		nn.setVar(d);
 	    } else throw new Error("Wrong type of descriptor");
 	    if (td!=null)
 		if (!typeutil.isSuperorType(td,nn.getType()))

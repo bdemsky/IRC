@@ -7,6 +7,7 @@ import IR.Flat.FKind;
 import java.util.*;
 import IR.ClassDescriptor;
 import IR.MethodDescriptor;
+import IR.TypeDescriptor;
 
 public class CallGraph {
     State state;
@@ -48,6 +49,11 @@ public class CallGraph {
 		}
 	    }
 	}
+    }
+
+
+    public Set getMethods(MethodDescriptor md, TypeDescriptor type) {
+	return getMethods(md);
     }
 
     /** Given a call to MethodDescriptor, lists the methods which
@@ -109,7 +115,8 @@ public class CallGraph {
 	    if (fn.kind()==FKind.FlatCall) {
 		FlatCall fc=(FlatCall)fn;
 		MethodDescriptor calledmethod=fc.getMethod();
-		Set methodsthatcouldbecalled=getMethods(calledmethod);
+		Set methodsthatcouldbecalled=fc.getThis()==null?getMethods(calledmethod):
+		    getMethods(calledmethod, fc.getThis().getType());
 		if (!methodmap.containsKey(md))
 		    methodmap.put(md,new HashSet());
 		((HashSet)methodmap.get(md)).addAll(methodsthatcouldbecalled);

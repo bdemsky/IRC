@@ -75,6 +75,7 @@ public class FlatFlagActionNode extends FlatNode {
 	    for(Iterator it=temptagpairs.keySet().iterator();it.hasNext();) {
 		TempTagPair ttp=(TempTagPair)it.next();
 		temps.add(ttp.getTemp());
+		temps.add(ttp.getTagTemp());
 	    }
             return (TempDescriptor[]) temps.toArray(new TempDescriptor [temps.size()]);
 	}
@@ -86,6 +87,18 @@ public class FlatFlagActionNode extends FlatNode {
     }
 
     public String toString() {
-	return "FlatFlagActionNode";
+	String st="FlatFlagActionNode";
+	for(Iterator it=tempflagpairs.keySet().iterator();it.hasNext();) {
+	    TempFlagPair tfp=(TempFlagPair)it.next();
+	    st+=getFlagChange(tfp)?"":"!";
+	    st+=tfp.getTemp()+" "+tfp.getFlag()+",";
+	}
+	for(Iterator it=temptagpairs.keySet().iterator();it.hasNext();) {
+	    TempTagPair ttp=(TempTagPair)it.next();
+	    st+=getTagChange(ttp)?"":"!";
+	    st+=ttp.getTemp()+" "+ttp.getTag()+"("+ttp.getTagTemp()+"),";
+	}
+
+	return st;
     }
 }

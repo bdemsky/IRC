@@ -27,16 +27,27 @@ public class TagVarDescriptor extends Descriptor {
 	return td;
     }
 
+    public TypeDescriptor getType() {
+	return new TypeDescriptor(TypeDescriptor.TAG);
+    }
+
     public boolean equals(Object o) {
 	if (o instanceof TagVarDescriptor) {
 	    TagVarDescriptor tvd=(TagVarDescriptor)o;
-	    return tvd.identifier.equals(identifier)&&tvd.td.equals(td);
+	    if (tvd.identifier.equals(identifier)) {
+		if (tvd.td!=null) {
+		    if (!tvd.td.equals(td))
+			throw new Error();
+		} else if (td!=null)
+		    throw new Error();
+		return true;
+	    }
 	}
 	return false;
     }
 
     public int hashCode() {
-	return identifier.hashCode()^td.hashCode();
+	return identifier.hashCode();
     }
 
     public String toString() {

@@ -17,7 +17,8 @@ public class TypeDescriptor extends Descriptor {
     public static final int DOUBLE=8;
     public static final int VOID=9;
     public static final int NULL=10;
-    public static final int CLASS=11;
+    public static final int TAG=11;
+    public static final int CLASS=12;
 
 
     int arraycount;
@@ -146,6 +147,8 @@ public class TypeDescriptor extends Descriptor {
 	    return "D";
 	else if (isFloat())
 	    return "F";
+	else if (isTag())
+	    return "T";
 	else throw new Error();	
     }
 
@@ -185,7 +188,7 @@ public class TypeDescriptor extends Descriptor {
     }
 
     public boolean isPtr() {
-	return (isClass()||isNull());
+	return (isClass()||isNull()||isTag());
     }
 
     public boolean isIntegerType() {
@@ -203,6 +206,10 @@ public class TypeDescriptor extends Descriptor {
     public boolean isClass() {
 	return type==CLASS;
     }
+    
+    public boolean isTag() {
+	return type==TAG;
+    }
 
     public TypeDescriptor(NameDescriptor name) {
 	super(name.toString());
@@ -211,8 +218,11 @@ public class TypeDescriptor extends Descriptor {
 	this.arraycount=0;
     }
 
-    private TypeDescriptor(String st) {
+    public TypeDescriptor(String st) {
 	super(st);
+	this.type=CLASS;
+	this.class_desc=null;
+	this.arraycount=0;
     }
 
     public ClassDescriptor getClassDesc() {
@@ -260,6 +270,8 @@ public class TypeDescriptor extends Descriptor {
 	    return "void";
 	else if (type==NULL)
 	    return "null";
+	else if (type==TAG)
+	    return TypeUtil.TagClass;
 	else throw new Error();
     }
 }
