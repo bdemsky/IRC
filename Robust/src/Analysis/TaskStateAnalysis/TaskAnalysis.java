@@ -1,5 +1,4 @@
 package Analysis.TaskStateAnalysis;
-import Analysis.TaskStateAnalysis.*;
 import IR.*;
 import IR.Tree.*;
 import IR.Flat.*;
@@ -404,11 +403,16 @@ private FlagState evalNewObjNode(FlatNode nn){
 		FileOutputStream dotstream=new FileOutputStream(dotfile_flagstates,true);
 		FlagState.DOTVisitor.visit(dotstream,((Hashtable)flagstates.get(cd)).values());
 		
-		File dotfile_tasknodes=new File("graph"+cd.getSymbol()+"_task.dot");
-		dotstream=new FileOutputStream(dotfile_tasknodes,true);
-		TaskNode.DOTVisitor.visit(dotstream,(produceTaskNodes((Hashtable)flagstates.get(cd))).values());
     }
 	
+    /** Returns the flag states for the class descriptor. */
+    public Set getFlagStates(ClassDescriptor cd) {
+	if (flagstates.containsKey(cd))
+	    return ((Hashtable)flagstates.get(cd)).keySet();
+	else
+	    return null;
+    }
+
 
     private void createPossibleRuntimeStates(FlagState fs) {
     ClassDescriptor cd = fs.getClassDescriptor();
@@ -446,42 +450,7 @@ private FlagState evalNewObjNode(FlatNode nn){
     }
 	}
 	
-	private TaskNode canonicalizeTaskNode(Hashtable nodes, TaskNode node){
-	if (nodes.containsKey(node))
-	    return (TaskNode)nodes.get(node);
-	else{
-	    nodes.put(node,node);
-	    return (TaskNode)node;
-	}
-    }
-	
-	public Hashtable produceTaskNodes(Hashtable<FlagState,FlagState> fsnodes){
-		
-		Hashtable<TaskNode,TaskNode> tasknodes=new Hashtable<TaskNode,TaskNode>();
-		for(Enumeration en=fsnodes.keys();en.hasMoreElements();){
-			FlagState fs=(FlagState)en.nextElement();
-			
-			Iterator it_inedges=fs.inedges();	
-			TaskNode tn;
-			do{
-				if (!fs.inedges().hasNext()){
-					tn=new TaskNode("Start Node");
-				}else{
-					FEdge inedge=(FEdge)it_inedges.next();
-					tn=new TaskNode(inedge.getLabel());
-				}
-				if(fs.edges().hasNext()){
-					tn=(TaskNode)canonicalizeTaskNode(tasknodes, tn);
-					for (Iterator it_edges=fs.edges();it_edges.hasNext();){
-						TaskNode target=new TaskNode(((FEdge)it_edges.next()).getLabel());
-						target=(TaskNode)canonicalizeTaskNode(tasknodes,target);
-						tn.addEdge(new TEdge(target));
-					}
-				}
-			}while(it_inedges.hasNext());
-		}
-		return tasknodes;
-	}
+
 	
 } 
 

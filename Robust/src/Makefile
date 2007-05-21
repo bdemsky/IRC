@@ -52,6 +52,7 @@ Analysis/TaskStateAnalysis/TagAnalysis.class				\
 Analysis/TaskStateAnalysis/TagBinding.class				\
 Analysis/TaskStateAnalysis/TaskAnalysis.class				\
 Analysis/TaskStateAnalysis/TaskNode.class				\
+Analysis/TaskStateAnalysis/TaskGraph.class				\
 Analysis/CallGraph/CallGraph.class Util/Edge.class			\
 Util/GraphNode.class Util/Relation.class
 

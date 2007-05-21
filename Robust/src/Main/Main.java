@@ -11,6 +11,7 @@ import IR.Flat.BuildCode;
 import IR.State;
 import IR.TypeUtil;
 import Analysis.TaskStateAnalysis.TaskAnalysis;
+import Analysis.TaskStateAnalysis.TaskGraph;
 import Analysis.CallGraph.CallGraph;
 import Analysis.TaskStateAnalysis.TagAnalysis;
 
@@ -111,6 +112,8 @@ public class Main {
 	  TagAnalysis taganalysis=new TagAnalysis(state, callgraph);
 	  TaskAnalysis ta=new TaskAnalysis(state, taganalysis);
 	  ta.taskAnalysis();
+	  TaskGraph tg=new TaskGraph(state, ta);
+	  tg.createDOTfiles();
       }
       
       
