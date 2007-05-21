@@ -167,6 +167,7 @@ private void computeCallsFlags(FlatMethod fm, Hashtable parammap, Set tagbinding
     
     private void computeTagBindings(Set roots) {
 	tovisit.addAll(roots);
+
 	for(Iterator it=roots.iterator();it.hasNext();) {
 	    TagBinding tb=(TagBinding)it.next();
 	    discovered.put(tb,tb);
@@ -180,6 +181,7 @@ private void computeCallsFlags(FlatMethod fm, Hashtable parammap, Set tagbinding
 	    Hashtable parammap=new Hashtable();
 	    int offset=md.isStatic()?0:1;
 
+
 	    for(int i=0;i<fm.numParameters();i++) {
 		TempDescriptor temp=fm.getParameter(i);
 		int offsetindex=i-offset;
@@ -191,8 +193,11 @@ private void computeCallsFlags(FlatMethod fm, Hashtable parammap, Set tagbinding
 		    }
 		}
 	    }
+
 	    HashSet newtags=new HashSet();
+	
 	    computeCallsFlags(fm, parammap, newtags, tb.getAllocations());
+
 	    for(Iterator tagit=newtags.iterator();tagit.hasNext();) {
 		TagBinding newtag=(TagBinding)tagit.next();
 		Edge e=new Edge(newtag);

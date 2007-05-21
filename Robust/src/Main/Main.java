@@ -109,7 +109,6 @@ public class Main {
       if (state.TASKSTATE) {
 	  CallGraph callgraph=new CallGraph(state);
 	  TagAnalysis taganalysis=new TagAnalysis(state, callgraph);
-	  
 	  TaskAnalysis ta=new TaskAnalysis(state, taganalysis);
 	  ta.taskAnalysis();
       }

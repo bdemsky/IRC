@@ -50,6 +50,7 @@ public class TagBinding extends GraphNode {
 			return false;
 		} else if(tb.tdarray[i]!=null)
 		    return false;
+	    return true;
 	}
 	return false;
     }
