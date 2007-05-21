@@ -594,7 +594,7 @@ void executetasks() {
 	}
 	/* Check that object still has necessary tags */
 	for(j=0;j<pd->numbertags;j++) {
-	  int slotid=pd->tagarray[2*i]+numparams;
+	  int slotid=pd->tagarray[2*j]+numparams;
 	  struct ___TagDescriptor___ *tagd=currtpd->parameterArray[slotid];
 	  if (!containstag(parameter, tagd)) {
 	    RUNFREE(currtpd->parameterArray);
