@@ -9,16 +9,15 @@ import Util.Edge;
 
 public class TEdge extends Edge{
 	
-	private String target;
-	
-	public TEdge(TaskNode target){
-		super(target);
-	}
+    
+    public TEdge(TaskNode target){
+	super(target);
+    }
 	
 	   
 	 
     public int hashCode(){
-	return target.hashCode()^target.toString().hashCode();
+	return target.hashCode();
     }
     
 	

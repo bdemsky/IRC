@@ -259,7 +259,9 @@ private void analyseTasks(FlagState fs) {
 
 
 private boolean isTaskTrigger_flag(FlagExpressionNode fen,FlagState fs) {
-    if (fen instanceof FlagNode)
+    if (fen==null)
+	return true;
+    else if (fen instanceof FlagNode)
 	return fs.get(((FlagNode)fen).getFlag());
     else
 	switch (((FlagOpNode)fen).getOp().getOp()) {
