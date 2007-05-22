@@ -7,6 +7,7 @@ echo -recover compile task code
 echo -specdir directory
 echo -taskstate do task state analysis
 echo -debug generate debug symbols
+echo -webinterface enable web interface
 echo -runtimedebug printout runtime debug messages
 echo "-thread use support for multiple threads"
 echo "-optimize call gcc with -O9 (optimize)"
@@ -61,6 +62,9 @@ elif [[ $1 = '-recover' ]]
 then
 RECOVERFLAG=true
 JAVAOPTS="$JAVAOPTS -task"
+elif [[ $1 = '-webinterface' ]]
+then
+JAVAOPTS="$JAVAOPTS -webinterface"
 elif [[ $1 = '-instructionfailures' ]]
 then
 JAVAOPTS="$JAVAOPTS -instructionfailures"

@@ -14,6 +14,7 @@ import Analysis.TaskStateAnalysis.TaskAnalysis;
 import Analysis.TaskStateAnalysis.TaskGraph;
 import Analysis.CallGraph.CallGraph;
 import Analysis.TaskStateAnalysis.TagAnalysis;
+import Interface.*;
 
 public class Main {
 
@@ -43,6 +44,8 @@ public class Main {
 	      state.TASKSTATE=true;
 	  else if (option.equals("-thread"))
 	      state.THREAD=true;
+	  else if (option.equals("-webinterface"))
+	      state.WEBINTERFACE=true;
 	  else if (option.equals("-instructionfailures"))
 	      state.INSTRUCTIONFAILURE=true;
 	  else if (option.equals("-help")) {
@@ -57,6 +60,7 @@ public class Main {
 	      System.out.println("-thread -- threads");
 	      System.out.println("-instructionfailures -- insert code for instruction level failures");
 	      System.out.println("-taskstate -- do task state analysis");
+	      System.out.println("-webinterface -- enable web interface");
 	      System.out.println("-help -- print out help");
 	      System.exit(0);
 	  } else {
@@ -107,15 +111,25 @@ public class Main {
       BuildFlat bf=new BuildFlat(state,tu);
       bf.buildFlat();
 
+      CallGraph callgraph=null;
+      TagAnalysis taganalysis=null;
+      TaskGraph tg=null;
+      TaskAnalysis ta=null;
+
       if (state.TASKSTATE) {
-	  CallGraph callgraph=new CallGraph(state);
-	  TagAnalysis taganalysis=new TagAnalysis(state, callgraph);
-	  TaskAnalysis ta=new TaskAnalysis(state, taganalysis);
+	  callgraph=new CallGraph(state);
+	  taganalysis=new TagAnalysis(state, callgraph);
+	  ta=new TaskAnalysis(state, taganalysis);
 	  ta.taskAnalysis();
-	  TaskGraph tg=new TaskGraph(state, ta);
+	  tg=new TaskGraph(state, ta);
 	  tg.createDOTfiles();
       }
-      
+
+      if (state.WEBINTERFACE) {
+	  WebInterface wi=new WebInterface(state, ta, tg);
+	  JhttpServer serve=new JhttpServer(8000,wi);
+	  serve.run();
+      }
       
       
       BuildCode bc=new BuildCode(state, bf.getMap(), tu);

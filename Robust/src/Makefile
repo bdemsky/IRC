@@ -54,7 +54,13 @@ Analysis/TaskStateAnalysis/TaskAnalysis.class				\
 Analysis/TaskStateAnalysis/TaskNode.class				\
 Analysis/TaskStateAnalysis/TaskGraph.class				\
 Analysis/CallGraph/CallGraph.class Util/Edge.class			\
-Util/GraphNode.class Util/Relation.class
+Util/GraphNode.class Util/Relation.class Util/Namer.class		\
+Interface/WebInterface.class Interface/HTTPHeader.class			\
+Interface/JhttpWorker.class Interface/HTTPResponse.class		\
+Interface/LogFile.class Interface/HTTPServices.class			\
+Interface/Pair.class Interface/HashStrings.class			\
+Interface/JhttpServer.class
+
 
 
 all: Parse/Sym.class Parse/Parser.class $(CLASSFILES) javadoc

@@ -84,7 +84,9 @@ public class TaskGraph {
 		    for (Iterator it_edges=fs.edges();it_edges.hasNext();){
 			TaskNode target=new TaskNode(((FEdge)it_edges.next()).getLabel());
 			target=(TaskNode)canonicalizeTaskNode(tasknodes,target);
-			tn.addEdge(new TEdge(target));
+			TEdge tedge=new TEdge(target);
+			//			if (!tn.edges.contains(tedge))
+			    tn.addEdge(new TEdge(target));
 		    }
 		}
 	    } while(it_inedges.hasNext());

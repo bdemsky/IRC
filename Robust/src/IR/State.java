@@ -22,6 +22,7 @@ public class State {
 
     /** Boolean flag which indicates whether compiler is compiling a task-based
      * program. */
+    public boolean WEBINTERFACE;
     public boolean TASK;
     public boolean TASKSTATE=false;
     public boolean THREAD=false;

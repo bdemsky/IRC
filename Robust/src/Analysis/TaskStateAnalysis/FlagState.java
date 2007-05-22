@@ -22,14 +22,6 @@ public class FlagState extends GraphNode {
     private final ClassDescriptor cd;
     private final Hashtable<TagDescriptor,Integer> tags;
 
-    public void setOption(String option) {
-	this.nodeoption=","+option;
-    }
-
-    public void setMerge() {
-	merge=true;
-    }
-
     /** Class constructor
      *  Creates a new flagstate with all flags set to false.
      *	@param cd ClassDescriptor

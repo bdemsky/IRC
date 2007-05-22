@@ -9,14 +9,10 @@ import Util.GraphNode;
 
 public class TaskNode extends GraphNode {
 	
-	private final String name;
-	private int uid;
+    private final String name;
+    private int uid;
     private static int nodeid=0;
     
-    public void setOption(String option) {
-	this.nodeoption=","+option;
-    }
-
     /**Class Constructor
      * Creates a new TaskNode using the TaskDescriptor.
      * @param tasknode TaskDescriptor
