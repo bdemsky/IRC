@@ -184,7 +184,6 @@ public class GraphNode {
 
         private void make() {
             output.println("digraph dotvisitor {");
-            output.println("\trotate=90;");
 	    /*            output.println("\tpage=\"8.5,11\";");
 			  output.println("\tnslimit=1000.0;");
 			  output.println("\tnslimit1=1000.0;");
