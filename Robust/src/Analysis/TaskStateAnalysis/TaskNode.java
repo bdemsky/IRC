@@ -53,6 +53,15 @@ public class TaskNode extends GraphNode {
         }
         return false;
     }
+    
+    public boolean edgeExists(TEdge newedge){
+	    if(edges.isEmpty())
+	    	return false;
+	    else
+	        return edges.contains(newedge);
+    }
+	    
+    
 }
 	
      

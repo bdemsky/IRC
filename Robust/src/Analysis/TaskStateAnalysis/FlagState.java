@@ -21,6 +21,7 @@ public class FlagState extends GraphNode {
     private final HashSet flagstate;
     private final ClassDescriptor cd;
     private final Hashtable<TagDescriptor,Integer> tags;
+    private boolean issourcenode;
 
     /** Class constructor
      *  Creates a new flagstate with all flags set to false.
@@ -31,6 +32,7 @@ public class FlagState extends GraphNode {
 	this.cd=cd;
 	this.tags=new Hashtable<TagDescriptor,Integer>();
 	this.uid=FlagState.nodeid++;
+	this.issourcenode=false;
     }
 
     /** Class constructor
@@ -44,6 +46,7 @@ public class FlagState extends GraphNode {
 	this.cd=cd;
 	this.tags=tags;
 	this.uid=FlagState.nodeid++;
+	this.issourcenode=false;
 	
     }
     
@@ -54,6 +57,20 @@ public class FlagState extends GraphNode {
     public boolean get(FlagDescriptor fd) {
 	return flagstate.contains(fd);
     }
+    
+    /** Checks if the flagstate is a source node. 
+     *  @return true if the flagstate is a sourcenode(i.e. Is the product of an allocation site).
+     */
+      
+    public boolean isSourceNode(){
+	    return issourcenode;
+   	}
+   	
+   	/**  Sets the flagstate as a source node. 
+     */
+   	public void setAsSourceNode(){
+	   	issourcenode=true;
+   	}
 
     
     public String toString() {

@@ -28,6 +28,7 @@ public class TaskAnalysis {
 	this.state=state;
 	this.typeutil=new TypeUtil(state);
 	this.taganalysis=taganalysis;
+	
     }
     
     /** Builds a table of flags for each class in the Bristlecone program.  
@@ -203,6 +204,8 @@ private void analyseTasks(FlagState fs) {
 	Set newstates=taganalysis.getFlagStates(td);
 	for(Iterator fsit=newstates.iterator();fsit.hasNext();) {
 	    FlagState fsnew=(FlagState) fsit.next();
+	    fsnew.setAsSourceNode();
+	    
 	    if (! ((Hashtable<FlagState,FlagState>)flagstates.get(fsnew.getClassDescriptor())).containsKey(fsnew)) {
 		((Hashtable<FlagState,FlagState>)flagstates.get(fsnew.getClassDescriptor())).put(fsnew, fsnew);
 		toprocess.add(fsnew);
