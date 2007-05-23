@@ -103,6 +103,22 @@ public class GraphNode {
         return this.status;
     }
 
+    public int numedges() {
+	return edges.size();
+    }
+
+    public int numinedges() {
+	return inedges.size();
+    }
+
+    public Edge getedge(int i) {
+	return (Edge) edges.get(i);
+    }
+
+    public Edge getinedge(int i) {
+	return (Edge) inedges.get(i);
+    }
+
     public Iterator edges() {
         return edges.iterator();
     }
@@ -234,8 +250,8 @@ public class GraphNode {
 
 			    for(int i=0;i<namers.size();i++) {
 				Namer name=(Namer) namers.get(i);
-				String newlabel=name.edgeLabel(gn, edge);
-				String newoption=name.edgeOption(gn, edge);
+				String newlabel=name.edgeLabel(edge);
+				String newoption=name.edgeOption(edge);
 				if (!newlabel.equals("")&& ! edgelabel.equals(""))
 				    edgelabel+=", ";
 				edgelabel+=newlabel;

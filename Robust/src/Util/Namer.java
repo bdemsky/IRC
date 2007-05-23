@@ -11,11 +11,11 @@ public class Namer {
 	return gn.dotnodeparams;
     }
 
-    public String edgeLabel(GraphNode src, Edge e) {
+    public String edgeLabel(Edge e) {
 	return e.getLabel();
     }
 
-    public String edgeOption(GraphNode src, Edge e) {
+    public String edgeOption(Edge e) {
 	return e.dotnodeparams;
     }
 }
