@@ -14,6 +14,7 @@ import Analysis.TaskStateAnalysis.TaskAnalysis;
 import Analysis.TaskStateAnalysis.TaskGraph;
 import Analysis.CallGraph.CallGraph;
 import Analysis.TaskStateAnalysis.TagAnalysis;
+import Analysis.TaskStateAnalysis.GarbageAnalysis;
 import Interface.*;
 
 public class Main {
@@ -111,25 +112,23 @@ public class Main {
       BuildFlat bf=new BuildFlat(state,tu);
       bf.buildFlat();
 
-      CallGraph callgraph=null;
-      TagAnalysis taganalysis=null;
-      TaskGraph tg=null;
-      TaskAnalysis ta=null;
-
       if (state.TASKSTATE) {
-	  callgraph=new CallGraph(state);
-	  taganalysis=new TagAnalysis(state, callgraph);
-	  ta=new TaskAnalysis(state, taganalysis);
+	  CallGraph callgraph=new CallGraph(state);
+	  TagAnalysis taganalysis=new TagAnalysis(state, callgraph);
+	  TaskAnalysis ta=new TaskAnalysis(state, taganalysis);
 	  ta.taskAnalysis();
-	  tg=new TaskGraph(state, ta);
+	  TaskGraph tg=new TaskGraph(state, ta);
 	  tg.createDOTfiles();
+	  if (state.WEBINTERFACE) {
+	      GarbageAnalysis ga=new GarbageAnalysis(state, ta);
+	      WebInterface wi=new WebInterface(state, ta, tg, ga);
+	      JhttpServer serve=new JhttpServer(8000,wi);
+	      serve.run();
+	  }
+
+
       }
 
-      if (state.WEBINTERFACE) {
-	  WebInterface wi=new WebInterface(state, ta, tg);
-	  JhttpServer serve=new JhttpServer(8000,wi);
-	  serve.run();
-      }
       
       
       BuildCode bc=new BuildCode(state, bf.getMap(), tu);

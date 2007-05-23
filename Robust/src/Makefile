@@ -53,6 +53,7 @@ Analysis/TaskStateAnalysis/TagBinding.class				\
 Analysis/TaskStateAnalysis/TaskAnalysis.class				\
 Analysis/TaskStateAnalysis/TaskNode.class				\
 Analysis/TaskStateAnalysis/TaskGraph.class				\
+Analysis/TaskStateAnalysis/GarbageAnalysis.class			\
 Analysis/CallGraph/CallGraph.class Util/Edge.class			\
 Util/GraphNode.class Util/Relation.class Util/Namer.class		\
 Interface/WebInterface.class Interface/HTTPHeader.class			\

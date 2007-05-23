@@ -3,6 +3,7 @@ import java.io.*;
 import Analysis.TaskStateAnalysis.*;
 import IR.*;
 import java.util.*;
+import Util.Namer;
 
 public class WebInterface {
     TaskAnalysis taskanalysis;
@@ -10,11 +11,14 @@ public class WebInterface {
     State state;
     Hashtable taskmap;
     Hashtable taskgraphmap;
+    GarbageAnalysis garbageanalysis;
 
-    public WebInterface(State state, TaskAnalysis taskanalysis, TaskGraph taskgraph) {
+    public WebInterface(State state, TaskAnalysis taskanalysis, TaskGraph taskgraph, GarbageAnalysis garbageanalysis) {
 	this.state=state;
 	this.taskanalysis=taskanalysis;
 	this.taskgraph=taskgraph;
+	this.garbageanalysis=garbageanalysis;
+
 	taskmap=new Hashtable();
 	taskgraphmap=new Hashtable();
     }
@@ -43,11 +47,14 @@ public class WebInterface {
     private String flagstate(ClassDescriptor cd, BufferedWriter out, HTTPResponse resp) {
 	Set objects=taskanalysis.getFlagStates(cd);
 	File file=new File(cd.getSymbol()+".dot");
+	Vector namers=new Vector();
+	namers.add(new Namer());
+	namers.add(garbageanalysis);
 	try {
 	    //Generate jpg
 	    Runtime r=Runtime.getRuntime();
 	    FileOutputStream dotstream=new FileOutputStream(file,false);
-	    FlagState.DOTVisitor.visit(dotstream, objects);
+	    FlagState.DOTVisitor.visit(dotstream, objects, namers);
 	    dotstream.close();
 	    Process p=r.exec("dot -Tjpg "+cd.getSymbol()+".dot -o"+cd.getSymbol()+".jpg");
 	    p.waitFor();
@@ -99,7 +106,6 @@ public class WebInterface {
 		pw.println("<br>");
 		taskgraphmap.put("/"+cd.getSymbol()+"-t.html", cd);
 	    }
-
 	}
 	pw.flush();
 	return null;
