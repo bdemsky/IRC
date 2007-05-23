@@ -50,6 +50,7 @@ public class WebInterface {
 	Vector namers=new Vector();
 	namers.add(new Namer());
 	namers.add(garbageanalysis);
+	namers.add(new Allocations());
 	try {
 	    //Generate jpg
 	    Runtime r=Runtime.getRuntime();
