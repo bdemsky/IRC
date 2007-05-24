@@ -47,6 +47,7 @@ IR/Tree/TagEffect.class IR/Tree/TagExpressionList.class			\
 IR/Tree/TaskExitNode.class IR/Tree/TreeNode.class			\
 IR/Tree/Walkable.class Analysis/TaskStateAnalysis/FEdge.class		\
 Analysis/TaskStateAnalysis/FlagState.class				\
+Analysis/TaskStateAnalysis/Allocations.class				\
 Analysis/TaskStateAnalysis/TEdge.class					\
 Analysis/TaskStateAnalysis/TagAnalysis.class				\
 Analysis/TaskStateAnalysis/TagBinding.class				\
@@ -78,7 +79,7 @@ javadoc:
 	javadoc -classpath ../cup:.:$(CLASSPATH) -sourcepath . -private -d javadoc Lex Util IR IR.Tree IR.Flat Analysis Analysis.CallGraph Analysis.Flag Analysis.TaskStateAnalysis Main 
 
 clean:
-	rm IR/*.class IR/Tree/*.class Main/*.class Lex/*.class Parse/*.class Parse/Sym.java Parse/Parser.java IR/Flat/*.class classdefs.h methodheaders.h methods.c structdefs.h virtualtable.h task.h taskdefs.c taskdefs.h Analysis/*.class Analysis/Flag/*.class Analysis/CallGraph/*.class  Analysis/TaskStateAnalysis/*.class Util/Relation/*.class
+	rm IR/*.class IR/Tree/*.class Main/*.class Lex/*.class Parse/*.class Parse/Sym.java Parse/Parser.java IR/Flat/*.class classdefs.h methodheaders.h methods.c structdefs.h virtualtable.h task.h taskdefs.c taskdefs.h Analysis/*.class Analysis/Flag/*.class Analysis/CallGraph/*.class  Analysis/TaskStateAnalysis/*.class Util/Relation/*.class Interface/*.class
 
 cleandoc:
 	rm -rf javadoc

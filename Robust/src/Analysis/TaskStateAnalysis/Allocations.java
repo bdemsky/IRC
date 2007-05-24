@@ -1,7 +1,7 @@
 package Analysis.TaskStateAnalysis;
 import Util.*;
 
-public class Allocations {
+public class Allocations extends Namer {
     public Allocations() {}
 
     public String nodeLabel(GraphNode gn) {

@@ -981,7 +981,7 @@ public class BuildCode {
 	HashSet visited=new HashSet();
 	int labelindex=0;
 	Hashtable nodetolabel=new Hashtable();
-	tovisit.add(fm.methodEntryNode());
+	tovisit.add(fm.getNext(0));
 	FlatNode current_node=null;
 
 	//Assign labels 1st
@@ -1012,7 +1012,7 @@ public class BuildCode {
 	//Do the actual code generation
 	tovisit=new HashSet();
 	visited=new HashSet();
-	tovisit.add(fm.methodEntryNode());
+	tovisit.add(fm.getNext(0));
 	while(current_node!=null||!tovisit.isEmpty()) {
 	    if (current_node==null) {
 		current_node=(FlatNode)tovisit.iterator().next();

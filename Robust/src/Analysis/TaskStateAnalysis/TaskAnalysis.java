@@ -119,12 +119,14 @@ public class TaskAnalysis {
 	ClassDescriptor startupobject=typeutil.getClass(TypeUtil.StartupClass);
 	
 	sourcenodes=(Hashtable<FlagState,FlagState>)flagstates.get(startupobject);
-	
 	FlagState fsstartup=new FlagState(startupobject);
+	
+	
 	FlagDescriptor[] fd=(FlagDescriptor[])flags.get(startupobject);
 	
 	fsstartup=fsstartup.setFlag(fd[0],true);
-	
+	fsstartup.setAsSourceNode();
+
 	sourcenodes.put(fsstartup,fsstartup);
 	toprocess.add(fsstartup);
 	
@@ -212,13 +214,21 @@ private void analyseTasks(FlagState fs) {
 	    }
 	}
 	
+	Stack nodestack=new Stack();
+	HashSet discovered=new HashSet();
+	nodestack.push(fm);
+	discovered.add(fm);
 	//Iterating through the nodes
-	Set nodeset=fm.getNodeSet();
 	
-	for(Iterator nodeit=nodeset.iterator();nodeit.hasNext();) {
-	    FlatNode fn1 = (FlatNode) nodeit.next();
+	while(!nodestack.isEmpty()) {
+	    FlatNode fn1 = (FlatNode) nodestack.pop();
 	    
-	    if (fn1.kind()==FKind.FlatFlagActionNode) {
+	    if (fn1.kind()==FKind.FlatReturnNode) {
+		/* Self edge */
+		FEdge newedge=new FEdge(fs, taskname);
+		fs.addEdge(newedge);
+		continue;
+	    } else if (fn1.kind()==FKind.FlatFlagActionNode) {
 		FlatFlagActionNode ffan=(FlatFlagActionNode)fn1;
 		if (ffan.getTaskType() == FlatFlagActionNode.PRE) {
 		    if (ffan.getTempFlagPairs().hasNext()||ffan.getTempTagPairs().hasNext())
@@ -243,6 +253,15 @@ private void analyseTasks(FlagState fs) {
 			//FEdge newedge=new FEdge(fs_taskexit,td);
 			fs.addEdge(newedge);
 		    }
+		    continue;
+		}
+	    }
+	    /* Queue other nodes past this one */
+	    for(int i=0;i<fn1.numNext();i++) {
+		FlatNode fnext=fn1.getNext(i);
+		if (!discovered.contains(fnext)) {
+		    discovered.add(fnext);
+		    nodestack.push(fnext);
 		}
 	    }
 	}

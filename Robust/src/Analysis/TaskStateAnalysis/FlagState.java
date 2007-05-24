@@ -246,7 +246,7 @@ public class FlagState extends GraphNode {
 		}
 	}
 	if (label==null)
-	    return "";
+	    return " ";
 	return label;
     }
     

@@ -103,7 +103,7 @@ public class WebInterface {
 		taskmap.put("/"+cd.getSymbol()+".html", cd);
 	    }
 	    if (taskgraph.getTaskNodes(cd)!=null) {
-		pw.println("<a href=\""+cd.getSymbol()+"-t.html\">"+ cd.getSymbol() +"</a>");
+		pw.println("<a href=\""+cd.getSymbol()+"-t.html\">Task Graph "+ cd.getSymbol() +"</a>");
 		pw.println("<br>");
 		taskgraphmap.put("/"+cd.getSymbol()+"-t.html", cd);
 	    }

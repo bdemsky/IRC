@@ -35,11 +35,18 @@ public class BuildFlat {
     
     private void flattenTask(TaskDescriptor td) {
 	BlockNode bn=state.getMethodBody(td);
-	FlatNode fn=flattenBlockNode(bn).getBegin();
+	NodePair np=flattenBlockNode(bn);
+	FlatNode fn=np.getBegin();
+	if (np.getEnd().kind()!=FKind.FlatReturnNode) {
+	    FlatReturnNode rnflat=new FlatReturnNode(null);
+	    np.getEnd().addNext(rnflat);
+	}
+
 	FlatFlagActionNode ffan=new FlatFlagActionNode(FlatFlagActionNode.PRE);
 	ffan.addNext(fn);
 
-	FlatMethod fm=new FlatMethod(td, ffan);
+	FlatMethod fm=new FlatMethod(td);
+	fm.addNext(ffan);
 
 	HashSet visitedset=new HashSet();
 
@@ -108,10 +115,16 @@ public class BuildFlat {
 		    MethodDescriptor memdex=(MethodDescriptor)typeutil.getClass("Object").getMethodTable().get("MonitorExit");
 		    FlatCall fcunlock=new FlatCall(memdex, null, thistd, new TempDescriptor[0]);
 		    np.getEnd().addNext(fcunlock);
+		    FlatReturnNode rnflat=new FlatReturnNode(null);
+		    fcunlock.addNext(rnflat);
 		}
+	    } else if (np.getEnd().kind()!=FKind.FlatReturnNode) {
+		FlatReturnNode rnflat=new FlatReturnNode(null);
+		np.getEnd().addNext(rnflat);
 	    }
 
-	    FlatMethod fm=new FlatMethod(currmd, fn);
+	    FlatMethod fm=new FlatMethod(currmd);
+	    fm.addNext(fn);
 	    if (!currmd.isStatic())
 		fm.addParameterTemp(getTempforParam(currmd.getThis()));
 	    for(int i=0;i<currmd.numParameters();i++) {

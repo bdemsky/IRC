@@ -4,26 +4,23 @@ import IR.TaskDescriptor;
 import java.util.*;
 
 public class FlatMethod extends FlatNode {
-    FlatNode method_entry;
     MethodDescriptor method;
     TaskDescriptor task;
     Vector parameterTemps;
     Vector tagTemps;
     Hashtable tagtointmap;
 
-    FlatMethod(MethodDescriptor md, FlatNode entry) {
+    FlatMethod(MethodDescriptor md) {
 	method=md;
 	task=null;
-	method_entry=entry;
 	parameterTemps=new Vector();
 	tagTemps=new Vector();
 	tagtointmap=new Hashtable();
     }
 
-    FlatMethod(TaskDescriptor td, FlatNode entry) {
+    FlatMethod(TaskDescriptor td) {
 	task=td;
 	method=null;
-	method_entry=entry;
 	parameterTemps=new Vector();
 	tagTemps=new Vector();
 	tagtointmap=new Hashtable();
@@ -74,16 +71,12 @@ public class FlatMethod extends FlatNode {
 	return (TempDescriptor) parameterTemps.get(i);
     }
 
-    public FlatNode methodEntryNode() {
-	return method_entry;
-    }
-
     /** This method returns a set of the nodes in this flat representation */
 
     public Set getNodeSet() {
 	HashSet tovisit=new HashSet();
 	HashSet visited=new HashSet();
-	tovisit.add(method_entry);
+	tovisit.add(this);
 	while(!tovisit.isEmpty()) {
 	    FlatNode fn=(FlatNode)tovisit.iterator().next();
 	    tovisit.remove(fn);
@@ -106,7 +99,7 @@ public class FlatMethod extends FlatNode {
 	HashSet visited=new HashSet();
 	int labelindex=0;
 	Hashtable nodetolabel=new Hashtable();
-	tovisit.add(method_entry);
+	tovisit.add(this);
 	FlatNode current_node=null;
 	//Assign labels 1st
 	//Node needs a label if it is
@@ -135,7 +128,7 @@ public class FlatMethod extends FlatNode {
 	//Do the actual printing
 	tovisit=new HashSet();
 	visited=new HashSet();
-	tovisit.add(method_entry);
+	tovisit.add(this);
 	while(current_node!=null||!tovisit.isEmpty()) {
 	    if (current_node==null) {
 		current_node=(FlatNode)tovisit.iterator().next();
