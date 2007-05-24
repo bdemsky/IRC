@@ -42,7 +42,7 @@ public class TTTServerSocket {
 			//Get col
 			String s2 = new String(s.subString(i1+2));
 			int i2 = s2.indexOf(':');
-			String colStr = new String(s.subString(i2+1, i2+2));
+			String colStr = new String(s2.subString(i2+1, i2+2));
 			col = Integer.parseInt(colStr);
 			return 1;
 			
@@ -59,8 +59,8 @@ public class TTTServerSocket {
 	}
 	
 	public void sendBoardDisplay(Board theBoard, Socket s) {
-		StringBuffer line1 = new String ("display_");
-
+		StringBuffer line1 = new StringBuffer("\n\n");
+		
 		for (int i = 0; i < 3; i++) {
 			for (int j = 0; j < 3; j++) {
 				if (theBoard.board[i][j] == 1)
@@ -70,7 +70,7 @@ public class TTTServerSocket {
 				else
 					line1.append("-");
 			}
-			line1.append("_");
+			line1.append("\n");
 		}
 		String towrite = new String(line1);
 		s.write(towrite.getBytes());
