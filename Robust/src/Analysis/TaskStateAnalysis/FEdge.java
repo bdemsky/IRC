@@ -11,7 +11,9 @@ import Util.Edge;
 public class FEdge extends Edge {
 
     private String label;
-    
+    /** Class Constructor
+     * 
+     */
     public FEdge(FlagState target, String label) {
 	super(target);
 	this.label = label;
