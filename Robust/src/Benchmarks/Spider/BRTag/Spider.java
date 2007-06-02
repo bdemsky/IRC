@@ -95,7 +95,9 @@ task processPage(Query q{received&&!processed}, QueryList ql{initialized}) {
 		System.printString("        ");
 		System.printString(q.getPathName(match));
 		System.printString("\n");
-		Query newq=new Query(q.getHostName(match), q.getPathName(match)){};
+		tag t=new tag(connect);
+		Socket s=new Socket(){}{t};
+		Query newq=new Query(q.getHostName(match), q.getPathName(match)){}{t};
 	    }
 	    index=endquote;
 	} else cont=false;
