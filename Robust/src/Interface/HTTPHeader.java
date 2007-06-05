@@ -57,7 +57,7 @@ public class HTTPHeader{
 // Purpose:     Send an HTTP header
 //*************************************************************************
 
-  static public void send_header(BufferedWriter out, int returnCode,
+  static public void send_header(OutputStream out, int returnCode,
 				   String filename, long fileLength){
       String contentType  = getContentTypeFor(filename);
       String returnString = (String) rc.get(String.valueOf(returnCode));
@@ -72,10 +72,10 @@ public class HTTPHeader{
 	  "Content-Type: " + contentType + "\n" +        // type
 	  "Content-Length: "+ fileLength + "\n\n";       // length
       try{
-	  out.write(header,0,header.length());
+	  out.write(header.getBytes());
       }
       catch(IOException e){
-	  ; // do nothing!
+	  e.printStackTrace(); // do nothing!
       }
   }
 

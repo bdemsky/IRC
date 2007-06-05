@@ -34,20 +34,18 @@ public class JhttpWorker extends Thread{
 	HTTPResponse resp = new HTTPResponse();
 
 	BufferedReader  in = null;
-	BufferedWriter out = null;
+	OutputStream out = null;
 
 	resp.returnCode = 200;
 	resp.sentBytes = 0;
 
-	try{
+	try {
 
 	    in = new BufferedReader(
 		   new InputStreamReader(
 		    client.getInputStream()));
 
-	    out = new BufferedWriter(
-		   new OutputStreamWriter(
-		    client.getOutputStream()));
+	    out = client.getOutputStream();
 	}
 	catch(IOException e){
 	    // I'm not too good at HTTP. Normally, we should put some
@@ -59,6 +57,7 @@ public class JhttpWorker extends Thread{
 	if(resp.returnCode == 200){
 	    // call the appropriate hanndler
 	    switch(method(in)){
+
 	    case 0:
 		if (webinterface.specialRequest(fileName)) {
 		    String newfile=webinterface.handleresponse(fileName, out, resp);

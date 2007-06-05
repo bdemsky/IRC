@@ -34,7 +34,7 @@ public class WebInterface {
 	return false;
     }
 
-    public String handleresponse(String filename, BufferedWriter out, HTTPResponse resp) {
+    public String handleresponse(String filename, OutputStream out, HTTPResponse resp) {
 	if (filename.equals("/index.html"))
 	    return indexpage(out, resp);
 	if (taskmap.containsKey(filename))
@@ -44,7 +44,7 @@ public class WebInterface {
 	return "NORESP";
     }
 
-    private String flagstate(ClassDescriptor cd, BufferedWriter out, HTTPResponse resp) {
+    private String flagstate(ClassDescriptor cd, OutputStream out, HTTPResponse resp) {
 	Set objects=taskanalysis.getFlagStates(cd);
 	File file=new File(cd.getSymbol()+".dot");
 	Vector namers=new Vector();
@@ -70,7 +70,7 @@ public class WebInterface {
 	return null;
     }
 
-    private String taskstate(ClassDescriptor cd, BufferedWriter out, HTTPResponse resp) {
+    private String taskstate(ClassDescriptor cd, OutputStream out, HTTPResponse resp) {
 	Set objects=taskgraph.getTaskNodes(cd);
 	File file=new File(cd.getSymbol()+"-t.dot");
 	try {
@@ -93,7 +93,7 @@ public class WebInterface {
     }
 
 
-    private String indexpage(BufferedWriter out, HTTPResponse resp) {
+    private String indexpage(OutputStream out, HTTPResponse resp) {
 	PrintWriter pw=new PrintWriter(out);
 	for(Iterator it_classes=state.getClassSymbolTable().getDescriptorsIterator();it_classes.hasNext();) {
 	    ClassDescriptor cd=(ClassDescriptor) it_classes.next();

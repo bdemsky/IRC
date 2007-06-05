@@ -7,8 +7,7 @@ public class HTTPServices{
 
     static private String webRoot = ".";
 
-    static private Reader get_reader(String fileName,HTTPResponse resp) throws IOException{
-	try{
+    static private FileInputStream get_reader(String fileName,HTTPResponse resp) throws IOException{
 //  	    if(fileName.equals("/daytime")){
 //  		String date_str = (new Date()).toString();
 //  		resp.sentBytes = date_str.length();
@@ -23,24 +22,18 @@ public class HTTPServices{
 	    
 	    File f = new File(fileName);
 	    resp.sentBytes = f.length();
-	    return new FileReader(f);
-	}
-	catch(IOException e){
-	    resp.returnCode = 501;
-	    return
-		new StringReader("Error accessing " + fileName);
-	}
+	    return new FileInputStream(f);
     }
 
-    public static void GET_handler(String fileName, BufferedWriter out,HTTPResponse resp){
+    public static void GET_handler(String fileName, OutputStream out, HTTPResponse resp){
 	
-	BufferedReader reader  = null;
-	char buffer[];
+	FileInputStream reader  = null;
+	byte buffer[];
 	int size;
 
 	if((reader = HEAD_handler_int(fileName,out,resp)) == null) return;
 
-	buffer = new char[1024];
+	buffer = new byte[1024];
 
 	try{
 	    while((size = reader.read(buffer,0,buffer.length)) != -1)
@@ -54,16 +47,16 @@ public class HTTPServices{
 
     }
 
-    public static void POST_handler(String fileName, BufferedWriter out, HTTPResponse resp){
-	GET_handler(fileName,out,resp);
+    public static void POST_handler(String fileName, OutputStream out, HTTPResponse resp){
+	GET_handler(fileName,out, resp);
     }
 
-    static private BufferedReader HEAD_handler_int(String fileName,
-						    BufferedWriter out,HTTPResponse resp){
-	BufferedReader reader = null;
+    static private FileInputStream HEAD_handler_int(String fileName,
+						    OutputStream out,HTTPResponse resp){
+	FileInputStream reader = null;
 
 	try{
-	    reader = new BufferedReader(get_reader(fileName, resp));
+	    reader = get_reader(fileName, resp);
 	    resp.returnCode = 200;
 	}
 	catch(IOException e){
@@ -82,7 +75,7 @@ public class HTTPServices{
 	
 
     public static void HEAD_handler(String fileName, 
-				   BufferedWriter out, HTTPResponse resp){
+				   OutputStream out, HTTPResponse resp){
 	HEAD_handler_int(fileName,out,resp);
     }
 }
