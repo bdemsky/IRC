@@ -33,6 +33,9 @@ public class TaskNode extends GraphNode {
 	return "N"+uid;
     }
 
+    public String getName(){
+	    return name;
+    }
  	
  	/**toString method.
  	 * @return  string representation of the tasknode (e.g "Task foo")

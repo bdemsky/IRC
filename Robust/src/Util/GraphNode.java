@@ -98,6 +98,10 @@ public class GraphNode {
     public String getTextLabel() {
 	return "";
     }
+    
+   	public String getName(){
+	   	return "";
+   	}
 
     public NodeStatus getStatus() {
         return this.status;

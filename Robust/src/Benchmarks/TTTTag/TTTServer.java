@@ -14,21 +14,21 @@ task Startup(StartupObject s {initialstate}) {
 task AcceptConnection(ServerSocket ss{SocketPending}) {
 	System.printString("Waiting for connection...\n");
 	tag t=new tag(connect);
-	TTTServerSocket ttts = new TTTServerSocket() {TTTSInitialize}{t};
+	TTTServerSocket ttts = new TTTServerSocket() {ReceiveRequest}{t};
 	System.printString("Calling accept...\n");
 	ss.accept(t);
 	System.printString("Connected...\n");
 }
 
 // Process incoming requests
-task ProcessRequest(TTTServerSocket ttts{TTTSInitialize}{connect l}, Socket s{IOPending}{connect l}) {
+task ProcessRequest(TTTServerSocket ttts{ReceiveRequest}{connect l}, Socket s{IOPending}{connect l}) {
 	System.printString("Request received...");
 	int action = ttts.receive(s);
 	if (action == 1) { // Make move
-		taskexit(ttts {MakeMove});
+		taskexit(ttts {!ReceiveRequest,MakeMove});
 	}
 	else { // Send Error
-		taskexit(ttts {SendError});
+		taskexit(ttts {!ReceiveRequest,SendError});
 	}
 }
 
@@ -48,12 +48,19 @@ task ProcessMove(TTTServerSocket ttts{MakeMove}, Board tttBoard{init}) {
 
 task SendBoardDisplay(TTTServerSocket ttts{SendBoard}{connect l}, Board tttBoard{init}, Socket s{}{connect l}) {
 	ttts.sendBoardDisplay(tttBoard, s);
+	taskexit(ttts {/*!SendBoard,*/ ReceiveRequest});
+	
 }
 
 task GameOver(TTTServerSocket ttts{SendDone}{connect l}, Board tttBoard{init}, Socket s{}{connect l}) {
 	ttts.sendDone(tttBoard.winner(), s);
+//	taskexit(ttts {!SendDone},tttBoard{!init});
+
 }
 
 task SendErrorMessage(TTTServerSocket ttts{SendError}{connect l}, Board tttBoard{init}, Socket s{}{connect l}) {
+	//System.printString("Error\n");
 	ttts.sendError(s);
+	taskexit(ttts {/*!SendError,*/ ReceiveRequest});
+
 }

@@ -11,7 +11,7 @@ public class Allocations extends Namer {
     public String nodeOption(GraphNode gn) {
 	FlagState fs=(FlagState)gn;
 	if (fs.isSourceNode())
-	    return "peripheries=2";
+	    return "peripheries=2, URL=\"" + fs.getClassDescriptor().toString() + "_" + fs.getLabel() + ".html\"";
 	else
 	    return "";
     }

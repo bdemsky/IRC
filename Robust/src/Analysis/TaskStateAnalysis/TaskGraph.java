@@ -11,6 +11,7 @@ public class TaskGraph {
     TaskAnalysis taskanalysis;
     State state;
     Hashtable cdtonodes;
+    Hashtable nodes;
 
     public TaskGraph(State state, TaskAnalysis taskanalysis) {
 	this.state=state;
@@ -91,6 +92,25 @@ public class TaskGraph {
 	}
     }
     
+  /* 	private void mergeAllNodes(){
+	   	Hashtable alltasks=new Hashtable();
+	   	for(Iterator classit=state.getClassSymbolTable().getDescriptorsIterator();classit.hasNext();) {
+	    	ClassDescriptor cd=(ClassDescriptor) classit.next();
+	   		Set tnodes=((Hashtable)cdtonodes.get(cd)).keyset();
+	   		while (it_tnodes=tnodes.iterator();it_nodes.hasNext()){
+		   		TaskNode tn=it_nodes.next();
+		   		if (alltasks.containsKey(tn)){
+			   		while(tn.
+		   		}
+	   		}
+	   		
+	    
+	    
+	    
+    }
+    
+	 */   
+    
     private void addEdges(FlagState fs, TaskNode tn){
 	    
 	    Hashtable<TaskNode,TaskNode> tasknodes=(Hashtable<TaskNode,TaskNode>)cdtonodes.get(fs.getClassDescriptor());
@@ -105,4 +125,6 @@ public class TaskGraph {
 	    }
 
 	}
+	
+	
 }

@@ -112,6 +112,7 @@ public class Main {
       BuildFlat bf=new BuildFlat(state,tu);
       bf.buildFlat();
 
+
       if (state.TASKSTATE) {
 	  CallGraph callgraph=new CallGraph(state);
 	  TagAnalysis taganalysis=new TagAnalysis(state, callgraph);
@@ -131,6 +132,7 @@ public class Main {
 
       
       
+
       BuildCode bc=new BuildCode(state, bf.getMap(), tu);
       bc.buildCode();
       System.exit(0);

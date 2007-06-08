@@ -14,6 +14,7 @@ public class TaskAnalysis {
     Hashtable extern_flags;
     Queue<FlagState> toprocess;
     TagAnalysis taganalysis;
+    Hashtable cdtorootnodes;
 
     TypeUtil typeutil;
 
@@ -28,7 +29,7 @@ public class TaskAnalysis {
 	this.state=state;
 	this.typeutil=new TypeUtil(state);
 	this.taganalysis=taganalysis;
-	
+		
     }
     
     /** Builds a table of flags for each class in the Bristlecone program.  
@@ -94,7 +95,7 @@ public class TaskAnalysis {
     public void taskAnalysis() throws java.io.IOException {
 	flagstates=new Hashtable();
 	Hashtable<FlagState,FlagState> sourcenodes;
-	
+	cdtorootnodes=new Hashtable();
 	
 	getFlagsfromClasses();
 	
@@ -113,6 +114,7 @@ public class TaskAnalysis {
 	    //Debug block
 	    
 	    flagstates.put(cd,new Hashtable<FlagState,FlagState>());
+	    cdtorootnodes.put(cd,new Vector());
 	}	
 	
 	
@@ -126,6 +128,7 @@ public class TaskAnalysis {
 	
 	fsstartup=fsstartup.setFlag(fd[0],true);
 	fsstartup.setAsSourceNode();
+	((Vector)cdtorootnodes.get(startupobject)).add(fsstartup);
 
 	sourcenodes.put(fsstartup,fsstartup);
 	toprocess.add(fsstartup);
@@ -207,6 +210,8 @@ private void analyseTasks(FlagState fs) {
 	for(Iterator fsit=newstates.iterator();fsit.hasNext();) {
 	    FlagState fsnew=(FlagState) fsit.next();
 	    fsnew.setAsSourceNode();
+	    fsnew.addAllocatingTask(td);
+	    ((Vector)cdtorootnodes.get(cd)).add(fsnew);
 	    
 	    if (! ((Hashtable<FlagState,FlagState>)flagstates.get(fsnew.getClassDescriptor())).containsKey(fsnew)) {
 		((Hashtable<FlagState,FlagState>)flagstates.get(fsnew.getClassDescriptor())).put(fsnew, fsnew);
@@ -474,6 +479,9 @@ private FlagState evalNewObjNode(FlatNode nn){
     }
 	}
 	
+	public Vector getRootNodes(ClassDescriptor cd){
+		return (Vector)cdtorootnodes.get(cd);
+	}
 
 	
 } 

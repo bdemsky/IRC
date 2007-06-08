@@ -22,6 +22,8 @@ public class FlagState extends GraphNode {
     private final ClassDescriptor cd;
     private final Hashtable<TagDescriptor,Integer> tags;
     private boolean issourcenode;
+    private Vector tasks;
+    
 
     /** Class constructor
      *  Creates a new flagstate with all flags set to false.
@@ -70,8 +72,17 @@ public class FlagState extends GraphNode {
      */
    	public void setAsSourceNode(){
 	   	issourcenode=true;
+	   	this.tasks=new Vector();
+   	}
+   	
+   	public void addAllocatingTask(TaskDescriptor task){
+	   	tasks.addElement(task);
    	}
 
+   	public Vector getAllocatingTasks(){
+	   	return tasks;
+   	}
+	   	
     
     public String toString() {
 	return cd.toString()+getTextLabel();
@@ -216,6 +227,9 @@ public class FlagState extends GraphNode {
     public String getLabel() {
 	return "N"+uid;
     }
+    
+    
+	
 
     public String getTextLabel() {
 	String label=null;
