@@ -35,9 +35,11 @@ public class WebInterface {
 	    if(rootnodes!=null)
 	    for(Iterator it_rootnodes=rootnodes.iterator();it_rootnodes.hasNext();){
 	    	FlagState root=(FlagState)it_rootnodes.next();
-		Vector cd_nodeid=new Vector();
-		cd_nodeid.addElement(cd);
-		cd_nodeid.addElement(root.getLabel());
+		Vector cd_nodeid=new Vector(); //Vector is designed to contain only 2 elements: ClassDescriptor,Node label
+					       // Both the values are required to correctly resolve the rootnode.
+					       // Should think of a better way to do this, instead of using a vector(maybe a class)
+		cd_nodeid.addElement(cd);  //adding the ClassDescriptor 
+		cd_nodeid.addElement(root.getLabel()); //adding the Node label
 	    	sourcenodemap.put("/"+cd.getSymbol()+"_"+root.getLabel()+".html",cd_nodeid);
 	    }
 	}
