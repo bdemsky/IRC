@@ -77,10 +77,10 @@ public class GraphNode {
         if (param == null) {
             throw new NullPointerException();
         }
-        if (param.length() > 0) {
-            dotnodeparams = "," + param;
+        if (dotnodeparams.length() > 0) {
+            dotnodeparams += "," + param;
         } else {
-            dotnodeparams = new String();
+            dotnodeparams = param;
         }
     }
 
