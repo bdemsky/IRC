@@ -44,6 +44,7 @@ public class WebInterface {
 					       // Should think of a better way to do this, instead of using a vector(maybe a class)
 				cd_nodeid.addElement(cd);  //adding the ClassDescriptor 
 				cd_nodeid.addElement(root.getLabel()); //adding the Node label
+				System.out.println(cd+" "+root.getLabel());
 	    		sourcenodemap.put("/"+cd.getSymbol()+"_"+root.getLabel()+".html",cd_nodeid);
 	    	}
 		}

@@ -211,7 +211,7 @@ private void analyseTasks(FlagState fs) {
 	    FlagState fsnew=(FlagState) fsit.next();
 	    fsnew.setAsSourceNode();
 	    fsnew.addAllocatingTask(td);
-	    ((Vector)cdtorootnodes.get(cd)).add(fsnew);
+	    ((Vector)cdtorootnodes.get(fsnew.getClassDescriptor())).add(fsnew);
 	    
 	    if (! ((Hashtable<FlagState,FlagState>)flagstates.get(fsnew.getClassDescriptor())).containsKey(fsnew)) {
 		((Hashtable<FlagState,FlagState>)flagstates.get(fsnew.getClassDescriptor())).put(fsnew, fsnew);
