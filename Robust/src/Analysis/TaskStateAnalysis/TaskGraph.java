@@ -3,6 +3,7 @@ import java.util.*;
 import IR.State;
 import IR.SymbolTable;
 import IR.ClassDescriptor;
+import IR.TaskDescriptor;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.FileOutputStream;
@@ -12,17 +13,23 @@ public class TaskGraph {
     State state;
     Hashtable cdtonodes;
     Hashtable nodes;
+    Hashtable<TaskNode,TaskNode> alltasknodes;
+    
+    //Colors
+    String colors[]={"red","blue","green","brown","orange","pink","black","brown","grey","olivedrab"};
 
     public TaskGraph(State state, TaskAnalysis taskanalysis) {
 	this.state=state;
 	this.taskanalysis=taskanalysis;
 	this.cdtonodes=new Hashtable();
+	this.alltasknodes=new Hashtable<TaskNode,TaskNode>();
 
 	for(Iterator classit=state.getClassSymbolTable().getDescriptorsIterator();classit.hasNext();) {
 	    ClassDescriptor cd=(ClassDescriptor) classit.next();
 	    if (cd.hasFlags())
 	    	produceTaskNodes(cd);
 	}
+	produceAllTaskNodes();
     }
     
     
@@ -77,7 +84,7 @@ public class TaskGraph {
 		if (fs.isSourceNode()) {
 			sn=new TaskNode("Start Node");
 			if(fs.edges().hasNext()){
-				 addEdges(fs,sn);
+				 addEdges(fs,sn,tasknodes);
 			}	
 		}
 						
@@ -86,11 +93,70 @@ public class TaskGraph {
 		    FEdge inedge=(FEdge)it_inedges.next();
 		    tn=new TaskNode(inedge.getLabel());
 		    if(fs.edges().hasNext()){
-		    	addEdges(fs,tn);
+		    	addEdges(fs,tn,tasknodes);
 			}
 	    }  
 	}
     }
+    
+    private void produceAllTaskNodes(){
+	    alltasknodes=new Hashtable<TaskNode,TaskNode>();
+	    
+	    for(Iterator it_tasks=state.getTaskSymbolTable().getDescriptorsIterator();it_tasks.hasNext();){
+		    TaskDescriptor td=(TaskDescriptor)it_tasks.next();
+		    TaskNode tn=new TaskNode(td.getSymbol());
+		    alltasknodes.put(tn,tn);
+	    }
+	    TaskNode tn_runtime=new TaskNode("Runtime");
+	    alltasknodes.put(tn_runtime,tn_runtime);
+	    
+	    int ColorID=0;
+	    for(Iterator classit=state.getClassSymbolTable().getDescriptorsIterator();classit.hasNext()&&ColorID<10;) {
+	    ClassDescriptor cd=(ClassDescriptor) classit.next();
+	    	Set fsnodes;
+	    	
+	    	if (cd.hasFlags()&&((fsnodes=taskanalysis.getFlagStates(cd))!=null)){
+		    	System.out.println(cd.getSymbol());
+		    	for(Iterator it=fsnodes.iterator();it.hasNext();) {
+	    			FlagState fs=(FlagState)it.next();
+	   				Iterator it_inedges=fs.inedges();	
+	  			    TaskNode tn,sn;
+	  			    
+	  			    
+	  			    if (fs.isSourceNode()){
+		  			    if(fs.edges().hasNext()){
+		  			    	Vector allocatingtasks=fs.getAllocatingTasks();
+		  			 	    for(Iterator it_at=allocatingtasks.iterator();it_at.hasNext();){
+			  			 	    tn=new TaskNode(((TaskDescriptor)it_at.next()).getSymbol());
+			  			 	    addEdges(fs,tn,alltasknodes,ColorID);
+		  			 	    }
+	  			 	    }
+  			 	    }
+  			 	    
+  			 	    while(it_inedges.hasNext()){   
+					    FEdge inedge=(FEdge)it_inedges.next();
+		    			tn=new TaskNode(inedge.getLabel());
+		   				if(fs.edges().hasNext()){
+		    				addEdges(fs,tn,alltasknodes,ColorID);
+						}
+	    			}
+    			}
+    			ColorID++;
+			}
+			
+		}
+	}  
+	
+	public Set getAllTaskNodes(){
+		return alltasknodes.keySet();
+	}
+  			 	    
+			  			    
+		    
+		    
+	    	
+	
+	    
     
   /* 	private void mergeAllNodes(){
 	   	Hashtable alltasks=new Hashtable();
@@ -111,9 +177,9 @@ public class TaskGraph {
     
 	 */   
     
-    private void addEdges(FlagState fs, TaskNode tn){
+    private void addEdges(FlagState fs, TaskNode tn,Hashtable<TaskNode,TaskNode> tasknodes){
 	    
-	    Hashtable<TaskNode,TaskNode> tasknodes=(Hashtable<TaskNode,TaskNode>)cdtonodes.get(fs.getClassDescriptor());
+	  //  Hashtable<TaskNode,TaskNode> tasknodes=(Hashtable<TaskNode,TaskNode>)cdtonodes.get(fs.getClassDescriptor());
 	    tn=(TaskNode)canonicalizeTaskNode(tasknodes, tn);
 		for (Iterator it_edges=fs.edges();it_edges.hasNext();){
 			TaskNode target=new TaskNode(((FEdge)it_edges.next()).getLabel());
@@ -121,10 +187,24 @@ public class TaskGraph {
 
 			TEdge newedge=new TEdge(target);
 			if (! tn.edgeExists(newedge))
-				tn.addEdge(new TEdge(target));
+				tn.addEdge(newedge);
 	    }
 
 	}
 	
+	private void addEdges(FlagState fs, TaskNode tn,Hashtable<TaskNode,TaskNode> tasknodes,int ColorID){
+		
+	 	tn=(TaskNode)canonicalizeTaskNode(tasknodes, tn);
+		for (Iterator it_edges=fs.edges();it_edges.hasNext();){
+			TaskNode target=new TaskNode(((FEdge)it_edges.next()).getLabel());
+			target=(TaskNode)canonicalizeTaskNode(tasknodes,target);
+
+			TEdge newedge=new TEdge(target);
+			newedge.setDotNodeParameters("style=bold, color = "+colors[ColorID]);
+			if (! tn.edgeExists(newedge))
+				tn.addEdge(newedge);
+	    }
+
+	}
 	
 }

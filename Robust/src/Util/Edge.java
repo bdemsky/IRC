@@ -32,7 +32,7 @@ public class Edge {
 	    throw new NullPointerException();
 	}
 	if (param.length() > 0) {
-	    dotnodeparams = "," + param;
+	    dotnodeparams =  param;
 	} else {
 	    dotnodeparams = new String();
 	}

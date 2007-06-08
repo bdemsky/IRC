@@ -25,30 +25,37 @@ public class WebInterface {
 	taskgraphmap=new Hashtable();
 	taskmap = new Hashtable();
 	sourcenodemap=new Hashtable();
+	
 	for(Iterator it_tasks=state.getTaskSymbolTable().getDescriptorsIterator();it_tasks.hasNext();){
 		TaskDescriptor td=(TaskDescriptor)it_tasks.next();
 		taskmap.put("/"+td.getSymbol()+".html",td);
 	} 
+	
 	for(Iterator it_classes=state.getClassSymbolTable().getDescriptorsIterator();it_classes.hasNext();) {
 	    ClassDescriptor cd=(ClassDescriptor) it_classes.next();
-	    Vector rootnodes=taskanalysis.getRootNodes(cd);
-	    if(rootnodes!=null)
-	    for(Iterator it_rootnodes=rootnodes.iterator();it_rootnodes.hasNext();){
-	    	FlagState root=(FlagState)it_rootnodes.next();
-		Vector cd_nodeid=new Vector(); //Vector is designed to contain only 2 elements: ClassDescriptor,Node label
+	    if(cd.hasFlags()){
+	    	Vector rootnodes=taskanalysis.getRootNodes(cd);
+	    
+	    	if(rootnodes!=null)
+	    	for(Iterator it_rootnodes=rootnodes.iterator();it_rootnodes.hasNext();){
+	    		FlagState root=(FlagState)it_rootnodes.next();
+				Vector cd_nodeid=new Vector(); //Vector is designed to contain only 2 elements: ClassDescriptor,Node label
 					       // Both the values are required to correctly resolve the rootnode.
 					       // Should think of a better way to do this, instead of using a vector(maybe a class)
-		cd_nodeid.addElement(cd);  //adding the ClassDescriptor 
-		cd_nodeid.addElement(root.getLabel()); //adding the Node label
-	    	sourcenodemap.put("/"+cd.getSymbol()+"_"+root.getLabel()+".html",cd_nodeid);
-	    }
-	}
+				cd_nodeid.addElement(cd);  //adding the ClassDescriptor 
+				cd_nodeid.addElement(root.getLabel()); //adding the Node label
+	    		sourcenodemap.put("/"+cd.getSymbol()+"_"+root.getLabel()+".html",cd_nodeid);
+	    	}
+		}
     }
+	}
     
     public boolean specialRequest(String filename) {
 	System.out.println(filename);
 	if (filename.equals("/index.html"))
 	    return true;
+	if (filename.equals("/UnifiedTaskGraph.html"))
+		return true;
 	if (flagstatemap.containsKey(filename))
 	    return true;
 	if (taskgraphmap.containsKey(filename))
@@ -63,6 +70,8 @@ public class WebInterface {
     public String handleresponse(String filename, OutputStream out, HTTPResponse resp) {
 	if (filename.equals("/index.html"))
 	    return indexpage(out, resp);
+	if (filename.equals("/UnifiedTaskGraph.html"))
+		return unifiedTaskGraph(out,resp);
 	if (flagstatemap.containsKey(filename))
 	    return flagstate((ClassDescriptor) flagstatemap.get(filename), out, resp);
 	if (taskgraphmap.containsKey(filename))
@@ -212,7 +221,39 @@ public class WebInterface {
 		taskgraphmap.put("/"+cd.getSymbol()+"-t.html", cd);
 	    }
 	}
+	pw.println("<br><br><a href=\"/UnifiedTaskGraph.html\">Program flow</a>");
 	pw.flush();
+	return null;
+    }
+    
+    private String unifiedTaskGraph(OutputStream out, HTTPResponse resp){
+	Set objects=taskgraph.getAllTaskNodes();
+	File file=new File("UnifiedTaskGraph.dot");
+	/*File mapfile;
+	String str;
+	Vector namers=new Vector();
+	namers.add(new Namer());
+	namers.add(new TaskNodeNamer());
+*/
+	try {
+	    //Generate jpg
+	    Runtime r=Runtime.getRuntime();
+	    FileOutputStream dotstream=new FileOutputStream(file,false);
+	    FlagState.DOTVisitor.visit(dotstream, objects);
+	    dotstream.close();
+	    Process p=r.exec("dot -Tjpg -oUnifiedTaskGraph.jpg UnifiedTaskGraph.dot");
+	    p.waitFor();
+	    p=r.exec("dot -Tps UnifiedTaskGraph.dot -oUnifiedTaskGraph.ps");
+	    
+	    p.waitFor();
+
+	    PrintWriter pw=new PrintWriter(out);
+	    pw.println("<a href=\"/UnifiedTaskGraph.ps\">ps</a><br>");
+	   // pw.println("<a href=\"/"+ cd.getSymbol()+"-t.map\"><img src=\"/"+ cd.getSymbol()+"-t.gif\" ismap=\"ismap\"></A>");
+	    pw.println("<img src=\"/UnifiedTaskGraph.jpg\" />");
+	    
+	    pw.flush();
+	} catch (Exception e) {e.printStackTrace();System.exit(-1);}
 	return null;
     }
 
