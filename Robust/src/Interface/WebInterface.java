@@ -230,29 +230,33 @@ public class WebInterface {
     private String unifiedTaskGraph(OutputStream out, HTTPResponse resp){
 	Set objects=taskgraph.getAllTaskNodes();
 	File file=new File("UnifiedTaskGraph.dot");
-	/*File mapfile;
 	String str;
 	Vector namers=new Vector();
 	namers.add(new Namer());
 	namers.add(new TaskNodeNamer());
-*/
+
 	try {
 	    //Generate jpg
 	    Runtime r=Runtime.getRuntime();
 	    FileOutputStream dotstream=new FileOutputStream(file,false);
-	    FlagState.DOTVisitor.visit(dotstream, objects);
+	    FlagState.DOTVisitor.visit(dotstream, objects, namers);
 	    dotstream.close();
-	    Process p=r.exec("dot -Tjpg -oUnifiedTaskGraph.jpg UnifiedTaskGraph.dot");
+	    Process p=r.exec("dot -Tjpg -oUnifiedTaskGraph.jpg -Tcmapx -oUnifiedTaskGraph.map UnifiedTaskGraph.dot");
 	    p.waitFor();
 	    p=r.exec("dot -Tps UnifiedTaskGraph.dot -oUnifiedTaskGraph.ps");
 	    
 	    p.waitFor();
 
+	    File mapfile=new File("UnifiedTaskGraph.map");
+	    BufferedReader mapbr=new BufferedReader(new FileReader(mapfile));
 	    PrintWriter pw=new PrintWriter(out);
 	    pw.println("<a href=\"/UnifiedTaskGraph.ps\">ps</a><br>");
 	   // pw.println("<a href=\"/"+ cd.getSymbol()+"-t.map\"><img src=\"/"+ cd.getSymbol()+"-t.gif\" ismap=\"ismap\"></A>");
-	    pw.println("<img src=\"/UnifiedTaskGraph.jpg\" />");
-	    
+	    pw.println("<img src=\"/UnifiedTaskGraph.jpg\" usemap=\"#dotvisitor\"  />");
+	      
+	    while((str=mapbr.readLine())!=null)
+			pw.println(str);
+	    	    
 	    pw.flush();
 	} catch (Exception e) {e.printStackTrace();System.exit(-1);}
 	return null;
