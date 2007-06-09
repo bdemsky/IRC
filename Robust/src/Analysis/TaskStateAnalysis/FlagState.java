@@ -71,12 +71,14 @@ public class FlagState extends GraphNode {
    	/**  Sets the flagstate as a source node. 
      */
    	public void setAsSourceNode(){
-	   	issourcenode=true;
-	   	this.tasks=new Vector();
+	   	if(!issourcenode){
+	   		issourcenode=true;
+	   		this.tasks=new Vector();
+   		}
    	}
    	
    	public void addAllocatingTask(TaskDescriptor task){
-	   	tasks.addElement(task);
+	   	tasks.add(task);
    	}
 
    	public Vector getAllocatingTasks(){

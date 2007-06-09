@@ -16,7 +16,7 @@ public class TaskGraph {
     Hashtable<TaskNode,TaskNode> alltasknodes;
     
     //Colors
-    String colors[]={"red","blue","green","brown","orange","pink","black","brown","grey","olivedrab"};
+    String colors[]={"red","blue","green","brown","orange","pink","black","grey","olivedrab","yellow"};
 
     public TaskGraph(State state, TaskAnalysis taskanalysis) {
 	this.state=state;
@@ -116,18 +116,35 @@ public class TaskGraph {
 	    	Set fsnodes;
 	    	
 	    	if (cd.hasFlags()&&((fsnodes=taskanalysis.getFlagStates(cd))!=null)){
-		    	System.out.println(cd.getSymbol());
+		    	//
+		    	System.out.println("\nWorking on fses of Class: "+cd.getSymbol());
+		    	//
 		    	for(Iterator it=fsnodes.iterator();it.hasNext();) {
 	    			FlagState fs=(FlagState)it.next();
+	    			//
+	    			System.out.println("Evaluating fs: "+fs.getTextLabel());
+	    			//
 	   				Iterator it_inedges=fs.inedges();	
 	  			    TaskNode tn,sn;
 	  			    
 	  			    
 	  			    if (fs.isSourceNode()){
+		  			    //
+		  			    System.out.println("A sourcenode");
+		  			    //
 		  			    if(fs.edges().hasNext()){
 		  			    	Vector allocatingtasks=fs.getAllocatingTasks();
+		  			    	//
+		  			    	if (allocatingtasks.iterator().hasNext())
+		  			    		System.out.println("has been allocated by "+allocatingtasks.size()+" tasks");
+		  			    	//
 		  			 	    for(Iterator it_at=allocatingtasks.iterator();it_at.hasNext();){
-			  			 	    tn=new TaskNode(((TaskDescriptor)it_at.next()).getSymbol());
+			  			 	    TaskDescriptor allocatingtd=(TaskDescriptor)it_at.next();
+			  			 	    //
+			  			 	    System.out.println(allocatingtd.getSymbol());
+			  			 	    //
+			  			 	    tn=new TaskNode(allocatingtd.getSymbol());
+			  			 	    
 			  			 	    addEdges(fs,tn,alltasknodes,ColorID);
 		  			 	    }
 	  			 	    }

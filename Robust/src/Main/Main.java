@@ -122,7 +122,7 @@ public class Main {
 	  tg.createDOTfiles();
 	  if (state.WEBINTERFACE) {
 	      GarbageAnalysis ga=new GarbageAnalysis(state, ta);
-	      WebInterface wi=new WebInterface(state, ta, tg, ga);
+	      WebInterface wi=new WebInterface(state, ta, tg, ga, taganalysis);
 	      JhttpServer serve=new JhttpServer(8000,wi);
 	      serve.run();
 	  }

@@ -8,6 +8,7 @@ import Util.Namer;
 public class WebInterface {
     TaskAnalysis taskanalysis;
     TaskGraph taskgraph;
+    TagAnalysis taganalysis;
     State state;
     Hashtable flagstatemap;
     Hashtable taskgraphmap;
@@ -15,11 +16,12 @@ public class WebInterface {
     Hashtable taskmap;  // to hold the filenames for each of the pages linked to tasks in the program.
     GarbageAnalysis garbageanalysis;
 
-    public WebInterface(State state, TaskAnalysis taskanalysis, TaskGraph taskgraph, GarbageAnalysis garbageanalysis) {
+    public WebInterface(State state, TaskAnalysis taskanalysis, TaskGraph taskgraph, GarbageAnalysis garbageanalysis, TagAnalysis taganalysis) {
 	this.state=state;
 	this.taskanalysis=taskanalysis;
 	this.taskgraph=taskgraph;
 	this.garbageanalysis=garbageanalysis;
+	this.taganalysis=taganalysis;
 
 	flagstatemap=new Hashtable();
 	taskgraphmap=new Hashtable();
@@ -89,6 +91,17 @@ public class WebInterface {
 	PrintWriter pw=new PrintWriter(out);
 	pw.println("<br><br><h3>Task:&nbsp;&nbsp;&nbsp;"+td.toString()+"</h3><br>");
 	printTask(td,pw);
+	
+	//printing out the classes that are instantiated by this task
+	pw.println("<br><h3>Instantiated Classes:</h3>");
+	Set newstates=taganalysis.getFlagStates(td);
+	for(Iterator fsit=newstates.iterator();fsit.hasNext();) {
+		FlagState fsnew=(FlagState) fsit.next();
+	    ClassDescriptor cd=fsnew.getClassDescriptor();
+	    pw.println("&nbsp;&nbsp;<a href=\"/"+cd.getSymbol()+".html\">"+cd.getSymbol()+"</a><br>");
+	    pw.println("&nbsp;&nbsp;&nbsp;&nbsp;"+fsnew.getTextLabel()+"<br>");
+  	}	
+	
 	pw.flush();
 	} catch (Exception e) {e.printStackTrace();System.exit(-1);}
 	return null;
