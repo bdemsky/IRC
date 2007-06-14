@@ -93,6 +93,7 @@ typedef struct trans_req_data {
 	unsigned int *oidmod;
 }trans_req_data_t;
 
+#define PRINT_TID(PTR) printf("DEBUG -> %x %d\n", PTR->mid, PTR->thread_id);
 //structure for passing multiple arguments to thread
 typedef struct thread_data_array {
 	int thread_id;

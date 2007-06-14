@@ -26,7 +26,7 @@ transrecord_t *transStart()
 
 objheader_t *transRead(transrecord_t *record, unsigned int oid)
 {	
-	printf("Enter TRANS_READ\n");
+//	printf("Enter TRANS_READ\n");
 	unsigned int machinenumber;
 	objheader_t *tmp, *objheader;
 	void *objcopy;
@@ -34,7 +34,7 @@ objheader_t *transRead(transrecord_t *record, unsigned int oid)
 	void *buf;
 		//check cache
 	if((objheader =(objheader_t *)chashSearch(record->lookupTable, oid)) != NULL){
-		printf("DEBUG -> transRead oid %d found local\n", oid);
+		printf("transRead oid %d found local\n %s, %d", oid, __FILE__, __LINE__);
 		return(objheader);
 	} else if ((objheader = (objheader_t *) mhashSearch(oid)) != NULL) {
 		//Look up in Machine lookup table and found
@@ -55,11 +55,13 @@ objheader_t *transRead(transrecord_t *record, unsigned int oid)
 		objcopy = getRemoteObj(record, machinenumber, oid);
 		if(objcopy == NULL) {
 			//If object is not found in Remote location
-			printf("Object not found in Machine %d\n", machinenumber);
+			printf("Object oid = %d not found in Machine %d at %s, %d\n", oid, machinenumber, __FILE__, __LINE__);
 			return NULL;
 		}
-		else
+		else {
+			printf("Object oid = %d found in Machine %d\n", oid, machinenumber);
 			return(objcopy);
+		}
 	} 
 }
 
@@ -82,15 +84,15 @@ int decideResponse(thread_data_array_t *tdata, int sd, int val) {
 	char ctrl, control, *ptr;
 	unsigned int *oidnotfound;
 	objheader_t *header;
-	
 
+//	printf("DEBUG -> pilecount is %d\n", tdata->pilecount);
 	//Check common data structure 
 	for (i = 0 ; i < tdata->pilecount ; i++) {
 		//Switch case
 		control = tdata->recvmsg[i].rcv_status;
 		switch(control) {
 			case TRANS_DISAGREE:
-				printf("DEBUG-> Inside TRANS_DISAGREE\n");
+//				printf("DEBUG-> Inside TRANS_DISAGREE\n");
 				transdisagree++;
 				//Free transaction records
 				objstrDelete(tdata->rec->cache);
@@ -107,12 +109,13 @@ int decideResponse(thread_data_array_t *tdata, int sd, int val) {
 				return 0;
 
 			case TRANS_AGREE:
-				printf("DEBUG-> Inside TRANS_AGREE\n");
+				printf("Inside TRANS_AGREE\n");
+				PRINT_TID(tdata);
 				transagree++;
 				break;
 				
 			case TRANS_SOFT_ABORT:
-				printf("DEBUG-> Inside TRANS_SOFT_ABORT\n");
+				printf("Inside TRANS_SOFT_ABORT\n");
 				transsoftabort++;
 				/* Do a socket read only if TRANS_SOFT_ABORT was meant for this thread */
 				if ((i == tdata->thread_id) && (val == 0)) {
@@ -134,7 +137,6 @@ int decideResponse(thread_data_array_t *tdata, int sd, int val) {
 						} while(sum < N	&& n !=0);
 					}
 				}
-
 				break;
 			default:
 				printf("Participant sent unknown message\n");
@@ -145,7 +147,7 @@ int decideResponse(thread_data_array_t *tdata, int sd, int val) {
 	if(transagree == tdata->pilecount){
 		//Send Commit
 		ctrl = TRANS_COMMIT;
-		printf("Sending TRANS_COMMIT\n");
+		printf("Sending TRANS_COMMIT accept_fd = %d\n", sd);
 		if((retval = write(sd, &ctrl, sizeof(char))) < 0) {
 			perror("Error sending ctrl message for participant\n");
 			return 1;
@@ -156,13 +158,13 @@ int decideResponse(thread_data_array_t *tdata, int sd, int val) {
 	if(transsoftabort > 0 && transdisagree == 0 && transsoftabortmiss == 0) {
 		//Send abort but retry commit
 		ctrl = TRANS_ABORT_BUT_RETRY_COMMIT;
-		printf("Sending TRANS_ABORT_BUT_RETRY_COMMIT\n");
+		printf("Sending TRANS_ABORT_BUT_RETRY_COMMIT acceptfd = %d\n", sd);
 		if((retval = write(sd, &ctrl, sizeof(char))) <= 0) {
 			perror("Error sending ctrl message for participant\n");
 			return 1;
 		}
 		//Sleep and the resend the request
-		sleep(5);
+		sleep(2);
 		//Read new control message from Participant
 
 		if((n = read(sd, &control, sizeof(char))) <= 0) {
@@ -470,6 +472,7 @@ void *getRemoteObj(transrecord_t *record, unsigned int mnum, unsigned int oid) {
 	}
 	switch(control) {
 		case OBJECT_NOT_FOUND:
+			printf("DEBUG -> Control OBJECT_NOT_FOUND received\n");
 			return NULL;
 		case OBJECT_FOUND:
 			if((val = read(sd, &size, sizeof(int))) <= 0) {
