@@ -1,6 +1,10 @@
 #ifndef _DSTM_H_
 #define _DSTM_H_
 
+#ifdef MAC
+#define MSG_NOSIGNAL 0
+#endif
+
 //Coordinator Messages
 #define READ_REQUEST 		1
 #define READ_MULT_REQUEST 	2

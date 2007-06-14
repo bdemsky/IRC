@@ -26,7 +26,7 @@ transrecord_t *transStart()
 
 objheader_t *transRead(transrecord_t *record, unsigned int oid)
 {	
-//	printf("Enter TRANS_READ\n");
+	printf("Enter TRANS_READ\n");
 	unsigned int machinenumber;
 	objheader_t *tmp, *objheader;
 	void *objcopy;
@@ -34,7 +34,7 @@ objheader_t *transRead(transrecord_t *record, unsigned int oid)
 	void *buf;
 		//check cache
 	if((objheader =(objheader_t *)chashSearch(record->lookupTable, oid)) != NULL){
-		printf("transRead oid %d found local\n %s, %d", oid, __FILE__, __LINE__);
+		printf("DEBUG -> transRead oid %d found local\n", oid);
 		return(objheader);
 	} else if ((objheader = (objheader_t *) mhashSearch(oid)) != NULL) {
 		//Look up in Machine lookup table and found
@@ -55,7 +55,7 @@ objheader_t *transRead(transrecord_t *record, unsigned int oid)
 		objcopy = getRemoteObj(record, machinenumber, oid);
 		if(objcopy == NULL) {
 			//If object is not found in Remote location
-			printf("Object oid = %d not found in Machine %d at %s, %d\n", oid, machinenumber, __FILE__, __LINE__);
+			printf("Object oid = %d not found in Machine %d\n", oid, machinenumber);
 			return NULL;
 		}
 		else {
@@ -85,14 +85,14 @@ int decideResponse(thread_data_array_t *tdata, int sd, int val) {
 	unsigned int *oidnotfound;
 	objheader_t *header;
 
-//	printf("DEBUG -> pilecount is %d\n", tdata->pilecount);
+	printf("DEBUG -> pilecount is %d\n", tdata->pilecount);
 	//Check common data structure 
 	for (i = 0 ; i < tdata->pilecount ; i++) {
 		//Switch case
 		control = tdata->recvmsg[i].rcv_status;
 		switch(control) {
 			case TRANS_DISAGREE:
-//				printf("DEBUG-> Inside TRANS_DISAGREE\n");
+				printf("DEBUG-> Inside TRANS_DISAGREE\n");
 				transdisagree++;
 				//Free transaction records
 				objstrDelete(tdata->rec->cache);
@@ -101,7 +101,7 @@ int decideResponse(thread_data_array_t *tdata, int sd, int val) {
 				//send Abort
 				ctrl = TRANS_ABORT;
 				for (i = 0 ; i < tdata->pilecount ; i++) { //send writes to all machine groups involved
-					if (write(sd, &ctrl, sizeof(char)) < 0) {
+					if (send(sd, &ctrl, sizeof(char),MSG_NOSIGNAL) < sizeof(char)) {
 						perror("Error sending ctrl message for participant\n");
 						return 1;
 					}
@@ -109,13 +109,13 @@ int decideResponse(thread_data_array_t *tdata, int sd, int val) {
 				return 0;
 
 			case TRANS_AGREE:
-				printf("Inside TRANS_AGREE\n");
+				printf("DEBUG-> Inside TRANS_AGREE\n");
 				PRINT_TID(tdata);
 				transagree++;
 				break;
 				
 			case TRANS_SOFT_ABORT:
-				printf("Inside TRANS_SOFT_ABORT\n");
+				printf("DEBUG-> Inside TRANS_SOFT_ABORT\n");
 				transsoftabort++;
 				/* Do a socket read only if TRANS_SOFT_ABORT was meant for this thread */
 				if ((i == tdata->thread_id) && (val == 0)) {
@@ -137,6 +137,7 @@ int decideResponse(thread_data_array_t *tdata, int sd, int val) {
 						} while(sum < N	&& n !=0);
 					}
 				}
+
 				break;
 			default:
 				printf("Participant sent unknown message\n");
@@ -147,8 +148,8 @@ int decideResponse(thread_data_array_t *tdata, int sd, int val) {
 	if(transagree == tdata->pilecount){
 		//Send Commit
 		ctrl = TRANS_COMMIT;
-		printf("Sending TRANS_COMMIT accept_fd = %d\n", sd);
-		if((retval = write(sd, &ctrl, sizeof(char))) < 0) {
+		printf("Sending TRANS_COMMIT\n");
+		if((retval = send(sd, &ctrl, sizeof(char),MSG_NOSIGNAL)) < sizeof(char)) {
 			perror("Error sending ctrl message for participant\n");
 			return 1;
 		}
@@ -158,11 +159,12 @@ int decideResponse(thread_data_array_t *tdata, int sd, int val) {
 	if(transsoftabort > 0 && transdisagree == 0 && transsoftabortmiss == 0) {
 		//Send abort but retry commit
 		ctrl = TRANS_ABORT_BUT_RETRY_COMMIT;
-		printf("Sending TRANS_ABORT_BUT_RETRY_COMMIT acceptfd = %d\n", sd);
-		if((retval = write(sd, &ctrl, sizeof(char))) <= 0) {
+		printf("Sending TRANS_ABORT_BUT_RETRY_COMMIT\n");
+		if((retval = send(sd, &ctrl, sizeof(char),MSG_NOSIGNAL)) < sizeof(char)) {
 			perror("Error sending ctrl message for participant\n");
 			return 1;
 		}
+	/*	
 		//Sleep and the resend the request
 		sleep(2);
 		//Read new control message from Participant
@@ -176,13 +178,14 @@ int decideResponse(thread_data_array_t *tdata, int sd, int val) {
 		tdata->recvmsg[tdata->thread_id].rcv_status = control;
 		val = 1;
 		decideResponse(tdata, sd, val);		//Second call to decideResponse(); indicated by parameter val = 1
+	*/	
 	}
 
 	if(transsoftabort > 0 && transsoftabortmiss > 0 && transdisagree == 0) {
 		//Send abort but retry commit after relooking up objects
 		ctrl = TRANS_ABORT;
 		printf("Sending TRANS_ABORT_BUT_RETRY_COMMIT_WITH_RELOCATING\n");
-		if((retval = write(sd, &ctrl, sizeof(char))) < 0) {
+		if((retval = send(sd, &ctrl, sizeof(char), MSG_NOSIGNAL)) < sizeof(char)) {
 			perror("Error sending ctrl message for participant\n");
 			return 1;
 		}
@@ -231,30 +234,38 @@ void *transRequest(void *threadarg) {
 	printf("DEBUG -> Start sending commit data... %d\n", tdata->buffer->f.control);
 //	printf("DEBUG-> Bytes sent in first write: %d\n", sizeof(fixed_data_t));
 //	printf("Machine count = %d\tnumread = %d\tnummod = %d\tsum_bytes = %d\n", tdata->buffer->f.mcount, tdata->buffer->f.numread, tdata->buffer->f.nummod, tdata->buffer->f.sum_bytes);
-	if (write(sd, &(tdata->buffer->f), (sizeof(fixed_data_t))) < 0) {
+	if (send(sd, &(tdata->buffer->f), sizeof(fixed_data_t),MSG_NOSIGNAL) < sizeof(fixed_data_t)) {
 		perror("Error sending fixed bytes for thread");
 		return NULL;
 	}
 	//Send list of machines involved in the transaction
 //	printf("DEBUG-> Bytes sent in second write: %d\n", sizeof(unsigned int) * tdata->pilecount);
-	if (write(sd, tdata->buffer->listmid, (sizeof(unsigned int) * tdata->pilecount )) < 0) {
-		perror("Error sending list of machines for thread");
-		return NULL;
+	{
+	  int size=sizeof(unsigned int)*tdata->pilecount;
+	  if (send(sd, tdata->buffer->listmid, size, MSG_NOSIGNAL) < size) {
+	    perror("Error sending list of machines for thread");
+	    return NULL;
+	  }
 	}
 	//Send oids and version number tuples for objects that are read
 //	printf("DEBUG-> Bytes sent in the third write: %d\n", (sizeof(unsigned int) + sizeof(short)) * tdata->buffer->f.numread);
 //	printf(" DEBUG->Read oids are %d %d %d %d\n", *(tdata->buffer->objread), *(tdata->buffer->objread + 6), *(tdata->buffer->objread + 12), *(tdata->buffer->objread +18)); 
-	if (write(sd, tdata->buffer->objread, ((sizeof(unsigned int) + sizeof(short)) * tdata->buffer->f.numread )) < 0) {
-		perror("Error sending tuples for thread");
-		return NULL;
+	{
+	  int size=(sizeof(unsigned int)+sizeof(short))*tdata->buffer->f.numread;
+	  if (send(sd, tdata->buffer->objread, size, MSG_NOSIGNAL) < size) {
+	    perror("Error sending tuples for thread");
+	    return NULL;
+	  }
 	}
 	//Send objects that are modified
 	for(i = 0; i < tdata->buffer->f.nummod ; i++) {
-		headeraddr = chashSearch(tdata->rec->lookupTable, tdata->buffer->oidmod[i]);
-		if (write(sd, headeraddr, sizeof(objheader_t) + classsize[headeraddr->type])  < 0) {
-			perror("Error sending obj modified for thread");
-			return NULL;
-		}
+	  int size;
+	  headeraddr = chashSearch(tdata->rec->lookupTable, tdata->buffer->oidmod[i]);
+	  size=sizeof(objheader_t)+classsize[headeraddr->type];
+	  if (send(sd, headeraddr, size, MSG_NOSIGNAL)  < size) {
+	    perror("Error sending obj modified for thread");
+	    return NULL;
+	  }
 	}
 	
 	//Read message  control message from participant side
@@ -457,7 +468,7 @@ void *getRemoteObj(transrecord_t *record, unsigned int mnum, unsigned int oid) {
 	char readrequest[sizeof(char)+sizeof(unsigned int)];
 	readrequest[0] = READ_REQUEST;
 	*((unsigned int *)(&readrequest[1])) = oid;
-	if (write(sd, &readrequest, sizeof(readrequest)) < 0) {
+	if (send(sd, &readrequest, sizeof(readrequest), MSG_NOSIGNAL) < sizeof(readrequest)) {
 		perror("Error sending message\n");
 		return NULL;
 	}
