@@ -532,6 +532,11 @@ public class SemanticCheck {
 	TypeDescriptor typetolookin=con.getType();
 	checkTypeDescriptor(typetolookin);
 
+	if (td!=null&&!typeutil.isSuperorType(td, typetolookin))
+	    throw new Error(typetolookin + " isn't a "+td);
+
+
+
 	/* Check flag effects */
 	if (con.getFlagEffects()!=null) {
 	    FlagEffects fe=con.getFlagEffects();
