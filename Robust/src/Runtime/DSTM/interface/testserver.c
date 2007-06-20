@@ -45,7 +45,7 @@ void init_obj(objheader_t *h, unsigned int oid, unsigned short type, \
 int main()
 {
 	//test1();
-	//test3();
+//	test3();
 	test4();
 }
 
@@ -184,24 +184,23 @@ int test3() {
 	lhashInsert(header->oid, mid);
 
 	//Inserting into lhashtable
-	mid = iptoMid("128.200.9.27"); //d-2.eecs.uci.edu
+	mid = iptoMid("128.200.9.29"); //d-3.eecs.uci.edu
 	lhashInsert(20, mid);
 	lhashInsert(21, mid);
 	lhashInsert(22, mid);
 
-	mid = iptoMid("128.200.9.26"); //d-1.eecs.uci.edu
+	mid = iptoMid("128.200.9.30"); //d-4.eecs.uci.edu
 	//Inserting into lhashtable
 	lhashInsert(31, mid);
 	lhashInsert(32, mid);
 	lhashInsert(33, mid);
 	pthread_create(&thread_Listen, &attr, dstmListen, NULL);
-	//	pthread_create(&thread_Listen, NULL, dstmListen, NULL);
 
-	//Check if machine d-1 is up and running
-	checkServer(mid, "128.200.9.26");
-	mid = iptoMid("128.200.9.27");
-	//Check if machine d-2 is up and running
-	checkServer(mid, "128.200.9.27");
+	//Check if machine d-4 is up and running
+	checkServer(mid, "128.200.9.30");
+	mid = iptoMid("128.200.9.29");
+	//Check if machine d-3 is up and running
+	checkServer(mid, "128.200.9.29");
 
 	// Start Transaction	
 	myTrans = transStart();
@@ -277,46 +276,45 @@ int test4() {
 	lhashInsert(header->oid, mid);
 
 	//Inserting into lhashtable
-	mid = iptoMid("128.200.9.27"); //d-2.eecs.uci.edu
+	mid = iptoMid("128.200.9.29"); //d-3.eecs.uci.edu
 	lhashInsert(20, mid);
 	lhashInsert(21, mid);
 	lhashInsert(22, mid);
 
-	mid = iptoMid("128.200.9.26"); //d-1.eecs.uci.edu
+	mid = iptoMid("128.200.9.30"); //d-4.eecs.uci.edu
 	//Inserting into lhashtable
 	lhashInsert(31, mid);
 	lhashInsert(32, mid);
 	lhashInsert(33, mid);
-	pthread_create(&thread_Listen, &attr, dstmListen, NULL);
-	//	pthread_create(&thread_Listen, NULL, dstmListen, NULL);
 
-	//Check if machine d-1 is up and running
-	checkServer(mid, "128.200.9.26");
-	mid = iptoMid("128.200.9.27");
-	//Check if machine d-2 is up and running
-	checkServer(mid, "128.200.9.27");
+	pthread_create(&thread_Listen, &attr, dstmListen, NULL);
+	//Check if machine d-4 is up and running
+	checkServer(mid, "128.200.9.30");
+	mid = iptoMid("128.200.9.29");
+	//Check if machine d-3 is up and running
+	checkServer(mid, "128.200.9.29");
 
 	// Start Transaction	
 	myTrans = transStart();
 
 	//read object 1(present in local machine)
-	if((h1 = transRead(myTrans, 1)) == NULL){
-		printf("Object not found\n");
-	}
-	//read object 2present in local machine)
-	if((h2 = transRead(myTrans, 2)) == NULL) {
-		printf("Object not found\n");
-	}
-	//read object 31(present in d-1 machine)
-	if((h3 = transRead(myTrans, 31)) == NULL) {
-		printf("Object not found\n");
-	}
-	
-	//read object 21(present in d-2 machine)
-	if((h4 = transRead(myTrans, 21)) == NULL) {
+	if((h1 = transRead(myTrans, 2)) == NULL){
 		printf("Object not found\n");
 	}
 
+	//read object 2present in local machine)
+	if((h2 = transRead(myTrans, 1)) == NULL) {
+		printf("Object not found\n");
+	}
+	//read object 31(present in d-4 machine)
+	if((h3 = transRead(myTrans, 31)) == NULL) {
+		printf("Object not found\n");
+	}
+	//read object 21(present in d-3 machine)
+	if((h4 = transRead(myTrans, 21)) == NULL) {
+		printf("Object not found\n");
+	}
+	
 	// Commit transaction
 	transCommit(myTrans);
 
@@ -350,7 +348,6 @@ int test5() {
 	lhashInsert(32, mid);
 	lhashInsert(33, mid);
 	pthread_create(&thread_Listen, &attr, dstmListen, NULL);
-//	pthread_create(&thread_Listen, NULL, dstmListen, NULL);
 
 	printf("DEBUG -> mid = %d\n", mid);
 	checkServer(mid, "128.200.9.26");

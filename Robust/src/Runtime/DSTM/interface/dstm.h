@@ -13,7 +13,6 @@
 #define	TRANS_REQUEST		5
 #define	TRANS_ABORT		6
 #define TRANS_COMMIT 		7
-#define TRANS_ABORT_BUT_RETRY_COMMIT	8
 #define TRANS_ABORT_BUT_RETRY_COMMIT_WITH_RELOCATING	9
 
 //Participant Messages
@@ -31,9 +30,6 @@
 #define OBJ_LOCKED_BUT_VERSION_MATCH	14
 #define OBJ_UNLOCK_BUT_VERSION_MATCH	15
 #define VERSION_NO_MATCH		16
-//TODO REMOVE THIS
-#define NO_MISSING_OIDS			22
-#define MISSING_OIDS_PRESENT		23
 
 
 #include <stdlib.h>
@@ -67,13 +63,6 @@ typedef struct transrecord {
 	objstr_t *cache;
 	chashtable_t *lookupTable;
 } transrecord_t;
-/*
-typedef struct pile {
-	unsigned int mid;
-	unsigned int oid;
-	struct pile *next;
-}pile_t;
-*/
 // Structure that keeps track of responses from the participants
 typedef struct thread_response {
 	char rcv_status;
@@ -108,8 +97,13 @@ typedef struct thread_data_array {
 	pthread_cond_t *threshold; //threshhold for waking up a thread
 	pthread_mutex_t *lock;    //lock the count variable
 	int *count;             //variable to count responses of TRANS_REQUEST protocol from all participants
+	char *replyctrl; 	//shared ctrl message that stores the reply to be sent, filled by decideResp
+	char *replyretry;	//shared variable to find out if we need retry (TRANS_COMMIT case) 
 	transrecord_t *rec;	// To send modified objects
 }thread_data_array_t;
+
+
+
 
 // Structure to save information about an oid necesaary for the decideControl()
 typedef struct objinfo {
@@ -152,7 +146,8 @@ char handleTransReq(int, fixed_data_t *, trans_commit_data_t *, unsigned int *, 
 transrecord_t *transStart();
 objheader_t *transRead(transrecord_t *record, unsigned int oid);
 objheader_t *transCreateObj(transrecord_t *record, unsigned short type); //returns oid
-int decideResponse(thread_data_array_t *tdata, int sd, int status);// Coordinator decides what response to send to the participant
+int decideResponse(thread_data_array_t *tdata);// Coordinator decides what response to send to the participant
+char sendResponse(thread_data_array_t *tdata, int sd); //Sends control message back to Participants
 void *transRequest(void *);	//the C routine that the thread will execute when TRANS_REQUEST begins
 int transCommit(transrecord_t *record); //return 0 if successful
 void *getRemoteObj(transrecord_t *, unsigned int, unsigned int);

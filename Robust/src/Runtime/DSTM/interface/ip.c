@@ -51,7 +51,6 @@ int checkServer(int mid, char *machineip) {
 	while (connect(tmpsd, (struct sockaddr *) &serv_addr, sizeof(struct sockaddr)) < 0) {
 		sleep(1);
 	}
-	printf("DEBUG -> Connection established with %s\n", machineip);
 	close(tmpsd);
 	return 0;
 }
