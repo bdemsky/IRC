@@ -138,20 +138,22 @@ void *objstrAlloc(objstr_t *store, unsigned int size); //size in bytes
 /* Prototypes for server portion */
 void *dstmListen();
 void *dstmAccept(void *);
-int readClientReq(int, trans_commit_data_t *);
-char handleTransReq(int, fixed_data_t *, trans_commit_data_t *, unsigned int *, char *, void *);
+int readClientReq(trans_commit_data_t *, int);
+int processClientReq(fixed_data_t *, trans_commit_data_t *,unsigned int *, char *, void *, int);
+char handleTransReq(fixed_data_t *, trans_commit_data_t *, unsigned int *, char *, void *, int);
+int decideCtrlMessage(fixed_data_t *, trans_commit_data_t *, int *, int *, int *, int *, int *, void *, unsigned int *, unsigned int *, unsigned int *, int);
+int transCommitProcess(trans_commit_data_t *, int);
 /* end server portion */
 
 /* Prototypes for transactions */
 transrecord_t *transStart();
-objheader_t *transRead(transrecord_t *record, unsigned int oid);
-objheader_t *transCreateObj(transrecord_t *record, unsigned short type); //returns oid
-int decideResponse(thread_data_array_t *tdata);// Coordinator decides what response to send to the participant
-char sendResponse(thread_data_array_t *tdata, int sd); //Sends control message back to Participants
-void *transRequest(void *);	//the C routine that the thread will execute when TRANS_REQUEST begins
+objheader_t *transRead(transrecord_t *, unsigned int);
+objheader_t *transCreateObj(transrecord_t *, unsigned short); //returns oid
 int transCommit(transrecord_t *record); //return 0 if successful
+void *transRequest(void *);	//the C routine that the thread will execute when TRANS_REQUEST begins
+int decideResponse(thread_data_array_t *);// Coordinator decides what response to send to the participant
+char sendResponse(thread_data_array_t *, int); //Sends control message back to Participants
 void *getRemoteObj(transrecord_t *, unsigned int, unsigned int);
-int transCommitProcess(trans_commit_data_t *, int);
 /* end transactions */
 
 void *getRemoteObj(transrecord_t *, unsigned int, unsigned int);
