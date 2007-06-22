@@ -1,0 +1,58 @@
+Q: Why prefetching?
+
+Possible prefech calls 
+a) for array fields
+b) for pointer fields
+c) for typecasted oid's
+
+e.g.
+====
+x.y.z
+x.y.r
+x.y.r.t
+x[i].z
+((Integer) x).z
+
+Max no of prefetch objects  = #DEFINE 20
+control = 1 byte, oid = 4 bytes, new oid = 4 bytes,  depth = 1/ 2 bytes, name/type = 2 bytes, offset = 2 bytes, index = 2 bytes, typecastcheck = 2 bytes, 
+
+Assumptions
+===========
+
+1. Assume a max object size
+	Q: Why? 
+2. 
+
+Procedure:
+1. Compiler identifies which oids and oids.offset field to prefetch(analysing the C code)
+and supplies that information to the Coordinator machine wanting to commit transaction.
+	Q: How does compiler convey this to a machine?
+2. Machine distinguishes and classifies objects as "shared" or "unique"
+	e.g. while prefetching x.y.z and a.y.z  if variable x == a then considered shared else unique
+3. If not available in local machine, look up location table and make piles to send 
+   prefetch control messages to all the Particpant machines from which prefetch is required.
+4. Iteratively look up the data field of the objects at the Particpant side to find objects
+  and send them across to Coordinator.
+5. Coordinator takes inventory and finds out the location of the objs not found yet.
+	Q: How to implement if some objects are not found through prefetch? 
+       	
+Coordinator messages:
+
+<TRANS_PREFETCH  - control, participant machine id + tid, number of prefetch tuples, tuples of { size of each tuple, oids, offsets/index/typecastcheck, type1, offset2 , type2 .....end of chain symbol}
+e.g of tuple for x.y.z
+{ size of tuple(how many bytes is the tuple message), depth of the tuple = 3, oid "x", # of bytes of offset "x", # of array index "x" (in this case is -1), name/type of "y", # of bytes of offset "y",
+ # of array index "y" = -1, name/type of "z", #of bytes of offset "z" (in this case =0), # of bytes of array index "z" = -1 }
+       	
+
+Participant messages:
+
+<TRANS_PREFETCH_RESPONSE - control, number of tuples for which oid's found, tuples of{oids, offsets, found oid}, number of tuples for which oids not found, tuples of {
+	oids, offsets, oids not found }
+e.g. of tuple for x.y.z 
+{ size of tuple, depth of tuple = 3, oid, name/ type of "y", new oid, name/type of "z", new oid } if new oid == 0 or -1 => obj not found 
+
+Q: How can we represent offset, or index or typechecking .....in bytes i.e. short type number?
+
+
+	
+
