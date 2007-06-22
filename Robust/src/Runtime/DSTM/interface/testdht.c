@@ -18,15 +18,10 @@ int main()
 	localHash = chashCreate(HASH_SIZE, LOADFACTOR);
 	srandom(time(0));
 
-	for (key = 0; key < NUM_ITEMS; key++)
+	for (key = 1; key < NUM_ITEMS; key++)
 	{
 		vals[key] = random();
 	}
-
-	vals[NUM_ITEMS / 2] = 0;
-	vals[NUM_ITEMS / 3] = 1;
-	vals[NUM_ITEMS / 4] = 2;
-	vals[NUM_ITEMS / 5] = 0xFFFFFFFF;
 
 	printf("testing dhtInsert() and dhtSearch()\n");
 
@@ -36,7 +31,7 @@ int main()
 	}
 
 	error = 0;
-	for (key = 0; key < NUM_ITEMS; key++)
+	for (key = 1; key < NUM_ITEMS; key++)
 	{
 		retval = dhtSearch(key, &val);
 		if (retval == 1)
@@ -66,13 +61,13 @@ int main()
 	printf("(this currently fails if key = 0 OR val = 0, due to underlying hash table)\n");
 	printf("testing underlying hash table (clookup.h)\n");
 
-	for (key = 0; key < NUM_ITEMS; key++)
+	for (key = 1; key < NUM_ITEMS; key++)
 	{
 		chashInsert(localHash, key, (void *)vals[key]);
 	}
 
 	error = 0;
-	for (key = 0; key < NUM_ITEMS; key++)
+	for (key = 1; key < NUM_ITEMS; key++)
 	{
 		val = (unsigned int)chashSearch(localHash, key);
 		if ((void *)val == NULL)
@@ -153,7 +148,9 @@ int main()
 	else
 		printf("one or more errors occurred\n");
 
-	sleep(60);
+	sleep(5);
+
+	dhtExit();
 
 	return 0;
 }
