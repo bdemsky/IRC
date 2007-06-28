@@ -7,6 +7,7 @@
 
 typedef struct plistnode {
 	unsigned int mid;
+	int local; 		/*Variable that keeps track if this pile is for LOCAL machine */
 	unsigned int *oidmod;
 	unsigned int *oidread;
 	int nummod;

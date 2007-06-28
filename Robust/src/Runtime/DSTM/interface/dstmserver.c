@@ -161,6 +161,13 @@ void *dstmAccept(void *acceptfd)
 				return;
 			}
 			break;
+		case TRANS_PREFETCH:
+			printf("DEBUG -> Recv TRANS_PREFETCH\n");
+			if((val = prefetchReq((int)acceptfd)) != 0) {
+				printf("Error in readClientReq\n");
+				return;
+			}
+			break;
 
 		default:
 			printf("DEBUG -> dstmAccept: Error Unknown opcode %d\n", control);
@@ -520,3 +527,8 @@ int transCommitProcess(trans_commit_data_t *transinfo, int acceptfd) {
 	return 0;
 }
 
+
+int prefetchReq(int acceptfd) {
+
+	return 0;
+}
