@@ -181,7 +181,7 @@ void *handleLocalReq(void *);	//the C routine that the local m/c thread will exe
 int decideResponse(thread_data_array_t *);// Coordinator decides what response to send to the participant
 char sendResponse(thread_data_array_t *, int); //Sends control message back to Participants
 void *getRemoteObj(transrecord_t *, unsigned int, unsigned int);
-int transAbortProcess(void *, unsigned int *, int, int);
+int transAbortProcess(void *, unsigned int *, int, int, int);
 int transComProcess(trans_commit_data_t *);
 /* end transactions */
 #endif
