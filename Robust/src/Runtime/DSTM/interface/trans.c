@@ -53,19 +53,13 @@ objheader_t *transRead(transrecord_t *record, unsigned int oid)
 	void *buf;
 		/* Search local cache */
 	if((objheader =(objheader_t *)chashSearch(record->lookupTable, oid)) != NULL){
-		//LOCAL Object
-		objheader->status |= LOCAL;
-		//printf("DEBUG -> transRead oid %d found local\n", oid);
 		return(objheader);
 	} else if ((objheader = (objheader_t *) mhashSearch(oid)) != NULL) {
 		/* Look up in machine lookup table  and copy  into cache*/
-		//printf("oid is found in Local machinelookup\n");
 		tmp = mhashSearch(oid);
 		size = sizeof(objheader_t)+classsize[tmp->type];
 		objcopy = objstrAlloc(record->cache, size);
 		memcpy(objcopy, (void *)tmp, size);
-		//LOCAL Object
-		((objheader_t *) objcopy)->status |= LOCAL;
 		/* Insert into cache's lookup table */
 		chashInsert(record->lookupTable, objheader->oid, objcopy); 
 		return(objcopy);
@@ -105,6 +99,7 @@ plistnode_t *createPiles(transrecord_t *record) {
 	chashlistnode_t *curr, *ptr, *next;
 	plistnode_t *pile = NULL;
 	unsigned int machinenum;
+	void *localmachinenum;
 	objheader_t *headeraddr;
 
 	ptr = record->lookupTable->table;
@@ -135,10 +130,12 @@ plistnode_t *createPiles(transrecord_t *record) {
 				printf("pInsert error %s, %d\n", __FILE__, __LINE__);
 				return NULL;
 			}
-			/* Check if local */
-			if((headeraddr->status & LOCAL) == LOCAL) {
+			
+			/* Check if local or not */
+			if((localmachinenum = mhashSearch(curr->key)) != NULL) { 
 				pile->local = 1; //True i.e. local
 			}
+		
 			curr = next;
 		}
 	}
