@@ -20,6 +20,14 @@
 extern int classsize[];
 objstr_t *mainobjstore;
 plistnode_t *createPiles(transrecord_t *);
+int checkPrefetchTuples(int **, int *, short);
+
+inline int arrayLength(int *array) {
+	int i;
+	for(i=0 ;array[i] != -1; i++)
+		;
+	return i;
+}
 
 /* This functions inserts randowm wait delays in the order of msec */
 void randomdelay(void)
@@ -811,7 +819,90 @@ int transAbortProcess(void *modptr, unsigned int *objlocked, int numlocked, int 
  }
 
 /*This function makes piles to prefetch records and prefetches the oids from remote machines */
-int transPrefetch(transrecord_t *record, trans_prefetchtuple_t *prefetchtuple){
-	/* Create Pile*/
-	/* For each Pile in the machine send TRANS_PREFETCH */
+int transPrefetch(int *arrayofoffset[], short numoids){
+	int i, k;
+	int arraylength[numoids];
+	unsigned int machinenumber;
+	objheader_t *tmp, *objheader;
+	void *objcopy;
+	int size;
+	void *buf;
+
+	/* Given tuple find length of tuple*/
+	for(i = 0; i < numoids ; i++) {
+		arraylength[i] = arrayLength(arrayofoffset[i]);
+	}
+	/* Check for similar tuples or  other special case tuples that can be combined to a 
+	 * prefetch message*/
+	checkPrefetchTuples(arrayofoffset, arraylength, numoids);
+
+
+	/* Check if part of prefetch request available locally */
+	for(i = 0; i < numoids ; i++) {
+		while(arrayofoffsets[i][k] != -1) {
+			if((objheader = (objheader_t *) mhashSearch(arrayofoffsets[i][k])) != NULL) {
+				/* Look up in machine lookup table  and copy  into cache*/
+				tmp = mhashSearch(oid);
+				size = sizeof(objheader_t)+classsize[tmp->type];
+				objcopy = objstrAlloc(record->cache, size);
+				memcpy(objcopy, (void *)tmp, size);
+				/* Insert into cache's lookup table */
+				chashInsert(record->lookupTable, objheader->oid, objcopy); 
+				/* Find the offset field*/
+				oid = (int)(tmp + sizeof(objheader_t) + arrayofoffsets[i][k+1]);
+			} else  { /* If not found in machine look up */
+				/* Get the object from the remote location */
+				machinenumber = lhashSearch(oid);
+				/* Create  Machine Piles t send prefetch requests use threads*/
+				/* For each Pile in the machine send TRANS_PREFETCH */
+			}
+			k = k+1;
+		}
+	}
+		
+}
+
+int checkPrefetchTuples(int *arrayofoffset[], int *arraylength, short numoids) {
+	int i, j, k, matchfound = 0, count = 0, slength, length;
+	int *sarray, *larray;
+
+	/* Check if the prefetch oids are same and have same offsets  
+	 * for case x.a.b and y.a.b where x and y have same oid's
+	 * or if a.b.c is a subset of x.b.c.d*/ 
+	/* check for case where the generated request a.y.z or x.y.z.g then 
+	 * prefetch needs to be generated for x.y.z.g */
+	for(i = 0; i < numoids -1 ; i++) {
+		if(arrayofoffset[i][0] == -1)
+			continue;
+		for( j = 0; j < (numoids - (i+1)); j++) {
+			if(arrayofoffset[j][0] == -1)
+				continue;
+			/* If the oids of the tuples match */
+			if((arrayofoffset[i][0] == arrayofoffset[j][0]) && (i != j )) {
+				/*Find the  smallest length of two arrays, find ptrs to smallest and long array */
+				if(arraylength[i] > arraylength[j]) {
+					slength = arraylength[j];
+					sarray = arrayofoffset[j];
+					larray = arrayofoffset[i];
+				} else {
+					slength = arraylength[i];
+					sarray = arrayofoffset[i];
+					larray = arrayofoffset[j];
+				}
+				/* From first offset until end of tuple compare all offsets of sarray and larray
+				 * if not a match then break  */
+				for(k = 1 ; slength -1 ; k++) {
+					if(sarray[k] != larray[k]) {
+						break;
+					}
+				}
+				/* If number of same offsets encountered is same as 
+				 * no of offsets in small array then common tuples found*/
+				 if(k == (slength -1))
+					 sarray[0] = -1;
+			}
+		}
+	}
+
+	return 0;
 }
