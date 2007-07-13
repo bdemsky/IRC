@@ -717,6 +717,20 @@ void builditerators(struct taskdescriptor * task, int index, struct parameterwra
 	}
       }
     }
+
+    /* Next do objects w/ unbound tags*/
+
+    for(i=0;i<numparams;i++) {
+      if (statusarray[i]==0) {
+	struct parameterdescriptor *pd=task->descriptorarray[i];
+	if (pd->numbertags>0) {
+	  processobject(parameter, i, pd, &iteratorcount, statusarray, numparams);
+	  processtags(pd, i, parameter, &iteratorcount, statusarray, numparams);
+	  goto loopstart;
+	}
+      }
+    }
+
     /* Nothing with a tag enqueued */
 
     for(i=0;i<numparams;i++) {
