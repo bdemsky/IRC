@@ -10,9 +10,10 @@ import Util.GraphNode;
 public class TaskNode extends GraphNode {
 	
     private final String name;
-    private int uid;
+    protected int uid;
     private static int nodeid=0;
-    
+    // private int loopmarker=0;
+    //private boolean multipleparams=false;
     /**Class Constructor
      * Creates a new TaskNode using the TaskDescriptor.
      * @param tasknode TaskDescriptor
@@ -36,6 +37,11 @@ public class TaskNode extends GraphNode {
     public String getName(){
 	    return name;
     }
+
+    // public int getuid(){
+    //return uid;
+    //}
+	
  	
  	/**toString method.
  	 * @return  string representation of the tasknode (e.g "Task foo")
@@ -56,14 +62,13 @@ public class TaskNode extends GraphNode {
         }
         return false;
     }
-    
+     
     public boolean edgeExists(TEdge newedge){
 	    if(edges.isEmpty())
 	    	return false;
 	    else
 	        return edges.contains(newedge);
     }
-	    
     
 }
 	

@@ -4,6 +4,7 @@ import IR.Tree.TagExpressionList;
 import IR.Tree.FlagEffects;
 import java.util.Vector;
 import java.util.Hashtable;
+import java.util.Iterator;
 import IR.Tree.Modifiers;
 
 /**
@@ -18,6 +19,7 @@ public class TaskDescriptor extends Descriptor {
     protected Vector vfe;
     protected String identifier;
     protected Vector params;
+    protected Vector optionals;
     protected SymbolTable paramtable;
 
     public TaskDescriptor(String identifier) {
@@ -27,6 +29,7 @@ public class TaskDescriptor extends Descriptor {
 	flagstable=new Hashtable();
 	tagstable=new Hashtable(); //BUGFIX - added initialization here
 	params=new Vector();
+	optionals = new Vector();
 	paramtable=new SymbolTable();
     }
 
@@ -42,11 +45,12 @@ public class TaskDescriptor extends Descriptor {
 	return paramtable;
     }
 
-    public void addParameter(TypeDescriptor type, String paramname, FlagExpressionNode fen, TagExpressionList tel) {
+    public void addParameter(TypeDescriptor type, String paramname, FlagExpressionNode fen, TagExpressionList tel, boolean isoptional) {
 	if (paramname.equals("this"))
 	    throw new Error("Can't have parameter named this");
 	VarDescriptor vd=new VarDescriptor(type, paramname);
 	params.add(vd);
+	if (isoptional) optionals.add(vd);
 	if (fen!=null)
 	    flagstable.put(vd, fen);
 	if (tel!=null) {//BUGFIX - added null check here...test with any bristlecone program
@@ -64,6 +68,12 @@ public class TaskDescriptor extends Descriptor {
 	    throw new Error("Parameter "+paramname+" already defined");
 	}
 	paramtable.add(vd);
+    }
+
+    public boolean isOptional(String classname){
+	for (Iterator it = optionals.iterator(); it.hasNext();)
+	    if( ((VarDescriptor)it.next()).getType().getSymbol().compareTo(classname)==0) return true;
+	return false;
     }
 
     public int numParameters() {

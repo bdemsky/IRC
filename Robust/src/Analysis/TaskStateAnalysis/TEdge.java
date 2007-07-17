@@ -8,14 +8,10 @@ import Util.Edge;
 
 
 public class TEdge extends Edge{
-	
-
     
     public TEdge(TaskNode target){
 	super(target);
     }
-
-	
 		 
     public int hashCode(){
 	return target.hashCode();

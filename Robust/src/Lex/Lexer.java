@@ -249,8 +249,8 @@ public class Lexer {
     "extends", "external", "final", "finally", 
     "flag", //keyword for failure aware computation
     "float", "for", "goto", "if", 
-    "implements", "import", "instanceof", "int", "interface", "long", 
-    "native", "new", "package", "private", "protected", "public", 
+    "implements", "import", "instanceof", "int", "interface", "long",  
+    "native", "new", "optional", "package", "private", "protected", "public", 
     "return", "short", "static", "strictfp", "super", "switch", "synchronized",
     "tag", "task", "taskexit", //keywords for failure aware computation
     "this", "throw", "throws", "transient", "try", "void",

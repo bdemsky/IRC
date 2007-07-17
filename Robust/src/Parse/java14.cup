@@ -221,6 +221,7 @@ non terminal ParseNode expression_opt, expression;
 //non terminal ParseNode constant_expression;
 //failure aware computation keywords
 terminal FLAG;
+terminal OPTIONAL;
 terminal EXTERNAL;
 terminal TAG;
 terminal TASK;
@@ -303,6 +304,12 @@ task_parameter ::=
 		pn.addChild("tag").addChild(texp);
 		RESULT=pn;
 	:}
+	| OPTIONAL task_parameter:fp {:
+		ParseNode pn=new ParseNode("task_parameter");
+		pn.addChild("optional").addChild(fp);
+		RESULT=pn;
+	:}		
+	
 	;
 
 tag_expression_list ::= tag_expression:te {: 

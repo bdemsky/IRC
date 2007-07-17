@@ -23,6 +23,8 @@ public class FlagState extends GraphNode {
     private final Hashtable<TagDescriptor,Integer> tags;
     private boolean issourcenode;
     private Vector tasks;
+
+    private boolean marked=false;
     
 
     /** Class constructor
@@ -51,7 +53,23 @@ public class FlagState extends GraphNode {
 	this.issourcenode=false;
 	
     }
-    
+   
+    public int getuid() {
+	return uid;
+    }
+
+    public boolean isMarked() {
+	return marked;
+    }
+
+    public void doUnmarking() {
+	marked = false;
+    }
+
+    public void doMarking() {
+	marked = true;
+    }
+            
     /** Accessor method
       *  @param fd FlagDescriptor
       *  @return true if the flagstate contains fd else false.

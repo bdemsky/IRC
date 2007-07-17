@@ -67,6 +67,7 @@ class Keyword extends Token {
     //Keywords for failure aware computation
     key_table.put("flag", new Integer(Sym.FLAG));
     key_table.put("external", new Integer(Sym.EXTERNAL));
+    key_table.put("optional", new Integer(Sym.OPTIONAL));
     key_table.put("tag", new Integer(Sym.TAG));
     key_table.put("task", new Integer(Sym.TASK));
     key_table.put("taskexit", new Integer(Sym.TASKEXIT));

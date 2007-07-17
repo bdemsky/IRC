@@ -140,6 +140,8 @@ public class TaskAnalysis {
 	    
 	    analyseTasks(trigger);
 	}
+
+
 	
 	/** Creating DOT files */
 	Enumeration e=flagstates.keys();
@@ -148,6 +150,8 @@ public class TaskAnalysis {
 	    System.out.println("creating dot file");
 	    ClassDescriptor cdtemp=(ClassDescriptor)e.nextElement();
 	    System.out.println((cdtemp.getSymbol()));
+	    
+
 	    createDOTfile(cdtemp);
 	}
     }
@@ -248,6 +252,7 @@ private void analyseTasks(FlagState fs) {
 		    
 		    for(Enumeration en=fsv_taskexit.elements();en.hasMoreElements();){
 			FlagState fs_taskexit=(FlagState)en.nextElement();
+			if (fs_taskexit == null ) System.out.println("Bug to fix : fs_taskexit == null");//continue;
 			if (!sourcenodes.containsKey(fs_taskexit)) {
 			    toprocess.add(fs_taskexit);
 			    
@@ -373,44 +378,44 @@ private FlagState evalNewObjNode(FlatNode nn){
     return fstemp;
 }
 	
-	private Vector<FlagState> evalTaskExitNode(FlatNode nn,ClassDescriptor cd,FlagState fs, TempDescriptor temp){
-		FlagState fstemp=fs;
-		//FlagState[] fstemparray=new FlagState[3];
-		Vector<FlagState> inprocess=new Vector<FlagState>();
-		Vector<FlagState> processed=new Vector<FlagState>();
-			    
-		for(Iterator it_tfp=((FlatFlagActionNode)nn).getTempFlagPairs();it_tfp.hasNext();) {
-			TempFlagPair tfp=(TempFlagPair)it_tfp.next();
-			if (temp==tfp.getTemp())
-			    fstemp=fstemp.setFlag(tfp.getFlag(),((FlatFlagActionNode)nn).getFlagChange(tfp));
-		}
-		
-		inprocess.add(fstemp);
-		processed.add(fstemp);
-		
-		for(Iterator it_ttp=((FlatFlagActionNode)nn).getTempTagPairs();it_ttp.hasNext();) {
-			TempTagPair ttp=(TempTagPair)it_ttp.next();
-			
-			if (temp==ttp.getTemp()){	
-				processed=new Vector<FlagState>();			
-				for (Enumeration en=inprocess.elements();en.hasMoreElements();){
-					FlagState fsworking=(FlagState)en.nextElement();
-					if (((FlatFlagActionNode)nn).getTagChange(ttp)){
-						fsworking=fsworking.setTag(ttp.getTag());
-						processed.add(fsworking);
-					}
-					else
-					{	
-						processed.addAll(Arrays.asList(fsworking.clearTag(ttp.getTag())));
-					}
-				}
-				inprocess=processed;
-		}
-		}
-		return processed;
+    private Vector<FlagState> evalTaskExitNode(FlatNode nn,ClassDescriptor cd,FlagState fs, TempDescriptor temp){
+	FlagState fstemp=fs;
+	//FlagState[] fstemparray=new FlagState[3];
+	Vector<FlagState> inprocess=new Vector<FlagState>();
+	Vector<FlagState> processed=new Vector<FlagState>();
 	
-}		
+	for(Iterator it_tfp=((FlatFlagActionNode)nn).getTempFlagPairs();it_tfp.hasNext();) {
+	    TempFlagPair tfp=(TempFlagPair)it_tfp.next();
+	    if (temp==tfp.getTemp())
+		fstemp=fstemp.setFlag(tfp.getFlag(),((FlatFlagActionNode)nn).getFlagChange(tfp));
+	}
+	
+	inprocess.add(fstemp);
+	processed.add(fstemp);
+	
+	for(Iterator it_ttp=((FlatFlagActionNode)nn).getTempTagPairs();it_ttp.hasNext();) {
+	    TempTagPair ttp=(TempTagPair)it_ttp.next();
 	    
+	    if (temp==ttp.getTemp()){	
+		processed=new Vector<FlagState>();			
+		for (Enumeration en=inprocess.elements();en.hasMoreElements();){
+		    FlagState fsworking=(FlagState)en.nextElement();
+		    if (((FlatFlagActionNode)nn).getTagChange(ttp)){
+			fsworking=fsworking.setTag(ttp.getTag());
+			processed.add(fsworking);
+		    }
+		    else
+			{	
+			    processed.addAll(Arrays.asList(fsworking.clearTag(ttp.getTag())));
+			}
+		}
+		inprocess=processed;
+	    }
+	}
+	return processed;
+	
+    }		
+    
 
     private FlagState canonicalizeFlagState(Hashtable sourcenodes, FlagState fs){
 	if (sourcenodes.containsKey(fs))
@@ -433,7 +438,7 @@ private FlagState evalNewObjNode(FlatNode nn){
 		FlagState.DOTVisitor.visit(dotstream,((Hashtable)flagstates.get(cd)).values());
 		
     }
-	
+
     /** Returns the flag states for the class descriptor. */
     public Set getFlagStates(ClassDescriptor cd) {
 	if (flagstates.containsKey(cd))
@@ -483,6 +488,7 @@ private FlagState evalNewObjNode(FlatNode nn){
 		return (Vector)cdtorootnodes.get(cd);
 	}
 
-	
+
+   
 } 
 

@@ -9,7 +9,7 @@ public class GraphNode {
     public static final NodeStatus UNVISITED = new NodeStatus("UNVISITED");
     public static final NodeStatus PROCESSING = new NodeStatus("PROCESSING");
     public static final NodeStatus FINISHED = new NodeStatus("FINISHED");
-
+    
     public static class NodeStatus {
         private static String name;
         private NodeStatus(String name) { this.name = name; }
@@ -90,7 +90,7 @@ public class GraphNode {
         }
         this.status = status;
     }
-
+       
     public String getLabel() {
 	return "";
     }
@@ -123,6 +123,14 @@ public class GraphNode {
 	return (Edge) inedges.get(i);
     }
 
+    public Vector getEdgeVector() {
+	return edges;
+    }
+
+    public Vector getInedgeVector() {
+	return inedges;
+    }
+
     public Iterator edges() {
         return edges.iterator();
     }
@@ -130,7 +138,7 @@ public class GraphNode {
     public Iterator inedges() {
         return inedges.iterator();
     }
-
+    
     public void addEdge(Edge newedge) {
 	newedge.setSource(this);
         edges.addElement(newedge);
@@ -138,6 +146,26 @@ public class GraphNode {
 	tonode.inedges.addElement(newedge);
     }
 
+    public void addEdge(Vector v) {
+	for (Iterator it = v.iterator(); it.hasNext();)
+	    addEdge((Edge)it.next());
+    }
+
+    public void removeEdge(Edge edge) {
+	edges.remove(edge);
+    }
+
+    public void removeInedge(Edge edge) {
+	inedges.remove(edge);
+    }
+
+    public void removeAllEdges() {
+	edges.removeAllElements();
+    }
+
+    public void removeAllInedges() {
+	inedges.removeAllElements();
+    }
     void reset() {
 	    discoverytime = -1;
 	    finishingtime = -1;
@@ -211,9 +239,11 @@ public class GraphNode {
 			  output.println("\tremincross=true;");*/
             output.println("\tnode [fontsize=10,height=\"0.1\", width=\"0.1\"];");
             output.println("\tedge [fontsize=6];");
-            traverse();
+	    traverse();
             output.println("}\n");
         }
+
+
 
         private void traverse() {
 	    Set cycleset=GraphNode.findcycles(nodes);

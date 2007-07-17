@@ -15,6 +15,8 @@ import Analysis.TaskStateAnalysis.TaskGraph;
 import Analysis.CallGraph.CallGraph;
 import Analysis.TaskStateAnalysis.TagAnalysis;
 import Analysis.TaskStateAnalysis.GarbageAnalysis;
+import Analysis.TaskStateAnalysis.ExecutionGraph;
+import Analysis.TaskStateAnalysis.SafetyAnalysis;
 import Interface.*;
 
 public class Main {
@@ -43,6 +45,8 @@ public class Main {
 	      state.TASK=true;
 	  else if (option.equals("-taskstate"))
 	      state.TASKSTATE=true;
+	  else if (option.equals("-optional"))
+	      state.OPTIONAL=true;
 	  else if (option.equals("-thread"))
 	      state.THREAD=true;
 	  else if (option.equals("-webinterface"))
@@ -55,12 +59,12 @@ public class Main {
 	      System.out.println("-struct structfile -- output structure declarations for repair tool");
 	      System.out.println("-mainclass -- main function to call");
 	      System.out.println("-precise -- use precise garbage collection");
-
 	      System.out.println("-conscheck -- turn on consistency checking");
 	      System.out.println("-task -- compiler for tasks");
 	      System.out.println("-thread -- threads");
 	      System.out.println("-instructionfailures -- insert code for instruction level failures");
 	      System.out.println("-taskstate -- do task state analysis");
+	      System.out.println("-optional -- enable optional arguments");
 	      System.out.println("-webinterface -- enable web interface");
 	      System.out.println("-help -- print out help");
 	      System.exit(0);
@@ -120,6 +124,14 @@ public class Main {
 	  ta.taskAnalysis();
 	  TaskGraph tg=new TaskGraph(state, ta);
 	  tg.createDOTfiles();
+
+	  if (state.OPTIONAL) {
+	      ExecutionGraph et=new ExecutionGraph(state, ta);
+	      et.createExecutionGraph();
+	      SafetyAnalysis sa = new SafetyAnalysis(et.getExecutionGraph(), state);
+	      sa.buildPath();
+	  }
+
 	  if (state.WEBINTERFACE) {
 	      GarbageAnalysis ga=new GarbageAnalysis(state, ta);
 	      WebInterface wi=new WebInterface(state, ta, tg, ga, taganalysis);

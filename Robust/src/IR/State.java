@@ -25,6 +25,9 @@ public class State {
     public boolean WEBINTERFACE;
     public boolean TASK;
     public boolean TASKSTATE=false;
+
+    public boolean OPTIONAL=false;
+
     public boolean THREAD=false;
     public boolean INSTRUCTIONFAILURE=false;
     public String structfile;

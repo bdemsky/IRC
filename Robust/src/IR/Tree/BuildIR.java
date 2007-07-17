@@ -167,30 +167,41 @@ public class BuildIR {
     }
 
     public void parseParameterList(TaskDescriptor td, ParseNode pn) {
+	
+	boolean optional;
 	ParseNode paramlist=pn.getChild("task_parameter_list");
 	if (paramlist==null)
 	    return;
-	 ParseNodeVector pnv=paramlist.getChildren();
-	 for(int i=0;i<pnv.size();i++) {
-	     ParseNode paramn=pnv.elementAt(i);
-	     TypeDescriptor type=parseTypeDescriptor(paramn);
+	ParseNodeVector pnv=paramlist.getChildren();
+	for(int i=0;i<pnv.size();i++) {
+	    ParseNode paramn=pnv.elementAt(i);
+	    if(paramn.getChild("optional")!=null){
+		optional = true;
+		paramn = paramn.getChild("optional").getFirstChild();
+		System.out.println("OPTIONAL FOUND!!!!!!!");
+	    }
+	    else { optional = false;
+	    System.out.println("NOT OPTIONAL");
+	    }
 
-	     String paramname=paramn.getChild("single").getTerminal();
-	     FlagExpressionNode fen=null;
-	     if (paramn.getChild("flag")!=null)
-		 fen=parseFlagExpression(paramn.getChild("flag").getFirstChild());
-
-	     ParseNode tagnode=paramn.getChild("tag");
-
-	     TagExpressionList tel=null;
-	     if (tagnode!=null) {
-		 tel=parseTagExpressionList(tagnode);
-	     }
-	     
-	     td.addParameter(type,paramname,fen, tel);
-	 }
+	    TypeDescriptor type=parseTypeDescriptor(paramn);
+	    
+	    String paramname=paramn.getChild("single").getTerminal();
+	    FlagExpressionNode fen=null;
+	    if (paramn.getChild("flag")!=null)
+		fen=parseFlagExpression(paramn.getChild("flag").getFirstChild());
+	    
+	    ParseNode tagnode=paramn.getChild("tag");
+	    
+	    TagExpressionList tel=null;
+	    if (tagnode!=null) {
+		tel=parseTagExpressionList(tagnode);
+	    }
+	    
+	    td.addParameter(type,paramname,fen, tel, optional);
+	}
     }
-
+    
     public TagExpressionList parseTagExpressionList(ParseNode pn) {
 	//BUG FIX: change pn.getChildren() to pn.getChild("tag_expression_list").getChildren()
 	//To test, feed in any input program that uses tags
