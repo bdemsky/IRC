@@ -14,12 +14,17 @@ public class SafetyAnalysis {
     private TreeMap safeexecution;
     private static final int OR = 0;
     private static final int AND = 1;
-    private static final int UNIONFS = 1;
-    private static final int NOUNION = 0;
     private Hashtable reducedgraph;
     private String classname;
     private State state;
-        
+    
+
+    /*Structure that stores a possible optional
+      task which would be safe to execute and 
+      the possible flagstates the object could
+      be in before executing the task during an
+      execution without failure*/
+    
     public class  MyOptional{
 	public TaskDescriptor td;
 	public HashSet flagstates;
@@ -37,6 +42,7 @@ public class SafetyAnalysis {
 	}
     }
     
+    /*Constructor*/
     public SafetyAnalysis(Hashtable executiongraph, State state){
 	this.executiongraph = executiongraph;
 	this.safeexecution = new TreeMap();
@@ -44,172 +50,15 @@ public class SafetyAnalysis {
 	this.state = state;
     }
     
-    public void unMark(Vector nodes){
+    
+    public void unMarkProcessed(Vector nodes){
 	for(Iterator it = nodes.iterator(); it.hasNext();){
 	    EGTaskNode tn = (EGTaskNode)it.next();
 	    tn.unMark();
 	}	
     }
 
-    public void buildPath() throws java.io.IOException {
-	
-	byte[] b = new byte[100] ;
-	Vector flagstates = new Vector();
-	HashSet safetasks = new HashSet();
-	System.out.println("Enter the Class of the object concerned :");
-	int k = System.in.read(b);
-	classname = new String(b,0,k-1);
-	//classname =new String("Test");
-	for (int i = 0 ; i<2 ; i++){
-	System.out.println("Enter the possible flagstates :");
-	k = System.in.read(b);
-	String previousflagstate = new String(b,0,k-1);
-	flagstates.add(previousflagstate);
-	}
-		
-	Vector nodes = new Vector();
-	nodes = getConcernedClass( classname );
-	if(nodes==null) {
-	    System.out.println("Impossible to find "+classname+". Maybe not declared in the source code.");
-	    return;
-	}
-		
-	HashSet tempnodes = new HashSet();
-	for(Iterator it = flagstates.iterator(); it.hasNext();){
-	    Vector tns = new Vector();
-	    String flagstate = (String)it.next();
-	    tns = findEGTaskNode(flagstate, nodes);
-	    if(tns==null) {
-		System.out.println("No task corresponding");
-		return;
-	    }
-	    else{
-		tempnodes.add(tns);
-	    }
-	}
-	
-	EGTaskNode sourcenode = findSourceNode(nodes);
-	buildSafeExecutions(sourcenode);
-	
-	createDOTFile();
-	
-	int counter = 0;	
-	for(Iterator nodesit = tempnodes.iterator(); nodesit.hasNext();){
-	    Vector tns = (Vector)nodesit.next();
-	    HashSet availabletasks = new HashSet();
-	    for(Iterator it = tns.iterator(); it.hasNext();){
-		counter++;
-		unMark(nodes);
-		EGTaskNode tn = (EGTaskNode)it.next();
-		HashSet nodetags = createNodeTags(tn);
-		availabletasks = createUnion(determineIfIsSafe(tn, nodetags), availabletasks);
-			//DEBUG
-		System.out.println("-----------------------------");
-		for(Iterator it2 = availabletasks.iterator(); it2.hasNext();){
-		    MyOptional mm = (MyOptional)it2.next();
-		    System.out.println("\t"+mm.td.getSymbol());
-		    System.out.println("with flags :");
-		    for(Iterator it3 = mm.flagstates.iterator(); it3.hasNext();){
-			System.out.println("\t"+((FlagState)it3.next()).getTextLabel());
-		    }
-		    System.out.println("-----------------------------");
-		}
-		//     
-		if(counter == 1) safetasks = availabletasks;
-		else safetasks = createIntersection(availabletasks, safetasks, NOUNION);
-	    }
-	}
-	    
-	/////DEBUG
-	System.out.println("\n\n\n\nSAFE TASKS : ");
-	for(Iterator it2 = safetasks.iterator(); it2.hasNext();){
-	    MyOptional mm = (MyOptional)it2.next();
-	    System.out.println("\t"+mm.td.getSymbol());
-	    System.out.println("with flags :");
-	    for(Iterator it3 = mm.flagstates.iterator(); it3.hasNext();){
-		System.out.println("\t"+((FlagState)it3.next()).getTextLabel());
-	    }
-	    resultingFS(mm, classname);
-	}
-	//////
-    }
-    
-    public HashSet buildPath(Vector flagstates, ClassDescriptor cd) throws java.io.IOException {
-	HashSet safetasks = new HashSet();
-	Vector nodes = new Vector();
-	classname = cd.getSymbol();
-	nodes = getConcernedClass( classname );
-	if(nodes==null) {
-	    System.out.println("Impossible to find "+classname+". Maybe not declared in the source code.");
-	    return null;
-	}
-		
-	HashSet tempnodes = new HashSet();
-	for(Iterator it = flagstates.iterator(); it.hasNext();){
-	    Vector tns = new Vector();
-	    String flagstate = (String)it.next();
-	    tns = findEGTaskNode(flagstate, nodes);
-	    if(tns==null) {
-		System.out.println("No task corresponding");
-		return null;
-	    }
-	    else{
-		tempnodes.add(tns);
-	    }
-	}
-	
-	EGTaskNode sourcenode = findSourceNode(nodes);
-	buildSafeExecutions(sourcenode);
-	
-	createDOTFile();
-	
-	int counter = 0;	
-	for(Iterator nodesit = tempnodes.iterator(); nodesit.hasNext();){
-	    Vector tns = (Vector)nodesit.next();
-	    HashSet availabletasks = new HashSet();
-	    for(Iterator it = tns.iterator(); it.hasNext();){
-		counter++;
-		unMark(nodes);
-		EGTaskNode tn = (EGTaskNode)it.next();
-		HashSet nodetags = createNodeTags(tn);
-		availabletasks = createUnion(determineIfIsSafe(tn, nodetags), availabletasks);
-		if(counter == 1) safetasks = availabletasks;
-		else safetasks = createIntersection(availabletasks, safetasks, NOUNION);
-	    }
-	}
-	
-	return safetasks;
-	
-    }
-    
-    private void buildSafeExecutions(EGTaskNode extremity) throws java.io.IOException{
-	
-	if (extremity.isMarked() || !((Iterator)extremity.edges()).hasNext()){
-	    if (!((Iterator)extremity.edges()).hasNext()) extremity.mark();
-	    reducedgraph.put(extremity.getuid(), extremity);
-	}
-    	else {
-	    process(extremity);
-	    reducedgraph.put(extremity.getuid(), extremity);
-	    extremity.mark();
-	    for( Iterator it = extremity.edges(); it.hasNext(); ){
-		TEdge edge = (TEdge)it.next();
-		buildSafeExecutions((EGTaskNode)edge.getTarget());
-	    }
-	}
-    }
-    
-    private void process(EGTaskNode tn){
-	testIfOptional(tn);
-	testIfSameTask(tn);
-	testIfNextIsSelfLoop(tn);
-	//testIfLoop(tn);
-	testIfRuntime(tn);
-	testIfMultiple(tn);
-
-	
-    }
-    
+    /*returns a hashset of tags used during the analysis */
     private HashSet createNodeTags(EGTaskNode tn){
 	HashSet nodetags = new HashSet();
 	String flagstate = tn.getFSName();
@@ -226,30 +75,162 @@ public class SafetyAnalysis {
 	return nodetags;
     }
     
-    private boolean tagChange(EGTaskNode tn, HashSet nodetags){
-	
-	HashSet tags = new HashSet();
-	String flagstate = tn.getFSName();
-	String word = new String();
-	StringTokenizer st = new StringTokenizer(flagstate);
-	while (st.hasMoreTokens()){
-	    word = st.nextToken();
-	    if (word.compareTo("Tag")==0)
-		tags.add(st.nextToken());
-	}
-	for(Iterator it = tags.iterator(); it.hasNext();){
-	    String tag = (String)it.next();
-	    if( !nodetags.contains(tag)){
-		System.out.println("Tag Change :"+tag);
-		return true;
+    /*finds the the source node in the execution graph*/
+    private EGTaskNode findSourceNode(Vector nodes){
+	for(Iterator it = nodes.iterator(); it.hasNext();){
+	    EGTaskNode tn = (EGTaskNode)it.next();
+	    if(tn.isSource()){
+		System.out.println("Found Source Node !!");
+		return tn;
 	    }
 	}
-	
-	return false;
-	
+	return null;
     }
+    
+    /*returns the nodes corresponding to the tasks
+      that can fire with the object in flagstate
+      previousflagstate*/
+    private Vector findEGTaskNode(String previousflagstate, Vector nodes){
+	Vector tns = new Vector();
+	for(Iterator it = nodes.iterator(); it.hasNext();){
+	    EGTaskNode tn = (EGTaskNode)it.next();
+	    if(tn.getFSName().compareTo(previousflagstate)==0)
+		tns.add(tn);
+	}
+	if(tns.size() == 0)
+	    return null;
+	else if (tns.size() > 1){
+	    for(Iterator it = tns.iterator(); it.hasNext();){
+		EGTaskNode tn = (EGTaskNode)it.next();
+		tn.setAND();
+	    }
+	}
+	return tns; 	    
+    }
+    
+    /*returns the executiongraph corresponding to the classname*/
+    private Vector getConcernedClass( String classname ){
+	Enumeration e = executiongraph.keys();
+	while( e.hasMoreElements() ){
+	    ClassDescriptor cd = (ClassDescriptor)e.nextElement();
+	    if (classname.compareTo(cd.getSymbol())==0)
+		return (Vector)executiongraph.get(cd);
+	}
+	return null;
+    }
+    
+    /*Method used for debugging*/
+    public void buildPath() throws java.io.IOException {
+	
+	byte[] b = new byte[100] ;
+	HashSet safetasks = new HashSet();
+	System.out.println("Enter the Class of the object concerned :");
+	int k = System.in.read(b);
+	classname = new String(b,0,k-1);
+	System.out.println("Enter the flagstate :");
+	k = System.in.read(b);
+	String previousflagstate = new String(b,0,k-1);
+			
+	//get the graph result of executiongraph class
+	Vector nodes = new Vector();
+	nodes = getConcernedClass( classname );
+	if(nodes==null) {
+	    System.out.println("Impossible to find "+classname+". Maybe not declared in the source code.");
+	    return;
+	}
+	
+	//mark the graph
+	EGTaskNode sourcenode = findSourceNode(nodes);
+	doGraphMarking(sourcenode);
+	createDOTFile();
+	//get the tasknodes possible to execute with the flagstate before failure
+	HashSet tempnodes = new HashSet();
+	Vector tns = new Vector();
+	tns = findEGTaskNode(previousflagstate, nodes);
+	if(tns==null) {
+	    System.out.println("No task corresponding");
+	    return;
+	}
+	
+	//compute the result for all the nodes contained in tns.
+	//return the intersection. (because it is not possible to choose)
+	int counter = 0;
+	HashSet availabletasks = new HashSet();
+	for(Iterator it = tns.iterator(); it.hasNext();){
+	    counter++;
+	    unMarkProcessed(nodes);
+	    EGTaskNode tn = (EGTaskNode)it.next();
+	    HashSet nodetags = createNodeTags(tn);
+	    availabletasks = createUnion(determineIfIsSafe(tn, nodetags), availabletasks);
+	    	//DEBUG
+		System.out.println("-----------------------------");
+		for(Iterator it2 = availabletasks.iterator(); it2.hasNext();){
+		MyOptional mm = (MyOptional)it2.next();
+		System.out.println("\t"+mm.td.getSymbol());
+		System.out.println("with flags :");
+		for(Iterator it3 = mm.flagstates.iterator(); it3.hasNext();){
+		System.out.println("\t"+((FlagState)it3.next()).getTextLabel());
+		}
+		resultingFS(mm, classname);
+		System.out.println("-----------------------------");
+		}
+	    if(counter == 1) safetasks = availabletasks;
+	    else safetasks = createIntersection(availabletasks, safetasks);
+	}
+	//DEBUG
+	  System.out.println("----------FINAL--------------");
+	  for(Iterator it2 = safetasks.iterator(); it2.hasNext();){
+	  MyOptional mm = (MyOptional)it2.next();
+	  System.out.println("\t"+mm.td.getSymbol());
+	  System.out.println("with flags :");
+	  for(Iterator it3 = mm.flagstates.iterator(); it3.hasNext();){
+	  System.out.println("\t"+((FlagState)it3.next()).getTextLabel());
+	  }
+	  resultingFS(mm, classname);
+	  System.out.println("-----");
+	  }
+	  System.out.println("----------FINAL--------------");
+    }
+    
+    /*Actual method used by the compiler.
+      It computes the analysis for every
+      possible flagstates of every classes*/
+    public void buildPath(Vector flagstates, ClassDescriptor cd) throws java.io.IOException {
+    }
+    
 
-
+    /*Marks the executiongraph :
+          -optionals
+	  -multiple
+	  -AND and OR nodes
+    */
+    private void doGraphMarking(EGTaskNode extremity) throws java.io.IOException{
+	//detects if there is a loop or no more nodes to explore
+	if (extremity.isMarked() || !((Iterator)extremity.edges()).hasNext()){
+	    if (!((Iterator)extremity.edges()).hasNext()) extremity.mark();
+	    reducedgraph.put(extremity.getuid(), extremity);
+	}
+    	else {
+	    //do the marking
+	    process(extremity);
+	    reducedgraph.put(extremity.getuid(), extremity);
+	    extremity.mark();
+	    //calls doGraphMarking recursively with the next nodes as params
+	    for( Iterator it = extremity.edges(); it.hasNext(); ){
+		TEdge edge = (TEdge)it.next();
+		doGraphMarking((EGTaskNode)edge.getTarget());
+	    }
+	}
+    }
+    
+    private void process(EGTaskNode tn){
+	testIfOptional(tn);
+	testIfSameTask(tn);
+	testIfNextIsSelfLoop(tn);
+	testIfRuntime(tn);
+	testIfMultiple(tn);
+    }
+    
     private void testIfOptional(EGTaskNode tn){
 	for(Iterator edges = tn.edges(); edges.hasNext();){
 	    TEdge edge = (TEdge)edges.next();
@@ -265,12 +246,12 @@ public class SafetyAnalysis {
 	    TEdge edge = (TEdge)edges.next();
 	    EGTaskNode nexttn = (EGTaskNode)edge.getTarget();
 	    if( nexttn.getTD().numParameters() > 1 ){
-		System.out.println("Multiple found");
 		nexttn.setMultipleParams();
 	    }
 	}	
     }
     
+    //maybe a little bug to fix 
     private void testIfRuntime(EGTaskNode tn){
 	for(Iterator edges = tn.edges(); edges.hasNext();){
 	    TEdge edge = (TEdge)edges.next();
@@ -280,6 +261,12 @@ public class SafetyAnalysis {
 	}
     }
     
+    /*That correspond to the case where it is
+      not possible for us to choose a path of
+      execution. The optional task has to be
+      present in all the possible executions
+      at this point. So we mark the node as an
+      AND node.*/
     private void testIfSameTask(EGTaskNode tn){
 	Vector vtemp = new Vector();
 	Vector tomark = new Vector();
@@ -302,6 +289,7 @@ public class SafetyAnalysis {
 	    ((EGTaskNode)it2.next()).setAND();
     }
     
+    //maybe little bug to fix
     private void testIfNextIsSelfLoop(EGTaskNode tn){
 	for(Iterator edges = tn.edges(); edges.hasNext();){
 	    TEdge edge = (TEdge)edges.next();
@@ -310,60 +298,21 @@ public class SafetyAnalysis {
 	}
     }
     
-    /*private void testIfLoop(EGTaskNode tn){
-	for(Iterator edges = tn.edges(); edges.hasNext();){
-	    TEdge edge = (TEdge)edges.next();
-	    if (((EGTaskNode)edge.getTarget()).isMarked()){
-		((EGTaskNode)edge.getTarget()).doLoopMarking();
-	    }
-	}
-	}*/
-   
-    private EGTaskNode findSourceNode(Vector nodes){
-	for(Iterator it = nodes.iterator(); it.hasNext();){
-	    EGTaskNode tn = (EGTaskNode)it.next();
-	    if(tn.isSource()){
-		System.out.println("Found Source Node !!");
-		return tn;
-	    }
-	}
-	return null;
-    }
-    
-    private Vector findEGTaskNode(String previousflagstate, Vector nodes){
-	Vector tns = new Vector();
-	for(Iterator it = nodes.iterator(); it.hasNext();){
-	    EGTaskNode tn = (EGTaskNode)it.next();
-	    if(tn.getFSName().compareTo(previousflagstate)==0)
-		tns.add(tn);
-	}
-	if(tns.size() == 0)
-	    return null;
-	else if (tns.size() > 1){
-	    for(Iterator it = tns.iterator(); it.hasNext();){
-		EGTaskNode tn = (EGTaskNode)it.next();
-		tn.setAND();
-	    }
-	}
-	return tns; 	    
-    }
-    
-    private Vector getConcernedClass( String classname ){
-	Enumeration e = executiongraph.keys();
-	while( e.hasMoreElements() ){
-	    ClassDescriptor cd = (ClassDescriptor)e.nextElement();
-	    
-	    if (classname.compareTo(cd.getSymbol())==0)
-		return (Vector)executiongraph.get(cd);
-	}
-	return null;
-    }
-    
+
+    /*recursive method that returns a set of MyOptionals
+      The computation basically consist in returning the
+      intersection or union of sets depending on the nature
+      of the node : OR -> UNION
+                    AND -> INTERSECTION
+      The method also looks for tag changes.
+    */
     private HashSet determineIfIsSafe(EGTaskNode tn, HashSet nodetags){
 	if(tn == null) return null;
 	if(!tagChange(tn, nodetags)){
 	    if(tn.isOptional()){
 		HashSet temp = new HashSet();
+		//if the tn is optional and there is no more nodes/presence of a loop
+		//create the MyOptional and return it as a singleton. 
 		if( !((Iterator)tn.edges()).hasNext() || tn.isMarked() || tn.isSelfLoop()){
 		    HashSet fstemp = new HashSet();
 		    fstemp.add(tn.getFS());
@@ -371,6 +320,7 @@ public class SafetyAnalysis {
 		    temp.add(mo);
 		    return temp;
 		}
+		//else compute the edges, create the MyOptional and add it to the set.
 		else{
 		    tn.mark();
 		    temp = computeEdges(tn, nodetags);
@@ -382,21 +332,48 @@ public class SafetyAnalysis {
 		}
 	    }
 	    else{
+		//if not optional but terminal just return an empty set.
 		if( !((Iterator)tn.edges()).hasNext() || tn.isMarked() || tn.isSelfLoop()){
 		    HashSet temp = new HashSet();
 		    return temp;
 		}
+		//if not terminal return the computation of the edges.
 		else{
 		    tn.mark();
 		    return computeEdges(tn, nodetags);
 		}
 	    }
 	}
+	//if there has been a tag change return an empty set.
 	else{
 	    HashSet temp = new HashSet();
 	    return temp;
 	}
     }
+    
+    /*check if there has been a tag Change*/
+    private boolean tagChange(EGTaskNode tn, HashSet nodetags){
+	HashSet tags = new HashSet();
+	String flagstate = tn.getFSName();
+	String word = new String();
+	StringTokenizer st = new StringTokenizer(flagstate);
+	while (st.hasMoreTokens()){
+	    word = st.nextToken();
+	    if (word.compareTo("Tag")==0)
+		tags.add(st.nextToken());
+	}
+	//compare the tag needed now to the tag of the initial node
+	for(Iterator it = tags.iterator(); it.hasNext();){
+	    String tag = (String)it.next();
+	    if( !nodetags.contains(tag)){
+		System.out.println("Tag Change :"+tag);
+		return true;
+	    }
+	}
+	
+	return false;
+    }
+
     
     private HashSet computeEdges(EGTaskNode tn, HashSet nodetags){
 	Hashtable andlist = new Hashtable();
@@ -459,43 +436,19 @@ public class SafetyAnalysis {
 	    if (init){ 
 		init = false;
 		temp = determineIfIsSafe(tn, nodetags);
-		//DEBUG
-		System.out.println("first and vector : ");
-		for(Iterator it = temp.iterator(); it.hasNext();){
-		    MyOptional mm = (MyOptional)it.next();
-		    System.out.println(mm.td.getSymbol());
-		    System.out.println("with flag :");
-		    for(Iterator it3 = mm.flagstates.iterator(); it3.hasNext();){
-			System.out.println(((FlagState)it3.next()).getTextLabel());
-		    } 
-		}
 	    }
 	    else{
-		temp = createIntersection(determineIfIsSafe(tn, nodetags), temp, UNIONFS);
-		//DEBUG
-		System.out.println("another and vector : ");
-		for(Iterator it = temp.iterator(); it.hasNext();){
-		    MyOptional mm = (MyOptional)it.next();
-		    System.out.println(mm.td.getSymbol());
-		    System.out.println("with flag :");
-		    for(Iterator it3 = mm.flagstates.iterator(); it3.hasNext();){
-			System.out.println(((FlagState)it3.next()).getTextLabel());
-		    } 
-		}
+		temp = createIntersection(determineIfIsSafe(tn, nodetags), temp);
 	    }
 	}
-	// DEBUG
-	System.out.println("Computation of and vector : ");
-	for(Iterator it = temp.iterator(); it.hasNext();){
-	    System.out.println("\t"+(String)((MyOptional)it.next()).td.getSymbol());
-	    }
-	
 	return temp;
     }		
     
     private HashSet createUnion( HashSet A, HashSet B){
 	A.addAll(B);
-	//remove duplicates (might happend)
+	
+	//remove duplicated MyOptionals (might happend)
+	Vector toremove = new Vector();
 	System.out.println("A contains "+A.size()+" elements");
 	int i = 0;
 	for(Iterator itA = A.iterator(); itA.hasNext();){
@@ -510,32 +463,29 @@ public class SafetyAnalysis {
 		MyOptional myA2 = (MyOptional)itA3.next();
 		System.out.println("myA2 = "+myA2.td.getSymbol());
 		if(myA2.equal(myA)){
-		    A.remove(myA2);
-		    System.out.println("");
+		    toremove.add(myA2);
+		    System.out.println("removed!");
 		}
 	    }
 	}
+	for( Iterator it = toremove.iterator(); it.hasNext();)
+	    A.remove(it.next());
+	
 	return A;
     }
-	
-    private HashSet createIntersection( HashSet A, HashSet B, int option){
+    
+    private HashSet createIntersection( HashSet A, HashSet B){
 	HashSet result = new HashSet();
 	for(Iterator itB = B.iterator(); itB.hasNext();){
 	    MyOptional myB = (MyOptional)itB.next();
 	    for(Iterator itA = A.iterator(); itA.hasNext();){
 		MyOptional myA = (MyOptional)itA.next();
 		if(((String)myA.td.getSymbol()).compareTo((String)myB.td.getSymbol())==0){
-		    if(option==UNIONFS){
-			HashSet newfs = new HashSet();
+		   	HashSet newfs = new HashSet();
 			newfs.addAll(myA.flagstates);
 			newfs.addAll(myB.flagstates);
 			MyOptional newmy = new MyOptional(myB.td, newfs);
 			result.add(newmy);
-		    }
-		    else{//to do : don't duplicate tasks with same fses
-			result.add(myA);
-			result.add(myB);
-		    }
 		}
 	    }
 	}
@@ -543,11 +493,12 @@ public class SafetyAnalysis {
     }
     
     /////////DEBUG
+    /*Thoose two tasks create the dot file named markedgraph.dot */
     
     private void createDOTFile() throws java.io.IOException {
 	Collection v = reducedgraph.values();
 	java.io.PrintWriter output;
-	File dotfile_flagstates= new File("reducedtree.dot");
+	File dotfile_flagstates= new File("markedgraph.dot");
 	FileOutputStream dotstream=new FileOutputStream(dotfile_flagstates,true);
 	output = new java.io.PrintWriter(dotstream, true);
 	output.println("digraph dotvisitor {");
@@ -579,7 +530,11 @@ public class SafetyAnalysis {
     }
     
     ////////////////////
-    
+    /* returns a set of the possible sets of flagstates
+       resulting from the execution of the optional task.
+       To do it with have to look for TaskExit FlatNodes
+       in the IR.
+    */
     private HashSet resultingFS(MyOptional mo, ClassDescriptor cd){
 	return resultingFS(mo, cd.getSymbol());
     }
@@ -621,7 +576,9 @@ public class SafetyAnalysis {
 		    continue; // avoid queueing the return node if reachable
 		}
 	    }else if (fn1.kind()==FKind.FlatReturnNode) {
+		//***
 		System.out.println("RETURN NODE REACHABLE WITHOUT TASKEXITS");
+		//***
 		result.add(mo.flagstates);
 	    }
 	    
@@ -636,9 +593,7 @@ public class SafetyAnalysis {
 	}
 	return result;
     }
-    
-    
-    
+        
 }
 
 
