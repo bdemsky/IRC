@@ -13,7 +13,7 @@ public class ExecutionGraph {
     
     private TaskAnalysis taskanalysis;
     private State state;
-    private TreeMap graphs;
+    private Hashtable graph;
     private Hashtable executiongraph;
     private SymbolTable tasks;
        
@@ -21,7 +21,7 @@ public class ExecutionGraph {
 	this.taskanalysis=ta;
 	this.state=state;
 	this.tasks = this.state. getTaskSymbolTable();
-	this.graphs=new TreeMap();
+	this.graph=new Hashtable();
 	this.executiongraph = new Hashtable();
     }
 
@@ -30,7 +30,7 @@ public class ExecutionGraph {
     }
     
     public void createExecutionGraph() throws java.io.IOException {
-	/** Explore the analysis structure "OPTIONAL ARGS" PROJECT**/
+	/*Explore the taskanalysis structure*/
 	
 	Enumeration e=taskanalysis.flagstates.keys();
 	
@@ -51,9 +51,8 @@ public class ExecutionGraph {
 	LinkedList fifo = new LinkedList();
 	Vector sourceNodeList = new Vector();
 	Enumeration e;
-	graphs.clear();
-	int l=0;
-	
+	graph.clear();
+		
 	/* Search for starting nodes */
 	Collection nodes = ((Hashtable)taskanalysis.flagstates.get(cd)).values();
 	Iterator it = nodes.iterator();
@@ -66,17 +65,13 @@ public class ExecutionGraph {
 	
 	/* Perform the Breadth first search algorithm and build ExecutionGraph */
 	FlagState fstemp, fstemp2;
-	
 	Iterator sourceit = sourceNodeList.iterator();
 	while( sourceit.hasNext() ){
-	    createLevel(l);
 	    FlagState fs = (FlagState)sourceit.next();
 	    
 	    fs.doMarking();
 	    fifo.addLast(fs);
 	    
-	    
-	    int i=0;
 	    while ( !fifo.isEmpty() ){
 		
 		fstemp = (FlagState)fifo.getFirst();
@@ -87,8 +82,10 @@ public class ExecutionGraph {
 		Iterator edges = fstemp.edges();
 		if (edges.hasNext()){
 		    
-		    createNode(fstemp, l);
+		    //build corresponding nodes of the ExecutionGraph
+		    createNode(fstemp);
 		    
+		    //add the other non marked (prevent looping) fses to the fifo
 		    while(edges.hasNext()){
 			
 			FEdge edge = (FEdge)edges.next();
@@ -100,77 +97,77 @@ public class ExecutionGraph {
 			}
 		    }
 		    
-		    
-		    if (!isFinished(fstemp, l)){
+		    //if the flagstate is not entirely processed, back into fifo
+		    if (!isFinished(fstemp)){
 			fifo.addLast(fstemp);
 		    }
 		}
 		
 	    }
-		    
-	    Hashtable temphash = new Hashtable();
-	    temphash = clean((Hashtable)graphs.get(l));
-	    graphs.put(l, temphash);
-	    l++;
+	    //clean the graph to remove doubles due to reinjection of non totally processed fses in the fifo
+	    graph = clean(graph);
 	}
     }
         
-    private void createLevel(int level){
-	if (!graphs.containsKey(level)){
-	    Hashtable ht = new Hashtable();
-	    graphs.put(level, ht);
-	}	
-    }
-    
-    private void createNode(FlagState fs, int level){
+    private void createNode(FlagState fs){
 	Enumeration allocatingtasks;
 	EGTaskNode tn;
 	EGTaskNode target;
 	FEdge edge;
-	
+	//the idea is to look at the inedges to find the "parents" nodes. Then create the "children" and link them to the "parents".
 	if (fs.isSourceNode()){
-
+	    //in the case of sourcenode, "parents" are the allocating tasks
 	    for (Iterator inedges = ((Vector)fs.getAllocatingTasks()).iterator(); inedges.hasNext();){
 		String tname = new String(((TaskDescriptor)inedges.next()).getSymbol()); 
+		//the hashkey for source EGTaskNodes is : nextfs+taskname.
 		String key1 = new String(fs.getTextLabel()+tname);
-		if (((Hashtable)graphs.get(level)).containsKey(key1)){
-		    tn = (EGTaskNode)((Hashtable)graphs.get(level)).get(key1);
+		//get the parent
+		if (graph.containsKey(key1)){
+		    tn = (EGTaskNode)graph.get(key1);
 		}
-		else{
+		else{//if not existing, create it
 		    tn = new EGTaskNode(tname,(TaskDescriptor)tasks.get(tname));
 		    tn.setSource();
 		}			
+		//create the children. the key is : nextfs+taskname+previousfs (that ensures that only one node can have that key).
 		for (Iterator edges = fs.edges(); edges.hasNext();){
 		    edge = (FEdge)edges.next();
-		    // if(!edge.isProcessed()){
-			target=new EGTaskNode(edge.getLabel(), fs, (TaskDescriptor)tasks.get(edge.getLabel()));
-			String key2 = new String(((FlagState)edge.getTarget()).getTextLabel()+target.getName()+((FlagState)edge.getSource()).getTextLabel()); 
-			if (((FlagState)edge.getTarget()).isMarked()){
-			    target.doSelfLoopMarking();
-			}
-			if (((Hashtable)graphs.get(level)).containsKey(key2)){
-			    target = (EGTaskNode)((Hashtable)graphs.get(level)).get(key2); 
-			    TEdge newedge=new TEdge(target);
-			    tn.addEdge(newedge);
-			}
-			else {			
-			    TEdge newedge=new TEdge(target);
-			    tn.addEdge(newedge);
-			}
-			((Hashtable)graphs.get(level)).put(key2, target);
-			// }
+		    target=new EGTaskNode(edge.getLabel(), fs, (TaskDescriptor)tasks.get(edge.getLabel()));
+		    String key2 = new String(((FlagState)edge.getTarget()).getTextLabel()+target.getName()+((FlagState)edge.getSource()).getTextLabel()); 
+		    //mark if is self loop
+		    if (((FlagState)edge.getTarget()).isMarked()){
+			target.doSelfLoopMarking();
+		    }
+		    //check if child already exists. if not, create it.
+		    //link to the parent.
+		    if (graph.containsKey(key2)){
+			target = (EGTaskNode)graph.get(key2); 
+			TEdge newedge=new TEdge(target);
+			tn.addEdge(newedge);
+		    }
+		    else {			
+			TEdge newedge=new TEdge(target);
+			tn.addEdge(newedge);
+		    }
+		    //put child in graph
+		    graph.put(key2, target);
 		}
-		((Hashtable)graphs.get(level)).put(key1, tn);
+		//put parent in graph
+		graph.put(key1, tn);
 	    }
 	}
 	
 	for (Iterator inedges = fs.inedges(); inedges.hasNext();){
-	    
+	    //regular case, "parents" are the inedges.
 	    FEdge in=(FEdge)inedges.next();
-	    String key1 = new String(fs.getTextLabel()+in.getLabel()+((FlagState)in.getSource()).getTextLabel());
 	    if (!in.isProcessed()){
-		tn = (EGTaskNode)((Hashtable)graphs.get(level)).get(key1);
+		//the key to search is : nextfs+taskname+previousfs.
+		String key1 = new String(fs.getTextLabel()+in.getLabel()+((FlagState)in.getSource()).getTextLabel());
+		tn = (EGTaskNode)graph.get(key1);
+		//if the TaskNode does not exist, that means that we are in the case of a loop.
+		//The fs will not be entirely processed, will be put back in the fifo until the TaskNode has finaly been created.
 		if (tn != null){
+		    //same process than with the sourcenode.
 		    for (Iterator edges = fs.edges(); edges.hasNext();){
 			edge = (FEdge)edges.next();
 			target=new EGTaskNode(edge.getLabel(), fs, (TaskDescriptor)tasks.get(edge.getLabel()));
@@ -178,8 +175,8 @@ public class ExecutionGraph {
 			if (((String)((FlagState)edge.getTarget()).getTextLabel()).compareTo(fs.getTextLabel())==0){
 			    target.doSelfLoopMarking();
 			}
-			if (((Hashtable)graphs.get(level)).containsKey(key2)){
-			    target = (EGTaskNode)((Hashtable)graphs.get(level)).get(key2); 
+			if (graph.containsKey(key2)){
+			    target = (EGTaskNode)graph.get(key2); 
 			    TEdge newedge=new TEdge(target);
 			    tn.addEdge(newedge);
 			}
@@ -187,49 +184,89 @@ public class ExecutionGraph {
 			    TEdge newedge=new TEdge(target);
 			    tn.addEdge(newedge);
 			}
-			((Hashtable)graphs.get(level)).put(key2, target);
+			graph.put(key2, target);
 		    }	
-		    ((Hashtable)graphs.get(level)).put(key1, tn);
+		    graph.put(key1, tn);
 		    in.setProcessed();
 		}
 	    }
 	}
-	
     }
     
+    //put the graph into executiongraph
     private void adapt(ClassDescriptor cd) {
 	Vector tasknodes = new Vector();
-	
-	Collection c1 = graphs.values();
-	for (Iterator it1 = c1.iterator(); it1.hasNext();){
-	    Collection tempc=((Hashtable)it1.next()).values();
-	    for(Iterator it2 = tempc.iterator(); it2.hasNext();){
-		EGTaskNode tn = (EGTaskNode)it2.next();
-		if(tn.getName().compareTo("Runtime")!=0){
-		    TaskDescriptor td = tn.getTD();
-		    System.out.println("Trying to get : " + tn.getName());
-		    if(td.numParameters()>1) tn.setMultipleParams();
-		}
-	    }
-	    tasknodes.addAll(tempc);
-	}
+	tasknodes.addAll(graph.values());
 	executiongraph.put(cd,tasknodes);
     }
-    
+    //print the contain of graph
     private void test() {
-	int i = 0;
-	Collection c1 = graphs.values();
-	for (Iterator it1 = c1.iterator(); it1.hasNext();){
-	    Hashtable ht = ((Hashtable)it1.next());
-	    System.out.println("\nLevel " + i++ + " contains :"); 
-	    Collection c2 = ht.values();
-	    for ( Iterator it2 = c2.iterator(); it2.hasNext();){
-		EGTaskNode tn = (EGTaskNode)it2.next();
-		System.out.println(tn.getTextLabel()+" ID "+tn.getLabel()+" FS "+tn.getFSName());
-	    }
+	System.out.println("\nGraph contains :"); 
+	Collection c = graph.values();
+	for ( Iterator it = c.iterator(); it.hasNext();){
+	    EGTaskNode tn = (EGTaskNode)it.next();
+	    System.out.println(tn.getTextLabel()+" ID "+tn.getLabel()+" FS "+tn.getFSName());
 	}
     }
-       
+    
+    //removes the duplicated edges
+    private Hashtable clean(Hashtable ht){
+	Hashtable cleaned = new Hashtable();
+	Collection c = ht.values();
+	for ( Iterator it = c.iterator(); it.hasNext();){
+	    EGTaskNode tn = (EGTaskNode)it.next();
+	    Vector v = tn.getEdgeVector();
+	    v = removeDouble(v);
+	    tn.removeAllEdges();
+	    tn.addEdge(v);
+	    cleaned.put(tn.getuid(), tn);
+	}
+	return cleaned;
+    }
+    
+    //removes all the edge doubles in vector v
+    private Vector removeDouble(Vector v){
+	
+	Vector vcleaned = new Vector();
+	for (Iterator it = v.iterator(); it.hasNext();){
+	    
+	    TEdge edge = (TEdge)it.next();
+	    int contains = 0;
+	    for (Iterator it2 = vcleaned.iterator(); it2.hasNext();){
+		if (((EGTaskNode)edge.getTarget()).getuid()==((EGTaskNode)((TEdge)it2.next()).getTarget()).getuid()) contains = 1;
+	    }
+	    
+	    if (contains == 0) vcleaned.add(edge); 
+	}
+	
+	return vcleaned;
+    }
+    
+    //test if a flagstate has been entirely processed
+    private boolean isFinished(FlagState fs){
+		
+	for (Iterator inedges = fs.inedges(); inedges.hasNext();){
+	    
+	    FEdge in=(FEdge)inedges.next();
+	    
+	    if (!in.isProcessed()){
+		String key1 = new String(fs.getTextLabel()+in.getLabel()+((FlagState)in.getSource()).getTextLabel());
+		
+		if (graph.get(key1)==null){
+		    //except for the case of self loop, if the pointed tn is not present, fs is not totally processed
+		    if (((String)((FlagState)in.getSource()).getTextLabel()).compareTo(fs.getTextLabel())!=0){
+			return false;
+		    }
+		}
+		
+	    }
+	}
+	return true;
+    }
+
+    
+    //********DEBUG
+    //create dot files execution_classname_.dot
     private void printDOTFile()throws java.io.IOException {
 	Enumeration e = executiongraph.keys();
 	while (e.hasMoreElements()){
@@ -266,59 +303,7 @@ public class ExecutionGraph {
 	    }
 	}
     }
-    
-    private Hashtable clean(Hashtable ht){
-	Hashtable cleaned = new Hashtable();
-	Collection c = ht.values();
-	for ( Iterator it = c.iterator(); it.hasNext();){
-	    EGTaskNode tn = (EGTaskNode)it.next();
-	    Vector v = tn.getEdgeVector();
-	    v = removeDouble(v);
-	    tn.removeAllEdges();
-	    tn.addEdge(v);
-	    cleaned.put(tn.getuid(), tn);
-	}
-	return cleaned;
-    }
-    
-    private Vector removeDouble(Vector v){
-	
-	Vector vcleaned = new Vector();
-	for (Iterator it = v.iterator(); it.hasNext();){
-	    
-	    TEdge edge = (TEdge)it.next();
-	    int contains = 0;
-	    for (Iterator it2 = vcleaned.iterator(); it2.hasNext();){
-		if (((EGTaskNode)edge.getTarget()).getuid()==((EGTaskNode)((TEdge)it2.next()).getTarget()).getuid()) contains = 1;
-	    }
-	    
-	    if (contains == 0) vcleaned.add(edge); 
-	}
-	
-	return vcleaned;
-    }
-    
-    private boolean isFinished(FlagState fs, int level){
-		
-	boolean result = true;
-	for (Iterator inedges = fs.inedges(); inedges.hasNext();){
-	    
-	    FEdge in=(FEdge)inedges.next();
-	    
-	    if (!in.isProcessed()){
-		String key1 = new String(fs.getTextLabel()+in.getLabel()+((FlagState)in.getSource()).getTextLabel());
-		
-		if (((Hashtable)graphs.get(level)).get(key1)==null){
-		    if (((String)((FlagState)in.getSource()).getTextLabel()).compareTo(fs.getTextLabel())!=0){
-			result = false;
-		    }
-		}
-		
-	    }
-	}
-	return result;
-    }
-    
+    //*********************
     
 }
 
