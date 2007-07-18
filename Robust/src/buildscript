@@ -6,6 +6,7 @@ echo -dmalloc link in dmalloc
 echo -recover compile task code
 echo -specdir directory
 echo -taskstate do task state analysis
+echo -optional enable optional
 echo -debug generate debug symbols
 echo -webinterface enable web interface
 echo -runtimedebug printout runtime debug messages
@@ -55,6 +56,9 @@ shift
 elif [[ $1 = '-taskstate' ]]
 then
 JAVAOPTS="$JAVAOPTS -taskstate"
+elif [[ $1 = '-optional' ]]
+then
+JAVAOPTS="$JAVAOPTS -optional"
 elif [[ $1 = '-dmalloc' ]]
 then
 USEDMALLOC=true
