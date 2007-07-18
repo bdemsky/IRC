@@ -348,6 +348,23 @@ private boolean isTaskTrigger_tag(TagExpressionList tel, FlagState fs){
 
 	processed.add(fstemp);
 	
+	//Process clears first
+	for(Iterator it_ttp=ffan.getTempTagPairs();it_ttp.hasNext();) {
+	    TempTagPair ttp=(TempTagPair)it_ttp.next();
+	    
+	    if (temp==ttp.getTemp()) {
+		Vector<FlagState> oldprocess=processed;
+		processed=new Vector<FlagState>();
+
+		for (Enumeration en=oldprocess.elements();en.hasMoreElements();){
+		    FlagState fsworking=(FlagState)en.nextElement();
+		    if (!ffan.getTagChange(ttp)){
+			processed.addAll(Arrays.asList(fsworking.clearTag(ttp.getTag())));
+		    }
+		}
+	    }
+	}
+	//Process sets next
 	for(Iterator it_ttp=ffan.getTempTagPairs();it_ttp.hasNext();) {
 	    TempTagPair ttp=(TempTagPair)it_ttp.next();
 	    
@@ -359,8 +376,6 @@ private boolean isTaskTrigger_tag(TagExpressionList tel, FlagState fs){
 		    FlagState fsworking=(FlagState)en.nextElement();
 		    if (ffan.getTagChange(ttp)){
 			processed.addAll(Arrays.asList(fsworking.setTag(ttp.getTag())));
-		    } else {
-			processed.addAll(Arrays.asList(fsworking.clearTag(ttp.getTag())));
 		    }
 		}
 	    }
