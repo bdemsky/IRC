@@ -254,7 +254,6 @@ non terminal ParseNode tag_change;
 
 //distributed transaction keywords
 terminal ATOMIC;
-terminal LOCAL;
 terminal GLOBAL;
 non terminal ParseNode atomic_statement;
 
@@ -1362,8 +1361,9 @@ class_instance_creation_expression ::=
 		RESULT=pn;
 	:} 
 	//Global object
-	| LOCAL NEW class_or_interface_type:type LPAREN argument_list_opt:args RPAREN flag_list_opt:feo {: 
+	| GLOBAL NEW class_or_interface_type:type LPAREN argument_list_opt:args RPAREN flag_list_opt:feo {: 
 		ParseNode pn=new ParseNode("createobject");
+		pn.addChild("global");
 		pn.addChild(type);
 		pn.addChild(args);
 		pn.addChild(feo);
