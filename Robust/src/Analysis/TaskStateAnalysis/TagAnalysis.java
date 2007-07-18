@@ -5,6 +5,7 @@ import java.util.Stack;
 import java.util.Set;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.Arrays;
 import Util.Edge;
 import Analysis.CallGraph.CallGraph;
 import IR.SymbolTable;
@@ -144,22 +145,36 @@ private void computeCallsFlags(FlatMethod fm, Hashtable parammap, Set tagbinding
 		    else
 			fs=fs.setFlag(tfp.getFlag(), false);
 		}
+		
+		HashSet fsset=new HashSet();
+		fsset.add(fs);
+
 		for(Iterator it=ffan.getTempTagPairs();it.hasNext();) {
+		    HashSet oldfsset=fsset;
+		    fsset=new HashSet();
+		    
 		    TempTagPair ttp=(TempTagPair)it.next();
 		    if (ffan.getTagChange(ttp)) {
 			TagDescriptor tag=ttp.getTag();
 			if (tag==null&&parammap!=null&&parammap.containsKey(ttp.getTagTemp())) {
 			    tag=(TagDescriptor)parammap.get(ttp.getTagTemp());
 			}
-			fs=fs.setTag(tag);
+			for(Iterator setit=oldfsset.iterator();setit.hasNext();) {
+			    FlagState fs2=(FlagState)setit.next();
+			    fsset.addAll(Arrays.asList(fs2.setTag(tag)));
+			}
 		    } else
 			throw new Error("Don't clear tag in new object allocation");
 		}
-		if (!flagmap.containsKey(fs))
-		    flagmap.put(fs,fs);
-		else
-		    fs=(FlagState) flagmap.get(fs);
-		newflags.add(fs);
+
+		for(Iterator setit=fsset.iterator();setit.hasNext();) {
+		    FlagState fs2=(FlagState)setit.next();
+		    if (!flagmap.containsKey(fs2))
+			flagmap.put(fs2,fs2);
+		    else
+			fs2=(FlagState) flagmap.get(fs2);
+		    newflags.add(fs2);
+		}
 	    }
 	}
     }

@@ -252,7 +252,6 @@ private void analyseTasks(FlagState fs) {
 		    
 		    for(Enumeration en=fsv_taskexit.elements();en.hasMoreElements();){
 			FlagState fs_taskexit=(FlagState)en.nextElement();
-			if (fs_taskexit == null ) System.out.println("Bug to fix : fs_taskexit == null");//continue;
 			if (!sourcenodes.containsKey(fs_taskexit)) {
 			    toprocess.add(fs_taskexit);
 			    
@@ -333,83 +332,37 @@ private boolean isTaskTrigger_tag(TagExpressionList tel, FlagState fs){
 	return ctr;
 } */
 
-/** Evaluates a NewObject Node and returns the newly created 
- *  flagstate to add to the process queue.
- *	@param nn FlatNode
- *  @return FlagState
- *  @see FlatNode
- *  @see FlagState
- */
-    
-private FlagState evalNewObjNode(FlatNode nn){
-	    
-    ClassDescriptor cd_new=((FlatNew)nn.getPrev(0)).getType().getClassDesc();
-	    
-	    
-    //TempDescriptor[] tdArray = ((FlatFlagActionNode)nn).readsTemps();
-    
-    //if (tdArray.length==0)
-    //	return null;
-    
-    //Under the safe assumption that all the temps in FFAN.NewObject node are of the same type(class)
-    //ClassDescriptor cd_new=tdArray[0].getType().getClassDesc();
-    
-    FlagState fstemp=new FlagState(cd_new);
-    
-    for(Iterator it_tfp=((FlatFlagActionNode)nn).getTempFlagPairs();it_tfp.hasNext();) {
-	TempFlagPair tfp=(TempFlagPair)it_tfp.next();
-	if (! (tfp.getFlag()==null))// condition checks if the new object was created without any flag setting
-	    {					
-		fstemp=fstemp.setFlag(tfp.getFlag(),((FlatFlagActionNode)nn).getFlagChange(tfp));
-	    }
-	
-	else
-	    break;
-    }
-    for(Iterator it_ttp=((FlatFlagActionNode)nn).getTempTagPairs();it_ttp.hasNext();) {
-	TempTagPair ttp=(TempTagPair)it_ttp.next();
-	if (! (ttp.getTag()==null)){
-	    fstemp=fstemp.setTag(ttp.getTag());
-	}
-	else
-	    break;	
-	
-    }
-    return fstemp;
-}
-	
-    private Vector<FlagState> evalTaskExitNode(FlatNode nn,ClassDescriptor cd,FlagState fs, TempDescriptor temp){
+    private Vector<FlagState> evalTaskExitNode(FlatFlagActionNode ffan,ClassDescriptor cd,FlagState fs, TempDescriptor temp){
 	FlagState fstemp=fs;
-	//FlagState[] fstemparray=new FlagState[3];
-	Vector<FlagState> inprocess=new Vector<FlagState>();
 	Vector<FlagState> processed=new Vector<FlagState>();
+
+	//Process the flag changes
 	
-	for(Iterator it_tfp=((FlatFlagActionNode)nn).getTempFlagPairs();it_tfp.hasNext();) {
+	for(Iterator it_tfp=ffan.getTempFlagPairs();it_tfp.hasNext();) {
 	    TempFlagPair tfp=(TempFlagPair)it_tfp.next();
 	    if (temp==tfp.getTemp())
-		fstemp=fstemp.setFlag(tfp.getFlag(),((FlatFlagActionNode)nn).getFlagChange(tfp));
+		fstemp=fstemp.setFlag(tfp.getFlag(),ffan.getFlagChange(tfp));
 	}
 	
-	inprocess.add(fstemp);
+	//Process the tag changes
+
 	processed.add(fstemp);
 	
-	for(Iterator it_ttp=((FlatFlagActionNode)nn).getTempTagPairs();it_ttp.hasNext();) {
+	for(Iterator it_ttp=ffan.getTempTagPairs();it_ttp.hasNext();) {
 	    TempTagPair ttp=(TempTagPair)it_ttp.next();
 	    
-	    if (temp==ttp.getTemp()){	
-		processed=new Vector<FlagState>();			
-		for (Enumeration en=inprocess.elements();en.hasMoreElements();){
+	    if (temp==ttp.getTemp()) {
+		Vector<FlagState> oldprocess=processed;
+		processed=new Vector<FlagState>();
+
+		for (Enumeration en=oldprocess.elements();en.hasMoreElements();){
 		    FlagState fsworking=(FlagState)en.nextElement();
-		    if (((FlatFlagActionNode)nn).getTagChange(ttp)){
-			fsworking=fsworking.setTag(ttp.getTag());
-			processed.add(fsworking);
+		    if (ffan.getTagChange(ttp)){
+			processed.addAll(Arrays.asList(fsworking.setTag(ttp.getTag())));
+		    } else {
+			processed.addAll(Arrays.asList(fsworking.clearTag(ttp.getTag())));
 		    }
-		    else
-			{	
-			    processed.addAll(Arrays.asList(fsworking.clearTag(ttp.getTag())));
-			}
 		}
-		inprocess=processed;
 	    }
 	}
 	return processed;

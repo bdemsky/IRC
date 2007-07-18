@@ -115,27 +115,31 @@ public class FlagState extends GraphNode {
 	return flagstate.iterator();
     }
     
-    public FlagState setTag(TagDescriptor tag){
-	   
-	    HashSet newset=(HashSet)flagstate.clone();
-	    Hashtable<TagDescriptor,Integer> newtags=(Hashtable<TagDescriptor,Integer>)tags.clone();
+    public FlagState[] setTag(TagDescriptor tag){
+	HashSet newset1=(HashSet)flagstate.clone();
+	Hashtable<TagDescriptor,Integer> newtags1=(Hashtable<TagDescriptor,Integer>)tags.clone();
 	    
-	    if (newtags.containsKey(tag)){
-		   switch (newtags.get(tag).intValue()){
-			   case ONETAG:
-			   		newtags.put(tag,new Integer(MULTITAGS));
-			   		break;
-			   case MULTITAGS:
-			   		newtags.put(tag,new Integer(MULTITAGS));
-			   		break;
-			}
-		}
-		else{
-			newtags.put(tag,new Integer(ONETAG));
-		}
-		
-		return new FlagState(newset,cd,newtags);
-			   	
+	if (tags.containsKey(tag)){
+	    //Code could try to remove flag that doesn't exist
+	    
+	    HashSet newset2=(HashSet)flagstate.clone();
+	    Hashtable<TagDescriptor,Integer> newtags2=(Hashtable<TagDescriptor,Integer>)tags.clone();
+	    switch (tags.get(tag).intValue()){
+	    case ONETAG:
+		newtags1.put(tag,new Integer(MULTITAGS));
+		break;
+	    case MULTITAGS:
+		newtags1.put(tag,new Integer(MULTITAGS));
+		break;
+	    default:
+		throw new Error();
+	    }
+	    return new FlagState[] {new FlagState(newset1,cd,newtags1),
+				    new FlagState(newset2,cd,newtags2)};
+	} else {
+	    newtags1.put(tag,new Integer(ONETAG));
+	    return new FlagState[] {new FlagState(newset1,cd,newtags1)};
+	}
     }
 
     public int getTagCount(String tagtype){
@@ -149,37 +153,32 @@ public class FlagState extends GraphNode {
     }
     
     public FlagState[] clearTag(TagDescriptor tag){
-	    FlagState[] retstates;
-	    
-	    if (tags.containsKey(tag)){
+	if (tags.containsKey(tag)){
 	    switch(tags.get(tag).intValue()){
-		    case ONETAG:
-		    	HashSet newset=(HashSet)flagstate.clone();
-	    		Hashtable<TagDescriptor,Integer> newtags=(Hashtable<TagDescriptor,Integer>)tags.clone();
-		    	newtags.remove(tag);
-		    	retstates=new FlagState[]{new FlagState(newset,cd,newtags)};
-		    	return retstates;
-		    	
-		    case MULTITAGS:
-		        //when tagcount is more than 2, COUNT stays at MULTITAGS
-		    	retstates=new FlagState[2];
-		    	HashSet newset1=(HashSet)flagstate.clone();
-	    		Hashtable<TagDescriptor,Integer> newtags1=(Hashtable<TagDescriptor,Integer>)tags.clone();
-	    		retstates[1]=new FlagState(newset1,cd,newtags1);
-	    		//when tagcount is 2, COUNT changes to ONETAG
-	    		HashSet newset2=(HashSet)flagstate.clone();
-	    		Hashtable<TagDescriptor,Integer> newtags2=(Hashtable<TagDescriptor,Integer>)tags.clone();
-	    		newtags1.put(tag,new Integer(ONETAG));
-	    		retstates[1]=new FlagState(newset2,cd,newtags2);
-	    		return retstates;
-	    	default:
-	    		return null;    		
-    	}
-		}else{
-			throw new Error("Invalid Operation: Can not clear a tag that doesn't exist.");
-			
-		}
+	    case ONETAG:
+		HashSet newset=(HashSet)flagstate.clone();
+		Hashtable<TagDescriptor,Integer> newtags=(Hashtable<TagDescriptor,Integer>)tags.clone();
+		newtags.remove(tag);
+		return new FlagState[]{new FlagState(newset,cd,newtags)};
 		
+	    case MULTITAGS:
+		//two possibilities - count remains 2 or becomes 1
+		//2 case
+		HashSet newset1=(HashSet)flagstate.clone();
+		Hashtable<TagDescriptor,Integer> newtags1=(Hashtable<TagDescriptor,Integer>)tags.clone();
+
+		//1 case
+		HashSet newset2=(HashSet)flagstate.clone();
+		Hashtable<TagDescriptor,Integer> newtags2=(Hashtable<TagDescriptor,Integer>)tags.clone();
+		newtags1.put(tag,new Integer(ONETAG));
+		return new FlagState[] {new FlagState(newset1, cd, newtags2),
+					new FlagState(newset2, cd, newtags2)};
+	    default:
+		throw new Error();
+	    }
+	} else {
+	    throw new Error("Invalid Operation: Can not clear a tag that doesn't exist.");
+	}
     }
     
     /** Creates a string description of the flagstate
