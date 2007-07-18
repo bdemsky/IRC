@@ -31,7 +31,7 @@ public class TagVarDescriptor extends Descriptor {
 	return new TypeDescriptor(TypeDescriptor.TAG);
     }
 
-    public boolean equals(Object o) {
+    /*    public boolean equals(Object o) {
 	if (o instanceof TagVarDescriptor) {
 	    TagVarDescriptor tvd=(TagVarDescriptor)o;
 	    if (tvd.identifier.equals(identifier)) {
@@ -48,7 +48,7 @@ public class TagVarDescriptor extends Descriptor {
 
     public int hashCode() {
 	return identifier.hashCode();
-    }
+	}*/
 
     public String toString() {
 	    return td.toString()+" "+identifier;

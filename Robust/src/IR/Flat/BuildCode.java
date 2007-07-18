@@ -615,6 +615,14 @@ public class BuildCode {
 		objectparams.addPrim(temp);
 	}
 
+	for(int i=0;i<fm.numTags();i++) {
+	    TempDescriptor temp=fm.getTag(i);
+	    if (GENERATEPRECISEGC)
+		objectparams.addPtr(temp);
+	    else
+		objectparams.addPrim(temp);
+	}
+
 	TempObject objecttemps=md!=null?new TempObject(objectparams,md,tag++):new TempObject(objectparams, task, tag++);
 	if (md!=null)
 	    tempstable.put(md, objecttemps);
@@ -895,10 +903,6 @@ public class BuildCode {
 		for(int i=0;i<objectparams.numPointers();i++) {
 		    TempDescriptor temp=objectparams.getPointer(i);
 		    output.println("  struct "+temp.getType().getSafeSymbol()+" * "+temp.getSafeSymbol()+";");
-		}
-		for(int i=0;i<fm.numTags();i++) {
-		    TempDescriptor temp=fm.getTag(i);
-		    output.println("  struct ___TagDescriptor___ * "+temp.getSafeSymbol()+";");
 		}
 
 		output.println("};\n");

@@ -48,7 +48,7 @@ public class BuildFlat {
 	FlatMethod fm=new FlatMethod(td);
 	fm.addNext(ffan);
 
-	HashSet visitedset=new HashSet();
+	Hashtable visitedset=new Hashtable();
 
 	for(int i=0;i<td.numParameters();i++) {
 	    VarDescriptor paramvd=td.getParameter(i);
@@ -59,9 +59,13 @@ public class BuildFlat {
 		for(int j=0;j<tel.numTags();j++) {
 		    TagVarDescriptor tvd=(TagVarDescriptor) td.getParameterTable().getFromSameScope(tel.getName(j));
 		    TempDescriptor tagtmp=getTempforVar(tvd);
-		    if (!visitedset.contains(tvd)) {
-			visitedset.add(tvd);
+		    if (!visitedset.containsKey(tvd.getName())) {
+			visitedset.put(tvd.getName(),tvd.getTag());
 			fm.addTagTemp(tagtmp);
+		    } else {
+			TagDescriptor tmptd=(TagDescriptor) visitedset.get(tvd.getName());
+			if (!tmptd.equals(tvd.getTag()))
+			    throw new Error("Two different tag types with same name as parameters to:"+td);
 		    }
 		    tel.setTemp(j, tagtmp);
 		}
