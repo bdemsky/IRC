@@ -122,20 +122,15 @@ public class FlagState extends GraphNode {
 	if (tags.containsKey(tag)){
 	    //Code could try to remove flag that doesn't exist
 	    
-	    HashSet newset2=(HashSet)flagstate.clone();
-	    Hashtable<TagDescriptor,Integer> newtags2=(Hashtable<TagDescriptor,Integer>)tags.clone();
 	    switch (tags.get(tag).intValue()){
 	    case ONETAG:
 		newtags1.put(tag,new Integer(MULTITAGS));
-		break;
+		return new FlagState[] {this, new FlagState(newset1, cd, newtags1)};
 	    case MULTITAGS:
-		newtags1.put(tag,new Integer(MULTITAGS));
-		break;
+		return new FlagState[] {this};
 	    default:
 		throw new Error();
 	    }
-	    return new FlagState[] {new FlagState(newset1,cd,newtags1),
-				    new FlagState(newset2,cd,newtags2)};
 	} else {
 	    newtags1.put(tag,new Integer(ONETAG));
 	    return new FlagState[] {new FlagState(newset1,cd,newtags1)};
@@ -143,13 +138,12 @@ public class FlagState extends GraphNode {
     }
 
     public int getTagCount(String tagtype){
-	    	for (Enumeration en=getTags();en.hasMoreElements();){
-		    	TagDescriptor td=(TagDescriptor)en.nextElement();
-		    	if (tagtype.equals(td.getSymbol()))
-		    		return tags.get(td).intValue();   //returns either ONETAG or MULTITAG
-	    	}
-	    	return NOTAGS;
-	    	
+	for (Enumeration en=getTags();en.hasMoreElements();){
+	    TagDescriptor td=(TagDescriptor)en.nextElement();
+	    if (tagtype.equals(td.getSymbol()))
+		return tags.get(td).intValue();   //returns either ONETAG or MULTITAG
+	}
+	return NOTAGS;
     }
     
     public FlagState[] clearTag(TagDescriptor tag){
@@ -223,7 +217,7 @@ public class FlagState extends GraphNode {
 	    newset.remove(fd);
 	}
 	
-	return new FlagState(newset, cd,newtags);
+	return new FlagState(newset, cd, newtags);
     }
     
     /** Tests for equality of two flagstate objects.

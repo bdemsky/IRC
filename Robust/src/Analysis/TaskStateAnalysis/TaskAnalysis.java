@@ -47,7 +47,6 @@ public class TaskAnalysis {
 	for(Iterator it_classes=state.getClassSymbolTable().getDescriptorsIterator();it_classes.hasNext();) {
 		
 	    ClassDescriptor cd = (ClassDescriptor)it_classes.next();
-	    System.out.println(cd.getSymbol());
 	    Vector vFlags=new Vector();
 	    FlagDescriptor flag[];
 	    int ctr=0;
@@ -59,7 +58,6 @@ public class TaskAnalysis {
 		
 		for(Iterator it_cflags=superdesc.getFlags();it_cflags.hasNext();) {	
 		    FlagDescriptor fd = (FlagDescriptor)it_cflags.next();
-		    System.out.println(fd.toString());
 		    vFlags.add(fd);
 		}
 	    }
@@ -106,13 +104,6 @@ public class TaskAnalysis {
 	    ClassDescriptor cd=(ClassDescriptor)it_classes.next();
 	    externs=((Integer)extern_flags.get(cd)).intValue();
 	    FlagDescriptor[] fd=(FlagDescriptor[])flags.get(cd);
-
-	    //Debug block
-	    System.out.println("Inside taskAnalysis;\n Class:"+ cd.getSymbol());
-	    System.out.println("No of externs " + externs);
-	    System.out.println("No of flags: "+fd.length);
-	    //Debug block
-	    
 	    flagstates.put(cd,new Hashtable<FlagState,FlagState>());
 	    cdtorootnodes.put(cd,new Vector());
 	}	
@@ -147,11 +138,7 @@ public class TaskAnalysis {
 	Enumeration e=flagstates.keys();
 	
 	while (e.hasMoreElements()) {
-	    System.out.println("creating dot file");
 	    ClassDescriptor cdtemp=(ClassDescriptor)e.nextElement();
-	    System.out.println((cdtemp.getSymbol()));
-	    
-
 	    createDOTfile(cdtemp);
 	}
     }
@@ -171,12 +158,6 @@ private void analyseTasks(FlagState fs) {
     for(Iterator it_tasks=state.getTaskSymbolTable().getDescriptorsIterator();it_tasks.hasNext();) {
 	TaskDescriptor td = (TaskDescriptor)it_tasks.next();
 	String taskname=td.getSymbol();
-	
-	//**Debug***/
-	System.out.println();
-	System.out.println(cd.getSymbol()+" : "+fs.getTextLabel());
-	System.out.println("Task: "+taskname);
-	//***********
 	
 	/** counter to keep track of the number of parameters (of the task being analyzed) that 
 	 *  are satisfied by the flagstate.
@@ -204,10 +185,6 @@ private void analyseTasks(FlagState fs) {
 	
 	if (trigger_ctr>1)
 	    throw new Error("Illegal Operation: A single flagstate cannot satisfy more than one parameter of a task.");
-	
-	
-	//** debug
-	System.out.println("Task:" + taskname +" is triggered");	
 	
 	
 	Set newstates=taganalysis.getFlagStates(td);
@@ -244,22 +221,15 @@ private void analyseTasks(FlagState fs) {
 			throw new Error("PRE FlagActions not supported");
 		    
 		} else if (ffan.getTaskType() == FlatFlagActionNode.TASKEXIT) {
-		    //***
-		    System.out.println("TASKEXIT");
-		    //***
-		    
 		    Vector<FlagState> fsv_taskexit=evalTaskExitNode(ffan,cd,fs,temp);
-		    
 		    for(Enumeration en=fsv_taskexit.elements();en.hasMoreElements();){
 			FlagState fs_taskexit=(FlagState)en.nextElement();
 			if (!sourcenodes.containsKey(fs_taskexit)) {
 			    toprocess.add(fs_taskexit);
-			    
 			}
 			//seen this node already
 			fs_taskexit=canonicalizeFlagState(sourcenodes,fs_taskexit);
 			FEdge newedge=new FEdge(fs_taskexit,taskname);
-			//FEdge newedge=new FEdge(fs_taskexit,td);
 			fs.addEdge(newedge);
 		    }
 		    continue;
@@ -360,7 +330,7 @@ private boolean isTaskTrigger_tag(TagExpressionList tel, FlagState fs){
 		    FlagState fsworking=(FlagState)en.nextElement();
 		    if (!ffan.getTagChange(ttp)){
 			processed.addAll(Arrays.asList(fsworking.clearTag(ttp.getTag())));
-		    }
+		    } else processed.add(fsworking);
 		}
 	    }
 	}
@@ -376,12 +346,11 @@ private boolean isTaskTrigger_tag(TagExpressionList tel, FlagState fs){
 		    FlagState fsworking=(FlagState)en.nextElement();
 		    if (ffan.getTagChange(ttp)){
 			processed.addAll(Arrays.asList(fsworking.setTag(ttp.getTag())));
-		    }
+		    } else processed.add(fsworking);
 		}
 	    }
 	}
 	return processed;
-	
     }		
     
 
@@ -401,10 +370,9 @@ private boolean isTaskTrigger_tag(TagExpressionList tel, FlagState fs){
     */
     
     public void createDOTfile(ClassDescriptor cd) throws java.io.IOException {
-		File dotfile_flagstates= new File("graph"+cd.getSymbol()+".dot");
-		FileOutputStream dotstream=new FileOutputStream(dotfile_flagstates,true);
-		FlagState.DOTVisitor.visit(dotstream,((Hashtable)flagstates.get(cd)).values());
-		
+	File dotfile_flagstates= new File("graph"+cd.getSymbol()+".dot");
+	FileOutputStream dotstream=new FileOutputStream(dotfile_flagstates,true);
+	FlagState.DOTVisitor.visit(dotstream,((Hashtable)flagstates.get(cd)).values());
     }
 
     /** Returns the flag states for the class descriptor. */
