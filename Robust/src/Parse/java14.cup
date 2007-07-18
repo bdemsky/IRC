@@ -252,6 +252,13 @@ non terminal ParseNode tag_list;
 non terminal ParseNode tag_list_opt;
 non terminal ParseNode tag_change;
 
+//distributed transaction keywords
+terminal ATOMIC;
+terminal LOCAL;
+terminal GLOBAL;
+non terminal ParseNode atomic_statement;
+
+
 start with goal;
 
 
@@ -695,7 +702,8 @@ modifier ::=
 //	ABSTRACT |
 	FINAL {: RESULT=new ParseNode("final"); :}|
 	NATIVE {: RESULT=new ParseNode("native"); :} |
-	SYNCHRONIZED {: RESULT=new ParseNode("synchronized"); :}
+	SYNCHRONIZED {: RESULT=new ParseNode("synchronized"); :} |
+	ATOMIC {: RESULT=new ParseNode("atomic"); :}
 //	TRANSIENT | 
 //	VOLATILE |
 //	STRICTFP // note that semantic analysis must check that the
@@ -809,6 +817,14 @@ field_declaration ::=
 		pn.addChild("modifier").addChild(mo);
 		pn.addChild("type").addChild(type);
 		pn.addChild("variables").addChild(var);
+		RESULT=pn;
+	:} |
+		modifiers_opt:mo GLOBAL type:type variable_declarators:var SEMICOLON {: 
+		ParseNode pn=new ParseNode("field_declaration");
+		pn.addChild("modifier").addChild(mo);
+		pn.addChild("type").addChild(type);
+		pn.addChild("variables").addChild(var);
+		pn.addChild("global");
 		RESULT=pn;
 	:}
 	;
@@ -1110,6 +1126,7 @@ statement_without_trailing_substatement ::=
 	|	continue_statement:st {: RESULT=st; :}
 	|	return_statement:st {: RESULT=st; :}
 	|	task_exitstatement:st {: RESULT=st; :}
+	|	atomic_statement:st {: RESULT=st; :}
 //	|	synchronized_statement
 //	|	throw_statement
 //	|	try_statement
@@ -1287,6 +1304,11 @@ return_statement ::=
 //synchronized_statement ::=
 //		SYNCHRONIZED LPAREN expression RPAREN block
 //	;
+atomic_statement ::=
+		ATOMIC LPAREN expression:exp RPAREN block {: 
+	RESULT=(new ParseNode("atomic")).addChild(exp).getRoot();
+	:}
+	;
 //try_statement ::=
 //		TRY block catches
 //	|	TRY block catches_opt finally
@@ -1333,6 +1355,14 @@ primary_no_new_array ::=
 	;
 class_instance_creation_expression ::=
 		NEW class_or_interface_type:type LPAREN argument_list_opt:args RPAREN flag_list_opt:feo {: 
+		ParseNode pn=new ParseNode("createobject");
+		pn.addChild(type);
+		pn.addChild(args);
+		pn.addChild(feo);
+		RESULT=pn;
+	:} 
+	//Global object
+	| LOCAL NEW class_or_interface_type:type LPAREN argument_list_opt:args RPAREN flag_list_opt:feo {: 
 		ParseNode pn=new ParseNode("createobject");
 		pn.addChild(type);
 		pn.addChild(args);

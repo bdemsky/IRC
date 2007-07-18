@@ -71,5 +71,9 @@ class Keyword extends Token {
     key_table.put("tag", new Integer(Sym.TAG));
     key_table.put("task", new Integer(Sym.TASK));
     key_table.put("taskexit", new Integer(Sym.TASKEXIT));
+    //Keywords for transactions
+    key_table.put("atomic", new Integer(Sym.ATOMIC));
+    key_table.put("local", new Integer(Sym.LOCAL));
+    key_table.put("global", new Integer(Sym.GLOBAL));
   }
 }
