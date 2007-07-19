@@ -41,7 +41,7 @@ int test1() {
 	header = (objheader_t *) objstrAlloc(mainobjstore, size);
 	init_obj(header, 31, 2, 1, 0, NEW);
 	mhashInsert(header->oid, header);
-	mid = iptoMid("128.200.9.30");
+	mid = iptoMid("128.195.175.69");
 	lhashInsert(header->oid, mid);
 
 	//Create and Insert Oid 32
@@ -49,7 +49,7 @@ int test1() {
 	header = (objheader_t *) objstrAlloc(mainobjstore, size);
 	init_obj(header, 32, 1, 1, 0, NEW);
 	mhashInsert(header->oid, header);
-	mid = iptoMid("128.200.9.30");
+	mid = iptoMid("128.195.175.69");
 	lhashInsert(header->oid, mid);
 
 	//Create and Insert Oid 33
@@ -57,7 +57,7 @@ int test1() {
 	header = (objheader_t *) objstrAlloc(mainobjstore, size);
 	init_obj(header, 33, 0, 1, 0, NEW);
 	mhashInsert(header->oid, header);
-	mid = iptoMid("128.200.9.30");
+	mid = iptoMid("128.195.175.69");
 	lhashInsert(header->oid, mid);
 
 	//Inserting into lhashtable into d-3.eecs
@@ -104,7 +104,7 @@ int test2() {
 	header = (objheader_t *) objstrAlloc(mainobjstore, size);
 	init_obj(header, 31, 2, 1, 0, NEW);
 	mhashInsert(header->oid, header);
-	mid = iptoMid("128.200.9.30");
+	mid = iptoMid("128.195.175.69");
 	lhashInsert(header->oid, mid);
 
 	//Create and Insert Oid 32
@@ -112,7 +112,7 @@ int test2() {
 	header = (objheader_t *) objstrAlloc(mainobjstore, size);
 	init_obj(header, 32, 1, 1, 0, NEW);
 	mhashInsert(header->oid, header);
-	mid = iptoMid("128.200.9.30");
+	mid = iptoMid("128.195.175.69");
 	lhashInsert(header->oid, mid);
 
 	//Create and Insert Oid 33
@@ -120,7 +120,7 @@ int test2() {
 	header = (objheader_t *) objstrAlloc(mainobjstore, size);
 	init_obj(header, 33, 0, 1, 0, NEW);
 	mhashInsert(header->oid, header);
-	mid = iptoMid("128.200.9.30");
+	mid = iptoMid("128.195.175.69");
 	lhashInsert(header->oid, mid);
 
 	//Inserting into lhashtable into d-3.eecs
@@ -190,7 +190,7 @@ int test3() {
 	header = (objheader_t *) objstrAlloc(mainobjstore, size);
 	init_obj(header, 31, 2, 1, 0, NEW);
 	mhashInsert(header->oid, header);
-	mid = iptoMid("128.200.9.30");
+	mid = iptoMid("128.195.175.69");
 	lhashInsert(header->oid, mid);
 
 	//Create and Insert Oid 32
@@ -198,7 +198,7 @@ int test3() {
 	header = (objheader_t *) objstrAlloc(mainobjstore, size);
 	init_obj(header, 32, 1, 1, 0, NEW);
 	mhashInsert(header->oid, header);
-	mid = iptoMid("128.200.9.30");
+	mid = iptoMid("128.195.175.69");
 	lhashInsert(header->oid, mid);
 
 	//Create and Insert Oid 33
@@ -206,7 +206,7 @@ int test3() {
 	header = (objheader_t *) objstrAlloc(mainobjstore, size);
 	init_obj(header, 33, 0, 1, 0, NEW);
 	mhashInsert(header->oid, header);
-	mid = iptoMid("128.200.9.30");
+	mid = iptoMid("128.195.175.69");
 	lhashInsert(header->oid, mid);
 
 	//Inserting into lhashtable into d-3.eecs
@@ -272,7 +272,7 @@ int test4() {
 	header = (objheader_t *) objstrAlloc(mainobjstore, size);
 	init_obj(header, 31, 2, 1, 0, NEW);
 	mhashInsert(header->oid, header);
-	mid = iptoMid("128.200.9.30");
+	mid = iptoMid("128.195.175.69");
 	lhashInsert(header->oid, mid);
 
 	//Create and Insert Oid 32
@@ -280,7 +280,7 @@ int test4() {
 	header = (objheader_t *) objstrAlloc(mainobjstore, size);
 	init_obj(header, 32, 1, 1, 0, NEW);
 	mhashInsert(header->oid, header);
-	mid = iptoMid("128.200.9.30");
+	mid = iptoMid("128.195.175.69");
 	lhashInsert(header->oid, mid);
 
 	//Create and Insert Oid 33
@@ -288,7 +288,7 @@ int test4() {
 	header = (objheader_t *) objstrAlloc(mainobjstore, size);
 	init_obj(header, 33, 0, 1, 0, NEW);
 	mhashInsert(header->oid, header);
-	mid = iptoMid("128.200.9.30");
+	mid = iptoMid("128.195.175.69");
 	lhashInsert(header->oid, mid);
 
 	//Inserting into lhashtable into d-3.eecs

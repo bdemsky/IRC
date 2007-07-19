@@ -4,19 +4,24 @@
 #include<stdio.h>
 #include<stdlib.h>
 #include<pthread.h>
-
-#define ARRAY_SIZE 20
+#include<string.h>
 
 // DS that contains information to be shared between threads.
-typedef struct prefetchthreadqueue {
-	int *buffer[ARRAY_SIZE];
-	int front;
-	int rear;
+typedef struct prefetchqelem {
+	struct prefetchqelem *next;
+} prefetchqelem_t;
+
+typedef struct primarypfq {
+	prefetchqelem_t *front, *rear;
 	pthread_mutex_t qlock;
-} prefetchthreadqueue_t;
+	pthread_cond_t qcond;
+} primarypfq_t; 
 
-void queueInsert(int *);
-int *queueDelete();
-void queueInit(); //Initializes the queue and qlock mutex 
 
+void queueInit(void);
+void delqnode(); 
+void queueDelete(void);
+void enqueue(prefetchqelem_t *qnode);
+prefetchqelem_t *dequeue(void);
+void queueDisplay();
 #endif

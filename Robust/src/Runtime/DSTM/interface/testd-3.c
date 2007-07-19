@@ -133,7 +133,7 @@ int test2a(void) {
 	 lhashInsert(header->oid, mid);
 
 	 //Inserting into lhashtable
-	 mid = iptoMid("128.200.9.30"); //d-4.eecs.uci.edu
+	 mid = iptoMid("128.195.175.69"); //dw-1.eecs.uci.edu
 	 lhashInsert(31, mid);
 	 lhashInsert(32, mid);
 
@@ -148,9 +148,9 @@ int test2a(void) {
 
 	 //Check if machine demsky is up and running
 	 checkServer(mid, "128.200.9.10");
-	 mid = iptoMid("128.200.9.30");
-	 //Check if machine d-4 is up and running
-	 checkServer(mid, "128.200.9.30");
+	 mid = iptoMid("128.195.175.69");
+	 //Check if machine dw-1 is up and running
+	 checkServer(mid, "128.195.175.69");
 
 	 // Start Transaction    
 	 myTrans = transStart();
@@ -222,7 +222,7 @@ int test2b(void) {
 	lhashInsert(header->oid, mid);
 
 	//Inserting into lhashtable
-	mid = iptoMid("128.200.9.30"); //d-4.eecs.uci.edu
+	mid = iptoMid("128.195.175.69"); //dw-1.eecs.uci.edu
 	lhashInsert(31, mid);
 	lhashInsert(32, mid);
 	lhashInsert(33, mid);
@@ -238,9 +238,9 @@ int test2b(void) {
 
 	//Check if machine demsky is up and running
 	checkServer(mid, "128.200.9.10");
-	mid = iptoMid("128.200.9.30");
-	//Check if machine d-4 is up and running
-	checkServer(mid, "128.200.9.30");
+	mid = iptoMid("128.195.175.69");
+	//Check if machine dw-1 is up and running
+	checkServer(mid, "128.195.175.69");
 
 	// Start Transaction    
 	myTrans = transStart();
@@ -259,7 +259,7 @@ int test2b(void) {
 		printf("Object not found\n");
 	}
 	
-	//read object 32 (found on d-4)
+	//read object 32 (found on dw-1)
 	if((h4 = transRead(myTrans, 32)) == NULL) {
 		printf("Object not found\n");
 	}
@@ -378,7 +378,7 @@ int test5(void) {
 	lhashInsert(header->oid, mid);
 
 	//Inserting into lhashtable
-	mid = iptoMid("128.200.9.30"); //d-4.eecs.uci.edu
+	mid = iptoMid("128.195.175.69"); //dw-1.eecs.uci.edu
 	lhashInsert(31, mid);
 	lhashInsert(32, mid);
 	lhashInsert(33, mid);
@@ -393,9 +393,9 @@ int test5(void) {
 	pthread_create(&thread_Listen, &attr, dstmListen, NULL);
 	//Check if machine demsky is up and running
 	checkServer(mid, "128.200.9.10");
-	mid = iptoMid("128.200.9.30");
-	//Check if machine d-4 is up and running
-	checkServer(mid, "128.200.9.30");
+	mid = iptoMid("128.195.175.69");
+	//Check if machine dw-1 is up and running
+	checkServer(mid, "128.195.175.69");
 
 	// Start Transaction    
 	myTrans = transStart();
@@ -405,11 +405,11 @@ int test5(void) {
 		printf("Object not found\n");
 	}
 	//read object 2 (found on demksy)
-	if((h1 = transRead(myTrans,2)) == NULL){
+	if((h2 = transRead(myTrans,2)) == NULL){
 		printf("Object not found\n");
 	}
-	//read object 31 (found on d-4)
-	if((h2 = transRead(myTrans, 31)) == NULL) {
+	//read object 22 (found locally )
+	if((h3 = transRead(myTrans, 22)) == NULL) {
 		printf("Object not found\n");
 	}
 	
@@ -449,7 +449,7 @@ int test5a(void) {
 	header = (objheader_t *) objstrAlloc(mainobjstore, size);
 	header->oid = 21;
 	header->type = 1;
-	//read object 31 (found on d-4)
+	//read object 31 (found on dw-1)
 	if((h2 = transRead(myTrans, 31)) == NULL) {
 		printf("Object not found\n");
 	}
@@ -512,7 +512,7 @@ int test5b(void) {
 	lhashInsert(header->oid, mid);
 
 	//Inserting into lhashtable
-	mid = iptoMid("128.200.9.30"); //d-4.eecs.uci.edu
+	mid = iptoMid("128.195.175.69"); //dw-1.eecs.uci.edu
 	lhashInsert(31, mid);
 	lhashInsert(32, mid);
 	lhashInsert(33, mid);
@@ -528,9 +528,9 @@ int test5b(void) {
 
 	//Check if machine demsky is up and running
 	checkServer(mid, "128.200.9.10");
-	mid = iptoMid("128.200.9.30");
-	//Check if machine d-4 is up and running
-	checkServer(mid, "128.200.9.30");
+	mid = iptoMid("128.195.175.69");
+	//Check if machine dw-1 is up and running
+	checkServer(mid, "128.195.175.69");
 
 	// Start Transaction    
 	myTrans = transStart();
@@ -539,7 +539,7 @@ int test5b(void) {
 	if((h1 = transRead(myTrans, 1)) == NULL){
 		printf("Object not found\n");
 	}
-	//read object 31 (found on d-4)
+	//read object 31 (found on dw-1)
 	if((h2 = transRead(myTrans, 31)) == NULL) {
 		printf("Object not found\n");
 	}
@@ -612,7 +612,7 @@ int test7(void) {
 	lhashInsert(header->oid, mid);
 
 	//Inserting into lhashtable
-	mid = iptoMid("128.200.9.30"); //d-4.eecs.uci.edu
+	mid = iptoMid("128.195.175.69"); //dw-1.eecs.uci.edu
 	lhashInsert(31, mid);
 	lhashInsert(32, mid);
 	lhashInsert(33, mid);
@@ -628,9 +628,9 @@ int test7(void) {
 
 	//Check if machine demsky is up and running
 	checkServer(mid, "128.200.9.10");
-	mid = iptoMid("128.200.9.30");
-	//Check if machine d-4 is up and running
-	checkServer(mid, "128.200.9.30");
+	mid = iptoMid("128.195.175.69");
+	//Check if machine dw-1 is up and running
+	checkServer(mid, "128.195.175.69");
 
 	// Start Transaction    
 	myTrans = transStart();
@@ -639,7 +639,7 @@ int test7(void) {
 	if((h1 = transRead(myTrans, 3)) == NULL){
 		printf("Object not found\n");
 	}
-	//read object 32 (found on d-4)
+	//read object 32 (found on dw-1)
 	if((h2 = transRead(myTrans, 32)) == NULL) {
 		printf("Object not found\n");
 	}
