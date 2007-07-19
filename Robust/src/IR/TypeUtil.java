@@ -34,6 +34,32 @@ public class TypeUtil {
 	}
     }
 
+    public ClassDescriptor getMainClass() {
+	return getClass(state.main);
+    }
+
+    public MethodDescriptor getMain() {
+	ClassDescriptor cd=getMainClass();
+	Set mainset=cd.getMethodTable().getSet("main");
+	for(Iterator mainit=mainset.iterator();mainit.hasNext();) {
+	    MethodDescriptor md=(MethodDescriptor)mainit.next();
+	    if (md.numParameters()!=1)
+		continue;
+	    Descriptor pd=md.getParameter(0);
+	    TypeDescriptor tpd=(pd instanceof TagVarDescriptor)?((TagVarDescriptor)pd).getType():((VarDescriptor)pd)
+		.getType();
+	    if (tpd.getArrayCount()!=1)
+		continue;
+	    if (!tpd.getSymbol().equals("String"))
+		continue;
+	    
+	    if (!md.getModifiers().isStatic())
+		throw new Error("Error: Non static main");
+	    return md;
+	}
+	throw new Error(cd+" has no main");
+    }
+
     public void createFullTable() {
 	subclasstable=new Hashtable();
     

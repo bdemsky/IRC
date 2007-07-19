@@ -293,31 +293,18 @@ public class BuildCode {
 	    outmethod.println("  }");
 
 
-	    ClassDescriptor cd=typeutil.getClass(state.main);
-	    Set mainset=cd.getMethodTable().getSet("main");
-	    for(Iterator mainit=mainset.iterator();mainit.hasNext();) {
-		MethodDescriptor md=(MethodDescriptor)mainit.next();
-		if (md.numParameters()!=1)
-		    continue;
-		Descriptor pd=md.getParameter(0);
-		TypeDescriptor tpd=(pd instanceof TagVarDescriptor)?((TagVarDescriptor)pd).getType():((VarDescriptor)pd).getType();
-		if (tpd.getArrayCount()!=1)
-		    continue;
-		if (!tpd.getSymbol().equals("String"))
-		    continue;
+	    MethodDescriptor md=typeutil.getMain();
+	    ClassDescriptor cd=typeutil.getMainClass();
 
-		if (!md.getModifiers().isStatic())
-		    throw new Error("Error: Non static main");
-		outmethod.println("   {");
-		if (GENERATEPRECISEGC) {
-		    outmethod.print("       struct "+cd.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_params __parameterlist__={");
-		    outmethod.println("1, NULL,"+"stringarray};");
-		    outmethod.println("     "+cd.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"(& __parameterlist__);");
-		} else
-		    outmethod.println("     "+cd.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"(stringarray);");
-		outmethod.println("   }");
-		break;
-	    }
+	    outmethod.println("   {");
+	    if (GENERATEPRECISEGC) {
+		outmethod.print("       struct "+cd.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_params __parameterlist__={");
+		outmethod.println("1, NULL,"+"stringarray};");
+		outmethod.println("     "+cd.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"(& __parameterlist__);");
+	    } else
+		outmethod.println("     "+cd.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"(stringarray);");
+	    outmethod.println("   }");
+	    
 	    if (state.THREAD) {
 		outmethod.println("pthread_mutex_lock(&gclistlock);");
 		outmethod.println("threadcount--;");

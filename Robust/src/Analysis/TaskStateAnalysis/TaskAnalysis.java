@@ -131,8 +131,6 @@ public class TaskAnalysis {
 	    
 	    analyseTasks(trigger);
 	}
-
-
 	
 	/** Creating DOT files */
 	Enumeration e=flagstates.keys();
