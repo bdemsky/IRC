@@ -133,7 +133,7 @@ public class Main {
 	  if (state.OPTIONAL) {
 	      ExecutionGraph et=new ExecutionGraph(state, ta);
 	      et.createExecutionGraph();
-	      SafetyAnalysis sa = new SafetyAnalysis(et.getExecutionGraph(), state);
+	      SafetyAnalysis sa = new SafetyAnalysis(et.getExecutionGraph(), state, ta);
 	      sa.buildPath();
 	  }
 

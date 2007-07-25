@@ -52,6 +52,7 @@ public class BuildCode {
 	PrintWriter outvirtual=null;
 	PrintWriter outtask=null;
 	PrintWriter outtaskdefs=null;
+	PrintWriter outoptionalarrays=null;
 
 	try {
 	    OutputStream str=new FileOutputStream(PREFIX+"structdefs.h");
@@ -69,6 +70,10 @@ public class BuildCode {
 		outtask=new java.io.PrintWriter(str, true);
 		str=new FileOutputStream(PREFIX+"taskdefs.c");
 		outtaskdefs=new java.io.PrintWriter(str, true);
+		if (state.OPTIONAL){
+		    str=new FileOutputStream(PREFIX+"optionnalarrays.c");
+		    outoptionalarrays=new java.io.PrintWriter(str, true);
+		} 
 	    }
 	    if (state.structfile!=null) {
 		str=new FileOutputStream(PREFIX+state.structfile+".struct");
@@ -149,6 +154,8 @@ public class BuildCode {
 	    if (state.TASK) {
 		outclassdefs.println("  int flag;");
 		outclassdefs.println("  void * flagptr;");
+		outclassdefs.println("  int failedstatus;");
+		outclassdefs.println("  int * flagset;");
 	    }
 	    printClassStruct(typeutil.getClass(TypeUtil.ObjectClass), outclassdefs);
 	    outclassdefs.println("  int ___length___;");
@@ -327,6 +334,10 @@ public class BuildCode {
 
 	outstructs.close();
 	outmethod.close();
+
+	generateOptionalArrays(outoptionalarrays);
+	outoptionalarrays.close();
+
     }
 
     private int maxcount=0;
@@ -789,6 +800,8 @@ public class BuildCode {
 	if (state.TASK) {
 	    classdefout.println("  int flag;");
 	    classdefout.println("  void * flagptr;");
+	    classdefout.println("  int failedstatus;");
+	    classdefout.println("  int * flagset;");
 	}
 	printClassStruct(cn, classdefout);
 	classdefout.println("};\n");
@@ -1581,4 +1594,27 @@ public class BuildCode {
 	    }
 	}
     }
+
+     void generateOptionalArrays(PrintWriter output) {
+
+	 SymbolTable classes = state.getClassSymbolTable();
+	 for( Iterator it = classes.getAllDescriptorsIterator(); it.hasNext();){
+	     ClassDescriptor cd = (ClassDescriptor)it.next();
+	     output.println("Class "+cd.getSymbol());
+	     Hashtable flags=(Hashtable)flagorder.get(cd);
+	     for (Iterator fit = cd.getFlags(); fit.hasNext();){
+		 FlagDescriptor fd = (FlagDescriptor)fit.next();
+		 int flagid=1<<((Integer)flags.get(fd)).intValue();
+		 output.println("\tFlag associated with "+fd.getSymbol()+" : 0x"+Integer.toHexString(flagid)+" bx"+Integer.toBinaryString(flagid));
+	     }
+	 }
+	
+     }
+
 }
+	 
+
+
+
+
+

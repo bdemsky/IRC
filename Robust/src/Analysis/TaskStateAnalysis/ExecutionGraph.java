@@ -31,11 +31,11 @@ public class ExecutionGraph {
     
     public void createExecutionGraph() throws java.io.IOException {
 	/*Explore the taskanalysis structure*/
-	
+	System.out.println("------- BUILDING THE EXECUTION GRAPH -------");
 	Enumeration e=taskanalysis.flagstates.keys();
 	
 	while (e.hasMoreElements()) {
-	    System.out.println("\nInto class :");
+	    System.out.println("\nBuilding class :");
 	    ClassDescriptor cdtemp=(ClassDescriptor)e.nextElement();
 	    System.out.println("\t"+(cdtemp.getSymbol())+ "\n");
 	    exploreGraph(cdtemp);

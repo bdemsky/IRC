@@ -343,8 +343,8 @@ void flagbody(struct ___Object___ *ptr, int flag) {
       /* Check tags */
       if (parameter->numbertags>0) {
 	if (tagptr==NULL)
-	  goto nextloop;
-	else if(tagptr->type==TAGTYPE) {
+	  goto nextloop;//that means the object has no tag but that param needs tag
+	else if(tagptr->type==TAGTYPE) {//one tag
 	  struct ___TagDescriptor___ * tag=(struct ___TagDescriptor___*) tagptr;
 	  for(i=0;i<parameter->numbertags;i++) {
 	    //slotid is parameter->tagarray[2*i];
@@ -352,7 +352,7 @@ void flagbody(struct ___Object___ *ptr, int flag) {
 	    if (tagid!=tagptr->flag)
 	      goto nextloop; /*We don't have this tag */	  
 	  }
-	} else {
+	} else {//multiple tags
 	  struct ArrayObject * ao=(struct ArrayObject *) tagptr;
 	  for(i=0;i<parameter->numbertags;i++) {
 	    //slotid is parameter->tagarray[2*i];
@@ -394,7 +394,7 @@ void enqueuetasks(struct parameterwrapper *parameter, struct parameterwrapper *p
 
   struct taskdescriptor * task=parameter->task;
   
-  RuntimeHashadd(parameter->objectset, (int) ptr, (int) prevptr);
+  RuntimeHashadd(parameter->objectset, (int) ptr, (int) prevptr);//this add the object to parameterwrapper
   
   /* Add enqueued object to parameter vector */
   taskpointerarray[parameter->slot]=ptr;
@@ -428,7 +428,7 @@ void enqueuetasks(struct parameterwrapper *parameter, struct parameterwrapper *p
     tpd->numParameters=numiterators+1;
     tpd->parameterArray=RUNMALLOC(sizeof(void *)*(numiterators+1));
     for(j=0;j<=numiterators;j++)
-      tpd->parameterArray[j]=taskpointerarray[j];
+      tpd->parameterArray[j]=taskpointerarray[j];//store the actual parameters
     
     /* Enqueue task */
     if (!gencontains(failedtasks, tpd)&&!gencontains(activetasks,tpd)) {
@@ -605,6 +605,8 @@ void executetasks() {
 #endif
 	  genputtable(failedtasks,currtpd,currtpd);
 	  restorecheckpoint(currtpd->task->numParameters, currtpd->parameterArray, checkpoint, forward, reverse);
+	  /*where we have to insert the code for optional tasks
+	    all the pointers I need are in currtpd->parameterArray */
 	  freeRuntimeHash(forward);
 	  freeRuntimeHash(reverse);
 	  freemalloc();
