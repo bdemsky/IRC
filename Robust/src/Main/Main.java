@@ -87,12 +87,17 @@ public class Main {
       readSourceFile(state, ClassLibraryPrefix+"File.java");
       readSourceFile(state, ClassLibraryPrefix+"InetAddress.java");
 
-      if (state.THREAD) {
-	  readSourceFile(state, ClassLibraryPrefix+"Thread.java");
-	  readSourceFile(state, ClassLibraryPrefix+"ObjectJava.java");
-      } else {
+
+
+      if (state.TASK) {
 	  readSourceFile(state, ClassLibraryPrefix+"Object.java");
 	  readSourceFile(state, ClassLibraryPrefix+"TagDescriptor.java");
+      } else {
+	  if (state.THREAD) {
+	      readSourceFile(state, ClassLibraryPrefix+"Thread.java");
+	      readSourceFile(state, ClassLibraryPrefix+"ObjectJava.java");
+	  } else
+	      readSourceFile(state, ClassLibraryPrefix+"ObjectJavaNT.java");
       }
 
       if (state.TASK) {

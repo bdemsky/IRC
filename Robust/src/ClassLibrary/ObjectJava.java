@@ -1,5 +1,5 @@
 public class Object {
-    public int cachedCode;
+    public int cachedCode; //first field has to be a primitive
     public boolean cachedHash;
 
     public native int nativehashCode();

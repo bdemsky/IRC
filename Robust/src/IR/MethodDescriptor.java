@@ -18,7 +18,7 @@ public class MethodDescriptor extends Descriptor {
     protected SymbolTable paramtable;
     protected ClassDescriptor cd;
     protected VarDescriptor thisvd;
-
+    protected boolean isglobal;
 
     public MethodDescriptor(Modifiers m, TypeDescriptor rt, String identifier) {
 	super(identifier);
@@ -54,7 +54,12 @@ public class MethodDescriptor extends Descriptor {
     }
 
     public MethodDescriptor(Modifiers m, String identifier) {
+	this(m, identifier, false);
+    }
+
+    public MethodDescriptor(Modifiers m, String identifier, boolean isglobal) {
 	super(identifier);
+	this.isglobal=isglobal;
 	this.modifier=m;
 	this.returntype=null;
 	this.identifier=identifier;

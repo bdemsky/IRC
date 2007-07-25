@@ -329,10 +329,10 @@ public class BuildIR {
 	TypeDescriptor t=parseTypeDescriptor(tn);
 	ParseNode vn=pn.getChild("variables").getChild("variable_declarators_list");
 	ParseNodeVector pnv=vn.getChildren();
+	boolean isglobal=pn.getChild("global")!=null;
+
 	for(int i=0;i<pnv.size();i++) {
 	    ParseNode vardecl=pnv.elementAt(i);
-
-	    
 	    ParseNode tmp=vardecl;
 	    TypeDescriptor arrayt=t;
 	    while (tmp.getChild("single")==null) {
@@ -340,16 +340,14 @@ public class BuildIR {
 		tmp=tmp.getChild("array");
 	    }
 	    String identifier=tmp.getChild("single").getTerminal();
-
 	    ParseNode epn=vardecl.getChild("initializer");
-	    
+
 	    ExpressionNode en=null;
 	    if (epn!=null)
 		en=parseExpression(epn.getFirstChild());
   
-	    cn.addField(new FieldDescriptor(m,arrayt,identifier, en));
+	    cn.addField(new FieldDescriptor(m, arrayt, identifier, en, isglobal));
 	}
-	
     }
 
     private ExpressionNode parseExpression(ParseNode pn) {
@@ -395,7 +393,8 @@ public class BuildIR {
 	} else if (isNode(pn,"createobject")) {
 	    TypeDescriptor td=parseTypeDescriptor(pn);
 	    Vector args=parseArgumentList(pn);
-	    CreateObjectNode con=new CreateObjectNode(td);
+	    boolean isglobal=pn.getChild("global")!=null;
+	    CreateObjectNode con=new CreateObjectNode(td, isglobal);
 	    for(int i=0;i<args.size();i++) {
 		con.addArgument((ExpressionNode)args.get(i));
 	    }
@@ -413,6 +412,7 @@ public class BuildIR {
 	    return con;
 	} else if (isNode(pn,"createarray")) {
 	    //System.out.println(pn.PPrint(3,true));
+	    boolean isglobal=pn.getChild("createarray")!=null;
 	    TypeDescriptor td=parseTypeDescriptor(pn);
 	    Vector args=parseDimExprs(pn);
 	    int num=0;
@@ -420,7 +420,7 @@ public class BuildIR {
 		num=((Integer)pn.getChild("dims_opt").getLiteral()).intValue();
 	    for(int i=0;i<(args.size()+num);i++)
 		td=td.makeArray(state);
-	    CreateObjectNode con=new CreateObjectNode(td);
+	    CreateObjectNode con=new CreateObjectNode(td, isglobal);
 	    for(int i=0;i<args.size();i++) {
 		con.addArgument((ExpressionNode)args.get(i));
 	    }
@@ -529,8 +529,9 @@ public class BuildIR {
 	ParseNode mn=pn.getChild("modifiers");
 	Modifiers m=parseModifiersList(mn);
 	ParseNode cdecl=pn.getChild("constructor_declarator");
+	boolean isglobal=cdecl.getChild("global")!=null;
 	String name=cdecl.getChild("name").getChild("identifier").getTerminal();
-	MethodDescriptor md=new MethodDescriptor(m, name);
+	MethodDescriptor md=new MethodDescriptor(m, name, isglobal);
 	ParseNode paramnode=cdecl.getChild("parameters");
 	parseParameterList(md,paramnode);
 	ParseNode bodyn0=pn.getChild("body");
@@ -618,6 +619,9 @@ public class BuildIR {
 		ccs=parseChecks(pn.getChild("cons_checks"));
 	    
 	    blockstatements.add(new TaskExitNode(vfe, ccs));
+	} else if (isNode(pn,"atomic")) {
+	    BlockNode bn=parseBlockHelper(pn);
+	    blockstatements.add(new AtomicNode(bn));
 	} else if (isNode(pn,"return")) {
 	    if (isEmpty(pn.getTerminal()))
 		blockstatements.add(new ReturnNode());
@@ -728,6 +732,8 @@ public class BuildIR {
 		    m.addModifier(Modifiers.NATIVE);
 		else if (isNode(modn,"synchronized"))
 		    m.addModifier(Modifiers.SYNCHRONIZED);
+		else if (isNode(modn,"atomic"))
+		    m.addModifier(Modifiers.ATOMIC);
 		else throw new Error("Unrecognized Modifier");
 	    }
 	}

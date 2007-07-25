@@ -8,10 +8,16 @@ public class CreateObjectNode extends ExpressionNode {
     Vector argumentlist;
     MethodDescriptor md;
     FlagEffects fe;
+    boolean isglobal;
 
-    public CreateObjectNode(TypeDescriptor type) {
+    public CreateObjectNode(TypeDescriptor type, boolean isglobal) {
 	td=type;
 	argumentlist=new Vector();
+	this.isglobal=isglobal;
+    }
+
+    public boolean isGlobal() {
+	return isglobal;
     }
 
     public void addFlagEffects(FlagEffects fe) {

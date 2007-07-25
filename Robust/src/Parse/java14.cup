@@ -961,6 +961,16 @@ constructor_declaration ::=
 		pn.addChild(cd);
 		pn.addChild("body").addChild(body);
 		RESULT=pn;
+	:} |
+		modifiers_opt:mo GLOBAL constructor_declarator:cd
+//throws_opt 
+			constructor_body:body	{:
+		ParseNode pn=new ParseNode("constructor_declaration");
+		pn.addChild("global");
+		pn.addChild("modifiers").addChild(mo);
+		pn.addChild(cd);
+		pn.addChild("body").addChild(body);
+		RESULT=pn;
 	:}
 	;
 constructor_declarator ::=
@@ -1363,10 +1373,10 @@ class_instance_creation_expression ::=
 	//Global object
 	| GLOBAL NEW class_or_interface_type:type LPAREN argument_list_opt:args RPAREN flag_list_opt:feo {: 
 		ParseNode pn=new ParseNode("createobject");
-		pn.addChild("global");
 		pn.addChild(type);
 		pn.addChild(args);
 		pn.addChild(feo);
+		pn.addChild("global");
 		RESULT=pn;
 	:}
 	| NEW class_or_interface_type:type LPAREN argument_list_opt:args RPAREN LBRACE RBRACE LBRACE tag_list:tl RBRACE {: 
@@ -1448,6 +1458,22 @@ array_creation_uninit ::=
 		pn.addChild(type);
 		pn.addChild(dimexpr);
 		pn.addChild("dims_opt").setLiteral(dims);
+		RESULT=pn;
+	:}
+	|	NEW GLOBAL primitive_type:type dim_exprs:dimexpr dims_opt:dims {: 
+		ParseNode pn=new ParseNode("createarray");
+		pn.addChild(type);
+		pn.addChild(dimexpr);
+		pn.addChild("dims_opt").setLiteral(dims);
+		pn.addChild("global");
+		RESULT=pn;
+		:}
+	|	NEW GLOBAL class_or_interface_type:type dim_exprs:dimexpr dims_opt:dims {: 
+		ParseNode pn=new ParseNode("createarray");
+		pn.addChild(type);
+		pn.addChild(dimexpr);
+		pn.addChild("dims_opt").setLiteral(dims);
+		pn.addChild("global");
 		RESULT=pn;
 	:}
 	;

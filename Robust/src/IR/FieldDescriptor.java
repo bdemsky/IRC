@@ -10,21 +10,27 @@ import IR.Tree.ExpressionNode;
 
 public class FieldDescriptor extends Descriptor {
 
-    public static FieldDescriptor arrayLength=new FieldDescriptor(new Modifiers(Modifiers.PUBLIC|Modifiers.FINAL), new TypeDescriptor(TypeDescriptor.INT), "length", null);
+    public static FieldDescriptor arrayLength=new FieldDescriptor(new Modifiers(Modifiers.PUBLIC|Modifiers.FINAL), new TypeDescriptor(TypeDescriptor.INT), "length", null, false);
 
     protected Modifiers modifier;
     protected TypeDescriptor td;
     protected String identifier;
     protected ExpressionNode en;
-    
-    public FieldDescriptor(Modifiers m, TypeDescriptor t, String identifier, ExpressionNode e) {
+    private boolean isglobal;
+
+    public FieldDescriptor(Modifiers m, TypeDescriptor t, String identifier, ExpressionNode e, boolean isglobal) {
 	super(identifier);
 	this.modifier=m;
 	this.td=t;
 	this.en=e;
         this.safename = "___" + name + "___";
 	this.uniqueid=count++;
+	this.isglobal=isglobal;
 	if (en!=null) throw new Error("Field initializers not implemented");
+    }
+
+    public boolean isGlobal() {
+	return isglobal;
     }
 
     public TypeDescriptor getType() {

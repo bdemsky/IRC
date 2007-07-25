@@ -9,6 +9,7 @@ public class Modifiers {
     public static final int FINAL=32;
     public static final int NATIVE=64;
     public static final int SYNCHRONIZED=128;
+    public static final int ATOMIC=2048;
 //	TRANSIENT=256
 //	VOLATILE=512
 //	STRICTFP=1024
@@ -27,6 +28,10 @@ public class Modifiers {
 	value|=mod;
 	if (isSynchronized()&&isNative())
 	    throw new Error("Synchronized native methods are not supported");
+    }
+
+    public boolean isAtomic() {
+	return ((value&ATOMIC)!=0);
     }
 
     public boolean isSynchronized() {
@@ -57,6 +62,8 @@ public class Modifiers {
 	    st+="native ";
 	if ((value&SYNCHRONIZED)!=0)
 	    st+="synchronized ";
+	if ((value&ATOMIC)!=0)
+	    st+="atomic ";
 	return st;
     }
 }
