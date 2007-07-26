@@ -18,4 +18,6 @@ public class FKind {
     public static final int FlatBackEdge=15;    
     public static final int FlatTagDeclaration=16;
     public static final int FlatMethod=17;
+    public static final int FlatAtomicEnterNode=18;
+    public static final int FlatAtomicExitNode=19;
 }

@@ -250,6 +250,10 @@ public class SemanticCheck {
 	case Kind.SubBlockNode:
 	    checkSubBlockNode(md, nametable, (SubBlockNode)bsn);
 	    return;
+
+	case Kind.AtomicNode:
+	    checkAtomicNode(md, nametable, (AtomicNode)bsn);
+	    return;
 	}
 	throw new Error();
     }
@@ -282,6 +286,10 @@ public class SemanticCheck {
     }
     
     void checkSubBlockNode(Descriptor md, SymbolTable nametable, SubBlockNode sbn) {
+	checkBlockNode(md, nametable, sbn.getBlockNode());
+    }
+
+    void checkAtomicNode(Descriptor md, SymbolTable nametable, AtomicNode sbn) {
 	checkBlockNode(md, nametable, sbn.getBlockNode());
     }
 

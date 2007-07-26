@@ -9,6 +9,7 @@ import java.util.Arrays;
 import Analysis.CallGraph.CallGraph;
 import IR.SymbolTable;
 import IR.State;
+import IR.TypeUtil;
 import IR.MethodDescriptor;
 import IR.Flat.*;
 
@@ -39,30 +40,32 @@ public class LocalityAnalysis {
     }
     
     private void computeLocalityBindings() {
-	LocalityBinding lb=new LocalityBinding(typeutil.getMain(), false);
-	tovisit.add(lb);
-	discovered.put(lb, lb);
+	LocalityBinding lbmain=new LocalityBinding(typeutil.getMain(), false);
+	tovisit.add(lbmain);
+	discovered.put(lbmain, lbmain);
 
 	while(!tovisit.empty()) {
 	    LocalityBinding lb=(LocalityBinding) tovisit.pop();
 	    MethodDescriptor md=lb.getMethod();
-	    computeCallsFlags(md, lb);
+	    Hashtable<FlatNode,Hashtable<TempDescriptor, Integer>> temptable=new Hashtable<FlatNode,Hashtable<TempDescriptor, Integer>>();
+	    Hashtable<FlatNode, Integer> atomictable=new Hashtable<FlatNode, Integer>();
+	    computeCallsFlags(md, lb, temptable, atomictable);
 	}
     }
     
-    public Hashtable<FlatNode, Hashtable<TempDescriptor,Integer>> computeCallsFlags(MethodDescriptor md, LocalityBinding lb) {
+    public void computeCallsFlags(MethodDescriptor md, LocalityBinding lb, Hashtable<FlatNode, Hashtable<TempDescriptor, Integer>> temptable, Hashtable<FlatNode, Integer> atomictable) {
 	FlatMethod fm=state.getMethodFlat(md);
 	HashSet<FlatNode> tovisit=new HashSet<FlatNode>();
-	Hashtable<FlatNode,Hashtable<TempDescriptor, Integer>> temptable=new Hashtable<FlatNode,Hashtable<TempDescriptor, Integer>>();
 	tovisit.add(fm.getNext(0));
 	
 	{
 	    // Build table for initial node
 	    Hashtable<TempDescriptor,Integer> table=new Hashtable<TempDescriptor,Integer>();
 	    temptable.put(fm, table);
+	    atomictable.put(fm, lb.isAtomic()?1:0);
 	    for(int i=0;i<fm.numParameters();i++) {
 		TempDescriptor temp=fm.getParameter(i);
-		b=lb.isGlobal(i);
+		Integer b=lb.isGlobal(i);
 		table.put(temp,b);
 	    }
 	}
@@ -70,8 +73,12 @@ public class LocalityAnalysis {
 	while(!tovisit.isEmpty()) {
 	    FlatNode fn=tovisit.iterator().next();
 	    Hashtable<TempDescriptor, Integer> currtable=new Hashtable<TempDescriptor, Integer>();
+	    int atomicstate=0;
 	    for(int i=0;i<fn.numPrev();i++) {
 		FlatNode prevnode=fn.getPrev(i);
+		if (atomictable.containsKey(prevnode)) {
+		    atomicstate=atomictable.get(prevnode).intValue();
+		}
 		if (!temptable.containsKey(prevnode))
 		    continue;
 		Hashtable<TempDescriptor, Integer> prevtable=temptable.get(prevnode);
@@ -83,49 +90,55 @@ public class LocalityAnalysis {
 		    currtable.put(temp, newint);
 		}
 	    }
+	    atomictable.put(fn, atomicstate);
 	    // Process this node
 	    switch(fn.kind()) {
-	    case FlatCall:
-		processCall(md, (FlatCall)fn, currtable);
+	    case FKind.FlatAtomicEnterNode:
+		processAtomicEnterNode((FlatAtomicEnterNode)fn, atomictable);
 		break;
-	    case FlatFieldNode:
-		processFieldNode((FlatFieldNode)fn, currtable);
+	    case FKind.FlatAtomicExitNode:
+		processAtomicExitNode((FlatAtomicExitNode)fn, atomictable);
 		break;
-	    case FlatSetFieldNode:
-		processSetFieldNode((FlatSetFieldNode)fn, currtable);
+	    case FKind.FlatCall:
+		processCall(lb, (FlatCall)fn, currtable, isAtomic(atomictable, fn));
 		break;
-	    case FlatNew:
-		processNew((FlatNew)fn, currtable);
+	    case FKind.FlatFieldNode:
+		processFieldNode((FlatFieldNode)fn, isAtomic(atomictable, fn), currtable);
 		break;
-	    case FlatOpNode:
+	    case FKind.FlatSetFieldNode:
+		processSetFieldNode((FlatSetFieldNode)fn, isAtomic(atomictable,fn), currtable);
+		break;
+	    case FKind.FlatNew:
+		processNew((FlatNew)fn, isAtomic(atomictable, fn), currtable);
+		break;
+	    case FKind.FlatOpNode:
 		processOpNode((FlatOpNode)fn, currtable);
 		break;
-	    case FlatCastNode:
+	    case FKind.FlatCastNode:
 		processCastNode((FlatCastNode)fn, currtable);
 		break;
-	    case FlatLiteralNode:
+	    case FKind.FlatLiteralNode:
 		processLiteralNode((FlatLiteralNode)fn, currtable);
 		break;
-	    case FlatReturnNode:
-		processReturnNode((FlatReturnNode)fn, currtable);
+	    case FKind.FlatReturnNode:
+		processReturnNode(lb, (FlatReturnNode)fn, currtable);
 		break;
-	    case FlatSetElementNode:
-		processSetElement((FlatSetElementNode)fn, currtable);
+	    case FKind.FlatSetElementNode:
+		processSetElementNode((FlatSetElementNode)fn, currtable, isAtomic(atomictable, fn));
 		break;
-	    case FlatElementNode:
-		processElement((FlatElementNode)fn, currtable);
+	    case FKind.FlatElementNode:
+		processElementNode((FlatElementNode)fn, currtable, isAtomic(atomictable, fn));
 		break;
-
-	    case FlatCondBranch:
-	    case FlatBackEdge:
-	    case FlatNop:
+	    case FKind.FlatCondBranch:
+	    case FKind.FlatBackEdge:
+	    case FKind.FlatNop:
 		//No action needed for these
 		break;
-	    case FlatFlagActionNode:
-	    case FlatCheckNode:
-	    case FlatTagDeclaration:
+	    case FKind.FlatFlagActionNode:
+	    case FKind.FlatCheckNode:
+	    case FKind.FlatTagDeclaration:
 		throw new Error("Incompatible with tasks!");
-	    case FlatMethod:
+	    case FKind.FlatMethod:
 	    default:
 		throw new Error();
 	    }
@@ -134,10 +147,14 @@ public class LocalityAnalysis {
 		// Update table for this node
 		temptable.put(fn, currtable);
 		for(int i=0;i<fn.numNext();i++) {
-		    tovisit.add(fn.next(i));
+		    tovisit.add(fn.getNext(i));
 		}
 	    }
 	}
+    }
+
+    private static boolean isAtomic(Hashtable<FlatNode, Integer> atomictable, FlatNode fn) {
+	return atomictable.get(fn).intValue()>0;
     }
 
     private static Integer merge(Integer a, Integer b) {
@@ -150,14 +167,14 @@ public class LocalityAnalysis {
 	return CONFLICT;
     }
 	
-    void processCall(LocalityBinding currlb, FlatCall fc, boolean transaction, Hashtable<TempDescriptor, Integer> currtable) {
+    void processCall(LocalityBinding currlb, FlatCall fc, Hashtable<TempDescriptor, Integer> currtable, boolean isatomic) {
 	MethodDescriptor nodemd=fc.getMethod();
 	Set methodset=fc.getThis()==null?callgraph.getMethods(nodemd):
 	    callgraph.getMethods(nodemd, fc.getThis().getType());
 	Integer currreturnval=null;
 	for(Iterator methodit=methodset.iterator();methodit.hasNext();) {
 	    MethodDescriptor md=(MethodDescriptor) methodit.next();
-	    LocalityBinding lb=new LocalityBinding(md, transaction);
+	    LocalityBinding lb=new LocalityBinding(md, isatomic);
 	    for(int i=0;i<fc.numArgs();i++) {
 		TempDescriptor arg=fc.getArg(i);
 		lb.setGlobal(i,currtable.get(arg));
@@ -166,7 +183,7 @@ public class LocalityAnalysis {
 		Integer thistype=currtable.get(fc.getThis());
 		if(thistype.equals(CONFLICT))
 		    throw new Error("Using type that can be either local or global");
-		if(thistype.equals(GLOBAL)&&!transaction)
+		if(thistype.equals(GLOBAL)&&!isatomic)
 		    throw new Error("Using global object outside of transaction");
 		lb.setGlobalThis(thistype);
 	    } else
@@ -185,7 +202,7 @@ public class LocalityAnalysis {
 	currtable.put(fc.getReturnTemp(), currreturnval);
     }
 
-    void processFieldNode(LocalityBinding lb, FlatFieldNode ffn, boolean transaction, Hashtable<TempDescriptor, Integer> currtable) {
+    void processFieldNode(FlatFieldNode ffn, boolean transaction, Hashtable<TempDescriptor, Integer> currtable) {
 	Integer type=currtable.get(ffn.getSrc());
 	TempDescriptor dst=ffn.getDst();
 	if (type.equals(LOCAL)) {
@@ -195,7 +212,7 @@ public class LocalityAnalysis {
 		currtable.put(dst,LOCAL);		    
 	} else if (type.equals(GLOBAL)) {
 	    if (!transaction)
-		throw Error("Global access outside of a transaction");
+		throw new Error("Global access outside of a transaction");
 	    if (ffn.getField().getType().isPrimitive())
 		currtable.put(dst, LOCAL); // primitives are local
 	    else
@@ -211,12 +228,12 @@ public class LocalityAnalysis {
     }
 
     //need to handle primitives
-    void processSetFieldNode(LocalityBinding lb, FlatSetFieldNode fsfn, boolean transaction, Hashtable<TempDescriptor, Integer> currtable) {
-	Integer srctype=currtable.get(ffn.getSrc());
-	Integer dsttype=currtable.get(ffn.getDst());
+    void processSetFieldNode(FlatSetFieldNode fsfn, boolean transaction, Hashtable<TempDescriptor, Integer> currtable) {
+	Integer srctype=currtable.get(fsfn.getSrc());
+	Integer dsttype=currtable.get(fsfn.getDst());
 
 	if (dsttype.equals(LOCAL)) {
-	    if (ffn.getField().isGlobal()) {
+	    if (fsfn.getField().isGlobal()) {
 		if (!(srctype.equals(GLOBAL)||srctype.equals(EITHER)))
 		    throw new Error("Writing possible local reference to global field");
 	    } else {
@@ -225,7 +242,7 @@ public class LocalityAnalysis {
 	    }
 	} else if (dsttype.equals(GLOBAL)) {
 	    if (!transaction)
-		throw Error("Global access outside of a transaction");
+		throw new Error("Global access outside of a transaction");
 	    //okay to store primitives in global object
 	    if (srctype.equals(LOCAL) && fsfn.getField().getType().isPrimitive())
 		return;
@@ -239,7 +256,7 @@ public class LocalityAnalysis {
 	}
     }
 
-    void processNew(LocalityBinding lb, FlatNew fn, boolean transaction, Hashtable<TempDescriptor, Integer> currtable) {
+    void processNew(FlatNew fn, boolean transaction, Hashtable<TempDescriptor, Integer> currtable) {
 	if (fn.isGlobal()&&!transaction) {
 	    throw new Error("Allocating global object outside of transaction");
 	}
@@ -255,7 +272,7 @@ public class LocalityAnalysis {
     }
 
     void processCastNode(FlatCastNode fcn, Hashtable<TempDescriptor, Integer> currtable) {
-	currtable.put(fon.getDest(), currtable.get(fon.getSrc()));
+	currtable.put(fcn.getDst(), currtable.get(fcn.getSrc()));
     }
 
     void processLiteralNode(FlatLiteralNode fln, Hashtable<TempDescriptor, Integer> currtable) {
@@ -273,7 +290,7 @@ public class LocalityAnalysis {
 	}
     }
 
-    void processSetElementNode(FlatSetElementNode fsen, Hashtable<TempDescriptor, Integer> currtable) {
+    void processSetElementNode(FlatSetElementNode fsen, Hashtable<TempDescriptor, Integer> currtable, boolean isatomic) {
 	Integer srctype=currtable.get(fsen.getSrc());
 	Integer dsttype=currtable.get(fsen.getDst());
 
@@ -283,8 +300,8 @@ public class LocalityAnalysis {
 	} else if (dsttype.equals(GLOBAL)) {
 	    if (!(srctype.equals(GLOBAL)||srctype.equals(EITHER)))
 		throw new Error("Writing possible local reference to global object");
-	    if (!transaction)
-		throw Error("Global access outside of a transaction");
+	    if (!isatomic)
+		throw new Error("Global access outside of a transaction");
 	} else if (dsttype.equals(EITHER)) {
 	    if (srctype.equals(CONFLICT))
 		throw new Error("Using reference that could be local or global");
@@ -293,19 +310,28 @@ public class LocalityAnalysis {
 	}
     }
 
-    void processElementNode(FlatElementNode fen, Hashtable<TempDescriptor, Integer> currtable) {
+    void processElementNode(FlatElementNode fen, Hashtable<TempDescriptor, Integer> currtable, boolean isatomic) {
 	Integer type=currtable.get(fen.getSrc());
 	TempDescriptor dst=fen.getDst();
 	if (type.equals(LOCAL)) {
 	    currtable.put(dst,LOCAL);		    
 	} else if (type.equals(GLOBAL)) {
-	    if (!transaction)
-		throw Error("Global access outside of a transaction");
+	    if (!isatomic)
+		throw new Error("Global access outside of a transaction");
 	    currtable.put(dst, GLOBAL);
 	} else if (type.equals(EITHER)) {
 	    currtable.put(dst, EITHER);
 	} else if (type.equals(CONFLICT)) {
 	    throw new Error("Access to object that could be either global or local");
 	}
+    }
+    void processAtomicEnterNode(FlatAtomicEnterNode fen, Hashtable<FlatNode, Integer> atomictable) {
+	int atomic=atomictable.get(fen).intValue();
+	atomictable.put(fen, new Integer(atomic+1));
+    }
+    
+    void processAtomicExitNode(FlatAtomicExitNode fen, Hashtable<FlatNode, Integer> atomictable) {
+	int atomic=atomictable.get(fen).intValue();
+	atomictable.put(fen, new Integer(atomic-1));
     }
 }

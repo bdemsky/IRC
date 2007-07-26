@@ -15,19 +15,19 @@ public class FlatOpNode extends FlatNode {
 	this.op=op;
     }
     
-    TempDescriptor getDest() {
+    public TempDescriptor getDest() {
 	return dest;
     }
 
-    TempDescriptor getLeft() {
+    public TempDescriptor getLeft() {
 	return left;
     }
 
-    TempDescriptor getRight() {
+    public TempDescriptor getRight() {
 	return right;
     }
     
-    Operation getOp() {
+    public Operation getOp() {
 	return op;
     }
 

@@ -5,17 +5,24 @@ public class FlatNew extends FlatNode {
     TempDescriptor dst;
     TypeDescriptor type;
     TempDescriptor size;
+    boolean isglobal;
     
-    public FlatNew(TypeDescriptor type, TempDescriptor dst) {
+    public FlatNew(TypeDescriptor type, TempDescriptor dst, boolean isglobal) {
 	this.type=type;
 	this.dst=dst;
 	this.size=null;
+	this.isglobal=isglobal;
     }
 
-    public FlatNew(TypeDescriptor type, TempDescriptor dst, TempDescriptor size) {
+    public FlatNew(TypeDescriptor type, TempDescriptor dst, TempDescriptor size, boolean isglobal) {
 	this.type=type;
 	this.dst=dst;
 	this.size=size;
+	this.isglobal=isglobal;
+    }
+
+    public boolean isGlobal() {
+	return isglobal;
     }
 
     public String toString() {

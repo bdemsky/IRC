@@ -122,6 +122,16 @@ public class BuildFlat {
 		    FlatReturnNode rnflat=new FlatReturnNode(null);
 		    fcunlock.addNext(rnflat);
 		}
+	    } else if (state.DSM&&currmd.getModifiers().isAtomic()) {
+		FlatAtomicEnterNode an=new FlatAtomicEnterNode();
+		an.addNext(fn);
+		fn=an;
+		if (np.getEnd().kind()!=FKind.FlatReturnNode) {
+		    FlatAtomicExitNode aen=new FlatAtomicExitNode();
+		    np.getEnd().addNext(aen);
+		    FlatReturnNode rnflat=new FlatReturnNode(null);
+		    aen.addNext(rnflat);
+		}
 	    } else if (np.getEnd().kind()!=FKind.FlatReturnNode) {
 		FlatReturnNode rnflat=new FlatReturnNode(null);
 		np.getEnd().addNext(rnflat);
@@ -182,7 +192,7 @@ public class BuildFlat {
     private NodePair flattenCreateObjectNode(CreateObjectNode con,TempDescriptor out_temp) {
 	TypeDescriptor td=con.getType();
 	if (!td.isArray()) {
-	    FlatNew fn=new FlatNew(td, out_temp);
+	    FlatNew fn=new FlatNew(td, out_temp, con.isGlobal());
 	    TempDescriptor[] temps=new TempDescriptor[con.numArgs()];
 	    FlatNode last=fn;
 	    if (td.getClassDesc().hasFlags()) {
@@ -241,10 +251,10 @@ public class BuildFlat {
 		    out_temp:
 		TempDescriptor.tempFactory("arg",en.getType());
 	    }
-	    FlatNew fn=new FlatNew(td, out_temp, temps[0]);
+	    FlatNew fn=new FlatNew(td, out_temp, temps[0], con.isGlobal());
 	    last.addNext(fn);
 	    if (temps.length>1) {
-		NodePair np=generateNewArrayLoop(temps, td.dereference(), out_temp, 0);
+		NodePair np=generateNewArrayLoop(temps, td.dereference(), out_temp, 0, con.isGlobal());
 		fn.addNext(np.getBegin());
 		return new NodePair(first,np.getEnd()); 
 	    } else
@@ -252,7 +262,7 @@ public class BuildFlat {
 	}
     }
 
-    private NodePair generateNewArrayLoop(TempDescriptor[] temparray, TypeDescriptor td, TempDescriptor tmp, int i) {
+    private NodePair generateNewArrayLoop(TempDescriptor[] temparray, TypeDescriptor td, TempDescriptor tmp, int i, boolean isglobal) {
 	TempDescriptor index=TempDescriptor.tempFactory("index",new TypeDescriptor(TypeDescriptor.INT));
 	TempDescriptor tmpone=TempDescriptor.tempFactory("index",new TypeDescriptor(TypeDescriptor.INT));
 	FlatNop fnop=new FlatNop();//last node
@@ -268,7 +278,7 @@ public class BuildFlat {
 	FlatCondBranch fcb=new FlatCondBranch(tmpbool);
 	//is index<temp[i]
 	TempDescriptor new_tmp=TempDescriptor.tempFactory("tmp",td);
-	FlatNew fn=new FlatNew(td, new_tmp, temparray[i+1]);
+	FlatNew fn=new FlatNew(td, new_tmp, temparray[i+1], isglobal);
 	FlatSetElementNode fsen=new FlatSetElementNode(tmp,index,new_tmp);
 	// index=index+1
 	FlatOpNode fon=new FlatOpNode(index,index,tmpone,new Operation(Operation.ADD));
@@ -281,7 +291,7 @@ public class BuildFlat {
 	fn.addNext(fsen);
 	//Recursive call here
 	if ((i+2)<temparray.length) {
-	    NodePair np2=generateNewArrayLoop(temparray, td.dereference(), new_tmp, i+1);
+	    NodePair np2=generateNewArrayLoop(temparray, td.dereference(), new_tmp, i+1, isglobal);
 	    fsen.addNext(np2.getBegin());
 	    np2.getEnd().addNext(fon);
 	} else {
@@ -900,6 +910,15 @@ public class BuildFlat {
 	return flattenBlockNode(sbn.getBlockNode());
     }
 
+    private NodePair flattenAtomicNode(AtomicNode sbn) {
+	NodePair np=flattenBlockNode(sbn.getBlockNode());
+	FlatAtomicEnterNode faen=new FlatAtomicEnterNode();
+	FlatAtomicExitNode faexn=new FlatAtomicExitNode();
+	faen.addNext(np.getBegin());
+	np.getEnd().addNext(faexn);
+	return new NodePair(faen, faexn);
+    }
+
     private NodePair flattenBlockStatementNode(BlockStatementNode bsn) {
 	switch(bsn.kind()) {
 	case Kind.BlockExpressionNode:
@@ -925,6 +944,9 @@ public class BuildFlat {
 	    
 	case Kind.SubBlockNode:
 	    return flattenSubBlockNode((SubBlockNode)bsn);
+
+	case Kind.AtomicNode:
+	    return flattenAtomicNode((AtomicNode)bsn);
 	    
 	}
     	throw new Error();

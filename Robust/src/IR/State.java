@@ -22,17 +22,16 @@ public class State {
 
     /** Boolean flag which indicates whether compiler is compiling a task-based
      * program. */
-    public boolean WEBINTERFACE;
-    public boolean TASK;
+    public boolean WEBINTERFACE=false;
+    public boolean TASK=false;
+    public boolean DSM=false;
     public boolean TASKSTATE=false;
-
     public boolean OPTIONAL=false;
-
     public boolean THREAD=false;
+    public boolean CONSCHECK=false;
     public boolean INSTRUCTIONFAILURE=false;
     public String structfile;
     public String main;
-    public boolean CONSCHECK=false;
 
     public SymbolTable classes;
     public SymbolTable tasks;

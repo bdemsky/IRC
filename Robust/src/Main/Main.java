@@ -17,6 +17,7 @@ import Analysis.TaskStateAnalysis.TagAnalysis;
 import Analysis.TaskStateAnalysis.GarbageAnalysis;
 import Analysis.TaskStateAnalysis.ExecutionGraph;
 import Analysis.TaskStateAnalysis.SafetyAnalysis;
+import Analysis.Locality.LocalityAnalysis;
 import Interface.*;
 
 public class Main {
@@ -49,6 +50,8 @@ public class Main {
 	      state.OPTIONAL=true;
 	  else if (option.equals("-thread"))
 	      state.THREAD=true;
+	  else if (option.equals("-dsm"))
+	      state.DSM=true;
 	  else if (option.equals("-webinterface"))
 	      state.WEBINTERFACE=true;
 	  else if (option.equals("-instructionfailures"))
@@ -58,6 +61,7 @@ public class Main {
 	      System.out.println("-dir outputdirectory -- output code in outputdirectory");
 	      System.out.println("-struct structfile -- output structure declarations for repair tool");
 	      System.out.println("-mainclass -- main function to call");
+	      System.out.println("-dsm -- distributed shared memory support");
 	      System.out.println("-precise -- use precise garbage collection");
 	      System.out.println("-conscheck -- turn on consistency checking");
 	      System.out.println("-task -- compiler for tasks");
@@ -146,10 +150,11 @@ public class Main {
 
 
       }
-
+      if (state.DSM) {
+	  CallGraph callgraph=new CallGraph(state);
+	  LocalityAnalysis la=new LocalityAnalysis(state, callgraph, tu);
+      }
       
-      
-
       BuildCode bc=new BuildCode(state, bf.getMap(), tu);
       bc.buildCode();
       System.exit(0);

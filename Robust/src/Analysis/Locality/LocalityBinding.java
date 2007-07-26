@@ -4,23 +4,27 @@ import IR.MethodDescriptor;
 public class LocalityBinding {
     private MethodDescriptor md;
     private Integer[] isglobal;
-    private boolean istransaction;
+    private boolean isatomic;
     private Integer isglobalreturn;
     private Integer isglobalthis;
 
-    public LocalityBinding(MethodDescriptor md, boolean transaction) {
+    public LocalityBinding(MethodDescriptor md, boolean atomic) {
 	this.md=md;
-	isglobal=new boolean[md.numParameters()];
-	istransaction=transaction;
+	isglobal=new Integer[md.numParameters()];
+	isatomic=atomic;
     }
 
     public String toString() {
 	String st=md.toString()+" ";
 	for(int i=0;i<isglobal.length;i++)
-	    if (isglobal[i])
-		st+="global ";
-	    else
+	    if (isglobal[i].equals(LocalityAnalysis.LOCAL))
 		st+="local ";
+	    else if (isglobal[i].equals(LocalityAnalysis.GLOBAL))
+		st+="global ";
+	    else if (isglobal[i].equals(LocalityAnalysis.EITHER))
+		st+="either ";
+	    else if (isglobal[i].equals(LocalityAnalysis.CONFLICT))
+		st+="conflict ";
 	return st;
     }
 
@@ -52,8 +56,8 @@ public class LocalityBinding {
 	return md;
     }
 
-    public boolean isTransaction() {
-	return istransaction;
+    public boolean isAtomic() {
+	return isatomic;
     }
 
     public boolean equals(Object o) {
@@ -66,7 +70,7 @@ public class LocalityBinding {
 		    return false;
 	    if (!isglobalthis.equals(lb.isglobalthis))
 		return false;
-	    return !istransaction.equals(lb.istransaction);
+	    return (isatomic==lb.isatomic);
 	}
 	return false;
     }
@@ -74,9 +78,9 @@ public class LocalityBinding {
     public int hashCode() {
 	int hashcode=md.hashCode();
 	for(int i=0;i<isglobal.length;i++) {
-	    hashcode=hashcode*31+(isglobal[i]?0:1);
+	    hashcode=hashcode*31+(isglobal[i].intValue());
 	}
-	hashcode=hashcode*31+(istransaction?0:1);
+	hashcode=hashcode*31+(isatomic?1:0);
 	return hashcode;
     }
 }
