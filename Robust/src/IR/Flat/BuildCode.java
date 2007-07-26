@@ -334,10 +334,11 @@ public class BuildCode {
 
 	outstructs.close();
 	outmethod.close();
-
-	generateOptionalArrays(outoptionalarrays);
-	outoptionalarrays.close();
-
+	
+	if (state.TASK&&state.OPTIONAL) {
+	    generateOptionalArrays(outoptionalarrays);
+	    outoptionalarrays.close();
+	}
     }
 
     private int maxcount=0;

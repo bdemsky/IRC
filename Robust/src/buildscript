@@ -1,6 +1,7 @@
 #!/bin/bash
 
 printhelp() {
+echo -dsm distributed shared memory
 echo -check generate check code
 echo -dmalloc link in dmalloc
 echo -recover compile task code
@@ -53,6 +54,9 @@ elif [[ $1 = '-mainclass' ]]
 then
 JAVAOPTS="$JAVAOPTS -mainclass $2"
 shift
+elif [[ $1 = '-dsm' ]]
+then
+JAVAOPTS="$JAVAOPTS -dsm"
 elif [[ $1 = '-taskstate' ]]
 then
 JAVAOPTS="$JAVAOPTS -taskstate"

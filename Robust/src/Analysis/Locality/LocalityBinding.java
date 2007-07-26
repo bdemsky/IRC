@@ -7,11 +7,24 @@ public class LocalityBinding {
     private boolean isatomic;
     private Integer isglobalreturn;
     private Integer isglobalthis;
+    private LocalityBinding parent;
 
     public LocalityBinding(MethodDescriptor md, boolean atomic) {
 	this.md=md;
 	isglobal=new Integer[md.numParameters()];
 	isatomic=atomic;
+    }
+
+    /* Use this for an explanation */
+    public void setParent(LocalityBinding lb) {
+	parent=lb;
+    }
+
+    public String getExplanation() {
+	if (parent==null)
+	    return toString();
+	else
+	    return parent.getExplanation()+"\n"+toString();
     }
 
     public String toString() {

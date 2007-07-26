@@ -25,7 +25,6 @@ public class LocalityAnalysis {
     public static final Integer EITHER=new Integer(2);
     public static final Integer CONFLICT=new Integer(3);
 
-
     public LocalityAnalysis(State state, CallGraph callgraph, TypeUtil typeutil) {
 	this.state=state;
 	this.discovered=new Hashtable<LocalityBinding,LocalityBinding>();
@@ -38,7 +37,7 @@ public class LocalityAnalysis {
     private void doAnalysis() {
 	computeLocalityBindings();
     }
-    
+
     private void computeLocalityBindings() {
 	LocalityBinding lbmain=new LocalityBinding(typeutil.getMain(), false);
 	tovisit.add(lbmain);
@@ -52,12 +51,11 @@ public class LocalityAnalysis {
 	    computeCallsFlags(md, lb, temptable, atomictable);
 	}
     }
-    
+
     public void computeCallsFlags(MethodDescriptor md, LocalityBinding lb, Hashtable<FlatNode, Hashtable<TempDescriptor, Integer>> temptable, Hashtable<FlatNode, Integer> atomictable) {
 	FlatMethod fm=state.getMethodFlat(md);
 	HashSet<FlatNode> tovisit=new HashSet<FlatNode>();
 	tovisit.add(fm.getNext(0));
-	
 	{
 	    // Build table for initial node
 	    Hashtable<TempDescriptor,Integer> table=new Hashtable<TempDescriptor,Integer>();
@@ -69,7 +67,7 @@ public class LocalityAnalysis {
 		table.put(temp,b);
 	    }
 	}
-	
+
 	while(!tovisit.isEmpty()) {
 	    FlatNode fn=tovisit.iterator().next();
 	    Hashtable<TempDescriptor, Integer> currtable=new Hashtable<TempDescriptor, Integer>();
@@ -100,16 +98,16 @@ public class LocalityAnalysis {
 		processAtomicExitNode((FlatAtomicExitNode)fn, atomictable);
 		break;
 	    case FKind.FlatCall:
-		processCall(lb, (FlatCall)fn, currtable, isAtomic(atomictable, fn));
+		processCallNode(lb, (FlatCall)fn, currtable, isAtomic(atomictable, fn));
 		break;
 	    case FKind.FlatFieldNode:
-		processFieldNode((FlatFieldNode)fn, isAtomic(atomictable, fn), currtable);
+		processFieldNode(lb, (FlatFieldNode)fn, isAtomic(atomictable, fn), currtable);
 		break;
 	    case FKind.FlatSetFieldNode:
-		processSetFieldNode((FlatSetFieldNode)fn, isAtomic(atomictable,fn), currtable);
+		processSetFieldNode(lb, (FlatSetFieldNode)fn, isAtomic(atomictable,fn), currtable);
 		break;
 	    case FKind.FlatNew:
-		processNew((FlatNew)fn, isAtomic(atomictable, fn), currtable);
+		processNew(lb, (FlatNew)fn, isAtomic(atomictable, fn), currtable);
 		break;
 	    case FKind.FlatOpNode:
 		processOpNode((FlatOpNode)fn, currtable);
@@ -124,10 +122,10 @@ public class LocalityAnalysis {
 		processReturnNode(lb, (FlatReturnNode)fn, currtable);
 		break;
 	    case FKind.FlatSetElementNode:
-		processSetElementNode((FlatSetElementNode)fn, currtable, isAtomic(atomictable, fn));
+		processSetElementNode(lb, (FlatSetElementNode)fn, currtable, isAtomic(atomictable, fn));
 		break;
 	    case FKind.FlatElementNode:
-		processElementNode((FlatElementNode)fn, currtable, isAtomic(atomictable, fn));
+		processElementNode(lb, (FlatElementNode)fn, currtable, isAtomic(atomictable, fn));
 		break;
 	    case FKind.FlatCondBranch:
 	    case FKind.FlatBackEdge:
@@ -166,8 +164,8 @@ public class LocalityAnalysis {
 	    return a;
 	return CONFLICT;
     }
-	
-    void processCall(LocalityBinding currlb, FlatCall fc, Hashtable<TempDescriptor, Integer> currtable, boolean isatomic) {
+
+    void processCallNode(LocalityBinding currlb, FlatCall fc, Hashtable<TempDescriptor, Integer> currtable, boolean isatomic) {
 	MethodDescriptor nodemd=fc.getMethod();
 	Set methodset=fc.getThis()==null?callgraph.getMethods(nodemd):
 	    callgraph.getMethods(nodemd, fc.getThis().getType());
@@ -182,15 +180,16 @@ public class LocalityAnalysis {
 	    if (fc.getThis()!=null) {
 		Integer thistype=currtable.get(fc.getThis());
 		if(thistype.equals(CONFLICT))
-		    throw new Error("Using type that can be either local or global");
+		    throw new Error("Using type that can be either local or global in context:\n"+currlb.getExplanation());
 		if(thistype.equals(GLOBAL)&&!isatomic)
-		    throw new Error("Using global object outside of transaction");
+		    throw new Error("Using global object outside of transaction in context:\n"+currlb.getExplanation());
 		lb.setGlobalThis(thistype);
 	    } else
 		lb.setGlobalThis(EITHER);//default value
 	    //lb is built
 	    if (!discovered.containsKey(lb)) {
 		lb.setGlobalReturn(EITHER);
+		lb.setParent(currlb);
 		tovisit.add(lb);
 		discovered.put(lb, lb);
 	    } else
@@ -202,17 +201,17 @@ public class LocalityAnalysis {
 	currtable.put(fc.getReturnTemp(), currreturnval);
     }
 
-    void processFieldNode(FlatFieldNode ffn, boolean transaction, Hashtable<TempDescriptor, Integer> currtable) {
+    void processFieldNode(LocalityBinding lb, FlatFieldNode ffn, boolean transaction, Hashtable<TempDescriptor, Integer> currtable) {
 	Integer type=currtable.get(ffn.getSrc());
 	TempDescriptor dst=ffn.getDst();
 	if (type.equals(LOCAL)) {
 	    if (ffn.getField().isGlobal())
 		currtable.put(dst,GLOBAL);
 	    else
-		currtable.put(dst,LOCAL);		    
+		currtable.put(dst,LOCAL);
 	} else if (type.equals(GLOBAL)) {
 	    if (!transaction)
-		throw new Error("Global access outside of a transaction");
+		throw new Error("Global access outside of a transaction in context:\n"+lb.getExplanation());
 	    if (ffn.getField().getType().isPrimitive())
 		currtable.put(dst, LOCAL); // primitives are local
 	    else
@@ -223,42 +222,42 @@ public class LocalityAnalysis {
 	    else
 		currtable.put(dst, EITHER);
 	} else if (type.equals(CONFLICT)) {
-	    throw new Error("Access to object that could be either global or local");
+	    throw new Error("Access to object that could be either global or local in context:\n"+lb.getExplanation());
 	}
     }
 
     //need to handle primitives
-    void processSetFieldNode(FlatSetFieldNode fsfn, boolean transaction, Hashtable<TempDescriptor, Integer> currtable) {
+    void processSetFieldNode(LocalityBinding lb, FlatSetFieldNode fsfn, boolean transaction, Hashtable<TempDescriptor, Integer> currtable) {
 	Integer srctype=currtable.get(fsfn.getSrc());
 	Integer dsttype=currtable.get(fsfn.getDst());
-
+	
 	if (dsttype.equals(LOCAL)) {
 	    if (fsfn.getField().isGlobal()) {
 		if (!(srctype.equals(GLOBAL)||srctype.equals(EITHER)))
-		    throw new Error("Writing possible local reference to global field");
+		    throw new Error("Writing possible local reference to global field in context: \n"+lb.getExplanation());
 	    } else {
 		if (!(srctype.equals(LOCAL)||srctype.equals(EITHER)))
-		    throw new Error("Writing possible global reference to local object");
+		    throw new Error("Writing possible global reference to local object in context: \n"+lb.getExplanation());
 	    }
 	} else if (dsttype.equals(GLOBAL)) {
 	    if (!transaction)
-		throw new Error("Global access outside of a transaction");
+		throw new Error("Global access outside of a transaction in context:\n"+lb.getExplanation());
 	    //okay to store primitives in global object
 	    if (srctype.equals(LOCAL) && fsfn.getField().getType().isPrimitive())
 		return;
 	    if (!(srctype.equals(GLOBAL)||srctype.equals(EITHER)))
-		throw new Error("Writing possible local reference to global object");
+		throw new Error("Writing possible local reference to global object in context:\n"+lb.getExplanation());
 	} else if (dsttype.equals(EITHER)) {
 	    if (srctype.equals(CONFLICT))
-		throw new Error("Using reference that could be local or global");
+		throw new Error("Using reference that could be local or global in context:\n"+lb.getExplanation());
 	} else if (dsttype.equals(CONFLICT)) {
-	    throw new Error("Access to object that could be either global or local");
+	    throw new Error("Access to object that could be either global or local in context:\n"+lb.getExplanation());
 	}
     }
 
-    void processNew(FlatNew fn, boolean transaction, Hashtable<TempDescriptor, Integer> currtable) {
+    void processNew(LocalityBinding lb, FlatNew fn, boolean transaction, Hashtable<TempDescriptor, Integer> currtable) {
 	if (fn.isGlobal()&&!transaction) {
-	    throw new Error("Allocating global object outside of transaction");
+	    throw new Error("Allocating global object outside of transaction in context:"+lb.getExplanation());
 	}
 	if (fn.isGlobal())
 	    currtable.put(fn.getDst(), GLOBAL);
@@ -290,46 +289,47 @@ public class LocalityAnalysis {
 	}
     }
 
-    void processSetElementNode(FlatSetElementNode fsen, Hashtable<TempDescriptor, Integer> currtable, boolean isatomic) {
+    void processSetElementNode(LocalityBinding lb, FlatSetElementNode fsen, Hashtable<TempDescriptor, Integer> currtable, boolean isatomic) {
 	Integer srctype=currtable.get(fsen.getSrc());
 	Integer dsttype=currtable.get(fsen.getDst());
 
 	if (dsttype.equals(LOCAL)) {
 	    if (!(srctype.equals(LOCAL)||srctype.equals(EITHER)))
-		throw new Error("Writing possible global reference to local object");
+		throw new Error("Writing possible global reference to local object in context:\n"+lb.getExplanation());
 	} else if (dsttype.equals(GLOBAL)) {
 	    if (!(srctype.equals(GLOBAL)||srctype.equals(EITHER)))
-		throw new Error("Writing possible local reference to global object");
+		throw new Error("Writing possible local reference to global object in context:\n"+lb.getExplanation());
 	    if (!isatomic)
-		throw new Error("Global access outside of a transaction");
+		throw new Error("Global access outside of a transaction in context:\n"+lb.getExplanation());
 	} else if (dsttype.equals(EITHER)) {
 	    if (srctype.equals(CONFLICT))
-		throw new Error("Using reference that could be local or global");
+		throw new Error("Using reference that could be local or global in context:\n"+lb.getExplanation());
 	} else if (dsttype.equals(CONFLICT)) {
-	    throw new Error("Access to object that could be either global or local");
+	    throw new Error("Access to object that could be either global or local in context:\n"+lb.getExplanation());
 	}
     }
 
-    void processElementNode(FlatElementNode fen, Hashtable<TempDescriptor, Integer> currtable, boolean isatomic) {
+    void processElementNode(LocalityBinding lb, FlatElementNode fen, Hashtable<TempDescriptor, Integer> currtable, boolean isatomic) {
 	Integer type=currtable.get(fen.getSrc());
 	TempDescriptor dst=fen.getDst();
 	if (type.equals(LOCAL)) {
-	    currtable.put(dst,LOCAL);		    
+	    currtable.put(dst,LOCAL);
 	} else if (type.equals(GLOBAL)) {
 	    if (!isatomic)
-		throw new Error("Global access outside of a transaction");
+		throw new Error("Global access outside of a transaction in context:\n"+lb.getExplanation());
 	    currtable.put(dst, GLOBAL);
 	} else if (type.equals(EITHER)) {
 	    currtable.put(dst, EITHER);
 	} else if (type.equals(CONFLICT)) {
-	    throw new Error("Access to object that could be either global or local");
+	    throw new Error("Access to object that could be either global or local in context:\n"+lb.getExplanation());
 	}
     }
+
     void processAtomicEnterNode(FlatAtomicEnterNode fen, Hashtable<FlatNode, Integer> atomictable) {
 	int atomic=atomictable.get(fen).intValue();
 	atomictable.put(fen, new Integer(atomic+1));
     }
-    
+
     void processAtomicExitNode(FlatAtomicExitNode fen, Hashtable<FlatNode, Integer> atomictable) {
 	int atomic=atomictable.get(fen).intValue();
 	atomictable.put(fen, new Integer(atomic-1));
