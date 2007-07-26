@@ -104,8 +104,6 @@ public class ExecutionGraph {
 		}
 		
 	    }
-	    //clean the graph to remove doubles due to reinjection of non totally processed fses in the fifo
-	    graph = clean(graph);
 	}
     }
         
@@ -142,11 +140,11 @@ public class ExecutionGraph {
 		    //link to the parent.
 		    if (graph.containsKey(key2)){
 			target = (EGTaskNode)graph.get(key2); 
-			TEdge newedge=new TEdge(target);
+			EGEdge newedge=new EGEdge(target);
 			tn.addEdge(newedge);
 		    }
 		    else {			
-			TEdge newedge=new TEdge(target);
+			EGEdge newedge=new EGEdge(target);
 			tn.addEdge(newedge);
 		    }
 		    //put child in graph
@@ -177,11 +175,11 @@ public class ExecutionGraph {
 			}
 			if (graph.containsKey(key2)){
 			    target = (EGTaskNode)graph.get(key2); 
-			    TEdge newedge=new TEdge(target);
+			    EGEdge newedge=new EGEdge(target);
 			    tn.addEdge(newedge);
 			}
 			else {
-			    TEdge newedge=new TEdge(target);
+			    EGEdge newedge=new EGEdge(target);
 			    tn.addEdge(newedge);
 			}
 			graph.put(key2, target);
@@ -207,39 +205,6 @@ public class ExecutionGraph {
 	    EGTaskNode tn = (EGTaskNode)it.next();
 	    System.out.println(tn.getTextLabel()+" ID "+tn.getLabel()+" FS "+tn.getFSName());
 	}
-    }
-    
-    //removes the duplicated edges
-    private Hashtable clean(Hashtable ht){
-	Hashtable cleaned = new Hashtable();
-	Collection c = ht.values();
-	for ( Iterator it = c.iterator(); it.hasNext();){
-	    EGTaskNode tn = (EGTaskNode)it.next();
-	    Vector v = tn.getEdgeVector();
-	    v = removeDouble(v);
-	    tn.removeAllEdges();
-	    tn.addEdge(v);
-	    cleaned.put(tn.getuid(), tn);
-	}
-	return cleaned;
-    }
-    
-    //removes all the edge doubles in vector v
-    private Vector removeDouble(Vector v){
-	
-	Vector vcleaned = new Vector();
-	for (Iterator it = v.iterator(); it.hasNext();){
-	    
-	    TEdge edge = (TEdge)it.next();
-	    int contains = 0;
-	    for (Iterator it2 = vcleaned.iterator(); it2.hasNext();){
-		if (((EGTaskNode)edge.getTarget()).getuid()==((EGTaskNode)((TEdge)it2.next()).getTarget()).getuid()) contains = 1;
-	    }
-	    
-	    if (contains == 0) vcleaned.add(edge); 
-	}
-	
-	return vcleaned;
     }
     
     //test if a flagstate has been entirely processed
@@ -299,7 +264,7 @@ public class ExecutionGraph {
 	    
 	    
 	    for(Iterator it2 = tn.edges();it2.hasNext();){
-		output.println("\t"+tn.getLabel()+" -> "+((EGTaskNode)((TEdge)it2.next()).getTarget()).getLabel()+";");
+		output.println("\t"+tn.getLabel()+" -> "+((EGTaskNode)((EGEdge)it2.next()).getTarget()).getLabel()+";");
 	    }
 	}
     }

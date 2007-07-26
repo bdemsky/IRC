@@ -14,10 +14,28 @@ public class State {
 	this.arraytypes=new HashSet();
 	this.arraytonumber=new Hashtable();
 	this.tagmap=new Hashtable();
+	this.analysisresult=new Hashtable();
+	this.myoptionals=new Hashtable();
     }
 
     public void addParseNode(ParseNode parsetree) {
 	parsetrees.add(parsetree);
+    }
+
+    public void storeAnalysisResult(Hashtable result){
+	analysisresult = result;
+    }
+    
+    public void storeMyOptionals(Hashtable myoptionals){
+	this.myoptionals=myoptionals;
+    }
+
+    public Hashtable getAnalysisResult(){
+	return analysisresult;
+    }
+    
+    public Hashtable getMyOptionals(){
+	return myoptionals;
     }
 
     /** Boolean flag which indicates whether compiler is compiling a task-based
@@ -43,6 +61,9 @@ public class State {
     private int numclasses=0;
     private int numtasks=0;
     private int arraycount=0;
+
+    private Hashtable analysisresult;
+    private Hashtable myoptionals;
 
     private Hashtable tagmap;
     private int numtags=0;

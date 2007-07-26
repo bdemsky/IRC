@@ -16,7 +16,7 @@ public class EGTaskNode extends TaskNode {
     private int type = 0;
     private FlagState fs;
     private TaskDescriptor td;
-    
+    protected HashSet edges = new HashSet();
     public EGTaskNode(){
 	super("default");
 	this.fs = null;
@@ -46,7 +46,34 @@ public class EGTaskNode extends TaskNode {
 	this.fs = fs;
     	this.td = td;
     }
+    
+    public int hashCode(){
+	return getLabel().hashCode();
+    }
+    
+    public boolean equals(Object o){
+	if(o instanceof EGTaskNode){
+	    EGTaskNode tn=(EGTaskNode) o;
+	    return (tn.getLabel().compareTo(this.getLabel())==0) ? true : false;
+	}
+	return false;
+    }
 
+    public HashSet getEdgeSet(){
+	return edges;
+    }
+
+    public void addEdge(EGEdge newedge) {
+	newedge.setSource(this);
+        edges.add(newedge);
+	EGTaskNode tonode=newedge.getTarget();
+	tonode.inedges.addElement(newedge);
+    }
+
+    public Iterator edges(){
+	return edges.iterator();
+    }
+    
     public TaskDescriptor getTD(){
 	return td;
     }

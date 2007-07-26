@@ -125,7 +125,6 @@ public class Main {
       BuildFlat bf=new BuildFlat(state,tu);
       bf.buildFlat();
 
-
       if (state.TASKSTATE) {
 	  CallGraph callgraph=new CallGraph(state);
 	  TagAnalysis taganalysis=new TagAnalysis(state, callgraph);
@@ -133,33 +132,37 @@ public class Main {
 	  ta.taskAnalysis();
 	  TaskGraph tg=new TaskGraph(state, ta);
 	  tg.createDOTfiles();
-
+	  
 	  if (state.OPTIONAL) {
 	      ExecutionGraph et=new ExecutionGraph(state, ta);
 	      et.createExecutionGraph();
 	      SafetyAnalysis sa = new SafetyAnalysis(et.getExecutionGraph(), state, ta);
 	      sa.buildPath();
+	      state.storeAnalysisResult(sa.getResult());
+	      state.storeMyOptionals(sa.getMyOptionals());
 	  }
-
+	  
 	  if (state.WEBINTERFACE) {
 	      GarbageAnalysis ga=new GarbageAnalysis(state, ta);
 	      WebInterface wi=new WebInterface(state, ta, tg, ga, taganalysis);
 	      JhttpServer serve=new JhttpServer(8000,wi);
 	      serve.run();
 	  }
-
-
+	  
+	  
       }
+
       if (state.DSM) {
 	  CallGraph callgraph=new CallGraph(state);
 	  LocalityAnalysis la=new LocalityAnalysis(state, callgraph, tu);
       }
-      
+
       BuildCode bc=new BuildCode(state, bf.getMap(), tu);
       bc.buildCode();
+      
       System.exit(0);
   }
-
+    
     /** Reads in a source file and adds the parse tree to the state object. */
     
     private static void readSourceFile(State state, String sourcefile) throws Exception {

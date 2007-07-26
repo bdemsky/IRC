@@ -19,51 +19,25 @@ public class SafetyAnalysis {
     private String classname;
     private State state;
     private TaskAnalysis taskanalysis;
-    //private Hashtable<Integer, HashSet> visited;
-    //private static int analysisid=0;
+    private Hashtable<ClassDescriptor, HashSet> myoptionals;
+
+    private ClassDescriptor processedclass;
+   
+    
+    public Hashtable<ClassDescriptor, Hashtable<FlagState, HashSet>> getResult(){
+	return safeexecution;
+    }
+
+    public Hashtable<ClassDescriptor, HashSet> getMyOptionals(){
+	return myoptionals;
+    }
 
     /*Structure that stores a possible optional
       task which would be safe to execute and 
       the possible flagstates the object could
       be in before executing the task during an
       execution without failure*/
-    
-    public class  MyOptional{
-	public TaskDescriptor td;
-	public HashSet flagstates;
-	public int depth;
-	public HashSet<Hashtable> exitfses;
-	public Predicate predicate;
-
-	protected MyOptional(TaskDescriptor td, HashSet flagstates, int depth, Predicate predicate){
-	    this.td = td;
-	    this.flagstates = flagstates;
-	    this.depth = depth;
-	    this.exitfses = new HashSet();
-	    this.predicate = predicate;
-	}
-
-	public boolean equal(MyOptional myo){
-	    if (this.td.getSymbol().compareTo(myo.td.getSymbol())==0)
-		if(this.depth == myo.depth)
-		    if(this.flagstates.equals(myo.flagstates))
-			return true;
-	    return false;
-	}
-    }
-    
-    public class Predicate{
-	public HashSet vardescriptors;
-	public Hashtable<VarDescriptor, HashSet<FlagExpressionNode>> flags;
-	public Hashtable<VarDescriptor, TagExpressionList> tags; //if there is a tag change, we stop the analysis
-	
-	public Predicate(){
-	    this.vardescriptors = new HashSet();
-	    this.flags = new Hashtable();
-	    this.tags = new Hashtable();
-	} 
-    }
-    
+         
     /*Constructor*/
     public SafetyAnalysis(Hashtable executiongraph, State state, TaskAnalysis taskanalysis){
 	this.executiongraph = executiongraph;
@@ -71,7 +45,7 @@ public class SafetyAnalysis {
 	this.reducedgraph = new Hashtable();
 	this.state = state;
 	this.taskanalysis = taskanalysis;
-	//this.visited = new Hashtable();
+        this.myoptionals = new Hashtable();
     }
     
     /*finds the the source node in the execution graph*/
@@ -127,8 +101,10 @@ public class SafetyAnalysis {
 	
 	while (e.hasMoreElements()) {
 	    System.out.println("\nAnalysing class :");
-	    ClassDescriptor cdtemp=(ClassDescriptor)e.nextElement();
-	    classname = cdtemp.getSymbol();
+	    processedclass=(ClassDescriptor)e.nextElement();
+	    classname = processedclass.getSymbol();
+	    HashSet newhashset = new HashSet();
+	    myoptionals.put(processedclass, newhashset);
 	    Hashtable cdhashtable = new Hashtable();
 
 	    System.out.println("\t"+classname+ "\n");
@@ -150,7 +126,7 @@ public class SafetyAnalysis {
 	    createDOTFile( classname );
 	    reducedgraph.clear();
 	    
-	    Collection fses = ((Hashtable)taskanalysis.flagstates.get(cdtemp)).values();
+	    Collection fses = ((Hashtable)taskanalysis.flagstates.get(processedclass)).values();
 	    Iterator itfses = fses.iterator();
 	    while (itfses.hasNext()) {
 		FlagState fs = (FlagState)itfses.next();
@@ -182,7 +158,7 @@ public class SafetyAnalysis {
 		cdhashtable.put(fs, availabletasks);
 	    }
 	    
-	    safeexecution.put(cdtemp, cdhashtable);
+	    safeexecution.put(processedclass, cdhashtable);
 			       
 	}
 
@@ -228,7 +204,35 @@ public class SafetyAnalysis {
 		    System.out.println("\t\t------------");
 		}
 	    }
+	
+	    System.out.println("\n\n\n\tMyoptionals contains : ");
+	    for(Iterator myoit = myoptionals.get(cdtemp).iterator(); myoit.hasNext();){
+		MyOptional mm = (MyOptional)myoit.next();
+		System.out.println("\t\tTASK "+mm.td.getSymbol()+"\n");
+		System.out.println("\t\tDepth : "+mm.depth);
+		System.out.println("\t\twith flags :");
+		for(Iterator myfses = mm.flagstates.iterator(); myfses.hasNext();){
+		    System.out.println("\t\t\t"+((FlagState)myfses.next()).getTextLabel());
+		}
+		System.out.println("\t\tand exitflags :");
+		    for(Iterator fseshash = mm.exitfses.iterator(); fseshash.hasNext();){
+			HashSet temphs = (HashSet)fseshash.next();
+			System.out.println("");
+			for(Iterator exfses = temphs.iterator(); exfses.hasNext();){
+			    System.out.println("\t\t\t"+((FlagState)exfses.next()).getTextLabel());
+			}
+		    }
+		    Predicate predicate = mm.predicate;
+		    System.out.println("\t\tPredicate constains :");
+		    for(Iterator varit = predicate.vardescriptors.iterator(); varit.hasNext();){
+			VarDescriptor vard = (VarDescriptor)varit.next();
+			System.out.println("\t\t\tClass "+vard.getType().getClassDesc().getSymbol());
+		    }
+		    System.out.println("\t\t------------");
+	    }
 	}
+
+	    
     }
     
     /*Marks the executiongraph :
@@ -249,7 +253,7 @@ public class SafetyAnalysis {
 	    extremity.mark();
 	    //calls doGraphMarking recursively with the next nodes as params
 	    for( Iterator it = extremity.edges(); it.hasNext(); ){
-		TEdge edge = (TEdge)it.next();
+		EGEdge edge = (EGEdge)it.next();
 		doGraphMarking((EGTaskNode)edge.getTarget());
 	    }
 	}
@@ -265,7 +269,7 @@ public class SafetyAnalysis {
     
     private void testIfOptional(EGTaskNode tn){
 	for(Iterator edges = tn.edges(); edges.hasNext();){
-	    TEdge edge = (TEdge)edges.next();
+	    EGEdge edge = (EGEdge)edges.next();
 	    EGTaskNode nexttn = (EGTaskNode)edge.getTarget();
 	    if (nexttn.getTD()!=null)
 		if(nexttn.getTD().isOptional(classname))
@@ -275,8 +279,9 @@ public class SafetyAnalysis {
     
     private void testIfMultiple(EGTaskNode tn){
 	for(Iterator edges = tn.edges(); edges.hasNext();){
-	    TEdge edge = (TEdge)edges.next();
+	    EGEdge edge = (EGEdge)edges.next();
 	    EGTaskNode nexttn = (EGTaskNode)edge.getTarget();
+	    if (nexttn.getTD() == null ) return;//to be fixed
 	    if( nexttn.getTD().numParameters() > 1 ){
 		nexttn.setMultipleParams();
 	    }
@@ -286,7 +291,7 @@ public class SafetyAnalysis {
     //maybe a little bug to fix 
     private void testIfRuntime(EGTaskNode tn){
 	for(Iterator edges = tn.edges(); edges.hasNext();){
-	    TEdge edge = (TEdge)edges.next();
+	    EGEdge edge = (EGEdge)edges.next();
 	    EGTaskNode nexttn = (EGTaskNode)edge.getTarget();
 	    if( ((String)nexttn.getName()).compareTo("Runtime") == 0 )
 		nexttn.setAND();
@@ -303,7 +308,7 @@ public class SafetyAnalysis {
 	Vector vtemp = new Vector();
 	Vector tomark = new Vector();
 	for(Iterator edges = tn.edges(); edges.hasNext();){
-	    TEdge edge = (TEdge)edges.next();
+	    EGEdge edge = (EGEdge)edges.next();
 	    EGTaskNode nexttn = (EGTaskNode)edge.getTarget();
 	    int contains = 0;
 	    for (Iterator it = vtemp.iterator(); it.hasNext();){
@@ -324,7 +329,7 @@ public class SafetyAnalysis {
     //maybe little bug to fix
     private void testIfNextIsSelfLoop(EGTaskNode tn){
 	for(Iterator edges = tn.edges(); edges.hasNext();){
-	    TEdge edge = (TEdge)edges.next();
+	    EGEdge edge = (EGEdge)edges.next();
 	    EGTaskNode nexttn = (EGTaskNode)edge.getTarget();
 	    if(nexttn.isSelfLoop()) nexttn.setAND();
 	}
@@ -357,7 +362,8 @@ public class SafetyAnalysis {
 		if( !((Iterator)tn.edges()).hasNext() || tn.isSelfLoop()){
 		    HashSet fstemp = new HashSet();
 		    fstemp.add(tn.getFS());
-		    MyOptional mo = new MyOptional(tn.getTD(), fstemp, depth, temppredicate); 
+		    MyOptional mo = new MyOptional(tn.getTD(), fstemp, depth, temppredicate);
+		    myoptionals.get(processedclass).add(mo);
 		    temp.add(mo);
 		    return temp;
 		}
@@ -372,6 +378,7 @@ public class SafetyAnalysis {
 		    HashSet fstemp = new HashSet();
 		    fstemp.add(tn.getFS());
 		    MyOptional mo = new MyOptional(tn.getTD(), fstemp, depth, temppredicate); 
+		    myoptionals.get(processedclass).add(mo);
 		    temp = computeEdges(tn, newdepth, newhashset, temppredicate);
 		    temp.add(mo);
 		    return temp;
@@ -477,6 +484,7 @@ public class SafetyAnalysis {
     
     /*check if there has been a tag Change*/
     private boolean tagChange(EGTaskNode tn){
+	if(tn.getTD() == null) return false;//to be fixed
 	FlatMethod fm = state.getMethodFlat(tn.getTD());
 	FlatNode fn = (FlatNode)fm;
 	
@@ -517,7 +525,7 @@ public class SafetyAnalysis {
 	Hashtable andlist = new Hashtable();
 	Vector orlist = new Vector();
 	for(Iterator edges = tn.edges(); edges.hasNext();){
-	    EGTaskNode tntemp = (EGTaskNode)((TEdge)edges.next()).getTarget();
+	    EGTaskNode tntemp = (EGTaskNode)((EGEdge)edges.next()).getTarget();
 	    if(tntemp.type() == OR) orlist.add(tntemp);
 	    else if(tntemp.type() == AND){
 		if(andlist.containsKey(tntemp.getName())){
@@ -664,7 +672,7 @@ public class SafetyAnalysis {
 	return A;
     }
 
-    private void removeDoubles( HashSet A ){
+    /*private void removeDoubles( HashSet A ){
 	//remove duplicated MyOptionals (might happend in few cases)
 	Vector toremove = new Vector();
 	int i = 0;
@@ -678,7 +686,7 @@ public class SafetyAnalysis {
 	    for(Iterator itA3 = itA2; itA3.hasNext();){
 		MyOptional myA2 = (MyOptional)itA3.next();
 		if(myA2.equal(myA)){
-		    myA.depth = (myA.depth < myA2.depth) ? myA.depth : myA2.depth;
+		    //myA.depth = (myA.depth < myA2.depth) ? myA.depth : myA2.depth;
 		    toremove.add(myA2);
 		    System.out.println("removed!");
 		}
@@ -686,7 +694,7 @@ public class SafetyAnalysis {
 	}
 	for( Iterator it = toremove.iterator(); it.hasNext();)
 	A.remove(it.next());
-    }
+	}*/
     
     private HashSet createIntersection( HashSet A, HashSet B){
 	HashSet result = new HashSet();
@@ -713,7 +721,10 @@ public class SafetyAnalysis {
 	for(Iterator  varit = B.vardescriptors.iterator(); varit.hasNext();){
 	    VarDescriptor vd = (VarDescriptor)varit.next();
 	    if(result.vardescriptors.contains(vd))System.out.println("Already in ");
-	    else result.vardescriptors.add(vd);
+	    else {
+		System.out.println("Not already in...");
+		result.vardescriptors.add(vd);
+	    }
 	}
 	for(Iterator varit = result.vardescriptors.iterator(); varit.hasNext();){
 	    VarDescriptor vd = (VarDescriptor)varit.next();
