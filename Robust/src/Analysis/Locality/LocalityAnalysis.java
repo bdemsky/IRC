@@ -15,9 +15,10 @@ import IR.Flat.*;
 
 public class LocalityAnalysis {
     State state;
-    Stack tovisit;
+    Stack lbtovisit;
     Hashtable<LocalityBinding,LocalityBinding> discovered;
-    Hashtable<MethodDescriptor, MethodDescriptor> dependence;
+    Hashtable<LocalityBinding, Set<LocalityBinding>> dependence;
+
     CallGraph callgraph;
     TypeUtil typeutil;
     public static final Integer LOCAL=new Integer(0);
@@ -26,10 +27,11 @@ public class LocalityAnalysis {
     public static final Integer CONFLICT=new Integer(3);
 
     public LocalityAnalysis(State state, CallGraph callgraph, TypeUtil typeutil) {
+	this.typeutil=typeutil;
 	this.state=state;
 	this.discovered=new Hashtable<LocalityBinding,LocalityBinding>();
-	this.dependence=new Hashtable<MethodDescriptor, MethodDescriptor>();
-	this.tovisit=new Stack();
+	this.dependence=new Hashtable<LocalityBinding, Set<LocalityBinding>>();
+	this.lbtovisit=new Stack();
 	this.callgraph=callgraph;
 	doAnalysis();
     }
@@ -40,17 +42,25 @@ public class LocalityAnalysis {
 
     private void computeLocalityBindings() {
 	LocalityBinding lbmain=new LocalityBinding(typeutil.getMain(), false);
-	tovisit.add(lbmain);
+	lbmain.setGlobal(0, LOCAL);
+	lbtovisit.add(lbmain);
 	discovered.put(lbmain, lbmain);
 
-	while(!tovisit.empty()) {
-	    LocalityBinding lb=(LocalityBinding) tovisit.pop();
+	while(!lbtovisit.empty()) {
+	    LocalityBinding lb=(LocalityBinding) lbtovisit.pop();
+	    Integer returnglobal=lb.getGlobalReturn();
 	    MethodDescriptor md=lb.getMethod();
 	    Hashtable<FlatNode,Hashtable<TempDescriptor, Integer>> temptable=new Hashtable<FlatNode,Hashtable<TempDescriptor, Integer>>();
 	    Hashtable<FlatNode, Integer> atomictable=new Hashtable<FlatNode, Integer>();
 	    computeCallsFlags(md, lb, temptable, atomictable);
+	    if (!md.isStatic()&&!returnglobal.equals(lb.getGlobalReturn())) {
+		//return type is more precise now
+		//rerun everything that call us
+		lbtovisit.addAll(dependence.get(lb));
+	    }
 	}
     }
+
 
     public void computeCallsFlags(MethodDescriptor md, LocalityBinding lb, Hashtable<FlatNode, Hashtable<TempDescriptor, Integer>> temptable, Hashtable<FlatNode, Integer> atomictable) {
 	FlatMethod fm=state.getMethodFlat(md);
@@ -61,15 +71,20 @@ public class LocalityAnalysis {
 	    Hashtable<TempDescriptor,Integer> table=new Hashtable<TempDescriptor,Integer>();
 	    temptable.put(fm, table);
 	    atomictable.put(fm, lb.isAtomic()?1:0);
-	    for(int i=0;i<fm.numParameters();i++) {
+	    int offset=md.isStatic()?0:1;
+	    if (!md.isStatic()) {
+		table.put(fm.getParameter(0), lb.getGlobalThis());
+	    }
+	    for(int i=offset;i<fm.numParameters();i++) {
 		TempDescriptor temp=fm.getParameter(i);
-		Integer b=lb.isGlobal(i);
+		Integer b=lb.isGlobal(i-offset);
 		table.put(temp,b);
 	    }
 	}
 
 	while(!tovisit.isEmpty()) {
 	    FlatNode fn=tovisit.iterator().next();
+	    tovisit.remove(fn);
 	    Hashtable<TempDescriptor, Integer> currtable=new Hashtable<TempDescriptor, Integer>();
 	    int atomicstate=0;
 	    for(int i=0;i<fn.numPrev();i++) {
@@ -83,7 +98,7 @@ public class LocalityAnalysis {
 		for(Iterator<TempDescriptor> tempit=prevtable.keySet().iterator();tempit.hasNext();) {
 		    TempDescriptor temp=tempit.next();
 		    Integer tmpint=prevtable.get(temp);
-		    Integer oldint=currtable.containsKey(temp)?currtable.get(temp):null;
+		    Integer oldint=currtable.containsKey(temp)?currtable.get(temp):EITHER;
 		    Integer newint=merge(tmpint, oldint);
 		    currtable.put(temp, newint);
 		}
@@ -169,7 +184,7 @@ public class LocalityAnalysis {
 	MethodDescriptor nodemd=fc.getMethod();
 	Set methodset=fc.getThis()==null?callgraph.getMethods(nodemd):
 	    callgraph.getMethods(nodemd, fc.getThis().getType());
-	Integer currreturnval=null;
+	Integer currreturnval=EITHER; //Start off with the either value
 	for(Iterator methodit=methodset.iterator();methodit.hasNext();) {
 	    MethodDescriptor md=(MethodDescriptor) methodit.next();
 	    LocalityBinding lb=new LocalityBinding(md, isatomic);
@@ -179,6 +194,8 @@ public class LocalityAnalysis {
 	    }
 	    if (fc.getThis()!=null) {
 		Integer thistype=currtable.get(fc.getThis());
+		if (thistype==null)
+		    thistype=EITHER;
 		if(thistype.equals(CONFLICT))
 		    throw new Error("Using type that can be either local or global in context:\n"+currlb.getExplanation());
 		if(thistype.equals(GLOBAL)&&!isatomic)
@@ -190,15 +207,19 @@ public class LocalityAnalysis {
 	    if (!discovered.containsKey(lb)) {
 		lb.setGlobalReturn(EITHER);
 		lb.setParent(currlb);
-		tovisit.add(lb);
+		lbtovisit.add(lb);
 		discovered.put(lb, lb);
 	    } else
 		lb=discovered.get(lb);
 	    Integer returnval=lb.getGlobalReturn();
 	    currreturnval=merge(returnval, currreturnval);
-	    dependence.put(md, currlb.getMethod()); 
+	    if (!dependence.containsKey(lb))
+		dependence.put(lb, new HashSet<LocalityBinding>());
+	    dependence.get(lb).add(currlb);
 	}
-	currtable.put(fc.getReturnTemp(), currreturnval);
+	if (fc.getReturnTemp()!=null) {
+	    currtable.put(fc.getReturnTemp(), currreturnval);
+	}
     }
 
     void processFieldNode(LocalityBinding lb, FlatFieldNode ffn, boolean transaction, Hashtable<TempDescriptor, Integer> currtable) {
