@@ -3,13 +3,13 @@
 primarypfq_t pqueue; //Global queue
 
 void queueInit(void) {
-	/* Intitialize primary thread */
+	/* Intitialize primary queue */
 	pqueue.front = pqueue.rear = NULL;
 	pthread_mutex_init(&pqueue.qlock, NULL);
 	pthread_cond_init(&pqueue.qcond, NULL);
 }
 
-/* Removes the first element of the queue */
+/* Delete the node pointed to by the front ptr of the queue */
 void delqnode() {
 	prefetchqelem_t *delnode;
 	if((pqueue.front == NULL) && (pqueue.rear == NULL)) {
@@ -45,6 +45,7 @@ void enqueue(prefetchqelem_t *qnode) {
 	}
 }
 
+/* Return the node pointed to by the front ptr of the queue */
 prefetchqelem_t *dequeue(void) {
 	prefetchqelem_t *retnode;
 	if (pqueue.front == NULL) {
@@ -52,7 +53,6 @@ prefetchqelem_t *dequeue(void) {
 		return NULL;
 	}
 	retnode = pqueue.front;
-	//TODO make this atomic
 	pqueue.front = pqueue.front->next;
 
 	return retnode;
