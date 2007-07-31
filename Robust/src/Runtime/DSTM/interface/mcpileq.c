@@ -10,6 +10,7 @@ void mcpileqInit(void) {
 }
 
 /* Insert to the rear of machine pile queue */
+/*
 void mcpileenqueue(prefetchpile_t *node) {
 	if(mcqueue.front == NULL && mcqueue.rear == NULL) {
 		mcqueue.front = mcqueue.rear = node;
@@ -17,6 +18,26 @@ void mcpileenqueue(prefetchpile_t *node) {
 		node->next = NULL;
 		mcqueue.rear->next = node;
 		mcqueue.rear = node;
+	}
+}
+*/
+
+void mcpileenqueue(prefetchpile_t *node) {
+	prefetchpile_t *tmp, *prev;
+	if(mcqueue.front == NULL && mcqueue.rear == NULL) {
+		tmp = mcqueue.front = node;
+		while(tmp != NULL) {
+			prev = tmp;
+			tmp = tmp->next;
+		}
+		mcqueue.rear = prev;
+	} else {
+		tmp = mcqueue.rear->next = node;
+		while(tmp != NULL) {
+			prev = tmp;
+			tmp = tmp->next;
+		}
+		mcqueue.rear = prev;
 	}
 }
 
