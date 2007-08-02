@@ -1093,6 +1093,12 @@ public class BuildCode {
 
     private void generateFlatNode(FlatMethod fm, FlatNode fn, PrintWriter output) {
 	switch(fn.kind()) {
+	case FKind.FlatAtomicEnterNode:
+	    generateFlatAtomicEnterNode(fm, (FlatAtomicEnterNode) fn, output);
+	    return;
+	case FKind.FlatAtomicExitNode:
+	    generateFlatAtomicExitNode(fm, (FlatAtomicExitNode) fn, output);
+	    return;
 	case FKind.FlatTagDeclaration:
 	    generateFlatTagDeclaration(fm, (FlatTagDeclaration) fn,output);
 	    return;
@@ -1144,6 +1150,13 @@ public class BuildCode {
 	}
 	throw new Error();
 
+    }
+
+    
+    public void generateFlatAtomicEnterNode(FlatMethod fm,  FlatAtomicEnterNode faen, PrintWriter output) {
+    }
+
+    public void generateFlatAtomicExitNode(FlatMethod fm,  FlatAtomicExitNode faen, PrintWriter output) {
     }
 
     private void generateFlatCheckNode(FlatMethod fm,  FlatCheckNode fcn, PrintWriter output) {
