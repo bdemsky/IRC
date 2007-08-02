@@ -193,11 +193,12 @@ int transAbortProcess(void *, unsigned int *, int, int, int);
 int transComProcess(trans_commit_data_t *);
 void prefetch(int, unsigned int *, short *, short*);
 void *transPrefetch(void *);
+void *mcqProcess(void *);
 void checkPrefetchTuples(prefetchqelem_t *);
 prefetchpile_t *foundLocal(prefetchqelem_t *);
 prefetchpile_t *makePreGroups(prefetchqelem_t *, int *);
 void checkPreCache(prefetchqelem_t *, int *, int, int, unsigned int, int, int, int);
 int transPrefetchProcess(transrecord_t *, int **, short);
-void *sendPrefetchReq(void *);
+void *sendPrefetchReq(prefetchpile_t*, int);
 /* end transactions */
 #endif

@@ -376,7 +376,8 @@ char handleTransReq(fixed_data_t *fixed, trans_commit_data_t *transinfo, unsigne
 
 		if ((mobj = mhashSearch(oid)) == NULL) {/* Obj not found */
 			/* Save the oids not found and number of oids not found for later use */
-			oidnotfound[objnotfound] = ((objheader_t *)mobj)->oid;
+			//oidnotfound[objnotfound] = ((objheader_t *)mobj)->oid;
+			oidnotfound[objnotfound] = oid;
 			objnotfound++;
 		} else { /* If Obj found in machine (i.e. has not moved) */
 			/* Check if Obj is locked by any previous transaction */
@@ -529,6 +530,43 @@ int transCommitProcess(trans_commit_data_t *transinfo, int acceptfd) {
 
 
 int prefetchReq(int acceptfd) {
+	int length, sum, n, numbytes, N, oidnfound = 0;
+	unsigned int oid;
+	char *ptr;
+	void *mobj;
+	unsigned int *oidnotfound;
+	
+	ptr = (char *)&fixed;;
+
+	/* Counters and arrays to formulate decision on control message to be sent */
+	oidnotfound = (unsigned int *) calloc(fixed->numread + fixed->nummod, sizeof(unsigned int)); 
+	
+	/* Repeated recv the oid and offset pairs sent for prefetch */
+	while((numbytes = recv(int)acceptfd, &length, sizeof(int), 0) != -1) {
+		sum = 0;
+		oid = recv((int)acceptfd, &oid, sizeof(unsigned int), 0);
+		numoffset = (length - (sizeof(int) + sizeof(unsigned int)))/ sizeof(short);
+		N = numoffset * sizeof(short);
+		short offset[numoffset];
+		ptr = (char *)&offset;
+		/* Recv the offset values per oid */ 
+		do {
+			n = recv((int)acceptfd, (void *)ptr+sum, N-sum, 0); 
+			sum += n; 
+
+		} while(sum < N && n != 0);	
+
+		/* Process each oid */
+		/* Check if object is still present in the machine since the beginning of TRANS_PREFETCH */
+		if ((mobj = mhashSearch(oid)) == NULL) {/* Obj not found */
+			/* Save the oids not found and number of oids not found for later use */
+			oidnotfound[objnotfound] = oid;
+			objnotfound++;
+		} else { /* If Obj found in machine (i.e. has not moved) */
+			/* Return the oid ..its header and data */
+
+
+	}
 
 	return 0;
 }

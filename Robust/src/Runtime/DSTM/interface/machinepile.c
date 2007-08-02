@@ -46,3 +46,6 @@ int insertPile(int mid, unsigned int oid, short numoffset, short *offset, prefet
 	return 0;
 }
 
+int deletePile() {
+
+}
