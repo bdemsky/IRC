@@ -18,6 +18,9 @@ public class LocalityAnalysis {
     Stack lbtovisit;
     Hashtable<LocalityBinding,LocalityBinding> discovered;
     Hashtable<LocalityBinding, Set<LocalityBinding>> dependence;
+    Hashtable<LocalityBinding, Hashtable<FlatNode,Hashtable<TempDescriptor, Integer>>> temptab;
+    Hashtable<LocalityBinding, Hashtable<FlatNode, Integer>> atomictab;
+
 
     CallGraph callgraph;
     TypeUtil typeutil;
@@ -31,6 +34,8 @@ public class LocalityAnalysis {
 	this.state=state;
 	this.discovered=new Hashtable<LocalityBinding,LocalityBinding>();
 	this.dependence=new Hashtable<LocalityBinding, Set<LocalityBinding>>();
+	this.temptab=new Hashtable<LocalityBinding, Hashtable<FlatNode,Hashtable<TempDescriptor, Integer>>>();
+	this.atomictab=new Hashtable<LocalityBinding, Hashtable<FlatNode, Integer>>();
 	this.lbtovisit=new Stack();
 	this.callgraph=callgraph;
 	doAnalysis();
@@ -39,13 +44,13 @@ public class LocalityAnalysis {
     private void doAnalysis() {
 	computeLocalityBindings();
     }
-
+    
     private void computeLocalityBindings() {
 	LocalityBinding lbmain=new LocalityBinding(typeutil.getMain(), false);
 	lbmain.setGlobal(0, LOCAL);
 	lbtovisit.add(lbmain);
 	discovered.put(lbmain, lbmain);
-
+	
 	while(!lbtovisit.empty()) {
 	    LocalityBinding lb=(LocalityBinding) lbtovisit.pop();
 	    Integer returnglobal=lb.getGlobalReturn();
@@ -53,6 +58,9 @@ public class LocalityAnalysis {
 	    Hashtable<FlatNode,Hashtable<TempDescriptor, Integer>> temptable=new Hashtable<FlatNode,Hashtable<TempDescriptor, Integer>>();
 	    Hashtable<FlatNode, Integer> atomictable=new Hashtable<FlatNode, Integer>();
 	    computeCallsFlags(md, lb, temptable, atomictable);
+	    atomictab.put(lb, atomictable);
+	    temptab.put(lb, temptable);
+
 	    if (!md.isStatic()&&!returnglobal.equals(lb.getGlobalReturn())) {
 		//return type is more precise now
 		//rerun everything that call us

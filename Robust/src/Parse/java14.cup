@@ -1314,8 +1314,8 @@ return_statement ::=
 //		SYNCHRONIZED LPAREN expression RPAREN block
 //	;
 atomic_statement ::=
-		ATOMIC LPAREN expression:exp RPAREN block {: 
-	RESULT=(new ParseNode("atomic")).addChild(exp).getRoot();
+		ATOMIC block:blk {: 
+	RESULT=(new ParseNode("atomic")).addChild(blk).getRoot();
 	:}
 	;
 //try_statement ::=
