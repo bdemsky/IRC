@@ -28,6 +28,8 @@ unsigned mhashInsert(unsigned int key, void *val);
 void *mhashSearch(unsigned int key); //returns val, NULL if not found
 unsigned int mhashRemove(unsigned int key); //returns -1 if not found
 unsigned int mhashResize(unsigned int newsize);
+unsigned int *mhashGetKeys(unsigned int *numKeys);
+void mhashPrint();
 
 #endif
 

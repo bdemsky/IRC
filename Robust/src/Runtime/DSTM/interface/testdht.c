@@ -2,7 +2,7 @@
 #include "dht.h"
 #include "clookup.h"
 
-#define NUM_ITEMS 1000
+#define NUM_ITEMS 100000
 
 int main()
 {
@@ -13,7 +13,7 @@ int main()
 	int error;
 	chashtable_t *localHash;
 
-	dhtInit(DHT_NO_KEY_LIMIT);
+	dhtInit(0x80C3AF45, DHT_NO_KEY_LIMIT);
 
 	localHash = chashCreate(HASH_SIZE, LOADFACTOR);
 	srandom(time(0));
@@ -22,6 +22,8 @@ int main()
 	{
 		vals[key] = random();
 	}
+
+	sleep(5);
 
 	printf("testing dhtInsert() and dhtSearch()\n");
 

@@ -187,3 +187,35 @@ unsigned int mhashResize(unsigned int newsize) {
 	return 0;
 }
 
+unsigned int *mhashGetKeys(unsigned int *numKeys)
+{
+	unsigned int *keys;
+	int i, keyindex;
+	mhashlistnode_t *curr;
+
+	pthread_mutex_lock(&mlookup.locktable);
+
+	*numKeys = mlookup.numelements;
+	keys = calloc(*numKeys, sizeof(unsigned int));
+
+	keyindex = 0;
+	for (i = 0; i < mlookup.size; i++)
+	{
+		if (mlookup.table[i].key != 0)
+		{
+			curr = &mlookup.table[i];
+			while (curr != NULL)
+			{
+				keys[keyindex++] = curr->key;
+				curr = curr->next;
+			}
+		}
+	}
+
+	if (keyindex != *numKeys)
+		printf("mhashGetKeys(): WARNING: incorrect mlookup.numelements value!\n");
+
+	pthread_mutex_unlock(&mlookup.locktable);
+	return keys;
+}
+
