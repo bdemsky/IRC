@@ -32,6 +32,7 @@
 #define TRANS_AGREE_BUT_MISSING_OBJECTS	19
 #define TRANS_SOFT_ABORT		20
 #define TRANS_SUCESSFUL			21
+#define TRANS_PREFETCH_RESPONSE		22
 
 //Control bits for status of objects in Machine pile
 #define OBJ_LOCKED_BUT_VERSION_MATCH	14
@@ -199,6 +200,7 @@ prefetchpile_t *foundLocal(prefetchqelem_t *);
 prefetchpile_t *makePreGroups(prefetchqelem_t *, int *);
 void checkPreCache(prefetchqelem_t *, int *, int, int, unsigned int, int, int, int);
 int transPrefetchProcess(transrecord_t *, int **, short);
-void *sendPrefetchReq(prefetchpile_t*, int);
+void sendPrefetchReq(prefetchpile_t*, int);
+void getPrefetchResponse(int, int);
 /* end transactions */
 #endif
