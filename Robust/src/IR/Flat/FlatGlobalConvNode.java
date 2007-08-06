@@ -1,26 +1,31 @@
 package IR.Flat;
 import IR.TypeDescriptor;
+import Analysis.Locality.LocalityBinding;
 
 public class FlatGlobalConvNode extends FlatNode {
     TempDescriptor src;
-    TempDescriptor dst;
+    LocalityBinding lb;
     boolean makePtr;
 
-    public FlatGlobalConvNode(TempDescriptor src, TempDescriptor dst, boolean makePtr) {
+    public FlatGlobalConvNode(TempDescriptor src, LocalityBinding lb, boolean makePtr) {
 	this.src=src;
-	this.dst=dst;
+	this.lb=lb;
 	this.makePtr=makePtr;
     }
 
     public String toString() {
 	if (makePtr)
-	    return dst.toString()+"=(PTR)"+src.toString();
+	    return src.toString()+"=(PTR)"+src.toString()+" "+lb;
 	else
-	    return dst.toString()+"=(OID)"+src.toString();
+	    return src.toString()+"=(OID)"+src.toString()+" "+lb;
     }
 
     public int kind() {
 	return FKind.FlatGlobalConvNode;
+    }
+
+    public LocalityBinding getLocality() {
+	return lb;
     }
 
     public boolean getMakePtr() {
@@ -31,12 +36,8 @@ public class FlatGlobalConvNode extends FlatNode {
 	return src;
     }
 
-    public TempDescriptor getDst() {
-	return dst;
-    }
-
     public TempDescriptor [] writesTemps() {
-	return new TempDescriptor[] {dst};
+	return new TempDescriptor[] {src};
     }
 
     public TempDescriptor [] readsTemps() {

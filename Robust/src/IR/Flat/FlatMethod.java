@@ -73,12 +73,12 @@ public class FlatMethod extends FlatNode {
 
     /** This method returns a set of the nodes in this flat representation */
 
-    public Set getNodeSet() {
-	HashSet tovisit=new HashSet();
-	HashSet visited=new HashSet();
+    public Set<FlatNode> getNodeSet() {
+	HashSet<FlatNode> tovisit=new HashSet<FlatNode>();
+	HashSet<FlatNode> visited=new HashSet<FlatNode>();
 	tovisit.add(this);
 	while(!tovisit.isEmpty()) {
-	    FlatNode fn=(FlatNode)tovisit.iterator().next();
+	    FlatNode fn=tovisit.iterator().next();
 	    tovisit.remove(fn);
 	    visited.add(fn);
 	    for(int i=0;i<fn.numNext();i++) {

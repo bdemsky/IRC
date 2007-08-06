@@ -31,6 +31,14 @@ public class FlatNode {
 	next.add(n);
 	n.addPrev(this);
     }
+
+    /** This function modifies the graph */
+    public void setNext(int i, FlatNode n) {
+	FlatNode old=getNext(i);
+	next.set(i, n);
+	old.prev.remove(this);
+    }
+
     protected void addPrev(FlatNode p) {
 	prev.add(p);
     }
