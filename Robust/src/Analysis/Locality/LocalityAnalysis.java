@@ -20,7 +20,7 @@ public class LocalityAnalysis {
     Hashtable<LocalityBinding, Set<LocalityBinding>> dependence;
     Hashtable<LocalityBinding, Hashtable<FlatNode,Hashtable<TempDescriptor, Integer>>> temptab;
     Hashtable<LocalityBinding, Hashtable<FlatNode, Integer>> atomictab;
-
+    Hashtable<LocalityBinding, Hashtable<FlatAtomicEnterNode, Set<TempDescriptor>>> tempstosave;
 
     CallGraph callgraph;
     TypeUtil typeutil;
@@ -38,7 +38,21 @@ public class LocalityAnalysis {
 	this.atomictab=new Hashtable<LocalityBinding, Hashtable<FlatNode, Integer>>();
 	this.lbtovisit=new Stack();
 	this.callgraph=callgraph;
+	this.tempstosave=new Hashtable<LocalityBinding, Hashtable<FlatAtomicEnterNode, Set<TempDescriptor>>>();
+
 	doAnalysis();
+    }
+
+    public Set<LocalityBinding> getLocalityBindings() {
+	return discovered.keySet();
+    }
+
+    public Hashtable<FlatNode, Hashtable<TempDescriptor, Integer>> getNodeTempInfo(LocalityBinding lb) {
+	return temptab.get(lb);
+    }
+    
+    public Hashtable<FlatNode, Integer> getAtomic(LocalityBinding lb) {
+	return atomictab.get(lb);
     }
 
     private void doAnalysis() {
@@ -362,5 +376,56 @@ public class LocalityAnalysis {
     void processAtomicExitNode(FlatAtomicExitNode fen, Hashtable<FlatNode, Integer> atomictable) {
 	int atomic=atomictable.get(fen).intValue();
 	atomictable.put(fen, new Integer(atomic-1));
+    }
+
+    private Hashtable<FlatNode, Set<TempDescriptor>> computeLiveTemps(FlatMethod fm) {
+	Hashtable<FlatNode, Set<TempDescriptor>> nodetotemps=new Hashtable<FlatNode, Set<TempDescriptor>>();
+
+	Set<FlatNode> toprocess=fm.getNodeSet();
+
+	while(!toprocess.isEmpty()) {
+	    FlatNode fn=toprocess.iterator().next();
+	    toprocess.remove(fn);
+	    boolean isatomic=atomictab.get(fn).intValue()>0;
+
+	    List<TempDescriptor> reads=Arrays.asList(fn.readsTemps());
+	    List<TempDescriptor> writes=Arrays.asList(fn.readsTemps());
+
+	    HashSet<TempDescriptor> tempset=new HashSet<TempDescriptor>();
+	    for(int i=0;i<fn.numNext();i++) {
+		FlatNode fnnext=fn.getNext(i);
+		if (nodetotemps.containsKey(fnnext))
+		    tempset.addAll(nodetotemps.get(fnnext));
+	    }
+	    tempset.removeAll(writes);
+	    tempset.addAll(reads);
+	    if (!nodetotemps.containsKey(fn)||
+		nodetotemps.get(fn).equals(tempset)) {
+		nodetotemps.put(fn, tempset);
+		for(int i=0;i<fn.numPrev(i);i++)
+		    toprocess.add(fn.getPrev(i));
+	    }
+	}
+	return nodetotemps;
+    }
+
+    /* Need to checkpoint all temps that could be read from along any
+     * path that are either:
+       1) Written to by any assignment inside the transaction
+       2) Read from a global temp.
+
+       Generate tempstosave map from
+       localitybinding->flatatomicenternode->Set<TempDescriptors>
+    */
+
+    private void computeTempstoCheckpoint(LocalityBinding lb) {
+	Hashtable<FlatNode, Integer> atomictab=getAtomic(lb);
+	Hashtable<FlatNode, Hashtable<TempDescriptor, Integer>> temptab=getNodeTempInfo(lb);
+	MethodDescriptor md=lb.getMethod();
+	FlatMethod fm=state.getMethodFlat(md);
+
+	Hashtable<FlatNode, Set<TempDescriptor>> nodetotemps=computeLiveTemps(md);
+	
+
     }
 }
