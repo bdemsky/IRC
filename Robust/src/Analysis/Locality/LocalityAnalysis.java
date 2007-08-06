@@ -1,11 +1,6 @@
 package Analysis.Locality;
 
-import java.util.Hashtable;
-import java.util.Stack;
-import java.util.Set;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.Arrays;
+import java.util.*;
 import Analysis.CallGraph.CallGraph;
 import IR.SymbolTable;
 import IR.State;
@@ -386,7 +381,6 @@ public class LocalityAnalysis {
 	while(!toprocess.isEmpty()) {
 	    FlatNode fn=toprocess.iterator().next();
 	    toprocess.remove(fn);
-	    boolean isatomic=atomictab.get(fn).intValue()>0;
 
 	    List<TempDescriptor> reads=Arrays.asList(fn.readsTemps());
 	    List<TempDescriptor> writes=Arrays.asList(fn.readsTemps());
@@ -402,7 +396,7 @@ public class LocalityAnalysis {
 	    if (!nodetotemps.containsKey(fn)||
 		nodetotemps.get(fn).equals(tempset)) {
 		nodetotemps.put(fn, tempset);
-		for(int i=0;i<fn.numPrev(i);i++)
+		for(int i=0;i<fn.numPrev();i++)
 		    toprocess.add(fn.getPrev(i));
 	    }
 	}
@@ -424,7 +418,7 @@ public class LocalityAnalysis {
 	MethodDescriptor md=lb.getMethod();
 	FlatMethod fm=state.getMethodFlat(md);
 
-	Hashtable<FlatNode, Set<TempDescriptor>> nodetotemps=computeLiveTemps(md);
+	Hashtable<FlatNode, Set<TempDescriptor>> nodetotemps=computeLiveTemps(fm);
 	
 
     }

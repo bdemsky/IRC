@@ -62,6 +62,7 @@ public class State {
     private int numtasks=0;
     private int arraycount=0;
 
+
     private Hashtable analysisresult;
     private Hashtable myoptionals;
 

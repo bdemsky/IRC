@@ -18,6 +18,7 @@ import Analysis.TaskStateAnalysis.GarbageAnalysis;
 import Analysis.TaskStateAnalysis.ExecutionGraph;
 import Analysis.TaskStateAnalysis.SafetyAnalysis;
 import Analysis.Locality.LocalityAnalysis;
+import Analysis.Locality.GenerateConversions;
 import Interface.*;
 
 public class Main {
@@ -155,6 +156,7 @@ public class Main {
       if (state.DSM) {
 	  CallGraph callgraph=new CallGraph(state);
 	  LocalityAnalysis la=new LocalityAnalysis(state, callgraph, tu);
+	  GenerateConversions gc=new GenerateConversions(la, state);
       }
 
       BuildCode bc=new BuildCode(state, bf.getMap(), tu);
