@@ -14,6 +14,7 @@
 #include <netinet/in.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <errno.h>
 #include <time.h>
 #include <string.h>
 #include <pthread.h>
@@ -59,7 +60,7 @@ void prefetch(int ntuples, unsigned int *oids, short *endoffsets, short *arrayfi
 	/* Allocate for the queue node*/
 	char *node;
 	qnodesize = sizeof(prefetchqelem_t) + sizeof(int) + ntuples * (sizeof(short) + sizeof(unsigned int)) + endoffsets[ntuples - 1] * sizeof(short); 
-	if((node = calloc(1,qnodesize)) == NULL) {
+	if((node = calloc(1, qnodesize)) == NULL) {
 		printf("Calloc Error %s, %d\n", __FILE__, __LINE__);
 		return;
 	}
@@ -105,6 +106,7 @@ void transInit() {
 			return;
 		}
 	}
+	//TODO when to deletethreads
 }
 
 /* This function stops the threads spawned */
@@ -148,21 +150,58 @@ objheader_t *transRead(transrecord_t *record, unsigned int oid)
 	unsigned int machinenumber;
 	objheader_t *tmp, *objheader;
 	void *objcopy;
-	int size;
+	int size, rc, found = 0;
 	void *buf;
-	/* Search local cache */
+	struct timespec ts;
+	struct timeval tp;
+        
+	rc = gettimeofday(&tp, NULL);
+
+	/* Convert from timeval to timespec */
+	ts.tv_nsec = tp.tv_usec * 1000;
+
+	/* Search local transaction cache */
 	if((objheader = (objheader_t *)chashSearch(record->lookupTable, oid)) != NULL){
 		return(objheader);
 	} else if ((objheader = (objheader_t *) mhashSearch(oid)) != NULL) {
 		/* Look up in machine lookup table  and copy  into cache*/
-		//		tmp = mhashSearch(oid);
+		tmp = mhashSearch(oid);
 		size = sizeof(objheader_t)+classsize[tmp->type];
 		objcopy = objstrAlloc(record->cache, size);
 		memcpy(objcopy, (void *)objheader, size);
 		/* Insert into cache's lookup table */
 		chashInsert(record->lookupTable, objheader->oid, objcopy); 
 		return(objcopy);
-	} else { /* If not found in machine look up */
+	} else if((tmp = (objheader_t *) prehashSearch(oid)) != NULL) { /* Look up in prefetch cache */
+		found = 1;
+		size = sizeof(objheader_t)+classsize[tmp->type];
+		objcopy = objstrAlloc(record->cache, size);
+		memcpy(objcopy, (void *)tmp, size);
+		/* Insert into cache's lookup table */
+		chashInsert(record->lookupTable, tmp->oid, objcopy); 
+		return(objcopy);
+	} else { /* If not found anywhere, then block until object appears in prefetch cache */
+		pthread_mutex_lock(&pflookup.lock);
+		while(!found) {
+			rc = pthread_cond_timedwait(&pflookup.cond, &pflookup.lock, &ts);
+			if(rc == ETIMEDOUT) {
+				printf("Wait timed out\n");
+				/* Check Prefetch cache again */
+				if((tmp = (objheader_t *) prehashSearch(oid)) != NULL) { /* Look up in prefetch cache */
+					found = 1;
+					size = sizeof(objheader_t)+classsize[tmp->type];
+					objcopy = objstrAlloc(record->cache, size);
+					memcpy(objcopy, (void *)tmp, size);
+					/* Insert into cache's lookup table */
+					chashInsert(record->lookupTable, tmp->oid, objcopy); 
+					return(objcopy);
+				} else {
+					pthread_mutex_unlock(&pflookup.lock);
+					break;
+				}
+				pthread_mutex_unlock(&pflookup.lock);
+			}
+		}
 		/* Get the object from the remote location */
 		machinenumber = lhashSearch(oid);
 		objcopy = getRemoteObj(record, machinenumber, oid);
@@ -234,6 +273,7 @@ plistnode_t *createPiles(transrecord_t *record) {
 
 			/* Check if local or not */
 			if((localmachinenum = mhashSearch(curr->key)) != NULL) { 
+				/* Set the pile->local flag*/
 				pile->local = 1; //True i.e. local
 			}
 
@@ -769,6 +809,9 @@ void *handleLocalReq(void *threadarg) {
 	if((v_matchlock > 0 && v_nomatch == 0) || (objnotfound > 0 && v_nomatch == 0)) {
 		localtdata->tdata->recvmsg[localtdata->tdata->thread_id].rcv_status = TRANS_SOFT_ABORT;
 		printf("DEBUG -> Sending TRANS_SOFT_ABORT\n");
+		//TODO  currently the only soft abort case that is supported is when object locked by previous
+		//transaction => v_matchlock > 0 
+		//The other case for SOFT ABORT i.e. when object is not found but versions match is not supported 
 		/* Send number of oids not found and the missing oids if objects are missing in the machine */
 		/* TODO Remember to store the oidnotfound for later use
 		   if(objnotfound != 0) {
@@ -860,7 +903,6 @@ int transAbortProcess(void *modptr, unsigned int *objlocked, int numlocked, int 
 		header = mhashSearch(objlocked[i]);// find the header address
 		((objheader_t *)header)->status &= ~(LOCK);
 	}
-	//TODO/* Unset the bit for local objects */
 
 	/* Send ack to Coordinator */
 	printf("DEBUG-> TRANS_SUCCESSFUL\n");
@@ -903,7 +945,6 @@ int transComProcess(trans_commit_data_t *transinfo) {
 	}
 
 	//TODO Update location lookup table
-	//TODO/* Unset the bit for local objects */
 
 	/* Send ack to Coordinator */
 	printf("DEBUG-> TRANS_SUCESSFUL\n");
@@ -1184,8 +1225,11 @@ void *transPrefetch(void *t) {
 		mcpileenqueue(pilehead);
 		/* Broadcast signal on machine pile queue */
 		pthread_cond_broadcast(&mcqueue.qcond);
-		/* Unlock mutex of  mcahine pile queue */
+		/* Unlock mutex of  machine pile queue */
 		pthread_mutex_unlock(&mcqueue.qlock);
+		/* Deallocate the prefetch queue pile node */
+		predealloc(qnode);
+
 	}
 }
 
@@ -1200,11 +1244,11 @@ void *mcqProcess(void *threadid) {
 	while(1) {
 		/* Lock mutex of mc pile queue */
 		pthread_mutex_lock(&mcqueue.qlock);
-		/* while mc pile queue is empty, then wait */
+		/* When mc pile queue is empty, wait */
 		while((mcqueue.front == NULL) && (mcqueue.rear == NULL)) {
 			pthread_cond_wait(&mcqueue.qcond, &mcqueue.qlock);
 		}
-		/* dequeue node to send remote machine connections*/
+		/* Dequeue node to send remote machine connections*/
 		if((mcpilenode = mcpiledequeue()) == NULL) {
 			printf("Dequeue Error: No node returned %s %d\n", __FILE__, __LINE__);
 			return NULL;
@@ -1217,7 +1261,8 @@ void *mcqProcess(void *threadid) {
 		sendPrefetchReq(mcpilenode, tid);
 		/* TODO: For each object not found query DHT for new location and retrieve the object */
 
-		/* Deallocate the dequeued node */
+		/* Deallocate the machine queue pile node */
+		mcdealloc(mcpilenode);
 	}
 }
 
@@ -1392,7 +1437,7 @@ void getPrefetchResponse(int count, int sd) {
 					memcpy(modptr, buffer+index, objsize);
 					index += sizeof(int);
 					/* Add pointer and oid to hash table */
-					//TODO Do we need a version comparison herei ??
+					//TODO Do we need a version comparison here??
 					prehashInsert(oid, modptr);
 					/* Broadcast signal on prefetch cache condition variable */ 
 					pthread_cond_broadcast(&pflookup.cond);

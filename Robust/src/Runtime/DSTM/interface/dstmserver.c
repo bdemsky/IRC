@@ -619,7 +619,7 @@ int prefetchReq(int acceptfd) {
 			}
 		}
 
-		/* Send the buffer size */
+		/* Add the buffer size into buffer as a parameter */
 		memcpy(buffer, &index, sizeof(unsigned int));
 		/* Send the entire buffer with its size and oids found and not found */
 		if(send((int)acceptfd, &buffer, sizeof(index - 1), MSG_NOSIGNAL) < sizeof(index -1)) {

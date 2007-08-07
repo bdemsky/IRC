@@ -6,5 +6,6 @@
 #include <stdlib.h>
 
 int insertPile(int, unsigned int, short, short *, prefetchpile_t *);
+int deletePile();
 
 #endif

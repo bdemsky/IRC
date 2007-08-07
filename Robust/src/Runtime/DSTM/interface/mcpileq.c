@@ -92,9 +92,16 @@ void mcpiledisplay() {
 	}
 }
 
-
-
-
-
-
-
+void mcdealloc(prefetchpile_t *node) {
+	/* Remove the offset ptr and linked lists of objpile_t */
+	objpile_t *delnode;
+	while(node->objpiles != NULL) {
+		node->objpiles->offset = NULL;
+		delnode = node->objpiles;
+		node->objpiles = node->objpiles->next;
+		free(delnode);
+		node->objpiles->next = NULL;
+	}
+	free(node);
+	node->next = NULL;
+}

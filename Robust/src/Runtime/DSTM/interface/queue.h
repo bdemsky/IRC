@@ -21,7 +21,8 @@ typedef struct primarypfq {
 void queueInit(void);
 void delqnode(); 
 void queueDelete(void);
-void enqueue(prefetchqelem_t *qnode);
+void enqueue(prefetchqelem_t *);
 prefetchqelem_t *dequeue(void);
 void queueDisplay();
+void predealloc(prefetchqelem_t *);
 #endif

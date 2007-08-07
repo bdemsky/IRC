@@ -33,5 +33,6 @@ prefetchpile_t *mcpiledequeue(void);
 void delnode();
 void mcpiledelete();
 void mcpiledisplay();
+void mcdealloc(prefetchpile_t *);
 
 #endif
