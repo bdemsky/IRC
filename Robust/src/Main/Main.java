@@ -140,7 +140,7 @@ public class Main {
 	      SafetyAnalysis sa = new SafetyAnalysis(et.getExecutionGraph(), state, ta);
 	      sa.buildPath();
 	      state.storeAnalysisResult(sa.getResult());
-	      state.storeMyOptionals(sa.getMyOptionals());
+	      state.storeOptionalTaskDescriptors(sa.getOptionalTaskDescriptors());
 	  }
 	  
 	  if (state.WEBINTERFACE) {

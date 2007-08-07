@@ -15,7 +15,7 @@ public class State {
 	this.arraytonumber=new Hashtable();
 	this.tagmap=new Hashtable();
 	this.analysisresult=new Hashtable();
-	this.myoptionals=new Hashtable();
+	this.optionaltaskdescriptors=new Hashtable();
     }
 
     public void addParseNode(ParseNode parsetree) {
@@ -26,16 +26,16 @@ public class State {
 	analysisresult = result;
     }
     
-    public void storeMyOptionals(Hashtable myoptionals){
-	this.myoptionals=myoptionals;
+    public void storeOptionalTaskDescriptors(Hashtable optionaltaskdescriptors){
+	this.optionaltaskdescriptors=optionaltaskdescriptors;
     }
 
     public Hashtable getAnalysisResult(){
 	return analysisresult;
     }
     
-    public Hashtable getMyOptionals(){
-	return myoptionals;
+    public Hashtable getOptionalTaskDescriptors(){
+	return optionaltaskdescriptors;
     }
 
     /** Boolean flag which indicates whether compiler is compiling a task-based
@@ -64,7 +64,7 @@ public class State {
 
 
     private Hashtable analysisresult;
-    private Hashtable myoptionals;
+    private Hashtable optionaltaskdescriptors;
 
     private Hashtable tagmap;
     private int numtags=0;

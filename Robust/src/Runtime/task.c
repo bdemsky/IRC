@@ -6,6 +6,7 @@
 #include "Queue.h"
 #include "SimpleHash.h"
 #include "GenericHashtable.h"
+#include "optionalstruct.h"
 #include <sys/select.h>
 #include <sys/types.h>
 #include <sys/mman.h>

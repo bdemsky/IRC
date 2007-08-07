@@ -114,6 +114,10 @@ public class FlagState extends GraphNode {
     public Iterator getFlags() {
 	return flagstate.iterator();
     }
+
+    public int numFlags(){
+	return flagstate.size();
+    }
     
     public FlagState[] setTag(TagDescriptor tag){
 	HashSet newset1=(HashSet)flagstate.clone();
