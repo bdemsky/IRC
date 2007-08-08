@@ -38,20 +38,45 @@ public class LocalityAnalysis {
 	doAnalysis();
     }
 
+    /** This method returns a set of LocalityBindings.  A
+     * LocalityBinding specifies a context a method can be invoked in.
+     * It specifies whether the method is in a transaction and whether
+     * its parameter objects are locals or globals.  */
+
     public Set<LocalityBinding> getLocalityBindings() {
 	return discovered.keySet();
     }
 
+    /** This method returns a hashtable for a given LocalityBinding
+     * that tells the current local/global status of temps at the each
+     * node in the flat representation. */
+
     public Hashtable<FlatNode, Hashtable<TempDescriptor, Integer>> getNodeTempInfo(LocalityBinding lb) {
 	return temptab.get(lb);
     }
+
+    /** This method returns an hashtable for a given LocalitBinding
+     * that tells whether a node in the flat represenation is in a
+     * transaction or not.  Integer values greater than 0 indicate
+     * that the node is in a transaction and give the nesting depth.
+     * The outermost AtomicEnterNode will have a value of 1 and the
+     * outermost AtomicExitNode will have a value of 0. */
     
     public Hashtable<FlatNode, Integer> getAtomic(LocalityBinding lb) {
 	return atomictab.get(lb);
     }
 
+    /** This methods returns a hashtable for a given LocalityBinding
+     * that tells which temps needs to be saved for each
+     * AtomicEnterNode.  */
+
+    public Hashtable<FlatAtomicEnterNode, Set<TempDescriptor>> getTemps(LocalityBinding lb) {
+	return tempstosave.get(lb);
+    }
+
     private void doAnalysis() {
 	computeLocalityBindings();
+	computeTempstoSave();
     }
     
     private void computeLocalityBindings() {
@@ -403,6 +428,13 @@ public class LocalityAnalysis {
 	return nodetotemps;
     }
 
+    private void computeTempstoSave() {
+	for(Iterator<LocalityBinding> lbit=getLocalityBindings().iterator();lbit.hasNext();) {
+	    LocalityBinding lb=lbit.next();
+	    computeTempstoSave(lb);
+	}
+    }
+
     /* Need to checkpoint all temps that could be read from along any
      * path that are either:
        1) Written to by any assignment inside the transaction
@@ -412,14 +444,58 @@ public class LocalityAnalysis {
        localitybinding->flatatomicenternode->Set<TempDescriptors>
     */
 
-    private void computeTempstoCheckpoint(LocalityBinding lb) {
+    private void computeTempstoSave(LocalityBinding lb) {
+	if (lb.isAtomic())
+	    return;
 	Hashtable<FlatNode, Integer> atomictab=getAtomic(lb);
 	Hashtable<FlatNode, Hashtable<TempDescriptor, Integer>> temptab=getNodeTempInfo(lb);
 	MethodDescriptor md=lb.getMethod();
 	FlatMethod fm=state.getMethodFlat(md);
 
 	Hashtable<FlatNode, Set<TempDescriptor>> nodetotemps=computeLiveTemps(fm);
-	
+	Hashtable<FlatAtomicEnterNode, Set<TempDescriptor>> nodetosavetemps=new Hashtable<FlatAtomicEnterNode, Set<TempDescriptor>>();
+	tempstosave.put(lb, nodetosavetemps);
 
+	Hashtable<FlatNode, FlatAtomicEnterNode> nodemap=new Hashtable<FlatNode, FlatAtomicEnterNode>();
+	
+	HashSet<FlatNode> toprocess=new HashSet<FlatNode>();
+	HashSet<FlatNode> discovered=new HashSet<FlatNode>();
+	toprocess.add(fm);
+	discovered.add(fm);
+	while(!toprocess.isEmpty()) {
+	    FlatNode fn=toprocess.iterator().next();
+	    toprocess.remove(fn);
+	    boolean isatomic=atomictab.get(fn).intValue()>0;
+	    if (isatomic&&
+		atomictab.get(fn.getPrev(0)).intValue()==0) {
+		assert(fn.getPrev(0).kind()==FKind.FlatAtomicEnterNode);
+		nodemap.put(fn, (FlatAtomicEnterNode)fn);
+		nodetosavetemps.put((FlatAtomicEnterNode)fn, new HashSet<TempDescriptor>());
+	    } else if (isatomic) {
+		FlatAtomicEnterNode atomicnode=nodemap.get(fn);
+		Set<TempDescriptor> livetemps=nodetotemps.get(fn);
+		List<TempDescriptor> reads=Arrays.asList(fn.readsTemps());
+		List<TempDescriptor> writes=Arrays.asList(fn.readsTemps());
+
+		for(Iterator<TempDescriptor> tempit=livetemps.iterator();tempit.hasNext();) {
+		    TempDescriptor tmp=tempit.next();
+		    if (writes.contains(tmp)) {
+			nodetosavetemps.get(fn).add(tmp);
+		    } else if (reads.contains(tmp)&&temptab.get(fn).get(tmp)==GLOBAL) {
+			nodetosavetemps.get(fn).add(tmp);
+		    }
+		}
+	    }
+	    for(int i=0;i<fn.numNext();i++) {
+		FlatNode fnnext=fn.getNext(i);
+		if (!discovered.contains(fnnext)) {
+		    discovered.add(fnnext);
+		    toprocess.add(fnnext);
+		    if(isatomic) {
+			nodemap.put(fnnext, nodemap.get(fn));
+		    }
+		}
+	    }
+	}
     }
 }
