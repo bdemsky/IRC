@@ -10,6 +10,8 @@ import Util.Relation;
 import Analysis.TaskStateAnalysis.FlagState;
 import Analysis.TaskStateAnalysis.OptionalTaskDescriptor;
 import Analysis.TaskStateAnalysis.Predicate;
+import Analysis.Locality.LocalityAnalysis;
+import Analysis.Locality.LocalityBinding;
 
 public class BuildCode {
     State state;
@@ -30,7 +32,8 @@ public class BuildCode {
     private int maxcount=0;
     ClassDescriptor[] cdarray;
     TypeDescriptor[] arraytable;
-   
+    LocalityAnalysis locality;
+
     public BuildCode(State st, Hashtable temptovar, TypeUtil typeutil) {
 	state=st;
 	this.temptovar=temptovar;
@@ -40,6 +43,11 @@ public class BuildCode {
 	flagorder=new Hashtable();
 	this.typeutil=typeutil;
 	virtualcalls=new Virtual(state);
+    }
+
+    public BuildCode(State st, Hashtable temptovar, TypeUtil typeutil, LocalityAnalysis locality) {
+	this(st, temptovar, typeutil);
+	this.locality=locality;
     }
 
     /** The buildCode method outputs C code for all the methods.  The Flat
@@ -212,7 +220,7 @@ public class BuildCode {
 	while(taskit.hasNext()) {
 	    TaskDescriptor td=(TaskDescriptor)taskit.next();
 	    FlatMethod fm=state.getMethodFlat(td);
-	    generateFlatMethod(fm, outmethod);
+	    generateFlatMethod(fm, null, outmethod);
 	    generateTaskDescriptor(outtaskdefs, fm, td);
 	}
 	
@@ -260,18 +268,31 @@ public class BuildCode {
 	generateLayoutStructs(outmethod);
 
 	/* Generate code for methods */
-	Iterator classit=state.getClassSymbolTable().getDescriptorsIterator();
-	while(classit.hasNext()) {
-	    ClassDescriptor cn=(ClassDescriptor)classit.next();
-	    Iterator methodit=cn.getMethods();
-	    while(methodit.hasNext()) {
-		/* Classify parameters */
-		MethodDescriptor md=(MethodDescriptor)methodit.next();
+	if (state.DSM) {
+	    for(Iterator<LocalityBinding> lbit=locality.getLocalityBindings().iterator();lbit.hasNext();) {
+		LocalityBinding lb=lbit.next();
+		MethodDescriptor md=lb.getMethod();
 		FlatMethod fm=state.getMethodFlat(md);
-		if (!md.getModifiers().isNative())
-		    generateFlatMethod(fm,outmethod);
+		if (!md.getModifiers().isNative()) {
+		    generateFlatMethod(fm, lb, outmethod);
+		}
 	    }
-	}
+	    
+
+	} else {
+	    Iterator classit=state.getClassSymbolTable().getDescriptorsIterator();
+	    while(classit.hasNext()) {
+		ClassDescriptor cn=(ClassDescriptor)classit.next();
+		Iterator methodit=cn.getMethods();
+		while(methodit.hasNext()) {
+		    /* Classify parameters */
+		    MethodDescriptor md=(MethodDescriptor)methodit.next();
+		    FlatMethod fm=state.getMethodFlat(md);
+		    if (!md.getModifiers().isNative())
+			generateFlatMethod(fm, null, outmethod);
+		}
+	    }
+	} 
     }
 
     private void outputStructs(PrintWriter outstructs) {
@@ -976,7 +997,7 @@ public class BuildCode {
 
     /** Generate code for FlatMethod fm. */
 
-    private void generateFlatMethod(FlatMethod fm, PrintWriter output) {
+    private void generateFlatMethod(FlatMethod fm, LocalityBinding lb, PrintWriter output) {
 	MethodDescriptor md=fm.getMethod();
 	TaskDescriptor task=fm.getTask();
 
@@ -984,11 +1005,10 @@ public class BuildCode {
 
 	ParamsObject objectparams=(ParamsObject)paramstable.get(md!=null?md:task);
 
-	generateHeader(fm, md!=null?md:task,output);
+	generateHeader(fm, lb, md!=null?md:task,output);
 
 	TempObject objecttemp=(TempObject) tempstable.get(md!=null?md:task);
 
-	/* Print code */
 	if (GENERATEPRECISEGC) {
 	    if (md!=null)
 		output.print("   struct "+cn.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_locals "+localsprefix+"={");
@@ -1013,42 +1033,21 @@ public class BuildCode {
 		output.println("   "+type.getSafeSymbol()+" "+td.getSafeSymbol()+";");
 	}
 
-	/* Generate labels first */
-	HashSet tovisit=new HashSet();
-	HashSet visited=new HashSet();
-	int labelindex=0;
-	Hashtable nodetolabel=new Hashtable();
-	tovisit.add(fm.getNext(0));
-	FlatNode current_node=null;
+	/* Assign labels to FlatNode's if necessary.*/
 
-	//Assign labels 1st
-	//Node needs a label if it is
-	while(!tovisit.isEmpty()) {
-	    FlatNode fn=(FlatNode)tovisit.iterator().next();
-	    tovisit.remove(fn);
-	    visited.add(fn);
-	    for(int i=0;i<fn.numNext();i++) {
-		FlatNode nn=fn.getNext(i);
-		if(i>0) {
-		    //1) Edge >1 of node
-		    nodetolabel.put(nn,new Integer(labelindex++));
-		}
-		if (!visited.contains(nn)&&!tovisit.contains(nn)) {
-		    tovisit.add(nn);
-		} else {
-		    //2) Join point
-		    nodetolabel.put(nn,new Integer(labelindex++));
-		}
-	    }
-	}
+	Hashtable<FlatNode, Integer> nodetolabel=assignLabels(fm);
+
+	/* Check to see if we need to do a GC if this is a
+	 * multi-threaded program...*/
 
 	if (state.THREAD&&GENERATEPRECISEGC) {
 	    output.println("checkcollect(&"+localsprefix+");");
 	}
 	
-	//Do the actual code generation
-	tovisit=new HashSet();
-	visited=new HashSet();
+	/* Do the actual code generation */
+	FlatNode current_node=null;
+	HashSet tovisit=new HashSet();
+	HashSet visited=new HashSet();
 	tovisit.add(fm.getNext(0));
 	while(current_node!=null||!tovisit.isEmpty()) {
 	    if (current_node==null) {
@@ -1095,9 +1094,42 @@ public class BuildCode {
 	    } else throw new Error();
 	}
 
-
 	output.println("}\n\n");
     }
+
+    /** This method assigns labels to flatnodes */
+
+    private Hashtable<FlatNode, Integer> assignLabels(FlatMethod fm) {
+	HashSet tovisit=new HashSet();
+	HashSet visited=new HashSet();
+	int labelindex=0;
+	Hashtable<FlatNode, Integer> nodetolabel=new Hashtable<FlatNode, Integer>();
+	tovisit.add(fm.getNext(0));
+
+	/*Assign labels first.  A node needs a label if the previous
+	 * node has two exits or this node is a join point. */
+
+	while(!tovisit.isEmpty()) {
+	    FlatNode fn=(FlatNode)tovisit.iterator().next();
+	    tovisit.remove(fn);
+	    visited.add(fn);
+	    for(int i=0;i<fn.numNext();i++) {
+		FlatNode nn=fn.getNext(i);
+		if(i>0) {
+		    //1) Edge >1 of node
+		    nodetolabel.put(nn,new Integer(labelindex++));
+		}
+		if (!visited.contains(nn)&&!tovisit.contains(nn)) {
+		    tovisit.add(nn);
+		} else {
+		    //2) Join point
+		    nodetolabel.put(nn,new Integer(labelindex++));
+		}
+	    }
+	}
+	return nodetolabel;
+    }
+
 
     /** Generate text string that corresponds to the Temp td. */
     private String generateTemp(FlatMethod fm, TempDescriptor td) {
@@ -1462,7 +1494,7 @@ public class BuildCode {
     /** This method generates header information for the method or
      * task referenced by the Descriptor des. */
 
-    private void generateHeader(FlatMethod fm, Descriptor des, PrintWriter output) {
+    private void generateHeader(FlatMethod fm, LocalityBinding lb, Descriptor des, PrintWriter output) {
 	/* Print header */
 	ParamsObject objectparams=(ParamsObject)paramstable.get(des);
 	MethodDescriptor md=null;

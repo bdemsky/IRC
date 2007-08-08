@@ -15,6 +15,32 @@ public class LocalityBinding {
 	isatomic=atomic;
     }
 
+    private static String globalToString(Integer g) {
+	if (g==LocalityAnalysis.GLOBAL)
+	    return "G";
+	else if (g==LocalityAnalysis.LOCAL)
+	    return "L";
+	else if (g==LocalityAnalysis.EITHER)
+	    return "E";
+	else if (g==LocalityAnalysis.CONFLICT)
+	    return "C";
+	else throw new Error();
+    }
+    
+    public String getSignature() {
+	String st="_";
+	if (isatomic) {
+	    st+="A";
+	} else
+	    st+="N";
+	st+=globalToString(isglobalthis);
+	for(int i=0;i<isglobal.length;i++) {
+	    st+=globalToString(isglobal[i]);
+	}
+	st+="_";
+	return st;
+    }
+
     /* Use this for an explanation */
     public void setParent(LocalityBinding lb) {
 	parent=lb;
