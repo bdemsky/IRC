@@ -27,6 +27,7 @@ public class BuildCode {
     Virtual virtualcalls;
     TypeUtil typeutil;
     private int maxtaskparams=0;
+    private int maxcount=0;
     ClassDescriptor[] cdarray;
     TypeDescriptor[] arraytable;
    
@@ -59,31 +60,21 @@ public class BuildCode {
 	PrintWriter optionalheaders=null;
 
 	try {
-	    OutputStream str=new FileOutputStream(PREFIX+"structdefs.h");
-	    outstructs=new java.io.PrintWriter(str, true);
-	    str=new FileOutputStream(PREFIX+"methodheaders.h");
-	    outmethodheader=new java.io.PrintWriter(str, true);
-	    str=new FileOutputStream(PREFIX+"classdefs.h");
-	    outclassdefs=new java.io.PrintWriter(str, true);
-	    str=new FileOutputStream(PREFIX+"methods.c");
-	    outmethod=new java.io.PrintWriter(str, true);
-	    str=new FileOutputStream(PREFIX+"virtualtable.h");
-	    outvirtual=new java.io.PrintWriter(str, true);
+	    outstructs=new PrintWriter(new FileOutputStream(PREFIX+"structdefs.h"), true);
+	    outmethodheader=new PrintWriter(new FileOutputStream(PREFIX+"methodheaders.h"), true);
+	    outclassdefs=new PrintWriter(new FileOutputStream(PREFIX+"classdefs.h"), true);
+	    outmethod=new PrintWriter(new FileOutputStream(PREFIX+"methods.c"), true);
+	    outvirtual=new PrintWriter(new FileOutputStream(PREFIX+"virtualtable.h"), true);
 	    if (state.TASK) {
-		str=new FileOutputStream(PREFIX+"task.h");
-		outtask=new java.io.PrintWriter(str, true);
-		str=new FileOutputStream(PREFIX+"taskdefs.c");
-		outtaskdefs=new java.io.PrintWriter(str, true);
+		outtask=new PrintWriter(new FileOutputStream(PREFIX+"task.h"), true);
+		outtaskdefs=new PrintWriter(new FileOutputStream(PREFIX+"taskdefs.c"), true);
 		if (state.OPTIONAL){
-		    str=new FileOutputStream(PREFIX+"optionalarrays.c");
-		    outoptionalarrays=new java.io.PrintWriter(str, true);
-		    str=new FileOutputStream(PREFIX+"optionalstruct.h");
-		    optionalheaders=new java.io.PrintWriter(str, true);
+		    outoptionalarrays=new PrintWriter(new FileOutputStream(PREFIX+"optionalarrays.c"), true);
+		    optionalheaders=new PrintWriter(new FileOutputStream(PREFIX+"optionalstruct.h"), true);
 		} 
 	    }
 	    if (state.structfile!=null) {
-		str=new FileOutputStream(PREFIX+state.structfile+".struct");
-		outrepairstructs=new java.io.PrintWriter(str, true);
+		outrepairstructs=new PrintWriter(new FileOutputStream(PREFIX+state.structfile+".struct"), true);
 	    }
 	} catch (Exception e) {
 	    e.printStackTrace();
@@ -93,20 +84,191 @@ public class BuildCode {
 	/* Build the virtual dispatch tables */
 	buildVirtualTables(outvirtual);
 
-
 	/* Output includes */
-
 	outmethodheader.println("#ifndef METHODHEADERS_H");
 	outmethodheader.println("#define METHODHEADERS_H");
 	outmethodheader.println("#include \"structdefs.h\"");
 
+	/* Output Structures */
+	outputStructs(outstructs);
+
+	// Output the C class declarations
+	// These could mutually reference each other
+	outputClassDeclarations(outclassdefs);
+
+	/* Outputs task structures if this is a task program */
+	if (state.TASK)
+	    outputTaskTypes(outtask);
+
+	// Output function prototypes and structures for parameters
+	Iterator it=state.getClassSymbolTable().getDescriptorsIterator();
+	while(it.hasNext()) {
+	    ClassDescriptor cn=(ClassDescriptor)it.next();
+	    generateCallStructs(cn, outclassdefs, outstructs, outmethodheader);
+	}
+	outclassdefs.close();
+
+	if (state.TASK) {
+	    /* Map flags to integers */
+	    /* The runtime keeps track of flags using these integers */
+	    it=state.getClassSymbolTable().getDescriptorsIterator();
+	    while(it.hasNext()) {
+		ClassDescriptor cn=(ClassDescriptor)it.next();
+		mapFlags(cn);
+	    }
+	    /* Generate Tasks */
+	    generateTaskStructs(outstructs, outmethodheader);
+	}
+
+	/* Build the actual methods */
+	outputMethods(outmethod);
+
+	if (state.TASK) {
+	    outputTaskCode(outtaskdefs, outmethod);
+	    outtaskdefs.close();
+	} else if (state.main!=null) {
+	    /* Generate main method */
+	    outputMainMethod(outmethod);
+	}
+	outmethodheader.println("#endif");
+	outmethodheader.close();
+	outmethod.close();
+	
+	if (state.TASK)
+	    outstructs.println("#define MAXTASKPARAMS "+maxtaskparams);
+	outstructs.println("#endif");
+	outstructs.close();
+	
+	/* Generate information for task with optional parameters */
+	if (state.TASK&&state.OPTIONAL){
+	    generateOptionalArrays(outoptionalarrays, optionalheaders, state.getAnalysisResult(), state.getOptionalTaskDescriptors());
+	    outoptionalarrays.close();
+	} 
+
+	/* Output structure definitions for repair tool */
+	if (state.structfile!=null) {
+	    buildRepairStructs(outrepairstructs);
+	    outrepairstructs.close();
+	}
+    }
+
+    private void outputMainMethod(PrintWriter outmethod) {
+	outmethod.println("int main(int argc, const char *argv[]) {");
+	outmethod.println("  int i;");
+	if (GENERATEPRECISEGC) {
+	    outmethod.println("  struct ArrayObject * stringarray=allocate_newarray(NULL, STRINGARRAYTYPE, argc-1);");
+	} else {
+	    outmethod.println("  struct ArrayObject * stringarray=allocate_newarray(STRINGARRAYTYPE, argc-1);");
+	}
+	if (state.THREAD) {
+	    outmethod.println("initializethreads();");
+	}
+	outmethod.println("  for(i=1;i<argc;i++) {");
+	outmethod.println("    int length=strlen(argv[i]);");
+	if (GENERATEPRECISEGC) {
+	    outmethod.println("    struct ___String___ *newstring=NewString(NULL, argv[i], length);");
+	} else {
+	    outmethod.println("    struct ___String___ *newstring=NewString(argv[i], length);");
+	}
+	outmethod.println("    ((void **)(((char *)& stringarray->___length___)+sizeof(int)))[i-1]=newstring;");
+	outmethod.println("  }");
+	
+	
+	MethodDescriptor md=typeutil.getMain();
+	ClassDescriptor cd=typeutil.getMainClass();
+	
+	outmethod.println("   {");
+	if (GENERATEPRECISEGC) {
+	    outmethod.print("       struct "+cd.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_params __parameterlist__={");
+	    outmethod.println("1, NULL,"+"stringarray};");
+	    outmethod.println("     "+cd.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"(& __parameterlist__);");
+	} else
+	    outmethod.println("     "+cd.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"(stringarray);");
+	outmethod.println("   }");
+	
+	if (state.THREAD) {
+	    outmethod.println("pthread_mutex_lock(&gclistlock);");
+	    outmethod.println("threadcount--;");
+	    outmethod.println("pthread_cond_signal(&gccond);");
+	    outmethod.println("pthread_mutex_unlock(&gclistlock);");
+	    outmethod.println("pthread_exit(NULL);");
+	}
+	outmethod.println("}");
+    }
+
+    private void outputTaskCode(PrintWriter outtaskdefs, PrintWriter outmethod) {
+	/* Compile task based program */
+	outtaskdefs.println("#include \"task.h\"");
+	outtaskdefs.println("#include \"methodheaders.h\"");
+	Iterator taskit=state.getTaskSymbolTable().getDescriptorsIterator();
+	while(taskit.hasNext()) {
+	    TaskDescriptor td=(TaskDescriptor)taskit.next();
+	    FlatMethod fm=state.getMethodFlat(td);
+	    generateFlatMethod(fm, outmethod);
+	    generateTaskDescriptor(outtaskdefs, fm, td);
+	}
+	
+	//Output task descriptors
+	taskit=state.getTaskSymbolTable().getDescriptorsIterator();
+	outtaskdefs.println("struct taskdescriptor * taskarray[]= {");
+	boolean first=true;
+	while(taskit.hasNext()) {
+	    TaskDescriptor td=(TaskDescriptor)taskit.next();
+	    if (first)
+		first=false;
+	    else
+		outtaskdefs.println(",");
+	    outtaskdefs.print("&task_"+td.getSafeSymbol());
+	}
+	outtaskdefs.println("};");
+
+	outtaskdefs.println("int numtasks="+state.getTaskSymbolTable().getValueSet().size()+";");
+    }
+
+    private void outputMethods(PrintWriter outmethod) {
+	outmethod.println("#include \"methodheaders.h\"");
+	outmethod.println("#include \"virtualtable.h\"");
+	outmethod.println("#include <runtime.h>");
+	if (state.THREAD)
+	    outmethod.println("#include <thread.h>");
+	if (state.main!=null) {
+	    outmethod.println("#include <string.h>");	    
+	}
+	if (state.CONSCHECK) {
+	    outmethod.println("#include \"checkers.h\"");
+	}
+	//Store the sizes of classes & array elements
+	generateSizeArray(outmethod);
+	
+	//Store table of supertypes
+	generateSuperTypeTable(outmethod);
+
+	//Store the layout of classes
+	generateLayoutStructs(outmethod);
+
+	/* Generate code for methods */
+	Iterator classit=state.getClassSymbolTable().getDescriptorsIterator();
+	while(classit.hasNext()) {
+	    ClassDescriptor cn=(ClassDescriptor)classit.next();
+	    Iterator methodit=cn.getMethods();
+	    while(methodit.hasNext()) {
+		/* Classify parameters */
+		MethodDescriptor md=(MethodDescriptor)methodit.next();
+		FlatMethod fm=state.getMethodFlat(md);
+		if (!md.getModifiers().isNative())
+		    generateFlatMethod(fm,outmethod);
+	    }
+	}
+    }
+
+    private void outputStructs(PrintWriter outstructs) {
 	outstructs.println("#ifndef STRUCTDEFS_H");
 	outstructs.println("#define STRUCTDEFS_H");
 	outstructs.println("#include \"classdefs.h\"");
 
+	/* Output #defines that the runtime uses to determine type
+	 * numbers for various objects it needs */
 
-
-	/* Output types for short array and string */
 	outstructs.println("#define STRINGARRAYTYPE "+
 			   (state.getArrayNumber(
 						 (new TypeDescriptor(typeutil.getClass(TypeUtil.StringClass))).makeArray(state))+state.numClasses()));
@@ -133,226 +295,66 @@ public class BuildCode {
 	    outstructs.println("#define TAGARRAYTYPE "+
 			       (state.getArrayNumber(new TypeDescriptor(typeutil.getClass(TypeUtil.TagClass)).makeArray(state))+state.numClasses()));
 	}
-	
-	// Output the C class declarations
-	// These could mutually reference each other
+    }
+
+    private void outputClassDeclarations(PrintWriter outclassdefs) {
 	if (state.THREAD)
 	    outclassdefs.println("#include <pthread.h>");
-
 	outclassdefs.println("struct "+arraytype+";");
-
+	/* Start by declaring all structs */
 	Iterator it=state.getClassSymbolTable().getDescriptorsIterator();
 	while(it.hasNext()) {
 	    ClassDescriptor cn=(ClassDescriptor)it.next();
 	    outclassdefs.println("struct "+cn.getSafeSymbol()+";");
 	}
 	outclassdefs.println("");
-	{
-	    //Print out definition for array type
-	    outclassdefs.println("struct "+arraytype+" {");
-	    outclassdefs.println("  int type;");
-	    if (state.THREAD) {
-		outclassdefs.println("  pthread_t tid;");
-		outclassdefs.println("  void * lockentry;");
-		outclassdefs.println("  int lockcount;");
-	    }
-		
-	    if (state.TASK) {
-		outclassdefs.println("  int flag;");
-		outclassdefs.println("  void * flagptr;");
-		if(state.OPTIONAL) outclassdefs.println("  int failedstatus;");
-	    }
-	    printClassStruct(typeutil.getClass(TypeUtil.ObjectClass), outclassdefs);
-	    outclassdefs.println("  int ___length___;");
-	    outclassdefs.println("};\n");
-
-	    if (state.TASK) {
-	    //Print out definitions for task types
-		outtask.println("#ifndef _TASK_H");
-		outtask.println("#define _TASK_H");
-		outtask.println("struct parameterdescriptor {");
-		outtask.println("int type;");
-		outtask.println("int numberterms;");
-		outtask.println("int *intarray;");
-		outtask.println("void * queue;");
-		outtask.println("int numbertags;");
-		outtask.println("int *tagarray;");
-		outtask.println("};");
-
-		outtask.println("struct taskdescriptor {");
-		outtask.println("void * taskptr;");
-		outtask.println("int numParameters;");
-		outtask.println("int numTotal;");
-		outtask.println("struct parameterdescriptor **descriptorarray;");
-		outtask.println("char * name;");
-		outtask.println("};");
-		outtask.println("extern struct taskdescriptor * taskarray[];");
-		outtask.println("extern numtasks;");
-
-		outtask.println("#endif");
-	    }
+	//Print out definition for array type
+	outclassdefs.println("struct "+arraytype+" {");
+	outclassdefs.println("  int type;");
+	if (state.THREAD) {
+	    outclassdefs.println("  pthread_t tid;");
+	    outclassdefs.println("  void * lockentry;");
+	    outclassdefs.println("  int lockcount;");
 	}
-
-	// Output function prototypes and structures for parameters
-	it=state.getClassSymbolTable().getDescriptorsIterator();
-	while(it.hasNext()) {
-	    ClassDescriptor cn=(ClassDescriptor)it.next();
-	    generateCallStructs(cn, outclassdefs, outstructs, outmethodheader);
-	}
-
 	if (state.TASK) {
-	    /* Map flags to integers */
-	    it=state.getClassSymbolTable().getDescriptorsIterator();
-	    while(it.hasNext()) {
-		ClassDescriptor cn=(ClassDescriptor)it.next();
-		mapFlags(cn);
-	    }
-	    /* Generate Tasks */
-	    generateTaskStructs(outstructs, outmethodheader);
+	    outclassdefs.println("  int flag;");
+	    outclassdefs.println("  void * flagptr;");
+	    if(state.OPTIONAL) outclassdefs.println("  int failedstatus;");
 	}
-
-	outmethodheader.println("#endif");
-
-	outmethodheader.close();
-
-	/* Build the actual methods */
-	outmethod.println("#include \"methodheaders.h\"");
-	outmethod.println("#include \"virtualtable.h\"");
-	outmethod.println("#include <runtime.h>");
-	if (state.THREAD)
-	    outmethod.println("#include <thread.h>");
-	if (state.main!=null) {
-	    outmethod.println("#include <string.h>");	    
-	}
-
-	if (state.CONSCHECK) {
-	    outmethod.println("#include \"checkers.h\"");
-	}
+	printClassStruct(typeutil.getClass(TypeUtil.ObjectClass), outclassdefs);
+	
+	outclassdefs.println("  int ___length___;");
+	outclassdefs.println("};\n");
 	outclassdefs.println("extern int classsize[];");
 	outclassdefs.println("extern int hasflags[];");
 	outclassdefs.println("extern int * pointerarray[];");
 	outclassdefs.println("extern int supertypes[];");
-
-	//Store the sizes of classes & array elements
-	generateSizeArray(outmethod);
-	
-	//Store table of supertypes
-	generateSuperTypeTable(outmethod);
-
-	//Store the layout of classes
-	generateLayoutStructs(outmethod);
-
-	/* Generate code for methods */
-	Iterator classit=state.getClassSymbolTable().getDescriptorsIterator();
-	while(classit.hasNext()) {
-	    ClassDescriptor cn=(ClassDescriptor)classit.next();
-	    Iterator methodit=cn.getMethods();
-	    while(methodit.hasNext()) {
-		/* Classify parameters */
-		MethodDescriptor md=(MethodDescriptor)methodit.next();
-		FlatMethod fm=state.getMethodFlat(md);
-		if (!md.getModifiers().isNative())
-		    generateFlatMethod(fm,outmethod);
-	    }
-	}
-
-	if (state.TASK) {
-	    /* Compile task based program */
-	    outtaskdefs.println("#include \"task.h\"");
-	    outtaskdefs.println("#include \"methodheaders.h\"");
-	    Iterator taskit=state.getTaskSymbolTable().getDescriptorsIterator();
-	    while(taskit.hasNext()) {
-		TaskDescriptor td=(TaskDescriptor)taskit.next();
-		FlatMethod fm=state.getMethodFlat(td);
-		generateFlatMethod(fm, outmethod);
-		generateTaskDescriptor(outtaskdefs, fm, td);
-	    }
-
-	    {
-		//Output task descriptors
-		taskit=state.getTaskSymbolTable().getDescriptorsIterator();
-		outtaskdefs.println("struct taskdescriptor * taskarray[]= {");
-		boolean first=true;
-		while(taskit.hasNext()) {
-		    TaskDescriptor td=(TaskDescriptor)taskit.next();
-		    if (first)
-			first=false;
-		    else
-			outtaskdefs.println(",");
-		    outtaskdefs.print("&task_"+td.getSafeSymbol());
-		}
-		outtaskdefs.println("};");
-	    }
-
-	    outtaskdefs.println("int numtasks="+state.getTaskSymbolTable().getValueSet().size()+";");
-
-	} else if (state.main!=null) {
-	    /* Generate main method */
-	    outmethod.println("int main(int argc, const char *argv[]) {");
-	    outmethod.println("  int i;");
-	    if (GENERATEPRECISEGC) {
-		outmethod.println("  struct ArrayObject * stringarray=allocate_newarray(NULL, STRINGARRAYTYPE, argc-1);");
-	    } else {
-		outmethod.println("  struct ArrayObject * stringarray=allocate_newarray(STRINGARRAYTYPE, argc-1);");
-	    }
-	    if (state.THREAD) {
-		outmethod.println("initializethreads();");
-	    }
-	    outmethod.println("  for(i=1;i<argc;i++) {");
-	    outmethod.println("    int length=strlen(argv[i]);");
-	    if (GENERATEPRECISEGC) {
-		outmethod.println("    struct ___String___ *newstring=NewString(NULL, argv[i], length);");
-	    } else {
-		outmethod.println("    struct ___String___ *newstring=NewString(argv[i], length);");
-	    }
-	    outmethod.println("    ((void **)(((char *)& stringarray->___length___)+sizeof(int)))[i-1]=newstring;");
-	    outmethod.println("  }");
-
-
-	    MethodDescriptor md=typeutil.getMain();
-	    ClassDescriptor cd=typeutil.getMainClass();
-
-	    outmethod.println("   {");
-	    if (GENERATEPRECISEGC) {
-		outmethod.print("       struct "+cd.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_params __parameterlist__={");
-		outmethod.println("1, NULL,"+"stringarray};");
-		outmethod.println("     "+cd.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"(& __parameterlist__);");
-	    } else
-		outmethod.println("     "+cd.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"(stringarray);");
-	    outmethod.println("   }");
-	    
-	    if (state.THREAD) {
-		outmethod.println("pthread_mutex_lock(&gclistlock);");
-		outmethod.println("threadcount--;");
-		outmethod.println("pthread_cond_signal(&gccond);");
-		outmethod.println("pthread_mutex_unlock(&gclistlock);");
-		outmethod.println("pthread_exit(NULL);");
-	    }
-	    outmethod.println("}");
-	}
-	if (state.TASK)
-	    outstructs.println("#define MAXTASKPARAMS "+maxtaskparams);
-
-	if (state.TASK&&state.OPTIONAL){
-	    generateOptionalArrays(outoptionalarrays, optionalheaders, state.getAnalysisResult(), state.getOptionalTaskDescriptors());
-	    outoptionalarrays.close();
-	} 
-
-
-	/* Output structure definitions for repair tool */
-	if (state.structfile!=null) {
-	    buildRepairStructs(outrepairstructs);
-	    outrepairstructs.close();
-	}
-	outstructs.println("#endif");
-
-	outstructs.close();
-	outmethod.close();
-
-	
     }
 
-    private int maxcount=0;
+    private void outputTaskTypes(PrintWriter outtask) {
+	//Print out definitions for task types
+	outtask.println("#ifndef _TASK_H");
+	outtask.println("#define _TASK_H");
+	outtask.println("struct parameterdescriptor {");
+	outtask.println("int type;");
+	outtask.println("int numberterms;");
+	outtask.println("int *intarray;");
+	outtask.println("void * queue;");
+	outtask.println("int numbertags;");
+	outtask.println("int *tagarray;");
+	outtask.println("};");
+	
+	outtask.println("struct taskdescriptor {");
+	outtask.println("void * taskptr;");
+	outtask.println("int numParameters;");
+	outtask.println("int numTotal;");
+	outtask.println("struct parameterdescriptor **descriptorarray;");
+	outtask.println("char * name;");
+	outtask.println("};");
+	outtask.println("extern struct taskdescriptor * taskarray[];");
+	outtask.println("extern numtasks;");
+	outtask.println("#endif");
+    }
 
     private void buildRepairStructs(PrintWriter outrepairstructs) {
 	Iterator classit=state.getClassSymbolTable().getDescriptorsIterator();
