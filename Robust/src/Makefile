@@ -1,4 +1,4 @@
-CLASSFILES= Main/Main.class Lex/BooleanLiteral.class			\
+CLASSFILES=Main/Main.class Lex/BooleanLiteral.class			\
 Lex/CharacterLiteral.class Lex/Comment.class				\
 Lex/DocumentationComment.class Lex/DoubleLiteral.class Lex/EOF.class	\
 Lex/EndOfLineComment.class Lex/EscapedUnicodeReader.class		\
@@ -15,10 +15,12 @@ IR/State.class IR/SymbolTable.class IR/TagDescriptor.class		\
 IR/TagVarDescriptor.class IR/TaskDescriptor.class			\
 IR/TypeDescriptor.class IR/TypeUtil.class IR/VarDescriptor.class	\
 IR/Virtual.class IR/Flat/BuildCode.class IR/Flat/BuildFlat.class	\
-IR/Flat/FKind.class IR/Flat/FlatBackEdge.class IR/Flat/FlatCall.class	\
-IR/Flat/FlatCastNode.class IR/Flat/FlatCheckNode.class			\
-IR/Flat/FlatCondBranch.class IR/Flat/FlatElementNode.class		\
-IR/Flat/FlatFieldNode.class IR/Flat/FlatFlagActionNode.class		\
+IR/Flat/FKind.class IR/Flat/FlatAtomicEnterNode.class			\
+IR/Flat/FlatAtomicExitNode.class IR/Flat/FlatBackEdge.class		\
+IR/Flat/FlatCall.class IR/Flat/FlatCastNode.class			\
+IR/Flat/FlatCheckNode.class IR/Flat/FlatCondBranch.class		\
+IR/Flat/FlatElementNode.class IR/Flat/FlatFieldNode.class		\
+IR/Flat/FlatFlagActionNode.class IR/Flat/FlatGlobalConvNode.class	\
 IR/Flat/FlatLiteralNode.class IR/Flat/FlatMethod.class			\
 IR/Flat/FlatNew.class IR/Flat/FlatNode.class IR/Flat/FlatNop.class	\
 IR/Flat/FlatOpNode.class IR/Flat/FlatReturnNode.class			\
@@ -27,17 +29,17 @@ IR/Flat/FlatTagDeclaration.class IR/Flat/NodePair.class			\
 IR/Flat/ParamsObject.class IR/Flat/TempDescriptor.class			\
 IR/Flat/TempFlagPair.class IR/Flat/TempObject.class			\
 IR/Flat/TempTagPair.class IR/Tree/ArrayAccessNode.class			\
-IR/Tree/AssignmentNode.class IR/Tree/BlockExpressionNode.class		\
-IR/Tree/BlockNode.class IR/Tree/BlockStatementNode.class		\
-IR/Tree/BuildIR.class IR/Tree/CastNode.class				\
-IR/Tree/ConstraintCheck.class IR/Tree/CreateObjectNode.class		\
-IR/Tree/DNFFlag.class IR/Tree/DNFFlagAtom.class				\
-IR/Tree/DeclarationNode.class IR/Tree/ExpressionNode.class		\
-IR/Tree/FieldAccessNode.class IR/Tree/FlagEffect.class			\
-IR/Tree/FlagEffects.class IR/Tree/FlagExpressionNode.class		\
-IR/Tree/FlagNode.class IR/Tree/FlagOpNode.class				\
-IR/Tree/IfStatementNode.class IR/Tree/Kind.class			\
-IR/Tree/LiteralNode.class IR/Tree/LoopNode.class			\
+IR/Tree/AssignmentNode.class IR/Tree/AtomicNode.class			\
+IR/Tree/BlockExpressionNode.class IR/Tree/BlockNode.class		\
+IR/Tree/BlockStatementNode.class IR/Tree/BuildIR.class			\
+IR/Tree/CastNode.class IR/Tree/ConstraintCheck.class			\
+IR/Tree/CreateObjectNode.class IR/Tree/DNFFlag.class			\
+IR/Tree/DNFFlagAtom.class IR/Tree/DeclarationNode.class			\
+IR/Tree/ExpressionNode.class IR/Tree/FieldAccessNode.class		\
+IR/Tree/FlagEffect.class IR/Tree/FlagEffects.class			\
+IR/Tree/FlagExpressionNode.class IR/Tree/FlagNode.class			\
+IR/Tree/FlagOpNode.class IR/Tree/IfStatementNode.class			\
+IR/Tree/Kind.class IR/Tree/LiteralNode.class IR/Tree/LoopNode.class	\
 IR/Tree/MethodInvokeNode.class IR/Tree/Modifiers.class			\
 IR/Tree/NameNode.class IR/Tree/OpNode.class IR/Tree/ParseNode.class	\
 IR/Tree/ParseNodeDOTVisitor.class IR/Tree/ParseNodeVector.class		\
@@ -45,23 +47,36 @@ IR/Tree/ReturnNode.class IR/Tree/SemanticCheck.class			\
 IR/Tree/SubBlockNode.class IR/Tree/TagDeclarationNode.class		\
 IR/Tree/TagEffect.class IR/Tree/TagExpressionList.class			\
 IR/Tree/TaskExitNode.class IR/Tree/TreeNode.class			\
-IR/Tree/Walkable.class Analysis/TaskStateAnalysis/FEdge.class		\
-Analysis/TaskStateAnalysis/FlagState.class				\
+IR/Tree/Walkable.class Analysis/CallGraph/CallGraph.class		\
+Analysis/Locality/GenerateConversions.class				\
+Analysis/Locality/LocalityAnalysis.class				\
+Analysis/Locality/LocalityBinding.class					\
+Analysis/Locality/TempNodePair.class					\
 Analysis/TaskStateAnalysis/Allocations.class				\
+Analysis/TaskStateAnalysis/EGEdge.class					\
+Analysis/TaskStateAnalysis/EGTaskNode.class				\
+Analysis/TaskStateAnalysis/ExecutionGraph.class				\
+Analysis/TaskStateAnalysis/FEdge.class					\
+Analysis/TaskStateAnalysis/FlagState.class				\
+Analysis/TaskStateAnalysis/GarbageAnalysis.class			\
+Analysis/TaskStateAnalysis/OptionalTaskDescriptor.class			\
+Analysis/TaskStateAnalysis/Predicate.class				\
+Analysis/TaskStateAnalysis/SafetyAnalysis.class				\
 Analysis/TaskStateAnalysis/TEdge.class					\
 Analysis/TaskStateAnalysis/TagAnalysis.class				\
 Analysis/TaskStateAnalysis/TagBinding.class				\
 Analysis/TaskStateAnalysis/TaskAnalysis.class				\
-Analysis/TaskStateAnalysis/TaskNode.class				\
+Analysis/TaskStateAnalysis/TaskEdges.class				\
 Analysis/TaskStateAnalysis/TaskGraph.class				\
-Analysis/TaskStateAnalysis/GarbageAnalysis.class			\
-Analysis/CallGraph/CallGraph.class Util/Edge.class			\
-Util/GraphNode.class Util/Relation.class Util/Namer.class		\
-Interface/WebInterface.class Interface/HTTPHeader.class			\
-Interface/JhttpWorker.class Interface/HTTPResponse.class		\
-Interface/LogFile.class Interface/HTTPServices.class			\
-Interface/Pair.class Interface/HashStrings.class			\
-Interface/JhttpServer.class
+Analysis/TaskStateAnalysis/TaskNode.class				\
+Analysis/TaskStateAnalysis/TaskNodeNamer.class Util/Edge.class		\
+Util/GraphNode.class Util/Namer.class Util/Relation.class		\
+Interface/HTTPHeader.class Interface/HTTPResponse.class			\
+Interface/HTTPServices.class Interface/HashStrings.class		\
+Interface/JhttpServer.class Interface/JhttpWorker.class			\
+Interface/LogFile.class Interface/Pair.class				\
+Interface/WebInterface.class
+
 
 
 

@@ -654,7 +654,14 @@ public class BuildCode {
 	    }
 	}
     }
-    
+
+    /** This method outputs the following information about classes
+     * and arrays:
+     * (1) For classes, what are the locations of pointers.
+     * (2) For arrays, does the array contain pointers or primitives.
+     * (3) For classes, does the class contain flags.
+     */
+
     private void generateLayoutStructs(PrintWriter output) {
 	Iterator it=state.getClassSymbolTable().getDescriptorsIterator();
 	while(it.hasNext()) {
@@ -954,7 +961,7 @@ public class BuildCode {
    	}
     }
 
-    /** Generate code for flatmethod fm. */
+    /** Generate code for FlatMethod fm. */
 
     private void generateFlatMethod(FlatMethod fm, PrintWriter output) {
 	MethodDescriptor md=fm.getMethod();
@@ -1159,7 +1166,6 @@ public class BuildCode {
 	throw new Error();
 
     }
-
     
     public void generateFlatAtomicEnterNode(FlatMethod fm,  FlatAtomicEnterNode faen, PrintWriter output) {
     }
@@ -1168,7 +1174,6 @@ public class BuildCode {
     }
 
     private void generateFlatCheckNode(FlatMethod fm,  FlatCheckNode fcn, PrintWriter output) {
-
 	if (state.CONSCHECK) {
 	    String specname=fcn.getSpec();
 	    String varname="repairstate___";
@@ -1188,7 +1193,6 @@ public class BuildCode {
 	    output.println("free"+specname+"_state("+varname+");");
 	    output.println("abort_task();");
 	    output.println("}");
-
 	    output.println("}");
 	}
     }
@@ -1432,7 +1436,6 @@ public class BuildCode {
     }
 
     private void generateFlatReturnNode(FlatMethod fm, FlatReturnNode frn, PrintWriter output) {
-	
 	if (frn.getReturnTemp()!=null)
 	    output.println("return "+generateTemp(fm, frn.getReturnTemp())+";");
 	else
@@ -1442,6 +1445,9 @@ public class BuildCode {
     private void generateFlatCondBranch(FlatMethod fm, FlatCondBranch fcb, String label, PrintWriter output) {
 	output.println("if (!"+generateTemp(fm, fcb.getTest())+") goto "+label+";");
     }
+
+    /** This method generates header information for the method or
+     * task referenced by the Descriptor des. */
 
     private void generateHeader(FlatMethod fm, Descriptor des, PrintWriter output) {
 	/* Print header */
