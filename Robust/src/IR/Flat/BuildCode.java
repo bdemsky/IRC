@@ -96,10 +96,6 @@ public class BuildCode {
 	// These could mutually reference each other
 	outputClassDeclarations(outclassdefs);
 
-	/* Outputs task structures if this is a task program */
-	if (state.TASK)
-	    outputTaskTypes(outtask);
-
 	// Output function prototypes and structures for parameters
 	Iterator it=state.getClassSymbolTable().getDescriptorsIterator();
 	while(it.hasNext()) {
@@ -118,26 +114,25 @@ public class BuildCode {
 	    }
 	    /* Generate Tasks */
 	    generateTaskStructs(outstructs, outmethodheader);
+
+	    /* Outputs generic task structures if this is a task
+	       program */
+	    outputTaskTypes(outtask);
 	}
 
 	/* Build the actual methods */
 	outputMethods(outmethod);
 
 	if (state.TASK) {
+	    /* Output code for tasks */
 	    outputTaskCode(outtaskdefs, outmethod);
 	    outtaskdefs.close();
+	    /* Record maximum number of task parameters */
+	    outstructs.println("#define MAXTASKPARAMS "+maxtaskparams);
 	} else if (state.main!=null) {
 	    /* Generate main method */
 	    outputMainMethod(outmethod);
 	}
-	outmethodheader.println("#endif");
-	outmethodheader.close();
-	outmethod.close();
-	
-	if (state.TASK)
-	    outstructs.println("#define MAXTASKPARAMS "+maxtaskparams);
-	outstructs.println("#endif");
-	outstructs.close();
 	
 	/* Generate information for task with optional parameters */
 	if (state.TASK&&state.OPTIONAL){
@@ -150,7 +145,18 @@ public class BuildCode {
 	    buildRepairStructs(outrepairstructs);
 	    outrepairstructs.close();
 	}
+
+	/* Close files */
+	outmethodheader.println("#endif");
+	outmethodheader.close();
+	outmethod.close();
+	outstructs.println("#endif");
+	outstructs.close();
     }
+
+    /* This code just generates the main C method for java programs.
+     * The main C method packs up the arguments into a string array
+     * and passes it to the java main method. */
 
     private void outputMainMethod(PrintWriter outmethod) {
 	outmethod.println("int main(int argc, const char *argv[]) {");
@@ -196,6 +202,8 @@ public class BuildCode {
 	outmethod.println("}");
     }
 
+    /* This method outputs code for each task. */
+
     private void outputTaskCode(PrintWriter outtaskdefs, PrintWriter outmethod) {
 	/* Compile task based program */
 	outtaskdefs.println("#include \"task.h\"");
@@ -224,6 +232,11 @@ public class BuildCode {
 
 	outtaskdefs.println("int numtasks="+state.getTaskSymbolTable().getValueSet().size()+";");
     }
+
+    /* This method outputs most of the methods.c file.  This includes
+     * some standard includes and then an array with the sizes of
+     * objets and array that stores supertype and then the code for
+     * the Java methods.. */
 
     private void outputMethods(PrintWriter outmethod) {
 	outmethod.println("#include \"methodheaders.h\"");
@@ -331,8 +344,9 @@ public class BuildCode {
 	outclassdefs.println("extern int supertypes[];");
     }
 
+    /** Prints out definitions for generic task structures */
+
     private void outputTaskTypes(PrintWriter outtask) {
-	//Print out definitions for task types
 	outtask.println("#ifndef _TASK_H");
 	outtask.println("#define _TASK_H");
 	outtask.println("struct parameterdescriptor {");
@@ -355,6 +369,7 @@ public class BuildCode {
 	outtask.println("extern numtasks;");
 	outtask.println("#endif");
     }
+
 
     private void buildRepairStructs(PrintWriter outrepairstructs) {
 	Iterator classit=state.getClassSymbolTable().getDescriptorsIterator();
@@ -386,7 +401,6 @@ public class BuildCode {
 	    */
 	    outrepairstructs.println("}\n");
 	}
-
     }
 
     private void printRepairStruct(ClassDescriptor cn, PrintWriter output) {
@@ -423,7 +437,6 @@ public class BuildCode {
 		output.println("0x0, 0x0 };");
 		dnfterms=1;
 	    } else {
-
 		DNFFlag dflag=param_flag.getDNF();
 		dnfterms=dflag.size();
 		
