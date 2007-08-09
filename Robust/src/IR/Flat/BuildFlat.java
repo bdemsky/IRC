@@ -102,11 +102,18 @@ public class BuildFlat {
 	}
     }
 
+    FlatAtomicEnterNode curran=null;
+
     private void flattenClass(ClassDescriptor cn) {
 	Iterator methodit=cn.getMethods();
 	while(methodit.hasNext()) {
 	    currmd=(MethodDescriptor)methodit.next();
 	    BlockNode bn=state.getMethodBody(currmd);
+
+	    if (state.DSM&&currmd.getModifiers().isAtomic()) {
+		curran=new FlatAtomicEnterNode();
+	    } else
+		curran=null;
 	    NodePair np=flattenBlockNode(bn);
 	    FlatNode fn=np.getBegin();
 	    if (state.THREAD&&currmd.getModifiers().isSynchronized()) {
@@ -123,11 +130,10 @@ public class BuildFlat {
 		    fcunlock.addNext(rnflat);
 		}
 	    } else if (state.DSM&&currmd.getModifiers().isAtomic()) {
-		FlatAtomicEnterNode an=new FlatAtomicEnterNode();
-		an.addNext(fn);
-		fn=an;
+		curran.addNext(fn);
+		fn=curran;
 		if (np.getEnd().kind()!=FKind.FlatReturnNode) {
-		    FlatAtomicExitNode aen=new FlatAtomicExitNode();
+		    FlatAtomicExitNode aen=new FlatAtomicExitNode(curran);
 		    np.getEnd().addNext(aen);
 		    FlatReturnNode rnflat=new FlatReturnNode(null);
 		    aen.addNext(rnflat);
@@ -858,8 +864,13 @@ public class BuildFlat {
 	    MethodDescriptor memd=(MethodDescriptor)typeutil.getClass("Object").getMethodTable().get("MonitorExit");
 	    TempDescriptor thistd=getTempforVar(currmd.getThis());
 	    FlatCall fc=new FlatCall(memd, null, thistd, new TempDescriptor[0]);
-	    fc.addNext(rnflat);
+	    fc.addNext(ln);
 	    ln=fc;
+	}
+	if (state.DSM&&currmd.getModifiers().isAtomic()) {
+	    FlatAtomicExitNode faen=new FlatAtomicExitNode(curran);
+	    faen.addNext(ln);
+	    ln=faen;
 	}
 
 	if (cond!=null) {
@@ -913,7 +924,7 @@ public class BuildFlat {
     private NodePair flattenAtomicNode(AtomicNode sbn) {
 	NodePair np=flattenBlockNode(sbn.getBlockNode());
 	FlatAtomicEnterNode faen=new FlatAtomicEnterNode();
-	FlatAtomicExitNode faexn=new FlatAtomicExitNode();
+	FlatAtomicExitNode faexn=new FlatAtomicExitNode(faen);
 	faen.addNext(np.getBegin());
 	np.getEnd().addNext(faexn);
 	return new NodePair(faen, faexn);

@@ -2,7 +2,13 @@ package IR.Flat;
 import java.util.Vector;
 
 public class FlatAtomicExitNode extends FlatNode {
-    public FlatAtomicExitNode() {
+    FlatAtomicEnterNode faen;
+    public FlatAtomicExitNode(FlatAtomicEnterNode faen) {
+	this.faen=faen;
+    }
+
+    public FlatAtomicEnterNode getAtomicEnter() {
+	return faen;
     }
 
     public String toString() {

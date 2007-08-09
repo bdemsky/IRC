@@ -23,6 +23,13 @@ public class TempDescriptor extends Descriptor {
 	this.type=type;
 	tag=td;
     }
+
+    public TempDescriptor createNew() {
+	if (tag==null)
+	    return new TempDescriptor(name, type);
+	else
+	    return new TempDescriptor(name, type, tag);
+    }
     
     public static TempDescriptor tempFactory() {
 	return new TempDescriptor("temp_"+currentid);

@@ -74,6 +74,16 @@ public class LocalityAnalysis {
 	return tempstosave.get(lb);
     }
 
+    public Set<TempDescriptor> getTempSet(LocalityBinding lb) {
+	HashSet<TempDescriptor> set=new HashSet<TempDescriptor>();
+	Hashtable<FlatAtomicEnterNode, Set<TempDescriptor>> table=getTemps(lb);
+	for(Iterator<FlatAtomicEnterNode> faenit=table.keySet().iterator();faenit.hasNext();) {
+	    FlatAtomicEnterNode faen=faenit.next();
+	    set.addAll(table.get(faen));
+	}
+	return set;
+    }
+
     private void doAnalysis() {
 	computeLocalityBindings();
 	computeTempstoSave();
@@ -150,6 +160,8 @@ public class LocalityAnalysis {
 	    switch(fn.kind()) {
 	    case FKind.FlatAtomicEnterNode:
 		processAtomicEnterNode((FlatAtomicEnterNode)fn, atomictable);
+		if (!lb.isAtomic())
+		    lb.setHasAtomic();
 		break;
 	    case FKind.FlatAtomicExitNode:
 		processAtomicExitNode((FlatAtomicExitNode)fn, atomictable);

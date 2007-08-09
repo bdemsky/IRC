@@ -8,11 +8,20 @@ public class LocalityBinding {
     private Integer isglobalreturn;
     private Integer isglobalthis;
     private LocalityBinding parent;
+    private boolean hasatomic;
 
     public LocalityBinding(MethodDescriptor md, boolean atomic) {
 	this.md=md;
 	isglobal=new Integer[md.numParameters()];
 	isatomic=atomic;
+    }
+
+    public void setHasAtomic() {
+	hasatomic=true;
+    }
+
+    public boolean getHasAtomic() {
+	return hasatomic;
     }
 
     private static String globalToString(Integer g) {

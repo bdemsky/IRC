@@ -33,6 +33,7 @@ public class BuildCode {
     ClassDescriptor[] cdarray;
     TypeDescriptor[] arraytable;
     LocalityAnalysis locality;
+    Hashtable<TempDescriptor, TempDescriptor> backuptable;
 
     public BuildCode(State st, Hashtable temptovar, TypeUtil typeutil) {
 	state=st;
@@ -48,6 +49,7 @@ public class BuildCode {
     public BuildCode(State st, Hashtable temptovar, TypeUtil typeutil, LocalityAnalysis locality) {
 	this(st, temptovar, typeutil);
 	this.locality=locality;
+	this.backuptable=new Hashtable<TempDescriptor, TempDescriptor>();
     }
 
     /** The buildCode method outputs C code for all the methods.  The Flat
@@ -642,11 +644,12 @@ public class BuildCode {
      * These objects tell the compiler which temps need to be
      * allocated.  */
 
-    private void generateTempStructs(FlatMethod fm) {
+    private void generateTempStructs(FlatMethod fm, LocalityBinding lb) {
 	MethodDescriptor md=fm.getMethod();
 	TaskDescriptor task=fm.getTask();
-
+	Set<TempDescriptor> saveset=state.DSM?locality.getTempSet(lb):null;
 	ParamsObject objectparams=md!=null?new ParamsObject(md,tag++):new ParamsObject(task, tag++);
+
 	if (md!=null)
 	    paramstable.put(md, objectparams);
 	else
@@ -659,6 +662,9 @@ public class BuildCode {
 		objectparams.addPtr(temp);
 	    else
 		objectparams.addPrim(temp);
+	    if(state.DSM&&saveset.contains(temp)) {
+		backuptable.put(temp, temp.createNew());
+	    }
 	}
 
 	for(int i=0;i<fm.numTags();i++) {
@@ -685,8 +691,22 @@ public class BuildCode {
 		    objecttemps.addPtr(temp);
 		else
 		    objecttemps.addPrim(temp);
+		if(state.DSM&&saveset.contains(temp)&&
+		   !backuptable.containsKey(temp))
+		    backuptable.put(temp, temp.createNew());
 	    }
 	}
+
+	/* Create backup temps */
+	if (state.DSM)
+	    for(Iterator<TempDescriptor> tmpit=backuptable.values().iterator();tmpit.hasNext();) {
+		TempDescriptor tmp=tmpit.next();
+		TypeDescriptor type=tmp.getType();
+		if ((type.isPtr()||type.isArray())&&GENERATEPRECISEGC)
+		    objecttemps.addPtr(tmp);
+		else
+		    objecttemps.addPrim(tmp);
+	    }
     }
 
     /** This method outputs the following information about classes
@@ -866,7 +886,7 @@ public class BuildCode {
 	    /* Classify parameters */
 	    MethodDescriptor md=(MethodDescriptor)methodit.next();
 	    FlatMethod fm=state.getMethodFlat(md);
-	    generateTempStructs(fm);
+	    generateTempStructs(fm, null);
 
 	    ParamsObject objectparams=(ParamsObject) paramstable.get(md);
 	    TempObject objecttemps=(TempObject) tempstable.get(md);
@@ -943,7 +963,7 @@ public class BuildCode {
 	    /* Classify parameters */
 	    TaskDescriptor task=(TaskDescriptor)taskit.next();
 	    FlatMethod fm=state.getMethodFlat(task);
-	    generateTempStructs(fm);
+	    generateTempStructs(fm, null);
 
 	    ParamsObject objectparams=(ParamsObject) paramstable.get(task);
 	    TempObject objecttemps=(TempObject) tempstable.get(task);
@@ -1004,9 +1024,7 @@ public class BuildCode {
        	ClassDescriptor cn=md!=null?md.getClassDesc():null;
 
 	ParamsObject objectparams=(ParamsObject)paramstable.get(md!=null?md:task);
-
 	generateHeader(fm, lb, md!=null?md:task,output);
-
 	TempObject objecttemp=(TempObject) tempstable.get(md!=null?md:task);
 
 	if (GENERATEPRECISEGC) {
@@ -1066,14 +1084,14 @@ public class BuildCode {
 	    }
 	    if (current_node.numNext()==0) {
 		output.print("   ");
-		generateFlatNode(fm, current_node, output);
+		generateFlatNode(fm, lb, current_node, output);
 		if (current_node.kind()!=FKind.FlatReturnNode) {
 		    output.println("   return;");
 		}
 		current_node=null;
 	    } else if(current_node.numNext()==1) {
 		output.print("   ");
-		generateFlatNode(fm, current_node, output);
+		generateFlatNode(fm, lb, current_node, output);
 		FlatNode nextnode=current_node.getNext(0);
 		if (visited.contains(nextnode)) {
 		    output.println("goto L"+nodetolabel.get(nextnode)+";");
@@ -1097,7 +1115,7 @@ public class BuildCode {
 	output.println("}\n\n");
     }
 
-    /** This method assigns labels to flatnodes */
+    /** This method assigns labels to FlatNodes */
 
     private Hashtable<FlatNode, Integer> assignLabels(FlatMethod fm) {
 	HashSet tovisit=new HashSet();
@@ -1131,7 +1149,7 @@ public class BuildCode {
     }
 
 
-    /** Generate text string that corresponds to the Temp td. */
+    /** Generate text string that corresponds to the TempDescriptor td. */
     private String generateTemp(FlatMethod fm, TempDescriptor td) {
 	MethodDescriptor md=fm.getMethod();
 	TaskDescriptor task=fm.getTask();
@@ -1151,13 +1169,13 @@ public class BuildCode {
 	throw new Error();
     }
 
-    private void generateFlatNode(FlatMethod fm, FlatNode fn, PrintWriter output) {
+    private void generateFlatNode(FlatMethod fm, LocalityBinding lb, FlatNode fn, PrintWriter output) {
 	switch(fn.kind()) {
 	case FKind.FlatAtomicEnterNode:
-	    generateFlatAtomicEnterNode(fm, (FlatAtomicEnterNode) fn, output);
+	    generateFlatAtomicEnterNode(fm, lb, (FlatAtomicEnterNode) fn, output);
 	    return;
 	case FKind.FlatAtomicExitNode:
-	    generateFlatAtomicExitNode(fm, (FlatAtomicExitNode) fn, output);
+	    generateFlatAtomicExitNode(fm, lb, (FlatAtomicExitNode) fn, output);
 	    return;
 	case FKind.FlatTagDeclaration:
 	    generateFlatTagDeclaration(fm, (FlatTagDeclaration) fn,output);
@@ -1212,10 +1230,37 @@ public class BuildCode {
 
     }
     
-    public void generateFlatAtomicEnterNode(FlatMethod fm,  FlatAtomicEnterNode faen, PrintWriter output) {
+    public void generateFlatAtomicEnterNode(FlatMethod fm,  LocalityBinding lb, FlatAtomicEnterNode faen, PrintWriter output) {
+	/* Check to see if we need to generate code for this atomic */
+	if (locality.getAtomic(lb).get(faen.getPrev(0)).intValue()>0)
+	    return;
+	/* Backup the temps. */
+	for(Iterator<TempDescriptor> tmpit=locality.getTemps(lb).get(faen).iterator();tmpit.hasNext();) {
+	    TempDescriptor tmp=tmpit.next();
+	    output.println(generateTemp(fm, backuptable.get(tmp))+"="+generateTemp(fm,tmp)+";");
+	}
+	output.println("goto transstart"+faen.getIdentifier()+";");
+
+	/******* Print code to abort transaction *******/
+	output.println("transabort"+faen.getIdentifier()+":");
+
+	/* Restore temps */
+	for(Iterator<TempDescriptor> tmpit=locality.getTemps(lb).get(faen).iterator();tmpit.hasNext();) {
+	    TempDescriptor tmp=tmpit.next();
+	    output.println(generateTemp(fm, tmp)+"="+generateTemp(fm,backuptable.get(tmp))+";");
+	}
+
+	/******* Tell the runtime to start the transaction *******/
+	
+	output.println("transstart"+faen.getIdentifier()+":");
+	output.println("trans=transStart();");
     }
 
-    public void generateFlatAtomicExitNode(FlatMethod fm,  FlatAtomicExitNode faen, PrintWriter output) {
+    public void generateFlatAtomicExitNode(FlatMethod fm,  LocalityBinding lb, FlatAtomicExitNode faen, PrintWriter output) {
+	/* Check to see if we need to generate code for this atomic */
+	if (locality.getAtomic(lb).get(faen).intValue()>0)
+	    return;
+
     }
 
     private void generateFlatCheckNode(FlatMethod fm,  FlatCheckNode fcn, PrintWriter output) {
@@ -1282,7 +1327,6 @@ public class BuildCode {
 	if (md.isStatic()||md.getReturnType()==null||singleCall(fc.getThis().getType().getClassDesc(),md)) {
 	    output.print(cn.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor());
 	} else {
-	    
 	    output.print("((");
 	    if (md.getReturnType().isClass()||md.getReturnType().isArray())
 		output.print("struct " + md.getReturnType().getSafeSymbol()+" * ");
