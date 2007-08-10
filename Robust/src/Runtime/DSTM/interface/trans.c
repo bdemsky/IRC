@@ -225,8 +225,7 @@ objheader_t *transCreateObj(transrecord_t *record, unsigned short type)
 	TYPE(tmp) = type;
 	tmp->version = 1;
 	tmp->rcount = 0; //? not sure how to handle this yet
-	tmp->status = 0;
-	tmp->status |= NEW;
+	STATUS(tmp) = NEW;
 	chashInsert(record->lookupTable, OID(tmp), tmp);
 	return tmp;
 }
@@ -767,7 +766,7 @@ void *handleLocalReq(void *threadarg) {
 			objnotfound++;
 		} else { /* If Obj found in machine (i.e. has not moved) */
 			/* Check if Obj is locked by any previous transaction */
-			if ((((objheader_t *)mobj)->status & LOCK) == LOCK) {
+			if (STATUS(((objheader_t *)mobj)) & LOCK) {
 				if (version == ((objheader_t *)mobj)->version) {      /* If not locked then match versions */ 
 					v_matchlock++;
 				} else {/* If versions don't match ...HARD ABORT */
@@ -778,7 +777,7 @@ void *handleLocalReq(void *threadarg) {
 					//return tdata->recvmsg[tdata->thread_id].rcv_status;  
 				}
 			} else {/* If Obj is not locked then lock object */
-				((objheader_t *)mobj)->status |= LOCK;
+				STATUS(((objheader_t *)mobj)) |= LOCK;
 				//TODO Remove this for Testing
 				randomdelay();
 
@@ -901,7 +900,7 @@ int transAbortProcess(void *modptr, unsigned int *objlocked, int numlocked, int 
 	/* Unlock objects that was locked due to this transaction */
 	for(i = 0; i< numlocked; i++) {
 		header = mhashSearch(objlocked[i]);// find the header address
-		((objheader_t *)header)->status &= ~(LOCK);
+		STATUS(((objheader_t *)header)) &= ~(LOCK);
 	}
 
 	/* Send ack to Coordinator */
@@ -941,7 +940,7 @@ int transComProcess(trans_commit_data_t *transinfo) {
 	/* Unlock locked objects */
 	for(i=0; i<transinfo->numlocked; i++) {
 		header = (objheader_t *) mhashSearch(transinfo->objlocked[i]);
-		header->status &= ~(LOCK);
+		STATUS(header) &= ~(LOCK);
 	}
 
 	//TODO Update location lookup table

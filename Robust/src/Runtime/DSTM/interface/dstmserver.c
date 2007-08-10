@@ -282,7 +282,7 @@ int processClientReq(fixed_data_t *fixed, trans_commit_data_t *transinfo,
 			/* Unlock objects that was locked due to this transaction */
 			for(i = 0; i< transinfo->numlocked; i++) {
 				header = mhashSearch(transinfo->objlocked[i]);// find the header address
-				((objheader_t *)header)->status &= ~(LOCK); 		
+				STATUS(((objheader_t *)header)) &= ~(LOCK); 		
 			}
 		
 			/* Send ack to Coordinator */
@@ -382,7 +382,7 @@ char handleTransReq(fixed_data_t *fixed, trans_commit_data_t *transinfo, unsigne
 			objnotfound++;
 		} else { /* If Obj found in machine (i.e. has not moved) */
 			/* Check if Obj is locked by any previous transaction */
-			if ((((objheader_t *)mobj)->status & LOCK) == LOCK) { 		
+			if ((STATUS(((objheader_t *)mobj)) & LOCK) == LOCK) { 		
 				if (version == ((objheader_t *)mobj)->version) {      /* If not locked then match versions */
 					v_matchlock++;
 				} else {/* If versions don't match ...HARD ABORT */
@@ -397,7 +397,7 @@ char handleTransReq(fixed_data_t *fixed, trans_commit_data_t *transinfo, unsigne
 					return control;
 				}
 			} else {/* If Obj is not locked then lock object */
-				((objheader_t *)mobj)->status |= LOCK;
+				STATUS(((objheader_t *)mobj)) |= LOCK;
 			       
 				/*TESTING Add random wait to make transactions run for a long time such that
 				 * we can test for soft abort case */
@@ -514,7 +514,7 @@ int transCommitProcess(trans_commit_data_t *transinfo, int acceptfd) {
 	/* Unlock locked objects */
 	for(i=0; i<transinfo->numlocked; i++) {
 		header = (objheader_t *) mhashSearch(transinfo->objlocked[i]);
-		header->status &= ~(LOCK);
+		STATUS(header) &= ~(LOCK);
 	}
 
 	//TODO Update location lookup table

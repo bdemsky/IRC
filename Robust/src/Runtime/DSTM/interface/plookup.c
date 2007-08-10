@@ -37,7 +37,7 @@ plistnode_t *pInsert(plistnode_t *pile, objheader_t *headeraddr, unsigned int mi
 	//Add oid into a machine that is a part of the pile linked list structure
 	while(tmp != NULL) {
 		if (tmp->mid == mid) {
-			if ((headeraddr->status & DIRTY) == 1) {
+			if (STATUS(headeraddr) & DIRTY) {
 				tmp->oidmod[tmp->nummod] = OID(headeraddr);
 				tmp->nummod = tmp->nummod + 1;
 				tmp->sum_bytes += sizeof(objheader_t) + classsize[TYPE(headeraddr)];
@@ -61,7 +61,7 @@ plistnode_t *pInsert(plistnode_t *pile, objheader_t *headeraddr, unsigned int mi
 			return NULL;
 		}
 		ptr->mid = mid;
-		if ((headeraddr->status & DIRTY) == 1) {
+		if (STATUS(headeraddr) & DIRTY) {
 			ptr->oidmod[ptr->nummod] = OID(headeraddr);
 			ptr->nummod = ptr->nummod + 1;
 			ptr->sum_bytes += sizeof(objheader_t) + classsize[TYPE(headeraddr)];
