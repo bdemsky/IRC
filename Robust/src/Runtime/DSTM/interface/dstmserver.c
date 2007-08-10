@@ -263,6 +263,7 @@ int processClientReq(fixed_data_t *fixed, trans_commit_data_t *transinfo,
 		printf("Handle Trans Req error %s, %d\n", __FILE__, __LINE__);
 		return 1;
 	}
+
 	/* Read new control message from Coordiator */
 	if((retval = recv((int)acceptfd, &control, sizeof(char), 0)) <= 0 ) {
 		perror("Error in receiving control message\n");
@@ -293,7 +294,6 @@ int processClientReq(fixed_data_t *fixed, trans_commit_data_t *transinfo,
 				return 1;
 			}
 			ptr = NULL;
-	//		return 0;
 			break;
 
 		case TRANS_COMMIT:
@@ -333,8 +333,7 @@ int processClientReq(fixed_data_t *fixed, trans_commit_data_t *transinfo,
 }
 
 /* This function increments counters while running a voting decision on all objects involved 
- * in TRANS_REQUEST */
-
+ * in TRANS_REQUEST and If a TRANS_DISAGREE sends the response immediately back to the coordinator */
 char handleTransReq(fixed_data_t *fixed, trans_commit_data_t *transinfo, unsigned int *listmid, char *objread, void *modptr, int acceptfd) {
 	int val, i = 0;
 	short version;
@@ -445,6 +444,7 @@ int decideCtrlMessage(fixed_data_t *fixed, trans_commit_data_t *transinfo, int *
 	/* Condition to send TRANS_AGREE */
 	if(*(v_matchnolock) == fixed->numread + fixed->nummod) {
 		control = TRANS_AGREE;
+		/* Send control message */
 		if((val = send(acceptfd, &control, sizeof(char), MSG_NOSIGNAL)) < sizeof(char)) {
 			perror("Error in sending control to Coordinator\n");
 			return 0;

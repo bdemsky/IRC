@@ -1,4 +1,5 @@
- #include "prelookup.h"
+/* LOCK THE ENTIRE HASH TABLE */
+#include "prelookup.h"
 
 prehashtable_t pflookup; //Global prefetch cache table
 

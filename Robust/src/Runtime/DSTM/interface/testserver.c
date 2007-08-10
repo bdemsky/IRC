@@ -6,7 +6,39 @@
 #include "ip.h"
 
 extern objstr_t *mainobjstore;
-int classsize[]={sizeof(int),sizeof(char),sizeof(short), sizeof(void *)};
+typedef struct testobj1 {
+	int x;
+	char z;
+} testobj1_t;
+
+typedef struct testobj2 {
+	char z[10];
+	char c;
+	testobj1_t *y;
+} testobj2_t;
+
+typedef struct testobj3 {
+	short p;
+	testobj1_t *q;
+	testobj2_t *r;
+} testobj3_t;
+
+typedef struct testobj4 {
+	int b;
+	void *q;
+	testobj3_t *a;
+} testobj4_t;
+
+typedef struct testobj5 {
+	testobj4_t *a;
+} testobj5_t;
+
+
+int classsize[]={sizeof(int),sizeof(char),sizeof(short), sizeof(void *), sizeof(testobj1_t), 
+	sizeof(testobj2_t), sizeof(testobj3_t), sizeof(testobj4_t), sizeof(testobj5_t)};	
+
+
+//int classsize[]={sizeof(int),sizeof(char),sizeof(short), sizeof(void *)};
 
 int test1(void);
 int test2(void);
@@ -184,7 +216,7 @@ int test3() {
 	lhashInsert(header->oid, mid);
 
 	//Inserting into lhashtable
-	mid = iptoMid("128.200.9.29"); //d-3.eecs.uci.edu
+	mid = iptoMid("128.195.175.70"); //dw-2.eecs.uci.edu
 	lhashInsert(20, mid);
 	lhashInsert(21, mid);
 	lhashInsert(22, mid);
@@ -198,9 +230,9 @@ int test3() {
 
 	//Check if machine dw-1 is up and running
 	checkServer(mid, "128.195.175.69");
-	mid = iptoMid("128.200.9.29");
-	//Check if machine d-3 is up and running
-	checkServer(mid, "128.200.9.29");
+	mid = iptoMid("128.195.175.70");
+	//Check if machine dw-2 is up and running
+	checkServer(mid, "128.195.175.70");
 
 	// Start Transaction	
 	myTrans = transStart();
@@ -239,6 +271,7 @@ int test4() {
 	objheader_t *h1, *h2, *h3, *h4;//h1,h2 from local ; h3 from d-1 , h-4 from d-2
 
 	dstmInit();	
+	transInit();
 	pthread_attr_init(&attr);
 	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
 
@@ -276,7 +309,7 @@ int test4() {
 	lhashInsert(header->oid, mid);
 
 	//Inserting into lhashtable
-	mid = iptoMid("128.200.9.29"); //d-3.eecs.uci.edu
+	mid = iptoMid("128.195.175.70"); //dw-2.eecs.uci.edu
 	lhashInsert(20, mid);
 	lhashInsert(21, mid);
 	lhashInsert(22, mid);
@@ -290,9 +323,9 @@ int test4() {
 	pthread_create(&thread_Listen, &attr, dstmListen, NULL);
 	//Check if machine dw-1 is up and running
 	checkServer(mid, "128.195.175.69");
-	mid = iptoMid("128.200.9.29");
-	//Check if machine d-3 is up and running
-	checkServer(mid, "128.200.9.29");
+	mid = iptoMid("128.195.175.70");
+	//Check if machine dw-2 is up and running
+	checkServer(mid, "128.195.175.70");
 
 	// Start Transaction	
 	myTrans = transStart();
@@ -310,7 +343,7 @@ int test4() {
 	if((h3 = transRead(myTrans, 31)) == NULL) {
 		printf("Object not found\n");
 	}
-	//read object 21(present in d-3 machine)
+	//read object 21(present in dw-2 machine)
 	if((h4 = transRead(myTrans, 21)) == NULL) {
 		printf("Object not found\n");
 	}

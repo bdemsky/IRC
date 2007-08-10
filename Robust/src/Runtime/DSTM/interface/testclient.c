@@ -7,8 +7,36 @@
 #define LISTEN_PORT 2156
 
 extern objstr_t *mainobjstore;
+typedef struct testobj1 {
+	int x;
+	char z;
+} testobj1_t;
 
-int classsize[]={sizeof(int),sizeof(char),sizeof(short), sizeof(void *)};	
+typedef struct testobj2 {
+	char z[10];
+	char c;
+	testobj1_t *y;
+} testobj2_t;
+
+typedef struct testobj3 {
+	short p;
+	testobj1_t *q;
+	testobj2_t *r;
+} testobj3_t;
+
+typedef struct testobj4 {
+	int b;
+	void *q;
+	testobj3_t *a;
+} testobj4_t;
+
+typedef struct testobj5 {
+	testobj4_t *a;
+} testobj5_t;
+
+
+int classsize[]={sizeof(int),sizeof(char),sizeof(short), sizeof(void *), sizeof(testobj1_t), 
+	sizeof(testobj2_t), sizeof(testobj3_t), sizeof(testobj4_t), sizeof(testobj5_t)};	
 
 unsigned int createObjects(transrecord_t *record) {
 	objheader_t *header, *tmp;
