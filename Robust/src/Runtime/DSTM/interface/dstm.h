@@ -67,6 +67,28 @@ typedef struct objheader {
 	char status;
 } objheader_t;
 
+#define OID(x) x->oid
+
+#define TYPE(x) x->type
+
+#define STATUS(x) x->status
+
+/*
+typedef struct objheader {
+	unsigned short version;
+	unsigned short rcount;
+} objheader_t;
+
+#define OID(x)\
+        ((struct ___Object___ *)((unsigned int) x + sizeof(objheader_t)))->___nextobject___
+
+#define STATUS(x)\
+        ((struct ___Object___ *)((unsigned int) x + sizeof(objheader_t)))->___localcopy___
+
+#define TYPE(x)\
+        ((struct ___Object___ *)((unsigned int) x + sizeof(objheader_t)))->type
+*/
+
 typedef struct objstr {
 	unsigned int size; //this many bytes are allocated after this header
 	void *top;

@@ -166,19 +166,19 @@ objheader_t *transRead(transrecord_t *record, unsigned int oid)
 	} else if ((objheader = (objheader_t *) mhashSearch(oid)) != NULL) {
 		/* Look up in machine lookup table  and copy  into cache*/
 		tmp = mhashSearch(oid);
-		size = sizeof(objheader_t)+classsize[tmp->type];
+		size = sizeof(objheader_t)+classsize[TYPE(tmp)];
 		objcopy = objstrAlloc(record->cache, size);
 		memcpy(objcopy, (void *)objheader, size);
 		/* Insert into cache's lookup table */
-		chashInsert(record->lookupTable, objheader->oid, objcopy); 
+		chashInsert(record->lookupTable, OID(objheader), objcopy); 
 		return(objcopy);
 	} else if((tmp = (objheader_t *) prehashSearch(oid)) != NULL) { /* Look up in prefetch cache */
 		found = 1;
-		size = sizeof(objheader_t)+classsize[tmp->type];
+		size = sizeof(objheader_t)+classsize[TYPE(tmp)];
 		objcopy = objstrAlloc(record->cache, size);
 		memcpy(objcopy, (void *)tmp, size);
 		/* Insert into cache's lookup table */
-		chashInsert(record->lookupTable, tmp->oid, objcopy); 
+		chashInsert(record->lookupTable, OID(tmp), objcopy); 
 		return(objcopy);
 	} else { /* If not found anywhere, then block until object appears in prefetch cache */
 		pthread_mutex_lock(&pflookup.lock);
@@ -189,11 +189,11 @@ objheader_t *transRead(transrecord_t *record, unsigned int oid)
 				/* Check Prefetch cache again */
 				if((tmp = (objheader_t *) prehashSearch(oid)) != NULL) { /* Look up in prefetch cache */
 					found = 1;
-					size = sizeof(objheader_t)+classsize[tmp->type];
+					size = sizeof(objheader_t)+classsize[TYPE(tmp)];
 					objcopy = objstrAlloc(record->cache, size);
 					memcpy(objcopy, (void *)tmp, size);
 					/* Insert into cache's lookup table */
-					chashInsert(record->lookupTable, tmp->oid, objcopy); 
+					chashInsert(record->lookupTable, OID(tmp), objcopy); 
 					return(objcopy);
 				} else {
 					pthread_mutex_unlock(&pflookup.lock);
@@ -221,13 +221,13 @@ objheader_t *transRead(transrecord_t *record, unsigned int oid)
 objheader_t *transCreateObj(transrecord_t *record, unsigned short type)
 {
 	objheader_t *tmp = (objheader_t *) objstrAlloc(record->cache, (sizeof(objheader_t) + classsize[type]));
-	tmp->oid = getNewOID();
-	tmp->type = type;
+	OID(tmp) = getNewOID();
+	TYPE(tmp) = type;
 	tmp->version = 1;
 	tmp->rcount = 0; //? not sure how to handle this yet
 	tmp->status = 0;
 	tmp->status |= NEW;
-	chashInsert(record->lookupTable, tmp->oid, tmp);
+	chashInsert(record->lookupTable, OID(tmp), tmp);
 	return tmp;
 }
 
@@ -484,7 +484,7 @@ void *transRequest(void *threadarg) {
 	for(i = 0; i < tdata->buffer->f.nummod ; i++) {
 		int size;
 		headeraddr = chashSearch(tdata->rec->lookupTable, tdata->buffer->oidmod[i]);
-		size=sizeof(objheader_t)+classsize[headeraddr->type];
+		size=sizeof(objheader_t)+classsize[TYPE(headeraddr)];
 		if (send(sd, headeraddr, size, MSG_NOSIGNAL)  < size) {
 			perror("Error sending obj modified for thread\n");
 			return NULL;
@@ -750,11 +750,11 @@ void *handleLocalReq(void *threadarg) {
 			version = *((short *)(localtdata->tdata->buffer->objread + incr));
 		} else {//Objs modified
 			headptr = (objheader_t *) ptr;
-			oid = headptr->oid;
+			oid = OID(headptr);
 			oidmod[objmod] = oid;//Array containing modified oids
 			objmod++;
 			version = headptr->version;
-			ptr += sizeof(objheader_t) + classsize[headptr->type];
+			ptr += sizeof(objheader_t) + classsize[TYPE(headptr)];
 		}
 
 		/* Check if object is still present in the machine since the beginning of TRANS_REQUEST */
@@ -763,7 +763,7 @@ void *handleLocalReq(void *threadarg) {
 		if ((mobj = mhashSearch(oid)) == NULL) {/* Obj not found */
 			/* Save the oids not found and number of oids not found for later use */
 
-			oidnotfound[objnotfound] = ((objheader_t *)mobj)->oid;
+			oidnotfound[objnotfound] = OID(((objheader_t *)mobj));
 			objnotfound++;
 		} else { /* If Obj found in machine (i.e. has not moved) */
 			/* Check if Obj is locked by any previous transaction */
@@ -783,7 +783,7 @@ void *handleLocalReq(void *threadarg) {
 				randomdelay();
 
 				/* Save all object oids that are locked on this machine during this transaction request call */
-				oidlocked[objlocked] = ((objheader_t *)mobj)->oid;
+				oidlocked[objlocked] = OID(((objheader_t *)mobj));
 				objlocked++;
 				if (version == ((objheader_t *)mobj)->version) { /* Check if versions match */
 					v_matchnolock++;
@@ -896,7 +896,7 @@ int transAbortProcess(void *modptr, unsigned int *objlocked, int numlocked, int 
 	for(i = 0; i< nummod; i++) {
 		tmp_header = (objheader_t *)ptr;
 		tmp_header->rcount = 1;
-		ptr += sizeof(objheader_t) + classsize[tmp_header->type];
+		ptr += sizeof(objheader_t) + classsize[TYPE(tmp_header)];
 	}
 	/* Unlock objects that was locked due to this transaction */
 	for(i = 0; i< numlocked; i++) {
@@ -931,7 +931,7 @@ int transComProcess(trans_commit_data_t *transinfo) {
 		/* Change ptr address in mhash table */
 		mhashRemove(transinfo->objmod[i]);
 		mhashInsert(transinfo->objmod[i], (transinfo->modptr + offset));
-		offset += sizeof(objheader_t) + classsize[header->type];
+		offset += sizeof(objheader_t) + classsize[TYPE(header)];
 
 		/* Update object version number */
 		header = (objheader_t *) mhashSearch(transinfo->objmod[i]);

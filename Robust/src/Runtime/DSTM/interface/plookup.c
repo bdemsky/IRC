@@ -38,13 +38,13 @@ plistnode_t *pInsert(plistnode_t *pile, objheader_t *headeraddr, unsigned int mi
 	while(tmp != NULL) {
 		if (tmp->mid == mid) {
 			if ((headeraddr->status & DIRTY) == 1) {
-				tmp->oidmod[tmp->nummod] = headeraddr->oid;
+				tmp->oidmod[tmp->nummod] = OID(headeraddr);
 				tmp->nummod = tmp->nummod + 1;
-				tmp->sum_bytes += sizeof(objheader_t) + classsize[headeraddr->type];
+				tmp->sum_bytes += sizeof(objheader_t) + classsize[TYPE(headeraddr)];
 			} else {
-				tmp->oidread[tmp->numread] = headeraddr->oid;
+				tmp->oidread[tmp->numread] = OID(headeraddr);
 				offset = (sizeof(unsigned int) + sizeof(short)) * tmp->numread;
-				memcpy(tmp->objread + offset, &headeraddr->oid, sizeof(unsigned int));
+				*((unsigned int *)(tmp->objread + offset))=OID(headeraddr);
 				offset += sizeof(unsigned int);
 				memcpy(tmp->objread + offset, &headeraddr->version, sizeof(short));
 				tmp->numread = tmp->numread + 1;
@@ -62,12 +62,12 @@ plistnode_t *pInsert(plistnode_t *pile, objheader_t *headeraddr, unsigned int mi
 		}
 		ptr->mid = mid;
 		if ((headeraddr->status & DIRTY) == 1) {
-			ptr->oidmod[ptr->nummod] = headeraddr->oid;
+			ptr->oidmod[ptr->nummod] = OID(headeraddr);
 			ptr->nummod = ptr->nummod + 1;
-			ptr->sum_bytes += sizeof(objheader_t) + classsize[headeraddr->type];
+			ptr->sum_bytes += sizeof(objheader_t) + classsize[TYPE(headeraddr)];
 		} else {
-			ptr->oidread[ptr->numread] = headeraddr->oid;
-			memcpy(ptr->objread, &headeraddr->oid, sizeof(unsigned int));
+			ptr->oidread[ptr->numread] = OID(headeraddr);
+			*((unsigned int *)ptr->objread)=OID(headeraddr);
 			memcpy(ptr->objread + sizeof(unsigned int), &headeraddr->version, sizeof(short));
 			ptr->numread = ptr->numread + 1;
 		}

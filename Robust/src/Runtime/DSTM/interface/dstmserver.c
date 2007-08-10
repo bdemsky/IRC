@@ -120,7 +120,7 @@ void *dstmAccept(void *acceptfd)
 			}
 			srcObj = mhashSearch(oid);
 			h = (objheader_t *) srcObj;
-			size = sizeof(objheader_t) + sizeof(classsize[h->type]);
+			size = sizeof(objheader_t) + sizeof(classsize[TYPE(h)]);
 			if (h == NULL) {
 				ctrl = OBJECT_NOT_FOUND;
 				if(send((int)acceptfd, &ctrl, sizeof(char), MSG_NOSIGNAL) < sizeof(char)) {
@@ -277,7 +277,7 @@ int processClientReq(fixed_data_t *fixed, trans_commit_data_t *transinfo,
 			for(i = 0; i< fixed->nummod; i++) {
 				tmp_header = (objheader_t *)ptr;
 				tmp_header->rcount = 1;
-				ptr += sizeof(objheader_t) + classsize[tmp_header->type];
+				ptr += sizeof(objheader_t) + classsize[TYPE(tmp_header)];
 			}
 			/* Unlock objects that was locked due to this transaction */
 			for(i = 0; i< transinfo->numlocked; i++) {
@@ -366,18 +366,18 @@ char handleTransReq(fixed_data_t *fixed, trans_commit_data_t *transinfo, unsigne
 			version = *((short *)(objread + incr));
 		} else {//Objs modified
 			headptr = (objheader_t *) ptr;
-			oid = headptr->oid;
+			oid = OID(headptr);
 			oidmod[objmod] = oid;//Array containing modified oids
 			objmod++;
 			version = headptr->version;
-			ptr += sizeof(objheader_t) + classsize[headptr->type];
+			ptr += sizeof(objheader_t) + classsize[TYPE(headptr)];
 		}
 		
 		/* Check if object is still present in the machine since the beginning of TRANS_REQUEST */
 
 		if ((mobj = mhashSearch(oid)) == NULL) {/* Obj not found */
 			/* Save the oids not found and number of oids not found for later use */
-			//oidnotfound[objnotfound] = ((objheader_t *)mobj)->oid;
+			//oidnotfound[objnotfound] = OID(((objheader_t *)mobj));
 			oidnotfound[objnotfound] = oid;
 			objnotfound++;
 		} else { /* If Obj found in machine (i.e. has not moved) */
@@ -405,7 +405,7 @@ char handleTransReq(fixed_data_t *fixed, trans_commit_data_t *transinfo, unsigne
 				randomdelay();
 
 				/* Save all object oids that are locked on this machine during this transaction request call */
-				oidlocked[objlocked] = ((objheader_t *)mobj)->oid;
+				oidlocked[objlocked] = OID(((objheader_t *)mobj));
 				objlocked++;
 				if (version == ((objheader_t *)mobj)->version) { /* Check if versions match */
 					v_matchnolock++;
@@ -505,7 +505,7 @@ int transCommitProcess(trans_commit_data_t *transinfo, int acceptfd) {
 		printf("DEBUG -> removing object oid = %d\n", transinfo->objmod[i]);
 		mhashRemove(transinfo->objmod[i]);
 		mhashInsert(transinfo->objmod[i], (transinfo->modptr + offset));
-		offset += sizeof(objheader_t) + classsize[header->type];
+		offset += sizeof(objheader_t) + classsize[TYPE(header)];
 
 		/* Update object version number */
 		header = (objheader_t *) mhashSearch(transinfo->objmod[i]);
@@ -570,7 +570,7 @@ int prefetchReq(int acceptfd) {
 			/* send the oid, it's size, it's header and data */
 			header = (char *) mobj;
 			head = (objheader_t *) header; 
-			size = sizeof(objheader_t) + sizeof(classsize[head->type]);
+			size = sizeof(objheader_t) + sizeof(classsize[TYPE(head)]);
 			*(buffer + index) = OBJECT_FOUND;
 			index += sizeof(char);
 			memcpy(buffer+index, &oid, sizeof(unsigned int));
@@ -592,7 +592,7 @@ int prefetchReq(int acceptfd) {
 				} else {/* Obj Found */
 					/* send the oid, it's size, it's header and data */
 					head = (objheader_t *) header; 
-					size = sizeof(objheader_t) + sizeof(classsize[head->type]);
+					size = sizeof(objheader_t) + sizeof(classsize[TYPE(head)]);
 					*(buffer + index) = OBJECT_FOUND;
 					index += sizeof(char);
 					memcpy(buffer+index, &oid, sizeof(unsigned int));

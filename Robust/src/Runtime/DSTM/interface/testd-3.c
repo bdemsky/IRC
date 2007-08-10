@@ -32,19 +32,19 @@ int test1(void) {
 	record = transStart();
 	printf("DEBUG -> Init done\n");
 	h1 = transRead(record, 1);
-	printf("oid = %d\tsize = %d\n", h1->oid,classsize[h1->type]);
+	printf("oid = %d\tsize = %d\n", OID(h1),classsize[h1->type]);
 	h3 = transRead(record, 3);
-	printf("oid = %d\tsize = %d\n", h3->oid,classsize[h3->type]);
+	printf("oid = %d\tsize = %d\n", OID(h3),classsize[h3->type]);
 	h4 = transRead(record, 4);
-	printf("oid = %d\tsize = %d\n", h4->oid,classsize[h4->type]);
+	printf("oid = %d\tsize = %d\n", OID(h4),classsize[h4->type]);
 	h2 = transRead(record, 2);
-	printf("oid = %d\tsize = %d\n", h2->oid,classsize[h2->type]);
+	printf("oid = %d\tsize = %d\n", OID(h2),classsize[h2->type]);
 	h4 = transRead(record, 4);
-	printf("oid = %d\tsize = %d\n", h4->oid,classsize[h4->type]);
+	printf("oid = %d\tsize = %d\n", OID(h4),classsize[h4->type]);
 	h3 = transRead(record, 3);
-	printf("oid = %d\tsize = %d\n", h3->oid,classsize[h3->type]);
+	printf("oid = %d\tsize = %d\n", OID(h3),classsize[h3->type]);
 	h5 = transRead(record, 5);
-	printf("oid = %d\tsize = %d\n", h5->oid,classsize[h5->type]);
+	printf("oid = %d\tsize = %d\n", OID(h5),classsize[h5->type]);
 }
 
 int test2(void) {
@@ -63,17 +63,17 @@ int test2(void) {
 	lhashInsert(6,1);
 	printf("DEBUG -> Init done\n");
 	h1 = transRead(record, 1);
-	lhashInsert(h1->oid, 1);
+	lhashInsert(OID(h1), 1);
 	h2 = transRead(record, 2);
-	lhashInsert(h2->oid, 1);
+	lhashInsert(OID(h2), 1);
 	h3 = transRead(record, 3);
-	lhashInsert(h3->oid, 1);
+	lhashInsert(OID(h3), 1);
 	h4 = transRead(record, 4);
-	lhashInsert(h4->oid, 1);
+	lhashInsert(OID(h4), 1);
 	h5 = transRead(record, 5);
-	lhashInsert(h5->oid, 1);
+	lhashInsert(OID(h5), 1);
 	h6 = transRead(record, 6);
-	lhashInsert(h6->oid, 1);
+	lhashInsert(OID(h6), 1);
 	
 	transCommit(record);
 
@@ -96,41 +96,41 @@ int test2a(void) {
 	 //Create and Insert Oid 20
 	 size = sizeof(objheader_t) + classsize[2] ;
 	 header = (objheader_t *) objstrAlloc(mainobjstore, size);
-	 header->oid = 20;
+	 OID(header) = 20;
 	 header->type = 2;
 	 header->version = 1;
 	 header->rcount = 0; //? not sure how to handle this yet
 	 header->status = 0;
 	 header->status |= NEW;
-	 mhashInsert(header->oid, header);
+	 mhashInsert(OID(header), header);
 	 mid = iptoMid("128.200.9.29");
-	 lhashInsert(header->oid, mid);
+	 lhashInsert(OID(header), mid);
 
 	 //Create and Insert Oid 21
 	 size = sizeof(objheader_t) + classsize[1] ;
 	 header = (objheader_t *) objstrAlloc(mainobjstore, size);
-	 header->oid = 21;
+	 OID(header) = 21;
 	 header->type = 1;
 	 header->version = 1;
 	 header->rcount = 0; //? not sure how to handle this yet
 	 header->status = 0;
 	 header->status |= NEW;
-	 mhashInsert(header->oid, header);
+	 mhashInsert(OID(header), header);
 	 mid = iptoMid("128.200.9.29");
-	 lhashInsert(header->oid, mid);
+	 lhashInsert(OID(header), mid);
 
 	 //Create and Insert Oid 22
 	 size = sizeof(objheader_t) + classsize[3] ;
 	 header = (objheader_t *) objstrAlloc(mainobjstore, size);
-	 header->oid = 22;
+	 OID(header) = 22;
 	 header->type = 3;
 	 header->version = 1;
 	 header->rcount = 0; //? not sure how to handle this yet
 	 header->status = 0;
 	 header->status |= NEW;
-	 mhashInsert(header->oid, header);
+	 mhashInsert(OID(header), header);
 	 mid = iptoMid("128.200.9.29");
-	 lhashInsert(header->oid, mid);
+	 lhashInsert(OID(header), mid);
 
 	 //Inserting into lhashtable
 	 mid = iptoMid("128.195.175.69"); //dw-1.eecs.uci.edu
@@ -185,41 +185,41 @@ int test2b(void) {
 	//Create and Insert Oid 20
 	size = sizeof(objheader_t) + classsize[2] ;
 	header = (objheader_t *) objstrAlloc(mainobjstore, size);
-	header->oid = 20;
+	OID(header) = 20;
 	header->type = 2;
 	header->version = 1;
 	header->rcount = 0; //? not sure how to handle this yet
 	header->status = 0;
 	header->status |= NEW;
-	mhashInsert(header->oid, header);
+	mhashInsert(OID(header), header);
 	mid = iptoMid("128.200.9.29");
-	lhashInsert(header->oid, mid);
+	lhashInsert(OID(header), mid);
 
 	//Create and Insert Oid 21
 	size = sizeof(objheader_t) + classsize[1] ;
 	header = (objheader_t *) objstrAlloc(mainobjstore, size);
-	header->oid = 21;
+	OID(header) = 21;
 	header->type = 1;
 	header->version = 1;
 	header->rcount = 0; //? not sure how to handle this yet
 	header->status = 0;
 	header->status |= NEW;
-	mhashInsert(header->oid, header);
+	mhashInsert(OID(header), header);
 	mid = iptoMid("128.200.9.29");
-	lhashInsert(header->oid, mid);
+	lhashInsert(OID(header), mid);
 
 	//Create and Insert Oid 22
 	size = sizeof(objheader_t) + classsize[3] ;
 	header = (objheader_t *) objstrAlloc(mainobjstore, size);
-	header->oid = 22;
+	OID(header) = 22;
 	header->type = 3;
 	header->version = 1;
 	header->rcount = 0; //? not sure how to handle this yet
 	header->status = 0;
 	header->status |= NEW;
-	mhashInsert(header->oid, header);
+	mhashInsert(OID(header), header);
 	mid = iptoMid("128.200.9.29");
-	lhashInsert(header->oid, mid);
+	lhashInsert(OID(header), mid);
 
 	//Inserting into lhashtable
 	mid = iptoMid("128.195.175.69"); //dw-1.eecs.uci.edu
@@ -341,41 +341,41 @@ int test5(void) {
 	//Create and Insert Oid 20
 	size = sizeof(objheader_t) + classsize[2] ;
 	header = (objheader_t *) objstrAlloc(mainobjstore, size);
-	header->oid = 20;
+	OID(header) = 20;
 	header->type = 2;
 	header->version = 1;
 	header->rcount = 0; //? not sure how to handle this yet
 	header->status = 0;
 	header->status |= NEW;
-	mhashInsert(header->oid, header);
+	mhashInsert(OID(header), header);
 	mid = iptoMid("128.200.9.29");
-	lhashInsert(header->oid, mid);
+	lhashInsert(OID(header), mid);
 
 	//Create and Insert Oid 21
 	size = sizeof(objheader_t) + classsize[1] ;
 	header = (objheader_t *) objstrAlloc(mainobjstore, size);
-	header->oid = 21;
+	OID(header) = 21;
 	header->type = 1;
 	header->version = 1;
 	header->rcount = 0; //? not sure how to handle this yet
 	header->status = 0;
 	header->status |= NEW;
-	mhashInsert(header->oid, header);
+	mhashInsert(OID(header), header);
 	mid = iptoMid("128.200.9.29");
-	lhashInsert(header->oid, mid);
+	lhashInsert(OID(header), mid);
 
 	//Create and Insert Oid 22
 	size = sizeof(objheader_t) + classsize[3] ;
 	header = (objheader_t *) objstrAlloc(mainobjstore, size);
-	header->oid = 22;
+	OID(header) = 22;
 	header->type = 3;
 	header->version = 1;
 	header->rcount = 0; //? not sure how to handle this yet
 	header->status = 0;
 	header->status |= NEW;
-	mhashInsert(header->oid, header);
+	mhashInsert(OID(header), header);
 	mid = iptoMid("128.200.9.29");
-	lhashInsert(header->oid, mid);
+	lhashInsert(OID(header), mid);
 
 	//Inserting into lhashtable
 	mid = iptoMid("128.195.175.69"); //dw-1.eecs.uci.edu
@@ -434,20 +434,20 @@ int test5a(void) {
 	//Create and Insert Oid 20
 	size = sizeof(objheader_t) + classsize[2] ;
 	header = (objheader_t *) objstrAlloc(mainobjstore, size);
-	header->oid = 20;
+	OID(header) = 20;
 	header->type = 2;
 	header->version = 1;
 	header->rcount = 0; //? not sure how to handle this yet
 	header->status = 0;
 	header->status |= NEW;
-	mhashInsert(header->oid, header);
+	mhashInsert(OID(header), header);
 	mid = iptoMid("128.200.9.29");
-	lhashInsert(header->oid, mid);
+	lhashInsert(OID(header), mid);
 
 	//Create and Insert Oid 21
 	size = sizeof(objheader_t) + classsize[1] ;
 	header = (objheader_t *) objstrAlloc(mainobjstore, size);
-	header->oid = 21;
+	OID(header) = 21;
 	header->type = 1;
 	//read object 31 (found on dw-1)
 	if((h2 = transRead(myTrans, 31)) == NULL) {
@@ -475,41 +475,41 @@ int test5b(void) {
 	//Create and Insert Oid 20
 	size = sizeof(objheader_t) + classsize[2] ;
 	header = (objheader_t *) objstrAlloc(mainobjstore, size);
-	header->oid = 20;
+	OID(header) = 20;
 	header->type = 2;
 	header->version = 1;
 	header->rcount = 0; //? not sure how to handle this yet
 	header->status = 0;
 	header->status |= NEW;
-	mhashInsert(header->oid, header);
+	mhashInsert(OID(header), header);
 	mid = iptoMid("128.200.9.29");
-	lhashInsert(header->oid, mid);
+	lhashInsert(OID(header), mid);
 
 	//Create and Insert Oid 21
 	size = sizeof(objheader_t) + classsize[1] ;
 	header = (objheader_t *) objstrAlloc(mainobjstore, size);
-	header->oid = 21;
+	OID(header) = 21;
 	header->type = 1;
 	header->version = 1;
 	header->rcount = 0; //? not sure how to handle this yet
 	header->status = 0;
 	header->status |= NEW;
-	mhashInsert(header->oid, header);
+	mhashInsert(OID(header), header);
 	mid = iptoMid("128.200.9.29");
-	lhashInsert(header->oid, mid);
+	lhashInsert(OID(header), mid);
 
 	//Create and Insert Oid 22
 	size = sizeof(objheader_t) + classsize[3] ;
 	header = (objheader_t *) objstrAlloc(mainobjstore, size);
-	header->oid = 22;
+	OID(header) = 22;
 	header->type = 3;
 	header->version = 1;
 	header->rcount = 0; //? not sure how to handle this yet
 	header->status = 0;
 	header->status |= NEW;
-	mhashInsert(header->oid, header);
+	mhashInsert(OID(header), header);
 	mid = iptoMid("128.200.9.29");
-	lhashInsert(header->oid, mid);
+	lhashInsert(OID(header), mid);
 
 	//Inserting into lhashtable
 	mid = iptoMid("128.195.175.69"); //dw-1.eecs.uci.edu
@@ -575,41 +575,41 @@ int test7(void) {
 	//Create and Insert Oid 20
 	size = sizeof(objheader_t) + classsize[2] ;
 	header = (objheader_t *) objstrAlloc(mainobjstore, size);
-	header->oid = 20;
+	OID(header) = 20;
 	header->type = 2;
 	header->version = 1;
 	header->rcount = 0; //? not sure how to handle this yet
 	header->status = 0;
 	header->status |= NEW;
-	mhashInsert(header->oid, header);
+	mhashInsert(OID(header), header);
 	mid = iptoMid("128.200.9.29");
-	lhashInsert(header->oid, mid);
+	lhashInsert(OID(header), mid);
 
 	//Create and Insert Oid 21
 	size = sizeof(objheader_t) + classsize[1] ;
 	header = (objheader_t *) objstrAlloc(mainobjstore, size);
-	header->oid = 21;
+	OID(header) = 21;
 	header->type = 1;
 	header->version = 1;
 	header->rcount = 0; //? not sure how to handle this yet
 	header->status = 0;
 	header->status |= NEW;
-	mhashInsert(header->oid, header);
+	mhashInsert(OID(header), header);
 	mid = iptoMid("128.200.9.29");
-	lhashInsert(header->oid, mid);
+	lhashInsert(OID(header), mid);
 
 	//Create and Insert Oid 22
 	size = sizeof(objheader_t) + classsize[3] ;
 	header = (objheader_t *) objstrAlloc(mainobjstore, size);
-	header->oid = 22;
+	OID(header) = 22;
 	header->type = 3;
 	header->version = 1;
 	header->rcount = 0; //? not sure how to handle this yet
 	header->status = 0;
 	header->status |= NEW;
-	mhashInsert(header->oid, header);
+	mhashInsert(OID(header), header);
 	mid = iptoMid("128.200.9.29");
-	lhashInsert(header->oid, mid);
+	lhashInsert(OID(header), mid);
 
 	//Inserting into lhashtable
 	mid = iptoMid("128.195.175.69"); //dw-1.eecs.uci.edu
