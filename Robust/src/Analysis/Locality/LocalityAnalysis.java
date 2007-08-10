@@ -322,6 +322,8 @@ public class LocalityAnalysis {
 	} else if (type.equals(EITHER)) {
 	    if (ffn.getField().getType().isPrimitive())
 		currtable.put(dst, LOCAL); // primitives are local
+	    else if (ffn.getField().isGlobal())
+		currtable.put(dst, GLOBAL);
 	    else
 		currtable.put(dst, EITHER);
 	} else if (type.equals(CONFLICT)) {

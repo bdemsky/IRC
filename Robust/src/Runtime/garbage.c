@@ -275,7 +275,7 @@ void collect(struct garbagelist * stackptr) {
     void * ptr=dequeue();
     void *cpy=((void **)ptr)[1];
     int type=((int *)cpy)[0];
-    int * pointer;
+    unsigned int * pointer;
 #ifdef TASK
     if(type==TAGTYPE) {
       /* Enqueue Tag */
@@ -305,7 +305,7 @@ void collect(struct garbagelist * stackptr) {
       int size=pointer[0];
       int i;
       for(i=1;i<=size;i++) {
-	int offset=pointer[i];
+	unsigned int offset=pointer[i];
 	void * objptr=*((void **)(((int)ptr)+offset));
 	void * copy;
 	if (gc_createcopy(objptr, &copy))

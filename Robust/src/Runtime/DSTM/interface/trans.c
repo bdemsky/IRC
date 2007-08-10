@@ -421,7 +421,7 @@ int transCommit(transrecord_t *record) {
 		//sleep(1);
 		/* Retry the commiting transaction again */
 		transCommit(record);
-	}	
+	}
 
 	return 0;
 }

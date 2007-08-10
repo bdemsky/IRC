@@ -3,7 +3,6 @@ public class Object {
     public boolean cachedHash;
 
     public native int nativehashCode();
-    public Object foo;
 
     public int hashCode() {
 	if (!cachedHash) {
