@@ -7,6 +7,7 @@ import IR.State;
 import IR.TypeUtil;
 import IR.MethodDescriptor;
 import IR.Flat.*;
+import IR.ClassDescriptor;
 
 public class LocalityAnalysis {
     State state;
@@ -16,6 +17,7 @@ public class LocalityAnalysis {
     Hashtable<LocalityBinding, Hashtable<FlatNode,Hashtable<TempDescriptor, Integer>>> temptab;
     Hashtable<LocalityBinding, Hashtable<FlatNode, Integer>> atomictab;
     Hashtable<LocalityBinding, Hashtable<FlatAtomicEnterNode, Set<TempDescriptor>>> tempstosave;
+    Hashtable<ClassDescriptor, Set<LocalityBinding>> classtolb;
 
     CallGraph callgraph;
     TypeUtil typeutil;
@@ -34,8 +36,14 @@ public class LocalityAnalysis {
 	this.lbtovisit=new Stack();
 	this.callgraph=callgraph;
 	this.tempstosave=new Hashtable<LocalityBinding, Hashtable<FlatAtomicEnterNode, Set<TempDescriptor>>>();
-
+	this.classtolb=new Hashtable<ClassDescriptor, Set<LocalityBinding>>();
 	doAnalysis();
+    }
+
+    /** This method returns a set of LocalityBindings for the parameter class. */
+	
+    public Set<LocalityBinding> getClassBindings(ClassDescriptor cd) {
+	return classtolb.get(cd);
     }
 
     /** This method returns a set of LocalityBindings.  A
@@ -94,7 +102,10 @@ public class LocalityAnalysis {
 	lbmain.setGlobal(0, LOCAL);
 	lbtovisit.add(lbmain);
 	discovered.put(lbmain, lbmain);
-	
+	if (!classtolb.containsKey(lbmain.getMethod().getClassDesc()))
+	    classtolb.put(lbmain.getMethod().getClassDesc(), new HashSet<LocalityBinding>());
+	classtolb.get(lbmain.getMethod().getClassDesc()).add(lbmain);
+
 	while(!lbtovisit.empty()) {
 	    LocalityBinding lb=(LocalityBinding) lbtovisit.pop();
 	    Integer returnglobal=lb.getGlobalReturn();
@@ -241,9 +252,17 @@ public class LocalityAnalysis {
 	Integer currreturnval=EITHER; //Start off with the either value
 	for(Iterator methodit=methodset.iterator();methodit.hasNext();) {
 	    MethodDescriptor md=(MethodDescriptor) methodit.next();
+	    boolean isnative=md.getModifiers().isNative();
+
 	    LocalityBinding lb=new LocalityBinding(md, isatomic);
+	    if (isnative&&isatomic) {
+		System.out.println("Don't call native methods in atomic blocks!");
+	    }
 	    for(int i=0;i<fc.numArgs();i++) {
 		TempDescriptor arg=fc.getArg(i);
+		if(isnative&&(currtable.get(arg).equals(GLOBAL)||
+			      currtable.get(arg).equals(CONFLICT)))
+		   throw new Error("Potential call to native method "+md+" with global parameter:\n"+currlb.getExplanation());
 		lb.setGlobal(i,currtable.get(arg));
 	    }
 	    if (fc.getThis()!=null) {
@@ -254,15 +273,24 @@ public class LocalityAnalysis {
 		    throw new Error("Using type that can be either local or global in context:\n"+currlb.getExplanation());
 		if(thistype.equals(GLOBAL)&&!isatomic)
 		    throw new Error("Using global object outside of transaction in context:\n"+currlb.getExplanation());
+		if (isnative&&thistype.equals(GLOBAL))
+		    throw new Error("Potential call to native method "+md+" on global objects:\n"+currlb.getExplanation());
 		lb.setGlobalThis(thistype);
 	    } else
 		lb.setGlobalThis(EITHER);//default value
+		
 	    //lb is built
 	    if (!discovered.containsKey(lb)) {
-		lb.setGlobalReturn(EITHER);
+		if (isnative)
+		    lb.setGlobalReturn(LOCAL);
+		else
+		    lb.setGlobalReturn(EITHER);
 		lb.setParent(currlb);
 		lbtovisit.add(lb);
 		discovered.put(lb, lb);
+		if (!classtolb.containsKey(lb.getMethod().getClassDesc()))
+		    classtolb.put(lb.getMethod().getClassDesc(), new HashSet<LocalityBinding>());
+		classtolb.get(lb.getMethod().getClassDesc()).add(lb);
 	    } else
 		lb=discovered.get(lb);
 	    Integer returnval=lb.getGlobalReturn();

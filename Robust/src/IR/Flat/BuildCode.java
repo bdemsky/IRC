@@ -279,8 +279,6 @@ public class BuildCode {
 		    generateFlatMethod(fm, lb, outmethod);
 		}
 	    }
-	    
-
 	} else {
 	    Iterator classit=state.getClassSymbolTable().getDescriptorsIterator();
 	    while(classit.hasNext()) {
@@ -355,7 +353,8 @@ public class BuildCode {
 	if (state.TASK) {
 	    outclassdefs.println("  int flag;");
 	    outclassdefs.println("  void * flagptr;");
-	    if(state.OPTIONAL) outclassdefs.println("  int failedstatus;");
+	    if(state.OPTIONAL) 
+		outclassdefs.println("  int failedstatus;");
 	}
 	printClassStruct(typeutil.getClass(TypeUtil.ObjectClass), outclassdefs);
 	
@@ -880,74 +879,100 @@ public class BuildCode {
 	printClassStruct(cn, classdefout);
 	classdefout.println("};\n");
 
-	/* Cycle through methods */
-	Iterator methodit=cn.getMethods();
-	while(methodit.hasNext()) {
-	    /* Classify parameters */
-	    MethodDescriptor md=(MethodDescriptor)methodit.next();
-	    FlatMethod fm=state.getMethodFlat(md);
-	    generateTempStructs(fm, null);
+	if (state.DSM) {
+	    /* Cycle through LocalityBindings */
+	    for(Iterator<LocalityBinding> lbit=locality.getClassBindings(cn).iterator();lbit.hasNext();) {
+		LocalityBinding lb=lbit.next();
+		MethodDescriptor md=lb.getMethod();
+		generateMethod(cn, md, lb, headersout, output);
+	    }
+	} else {
+	    /* Cycle through methods */
+	    for(Iterator methodit=cn.getMethods();methodit.hasNext();) {
+		/* Classify parameters */
+		MethodDescriptor md=(MethodDescriptor)methodit.next();
+		generateMethod(cn, md, null, headersout, output);
+	    }
+	}
+    }
 
-	    ParamsObject objectparams=(ParamsObject) paramstable.get(md);
-	    TempObject objecttemps=(TempObject) tempstable.get(md);
-
-	    /* Output parameter structure */
-	    if (GENERATEPRECISEGC) {
-		output.println("struct "+cn.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_params {");
-		output.println("  int size;");
-		output.println("  void * next;");
-		for(int i=0;i<objectparams.numPointers();i++) {
-		    TempDescriptor temp=objectparams.getPointer(i);
+    private void generateMethod(ClassDescriptor cn, MethodDescriptor md, LocalityBinding lb, PrintWriter headersout, PrintWriter output) {
+	FlatMethod fm=state.getMethodFlat(md);
+	generateTempStructs(fm, null);
+	
+	ParamsObject objectparams=(ParamsObject) paramstable.get(md);
+	TempObject objecttemps=(TempObject) tempstable.get(md);
+	
+	/* Output parameter structure */
+	if (GENERATEPRECISEGC) {
+	    output.println("struct "+cn.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_params {");
+	    output.println("  int size;");
+	    output.println("  void * next;");
+	    for(int i=0;i<objectparams.numPointers();i++) {
+		TempDescriptor temp=objectparams.getPointer(i);
+		output.println("  struct "+temp.getType().getSafeSymbol()+" * "+temp.getSafeSymbol()+";");
+	    }
+	    output.println("};\n");
+	}
+	
+	/* Output temp structure */
+	if (GENERATEPRECISEGC) {
+	    output.println("struct "+cn.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_locals {");
+	    output.println("  int size;");
+	    output.println("  void * next;");
+	    for(int i=0;i<objecttemps.numPointers();i++) {
+		TempDescriptor temp=objecttemps.getPointer(i);
+		if (temp.getType().isNull())
+		    output.println("  void * "+temp.getSafeSymbol()+";");
+		else
 		    output.println("  struct "+temp.getType().getSafeSymbol()+" * "+temp.getSafeSymbol()+";");
-		}
-		output.println("};\n");
 	    }
+	    output.println("};\n");
+	}
+	
+	/********* Output method declaration ***********/
 
-	    /* Output temp structure */
-	    if (GENERATEPRECISEGC) {
-		output.println("struct "+cn.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_locals {");
-		output.println("  int size;");
-		output.println("  void * next;");
-		for(int i=0;i<objecttemps.numPointers();i++) {
-		    TempDescriptor temp=objecttemps.getPointer(i);
-		    if (temp.getType().isNull())
-			output.println("  void * "+temp.getSafeSymbol()+";");
-		    else
-			output.println("  struct "+temp.getType().getSafeSymbol()+" * "+temp.getSafeSymbol()+";");
-		}
-		output.println("};\n");
-	    }
-	    
-	    /* Output method declaration */
-	    if (md.getReturnType()!=null) {
-		if (md.getReturnType().isClass()||md.getReturnType().isArray())
-		    headersout.print("struct " + md.getReturnType().getSafeSymbol()+" * ");
-		else
-		    headersout.print(md.getReturnType().getSafeSymbol()+" ");
-	    } else 
-		//catch the constructor case
-		headersout.print("void ");
+	/* First the return type */
+	if (md.getReturnType()!=null) {
+	    if (md.getReturnType().isClass()||md.getReturnType().isArray())
+		headersout.print("struct " + md.getReturnType().getSafeSymbol()+" * ");
+	    else
+		headersout.print(md.getReturnType().getSafeSymbol()+" ");
+	} else 
+	    //catch the constructor case
+	    headersout.print("void ");
+
+	/* Next the method name */
+	if (state.DSM) {
+	    headersout.print(cn.getSafeSymbol()+lb.getSignature()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"(");
+	} else
 	    headersout.print(cn.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"(");
-	    
-	    boolean printcomma=false;
-	    if (GENERATEPRECISEGC) {
-		headersout.print("struct "+cn.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_params * "+paramsprefix);
-		printcomma=true;
-	    }
+	
+	boolean printcomma=false;
+	if (GENERATEPRECISEGC) {
+	    headersout.print("struct "+cn.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_params * "+paramsprefix);
+	    printcomma=true;
+	}
+	
+	if (state.DSM&&lb.isAtomic()) {
+	    if (printcomma)
+		headersout.print(", ");
+	    headersout.print("transrecord_t * trans");
+	    printcomma=true;
+	}
 
-	    //output parameter list
-	    for(int i=0;i<objectparams.numPrimitives();i++) {
-		TempDescriptor temp=objectparams.getPrimitive(i);
-		if (printcomma)
-		    headersout.print(", ");
-		printcomma=true;
-		if (temp.getType().isClass()||temp.getType().isArray())
-		    headersout.print("struct " + temp.getType().getSafeSymbol()+" * "+temp.getSafeSymbol());
-		else
-		    headersout.print(temp.getType().getSafeSymbol()+" "+temp.getSafeSymbol());
-	    }
-	    headersout.println(");\n");
-   	}
+	/*  Output parameter list*/
+	for(int i=0;i<objectparams.numPrimitives();i++) {
+	    TempDescriptor temp=objectparams.getPrimitive(i);
+	    if (printcomma)
+		headersout.print(", ");
+	    printcomma=true;
+	    if (temp.getType().isClass()||temp.getType().isArray())
+		headersout.print("struct " + temp.getType().getSafeSymbol()+" * "+temp.getSafeSymbol());
+	    else
+		headersout.print(temp.getType().getSafeSymbol()+" "+temp.getSafeSymbol());
+	}
+	headersout.println(");\n");
     }
 
 
@@ -1026,6 +1051,9 @@ public class BuildCode {
 	ParamsObject objectparams=(ParamsObject)paramstable.get(md!=null?md:task);
 	generateHeader(fm, lb, md!=null?md:task,output);
 	TempObject objecttemp=(TempObject) tempstable.get(md!=null?md:task);
+	if (state.DSM&&lb.getHasAtomic()) {
+	    output.println("transrecord_t * trans;");
+	}
 
 	if (GENERATEPRECISEGC) {
 	    if (md!=null)
@@ -1558,9 +1586,12 @@ public class BuildCode {
 	} else 
 	    //catch the constructor case
 	    output.print("void ");
-	if (md!=null)
-	    output.print(cn.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"(");
-	else
+	if (md!=null) {
+	    if (state.DSM) {
+		output.print(cn.getSafeSymbol()+lb.getSignature()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"(");
+	    } else
+		output.print(cn.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"(");
+	} else
 	    output.print(task.getSafeSymbol()+"(");
 	
 	boolean printcomma=false;
@@ -1569,6 +1600,13 @@ public class BuildCode {
 		output.print("struct "+cn.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_params * "+paramsprefix);
 	    else
 		output.print("struct "+task.getSafeSymbol()+"_params * "+paramsprefix);
+	    printcomma=true;
+	}
+
+	if (state.DSM&&lb.isAtomic()) {
+	    if (printcomma)
+		output.print(", ");
+	    output.print("transrecord_t * trans");
 	    printcomma=true;
 	}
 
@@ -1721,7 +1759,6 @@ public class BuildCode {
 	 //GENERATE HEADERS
 	 headers.println("#include \"task.h\"\n\n");
 	 
-
 	 
 	 //STRUCT PREDICATEMEMBER
 	 headers.println("struct predicatemember{");

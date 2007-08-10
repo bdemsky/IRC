@@ -37,6 +37,9 @@ public class LocalityBinding {
     }
     
     public String getSignature() {
+	if (md.getModifiers().isNative())
+	    return "";
+
 	String st="_";
 	if (isatomic) {
 	    st+="A";
