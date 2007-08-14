@@ -59,21 +59,10 @@
 #define LOCK  0x04
 #define LOCAL  0x08
 
-typedef struct objheader {
-	unsigned int oid;
-	unsigned short type;
-	unsigned short version;
-	unsigned short rcount;
-	char status;
-} objheader_t;
+#ifdef COMPILER
 
-#define OID(x) x->oid
+#include "structdefs.h"
 
-#define TYPE(x) x->type
-
-#define STATUS(x) x->status
-
-/*
 typedef struct objheader {
 	unsigned short version;
 	unsigned short rcount;
@@ -87,7 +76,23 @@ typedef struct objheader {
 
 #define TYPE(x)\
         ((struct ___Object___ *)((unsigned int) x + sizeof(objheader_t)))->type
-*/
+
+#else
+
+typedef struct objheader {
+	unsigned int oid;
+	unsigned short type;
+	unsigned short version;
+	unsigned short rcount;
+	char status;
+} objheader_t;
+
+#define OID(x) x->oid
+#define TYPE(x) x->type
+#define STATUS(x) x->status
+
+#endif
+
 
 typedef struct objstr {
 	unsigned int size; //this many bytes are allocated after this header
@@ -96,58 +101,62 @@ typedef struct objstr {
 } objstr_t;
 
 typedef struct transrecord {
-	objstr_t *cache;
-	chashtable_t *lookupTable;
+  objstr_t *cache;
+  chashtable_t *lookupTable;
+#ifdef COMPILER
+  struct ___Object___ * revertlist;
+#endif
 } transrecord_t;
 // Structure that keeps track of responses from the participants
 typedef struct thread_response {
-	char rcv_status;
-}thread_response_t;
+  char rcv_status;
+} thread_response_t;
 
 // Structure that holds  fixed data sizes to be sent along with TRANS_REQUEST
 typedef struct fixed_data {
-	char control;
-	char trans_id[TID_LEN];	
-	int mcount;		// Machine count
-	short numread;		// Number of objects read
-	short nummod;		// Number of objects modified
-	int sum_bytes;	// Total bytes modified
-}fixed_data_t;
+  char control;
+  char trans_id[TID_LEN];	
+  int mcount;		// Machine count
+  short numread;		// Number of objects read
+  short nummod;		// Number of objects modified
+  int sum_bytes;	// Total bytes modified
+} fixed_data_t;
 
 // Structure that holds  variable data sizes per machine participant
 typedef struct trans_req_data {
-	fixed_data_t f;
-	unsigned int *listmid;
-	char *objread;
-	unsigned int *oidmod;
-}trans_req_data_t;
+  fixed_data_t f;
+  unsigned int *listmid;
+  char *objread;
+  unsigned int *oidmod;
+} trans_req_data_t;
 
 // Structure passed to dstmAcceptinfo() on server side to complete TRANS_COMMIT process 
+
 typedef struct trans_commit_data{
-	unsigned int *objmod;
-	unsigned int *objlocked;
-	unsigned int *objnotfound;
-	void *modptr;
-	int nummod;
-	int numlocked;
-	int numnotfound;
-}trans_commit_data_t;
+  unsigned int *objmod;
+  unsigned int *objlocked;
+  unsigned int *objnotfound;
+  void *modptr;
+  int nummod;
+  int numlocked;
+  int numnotfound;
+} trans_commit_data_t;
 
 
 #define PRINT_TID(PTR) printf("DEBUG -> %x %d\n", PTR->mid, PTR->thread_id);
 //structure for passing multiple arguments to thread
 typedef struct thread_data_array {
-	int thread_id;
-	int mid;    
-	int pilecount;
-	trans_req_data_t *buffer;
-	thread_response_t *recvmsg;//shared datastructure to keep track of the control message receiv
-	pthread_cond_t *threshold; //threshhold for waking up a thread
-	pthread_mutex_t *lock;    //lock the count variable
-	int *count;             //variable to count responses of TRANS_REQUEST protocol from all participants
-	char *replyctrl; 	//shared ctrl message that stores the reply to be sent, filled by decideResp
-	char *replyretry;	//shared variable to find out if we need retry (TRANS_COMMIT case) 
-	transrecord_t *rec;	// To send modified objects
+  int thread_id;
+  int mid;    
+  int pilecount;
+  trans_req_data_t *buffer;
+  thread_response_t *recvmsg;//shared datastructure to keep track of the control message receiv
+  pthread_cond_t *threshold; //threshhold for waking up a thread
+  pthread_mutex_t *lock;    //lock the count variable
+  int *count;             //variable to count responses of TRANS_REQUEST protocol from all participants
+  char *replyctrl; 	//shared ctrl message that stores the reply to be sent, filled by decideResp
+  char *replyretry;	//shared variable to find out if we need retry (TRANS_COMMIT case) 
+  transrecord_t *rec;	// To send modified objects
 } thread_data_array_t;
 
 
@@ -179,6 +188,11 @@ transrecord_t *record;
 
 /* Initialize main object store and lookup tables, start server thread. */
 int dstmInit(void);
+
+/* Function called at beginning. Passes in the first parameter. */
+/* Returns 1 if this thread should run the main process */
+
+int dstmStart(char *);
 
 /* Prototypes for object header */
 unsigned int getNewOID(void);

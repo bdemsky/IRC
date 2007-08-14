@@ -139,7 +139,9 @@ transrecord_t *transStart()
 	transrecord_t *tmp = malloc(sizeof(transrecord_t));
 	tmp->cache = objstrCreate(1048576);
 	tmp->lookupTable = chashCreate(HASH_SIZE, LOADFACTOR);
-
+#ifdef COMPILER
+	tmp->revertlist=NULL;
+#endif
 	return tmp;
 }
 
