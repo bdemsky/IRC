@@ -97,7 +97,6 @@ struct taskparamdescriptor {
   struct taskdescriptor * task;
   int numParameters;
   void ** parameterArray;
-  int containsoptional;
 };
 
 int hashCodetpd(struct taskparamdescriptor *);

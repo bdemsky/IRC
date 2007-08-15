@@ -121,7 +121,7 @@ int gencontains(struct genhashtable *ht, void * key) {
 
 void genfreekey(struct genhashtable *ht, void * key) {
   struct genpointerlist * ptr=ht->bins[genhashfunction(ht,key)];
-  if(ptr==NULL) printf("otr is null\n");
+  
   if (((ht->comp_function==NULL)&&(ptr->src==key))||((ht->comp_function!=NULL)&&(*ht->comp_function)(ptr->src,key))) {
     ht->bins[genhashfunction(ht,key)]=ptr->next;
 
