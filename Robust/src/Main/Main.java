@@ -97,6 +97,9 @@ public class Main {
       if (state.TASK) {
 	  readSourceFile(state, ClassLibraryPrefix+"Object.java");
 	  readSourceFile(state, ClassLibraryPrefix+"TagDescriptor.java");
+      } else if (state.DSM) {
+	  readSourceFile(state, ClassLibraryPrefix+"ThreadDSM.java");
+	  readSourceFile(state, ClassLibraryPrefix+"ObjectJavaDSM.java");
       } else {
 	  if (state.THREAD) {
 	      readSourceFile(state, ClassLibraryPrefix+"Thread.java");
@@ -157,11 +160,12 @@ public class Main {
 	  CallGraph callgraph=new CallGraph(state);
 	  LocalityAnalysis la=new LocalityAnalysis(state, callgraph, tu);
 	  GenerateConversions gc=new GenerateConversions(la, state);
+	  BuildCode bc=new BuildCode(state, bf.getMap(), tu, la);
+	  bc.buildCode();
+      } else {
+	  BuildCode bc=new BuildCode(state, bf.getMap(), tu);
+	  bc.buildCode();
       }
-
-      BuildCode bc=new BuildCode(state, bf.getMap(), tu);
-      bc.buildCode();
-      
       System.exit(0);
   }
     

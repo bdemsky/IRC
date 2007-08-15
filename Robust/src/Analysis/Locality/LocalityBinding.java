@@ -37,15 +37,15 @@ public class LocalityBinding {
     }
     
     public String getSignature() {
-	if (md.getModifiers().isNative())
-	    return "";
-
 	String st="_";
 	if (isatomic) {
 	    st+="A";
 	} else
 	    st+="N";
-	st+=globalToString(isglobalthis);
+	if (isglobalthis==null)
+	    st+="N";
+	else
+	    st+=globalToString(isglobalthis);
 	for(int i=0;i<isglobal.length;i++) {
 	    st+=globalToString(isglobal[i]);
 	}
@@ -111,6 +111,22 @@ public class LocalityBinding {
 	return isatomic;
     }
 
+    public boolean contextMatches(LocalityBinding lb) {
+	if (isglobal.length!=lb.isglobal.length)
+	    return false;
+	for(int i=0;i<isglobal.length;i++)
+	    if (!isglobal[i].equals(lb.isglobal[i]))
+		return false;
+	
+	if (isglobalthis==null) {
+	    if (lb.isglobalthis!=null)
+		return false;
+	} else
+	    if (!isglobalthis.equals(lb.isglobalthis))
+		return false;
+	return (isatomic==lb.isatomic);
+    }
+
     public boolean equals(Object o) {
 	if (o instanceof LocalityBinding) {
 	    LocalityBinding lb=(LocalityBinding)o;
@@ -119,8 +135,13 @@ public class LocalityBinding {
 	    for(int i=0;i<isglobal.length;i++)
 		if (!isglobal[i].equals(lb.isglobal[i]))
 		    return false;
-	    if (!isglobalthis.equals(lb.isglobalthis))
-		return false;
+
+	    if (isglobalthis==null) {
+		if (lb.isglobalthis!=null)
+		    return false;
+	    } else
+		if (!isglobalthis.equals(lb.isglobalthis))
+		    return false;
 	    return (isatomic==lb.isatomic);
 	}
 	return false;

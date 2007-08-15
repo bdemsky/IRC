@@ -18,6 +18,7 @@ public class LocalityAnalysis {
     Hashtable<LocalityBinding, Hashtable<FlatNode, Integer>> atomictab;
     Hashtable<LocalityBinding, Hashtable<FlatAtomicEnterNode, Set<TempDescriptor>>> tempstosave;
     Hashtable<ClassDescriptor, Set<LocalityBinding>> classtolb;
+    Hashtable<MethodDescriptor, Set<LocalityBinding>> methodtolb;
 
     CallGraph callgraph;
     TypeUtil typeutil;
@@ -37,6 +38,7 @@ public class LocalityAnalysis {
 	this.callgraph=callgraph;
 	this.tempstosave=new Hashtable<LocalityBinding, Hashtable<FlatAtomicEnterNode, Set<TempDescriptor>>>();
 	this.classtolb=new Hashtable<ClassDescriptor, Set<LocalityBinding>>();
+	this.methodtolb=new Hashtable<MethodDescriptor, Set<LocalityBinding>>();
 	doAnalysis();
     }
 
@@ -44,6 +46,12 @@ public class LocalityAnalysis {
 	
     public Set<LocalityBinding> getClassBindings(ClassDescriptor cd) {
 	return classtolb.get(cd);
+    }
+
+    /** This method returns a set of LocalityBindings for the parameter method. */
+	
+    public Set<LocalityBinding> getMethodBindings(MethodDescriptor md) {
+	return methodtolb.get(md);
     }
 
     /** This method returns a set of LocalityBindings.  A
@@ -105,6 +113,10 @@ public class LocalityAnalysis {
 	if (!classtolb.containsKey(lbmain.getMethod().getClassDesc()))
 	    classtolb.put(lbmain.getMethod().getClassDesc(), new HashSet<LocalityBinding>());
 	classtolb.get(lbmain.getMethod().getClassDesc()).add(lbmain);
+
+	if (!methodtolb.containsKey(lbmain.getMethod()))
+	    methodtolb.put(lbmain.getMethod(), new HashSet<LocalityBinding>());
+	methodtolb.get(lbmain.getMethod()).add(lbmain);
 
 	while(!lbtovisit.empty()) {
 	    LocalityBinding lb=(LocalityBinding) lbtovisit.pop();
@@ -291,6 +303,9 @@ public class LocalityAnalysis {
 		if (!classtolb.containsKey(lb.getMethod().getClassDesc()))
 		    classtolb.put(lb.getMethod().getClassDesc(), new HashSet<LocalityBinding>());
 		classtolb.get(lb.getMethod().getClassDesc()).add(lb);
+		if (!methodtolb.containsKey(lb.getMethod()))
+		    methodtolb.put(lb.getMethod(), new HashSet<LocalityBinding>());
+		methodtolb.get(lb.getMethod()).add(lb);
 	    } else
 		lb=discovered.get(lb);
 	    Integer returnval=lb.getGlobalReturn();

@@ -37,22 +37,26 @@ public class BuildCode {
     TypeDescriptor[] arraytable;
     LocalityAnalysis locality;
     Hashtable<TempDescriptor, TempDescriptor> backuptable;
+    Hashtable<LocalityBinding, TempDescriptor> reverttable;
 
     public BuildCode(State st, Hashtable temptovar, TypeUtil typeutil) {
+	this(st, temptovar, typeutil, null);
+    }
+
+    public BuildCode(State st, Hashtable temptovar, TypeUtil typeutil, LocalityAnalysis locality) {
 	state=st;
 	this.temptovar=temptovar;
-	paramstable=new Hashtable();	
+	paramstable=new Hashtable();
 	tempstable=new Hashtable();
 	fieldorder=new Hashtable();
 	flagorder=new Hashtable();
 	this.typeutil=typeutil;
-	virtualcalls=new Virtual(state);
-    }
-
-    public BuildCode(State st, Hashtable temptovar, TypeUtil typeutil, LocalityAnalysis locality) {
-	this(st, temptovar, typeutil);
-	this.locality=locality;
-	this.backuptable=new Hashtable<TempDescriptor, TempDescriptor>();
+	virtualcalls=new Virtual(state,locality);
+	if (locality!=null) {
+	    this.locality=locality;
+	    this.backuptable=new Hashtable<TempDescriptor, TempDescriptor>();
+	    this.reverttable=new Hashtable<LocalityBinding, TempDescriptor>();
+	}
     }
 
     /** The buildCode method outputs C code for all the methods.  The Flat
@@ -174,22 +178,37 @@ public class BuildCode {
     private void outputMainMethod(PrintWriter outmethod) {
 	outmethod.println("int main(int argc, const char *argv[]) {");
 	outmethod.println("  int i;");
-	if (GENERATEPRECISEGC) {
-	    outmethod.println("  struct ArrayObject * stringarray=allocate_newarray(NULL, STRINGARRAYTYPE, argc-1);");
+	if (state.DSM) {
+	    outmethod.println("if (dstmStart(argv[0])) {");
+	    if (GENERATEPRECISEGC) {
+		outmethod.println("  struct ArrayObject * stringarray=allocate_newarray(NULL, STRINGARRAYTYPE, argc-2);");
+	    } else {
+		outmethod.println("  struct ArrayObject * stringarray=allocate_newarray(STRINGARRAYTYPE, argc-2);");
+	    }
 	} else {
-	    outmethod.println("  struct ArrayObject * stringarray=allocate_newarray(STRINGARRAYTYPE, argc-1);");
+	    if (GENERATEPRECISEGC) {
+		outmethod.println("  struct ArrayObject * stringarray=allocate_newarray(NULL, STRINGARRAYTYPE, argc-1);");
+	    } else {
+		outmethod.println("  struct ArrayObject * stringarray=allocate_newarray(STRINGARRAYTYPE, argc-1);");
+	    }
 	}
 	if (state.THREAD) {
 	    outmethod.println("initializethreads();");
 	}
-	outmethod.println("  for(i=1;i<argc;i++) {");
+	if (state.DSM) {
+	    outmethod.println("  for(i=2;i<argc;i++) {");
+	} else 
+	    outmethod.println("  for(i=1;i<argc;i++) {");
 	outmethod.println("    int length=strlen(argv[i]);");
 	if (GENERATEPRECISEGC) {
 	    outmethod.println("    struct ___String___ *newstring=NewString(NULL, argv[i], length);");
 	} else {
 	    outmethod.println("    struct ___String___ *newstring=NewString(argv[i], length);");
 	}
-	outmethod.println("    ((void **)(((char *)& stringarray->___length___)+sizeof(int)))[i-1]=newstring;");
+	if (state.DSM)
+	    outmethod.println("    ((void **)(((char *)& stringarray->___length___)+sizeof(int)))[i-2]=newstring;");
+	else
+	    outmethod.println("    ((void **)(((char *)& stringarray->___length___)+sizeof(int)))[i-1]=newstring;");
 	outmethod.println("  }");
 	
 	
@@ -204,7 +223,11 @@ public class BuildCode {
 	} else
 	    outmethod.println("     "+cd.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"(stringarray);");
 	outmethod.println("   }");
-	
+
+	if (state.DSM) {
+	    outmethod.println("}");
+	}
+
 	if (state.THREAD) {
 	    outmethod.println("pthread_mutex_lock(&gclistlock);");
 	    outmethod.println("threadcount--;");
@@ -212,6 +235,8 @@ public class BuildCode {
 	    outmethod.println("pthread_mutex_unlock(&gclistlock);");
 	    outmethod.println("pthread_exit(NULL);");
 	}
+
+
 	outmethod.println("}");
     }
 
@@ -255,6 +280,8 @@ public class BuildCode {
 	outmethod.println("#include \"methodheaders.h\"");
 	outmethod.println("#include \"virtualtable.h\"");
 	outmethod.println("#include <runtime.h>");
+	if (state.DSM)
+	    outmethod.println("#include \"localobjects.h\"");
 	if (state.THREAD)
 	    outmethod.println("#include <thread.h>");
 	if (state.main!=null) {
@@ -556,13 +583,21 @@ public class BuildCode {
 	    if (virtualcalls.getMethodCount(cd)>maxcount)
 		maxcount=virtualcalls.getMethodCount(cd);
 	}
-	MethodDescriptor[][] virtualtable=new MethodDescriptor[state.numClasses()+state.numArrays()][maxcount];
+	MethodDescriptor[][] virtualtable=null;
+	LocalityBinding[][] lbvirtualtable=null;
+	if (state.DSM)
+	    lbvirtualtable=new LocalityBinding[state.numClasses()+state.numArrays()][maxcount];
+	else
+	    virtualtable=new MethodDescriptor[state.numClasses()+state.numArrays()][maxcount];
 
 	/* Fill in virtual table */
 	classit=state.getClassSymbolTable().getDescriptorsIterator();
 	while(classit.hasNext()) {
 	    ClassDescriptor cd=(ClassDescriptor)classit.next();
-	    fillinRow(cd, virtualtable, cd.getId());
+	    if (state.DSM)
+		fillinRow(cd, lbvirtualtable, cd.getId());
+	    else
+		fillinRow(cd, virtualtable, cd.getId());
 	}
 
 	ClassDescriptor objectcd=typeutil.getClass(TypeUtil.ObjectClass);
@@ -570,7 +605,10 @@ public class BuildCode {
 	while(arrayit.hasNext()) {
 	    TypeDescriptor td=(TypeDescriptor)arrayit.next();
 	    int id=state.getArrayNumber(td);
-	    fillinRow(objectcd, virtualtable, id+state.numClasses());
+	    if (state.DSM)
+		fillinRow(objectcd, lbvirtualtable, id+state.numClasses());
+	    else
+		fillinRow(objectcd, virtualtable, id+state.numClasses());
 	}
 	
 	outvirtual.print("void * virtualtable[]={");
@@ -579,7 +617,11 @@ public class BuildCode {
 	    for(int j=0;j<maxcount;j++) {
 		if (needcomma)
 		    outvirtual.print(", ");
-		if (virtualtable[i][j]!=null) {
+		if (state.DSM&&lbvirtualtable[i][j]!=null) {
+		    LocalityBinding lb=lbvirtualtable[i][j];
+		    MethodDescriptor md=lb.getMethod();
+		    outvirtual.print("& "+md.getClassDesc().getSafeSymbol()+lb.getSignature()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor());
+		} else if (!state.DSM&&virtualtable[i][j]!=null) {
 		    MethodDescriptor md=virtualtable[i][j];
 		    outvirtual.print("& "+md.getClassDesc().getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor());
 		} else {
@@ -606,6 +648,24 @@ public class BuildCode {
 	    virtualtable[rownum][methodnum]=md;
 	}
     }
+
+    private void fillinRow(ClassDescriptor cd, LocalityBinding[][] virtualtable, int rownum) {
+	/* Get inherited methods */
+	if (cd.getSuperDesc()!=null)
+	    fillinRow(cd.getSuperDesc(), virtualtable, rownum);
+	/* Override them with our methods */
+	if (locality.getClassBindings(cd)!=null)
+	    for(Iterator<LocalityBinding> lbit=locality.getClassBindings(cd).iterator();lbit.hasNext();) {
+		LocalityBinding lb=lbit.next();
+		MethodDescriptor md=lb.getMethod();
+		//Is the method static or a constructor
+		if (md.isStatic()||md.getReturnType()==null)
+		    continue;
+		int methodnum=virtualcalls.getLocalityNumber(lb);
+		virtualtable[rownum][methodnum]=lb;
+	    }
+    }
+
 
     /** Generate array that contains the sizes of class objects.  The
      * object allocation functions in the runtime use this
@@ -708,7 +768,7 @@ public class BuildCode {
 	}
 
 	/* Create backup temps */
-	if (state.DSM)
+	if (state.DSM) {
 	    for(Iterator<TempDescriptor> tmpit=backuptable.values().iterator();tmpit.hasNext();) {
 		TempDescriptor tmp=tmpit.next();
 		TypeDescriptor type=tmp.getType();
@@ -717,6 +777,12 @@ public class BuildCode {
 		else
 		    objecttemps.addPrim(tmp);
 	    }
+	    /* Create temp to hold revert table */
+	    if (lb.getHasAtomic()) {
+		TempDescriptor reverttmp=new TempDescriptor("revertlist", typeutil.getClass(TypeUtil.ObjectClass));
+		reverttable.put(lb, reverttmp);
+	    }
+	}
     }
 
     /** This method outputs the following information about classes
@@ -766,7 +832,7 @@ public class BuildCode {
 		output.println(", ");
 	    TypeDescriptor tdelement=arraytable[i].dereference();
 	    if (tdelement.isArray()||tdelement.isClass())
-		output.print("((int *)1)");
+		output.print("((unsigned int *)1)");
 	    else
 		output.print("0");
 	    needcomma=true;
@@ -900,11 +966,13 @@ public class BuildCode {
 
 	if (state.DSM) {
 	    /* Cycle through LocalityBindings */
-	    for(Iterator<LocalityBinding> lbit=locality.getClassBindings(cn).iterator();lbit.hasNext();) {
-		LocalityBinding lb=lbit.next();
-		MethodDescriptor md=lb.getMethod();
-		generateMethod(cn, md, lb, headersout, output);
-	    }
+	    Set<LocalityBinding> lbset=locality.getClassBindings(cn);
+	    if (lbset!=null)
+		for(Iterator<LocalityBinding> lbit=lbset.iterator();lbit.hasNext();) {
+		    LocalityBinding lb=lbit.next();
+		    MethodDescriptor md=lb.getMethod();
+		    generateMethod(cn, md, lb, headersout, output);
+		}
 	} else {
 	    /* Cycle through methods */
 	    for(Iterator methodit=cn.getMethods();methodit.hasNext();) {
@@ -917,7 +985,7 @@ public class BuildCode {
 
     private void generateMethod(ClassDescriptor cn, MethodDescriptor md, LocalityBinding lb, PrintWriter headersout, PrintWriter output) {
 	FlatMethod fm=state.getMethodFlat(md);
-	generateTempStructs(fm, null);
+	generateTempStructs(fm, lb);
 	
 	ParamsObject objectparams=(ParamsObject) paramstable.get(md);
 	TempObject objecttemps=(TempObject) tempstable.get(md);
@@ -1059,7 +1127,7 @@ public class BuildCode {
    	}
     }
 
-    /** Generate code for FlatMethod fm. */
+    /***** Generate code for FlatMethod fm. *****/
 
     private void generateFlatMethod(FlatMethod fm, LocalityBinding lb, PrintWriter output) {
 	MethodDescriptor md=fm.getMethod();
@@ -1224,11 +1292,14 @@ public class BuildCode {
 	case FKind.FlatAtomicExitNode:
 	    generateFlatAtomicExitNode(fm, lb, (FlatAtomicExitNode) fn, output);
 	    return;
+	case FKind.FlatGlobalConvNode:
+	    generateFlatGlobalConvNode(fm, lb, (FlatGlobalConvNode) fn, output);
+	    return;
 	case FKind.FlatTagDeclaration:
 	    generateFlatTagDeclaration(fm, (FlatTagDeclaration) fn,output);
 	    return;
 	case FKind.FlatCall:
-	    generateFlatCall(fm, (FlatCall) fn,output);
+	    generateFlatCall(fm, lb, (FlatCall) fn,output);
 	    return;
 	case FKind.FlatFieldNode:
 	    generateFlatFieldNode(fm, lb, (FlatFieldNode) fn,output);
@@ -1277,6 +1348,18 @@ public class BuildCode {
 
     }
     
+    public void generateFlatGlobalConvNode(FlatMethod fm, LocalityBinding lb, FlatGlobalConvNode fgcn, PrintWriter output) {
+	if (lb!=fgcn.getLocality())
+	    return;
+	/* Have to generate flat globalconv */
+	if (fgcn.getMakePtr()) {
+	    output.println(generateTemp(fm, fgcn.getSrc())+"=transRead(trans,"+generateTemp(fm, fgcn.getSrc())+");");
+	} else {
+	    /* Need to convert to OID */
+	    output.println(generateTemp(fm, fgcn.getSrc())+"=OID("+generateTemp(fm, fgcn.getSrc())+");");
+	}
+    }
+
     public void generateFlatAtomicEnterNode(FlatMethod fm,  LocalityBinding lb, FlatAtomicEnterNode faen, PrintWriter output) {
 	/* Check to see if we need to generate code for this atomic */
 	if (locality.getAtomic(lb).get(faen.getPrev(0)).intValue()>0)
@@ -1297,7 +1380,15 @@ public class BuildCode {
 	    output.println(generateTemp(fm, tmp)+"="+generateTemp(fm,backuptable.get(tmp))+";");
 	}
 
-	/* Need to revert local object store */
+	/********* Need to revert local object store ********/
+	String revertptr=generateTemp(fm, reverttable.get(lb));
+	
+	output.println("while ("+revertptr+") {");
+	output.println("struct ___Object___ * tmpptr;");
+	output.println("tmpptr="+revertptr+"->"+nextobjstr+";");
+	output.println("REVERT_OBJ("+revertptr+");");
+	output.println(revertptr+"=tmpptr;");
+	output.println("}");
 
 	/******* Tell the runtime to start the transaction *******/
 	
@@ -1309,11 +1400,21 @@ public class BuildCode {
 	/* Check to see if we need to generate code for this atomic */
 	if (locality.getAtomic(lb).get(faen).intValue()>0)
 	    return;
-	output.println("if (transCommit(trans))");
+	//store the revert list before we lose the transaction object
+	String revertptr=generateTemp(fm, reverttable.get(lb));
+	output.println(revertptr+"=trans->revertlist;");
+	output.println("if (transCommit(trans)) {");
 	/* Transaction aborts if it returns true */
 	output.println("goto transretry"+faen.getAtomicEnter().getIdentifier()+";");
+	output.println("} else {");
 	/* Need to commit local object store */
-	//TODO
+	output.println("while ("+revertptr+") {");
+	output.println("struct ___Object___ * tmpptr;");
+	output.println("tmpptr="+revertptr+"->"+nextobjstr+";");
+	output.println("COMMIT_OBJ("+revertptr+");");
+	output.println(revertptr+"=tmpptr;");
+	output.println("}");
+	output.println("}");
     }
 
     private void generateFlatCheckNode(FlatMethod fm,  FlatCheckNode fcn, PrintWriter output) {
@@ -1340,7 +1441,7 @@ public class BuildCode {
 	}
     }
 
-    private void generateFlatCall(FlatMethod fm, FlatCall fc, PrintWriter output) {
+    private void generateFlatCall(FlatMethod fm, LocalityBinding lb, FlatCall fc, PrintWriter output) {
 	MethodDescriptor md=fc.getMethod();
 	ParamsObject objectparams=(ParamsObject) paramstable.get(md);
 	ClassDescriptor cn=md.getClassDesc();
@@ -1504,7 +1605,7 @@ public class BuildCode {
     private void generateFlatSetFieldNode(FlatMethod fm, LocalityBinding lb, FlatSetFieldNode fsfn, PrintWriter output) {
 	if (fsfn.getField().getSymbol().equals("length")&&fsfn.getDst().getType().isArray())
 	    throw new Error("Can't set array length");
-	if (state.DSM) {
+	if (state.DSM && locality.getAtomic(lb).get(fsfn).intValue()>0) {
 	    Integer statussrc=locality.getNodeTempInfo(lb).get(fsfn).get(fsfn.getDst());
 	    Integer statusdst=locality.getNodeTempInfo(lb).get(fsfn).get(fsfn.getDst());
 	    boolean srcglobal=statusdst==LocalityAnalysis.GLOBAL;
@@ -1529,7 +1630,10 @@ public class BuildCode {
 		/* Link object into list */
 		output.println(dst+"->"+nextobjstr+"=trans->localtrans;");
 		output.println("trans->localtrans="+dst+";");
-		output.println("OBJECT_COPY("+dst+");");
+		if (GENERATEPRECISEGC)
+		    output.println("COPY_OBJ((struct garbagelist *)&"+localsprefix+",(struct ___Object___ *)"+dst+");");
+		else
+		    output.println("COPY_OBJ("+dst+");");
 		output.println("}");
 		if (srcglobal)
 		    output.println(dst+"->"+ fsfn.getField().getSafeSymbol()+"=srcoid;");

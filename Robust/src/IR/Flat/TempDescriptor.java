@@ -18,6 +18,11 @@ public class TempDescriptor extends Descriptor {
 	type=td;
     }
 
+    public TempDescriptor(String name, ClassDescriptor cd) {
+	this(name);
+	type=new TypeDescriptor(cd);
+    }
+
     public TempDescriptor(String name, TypeDescriptor type, TagDescriptor td) {
 	this(name);
 	this.type=type;

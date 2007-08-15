@@ -2,6 +2,7 @@
 
 printhelp() {
 echo -dsm distributed shared memory
+echo -mac distributed shared memory mac support
 echo -check generate check code
 echo -dmalloc link in dmalloc
 echo -recover compile task code
@@ -22,8 +23,10 @@ echo -help help
 }
 
 ROBUSTROOT=~/research/Robust/src
+DSMRUNTIME=$ROBUSTROOT/Runtime/DSTM/interface/
 REPAIRROOT=~/research/Repair/RepairCompiler/
 CURDIR=`pwd`
+DSMFLAG=false
 CHECKFLAG=false
 RECOVERFLAG=false
 USEDMALLOC=false
@@ -58,6 +61,10 @@ shift
 elif [[ $1 = '-dsm' ]]
 then
 JAVAOPTS="$JAVAOPTS -dsm"
+DSMFLAG=true
+elif [[ $1 = '-mac' ]]
+then
+EXTRAOPTIONS="$EXTRAOPTIONS -DMAC"
 elif [[ $1 = '-taskstate' ]]
 then
 JAVAOPTS="$JAVAOPTS -taskstate"
@@ -182,6 +189,12 @@ $ROBUSTROOT/Runtime/file.c $ROBUSTROOT/Runtime/Queue.c \
 $ROBUSTROOT/Runtime/SimpleHash.c $ROBUSTROOT/Runtime/option.c \
 $ROBUSTROOT/Runtime/garbage.c $ROBUSTROOT/Runtime/socket.c \
 $ROBUSTROOT/Runtime/GenericHashtable.c $ROBUSTROOT/Runtime/object.c"
+
+if $DSMFLAG
+then
+EXTRAOPTIONS="$EXTRAOPTIONS -lpthread -I$DSMRUNTIME"
+FILES="$FILES $DSMRUNTIME/dstm.c $DSMRUNTIME/mlookup.c $DSMRUNTIME/clookup.c $DSMRUNTIME/llookup.c $DSMRUNTIME/dstmserver.c $DSMRUNTIME/plookup.c $DSMRUNTIME/ip.c $DSMRUNTIME/queue.c $DSMRUNTIME/prelookup.c $DSMRUNTIME/machinepile.c $DSMRUNTIME/localobjects.c"
+fi
 
 if $RECOVERFLAG
 then

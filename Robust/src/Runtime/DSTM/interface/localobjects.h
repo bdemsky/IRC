@@ -1,6 +1,7 @@
 #ifndef LOCALOBJECT_H
-#include LOCALOBJECT_H
+#define LOCALOBJECT_H
 #include "structdefs.h"
+#include "garbage.h"
 void REVERT_OBJ(struct ___Object___ *);
 #define COMMIT_OBJ(obj) obj->localcopy=NULL
 

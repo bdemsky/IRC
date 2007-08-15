@@ -61,6 +61,8 @@ public class GenerateConversions {
 	    HashSet<TempNodePair> tempset=new HashSet<TempNodePair>();
 	    for(int i=0;i<fn.numPrev();i++) {
 		FlatNode fnprev=fn.getPrev(i);
+		if (!nodetotnpair.containsKey(fnprev))
+		    continue;
 		Set<TempNodePair> prevset=nodetotnpair.get(fnprev);
 		for(Iterator<TempNodePair> it=prevset.iterator();it.hasNext();) {
 		    TempNodePair tnp=it.next();
@@ -112,7 +114,7 @@ public class GenerateConversions {
 	toprocess=fm.getNodeSet();
 	for(Iterator<FlatNode> it=toprocess.iterator();it.hasNext();) {
 	    FlatNode fn=it.next();
-	    if (atomictab.get(fn).intValue()==0&&
+	    if (atomictab.get(fn).intValue()==0&&fn.numPrev()>0&&
 		atomictab.get(fn.getPrev(0)).intValue()>0) {
 		//sanity check
 		assert(fn.kind()==FKind.FlatAtomicExitNode);
