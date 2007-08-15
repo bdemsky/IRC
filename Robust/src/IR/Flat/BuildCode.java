@@ -217,11 +217,21 @@ public class BuildCode {
 	
 	outmethod.println("   {");
 	if (GENERATEPRECISEGC) {
-	    outmethod.print("       struct "+cd.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_params __parameterlist__={");
+	    if (state.DSM) {
+		outmethod.print("       struct "+cd.getSafeSymbol()+locality.getMain().getSignature()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_params __parameterlist__={");
+	    } else
+		outmethod.print("       struct "+cd.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_params __parameterlist__={");
 	    outmethod.println("1, NULL,"+"stringarray};");
-	    outmethod.println("     "+cd.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"(& __parameterlist__);");
-	} else
-	    outmethod.println("     "+cd.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"(stringarray);");
+	    if (state.DSM)
+		outmethod.println("     "+cd.getSafeSymbol()+locality.getMain().getSignature()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"(& __parameterlist__);");
+	    else
+		outmethod.println("     "+cd.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"(& __parameterlist__);");
+	} else {
+	    if (state.DSM)
+		outmethod.println("     "+cd.getSafeSymbol()+locality.getMain().getSignature()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"(stringarray);");
+	    else
+		outmethod.println("     "+cd.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"(stringarray);");
+	}
 	outmethod.println("   }");
 
 	if (state.DSM) {
@@ -717,7 +727,7 @@ public class BuildCode {
     private void generateTempStructs(FlatMethod fm, LocalityBinding lb) {
 	MethodDescriptor md=fm.getMethod();
 	TaskDescriptor task=fm.getTask();
-	Set<TempDescriptor> saveset=state.DSM?locality.getTempSet(lb):null;
+	Set<TempDescriptor> saveset=lb!=null?locality.getTempSet(lb):null;
 	ParamsObject objectparams=md!=null?new ParamsObject(md,tag++):new ParamsObject(task, tag++);
 
 	if (md!=null)
@@ -732,7 +742,7 @@ public class BuildCode {
 		objectparams.addPtr(temp);
 	    else
 		objectparams.addPrim(temp);
-	    if(state.DSM&&saveset.contains(temp)) {
+	    if(lb!=null&&saveset.contains(temp)) {
 		backuptable.put(temp, temp.createNew());
 	    }
 	}
@@ -761,14 +771,14 @@ public class BuildCode {
 		    objecttemps.addPtr(temp);
 		else
 		    objecttemps.addPrim(temp);
-		if(state.DSM&&saveset.contains(temp)&&
+		if(lb!=null&&saveset.contains(temp)&&
 		   !backuptable.containsKey(temp))
 		    backuptable.put(temp, temp.createNew());
 	    }
 	}
 
 	/* Create backup temps */
-	if (state.DSM) {
+	if (lb!=null) {
 	    for(Iterator<TempDescriptor> tmpit=backuptable.values().iterator();tmpit.hasNext();) {
 		TempDescriptor tmp=tmpit.next();
 		TypeDescriptor type=tmp.getType();
@@ -966,33 +976,47 @@ public class BuildCode {
 
 	if (state.DSM) {
 	    /* Cycle through LocalityBindings */
+	    HashSet<MethodDescriptor> nativemethods=new HashSet<MethodDescriptor>();
 	    Set<LocalityBinding> lbset=locality.getClassBindings(cn);
-	    if (lbset!=null)
+	    if (lbset!=null) {
 		for(Iterator<LocalityBinding> lbit=lbset.iterator();lbit.hasNext();) {
 		    LocalityBinding lb=lbit.next();
 		    MethodDescriptor md=lb.getMethod();
+		    if (md.getModifiers().isNative()) {
+			//make sure we only print a native method once
+			if (nativemethods.contains(md))
+			    continue;
+			else
+			    nativemethods.add(md);
+		    }
 		    generateMethod(cn, md, lb, headersout, output);
 		}
-	} else {
-	    /* Cycle through methods */
+	    }
 	    for(Iterator methodit=cn.getMethods();methodit.hasNext();) {
-		/* Classify parameters */
+		MethodDescriptor md=(MethodDescriptor)methodit.next();
+		if (md.getModifiers().isNative()&&!nativemethods.contains(md)) {
+		    //Need to build param structure for library code
+		    FlatMethod fm=state.getMethodFlat(md);
+		    generateTempStructs(fm, null);
+		    generateMethodParam(cn, md, null, output);
+		}
+	    }
+
+	} else
+	    for(Iterator methodit=cn.getMethods();methodit.hasNext();) {
 		MethodDescriptor md=(MethodDescriptor)methodit.next();
 		generateMethod(cn, md, null, headersout, output);
 	    }
-	}
     }
 
-    private void generateMethod(ClassDescriptor cn, MethodDescriptor md, LocalityBinding lb, PrintWriter headersout, PrintWriter output) {
-	FlatMethod fm=state.getMethodFlat(md);
-	generateTempStructs(fm, lb);
-	
-	ParamsObject objectparams=(ParamsObject) paramstable.get(md);
-	TempObject objecttemps=(TempObject) tempstable.get(md);
-	
+    private void generateMethodParam(ClassDescriptor cn, MethodDescriptor md, LocalityBinding lb, PrintWriter output) {
 	/* Output parameter structure */
 	if (GENERATEPRECISEGC) {
-	    output.println("struct "+cn.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_params {");
+	    ParamsObject objectparams=(ParamsObject) paramstable.get(md);
+	    if (state.DSM&&lb!=null)
+		output.println("struct "+cn.getSafeSymbol()+lb.getSignature()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_params {");
+	    else
+		output.println("struct "+cn.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_params {");
 	    output.println("  int size;");
 	    output.println("  void * next;");
 	    for(int i=0;i<objectparams.numPointers();i++) {
@@ -1001,10 +1025,24 @@ public class BuildCode {
 	    }
 	    output.println("};\n");
 	}
+    }
+
+
+    private void generateMethod(ClassDescriptor cn, MethodDescriptor md, LocalityBinding lb, PrintWriter headersout, PrintWriter output) {
+	FlatMethod fm=state.getMethodFlat(md);
+	generateTempStructs(fm, lb);
+	
+	ParamsObject objectparams=(ParamsObject) paramstable.get(md);
+	TempObject objecttemps=(TempObject) tempstable.get(md);
+	
+	generateMethodParam(cn, md, lb, output);
 	
 	/* Output temp structure */
 	if (GENERATEPRECISEGC) {
-	    output.println("struct "+cn.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_locals {");
+	    if (state.DSM)
+		output.println("struct "+cn.getSafeSymbol()+lb.getSignature()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_locals {");
+	    else
+		output.println("struct "+cn.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_locals {");
 	    output.println("  int size;");
 	    output.println("  void * next;");
 	    for(int i=0;i<objecttemps.numPointers();i++) {
@@ -1037,7 +1075,10 @@ public class BuildCode {
 	
 	boolean printcomma=false;
 	if (GENERATEPRECISEGC) {
-	    headersout.print("struct "+cn.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_params * "+paramsprefix);
+	    if (state.DSM) {
+		headersout.print("struct "+cn.getSafeSymbol()+lb.getSignature()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_params * "+paramsprefix);
+	    } else
+		headersout.print("struct "+cn.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_params * "+paramsprefix);
 	    printcomma=true;
 	}
 	
@@ -1143,7 +1184,9 @@ public class BuildCode {
 	}
 
 	if (GENERATEPRECISEGC) {
-	    if (md!=null)
+	    if (md!=null&&state.DSM)
+		output.print("   struct "+cn.getSafeSymbol()+lb.getSignature()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_locals "+localsprefix+"={");
+	    else if (md!=null&&!state.DSM)
 		output.print("   struct "+cn.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_locals "+localsprefix+"={");
 	    else
 		output.print("   struct "+task.getSafeSymbol()+"_locals "+localsprefix+"={");
@@ -1447,7 +1490,11 @@ public class BuildCode {
 	ClassDescriptor cn=md.getClassDesc();
 	output.println("{");
 	if (GENERATEPRECISEGC) {
-	    output.print("       struct "+cn.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_params __parameterlist__={");
+	    if (state.DSM) {
+		LocalityBinding fclb=locality.getBinding(lb, fc);
+		output.print("       struct "+cn.getSafeSymbol()+fclb.getSignature()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_params __parameterlist__={");
+	    } else
+		output.print("       struct "+cn.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_params __parameterlist__={");
 	    
 	    output.print(objectparams.numPointers());
 	    //	    output.print(objectparams.getUID());
@@ -1479,8 +1526,15 @@ public class BuildCode {
 
 	/* Do we need to do virtual dispatch? */
 	if (md.isStatic()||md.getReturnType()==null||singleCall(fc.getThis().getType().getClassDesc(),md)) {
-	    output.print(cn.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor());
+	    //no
+	    if (state.DSM) {
+		LocalityBinding fclb=locality.getBinding(lb, fc);
+		output.print(cn.getSafeSymbol()+fclb.getSignature()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor());
+	    } else {
+		output.print(cn.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor());
+	    }
 	} else {
+	    //yes
 	    output.print("((");
 	    if (md.getReturnType().isClass()||md.getReturnType().isArray())
 		output.print("struct " + md.getReturnType().getSafeSymbol()+" * ");
@@ -1490,7 +1544,11 @@ public class BuildCode {
 
 	    boolean printcomma=false;
 	    if (GENERATEPRECISEGC) {
-		output.print("struct "+cn.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_params * ");
+		if (state.DSM) {
+		    LocalityBinding fclb=locality.getBinding(lb, fc);
+		    output.print("struct "+cn.getSafeSymbol()+fclb.getSignature()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_params * ");
+		} else
+		    output.print("struct "+cn.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_params * ");
 		printcomma=true;
 	    }
 
@@ -1505,7 +1563,11 @@ public class BuildCode {
 		    output.print(temp.getType().getSafeSymbol());
 	    }
 
-	    output.print("))virtualtable["+generateTemp(fm,fc.getThis())+"->type*"+maxcount+"+"+virtualcalls.getMethodNumber(md)+"])");
+	    if (state.DSM) {
+		LocalityBinding fclb=locality.getBinding(lb, fc);
+		output.print("))virtualtable["+generateTemp(fm,fc.getThis())+"->type*"+maxcount+"+"+virtualcalls.getLocalityNumber(fclb)+"])");
+	    } else
+		output.print("))virtualtable["+generateTemp(fm,fc.getThis())+"->type*"+maxcount+"+"+virtualcalls.getMethodNumber(md)+"])");
 	}
 
 	output.print("(");
@@ -1808,9 +1870,12 @@ public class BuildCode {
 	
 	boolean printcomma=false;
 	if (GENERATEPRECISEGC) {
-	    if (md!=null)
-		output.print("struct "+cn.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_params * "+paramsprefix);
-	    else
+	    if (md!=null) {
+		if (state.DSM) {
+		    output.print("struct "+cn.getSafeSymbol()+lb.getSignature()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_params * "+paramsprefix);
+		} else
+		    output.print("struct "+cn.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_params * "+paramsprefix);
+	    } else
 		output.print("struct "+task.getSafeSymbol()+"_params * "+paramsprefix);
 	    printcomma=true;
 	}

@@ -35,7 +35,7 @@ void queueDelete(void) {
 }
 
 /* Inserts to the rear of primary prefetch queue */
-void enqueue(prefetchqelem_t *qnode) {
+void pre_enqueue(prefetchqelem_t *qnode) {
 	if(pqueue.front == NULL && pqueue.rear == NULL) {
 		pqueue.front = pqueue.rear = qnode;
 	} else {
@@ -46,7 +46,7 @@ void enqueue(prefetchqelem_t *qnode) {
 }
 
 /* Return the node pointed to by the front ptr of the queue */
-prefetchqelem_t *dequeue(void) {
+prefetchqelem_t *pre_dequeue(void) {
 	prefetchqelem_t *retnode;
 	if (pqueue.front == NULL) {
 		printf("Queue empty: Underflow %s, %d\n", __FILE__, __LINE__);

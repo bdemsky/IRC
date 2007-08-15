@@ -75,7 +75,7 @@ void prefetch(int ntuples, unsigned int *oids, short *endoffsets, short *arrayfi
 	memcpy(node + len, arrayfields, endoffsets[ntuples-1]*sizeof(short));
 	/* Lock and insert into primary prefetch queue */
 	pthread_mutex_lock(&pqueue.qlock);
-	enqueue((prefetchqelem_t *)node);
+	pre_enqueue((prefetchqelem_t *)node);
 	pthread_cond_signal(&pqueue.qcond);
 	pthread_mutex_unlock(&pqueue.qlock);
 }
@@ -1215,7 +1215,7 @@ void *transPrefetch(void *t) {
 		}
 
 		/* dequeue node to create a machine piles and  finally unlock mutex */
-		if((qnode = dequeue()) == NULL) {
+		if((qnode = pre_dequeue()) == NULL) {
 			printf("Error: No node returned %s, %d\n", __FILE__, __LINE__);
 			return NULL;
 		}

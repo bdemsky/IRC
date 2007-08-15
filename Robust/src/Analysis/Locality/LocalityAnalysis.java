@@ -19,6 +19,7 @@ public class LocalityAnalysis {
     Hashtable<LocalityBinding, Hashtable<FlatAtomicEnterNode, Set<TempDescriptor>>> tempstosave;
     Hashtable<ClassDescriptor, Set<LocalityBinding>> classtolb;
     Hashtable<MethodDescriptor, Set<LocalityBinding>> methodtolb;
+    private LocalityBinding lbmain;
 
     CallGraph callgraph;
     TypeUtil typeutil;
@@ -41,6 +42,40 @@ public class LocalityAnalysis {
 	this.methodtolb=new Hashtable<MethodDescriptor, Set<LocalityBinding>>();
 	doAnalysis();
     }
+
+    public LocalityBinding getMain() {
+	return lbmain;
+    }
+
+    /** This method returns the set of LocalityBindings that a given
+     * flatcall could invoke */
+
+    public LocalityBinding getBinding(LocalityBinding currlb, FlatCall fc) {
+	boolean isatomic=getAtomic(currlb).get(fc).intValue()>0;
+	Hashtable<TempDescriptor, Integer> currtable=getNodeTempInfo(currlb).get(fc);
+	MethodDescriptor md=fc.getMethod();
+	
+	boolean isnative=md.getModifiers().isNative();
+	
+	LocalityBinding lb=new LocalityBinding(md, isatomic);
+	
+	for(int i=0;i<fc.numArgs();i++) {
+	    TempDescriptor arg=fc.getArg(i);
+	    lb.setGlobal(i,currtable.get(arg));
+	}
+	if (fc.getThis()!=null) {
+	    Integer thistype=currtable.get(fc.getThis());
+	    if (thistype==null)
+		thistype=EITHER;
+	    lb.setGlobalThis(thistype);
+	} else
+	    lb.setGlobalThis(EITHER);//default value
+	if (discovered.containsKey(lb))
+	    lb=discovered.get(lb);
+	else throw new Error();
+	return lb;
+    }
+
 
     /** This method returns a set of LocalityBindings for the parameter class. */
 	
@@ -106,7 +141,7 @@ public class LocalityAnalysis {
     }
     
     private void computeLocalityBindings() {
-	LocalityBinding lbmain=new LocalityBinding(typeutil.getMain(), false);
+	lbmain=new LocalityBinding(typeutil.getMain(), false);
 	lbmain.setGlobal(0, LOCAL);
 	lbtovisit.add(lbmain);
 	discovered.put(lbmain, lbmain);
@@ -259,8 +294,13 @@ public class LocalityAnalysis {
 
     void processCallNode(LocalityBinding currlb, FlatCall fc, Hashtable<TempDescriptor, Integer> currtable, boolean isatomic) {
 	MethodDescriptor nodemd=fc.getMethod();
-	Set methodset=fc.getThis()==null?callgraph.getMethods(nodemd):
-	    callgraph.getMethods(nodemd, fc.getThis().getType());
+	Set methodset=null;
+	if (nodemd.isStatic()||nodemd.getReturnType()==null) {
+	    methodset=new HashSet();
+	    methodset.add(nodemd);
+	} else {
+	    methodset=callgraph.getMethods(nodemd, fc.getThis().getType());
+	}
 	Integer currreturnval=EITHER; //Start off with the either value
 	for(Iterator methodit=methodset.iterator();methodit.hasNext();) {
 	    MethodDescriptor md=(MethodDescriptor) methodit.next();
