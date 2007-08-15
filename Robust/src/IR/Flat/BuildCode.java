@@ -337,6 +337,8 @@ public class BuildCode {
     private void outputClassDeclarations(PrintWriter outclassdefs) {
 	if (state.THREAD)
 	    outclassdefs.println("#include <pthread.h>");
+	if(state.OPTIONAL)
+	    outclassdefs.println("#include \"optionalstruct.h\"");
 	outclassdefs.println("struct "+arraytype+";");
 	/* Start by declaring all structs */
 	Iterator it=state.getClassSymbolTable().getDescriptorsIterator();
@@ -356,8 +358,14 @@ public class BuildCode {
 	if (state.TASK) {
 	    outclassdefs.println("  int flag;");
 	    outclassdefs.println("  void * flagptr;");
-	    if(state.OPTIONAL) 
+	    if(state.OPTIONAL){
 		outclassdefs.println("  int failedstatus;");
+		outclassdefs.println("  int hashcode;");
+		outclassdefs.println("  int numexitfses;");
+		outclassdefs.println("  int * exitfses;");
+		outclassdefs.println("  int numotds;");
+		outclassdefs.println("  struct optionaltaskdescriptor ** otds;");
+	    }
 	}
 	printClassStruct(typeutil.getClass(TypeUtil.ObjectClass), outclassdefs);
 	
@@ -801,6 +809,7 @@ public class BuildCode {
     /** Force consistent field ordering between inherited classes. */
 
     private void printClassStruct(ClassDescriptor cn, PrintWriter classdefout) {
+	
 	ClassDescriptor sp=cn.getSuperDesc();
 	if (sp!=null)
 	    printClassStruct(sp, classdefout);
@@ -877,7 +886,14 @@ public class BuildCode {
 	if (state.TASK) {
 	    classdefout.println("  int flag;");
 	    classdefout.println("  void * flagptr;");
-	    if (state.OPTIONAL) classdefout.println("  int failedstatus;");
+	    if (state.OPTIONAL){
+		classdefout.println("  int failedstatus;");
+		classdefout.println("  int hashcode;");
+		classdefout.println("  int numexitfses;");
+		classdefout.println("  int * exitfses;");
+		classdefout.println("  int numotds;");
+		classdefout.println("  struct optionaltaskdescriptor ** otds;");
+	    }
 	}
 	printClassStruct(cn, classdefout);
 	classdefout.println("};\n");
@@ -1850,6 +1866,10 @@ public class BuildCode {
 	 
 	 //GENERATE HEADERS
 	 headers.println("#include \"task.h\"\n\n");
+	 headers.println("#ifndef _OPTIONAL_STRUCT_");
+	 headers.println("#define _OPTIONAL_STRUCT_");
+	 
+	 
 	 
 	 
 	 //STRUCT PREDICATEMEMBER
@@ -1860,43 +1880,42 @@ public class BuildCode {
 	 headers.println("int numtags;");
 	 headers.println("int * tags;\n};\n\n");
 
-	 //STRUCT EXITFLAGSTATE
-	 headers.println("struct exitflagstate{");
-	 headers.println("int numflags;");
-	 headers.println("int * flags;");
-	 /*
-	   headers.println("int numtags;");
-	   headers.println("int * tags;");
-	 */
-	 headers.println("\n};\n\n");
-	 
-	 //STRUCT EXITSTATES
+	 /*//STRUCT EXITSTATES
 	 headers.println("struct exitstates{");
-	 headers.println("int numexitflagstates;");
-	 headers.println("struct exitflagstate * exitflagstatearray;\n};\n\n");
+	 headers.println("int numflagstates;");
+	 headers.println("int * flagstatearray;\n};\n\n");*///appeared to be useless
 
 	 //STRUCT OPTIONALTASKDESCRIPTOR
 	 headers.println("struct optionaltaskdescriptor{");
 	 headers.println("struct taskdescriptor * task;");
+	 headers.println("int numenterflags;");
+	 headers.println("int * enterflags;");
 	 headers.println("int numpredicatemembers;");
-	 headers.println("struct predicatemember * predicatememberarray;");
-	 headers.println("int numexitstates;");
-	 headers.println("struct existates * exitstatesarray;\n};\n\n");
+	 headers.println("struct predicatemember ** predicatememberarray;");
+	 //headers.println("int numexitstates;");
+	 //headers.println("int numTotal;");
+	 //headers.println("struct exitstates ** exitstatesarray;\n};\n\n");
+	 headers.println("\n};\n\n");
 	 	 
 	 //STRUCT FSANALYSISWRAPPER
 	 headers.println("struct fsanalysiswrapper{");
-	 headers.println("int numflags;");
-	 headers.println("int * flags;");
+	 headers.println("int  flags;");
 	 headers.println("int numtags;");
 	 headers.println("int * tags;");
 	 headers.println("int numoptionaltaskdescriptors;");
-	 headers.println("struct optionaltaskdescriptor * optionaltaskdescriptorarray;\n};\n\n");
+	 headers.println("struct optionaltaskdescriptor ** optionaltaskdescriptorarray;\n};\n\n");
 
 	 //STRUCT CLASSANALYSISWRAPPER
-	 headers.println("struct classanalyiswrapper{");
+	 headers.println("struct classanalysiswrapper{");
 	 headers.println("int type;");
+	 headers.println("int numotd;");
+	 headers.println("struct optionaltaskdescriptor ** otdarray;");
 	 headers.println("int numfsanalysiswrappers;");
-	 headers.println("struct fsanalysiswrapper * fsanalysiswrapperarray;\n};\n\n");
+	 headers.println("struct fsanalysiswrapper ** fsanalysiswrapperarray;\n};\n\n");
+	 
+	 headers.println("struct classanalysiswrapper * classanalysiswrapperarray[];\n");
+
+	
 
 	 Iterator taskit=state.getTaskSymbolTable().getDescriptorsIterator();
 	 while(taskit.hasNext()) {
@@ -1904,23 +1923,34 @@ public class BuildCode {
 	     headers.println("extern struct taskdescriptor task_"+td.getSafeSymbol()+";");
 	 }
 	 
-						   
+	 
 	 
 	 //GENERATE STRUCTS
 	 output.println("#include \"optionalstruct.h\"\n\n");	 
 	 HashSet processedcd = new HashSet();
 	
-
+	 int maxotd=0;
 	 Enumeration e = safeexecution.keys();
 	 while (e.hasMoreElements()) {
-	     
+	     int numotd=0;
 	     //get the class
 	     ClassDescriptor cdtemp=(ClassDescriptor)e.nextElement();
 	     Hashtable flaginfo=(Hashtable)flagorder.get(cdtemp);//will be used several times
 	     
+	     //////////////////////////DEBUG
+	     System.out.println(cdtemp.getSymbol()+" "+cdtemp.getId());
+	     for(Iterator flags = cdtemp.getFlags(); flags.hasNext();){
+		 FlagDescriptor flagd = (FlagDescriptor)flags.next();
+		 int flagid=1<<((Integer)flaginfo.get(flagd)).intValue();
+		 System.out.println(" Flag "+flagd.getSymbol()+" 0x"+Integer.toHexString(flagid)+" int "+flagid);
+	     }
+	     ///////////////////////////
+	     
 	     //Generate the struct of optionals
 	     if((Hashtable)optionaltaskdescriptors.get(cdtemp)==null) System.out.println("Was in cd :"+cdtemp.getSymbol());
 	     Collection c_otd = ((Hashtable)optionaltaskdescriptors.get(cdtemp)).values();
+	     numotd = c_otd.size();
+	     if(maxotd<numotd) maxotd = numotd; 
 	     if( !c_otd.isEmpty() ){
 		 for(Iterator otd_it = c_otd.iterator(); otd_it.hasNext();){
 		     OptionalTaskDescriptor otd = (OptionalTaskDescriptor)otd_it.next();
@@ -1942,9 +1972,7 @@ public class BuildCode {
 			     for (Iterator fen_it = fen_hashset.iterator(); fen_it.hasNext();){
 				 FlagExpressionNode fen = (FlagExpressionNode)fen_it.next();
 				 if (fen==null) {
-				     //output.println("0x0, 0x0 };");
-				     //numberterms+=1;
-				 }
+				 }    
 				 else {
 				     
 				     DNFFlag dflag=fen.getDNF();
@@ -1983,12 +2011,8 @@ public class BuildCode {
 			     for(int j=0;j<tagel.numTags();j++) {
 				 if (j!=0)
 				     output.println(",");
-				 /* for each tag we need */
-				 /* which slot it is */
-				 /* what type it is */
-				 //TagVarDescriptor tvd=(TagVarDescriptor)task.getParameterTable().get(tagel.getName(j));
 				 TempDescriptor tmp=tagel.getTemp(j);
-				 //got rid of slot
+				 //got rid of slot, maybe some improvments to do ???
 				 output.println("/*tagid*/"+state.getTagId(tmp.getTag()));
 			     }
 			     numtags = tagel.numTags();
@@ -2011,55 +2035,45 @@ public class BuildCode {
 		     output.println("struct predicatemember * predicatememberarray_OTD"+otd.getuid()+"_"+cdtemp.getSafeSymbol()+"[]={");
 		     for( int j = 0; j<predicateindex; j++){
 			 if( j != predicateindex-1)output.println("&predicatemember_"+j+"_OTD"+otd.getuid()+"_"+cdtemp.getSafeSymbol()+",");
-			 else output.println("&predicatemember_"+j+"_OTD"+otd.getuid()+"_"+cdtemp.getSafeSymbol()+"};\n");
+			 else output.println("&predicatemember_"+j+"_OTD"+otd.getuid()+"_"+cdtemp.getSafeSymbol());
 		     }
+		     output.println("};\n");
 
-		     //generate the struct for possible exitfses
-		     HashSet<HashSet> exitfses = otd.exitfses;
+		     //generate the struct for possible exitfses, appeared to be useless
+		     /*HashSet<HashSet> exitfses = otd.exitfses;
 		     int exitindex = 0;
 		     int nbexit = exitfses.size();
 		     int fsnumber;
 		     
 		     //iterate through possible exits
+		     int nbtotal=0;
 		     for(Iterator exitfseshash = exitfses.iterator(); exitfseshash.hasNext();){
 			 HashSet temp_hashset = (HashSet)exitfseshash.next();
 			 fsnumber = 0 ;
-			 
+			 output.println("int flag_EXIT"+exitindex+"_OTD"+otd.getuid()+"_"+cdtemp.getSafeSymbol()+"[]={");
 			 //iterate through possible FSes corresponding to the exit
 			 for(Iterator exfses = temp_hashset.iterator(); exfses.hasNext();){
-			    FlagState fs = (FlagState)exfses.next();
-			    fsnumber++;
-			    output.println("int flags"+fsnumber+"_EXIT"+exitindex+"_OTD"+otd.getuid()+"_"+cdtemp.getSafeSymbol()+"[]={");
-			    int counterflag = 0;
-			    for(Iterator flags = fs.getFlags(); flags.hasNext();){
-				FlagDescriptor flagd = (FlagDescriptor)flags.next();
-				int flagid=1<<((Integer)flaginfo.get(flagd)).intValue();
-				if( flags.hasNext() ) output.print("0x"+Integer.toHexString(flagid)+" /*"+Integer.toBinaryString(flagid)+"*/,");
-				else  output.print("0x"+Integer.toHexString(flagid)+" /*"+Integer.toBinaryString(flagid)+"*/");
-				counterflag++;
-			    } 
-			    output.println("};\n");
-			    //do the same for tags;
-			    //maybe not needed because no tag changes tolerated.
-
-			    //store the information into a struct
-			    output.println("struct exitflagstate exitflagstate"+fsnumber+"_EXIT"+exitindex+"_OTD"+otd.getuid()+"_"+cdtemp.getSafeSymbol()+"={");
-			    output.println("/*number of flags*/"+counterflag+",");
-			    output.println("flags"+fsnumber+"_EXIT"+exitindex+"_OTD"+otd.getuid()+"_"+cdtemp.getSafeSymbol());
-			    output.println("};\n");
+			     FlagState fs = (FlagState)exfses.next();
+			     fsnumber++;
+			     nbtotal++;
+			     int flagid=0;
+			     for(Iterator flags = fs.getFlags(); flags.hasNext();){
+				 FlagDescriptor flagd = (FlagDescriptor)flags.next();
+				 int id=1<<((Integer)flaginfo.get(flagd)).intValue();
+				 flagid+=id;
+			     }
+			     if(fsnumber!=1) output.print(",");
+			     output.print(flagid);
+			     //do the same for tags.
+			     //maybe not needed because no tag changes tolerated.
 			 }
+			 output.println("};\n");
 			 
-			 //store fses corresponding to this exit into an array
-			 output.println("struct exitflagstate * exitflagstatearray"+"_EXIT"+exitindex+"_OTD"+otd.getuid()+"_"+cdtemp.getSafeSymbol()+" [] = {");
-			 for( int j = 0; j<fsnumber; j++){
-			     if( j != fsnumber-1)output.println("&exitflagstate"+(j+1)+"_EXIT"+exitindex+"_OTD"+otd.getuid()+"_"+cdtemp.getSafeSymbol()+"'");
-			     else output.println("&exitflagstate"+(j+1)+"_EXIT"+exitindex+"_OTD"+otd.getuid()+"_"+cdtemp.getSafeSymbol()+"};\n");
-			 }
 			 
 			 //store that information in a struct
 			 output.println("struct exitstates exitstates"+exitindex+"_OTD"+otd.getuid()+"_"+cdtemp.getSafeSymbol()+"={");
-			 output.println("/*number of exitflagstate*/"+fsnumber+",");
-			 output.println("exitflagstatearray"+"_EXIT"+exitindex+"_OTD"+otd.getuid()+"_"+cdtemp.getSafeSymbol());
+			 output.println(fsnumber+",");
+			 output.println("flag_EXIT"+exitindex+"_OTD"+otd.getuid()+"_"+cdtemp.getSafeSymbol());
 			 output.println("};\n");
 
 			 exitindex++;
@@ -2070,20 +2084,54 @@ public class BuildCode {
 		     for( int j = 0; j<nbexit; j++){
 			 if( j != nbexit-1)output.println("&exitstates"+j+"_OTD"+otd.getuid()+"_"+cdtemp.getSafeSymbol()+",");
 			 else output.println("&exitstates"+j+"_OTD"+otd.getuid()+"_"+cdtemp.getSafeSymbol()+"};\n");
+		     }*/
+
+		     int fsnumber = 0 ;
+		     output.println("int enterflag_OTD"+otd.getuid()+"_"+cdtemp.getSafeSymbol()+"[]={");
+			 //iterate through possible FSes corresponding to the state when entering
+		     for(Iterator fses = otd.flagstates.iterator(); fses.hasNext();){
+			 FlagState fs = (FlagState)fses.next();
+			 fsnumber++;
+			 int flagid=0;
+			 for(Iterator flags = fs.getFlags(); flags.hasNext();){
+			     FlagDescriptor flagd = (FlagDescriptor)flags.next();
+			     int id=1<<((Integer)flaginfo.get(flagd)).intValue();
+			     flagid+=id;
+			 }
+			 if(fsnumber!=1) output.print(",");
+			 output.print(flagid);
+			 //tag information not needed because tag changes are not tolerated.
 		     }
-		     		     
-		     		     
+		     output.println("};\n");
+		     
+		     
 		     //generate optionaltaskdescriptor that actually includes exit fses, predicate and the task concerned
 		     output.println("struct optionaltaskdescriptor optionaltaskdescriptor_"+otd.getuid()+"_"+cdtemp.getSafeSymbol()+"={");
-		     output.println("task_"+otd.td.getSafeSymbol()+",");
+		     output.println("&task_"+otd.td.getSafeSymbol()+",");
+		     output.println("/*number of enter flags*/"+fsnumber+",");
+		     output.println("enterflag_OTD"+otd.getuid()+"_"+cdtemp.getSafeSymbol()+",");
 		     output.println("/*number of members */"+predicateindex+",");
 		     output.println("predicatememberarray_OTD"+otd.getuid()+"_"+cdtemp.getSafeSymbol()+",");
-		     output.println("/*number of exit fses */"+nbexit+",");
-		     output.println("exitstatearray_OTD"+otd.getuid()+"_"+cdtemp.getSafeSymbol());
+		     //output.println("/*number of exitstates */"+nbexit+",");
+		     //output.println("/*total number of fses*/"+nbtotal+",");
+		     //output.println("exitstatesarray_OTD"+otd.getuid()+"_"+cdtemp.getSafeSymbol());
 		     output.println("};\n");
 		 }	
 	     }
 	     else continue; // if there is no optionals, there is no need to build the rest of the struct 
+	     
+	     output.println("struct optionaltaskdescriptor * otdarray"+cdtemp.getSafeSymbol()+"[]={");
+	     c_otd = ((Hashtable)optionaltaskdescriptors.get(cdtemp)).values();
+	     int x=0;
+	     if( !c_otd.isEmpty() ){
+		 for(Iterator otd_it = c_otd.iterator(); otd_it.hasNext();){
+		     OptionalTaskDescriptor otd = (OptionalTaskDescriptor)otd_it.next();
+		     if(x!=0) output.println(",");
+		     x++;
+		     output.println("&optionaltaskdescriptor_"+otd.getuid()+"_"+cdtemp.getSafeSymbol());
+		 }
+	     }
+	     output.println("};\n");
 	     
 	     //get all the possible falgstates reachable by an object
 	     Hashtable hashtbtemp = safeexecution.get(cdtemp);
@@ -2100,45 +2148,45 @@ public class BuildCode {
 		 output.println("struct optionaltaskdescriptor * optionaltaskdescriptorarray_FS"+fscounter+"_"+cdtemp.getSafeSymbol()+"[] = {");
 		 for(Iterator mos = availabletasks.iterator(); mos.hasNext();){
 		     OptionalTaskDescriptor mm = (OptionalTaskDescriptor)mos.next();
-		     if(!mos.hasNext()) output.println("&optionaltaskdescriptor_"+mm.getuid()+"_"+cdtemp.getSafeSymbol()+"};\n");
+		     if(!mos.hasNext()) output.println("&optionaltaskdescriptor_"+mm.getuid()+"_"+cdtemp.getSafeSymbol());
 		     
 		     else output.println("&optionaltaskdescriptor_"+mm.getuid()+"_"+cdtemp.getSafeSymbol()+",");
 		 }
 
+		 output.println("};\n");
+		 
 		 //process flag information (what the flag after failure is) so we know what optionaltaskdescriptors to choose.
 		 
-		 output.println("int flags_FS"+fscounter+"_"+cdtemp.getSafeSymbol()+"[]={");
+		 int flagid=0;
 		 for(Iterator flags = fs.getFlags(); flags.hasNext();){
 		     FlagDescriptor flagd = (FlagDescriptor)flags.next();
-		     int flagid=1<<((Integer)flaginfo.get(flagd)).intValue();
-		     if( flags.hasNext() ) output.print("0x"+Integer.toHexString(flagid)+" /*"+Integer.toBinaryString(flagid)+"*/,");
-		     else  output.print("0x"+Integer.toHexString(flagid)+" /*"+Integer.toBinaryString(flagid)+"*/");
-		     
+		     int id=1<<((Integer)flaginfo.get(flagd)).intValue();
+		     flagid+=id;
 		 }
+		 
+		 
 		 //process tag information
 		 
 		 int tagcounter = 0;
-		 //TagExpressionList tagel = fs.getTags(); 
-		 //output.println("int predicatetags_"+predicateindex+"_OTD"+otd.getuid()+"_"+cdtemp.getSafeSymbol()+"[]={");
-		 //BUG...added next line to fix, test with any task program
-		 
-		 //if (tagel!=null){
-		 //    for(int j=0;j<tagel.numTags();j++) {
-		 //	 if (j!=0)
-		 //	     output.println(",");
-		 //	 TempDescriptor tmp=tagel.getTemp(j);
-		 //	 output.println("/*tagid*/"+state.getTagId(tmp.getTag()));
-		 //   }
-		 //  numtags = tagel.numTags();
-		 //}
-		 //output.println("};");
+		 boolean first = true;
+		 Enumeration tag_enum = fs.getTags(); 
+		 output.println("int tags_FS"+fscounter+"_"+cdtemp.getSafeSymbol()+"[]={");
+		 while(tag_enum.hasMoreElements()){
+		     tagcounter++;
+		     TagDescriptor tagd = (TagDescriptor)tag_enum.nextElement(); 
+		     if(first==true)
+			 first = false;
+		     else
+			 output.println(", ");
+		     output.println("/*tagid*/"+state.getTagId(tagd));
+		 }
+		 output.println("};");
 		 
 		 
 		 //Store the result in fsanalysiswrapper
-		 output.println("};\n");
+		 
 		 output.println("struct fsanalysiswrapper fsanalysiswrapper_FS"+fscounter+"_"+cdtemp.getSafeSymbol()+"={");
-		 output.println("/* number of flags*/"+fs.numFlags()+",");
-		 output.println("flags_FS"+fscounter+"_"+cdtemp.getSafeSymbol()+",");
+		 output.println("/*flag*/"+flagid+",");
 		 output.println("/* number of tags*/"+tagcounter+",");
 		 output.println("tags_FS"+fscounter+"_"+cdtemp.getSafeSymbol()+",");
 		 output.println("/* number of optionaltaskdescriptors */"+availabletasks.size()+",");
@@ -2158,12 +2206,14 @@ public class BuildCode {
 	     //Build the classanalysiswrapper referring to the previous array
 	     output.println("struct classanalysiswrapper classanalysiswrapper_"+cdtemp.getSafeSymbol()+"={");
 	     output.println("/*type*/"+cdtemp.getId()+",");
+	     output.println("/*numotd*/"+numotd+",");
+	     output.println("otdarray"+cdtemp.getSafeSymbol()+",");
 	     output.println("/* number of fsanalysiswrappers */"+fscounter+",");
 	     output.println("fsanalysiswrapperarray_"+cdtemp.getSafeSymbol()+"};\n");
 	     fscounter = 0;
 	     processedcd.add(cdtemp);
 	 }
-
+	 
 	 //build an array containing every classes for which code has been build
 	 output.println("struct classanalysiswrapper * classanalysiswrapperarray[]={");
 	 for(Iterator classit = processedcd.iterator(); classit.hasNext();){
@@ -2171,7 +2221,13 @@ public class BuildCode {
 	     if(!classit.hasNext()) output.println("&classanalysiswrapper_"+cdtemp.getSafeSymbol()+"};\n");
 	     else output.println("&classanalysiswrapper_"+cdtemp.getSafeSymbol()+",");
 	 }
-	 output.println("int numclasses = "+processedcd.size()+";");
+	 
+	 output.println("int numclasses="+processedcd.size()+";");
+	 headers.println("extern numclasses;");
+	 output.println("int maxotd="+maxotd+";");
+	 headers.println("extern maxotd;");
+	 headers.println("#endif");
+	
 	 
      }
     

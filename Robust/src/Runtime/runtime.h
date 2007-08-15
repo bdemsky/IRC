@@ -60,6 +60,7 @@ void createstartupobject();
 #include "SimpleHash.h"
 #include "task.h"
 #include "structdefs.h"
+#include "optionalstruct.h"
 
 void flagorand(void * ptr, int ormask, int andmask);
 void flagorandinit(void * ptr, int ormask, int andmask);
@@ -96,6 +97,7 @@ struct taskparamdescriptor {
   struct taskdescriptor * task;
   int numParameters;
   void ** parameterArray;
+  int containsoptional;
 };
 
 int hashCodetpd(struct taskparamdescriptor *);

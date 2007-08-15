@@ -33,6 +33,7 @@ SRCFILES=''
 EXTRAOPTIONS=''
 MAINFILE='a'
 JAVAOPTS=''
+OPTIONALFLAG=false
 
 if [[ -z $1 ]]
 then
@@ -63,6 +64,7 @@ JAVAOPTS="$JAVAOPTS -taskstate"
 elif [[ $1 = '-optional' ]]
 then
 JAVAOPTS="$JAVAOPTS -optional"
+OPTIONALFLAG=true
 elif [[ $1 = '-dmalloc' ]]
 then
 USEDMALLOC=true
@@ -185,6 +187,12 @@ if $RECOVERFLAG
 then
 EXTRAOPTIONS="$EXTRAOPTIONS -DTASK"
 FILES="$FILES tmpbuilddirectory/taskdefs.c $ROBUSTROOT/Runtime/checkpoint.c"
+fi
+
+if $OPTIONALFLAG
+then
+EXTRAOPTIONS="$EXTRAOPTIONS -DOPTIONAL"
+FILES="$FILES tmpbuilddirectory/optionalarrays.c"
 fi
 
 if $THREADFLAG

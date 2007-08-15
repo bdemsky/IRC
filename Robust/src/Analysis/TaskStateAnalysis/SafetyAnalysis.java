@@ -161,10 +161,28 @@ public class SafetyAnalysis {
 	    safeexecution.put(processedclass, cdhashtable);
 			       
 	}
-	cleanPredicates();
+	putinoptionaltaskdescriptors();
 	printTEST();
 
 	
+    }
+
+    private void putinoptionaltaskdescriptors(){
+	Enumeration e = safeexecution.keys();
+	while (e.hasMoreElements()) {
+	    ClassDescriptor cdtemp=(ClassDescriptor)e.nextElement();
+	    optionaltaskdescriptors.get(cdtemp).clear();
+	    Hashtable hashtbtemp = safeexecution.get(cdtemp);
+	    Enumeration fses = hashtbtemp.keys();
+	    while(fses.hasMoreElements()){
+		FlagState fs = (FlagState)fses.nextElement();
+		HashSet availabletasks = (HashSet)hashtbtemp.get(fs);
+		for(Iterator otd_it = availabletasks.iterator(); otd_it.hasNext();){
+		    OptionalTaskDescriptor otd = (OptionalTaskDescriptor)otd_it.next();
+		    optionaltaskdescriptors.get(cdtemp).put(otd, otd);
+		}
+	    }
+	}
     }
 
     private void printTEST(){
@@ -370,7 +388,6 @@ public class SafetyAnalysis {
 		    HashSet fstemp = new HashSet();
 		    fstemp.add(tn.getFS());
 		    OptionalTaskDescriptor otd = new OptionalTaskDescriptor(tn.getTD(), fstemp, depth, temppredicate);
-		    //System.out.println("Create Optionaltaskdescriptor number "+otd.getuid()+" hascode "+otd.hashCode());
 		    if(optionaltaskdescriptors.get(processedclass).get(otd)!=null){
 			otd = (OptionalTaskDescriptor)((Hashtable)optionaltaskdescriptors.get(processedclass)).get(otd);
 		    }
@@ -389,7 +406,6 @@ public class SafetyAnalysis {
 		    HashSet fstemp = new HashSet();
 		    fstemp.add(tn.getFS());
 		    OptionalTaskDescriptor otd = new OptionalTaskDescriptor(tn.getTD(), fstemp, depth, temppredicate);
-		    //System.out.println("Create Optionaltaskdescriptor number "+otd.getuid()+" hascode "+otd.hashCode());
 		    if(optionaltaskdescriptors.get(processedclass).get(otd)!=null){
 			otd = (OptionalTaskDescriptor)((Hashtable)optionaltaskdescriptors.get(processedclass)).get(otd);
 		    }
@@ -690,14 +706,14 @@ public class SafetyAnalysis {
     
     private HashSet createIntersection( HashSet A, HashSet B){
 	HashSet result = new HashSet();
-	HashSet processed = new HashSet();
+	//HashSet processed = new HashSet();
 	for(Iterator b_it = B.iterator(); b_it.hasNext();){
 	    OptionalTaskDescriptor otd_b = (OptionalTaskDescriptor)b_it.next();
 	    for(Iterator a_it = A.iterator(); a_it.hasNext();){
 		OptionalTaskDescriptor otd_a = (OptionalTaskDescriptor)a_it.next();
 		if(((String)otd_a.td.getSymbol()).compareTo((String)otd_b.td.getSymbol())==0){
-		    processed.add(otd_a);
-		    processed.add(otd_b);
+		    //processed.add(otd_a);
+		    //processed.add(otd_b);
 		    
 		    HashSet newfs = new HashSet();
 		    newfs.addAll(otd_a.flagstates);
@@ -706,9 +722,9 @@ public class SafetyAnalysis {
 		    OptionalTaskDescriptor newotd = new OptionalTaskDescriptor(otd_b.td, newfs, newdepth, combinePredicates(otd_a.predicate, otd_b.predicate));
 		    if(optionaltaskdescriptors.get(processedclass).get(newotd)!=null){
 			//System.out.println("OTD found");
-			//System.out.println("before "+newotd.getuid());
+			System.out.println("before "+newotd.getuid());
 			newotd = (OptionalTaskDescriptor)((Hashtable)optionaltaskdescriptors.get(processedclass)).get(newotd);
-			//System.out.println("after "+newotd.getuid());
+			System.out.println("after "+newotd.getuid());
 		    }
 		    else optionaltaskdescriptors.get(processedclass).put(newotd, newotd);
 		    result.add(newotd);
@@ -716,7 +732,7 @@ public class SafetyAnalysis {
 	    }
 	}
 	
-	for(Iterator a_it = A.iterator(); a_it.hasNext();){
+	/*	for(Iterator a_it = A.iterator(); a_it.hasNext();){
 	    OptionalTaskDescriptor otd = (OptionalTaskDescriptor)a_it.next();
 	    if(!processed.contains(otd))
 		optionaltaskdescriptors.get(processedclass).remove(otd);
@@ -725,7 +741,7 @@ public class SafetyAnalysis {
 	    OptionalTaskDescriptor otd = (OptionalTaskDescriptor)b_it.next();
 	    if(!processed.contains(otd))
 		optionaltaskdescriptors.get(processedclass).remove(otd);
-	}    
+		}    */
 	return result;
     }
 
@@ -862,11 +878,7 @@ public class SafetyAnalysis {
 	otd.exitfses=result;
     }
 
-    private void cleanPredicates(){
-	
-    }
-	
-        
+            
 }
 
 

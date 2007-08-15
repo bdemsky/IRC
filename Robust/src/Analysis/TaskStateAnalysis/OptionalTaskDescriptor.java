@@ -28,10 +28,13 @@ public class  OptionalTaskDescriptor{
     public boolean equals(Object o){
 	if (o instanceof OptionalTaskDescriptor) {
 	    OptionalTaskDescriptor otd = (OptionalTaskDescriptor) o;
-	    if (this.td.getSymbol().compareTo(otd.td.getSymbol())==0)
+	    /*if (this.td.getSymbol().compareTo(otd.td.getSymbol())==0)
 		if(this.flagstates.equals(otd.flagstates))
 		    if(this.predicate.equals(otd.predicate))
 			return true;
+			return false;*/
+	    if(this.hashCode()==otd.hashCode())
+		return true;
 	    return false;
 	}
 	else return false;
