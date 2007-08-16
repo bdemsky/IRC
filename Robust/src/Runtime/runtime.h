@@ -4,6 +4,9 @@
 extern jmp_buf error_handler;
 extern int instructioncount;
 extern int failurecount;
+#ifdef DSTM
+#include "dstm.h"
+#endif
 
 #define TAGARRAYINTERVAL 10
 #define OBJECTARRAYINTERVAL 10
@@ -14,21 +17,18 @@ extern int failurecount;
 #define ARRAYGET(array, type, index) \
 ((type *)(&(& array->___length___)[1]))[index]
 
+#ifdef DSTM
+void * allocate_newglobal(transrecord_t *, int type);
+struct ArrayObject * allocate_newarrayglobal(transrecord_t *, int type, int length);
+#endif
+
 #ifdef PRECISE_GC
 #include "garbage.h"
-#ifdef DSTM
-void * allocate_newglobal(void *, int type);
-struct ArrayObject * allocate_newarrayglobal(void *, int type, int length);
-#endif
 void * allocate_new(void *, int type);
 struct ArrayObject * allocate_newarray(void *, int type, int length);
 struct ___String___ * NewString(void *, const char *str,int length);
 struct ___TagDescriptor___ * allocate_tag(void *ptr, int index);
 #else
-#ifdef DSTM
-void * allocate_newglobal(int type);
-struct ArrayObject * allocate_newarrayglobal(int type, int length);
-#endif
 void * allocate_new(int type);
 struct ArrayObject * allocate_newarray(int type, int length);
 struct ___String___ * NewString(const char *str,int length);

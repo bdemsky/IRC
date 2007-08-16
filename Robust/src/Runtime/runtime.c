@@ -90,8 +90,8 @@ void CALL01(___System______printString____L___String___,struct ___String___ * __
 /* Object allocation function */
 
 #ifdef DSTM
-void * allocate_newglobal(void * ptr, int type) {
-  struct ___Object___ * v=(struct ___Object___ *) dstmalloc(classsize[type]);
+void * allocate_newglobal(transrecord_t *trans, int type) {
+  struct ___Object___ * v=(struct ___Object___ *) dstmalloc(trans, classsize[type]);
   v->type=type;
 #ifdef THREADS
   v->tid=0;
@@ -103,8 +103,8 @@ void * allocate_newglobal(void * ptr, int type) {
 
 /* Array allocation function */
 
-struct ArrayObject * allocate_newarrayglobal(void * ptr, int type, int length) {
-  struct ArrayObject * v=(struct ArrayObject *)dstmalloc(classsize[type]);
+struct ArrayObject * allocate_newarrayglobal(transrecord_t *trans, int type, int length) {
+  struct ArrayObject * v=(struct ArrayObject *)dstmalloc(trans, classsize[type]);
   v->type=type;
   if (length<0) {
     printf("ERROR: negative array\n");

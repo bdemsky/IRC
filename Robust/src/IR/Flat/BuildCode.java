@@ -1785,21 +1785,22 @@ public class BuildCode {
     }
 
     private void generateFlatNew(FlatMethod fm, LocalityBinding lb, FlatNew fn, PrintWriter output) {
-	String isglobal="";
-	if (fn.isGlobal())
-	    isglobal="global";
 	if (fn.getType().isArray()) {
 	    int arrayid=state.getArrayNumber(fn.getType())+state.numClasses();
-	    if (GENERATEPRECISEGC) {
-		output.println(generateTemp(fm,fn.getDst(),lb)+"=allocate_newarray"+isglobal+"(&"+localsprefix+", "+arrayid+", "+generateTemp(fm, fn.getSize(),lb)+");");
+	    if (fn.isGlobal()) {
+		output.println(generateTemp(fm,fn.getDst(),lb)+"=allocate_newarrayglobal(trans, "+arrayid+", "+generateTemp(fm, fn.getSize(),lb)+");");
+	    } else if (GENERATEPRECISEGC) {
+		output.println(generateTemp(fm,fn.getDst(),lb)+"=allocate_newarray(&"+localsprefix+", "+arrayid+", "+generateTemp(fm, fn.getSize(),lb)+");");
 	    } else {
-		output.println(generateTemp(fm,fn.getDst(),lb)+"=allocate_newarray"+isglobal+"("+arrayid+", "+generateTemp(fm, fn.getSize(),lb)+");");
+		output.println(generateTemp(fm,fn.getDst(),lb)+"=allocate_newarray("+arrayid+", "+generateTemp(fm, fn.getSize(),lb)+");");
 	    }
 	} else {
-	    if (GENERATEPRECISEGC) {
-		output.println(generateTemp(fm,fn.getDst(),lb)+"=allocate_new"+isglobal+"(&"+localsprefix+", "+fn.getType().getClassDesc().getId()+");");
+	    if (fn.isGlobal()) {
+		output.println(generateTemp(fm,fn.getDst(),lb)+"=allocate_newglobal(trans, "+fn.getType().getClassDesc().getId()+");");
+	    } else if (GENERATEPRECISEGC) {
+		output.println(generateTemp(fm,fn.getDst(),lb)+"=allocate_new(&"+localsprefix+", "+fn.getType().getClassDesc().getId()+");");
 	    } else {
-		output.println(generateTemp(fm,fn.getDst(),lb)+"=allocate_new"+isglobal+"("+fn.getType().getClassDesc().getId()+");");
+		output.println(generateTemp(fm,fn.getDst(),lb)+"=allocate_new("+fn.getType().getClassDesc().getId()+");");
 	    }
 	}
     }

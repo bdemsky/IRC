@@ -216,7 +216,7 @@ int transCommitProcess(trans_commit_data_t *, int);
 
 int dstmStartup(const char *);
 void transInit();
-void * dstmalloc(int size);
+void * dstmalloc(transrecord_t *trans, int size);
 
 void randomdelay(void);
 transrecord_t *transStart();
