@@ -82,7 +82,7 @@ void prefetch(int ntuples, unsigned int *oids, short *endoffsets, short *arrayfi
 
 
 /* This function starts up the transaction runtime. */
-int dstmStartup(char * option) {
+int dstmStartup(const char * option) {
   pthread_t thread_Listen;
   pthread_attr_t attr;
   int master=strcmp(option, "master")==0;
@@ -318,7 +318,7 @@ plistnode_t *createPiles(transrecord_t *record) {
  * Sends a transrequest() to each pile*/
 int transCommit(transrecord_t *record) {	
 	unsigned int tot_bytes_mod, *listmid;
-	plistnode_t *pile;
+	plistnode_t *pile, *pile_ptr;
 	int i, rc, val;
 	int pilecount = 0, offset, threadnum = 0, trecvcount = 0, tmachcount = 0;
 	char buffer[RECEIVE_BUFFER_SIZE],control;
@@ -332,7 +332,7 @@ int transCommit(transrecord_t *record) {
 
 	/* Look through all the objects in the transaction record and make piles 
 	 * for each machine involved in the transaction*/
-	pile = createPiles(record);
+	pile_ptr = pile = createPiles(record);
 
 	/* Create the packet to be sent in TRANS_REQUEST */
 
@@ -375,7 +375,6 @@ int transCommit(transrecord_t *record) {
 	while(pile != NULL) {
 		//Create transaction id
 		newtid++;
-		//trans_req_data_t *tosend;
 		if ((tosend = calloc(1, sizeof(trans_req_data_t))) == NULL) {
 			printf("Calloc error %s, %d\n", __FILE__, __LINE__);
 			return 1;
@@ -432,14 +431,14 @@ int transCommit(transrecord_t *record) {
 			printf("ERROR return code from pthread_join() is %d\n", rc);
 			return 1;
 		}
+		free(thread_data_array[i].buffer);
 	}
 
 	/* Free resources */	
 	pthread_cond_destroy(&tcond);
 	pthread_mutex_destroy(&tlock);
-	free(tosend);
 	free(listmid);
-	pDelete(pile);
+	pDelete(pile_ptr);
 	free(thread_data_array);
 	free(ltdata);
 

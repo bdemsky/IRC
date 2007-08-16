@@ -577,9 +577,9 @@ public class LocalityAnalysis {
 		for(Iterator<TempDescriptor> tempit=livetemps.iterator();tempit.hasNext();) {
 		    TempDescriptor tmp=tempit.next();
 		    if (writes.contains(tmp)) {
-			nodetosavetemps.get(fn).add(tmp);
+			nodetosavetemps.get(atomicnode).add(tmp);
 		    } else if (reads.contains(tmp)&&temptab.get(fn).get(tmp)==GLOBAL) {
-			nodetosavetemps.get(fn).add(tmp);
+			nodetosavetemps.get(atomicnode).add(tmp);
 		    }
 		}
 	    }

@@ -290,8 +290,10 @@ public class BuildCode {
 	outmethod.println("#include \"methodheaders.h\"");
 	outmethod.println("#include \"virtualtable.h\"");
 	outmethod.println("#include <runtime.h>");
-	if (state.DSM)
+	if (state.DSM) 
+{	    outmethod.println("#include \"dstm.h\"");
 	    outmethod.println("#include \"localobjects.h\"");
+	}
 	if (state.THREAD)
 	    outmethod.println("#include <thread.h>");
 	if (state.main!=null) {
@@ -794,6 +796,10 @@ public class BuildCode {
 	    /* Create temp to hold revert table */
 	    if (lb.getHasAtomic()) {
 		TempDescriptor reverttmp=new TempDescriptor("revertlist", typeutil.getClass(TypeUtil.ObjectClass));
+		if (GENERATEPRECISEGC)
+		    objecttemps.addPtr(reverttmp);
+		else
+		    objecttemps.addPrim(reverttmp);
 		reverttable.put(lb, reverttmp);
 	    }
 	}

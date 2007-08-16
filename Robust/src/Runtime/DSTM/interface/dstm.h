@@ -69,10 +69,10 @@ typedef struct objheader {
 } objheader_t;
 
 #define OID(x)\
-        ((struct ___Object___ *)((unsigned int) x + sizeof(objheader_t)))->___nextobject___
+*((unsigned int *)&((struct ___Object___ *)((unsigned int) x + sizeof(objheader_t)))->___nextobject___)
 
 #define STATUS(x)\
-        ((struct ___Object___ *)((unsigned int) x + sizeof(objheader_t)))->___localcopy___
+	 *((unsigned int *) &(((struct ___Object___ *)((unsigned int) x + sizeof(objheader_t)))->___localcopy___))
 
 #define TYPE(x)\
         ((struct ___Object___ *)((unsigned int) x + sizeof(objheader_t)))->type
@@ -214,7 +214,7 @@ int transCommitProcess(trans_commit_data_t *, int);
 /* Function called at beginning. Passes in the first parameter. */
 /* Returns 1 if this thread should run the main process */
 
-int dstmStartup(char *);
+int dstmStartup(const char *);
 void transInit();
 
 void randomdelay(void);

@@ -31,9 +31,9 @@ public class TempDescriptor extends Descriptor {
 
     public TempDescriptor createNew() {
 	if (tag==null)
-	    return new TempDescriptor(name, type);
+	    return new TempDescriptor(name+"_"+currentid, type);
 	else
-	    return new TempDescriptor(name, type, tag);
+	    return new TempDescriptor(name+"_"+currentid, type, tag);
     }
     
     public static TempDescriptor tempFactory() {
