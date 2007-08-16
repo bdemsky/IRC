@@ -128,10 +128,11 @@ public class LocalityAnalysis {
     public Set<TempDescriptor> getTempSet(LocalityBinding lb) {
 	HashSet<TempDescriptor> set=new HashSet<TempDescriptor>();
 	Hashtable<FlatAtomicEnterNode, Set<TempDescriptor>> table=getTemps(lb);
-	for(Iterator<FlatAtomicEnterNode> faenit=table.keySet().iterator();faenit.hasNext();) {
-	    FlatAtomicEnterNode faen=faenit.next();
-	    set.addAll(table.get(faen));
-	}
+	if (table!=null)
+	    for(Iterator<FlatAtomicEnterNode> faenit=table.keySet().iterator();faenit.hasNext();) {
+		FlatAtomicEnterNode faen=faenit.next();
+		set.addAll(table.get(faen));
+	    }
 	return set;
     }
 

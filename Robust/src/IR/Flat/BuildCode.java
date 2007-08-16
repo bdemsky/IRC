@@ -105,6 +105,8 @@ public class BuildCode {
 	outmethodheader.println("#ifndef METHODHEADERS_H");
 	outmethodheader.println("#define METHODHEADERS_H");
 	outmethodheader.println("#include \"structdefs.h\"");
+	if (state.DSM)
+	    outmethodheader.println("#include \"dstm.h\"");
 
 	/* Output Structures */
 	outputStructs(outstructs);
@@ -290,8 +292,7 @@ public class BuildCode {
 	outmethod.println("#include \"methodheaders.h\"");
 	outmethod.println("#include \"virtualtable.h\"");
 	outmethod.println("#include <runtime.h>");
-	if (state.DSM) 
-{	    outmethod.println("#include \"dstm.h\"");
+	if (state.DSM) {
 	    outmethod.println("#include \"localobjects.h\"");
 	}
 	if (state.THREAD)
@@ -1412,7 +1413,7 @@ public class BuildCode {
 	    return;
 	/* Have to generate flat globalconv */
 	if (fgcn.getMakePtr()) {
-	    output.println(generateTemp(fm, fgcn.getSrc(),lb)+"=transRead(trans,"+generateTemp(fm, fgcn.getSrc(),lb)+");");
+	    output.println(generateTemp(fm, fgcn.getSrc(),lb)+"=(void *)transRead(trans, (unsigned int) "+generateTemp(fm, fgcn.getSrc(),lb)+");");
 	} else {
 	    /* Need to convert to OID */
 	    output.println(generateTemp(fm, fgcn.getSrc(),lb)+"=OID("+generateTemp(fm, fgcn.getSrc(),lb)+");");
@@ -1590,15 +1591,27 @@ public class BuildCode {
 	if (GENERATEPRECISEGC) {
 	    output.print("&__parameterlist__");
 	    needcomma=true;
-	} else {
+	}
+
+	if (state.DSM&&locality.getBinding(lb,fc).isAtomic()) {
+	    if (needcomma)
+		output.print(",");
+	    output.print("trans");
+	    needcomma=true;
+	}
+
+	if (!GENERATEPRECISEGC) {
 	    if (fc.getThis()!=null) {
 		TypeDescriptor ptd=md.getThis().getType();
+		if (needcomma)
+		    output.print(",");
 		if (ptd.isClass()&&!ptd.isArray())
 		    output.print("(struct "+ptd.getSafeSymbol()+" *) ");
 		output.print(generateTemp(fm,fc.getThis(),lb));
 		needcomma=true;
 	    }
 	}
+
 	for(int i=0;i<fc.numArgs();i++) {
 	    Descriptor var=md.getParameter(i);
 	    TempDescriptor paramtemp=(TempDescriptor)temptovar.get(var);
@@ -1650,7 +1663,7 @@ public class BuildCode {
 		    //output.println("{");
 		    //output.println("void * temp="+src+";");
 		    //output.println("if (temp&0x1) {");
-		    //output.println("temp=transRead(trans, temp);");
+		    //output.println("temp=(void *) transRead(trans, (unsigned int) temp);");
 		    //output.println(src+"->"+field+"="+temp+";");
 		    //output.println("}");
 		    //output.println(dst+"=temp;");
@@ -1658,7 +1671,7 @@ public class BuildCode {
 		    //} else {
 		    output.println(dst+"="+ src +"->"+field+ ";");
 		    //output.println("if ("+dst+"&0x1) {");
-		    output.println(dst+"=transRead(trans,"+dst+");");
+		    output.println(dst+"=(void *) transRead(trans, (unsigned int) "+dst+");");
 		    //output.println(src+"->"+field+"="+src+"->"+field+";");
 		    //output.println("}");
 		    //}
@@ -1683,9 +1696,9 @@ public class BuildCode {
 	if (fsfn.getField().getSymbol().equals("length")&&fsfn.getDst().getType().isArray())
 	    throw new Error("Can't set array length");
 	if (state.DSM && locality.getAtomic(lb).get(fsfn).intValue()>0) {
-	    Integer statussrc=locality.getNodeTempInfo(lb).get(fsfn).get(fsfn.getDst());
+	    Integer statussrc=locality.getNodeTempInfo(lb).get(fsfn).get(fsfn.getSrc());
 	    Integer statusdst=locality.getNodeTempInfo(lb).get(fsfn).get(fsfn.getDst());
-	    boolean srcglobal=statusdst==LocalityAnalysis.GLOBAL;
+	    boolean srcglobal=statussrc==LocalityAnalysis.GLOBAL;
 
 	    String src=generateTemp(fm,fsfn.getSrc(),lb);
 	    String dst=generateTemp(fm,fsfn.getDst(),lb);
@@ -1694,12 +1707,13 @@ public class BuildCode {
 		output.println("int srcoid="+src+"->"+oidstr+";");
 	    }
 	    if (statusdst.equals(LocalityAnalysis.GLOBAL)) {
-		String glbdst="(struct "+fsfn.getDst().getType().getSafeSymbol()+" *)((unsigned int)"+dst+" +sizeof(objheader_t)))";
+		String glbdst="((struct "+fsfn.getDst().getType().getSafeSymbol()+" *)((unsigned int)"+dst+" +sizeof(objheader_t)))";
 		//mark it dirty
-		output.println("((objheader_t *)"+dst+")->status|=DIRTY;");
-		if (srcglobal)
-		    output.println(glbdst+"->"+ fsfn.getField().getSafeSymbol()+"=srcoid;");
-		else
+		output.println("*((unsigned int *)&("+dst+"->___localcopy___))|=DIRTY;");
+		if (srcglobal) {
+		    output.println("*((unsigned int *)&("+glbdst+"->"+ fsfn.getField().getSafeSymbol()+"))=srcoid;");
+		    output.println("}");
+		} else
 		    output.println(glbdst+"->"+ fsfn.getField().getSafeSymbol()+"="+ src+";");		
 	    } else if (statusdst.equals(LocalityAnalysis.LOCAL)) {
 		/** Check if we need to copy */
@@ -1771,18 +1785,21 @@ public class BuildCode {
     }
 
     private void generateFlatNew(FlatMethod fm, LocalityBinding lb, FlatNew fn, PrintWriter output) {
+	String isglobal="";
+	if (fn.isGlobal())
+	    isglobal="global";
 	if (fn.getType().isArray()) {
 	    int arrayid=state.getArrayNumber(fn.getType())+state.numClasses();
 	    if (GENERATEPRECISEGC) {
-		output.println(generateTemp(fm,fn.getDst(),lb)+"=allocate_newarray(&"+localsprefix+", "+arrayid+", "+generateTemp(fm, fn.getSize(),lb)+");");
+		output.println(generateTemp(fm,fn.getDst(),lb)+"=allocate_newarray"+isglobal+"(&"+localsprefix+", "+arrayid+", "+generateTemp(fm, fn.getSize(),lb)+");");
 	    } else {
-		output.println(generateTemp(fm,fn.getDst(),lb)+"=allocate_newarray("+arrayid+", "+generateTemp(fm, fn.getSize(),lb)+");");
+		output.println(generateTemp(fm,fn.getDst(),lb)+"=allocate_newarray"+isglobal+"("+arrayid+", "+generateTemp(fm, fn.getSize(),lb)+");");
 	    }
 	} else {
 	    if (GENERATEPRECISEGC) {
-		output.println(generateTemp(fm,fn.getDst(),lb)+"=allocate_new(&"+localsprefix+", "+fn.getType().getClassDesc().getId()+");");
+		output.println(generateTemp(fm,fn.getDst(),lb)+"=allocate_new"+isglobal+"(&"+localsprefix+", "+fn.getType().getClassDesc().getId()+");");
 	    } else {
-		output.println(generateTemp(fm,fn.getDst(),lb)+"=allocate_new("+fn.getType().getClassDesc().getId()+");");
+		output.println(generateTemp(fm,fn.getDst(),lb)+"=allocate_new"+isglobal+"("+fn.getType().getClassDesc().getId()+");");
 	    }
 	}
     }

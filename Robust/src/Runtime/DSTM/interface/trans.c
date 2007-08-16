@@ -80,6 +80,17 @@ void prefetch(int ntuples, unsigned int *oids, short *endoffsets, short *arrayfi
 	pthread_mutex_unlock(&pqueue.qlock);
 }
 
+static int objid=1;
+/* This function allocates an object */
+void * dstmalloc(int size) {
+  objheader_t * newobj=(objheader_t *)objstrAlloc(mainobjstore, size+sizeof(objheader_t));
+  OID(newobj)=objid;
+  newobj->version=1;
+  newobj->rcount=0;
+  STATUS(newobj)=NEW;
+  objid+=2;
+  return newobj;
+}
 
 /* This function starts up the transaction runtime. */
 int dstmStartup(const char * option) {

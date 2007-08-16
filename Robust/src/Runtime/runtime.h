@@ -16,11 +16,19 @@ extern int failurecount;
 
 #ifdef PRECISE_GC
 #include "garbage.h"
+#ifdef DSTM
+void * allocate_newglobal(void *, int type);
+struct ArrayObject * allocate_newarrayglobal(void *, int type, int length);
+#endif
 void * allocate_new(void *, int type);
 struct ArrayObject * allocate_newarray(void *, int type, int length);
 struct ___String___ * NewString(void *, const char *str,int length);
 struct ___TagDescriptor___ * allocate_tag(void *ptr, int index);
 #else
+#ifdef DSTM
+void * allocate_newglobal(int type);
+struct ArrayObject * allocate_newarrayglobal(int type, int length);
+#endif
 void * allocate_new(int type);
 struct ArrayObject * allocate_newarray(int type, int length);
 struct ___String___ * NewString(const char *str,int length);

@@ -7,6 +7,9 @@
 #include<signal.h>
 #include<stdio.h>
 #include "option.h"
+#ifdef DSTM
+#include "dstm.h"
+#endif
 
 extern int classsize[];
 jmp_buf error_handler;
@@ -85,6 +88,38 @@ void CALL01(___System______printString____L___String___,struct ___String___ * __
 }
 
 /* Object allocation function */
+
+#ifdef DSTM
+void * allocate_newglobal(void * ptr, int type) {
+  struct ___Object___ * v=(struct ___Object___ *) dstmalloc(classsize[type]);
+  v->type=type;
+#ifdef THREADS
+  v->tid=0;
+  v->lockentry=0;
+  v->lockcount=0;
+#endif
+  return v;
+}
+
+/* Array allocation function */
+
+struct ArrayObject * allocate_newarrayglobal(void * ptr, int type, int length) {
+  struct ArrayObject * v=(struct ArrayObject *)dstmalloc(classsize[type]);
+  v->type=type;
+  if (length<0) {
+    printf("ERROR: negative array\n");
+    return NULL;
+  }
+  v->___length___=length;
+#ifdef THREADS
+  v->tid=0;
+  v->lockentry=0;
+  v->lockcount=0;
+#endif
+  return v;
+}
+#endif
+
 
 #ifdef PRECISE_GC
 void * allocate_new(void * ptr, int type) {
