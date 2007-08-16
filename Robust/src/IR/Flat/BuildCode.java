@@ -816,6 +816,8 @@ public class BuildCode {
 	    while(allit.hasNext()) {
 		FieldDescriptor fd=(FieldDescriptor)allit.next();
 		TypeDescriptor type=fd.getType();
+		if (state.DSM&&fd.isGlobal()) //Don't GC the global objects for now
+		    continue;
 		if (type.isPtr()||type.isArray())
 		    count++;
 	    }
@@ -824,6 +826,8 @@ public class BuildCode {
 	    while(allit.hasNext()) {
 		FieldDescriptor fd=(FieldDescriptor)allit.next();
 		TypeDescriptor type=fd.getType();
+		if (state.DSM&&fd.isGlobal()) //Don't GC the global objects for now
+		    continue;
 		if (type.isPtr()||type.isArray()) {
 		    output.println(",");
 		    output.print("((unsigned int)&(((struct "+cn.getSafeSymbol() +" *)0)->"+fd.getSafeSymbol()+"))");

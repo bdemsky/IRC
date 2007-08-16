@@ -543,8 +543,6 @@ public class SemanticCheck {
 	if (td!=null&&!typeutil.isSuperorType(td, typetolookin))
 	    throw new Error(typetolookin + " isn't a "+td);
 
-
-
 	/* Check flag effects */
 	if (con.getFlagEffects()!=null) {
 	    FlagEffects fe=con.getFlagEffects();
@@ -574,37 +572,43 @@ public class SemanticCheck {
 	    }
 	}
 
-
 	if ((!typetolookin.isClass())&&(!typetolookin.isArray())) 
 	    throw new Error("Can't allocate primitive type:"+con.printNode(0));
 
 	if (!typetolookin.isArray()) {
 	    //Array's don't need constructor calls
 	    ClassDescriptor classtolookin=typetolookin.getClassDesc();
-	    //System.out.println("Looking for "+typetolookin.getSymbol());
-	    //System.out.println(classtolookin.getMethodTable());
-	    
+
 	    Set methoddescriptorset=classtolookin.getMethodTable().getSet(typetolookin.getSymbol());
 	    MethodDescriptor bestmd=null;
 	NextMethod:
 	    for(Iterator methodit=methoddescriptorset.iterator();methodit.hasNext();) {
 		MethodDescriptor currmd=(MethodDescriptor)methodit.next();
 		/* Need correct number of parameters */
-		//System.out.println("Examining: "+currmd);
 		if (con.numArgs()!=currmd.numParameters())
 		    continue;
 		for(int i=0;i<con.numArgs();i++) {
 		    if (!typeutil.isSuperorType(currmd.getParamType(i),tdarray[i]))
 			continue NextMethod;
 		}
+		/* Local allocations can't call global allocator */
+		if (!con.isGlobal()&&currmd.isGlobal())
+		    continue;
+
 		/* Method okay so far */
 		if (bestmd==null)
 		    bestmd=currmd;
 		else {
 		    if (isMoreSpecific(currmd,bestmd)) {
 			bestmd=currmd;
-		    } else if (!isMoreSpecific(bestmd, currmd))
+		    } else if (con.isGlobal()&&match(currmd, bestmd)) {
+			if (currmd.isGlobal()&&!bestmd.isGlobal())
+			    bestmd=currmd;
+			else if (currmd.isGlobal()&&bestmd.isGlobal())
+			    throw new Error();
+		    } else if (!isMoreSpecific(bestmd, currmd)) {
 			throw new Error("No method is most specific");
+		    }
 		    
 		    /* Is this more specific than bestmd */
 		}
@@ -636,6 +640,27 @@ public class SemanticCheck {
 
 	return true;
     }
+
+    /** Check to see if md1 is the same specificity as md2.*/
+
+    boolean match(MethodDescriptor md1, MethodDescriptor md2) {
+	/* Checks if md1 is more specific than md2 */
+	if (md1.numParameters()!=md2.numParameters())
+	    throw new Error();
+	for(int i=0;i<md1.numParameters();i++) {
+	    if (!md2.getParamType(i).equals(md1.getParamType(i)))
+		return false;
+	}
+	if (!md2.getReturnType().equals(md1.getReturnType()))
+		return false;
+
+	if (!md2.getClassDesc().equals(md1.getClassDesc()))
+		return false;
+
+	return true;
+    }
+
+
 
     ExpressionNode translateNameDescriptorintoExpression(NameDescriptor nd) {
 	String id=nd.getIdentifier();

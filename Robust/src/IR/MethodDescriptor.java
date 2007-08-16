@@ -70,6 +70,11 @@ public class MethodDescriptor extends Descriptor {
 	thisvd=null;
     }
 
+
+    public boolean isGlobal() {
+	return isglobal;
+    }
+
     public void setThis(VarDescriptor vd) {
 	thisvd=vd;
 	paramtable.add(vd);
