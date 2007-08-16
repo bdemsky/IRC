@@ -179,7 +179,7 @@ public class BuildCode {
 	outmethod.println("int main(int argc, const char *argv[]) {");
 	outmethod.println("  int i;");
 	if (state.DSM) {
-	    outmethod.println("if (dstmStart(argv[0])) {");
+	    outmethod.println("if (dstmStartup(argv[1])) {");
 	    if (GENERATEPRECISEGC) {
 		outmethod.println("  struct ArrayObject * stringarray=allocate_newarray(NULL, STRINGARRAYTYPE, argc-2);");
 	    } else {

@@ -189,11 +189,6 @@ transrecord_t *record;
 /* Initialize main object store and lookup tables, start server thread. */
 int dstmInit(void);
 
-/* Function called at beginning. Passes in the first parameter. */
-/* Returns 1 if this thread should run the main process */
-
-int dstmStart(char *);
-
 /* Prototypes for object header */
 unsigned int getNewOID(void);
 unsigned int objSize(objheader_t *object);
@@ -216,6 +211,12 @@ int transCommitProcess(trans_commit_data_t *, int);
 /* end server portion */
 
 /* Prototypes for transactions */
+/* Function called at beginning. Passes in the first parameter. */
+/* Returns 1 if this thread should run the main process */
+
+int dstmStartup(char *);
+void transInit();
+
 void randomdelay(void);
 transrecord_t *transStart();
 objheader_t *transRead(transrecord_t *, unsigned int);

@@ -80,6 +80,29 @@ void prefetch(int ntuples, unsigned int *oids, short *endoffsets, short *arrayfi
 	pthread_mutex_unlock(&pqueue.qlock);
 }
 
+
+/* This function starts up the transaction runtime. */
+int dstmStartup(char * option) {
+  pthread_t thread_Listen;
+  pthread_attr_t attr;
+  int master=strcmp(option, "master")==0;
+
+  dstmInit();
+  transInit();
+
+  if (master) {
+    pthread_attr_init(&attr);
+    pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
+    pthread_create(&thread_Listen, &attr, dstmListen, NULL);
+    return 1;
+  } else {
+    dstmListen();
+    return 0;
+  }
+
+}
+
+
 /* This function initiates the prefetch thread
  * A queue is shared between the main thread of execution
  * and the prefetch thread to process the prefetch call
