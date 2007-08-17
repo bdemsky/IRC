@@ -359,10 +359,6 @@ void flagorand(void * ptr, int ormask, int andmask) {
 #endif
     {
     flag&=andmask;
-    // Not sure why this was necessary
-    //  if (flag==oldflag) /* Don't do anything */
-    //  return;
-    //else 
     flagbody(ptr, flag);
     }
 }
@@ -372,15 +368,16 @@ void intflagorand(void * ptr, int ormask, int andmask) {
   int flag=ormask|oldflag;
 #ifdef OPTIONAL
   struct ___Object___ * obj = (struct ___Object___ *)ptr;
-  if(obj->failedstatus==1){/*store the information about exitfses*/
+  if(obj->failedstatus==1) {/*store the information about exitfses*/
     int i,j,counter=0, offset=0;
-    for(i=0; i<obj->numotds; i++){
+    for(i=0; i<obj->numotds; i++) {
       counter+=obj->otds[i]->numenterflags;
     }
     obj->numexitfses=counter;
-    if(obj->exitfses!=NULL) RUNFREE(obj->exitfses);
+    if(obj->exitfses!=NULL) 
+      RUNFREE(obj->exitfses);
     obj->exitfses= RUNMALLOC(sizeof(int) * counter);
-    for(i=0; i<obj->numotds; i++){
+    for(i=0; i<obj->numotds; i++) {
       for(j=0; j<obj->otds[i]->numenterflags; j++){
 	oldflag=obj->otds[i]->enterflags[j];
 	flag=ormask|oldflag;
@@ -438,7 +435,7 @@ void flagorandinit(void * ptr, int ormask, int andmask) {
    while(flagptr!=NULL) {
      struct ___Object___ *temp=NULL;
      struct parameterwrapper *ptr;
-     struct RuntimeNode * node = flagptr->objectset->listhead;
+     struct ObjectNode * node = flagptr->objectset->listhead;
      while(node!=NULL){
        temp=(struct ___Object___ *)node->key;
        if(temp->failedstatus==1 && temp->hashcode==currobj->hashcode){

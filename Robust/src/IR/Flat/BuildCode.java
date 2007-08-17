@@ -2113,9 +2113,9 @@ public class BuildCode {
 	 headers.println("int numotd;");
 	 headers.println("struct optionaltaskdescriptor ** otdarray;");
 	 headers.println("int numfsanalysiswrappers;");
-	 headers.println("struct fsanalysiswrapper ** fsanalysiswrapperarray;\n};\n\n");
+	 headers.println("struct fsanalysiswrapper ** fsanalysiswrapperarray;\n};");
 	 
-	 headers.println("struct classanalysiswrapper * classanalysiswrapperarray[];\n");
+	 headers.println("extern struct classanalysiswrapper * classanalysiswrapperarray[];");
 
 	
 
@@ -2418,11 +2418,15 @@ public class BuildCode {
 	 
 	 //build an array containing every classes for which code has been build
 	 output.println("struct classanalysiswrapper * classanalysiswrapperarray[]={");
+	 boolean needcomma=false;
 	 for(Iterator classit = processedcd.iterator(); classit.hasNext();){
 	     ClassDescriptor cdtemp=(ClassDescriptor)classit.next();
-	     if(!classit.hasNext()) output.println("&classanalysiswrapper_"+cdtemp.getSafeSymbol()+"};\n");
-	     else output.println("&classanalysiswrapper_"+cdtemp.getSafeSymbol()+",");
+	     if (needcomma)
+		 output.println(", ");
+	     needcomma=true;
+	     output.println("&classanalysiswrapper_"+cdtemp.getSafeSymbol());
 	 }
+	 output.println("};");
 	 
 	 output.println("int numclasses="+processedcd.size()+";");
 	 headers.println("extern numclasses;");
