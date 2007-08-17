@@ -27,7 +27,6 @@ struct genhashtable * failedtasks;
 struct taskparamdescriptor * currtpd;
 struct RuntimeHash * forward;
 struct RuntimeHash * reverse;
-struct RuntimeHash * exitfsesdata;
 
 int main(int argc, char **argv) {
 #ifdef BOEHM_GC
@@ -45,7 +44,6 @@ int main(int argc, char **argv) {
   activetasks=genallocatehashtable((unsigned int (*)(void *)) &hashCodetpd, 
 				   (int (*)(void *,void *)) &comparetpd);
   
-  exitfsesdata=allocateRuntimeHash(10);
   /* Process task information */
   processtasks();
 
