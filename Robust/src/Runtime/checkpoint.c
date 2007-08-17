@@ -71,7 +71,7 @@ void ** makecheckpoint(int numparams, void ** srcpointer, struct RuntimeHash * f
     {
       void *cpy;
       RuntimeHashget(forward, (int) ptr, (int *) &cpy);
-      int * pointer=pointerarray[type];
+      unsigned int * pointer=pointerarray[type];
       if (pointer==0) {
 	/* Array of primitives */
 	/* Do nothing */
@@ -171,7 +171,7 @@ void restorecheckpoint(int numparams, void ** original, void ** checkpoint, stru
 
     {
       void *cpy;
-      int *pointer;
+      unsigned int *pointer;
       int size;
       RuntimeHashget(reverse, (int) ptr, (int *) &cpy);
       pointer=pointerarray[type];

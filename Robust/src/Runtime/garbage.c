@@ -164,8 +164,8 @@ void collect(struct garbagelist * stackptr) {
     for(i=0;i<NUMCLASSES;i++) {
       struct parameterwrapper * p=objectqueues[i];
       while(p!=NULL) {
-	struct RuntimeHash * set=p->objectset;
-	struct RuntimeNode * ptr=set->listhead;
+	struct ObjectHash * set=p->objectset;
+	struct ObjectNode * ptr=set->listhead;
 	while(ptr!=NULL) {
 	  void *orig=(void *)ptr->key;
 	  void *copy;
@@ -175,7 +175,7 @@ void collect(struct garbagelist * stackptr) {
 	  
 	  ptr=ptr->lnext;
 	}
-	RuntimeHashrehash(set); /* Rehash the table */
+	ObjectHashrehash(set); /* Rehash the table */
 	p=p->next;
       }
     }

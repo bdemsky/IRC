@@ -2126,9 +2126,9 @@ public class BuildCode {
 	 }
 	 
 	 
-	 
 	 //GENERATE STRUCTS
-	 output.println("#include \"optionalstruct.h\"\n\n");	 
+	 if (state.OPTIONAL)
+	     output.println("#include \"optionalstruct.h\"\n\n");	 
 	 HashSet processedcd = new HashSet();
 	
 	 int maxotd=0;

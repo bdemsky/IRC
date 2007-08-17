@@ -66,9 +66,12 @@ void createstartupobject();
 
 #ifdef TASK
 #include "SimpleHash.h"
+#include "ObjectHash.h"
 #include "task.h"
 #include "structdefs.h"
+#ifdef OPTIONAL
 #include "optionalstruct.h"
+#endif
 
 void flagorand(void * ptr, int ormask, int andmask);
 void flagorandinit(void * ptr, int ormask, int andmask);
@@ -77,8 +80,8 @@ void processtasks();
 
 struct tagobjectiterator {
   int istag; /* 0 if object iterator, 1 if tag iterator */
-  struct RuntimeIterator it; /* Object iterator */
-  struct RuntimeHash * objectset;
+  struct ObjectIterator it; /* Object iterator */
+  struct ObjectHash * objectset;
   int slot;
   int tagobjindex; /* Index for tag or object depending on use */
   /*if tag we have an object binding */
@@ -91,7 +94,7 @@ struct tagobjectiterator {
 
 struct parameterwrapper {
   struct parameterwrapper *next;
-  struct RuntimeHash * objectset;
+  struct ObjectHash * objectset;
   int numberofterms;
   int * intarray;
   int numbertags;

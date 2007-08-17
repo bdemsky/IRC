@@ -206,20 +206,6 @@ int ObjectHashcount(struct ObjectHash *thisvar,int key) {
     return count;
 }
 
-struct ObjectHash * ObjectHashimageSet(struct ObjectHash *thisvar, int key) {
-  struct ObjectHash * newset=allocateObjectHash(2*ObjectHashcount(thisvar,key)+4);
-  unsigned int hashkey = (unsigned int)key % thisvar->size;
-
-  struct ObjectNode *ptr = thisvar->bucket[hashkey];
-  while (ptr) {
-    if (ptr->key == key) {
-        ObjectHashadd(newset,ptr->data,ptr->data);
-    }
-    ptr = ptr->next;
-  }
-  return newset;
-}
-
 int ObjectHashget(struct ObjectHash *thisvar, int key, int *data, int *data2) {
     unsigned int hashkey = (unsigned int)key % thisvar->size;
 

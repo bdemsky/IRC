@@ -443,8 +443,7 @@ void flagorandinit(void * ptr, int ormask, int andmask) {
        temp=(struct ___Object___ *)node->key;
        if(temp->failedstatus==1 && temp->hashcode==currobj->hashcode){
 	 if(temp!=currobj){
-	   RuntimeHashget(flagptr->objectset, (int)temp, (int *) &ptr);
-	   RuntimeHashremove(flagptr->objectset, (int)temp, (int) ptr);//remove from wrapper
+	   ObjectHashremove(flagptr->objectset, (int)temp);//remove from wrapper
 	   //delete the fields that wont be removed by the GC.
 	   if(temp->exitfses!=NULL) RUNFREE(temp->exitfses);
 	   if(temp->otds!=NULL) RUNFREE(temp->otds);
@@ -452,8 +451,7 @@ void flagorandinit(void * ptr, int ormask, int andmask) {
 	 }
 	 else{
 	   //remove from wrapper
-	   RuntimeHashget(flagptr->objectset, (int)temp, (int *) &ptr);
-	   RuntimeHashremove(flagptr->objectset, (int)temp, (int) ptr);
+	   ObjectHashremove(flagptr->objectset, (int)temp);
 	   goto nextwrapper;
 	 }
        }
@@ -474,8 +472,9 @@ void flagorandinit(void * ptr, int ormask, int andmask) {
    while(flagptr!=NULL) {
      struct parameterwrapper *next;
      struct ___Object___ * tag=ptr->___tags___;
-     RuntimeHashget(flagptr->objectset, (int) ptr, (int *) &next);
-     RuntimeHashremove(flagptr->objectset, (int)ptr, (int) next);
+     int FIXME;
+     ObjectHashget(flagptr->objectset, (int) ptr, (int *) &next, &FIXME);
+     ObjectHashremove(flagptr->objectset, (int)ptr);
      flagptr=next;
    }
    
@@ -767,9 +766,9 @@ void flagorandinit(void * ptr, int ormask, int andmask) {
    //test if the predicate member is true
    struct parameterwrapper * paramwrapper = objectqueues[currpred->type];
    while(paramwrapper!=NULL){
-   struct RuntimeIterator * it = allocateRuntimeIterator(paramwrapper->objectset->listhead);
+   struct ObjectIterator * it = allocateObjectIterator(paramwrapper->objectset->listhead);
    do{
-   struct ___Object___ * obj = (struct ___Object___ *)Runkey(it);
+   struct ___Object___ * obj = (struct ___Object___ *)Objkey(it);
    printf("obj type : %i\n", obj->type);
    if(obj->type == currpred->type){
    //test the predicate
@@ -777,8 +776,8 @@ void flagorandinit(void * ptr, int ormask, int andmask) {
    //only if good
    goto enqueuetask;
    }
-   Runnext(it);
-   }while(RunhasNext(it));
+   Objnext(it);
+   }while(ObjhasNext(it));
    paramwrapper=paramwrapper->next;
    }
    printf("not the good predicate");
@@ -797,7 +796,7 @@ void flagorandinit(void * ptr, int ormask, int andmask) {
 
   struct taskdescriptor * task=parameter->task;
   
-  RuntimeHashadd(parameter->objectset, (int) ptr, (int) prevptr);//this add the object to parameterwrapper
+  ObjectHashadd(parameter->objectset, (int) ptr, (int) prevptr, 0);//this add the object to parameterwrapper
   
   /* Add enqueued object to parameter vector */
   taskpointerarray[parameter->slot]=ptr;
@@ -988,7 +987,7 @@ void executetasks() {
 	if(obj->failedstatus==1){
 	  struct ___Object___ *temp=NULL;
 	  struct parameterwrapper * ptr;
-	  struct RuntimeNode * node = pw->objectset->listhead;
+	  struct ObjectNode * node = pw->objectset->listhead;
 	  while(node!=NULL){
 	    temp=(struct ___Object___ *)node->key;
 	    if(temp->failedstatus==1 && temp->hashcode==obj->hashcode){
@@ -1004,7 +1003,7 @@ void executetasks() {
 	else
 #endif
 	{
-	  if (!RuntimeHashcontainskey(pw->objectset, (int) parameter)) {
+	  if (!ObjectHashcontainskey(pw->objectset, (int) parameter)) {
 	    RUNFREE(currtpd->parameterArray);
 	    RUNFREE(currtpd);
 	    goto newtask;
@@ -1123,7 +1122,7 @@ void processtags(struct parameterdescriptor *pd, int index, struct parameterwrap
 void processobject(struct parameterwrapper *parameter, int index, struct parameterdescriptor *pd, int *iteratorcount, int * statusarray, int numparams) {
   int i;
   int tagcount=0;
-  struct RuntimeHash * objectset=((struct parameterwrapper *)pd->queue)->objectset;
+  struct ObjectHash * objectset=((struct parameterwrapper *)pd->queue)->objectset;
 
   parameter->iterators[*iteratorcount].istag=0;
   parameter->iterators[*iteratorcount].slot=index;
@@ -1223,7 +1222,7 @@ void processtasks() {
       struct parameterwrapper ** ptr=&objectqueues[param->type];
 
       param->queue=parameter;
-      parameter->objectset=allocateRuntimeHash(10);
+      parameter->objectset=allocateObjectHash(10);
       parameter->numberofterms=param->numberterms;
       parameter->intarray=param->intarray;
       parameter->numbertags=param->numbertags;
@@ -1251,7 +1250,7 @@ void toiReset(struct tagobjectiterator * it) {
   } else if (it->numtags>0) {
     it->tagobjindex=0;
   } else {
-    RuntimeHashiterator(it->objectset, &it->it);
+    ObjectHashiterator(it->objectset, &it->it);
   }
 }
 
@@ -1287,7 +1286,7 @@ int toiHasNext(struct tagobjectiterator *it, void ** objectarray) {
     if (objptr->type!=OBJECTARRAYTYPE) {
       if (it->tagobjindex>0)
 	return 0;
-      if (!RuntimeHashcontainskey(it->objectset, (int) objptr))
+      if (!ObjectHashcontainskey(it->objectset, (int) objptr))
 	return 0;
       for(i=1;i<it->numtags;i++) {
 	struct ___TagDescriptor___ *tag2=objectarray[it->tagbindings[i]];
@@ -1301,7 +1300,7 @@ int toiHasNext(struct tagobjectiterator *it, void ** objectarray) {
       int i;
       for(tagindex=it->tagobjindex;tagindex<ao->___cachedCode___;tagindex++) {
 	struct ___Object___ *objptr=ARRAYGET(ao, struct ___Object___*, tagindex);
-	if (!RuntimeHashcontainskey(it->objectset, (int) objptr))
+	if (!ObjectHashcontainskey(it->objectset, (int) objptr))
 	  continue;
 	for(i=1;i<it->numtags;i++) {
 	  struct ___TagDescriptor___ *tag2=objectarray[it->tagbindings[i]];
@@ -1316,7 +1315,7 @@ int toiHasNext(struct tagobjectiterator *it, void ** objectarray) {
       return 0;
     }
   } else {
-    return RunhasNext(&it->it);
+    return ObjhasNext(&it->it);
   }
 }
 
@@ -1361,8 +1360,8 @@ void toiNext(struct tagobjectiterator *it , void ** objectarray) {
     }
   } else {
     /* Iterate object */
-    objectarray[it->slot]=(void *)Runkey(&it->it);
-    Runnext(&it->it);
+    objectarray[it->slot]=(void *)Objkey(&it->it);
+    Objnext(&it->it);
   }
 }
 
