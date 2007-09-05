@@ -6,6 +6,8 @@
 #include <netdb.h>
 #include <netinet/in.h>
 #include <string.h>
+#include <sys/ioctl.h>
+#include <net/if.h>
 
 #define LISTEN_PORT 2156
 
@@ -54,6 +56,35 @@ int checkServer(int mid, char *machineip) {
 	close(tmpsd);
 	return 0;
 }
+
+unsigned int getMyIpAddr(const char *interfaceStr)
+{	
+	int sock;
+	struct ifreq interfaceInfo;
+	struct sockaddr_in *myAddr = (struct sockaddr_in *)&interfaceInfo.ifr_addr;
+
+	memset(&interfaceInfo, 0, sizeof(struct ifreq));
+
+	if((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0)
+	{
+		perror("getMyIpAddr():socket()");
+		return 1;
+	}
+
+	strcpy(interfaceInfo.ifr_name, interfaceStr);
+	myAddr->sin_family = AF_INET;
+	
+	if(ioctl(sock, SIOCGIFADDR, &interfaceInfo) != 0)
+	{
+		perror("getMyIpAddr():ioctl()");
+		return 1;
+	}
+
+	close(sock);
+
+	return ntohl(myAddr->sin_addr.s_addr);
+}
+
 /*
 main() {
 	unsigned int mid;

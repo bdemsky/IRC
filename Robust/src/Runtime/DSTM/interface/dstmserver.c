@@ -98,6 +98,7 @@ void *dstmAccept(void *acceptfd)
 	void *srcObj;
 	objheader_t *h;
 	trans_commit_data_t transinfo;
+	unsigned short objType;
 	
 	int fd_flags = fcntl((int)acceptfd, F_GETFD), size;
 
@@ -167,6 +168,20 @@ void *dstmAccept(void *acceptfd)
 			if((val = prefetchReq((int)acceptfd)) != 0) {
 				printf("Error in readClientReq\n");
 				return;
+			}
+			break;
+		case START_REMOTE_THREAD:
+			retval = recv((int)acceptfd, &oid, sizeof(unsigned int), 0);
+			if (retval <= 0)
+				perror("dstmAccept(): error receiving START_REMOTE_THREAD msg");
+			else if (retval != sizeof(unsigned int))
+				printf("dstmAccept(): incorrect msg size %d for START_REMOTE_THREAD\n",
+					retval);
+			else
+			{ //TODO: execute run method on this global thread object
+				printf("dstmAccept(): received START_REMOTE_THREAD msg, oid=%d\n", oid);
+				objType = getObjType(oid);
+				printf("dstmAccept(): type of object %d is %d\n", oid, objType);
 			}
 			break;
 

@@ -800,8 +800,7 @@ void *handleLocalReq(void *threadarg) {
 		/* Save the oids not found and number of oids not found for later use */
 		if ((mobj = mhashSearch(oid)) == NULL) {/* Obj not found */
 			/* Save the oids not found and number of oids not found for later use */
-
-			oidnotfound[objnotfound] = OID(((objheader_t *)mobj));
+			oidnotfound[objnotfound] = oid;
 			objnotfound++;
 		} else { /* If Obj found in machine (i.e. has not moved) */
 			/* Check if Obj is locked by any previous transaction */
@@ -1463,3 +1462,75 @@ void getPrefetchResponse(int count, int sd) {
 		printf("Error in receving response for prefetch request %s, %d\n",__FILE__, __LINE__);
 	return;
 }
+
+unsigned short getObjType(unsigned int oid)
+{
+	objheader_t *objheader;
+	unsigned short numoffsets = 0;
+
+	if ((objheader = (objheader_t *) mhashSearch(oid)) == NULL)
+	{
+		if ((objheader = (objheader_t *) prehashSearch(oid)) == NULL)
+		{
+			prefetch(1, &oid, &numoffsets, NULL);
+			pthread_mutex_lock(&pflookup.lock);
+			while ((objheader = (objheader_t *) prehashSearch(oid)) == NULL)
+				pthread_cond_wait(&pflookup.cond, &pflookup.lock);
+			pthread_mutex_unlock(&pflookup.lock);
+		}
+	}
+
+	return TYPE(objheader);
+}
+
+int startRemoteThread(unsigned int oid, unsigned int mid)
+{
+	int sock;
+	struct sockaddr_in remoteAddr;
+	char msg[1 + sizeof(unsigned int)];
+	int bytesSent;
+	int status;
+
+	if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0)
+	{
+		perror("startRemoteThread():socket()");
+		return -1;
+	}
+
+	bzero(&remoteAddr, sizeof(remoteAddr));
+	remoteAddr.sin_family = AF_INET;
+	remoteAddr.sin_port = htons(LISTEN_PORT);
+	remoteAddr.sin_addr.s_addr = htonl(mid);
+	
+	if (connect(sock, (struct sockaddr *)&remoteAddr, sizeof(remoteAddr)) < 0)
+	{
+		printf("startRemoteThread():error %d connecting to %s:%d\n", errno,
+			inet_ntoa(remoteAddr.sin_addr), LISTEN_PORT);
+		status = -1;
+	}
+	else
+	{
+		msg[0] = START_REMOTE_THREAD;
+		memcpy(&msg[1], &oid, sizeof(unsigned int));
+
+		bytesSent = send(sock, msg, 1 + sizeof(unsigned int), 0);
+		if (bytesSent < 0)
+		{
+			perror("startRemoteThread():send()");
+			status = -1;
+		}
+		else if (bytesSent != 1 + sizeof(unsigned int))
+		{
+			printf("startRemoteThread(): error, sent %d bytes\n", bytesSent);
+			status = -1;
+		}
+		else
+		{
+			status = 0;
+		}
+	}
+
+	close(sock);
+	return status;
+}
+

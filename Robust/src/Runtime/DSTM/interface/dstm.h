@@ -33,6 +33,7 @@
 #define TRANS_SOFT_ABORT		20
 #define TRANS_SUCESSFUL			21
 #define TRANS_PREFETCH_RESPONSE		22
+#define START_REMOTE_THREAD		23
 
 //Control bits for status of objects in Machine pile
 #define OBJ_LOCKED_BUT_VERSION_MATCH	14
@@ -240,5 +241,7 @@ void checkPreCache(prefetchqelem_t *, int *, int, int, unsigned int, int, int, i
 int transPrefetchProcess(transrecord_t *, int **, short);
 void sendPrefetchReq(prefetchpile_t*, int);
 void getPrefetchResponse(int, int);
+unsigned short getObjType(unsigned int oid);
+int startRemoteThread(unsigned int oid, unsigned int mid);
 /* end transactions */
 #endif
