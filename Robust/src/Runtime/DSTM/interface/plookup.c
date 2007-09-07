@@ -1,6 +1,13 @@
 #include "plookup.h"
 extern int classsize[];
 
+//NOTE: "pile" ptr points to the head of the linked list of the machine pile data structures 
+
+/* This function creates a new pile data structure to hold
+ * obj ids of objects modified or read inside a transaction,
+ * no of objects read and no of objects modified
+ * that belong to a single machine */
+
 plistnode_t *pCreate(int objects) {
 	plistnode_t *pile;
       	
@@ -9,32 +16,37 @@ plistnode_t *pCreate(int objects) {
 		printf("Calloc error %s %d\n", __FILE__, __LINE__);
 		return NULL;
 	}	
-	pile->next = NULL;
 	if ((pile->oidmod = calloc(objects, sizeof(unsigned int))) == NULL) {
 		printf("Calloc error %s %d\n", __FILE__, __LINE__);
+		free(pile);
 		return NULL;
 	}
+	/*
 	if ((pile->oidread = calloc(objects, sizeof(unsigned int))) == NULL) {
 		printf("Calloc error %s %d\n", __FILE__, __LINE__);
 		return NULL;
 	}
-	pile->nummod = pile->numread = pile->sum_bytes = 0;
-	if ((pile->objread = calloc(objects, sizeof(int) + sizeof(short))) == NULL) {
+	*/
+	if ((pile->objread = calloc(objects, sizeof(unsigned int) + sizeof(short))) == NULL) {
 		printf("Calloc error %s %d\n", __FILE__, __LINE__);
+		free(pile);
+		free(pile->oidmod);
 		return NULL;
 	}
-	pile->objmodified = NULL;
-	pile->nummod = pile->numread = pile->sum_bytes = 0;
 
+	pile->nummod = pile->numread = pile->sum_bytes = 0;
+	pile->next = NULL;
 	return pile;
 }
 
+/* This function inserts necessary information into 
+ * a machine pile data structure */
 plistnode_t *pInsert(plistnode_t *pile, objheader_t *headeraddr, unsigned int mid, int num_objs) {
 	plistnode_t *ptr, *tmp;
 	int found = 0, offset;
 
 	tmp = pile;
-	//Add oid into a machine that is a part of the pile linked list structure
+	//Add oid into a machine that is already present in the pile linked list structure
 	while(tmp != NULL) {
 		if (tmp->mid == mid) {
 			if (STATUS(headeraddr) & DIRTY) {
@@ -42,13 +54,12 @@ plistnode_t *pInsert(plistnode_t *pile, objheader_t *headeraddr, unsigned int mi
 				tmp->nummod = tmp->nummod + 1;
 				tmp->sum_bytes += sizeof(objheader_t) + classsize[TYPE(headeraddr)];
 			} else {
-				tmp->oidread[tmp->numread] = OID(headeraddr);
+		//		tmp->oidread[tmp->numread] = OID(headeraddr);
 				offset = (sizeof(unsigned int) + sizeof(short)) * tmp->numread;
 				*((unsigned int *)(tmp->objread + offset))=OID(headeraddr);
 				offset += sizeof(unsigned int);
 				memcpy(tmp->objread + offset, &headeraddr->version, sizeof(short));
 				tmp->numread = tmp->numread + 1;
-			//	printf("DEBUG->pInsert() No of obj read = %d\n", tmp->numread);
 			}
 			found = 1;
 			break;
@@ -66,7 +77,7 @@ plistnode_t *pInsert(plistnode_t *pile, objheader_t *headeraddr, unsigned int mi
 			ptr->nummod = ptr->nummod + 1;
 			ptr->sum_bytes += sizeof(objheader_t) + classsize[TYPE(headeraddr)];
 		} else {
-			ptr->oidread[ptr->numread] = OID(headeraddr);
+		//	ptr->oidread[ptr->numread] = OID(headeraddr);
 			*((unsigned int *)ptr->objread)=OID(headeraddr);
 			memcpy(ptr->objread + sizeof(unsigned int), &headeraddr->version, sizeof(short));
 			ptr->numread = ptr->numread + 1;
@@ -78,7 +89,7 @@ plistnode_t *pInsert(plistnode_t *pile, objheader_t *headeraddr, unsigned int mi
 	return pile;
 }
 
-//Count the number of machine groups
+//Count the number of machine piles
 int pCount(plistnode_t *pile) {
 	plistnode_t *tmp;
 	int pcount = 0;
@@ -110,7 +121,7 @@ void pDelete(plistnode_t *pile) {
 	while(tmp != NULL) {
 		next = tmp->next;
 		free(tmp->oidmod);
-		free(tmp->oidread);
+		//free(tmp->oidread);
 		free(tmp->objread);
 		free(tmp);
 		tmp = next;

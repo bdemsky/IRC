@@ -108,84 +108,70 @@ typedef struct transrecord {
   struct ___Object___ * revertlist;
 #endif
 } transrecord_t;
-// Structure that keeps track of responses from the participants
+// Structure is a shared structure that keeps track of responses from the participants
 typedef struct thread_response {
   char rcv_status;
 } thread_response_t;
 
-// Structure that holds  fixed data sizes to be sent along with TRANS_REQUEST
+// Structure that holds  fixed data to be sent along with TRANS_REQUEST
 typedef struct fixed_data {
-  char control;
-  char trans_id[TID_LEN];	
-  int mcount;		// Machine count
-  short numread;		// Number of objects read
-  short nummod;		// Number of objects modified
-  int sum_bytes;	// Total bytes modified
+  char control;			/* control message */
+  char trans_id[TID_LEN];	/* transaction id */
+  int mcount;			/* participant count */
+  short numread;		/* no of objects read */
+  short nummod;			/* no of objects modified */
+  int sum_bytes;		/* total bytes of modified objects in a transaction */
 } fixed_data_t;
 
-// Structure that holds  variable data sizes per machine participant
+/* Structure that holds trans request information for each participant */
 typedef struct trans_req_data {
-  fixed_data_t f;
-  unsigned int *listmid;
-  char *objread;
-  unsigned int *oidmod;
-} trans_req_data_t;
+  fixed_data_t f; 		/* Holds first few fixed bytes of data sent during TRANS_REQUEST protcol*/
+  unsigned int *listmid;	/* Pointer to array holding list of participants */
+  char *objread;		/* Pointer to array holding oid and version number of objects that are only read */ 
+  unsigned int *oidmod;		/* Pointer to array holding oids of objects that are modified */
+} trans_req_data_t;		
 
-// Structure passed to dstmAcceptinfo() on server side to complete TRANS_COMMIT process 
-
+/* Structure that holds information of objects that are not found in the participant
+ * and objs locked within a transaction during commit process */
 typedef struct trans_commit_data{
-  unsigned int *objmod;
-  unsigned int *objlocked;
-  unsigned int *objnotfound;
-  void *modptr;
-  int nummod;
-  int numlocked;
-  int numnotfound;
+  unsigned int *objlocked;	/* Pointer to array holding oids of objects locked inside a transaction */
+  unsigned int *objnotfound;    /* Pointer to array holding oids of objects not found on the participant machine */
+  void *modptr;			/* Pointer to the address in the mainobject store of the participant that holds all modified objects */
+  int numlocked;		/* no of objects locked */
+  int numnotfound;		/* no of objects not found */
 } trans_commit_data_t;
 
 
 #define PRINT_TID(PTR) printf("DEBUG -> %x %d\n", PTR->mid, PTR->thread_id);
-//structure for passing multiple arguments to thread
+/* Structure for passing multiple arguments to a thread
+ * spawned to process each transaction on a machine */
 typedef struct thread_data_array {
-  int thread_id;
+  int thread_id;	
   int mid;    
-  int pilecount;
-  trans_req_data_t *buffer;
-  thread_response_t *recvmsg;//shared datastructure to keep track of the control message receiv
-  pthread_cond_t *threshold; //threshhold for waking up a thread
-  pthread_mutex_t *lock;    //lock the count variable
-  int *count;             //variable to count responses of TRANS_REQUEST protocol from all participants
-  char *replyctrl; 	//shared ctrl message that stores the reply to be sent, filled by decideResp
-  char *replyretry;	//shared variable to find out if we need retry (TRANS_COMMIT case) 
-  transrecord_t *rec;	// To send modified objects
+  int pilecount;		/* No of remote machines involved */
+  trans_req_data_t *buffer;	/* Holds trans request information sent to participants */  
+  thread_response_t *recvmsg;	/* Shared datastructure to keep track of the participants response to a trans request */
+  pthread_cond_t *threshold;    /* Condition var to waking up a thread */
+  pthread_mutex_t *lock;    	/* Lock for counting participants response */
+  int *count;             	/* Variable to count responses from all participants to the TRANS_REQUEST protocol */
+  char *replyctrl; 		/* Shared ctrl message that stores the reply to be sent to participants, filled by decideResponse() */
+  char *replyretry;		/* Shared variable that keep track if coordinator needs retry */
+  transrecord_t *rec;		/* To send modified objects */
 } thread_data_array_t;
 
 
 //Structure for passing arguments to the local m/c thread
 typedef struct local_thread_data_array {
-	thread_data_array_t *tdata;
-	trans_commit_data_t *transinfo; //Required for trans commit process
+	thread_data_array_t *tdata;	/* Holds all the arguments send to a thread that is spawned when transaction commits */ 
+	trans_commit_data_t *transinfo; /* Holds information of objects locked and not found in the participant */ 
 } local_thread_data_array_t;
-
-// Structure to save information about an oid necesaary for the decideControl()
-typedef struct objinfo {
-	unsigned int oid;
-	int poss_val; //Status of object(locked but version matches, version mismatch, oid not present in machine etc) 
-}objinfo_t;
 
 //Structure for members within prefetch tuples
 typedef struct member {
-	short offset;
-	short index;
-	struct member *next;
+	short offset;		/* Holds offset of the ptr field */
+	short index;		/* Holds the array index value */ 
+	struct member *next;	
 }trans_member_t;
-
-/*
-//Structure that holds the compiler generated prefetch data
-typedef struct compprefetchdata {
-transrecord_t *record;
-} compprefetchdata_t;
-*/
 
 /* Initialize main object store and lookup tables, start server thread. */
 int dstmInit(void);
@@ -205,10 +191,11 @@ void *objstrAlloc(objstr_t *store, unsigned int size); //size in bytes
 void *dstmListen();
 void *dstmAccept(void *);
 int readClientReq(trans_commit_data_t *, int);
-int processClientReq(fixed_data_t *, trans_commit_data_t *,unsigned int *, char *, void *, int);
+int processClientReq(fixed_data_t *, trans_commit_data_t *,unsigned int *, char *, void *, unsigned int *, int);
 char handleTransReq(fixed_data_t *, trans_commit_data_t *, unsigned int *, char *, void *, int);
-int decideCtrlMessage(fixed_data_t *, trans_commit_data_t *, int *, int *, int *, int *, int *, void *, unsigned int *, unsigned int *, unsigned int *, int);
-int transCommitProcess(trans_commit_data_t *, int);
+int decideCtrlMessage(fixed_data_t *, trans_commit_data_t *, int *, int *, int *, int *, int *, void *, unsigned int *, unsigned int *, int);
+//int transCommitProcess(trans_commit_data_t *, int);
+int transCommitProcess(void *, unsigned int *, unsigned int *, int, int, int);
 /* end server portion */
 
 /* Prototypes for transactions */
@@ -229,8 +216,9 @@ void *handleLocalReq(void *);	//the C routine that the local m/c thread will exe
 int decideResponse(thread_data_array_t *);// Coordinator decides what response to send to the participant
 char sendResponse(thread_data_array_t *, int); //Sends control message back to Participants
 void *getRemoteObj(transrecord_t *, unsigned int, unsigned int);
-int transAbortProcess(void *, unsigned int *, int, int, int);
-int transComProcess(trans_commit_data_t *);
+int transAbortProcess(void *, unsigned int *, int, int);
+//int transComProcess(trans_commit_data_t *);
+int transComProcess(void*, unsigned int *, unsigned int *, int, int);
 void prefetch(int, unsigned int *, short *, short*);
 void *transPrefetch(void *);
 void *mcqProcess(void *);

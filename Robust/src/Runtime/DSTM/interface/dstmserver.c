@@ -20,11 +20,12 @@ extern int classsize[];
 
 objstr_t *mainobjstore;
 
+/* This function initializes the main objects store and creates the 
+ * global machine and location lookup table */
+
 int dstmInit(void)
 {
-	/* Initialize main object store */
 	mainobjstore = objstrCreate(DEFAULT_OBJ_STORE_SIZE);	
-	/* Create machine lookup table and location lookup table */
 	if (mhashCreate(HASH_SIZE, LOADFACTOR))
 		return 1; //failure
 	
@@ -34,6 +35,8 @@ int dstmInit(void)
 	return 0;
 }
 
+/* This function starts the thread to listen on a socket 
+ * for tranaction calls */
 void *dstmListen()
 {
 	int listenfd, acceptfd;
@@ -203,7 +206,9 @@ void *dstmAccept(void *acceptfd)
 int readClientReq(trans_commit_data_t *transinfo, int acceptfd) {
 	char *ptr;
 	void *modptr;
+	unsigned int *oidmod, oid;
 	fixed_data_t fixed;
+	objheader_t *headaddr;
 	int sum = 0, i, N, n, val;
 
 	/* Read fixed_data_t data structure */ 
@@ -249,16 +254,30 @@ int readClientReq(trans_commit_data_t *transinfo, int acceptfd) {
 		}
 		sum = 0;
 		do { // Recv the objs that are modified by the Coordinator
-			n = recv((int)acceptfd, modptr+sum, fixed.sum_bytes-sum, 0);
+			n = recv((int)acceptfd, (char *) modptr+sum, fixed.sum_bytes-sum, 0);
 			sum += n;
 		} while (sum < fixed.sum_bytes && n != 0);
 	}
 
+	/* Create an array of oids for modified objects */
+	oidmod = (unsigned int *) calloc(fixed.nummod, sizeof(unsigned int));
+	ptr = (char *) modptr;
+	for(i = 0 ; i < fixed.nummod; i++) {
+		headaddr = (objheader_t *) ptr;
+		oid = OID(headaddr);
+		oidmod[i] = oid;
+		ptr += sizeof(objheader_t) + classsize[TYPE(headaddr)];
+	}
+	
 	/*Process the information read */
-	if((val = processClientReq(&fixed, transinfo, listmid, objread, modptr, acceptfd)) != 0) {
+	if((val = processClientReq(&fixed, transinfo, listmid, objread, modptr, oidmod, acceptfd)) != 0) {
 		printf("Error in processClientReq %s, %d\n", __FILE__, __LINE__);
 		return 1;
 	}
+
+
+	/* Free resources */
+	free(oidmod);
 
 	return 0;
 }
@@ -267,7 +286,7 @@ int readClientReq(trans_commit_data_t *transinfo, int acceptfd) {
  * function and sends a reply to the co-ordinator.
  * Following this it also receives a new control message from the co-ordinator and processes this message*/
 int processClientReq(fixed_data_t *fixed, trans_commit_data_t *transinfo,
-		unsigned int *listmid, char *objread, void *modptr, int acceptfd) {
+		unsigned int *listmid, char *objread, void *modptr, unsigned int *oidmod, int acceptfd) {
 	char *ptr, control, sendctrl;
 	objheader_t *tmp_header;
 	void *header;
@@ -314,7 +333,7 @@ int processClientReq(fixed_data_t *fixed, trans_commit_data_t *transinfo,
 		case TRANS_COMMIT:
 			/* Invoke the transCommit process() */
 			printf("DEBUG -> Recv TRANS_COMMIT \n");
-			if((val = transCommitProcess(transinfo, (int)acceptfd)) != 0) {
+			if((val = transCommitProcess(modptr, oidmod, transinfo->objlocked, fixed->nummod, transinfo->numlocked, (int)acceptfd)) != 0) {
 				printf("Error in transCommitProcess %s, %d\n", __FILE__, __LINE__);
 				return 1;
 			}
@@ -332,10 +351,7 @@ int processClientReq(fixed_data_t *fixed, trans_commit_data_t *transinfo,
 	/* Free memory */
 	printf("DEBUG -> Freeing...\n");
 	fflush(stdout);
-	if (transinfo->objmod != NULL) {
-		free(transinfo->objmod);
-		transinfo->objmod = NULL;
-	}
+	
 	if (transinfo->objlocked != NULL) {
 		free(transinfo->objlocked);
 		transinfo->objlocked = NULL;
@@ -361,14 +377,13 @@ char handleTransReq(fixed_data_t *fixed, trans_commit_data_t *transinfo, unsigne
 	/* Counters and arrays to formulate decision on control message to be sent */
 	oidnotfound = (unsigned int *) calloc(fixed->numread + fixed->nummod, sizeof(unsigned int)); 
 	oidlocked = (unsigned int *) calloc(fixed->numread + fixed->nummod, sizeof(unsigned int)); 
-	oidmod = (unsigned int *) calloc(fixed->nummod, sizeof(unsigned int));
-	int objnotfound = 0, objlocked = 0, objmod =0, v_nomatch = 0, v_matchlock = 0, v_matchnolock = 0;
-	int objmodnotfound = 0, nummodfound = 0;
+	int objnotfound = 0, objlocked = 0;
+	int v_nomatch = 0, v_matchlock = 0, v_matchnolock = 0;
 
 	/* modptr points to the beginning of the object store 
 	 * created at the Pariticipant. 
 	 * Object store holds the modified objects involved in the transaction request */ 
-	ptr = modptr;
+	ptr = (char *) modptr;
 	
 	/* Process each oid in the machine pile/ group per thread */
 	for (i = 0; i < fixed->numread + fixed->nummod; i++) {
@@ -381,8 +396,6 @@ char handleTransReq(fixed_data_t *fixed, trans_commit_data_t *transinfo, unsigne
 		} else {//Objs modified
 			headptr = (objheader_t *) ptr;
 			oid = OID(headptr);
-			oidmod[objmod] = oid;//Array containing modified oids
-			objmod++;
 			version = headptr->version;
 			ptr += sizeof(objheader_t) + classsize[TYPE(headptr)];
 		}
@@ -440,7 +453,7 @@ char handleTransReq(fixed_data_t *fixed, trans_commit_data_t *transinfo, unsigne
 	
 	/* Decide what control message to send to Coordinator */
 	if ((val = decideCtrlMessage(fixed, transinfo, &v_matchnolock, &v_matchlock, &v_nomatch, &objnotfound, &objlocked,
-					modptr, oidnotfound, oidlocked, oidmod, acceptfd)) == 0) {
+					modptr, oidnotfound, oidlocked, acceptfd)) == 0) {
 		printf("Error in decideCtrlMessage %s, %d\n", __FILE__, __LINE__);
 		return 0;
 	}
@@ -452,8 +465,7 @@ char handleTransReq(fixed_data_t *fixed, trans_commit_data_t *transinfo, unsigne
  * to send to Coordinator based on the votes of oids involved in the transaction */
 int decideCtrlMessage(fixed_data_t *fixed, trans_commit_data_t *transinfo, int *v_matchnolock, int *v_matchlock, 
 		int *v_nomatch, int *objnotfound, int *objlocked, void *modptr, 
-		unsigned int *oidnotfound, unsigned int *oidlocked, unsigned int *oidmod,
-		int acceptfd) {
+		unsigned int *oidnotfound, unsigned int *oidlocked, int acceptfd) {
 	int val;
 	char control = 0;
 	/* Condition to send TRANS_AGREE */
@@ -490,11 +502,9 @@ int decideCtrlMessage(fixed_data_t *fixed, trans_commit_data_t *transinfo, int *
 
 	/* Fill out the trans_commit_data_t data structure. This is required for a trans commit process
 	 * if Participant receives a TRANS_COMMIT */
-	transinfo->objmod = oidmod;
 	transinfo->objlocked = oidlocked;
 	transinfo->objnotfound = oidnotfound;
 	transinfo->modptr = modptr;
-	transinfo->nummod = fixed->nummod;
 	transinfo->numlocked = *(objlocked);
 	transinfo->numnotfound = *(objnotfound);
 	
@@ -504,31 +514,35 @@ int decideCtrlMessage(fixed_data_t *fixed, trans_commit_data_t *transinfo, int *
 /* This function processes all modified objects involved in a TRANS_COMMIT and updates pointer 
  * addresses in lookup table and also changes version number
  * Sends an ACK back to Coordinator */
-int transCommitProcess(trans_commit_data_t *transinfo, int acceptfd) {
+int transCommitProcess(void *modptr, unsigned int *oidmod, unsigned int *oidlocked, int nummod, int numlocked, int acceptfd) {
 	objheader_t *header;
 	int i = 0, offset = 0;
 	char control;
+
 	/* Process each modified object saved in the mainobject store */
-	for(i=0; i<transinfo->nummod; i++) {
-		if((header = (objheader_t *) mhashSearch(transinfo->objmod[i])) == NULL) {
+	for(i = 0; i < nummod; i++) {
+		if((header = (objheader_t *) mhashSearch(oidmod[i])) == NULL) {
 			printf("mhashsearch returns NULL at %s, %d\n", __FILE__, __LINE__);
+			return 1;
 		}
 		/* Change reference count of older address and free space in objstr ?? */
 		header->rcount = 1; //Not sure what would be the val
 
 		/* Change ptr address in mhash table */
-		printf("DEBUG -> removing object oid = %d\n", transinfo->objmod[i]);
-		mhashRemove(transinfo->objmod[i]);
-		mhashInsert(transinfo->objmod[i], (transinfo->modptr + offset));
+		mhashRemove(oidmod[i]);
+		mhashInsert(oidmod[i], (((char *)modptr) + offset));
 		offset += sizeof(objheader_t) + classsize[TYPE(header)];
 
 		/* Update object version number */
-		header = (objheader_t *) mhashSearch(transinfo->objmod[i]);
+		header = (objheader_t *) mhashSearch(oidmod[i]);
 		header->version += 1; 
 	}
 	/* Unlock locked objects */
-	for(i=0; i<transinfo->numlocked; i++) {
-		header = (objheader_t *) mhashSearch(transinfo->objlocked[i]);
+	for(i = 0; i < numlocked; i++) {
+		if((header = (objheader_t *) mhashSearch(oidlocked[i])) == NULL) {
+			printf("mhashsearch returns NULL at %s, %d\n", __FILE__, __LINE__);
+			return 1;
+		}
 		STATUS(header) &= ~(LOCK);
 	}
 
@@ -543,6 +557,11 @@ int transCommitProcess(trans_commit_data_t *transinfo, int acceptfd) {
 	
 	return 0;
 }
+
+/* This function recevies the oid and offset tuples from the Coordinator's prefetch call.
+ * Looks for the objects to be prefetched in the main object store.
+ * If objects are not found then record those and if objects are found
+ * then use offset values to prefetch references to other objects */
 
 int prefetchReq(int acceptfd) {
 	int i, length, sum, n, numbytes, numoffset, N, objnotfound = 0, size, count = 0;
@@ -574,7 +593,6 @@ int prefetchReq(int acceptfd) {
 		} while(sum < N && n != 0);	
 
 		/* Process each oid */
-		/* Check if object is still present in the machine since the beginning of TRANS_PREFETCH */
 		if ((mobj = mhashSearch(oid)) == NULL) {/* Obj not found */
 			/* Save the oids not found in buffer for later use */
 			*(buffer + index) = OBJECT_NOT_FOUND;
