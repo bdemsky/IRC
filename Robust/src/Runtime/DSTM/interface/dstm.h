@@ -120,6 +120,7 @@ typedef struct fixed_data {
   int mcount;			/* participant count */
   short numread;		/* no of objects read */
   short nummod;			/* no of objects modified */
+  short numcreated;		/* no of objects created */
   int sum_bytes;		/* total bytes of modified objects in a transaction */
 } fixed_data_t;
 
@@ -129,6 +130,7 @@ typedef struct trans_req_data {
   unsigned int *listmid;	/* Pointer to array holding list of participants */
   char *objread;		/* Pointer to array holding oid and version number of objects that are only read */ 
   unsigned int *oidmod;		/* Pointer to array holding oids of objects that are modified */
+  unsigned int *oidcreated;		/* Pointer to array holding oids of objects that are newly created */
 } trans_req_data_t;		
 
 /* Structure that holds information of objects that are not found in the participant
@@ -204,7 +206,6 @@ int transCommitProcess(void *, unsigned int *, unsigned int *, int, int, int);
 
 int dstmStartup(const char *);
 void transInit();
-void * dstmalloc(transrecord_t *trans, int size);
 
 void randomdelay(void);
 transrecord_t *transStart();
@@ -217,8 +218,7 @@ int decideResponse(thread_data_array_t *);// Coordinator decides what response t
 char sendResponse(thread_data_array_t *, int); //Sends control message back to Participants
 void *getRemoteObj(transrecord_t *, unsigned int, unsigned int);
 int transAbortProcess(void *, unsigned int *, int, int);
-//int transComProcess(trans_commit_data_t *);
-int transComProcess(void*, unsigned int *, unsigned int *, int, int);
+int transComProcess(void*, unsigned int *, unsigned int *, unsigned int *, int, int, int);
 void prefetch(int, unsigned int *, short *, short*);
 void *transPrefetch(void *);
 void *mcqProcess(void *);

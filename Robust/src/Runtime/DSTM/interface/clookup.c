@@ -46,7 +46,7 @@ unsigned int chashInsert(chashtable_t *table, unsigned int key, void *val) {
 	table->numelements++;
 	index = chashFunction(table, key);
 #ifdef DEBUG
-	printf("DEBUG -> index = %d, key = %d, val = %x\n", index, key, val);
+	printf("chashInsert(): DEBUG -> index = %d, key = %d, val = %x\n", index, key, val);
 #endif
 	if(ptr[index].next == NULL && ptr[index].key == 0) {	// Insert at the first position in the hashtable
 		ptr[index].key = key;

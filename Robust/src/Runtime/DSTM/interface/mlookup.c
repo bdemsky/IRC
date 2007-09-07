@@ -58,7 +58,7 @@ unsigned int mhashInsert(unsigned int key, void *val) {
 			return 1;
 		}
 		node->key = key;
-		node->val = val ;
+		node->val = val;
 		node->next = ptr[index].next;
 		ptr[index].next = node;
 	}

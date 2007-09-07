@@ -311,7 +311,7 @@ int processClientReq(fixed_data_t *fixed, trans_commit_data_t *transinfo,
 			ptr = modptr;
 			for(i = 0; i< fixed->nummod; i++) {
 				tmp_header = (objheader_t *)ptr;
-				tmp_header->rcount = 1;
+				tmp_header->rcount = 0;
 				ptr += sizeof(objheader_t) + classsize[TYPE(tmp_header)];
 			}
 			/* Unlock objects that was locked due to this transaction */
@@ -526,7 +526,7 @@ int transCommitProcess(void *modptr, unsigned int *oidmod, unsigned int *oidlock
 			return 1;
 		}
 		/* Change reference count of older address and free space in objstr ?? */
-		header->rcount = 1; //Not sure what would be the val
+		header->rcount = 0;
 
 		/* Change ptr address in mhash table */
 		mhashRemove(oidmod[i]);

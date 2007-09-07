@@ -21,20 +21,21 @@ plistnode_t *pCreate(int objects) {
 		free(pile);
 		return NULL;
 	}
-	/*
-	if ((pile->oidread = calloc(objects, sizeof(unsigned int))) == NULL) {
-		printf("Calloc error %s %d\n", __FILE__, __LINE__);
-		return NULL;
-	}
-	*/
-	if ((pile->objread = calloc(objects, sizeof(unsigned int) + sizeof(short))) == NULL) {
+	if ((pile->oidcreated = calloc(objects, sizeof(unsigned int))) == NULL) {
 		printf("Calloc error %s %d\n", __FILE__, __LINE__);
 		free(pile);
 		free(pile->oidmod);
 		return NULL;
 	}
+	if ((pile->objread = calloc(objects, sizeof(unsigned int) + sizeof(short))) == NULL) {
+		printf("Calloc error %s %d\n", __FILE__, __LINE__);
+		free(pile);
+		free(pile->oidmod);
+		free(pile->oidcreated);
+		return NULL;
+	}
 
-	pile->nummod = pile->numread = pile->sum_bytes = 0;
+	pile->nummod = pile->numread = pile->numcreated = pile->sum_bytes = 0;
 	pile->next = NULL;
 	return pile;
 }
@@ -49,12 +50,15 @@ plistnode_t *pInsert(plistnode_t *pile, objheader_t *headeraddr, unsigned int mi
 	//Add oid into a machine that is already present in the pile linked list structure
 	while(tmp != NULL) {
 		if (tmp->mid == mid) {
-			if (STATUS(headeraddr) & DIRTY) {
+			if (STATUS(headeraddr) & NEW) {
+				tmp->oidcreated[tmp->numcreated] = OID(headeraddr);
+				tmp->numcreated = tmp->numcreated + 1;
+				tmp->sum_bytes += sizeof(objheader_t) + classsize[TYPE(headeraddr)];
+			}	else if (STATUS(headeraddr) & DIRTY) {
 				tmp->oidmod[tmp->nummod] = OID(headeraddr);
 				tmp->nummod = tmp->nummod + 1;
 				tmp->sum_bytes += sizeof(objheader_t) + classsize[TYPE(headeraddr)];
 			} else {
-		//		tmp->oidread[tmp->numread] = OID(headeraddr);
 				offset = (sizeof(unsigned int) + sizeof(short)) * tmp->numread;
 				*((unsigned int *)(tmp->objread + offset))=OID(headeraddr);
 				offset += sizeof(unsigned int);
@@ -72,12 +76,15 @@ plistnode_t *pInsert(plistnode_t *pile, objheader_t *headeraddr, unsigned int mi
 			return NULL;
 		}
 		ptr->mid = mid;
-		if (STATUS(headeraddr) & DIRTY) {
+		if (STATUS(headeraddr) & NEW) {
+			ptr->oidcreated[ptr->numcreated] = OID(headeraddr);
+			ptr->numcreated = ptr->numcreated + 1;
+			ptr->sum_bytes += sizeof(objheader_t) + classsize[TYPE(headeraddr)];
+		} else if (STATUS(headeraddr) & DIRTY) {
 			ptr->oidmod[ptr->nummod] = OID(headeraddr);
 			ptr->nummod = ptr->nummod + 1;
 			ptr->sum_bytes += sizeof(objheader_t) + classsize[TYPE(headeraddr)];
 		} else {
-		//	ptr->oidread[ptr->numread] = OID(headeraddr);
 			*((unsigned int *)ptr->objread)=OID(headeraddr);
 			memcpy(ptr->objread + sizeof(unsigned int), &headeraddr->version, sizeof(short));
 			ptr->numread = ptr->numread + 1;
@@ -85,6 +92,9 @@ plistnode_t *pInsert(plistnode_t *pile, objheader_t *headeraddr, unsigned int mi
 		ptr->next = pile;
 		pile = ptr;
 	}
+
+	STATUS(headeraddr) &= ~(NEW);
+	STATUS(headeraddr) &= ~(DIRTY);
 
 	return pile;
 }

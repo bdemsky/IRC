@@ -10,13 +10,13 @@
  * participants involved in a transaction. */
 typedef struct plistnode {
 	unsigned int mid;
-	int local; 		/* Variable that keeps track if this pile is for LOCAL machine */
-	unsigned int *oidmod;	/* Pointer to array containing oids of modified objects */ 
-	unsigned int *oidread;  /* TODO: REMOVE THIS Pointer to array of objects read */
-	int nummod;  		/* no of objects read */
-	int numread;		/* no of objects modified */
+	short numread;		/* no of objects modified */
+	short nummod;  		/* no of objects read */
+	short numcreated; /* no of objects created */
 	int sum_bytes;		/* total bytes of objects modified */
 	char *objread;		/* Pointer to array containing oids of objects read and their version numbers*/
+	unsigned int *oidmod;	/* Pointer to array containing oids of modified objects */ 
+	unsigned int *oidcreated;	/* Pointer to array containing oids of newly created objects */ 
 	struct plistnode *next;
 } plistnode_t;
 
