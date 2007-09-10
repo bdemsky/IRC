@@ -91,7 +91,7 @@ void CALL01(___System______printString____L___String___,struct ___String___ * __
 
 #ifdef DSTM
 void * allocate_newglobal(transrecord_t *trans, int type) {
-  struct ___Object___ * v=(struct ___Object___ *) dstmalloc(trans, classsize[type]);
+  struct ___Object___ * v=(struct ___Object___ *) transCreateObj(trans, classsize[type]);
   v->type=type;
 #ifdef THREADS
   v->tid=0;
@@ -104,12 +104,12 @@ void * allocate_newglobal(transrecord_t *trans, int type) {
 /* Array allocation function */
 
 struct ArrayObject * allocate_newarrayglobal(transrecord_t *trans, int type, int length) {
-  struct ArrayObject * v=(struct ArrayObject *)dstmalloc(trans, classsize[type]);
-  v->type=type;
+  struct ArrayObject * v=(struct ArrayObject *)transCreateObj(trans, sizeof(struct ArrayObject)+length*classsize[type]);
   if (length<0) {
     printf("ERROR: negative array\n");
     return NULL;
   }
+  v->type=type;
   v->___length___=length;
 #ifdef THREADS
   v->tid=0;

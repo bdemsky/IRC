@@ -210,7 +210,7 @@ void transInit();
 void randomdelay(void);
 transrecord_t *transStart();
 objheader_t *transRead(transrecord_t *, unsigned int);
-objheader_t *transCreateObj(transrecord_t *, unsigned short); //returns oid
+objheader_t *transCreateObj(transrecord_t *, unsigned int); //returns oid
 int transCommit(transrecord_t *record); //return 0 if successful
 void *transRequest(void *);	//the C routine that the thread will execute when TRANS_REQUEST begins
 void *handleLocalReq(void *);	//the C routine that the local m/c thread will execute 

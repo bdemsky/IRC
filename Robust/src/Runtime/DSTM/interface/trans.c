@@ -245,16 +245,15 @@ objheader_t *transRead(transrecord_t *record, unsigned int oid) {
 }
 
 /* This function creates objects in the transaction record */
-objheader_t *transCreateObj(transrecord_t *record, unsigned short type)
+objheader_t *transCreateObj(transrecord_t *record, unsigned int size)
 {
-	objheader_t *tmp = (objheader_t *) objstrAlloc(record->cache, (sizeof(objheader_t) + classsize[type]));
-	OID(tmp) = getNewOID();
-	TYPE(tmp) = type;
-	tmp->version = 1;
-	tmp->rcount = 1;
-	STATUS(tmp) = NEW;
-	chashInsert(record->lookupTable, OID(tmp), tmp);
-	return tmp;
+  objheader_t *tmp = (objheader_t *) objstrAlloc(record->cache, (sizeof(objheader_t) + size));
+  OID(tmp) = getNewOID();
+  tmp->version = 1;
+  tmp->rcount = 1;
+  STATUS(tmp) = NEW;
+  chashInsert(record->lookupTable, OID(tmp), tmp);
+  return tmp;
 }
 
 /* This function creates machine piles based on all machines involved in a
