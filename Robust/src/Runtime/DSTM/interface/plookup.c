@@ -131,7 +131,7 @@ void pDelete(plistnode_t *pile) {
 	while(tmp != NULL) {
 		next = tmp->next;
 		free(tmp->oidmod);
-		//free(tmp->oidread);
+		free(tmp->oidcreated);
 		free(tmp->objread);
 		free(tmp);
 		tmp = next;
