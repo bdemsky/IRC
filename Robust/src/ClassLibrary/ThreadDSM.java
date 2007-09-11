@@ -1,15 +1,14 @@
-public class Thread {
-    public void start() {
-	nativeCreate();
-    }
+public class ThreadDSM {
 
-    private static void staticStart(Thread t) {
-	t.run();
-    }
+	public void start(int mid) {
+		run(mid);
+	}
 
-    public native static void sleep(long millis);
-    
-    public void run() {}
+	public native static void sleep(long millis);
 
-    private native void nativeCreate();
+	public void run(int mid) {
+
+	}
+	
+	public int startRemoteThread(int mid);
 }
