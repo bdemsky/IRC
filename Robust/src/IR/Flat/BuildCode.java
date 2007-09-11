@@ -1416,7 +1416,7 @@ public class BuildCode {
 	    output.println(generateTemp(fm, fgcn.getSrc(),lb)+"=(void *)transRead(trans, (unsigned int) "+generateTemp(fm, fgcn.getSrc(),lb)+");");
 	} else {
 	    /* Need to convert to OID */
-	    output.println(generateTemp(fm, fgcn.getSrc(),lb)+"=OID("+generateTemp(fm, fgcn.getSrc(),lb)+");");
+	    output.println(generateTemp(fm, fgcn.getSrc(),lb)+"=(void *)OID("+generateTemp(fm, fgcn.getSrc(),lb)+");");
 	}
     }
 
@@ -1649,7 +1649,7 @@ public class BuildCode {
 
     private void generateFlatFieldNode(FlatMethod fm, LocalityBinding lb, FlatFieldNode ffn, PrintWriter output) {
 	if (state.DSM) {
-	    Integer status=locality.getNodeTempInfo(lb).get(ffn).get(ffn.getSrc());
+	    Integer status=locality.getNodePreTempInfo(lb,ffn).get(ffn.getSrc());
 	    if (status==LocalityAnalysis.GLOBAL) {
 		String field=ffn.getField().getSafeSymbol();
 		String src="((struct "+ffn.getSrc().getType().getSafeSymbol()+" *)((unsigned int)"+generateTemp(fm, ffn.getSrc(),lb)+"+sizeof(objheader_t)))";
@@ -1696,7 +1696,7 @@ public class BuildCode {
 	if (fsfn.getField().getSymbol().equals("length")&&fsfn.getDst().getType().isArray())
 	    throw new Error("Can't set array length");
 	if (state.DSM && locality.getAtomic(lb).get(fsfn).intValue()>0) {
-	    Integer statussrc=locality.getNodeTempInfo(lb).get(fsfn).get(fsfn.getSrc());
+	    Integer statussrc=locality.getNodePreTempInfo(lb,fsfn).get(fsfn.getSrc());
 	    Integer statusdst=locality.getNodeTempInfo(lb).get(fsfn).get(fsfn.getDst());
 	    boolean srcglobal=statussrc==LocalityAnalysis.GLOBAL;
 

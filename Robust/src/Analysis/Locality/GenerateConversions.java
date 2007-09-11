@@ -167,10 +167,11 @@ public class GenerateConversions {
 		//subtract out the ones we write to
 		transtemps.removeAll(Arrays.asList(fn.writesTemps()));
 		//add in the globals we read from
+		Hashtable<TempDescriptor, Integer> pretemptab=locality.getNodePreTempInfo(lb, fn);
 		TempDescriptor []readtemps=fn.readsTemps();
 		for(int i=0;i<readtemps.length;i++) {
 		    TempDescriptor tmp=readtemps[i];
-		    if (temptab.get(fn).get(tmp).intValue()==LocalityAnalysis.GLOBAL) {
+		    if (pretemptab.get(tmp).intValue()==LocalityAnalysis.GLOBAL) {
 			transtemps.add(tmp);
 		    }
 		}

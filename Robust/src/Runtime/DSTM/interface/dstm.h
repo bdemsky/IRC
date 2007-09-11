@@ -70,7 +70,7 @@ typedef struct objheader {
 } objheader_t;
 
 #define OID(x)\
-*((unsigned int *)&((struct ___Object___ *)((unsigned int) x + sizeof(objheader_t)))->___nextobject___)
+    (*((unsigned int *)&((struct ___Object___ *)((unsigned int) x + sizeof(objheader_t)))->___nextobject___))
 
 #define STATUS(x)\
 	 *((unsigned int *) &(((struct ___Object___ *)((unsigned int) x + sizeof(objheader_t)))->___localcopy___))

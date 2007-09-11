@@ -52,7 +52,7 @@ public class LocalityAnalysis {
 
     public LocalityBinding getBinding(LocalityBinding currlb, FlatCall fc) {
 	boolean isatomic=getAtomic(currlb).get(fc).intValue()>0;
-	Hashtable<TempDescriptor, Integer> currtable=getNodeTempInfo(currlb).get(fc);
+	Hashtable<TempDescriptor, Integer> currtable=getNodePreTempInfo(currlb,fc);
 	MethodDescriptor md=fc.getMethod();
 	
 	boolean isnative=md.getModifiers().isNative();
@@ -104,6 +104,28 @@ public class LocalityAnalysis {
 
     public Hashtable<FlatNode, Hashtable<TempDescriptor, Integer>> getNodeTempInfo(LocalityBinding lb) {
 	return temptab.get(lb);
+    }
+
+    /** This method returns a hashtable for a given LocalityBinding
+     * that tells the current local/global status of temps at the
+     * beginning of each node in the flat representation. */
+
+    public Hashtable<TempDescriptor, Integer> getNodePreTempInfo(LocalityBinding lb, FlatNode fn) {
+	Hashtable<TempDescriptor, Integer> currtable=new Hashtable<TempDescriptor, Integer>();
+	Hashtable<FlatNode, Hashtable<TempDescriptor, Integer>> temptable=getNodeTempInfo(lb);
+
+	for(int i=0;i<fn.numPrev();i++) {
+	    FlatNode prevnode=fn.getPrev(i);
+	    Hashtable<TempDescriptor, Integer> prevtable=temptable.get(prevnode);
+	    for(Iterator<TempDescriptor> tempit=prevtable.keySet().iterator();tempit.hasNext();) {
+		TempDescriptor temp=tempit.next();
+		Integer tmpint=prevtable.get(temp);
+		Integer oldint=currtable.containsKey(temp)?currtable.get(temp):EITHER;
+		Integer newint=merge(tmpint, oldint);
+		currtable.put(temp, newint);
+	    }
+	}
+	return currtable;
     }
 
     /** This method returns an hashtable for a given LocalitBinding
