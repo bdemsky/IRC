@@ -68,8 +68,8 @@ public class LocalityAnalysis {
 	    if (thistype==null)
 		thistype=EITHER;
 	    lb.setGlobalThis(thistype);
-	} else
-	    lb.setGlobalThis(EITHER);//default value
+	}// else
+	// lb.setGlobalThis(EITHER);//default value
 	if (discovered.containsKey(lb))
 	    lb=discovered.get(lb);
 	else throw new Error();
@@ -171,7 +171,6 @@ public class LocalityAnalysis {
 	    }
 	}
     }
-
 
     public void computeCallsFlags(MethodDescriptor md, LocalityBinding lb, Hashtable<FlatNode, Hashtable<TempDescriptor, Integer>> temptable, Hashtable<FlatNode, Integer> atomictable) {
 	FlatMethod fm=state.getMethodFlat(md);
@@ -329,8 +328,8 @@ public class LocalityAnalysis {
 		if (isnative&&thistype.equals(GLOBAL))
 		    throw new Error("Potential call to native method "+md+" on global objects:\n"+currlb.getExplanation());
 		lb.setGlobalThis(thistype);
-	    } else
-		lb.setGlobalThis(EITHER);//default value
+	    } //else
+	    //lb.setGlobalThis(EITHER);//default value
 		
 	    //lb is built
 	    if (!discovered.containsKey(lb)) {

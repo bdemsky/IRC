@@ -83,7 +83,7 @@ Interface/WebInterface.class
 all: Parse/Sym.class Parse/Parser.class $(CLASSFILES) javadoc
 
 wc:
-	wc Interface/*.java Analysis/*/*.java IR/*.java IR/*/*.java Lex/*.java Util/*.java
+	wc Interface/*.java Analysis/*/*.java IR/*.java IR/*/*.java Lex/*.java Util/*.java ClassLibrary/*.java
 
 wcrun:
 	wc Runtime/*.[c,h]

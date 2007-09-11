@@ -51,7 +51,7 @@ public class GenerateConversions {
 	    Hashtable<TempDescriptor, Integer> nodetemptab=temptab.get(fn);
 	    
 	    List<TempDescriptor> reads=Arrays.asList(fn.readsTemps());
-	    List<TempDescriptor> writes=Arrays.asList(fn.readsTemps());
+	    List<TempDescriptor> writes=Arrays.asList(fn.writesTemps());
 
 	    if (!isatomic&&fn.kind()==FKind.FlatAtomicExitNode
 		&&!nodetoconvs.containsKey(fn))
@@ -78,7 +78,8 @@ public class GenerateConversions {
 			    TempNodePair tnp2=new TempNodePair(tnp.getTemp());
 			    tnp2.setNode(fn);
 			    tempset.add(tnp2);
-			}
+			} else
+			    tempset.add(tnp);
 		    } else
 			tempset.add(tnp);
 		}
@@ -118,7 +119,6 @@ public class GenerateConversions {
 		atomictab.get(fn.getPrev(0)).intValue()>0) {
 		//sanity check
 		assert(fn.kind()==FKind.FlatAtomicExitNode);
-
 		//insert calls here...
 		Set<TempDescriptor> tempset=nodetoconvs.get(fn);
 		for(Iterator<TempDescriptor> tempit=tempset.iterator();tempit.hasNext();) {

@@ -129,15 +129,6 @@ int ObjectHashadd(struct ObjectHash * thisvar,int key, int data, int data2) {
   hashkey = (unsigned int)key % thisvar->size;
   ptr = &thisvar->bucket[hashkey];
 
-  while (*ptr) {
-    if ((*ptr)->key == key) {
-      (*ptr)->data=data;
-      (*ptr)->data2=data2;
-      return 1;
-    }
-    ptr = &((*ptr)->next);
-  }
-
   {
     struct ObjectNode *node=RUNMALLOC(sizeof(struct ObjectNode));
     node->data=data;

@@ -2117,8 +2117,6 @@ public class BuildCode {
 	 
 	 headers.println("extern struct classanalysiswrapper * classanalysiswrapperarray[];");
 
-	
-
 	 Iterator taskit=state.getTaskSymbolTable().getDescriptorsIterator();
 	 while(taskit.hasNext()) {
 	     TaskDescriptor td=(TaskDescriptor)taskit.next();
