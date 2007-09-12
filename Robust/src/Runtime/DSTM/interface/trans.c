@@ -855,7 +855,7 @@ void *handleLocalReq(void *threadarg) {
 			} else {/* If Obj is not locked then lock object */
 				STATUS(((objheader_t *)mobj)) |= LOCK;
 				//TODO Remove this for Testing
-				randomdelay();
+				//randomdelay(); -- Why is this here.  BCD
 
 				/* Save all object oids that are locked on this machine during this transaction request call */
 				oidlocked[objlocked] = OID(((objheader_t *)mobj));
@@ -1629,7 +1629,11 @@ int processConfigFile()
 		printf("error in %s: no IP Adresses found\n", CONFIG_FILENAME);
 		return -1;
 	}
+#ifdef MAC
+	myIpAddr = getMyIpAddr("en1");
+#else
 	myIpAddr = getMyIpAddr("eth0");
+#endif
 	myIndexInHostArray = findHost(myIpAddr);
 	if (myIndexInHostArray == -1)
 	{

@@ -36,10 +36,40 @@ struct listitem * list=NULL;
 int listcount=0;
 #endif
 
+#ifdef DSTM
+#define ENQUEUE(orig, dst) \
+if ((!(((unsigned int)orig)&0x1))) {\
+if (orig>to_heapbase&&orig<to_heaptop) {\
+dst=NULL;\
+} else if (orig>curr_heapbase&&orig<curr_heaptop) {\
+void *copy;\
+if (gc_createcopy(orig,&copy))\
+enqueue(orig);\
+dst=copy;\
+}\
+}
+#else
+#define ENQUEUE(orig, dst) \
+void *copy; \
+if (gc_createcopy(orig,&copy))\
+enqueue(orig);\
+dst=copy
+#endif
+
 struct pointerblock {
   void * ptrs[NUMPTRS];
   struct pointerblock *next;
 };
+
+void * curr_heapbase=0;
+void * curr_heapptr=0;
+void * curr_heapgcpoint=0;
+void * curr_heaptop=0;
+
+void * to_heapbase=0;
+void * to_heapptr=0;
+void * to_heaptop=0;
+long lastgcsize=0;
 
 struct pointerblock *head=NULL;
 int headindex=0;
@@ -134,10 +164,7 @@ void collect(struct garbagelist * stackptr) {
     int i;
     for(i=0;i<stackptr->size;i++) {
       void * orig=stackptr->array[i];
-      void * copy;
-      if (gc_createcopy(orig,&copy))
-	enqueue(orig);
-      stackptr->array[i]=copy;
+      ENQUEUE(orig, stackptr->array[i]);
     }
     stackptr=stackptr->next;
   }
@@ -145,10 +172,7 @@ void collect(struct garbagelist * stackptr) {
   /* Go to next thread */
   if (listptr!=NULL) {
     void * orig=listptr->locklist;
-    void * copy;
-    if (gc_createcopy(orig,&copy))
-      enqueue(orig);
-    listptr->locklist=copy;
+    ENQUEUE(orig, listptr->locklist);
     stackptr=listptr->stackptr;
     listptr=listptr->next;
   } else
@@ -168,11 +192,7 @@ void collect(struct garbagelist * stackptr) {
 	struct ObjectNode * ptr=set->listhead;
 	while(ptr!=NULL) {
 	  void *orig=(void *)ptr->key;
-	  void *copy;
-	  if (gc_createcopy(orig, &copy))
-	    enqueue(orig);
-	  ptr->key=(int)copy;
-	  
+	  ENQUEUE(orig, *((void **)(&ptr->key)));
 	  ptr=ptr->lnext;
 	}
 	ObjectHashrehash(set); /* Rehash the table */
@@ -185,11 +205,7 @@ void collect(struct garbagelist * stackptr) {
     struct RuntimeNode * ptr=forward->listhead;
     while(ptr!=NULL) {
       void * orig=(void *)ptr->key;
-      void *copy;
-      if (gc_createcopy(orig, &copy))
-	enqueue(orig);
-      ptr->key=(int)copy;
-
+      ENQUEUE(orig, *((void **)(&ptr->key)));
       ptr=ptr->lnext;
     }
     RuntimeHashrehash(forward); /* Rehash the table */
@@ -199,11 +215,7 @@ void collect(struct garbagelist * stackptr) {
     struct RuntimeNode * ptr=reverse->listhead;
     while(ptr!=NULL) {
       void *orig=(void *)ptr->data;
-      void *copy;
-      if (gc_createcopy(orig, &copy))
-	enqueue(orig);
-      ptr->data=(int)copy;
-
+      ENQUEUE(orig, *((void**)(&ptr->data)));
       ptr=ptr->lnext;
     }
   }
@@ -212,11 +224,7 @@ void collect(struct garbagelist * stackptr) {
     struct RuntimeNode * ptr=fdtoobject->listhead;
     while(ptr!=NULL) {
       void *orig=(void *)ptr->data;
-      void *copy;
-      if (gc_createcopy(orig, &copy))
-	enqueue(orig);
-      ptr->data=(int)copy;
-
+      ENQUEUE(orig, *((void**)(&ptr->data)));
       ptr=ptr->lnext;
     }
   }
@@ -226,10 +234,7 @@ void collect(struct garbagelist * stackptr) {
     int i;
     for(i=0;i<currtpd->numParameters;i++) {
       void *orig=currtpd->parameterArray[i];
-      void *copy;
-      if (gc_createcopy(orig, &copy))
-	enqueue(orig);
-      currtpd->parameterArray[i]=copy;
+      ENQUEUE(orig, currtpd->parameterArray[i]);
     }
 
   }
@@ -242,10 +247,7 @@ void collect(struct garbagelist * stackptr) {
       int i;
       for(i=0;i<tpd->numParameters;i++) {
 	void * orig=tpd->parameterArray[i];
-	void * copy;
-	if (gc_createcopy(orig, &copy))
-	  enqueue(orig);
-	tpd->parameterArray[i]=copy;
+	ENQUEUE(orig, tpd->parameterArray[i]);
       }
       ptr=ptr->inext;
     }
@@ -260,10 +262,7 @@ void collect(struct garbagelist * stackptr) {
       int i;
       for(i=0;i<tpd->numParameters;i++) {
 	void * orig=tpd->parameterArray[i];
-	void * copy;
-	if (gc_createcopy(orig, &copy))
-	  enqueue(orig);
-	tpd->parameterArray[i]=copy;
+	ENQUEUE(orig, tpd->parameterArray[i]);
       }
       ptr=ptr->inext;
     }
@@ -296,10 +295,7 @@ void collect(struct garbagelist * stackptr) {
       int i;
       for(i=0;i<length;i++) {
 	void *objptr=((void **)(((char *)& ao->___length___)+sizeof(int)))[i];
-	void * copy;
-	if (gc_createcopy(objptr, &copy))
-	  enqueue(objptr);
-	((void **)(((char *)& ao_cpy->___length___)+sizeof(int)))[i]=copy;
+	ENQUEUE(objptr, ((void **)(((char *)& ao_cpy->___length___)+sizeof(int)))[i]);
       }
     } else {
       int size=pointer[0];
@@ -307,10 +303,7 @@ void collect(struct garbagelist * stackptr) {
       for(i=1;i<=size;i++) {
 	unsigned int offset=pointer[i];
 	void * objptr=*((void **)(((int)ptr)+offset));
-	void * copy;
-	if (gc_createcopy(objptr, &copy))
-	  enqueue(objptr);
-	*((void **) (((int)cpy)+offset))=copy;
+	ENQUEUE(objptr, *((void **) (((int)cpy)+offset)));
       }
     }
   }
@@ -376,16 +369,6 @@ void fixtags() {
   }
 }
 #endif
-
-void * curr_heapbase=0;
-void * curr_heapptr=0;
-void * curr_heapgcpoint=0;
-void * curr_heaptop=0;
-
-void * to_heapbase=0;
-void * to_heapptr=0;
-void * to_heaptop=0;
-long lastgcsize=0;
 
 void * tomalloc(int size) {
   void * ptr=to_heapptr;

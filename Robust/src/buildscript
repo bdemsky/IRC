@@ -19,6 +19,7 @@ echo -curdir directory
 echo -mainclass class with main method
 echo -o binary
 echo -instructionfailures inject code for instructionfailures
+echo -profile build with profile options
 echo -help help
 }
 
@@ -65,6 +66,9 @@ DSMFLAG=true
 elif [[ $1 = '-mac' ]]
 then
 EXTRAOPTIONS="$EXTRAOPTIONS -DMAC"
+elif [[ $1 = '-profile' ]]
+then
+EXTRAOPTIONS="$EXTRAOPTIONS -pg"
 elif [[ $1 = '-taskstate' ]]
 then
 JAVAOPTS="$JAVAOPTS -taskstate"
