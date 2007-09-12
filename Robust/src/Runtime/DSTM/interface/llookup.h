@@ -5,6 +5,8 @@
 #include <stdio.h>
 #include <pthread.h>
 
+#define SIMPLE_LLOOKUP
+
 #define LOADFACTOR 0.75
 #define HASH_SIZE 100
 
@@ -22,11 +24,17 @@ typedef struct lhashtable {
 	pthread_mutex_t locktable;
 } lhashtable_t;
 
-unsigned int lhashCreate(unsigned int size, float loadfactor);// returns 0 for success and 0 for failure
-unsigned int lhashFunction(unsigned int oid); // returns 0 for success and 0 for failure
-unsigned int lhashInsert(unsigned int oid, unsigned int mid); // returns 0 for success and 0 for failure
-unsigned int lhashSearch(unsigned int oid); //returns mid, 0 if not found
-unsigned int lhashRemove(unsigned int oid); //returns 0 if not success
-unsigned int lhashResize(unsigned int newsize);  // returns 0 for success and 0 for failure
+//returns 0 for success and 1 for failure
+unsigned int lhashCreate(unsigned int size, float loadfactor);
+//returns 0 for success and 1 for failure
+unsigned int lhashInsert(unsigned int oid, unsigned int mid);
+//returns mid, 0 if not found
+unsigned int lhashSearch(unsigned int oid);
+//returns 0 for success and 1 for failure
+unsigned int lhashRemove(unsigned int oid);
+
+//helper functions
+unsigned int lhashResize(unsigned int newsize);
+unsigned int lhashFunction(unsigned int oid);
 
 #endif

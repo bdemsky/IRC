@@ -206,6 +206,8 @@ int transCommitProcess(void *, unsigned int *, unsigned int *, int, int, int);
 
 int dstmStartup(const char *);
 void transInit();
+int processConfigFile();
+void addHost(unsigned int);
 
 void randomdelay(void);
 transrecord_t *transStart();

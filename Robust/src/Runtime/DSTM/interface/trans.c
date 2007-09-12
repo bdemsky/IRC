@@ -23,6 +23,7 @@
 #define RECEIVE_BUFFER_SIZE 2048
 #define NUM_THREADS 10
 #define PREFETCH_CACHE_SIZE 1048576 //1MB
+#define CONFIG_FILENAME "dstm.conf"
 
 /* Global Variables */
 extern int classsize[];
@@ -34,6 +35,13 @@ pthread_t wthreads[NUM_THREADS]; //Worker threads for working on the prefetch qu
 pthread_t tPrefetch;
 extern objstr_t *mainobjstore;
 unsigned int myIpAddr;
+unsigned int *hostIpAddrs;
+int sizeOfHostArray;
+int numHostsInSystem;
+int myIndexInHostArray;
+unsigned int oidsPerBlock;
+unsigned int oidMin;
+unsigned int oidMax;
 
 plistnode_t *createPiles(transrecord_t *);
 inline int arrayLength(int *array) {
@@ -87,7 +95,8 @@ int dstmStartup(const char * option) {
   pthread_attr_t attr;
   int master=strcmp(option, "master")==0;
 
-  myIpAddr = getMyIpAddr("eth0");
+	if (processConfigFile() != 0)
+		return 0; //TODO: return error value, cause main program to exit
 
   dstmInit();
   transInit();
@@ -1556,5 +1565,115 @@ int startRemoteThread(unsigned int oid, unsigned int mid)
 
 	close(sock);
 	return status;
+}
+
+//TODO: when reusing oids, make sure they are not already in use!
+unsigned int getNewOID(void) {
+	static unsigned int id = 0xFFFFFFFF;
+	
+	id += 2;
+	if (id > oidMax || id < oidMin)
+	{
+		id = (oidMin | 1);
+	}
+	return id;
+}
+
+int processConfigFile()
+{
+	FILE *configFile;
+	const int maxLineLength = 200;
+	char lineBuffer[maxLineLength];
+	char *token;
+	const char *delimiters = " \t\n";
+	char *commentBegin;
+	in_addr_t tmpAddr;
+	
+	configFile = fopen(CONFIG_FILENAME, "r");
+	if (configFile == NULL)
+	{
+		printf("error opening %s:\n", CONFIG_FILENAME);
+		perror("");
+		return -1;
+	}
+
+	numHostsInSystem = 0;
+	sizeOfHostArray = 8;
+	hostIpAddrs = calloc(sizeOfHostArray, sizeof(unsigned int));
+	
+	while(fgets(lineBuffer, maxLineLength, configFile) != NULL)
+	{
+		commentBegin = strchr(lineBuffer, '#');
+		if (commentBegin != NULL)
+			*commentBegin = '\0';
+		token = strtok(lineBuffer, delimiters);
+		while (token != NULL)
+		{
+			tmpAddr = inet_addr(token);
+			if ((int)tmpAddr == -1)
+			{
+				printf("error in %s: bad token:%s\n", CONFIG_FILENAME, token);
+				fclose(configFile);
+				return -1;
+			}
+			else
+				addHost(htonl(tmpAddr));
+			token = strtok(NULL, delimiters);
+		}
+	}
+
+	fclose(configFile);
+	
+	if (numHostsInSystem < 1)
+	{
+		printf("error in %s: no IP Adresses found\n", CONFIG_FILENAME);
+		return -1;
+	}
+	myIpAddr = getMyIpAddr("eth0");
+	myIndexInHostArray = findHost(myIpAddr);
+	if (myIndexInHostArray == -1)
+	{
+		printf("error in %s: IP Address of eth0 not found\n", CONFIG_FILENAME);
+		return -1;
+	}
+	oidsPerBlock = (0xFFFFFFFF / numHostsInSystem) + 1;
+	oidMin = oidsPerBlock * myIndexInHostArray;
+	if (myIndexInHostArray == numHostsInSystem - 1)
+		oidMax = 0xFFFFFFFF;
+	else
+		oidMax = oidsPerBlock * (myIndexInHostArray + 1) - 1;
+
+	return 0;
+}
+
+void addHost(unsigned int hostIp)
+{
+	unsigned int *tmpArray;
+
+	if (findHost(hostIp) != -1)
+		return;
+
+	if (numHostsInSystem == sizeOfHostArray)
+	{
+		tmpArray = calloc(sizeOfHostArray * 2, sizeof(unsigned int));
+		memcpy(tmpArray, hostIpAddrs, sizeof(unsigned int) * numHostsInSystem);
+		free(hostIpAddrs);
+		hostIpAddrs = tmpArray;
+	}
+
+	hostIpAddrs[numHostsInSystem++] = hostIp;
+
+	return;
+}
+
+int findHost(unsigned int hostIp)
+{
+	int i;
+	for (i = 0; i < numHostsInSystem; i++)
+		if (hostIpAddrs[i] == hostIp)
+			return i;
+
+	//not found
+	return -1;
 }
 

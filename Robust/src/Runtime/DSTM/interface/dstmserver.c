@@ -105,7 +105,6 @@ void *dstmAccept(void *acceptfd)
 	
 	int fd_flags = fcntl((int)acceptfd, F_GETFD), size;
 
-	printf("Recieved connection: fd = %d\n", (int)acceptfd);
 	/* Receive control messages from other machines */
 	if((retval = recv((int)acceptfd, &control, sizeof(char), 0)) <= 0) {
 		if (retval == 0) {
@@ -182,9 +181,9 @@ void *dstmAccept(void *acceptfd)
 					retval);
 			else
 			{ //TODO: execute run method on this global thread object
-				printf("dstmAccept(): received START_REMOTE_THREAD msg, oid=%d\n", oid);
+				printf("dstmAccept(): received START_REMOTE_THREAD msg, oid=0x%x\n", oid);
 				objType = getObjType(oid);
-				printf("dstmAccept(): type of object %d is %d\n", oid, objType);
+				printf("dstmAccept(): type of object 0x%x is %d\n", oid, objType);
 			}
 			break;
 
@@ -195,8 +194,6 @@ void *dstmAccept(void *acceptfd)
 	/* Close connection */
 	if (close((int)acceptfd) == -1)
 		perror("close");
-	else 
-		printf("Closed connection: fd = %d\n", (int)acceptfd);
 	
 	pthread_exit(NULL);
 }

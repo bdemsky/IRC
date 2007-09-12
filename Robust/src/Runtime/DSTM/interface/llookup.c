@@ -9,6 +9,36 @@
 ***************************************************************************************************/
 #include "llookup.h"
 
+#ifdef SIMPLE_LLOOKUP
+
+extern unsigned int *hostIpAddrs;
+extern unsigned int oidsPerBlock;
+
+unsigned int lhashCreate(unsigned int size, float loadfactor)
+{
+	return 0;
+}
+
+unsigned int lhashInsert(unsigned int oid, unsigned int mid)
+{
+	return 0;
+}
+
+unsigned int lhashSearch(unsigned int oid)
+{
+	if (oidsPerBlock == 0)
+		return hostIpAddrs[0];
+	else
+		return hostIpAddrs[oid / oidsPerBlock];
+}
+
+unsigned int lhashRemove(unsigned int oid)
+{
+	return 0;
+}
+
+#else
+
 lhashtable_t llookup;		//Global Hash table
 
 // Creates a hash table with size and an array of lhashlistnode_t 
@@ -193,3 +223,6 @@ unsigned int lhashResize(unsigned int newsize) {
 	free(ptr);		//Free the memory of the old hash table	
 	return 0;
 }
+
+#endif
+
