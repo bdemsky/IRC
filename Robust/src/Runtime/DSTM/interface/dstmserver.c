@@ -426,7 +426,7 @@ char handleTransReq(fixed_data_t *fixed, trans_commit_data_t *transinfo, unsigne
 				/*TESTING Add random wait to make transactions run for a long time such that
 				 * we can test for soft abort case */
 			
-				randomdelay();
+				//randomdelay();
 
 				/* Save all object oids that are locked on this machine during this transaction request call */
 				oidlocked[objlocked] = OID(((objheader_t *)mobj));
