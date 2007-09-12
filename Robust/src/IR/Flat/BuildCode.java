@@ -1392,7 +1392,7 @@ public class BuildCode {
 	    output.println("/* nop */");
 	    return;
 	case FKind.FlatBackEdge:
-	    if (state.THREAD&&GENERATEPRECISEGC) {
+	    if ((state.THREAD||state.DSM)&&GENERATEPRECISEGC) {
 		output.println("checkcollect(&"+localsprefix+");");
 	    } else
 		output.println("/* nop */");

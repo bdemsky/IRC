@@ -317,11 +317,31 @@ public class LocalityAnalysis {
     void processCallNode(LocalityBinding currlb, FlatCall fc, Hashtable<TempDescriptor, Integer> currtable, boolean isatomic) {
 	MethodDescriptor nodemd=fc.getMethod();
 	Set methodset=null;
+	Set runmethodset=null;
 	if (nodemd.isStatic()||nodemd.getReturnType()==null) {
 	    methodset=new HashSet();
 	    methodset.add(nodemd);
 	} else {
 	    methodset=callgraph.getMethods(nodemd, fc.getThis().getType());
+	    // Build start -> run link
+	    if (nodemd.getClassDesc().getSymbol().equals(TypeUtil.ThreadClass)&&
+		nodemd.getSymbol().equals("start")&&!nodemd.getModifiers().isStatic()&&
+		nodemd.numParameters()==1&&nodemd.getParamType(0).isInt()) {
+		assert(nodemd.getModifiers().isNative());
+		
+		MethodDescriptor runmd=null;
+		for(Iterator methodit=nodemd.getClassDesc().getMethodTable().getSet("run").iterator();methodit.hasNext();) {
+		    MethodDescriptor md=(MethodDescriptor) methodit.next();
+		    if (md.numParameters()!=0||md.getModifiers().isStatic())
+			continue;
+		    runmd=md;
+		    break;
+		}
+		if (runmd!=null) {
+		    runmethodset=callgraph.getMethods(runmd,fc.getThis().getType());
+		    methodset.addAll(runmethodset);
+		} else throw new Error("Can't find run method");
+	    }
 	}
 	Integer currreturnval=EITHER; //Start off with the either value
 	for(Iterator methodit=methodset.iterator();methodit.hasNext();) {
@@ -332,17 +352,25 @@ public class LocalityAnalysis {
 	    if (isnative&&isatomic) {
 		System.out.println("Don't call native methods in atomic blocks!");
 	    }
-	    for(int i=0;i<fc.numArgs();i++) {
-		TempDescriptor arg=fc.getArg(i);
-		if(isnative&&(currtable.get(arg).equals(GLOBAL)||
-			      currtable.get(arg).equals(CONFLICT)))
-		   throw new Error("Potential call to native method "+md+" with global parameter:\n"+currlb.getExplanation());
-		lb.setGlobal(i,currtable.get(arg));
+	    if (runmethodset==null||!runmethodset.contains(md)) {
+		//Skip this part if it is a run method
+		for(int i=0;i<fc.numArgs();i++) {
+		    TempDescriptor arg=fc.getArg(i);
+		    if(isnative&&(currtable.get(arg).equals(GLOBAL)||
+				  currtable.get(arg).equals(CONFLICT)))
+			throw new Error("Potential call to native method "+md+" with global parameter:\n"+currlb.getExplanation());
+		    lb.setGlobal(i,currtable.get(arg));
+		}
 	    }
+
+
 	    if (fc.getThis()!=null) {
 		Integer thistype=currtable.get(fc.getThis());
 		if (thistype==null)
 		    thistype=EITHER;
+
+		if(runmethodset!=null&&runmethodset.contains(md)&&thistype.equals(LOCAL))
+		    throw new Error("Starting thread on local object not allowed in context:\n"+currlb.getExplanation());
 		if(thistype.equals(CONFLICT))
 		    throw new Error("Using type that can be either local or global in context:\n"+currlb.getExplanation());
 		if(thistype.equals(GLOBAL)&&!isatomic)
@@ -350,9 +378,7 @@ public class LocalityAnalysis {
 		if (isnative&&thistype.equals(GLOBAL))
 		    throw new Error("Potential call to native method "+md+" on global objects:\n"+currlb.getExplanation());
 		lb.setGlobalThis(thistype);
-	    } //else
-	    //lb.setGlobalThis(EITHER);//default value
-		
+	    } 
 	    //lb is built
 	    if (!discovered.containsKey(lb)) {
 		if (isnative)

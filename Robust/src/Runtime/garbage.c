@@ -5,9 +5,10 @@
 #include "SimpleHash.h"
 #include "GenericHashtable.h"
 #include <string.h>
-#ifdef THREADS
+#if defined(THREADS) || defined(DSTM)
 #include "thread.h"
 #endif
+
 #ifdef DMALLOC
 #include "dmalloc.h"
 #endif
@@ -30,7 +31,7 @@ extern struct RuntimeHash *reverse;
 extern struct RuntimeHash *fdtoobject;
 #endif
 
-#ifdef THREADS
+#if defined(THREADS) || defined(DSTM)
 int needtocollect=0;
 struct listitem * list=NULL;
 int listcount=0;
@@ -128,7 +129,7 @@ void enqueuetag(struct ___TagDescriptor___ *ptr) {
 
 
 void collect(struct garbagelist * stackptr) {
-#ifdef THREADS
+#if defined(THREADS)||defined(DSTM)
   needtocollect=1;
   pthread_mutex_lock(&gclistlock);
   while(1) {
@@ -154,7 +155,7 @@ void collect(struct garbagelist * stackptr) {
 #endif
 
   /* Check current stack */
-#ifdef THREADS
+#if defined(THREADS)||defined(DSTM)
  {
    struct listitem *listptr=list;
    while(1) {
@@ -168,7 +169,7 @@ void collect(struct garbagelist * stackptr) {
     }
     stackptr=stackptr->next;
   }
-#ifdef THREADS
+#if defined(THREADS)||defined(DSTM)
   /* Go to next thread */
   if (listptr!=NULL) {
     void * orig=listptr->locklist;
@@ -311,7 +312,7 @@ void collect(struct garbagelist * stackptr) {
   fixtags();
 #endif
 
-#ifdef THREADS
+#if defined(THREADS)||defined(DSTM)
   needtocollect=0;
   pthread_mutex_unlock(&gclistlock);
 #endif
@@ -378,7 +379,7 @@ void * tomalloc(int size) {
   return ptr;
 }
 
-#ifdef THREADS
+#if defined(THREADS)||defined(DSTM)
 
 void checkcollect(void * ptr) {
   if (needtocollect) {
@@ -425,7 +426,7 @@ void restartaftergc(struct listitem * litem) {
 
 void * mygcmalloc(struct garbagelist * stackptr, int size) {
   void *ptr;
-#ifdef THREADS
+#if defined(THREADS)||defined(DSTM)
   if (pthread_mutex_trylock(&gclock)!=0) {
     struct listitem *tmp=stopforgc(stackptr);
     pthread_mutex_lock(&gclock);
@@ -449,7 +450,7 @@ void * mygcmalloc(struct garbagelist * stackptr, int size) {
       to_heaptop=to_heapbase+INITIALHEAPSIZE;
       to_heapptr=to_heapbase;
       ptr=curr_heapbase;
-#ifdef THREADS
+#if defined(THREADS)||defined(DSTM)
       pthread_mutex_unlock(&gclock);
 #endif
       return ptr;
@@ -498,20 +499,20 @@ void * mygcmalloc(struct garbagelist * stackptr, int size) {
       
       /* Not enough room :(, redo gc */
       if (curr_heapptr>curr_heapgcpoint) {
-#ifdef THREADS
+#if defined(THREADS)||defined(DSTM)
 	pthread_mutex_unlock(&gclock);
 #endif
 	return mygcmalloc(stackptr, size);
       }
       
       bzero(tmp, curr_heaptop-tmp);
-#ifdef THREADS
+#if defined(THREADS)||defined(DSTM)
       pthread_mutex_unlock(&gclock);
 #endif
       return tmp;
     }
   } else {
-#ifdef THREADS
+#if defined(THREADS)||defined(DSTM)
     pthread_mutex_unlock(&gclock);
 #endif
     return ptr;

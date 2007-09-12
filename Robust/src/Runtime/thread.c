@@ -17,6 +17,7 @@ pthread_cond_t objcond;
 pthread_key_t threadlocks;
 
 void threadexit() {
+#ifdef THREADS
   struct ___Object___ *ll=pthread_getspecific(threadlocks);
   while(ll!=NULL) {
     struct ___Object___ *llnext=ll->___nextlockobject___;    
@@ -29,6 +30,7 @@ void threadexit() {
   pthread_mutex_lock(&objlock);//wake everyone up
   pthread_cond_broadcast(&objcond);
   pthread_mutex_unlock(&objlock);
+#endif
   pthread_mutex_lock(&gclistlock);
   threadcount--;
   pthread_cond_signal(&gccond);
@@ -66,6 +68,7 @@ void initializethreads() {
   sigaction(SIGFPE,&sig,0);
 }
 
+#ifdef THREADS
 void initthread(struct ___Thread___ * ___this___) {
 #ifdef PRECISE_GC
   struct ___Thread______staticStart____L___Thread____params p={1, NULL, ___this___};
@@ -78,6 +81,7 @@ void initthread(struct ___Thread___ * ___this___) {
   pthread_cond_signal(&gccond);
   pthread_mutex_unlock(&gclistlock);
 }
+#endif
 
 void CALL11(___Thread______sleep____J, long long ___millis___, long long ___millis___) {
 #ifdef THREADS
@@ -93,6 +97,7 @@ void CALL11(___Thread______sleep____J, long long ___millis___, long long ___mill
 #endif
 }
 
+#ifdef THREADS
 void CALL01(___Thread______nativeCreate____, struct ___Thread___ * ___this___) {
   pthread_t thread;
   int retval;
@@ -112,3 +117,4 @@ void CALL01(___Thread______nativeCreate____, struct ___Thread___ * ___this___) {
 
   pthread_attr_destroy(&nattr);
 }
+#endif

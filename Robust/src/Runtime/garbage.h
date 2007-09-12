@@ -17,7 +17,7 @@ struct listitem {
 void fixtags();
 #endif
 
-#ifdef THREADS
+#if defined(THREADS)||defined(DSTM)
 void checkcollect(void * ptr);
 struct listitem * stopforgc(struct garbagelist * ptr);
 void restartaftergc(struct listitem * litem);
