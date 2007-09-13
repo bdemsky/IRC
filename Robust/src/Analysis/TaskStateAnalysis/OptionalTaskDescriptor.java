@@ -6,7 +6,7 @@ import IR.Flat.*;
 import java.io.*;
 import Util.Edge;
 
-public class  OptionalTaskDescriptor{
+public class  OptionalTaskDescriptor {
     public TaskDescriptor td;
     public HashSet flagstates;
     public int depth;
@@ -15,30 +15,24 @@ public class  OptionalTaskDescriptor{
     private static int nodeid=0;
     private int uid;
     
-    protected OptionalTaskDescriptor(TaskDescriptor td, HashSet flagstates, int depth, Predicate predicate){
+    protected OptionalTaskDescriptor(TaskDescriptor td, HashSet flagstates, int depth, Predicate predicate) {
 	this.td = td;
 	this.flagstates = flagstates;
 	this.depth = depth;
 	this.exitfses = new HashSet();
 	this.predicate = predicate;
 	this.uid = OptionalTaskDescriptor.nodeid++;
-	
     }
     
     public boolean equals(Object o){
 	if (o instanceof OptionalTaskDescriptor) {
 	    OptionalTaskDescriptor otd = (OptionalTaskDescriptor) o;
-	    /*if (this.td.getSymbol().compareTo(otd.td.getSymbol())==0)
-		if(this.flagstates.equals(otd.flagstates))
-		    if(this.predicate.equals(otd.predicate))
-			return true;
-			return false;*/
-	    if(this.hashCode()==otd.hashCode())
+	    if (td==otd.td&&
+		flagstates.equals(otd.flagstates)&&
+		predicate.equals(otd.predicate))
 		return true;
-	    return false;
 	}
-	else return false;
-	
+	return false;
     }
     
     public int hashCode() {
@@ -52,6 +46,4 @@ public class  OptionalTaskDescriptor{
     public int getuid() {
 	return uid;
     }
-
-       
 }

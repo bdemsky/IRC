@@ -5,8 +5,6 @@ package Util;
 public class Edge {
     protected GraphNode target;
     protected GraphNode source;
-    protected boolean processed = false; 
-    
 
     protected String dotnodeparams = new String();
     
@@ -30,14 +28,6 @@ public class Edge {
 	return target;
     }
 
-    public void setProcessed() {
-	processed = true;
-    }
-    
-    public boolean isProcessed(){
-	return processed;
-    }
-    
     public void setDotNodeParameters(String param) {
 	if (param == null) {
 	    throw new NullPointerException();

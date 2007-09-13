@@ -110,12 +110,11 @@ public class SafetyAnalysis {
 	    System.out.println("\t"+classname+ "\n");
 	    //get the graph result of executiongraph class
 	    Vector nodes = new Vector();
-	    nodes = getConcernedClass( classname );
+	    nodes = getConcernedClass(classname);
 	    if(nodes==null) {
 		System.out.println("Impossible to find "+classname+". Unexpected.");
 		continue;
-	    }
-	    else if(nodes.size()==0){
+	    } else if (nodes.size()==0) {
 		System.out.println("Nothing to do");
 		continue;
 	    }
@@ -269,13 +268,13 @@ public class SafetyAnalysis {
 	if (extremity.isMarked() || !((Iterator)extremity.edges()).hasNext()){
 	    if (!((Iterator)extremity.edges()).hasNext()) extremity.mark();
 	    reducedgraph.put(extremity.getuid(), extremity);
-	}
-    	else {
+	} else {
 	    //do the marking
 	    process(extremity);
 	    reducedgraph.put(extremity.getuid(), extremity);
 	    extremity.mark();
-	    //calls doGraphMarking recursively with the next nodes as params
+	    //calls doGraphMarking recursively with the next nodes as
+	    //params
 	    for( Iterator it = extremity.edges(); it.hasNext(); ){
 		EGEdge edge = (EGEdge)it.next();
 		doGraphMarking((EGTaskNode)edge.getTarget());
@@ -705,25 +704,18 @@ public class SafetyAnalysis {
     
     private HashSet createIntersection( HashSet A, HashSet B){
 	HashSet result = new HashSet();
-	//HashSet processed = new HashSet();
 	for(Iterator b_it = B.iterator(); b_it.hasNext();){
 	    OptionalTaskDescriptor otd_b = (OptionalTaskDescriptor)b_it.next();
 	    for(Iterator a_it = A.iterator(); a_it.hasNext();){
 		OptionalTaskDescriptor otd_a = (OptionalTaskDescriptor)a_it.next();
 		if(((String)otd_a.td.getSymbol()).compareTo((String)otd_b.td.getSymbol())==0){
-		    //processed.add(otd_a);
-		    //processed.add(otd_b);
-		    
 		    HashSet newfs = new HashSet();
 		    newfs.addAll(otd_a.flagstates);
 		    newfs.addAll(otd_b.flagstates);
 		    int newdepth = (otd_a.depth < otd_b.depth) ? otd_a.depth : otd_b.depth;
 		    OptionalTaskDescriptor newotd = new OptionalTaskDescriptor(otd_b.td, newfs, newdepth, combinePredicates(otd_a.predicate, otd_b.predicate));
 		    if(optionaltaskdescriptors.get(processedclass).get(newotd)!=null){
-			//System.out.println("OTD found");
-			System.out.println("before "+newotd.getuid());
 			newotd = (OptionalTaskDescriptor)((Hashtable)optionaltaskdescriptors.get(processedclass)).get(newotd);
-			System.out.println("after "+newotd.getuid());
 		    }
 		    else optionaltaskdescriptors.get(processedclass).put(newotd, newotd);
 		    result.add(newotd);
@@ -731,16 +723,6 @@ public class SafetyAnalysis {
 	    }
 	}
 	
-	/*	for(Iterator a_it = A.iterator(); a_it.hasNext();){
-	    OptionalTaskDescriptor otd = (OptionalTaskDescriptor)a_it.next();
-	    if(!processed.contains(otd))
-		optionaltaskdescriptors.get(processedclass).remove(otd);
-	}
-	for(Iterator b_it = B.iterator(); b_it.hasNext();){
-	    OptionalTaskDescriptor otd = (OptionalTaskDescriptor)b_it.next();
-	    if(!processed.contains(otd))
-		optionaltaskdescriptors.get(processedclass).remove(otd);
-		}    */
 	return result;
     }
 
@@ -754,7 +736,6 @@ public class SafetyAnalysis {
 	    VarDescriptor vd = (VarDescriptor)varit.next();
 	    if(result.vardescriptors.containsKey(vd.getName())) System.out.println("Already in ");
 	    else {
-		//System.out.println("Not already in...");
 		result.vardescriptors.put(vd.getName(), vd);
 	    }
 	}
@@ -763,7 +744,6 @@ public class SafetyAnalysis {
 	    VarDescriptor vd = (VarDescriptor)varit.next();
 	    HashSet bflags = B.flags.get(vd.getName());
 	    if( bflags == null ){
-		//System.out.println("not in B");
 		continue;
 	    }
 	    else{
@@ -839,9 +819,6 @@ public class SafetyAnalysis {
 	    if (fn1.kind()==FKind.FlatFlagActionNode) {
 		FlatFlagActionNode ffan=(FlatFlagActionNode)fn1;
 		if (ffan.getTaskType() == FlatFlagActionNode.TASKEXIT) {
-		    //***
-		    //System.out.println("TASKEXIT");
-		    //***
 		    HashSet tempset = new HashSet();
 		    for(Iterator it_fs = otd.flagstates.iterator(); it_fs.hasNext();){
 			FlagState fstemp = (FlagState)it_fs.next();
@@ -852,16 +829,12 @@ public class SafetyAnalysis {
 				fstemp=fstemp.setFlag(tfp.getFlag(),ffan.getFlagChange(tfp));
 			    }
 			}
-			//System.out.println("new flag : "+fstemp.getTextLabel());
 			tempset.add(fstemp);
 		    }
 		    result.add(tempset);
 		    continue; // avoid queueing the return node if reachable
 		}
 	    }else if (fn1.kind()==FKind.FlatReturnNode) {
-		//***
-		//System.out.println("RETURN NODE REACHABLE WITHOUT TASKEXITS");
-		//***
 		result.add(otd.flagstates);
 	    }
 	    
@@ -876,8 +849,6 @@ public class SafetyAnalysis {
 	}
 	otd.exitfses=result;
     }
-
-            
 }
 
 

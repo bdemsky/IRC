@@ -1630,7 +1630,7 @@ int processConfigFile()
 		return -1;
 	}
 #ifdef MAC
-	myIpAddr = getMyIpAddr("en0");
+	myIpAddr = getMyIpAddr("en1");
 #else
 	myIpAddr = getMyIpAddr("eth0");
 #endif

@@ -24,25 +24,25 @@ public class TaskAnalysis {
      * @param state a flattened State object
      * @see State
      */
-    public TaskAnalysis(State state, TagAnalysis taganalysis)
-    {
+    public TaskAnalysis(State state, TagAnalysis taganalysis) {
 	this.state=state;
 	this.typeutil=new TypeUtil(state);
 	this.taganalysis=taganalysis;
-		
     }
     
-    /** Builds a table of flags for each class in the Bristlecone program.  
-     *	It creates two hashtables: one which holds the ClassDescriptors and arrays of
-     *  FlagDescriptors as key-value pairs; the other holds the ClassDescriptor and the 
-     *  number of external flags for that specific class.
+    /** Builds a table of flags for each class in the Bristlecone
+     *	program.  It creates two hashtables: one which holds the
+     *	ClassDescriptors and arrays of * FlagDescriptors as key-value
+     *	pairs; the other holds the ClassDescriptor and the * number of
+     *	external flags for that specific class.
      */
 
     private void getFlagsfromClasses() {
 	flags=new Hashtable();
 	extern_flags = new Hashtable();
 	
-	/** Iterate through the classes used in the program to build the table of flags
+	/** Iterate through the classes used in the program to build
+	 * the table of flags
 	 */
 	for(Iterator it_classes=state.getClassSymbolTable().getDescriptorsIterator();it_classes.hasNext();) {
 		
@@ -86,8 +86,7 @@ public class TaskAnalysis {
 	    }
 	}
     }
-    /** Method which starts up the analysis  
-     *  
+    /** Method which starts up the analysis
     */
     
     public void taskAnalysis() throws java.io.IOException {
@@ -124,7 +123,8 @@ public class TaskAnalysis {
 	sourcenodes.put(fsstartup,fsstartup);
 	toprocess.add(fsstartup);
 	
-	/** Looping through the flagstates in the toprocess queue to perform the state analysis */
+	/** Looping through the flagstates in the toprocess queue to
+	 * perform the state analysis */
 	while (!toprocess.isEmpty()) {
 	    FlagState trigger=toprocess.poll();
 	    createPossibleRuntimeStates(trigger);
@@ -157,8 +157,8 @@ private void analyseTasks(FlagState fs) {
 	TaskDescriptor td = (TaskDescriptor)it_tasks.next();
 	String taskname=td.getSymbol();
 	
-	/** counter to keep track of the number of parameters (of the task being analyzed) that 
-	 *  are satisfied by the flagstate.
+	/** counter to keep track of the number of parameters (of the
+	 *  task being analyzed) that are satisfied by the flagstate.
 	 */
 	int trigger_ctr=0;
 	TempDescriptor temp=null;
@@ -168,8 +168,10 @@ private void analyseTasks(FlagState fs) {
 	    FlagExpressionNode fen=td.getFlag(td.getParameter(i));
 	    TagExpressionList tel=td.getTag(td.getParameter(i));
 	    
-	    /** Checking to see if the parameter is of the same type/class as the 
-	     *  flagstate's and also if the flagstate fs triggers the given task*/
+	    /** Checking to see if the parameter is of the same
+	     *  type/class as the flagstate's and also if the
+	     *  flagstate fs triggers the given task*/
+
 	    if (typeutil.isSuperorType(td.getParamType(i).getClassDesc(),cd)
 		&& isTaskTrigger_flag(fen,fs)
 		&& isTaskTrigger_tag(tel,fs)) {
@@ -209,7 +211,7 @@ private void analyseTasks(FlagState fs) {
 	    
 	    if (fn1.kind()==FKind.FlatReturnNode) {
 		/* Self edge */
-		FEdge newedge=new FEdge(fs, taskname);
+		FEdge newedge=new FEdge(fs, taskname, td);
 		fs.addEdge(newedge);
 		continue;
 	    } else if (fn1.kind()==FKind.FlatFlagActionNode) {
@@ -227,7 +229,7 @@ private void analyseTasks(FlagState fs) {
 			}
 			//seen this node already
 			fs_taskexit=canonicalizeFlagState(sourcenodes,fs_taskexit);
-			FEdge newedge=new FEdge(fs_taskexit,taskname);
+			FEdge newedge=new FEdge(fs_taskexit,taskname, td);
 			fs.addEdge(newedge);
 		    }
 		    continue;
@@ -374,55 +376,52 @@ private boolean isTaskTrigger_tag(TagExpressionList tel, FlagState fs){
     }
 
     /** Returns the flag states for the class descriptor. */
-    public Set getFlagStates(ClassDescriptor cd) {
+    public Set<FlagState> getFlagStates(ClassDescriptor cd) {
 	if (flagstates.containsKey(cd))
-	    return ((Hashtable)flagstates.get(cd)).keySet();
+	    return ((Hashtable<FlagState, FlagState>)flagstates.get(cd)).keySet();
 	else
 	    return null;
     }
 
 
     private void createPossibleRuntimeStates(FlagState fs) {
-    ClassDescriptor cd = fs.getClassDescriptor();
-    Hashtable<FlagState,FlagState> sourcenodes=(Hashtable<FlagState,FlagState>)flagstates.get(cd);
-    FlagDescriptor[] fd=(FlagDescriptor[])flags.get(cd);	
-    int externs=((Integer)extern_flags.get(cd)).intValue();
-    
-    if(externs==0)
-	return;
-
-    int noOfIterations=(1<<externs) - 1;
-    boolean BoolValTable[]=new boolean[externs];
-
-
-    for(int i=0; i < externs ; i++) {
-	BoolValTable[i]=fs.get(fd[i]);
-    }
-
+	ClassDescriptor cd = fs.getClassDescriptor();
+	Hashtable<FlagState,FlagState> sourcenodes=(Hashtable<FlagState,FlagState>)flagstates.get(cd);
+	FlagDescriptor[] fd=(FlagDescriptor[])flags.get(cd);	
+	int externs=((Integer)extern_flags.get(cd)).intValue();
+	
+	if(externs==0)
+	    return;
+	
+	int noOfIterations=(1<<externs) - 1;
+	boolean BoolValTable[]=new boolean[externs];
+	
+	
+	for(int i=0; i < externs ; i++) {
+	    BoolValTable[i]=fs.get(fd[i]);
+	}
+	
 	for(int k=0; k<noOfIterations; k++) {
-	for(int j=0; j < externs ;j++) {
-	    if ((k% (1<<j)) == 0)
-		BoolValTable[j]=(!BoolValTable[j]);
-	}
+	    for(int j=0; j < externs ;j++) {
+		if ((k% (1<<j)) == 0)
+		    BoolValTable[j]=(!BoolValTable[j]);
+	    }
 	
-	FlagState fstemp=fs;
-	
-	for(int i=0; i < externs;i++) {
-	    fstemp=fstemp.setFlag(fd[i],BoolValTable[i]);
-	}
-	if (!sourcenodes.containsKey(fstemp))
-	    toprocess.add(fstemp);
+	    FlagState fstemp=fs;
+	    
+	    for(int i=0; i < externs;i++) {
+		fstemp=fstemp.setFlag(fd[i],BoolValTable[i]);
+	    }
+	    if (!sourcenodes.containsKey(fstemp))
+		toprocess.add(fstemp);
 
-	fstemp=canonicalizeFlagState(sourcenodes,fstemp);
-	fs.addEdge(new FEdge(fstemp,"Runtime"));
+	    fstemp=canonicalizeFlagState(sourcenodes,fstemp);
+	    fs.addEdge(new FEdge(fstemp,"Runtime", null));
+	}
     }
-	}
-	
-	public Vector getRootNodes(ClassDescriptor cd){
-		return (Vector)cdtorootnodes.get(cd);
-	}
-
-
-   
+    
+    public Vector getRootNodes(ClassDescriptor cd){
+	return (Vector)cdtorootnodes.get(cd);
+    }
 } 
 

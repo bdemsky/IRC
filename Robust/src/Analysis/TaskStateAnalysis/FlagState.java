@@ -24,9 +24,6 @@ public class FlagState extends GraphNode {
     private boolean issourcenode;
     private Vector tasks;
 
-    private boolean marked=false;
-    
-
     /** Class constructor
      *  Creates a new flagstate with all flags set to false.
      *	@param cd ClassDescriptor
@@ -58,18 +55,6 @@ public class FlagState extends GraphNode {
 	return uid;
     }
 
-    public boolean isMarked() {
-	return marked;
-    }
-
-    public void doUnmarking() {
-	marked = false;
-    }
-
-    public void doMarking() {
-	marked = true;
-    }
-            
     /** Accessor method
       *  @param fd FlagDescriptor
       *  @return true if the flagstate contains fd else false.
@@ -86,23 +71,23 @@ public class FlagState extends GraphNode {
 	    return issourcenode;
    	}
    	
-   	/**  Sets the flagstate as a source node. 
+    /**  Sets the flagstate as a source node. 
      */
-   	public void setAsSourceNode(){
-	   	if(!issourcenode){
-	   		issourcenode=true;
-	   		this.tasks=new Vector();
-   		}
-   	}
-   	
-   	public void addAllocatingTask(TaskDescriptor task){
-	   	tasks.add(task);
-   	}
-
-   	public Vector getAllocatingTasks(){
-	   	return tasks;
-   	}
-	   	
+    public void setAsSourceNode(){
+	if(!issourcenode){
+	    issourcenode=true;
+	    this.tasks=new Vector();
+	}
+    }
+    
+    public void addAllocatingTask(TaskDescriptor task){
+	tasks.add(task);
+    }
+    
+    public Vector getAllocatingTasks(){
+	return tasks;
+    }
+    
     
     public String toString() {
 	return cd.toString()+getTextLabel();
