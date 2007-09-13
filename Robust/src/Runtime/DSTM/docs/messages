@@ -10,12 +10,14 @@ Client messages:
 <TRANS_COMMIT      - control
 
 Server messages:
->OBJECT_FOUND      - control, object
+>OBJECT_FOUND      - control, sizeof object, object
 >OBJECT_NOT_FOUND  - control
 >OBJECTS_FOUND     - control, number of objects, objects
 >OBJECTS_NOT_FOUND - control, number of objects, oids
 >TRANS_AGREE       - control
 >TRANS_DISAGREE    - control
+>TRANS_AGREE_BUT_MISSING_OBJECTS - control, number of objects, objects
+>TRANS_SOFT_ABORT  - control, control bit identifying is missing objects present of not, number of objects, objects
 >TRANS_SUCCESSFUL  - control
 
 possible conversations (conversation means a tcp connection is maintained throughout):

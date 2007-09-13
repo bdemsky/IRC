@@ -54,7 +54,7 @@ plistnode_t *pInsert(plistnode_t *pile, objheader_t *headeraddr, unsigned int mi
 				tmp->oidcreated[tmp->numcreated] = OID(headeraddr);
 				tmp->numcreated = tmp->numcreated + 1;
 				tmp->sum_bytes += sizeof(objheader_t) + classsize[TYPE(headeraddr)];
-			}	else if (STATUS(headeraddr) & DIRTY) {
+			}else if (STATUS(headeraddr) & DIRTY) {
 				tmp->oidmod[tmp->nummod] = OID(headeraddr);
 				tmp->nummod = tmp->nummod + 1;
 				tmp->sum_bytes += sizeof(objheader_t) + classsize[TYPE(headeraddr)];
@@ -92,6 +92,8 @@ plistnode_t *pInsert(plistnode_t *pile, objheader_t *headeraddr, unsigned int mi
 		ptr->next = pile;
 		pile = ptr;
 	}
+
+	/* Clear Flags */
 
 	STATUS(headeraddr) &= ~(NEW);
 	STATUS(headeraddr) &= ~(DIRTY);

@@ -373,9 +373,9 @@ public class LocalityAnalysis {
 		    throw new Error("Starting thread on local object not allowed in context:\n"+currlb.getExplanation());
 		if(thistype.equals(CONFLICT))
 		    throw new Error("Using type that can be either local or global in context:\n"+currlb.getExplanation());
-		if(thistype.equals(GLOBAL)&&!isatomic)
+		if(runmethodset==null&&thistype.equals(GLOBAL)&&!isatomic)
 		    throw new Error("Using global object outside of transaction in context:\n"+currlb.getExplanation());
-		if (isnative&&thistype.equals(GLOBAL))
+		if (runmethodset==null&&isnative&&thistype.equals(GLOBAL))
 		    throw new Error("Potential call to native method "+md+" on global objects:\n"+currlb.getExplanation());
 		lb.setGlobalThis(thistype);
 	    } 

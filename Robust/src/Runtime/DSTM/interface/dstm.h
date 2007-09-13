@@ -208,6 +208,7 @@ int dstmStartup(const char *);
 void transInit();
 int processConfigFile();
 void addHost(unsigned int);
+void mapObjMethod(unsigned short);
 
 void randomdelay(void);
 transrecord_t *transStart();
@@ -221,7 +222,7 @@ char sendResponse(thread_data_array_t *, int); //Sends control message back to P
 void *getRemoteObj(transrecord_t *, unsigned int, unsigned int);
 int transAbortProcess(void *, unsigned int *, int, int);
 int transComProcess(void*, unsigned int *, unsigned int *, unsigned int *, int, int, int);
-void prefetch(int, unsigned int *, short *, short*);
+void prefetch(int, unsigned int *, unsigned short *, short*);
 void *transPrefetch(void *);
 void *mcqProcess(void *);
 void checkPrefetchTuples(prefetchqelem_t *);

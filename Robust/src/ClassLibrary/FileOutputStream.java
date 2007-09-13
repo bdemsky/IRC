@@ -11,10 +11,13 @@ public class FileOutputStream {
     	if(mode==1)
 		fd=nativeOpen(pathname.getBytes());
     }
-
-
+    
     public FileOutputStream(File path) {
 	fd=nativeOpen(path.getPath().getBytes());
+    }
+
+    public FileOutputStreamOpen(String  pathname) {
+        fd = nativeOpen(pathname.getBytes());
     }
 
     private static native int nativeOpen(byte[] filename);
