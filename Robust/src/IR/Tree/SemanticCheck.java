@@ -57,7 +57,6 @@ public class SemanticCheck {
 	    checkTask(td);
 	    
 	}
-
     }
 
     public void checkTypeDescriptor(TypeDescriptor td) {
@@ -203,7 +202,18 @@ public class SemanticCheck {
     }
 
     public void checkMethodBody(ClassDescriptor cd, MethodDescriptor md) {
-	//System.out.println("Processing method:"+md);
+	ClassDescriptor superdesc=cd.getSuperDesc();
+	if (superdesc!=null) {
+	    Set possiblematches=superdesc.getMethodTable().getSet(md.getSymbol());
+	    for(Iterator methodit=possiblematches.iterator();methodit.hasNext();) {
+		MethodDescriptor matchmd=(MethodDescriptor)methodit.next();
+		if (md.matches(matchmd)) {
+		    if (matchmd.getModifiers().isFinal()) {
+			throw new Error("Try to override final method in method:"+md+" declared in  "+cd);
+		    }
+		}
+	    }
+	}
 	BlockNode bn=state.getMethodBody(md);
 	checkBlockNode(md, md.getParameterTable(),bn);
     }

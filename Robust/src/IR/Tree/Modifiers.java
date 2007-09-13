@@ -46,6 +46,10 @@ public class Modifiers {
 	return ((value&NATIVE)!=0);
     }
 
+    public boolean isFinal() {
+	return ((value&FINAL)!=0);
+    }
+
     public String toString() {
 	String st="";
 	if ((value&PUBLIC)!=0)

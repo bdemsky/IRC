@@ -121,6 +121,6 @@ void CALL01(___Thread______nativeCreate____, struct ___Thread___ * ___this___) {
 
 #ifdef DSTM
 void CALL12(___Thread______start____I, int ___mid___, struct ___Thread___ * ___this___, int ___mid___) {
-  startRemoteThread((unsigned int *)VAR(___this___), ___mid___);
+  startRemoteThread((unsigned int)VAR(___this___), ___mid___);
 }
 #endif
