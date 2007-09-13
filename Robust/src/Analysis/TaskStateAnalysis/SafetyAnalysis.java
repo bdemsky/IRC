@@ -10,7 +10,6 @@ import java.io.FileOutputStream;
 import Util.Edge;
 
 public class SafetyAnalysis {
-    
     private Hashtable executiongraph;
     private Hashtable<ClassDescriptor, Hashtable<FlagState, HashSet>> safeexecution; //to use to build code
     private static final int OR = 0;
@@ -81,14 +80,11 @@ public class SafetyAnalysis {
     }
     
     /*returns the executiongraph corresponding to the classname*/
-    private Vector getConcernedClass( String classname ){
-	Enumeration e = executiongraph.keys();
-	while( e.hasMoreElements() ){
-	    ClassDescriptor cd = (ClassDescriptor)e.nextElement();
-	    if (classname.compareTo(cd.getSymbol())==0)
-		return (Vector)executiongraph.get(cd);
-	}
-	return null;
+    private Vector getConcernedClass(ClassDescriptor cd){
+	if (executiongraph.containsKey(cd))
+	    return (Vector) executiongraph.get(cd);
+	else
+	    return null;
     }
         
     /*Actual method used by the compiler.
@@ -109,8 +105,8 @@ public class SafetyAnalysis {
 
 	    System.out.println("\t"+classname+ "\n");
 	    //get the graph result of executiongraph class
-	    Vector nodes = new Vector();
-	    nodes = getConcernedClass(classname);
+	    Vector nodes = getConcernedClass(processedclass);
+
 	    if(nodes==null) {
 		System.out.println("Impossible to find "+classname+". Unexpected.");
 		continue;
@@ -167,8 +163,6 @@ public class SafetyAnalysis {
 	}
 	putinoptionaltaskdescriptors();
 	printTEST();
-
-	
     }
 
     private void putinoptionaltaskdescriptors(){
