@@ -121,6 +121,11 @@ public class SafetyAnalysis {
 	    
 	    //mark the graph
 	    EGTaskNode sourcenode = findSourceNode(nodes);
+
+	    //skip classes that don't have source nodes
+	    if (sourcenode==null)
+		continue;
+
 	    doGraphMarking(sourcenode);
 	    createDOTFile( classname );
 	    reducedgraph.clear();
