@@ -8,15 +8,15 @@ public class RemoteThread extends Thread {
 	atomic {
 	    t= global new RemoteThread();
 	}
-	System.printString("Starting");
+	System.printString("Starting\n");
 	t.start(mid);
-	System.printString("Finished");
+	System.printString("Finished\n");
 	//this is ugly...
 	while(true) ;
     }
 
     public int run() {
-	System.printString("Remote machine");
+	System.printString("Remote machine\n");
     }
 }
 
