@@ -124,3 +124,44 @@ void CALL12(___Thread______start____I, int ___mid___, struct ___Thread___ * ___t
   startRemoteThread((unsigned int)VAR(___this___), ___mid___);
 }
 #endif
+
+#ifdef DSTM
+void initDSMthread(int *ptr) {
+  int oid=ptr[0];
+  int type=ptr[1];
+  free(ptr);
+#ifdef PRECISE_GC
+  int p[]={1, 0 /* NULL */, oid};
+  ((void (*)(void *))virtualtable[type*MAXCOUNT+RUNMETHOD])(p);
+#else
+  ((void (*)(void *))virtualtable[type*MAXCOUNT+RUNMETHOD])(oid);
+#endif
+  pthread_mutex_lock(&gclistlock);
+  threadcount--;
+  pthread_cond_signal(&gccond);
+  pthread_mutex_unlock(&gclistlock);
+}
+
+void startDSMthread(int oid, int objType) {
+  pthread_t thread;
+  int retval;
+  pthread_attr_t nattr;
+
+  pthread_mutex_lock(&gclistlock);
+  threadcount++;
+  pthread_mutex_unlock(&gclistlock);
+  pthread_attr_init(&nattr);
+  pthread_attr_setdetachstate(&nattr, PTHREAD_CREATE_DETACHED);
+  int * ptr=malloc(sizeof(int)*2);
+  ptr[0]=oid;
+  ptr[1]=objType;
+  do {
+    retval=pthread_create(&thread, &nattr, (void * (*)(void *)) &initDSMthread,  ptr);
+    if (retval!=0)
+      usleep(1);
+  } while(retval!=0);
+
+  pthread_attr_destroy(&nattr);
+}
+
+#endif

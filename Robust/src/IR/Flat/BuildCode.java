@@ -345,6 +345,12 @@ public class BuildCode {
 
 	/* Output #defines that the runtime uses to determine type
 	 * numbers for various objects it needs */
+	outstructs.println("#define MAXCOUNT "+maxcount);
+	if (state.DSM) {
+	    LocalityBinding lb=new LocalityBinding(typeutil.getRun(), false);
+	    lb.setGlobalThis(LocalityAnalysis.GLOBAL);
+	    outstructs.println("#define RUNMETHOD "+virtualcalls.getLocalityNumber(lb));
+	}
 
 	outstructs.println("#define STRINGARRAYTYPE "+
 			   (state.getArrayNumber(

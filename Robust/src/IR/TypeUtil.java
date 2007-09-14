@@ -39,6 +39,17 @@ public class TypeUtil {
 	return getClass(state.main);
     }
 
+    public MethodDescriptor getRun() {
+	ClassDescriptor cd=getClass(TypeUtil.ThreadClass);
+	for(Iterator methodit=cd.getMethodTable().getSet("run").iterator();methodit.hasNext();) {
+	    MethodDescriptor md=(MethodDescriptor) methodit.next();
+	    if (md.numParameters()!=0||md.getModifiers().isStatic())
+		continue;
+	    return md;
+	}
+	throw new Error("Can't find Thread.run");
+    }
+
     public MethodDescriptor getMain() {
 	ClassDescriptor cd=getMainClass();
 	Set mainset=cd.getMethodTable().getSet("main");

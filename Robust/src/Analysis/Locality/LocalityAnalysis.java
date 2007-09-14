@@ -78,7 +78,6 @@ public class LocalityAnalysis {
 
 
     /** This method returns a set of LocalityBindings for the parameter class. */
-	
     public Set<LocalityBinding> getClassBindings(ClassDescriptor cd) {
 	return classtolb.get(cd);
     }
@@ -165,6 +164,7 @@ public class LocalityAnalysis {
     
     private void computeLocalityBindings() {
 	lbmain=new LocalityBinding(typeutil.getMain(), false);
+	lbmain.setGlobalReturn(EITHER);
 	lbmain.setGlobal(0, LOCAL);
 	lbtovisit.add(lbmain);
 	discovered.put(lbmain, lbmain);
@@ -176,6 +176,20 @@ public class LocalityAnalysis {
 	    methodtolb.put(lbmain.getMethod(), new HashSet<LocalityBinding>());
 	methodtolb.get(lbmain.getMethod()).add(lbmain);
 
+	//Do this to force a virtual table number for the run method
+	LocalityBinding lbrun=new LocalityBinding(typeutil.getRun(), false);
+	lbrun.setGlobalReturn(EITHER);
+	lbrun.setGlobalThis(GLOBAL);
+	lbtovisit.add(lbrun);
+	discovered.put(lbrun, lbrun);
+	if (!classtolb.containsKey(lbrun.getMethod().getClassDesc()))
+	    classtolb.put(lbrun.getMethod().getClassDesc(), new HashSet<LocalityBinding>());
+	classtolb.get(lbrun.getMethod().getClassDesc()).add(lbrun);
+
+	if (!methodtolb.containsKey(lbrun.getMethod()))
+	    methodtolb.put(lbrun.getMethod(), new HashSet<LocalityBinding>());
+	methodtolb.get(lbrun.getMethod()).add(lbrun);
+
 	while(!lbtovisit.empty()) {
 	    LocalityBinding lb=(LocalityBinding) lbtovisit.pop();
 	    Integer returnglobal=lb.getGlobalReturn();
@@ -186,7 +200,7 @@ public class LocalityAnalysis {
 	    atomictab.put(lb, atomictable);
 	    temptab.put(lb, temptable);
 
-	    if (!md.isStatic()&&!returnglobal.equals(lb.getGlobalReturn())) {
+	    if (md.getReturnType()!=null&&!returnglobal.equals(lb.getGlobalReturn())) {
 		//return type is more precise now
 		//rerun everything that call us
 		lbtovisit.addAll(dependence.get(lb));

@@ -10,6 +10,10 @@
 #include "dstm.h"
 #include "mlookup.h"
 #include "llookup.h"
+#ifdef COMPILER
+#include "thread.h"
+#endif
+
 
 #define LISTEN_PORT 2156
 #define BACKLOG 10 //max pending connections
@@ -184,6 +188,9 @@ void *dstmAccept(void *acceptfd)
 				printf("dstmAccept(): received START_REMOTE_THREAD msg, oid=0x%x\n", oid);
 				objType = getObjType(oid);
 				printf("dstmAccept(): type of object 0x%x is %d\n", oid, objType);
+				startDSMthread(oid, objType);
+
+
 			}
 			break;
 
