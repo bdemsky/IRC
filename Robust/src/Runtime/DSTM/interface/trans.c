@@ -95,7 +95,7 @@ void prefetch(int ntuples, unsigned int *oids, unsigned short *endoffsets, short
 int dstmStartup(const char * option) {
   pthread_t thread_Listen;
   pthread_attr_t attr;
-  int master=strcmp(option, "master")==0;
+  int master=option!=NULL && strcmp(option, "master")==0;
 
 	if (processConfigFile() != 0)
 		return 0; //TODO: return error value, cause main program to exit
