@@ -81,6 +81,15 @@ typedef struct objheader {
 #define TYPE(x)\
         ((struct ___Object___ *)((unsigned int) x + sizeof(objheader_t)))->type
 
+#define GETSIZE(size, x) {\
+  int type=TYPE(x);\
+  if (type<NUMCLASSES) {\
+    size=classsize[type];\
+  } else {\
+    size=classsize[type]*((struct ArrayObject *)&((objheader_t *)x)[1])->___length___+sizeof(struct ArrayObject);\
+  }\
+}
+
 #else
 
 typedef struct objheader {
@@ -94,7 +103,7 @@ typedef struct objheader {
 #define OID(x) x->oid
 #define TYPE(x) x->type
 #define STATUS(x) x->status
-
+#define GETSIZE(size, x) size=classsize[TYPE(x)]
 #endif
 
 
@@ -183,7 +192,6 @@ int dstmInit(void);
 
 /* Prototypes for object header */
 unsigned int getNewOID(void);
-unsigned int objSize(objheader_t *object);
 /* end object header */
 
 /* Prototypes for object store */

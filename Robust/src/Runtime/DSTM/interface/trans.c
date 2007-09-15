@@ -208,7 +208,8 @@ objheader_t *transRead(transrecord_t *record, unsigned int oid) {
 	} else if ((objheader = (objheader_t *) mhashSearch(oid)) != NULL) {
 		/* Look up in machine lookup table  and copy  into cache*/
 		tmp = mhashSearch(oid);
-		size = sizeof(objheader_t)+classsize[TYPE(tmp)];
+		GETSIZE(size, tmp);
+		size += sizeof(objheader_t);
 		objcopy = objstrAlloc(record->cache, size);
 		memcpy(objcopy, (void *)objheader, size);
 		/* Insert into cache's lookup table */
@@ -220,7 +221,8 @@ objheader_t *transRead(transrecord_t *record, unsigned int oid) {
 #endif
 	} else if((tmp = (objheader_t *) prehashSearch(oid)) != NULL) { /* Look up in prefetch cache */
 		found = 1;
-		size = sizeof(objheader_t)+classsize[TYPE(tmp)];
+		GETSIZE(size, tmp);
+		size+=sizeof(objheader_t);
 		objcopy = objstrAlloc(record->cache, size);
 		memcpy(objcopy, (void *)tmp, size);
 		/* Insert into cache's lookup table */
@@ -241,7 +243,8 @@ objheader_t *transRead(transrecord_t *record, unsigned int oid) {
 				/* Check Prefetch cache again */
 				if((tmp = (objheader_t *) prehashSearch(oid)) != NULL) { /* Look up in prefetch cache */
 					found = 1;
-					size = sizeof(objheader_t)+classsize[TYPE(tmp)];
+					GETSIZE(size, tmp);
+					size+=sizeof(objheader_t);
 					objcopy = objstrAlloc(record->cache, size);
 					memcpy(objcopy, (void *)tmp, size);
 					/* Insert into cache's lookup table */
@@ -584,7 +587,8 @@ void *transRequest(void *threadarg) {
 	for(i = 0; i < tdata->buffer->f.nummod ; i++) {
 		int size;
 		headeraddr = chashSearch(tdata->rec->lookupTable, tdata->buffer->oidmod[i]);
-		size=sizeof(objheader_t)+classsize[TYPE(headeraddr)];
+		GETSIZE(size,headeraddr);
+		size+=sizeof(objheader_t);
 		if (send(sd, headeraddr, size, MSG_NOSIGNAL)  < size) {
 			perror("Error sending obj modified for thread\n");
 			pthread_exit(NULL);
@@ -834,14 +838,16 @@ void *handleLocalReq(void *threadarg) {
 	/* Write modified objects into the mainobject store */
 	for(i = 0; i< localtdata->tdata->buffer->f.nummod; i++) {
 		headeraddr = chashSearch(localtdata->tdata->rec->lookupTable, localtdata->tdata->buffer->oidmod[i]);
-		size = sizeof(objheader_t) + classsize[TYPE(headeraddr)];
+		GETSIZE(size,headeraddr);
+		size+=sizeof(objheader_t);
 		memcpy(modptr+offset, headeraddr, size);  
 		offset += size;
 	}
 	/* Write new objects into the mainobject store */
 	for(i = 0; i< localtdata->tdata->buffer->f.numcreated; i++) {
 		headeraddr = chashSearch(localtdata->tdata->rec->lookupTable, localtdata->tdata->buffer->oidcreated[i]);
-		size = sizeof(objheader_t) + classsize[TYPE(headeraddr)];
+		GETSIZE(size, headeraddr);
+		size+=sizeof(objheader_t);
 		memcpy(modptr+offset, headeraddr, size);  
 		offset += size;
 	}
@@ -858,10 +864,12 @@ void *handleLocalReq(void *threadarg) {
 			incr += sizeof(unsigned int);
 			version = *((short *)(localtdata->tdata->buffer->objread + incr));
 		} else {//Objs modified
+			int tmpsize;
 			headptr = (objheader_t *)ptr;
 			oid = OID(headptr);
 			version = headptr->version;
-			ptr += sizeof(objheader_t) + classsize[TYPE(headptr)];
+			GETSIZE(tmpsize, headptr);
+			ptr += sizeof(objheader_t) + tmpsize;
 		}
 
 		/* Check if object is still present in the machine since the beginning of TRANS_REQUEST */
@@ -981,9 +989,11 @@ int transAbortProcess(void *modptr, unsigned int *objlocked, int numlocked, int 
 	/* Set all ref counts as 1 and do garbage collection */
 	ptr = (char *)modptr;
 	for(i = 0; i< nummod; i++) {
+	  int tmpsize;
 		tmp_header = (objheader_t *)ptr;
 		tmp_header->rcount = 0;
-		ptr += sizeof(objheader_t) + classsize[TYPE(tmp_header)];
+		GETSIZE(tmpsize, tmp_header);
+		ptr += sizeof(objheader_t) + tmpsize;
 	}
 	/* Unlock objects that was locked due to this transaction */
 	for(i = 0; i< numlocked; i++) {
@@ -1010,6 +1020,7 @@ int transComProcess(void *modptr, unsigned int *oidmod, unsigned int *oidcreated
 
 	/* Process each modified object saved in the mainobject store */
 	for(i = 0; i < nummod; i++) {
+	  int tmpsize;
 		if((header = (objheader_t *) mhashSearch(oidmod[i])) == NULL) {
 			printf("mhashsearch returns NULL at %s, %d\n", __FILE__, __LINE__);
 			return 1;
@@ -1020,7 +1031,8 @@ int transComProcess(void *modptr, unsigned int *oidmod, unsigned int *oidcreated
 		/* Change ptr address in mhash table */
 		mhashRemove(oidmod[i]); //TODO: this shouldn't be necessary
 		mhashInsert(oidmod[i], (((char *)modptr) + offset));
-		offset += sizeof(objheader_t) + classsize[TYPE(header)];
+		GETSIZE(tmpsize, header);
+		offset += sizeof(objheader_t) + tmpsize;
 
 		/* Update object version number */
 		header = (objheader_t *) mhashSearch(oidmod[i]);
@@ -1029,9 +1041,11 @@ int transComProcess(void *modptr, unsigned int *oidmod, unsigned int *oidcreated
 
 	for (i = 0; i < numcreated; i++)
 	{
+	  int tmpsize;
 		header = (objheader_t *)(((char *)modptr) + offset);
 		mhashInsert(oidcreated[i], (((char *)modptr) + offset));
-		offset += sizeof(objheader_t) + classsize[TYPE(header)];
+		GETSIZE(tmpsize, header);
+		offset += sizeof(objheader_t) + tmpsize;
 
 		lhashInsert(oidcreated[i], myIpAddr);
 	}
@@ -1450,8 +1464,6 @@ void getPrefetchResponse(int count, int sd) {
 	if(control == TRANS_PREFETCH_RESPONSE) {
 		/*For each oid and offset tuple sent as prefetch request to remote machine*/
 		while(i < count) {
-			/* Clear contents of buffer */
-			memset(buffer, 0, RECEIVE_BUFFER_SIZE);
 			sum = 0;
 			index = 0;
 			/* Read the size of buffer to be received */
@@ -1476,6 +1488,7 @@ void getPrefetchResponse(int count, int sd) {
 					index += sizeof(unsigned int);
 					/* For each object found add to Prefetch Cache */
 					memcpy(&objsize, buffer + index, sizeof(int));
+					index+=sizeof(int);
 					pthread_mutex_lock(&prefetchcache_mutex);
 					if ((modptr = objstrAlloc(prefetchcache, objsize)) == NULL) {
 						printf("objstrAlloc error for copying into prefetch cache %s, %d\n", __FILE__, __LINE__);

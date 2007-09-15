@@ -129,7 +129,9 @@ void *dstmAccept(void *acceptfd)
 			}
 			srcObj = mhashSearch(oid);
 			h = (objheader_t *) srcObj;
-			size = sizeof(objheader_t) + sizeof(classsize[TYPE(h)]);
+			GETSIZE(size, h);
+			size += sizeof(objheader_t);
+
 			if (h == NULL) {
 				ctrl = OBJECT_NOT_FOUND;
 				if(send((int)acceptfd, &ctrl, sizeof(char), MSG_NOSIGNAL) < sizeof(char)) {
@@ -272,10 +274,12 @@ int readClientReq(trans_commit_data_t *transinfo, int acceptfd) {
 	oidmod = (unsigned int *) calloc(fixed.nummod, sizeof(unsigned int));
 	ptr = (char *) modptr;
 	for(i = 0 ; i < fixed.nummod; i++) {
-		headaddr = (objheader_t *) ptr;
-		oid = OID(headaddr);
-		oidmod[i] = oid;
-		ptr += sizeof(objheader_t) + classsize[TYPE(headaddr)];
+	  int tmpsize;
+	  headaddr = (objheader_t *) ptr;
+	  oid = OID(headaddr);
+	  oidmod[i] = oid;
+	  GETSIZE(tmpsize, headaddr);
+	  ptr += sizeof(objheader_t) + tmpsize;
 	}
 	
 	/*Process the information read */
@@ -319,9 +323,11 @@ int processClientReq(fixed_data_t *fixed, trans_commit_data_t *transinfo,
 			/* Set all ref counts as 1 and do garbage collection */
 			ptr = modptr;
 			for(i = 0; i< fixed->nummod; i++) {
-				tmp_header = (objheader_t *)ptr;
-				tmp_header->rcount = 0;
-				ptr += sizeof(objheader_t) + classsize[TYPE(tmp_header)];
+			  int tmpsize;
+			  tmp_header = (objheader_t *)ptr;
+			  tmp_header->rcount = 0;
+			  GETSIZE(tmpsize, tmp_header);
+			  ptr += sizeof(objheader_t) + tmpsize;
 			}
 			/* Unlock objects that was locked due to this transaction */
 			for(i = 0; i< transinfo->numlocked; i++) {
@@ -403,10 +409,12 @@ char handleTransReq(fixed_data_t *fixed, trans_commit_data_t *transinfo, unsigne
 			incr += sizeof(unsigned int);
 			version = *((short *)(objread + incr));
 		} else {//Objs modified
-			headptr = (objheader_t *) ptr;
-			oid = OID(headptr);
-			version = headptr->version;
-			ptr += sizeof(objheader_t) + classsize[TYPE(headptr)];
+		  int tmpsize;
+		  headptr = (objheader_t *) ptr;
+		  oid = OID(headptr);
+		  version = headptr->version;
+		  GETSIZE(tmpsize, headptr);
+		  ptr += sizeof(objheader_t) + tmpsize;
 		}
 		
 		/* Check if object is still present in the machine since the beginning of TRANS_REQUEST */
@@ -540,8 +548,11 @@ int transCommitProcess(void *modptr, unsigned int *oidmod, unsigned int *oidlock
 		/* Change ptr address in mhash table */
 		mhashRemove(oidmod[i]);
 		mhashInsert(oidmod[i], (((char *)modptr) + offset));
-		offset += sizeof(objheader_t) + classsize[TYPE(header)];
-
+		{
+		  int tmpsize;
+		  GETSIZE(tmpsize,header);
+		  offset += sizeof(objheader_t) + tmpsize;
+		}
 		/* Update object version number */
 		header = (objheader_t *) mhashSearch(oidmod[i]);
 		header->version += 1; 
@@ -573,107 +584,107 @@ int transCommitProcess(void *modptr, unsigned int *oidmod, unsigned int *oidlock
  * then use offset values to prefetch references to other objects */
 
 int prefetchReq(int acceptfd) {
-	int i, length, sum, n, numbytes, numoffset, N, objnotfound = 0, size, count = 0;
-	unsigned int oid, index = 0;
-	char *ptr, buffer[PRE_BUF_SIZE];
-	void *mobj;
-	unsigned int objoid;
-	char *header, control;
-	objheader_t * head;
-	int bytesRecvd;
-	
-	/* Repeatedly recv the oid and offset pairs sent for prefetch */
-	while(numbytes = recv((int)acceptfd, &length, sizeof(int), 0) != 0) {
-		count++;
-		if(length == -1)
-			break;
-		sum = 0;
-		index = sizeof(unsigned int); // Index starts with sizeof  unsigned int because the 
-					      // first 4 bytes are saved to send the
-				              // size of the buffer (that is computed at the end of the loop)
-		bytesRecvd = 0;
-		do {
-			bytesRecvd += recv((int)acceptfd, (char *)&oid +bytesRecvd,
-					sizeof(unsigned int) - bytesRecvd, 0);
-		} while (bytesRecvd < sizeof(unsigned int));
-		numoffset = (length - (sizeof(int) + sizeof(unsigned int)))/ sizeof(short);
-		N = numoffset * sizeof(short);
-		short offset[numoffset];
-		ptr = (char *)&offset;
-		/* Recv the offset values per oid */ 
-		do {
-			n = recv((int)acceptfd, (void *)ptr+sum, N-sum, 0); 
-			sum += n; 
-		} while(sum < N && n != 0);	
-
-		/* Process each oid */
-		if ((mobj = mhashSearch(oid)) == NULL) {/* Obj not found */
-			/* Save the oids not found in buffer for later use */
-			*(buffer + index) = OBJECT_NOT_FOUND;
-			index += sizeof(char);
-			memcpy(buffer+index, &oid, sizeof(unsigned int));
-			index += sizeof(unsigned int);
-		} else { /* If Obj found in machine (i.e. has not moved) */
-			/* send the oid, it's size, it's header and data */
-			header = (char *) mobj;
-			head = (objheader_t *) header; 
-			size = sizeof(objheader_t) + sizeof(classsize[TYPE(head)]);
-			*(buffer + index) = OBJECT_FOUND;
-			index += sizeof(char);
-			memcpy(buffer+index, &oid, sizeof(unsigned int));
-			index += sizeof(unsigned int);
-			memcpy(buffer+index, &size, sizeof(int));
-			index += sizeof(int);
-			memcpy(buffer + index, header, size);
-			index += size;
-			/* Calculate the oid corresponding to the offset value */
-			for(i = 0 ; i< numoffset ; i++) {
-				objoid = *((int *)(header + sizeof(objheader_t) + offset[i]));
-				if((header = (char *) mhashSearch(objoid)) == NULL) {
-					/* Obj not found, send oid */
-					*(buffer + index) = OBJECT_NOT_FOUND;
-					index += sizeof(char);
-					memcpy(buffer+index, &oid, sizeof(unsigned int));
-					index += sizeof(unsigned int);
-					break;
-				} else {/* Obj Found */
-					/* send the oid, it's size, it's header and data */
-					head = (objheader_t *) header; 
-					size = sizeof(objheader_t) + sizeof(classsize[TYPE(head)]);
-					*(buffer + index) = OBJECT_FOUND;
-					index += sizeof(char);
-					memcpy(buffer+index, &oid, sizeof(unsigned int));
-					index += sizeof(unsigned int);
-					memcpy(buffer+index, &size, sizeof(int));
-					index += sizeof(int);
-					memcpy(buffer + index, header, size);
-					index += size;
-					continue;
-				}
-			}
-		}
-		/* Check for overflow in the buffer */
-		if (index >= PRE_BUF_SIZE) {
-			printf("Char buffer is overflowing\n");
-			return 1;
-		}
-		/* Send Prefetch response control message only once*/
-		if(count == 1) {
-			control = TRANS_PREFETCH_RESPONSE;
-			if((numbytes = send(acceptfd, &control, sizeof(char), MSG_NOSIGNAL)) < sizeof(char)) {
-				perror("Error in sending PREFETCH RESPONSE to Coordinator\n");
-				return 1;
-			}
-		}
-
-		/* Add the buffer size into buffer as a parameter */
-		*((unsigned int *)buffer)=index;
-		/* Send the entire buffer with its size and oids found and not found */
-		if(send((int)acceptfd, &buffer, index, MSG_NOSIGNAL) < sizeof(index -1)) {
-			perror("Error sending oids found\n");
-			return 1;
-		}
+  int i, length, sum, n, numbytes, numoffset, N, objnotfound = 0, size, count = 0;
+  unsigned int oid, index = 0;
+  char *ptr, buffer[PRE_BUF_SIZE];
+  void *mobj;
+  unsigned int objoid;
+  char control;
+  objheader_t * header;
+  int bytesRecvd;
+  
+  /* Repeatedly recv the oid and offset pairs sent for prefetch */
+  while(numbytes = recv((int)acceptfd, &length, sizeof(int), 0) != 0) {
+    count++;
+    if(length == -1)
+      break;
+    sum = 0;
+    index = sizeof(unsigned int); // Index starts with sizeof  unsigned int because the 
+    // first 4 bytes are saved to send the
+    // size of the buffer (that is computed at the end of the loop)
+    bytesRecvd = 0;
+    do {
+      bytesRecvd += recv((int)acceptfd, (char *)&oid +bytesRecvd,
+			 sizeof(unsigned int) - bytesRecvd, 0);
+    } while (bytesRecvd < sizeof(unsigned int));
+    numoffset = (length - (sizeof(int) + sizeof(unsigned int)))/ sizeof(short);
+    N = numoffset * sizeof(short);
+    short offset[numoffset];
+    ptr = (char *)&offset;
+    /* Recv the offset values per oid */ 
+    do {
+      n = recv((int)acceptfd, (void *)ptr+sum, N-sum, 0); 
+      sum += n; 
+    } while(sum < N && n != 0);	
+    
+    /* Process each oid */
+    if ((mobj = mhashSearch(oid)) == NULL) {/* Obj not found */
+      /* Save the oids not found in buffer for later use */
+      *(buffer + index) = OBJECT_NOT_FOUND;
+      index += sizeof(char);
+      memcpy(buffer+index, &oid, sizeof(unsigned int));
+      index += sizeof(unsigned int);
+    } else { /* If Obj found in machine (i.e. has not moved) */
+      /* send the oid, it's size, it's header and data */
+      header = mobj;
+      GETSIZE(size, header);
+      size += sizeof(objheader_t);
+      *(buffer + index) = OBJECT_FOUND;
+      index += sizeof(char);
+      memcpy(buffer+index, &oid, sizeof(unsigned int));
+      index += sizeof(unsigned int);
+      memcpy(buffer+index, &size, sizeof(int));
+      index += sizeof(int);
+      memcpy(buffer + index, header, size);
+      index += size;
+      /* Calculate the oid corresponding to the offset value */
+      for(i = 0 ; i< numoffset ; i++) {
+	objoid = *((int *)(((char *)header) + sizeof(objheader_t) + offset[i]));
+	if((header = mhashSearch(objoid)) == NULL) {
+	  /* Obj not found, send oid */
+	  *(buffer + index) = OBJECT_NOT_FOUND;
+	  index += sizeof(char);
+	  memcpy(buffer+index, &oid, sizeof(unsigned int));
+	  index += sizeof(unsigned int);
+	  break;
+	} else {/* Obj Found */
+	  /* send the oid, it's size, it's header and data */
+	  GETSIZE(size, header);
+	  size+=sizeof(objheader_t);
+	  *(buffer + index) = OBJECT_FOUND;
+	  index += sizeof(char);
+	  memcpy(buffer+index, &oid, sizeof(unsigned int));
+	  index += sizeof(unsigned int);
+	  memcpy(buffer+index, &size, sizeof(int));
+	  index += sizeof(int);
+	  memcpy(buffer + index, header, size);
+	  index += size;
+	  continue;
 	}
-	return 0;
+      }
+    }
+    /* Check for overflow in the buffer */
+    if (index >= PRE_BUF_SIZE) {
+      printf("Char buffer is overflowing\n");
+      return 1;
+    }
+    /* Send Prefetch response control message only once*/
+    if(count == 1) {
+      control = TRANS_PREFETCH_RESPONSE;
+      if((numbytes = send(acceptfd, &control, sizeof(char), MSG_NOSIGNAL)) < sizeof(char)) {
+	perror("Error in sending PREFETCH RESPONSE to Coordinator\n");
+	return 1;
+      }
+    }
+    
+    /* Add the buffer size into buffer as a parameter */
+    *((unsigned int *)buffer)=index;
+    /* Send the entire buffer with its size and oids found and not found */
+    if(send((int)acceptfd, &buffer, index, MSG_NOSIGNAL) < sizeof(index -1)) {
+      perror("Error sending oids found\n");
+      return 1;
+    }
+  }
+  return 0;
 }
 
