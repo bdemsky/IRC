@@ -200,7 +200,11 @@ objheader_t *transRead(transrecord_t *record, unsigned int oid) {
 
 	/* Search local transaction cache */
 	if((objheader = (objheader_t *)chashSearch(record->lookupTable, oid)) != NULL){
-		return(objheader);
+#ifdef COMPILER
+	  return &objheader[1];
+#else
+	  return objheader;
+#endif
 	} else if ((objheader = (objheader_t *) mhashSearch(oid)) != NULL) {
 		/* Look up in machine lookup table  and copy  into cache*/
 		tmp = mhashSearch(oid);
@@ -209,7 +213,11 @@ objheader_t *transRead(transrecord_t *record, unsigned int oid) {
 		memcpy(objcopy, (void *)objheader, size);
 		/* Insert into cache's lookup table */
 		chashInsert(record->lookupTable, OID(objheader), objcopy); 
-		return(objcopy);
+#ifdef COMPILER
+		return &objcopy[1];
+#else
+		return objcopy;
+#endif
 	} else if((tmp = (objheader_t *) prehashSearch(oid)) != NULL) { /* Look up in prefetch cache */
 		found = 1;
 		size = sizeof(objheader_t)+classsize[TYPE(tmp)];
@@ -217,7 +225,11 @@ objheader_t *transRead(transrecord_t *record, unsigned int oid) {
 		memcpy(objcopy, (void *)tmp, size);
 		/* Insert into cache's lookup table */
 		chashInsert(record->lookupTable, OID(tmp), objcopy); 
-		return(objcopy);
+#ifdef COMPILER
+		return &objcopy[1];
+#else
+		return objcopy;
+#endif
 	} else { /* If not found anywhere, then block until object appears in prefetch cache */
 #if 0	
 		printf("Inside remote machine\n");
@@ -234,7 +246,11 @@ objheader_t *transRead(transrecord_t *record, unsigned int oid) {
 					memcpy(objcopy, (void *)tmp, size);
 					/* Insert into cache's lookup table */
 					chashInsert(record->lookupTable, OID(tmp), objcopy); 
-					return(objcopy);
+#ifdef COMPILER
+					return &objcopy[1];
+#else
+					return objcopy;
+#endif
 				} else {
 					pthread_mutex_unlock(&pflookup.lock);
 					break;
@@ -249,9 +265,12 @@ objheader_t *transRead(transrecord_t *record, unsigned int oid) {
 		if(objcopy == NULL) {
 			//If object is not found in Remote location
 			return NULL;
-		}
-		else {
-			return(objcopy);
+		} else {
+#ifdef COMPILER
+		  return &objcopy[1];
+#else
+		  return objcopy;
+#endif
 		}
 	} 
 }
@@ -265,7 +284,11 @@ objheader_t *transCreateObj(transrecord_t *record, unsigned int size)
   tmp->rcount = 1;
   STATUS(tmp) = NEW;
   chashInsert(record->lookupTable, OID(tmp), tmp);
+#ifdef COMPILER
+  return &tmp[1]; //want space after object header
+#else
   return tmp;
+#endif
 }
 
 /* This function creates machine piles based on all machines involved in a
