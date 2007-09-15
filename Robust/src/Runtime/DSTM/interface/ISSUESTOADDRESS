@@ -1,0 +1,19 @@
+High priority list
+-------------------------------------
+1) Wrap all receive calls in loops
+  A) Perhaps the best way is to just define a macro or function call that
+does this. Look at GETSIZE macro for example...
+
+2) Check locking... There is likely a race condition on getObjType().  
+
+3) Receiving object code assume a maximum object size.  It is probably
+better to:
+  A) read size in.
+  B) allocate space for object at its final destination
+  C) read into the space
+
+Low priority list
+---------------------------------
+
+1) We shouldn't call memcopy for copying fixed-sized structs or primitive
+values...just use =
