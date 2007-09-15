@@ -1658,7 +1658,7 @@ public class BuildCode {
 	    Integer status=locality.getNodePreTempInfo(lb,ffn).get(ffn.getSrc());
 	    if (status==LocalityAnalysis.GLOBAL) {
 		String field=ffn.getField().getSafeSymbol();
-		String src="((struct "+ffn.getSrc().getType().getSafeSymbol()+" *)((unsigned int)"+generateTemp(fm, ffn.getSrc(),lb)+"+sizeof(objheader_t)))";
+		String src=generateTemp(fm, ffn.getSrc(),lb);
 		String dst=generateTemp(fm, ffn.getDst(),lb);
 		    
 		if (ffn.getField().getType().isPtr()||
@@ -1713,7 +1713,7 @@ public class BuildCode {
 		output.println("int srcoid="+src+"->"+oidstr+";");
 	    }
 	    if (statusdst.equals(LocalityAnalysis.GLOBAL)) {
-		String glbdst="((struct "+fsfn.getDst().getType().getSafeSymbol()+" *)((unsigned int)"+dst+" +sizeof(objheader_t)))";
+		String glbdst=dst;
 		//mark it dirty
 		output.println("*((unsigned int *)&("+dst+"->___localcopy___))|=DIRTY;");
 		if (srcglobal) {
