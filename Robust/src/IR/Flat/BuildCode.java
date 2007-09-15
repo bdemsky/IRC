@@ -1422,7 +1422,7 @@ public class BuildCode {
 	    output.println(generateTemp(fm, fgcn.getSrc(),lb)+"=(void *)transRead(trans, (unsigned int) "+generateTemp(fm, fgcn.getSrc(),lb)+");");
 	} else {
 	    /* Need to convert to OID */
-	    output.println(generateTemp(fm, fgcn.getSrc(),lb)+"=(void *)OID("+generateTemp(fm, fgcn.getSrc(),lb)+");");
+	    output.println(generateTemp(fm, fgcn.getSrc(),lb)+"=(void *)COMPOID("+generateTemp(fm, fgcn.getSrc(),lb)+");");
 	}
     }
 

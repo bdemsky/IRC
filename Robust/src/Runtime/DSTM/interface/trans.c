@@ -187,7 +187,7 @@ transrecord_t *transStart()
 objheader_t *transRead(transrecord_t *record, unsigned int oid) {	
 	unsigned int machinenumber;
 	objheader_t *tmp, *objheader;
-	void *objcopy;
+	objheader_t *objcopy;
 	int size, rc, found = 0;
 	void *buf;
 	struct timespec ts;
