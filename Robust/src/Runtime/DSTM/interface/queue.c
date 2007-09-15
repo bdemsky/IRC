@@ -16,13 +16,11 @@ void delqnode() {
 		printf("The queue is empty: UNDERFLOW %s, %d\n", __FILE__, __LINE__);
 		return;
 	} else if ((pqueue.front == pqueue.rear) && pqueue.front != NULL && pqueue.rear != NULL) {
-		printf("TEST1\n");
 		free(pqueue.front);
 		pqueue.front = pqueue.rear = NULL;
 	} else {
 		delnode = pqueue.front;
 		pqueue.front = pqueue.front->next;
-		printf("TEST2\n");
 		free(delnode);
 	}
 }
@@ -54,6 +52,8 @@ prefetchqelem_t *pre_dequeue(void) {
 	}
 	retnode = pqueue.front;
 	pqueue.front = pqueue.front->next;
+	if (pqueue.front == NULL)
+		pqueue.rear = NULL;
 
 	return retnode;
 }
@@ -68,7 +68,6 @@ void queueDisplay() {
 		ptr1 = (char *) tmp;
 		ptr = (int *)(ptr1 + offset);
 		ntuples = *ptr;
-		printf("Number of tuples = %d\n", ntuples);
 		tmp = tmp->next;
 	}
 }

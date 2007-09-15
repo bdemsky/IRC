@@ -26,12 +26,13 @@ void mcpileenqueue(prefetchpile_t *node) {
 void mcpileenqueue(prefetchpile_t *node) {
 	prefetchpile_t *tmp, *prev;
 	if(mcqueue.front == NULL && mcqueue.rear == NULL) {
-		tmp = mcqueue.front = node;
+		mcqueue.front = mcqueue.rear = node;
+		/*tmp = mcqueue.front = node;
 		while(tmp != NULL) {
 			prev = tmp;
 			tmp = tmp->next;
 		}
-		mcqueue.rear = prev;
+		mcqueue.rear = prev;*/
 	} else {
 		tmp = mcqueue.rear->next = node;
 		while(tmp != NULL) {
@@ -51,6 +52,8 @@ prefetchpile_t *mcpiledequeue(void) {
 	}
 	retnode = mcqueue.front;
 	mcqueue.front = mcqueue.front->next;
+	if (mcqueue.front == NULL)
+		mcqueue.rear = NULL;
 	retnode->next = NULL;
 
 	return retnode;
@@ -92,16 +95,30 @@ void mcpiledisplay() {
 	}
 }
 
+/* Delete prefetchpile_t and everything it points to */
 void mcdealloc(prefetchpile_t *node) {
-	/* Remove the offset ptr and linked lists of objpile_t */
-	objpile_t *delnode;
-	while(node->objpiles != NULL) {
-		node->objpiles->offset = NULL;
-		delnode = node->objpiles;
-		node->objpiles = node->objpiles->next;
-		free(delnode);
-		node->objpiles->next = NULL;
+	prefetchpile_t *prefetchpile_ptr;
+	prefetchpile_t *prefetchpile_next_ptr;
+	objpile_t *objpile_ptr;
+	objpile_t *objpile_next_ptr;
+
+	prefetchpile_ptr = node;
+
+	while (prefetchpile_ptr != NULL)
+	{
+		objpile_ptr = prefetchpile_ptr->objpiles;
+		while (objpile_ptr != NULL)
+		{
+			if (objpile_ptr->numoffset > 0)
+				free(objpile_ptr->offset);
+			objpile_next_ptr = objpile_ptr->next;
+			free(objpile_ptr);
+			objpile_ptr = objpile_next_ptr;
+		}
+		prefetchpile_next_ptr = prefetchpile_ptr->next;
+		free(prefetchpile_ptr);
+		prefetchpile_ptr = prefetchpile_next_ptr;
 	}
-	free(node);
-	node->next = NULL;
 }
+
+

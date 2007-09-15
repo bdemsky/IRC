@@ -1,7 +1,7 @@
 #include "machinepile.h"
 
-int insertPile(int mid, unsigned int oid, short numoffset, short *offset, prefetchpile_t *head) {
-	prefetchpile_t *tmp = head;
+int insertPile(int mid, unsigned int oid, short numoffset, short *offset, prefetchpile_t **head) {
+	prefetchpile_t *tmp = *head;
 	objpile_t *objnode;
 	unsigned int *oidarray;
 	int ntuples;
@@ -40,14 +40,10 @@ int insertPile(int mid, unsigned int oid, short numoffset, short *offset, prefet
 		objnode->offset = offset;
 		objnode->next = tmp->objpiles; // i.e., objnode->next = NULL;
 		tmp->objpiles = objnode;
-		tmp->next = head;
-		head = tmp;
+		tmp->next = *head;
+		*head = tmp;
 	}
 	return 0;
 }
 
-//TODO
-int deletePile() {
 
-	return 0;
-}

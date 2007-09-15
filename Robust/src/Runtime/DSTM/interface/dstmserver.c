@@ -23,13 +23,15 @@
 extern int classsize[];
 
 objstr_t *mainobjstore;
+pthread_mutex_t mainobjstore_mutex;
 
 /* This function initializes the main objects store and creates the 
  * global machine and location lookup table */
 
 int dstmInit(void)
 {
-	mainobjstore = objstrCreate(DEFAULT_OBJ_STORE_SIZE);	
+	mainobjstore = objstrCreate(DEFAULT_OBJ_STORE_SIZE);
+	pthread_mutex_init(&mainobjstore_mutex, NULL);
 	if (mhashCreate(HASH_SIZE, LOADFACTOR))
 		return 1; //failure
 	
@@ -252,10 +254,13 @@ int readClientReq(trans_commit_data_t *transinfo, int acceptfd) {
 	if(fixed.nummod != 0) { // If pile contains more than one modified object,
 				// allocate new object store and recv all modified objects
 				// TODO deallocate this space
+		pthread_mutex_lock(&mainobjstore_mutex);
 		if ((modptr = objstrAlloc(mainobjstore, fixed.sum_bytes)) == NULL) {
 			printf("objstrAlloc error for modified objects %s, %d\n", __FILE__, __LINE__);
+			pthread_mutex_unlock(&mainobjstore_mutex);
 			return 1;
 		}
+		pthread_mutex_unlock(&mainobjstore_mutex);
 		sum = 0;
 		do { // Recv the objs that are modified by the Coordinator
 			n = recv((int)acceptfd, (char *) modptr+sum, fixed.sum_bytes-sum, 0);
@@ -575,6 +580,7 @@ int prefetchReq(int acceptfd) {
 	unsigned int objoid;
 	char *header, control;
 	objheader_t * head;
+	int bytesRecvd;
 	
 	/* Repeatedly recv the oid and offset pairs sent for prefetch */
 	while(numbytes = recv((int)acceptfd, &length, sizeof(int), 0) != 0) {
@@ -585,7 +591,11 @@ int prefetchReq(int acceptfd) {
 		index = sizeof(unsigned int); // Index starts with sizeof  unsigned int because the 
 					      // first 4 bytes are saved to send the
 				              // size of the buffer (that is computed at the end of the loop)
-		oid = recv((int)acceptfd, &oid, sizeof(unsigned int), 0);
+		bytesRecvd = 0;
+		do {
+			bytesRecvd += recv((int)acceptfd, (char *)&oid +bytesRecvd,
+					sizeof(unsigned int) - bytesRecvd, 0);
+		} while (bytesRecvd < sizeof(unsigned int));
 		numoffset = (length - (sizeof(int) + sizeof(unsigned int)))/ sizeof(short);
 		N = numoffset * sizeof(short);
 		short offset[numoffset];
@@ -657,9 +667,9 @@ int prefetchReq(int acceptfd) {
 		}
 
 		/* Add the buffer size into buffer as a parameter */
-		memcpy(buffer, &index, sizeof(unsigned int));
+		*((unsigned int *)buffer)=index;
 		/* Send the entire buffer with its size and oids found and not found */
-		if(send((int)acceptfd, &buffer, sizeof(index - 1), MSG_NOSIGNAL) < sizeof(index -1)) {
+		if(send((int)acceptfd, &buffer, index, MSG_NOSIGNAL) < sizeof(index -1)) {
 			perror("Error sending oids found\n");
 			return 1;
 		}

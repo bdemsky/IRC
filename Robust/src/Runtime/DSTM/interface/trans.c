@@ -29,7 +29,9 @@
 extern int classsize[];
 extern primarypfq_t pqueue; // shared prefetch queue
 extern mcpileq_t mcqueue;  //Shared queue containing prefetch requests sorted by remote machineids 
-objstr_t *prefetchcache; //Global Prefetch cache 
+objstr_t *prefetchcache; //Global Prefetch cache
+pthread_mutex_t prefetchcache_mutex;
+extern pthread_mutex_t mainobjstore_mutex;
 extern prehashtable_t pflookup; //Global Prefetch cache's lookup table
 pthread_t wthreads[NUM_THREADS]; //Worker threads for working on the prefetch queue
 pthread_t tPrefetch;
@@ -123,6 +125,7 @@ void transInit() {
 	int t, rc;
 	//Create and initialize prefetch cache structure
 	prefetchcache = objstrCreate(PREFETCH_CACHE_SIZE);
+	pthread_mutex_init(&prefetchcache_mutex, NULL);
 	//Create prefetch cache lookup table
 	if(prehashCreate(HASH_SIZE, LOADFACTOR))
 		return; //Failure
@@ -798,10 +801,13 @@ void *handleLocalReq(void *threadarg) {
 
 	/* modptr points to the beginning of the object store 
 	 * created at the Pariticipant */ 
+	pthread_mutex_lock(&mainobjstore_mutex);
 	if ((modptr = objstrAlloc(mainobjstore, localtdata->tdata->buffer->f.sum_bytes)) == NULL) {
 		printf("objstrAlloc error for modified objects %s, %d\n", __FILE__, __LINE__);
+		pthread_mutex_unlock(&mainobjstore_mutex);
 		return NULL;
 	}
+	pthread_mutex_unlock(&mainobjstore_mutex);
 	/* Write modified objects into the mainobject store */
 	for(i = 0; i< localtdata->tdata->buffer->f.nummod; i++) {
 		headeraddr = chashSearch(localtdata->tdata->rec->lookupTable, localtdata->tdata->buffer->oidmod[i]);
@@ -1186,9 +1192,8 @@ prefetchpile_t *makePreGroups(prefetchqelem_t *node, int *numoffset) {
 		}
 		/* Insert into machine pile */
 		offset = &arryfields[endoffsets[i-1]];
-		insertPile(machinenum, oid[i], numoffset[i], offset, head);
+		insertPile(machinenum, oid[i], numoffset[i], offset, &head);
 	}
-
 	return head;
 }
 
@@ -1338,7 +1343,7 @@ void *mcqProcess(void *threadid) {
 }
 
 void sendPrefetchReq(prefetchpile_t *mcpilenode, int threadid) {
-	int sd, i, offset, off, len, endpair, numoffsets, count = 0;
+	int sd, i, offset, off, len, endpair, count = 0;
 	struct sockaddr_in serv_addr;
 	struct hostent *server;
 	char machineip[16], control;
@@ -1382,9 +1387,9 @@ void sendPrefetchReq(prefetchpile_t *mcpilenode, int threadid) {
 		off = sizeof(int);
 		memcpy(oidnoffset + off, &tmp->oid, sizeof(unsigned int));
 		off += sizeof(unsigned int);
-		for(i = 0; i < numoffsets; i++) {
-			offset = off +  (i * sizeof(short));
-			memcpy(oidnoffset + offset, tmp->offset, sizeof(short));
+		for(i = 0; i < tmp->numoffset; i++) {
+			memcpy(oidnoffset + off, &tmp->offset[i], sizeof(short));
+			off+=sizeof(short);
 		}
 		if (send(sd, &oidnoffset, sizeof(oidnoffset),MSG_NOSIGNAL) < sizeof(oidnoffset)) {
 			perror("Error sending fixed bytes for thread\n");
@@ -1446,16 +1451,17 @@ void getPrefetchResponse(int count, int sd) {
 					index += sizeof(char);
 					memcpy(&oid, buffer + index, sizeof(unsigned int));
 					index += sizeof(unsigned int);
-					/* Lock the Prefetch Cache look up table*/
-					pthread_mutex_lock(&pflookup.lock);
 					/* For each object found add to Prefetch Cache */
 					memcpy(&objsize, buffer + index, sizeof(int));
+					pthread_mutex_lock(&prefetchcache_mutex);
 					if ((modptr = objstrAlloc(prefetchcache, objsize)) == NULL) {
 						printf("objstrAlloc error for copying into prefetch cache %s, %d\n", __FILE__, __LINE__);
+						pthread_mutex_unlock(&prefetchcache_mutex);
 						return;
 					}
+					pthread_mutex_unlock(&prefetchcache_mutex);
 					memcpy(modptr, buffer+index, objsize);
-					index += sizeof(int);
+					index += objsize;
 					/* Insert the oid and its address into the prefetch hash lookup table */
 					/* Do a version comparison if the oid exists */
 					if((oldptr = prehashSearch(oid)) != NULL) {
@@ -1472,6 +1478,8 @@ void getPrefetchResponse(int count, int sd) {
 					} else {/*If doesn't no match found in hashtable, add the object ptr to hash table*/
 						prehashInsert(oid, modptr);
 					}
+					/* Lock the Prefetch Cache look up table*/
+					pthread_mutex_lock(&pflookup.lock);
 					/* Broadcast signal on prefetch cache condition variable */ 
 					pthread_cond_broadcast(&pflookup.cond);
 					/* Unlock the Prefetch Cache look up table*/
@@ -1485,8 +1493,10 @@ void getPrefetchResponse(int count, int sd) {
 					/* Throw an error */
 					printf("OBJECT NOT FOUND.... THIS SHOULD NOT HAPPEN...TERMINATE PROGRAM\n");
 					exit(-1);
-				} else 
+				} else {
 					printf("Error in decoding the index value %s, %d\n",__FILE__, __LINE__);
+					return;
+				}
 			}
 
 			i++;
@@ -1506,10 +1516,12 @@ unsigned short getObjType(unsigned int oid)
 		if ((objheader = (objheader_t *) prehashSearch(oid)) == NULL)
 		{
 			prefetch(1, &oid, &numoffsets, NULL);
-			pthread_mutex_lock(&pflookup.lock);
 			while ((objheader = (objheader_t *) prehashSearch(oid)) == NULL)
+			{
+				pthread_mutex_lock(&pflookup.lock);
 				pthread_cond_wait(&pflookup.cond, &pflookup.lock);
-			pthread_mutex_unlock(&pflookup.lock);
+				pthread_mutex_unlock(&pflookup.lock);
+			}
 		}
 	}
 
