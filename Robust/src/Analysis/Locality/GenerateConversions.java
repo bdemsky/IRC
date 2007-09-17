@@ -31,15 +31,14 @@ public class GenerateConversions {
     }
 
     /* At the end of an atomic block, we need to convert any global
-     * references that will be used again into OID's */
+     * references that will be used again into OID's. */
 
     private void converttoOid(LocalityBinding lb) {
 	Hashtable<FlatNode, Integer> atomictab=locality.getAtomic(lb);
 	Hashtable<FlatNode, Hashtable<TempDescriptor, Integer>> temptab=locality.getNodeTempInfo(lb);
 	MethodDescriptor md=lb.getMethod();
 	FlatMethod fm=state.getMethodFlat(md);
-		
-	Hashtable<FlatNode, Set<TempNodePair>> nodetotnpair=new Hashtable<FlatNode, Set<TempNodePair>>();	
+	Hashtable<FlatNode, Set<TempNodePair>> nodetotnpair=new Hashtable<FlatNode, Set<TempNodePair>>();
 	Hashtable<FlatNode, Set<TempDescriptor>> nodetoconvs=new Hashtable<FlatNode, Set<TempDescriptor>>();
 
 	Set<FlatNode> toprocess=fm.getNodeSet();
@@ -52,20 +51,27 @@ public class GenerateConversions {
 	    
 	    List<TempDescriptor> reads=Arrays.asList(fn.readsTemps());
 	    List<TempDescriptor> writes=Arrays.asList(fn.writesTemps());
-
+	    
 	    if (!isatomic&&fn.kind()==FKind.FlatAtomicExitNode
 		&&!nodetoconvs.containsKey(fn))
 		nodetoconvs.put(fn, new HashSet<TempDescriptor>());
-
-
+	    
 	    HashSet<TempNodePair> tempset=new HashSet<TempNodePair>();
+
 	    for(int i=0;i<fn.numPrev();i++) {
 		FlatNode fnprev=fn.getPrev(i);
 		if (!nodetotnpair.containsKey(fnprev))
 		    continue;
+
 		Set<TempNodePair> prevset=nodetotnpair.get(fnprev);
 		for(Iterator<TempNodePair> it=prevset.iterator();it.hasNext();) {
 		    TempNodePair tnp=it.next();
+		    if (fn.kind()==FKind.FlatGlobalConvNode&&
+			 ((FlatGlobalConvNode)fn).getLocality()!=lb) {
+			//ignore this node
+			tempset.add(tnp);
+			continue;
+		    }
 		    if (reads.contains(tnp.getTemp())&&tnp.getNode()!=null) {
 			//Value actually is read...
 			nodetoconvs.get(tnp.getNode()).add(tnp.getTemp());
@@ -85,7 +91,8 @@ public class GenerateConversions {
 		}
 	    }
 	    if (isatomic) {
-		//if this is in an atomic block, record temps that are written to
+		/* If this is in an atomic block, record temps that
+		 * are written to.*/
 
 		/* NOTE: If this compiler is changed to maintain
 		 * OID/Ptr's in variables, then we need to use all
@@ -93,8 +100,9 @@ public class GenerateConversions {
 		 * ones converted by globalconvnode*/
 
 		if (fn.kind()!=FKind.FlatGlobalConvNode||
-		    ((FlatGlobalConvNode)fn).getLocality()==lb)
-		    //If globalconvnode, make sure we have the right locality
+		    ((FlatGlobalConvNode)fn).getLocality()==lb) {
+		    /*If globalconvnode, make sure we have the right
+		     * locality. */
 		    for(Iterator<TempDescriptor> writeit=writes.iterator();writeit.hasNext();) {
 			TempDescriptor wrtmp=writeit.next();
 			if (nodetemptab.get(wrtmp)==LocalityAnalysis.GLOBAL) {
@@ -102,6 +110,7 @@ public class GenerateConversions {
 			    tempset.add(tnp);
 			}
 		    }
+		}
 	    }
 	    if (!nodetotnpair.containsKey(fn)||!nodetotnpair.get(fn).equals(tempset)) {
 		//changes to set, so enqueue next nodes
@@ -125,6 +134,7 @@ public class GenerateConversions {
 		    FlatGlobalConvNode fgcn=new FlatGlobalConvNode(tempit.next(), lb, false);
 		    atomictab.put(fgcn, atomictab.get(fn));
 		    temptab.put(fgcn, (Hashtable<TempDescriptor, Integer>) temptab.get(fn).clone());
+
 		    for(int i=0;i<fn.numPrev();i++) {
 			FlatNode fnprev=fn.getPrev(i);
 			for(int j=0;j<fnprev.numNext();j++) {
@@ -155,7 +165,7 @@ public class GenerateConversions {
 	while(!toprocess.isEmpty()) {
 	    FlatNode fn=toprocess.iterator().next();
 	    toprocess.remove(fn);
-	    
+
 	    if (atomictab.get(fn).intValue()>0) {
 		//build set of transaction temps use by next nodes
 		HashSet<TempDescriptor> transtemps=new HashSet<TempDescriptor>();
@@ -189,7 +199,7 @@ public class GenerateConversions {
 		atomictab.get(fn.getPrev(0)).intValue()==0) {
 		//sanity check
 		assert(fn.kind()==FKind.FlatAtomicEnterNode);
-
+		
 		//insert calls here...
 		Set<TempDescriptor> tempset=nodetotranstemps.get(fn);
 		for(Iterator<TempDescriptor> tempit=tempset.iterator();tempit.hasNext();) {

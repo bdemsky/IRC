@@ -1195,6 +1195,7 @@ public class BuildCode {
 
     private void generateFlatMethod(FlatMethod fm, LocalityBinding lb, PrintWriter output) {
 	MethodDescriptor md=fm.getMethod();
+	
 	TaskDescriptor task=fm.getTask();
 
        	ClassDescriptor cn=md!=null?md.getClassDesc():null;

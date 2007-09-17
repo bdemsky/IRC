@@ -38,4 +38,11 @@ public class TempNodePair {
     public int hashCode() {
 	return tmp.hashCode();
     }
+
+    public String toString() {
+	if (getNode()==null)
+	    return "<null,"+getTemp()+">";
+	else
+	    return "<"+getNode()+","+getTemp()+">";
+    }
 }

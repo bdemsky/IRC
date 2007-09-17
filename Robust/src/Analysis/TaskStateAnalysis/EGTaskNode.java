@@ -8,8 +8,6 @@ import Util.GraphNode;
 
 public class EGTaskNode extends TaskNode {
     private boolean source=false;
-    private int loopmarker=0;
-    private boolean tomention=true;
     private FlagState fs;
     private FlagState postfs;
     private TaskDescriptor td;
@@ -61,24 +59,6 @@ public class EGTaskNode extends TaskNode {
 	return uid;
     }
 
-    public void doSelfLoopMarking(){
-	loopmarker=1;
-    }
-
-    public void doLoopMarking(){
-	loopmarker=2;
-    }
-	    
-    public boolean isSelfLoop(){
-	if (loopmarker==1) return true;
-	else return false;
-    }
-
-    public boolean isLoop(){
-	if (loopmarker==2) return true;
-	else return false;
-    }
-
     public boolean isMultipleParams(){
 	return getTD()!=null&&getTD().numParameters()>1;
     }
@@ -92,13 +72,5 @@ public class EGTaskNode extends TaskNode {
     
     public FlagState getFS(){
 	return fs;
-    }
-
-    public void dontMention(){
-	tomention = false;
-    }
-
-    public boolean toMention(){
-	return tomention;
     }
 }

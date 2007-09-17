@@ -37,6 +37,7 @@ public class FlatNode {
 	FlatNode old=getNext(i);
 	next.set(i, n);
 	old.prev.remove(this);
+	n.addPrev(this);
     }
 
     protected void addPrev(FlatNode p) {

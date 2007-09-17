@@ -82,8 +82,6 @@ public class ExecutionGraph {
 	if (map.containsKey(fedge))
 	    return map.get(fedge);
 	EGTaskNode egnode=new EGTaskNode(fedge.getLabel(), (FlagState) fedge.getSource(), fedge.getTask(), fedge.getIndex(), (FlagState) fedge.getTarget());
-	if (fedge.getTarget()==fedge.getSource())
-	    egnode.doSelfLoopMarking();
 	map.put(fedge, egnode);
 	nodes.add(egnode);
 	return egnode;
@@ -133,7 +131,6 @@ public class ExecutionGraph {
 	for(Iterator it1 = v.iterator(); it1.hasNext();){
 	    tn = (EGTaskNode)it1.next();
 	    output.println("\t"+tn.getLabel()+" [label=\""+tn.getTextLabel()+"\"");
-	    if (tn.isSelfLoop()) output.println(", shape=box");
 	    if (tn.isMultipleParams()) output.println(", color=blue");
 	    output.println("];");
 	    

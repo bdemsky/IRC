@@ -90,10 +90,14 @@ public class FlatMethod extends FlatNode {
 	return visited;
     }
     
+    public String printMethod() {
+	return printMethod(null);
+    }
+
     /** This method returns a string that is a human readable
      * representation of this method. */
 
-    public String printMethod() {
+    public String printMethod(Hashtable map) {
 	String st=method+" {\n";
 	HashSet tovisit=new HashSet();
 	HashSet visited=new HashSet();
@@ -107,8 +111,6 @@ public class FlatMethod extends FlatNode {
 	    FlatNode fn=(FlatNode)tovisit.iterator().next();
 	    tovisit.remove(fn);
 	    visited.add(fn);
-
-//	    System.out.println("Next : "+fn.numNext());
 
 	    for(int i=0;i<fn.numNext();i++) {
 		FlatNode nn=fn.getNext(i);
@@ -138,10 +140,16 @@ public class FlatMethod extends FlatNode {
 	    if (nodetolabel.containsKey(current_node))
 		st+="L"+nodetolabel.get(current_node)+":\n";
 	    if (current_node.numNext()==0) {
-		st+="   "+current_node.toString()+"\n";
+		if (map==null)
+		    st+="   "+current_node.toString()+"\n";
+		else
+		    st+="   "+current_node.toString()+"["+map.get(current_node)+"]\n";
 		current_node=null;
 	    } else if(current_node.numNext()==1) {
-		st+="   "+current_node.toString()+"\n";
+		if (map==null)
+		    st+="   "+current_node.toString()+"\n";
+		else
+		    st+="   "+current_node.toString()+"["+map.get(current_node)+"]\n";
 		FlatNode nextnode=current_node.getNext(0);
 		if (visited.contains(nextnode)) {
 		    st+="goto L"+nodetolabel.get(nextnode)+"\n";
