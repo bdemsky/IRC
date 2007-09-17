@@ -11,176 +11,375 @@ import Util.Edge;
 
 public class SafetyAnalysis {
     private Hashtable executiongraph;
-    private Hashtable<ClassDescriptor, Hashtable<FlagState, HashSet>> safeexecution; //to use to build code
-    private static final int OR = 0;
-    private static final int AND = 1;
-    private Hashtable reducedgraph;
-    private String classname;
+    private Hashtable<ClassDescriptor, Hashtable<FlagState, Set<OptionalTaskDescriptor>>> safeexecution; //to use to build code
     private State state;
     private TaskAnalysis taskanalysis;
-    private Hashtable<ClassDescriptor, Hashtable> optionaltaskdescriptors;
+    private Hashtable<ClassDescriptor, Hashtable<OptionalTaskDescriptor, OptionalTaskDescriptor>> optionaltaskdescriptors;
 
     private ClassDescriptor processedclass;
    
     
-    public Hashtable<ClassDescriptor, Hashtable<FlagState, HashSet>> getResult(){
+    public Hashtable<ClassDescriptor, Hashtable<FlagState, Set<OptionalTaskDescriptor>>> getResult() {
 	return safeexecution;
     }
 
-    public Hashtable<ClassDescriptor, Hashtable> getOptionalTaskDescriptors(){
+    public Hashtable<ClassDescriptor, Hashtable<OptionalTaskDescriptor, OptionalTaskDescriptor>> getOptionalTaskDescriptors() {
 	return optionaltaskdescriptors;
     }
 
-    /*Structure that stores a possible optional
-      task which would be safe to execute and 
-      the possible flagstates the object could
-      be in before executing the task during an
-      execution without failure*/
+    /* Structure that stores a possible optional task which would be
+      safe to execute and the possible flagstates the object could be
+      in before executing the task during an execution without
+      failure*/
          
     /*Constructor*/
-    public SafetyAnalysis(Hashtable executiongraph, State state, TaskAnalysis taskanalysis){
+    public SafetyAnalysis(Hashtable executiongraph, State state, TaskAnalysis taskanalysis) {
 	this.executiongraph = executiongraph;
 	this.safeexecution = new Hashtable();
-	this.reducedgraph = new Hashtable();
 	this.state = state;
 	this.taskanalysis = taskanalysis;
         this.optionaltaskdescriptors = new Hashtable();
     }
     
-    /*finds the the source node in the execution graph*/
-    private EGTaskNode findSourceNode(Vector nodes){
-	for(Iterator it = nodes.iterator(); it.hasNext();){
-	    EGTaskNode tn = (EGTaskNode)it.next();
-	    if(tn.isSource()){
-		return tn;
+    /* Builds map of fs -> EGTasknodes that can fire on fs for class cd */
+
+    private Hashtable<FlagState, Set<EGTaskNode>> buildMap(ClassDescriptor cd) {
+	Hashtable<FlagState, Set<EGTaskNode>> table=new Hashtable<FlagState, Set<EGTaskNode>>();
+	for(Iterator it=((Set)executiongraph.get(cd)).iterator();it.hasNext();) {
+	    EGTaskNode node=(EGTaskNode)it.next();
+	    if (node.getFS()!=null) {
+		if (!table.containsKey(node.getFS()))
+		    table.put(node.getFS(), new HashSet<EGTaskNode>());
+		table.get(node.getFS()).add(node);
 	    }
 	}
-	return null;
+	return table;
     }
-    
-    /*returns the nodes corresponding to the tasks
-      that can fire with the object in flagstate
-      previousflagstate*/
-    private Vector findEGTaskNode(String previousflagstate, Vector nodes){
-	Vector tns = new Vector();
-	for(Iterator it = nodes.iterator(); it.hasNext();){
-	    EGTaskNode tn = (EGTaskNode)it.next();
-	    if(tn.getFSName().compareTo(previousflagstate)==0)
-		tns.add(tn);
-	}
-	if(tns.size() == 0)
-	    return null;
-	else if (tns.size() > 1){
-	    for(Iterator it = tns.iterator(); it.hasNext();){
-		EGTaskNode tn = (EGTaskNode)it.next();
-		tn.setAND();
+
+    /* Builds map of fs -> set of fs that depend on this fs */
+
+    private Hashtable<FlagState, Set<FlagState>> buildUseMap(ClassDescriptor cd) {
+	Hashtable<FlagState, Set<FlagState>> table=new Hashtable<FlagState, Set<FlagState>>();
+	for(Iterator it=((Set)executiongraph.get(cd)).iterator();it.hasNext();) {
+	    EGTaskNode node=(EGTaskNode)it.next();
+	    if (node.getFS()!=null) {
+		if (!table.containsKey(node.getPostFS()))
+		    table.put(node.getPostFS(), new HashSet<FlagState>());
+		table.get(node.getPostFS()).add(node.getFS());
 	    }
 	}
-	return tns; 	    
+	return table;
     }
-    
-    /*returns the executiongraph corresponding to the classname*/
-    private Vector getConcernedClass(ClassDescriptor cd){
-	if (executiongraph.containsKey(cd))
-	    return (Vector) executiongraph.get(cd);
-	else
-	    return null;
-    }
-        
-    /*Actual method used by the compiler.
-      It computes the analysis for every
-      possible flagstates of every classes*/
-    public void buildPath() throws java.io.IOException {
-	/*Explore the taskanalysis structure*/
-	System.out.println("------- ANALYSING OPTIONAL TASKS -------");
-	Enumeration e=taskanalysis.flagstates.keys();
+
+    public void doAnalysis() {
+	Enumeration classit=taskanalysis.flagstates.keys();
 	
-	while (e.hasMoreElements()) {
-	    System.out.println("\nAnalysing class :");
-	    processedclass=(ClassDescriptor)e.nextElement();
-	    classname = processedclass.getSymbol();
-	    Hashtable newhashtable = new Hashtable();
-	    optionaltaskdescriptors.put(processedclass, newhashtable);
-	    Hashtable cdhashtable = new Hashtable();
-
-	    System.out.println("\t"+classname+ "\n");
-	    //get the graph result of executiongraph class
-	    Vector nodes = getConcernedClass(processedclass);
-
-	    if(nodes==null) {
-		System.out.println("Impossible to find "+classname+". Unexpected.");
+	while (classit.hasMoreElements()) {
+	    ClassDescriptor cd=(ClassDescriptor)classit.nextElement();
+	    if (!executiongraph.containsKey(cd))
 		continue;
-	    } else if (nodes.size()==0) {
-		System.out.println("Nothing to do");
-		continue;
+	    Hashtable<FlagState, Set<OptionalTaskDescriptor>> fstootd=new Hashtable<FlagState, Set<OptionalTaskDescriptor>>();
+	    safeexecution.put(cd, fstootd);
+
+	    optionaltaskdescriptors.put(cd, new Hashtable<OptionalTaskDescriptor, OptionalTaskDescriptor>());
+
+	    Hashtable<FlagState, Set<EGTaskNode>> fstoegmap=buildMap(cd);
+	    Hashtable<FlagState, Set<FlagState>> fsusemap=buildUseMap(cd);
+	    
+	    HashSet<FlagState> tovisit=new HashSet<FlagState>();
+	    tovisit.addAll(taskanalysis.getFlagStates(cd));
+
+	    while(!tovisit.isEmpty()) {
+		FlagState fs=tovisit.iterator().next();
+		tovisit.remove(fs);
+		if (!fstoegmap.containsKey(fs))
+		    continue;//This FS has no task that can trigger on it
+		Set<EGTaskNode> nodeset=fstoegmap.get(fs);
+		analyzeFS(fs, nodeset, fstootd, fsusemap, tovisit);
 	    }
-	    
-	    //mark the graph
-	    EGTaskNode sourcenode = findSourceNode(nodes);
-
-	    //skip classes that don't have source nodes
-	    if (sourcenode==null)
-		continue;
-
-	    doGraphMarking(sourcenode);
-	    createDOTFile( classname );
-	    reducedgraph.clear();
-	    
-	    Collection fses = ((Hashtable)taskanalysis.flagstates.get(processedclass)).values();
-	    Iterator itfses = fses.iterator();
-	    while (itfses.hasNext()) {
-		FlagState fs = (FlagState)itfses.next();
-		Hashtable fsresult = new Hashtable();
-		//get the tasknodes possible to execute with the flagstate before failure
-		HashSet tempnodes = new HashSet();
-		Vector tns = new Vector();
-		System.out.println("Analysing "+fs.getTextLabel());
-		tns = findEGTaskNode(fs.getTextLabel(), nodes);
-		if(tns==null) {
-		    System.out.println("\tNo task corresponding, terminal FS");
-		    continue;
-		}
-		System.out.println("\tProcessing...");
-		
-		//compute the result for all the nodes contained in tns.
-		//return the intersection of tns that are the same task and union for others.
-		
-		HashSet availabletasks = new HashSet();
-		availabletasks = computeTns(tns);
-		
-		//removeDoubles(availabletasks);
-				
-		for(Iterator it = availabletasks.iterator(); it.hasNext();){
-		    OptionalTaskDescriptor otd = (OptionalTaskDescriptor)it.next();
-		    resultingFS(otd, classname);
-		}
-		
-		cdhashtable.put(fs, availabletasks);
-	    }
-	    
-	    safeexecution.put(processedclass, cdhashtable);
-			       
 	}
-	putinoptionaltaskdescriptors();
 	printTEST();
     }
 
-    private void putinoptionaltaskdescriptors(){
-	Enumeration e = safeexecution.keys();
-	while (e.hasMoreElements()) {
-	    ClassDescriptor cdtemp=(ClassDescriptor)e.nextElement();
-	    optionaltaskdescriptors.get(cdtemp).clear();
-	    Hashtable hashtbtemp = safeexecution.get(cdtemp);
-	    Enumeration fses = hashtbtemp.keys();
-	    while(fses.hasMoreElements()){
-		FlagState fs = (FlagState)fses.nextElement();
-		HashSet availabletasks = (HashSet)hashtbtemp.get(fs);
-		for(Iterator otd_it = availabletasks.iterator(); otd_it.hasNext();){
-		    OptionalTaskDescriptor otd = (OptionalTaskDescriptor)otd_it.next();
-		    optionaltaskdescriptors.get(cdtemp).put(otd, otd);
+    public void analyzeFS(FlagState fs, Set<EGTaskNode> egset, Hashtable<FlagState, Set<OptionalTaskDescriptor>> fstootd, Hashtable<FlagState, Set<FlagState>> fsusemap, HashSet<FlagState> tovisit) {
+	Hashtable<TaskIndex, Set<OptionalTaskDescriptor>>  timap=new Hashtable<TaskIndex, Set<OptionalTaskDescriptor>>();
+
+	for(Iterator<EGTaskNode> egit=egset.iterator();egit.hasNext();) {
+	    EGTaskNode egnode=egit.next();
+	    Set<OptionalTaskDescriptor> setotd;
+	    if (egnode.isOptional()) {
+		setotd=new HashSet<OptionalTaskDescriptor>();
+		HashSet<FlagState> enterfsset=new HashSet<FlagState>();
+		enterfsset.add(fs);
+		ClassDescriptor cd=fs.getClassDescriptor();
+		OptionalTaskDescriptor newotd=new OptionalTaskDescriptor(egnode.getTD(), egnode.getIndex(), enterfsset, new Predicate());
+		if(optionaltaskdescriptors.get(cd).containsKey(newotd)) {
+		    newotd = optionaltaskdescriptors.get(cd).get(newotd);
+		} else {
+		    newotd.setuid();
+		    resultingFS(newotd);
+		    optionaltaskdescriptors.get(cd).put(newotd, newotd);
+		}
+		setotd.add(newotd);
+	    } else if (tagChange(egnode)) {
+		//Conservatively handle tag changes
+		setotd=new HashSet<OptionalTaskDescriptor>();
+	    } else if(egnode.isMultipleParams()) {
+		if( goodMultiple(egnode)){			
+		    Predicate p=returnPredicate(egnode);
+		    Set<OptionalTaskDescriptor> oldsetotd;
+		    if (fstootd.containsKey(egnode.getPostFS()))
+			oldsetotd=fstootd.get(egnode.getPostFS());
+		    else
+			oldsetotd=new HashSet<OptionalTaskDescriptor>();
+		    setotd=new HashSet<OptionalTaskDescriptor>();
+		    for(Iterator<OptionalTaskDescriptor> otdit=oldsetotd.iterator();otdit.hasNext();) {
+			OptionalTaskDescriptor oldotd=otdit.next();
+			Predicate newp=combinePredicates(oldotd.predicate, p);
+			OptionalTaskDescriptor newotd=new OptionalTaskDescriptor(oldotd.td, oldotd.getIndex(), oldotd.enterflagstates, newp);
+			ClassDescriptor cd=fs.getClassDescriptor();
+			if(optionaltaskdescriptors.get(cd).containsKey(newotd)) {
+			    newotd = optionaltaskdescriptors.get(cd).get(newotd);
+			} else {
+			    newotd.setuid();
+			    resultingFS(newotd);
+			    optionaltaskdescriptors.get(cd).put(newotd, newotd);
+			}
+			setotd.add(newotd);
+		    }
+		} else {
+		    //Can't propagate anything
+		    setotd=new HashSet<OptionalTaskDescriptor>();
+		}
+	    } else {
+		if (fstootd.containsKey(egnode.getPostFS()))
+		    setotd=fstootd.get(egnode.getPostFS());
+		else
+		    setotd=new HashSet<OptionalTaskDescriptor>();
+	    }
+
+	    TaskIndex ti=new TaskIndex(egnode.getTD(), egnode.getIndex());
+	    if (timap.containsKey(ti)) {
+		//AND case
+		timap.put(ti, createIntersection(timap.get(ti), setotd, fs.getClassDescriptor()));
+	    } else {
+		timap.put(ti, setotd);
+	    }
+	}
+
+	//Combine all options
+	HashSet<OptionalTaskDescriptor> set=new HashSet<OptionalTaskDescriptor>();
+	for(Iterator<Set<OptionalTaskDescriptor>> it=timap.values().iterator();it.hasNext();) {
+	    Set<OptionalTaskDescriptor> otdset=it.next();
+	    set.addAll(otdset);
+	}
+
+	if (!fstootd.containsKey(fs)||
+	    !fstootd.get(fs).equals(set)) {
+	    fstootd.put(fs, set);
+	    //Requeue all flagstates that may use our updated results
+	    if (fsusemap.containsKey(fs)) {
+		tovisit.addAll(fsusemap.get(fs));
+	    }
+	}
+    }
+
+    private HashSet createIntersection(Set A, Set B, ClassDescriptor cd){
+	HashSet result = new HashSet();
+	for(Iterator b_it = B.iterator(); b_it.hasNext();){
+	    OptionalTaskDescriptor otd_b = (OptionalTaskDescriptor)b_it.next();
+	    for(Iterator a_it = A.iterator(); a_it.hasNext();){
+		OptionalTaskDescriptor otd_a = (OptionalTaskDescriptor)a_it.next();
+		if(otd_a.td==otd_b.td&&
+		   otd_a.getIndex()==otd_b.getIndex()) {
+		    HashSet newfs = new HashSet();
+		    newfs.addAll(otd_a.enterflagstates);
+		    newfs.addAll(otd_b.enterflagstates);
+		    OptionalTaskDescriptor newotd = new OptionalTaskDescriptor(otd_b.td, otd_b.getIndex(), newfs, combinePredicates(otd_a.predicate, otd_b.predicate));
+		    if(optionaltaskdescriptors.get(cd).get(newotd)!=null){
+			newotd = optionaltaskdescriptors.get(cd).get(newotd);
+		    } else {
+			newotd.setuid();
+			resultingFS(newotd);
+			optionaltaskdescriptors.get(cd).put(newotd, newotd);
+		    }
+		    result.add(newotd);
 		}
 	    }
 	}
+	return result;
+    }
+    
+    // This method returns true if the only parameter whose flag is
+    // modified is the tracked one
+
+    private boolean goodMultiple(EGTaskNode tn){
+	TaskDescriptor td = tn.getTD();
+	FlatMethod fm = state.getMethodFlat(td);
+	TempDescriptor tmp=fm.getParameter(tn.getIndex());
+
+	Set<FlatNode> nodeset=fm.getNodeSet();
+
+	for(Iterator<FlatNode> nodeit=nodeset.iterator();nodeit.hasNext();) {
+	    FlatNode fn=nodeit.next();
+	    if (fn.kind()==FKind.FlatFlagActionNode) {
+		FlatFlagActionNode ffan=(FlatFlagActionNode)fn;
+		if (ffan.getTaskType() == FlatFlagActionNode.TASKEXIT) {
+		    for(Iterator it_tfp=ffan.getTempFlagPairs();it_tfp.hasNext();) {
+			TempFlagPair tfp=(TempFlagPair)it_tfp.next();
+			TempDescriptor tempd = tfp.getTemp();
+			if(tempd!=tmp)
+			    return false; //return false if a taskexit modifies one of the other parameters
+		    }
+		}
+	    }
+	}
+	return true;
+    }
+    
+    private Predicate returnPredicate(EGTaskNode tn){
+	Predicate result = new Predicate();
+	TaskDescriptor td = tn.getTD();
+	for(int i=0; i<td.numParameters(); i++) {
+	    if(i!=tn.getIndex()) {
+		VarDescriptor vd = td.getParameter(i);
+		result.vardescriptors.add(vd);
+		HashSet<FlagExpressionNode> flaglist = new HashSet<FlagExpressionNode>();
+		flaglist.add(td.getFlag(vd));
+		result.flags.put(vd, flaglist);
+		if (td.getTag(vd)!=null)
+		    result.tags.put(vd, td.getTag(vd));
+	    }
+	}
+	return result;
+    }
+    
+    private Predicate combinePredicates(Predicate A, Predicate B){
+	Predicate result = new Predicate();
+	result.vardescriptors.addAll(A.vardescriptors);
+	result.flags.putAll(A.flags);
+	result.tags.putAll(A.tags);
+	Collection c = B.vardescriptors;
+	for(Iterator  varit = c.iterator(); varit.hasNext();){//maybe change that
+	    VarDescriptor vd = (VarDescriptor)varit.next();
+	    if(result.vardescriptors.contains(vd))
+		System.out.println("Already in ");
+	    else {
+		result.vardescriptors.add(vd);
+	    }
+	}
+	Collection vardesc = result.vardescriptors;
+	for(Iterator varit = vardesc.iterator(); varit.hasNext();){
+	    VarDescriptor vd = (VarDescriptor)varit.next();
+	    HashSet bflags = B.flags.get(vd);
+	    if( bflags == null ){
+		continue;
+	    } else {
+		if (result.flags.containsKey(vd)) 
+		    ((HashSet)result.flags.get(vd)).addAll(bflags);
+		else 
+		    result.flags.put(vd, bflags);
+	    }
+	    TagExpressionList btags = B.tags.get(vd);
+	    if( btags != null ){
+		if (result.tags.containsKey(vd)) 
+		    System.out.println("Tag found but there should be nothing to do because same tag");
+		else 
+		    result.tags.put(vd, btags);
+	    }
+	}
+	return result;
+    }
+
+    ////////////////////
+    /* returns a set of the possible sets of flagstates
+       resulting from the execution of the optional task.
+       To do it with have to look for TaskExit FlatNodes
+       in the IR.
+    */
+    private void resultingFS(OptionalTaskDescriptor otd){
+	Stack stack = new Stack();
+	HashSet result = new HashSet();
+	FlatMethod fm = state.getMethodFlat((TaskDescriptor)otd.td);
+	FlatNode fn = (FlatNode)fm;
+	
+	Stack nodestack=new Stack();
+	HashSet discovered=new HashSet();
+	nodestack.push(fm);
+	discovered.add(fm);
+	TempDescriptor temp=fm.getParameter(otd.getIndex());
+	
+	//Iterating through the nodes
+	while(!nodestack.isEmpty()) {
+	    FlatNode fn1 = (FlatNode) nodestack.pop();
+	    if (fn1.kind()==FKind.FlatFlagActionNode) {
+		FlatFlagActionNode ffan=(FlatFlagActionNode)fn1;
+		if (ffan.getTaskType() == FlatFlagActionNode.TASKEXIT) {
+		    HashSet tempset = new HashSet();
+		    for(Iterator it_fs = otd.enterflagstates.iterator(); it_fs.hasNext();){
+			FlagState fstemp = (FlagState)it_fs.next();
+			Vector<FlagState> processed=new Vector<FlagState>();
+			
+			for(Iterator it_tfp=ffan.getTempFlagPairs();it_tfp.hasNext();) {
+			    TempFlagPair tfp=(TempFlagPair)it_tfp.next();
+			    if (tfp.getTemp()==temp)
+				fstemp=fstemp.setFlag(tfp.getFlag(),ffan.getFlagChange(tfp));
+			}
+			
+			processed.add(fstemp);
+			//Process clears first
+			
+			for(Iterator it_ttp=ffan.getTempTagPairs();it_ttp.hasNext();) {
+			    TempTagPair ttp=(TempTagPair)it_ttp.next();
+			    
+			    if (temp==ttp.getTemp()) {
+				Vector<FlagState> oldprocess=processed;
+				processed=new Vector<FlagState>();
+				
+				for (Enumeration en=oldprocess.elements();en.hasMoreElements();){
+				    FlagState fsworking=(FlagState)en.nextElement();
+				    if (!ffan.getTagChange(ttp)){
+					processed.addAll(Arrays.asList(fsworking.clearTag(ttp.getTag())));
+				    } else processed.add(fsworking);
+				}
+			    }
+			}
+			//Process sets next
+			for(Iterator it_ttp=ffan.getTempTagPairs();it_ttp.hasNext();) {
+			    TempTagPair ttp=(TempTagPair)it_ttp.next();
+			    
+			    if (temp==ttp.getTemp()) {
+				Vector<FlagState> oldprocess=processed;
+				processed=new Vector<FlagState>();
+				
+				for (Enumeration en=oldprocess.elements();en.hasMoreElements();){
+				    FlagState fsworking=(FlagState)en.nextElement();
+				    if (ffan.getTagChange(ttp)){
+					processed.addAll(Arrays.asList(fsworking.setTag(ttp.getTag())));
+				    } else processed.add(fsworking);
+				}
+			    }
+			}
+			//Add to exit states
+			tempset.addAll(processed);
+		    }
+		    result.add(tempset);
+		    continue; // avoid queueing the return node if reachable
+		}
+	    } else if (fn1.kind()==FKind.FlatReturnNode) {
+		result.add(otd.enterflagstates);
+	    }
+	    
+	    /* Queue other nodes past this one */
+	    for(int i=0;i<fn1.numNext();i++) {
+		FlatNode fnext=fn1.getNext(i);
+		if (!discovered.contains(fnext)) {
+		    discovered.add(fnext);
+		    nodestack.push(fnext);
+		}
+	    }
+	}
+	otd.exitfses=result;
     }
 
     private void printTEST(){
@@ -197,9 +396,8 @@ public class SafetyAnalysis {
 		for(Iterator otd_it = availabletasks.iterator(); otd_it.hasNext();){
 		    OptionalTaskDescriptor otd = (OptionalTaskDescriptor)otd_it.next();
 		    System.out.println("\t\tTASK "+otd.td.getSymbol()+" UID : "+otd.getuid()+"\n");
-		    System.out.println("\t\tDepth : "+otd.depth);
 		    System.out.println("\t\twith flags :");
-		    for(Iterator myfses = otd.flagstates.iterator(); myfses.hasNext();){
+		    for(Iterator myfses = otd.enterflagstates.iterator(); myfses.hasNext();){
 			System.out.println("\t\t\t"+((FlagState)myfses.next()).getTextLabel());
 		    }
 		    System.out.println("\t\tand exitflags :");
@@ -211,8 +409,8 @@ public class SafetyAnalysis {
 			}
 		    }
 		    Predicate predicate = otd.predicate;
-		    System.out.println("\t\tPredicate constains :");
-		    Collection c = predicate.vardescriptors.values();
+		    System.out.println("\t\tPredicate constraints :");
+		    Collection c = predicate.vardescriptors;
 		    for(Iterator varit = c.iterator(); varit.hasNext();){
 			VarDescriptor vard = (VarDescriptor)varit.next();
 			System.out.println("\t\t\tClass "+vard.getType().getClassDesc().getSymbol());
@@ -226,9 +424,8 @@ public class SafetyAnalysis {
 	    for(Iterator otd_it = c_otd.iterator(); otd_it.hasNext();){
 		OptionalTaskDescriptor otd = (OptionalTaskDescriptor)otd_it.next();
 		System.out.println("\t\tTASK "+otd.td.getSymbol()+" UID : "+otd.getuid()+"\n");
-		System.out.println("\t\tDepth : "+otd.depth);
 		System.out.println("\t\twith flags :");
-		for(Iterator myfses = otd.flagstates.iterator(); myfses.hasNext();){
+		for(Iterator myfses = otd.enterflagstates.iterator(); myfses.hasNext();){
 		    System.out.println("\t\t\t"+((FlagState)myfses.next()).getTextLabel());
 		}
 		System.out.println("\t\tand exitflags :");
@@ -241,7 +438,7 @@ public class SafetyAnalysis {
 		    }
 		    Predicate predicate = otd.predicate;
 		    System.out.println("\t\tPredicate contains :");
-		    Collection c = predicate.vardescriptors.values();
+		    Collection c = predicate.vardescriptors;
 		    for(Iterator varit = c.iterator(); varit.hasNext();){
 			VarDescriptor vard = (VarDescriptor)varit.next();
 			System.out.println("\t\t\tClass "+vard.getType().getClassDesc().getSymbol());
@@ -253,261 +450,6 @@ public class SafetyAnalysis {
 		    System.out.println("\t\t------------");
 	    }
 	}
-
-	    
-    }
-    
-    /*Marks the executiongraph :
-      -optionals
-      -multiple
-      -AND and OR nodes
-    */
-    private void doGraphMarking(EGTaskNode extremity) throws java.io.IOException{
-	//detects if there is a loop or no more nodes to explore
-	if (extremity.isMarked() || !((Iterator)extremity.edges()).hasNext()){
-	    if (!((Iterator)extremity.edges()).hasNext()) extremity.mark();
-	    reducedgraph.put(extremity.getuid(), extremity);
-	} else {
-	    //do the marking
-	    process(extremity);
-	    reducedgraph.put(extremity.getuid(), extremity);
-	    extremity.mark();
-	    //calls doGraphMarking recursively with the next nodes as
-	    //params
-	    for( Iterator it = extremity.edges(); it.hasNext(); ){
-		EGEdge edge = (EGEdge)it.next();
-		doGraphMarking((EGTaskNode)edge.getTarget());
-	    }
-	}
-    }
-    
-    private void process(EGTaskNode tn){
-	testIfOptional(tn);
-	testIfAND(tn);
-	testIfNextIsSelfLoop(tn);
-	testIfRuntime(tn);
-	testIfMultiple(tn);
-    }
-    
-    private void testIfOptional(EGTaskNode tn){
-	for(Iterator edges = tn.edges(); edges.hasNext();){
-	    EGEdge edge = (EGEdge)edges.next();
-	    EGTaskNode nexttn = (EGTaskNode)edge.getTarget();
-	    if (nexttn.getTD()!=null)
-		if(nexttn.getTD().isOptional(classname))
-		    nexttn.setOptional();
-	}
-    }
-    
-    private void testIfMultiple(EGTaskNode tn){
-	for(Iterator edges = tn.edges(); edges.hasNext();){
-	    EGEdge edge = (EGEdge)edges.next();
-	    EGTaskNode nexttn = (EGTaskNode)edge.getTarget();
-	    if (nexttn.getTD() == null ) return;//to be fixed
-	    if( nexttn.getTD().numParameters() > 1 ){
-		nexttn.setMultipleParams();
-	    }
-	}	
-    }
-    
-    //maybe a little bug to fix 
-    private void testIfRuntime(EGTaskNode tn){
-	for(Iterator edges = tn.edges(); edges.hasNext();){
-	    EGEdge edge = (EGEdge)edges.next();
-	    EGTaskNode nexttn = (EGTaskNode)edge.getTarget();
-	    if( ((String)nexttn.getName()).compareTo("Runtime") == 0 )
-		nexttn.setAND();
-	}
-    }
-    
-    /*That correspond to the case where it is
-      not possible for us to choose a path of
-      execution. The optional task has to be
-      present in all the possible executions
-      at this point. So we mark the node as an
-      AND node.*/
-    private void testIfAND(EGTaskNode tn){
-	Vector vtemp = new Vector();
-	Vector tomark = new Vector();
-	for(Iterator edges = tn.edges(); edges.hasNext();){
-	    EGEdge edge = (EGEdge)edges.next();
-	    EGTaskNode nexttn = (EGTaskNode)edge.getTarget();
-	    int contains = 0;
-	    for (Iterator it = vtemp.iterator(); it.hasNext();){
-		EGTaskNode nexttn2 = (EGTaskNode)it.next();
-		if (nexttn.getName()==nexttn2.getName()){
-		    contains = 1;
-		    tomark.add(nexttn);
-		    tomark.add(nexttn2);
-		}
-	    }
-	    if (contains == 0) vtemp.add(nexttn);	    
-	}
-	
-	for(Iterator it2 = tomark.iterator(); it2.hasNext();)
-	((EGTaskNode)it2.next()).setAND();
-    }
-    
-    //maybe little bug to fix
-    private void testIfNextIsSelfLoop(EGTaskNode tn){
-	for(Iterator edges = tn.edges(); edges.hasNext();){
-	    EGEdge edge = (EGEdge)edges.next();
-	    EGTaskNode nexttn = (EGTaskNode)edge.getTarget();
-	    if(nexttn.isSelfLoop()) nexttn.setAND();
-	}
-    }
-    
-
-    /*recursive method that returns a set of OptionalTaskDescriptors
-      The computation basically consist in returning the
-      intersection or union of sets depending on the nature
-      of the node : OR -> UNION
-                    AND -> INTERSECTION
-      The method also looks for tag changes.
-    */
-    private HashSet determineIfIsSafe(EGTaskNode tn, int depth, HashSet visited, Predicate predicate){
-	Predicate temppredicate = new Predicate();
-	if(tn == null) return null;
-	if(!tagChange(tn)){
-	    if(tn.isOptional()){
-		HashSet temp = new HashSet();
-		if( tn.isMultipleParams() ){
-		    if( goodMultiple(tn) ){			
-			temppredicate = combinePredicates(predicate, returnPredicate(tn));
-			System.out.println("Good multiple, Optional "+tn.getName());
-		    }
-		    else return temp;
-		}
-		else temppredicate = combinePredicates(temppredicate, predicate);
-		//if the tn is optional and there is no more nodes/presence of a loop
-		//create the OptionalTaskDescriptor and return it as a singleton. 
-		if( !((Iterator)tn.edges()).hasNext() || tn.isSelfLoop()){
-		    HashSet fstemp = new HashSet();
-		    fstemp.add(tn.getFS());
-		    OptionalTaskDescriptor otd = new OptionalTaskDescriptor(tn.getTD(), fstemp, depth, temppredicate);
-		    if(optionaltaskdescriptors.get(processedclass).get(otd)!=null){
-			otd = (OptionalTaskDescriptor)((Hashtable)optionaltaskdescriptors.get(processedclass)).get(otd);
-		    }
-		    else optionaltaskdescriptors.get(processedclass).put(otd, otd);
-		    temp.add(otd);
-		    return temp;
-		}
-		else if(visited.contains(tn)){
-		    return temp;
-		}			
-		//else compute the edges, create the OptionalTaskDescriptor and add it to the set.
-		else{
-		    int newdepth = depth + 1;
-		    visited.add(tn);
-		    HashSet newhashset = new HashSet(visited);
-		    HashSet fstemp = new HashSet();
-		    fstemp.add(tn.getFS());
-		    OptionalTaskDescriptor otd = new OptionalTaskDescriptor(tn.getTD(), fstemp, depth, temppredicate);
-		    if(optionaltaskdescriptors.get(processedclass).get(otd)!=null){
-			otd = (OptionalTaskDescriptor)((Hashtable)optionaltaskdescriptors.get(processedclass)).get(otd);
-		    }
-		    else optionaltaskdescriptors.get(processedclass).put(otd, otd);
-		    temp = computeEdges(tn, newdepth, newhashset, temppredicate);
-		    temp.add(otd);
-		    return temp;
-		}
-	    }
-	    else{
-		HashSet temp = new HashSet();
-		if( tn.isMultipleParams() ){
-		    if( goodMultiple(tn) ){			
-			temppredicate = combinePredicates(predicate, returnPredicate(tn));
-			System.out.println("Good multiple, not Optional "+tn.getName());
-		    }
-		    else{
-			System.out.println("Bad multiple, not Optional "+tn.getName());
-			return temp;
-		    }
-		}
-		else temppredicate = combinePredicates(temppredicate, predicate);
-		//if not optional but terminal just return an empty set.
-		if( !((Iterator)tn.edges()).hasNext() ||  visited.contains(tn) || tn.isSelfLoop()){
-		    return temp;
-		}
-		//if not terminal return the computation of the edges.
-		else{
-		    int newdepth = depth + 1;
-		    visited.add(tn);
-		    HashSet newhashset = new HashSet(visited);
-		    return computeEdges(tn, newdepth, newhashset, temppredicate);
-		}
-	    }
-	}
-	//if there has been a tag change return an empty set.
-	else{
-	    HashSet temp = new HashSet();
-	    return temp;
-	}
-    }
-
-    private boolean goodMultiple(EGTaskNode tn){
-	TaskDescriptor td = tn.getTD();
-	HashSet classes = new HashSet();
-	for(int i = 0 ; i<td.numParameters(); i++){
-	    ClassDescriptor cd = td.getParamType(i).getClassDesc();
-	    if(cd.getSymbol().compareTo(classname)!=0)
-		classes.add(cd);
-	}
-
-	
-	    Stack stack = new Stack();
-	    FlatMethod fm = state.getMethodFlat(td);
-	    FlatNode fn = (FlatNode)fm;
-	    
-	    Stack nodestack=new Stack();
-	    HashSet discovered=new HashSet();
-	    nodestack.push(fm);
-	    discovered.add(fm);
-	    
-	    //Iterating through the nodes
-	    while(!nodestack.isEmpty()) {
-		FlatNode fn1 = (FlatNode) nodestack.pop();
-		if (fn1.kind()==FKind.FlatFlagActionNode) {
-		    FlatFlagActionNode ffan=(FlatFlagActionNode)fn1;
-		    if (ffan.getTaskType() == FlatFlagActionNode.TASKEXIT) {
-			for(Iterator it_tfp=ffan.getTempFlagPairs();it_tfp.hasNext();) {
-			    TempFlagPair tfp=(TempFlagPair)it_tfp.next();
-			    TempDescriptor tempd = tfp.getTemp();
-			    if (classes.contains((ClassDescriptor)((TypeDescriptor)tempd.getType()).getClassDesc()))
-				return false;//return false if a taskexit modifies one of the other parameters
-			}
-			continue; // avoid queueing the return node if reachable
-		    }
-		}		
-		/* Queue other nodes past this one */
-		for(int i=0;i<fn1.numNext();i++) {
-		    FlatNode fnext=fn1.getNext(i);
-		    if (!discovered.contains(fnext)) {
-			discovered.add(fnext);
-			nodestack.push(fnext);
-		    }
-		}
-	    }
-	    return true;
-	
-    }    
-    
-    private Predicate returnPredicate(EGTaskNode tn){
-	Predicate result = new Predicate();
-	TaskDescriptor td = tn.getTD();
-	for(int i=0; i<td.numParameters(); i++){
-	    TypeDescriptor typed = td.getParamType(i);
-	    if(((ClassDescriptor)typed.getClassDesc()).getSymbol().compareTo(classname)!=0){
-		VarDescriptor vd = td.getParameter(i);
-		result.vardescriptors.put(vd.getName(), vd);
-		HashSet flaglist = new HashSet();
-		flaglist.add((FlagExpressionNode)td.getFlag(vd));
-		result.flags.put( vd.getName(), flaglist);
-		if((TagExpressionList)td.getTag(vd) != null)
-		    result.tags.put( vd.getName(), (TagExpressionList)td.getTag(vd));
-	    }
-	}
-	return result;
     }
     
     /*check if there has been a tag Change*/
@@ -548,221 +490,10 @@ public class SafetyAnalysis {
 	return false;
     }
 
-    
-    private HashSet computeEdges(EGTaskNode tn, int depth, HashSet visited, Predicate predicate){
-	Hashtable andlist = new Hashtable();
-	Vector orlist = new Vector();
-	for(Iterator edges = tn.edges(); edges.hasNext();){
-	    EGTaskNode tntemp = (EGTaskNode)((EGEdge)edges.next()).getTarget();
-	    if(tntemp.type() == OR) orlist.add(tntemp);
-	    else if(tntemp.type() == AND){
-		if(andlist.containsKey(tntemp.getName())){
-		    ((Vector)andlist.get(tntemp.getName())).add(tntemp);}
-		else{
-		    Vector vector = new Vector();
-		    vector.add(tntemp);
-		    andlist.put(tntemp.getName(), vector);
-		}
-	    }
-	}
-	
-	return (createUnion(computeOrVector(orlist, depth, visited, predicate), computeAndList(andlist, depth, visited, predicate)));
-    }
-
-    private HashSet computeTns(Vector tns){
-	Hashtable andlist = new Hashtable();
-	Vector orlist = new Vector();
-	for(Iterator nodes = tns.iterator(); nodes.hasNext();){
-	    EGTaskNode tntemp = (EGTaskNode)nodes.next();
-	    if(tntemp.type() == OR) orlist.add(tntemp);
-	    else if(tntemp.type() == AND){
-		if(andlist.containsKey(tntemp.getName())){
-		    ((Vector)andlist.get(tntemp.getName())).add(tntemp);}
-		else{
-		    Vector vector = new Vector();
-		    vector.add(tntemp);
-		    andlist.put(tntemp.getName(), vector);
-		}
-	    }
-	}
-	
-	return (createUnion(computeOrVector(orlist, 0), computeAndList(andlist, 0)));	
-
-    }
-    
-    private  HashSet computeOrVector( Vector orlist, int depth, HashSet visited, Predicate predicate){
-	if(orlist.isEmpty()){
-	    HashSet temp = new HashSet();
-	    return temp;
-	}
-	else{
-	    HashSet temp = new HashSet();
-	    for(Iterator tns = orlist.iterator(); tns.hasNext();){
-		EGTaskNode tn = (EGTaskNode)tns.next();
-		temp = createUnion(determineIfIsSafe(tn, depth, visited, predicate), temp);
-	    }
-	    return temp;
-	}
-	
-    }
-    
-    private  HashSet computeOrVector( Vector orlist, int depth){
-	if(orlist.isEmpty()){
-	    HashSet temp = new HashSet();
-	    return temp;
-	}
-	else{
-	    HashSet temp = new HashSet();
-	    for(Iterator tns = orlist.iterator(); tns.hasNext();){
-		EGTaskNode tn = (EGTaskNode)tns.next();
-		HashSet visited = new HashSet();
-		Predicate predicate = new Predicate();
-		temp = createUnion(determineIfIsSafe(tn, depth, visited, predicate), temp);
-	    }
-	    return temp;
-	}
-	
-    }
-
-    private  HashSet computeAndList(Hashtable andlist, int depth, HashSet visited, Predicate predicate){
-	if( andlist.isEmpty()){
-	    HashSet temp = new HashSet();
-	    return temp;
-	}
-	else{
-	    HashSet temp = new HashSet();
-	    Collection c = andlist.values();
-	    for(Iterator vectors = c.iterator(); vectors.hasNext();){
-		Vector vector = (Vector)vectors.next();
-		temp = createUnion(computeAndVector(vector, depth, visited, predicate), temp);
-	    }
-	    return temp;
-	}
-	
-    }
-   
-    private  HashSet computeAndList(Hashtable andlist, int depth){
-	if( andlist.isEmpty()){
-	    HashSet temp = new HashSet();
-	    return temp;
-	}
-	else{
-	    HashSet temp = new HashSet();
-	    Collection c = andlist.values();
-	    for(Iterator vectors = c.iterator(); vectors.hasNext();){
-		Vector vector = (Vector)vectors.next();
-		temp = createUnion(computeAndVector(vector, depth), temp);
-	    }
-	    return temp;
-	}
-	
-    }
-
-    private  HashSet computeAndVector(Vector vector, int depth, HashSet visited, Predicate predicate){
-	HashSet temp = new HashSet();
-	boolean init = true;
-	for(Iterator tns = vector.iterator(); tns.hasNext();){
-	    EGTaskNode tn = (EGTaskNode)tns.next();
-	    if (init){ 
-		init = false;
-		temp = determineIfIsSafe(tn, depth, visited, predicate);
-	    }
-	    else{
-		temp = createIntersection(determineIfIsSafe(tn, depth, visited, predicate), temp);
-	    }
-	}
-	return temp;
-    }		
-    
-    private  HashSet computeAndVector(Vector vector, int depth){
-	HashSet temp = new HashSet();
-	boolean init = true;
-	for(Iterator tns = vector.iterator(); tns.hasNext();){
-	    EGTaskNode tn = (EGTaskNode)tns.next();
-	    if (init){ 
-		init = false;
-		HashSet visited = new HashSet();
-		Predicate predicate = new Predicate();
-		temp = determineIfIsSafe(tn, depth, visited, predicate);
-	    }
-	    else{
-		HashSet visited = new HashSet();
-		Predicate predicate = new Predicate();
-		temp = createIntersection(determineIfIsSafe(tn, depth, visited, predicate), temp);
-	    }
-	}
-	return temp;
-    }		
-
-    private HashSet createUnion( HashSet A, HashSet B){
-	A.addAll(B);
-	
-	return A;
-    }
-
-    
-    private HashSet createIntersection( HashSet A, HashSet B){
-	HashSet result = new HashSet();
-	for(Iterator b_it = B.iterator(); b_it.hasNext();){
-	    OptionalTaskDescriptor otd_b = (OptionalTaskDescriptor)b_it.next();
-	    for(Iterator a_it = A.iterator(); a_it.hasNext();){
-		OptionalTaskDescriptor otd_a = (OptionalTaskDescriptor)a_it.next();
-		if(((String)otd_a.td.getSymbol()).compareTo((String)otd_b.td.getSymbol())==0){
-		    HashSet newfs = new HashSet();
-		    newfs.addAll(otd_a.flagstates);
-		    newfs.addAll(otd_b.flagstates);
-		    int newdepth = (otd_a.depth < otd_b.depth) ? otd_a.depth : otd_b.depth;
-		    OptionalTaskDescriptor newotd = new OptionalTaskDescriptor(otd_b.td, newfs, newdepth, combinePredicates(otd_a.predicate, otd_b.predicate));
-		    if(optionaltaskdescriptors.get(processedclass).get(newotd)!=null){
-			newotd = (OptionalTaskDescriptor)((Hashtable)optionaltaskdescriptors.get(processedclass)).get(newotd);
-		    }
-		    else optionaltaskdescriptors.get(processedclass).put(newotd, newotd);
-		    result.add(newotd);
-		}
-	    }
-	}
-	
-	return result;
-    }
-
-    private Predicate combinePredicates(Predicate A, Predicate B){
-	Predicate result = new Predicate();
-	result.vardescriptors.putAll(A.vardescriptors);
-	result.flags.putAll(A.flags);
-	result.tags.putAll(A.tags);
-	Collection c = B.vardescriptors.values();
-	for(Iterator  varit = c.iterator(); varit.hasNext();){//maybe change that
-	    VarDescriptor vd = (VarDescriptor)varit.next();
-	    if(result.vardescriptors.containsKey(vd.getName())) System.out.println("Already in ");
-	    else {
-		result.vardescriptors.put(vd.getName(), vd);
-	    }
-	}
-	Collection vardesc = result.vardescriptors.values();
-	for(Iterator varit = vardesc.iterator(); varit.hasNext();){
-	    VarDescriptor vd = (VarDescriptor)varit.next();
-	    HashSet bflags = B.flags.get(vd.getName());
-	    if( bflags == null ){
-		continue;
-	    }
-	    else{
-		if (result.flags.containsKey(vd.getName())) ((HashSet)result.flags.get(vd.getName())).addAll(bflags);
-		else result.flags.put(vd.getName(), bflags);
-	    }
-	    TagExpressionList btags = B.tags.get(vd.getName());
-	    if( btags != null ){
-		if (result.tags.containsKey(vd.getName())) System.out.println("Tag found but there should be nothing to do because same tag");
-		else result.tags.put(vd.getName(), btags);
-	    }
-	}
-	return result;
-    }
-    
     /////////DEBUG
     /*Thoose two tasks create the dot file named markedgraph.dot */
     
-    private void createDOTFile(String classname) throws java.io.IOException {
-	Collection v = reducedgraph.values();
+    private void createDOTFile(String classname, Collection v) throws java.io.IOException {
 	java.io.PrintWriter output;
 	File dotfile_flagstates= new File("markedgraph_"+classname+".dot");
 	FileOutputStream dotstream=new FileOutputStream(dotfile_flagstates,true);
@@ -781,11 +512,12 @@ public class SafetyAnalysis {
 	    tn = (EGTaskNode)it1.next();
 	    output.println("\t"+tn.getLabel()+" [label=\""+tn.getTextLabel()+"\"");
 	    if (tn.isOptional()){
-		if (tn.isMultipleParams()) output.println(", shape = tripleoctagon");
-		else output.println(", shape=doubleoctagon");
-	    }
-	    else if (tn.isMultipleParams()) output.println(", shape=octagon");
-	    if (tn.type()==AND) output.println(", color=blue");
+		if (tn.isMultipleParams()) 
+		    output.println(", shape = tripleoctagon");
+		else 
+		    output.println(", shape=doubleoctagon");
+	    } else if (tn.isMultipleParams()) 
+		output.println(", shape=octagon");
 	    output.println("];");
 	    
 	    for(Iterator it2 = tn.edges();it2.hasNext();){
@@ -794,60 +526,4 @@ public class SafetyAnalysis {
 	    }
 	}
     }
-    
-    ////////////////////
-    /* returns a set of the possible sets of flagstates
-       resulting from the execution of the optional task.
-       To do it with have to look for TaskExit FlatNodes
-       in the IR.
-    */
-    private void resultingFS(OptionalTaskDescriptor otd, String classname){
-	Stack stack = new Stack();
-	HashSet result = new HashSet();
-	FlatMethod fm = state.getMethodFlat((TaskDescriptor)otd.td);
-	FlatNode fn = (FlatNode)fm;
-	
-	Stack nodestack=new Stack();
-	HashSet discovered=new HashSet();
-	nodestack.push(fm);
-	discovered.add(fm);
-	
-	//Iterating through the nodes
-	while(!nodestack.isEmpty()) {
-	    FlatNode fn1 = (FlatNode) nodestack.pop();
-	    if (fn1.kind()==FKind.FlatFlagActionNode) {
-		FlatFlagActionNode ffan=(FlatFlagActionNode)fn1;
-		if (ffan.getTaskType() == FlatFlagActionNode.TASKEXIT) {
-		    HashSet tempset = new HashSet();
-		    for(Iterator it_fs = otd.flagstates.iterator(); it_fs.hasNext();){
-			FlagState fstemp = (FlagState)it_fs.next();
-			for(Iterator it_tfp=ffan.getTempFlagPairs();it_tfp.hasNext();) {
-			    TempFlagPair tfp=(TempFlagPair)it_tfp.next();
-			    TempDescriptor td = tfp.getTemp();
-			    if (((String)((ClassDescriptor)((TypeDescriptor)td.getType()).getClassDesc()).getSymbol()).compareTo(classname)==0){
-				fstemp=fstemp.setFlag(tfp.getFlag(),ffan.getFlagChange(tfp));
-			    }
-			}
-			tempset.add(fstemp);
-		    }
-		    result.add(tempset);
-		    continue; // avoid queueing the return node if reachable
-		}
-	    }else if (fn1.kind()==FKind.FlatReturnNode) {
-		result.add(otd.flagstates);
-	    }
-	    
-	    /* Queue other nodes past this one */
-	    for(int i=0;i<fn1.numNext();i++) {
-		FlatNode fnext=fn1.getNext(i);
-		if (!discovered.contains(fnext)) {
-		    discovered.add(fnext);
-		    nodestack.push(fnext);
-		}
-	    }
-	}
-	otd.exitfses=result;
-    }
 }
-
-

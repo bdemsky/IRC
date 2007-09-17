@@ -6,26 +6,28 @@ import IR.Flat.*;
 import Util.Edge;
 
 public class Predicate {
-    public Hashtable<String, VarDescriptor> vardescriptors;
-    public Hashtable<String, HashSet<FlagExpressionNode>> flags;
-    public Hashtable<String, TagExpressionList> tags; //if there is a tag change, we stop the analysis
+    public HashSet<VarDescriptor> vardescriptors;
+    public Hashtable<VarDescriptor, HashSet<FlagExpressionNode>> flags;
+    public Hashtable<VarDescriptor, TagExpressionList> tags; 
+    //if there is a tag change, we stop the analysis
     
     public Predicate(){
-	this.vardescriptors = new Hashtable();
-	this.flags = new Hashtable();
-	this.tags = new Hashtable();
+	this.vardescriptors = new HashSet<VarDescriptor>();
+	this.flags = new Hashtable<VarDescriptor, HashSet<FlagExpressionNode>>();
+	this.tags = new Hashtable<VarDescriptor, TagExpressionList>();
     } 
 
-    public boolean equals(Object o){
-	if(o instanceof Predicate) {
-	    Predicate p = (Predicate) o;
-	    if(vardescriptors.equals(p.vardescriptors))
+    public boolean equals(Object o) {
+	if (o instanceof Predicate) {
+	    Predicate p=(Predicate)o;
+	    if (vardescriptors.equals(p.vardescriptors)&&
+		flags.equals(p.flags)&&
+		tags.equals(p.tags))
 		return true;
 	}
 	return false;
     }
-
-    public int hashCode(){
+    public int hashCode() {
 	return vardescriptors.hashCode();
     }
 }

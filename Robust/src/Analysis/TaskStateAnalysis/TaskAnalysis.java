@@ -163,7 +163,8 @@ private void analyseTasks(FlagState fs) {
 	int trigger_ctr=0;
 	TempDescriptor temp=null;
 	FlatMethod fm = state.getMethodFlat(td);	
-	
+	int parameterindex=0;
+
 	for(int i=0; i < td.numParameters(); i++) {
 	    FlagExpressionNode fen=td.getFlag(td.getParameter(i));
 	    TagExpressionList tel=td.getTag(td.getParameter(i));
@@ -176,6 +177,7 @@ private void analyseTasks(FlagState fs) {
 		&& isTaskTrigger_flag(fen,fs)
 		&& isTaskTrigger_tag(tel,fs)) {
 		temp=fm.getParameter(i);
+		parameterindex=i;
 		trigger_ctr++;
 	    }
 	}
@@ -211,7 +213,7 @@ private void analyseTasks(FlagState fs) {
 	    
 	    if (fn1.kind()==FKind.FlatReturnNode) {
 		/* Self edge */
-		FEdge newedge=new FEdge(fs, taskname, td);
+		FEdge newedge=new FEdge(fs, taskname, td, parameterindex);
 		fs.addEdge(newedge);
 		continue;
 	    } else if (fn1.kind()==FKind.FlatFlagActionNode) {
@@ -229,7 +231,7 @@ private void analyseTasks(FlagState fs) {
 			}
 			//seen this node already
 			fs_taskexit=canonicalizeFlagState(sourcenodes,fs_taskexit);
-			FEdge newedge=new FEdge(fs_taskexit,taskname, td);
+			FEdge newedge=new FEdge(fs_taskexit,taskname, td, parameterindex);
 			fs.addEdge(newedge);
 		    }
 		    continue;
@@ -293,14 +295,6 @@ private boolean isTaskTrigger_tag(TagExpressionList tel, FlagState fs){
 	return true;
 }
 
-/*private int tagTypeCount(TagExpressionList tel, String tagtype){
-	int ctr=0;
-	for(int i=0;i<tel.numTags() ; i++){
-		if (tel.getType(i).equals(tagtype))
-			ctr++;
-	}
-	return ctr;
-} */
 
     private Vector<FlagState> evalTaskExitNode(FlatFlagActionNode ffan,ClassDescriptor cd,FlagState fs, TempDescriptor temp){
 	FlagState fstemp=fs;
@@ -380,7 +374,7 @@ private boolean isTaskTrigger_tag(TagExpressionList tel, FlagState fs){
 	if (flagstates.containsKey(cd))
 	    return ((Hashtable<FlagState, FlagState>)flagstates.get(cd)).keySet();
 	else
-	    return null;
+	    return new HashSet<FlagState>();
     }
 
 
@@ -416,7 +410,7 @@ private boolean isTaskTrigger_tag(TagExpressionList tel, FlagState fs){
 		toprocess.add(fstemp);
 
 	    fstemp=canonicalizeFlagState(sourcenodes,fstemp);
-	    fs.addEdge(new FEdge(fstemp,"Runtime", null));
+	    fs.addEdge(new FEdge(fstemp,"Runtime", null, -1));
 	}
     }
     

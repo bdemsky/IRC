@@ -52,13 +52,13 @@ public class ExecutionGraph {
 	    if(fs.isSourceNode()) {
 		for (Iterator allocit = ((Vector)fs.getAllocatingTasks()).iterator(); allocit.hasNext();) {
 		    TaskDescriptor alloctask=(TaskDescriptor)allocit.next();
-		    EGTaskNode srcnode=new EGTaskNode(alloctask.getSymbol(),alloctask);
+		    EGTaskNode srcnode=new EGTaskNode(alloctask.getSymbol(),alloctask, fs);
 		    nodes.add(srcnode);
 		    srcnode.setSource();
 		    for (Iterator edges = fs.edges(); edges.hasNext();){
 			FEdge edge = (FEdge)edges.next();
 			EGTaskNode targetnode=getNode(edge, map, nodes);
-			EGEdge newedge=new EGEdge(targetnode);
+			EGEdge newedge=new EGEdge(fs, targetnode);
 			srcnode.addEdge(newedge);
 		    }
 		}
@@ -69,7 +69,7 @@ public class ExecutionGraph {
 		for(Iterator outit=fs.edges();outit.hasNext();) {
 		    FEdge outedge=(FEdge)outit.next();
 		    EGTaskNode dstnode=getNode(outedge, map, nodes);
-		    EGEdge newedge=new EGEdge(dstnode);
+		    EGEdge newedge=new EGEdge(fs,dstnode);
 		    srcnode.addEdge(newedge);
 		}
 	    }
@@ -81,7 +81,7 @@ public class ExecutionGraph {
     private EGTaskNode getNode(FEdge fedge, Hashtable<FEdge, EGTaskNode> map, HashSet<EGTaskNode> nodes) {
 	if (map.containsKey(fedge))
 	    return map.get(fedge);
-	EGTaskNode egnode=new EGTaskNode(fedge.getLabel(), (FlagState) fedge.getSource(), fedge.getTask());
+	EGTaskNode egnode=new EGTaskNode(fedge.getLabel(), (FlagState) fedge.getSource(), fedge.getTask(), fedge.getIndex(), (FlagState) fedge.getTarget());
 	if (fedge.getTarget()==fedge.getSource())
 	    egnode.doSelfLoopMarking();
 	map.put(fedge, egnode);
@@ -91,7 +91,7 @@ public class ExecutionGraph {
 
     //put the graph into executiongraph
     private void adapt(ClassDescriptor cd, HashSet<EGTaskNode> nodes) {
-	Vector tasknodes = new Vector();
+	HashSet tasknodes = new HashSet();
 	tasknodes.addAll(nodes);
 	executiongraph.put(cd,tasknodes);
     }
@@ -115,7 +115,7 @@ public class ExecutionGraph {
     }	
     
     private void createDOTFile(ClassDescriptor cd) throws java.io.IOException {
-	Vector v = (Vector)executiongraph.get(cd);
+	Set s = (Set)executiongraph.get(cd);
 	java.io.PrintWriter output;
 	File dotfile_flagstates= new File("execution"+cd.getSymbol()+".dot");
 	FileOutputStream dotstream=new FileOutputStream(dotfile_flagstates,true);
@@ -123,11 +123,11 @@ public class ExecutionGraph {
 	output.println("digraph dotvisitor {");
 	output.println("\tnode [fontsize=10,height=\"0.1\", width=\"0.1\"];");
 	output.println("\tedge [fontsize=6];");
-	traverse(output, v);
+	traverse(output, s);
 	output.println("}\n");
     }
     
-    private void traverse(java.io.PrintWriter output, Vector v) {
+    private void traverse(java.io.PrintWriter output, Set v) {
 	EGTaskNode tn;
 	
 	for(Iterator it1 = v.iterator(); it1.hasNext();){

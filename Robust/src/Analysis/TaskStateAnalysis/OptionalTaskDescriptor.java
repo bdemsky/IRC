@@ -8,39 +8,47 @@ import Util.Edge;
 
 public class  OptionalTaskDescriptor {
     public TaskDescriptor td;
-    public HashSet flagstates;
-    public int depth;
+    public HashSet enterflagstates;
     public HashSet<HashSet> exitfses;
     public Predicate predicate;
     private static int nodeid=0;
+    private int index;
     private int uid;
-    
-    protected OptionalTaskDescriptor(TaskDescriptor td, HashSet flagstates, int depth, Predicate predicate) {
+
+    protected OptionalTaskDescriptor(TaskDescriptor td, int index, HashSet enterflagstates, Predicate predicate) {
 	this.td = td;
-	this.flagstates = flagstates;
-	this.depth = depth;
+	this.enterflagstates = enterflagstates;
 	this.exitfses = new HashSet();
 	this.predicate = predicate;
-	this.uid = OptionalTaskDescriptor.nodeid++;
+	this.index=index;
     }
     
-    public boolean equals(Object o){
+    public int hashCode() {
+	return td.hashCode()^enterflagstates.hashCode()^predicate.hashCode()^index;
+    }
+
+    public boolean equals(Object o) {
 	if (o instanceof OptionalTaskDescriptor) {
-	    OptionalTaskDescriptor otd = (OptionalTaskDescriptor) o;
-	    if (td==otd.td&&
-		flagstates.equals(otd.flagstates)&&
-		predicate.equals(otd.predicate))
+	    OptionalTaskDescriptor otd=(OptionalTaskDescriptor) o;
+	    if (otd.td==td&&
+		otd.enterflagstates.equals(enterflagstates)&&
+		otd.predicate.equals(predicate)&&
+		otd.index==index)
 		return true;
 	}
 	return false;
     }
-    
-    public int hashCode() {
-	return td.getSymbol().hashCode()+flagstates.hashCode()+predicate.hashCode();
+
+    public int getIndex() {
+	return index;
     }
-    
+
     public String tostring() {
 	return "Optional task "+td.getSymbol();
+    }
+
+    public void setuid() {
+	uid=nodeid++;
     }
 
     public int getuid() {

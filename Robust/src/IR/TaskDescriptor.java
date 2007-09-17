@@ -70,10 +70,8 @@ public class TaskDescriptor extends Descriptor {
 	paramtable.add(vd);
     }
 
-    public boolean isOptional(String classname){
-	for (Iterator it = optionals.iterator(); it.hasNext();)
-	    if( ((VarDescriptor)it.next()).getType().getSymbol().compareTo(classname)==0) return true;
-	return false;
+    public boolean isOptional(VarDescriptor vd) {
+	return optionals.contains(vd);
     }
 
     public int numParameters() {

@@ -2165,7 +2165,7 @@ public class BuildCode {
 		     Predicate predicate = otd.predicate;
 		     int predicateindex = 0;
 		     //iterate through the classes concerned by the predicate
-		     Collection c_vard = predicate.vardescriptors.values();
+		     Collection c_vard = predicate.vardescriptors;
 		     for(Iterator vard_it = c_vard.iterator(); vard_it.hasNext();){
 			 VarDescriptor vard = (VarDescriptor)vard_it.next();
 			 TypeDescriptor typed = vard.getType();
@@ -2245,57 +2245,10 @@ public class BuildCode {
 		     }
 		     output.println("};\n");
 
-		     //generate the struct for possible exitfses, appeared to be useless
-		     /*HashSet<HashSet> exitfses = otd.exitfses;
-		     int exitindex = 0;
-		     int nbexit = exitfses.size();
-		     int fsnumber;
-		     
-		     //iterate through possible exits
-		     int nbtotal=0;
-		     for(Iterator exitfseshash = exitfses.iterator(); exitfseshash.hasNext();){
-			 HashSet temp_hashset = (HashSet)exitfseshash.next();
-			 fsnumber = 0 ;
-			 output.println("int flag_EXIT"+exitindex+"_OTD"+otd.getuid()+"_"+cdtemp.getSafeSymbol()+"[]={");
-			 //iterate through possible FSes corresponding to the exit
-			 for(Iterator exfses = temp_hashset.iterator(); exfses.hasNext();){
-			     FlagState fs = (FlagState)exfses.next();
-			     fsnumber++;
-			     nbtotal++;
-			     int flagid=0;
-			     for(Iterator flags = fs.getFlags(); flags.hasNext();){
-				 FlagDescriptor flagd = (FlagDescriptor)flags.next();
-				 int id=1<<((Integer)flaginfo.get(flagd)).intValue();
-				 flagid+=id;
-			     }
-			     if(fsnumber!=1) output.print(",");
-			     output.print(flagid);
-			     //do the same for tags.
-			     //maybe not needed because no tag changes tolerated.
-			 }
-			 output.println("};\n");
-			 
-			 
-			 //store that information in a struct
-			 output.println("struct exitstates exitstates"+exitindex+"_OTD"+otd.getuid()+"_"+cdtemp.getSafeSymbol()+"={");
-			 output.println(fsnumber+",");
-			 output.println("flag_EXIT"+exitindex+"_OTD"+otd.getuid()+"_"+cdtemp.getSafeSymbol());
-			 output.println("};\n");
-
-			 exitindex++;
-		     }
-		     
-		     //store the information concerning all exits into an array
-		     output.println("struct exitstates * exitstatesarray_OTD"+otd.getuid()+"_"+cdtemp.getSafeSymbol()+"[]={");
-		     for( int j = 0; j<nbexit; j++){
-			 if( j != nbexit-1)output.println("&exitstates"+j+"_OTD"+otd.getuid()+"_"+cdtemp.getSafeSymbol()+",");
-			 else output.println("&exitstates"+j+"_OTD"+otd.getuid()+"_"+cdtemp.getSafeSymbol()+"};\n");
-		     }*/
-
 		     int fsnumber = 0 ;
 		     output.println("int enterflag_OTD"+otd.getuid()+"_"+cdtemp.getSafeSymbol()+"[]={");
 			 //iterate through possible FSes corresponding to the state when entering
-		     for(Iterator fses = otd.flagstates.iterator(); fses.hasNext();){
+		     for(Iterator fses = otd.enterflagstates.iterator(); fses.hasNext();){
 			 FlagState fs = (FlagState)fses.next();
 			 fsnumber++;
 			 int flagid=0;
@@ -2318,9 +2271,6 @@ public class BuildCode {
 		     output.println("enterflag_OTD"+otd.getuid()+"_"+cdtemp.getSafeSymbol()+",");
 		     output.println("/*number of members */"+predicateindex+",");
 		     output.println("predicatememberarray_OTD"+otd.getuid()+"_"+cdtemp.getSafeSymbol()+",");
-		     //output.println("/*number of exitstates */"+nbexit+",");
-		     //output.println("/*total number of fses*/"+nbtotal+",");
-		     //output.println("exitstatesarray_OTD"+otd.getuid()+"_"+cdtemp.getSafeSymbol());
 		     output.println("};\n");
 		 }	
 	     }

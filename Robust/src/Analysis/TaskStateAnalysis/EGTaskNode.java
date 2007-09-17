@@ -9,63 +9,42 @@ import Util.GraphNode;
 public class EGTaskNode extends TaskNode {
     private boolean source=false;
     private int loopmarker=0;
-    private boolean multipleparams=false;
-    private boolean optional = false;
-    private boolean marked=false;
     private boolean tomention=true;
-    private int type = 0;
     private FlagState fs;
+    private FlagState postfs;
     private TaskDescriptor td;
-    protected HashSet edges = new HashSet();
-    public EGTaskNode(){
-	this("default", null, null);
-    }
-    
-    public EGTaskNode(String name){
-	this(name, null, null);
+    private int index;
+
+    public EGTaskNode(String name, TaskDescriptor td, FlagState postfs){
+	this(name, null, td, -1, postfs);
     }
 
-    public EGTaskNode(String name, FlagState fs){
-	this(name, fs, null);
-    }
-
-    public EGTaskNode(String name, TaskDescriptor td){
-	this(name, null, td);
-    }
-
-    public EGTaskNode(String name, FlagState fs, TaskDescriptor td){
+    public EGTaskNode(String name, FlagState fs, TaskDescriptor td, int index, FlagState postfs){
 	super(name);
 	this.fs = fs;
     	this.td = td;
+	this.index=index;
+	this.postfs=postfs;
     }
     
-    public int hashCode(){
-	return getLabel().hashCode();
+    public int getIndex() {
+	return index;
+    }
+
+    public FlagState getPostFS() {
+	return postfs;
     }
     
-    public boolean equals(Object o){
-	if(o instanceof EGTaskNode){
-	    EGTaskNode tn=(EGTaskNode) o;
-	    return tn.getLabel().equals(getLabel());
-	}
-	return false;
+    public boolean isRuntime() {
+	return td==null&&getName().equals("Runtime");
     }
 
-    public HashSet getEdgeSet(){
-	return edges;
+
+    public boolean isOptional() {
+	return (!isSource()&&td!=null&&td.isOptional(td.getParameter(index)));
     }
 
-    public void addEdge(EGEdge newedge) {
-	newedge.setSource(this);
-        edges.add(newedge);
-	EGTaskNode tonode=newedge.getTarget();
-	tonode.inedges.addElement(newedge);
-    }
 
-    public Iterator edges(){
-	return edges.iterator();
-    }
-    
     public TaskDescriptor getTD(){
 	return td;
     }
@@ -100,37 +79,15 @@ public class EGTaskNode extends TaskNode {
 	else return false;
     }
 
-    public void setMultipleParams(){
-	multipleparams=true;
-    }
-
     public boolean isMultipleParams(){
-	return multipleparams;
+	return getTD()!=null&&getTD().numParameters()>1;
     }
     
-    public void setOptional(){
-	optional = true;
-    }
-
-    public boolean isOptional(){
-	return optional;
-    }
-
-    public void mark(){
-	marked = true;
-    }
-
-    public void unMark(){
-	marked = false;
-    }
-    
-    public boolean isMarked(){
-	return marked;
-    }
-
     public String getFSName(){
-	if(fs == null) return "no flag";
-	else return fs.getTextLabel();
+	if(fs == null) 
+	    return "no flag";
+	else 
+	    return fs.getTextLabel();
     }
     
     public FlagState getFS(){
@@ -143,17 +100,5 @@ public class EGTaskNode extends TaskNode {
 
     public boolean toMention(){
 	return tomention;
-    }
-    
-    public void setAND(){
-	type = 1;
-    }
-    
-    public void setOR(){
-	type = 0;
-    }
-    
-    public int type(){
-	return type;
     }
 }
