@@ -20,6 +20,7 @@ typedef struct prehashtable {
 	unsigned int numelements;
 	float loadfactor;
 	pthread_mutex_t lock;
+	pthread_mutexattr_t prefetchmutexattr;
 	pthread_cond_t cond;
 } prehashtable_t;
 

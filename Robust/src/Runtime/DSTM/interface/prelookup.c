@@ -18,8 +18,15 @@ unsigned int prehashCreate(unsigned int size, float loadfactor) {
         pflookup.numelements = 0; // Initial number of elements in the hash
         pflookup.loadfactor = loadfactor;
 
+	//Intiliaze and set prefetch table mutex attribute
+	pthread_mutexattr_init(&pflookup.prefetchmutexattr);
+	//NOTE:PTHREAD_MUTEX_RECURSIVE is currently inside a #if_def UNIX98 in the pthread.h file
+	//Therefore use PTHREAD_MUTEX_RECURSIVE_NP instead
+	pthread_mutexattr_settype(&pflookup.prefetchmutexattr, PTHREAD_MUTEX_RECURSIVE_NP);
+
 	//Initialize mutex var
-	pthread_mutex_init(&pflookup.lock, NULL);
+	pthread_mutex_init(&pflookup.lock, &pflookup.prefetchmutexattr);
+	//pthread_mutex_init(&pflookup.lock, NULL);
         
 	return 0;
 }

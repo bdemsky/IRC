@@ -162,7 +162,6 @@ typedef struct trans_commit_data{
 typedef struct thread_data_array {
   int thread_id;	
   int mid;    
-  int pilecount;		/* No of remote machines involved */
   trans_req_data_t *buffer;	/* Holds trans request information sent to participants */  
   thread_response_t *recvmsg;	/* Shared datastructure to keep track of the participants response to a trans request */
   pthread_cond_t *threshold;    /* Condition var to waking up a thread */

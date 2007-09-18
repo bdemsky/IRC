@@ -127,7 +127,9 @@ void *dstmAccept(void *acceptfd)
 				perror("Error receiving object from cooridnator\n");
 				return NULL;
 			}
-			srcObj = mhashSearch(oid);
+			if((srcObj = mhashSearch(oid)) == NULL) {
+				printf("Object not found in Main Object Store %s %d\n", __FILE__, __LINE__);
+			}
 			h = (objheader_t *) srcObj;
 			GETSIZE(size, h);
 			size += sizeof(objheader_t);
@@ -140,16 +142,16 @@ void *dstmAccept(void *acceptfd)
 				}
 			} else {
 				/* Type */
-			  char msg[]={OBJECT_FOUND, 0, 0, 0, 0};
-			  *((int *)&msg[1])=size;
-			  if(send((int)acceptfd, &msg, sizeof(msg), MSG_NOSIGNAL) < sizeof(msg)) {
-				  perror("Error sending size of object to coordinator\n");
-				  return NULL;
-			  }
-			  if(send((int)acceptfd, h, size, MSG_NOSIGNAL) < size) {
-				  perror("Error in sending object\n");
-				  return NULL;
-			  }
+				char msg[]={OBJECT_FOUND, 0, 0, 0, 0};
+				*((int *)&msg[1])=size;
+				if(send((int)acceptfd, &msg, sizeof(msg), MSG_NOSIGNAL) < sizeof(msg)) {
+					perror("Error sending size of object to coordinator\n");
+					return NULL;
+				}
+				if(send((int)acceptfd, h, size, MSG_NOSIGNAL) < size) {
+					perror("Error in sending object\n");
+					return NULL;
+				}
 			}
 			break;
 		
@@ -285,12 +287,19 @@ int readClientReq(trans_commit_data_t *transinfo, int acceptfd) {
 	/*Process the information read */
 	if((val = processClientReq(&fixed, transinfo, listmid, objread, modptr, oidmod, acceptfd)) != 0) {
 		printf("Error in processClientReq %s, %d\n", __FILE__, __LINE__);
+		/* Free resources */
+		if(oidmod != NULL) {
+			free(oidmod);
+			oidmod = NULL;
+		}
 		return 1;
 	}
 
-
 	/* Free resources */
-	free(oidmod);
+	if(oidmod != NULL) {
+		free(oidmod);
+		oidmod = NULL;
+	}
 
 	return 0;
 }
@@ -334,12 +343,21 @@ int processClientReq(fixed_data_t *fixed, trans_commit_data_t *transinfo,
 				header = mhashSearch(transinfo->objlocked[i]);// find the header address
 				STATUS(((objheader_t *)header)) &= ~(LOCK); 		
 			}
-		
+
 			/* Send ack to Coordinator */
 			printf("DEBUG -> Recv TRANS_ABORT\n");
 			sendctrl = TRANS_SUCESSFUL;
 			if(send((int)acceptfd, &sendctrl, sizeof(char), MSG_NOSIGNAL) < sizeof(char)) {
 				perror("Error sending ACK to coordinator\n");
+				if (transinfo->objlocked != NULL) {
+					free(transinfo->objlocked);
+					transinfo->objlocked = NULL;
+				}
+				if (transinfo->objnotfound != NULL) {
+					free(transinfo->objnotfound);
+					transinfo->objnotfound = NULL;
+				}
+
 				return 1;
 			}
 			ptr = NULL;
@@ -350,6 +368,17 @@ int processClientReq(fixed_data_t *fixed, trans_commit_data_t *transinfo,
 			printf("DEBUG -> Recv TRANS_COMMIT \n");
 			if((val = transCommitProcess(modptr, oidmod, transinfo->objlocked, fixed->nummod, transinfo->numlocked, (int)acceptfd)) != 0) {
 				printf("Error in transCommitProcess %s, %d\n", __FILE__, __LINE__);
+				/* Free memory */
+				printf("DEBUG -> Freeing...\n");
+				fflush(stdout);
+				if (transinfo->objlocked != NULL) {
+					free(transinfo->objlocked);
+					transinfo->objlocked = NULL;
+				}
+				if (transinfo->objnotfound != NULL) {
+					free(transinfo->objnotfound);
+					transinfo->objnotfound = NULL;
+				}
 				return 1;
 			}
 			break;
@@ -363,10 +392,11 @@ int processClientReq(fixed_data_t *fixed, trans_commit_data_t *transinfo,
 			//TODO Use fixed.trans_id  TID since Client may have died
 			break;
 	}
+
 	/* Free memory */
 	printf("DEBUG -> Freeing...\n");
 	fflush(stdout);
-	
+
 	if (transinfo->objlocked != NULL) {
 		free(transinfo->objlocked);
 		transinfo->objlocked = NULL;
@@ -375,6 +405,7 @@ int processClientReq(fixed_data_t *fixed, trans_commit_data_t *transinfo,
 		free(transinfo->objnotfound);
 		transinfo->objnotfound = NULL;
 	}
+
 	return 0;
 }
 
@@ -557,6 +588,7 @@ int transCommitProcess(void *modptr, unsigned int *oidmod, unsigned int *oidlock
 		header = (objheader_t *) mhashSearch(oidmod[i]);
 		header->version += 1; 
 	}
+
 	/* Unlock locked objects */
 	for(i = 0; i < numlocked; i++) {
 		if((header = (objheader_t *) mhashSearch(oidlocked[i])) == NULL) {
@@ -565,7 +597,6 @@ int transCommitProcess(void *modptr, unsigned int *oidmod, unsigned int *oidlock
 		}
 		STATUS(header) &= ~(LOCK);
 	}
-
 	//TODO Update location lookup table
 
 	/* Send ack to coordinator */
