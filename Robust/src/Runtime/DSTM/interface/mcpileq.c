@@ -27,12 +27,6 @@ void mcpileenqueue(prefetchpile_t *node) {
 	prefetchpile_t *tmp, *prev;
 	if(mcqueue.front == NULL && mcqueue.rear == NULL) {
 		mcqueue.front = mcqueue.rear = node;
-		/*tmp = mcqueue.front = node;
-		while(tmp != NULL) {
-			prev = tmp;
-			tmp = tmp->next;
-		}
-		mcqueue.rear = prev;*/
 	} else {
 		tmp = mcqueue.rear->next = node;
 		while(tmp != NULL) {
@@ -57,24 +51,6 @@ prefetchpile_t *mcpiledequeue(void) {
 	retnode->next = NULL;
 
 	return retnode;
-}
-
-/* Delete the node pointed to by the front ptr of the queue */
-void delnode() {
-	prefetchpile_t *delnode;
-	if((mcqueue.front == NULL) && (mcqueue.rear == NULL)) {
-		printf("The queue is empty: UNDERFLOW %s, %d\n", __FILE__, __LINE__);
-		return;
-	} else if ((mcqueue.front == mcqueue.rear) && mcqueue.front != NULL && mcqueue.rear != NULL) {
-		printf("TEST1\n");
-		free(mcqueue.front);
-		mcqueue.front = mcqueue.rear = NULL;
-	} else {
-		delnode = mcqueue.front;
-		mcqueue.front = mcqueue.front->next;
-		printf("TEST2\n");
-		free(delnode);
-	}
 }
 
 void mcpiledelete(void) {

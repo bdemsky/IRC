@@ -94,7 +94,6 @@ void *dstmListen()
 		acceptfd = accept(listenfd, (struct sockaddr *)&client_addr, &addrlength);
 		pthread_create(&thread_dstm_accept, NULL, dstmAccept, (void *)acceptfd);
 	}
-	pthread_exit(NULL);
 }
 /* This function accepts a new connection request, decodes the control message in the connection 
  * and accordingly calls other functions to process new requests */
@@ -109,15 +108,21 @@ void *dstmAccept(void *acceptfd)
 	trans_commit_data_t transinfo;
 	unsigned short objType;
 	
+	transinfo.objlocked = NULL;
+	transinfo.objnotfound = NULL;
+	transinfo.modptr = NULL;
+	transinfo.numlocked = 0;
+	transinfo.numnotfound = 0;
+
 	int fd_flags = fcntl((int)acceptfd, F_GETFD), size;
 
 	/* Receive control messages from other machines */
 	if((retval = recv((int)acceptfd, &control, sizeof(char), 0)) <= 0) {
 		if (retval == 0) {
-			return; // Testing connection
+			pthread_exit(NULL); // Testing connection
 		}
 		perror("Error in receiving control from coordinator\n");
-		return;
+		pthread_exit(NULL);
 	}
 	
 	switch(control) {
@@ -125,7 +130,7 @@ void *dstmAccept(void *acceptfd)
 			/* Read oid requested and search if available */
 			if((retval = recv((int)acceptfd, &oid, sizeof(unsigned int), 0)) <= 0) {
 				perror("Error receiving object from cooridnator\n");
-				return NULL;
+				pthread_exit(NULL);
 			}
 			if((srcObj = mhashSearch(oid)) == NULL) {
 				printf("Object not found in Main Object Store %s %d\n", __FILE__, __LINE__);
@@ -138,7 +143,7 @@ void *dstmAccept(void *acceptfd)
 				ctrl = OBJECT_NOT_FOUND;
 				if(send((int)acceptfd, &ctrl, sizeof(char), MSG_NOSIGNAL) < sizeof(char)) {
 					perror("Error sending control msg to coordinator\n");
-					return NULL;
+					pthread_exit(NULL);
 				}
 			} else {
 				/* Type */
@@ -146,11 +151,11 @@ void *dstmAccept(void *acceptfd)
 				*((int *)&msg[1])=size;
 				if(send((int)acceptfd, &msg, sizeof(msg), MSG_NOSIGNAL) < sizeof(msg)) {
 					perror("Error sending size of object to coordinator\n");
-					return NULL;
+					pthread_exit(NULL);
 				}
 				if(send((int)acceptfd, h, size, MSG_NOSIGNAL) < size) {
 					perror("Error in sending object\n");
-					return NULL;
+					pthread_exit(NULL);
 				}
 			}
 			break;
@@ -172,14 +177,14 @@ void *dstmAccept(void *acceptfd)
 			printf("DEBUG -> Recv TRANS_REQUEST\n");
 			if((val = readClientReq(&transinfo, (int)acceptfd)) != 0) {
 				printf("Error in readClientReq\n");
-				return;
+				pthread_exit(NULL);
 			}
 			break;
 		case TRANS_PREFETCH:
 			printf("DEBUG -> Recv TRANS_PREFETCH\n");
 			if((val = prefetchReq((int)acceptfd)) != 0) {
 				printf("Error in readClientReq\n");
-				return;
+				pthread_exit(NULL);
 			}
 			break;
 		case START_REMOTE_THREAD:
@@ -220,6 +225,8 @@ int readClientReq(trans_commit_data_t *transinfo, int acceptfd) {
 	fixed_data_t fixed;
 	objheader_t *headaddr;
 	int sum = 0, i, N, n, val;
+
+	oidmod = NULL;
 
 	/* Read fixed_data_t data structure */ 
 	N = sizeof(fixed) - 1;
@@ -274,6 +281,11 @@ int readClientReq(trans_commit_data_t *transinfo, int acceptfd) {
 
 	/* Create an array of oids for modified objects */
 	oidmod = (unsigned int *) calloc(fixed.nummod, sizeof(unsigned int));
+	if (oidmod == NULL)
+	{
+		printf("calloc error %s, %d\n", __FILE__, __LINE__);
+		return 1;
+	}
 	ptr = (char *) modptr;
 	for(i = 0 ; i < fixed.nummod; i++) {
 	  int tmpsize;
@@ -416,7 +428,7 @@ char handleTransReq(fixed_data_t *fixed, trans_commit_data_t *transinfo, unsigne
 	short version;
 	char control = 0, *ptr;
 	unsigned int oid;
-	unsigned int *oidnotfound, *oidlocked, *oidmod;
+	unsigned int *oidnotfound, *oidlocked;
 	void *mobj;
 	objheader_t *headptr;
 
@@ -452,7 +464,6 @@ char handleTransReq(fixed_data_t *fixed, trans_commit_data_t *transinfo, unsigne
 
 		if ((mobj = mhashSearch(oid)) == NULL) {/* Obj not found */
 			/* Save the oids not found and number of oids not found for later use */
-			//oidnotfound[objnotfound] = OID(((objheader_t *)mobj));
 			oidnotfound[objnotfound] = oid;
 			objnotfound++;
 		} else { /* If Obj found in machine (i.e. has not moved) */

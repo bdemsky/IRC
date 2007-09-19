@@ -227,7 +227,7 @@ objheader_t *transCreateObj(transrecord_t *, unsigned int); //returns oid
 int transCommit(transrecord_t *record); //return 0 if successful
 void *transRequest(void *);	//the C routine that the thread will execute when TRANS_REQUEST begins
 void *handleLocalReq(void *);	//the C routine that the local m/c thread will execute 
-int decideResponse(thread_data_array_t *);// Coordinator decides what response to send to the participant
+void decideResponse(thread_data_array_t *);// Coordinator decides what response to send to the participant
 char sendResponse(thread_data_array_t *, int); //Sends control message back to Participants
 void *getRemoteObj(transrecord_t *, unsigned int, unsigned int);
 int transAbortProcess(void *, unsigned int *, int, int);

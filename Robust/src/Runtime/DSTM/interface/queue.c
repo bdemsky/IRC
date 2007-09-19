@@ -74,7 +74,6 @@ void queueDisplay() {
 
 void predealloc(prefetchqelem_t *node) {
 	free(node);
-	node->next = NULL;
 }
 
 
