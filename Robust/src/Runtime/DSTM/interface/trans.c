@@ -27,10 +27,11 @@
 
 /* Global Variables */
 extern int classsize[];
-extern primarypfq_t pqueue; // shared prefetch queue
+extern primarypfq_t pqueue; //Shared prefetch queue
 extern mcpileq_t mcqueue;  //Shared queue containing prefetch requests sorted by remote machineids 
 objstr_t *prefetchcache; //Global Prefetch cache
 pthread_mutex_t prefetchcache_mutex;// Mutex to lock Prefetch Cache
+pthread_mutexattr_t prefetchcache_mutex_attr; /* Attribute for lock to make it a recursive lock */
 extern pthread_mutex_t mainobjstore_mutex;// Mutex to lock main Object store
 extern prehashtable_t pflookup; //Global Prefetch cache's lookup table
 pthread_t wthreads[NUM_THREADS]; //Worker threads for working on the prefetch queue
@@ -125,7 +126,13 @@ void transInit() {
 	int t, rc;
 	//Create and initialize prefetch cache structure
 	prefetchcache = objstrCreate(PREFETCH_CACHE_SIZE);
-	pthread_mutex_init(&prefetchcache_mutex, NULL);
+
+	/* Initialize attributes for mutex */
+	pthread_mutexattr_init(&prefetchcache_mutex_attr);
+	pthread_mutexattr_settype(&prefetchcache_mutex_attr, PTHREAD_MUTEX_RECURSIVE_NP);
+	
+	pthread_mutex_init(&prefetchcache_mutex, &prefetchcache_mutex_attr);
+
 	//Create prefetch cache lookup table
 	if(prehashCreate(HASH_SIZE, LOADFACTOR))
 		return; //Failure
@@ -207,8 +214,7 @@ objheader_t *transRead(transrecord_t *record, unsigned int oid) {
 #endif
 	} else if ((objheader = (objheader_t *) mhashSearch(oid)) != NULL) {
 		/* Look up in machine lookup table  and copy  into cache*/
-		tmp = mhashSearch(oid);
-		GETSIZE(size, tmp);
+		GETSIZE(size, objheader);
 		size += sizeof(objheader_t);
 		//TODO:Lock the local trans cache while copying the object here
 		objcopy = objstrAlloc(record->cache, size);
@@ -236,7 +242,7 @@ objheader_t *transRead(transrecord_t *record, unsigned int oid) {
 #endif
 	} else {
 		/*If object not found in prefetch cache then block until object appears in the prefetch cache */
-		pthread_mutex_lock(&prefetchcache_mutex);
+		pthread_mutex_lock(&pflookup.lock);
 		while(!found) {
 		 	rc = pthread_cond_timedwait(&pflookup.cond, &pflookup.lock, &ts);
 			if(rc == ETIMEDOUT) {
@@ -249,14 +255,14 @@ objheader_t *transRead(transrecord_t *record, unsigned int oid) {
 					objcopy = objstrAlloc(record->cache, size);
 					memcpy(objcopy, (void *)tmp, size);
 					chashInsert(record->lookupTable, OID(tmp), objcopy); 
-					pthread_mutex_unlock(&prefetchcache_mutex);
+					pthread_mutex_unlock(&pflookup.lock);
 #ifdef COMPILER
 					return &objcopy[1];
 #else
 					return objcopy;
 #endif
 				} else {
-					pthread_mutex_unlock(&prefetchcache_mutex);
+					pthread_mutex_unlock(&pflookup.lock);
 					break;
 				}
 			}
@@ -535,6 +541,9 @@ int transCommit(transrecord_t *record) {
 	/* Retry trans commit procedure if not sucessful in the first try */
 	} while (treplyretry == 1);
 	
+	/* Free Resources */
+	objstrDelete(record->cache);
+	chashDelete(record->lookupTable);
 	free(record);
 	return 0;
 }
@@ -677,19 +686,13 @@ void decideResponse(thread_data_array_t *tdata) {
 		}
 	}
 
-	/* Send Abort */
 	if(transdisagree > 0) {
+		/* Send Abort */
 		*(tdata->replyctrl) = TRANS_ABORT;
-		/* Free resources */
-		objstrDelete(tdata->rec->cache);
-		chashDelete(tdata->rec->lookupTable);
 	} else if(transagree == tdata->buffer->f.mcount){
 		/* Send Commit */
 		*(tdata->replyctrl) = TRANS_COMMIT;
-		/* Free resources */
-		objstrDelete(tdata->rec->cache);
-		chashDelete(tdata->rec->lookupTable);
-	} else { /* (transsoftabort > 0 && transdisagree == 0) */
+	} else { 
 		/* Send Abort in soft abort case followed by retry commiting transaction again*/
 		*(tdata->replyctrl) = TRANS_ABORT;
 		*(tdata->replyretry) = 1;
@@ -1039,6 +1042,10 @@ int transComProcess(void *modptr, unsigned int *oidmod, unsigned int *oidcreated
 		header->version += 1;
 	}
 
+	/*If object is in prefetch cache then update it in prefetch cache */ 
+
+
+	/* If object is newly created inside transaction then commit it */
 	for (i = 0; i < numcreated; i++)
 	{
 		int tmpsize;
@@ -1046,7 +1053,6 @@ int transComProcess(void *modptr, unsigned int *oidmod, unsigned int *oidcreated
 		mhashInsert(oidcreated[i], (((char *)modptr) + offset));
 		GETSIZE(tmpsize, header);
 		offset += sizeof(objheader_t) + tmpsize;
-
 		lhashInsert(oidcreated[i], myIpAddr);
 	}
 

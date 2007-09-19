@@ -24,6 +24,7 @@ typedef struct prefetchpile {
 typedef struct mcpileq {
 	prefetchpile_t *front, *rear;
 	pthread_mutex_t qlock;
+	pthread_mutexattr_t qlockattr;
 	pthread_cond_t qcond;
 }mcpileq_t;
 

@@ -14,6 +14,7 @@ typedef struct prefetchqelem {
 typedef struct primarypfq {
 	prefetchqelem_t *front, *rear;
 	pthread_mutex_t qlock;
+	pthread_mutexattr_t qlockattr;
 	pthread_cond_t qcond;
 } primarypfq_t; 
 

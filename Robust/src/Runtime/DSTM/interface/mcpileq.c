@@ -5,22 +5,13 @@ mcpileq_t mcqueue;
 void mcpileqInit(void) {
 	/* Initialize machine queue that containing prefetch oids and offset values  sorted by remote machineid */  
 	mcqueue.front = mcqueue.rear = NULL;
-	pthread_mutex_init(&mcqueue.qlock, NULL); 
+	//Intiliaze and set machile pile queue's mutex attribute
+	pthread_mutexattr_init(&mcqueue.qlockattr);
+	pthread_mutexattr_settype(&mcqueue.qlockattr, PTHREAD_MUTEX_RECURSIVE_NP);
+	//pthread_mutex_init(&mcqueue.qlock, NULL); 
+	pthread_mutex_init(&mcqueue.qlock,&mcqueue.qlockattr); 
 	pthread_cond_init(&mcqueue.qcond, NULL); 
 }
-
-/* Insert to the rear of machine pile queue */
-/*
-void mcpileenqueue(prefetchpile_t *node) {
-	if(mcqueue.front == NULL && mcqueue.rear == NULL) {
-		mcqueue.front = mcqueue.rear = node;
-	} else {
-		node->next = NULL;
-		mcqueue.rear->next = node;
-		mcqueue.rear = node;
-	}
-}
-*/
 
 /* Insert to the rear of machine pile queue */
 void mcpileenqueue(prefetchpile_t *node) {

@@ -27,7 +27,7 @@ unsigned int prehashCreate(unsigned int size, float loadfactor) {
 	//Initialize mutex var
 	pthread_mutex_init(&pflookup.lock, &pflookup.prefetchmutexattr);
 	//pthread_mutex_init(&pflookup.lock, NULL);
-        
+	pthread_cond_init(&pflookup.cond, NULL); 
 	return 0;
 }
 
