@@ -35,7 +35,6 @@ int dstmInit(void)
 	/* Initialize attribute for mutex */
 	pthread_mutexattr_init(&mainobjstore_mutex_attr);
 	pthread_mutexattr_settype(&mainobjstore_mutex_attr, PTHREAD_MUTEX_RECURSIVE_NP);
-	//pthread_mutex_init(&mainobjstore_mutex, NULL);
 	pthread_mutex_init(&mainobjstore_mutex, &mainobjstore_mutex_attr);
 	if (mhashCreate(HASH_SIZE, LOADFACTOR))
 		return 1; //failure
@@ -96,8 +95,12 @@ void *dstmListen()
 	printf("Listening on port %d, fd = %d\n", LISTEN_PORT, listenfd);
 	while(1)
 	{
-		acceptfd = accept(listenfd, (struct sockaddr *)&client_addr, &addrlength);
-		pthread_create(&thread_dstm_accept, NULL, dstmAccept, (void *)acceptfd);
+	  int retval;
+	  acceptfd = accept(listenfd, (struct sockaddr *)&client_addr, &addrlength);
+	  do {
+	    retval=pthread_create(&thread_dstm_accept, NULL, dstmAccept, (void *)acceptfd);
+	  } while(retval!=0);
+	  pthread_detach(thread_dstm_accept);
 	}
 }
 /* This function accepts a new connection request, decodes the control message in the connection 

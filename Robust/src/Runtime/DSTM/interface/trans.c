@@ -106,7 +106,7 @@ int dstmStartup(const char * option) {
 
   if (master) {
     pthread_attr_init(&attr);
-    pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
+    pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
     pthread_create(&thread_Listen, &attr, dstmListen, NULL);
     return 1;
   } else {
@@ -124,6 +124,7 @@ int dstmStartup(const char * option) {
  * processes the prefetch requests */
 void transInit() {
 	int t, rc;
+	int retval;
 	//Create and initialize prefetch cache structure
 	prefetchcache = objstrCreate(PREFETCH_CACHE_SIZE);
 
@@ -141,15 +142,19 @@ void transInit() {
 	//Initialize machine pile w/prefetch oids and offsets shared queue
 	mcpileqInit();
 	//Create the primary prefetch thread 
-	pthread_create(&tPrefetch, NULL, transPrefetch, NULL);
+	
+	do {
+	  retval=pthread_create(&tPrefetch, NULL, transPrefetch, NULL);
+	} while(retval!=0);
+	pthread_detach(tPrefetch);
+
 	//Create and Initialize a pool of threads 
 	/* Threads are active for the entire period runtime is running */
 	for(t = 0; t< NUM_THREADS; t++) {
+	  do {
 		rc = pthread_create(&wthreads[t], NULL, mcqProcess, (void *)t);
-		if (rc) {
-			printf("Thread create error %s, %d\n", __FILE__, __LINE__);
-			return;
-		}
+	  } while(rc!=0);
+	  pthread_detach(wthreads[t]);
 	}
 }
 
@@ -181,6 +186,7 @@ void randomdelay(void)
 /* This function initializes things required in the transaction start*/
 transrecord_t *transStart()
 {
+  printf("Starting transaction\n");
 	transrecord_t *tmp = malloc(sizeof(transrecord_t));
 	tmp->cache = objstrCreate(1048576);
 	tmp->lookupTable = chashCreate(HASH_SIZE, LOADFACTOR);
@@ -467,7 +473,9 @@ int transCommit(transrecord_t *record) {
 			thread_data_array[threadnum].rec = record;
 			/* If local do not create any extra connection */
 			if(pile->mid != myIpAddr) { /* Not local */
+			  do {
 				rc = pthread_create(&thread[threadnum], &attr, transRequest, (void *) &thread_data_array[threadnum]);  
+			  } while(rc!=0);
 				if(rc) {
 					perror("Error in pthread create\n");
 					pthread_cond_destroy(&tcond);
@@ -484,7 +492,9 @@ int transCommit(transrecord_t *record) {
 			} else { /*Local*/
 				ltdata->tdata = &thread_data_array[threadnum];
 				ltdata->transinfo = &transinfo;
+				do {
 				val = pthread_create(&thread[threadnum], &attr, handleLocalReq, (void *) ltdata);
+				} while(val!=0);
 				if(val) {
 					perror("Error in pthread create\n");
 					pthread_cond_destroy(&tcond);
