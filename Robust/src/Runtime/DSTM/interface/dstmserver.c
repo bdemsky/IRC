@@ -370,11 +370,9 @@ int processClientReq(fixed_data_t *fixed, trans_commit_data_t *transinfo,
 				perror("Error sending ACK to coordinator\n");
 				if (transinfo->objlocked != NULL) {
 					free(transinfo->objlocked);
-					transinfo->objlocked = NULL;
 				}
 				if (transinfo->objnotfound != NULL) {
 					free(transinfo->objnotfound);
-					transinfo->objnotfound = NULL;
 				}
 
 				return 1;
@@ -391,11 +389,9 @@ int processClientReq(fixed_data_t *fixed, trans_commit_data_t *transinfo,
 				fflush(stdout);
 				if (transinfo->objlocked != NULL) {
 					free(transinfo->objlocked);
-					transinfo->objlocked = NULL;
 				}
 				if (transinfo->objnotfound != NULL) {
 					free(transinfo->objnotfound);
-					transinfo->objnotfound = NULL;
 				}
 				return 1;
 			}
@@ -417,11 +413,9 @@ int processClientReq(fixed_data_t *fixed, trans_commit_data_t *transinfo,
 
 	if (transinfo->objlocked != NULL) {
 		free(transinfo->objlocked);
-		transinfo->objlocked = NULL;
 	}
 	if (transinfo->objnotfound != NULL) {
 		free(transinfo->objnotfound);
-		transinfo->objnotfound = NULL;
 	}
 
 	return 0;
@@ -475,7 +469,7 @@ char handleTransReq(fixed_data_t *fixed, trans_commit_data_t *transinfo, unsigne
 		} else { /* If Obj found in machine (i.e. has not moved) */
 			/* Check if Obj is locked by any previous transaction */
 			if ((STATUS(((objheader_t *)mobj)) & LOCK) == LOCK) { 		
-				if (version == ((objheader_t *)mobj)->version) {      /* If not locked then match versions */
+				if (version == ((objheader_t *)mobj)->version) {      /* If locked then match versions */
 					v_matchlock++;
 				} else {/* If versions don't match ...HARD ABORT */
 					v_nomatch++;
@@ -618,7 +612,6 @@ int transCommitProcess(void *modptr, unsigned int *oidmod, unsigned int *oidlock
 
 	/* Send ack to coordinator */
 	control = TRANS_SUCESSFUL;
-	printf("DEBUG-> TRANS_SUCESSFUL\n");
 	if(send((int)acceptfd, &control, sizeof(char), MSG_NOSIGNAL) < sizeof(char)) {
 		perror("Error sending ACK to coordinator\n");
 	}

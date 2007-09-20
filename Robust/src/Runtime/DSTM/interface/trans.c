@@ -186,7 +186,7 @@ void randomdelay(void)
 /* This function initializes things required in the transaction start*/
 transrecord_t *transStart()
 {
-  printf("Starting transaction\n");
+	printf("Starting transaction\n");
 	transrecord_t *tmp = malloc(sizeof(transrecord_t));
 	tmp->cache = objstrCreate(1048576);
 	tmp->lookupTable = chashCreate(HASH_SIZE, LOADFACTOR);
@@ -546,8 +546,9 @@ int transCommit(transrecord_t *record) {
 		free(ltdata);
 
 		/* wait a random amount of time */
-		if (treplyretry == 1) 
+		if (treplyretry == 1) {
 			randomdelay();
+		}
 
 	/* Retry trans commit procedure if not sucessful in the first try */
 	} while (treplyretry == 1);
@@ -699,9 +700,11 @@ void decideResponse(thread_data_array_t *tdata) {
 	if(transdisagree > 0) {
 		/* Send Abort */
 		*(tdata->replyctrl) = TRANS_ABORT;
+		*(tdata->replyretry) = 0;
 	} else if(transagree == tdata->buffer->f.mcount){
 		/* Send Commit */
 		*(tdata->replyctrl) = TRANS_COMMIT;
+		*(tdata->replyretry) = 0;
 	} else { 
 		/* Send Abort in soft abort case followed by retry commiting transaction again*/
 		*(tdata->replyctrl) = TRANS_ABORT;
@@ -900,8 +903,8 @@ void *handleLocalReq(void *threadarg) {
 			objnotfound++;
 		} else { /* If Obj found in machine (i.e. has not moved) */
 			/* Check if Obj is locked by any previous transaction */
-			if (STATUS(((objheader_t *)mobj)) & LOCK) {
-				if (version == ((objheader_t *)mobj)->version) {      /* If not locked then match versions */ 
+			if ((STATUS(((objheader_t *)mobj)) & LOCK) == LOCK) {
+				if (version == ((objheader_t *)mobj)->version) {      /* If locked then match versions */ 
 					v_matchlock++;
 				} else {/* If versions don't match ...HARD ABORT */
 					v_nomatch++;
