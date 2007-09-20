@@ -24,6 +24,7 @@ extern int classsize[];
 
 objstr_t *mainobjstore;
 pthread_mutex_t mainobjstore_mutex;
+pthread_mutexattr_t mainobjstore_mutex_attr; /* Attribute for lock to make it a recursive lock */
 
 /* This function initializes the main objects store and creates the 
  * global machine and location lookup table */
@@ -31,7 +32,11 @@ pthread_mutex_t mainobjstore_mutex;
 int dstmInit(void)
 {
 	mainobjstore = objstrCreate(DEFAULT_OBJ_STORE_SIZE);
-	pthread_mutex_init(&mainobjstore_mutex, NULL);
+	/* Initialize attribute for mutex */
+	pthread_mutexattr_init(&mainobjstore_mutex_attr);
+	pthread_mutexattr_settype(&mainobjstore_mutex_attr, PTHREAD_MUTEX_RECURSIVE_NP);
+	//pthread_mutex_init(&mainobjstore_mutex, NULL);
+	pthread_mutex_init(&mainobjstore_mutex, &mainobjstore_mutex_attr);
 	if (mhashCreate(HASH_SIZE, LOADFACTOR))
 		return 1; //failure
 	
@@ -357,7 +362,6 @@ int processClientReq(fixed_data_t *fixed, trans_commit_data_t *transinfo,
 			}
 
 			/* Send ack to Coordinator */
-			printf("DEBUG -> Recv TRANS_ABORT\n");
 			sendctrl = TRANS_SUCESSFUL;
 			if(send((int)acceptfd, &sendctrl, sizeof(char), MSG_NOSIGNAL) < sizeof(char)) {
 				perror("Error sending ACK to coordinator\n");
@@ -377,7 +381,6 @@ int processClientReq(fixed_data_t *fixed, trans_commit_data_t *transinfo,
 
 		case TRANS_COMMIT:
 			/* Invoke the transCommit process() */
-			printf("DEBUG -> Recv TRANS_COMMIT \n");
 			if((val = transCommitProcess(modptr, oidmod, transinfo->objlocked, fixed->nummod, transinfo->numlocked, (int)acceptfd)) != 0) {
 				printf("Error in transCommitProcess %s, %d\n", __FILE__, __LINE__);
 				/* Free memory */
@@ -479,7 +482,6 @@ char handleTransReq(fixed_data_t *fixed, trans_commit_data_t *transinfo, unsigne
 						perror("Error in sending control to the Coordinator\n");
 						return 0;
 					}
-					printf("DEBUG -> Sending TRANS_DISAGREE\n");
 					return control;
 				}
 			} else {/* If Obj is not locked then lock object */
@@ -503,7 +505,10 @@ char handleTransReq(fixed_data_t *fixed, trans_commit_data_t *transinfo, unsigne
 						perror("Error in sending control to the Coordinator\n");
 						return 0;
 					}
-					printf("DEBUG -> Sending TRANS_DISAGREE\n");
+					if (objlocked > 0) {
+						STATUS(((objheader_t *)mobj)) &= ~(LOCK);
+						free(oidlocked);
+					}
 					return control;
 				}
 			}
@@ -535,7 +540,6 @@ int decideCtrlMessage(fixed_data_t *fixed, trans_commit_data_t *transinfo, int *
 			perror("Error in sending control to Coordinator\n");
 			return 0;
 		}
-		printf("DEBUG -> Sending TRANS_AGREE\n");
 	}
 	/* Condition to send TRANS_SOFT_ABORT */
 	if((*(v_matchlock) > 0 && *(v_nomatch) == 0) || (*(objnotfound) > 0 && *(v_nomatch) == 0)) {
@@ -543,7 +547,6 @@ int decideCtrlMessage(fixed_data_t *fixed, trans_commit_data_t *transinfo, int *
 		char msg[]={TRANS_SOFT_ABORT, 0,0,0,0};
 		*((int*)&msg[1])= *(objnotfound);
 
-		printf("DEBUG -> Sending TRANS_SOFT_ABORT\n");
 		/* Send control message */
 		if((val = send(acceptfd, &msg, sizeof(msg),MSG_NOSIGNAL)) < sizeof(msg)) {
 			perror("Error in sending no of objects that are not found\n");
