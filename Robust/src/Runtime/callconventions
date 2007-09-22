@@ -1,0 +1,10 @@
+All calling conventions for native methods are #defines
+
+We support two types of garbage collectors
+1. Precise Garbage Collector
+2. Conservative Garbage Collector
+
+CALLXX => CALL, no of additional parameters other than the name, no of parameters for garbage collection
+for e.g. 
+CALL11(x, y, y)
+call, 1= number of parameters i.e. y,  1= No of parameters to be garbage collected i.e. y

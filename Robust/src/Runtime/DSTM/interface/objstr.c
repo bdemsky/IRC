@@ -38,12 +38,16 @@ void *objstrAlloc(objstr_t *store, unsigned int size)
 			if (size > DEFAULT_OBJ_STORE_SIZE) //in case of large objects
 			{
 				store->next = (objstr_t *)malloc(sizeof(objstr_t) + size);
+				if (store->next == NULL)
+					return NULL;
 				store = store->next;
 				store->size = size;
 			}
 			else
 			{
 				store->next = malloc(sizeof(objstr_t) + DEFAULT_OBJ_STORE_SIZE);
+				if (store->next == NULL)
+					return NULL;
 				store = store->next;
 				store->size = DEFAULT_OBJ_STORE_SIZE;
 			}

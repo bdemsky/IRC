@@ -203,13 +203,9 @@ void *dstmAccept(void *acceptfd)
 				printf("dstmAccept(): incorrect msg size %d for START_REMOTE_THREAD\n",
 					retval);
 			else
-			{ //TODO: execute run method on this global thread object
-				printf("dstmAccept(): received START_REMOTE_THREAD msg, oid=0x%x\n", oid);
+			{
 				objType = getObjType(oid);
-				printf("dstmAccept(): type of object 0x%x is %d\n", oid, objType);
 				startDSMthread(oid, objType);
-
-
 			}
 			break;
 
@@ -270,16 +266,11 @@ int readClientReq(trans_commit_data_t *transinfo, int acceptfd) {
 	}
 	
 	/* Read modified objects */
-	if(fixed.nummod != 0) { // If pile contains more than one modified object,
-				// allocate new object store and recv all modified objects
-				// TODO deallocate this space
-		pthread_mutex_lock(&mainobjstore_mutex);
-		if ((modptr = objstrAlloc(mainobjstore, fixed.sum_bytes)) == NULL) {
-			printf("objstrAlloc error for modified objects %s, %d\n", __FILE__, __LINE__);
-			pthread_mutex_unlock(&mainobjstore_mutex);
+	if(fixed.nummod != 0) {
+		if ((modptr = calloc(1, fixed.sum_bytes)) == NULL) {
+			printf("calloc error for modified objects %s, %d\n", __FILE__, __LINE__);
 			return 1;
 		}
-		pthread_mutex_unlock(&mainobjstore_mutex);
 		sum = 0;
 		do { // Recv the objs that are modified by the Coordinator
 			n = recv((int)acceptfd, (char *) modptr+sum, fixed.sum_bytes-sum, 0);
@@ -310,7 +301,6 @@ int readClientReq(trans_commit_data_t *transinfo, int acceptfd) {
 		/* Free resources */
 		if(oidmod != NULL) {
 			free(oidmod);
-			oidmod = NULL;
 		}
 		return 1;
 	}
@@ -318,7 +308,6 @@ int readClientReq(trans_commit_data_t *transinfo, int acceptfd) {
 	/* Free resources */
 	if(oidmod != NULL) {
 		free(oidmod);
-		oidmod = NULL;
 	}
 
 	return 0;
@@ -349,15 +338,8 @@ int processClientReq(fixed_data_t *fixed, trans_commit_data_t *transinfo,
 	/* Process the new control message */
 	switch(control) {
 		case TRANS_ABORT:
-			/* Set all ref counts as 1 and do garbage collection */
-			ptr = modptr;
-			for(i = 0; i< fixed->nummod; i++) {
-			  int tmpsize;
-			  tmp_header = (objheader_t *)ptr;
-			  tmp_header->rcount = 0;
-			  GETSIZE(tmpsize, tmp_header);
-			  ptr += sizeof(objheader_t) + tmpsize;
-			}
+			if (fixed->nummod > 0)
+				free(modptr);
 			/* Unlock objects that was locked due to this transaction */
 			for(i = 0; i< transinfo->numlocked; i++) {
 				header = mhashSearch(transinfo->objlocked[i]);// find the header address
@@ -385,8 +367,6 @@ int processClientReq(fixed_data_t *fixed, trans_commit_data_t *transinfo,
 			if((val = transCommitProcess(modptr, oidmod, transinfo->objlocked, fixed->nummod, transinfo->numlocked, (int)acceptfd)) != 0) {
 				printf("Error in transCommitProcess %s, %d\n", __FILE__, __LINE__);
 				/* Free memory */
-				printf("DEBUG -> Freeing...\n");
-				fflush(stdout);
 				if (transinfo->objlocked != NULL) {
 					free(transinfo->objlocked);
 				}
@@ -408,9 +388,6 @@ int processClientReq(fixed_data_t *fixed, trans_commit_data_t *transinfo,
 	}
 
 	/* Free memory */
-	printf("DEBUG -> Freeing...\n");
-	fflush(stdout);
-
 	if (transinfo->objlocked != NULL) {
 		free(transinfo->objlocked);
 	}
@@ -425,7 +402,7 @@ int processClientReq(fixed_data_t *fixed, trans_commit_data_t *transinfo,
  * in TRANS_REQUEST and If a TRANS_DISAGREE sends the response immediately back to the coordinator */
 char handleTransReq(fixed_data_t *fixed, trans_commit_data_t *transinfo, unsigned int *listmid, char *objread, void *modptr, int acceptfd) {
 	int val, i = 0;
-	short version;
+	unsigned short version;
 	char control = 0, *ptr;
 	unsigned int oid;
 	unsigned int *oidnotfound, *oidlocked;
@@ -450,7 +427,7 @@ char handleTransReq(fixed_data_t *fixed, trans_commit_data_t *transinfo, unsigne
 			incr *= i;
 			oid = *((unsigned int *)(objread + incr));
 			incr += sizeof(unsigned int);
-			version = *((short *)(objread + incr));
+			version = *((unsigned short *)(objread + incr));
 		} else {//Objs modified
 		  int tmpsize;
 		  headptr = (objheader_t *) ptr;
@@ -483,12 +460,6 @@ char handleTransReq(fixed_data_t *fixed, trans_commit_data_t *transinfo, unsigne
 				}
 			} else {/* If Obj is not locked then lock object */
 				STATUS(((objheader_t *)mobj)) |= LOCK;
-			       
-				/*TESTING Add random wait to make transactions run for a long time such that
-				 * we can test for soft abort case */
-			
-				//randomdelay();
-
 				/* Save all object oids that are locked on this machine during this transaction request call */
 				oidlocked[objlocked] = OID(((objheader_t *)mobj));
 				objlocked++;
@@ -575,8 +546,10 @@ int decideCtrlMessage(fixed_data_t *fixed, trans_commit_data_t *transinfo, int *
  * Sends an ACK back to Coordinator */
 int transCommitProcess(void *modptr, unsigned int *oidmod, unsigned int *oidlocked, int nummod, int numlocked, int acceptfd) {
 	objheader_t *header;
+	objheader_t *newheader;
 	int i = 0, offset = 0;
 	char control;
+	int tmpsize;
 
 	/* Process each modified object saved in the mainobject store */
 	for(i = 0; i < nummod; i++) {
@@ -584,21 +557,16 @@ int transCommitProcess(void *modptr, unsigned int *oidmod, unsigned int *oidlock
 			printf("mhashsearch returns NULL at %s, %d\n", __FILE__, __LINE__);
 			return 1;
 		}
-		/* Change reference count of older address and free space in objstr ?? */
-		header->rcount = 0;
-
-		/* Change ptr address in mhash table */
-		mhashRemove(oidmod[i]);
-		mhashInsert(oidmod[i], (((char *)modptr) + offset));
-		{
-		  int tmpsize;
-		  GETSIZE(tmpsize,header);
-		  offset += sizeof(objheader_t) + tmpsize;
-		}
-		/* Update object version number */
-		header = (objheader_t *) mhashSearch(oidmod[i]);
+		GETSIZE(tmpsize,header);
+		pthread_mutex_lock(&mainobjstore_mutex);
+		memcpy(header, (char *)modptr + offset, tmpsize + sizeof(objheader_t));
 		header->version += 1; 
+		pthread_mutex_unlock(&mainobjstore_mutex);
+		offset += sizeof(objheader_t) + tmpsize;
 	}
+
+	if (nummod > 0)
+		free(modptr);
 
 	/* Unlock locked objects */
 	for(i = 0; i < numlocked; i++) {
