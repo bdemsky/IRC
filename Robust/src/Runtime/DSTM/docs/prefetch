@@ -1,0 +1,4 @@
+1. Start with flat representation
+2. Analyze representation to figure out where to insert prefetches
+3. Use analysis results to insert prefetch nodes into the flat representation
+4. Modify BuildCode to generate C code from our new flatprefetchnodes
