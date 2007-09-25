@@ -405,12 +405,8 @@ public class BuildCode {
 	    outclassdefs.println("  int flag;");
 	    outclassdefs.println("  void * flagptr;");
 	    if(state.OPTIONAL){
-		outclassdefs.println("  int failedstatus;");
-		outclassdefs.println("  int hashcode;");
 		outclassdefs.println("  int numexitfses;");
 		outclassdefs.println("  int * exitfses;");
-		outclassdefs.println("  int numotds;");
-		outclassdefs.println("  struct optionaltaskdescriptor ** otds;");
 	    }
 	}
 	printClassStruct(typeutil.getClass(TypeUtil.ObjectClass), outclassdefs);

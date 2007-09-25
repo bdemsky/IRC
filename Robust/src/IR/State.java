@@ -43,6 +43,7 @@ public class State {
     public boolean WEBINTERFACE=false;
     public boolean TASK=false;
     public boolean DSM=false;
+    public boolean PREFETCH=false;
     public boolean TASKSTATE=false;
     public boolean OPTIONAL=false;
     public boolean THREAD=false;
