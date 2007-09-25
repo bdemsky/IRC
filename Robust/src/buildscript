@@ -10,6 +10,7 @@ echo -specdir directory
 echo -taskstate do task state analysis
 echo -optional enable optional
 echo -debug generate debug symbols
+echo -prefetch prefetch analysis
 echo -webinterface enable web interface
 echo -runtimedebug printout runtime debug messages
 echo "-thread use support for multiple threads"
@@ -63,6 +64,9 @@ elif [[ $1 = '-dsm' ]]
 then
 JAVAOPTS="$JAVAOPTS -dsm"
 DSMFLAG=true
+elif [[ $1 = '-prefetch' ]]
+then
+JAVAOPTS="$JAVAOPTS -prefetch"
 elif [[ $1 = '-mac' ]]
 then
 EXTRAOPTIONS="$EXTRAOPTIONS -DMAC"

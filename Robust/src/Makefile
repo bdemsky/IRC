@@ -75,7 +75,7 @@ Interface/HTTPHeader.class Interface/HTTPResponse.class			\
 Interface/HTTPServices.class Interface/HashStrings.class		\
 Interface/JhttpServer.class Interface/JhttpWorker.class			\
 Interface/LogFile.class Interface/Pair.class				\
-Interface/WebInterface.class
+Interface/WebInterface.class Analysis/Prefetch/PrefetchAnalysis.class
 
 
 
