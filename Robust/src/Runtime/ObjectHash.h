@@ -23,11 +23,11 @@ void ObjectHashaddChild(struct ObjectHash *thisvar, struct ObjectHash * child);
 void freeObjectHash(struct ObjectHash *);
 
 void ObjectHashrehash(struct ObjectHash * thisvar);
-int ObjectHashadd(struct ObjectHash *, int key, int data, int data2);
+int ObjectHashadd(struct ObjectHash *, int key, int data, int data2, int data3, int data4);
 int ObjectHashremove(struct ObjectHash *,int key);
 bool ObjectHashcontainskey(struct ObjectHash *,int key);
 bool ObjectHashcontainskeydata(struct ObjectHash *,int key, int data);
-int ObjectHashget(struct ObjectHash *,int key, int* data, int* data2);
+int ObjectHashget(struct ObjectHash *,int key, int* data, int* data2, int * data3, int* data4);
 void ObjectHashaddParent(struct ObjectHash *,struct ObjectHash* parent);
 int ObjectHashfirstkey(struct ObjectHash *);
 struct ObjectIterator* ObjectHashcreateiterator(struct ObjectHash *);
@@ -53,6 +53,8 @@ struct ObjectNode {
   int key;
   int data;
   int data2;
+  int data3;
+  int data4;
 };
 
 struct ObjectIterator {
@@ -68,5 +70,11 @@ inline int ObjasNext(struct ObjectIterator *thisvar);
 inline int Objnext(struct ObjectIterator *thisvar);
 
 inline int Objkey(struct ObjectIterator *thisvar);
+
+inline int Objdata(struct ObjectIterator *thisvar);
+inline int Objdata2(struct ObjectIterator *thisvar);
+inline int Objdata3(struct ObjectIterator *thisvar);
+inline int Objdata4(struct ObjectIterator *thisvar);
+
 
 #endif

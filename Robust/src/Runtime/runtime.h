@@ -17,6 +17,12 @@ extern int failurecount;
 #define ARRAYGET(array, type, index) \
 ((type *)(&(& array->___length___)[1]))[index]
 
+#ifdef OPTIONAL
+#define OPTARG(x) , x
+#else
+#define OPTARG(x)
+#endif
+
 #ifdef DSTM
 void * allocate_newglobal(transrecord_t *, int type);
 struct ArrayObject * allocate_newarrayglobal(transrecord_t *, int type, int length);
@@ -73,6 +79,16 @@ void createstartupobject();
 #include "optionalstruct.h"
 #endif
 
+#ifdef OPTIONAL
+struct failedtasklist {
+  struct taskdescriptor *task;
+  int index;
+  int numflags;
+  int *flags;
+  struct failedtasklist *next;
+};
+#endif
+
 void flagorand(void * ptr, int ormask, int andmask);
 void flagorandinit(void * ptr, int ormask, int andmask);
 void executetasks();
@@ -82,6 +98,9 @@ struct tagobjectiterator {
   int istag; /* 0 if object iterator, 1 if tag iterator */
   struct ObjectIterator it; /* Object iterator */
   struct ObjectHash * objectset;
+#ifdef OPTIONAL
+  int failedstate;
+#endif
   int slot;
   int tagobjindex; /* Index for tag or object depending on use */
   /*if tag we have an object binding */
@@ -108,18 +127,21 @@ struct taskparamdescriptor {
   struct taskdescriptor * task;
   int numParameters;
   void ** parameterArray;
+#ifdef OPTIONAL
+  int * failed;
+#endif
 };
 
 int hashCodetpd(struct taskparamdescriptor *);
 int comparetpd(struct taskparamdescriptor *, struct taskparamdescriptor *);
 
 void toiReset(struct tagobjectiterator * it);
-int toiHasNext(struct tagobjectiterator *it, void ** objectarray);
-void toiNext(struct tagobjectiterator *it , void ** objectarray);
+int toiHasNext(struct tagobjectiterator *it, void ** objectarray OPTARG(int * failed));
+void toiNext(struct tagobjectiterator *it , void ** objectarray OPTARG(int * failed));
 void processobject(struct parameterwrapper *parameter, int index, struct parameterdescriptor *pd, int *iteratorcount, int * statusarray, int numparams);
 void processtags(struct parameterdescriptor *pd, int index, struct parameterwrapper *parameter, int * iteratorcount, int *statusarray, int numparams);
 void builditerators(struct taskdescriptor * task, int index, struct parameterwrapper * parameter);
-void enqueuetasks(struct parameterwrapper *parameter, struct parameterwrapper *prevptr, struct ___Object___ *ptr);
+int enqueuetasks(struct parameterwrapper *parameter, struct parameterwrapper *prevptr, struct ___Object___ *ptr, int * enterflags, int numenterflags);
 
 #endif
 

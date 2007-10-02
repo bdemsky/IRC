@@ -28,9 +28,6 @@ int instaccum=0;
 #include "dmalloc.h"
 #endif
 
-
-
-
 void exithandler(int sig, siginfo_t *info, void * uap) {
   exit(0);
 }
@@ -130,6 +127,9 @@ void * allocate_new(void * ptr, int type) {
   v->lockentry=0;
   v->lockcount=0;
 #endif
+#ifdef OPTIONAL
+  v->fses=0;
+#endif
   return v;
 }
 
@@ -148,13 +148,19 @@ struct ArrayObject * allocate_newarray(void * ptr, int type, int length) {
   v->lockentry=0;
   v->lockcount=0;
 #endif
+#ifdef OPTIONAL
+  v->fses=0;
+#endif
   return v;
 }
 
 #else
 void * allocate_new(int type) {
-  void * v=FREEMALLOC(classsize[type]);
-  *((int *)v)=type;
+  struct ___Object___ * v=FREEMALLOC(classsize[type]);
+  v->type=type;
+#ifdef OPTIONAL
+  v->fses=0;
+#endif
   return v;
 }
 
@@ -164,6 +170,9 @@ struct ArrayObject * allocate_newarray(int type, int length) {
   struct ArrayObject * v=FREEMALLOC(sizeof(struct ArrayObject)+length*classsize[type]);
   v->type=type;
   v->___length___=length;
+#ifdef OPTIONAL
+  v->fses=0;
+#endif
   return v;
 }
 #endif

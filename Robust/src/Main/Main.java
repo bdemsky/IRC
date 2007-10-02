@@ -131,6 +131,7 @@ public class Main {
 
       BuildFlat bf=new BuildFlat(state,tu);
       bf.buildFlat();
+      SafetyAnalysis sa=null;
 
       if (state.TASKSTATE) {
 	  CallGraph callgraph=new CallGraph(state);
@@ -143,7 +144,7 @@ public class Main {
 	  if (state.OPTIONAL) {
 	      ExecutionGraph et=new ExecutionGraph(state, ta);
 	      et.createExecutionGraph();
-	      SafetyAnalysis sa = new SafetyAnalysis(et.getExecutionGraph(), state, ta);
+	      sa = new SafetyAnalysis(et.getExecutionGraph(), state, ta);
 	      sa.doAnalysis();
 	      state.storeAnalysisResult(sa.getResult());
 	      state.storeOptionalTaskDescriptors(sa.getOptionalTaskDescriptors());
@@ -169,7 +170,7 @@ public class Main {
 	  BuildCode bc=new BuildCode(state, bf.getMap(), tu, la);
 	  bc.buildCode();
       } else {
-	  BuildCode bc=new BuildCode(state, bf.getMap(), tu);
+	  BuildCode bc=new BuildCode(state, bf.getMap(), tu, sa);
 	  bc.buildCode();
       }
       System.exit(0);

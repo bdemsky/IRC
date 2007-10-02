@@ -97,6 +97,12 @@ int comparetpd(struct taskparamdescriptor *ftd1, struct taskparamdescriptor *ftd
   for(i=0;i<ftd1->numParameters;i++)
     if(ftd1->parameterArray[i]!=ftd2->parameterArray[i])
       return 0;
+#ifdef OPTIONAL
+  for(i=0;i<ftd1->numParameters;i++) {
+    if(ftd1->failed[i]!=ftd2->failed[i])
+      return 0;
+  }
+#endif
   return 1;
 }
 
@@ -161,7 +167,6 @@ void tagset(struct ___Object___ * obj, struct ___TagDescriptor___ * tagd) {
 
   {
     struct ___Object___ * tagset=tagd->flagptr;
-    
     if(tagset==NULL) {
       tagd->flagptr=obj;
     } else if (tagset->type!=OBJECTARRAYTYPE) {
@@ -286,517 +291,592 @@ struct ___TagDescriptor___ * allocate_tag(int index) {
 
 void flagbody(struct ___Object___ *ptr, int flag);
 #ifdef OPTIONAL
-void enqueueoptional(struct ___Object___ * currobj);
-
-struct optionaltaskdescriptor *** makeintersectionotd(int num, struct fsanalysiswrapper ** wrapperarray, int *result){
-  int i,j,k;
-  (*result)=0;
-  struct optionaltaskdescriptor *** bigtmparray = RUNMALLOC(sizeof(struct optionaltaskdescriptor **)*maxotd);
-  struct fsanalysiswrapper * tmpwrapper;
-  struct fsanalysiswrapper * firstwrapper = wrapperarray[0];/*we are sure that num>0*/
-  /*we check if the otd of the first wrapper is contained in all others*/
-  for(i=0; i<firstwrapper->numoptionaltaskdescriptors; i++){
-    struct optionaltaskdescriptor ** tmparray = RUNMALLOC(sizeof(struct optionaltaskdescriptor *) * num);
-    struct optionaltaskdescriptor * otd = firstwrapper->optionaltaskdescriptorarray[i];
-    tmparray[0]=otd;
-    for(j=1; j<num; j++){
-      tmpwrapper = wrapperarray[j];
-      for(k=0; k<tmpwrapper->numoptionaltaskdescriptors; k++){
-	struct optionaltaskdescriptor * tmpotd=tmpwrapper->optionaltaskdescriptorarray[k];
-	if(otd->task->name == tmpotd->task->name){
-	  tmparray[j]=tmpotd;
-	  goto nextwrapper;
-	}
-	RUNFREE(tmparray);
-	goto nextotd;
-      }
-    nextwrapper:
-      ;
-    }
-    bigtmparray[(*result)]=tmparray;
-    (*result)++;          
-  nextotd:
-    ;
-  }
-  
-  {/*now allocate the good size for otdarray and put the otds*/
-    struct optionaltaskdescriptor *** otdarray = RUNMALLOC(sizeof(struct optionaltaskdescriptor *) * (*result));
-    for(i=0; i<(*result); i++)     
-      otdarray[i]=bigtmparray[i];
-    
-    RUNFREE(bigtmparray);
-    return otdarray;
-  }
-}
+void enqueueoptional(struct ___Object___ * currobj, int numfailedfses, int * failedfses, struct taskdescriptor * task, int index);
 #endif
  
+ int flagcomp(const int *val1, const int *val2) {
+   return (*val1)-(*val2);
+ } 
 
 void flagorand(void * ptr, int ormask, int andmask) {
-  int oldflag=((int *)ptr)[1];
-  int flag=ormask|oldflag;
 #ifdef OPTIONAL
   struct ___Object___ * obj = (struct ___Object___ *)ptr;
-  if(obj->failedstatus==1){/*store the information about exitfses*/
-    int i,j,counter=0, offset=0;
-    for(i=0; i<obj->numotds; i++){
-      counter+=obj->otds[i]->numenterflags;
-    }
-    obj->numexitfses=counter;
-    if(obj->exitfses!=NULL) RUNFREE(obj->exitfses);
-    obj->exitfses= RUNMALLOC(sizeof(int) * counter);
-    for(i=0; i<obj->numotds; i++){
-      for(j=0; j<obj->otds[i]->numenterflags; j++){
-	oldflag=obj->otds[i]->enterflags[j];
-	flag=ormask|oldflag;
-	flag&=andmask;
-	obj->exitfses[j+offset]=flag;
+  if(obj->numfses){/*store the information about fses*/
+    int flag, i, j,counter, offset=0;
+    for(i=0;i<obj->numfses;i++) {
+      int oldoffset;
+      counter=obj->fses[offset++];
+      oldoffset=offset;
+      for(j=0;j<counter;j++) {
+	flag=obj->fses[offset];
+	obj->fses[offset++]=(flag|ormask)&andmask;
       }
-      offset+=obj->otds[i]->numenterflags;
+      qsort(&obj->fses[oldoffset], sizeof(int), counter, (int (*)(const void *, const void *)) &flagcomp);
     }
-    enqueueoptional(ptr);
+    enqueueoptional(obj, 0, NULL, NULL, 0);
   }
   else
 #endif
     {
-    flag&=andmask;
-    flagbody(ptr, flag);
+      int oldflag=((int *)ptr)[1];
+      int flag=ormask|oldflag;
+      flag&=andmask;
+      flagbody(ptr, flag);
     }
 }
  
 void intflagorand(void * ptr, int ormask, int andmask) {
-  int oldflag=((int *)ptr)[1];
-  int flag=ormask|oldflag;
 #ifdef OPTIONAL
   struct ___Object___ * obj = (struct ___Object___ *)ptr;
-  if(obj->failedstatus==1) {/*store the information about exitfses*/
-    int i,j,counter=0, offset=0;
-    for(i=0; i<obj->numotds; i++) {
-      counter+=obj->otds[i]->numenterflags;
-    }
-    obj->numexitfses=counter;
-    if(obj->exitfses!=NULL) 
-      RUNFREE(obj->exitfses);
-    obj->exitfses= RUNMALLOC(sizeof(int) * counter);
-    for(i=0; i<obj->numotds; i++) {
-      for(j=0; j<obj->otds[i]->numenterflags; j++){
-	oldflag=obj->otds[i]->enterflags[j];
-	flag=ormask|oldflag;
-	flag&=andmask;
-	obj->exitfses[j+offset]=flag;
+  if(obj->numfses) {/*store the information about fses*/
+    int flag, i, j,counter, offset=0;
+    for(i=0;i<obj->numfses;i++) {
+      int oldoffset;
+      counter=obj->fses[offset++];
+      oldoffset=offset;
+      for(j=0;j<counter;j++) {
+	flag=obj->fses[offset];
+	obj->fses[offset++]=(flag|ormask)&andmask;
       }
-      offset+=obj->otds[i]->numenterflags;
+      qsort(&obj->fses[oldoffset], sizeof(int), counter, (int (*)(const void *, const void *)) &flagcomp);
     }
-    enqueueoptional(ptr);
+    enqueueoptional(obj, 0, NULL, NULL, 0);
   }
   else
 #endif
     {
-    flag&=andmask;
-    if (flag==oldflag) /* Don't do anything */
-      return;
-    else flagbody(ptr, flag);
+      int oldflag=((int *)ptr)[1];
+      int flag=ormask|oldflag;
+      flag&=andmask;
+      if (flag==oldflag) /* Don't do anything */
+	return;
+      else flagbody(ptr, flag);
     }
 }
 
 void flagorandinit(void * ptr, int ormask, int andmask) {
   int oldflag=((int *)ptr)[1];
   int flag=ormask|oldflag;
-#ifdef OPTIONAL
-  struct ___Object___ * obj = (struct ___Object___ *)ptr;
-  if(obj->failedstatus==1){/*store the information about exitfses*/
-    int i,j,counter=0, offset=0;
-    for(i=0; i<obj->numotds; i++){
-      counter+=obj->otds[i]->numenterflags;
-    }
-    obj->numexitfses=counter;
-    if(obj->exitfses!=NULL) RUNFREE(obj->exitfses);
-    obj->exitfses= RUNMALLOC(sizeof(int) * counter);
-    for(i=0; i<obj->numotds; i++){
-      for(j=0; j<obj->otds[i]->numenterflags; j++){
-	oldflag=obj->otds[i]->enterflags[j];
-	flag=ormask|oldflag;
-	flag&=andmask;
-	obj->exitfses[j+offset]=flag;
-      }
-      offset+=obj->otds[i]->numenterflags;
-    }
-    enqueueoptional(ptr);
-  }
-  else
-#endif
-    {
-    flag&=andmask;
-    flagbody(ptr,flag);
-    }
+  flag&=andmask;
+  flagbody(ptr,flag);
 }
 
-#ifdef OPTIONAL
- removeoptionalfromqueues(int hashcode, struct ___Object___ * currobj, struct parameterwrapper * flagptr){/*find a better way to free the useless instances of the object*/
-   while(flagptr!=NULL) {
-     struct ___Object___ *temp=NULL;
-     struct parameterwrapper *ptr;
-     struct ObjectNode * node = flagptr->objectset->listhead;
-     while(node!=NULL){
-       temp=(struct ___Object___ *)node->key;
-       if(temp->failedstatus==1 && temp->hashcode==currobj->hashcode){
-	 if(temp!=currobj){
-	   ObjectHashremove(flagptr->objectset, (int)temp);//remove from wrapper
-	   //delete the fields that wont be removed by the GC.
-	   if(temp->exitfses!=NULL) RUNFREE(temp->exitfses);
-	   if(temp->otds!=NULL) RUNFREE(temp->otds);
-	   goto nextwrapper;
-	 }
-	 else{
-	   //remove from wrapper
-	   ObjectHashremove(flagptr->objectset, (int)temp);
-	   goto nextwrapper;
-	 }
-       }
-       node=node->next;
-     }
-   nextwrapper:
-     ;
-     flagptr=flagptr->next;
-   }
- } 
-#endif
- 
- void flagbody(struct ___Object___ *ptr, int flag) {
-   struct parameterwrapper *flagptr=(struct parameterwrapper *)ptr->flagptr;
-   ptr->flag=flag;
-   
-   /*Remove object from all queues */
-   while(flagptr!=NULL) {
-     struct parameterwrapper *next;
-     struct ___Object___ * tag=ptr->___tags___;
-     int FIXME;
-     ObjectHashget(flagptr->objectset, (int) ptr, (int *) &next, &FIXME);
-     ObjectHashremove(flagptr->objectset, (int)ptr);
-     flagptr=next;
-   }
-   
-   {
-     struct QueueItem *tmpptr;
-     struct parameterwrapper * parameter=objectqueues[ptr->type];
-     int i;
-     struct parameterwrapper * prevptr=NULL;
-     struct ___Object___ *tagptr=ptr->___tags___;
-     
-     /* Outer loop iterates through all parameter queues an object of
-	this type could be in.  */
-     
-     while(parameter!=NULL) {
-       /* Check tags */
-       if (parameter->numbertags>0) {
-	 if (tagptr==NULL)
-	   goto nextloop;//that means the object has no tag but that param needs tag
-	 else if(tagptr->type==TAGTYPE) {//one tag
-	   struct ___TagDescriptor___ * tag=(struct ___TagDescriptor___*) tagptr;
-	   for(i=0;i<parameter->numbertags;i++) {
-	     //slotid is parameter->tagarray[2*i];
-	     int tagid=parameter->tagarray[2*i+1];
-	     if (tagid!=tagptr->flag)
-	       goto nextloop; /*We don't have this tag */	  
+void flagbody(struct ___Object___ *ptr, int flag) {
+  struct parameterwrapper *flagptr=(struct parameterwrapper *)ptr->flagptr;
+  ptr->flag=flag;
+  
+  /*Remove object from all queues */
+  while(flagptr!=NULL) {
+    struct parameterwrapper *next;
+    int UNUSED, UNUSED2, UNUSED3;
+    ObjectHashget(flagptr->objectset, (int) ptr, (int *) &next, &UNUSED, &UNUSED2, &UNUSED3);
+    ObjectHashremove(flagptr->objectset, (int)ptr);
+    flagptr=next;
+  }
+  
+  {
+    struct QueueItem *tmpptr;
+    struct parameterwrapper * parameter=objectqueues[ptr->type];
+    int i;
+    struct parameterwrapper * prevptr=NULL;
+    struct ___Object___ *tagptr=ptr->___tags___;
+    
+    /* Outer loop iterates through all parameter queues an object of
+       this type could be in.  */
+    
+    while(parameter!=NULL) {
+      /* Check tags */
+      if (parameter->numbertags>0) {
+	if (tagptr==NULL)
+	  goto nextloop;//that means the object has no tag but that param needs tag
+	else if(tagptr->type==TAGTYPE) {//one tag
+	  struct ___TagDescriptor___ * tag=(struct ___TagDescriptor___*) tagptr;
+	  for(i=0;i<parameter->numbertags;i++) {
+	    //slotid is parameter->tagarray[2*i];
+	    int tagid=parameter->tagarray[2*i+1];
+	    if (tagid!=tagptr->flag)
+	      goto nextloop; /*We don't have this tag */	  
 	   }
-	 } else {//multiple tags
-	   struct ArrayObject * ao=(struct ArrayObject *) tagptr;
-	   for(i=0;i<parameter->numbertags;i++) {
-	     //slotid is parameter->tagarray[2*i];
-	     int tagid=parameter->tagarray[2*i+1];
-	     int j;
-	     for(j=0;j<ao->___cachedCode___;j++) {
-	       if (tagid==ARRAYGET(ao, struct ___TagDescriptor___*, i)->flag)
-		 goto foundtag;
-	     }
-	     goto nextloop;
-	   foundtag:
-	     ;
-	   }
-	 }
-       }
-       
-       /* Check flags */
-       for(i=0;i<parameter->numberofterms;i++) {
-	 int andmask=parameter->intarray[i*2];
-	 int checkmask=parameter->intarray[i*2+1];
-	 if ((flag&andmask)==checkmask) {
-	   enqueuetasks(parameter, prevptr, ptr);
-	   prevptr=parameter;
-	   break;
-	 }
-       }
-     nextloop:
-       parameter=parameter->next;
-     }
-     ptr->flagptr=prevptr;
-   }
- }
+	} else {//multiple tags
+	  struct ArrayObject * ao=(struct ArrayObject *) tagptr;
+	  for(i=0;i<parameter->numbertags;i++) {
+	    //slotid is parameter->tagarray[2*i];
+	    int tagid=parameter->tagarray[2*i+1];
+	    int j;
+	    for(j=0;j<ao->___cachedCode___;j++) {
+	      if (tagid==ARRAYGET(ao, struct ___TagDescriptor___*, i)->flag)
+		goto foundtag;
+	    }
+	    goto nextloop;
+	  foundtag:
+	    ;
+	  }
+	}
+      }
+      
+      /* Check flags */
+      for(i=0;i<parameter->numberofterms;i++) {
+	int andmask=parameter->intarray[i*2];
+	int checkmask=parameter->intarray[i*2+1];
+	if ((flag&andmask)==checkmask) {
+	  enqueuetasks(parameter, prevptr, ptr, NULL, 0);
+	  prevptr=parameter;
+	  break;
+	}
+      }
+    nextloop:
+      parameter=parameter->next;
+    }
+    ptr->flagptr=prevptr;
+  }
+}
  
 #ifdef OPTIONAL
- 
- void enqueueoptional(struct ___Object___ * currobj){
-   
-   struct classanalysiswrapper * classwrapper=NULL; 
-   struct fsanalysiswrapper * fswrapper=NULL;
-   int counter=0;
-   int numoptionaltaskdescriptors=0;
-   struct optionaltaskdescriptor *** optionaltaskdescriptorarray=NULL;
-   struct fsanalysiswrapper ** goodfswrappersarray=NULL;
-   int numgoodfswrappers=0;
-#ifdef DEBUG
-   if(currobj->numexitfses==0)
-     printf("Handling failed object\nType : %i\nFlag : 0x%x\n", currobj->type, currobj->flag);
-   else{
-     printf("Handling failed object\nType : %i\n", currobj->type);
-     int fscount=0;
-     for(fscount=0; fscount<currobj->numexitfses; fscount++)
-       printf("Flag : 0x%x\n", currobj->exitfses[fscount]);
-   }
-   struct ___Object___ * tagptr = currobj->___tags___;
-   if(tagptr!=NULL){
-     if(tagptr->type==TAGTYPE) {
-       printf("Tag : %i\n", tagptr->flag);}
-     else {
-       struct ArrayObject * ao=(struct ArrayObject *) tagptr;
-       int numbertags = ao->___length___;
-       for(counter=0; counter<numbertags; counter++){
-	 printf("Tag : %i\n", ao[counter].flag);
-       } 
-     }
-   }
-#endif	  
-   /*set the object as failed*/
-   currobj->failedstatus = 1;
-   
-   /*test what optionaltaskdescriptors are available,
-     find the class corresponding*/
-   
-   for(counter = 0; counter<numclasses; counter++){
-     classwrapper = classanalysiswrapperarray[counter];
-     if(classwrapper == NULL){
-       fprintf(stderr, "ERROR : \"struct classanalysiswrapper * classwraper\" is a NULL pointer\n, Analysis has been skipped, check Runtime/task.c, function enqueueoptional\n");
-       goto nothingtodo;
-     }
-     /*check object type*/
-     if( currobj->type == classwrapper->type)
-       goto classchecked;
-   }
-#ifdef DEBUG
-   printf("No task will use this parameter as optional\n");
-#endif
-   removeoptionalfromqueues(currobj->hashcode,currobj, objectqueues[currobj->type]);
-   goto nothingtodo;
- classchecked:
-   ;
-#ifdef DEBUG
-   printf("Found the class, search through fses\n");
-#endif	      
-   /*search through fses*/
-   goodfswrappersarray = RUNMALLOC(sizeof(struct fsanalysiswrapper *) * classwrapper->numfsanalysiswrappers); /*max number of good fswrappers*/
-   if(goodfswrappersarray == NULL){
-     fprintf(stderr, "ERROR : \"struct fsanalysiswrapper ** goodfswrappersarray\" is a NULL pointer\n, Analysis has been skipped, check Runtime/task.c, function enqueueoptional\n");
-     removeoptionalfromqueues(currobj->hashcode,currobj, objectqueues[currobj->type]);
-     goto nothingtodo;
-   }
-   for(counter = 0; counter<classwrapper->numfsanalysiswrappers; counter++){
-     /*test the FS of the object (include flags and tags)*/
-     fswrapper = classwrapper->fsanalysiswrapperarray[counter];
-     if(fswrapper == NULL){
-       fprintf(stderr, "ERROR : struct fsanalysiswrapper * is a NULL pointer\n, Analysis has been skipped, check Runtime/task.c, function enqueueoptional\n");
-       removeoptionalfromqueues(currobj->hashcode,currobj, objectqueues[currobj->type]);
-       goto nothingtodo;
-     }
-     /*check tags*/
-     struct ___Object___ * tagptr = currobj->___tags___;
-     if(fswrapper->numtags>0){
-       if (tagptr==NULL)
-	 goto nextloop;//that means the object has no tag but that param needs tag
-       else if(tagptr->type==TAGTYPE) {//one tag
-	 if(fswrapper->numtags!=1) goto nextloop;//we don't have the right number of tags
-	 struct ___TagDescriptor___ * tag=(struct ___TagDescriptor___*) tagptr;
-	 if (fswrapper->tags[0]!=tagptr->flag)
-	   goto nextloop; 
-       }	  
-       else {//multiple tags
-	 struct ArrayObject * ao=(struct ArrayObject *) tagptr;
-	 int tag_counter=0;
-	 if(ao->___length___!=fswrapper->numtags) goto nextloop;//we don't have the right number of tags
-	 for(tag_counter=0;tag_counter<fswrapper->numtags;tag_counter++) {
-	   int tagid=fswrapper->tags[tag_counter];
-	   int j;
-	   for(j=0;j<ao->___cachedCode___;j++) {
-	     if (tagid==ARRAYGET(ao, struct ___TagDescriptor___*, tag_counter)->flag)
-	       goto foundtag;
-	   }
-	   goto nextloop;
-	 foundtag:
-	   ;		      ;
-	 }
-       }
-     }
-     
-     //check flags
-     if(currobj->numexitfses==0){/*first time the method is invoqued*/
-       if( currobj->flag == fswrapper->flags){
-	 int otdc;
-	 optionaltaskdescriptorarray = RUNMALLOC(sizeof(struct optionaltaskdescriptor **) * fswrapper->numoptionaltaskdescriptors);
-	 numoptionaltaskdescriptors = fswrapper->numoptionaltaskdescriptors;
-	 for(otdc = 0; otdc<fswrapper->numoptionaltaskdescriptors; otdc++){
-	   struct optionaltaskdescriptor ** tmpptr = RUNMALLOC(sizeof(struct optionaltaskdescriptor *));
-	   tmpptr[0] = fswrapper->optionaltaskdescriptorarray[otdc];
-	   optionaltaskdescriptorarray[otdc] = tmpptr;
-	 }
-	 numgoodfswrappers=1;
-	 goto fschecked;
-       }
-     }
-     else if(currobj->numexitfses==1){/*one fs exit*/
-       if(currobj->exitfses[0] == fswrapper->flags){
-	 int otdc;
-	 optionaltaskdescriptorarray = RUNMALLOC(sizeof(struct optionaltaskdescriptor **) * fswrapper->numoptionaltaskdescriptors);
-	 numoptionaltaskdescriptors = fswrapper->numoptionaltaskdescriptors;
-	 for(otdc = 0; otdc<fswrapper->numoptionaltaskdescriptors; otdc++){
-	   struct optionaltaskdescriptor ** tmpptr = RUNMALLOC(sizeof(struct optionaltaskdescriptor *));
-	   tmpptr[0] = fswrapper->optionaltaskdescriptorarray[otdc];
-	   optionaltaskdescriptorarray[otdc] = tmpptr;
-	 }
-	 numgoodfswrappers=1;
-	 goto fschecked;
-       }
-     }
-     else{
-       int fscount=0;
-       for(fscount=0; fscount<currobj->numexitfses; fscount++){
-	 
-	 if( currobj->exitfses[fscount] == fswrapper->flags ){/*see if the fswraper correspond to one of the fses*/
-	   goodfswrappersarray[numgoodfswrappers]=fswrapper;
-	   numgoodfswrappers++;
-	 }
-       }
-       if(counter==classwrapper->numfsanalysiswrappers-1) goto makeintersection; /*last fswrapper*/
-     }
-   nextloop:
-     ;
-   }
- nofs:
-   ;
-#ifdef DEBUG
-   printf("FS not found, Nothing more to do\n");
-#endif
-   removeoptionalfromqueues(currobj->hashcode,currobj, objectqueues[currobj->type]);
-   goto nothingtodo;
- makeintersection:
-   ;
-   if(numgoodfswrappers==0 || numgoodfswrappers==1) goto nofs; /*nothing has been found, we expect more than one wrapper for multiple flags*/
-   optionaltaskdescriptorarray = makeintersectionotd(numgoodfswrappers, goodfswrappersarray, &numoptionaltaskdescriptors);
-   if(optionaltaskdescriptorarray==NULL){
-     fprintf(stderr, "ERROR : struct optionaltaskdescriptor ** is a NULL pointer\n, Analysis has been skipped, check Runtime/task.c, function enqueueoptional\n");
-     goto nothingtodo;
-   }
-   
-  fschecked:
-   ;
-#ifdef DEBUG
-   printf("FS(es) found, intersection created, %i potential tasks :\n", numoptionaltaskdescriptors);
-   
-   
-   /*find the parameterwrapper corresponding to the potential task*/
-   for(counter = 0; counter<numoptionaltaskdescriptors; counter++){
-     struct optionaltaskdescriptor ** tmpptr = optionaltaskdescriptorarray[counter];
-     printf("Task %s\n", tmpptr[0]->task->name);
-   }
-   
-#endif
-   {		
-     struct parameterwrapper * prevptr = NULL;
-     struct parameterwrapper * flagptr = objectqueues[currobj->type];
-     removeoptionalfromqueues(currobj->hashcode,currobj, flagptr);
-     /*process for each otd*/
-     for(counter = 0; counter<numoptionaltaskdescriptors; counter++){
-       struct parameterwrapper * parameter = objectqueues[currobj->type];
-       struct optionaltaskdescriptor ** tmpptr = optionaltaskdescriptorarray[counter];
-       struct optionaltaskdescriptor * currotd = tmpptr[0];
-       int otd_counter=0;
-       while(parameter->task != currotd->task)
-	 parameter=parameter->next;
-#ifdef DEBUG
-       printf("found parameterwrapper for task : %s\n", parameter->task->name);
-#endif
-       
-       struct ___Object___ * newobj = RUNMALLOC(sizeof(struct ___Object___));
-       (*newobj)=(*currobj);
-       newobj->numotds=numgoodfswrappers;
-       newobj->otds=RUNMALLOC(sizeof(struct optionaltaskdescriptor *) * numgoodfswrappers);
-       for(otd_counter=0; otd_counter<numgoodfswrappers; otd_counter++){
-	 newobj->otds[otd_counter]=tmpptr[otd_counter];
-       }
-       enqueuetasks(parameter, prevptr, newobj);
-       prevptr = parameter;
-       
-     nextotd:
-       ;
-     }
-     
-   }
- nothingtodo:
-   
-   /*if(currobj->exitfses!=NULL) RUNFREE(currobj->exitfses);
-     if(currobj->otds!=NULL) RUNFREE(currobj->otds);*///there has been a problem just before the program exit, maybe due to the GC ?
-   RUNFREE(optionaltaskdescriptorarray);
-   ;
- }
 
- /*we need to check if the object is optional, in this case, test the predicate*/
- /*here is the code for predicate checking*/
- /*The code has not been tested. I don't even know if it is working or efficient but it is a lead...
-   if(currotd->numpredicatemembers == 0){
-   printf("this task can be fired\n");
-   goto enqueuetask;
-   }
-   else{
-   int pred_counter;
-   int predicatetrue = 0;
-   for(pred_counter = 0; pred_counter<currotd->numpredicatemembers; pred_counter++){
-   struct predicatemember * currpred = currotd->predicatememberarray[pred_counter];
-   printf("predicate type : %i\n", currpred->type);
-   
-   //test if the predicate member is true
-   struct parameterwrapper * paramwrapper = objectqueues[currpred->type];
-   while(paramwrapper!=NULL){
-   struct ObjectIterator * it = allocateObjectIterator(paramwrapper->objectset->listhead);
-   do{
-   struct ___Object___ * obj = (struct ___Object___ *)Objkey(it);
-   printf("obj type : %i\n", obj->type);
-   if(obj->type == currpred->type){
-   //test the predicate
-   printf("predicate to test\n");
-   //only if good
-   goto enqueuetask;
-   }
-   Objnext(it);
-   }while(ObjhasNext(it));
-   paramwrapper=paramwrapper->next;
-   }
-   printf("not the good predicate");
-   //goto endanalysis
-   }
-   //the predicate members have to be all true
-   }*/
+int checktags(struct ___Object___ * currobj, struct fsanalysiswrapper * fswrapper) {
+  /* Check Tags */
+  struct ___Object___ * tagptr = currobj->___tags___;
+  if(fswrapper->numtags>0){
+    if (tagptr==NULL)
+      return 0; //that means the object has no tag but that param
+    //needs tag
+    else if(tagptr->type==TAGTYPE) {//one tag
+      if(fswrapper->numtags!=1) 
+	return 0; //we don't have the right number of tags
+      struct ___TagDescriptor___ * tag=(struct ___TagDescriptor___*) tagptr;
+      if (fswrapper->tags[0]!=tagptr->flag)
+	return 0;
+    } else {  //multiple tags
+      struct ArrayObject * ao=(struct ArrayObject *) tagptr;
+      int tag_counter=0;
+      int foundtag=0;
+      
+      if(ao->___length___!=fswrapper->numtags) 
+	return 0;//we don't have the right number of tags
+      for(tag_counter=0;tag_counter<fswrapper->numtags;tag_counter++) {
+	int tagid=fswrapper->tags[tag_counter];
+	int j;
+	for(j=0;j<ao->___cachedCode___;j++) {
+	  if (tagid==ARRAYGET(ao, struct ___TagDescriptor___*, tag_counter)->flag)
+	    return 1;
+	}
+	return 0;
+      }
+    }
+  }
+  return 1;
+}
+
+int getlength(int *flist, int len) {
+  int count=0;
+  int i;
+  for(i=0;i<len;i++) {
+    int size=flist[count];
+    count+=1+size;
+  }
+  return count;
+}
+
+int * domergeor(int *flist1, int len1, int *flist2, int len2) {
+  int size1=getlength(flist1, len1);
+  int size2=getlength(flist2, len2);
+  int *merge=RUNMALLOC((size1+size2)*sizeof(int));
+  memcpy(merge, flist1, size1*sizeof(int));
+  memcpy(&merge[size1], flist2, size2*sizeof(int));
+  return merge;
+}
+
+int domerge(int * flist1, int len1, int *flist2, int len2, int *merge) {
+  int count=0;
+  int i=0;
+  int j=0;
+  while(i<len1||j<len2) {
+    if (i<len1&&(j==len2||flist1[i]<flist2[j])) {
+      if(merge!=NULL) {
+	merge[count]=flist1[i];
+      }
+      i++;
+      count++;
+    } else if (j<len2&&(i==len1||flist2[j]<flist1[i])) {
+      if(merge!=NULL) {
+	merge[count]=flist2[j];
+      }
+      j++;
+      count++;
+    } else if (i<len1&&j<len2&&flist1[i]==flist2[j]) {
+      if(merge!=NULL) {
+	merge[count]=flist1[i];
+      }
+      i++;
+      j++;
+      count++;
+    }
+  }
+  return count;
+}
+
+/* Merge flags from ftlmerge into ftl. */
+void mergeitems(struct failedtasklist *ftl, struct failedtasklist *ftlmerge) {
+  int length=0;
+  int i,j;
+  int *mergedlist;
+  int offset=0;
+  for(i=0;i<ftl->numflags;i++) {
+    int len=ftl->flags[offset++];
+    int offsetmerge=0;
+    for(j=0;j<ftlmerge->numflags;j++) {
+      int lenmerge=ftlmerge->flags[offsetmerge++];
+      length+=1+domerge(&ftl->flags[offset],len,&ftlmerge->flags[offsetmerge],lenmerge, NULL);
+      offsetmerge+=lenmerge;
+    }
+    offset+=len;
+  }
+  mergedlist=RUNMALLOC(sizeof(int)*length);
+  
+  offset=0;
+  length=0;
+  for(i=0;i<ftl->numflags;i++) {
+    int len=ftl->flags[offset++];
+    int offsetmerge=0;
+    for(j=0;j<ftlmerge->numflags;j++) {
+      int lenmerge=ftlmerge->flags[offsetmerge++];
+      int size=domerge(&ftl->flags[offset],len,&ftlmerge->flags[offsetmerge],lenmerge,&mergedlist[length+1]);
+      mergedlist[length]=size;
+      length+=size+1;
+    }
+  }
+  RUNFREE(ftl->flags);
+  ftl->flags=mergedlist;
+  ftl->numflags*=ftlmerge->numflags;
+}
+
+void mergefailedlists(struct failedtasklist **andlist, struct failedtasklist *list) {
+  struct failedtasklist *tmpptr;
+  while((*andlist)!=NULL) {
+    struct failedtasklist *searchftl=list;
+    while(searchftl!=NULL) {
+      if ((*andlist)->task==searchftl->task&&
+	  (*andlist)->index==searchftl->index) {
+	mergeitems(*andlist, searchftl);
+	break;
+      }
+      searchftl=searchftl->next;
+    }
+    if (searchftl==NULL) {
+      //didn't find andlist
+      tmpptr=*andlist;
+      *andlist=(*andlist)->next;//splice item out of list
+      RUNFREE(tmpptr->flags); //free the item
+      RUNFREE(tmpptr);
+    } else {
+      andlist=&((*andlist)->next); //iterate to next item
+    }
+  }
+  //free the list we're searching
+  while(list!=NULL) {
+    tmpptr=list->next;
+    RUNFREE(list->flags);
+    RUNFREE(list);
+    list=tmpptr;
+  }
+}
+
+struct failedtasklist * processfailstate(struct classanalysiswrapper * classwrapper, struct taskdescriptor *task, int index, struct ___Object___ * currobj, int flagstate) {
+  struct failedtasklist *list=NULL;
+  int i,h;
+  struct fsanalysiswrapper *fswrapper=NULL;
+  for(h=0;h<classwrapper->numfsanalysiswrappers;h++) {
+    struct fsanalysiswrapper * tmp=classwrapper->fsanalysiswrapperarray[h];
+    if (tmp->flags==flagstate&&checktags(currobj, tmp)) {
+      //we only match exactly here
+      fswrapper=tmp;
+      break;
+    }
+  }
+  if (fswrapper==NULL)
+    return list;
+  for(i=0;i<fswrapper->numtaskfailures;i++) {
+    int j;
+    struct taskfailure * taskfail=fswrapper->taskfailurearray[i];
+    if (taskfail->task==task&&taskfail->index==index) {
+      int start=0;
+      while(start<taskfail->numoptionaltaskdescriptors) {
+	struct taskdescriptor *currtask=NULL;
+	struct failedtasklist *tmpftl;
+	int currindex;
+	int totallength=0;
+	int *enterflags;
+	int numenterflags, offset;
+	struct parameterwrapper *pw;
+	for(j=start;j<taskfail->numoptionaltaskdescriptors;j++) {
+	  struct optionaltaskdescriptor *otd=taskfail->optionaltaskdescriptorarray[j];
+	  if(currtask==NULL) {
+	    currtask=otd->task;
+	    currindex=otd->index;
+	  } else if (currtask!=otd->task||currindex!=otd->index)
+	    break;
+	  totallength+=otd->numenterflags;
+	}
+	pw=currtask->descriptorarray[currindex]->queue;
+	enterflags=RUNMALLOC(totallength*sizeof(int));
+	numenterflags=j-start;
+	offset=0;
+	for(start;start<j;start++) {
+	  struct optionaltaskdescriptor *otd=taskfail->optionaltaskdescriptorarray[start];
+	  enterflags[offset++]=otd->numenterflags;
+	  memcpy(&enterflags[offset], otd->enterflags, otd->numenterflags*sizeof(int));
+	  offset+=otd->numenterflags;
+	}
+	tmpftl=RUNMALLOC(sizeof(struct failedtasklist));
+	tmpftl->next=list;
+	tmpftl->task=currtask;
+	tmpftl->numflags=numenterflags;
+	tmpftl->flags=enterflags;
+	list=tmpftl;
+      }
+    }
+  }
+  return list;
+}
+
+struct failedtasklist * processnormfailstate(struct classanalysiswrapper * classwrapper, struct ___Object___ * currobj, int flagstate) {
+  struct failedtasklist *list=NULL;
+  int i,h;
+  int start=0;
+  struct fsanalysiswrapper *fswrapper=NULL;
+  for(h=0;h<classwrapper->numfsanalysiswrappers;h++) {
+    struct fsanalysiswrapper * tmp=classwrapper->fsanalysiswrapperarray[h];
+    if (tmp->flags==flagstate&&checktags(currobj, tmp)) {
+      //we only match exactly here
+      fswrapper=tmp;
+      break;
+    }
+  }
+  if(fswrapper==NULL)
+    return NULL;
+
+  while(start<fswrapper->numoptionaltaskdescriptors) {
+    struct taskdescriptor *currtask=NULL;
+    struct failedtasklist *tmpftl;
+    int j;
+    int currindex;
+    int totallength=0;
+    int *enterflags;
+    int numenterflags, offset;
+    struct parameterwrapper *pw;
+    for(j=start;j<fswrapper->numoptionaltaskdescriptors;j++) {
+      struct optionaltaskdescriptor *otd=fswrapper->optionaltaskdescriptorarray[j];
+      if(currtask==NULL) {
+	currtask=otd->task;
+	currindex=otd->index;
+      } else if (currtask!=otd->task||currindex!=otd->index)
+	break;
+      totallength+=otd->numenterflags;
+    }
+    pw=currtask->descriptorarray[currindex]->queue;
+    enterflags=RUNMALLOC(totallength*sizeof(int));
+    numenterflags=j-start;
+    offset=0;
+    for(start;start<j;start++) {
+      struct optionaltaskdescriptor *otd=fswrapper->optionaltaskdescriptorarray[start];
+      enterflags[offset++]=otd->numenterflags;
+      memcpy(&enterflags[offset], otd->enterflags, otd->numenterflags*sizeof(int));
+      offset+=otd->numenterflags;
+    }
+    tmpftl=RUNMALLOC(sizeof(struct failedtasklist));
+    tmpftl->next=list;
+    tmpftl->task=currtask;
+    tmpftl->numflags=numenterflags;
+    tmpftl->flags=enterflags;
+    list=tmpftl;
+  }
+  return list;
+}
+
+
+
+void enqueuelist(struct ___Object___ * currobj, struct failedtasklist * andlist) {
+  while(andlist!=NULL) {
+    struct failedtasklist *tmp=andlist;
+    struct parameterwrapper *pw=andlist->task->descriptorarray[andlist->index]->queue;
+    struct parmaeterwrapper *next;
+    int * flags;
+    int numflags;
+    int isnonfailed;
+    
+    if (enqueuetasks(pw, currobj->flagptr, currobj, tmp->flags, tmp->numflags))
+      currobj->flagptr=pw;
+    
+    andlist=andlist->next;
+    RUNFREE(tmp);
+  }
+}
+
+void enqueueoptional(struct ___Object___ * currobj, int numfailedfses, int * failedfses, struct taskdescriptor * task, int index) {
+  struct classanalysiswrapper * classwrapper=NULL; 
+  
+  /*test what optionaltaskdescriptors are available, find the class
+    corresponding*/
+  if (classanalysiswrapperarray[currobj->type]!=NULL) {
+    classwrapper = classanalysiswrapperarray[currobj->type];
+  } else
+    return;
+  
+  if(task!=NULL) { 
+    /* We have a failure */
+    if (failedfses==NULL) {
+      /* Failed in normal state */
+      /*first time the method is invoked*/
+      int i,h;
+      struct fsanalysiswrapper *fswrapper=NULL;
+
+      for(h=0;h<classwrapper->numfsanalysiswrappers;h++) {
+	struct fsanalysiswrapper * tmp=classwrapper->fsanalysiswrapperarray[h];
+	if (tmp->flags==currobj->flag&&checktags(currobj, tmp)) {
+	  //we only match exactly here
+	  fswrapper=tmp;
+	  break;
+	}
+      }
+      if(fswrapper==NULL) //nothing to do in this state
+	return;
+      for(i=0;i<fswrapper->numtaskfailures;i++) {
+	int j;
+	struct taskfailure * taskfail=fswrapper->taskfailurearray[i];
+	if (taskfail->task==task&&taskfail->index==index) {
+	  int start=0;
+	  while(start<taskfail->numoptionaltaskdescriptors) {
+	    struct taskdescriptor *currtask=NULL;
+	    int currindex;
+	    int totallength=0;
+	    int *enterflags;
+	    int numenterflags, offset;
+	    struct parameterwrapper *pw;
+	    for(j=start;j<taskfail->numoptionaltaskdescriptors;j++) {
+	      struct optionaltaskdescriptor *otd=taskfail->optionaltaskdescriptorarray[j];
+	      if(currtask==NULL) {
+		currtask=otd->task;
+		currindex=otd->index;
+	      } else if (currtask!=otd->task||currindex!=otd->index)
+		break;
+	      totallength+=otd->numenterflags;
+	    }
+	    pw=currtask->descriptorarray[currindex]->queue;
+	    enterflags=RUNMALLOC(totallength*sizeof(int));
+	    numenterflags=j-start;
+
+	    offset=0;
+	    for(start;start<j;start++) {
+	      struct optionaltaskdescriptor *otd=taskfail->optionaltaskdescriptorarray[start];
+	      enterflags[offset++]=otd->numenterflags;
+	      memcpy(&enterflags[offset], otd->enterflags, otd->numenterflags*sizeof(int));
+	      offset+=otd->numenterflags;
+	    }
+	    //Enqueue this one
+	    if (enqueuetasks(pw, currobj->flagptr, currobj, enterflags, numenterflags))
+	      currobj->flagptr=pw;
+	  }
+	}
+      }
+    } else {
+      /* Failed in failed state */
+      int i;
+      int offset=0;
+      for(i=0;i<numfailedfses;i++) {
+	int numfses=failedfses[offset++];
+	int j;
+	struct failedtasklist *andlist=NULL;
+	for(j=0;j<numfses;j++) {
+	  int flagstate=failedfses[offset++];
+	  struct failedtasklist *currlist=processfailstate(classwrapper, task, index, currobj, flagstate);
+	  if (andlist==NULL)
+	    andlist=currlist;
+	  else
+	    mergefailedlists(&andlist, currlist);
+	}
+	enqueuelist(currobj, andlist);
+      }
+    }
+  } else {
+    /* No failure, but we are in a failed state */
+    struct parameterwrapper *flagptr=(struct parameterwrapper *)currobj->flagptr;
+
+    /*Remove object from all queues */
+    while(flagptr!=NULL) {
+      struct parameterwrapper *next;
+      int UNUSED, UNUSED2, UNUSED3;
+      ObjectHashget(flagptr->objectset, (int) currobj, (int *) &next, &UNUSED, &UNUSED2, &UNUSED3);
+      ObjectHashremove(flagptr->objectset, (int)currobj);
+      flagptr=next;
+    }
+
+    /* Failed in failed state */
+    int i;
+    int offset=0;
+    for(i=0;i<currobj->numfses;i++) {
+      int numfses=currobj->fses[offset++];
+      int j;
+      struct failedtasklist *andlist=NULL;
+      for(j=0;j<numfses;j++) {
+	int flagstate=currobj->fses[offset++];
+	struct failedtasklist *currlist=processnormfailstate(classwrapper, currobj, flagstate);
+	if (andlist==NULL)
+	  andlist=currlist;
+	else
+	  mergefailedlists(&andlist, currlist);
+      }
+      enqueuelist(currobj, andlist);
+    }
+  }
+} 
+ 
  
 #endif
  
- void enqueuetasks(struct parameterwrapper *parameter, struct parameterwrapper *prevptr, struct ___Object___ *ptr) {
+int enqueuetasks(struct parameterwrapper *parameter, struct parameterwrapper *prevptr, struct ___Object___ *ptr, int * enterflags, int numenterflags) {
   void * taskpointerarray[MAXTASKPARAMS];
+#ifdef OPTIONAL
+  int failed[MAXTASKPARAMS];
+#endif
   int j;
   int numparams=parameter->task->numParameters;
   int numiterators=parameter->task->numTotal-1;
+  int retval=1;
+  int addnormal=1;
+  int adderror=1;
 
   struct taskdescriptor * task=parameter->task;
   
-  ObjectHashadd(parameter->objectset, (int) ptr, (int) prevptr, 0);//this add the object to parameterwrapper
-  
+  if (ObjectHashcontainskey(parameter->objectset, (int) ptr)) {
+    /* The object is already here...or it with the existing item */
+    int * oldflags;
+    int oldnumflags;
+    int oldptr;
+    int oldstatus;
+    int *mergedflags;
+    ObjectHashget(parameter->objectset, (int) ptr, & oldptr, (int *) &oldflags, &oldnumflags, &oldstatus);
+    mergedflags=domergeor(oldflags, oldnumflags, enterflags, numenterflags);
+    ObjectHashupdate(parameter->objectset, (int) ptr, oldptr, mergedflags, oldnumflags+numenterflags, oldstatus||(enterflags==NULL));
+
+    RUNFREE(oldflags);
+    RUNFREE(enterflags);
+
+    //only add if truly needed
+    if (oldstatus)
+      addnormal=0;
+    if (oldnumflags>0)
+      adderror=0;
+
+    retval=0;
+  } else {
+    ObjectHashadd(parameter->objectset, (int) ptr, (int) prevptr, (int) enterflags, numenterflags, enterflags==NULL);//this add the object to parameterwrapper
+  }
+ 
   /* Add enqueued object to parameter vector */
   taskpointerarray[parameter->slot]=ptr;
+#ifdef OPTIONAL
+  failed[parameter->slot]=(enterflags!=NULL);
+#endif
 
   /* Reset iterators */
   for(j=0;j<numiterators;j++) {
@@ -806,8 +886,8 @@ void flagorandinit(void * ptr, int ormask, int andmask) {
   /* Find initial state */
   for(j=0;j<numiterators;j++) {
   backtrackinit:
-    if(toiHasNext(&parameter->iterators[j], taskpointerarray))
-      toiNext(&parameter->iterators[j], taskpointerarray);
+    if(toiHasNext(&parameter->iterators[j], taskpointerarray OPTARG(failed)))
+      toiNext(&parameter->iterators[j], taskpointerarray OPTARG(failed));
     else if (j>0) {
       /* Need to backtrack */
       toiReset(&parameter->iterators[j]);
@@ -815,7 +895,7 @@ void flagorandinit(void * ptr, int ormask, int andmask) {
       goto backtrackinit;
     } else {
       /* Nothing to enqueue */
-      return;
+      return retval;
     }
   }
 
@@ -827,15 +907,14 @@ void flagorandinit(void * ptr, int ormask, int andmask) {
     tpd->task=task;
     tpd->numParameters=numiterators+1;
     tpd->parameterArray=RUNMALLOC(sizeof(void *)*(numiterators+1));
-    for(j=0;j<=numiterators;j++){
 #ifdef OPTIONAL
-#ifdef DEBUG
-      struct ___Object___ * obj = (struct ___Object___ *)taskpointerarray[j];
-      if(obj->failedstatus==1)
-	printf("parameter %i used as optional for task %s\n", obj->type, task->name);
+    tpd->failed=RUNMALLOC(sizeof(int)*(numiterators+1));
 #endif
-#endif
+    for(j=0;j<=numiterators;j++){
       tpd->parameterArray[j]=taskpointerarray[j];//store the actual parameters
+#ifdef OPTIONAL
+      tpd->failed[j]=failed[j];
+#endif
     }
     /* Enqueue task */
     if ((!gencontains(failedtasks, tpd)&&!gencontains(activetasks,tpd))) {
@@ -847,12 +926,12 @@ void flagorandinit(void * ptr, int ormask, int andmask) {
     
     /* This loop iterates to the next parameter combination */
     if (numiterators==0)
-      return;
+      return retval;
 
     for(j=numiterators-1; j<numiterators;j++) {
     backtrackinc:
-      if(toiHasNext(&parameter->iterators[j], taskpointerarray))
-	toiNext(&parameter->iterators[j], taskpointerarray);
+      if(toiHasNext(&parameter->iterators[j], taskpointerarray OPTARG(failed)))
+	toiNext(&parameter->iterators[j], taskpointerarray OPTARG(failed));
       else if (j>0) {
 	/* Need to backtrack */
 	toiReset(&parameter->iterators[j]);
@@ -860,10 +939,11 @@ void flagorandinit(void * ptr, int ormask, int andmask) {
 	goto backtrackinc;
       } else {
 	/* Nothing more to enqueue */
-	return;
+	return retval;
       }
     }
   }
+  return retval;
 }
  
 /* Handler for signals. The signals catch null pointer errors and
@@ -906,8 +986,24 @@ void removereadfd(int fd) {
 #define OFFSET 0
 #endif
 
+#ifdef OPTIONAL
+ int * fsescopy(int *src, int len) {
+   int *dst;
+   if (src==NULL)
+     return NULL;
+   dst=RUNMALLOC(len*sizeof(int));
+   memcpy(dst, src, len*sizeof(int));
+   return dst;
+ }
+#endif
+
 void executetasks() {
   void * taskpointerarray[MAXTASKPARAMS+OFFSET];
+#ifdef OPTIONAL
+  int * fsesarray[MAXTASKPARAMS];
+  int * oldfsesarray[MAXTASKPARAMS];
+  int numfsesarray[MAXTASKPARAMS];
+#endif  
 
   /* Set up signal handlers */
   struct sigaction sig;
@@ -980,25 +1076,34 @@ void executetasks() {
 	int j;
 	/* Check that object is still in queue */
 #ifdef OPTIONAL
-	struct ___Object___ * obj = (struct ___Object___ *)parameter;
-	if(obj->failedstatus==1){
-	  struct ___Object___ *temp=NULL;
-	  struct parameterwrapper * ptr;
-	  struct ObjectNode * node = pw->objectset->listhead;
-	  while(node!=NULL){
-	    temp=(struct ___Object___ *)node->key;
-	    if(temp->failedstatus==1 && temp->hashcode==obj->hashcode){
-	      if(temp==obj)
-		goto parameterpresent;
+	{
+	  int UNUSED, UNUSED2;
+	  int *flags;
+	  int numflags, isnonfailed;
+	  int failed=currtpd->failed[i];
+	  if (!ObjectHashget(pw->objectset, (int) parameter, &UNUSED, (int *) &flags, &numflags, &isnonfailed)) {
+	    RUNFREE(currtpd->parameterArray);
+	    RUNFREE(currtpd->failed);
+	    RUNFREE(currtpd);
+	    goto newtask;
+	  } else {
+	    if (failed&&(flags!=NULL)) {
+	      //Failed parameter
+	      fsesarray[i]=flags;
+	      numfsesarray[i]=numflags;
+	    } else if (!failed && isnonfailed) {
+	      //Non-failed parameter
+	      fsesarray[i]=NULL;
+	      numfsesarray[i]=0;
+	    } else {
+	      RUNFREE(currtpd->parameterArray);
+	      RUNFREE(currtpd->failed);
+	      RUNFREE(currtpd);
+	      goto newtask;
 	    }
-	    node=node->next;
 	  }
-	  RUNFREE(currtpd->parameterArray);
-	  RUNFREE(currtpd);
-	  goto newtask;
 	}
-	else
-#endif
+#else
 	{
 	  if (!ObjectHashcontainskey(pw->objectset, (int) parameter)) {
 	    RUNFREE(currtpd->parameterArray);
@@ -1006,6 +1111,7 @@ void executetasks() {
 	    goto newtask;
 	  }
 	}
+#endif
       parameterpresent:
 	;
 	/* Check that object still has necessary tags */
@@ -1042,20 +1148,13 @@ void executetasks() {
 	  restorecheckpoint(currtpd->task->numParameters, currtpd->parameterArray, checkpoint, forward, reverse);
 
 #ifdef OPTIONAL
-#ifdef DEBUG	  
-	  printf("%i object(s) restored\n", currtpd->task->numParameters);
-#endif 
-	  
 	  for(counter=0; counter<currtpd->task->numParameters; counter++){
-	    //remove the object from the previous parameterwrapper (maybe not necessary)
-	    //do a new instance of the object. It allows the restored object to be used by other tasks as a non optional arg.
-	    struct ___Object___ * currobj = RUNMALLOC(sizeof(struct ___Object___));
-	    (*currobj)=(*(struct ___Object___ *)currtpd->parameterArray[counter]);
-	    currobj->numexitfses = 0;
-	    currobj->exitfses = NULL;
-	    currobj->otds=NULL;
-	    currobj->hashcode=(int)currobj;
-	    enqueueoptional( currobj );
+	    //enqueue as failed
+	    enqueueoptional(currtpd->parameterArray[counter], numfsesarray[counter], fsesarray[counter], currtpd->task, counter);
+
+	    //free fses copies
+	    if (fsesarray[counter]!=NULL)
+	      RUNFREE(fsesarray[counter]);
 	  }
 #endif
 	  freeRuntimeHash(forward);
@@ -1075,13 +1174,27 @@ void executetasks() {
 	  ((int *)taskpointerarray)[0]=currtpd->task->numParameters;
 	  taskpointerarray[1]=NULL;
 #endif
+#ifdef OPTIONAL
+	  //get the task flags set
+	  for(i=0;i<numparams;i++) {
+	    oldfsesarray[i]=((struct ___Object___ *)taskpointerarray[i+OFFSET])->fses;
+	    fsesarray[i]=fsescopy(fsesarray[i], numfsesarray[i]);
+	    ((struct ___Object___ *)taskpointerarray[i+OFFSET])->fses=fsesarray[i];	    
+	  }
+#endif
 	  if(debugtask){
 	    printf("ENTER %s count=%d\n",currtpd->task->name, (instaccum-instructioncount));
 	    ((void (*) (void **)) currtpd->task->taskptr)(taskpointerarray);
 	    printf("EXIT %s count=%d\n",currtpd->task->name, (instaccum-instructioncount));
 	  } else
 	    ((void (*) (void **)) currtpd->task->taskptr)(taskpointerarray);
-	    
+
+	  for(i=0;i<numparams;i++) {
+	    //free old fses
+	    if(oldfsesarray[i]!=NULL)
+	      RUNFREE(oldfsesarray[i]);
+	  }
+	  
 	  freeRuntimeHash(forward);
 	  freeRuntimeHash(reverse);
 	  freemalloc();
@@ -1246,12 +1359,18 @@ void toiReset(struct tagobjectiterator * it) {
     it->tagobjindex=0;
   } else if (it->numtags>0) {
     it->tagobjindex=0;
+#ifdef OPTIONAL
+    it->failedstate=0;
+#endif
   } else {
     ObjectHashiterator(it->objectset, &it->it);
+#ifdef OPTIONAL
+    it->failedstate=0;
+#endif
   }
 }
 
-int toiHasNext(struct tagobjectiterator *it, void ** objectarray) {
+int toiHasNext(struct tagobjectiterator *it, void ** objectarray OPTARG(int * failed)) {
   if (it->istag) {
     /* Iterate tag */
     /* Get object with tags */
@@ -1290,11 +1409,50 @@ int toiHasNext(struct tagobjectiterator *it, void ** objectarray) {
 	if (!containstag(objptr,tag2))
 	  return 0;
       }
+#ifdef OPTIONAL
+      if (it->failedstate==1) {
+	int UNUSED, UNUSED2;
+	int * flags;
+	int isnonfailed;
+	ObjectHashget(it->objectset, (int) objptr, &UNUSED, (int *) &flags, &UNUSED2, &isnonfailed);
+	if (flags!=NULL) {
+	  return 1;
+	} else {
+	  it->tagobjindex++;
+	  it->failedstate=0;
+	  return 0;
+	}
+      } else {
+	int UNUSED, UNUSED2;
+	int * flags;
+	int isnonfailed;
+	ObjectHashget(it->objectset, (int) objptr, &UNUSED, (int *) &flags, &UNUSED2, &isnonfailed);
+	if (!isnonfailed) {
+	  it->failedstate=1;
+	}
+	return 1;
+      }
+#endif      
       return 1;
     } else {
       struct ArrayObject *ao=(struct ArrayObject *) objptr;
       int tagindex;
       int i;
+#ifdef OPTIONAL
+      if (it->failedstate==1) {
+	int UNUSED, UNUSED2;
+	int * flags;
+	int isnonfailed;
+	struct ___Object___ *objptr=ARRAYGET(ao, struct ___Object___*, it->tagobjindex);
+	ObjectHashget(it->objectset, (int) objptr, &UNUSED, (int *) &flags, &UNUSED2, &isnonfailed);
+	if (flags!=NULL) {
+	  return 1;
+	} else {
+	  it->failedstate=0;
+	  it->tagobjindex++;
+	}
+      }
+#endif
       for(tagindex=it->tagobjindex;tagindex<ao->___cachedCode___;tagindex++) {
 	struct ___Object___ *objptr=ARRAYGET(ao, struct ___Object___*, tagindex);
 	if (!ObjectHashcontainskey(it->objectset, (int) objptr))
@@ -1304,6 +1462,18 @@ int toiHasNext(struct tagobjectiterator *it, void ** objectarray) {
 	  if (!containstag(objptr,tag2))
 	    goto nexttag;
 	}
+#ifdef OPTIONAL
+	{
+	  int UNUSED, UNUSED2;
+	  int flags, isnonfailed;
+	  struct ___Object___ *objptr=ARRAYGET(ao, struct ___Object___*, tagindex);
+	  ObjectHashget(it->objectset, (int) objptr, &UNUSED, &flags, &UNUSED2, &isnonfailed);
+	  if (!isnonfailed) {
+	    it->failedstate=1;
+	  }
+	}
+#endif
+	it->tagobjindex=tagindex;
 	return 1;
       nexttag:
 	;
@@ -1312,7 +1482,26 @@ int toiHasNext(struct tagobjectiterator *it, void ** objectarray) {
       return 0;
     }
   } else {
+#ifdef OPTIONAL
+    if (it->failedstate==1) {
+      if (Objdata2(&it->it))
+	return 1;
+      else {
+	it->failedstate=0;
+	Objnext(&it->it);
+      }
+    }
+    if (ObjhasNext(&it->it)) {
+      if (!Objdata4(&it->it)) {
+	//failed state only
+	it->failedstate=1;
+      }
+      return 1;
+    } else
+      return 0;
+#else
     return ObjhasNext(&it->it);
+#endif
   }
 }
 
@@ -1330,7 +1519,7 @@ int containstag(struct ___Object___ *ptr, struct ___TagDescriptor___ *tag) {
     return objptr==ptr;
 }
 
-void toiNext(struct tagobjectiterator *it , void ** objectarray) {
+void toiNext(struct tagobjectiterator *it , void ** objectarray OPTARG(int * failed)) {
   /* hasNext has all of the intelligence */
   if(it->istag) {
     /* Iterate tag */
@@ -1349,18 +1538,48 @@ void toiNext(struct tagobjectiterator *it , void ** objectarray) {
     struct ___TagDescriptor___ *tag=objectarray[it->tagbindings[0]];
     struct ___Object___ *objptr=tag->flagptr;
     if (objptr->type!=OBJECTARRAYTYPE) {
+#ifdef OPTIONAL
+    failed[it->slot]=it->failedstate;
+    objectarray[it->slot]=objptr;
+    if (it->failedstate==0) {
+      it->failedstate=1;
+    } else {
+      it->failedstate=0;
+      it->tagobjindex++;
+    }
+#else
       it->tagobjindex++;
       objectarray[it->slot]=objptr;
+#endif
     } else {
       struct ArrayObject *ao=(struct ArrayObject *) objptr;
+#ifdef OPTIONAL
+    failed[it->slot]=it->failedstate;
+    objectarray[it->slot]=ARRAYGET(ao, struct ___Object___ *, it->tagobjindex);
+    if (it->failedstate==0) {
+      it->failedstate=1;
+    } else {
+      it->failedstate=0;
+      it->tagobjindex++;
+    }
+#else
       objectarray[it->slot]=ARRAYGET(ao, struct ___Object___ *, it->tagobjindex++);
+#endif
     }
   } else {
     /* Iterate object */
     objectarray[it->slot]=(void *)Objkey(&it->it);
+#ifdef OPTIONAL
+    failed[it->slot]=it->failedstate;
+    if (it->failedstate==0) {
+      it->failedstate=1;
+    } else {
+      it->failedstate=0;
+      Objnext(&it->it);
+    }
+#else
     Objnext(&it->it);
+#endif
   }
 }
-
-
 #endif

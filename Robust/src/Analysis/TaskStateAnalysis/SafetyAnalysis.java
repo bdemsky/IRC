@@ -15,10 +15,10 @@ public class SafetyAnalysis {
     private State state;
     private TaskAnalysis taskanalysis;
     private Hashtable<ClassDescriptor, Hashtable<OptionalTaskDescriptor, OptionalTaskDescriptor>> optionaltaskdescriptors;
+    private Hashtable<FlagState, Hashtable<TaskIndex, Set<OptionalTaskDescriptor>>> fstotimap;
 
     private ClassDescriptor processedclass;
    
-    
     public Hashtable<ClassDescriptor, Hashtable<FlagState, Set<OptionalTaskDescriptor>>> getResult() {
 	return safeexecution;
     }
@@ -39,6 +39,7 @@ public class SafetyAnalysis {
 	this.state = state;
 	this.taskanalysis = taskanalysis;
         this.optionaltaskdescriptors = new Hashtable();
+	this.fstotimap=new Hashtable<FlagState, Hashtable<TaskIndex, Set<OptionalTaskDescriptor>>>();
     }
     
     /* Builds map of fs -> EGTasknodes that can fire on fs for class cd */
@@ -55,6 +56,16 @@ public class SafetyAnalysis {
 	}
 	return table;
     }
+
+
+    public Set<OptionalTaskDescriptor> getOptions(FlagState fs, TaskDescriptor td, int index) {
+	return fstotimap.get(fs).get(new TaskIndex(td, index));
+    }
+
+    public Set<TaskIndex> getTaskIndex(FlagState fs) {
+	return fstotimap.get(fs).keySet();
+    }
+
 
     /* Builds map of fs -> set of fs that depend on this fs */
 
@@ -182,6 +193,7 @@ public class SafetyAnalysis {
 		tovisit.addAll(fsusemap.get(fs));
 	    }
 	}
+	fstotimap.put(fs, timap);
     }
 
     private HashSet createIntersection(Set A, Set B, ClassDescriptor cd){

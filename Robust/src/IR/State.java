@@ -3,6 +3,7 @@ import IR.Tree.*;
 import IR.Flat.*;
 import IR.*;
 import java.util.*;
+import Analysis.TaskStateAnalysis.*;
 
 public class State {
     public State() {
@@ -14,27 +15,26 @@ public class State {
 	this.arraytypes=new HashSet();
 	this.arraytonumber=new Hashtable();
 	this.tagmap=new Hashtable();
-	this.analysisresult=new Hashtable();
-	this.optionaltaskdescriptors=new Hashtable();
     }
 
     public void addParseNode(ParseNode parsetree) {
 	parsetrees.add(parsetree);
     }
 
-    public void storeAnalysisResult(Hashtable result){
-	analysisresult = result;
+    public void storeAnalysisResult(Hashtable<ClassDescriptor, Hashtable<FlagState, Set<OptionalTaskDescriptor>>> analysisresults) {
+	this.analysisresults=analysisresults;
     }
-    
-    public void storeOptionalTaskDescriptors(Hashtable optionaltaskdescriptors){
+
+    public Hashtable<ClassDescriptor, Hashtable<FlagState, Set<OptionalTaskDescriptor>>> getAnalysisResult() {
+	return analysisresults;
+    }
+
+
+    public void storeOptionalTaskDescriptors(Hashtable<ClassDescriptor, Hashtable<OptionalTaskDescriptor, OptionalTaskDescriptor>> optionaltaskdescriptors){
 	this.optionaltaskdescriptors=optionaltaskdescriptors;
     }
 
-    public Hashtable getAnalysisResult(){
-	return analysisresult;
-    }
-    
-    public Hashtable getOptionalTaskDescriptors(){
+    public Hashtable<ClassDescriptor, Hashtable<OptionalTaskDescriptor, OptionalTaskDescriptor>> getOptionalTaskDescriptors(){
 	return optionaltaskdescriptors;
     }
 
@@ -64,8 +64,8 @@ public class State {
     private int arraycount=0;
 
 
-    private Hashtable analysisresult;
-    private Hashtable optionaltaskdescriptors;
+    private Hashtable<ClassDescriptor, Hashtable<OptionalTaskDescriptor, OptionalTaskDescriptor>> optionaltaskdescriptors;
+    private Hashtable<ClassDescriptor, Hashtable<FlagState, Set<OptionalTaskDescriptor>>> analysisresults;
 
     private Hashtable tagmap;
     private int numtags=0;

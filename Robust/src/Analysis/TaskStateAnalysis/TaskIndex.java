@@ -21,4 +21,11 @@ public class TaskIndex {
 	}
 	return false;
     }
+
+    public TaskDescriptor getTask() {
+	return td;
+    }
+    public int getIndex() {
+	return index;
+    }
 }

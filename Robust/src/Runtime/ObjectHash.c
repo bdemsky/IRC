@@ -102,7 +102,7 @@ void ObjectHashrehash(struct ObjectHash * thisvar) {
   thisvar->bucket=newbucket;
 }
 
-int ObjectHashadd(struct ObjectHash * thisvar,int key, int data, int data2) {
+int ObjectHashadd(struct ObjectHash * thisvar,int key, int data, int data2, int data3, int data4) {
   /* Rehash code */
   unsigned int hashkey;
   struct ObjectNode **ptr;
@@ -133,6 +133,8 @@ int ObjectHashadd(struct ObjectHash * thisvar,int key, int data, int data2) {
     struct ObjectNode *node=RUNMALLOC(sizeof(struct ObjectNode));
     node->data=data;
     node->data2=data2;
+    node->data3=data3;
+    node->data4=data4;
     node->key=key;
     node->next=(*ptr);
     *ptr=node;
@@ -197,7 +199,7 @@ int ObjectHashcount(struct ObjectHash *thisvar,int key) {
     return count;
 }
 
-int ObjectHashget(struct ObjectHash *thisvar, int key, int *data, int *data2) {
+int ObjectHashget(struct ObjectHash *thisvar, int key, int *data, int *data2, int *data3, int *data4) {
     unsigned int hashkey = (unsigned int)key % thisvar->size;
 
     struct ObjectNode *ptr = thisvar->bucket[hashkey];
@@ -205,6 +207,8 @@ int ObjectHashget(struct ObjectHash *thisvar, int key, int *data, int *data2) {
         if (ptr->key == key) {
             *data = ptr->data;
 	    *data2 = ptr->data2;
+	    *data3 = ptr->data3;
+	    *data4 = ptr->data4;
             return 1; /* success */
         }
         ptr = ptr->next;
@@ -212,6 +216,24 @@ int ObjectHashget(struct ObjectHash *thisvar, int key, int *data, int *data2) {
 
     return 0; /* failure */
 }
+
+int ObjectHashupdate(struct ObjectHash *thisvar, int key, int data, int data2, int data3, int data4) {
+    unsigned int hashkey = (unsigned int)key % thisvar->size;
+
+    struct ObjectNode *ptr = thisvar->bucket[hashkey];
+    while (ptr) {
+        if (ptr->key == key) {
+	  ptr->data=data;
+	  ptr->data2=data2;
+	  ptr->data3=data3;
+	  ptr->data4=data4;
+	  return 1; /* success */
+        }
+        ptr = ptr->next;
+    }
+    return 0; /* failure */
+}
+
 
 inline struct ObjectIterator * noargallocateObjectIterator() {
     return (struct ObjectIterator*)RUNMALLOC(sizeof(struct ObjectIterator));
@@ -234,4 +256,20 @@ inline int Objnext(struct ObjectIterator *thisvar) {
 
 inline int Objkey(struct ObjectIterator *thisvar) {
   return thisvar->cur->key;
+}
+
+inline int Objdata(struct ObjectIterator *thisvar) {
+  return thisvar->cur->data;
+}
+
+inline int Objdata2(struct ObjectIterator *thisvar) {
+  return thisvar->cur->data2;
+}
+
+inline int Objdata3(struct ObjectIterator *thisvar) {
+  return thisvar->cur->data3;
+}
+
+inline int Objdata4(struct ObjectIterator *thisvar) {
+  return thisvar->cur->data4;
 }
