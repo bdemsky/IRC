@@ -846,7 +846,8 @@ int enqueuetasks(struct parameterwrapper *parameter, struct parameterwrapper *pr
   int adderror=1;
 
   struct taskdescriptor * task=parameter->task;
-  
+
+#ifdef OPTIONAL  
   if (ObjectHashcontainskey(parameter->objectset, (int) ptr)) {
     /* The object is already here...or it with the existing item */
     int * oldflags;
@@ -869,8 +870,11 @@ int enqueuetasks(struct parameterwrapper *parameter, struct parameterwrapper *pr
 
     retval=0;
   } else {
+#endif
     ObjectHashadd(parameter->objectset, (int) ptr, (int) prevptr, (int) enterflags, numenterflags, enterflags==NULL);//this add the object to parameterwrapper
+#ifdef OPTIONAL
   }
+#endif
  
   /* Add enqueued object to parameter vector */
   taskpointerarray[parameter->slot]=ptr;
@@ -1189,11 +1193,13 @@ void executetasks() {
 	  } else
 	    ((void (*) (void **)) currtpd->task->taskptr)(taskpointerarray);
 
+#ifdef OPTIONAL
 	  for(i=0;i<numparams;i++) {
 	    //free old fses
 	    if(oldfsesarray[i]!=NULL)
 	      RUNFREE(oldfsesarray[i]);
 	  }
+#endif
 	  
 	  freeRuntimeHash(forward);
 	  freeRuntimeHash(reverse);
