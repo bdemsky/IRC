@@ -319,6 +319,9 @@ void collect(struct garbagelist * stackptr) {
 }
 
 #ifdef TASK
+
+/* Fix up the references from tags.  This can't be done earlier,
+   because we don't want tags to keep objects alive */
 void fixtags() {
   while(taghead!=NULL) {
     int i;
@@ -327,7 +330,9 @@ void fixtags() {
       struct ___TagDescriptor___ *tagd=taghead->ptrs[i];
       struct ___Object___ *obj=tagd->flagptr;
       struct ___TagDescriptor___ *copy=((struct ___TagDescriptor___**)tagd)[1];
-      if (obj->type==-1) {
+      if (obj==NULL) {
+	/* Zero object case */
+      } else if (obj->type==-1) {
 	/* Single object case */
 	copy->flagptr=((struct ___Object___**)obj)[1];
       } else if (obj->type==OBJECTARRAYTYPE) {

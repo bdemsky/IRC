@@ -202,7 +202,7 @@ void tagset(struct ___Object___ * obj, struct ___TagDescriptor___ * tagd) {
 	  ARRAYSET(aonew, struct ___Object___*, i, ARRAYGET(ao, struct ___Object___*, i));
 	}
 	ARRAYSET(aonew, struct ___Object___ *, ao->___cachedCode___, obj);
-	tagd->flagptr=(struct ___Object___ *) ao;
+	tagd->flagptr=(struct ___Object___ *) aonew;
       }
     }
   }
@@ -268,7 +268,6 @@ void tagclear(struct ___Object___ * obj, struct ___TagDescriptor___ * tagd) {
   }
  ENDCLEAR:
   return;
-  
 }
  
 /* This function allocates a new tag. */

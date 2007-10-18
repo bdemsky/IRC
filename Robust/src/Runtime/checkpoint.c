@@ -72,6 +72,18 @@ void ** makecheckpoint(int numparams, void ** srcpointer, struct RuntimeHash * f
       void *cpy;
       RuntimeHashget(forward, (int) ptr, (int *) &cpy);
       unsigned int * pointer=pointerarray[type];
+#ifdef TASK
+      if (type==TAGTYPE) {
+	void *objptr=((struct ___TagDescriptor___*)ptr)->flagptr;
+	if (objptr!=NULL) {
+	  void * copy=createcopy(objptr);
+	  RuntimeHashadd(forward, (int) objptr, (int) copy);
+	  RuntimeHashadd(reverse, (int) copy, (int) objptr);
+	  RuntimeHashadd(todo, (int) objptr, (int) objptr);
+	  ((struct ___TagDescriptor___*)cpy)->flagptr=copy;
+	}
+      } else
+#endif
       if (pointer==0) {
 	/* Array of primitives */
 	/* Do nothing */
@@ -176,7 +188,19 @@ void restorecheckpoint(int numparams, void ** original, void ** checkpoint, stru
       RuntimeHashget(reverse, (int) ptr, (int *) &cpy);
       pointer=pointerarray[type];
       size=classsize[type];
-
+#ifdef TASK
+      if (type==TAGTYPE) {
+	void *objptr=((struct ___TagDescriptor___*)ptr)->flagptr;
+	memcpy(cpy, ptr, size);
+	if (objptr!=NULL) {
+	  if (!RuntimeHashcontainskey(visited, (int) objptr)) {
+	    RuntimeHashadd(visited, (int) objptr, (int) objptr);
+	    RuntimeHashadd(todo, (int) objptr, (int) objptr);
+	  }
+	  RuntimeHashget(reverse, (int) objptr, (int *) & (((struct ___TagDescriptor___ *)cpy)->flagptr));
+	}
+      } else
+#endif
       if (pointer==0) {
 	/* Array of primitives */
 	struct ArrayObject *ao=(struct ArrayObject *) ptr;
