@@ -4,57 +4,65 @@ import java.util.*;
 import IR.*;
 
 public class PrefetchPair {
-	TempDescriptor td;
-	FieldDescriptor[] fd;
-	int arryindex;
+	TempDescriptor base;
+	List<Descriptor> desc;
+	List<Boolean> isTemp;
 
 	public PrefetchPair() {
 	}
 
-	public PrefetchPair(TempDescriptor td) {
-		this.td = td;
+	public PrefetchPair(TempDescriptor t, Descriptor f, Boolean type) {
+		base = t;
+		desc.add(f);
+		isTemp.add(type);
 	}
 
-	public PrefetchPair(TempDescriptor td, int index) {
-		this.td = td;
-		fd = new FieldDescriptor[index];
-		arryindex = index;
+	public TempDescriptor getBase() {
+		return base;
 	}
 
-	public TempDescriptor getTemp() {
-		return td;
+	public boolean isTempDesc(int index) {
+		return isTemp.get(index).booleanValue();
 	}
 
-	public FieldDescriptor getField(int index) {
-		return fd[index];
+	public Descriptor getDescAt(int index) {
+		return desc.get(index);
 	}
 
-	public int  getIndex() {
-		return arryindex;
+	public List<Descriptor> getDesc() {
+		return desc;
+	}
+
+	public FieldDescriptor getFieldDesc(int index) {
+		return (FieldDescriptor) desc.get(index);
+	}
+
+	public TempDescriptor getTempDesc(int index) {
+		return (TempDescriptor) desc.get(index);
 	}
 
 	public int hashCode() {
-		int hashcode = td.hashCode(); 
-		for(int i=0; i<arryindex; i++) {
-			hashcode = hashcode ^ fd[i].hashCode();
+		int hashcode = base.hashCode(); 
+		ListIterator li = desc.listIterator();
+		while(li.hasNext()) {
+			hashcode = hashcode ^ li.next().hashCode();
 		}
 		return hashcode;
 	}
 
 	public String toString() {
-		//if(getTemp()!=null)
-		return"<"+getTemp()+">";
+		return"<"+getBase().toString() +">";
 	}
 
 	public boolean equals(Object o) {
 		if(o instanceof PrefetchPair) {
 			PrefetchPair pp = (PrefetchPair) o;
-			if(td != pp.td)
+			if(base != pp.base)
 				return false;
-			for(int i=0; i< arryindex; i++) {
-				if(!fd[i].equals(pp.fd[i]))
-					return false;
-			}
+			if (desc.equals((List<Descriptor>)pp.desc) && isTemp.equals((List<Boolean>)pp.isTemp))
+				return true;
+			else
+				return false;
 		}
 		return false;
 	}

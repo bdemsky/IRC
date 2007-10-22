@@ -8,13 +8,14 @@ import IR.State;
 import IR.TypeUtil;
 import IR.MethodDescriptor;
 import IR.Flat.*;
+import IR.*;
 import IR.ClassDescriptor;
 
 public class PrefetchAnalysis {
     State state;
     CallGraph callgraph;
     TypeUtil typeutil;
-    Hashtable<FlatNode, HashSet<PrefetchPair>> prefetch_hash;
+    Hashtable<FlatNode, Hashtable<PrefetchPair, Float>> prefetch_hash;
 
     public PrefetchAnalysis(State state, CallGraph callgraph, TypeUtil typeutil) {
 	this.typeutil=typeutil;
@@ -46,116 +47,92 @@ public class PrefetchAnalysis {
 	    Set<FlatNode> tovisit = fm.getNodeSet(); //Flat nodes to process
 	    tovisit.add(fm);
 	    while(!tovisit.isEmpty()) {
-		    HashSet<FlatNode> parentnodes = new HashSet<FlatNode>();
-		    HashSet<PrefetchPair> s = new HashSet<PrefetchPair>();
+		    Hashtable<PrefetchPair, Float> nodehash = new Hashtable();
 		    FlatNode fn = (FlatNode)tovisit.iterator().next();
-		    //Create a set of parent nodes for any given node
-		    for(int i = 0; i < fn.numPrev(); i++){
-			    if(fn.getPrev(i) != null)
-				    parentnodes.add(fn.getPrev(i));
-		    }
 		    tovisit.remove(fn);
 		    //System.out.println("DEBUG -> kind = " + fn.kind());
-		    switch(fn.kind()) {
-			    case FKind.FlatCondBranch:
-				    //TODO: make this a method
-				    FlatCondBranch fcb = (FlatCondBranch) fn;
-				    System.out.print("DEBUG -> conditional\t");
-				    System.out.println(fcb.toString(""));
-				    break;
-			    case FKind.FlatAtomicEnterNode:
-				    break;
-			    case FKind.FlatAtomicExitNode:
-				    break;
-			    case FKind.FlatGlobalConvNode:
-				    break;
-			    case FKind.FlatTagDeclaration:
-				    break;
-			    case FKind.FlatCall:
-				    break;
-			    case FKind.FlatFieldNode:
-				    //TODO: make this a method
-				    // This implementation takes care of a case where int x = f.g
-				    // => f needs to be prefetched and moved up in the parentnode
-				    FlatFieldNode ffn = (FlatFieldNode) fn;
-				    System.out.print("DEBUG -> is an object\t");
-				    System.out.println(ffn.toString());
-				    TempDescriptor currnode = ffn.getSrc();
-				    double prob = 1.0;
-				    if(ffn.getDst().getType().isPtr()) {
-					    PrefetchPair pp = new PrefetchPair(currnode,(float)prob);
-					    if (prefetch_hash.containsKey(fn)) {
-						    s = prefetch_hash.remove(fn);
-					    } 
-					    s.add(pp);
-					    prefetch_hash.put(fn, s);
-				    }
-				    /* Traverse parent nodes */
-				    for (int i = 0; i < parentnodes.size(); i++) {
-					    FlatNode pnode = (FlatNode) parentnodes.iterator().next();
-					    if (prefetch_hash.containsKey(pnode)) {
-						    //Get PrefetchPair  and for each TempDescriptor in the prefetch pair 
-						    // compare it with the temp descriptor of its child
-						    HashSet <PrefetchPair> pp = prefetch_hash.remove(pnode);
-						    boolean found = false;
-						    for (int j = 0; j < pp.size(); j++) {
-							    PrefetchPair tmp = (PrefetchPair) pp.iterator().next();
-							    //If match exists then find new probability
-							    if (tmp.td.toString() == currnode.toString()) {
-								    tmp.num = tmp.num * (float)prob;
-								    prefetch_hash.put(pnode, pp);
-								    found = true;
-								    break;
-							    } 
-						    }
-
-						    //If match does not exists then add the current prefetchpair to parentprefetchpair
-						    if (!found) {
-							    PrefetchPair moveup = new PrefetchPair(currnode, (float)prob);
-							    pp.add(moveup);
-							    prefetch_hash.put(pnode, pp);
-						    }
-					    } 
-				    }
-				    break;
-			    case FKind.FlatElementNode:
-				    //TODO: make this a method
-				    FlatElementNode fen = (FlatElementNode)fn;
-				    if (fen.getDst().getType().isPtr()) {
-					    System.out.print("DEBUG -> is a array\t");
-					    System.out.println(fen.toString());
-					    PrefetchPair pp = new PrefetchPair(fen.getSrc(),(float)1.0);
-					    if (prefetch_hash.containsKey(fn)) {
-						    s = prefetch_hash.get(fn);
-						    s.add(pp);
-						    prefetch_hash.put(fn, s);
-					    }
-					    //TODO: add the else part
-				    }   
-				    break;
-			    case FKind.FlatSetElementNode:
-				    break;
-			    case FKind.FlatSetFieldNode:
-				    break;
-			    case FKind.FlatNew:
-				    break;
-			    case FKind.FlatOpNode:
-				    break;
-			    case FKind.FlatCastNode:
-				    break;
-			    case FKind.FlatLiteralNode:
-				    break;
-			    case FKind.FlatReturnNode:
-				    break;
-			    case FKind.FlatNop:
-				    //System.out.println("/* nop */");
-				    break;
-			    case FKind.FlatCheckNode:
-				    break;
-			    case FKind.FlatFlagActionNode:
-				    break;
-		    }
+		    // Do self node prefetch
+		    doNodePrefetch(fn);
+		    // Do the child node analysis
+		    boolean curr_modified = doNodeChildPrefetch(fn);
 	    }
+    }
+
+    private void doNodePrefetch(FlatNode fn) {
+	    Hashtable<PrefetchPair, Float> nodehash = new Hashtable();
+	    switch(fn.kind()) {
+		    case FKind.FlatFieldNode:
+			    FlatFieldNode currffn = (FlatFieldNode) fn;
+			    System.out.print("DEBUG -> is an object\t");
+			    System.out.println(currffn.toString());
+			    FieldDescriptor currffn_field =  currffn.getField();
+			    TempDescriptor currffn_src = currffn.getSrc();
+			    if (currffn_field.getType().isPtr()) {
+				    System.out.println("\t pointer " + currffn_field.toString());
+				    PrefetchPair pp = new PrefetchPair(currffn_src, (Descriptor) currffn_field, false);
+				    Float prob = new Float((double)1.0);
+				    nodehash.put(pp, prob);
+				    prefetch_hash.put(fn, nodehash);
+			    }
+			    break;
+		    case FKind.FlatElementNode:
+			    FlatElementNode currfen = (FlatElementNode) fn;
+			    TempDescriptor currfen_index = currfen.getIndex();
+			    TempDescriptor currfen_src = currfen.getSrc();
+			    System.out.print("DEBUG -> is an array\t");
+			    System.out.println(currfen.toString());
+			    PrefetchPair pp = new PrefetchPair(currfen_src, (Descriptor) currfen_index, true);
+			    Float prob = new Float((double)1.0);
+			    nodehash.put(pp, prob);
+			    prefetch_hash.put(fn, nodehash);
+			    break;
+		    default:
+			    break;
+	    }
+    }
+
+    private boolean doNodeChildPrefetch(FlatNode curr) {
+	    boolean isCurrMod = false;
+
+	    for (int i = 0; i < curr.numNext(); i++) {
+		    FlatNode child_node = curr.getNext(i);
+		    if (prefetch_hash.containsKey(child_node)) {
+			    Hashtable<PrefetchPair, Float> child_hash = prefetch_hash.get(child_node);
+			    switch(curr.kind()) {
+				    case FKind.FlatFieldNode:
+					    break;
+				    case FKind.FlatElementNode:
+					    break;
+				    default:
+					    if (prefetch_hash.containsKey(curr)) {
+						    isCurrMod = true;
+						    Hashtable<PrefetchPair, Float> parentcopy = prefetch_hash.get(curr);
+						    Hashtable<PrefetchPair, Float> tocompare = new Hashtable<PrefetchPair, Float>();
+						    Enumeration e = parentcopy.keys();
+						    while (e.hasMoreElements()) {
+							    PrefetchPair pp = (PrefetchPair) e.nextElement();
+							    if (child_hash.contains(pp)) {
+								    Float cprob = child_hash.get(pp);
+								    Float fprob = parentcopy.get(pp);
+								    // TODO fix this
+								    Float newprob = cprob.floatValue() * fprob.floatValue();
+								    tocompare.put(pp, newprob);
+								    child_hash.remove(pp);
+							    } else {
+								    tocompare.put(pp, parentcopy.get(pp));
+							    }
+						    }
+						    e = child_hash.keys();
+						    while (e.hasMoreElements()) {
+							    tocompare.put((PrefetchPair) e.nextElement(), child_hash.get((PrefetchPair) e.nextElement()));
+						    }
+					    } else {
+						    prefetch_hash.put(curr, child_hash);
+					    }
+			    }
+		    } 
+	    }
+	    return isCurrMod;
     }
 
     private void doAnalysis() {
