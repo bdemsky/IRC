@@ -5,16 +5,31 @@ import IR.*;
 
 public class PrefetchPair {
 	TempDescriptor base;
-	List<Descriptor> desc;
-	List<Boolean> isTemp;
+	ArrayList<Descriptor> desc;
+	ArrayList<Boolean> isTemp;
 
 	public PrefetchPair() {
 	}
 
 	public PrefetchPair(TempDescriptor t, Descriptor f, Boolean type) {
 		base = t;
+		if (desc == null) 
+			desc = new ArrayList<Descriptor>();
+		if (isTemp == null)
+			isTemp = new ArrayList<Boolean>();
 		desc.add(f);
 		isTemp.add(type);
+	}
+
+	public PrefetchPair(TempDescriptor t, ArrayList<Descriptor> descriptor, ArrayList<Boolean> bool) {
+		base = t;
+		if(desc == null){
+			desc = new ArrayList<Descriptor>();
+		}
+		if(isTemp == null)
+			isTemp = new ArrayList<Boolean>();
+		desc.addAll(descriptor);
+		isTemp.addAll(bool);
 	}
 
 	public TempDescriptor getBase() {
