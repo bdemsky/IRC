@@ -188,7 +188,7 @@ public class TypeDescriptor extends Descriptor {
     }
 
     public boolean isPtr() {
-	return (isClass()||isNull()||isTag());
+	return (isClass()||isNull()||isTag()||isArray());
     }
 
     public boolean isIntegerType() {
