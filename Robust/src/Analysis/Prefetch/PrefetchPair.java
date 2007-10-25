@@ -6,19 +6,25 @@ import IR.*;
 public class PrefetchPair {
 	TempDescriptor base;
 	ArrayList<Descriptor> desc;
-	ArrayList<Boolean> isTemp;
+	ArrayList<Boolean> isTempDesc;
 
 	public PrefetchPair() {
+	}
+
+	public PrefetchPair(TempDescriptor t) {
+		base = t;
+		desc = null;
+		isTempDesc = null;
 	}
 
 	public PrefetchPair(TempDescriptor t, Descriptor f, Boolean type) {
 		base = t;
 		if (desc == null) 
 			desc = new ArrayList<Descriptor>();
-		if (isTemp == null)
-			isTemp = new ArrayList<Boolean>();
+		if (isTempDesc == null)
+			isTempDesc = new ArrayList<Boolean>();
 		desc.add(f);
-		isTemp.add(type);
+		isTempDesc.add(type);
 	}
 
 	public PrefetchPair(TempDescriptor t, ArrayList<Descriptor> descriptor, ArrayList<Boolean> bool) {
@@ -26,26 +32,30 @@ public class PrefetchPair {
 		if(desc == null){
 			desc = new ArrayList<Descriptor>();
 		}
-		if(isTemp == null)
-			isTemp = new ArrayList<Boolean>();
+		if(isTempDesc == null)
+			isTempDesc = new ArrayList<Boolean>();
 		desc.addAll(descriptor);
-		isTemp.addAll(bool);
+		isTempDesc.addAll(bool);
 	}
 
 	public TempDescriptor getBase() {
 		return base;
 	}
 
-	public boolean isTempDesc(int index) {
-		return isTemp.get(index).booleanValue();
+	public boolean isTempDescDesc(int index) {
+		return isTempDesc.get(index).booleanValue();
 	}
 
 	public Descriptor getDescAt(int index) {
 		return desc.get(index);
 	}
 
-	public List<Descriptor> getDesc() {
+	public ArrayList<Descriptor> getDesc() {
 		return desc;
+	}
+
+	public ArrayList<Boolean> getisTempDesc() {
+		return isTempDesc;
 	}
 
 	public FieldDescriptor getFieldDesc(int index) {
@@ -58,15 +68,32 @@ public class PrefetchPair {
 
 	public int hashCode() {
 		int hashcode = base.hashCode(); 
-		ListIterator li = desc.listIterator();
-		while(li.hasNext()) {
-			hashcode = hashcode ^ li.next().hashCode();
+		if(getDesc() != null) {
+			ListIterator li = desc.listIterator();
+			while(li.hasNext()) {
+				hashcode = hashcode ^ li.next().hashCode();
+			}
 		}
 		return hashcode;
 	}
 
 	public String toString() {
-		return"<"+getBase().toString() +">";
+	        String label= getBase().toString();
+		if(getDesc() == null || getisTempDesc() == null)
+			return label;
+		ListIterator it=getDesc().listIterator();
+		ListIterator istemp=getisTempDesc().listIterator();
+		for(;it.hasNext() && istemp.hasNext();) {
+			Boolean isFd = (Boolean) istemp.next();
+			if(isFd.booleanValue() == false) {
+				FieldDescriptor fd = (FieldDescriptor) it.next();
+				label+="."+ fd.toString();
+			} else { 
+				TempDescriptor td = (TempDescriptor) it.next();
+				label+="."+ td.toString();
+			}
+		}
+		return label;
 	}
 
 	public boolean equals(Object o) {
@@ -74,7 +101,7 @@ public class PrefetchPair {
 			PrefetchPair pp = (PrefetchPair) o;
 			if(base != pp.base)
 				return false;
-			if (desc.equals((List<Descriptor>)pp.desc) && isTemp.equals((List<Boolean>)pp.isTemp))
+			if (desc.equals((List<Descriptor>)pp.desc) && isTempDesc.equals((List<Boolean>)pp.isTempDesc))
 				return true;
 			else
 				return false;

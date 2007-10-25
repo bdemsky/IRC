@@ -15,7 +15,9 @@ public class PrefetchAnalysis {
     State state;
     CallGraph callgraph;
     TypeUtil typeutil;
+    Set<FlatNode> tovisit;
     Hashtable<FlatNode, Hashtable<PrefetchPair, Float>> prefetch_hash;
+    public static final int ROUNDED_MODE = 5;
 
     public PrefetchAnalysis(State state, CallGraph callgraph, TypeUtil typeutil) {
 	this.typeutil=typeutil;
@@ -25,6 +27,7 @@ public class PrefetchAnalysis {
 	DoPrefetch();
     }
 
+    /** This function starts the prefetch analysis */
     private void DoPrefetch() {
 	Iterator classit=state.getClassSymbolTable().getDescriptorsIterator();
 	while(classit.hasNext()) {
@@ -33,6 +36,7 @@ public class PrefetchAnalysis {
 	}
     }
 
+    /** This function calls analysis for every method in a class */
     private void doMethodAnalysis(ClassDescriptor cn) {
 	    Iterator methodit=cn.getMethods();
 	    while(methodit.hasNext()) {
@@ -43,35 +47,41 @@ public class PrefetchAnalysis {
 	    }
     }
 
+    /** This function calls analysis for every node in a method */
     private void doFlatNodeAnalysis(FlatMethod fm) {
-	    Set<FlatNode> tovisit = fm.getNodeSet(); //Flat nodes to process
-	    tovisit.add(fm);
+	    tovisit = fm.getNodeSet(); //Flat nodes to process
+	   // tovisit.add(fm);
 	    while(!tovisit.isEmpty()) {
-		    Hashtable<PrefetchPair, Float> nodehash = new Hashtable();
 		    FlatNode fn = (FlatNode)tovisit.iterator().next();
-		    tovisit.remove(fn);
-		    // Do self node prefetch
+		    System.out.println("Starting a new node Analysis");
+		    /* Generate self node prefetch pairs */
 		    doNodePrefetch(fn);
-		    // Do the child node analysis
+		    /* Generate prefetch pairs after the child node analysis */
 		    boolean curr_modified = doNodeChildPrefetch(fn);
+		    System.out.println("The prefetch set of Flatnode: "+ fn.toString() + "has been modified? " + curr_modified);
+		    tovisit.remove(fn);
 	    }
     }
 
+    /**
+     * This function generates initial prefetch pair for a Flat node that is of the 
+     * following  kind FlatFieldNode, FlatElementNode, FlatSetFieldNode or FlatSetElementNode 
+     * */
     private void doNodePrefetch(FlatNode fn) {
-	    //System.out.println("DEBUG -> kind = " + fn.kind());
 	    Hashtable<PrefetchPair, Float> nodehash = new Hashtable();
+	    System.out.println("Now Analyzing Flatnode: "+ fn.toString() +" of type "+ fn.kind());
 	    switch(fn.kind()) {
 		    case FKind.FlatFieldNode:
 			    FlatFieldNode currffn = (FlatFieldNode) fn;
-			    System.out.print("DEBUG -> is an object\t");
-			    System.out.println(currffn.toString());
 			    FieldDescriptor currffn_field =  currffn.getField();
 			    TempDescriptor currffn_src = currffn.getSrc();
+			    //System.out.print("DEBUG -> is an object\t");
 			    if (currffn_field.getType().isPtr()) {
 				    Boolean b = new Boolean(false);
 				    PrefetchPair pp = new PrefetchPair(currffn_src, (Descriptor) currffn_field, b);
-				    //PrefetchPair pp = new PrefetchPair(currffn_src, currffn_field, false);
-				    Float prob = new Float((double)1.0);
+				    System.out.print("DEBUG -> is an object\t");
+				    System.out.println("Prefetch pair is " + pp.toString());
+				    Float prob = new Float((float)1.0);
 				    nodehash.put(pp, prob);
 				    prefetch_hash.put(fn, nodehash);
 			    }
@@ -80,80 +90,175 @@ public class PrefetchAnalysis {
 			    FlatElementNode currfen = (FlatElementNode) fn;
 			    TempDescriptor currfen_index = currfen.getIndex();
 			    TempDescriptor currfen_src = currfen.getSrc();
-			    System.out.print("DEBUG -> is an array\t");
-			    System.out.println(currfen.toString());
-			    PrefetchPair pp = new PrefetchPair(currfen_src, (Descriptor) currfen_index, true);
-			    Float prob = new Float((double)1.0);
-			    nodehash.put(pp, prob);
-			    prefetch_hash.put(fn, nodehash);
+			    //System.out.print("DEBUG -> is an array\t");
+			    if(currfen.getDst().getType().isPtr()) {
+				    PrefetchPair pp = new PrefetchPair(currfen_src, (Descriptor) currfen_index, true);
+				    System.out.print("DEBUG -> is an array\t");
+				    System.out.println("Prefetch pair is " + pp.toString());
+				    Float prob = new Float((float)1.0);
+				    nodehash.put(pp, prob);
+				    prefetch_hash.put(fn, nodehash);
+			    }
+			    break;
+		    case FKind.FlatSetFieldNode:
+			    FlatSetFieldNode currfsfn = (FlatSetFieldNode) fn;
+			    TempDescriptor currfsfn_src = currfsfn.getSrc();
+			    if (currfsfn_src.getType().isPtr()) {
+				    PrefetchPair pp = new PrefetchPair(currfsfn_src);
+				    System.out.print("DEBUG -> Src is an object set to a field\t");
+				    System.out.println("Prefetch pair is " + pp.toString());
+				    Float prob = new Float((float)1.0);
+				    nodehash.put(pp, prob);
+				    prefetch_hash.put(fn, nodehash);
+			    }
+			    break;
+		    case FKind.FlatSetElementNode:
+			    FlatSetElementNode currfsen = (FlatSetElementNode) fn;
+			    TempDescriptor currfsen_src = currfsen.getSrc();
+			    if (currfsen_src.getType().isPtr()) {
+				    PrefetchPair pp = new PrefetchPair(currfsen_src);
+				    System.out.print("DEBUG -> Src is an object set to an array\t");
+				    System.out.println("Prefetch pair is " + pp.toString());
+				    Float prob = new Float((float)1.0);
+				    nodehash.put(pp, prob);
+				    prefetch_hash.put(fn, nodehash);
+			    }
 			    break;
 		    default:
 			    break;
 	    }
+	    //printPrefetchPairs(fn);
     }
 
+    /**
+     * This function generates the prefetch sets for a given Flatnode considering the kind of node
+     * It calls severals functions based on the kind of the node and 
+     * returns true: if the prefetch set has changed since last time the node was analysed
+     * returns false : otherwise 
+     */ 
     private boolean doNodeChildPrefetch(FlatNode curr) {
-	    boolean isCurrMod = false;
+	    boolean ppSetHasChanged = false;
+	    //System.out.println("Now Analyzing Flatnode of type :"+curr.kind());
+	    //System.out.println("The number of next nodes following curr:" + curr.numNext());
+	    Hashtable<PrefetchPair, Float> child_hash = new Hashtable<PrefetchPair, Float>();
 
 	    for (int i = 0; i < curr.numNext(); i++) {
 		    FlatNode child_node = curr.getNext(i);
 		    if (prefetch_hash.containsKey(child_node)) {
-			    Hashtable<PrefetchPair, Float> child_hash = prefetch_hash.get(child_node);
-			    switch(curr.kind()) {
-				    case FKind.FlatFieldNode:
-					    //processFlatFieldNode(child_hash, curr);
-					    break;
-				    case FKind.FlatElementNode:
-					    break;
-				    case FKind.FlatCall:
-					    break;
-				    case FKind.FlatCondBranch:
-					    break;
-				    case FKind.FlatNew:
-					    break;
-				    case FKind.FlatOpNode:
-					    break;
-				    case FKind.FlatSetElementNode:
-					    break;
-				    case FKind.FlatSetFieldNode:
-					    break;
-				    default:
-					    /*If FlatNode is not concerned with the prefetch set of its Child then propagate 
-					     * prefetches up the FlatNode*/  
-					    if (prefetch_hash.containsKey(curr)) {
-						    isCurrMod = true;
-						    Hashtable<PrefetchPair, Float> currentcopy = prefetch_hash.get(curr);
-						    Hashtable<PrefetchPair, Float> tocompare = new Hashtable<PrefetchPair, Float>();
-						    Enumeration e = currentcopy.keys();
-						    while (e.hasMoreElements()) {
-							    PrefetchPair pp = (PrefetchPair) e.nextElement();
-							    if (child_hash.contains(pp)) {
-								    Float cprob = child_hash.get(pp);
-								    Float fprob = currentcopy.get(pp);
-								    // TODO fix this
-								    Float newprob = cprob.floatValue() * fprob.floatValue();
-								    tocompare.put(pp, newprob);
-								    child_hash.remove(pp);
-							    } else {
-								    tocompare.put(pp, currentcopy.get(pp));
-							    }
+			    child_hash = prefetch_hash.get(child_node);
+		    }
+		    switch(curr.kind()) {
+			    case FKind.FlatFieldNode:
+				    //processFlatFieldNode();
+				    break;
+			    case FKind.FlatElementNode:
+				    //processFlatElementNode();
+				    break;
+			    case FKind.FlatCall:
+				    //processFlatCallNode();
+				    break;
+			    case FKind.FlatCondBranch:
+				    //processFlatCondBranchNode();
+				    break;
+			    case FKind.FlatNew:
+				    //processFlatNewNode();
+				    break;
+			    case FKind.FlatOpNode:
+				    //processFlatOpNode();
+				    break;
+			    case FKind.FlatSetElementNode:
+				    //processFlatSetElementNode();
+				    break;
+			    case FKind.FlatSetFieldNode:
+				    //processFlatSetFieldNode();
+				    break;
+			    default:
+				    /*If FlatNode is not concerned with the prefetch set of its Child then propagate 
+				     * prefetches up the FlatNode*/  
+				    //TODO make this a new method
+				    if(prefetch_hash.containsKey(curr)) {
+					    System.out.println("Now Analyzing child node of Flatnode: "+ curr.toString() +" of type "+ curr.kind());
+					    //isCurrMod = true;
+					    Hashtable<PrefetchPair, Float> currcopy = prefetch_hash.get(curr);
+					    Hashtable<PrefetchPair, Float> tocompare = new Hashtable<PrefetchPair, Float>();
+					    Enumeration e = currcopy.keys();
+					    while (e.hasMoreElements()) {
+						    PrefetchPair pp = (PrefetchPair) e.nextElement();
+						    System.out.println(pp.toString());
+						    if (child_hash.contains(pp)) {
+							    Float cprob = child_hash.get(pp);
+							    Float fprob = currcopy.get(pp);
+							    // TODO fix this
+							    Float newprob = cprob.floatValue() * fprob.floatValue();
+							    tocompare.put(pp, newprob);
+							    child_hash.remove(pp);
+						    } else {
+							    tocompare.put(pp, currcopy.get(pp));
 						    }
-						    for(e = child_hash.keys(); e.hasMoreElements();) {
-							    PrefetchPair newpp = (PrefetchPair) e.nextElement();
-							    tocompare.put(newpp, child_hash.get(newpp));
-						    }
-
-					    } else {
-						    prefetch_hash.put(curr, child_hash);
 					    }
+					    for(e = child_hash.keys(); e.hasMoreElements();) {
+						    PrefetchPair newpp = (PrefetchPair) e.nextElement();
+						    System.out.println(newpp.toString());
+						    tocompare.put(newpp, child_hash.get(newpp));
+					    }
+					    /* Compare with old Prefetch sets */
+					    ppSetHasChanged = comparePrefetchSets(currcopy, tocompare); 
+
+				    } else {
+					    System.out.println("New entry into the prefetch_hash table"); 
+				 	    System.out.println("Inherits prefetch set from its Child");
+				    	    /* Add the child prefetch set to Curr FlatNode */
+					    prefetch_hash.put(curr, child_hash);
+				    }
+				    break;
+		    }
+	    } 
+	    return ppSetHasChanged;
+    }
+    
+    /**This function compares all the prefetch pairs in a Prefetch set hashtable and
+     * returns: true if something has changed in the new Prefetch set else
+     * returns: false
+     */
+    private boolean comparePrefetchSets(Hashtable<PrefetchPair, Float> oldPrefetchSet, Hashtable<PrefetchPair, Float>
+		    newPrefetchSet) {
+	    boolean hasChanged = false;
+	    PrefetchPair oldpp = null;
+	    PrefetchPair newpp = null;
+	    if(oldPrefetchSet.size() != newPrefetchSet.size()) {
+		    return true;
+	    } else {
+		    Enumeration e = newPrefetchSet.keys();
+		    while(e.hasMoreElements()) {
+			    newpp = (PrefetchPair) e.nextElement();
+			    float newprob = newPrefetchSet.get(newpp);
+			    for(Enumeration elem = oldPrefetchSet.keys(); elem.hasMoreElements();) {
+				    oldpp = (PrefetchPair) elem.nextElement();
+				    if(oldpp.equals(newpp)) {
+					    /*Compare the difference in their probabilities */ 
+					    float oldprob = oldPrefetchSet.get(oldpp);
+					    int diff = (int) ((newprob - oldprob)/oldprob)*100; 
+					    if(diff <= ROUNDED_MODE) {
+						    return true;
+					    }
+					    break;
+				    } else {
+					    return true;
+				    }
 			    }
-		    } 
+		    }
 	    }
-	    return isCurrMod;
+	    return hasChanged;
     }
 
+    /** This function processes the prefetch set of FlatFieldNode
+     * It generates a new prefetch set after comparision with its children
+     * Then compares it with its old prefetch set
+     * If old prefetch set is not same as new prefetch set then enqueue the parents 
+     * of the current FlatFieldNode
+     * */
     void processFlatFieldNode(Hashtable<PrefetchPair, Float> child_hash, FlatNode curr) {
-	    boolean isCurrMod = false;
+	    boolean pSetHasChanged = false;
 	    Hashtable<PrefetchPair, Float> currcopy = prefetch_hash.get(curr);
 	    Hashtable<PrefetchPair, Float> tocompare = new Hashtable<PrefetchPair, Float>();
 	    ArrayList<PrefetchPair> arrypp = new ArrayList<PrefetchPair>();
@@ -169,7 +274,7 @@ public class PrefetchAnalysis {
 		    childpp = (PrefetchPair) ecld.nextElement();
 		    if (childpp.base == currffn.getDst()) {
 			    if (currffn.getField().getType().isPtr()) {
-				    isCurrMod = true;
+				    pSetHasChanged = true;
 				    //if match exists then create a new Prefetch set with the new prefetch pair in a new hash table 
 				    System.out.println("Match with the parent base");
 				    System.out.print(childpp.base.toString());
@@ -179,7 +284,7 @@ public class PrefetchAnalysis {
 				    Boolean b = new Boolean(false);
 				    newbool.add(b);
 				    newdesc.addAll(childpp.desc);
-				    newbool.addAll(childpp.isTemp);
+				    newbool.addAll(childpp.isTempDesc);
 				    PrefetchPair newpp =  new PrefetchPair(currffn.getSrc(), newdesc, newbool);
 				    tocompare.put(newpp, newprob); 
 				    child_hash.remove(childpp);
@@ -221,16 +326,27 @@ public class PrefetchAnalysis {
 		    tocompare.put(currpp, currcopy.get(currpp));  
 	    }
 
-	    //2. Compare with the orginal entry of the hashtable
-	    //3. If same as old then do nothing
-	    //4. If not same then enque parent nodes
-	    //5. Process parent nodes into the hashtable 
-
-
+	    /* Compare with the orginal prefetch pairs */
+	    pSetHasChanged = comparePrefetchSets(currcopy, tocompare);
+	    /* Enqueue parent nodes */
+	    if(pSetHasChanged) {
+		    for (int i=0; i<curr.numPrev(); i++) {
+			    tovisit.add(curr.getPrev(i));
+		    }
+	    } 
     }
 
-    void printPrefetchPair(Hashtable<FlatNode, Hashtable<PrefetchPair, Float>> outertable) {
-
+    /** This function prints the Prefetch pairs of a given flatnode */
+    void printPrefetchPairs(FlatNode fn) {
+	    if(prefetch_hash.containsKey(fn)) {
+		    System.out.print("Prefetch" + "(");
+		    Hashtable<PrefetchPair, Float> currhash = (Hashtable) prefetch_hash.get(fn);
+		    for(Enumeration pphash= currhash.keys(); pphash.hasMoreElements();) {
+			    PrefetchPair pp = (PrefetchPair) pphash.nextElement();
+			    System.out.print(pp.toString() + ", ");
+		    }
+		    System.out.println(")");
+	    }
     }
 
     private void doAnalysis() {
