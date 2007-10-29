@@ -67,13 +67,16 @@ public class PrefetchPair {
 	}
 
 	public int hashCode() {
-		int hashcode = base.hashCode(); 
-		if(getDesc() != null) {
+		int hashcode = base.toString().hashCode();
+		//int hashcode = base.hashCode(); 
+		if(desc != null) {
+	//	if(getDesc() != null) {
 			ListIterator li = desc.listIterator();
 			while(li.hasNext()) {
-				hashcode = hashcode ^ li.next().hashCode();
+				hashcode = hashcode ^ li.next().toString().hashCode();
 			}
 		}
+		//System.out.println("DEBUG -> hashcode for: " + base.toString() + " " + hashcode);
 		return hashcode;
 	}
 
@@ -99,12 +102,18 @@ public class PrefetchPair {
 	public boolean equals(Object o) {
 		if(o instanceof PrefetchPair) {
 			PrefetchPair pp = (PrefetchPair) o;
-			if(base != pp.base)
+			if(base != pp.base) {
+				//System.out.println("PP: returning false for:" + base.toString() + " " + pp.base.toString());
 				return false;
-			if (desc.equals((List<Descriptor>)pp.desc) && isTempDesc.equals((List<Boolean>)pp.isTempDesc))
+			}
+			if (desc == null && pp.desc == null) {
 				return true;
-			else
-				return false;
+			} else if (desc != null && pp.desc != null) {
+				if (desc.equals((List<Descriptor>)pp.desc) && 
+						isTempDesc.equals((List<Boolean>)pp.isTempDesc)) {
+					return true;
+				} 
+			}
 		}
 		return false;
 	}
