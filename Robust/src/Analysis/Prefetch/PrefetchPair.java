@@ -6,7 +6,8 @@ import IR.*;
 public class PrefetchPair {
 	TempDescriptor base;
 	ArrayList<Descriptor> desc;
-	ArrayList<Boolean> isTempDesc;
+	ArrayList<Boolean> isTempDesc; //Keeps track if the desc is a FieldDescriptor or TempDescriptor. Has same size() as desc
+				
 
 	public PrefetchPair() {
 	}
@@ -68,15 +69,12 @@ public class PrefetchPair {
 
 	public int hashCode() {
 		int hashcode = base.toString().hashCode();
-		//int hashcode = base.hashCode(); 
 		if(desc != null) {
-	//	if(getDesc() != null) {
 			ListIterator li = desc.listIterator();
 			while(li.hasNext()) {
 				hashcode = hashcode ^ li.next().toString().hashCode();
 			}
 		}
-		//System.out.println("DEBUG -> hashcode for: " + base.toString() + " " + hashcode);
 		return hashcode;
 	}
 
@@ -103,7 +101,6 @@ public class PrefetchPair {
 		if(o instanceof PrefetchPair) {
 			PrefetchPair pp = (PrefetchPair) o;
 			if(base != pp.base) {
-				//System.out.println("PP: returning false for:" + base.toString() + " " + pp.base.toString());
 				return false;
 			}
 			if (desc == null && pp.desc == null) {
