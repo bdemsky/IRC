@@ -82,10 +82,14 @@ public class TaskGraph {
 	    TaskNode tn,sn;
 	   
 		if (fs.isSourceNode()) {
-			sn=new TaskNode("Start Node");
+		    Vector src=fs.getAllocatingTasks();
+		    for(Iterator it2=src.iterator();it2.hasNext();) {
+			TaskDescriptor td=(TaskDescriptor)it2.next();
+			sn=new TaskNode(td.getSymbol());
 			if(fs.edges().hasNext()){
 				 addEdges(fs,sn,tasknodes);
 			}	
+		    }
 		}
 						
 		while(it_inedges.hasNext()){   
