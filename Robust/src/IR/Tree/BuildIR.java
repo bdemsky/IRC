@@ -431,6 +431,9 @@ public class BuildIR {
 	} else if (isNode(pn,"this")) {
 	    NameDescriptor nd=new NameDescriptor("this");
 	    return new NameNode(nd);
+	} else if (isNode(pn,"isavailable")) {
+	    NameDescriptor nd=new NameDescriptor(pn.getTerminal());
+   	    return new OpNode(new NameNode(nd),null,new Operation(Operation.ISAVAILABLE));
 	} else if (isNode(pn,"methodinvoke1")) {
 	    NameDescriptor nd=parseName(pn.getChild("name"));
 	    Vector args=parseArgumentList(pn);

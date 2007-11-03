@@ -72,6 +72,55 @@ public class TypeUtil {
 	throw new Error(cd+" has no main");
     }
 
+    /** Check to see if md1 is more specific than md2...  Informally
+	if md2 could always be called given the arguments passed into
+	md1 */
+
+    public boolean isMoreSpecific(MethodDescriptor md1, MethodDescriptor md2) {
+	/* Checks if md1 is more specific than md2 */
+	if (md1.numParameters()!=md2.numParameters())
+	    throw new Error();
+	for(int i=0;i<md1.numParameters();i++) {
+	    if (!this.isSuperorType(md2.getParamType(i), md1.getParamType(i)))
+		return false;
+	}
+	if (!this.isSuperorType(md2.getReturnType(), md1.getReturnType()))
+		return false;
+
+	if (!this.isSuperorType(md2.getClassDesc(), md1.getClassDesc()))
+		return false;
+
+	return true;
+    }
+
+    public MethodDescriptor getMethod(ClassDescriptor cd, String name, TypeDescriptor[] types) {
+	Set methoddescriptorset=cd.getMethodTable().getSet(name);
+        MethodDescriptor bestmd=null;
+        NextMethod:
+        for(Iterator methodit=methoddescriptorset.iterator();methodit.hasNext();) {
+            MethodDescriptor currmd=(MethodDescriptor)methodit.next();
+            /* Need correct number of parameters */
+            if (types.length!=currmd.numParameters())
+                continue;
+            for(int i=0;i<types.length;i++) {
+                if (!this.isSuperorType(currmd.getParamType(i),types[i]))
+                    continue NextMethod;
+            }
+            /* Method okay so far */
+            if (bestmd==null)
+                bestmd=currmd;
+            else {
+                if (isMoreSpecific(currmd,bestmd)) {
+                    bestmd=currmd;
+                } else if (!isMoreSpecific(bestmd, currmd))
+                    throw new Error("No method is most specific");
+                
+                /* Is this more specific than bestmd */
+            }
+        }
+	return bestmd;
+    }
+
     public void createFullTable() {
 	subclasstable=new Hashtable();
     
@@ -184,10 +233,10 @@ public class TypeUtil {
 	    
 	    return false;
 	} else if (possiblesuper.isPrimitive()&&(!possiblesuper.isArray())&&
-		   (cd2.isArray()||cd2.isPtr()))
+		   cd2.isPtr())
 	    return false;
 	else if (cd2.isPrimitive()&&(!cd2.isArray())&&
-		 (possiblesuper.isArray()||possiblesuper.isPtr()))
+		 possiblesuper.isPtr())
 	    return false;
 	else
 	    throw new Error("Case not handled:"+possiblesuper+" "+cd2);

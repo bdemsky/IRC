@@ -39,6 +39,16 @@ public class TypeDescriptor extends Descriptor {
 	return false;
     }
 
+    public boolean isString() {
+	if (type!=CLASS)
+	    return false;
+	if (arraycount>0)
+	    return false;
+	if (!getSymbol().equals(TypeUtil.StringClass))
+	    return false;
+	return true;
+    }
+
     public int hashCode() {
 	int hashcode=type^arraycount;
 	if (type==CLASS)

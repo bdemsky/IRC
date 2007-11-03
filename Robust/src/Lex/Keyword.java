@@ -42,6 +42,7 @@ class Keyword extends Token {
     key_table.put("import", new Integer(Sym.IMPORT));
     key_table.put("instanceof", new Integer(Sym.INSTANCEOF));
     key_table.put("int", new Integer(Sym.INT));
+    key_table.put("isavailable", new Integer(Sym.ISAVAILABLE));
     key_table.put("long", new Integer(Sym.LONG));
     key_table.put("native", new Integer(Sym.NATIVE));
     key_table.put("new", new Integer(Sym.NEW));

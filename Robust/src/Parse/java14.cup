@@ -222,6 +222,7 @@ non terminal ParseNode expression_opt, expression;
 //failure aware computation keywords
 terminal FLAG;
 terminal OPTIONAL;
+terminal ISAVAILABLE;
 terminal EXTERNAL;
 terminal TAG;
 terminal TASK;
@@ -1356,6 +1357,11 @@ primary_no_new_array ::=
 	|	field_access:exp {: RESULT=exp; :}
 	|	method_invocation:exp {: RESULT=exp; :}
 	|	array_access:exp {: RESULT=exp; :}
+	|	ISAVAILABLE LPAREN IDENTIFIER:id RPAREN {: 
+		ParseNode pn=new ParseNode("isavailable");
+		pn.addChild(id);
+		RESULT=pn;
+	:}
 //	|	primitive_type DOT CLASS
 //	|	VOID DOT CLASS
 //	|	array_type DOT CLASS

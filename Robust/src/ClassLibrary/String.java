@@ -15,7 +15,7 @@ public class String {
 	this.count=str.length;
 	this.offset=0;
     }
-
+    
     public String(byte str[]) {
 	char charstr[]=new char[str.length];
 	for(int i=0;i<str.length;i++)
@@ -56,6 +56,21 @@ public class String {
 
     public int lastindexOf(int ch) {
 	return this.lastindexOf(ch, count - 1);
+    }
+
+    public String concat(String str) {
+	String newstr=new String();
+	newstr.count=this.count+str.count;
+	char charstr[]=new char[newstr.count];
+	newstr.value=charstr;
+	newstr.offset=0;
+	for(int i=0;i<count;i++) {
+	    charstr[i]=value[i+offset];
+	}
+	for(int i=0;i<str.count;i++) {
+	    charstr[i+count]=str.value[i+str.offset];
+	}
+	return newstr;
     }
 
     public int lastindexOf(int ch, int fromIndex) {
@@ -141,7 +156,10 @@ public class String {
     }
 
     public static String valueOf(Object o) {
-	return o.toString();
+	if (o==null)
+	    return "null";
+	else
+	    return o.toString();
     }
 
     public static String valueOf(int x) {

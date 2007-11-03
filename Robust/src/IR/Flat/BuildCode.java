@@ -754,7 +754,7 @@ public class BuildCode {
 	for(int i=0;i<fm.numParameters();i++) {
 	    TempDescriptor temp=fm.getParameter(i);
 	    TypeDescriptor type=temp.getType();
-	    if ((type.isPtr()||type.isArray())&&GENERATEPRECISEGC)
+	    if (type.isPtr()&&GENERATEPRECISEGC)
 		objectparams.addPtr(temp);
 	    else
 		objectparams.addPrim(temp);
@@ -785,7 +785,7 @@ public class BuildCode {
 	    for(int i=0;i<writes.length;i++) {
 		TempDescriptor temp=writes[i];
 		TypeDescriptor type=temp.getType();
-		if ((type.isPtr()||type.isArray())&&GENERATEPRECISEGC)
+		if (type.isPtr()&&GENERATEPRECISEGC)
 		    objecttemps.addPtr(temp);
 		else
 		    objecttemps.addPrim(temp);
@@ -800,7 +800,7 @@ public class BuildCode {
 	    for(Iterator<TempDescriptor> tmpit=backuptable.values().iterator();tmpit.hasNext();) {
 		TempDescriptor tmp=tmpit.next();
 		TypeDescriptor type=tmp.getType();
-		if ((type.isPtr()||type.isArray())&&GENERATEPRECISEGC)
+		if (type.isPtr()&&GENERATEPRECISEGC)
 		    objecttemps.addPtr(tmp);
 		else
 		    objecttemps.addPrim(tmp);
@@ -836,7 +836,7 @@ public class BuildCode {
 		TypeDescriptor type=fd.getType();
 		if (state.DSM&&fd.isGlobal()) //Don't GC the global objects for now
 		    continue;
-		if (type.isPtr()||type.isArray())
+		if (type.isPtr())
 		    count++;
 	    }
 	    output.print(count);
@@ -846,7 +846,7 @@ public class BuildCode {
 		TypeDescriptor type=fd.getType();
 		if (state.DSM&&fd.isGlobal()) //Don't GC the global objects for now
 		    continue;
-		if (type.isPtr()||type.isArray()) {
+		if (type.isPtr()) {
 		    output.println(",");
 		    output.print("((unsigned int)&(((struct "+cn.getSafeSymbol() +" *)0)->"+fd.getSafeSymbol()+"))");
 		}
@@ -1663,8 +1663,7 @@ public class BuildCode {
 		String src=generateTemp(fm, ffn.getSrc(),lb);
 		String dst=generateTemp(fm, ffn.getDst(),lb);
 		    
-		if (ffn.getField().getType().isPtr()||
-		    ffn.getField().getType().isArray()) {
+		if (ffn.getField().getType().isPtr()) {
 
 		    //TODO: Uncomment this when we have runtime support
 		    //if (ffn.getSrc()==ffn.getDst()) {
@@ -1832,7 +1831,9 @@ public class BuildCode {
 	    output.println(generateTemp(fm, fon.getDest(),lb)+" = -"+generateTemp(fm, fon.getLeft(),lb)+";");
 	else if (fon.getOp().getOp()==Operation.LOGIC_NOT)
 	    output.println(generateTemp(fm, fon.getDest(),lb)+" = !"+generateTemp(fm, fon.getLeft(),lb)+";");
-	else
+	else if (fon.getOp().getOp()==Operation.ISAVAILABLE) {
+	    output.println(generateTemp(fm, fon.getDest(),lb)+" = "+generateTemp(fm, fon.getLeft(),lb)+"->fses==NULL;");
+	} else
 	    output.println(generateTemp(fm, fon.getDest(),lb)+fon.getOp().toString()+generateTemp(fm, fon.getLeft(),lb)+";");
     }
 

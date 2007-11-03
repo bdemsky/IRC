@@ -26,6 +26,7 @@ public class Operation {
     public static final int PREINC=23;
     public static final int PREDEC=24;
     public static final int LOGIC_NOT=25;
+    public static final int ISAVAILABLE=26;
     /* Flat Operations */
     public static final int ASSIGN=100;
 

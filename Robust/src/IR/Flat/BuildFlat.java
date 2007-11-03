@@ -618,32 +618,7 @@ public class BuildFlat {
 	TempDescriptor temp_right=null;
 
 	Operation op=on.getOp();
-	/* We've moved this to assignment nodes
 
-	if (op.getOp()==Operation.POSTINC||
-	    op.getOp()==Operation.POSTDEC||
-	    op.getOp()==Operation.PREINC||
-	    op.getOp()==Operation.PREDEC) {
-	    LiteralNode ln=new LiteralNode("int",new Integer(1));
-	    ln.setType(new TypeDescriptor(TypeDescriptor.INT));
-	    
-	    AssignmentNode an=new AssignmentNode(on.getLeft(),
-						 new OpNode(on.getLeft(),ln, 
-							    new Operation((op.getOp()==Operation.POSTINC||op.getOp()==Operation.PREINC)?Operation.PLUS:Operation.MINUS))
-						 );
-	    if (op.getOp()==Operation.POSTINC||
-		op.getOp()==Operation.POSTDEC) {
-		//Can't do, this could have side effects
-		NodePair left=flattenExpressionNode(on.getLeft(),out_temp);
-		NodePair assign=flattenAssignmentNode(an,temp_left);
-		left.getEnd().addNext(assign.getBegin());
-		return new NodePair(left.getBegin(),assign.getEnd());
-	    } else {
-		NodePair assign=flattenAssignmentNode(an,out_temp);
-		return assign;
-	    }
-	    } */
-	
 	NodePair left=flattenExpressionNode(on.getLeft(),temp_left);
 	NodePair right;
 	if (on.getRight()!=null) {
@@ -680,6 +655,14 @@ public class BuildFlat {
 	    fcb.addFalseNext(fon1);
 	    fon1.addNext(fnop);
  	    return new NodePair(left.getBegin(), fnop);
+	} else if (op.getOp()==Operation.ADD&&on.getLeft().getType().isString()) {
+	    //We have a string concatenate
+	    ClassDescriptor stringcd=typeutil.getClass(TypeUtil.StringClass);
+	    MethodDescriptor concatmd=typeutil.getMethod(stringcd, "concat", new TypeDescriptor[] {new TypeDescriptor(stringcd)});
+	    FlatCall fc=new FlatCall(concatmd, out_temp, temp_left, new TempDescriptor[] {temp_right});
+	    left.getEnd().addNext(right.getBegin());
+	    right.getEnd().addNext(fc);
+	    return new NodePair(left.getBegin(), fc);
 	}
 
 	FlatOpNode fon=new FlatOpNode(out_temp,temp_left,temp_right,op);

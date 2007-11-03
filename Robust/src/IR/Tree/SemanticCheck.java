@@ -609,14 +609,14 @@ public class SemanticCheck {
 		if (bestmd==null)
 		    bestmd=currmd;
 		else {
-		    if (isMoreSpecific(currmd,bestmd)) {
+		    if (typeutil.isMoreSpecific(currmd,bestmd)) {
 			bestmd=currmd;
 		    } else if (con.isGlobal()&&match(currmd, bestmd)) {
 			if (currmd.isGlobal()&&!bestmd.isGlobal())
 			    bestmd=currmd;
 			else if (currmd.isGlobal()&&bestmd.isGlobal())
 			    throw new Error();
-		    } else if (!isMoreSpecific(bestmd, currmd)) {
+		    } else if (!typeutil.isMoreSpecific(bestmd, currmd)) {
 			throw new Error("No method is most specific");
 		    }
 		    
@@ -629,27 +629,6 @@ public class SemanticCheck {
 	}
     }
 
-
-    /** Check to see if md1 is more specific than md2...  Informally
-	if md2 could always be called given the arguments passed into
-	md1 */
-
-    boolean isMoreSpecific(MethodDescriptor md1, MethodDescriptor md2) {
-	/* Checks if md1 is more specific than md2 */
-	if (md1.numParameters()!=md2.numParameters())
-	    throw new Error();
-	for(int i=0;i<md1.numParameters();i++) {
-	    if (!typeutil.isSuperorType(md2.getParamType(i), md1.getParamType(i)))
-		return false;
-	}
-	if (!typeutil.isSuperorType(md2.getReturnType(), md1.getReturnType()))
-		return false;
-
-	if (!typeutil.isSuperorType(md2.getClassDesc(), md1.getClassDesc()))
-		return false;
-
-	return true;
-    }
 
     /** Check to see if md1 is the same specificity as md2.*/
 
@@ -737,9 +716,9 @@ public class SemanticCheck {
 	    if (bestmd==null)
 		bestmd=currmd;
 	    else {
-		if (isMoreSpecific(currmd,bestmd)) {
+		if (typeutil.isMoreSpecific(currmd,bestmd)) {
 		    bestmd=currmd;
-		} else if (!isMoreSpecific(bestmd, currmd))
+		} else if (!typeutil.isMoreSpecific(bestmd, currmd))
 		    throw new Error("No method is most specific");
 		
 		/* Is this more specific than bestmd */
@@ -807,6 +786,14 @@ public class SemanticCheck {
 	    on.setType(lefttype);
 	    break;
 
+	case Operation.ISAVAILABLE:
+	    if (!(ltd.isPtr())) {
+		throw new Error("Can't use isavailable on non-pointers/non-parameters.");
+	    }
+	    lefttype=ltd;
+	    on.setLeftType(lefttype);
+	    on.setType(new TypeDescriptor(TypeDescriptor.BOOLEAN));
+	    break;
 	case Operation.EQUAL:
 	case Operation.NOTEQUAL:
 	    // 5.6.2 Binary Numeric Promotion
@@ -815,8 +802,8 @@ public class SemanticCheck {
 		if (!(ltd.isBoolean()&&rtd.isBoolean()))
 		    throw new Error();
 		righttype=lefttype=new TypeDescriptor(TypeDescriptor.BOOLEAN);
-	    } else if (ltd.isPtr()||ltd.isArray()||rtd.isPtr()||rtd.isArray()) {
-		if (!((ltd.isPtr()||ltd.isArray())&&(rtd.isPtr()||rtd.isArray())))
+	    } else if (ltd.isPtr()||rtd.isPtr()) {
+		if (!(ltd.isPtr()&&rtd.isPtr()))
 		    throw new Error();
 		righttype=rtd;
 		lefttype=ltd;
@@ -860,8 +847,24 @@ public class SemanticCheck {
 	    break;
 
 	case Operation.ADD:
-	    //TODO: Need special case for strings eventually
-	    
+	    if (ltd.isString()||rtd.isString()) {
+		ClassDescriptor stringcl=typeutil.getClass(TypeUtil.StringClass);
+		TypeDescriptor stringtd=new TypeDescriptor(stringcl);
+		NameDescriptor nd=new NameDescriptor("String");
+		NameDescriptor valuend=new NameDescriptor(nd, "valueOf");
+		MethodInvokeNode leftmin=new MethodInvokeNode(valuend);
+		MethodInvokeNode rightmin=new MethodInvokeNode(valuend);
+		leftmin.addArgument(on.getLeft());
+		rightmin.addArgument(on.getRight());
+		on.left=leftmin;
+		on.right=rightmin;
+		checkExpressionNode(md, nametable, on.getLeft(), null);
+		checkExpressionNode(md, nametable, on.getRight(), null);
+		on.setLeftType(stringtd);
+		on.setRightType(stringtd);
+		on.setType(stringtd);
+		break;
+	    }
 	    
 	case Operation.SUB:
 	case Operation.MULT:
