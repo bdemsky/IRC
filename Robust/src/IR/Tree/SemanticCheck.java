@@ -470,7 +470,7 @@ public class SemanticCheck {
 	    String varname=nd.toString();
 	    Descriptor d=(Descriptor)nametable.get(varname);
 	    if (d==null) {
-		throw new Error("Name "+varname+" undefined");
+		throw new Error("Name "+varname+" undefined in: "+md);
 	    }
 	    if (d instanceof VarDescriptor) {
 		nn.setVar(d);
@@ -732,7 +732,7 @@ public class SemanticCheck {
 	    }
 	}
 	if (bestmd==null)
-	    throw new Error("No method found for :"+min.printNode(0));
+	    throw new Error("No method found for :"+min.printNode(0)+" in class: " + classtolookin);
 	min.setMethod(bestmd);
 
 	if ((td!=null)&&(min.getType()!=null)&&!typeutil.isSuperorType(td,  min.getType()))
