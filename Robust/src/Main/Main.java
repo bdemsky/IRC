@@ -92,6 +92,7 @@ public class Main {
       readSourceFile(state, ClassLibraryPrefix+"StringBuffer.java");
       readSourceFile(state, ClassLibraryPrefix+"FileInputStream.java");
       readSourceFile(state, ClassLibraryPrefix+"InputStream.java");
+      readSourceFile(state, ClassLibraryPrefix+"OutputStream.java");
       readSourceFile(state, ClassLibraryPrefix+"FileOutputStream.java");
       readSourceFile(state, ClassLibraryPrefix+"File.java");
       readSourceFile(state, ClassLibraryPrefix+"InetAddress.java");

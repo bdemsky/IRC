@@ -9,4 +9,8 @@ public class BufferedWriter extends Writer {
 	out.write("\n");
     }
 
+    public void flush() {
+	out.flush();
+    }
+
 }

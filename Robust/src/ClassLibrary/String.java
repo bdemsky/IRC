@@ -111,6 +111,18 @@ public class String {
 	return new String(buffer);
     }
 
+    public String toUpperCase() {
+	char[] buffer=new char[count];
+	for(int i=0;i<count;i++) {
+	    char x=charAt(i);
+	    if (x>='a'&&x<='z') {
+		x=(char) ((x-'a')+'A');
+	    }
+	    buffer[i]=x;
+	}
+	return new String(buffer);
+    }
+
     public int indexOf(int ch) {
 	return this.indexOf(ch, 0);
     }
