@@ -859,14 +859,20 @@ public class SemanticCheck {
 		TypeDescriptor stringtd=new TypeDescriptor(stringcl);
 		NameDescriptor nd=new NameDescriptor("String");
 		NameDescriptor valuend=new NameDescriptor(nd, "valueOf");
-		MethodInvokeNode leftmin=new MethodInvokeNode(valuend);
-		MethodInvokeNode rightmin=new MethodInvokeNode(valuend);
-		leftmin.addArgument(on.getLeft());
-		rightmin.addArgument(on.getRight());
-		on.left=leftmin;
-		on.right=rightmin;
-		checkExpressionNode(md, nametable, on.getLeft(), null);
-		checkExpressionNode(md, nametable, on.getRight(), null);
+		if (!(ltd.isString()&&(on.getLeft() instanceof OpNode))) {
+		    MethodInvokeNode leftmin=new MethodInvokeNode(valuend);
+		    leftmin.addArgument(on.getLeft());
+		    on.left=leftmin;
+		    checkExpressionNode(md, nametable, on.getLeft(), null);
+		}
+
+		if (!(rtd.isString()&&(on.getRight() instanceof OpNode))) {
+		    MethodInvokeNode rightmin=new MethodInvokeNode(valuend);
+		    rightmin.addArgument(on.getRight());
+		    on.right=rightmin;
+		    checkExpressionNode(md, nametable, on.getRight(), null);
+		}
+
 		on.setLeftType(stringtd);
 		on.setRightType(stringtd);
 		on.setType(stringtd);

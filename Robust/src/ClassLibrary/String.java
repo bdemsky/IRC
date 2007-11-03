@@ -262,9 +262,9 @@ public class String {
 	    char l=s.value[i+s.offset];
 	    char r=value[i+offset];
 	    if (l>='a'&&l<='z')
-		l+='A'-'a';
+		l=(char)((l-'a')+'A');
 	    if (r>='a'&&r<='z')
-		r+='A'-'a';
+		r=(char)((r-'a')+'A');
 	    if (l!=r)
 		return false;
 	}
