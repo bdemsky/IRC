@@ -30,6 +30,9 @@ public class TypeUtil {
 	    String superc=cd.getSuper();
 	    if (superc!=null) {
 		ClassDescriptor cd_super=getClass(superc);
+		if (cd_super==null) {
+		    throw new Error("Couldn't find class:"+superc);
+		}
 		supertable.put(cd,cd_super);
 	    }
 	}

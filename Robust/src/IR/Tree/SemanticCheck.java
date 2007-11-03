@@ -677,7 +677,10 @@ public class SemanticCheck {
 	    typetolookin=min.getExpression().getType();
 	} else if (min.getBaseName()!=null) {
 	    String rootname=min.getBaseName().getRoot();
-	    if (nametable.get(rootname)!=null) {
+	    if (rootname.equals("super")) {
+		ClassDescriptor supercd=((MethodDescriptor)md).getClassDesc().getSuperDesc();
+		typetolookin=new TypeDescriptor(supercd);
+	    } else if (nametable.get(rootname)!=null) {
 		//we have an expression
 		min.setExpression(translateNameDescriptorintoExpression(min.getBaseName()));
 		checkExpressionNode(md, nametable, min.getExpression(), null);
@@ -689,6 +692,10 @@ public class SemanticCheck {
 		    throw new Error(min.getBaseName()+" undefined");
 		typetolookin=new TypeDescriptor(cd);
 	    }
+	} else if ((md instanceof MethodDescriptor)&&min.getMethodName().equals("super")) {
+	    ClassDescriptor supercd=((MethodDescriptor)md).getClassDesc().getSuperDesc();
+	    min.methodid=supercd.getSymbol();
+	    typetolookin=new TypeDescriptor(supercd);
 	} else if (md instanceof MethodDescriptor) {
 	    typetolookin=new TypeDescriptor(((MethodDescriptor)md).getClassDesc());
 	} else {

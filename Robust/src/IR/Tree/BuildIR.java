@@ -540,7 +540,22 @@ public class BuildIR {
 	ParseNode bodyn0=pn.getChild("body");
 	ParseNode bodyn=bodyn0.getChild("constructor_body");
 	cn.addMethod(md);
-	BlockNode bn=parseBlock(bodyn);
+	BlockNode bn=null;
+	if (bodyn!=null&&bodyn.getChild("block_statement_list")!=null)
+	    bn=parseBlock(bodyn);
+	else
+	    bn=new BlockNode();
+	if (bodyn!=null&&bodyn.getChild("superinvoke")!=null) {
+	    ParseNode sin=bodyn.getChild("superinvoke");
+	    NameDescriptor nd=new NameDescriptor("super");
+	    Vector args=parseArgumentList(sin);
+	    MethodInvokeNode min=new MethodInvokeNode(nd);
+	    for(int i=0;i<args.size();i++) {
+		min.addArgument((ExpressionNode)args.get(i));
+	    }
+	    BlockExpressionNode ben=new BlockExpressionNode(min);
+	    bn.addFirstBlockStatement(ben);
+	}
 	state.addTreeCode(md,bn);
     }
 

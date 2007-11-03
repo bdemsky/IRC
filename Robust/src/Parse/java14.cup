@@ -152,7 +152,7 @@ non terminal ParseNode method_body;
 // 19.8.5) Constructor Declarations
 non terminal ParseNode constructor_declaration, constructor_declarator;
 non terminal ParseNode constructor_body;
-//non terminal ParseNode explicit_constructor_invocation;
+non terminal ParseNode explicit_constructor_invocation;
 // 19.9.1) Interface Declarations
 //non terminal ParseNode interface_declaration;
 //non terminal ParseNode extends_interfaces_opt, extends_interfaces;
@@ -983,8 +983,17 @@ constructor_declarator ::=
 	:}
 	;
 constructor_body ::=
-//		LBRACE explicit_constructor_invocation:eci block_statements:bs RBRACE |
-//		LBRACE explicit_constructor_invocation RBRACE |
+		LBRACE explicit_constructor_invocation:eci block_statements:bs RBRACE {: 
+			ParseNode pn=new ParseNode("constructor_body");
+			pn.addChild(eci);
+			pn.addChild(bs);
+			RESULT=pn;
+	:} |
+		LBRACE explicit_constructor_invocation:eci RBRACE {: 
+			ParseNode pn=new ParseNode("constructor_body");
+			pn.addChild(eci);
+			RESULT=pn;
+	:} |
 		LBRACE block_statements:block RBRACE {: 
 		ParseNode pn=new ParseNode("constructor_body");
 		pn.addChild(block);
@@ -992,12 +1001,17 @@ constructor_body ::=
 	:}
 	|	LBRACE RBRACE {: RESULT=new ParseNode("empty"); :}
 	;
-//explicit_constructor_invocation ::=
+explicit_constructor_invocation ::=
 //		THIS LPAREN argument_list_opt RPAREN SEMICOLON
-//	|	SUPER LPAREN argument_list_opt RPAREN SEMICOLON
+//	|	
+SUPER LPAREN argument_list_opt:alo RPAREN SEMICOLON {: 
+	ParseNode pn=new ParseNode("superinvoke");
+	pn.addChild(alo);
+	RESULT=pn;
+:}
 //	|	primary DOT THIS LPAREN argument_list_opt RPAREN SEMICOLON
 //	|	primary DOT SUPER LPAREN argument_list_opt RPAREN SEMICOLON
-//	;
+	;
 
 // 19.9) Interfaces
 
@@ -1530,7 +1544,15 @@ method_invocation ::=
 		pn.addChild(args);
 		RESULT=pn;
 	:}
-//	|	SUPER DOT IDENTIFIER LPAREN argument_list_opt RPAREN
+	|	SUPER DOT IDENTIFIER:id LPAREN argument_list_opt:args RPAREN {: 
+		ParseNode name=new ParseNode("name");
+		name.addChild("base").addChild("name").addChild("identifier").addChild("super");
+		name.addChild("identifier").addChild(id);
+		ParseNode pn=new ParseNode("methodinvoke1");
+		pn.addChild(name);
+		pn.addChild(args);
+		RESULT=pn;
+	:}
 //	|	name DOT SUPER DOT IDENTIFIER LPAREN argument_list_opt RPAREN
 	;
 array_access ::=
