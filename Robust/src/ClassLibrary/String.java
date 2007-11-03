@@ -71,6 +71,13 @@ public class String {
 	return this.lastindexOf(ch, count - 1);
     }
 
+    public static String concat2(String s1, String s2) {
+	if (s1==null)
+	    return "null".concat(s2);
+	else
+	    return s1.concat(s2);
+    }
+
     public String concat(String str) {
 	String newstr=new String();
 	newstr.count=this.count+str.count;

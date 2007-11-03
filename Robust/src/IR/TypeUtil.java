@@ -121,6 +121,9 @@ public class TypeUtil {
                 /* Is this more specific than bestmd */
             }
         }
+	if (bestmd==null)
+	    throw new Error("Could find: "+name + " in "+cd);
+
 	return bestmd;
     }
 

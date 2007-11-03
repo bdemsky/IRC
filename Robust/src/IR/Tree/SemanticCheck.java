@@ -502,6 +502,7 @@ public class SemanticCheck {
 	    throw new Error("Bad lside in "+an.printNode(0));
 	checkExpressionNode(md, nametable, an.getDest(), null);
 
+
 	/* We want parameter variables to tasks to be immutable */
 	if (md instanceof TaskDescriptor) {
 	    if (an.getDest() instanceof NameNode) {
@@ -512,6 +513,22 @@ public class SemanticCheck {
 		}
 	    }
 	}
+	
+	if (an.getDest().getType().isString()&&an.getOperation().getOp()==AssignOperation.PLUSEQ) {
+	    //String add
+	    ClassDescriptor stringcl=typeutil.getClass(TypeUtil.StringClass);
+	    TypeDescriptor stringtd=new TypeDescriptor(stringcl);
+	    NameDescriptor nd=new NameDescriptor("String");
+	    NameDescriptor valuend=new NameDescriptor(nd, "valueOf");
+	    
+	    if (!(an.getSrc().getType().isString()&&(an.getSrc() instanceof OpNode))) {
+		MethodInvokeNode rightmin=new MethodInvokeNode(valuend);
+		rightmin.addArgument(an.getSrc());
+		an.right=rightmin;
+		checkExpressionNode(md, nametable, an.getSrc(), null);
+	    }
+	}
+
 	
 	if (!postinc&&!typeutil.isSuperorType(an.getDest().getType(),an.getSrc().getType())) {
 	    throw new Error("Type of rside ("+an.getSrc().getType()+") not compatible with type of lside ("+an.getDest().getType()+")"+an.printNode(0));

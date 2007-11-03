@@ -414,14 +414,23 @@ public class BuildFlat {
 		//If it is a preinc we need to store the initial value
 		TempDescriptor src_tmp2=pre?TempDescriptor.tempFactory("src",an.getDest().getType()):out_temp;
 		TempDescriptor tmp=TempDescriptor.tempFactory("srctmp3",an.getDest().getType());
-
 		FlatFieldNode ffn=new FlatFieldNode(fan.getField(), dst_tmp, src_tmp2);
 		last.addNext(ffn);
 		last=ffn;
-		FlatOpNode fon=new FlatOpNode(tmp, src_tmp2, src_tmp, base);
-		src_tmp=tmp;
-		last.addNext(fon);
-		last=fon;
+
+		if (base.getOp()==Operation.ADD&&an.getDest().getType().isString()) {
+		    ClassDescriptor stringcd=typeutil.getClass(TypeUtil.StringClass);
+		    MethodDescriptor concatmd=typeutil.getMethod(stringcd, "concat2", new TypeDescriptor[] {new TypeDescriptor(stringcd), new TypeDescriptor(stringcd)});
+		    FlatCall fc=new FlatCall(concatmd, tmp, null, new TempDescriptor[] {src_tmp2, src_tmp});
+		    src_tmp=tmp;
+		    last.addNext(fc);
+		    last=fc;
+		} else {
+		    FlatOpNode fon=new FlatOpNode(tmp, src_tmp2, src_tmp, base);
+		    src_tmp=tmp;
+		    last.addNext(fon);
+		    last=fon;
+		}
 	    }
 
 	    FlatSetFieldNode fsfn=new FlatSetFieldNode(dst_tmp, fan.getField(), src_tmp);
@@ -460,10 +469,22 @@ public class BuildFlat {
 		FlatElementNode fen=new FlatElementNode(dst_tmp, index_tmp, src_tmp2);
 		last.addNext(fen);
 		last=fen;
-		FlatOpNode fon=new FlatOpNode(tmp, src_tmp2, src_tmp, base);
-		src_tmp=tmp;
-		last.addNext(fon);
-		last=fon;
+
+		if (base.getOp()==Operation.ADD&&an.getDest().getType().isString()) {
+		    ClassDescriptor stringcd=typeutil.getClass(TypeUtil.StringClass);
+		    MethodDescriptor concatmd=typeutil.getMethod(stringcd, "concat2", new TypeDescriptor[] {new TypeDescriptor(stringcd), new TypeDescriptor(stringcd)});
+		    FlatCall fc=new FlatCall(concatmd, tmp, null, new TempDescriptor[] {src_tmp2, src_tmp});
+		    src_tmp=tmp;
+		    last.addNext(fc);
+		    last=fc;
+		} else {
+
+
+		    FlatOpNode fon=new FlatOpNode(tmp, src_tmp2, src_tmp, base);
+		    src_tmp=tmp;
+		    last.addNext(fon);
+		    last=fon;
+		}
 	    }
 
 
@@ -500,10 +521,21 @@ public class BuildFlat {
 		    FlatFieldNode ffn=new FlatFieldNode(fan.getField(), dst_tmp, src_tmp2);
 		    last.addNext(ffn);
 		    last=ffn;
-		    FlatOpNode fon=new FlatOpNode(tmp, src_tmp2, src_tmp, base);
-		    src_tmp=tmp;
-		    last.addNext(fon);
-		    last=fon;
+
+		    
+		    if (base.getOp()==Operation.ADD&&an.getDest().getType().isString()) {
+			ClassDescriptor stringcd=typeutil.getClass(TypeUtil.StringClass);
+			MethodDescriptor concatmd=typeutil.getMethod(stringcd, "concat2", new TypeDescriptor[] {new TypeDescriptor(stringcd), new TypeDescriptor(stringcd)});
+			FlatCall fc=new FlatCall(concatmd, tmp, null, new TempDescriptor[] {src_tmp2, src_tmp});
+			src_tmp=tmp;
+			last.addNext(fc);
+			last=fc;
+		    } else {
+			FlatOpNode fon=new FlatOpNode(tmp, src_tmp2, src_tmp, base);
+			src_tmp=tmp;
+			last.addNext(fon);
+			last=fon;
+		    }
 		}
 
 
@@ -534,10 +566,21 @@ public class BuildFlat {
 			    last.addNext(ffn);
 			}
 			last=ffn;
-			FlatOpNode fon=new FlatOpNode(tmp, src_tmp2, src_tmp, base);
-			src_tmp=tmp;
-			last.addNext(fon);
-			last=fon;
+
+			
+			if (base.getOp()==Operation.ADD&&an.getDest().getType().isString()) {
+			    ClassDescriptor stringcd=typeutil.getClass(TypeUtil.StringClass);
+			    MethodDescriptor concatmd=typeutil.getMethod(stringcd, "concat2", new TypeDescriptor[] {new TypeDescriptor(stringcd), new TypeDescriptor(stringcd)});
+			    FlatCall fc=new FlatCall(concatmd, tmp, null, new TempDescriptor[] {src_tmp2, src_tmp});
+			    src_tmp=tmp;
+			    last.addNext(fc);
+			    last=fc;
+			} else {
+			    FlatOpNode fon=new FlatOpNode(tmp, src_tmp2, src_tmp, base);
+			    src_tmp=tmp;
+			    last.addNext(fon);
+			    last=fon;
+			}
 		    }		    
 
 		    FlatSetFieldNode fsfn=new FlatSetFieldNode(getTempforVar(nn.getVar()), nn.getField(), src_tmp);
@@ -570,13 +613,26 @@ public class BuildFlat {
 			    last=fon;
 			}
 
-			FlatOpNode fon=new FlatOpNode(tmp, src_tmp2, src_tmp, base);
-			if (first==null) 
-			    first=fon;
-			else 
-			    last.addNext(fon);
-			src_tmp=tmp;
-			last=fon;
+			
+			if (base.getOp()==Operation.ADD&&an.getDest().getType().isString()) {
+			    ClassDescriptor stringcd=typeutil.getClass(TypeUtil.StringClass);
+			    MethodDescriptor concatmd=typeutil.getMethod(stringcd, "concat2", new TypeDescriptor[] {new TypeDescriptor(stringcd), new TypeDescriptor(stringcd)});
+			    FlatCall fc=new FlatCall(concatmd, tmp, null, new TempDescriptor[] {src_tmp2, src_tmp});
+			    if (first==null)
+				first=fc;
+			    else
+				last.addNext(fc);
+			    src_tmp=tmp;
+			    last=fc;
+			} else {
+			    FlatOpNode fon=new FlatOpNode(tmp, src_tmp2, src_tmp, base);
+			    if (first==null) 
+				first=fon;
+			    else 
+				last.addNext(fon);
+			    src_tmp=tmp;
+			    last=fon;
+			}
 		    }
 
 		    FlatOpNode fon=new FlatOpNode(getTempforVar(nn.getVar()), src_tmp, null, new Operation(Operation.ASSIGN));

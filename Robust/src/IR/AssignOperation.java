@@ -25,6 +25,10 @@ public class AssignOperation {
 	this.operation=parseOp(op);
     }
 
+    public int getOp() {
+	return operation;
+    }
+
     public Operation getBaseOp() {
 	switch(operation) {
 	case EQ:
