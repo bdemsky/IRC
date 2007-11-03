@@ -3,8 +3,15 @@ public class Socket {
     external flag IOPending;    
     /* File Descriptor */
     int fd;
+    private SocketInputStream sin;
     
     public Socket() {
+	sin=new SocketInputStream(this);
+
+    }
+
+    public InputStream getInputStream() {
+	return sin;
     }
 
     public Socket(String host, int port) {

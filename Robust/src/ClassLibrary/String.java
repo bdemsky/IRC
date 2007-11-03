@@ -39,7 +39,20 @@ public class String {
 	    value[i]=strbuf.value[i];
     }
 
+    public boolean endsWith(String suffix) {
+	return regionMatches(count - suffix.count, suffix, 0, suffix.count);
+    }
+
+
+    public String substring(int beginIndex) {
+	return substring(beginIndex, this.count);
+    }
+
     public String subString(int beginIndex, int endIndex) {
+	return substring(beginIndex, endIndex);
+    }
+
+    public String substring(int beginIndex, int endIndex) {
 	String str=new String();
 	if (beginIndex>this.count||endIndex>this.count||beginIndex>endIndex) {
 	    // FIXME
@@ -115,8 +128,27 @@ public class String {
 	return -1;
     }
 
+    public int lastIndexOf(String str, int fromIndex) {
+	int k=count-str.count;
+	if (k>fromIndex)
+	    k=fromIndex;
+	for(;k>=0;k--) {
+	    if (regionMatches(fromIndex, str, 0, str.count))
+		return k;
+	}
+	return -1;
+    }
+
+    public int lastIndexOf(String str) {
+	return lastIndexOf(str, count-str.count);
+    }
+    
     public boolean startsWith(String str) {
 	return regionMatches(0, str, 0, str.count);
+    }
+
+    public boolean startsWith(String str, int toffset) {
+	return regionMatches(toffset, str, 0, str.count);
     }
 
     public boolean regionMatches(int toffset, String other, int ooffset, int len) {
@@ -160,6 +192,12 @@ public class String {
 	    return "null";
 	else
 	    return o.toString();
+    }
+
+    public static String valueOf(char c) {
+	char ar[]=new char[1];
+	ar[0]=c;
+	return new String(ar);
     }
 
     public static String valueOf(int x) {
@@ -212,6 +250,22 @@ public class String {
 	    return false;
 	for(int i=0;i<count;i++) {
 	    if (s.value[i+s.offset]!=value[i+offset])
+		return false;
+	}
+	return true;
+    }
+
+    public boolean equalsIgnoreCase(String s) {
+	if (s.count!=count)
+	    return false;
+	for(int i=0;i<count;i++) {
+	    char l=s.value[i+s.offset];
+	    char r=value[i+offset];
+	    if (l>='a'&&l<='z')
+		l+='A'-'a';
+	    if (r>='a'&&r<='z')
+		r+='A'-'a';
+	    if (l!=r)
 		return false;
 	}
 	return true;

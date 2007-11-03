@@ -27,7 +27,11 @@ public class StringBuffer {
 	return value[x];
     }
 
-    public void append(String s) {
+    public StringBuffer append(char c) {
+	return append(String.valueOf(c));
+    }
+
+    public StringBuffer append(String s) {
 	if ((s.count+count)>value.length) {
 	    // Need to allocate
 	    char newvalue[]=new char[s.count+count+16]; //16 is DEFAULTSIZE
@@ -43,9 +47,10 @@ public class StringBuffer {
 	    }
 	    count+=s.count;
 	}
+	return this;
     }
 
-    public void append(StringBuffer s) {
+    public StringBuffer append(StringBuffer s) {
 	if ((s.count+count)>value.length) {
 	    // Need to allocate
 	    char newvalue[]=new char[s.count+count+16]; //16 is DEFAULTSIZE
@@ -61,6 +66,7 @@ public class StringBuffer {
 	    }
 	    count+=s.count;
 	}
+	return this;
     }
 
     public String toString() {

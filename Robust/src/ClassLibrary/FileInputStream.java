@@ -1,4 +1,4 @@
-public class FileInputStream {
+public class FileInputStream extends InputStream {
     private int fd;
 
     public FileInputStream(String pathname) {
