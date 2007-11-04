@@ -1,6 +1,10 @@
 public class BufferedWriter extends Writer {
     Writer out;
 
+    public BufferedWriter(Writer out) {
+	this.out=out;
+    }
+
     public void write(String s) {
 	out.write(s);
     }
@@ -11,6 +15,10 @@ public class BufferedWriter extends Writer {
 
     public void flush() {
 	out.flush();
+    }
+
+    public void close() {
+	out.close();
     }
 
 }

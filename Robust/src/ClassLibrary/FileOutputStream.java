@@ -1,8 +1,15 @@
-public class FileOutputStream {
+public class FileOutputStream extends OutputStream {
     private int fd;
 
     public FileOutputStream(String pathname) {
 	fd=nativeOpen(pathname.getBytes());
+    }
+
+    public FileOutputStream(String pathname, boolean append) {
+	if(append)	
+		fd=nativeAppend(pathname.getBytes());
+	else
+		fd=nativeOpen(pathname.getBytes());
     }
 
     public FileOutputStream(String pathname, int mode) {
@@ -22,7 +29,7 @@ public class FileOutputStream {
 
     private static native int nativeOpen(byte[] filename);
     private static native int nativeAppend(byte[] filename);
-    private static native void nativeWrite(int fd, byte[] array);
+    private static native void nativeWrite(int fd, byte[] array, int off, int len);
     private static native void nativeClose(int fd);
     private static native void nativeFlush(int fd);
     
@@ -33,7 +40,7 @@ public class FileOutputStream {
     }
 
     public void write(byte[] b) {
-	nativeWrite(fd, b);
+	nativeWrite(fd, b, 0, b.length);
     }
 
     public void flush() {

@@ -7,10 +7,9 @@
 #include "mem.h"
 #include "runtime.h"
 
-void CALL12(___FileOutputStream______nativeWrite____I__AR_B, int fd, int fd, struct ArrayObject * ___array___) {
-  int length=VAR(___array___)->___length___;
+void CALL34(___FileOutputStream______nativeWrite____I__AR_B_I_I, int fd, int off, int len, int fd, struct ArrayObject * ___array___, int off, int len) {
   char * string= (((char *)& VAR(___array___)->___length___)+sizeof(int));
-  int status=write(fd, string, length);
+  int status=write(fd, &string[off], len);
 }
 
 void CALL11(___FileOutputStream______nativeClose____I, int fd, int fd) {

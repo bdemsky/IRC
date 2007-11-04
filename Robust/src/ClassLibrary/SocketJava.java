@@ -1,8 +1,20 @@
 public class Socket {
     /* File Descriptor */
     int fd;
-    
+    SocketInputStream sin;
+    SocketOutputStream sout;
+
     public Socket() {
+	sin=new SocketInputStream(this);
+	sout=new SocketOutputStream(this);
+    }
+
+    public InputStream getInputStream() {
+	return sin;
+    }
+
+    public OutputStream getOutputStream() {
+	return sout;
     }
 
     public Socket(String host, int port) {

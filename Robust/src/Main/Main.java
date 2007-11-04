@@ -96,7 +96,8 @@ public class Main {
       readSourceFile(state, ClassLibraryPrefix+"FileOutputStream.java");
       readSourceFile(state, ClassLibraryPrefix+"File.java");
       readSourceFile(state, ClassLibraryPrefix+"InetAddress.java");
-
+      readSourceFile(state, ClassLibraryPrefix+"SocketInputStream.java");
+      readSourceFile(state, ClassLibraryPrefix+"SocketOutputStream.java");
 
 
       if (state.TASK) {

@@ -1869,9 +1869,12 @@ public class BuildCode {
     }
 
     private void generateFlatReturnNode(FlatMethod fm, LocalityBinding lb, FlatReturnNode frn, PrintWriter output) {
-	if (frn.getReturnTemp()!=null)
-	    output.println("return "+generateTemp(fm, frn.getReturnTemp(), lb)+";");
-	else
+	if (frn.getReturnTemp()!=null) {
+	    if (frn.getReturnTemp().getType().isPtr())
+		output.println("return (struct "+fm.getMethod().getReturnType().getSafeSymbol()+"*)"+generateTemp(fm, frn.getReturnTemp(), lb)+";");
+	    else
+		output.println("return "+generateTemp(fm, frn.getReturnTemp(), lb)+";");
+	} else
 	    output.println("return;");
     }
 

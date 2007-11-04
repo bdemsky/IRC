@@ -1,5 +1,4 @@
 public class Writer {
-
     public void write(String s) {
     }
 
@@ -8,5 +7,8 @@ public class Writer {
     }
 
     public void flush() {
+    }
+
+    public void close() {
     }
 }

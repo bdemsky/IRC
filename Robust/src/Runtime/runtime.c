@@ -74,6 +74,10 @@ void injectinstructionfailure() {
 #endif
 }
 
+void CALL11(___System______exit____I,int ___status___, int ___status___) {
+  exit(___status___);
+}
+
 void CALL01(___System______printString____L___String___,struct ___String___ * ___s___) {
     struct ArrayObject * chararray=VAR(___s___)->___value___;
     int i;

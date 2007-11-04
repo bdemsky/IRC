@@ -1,4 +1,4 @@
-public class SocketInputStream {
+public class SocketInputStream extends InputStream {
     Socket s;
     public SocketInputStream(Socket s) {
 	this.s=s;

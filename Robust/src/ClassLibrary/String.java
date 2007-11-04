@@ -251,6 +251,38 @@ public class String {
 	return new String(chararray);
     }
 
+    public static String valueOf(long x) {
+	int length=0;
+	long tmp;
+	if (x<0)
+	    tmp=-x;
+	else
+	    tmp=x;
+	do {
+	    tmp=tmp/10;
+	    length=length+1;
+	} while(tmp!=0);
+	
+	char chararray[];
+	if (x<0)
+	    chararray=new char[length+1];
+	else
+	    chararray=new char[length];
+	int voffset;
+	if (x<0) {
+	    chararray[0]='-';
+	    voffset=1;
+	    x=-x;
+	} else
+	    voffset=0;
+       	
+	do {
+	    chararray[--length+voffset]=(char)(x%10+'0');
+	    x=x/10;
+	} while (length!=0);
+	return new String(chararray);
+    }
+
     public int hashCode() {
 	if (cachedHashcode!=0)
 	    return cachedHashcode;

@@ -7,4 +7,13 @@ public class OutputStream {
 
     public void write(byte[] b) {
     }
+
+    public void write(byte[] b, int off, int len) {
+    }
+
+    public void flush() {
+    }
+    
+    public void close() {
+    }
 }
