@@ -56,6 +56,7 @@ public class String {
 	String str=new String();
 	if (beginIndex>this.count||endIndex>this.count||beginIndex>endIndex) {
 	    // FIXME
+	    System.printString("Index error: "+this+" "+beginIndex+" "+endIndex+"\n");
 	}
 	str.value=this.value;
 	str.count=endIndex-beginIndex;
@@ -152,7 +153,7 @@ public class String {
 	if (k>fromIndex)
 	    k=fromIndex;
 	for(;k>=0;k--) {
-	    if (regionMatches(fromIndex, str, 0, str.count))
+	    if (regionMatches(k, str, 0, str.count))
 		return k;
 	}
 	return -1;

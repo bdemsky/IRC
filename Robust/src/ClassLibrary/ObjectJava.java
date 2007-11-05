@@ -22,7 +22,7 @@ public class Object {
     public native int MonitorExit();
 
     public String toString() {
-	return String.valueOf(this);
+	return "Object"+hashCode();
     }
 
     public boolean equals(Object o) {

@@ -43,6 +43,10 @@ public class FileOutputStream extends OutputStream {
 	nativeWrite(fd, b, 0, b.length);
     }
 
+    public void write(byte[] b, int index, int len) {
+	nativeWrite(fd, b, index, len);
+    }
+
     public void flush() {
 	nativeFlush(fd);
     }

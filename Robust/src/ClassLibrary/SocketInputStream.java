@@ -9,6 +9,14 @@ public class SocketInputStream extends InputStream {
 	int len=s.read(x);
 	if (len==0)
 	    return -1;
-	else return x[1];
+	else return x[0];
+    }
+
+    public int read(byte[] b) {
+	return s.read(b);
+    }
+
+    public void close() {
+	s.close();
     }
 }

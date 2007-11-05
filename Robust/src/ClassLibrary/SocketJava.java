@@ -21,11 +21,15 @@ public class Socket {
 	InetAddress address=InetAddress.getByName(host);
 	fd=nativeBind(address.getAddress(), port);
 	nativeConnect(fd, address.getAddress(), port);
+	sin=new SocketInputStream(this);
+	sout=new SocketOutputStream(this);
     }
     
     public Socket(InetAddress address, int port) {
 	fd=nativeBind(address.getAddress(), port);
 	nativeConnect(fd, address.getAddress(), port);
+	sin=new SocketInputStream(this);
+	sout=new SocketOutputStream(this);
     }
 
     public static native int nativeBind(byte[] address, int port);
@@ -40,11 +44,15 @@ public class Socket {
 	return nativeRead(b);
     }
     public void write(byte[] b) {
-	nativeWrite(b);
+	nativeWrite(b, 0, b.length);
+    }
+
+    public void write(byte[] b, int offset, int len) {
+	nativeWrite(b, offset, len);
     }
 
     private native int nativeRead(byte[] b);
-    private native void nativeWrite(byte[] b);
+    private native void nativeWrite(byte[] b, int offset, int len);
     private native void nativeClose();
 
     public void close() {

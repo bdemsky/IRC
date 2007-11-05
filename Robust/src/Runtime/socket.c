@@ -281,10 +281,9 @@ int CALL02(___ServerSocket______nativeaccept____L___Socket___,struct ___ServerSo
   return newfd;
 }
 
-void CALL02(___Socket______nativeWrite_____AR_B, struct ___Socket___ * ___this___, struct ArrayObject * ___b___) {
+void CALL24(___Socket______nativeWrite_____AR_B_I_I, int offset, int length, struct ___Socket___ * ___this___, struct ArrayObject * ___b___, int offset, int length) {
   int fd=VAR(___this___)->___fd___;
-  int length=VAR(___b___)->___length___;
-  char * charstr=((char *)& VAR(___b___)->___length___)+sizeof(int);
+  char * charstr=((char *)& VAR(___b___)->___length___)+sizeof(int)+offset;
   while(1) {
     int bytewritten=write(fd, charstr, length);
     if (bytewritten==-1&&errno==EAGAIN)

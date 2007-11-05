@@ -10,4 +10,8 @@ public class BufferedInputStream extends InputStream {
     public int read(byte[] b) {
 	return in.read(b);
     }
+
+    public void close() {
+	in.close();
+    }
 }

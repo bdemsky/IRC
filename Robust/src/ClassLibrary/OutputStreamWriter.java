@@ -4,7 +4,11 @@ public class OutputStreamWriter extends Writer {
 	this.fos=fos;
     }
 
-    
+    public void write(String s) {
+	fos.write(s.getBytes());
+    }
 
-
+    public void flush() {
+	fos.flush();
+    }
 }
