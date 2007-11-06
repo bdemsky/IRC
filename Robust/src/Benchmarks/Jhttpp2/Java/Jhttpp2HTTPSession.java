@@ -282,7 +282,7 @@ public class Jhttpp2HTTPSession extends Thread {
     /** connects to the given host and port */
     public void connect(InetAddress host,int port) {
 	HTTP_Socket = new Socket(host,port);
-	HTTP_in = new BuferedInputStream(HTTP_Socket.getInputStream());
+	HTTP_in = new BufferedInputStream(HTTP_Socket.getInputStream());
 	HTTP_out = new BufferedOutputStream(HTTP_Socket.getOutputStream());
     }
   /** converts an String into a Byte-Array to write it with the OutputStream */
