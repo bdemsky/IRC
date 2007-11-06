@@ -192,6 +192,13 @@ int CALL12(___ServerSocket______createSocket____I, int port, struct ___ServerSoc
 #endif
   }
 
+#ifdef MAC
+        if (setsockopt(fd, SOL_SOCKET, SO_NOSIGPIPE, &n, sizeof (n)) < 0) {
+	  perror("socket");
+	  exit(-1);
+	}
+#endif
+
 #ifdef TASK
   fcntl(fd, F_SETFD, 1);
   fcntl(fd, F_SETFL, fcntl(fd, F_GETFL)|O_NONBLOCK);
@@ -308,14 +315,12 @@ int CALL02(___Socket______nativeRead_____AR_B, struct ___Socket___ * ___this___,
   struct listitem *tmp=stopforgc((struct garbagelist *)___params___);
 #endif
 #endif
-  int byteread;
+  int byteread=-1;
 
   //  printf("Doing read on %d\n",fd);
-  while(1) {
+  do {
     byteread=read(fd, charstr, length);
-    
-    break;
-  }
+  } while(byteread==-1&&errno==EINTR);
 #ifdef THREADS
 #ifdef PRECISE_GC
   restartaftergc(tmp);
@@ -334,7 +339,6 @@ int CALL02(___Socket______nativeRead_____AR_B, struct ___Socket___ * ___this___,
   if (byteread<0) {
     printf("ERROR IN NATIVEREAD\n");
     perror("");
-    byteread=0;
   }
 #ifdef TASK
   flagorand(VAR(___this___),0,0xFFFFFFFE);

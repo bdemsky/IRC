@@ -20,6 +20,21 @@ public class InetAddress {
 	return address;
     }
 
+    public static InetAddress getLocalHost() {
+	return getByName("localhost");
+    }
+
+    public boolean equals(InetAddress ia) {
+	if (ia==null)
+	    return false;
+	if (ia.address.length!=address.length)
+	    return false;
+	for(int i=0;i<address.length;i++)
+	    if (ia.address[i]!=address[i])
+		return false;
+	return true;
+    }
+
     public static InetAddress[] getAllByName(String hostname) {
 	InetAddress[] addresses;
 	
@@ -34,4 +49,14 @@ public class InetAddress {
     }
 
     public static native byte[][] getHostByName(byte[] hostname);
+
+    public String toString() {
+	String h=hostname+" ";
+	for (int i=0;i<address.length;i++) {
+	    if (i>0)
+		h+=".";
+	    h+=(int)address[i];
+	}
+	return h;
+    }
 }
