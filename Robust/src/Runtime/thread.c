@@ -66,6 +66,7 @@ void initializethreads() {
   sigaction(SIGBUS,&sig,0);
   sigaction(SIGSEGV,&sig,0);
   sigaction(SIGFPE,&sig,0);
+  signal(SIGPIPE, SIG_IGN);
 }
 
 #ifdef THREADS

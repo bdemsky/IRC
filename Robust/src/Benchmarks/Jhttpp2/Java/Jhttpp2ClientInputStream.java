@@ -80,7 +80,8 @@ public class Jhttpp2ClientInputStream extends BufferedInputStream {
 	content_len = 0;
 	boolean start_line=true;
 	buf = getLine(); // reads the first line
-	
+	if (buf==null)
+	    return -2;
 	boolean cnt=true;
 	while (lread>2&&cnt) {
 	    if (start_line) {
@@ -172,6 +173,8 @@ public class Jhttpp2ClientInputStream extends BufferedInputStream {
 		header_length+=lread;
 	    }
 	    buf=getLine();
+	    if (buf==null)
+		return -2;
 	}
 	rq+=buf; //adds last line (should be an empty line) to the header String
 	header_length+=lread;
@@ -211,8 +214,11 @@ public class Jhttpp2ClientInputStream extends BufferedInputStream {
 	    if (l!=-1) {
 		line+=(char)l;
 		lread++;
-	    } else
+	    } else {
 		cnt=false;
+		if (!line.equals(""))
+		    return null;
+	    }
 	}
 	return line;
     }

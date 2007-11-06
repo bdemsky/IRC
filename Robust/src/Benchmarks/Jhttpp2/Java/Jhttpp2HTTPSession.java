@@ -190,12 +190,14 @@ public class Jhttpp2HTTPSession extends Thread {
 	}
     
     /** the main routine, where it all happens */
-    public void handleRequest() {
+    public int handleRequest() {
 	InetAddress remote_host;
 	Jhttpp2Read remote_in=null;
 	int remote_port;
 	byte[] b=new byte[65536];
 	int numread=in.read(b);
+	if (numread==-2)
+	    return -1;
 	boolean cnt=true;
 	while(cnt) { // with this loop we support persistent connections
 	    if (numread==-1) { // -1 signals an error
@@ -261,6 +263,8 @@ public class Jhttpp2HTTPSession extends Thread {
 	    if (cnt) {
 		while(cnt) { // reads data from the client
 		    numread=in.read(b);
+		    if (numread==-2)
+			return -1;
 		    if (numread!=-1) {
 			HTTP_out.write(b, 0, numread);
 			HTTP_out.flush();
@@ -273,7 +277,7 @@ public class Jhttpp2HTTPSession extends Thread {
 	out.flush();
 	if (!notConnected() && remote_in != null)
 	    remote_in.close(); // close Jhttpp2Read thread
-	return;
+	return 0;
     }
     /** connects to the given host and port */
     public void connect(InetAddress host,int port) {
