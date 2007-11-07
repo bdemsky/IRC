@@ -4,6 +4,7 @@ public class Socket {
     /* File Descriptor */
     int fd;
     private SocketInputStream sin;
+    private SocketOutputStream sout;
     
     public Socket() {
 	sin=new SocketInputStream(this);
@@ -14,7 +15,7 @@ public class Socket {
 	return sin;
     }
 
-    public OutputSream getOutputStream() {
+    public OutputStream getOutputStream() {
 	return sout;
     }
 
@@ -25,6 +26,11 @@ public class Socket {
     }
     
     public Socket(InetAddress address, int port) {
+	fd=nativeBind(address.getAddress(), port);
+	nativeConnect(fd, address.getAddress(), port);
+    }
+
+    public void connect(InetAddress address, int port) {
 	fd=nativeBind(address.getAddress(), port);
 	nativeConnect(fd, address.getAddress(), port);
     }
@@ -44,7 +50,7 @@ public class Socket {
 	nativeWrite(b, 0, b.length);
     }
 
-    public void write(byte[] b, int offset, int leng) {
+    public void write(byte[] b, int offset, int len) {
 	nativeWrite(b, offset, len);
     }
 

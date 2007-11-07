@@ -25,6 +25,17 @@ public class String {
 	this.offset=0;
     }
 
+    public String(byte str[], int offset, int length) {
+	if (length>(str.length-offset))
+	    length=str.length-offset;
+	char charstr[]=new char[length];
+	for(int i=0;i<length;i++)
+	    charstr[i]=(char)str[i+offset];
+	this.value=charstr;
+	this.count=str.length;
+	this.offset=0;
+    }
+
     public String(String str) {
 	this.value=str.value;
 	this.count=str.count;
