@@ -340,8 +340,9 @@ public class BuildCode {
 		    /* Classify parameters */
 		    MethodDescriptor md=(MethodDescriptor)methodit.next();
 		    FlatMethod fm=state.getMethodFlat(md);
-		    if (!md.getModifiers().isNative())
+		    if (!md.getModifiers().isNative()) {
 			generateFlatMethod(fm, null, outmethod);
+		    }
 		}
 	    }
 	} 
@@ -2136,6 +2137,7 @@ public class BuildCode {
 	 
     }
 
+    //CHECK OVER THIS -- THERE COULD BE SOME ERRORS HERE
     int generateOptionalPredicate(Predicate predicate, OptionalTaskDescriptor otd, ClassDescriptor cdtemp, PrintWriter output) {
 	int predicateindex = 0;
 	//iterate through the classes concerned by the predicate

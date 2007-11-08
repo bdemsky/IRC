@@ -65,7 +65,7 @@ inline struct ObjectIterator * noargallocateObjectIterator();
 
 inline struct ObjectIterator * allocateObjectIterator(struct ObjectNode *start);
 
-inline int ObjasNext(struct ObjectIterator *thisvar);
+inline int ObjhasNext(struct ObjectIterator *thisvar);
 
 inline int Objnext(struct ObjectIterator *thisvar);
 

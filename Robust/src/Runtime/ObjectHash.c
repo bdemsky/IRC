@@ -252,6 +252,7 @@ inline int ObjhasNext(struct ObjectIterator *thisvar) {
 inline int Objnext(struct ObjectIterator *thisvar) {
   int curr=thisvar->cur->data;
   thisvar->cur=thisvar->cur->next;
+  return curr;
 }
 
 inline int Objkey(struct ObjectIterator *thisvar) {

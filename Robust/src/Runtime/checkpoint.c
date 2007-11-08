@@ -43,7 +43,6 @@ void freemalloc() {
   }
 }
 
-
 void ** makecheckpoint(int numparams, void ** srcpointer, struct RuntimeHash * forward, struct RuntimeHash * reverse) {
 #ifdef PRECISE_GC
   void **newarray=cpmalloc(sizeof(void *)*numparams);
@@ -96,7 +95,7 @@ void ** makecheckpoint(int numparams, void ** srcpointer, struct RuntimeHash * f
 	for(i=0;i<length;i++) {
 	  void *objptr=((void **)(((char *)& ao->___length___)+sizeof(int)))[i];
 	  if (objptr==NULL) {
-	    ((void **)(((char *)& ao->___length___)+sizeof(int)))[i]=NULL;
+	    ((void **)(((char *)& ao_cpy->___length___)+sizeof(int)))[i]=NULL;
 	  } else if (RuntimeHashcontainskey(forward, (int) objptr))
 	    RuntimeHashget(forward,(int) objptr,(int *) &((void **)(((char *)& ao_cpy->___length___)+sizeof(int)))[i]);
 	  else {
@@ -207,7 +206,6 @@ void restorecheckpoint(int numparams, void ** original, void ** checkpoint, stru
 	int length=ao->___length___;
 	int cpysize=sizeof(struct ArrayObject)+length*size;
 	memcpy(cpy, ptr, cpysize);
-
       } else if ((int)pointer==1) {
 	/* Array of pointers */
 	struct ArrayObject *ao=(struct ArrayObject *) ptr;

@@ -32,7 +32,7 @@ public class String {
 	for(int i=0;i<length;i++)
 	    charstr[i]=(char)str[i+offset];
 	this.value=charstr;
-	this.count=str.length;
+	this.count=length;
 	this.offset=0;
     }
 

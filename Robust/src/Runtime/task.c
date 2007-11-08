@@ -403,7 +403,7 @@ void flagbody(struct ___Object___ *ptr, int flag) {
 	    int tagid=parameter->tagarray[2*i+1];
 	    int j;
 	    for(j=0;j<ao->___cachedCode___;j++) {
-	      if (tagid==ARRAYGET(ao, struct ___TagDescriptor___*, i)->flag)
+	      if (tagid==ARRAYGET(ao, struct ___TagDescriptor___*, j)->flag)
 		goto foundtag;
 	    }
 	    goto nextloop;
@@ -1174,7 +1174,7 @@ void executetasks() {
 	  }
 	  /* Actually call task */
 #ifdef PRECISE_GC
-	  ((int *)taskpointerarray)[0]=currtpd->task->numParameters;
+	  ((int *)taskpointerarray)[0]=currtpd->numParameters;
 	  taskpointerarray[1]=NULL;
 #endif
 #ifdef OPTIONAL
@@ -1319,7 +1319,39 @@ void builditerators(struct taskdescriptor * task, int index, struct parameterwra
   }
 }
 
-
+ void printdebug() {
+   int i;
+   int j;
+   for(i=0;i<numtasks;i++) {
+     struct taskdescriptor * task=taskarray[i];
+     printf("%s\n", task->name);
+     for(j=0;j<task->numParameters;j++) {
+       struct parameterdescriptor *param=task->descriptorarray[j];
+       struct parameterwrapper *parameter=param->queue;
+       struct ObjectHash * set=parameter->objectset;
+       struct ObjectIterator objit;
+       printf("  Parameter %d\n", j);
+       ObjectHashiterator(set, &objit);
+       while(ObjhasNext(&objit)) {
+	 struct ___Object___ * obj=(struct ___Object___ *)Objkey(&objit);
+	 struct ___Object___ * tagptr=obj->___tags___;
+	 Objnext(&objit);
+	 printf("    Contains %lx\n", obj);
+	 printf("      flag=%d\n", obj->flag); 
+	 if (tagptr==NULL) {
+	 } else if (tagptr->type==TAGTYPE) {
+	   printf("      tag=%lx\n",tagptr);
+	 } else {
+	   int tagindex=0;
+	   struct ArrayObject *ao=(struct ArrayObject *)tagptr;
+	   for(;tagindex<ao->___cachedCode___;tagindex++) {
+	     printf("      tag=%lx\n",ARRAYGET(ao, struct ___TagDescriptor___*, tagindex));
+	   }
+	 }
+       }
+     }
+   }
+ }
  
 
 /* This function processes the task information to create queues for

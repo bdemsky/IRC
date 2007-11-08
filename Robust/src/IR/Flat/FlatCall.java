@@ -36,9 +36,12 @@ public class FlatCall extends FlatNode {
 
     public String toString() {
 	String st="";
-	if (dst==null)
-	    st+=method.getSymbol()+"(";
-	else
+	if (dst==null) {
+	    if (method==null)
+		st+="null(";
+	    else
+		st+=method.getSymbol()+"(";
+	} else
 	    st+=dst+"="+method.getSymbol()+"(";
 	if (this_temp!=null) {
 	    st+=this_temp;

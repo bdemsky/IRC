@@ -101,7 +101,7 @@ public class SemanticCheck {
 	    //Make sure the variable is declared as a parameter to the task
 	    VarDescriptor vd=(VarDescriptor)td.getParameterTable().get(varname);
 	    if (vd==null)
-		throw new Error("Parameter "+varname+" in Flag Effects not declared");
+		throw new Error("Parameter "+varname+" in Flag Effects not declared in "+td);
 	    fe.setVar(vd);
 
 	    //Make sure it correspods to a class
@@ -280,7 +280,7 @@ public class SemanticCheck {
 	    (d instanceof FieldDescriptor)) {
 	    nametable.add(vd);
 	} else
-	    throw new Error(vd.getSymbol()+" defined a second time");
+	    throw new Error(vd.getSymbol()+" in "+md+" defined a second time");
 	if (dn.getExpression()!=null)
 	    checkExpressionNode(md, nametable, dn.getExpression(), vd.getType());
     }
@@ -413,7 +413,7 @@ public class SemanticCheck {
 	else
 	    fd=(FieldDescriptor) ltd.getClassDesc().getFieldTable().get(fieldname);
 	if (fd==null)
-	    throw new Error("Unknown field "+fieldname + " in "+fan.printNode(0));
+	    throw new Error("Unknown field "+fieldname + " in "+fan.printNode(0)+" in "+md);
 	fan.setField(fd);
 	if (td!=null)
 	    if (!typeutil.isSuperorType(td,fan.getType()))
@@ -641,7 +641,7 @@ public class SemanticCheck {
 		}
 	    }
 	    if (bestmd==null)
-		throw new Error("No method found for "+con.printNode(0));
+		throw new Error("No method found for "+con.printNode(0)+" in "+md);
 	    con.setConstructor(bestmd);
 	}
     }
@@ -749,7 +749,7 @@ public class SemanticCheck {
 	    }
 	}
 	if (bestmd==null)
-	    throw new Error("No method found for :"+min.printNode(0)+" in class: " + classtolookin);
+	    throw new Error("No method found for :"+min.printNode(0)+" in class: " + classtolookin+" in "+md);
 	min.setMethod(bestmd);
 
 	if ((td!=null)&&(min.getType()!=null)&&!typeutil.isSuperorType(td,  min.getType()))
