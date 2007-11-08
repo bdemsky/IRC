@@ -46,7 +46,7 @@ public class TagAnalysis {
 	for(int i=0;i<scc.numSCC();i++) {
 	    Set component=scc.getSCC(i);
 	    HashSet flagset=new HashSet();
-	    for(Iterator compit=flagset.iterator();compit.hasNext();) {
+	    for(Iterator compit=component.iterator();compit.hasNext();) {
 		TagBinding tb=(TagBinding)compit.next();
 		flagset.addAll(tb.getAllocations());
 		for(Iterator edgeit=tb.edges();edgeit.hasNext();) {
@@ -55,7 +55,7 @@ public class TagAnalysis {
 		    flagset.addAll(tb2.getAllocations());
 		}
 	    }
-	    for(Iterator compit=flagset.iterator();compit.hasNext();) {
+	    for(Iterator compit=component.iterator();compit.hasNext();) {
 		TagBinding tb=(TagBinding)compit.next();
 		tb.getAllocations().addAll(flagset);
 	    }
@@ -90,6 +90,7 @@ public class TagAnalysis {
     }
 
 private void computeCallsFlags(FlatMethod fm, Hashtable parammap, Set tagbindings, Set newflags) {
+    System.out.println("   "+fm.getMethod());
     Set nodeset=fm.getNodeSet();
     for(Iterator nodeit=nodeset.iterator();nodeit.hasNext();) {
 	FlatNode fn=(FlatNode)nodeit.next();
@@ -182,7 +183,7 @@ private void computeCallsFlags(FlatMethod fm, Hashtable parammap, Set tagbinding
     
     private void computeTagBindings(Set roots) {
 	tovisit.addAll(roots);
-
+	
 	for(Iterator it=roots.iterator();it.hasNext();) {
 	    TagBinding tb=(TagBinding)it.next();
 	    discovered.put(tb,tb);

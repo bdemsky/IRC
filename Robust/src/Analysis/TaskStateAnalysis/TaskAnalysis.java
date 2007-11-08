@@ -186,7 +186,7 @@ private void analyseTasks(FlagState fs) {
 	    continue;
 	
 	if (trigger_ctr>1)
-	    throw new Error("Illegal Operation: A single flagstate cannot satisfy more than one parameter of a task.");
+	    System.out.println("Illegal Operation: A single flagstate cannot satisfy more than one parameter of a task:"+fs + " in "+td);
 	
 	
 	Set newstates=taganalysis.getFlagStates(td);

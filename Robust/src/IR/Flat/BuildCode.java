@@ -2366,7 +2366,10 @@ public class BuildCode {
 		 Set<TaskIndex> tiset=sa.getTaskIndex(fs);
 		 for(Iterator<TaskIndex> itti=tiset.iterator();itti.hasNext();) {
 		     TaskIndex ti=itti.next();
-		     Set<OptionalTaskDescriptor> otdset=sa.getOptions(fs, ti.getTask(), ti.getIndex());
+		     if (ti.isRuntime())
+			 continue;
+
+		     Set<OptionalTaskDescriptor> otdset=sa.getOptions(fs, ti);
 
 		     output.print("struct optionaltaskdescriptor * optionaltaskfailure_"+ti.getTask().getSafeSymbol()+"_"+ti.getIndex()+"_array[] = {");
 		     boolean needcomma=false;
@@ -2389,9 +2392,14 @@ public class BuildCode {
 
 		 tiset=sa.getTaskIndex(fs);
 		 boolean needcomma=false;
+		 int runtimeti=0;
 		 output.println("struct taskfailure * taskfailurearray"+fscounter+"_"+cdtemp.getSafeSymbol()+"[]={");
 		 for(Iterator<TaskIndex> itti=tiset.iterator();itti.hasNext();) {
 		     TaskIndex ti=itti.next();
+		     if (ti.isRuntime()) {
+			 runtimeti++;
+			 continue;
+		     }
 		     if (needcomma)
 			 output.print(", ");
 		     needcomma=true;
@@ -2405,7 +2413,7 @@ public class BuildCode {
 		 output.println("/*flag*/"+flagid+",");
 		 output.println("/* number of tags*/"+tagcounter+",");
 		 output.println("tags_FS"+fscounter+"_"+cdtemp.getSafeSymbol()+",");
-		 output.println("/* numtask failures */"+tiset.size()+",");
+		 output.println("/* numtask failures */"+(tiset.size()-runtimeti)+",");
 		 output.println("taskfailurearray"+fscounter+"_"+cdtemp.getSafeSymbol()+",");
 		 output.println("/* number of optionaltaskdescriptors */"+availabletasks.size()+",");
 		 output.println("optionaltaskdescriptorarray_FS"+fscounter+"_"+cdtemp.getSafeSymbol());

@@ -62,6 +62,10 @@ public class SafetyAnalysis {
 	return fstotimap.get(fs).get(new TaskIndex(td, index));
     }
 
+    public Set<OptionalTaskDescriptor> getOptions(FlagState fs, TaskIndex ti) {
+	return fstotimap.get(fs).get(ti);
+    }
+
     public Set<TaskIndex> getTaskIndex(FlagState fs) {
 	return fstotimap.get(fs).keySet();
     }
@@ -168,13 +172,15 @@ public class SafetyAnalysis {
 		else
 		    setotd=new HashSet<OptionalTaskDescriptor>();
 	    }
-
-	    TaskIndex ti=new TaskIndex(egnode.getTD(), egnode.getIndex());
-	    if (timap.containsKey(ti)) {
-		//AND case
-		timap.put(ti, createIntersection(timap.get(ti), setotd, fs.getClassDescriptor()));
-	    } else {
-		timap.put(ti, setotd);
+	    TaskIndex ti=egnode.isRuntime()?new TaskIndex():new TaskIndex(egnode.getTD(), egnode.getIndex());
+	    if (!ti.runtime) {
+		//runtime edges don't do anything...don't have to take them, can't predict when we can.
+		if (timap.containsKey(ti)) {
+		    //AND case
+		    timap.put(ti, createIntersection(timap.get(ti), setotd, fs.getClassDescriptor()));
+		} else {
+		    timap.put(ti, setotd);
+		}
 	    }
 	}
 
