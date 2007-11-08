@@ -352,6 +352,7 @@ void fixtags() {
 	
 	livecount=((livecount-1)/OBJECTARRAYINTERVAL+1)*OBJECTARRAYINTERVAL;
 	aonew=(struct ArrayObject *) tomalloc(sizeof(struct ArrayObject)+sizeof(struct ___Object___*)*livecount);
+	memcpy(aonew, ao, sizeof(struct ArrayObject));
 	aonew->type=OBJECTARRAYTYPE;
 	aonew->___length___=livecount;
 	copy->flagptr=aonew;
@@ -363,7 +364,9 @@ void fixtags() {
 	  }
 	}
 	aonew->___cachedCode___=k;
-	
+	for(;k<livecount;k++) {
+	  ARRAYSET(aonew, struct ___Object___*, k, NULL);
+	}
       } else {
 	/* No object live anymore */
 	copy->flagptr=NULL;

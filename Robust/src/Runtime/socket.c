@@ -292,13 +292,19 @@ void CALL24(___Socket______nativeWrite_____AR_B_I_I, int offset, int length, str
   int fd=VAR(___this___)->___fd___;
   char * charstr=((char *)& VAR(___b___)->___length___)+sizeof(int)+offset;
   while(1) {
-    int bytewritten=write(fd, charstr, length);
-    if (bytewritten==-1&&errno==EAGAIN)
-      continue;
+    int offset=0;
+    int bytewritten;
+    while(length>0) {
+      bytewritten=write(fd, &charstr[offset], length);
+      if (bytewritten==-1&&errno!=EAGAIN)
+	break;
+      length-=bytewritten;
+      offset+=bytewritten;
+   }
 
-    if (bytewritten!=length) {
+    if (length!=0) {
       perror("ERROR IN NATIVEWRITE");
-      printf("Supposed to write %d, wrote %d\n", length, bytewritten);
+      printf("error=%d remaining bytes %d\n",errno, length); 
     }
     break;
   }

@@ -5,6 +5,15 @@
 #ifdef DMALLOC
 #include "dmalloc.h"
 #endif
+extern void * curr_heapbase;
+extern void * curr_heapptr;
+extern void * curr_heapgcpoint;
+extern void * curr_heaptop;
+
+extern void * to_heapbase;
+extern void * to_heapptr;
+extern void * to_heaptop;
+
 
 #define MALLOCSIZE 20*1024
 
@@ -51,6 +60,7 @@ void ** makecheckpoint(int numparams, void ** srcpointer, struct RuntimeHash * f
 #endif
   struct RuntimeHash *todo=allocateRuntimeHash(100);
   int i;
+
   for(i=0;i<numparams;i++) {
     void * objptr=srcpointer[i];
     if (RuntimeHashcontainskey(forward, (int) objptr))
