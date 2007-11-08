@@ -365,7 +365,7 @@ private boolean isTaskTrigger_tag(TagExpressionList tel, FlagState fs){
     
     public void createDOTfile(ClassDescriptor cd) throws java.io.IOException {
 	File dotfile_flagstates= new File("graph"+cd.getSymbol()+".dot");
-	FileOutputStream dotstream=new FileOutputStream(dotfile_flagstates,true);
+	FileOutputStream dotstream=new FileOutputStream(dotfile_flagstates,false);
 	FlagState.DOTVisitor.visit(dotstream,((Hashtable)flagstates.get(cd)).values());
     }
 

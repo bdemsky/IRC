@@ -116,7 +116,7 @@ public class ExecutionGraph {
 	Set s = (Set)executiongraph.get(cd);
 	java.io.PrintWriter output;
 	File dotfile_flagstates= new File("execution"+cd.getSymbol()+".dot");
-	FileOutputStream dotstream=new FileOutputStream(dotfile_flagstates,true);
+	FileOutputStream dotstream=new FileOutputStream(dotfile_flagstates,false);
 	output = new java.io.PrintWriter(dotstream, true);
 	output.println("digraph dotvisitor {");
 	output.println("\tnode [fontsize=10,height=\"0.1\", width=\"0.1\"];");
