@@ -30,7 +30,7 @@ public class Main {
   public static void main(String args[]) throws Exception {
       String ClassLibraryPrefix="./ClassLibrary/";
       State state=new State();
-      
+
       for(int i=0;i<args.length;i++) {
 	  String option=args[i];
 	  if (option.equals("-precise"))
@@ -39,6 +39,8 @@ public class Main {
 	      state.PREFETCH=true;
 	  else if (option.equals("-dir"))
 	      IR.Flat.BuildCode.PREFIX=args[++i]+"/";
+	  else if (option.equals("-selfloop"))
+	      state.selfloops.add(args[++i]);
 	  else if (option.equals("-classlibrary"))
 	      ClassLibraryPrefix=args[++i]+"/";
 	  else if (option.equals("-mainclass"))
@@ -75,6 +77,7 @@ public class Main {
 	      state.INSTRUCTIONFAILURE=true;
 	  else if (option.equals("-help")) {
 	      System.out.println("-classlibrary classlibrarydirectory -- directory where classlibrary is located");
+	      System.out.println("-selfloop task -- this task doesn't self loop its parameters forever");
 	      System.out.println("-dir outputdirectory -- output code in outputdirectory");
 	      System.out.println("-struct structfile -- output structure declarations for repair tool");
 	      System.out.println("-mainclass -- main function to call");

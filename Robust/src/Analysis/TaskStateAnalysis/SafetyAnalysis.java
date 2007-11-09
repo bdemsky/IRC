@@ -118,6 +118,7 @@ public class SafetyAnalysis {
 
     public void analyzeFS(FlagState fs, Set<EGTaskNode> egset, Hashtable<FlagState, Set<OptionalTaskDescriptor>> fstootd, Hashtable<FlagState, Set<FlagState>> fsusemap, HashSet<FlagState> tovisit) {
 	Hashtable<TaskIndex, Set<OptionalTaskDescriptor>>  timap=new Hashtable<TaskIndex, Set<OptionalTaskDescriptor>>();
+	Set<TaskIndex> tiselfloops=new HashSet<TaskIndex>();
 
 	for(Iterator<EGTaskNode> egit=egset.iterator();egit.hasNext();) {
 	    EGTaskNode egnode=egit.next();
@@ -174,8 +175,29 @@ public class SafetyAnalysis {
 	    }
 	    TaskIndex ti=egnode.isRuntime()?new TaskIndex():new TaskIndex(egnode.getTD(), egnode.getIndex());
 	    if (!ti.runtime) {
-		//runtime edges don't do anything...don't have to take them, can't predict when we can.
-		if (timap.containsKey(ti)) {
+		//runtime edges don't do anything...don't have to take
+		//them, can't predict when we can.
+		if (state.selfloops.contains(egnode.getTD().getSymbol())) {
+		    System.out.println("Self loop for: "+egnode.getTD()+" "+egnode.getIndex());
+		    if (timap.containsKey(ti)) {
+			if (egnode.getPostFS()!=fs) {
+			    if (tiselfloops.contains(ti)) {
+				//dump old self loop
+				timap.put(ti, setotd);
+				tiselfloops.remove(ti);
+			    } else {
+				//standard and case
+				timap.put(ti, createIntersection(timap.get(ti), setotd, fs.getClassDescriptor()));
+			    }
+			}
+		    } else {
+			//mark as self loop
+			timap.put(ti, setotd);
+			if (egnode.getPostFS()==fs) {
+			    tiselfloops.add(ti);
+			}
+		    }
+		} else if (timap.containsKey(ti)) {
 		    //AND case
 		    timap.put(ti, createIntersection(timap.get(ti), setotd, fs.getClassDescriptor()));
 		} else {

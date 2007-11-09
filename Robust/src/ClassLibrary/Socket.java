@@ -30,6 +30,12 @@ public class Socket {
 	nativeConnect(fd, address.getAddress(), port);
     }
 
+    public void connect(String host, int port) {
+	InetAddress address=InetAddress.getByName(host);
+	fd=nativeBind(address.getAddress(), port);
+	nativeConnect(fd, address.getAddress(), port);
+    }
+
     public void connect(InetAddress address, int port) {
 	fd=nativeBind(address.getAddress(), port);
 	nativeConnect(fd, address.getAddress(), port);

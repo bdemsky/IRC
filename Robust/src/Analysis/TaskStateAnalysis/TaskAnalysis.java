@@ -156,7 +156,7 @@ private void analyseTasks(FlagState fs) {
     for(Iterator it_tasks=state.getTaskSymbolTable().getDescriptorsIterator();it_tasks.hasNext();) {
 	TaskDescriptor td = (TaskDescriptor)it_tasks.next();
 	String taskname=td.getSymbol();
-	
+
 	/** counter to keep track of the number of parameters (of the
 	 *  task being analyzed) that are satisfied by the flagstate.
 	 */
@@ -192,14 +192,18 @@ private void analyseTasks(FlagState fs) {
 	Set newstates=taganalysis.getFlagStates(td);
 	for(Iterator fsit=newstates.iterator();fsit.hasNext();) {
 	    FlagState fsnew=(FlagState) fsit.next();
-	    fsnew.setAsSourceNode();
-	    fsnew.addAllocatingTask(td);
-	    ((Vector)cdtorootnodes.get(fsnew.getClassDescriptor())).add(fsnew);
+	    System.out.println("SOURCE:"+fsnew);
 	    
 	    if (! ((Hashtable<FlagState,FlagState>)flagstates.get(fsnew.getClassDescriptor())).containsKey(fsnew)) {
 		((Hashtable<FlagState,FlagState>)flagstates.get(fsnew.getClassDescriptor())).put(fsnew, fsnew);
 		toprocess.add(fsnew);
+	    } else {
+		fsnew=((Hashtable<FlagState, FlagState>)flagstates.get(fsnew.getClassDescriptor())).get(fsnew);
 	    }
+	    fsnew.setAsSourceNode();
+	    fsnew.addAllocatingTask(td);
+
+	    ((Vector)cdtorootnodes.get(fsnew.getClassDescriptor())).add(fsnew);
 	}
 	
 	Stack nodestack=new Stack();

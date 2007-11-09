@@ -83,7 +83,7 @@ void createstartupobject(int argc, char ** argv) {
 
 int hashCodetpd(struct taskparamdescriptor *ftd) {
   int hash=(int)ftd->task;
-  int i;						
+  int i;
   for(i=0;i<ftd->numParameters;i++){ 
     hash^=(int)ftd->parameterArray[i];
   }
@@ -917,6 +917,9 @@ int enqueuetasks(struct parameterwrapper *parameter, struct parameterwrapper *pr
       tpd->parameterArray[j]=taskpointerarray[j];//store the actual parameters
 #ifdef OPTIONAL
       tpd->failed[j]=failed[j];
+      if (failed[j]!=0&&failed[j]!=1) {
+	printf("BAD\n");
+      }
 #endif
     }
     /* Enqueue task */
@@ -924,6 +927,9 @@ int enqueuetasks(struct parameterwrapper *parameter, struct parameterwrapper *pr
       genputtable(activetasks, tpd, tpd);
     } else {
       RUNFREE(tpd->parameterArray);
+#ifdef OPTIONAL
+      RUNFREE(tpd->failed);
+#endif
       RUNFREE(tpd);
     }
     
@@ -1187,6 +1193,14 @@ void executetasks() {
 #endif
 	  if(debugtask){
 	    printf("ENTER %s count=%d\n",currtpd->task->name, (instaccum-instructioncount));
+	    {
+	      int i;
+	      printf("[%x]\n",currtpd);
+	      for(i=0;i<currtpd->numParameters;i++) {
+		printf("%x ", currtpd->parameterArray[i]);
+	      }
+	      printf("\n");
+	    }
 	    ((void (*) (void **)) currtpd->task->taskptr)(taskpointerarray);
 	    printf("EXIT %s count=%d\n",currtpd->task->name, (instaccum-instructioncount));
 	  } else
@@ -1563,6 +1577,9 @@ void toiNext(struct tagobjectiterator *it , void ** objectarray OPTARG(int * fai
     /* Get object with tags */
     struct ___Object___ *obj=objectarray[it->tagobjectslot];
     struct ___Object___ *tagptr=obj->___tags___;
+#ifdef OPTIONAL
+    failed[it->slot]=0; //have to set it to something
+#endif
     if (tagptr->type==TAGTYPE) {
       it->tagobjindex++;
       objectarray[it->slot]=tagptr;

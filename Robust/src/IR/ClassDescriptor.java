@@ -107,7 +107,7 @@ public class ClassDescriptor extends Descriptor {
     }
 
     public boolean hasFlags() {
-	return hasFlags;
+	return hasFlags||getSuperDesc()!=null&&getSuperDesc().hasFlags();
     }
 
     public void addField(FieldDescriptor fd) {
