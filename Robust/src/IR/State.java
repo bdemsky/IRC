@@ -45,6 +45,10 @@ public class State {
     public boolean DSM=false;
     public boolean PREFETCH=false;
     public boolean TASKSTATE=false;
+    public boolean FLATIRGRAPH=false;
+    public boolean FLATIRGRAPHTASKS=false;
+    public boolean FLATIRGRAPHUSERMETHODS=false;
+    public boolean FLATIRGRAPHLIBMETHODS=false;
     public boolean OPTIONAL=false;
     public boolean THREAD=false;
     public boolean CONSCHECK=false;

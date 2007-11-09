@@ -20,6 +20,7 @@ import Analysis.TaskStateAnalysis.SafetyAnalysis;
 import Analysis.Locality.LocalityAnalysis;
 import Analysis.Locality.GenerateConversions;
 import Analysis.Prefetch.PrefetchAnalysis;
+import Analysis.FlatIRGraph.FlatIRGraph;
 import Interface.*;
 
 public class Main {
@@ -50,6 +51,18 @@ public class Main {
 	      state.TASK=true;
 	  else if (option.equals("-taskstate"))
 	      state.TASKSTATE=true;
+	  else if (option.equals("-flatirtasks")) {
+	      state.FLATIRGRAPH=true;
+	      state.FLATIRGRAPHTASKS=true;
+	  }
+	  else if (option.equals("-flatirusermethods")) {
+	      state.FLATIRGRAPH=true;
+	      state.FLATIRGRAPHUSERMETHODS=true;
+	  }
+	  else if (option.equals("-flatirlibmethods")) {
+	      state.FLATIRGRAPH=true;
+	      state.FLATIRGRAPHLIBMETHODS=true;
+	  }
 	  else if (option.equals("-optional"))
 	      state.OPTIONAL=true;
 	  else if (option.equals("-thread"))
@@ -72,6 +85,7 @@ public class Main {
 	      System.out.println("-thread -- threads");
 	      System.out.println("-instructionfailures -- insert code for instruction level failures");
 	      System.out.println("-taskstate -- do task state analysis");
+	      System.out.println("-ownership -- do ownership analysis");
 	      System.out.println("-optional -- enable optional arguments");
 	      System.out.println("-webinterface -- enable web interface");
 	      System.out.println("-help -- print out help");
@@ -176,6 +190,14 @@ public class Main {
 	  BuildCode bc=new BuildCode(state, bf.getMap(), tu, sa);
 	  bc.buildCode();
       }
+
+      if (state.FLATIRGRAPH) {
+	  FlatIRGraph firg = new FlatIRGraph(state,
+					     state.FLATIRGRAPHTASKS,
+					     state.FLATIRGRAPHUSERMETHODS,
+					     state.FLATIRGRAPHLIBMETHODS);
+      }
+
       System.exit(0);
   }
     
