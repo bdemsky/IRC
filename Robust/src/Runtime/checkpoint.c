@@ -52,6 +52,58 @@ void freemalloc() {
   }
 }
 
+void checkvalid(void * ptr) {
+  if (ptr>=curr_heapbase&&ptr<=curr_heaptop) {
+    printf("Valid\n");
+  }
+}
+
+void validitycheck(struct RuntimeHash *forward, struct RuntimeHash *reverse)  {
+    struct RuntimeIterator rit;
+    RuntimeHashiterator(forward, &rit);
+    while(RunhasNext(&rit)) {
+      struct ___Object___ * data=(struct ___Object___*) Runnext(&rit);
+      int type=data->type;
+      unsigned int * pointer=pointerarray[type];
+      int size;
+      int i;
+      if (pointer!=0&&((int)pointer)!=1) {
+	size=pointer[0];
+	for(i=1;i<=size;i++) {
+	  int offset=pointer[i];
+	  void * ptr=*(void **) (((int) data) + offset);
+	  if (ptr!=NULL&&!RuntimeHashcontainskey(reverse, (int) ptr)) {
+	    printf("Bad\n");
+	  }
+	  checkvalid(ptr);
+	}
+      }
+    }
+
+    RuntimeHashiterator(reverse, &rit);
+    while(RunhasNext(&rit)) {
+      struct ___Object___ * data=(struct ___Object___*) Runkey(&rit);
+      Runnext(&rit);
+      int type=data->type;
+      unsigned int * pointer=pointerarray[type];
+      int size;
+      int i;
+      if (pointer!=0&&((int)pointer)!=1) {
+	size=pointer[0];
+	for(i=1;i<=size;i++) {
+	  int offset=pointer[i];
+	  void * ptr=*(void **) (((int) data) + offset);
+	  if (ptr!=NULL&&!RuntimeHashcontainskey(reverse, (int) ptr)) {
+	    printf("Bad2\n");
+	  }
+	  checkvalid(ptr);
+	}
+      }
+    }
+  }
+
+
+
 void ** makecheckpoint(int numparams, void ** srcpointer, struct RuntimeHash * forward, struct RuntimeHash * reverse) {
 #ifdef PRECISE_GC
   void **newarray=cpmalloc(sizeof(void *)*numparams);
@@ -80,16 +132,21 @@ void ** makecheckpoint(int numparams, void ** srcpointer, struct RuntimeHash * f
     {
       void *cpy;
       RuntimeHashget(forward, (int) ptr, (int *) &cpy);
+
       unsigned int * pointer=pointerarray[type];
 #ifdef TASK
       if (type==TAGTYPE) {
 	void *objptr=((struct ___TagDescriptor___*)ptr)->flagptr;
 	if (objptr!=NULL) {
-	  void * copy=createcopy(objptr);
-	  RuntimeHashadd(forward, (int) objptr, (int) copy);
-	  RuntimeHashadd(reverse, (int) copy, (int) objptr);
-	  RuntimeHashadd(todo, (int) objptr, (int) objptr);
-	  ((struct ___TagDescriptor___*)cpy)->flagptr=copy;
+	  if (!RuntimeHashcontainskey(forward, (int) objptr)) {
+	    void *copy=createcopy(objptr);
+	    RuntimeHashadd(forward, (int) objptr, (int) copy);
+	    RuntimeHashadd(reverse, (int) copy, (int) objptr);
+	    RuntimeHashadd(todo, (int) objptr, (int) objptr);
+	    ((struct ___TagDescriptor___*)cpy)->flagptr=copy;
+	  } else {
+	    RuntimeHashget(forward, (int) objptr, (int *) &(((struct ___TagDescriptor___*) cpy)->flagptr));
+	  }
 	}
       } else
 #endif

@@ -90,7 +90,6 @@ public class TagAnalysis {
     }
 
 private void computeCallsFlags(FlatMethod fm, Hashtable parammap, Set tagbindings, Set newflags) {
-    System.out.println("   "+fm.getMethod());
     Set nodeset=fm.getNodeSet();
     for(Iterator nodeit=nodeset.iterator();nodeit.hasNext();) {
 	FlatNode fn=(FlatNode)nodeit.next();

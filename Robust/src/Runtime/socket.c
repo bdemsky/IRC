@@ -51,6 +51,15 @@ int CALL24(___Socket______nativeConnect____I__AR_B_I, int ___fd___, int ___port_
   return -1;
 }
 
+#ifdef TASK
+int CALL12(___Socket______nativeBindFD____I, int ___fd___, struct ___Socket___ * ___this___, int ___fd___) {
+  if (RuntimeHashcontainskey(fdtoobject, ___fd___))
+      RuntimeHashremovekey(fdtoobject, ___fd___);
+  RuntimeHashadd(fdtoobject, ___fd___, (int) VAR(___this___));
+  addreadfd(___fd___);
+}
+#endif
+
 
 int CALL12(___Socket______nativeBind_____AR_B_I, int ___port___,  struct ArrayObject * ___address___, int ___port___) {
   int fd;

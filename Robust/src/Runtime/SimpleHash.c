@@ -53,6 +53,36 @@ int RuntimeHashfirstkey(struct RuntimeHash *thisvar) {
   return ptr->key;
 }
 
+int RuntimeHashremovekey(struct RuntimeHash *thisvar, int key) {
+    unsigned int hashkey = (unsigned int)key % thisvar->size;
+
+    struct RuntimeNode **ptr = &thisvar->bucket[hashkey];
+    int i;
+
+    while (*ptr) {
+        if ((*ptr)->key == key) {
+	  struct RuntimeNode *toremove=*ptr;
+	  *ptr=(*ptr)->next;
+
+	  if (toremove->lprev!=NULL)
+	    toremove->lprev->lnext=toremove->lnext;
+	  else
+	    thisvar->listhead=toremove->lnext;
+	  if (toremove->lnext!=NULL)
+	    toremove->lnext->lprev=toremove->lprev;
+	  else
+	    thisvar->listtail=toremove->lprev;
+	  RUNFREE(toremove);
+
+	  thisvar->numelements--;
+	  return 1;
+        }
+        ptr = &((*ptr)->next);
+    }
+
+    return 0;
+}
+
 int RuntimeHashremove(struct RuntimeHash *thisvar, int key, int data) {
     unsigned int hashkey = (unsigned int)key % thisvar->size;
 
@@ -251,7 +281,8 @@ inline int RunhasNext(struct RuntimeIterator *thisvar) {
 
 inline int Runnext(struct RuntimeIterator *thisvar) {
   int curr=thisvar->cur->data;
-  thisvar->cur=thisvar->cur->next;
+  thisvar->cur=thisvar->cur->lnext;
+  return curr;
 }
 
 inline int Runkey(struct RuntimeIterator *thisvar) {

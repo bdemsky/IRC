@@ -54,6 +54,7 @@ public class Socket {
 	nativeWrite(b, offset, len);
     }
 
+    private native void nativeBindFD(int fd);
     private native int nativeRead(byte[] b);
     private native void nativeWrite(byte[] b, int offset, int len);
     private native void nativeClose();
