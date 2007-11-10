@@ -2295,7 +2295,7 @@ public class BuildCode {
 		 }	
 	     } else
 		 continue;
-		     // if there is no optionals, there is no need to build the rest of the struct 
+	     // if there are no optionals, there is no need to build the rest of the struct 
 	     
 	     output.println("struct optionaltaskdescriptor * otdarray"+cdtemp.getSafeSymbol()+"[]={");
 	     c_otd = ((Hashtable)optionaltaskdescriptors.get(cdtemp)).values();
@@ -2371,7 +2371,7 @@ public class BuildCode {
 
 		     Set<OptionalTaskDescriptor> otdset=sa.getOptions(fs, ti);
 
-		     output.print("struct optionaltaskdescriptor * optionaltaskfailure_"+ti.getTask().getSafeSymbol()+"_"+ti.getIndex()+"_array[] = {");
+		     output.print("struct optionaltaskdescriptor * optionaltaskfailure_FS"+fscounter+"_"+ti.getTask().getSafeSymbol()+"_"+ti.getIndex()+"_array[] = {");
 		     boolean needcomma=false;
 		     for(Iterator<OptionalTaskDescriptor> otdit=ordertd(otdset).iterator();otdit.hasNext();) {
 			 OptionalTaskDescriptor otd=otdit.next();
@@ -2382,11 +2382,11 @@ public class BuildCode {
 		     }
 		     output.println("};");
 
-		     output.print("struct taskfailure taskfailure_"+ti.getTask().getSafeSymbol()+"_"+ti.getIndex()+" = {");
+		     output.print("struct taskfailure taskfailure_FS"+fscounter+"_"+ti.getTask().getSafeSymbol()+"_"+ti.getIndex()+" = {");
 		     output.print("&task_"+ti.getTask().getSafeSymbol()+", ");
 		     output.print(ti.getIndex()+", ");
 		     output.print(otdset.size()+", ");
-		     output.print("optionaltaskfailure_"+ti.getTask().getSafeSymbol()+"_"+ti.getIndex()+"_array");
+		     output.print("optionaltaskfailure_FS"+fscounter+"_"+ti.getTask().getSafeSymbol()+"_"+ti.getIndex()+"_array");
 		     output.println("};");
 		 }
 
@@ -2403,7 +2403,7 @@ public class BuildCode {
 		     if (needcomma)
 			 output.print(", ");
 		     needcomma=true;
-		     output.print("&taskfailure_"+ti.getTask().getSafeSymbol()+"_"+ti.getIndex());
+		     output.print("&taskfailure_FS"+fscounter+"_"+ti.getTask().getSafeSymbol()+"_"+ti.getIndex());
 		 }
 		 output.println("};\n");
 

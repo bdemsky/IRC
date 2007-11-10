@@ -758,10 +758,10 @@ void enqueueoptional(struct ___Object___ * currobj, int numfailedfses, int * fai
 		currindex=otd->index;
 	      } else if (currtask!=otd->task||currindex!=otd->index)
 		break;
-	      totallength+=otd->numenterflags;
+	      totallength+=otd->numenterflags;//1 is to store the lengths
 	    }
 	    pw=currtask->descriptorarray[currindex]->queue;
-	    enterflags=RUNMALLOC(totallength*sizeof(int));
+	    enterflags=RUNMALLOC((totallength+numenterflags)*sizeof(int));
 	    numenterflags=j-start;
 
 	    offset=0;
@@ -1193,14 +1193,6 @@ void executetasks() {
 #endif
 	  if(debugtask){
 	    printf("ENTER %s count=%d\n",currtpd->task->name, (instaccum-instructioncount));
-	    {
-	      int i;
-	      printf("[%x]\n",currtpd);
-	      for(i=0;i<currtpd->numParameters;i++) {
-		printf("%x ", currtpd->parameterArray[i]);
-	      }
-	      printf("\n");
-	    }
 	    ((void (*) (void **)) currtpd->task->taskptr)(taskpointerarray);
 	    printf("EXIT %s count=%d\n",currtpd->task->name, (instaccum-instructioncount));
 	  } else
@@ -1349,9 +1341,17 @@ void builditerators(struct taskdescriptor * task, int index, struct parameterwra
        while(ObjhasNext(&objit)) {
 	 struct ___Object___ * obj=(struct ___Object___ *)Objkey(&objit);
 	 struct ___Object___ * tagptr=obj->___tags___;
+	 int nonfailed=Objdata4(&objit);
+	 int numflags=Objdata3(&objit);
+	 int flags=Objdata2(&objit);
 	 Objnext(&objit);
 	 printf("    Contains %lx\n", obj);
 	 printf("      flag=%d\n", obj->flag); 
+#ifdef OPTIONAL
+	 printf("      flagsstored=%x\n",flags);
+	 printf("      numflags=%d\n", numflags);
+	 printf("      nonfailed=%d\n",nonfailed);
+#endif
 	 if (tagptr==NULL) {
 	 } else if (tagptr->type==TAGTYPE) {
 	   printf("      tag=%lx\n",tagptr);

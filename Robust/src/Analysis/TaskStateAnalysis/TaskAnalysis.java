@@ -53,19 +53,15 @@ public class TaskAnalysis {
 	    
 	    
 	    /* Adding the flags of the super class */
-	    if (cd.getSuper()!=null) {
-		ClassDescriptor superdesc=cd.getSuperDesc();
-		
-		for(Iterator it_cflags=superdesc.getFlags();it_cflags.hasNext();) {	
+	    ClassDescriptor tmp=cd;
+	    while(tmp!=null) {
+		for(Iterator it_cflags=tmp.getFlags();it_cflags.hasNext();) {	
 		    FlagDescriptor fd = (FlagDescriptor)it_cflags.next();
 		    vFlags.add(fd);
 		}
+		tmp=tmp.getSuperDesc();
 	    }
 
-	    for(Iterator it_cflags=cd.getFlags();it_cflags.hasNext();) {
-		FlagDescriptor fd = (FlagDescriptor)it_cflags.next();
-		vFlags.add(fd);
-	    }
 
 	    if (vFlags.size()!=0) {
 		flag=new FlagDescriptor[vFlags.size()];

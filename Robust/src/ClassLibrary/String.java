@@ -67,7 +67,7 @@ public class String {
 	String str=new String();
 	if (beginIndex>this.count||endIndex>this.count||beginIndex>endIndex) {
 	    // FIXME
-	    System.printString("Index error: "+this+" "+beginIndex+" "+endIndex+"\n");
+	    System.printString("Index error: "+beginIndex+" "+endIndex+" "+count+"\n"+this);
 	}
 	str.value=this.value;
 	str.count=endIndex-beginIndex;
