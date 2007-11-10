@@ -9,6 +9,28 @@ public class Lookup extends Socket {
     String data;
     String start;
     String end;
+
+    public void doLookup() {
+	String query="GET /"+url+" HTTP/1.1\r\nConnection: close\r\nHost:"+hostname+"\r\n\r\n";
+	connect(hostname, 80);
+	write(query.getBytes());
+    }
+
+    public boolean Receive() {
+	byte[] buffer=new byte[1024];
+	int numchars=read(buffer);
+	if (numchars<=0) {
+	    fix();
+	    close();
+	    return true;
+	}
+	String str=new String(buffer, 0, numchars);
+	if (data==null) {
+	    data=str;
+	} else
+	    data=data+str;
+	return false;
+    }
 		
     public void fix() {
 	int istart=data.indexOf(start);

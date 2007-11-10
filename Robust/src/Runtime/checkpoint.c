@@ -298,8 +298,12 @@ void restorecheckpoint(int numparams, void ** original, void ** checkpoint, stru
 	int numptr=pointer[0];
 	int i;
 	void *flagptr;
+	int oldflag;
+	int currflag;
 	if (hasflags[type]) {
 	  flagptr=(void *) (((int *)cpy)[2]);
+	  oldflag=(((int *)cpy)[1]);
+	  currflag=(((int *)ptr)[1]);
 	}
 	memcpy(cpy, ptr, size);
 	for(i=1;i<=numptr;i++) {
@@ -317,7 +321,8 @@ void restorecheckpoint(int numparams, void ** original, void ** checkpoint, stru
 	}
 	if (hasflags[type]) {
 	  (((void **)cpy)[2])=flagptr;
-	  flagorandinit(cpy, 0, 0xFFFFFFFF);
+	  if (currflag!=oldflag)
+	    flagorandinit(cpy, 0, 0xFFFFFFFF);
 	}
       }
     }
