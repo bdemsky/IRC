@@ -18,10 +18,14 @@ public class PrefetchAnalysis {
     TypeUtil typeutil;
     Set<FlatNode> tovisit;
     Hashtable<FlatNode, Hashtable<PrefetchPair, Float>> prefetch_hash;
-    public static final int ROUNDED_MODE = 5;
+    Hashtable<PrefetchPair, Float> branch_prefetch_set;
+    public static final int ROUNDED_MODE = 30;
+    public static final float THRESHOLD_PROB = (float)0.30;
+    public static final float BRANCH_TRUE_EDGE_PROB = (float)0.5;
+    public static final float BRANCH_FALSE_EDGE_PROB = (float)0.5;
 
     /** This function finds if a tempdescriptor object is found in a given prefetch pair
-     * It returns true if found else returns false*/ 
+     *  It returns true if found else returns false*/
     private boolean isTempDescFound(PrefetchPair pp, TempDescriptor td) {
 	    ArrayList<Descriptor> desc = (ArrayList<Descriptor>) pp.getDesc();
 	    ListIterator it = desc.listIterator();
@@ -37,8 +41,9 @@ public class PrefetchAnalysis {
 	    return false;
     }
 
-    /** This function creates a new Arraylist of Descriptors by replacing old tempdescriptors with new 
-     * tempdescriptors when there is a match for FlatOpNodes or FlatLiteralNodes */ 
+    /** This function creates a new Arraylist of Descriptors by replacing old tempdescriptors with new
+     * tempdescriptors when there is a match for FlatOpNodes or FlatLiteralNodes */
+
     private ArrayList<Descriptor> getNewDesc(PrefetchPair pp, TempDescriptor td, TempDescriptor newtd) {
 	    ArrayList<Descriptor> desc = (ArrayList<Descriptor>) pp.getDesc();
 	    ListIterator it = desc.listIterator();
@@ -55,12 +60,30 @@ public class PrefetchAnalysis {
 	    return desc;
     }
 
-    /** This function starts the prefetchanalysis */
+    /** This function creates a new Arraylist of Descriptors by replacing old tempdescriptors with new
+     * tempdescriptors when there is a match for FlatOpNodes i= i+j then replace i with i+j */
+    private ArrayList<Descriptor> getNewDesc(PrefetchPair pp, TempDescriptor td, TempDescriptor left, TempDescriptor right) {
+	    ArrayList<Descriptor> desc = (ArrayList<Descriptor>) pp.getDesc();
+	    ListIterator it = desc.listIterator();
+	    for(;it.hasNext();) {
+		    Object currdesc = it.next();
+		    if(currdesc instanceof IndexDescriptor) {
+			    ArrayList<TempDescriptor> tdarray = (ArrayList<TempDescriptor>)((IndexDescriptor)currdesc).tddesc;
+			    if(tdarray.contains(td)) {
+				    int index = tdarray.indexOf(td);
+				    tdarray.set(index, left);
+				    tdarray.add(right);
+			    }
+		    }
+	    }
+	    return desc;
+    }
+
     public PrefetchAnalysis(State state, CallGraph callgraph, TypeUtil typeutil) {
 	    this.typeutil=typeutil;
 	    this.state=state;
 	    this.callgraph=callgraph;
-	    prefetch_hash = new Hashtable();
+	    prefetch_hash = new Hashtable<FlatNode, Hashtable<PrefetchPair,Float>>();
 	    DoPrefetch();
     }
 
@@ -69,8 +92,8 @@ public class PrefetchAnalysis {
 	    Iterator classit=state.getClassSymbolTable().getDescriptorsIterator();
 	    while(classit.hasNext()) {
 		    ClassDescriptor cn=(ClassDescriptor)classit.next();
-	    doMethodAnalysis(cn);
-	}
+		    doMethodAnalysis(cn);
+	    }
     }
 
     /** This function calls analysis for every method in a class */
@@ -98,7 +121,7 @@ public class PrefetchAnalysis {
 	    while(!tovisit.isEmpty()) {
 		    FlatNode fn = (FlatNode)tovisit.iterator().next();
 		    /* Generate prefetch pairs after the child node analysis */
-		    boolean curr_modified = doChildNodeAnalysis(fn);
+		    doChildNodeAnalysis(fn);
 		    tovisit.remove(fn);
 	    }
     }
@@ -109,15 +132,38 @@ public class PrefetchAnalysis {
      * returns true: if the prefetch set has changed since last time the node was analysed
      * returns false : otherwise 
      */ 
-    private boolean doChildNodeAnalysis(FlatNode curr) {
-	    boolean pSetHasChanged = false;
+    private void doChildNodeAnalysis(FlatNode curr) {
 	    Hashtable<PrefetchPair, Float> child_hash = new Hashtable<PrefetchPair, Float>();
+	    if(curr.kind()==FKind.FlatCondBranch) {
+		    branch_prefetch_set =  new Hashtable<PrefetchPair,Float>();
+	    }
 	    for (int i = 0; i < curr.numNext(); i++) {
 		    FlatNode child_node = curr.getNext(i);
 		    if (prefetch_hash.containsKey(child_node)) {
 			    child_hash = (Hashtable<PrefetchPair,Float>) prefetch_hash.get(child_node).clone();
 		    }
 		    switch(curr.kind()) {
+			    case FKind.FlatBackEdge:
+				    processDefaultCase(curr,child_hash);
+				    break;
+			    case FKind.FlatCall:
+				    //TODO change it to take care of FlatMethod, Flatcalls 
+				    processFlatCall(curr, child_hash);
+				    break;
+			    case FKind.FlatCheckNode:
+				    processDefaultCase(curr,child_hash);
+				    break;
+			    case FKind.FlatMethod:
+				    //TODO change it to take care of FlatMethod, Flatcalls 
+				    processFlatMethod(curr, child_hash);
+				    break;
+			    case FKind.FlatNew:
+				    processFlatNewNode(curr, child_hash);
+				    break;
+			    case FKind.FlatReturnNode:
+				    //TODO change it to take care of FlatMethod, Flatcalls 
+				    processDefaultCase(curr,child_hash);
+				    break;
 			    case FKind.FlatFieldNode:
 				    processFlatFieldNode(curr, child_hash);
 				    break;
@@ -125,10 +171,7 @@ public class PrefetchAnalysis {
 				    processFlatElementNode(curr, child_hash);
 				    break;
 			    case FKind.FlatCondBranch:
-				    //processFlatCondBranchNode();
-				    break;
-			    case FKind.FlatNew:
-				    //processFlatNewNode(curr, child_hash);
+				    processFlatCondBranch(curr, child_hash, i, branch_prefetch_set);
 				    break;
 			    case FKind.FlatOpNode:
 				    processFlatOpNode(curr, child_hash);
@@ -142,32 +185,32 @@ public class PrefetchAnalysis {
 			    case FKind.FlatSetFieldNode:
 				    processFlatSetFieldNode(curr, child_hash);
 				    break;
-			    case FKind.FlatMethod:
-				    //processFlatMethod(curr, child_hash);
+			    case FKind.FlatAtomicEnterNode:
+				    processDefaultCase(curr,child_hash);
+				    break;
+			    case FKind.FlatAtomicExitNode:
+				    processDefaultCase(curr,child_hash);
+				    break;
+			    case FKind.FlatCastNode:
+				    processDefaultCase(curr,child_hash);
+				    break;
+			    case FKind.FlatFlagActionNode:
+				    processDefaultCase(curr,child_hash);
+				    break;
+			    case FKind.FlatGlobalConvNode:
+				    processDefaultCase(curr,child_hash);
+				    break;
+			    case FKind.FlatNop:
+				    processDefaultCase(curr,child_hash);
+				    break;
+			    case FKind.FlatTagDeclaration:
+				    processDefaultCase(curr,child_hash);
 				    break;
 			    default:
-				    /*If FlatNode is not concerned with the prefetch set of its Child then propagate 
-				     * prefetches up the FlatNode*/  
-				    Enumeration e = null;
-				    Hashtable<PrefetchPair, Float> tocompare = new Hashtable<PrefetchPair, Float>();
-				    for(e = child_hash.keys(); e.hasMoreElements();) {
-					    PrefetchPair newpp = (PrefetchPair) e.nextElement();
-					    tocompare.put(newpp, child_hash.get(newpp));
-				    }
-
-				    /* Compare with old Prefetch sets */
-				    pSetHasChanged = comparePrefetchSets(prefetch_hash.get(curr), tocompare); 
-				    if(pSetHasChanged){
-					    for(int j=0; j<curr.numPrev(); j++) {
-						    tovisit.add(curr.getPrev(j));
-					    }
-					    /* Overwrite the new prefetch set to the global hash table */
-					    prefetch_hash.put(curr,tocompare); 
-				    }
+				    System.out.println("NO SUCH FLATNODE");
 				    break;
 		    }
 	    } 
-	    return pSetHasChanged;
     }
     
     /**This function compares all the prefetch pairs in a Prefetch set hashtable and
@@ -195,10 +238,9 @@ public class PrefetchAnalysis {
 					    int diff = (int) ((newprob - oldprob)/oldprob)*100; 
 					    if(diff >= ROUNDED_MODE) {
 						    return true;
+					    }else {
 					    }
 					    break;
-				    } else {
-					    return true;
 				    }
 			    }
 		    }
@@ -247,7 +289,11 @@ public class PrefetchAnalysis {
 				     * to compute new probability */
 				    if(child_hash.containsKey(newpp)) {
 					    newprob = (float)(1.0 - ((1.0 - child_hash.get(newpp).floatValue()) * (1.0 - tocompare.get(newpp).floatValue())));
-					    tocompare.put(newpp, newprob); 
+					    if(newprob < THRESHOLD_PROB) {
+						    tocompare.remove(newpp);
+					    } else {
+						    tocompare.put(newpp, newprob); 
+					    }
 					    child_hash.remove(newpp);
 				    }
 			    }
@@ -315,6 +361,7 @@ public class PrefetchAnalysis {
 	    Hashtable<PrefetchPair, Float> tocompare = new Hashtable<PrefetchPair, Float>();
 	    FlatElementNode currfen = (FlatElementNode) curr;
 
+
 	    /* Do Self analysis of the current node*/
 	    TempDescriptor currfen_index = currfen.getIndex();
 	    IndexDescriptor idesc = new IndexDescriptor(currfen_index, 0);
@@ -333,7 +380,6 @@ public class PrefetchAnalysis {
 		    childpp = (PrefetchPair) ecld.nextElement();
 		    if (childpp.base == currfen.getDst() && (childpp.getDesc()!= null)) {
 			    if (currfen.getDst().getType().isPtr()) {
-				    //TODO  Modify the Prefetch Pair to insert cases like f=a[i+1]
 				    //if match exists then create a new Prefetch set with the new prefetch pair in a new hash table 
 				    ArrayList<Descriptor> newdesc = new ArrayList<Descriptor>();
 				    newdesc.add((Descriptor)idesc);
@@ -346,7 +392,11 @@ public class PrefetchAnalysis {
 				     * to compute new probability */
 				    if(child_hash.containsKey(newpp)) {
 					    newprob = (float)(1.0 - ((1.0 - child_hash.get(newpp).floatValue()) * (1.0 - tocompare.get(newpp).floatValue())));
-					    tocompare.put(newpp, newprob); 
+					    if(newprob < THRESHOLD_PROB) {
+						    tocompare.remove(newpp);
+					    } else {
+						    tocompare.put(newpp, newprob); 
+					    }
 					    child_hash.remove(newpp);
 				    }
 			    }
@@ -416,25 +466,33 @@ public class PrefetchAnalysis {
 	    while (ecld.hasMoreElements()) {
 		    childpp = (PrefetchPair) ecld.nextElement();
 		    if(childpp.base == currfsfn.getDst()) {
-			    if((childpp.getDescAt(0) instanceof FieldDescriptor) && (childpp.getDescAt(0) == currfsfn.getField()) 
-					    && (childpp.getDescAt(1)!= null)) {
-				    ArrayList<Descriptor> newdesc = new ArrayList<Descriptor>();
-				    newdesc.addAll(1,childpp.desc);
-				    PrefetchPair newpp =  new PrefetchPair(currfsfn.getSrc(), newdesc);
-				    Float newprob = child_hash.get(childpp).floatValue();
-				    tocompare.put(newpp, newprob); 
-				    child_hash.remove(childpp);
-				    /* Check for independence of prefetch pairs in newly generated and child_hash prefetch pairs
-				     * to compute new probability */
-				    if(child_hash.containsKey(newpp)) {
-					    newprob = (float)(1.0 - ((1.0 - child_hash.get(newpp).floatValue()) * (1.0 - tocompare.get(newpp).floatValue())));
+			    int size = childpp.desc.size();
+			    if(size >=2) {
+				    if((childpp.getDescAt(0) instanceof FieldDescriptor) && (childpp.getDescAt(0) == currfsfn.getField())) { 
+					    ArrayList<Descriptor> newdesc = new ArrayList<Descriptor>();
+					    for(int i = 0;i<(childpp.desc.size()-1); i++) {
+						    newdesc.add(i,childpp.desc.get(i+1));
+					    }
+					    PrefetchPair newpp =  new PrefetchPair(currfsfn.getSrc(), newdesc);
+					    Float newprob = child_hash.get(childpp).floatValue();
 					    tocompare.put(newpp, newprob); 
-					    child_hash.remove(newpp);
+					    child_hash.remove(childpp);
+					    /* Check for independence of prefetch pairs in newly generated and child_hash prefetch pairs
+					     * to compute new probability */
+					    if(child_hash.containsKey(newpp)) {
+						    newprob = (float)(1.0 - ((1.0 - child_hash.get(newpp).floatValue()) * (1.0 - tocompare.get(newpp).floatValue())));
+						    if(newprob < THRESHOLD_PROB) {
+							    tocompare.remove(newpp);
+						    } else {
+							    tocompare.put(newpp, newprob); 
+						    }
+						    child_hash.remove(newpp);
+					    }
 				    }
-
-			    } else if((childpp.getDescAt(0) instanceof FieldDescriptor) && (childpp.getDescAt(0) == currfsfn.getField()) 
-					    && (childpp.getDescAt(1)== null)){
-				    child_hash.remove(childpp);
+			    } else if(size==1) {
+				    if((childpp.getDescAt(0) instanceof FieldDescriptor) && (childpp.getDescAt(0) == currfsfn.getField())) {
+					    child_hash.remove(childpp);
+				    }
 			    } else {
 				    continue;
 			    }
@@ -476,14 +534,16 @@ public class PrefetchAnalysis {
 	    Enumeration ecld = child_hash.keys();
 	    while (ecld.hasMoreElements()) {
 		    childpp = (PrefetchPair) ecld.nextElement();
-		    //TODO Add comparision for cases like a[i+1]=f.The following only works for cases like a[i]=f
 		    if (childpp.base == currfsen.getDst()){
+			    int sizedesc = childpp.desc.size();
 			    if((childpp.getDescAt(0) instanceof IndexDescriptor)) {
-				    if((((IndexDescriptor)childpp.getDescAt(0)).tddesc.get(0) == currfsen.getIndex()) 
-						    && (((IndexDescriptor)(childpp.getDescAt(0))).tddesc.get(1) == null) && (childpp.getDescAt(1)!=null)) {
+				    int sizetempdesc = ((IndexDescriptor)(childpp.getDescAt(0))).tddesc.size();
+				    if((((IndexDescriptor)childpp.getDescAt(0)).tddesc.get(0) == currfsen.getIndex()) && (sizetempdesc==1) && (sizedesc>=2)) {
 					    //if match exists then create a new Prefetch set with the new prefetch pair in a new hash table 
 					    ArrayList<Descriptor> newdesc = new ArrayList<Descriptor>();
-					    newdesc.addAll(1,childpp.desc);
+					    for(int i = 0;i<(childpp.desc.size()-1); i++) {
+						    newdesc.add(i,childpp.desc.get(i+1));
+					    }
 					    PrefetchPair newpp =  new PrefetchPair(currfsen.getSrc(), newdesc);
 					    Float newprob = child_hash.get(childpp).floatValue();
 					    tocompare.put(newpp, newprob); 
@@ -492,11 +552,14 @@ public class PrefetchAnalysis {
 					     * to compute new probability */
 					    if(child_hash.containsKey(newpp)) {
 						    newprob = (float)(1.0 - ((1.0 - child_hash.get(newpp).floatValue()) * (1.0 - tocompare.get(newpp).floatValue())));
-						    tocompare.put(newpp, newprob); 
+						    if(newprob < THRESHOLD_PROB) {
+							    tocompare.remove(newpp);
+						    } else {
+							    tocompare.put(newpp, newprob); 
+						    }
 						    child_hash.remove(newpp);
 					    }
-				    } else if((((IndexDescriptor)childpp.getDescAt(0)).tddesc.get(0) == currfsen.getIndex()) && 
-						    (((IndexDescriptor) (childpp.getDescAt(0))).tddesc.get(1) == null) && (childpp.getDescAt(1)==null)) {
+				    } else if((((IndexDescriptor)childpp.getDescAt(0)).tddesc.get(0) == currfsen.getIndex()) && (sizetempdesc==1) && (sizedesc==1)) { 
 					    child_hash.remove(childpp);
 				    } else {
 					    continue;
@@ -542,7 +605,7 @@ public class PrefetchAnalysis {
 			    PrefetchPair copyofchildpp = (PrefetchPair) childpp.clone();
 			
 			    /* Base of child prefetch pair same as destination of the current FlatOpNode 
-			     * For cases like x=y followed by t=x[i] or t=x.g*/
+			     * For cases like x=y followed by childnode t=x[i].z or t=x.g*/
 			    if(childpp.base == currfopn.getDest()) {
 				    ArrayList<Descriptor> newdesc = new ArrayList<Descriptor>();
 				    newdesc.addAll(childpp.desc);
@@ -554,7 +617,11 @@ public class PrefetchAnalysis {
 				     * to compute new probability */
 				    if(child_hash.containsKey(newpp)) {
 					    newprob = (float)(1.0 - ((1.0 - child_hash.get(newpp).floatValue()) * (1.0 - tocompare.get(newpp).floatValue())));
-					    tocompare.put(newpp, newprob); 
+					    if(newprob < THRESHOLD_PROB) {
+						    tocompare.remove(newpp);
+					    } else {
+						    tocompare.put(newpp, newprob); 
+					    }
 					    child_hash.remove(newpp);
 				    }
 				    /* Any member of the desc of child prefetch pair is same as destination of the current FlatOpNode 
@@ -562,7 +629,6 @@ public class PrefetchAnalysis {
 			    } else if(isTempDescFound(copyofchildpp, currfopn.getDest())) {
 				    ArrayList<Descriptor> newdesc = new ArrayList<Descriptor>();
 				    newdesc.addAll((ArrayList<Descriptor>)getNewDesc(copyofchildpp, currfopn.getDest(), currfopn.getLeft()));
-				    //ArrayList<Descriptor> newdesc = (ArrayList<Descriptor>)getNewDesc(copyofchildpp, currfopn.getDest(), currfopn.getLeft());
 				    PrefetchPair newpp =  new PrefetchPair(childpp.base, newdesc);
 				    Float newprob = child_hash.get(childpp).floatValue();
 				    tocompare.put(newpp, newprob); 
@@ -571,17 +637,48 @@ public class PrefetchAnalysis {
 				     * to compute new probability*/ 
 				    if(child_hash.containsKey(newpp)) {
 					    newprob = (float)(1.0 - ((1.0 - child_hash.get(newpp).floatValue()) * (1.0 - tocompare.get(newpp).floatValue())));
-					    tocompare.put(newpp, newprob); 
+					    if(newprob < THRESHOLD_PROB) {
+						    tocompare.remove(newpp);
+					    } else {
+						    tocompare.put(newpp, newprob); 
+					    }
 					    child_hash.remove(newpp);
 				    }
 			    }else {
 				    continue;
 			    }
 		    }
-	    } else if(currfopn.getRight()!=null) {
-		    //FIXME case i = i+z followed by a[i].x
+	    } else if(currfopn.getRight()!=null && (currfopn.getOp().getOp() == Operation.ADD)) {
+		    //case i = i+z  followed by a[i].x
+		    ecld = child_hash.keys();
+		    while (ecld.hasMoreElements()) {
+			    childpp = (PrefetchPair) ecld.nextElement();
+			    PrefetchPair copyofchildpp = (PrefetchPair) childpp.clone();
+			
+			    if(isTempDescFound(copyofchildpp, currfopn.getDest())) {
+				    ArrayList<Descriptor> newdesc = new ArrayList<Descriptor>();
+				    newdesc.addAll((ArrayList<Descriptor>)getNewDesc(copyofchildpp, currfopn.getDest(), currfopn.getLeft(), currfopn.getRight()));
+				    PrefetchPair newpp =  new PrefetchPair(childpp.base, newdesc);
+				    Float newprob = child_hash.get(childpp).floatValue();
+				    tocompare.put(newpp, newprob); 
+				    child_hash.remove(childpp);
+				    /* Check for independence of prefetch pairs if any in the child prefetch set
+				     * to compute new probability*/ 
+				    if(child_hash.containsKey(newpp)) {
+					    newprob = (float)(1.0 - ((1.0 - child_hash.get(newpp).floatValue()) * (1.0 - tocompare.get(newpp).floatValue())));
+					    if(newprob < THRESHOLD_PROB) {
+						    tocompare.remove(newpp);
+					    } else {
+						    tocompare.put(newpp, newprob); 
+					    }
+					    child_hash.remove(newpp);
+				    }
+			    }else {
+				    continue;
+			    }
+		    }
 	    } else {
-		    //FIXME
+		    //FIXME Is not taken care of for cases like x = -y followed by a[x].i
 	    }
 
 	    /* Merge child prefetch pairs */
@@ -625,12 +722,10 @@ public class PrefetchAnalysis {
 					    Object o = it.next();
 					    if(o instanceof IndexDescriptor) {
 						    ArrayList<TempDescriptor> td = (ArrayList<TempDescriptor>)((IndexDescriptor)o).tddesc;
-						    for(ListIterator lit = td.listIterator();lit.hasNext();) {
-							    if(td.contains(currfln.getDst())) {
-								    int index = td.indexOf(currfln.getDst());
-								    ((IndexDescriptor)o).offset = (Integer)currfln.getValue();
-								    td.remove(index);
-							    }
+						    if(td.contains(currfln.getDst())) {
+							    int index = td.indexOf(currfln.getDst());
+							    ((IndexDescriptor)o).offset = (Integer)currfln.getValue();
+							    td.remove(index);
 						    }
 					    }
 				    }
@@ -644,7 +739,11 @@ public class PrefetchAnalysis {
 				     * to compute new probability */
 				    if(child_hash.containsKey(newpp)) {
 					    newprob = (float)(1.0 - ((1.0 - child_hash.get(newpp).floatValue()) * (1.0 - tocompare.get(newpp).floatValue())));
-					    tocompare.put(newpp, newprob); 
+					    if(newprob < THRESHOLD_PROB) {
+						    tocompare.remove(newpp);
+					    } else {
+						    tocompare.put(newpp, newprob); 
+					    }
 					    child_hash.remove(newpp);
 				    }
 			    }
@@ -672,8 +771,223 @@ public class PrefetchAnalysis {
 
     }
 
-    private void processFlatMethod() {
+    private void processFlatMethod(FlatNode curr, Hashtable<PrefetchPair, Float> child_hash) {
+	    boolean pSetHasChanged = false;
+	    Hashtable<PrefetchPair, Float> tocompare = new Hashtable<PrefetchPair, Float>();
+	    FlatMethod currfm = (FlatMethod) curr;
+	    Enumeration ecld = null; 
+	    PrefetchPair childpp = null;
 
+	    /* Merge child prefetch pairs */
+	    ecld = child_hash.keys();
+	    while(ecld.hasMoreElements()) {
+		    childpp = (PrefetchPair) ecld.nextElement();
+		    tocompare.put(childpp, child_hash.get(childpp));
+		    child_hash.remove(childpp);
+	    }
+
+	    /* Compare with the orginal prefetch pairs */
+	    pSetHasChanged = comparePrefetchSets(prefetch_hash.get(curr), tocompare);
+	    /* Enqueue parent nodes */
+	    if(pSetHasChanged) {
+		    /* Overwrite the new prefetch set to the global hash table */
+		    prefetch_hash.put(curr,tocompare); 
+	    } 
+    }
+
+    /** This Function processes the FlatCalls 
+     * It currently drops the propagation of those prefetchpairs that are passed as
+     * arguments in the FlatCall 
+     */
+
+    private void processFlatCall(FlatNode curr, Hashtable<PrefetchPair, Float> child_hash) {
+	    boolean pSetHasChanged = false;
+	    Hashtable<PrefetchPair, Float> tocompare = new Hashtable<PrefetchPair, Float>();
+	    FlatCall currfcn = (FlatCall) curr;
+	    Enumeration ecld = null; 
+	    PrefetchPair childpp = null;
+	    boolean isSameArg = false;
+
+	    for(int i= 0; i<currfcn.numArgs(); i++) {
+	    }
+
+	    ecld = child_hash.keys();
+	    while(ecld.hasMoreElements()) {
+		    childpp = (PrefetchPair) ecld.nextElement();
+		    PrefetchPair copyofchildpp = (PrefetchPair) childpp.clone();
+		    int numargs = currfcn.numArgs();
+		    for(int i= 0; i<currfcn.numArgs(); i++) {
+			    if(currfcn.getArg(i) == childpp.base){
+				    isSameArg = true;
+			    }
+		    }
+		    if(!(currfcn.getThis() == childpp.base) && !(isSameArg)) {
+			    tocompare.put(childpp, child_hash.get(childpp));
+			    child_hash.remove(childpp);
+		    } else {
+			    child_hash.remove(childpp);
+		    }
+	    }
+
+	    /* Compare with the orginal prefetch pairs */
+	    pSetHasChanged = comparePrefetchSets(prefetch_hash.get(curr), tocompare);
+	    /* Enqueue parent nodes */
+	    if(pSetHasChanged) {
+		    for(int i=0; i<curr.numPrev(); i++) {
+			    tovisit.add(curr.getPrev(i));
+		    }
+		    /* Overwrite the new prefetch set to the global hash table */
+		    prefetch_hash.put(curr,tocompare); 
+	    } 
+    }
+
+    /** This function handles the processes the FlatNode of type FlatCondBranch
+     * It combines prefetches of both child elements and create a new hash table called
+     * branch_prefetch_set to contains the entries of both its children
+     */
+    private void processFlatCondBranch(FlatNode curr, Hashtable<PrefetchPair, Float> child_hash, int index, 
+		    Hashtable<PrefetchPair,Float> branch_prefetch_set) {
+	    boolean pSetHasChanged = false;
+	    Hashtable<PrefetchPair, Float> tocompare = new Hashtable<PrefetchPair, Float>();
+	    FlatCondBranch currfcb = (FlatCondBranch) curr;
+	    Float newprob = new Float((float)0.0);
+	    PrefetchPair childpp = null;
+	    PrefetchPair pp = null;
+	    Enumeration ecld = null;
+
+	    ecld = child_hash.keys();
+	    while (ecld.hasMoreElements()) {
+		    childpp = (PrefetchPair) ecld.nextElement();
+		    /* Create a new Prefetch set*/
+		    ArrayList<Descriptor> newdesc = new ArrayList<Descriptor>();
+		    newdesc.addAll(childpp.desc);
+		    PrefetchPair newpp =  new PrefetchPair(childpp.base, newdesc);
+		    /* True Edge */
+		    if(index == 0) {
+			    newprob = child_hash.get(childpp).floatValue() * BRANCH_TRUE_EDGE_PROB;
+			    if(newprob >= THRESHOLD_PROB) {
+				    tocompare.put(newpp, newprob); 
+				    child_hash.remove(newpp);
+			    }
+		    } else if(index == 1) { /* False Edge */
+			    newprob = child_hash.get(childpp).floatValue() * BRANCH_FALSE_EDGE_PROB;
+			    if(newprob >= THRESHOLD_PROB) {
+				    tocompare.put(newpp, newprob); 
+				    child_hash.remove(newpp);
+			    }
+		    } else {
+			    System.out.println("DEBUG-> No more children of the FlatCondBranchNode present");
+		    }
+	    }
+
+	    /* Merge child prefetch pairs */
+	    ecld = child_hash.keys();
+	    while(ecld.hasMoreElements()) {
+		    childpp = (PrefetchPair) ecld.nextElement();
+		    tocompare.put(childpp, child_hash.get(childpp));
+		    child_hash.remove(childpp);
+	    }
+
+	    /* Update the new branch_prefetch_hashtable to store all new prefetch pairs */
+	    if(!tocompare.isEmpty()) {
+		    if(index == 0) {
+			    branch_prefetch_set.putAll(tocompare);
+		    }else if(index == 1) {
+			    if(branch_prefetch_set.isEmpty()) {
+				    branch_prefetch_set.putAll(tocompare);
+			    } else {
+				    Enumeration e = tocompare.keys();
+				    while(e.hasMoreElements()) {
+					    pp = (PrefetchPair) e.nextElement();
+					    if(branch_prefetch_set.containsKey(pp)) {
+						    newprob = (float)(branch_prefetch_set.get(pp).floatValue() + tocompare.get(pp).floatValue());
+						    if(newprob < THRESHOLD_PROB) {
+							    branch_prefetch_set.remove(pp); 
+						    } else {
+							    branch_prefetch_set.put(pp, newprob); 
+						    }
+						    tocompare.remove(pp);
+					    }
+				    }
+				    e = tocompare.keys();
+				    while(e.hasMoreElements()) {
+					    pp = (PrefetchPair) e.nextElement();
+					    branch_prefetch_set.put(pp,tocompare.get(pp));
+					    tocompare.remove(pp);
+				    }
+			    }
+		    } else {
+			    System.out.println("DEBUG-> No more children of the FlatCondBranchNode present");
+		    }
+	    }
+
+	    /* Enqueue parent nodes */
+	    if(index == 1) {
+		    pSetHasChanged = comparePrefetchSets(prefetch_hash.get(curr), branch_prefetch_set);
+		    if(pSetHasChanged) {
+			    for(int i=0; i<curr.numPrev(); i++) {
+				    tovisit.add(curr.getPrev(i));
+			    }
+			    /* Overwrite the new prefetch set to the global hash table */
+			    prefetch_hash.put(curr,branch_prefetch_set); 
+		    } 
+
+	    }
+    }
+
+    
+    /** If FlatNode is not concerned with the prefetch set of its Child then propagate 
+     * prefetches up the FlatNode*/  
+    private void processDefaultCase(FlatNode curr, Hashtable<PrefetchPair, Float> child_hash) {
+	    boolean pSetHasChanged = false;
+	    Enumeration e = null;
+	    Hashtable<PrefetchPair, Float> tocompare = new Hashtable<PrefetchPair, Float>();
+
+	    for(e = child_hash.keys(); e.hasMoreElements();) {
+		    PrefetchPair newpp = (PrefetchPair) e.nextElement();
+		    tocompare.put(newpp, child_hash.get(newpp));
+	    }
+
+	    /* Compare with old Prefetch sets */
+	    pSetHasChanged = comparePrefetchSets(prefetch_hash.get(curr), tocompare); 
+	    if(pSetHasChanged){
+		    for(int i=0; i<curr.numPrev(); i++) {
+			    tovisit.add(curr.getPrev(i));
+		    }
+		    /* Overwrite the new prefetch set to the global hash table */
+		    prefetch_hash.put(curr,tocompare); 
+	    }
+    }
+
+    private void processFlatNewNode(FlatNode curr, Hashtable<PrefetchPair, Float> child_hash) {
+	    boolean pSetHasChanged = false;
+	    Hashtable<PrefetchPair, Float> tocompare = new Hashtable<PrefetchPair, Float>();
+	    FlatNew currfnn = (FlatNew) curr;
+	    Float newprob = new Float((float)0.0);
+	    PrefetchPair childpp = null;
+	    Enumeration ecld = null;
+
+	    ecld = child_hash.keys();
+	    while (ecld.hasMoreElements()) {
+		    childpp = (PrefetchPair) ecld.nextElement();
+		    if(childpp.base == currfnn.getDst()){
+			    child_hash.remove(childpp);
+		    } else {
+			    tocompare.put(childpp, child_hash.get(childpp));
+			    child_hash.remove(childpp);
+		    }
+	    }
+
+	    /* Compare with the orginal prefetch pairs */
+	    pSetHasChanged = comparePrefetchSets(prefetch_hash.get(curr), tocompare);
+	    /* Enqueue parent nodes */
+	    if(pSetHasChanged) {
+		    for(int i=0; i<curr.numPrev(); i++) {
+			    tovisit.add(curr.getPrev(i));
+		    }
+		    /* Overwrite the new prefetch set to the global hash table */
+		    prefetch_hash.put(curr,tocompare); 
+	    } 
     }
 
     /** This function prints the Prefetch pairs of a given flatnode */
