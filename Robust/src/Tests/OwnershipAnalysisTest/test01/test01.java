@@ -14,16 +14,28 @@ public class P2 {
     Thing n;
 }
 
+public class P3 {
+    public P2(){}
+    flag b;
+    int y;
+    Thing n;
+}
+
 task Startup( StartupObject s{ initialstate } ) {
-    P1 p1 = new P1(){};
-    P2 p2 = new P2(){};
+    P1 p1f = new P1(){!a};
+    P2 p2f = new P2(){!b};
+    P1 p1t = new P1(){ a};
+    P2 p2t = new P2(){ b};
     taskexit( s{ !initialstate } );
 }
 
-
-task A( P1 p1{!a}, P2 p2{!b} )
+task A( P1 p1f{!a}, 
+	P2 p2f{!b} )
 {
-    p1.m = p2.n;
+    p1f.m = p2f.n;
 
-    taskexit( p1{a}, p2{b} );
+    //p2t.n = p2f.n;
+
+    taskexit( p1f{ a}, 
+	      p2f{ b} );
 }

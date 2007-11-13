@@ -46,6 +46,15 @@ public class OwnershipAnalysis {
 	    labelindex      = 0;
 	    labelFlatNodes( fm );
 
+	    // add method parameters to the list of heap regions
+	    // and remember names for analysis
+	    OwnershipGraph og = getGraphFromFlat( fm );
+	    for( int i = 0; i < fm.numParameters(); ++i ) {
+		TempDescriptor tdParam = fm.getParameter( i );
+		og.newHeapRegion( tdParam );
+		og.addAnalysisRegion( tdParam );
+	    }
+
 	    String taskname   = td.getSymbol();
 	    analyzeFlatIRGraph( fm, taskname );
 	}	
@@ -83,20 +92,10 @@ public class OwnershipAnalysis {
 	    // get this node's ownership graph, or create a new one
 	    OwnershipGraph og = getGraphFromFlat( fn );
 
-	    if( fn.kind() == FKind.FlatMethod ) {
-		FlatMethod fmd = (FlatMethod) fn;
-		// the FlatMethod is the top-level node, so generate 
-		// regions of the heap for each parameter to start the
-		// analysis
-		for( int i = 0; i < fmd.numParameters(); ++i ) {
-		    TempDescriptor tdParam = fmd.getParameter( i );
-		    og.newHeapRegion( tdParam );
-		}
-	    }
-
 	    TempDescriptor  src;
 	    TempDescriptor  dst;
 	    FieldDescriptor fld;
+
 	    switch(fn.kind()) {
 		
 	    case FKind.FlatMethod:
@@ -133,6 +132,7 @@ public class OwnershipAnalysis {
 
 	    case FKind.FlatReturnNode:
 		og.writeGraph( makeNodeName( taskname, flatnodetolabel.get(fn), "Return" ) );
+		og.writeCondensedAnalysis( makeCondensedAnalysisName( taskname, flatnodetolabel.get(fn) ) );
 		break;
 	    }
 	    
@@ -155,5 +155,9 @@ public class OwnershipAnalysis {
     private String makeNodeName( String taskname, Integer id, String type ) {
 	String s = String.format( "%05d", id );
 	return "task"+taskname+"_FN"+s+"_"+type;
+    }
+
+    private String makeCondensedAnalysisName( String taskname, Integer id ) {
+	return "task"+taskname+"_Ownership_from"+id;
     }
 }

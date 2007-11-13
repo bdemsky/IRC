@@ -13,6 +13,9 @@ public class OwnershipGraph {
 
     protected int labelNodeIDs;
     protected Hashtable<TempDescriptor, OwnershipLabelNode> td2ln;
+
+    protected Vector<TempDescriptor> analysisRegionLabels;
+    protected Hashtable<TempDescriptor, TempDescriptor> linkedRegions;
     
     public OwnershipGraph() {
 	heapRegionNodeIDs = 0;
@@ -20,6 +23,9 @@ public class OwnershipGraph {
 
 	labelNodeIDs = 0;
 	td2ln = new Hashtable<TempDescriptor, OwnershipLabelNode>();
+
+	analysisRegionLabels = new Vector<TempDescriptor>(); 
+	linkedRegions = new Hashtable<TempDescriptor, TempDescriptor>();
     }
 
     public void assignTempToTemp( TempDescriptor src, 
@@ -57,6 +63,10 @@ public class OwnershipGraph {
 	heapRoots.add( hrn );
     }
 
+    public void addAnalysisRegion( TempDescriptor td ) {
+	analysisRegionLabels.add( td );
+    }
+
     protected OwnershipHeapRegionNode allocate( TypeDescriptor typeDesc ) {
 	OwnershipHeapRegionNode hrn = 
 	    new OwnershipHeapRegionNode( heapRegionNodeIDs );
@@ -86,14 +96,6 @@ public class OwnershipGraph {
     }
 
     /*
-    public void addEdge( TempDescriptor tu, TempDescriptor tv ) {
-	OwnershipLabelNode nu = getOwnershipFromTemp( tu );
-	OwnershipLabelNode nv = getOwnershipFromTemp( tv );
-
-	nu.addOutEdge( nv );
-	nv.addInEdge( nu );
-    }
-
     public OwnershipGraph copy() {
 	OwnershipGraph newog = new OwnershipGraph();
 
@@ -120,10 +122,9 @@ public class OwnershipGraph {
 	}
 
 	return newog;
-    }
+    }    
     */
-    
-   
+
     public void writeGraph( String graphName ) throws java.io.IOException {
 	BufferedWriter bw = new BufferedWriter( new FileWriter( graphName+".dot" ) );
 	bw.write( "digraph "+graphName+" {\n" );
@@ -158,6 +159,69 @@ public class OwnershipGraph {
 	    bw.write( "  "+hrn.toString()+" -> "+childhrn.toString()+
 		      "[label=\""+fd.getSymbol()+"\"];\n" );
 	    visitHeapNodes( bw, childhrn );
+	}
+    }
+
+    public void writeCondensedAnalysis( String graphName ) throws java.io.IOException {
+	BufferedWriter bw = new BufferedWriter( new FileWriter( graphName+".dot" ) );
+	bw.write( "graph "+graphName+" {\n" );
+
+	// find linked regions
+	for( int i = 0; i < analysisRegionLabels.size(); ++i ) {
+	    TempDescriptor td = analysisRegionLabels.get( i );
+	    bw.write( "  "+td.getSymbol()+";\n" );
+
+	    OwnershipLabelNode      oln = getLabelNodeFromTemp( td );
+	    OwnershipHeapRegionNode hrn = oln.getOwnershipHeapRegionNode();
+	    condensedVisitHeapNodes( bw, hrn, td );
+	}
+
+	// write out linked regions	
+	Set s = linkedRegions.entrySet();
+	Iterator lri = s.iterator();
+	while( lri.hasNext() ) {
+	    Map.Entry me = (Map.Entry) lri.next();
+	    TempDescriptor t1 = (TempDescriptor) me.getKey();
+	    TempDescriptor t2 = (TempDescriptor) me.getValue();
+	    bw.write( "  "+t1.getSymbol()+" -- "+t2.getSymbol()+";\n" );
+	}
+
+	bw.write( "}\n" );
+	bw.close();
+    }
+
+    protected void condensedVisitHeapNodes( BufferedWriter bw,
+					    OwnershipHeapRegionNode hrn,
+					    TempDescriptor td ) throws java.io.IOException {
+	hrn.addAnalysisRegionAlias( td );
+
+	Iterator fitr = hrn.getFieldIterator();
+	while( fitr.hasNext() ) {
+	    Map.Entry me = (Map.Entry) fitr.next();
+	    FieldDescriptor         fd       = (FieldDescriptor)         me.getKey();
+	    OwnershipHeapRegionNode childhrn = (OwnershipHeapRegionNode) me.getValue();
+
+	    Vector<TempDescriptor> aliases = childhrn.getAnalysisRegionAliases();
+	    for( int i = 0; i < aliases.size(); ++i ) {
+		TempDescriptor tdn = aliases.get( i );
+
+		// only add this alias if it has not been already added		
+		TempDescriptor tdAlias = null;
+		if( linkedRegions.containsKey( td ) ) {
+		    tdAlias = linkedRegions.get( td );
+		}
+
+		TempDescriptor tdnAlias = null;		
+		if( linkedRegions.containsKey( tdn ) ) {
+		    tdnAlias = linkedRegions.get( tdn );
+		}
+
+		if( tdn != tdAlias && td != tdnAlias ) {
+		    linkedRegions.put( td, tdn );
+		}
+	    }
+
+	    condensedVisitHeapNodes( bw, childhrn, td );
 	}
     }
 }

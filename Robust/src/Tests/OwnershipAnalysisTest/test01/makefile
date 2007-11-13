@@ -8,11 +8,12 @@ BUILDSCRIPT=~/research/Robust/src/buildscript
 all: view
 
 view: PNGs
-	eog *flatIRGraph*.png &
-	eog *FN*.png &
+	eog task*_flatIRGraph*.png &
+	eog task*_FN*.png &
+	eog task*_Ownership*.png &
 
 PNGs: DOTs
-	rm -f graph*.dot
+	rm -f *Startup*.dot
 	d2p *.dot
 
 DOTs: $(PROGRAM).bin

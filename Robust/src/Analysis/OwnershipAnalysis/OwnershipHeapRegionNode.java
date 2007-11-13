@@ -8,10 +8,12 @@ public class OwnershipHeapRegionNode {
     
     protected int id;
     protected Hashtable<FieldDescriptor, OwnershipHeapRegionNode> fields;
+    protected Vector<TempDescriptor> analysisRegionAliases;
 
     public OwnershipHeapRegionNode( int id ) {
 	this.id = id;
 	fields = new Hashtable<FieldDescriptor, OwnershipHeapRegionNode>();
+	analysisRegionAliases = new Vector<TempDescriptor>();
     }
 
     public void setField( FieldDescriptor fd,
@@ -34,5 +36,13 @@ public class OwnershipHeapRegionNode {
 
     public String toString() {
 	return "OHRN"+getIDString();
+    }
+
+    public void addAnalysisRegionAlias( TempDescriptor td ) {
+	analysisRegionAliases.add( td );
+    }
+
+    public Vector<TempDescriptor> getAnalysisRegionAliases() {
+	return analysisRegionAliases;
     }
 }
