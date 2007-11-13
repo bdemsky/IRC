@@ -9,55 +9,45 @@ import java.io.*;
 public class OwnershipAnalysis {
 
     private State state;
-
-    private BufferedWriter flatbw;
-
     private HashSet<FlatNode> visited;
     private HashSet<FlatNode> toVisit;
-    
+
     private int labelindex;
     private Hashtable<FlatNode, Integer> flatnodetolabel;
+
     private Hashtable<FlatNode, OwnershipGraph> flatNodeToOwnershipGraph;
 
 
     // this analysis generates an ownership graph for every task
     // in the program
     public OwnershipAnalysis(State state) throws java.io.IOException {
-	this.state=state;
-	
-	System.out.println( "Performing Ownership Analysis..." );
+	this.state=state;      
 
-	// analyzeTasks();
+	analyzeTasks();
     }
 
-    /*
     public void analyzeTasks() throws java.io.IOException {
-	for(Iterator it_tasks=state.getTaskSymbolTable().getDescriptorsIterator();it_tasks.hasNext();) {
-
-	    // extract task data and flat IR graph of the task
-	    TaskDescriptor td = (TaskDescriptor)it_tasks.next();
-	    FlatMethod fm = state.getMethodFlat(td);
-	    String taskname=td.getSymbol();
-
-	    // give every node in the flat IR graph a unique label
-	    // so a human being can inspect the graph and verify
-	    // correctness
-	    flatnodetolabel=new Hashtable<FlatNode, Integer>();
-	    visited=new HashSet<FlatNode>();
-	    labelindex=0;
-	    labelFlatNodes(fm);
+	for( Iterator it_tasks=state.getTaskSymbolTable().getDescriptorsIterator();
+	     it_tasks.hasNext();
+	     ) {
 
 	    // initialize the mapping of flat nodes to ownership graphs
 	    // every flat node in the IR graph has its own ownership graph
 	    flatNodeToOwnershipGraph = new Hashtable<FlatNode, OwnershipGraph>();
 
-	    flatbw=new BufferedWriter(new FileWriter("task"+taskname+"_FlatIR.dot"));
-	    flatbw.write("digraph Task"+taskname+" {\n");
+	    TaskDescriptor td = (TaskDescriptor)it_tasks.next();
+	    FlatMethod fm     = state.getMethodFlat( td );
 
-	    analyzeFlatIRGraph(fm,taskname);
+	    // give every node in the flat IR graph a unique label
+	    // so a human being can inspect the graph and verify
+	    // correctness
+	    flatnodetolabel = new Hashtable<FlatNode, Integer>();
+	    visited         = new HashSet<FlatNode>();
+	    labelindex      = 0;
+	    labelFlatNodes( fm );
 
-	    flatbw.write("}\n");
-	    flatbw.close();
+	    String taskname   = td.getSymbol();
+	    analyzeFlatIRGraph( fm, taskname );
 	}	
     }
 
@@ -94,26 +84,25 @@ public class OwnershipAnalysis {
 	    OwnershipGraph og = getGraphFromFlat( fn );
 
 	    if( fn.kind() == FKind.FlatMethod ) {
-
-		// FlatMethod does not have toString
-		flatbw.write( makeDotNodeDec( taskname, flatnodetolabel.get(fn), fn.getClass().getName(), "FlatMethod" ) );
-
 		FlatMethod fmd = (FlatMethod) fn;
-		// the FlatMethod is the top-level node, so take the opportunity to
-		// generate regions of the heap for each parameter to start the
+		// the FlatMethod is the top-level node, so generate 
+		// regions of the heap for each parameter to start the
 		// analysis
 		for( int i = 0; i < fmd.numParameters(); ++i ) {
 		    TempDescriptor tdParam = fmd.getParameter( i );
 		    og.newHeapRegion( tdParam );
 		}
-	    } else {
-		flatbw.write( makeDotNodeDec( taskname, flatnodetolabel.get(fn), fn.getClass().getName(), fn.toString() ) );
 	    }
 
 	    TempDescriptor  src;
 	    TempDescriptor  dst;
 	    FieldDescriptor fld;
 	    switch(fn.kind()) {
+		
+	    case FKind.FlatMethod:
+		og.writeGraph( makeNodeName( taskname, flatnodetolabel.get(fn), "Method" ) );
+		break;
+
 	    case FKind.FlatOpNode:
 		FlatOpNode fon = (FlatOpNode) fn;
 		if(fon.getOp().getOp()==Operation.ASSIGN) {
@@ -153,8 +142,6 @@ public class OwnershipAnalysis {
 	    for(int i=0;i<fn.numNext();i++) {
 		FlatNode nn=fn.getNext(i);
 
-		flatbw.write( "  node"+flatnodetolabel.get(fn)+" -> node"+flatnodetolabel.get(nn)+";\n" );
-
 		if( !visited.contains( nn ) ) {
 		    // FIX THE COPY!!!!!!!!!!!!!!!
 		    //flatNodeToOwnershipGraph.put( nn, og.copy() );
@@ -169,13 +156,4 @@ public class OwnershipAnalysis {
 	String s = String.format( "%05d", id );
 	return "task"+taskname+"_FN"+s+"_"+type;
     }
-
-    private String makeDotNodeDec( String taskname, Integer id, String type, String details ) {
-	if( details == null ) {
-	    return "  node"+id+"[label=\""+makeNodeName(taskname,id,type)+"\"];\n";
-	} else {
-	    return "  node"+id+"[label=\""+makeNodeName(taskname,id,type)+"\\n"+details+"\"];\n";
-	}
-    }
-    */
 }
