@@ -21,6 +21,7 @@ import Analysis.Locality.LocalityAnalysis;
 import Analysis.Locality.GenerateConversions;
 import Analysis.Prefetch.PrefetchAnalysis;
 import Analysis.FlatIRGraph.FlatIRGraph;
+import Analysis.OwnershipAnalysis.OwnershipAnalysis;
 import Interface.*;
 
 public class Main {
@@ -65,6 +66,8 @@ public class Main {
 	      state.FLATIRGRAPH=true;
 	      state.FLATIRGRAPHLIBMETHODS=true;
 	  }
+	  else if (option.equals("-ownership"))
+	      state.OWNERSHIP=true;
 	  else if (option.equals("-optional"))
 	      state.OPTIONAL=true;
 	  else if (option.equals("-thread"))
@@ -88,6 +91,10 @@ public class Main {
 	      System.out.println("-thread -- threads");
 	      System.out.println("-instructionfailures -- insert code for instruction level failures");
 	      System.out.println("-taskstate -- do task state analysis");
+	      System.out.println("-flatirtasks -- create dot files for flat IR graphs of tasks");
+	      System.out.println("-flatirusermethods -- create dot files for flat IR graphs of user methods");
+	      System.out.println("-flatirlibmethods -- create dot files for flat IR graphs of library class methods");
+	      System.out.println("  note: -flatirusermethods or -flatirlibmethods currently generate all class method flat IR graphs");
 	      System.out.println("-ownership -- do ownership analysis");
 	      System.out.println("-optional -- enable optional arguments");
 	      System.out.println("-webinterface -- enable web interface");
@@ -199,6 +206,10 @@ public class Main {
 					     state.FLATIRGRAPHTASKS,
 					     state.FLATIRGRAPHUSERMETHODS,
 					     state.FLATIRGRAPHLIBMETHODS);
+      }
+
+      if (state.OWNERSHIP) {
+	  OwnershipAnalysis oa = new OwnershipAnalysis(state);
       }
 
       System.exit(0);

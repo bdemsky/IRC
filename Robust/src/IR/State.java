@@ -50,6 +50,7 @@ public class State {
     public boolean FLATIRGRAPHTASKS=false;
     public boolean FLATIRGRAPHUSERMETHODS=false;
     public boolean FLATIRGRAPHLIBMETHODS=false;
+    public boolean OWNERSHIP=false;
     public boolean OPTIONAL=false;
     public boolean THREAD=false;
     public boolean CONSCHECK=false;
