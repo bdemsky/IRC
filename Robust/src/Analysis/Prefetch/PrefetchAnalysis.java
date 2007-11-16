@@ -738,9 +738,7 @@ private void processFlatFieldNode(FlatNode curr, Hashtable<PrefetchPair, Float> 
 						    if(td.contains(currfln.getDst())) {
 							    int index = td.indexOf(currfln.getDst());
 							    td.remove(index);
-							    if((Integer)(currfln.getValue()) != 0) {
-								    ((IndexDescriptor)o).offset = (Integer)currfln.getValue();
-							    }
+							    ((IndexDescriptor)o).offset += (Integer)currfln.getValue();
 						    }
 					    }
 				    }
