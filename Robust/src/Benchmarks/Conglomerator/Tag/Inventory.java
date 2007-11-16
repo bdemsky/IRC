@@ -1,7 +1,5 @@
 public class Inventory {
-    // Inventory flags
     flag TransInitialize;
-    
     // Transaction variables
     int numitems;
     HashMap map;

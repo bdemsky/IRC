@@ -1,10 +1,8 @@
 public class WebServerSocket {
-	// Websocket flag
 	flag LogPending;
 	flag WritePending;
 	flag TransPending;
 	flag WebInitialize;
-	
 	//Filename requested by the client 
 	String filename;
         String[] parsed; 

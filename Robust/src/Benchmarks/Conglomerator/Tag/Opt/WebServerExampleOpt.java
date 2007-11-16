@@ -14,8 +14,7 @@ task LookupS(Stock l{initialstate}) {
 }
 
 task ReceiveQueryS(Stock l{query&&IOPending}) {
-    if (l.Receive()) taskexit(l{!query,done}{});
-    else taskexit;
+    if (l.Receive()) taskexit(l{!query,done}{}); else taskexit;
 }
 
 task LookupW(Weather l{initialstate}) {
@@ -24,8 +23,7 @@ task LookupW(Weather l{initialstate}) {
 }
 
 task ReceiveQueryW(Weather l{query&&IOPending}) {
-    if (l.Receive()) taskexit(l{!query,done}{});
-    else taskexit;
+    if (l.Receive()) taskexit(l{!query,done}{}); else taskexit;
 }
 
 task LookupG(Google l{initialstate}) {
@@ -34,8 +32,7 @@ task LookupG(Google l{initialstate}) {
 }
 
 task ReceiveQueryG(Google l{query&&IOPending}) {
-    if (l.Receive()) taskexit(l{!query,done}{});
-    else taskexit;
+    if (l.Receive()) taskexit(l{!query,done}{}); else taskexit;
 }
 
 task AcceptConnection(ServerSocket ss{SocketPending}) {

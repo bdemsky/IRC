@@ -1,5 +1,4 @@
 public class Logger {
-    //Logger flag
     flag Initialize;
     FileOutputStream fos;
 
