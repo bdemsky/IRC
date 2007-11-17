@@ -150,9 +150,11 @@ fi
 
 # Build bristlecone/java sources
 
-java -cp $ROBUSTROOT/../cup/:$ROBUSTROOT Main.Main -classlibrary \
+if ! java -cp $ROBUSTROOT/../cup/:$ROBUSTROOT Main.Main -classlibrary \
 $ROBUSTROOT/ClassLibrary/ -dir $BUILDDIR -precise \
 $JAVAOPTS $SRCFILES
+then exit $?
+fi
 
 # Build all of the consistency specs
 
