@@ -17,7 +17,10 @@ public class ArrayTest {
 	int sum=0;
 	for(int i=0;i<array.length;i++) {
 	    ArrayTest a=array[i];
-	    sum=sum+a.x.i.intValue();
+	    int x=a.x.i.intValue();
+	    if (x%2==0) {
+		sum=sum+a.x.i.intValue();
+	    }
 	}
 	return sum;
     }
