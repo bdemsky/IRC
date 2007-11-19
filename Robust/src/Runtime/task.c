@@ -1138,6 +1138,9 @@ void executetasks() {
 	  struct ___TagDescriptor___ *tagd=currtpd->parameterArray[slotid];
 	  if (!containstag(parameter, tagd)) {
 	    RUNFREE(currtpd->parameterArray);
+#ifdef OPTIONAL
+	    RUNFREE(currtpd->failed);
+#endif
 	    RUNFREE(currtpd);
 	    goto newtask;
 	  }
@@ -1220,6 +1223,9 @@ void executetasks() {
 	  freemalloc();
 	  // Free up task parameter descriptor
 	  RUNFREE(currtpd->parameterArray);
+#ifdef OPTIONAL
+	  RUNFREE(currtpd->failed);
+#endif
 	  RUNFREE(currtpd);
 	  forward=NULL;
 	  reverse=NULL;
