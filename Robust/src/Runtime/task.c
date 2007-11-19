@@ -367,9 +367,12 @@ void flagbody(struct ___Object___ *ptr, int flag) {
   /*Remove object from all queues */
   while(flagptr!=NULL) {
     struct parameterwrapper *next;
-    int UNUSED, UNUSED2, UNUSED3;
-    ObjectHashget(flagptr->objectset, (int) ptr, (int *) &next, &UNUSED, &UNUSED2, &UNUSED3);
+    int UNUSED, UNUSED2;
+    int * enterflags;
+    ObjectHashget(flagptr->objectset, (int) ptr, (int *) &next, (int *) &enterflags, &UNUSED, &UNUSED2);
     ObjectHashremove(flagptr->objectset, (int)ptr);
+    if (enterflags!=NULL)
+      free(enterflags);
     flagptr=next;
   }
   
@@ -803,9 +806,12 @@ void enqueueoptional(struct ___Object___ * currobj, int numfailedfses, int * fai
     /*Remove object from all queues */
     while(flagptr!=NULL) {
       struct parameterwrapper *next;
-      int UNUSED, UNUSED2, UNUSED3;
-      ObjectHashget(flagptr->objectset, (int) currobj, (int *) &next, &UNUSED, &UNUSED2, &UNUSED3);
+      int UNUSED, UNUSED2;
+      int * enterflags;
+      ObjectHashget(flagptr->objectset, (int) currobj, (int *) &next, (int *) &enterflags, &UNUSED, &UNUSED2);
       ObjectHashremove(flagptr->objectset, (int)currobj);
+      if (enterflags!=NULL)
+	free(enterflags);
       flagptr=next;
     }
 
