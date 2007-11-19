@@ -19,7 +19,7 @@ public class ArrayTest {
 	    ArrayTest a=array[i];
 	    int x=a.x.i.intValue();
 	    if (x%2==0) {
-		sum=sum+a.x.i.intValue();
+		sum=sum+x;
 	    }
 	}
 	return sum;
