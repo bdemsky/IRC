@@ -1077,6 +1077,9 @@ void executetasks() {
       if (gencontains(failedtasks, currtpd)) {
 	// Free up task parameter descriptor
 	RUNFREE(currtpd->parameterArray);
+#ifdef OPTIONAL
+	RUNFREE(currtpd->failed);
+#endif
 	RUNFREE(currtpd);
 	goto newtask;
       }
