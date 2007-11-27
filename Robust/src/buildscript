@@ -102,6 +102,9 @@ elif [[ $1 = '-check' ]]
 then
 CHECKFLAG=true
 JAVAOPTS="$JAVAOPTS -conscheck"
+elif [[ $1 = '-enable-assertions' ]]
+then
+JAVAFORWARDOPTS="$JAVAFORWARDOPTS -ea"
 elif [[ $1 = '-specdir' ]]
 then
 cd $2
@@ -150,7 +153,7 @@ fi
 
 # Build bristlecone/java sources
 
-if ! java -cp $ROBUSTROOT/../cup/:$ROBUSTROOT Main.Main -classlibrary \
+if ! java $JAVAFORWARDOPTS -cp $ROBUSTROOT/../cup/:$ROBUSTROOT Main.Main -classlibrary \
 $ROBUSTROOT/ClassLibrary/ -dir $BUILDDIR -precise \
 $JAVAOPTS $SRCFILES
 then exit $?
