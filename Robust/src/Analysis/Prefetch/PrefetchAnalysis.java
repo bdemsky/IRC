@@ -3,6 +3,7 @@ package Analysis.Prefetch;
 import java.util.*;
 import Analysis.CallGraph.CallGraph;
 import Analysis.Prefetch.PrefetchPair;
+import Analysis.Prefetch.PairMap;
 import Analysis.Prefetch.IndexDescriptor;
 import IR.SymbolTable;
 import IR.State;
@@ -17,15 +18,26 @@ public class PrefetchAnalysis {
     CallGraph callgraph;
     TypeUtil typeutil;
     Set<FlatNode> tovisit;
-    Hashtable<FlatNode, Hashtable<PrefetchPair, Float>> prefetch_hash;
+    public Hashtable<FlatNode, Hashtable<PrefetchPair, Float>> prefetch_hash;
+    public Hashtable<FlatNode, Hashtable<FlatNode, PairMap>> pmap_hash;
     Hashtable<PrefetchPair, Float> branch_prefetch_set;
-    public static final int ROUNDED_MODE = 30;
-    public static final float THRESHOLD_PROB = (float)0.2;
+    public static final int PROB_DIFF = 10;
+    public static final float ANALYSIS_THRESHOLD_PROB = (float)0.10;
+    public static final float PREFETCH_THRESHOLD_PROB = (float)0.30;
     public static final float BRANCH_TRUE_EDGE_PROB = (float)0.5;
     public static final float BRANCH_FALSE_EDGE_PROB = (float)0.5;
 
-    /** This function finds if a tempdescriptor object is found in a given prefetch pair
-     *  It returns true if found else returns false*/
+    public PrefetchAnalysis(State state, CallGraph callgraph, TypeUtil typeutil) {
+	    this.typeutil=typeutil;
+	    this.state=state;
+	    this.callgraph=callgraph;
+	    prefetch_hash = new Hashtable<FlatNode, Hashtable<PrefetchPair,Float>>();
+	    pmap_hash = new Hashtable<FlatNode, Hashtable<FlatNode, PairMap>>();
+	    DoPrefetch();
+    }
+
+    /** This function returns true if a tempdescriptor object is found in the array of descriptors
+     *  for a given prefetch pair else returns false*/
     private boolean isTempDescFound(PrefetchPair pp, TempDescriptor td) {
 	    ArrayList<Descriptor> desc = (ArrayList<Descriptor>) pp.getDesc();
 	    ListIterator it = desc.listIterator();
@@ -42,7 +54,7 @@ public class PrefetchAnalysis {
     }
 
     /** This function creates a new Arraylist of Descriptors by replacing old tempdescriptors with new
-     * tempdescriptors when there is a match for FlatOpNodes or FlatLiteralNodes */
+     * tempdescriptors when there is a match */
     private ArrayList<Descriptor> getNewDesc(PrefetchPair pp, TempDescriptor td, TempDescriptor newtd) {
 	    ArrayList<Descriptor> desc = (ArrayList<Descriptor>) pp.getDesc();
 	    ListIterator it = desc.listIterator();
@@ -60,7 +72,7 @@ public class PrefetchAnalysis {
     }
 
     /** This function creates a new Arraylist of Descriptors by replacing old tempdescriptors with new
-     * tempdescriptors when there is a match for FlatOpNodes i= i+j then replace i with i+j */
+     * tempdescriptors when there is a match for e.g FlatOpNodes if i= i+j then replace i with i+j */
     private ArrayList<Descriptor> getNewDesc(PrefetchPair pp, TempDescriptor td, TempDescriptor left, TempDescriptor right) {
 	    ArrayList<Descriptor> desc = (ArrayList<Descriptor>) pp.getDesc();
 	    ListIterator it = desc.listIterator();
@@ -78,14 +90,6 @@ public class PrefetchAnalysis {
 	    return desc;
     }
 
-    public PrefetchAnalysis(State state, CallGraph callgraph, TypeUtil typeutil) {
-	    this.typeutil=typeutil;
-	    this.state=state;
-	    this.callgraph=callgraph;
-	    prefetch_hash = new Hashtable<FlatNode, Hashtable<PrefetchPair,Float>>();
-	    DoPrefetch();
-    }
-
     /** This function starts the prefetch analysis */
     private void DoPrefetch() {
 	    Iterator classit=state.getClassSymbolTable().getDescriptorsIterator();
@@ -99,10 +103,27 @@ public class PrefetchAnalysis {
     private void doMethodAnalysis(ClassDescriptor cn) {
 	    Iterator methodit=cn.getMethods();
 	    while(methodit.hasNext()) {
-		    /* Classify parameters */
+		    LinkedList<FlatNode> newtovisit = new LinkedList<FlatNode>();  
+		    LinkedList<FlatNode> newvisited = new LinkedList<FlatNode>();  
 		    MethodDescriptor md=(MethodDescriptor)methodit.next();
 		    FlatMethod fm=state.getMethodFlat(md);
+		    newtovisit.addLast((FlatNode)fm);
 		    doFlatNodeAnalysis(fm);
+		    /* Sort flatnodes in top down fashion */
+		    while(!newtovisit.isEmpty()) {
+			    FlatNode fn = (FlatNode) newtovisit.iterator().next();
+			    newtovisit.remove(0);
+			    newvisited.addLast(fn);
+			    for(int i=0; i<fn.numNext(); i++) {
+				    FlatNode nn = fn.getNext(i);
+				    if(!newvisited.contains(nn) && !newtovisit.contains(nn)) {
+					    newtovisit.addLast(nn);
+				    }
+			    }
+		    }
+
+		    /* Insert prefetches along edges */
+		    applyPrefetchInsertRules(newvisited);
 	    }
     }
 
@@ -120,7 +141,6 @@ public class PrefetchAnalysis {
 	    tovisit = fm.getNodeSet(); 
 	    while(!tovisit.isEmpty()) {
 		    FlatNode fn = (FlatNode)tovisit.iterator().next();
-		    /* Generate prefetch pairs after the child node analysis */
 		    doChildNodeAnalysis(fn);
 		    tovisit.remove(fn);
 	    }
@@ -134,6 +154,7 @@ public class PrefetchAnalysis {
      */ 
     private void doChildNodeAnalysis(FlatNode curr) {
 	    Hashtable<PrefetchPair, Float> child_prefetch_set_copy = new Hashtable<PrefetchPair, Float>();
+	    Hashtable<FlatNode, PairMap> parentpmap = new Hashtable<FlatNode, PairMap>();
 	    FlatNode child_node = null;
 	    if(curr.numNext() != 0) {
 		    child_node = curr.getNext(0);
@@ -141,132 +162,135 @@ public class PrefetchAnalysis {
 			    child_prefetch_set_copy = (Hashtable<PrefetchPair,Float>) prefetch_hash.get(child_node).clone();
 		    }
 	    }
+
 	    switch(curr.kind()) {
 		    case FKind.FlatBackEdge:
-			    processDefaultCase(curr,child_prefetch_set_copy);
+			    processDefaultCase(curr,child_prefetch_set_copy, parentpmap);
 			    break;
 		    case FKind.FlatCall:
 			    //TODO change it to take care of FlatMethod, Flatcalls 
-			    //processDefaultCase(curr,child_prefetch_set_copy);
-			    processFlatCall(curr, child_prefetch_set_copy);
+			    processFlatCall(curr, child_prefetch_set_copy, parentpmap);
 			    break;
 		    case FKind.FlatCheckNode:
-			    processDefaultCase(curr,child_prefetch_set_copy);
+			    processDefaultCase(curr,child_prefetch_set_copy, parentpmap);
 			    break;
 		    case FKind.FlatMethod:
 			    //TODO change it to take care of FlatMethod, Flatcalls 
-			    processFlatMethod(curr, child_prefetch_set_copy);
+			    processFlatMethod(curr, child_prefetch_set_copy, parentpmap);
 			    break;
 		    case FKind.FlatNew:
-			    processFlatNewNode(curr, child_prefetch_set_copy);
+			    processFlatNewNode(curr, child_prefetch_set_copy, parentpmap);
 			    break;
 		    case FKind.FlatReturnNode:
 			    //TODO change it to take care of FlatMethod, Flatcalls 
-			    processDefaultCase(curr,child_prefetch_set_copy);
+			    processDefaultCase(curr,child_prefetch_set_copy, parentpmap);
 			    break;
 		    case FKind.FlatFieldNode:
-			    processFlatFieldNode(curr, child_prefetch_set_copy);
+			    processFlatFieldNode(curr, child_prefetch_set_copy, parentpmap);
 			    break;
 		    case FKind.FlatElementNode:
-			    processFlatElementNode(curr, child_prefetch_set_copy);
+			    processFlatElementNode(curr, child_prefetch_set_copy, parentpmap);
 			    break;
 		    case FKind.FlatCondBranch:
 			    branch_prefetch_set =  new Hashtable<PrefetchPair,Float>();
 			    for (int i = 0; i < curr.numNext(); i++) {
+				    parentpmap = new Hashtable<FlatNode, PairMap>();
 				    child_node = curr.getNext(i);
 				    if (prefetch_hash.containsKey(child_node)) {
 					    child_prefetch_set_copy = (Hashtable<PrefetchPair,Float>) prefetch_hash.get(child_node).clone();
 				    }
-				    processFlatCondBranch(curr, child_prefetch_set_copy, i, branch_prefetch_set);
+				    processFlatCondBranch(curr, child_prefetch_set_copy, i, branch_prefetch_set, parentpmap);
 			    }
 			    break;
 		    case FKind.FlatOpNode:
-			    processFlatOpNode(curr, child_prefetch_set_copy);
+			    processFlatOpNode(curr, child_prefetch_set_copy,parentpmap);
 			    break;
 		    case FKind.FlatLiteralNode:
-			    processFlatLiteralNode(curr, child_prefetch_set_copy);
+			    processFlatLiteralNode(curr, child_prefetch_set_copy, parentpmap);
 			    break;
 		    case FKind.FlatSetElementNode:
-			    processFlatSetElementNode(curr, child_prefetch_set_copy);
+			    processFlatSetElementNode(curr, child_prefetch_set_copy, parentpmap);
 			    break;
 		    case FKind.FlatSetFieldNode:
-			    processFlatSetFieldNode(curr, child_prefetch_set_copy);
+			    processFlatSetFieldNode(curr, child_prefetch_set_copy, parentpmap);
 			    break;
 		    case FKind.FlatAtomicEnterNode:
-			    processDefaultCase(curr,child_prefetch_set_copy);
+			    processDefaultCase(curr,child_prefetch_set_copy, parentpmap);
 			    break;
 		    case FKind.FlatAtomicExitNode:
-			    processDefaultCase(curr,child_prefetch_set_copy);
+			    processDefaultCase(curr,child_prefetch_set_copy, parentpmap);
 			    break;
 		    case FKind.FlatCastNode:
-			    processDefaultCase(curr,child_prefetch_set_copy);
+			    processDefaultCase(curr,child_prefetch_set_copy, parentpmap);
 			    break;
 		    case FKind.FlatFlagActionNode:
-			    processDefaultCase(curr,child_prefetch_set_copy);
+			    processDefaultCase(curr,child_prefetch_set_copy, parentpmap);
 			    break;
 		    case FKind.FlatGlobalConvNode:
-			    processDefaultCase(curr,child_prefetch_set_copy);
+			    processDefaultCase(curr,child_prefetch_set_copy, parentpmap);
 			    break;
 		    case FKind.FlatNop:
-			    processDefaultCase(curr,child_prefetch_set_copy);
+			    processDefaultCase(curr,child_prefetch_set_copy, parentpmap);
 			    break;
 		    case FKind.FlatTagDeclaration:
-			    processDefaultCase(curr,child_prefetch_set_copy);
+			    processDefaultCase(curr,child_prefetch_set_copy, parentpmap);
 			    break;
 		    default:
 			    System.out.println("NO SUCH FLATNODE");
 			    break;
 	    }
-}
+    }
 
-/**This function compares all the prefetch pairs in a Prefetch set hashtable and
- * returns: true if something has changed in the new Prefetch set else
- * returns: false
- */
-private boolean comparePrefetchSets(Hashtable<PrefetchPair, Float> oldPrefetchSet, Hashtable<PrefetchPair, Float>
-		newPrefetchSet) {
-	boolean hasChanged = false;
-	PrefetchPair oldpp = null;
-	PrefetchPair newpp = null;
-	
-	if(oldPrefetchSet.size() != newPrefetchSet.size()) {
-		if(newPrefetchSet.size() == 0) {
-			return false;
-		}
-		return true;
-	} else {
-		Enumeration e = newPrefetchSet.keys();
-		while(e.hasMoreElements()) {
-			newpp = (PrefetchPair) e.nextElement();
-			float newprob = newPrefetchSet.get(newpp);
-			for(Enumeration elem = oldPrefetchSet.keys(); elem.hasMoreElements();) {
-				oldpp = (PrefetchPair) elem.nextElement();
-				if(oldpp.equals(newpp)) {
-					/*Compare the difference in their probabilities */ 
-					float oldprob = oldPrefetchSet.get(oldpp);
-					int diff = (int) ((newprob - oldprob)/oldprob)*100; 
-					if(diff >= ROUNDED_MODE) {
-						return true;
-					}
-					break;
-				}
-			}
-		}
-	}
-	return hasChanged;
-}
+    /**This function compares all the prefetch pairs in a Prefetch set hashtable and
+     * returns: true if something has changed in the new Prefetch set else
+     * returns: false
+     */
+    private boolean comparePrefetchSets(Hashtable<PrefetchPair, Float> oldPrefetchSet, Hashtable<PrefetchPair, Float>
+		    newPrefetchSet) {
+	    boolean hasChanged = false;
+	    PrefetchPair oldpp = null;
+	    PrefetchPair newpp = null;
 
-/** This function processes the prefetch set of FlatFieldNode
- * It generates a new prefetch set after comparision with its children
- * Then compares it with its old prefetch set
- * If old prefetch set is not same as new prefetch set then enqueue the parents 
- * of the current FlatFieldNode
- * */
-private void processFlatFieldNode(FlatNode curr, Hashtable<PrefetchPair, Float> child_prefetch_set_copy) {
-	boolean pSetHasChanged = false;
-	Hashtable<PrefetchPair, Float> currcopy = new Hashtable<PrefetchPair, Float>();
-	Hashtable<PrefetchPair, Float> tocompare = new Hashtable<PrefetchPair, Float>();
-	FlatFieldNode currffn = (FlatFieldNode) curr;
+	    if(oldPrefetchSet.size() != newPrefetchSet.size()) {
+		    if(newPrefetchSet.size() == 0) {
+			    return false;
+		    }
+		    return true;
+	    } else {
+		    Enumeration e = newPrefetchSet.keys();
+		    while(e.hasMoreElements()) {
+			    newpp = (PrefetchPair) e.nextElement();
+			    float newprob = newPrefetchSet.get(newpp);
+			    for(Enumeration elem = oldPrefetchSet.keys(); elem.hasMoreElements();) {
+				    oldpp = (PrefetchPair) elem.nextElement();
+				    if(oldpp.equals(newpp)) {
+					    /*Compare the difference in their probabilities */ 
+					    float oldprob = oldPrefetchSet.get(oldpp);
+					    int diff = (int) ((newprob - oldprob)/oldprob)*100; 
+					    if(diff >= PROB_DIFF) {
+						    return true;
+					    }
+					    break;
+				    }
+			    }
+		    }
+	    }
+	    return hasChanged;
+    }
+
+    /** This function processes the prefetch set of FlatFieldNode
+     * It generates a new prefetch set after comparision with its children
+     * Then compares it with its old prefetch set
+     * If old prefetch set is not same as new prefetch set then enqueue the parents 
+     * of the current FlatFieldNode
+     * */
+    private void processFlatFieldNode(FlatNode curr, Hashtable<PrefetchPair, Float> child_prefetch_set_copy, 
+		    Hashtable<FlatNode, PairMap> parentpmap) {
+	    boolean pSetHasChanged = false;
+	    Hashtable<PrefetchPair, Float> currcopy = new Hashtable<PrefetchPair, Float>();
+	    Hashtable<PrefetchPair, Float> tocompare = new Hashtable<PrefetchPair, Float>();
+	    FlatFieldNode currffn = (FlatFieldNode) curr;
+	    PairMap pm = new PairMap();
 
 	    /* Do Self analysis of the current node*/
 	    FieldDescriptor currffn_field =  currffn.getField();
@@ -285,22 +309,22 @@ private void processFlatFieldNode(FlatNode curr, Hashtable<PrefetchPair, Float> 
 		    childpp = (PrefetchPair) ecld.nextElement();
 		    if (childpp.base == currffn.getDst() && (childpp.getDesc()!= null)) {
 			    if (currffn.getField().getType().isPtr()) {
-				    /* Create a new Prefetch set*/
 				    ArrayList<Descriptor> newdesc = new ArrayList<Descriptor>();
 				    newdesc.add(currffn.getField());
 				    newdesc.addAll(childpp.desc);
 				    PrefetchPair newpp =  new PrefetchPair(currffn.getSrc(), newdesc);
 				    Float newprob = child_prefetch_set_copy.get(childpp).floatValue();
 				    tocompare.put(newpp, newprob); 
+				    pm.addPair(childpp, newpp);
 				    child_prefetch_set_copy.remove(childpp);
-				    /* Check for independence of prefetch pairs if any in the child prefetch set
-				     * to compute new probability */
+				    /* Check for independence of prefetch pairs to compute new probability */
 				    if(child_prefetch_set_copy.containsKey(newpp)) {
 					    newprob = (float)(1.0 - ((1.0 - child_prefetch_set_copy.get(newpp).floatValue()) * (1.0 - tocompare.get(newpp).floatValue())));
-					    if(newprob < THRESHOLD_PROB) {
+					    if(newprob < ANALYSIS_THRESHOLD_PROB) {
 						    tocompare.remove(newpp);
 					    } else {
 						    tocompare.put(newpp, newprob); 
+						    pm.addPair(newpp, newpp);
 					    }
 					    child_prefetch_set_copy.remove(newpp);
 				    }
@@ -312,7 +336,7 @@ private void processFlatFieldNode(FlatNode curr, Hashtable<PrefetchPair, Float> 
 		    }
 	    }
 	    /* Check if curr prefetch set and the child prefetch set have same prefetch pairs
-	     * if so calculate the new probability and then remove the common one from the child prefetch set */ 
+	     * if so, calculate the new probability */ 
 	    ecld = child_prefetch_set_copy.keys();
 	    Enumeration e = null;
 	    while(ecld.hasMoreElements()) {
@@ -320,9 +344,9 @@ private void processFlatFieldNode(FlatNode curr, Hashtable<PrefetchPair, Float> 
 		    for(e = currcopy.keys(); e.hasMoreElements();) {
 			    currpp = (PrefetchPair) e.nextElement();
 			    if(currpp.equals(childpp)) {
-				    /* Probability of the incoming edge for a FlatFieldNode is always 100% */
 				    Float prob = currcopy.get(currpp).floatValue();
 				    currcopy.put(currpp, prob);
+				    pm.addPair(childpp, currpp);
 				    child_prefetch_set_copy.remove(childpp);
 				    break;
 			    } 
@@ -334,6 +358,7 @@ private void processFlatFieldNode(FlatNode curr, Hashtable<PrefetchPair, Float> 
 	    while(ecld.hasMoreElements()) {
 		    childpp = (PrefetchPair) ecld.nextElement();
 		    tocompare.put(childpp, child_prefetch_set_copy.get(childpp));
+		    pm.addPair(childpp, childpp);
 		    child_prefetch_set_copy.remove(childpp);
 	    }
 
@@ -344,6 +369,12 @@ private void processFlatFieldNode(FlatNode curr, Hashtable<PrefetchPair, Float> 
 		    tocompare.put(currpp, currcopy.get(currpp));  
 		    currcopy.remove(currpp);
 	    }
+
+	    /* Create prefetch mappings for child nodes */
+	    if(!pm.isEmpty()) {
+		    parentpmap.put(curr, pm);
+	    }
+	    pmap_hash.put(curr.getNext(0), parentpmap);
 
 	    /* Compare with the orginal prefetch pairs */
 	    pSetHasChanged = comparePrefetchSets(prefetch_hash.get(curr), tocompare);
@@ -362,12 +393,15 @@ private void processFlatFieldNode(FlatNode curr, Hashtable<PrefetchPair, Float> 
      * It compares the old prefetch set with this new prefetch set and enqueues the parents 
      * of the current node if change occurs and updates the global flatnode hash table
      * */
-    private void processFlatElementNode(FlatNode curr, Hashtable<PrefetchPair, Float> child_prefetch_set_copy) {
-	    
+    private void processFlatElementNode(FlatNode curr, Hashtable<PrefetchPair, Float> child_prefetch_set_copy,
+		    Hashtable<FlatNode, PairMap> parentpmap) {
+
 	    boolean pSetHasChanged = false;
 	    Hashtable<PrefetchPair, Float> currcopy = new Hashtable<PrefetchPair, Float>();
 	    Hashtable<PrefetchPair, Float> tocompare = new Hashtable<PrefetchPair, Float>();
 	    FlatElementNode currfen = (FlatElementNode) curr;
+	    PairMap pm = new PairMap();
+
 
 	    /* Do Self analysis of the current node*/
 	    TempDescriptor currfen_index = currfen.getIndex();
@@ -387,22 +421,22 @@ private void processFlatFieldNode(FlatNode curr, Hashtable<PrefetchPair, Float> 
 		    childpp = (PrefetchPair) ecld.nextElement();
 		    if (childpp.base == currfen.getDst() && (childpp.getDesc()!= null)) {
 			    if (currfen.getDst().getType().isPtr()) {
-				    //if match exists then create a new Prefetch set with the new prefetch pair in a new hash table 
 				    ArrayList<Descriptor> newdesc = new ArrayList<Descriptor>();
 				    newdesc.add((Descriptor)idesc);
 				    newdesc.addAll(childpp.desc);
 				    PrefetchPair newpp =  new PrefetchPair(currfen.getSrc(), newdesc);
 				    Float newprob = child_prefetch_set_copy.get(childpp).floatValue();
 				    tocompare.put(newpp, newprob); 
+				    pm.addPair(childpp, newpp);
 				    child_prefetch_set_copy.remove(childpp);
-				    /* Check for independence of prefetch pairs if any in the child prefetch set
-				     * to compute new probability */
+				    /* Check for independence of prefetch pairs to compute new probability */
 				    if(child_prefetch_set_copy.containsKey(newpp)) {
 					    newprob = (float)(1.0 - ((1.0 - child_prefetch_set_copy.get(newpp).floatValue()) * (1.0 - tocompare.get(newpp).floatValue())));
-					    if(newprob < THRESHOLD_PROB) {
+					    if(newprob < ANALYSIS_THRESHOLD_PROB) {
 						    tocompare.remove(newpp);
 					    } else {
 						    tocompare.put(newpp, newprob); 
+						    pm.addPair(newpp, newpp);
 					    }
 					    child_prefetch_set_copy.remove(newpp);
 				    }
@@ -412,7 +446,7 @@ private void processFlatFieldNode(FlatNode curr, Hashtable<PrefetchPair, Float> 
 		    }
 	    }
 	    /* Check if curr prefetch set and the child prefetch set have same prefetch pairs
-	     * if so calculate the new probability and then remove the common one from the child prefetch set */ 
+	     * if so calculate the new probability */ 
 	    ecld = child_prefetch_set_copy.keys();
 	    Enumeration e = null;
 	    while(ecld.hasMoreElements()) {
@@ -420,9 +454,9 @@ private void processFlatFieldNode(FlatNode curr, Hashtable<PrefetchPair, Float> 
 		    for(e = currcopy.keys(); e.hasMoreElements();) {
 			    currpp = (PrefetchPair) e.nextElement();
 			    if(currpp.equals(childpp)) {
-				    /* Probability of the incoming edge for a FlatElementNode is always 100% */
 				    Float prob = currcopy.get(currpp).floatValue();
 				    currcopy.put(currpp, prob);
+				    pm.addPair(childpp, currpp);
 				    child_prefetch_set_copy.remove(childpp);
 				    break;
 			    } 
@@ -434,6 +468,7 @@ private void processFlatFieldNode(FlatNode curr, Hashtable<PrefetchPair, Float> 
 	    while(ecld.hasMoreElements()) {
 		    childpp = (PrefetchPair) ecld.nextElement();
 		    tocompare.put(childpp, child_prefetch_set_copy.get(childpp));
+		    pm.addPair(childpp, childpp);
 		    child_prefetch_set_copy.remove(childpp);
 	    }
 
@@ -444,6 +479,12 @@ private void processFlatFieldNode(FlatNode curr, Hashtable<PrefetchPair, Float> 
 		    tocompare.put(currpp, currcopy.get(currpp));  
 		    currcopy.remove(currpp);
 	    }
+
+	    /* Create prefetch mappings for child nodes */
+	    if(!pm.isEmpty()) {
+		    parentpmap.put(curr, pm);
+	    }
+	    pmap_hash.put(curr.getNext(0), parentpmap);
 
 	    /* Compare with the orginal prefetch pairs */
 	    pSetHasChanged = comparePrefetchSets(prefetch_hash.get(curr), tocompare);
@@ -462,13 +503,14 @@ private void processFlatFieldNode(FlatNode curr, Hashtable<PrefetchPair, Float> 
      * It compares the old prefetch set with this new prefetch set and enqueues the parents 
      * of the current node if change occurs and then updates the global flatnode hash table
      * */
-    private void processFlatSetFieldNode(FlatNode curr, Hashtable<PrefetchPair, Float> child_prefetch_set_copy) {
+    private void processFlatSetFieldNode(FlatNode curr, Hashtable<PrefetchPair, Float> child_prefetch_set_copy,
+		    Hashtable<FlatNode, PairMap> parentpmap) {
 	    boolean pSetHasChanged = false;
 	    Hashtable<PrefetchPair, Float> tocompare = new Hashtable<PrefetchPair, Float>();
 	    FlatSetFieldNode currfsfn = (FlatSetFieldNode) curr;
 	    PrefetchPair childpp = null;
+	    PairMap pm = new PairMap();
 
-	    /* Get each prefetch pair of the child and match it with the destination temp descriptor of curr FlatFieldNode */
 	    Enumeration ecld = child_prefetch_set_copy.keys();
 	    while (ecld.hasMoreElements()) {
 		    childpp = (PrefetchPair) ecld.nextElement();
@@ -483,15 +525,17 @@ private void processFlatFieldNode(FlatNode curr, Hashtable<PrefetchPair, Float> 
 					    PrefetchPair newpp =  new PrefetchPair(currfsfn.getSrc(), newdesc);
 					    Float newprob = child_prefetch_set_copy.get(childpp).floatValue();
 					    tocompare.put(newpp, newprob); 
+					    pm.addPair(childpp, newpp);
 					    child_prefetch_set_copy.remove(childpp);
-					    /* Check for independence of prefetch pairs in newly generated and child_prefetch_set_copy prefetch pairs
+					    /* Check for independence of prefetch pairs in newly generated prefetch pair 
 					     * to compute new probability */
 					    if(child_prefetch_set_copy.containsKey(newpp)) {
 						    newprob = (float)(1.0 - ((1.0 - child_prefetch_set_copy.get(newpp).floatValue()) * (1.0 - tocompare.get(newpp).floatValue())));
-						    if(newprob < THRESHOLD_PROB) {
+						    if(newprob < ANALYSIS_THRESHOLD_PROB) {
 							    tocompare.remove(newpp);
 						    } else {
 							    tocompare.put(newpp, newprob); 
+							    pm.addPair(newpp, newpp);
 						    }
 						    child_prefetch_set_copy.remove(newpp);
 					    }
@@ -511,8 +555,15 @@ private void processFlatFieldNode(FlatNode curr, Hashtable<PrefetchPair, Float> 
 	    while(ecld.hasMoreElements()) {
 		    childpp = (PrefetchPair) ecld.nextElement();
 		    tocompare.put(childpp, child_prefetch_set_copy.get(childpp));
+		    pm.addPair(childpp, childpp);
 		    child_prefetch_set_copy.remove(childpp);
 	    }
+
+	    /* Create prefetch mappings for child nodes */
+	    if(!pm.isEmpty()) {
+		    parentpmap.put(curr, pm);
+	    }
+	    pmap_hash.put(curr.getNext(0), parentpmap);
 
 	    /* Compare with the orginal prefetch pairs */
 	    pSetHasChanged = comparePrefetchSets(prefetch_hash.get(curr), tocompare);
@@ -531,13 +582,14 @@ private void processFlatFieldNode(FlatNode curr, Hashtable<PrefetchPair, Float> 
      * It compares the old prefetch set with this new prefetch set and enqueues the parents 
      * of the current node if change occurs and then updates the global flatnode hash table
      * */
-    private void processFlatSetElementNode(FlatNode curr, Hashtable<PrefetchPair, Float> child_prefetch_set_copy) {
+    private void processFlatSetElementNode(FlatNode curr, Hashtable<PrefetchPair, Float> child_prefetch_set_copy,
+		    Hashtable<FlatNode, PairMap> parentpmap) {
 	    boolean pSetHasChanged = false;
 	    Hashtable<PrefetchPair, Float> tocompare = new Hashtable<PrefetchPair, Float>();
 	    PrefetchPair childpp = null;
 	    FlatSetElementNode currfsen = (FlatSetElementNode) curr;
+	    PairMap pm = new PairMap();
 
-	    /* Get each prefetch pair of the child and match it with the destination temp descriptor of curr FlatFieldNode */
 	    Enumeration ecld = child_prefetch_set_copy.keys();
 	    while (ecld.hasMoreElements()) {
 		    childpp = (PrefetchPair) ecld.nextElement();
@@ -547,7 +599,6 @@ private void processFlatFieldNode(FlatNode curr, Hashtable<PrefetchPair, Float> 
 				    int sizetempdesc = ((IndexDescriptor)(childpp.getDescAt(0))).tddesc.size();
 				    if(sizetempdesc == 1) {
 					    if((((IndexDescriptor)childpp.getDescAt(0)).tddesc.get(0) == currfsen.getIndex()) && (sizedesc>=2)) {
-						    //if match exists then create a new Prefetch set with the new prefetch pair in a new hash table 
 						    ArrayList<Descriptor> newdesc = new ArrayList<Descriptor>();
 						    for(int i = 0;i<(childpp.desc.size()-1); i++) {
 							    newdesc.add(i,childpp.desc.get(i+1));
@@ -555,33 +606,42 @@ private void processFlatFieldNode(FlatNode curr, Hashtable<PrefetchPair, Float> 
 						    PrefetchPair newpp =  new PrefetchPair(currfsen.getSrc(), newdesc);
 						    Float newprob = child_prefetch_set_copy.get(childpp).floatValue();
 						    tocompare.put(newpp, newprob); 
+						    pm.addPair(childpp, newpp);
 						    child_prefetch_set_copy.remove(childpp);
-						    /* Check for independence of prefetch pairs if any in the child prefetch set
-						     * to compute new probability */
+						    /* Check for independence of prefetch pairs to compute new probability */
 						    if(child_prefetch_set_copy.containsKey(newpp)) {
 							    newprob = (float)(1.0 - ((1.0 - child_prefetch_set_copy.get(newpp).floatValue()) * (1.0 - tocompare.get(newpp).floatValue())));
-							    if(newprob < THRESHOLD_PROB) {
+							    if(newprob < ANALYSIS_THRESHOLD_PROB) {
 								    tocompare.remove(newpp);
 							    } else {
 								    tocompare.put(newpp, newprob); 
+								    pm.addPair(newpp, newpp);
 							    }
 							    child_prefetch_set_copy.remove(newpp);
 						    }
 					    } else if((((IndexDescriptor)childpp.getDescAt(0)).tddesc.get(0) == currfsen.getIndex()) && (sizedesc==1)) 
 						    child_prefetch_set_copy.remove(childpp);
-					    } else {
-						    continue;
-					    }
+				    } else {
+					    continue;
 				    }
 			    }
+		    }
 	    }
 	    /* Merge child prefetch pairs */
 	    ecld = child_prefetch_set_copy.keys();
 	    while(ecld.hasMoreElements()) {
 		    childpp = (PrefetchPair) ecld.nextElement();
 		    tocompare.put(childpp, child_prefetch_set_copy.get(childpp));
+		    pm.addPair(childpp, childpp);
 		    child_prefetch_set_copy.remove(childpp);
 	    }
+
+	    /* Create prefetch mappings for child nodes */
+	    if(!pm.isEmpty()) {
+		    parentpmap.put(curr, pm);
+	    }
+	    pmap_hash.put(curr.getNext(0), parentpmap);
+
 	    /* Compare with the orginal prefetch pairs */
 	    pSetHasChanged = comparePrefetchSets(prefetch_hash.get(curr), tocompare);
 	    /* Enqueue parent nodes */
@@ -597,58 +657,59 @@ private void processFlatFieldNode(FlatNode curr, Hashtable<PrefetchPair, Float> 
     /** This function applies rules and does analysis for a FlatOpNode 
      *  And updates the global prefetch hashtable
      * */
-    private void processFlatOpNode(FlatNode curr, Hashtable<PrefetchPair, Float> child_prefetch_set_copy) {
+    private void processFlatOpNode(FlatNode curr, Hashtable<PrefetchPair, Float> child_prefetch_set_copy,
+		    Hashtable<FlatNode, PairMap> parentpmap) {
 	    boolean pSetHasChanged = false;
 	    int index;
 	    Hashtable<PrefetchPair, Float> tocompare = new Hashtable<PrefetchPair, Float>();
 	    FlatOpNode currfopn = (FlatOpNode) curr;
 	    Enumeration ecld = null; 
 	    PrefetchPair childpp = null;
+	    PairMap pm = new PairMap();
 
-	    /* Check the  Operation type of flatOpNode */
 	    if(currfopn.getOp().getOp()== Operation.ASSIGN) {
 		    ecld = child_prefetch_set_copy.keys();
 		    while (ecld.hasMoreElements()) {
 			    childpp = (PrefetchPair) ecld.nextElement();
 			    PrefetchPair copyofchildpp = (PrefetchPair) childpp.clone();
-			
-			    /* Base of child prefetch pair same as destination of the current FlatOpNode 
-			     * For cases like x=y followed by childnode t=x[i].z or t=x.g*/
+
+			    /* For cases like x=y followed by childnode t=x[i].z or t=x.g*/
 			    if(childpp.base == currfopn.getDest()) {
 				    ArrayList<Descriptor> newdesc = new ArrayList<Descriptor>();
 				    newdesc.addAll(childpp.desc);
 				    PrefetchPair newpp =  new PrefetchPair(currfopn.getLeft(), newdesc);
 				    Float newprob = child_prefetch_set_copy.get(childpp).floatValue();
 				    tocompare.put(newpp, newprob); 
+				    pm.addPair(childpp, newpp);
 				    child_prefetch_set_copy.remove(childpp);
-				    /* Check for independence of prefetch pairs if any in the child prefetch set
-				     * to compute new probability */
+				    /* Check for independence of prefetch pairs to compute new probability */
 				    if(child_prefetch_set_copy.containsKey(newpp)) {
 					    newprob = (float)(1.0 - ((1.0 - child_prefetch_set_copy.get(newpp).floatValue()) * (1.0 - tocompare.get(newpp).floatValue())));
-					    if(newprob < THRESHOLD_PROB) {
+					    if(newprob < ANALYSIS_THRESHOLD_PROB) {
 						    tocompare.remove(newpp);
 					    } else {
 						    tocompare.put(newpp, newprob); 
+						    pm.addPair(newpp, newpp);
 					    }
 					    child_prefetch_set_copy.remove(newpp);
 				    }
-				    /* Any member of the desc of child prefetch pair is same as destination of the current FlatOpNode 
-				     * For cases like x=y followed by t = r[i].x or t =r[x].p or t = r[p+x].q*/
+				    /* For cases like x=y followed by t = r[i].x or t =r[x].p or t = r[p+x].q*/
 			    } else if(isTempDescFound(copyofchildpp, currfopn.getDest())) {
 				    ArrayList<Descriptor> newdesc = new ArrayList<Descriptor>();
 				    newdesc.addAll((ArrayList<Descriptor>)getNewDesc(copyofchildpp, currfopn.getDest(), currfopn.getLeft()));
 				    PrefetchPair newpp =  new PrefetchPair(childpp.base, newdesc);
 				    Float newprob = child_prefetch_set_copy.get(childpp).floatValue();
 				    tocompare.put(newpp, newprob); 
+				    pm.addPair(childpp, newpp);
 				    child_prefetch_set_copy.remove(childpp);
-				    /* Check for independence of prefetch pairs if any in the child prefetch set
-				     * to compute new probability*/ 
+				    /* Check for independence of prefetch pairs to compute new probability*/ 
 				    if(child_prefetch_set_copy.containsKey(newpp)) {
 					    newprob = (float)(1.0 - ((1.0 - child_prefetch_set_copy.get(newpp).floatValue()) * (1.0 - tocompare.get(newpp).floatValue())));
-					    if(newprob < THRESHOLD_PROB) {
+					    if(newprob < ANALYSIS_THRESHOLD_PROB) {
 						    tocompare.remove(newpp);
 					    } else {
 						    tocompare.put(newpp, newprob); 
+						    pm.addPair(newpp, newpp);
 					    }
 					    child_prefetch_set_copy.remove(newpp);
 				    }
@@ -656,28 +717,29 @@ private void processFlatFieldNode(FlatNode curr, Hashtable<PrefetchPair, Float> 
 				    continue;
 			    }
 		    }
-	    } else if(currfopn.getRight()!=null && (currfopn.getOp().getOp() == Operation.ADD)) {
 		    //case i = i+z  followed by a[i].x
+	    } else if(currfopn.getRight()!=null && (currfopn.getOp().getOp() == Operation.ADD)) {
 		    ecld = child_prefetch_set_copy.keys();
 		    while (ecld.hasMoreElements()) {
 			    childpp = (PrefetchPair) ecld.nextElement();
 			    PrefetchPair copyofchildpp = (PrefetchPair) childpp.clone();
-			
+
 			    if(isTempDescFound(copyofchildpp, currfopn.getDest())) {
 				    ArrayList<Descriptor> newdesc = new ArrayList<Descriptor>();
 				    newdesc.addAll((ArrayList<Descriptor>)getNewDesc(copyofchildpp, currfopn.getDest(), currfopn.getLeft(), currfopn.getRight()));
 				    PrefetchPair newpp =  new PrefetchPair(childpp.base, newdesc);
 				    Float newprob = child_prefetch_set_copy.get(childpp).floatValue();
 				    tocompare.put(newpp, newprob); 
+				    pm.addPair(childpp, newpp);
 				    child_prefetch_set_copy.remove(childpp);
-				    /* Check for independence of prefetch pairs if any in the child prefetch set
-				     * to compute new probability*/ 
+				    /* Check for independence of prefetch pairs to compute new probability*/ 
 				    if(child_prefetch_set_copy.containsKey(newpp)) {
 					    newprob = (float)(1.0 - ((1.0 - child_prefetch_set_copy.get(newpp).floatValue()) * (1.0 - tocompare.get(newpp).floatValue())));
-					    if(newprob < THRESHOLD_PROB) {
+					    if(newprob < ANALYSIS_THRESHOLD_PROB) {
 						    tocompare.remove(newpp);
 					    } else {
 						    tocompare.put(newpp, newprob); 
+						    pm.addPair(newpp, newpp);
 					    }
 					    child_prefetch_set_copy.remove(newpp);
 				    }
@@ -694,8 +756,15 @@ private void processFlatFieldNode(FlatNode curr, Hashtable<PrefetchPair, Float> 
 	    while(ecld.hasMoreElements()) {
 		    childpp = (PrefetchPair) ecld.nextElement();
 		    tocompare.put(childpp, child_prefetch_set_copy.get(childpp));
+		    pm.addPair(childpp, childpp);
 		    child_prefetch_set_copy.remove(childpp);
 	    }
+
+	    /* Create prefetch mappings for child nodes */
+	    if(!pm.isEmpty()) {
+		    parentpmap.put(curr, pm);
+	    }
+	    pmap_hash.put(curr.getNext(0), parentpmap);
 
 	    /* Compare with the orginal prefetch pairs */
 	    pSetHasChanged = comparePrefetchSets(prefetch_hash.get(curr), tocompare);
@@ -708,24 +777,25 @@ private void processFlatFieldNode(FlatNode curr, Hashtable<PrefetchPair, Float> 
 		    prefetch_hash.put(curr,tocompare); 
 	    } 
     }
-    
-    /** This function processes a FlatLiteralNode where cases such as 
+
+    /** This function processes a FlatLiteralNode where cases such as
      * for cases like i = 0 followed by t = a[i].r or t = a[j+i].r or t = a[j].b[i].r
      * are handled */
-    private void processFlatLiteralNode(FlatNode curr, Hashtable<PrefetchPair, Float> child_prefetch_set_copy) {
+    private void processFlatLiteralNode(FlatNode curr, Hashtable<PrefetchPair, Float> child_prefetch_set_copy,
+		    Hashtable<FlatNode, PairMap> parentpmap) {
 	    boolean pSetHasChanged = false;
 	    Hashtable<PrefetchPair, Float> tocompare = new Hashtable<PrefetchPair, Float>();
 	    FlatLiteralNode currfln = (FlatLiteralNode) curr;
 	    Enumeration ecld = null; 
 	    PrefetchPair childpp = null;
+	    PairMap pm = new PairMap();
 
 	    if(currfln.getType().isIntegerType()) {
 		    ecld = child_prefetch_set_copy.keys();
 		    while (ecld.hasMoreElements()) {
 			    childpp = (PrefetchPair) ecld.nextElement();
 			    PrefetchPair copyofchildpp = (PrefetchPair) childpp.clone();
-			    /* Check for same index in child prefetch pairs 
-			     * for cases like i = 0 followed by t = a[i].r or t = a[j+i].r or t = a[j].b[i].r*/
+			    /* For cases like i = 0 followed by t = a[i].r or t = a[j+i].r or t = a[j].b[i].r*/
 			    if(isTempDescFound(copyofchildpp,currfln.getDst())) {
 				    ArrayList<Descriptor> copychilddesc = (ArrayList<Descriptor>) copyofchildpp.getDesc();
 				    int sizetempdesc = copychilddesc.size();
@@ -747,15 +817,16 @@ private void processFlatFieldNode(FlatNode curr, Hashtable<PrefetchPair, Float> 
 				    PrefetchPair newpp =  new PrefetchPair(childpp.base, newdesc);
 				    Float newprob = (child_prefetch_set_copy.get(childpp)).floatValue();
 				    tocompare.put(newpp, newprob); 
+				    pm.addPair(childpp, newpp);
 				    child_prefetch_set_copy.remove(childpp);
-				    /* Check for independence of prefetch pairs if any in the child prefetch set
-				     * to compute new probability */
+				    /* Check for independence of prefetch pairs to compute new probability */
 				    if(child_prefetch_set_copy.containsKey(newpp)) {
 					    newprob = (float)(1.0 - ((1.0 - child_prefetch_set_copy.get(newpp).floatValue()) * (1.0 - tocompare.get(newpp).floatValue())));
-					    if(newprob < THRESHOLD_PROB) {
+					    if(newprob < ANALYSIS_THRESHOLD_PROB) {
 						    tocompare.remove(newpp);
 					    } else {
 						    tocompare.put(newpp, newprob); 
+						    pm.addPair(newpp, newpp);
 					    }
 					    child_prefetch_set_copy.remove(newpp);
 				    }
@@ -768,8 +839,15 @@ private void processFlatFieldNode(FlatNode curr, Hashtable<PrefetchPair, Float> 
 	    while(ecld.hasMoreElements()) {
 		    childpp = (PrefetchPair) ecld.nextElement();
 		    tocompare.put(childpp, child_prefetch_set_copy.get(childpp));
+		    pm.addPair(childpp, childpp);
 		    child_prefetch_set_copy.remove(childpp);
 	    }
+
+	    /* Create prefetch mappings for child nodes */
+	    if(!pm.isEmpty()) {
+		    parentpmap.put(curr, pm);
+	    }
+	    pmap_hash.put(curr.getNext(0), parentpmap);
 
 	    /* Compare with the orginal prefetch pairs */
 	    pSetHasChanged = comparePrefetchSets(prefetch_hash.get(curr), tocompare);
@@ -781,25 +859,33 @@ private void processFlatFieldNode(FlatNode curr, Hashtable<PrefetchPair, Float> 
 		    /* Overwrite the new prefetch set to the global hash table */
 		    prefetch_hash.put(curr,tocompare); 
 	    } 
-
     }
 
     /** This function processes a FlatMethod where the method propagates
      * the entire prefetch set of its child node */
-    private void processFlatMethod(FlatNode curr, Hashtable<PrefetchPair, Float> child_prefetch_set_copy) {
+    private void processFlatMethod(FlatNode curr, Hashtable<PrefetchPair, Float> child_prefetch_set_copy,
+		    Hashtable<FlatNode, PairMap> parentpmap) {
 	    boolean pSetHasChanged = false;
 	    Hashtable<PrefetchPair, Float> tocompare = new Hashtable<PrefetchPair, Float>();
 	    FlatMethod currfm = (FlatMethod) curr;
 	    Enumeration ecld = null; 
 	    PrefetchPair childpp = null;
+	    PairMap pm = new PairMap();
 
 	    /* Merge child prefetch pairs */
 	    ecld = child_prefetch_set_copy.keys();
 	    while(ecld.hasMoreElements()) {
 		    childpp = (PrefetchPair) ecld.nextElement();
 		    tocompare.put(childpp, child_prefetch_set_copy.get(childpp));
+		    pm.addPair(childpp, childpp);
 		    child_prefetch_set_copy.remove(childpp);
 	    }
+
+	    /* Create prefetch mappings for child nodes */
+	    if(!pm.isEmpty()) {
+		    parentpmap.put(curr, pm);
+	    }
+	    pmap_hash.put(curr.getNext(0), parentpmap);
 
 	    /* Compare with the orginal prefetch pairs */
 	    pSetHasChanged = comparePrefetchSets(prefetch_hash.get(curr), tocompare);
@@ -814,13 +900,15 @@ private void processFlatFieldNode(FlatNode curr, Hashtable<PrefetchPair, Float> 
      * It currently drops the propagation of those prefetchpairs that are passed as
      * arguments in the FlatCall 
      */
-    private void processFlatCall(FlatNode curr, Hashtable<PrefetchPair, Float> child_prefetch_set_copy) {
+    private void processFlatCall(FlatNode curr, Hashtable<PrefetchPair, Float> child_prefetch_set_copy,
+		    Hashtable<FlatNode, PairMap> parentpmap) {
 	    boolean pSetHasChanged = false;
 	    Hashtable<PrefetchPair, Float> tocompare = new Hashtable<PrefetchPair, Float>();
 	    FlatCall currfcn = (FlatCall) curr;
+	    PairMap pm = new PairMap();
 	    Enumeration ecld = null; 
 	    PrefetchPair childpp = null;
-	    boolean isSameArg = false;
+
 
 	    ecld = child_prefetch_set_copy.keys();
 	    while(ecld.hasMoreElements()) {
@@ -828,11 +916,18 @@ private void processFlatFieldNode(FlatNode curr, Hashtable<PrefetchPair, Float> 
 		    PrefetchPair copyofchildpp = (PrefetchPair) childpp.clone();
 		    if(currfcn.getReturnTemp() != childpp.base) {
 			    tocompare.put(childpp, child_prefetch_set_copy.get(childpp));
+			    pm.addPair(childpp, childpp);
 			    child_prefetch_set_copy.remove(childpp);
 		    } else {
 			    child_prefetch_set_copy.remove(childpp);
 		    }
 	    }
+
+	    /* Create prefetch mappings for child nodes */
+	    if(!pm.isEmpty()) {
+		    parentpmap.put(curr, pm);
+	    }
+	    pmap_hash.put(curr.getNext(0), parentpmap);
 
 	    /* Compare with the orginal prefetch pairs */
 	    pSetHasChanged = comparePrefetchSets(prefetch_hash.get(curr), tocompare);
@@ -851,11 +946,12 @@ private void processFlatFieldNode(FlatNode curr, Hashtable<PrefetchPair, Float> 
      * branch_prefetch_set to contains the entries of both its children
      */
     private void processFlatCondBranch(FlatNode curr, Hashtable<PrefetchPair, Float> child_prefetch_set_copy, int index, 
-		    Hashtable<PrefetchPair,Float> branch_prefetch_set) {
+		    Hashtable<PrefetchPair,Float> branch_prefetch_set, Hashtable<FlatNode, PairMap> parentpmap) {
 	    boolean pSetHasChanged = false;
 	    Hashtable<PrefetchPair, Float> tocompare = new Hashtable<PrefetchPair, Float>();//temporary hash table
 	    FlatCondBranch currfcb = (FlatCondBranch) curr;
 	    Float newprob = new Float((float)0.0);
+	    PairMap pm = new PairMap();
 	    PrefetchPair childpp = null;
 	    PrefetchPair pp = null;
 	    Enumeration ecld = null;
@@ -866,14 +962,16 @@ private void processFlatFieldNode(FlatNode curr, Hashtable<PrefetchPair, Float> 
 		    /* True Edge */
 		    if(index == 0) {
 			    newprob = child_prefetch_set_copy.get(childpp).floatValue() * BRANCH_TRUE_EDGE_PROB;
-			    if(newprob >= THRESHOLD_PROB) {
+			    if(newprob >= ANALYSIS_THRESHOLD_PROB) {
 				    tocompare.put(childpp, newprob); 
+				    pm.addPair(childpp, childpp);
 			    }
 			    child_prefetch_set_copy.remove(childpp);
 		    } else if(index == 1) { /* False Edge */
 			    newprob = child_prefetch_set_copy.get(childpp).floatValue() * BRANCH_FALSE_EDGE_PROB;
-			    if(newprob >= THRESHOLD_PROB) {
+			    if(newprob >= ANALYSIS_THRESHOLD_PROB) {
 				    tocompare.put(childpp, newprob); 
+				    pm.addPair(childpp, childpp);
 			    }
 			    child_prefetch_set_copy.remove(childpp);
 		    } else {
@@ -881,7 +979,13 @@ private void processFlatFieldNode(FlatNode curr, Hashtable<PrefetchPair, Float> 
 		    }
 	    }
 
-	    /* Update branch_prefetch_set (global hash table) to combine all prefetch pairs from childnodes of the 
+	    /* Create prefetch mappings for child nodes */
+	    if(!pm.isEmpty()) {
+		    parentpmap.put(curr, pm);
+	    }
+	    pmap_hash.put(curr.getNext(index), parentpmap);
+
+	    /* Update branch_prefetch_set (global hash table) to combine all prefetch pairs from childnodes of the
 	     * cond branch that is currently stored in the tocompare hash table */
 	    if(!tocompare.isEmpty()) {
 		    if(index == 0) {
@@ -895,7 +999,7 @@ private void processFlatFieldNode(FlatNode curr, Hashtable<PrefetchPair, Float> 
 					    pp = (PrefetchPair) e.nextElement();
 					    if(branch_prefetch_set.containsKey(pp)) {
 						    newprob = (float)(branch_prefetch_set.get(pp).floatValue() + tocompare.get(pp).floatValue());
-						    if(newprob < THRESHOLD_PROB) {
+						    if(newprob < ANALYSIS_THRESHOLD_PROB) {
 							    branch_prefetch_set.remove(pp); 
 						    } else {
 							    branch_prefetch_set.put(pp, newprob); 
@@ -915,9 +1019,8 @@ private void processFlatFieldNode(FlatNode curr, Hashtable<PrefetchPair, Float> 
 		    }
 	    }
 
-	    /* Enqueue parent nodes only after the prefetch sets of both child node have been evaluated
-	     * and the branch_prefetch_set (hashtable) has been built containing the prefetch pairs for the
-	     * incoming edge of the current node */
+	    /* Compare prefetch sets and enqueue parent nodes: Only possible after combining prefetch pairs of both child nodes 
+	     * into branch_prefetch_set hashtable*/
 	    if(index == 1) {
 		    pSetHasChanged = comparePrefetchSets(prefetch_hash.get(curr), branch_prefetch_set);
 		    if(pSetHasChanged) {
@@ -932,14 +1035,27 @@ private void processFlatFieldNode(FlatNode curr, Hashtable<PrefetchPair, Float> 
 
     /** If FlatNode is not concerned with the prefetch set of its Child then propagate 
      * prefetches up the FlatNode*/  
-    private void processDefaultCase(FlatNode curr, Hashtable<PrefetchPair, Float> child_prefetch_set_copy) {
+    private void processDefaultCase(FlatNode curr, Hashtable<PrefetchPair, Float> child_prefetch_set_copy,
+		    Hashtable<FlatNode, PairMap> parentpmap) {
 	    boolean pSetHasChanged = false;
+	    PairMap pm = new PairMap();
 	    Enumeration e = null;
 	    Hashtable<PrefetchPair, Float> tocompare = new Hashtable<PrefetchPair, Float>();
 
+	    /* Propagate all child nodes */
 	    for(e = child_prefetch_set_copy.keys(); e.hasMoreElements();) {
-		    PrefetchPair newpp = (PrefetchPair) e.nextElement();
-		    tocompare.put(newpp, child_prefetch_set_copy.get(newpp));
+		    PrefetchPair childpp = (PrefetchPair) e.nextElement();
+		    tocompare.put(childpp, child_prefetch_set_copy.get(childpp));
+		    pm.addPair(childpp, childpp);
+		    child_prefetch_set_copy.remove(childpp);
+	    }
+
+	    /* Check case for nodes with no children (e.g return null) and create prefetch mappings for child nodes*/
+	    if(curr.numNext() != 0) {
+		    if(!pm.isEmpty()) {
+			    parentpmap.put(curr, pm);
+		    }
+		    pmap_hash.put(curr.getNext(0), parentpmap);
 	    }
 
 	    /* Compare with old Prefetch sets */
@@ -953,14 +1069,16 @@ private void processFlatFieldNode(FlatNode curr, Hashtable<PrefetchPair, Float> 
 	    }
     }
 
-    /** This function processes for FlatNewNode 
+    /** This functions processes for FlatNewNode
      * for e.g x = NEW(foo) followed by childnode with prefetch set x.f
      * then drop the prefetches beyond this FlatNewNode */
-    private void processFlatNewNode(FlatNode curr, Hashtable<PrefetchPair, Float> child_prefetch_set_copy) {
+    private void processFlatNewNode(FlatNode curr, Hashtable<PrefetchPair, Float> child_prefetch_set_copy,
+		    Hashtable<FlatNode, PairMap> parentpmap) {
 	    boolean pSetHasChanged = false;
 	    Hashtable<PrefetchPair, Float> tocompare = new Hashtable<PrefetchPair, Float>();
 	    FlatNew currfnn = (FlatNew) curr;
 	    Float newprob = new Float((float)0.0);
+	    PairMap pm = new PairMap();
 	    PrefetchPair childpp = null;
 	    Enumeration ecld = null;
 
@@ -971,12 +1089,20 @@ private void processFlatFieldNode(FlatNode curr, Hashtable<PrefetchPair, Float> 
 			    child_prefetch_set_copy.remove(childpp);
 		    } else {
 			    tocompare.put(childpp, child_prefetch_set_copy.get(childpp));
+			    pm.addPair(childpp, childpp);
 			    child_prefetch_set_copy.remove(childpp);
 		    }
 	    }
 
-	    /* Compare with the orginal prefetch pairs */
+	    /* Create prefetch mappings for child nodes */
+	    if(!pm.isEmpty()) {
+		    parentpmap.put(curr, pm);
+	    }
+	    pmap_hash.put(curr.getNext(0), parentpmap);
+
+	    /* Compare with the old prefetch set */
 	    pSetHasChanged = comparePrefetchSets(prefetch_hash.get(curr), tocompare);
+
 	    /* Enqueue parent nodes */
 	    if(pSetHasChanged) {
 		    for(int i=0; i<curr.numPrev(); i++) {
@@ -1002,85 +1128,202 @@ private void processFlatFieldNode(FlatNode curr, Hashtable<PrefetchPair, Float> 
 	    }
     }
 
-    private void doAnalysis() {
-	Iterator classit=state.getClassSymbolTable().getDescriptorsIterator();
-	while(classit.hasNext()) {
-	    ClassDescriptor cn=(ClassDescriptor)classit.next();
-	    Iterator methodit=cn.getMethods();
-	    while(methodit.hasNext()) {
-		/* Classify parameters */
-		MethodDescriptor md=(MethodDescriptor)methodit.next();
-		FlatMethod fm=state.getMethodFlat(md);
-		printMethod(fm);
+    private void applyPrefetchInsertRules(LinkedList<FlatNode> visited) {
+	    Hashtable<FlatNode, Set> pset1_hash = new Hashtable<FlatNode, Set>();
+	    Hashtable<FlatNode, Set> pset2_hash = new Hashtable<FlatNode, Set>();
+	    Hashtable<FlatNode, Set> newpset_hash = new Hashtable<FlatNode, Set>();
+	    Hashtable<FlatNode, Set> newprefetchset = new Hashtable<FlatNode, Set>();
+	    boolean ppairIsPresent = false;
+	    boolean mapIsPresent = true;
+	    boolean pprobIsGreater = false;
+	    boolean mapprobIsLess = false;
+	    boolean probIsLess = false;
+
+	    /* Create pset1_hash */
+	    for(int i = 0; i<visited.size(); i++) {
+		    Enumeration e = null; 
+		    HashSet<PrefetchPair> pset1 = new HashSet<PrefetchPair>();
+		    HashSet<PrefetchPair> pset2 = new HashSet<PrefetchPair>();
+		    HashSet<PrefetchPair> newpset = new HashSet<PrefetchPair>();
+		    Hashtable<PrefetchPair, Float> prefetchset = new Hashtable<PrefetchPair, Float>();
+		    FlatNode fn = visited.get(i);
+		    if(fn.kind() == FKind.FlatMethod) {
+			    if(prefetch_hash.containsKey(fn)) {
+				    prefetchset = prefetch_hash.get(fn);
+				    e = prefetchset.keys();
+				    /* Insert Prefetch */
+				    if(e.hasMoreElements()) {
+					    //FIXME Insert PrefetchNode here
+				    }
+				    while(e.hasMoreElements()) {
+					    PrefetchPair pp = (PrefetchPair) e.nextElement();
+					    /* Apply initial rule */
+					    if(((float)prefetchset.get(pp).floatValue()) > PREFETCH_THRESHOLD_PROB) {
+						    pset1.add(pp);
+					    }
+				    }
+				    pset1_hash.put(fn, pset1);
+			    }
+		    } else {
+			    if(prefetch_hash.containsKey(fn)) {
+				    prefetchset = prefetch_hash.get(fn);
+				    for(Enumeration epset = prefetchset.keys(); epset.hasMoreElements();) {
+					    PrefetchPair pp = (PrefetchPair) epset.nextElement();
+					    /* Create pset2_hash */
+					    Hashtable<FlatNode, PairMap> ppairmaphash = new Hashtable<FlatNode, PairMap>();
+					    ppairmaphash = pmap_hash.get(fn);
+					    if(!ppairmaphash.isEmpty()) {
+						    e = ppairmaphash.keys();
+						    while(e.hasMoreElements()) {
+							    FlatNode parentnode = (FlatNode) e.nextElement();
+							    PairMap pm = (PairMap) ppairmaphash.get(parentnode);
+							    if(pset1_hash.containsKey(parentnode)) {
+								    Set pset = pset1_hash.get(parentnode);
+								    if(!pset.isEmpty()) {
+									    if(ppairIsPresent = (pset.contains((PrefetchPair) pm.getPair(pp)))) {
+										    mapIsPresent = ppairIsPresent && mapIsPresent;
+									    }
+								    } else {
+									    mapIsPresent = false;
+								    }
+							    }
+						    }
+						    if(mapIsPresent) {
+							    pset2.add(pp);
+						    }
+					    }
+
+					    /* Create newprefetchset */
+					    if(pprobIsGreater = (prefetchset.get(pp).floatValue() > PREFETCH_THRESHOLD_PROB)) {
+						    ppairmaphash = pmap_hash.get(fn);
+						    if(!ppairmaphash.isEmpty()) {
+							    e = ppairmaphash.keys();
+							    while(e.hasMoreElements()) {
+								    FlatNode parentnode = (FlatNode) e.nextElement();
+								    PairMap pm = (PairMap) ppairmaphash.get(parentnode);
+								    PrefetchPair mappedpp = pm.getPair(pp);
+								    if(mappedpp != null) {
+									    if(prefetch_hash.get(parentnode).containsKey(mappedpp)) {
+										    float prob = (float)prefetch_hash.get(parentnode).get(mappedpp).floatValue();
+										    if(probIsLess = (prob < PREFETCH_THRESHOLD_PROB))
+											    mapprobIsLess = mapprobIsLess || probIsLess;
+									    }
+								    } else {
+									    mapprobIsLess = false;
+								    }
+							    }
+						    } else {
+							    mapprobIsLess = true;
+						    }
+					    }
+					    if(pprobIsGreater && mapprobIsLess) {
+						    newpset.add(pp);
+					    }
+				    }
+			    }
+			    if(!pset2.isEmpty())
+				    pset1.addAll(pset2);
+			    if(!newpset.isEmpty())
+				    pset1.addAll(newpset);
+			    pset1_hash.put(fn, pset1);
+		    }
+
+		    /* To insert prefetch apply rule */
+		    HashSet s = null;
+		    if(!newpset.isEmpty() && !pset2.isEmpty()) {
+			    for(Iterator it = newpset.iterator(); it.hasNext();) {
+				    PrefetchPair pp = (PrefetchPair) it.next();
+				    if(!pset2.contains(pp)) {
+					    s.add(pp);
+				    }
+			    }
+		    }
+		    if(s != null) {
+			    newprefetchset.put(fn, s); 
+			    //FIXME Insert PrefetchNode here
+		    }
 	    }
-	}
+    }
+
+    private void doAnalysis() {
+	    Iterator classit=state.getClassSymbolTable().getDescriptorsIterator();
+	    while(classit.hasNext()) {
+		    ClassDescriptor cn=(ClassDescriptor)classit.next();
+		    Iterator methodit=cn.getMethods();
+		    while(methodit.hasNext()) {
+			    /* Classify parameters */
+			    MethodDescriptor md=(MethodDescriptor)methodit.next();
+			    FlatMethod fm=state.getMethodFlat(md);
+			    printMethod(fm);
+		    }
+	    }
     }
 
     private void printMethod(FlatMethod fm) {
-	System.out.println(fm.getMethod()+" {");
-        HashSet tovisit=new HashSet();
-        HashSet visited=new HashSet();
-        int labelindex=0;
-        Hashtable nodetolabel=new Hashtable();
-        tovisit.add(fm);
-        FlatNode current_node=null;
-        //Assign labels 1st
-        //Node needs a label if it is
-        while(!tovisit.isEmpty()) {
-            FlatNode fn=(FlatNode)tovisit.iterator().next();
-            tovisit.remove(fn);
-            visited.add(fn);
+	    System.out.println(fm.getMethod()+" {");
+	    HashSet tovisit=new HashSet();
+	    HashSet visited=new HashSet();
+	    int labelindex=0;
+	    Hashtable nodetolabel=new Hashtable();
+	    tovisit.add(fm);
+	    FlatNode current_node=null;
+	    //Assign labels 1st
+	    //Node needs a label if it is
+	    while(!tovisit.isEmpty()) {
+		    FlatNode fn=(FlatNode)tovisit.iterator().next();
+		    tovisit.remove(fn);
+		    visited.add(fn);
 
-            for(int i=0;i<fn.numNext();i++) {
-                FlatNode nn=fn.getNext(i);
-                if(i>0) {
-                    //1) Edge >1 of node
-                    nodetolabel.put(nn,new Integer(labelindex++));
-                }
-                if (!visited.contains(nn)&&!tovisit.contains(nn)) {
-                    tovisit.add(nn);
-                } else {
-                    //2) Join point
-                    nodetolabel.put(nn,new Integer(labelindex++));
-                }
-            }
-        }
-        //Do the actual printing
-        tovisit=new HashSet();
-        visited=new HashSet();
-        tovisit.add(fm);
-        while(current_node!=null||!tovisit.isEmpty()) {
-            if (current_node==null) {
-                current_node=(FlatNode)tovisit.iterator().next();
-                tovisit.remove(current_node);
-            }
-            visited.add(current_node);
-            if (nodetolabel.containsKey(current_node))
-                System.out.println("L"+nodetolabel.get(current_node)+":");
-            if (current_node.numNext()==0) {
-		System.out.println("   "+current_node.toString());
-		current_node=null;
-            } else if(current_node.numNext()==1) {
-		System.out.println("   "+current_node.toString());
-                FlatNode nextnode=current_node.getNext(0);
-                if (visited.contains(nextnode)) {
-                    System.out.println("goto L"+nodetolabel.get(nextnode));
-                    current_node=null;
-                } else
-                    current_node=nextnode;
-            } else if (current_node.numNext()==2) {
-                /* Branch */
-                System.out.println("   "+((FlatCondBranch)current_node).toString("L"+nodetolabel.get(current_node.getNext(1))));
-                if (!visited.contains(current_node.getNext(1)))
-                    tovisit.add(current_node.getNext(1));
-                if (visited.contains(current_node.getNext(0))) {
-                    System.out.println("goto L"+nodetolabel.get(current_node.getNext(0)));
-                    current_node=null;
-                } else
-                    current_node=current_node.getNext(0);
-            } else throw new Error();
-        }
-        System.out.println("}");
+		    for(int i=0;i<fn.numNext();i++) {
+			    FlatNode nn=fn.getNext(i);
+			    if(i>0) {
+				    //1) Edge >1 of node
+				    nodetolabel.put(nn,new Integer(labelindex++));
+			    }
+			    if (!visited.contains(nn)&&!tovisit.contains(nn)) {
+				    tovisit.add(nn);
+			    } else {
+				    //2) Join point
+				    nodetolabel.put(nn,new Integer(labelindex++));
+			    }
+		    }
+	    }
+	    //Do the actual printing
+	    tovisit=new HashSet();
+	    visited=new HashSet();
+	    tovisit.add(fm);
+	    while(current_node!=null||!tovisit.isEmpty()) {
+		    if (current_node==null) {
+			    current_node=(FlatNode)tovisit.iterator().next();
+			    tovisit.remove(current_node);
+		    }
+		    visited.add(current_node);
+		    if (nodetolabel.containsKey(current_node))
+			    System.out.println("L"+nodetolabel.get(current_node)+":");
+		    if (current_node.numNext()==0) {
+			    System.out.println("   "+current_node.toString());
+			    current_node=null;
+		    } else if(current_node.numNext()==1) {
+			    System.out.println("   "+current_node.toString());
+			    FlatNode nextnode=current_node.getNext(0);
+			    if (visited.contains(nextnode)) {
+				    System.out.println("goto L"+nodetolabel.get(nextnode));
+				    current_node=null;
+			    } else
+				    current_node=nextnode;
+		    } else if (current_node.numNext()==2) {
+			    /* Branch */
+			    System.out.println("   "+((FlatCondBranch)current_node).toString("L"+nodetolabel.get(current_node.getNext(1))));
+			    if (!visited.contains(current_node.getNext(1)))
+				    tovisit.add(current_node.getNext(1));
+			    if (visited.contains(current_node.getNext(0))) {
+				    System.out.println("goto L"+nodetolabel.get(current_node.getNext(0)));
+				    current_node=null;
+			    } else
+				    current_node=current_node.getNext(0);
+		    } else throw new Error();
+	    }
+	    System.out.println("}");
     }
 
 }

@@ -86,10 +86,10 @@ public class PrefetchPair {
 			if(base != pp.base) {
 				return false;
 			}
-			if (desc == null && pp.desc == null) {
+			if(desc == null && pp.desc == null) {
 				return true;
-			} else if (desc != null && pp.desc != null) {
-				if (desc.equals((ArrayList<Descriptor>)pp.desc)) {
+			} else if(desc != null && pp.desc != null) {
+				if(desc.equals((ArrayList<Descriptor>)pp.desc)) {
 					return true;
 				} 
 			} else {

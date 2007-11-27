@@ -14,7 +14,7 @@ import IR.*;
  *
  * This class is used to represent the index and index offset of Arrays in
  * a prefetch pair 
- * for eg: for a prefetch pair a[i+z] this class stores var i and var z 
+ * for eg: for a prefetch pair a[i+z], an instance of this class stores var i and var z 
  */
 
 public class IndexDescriptor extends Descriptor {
