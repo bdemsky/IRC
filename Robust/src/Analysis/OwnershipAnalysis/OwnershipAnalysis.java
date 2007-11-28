@@ -22,7 +22,6 @@ public class OwnershipAnalysis {
     // in the program
     public OwnershipAnalysis(State state) throws java.io.IOException {
 	this.state=state;      
-
 	analyzeTasks();
     }
 
@@ -36,7 +35,7 @@ public class OwnershipAnalysis {
 	    flatNodeToOwnershipGraph = new Hashtable<FlatNode, OwnershipGraph>();
 
 	    TaskDescriptor td = (TaskDescriptor)it_tasks.next();
-	    FlatMethod fm     = state.getMethodFlat( td );
+	    FlatMethod     fm = state.getMethodFlat( td );
 
 	    // give every node in the flat IR graph a unique label
 	    // so a human being can inspect the graph and verify
@@ -46,16 +45,7 @@ public class OwnershipAnalysis {
 	    labelindex      = 0;
 	    labelFlatNodes( fm );
 
-	    // add method parameters to the list of heap regions
-	    // and remember names for analysis
-	    OwnershipGraph og = getGraphFromFlat( fm );
-	    for( int i = 0; i < fm.numParameters(); ++i ) {
-		TempDescriptor tdParam = fm.getParameter( i );
-		og.newHeapRegion( tdParam );
-		og.addAnalysisRegion( tdParam );
-	    }
-
-	    String taskname   = td.getSymbol();
+	    String taskname = td.getSymbol();
 	    analyzeFlatIRGraph( fm, taskname );
 	}	
     }
@@ -72,34 +62,62 @@ public class OwnershipAnalysis {
     }
 
     private OwnershipGraph getGraphFromFlat( FlatNode fn ) {
-	if( !flatNodeToOwnershipGraph.containsKey(fn) ) {
+	if( !flatNodeToOwnershipGraph.containsKey( fn ) ) {
 	    flatNodeToOwnershipGraph.put( fn, new OwnershipGraph() );
 	}
 
-	return flatNodeToOwnershipGraph.get(fn);
+	return flatNodeToOwnershipGraph.get( fn );
     }
 
-    private void analyzeFlatIRGraph( FlatMethod fm, String taskname ) throws java.io.IOException {
+    private void setGraphForFlat( FlatNode fn, OwnershipGraph og ) {
+	flatNodeToOwnershipGraph.put( fn, og );
+    }
+
+    private void analyzeFlatIRGraph( FlatMethod flatm, String taskname ) throws java.io.IOException {
 	visited=new HashSet<FlatNode>();
 	toVisit=new HashSet<FlatNode>();
-	toVisit.add(fm);
+	toVisit.add( flatm );
 
 	while( !toVisit.isEmpty() ) {
-	    FlatNode fn=(FlatNode)toVisit.iterator().next();
-	    toVisit.remove(fn);
-	    visited.add(fn);
+	    FlatNode fn = (FlatNode)toVisit.iterator().next();
+	    toVisit.remove( fn );
+	    visited.add( fn );
 
-	    // get this node's ownership graph, or create a new one
-	    OwnershipGraph og = getGraphFromFlat( fn );
+	    // perform this node's contributions to the ownership
+	    // graph on a new copy, then compare it to the old graph
+	    // at this node to see if anything was updated.
+	    OwnershipGraph og = new OwnershipGraph();
 
+	    // start by merging all incoming node's graphs
+	    for( int i = 0; i < fn.numPrev(); ++i ) {
+		FlatNode       pn       = fn.getPrev( i );
+		OwnershipGraph ogParent = getGraphFromFlat( pn );
+		og.merge( ogParent );
+	    }
+	    
 	    TempDescriptor  src;
 	    TempDescriptor  dst;
 	    FieldDescriptor fld;
+	    String nodeDescription = "No description";
+	    boolean writeGraph = false;
 
-	    switch(fn.kind()) {
+	    // use node type to decide what alterations to make
+	    // to the ownership graph	    
+	    switch( fn.kind() ) {
 		
 	    case FKind.FlatMethod:
-		og.writeGraph( makeNodeName( taskname, flatnodetolabel.get(fn), "Method" ) );
+		FlatMethod fm = (FlatMethod) fn;
+
+		// add method parameters to the list of heap regions
+		// and remember names for analysis
+		for( int i = 0; i < fm.numParameters(); ++i ) {
+		    TempDescriptor tdParam = fm.getParameter( i );
+		    og.newHeapRegion( tdParam );
+		    og.addAnalysisRegion( tdParam );
+		}
+
+		nodeDescription = "Method";
+		writeGraph = true;
 		break;
 
 	    case FKind.FlatOpNode:
@@ -108,7 +126,8 @@ public class OwnershipAnalysis {
 		    src = fon.getLeft();
 		    dst = fon.getDest();
 		    og.assignTempToTemp( src, dst );
-		    og.writeGraph( makeNodeName( taskname, flatnodetolabel.get(fn), "Op" ) );
+		    nodeDescription = "Op";
+		    writeGraph = true;
 		}
 		break;
 
@@ -118,7 +137,8 @@ public class OwnershipAnalysis {
 		dst = ffn.getDst();
 		fld = ffn.getField();
 		og.assignTempToField( src, dst, fld );
-		og.writeGraph( makeNodeName( taskname, flatnodetolabel.get(fn), "Field" ) );
+		nodeDescription = "Field";
+		writeGraph = true;
 		break;
 
 	    case FKind.FlatSetFieldNode:
@@ -127,25 +147,36 @@ public class OwnershipAnalysis {
 		dst = fsfn.getDst();
 		fld = fsfn.getField();
 		og.assignFieldToTemp( src, dst, fld );
-		og.writeGraph( makeNodeName( taskname, flatnodetolabel.get(fn), "SetField" ) );
+		nodeDescription = "SetField";
+		writeGraph = true;
+
 		break;
 
 	    case FKind.FlatReturnNode:
-		og.writeGraph( makeNodeName( taskname, flatnodetolabel.get(fn), "Return" ) );
+		nodeDescription = "Return";
+		writeGraph = true;
 		og.writeCondensedAnalysis( makeCondensedAnalysisName( taskname, flatnodetolabel.get(fn) ) );
 		break;
 	    }
-	    
-	    // send this flat node's ownership graph along the out edges
-	    // to be taken by the next flat edges in the flow, or if they
-	    // already have a graph, to be merged
-	    for(int i=0;i<fn.numNext();i++) {
-		FlatNode nn=fn.getNext(i);
 
-		if( !visited.contains( nn ) ) {
-		    // FIX THE COPY!!!!!!!!!!!!!!!
-		    //flatNodeToOwnershipGraph.put( nn, og.copy() );
-		    flatNodeToOwnershipGraph.put( nn, og );
+	    if( writeGraph ) {
+		og.writeGraph( makeNodeName( taskname, 
+					     flatnodetolabel.get( fn ), 
+					     nodeDescription ) );
+	    }
+	    
+	    // if the results of the new graph are different from
+	    // the current graph at this node, replace the graph
+	    // with the update and enqueue the children for
+	    // processing
+	    OwnershipGraph ogOld = getGraphFromFlat( fn );
+
+	    if( !og.equivalent( ogOld ) ) {
+		setGraphForFlat( fn, og );
+
+		for( int i = 0; i < fn.numNext(); i++ ) {
+		    FlatNode nn = fn.getNext( i );
+		    visited.remove( nn );
 		    toVisit.add( nn );
 		}
 	    }

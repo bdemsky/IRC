@@ -34,8 +34,6 @@ task A( P1 p1f{!a},
 {
     p1f.m = p2f.n;
 
-    //p2t.n = p2f.n;
-
     taskexit( p1f{ a}, 
 	      p2f{ b} );
 }

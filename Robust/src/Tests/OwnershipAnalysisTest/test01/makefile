@@ -3,14 +3,12 @@ PROGRAM=test01
 SOURCE_FILES=test01.java
 
 BUILDSCRIPT=~/research/Robust/src/buildscript
-
+BSFLAGS= -recover -flatirtasks -ownership -enable-assertions
 
 all: view
 
 view: PNGs
-	eog task*_flatIRGraph*.png &
-	eog task*_FN*.png &
-	eog task*_Ownership*.png &
+	eog *.png &
 
 PNGs: DOTs
 	rm -f *Startup*.dot
@@ -19,7 +17,7 @@ PNGs: DOTs
 DOTs: $(PROGRAM).bin
 
 $(PROGRAM).bin: $(SOURCE_FILES)
-	$(BUILDSCRIPT) -recover -flatirtasks -ownership -o $(PROGRAM) $(SOURCE_FILES)
+	$(BUILDSCRIPT) $(BSFLAGS) -o $(PROGRAM) $(SOURCE_FILES)
 
 clean:
 	rm -f  $(PROGRAM).bin
