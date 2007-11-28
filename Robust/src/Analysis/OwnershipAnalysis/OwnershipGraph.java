@@ -15,7 +15,7 @@ public class OwnershipGraph {
     protected static int labelNodeIDs = 0;
     public Hashtable<TempDescriptor, OwnershipLabelNode> td2ln;
 
-    protected Vector<TempDescriptor> analysisRegionLabels;
+    public Vector<TempDescriptor> analysisRegionLabels;
     protected Hashtable<TempDescriptor, TempDescriptor> linkedRegions;
 
     protected static final int VISIT_OHRN_WRITE_FULL      = 0;
@@ -259,6 +259,13 @@ public class OwnershipGraph {
 		heapRoots.put( idA, ohrnB );
 	    }
 	}
+
+	// also merge the analysis regions
+	for( int i = 0; i < og.analysisRegionLabels.size(); ++i ) {
+	    if( !analysisRegionLabels.contains( og.analysisRegionLabels.get( i ) ) ) {
+		analysisRegionLabels.add( og.analysisRegionLabels.get( i ) );
+	    }
+	}
     }
 
     // see notes for merge() above about how to equate
@@ -382,7 +389,7 @@ public class OwnershipGraph {
 	    } 
 	}
 
-	// finally check if the heapRoots are equivalent
+	// check if the heapRoots are equivalent
 	sA = og.heapRoots.entrySet();
 	iA = sA.iterator();
 	while( iA.hasNext() ) {
@@ -391,6 +398,17 @@ public class OwnershipGraph {
 	    OwnershipHeapRegionNode ohrnA = (OwnershipHeapRegionNode) meA.getValue();
 
 	    if( !heapRoots.containsKey( idA ) ) {
+		return false;
+	    }
+	}
+
+	// check that the analysis regions are equivalent, note
+	// that they can be in a different order
+	if( og.analysisRegionLabels.size() != analysisRegionLabels.size() ) {
+	    return false;
+	}
+	for( int i = 0; i < og.analysisRegionLabels.size(); ++i ) {
+	    if( !analysisRegionLabels.contains( og.analysisRegionLabels.get( i ) ) ) {
 		return false;
 	    }
 	}
@@ -436,19 +454,18 @@ public class OwnershipGraph {
 	BufferedWriter bw = new BufferedWriter( new FileWriter( graphName+".dot" ) );
 	bw.write( "graph "+graphName+" {\n" );
 
-	HashSet<OwnershipHeapRegionNode> visited = new HashSet<OwnershipHeapRegionNode>();
-
 	// find linked regions
 	for( int i = 0; i < analysisRegionLabels.size(); ++i ) {
 	    TempDescriptor td = analysisRegionLabels.get( i );
 	    bw.write( "  "+td.getSymbol()+";\n" );
 	    OwnershipLabelNode oln = getLabelNodeFromTemp( td );
 
+	    HashSet<OwnershipHeapRegionNode> visited = new HashSet<OwnershipHeapRegionNode>();
+
 	    OwnershipHeapRegionNode ohrn = null;
 	    Iterator heapRegionsItr = oln.iteratorToReachableRegions();
 	    while( heapRegionsItr.hasNext() ) {
 		ohrn = (OwnershipHeapRegionNode)heapRegionsItr.next();
-
 		traverseHeapNodes( VISIT_OHRN_WRITE_CONDENSED, ohrn, bw, td, visited );
 	    }
 	}
@@ -467,17 +484,6 @@ public class OwnershipGraph {
 	bw.close();
     }
 
-    /*
-    protected void traverseHeapNodesTop(  int mode,
-					  OwnershipHeapRegionNode ohrn,
-					  BufferedWriter bw,
-					  TempDescriptor td
-					  ) throws java.io.IOException {
-	HashSet<OwnershipHeapRegionNode> visited = new HashSet<OwnershipHeapRegionNode>();
-	traverseHeapNodes( mode, ohrn, bw, td, visited );
-    }
-    */
-
     protected void traverseHeapNodes( int mode,
 				      OwnershipHeapRegionNode ohrn,
 				      BufferedWriter bw,
@@ -491,7 +497,28 @@ public class OwnershipGraph {
 	    bw.write( "  "+ohrn.toString()+"[shape=box];\n" );
 	    break;
 
-	case VISIT_OHRN_WRITE_CONDENSED:
+	case VISIT_OHRN_WRITE_CONDENSED:	    
+	    Vector<TempDescriptor> aliases = ohrn.getAnalysisRegionAliases();
+	    for( int i = 0; i < aliases.size(); ++i ) {
+		TempDescriptor tdn = aliases.get( i );
+		
+		// only add a linked region if the td passed in and 
+		// the td's aliased to this node haven't already been
+		// added as linked regions
+		TempDescriptor tdAlias = null;
+		if( linkedRegions.containsKey( td ) ) {
+		    tdAlias = linkedRegions.get( td );
+		}
+		
+		TempDescriptor tdnAlias = null;		
+		if( linkedRegions.containsKey( tdn ) ) {
+		    tdnAlias = linkedRegions.get( tdn );
+		}
+		
+		if( tdn != tdAlias && td != tdnAlias ) {
+		    linkedRegions.put( td, tdn );
+		}
+	    }	    
 	    ohrn.addAnalysisRegionAlias( td );
 	    break;
 	}
@@ -505,29 +532,7 @@ public class OwnershipGraph {
 	    case VISIT_OHRN_WRITE_FULL:
 		bw.write( "  "+ohrn.toString()+" -> "+ohrnChild.toString()+";\n" );
 		break;
-		
-	    case VISIT_OHRN_WRITE_CONDENSED:
-		Vector<TempDescriptor> aliases = ohrnChild.getAnalysisRegionAliases();
-		for( int i = 0; i < aliases.size(); ++i ) {
-		    TempDescriptor tdn = aliases.get( i );
-		    
-		    // only add this alias if it has not been already added		
-		    TempDescriptor tdAlias = null;
-		    if( linkedRegions.containsKey( td ) ) {
-			tdAlias = linkedRegions.get( td );
-		    }
-		    
-		    TempDescriptor tdnAlias = null;		
-		    if( linkedRegions.containsKey( tdn ) ) {
-			tdnAlias = linkedRegions.get( tdn );
-		    }
-		    
-		    if( tdn != tdAlias && td != tdnAlias ) {
-			linkedRegions.put( td, tdn );
-		    }
-		}
-		break;	
-	    }	
+	    }
 
 	    if( !visited.contains( ohrnChild ) ) {
 		traverseHeapNodes( mode, ohrnChild, bw, td, visited );
