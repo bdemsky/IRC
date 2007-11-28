@@ -85,8 +85,7 @@ public class OwnershipGraph {
 	    OwnershipHeapRegionNode ohrnSrc = null;
 	    Iterator srcRegionsItr = srcln.iteratorToReachableRegions();
 	    while( srcRegionsItr.hasNext() ) {
-		ohrnSrc = (OwnershipHeapRegionNode)srcRegionsItr.next();
-		
+		ohrnSrc = (OwnershipHeapRegionNode)srcRegionsItr.next();	       
 		ohrn.addReachableRegion( ohrnSrc );
 	    }
 	}	
@@ -404,12 +403,14 @@ public class OwnershipGraph {
 	BufferedWriter bw = new BufferedWriter( new FileWriter( graphName+".dot" ) );
 	bw.write( "digraph "+graphName+" {\n" );
 
+	HashSet<OwnershipHeapRegionNode> visited = new HashSet<OwnershipHeapRegionNode>();
+
 	Set s = heapRoots.entrySet();
 	Iterator i = s.iterator();
 	while( i.hasNext() ) {
 	    Map.Entry me = (Map.Entry) i.next();
 	    OwnershipHeapRegionNode ohrn = (OwnershipHeapRegionNode) me.getValue();
-	    traverseHeapNodesTop( VISIT_OHRN_WRITE_FULL, ohrn, bw, null );
+	    traverseHeapNodes( VISIT_OHRN_WRITE_FULL, ohrn, bw, null, visited );
 	}
 
 	s = td2ln.entrySet();
@@ -435,6 +436,8 @@ public class OwnershipGraph {
 	BufferedWriter bw = new BufferedWriter( new FileWriter( graphName+".dot" ) );
 	bw.write( "graph "+graphName+" {\n" );
 
+	HashSet<OwnershipHeapRegionNode> visited = new HashSet<OwnershipHeapRegionNode>();
+
 	// find linked regions
 	for( int i = 0; i < analysisRegionLabels.size(); ++i ) {
 	    TempDescriptor td = analysisRegionLabels.get( i );
@@ -446,7 +449,7 @@ public class OwnershipGraph {
 	    while( heapRegionsItr.hasNext() ) {
 		ohrn = (OwnershipHeapRegionNode)heapRegionsItr.next();
 
-		traverseHeapNodesTop( VISIT_OHRN_WRITE_CONDENSED, ohrn, bw, td );
+		traverseHeapNodes( VISIT_OHRN_WRITE_CONDENSED, ohrn, bw, td, visited );
 	    }
 	}
 
@@ -464,6 +467,7 @@ public class OwnershipGraph {
 	bw.close();
     }
 
+    /*
     protected void traverseHeapNodesTop(  int mode,
 					  OwnershipHeapRegionNode ohrn,
 					  BufferedWriter bw,
@@ -472,6 +476,7 @@ public class OwnershipGraph {
 	HashSet<OwnershipHeapRegionNode> visited = new HashSet<OwnershipHeapRegionNode>();
 	traverseHeapNodes( mode, ohrn, bw, td, visited );
     }
+    */
 
     protected void traverseHeapNodes( int mode,
 				      OwnershipHeapRegionNode ohrn,

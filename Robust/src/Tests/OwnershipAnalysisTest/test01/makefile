@@ -8,7 +8,9 @@ BSFLAGS= -recover -flatirtasks -ownership -enable-assertions
 all: view
 
 view: PNGs
-	eog *.png &
+	eog *flatIRGraph*.png &
+	eog *FN*.png &
+	eog *Ownership*.png &
 
 PNGs: DOTs
 	rm -f *Startup*.dot
