@@ -26,6 +26,7 @@ IR/Flat/FlatNew.class IR/Flat/FlatNode.class IR/Flat/FlatNop.class	\
 IR/Flat/FlatOpNode.class IR/Flat/FlatReturnNode.class			\
 IR/Flat/FlatSetElementNode.class IR/Flat/FlatSetFieldNode.class		\
 IR/Flat/FlatTagDeclaration.class IR/Flat/NodePair.class			\
+IR/Flat/FlatPrefetchNode.class						\
 IR/Flat/ParamsObject.class IR/Flat/TempDescriptor.class			\
 IR/Flat/TempFlagPair.class IR/Flat/TempObject.class			\
 IR/Flat/TempTagPair.class IR/Tree/ArrayAccessNode.class			\
@@ -83,7 +84,9 @@ Interface/HTTPHeader.class Interface/HTTPResponse.class			\
 Interface/HTTPServices.class Interface/HashStrings.class		\
 Interface/JhttpServer.class Interface/JhttpWorker.class			\
 Interface/LogFile.class Interface/Pair.class				\
-Interface/WebInterface.class Analysis/Prefetch/PrefetchAnalysis.class
+Interface/WebInterface.class Analysis/Prefetch/PrefetchAnalysis.class	\
+Analysis/Prefetch/PrefetchPair.class Analysis/Prefetch/PairMap.class    \
+Analysis/Prefetch/IndexDescriptor.class	
 
 
 

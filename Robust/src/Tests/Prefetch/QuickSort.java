@@ -41,8 +41,9 @@ public class QuickSort {
 		int i;
 		int j;
 		QArray myArray[] = new QArray[2];
-		myArray[0] = new QArray();
-		myArray[1] = new QArray();
+		for(i = 0; i<2; i++) {
+			myArray[i] = new QArray();
+		}
 		QuickSort qsort = new QuickSort();
 		System.printString("Values Before sorting\n");
 		for(i = 0; i<2; i++){ 
