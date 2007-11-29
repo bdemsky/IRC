@@ -293,6 +293,7 @@ public class LocalityAnalysis {
 	    case FKind.FlatCondBranch:
 	    case FKind.FlatBackEdge:
 	    case FKind.FlatNop:
+	    case FKind.FlatPrefetchNode:
 		//No action needed for these
 		break;
 	    case FKind.FlatFlagActionNode:
