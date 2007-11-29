@@ -1303,14 +1303,8 @@ public class PrefetchAnalysis {
 			}
 			if(fn.kind() == FKind.FlatMethod) {
 				FlatNode nn = fn.getNext(0);
-				TempDescriptor tdsrc = new TempDescriptor("a");
-				TempDescriptor tddst = new TempDescriptor("b");
-				TypeDescriptor type = new TypeDescriptor("Hash");
-				FlatNode fpn2 = new FlatNode();
-				FlatNop fpn1 = new FlatNop();
-				FlatCastNode fcn = new FlatCastNode(type,tdsrc,tddst);
-				fn.setNext(0, fcn);
-				fcn.addNext(nn);
+				fn.setNext(0, fpn);
+				fpn.addNext(nn);
 
 			} else {
 				while(fn.numPrev() > 0) {
