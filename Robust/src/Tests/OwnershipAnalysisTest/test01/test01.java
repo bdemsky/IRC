@@ -1,39 +1,76 @@
-public class Thing { int z; public Thing(){} }
-
-public class P1 {
-    public P1(){}
-    flag a;
-    int x;
-    Thing m;
-}
-
-public class P2 {
-    public P2(){}
-    flag b;
-    int y;
-    Thing n;
-}
-
-public class P3 {
-    public P2(){}
-    flag b;
-    int y;
-    Thing n;
+public class Parameter {
+    flag w;
+    int a, b;
+    Parameter f, g;
+    public Parameter() {
+	a = 0; b = 0; f = null; g = null;
+    }
 }
 
 task Startup( StartupObject s{ initialstate } ) {
-    P1 p1f = new P1(){!a};
-    P2 p2f = new P2(){!b};
-    P1 p1t = new P1(){ a};
-    P2 p2t = new P2(){ b};
+    Parameter p1 = new Parameter(){!w};
+    Parameter p2 = new Parameter(){!w};
     taskexit( s{ !initialstate } );
 }
 
-task A( P1 p1f{!a}, 
-	P2 p2f{!b} )
-{
-    p1f.m = p2f.n;
+task aliasFromObjectAssignment
+    ( Parameter p1{!w}, Parameter p2{!w} ) {
+    
+    p1.f = p2.g;
 
-    taskexit( p1f{ a}, 
-	      p2f{ b} );
+    taskexit( p1{w}, p2{w} );
+}
+
+task noAliasFromPrimitiveAssignment
+    ( Parameter p1{!w}, Parameter p2{!w} ) {
+    
+    p1.a = p2.b;
+
+    taskexit( p1{w}, p2{w} );
+}
+
+task aliasWithTwoLinks
+    ( Parameter p1{!w}, Parameter p2{!w} ) {
+    
+    Parameter j = p1.f;
+    p2.f = j;
+
+    taskexit( p1{w}, p2{w} );
+}
+
+task aliasWithThreeLinks
+    ( Parameter p1{!w}, Parameter p2{!w} ) {
+    
+    Parameter j = p1.f;
+    Parameter k = j;
+    p2.f = k;
+
+    taskexit( p1{w}, p2{w} );
+}
+
+task noAliasBreakLinks
+    ( Parameter p1{!w}, Parameter p2{!w} ) {
+    
+    Parameter j = p1.f;
+    Parameter k = j;
+    k = p2.f;
+    p2.f = k;
+
+    taskexit( p1{w}, p2{w} );
+}
+
+task possibleAliasConditional
+    ( Parameter p1{!w}, Parameter p2{!w} ) {
+    
+    Parameter y;
+
+    if( p1.a == 0 ) {
+	y = p1.f;
+    } else {
+	y = p2.f;
+    }
+
+    p2.g = y;
+
+    taskexit( p1{w}, p2{w} );
 }

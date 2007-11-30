@@ -490,6 +490,10 @@ public class OwnershipGraph {
 				      TempDescriptor td,
 				      HashSet<OwnershipHeapRegionNode> visited
 				      ) throws java.io.IOException {
+
+	if( visited.contains( ohrn ) ) {
+	    return;
+	}
 	visited.add( ohrn );
 
 	switch( mode ) {
@@ -534,9 +538,7 @@ public class OwnershipGraph {
 		break;
 	    }
 
-	    if( !visited.contains( ohrnChild ) ) {
-		traverseHeapNodes( mode, ohrnChild, bw, td, visited );
-	    }
+	    traverseHeapNodes( mode, ohrnChild, bw, td, visited );
 	}
     }
 }

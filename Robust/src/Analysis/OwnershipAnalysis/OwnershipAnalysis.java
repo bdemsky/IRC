@@ -122,7 +122,7 @@ public class OwnershipAnalysis {
 
 	    case FKind.FlatOpNode:
 		FlatOpNode fon = (FlatOpNode) fn;
-		if(fon.getOp().getOp()==Operation.ASSIGN) {
+		if( fon.getOp().getOp() == Operation.ASSIGN ) {
 		    src = fon.getLeft();
 		    dst = fon.getDest();
 		    og.assignTempToTemp( src, dst );
@@ -136,9 +136,11 @@ public class OwnershipAnalysis {
 		src = ffn.getSrc();
 		dst = ffn.getDst();
 		fld = ffn.getField();
-		og.assignTempToField( src, dst, fld );
-		nodeDescription = "Field";
-		writeGraph = true;
+		if( !fld.getType().isPrimitive() ) {
+		    og.assignTempToField( src, dst, fld );
+		    nodeDescription = "Field";
+		    writeGraph = true;
+		}
 		break;
 
 	    case FKind.FlatSetFieldNode:
