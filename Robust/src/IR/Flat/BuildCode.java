@@ -15,6 +15,7 @@ import Analysis.TaskStateAnalysis.SafetyAnalysis;
 import Analysis.TaskStateAnalysis.TaskIndex;
 import Analysis.Locality.LocalityAnalysis;
 import Analysis.Locality.LocalityBinding;
+import Analysis.Prefetch.*;
 
 public class BuildCode {
     State state;
@@ -324,12 +325,12 @@ public class BuildCode {
 	/* Generate code for methods */
 	if (state.DSM) {
 	    for(Iterator<LocalityBinding> lbit=locality.getLocalityBindings().iterator();lbit.hasNext();) {
-		LocalityBinding lb=lbit.next();
-		MethodDescriptor md=lb.getMethod();
-		FlatMethod fm=state.getMethodFlat(md);
-		if (!md.getModifiers().isNative()) {
-		    generateFlatMethod(fm, lb, outmethod);
-		}
+	        LocalityBinding lb=lbit.next();
+                MethodDescriptor md=lb.getMethod();
+	        FlatMethod fm=state.getMethodFlat(md);
+	        if (!md.getModifiers().isNative()) {
+		        generateFlatMethod(fm, lb, outmethod);
+	        }
 	    }
 	} else {
 	    Iterator classit=state.getClassSymbolTable().getDescriptorsIterator();
@@ -1412,11 +1413,47 @@ public class BuildCode {
 	case FKind.FlatFlagActionNode:
 	    generateFlatFlagActionNode(fm, lb, (FlatFlagActionNode) fn, output);
 	    return;
+	case FKind.FlatPrefetchNode:
+	    generateFlatPrefetchNode(fm,lb, (FlatPrefetchNode) fn, output);
+	    return;
 	}
 	throw new Error();
-
     }
-    
+ 
+    public void generateFlatPrefetchNode(FlatMethod fm, LocalityBinding lb, FlatPrefetchNode fpn, PrintWriter output) {
+	System.out.println("Inside generateFlatPrefetchNode()");
+    	if (state.PREFETCH) {
+	    System.out.println("The Prefetch pairs to be fetched are "+ fpn.hspp);
+	    Iterator it = fpn.hspp.iterator();
+	    for(;it.hasNext();) {
+		 PrefetchPair pp = (PrefetchPair) it.next();
+		 //TODO handle arrays in prefetch tuples, currently only handle fields
+		 Integer statusbase = locality.getNodePreTempInfo(lb,fpn).get(pp.base);
+		 System.out.println("DEBUG-> generateFlatPrefetchNode()" + statusbase);
+		 if(statusbase == LocalityAnalysis.GLOBAL) {
+		     // Generate oid for base
+	         } else {
+		     for(int i = 0; i<pp.desc.size(); i++) {
+		 	Object o = pp.desc.get(i);
+		 	if(!(o instanceof IndexDescriptor)) {
+				FieldDescriptor fd = (FieldDescriptor) o;
+				Integer statusfd = locality.getNodePreTempInfo(lb,fpn).get(fd);
+				System.out.println("DEBUG-> generateFlatPrefetchNode() fd" + statusfd);
+				//find out the locality of the fieldDescriptor
+				if(statusfd == LocalityAnalysis.GLOBAL) {
+					//generate oid for it
+				}
+		 	}
+		     }
+	  	 }
+             }
+             //Each temp descriptor can be an oid
+	     //Find locality of each prefetch tuple in the FLatPrefetchNode
+	     //Separate them as Local or Global
+	     //generate oids and offset value for prefetch tuple
+	}
+    }   
+
     public void generateFlatGlobalConvNode(FlatMethod fm, LocalityBinding lb, FlatGlobalConvNode fgcn, PrintWriter output) {
 	if (lb!=fgcn.getLocality())
 	    return;
@@ -1699,6 +1736,7 @@ public class BuildCode {
 	} else
 	    output.println(generateTemp(fm, ffn.getDst(),lb)+"="+ generateTemp(fm,ffn.getSrc(),lb)+"->"+ ffn.getField().getSafeSymbol()+";");
     }
+
 
     private void generateFlatSetFieldNode(FlatMethod fm, LocalityBinding lb, FlatSetFieldNode fsfn, PrintWriter output) {
 	if (fsfn.getField().getSymbol().equals("length")&&fsfn.getDst().getType().isArray())

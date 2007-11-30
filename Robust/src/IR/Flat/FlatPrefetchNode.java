@@ -3,10 +3,10 @@ import Analysis.Prefetch.*;
 import java.util.*;
 
 public class FlatPrefetchNode extends FlatNode {
-	HashSet<PrefetchPair> pp;
+	HashSet<PrefetchPair> hspp;
 
 	public FlatPrefetchNode() {
-		pp = new HashSet<PrefetchPair>();
+		hspp = new HashSet<PrefetchPair>();
 	}
 
 	public String toString() {
@@ -18,14 +18,14 @@ public class FlatPrefetchNode extends FlatNode {
 	}
 
 	public void insPrefetchPair(PrefetchPair pp) {
-		this.pp.add(pp);
+		hspp.add(pp);
 	}
 
 	public void insAllpp(HashSet<PrefetchPair> hspp) {
-		this.pp.addAll(hspp);
+		this.hspp.addAll(hspp);
 	}
 
 	public HashSet<PrefetchPair> getPrefetchPairs() {
-		return this.pp;
+		return hspp;
 	}
 }

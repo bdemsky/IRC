@@ -114,7 +114,6 @@ public class PrefetchAnalysis {
 			doInsPrefetchAnalysis(fm);
 			if(newprefetchset.size() > 0) {
 				addFlatPrefetchNode(newprefetchset);
-				printMethod(fm);
 			}
 		}
 	}
@@ -195,7 +194,7 @@ public class PrefetchAnalysis {
 				}
 				break;
 			case FKind.FlatOpNode:
-				processFlatOpNode(curr, child_prefetch_set_copy,parentpmap);
+				processFlatOpNode(curr, child_prefetch_set_copy, parentpmap);
 				break;
 			case FKind.FlatLiteralNode:
 				processFlatLiteralNode(curr, child_prefetch_set_copy, parentpmap);
@@ -213,7 +212,7 @@ public class PrefetchAnalysis {
 				processDefaultCase(curr,child_prefetch_set_copy, parentpmap);
 				break;
 			case FKind.FlatCastNode:
-				processDefaultCase(curr,child_prefetch_set_copy, parentpmap);
+				processFlatCastNode(curr, child_prefetch_set_copy, parentpmap);
 				break;
 			case FKind.FlatFlagActionNode:
 				processDefaultCase(curr,child_prefetch_set_copy, parentpmap);
@@ -225,7 +224,7 @@ public class PrefetchAnalysis {
 				processDefaultCase(curr,child_prefetch_set_copy, parentpmap);
 				break;
 			case FKind.FlatTagDeclaration:
-				processDefaultCase(curr,child_prefetch_set_copy, parentpmap);
+				processFlatTagDeclaration(curr, child_prefetch_set_copy, parentpmap);
 				break;
 			default:
 				System.out.println("NO SUCH FLATNODE");
@@ -1104,6 +1103,94 @@ public class PrefetchAnalysis {
 		} 
 	}
 
+	/** This functions processes for FlatCastNode
+	 * for e.g x = (cast type) y followed by childnode with prefetch set x.f
+	 * then drop the prefetches beyond this FlatCastNode */
+	private void processFlatCastNode(FlatNode curr, Hashtable<PrefetchPair, Float>child_prefetch_set_copy, 
+			Hashtable<FlatNode, PairMap> parentpmap) {
+		boolean pSetHasChanged = false;
+		Hashtable<PrefetchPair, Float> tocompare = new Hashtable<PrefetchPair, Float>();
+		FlatCastNode currfcn = (FlatCastNode) curr;
+		Float newprob = new Float((float)0.0);
+		PairMap pm = new PairMap();
+		PrefetchPair childpp = null;
+		Enumeration ecld = null;
+
+		ecld = child_prefetch_set_copy.keys();
+		while (ecld.hasMoreElements()) {
+			childpp = (PrefetchPair) ecld.nextElement();
+			if(childpp.base == currfcn.getDst()){
+				child_prefetch_set_copy.remove(childpp);
+			} else {
+				tocompare.put(childpp, child_prefetch_set_copy.get(childpp));
+				pm.addPair(childpp, childpp);
+				child_prefetch_set_copy.remove(childpp);
+			}
+		}
+
+		/* Create prefetch mappings for child nodes */
+		if(!pm.isEmpty()) {
+			parentpmap.put(curr, pm);
+		}
+		pmap_hash.put(curr.getNext(0), parentpmap);
+
+		/* Compare with the old prefetch set */
+		pSetHasChanged = comparePrefetchSets(prefetch_hash.get(curr), tocompare);
+
+		/* Enqueue parent nodes */
+		if(pSetHasChanged) {
+			for(int i=0; i<curr.numPrev(); i++) {
+				tovisit.add(curr.getPrev(i));
+			}
+			/* Overwrite the new prefetch set to the global hash table */
+			prefetch_hash.put(curr,tocompare); 
+		} 
+	}
+
+	/** This functions processes for FlatTagDeclaration
+	 * for e.g x = (cast type) y followed by childnode with prefetch set x.f
+	 * then drop the prefetches beyond this FlatTagDeclaration */
+	private void processFlatTagDeclaration(FlatNode curr, Hashtable<PrefetchPair, Float>child_prefetch_set_copy, 
+			Hashtable<FlatNode, PairMap> parentpmap) {
+		boolean pSetHasChanged = false;
+		Hashtable<PrefetchPair, Float> tocompare = new Hashtable<PrefetchPair, Float>();
+		FlatTagDeclaration currftd = (FlatTagDeclaration) curr;
+		Float newprob = new Float((float)0.0);
+		PairMap pm = new PairMap();
+		PrefetchPair childpp = null;
+		Enumeration ecld = null;
+
+		ecld = child_prefetch_set_copy.keys();
+		while (ecld.hasMoreElements()) {
+			childpp = (PrefetchPair) ecld.nextElement();
+			if(childpp.base == currftd.getDst()){
+				child_prefetch_set_copy.remove(childpp);
+			} else {
+				tocompare.put(childpp, child_prefetch_set_copy.get(childpp));
+				pm.addPair(childpp, childpp);
+				child_prefetch_set_copy.remove(childpp);
+			}
+		}
+
+		/* Create prefetch mappings for child nodes */
+		if(!pm.isEmpty()) {
+			parentpmap.put(curr, pm);
+		}
+		pmap_hash.put(curr.getNext(0), parentpmap);
+
+		/* Compare with the old prefetch set */
+		pSetHasChanged = comparePrefetchSets(prefetch_hash.get(curr), tocompare);
+
+		/* Enqueue parent nodes */
+		if(pSetHasChanged) {
+			for(int i=0; i<curr.numPrev(); i++) {
+				tovisit.add(curr.getPrev(i));
+			}
+			/* Overwrite the new prefetch set to the global hash table */
+			prefetch_hash.put(curr,tocompare); 
+		} 
+	}
+
 	/** This function prints the Prefetch pairs of a given flatnode */
 	private void printPrefetchPairs(FlatNode fn) {
 		if(prefetch_hash.containsKey(fn)) {
@@ -1216,7 +1303,7 @@ public class PrefetchAnalysis {
 							FlatNode parentnode = (FlatNode) e.nextElement();
 							PairMap pm = (PairMap) ppairmaphash.get(parentnode);
 							if(pset1_hash.containsKey(parentnode)) {
-								Set pset = pset1_hash.get(parentnode);
+								HashSet pset = pset1_hash.get(parentnode);
 								if(!pset.isEmpty()) {
 									if(ppairIsPresent = (pset.contains((PrefetchPair) pm.getPair(pp)))) {
 										mapIsPresent = ppairIsPresent && mapIsPresent;
@@ -1272,20 +1359,28 @@ public class PrefetchAnalysis {
 				}
 			}
 			pset1_hash.put(fn, pset1);
-		}
 
-		/* To insert prefetch apply rule */
-		HashSet s = null;
-		if(!newpset.isEmpty() && !pset2.isEmpty()) {
-			for(Iterator it = newpset.iterator(); it.hasNext();) {
-				PrefetchPair pp = (PrefetchPair) it.next();
-				if(!pset2.contains(pp)) {
-					s.add(pp);
+			/* To insert prefetch apply rule */
+			HashSet<PrefetchPair> s = new HashSet<PrefetchPair>();
+			//if(!newpset.isEmpty() && !pset2.isEmpty()) {
+			if(!newpset.isEmpty()) {
+				if(!pset2.isEmpty()) {
+					for(Iterator it = newpset.iterator(); it.hasNext();) {
+						PrefetchPair pp = (PrefetchPair) it.next();
+						if(!pset2.contains(pp)) {
+							s.add(pp);
+						}
+					}
+				} else {
+					for(Iterator it = newpset.iterator(); it.hasNext();) {
+						PrefetchPair pp = (PrefetchPair) it.next();
+						s.add(pp);
+					}
 				}
 			}
-		}
-		if(s != null) {
-			newprefetchset.put(fn, s); 
+			if(s.size() > 0) {
+				newprefetchset.put(fn, s); 
+			}
 		}
 	}
 
@@ -1301,11 +1396,11 @@ public class PrefetchAnalysis {
 			for(i = 0; i< newprefetchset.get(fn).size(); i++) {
 				fpn.insAllpp((HashSet)newprefetchset.get(fn));
 			}
+			//System.out.println("The HashSet of prefetch pairs are "+ fpn.getPrefetchPairs());
 			if(fn.kind() == FKind.FlatMethod) {
 				FlatNode nn = fn.getNext(0);
 				fn.setNext(0, fpn);
 				fpn.addNext(nn);
-
 			} else {
 				while(fn.numPrev() > 0) {
 					FlatNode nn = fn.getPrev(0);

@@ -47,6 +47,7 @@ unsigned int oidMin;
 unsigned int oidMax;
 
 void printhex(unsigned char *, int);
+plistnode_t *createPiles(transrecord_t *);
 
 void printhex(unsigned char *ptr, int numBytes)
 {
@@ -62,7 +63,6 @@ void printhex(unsigned char *ptr, int numBytes)
 	return;
 }
 
-plistnode_t *createPiles(transrecord_t *);
 inline int arrayLength(int *array) {
 	int i;
 	for(i=0 ;array[i] != -1; i++)
@@ -132,6 +132,30 @@ int dstmStartup(const char * option) {
 
 }
 
+//TODO Use this later
+void *pCacheAlloc(objstr_t *store, unsigned int size) {
+	void *tmp;
+	objstr_t *ptr;
+	ptr = store;
+	int success = 0;
+
+	while(ptr->next != NULL) {
+		/* check if store is empty */
+		if(((unsigned int)ptr->top - (unsigned int)ptr - sizeof(objstr_t) + size) <= ptr->size) {
+			tmp = ptr->top;
+			ptr->top += size;
+			success = 1;
+			return tmp;
+		} else {
+			ptr = ptr-> next;
+		}
+	}
+
+	if(success == 0) {
+		printf("DEBUG-> Unable to insert object in Prefetch cache\n");
+		return NULL;
+	}
+}
 
 /* This function initiates the prefetch thread
  * A queue is shared between the main thread of execution
@@ -143,6 +167,8 @@ void transInit() {
 	int retval;
 	//Create and initialize prefetch cache structure
 	prefetchcache = objstrCreate(PREFETCH_CACHE_SIZE);
+	//prefetchcache->next = objstrCreate(PREFETCH_CACHE_SIZE);
+	//prefetchcache->next->next = objstrCreate(PREFETCH_CACHE_SIZE);
 
 	/* Initialize attributes for mutex */
 	pthread_mutexattr_init(&prefetchcache_mutex_attr);
