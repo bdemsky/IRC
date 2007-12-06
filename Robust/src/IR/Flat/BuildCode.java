@@ -1750,7 +1750,7 @@ public class BuildCode {
 	    String dst=generateTemp(fm,fsfn.getDst(),lb);
 	    if (srcglobal) {
 		output.println("{");
-		output.println("int srcoid="+src+"->"+oidstr+";");
+		output.println("int srcoid=(int)"+src+"->"+oidstr+";");
 	    }
 	    if (statusdst.equals(LocalityAnalysis.GLOBAL)) {
 		String glbdst=dst;
@@ -1758,7 +1758,6 @@ public class BuildCode {
 		output.println("*((unsigned int *)&("+dst+"->___localcopy___))|=DIRTY;");
 		if (srcglobal) {
 		    output.println("*((unsigned int *)&("+glbdst+"->"+ fsfn.getField().getSafeSymbol()+"))=srcoid;");
-		    output.println("}");
 		} else
 		    output.println(glbdst+"->"+ fsfn.getField().getSafeSymbol()+"="+ src+";");		
 	    } else if (statusdst.equals(LocalityAnalysis.LOCAL)) {
