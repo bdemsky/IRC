@@ -4,6 +4,7 @@ objstr_t *objstrCreate(unsigned int size)
 {
 	objstr_t *tmp = malloc(sizeof(objstr_t) + size);
 	tmp->size = size;
+	tmp->next = NULL;
 	tmp->top = tmp + 1; //points to end of objstr_t structure!
 	return tmp;
 }
@@ -49,6 +50,7 @@ void *objstrAlloc(objstr_t *store, unsigned int size)
 				if (store->next == NULL)
 					return NULL;
 				store = store->next;
+				store->next = NULL;
 				store->size = DEFAULT_OBJ_STORE_SIZE;
 			}
 			store->top = (void *)((unsigned int)store + sizeof(objstr_t) + size);

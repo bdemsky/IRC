@@ -1,5 +1,9 @@
 High priority list
 -------------------------------------
+0) Fix objstr issues...
+  A) allocations always have to traverse to end of list
+  B) do we need to zero first?? -- need to check about this one, it may be okay
+
 1) Wrap all receive calls in loops
   A) Perhaps the best way is to just define a macro or function call that
 does this. Look at GETSIZE macro for example...
