@@ -33,6 +33,7 @@ public class BuildCode {
     public static boolean GENERATEPRECISEGC=false;
     public static String PREFIX="";
     public static String arraytype="ArrayObject";
+    public static int count = 0;
     Virtual virtualcalls;
     TypeUtil typeutil;
     private int maxtaskparams=0;
@@ -1421,37 +1422,128 @@ public class BuildCode {
     }
  
     public void generateFlatPrefetchNode(FlatMethod fm, LocalityBinding lb, FlatPrefetchNode fpn, PrintWriter output) {
-	System.out.println("Inside generateFlatPrefetchNode()");
-    	if (state.PREFETCH) {
-	    System.out.println("The Prefetch pairs to be fetched are "+ fpn.hspp);
-	    Iterator it = fpn.hspp.iterator();
-	    for(;it.hasNext();) {
-		 PrefetchPair pp = (PrefetchPair) it.next();
-		 //TODO handle arrays in prefetch tuples, currently only handle fields
-		 Integer statusbase = locality.getNodePreTempInfo(lb,fpn).get(pp.base);
-		 System.out.println("DEBUG-> generateFlatPrefetchNode()" + statusbase);
-		 if(statusbase == LocalityAnalysis.GLOBAL) {
-		     // Generate oid for base
-	         } else {
-		     for(int i = 0; i<pp.desc.size(); i++) {
-		 	Object o = pp.desc.get(i);
-		 	if(!(o instanceof IndexDescriptor)) {
-				FieldDescriptor fd = (FieldDescriptor) o;
-				Integer statusfd = locality.getNodePreTempInfo(lb,fpn).get(fd);
-				System.out.println("DEBUG-> generateFlatPrefetchNode() fd" + statusfd);
-				//find out the locality of the fieldDescriptor
-				if(statusfd == LocalityAnalysis.GLOBAL) {
-					//generate oid for it
-				}
-		 	}
-		     }
-	  	 }
-             }
-             //Each temp descriptor can be an oid
-	     //Find locality of each prefetch tuple in the FLatPrefetchNode
-	     //Separate them as Local or Global
-	     //generate oids and offset value for prefetch tuple
-	}
+ 	    System.out.println("DEBUG -> Inside generateFlatPrefetchNode() " + fm.toString());
+ 	    short[] arrayfields = null;
+ 	    Vector fieldoffset = new Vector();
+ 	    Vector oids = new Vector();
+ 	    short offsetcount = 0;
+ 	    int tuplecount = 0;
+ 	    int i;
+ 	   
+ 	    if (state.PREFETCH) {
+ 		    System.out.println("The Prefetch pairs to be fetched are "+ fpn.hspp);
+ 		    Iterator it = fpn.hspp.iterator();
+ 		    output.println("/* prefetch */");
+ 		    /* TODO Get rid of this */
+ 		    /* The while loop below removes all prefetch tuples with arrays from the set of prefetches */
+ 		    while(it.hasNext()) {
+ 			    PrefetchPair pp = (PrefetchPair) it.next();
+ 			    for(i = 0; i < pp.desc.size(); i++) {
+ 				    if(pp.getDescAt(i) instanceof IndexDescriptor) {
+ 					    fpn.hspp.remove((PrefetchPair) pp);
+ 					    it = fpn.hspp.iterator(); //May not be the best way ...replace coding in a better fashion
+ 					    break;
+ 				    }
+ 			    }
+ 		    }
+ 		    output.println("   int numtuples_" + count + " = " + fpn.getNumPairs() + ";");
+ 		    int[] endoffsetarry = new int[fpn.getNumPairs()];
+ 		    output.print("   unsigned int oidarray_" + count + "[] = {");
+ 		    it = fpn.hspp.iterator();
+ 		    while(it.hasNext()) {
+ 			    PrefetchPair pp = (PrefetchPair) it.next();
+ 			    offsetcount = 0;
+ 			    //TODO handle arrays in prefetch tuples, currently only handle fields
+ 			    Integer statusbase = locality.getNodePreTempInfo(lb,fpn).get(pp.base);
+ 			    FieldDescriptor fd = (FieldDescriptor)pp.desc.get(0);
+ 			    String oid = new String("(unsigned int) " + generateTemp(fm, pp.base, lb) + "->" + ((FieldDescriptor)fd).getSafeSymbol());
+ 			    oids.add(oid);
+ 			    for(i = 1; i < pp.desc.size(); i++) {
+ 				    Object desc = pp.desc.get(i);
+ 				    offsetcount++;
+ 				    TypeDescriptor newtd = ((FieldDescriptor)pp.getDescAt(i-1)).getType();
+ 				    String newfieldoffset = new String("(short)(&(((struct "+ newtd.getSafeSymbol()+" *)0)->"+ 
+ 						    ((FieldDescriptor)desc).getSafeSymbol()+ "))");
+ 				    fieldoffset.add(newfieldoffset);
+ 			    }
+ 			    if(tuplecount > 0) {
+ 				    endoffsetarry[tuplecount] = endoffsetarry[tuplecount-1] + offsetcount;
+ 			    }else {
+ 				    endoffsetarry[tuplecount] = offsetcount;
+ 			    }
+ 
+ 			    //if(statusbase == LocalityAnalysis.LOCAL) {
+ 			    if(statusbase == LocalityAnalysis.GLOBAL) {
+ 				    System.out.println("DEBUG-> Is Global");
+ 				    //Check to see if node is a inside or outside a transaction
+ 				    /*
+ 				       if(locality.getAtomic(lb).get(fpn).intValue() > 0) {
+ 				    //TODO Is this correct ? or generate pointer code in C 
+ 				    // return;
+ 				    } else {
+ 				    output.println("/* PP: " + generateTemp(fm, pp.base, lb));
+ 				    }
+ 				    */
+ 				    // Generate oid for base
+ 			    } else {
+ 				    for(i = 0; i<pp.desc.size(); i++) {
+ 					    Object o = pp.desc.get(i);
+ 					    if(!(o instanceof IndexDescriptor)) {
+ 						    //FieldDescriptor fd = (FieldDescriptor) o;
+ 						    Integer statusfd = locality.getNodePreTempInfo(lb,fpn).get(fd);
+ 						    //System.out.println("DEBUG-> generateFlatPrefetchNode() fd" + statusfd);
+ 						    //find out the locality of the fieldDescriptor
+ 						    if(statusfd == LocalityAnalysis.GLOBAL) {
+ 							    //generate oid for it
+ 						    }
+ 					    }
+ 				    }
+ 			    }
+ 			    tuplecount++;
+ 		    }
+ 
+ 		    /*Create C code for oid array */
+ 		    boolean needcomma=false;
+ 		    it = oids.iterator();
+ 		    while(it.hasNext()) {
+ 			    if (needcomma)
+ 				    output.print(", ");
+ 			    output.print(it.next());
+ 			    needcomma=true;
+ 		    }
+ 		    output.println("};");
+ 
+ 		    /*Create C code for endoffset values */
+ 		    output.print("   unsigned short endoffsetarry_" + count +"[] = {");
+ 		    needcomma=false;
+ 		    for(i = 0; i<endoffsetarry.length; i++){
+ 			    if (needcomma)
+ 				    output.print(", ");
+ 			    output.print(endoffsetarry[i]);
+ 			    needcomma=true;
+ 		    }
+ 		    output.println("};");
+ 
+ 		    /*Create C code for Field Offset Values */
+ 		    it = fieldoffset.iterator();
+ 		    output.print("   short fieldarry_" + count +"[] = {");
+ 		    needcomma=false;
+ 		    while(it.hasNext()) {
+ 			    if (needcomma)
+ 				    output.print(", ");
+ 			    output.print(it.next());
+ 			    needcomma=true;
+ 		    }
+ 		    output.println("};");
+ 		    /* make the prefetch call to Runtime */
+ 		    output.println("   prefetch(&numtuples_"+count+ ", oidarray_"+count+ ", endoffsetarry_"+
+ 				    count+", fieldarry_"+count+");");
+ 		    //Each temp descriptor can be an oid
+ 		    //Find locality of each prefetch tuple in the FLatPrefetchNode
+ 		    //Separate them as Local or Global
+ 		    //generate oids and offset value for prefetch tuple
+ 		    count++;
+ 	    }   
     }   
 
     public void generateFlatGlobalConvNode(FlatMethod fm, LocalityBinding lb, FlatGlobalConvNode fgcn, PrintWriter output) {
@@ -1728,7 +1820,7 @@ public class BuildCode {
 	    } else if (status==LocalityAnalysis.EITHER) {
 		//Code is reading from a null pointer
  		output.println("if ("+generateTemp(fm, ffn.getSrc(),lb)+") {");
-		output.println("printf(\"BIG ERROR\n\");exit(-1);}");
+ 		output.println("printf(\"BIG ERROR\\n\");exit(-1);}");
 		//This should throw a suitable null pointer error
 		output.println(generateTemp(fm, ffn.getDst(),lb)+"="+ generateTemp(fm,ffn.getSrc(),lb)+"->"+ ffn.getField().getSafeSymbol()+";");
 	    } else
@@ -1778,7 +1870,7 @@ public class BuildCode {
 	    } else if (statusdst.equals(LocalityAnalysis.EITHER)) {
 		//writing to a null...bad
 		output.println("if ("+dst+") {");
-		output.println("printf(\"BIG ERROR 2\n\");exit(-1);}");
+ 		output.println("printf(\"BIG ERROR 2\\n\");exit(-1);}");
 		if (srcglobal)
 		    output.println(dst+"->"+ fsfn.getField().getSafeSymbol()+"=srcoid;");
 		else

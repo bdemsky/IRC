@@ -28,4 +28,8 @@ public class FlatPrefetchNode extends FlatNode {
 	public HashSet<PrefetchPair> getPrefetchPairs() {
 		return hspp;
 	}
+
+	public int getNumPairs() {
+		return hspp.size();
+	}
 }

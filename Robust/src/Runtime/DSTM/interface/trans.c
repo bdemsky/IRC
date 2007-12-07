@@ -1561,13 +1561,15 @@ void getPrefetchResponse(int count, int sd) {
 unsigned short getObjType(unsigned int oid)
 {
 	objheader_t *objheader;
-	unsigned short numoffsets = 0;
+	unsigned short numoffset[] ={0};
+	short fieldoffset[] ={};
 
 	if ((objheader = (objheader_t *) mhashSearch(oid)) == NULL)
 	{
 		if ((objheader = (objheader_t *) prehashSearch(oid)) == NULL)
 		{
-			prefetch(1, &oid, &numoffsets, NULL);
+			//prefetch(1, &oid, &numoffsets, NULL);
+			prefetch(1, &oid, numoffset, fieldoffset);
 			pthread_mutex_lock(&pflookup.lock);
 			while ((objheader = (objheader_t *) prehashSearch(oid)) == NULL)
 			{

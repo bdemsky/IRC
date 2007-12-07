@@ -3,7 +3,8 @@ public class Atomic2 extends Thread {
     }
     int count;
     public static void main(String[] st) {
-	int mid = (128<<24)|(200<<16)|(9<<8)|26;
+	//int mid = (128<<24)|(200<<16)|(9<<8)|26;
+	int mid = (128<<24)|(195<<16)|(175<<8)|70;
 	Atomic2 t =null;
 	atomic {
 	    t= global new Atomic2();

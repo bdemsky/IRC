@@ -115,6 +115,7 @@ public class PrefetchAnalysis {
 			if(newprefetchset.size() > 0) {
 				addFlatPrefetchNode(newprefetchset);
 			}
+			//printMethod(fm);
 		}
 	}
 
