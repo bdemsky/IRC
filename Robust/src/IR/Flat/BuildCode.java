@@ -1764,8 +1764,8 @@ public class BuildCode {
 		/** Check if we need to copy */
 		output.println("if(!"+dst+"->"+localcopystr+") {");
 		/* Link object into list */
-		output.println(dst+"->"+nextobjstr+"=trans->localtrans;");
-		output.println("trans->localtrans="+dst+";");
+		output.println(dst+"->"+nextobjstr+"=trans->revertlist;");
+		output.println("trans->revertlist=(struct ___Object___ *)"+dst+";");
 		if (GENERATEPRECISEGC)
 		    output.println("COPY_OBJ((struct garbagelist *)&"+localsprefix+",(struct ___Object___ *)"+dst+");");
 		else
