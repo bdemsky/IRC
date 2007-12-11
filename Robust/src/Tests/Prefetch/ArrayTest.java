@@ -18,10 +18,13 @@ public class ArrayTest {
 	for(int i=0;i<array.length;i++) {
 	    ArrayTest a=array[i];
 	    int x=a.x.i.intValue();
-	    if (x%2==0) {
+	    if (i%2!=0) {
 		sum=sum+x;
 	    }
 	}
+	System.printString("Sum =");
+	System.printInt(sum);
+	System.printString("\n");
 	return sum;
     }
 }

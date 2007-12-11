@@ -1422,87 +1422,54 @@ public class BuildCode {
     }
  
     public void generateFlatPrefetchNode(FlatMethod fm, LocalityBinding lb, FlatPrefetchNode fpn, PrintWriter output) {
- 	    System.out.println("DEBUG -> Inside generateFlatPrefetchNode() " + fm.toString());
  	    short[] arrayfields = null;
  	    Vector fieldoffset = new Vector();
+	    Vector endoffset = new Vector();
  	    Vector oids = new Vector();
- 	    short offsetcount = 0;
+	    short offsetcount = 0;
  	    int tuplecount = 0;
- 	    int i;
+ 	    int i,j;
  	   
  	    if (state.PREFETCH) {
- 		    System.out.println("The Prefetch pairs to be fetched are "+ fpn.hspp);
  		    Iterator it = fpn.hspp.iterator();
  		    output.println("/* prefetch */");
- 		    /* TODO Get rid of this */
+ 		    /* TODO Add support for arrays, Currently handles only field pointers*/
  		    /* The while loop below removes all prefetch tuples with arrays from the set of prefetches */
  		    while(it.hasNext()) {
  			    PrefetchPair pp = (PrefetchPair) it.next();
  			    for(i = 0; i < pp.desc.size(); i++) {
  				    if(pp.getDescAt(i) instanceof IndexDescriptor) {
  					    fpn.hspp.remove((PrefetchPair) pp);
- 					    it = fpn.hspp.iterator(); //May not be the best way ...replace coding in a better fashion
+ 					    it = fpn.hspp.iterator();
  					    break;
  				    }
  			    }
  		    }
- 		    output.println("   int numtuples_" + count + " = " + fpn.getNumPairs() + ";");
- 		    int[] endoffsetarry = new int[fpn.getNumPairs()];
- 		    output.print("   unsigned int oidarray_" + count + "[] = {");
  		    it = fpn.hspp.iterator();
+		    String oidlist = new String();
  		    while(it.hasNext()) {
  			    PrefetchPair pp = (PrefetchPair) it.next();
- 			    offsetcount = 0;
- 			    //TODO handle arrays in prefetch tuples, currently only handle fields
  			    Integer statusbase = locality.getNodePreTempInfo(lb,fpn).get(pp.base);
- 			    FieldDescriptor fd = (FieldDescriptor)pp.desc.get(0);
- 			    String oid = new String("(unsigned int) " + generateTemp(fm, pp.base, lb) + "->" + ((FieldDescriptor)fd).getSafeSymbol());
- 			    oids.add(oid);
- 			    for(i = 1; i < pp.desc.size(); i++) {
- 				    Object desc = pp.desc.get(i);
- 				    offsetcount++;
- 				    TypeDescriptor newtd = ((FieldDescriptor)pp.getDescAt(i-1)).getType();
- 				    String newfieldoffset = new String("(short)(&(((struct "+ newtd.getSafeSymbol()+" *)0)->"+ 
- 						    ((FieldDescriptor)desc).getSafeSymbol()+ "))");
- 				    fieldoffset.add(newfieldoffset);
- 			    }
- 			    if(tuplecount > 0) {
- 				    endoffsetarry[tuplecount] = endoffsetarry[tuplecount-1] + offsetcount;
- 			    }else {
- 				    endoffsetarry[tuplecount] = offsetcount;
- 			    }
- 
- 			    //if(statusbase == LocalityAnalysis.LOCAL) {
+			    /* Find prefetches that can generate oid */
  			    if(statusbase == LocalityAnalysis.GLOBAL) {
- 				    System.out.println("DEBUG-> Is Global");
- 				    //Check to see if node is a inside or outside a transaction
- 				    /*
- 				       if(locality.getAtomic(lb).get(fpn).intValue() > 0) {
- 				    //TODO Is this correct ? or generate pointer code in C 
- 				    // return;
- 				    } else {
- 				    output.println("/* PP: " + generateTemp(fm, pp.base, lb));
- 				    }
- 				    */
- 				    // Generate oid for base
- 			    } else {
- 				    for(i = 0; i<pp.desc.size(); i++) {
- 					    Object o = pp.desc.get(i);
- 					    if(!(o instanceof IndexDescriptor)) {
- 						    //FieldDescriptor fd = (FieldDescriptor) o;
- 						    Integer statusfd = locality.getNodePreTempInfo(lb,fpn).get(fd);
- 						    //System.out.println("DEBUG-> generateFlatPrefetchNode() fd" + statusfd);
- 						    //find out the locality of the fieldDescriptor
- 						    if(statusfd == LocalityAnalysis.GLOBAL) {
- 							    //generate oid for it
- 						    }
- 					    }
- 				    }
- 			    }
- 			    tuplecount++;
+				    if(locality.getAtomic(lb).get(fpn).intValue()>0) { /* Inside transaction */
+					    generateInsideTransCode(fm,lb,output, pp,oids,fieldoffset,endoffset,tuplecount);
+				    } else {/* Outside Transaction */
+					    generateOutsideTransCode(fm,lb,pp,oids,fieldoffset,endoffset,tuplecount);
+				    }
+				    tuplecount++;
+			    } else if(statusbase == LocalityAnalysis.LOCAL) {
+				    generateLocalTransCode(fm,lb,pp,oids,fieldoffset,endoffset,tuplecount);
+			    } else {
+				    continue;
+			    }
  		    }
+
+		    /*Create C code for numtuples */
+		    output.println("   int numtuples_" + count + " = " + tuplecount + ";");
  
  		    /*Create C code for oid array */
+ 		    output.print("   unsigned int oidarray_" + count + "[] = {");
  		    boolean needcomma=false;
  		    it = oids.iterator();
  		    while(it.hasNext()) {
@@ -1516,18 +1483,19 @@ public class BuildCode {
  		    /*Create C code for endoffset values */
  		    output.print("   unsigned short endoffsetarry_" + count +"[] = {");
  		    needcomma=false;
- 		    for(i = 0; i<endoffsetarry.length; i++){
+		    it = endoffset.iterator();
+		    while(it.hasNext()) {
  			    if (needcomma)
  				    output.print(", ");
- 			    output.print(endoffsetarry[i]);
+ 			    output.print(it.next());
  			    needcomma=true;
  		    }
  		    output.println("};");
  
  		    /*Create C code for Field Offset Values */
- 		    it = fieldoffset.iterator();
  		    output.print("   short fieldarry_" + count +"[] = {");
  		    needcomma=false;
+ 		    it = fieldoffset.iterator();
  		    while(it.hasNext()) {
  			    if (needcomma)
  				    output.print(", ");
@@ -1536,51 +1504,246 @@ public class BuildCode {
  		    }
  		    output.println("};");
  		    /* make the prefetch call to Runtime */
- 		    output.println("   prefetch(&numtuples_"+count+ ", oidarray_"+count+ ", endoffsetarry_"+
+ 		    output.println("   prefetch((int) numtuples_"+count+ ", oidarray_"+count+ ", endoffsetarry_"+
  				    count+", fieldarry_"+count+");");
- 		    //Each temp descriptor can be an oid
- 		    //Find locality of each prefetch tuple in the FLatPrefetchNode
- 		    //Separate them as Local or Global
- 		    //generate oids and offset value for prefetch tuple
  		    count++;
  	    }   
     }   
 
+    public void generateInsideTransCode(FlatMethod fm, LocalityBinding lb,PrintWriter output,PrefetchPair pp,Vector oids, Vector fieldoffset,Vector endoffset, int tuplecount){
+	    int i;
+ 	    short offsetcount = 0;
+
+	    Object newdesc = pp.desc.get(0);
+	    if(newdesc instanceof FieldDescriptor) {
+		    FieldDescriptor fd = (FieldDescriptor)newdesc;
+		    String oid = new String("(unsigned int) (" + 
+				    generateTemp(fm, pp.base, lb) + " != NULL ? " + 
+				    generateTemp(fm, pp.base, lb) + "->" + ((FieldDescriptor)fd).getSafeSymbol() +
+				    " : NULL)");
+		    oids.add(oid);
+	    } else {
+		    IndexDescriptor id = (IndexDescriptor)newdesc;
+		    String tstlbl = new String();
+		    for(i=0; i<id.tddesc.size(); i++) {
+			    tstlbl += generateTemp(fm, id.getTempDescAt(i), lb) + "+";
+		    }
+		    tstlbl += id.offset.toString();
+		    output.println("if ("+tstlbl+"< 0 || "+tstlbl+" > "+
+				    generateTemp(fm, pp.base, lb) + "->___length___) {");
+		    output.println("    failedboundschk();");
+		    output.println("}");
+		    String oid = new String("(unsigned int) (" + 
+				    generateTemp(fm, pp.base, lb) + " != NULL ? " + 
+				    generateTemp(fm, pp.base, lb) + "[" + tstlbl + "] : NULL)");
+		    oids.add(oid);
+	    }
+	    for(i = 1; i < pp.desc.size(); i++) {
+		    TypeDescriptor newtd;
+		    String newfieldoffset;
+		    Object desc = pp.getDescAt(i);
+		    offsetcount++;
+		    if(desc instanceof FieldDescriptor) {
+			    Object prevdesc = pp.getDescAt(i-1);
+			    if(prevdesc instanceof IndexDescriptor){
+				    if((i-1) == 0)
+					    newtd = pp.base.getType(); 
+				    //FIXME currently handles one dimensional arrays
+				    newtd = ((FieldDescriptor)pp.getDescAt(i-2)).getType();
+			    } else {
+				    newtd = ((FieldDescriptor)pp.getDescAt(i-1)).getType();
+			    }
+			    newfieldoffset = new String("(short)(&(((struct "+ newtd.getSafeSymbol()+" *)0)->"+ 
+					    ((FieldDescriptor)desc).getSafeSymbol()+ "))");
+			    fieldoffset.add(newfieldoffset);
+		    } else {
+			    String tstlbl = new String();
+			    for(i=0; i<((IndexDescriptor)desc).tddesc.size(); i++) {
+				    tstlbl += generateTemp(fm, ((IndexDescriptor)desc).getTempDescAt(i), lb) + "+";
+			    }
+			    tstlbl += ((IndexDescriptor)desc).offset.toString();
+			    newfieldoffset = new String("(short)("+tstlbl+")");
+			    fieldoffset.add(newfieldoffset);
+		    }
+	    }
+	    if(tuplecount > 0) {
+		    int tmp = (int) ((Short)(endoffset.get(tuplecount-1))).shortValue() + (int) offsetcount;
+		    short endoffsetval = (short) tmp;
+		    endoffset.add(endoffsetval);
+	    }else {
+		    endoffset.add(offsetcount);
+	    }
+    }
+
+    public void generateOutsideTransCode(FlatMethod fm, LocalityBinding lb,PrefetchPair pp, Vector oids, Vector fieldoffset, Vector endoffset, int tuplecount) {
+	    int i;
+ 	    short offsetcount = 0;
+
+	    String oid = new String(" (unsigned int) (" + generateTemp(fm, pp.base, lb)+ ")");
+	    oids.add(oid);
+	    for(i = 0; i < pp.desc.size(); i++) {
+		    TypeDescriptor newtd;
+		    String newfieldoffset;
+		    Object desc = pp.getDescAt(i);
+		    offsetcount++;
+		    if(desc instanceof FieldDescriptor) {
+			    if(i == 0){
+				    newtd = pp.base.getType(); 
+			    } else {
+				    Object prevdesc = pp.getDescAt(i-1);
+				    if(prevdesc instanceof IndexDescriptor){
+					    //FIXME currently handles one dimensional arrays
+					    newtd = ((FieldDescriptor)pp.getDescAt(i-2)).getType();
+				    } else {
+					    newtd = ((FieldDescriptor)pp.getDescAt(i-1)).getType();
+				    }
+			    }
+			    newfieldoffset = new String("(short)(&(((struct "+ newtd.getSafeSymbol()+" *)0)->"+ 
+					    ((FieldDescriptor)desc).getSafeSymbol()+ "))");
+		    } else {
+			    String tstlbl = new String();
+			    for(i=0; i<((IndexDescriptor)desc).tddesc.size(); i++) {
+				    tstlbl += generateTemp(fm, ((IndexDescriptor)desc).getTempDescAt(i), lb) + "+";
+			    }
+			    tstlbl += ((IndexDescriptor)desc).offset.toString();
+			    newfieldoffset = new String("(short)("+tstlbl+")");
+		    }
+		    fieldoffset.add(newfieldoffset);
+	    }
+	    if(tuplecount > 0) {
+		    int tmp = (int) ((Short)(endoffset.get(tuplecount-1))).shortValue() + (int) offsetcount;
+		    short endoffsetval = (short) tmp;
+		    endoffset.add(endoffsetval);
+	    }else {
+		    endoffset.add(offsetcount);
+	    }
+	    tuplecount++;
+    }
+
+    public void generateLocalTransCode(FlatMethod fm, LocalityBinding lb,PrefetchPair pp,Vector oids, Vector fieldoffset,Vector endoffset, int tuplecount) {
+	    int i, j;
+	    short offsetcount = 0;
+
+	    Vector prefix = new Vector();
+	    prefix.add(generateTemp(fm,pp.base,lb));
+	    String tstlbl = new String("(" + prefix.get(0) + " != NULL ");
+	    for (i = 0; i < pp.desc.size(); i++) {
+		    Object newdesc = pp.desc.get(i);
+		    if(newdesc instanceof FieldDescriptor) {
+			    FieldDescriptor fd = (FieldDescriptor) newdesc;
+			    if(fd.isGlobal()){
+				    /* Field descriptor is global */
+				    String oid = new String(" (unsigned int) (");
+				    tstlbl += ") ? ";
+				    for(j = 0; j < prefix.size(); j++) {
+					    tstlbl += prefix.get(j) + "->";
+				    }
+				    tstlbl += fd.getSafeSymbol() + ": NULL";
+				    oid += tstlbl+ " )";
+				    oids.add(oid);
+				    for(j=i+1; j < pp.desc.size(); j++) {
+					    TypeDescriptor newtd;
+					    String newfieldoffset;
+					    Object desc = pp.getDescAt(j);
+					    offsetcount++;
+					    if(desc instanceof FieldDescriptor) {
+						    Object prevdesc = pp.getDescAt(j-1);
+						    if(prevdesc instanceof IndexDescriptor){
+							    //FIXME currently handles one dimensional arrays
+							    newtd = ((FieldDescriptor)pp.getDescAt(j-2)).getType();
+						    } else {
+							    newtd = ((FieldDescriptor) pp.getDescAt(j-1)).getType();
+						    }
+						    newfieldoffset = new String("(short)(&(((struct "+ newtd.getSafeSymbol()+" *)0)->"+ 
+								    ((FieldDescriptor)desc).getSafeSymbol()+ "))");
+					    } else {
+						    String indexlbl = new String();
+						    for(i=0; i<((IndexDescriptor)desc).tddesc.size(); i++) {
+							    indexlbl += generateTemp(fm, ((IndexDescriptor)desc).getTempDescAt(i), lb) + "+";
+						    }
+						    indexlbl += ((IndexDescriptor)desc).offset.toString();
+						    newfieldoffset = new String("(short)("+indexlbl+")");
+					    }
+					    fieldoffset.add(newfieldoffset);
+				    }
+				    if(tuplecount > 0) {
+					    int tmp = (int) ((Short)(endoffset.get(tuplecount-1))).shortValue() + (int) offsetcount;
+					    short endoffsetval = (short) tmp;
+					    endoffset.add(endoffsetval);
+				    }else {
+					    endoffset.add(offsetcount);
+				    }
+				    tuplecount++;
+				    break; //break from outer for loop
+			    } else {
+				    tstlbl += "&& ";
+				    for(j = 0; j < prefix.size(); j++) {
+					    tstlbl += prefix.get(j) + "->";
+				    }
+				    prefix.add(fd.getSafeSymbol());
+				    tstlbl += fd.getSafeSymbol() + " != NULL";
+			    }
+		    } else { /* if Index descriptor */
+			    String indexstring = new String();
+			    IndexDescriptor id = (IndexDescriptor) newdesc;
+			    if(i == 0) {
+				    indexstring = generateTemp(fm, pp.base, lb);
+			    } else {
+				    indexstring = ((FieldDescriptor)pp.getDescAt(i-1)).getSafeSymbol();
+			    }
+			    tstlbl += "&& ";
+			    for(j = 0; j < prefix.size(); j++) {
+				    tstlbl += prefix.get(j) + "[";
+			    }
+			    indexstring += "[";
+			    for(j=0; j<id.tddesc.size(); j++) {
+				    tstlbl += generateTemp(fm, id.getTempDescAt(j), lb) + "+"; 
+				    indexstring += generateTemp(fm,id.getTempDescAt(j), lb) + "+";
+			    }
+			    tstlbl += id.offset.toString()+ "]";
+			    indexstring += id.offset.toString()+ "]";
+			    prefix. removeElementAt(prefix.size() -1);
+			    prefix.add(indexstring);
+			    tstlbl += " != NULL";
+		    }
+	    }
+    }
+
     public void generateFlatGlobalConvNode(FlatMethod fm, LocalityBinding lb, FlatGlobalConvNode fgcn, PrintWriter output) {
-	if (lb!=fgcn.getLocality())
-	    return;
-	/* Have to generate flat globalconv */
-	if (fgcn.getMakePtr()) {
-	    output.println(generateTemp(fm, fgcn.getSrc(),lb)+"=(void *)transRead(trans, (unsigned int) "+generateTemp(fm, fgcn.getSrc(),lb)+");");
-	} else {
-	    /* Need to convert to OID */
-	    output.println(generateTemp(fm, fgcn.getSrc(),lb)+"=(void *)COMPOID("+generateTemp(fm, fgcn.getSrc(),lb)+");");
-	}
+	    if (lb!=fgcn.getLocality())
+		    return;
+	    /* Have to generate flat globalconv */
+	    if (fgcn.getMakePtr()) {
+		    output.println(generateTemp(fm, fgcn.getSrc(),lb)+"=(void *)transRead(trans, (unsigned int) "+generateTemp(fm, fgcn.getSrc(),lb)+");");
+	    } else {
+		    /* Need to convert to OID */
+		    output.println(generateTemp(fm, fgcn.getSrc(),lb)+"=(void *)COMPOID("+generateTemp(fm, fgcn.getSrc(),lb)+");");
+	    }
     }
 
     public void generateFlatAtomicEnterNode(FlatMethod fm,  LocalityBinding lb, FlatAtomicEnterNode faen, PrintWriter output) {
-	/* Check to see if we need to generate code for this atomic */
-	if (locality.getAtomic(lb).get(faen.getPrev(0)).intValue()>0)
-	    return;
-	/* Backup the temps. */
-	for(Iterator<TempDescriptor> tmpit=locality.getTemps(lb).get(faen).iterator();tmpit.hasNext();) {
-	    TempDescriptor tmp=tmpit.next();
-	    output.println(generateTemp(fm, backuptable.get(tmp),lb)+"="+generateTemp(fm,tmp,lb)+";");
-	}
-	output.println("goto transstart"+faen.getIdentifier()+";");
+	    /* Check to see if we need to generate code for this atomic */
+	    if (locality.getAtomic(lb).get(faen.getPrev(0)).intValue()>0)
+		    return;
+	    /* Backup the temps. */
+	    for(Iterator<TempDescriptor> tmpit=locality.getTemps(lb).get(faen).iterator();tmpit.hasNext();) {
+		    TempDescriptor tmp=tmpit.next();
+		    output.println(generateTemp(fm, backuptable.get(tmp),lb)+"="+generateTemp(fm,tmp,lb)+";");
+	    }
+	    output.println("goto transstart"+faen.getIdentifier()+";");
 
-	/******* Print code to retry aborted transaction *******/
-	output.println("transretry"+faen.getIdentifier()+":");
+	    /******* Print code to retry aborted transaction *******/
+	    output.println("transretry"+faen.getIdentifier()+":");
 
-	/* Restore temps */
-	for(Iterator<TempDescriptor> tmpit=locality.getTemps(lb).get(faen).iterator();tmpit.hasNext();) {
-	    TempDescriptor tmp=tmpit.next();
-	    output.println(generateTemp(fm, tmp,lb)+"="+generateTemp(fm,backuptable.get(tmp),lb)+";");
-	}
+	    /* Restore temps */
+	    for(Iterator<TempDescriptor> tmpit=locality.getTemps(lb).get(faen).iterator();tmpit.hasNext();) {
+		    TempDescriptor tmp=tmpit.next();
+		    output.println(generateTemp(fm, tmp,lb)+"="+generateTemp(fm,backuptable.get(tmp),lb)+";");
+	    }
 
-	/********* Need to revert local object store ********/
-	String revertptr=generateTemp(fm, reverttable.get(lb),lb);
-	
+	    /********* Need to revert local object store ********/
+	    String revertptr=generateTemp(fm, reverttable.get(lb),lb);
+
 	output.println("while ("+revertptr+") {");
 	output.println("struct ___Object___ * tmpptr;");
 	output.println("tmpptr="+revertptr+"->"+nextobjstr+";");

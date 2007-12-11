@@ -31,6 +31,7 @@ public class Atomic3 extends Thread {
 	public int run() {
 		int a;
 		atomic {
+			//FIXME a bug value of trans commit is not saved
 			a = root.value.intValue();
 			//a = root.item;
 		}

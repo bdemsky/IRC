@@ -57,7 +57,7 @@ public class IndexDescriptor extends Descriptor {
 	}
 
 	public int getOffset() {
-		return offset;
+		return offset.intValue();
 	}
 
 	public String toString() {

@@ -87,25 +87,27 @@ void prefetch(int ntuples, unsigned int *oids, unsigned short *endoffsets, short
 
 	/* Allocate for the queue node*/
 	char *node;
-	qnodesize = sizeof(prefetchqelem_t) + sizeof(int) + ntuples * (sizeof(short) + sizeof(unsigned int)) + endoffsets[ntuples - 1] * sizeof(short); 
-	if((node = calloc(1, qnodesize)) == NULL) {
-		printf("Calloc Error %s, %d\n", __FILE__, __LINE__);
-		return;
+	if(ntuples > 0) {
+		qnodesize = sizeof(prefetchqelem_t) + sizeof(int) + ntuples * (sizeof(short) + sizeof(unsigned int)) + endoffsets[ntuples - 1] * sizeof(short); 
+		if((node = calloc(1, qnodesize)) == NULL) {
+			printf("Calloc Error %s, %d\n", __FILE__, __LINE__);
+			return;
+		}
+		/* Set queue node values */
+		len = sizeof(prefetchqelem_t);
+		memcpy(node + len, &ntuples, sizeof(int));
+		len += sizeof(int);
+		memcpy(node + len, oids, ntuples*sizeof(unsigned int));
+		len += ntuples * sizeof(unsigned int);
+		memcpy(node + len, endoffsets, ntuples*sizeof(short));
+		len += ntuples * sizeof(short);
+		memcpy(node + len, arrayfields, endoffsets[ntuples-1]*sizeof(short));
+		/* Lock and insert into primary prefetch queue */
+		pthread_mutex_lock(&pqueue.qlock);
+		pre_enqueue((prefetchqelem_t *)node);
+		pthread_cond_signal(&pqueue.qcond);
+		pthread_mutex_unlock(&pqueue.qlock);
 	}
-	/* Set queue node values */
-	len = sizeof(prefetchqelem_t);
-	memcpy(node + len, &ntuples, sizeof(int));
-	len += sizeof(int);
-	memcpy(node + len, oids, ntuples*sizeof(unsigned int));
-	len += ntuples * sizeof(unsigned int);
-	memcpy(node + len, endoffsets, ntuples*sizeof(short));
-	len += ntuples * sizeof(short);
-	memcpy(node + len, arrayfields, endoffsets[ntuples-1]*sizeof(short));
-	/* Lock and insert into primary prefetch queue */
-	pthread_mutex_lock(&pqueue.qlock);
-	pre_enqueue((prefetchqelem_t *)node);
-	pthread_cond_signal(&pqueue.qcond);
-	pthread_mutex_unlock(&pqueue.qlock);
 }
 
 /* This function starts up the transaction runtime. */
@@ -1102,10 +1104,10 @@ void checkPrefetchTuples(prefetchqelem_t *node) {
 	}
 	/* Check for redundant tuples by comparing oids of each tuple */
 	for(i = 0; i < ntuples; i++) {
-		if(oid[i] == -1)
+		if(oid[i] == 0)
 			continue;
 		for(j = i+1 ; j < ntuples; j++) {
-			if(oid[j] == -1)
+			if(oid[j] == 0)
 				continue;
 			/*If oids of tuples match */ 
 			if (oid[i] == oid[j]) {
@@ -1146,7 +1148,7 @@ void checkPrefetchTuples(prefetchqelem_t *node) {
 				}
 
 				if(slength == count) {
-					oid[sindex] = -1;
+					oid[sindex] = 0;
 				}
 			}
 		}
@@ -1207,7 +1209,7 @@ void checkPreCache(prefetchqelem_t *node, int *numoffset, int counter, int loopc
 	}
 
 	if(flag == 0) {
-		oid[iter] = -1;
+		oid[iter] = 0;
 		numoffset[iter] = 0;
 	}
 }
@@ -1230,7 +1232,7 @@ prefetchpile_t *makePreGroups(prefetchqelem_t *node, int *numoffset) {
 
 	/* Check for redundant tuples by comparing oids of each tuple */
 	for(i = 0; i < ntuples; i++) {
-		if(oid[i] == -1)
+		if(oid[i] == 0)
 			continue;
 		/* For each tuple make piles */
 		if ((machinenum = lhashSearch(oid[i])) == 0) {
@@ -1269,7 +1271,7 @@ prefetchpile_t *foundLocal(prefetchqelem_t *node) {
 		numoffset[i] = endoffsets[i] - endoffsets[i-1];
 	}
 	for(i = 0; i < ntuples; i++) { 
-		if(oid[i] == -1)
+		if(oid[i] == 0)
 			continue;
 		/* If object found locally */
 		if((objheader = (objheader_t*) mhashSearch(oid[i])) != NULL) { 
@@ -1301,7 +1303,7 @@ prefetchpile_t *foundLocal(prefetchqelem_t *node) {
 
 			/*If all offset oids are found locally,make the prefetch tuple invalid */
 			if(flag == 0) {
-				oid[i] = -1;
+				oid[i] = 0;
 				numoffset[i] = 0;
 			}
 		} else {
@@ -1531,11 +1533,11 @@ void getPrefetchResponse(int count, int sd) {
 						prehashInsert(oid, modptr);
 					}
 					/* Lock the Prefetch Cache look up table*/
-					//pthread_mutex_lock(&pflookup.lock);
+					pthread_mutex_lock(&pflookup.lock);
 					/* Broadcast signal on prefetch cache condition variable */ 
 					pthread_cond_broadcast(&pflookup.cond);
 					/* Unlock the Prefetch Cache look up table*/
-					//pthread_mutex_unlock(&pflookup.lock);
+					pthread_mutex_unlock(&pflookup.lock);
 				} else if(buffer[index] == OBJECT_NOT_FOUND) {
 					/* Increment it to get the object */
 					/* TODO: For each object not found query DHT for new location and retrieve the object */
