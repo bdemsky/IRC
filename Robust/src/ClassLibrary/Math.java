@@ -1,52 +1,28 @@
 public class Math {
-	//public static final double PI=3.14159265358979323846;
-
-	public double fabs(double x) {
-		if (x < 0) {
-			return -x;
-		} else {
-			return x;
-		}
+    //public static final double PI=3.14159265358979323846;
+    
+    public static double fabs(double x) {
+	if (x < 0) {
+	    return -x;
+	} else {
+	    return x;
 	}
+    }
+    
+    public static float abs(float a) {
+	if (a<0)
+	    return -a;
+	else return a;
+    }
 
-	public double sin(double rad) {
-		double app;
-		double diff;
-		int inc = 1;
-		double PI=3.14159265358979323846;
-
-		while( rad > 2*PI ) rad -= 2*PI;
-		while( rad < -2*PI ) rad += 2*PI;
-		app = diff = rad;
-		diff = (diff * (-(rad*rad))) / ((2.0 * inc) * (2.0 * inc + 1.0));
-		app = app + diff;
-		inc++;
-		while( fabs(diff) >= 0.00001 ) {
-			diff = (diff * (-(rad*rad))) / ((2.0 * inc) * (2.0 * inc + 1.0));
-			app = app + diff;
-			inc++;
-		}
-		return app;
-	}
-
-	public double cos(double rad) {
-		double app;
-		double diff;
-		int inc = 1;
-		double PI=3.14159265358979323846;
-
-		rad += PI/2.0;
-		while( rad > 2*PI ) rad -= 2*PI;
-		while( rad < -2*PI ) rad += 2*PI;
-		app = diff = rad;
-		diff = (diff * (-(rad*rad))) / ((2.0 * inc) * (2.0 * inc + 1.0));
-		app = app + diff;
-		inc++;
-		while( fabs(diff) >= 0.00001 ) {
-			diff = (diff * (-(rad*rad))) / ((2.0 * inc) * (2.0 * inc + 1.0));
-			app = app + diff;
-			inc++;
-		}
-		return app;
-	}
+    public static native double sin(double a);
+    public static native double cos(double a);
+    public static native double asin(double a);
+    public static native double acos(double a);
+    public static native double tan(double a);
+    public static native double atan(double a);
+    public static native double exp(double a);
+    public static native double sqrt(double a);
+    public static native double log(double a);
+    public static native double pow(double a, double b);
 }
