@@ -47,6 +47,8 @@ public class AssignOperation {
 	    return new Operation(Operation.LEFTSHIFT);
 	case RSHIFTEQ:
 	    return new Operation(Operation.RIGHTSHIFT);
+	case URSHIFTEQ:
+	    return new Operation(Operation.URIGHTSHIFT);
 	case ANDEQ:
 	    return new Operation(Operation.BIT_AND);
 	case XOREQ:
@@ -76,6 +78,8 @@ public class AssignOperation {
 	    return MINUSEQ;
 	else if (st.equals("lshifteq"))
 	    return LSHIFTEQ;
+	else if (st.equals("urshifteq"))
+	    return URSHIFTEQ;
 	else if (st.equals("rshifteq"))
 	    return RSHIFTEQ;
 	else if (st.equals("andeq"))
@@ -108,6 +112,8 @@ public class AssignOperation {
 	    return "<=";
 	else if (operation==RSHIFTEQ)
 	    return ">=";
+	else if (operation==RSHIFTEQ)
+	    return ">>=";
 	else if (operation==ANDEQ)
 	    return "&=";
 	else if (operation==XOREQ)

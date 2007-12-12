@@ -360,6 +360,7 @@ public class BuildIR {
 		 isNode(pn,"comp_lte")||isNode(pn,"comp_gt")||
 		 isNode(pn,"comp_gte")||isNode(pn,"leftshift")||
 		 isNode(pn,"rightshift")||isNode(pn,"sub")||
+		 isNode(pn,"urightshift")||isNode(pn,"sub")||
 		 isNode(pn,"add")||isNode(pn,"mult")||
 		 isNode(pn,"div")||isNode(pn,"mod")) {
 	    ParseNodeVector pnv=pn.getChildren();
@@ -369,7 +370,8 @@ public class BuildIR {
    	    return new OpNode(parseExpression(left),parseExpression(right),op);
 	} else if (isNode(pn,"unaryplus")||
 		   isNode(pn,"unaryminus")||
-		   isNode(pn,"not")) {
+		   isNode(pn,"not")||
+		   isNode(pn,"comp")) {
 	    ParseNode left=pn.getFirstChild();
 	    Operation op=new Operation(pn.getLabel());
    	    return new OpNode(parseExpression(left),op);

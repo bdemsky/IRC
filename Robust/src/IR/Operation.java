@@ -27,6 +27,8 @@ public class Operation {
     public static final int PREDEC=24;
     public static final int LOGIC_NOT=25;
     public static final int ISAVAILABLE=26;
+    public static final int URIGHTSHIFT=27;
+    public static final int COMP=28;
     /* Flat Operations */
     public static final int ASSIGN=100;
 
@@ -70,6 +72,8 @@ public class Operation {
 	    return LEFTSHIFT;
 	else if (st.equals("rightshift"))
 	    return RIGHTSHIFT;
+	else if (st.equals("urightshift"))
+	    return URIGHTSHIFT;
 	else if (st.equals("sub"))
 	    return SUB;
 	else if (st.equals("add"))
@@ -94,6 +98,8 @@ public class Operation {
 	    return PREDEC;
 	else if (st.equals("not"))
 	    return LOGIC_NOT;
+	else if (st.equals("comp"))
+	    return COMP;
 	else
 	    throw new Error();
     }
@@ -105,6 +111,8 @@ public class Operation {
 	    return "&&";
 	else if (operation==LOGIC_NOT)
 	    return "not";
+	else if (operation==COMP)
+	    return "~";
 	else if (operation==BIT_OR)
 	    return "|";
 	else if (operation==BIT_XOR)
@@ -127,6 +135,8 @@ public class Operation {
 	    return "<<";
 	else if (operation==RIGHTSHIFT)
 	    return ">>";
+	else if (operation==RIGHTSHIFT)
+	    return ">>>";
 	else if (operation==SUB)
 	    return "-";
 	else if (operation==ADD)

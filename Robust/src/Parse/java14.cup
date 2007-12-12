@@ -1611,7 +1611,8 @@ predecrement_expression ::=
 unary_expression_not_plus_minus ::=
 		postfix_expression:exp {: 
 		RESULT=exp; :}
-//	|	COMP unary_expression
+	|	COMP unary_expression:exp
+		{: RESULT=(new ParseNode("comp")).addChild(exp).getRoot(); :}
 	|	NOT unary_expression:exp 
 		{: RESULT=(new ParseNode("not")).addChild(exp).getRoot(); :}
 	|	cast_expression:exp {: RESULT=exp; :}
@@ -1687,7 +1688,12 @@ shift_expression ::=
 		pn.addChild(exp2);
 		RESULT=pn;
 	:}
-//	|	shift_expression URSHIFT additive_expression
+	|	shift_expression:exp1 URSHIFT additive_expression:exp2 {:
+		ParseNode pn=new ParseNode("urightshift");
+		pn.addChild(exp1);	
+		pn.addChild(exp2);	
+		RESULT=pn;
+	:}
 	;
 relational_expression ::=
 		shift_expression:exp {: 
@@ -1819,7 +1825,7 @@ assignment_operator ::=
 	|	MINUSEQ {: RESULT=new ParseNode("minuseq"); :}
 	|	LSHIFTEQ {: RESULT=new ParseNode("lshifteq"); :}
 	|	RSHIFTEQ {: RESULT=new ParseNode("rshifteq"); :}
-//	|	URSHIFTEQ {: RESULT=new ParseNode("urshifteq"); :}
+	|	URSHIFTEQ {: RESULT=new ParseNode("urshifteq"); :}
 	|	ANDEQ {: RESULT=new ParseNode("andeq"); :}
 	|	XOREQ {: RESULT=new ParseNode("xoreq"); :}
 	|	OREQ {: RESULT=new ParseNode("oreq"); :}

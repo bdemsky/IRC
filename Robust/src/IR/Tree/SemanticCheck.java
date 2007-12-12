@@ -790,6 +790,21 @@ public class SemanticCheck {
 	    on.setType(new TypeDescriptor(TypeDescriptor.BOOLEAN));
    	    break;
 
+	case Operation.COMP:
+	    // 5.6.2 Binary Numeric Promotion
+	    //TODO unboxing of reference objects
+	    if (ltd.isDouble())
+		throw new Error();
+	    else if (ltd.isFloat())
+		throw new Error();
+	    else if (ltd.isLong())
+		lefttype=new TypeDescriptor(TypeDescriptor.LONG);
+	    else 
+		lefttype=new TypeDescriptor(TypeDescriptor.INT);
+	    on.setLeftType(lefttype);
+	    on.setType(lefttype);
+	    break;
+
 	case Operation.BIT_OR:
 	case Operation.BIT_XOR:
 	case Operation.BIT_AND:
@@ -921,6 +936,7 @@ public class SemanticCheck {
 
 	case Operation.LEFTSHIFT:
 	case Operation.RIGHTSHIFT:
+	case Operation.URIGHTSHIFT:
 	    if (!rtd.isIntegerType())
 		throw new Error();
 	    //5.6.1 Unary Numeric Promotion

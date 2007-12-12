@@ -78,6 +78,15 @@ void CALL11(___System______exit____I,int ___status___, int ___status___) {
   exit(___status___);
 }
 
+long CALL00(___System______currentTimeMillis____) {
+  struct timeval tv; long long retval;
+  gettimeofday(&tv, NULL);
+  retval = tv.tv_sec; /* seconds */
+  retval*=1000; /* milliseconds */
+  retval+= (tv.tv_usec/1000); /* adjust milliseconds & add them in */
+  return retval;
+}
+
 void CALL01(___System______printString____L___String___,struct ___String___ * ___s___) {
     struct ArrayObject * chararray=VAR(___s___)->___value___;
     int i;

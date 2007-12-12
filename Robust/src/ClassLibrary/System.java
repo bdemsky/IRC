@@ -4,6 +4,8 @@ public class System {
 	printString(s);
     }
 
+    public static native long currentTimeMillis();
+
     public static native void printString(String s);
 
     public static void error() {

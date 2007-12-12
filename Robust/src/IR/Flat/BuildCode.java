@@ -2114,9 +2114,16 @@ public class BuildCode {
     }
 
     private void generateFlatOpNode(FlatMethod fm, LocalityBinding lb, FlatOpNode fon, PrintWriter output) {
-	if (fon.getRight()!=null)
-	    output.println(generateTemp(fm, fon.getDest(),lb)+" = "+generateTemp(fm, fon.getLeft(),lb)+fon.getOp().toString()+generateTemp(fm,fon.getRight(),lb)+";");
-	else if (fon.getOp().getOp()==Operation.ASSIGN)
+	if (fon.getRight()!=null) {
+	    if (fon.getOp().getOp()==Operation.URIGHTSHIFT) {
+		if (fon.getLeft().getType().isLong())
+		    output.println(generateTemp(fm, fon.getDest(),lb)+" = ((unsigned long long)"+generateTemp(fm, fon.getLeft(),lb)+")>>"+generateTemp(fm,fon.getRight(),lb)+";");
+		else
+		    output.println(generateTemp(fm, fon.getDest(),lb)+" = ((unsigned int)"+generateTemp(fm, fon.getLeft(),lb)+")>>"+generateTemp(fm,fon.getRight(),lb)+";");
+
+	    } else
+		output.println(generateTemp(fm, fon.getDest(),lb)+" = "+generateTemp(fm, fon.getLeft(),lb)+fon.getOp().toString()+generateTemp(fm,fon.getRight(),lb)+";");
+	} else if (fon.getOp().getOp()==Operation.ASSIGN)
 	    output.println(generateTemp(fm, fon.getDest(),lb)+" = "+generateTemp(fm, fon.getLeft(),lb)+";");
 	else if (fon.getOp().getOp()==Operation.UNARYPLUS)
 	    output.println(generateTemp(fm, fon.getDest(),lb)+" = "+generateTemp(fm, fon.getLeft(),lb)+";");
@@ -2124,6 +2131,8 @@ public class BuildCode {
 	    output.println(generateTemp(fm, fon.getDest(),lb)+" = -"+generateTemp(fm, fon.getLeft(),lb)+";");
 	else if (fon.getOp().getOp()==Operation.LOGIC_NOT)
 	    output.println(generateTemp(fm, fon.getDest(),lb)+" = !"+generateTemp(fm, fon.getLeft(),lb)+";");
+	else if (fon.getOp().getOp()==Operation.COMP)
+	    output.println(generateTemp(fm, fon.getDest(),lb)+" = ~"+generateTemp(fm, fon.getLeft(),lb)+";");
 	else if (fon.getOp().getOp()==Operation.ISAVAILABLE) {
 	    output.println(generateTemp(fm, fon.getDest(),lb)+" = "+generateTemp(fm, fon.getLeft(),lb)+"->fses==NULL;");
 	} else
@@ -2157,6 +2166,8 @@ public class BuildCode {
 	} else if (fln.getType().isChar()) {
 	    String st=FlatLiteralNode.escapeString(fln.getValue().toString());
 	    output.println(generateTemp(fm, fln.getDst(),lb)+"='"+st+"';");
+	} else if (fln.getType().isLong()) {
+	    output.println(generateTemp(fm, fln.getDst(),lb)+"="+fln.getValue()+"LL;");
 	} else
 	    output.println(generateTemp(fm, fln.getDst(),lb)+"="+fln.getValue()+";");
     }
