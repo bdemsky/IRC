@@ -240,7 +240,7 @@ void *mcqProcess(void *);
 void checkPrefetchTuples(prefetchqelem_t *);
 prefetchpile_t *foundLocal(prefetchqelem_t *);
 prefetchpile_t *makePreGroups(prefetchqelem_t *, int *);
-void checkPreCache(prefetchqelem_t *, int *, int, int, unsigned int, int, int, int);
+void checkPreCache(prefetchqelem_t *, int *, unsigned int, int);
 int transPrefetchProcess(transrecord_t *, int **, short);
 void sendPrefetchReq(prefetchpile_t*, int);
 void getPrefetchResponse(int, int);

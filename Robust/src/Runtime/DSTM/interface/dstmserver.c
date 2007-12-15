@@ -594,6 +594,7 @@ int transCommitProcess(void *modptr, unsigned int *oidmod, unsigned int *oidlock
 
 int prefetchReq(int acceptfd) {
   int i, length, sum, n, numbytes, numoffset, N, objnotfound = 0, size, count = 0;
+  int isArray = 0;
   unsigned int oid, index = 0;
   char *ptr, buffer[PRE_BUF_SIZE];
   void *mobj;
@@ -648,28 +649,38 @@ int prefetchReq(int acceptfd) {
       index += size;
       /* Calculate the oid corresponding to the offset value */
       for(i = 0 ; i< numoffset ; i++) {
-	objoid = *((int *)(((char *)header) + sizeof(objheader_t) + offset[i]));
-	if((header = mhashSearch(objoid)) == NULL) {
-	  /* Obj not found, send oid */
-	  *(buffer + index) = OBJECT_NOT_FOUND;
-	  index += sizeof(char);
-	  memcpy(buffer+index, &oid, sizeof(unsigned int));
-	  index += sizeof(unsigned int);
-	  break;
-	} else {/* Obj Found */
-	  /* send the oid, it's size, it's header and data */
-	  GETSIZE(size, header);
-	  size+=sizeof(objheader_t);
-	  *(buffer + index) = OBJECT_FOUND;
-	  index += sizeof(char);
-	  memcpy(buffer+index, &oid, sizeof(unsigned int));
-	  index += sizeof(unsigned int);
-	  memcpy(buffer+index, &size, sizeof(int));
-	  index += sizeof(int);
-	  memcpy(buffer + index, header, size);
-	  index += size;
-	  continue;
-	}
+	      /* Check for arrays  */
+	      if(TYPE(header) > NUMCLASSES) {
+		      isArray = 1;
+	      }
+	      if(isArray == 1) {
+		      int elementsize = classsize[TYPE(header)];
+		      objoid = *((unsigned int *)(((char *)header) + sizeof(objheader_t) + sizeof(struct ArrayObject) + (elementsize*offset[i])));
+	      } else {
+		      objoid = *((unsigned int *)(((char *)header) + sizeof(objheader_t) + offset[i]));
+	      }
+	      if((header = mhashSearch(objoid)) == NULL) {
+		      /* Obj not found, send oid */
+		      *(buffer + index) = OBJECT_NOT_FOUND;
+		      index += sizeof(char);
+		      memcpy(buffer+index, &oid, sizeof(unsigned int));
+		      index += sizeof(unsigned int);
+		      break;
+	      } else {/* Obj Found */
+		      /* send the oid, it's size, it's header and data */
+		      GETSIZE(size, header);
+		      size+=sizeof(objheader_t);
+		      *(buffer + index) = OBJECT_FOUND;
+		      index += sizeof(char);
+		      memcpy(buffer+index, &oid, sizeof(unsigned int));
+		      index += sizeof(unsigned int);
+		      memcpy(buffer+index, &size, sizeof(int));
+		      index += sizeof(int);
+		      memcpy(buffer+index, header, size);
+		      index += size;
+		      isArray = 0;
+		      continue;
+	      }
       }
     }
     /* Check for overflow in the buffer */

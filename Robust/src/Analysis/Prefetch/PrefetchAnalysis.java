@@ -115,7 +115,6 @@ public class PrefetchAnalysis {
 			if(newprefetchset.size() > 0) {
 				addFlatPrefetchNode(newprefetchset);
 			}
-			//printMethod(fm);
 		}
 	}
 
@@ -508,7 +507,7 @@ public class PrefetchAnalysis {
 			childpp = (PrefetchPair) ecld.nextElement();
 			if(childpp.base == currfsfn.getDst()) {
 				int size = childpp.desc.size();
-				if(size >=2) {
+				if(size >=2) { /*e.g. x.f = g (with child prefetches x.f.g, x.f[0].j) */
 					if((childpp.getDescAt(0) instanceof FieldDescriptor) && (childpp.getDescAt(0) == currfsfn.getField())) { 
 						ArrayList<Descriptor> newdesc = new ArrayList<Descriptor>();
 						for(int i = 0;i<(childpp.desc.size()-1); i++) {
@@ -532,7 +531,7 @@ public class PrefetchAnalysis {
 							child_prefetch_set_copy.remove(newpp);
 						}
 					}
-				} else if(size==1) {
+				} else if(size==1) { /* e.g x.f = g (with child prefetch x.f) */
 					if((childpp.getDescAt(0) instanceof FieldDescriptor) && (childpp.getDescAt(0) == currfsfn.getField())) {
 						child_prefetch_set_copy.remove(childpp);
 					}
@@ -569,7 +568,7 @@ public class PrefetchAnalysis {
 		} 
 	}
 
-	/** This function processes the prefetch set of a FlatSeElementNode
+	/** This function processes the prefetch set of a FlatSetElementNode
 	 * It generates a new prefetch set after comparision with its children
 	 * It compares the old prefetch set with this new prefetch set and enqueues the parents 
 	 * of the current node if change occurs and then updates the global flatnode hash table
@@ -589,8 +588,9 @@ public class PrefetchAnalysis {
 				int sizedesc = childpp.desc.size();
 				if((childpp.getDescAt(0) instanceof IndexDescriptor)) {
 					int sizetempdesc = ((IndexDescriptor)(childpp.getDescAt(0))).tddesc.size();
-					if(sizetempdesc == 1) {
+					if(sizetempdesc == 1) { 
 						if((((IndexDescriptor)childpp.getDescAt(0)).tddesc.get(0) == currfsen.getIndex()) && (sizedesc>=2)) {
+							/* For e.g. a[i] = g with child prefetch set a[i].r or a[i].r.f */
 							ArrayList<Descriptor> newdesc = new ArrayList<Descriptor>();
 							for(int i = 0;i<(childpp.desc.size()-1); i++) {
 								newdesc.add(i,childpp.desc.get(i+1));
@@ -612,6 +612,7 @@ public class PrefetchAnalysis {
 								child_prefetch_set_copy.remove(newpp);
 							}
 						} else if((((IndexDescriptor)childpp.getDescAt(0)).tddesc.get(0) == currfsen.getIndex()) && (sizedesc==1)) 
+							/* For e.g. a[i] = g with child prefetch set a[i] */
 							child_prefetch_set_copy.remove(childpp);
 					} else {
 						continue;
@@ -665,7 +666,7 @@ public class PrefetchAnalysis {
 				childpp = (PrefetchPair) ecld.nextElement();
 				PrefetchPair copyofchildpp = (PrefetchPair) childpp.clone();
 
-				/* For cases like x=y followed by childnode t=x[i].z or t=x.g*/
+				/* For cases like x=y  with child prefetch set x[i].z,x.g*/
 				if(childpp.base == currfopn.getDest()) {
 					ArrayList<Descriptor> newdesc = new ArrayList<Descriptor>();
 					newdesc.addAll(childpp.desc);
@@ -685,7 +686,7 @@ public class PrefetchAnalysis {
 						}
 						child_prefetch_set_copy.remove(newpp);
 					}
-					/* For cases like x=y followed by t = r[i].x or t =r[x].p or t = r[p+x].q*/
+					/* For cases like x=y  with child prefetch set r[i].x, r[x].p, r[p+x].q*/
 				} else if(isTempDescFound(copyofchildpp, currfopn.getDest())) {
 					ArrayList<Descriptor> newdesc = new ArrayList<Descriptor>();
 					newdesc.addAll((ArrayList<Descriptor>)getNewDesc(copyofchildpp, currfopn.getDest(), currfopn.getLeft()));
@@ -709,7 +710,7 @@ public class PrefetchAnalysis {
 					continue;
 				}
 			}
-			//case i = i+z  followed by a[i].x
+			//case i = i+z with child prefetch set a[i].x
 		} else if(currfopn.getRight()!=null && (currfopn.getOp().getOp() == Operation.ADD)) {
 			ecld = child_prefetch_set_copy.keys();
 			while (ecld.hasMoreElements()) {
@@ -771,7 +772,7 @@ public class PrefetchAnalysis {
 	}
 
 	/** This function processes a FlatLiteralNode where cases such as
-	 * for cases like i = 0 followed by t = a[i].r or t = a[j+i].r or t = a[j].b[i].r
+	 * for e.g. i = 0 with child prefetch sets a[i].r, a[j+i].r or a[j].b[i].r
 	 * are handled */
 	private void processFlatLiteralNode(FlatNode curr, Hashtable<PrefetchPair, Float> child_prefetch_set_copy,
 			Hashtable<FlatNode, PairMap> parentpmap) {
@@ -787,7 +788,6 @@ public class PrefetchAnalysis {
 			while (ecld.hasMoreElements()) {
 				childpp = (PrefetchPair) ecld.nextElement();
 				PrefetchPair copyofchildpp = (PrefetchPair) childpp.clone();
-				/* For cases like i = 0 followed by t = a[i].r or t = a[j+i].r or t = a[j].b[i].r*/
 				if(isTempDescFound(copyofchildpp,currfln.getDst())) {
 					ArrayList<Descriptor> copychilddesc = (ArrayList<Descriptor>) copyofchildpp.getDesc();
 					int sizetempdesc = copychilddesc.size();
@@ -889,8 +889,8 @@ public class PrefetchAnalysis {
 	}
 
 	/** This Function processes the FlatCalls 
-	 * It currently drops the propagation of those prefetchpairs that are passed as
-	 * arguments in the FlatCall 
+	 * It currently drops the propagation of those prefetchpairs whose base is
+	 * same as the destination of the FlatCall 
 	 */
 	private void processFlatCall(FlatNode curr, Hashtable<PrefetchPair, Float> child_prefetch_set_copy,
 			Hashtable<FlatNode, PairMap> parentpmap) {
@@ -1226,13 +1226,83 @@ public class PrefetchAnalysis {
 			}
 		}
 
+		delSubsetPPairs();
+	
+		/* Start with a top down sorted order of nodes */
 		while(!newvisited.isEmpty()) {
 			applyPrefetchInsertRules((FlatNode) newvisited.getFirst());
 			newvisited.remove(0);
 		}
 	}
 
+	private void delSubsetPPairs() {
+		Enumeration e = prefetch_hash.keys();
+		while(e.hasMoreElements()) {
+			FlatNode fn = (FlatNode) e.nextElement();
+			Hashtable ppairs = prefetch_hash.get(fn);
+			Enumeration epp = ((Hashtable)(prefetch_hash.get(fn))).keys();
+			Vector<PrefetchPair> pplist = new Vector<PrefetchPair>();
+			Vector pplength = new Vector();
+			Vector ppisMod = new Vector();
+			while(epp.hasMoreElements()) {
+				PrefetchPair pp = (PrefetchPair) epp.nextElement();
+				pplist.add(pp);
+				int length = pp.desc.size()+ 1;
+				pplength.add(length);
+				ppisMod.add(0);
+			}
+			int numpp = ((Hashtable)(prefetch_hash.get(fn))).size();
+			for (int i = 0; i < numpp; i++) {
+				for (int j = i+1; j < numpp; j++) {
+					boolean ret;
+					int x = ((Integer) (pplength.get(i))).intValue();
+					if (((Integer) (pplength.get(i))).intValue() < ((Integer)( pplength.get(j))).intValue()) {
+						ret = isSubSet(pplist.get(i), pplist.get(j));
+						if (ret) {
+							ppisMod.set(i, 1);
+						}
+					} else {
+						ret = isSubSet(pplist.get(j), pplist.get(i));
+						if (ret) {
+							ppisMod.set(j, 1);
+						}
+					}
+				}
+			}
+			for (int i = 0; i < numpp; i++) {
+				if (((Integer)(ppisMod.get(i))).intValue() == 1) {
+					PrefetchPair pp = (PrefetchPair) pplist.get(i);
+					ppairs.remove(pp);
+				}
+			}
+		}
+	}
 
+	private boolean isSubSet(PrefetchPair shrt, PrefetchPair lng) {
+		if (shrt.base != lng.base) {
+			return false;
+		}
+		for (int j = 0; j < shrt.desc.size(); j++) {
+			if(shrt.getDescAt(j) instanceof IndexDescriptor) {
+				IndexDescriptor shrtid = (IndexDescriptor) shrt.getDescAt(j);
+				if(lng.getDescAt(j) instanceof IndexDescriptor){
+					IndexDescriptor lngid = (IndexDescriptor) lng.getDescAt(j);
+					if(shrtid.equals(lngid)) {
+						continue;
+					} else {
+						return false;
+					}
+				} else {
+					return false;
+				}
+			} else  {
+				if ((Descriptor)shrt.getDescAt(j) != (Descriptor)lng.getDescAt(j)){
+					return false;
+				}
+			}
+		}
+		return true;
+	}
 
 	/**This function compares all the prefetch pairs in a Prefetch set hashtable and
 	 * returns: true if something has changed in the new Prefetch set else
@@ -1385,11 +1455,11 @@ public class PrefetchAnalysis {
 		}
 	}
 
-
 	private void addFlatPrefetchNode(Hashtable<FlatNode, HashSet<PrefetchPair>> newprefetchset) {
 		int i;
 		Enumeration e = null;
 		e = newprefetchset.keys();
+		boolean isFNPresent = false; /* Detects presence of FlatNew node */
 		/* This modifies the graph */
 		while(e.hasMoreElements()) {
 			FlatNode fn = (FlatNode) e.nextElement();
@@ -1397,21 +1467,31 @@ public class PrefetchAnalysis {
 			for(i = 0; i< newprefetchset.get(fn).size(); i++) {
 				fpn.insAllpp((HashSet)newprefetchset.get(fn));
 			}
-			//System.out.println("The HashSet of prefetch pairs are "+ fpn.getPrefetchPairs());
 			if(fn.kind() == FKind.FlatMethod) {
 				FlatNode nn = fn.getNext(0);
 				fn.setNext(0, fpn);
 				fpn.addNext(nn);
 			} else {
-				while(fn.numPrev() > 0) {
-					FlatNode nn = fn.getPrev(0);
-					for(int j = 0; j<nn.numNext(); j++) {
-						if(nn.getNext(j) == fn) {
-							nn.setNext(j, fpn);
-						}
+				/* Check if previous node of this FlatNode is a NEW node 
+				 * If yes, delete this flatnode and its prefetch set from hash table 
+				 * This eliminates prefetches for NULL ptrs*/
+				for(i = 0; i< fn.numPrev(); i++) {
+					FlatNode nn = fn.getPrev(i);
+					if(nn.kind() == FKind.FlatNew) {
+						isFNPresent = true;
 					}
 				}
-				fpn.addNext(fn);
+				if(!isFNPresent) {
+					while(fn.numPrev() > 0) {
+						FlatNode nn = fn.getPrev(0);
+						for(int j = 0; j<nn.numNext(); j++) {
+							if(nn.getNext(j) == fn) {
+								nn.setNext(j, fpn);
+							}
+						}
+					}
+					fpn.addNext(fn);
+				}
 			}
 		}
 	}

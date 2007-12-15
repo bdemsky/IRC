@@ -91,7 +91,7 @@ public class IndexDescriptor extends Descriptor {
 	public boolean equals(Object o) {
 		if(o instanceof IndexDescriptor) {
 			IndexDescriptor idesc = (IndexDescriptor) o;
-			if(!offset.equals(idesc.offset)) {
+			if(!(offset.equals(idesc.offset))) {
 				return false;
 			}
 			if(tddesc == null && idesc.tddesc == null) {

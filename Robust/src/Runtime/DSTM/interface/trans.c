@@ -315,7 +315,7 @@ objheader_t *transRead(transrecord_t *record, unsigned int oid) {
 				return objcopy;
 #endif
 			} else if (rc == ETIMEDOUT) {
-//					printf("Wait timed out\n");
+					printf("Wait timed out\n");
 					pthread_mutex_unlock(&pflookup.lock);
 					break;
 			}
@@ -1127,26 +1127,17 @@ void checkPrefetchTuples(prefetchqelem_t *node) {
 
 				if(i == 0) {
 					k = 0;
-					index = endoffsets[j -1];
-					for(count = 0; count < slength; count ++) {
-						if (arryfields[k] != arryfields[index]) { 
-							break;
-						}
-						index++;
-						k++;
-					}	
 				} else {
 					k = endoffsets[i-1];
-					index = endoffsets[j-1];
-					for(count = 0; count < slength; count++) {
-						if(arryfields[k] != arryfields[index]) {
-							break;
-						}
-						index++;
-						k++;
-					}
 				}
-
+				index = endoffsets[j -1];
+				for(count = 0; count < slength; count ++) {
+					if (arryfields[k] != arryfields[index]) { 
+						break;
+					}
+					index++;
+					k++;
+				}	
 				if(slength == count) {
 					oid[sindex] = 0;
 				}
@@ -1154,66 +1145,6 @@ void checkPrefetchTuples(prefetchqelem_t *node) {
 		}
 	}
 }
-
-void checkPreCache(prefetchqelem_t *node, int *numoffset, int counter, int loopcount, unsigned int objoid, int index, int iter, int oidnfound) {
-	char *ptr, *tmp;
-	int ntuples, i, k, flag;
-	unsigned int * oid;
-	short *endoffsets, *arryfields;
-	objheader_t *header;
-
-	ptr = (char *) node;
-	ntuples = *(GET_NTUPLES(ptr));
-	oid = GET_PTR_OID(ptr);
-	endoffsets = GET_PTR_EOFF(ptr, ntuples);
-	arryfields = GET_PTR_ARRYFLD(ptr, ntuples);
-
-	if(oidnfound == 1) {
-		if((header = (objheader_t *) prehashSearch(objoid)) == NULL) {
-			return;
-		} else { //Found in Prefetch Cache
-			//TODO Decide if object is too old, if old remove from cache
-			tmp = (char *) header;
-			/* Check if any of the offset oid is available in the Prefetch cache */
-			for(i = counter; i < loopcount; i++) {
-				objoid = *(tmp + sizeof(objheader_t) + arryfields[counter]);
-				if((header = (objheader_t *)prehashSearch(objoid)) != NULL) {
-					flag = 0;
-				} else {
-					flag = 1;
-					break;
-				}
-			}
-		}
-	} else {
-		for(i = counter; i<loopcount; i++) {
-			if((header = (objheader_t *)prehashSearch(objoid)) != NULL) {
-				tmp = (char *) header;
-				objoid = *(tmp + sizeof(objheader_t) + arryfields[index]);
-				flag = 0;
-				index++;
-			} else {
-				flag = 1;
-				break;
-			}
-		}
-	}
-
-	/* If oid not found locally or in prefetch cache then 
-	 * assign the latest oid found as the new oid 
-	 * and copy left over offsets into the arrayoffsetfieldarray*/
-	oid[iter] = objoid;
-	numoffset[iter] = numoffset[iter] - (i+1);
-	for(k = 0; k < numoffset[iter] ; k++) {
-		arryfields[endoffsets[counter]+k] = arryfields[endoffsets[counter]+k+1];
-	}
-
-	if(flag == 0) {
-		oid[iter] = 0;
-		numoffset[iter] = 0;
-	}
-}
-
 /* This function makes machine piles to be added into the machine pile queue for each prefetch call */
 prefetchpile_t *makePreGroups(prefetchqelem_t *node, int *numoffset) {
 	char *ptr, *tmp;
@@ -1246,14 +1177,11 @@ prefetchpile_t *makePreGroups(prefetchqelem_t *node, int *numoffset) {
 	return head;
 }
 
-
-/* This function checks if the oids within the prefetch tuples are available locally.
- * If yes then makes the tuple invalid. If no then rearranges oid and offset values in 
- * the prefetchqelem_t node to represent a new prefetch tuple */
 prefetchpile_t *foundLocal(prefetchqelem_t *node) {
-	int ntuples,i, j, k, oidnfound = 0, index, flag;
+	int ntuples,i, j, k, oidnfound = 0, arryfieldindex,nextarryfieldindex, flag = 0, val;
 	unsigned int *oid;
 	unsigned int  objoid;
+	int isArray = 0;
 	char *ptr, *tmp;
 	objheader_t *objheader;
 	short *endoffsets, *arryfields; 
@@ -1271,45 +1199,77 @@ prefetchpile_t *foundLocal(prefetchqelem_t *node) {
 		numoffset[i] = endoffsets[i] - endoffsets[i-1];
 	}
 	for(i = 0; i < ntuples; i++) { 
-		if(oid[i] == 0)
+		if(oid[i] == 0){
+			if(i == 0) {
+				arryfieldindex = 0;
+				nextarryfieldindex =  endoffsets[0];
+			}else {
+				arryfieldindex = endoffsets[i-1];
+				nextarryfieldindex =  endoffsets[i];
+			}
+			numoffset[i] = 0;
+			endoffsets[0] = val = numoffset[0];
+			for(k = 1; k < ntuples; k++) {
+				val = val + numoffset[k];
+				endoffsets[k] = val; 
+			}
+			
+			for(k = 0; k<endoffsets[ntuples-1]; k++) {
+				arryfields[arryfieldindex+k] = arryfields[nextarryfieldindex+k];
+			}
 			continue;
+		}
 		/* If object found locally */
 		if((objheader = (objheader_t*) mhashSearch(oid[i])) != NULL) { 
-			oidnfound = 0;
 			tmp = (char *) objheader;
-			/* Find the oid of its offset value */
-			if(i == 0) 
-				index = 0;
-			else 
-				index = endoffsets[i - 1];
-			for(j = 0 ; j < numoffset[i] ; j++) {
-				objoid = *(tmp + sizeof(objheader_t) + arryfields[index]);
-				/*If oid found locally then 
-				 *assign the latest oid found as the new oid 
-				 *and copy left over offsets into the arrayoffsetfieldarray*/
-				oid[i] = objoid;
-				numoffset[i] = numoffset[i] - (j+1);
-				for(k = 0; k < numoffset[i]; k++)
-					arryfields[endoffsets[j]+ k] = arryfields[endoffsets[j]+k+1];
-				index++;
-				/*New offset oid not found */
-				if((objheader = (objheader_t*) mhashSearch(objoid)) == NULL) {
-					flag = 1;
-					checkPreCache(node, numoffset, j, numoffset[i], objoid, index, i, oidnfound); 
-					break;
-				} else 
-					flag = 0;
+			int orgnumoffset = numoffset[i];
+			if(i == 0) {
+				arryfieldindex = 0;
+			}else {
+				arryfieldindex = endoffsets[i-1];
 			}
 
+			for(j = 0; j<orgnumoffset; j++) {
+				/* Check for arrays  */
+				if(TYPE(objheader) > NUMCLASSES) {
+					isArray = 1;
+				}
+				if(isArray == 1) {
+					int elementsize = classsize[TYPE(objheader)];
+					struct ArrayObject *ao = (struct ArrayObject *) (tmp + sizeof(objheader_t));
+					objoid = *((unsigned int *)(tmp + sizeof(objheader_t) + sizeof(struct ArrayObject) + (elementsize*arryfields[arryfieldindex])));
+				} else {
+					objoid = *(tmp + sizeof(objheader_t) + arryfields[arryfieldindex]);
+				}
+				//Update numoffset array
+				numoffset[i] = numoffset[i] - 1;
+				//Update oid array
+				oid[i] = objoid;
+				//Update endoffset array
+				endoffsets[0] = val = numoffset[0];
+				for(k = 1; k < ntuples; k++) {
+					val = val + numoffset[k];
+					endoffsets[k] = val; 
+				}
+				//Update arrayfields array
+				for(k = 0; k < endoffsets[ntuples-1]; k++) {
+					arryfields[arryfieldindex+k] = arryfields[arryfieldindex+k+1];
+				}
+				if((objheader = (objheader_t*) mhashSearch(oid[i])) == NULL) {
+					flag = 1;
+					checkPreCache(node, numoffset, oid[i], i); 
+					break;
+				}  
+				tmp = (char *) objheader;
+				isArray = 0;
+			}
 			/*If all offset oids are found locally,make the prefetch tuple invalid */
 			if(flag == 0) {
 				oid[i] = 0;
-				numoffset[i] = 0;
 			}
 		} else {
-			oidnfound = 1;
 			/* Look in Prefetch cache */
-			checkPreCache(node, numoffset, 0, numoffset[i], oid[i], 0, i, oidnfound); 
+			checkPreCache(node, numoffset, oid[i],i); 
 		}
 
 	}
@@ -1317,6 +1277,72 @@ prefetchpile_t *foundLocal(prefetchqelem_t *node) {
 	head = makePreGroups(node, numoffset);
 	return head;
 }
+
+void checkPreCache(prefetchqelem_t *node, int *numoffset, unsigned int objoid, int index) {
+	char *ptr, *tmp;
+	int ntuples, i, k, flag=0, isArray =0, arryfieldindex, val;
+	unsigned int * oid;
+	short *endoffsets, *arryfields;
+	objheader_t *header;
+
+	ptr = (char *) node;
+	ntuples = *(GET_NTUPLES(ptr));
+	oid = GET_PTR_OID(ptr);
+	endoffsets = GET_PTR_EOFF(ptr, ntuples);
+	arryfields = GET_PTR_ARRYFLD(ptr, ntuples);
+
+	if((header = (objheader_t *) prehashSearch(objoid)) == NULL) {
+		return;
+	} else { //Found in Prefetch Cache
+		//TODO Decide if object is too old, if old remove from cache
+		tmp = (char *) header;
+		int loopcount = numoffset[index]; 	
+		if(index == 0)
+			arryfieldindex = 0;
+		else
+			arryfieldindex = endoffsets[(index - 1)];
+		// Check if any of the offset oid is available in the Prefetch cache
+		for(i = 0; i < loopcount; i++) {
+			/* Check for arrays  */
+			if(TYPE(header) > NUMCLASSES) {
+				isArray = 1;
+			}
+			if(isArray == 1) {
+				int elementsize = classsize[TYPE(header)];
+				objoid = *((unsigned int *)(tmp + sizeof(objheader_t) + sizeof(struct ArrayObject) + (elementsize*arryfields[arryfieldindex])));
+			} else {
+				objoid = *(tmp + sizeof(objheader_t) + arryfields[arryfieldindex]);
+			}
+			//Update numoffset array
+			numoffset[index] = numoffset[index] - 1;
+			//Update oid array
+			oid[index] = objoid;
+			//Update endoffset array
+			endoffsets[0] = val = numoffset[0];
+			for(k = 1; k < ntuples; k++) {
+				val = val + numoffset[k];
+				endoffsets[k] = val; 
+			}
+			//Update arrayfields array
+			for(k = 0; k < endoffsets[ntuples-1]; k++) {
+				arryfields[arryfieldindex+k] = arryfields[arryfieldindex+k+1];
+			}
+			if((header = (objheader_t *)prehashSearch(oid[index])) != NULL) {
+				tmp = (char *) header;
+				isArray = 0;
+			} else {
+				flag = 1;
+				break;
+			}
+		}
+	}
+	//Found in the prefetch cache
+	if(flag == 0 && (numoffset[index] == 0)) {
+		oid[index] = 0;
+	}
+}
+
+
 
 /* This function is called by the thread calling transPrefetch */
 void *transPrefetch(void *t) {
@@ -1748,4 +1774,3 @@ int findHost(unsigned int hostIp)
 	//not found
 	return -1;
 }
-
