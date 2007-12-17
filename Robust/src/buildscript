@@ -247,7 +247,7 @@ EXTRAOPTIONS="$EXTRAOPTIONS -ldmalloc -DDMALLOC"
 fi
 
 gcc $INCLUDES $EXTRAOPTIONS -DPRECISE_GC \
-tmpbuilddirectory/methods.c $FILES -o $MAINFILE.bin
+tmpbuilddirectory/methods.c $FILES -lm -o $MAINFILE.bin
 
 exit
 
