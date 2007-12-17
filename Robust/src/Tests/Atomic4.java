@@ -19,7 +19,7 @@ public class Atomic4 extends Thread {
 		}
 		atomic {
 			age = global new Integer(70);
-			name = global new String("Harry Potter");
+			name = global new String("John Smith");
 			at4.team[1] = global new People(name,age);
 			c = at4.team[1].getAge();
 		}
@@ -34,19 +34,17 @@ public class Atomic4 extends Thread {
 	}
 
 	public int run() {
-		String name;
+		String name = "";
 		int a;
 		boolean old = false;
 		atomic {
-			//FIXME a bug value of trans commit is not saved
-			//a = root.value.intValue();
 			a = team[1].getAge();
 			name = team[1].getName();
 			if(a > 65)
 				old = true;
 		}
 		if(old){
-			System.printString(name + " gets Pension"); 
+			System.printString(" gets Pension"); 
 			System.printString("\n");
 		}
 	}
