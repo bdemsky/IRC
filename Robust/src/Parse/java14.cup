@@ -1480,7 +1480,7 @@ array_creation_uninit ::=
 		pn.addChild("dims_opt").setLiteral(dims);
 		RESULT=pn;
 	:}
-	|	NEW GLOBAL primitive_type:type dim_exprs:dimexpr dims_opt:dims {: 
+	|	GLOBAL NEW primitive_type:type dim_exprs:dimexpr dims_opt:dims {: 
 		ParseNode pn=new ParseNode("createarray");
 		pn.addChild(type);
 		pn.addChild(dimexpr);
@@ -1488,7 +1488,7 @@ array_creation_uninit ::=
 		pn.addChild("global");
 		RESULT=pn;
 		:}
-	|	NEW GLOBAL class_or_interface_type:type dim_exprs:dimexpr dims_opt:dims {: 
+	|	GLOBAL NEW class_or_interface_type:type dim_exprs:dimexpr dims_opt:dims {: 
 		ParseNode pn=new ParseNode("createarray");
 		pn.addChild(type);
 		pn.addChild(dimexpr);
