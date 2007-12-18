@@ -12,6 +12,8 @@ public class Atomic4 extends Thread {
 		Atomic4 at4 = null;
 		atomic {
 			at4 = global new Atomic4();
+			at4.team[0] = global new People();
+			at4.team[1] = global new People();
 			age = global new Integer(35);
 			name = global new String("Harry Potter");
 			at4.team[0].name = name;
@@ -57,6 +59,9 @@ public class People {
 	String name;
 	Integer age;
 
+	public People() {
+	}
+
 	public People(String name, Integer age) {
 		this.name = name;
 		this.age = age;
@@ -75,9 +80,7 @@ public class People {
 	}
 
 	public int getAge() {
-		int test = age.intValue();
-		//return age.intValue();
-		return test; 
+		return age.intValue();
 	}
 
 	public boolean isSenior() {
