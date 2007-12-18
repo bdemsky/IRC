@@ -1,8 +1,8 @@
 public class Atomic4 extends Thread {
+	People[] team;
 	public Atomic4() {
 		People[] team = new People[2];
 	}
-	People[] team;
 	public static void main(String[] st) {
 		int mid = (128<<24)|(195<<16)|(175<<8)|70;
 		int b,c;
@@ -14,16 +14,19 @@ public class Atomic4 extends Thread {
 			at4 = global new Atomic4();
 			age = global new Integer(35);
 			name = global new String("Harry Potter");
-			at4.team[0] = global new People(name, age);
+			at4.team[0].name = name;
+			at4.team[0].age = age;
 			b = at4.team[0].getAge();
 		}
 		atomic {
 			age = global new Integer(70);
 			name = global new String("John Smith");
-			at4.team[1] = global new People(name,age);
+			at4.team[1].name = name;
+			at4.team[1].age = age;
 			c = at4.team[1].getAge();
 		}
 		System.printInt(b);
+		System.printInt(c);
 		System.printString("\n");
 		System.printString("Starting\n");
 		at4.start(mid);
@@ -34,13 +37,13 @@ public class Atomic4 extends Thread {
 	}
 
 	public int run() {
-		String name = "";
-		int a;
+		String newname = "";
+		int ag;
 		boolean old = false;
 		atomic {
-			a = team[1].getAge();
-			name = team[1].getName();
-			if(a > 65)
+			ag = team[1].getAge();
+			newname = team[1].getName();
+			if(ag > 65)
 				old = true;
 		}
 		if(old){
@@ -59,12 +62,22 @@ public class People {
 		this.age = age;
 	}
 
+	public void setName(String n) {
+		name = n;
+	}
+	
+	public void setAge(Integer a) {
+		age = a;
+	}
+
 	public String getName() {
 		return name;
 	}
 
 	public int getAge() {
-		return age.intValue();
+		int test = age.intValue();
+		//return age.intValue();
+		return test; 
 	}
 
 	public boolean isSenior() {
