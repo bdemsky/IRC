@@ -469,7 +469,7 @@ public class LocalityAnalysis {
 	    if (srctype.equals(LOCAL) && fsfn.getField().getType().isPrimitive())
 		return;
 	    if (!(srctype.equals(GLOBAL)||srctype.equals(EITHER)))
-		throw new Error("Writing possible local reference to global object in context:\n"+lb.getExplanation());
+		throw new Error("Writing possible local reference to global object in context:\n"+lb.getExplanation()+" for FlatFieldNode "+fsfn);
 	} else if (dsttype.equals(EITHER)) {
 	    if (srctype.equals(CONFLICT))
 		throw new Error("Using reference that could be local or global in context:\n"+lb.getExplanation());
@@ -490,6 +490,10 @@ public class LocalityAnalysis {
 
     void processOpNode(FlatOpNode fon, Hashtable<TempDescriptor, Integer> currtable) {
 	/* Just propagate value */
+	Integer srcvalue=currtable.get(fon.getLeft());
+	if (srcvalue==null) {
+	    throw new Error(fon.getLeft()+" is undefined!");
+	}
 	currtable.put(fon.getDest(), currtable.get(fon.getLeft()));
     }
 
