@@ -142,7 +142,7 @@ typedef struct trans_req_data {
   unsigned int *listmid;	/* Pointer to array holding list of participants */
   char *objread;		/* Pointer to array holding oid and version number of objects that are only read */ 
   unsigned int *oidmod;		/* Pointer to array holding oids of objects that are modified */
-  unsigned int *oidcreated;		/* Pointer to array holding oids of objects that are newly created */
+  unsigned int *oidcreated;	/* Pointer to array holding oids of objects that are newly created */
 } trans_req_data_t;		
 
 /* Structure that holds information of objects that are not found in the participant

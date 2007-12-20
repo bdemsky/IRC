@@ -216,13 +216,12 @@ void transExit() {
  * Mostly used when transaction commits retry*/
 void randomdelay(void)
 {
-	struct timespec req, rem;
+	struct timespec req;
 	time_t t;
 
 	t = time(NULL);
 	req.tv_sec = 0;
 	req.tv_nsec = (long)(1000000 + (t%10000000)); //1-11 msec
-	//nanosleep(&req, &rem);
 	nanosleep(&req, NULL);
 	return;
 }
@@ -249,6 +248,10 @@ objheader_t *transRead(transrecord_t *record, unsigned int oid) {
 	void *buf;
 	struct timespec ts;
 	struct timeval tp;
+
+	if(oid == 0) {
+		return NULL;
+	}
         
 	rc = gettimeofday(&tp, NULL);
 
@@ -346,6 +349,7 @@ objheader_t *transCreateObj(transrecord_t *record, unsigned int size)
   tmp->rcount = 1;
   STATUS(tmp) = NEW;
   chashInsert(record->lookupTable, OID(tmp), tmp);
+
 #ifdef COMPILER
   return &tmp[1]; //want space after object header
 #else
@@ -423,6 +427,7 @@ int transCommit(transrecord_t *record) {
 	do {
 		trecvcount = 0;
 		threadnum = 0;
+		treplyretry = 0;
 
 		/* Look through all the objects in the transaction record and make piles 
 		 * for each machine involved in the transaction*/
@@ -519,9 +524,9 @@ int transCommit(transrecord_t *record) {
 			thread_data_array[threadnum].rec = record;
 			/* If local do not create any extra connection */
 			if(pile->mid != myIpAddr) { /* Not local */
-			  do {
-				rc = pthread_create(&thread[threadnum], &attr, transRequest, (void *) &thread_data_array[threadnum]);  
-			  } while(rc!=0);
+				do {
+					rc = pthread_create(&thread[threadnum], &attr, transRequest, (void *) &thread_data_array[threadnum]);  
+				} while(rc!=0);
 				if(rc) {
 					perror("Error in pthread create\n");
 					pthread_cond_destroy(&tcond);
@@ -581,7 +586,6 @@ int transCommit(transrecord_t *record) {
 			}
 			free(thread_data_array[i].buffer);
 		}
-	
 
 		/* Free resources */	
 		pthread_cond_destroy(&tcond);
@@ -591,11 +595,11 @@ int transCommit(transrecord_t *record) {
 		free(thread_data_array);
 		free(ltdata);
 
-		/* wait a random amount of time */
-		if (treplyretry == 1) {
+		/* wait a random amount of time before retrying to commit transaction*/
+		if(treplyretry == 1) {
 			randomdelay();
 		}
-
+		
 	/* Retry trans commit procedure if not sucessful in the first try */
 	} while (treplyretry == 1);
 	
@@ -712,7 +716,7 @@ void *transRequest(void *threadarg) {
 
 	/* Close connection */
 	close(sd);
-	pthread_exit(NULL);
+	//pthread_exit(NULL);
 }
 
 /* This function decides the reponse that needs to be sent to 
@@ -993,7 +997,7 @@ void *handleLocalReq(void *threadarg) {
 		free(localtdata->transinfo->objnotfound);
 	}
 
-	pthread_exit(NULL);
+	//pthread_exit(NULL);
 }
 
 /* This function completes the ABORT process if the transaction is aborting */

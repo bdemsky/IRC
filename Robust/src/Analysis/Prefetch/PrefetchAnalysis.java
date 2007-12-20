@@ -1235,6 +1235,9 @@ public class PrefetchAnalysis {
 		}
 	}
 
+	/** This function deletes the smaller prefetch pair subset from a list of prefetch pairs 
+	 * for e.g. if there are 2 prefetch pairs a.b.c.d and a.b.c for a given flatnode
+	 * then this function drops a.b.c from the prefetch set of the flatnode */
 	private void delSubsetPPairs() {
 		Enumeration e = prefetch_hash.keys();
 		while(e.hasMoreElements()) {
@@ -1278,6 +1281,8 @@ public class PrefetchAnalysis {
 		}
 	}
 
+	/** This function returns: true if the shorter prefetch pair is a subset of the longer prefetch
+	 * pair else it returns: false */
 	private boolean isSubSet(PrefetchPair shrt, PrefetchPair lng) {
 		if (shrt.base != lng.base) {
 			return false;
@@ -1322,6 +1327,11 @@ public class PrefetchAnalysis {
 		}
 		return hasChanged;
 	}
+
+	/** This function creates a set called pset1 that contains prefetch pairs that have already
+	 * been prefetched. While traversing the graph of a flat representation in a top down fashion,
+	 * this function creates pset1 such that it contains prefetch pairs that have been prefetched at
+	 * the previous nodes */
 
 	private void applyPrefetchInsertRules(FlatNode fn) {
 		HashSet<PrefetchPair> pset1 = new HashSet<PrefetchPair>();
@@ -1431,9 +1441,10 @@ public class PrefetchAnalysis {
 			}
 			pset1_hash.put(fn, pset1);
 
-			/* To insert prefetch apply rule */
+
+			/* To insert prefetch apply rule: if the newpset intersection pset2 is nonempty
+			 * then insert a new prefetch node here*/
 			HashSet<PrefetchPair> s = new HashSet<PrefetchPair>();
-			//if(!newpset.isEmpty() && !pset2.isEmpty()) {
 			if(!newpset.isEmpty()) {
 				if(!pset2.isEmpty()) {
 					for(Iterator it = newpset.iterator(); it.hasNext();) {
