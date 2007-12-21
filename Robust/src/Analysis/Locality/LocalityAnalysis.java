@@ -572,7 +572,7 @@ public class LocalityAnalysis {
 	    toprocess.remove(fn);
 
 	    List<TempDescriptor> reads=Arrays.asList(fn.readsTemps());
-	    List<TempDescriptor> writes=Arrays.asList(fn.readsTemps());
+	    List<TempDescriptor> writes=Arrays.asList(fn.writesTemps());
 
 	    HashSet<TempDescriptor> tempset=new HashSet<TempDescriptor>();
 	    for(int i=0;i<fn.numNext();i++) {
@@ -583,7 +583,7 @@ public class LocalityAnalysis {
 	    tempset.removeAll(writes);
 	    tempset.addAll(reads);
 	    if (!nodetotemps.containsKey(fn)||
-		nodetotemps.get(fn).equals(tempset)) {
+		!nodetotemps.get(fn).equals(tempset)) {
 		nodetotemps.put(fn, tempset);
 		for(int i=0;i<fn.numPrev();i++)
 		    toprocess.add(fn.getPrev(i));
@@ -615,13 +615,10 @@ public class LocalityAnalysis {
 	Hashtable<FlatNode, Hashtable<TempDescriptor, Integer>> temptab=getNodeTempInfo(lb);
 	MethodDescriptor md=lb.getMethod();
 	FlatMethod fm=state.getMethodFlat(md);
-
 	Hashtable<FlatNode, Set<TempDescriptor>> nodetotemps=computeLiveTemps(fm);
 	Hashtable<FlatAtomicEnterNode, Set<TempDescriptor>> nodetosavetemps=new Hashtable<FlatAtomicEnterNode, Set<TempDescriptor>>();
 	tempstosave.put(lb, nodetosavetemps);
-
 	Hashtable<FlatNode, FlatAtomicEnterNode> nodemap=new Hashtable<FlatNode, FlatAtomicEnterNode>();
-	
 	HashSet<FlatNode> toprocess=new HashSet<FlatNode>();
 	HashSet<FlatNode> discovered=new HashSet<FlatNode>();
 	toprocess.add(fm);
