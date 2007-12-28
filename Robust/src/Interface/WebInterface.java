@@ -224,6 +224,7 @@ public class WebInterface {
 	PrintWriter pw=new PrintWriter(out);
 	for(Iterator it_classes=state.getClassSymbolTable().getDescriptorsIterator();it_classes.hasNext();) {
 	    ClassDescriptor cd=(ClassDescriptor) it_classes.next();
+	    if (cd.hasFlags()){
 	    if (taskanalysis.getFlagStates(cd)!=null) {
 		pw.println("<a href=\""+cd.getSymbol()+".html\">"+ cd.getSymbol() +"</a>");
 		pw.println("<br>");
@@ -234,6 +235,7 @@ public class WebInterface {
 		pw.println("<br>");
 		taskgraphmap.put("/"+cd.getSymbol()+"-t.html", cd);
 	    }
+    	}
 	}
 	pw.println("<br><br><a href=\"/UnifiedTaskGraph.html\">Program flow</a>");
 	pw.flush();
