@@ -86,7 +86,11 @@ Interface/JhttpServer.class Interface/JhttpWorker.class			\
 Interface/LogFile.class Interface/Pair.class				\
 Interface/WebInterface.class Analysis/Prefetch/PrefetchAnalysis.class	\
 Analysis/Prefetch/PrefetchPair.class Analysis/Prefetch/PairMap.class    \
-Analysis/Prefetch/IndexDescriptor.class	
+Analysis/Prefetch/IndexDescriptor.class                                 \
+Analysis/Scheduling/ClassNode.class                                     \
+Analysis/Scheduling/ScheduleAnalysis.class                              \
+Analysis/Scheduling/ScheduleEdge.class                                  \
+Analysis/Scheduling/ScheduleNode.class
 
 
 

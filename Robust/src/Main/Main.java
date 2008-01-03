@@ -3,6 +3,8 @@ package Main;
 import java.io.Reader;
 import java.io.BufferedReader;
 import java.io.FileReader;
+import java.util.Vector;
+
 import IR.Tree.ParseNode;
 import IR.Tree.BuildIR;
 import IR.Tree.SemanticCheck;
@@ -10,6 +12,8 @@ import IR.Flat.BuildFlat;
 import IR.Flat.BuildCode;
 import IR.State;
 import IR.TypeUtil;
+import Analysis.Scheduling.ScheduleAnalysis;
+import Analysis.Scheduling.ScheduleEdge;
 import Analysis.TaskStateAnalysis.TaskAnalysis;
 import Analysis.TaskStateAnalysis.TaskGraph;
 import Analysis.CallGraph.CallGraph;
@@ -70,6 +74,8 @@ public class Main {
 	      state.OWNERSHIP=true;
 	  else if (option.equals("-optional"))
 	      state.OPTIONAL=true;
+	  else if (option.equals("-scheduling"))
+		  state.SCHEDULING=true; 
 	  else if (option.equals("-thread"))
 	      state.THREAD=true;
 	  else if (option.equals("-dsm"))
@@ -185,6 +191,31 @@ public class Main {
 	      serve.run();
 	  }
 	  
+	  if (state.SCHEDULING) {
+		  ScheduleAnalysis scheduleAnalysis = new ScheduleAnalysis(state, ta);
+		  scheduleAnalysis.preSchedule();
+		  
+		  // Randomly set the newRate and probability of ScheduleEdges
+		  /*Vector<ScheduleEdge> sedges = scheduleAnalysis.getSEdges4Test();
+		  java.util.Random r=new java.util.Random();
+		  for(int i = 0; i < sedges.size(); i++) {
+			  ScheduleEdge temp = sedges.elementAt(i);
+			  int tint = 0;
+			  do {
+				  tint = r.nextInt()%100;
+			  }while(tint <= 0);
+			  temp.setProbability(tint);
+			  do {
+				  tint = r.nextInt()%10;
+			  } while(tint <= 0);
+			  temp.setNewRate(tint);
+			  //temp.setNewRate((i+1)%2+1);
+		  }
+		  //sedges.elementAt(3).setNewRate(2);*/
+		  scheduleAnalysis.printScheduleGraph("scheduling_ori.dot");
+		  scheduleAnalysis.scheduleAnalysis();
+		  scheduleAnalysis.printScheduleGraph("scheduling.dot");
+	  }
 	  
       }
 

@@ -52,6 +52,7 @@ public class State {
     public boolean FLATIRGRAPHLIBMETHODS=false;
     public boolean OWNERSHIP=false;
     public boolean OPTIONAL=false;
+    public boolean SCHEDULING=false;  
     public boolean THREAD=false;
     public boolean CONSCHECK=false;
     public boolean INSTRUCTIONFAILURE=false;

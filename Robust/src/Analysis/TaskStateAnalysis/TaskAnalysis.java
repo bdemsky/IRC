@@ -15,6 +15,7 @@ public class TaskAnalysis {
     Queue<FlagState> toprocess;
     TagAnalysis taganalysis;
     Hashtable cdtorootnodes;
+    Hashtable tdToFEdges; 
 
     TypeUtil typeutil;
 
@@ -89,6 +90,7 @@ public class TaskAnalysis {
 	flagstates=new Hashtable();
 	Hashtable<FlagState,FlagState> sourcenodes;
 	cdtorootnodes=new Hashtable();
+	tdToFEdges=new Hashtable(); 
 	
 	getFlagsfromClasses();
 	
@@ -152,6 +154,10 @@ private void analyseTasks(FlagState fs) {
     for(Iterator it_tasks=state.getTaskSymbolTable().getDescriptorsIterator();it_tasks.hasNext();) {
 	TaskDescriptor td = (TaskDescriptor)it_tasks.next();
 	String taskname=td.getSymbol();
+	
+	if(!tdToFEdges.containsKey(td)) {
+		tdToFEdges.put(td, new Vector<FEdge>());
+	}
 
 	/** counter to keep track of the number of parameters (of the
 	 *  task being analyzed) that are satisfied by the flagstate.
@@ -214,6 +220,7 @@ private void analyseTasks(FlagState fs) {
 	    if (fn1.kind()==FKind.FlatReturnNode) {
 		/* Self edge */
 		FEdge newedge=new FEdge(fs, taskname, td, parameterindex);
+		((Vector<FEdge>)tdToFEdges.get(td)).add(newedge);
 		fs.addEdge(newedge);
 		continue;
 	    } else if (fn1.kind()==FKind.FlatFlagActionNode) {
@@ -232,6 +239,7 @@ private void analyseTasks(FlagState fs) {
 			//seen this node already
 			fs_taskexit=canonicalizeFlagState(sourcenodes,fs_taskexit);
 			FEdge newedge=new FEdge(fs_taskexit,taskname, td, parameterindex);
+			((Vector<FEdge>)tdToFEdges.get(td)).add(newedge);
 			fs.addEdge(newedge);
 		    }
 		    continue;
@@ -416,6 +424,10 @@ private boolean isTaskTrigger_tag(TagExpressionList tel, FlagState fs){
     
     public Vector getRootNodes(ClassDescriptor cd){
 	return (Vector)cdtorootnodes.get(cd);
+    }
+    
+    public Vector getFEdgesFromTD(TaskDescriptor td) {
+    	return (Vector)tdToFEdges.get(td);
     }
 } 
 

@@ -397,6 +397,8 @@ public class GraphNode {
 	int sccindex = 0;
         Collection nodes;
 	Vector finishingorder=null;
+	Vector finishingorder_edge = null; 
+	int edgetime = 0; 
 	HashMap sccmap;
 	HashMap sccmaprev;
 
@@ -456,6 +458,7 @@ public class GraphNode {
         private boolean go() {
             Iterator i;
             time = 0;
+            edgetime = 0; 
             boolean acyclic=true;
             i = nodes.iterator();
             while (i.hasNext()) {
@@ -476,28 +479,59 @@ public class GraphNode {
         }
 
         private boolean dfs(GraphNode gn) {
-	    boolean acyclic=true;
+        	boolean acyclic=true;
             gn.discover(time++);
             Iterator edges = gn.edges();
 
             while (edges.hasNext()) {
                 Edge edge = (Edge) edges.next();
+                edge.discover(edgetime++);
                 GraphNode node = edge.getTarget();
-		if (!nodes.contains(node)) /* Skip nodes which aren't in the set */
-		    continue;
+				if (!nodes.contains(node)) /* Skip nodes which aren't in the set */ {
+					if(finishingorder_edge != null)
+				    	finishingorder_edge.add(edge);
+					edge.finish(edgetime++); 
+				    continue;
+				}
                 if (node.getStatus() == UNVISITED) {
                     if (!dfs(node))
-			acyclic=false;
+                    	acyclic=false;
                 } else if (node.getStatus()==PROCESSING) {
-		    acyclic=false;
-		}
+                		acyclic=false;
+                }
+                if(finishingorder_edge != null)
+    		    	finishingorder_edge.add(edge);
+    			edge.finish(edgetime++); 
             }
-	    if (finishingorder!=null)
-		finishingorder.add(gn);
-            gn.finish(time++);
-	    return acyclic;
+		    if (finishingorder!=null)
+			finishingorder.add(gn);  
+	        gn.finish(time++);
+		    return acyclic;
         }
 
+        public static Vector topology(Collection nodes, Vector finishingorder_edge) {
+    	    if (nodes==null) {
+    		throw new NullPointerException();
+    	    }
+    	    DFS dfs=new DFS(nodes);
+    	    dfs.finishingorder=new Vector();
+    	    if(finishingorder_edge != null) {
+    	    	dfs.finishingorder_edge = new Vector();
+    	    }
+    	    boolean acyclic=dfs.go();
+    	    Vector topology = new Vector();
+    	    for(int i=dfs.finishingorder.size()-1;i>=0;i--) {
+    		GraphNode gn=(GraphNode)dfs.finishingorder.get(i);
+    		topology.add(gn);
+    	    }
+    	    if(finishingorder_edge != null) {
+	    	    for(int i=dfs.finishingorder_edge.size()-1;i>=0;i--) {
+	        		Edge gn=(Edge)dfs.finishingorder_edge.get(i);
+	        		finishingorder_edge.add(gn);
+	        	}
+    	    }
+    	    return topology;
+    	}
     } /* end DFS */
 
 }
