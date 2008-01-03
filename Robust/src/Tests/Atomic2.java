@@ -13,6 +13,8 @@ public class Atomic2 extends Thread {
 	System.printString("Starting\n");
 	t.start(mid);
 	System.printString("Finished\n");
+	/* Test thread join */
+	t.join();
 	//this is ugly...
 	while(true) {
 	    atomic {
