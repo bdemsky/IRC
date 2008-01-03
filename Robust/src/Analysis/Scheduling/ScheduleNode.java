@@ -29,12 +29,12 @@ public class ScheduleNode extends GraphNode implements Cloneable{
      */
     public ScheduleNode() {
     	this.uid=ScheduleNode.nodeID++;
-    	this.coreNum = 0;
+    	this.coreNum = -1;
     }
     
     public ScheduleNode(ClassNode cn) {
     	this.uid=ScheduleNode.nodeID++;
-    	this.coreNum = 0;
+    	this.coreNum = -1;
     	this.classNodes = new Vector<ClassNode>();
     	this.scheduleEdges = new Vector<ScheduleEdge>();
     	this.classNodes.add(cn);
@@ -169,13 +169,13 @@ public class ScheduleNode extends GraphNode implements Cloneable{
             } else if(this.targetSNodes != null) {
             	return false;
             }
-    		if(fs.classNodes != null) {
-		    if(!fs.classNodes.equals(classNodes)) {
-			return false;
-		    }
-    		} else if(classNodes != null) {
+	    if(fs.classNodes != null) {
+		if(!fs.classNodes.equals(classNodes)) {
 		    return false;
-    		}
+		}
+	    } else if(classNodes != null) {
+		return false;
+	    }
 	    return (fs.scheduleEdges.equals(scheduleEdges));
         }
         return false;
@@ -191,7 +191,9 @@ public class ScheduleNode extends GraphNode implements Cloneable{
 
     public String getTextLabel() {
 	String label=null;
-	label = "[Cluster of classes]" + uid;
+	if(this.coreNum != -1) {
+	    label = "Core " + this.coreNum;
+	}
 	
 	if (label==null)
 	    return " ";
@@ -238,6 +240,10 @@ public class ScheduleNode extends GraphNode implements Cloneable{
     public void merge(ScheduleEdge se) {
     	Vector<ClassNode> targetCNodes = (Vector<ClassNode>)((ScheduleNode)se.getTarget()).getClassNodes();
     	Vector<ScheduleEdge> targetSEdges = (Vector<ScheduleEdge>)((ScheduleNode)se.getTarget()).getScheduleEdges();
+    	
+    	for(int i = 0; i <  targetCNodes.size(); i++) {
+	    targetCNodes.elementAt(i).setScheduleNode(this);
+    	}
     	
     	if(classNodes == null) {
 	    classNodes = targetCNodes;

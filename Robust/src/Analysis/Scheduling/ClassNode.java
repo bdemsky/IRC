@@ -23,10 +23,10 @@ public class ClassNode extends GraphNode implements Cloneable{
      *  @param fStates
      */
     public ClassNode(ClassDescriptor cd, Vector<FlagState> fStates) {
-		this.cd=cd;
-		this.flagStates = fStates;
-		this.sn = null;
-		this.uid=ClassNode.nodeID++;
+	this.cd=cd;
+	this.flagStates = fStates;
+	this.sn = null;
+	this.uid=ClassNode.nodeID++;
     }
    
     public int getuid() {
@@ -68,9 +68,9 @@ public class ClassNode extends GraphNode implements Cloneable{
     	return flagStates.size();
     }
     
-	/** Accessor method
-	 *  @return returns the classdescriptor of the flagstate.
-	 */
+    /** Accessor method
+     *  @return returns the classdescriptor of the flagstate.
+     */
 	 
     public ClassDescriptor getClassDescriptor(){
     	return cd;
@@ -81,10 +81,10 @@ public class ClassNode extends GraphNode implements Cloneable{
     
     public boolean equals(Object o) {
         if (o instanceof ClassNode) {
-        	ClassNode fs=(ClassNode)o;
+	    ClassNode fs=(ClassNode)o;
             if ((fs.getClassDescriptor()!= cd) || 
-            		(fs.getScheduleNode() != sn) || 
-            		(fs.isSorted() != sorted)) {
+		(fs.getScheduleNode() != sn) || 
+		(fs.isSorted() != sorted)) {
                 return false;
             }
 	    return (fs.getFlagStates().equals(flagStates));
@@ -97,25 +97,28 @@ public class ClassNode extends GraphNode implements Cloneable{
     }
 
     public String getLabel() {
-    	//return "cluster_"+uid;
-    	return "N"+uid;
-    }	
+    	return "N_"+uid;
+    }
+    
+    public String getClusterLabel() {
+    	return "cluster_"+uid;
+    }
 
     public String getTextLabel() {
-		String label=null;
-		label = "Class " + this.cd.getSymbol();
-		
-		if (label==null)
-		    return " ";
-		return label;
+	String label=null;
+	label = "Class " + this.cd.getSymbol();
+	
+	if (label==null)
+	    return " ";
+	return label;
     }
     
     public Object clone() {
     	ClassNode o = null;
     	try {
-    		o = (ClassNode)super.clone();
+	    o = (ClassNode)super.clone();
     	} catch(CloneNotSupportedException e){
-    		e.printStackTrace();
+	    e.printStackTrace();
     	}
     	o.uid = ClassNode.nodeID++;
     	return o;

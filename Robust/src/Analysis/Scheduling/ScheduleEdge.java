@@ -65,6 +65,9 @@ public class ScheduleEdge extends Edge {
     }
     
     public FlagState getSourceFState() {
+    	if(this.fedge == null) {
+	    return null;
+    	}
     	return (FlagState)this.fedge.getTarget();
     }
     
