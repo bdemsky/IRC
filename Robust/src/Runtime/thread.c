@@ -98,6 +98,13 @@ void CALL11(___Thread______sleep____J, long long ___millis___, long long ___mill
 #endif
 }
 
+/* Add thread join capability */
+#ifdef DSTM
+void CALL01(___Thread______join____, struct ___Thread___ * ___this___) {
+  printf("DEBUG -> Inside native join\n");
+}
+#endif
+
 #ifdef THREADS
 void CALL01(___Thread______nativeCreate____, struct ___Thread___ * ___this___) {
   pthread_t thread;

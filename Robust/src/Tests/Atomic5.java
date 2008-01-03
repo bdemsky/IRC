@@ -8,7 +8,7 @@ public class Atomic5 extends Thread {
 		
 		Integer age;
 		String name;
-		Atomic at5[];
+		Atomic5 at5[];
 		atomic {
 			at5[] =  global new Atomic5[4];
 		}

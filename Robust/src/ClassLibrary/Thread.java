@@ -1,4 +1,5 @@
 public class Thread {
+
     public void start() {
 	nativeCreate();
     }
@@ -12,4 +13,5 @@ public class Thread {
     public void run() {}
 
     private native void nativeCreate();
+
 }
