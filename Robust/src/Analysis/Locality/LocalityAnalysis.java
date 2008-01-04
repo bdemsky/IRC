@@ -358,19 +358,14 @@ public class LocalityAnalysis {
 		    methodset.addAll(runmethodset);
 		} else throw new Error("Can't find run method");
 	    }
-	    /* Add New Check for Thread Join */
-	    if (nodemd.getClassDesc().getSymbol().equals(TypeUtil.ThreadClass)&&
-		nodemd.getSymbol().equals("join")) {
-		assert(nodemd.getModifiers().isNative());
-	    }
 	}
 
 	Integer currreturnval=EITHER; //Start off with the either value
 	for(Iterator methodit=methodset.iterator();methodit.hasNext();) {
 	    MethodDescriptor md=(MethodDescriptor) methodit.next();
 	    boolean isnative=md.getModifiers().isNative();
-	    boolean isjoin = md.getSymbol().equals("join");
-
+	    boolean isjoin = md.getClassDesc().getSymbol().equals(TypeUtil.ThreadClass)&&!nodemd.getModifiers().isStatic()&&nodemd.numParameters()==0&&md.getSymbol().equals("join");
+	    
 	    LocalityBinding lb=new LocalityBinding(md, isatomic);
 	    if (isnative&&isatomic) {
 		System.out.println("Don't call native methods in atomic blocks!");
@@ -386,7 +381,6 @@ public class LocalityAnalysis {
 		}
 	    }
 
-
 	    if (fc.getThis()!=null) {
 		Integer thistype=currtable.get(fc.getThis());
 		if (thistype==null)
@@ -394,14 +388,12 @@ public class LocalityAnalysis {
 
 		if(runmethodset!=null&&runmethodset.contains(md)&&thistype.equals(LOCAL))
 		    throw new Error("Starting thread on local object not allowed in context:\n"+currlb.getExplanation());
+		if(isjoin&&thistype.equals(LOCAL))
+		    throw new Error("Joining thread on local object not allowed in context:\n"+currlb.getExplanation());
 		if(thistype.equals(CONFLICT))
 		    throw new Error("Using type that can be either local or global in context:\n"+currlb.getExplanation());
-		//if(runmethodset==null&&thistype.equals(GLOBAL)&&!isatomic)
-		/* TODO Remove this ..This is a hack for thread join() call */
 		if(runmethodset==null&&thistype.equals(GLOBAL)&&!isatomic && !isjoin) 
 		    throw new Error("Using global object outside of transaction in context:\n"+currlb.getExplanation());
-		//if (runmethodset==null&&isnative&&thistype.equals(GLOBAL))
-		/* TODO Remove this ..This is a hack for thread join() call */
 		if (runmethodset==null&&isnative&&thistype.equals(GLOBAL) && !isjoin)
 		    throw new Error("Potential call to native method "+md+" on global objects:\n"+currlb.getExplanation());
 		lb.setGlobalThis(thistype);
