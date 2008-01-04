@@ -76,9 +76,10 @@ Analysis/FlatIRGraph/FlatIRGraph.class                                  \
 Analysis/OwnershipAnalysis/OwnershipAnalysis.class                      \
 Analysis/OwnershipAnalysis/OwnershipGraph.class                         \
 Analysis/OwnershipAnalysis/OwnershipNode.class                          \
-Analysis/OwnershipAnalysis/OwnershipHeapRegionNode.class                \
-Analysis/OwnershipAnalysis/OwnershipLabelNode.class                     \
-Analysis/OwnershipAnalysis/TestOwnership.class                          \
+Analysis/OwnershipAnalysis/HeapRegionNode.class                         \
+Analysis/OwnershipAnalysis/LabelNode.class                              \
+Analysis/OwnershipAnalysis/ReferenceEdgeProperties.class                \
+Analysis/OwnershipAnalysis/NewCluster.class                             \
 Util/GraphNode.class Util/Namer.class Util/Relation.class		\
 Interface/HTTPHeader.class Interface/HTTPResponse.class			\
 Interface/HTTPServices.class Interface/HashStrings.class		\
