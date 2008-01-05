@@ -8,6 +8,7 @@ public class Atomic5 extends Thread {
 		
 		Integer age;
 		String name;
+		Atomic5 tmp;
 		Atomic5[] at5;
 		atomic {
 			at5 =  global new Atomic5[4];
@@ -37,15 +38,23 @@ public class Atomic5 extends Thread {
 		System.printString("\n");
 		System.printString("Starting\n");
 		for(int i = 0 ; i< 4; i++) {
+			atomic {
+				tmp = at5[i];
+			}
+			tmp.start(mid);
+		}
+		/*
+		for(int i = 0 ; i< 4; i++) {
 			at5[i].start(mid);
 		}
+		*/
 		System.printString("Finished\n");
 		while(true) {
 			;
 		}
 	}
 
-	public int run() {
+	public void run() {
 		/*
 		String newname = "";
 		int ag;
@@ -102,6 +111,6 @@ public class People {
 	public boolean isSenior() {
 		if(this.getAge() > 65)
 			return true;
-		return false;;
+		return false;
 	}
 }
