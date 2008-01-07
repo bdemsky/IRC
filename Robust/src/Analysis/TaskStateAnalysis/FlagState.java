@@ -126,13 +126,14 @@ public class FlagState extends GraphNode {
 	}
     }
 
+    public int getTagCount(TagDescriptor tag) {
+	if (tags.containsKey(tag))
+	    return tags.get(tag).intValue();
+	else return 0;
+    }
+
     public int getTagCount(String tagtype){
-	for (Enumeration en=getTags();en.hasMoreElements();){
-	    TagDescriptor td=(TagDescriptor)en.nextElement();
-	    if (tagtype.equals(td.getSymbol()))
-		return tags.get(td).intValue();   //returns either ONETAG or MULTITAG
-	}
-	return NOTAGS;
+	return getTagCount(new TagDescriptor(tagtype));
     }
     
     public FlagState[] clearTag(TagDescriptor tag){
@@ -230,9 +231,6 @@ public class FlagState extends GraphNode {
 	return "N"+uid;
     }
     
-    
-	
-
     public String getTextLabel() {
 	String label=null;
 	for(Iterator it=getFlags();it.hasNext();) {
