@@ -69,7 +69,6 @@ public class TaskTagAnalysis {
 	TaskBinding tb=new TaskBinding(tqi);
 	while(tb.hasNext()) {
 	    doAnalysis(tb);
-	    
 	    tb.next();
 	}
     }
@@ -83,14 +82,20 @@ public class TaskTagAnalysis {
 		TempDescriptor tmp=tmpit.next();
 		TagWrapper prevtag=prevtable.get(tmp);
 		if (table.containsKey(tmp)) {
+		    //merge tag states
 		    TagWrapper currtag=table.get(tmp);
+		    assert(currtag.initts.equals(prevtag.initts));
+		    for(Iterator<TagState> tagit=prevtag.ts.iterator();tagit.hasNext();) {
+			TagState tag=tagit.next();
+			if (!currtag.ts.contains(tag)) {
+			    currtag.ts.add(tag);
+			}
+		    }
 		} else {
 		    table.put(tmp, prevtag.clone());
 		}
-
 	    }
 	}
-
 	return table;
     }
 
@@ -106,6 +111,7 @@ public class TaskTagAnalysis {
 	    FlatNode fn=tovisit.iterator().next();
 	    tovisit.remove(fn);
 	    visited.add(fn);
+	    Hashtable<TempDescriptor, TagState> table=computeInitialState(table, fn);
 	    
 
 	    for(int i=0;i<fn.numNext();i++) {

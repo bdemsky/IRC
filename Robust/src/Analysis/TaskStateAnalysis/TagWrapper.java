@@ -20,4 +20,16 @@ public class TagWrapper {
 	tw.ts=ts.clone();
 	return tw;
     }
+
+    public boolean equals(Object o) {
+	if (o instanceof TagWrapper) {
+	    TagWrapper tw=(TagWrapper)o;
+	    return tw.initts.equals(initts)&&tw.ts.equals(ts);
+	}
+	return false;
+    }
+
+    public int hashCode() {
+	return initts.hashCode()^ts.hashCode();
+    }
 }
