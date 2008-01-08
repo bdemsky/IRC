@@ -241,7 +241,7 @@ public class Main {
       }
 
       if (state.OWNERSHIP) {
-	  OwnershipAnalysis oa = new OwnershipAnalysis(state);
+	  //	  OwnershipAnalysis oa = new OwnershipAnalysis(state);
       }
 
       System.exit(0);
