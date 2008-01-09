@@ -4,7 +4,7 @@ import IR.Tree.*;
 import IR.Flat.*;
 import java.util.*;
 
-public class ObjWrapper {
+public class ObjWrapper implements Wrapper{
     FlagState fs;
     Vector<TagWrapper> tags;
 

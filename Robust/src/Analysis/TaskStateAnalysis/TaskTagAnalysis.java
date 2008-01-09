@@ -73,37 +73,81 @@ public class TaskTagAnalysis {
 	}
     }
 
-    private Hashtable<TempDescriptor, TagWrapper> computeInitialState(Hashtable<FlatNode, Hashtable<TempDescriptor, TagWrapper>> table, FlatNode fn) {
-	Hashtable<TempDescriptor, TagWrapper> table=new Hashtable<TempDescriptor, TagWrapper>();
+    private Hashtable<TempDescriptor, Wrapper> computeInitialState(Hashtable<FlatNode, Hashtable<TempDescriptor, Wrapper>> maintable, FlatNode fn) {
+	Hashtable<TempDescriptor, Wrapper> table=new Hashtable<TempDescriptor, Wrapper>();
+	Hashtable<TagWrapper,TagWrapper> tagtable=new Hashtable<TagWrapper, TagWrapper>();
 	for(int i=0;i<fn.numPrev();i++) {
 	    FlatNode fnprev=fn.getPrev(i);
-	    Hashtable<TempDescriptor, TagWrapper> prevtable=table.get(fn);
+	    Hashtable<TempDescriptor, Wrapper> prevtable=maintable.get(fn);
+
+	    //Iterator through the Tags
 	    for(Iterator<TempDescriptor> tmpit=prevtable.keySet().iterator();tmpit.hasNext();) {
 		TempDescriptor tmp=tmpit.next();
-		TagWrapper prevtag=prevtable.get(tmp);
+		Wrapper prevtag=prevtable.get(tmp);
+		if (prevtag instanceof ObjWrapper)
+		    continue;
 		if (table.containsKey(tmp)) {
 		    //merge tag states
-		    TagWrapper currtag=table.get(tmp);
-		    assert(currtag.initts.equals(prevtag.initts));
-		    for(Iterator<TagState> tagit=prevtag.ts.iterator();tagit.hasNext();) {
+		    TagWrapper currtag=(TagWrapper) table.get(tmp);
+		    tagtable.put((TagWrapper)prevtag, currtag);
+		    assert(currtag.initts.equals(((TagWrapper)prevtag).initts));
+		    for(Iterator<TagState> tagit=((TagWrapper)prevtag).ts.iterator();tagit.hasNext();) {
 			TagState tag=tagit.next();
 			if (!currtag.ts.contains(tag)) {
 			    currtag.ts.add(tag);
 			}
 		    }
 		} else {
-		    table.put(tmp, prevtag.clone());
+		    TagWrapper clonetag=prevtag.clone();
+		    tagtable.put(prevtag, clonetag);
+		    table.put(tmp, clonetag);
+		}
+	    }
+
+	    //Iterator through the Objects
+	    for(Iterator<TempDescriptor> tmpit=prevtable.keySet().iterator();tmpit.hasNext();) {
+		TempDescriptor tmp=tmpit.next();
+		Wrapper obj=prevtable.get(tmp);
+		if (obj instanceof TagWrapper)
+		    continue;
+		ObjWrapper prevobj=(ObjWrapper)obj;
+		if (table.containsKey(tmp)) {
+		    //merge tag states
+		    ObjWrapper newobj=new ObjWrapper(prevobj.fs);
+		    table.put(tmp, newobj);
+		}
+		ObjWrapper currobj=(ObjWrapper) table.get(tmp);
+		for(int j=0;j<prevobj.tags.size();j++) {
+		    TagWrapper t=tagtable.get(prevobj.tags.get(j));
+		    if (!currobj.tags.contains(t))
+			currobj.tags.add(t);
 		}
 	    }
 	}
 	return table;
     }
 
+    private void processFlatFlag(FlatFlagActionNode fn, Hashtable<TempDescriptor, TagState> table) {
+
+    }
+
+    private void processFlatCall(FlatCall fc, Hashtable<TempDescriptor, TagState> table) {
+
+    }
+
+    private void processFlatReturnNode(FlatReturnNode fr, Hashtable<TempDescriptor, TagState> table) {
+
+    }
+
+    private boolean equivalent(Hashtable<TempDescriptor, TagState> table1, Hashtable<TempDescriptor, TagState> table2) {
+
+    }
+
     private void doAnalysis(TaskBinding tb) {
 	TaskDescriptor td=tb.tqi.tq.getTask();
 	FlatMethod fm=state.getMethodFlat(td);
-	Hashtable<FlatNode, Hashtable<TempDescriptor, TagWrapper>> table=new Hashtable<FlatNode, Hashtable<TempDescriptor, TagWrapper>>();
-	table.put(fm, buildinittable(tb));
+	Hashtable<FlatNode, Hashtable<TempDescriptor, Wrapper>> wtable=new Hashtable<FlatNode, Hashtable<TempDescriptor, Wrapper>>();
+	wtable.put(fm, buildinittable(tb));
 	HashSet<FlatNode> visited=new HashSet<FlatNode>();
 	HashSet<FlatNode> tovisit=new HashSet<FlatNode>();
 	tovisit.add(fm.getNext(0));
@@ -111,25 +155,45 @@ public class TaskTagAnalysis {
 	    FlatNode fn=tovisit.iterator().next();
 	    tovisit.remove(fn);
 	    visited.add(fn);
-	    Hashtable<TempDescriptor, TagState> table=computeInitialState(table, fn);
-	    
+	    Hashtable<TempDescriptor, TagState> table=computeInitialState(wtable, fn);
+	    switch(fn.kind()) {
+	    case FKind.FlatFlagActionNode:
+		processFlatFlag((FlatFlagActionNode)fn, table);
+		break;
+	    case FKind.FlatCall:
+		processFlatCall((FlatCall)fn, table);
+		break;
+	    case FKind.FlatReturnNode:
+		processFlatReturnNode((FlatReturn)fn, table);
+		break;
+	    default:
+	    }
 
-	    for(int i=0;i<fn.numNext();i++) {
-		if (!visited.contains(fn.getNext(i)))
+	    if (!equivalent(table, wtable.get(fn))) {
+		wtable.put(fn, table);
+		for(int i=0;i<fn.numNext();i++) {
 		    tovisit.add(fn.getNext(i));
+		}
+	    } else {
+		for(int i=0;i<fn.numNext();i++) {
+		    if (!visited.contains(fn.getNext(i)))
+			tovisit.add(fn.getNext(i));
+		}
 	    }
 	}
 	
     }
 
-    private Hashtable<TempDescriptor, Set<TagWrapper>> buildinittable(TaskBinding tb) {
-	Hashtable<TempDescriptor, Set<TagWrapper>> table=new Hashtable<TempDescriptor, Set<TagWrapper>>();
+    private Hashtable<TempDescriptor, Wrapper> buildinittable(TaskBinding tb, FlatMethod fm) {
+	Hashtable<TempDescriptor, Wrapper> table=new Hashtable<TempDescriptor, Wrapper>();
 	Vector<TempDescriptor> tagtmps=tb.tqi.tq.tags;
 	for(int i=0;i<tagtmps.size();i++) {
 	    TempDescriptor tmp=tagtmps.get(i);
-	    HashSet<TagWrapper> tset=new HashSet<TagWrapper>();
-	    tset.add(tb.getTag(tmp));
-	    table.put(tmp, tset);
+	    table.put(tmp, tb.getTag(tmp));
+	}
+	for(int i=0;i<fm.numParameters();i++) {
+	    TempDescriptor tmp=fm.getParameter(i);
+	    table.put(tmp, tb.getParameter(i));
 	}
 	return table;
     }
