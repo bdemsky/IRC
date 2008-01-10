@@ -11,13 +11,16 @@ public class TagWrapper implements Wrapper {
     public TagWrapper(TagState ts) {
 	this.initts=ts;
 	this.ts=new HashSet<TagState>();
-	this.ts.addAll(ts);
+	this.ts.add(ts);
+    }
+
+    private TagWrapper() {
     }
 
     public TagWrapper clone() {
 	TagWrapper tw=new TagWrapper();
 	tw.initts=initts;
-	tw.ts=ts.clone();
+	tw.ts=(HashSet<TagState>)ts.clone();
 	return tw;
     }
 }

@@ -23,6 +23,7 @@ public class FlagState extends GraphNode {
     private final Hashtable<TagDescriptor,Integer> tags;
     private boolean issourcenode;
     private Vector tasks;
+    public static final int KLIMIT=2;
 
     /** Class constructor
      *  Creates a new flagstate with all flags set to false.
@@ -104,6 +105,30 @@ public class FlagState extends GraphNode {
 	return flagstate.size();
     }
     
+    public FlagState[] setTag(TagDescriptor tag, boolean set){
+	HashSet newset1=(HashSet)flagstate.clone();
+	Hashtable<TagDescriptor,Integer> newtags1=(Hashtable<TagDescriptor,Integer>)tags.clone();
+	    
+	if (set) {
+	    int count=0;
+	    if (tags.containsKey(tag))
+		count=tags.get(tag).intValue();
+	    if (count<KLIMIT)
+		count++;
+	    newtags1.put(tag, new Integer(count));
+	    return new FlagState[] {new FlagState(newset1, cd, newtags1)};
+	} else {
+	    int count=1;
+	    if (tags.containsKey(tag))
+		count=tags.get(tag).intValue();
+	    newtags1.put(tag, new Integer(count));
+	    if ((count+1)==KLIMIT)
+		return new FlagState[] {this, new FlagState(newset1, cd, newtags1)};
+	    else
+		return new FlagState[] {new FlagState(newset1, cd, newtags1)};
+	}
+    }
+
     public FlagState[] setTag(TagDescriptor tag){
 	HashSet newset1=(HashSet)flagstate.clone();
 	Hashtable<TagDescriptor,Integer> newtags1=(Hashtable<TagDescriptor,Integer>)tags.clone();
