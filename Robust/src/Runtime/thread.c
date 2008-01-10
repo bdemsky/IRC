@@ -6,6 +6,7 @@
 #include "thread.h"
 #include "option.h"
 #include <signal.h>
+#include <DSTM/interface/dstm.h>
 
 #include <stdio.h>
 int threadcount;
@@ -15,8 +16,12 @@ pthread_cond_t gccond;
 pthread_mutex_t objlock;
 pthread_cond_t objcond;
 pthread_key_t threadlocks;
+pthread_mutex_t threadnotifylock;
+pthread_cond_t threadnotifycond;
+transrecord_t * trans;
 
 void threadexit() {
+  void *ptr;
 #ifdef THREADS
   struct ___Object___ *ll=pthread_getspecific(threadlocks);
   while(ll!=NULL) {
@@ -35,6 +40,20 @@ void threadexit() {
   threadcount--;
   pthread_cond_signal(&gccond);
   pthread_mutex_unlock(&gclistlock);
+  /* Add transaction to check if thread finished for join operation */
+  goto transstart;
+transretry:
+
+transstart:
+	trans = transStart();
+	ptr  = (void *)transRead(trans, (unsigned int) a);
+	struct ___Thread___ *tmp = ((char *) ptr + sizeof(objheader_t));
+	tmp->___threadDone___ = 1;
+	if(transCommit(trans)) {
+					goto transretry;
+  } else {
+					COMMIT_OBJ();
+  }
   pthread_exit(NULL);
 }
 
@@ -101,7 +120,24 @@ void CALL11(___Thread______sleep____J, long long ___millis___, long long ___mill
 /* Add thread join capability */
 #ifdef DSTM
 void CALL01(___Thread______join____, struct ___Thread___ * ___this___) {
-  printf("DEBUG -> Inside native join\n");
+  pthread_t thread;
+  printf("DEBUG -> Inside thread join\n");
+  int status;
+  if(VAR(___this___)->___threadDone___) {
+	  return;
+  } else {
+	  /* Request Notification */
+	  pthread_cond_broadcast(&objcond);
+	  pthread_mutex_unlock(&objlock);
+	  pthread_mutex_lock(&threadnotifylock);//wake everyone up
+	  status = reqNotify((unsigned int)VAR(___this___));
+	  
+	  if((status = reqNotify((unsigned int)VAR(___this___))) != 0) {
+		  printf("No notification is sent %s, %d\n", __FILE__, __LINE__);
+	  } else {
+		  return;
+	  }
+  }
 }
 #endif
 
@@ -145,9 +181,24 @@ void initDSMthread(int *ptr) {
   ((void (*)(void *))virtualtable[type*MAXCOUNT+RUNMETHOD])(oid);
 #endif
   pthread_mutex_lock(&gclistlock);
-  threadcount--;
-  pthread_cond_signal(&gccond);
-  pthread_mutex_unlock(&gclistlock);
+	threadcount--;
+	pthread_cond_signal(&gccond);
+	pthread_mutex_unlock(&gclistlock);
+	/* Add transaction to check if thread finished for join operation */
+	goto transstart;
+transretry:
+	//TODO
+
+transstart:
+	trans = transStart();
+	ptr  = (void *)transRead(trans, (unsigned int) oid);
+	struct ___Thread___ *tmp = ((char *) ptr + sizeof(objheader_t));
+	tmp->___threadDone___ = 1;
+	if(transCommit(trans)) {
+					goto transretry;
+	} else {
+					//TODO
+	}
 }
 
 void startDSMthread(int oid, int objType) {
