@@ -35,7 +35,6 @@ public class TaskTagAnalysis {
 
     private void doAnalysis() {
 	toprocess.add(createInitialState());
-
 	while(!toprocess.isEmpty()) {
 	    TagState ts=toprocess.iterator().next();
 	    toprocess.remove(ts);
@@ -128,19 +127,34 @@ public class TaskTagAnalysis {
     }
 
     private void processFlatFlag(FlatFlagActionNode fn, Hashtable<TempDescriptor, TagState> table) {
-
+	
     }
 
     private void processFlatCall(FlatCall fc, Hashtable<TempDescriptor, TagState> table) {
-
+	//Do nothing for now
     }
 
     private void processFlatReturnNode(FlatReturnNode fr, Hashtable<TempDescriptor, TagState> table) {
 
     }
 
-    private boolean equivalent(Hashtable<TempDescriptor, TagState> table1, Hashtable<TempDescriptor, TagState> table2) {
-
+    private boolean equivalent(Hashtable<TempDescriptor, Wrapper> table1, Hashtable<TempDescriptor, Wrapper> table2) {
+	Hashtable<Wrapper, Wrapper> emap=new Hashtable<Wrapper, Wrapper>;
+	for(Iterator<TempDescriptor> tmpit=table1.keySet().iterator();tmpit.hasNext();) {
+	    TempDescriptor tmp=tmpit.next();
+	    if (table2.containsKey(tmp)) {
+		emap.put(table1.get(tmp), table2.get(tmp));
+	    } else return false;
+	}
+	for(Iterator<TempDescriptor> tmpit=table2.keySet().iterator();tmpit.hasNext();) {
+	    TempDescriptor tmp=tmpit.next();
+	    if (table1.containsKey(tmp)) {
+		emap.put(table1.get(tmp), table2.get(tmp));
+	    } else return false;
+	}
+	
+	for
+	
     }
 
     private void doAnalysis(TaskBinding tb) {
@@ -155,7 +169,7 @@ public class TaskTagAnalysis {
 	    FlatNode fn=tovisit.iterator().next();
 	    tovisit.remove(fn);
 	    visited.add(fn);
-	    Hashtable<TempDescriptor, TagState> table=computeInitialState(wtable, fn);
+	    Hashtable<TempDescriptor, Wrapper> table=computeInitialState(wtable, fn);
 	    switch(fn.kind()) {
 	    case FKind.FlatFlagActionNode:
 		processFlatFlag((FlatFlagActionNode)fn, table);
