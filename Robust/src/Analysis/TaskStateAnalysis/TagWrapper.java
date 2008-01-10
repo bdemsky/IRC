@@ -6,11 +6,11 @@ import java.util.*;
 
 public class TagWrapper implements Wrapper {
     TagState initts;
-    Vector<TagState> ts;
+    HashSet<TagState> ts;
 
     public TagWrapper(TagState ts) {
 	this.initts=ts;
-	this.ts=new Vector<TagState>();
+	this.ts=new HashSet<TagState>();
 	this.ts.addAll(ts);
     }
 

@@ -24,6 +24,23 @@ public class TagState extends GraphNode {
 	return tag;
     }
 
+    public TagState[] clearFS(FlagState fs) {
+	int num=0;
+	if (flags.containsKey(fs))
+	    num=flags.get(fs).intValue();
+	if (num>0)
+	    num--;
+	
+	TagState ts=new TagState(tag);
+	ts.flags.putAll(flags);
+	ts.flags.put(fs, new Integer(num));
+
+	if ((num+1)==KLIMIT)
+	    return new TagState[] {ts, this};
+	else
+	    return new TagState[] {ts};
+    }
+
     public TagState[] addnewFS(FlagState fs) {
 	int num=0;
 	if (flags.containsKey(fs))

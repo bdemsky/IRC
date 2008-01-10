@@ -110,51 +110,175 @@ public class TaskTagAnalysis {
 		if (obj instanceof TagWrapper)
 		    continue;
 		ObjWrapper prevobj=(ObjWrapper)obj;
-		if (table.containsKey(tmp)) {
+		if (!table.containsKey(tmp)) {
 		    //merge tag states
-		    ObjWrapper newobj=new ObjWrapper(prevobj.fs);
+		    ObjWrapper newobj=new ObjWrapper();
+		    newobj.initfs=prevobj.initfs;
 		    table.put(tmp, newobj);
 		}
 		ObjWrapper currobj=(ObjWrapper) table.get(tmp);
-		for(int j=0;j<prevobj.tags.size();j++) {
-		    TagWrapper t=tagtable.get(prevobj.tags.get(j));
-		    if (!currobj.tags.contains(t))
-			currobj.tags.add(t);
+		assert(currobj.initfs.equals(prevobj.initfs));
+		for(Iterator<TagWrapper> tagit=prevobj.tags.iterator();tagit.hasNext();) {
+		    TagWrapper tprev=tagit.next();
+		    TagWrapper t=tagtable.get(tprev);
+		    currobj.tags.add(t);
+		}
+		for(Iterator<FlagState> flagit=prevobj.fs.iterator();flagit.hasNext();) {
+		    FlagState fs=flagit.nexT();
+		    currobj.fs.add(fs);
 		}
 	    }
 	}
 	return table;
     }
 
-    private void processFlatFlag(FlatFlagActionNode fn, Hashtable<TempDescriptor, TagState> table) {
+    private void processFlatFlag(FlatFlagActionNode fn, Hashtable<TempDescriptor, Wrapper> table) {
+	if (fn.getTaskType()==FlatFlagActionNode.PRE) {
+	    throw new Error("Unsupported");
+	} else if (fn.getTaskType()==FlatFlagActionNode.TASKEXIT) {
+	    evalTaskExitNode(fn, table);
+	    
+	} else if (fn.getTaskType()==FlatFlagActionNode.NEW) {
+	}
+    }
+
+    private void setFlag(ObjWrapper ow, FlagDescriptor fd, boolean value) {
+	HashSet<FlagState> newstate=new HashSet<FlagState>();
+	Hastable<FlagState, FlagState> flagmap=new Hashtable<FlagState, FlagState>();
+	for(Iterator<FlagState> flagit=ow.fs.iterator();flagit.hasNext();) {
+	    FlagState fs=flagit.next();
+	    FlagState fsnew=canonical(fs.setFlag(fd, value));
+	    newstate.add(fsnew);
+	    flagmap.put(fs, fsnew);
+	}
+	
+	for(Iterator<TagWrapper> tagit=ow.tags.iterator();tagit.hasNext();) {
+	    TagWrapper tw=tagit.next();
+	    HashSet<TagState> newstates=new HashSet<TagState>();
+	    for(Iterator<TagState> tgit=tw.ts.iterator();tgit.hasNext();) {
+		TagState ts=tgit.next();
+		for(Iterator<FlagState> flagit=ts.flags.keySet();flagit.hasNext();) {
+		    FlagState fs=flagit.next();
+		    if (flagmap.containsKey(fs)) {
+			if (flagmap.get(fs).equals(fs)) {
+			    newstates.add(ts);
+			} else {
+			    TagState tsarray[]=ts.clearFS(fs);
+			    //Can do strong update here because these
+			    //must be parameter objects...therefore
+			    //all possible aliasing relationships are
+			    //explored
+			    for(int i=0;i<tsarray.length;i++) {
+				newstates.addAll(Arrays.asList(tsarray[i].addnewFS(flagmap.get(fs))));
+			    }
+			}
+		    }
+		}
+	    }
+	    tw.ts=newstates;
+	}
 	
     }
 
-    private void processFlatCall(FlatCall fc, Hashtable<TempDescriptor, TagState> table) {
+    private void setTag(ObjWrapper ow, TagWrapper tw, boolean value) {
+
+
+    }
+
+    private void evalTaskExitNode(FlatFlagActionNode fn, Hashtable<TempDescriptor, Wrapper> table) {
+	//Process clears first
+	for(Iterator it_ttp=ffan.getTempTagPairs();it_ttp.hasNext();) {
+	    TempTagPair ttp=(TempTagPair)it_ttp.next();
+	    TempDescriptor tmp=ttp.getTemp();
+	    TempDescriptor tagtmp=ttp.getTagTemp();
+	    TagWrapper tagw=(TagWrapper)table.get(tagtmp)
+	    boolean newtagstate=fn.getTagChange(ttp);
+	    ObjWrapper ow=(ObjWrapper)table.get(tmp);
+	    if (!newtagstate)
+		setTag(ow, tagw, newtagstate);
+	}
+
+	//Process sets next
+	for(Iterator it_ttp=ffan.getTempTagPairs();it_ttp.hasNext();) {
+	    TempTagPair ttp=(TempTagPair)it_ttp.next();
+	    TempDescriptor tmp=ttp.getTemp();
+	    TempDescriptor tagtmp=ttp.getTagTemp();
+	    TagWrapper tagw=(TagWrapper)table.get(tagtmp)
+	    boolean newtagstate=fn.getTagChange(ttp);
+	    ObjWrapper ow=(ObjWrapper)table.get(tmp);
+	    if (newtagstate)
+		setTag(ow, tagw, newtagstate);
+	}
+
+	//Do the flags last
+	for(Iterator<TempFlagPair> it_tfp=fn.getTempFlagPairs();it_tfp.hasNext();) {
+	    TempFlagPair tfp=it_tfp.next();
+	    TempDescriptor tmp=tfp.getTemp();
+	    FlagDescriptor fd=tfp.getFlag();
+	    boolean newflagstate=fn.getFlagChange(tfp);
+	    ObjWrapper ow=(ObjWrapper)table.get(tmp);
+	    setFlag(ow, fd, newflagstate);
+	}
+    }
+
+    private void processFlatTag(FlatTagDeclaration fn, Hashtable<TempDescriptor, Wrapper> table) {
+	TempDescriptor tmp=fn.getDst();
+	if (table.containsKey(tmp)) {
+	    recordtagchange(table.get(tmp));
+	}
+	TagDescriptor tag=fn.getTag();
+	TagState ts=canonical(new TagState(tag));
+	TagWrapper tw=new TagWrapper(ts);
+	tw.initts=null;
+	table.put(tmp, tw);
+    }
+      
+    private void processFlatCall(FlatCall fc, Hashtable<TempDescriptor, Wrapper> table) {
 	//Do nothing for now
     }
 
-    private void processFlatReturnNode(FlatReturnNode fr, Hashtable<TempDescriptor, TagState> table) {
+    private void processFlatReturnNode(FlatReturnNode fr, Hashtable<TempDescriptor, Wrapper> table) {
 
     }
 
     private boolean equivalent(Hashtable<TempDescriptor, Wrapper> table1, Hashtable<TempDescriptor, Wrapper> table2) {
 	Hashtable<Wrapper, Wrapper> emap=new Hashtable<Wrapper, Wrapper>;
+
+	if (table1.keySet().size()!=table2.keySet().size())
+	    return false;
+
 	for(Iterator<TempDescriptor> tmpit=table1.keySet().iterator();tmpit.hasNext();) {
 	    TempDescriptor tmp=tmpit.next();
 	    if (table2.containsKey(tmp)) {
 		emap.put(table1.get(tmp), table2.get(tmp));
 	    } else return false;
 	}
-	for(Iterator<TempDescriptor> tmpit=table2.keySet().iterator();tmpit.hasNext();) {
+	
+	for(Iterator<TempDescriptor> tmpit=table1.keySet().iterator();tmpit.hasNext();) {
 	    TempDescriptor tmp=tmpit.next();
-	    if (table1.containsKey(tmp)) {
-		emap.put(table1.get(tmp), table2.get(tmp));
-	    } else return false;
+	    Wrapper w1=table1.get(tmp);
+	    Wrapper w2=table2.get(tmp);
+	    if (w1 instanceof TagWrapper) {
+		TagWrapper t1=(TagWrapper)w1;
+		TagWrapper t2=(TagWrapper)w2;
+		if (!t1.ts.equals(t2.ts))
+		    return false;
+		
+	    } else {
+		ObjWrapper t1=(ObjWrapper)w1;
+		ObjWrapper t2=(ObjWrapper)w2;
+		if (!t1.fs.equals(t2.fs))
+		    return false;
+		if (t1.tags.size()!=t2.tags.size())
+		    return false;
+		for(Iterator<TagWrapper> twit=t1.tags.iterator();twit.hasNext();) {
+		    TagWrapper tw1=twit.next();
+		    if (!t2.tags.contains(emap.get(tw1)))
+			return false;
+		}
+	    }
 	}
-	
-	for
-	
+	return true;
     }
 
     private void doAnalysis(TaskBinding tb) {
@@ -173,6 +297,9 @@ public class TaskTagAnalysis {
 	    switch(fn.kind()) {
 	    case FKind.FlatFlagActionNode:
 		processFlatFlag((FlatFlagActionNode)fn, table);
+		break;
+	    case FKind.FlatTagDeclaration:
+		processFlatTag((FlatTagDeclaration)fn, table);
 		break;
 	    case FKind.FlatCall:
 		processFlatCall((FlatCall)fn, table);
