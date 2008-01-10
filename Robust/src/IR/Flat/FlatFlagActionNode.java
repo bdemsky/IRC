@@ -6,8 +6,8 @@ import java.util.HashSet;
 import java.util.Iterator;
 
 public class FlatFlagActionNode extends FlatNode {
-    Hashtable tempflagpairs; 
-    Hashtable temptagpairs; 
+    Hashtable<TempFlagPair, Boolean> tempflagpairs; 
+    Hashtable<TempTagPair, Boolean> temptagpairs; 
 
     int taskexit;
     public static final int NEWOBJECT=0;
@@ -16,8 +16,8 @@ public class FlatFlagActionNode extends FlatNode {
 
 
     public FlatFlagActionNode(int taskexit) {
-	tempflagpairs=new Hashtable();
-	temptagpairs=new Hashtable();
+	tempflagpairs=new Hashtable<TempFlagPair, Boolean>();
+	temptagpairs=new Hashtable<TempTagPair, Boolean>();
 	this.taskexit=taskexit;
     }
 
@@ -47,11 +47,11 @@ public class FlatFlagActionNode extends FlatNode {
     
     /** This method returns an iterator over the Temp/Flag pairs. */
     
-    public Iterator getTempFlagPairs() {
+    public Iterator<TempFlagPair> getTempFlagPairs() {
 	return tempflagpairs.keySet().iterator();
     }
 
-    public Iterator getTempTagPairs() {
+    public Iterator<TempTagPair> getTempTagPairs() {
 	return temptagpairs.keySet().iterator();
     }
 
