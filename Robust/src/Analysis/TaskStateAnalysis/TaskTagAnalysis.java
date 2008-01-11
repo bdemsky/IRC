@@ -13,8 +13,11 @@ public class TaskTagAnalysis {
     TypeUtil typeutil;
     FlagInfo flaginfo;
     HashSet<TagState> toprocess;
+    HashSet<TagState> discovered;
     Hashtable<TaskDescriptor, TaskQueue> tasktable;
-    
+    Hashtable<TagDescriptor, Set<TagState>> tsresults;
+    Hashtable<ClassDescriptor, Set<FlagState>> fsresults;
+
 
     /** 
      * Class Constructor
@@ -26,7 +29,12 @@ public class TaskTagAnalysis {
 	this.taganalysis=taganalysis;
 	this.flaginfo=new FlagInfo(state);
 	this.toprocess=new HashSet<TagState>();
+	this.discovered=new HashSet<TagState>();
 	this.tasktable=new Hashtable<TaskDescriptor, TaskQueue>();
+	this.tsresults=new Hashtable<TagDescriptor, Set<TagState>>();
+	this.fsresults=new Hashtable<ClassDescriptor, Set<FlagState>>();
+	
+
 	for(Iterator taskit=state.getTaskSymbolTable().getDescriptorsIterator();taskit.hasNext();) {
 	    TaskDescriptor td=(TaskDescriptor)taskit.next();
 	    tasktable.put(td, new TaskQueue(td));
@@ -302,7 +310,7 @@ public class TaskTagAnalysis {
 	}
     }
 
-    private void evalNewNode(FlatFlagActionNode fn, Hashtable<TempDescriptor, Wrapper> table) {
+    private void evalNewNode(FlatFlagActionNode fn, Hashtable<TempDescriptor, Wrapper> table, TaskDescriptor td) {
 	TempDescriptor fntemp=null;
 	{
 	    /* Compute type */
@@ -345,12 +353,24 @@ public class TaskTagAnalysis {
 	    else
 		throw new Error("Can't clear tag in newly allocated object");
 	}
+	for(Iterator<FlagState> fsit=ow.fs.iterator();fsit.hasNext();) {
+	    FlagState fs2=fsit.ext();
+	    fs2.addAllocatingTask(td);
+	    TagState ts2=new TagState(fs2.getClassDesc());
+	    ts2.addFS(fs2);
+	    ts2=canonical(ts2);
+	    ts2.addSource(td);
+	    if (!discovered.contains(ts2)) {
+		discovered.add(ts2);
+		toprocess.add(ts2);
+	    }
+	}
     }
 
-    private void processFlatTag(FlatTagDeclaration fn, Hashtable<TempDescriptor, Wrapper> table) {
+    private void processFlatTag(FlatTagDeclaration fn, Hashtable<TempDescriptor, Wrapper> table, TaskDescriptor td) {
 	TempDescriptor tmp=fn.getDst();
 	if (table.containsKey(tmp)) {
-	    recordtagchange((TagWrapper)table.get(tmp));
+	    recordtagchange((TagWrapper)table.get(tmp), td);
 	}
 	TagDescriptor tag=fn.getType();
 	TagState ts=canonical(new TagState(tag));
@@ -359,14 +379,30 @@ public class TaskTagAnalysis {
 	table.put(tmp, tw);
     }
 
-    public void recordtagchange(TagWrapper tw) {
+    private void addresult(TagDescriptor td, TagState ts) {
+	if (!tsresults.containsKey(td))
+	    tsresults.put(td, new HashSet<TagState>());
+	tsresults.get(td).add(ts);
     }
-      
+
+    public void recordtagchange(TagWrapper tw, TaskDescriptor td) {
+	assert(tw.initts==null);
+	for(Iterator<TagState> tsit=tw.ts.iterator(); tsit.hasNext();) {
+	    TagState ts=tsit.next();
+	    ts.addSource(td);
+	    addresult(ts.getTag(), ts);
+	    if (!discovered.contains(ts)) {
+		discovered.add(ts);
+		toprocess.add(ts);
+	    }
+	}
+    }
+    
     private void processFlatCall(FlatCall fc, Hashtable<TempDescriptor, Wrapper> table) {
 	//Do nothing for now
     }
-
-    private void processFlatReturnNode(FlatReturnNode fr, Hashtable<TempDescriptor, Wrapper> table) {
+    
+    private void processFlatReturnNode(FlatReturnNode fr, Hashtable<TempDescriptor, Wrapper> table, TaskDescriptor td) {
 
     }
 
@@ -428,13 +464,13 @@ public class TaskTagAnalysis {
 		processFlatFlag((FlatFlagActionNode)fn, table);
 		break;
 	    case FKind.FlatTagDeclaration:
-		processFlatTag((FlatTagDeclaration)fn, table);
+		processFlatTag((FlatTagDeclaration)fn, table, td);
 		break;
 	    case FKind.FlatCall:
 		processFlatCall((FlatCall)fn, table);
 		break;
 	    case FKind.FlatReturnNode:
-		processFlatReturnNode((FlatReturnNode)fn, table);
+		processFlatReturnNode((FlatReturnNode)fn, table, td);
 		break;
 	    default:
 	    }

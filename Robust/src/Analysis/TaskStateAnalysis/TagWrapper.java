@@ -17,6 +17,11 @@ public class TagWrapper implements Wrapper {
     private TagWrapper() {
     }
 
+    public TagState getState() {
+	assert(ts.size()==1);
+	return ts.iterator().next();
+    }
+
     public TagWrapper clone() {
 	TagWrapper tw=new TagWrapper();
 	tw.initts=initts;

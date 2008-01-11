@@ -8,16 +8,28 @@ import Util.GraphNode;
 
 public class TagState extends GraphNode {
     private TagDescriptor tag;
+    private ClassDescriptor cd;
     private Hashtable<FlagState, Integer> flags;
     public static final int KLIMIT=2;
+    public HashSet<TaskDescriptor> sourceset;
 
     public TagState() {
 	this(null);
     }
 
+    public TagState(ClassDescriptor cd) {
+	this(null);
+	this.cd=cd;
+    }
+
+    public void addSource(TaskDescriptor td) {
+	sourceset.add(td);
+    }
+
     public TagState(TagDescriptor tag) {
 	this.tag=tag;
 	this.flags=new Hashtable<FlagState, Integer>();
+	this.sourceset=new HashSet,TaskDescriptor>();
     }
 
     public TagDescriptor getTag() {

@@ -91,19 +91,19 @@ public class TaskBinding {
 		    FlagTagState fts=tqi.ftsarray[objindex];
 		    ObjWrapper ow=new ObjWrapper(fts.fs);
 		    Hashtable <TagState,Set<TagWrapper>> ctable=new Hashtable<TagState, Set<TagWrapper>>();
-		    ctable.put(tw.ts, new HashSet<TagWrapper>());
-		    ctable.get(tw.ts).add(tw);
+		    ctable.put(tw.getState(), new HashSet<TagWrapper>());
+		    ctable.get(tw.getState()).add(tw);
 		    ow.tags.add(tw);
 		    TagExpressionList tel=tqi.tq.task.getTag(tqi.tq.task.getParameter(i));
 		    for(int j=0;j<tel.numTags();j++) {
 			TempDescriptor tagtmp=tel.getTemp(j);
 			TagWrapper twtmp=temptotag.get(tagtmp);
 			if (!ctable.containsKey(twtmp.ts))
-			    ctable.put(twtmp.ts, new HashSet<TagWrapper>());
-			ctable.get(twtmp.ts).add(twtmp);
+			    ctable.put(twtmp.getState(), new HashSet<TagWrapper>());
+			ctable.get(twtmp.getState()).add(twtmp);
 			ow.tags.add(twtmp);
 			int tagcount=ctable.get(twtmp.ts).size();
-			int fstagcount=fts.fs.getTagCount(twtmp.ts.getTag());
+			int fstagcount=fts.fs.getTagCount(twtmp.getState().getTag());
 			if (fstagcount>=0&&(tagcount>fstagcount)) {
 			    //Too many unique tags of this type bound to object wrapper
 			    incrementlevel=i;
