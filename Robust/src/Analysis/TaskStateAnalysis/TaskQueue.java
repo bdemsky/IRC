@@ -22,14 +22,16 @@ public class TaskQueue {
 	this.task=td;
 	this.parameterset=(HashSet<FlagTagState>[])new HashSet[task.numParameters()];
 	this.map=new Hashtable<FlagState, Vector<FlagTagState>>();
+	this.tags=new Vector<TempDescriptor>();
 	for(int i=0;i<task.numParameters();i++) {
 	    this.parameterset[i]=new HashSet<FlagTagState>();
 	    TagExpressionList tel=td.getTag(td.getParameter(i));
-	    for(int j=0;j<tel.numTags();j++) {
-		TempDescriptor tagtmp=tel.getTemp(j);
-		if (!tags.contains(tagtmp))
-		    tags.add(tagtmp);
-	    }
+	    if (tel!=null)
+		for(int j=0;j<tel.numTags();j++) {
+		    TempDescriptor tagtmp=tel.getTemp(j);
+		    if (!tags.contains(tagtmp))
+			tags.add(tagtmp);
+		}
 	}
     }
     

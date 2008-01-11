@@ -15,6 +15,7 @@ import IR.TypeUtil;
 import Analysis.Scheduling.ScheduleAnalysis;
 import Analysis.Scheduling.ScheduleEdge;
 import Analysis.TaskStateAnalysis.TaskAnalysis;
+import Analysis.TaskStateAnalysis.TaskTagAnalysis;
 import Analysis.TaskStateAnalysis.TaskGraph;
 import Analysis.CallGraph.CallGraph;
 import Analysis.TaskStateAnalysis.TagAnalysis;
@@ -58,6 +59,8 @@ public class Main {
 	      state.TASK=true;
 	  else if (option.equals("-taskstate"))
 	      state.TASKSTATE=true;
+	  else if (option.equals("-tagstate"))
+	      state.TAGSTATE=true;
 	  else if (option.equals("-flatirtasks")) {
 	      state.FLATIRGRAPH=true;
 	      state.FLATIRGRAPHTASKS=true;
@@ -166,6 +169,12 @@ public class Main {
       BuildFlat bf=new BuildFlat(state,tu);
       bf.buildFlat();
       SafetyAnalysis sa=null;
+
+      if (state.TAGSTATE) {
+	  CallGraph callgraph=new CallGraph(state);
+	  TagAnalysis taganalysis=new TagAnalysis(state, callgraph);
+	  TaskTagAnalysis tta=new TaskTagAnalysis(state, taganalysis);
+      }
 
       if (state.TASKSTATE) {
 	  CallGraph callgraph=new CallGraph(state);

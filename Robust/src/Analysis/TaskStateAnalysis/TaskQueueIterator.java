@@ -35,12 +35,13 @@ public class TaskQueueIterator {
 		itarray[i]=tq.parameterset[i].iterator();
 	    VarDescriptor vd=tq.task.getParameter(i);
 	    TagExpressionList tel=tq.task.getTag(vd);
-	    for(int j=0;j<tel.numTags();j++) {
-		TempDescriptor tmp=tel.getTemp(j);
-		if (!tsindexarray.containsKey(tmp)) {
-		    tsindexarray.put(tmp, new Integer(i));
+	    if (tel!=null)
+		for(int j=0;j<tel.numTags();j++) {
+		    TempDescriptor tmp=tel.getTemp(j);
+		    if (!tsindexarray.containsKey(tmp)) {
+			tsindexarray.put(tmp, new Integer(i));
+		    }
 		}
-	    }
 	}
     }
 
@@ -62,16 +63,16 @@ public class TaskQueueIterator {
 	    TagExpressionList tel=td.getTag(vd);
 	    int j;
 	    if (needinit) {
-		j=tel.numTags()>0?tel.numTags()-1:0;
+		j=(tel!=null)&&tel.numTags()>0?tel.numTags()-1:0;
 		needinit=false;
 	    } else
 		j=0;
 	    tagloop:
-	    for(;j<tel.numTags();j++) {
+	    for(;tel!=null&&j<tel.numTags();j++) {
 		TempDescriptor tmp=tel.getTemp(j);
 		TagState currtag=tsarray.get(tmp);
 		String type=tel.getType(j);
-
+		
 		if (tsindexarray.get(tmp).intValue()==i) {
 		    //doing the assignment right here!!!
 		    Vector<FlagTagState> possts=tq.map.get(currfs);

@@ -9,6 +9,7 @@ echo -recover compile task code
 echo -specdir directory
 echo -selfloop task - this task cannot self loop forever
 echo -taskstate do task state analysis
+echo -tagstate do tag state analysis
 echo -scheduling do task scheduling
 echo -optional enable optional
 echo -debug generate debug symbols
@@ -84,6 +85,9 @@ EXTRAOPTIONS="$EXTRAOPTIONS -pg"
 elif [[ $1 = '-taskstate' ]]
 then
 JAVAOPTS="$JAVAOPTS -taskstate"
+elif [[ $1 = '-tagstate' ]]
+then
+JAVAOPTS="$JAVAOPTS -tagstate"
 elif [[ $1 = '-scheduling' ]]
 then
 JAVAOPTS="$JAVAOPTS -scheduling"

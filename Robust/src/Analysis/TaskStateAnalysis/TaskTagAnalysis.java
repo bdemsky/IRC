@@ -39,6 +39,7 @@ public class TaskTagAnalysis {
 	    TaskDescriptor td=(TaskDescriptor)taskit.next();
 	    tasktable.put(td, new TaskQueue(td));
 	}
+	doAnalysis();
     }
 
     private void doAnalysis() {
