@@ -13,12 +13,9 @@ public class TagState extends GraphNode {
     public static final int KLIMIT=2;
     public HashSet<TaskDescriptor> sourceset;
 
-    public TagState() {
-	this(null);
-    }
-
     public TagState(ClassDescriptor cd) {
-	this(null);
+	this.flags=new Hashtable<FlagState, Integer>();
+	this.sourceset=new HashSet<TaskDescriptor>();
 	this.cd=cd;
     }
 
@@ -29,11 +26,15 @@ public class TagState extends GraphNode {
     public TagState(TagDescriptor tag) {
 	this.tag=tag;
 	this.flags=new Hashtable<FlagState, Integer>();
-	this.sourceset=new HashSet,TaskDescriptor>();
+	this.sourceset=new HashSet<TaskDescriptor>();
     }
 
     public TagDescriptor getTag() {
 	return tag;
+    }
+
+    public ClassDescriptor getClassDesc() {
+	return cd;
     }
 
     public TagState[] clearFS(FlagState fs) {

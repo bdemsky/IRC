@@ -99,9 +99,9 @@ public class GraphNode {
 	return "";
     }
     
-   	public String getName(){
-	   	return "";
-   	}
+    public String getName(){
+	return "";
+    }
 
     public NodeStatus getStatus() {
         return this.status;
@@ -144,6 +144,10 @@ public class GraphNode {
         edges.addElement(newedge);
 	GraphNode tonode=newedge.getTarget();
 	tonode.inedges.addElement(newedge);
+    }
+
+    public boolean containsEdge(Edge e) {
+	return edges.contains(e);
     }
 
     public void addEdge(Vector v) {
