@@ -1,4 +1,5 @@
 package Analysis.TaskStateAnalysis;
+import Analysis.Scheduling.ClassNode;
 import Analysis.TaskStateAnalysis.*;
 import IR.*;
 import IR.Tree.*;
@@ -10,7 +11,7 @@ import Util.GraphNode;
 /** This class is used to hold the flag states that a class in the Bristlecone 
  *  program can exist in, during runtime.
  */
-public class FlagState extends GraphNode {
+public class FlagState extends GraphNode implements Cloneable {
     public static final int ONETAG=1;
     public static final int NOTAGS=0;
     public static final int MULTITAGS=-1;
@@ -24,6 +25,9 @@ public class FlagState extends GraphNode {
     private boolean issourcenode;
     private Vector tasks;
     public static final int KLIMIT=2;
+    
+    // jzhou
+    private int executeTime;
 
     /** Class constructor
      *  Creates a new flagstate with all flags set to false.
@@ -35,6 +39,7 @@ public class FlagState extends GraphNode {
 	this.tags=new Hashtable<TagDescriptor,Integer>();
 	this.uid=FlagState.nodeid++;
 	this.issourcenode=false;
+	this.executeTime = -1;
     }
 
     /** Class constructor
@@ -49,7 +54,7 @@ public class FlagState extends GraphNode {
 	this.tags=tags;
 	this.uid=FlagState.nodeid++;
 	this.issourcenode=false;
-	
+	this.executeTime = -1;
     }
    
     public int getuid() {
@@ -69,9 +74,9 @@ public class FlagState extends GraphNode {
      */
       
     public boolean isSourceNode(){
-	    return issourcenode;
-   	}
-   	
+	return issourcenode;
+    }
+    
     /**  Sets the flagstate as a source node. 
      */
     public void setAsSourceNode(){
@@ -175,7 +180,7 @@ public class FlagState extends GraphNode {
 		//2 case
 		HashSet newset1=(HashSet)flagstate.clone();
 		Hashtable<TagDescriptor,Integer> newtags1=(Hashtable<TagDescriptor,Integer>)tags.clone();
-
+		
 		//1 case
 		HashSet newset2=(HashSet)flagstate.clone();
 		Hashtable<TagDescriptor,Integer> newtags2=(Hashtable<TagDescriptor,Integer>)tags.clone();
@@ -195,20 +200,20 @@ public class FlagState extends GraphNode {
      *  @param flags an array of flagdescriptors.
      *  @return string representation of the flagstate.
      */
-	public String toString(FlagDescriptor[] flags)
-	{
-		StringBuffer sb = new StringBuffer(flagstate.size());
-		for(int i=0;i < flags.length; i++)
-		{
-			if (get(flags[i]))
-				sb.append(1);
-			else
-				sb.append(0);
-		}
-			
-		return new String(sb);
-	}
-
+    public String toString(FlagDescriptor[] flags)
+    {
+	StringBuffer sb = new StringBuffer(flagstate.size());
+	for(int i=0;i < flags.length; i++)
+	    {
+		if (get(flags[i]))
+		    sb.append(1);
+		else
+		    sb.append(0);
+	    }
+	
+	return new String(sb);
+    }
+    
 	/** Accessor method
 	 *  @return returns the classdescriptor of the flagstate.
 	 */
@@ -266,23 +271,23 @@ public class FlagState extends GraphNode {
 		label+=", "+fd.toString();
 	}
 	for (Enumeration en_tags=getTags();en_tags.hasMoreElements();){
-		TagDescriptor td=(TagDescriptor)en_tags.nextElement();
-		switch (tags.get(td).intValue()){
-		case ONETAG:
-		    if (label==null)
-			label=td.toString()+"(1)";
-		    else
-			label+=", "+td.toString()+"(1)";
-		    break;
-		case MULTITAGS:
-		    if (label==null)
-			label=td.toString()+"(n)";
-		    else
-			label+=", "+td.toString()+"(n)";
-		    break;
-		default:
-		    break;
-		}
+	    TagDescriptor td=(TagDescriptor)en_tags.nextElement();
+	    switch (tags.get(td).intValue()){
+	    case ONETAG:
+		if (label==null)
+		    label=td.toString()+"(1)";
+		else
+		    label+=", "+td.toString()+"(1)";
+		break;
+	    case MULTITAGS:
+		if (label==null)
+		    label=td.toString()+"(n)";
+		else
+		    label+=", "+td.toString()+"(n)";
+		break;
+	    default:
+		break;
+	    }
 	}
 	if (label==null)
 	    return " ";
@@ -290,6 +295,61 @@ public class FlagState extends GraphNode {
     }
     
     public Enumeration getTags(){
-	    return tags.keys();
+	return tags.keys();
+    }
+    
+    public int getExeTime() {
+    	try {
+	    if(this.executeTime == -1) {
+		calExeTime();
+	    }
+    	} catch (Exception e) {
+	    e.printStackTrace();
+	    System.exit(0);
+    	}
+    	return this.executeTime;
+    }
+    
+    public void setExeTime(int exeTime) {
+	this.executeTime = exeTime;
+    }
+    
+    public void calExeTime() throws Exception {
+    	Iterator it = this.edges();
+    	if(it.hasNext()) {
+	    FEdge fe = (FEdge)it.next();
+	    if(fe.getExeTime() == -1) {
+		throw new Exception("Error: Uninitiate FEdge!");
+	    }
+	    this.executeTime = fe.getExeTime() + ((FlagState)fe.getTarget()).getExeTime();
+    	} else {
+	    this.executeTime = 0;
+    	}
+    	while(it.hasNext()) {
+	    FEdge fe = (FEdge)it.next();
+	    int temp = fe.getExeTime() + ((FlagState)fe.getTarget()).getExeTime();
+	    if(temp < this.executeTime) {
+		this.executeTime = temp;
+	    }
+    	}
+    }
+    
+    public Object clone() {
+	FlagState o = null;
+    	try {
+	    o = (FlagState)super.clone();
+    	} catch(CloneNotSupportedException e){
+	    e.printStackTrace();
+    	}
+    	o.uid = FlagState.nodeid++;
+    	o.edges = new Vector();
+    	for(int i = 0; i < this.edges.size(); i++) {
+    	    o.edges.addElement(this.edges.elementAt(i));
+    	}
+    	o.inedges = new Vector();
+    	for(int i = 0; i < this.inedges.size(); i++) {
+    	    o.inedges.addElement(this.inedges.elementAt(i));
+    	}
+    	return o;
     }
 }

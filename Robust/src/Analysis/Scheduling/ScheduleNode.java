@@ -13,15 +13,15 @@ public class ScheduleNode extends GraphNode implements Cloneable{
     private int uid;
     private static int nodeID=0;
 
+    private Vector<ClassNode> classNodes;
+    Vector<ScheduleEdge> scheduleEdges;
+    
+    private int executionTime;
+    
     private int coreNum;
     private Vector tasks;
     private Hashtable<ClassDescriptor, Vector<ScheduleNode>> targetSNodes; 
     private boolean sorted = false;
-    
-    private boolean clone = false;
-
-    private Vector<ClassNode> classNodes;
-    Vector<ScheduleEdge> scheduleEdges;
 
     /** Class constructor
      *	@param cd ClassDescriptor
@@ -30,6 +30,7 @@ public class ScheduleNode extends GraphNode implements Cloneable{
     public ScheduleNode() {
     	this.uid=ScheduleNode.nodeID++;
     	this.coreNum = -1;
+    	this.executionTime = -1;
     }
     
     public ScheduleNode(ClassNode cn) {
@@ -39,6 +40,7 @@ public class ScheduleNode extends GraphNode implements Cloneable{
     	this.scheduleEdges = new Vector<ScheduleEdge>();
     	this.classNodes.add(cn);
     	this.addEdge(cn.getEdgeVector());
+    	this.executionTime = -1;
     }
    
     public int getuid() {
@@ -101,10 +103,6 @@ public class ScheduleNode extends GraphNode implements Cloneable{
     	this.sorted = sorted;
     }
     
-    public boolean isclone() {
-    	return clone;
-    }
-    
     public String toString() {
     	String temp = new String("");
     	for(int i = 0; i < classNodes.size(); i++) {
@@ -113,7 +111,7 @@ public class ScheduleNode extends GraphNode implements Cloneable{
     	temp += getTextLabel();
     	return temp;
     }
-
+    
     public Vector getClassNodes() {
     	if(classNodes == null) {
 	    classNodes = new Vector<ClassNode>();
@@ -144,6 +142,28 @@ public class ScheduleNode extends GraphNode implements Cloneable{
     	scheduleEdges = null;
     }
     
+    public int getExeTime() {
+	if(this.executionTime == -1) {
+	    try {
+		calExeTime();
+	    } catch (Exception e) {
+		e.printStackTrace();
+	    }
+	}
+    	return this.executionTime;
+    }
+    
+    public void calExeTime() throws Exception {
+    	if(this.classNodes.size() != 1) {
+	    throw new Exception("Error: there are multiple ClassNodes inside the ScheduleNode when calculating executionTime");
+    	}
+    	ClassNode cn = this.classNodes.elementAt(0);
+	if(!cn.isSorted()) {
+	    throw new Error("Error: Non-sorted ClassNode!");
+	}
+	this.executionTime = cn.getFlagStates().elementAt(0).getExeTime();
+    }
+    
     /** Tests for equality of two flagstate objects.
     */
     
@@ -152,7 +172,7 @@ public class ScheduleNode extends GraphNode implements Cloneable{
 	    ScheduleNode fs=(ScheduleNode)o;
             if ((fs.getCoreNum() != this.coreNum) ||
 		(fs.sorted != this.sorted) ||
-		(fs.clone != this.clone)){ 
+		(fs.executionTime != this.executionTime)){ 
                 return false;
             }
             if(fs.tasks != null) {
@@ -221,9 +241,17 @@ public class ScheduleNode extends GraphNode implements Cloneable{
     	}
     	for(i = 0; i < this.scheduleEdges.size(); i++) {
 	    ScheduleEdge temp = this.scheduleEdges.elementAt(i);
-	    ScheduleEdge se = new ScheduleEdge(o, "new", temp.getTask(), temp.getClassDescriptor());
+	    ScheduleEdge se = null;
+	    if(!temp.getIsNew()) {
+		se = new ScheduleEdge(o, "transmit",temp.getClassDescriptor(), false);
+	    } else {
+		se = new ScheduleEdge(o, "new",temp.getClassDescriptor());
+	    }
 	    se.setSourceCNode(cn2cn.get(temp.getSourceCNode()));
 	    se.setTargetCNode(cn2cn.get(temp.getTargetCNode()));
+	    se.setProbability(temp.getProbability());
+	    se.setNewRate(temp.getNewRate());
+	    se.setTransTime(temp.getTransTime());
 	    tses.add(se);
     	}
     	o.classNodes = tcns;
@@ -232,12 +260,13 @@ public class ScheduleNode extends GraphNode implements Cloneable{
     	tses = null;
     	o.inedges = new Vector();
     	o.edges = new Vector();
-    	
-    	o.clone = true;
+
     	return o;
     }
     
-    public void merge(ScheduleEdge se) {
+    public void mergeSEdge(ScheduleEdge se) {
+	assert(se.getIsNew());
+	
     	Vector<ClassNode> targetCNodes = (Vector<ClassNode>)((ScheduleNode)se.getTarget()).getClassNodes();
     	Vector<ScheduleEdge> targetSEdges = (Vector<ScheduleEdge>)((ScheduleNode)se.getTarget()).getScheduleEdges();
     	
@@ -260,14 +289,60 @@ public class ScheduleNode extends GraphNode implements Cloneable{
 	targetSEdges = null;
     	
     	scheduleEdges.add(se);
+    	se.resetListExeTime();
     	se.getTarget().removeInedge(se);
     	this.removeEdge(se);
-    	//this.addEdge(se.getTarget().getEdgeVector());
     	Iterator it_edges = se.getTarget().edges();
     	while(it_edges.hasNext()) {
 	    ScheduleEdge tse = (ScheduleEdge)it_edges.next();
 	    tse.setSource(this);
 	    this.edges.addElement(tse);
+	}
+    	
+    	// As all tasks inside one ScheduleNode are executed sequentially,
+    	// simply add the execution time of all the ClassNodes inside one ScheduleNode. 
+    	if(this.executionTime == -1) {
+	    this.executionTime = 0;
+    	}
+    	this.executionTime += ((ScheduleNode)se.getTarget()).getExeTime();
+    }
+    
+    public void mergeSNode(ScheduleNode sn) throws Exception {
+    	Vector<ClassNode> targetCNodes = (Vector<ClassNode>)sn.getClassNodes();
+    	Vector<ScheduleEdge> targetSEdges = (Vector<ScheduleEdge>)sn.getScheduleEdges();
+    	
+    	for(int i = 0; i <  targetCNodes.size(); i++) {
+	    targetCNodes.elementAt(i).setScheduleNode(this);
+    	}
+    	
+    	if(classNodes == null) {
+	    classNodes = targetCNodes;
+	    scheduleEdges = targetSEdges;
+    	} else {
+	    if(targetCNodes.size() != 0) {
+		classNodes.addAll(targetCNodes);
+	    }
+	    if(targetSEdges.size() != 0) {
+		scheduleEdges.addAll(targetSEdges);
+	    }
+    	}
+    	targetCNodes = null;
+	targetSEdges = null;
+
+    	Iterator it_edges = sn.edges();
+    	while(it_edges.hasNext()) {
+	    ScheduleEdge tse = (ScheduleEdge)it_edges.next();
+	    tse.setSource(this);
+	    this.edges.addElement(tse);
+    	}
+    	
+    	// As all tasks inside one ScheduleNode are executed sequentially,
+    	// simply add the execution time of all the ClassNodes inside one ScheduleNode. 
+    	if(this.executionTime == -1) {
+	    throw new Exception("Error: ScheduleNode without initiate execution time when analysising.");
+    	}
+    	if(this.executionTime < sn.getExeTime()) {
+	    this.executionTime = sn.getExeTime();
     	}
     }
 }

@@ -17,6 +17,9 @@ public class ClassNode extends GraphNode implements Cloneable{
     private ScheduleNode sn;
     private Vector<FlagState> flagStates;
     private boolean sorted = false;
+    private boolean clone = false;
+    
+    private int transTime;
 
     /** Class constructor
      *	@param cd ClassDescriptor
@@ -27,6 +30,15 @@ public class ClassNode extends GraphNode implements Cloneable{
 	this.flagStates = fStates;
 	this.sn = null;
 	this.uid=ClassNode.nodeID++;
+	this.transTime = 0;
+    }
+    
+    public int getTransTime() {
+    	return this.transTime;
+    }
+    
+    public void setTransTime(int transTime) {
+    	this.transTime = transTime;
     }
    
     public int getuid() {
@@ -51,6 +63,10 @@ public class ClassNode extends GraphNode implements Cloneable{
     
     public Vector<FlagState> getFlagStates() {
     	return flagStates;
+    }
+    
+    public boolean isclone() {
+    	return clone;
     }
     
     public String toString() {
@@ -84,7 +100,9 @@ public class ClassNode extends GraphNode implements Cloneable{
 	    ClassNode fs=(ClassNode)o;
             if ((fs.getClassDescriptor()!= cd) || 
 		(fs.getScheduleNode() != sn) || 
-		(fs.isSorted() != sorted)) {
+		(fs.isSorted() != sorted) ||
+		(fs.clone != this.clone) ||
+		(fs.transTime != this.transTime)) {
                 return false;
             }
 	    return (fs.getFlagStates().equals(flagStates));
@@ -121,6 +139,13 @@ public class ClassNode extends GraphNode implements Cloneable{
 	    e.printStackTrace();
     	}
     	o.uid = ClassNode.nodeID++;
+    	o.clone = true;
     	return o;
+    }
+    
+    public void calExeTime() {
+    	for(int i = 0; i <  this.flagStates.size(); i++) {
+	    this.flagStates.elementAt(i).getExeTime();
+    	}
     }
 }

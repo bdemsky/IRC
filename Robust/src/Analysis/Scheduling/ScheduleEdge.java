@@ -1,59 +1,85 @@
 package Analysis.Scheduling;
+import java.util.Iterator;
+
 import IR.*;
 import Analysis.TaskStateAnalysis.*;
 import Util.Edge;
+import Util.GraphNode;
 
 /* Edge *****************/
 
 public class ScheduleEdge extends Edge {
 
     private String label;
-    private final TaskDescriptor td;
     private final ClassDescriptor cd;
-    private FEdge fedge;
+    private boolean isNew = true;
+    
     private FlagState targetFState;
     private ClassNode sourceCNode;
     private ClassNode targetCNode;
-    private int newRate;
+    
     private int probability;
-    //private int parameterindex;
+    private int transTime;
+    private int listExeTime;
+    
+    private FEdge fedge;
+    private int newRate;
     
     /** Class Constructor
      * 
      */
-    public ScheduleEdge(ScheduleNode target, String label, TaskDescriptor td, ClassDescriptor cd/*, int parameterindex*/) {
+    public ScheduleEdge(ScheduleNode target, String label, ClassDescriptor cd) {
     	super(target);
     	this.fedge = null;
     	this.targetFState = null;
     	this.sourceCNode = null;
     	this.targetCNode = null;
     	this.label = label;
-    	this.td = td;
     	this.cd = cd;
-    	this.newRate = 1;
+    	this.newRate = -1;
     	this.probability = 100;
-    	//this.parameterindex = parameterindex;
+    	this.transTime = -1;
+    	this.listExeTime = -1;
     }
     
-    public void setTarget(ScheduleNode sn) {
+    public ScheduleEdge(ScheduleNode target, String label, ClassDescriptor cd, boolean isNew) {
+    	super(target);
+    	this.fedge = null;
+    	this.targetFState = null;
+    	this.sourceCNode = null;
+    	this.targetCNode = null;
+    	this.label = label;
+    	this.cd = cd;
+    	this.newRate = -1;
+    	this.probability = 100;
+    	this.transTime = -1;
+    	this.listExeTime = -1;
+    	this.isNew = isNew;
+    }
+    
+    public void setTarget(GraphNode sn) {
     	this.target = sn;
     }
     
     public String getLabel() {
-    	String completeLabel = label + ":" + Integer.toString(this.newRate) + ":(" + Integer.toString(this.probability) + ")";
+    	String completeLabel = label;
+    	if(isNew) {
+    	    completeLabel += ":" + Integer.toString(this.newRate);
+    	}
+    	completeLabel += ":(" + Integer.toString(this.probability) + "%)" + ":[" + Integer.toString(this.transTime) + "]";
     	return completeLabel;
     }
     
     public int hashCode(){
 	return target.hashCode()^label.hashCode();
     }
-
-    public TaskDescriptor getTask() {
-    	return td;
-    }
     
     public ClassDescriptor getClassDescriptor() {
     	return cd;
+    }
+    
+    public boolean getIsNew() {
+	return this.isNew;
     }
     
     public FEdge getFEdge() {
@@ -101,27 +127,31 @@ public class ScheduleEdge extends Edge {
     
     public void setTargetCNode(ClassNode targetCNode) {
     	this.targetCNode = targetCNode;
+    	this.transTime = targetCNode.getTransTime();
     }
-
-   /* public int getIndex() {
-	return parameterindex;
-    }*/
 	
     public boolean equals(Object o) {
         if (o instanceof ScheduleEdge) {
 	    ScheduleEdge e=(ScheduleEdge)o;
 	    if ((e.label.equals(label))&&
 		(e.target.equals(target))&&
-		(e.td.equals(td)) && 
+		(e.source.equals(source)) &&
 		(e.cd.equals(cd)) && 
-		(e.fedge.equals(fedge)) && 
-		(e.targetFState.equals(targetFState)) && 
+		(e.fedge.equals(fedge)) &&  
 		(e.sourceCNode.equals(sourceCNode)) &&
 		(e.targetCNode.equals(targetCNode)) &&
 		(e.newRate == newRate) && 
-		(e.probability == probability)/*&&
-		e.getIndex()==parameterindex*/)
-		return true;
+		(e.probability == probability) && 
+		(e.isNew == isNew) && 
+		(e.transTime == transTime) && 
+		(e.listExeTime == listExeTime))
+		if(e.targetFState != null) {
+		    return e.targetFState.equals(targetFState);
+		} else if(this.targetFState == null) {
+		    return true;
+		} else {
+		    return false;
+		}
         }
         return false;
     }
@@ -132,5 +162,37 @@ public class ScheduleEdge extends Edge {
     
     public void setNewRate(int nr) {
     	this.newRate = nr;
+    }
+    
+    public int getTransTime() {
+    	return this.transTime;
+    }
+    
+    public void setTransTime(int transTime) {
+    	this.transTime = transTime;
+    }
+    
+    public int getListExeTime() {
+	if(listExeTime == -1) {
+	    // calculate the lisExeTime
+	    listExeTime = ((ScheduleNode)this.getTarget()).getExeTime() + this.getTransTime() * this.getNewRate();
+	    Iterator it_edges = this.getTarget().edges();
+	    int temp = 0;
+	    if(it_edges.hasNext()) {
+		   temp = ((ScheduleEdge)it_edges.next()).getListExeTime();
+	    }
+	    while(it_edges.hasNext()) {
+		int tetime = ((ScheduleEdge)it_edges.next()).getListExeTime();
+		if(temp < tetime) {
+		    temp = tetime;
+		}
+	    }
+	    listExeTime += temp;
+	}
+    	return this.listExeTime;
+    }
+    
+    public void resetListExeTime() {
+	this.listExeTime = -1;
     }
 }
