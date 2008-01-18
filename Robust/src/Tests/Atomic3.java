@@ -1,13 +1,13 @@
 public class Atomic3 extends Thread {
 	public Atomic3() {
 	}
-	static Tree root;
+	Tree root;
 	Integer count;
 	public static void main(String[] st) {
 		int mid = (128<<24)|(195<<16)|(175<<8)|70;
 		int b;
 		Atomic3 at3 = null;
-		Integer z;
+		Integer y,z;
 		atomic {
 			at3 = global new Atomic3();
 			z = global new Integer(300);
@@ -15,9 +15,15 @@ public class Atomic3 extends Thread {
 			at3.root.insert(z);
 			b = at3.root.value.intValue();
 		}
+		System.printString("b is ");
+		System.printInt(b);
 		atomic{
 			at3.root.item = 2445;
+			y = global new Integer(400);
+			at3.root.value = y;
+			b = at3.root.value.intValue();
 		}
+		System.printString("b is ");
 		System.printInt(b);
 		System.printString("\n");
 		System.printString("Starting\n");
@@ -31,10 +37,9 @@ public class Atomic3 extends Thread {
 	public int run() {
 		int a;
 		atomic {
-			//FIXME a bug value of trans commit is not saved
 			a = root.value.intValue();
-			//a = root.item;
 		}
+		System.printString("a is ");
 		System.printInt(a);
 		System.printString("\n");
 	}

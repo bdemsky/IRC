@@ -6,6 +6,7 @@
 #include "llookup.h"
 #include "plookup.h"
 #include "prelookup.h"
+#include "threadnotify.h"
 #include "queue.h"
 #include <pthread.h>
 #include <sys/types.h>
@@ -17,7 +18,6 @@
 #include <errno.h>
 #include <time.h>
 #include <string.h>
-#include <pthread.h>
 
 #define LISTEN_PORT 2156
 #define RECEIVE_BUFFER_SIZE 2048
@@ -154,7 +154,6 @@ void *pCacheAlloc(objstr_t *store, unsigned int size) {
 	}
 
 	if(success == 0) {
-		printf("DEBUG-> Unable to insert object in Prefetch cache\n");
 		return NULL;
 	}
 }
@@ -214,7 +213,7 @@ void transExit() {
 
 /* This functions inserts randowm wait delays in the order of msec
  * Mostly used when transaction commits retry*/
-void randomdelay(void)
+void randomdelay()
 {
 	struct timespec req;
 	time_t t;
@@ -326,6 +325,8 @@ objheader_t *transRead(transrecord_t *record, unsigned int oid) {
 
 		/* Get the object from the remote location */
 		machinenumber = lhashSearch(oid);
+		char* ipaddr;
+		midtoIP(machinenumber, ipaddr);
 		objcopy = getRemoteObj(record, machinenumber, oid);
 		if(objcopy == NULL) {
 			printf("Object not found in Remote location %s, %d\n", __FILE__, __LINE__);
@@ -344,6 +345,7 @@ objheader_t *transRead(transrecord_t *record, unsigned int oid) {
 objheader_t *transCreateObj(transrecord_t *record, unsigned int size)
 {
   objheader_t *tmp = (objheader_t *) objstrAlloc(record->cache, (sizeof(objheader_t) + size));
+  tmp->notifylist = NULL;
   OID(tmp) = getNewOID();
   tmp->version = 1;
   tmp->rcount = 1;
@@ -441,7 +443,7 @@ int transCommit(transrecord_t *record) {
 		/* Create a list of machine ids(Participants) involved in transaction	*/
 		if((listmid = calloc(pilecount, sizeof(unsigned int))) == NULL) {
 			printf("Calloc error %s, %d\n", __FILE__, __LINE__);
-			free(record);
+			//free(record);
 			return 1;
 		}		
 		pListMid(pile, listmid);
@@ -462,7 +464,7 @@ int transCommit(transrecord_t *record) {
 			pthread_mutex_destroy(&tlock);
 			pDelete(pile_ptr);
 			free(listmid);
-			free(record);
+			//free(record);
 			return 1;
 		}
 
@@ -474,7 +476,7 @@ int transCommit(transrecord_t *record) {
 			pDelete(pile_ptr);
 			free(listmid);
 			free(thread_data_array);
-			free(record);
+			//free(record);
 			return 1;
 		}
 
@@ -498,7 +500,7 @@ int transCommit(transrecord_t *record) {
 				free(listmid);
 				free(thread_data_array);
 				free(ltdata);
-				free(record);
+				//free(record);
 				return 1;
 			}
 			tosend->f.control = TRANS_REQUEST;
@@ -537,7 +539,7 @@ int transCommit(transrecord_t *record) {
 						free(thread_data_array[i].buffer);
 					free(thread_data_array);
 					free(ltdata);
-					free(record);
+					//free(record);
 					return 1;
 				}
 			} else { /*Local*/
@@ -556,7 +558,7 @@ int transCommit(transrecord_t *record) {
 						free(thread_data_array[i].buffer);
 					free(thread_data_array);
 					free(ltdata);
-					free(record);
+					//free(record);
 					return 1;
 				}
 			}
@@ -581,7 +583,7 @@ int transCommit(transrecord_t *record) {
 					free(thread_data_array[j].buffer);
 				free(thread_data_array);
 				free(ltdata);
-				free(record);
+				//free(record);
 				return 1;
 			}
 			free(thread_data_array[i].buffer);
@@ -1050,6 +1052,11 @@ int transComProcess(local_thread_data_array_t  *localtdata) {
 		pthread_mutex_lock(&mainobjstore_mutex);
 		memcpy(header, tcptr, tmpsize + sizeof(objheader_t));
 		header->version += 1;
+		/* If threads are waiting on this object to be updated, notify them */
+		if(header->notifylist != NULL) {
+			notifyAll(&header->notifylist, OID(header), header->version);
+		}
+
 		pthread_mutex_unlock(&mainobjstore_mutex);
 	}
 	/* If object is newly created inside transaction then commit it */
@@ -1059,6 +1066,7 @@ int transComProcess(local_thread_data_array_t  *localtdata) {
 			return 1;
 		}
 		GETSIZE(tmpsize, header);
+		tmpsize += sizeof(objheader_t);
 		pthread_mutex_lock(&mainobjstore_mutex);
 		if ((ptrcreate = objstrAlloc(mainobjstore, tmpsize)) == NULL) {
 			printf("Error: transComProcess() failed objstrAlloc\n");
@@ -1067,7 +1075,6 @@ int transComProcess(local_thread_data_array_t  *localtdata) {
 		}
 		pthread_mutex_unlock(&mainobjstore_mutex);
 		memcpy(ptrcreate, header, tmpsize + sizeof(objheader_t));
-
 		mhashInsert(oidcreated[i], ptrcreate);
 		lhashInsert(oidcreated[i], myIpAddr);
 	}
@@ -1100,6 +1107,7 @@ void checkPrefetchTuples(prefetchqelem_t *node) {
 	oid = GET_PTR_OID(ptr);
 	endoffsets = GET_PTR_EOFF(ptr, ntuples); 
 	arryfields = GET_PTR_ARRYFLD(ptr, ntuples);
+	
 	/* Find offset length for each tuple */
 	int numoffset[ntuples];
 	numoffset[0] = endoffsets[0];
@@ -1240,10 +1248,9 @@ prefetchpile_t *foundLocal(prefetchqelem_t *node) {
 				}
 				if(isArray == 1) {
 					int elementsize = classsize[TYPE(objheader)];
-					struct ArrayObject *ao = (struct ArrayObject *) (tmp + sizeof(objheader_t));
 					objoid = *((unsigned int *)(tmp + sizeof(objheader_t) + sizeof(struct ArrayObject) + (elementsize*arryfields[arryfieldindex])));
 				} else {
-					objoid = *(tmp + sizeof(objheader_t) + arryfields[arryfieldindex]);
+					objoid = *((unsigned int *)(tmp + sizeof(objheader_t) + arryfields[arryfieldindex]));
 				}
 				//Update numoffset array
 				numoffset[i] = numoffset[i] - 1;
@@ -1315,7 +1322,7 @@ void checkPreCache(prefetchqelem_t *node, int *numoffset, unsigned int objoid, i
 				int elementsize = classsize[TYPE(header)];
 				objoid = *((unsigned int *)(tmp + sizeof(objheader_t) + sizeof(struct ArrayObject) + (elementsize*arryfields[arryfieldindex])));
 			} else {
-				objoid = *(tmp + sizeof(objheader_t) + arryfields[arryfieldindex]);
+				objoid = *((unsigned int *)(tmp + sizeof(objheader_t) + arryfields[arryfieldindex]));
 			}
 			//Update numoffset array
 			numoffset[index] = numoffset[index] - 1;
@@ -1572,7 +1579,8 @@ void getPrefetchResponse(int count, int sd) {
 					/* Increment it to get the object */
 					/* TODO: For each object not found query DHT for new location and retrieve the object */
 					index += sizeof(char);
-					memcpy(&oid, buffer + index, sizeof(unsigned int));
+					//memcpy(&oid, buffer + index, sizeof(unsigned int));
+					oid = *((unsigned int *)(buffer + index));
 					index += sizeof(unsigned int);
 					/* Throw an error */
 					printf("OBJECT NOT FOUND.... THIS SHOULD NOT HAPPEN...TERMINATE PROGRAM\n");
@@ -1600,7 +1608,6 @@ unsigned short getObjType(unsigned int oid)
 	{
 		if ((objheader = (objheader_t *) prehashSearch(oid)) == NULL)
 		{
-			//prefetch(1, &oid, &numoffsets, NULL);
 			prefetch(1, &oid, numoffset, fieldoffset);
 			pthread_mutex_lock(&pflookup.lock);
 			while ((objheader = (objheader_t *) prehashSearch(oid)) == NULL)
@@ -1777,4 +1784,158 @@ int findHost(unsigned int hostIp)
 
 	//not found
 	return -1;
+}
+
+/* This function sends notification request per thread waiting on object(s) whose version 
+ * changes */
+void reqNotify(unsigned int *oidarry, unsigned short *versionarry, unsigned int mid, unsigned int numoid) {
+	int sock,i;
+	objheader_t *objheader;
+	struct sockaddr_in remoteAddr;
+	char msg[1 + numoid * (sizeof(short) + sizeof(unsigned int)) + sizeof(unsigned int) * 3];
+	char *ptr;
+	int bytesSent;
+	int status, size;
+	unsigned short version;
+	unsigned int oid, threadid;
+	pthread_mutex_t threadnotify; //Lock and condition var for threadjoin and notification
+	pthread_cond_t threadcond;
+
+	if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0){
+		perror("reqNotify():socket()");
+		return;
+	}
+
+	bzero(&remoteAddr, sizeof(remoteAddr));
+	remoteAddr.sin_family = AF_INET;
+	remoteAddr.sin_port = htons(LISTEN_PORT);
+	remoteAddr.sin_addr.s_addr = htonl(mid);
+
+	/* Generate unique threadid */
+	threadid = (unsigned int) pthread_self();
+	if((status = notifyhashInsert(threadid, threadcond)) != 0) {
+		printf("reqNotify(): Insert into notify hash table not successful %s, %d\n", __FILE__, __LINE__);
+		return;
+	}
+
+	/* Save data that is sent for later processing */
+	//Save threadid, numoid, oidarray, versionarray, also the pthread_cond_variable in a linked list
+	//TODO
+
+	/* Send oidarry, version array, threadid and machine id */	
+	if (connect(sock, (struct sockaddr *)&remoteAddr, sizeof(remoteAddr)) < 0){
+		printf("reqNotify():error %d connecting to %s:%d\n", errno,
+				inet_ntoa(remoteAddr.sin_addr), LISTEN_PORT);
+		status = -1;
+	} else {
+		msg[0] = THREAD_NOTIFY_REQUEST;
+		msg[1] = numoid;
+		/* Send array of oids  */
+		size = sizeof(unsigned int);
+		{
+			i = 0;
+			while(i < numoid) {
+				oid = oidarry[i];
+				*((unsigned int *)(&msg[1] + size)) = oid;
+				size += sizeof(unsigned int);
+				i++;
+			}
+		}
+
+		/* Send array of version  */
+		{
+			i = 0;
+			while(i < numoid) {
+				version = versionarry[i];
+				*((unsigned short *)(&msg[1] + size)) = oid;
+				size += sizeof(unsigned short);
+				i++;
+			}
+		}
+
+		*((unsigned int *)(&msg[1] + size)) = myIpAddr;
+		size += sizeof(unsigned int);
+		*((unsigned int *)(&msg[1] + size)) = threadid;
+
+		pthread_mutex_lock(&threadnotify);
+		bytesSent = send(sock, msg, 1 + numoid * (sizeof(unsigned int) + sizeof(unsigned short)) + 2 * sizeof(unsigned int) , 0);
+		if (bytesSent < 0){
+			perror("reqNotify():send()");
+			status = -1;
+		} else if (bytesSent != 1 + 5*sizeof(unsigned int)){
+			printf("reNotify(): error, sent %d bytes\n", bytesSent);
+			status = -1;
+		} else {
+			status = 0;
+		}
+		pthread_cond_wait(&threadcond, &threadnotify);
+		pthread_mutex_unlock(&threadnotify);
+	}
+
+	close(sock);
+}
+
+void threadNotify(unsigned int oid, unsigned short version, unsigned int tid) {
+	pthread_cond_t ret;
+	//Look up the tid and call the corresponding pthread_cond_signal
+	ret = notifyhashSearch(tid);
+	pthread_cond_signal(&ret);
+	//TODO process oid and version
+}
+
+int notifyAll(threadlist_t **head, unsigned int oid, unsigned int version) {
+	threadlist_t *ptr;
+	unsigned int mid;
+	struct sockaddr_in remoteAddr;
+	char msg[1 + sizeof(unsigned short) + 2*sizeof(unsigned int)];
+	int sock, status, size, bytesSent;
+	while(*head != NULL) {
+		ptr = *head;
+		mid = ptr->mid; 
+		//create a socket connection to that machine
+		if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0){
+			perror("notifyAll():socket()");
+			return -1;
+		}
+
+		bzero(&remoteAddr, sizeof(remoteAddr));
+		remoteAddr.sin_family = AF_INET;
+		remoteAddr.sin_port = htons(LISTEN_PORT);
+		remoteAddr.sin_addr.s_addr = htonl(mid);
+		//send Thread Notify response and threadid to that machine
+		if (connect(sock, (struct sockaddr *)&remoteAddr, sizeof(remoteAddr)) < 0){
+			printf("notifyAll():error %d connecting to %s:%d\n", errno,
+					inet_ntoa(remoteAddr.sin_addr), LISTEN_PORT);
+			status = -1;
+		} else {
+			msg[0] = THREAD_NOTIFY_RESPONSE;
+			msg[1] = oid;
+			size = sizeof(unsigned int);
+			*(&msg[1]+ size) = version;
+			size+= sizeof(unsigned short);
+			*(&msg[1]+ size) = ptr->threadid;
+
+			bytesSent = send(sock, msg, 1 + 2*sizeof(unsigned int) + sizeof(unsigned short), 0);
+			if (bytesSent < 0){
+				perror("notifyAll():send()");
+				status = -1;
+			} else if (bytesSent != 1 + 2*sizeof(unsigned int) + sizeof(unsigned short)){
+				printf("notifyAll(): error, sent %d bytes\n", bytesSent);
+				status = -1;
+			} else {
+				status = 0;
+			}
+		}
+		//close socket
+		close(sock);
+		// Update head
+		*head = ptr->next;
+		free(ptr);
+	}
+}
+
+void transAbort(transrecord_t *trans) {
+	objstrDelete(trans->cache);
+	chashDelete(trans->lookupTable);
+	free(trans);
 }

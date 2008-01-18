@@ -7,9 +7,12 @@
 #include <pthread.h>
 #include <netdb.h>
 #include <fcntl.h>
+#include <errno.h>
+#include <string.h>
 #include "dstm.h"
 #include "mlookup.h"
 #include "llookup.h"
+#include "threadnotify.h"
 #ifdef COMPILER
 #include "thread.h"
 #endif
@@ -40,6 +43,9 @@ int dstmInit(void)
 		return 1; //failure
 	
 	if (lhashCreate(HASH_SIZE, LOADFACTOR))
+		return 1; //failure
+
+	if (notifyhashCreate(N_HASH_SIZE, N_LOADFACTOR))
 		return 1; //failure
 	
 	return 0;
@@ -107,22 +113,21 @@ void *dstmListen()
  * and accordingly calls other functions to process new requests */
 void *dstmAccept(void *acceptfd)
 {
-	int numbytes,i, val, retval;
+	int val, retval, size;
 	unsigned int oid;
 	char buffer[RECEIVE_BUFFER_SIZE], control,ctrl;
 	char *ptr;
 	void *srcObj;
 	objheader_t *h;
 	trans_commit_data_t transinfo;
-	unsigned short objType;
-	
+	unsigned short objType, *versionarry, version;
+	unsigned int *oidarry, numoid, mid, threadid;
+
 	transinfo.objlocked = NULL;
 	transinfo.objnotfound = NULL;
 	transinfo.modptr = NULL;
 	transinfo.numlocked = 0;
 	transinfo.numnotfound = 0;
-
-	int fd_flags = fcntl((int)acceptfd, F_GETFD), size;
 
 	/* Receive control messages from other machines */
 	if((retval = recv((int)acceptfd, &control, sizeof(char), 0)) <= 0) {
@@ -142,6 +147,7 @@ void *dstmAccept(void *acceptfd)
 			}
 			if((srcObj = mhashSearch(oid)) == NULL) {
 				printf("Object not found in Main Object Store %s %d\n", __FILE__, __LINE__);
+				pthread_exit(NULL);
 			}
 			h = (objheader_t *) srcObj;
 			GETSIZE(size, h);
@@ -191,7 +197,7 @@ void *dstmAccept(void *acceptfd)
 		case TRANS_PREFETCH:
 			printf("DEBUG -> Recv TRANS_PREFETCH\n");
 			if((val = prefetchReq((int)acceptfd)) != 0) {
-				printf("Error in readClientReq\n");
+				printf("Error in transPrefetch\n");
 				pthread_exit(NULL);
 			}
 			break;
@@ -207,6 +213,43 @@ void *dstmAccept(void *acceptfd)
 				objType = getObjType(oid);
 				startDSMthread(oid, objType);
 			}
+			break;
+
+		case THREAD_NOTIFY_REQUEST:
+			size = sizeof(unsigned int);
+			retval = recv((int)acceptfd, ptr, size, 0);
+			numoid = *((unsigned int *) ptr);
+			size = (sizeof(unsigned int) + sizeof(unsigned short)) * numoid + 2 * sizeof(unsigned int);
+			retval = recv((int)acceptfd, ptr, size, 0);
+			oidarry = calloc(numoid, sizeof(unsigned int)); 
+			memcpy(oidarry, ptr, sizeof(unsigned int) * numoid);
+			size = sizeof(unsigned int) * numoid;
+			versionarry = calloc(numoid, sizeof(unsigned short));
+			memcpy(versionarry, ptr+size, sizeof(unsigned short) * numoid);
+			size += sizeof(unsigned short) * numoid;
+			mid = *((unsigned int *)(ptr+size));
+			size += sizeof(unsigned int);
+			threadid = *((unsigned int *)(ptr+size));
+			processReqNotify(numoid, oidarry, versionarry, mid, threadid);
+
+			break;
+
+		case THREAD_NOTIFY_RESPONSE:
+			size = sizeof(unsigned short) + 2 * sizeof(unsigned int);
+			retval = recv((int)acceptfd, ptr, size, 0);
+			if(retval <= 0) 
+				perror("dstmAccept(): error receiving THREAD_NOTIFY_RESPONSE msg");
+			else if( retval != 2*sizeof(unsigned int) + sizeof(unsigned short))
+				printf("dstmAccept(): incorrect smsg size %d for THREAD_NOTIFY_RESPONSE msg\n", retval);
+			else {
+				oid = *((unsigned int *)ptr);
+				size = sizeof(unsigned int);
+				version = *((unsigned short *)(ptr+size));
+				size += sizeof(unsigned short);
+				threadid = *((unsigned int *)(ptr+size));
+				threadNotify(oid,version,threadid);
+			}
+
 			break;
 
 		default:
@@ -561,6 +604,10 @@ int transCommitProcess(void *modptr, unsigned int *oidmod, unsigned int *oidlock
 		pthread_mutex_lock(&mainobjstore_mutex);
 		memcpy(header, (char *)modptr + offset, tmpsize + sizeof(objheader_t));
 		header->version += 1; 
+		/* If threads are waiting on this object to be updated, notify them */
+		if(header->notifylist != NULL) {
+			notifyAll(&header->notifylist, OID(header), header->version);
+		}
 		pthread_mutex_unlock(&mainobjstore_mutex);
 		offset += sizeof(objheader_t) + tmpsize;
 	}
@@ -628,6 +675,7 @@ int prefetchReq(int acceptfd) {
     } while(sum < N && n != 0);	
     
     /* Process each oid */
+    printf("Oid 0x%x is being searched\n", oid);
     if ((mobj = mhashSearch(oid)) == NULL) {/* Obj not found */
       /* Save the oids not found in buffer for later use */
       *(buffer + index) = OBJECT_NOT_FOUND;
@@ -706,5 +754,77 @@ int prefetchReq(int acceptfd) {
     }
   }
   return 0;
+}
+
+void processReqNotify(unsigned int numoid, unsigned int *oidarry, unsigned short *versionarry, unsigned int mid, unsigned int threadid) {
+	objheader_t *header;
+	unsigned int oid;
+	unsigned short newversion;
+	char msg[1+ sizeof(unsigned int)];
+	int sd;
+	struct sockaddr_in remoteAddr;
+	int bytesSent;
+	int status, size, retry = 0;
+
+	int i = 0;
+	while(i < numoid) {
+		oid = *(oidarry + i);
+		if((header = (objheader_t *) mhashSearch(oid)) == NULL) {
+			printf("processReqNotify(): Object is not found in mlookup %s, %d\n", __FILE__, __LINE__);
+			return;
+		} else {
+			/* Check to see if versions are same */
+checkversion:
+			if ((STATUS(header) & LOCK) != LOCK) { 		
+				STATUS(header) |= LOCK;
+				if(header->version == *(versionarry + i)) {
+					//Add to the notify list 
+					insNode(header->notifylist, threadid, mid); 
+				} else {
+					if ((sd = socket(AF_INET, SOCK_STREAM, 0)) < 0){
+						perror("processReqNotify():socket()");
+						return;
+					}
+					bzero(&remoteAddr, sizeof(remoteAddr));
+					remoteAddr.sin_family = AF_INET;
+					remoteAddr.sin_port = htons(LISTEN_PORT);
+					remoteAddr.sin_addr.s_addr = htonl(mid);
+
+					if (connect(sd, (struct sockaddr *)&remoteAddr, sizeof(remoteAddr)) < 0){
+						printf("processReqNotify():error %d connecting to %s:%d\n", errno,
+								inet_ntoa(remoteAddr.sin_addr), LISTEN_PORT);
+						status = -1;
+					} else {
+						//Send Update notification
+						msg[0] = THREAD_NOTIFY_RESPONSE;
+						msg[1] = oid;
+						size = sizeof(unsigned int);
+						memcpy(&msg[1] + size, &newversion, sizeof(unsigned short)); 
+						size += sizeof(unsigned short);
+						memcpy(&msg[1] + size, &threadid, sizeof(unsigned int)); 
+						bytesSent = send(sd, msg, 1+sizeof(unsigned int), 0);
+						if (bytesSent < 0){
+							perror("processReqNotify():send()");
+							status = -1;
+						} else if (bytesSent != 1 + sizeof(unsigned short) + 2*sizeof(unsigned int)){
+							printf("processReqNotify(): error, sent %d bytes\n", bytesSent);
+							status = -1;
+						} else {
+							status = 0;
+						}
+
+					}
+					close(sd);
+				}
+				STATUS(header) &= ~(LOCK); 		
+			} else {
+				randomdelay();
+				printf("DEBUG-> processReqNotify() Object is still locked\n");
+				goto checkversion;
+			}
+		}
+	}
+	free(oidarry);
+	free(versionarry);
 }
 

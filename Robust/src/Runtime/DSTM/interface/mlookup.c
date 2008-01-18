@@ -5,8 +5,6 @@ mhashtable_t mlookup; 	//Global hash table
 // Creates a machine lookup table with size =" size" 
 unsigned int mhashCreate(unsigned int size, float loadfactor)  {
 	mhashlistnode_t *nodes;
-	int i;
-
 	// Allocate space for the hash table 
 	if((nodes = calloc(size, sizeof(mhashlistnode_t))) == NULL) {
 		printf("Calloc error %s %d\n", __FILE__, __LINE__);

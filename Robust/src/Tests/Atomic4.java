@@ -86,6 +86,6 @@ public class People {
 	public boolean isSenior() {
 		if(this.getAge() > 65)
 			return true;
-		return false;;
+		return false;
 	}
 }

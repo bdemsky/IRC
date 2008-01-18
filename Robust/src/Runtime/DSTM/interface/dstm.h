@@ -34,6 +34,8 @@
 #define TRANS_SUCESSFUL			21
 #define TRANS_PREFETCH_RESPONSE		22
 #define START_REMOTE_THREAD		23
+#define THREAD_NOTIFY_REQUEST		24
+#define THREAD_NOTIFY_RESPONSE		25
 
 //Control bits for status of objects in Machine pile
 #define OBJ_LOCKED_BUT_VERSION_MATCH	14
@@ -51,6 +53,8 @@
 #include "clookup.h"
 #include "queue.h"
 #include "mcpileq.h"
+#include "threadnotify.h"
+
 
 #define DEFAULT_OBJ_STORE_SIZE 1048510 //1MB
 #define TID_LEN 20
@@ -65,6 +69,7 @@
 #include "structdefs.h"
 
 typedef struct objheader {
+	threadlist_t *notifylist;
 	unsigned short version;
 	unsigned short rcount;
 } objheader_t;
@@ -93,6 +98,7 @@ typedef struct objheader {
 #else
 
 typedef struct objheader {
+	threadlist_t *notifylist;
 	unsigned int oid;
 	unsigned short type;
 	unsigned short version;
@@ -179,12 +185,15 @@ typedef struct local_thread_data_array {
 	trans_commit_data_t *transinfo; /* Holds information of objects locked and not found in the participant */ 
 } local_thread_data_array_t;
 
-//Structure for members within prefetch tuples
-typedef struct member {
-	short offset;		/* Holds offset of the ptr field */
-	short index;		/* Holds the array index value */ 
-	struct member *next;	
-}trans_member_t;
+//Structure for objects involved in wait-notify call
+//TODO Use it
+typedef struct notifydata {
+	unsigned int numoid;	/* Number of oids on which we are waiting for updated notification */
+	unsigned int threadid;  /* The threadid that is waiting for  update notification response*/
+	unsigned int *oidarry;  /* Pointer to array of oids */
+	unsigned short *version;/* Pointer to array of versions of the oids that we are waiting on */
+}notifydata_t;
+
 
 /* Initialize main object store and lookup tables, start server thread. */
 int dstmInit(void);
@@ -206,8 +215,8 @@ int readClientReq(trans_commit_data_t *, int);
 int processClientReq(fixed_data_t *, trans_commit_data_t *,unsigned int *, char *, void *, unsigned int *, int);
 char handleTransReq(fixed_data_t *, trans_commit_data_t *, unsigned int *, char *, void *, int);
 int decideCtrlMessage(fixed_data_t *, trans_commit_data_t *, int *, int *, int *, int *, int *, void *, unsigned int *, unsigned int *, int);
-//int transCommitProcess(trans_commit_data_t *, int);
 int transCommitProcess(void *, unsigned int *, unsigned int *, int, int, int);
+void processReqNotify(unsigned int numoid, unsigned int *oid, unsigned short *version, unsigned int mid, unsigned int threadid);
 /* end server portion */
 
 /* Prototypes for transactions */
@@ -220,7 +229,7 @@ int processConfigFile();
 void addHost(unsigned int);
 void mapObjMethod(unsigned short);
 
-void randomdelay(void);
+void randomdelay();
 transrecord_t *transStart();
 objheader_t *transRead(transrecord_t *, unsigned int);
 objheader_t *transCreateObj(transrecord_t *, unsigned int); //returns oid
@@ -233,6 +242,7 @@ void *getRemoteObj(transrecord_t *, unsigned int, unsigned int);
 void *handleLocalReq(void *);
 int transComProcess(local_thread_data_array_t *);
 int transAbortProcess(local_thread_data_array_t *);
+void transAbort(transrecord_t *trans);
 
 void prefetch(int, unsigned int *, unsigned short *, short*);
 void *transPrefetch(void *);
@@ -246,5 +256,10 @@ void sendPrefetchReq(prefetchpile_t*, int);
 void getPrefetchResponse(int, int);
 unsigned short getObjType(unsigned int oid);
 int startRemoteThread(unsigned int oid, unsigned int mid);
+/* Sends notification request for thread join, if sucessful returns 0 else returns -1 */
+void reqNotify(unsigned int *oidarry, unsigned short *versionarry, unsigned int mid, unsigned int numoid);
+void threadNotify(unsigned int oid, unsigned short version, unsigned int tid);
+int notifyAll(threadlist_t **head, unsigned int oid, unsigned int version);
+
 /* end transactions */
 #endif
