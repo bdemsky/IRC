@@ -14,7 +14,7 @@ public class Atomic5 extends Thread {
 			at5 =  global new Atomic5[4];
 		}
 		atomic {
-			for(int i = 0 ; i< 4; i++) {
+			for(int i = 0; i < 4; i++) {
 				at5[i] = global new Atomic5();
 				at5[i].team = global new People[2];
 				at5[i].team[0] = global new People();
@@ -26,14 +26,14 @@ public class Atomic5 extends Thread {
 			}
 			b = at5[1].team[0].getAge();
 		}
+		System.printInt(b);
 		atomic {
 			age = global new Integer(70);
 			name = global new String("John Smith");
 			at5[1].team[1].name = name;
 			at5[1].team[1].age = age;
-			c = at5[1].team[1].getAge();
+			c = at5[1].team[0].getAge();
 		}
-		System.printInt(b);
 		System.printInt(c);
 		System.printString("\n");
 		System.printString("Starting\n");
@@ -43,6 +43,11 @@ public class Atomic5 extends Thread {
 			}
 			tmp.start(mid);
 		}
+
+		for(int i = 0; i< 4; i++) {
+			tmp.join();
+		}
+
 		/*
 		for(int i = 0 ; i< 4; i++) {
 			at5[i].start(mid);
