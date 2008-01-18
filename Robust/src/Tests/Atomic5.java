@@ -43,16 +43,12 @@ public class Atomic5 extends Thread {
 			}
 			tmp.start(mid);
 		}
-
 		for(int i = 0; i< 4; i++) {
+			atomic {
+				tmp = at5[i];
+			}
 			tmp.join();
 		}
-
-		/*
-		for(int i = 0 ; i< 4; i++) {
-			at5[i].start(mid);
-		}
-		*/
 		System.printString("Finished\n");
 		while(true) {
 			;
