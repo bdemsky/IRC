@@ -1019,13 +1019,13 @@ int transAbortProcess(local_thread_data_array_t  *localtdata) {
 		STATUS(((objheader_t *)header)) &= ~(LOCK);
 	}
 
-	printf("TRANS_ABORTED at Coordinator end\n");
-
+	printf("TRANS_ABORTED\n");
 	return 0;
 }
 
 /*This function completes the COMMIT process is the transaction is commiting*/
 int transComProcess(local_thread_data_array_t  *localtdata) {
+	static int prevsize = 0, *prevptr;
 	objheader_t *header, *tcptr;
 	int i, nummod, tmpsize, numcreated, numlocked;
 	unsigned int *oidmod, *oidcreated, *oidlocked;
@@ -1086,6 +1086,7 @@ int transComProcess(local_thread_data_array_t  *localtdata) {
 		}
 		STATUS(header) &= ~(LOCK);
 	}
+
 	return 0;
 }
 
@@ -1440,9 +1441,10 @@ void sendPrefetchReq(prefetchpile_t *mcpilenode, int threadid) {
 
 	/* Send Trans Prefetch Request */
 	if ((sd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-		perror("Error in socket for TRANS_REQUEST\n");
+		perror("Error in socket for SEND_PREFETCH_REQUEST\n");
 		return;
 	}
+
 	bzero((char*) &serv_addr, sizeof(serv_addr));
 	serv_addr.sin_family = AF_INET;
 	serv_addr.sin_port = htons(LISTEN_PORT);
@@ -1452,7 +1454,7 @@ void sendPrefetchReq(prefetchpile_t *mcpilenode, int threadid) {
 
 	/* Open Connection */
 	if (connect(sd, (struct sockaddr *) &serv_addr, sizeof(struct sockaddr)) < 0) {
-		perror("Error in connect for TRANS_REQUEST\n");
+		perror("Error in connect for SEND_PREFETCH_REQUEST\n");
 		close(sd);
 		return;
 	}
@@ -1788,22 +1790,27 @@ int findHost(unsigned int hostIp)
 
 /* This function sends notification request per thread waiting on object(s) whose version 
  * changes */
-void reqNotify(unsigned int *oidarry, unsigned short *versionarry, unsigned int mid, unsigned int numoid) {
+int reqNotify(unsigned int *oidarry, unsigned short *versionarry, unsigned int numoid) {
 	int sock,i;
 	objheader_t *objheader;
 	struct sockaddr_in remoteAddr;
-	char msg[1 + numoid * (sizeof(short) + sizeof(unsigned int)) + sizeof(unsigned int) * 3];
+	char msg[1 + numoid * (sizeof(short) + sizeof(unsigned int)) +  3 * sizeof(unsigned int)];
 	char *ptr;
 	int bytesSent;
 	int status, size;
 	unsigned short version;
-	unsigned int oid, threadid;
+	unsigned int oid, threadid, mid;
 	pthread_mutex_t threadnotify; //Lock and condition var for threadjoin and notification
 	pthread_cond_t threadcond;
+	notifydata_t *ndata;
+
+	//FIXME currently all oids belong to one machine
+	oid = oidarry[0];
+	mid = lhashSearch(oid);
 
 	if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0){
 		perror("reqNotify():socket()");
-		return;
+		return -1;
 	}
 
 	bzero(&remoteAddr, sizeof(remoteAddr));
@@ -1813,20 +1820,29 @@ void reqNotify(unsigned int *oidarry, unsigned short *versionarry, unsigned int 
 
 	/* Generate unique threadid */
 	threadid = (unsigned int) pthread_self();
-	if((status = notifyhashInsert(threadid, threadcond)) != 0) {
-		printf("reqNotify(): Insert into notify hash table not successful %s, %d\n", __FILE__, __LINE__);
-		return;
+
+	/* Save threadid, numoid, oidarray, versionarray, pthread_cond_variable for later processing */
+	if((ndata = calloc(1, sizeof(notifydata_t))) == NULL) {
+		printf("Calloc Error %s, %d\n", __FILE__, __LINE__);
+		return -1;
 	}
-
-	/* Save data that is sent for later processing */
-	//Save threadid, numoid, oidarray, versionarray, also the pthread_cond_variable in a linked list
-	//TODO
-
-	/* Send oidarry, version array, threadid and machine id */	
+	ndata->numoid = numoid;
+	ndata->threadid = threadid;
+	ndata->oidarry = oidarry;
+	ndata->versionarry = versionarry;
+	ndata->threadcond = threadcond;
+	if((status = notifyhashInsert(threadid, ndata)) != 0) {
+		printf("reqNotify(): Insert into notify hash table not successful %s, %d\n", __FILE__, __LINE__);
+		free(ndata);
+		return -1; 
+	}
+	
+	/* Send  number of oids, oidarry, version array, machine id and threadid */	
 	if (connect(sock, (struct sockaddr *)&remoteAddr, sizeof(remoteAddr)) < 0){
 		printf("reqNotify():error %d connecting to %s:%d\n", errno,
 				inet_ntoa(remoteAddr.sin_addr), LISTEN_PORT);
-		status = -1;
+		free(ndata);
+		return -1;
 	} else {
 		msg[0] = THREAD_NOTIFY_REQUEST;
 		msg[1] = numoid;
@@ -1873,14 +1889,47 @@ void reqNotify(unsigned int *oidarry, unsigned short *versionarry, unsigned int 
 	}
 
 	close(sock);
+	return status;
 }
 
 void threadNotify(unsigned int oid, unsigned short version, unsigned int tid) {
-	pthread_cond_t ret;
+	notifydata_t *ndata;
+	int i, objIsFound = 0, index;
+	void *ptr;
+
 	//Look up the tid and call the corresponding pthread_cond_signal
-	ret = notifyhashSearch(tid);
-	pthread_cond_signal(&ret);
-	//TODO process oid and version
+	if((ndata = notifyhashSearch(tid)) == NULL) {
+		printf("threadnotify(): No such threadid is present %s, %d\n", __FILE__, __LINE__);
+		return;
+	} else  {
+		for(i = 0; i < ndata->numoid; i++) {
+			if(ndata->oidarry[i] == oid){
+				objIsFound = 1;
+				index = i;
+			}
+		}
+		if(objIsFound == 0){
+			return;
+		} else {
+			if(version <= ndata->versionarry[index]){
+				return;
+			} else {
+				/* Clear from prefetch cache and free thread related data structure */
+				if((ptr = prehashSearch(oid)) == NULL) {
+					//TODO Ask about freeing
+					printf("threadnotify(): No such oid %s, %d\n", __FILE__, __LINE__);
+					pthread_cond_signal(&ndata->threadcond);
+					free(ndata);
+					return;
+				} else {
+					prehashRemove(oid);
+					pthread_cond_signal(&ndata->threadcond);
+					free(ndata);
+				}
+			}
+		}
+	}
+	return;
 }
 
 int notifyAll(threadlist_t **head, unsigned int oid, unsigned int version) {
@@ -1911,9 +1960,9 @@ int notifyAll(threadlist_t **head, unsigned int oid, unsigned int version) {
 			msg[0] = THREAD_NOTIFY_RESPONSE;
 			msg[1] = oid;
 			size = sizeof(unsigned int);
-			*(&msg[1]+ size) = version;
+			*((unsigned short *)(&msg[1]+ size)) = version;
 			size+= sizeof(unsigned short);
-			*(&msg[1]+ size) = ptr->threadid;
+			*((unsigned int *)(&msg[1]+ size)) = ptr->threadid;
 
 			bytesSent = send(sock, msg, 1 + 2*sizeof(unsigned int) + sizeof(unsigned short), 0);
 			if (bytesSent < 0){
@@ -1932,6 +1981,7 @@ int notifyAll(threadlist_t **head, unsigned int oid, unsigned int version) {
 		*head = ptr->next;
 		free(ptr);
 	}
+	return status;
 }
 
 void transAbort(transrecord_t *trans) {

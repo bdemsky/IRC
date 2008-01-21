@@ -55,8 +55,7 @@ transstart:
   ptr = transRead(trans, oidvalue);
   struct ___Thread___ *p = (struct ___Thread___ *) ptr;
   p->___threadDone___ = 1;
-  while(!transCommit(trans)) {
-	  printf("DEBUG-> Trans not committed yet\n");
+  if(transCommit(trans) != 0) {
 	  transAbort(trans);
 	  goto transstart;
   }
@@ -129,7 +128,7 @@ void CALL01(___Thread______join____, struct ___Thread___ * ___this___) {
   printf("DEBUG -> Inside thread join\n");
 #ifdef DSTM
   pthread_t thread;
-  unsigned int *oidarray, mid;
+  unsigned int *oidarray;
   unsigned short *versionarray, version;
   transrecord_t *trans;
   objheader_t *ptr;
@@ -156,9 +155,8 @@ transstart:
 		  return;
 	  }
 	  versionarray[0] = version;
-	  mid = lhashSearch((unsigned int) VAR(___this___));
 	  /* Request Notification */
-	  reqNotify(oidarray, versionarray, mid, 1); 
+	  reqNotify(oidarray, versionarray, 1); 
 	  free(oidarray);
 	  free(versionarray);
 	  transAbort(trans);
@@ -228,8 +226,7 @@ transstart:
   tmp  = transRead(trans, (unsigned int) oid);
   struct ___Thread___ *t = (struct ___Thread___ *) tmp;
   t->___threadDone___ = 1;
-  while(!transCommit(trans)) {
-	  printf("DEBUG-> Trans not committed yet\n");
+  if(transCommit(trans)!= 0) {
 	  transAbort(trans);
 	  goto transstart;
   }

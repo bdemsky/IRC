@@ -185,16 +185,6 @@ typedef struct local_thread_data_array {
 	trans_commit_data_t *transinfo; /* Holds information of objects locked and not found in the participant */ 
 } local_thread_data_array_t;
 
-//Structure for objects involved in wait-notify call
-//TODO Use it
-typedef struct notifydata {
-	unsigned int numoid;	/* Number of oids on which we are waiting for updated notification */
-	unsigned int threadid;  /* The threadid that is waiting for  update notification response*/
-	unsigned int *oidarry;  /* Pointer to array of oids */
-	unsigned short *version;/* Pointer to array of versions of the oids that we are waiting on */
-}notifydata_t;
-
-
 /* Initialize main object store and lookup tables, start server thread. */
 int dstmInit(void);
 
@@ -257,7 +247,7 @@ void getPrefetchResponse(int, int);
 unsigned short getObjType(unsigned int oid);
 int startRemoteThread(unsigned int oid, unsigned int mid);
 /* Sends notification request for thread join, if sucessful returns 0 else returns -1 */
-void reqNotify(unsigned int *oidarry, unsigned short *versionarry, unsigned int mid, unsigned int numoid);
+int reqNotify(unsigned int *oidarry, unsigned short *versionarry, unsigned int numoid);
 void threadNotify(unsigned int oid, unsigned short version, unsigned int tid);
 int notifyAll(threadlist_t **head, unsigned int oid, unsigned int version);
 

@@ -2,6 +2,9 @@
 
 notifyhashtable_t nlookup; //Global hash table
 
+/* This function creates a new node in the linked list of threads waiting
+ * for an update notification from a particular object.
+ * This takes in the head of the linked list and inserts the new node to it */
 void insNode(threadlist_t *head, unsigned int threadid, unsigned int mid) {
 	threadlist_t *ptr;
 	if(head == NULL) {
@@ -24,6 +27,8 @@ void insNode(threadlist_t *head, unsigned int threadid, unsigned int mid) {
 	}
 }
 
+/* This function displays the linked list of threads waiting on update notification
+ * from an object */
 void display(threadlist_t *head) {
 	threadlist_t *ptr;
 	if(head == NULL) {
@@ -39,6 +44,8 @@ void display(threadlist_t *head) {
 	}
 }
 
+/* This function creates a new hash table that stores a mapping between the threadid and
+ * a pointer to the thread notify data */
 unsigned int notifyhashCreate(unsigned int size, float loadfactor) { 
 	notifylistnode_t *nodes;
 
@@ -62,8 +69,8 @@ unsigned int notifyhashFunction(unsigned int tid) {
 	return( tid % (nlookup.size));
 }
 
-// Insert threadcond and threadid mapping into the hash table
-unsigned int notifyhashInsert(unsigned int tid, pthread_cond_t threadcond) {
+// Insert pointer to the notify data and threadid mapping into the hash table
+unsigned int notifyhashInsert(unsigned int tid, notifydata_t *ndata) {
 	unsigned int newsize;
 	int index;
 	notifylistnode_t *ptr, *node;
@@ -85,7 +92,7 @@ unsigned int notifyhashInsert(unsigned int tid, pthread_cond_t threadcond) {
 	pthread_mutex_lock(&nlookup.locktable);
 	if(ptr[index].next == NULL && ptr[index].threadid == 0) {	// Insert at the first position in the hashtable
 		ptr[index].threadid = tid;
-		ptr[index].threadcond = threadcond;
+		ptr[index].ndata = ndata;
 	} else {			// Insert in the beginning of linked list
 		if ((node = calloc(1, sizeof(notifylistnode_t))) == NULL) {
 			printf("Calloc error %s, %d\n", __FILE__, __LINE__);
@@ -93,7 +100,7 @@ unsigned int notifyhashInsert(unsigned int tid, pthread_cond_t threadcond) {
 			return 1;
 		}
 		node->threadid = tid;
-		node->threadcond = threadcond;
+		node->ndata = ndata;
 		node->next = ptr[index].next;
 		ptr[index].next = node;
 	}
@@ -101,11 +108,10 @@ unsigned int notifyhashInsert(unsigned int tid, pthread_cond_t threadcond) {
 	return 0;
 }
 
-// Return pthread_cond_t threadcond for a given threadid in the hash table
-pthread_cond_t notifyhashSearch(unsigned int tid) {
+// Return pointer to thread notify data for a given threadid in the hash table
+notifydata_t  *notifyhashSearch(unsigned int tid) {
 	int index;
 	notifylistnode_t *ptr, *node;
-	pthread_cond_t tmp = PTHREAD_COND_INITIALIZER;
 
 	ptr = nlookup.table;	// Address of the beginning of hash table	
 	index = notifyhashFunction(tid);
@@ -114,35 +120,33 @@ pthread_cond_t notifyhashSearch(unsigned int tid) {
 	while(node != NULL) {
 		if(node->threadid == tid) {
 			pthread_mutex_unlock(&nlookup.locktable);
-			return node->threadcond;
+			return node->ndata;
 		}
 		node = node->next;
 	}
 	pthread_mutex_unlock(&nlookup.locktable);
-	return tmp;
+	return NULL;
 }
 
 // Remove an entry from the hash table
 unsigned int notifyhashRemove(unsigned int tid) {
 	int index;
-	notifylistnode_t *curr, *prev;
-	notifylistnode_t *ptr, *node;
+	notifylistnode_t *curr, *prev, *ptr, *node;
 
 	ptr = nlookup.table;
 	index = notifyhashFunction(tid);
 	curr = &ptr[index];
 
-	pthread_cond_t tmp = PTHREAD_COND_INITIALIZER;
 	pthread_mutex_lock(&nlookup.locktable);
 	for (; curr != NULL; curr = curr->next) {
 		if (curr->threadid == tid) {         // Find a match in the hash table
 			nlookup.numelements--;  // Decrement the number of elements in the global hashtable
 			if ((curr == &ptr[index]) && (curr->next == NULL))  { // Delete the first item inside the hashtable with no linked list of notifylistnode_t 
 				curr->threadid = 0;
-				curr->threadcond = tmp;
+				curr->ndata = NULL;
 			} else if ((curr == &ptr[index]) && (curr->next != NULL)) { //Delete the first bin item with a linked list of notifylistnode_t  connected 
 				curr->threadid = curr->next->threadid;
-				curr->threadcond = curr->next->threadcond;
+				curr->ndata = curr->next->ndata;
 				node = curr->next;
 				curr->next = curr->next->next;
 				free(node);
@@ -194,7 +198,7 @@ unsigned int notifyhashResize(unsigned int newsize) {
 			// Insert into the new table
 			if(nlookup.table[index].next == NULL && nlookup.table[index].threadid == 0) { 
 				nlookup.table[index].threadid = curr->threadid;
-				nlookup.table[index].threadcond = curr->threadcond;
+				nlookup.table[index].ndata = curr->ndata;
 				nlookup.numelements++;
 			}else { 
 				if((newnode = calloc(1, sizeof(notifylistnode_t))) == NULL) { 
@@ -202,7 +206,7 @@ unsigned int notifyhashResize(unsigned int newsize) {
 					return 1;
 				}       
 				newnode->threadid = curr->threadid;
-				newnode->threadcond = curr->threadcond;
+				newnode->ndata = curr->ndata;
 				newnode->next = nlookup.table[index].next;
 				nlookup.table[index].next = newnode;    
 				nlookup.numelements++;

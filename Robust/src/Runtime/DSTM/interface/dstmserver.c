@@ -675,7 +675,6 @@ int prefetchReq(int acceptfd) {
     } while(sum < N && n != 0);	
     
     /* Process each oid */
-    printf("Oid 0x%x is being searched\n", oid);
     if ((mobj = mhashSearch(oid)) == NULL) {/* Obj not found */
       /* Save the oids not found in buffer for later use */
       *(buffer + index) = OBJECT_NOT_FOUND;
@@ -760,7 +759,7 @@ void processReqNotify(unsigned int numoid, unsigned int *oidarry, unsigned short
 	objheader_t *header;
 	unsigned int oid;
 	unsigned short newversion;
-	char msg[1+ sizeof(unsigned int)];
+	char msg[1+  2 * sizeof(unsigned int) + sizeof(unsigned short)];
 	int sd;
 	struct sockaddr_in remoteAddr;
 	int bytesSent;
@@ -799,10 +798,10 @@ checkversion:
 						msg[0] = THREAD_NOTIFY_RESPONSE;
 						msg[1] = oid;
 						size = sizeof(unsigned int);
-						memcpy(&msg[1] + size, &newversion, sizeof(unsigned short)); 
+						*((unsigned short *)(&msg[1]+size)) = newversion;
 						size += sizeof(unsigned short);
-						memcpy(&msg[1] + size, &threadid, sizeof(unsigned int)); 
-						bytesSent = send(sd, msg, 1+sizeof(unsigned int), 0);
+						*((unsigned int *)(&msg[1]+size)) = threadid;
+						bytesSent = send(sd, msg, 1+ 2*sizeof(unsigned int) + sizeof(unsigned short), 0);
 						if (bytesSent < 0){
 							perror("processReqNotify():send()");
 							status = -1;
