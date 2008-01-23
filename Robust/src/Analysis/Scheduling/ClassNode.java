@@ -99,7 +99,6 @@ public class ClassNode extends GraphNode implements Cloneable{
         if (o instanceof ClassNode) {
 	    ClassNode fs=(ClassNode)o;
             if ((fs.getClassDescriptor()!= cd) || 
-		(fs.getScheduleNode() != sn) || 
 		(fs.isSorted() != sorted) ||
 		(fs.clone != this.clone) ||
 		(fs.transTime != this.transTime)) {
@@ -111,7 +110,8 @@ public class ClassNode extends GraphNode implements Cloneable{
     }
 
     public int hashCode() {
-        return cd.hashCode()^flagStates.hashCode();
+        return cd.hashCode()^Boolean.toString(sorted).hashCode()^Boolean.toString(clone).hashCode()^
+        	transTime^flagStates.hashCode();
     }
 
     public String getLabel() {

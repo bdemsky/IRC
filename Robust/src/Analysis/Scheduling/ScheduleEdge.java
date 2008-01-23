@@ -9,6 +9,10 @@ import Util.GraphNode;
 /* Edge *****************/
 
 public class ScheduleEdge extends Edge {
+    
+    private int uid;
+    private int gid;
+    private static int nodeID=0;
 
     private String label;
     private final ClassDescriptor cd;
@@ -28,8 +32,10 @@ public class ScheduleEdge extends Edge {
     /** Class Constructor
      * 
      */
-    public ScheduleEdge(ScheduleNode target, String label, ClassDescriptor cd) {
+    public ScheduleEdge(ScheduleNode target, String label, ClassDescriptor cd, int gid) {
     	super(target);
+    	this.uid = ScheduleEdge.nodeID++;
+    	this.gid = gid;
     	this.fedge = null;
     	this.targetFState = null;
     	this.sourceCNode = null;
@@ -42,8 +48,10 @@ public class ScheduleEdge extends Edge {
     	this.listExeTime = -1;
     }
     
-    public ScheduleEdge(ScheduleNode target, String label, ClassDescriptor cd, boolean isNew) {
+    public ScheduleEdge(ScheduleNode target, String label, ClassDescriptor cd, boolean isNew, int gid) {
     	super(target);
+    	this.uid = ScheduleEdge.nodeID++;
+    	this.gid = gid;
     	this.fedge = null;
     	this.targetFState = null;
     	this.sourceCNode = null;
@@ -68,10 +76,6 @@ public class ScheduleEdge extends Edge {
     	}
     	completeLabel += ":(" + Integer.toString(this.probability) + "%)" + ":[" + Integer.toString(this.transTime) + "]";
     	return completeLabel;
-    }
-    
-    public int hashCode(){
-	return target.hashCode()^label.hashCode();
     }
     
     public ClassDescriptor getClassDescriptor() {
@@ -133,11 +137,15 @@ public class ScheduleEdge extends Edge {
     public boolean equals(Object o) {
         if (o instanceof ScheduleEdge) {
 	    ScheduleEdge e=(ScheduleEdge)o;
+	    if(e.gid == this.gid) {
+		if(e.uid != this.uid) {
+		    return false;
+		}
+	    }
 	    if ((e.label.equals(label))&&
 		(e.target.equals(target))&&
 		(e.source.equals(source)) &&
-		(e.cd.equals(cd)) && 
-		(e.fedge.equals(fedge)) &&  
+		(e.cd.equals(cd)) &&  
 		(e.sourceCNode.equals(sourceCNode)) &&
 		(e.targetCNode.equals(targetCNode)) &&
 		(e.newRate == newRate) && 
@@ -146,14 +154,32 @@ public class ScheduleEdge extends Edge {
 		(e.transTime == transTime) && 
 		(e.listExeTime == listExeTime))
 		if(e.targetFState != null) {
-		    return e.targetFState.equals(targetFState);
-		} else if(this.targetFState == null) {
-		    return true;
-		} else {
+		    if(!e.targetFState.equals(targetFState)) {
+			return false;
+		    }
+		} else if(this.targetFState != null) {
 		    return false;
-		}
+		} 
+	    	if(e.fedge != null) {
+		    return e.fedge.equals(fedge);
+		} else if(this.fedge == null) {
+		    return true;
+		} 
         }
         return false;
+    }
+    
+    public int hashCode(){
+	int hashcode = gid^uid^label.hashCode()^target.hashCode()^source.hashCode()^cd.hashCode()^
+			sourceCNode.hashCode()^targetCNode.hashCode()^newRate^probability^
+			Boolean.toString(isNew).hashCode()^transTime^listExeTime;
+	if(targetFState != null) {
+	    hashcode ^= targetFState.hashCode();
+	}
+	if(fedge != null) {
+	    hashcode ^= fedge.hashCode();
+	}
+	return hashcode;
     }
     
     public void setProbability(int prob) {

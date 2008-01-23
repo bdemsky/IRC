@@ -77,7 +77,11 @@ public class FEdge extends Edge {
     }
     
     public int hashCode(){
-	return target.hashCode()^label.hashCode();
+	int hashcode = label.hashCode()^target.hashCode()^source.hashCode()^td.hashCode()^parameterindex^executeTime;
+	if(newObjInfos != null) {
+	    hashcode ^= newObjInfos.hashCode();
+	}
+	return hashcode;
     }
 
     public TaskDescriptor getTask() {
@@ -100,10 +104,11 @@ public class FEdge extends Edge {
 	    	if(this.newObjInfos != null) {
 		    if(e.newObjInfos == null) {
 			return false;
-		    } else if(e.newObjInfos.equals(this.newObjInfos)) {
-			return true;
+		    } else {
+			return e.newObjInfos.equals(this.newObjInfos);
 		    }
 	    	}
+	    	return true;
 	    }
         }
         return false;

@@ -11,6 +11,7 @@ import Util.GraphNode;
 public class ScheduleNode extends GraphNode implements Cloneable{
     
     private int uid;
+    private int gid;
     private static int nodeID=0;
 
     private Vector<ClassNode> classNodes;
@@ -27,14 +28,16 @@ public class ScheduleNode extends GraphNode implements Cloneable{
      *	@param cd ClassDescriptor
      *  @param fStates
      */
-    public ScheduleNode() {
-    	this.uid=ScheduleNode.nodeID++;
+    public ScheduleNode(int gid) {
+    	this.uid = ScheduleNode.nodeID++;
+    	this.gid = gid;
     	this.coreNum = -1;
     	this.executionTime = -1;
     }
     
-    public ScheduleNode(ClassNode cn) {
-    	this.uid=ScheduleNode.nodeID++;
+    public ScheduleNode(ClassNode cn, int gid) {
+    	this.uid = ScheduleNode.nodeID++;
+    	this.gid = gid;
     	this.coreNum = -1;
     	this.classNodes = new Vector<ClassNode>();
     	this.scheduleEdges = new Vector<ScheduleEdge>();
@@ -113,13 +116,13 @@ public class ScheduleNode extends GraphNode implements Cloneable{
     }
     
     public Vector getClassNodes() {
-    	if(classNodes == null) {
-	    classNodes = new Vector<ClassNode>();
-    	}
     	return classNodes;
     }
     
     public Iterator getClassNodesIterator() {
+	if(classNodes == null) {
+	    return null;
+    	}
     	return classNodes.iterator();
     }
     
@@ -128,13 +131,13 @@ public class ScheduleNode extends GraphNode implements Cloneable{
     }
     
     public Vector getScheduleEdges() {
-    	if(scheduleEdges == null) {
-	    scheduleEdges = new Vector<ScheduleEdge>();
-    	}
     	return scheduleEdges;
     }
     
     public Iterator getScheduleEdgesIterator() {
+	if(scheduleEdges == null) {
+	    return null;
+    	}
     	return scheduleEdges.iterator();
     }
     
@@ -170,39 +173,33 @@ public class ScheduleNode extends GraphNode implements Cloneable{
     public boolean equals(Object o) {
         if (o instanceof ScheduleNode) {
 	    ScheduleNode fs=(ScheduleNode)o;
-            if ((fs.getCoreNum() != this.coreNum) ||
-		(fs.sorted != this.sorted) ||
+	    if(fs.gid == this.gid) {
+		if(fs.uid != this.uid) {
+		    return false;
+		}
+	    }
+            if ((fs.sorted != this.sorted) ||
 		(fs.executionTime != this.executionTime)){ 
                 return false;
             }
-            if(fs.tasks != null) {
-            	if(!fs.tasks.equals(this.tasks)) {
-		    return false;
-            	}
-            } else if (tasks != null) {
-            	return false;
-            }
-            if (fs.targetSNodes != null) {
-            	if(!fs.targetSNodes.equals(this.targetSNodes)) {
-		    return false;
-            	}
-            } else if(this.targetSNodes != null) {
-            	return false;
-            }
-	    if(fs.classNodes != null) {
+            if(fs.classNodes != null) {
 		if(!fs.classNodes.equals(classNodes)) {
 		    return false;
 		}
 	    } else if(classNodes != null) {
 		return false;
 	    }
-	    return (fs.scheduleEdges.equals(scheduleEdges));
+            return true;
         }
         return false;
     }
 
     public int hashCode() {
-        return classNodes.hashCode()^scheduleEdges.hashCode();
+	int hashcode = gid^uid^Boolean.toString(sorted).hashCode()^executionTime;//^scheduleEdges.hashCode();
+	if(this.classNodes != null) {
+	    hashcode ^= classNodes.hashCode();
+	}
+        return hashcode;
     }
 
     public String getLabel() {
@@ -220,7 +217,7 @@ public class ScheduleNode extends GraphNode implements Cloneable{
 	return label;
     }
     
-    public Object clone(Hashtable<ClassNode, ClassNode> cn2cn) {
+    public Object clone(Hashtable<ClassNode, ClassNode> cn2cn, int gid) {
     	ScheduleNode o = null;
     	try {
 	    o = (ScheduleNode)super.clone();
@@ -228,6 +225,7 @@ public class ScheduleNode extends GraphNode implements Cloneable{
 	    e.printStackTrace();
     	}
     	o.uid = ScheduleNode.nodeID++;
+    	o.gid = gid;
     	// Clone all the internal ClassNodes and ScheduleEdges
     	Vector<ClassNode> tcns = new Vector<ClassNode>();
     	Vector<ScheduleEdge> tses = new Vector<ScheduleEdge>();
@@ -243,9 +241,9 @@ public class ScheduleNode extends GraphNode implements Cloneable{
 	    ScheduleEdge temp = this.scheduleEdges.elementAt(i);
 	    ScheduleEdge se = null;
 	    if(!temp.getIsNew()) {
-		se = new ScheduleEdge(o, "transmit",temp.getClassDescriptor(), false);
+		se = new ScheduleEdge(o, "transmit",temp.getClassDescriptor(), false, gid);
 	    } else {
-		se = new ScheduleEdge(o, "new",temp.getClassDescriptor());
+		se = new ScheduleEdge(o, "new",temp.getClassDescriptor(), gid);
 	    }
 	    se.setSourceCNode(cn2cn.get(temp.getSourceCNode()));
 	    se.setTargetCNode(cn2cn.get(temp.getTargetCNode()));
