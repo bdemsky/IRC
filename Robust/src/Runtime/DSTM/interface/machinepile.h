@@ -5,6 +5,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-int insertPile(int, unsigned int, short, short *, prefetchpile_t **);
+prefetchpile_t *insertPile(int, unsigned int, short, short *, prefetchpile_t *);
 
 #endif

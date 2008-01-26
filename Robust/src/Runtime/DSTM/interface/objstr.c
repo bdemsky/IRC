@@ -2,7 +2,7 @@
 
 objstr_t *objstrCreate(unsigned int size)
 {
-	objstr_t *tmp = malloc(sizeof(objstr_t) + size);
+	objstr_t *tmp = calloc(1, (sizeof(objstr_t) + size));
 	tmp->size = size;
 	tmp->next = NULL;
 	tmp->top = tmp + 1; //points to end of objstr_t structure!
@@ -38,7 +38,7 @@ void *objstrAlloc(objstr_t *store, unsigned int size)
 		{  //end of list, all full
 			if (size > DEFAULT_OBJ_STORE_SIZE) //in case of large objects
 			{
-				store->next = (objstr_t *)malloc(sizeof(objstr_t) + size);
+				store->next = (objstr_t *)calloc(1,(sizeof(objstr_t) + size));
 				if (store->next == NULL)
 					return NULL;
 				store = store->next;
@@ -46,7 +46,7 @@ void *objstrAlloc(objstr_t *store, unsigned int size)
 			}
 			else
 			{
-				store->next = malloc(sizeof(objstr_t) + DEFAULT_OBJ_STORE_SIZE);
+				store->next = calloc(1,(sizeof(objstr_t) + DEFAULT_OBJ_STORE_SIZE));
 				if (store->next == NULL)
 					return NULL;
 				store = store->next;

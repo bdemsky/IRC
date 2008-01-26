@@ -1,6 +1,6 @@
 #include "mcpileq.h"
 
-mcpileq_t mcqueue;
+mcpileq_t mcqueue; //Global queue
 
 void mcpileqInit(void) {
 	/* Initialize machine queue that containing prefetch oids and offset values  sorted by remote machineid */  
@@ -14,17 +14,13 @@ void mcpileqInit(void) {
 }
 
 /* Insert to the rear of machine pile queue */
-void mcpileenqueue(prefetchpile_t *node) {
-	prefetchpile_t *tmp, *prev;
+void mcpileenqueue(prefetchpile_t *node, prefetchpile_t *tail) {
 	if(mcqueue.front == NULL && mcqueue.rear == NULL) {
-		mcqueue.front = mcqueue.rear = node;
+		mcqueue.front = node;
+		mcqueue.rear = tail;
 	} else {
-		tmp = mcqueue.rear->next = node;
-		while(tmp != NULL) {
-			prev = tmp;
-			tmp = tmp->next;
-		}
-		mcqueue.rear = prev;
+		mcqueue.rear->next = node;
+		mcqueue.rear = tail;
 	}
 }
 
@@ -32,7 +28,7 @@ void mcpileenqueue(prefetchpile_t *node) {
 prefetchpile_t *mcpiledequeue(void) {
 	prefetchpile_t *retnode;
 	if(mcqueue.front == NULL) {
-		printf("Machune pile queue empty: Underfloe %s %d\n", __FILE__, __LINE__);
+		printf("Machine pile queue empty: Underflow %s %d\n", __FILE__, __LINE__);
 		return NULL;
 	}
 	retnode = mcqueue.front;
@@ -73,19 +69,16 @@ void mcdealloc(prefetchpile_t *node) {
 
 	while (prefetchpile_ptr != NULL)
 	{
-		objpile_ptr = prefetchpile_ptr->objpiles;
-		while (objpile_ptr != NULL)
-		{
-			if (objpile_ptr->numoffset > 0)
-				free(objpile_ptr->offset);
-			objpile_next_ptr = objpile_ptr->next;
+		prefetchpile_next_ptr = prefetchpile_ptr;
+		while(prefetchpile_ptr->objpiles != NULL) {
+			if(prefetchpile_ptr->objpiles->numoffset > 0) {
+				free(prefetchpile_ptr->objpiles->offset);
+			}
+			objpile_ptr = prefetchpile_ptr->objpiles;
+			prefetchpile_ptr->objpiles = objpile_ptr->next;
 			free(objpile_ptr);
-			objpile_ptr = objpile_next_ptr;
 		}
-		prefetchpile_next_ptr = prefetchpile_ptr->next;
-		free(prefetchpile_ptr);
-		prefetchpile_ptr = prefetchpile_next_ptr;
+		prefetchpile_ptr = prefetchpile_next_ptr->next;
+		free(prefetchpile_next_ptr);
 	}
 }
-
-

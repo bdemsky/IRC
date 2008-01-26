@@ -57,6 +57,7 @@ prefetchqelem_t *pre_dequeue(void) {
 	pqueue.front = pqueue.front->next;
 	if (pqueue.front == NULL)
 		pqueue.rear = NULL;
+	retnode->next = NULL;
 
 	return retnode;
 }
