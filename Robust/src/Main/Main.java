@@ -3,6 +3,8 @@ package Main;
 import java.io.Reader;
 import java.io.BufferedReader;
 import java.io.FileReader;
+import java.io.FileInputStream;
+import java.util.Iterator;
 import java.util.Vector;
 
 import IR.Tree.ParseNode;
@@ -10,14 +12,19 @@ import IR.Tree.BuildIR;
 import IR.Tree.SemanticCheck;
 import IR.Flat.BuildFlat;
 import IR.Flat.BuildCode;
+import IR.ClassDescriptor;
 import IR.State;
+import IR.TaskDescriptor;
 import IR.TypeUtil;
 import Analysis.Scheduling.ScheduleAnalysis;
 import Analysis.Scheduling.ScheduleEdge;
+import Analysis.Scheduling.ScheduleNode;
 import Analysis.TaskStateAnalysis.TaskAnalysis;
 import Analysis.TaskStateAnalysis.TaskTagAnalysis;
 import Analysis.TaskStateAnalysis.TaskGraph;
 import Analysis.CallGraph.CallGraph;
+import Analysis.TaskStateAnalysis.FEdge;
+import Analysis.TaskStateAnalysis.FlagState;
 import Analysis.TaskStateAnalysis.TagAnalysis;
 import Analysis.TaskStateAnalysis.GarbageAnalysis;
 import Analysis.TaskStateAnalysis.ExecutionGraph;
@@ -201,29 +208,78 @@ public class Main {
 	  }
 	  
 	  if (state.SCHEDULING) {
-		  ScheduleAnalysis scheduleAnalysis = new ScheduleAnalysis(state, ta);
-		  scheduleAnalysis.preSchedule();
-		  
-		  // Randomly set the newRate and probability of ScheduleEdges
-		  /*Vector<ScheduleEdge> sedges = scheduleAnalysis.getSEdges4Test();
-		  java.util.Random r=new java.util.Random();
-		  for(int i = 0; i < sedges.size(); i++) {
-			  ScheduleEdge temp = sedges.elementAt(i);
-			  int tint = 0;
-			  do {
-				  tint = r.nextInt()%100;
-			  }while(tint <= 0);
-			  temp.setProbability(tint);
-			  do {
+	      // for test
+	      // Randomly set the newRate and probability of FEdges
+	      java.util.Random r=new java.util.Random();
+	      int tint = 0;
+	      for(Iterator it_classes=state.getClassSymbolTable().getDescriptorsIterator();it_classes.hasNext();) {
+		  ClassDescriptor cd=(ClassDescriptor) it_classes.next();
+		  if(cd.hasFlags()){
+		      Vector rootnodes=ta.getRootNodes(cd);
+		      if(rootnodes!=null)
+			  for(Iterator it_rootnodes=rootnodes.iterator();it_rootnodes.hasNext();){
+			      FlagState root=(FlagState)it_rootnodes.next();
+			      Vector allocatingTasks = root.getAllocatingTasks();
+			      if(allocatingTasks != null) {
+				  for(int k = 0; k < allocatingTasks.size(); k++) {
+				      TaskDescriptor td = (TaskDescriptor)allocatingTasks.elementAt(k);
+				      Vector<FEdge> fev = (Vector<FEdge>)ta.getFEdgesFromTD(td);
+				      int numEdges = fev.size();
+				      for(int j = 0; j < numEdges; j++) {
+					  FEdge pfe = fev.elementAt(j);
+					  do {
+					      tint = r.nextInt()%10;
+					  } while(tint <= 0);
+					  //int newRate = tint;
+					  int newRate = (j+1)%2+1;
+					  /*do {
+					      tint = r.nextInt()%100;
+					  } while(tint <= 0);
+					  int probability = tint;*/
+					  int probability = 100;
+					  pfe.addNewObjInfo(cd, newRate, probability);
+				      }
+				  }
+			      }
+			  }
+		      
+		      Iterator it_flags = ta.getFlagStates(cd).iterator();
+		      while(it_flags.hasNext()) {
+			  FlagState fs = (FlagState)it_flags.next();
+			  Iterator it_edges = fs.edges();
+			  while(it_edges.hasNext()) {
+			      do {
 				  tint = r.nextInt()%10;
-			  } while(tint <= 0);
-			  temp.setNewRate(tint);
-			  //temp.setNewRate((i+1)%2+1);
+			      } while(tint <= 0);
+			      ((FEdge)it_edges.next()).setExeTime(tint);
+			  }
+		      }
 		  }
-		  //sedges.elementAt(3).setNewRate(2);*/
-		  scheduleAnalysis.printScheduleGraph("scheduling_ori.dot");
-		  scheduleAnalysis.scheduleAnalysis();
-		  scheduleAnalysis.printScheduleGraph("scheduling.dot");
+	      }
+	      
+	      ScheduleAnalysis scheduleAnalysis = new ScheduleAnalysis(state, ta);
+	      scheduleAnalysis.preSchedule();
+	      
+	      // Randomly set the newRate and probability of ScheduleEdges
+	      /*Vector<ScheduleEdge> sedges = scheduleAnalysis.getSEdges4Test();
+		java.util.Random r=new java.util.Random();
+		for(int i = 0; i < sedges.size(); i++) {
+		ScheduleEdge temp = sedges.elementAt(i);
+		int tint = 0;
+		do {
+		    tint = r.nextInt()%100;
+		}while(tint <= 0);
+		temp.setProbability(tint);
+		do {
+		    tint = r.nextInt()%10;
+		} while(tint <= 0);
+		temp.setNewRate(tint);
+		//temp.setNewRate((i+1)%2+1);
+		}
+		//sedges.elementAt(3).setNewRate(2);*/
+		scheduleAnalysis.scheduleAnalysis();
+		scheduleAnalysis.setCoreNum(scheduleAnalysis.getSEdges4Test().size() - 1);
+		scheduleAnalysis.schedule();
 	  }
 	  
       }
