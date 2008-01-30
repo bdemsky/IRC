@@ -2060,8 +2060,30 @@ public class BuildCode {
 	    output.println("if ("+generateTemp(fm, fen.getIndex(),lb)+"< 0 || "+generateTemp(fm, fen.getIndex(),lb)+" >= "+generateTemp(fm,fen.getSrc(),lb) + "->___length___)");
 	    output.println("failedboundschk();");
 	}
+	if (state.DSM) {
+	    Integer status=locality.getNodePreTempInfo(lb,fen).get(fen.getSrc());
+	    if (status==LocalityAnalysis.GLOBAL) {
+		String dst=generateTemp(fm, fen.getDst(),lb);
 
-	output.println(generateTemp(fm, fen.getDst(),lb)+"=(("+ type+"*)(((char *) &("+ generateTemp(fm,fen.getSrc(),lb)+"->___length___))+sizeof(int)))["+generateTemp(fm, fen.getIndex(),lb)+"];");
+		if (elementtype.isPtr()) {
+		    output.println(dst +"=(("+ type+"*)(((char *) &("+ generateTemp(fm,fen.getSrc(),lb)+"->___length___))+sizeof(int)))["+generateTemp(fm, fen.getIndex(),lb)+"];");
+		    output.println(dst+"=(void *) transRead(trans, (unsigned int) "+dst+");");
+		} else {
+		    output.println(dst +"=(("+ type+"*)(((char *) &("+ generateTemp(fm,fen.getSrc(),lb)+"->___length___))+sizeof(int)))["+generateTemp(fm, fen.getIndex(),lb)+"];");
+		}
+	    } else if (status==LocalityAnalysis.LOCAL) {
+		output.println(generateTemp(fm, fen.getDst(),lb)+"=(("+ type+"*)(((char *) &("+ generateTemp(fm,fen.getSrc(),lb)+"->___length___))+sizeof(int)))["+generateTemp(fm, fen.getIndex(),lb)+"];");
+	    } else if (status==LocalityAnalysis.EITHER) {
+		//Code is reading from a null pointer
+ 		output.println("if ("+generateTemp(fm, fen.getSrc(),lb)+") {");
+ 		output.println("printf(\"BIG ERROR\\n\");exit(-1);}");
+		//This should throw a suitable null pointer error
+		output.println(generateTemp(fm, fen.getDst(),lb)+"=(("+ type+"*)(((char *) &("+ generateTemp(fm,fen.getSrc(),lb)+"->___length___))+sizeof(int)))["+generateTemp(fm, fen.getIndex(),lb)+"];");
+	    } else
+		throw new Error("Read from non-global/non-local in:"+lb.getExplanation());
+	} else {
+	    output.println(generateTemp(fm, fen.getDst(),lb)+"=(("+ type+"*)(((char *) &("+ generateTemp(fm,fen.getSrc(),lb)+"->___length___))+sizeof(int)))["+generateTemp(fm, fen.getIndex(),lb)+"];");
+	}
     }
 
     private void generateFlatSetElementNode(FlatMethod fm, LocalityBinding lb, FlatSetElementNode fsen, PrintWriter output) {
@@ -2076,12 +2098,26 @@ public class BuildCode {
 	else 
 	    type=elementtype.getSafeSymbol()+" ";
 
+
 	if (fsen.needsBoundsCheck()) {
 	    output.println("if ("+generateTemp(fm, fsen.getIndex(),lb)+"< 0 || "+generateTemp(fm, fsen.getIndex(),lb)+" >= "+generateTemp(fm,fsen.getDst(),lb) + "->___length___)");
 	    output.println("failedboundschk();");
 	}
 
-	output.println("(("+type +"*)(((char *) &("+ generateTemp(fm,fsen.getDst(),lb)+"->___length___))+sizeof(int)))["+generateTemp(fm, fsen.getIndex(),lb)+"]="+generateTemp(fm,fsen.getSrc(),lb)+";");
+	if (state.DSM && locality.getAtomic(lb).get(fsen).intValue()>0) {
+	    Integer statussrc=locality.getNodePreTempInfo(lb,fsen).get(fsen.getSrc());
+	    boolean srcglobal=statussrc==LocalityAnalysis.GLOBAL;
+	    if (srcglobal) {
+		output.println("{");
+		String src=generateTemp(fm, fsen.getSrc(), lb);
+		output.println("int srcoid=(int)"+src+"->"+oidstr+";");
+		output.println("((int*)(((char *) &("+ generateTemp(fm,fsen.getDst(),lb)+"->___length___))+sizeof(int)))["+generateTemp(fm, fsen.getIndex(),lb)+"]=srcoid;");
+		output.println("}");
+	    } else {
+		output.println("(("+type +"*)(((char *) &("+ generateTemp(fm,fsen.getDst(),lb)+"->___length___))+sizeof(int)))["+generateTemp(fm, fsen.getIndex(),lb)+"]="+generateTemp(fm,fsen.getSrc(),lb)+";");
+	    }
+	} else
+	    output.println("(("+type +"*)(((char *) &("+ generateTemp(fm,fsen.getDst(),lb)+"->___length___))+sizeof(int)))["+generateTemp(fm, fsen.getIndex(),lb)+"]="+generateTemp(fm,fsen.getSrc(),lb)+";");
     }
 
     private void generateFlatNew(FlatMethod fm, LocalityBinding lb, FlatNew fn, PrintWriter output) {
