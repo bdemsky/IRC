@@ -69,6 +69,18 @@ public class LocalityBinding {
 
     public String toString() {
 	String st=md.toString()+" ";
+	if (isglobalthis==null) {
+	    st+="[static] ";
+	} else {
+	    if (isglobalthis.equals(LocalityAnalysis.LOCAL))
+		st+="[local] ";
+	    else if (isglobalthis.equals(LocalityAnalysis.GLOBAL))
+		st+="[global] ";
+	    else if (isglobalthis.equals(LocalityAnalysis.EITHER))
+		st+="[either] ";
+	    else if (isglobalthis.equals(LocalityAnalysis.CONFLICT))
+		st+="[conflict] ";
+	}
 	for(int i=0;i<isglobal.length;i++)
 	    if (isglobal[i].equals(LocalityAnalysis.LOCAL))
 		st+="local ";

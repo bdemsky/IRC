@@ -437,12 +437,12 @@ public class LocalityAnalysis {
 	} else if (type.equals(GLOBAL)) {
 	    if (!transaction)
 		throw new Error("Global access outside of a transaction in context:\n"+lb.getExplanation());
-	    if (ffn.getField().getType().isPrimitive())
+	    if (ffn.getField().getType().isPrimitive()&&!ffn.getField().getType().isArray())
 		currtable.put(dst, LOCAL); // primitives are local
 	    else
 		currtable.put(dst, GLOBAL);
 	} else if (type.equals(EITHER)) {
-	    if (ffn.getField().getType().isPrimitive())
+	    if (ffn.getField().getType().isPrimitive()&&!ffn.getField().getType().isArray())
 		currtable.put(dst, LOCAL); // primitives are local
 	    else if (ffn.getField().isGlobal())
 		currtable.put(dst, GLOBAL);
@@ -457,7 +457,7 @@ public class LocalityAnalysis {
     void processSetFieldNode(LocalityBinding lb, FlatSetFieldNode fsfn, boolean transaction, Hashtable<TempDescriptor, Integer> currtable) {
 	Integer srctype=currtable.get(fsfn.getSrc());
 	Integer dsttype=currtable.get(fsfn.getDst());
-	
+
 	if (dsttype.equals(LOCAL)) {
 	    if (fsfn.getField().isGlobal()) {
 		if (!(srctype.equals(GLOBAL)||srctype.equals(EITHER)))
@@ -470,7 +470,7 @@ public class LocalityAnalysis {
 	    if (!transaction)
 		throw new Error("Global access outside of a transaction in context:\n"+lb.getExplanation());
 	    //okay to store primitives in global object
-	    if (srctype.equals(LOCAL) && fsfn.getField().getType().isPrimitive())
+	    if (srctype.equals(LOCAL) && fsfn.getField().getType().isPrimitive() && ! fsfn.getField().getType().isArray())
 		return;
 	    if (!(srctype.equals(GLOBAL)||srctype.equals(EITHER)))
 		throw new Error("Writing possible local reference to global object in context:\n"+lb.getExplanation()+" for FlatFieldNode "+fsfn);
