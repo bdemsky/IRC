@@ -7,7 +7,6 @@ public class Atomic5 extends Thread {
 		int b = 0,c = 0;
 		
 		Integer age;
-		String name;
 		Atomic5 tmp;
 		Atomic5[] at5;
 		atomic {
@@ -20,19 +19,16 @@ public class Atomic5 extends Thread {
 				at5[i].team[0] = global new People();
 				at5[i].team[1] = global new People();
 				age = global new Integer(35);
-				name = global new String("Harry Potter");
-				at5[i].team[0].name = name;
 				at5[i].team[0].age = age;
 			}
 			b = at5[1].team[0].getAge();
 		}
 		System.printInt(b);
+		System.printString("\n");
 		atomic {
 			age = global new Integer(70);
-			name = global new String("John Smith");
-			at5[1].team[1].name = name;
 			at5[1].team[1].age = age;
-			c = at5[1].team[0].getAge();
+			c = at5[1].team[1].getAge();
 		}
 		System.printInt(c);
 		System.printString("\n");
@@ -43,12 +39,14 @@ public class Atomic5 extends Thread {
 			}
 			tmp.start(mid);
 		}
+		/*
 		for(int i = 0; i< 4; i++) {
 			atomic {
 				tmp = at5[i];
 			}
 			tmp.join();
 		}
+		*/
 		System.printString("Finished\n");
 		while(true) {
 			;
@@ -57,12 +55,10 @@ public class Atomic5 extends Thread {
 
 	public void run() {
 		/*
-		String newname = "";
 		int ag;
 		boolean old = false;
 		atomic {
 			ag = team[1].getAge();
-			newname = team[1].getName();
 			if(ag > 65)
 				old = true;
 		}
@@ -82,27 +78,17 @@ public class Atomic5 extends Thread {
 }
 
 public class People {
-	String name;
 	Integer age;
 
 	public People() {
 	}
 
-	public People(String name, Integer age) {
-		this.name = name;
+	public People(Integer age) {
 		this.age = age;
 	}
 
-	public void setName(String n) {
-		name = n;
-	}
-	
 	public void setAge(Integer a) {
 		age = a;
-	}
-
-	public String getName() {
-		return name;
 	}
 
 	public int getAge() {
