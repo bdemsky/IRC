@@ -2106,7 +2106,12 @@ public class BuildCode {
 
 	if (state.DSM && locality.getAtomic(lb).get(fsen).intValue()>0) {
 	    Integer statussrc=locality.getNodePreTempInfo(lb,fsen).get(fsen.getSrc());
+	    Integer statusdst=locality.getNodePreTempInfo(lb,fsen).get(fsen.getDst());
 	    boolean srcglobal=statussrc==LocalityAnalysis.GLOBAL;
+	    boolean dstglobal=statusdst==LocalityAnalysis.GLOBAL;
+	    if (dstglobal) {
+		output.println("*((unsigned int *)&("+generateTemp(fm,fsen.getDst(),lb)+"->___localcopy___))|=DIRTY;");
+	    }
 	    if (srcglobal) {
 		output.println("{");
 		String src=generateTemp(fm, fsen.getSrc(), lb);
