@@ -13,6 +13,7 @@ task Startup( StartupObject s{ initialstate } ) {
     taskexit( s{ !initialstate } );
 }
 
+/*
 task aliasFromObjectAssignment
     ( Parameter p1{!w}, Parameter p2{!w} ) {
     
@@ -71,6 +72,77 @@ task possibleAliasConditional
     }
 
     p2.g = y;
+
+    taskexit( p1{w}, p2{w} );
+}
+
+task bunchOfPaths
+    ( Parameter p1{!w}, Parameter p2{!w} ) {
+
+    Parameter y;
+
+    for( int i =0; i < 100; ++i ) {
+
+	if( y == p1 ) {
+	    Parameter z;
+
+	    for( int j = 0; i < 50; ++j ) {
+		if( z == y ) {
+		    p1.f = y;
+		} else {
+		    z = p2.g;
+		}
+
+		p1.f = z;
+	    }
+
+	    y = p1.g;
+	} else {
+
+	    p2.f = y;
+	}
+    }
+
+    p1.f = p2.g;
+
+
+    taskexit( p1{w}, p2{w} );
+}
+
+task literalTest( Parameter p1{!w} ) {
+    Parameter x = null;
+    int y = 5;
+    String s = "Dude";
+
+    taskexit( p1{w} );
+}
+*/
+
+task newNoAlias
+    ( Parameter p1{!w}, Parameter p2{!w} ) {
+
+    for( int i = 0; i < 1; ++i ) {
+	p1.f = new Parameter();
+    }
+
+    taskexit( p1{w}, p2{w} );
+}
+
+task newPossibleAlias
+    ( Parameter p1{!w}, Parameter p2{!w} ) {
+
+    Parameter x, y;
+
+    for( int i = 0; i < 1; ++i ) {
+	p1.f = new Parameter();
+	if( true ) {
+	    x = p1.f;
+	} else {
+	    y = p1.f;
+	}
+    }
+
+    p2.f = y;
 
     taskexit( p1{w}, p2{w} );
 }

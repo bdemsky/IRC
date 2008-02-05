@@ -14,7 +14,7 @@ view: PNGs
 
 PNGs: DOTs
 	rm -f *Startup*.dot
-	#rm -f *FN*Method*.dot
+	rm -f *FN*Method*.dot
 	rm -f *FN*Op*.dot
 	rm -f *FN*Field*.dot
 	rm -f *FN*SetField*.dot
