@@ -4,48 +4,53 @@ import IR.*;
 import IR.Flat.*;
 import java.util.*;
 
-public class OwnershipNode {
+public class OwnershipNode {   
 
-    protected Integer id;
-    protected HashSet<OwnershipHeapRegionNode> reachableRegions;
-    protected HashSet<OwnershipNode>           referencers;
-
-    public OwnershipNode( Integer id ) {
-	this.id = id;
-	reachableRegions = new HashSet<OwnershipHeapRegionNode>();
-	referencers      = new HashSet<OwnershipNode>();
+    public OwnershipNode() {
+	referencedRegions = 
+	    new Hashtable<HeapRegionNode, ReferenceEdgeProperties>();
     }
 
-    public Integer getID() {
-	return id;
+
+    ///////////////////////////////////////////
+    // interface with larger graph
+    ///////////////////////////////////////////
+    protected Hashtable
+	<HeapRegionNode, ReferenceEdgeProperties>
+	referencedRegions;
+
+    public Iterator setIteratorToReferencedRegions() {
+	Set s = referencedRegions.entrySet();
+	return s.iterator();
     }
 
-    public String getIDString() {
-	return id.toString();
+    public Iterator setIteratorToReferencedRegionsClone() {
+	Hashtable ht = (Hashtable) referencedRegions.clone();
+	Set s = ht.entrySet();
+	return s.iterator();
     }
 
-    public Iterator iteratorToReachableRegions() {
-	return reachableRegions.iterator();
+    public void addReferencedRegion( HeapRegionNode hrn,
+				     ReferenceEdgeProperties rep ) {
+	assert hrn != null;
+	assert rep != null;
+
+	referencedRegions.put( hrn, rep );
     }
 
-    public void addReachableRegion( OwnershipHeapRegionNode ohrn ) {
-	assert ohrn!=null;
-	reachableRegions.add( ohrn );
+    public void removeReferencedRegion( HeapRegionNode hrn ) {
+	assert hrn != null;
+	assert referencedRegions.containsKey( hrn );
+
+	referencedRegions.remove( hrn );
     }
 
-    public void clearReachableRegions() {
-	reachableRegions.clear();
-    }
-    
-    public Iterator iteratorToReferencers() {
-	return referencers.iterator();
-    }
+    public ReferenceEdgeProperties getReferenceTo( HeapRegionNode hrn ) {
+	assert hrn != null;
 
-    public void addReferencer( OwnershipNode on ) {
-	referencers.add( on );
+	return referencedRegions.get( hrn );
     }
-
-    public void clearReferencers() {
-	referencers.clear();
-    }
+    ///////////////////////////////////////////////
+    // end interface with larger graph
+    ///////////////////////////////////////////////
 }

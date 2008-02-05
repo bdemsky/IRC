@@ -8,6 +8,7 @@ import java.io.*;
 
 public class OwnershipAnalysis {
 
+    
     private State state;
     private HashSet<FlatNode> visited;
     private HashSet<FlatNode> toVisit;
@@ -17,13 +18,16 @@ public class OwnershipAnalysis {
 
     private Hashtable<FlatNode, OwnershipGraph> flatNodeToOwnershipGraph;
 
+    private int newDepthK;
 
     // this analysis generates an ownership graph for every task
     // in the program
-    public OwnershipAnalysis(State state) throws java.io.IOException {
+    public OwnershipAnalysis( State state ) throws java.io.IOException {
 	this.state=state;      
+	this.newDepthK = 3;
 	analyzeTasks();
     }
+
 
     public void analyzeTasks() throws java.io.IOException {
 	for( Iterator it_tasks=state.getTaskSymbolTable().getDescriptorsIterator();
@@ -34,7 +38,7 @@ public class OwnershipAnalysis {
 	    // every flat node in the IR graph has its own ownership graph
 	    flatNodeToOwnershipGraph = new Hashtable<FlatNode, OwnershipGraph>();
 
-	    TaskDescriptor td = (TaskDescriptor)it_tasks.next();
+	    TaskDescriptor td = (TaskDescriptor) it_tasks.next();
 	    FlatMethod     fm = state.getMethodFlat( td );
 
 	    // give every node in the flat IR graph a unique label
@@ -50,20 +54,20 @@ public class OwnershipAnalysis {
 	}	
     }
 
-    private void labelFlatNodes(FlatNode fn) {
-	visited.add(fn);
-	flatnodetolabel.put(fn,new Integer(labelindex++));
-	for(int i=0;i<fn.numNext();i++) {
-	    FlatNode nn=fn.getNext(i);
-	    if(!visited.contains(nn)) {
-		labelFlatNodes(nn);
+    private void labelFlatNodes( FlatNode fn ) {
+	visited.add( fn );
+	flatnodetolabel.put( fn, new Integer( labelindex++ ) );
+	for( int i = 0; i < fn.numNext(); i++ ) {
+	    FlatNode nn = fn.getNext( i );
+	    if( !visited.contains( nn ) ) {
+		labelFlatNodes( nn );
 	    }
 	}
     }
 
     private OwnershipGraph getGraphFromFlat( FlatNode fn ) {
 	if( !flatNodeToOwnershipGraph.containsKey( fn ) ) {
-	    flatNodeToOwnershipGraph.put( fn, new OwnershipGraph() );
+	    flatNodeToOwnershipGraph.put( fn, new OwnershipGraph( newDepthK ) );
 	}
 
 	return flatNodeToOwnershipGraph.get( fn );
@@ -86,7 +90,7 @@ public class OwnershipAnalysis {
 	    // perform this node's contributions to the ownership
 	    // graph on a new copy, then compare it to the old graph
 	    // at this node to see if anything was updated.
-	    OwnershipGraph og = new OwnershipGraph();
+	    OwnershipGraph og = new OwnershipGraph( newDepthK );
 
 	    // start by merging all incoming node's graphs
 	    for( int i = 0; i < fn.numPrev(); ++i ) {
@@ -112,7 +116,7 @@ public class OwnershipAnalysis {
 		// and remember names for analysis
 		for( int i = 0; i < fm.numParameters(); ++i ) {
 		    TempDescriptor tdParam = fm.getParameter( i );
-		    og.newHeapRegion( tdParam );
+		    og.parameterAllocation( tdParam );
 		    og.addAnalysisRegion( tdParam );
 		}
 
@@ -151,7 +155,19 @@ public class OwnershipAnalysis {
 		og.assignFieldToTemp( src, dst, fld );
 		nodeDescription = "SetField";
 		writeGraph = true;
+		break;
 
+	    case FKind.FlatNew:
+		FlatNew fnn = (FlatNew) fn;
+		dst = fnn.getDst();
+		og.assignTempToNewAllocation( dst, fnn );
+
+		// !!!!!!!!!!!!!!
+		// do this if the new object is a flagged type
+		//og.addAnalysisRegion( tdParam );
+
+		nodeDescription = "New";
+		writeGraph = true;
 		break;
 
 	    case FKind.FlatReturnNode:
@@ -173,7 +189,7 @@ public class OwnershipAnalysis {
 	    // processing
 	    OwnershipGraph ogOld = getGraphFromFlat( fn );
 
-	    if( !og.equivalent( ogOld ) ) {
+	    if( !og.equals( ogOld ) ) {
 		setGraphForFlat( fn, og );
 
 		for( int i = 0; i < fn.numNext(); i++ ) {
