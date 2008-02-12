@@ -528,6 +528,8 @@ public class LocalityAnalysis {
 	    if (!(srctype.equals(LOCAL)||srctype.equals(EITHER)))
 		throw new Error("Writing possible global reference to local object in context:\n"+lb.getExplanation());
 	} else if (dsttype.equals(GLOBAL)) {
+	    if (srctype.equals(LOCAL) && fsen.getDst().getType().dereference().isPrimitive() && ! fsen.getDst().getType().dereference().isArray())
+		return;
 	    if (!(srctype.equals(GLOBAL)||srctype.equals(EITHER)))
 		throw new Error("Writing possible local reference to global object in context:\n"+lb.getExplanation());
 	    if (!isatomic)
