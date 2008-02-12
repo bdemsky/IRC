@@ -526,7 +526,7 @@ public class LocalityAnalysis {
 
 	if (dsttype.equals(LOCAL)) {
 	    if (!(srctype.equals(LOCAL)||srctype.equals(EITHER)))
-		throw new Error("Writing possible global reference to local object in context:\n"+lb.getExplanation());
+		throw new Error("Writing possible global reference to local object in context:\n"+lb.getExplanation()+fsen);
 	} else if (dsttype.equals(GLOBAL)) {
 	    if (srctype.equals(LOCAL) && fsen.getDst().getType().dereference().isPrimitive() && ! fsen.getDst().getType().dereference().isArray())
 		return;
@@ -550,9 +550,17 @@ public class LocalityAnalysis {
 	} else if (type.equals(GLOBAL)) {
 	    if (!isatomic)
 		throw new Error("Global access outside of a transaction in context:\n"+lb.getExplanation());
-	    currtable.put(dst, GLOBAL);
+	    if(fen.getSrc().getType().dereference().isPrimitive()&&
+	       !fen.getSrc().getType().dereference().isArray())
+		currtable.put(dst, LOCAL);
+	    else
+		currtable.put(dst, GLOBAL);
 	} else if (type.equals(EITHER)) {
-	    currtable.put(dst, EITHER);
+	    if(fen.getSrc().getType().dereference().isPrimitive()&&
+	       !fen.getSrc().getType().dereference().isArray())
+		currtable.put(dst, LOCAL);
+	    else
+		currtable.put(dst, EITHER);
 	} else if (type.equals(CONFLICT)) {
 	    throw new Error("Access to object that could be either global or local in context:\n"+lb.getExplanation());
 	}
