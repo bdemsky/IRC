@@ -8,6 +8,7 @@ import java.io.*;
 
 public class OwnershipAnalysis {
 
+    /*
     // from the compiler
     private State state;
     private int   allocationDepthK;
@@ -307,4 +308,6 @@ public class OwnershipAnalysis {
     private String makeCondensedAnalysisName( String methodname, Integer id ) {
 	return "method_"+methodname+"_Ownership_from"+id;
     }
+    */
+
 }

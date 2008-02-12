@@ -7,6 +7,7 @@ import java.io.*;
 
 public class OwnershipGraph {
 
+    /*
     protected static final int VISIT_HRN_WRITE_FULL      = 0;
     protected static final int VISIT_HRN_WRITE_CONDENSED = 1;
 
@@ -1111,4 +1112,6 @@ public class OwnershipGraph {
 	    traverseHeapRegionNodes( mode, hrnChild, bw, td, visited );
 	}
     }
+    */
+
 }
