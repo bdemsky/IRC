@@ -191,6 +191,9 @@ public class BuildCode {
     private void outputMainMethod(PrintWriter outmethod) {
 	outmethod.println("int main(int argc, const char *argv[]) {");
 	outmethod.println("  int i;");
+	if (state.THREAD||state.DSM) {
+	    outmethod.println("initializethreads();");
+	}
 	if (state.DSM) {
 	    outmethod.println("if (dstmStartup(argv[1])) {");
 	    if (GENERATEPRECISEGC) {
@@ -204,9 +207,6 @@ public class BuildCode {
 	    } else {
 		outmethod.println("  struct ArrayObject * stringarray=allocate_newarray(STRINGARRAYTYPE, argc-1);");
 	    }
-	}
-	if (state.THREAD) {
-	    outmethod.println("initializethreads();");
 	}
 	if (state.DSM) {
 	    outmethod.println("  for(i=2;i<argc;i++) {");
@@ -251,12 +251,13 @@ public class BuildCode {
 	    outmethod.println("}");
 	}
 
-	if (state.THREAD) {
+	if (state.THREAD||state.DSM) {
 	    outmethod.println("pthread_mutex_lock(&gclistlock);");
 	    outmethod.println("threadcount--;");
 	    outmethod.println("pthread_cond_signal(&gccond);");
 	    outmethod.println("pthread_mutex_unlock(&gclistlock);");
-	    outmethod.println("pthread_exit(NULL);");
+	    if (state.THREAD)
+		outmethod.println("pthread_exit(NULL);");
 	}
 
 
@@ -306,7 +307,7 @@ public class BuildCode {
 	if (state.DSM) {
 	    outmethod.println("#include \"localobjects.h\"");
 	}
-	if (state.THREAD)
+	if (state.THREAD||state.DSM)
 	    outmethod.println("#include <thread.h>");
 	if (state.main!=null) {
 	    outmethod.println("#include <string.h>");	    
@@ -393,7 +394,7 @@ public class BuildCode {
     }
 
     private void outputClassDeclarations(PrintWriter outclassdefs) {
-	if (state.THREAD)
+	if (state.THREAD||state.DSM)
 	    outclassdefs.println("#include <pthread.h>");
 	if(state.OPTIONAL)
 	    outclassdefs.println("#include \"optionalstruct.h\"");
@@ -1244,7 +1245,7 @@ public class BuildCode {
 	/* Check to see if we need to do a GC if this is a
 	 * multi-threaded program...*/
 
-	if (state.THREAD&&GENERATEPRECISEGC) {
+	if ((state.THREAD||state.DSM)&&GENERATEPRECISEGC) {
 	    output.println("checkcollect(&"+localsprefix+");");
 	}
 	
@@ -1262,7 +1263,7 @@ public class BuildCode {
 	    if (nodetolabel.containsKey(current_node))
 		output.println("L"+nodetolabel.get(current_node)+":");
 	    if (state.INSTRUCTIONFAILURE) {
-		if (state.THREAD) {
+		if (state.THREAD||state.DSM) {
 		    output.println("if ((++instructioncount)>failurecount) {instructioncount=0;injectinstructionfailure();}");
 		}
 		else
