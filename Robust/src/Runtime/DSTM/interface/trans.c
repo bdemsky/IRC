@@ -45,6 +45,8 @@ int myIndexInHostArray;
 unsigned int oidsPerBlock;
 unsigned int oidMin;
 unsigned int oidMax;
+void *mlist[10000];
+pthread_mutex_t mlock = PTHREAD_MUTEX_INITIALIZER;
 
 void printhex(unsigned char *, int);
 plistnode_t *createPiles(transrecord_t *);
@@ -84,12 +86,16 @@ inline int findmax(int *array, int arraylength) {
 void prefetch(int ntuples, unsigned int *oids, unsigned short *endoffsets, short *arrayfields) {
 	int qnodesize;
 	int len = 0;
-	int i;
-
+	int i, rc;
+	
+	//do {
+	//	rc=pthread_create(&tPrefetch, NULL, transPrefetch, NULL);
+	//} while(rc!=0);
+	
 	/* Allocate for the queue node*/
 	char *node;
 	if(ntuples > 0) {
-		qnodesize = sizeof(prefetchqelem_t) + sizeof(int) + ntuples * (sizeof(short) + sizeof(unsigned int)) + endoffsets[ntuples - 1] * sizeof(short); 
+		qnodesize = sizeof(prefetchqelem_t) + sizeof(int) + ntuples * (sizeof(unsigned short) + sizeof(unsigned int)) + endoffsets[ntuples - 1] * sizeof(unsigned short); 
 		if((node = calloc(1, qnodesize)) == NULL) {
 			printf("Calloc Error %s, %d\n", __FILE__, __LINE__);
 			return;
@@ -100,10 +106,9 @@ void prefetch(int ntuples, unsigned int *oids, unsigned short *endoffsets, short
 		len += sizeof(int);
 		memcpy(node + len, oids, ntuples*sizeof(unsigned int));
 		len += ntuples * sizeof(unsigned int);
-		memcpy(node + len, endoffsets, ntuples*sizeof(short));
-		len += ntuples * sizeof(short);
-		memcpy(node + len, arrayfields, endoffsets[ntuples-1]*sizeof(short));
-
+		memcpy(node + len, endoffsets, ntuples*sizeof(unsigned short));
+		len += ntuples * sizeof(unsigned short);
+		memcpy(node + len, arrayfields, endoffsets[ntuples-1]*sizeof(unsigned short));
 		/* Lock and insert into primary prefetch queue */
 		pthread_mutex_lock(&pqueue.qlock);
 		pre_enqueue((prefetchqelem_t *)node);
@@ -121,6 +126,12 @@ int dstmStartup(const char * option) {
 	if (processConfigFile() != 0)
 		return 0; //TODO: return error value, cause main program to exit
 
+	//TODO Remove after testing
+	//Initializing the global array
+	int i;
+	for (i = 0; i < 10000; i++) 
+		mlist[i] = NULL;
+	////////
   dstmInit();
   transInit();
 
@@ -186,12 +197,11 @@ void transInit() {
 	queueInit();
 	//Initialize machine pile w/prefetch oids and offsets shared queue
 	mcpileqInit();
+
 	//Create the primary prefetch thread 
-	
 	do {
 	  retval=pthread_create(&tPrefetch, NULL, transPrefetch, NULL);
 	} while(retval!=0);
-
 	pthread_detach(tPrefetch);
 
 	//Create and Initialize a pool of threads 
@@ -234,6 +244,20 @@ transrecord_t *transStart()
 	transrecord_t *tmp = calloc(1, sizeof(transrecord_t));
 	tmp->cache = objstrCreate(1048576);
 	tmp->lookupTable = chashCreate(HASH_SIZE, LOADFACTOR);
+	//TODO Remove after testing
+	//Filling the global array when transansaction's record lookupTable
+	//is calloced 
+	pthread_mutex_lock(&mlock);
+	int ii;
+	for (ii = 0; ii < 10000; ii++) {
+		if (mlist[ii] == NULL) {
+			mlist[ii] = (void *)tmp->lookupTable; 
+			break;
+		}
+	}
+	if (ii == 10000) { fprintf(stderr, "Error"); }
+	pthread_mutex_unlock(&mlock);
+	////////////
 #ifdef COMPILER
 	tmp->revertlist=NULL;
 #endif
@@ -279,8 +303,8 @@ objheader_t *transRead(transrecord_t *record, unsigned int oid) {
 		/* Look up in machine lookup table  and copy  into cache*/
 		GETSIZE(size, objheader);
 		size += sizeof(objheader_t);
-		objcopy = objstrAlloc(record->cache, size);
-		memcpy(objcopy, (void *)objheader, size);
+		objcopy = (objheader_t *) objstrAlloc(record->cache, size);
+		memcpy(objcopy, objheader, size);
 		/* Insert into cache's lookup table */
 		chashInsert(record->lookupTable, OID(objheader), objcopy); 
 #ifdef COMPILER
@@ -291,8 +315,8 @@ objheader_t *transRead(transrecord_t *record, unsigned int oid) {
 	} else if((tmp = (objheader_t *) prehashSearch(oid)) != NULL) { /* Look up in prefetch cache */
 		GETSIZE(size, tmp);
 		size+=sizeof(objheader_t);
-		objcopy = objstrAlloc(record->cache, size);
-		memcpy(objcopy, (void *)tmp, size);
+		objcopy = (objheader_t *) objstrAlloc(record->cache, size);
+		memcpy(objcopy, tmp, size);
 		/* Insert into cache's lookup table */
 		chashInsert(record->lookupTable, OID(tmp), objcopy); 
 #ifdef COMPILER
@@ -304,14 +328,14 @@ objheader_t *transRead(transrecord_t *record, unsigned int oid) {
 		/*If object not found in prefetch cache then block until object appears in the prefetch cache */
 		pthread_mutex_lock(&pflookup.lock);
 		while(!found) {
-		 	rc = pthread_cond_timedwait(&pflookup.cond, &pflookup.lock, &ts);
+			rc = pthread_cond_timedwait(&pflookup.cond, &pflookup.lock, &ts);
 			/* Check Prefetch cache again */
 			if((tmp =(objheader_t *) prehashSearch(oid)) != NULL) {
 				found = 1;
 				GETSIZE(size,tmp);
 				size+=sizeof(objheader_t);
-				objcopy = objstrAlloc(record->cache, size);
-				memcpy(objcopy, (void *)tmp, size);
+				objcopy = (objheader_t *) objstrAlloc(record->cache, size);
+				memcpy(objcopy, tmp, size);
 				chashInsert(record->lookupTable, OID(tmp), objcopy); 
 				pthread_mutex_unlock(&pflookup.lock);
 #ifdef COMPILER
@@ -320,9 +344,8 @@ objheader_t *transRead(transrecord_t *record, unsigned int oid) {
 				return objcopy;
 #endif
 			} else if (rc == ETIMEDOUT) {
-					printf("Wait timed out\n");
-					pthread_mutex_unlock(&pflookup.lock);
-					break;
+				pthread_mutex_unlock(&pflookup.lock);
+				break;
 			}
 		}
 
@@ -330,13 +353,13 @@ objheader_t *transRead(transrecord_t *record, unsigned int oid) {
 		machinenumber = lhashSearch(oid);
 		objcopy = getRemoteObj(record, machinenumber, oid);
 		if(objcopy == NULL) {
-			printf("Object not found in Remote location %s, %d\n", __FILE__, __LINE__);
+			printf("Error: Object not found in Remote location %s, %d\n", __FILE__, __LINE__);
 			return NULL;
 		} else {
 #ifdef COMPILER
-		  return &objcopy[1];
+			return &objcopy[1];
 #else
-		  return objcopy;
+			return objcopy;
 #endif
 		}
 	}
@@ -345,18 +368,18 @@ objheader_t *transRead(transrecord_t *record, unsigned int oid) {
 /* This function creates objects in the transaction record */
 objheader_t *transCreateObj(transrecord_t *record, unsigned int size)
 {
-  objheader_t *tmp = (objheader_t *) objstrAlloc(record->cache, (sizeof(objheader_t) + size));
-  tmp->notifylist = NULL;
-  OID(tmp) = getNewOID();
-  tmp->version = 1;
-  tmp->rcount = 1;
-  STATUS(tmp) = NEW;
-  chashInsert(record->lookupTable, OID(tmp), tmp);
+	objheader_t *tmp = (objheader_t *) objstrAlloc(record->cache, (sizeof(objheader_t) + size));
+	tmp->notifylist = NULL;
+	OID(tmp) = getNewOID();
+	tmp->version = 1;
+	tmp->rcount = 1;
+	STATUS(tmp) = NEW;
+	chashInsert(record->lookupTable, OID(tmp), tmp);
 
 #ifdef COMPILER
-  return &tmp[1]; //want space after object header
+	return &tmp[1]; //want space after object header
 #else
-  return tmp;
+	return tmp;
 #endif
 }
 
@@ -370,7 +393,7 @@ plistnode_t *createPiles(transrecord_t *record) {
 	unsigned int machinenum;
 	void *localmachinenum;
 	objheader_t *headeraddr;
-	
+
 	ptr = record->lookupTable->table;
 	size = record->lookupTable->size;
 
@@ -390,7 +413,7 @@ plistnode_t *createPiles(transrecord_t *record) {
 			}
 
 			//Get machine location for object id (and whether local or not)
-			if (STATUS(headeraddr) & NEW || mhashSearch(curr->key) != NULL) {
+			if (STATUS(headeraddr) & NEW || (mhashSearch(curr->key) != NULL)) {
 				machinenum = myIpAddr;
 			} else	if ((machinenum = lhashSearch(curr->key)) == 0) {
 				printf("Error: No such machine %s, %d\n", __FILE__, __LINE__);
@@ -418,7 +441,7 @@ int transCommit(transrecord_t *record) {
 	unsigned int tot_bytes_mod, *listmid;
 	plistnode_t *pile, *pile_ptr;
 	int i, j, rc, val;
-	int pilecount, offset, threadnum, trecvcount;
+	int pilecount, offset, threadnum = 0, trecvcount = 0;
 	char buffer[RECEIVE_BUFFER_SIZE],control;
 	char transid[TID_LEN];
 	trans_req_data_t *tosend;
@@ -427,189 +450,213 @@ int transCommit(transrecord_t *record) {
 	char treplyctrl = 0, treplyretry = 0; /* keeps track of the common response that needs to be sent */
 	char localstat = 0;
 
-	do {
-		trecvcount = 0;
-		threadnum = 0;
-		treplyretry = 0;
+	/* Look through all the objects in the transaction record and make piles 
+	 * for each machine involved in the transaction*/
+	pile_ptr = pile = createPiles(record);
 
-		/* Look through all the objects in the transaction record and make piles 
-		 * for each machine involved in the transaction*/
-		pile_ptr = pile = createPiles(record);
+	/* Create the packet to be sent in TRANS_REQUEST */
 
-		/* Create the packet to be sent in TRANS_REQUEST */
+	/* Count the number of participants */
+	pilecount = pCount(pile);
 
-		/* Count the number of participants */
-		pilecount = pCount(pile);
-
-		/* Create a list of machine ids(Participants) involved in transaction	*/
-		if((listmid = calloc(pilecount, sizeof(unsigned int))) == NULL) {
-			printf("Calloc error %s, %d\n", __FILE__, __LINE__);
-			//free(record);
-			return 1;
-		}		
-		pListMid(pile, listmid);
+	/* Create a list of machine ids(Participants) involved in transaction	*/
+	if((listmid = calloc(pilecount, sizeof(unsigned int))) == NULL) {
+		printf("Calloc error %s, %d\n", __FILE__, __LINE__);
+		return 1;
+	}		
+	pListMid(pile, listmid);
 
 
-		/* Initialize thread variables,
-		 * Spawn a thread for each Participant involved in a transaction */
-		pthread_t thread[pilecount];
-		pthread_attr_t attr;			
-		pthread_cond_t tcond;
-		pthread_mutex_t tlock;
-		pthread_mutex_t tlshrd;
+	/* Initialize thread variables,
+	 * Spawn a thread for each Participant involved in a transaction */
+	pthread_t thread[pilecount];
+	pthread_attr_t attr;			
+	pthread_cond_t tcond;
+	pthread_mutex_t tlock;
+	pthread_mutex_t tlshrd;
 
-		thread_data_array_t *thread_data_array;
-		if((thread_data_array = (thread_data_array_t *) calloc(pilecount, sizeof(thread_data_array_t))) == NULL) {
-			printf("Malloc error %s, %d\n", __FILE__, __LINE__);
-			pthread_cond_destroy(&tcond);
-			pthread_mutex_destroy(&tlock);
-			pDelete(pile_ptr);
-			free(listmid);
-			//free(record);
-			return 1;
-		}
+	thread_data_array_t *thread_data_array;
+	if((thread_data_array = (thread_data_array_t *) calloc(pilecount, sizeof(thread_data_array_t))) == NULL) {
+		printf("Calloc error %s, %d\n", __FILE__, __LINE__);
+		pthread_cond_destroy(&tcond);
+		pthread_mutex_destroy(&tlock);
+		pDelete(pile_ptr);
+		free(listmid);
+		return 1;
+	}
 
-		local_thread_data_array_t *ltdata;
-		if((ltdata = calloc(1, sizeof(local_thread_data_array_t))) == NULL) {
+	local_thread_data_array_t *ltdata;
+	if((ltdata = calloc(1, sizeof(local_thread_data_array_t))) == NULL) {
+		printf("Calloc error %s, %d\n", __FILE__, __LINE__);
+		pthread_cond_destroy(&tcond);
+		pthread_mutex_destroy(&tlock);
+		pDelete(pile_ptr);
+		free(listmid);
+		free(thread_data_array);
+		return 1;
+	}
+
+	thread_response_t rcvd_control_msg[pilecount];	/* Shared thread array that keeps track of responses of participants */
+
+	/* Initialize and set thread detach attribute */
+	pthread_attr_init(&attr);
+	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
+	pthread_mutex_init(&tlock, NULL);
+	pthread_cond_init(&tcond, NULL);
+
+	/* Process each machine pile */
+	while(pile != NULL) {
+		//Create transaction id
+		newtid++;
+		if ((tosend = calloc(1, sizeof(trans_req_data_t))) == NULL) {
 			printf("Calloc error %s, %d\n", __FILE__, __LINE__);
 			pthread_cond_destroy(&tcond);
 			pthread_mutex_destroy(&tlock);
 			pDelete(pile_ptr);
 			free(listmid);
 			free(thread_data_array);
-			//free(record);
+			free(ltdata);
 			return 1;
 		}
-
-		thread_response_t rcvd_control_msg[pilecount];	/* Shared thread array that keeps track of responses of participants */
-
-		/* Initialize and set thread detach attribute */
-		pthread_attr_init(&attr);
-		pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
-		pthread_mutex_init(&tlock, NULL);
-		pthread_cond_init(&tcond, NULL);
-
-		/* Process each machine pile */
-		while(pile != NULL) {
-			//Create transaction id
-			newtid++;
-			if ((tosend = calloc(1, sizeof(trans_req_data_t))) == NULL) {
-				printf("Calloc error %s, %d\n", __FILE__, __LINE__);
+		tosend->f.control = TRANS_REQUEST;
+		sprintf(tosend->f.trans_id, "%x_%d", pile->mid, newtid);
+		tosend->f.mcount = pilecount;
+		tosend->f.numread = pile->numread;
+		tosend->f.nummod = pile->nummod;
+		tosend->f.numcreated = pile->numcreated;
+		tosend->f.sum_bytes = pile->sum_bytes;
+		tosend->listmid = listmid;
+		tosend->objread = pile->objread;
+		tosend->oidmod = pile->oidmod;
+		tosend->oidcreated = pile->oidcreated;
+		thread_data_array[threadnum].thread_id = threadnum;
+		thread_data_array[threadnum].mid = pile->mid;
+		thread_data_array[threadnum].buffer = tosend;
+		thread_data_array[threadnum].recvmsg = rcvd_control_msg;
+		thread_data_array[threadnum].threshold = &tcond;
+		thread_data_array[threadnum].lock = &tlock;
+		thread_data_array[threadnum].count = &trecvcount;
+		thread_data_array[threadnum].replyctrl = &treplyctrl;
+		thread_data_array[threadnum].replyretry = &treplyretry;
+		thread_data_array[threadnum].rec = record;
+		/* If local do not create any extra connection */
+		if(pile->mid != myIpAddr) { /* Not local */
+			do {
+				rc = pthread_create(&thread[threadnum], &attr, transRequest, (void *) &thread_data_array[threadnum]);  
+			} while(rc!=0);
+			if(rc) {
+				perror("Error in pthread create\n");
 				pthread_cond_destroy(&tcond);
 				pthread_mutex_destroy(&tlock);
 				pDelete(pile_ptr);
 				free(listmid);
+				for (i = 0; i < threadnum; i++)
+					free(thread_data_array[i].buffer);
 				free(thread_data_array);
 				free(ltdata);
-				//free(record);
 				return 1;
 			}
-			tosend->f.control = TRANS_REQUEST;
-			sprintf(tosend->f.trans_id, "%x_%d", pile->mid, newtid);
-			tosend->f.mcount = pilecount;
-			tosend->f.numread = pile->numread;
-			tosend->f.nummod = pile->nummod;
-			tosend->f.numcreated = pile->numcreated;
-			tosend->f.sum_bytes = pile->sum_bytes;
-			tosend->listmid = listmid;
-			tosend->objread = pile->objread;
-			tosend->oidmod = pile->oidmod;
-			tosend->oidcreated = pile->oidcreated;
-			thread_data_array[threadnum].thread_id = threadnum;
-			thread_data_array[threadnum].mid = pile->mid;
-			thread_data_array[threadnum].buffer = tosend;
-			thread_data_array[threadnum].recvmsg = rcvd_control_msg;
-			thread_data_array[threadnum].threshold = &tcond;
-			thread_data_array[threadnum].lock = &tlock;
-			thread_data_array[threadnum].count = &trecvcount;
-			thread_data_array[threadnum].replyctrl = &treplyctrl;
-			thread_data_array[threadnum].replyretry = &treplyretry;
-			thread_data_array[threadnum].rec = record;
-			/* If local do not create any extra connection */
-			if(pile->mid != myIpAddr) { /* Not local */
-				do {
-					rc = pthread_create(&thread[threadnum], &attr, transRequest, (void *) &thread_data_array[threadnum]);  
-				} while(rc!=0);
-				if(rc) {
-					perror("Error in pthread create\n");
-					pthread_cond_destroy(&tcond);
-					pthread_mutex_destroy(&tlock);
-					pDelete(pile_ptr);
-					free(listmid);
-					for (i = 0; i < threadnum; i++)
-						free(thread_data_array[i].buffer);
-					free(thread_data_array);
-					free(ltdata);
-					//free(record);
-					return 1;
-				}
-			} else { /*Local*/
-				ltdata->tdata = &thread_data_array[threadnum];
-				ltdata->transinfo = &transinfo;
-				do {
+		} else { /*Local*/
+			ltdata->tdata = &thread_data_array[threadnum];
+			ltdata->transinfo = &transinfo;
+			do {
 				val = pthread_create(&thread[threadnum], &attr, handleLocalReq, (void *) ltdata);
-				} while(val!=0);
-				if(val) {
-					perror("Error in pthread create\n");
-					pthread_cond_destroy(&tcond);
-					pthread_mutex_destroy(&tlock);
-					pDelete(pile_ptr);
-					free(listmid);
-					for (i = 0; i < threadnum; i++)
-						free(thread_data_array[i].buffer);
-					free(thread_data_array);
-					free(ltdata);
-					//free(record);
-					return 1;
-				}
-			}
-
-			threadnum++;		
-			pile = pile->next;
-		}
-
-		/* Free attribute and wait for the other threads */
-		pthread_attr_destroy(&attr);
-		
-		for (i = 0; i < pilecount; i++) {
-			rc = pthread_join(thread[i], NULL);
-			if(rc)
-			{
-				printf("ERROR return code from pthread_join() is %d\n", rc);
+			} while(val!=0);
+			if(val) {
+				perror("Error in pthread create\n");
 				pthread_cond_destroy(&tcond);
 				pthread_mutex_destroy(&tlock);
 				pDelete(pile_ptr);
 				free(listmid);
-				for (j = i; j < pilecount; j++)
-					free(thread_data_array[j].buffer);
+				for (i = 0; i < threadnum; i++)
+					free(thread_data_array[i].buffer);
 				free(thread_data_array);
 				free(ltdata);
-				//free(record);
 				return 1;
 			}
-			free(thread_data_array[i].buffer);
 		}
 
-		/* Free resources */	
-		pthread_cond_destroy(&tcond);
-		pthread_mutex_destroy(&tlock);
-		free(listmid);
-		pDelete(pile_ptr);
+		threadnum++;		
+		pile = pile->next;
+	}
+
+	/* Free attribute and wait for the other threads */
+	pthread_attr_destroy(&attr);
+
+	for (i = 0; i < threadnum; i++) {
+		rc = pthread_join(thread[i], NULL);
+		if(rc)
+		{
+			printf("Error: return code from pthread_join() is %d\n", rc);
+			pthread_cond_destroy(&tcond);
+			pthread_mutex_destroy(&tlock);
+			pDelete(pile_ptr);
+			free(listmid);
+			for (j = i; j < threadnum; j++) {
+				free(thread_data_array[j].buffer);
+			}
+			return 1;
+		}
+		free(thread_data_array[i].buffer);
+	}
+
+	/* Free resources */	
+	pthread_cond_destroy(&tcond);
+	pthread_mutex_destroy(&tlock);
+	free(listmid);
+	pDelete(pile_ptr);
+	
+
+	if(treplyctrl == TRANS_ABORT) {
+		/* Free Resources */
+		objstrDelete(record->cache);
+		//TODO Remove after testing 
+		pthread_mutex_lock(&mlock);
+		int count = 0, jj = 0, ii = 0;
+		for (ii = 0; ii < 10000; ii++) {
+			if (mlist[ii] == (void *) record->lookupTable) {
+				count++; 
+				jj = ii;
+			}
+		}
+		if (count==2 || count == 0) { 
+			fprintf(stderr, "TRANS_ABORT CASE: Count for same addr:%d\n", count); 
+		}
+		if (count == 1) 
+			mlist[jj] = 0;
+		pthread_mutex_unlock(&mlock);
+		////////////
+		chashDelete(record->lookupTable);
+		free(record);
 		free(thread_data_array);
 		free(ltdata);
-
-		/* wait a random amount of time before retrying to commit transaction*/
-		if(treplyretry == 1) {
-			randomdelay();
+		return TRANS_ABORT;
+	} else if(treplyctrl == TRANS_COMMIT) {
+		/* Free Resources */
+		objstrDelete(record->cache);
+		//TODO Remove after Testing
+		pthread_mutex_lock(&mlock);
+		int count = 0, jj = 0, ii = 0;
+		for (ii = 0; ii < 10000; ii++) {
+			if (mlist[ii] == (void *) record->lookupTable) {count++; jj = ii;}
 		}
-		
-	/* Retry trans commit procedure if not sucessful in the first try */
-	} while (treplyretry == 1);
-	
-	/* Free Resources */
-	objstrDelete(record->cache);
-	chashDelete(record->lookupTable);
-	free(record);
+		if (count==2 || count == 0) { 
+			fprintf(stderr, "TRANS_COMMIT CASE: Count for same addr:%d\n", count); 
+		}
+		if (count == 1) mlist[jj] = 0;
+		pthread_mutex_unlock(&mlock);
+		///////////////////////
+		chashDelete(record->lookupTable);
+		free(record);
+		free(thread_data_array);
+		free(ltdata);
+		return 0;
+	} else {
+		//TODO Add other cases
+		printf("DEBUG-> THIS SHOULD NOT HAPPEN.....EXIT PROGRAM\n");
+		exit(-1);
+	}
+
 	return 0;
 }
 
@@ -625,6 +672,7 @@ void *transRequest(void *threadarg) {
 	objheader_t *headeraddr;
 	char buffer[RECEIVE_BUFFER_SIZE], control, recvcontrol;
 	char machineip[16], retval;
+
 
 	tdata = (thread_data_array_t *) threadarg;
 
@@ -689,6 +737,7 @@ void *transRequest(void *threadarg) {
 		close(sd);
 		pthread_exit(NULL);
 	}
+
 	recvcontrol = control;
 
 	/* Update common data structure and increment count */
@@ -715,6 +764,20 @@ void *transRequest(void *threadarg) {
 		printf("sendResponse returned error %s,%d\n", __FILE__, __LINE__);
 		close(sd);
 		pthread_exit(NULL);
+	}
+
+	if ((retval = recv((int)sd, &control, sizeof(char), 0))<= 0) {
+		printf("Error: In receiving control %s,%d\n", __FILE__, __LINE__);
+		close(sd);
+		pthread_exit(NULL);
+	}
+
+	if(control == TRANS_UNSUCESSFUL) {
+		//printf("DEBUG-> TRANS_ABORTED\n");
+	} else if(control == TRANS_SUCESSFUL) {
+		//printf("DEBUG-> TRANS_SUCCESSFUL\n");
+	} else {
+		//printf("DEBUG-> Error: Incorrect Transaction End Message %d\n", control);
 	}
 
 	/* Close connection */
@@ -756,7 +819,7 @@ void decideResponse(thread_data_array_t *tdata) {
 		*(tdata->replyretry) = 0;
 		/* clear objects from prefetch cache */
 		for (i = 0; i < tdata->buffer->f.numread; i++)
-			prehashRemove(*(unsigned int *)(tdata->buffer->objread + (sizeof(unsigned int) + sizeof(unsigned short))*i));
+			prehashRemove(*((unsigned int *)(((char *)tdata->buffer->objread) + (sizeof(unsigned int) + sizeof(unsigned short))*i)));
 		for (i = 0; i < tdata->buffer->f.nummod; i++)
 			prehashRemove(tdata->buffer->oidmod[i]);
 	} else if(transagree == tdata->buffer->f.mcount){
@@ -775,7 +838,7 @@ void decideResponse(thread_data_array_t *tdata) {
  * It returns a char that is only needed to check the correctness of execution of this function inside
  * transRequest()*/
 char sendResponse(thread_data_array_t *tdata, int sd) {
-	int n, N, sum, oidcount = 0;
+	int n, N, sum, oidcount = 0, control;
 	char *ptr, retval = 0;
 	unsigned int *oidnotfound;
 
@@ -805,6 +868,7 @@ char sendResponse(thread_data_array_t *tdata, int sd) {
 
 	if (send(sd, tdata->replyctrl, sizeof(char),MSG_NOSIGNAL) < sizeof(char)) {
 		perror("Error sending ctrl message for participant\n");
+		return 0;
 	}
 
 	return retval;
@@ -823,6 +887,7 @@ void *getRemoteObj(transrecord_t *record, unsigned int mnum, unsigned int oid) {
 	char machineip[16];
 	objheader_t *h;
 	void *objcopy;
+
 
 	if ((sd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
 		perror("Error in socket\n");
@@ -844,7 +909,7 @@ void *getRemoteObj(transrecord_t *record, unsigned int mnum, unsigned int oid) {
 	char readrequest[sizeof(char)+sizeof(unsigned int)];
 	readrequest[0] = READ_REQUEST;
 	*((unsigned int *)(&readrequest[1])) = oid;
-	if (send(sd, &readrequest, sizeof(readrequest), MSG_NOSIGNAL) < sizeof(readrequest)) {
+	if (send(sd, readrequest, sizeof(readrequest), MSG_NOSIGNAL) < sizeof(readrequest)) {
 		perror("Error sending message\n");
 		return NULL;
 	}
@@ -864,7 +929,7 @@ void *getRemoteObj(transrecord_t *record, unsigned int mnum, unsigned int oid) {
 				return NULL;
 			}
 			objcopy = objstrAlloc(record->cache, size);
-			if((val = read(sd, objcopy, size)) <= 0) {
+			if((val = read(sd, (char *)objcopy, size)) <= 0) {
 				perror("No objects are read from the remote participant\n");
 				return NULL;
 			}
@@ -909,13 +974,13 @@ void *handleLocalReq(void *threadarg) {
 		if (i < localtdata->tdata->buffer->f.numread) {
 			int incr = sizeof(unsigned int) + sizeof(short);// Offset that points to next position in the objread array
 			incr *= i;
-			oid = *((unsigned int *)(localtdata->tdata->buffer->objread + incr));
-			version = *((short *)(localtdata->tdata->buffer->objread + incr + sizeof(unsigned int)));
+			oid = *((unsigned int *)(((char *)localtdata->tdata->buffer->objread) + incr));
+			version = *((short *)(((char *)localtdata->tdata->buffer->objread) + incr + sizeof(unsigned int)));
 		} else { // Objects Modified
 			int tmpsize;
 			headptr = (objheader_t *) chashSearch(localtdata->tdata->rec->lookupTable, localtdata->tdata->buffer->oidmod[i-numread]);
 			if (headptr == NULL) {
-				printf("Error: handleLocalReq() returning NULL\n");
+				printf("Error: handleLocalReq() returning NULL %s, %d\n", __FILE__, __LINE__);
 				return NULL;
 			}
 			oid = OID(headptr);
@@ -930,7 +995,7 @@ void *handleLocalReq(void *threadarg) {
 			objnotfound++;
 		} else { /* If Obj found in machine (i.e. has not moved) */
 			/* Check if Obj is locked by any previous transaction */
-			if ((STATUS(((objheader_t *)mobj)) & LOCK) == LOCK) {
+			if ((STATUS((objheader_t *)mobj) & LOCK) == LOCK) {
 				if (version == ((objheader_t *)mobj)->version) {      /* If locked then match versions */ 
 					v_matchlock++;
 				} else {/* If versions don't match ...HARD ABORT */
@@ -1021,8 +1086,6 @@ int transAbortProcess(local_thread_data_array_t  *localtdata) {
 		STATUS(((objheader_t *)header)) &= ~(LOCK);
 	}
 
-	printf("TRANS_ABORTED\n");
-
 	return 0;
 }
 
@@ -1039,6 +1102,7 @@ int transComProcess(local_thread_data_array_t  *localtdata) {
 	oidcreated = localtdata->tdata->buffer->oidcreated;
 	numlocked = localtdata->transinfo->numlocked;
 	oidlocked = localtdata->transinfo->objlocked;
+
 	for (i = 0; i < nummod; i++) {
 		if((header = (objheader_t *) mhashSearch(oidmod[i])) == NULL) {
 			printf("Error: transComProcess() mhashsearch returns NULL at %s, %d\n", __FILE__, __LINE__);
@@ -1050,15 +1114,12 @@ int transComProcess(local_thread_data_array_t  *localtdata) {
 			return 1;
 		}
 		GETSIZE(tmpsize, header);
-
 		pthread_mutex_lock(&mainobjstore_mutex);
-		memcpy(header, tcptr, tmpsize + sizeof(objheader_t));
+		memcpy((char*)header+sizeof(objheader_t), (char *)tcptr+ sizeof(objheader_t), tmpsize);
 		header->version += 1;
-		/* If threads are waiting on this object to be updated, notify them */
 		if(header->notifylist != NULL) {
 			notifyAll(&header->notifylist, OID(header), header->version);
 		}
-
 		pthread_mutex_unlock(&mainobjstore_mutex);
 	}
 	/* If object is newly created inside transaction then commit it */
@@ -1071,12 +1132,12 @@ int transComProcess(local_thread_data_array_t  *localtdata) {
 		tmpsize += sizeof(objheader_t);
 		pthread_mutex_lock(&mainobjstore_mutex);
 		if ((ptrcreate = objstrAlloc(mainobjstore, tmpsize)) == NULL) {
-			printf("Error: transComProcess() failed objstrAlloc\n");
+			printf("Error: transComProcess() failed objstrAlloc %s, %d\n", __FILE__, __LINE__);
 			pthread_mutex_unlock(&mainobjstore_mutex);
 			return 1;
 		}
 		pthread_mutex_unlock(&mainobjstore_mutex);
-		memcpy(ptrcreate, header, tmpsize + sizeof(objheader_t));
+		memcpy(ptrcreate, header, tmpsize);
 		mhashInsert(oidcreated[i], ptrcreate);
 		lhashInsert(oidcreated[i], myIpAddr);
 	}
@@ -1166,7 +1227,7 @@ prefetchpile_t *makePreGroups(prefetchqelem_t *node, int *numoffset) {
 	int ntuples, i, machinenum, count=0;
 	unsigned int *oid;
 	short *endoffsets, *arryfields, *offset; 
-	prefetchpile_t *head = NULL;
+	prefetchpile_t *head = NULL, *tmp = NULL;
 
 	/* Check for the case x.y.z and a.b.c are same oids */ 
 	ptr = (char *) node;
@@ -1182,8 +1243,20 @@ prefetchpile_t *makePreGroups(prefetchqelem_t *node, int *numoffset) {
 
 	/* Check for redundant tuples by comparing oids of each tuple */
 	for(i = 0; i < ntuples; i++) {
-		if(oid[i] == 0)
+		if(oid[i] == 0){
+			if(head->next != NULL) {
+				if((tmp = (prefetchpile_t *) calloc(1, sizeof(prefetchpile_t))) == NULL) {
+					printf("Calloc error: %s %d\n", __FILE__, __LINE__);
+					return NULL;
+				}
+				tmp->mid = myIpAddr;
+				tmp->next = head;
+				head = tmp;
+			} else {
+				head->mid = myIpAddr;
+			}
 			continue;
+		}
 		/* For each tuple make piles */
 		if ((machinenum = lhashSearch(oid[i])) == 0) {
 			printf("Error: No such Machine %s, %d\n", __FILE__, __LINE__);
@@ -1220,7 +1293,7 @@ prefetchpile_t *foundLocal(prefetchqelem_t *node) {
 	oid = GET_PTR_OID(ptr);
 	endoffsets = GET_PTR_EOFF(ptr, ntuples); 
 	arryfields = GET_PTR_ARRYFLD(ptr, ntuples);
-
+		
 	/* Find offset length for each tuple */
 	int numoffset[ntuples];//Number of offsets for each tuple
 	numoffset[0] = endoffsets[0];
@@ -1425,7 +1498,6 @@ void *transPrefetch(void *t) {
 		pthread_mutex_unlock(&mcqueue.qlock);
 		/* Deallocate the prefetch queue pile node */
 		predealloc(qnode);
-		pthread_exit(NULL);
 	}
 }
 
@@ -1457,15 +1529,15 @@ void *mcqProcess(void *threadid) {
 
 		/*Initiate connection to remote host and send request */ 
 		/* Process Request */
-		sendPrefetchReq(mcpilenode, tid);
+		if(mcpilenode->mid != myIpAddr)
+			sendPrefetchReq(mcpilenode);
 
 		/* Deallocate the machine queue pile node */
 		mcdealloc(mcpilenode);
-		pthread_exit(NULL);
 	}
 }
 
-void sendPrefetchReq(prefetchpile_t *mcpilenode, int threadid) {
+void sendPrefetchReq(prefetchpile_t *mcpilenode) {
 	int sd, i, off, len, endpair, count = 0;
 	struct sockaddr_in serv_addr;
 	struct hostent *server;
@@ -1505,23 +1577,27 @@ void sendPrefetchReq(prefetchpile_t *mcpilenode, int threadid) {
 	while(tmp != NULL) {
 		off = 0;
 		count++;  /* Keeps track of the number of oid and offset tuples sent per remote machine */
-		len = sizeof(int) + sizeof(unsigned int) + ((tmp->numoffset) * sizeof(short));
+		len = sizeof(int) + sizeof(unsigned int) + ((tmp->numoffset) * sizeof(unsigned short));
 		char oidnoffset[len];
 		bzero(oidnoffset, len);
-		memcpy(oidnoffset, &len, sizeof(int));
+		*((unsigned int*)oidnoffset) = len;
+		//memcpy(oidnoffset, &len, sizeof(int));
 		off = sizeof(int);
-		memcpy(oidnoffset + off, &tmp->oid, sizeof(unsigned int));
+		*((unsigned int *)((char *)oidnoffset + off)) = tmp->oid;
+		//memcpy(oidnoffset + off, &tmp->oid, sizeof(unsigned int));
 		off += sizeof(unsigned int);
 		for(i = 0; i < tmp->numoffset; i++) {
-			memcpy(oidnoffset + off, &(tmp->offset[i]), sizeof(short));
-			off+=sizeof(short);
+			*((unsigned short*)((char *)oidnoffset + off)) = tmp->offset[i];
+			//memcpy(oidnoffset + off, &(tmp->offset[i]), sizeof(short));
+			off+=sizeof(unsigned short);
 		}
-		if (send(sd, &oidnoffset, sizeof(oidnoffset),MSG_NOSIGNAL) < sizeof(oidnoffset)) {
+		
+		if (send(sd, oidnoffset, len , MSG_NOSIGNAL) < len) {
 			perror("Error sending fixed bytes for thread\n");
 			close(sd);
 			return;
 		}
-
+		
 		tmp = tmp->next;
 	}
 
@@ -1545,7 +1621,6 @@ void getPrefetchResponse(int count, int sd) {
 	char buffer[RECEIVE_BUFFER_SIZE], control;
 	char *ptr;
 	void *modptr, *oldptr;
-
 
 	/* Read  prefetch response from the Remote machine */
 	if((val = read(sd, &control, sizeof(char))) <= 0) {
@@ -1584,7 +1659,7 @@ void getPrefetchResponse(int count, int sd) {
 					index+=sizeof(int);
 					pthread_mutex_lock(&prefetchcache_mutex);
 					if ((modptr = objstrAlloc(prefetchcache, objsize)) == NULL) {
-						printf("objstrAlloc error for copying into prefetch cache %s, %d\n", __FILE__, __LINE__);
+						printf("Error: objstrAlloc error for copying into prefetch cache %s, %d\n", __FILE__, __LINE__);
 						pthread_mutex_unlock(&prefetchcache_mutex);
 						return;
 					}
@@ -1835,9 +1910,10 @@ int reqNotify(unsigned int *oidarry, unsigned short *versionarry, unsigned int n
 	int bytesSent;
 	int status, size;
 	unsigned short version;
-	unsigned int oid, threadid, mid;
-	pthread_mutex_t threadnotify; //Lock and condition var for threadjoin and notification
-	pthread_cond_t threadcond;
+	unsigned int oid,mid;
+	static unsigned int threadid = 0;
+	pthread_mutex_t threadnotify = PTHREAD_MUTEX_INITIALIZER; //Lock and condition var for threadjoin and notification
+	pthread_cond_t threadcond = PTHREAD_COND_INITIALIZER;
 	notifydata_t *ndata;
 
 	//FIXME currently all oids belong to one machine
@@ -1855,7 +1931,7 @@ int reqNotify(unsigned int *oidarry, unsigned short *versionarry, unsigned int n
 	remoteAddr.sin_addr.s_addr = htonl(mid);
 
 	/* Generate unique threadid */
-	threadid = (unsigned int) pthread_self();
+	threadid++;
 
 	/* Save threadid, numoid, oidarray, versionarray, pthread_cond_variable for later processing */
 	if((ndata = calloc(1, sizeof(notifydata_t))) == NULL) {
@@ -1867,6 +1943,7 @@ int reqNotify(unsigned int *oidarry, unsigned short *versionarry, unsigned int n
 	ndata->oidarry = oidarry;
 	ndata->versionarry = versionarry;
 	ndata->threadcond = threadcond;
+	ndata->threadnotify = threadnotify;
 	if((status = notifyhashInsert(threadid, ndata)) != 0) {
 		printf("reqNotify(): Insert into notify hash table not successful %s, %d\n", __FILE__, __LINE__);
 		free(ndata);
@@ -1909,24 +1986,29 @@ int reqNotify(unsigned int *oidarry, unsigned short *versionarry, unsigned int n
 		size += sizeof(unsigned int);
 		*((unsigned int *)(&msg[1] + size)) = threadid;
 
-		pthread_mutex_lock(&threadnotify);
-		bytesSent = send(sock, msg, 1 + numoid * (sizeof(unsigned int) + sizeof(unsigned short)) + 2 * sizeof(unsigned int) , 0);
+		pthread_mutex_lock(&(ndata->threadnotify));
+		bytesSent = send(sock, msg, 1 + numoid * (sizeof(unsigned int) + sizeof(unsigned short)) + 3 * sizeof(unsigned int) , 0);
 		if (bytesSent < 0){
 			perror("reqNotify():send()");
 			status = -1;
-		} else if (bytesSent != 1 + numoid*(sizeof(unsigned int) + sizeof(unsigned short)) + 2 * sizeof(unsigned int)){
-			printf("reNotify(): error, sent %d bytes\n", bytesSent);
+		} else if (bytesSent != 1 + numoid*(sizeof(unsigned int) + sizeof(unsigned short)) + 3 * sizeof(unsigned int)){
+			printf("reNotify(): error, sent %d bytes %s, %d\n", bytesSent, __FILE__, __LINE__);
 			status = -1;
 		} else {
 			status = 0;
 		}
-		pthread_cond_wait(&threadcond, &threadnotify);
-		pthread_mutex_unlock(&threadnotify);
+		
+		pthread_cond_wait(&(ndata->threadcond), &(ndata->threadnotify));
+		pthread_mutex_unlock(&(ndata->threadnotify));
 	}
 
+	pthread_cond_destroy(&threadcond);
+	pthread_mutex_destroy(&threadnotify);
+	free(ndata);
 	close(sock);
 	return status;
 }
+
 void threadNotify(unsigned int oid, unsigned short version, unsigned int tid) {
 	notifydata_t *ndata;
 	int i, objIsFound = 0, index;
@@ -1944,23 +2026,18 @@ void threadNotify(unsigned int oid, unsigned short version, unsigned int tid) {
 			}
 		}
 		if(objIsFound == 0){
+			printf("threadNotify(): Oid not found %s, %d\n", __FILE__, __LINE__);
 			return;
 		} else {
 			if(version <= ndata->versionarry[index]){
+				printf("threadNotify(): New version %d has not changed since last version %s, %d\n", version, __FILE__, __LINE__);
 				return;
 			} else {
 				/* Clear from prefetch cache and free thread related data structure */
-				if((ptr = prehashSearch(oid)) == NULL) {
-					//TODO Ask about freeing
-					printf("threadnotify(): No such oid %s, %d\n", __FILE__, __LINE__);
-					pthread_cond_signal(&ndata->threadcond);
-					free(ndata);
-					return;
-				} else {
+				if((ptr = prehashSearch(oid)) != NULL) {
 					prehashRemove(oid);
-					pthread_cond_signal(&ndata->threadcond);
-					free(ndata);
 				}
+				pthread_cond_signal(&(ndata->threadcond));
 			}
 		}
 	}
@@ -1973,6 +2050,7 @@ int notifyAll(threadlist_t **head, unsigned int oid, unsigned int version) {
 	struct sockaddr_in remoteAddr;
 	char msg[1 + sizeof(unsigned short) + 2*sizeof(unsigned int)];
 	int sock, status, size, bytesSent;
+
 	while(*head != NULL) {
 		ptr = *head;
 		mid = ptr->mid; 
@@ -1992,19 +2070,21 @@ int notifyAll(threadlist_t **head, unsigned int oid, unsigned int version) {
 					inet_ntoa(remoteAddr.sin_addr), LISTEN_PORT);
 			status = -1;
 		} else {
+			bzero(msg, (1+sizeof(unsigned short) + 2*sizeof(unsigned int)));
 			msg[0] = THREAD_NOTIFY_RESPONSE;
-			msg[1] = oid;
+			*((unsigned int *)&msg[1]) = oid;
 			size = sizeof(unsigned int);
 			*((unsigned short *)(&msg[1]+ size)) = version;
 			size+= sizeof(unsigned short);
 			*((unsigned int *)(&msg[1]+ size)) = ptr->threadid;
 
-			bytesSent = send(sock, msg, 1 + 2*sizeof(unsigned int) + sizeof(unsigned short), 0);
+			bytesSent = send(sock, msg, (1 + 2*sizeof(unsigned int) + sizeof(unsigned short)), 0);
 			if (bytesSent < 0){
 				perror("notifyAll():send()");
 				status = -1;
 			} else if (bytesSent != 1 + 2*sizeof(unsigned int) + sizeof(unsigned short)){
-				printf("notifyAll(): error, sent %d bytes\n", bytesSent);
+				printf("notifyAll(): error, sent %d bytes %s, %d\n", 
+						bytesSent, __FILE__, __LINE__);
 				status = -1;
 			} else {
 				status = 0;

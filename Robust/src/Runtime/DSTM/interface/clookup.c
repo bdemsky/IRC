@@ -177,12 +177,12 @@ unsigned int chashResize(chashtable_t *table, unsigned int newsize) {
 }
 
 //Delete the entire hash table
-void chashDelete(chashtable_t *table) {
+void chashDelete(chashtable_t *ctable) {
 	int i, isFirst;
 	chashlistnode_t *ptr, *curr, *next;
-	ptr = table->table;
+	ptr = ctable->table;
 
-	for(i=0 ; i<table->size ; i++) {
+	for(i=0 ; i<ctable->size ; i++) {
 		curr = &ptr[i];
 		isFirst = 1 ;
 		while(curr  != NULL) {
@@ -196,6 +196,7 @@ void chashDelete(chashtable_t *table) {
 	}
 
 	free(ptr);
-	free(table);
-	table = NULL;
+	ptr = NULL;
+	free(ctable);
+	ctable = NULL;
 }

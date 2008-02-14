@@ -8,7 +8,6 @@ void queueInit(void) {
 	pthread_mutexattr_init(&pqueue.qlockattr);
 	pthread_mutexattr_settype(&pqueue.qlockattr, PTHREAD_MUTEX_RECURSIVE_NP);
 	pthread_mutex_init(&pqueue.qlock, &pqueue.qlockattr);
-	//pthread_mutex_init(&pqueue.qlock, NULL);
 	pthread_cond_init(&pqueue.qcond, NULL);
 }
 

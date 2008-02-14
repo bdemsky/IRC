@@ -36,6 +36,7 @@
 #define START_REMOTE_THREAD		23
 #define THREAD_NOTIFY_REQUEST		24
 #define THREAD_NOTIFY_RESPONSE		25
+#define TRANS_UNSUCESSFUL		26
 
 //Control bits for status of objects in Machine pile
 #define OBJ_LOCKED_BUT_VERSION_MATCH	14
@@ -242,7 +243,7 @@ prefetchpile_t *foundLocal(prefetchqelem_t *);
 prefetchpile_t *makePreGroups(prefetchqelem_t *, int *);
 void checkPreCache(prefetchqelem_t *, int *, unsigned int, int);
 int transPrefetchProcess(transrecord_t *, int **, short);
-void sendPrefetchReq(prefetchpile_t*, int);
+void sendPrefetchReq(prefetchpile_t*);
 void getPrefetchResponse(int, int);
 unsigned short getObjType(unsigned int oid);
 int startRemoteThread(unsigned int oid, unsigned int mid);

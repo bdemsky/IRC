@@ -35,7 +35,7 @@ plistnode_t *pCreate(int objects) {
 		return NULL;
 	}
 
-	pile->nummod = pile->numread = pile->numcreated = pile->sum_bytes = 0;
+	pile->nummod = pile->numread = pile->numcreated = pile->sum_bytes = pile->mid = 0;
 	pile->next = NULL;
 	return pile;
 }
@@ -44,7 +44,7 @@ plistnode_t *pCreate(int objects) {
  * a machine pile data structure */
 plistnode_t *pInsert(plistnode_t *pile, objheader_t *headeraddr, unsigned int mid, int num_objs) {
 	plistnode_t *ptr, *tmp;
-	int found = 0, offset;
+	int found = 0, offset = 0;
 
 	tmp = pile;
 	//Add oid into a machine that is already present in the pile linked list structure
@@ -64,9 +64,9 @@ plistnode_t *pInsert(plistnode_t *pile, objheader_t *headeraddr, unsigned int mi
 		    tmp->sum_bytes += sizeof(objheader_t) + tmpsize;
 		  } else {
 		    offset = (sizeof(unsigned int) + sizeof(short)) * tmp->numread;
-		    *((unsigned int *)(tmp->objread + offset))=OID(headeraddr);
+		    *((unsigned int *)(((char *)tmp->objread) + offset))=OID(headeraddr);
 		    offset += sizeof(unsigned int);
-		    memcpy(tmp->objread + offset, &headeraddr->version, sizeof(short));
+		    *((short *)(((char *)tmp->objread) + offset)) = headeraddr->version;
 		    tmp->numread = tmp->numread + 1;
 		  }
 		  found = 1;
@@ -93,17 +93,17 @@ plistnode_t *pInsert(plistnode_t *pile, objheader_t *headeraddr, unsigned int mi
 	    ptr->sum_bytes += sizeof(objheader_t) + tmpsize;
 	  } else {
 	    *((unsigned int *)ptr->objread)=OID(headeraddr);
-	    memcpy(ptr->objread + sizeof(unsigned int), &headeraddr->version, sizeof(short));
+	    offset = sizeof(unsigned int);
+	    *((short *)(((char *)ptr->objread) + offset)) = headeraddr->version;
 	    ptr->numread = ptr->numread + 1;
 	  }
 	  ptr->next = pile;
 	  pile = ptr;
 	}
-	
-	/* Clear Flags */
 
-	STATUS(headeraddr) &= ~(NEW);
-	STATUS(headeraddr) &= ~(DIRTY);
+	/* Clear Flags */
+	STATUS(headeraddr) &= ~NEW;
+	STATUS(headeraddr) &= ~DIRTY;
 
 	return pile;
 }

@@ -22,6 +22,7 @@ typedef struct notifydata {
 	unsigned int *oidarry;  /* Pointer to array of oids that this threadid is waiting on*/
 	unsigned short *versionarry;/* Pointer to array of versions of the oids that we are waiting on */
 	pthread_cond_t threadcond; /* Cond variable associated with each threadid that needs to be signaled*/
+	pthread_mutex_t threadnotify;
 }notifydata_t;
 
 typedef struct notifylistnode {
@@ -38,7 +39,7 @@ typedef struct notifyhashtable {
 	pthread_mutex_t locktable; //Lock for the hashtable
 } notifyhashtable_t;
 
-void insNode(threadlist_t *head, unsigned int threadid, unsigned int mid); //Inserts nodes for one object that 
+threadlist_t *insNode(threadlist_t *head, unsigned int threadid, unsigned int mid); //Inserts nodes for one object that 
 									   //needs to send notification to threads waiting on it
 void display(threadlist_t *head);// Displays linked list of nodes for one object
 unsigned int notifyhashCreate(unsigned int size, float loadfactor); //returns 1 if hashtable creation is not successful

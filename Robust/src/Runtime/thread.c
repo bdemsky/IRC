@@ -20,7 +20,7 @@ pthread_key_t threadlocks;
 pthread_mutex_t threadnotifylock;
 pthread_cond_t threadnotifycond;
 transrecord_t * trans;
-pthread_key_t oid;
+pthread_key_t oidval;
 
 void threadexit() {
   objheader_t* ptr;
@@ -47,7 +47,7 @@ void threadexit() {
   pthread_mutex_unlock(&gclistlock);
 #ifdef DSTM
   /* Add transaction to check if thread finished for join operation */
-  value = pthread_getspecific(oid);
+  value = pthread_getspecific(oidval);
   oidvalue = *((unsigned int *)value);
   goto transstart;
 transstart:
@@ -55,8 +55,8 @@ transstart:
   ptr = transRead(trans, oidvalue);
   struct ___Thread___ *p = (struct ___Thread___ *) ptr;
   p->___threadDone___ = 1;
+  *((unsigned int *)&((struct ___Object___ *) p)->___localcopy___) |=DIRTY;
   if(transCommit(trans) != 0) {
-	  transAbort(trans);
 	  goto transstart;
   }
 #endif	
@@ -123,10 +123,9 @@ void CALL11(___Thread______sleep____J, long long ___millis___, long long ___mill
 #endif
 }
 
+#ifdef DSTM
 /* Add thread join capability */
 void CALL01(___Thread______join____, struct ___Thread___ * ___this___) {
-  printf("DEBUG -> Inside thread join\n");
-#ifdef DSTM
   pthread_t thread;
   unsigned int *oidarray;
   unsigned short *versionarray, version;
@@ -163,8 +162,8 @@ transstart:
 	  goto transstart;
   }
   return;
-#endif
 }
+#endif
 
 #ifdef THREADS
 void CALL01(___Thread______nativeCreate____, struct ___Thread___ * ___this___) {
@@ -197,7 +196,7 @@ void CALL12(___Thread______start____I, int ___mid___, struct ___Thread___ * ___t
 #ifdef DSTM
 void globalDestructor(void *value) {
 	free(value);
-	pthread_setspecific(oid, NULL);
+	pthread_setspecific(oidval, NULL);
 }
 
 void initDSMthread(int *ptr) {
@@ -214,7 +213,7 @@ void initDSMthread(int *ptr) {
 #endif
   threadData = calloc(1, sizeof(unsigned int));
   *((unsigned int *) threadData) = oid;
-  pthread_setspecific(oid, threadData);
+  pthread_setspecific(oidval, threadData);
   pthread_mutex_lock(&gclistlock);
   threadcount--;
   pthread_cond_signal(&gccond);
@@ -224,29 +223,28 @@ void initDSMthread(int *ptr) {
 transstart:
   trans = transStart();
   tmp  = transRead(trans, (unsigned int) oid);
-  struct ___Thread___ *t = (struct ___Thread___ *) tmp;
-  t->___threadDone___ = 1;
+  ((struct ___Thread___ *)tmp)->___threadDone___ = 1;
+  *((unsigned int *)&((struct ___Object___ *) tmp)->___localcopy___) |=DIRTY;
   if(transCommit(trans)!= 0) {
-	  transAbort(trans);
 	  goto transstart;
   }
   pthread_exit(NULL);
 }
 
 void startDSMthread(int oid, int objType) {
-  pthread_t thread;
-  int retval;
-  pthread_attr_t nattr;
+	pthread_t thread;
+	int retval;
+	pthread_attr_t nattr;
 
-  pthread_mutex_lock(&gclistlock);
-  threadcount++;
-  pthread_mutex_unlock(&gclistlock);
+	pthread_mutex_lock(&gclistlock);
+	threadcount++;
+	pthread_mutex_unlock(&gclistlock);
   pthread_attr_init(&nattr);
   pthread_attr_setdetachstate(&nattr, PTHREAD_CREATE_DETACHED);
   int * ptr=malloc(sizeof(int)*2);
   ptr[0]=oid;
   ptr[1]=objType;
-  pthread_key_create(&oid, globalDestructor);
+  pthread_key_create(&oidval, globalDestructor);
   do {
     retval=pthread_create(&thread, &nattr, (void * (*)(void *)) &initDSMthread,  ptr);
     if (retval!=0)

@@ -17,6 +17,7 @@ public class Atomic3 extends Thread {
 		}
 		System.printString("b is ");
 		System.printInt(b);
+		System.printString("\n");
 		atomic{
 			at3.root.item = 2445;
 			y = global new Integer(400);

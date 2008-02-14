@@ -5,7 +5,7 @@ notifyhashtable_t nlookup; //Global hash table
 /* This function creates a new node in the linked list of threads waiting
  * for an update notification from a particular object.
  * This takes in the head of the linked list and inserts the new node to it */
-void insNode(threadlist_t *head, unsigned int threadid, unsigned int mid) {
+threadlist_t *insNode(threadlist_t *head, unsigned int threadid, unsigned int mid) {
 	threadlist_t *ptr;
 	if(head == NULL) {
 		if((head = calloc(1, sizeof(threadlist_t))) == NULL) {
@@ -25,6 +25,8 @@ void insNode(threadlist_t *head, unsigned int threadid, unsigned int mid) {
 		ptr->next = head;
 		head = ptr;
 	}
+
+	return head;
 }
 
 /* This function displays the linked list of threads waiting on update notification
@@ -73,7 +75,8 @@ unsigned int notifyhashFunction(unsigned int tid) {
 unsigned int notifyhashInsert(unsigned int tid, notifydata_t *ndata) {
 	unsigned int newsize;
 	int index;
-	notifylistnode_t *ptr, *node;
+	notifylistnode_t *ptr, *node, *tmp;
+	int isFound = 0;
 
 	if (nlookup.numelements > (nlookup.loadfactor * nlookup.size)) {
 		//Resize Table
@@ -82,6 +85,7 @@ unsigned int notifyhashInsert(unsigned int tid, notifydata_t *ndata) {
 		notifyhashResize(newsize);
 		pthread_mutex_unlock(&nlookup.locktable);
 	}
+	/*
 	ptr = nlookup.table;
 	nlookup.numelements++;
 
@@ -105,6 +109,36 @@ unsigned int notifyhashInsert(unsigned int tid, notifydata_t *ndata) {
 		ptr[index].next = node;
 	}
 	pthread_mutex_unlock(&nlookup.locktable);
+	*/
+	ptr = nlookup.table;
+	index = notifyhashFunction(tid);
+	pthread_mutex_lock(&nlookup.locktable);
+	if(ptr[index].next == NULL && ptr[index].threadid == 0) {	// Insert at the first position in the hashtable
+		ptr[index].threadid = tid;
+		ptr[index].ndata = ndata;
+	} else {
+		tmp = &ptr[index];
+		while(tmp != NULL) {
+			if(tmp->threadid == tid) {
+				isFound = 1;
+				tmp->ndata = ndata;
+			}
+			tmp = tmp->next;
+		}
+		if(!isFound) {
+			if ((node = calloc(1, sizeof(notifylistnode_t))) == NULL) {
+				printf("Calloc error %s, %d\n", __FILE__, __LINE__);
+				pthread_mutex_unlock(&nlookup.locktable);
+				return 1;
+			}
+			node->threadid = tid;
+			node->ndata = ndata;
+			node->next = ptr[index].next;
+			ptr[index].next = node;
+		}
+	}
+	pthread_mutex_unlock(&nlookup.locktable);
+
 	return 0;
 }
 

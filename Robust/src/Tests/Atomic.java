@@ -7,6 +7,7 @@ public class Atomic {
 	}
 	int q=test(z);
 	System.printInt(q);
+	System.printString("\n");
     }
     public static atomic int test(Integer y) {
 	return y.intValue();

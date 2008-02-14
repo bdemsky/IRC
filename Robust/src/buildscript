@@ -13,7 +13,7 @@ echo -tagstate do tag state analysis
 echo -scheduling do task scheduling
 echo -optional enable optional
 echo -debug generate debug symbols
-echo -prefetch prefetch analysis
+echo -prefetch do prefetch analysis
 echo -webinterface enable web interface
 echo -runtimedebug printout runtime debug messages
 echo "-thread use support for multiple threads"
@@ -200,7 +200,7 @@ cd $BUILDDIR/specdir
 echo > $BUILDDIR/checkers.h
 for i in `cat $BUILDDIR/specs`
 do
-gcc -O0 -g -c $i\_aux.c
+gcc -O0 -g -fbounds-check -c $i\_aux.c
 echo \#include \"specdir\/$i\_aux.h\" >> $BUILDDIR/checkers.h
 done
 fi # CHECKFLAG

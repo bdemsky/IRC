@@ -139,6 +139,7 @@ public class Main {
       readSourceFile(state, ClassLibraryPrefix+"InetAddress.java");
       readSourceFile(state, ClassLibraryPrefix+"SocketInputStream.java");
       readSourceFile(state, ClassLibraryPrefix+"SocketOutputStream.java");
+      readSourceFile(state, ClassLibraryPrefix+"gnu/Random.java");
 
 
       if (state.TASK) {

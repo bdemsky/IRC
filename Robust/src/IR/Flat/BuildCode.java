@@ -1433,6 +1433,7 @@ public class BuildCode {
  	    if (state.PREFETCH) {
  		    Iterator it = fpn.hspp.iterator();
  		    output.println("/* prefetch */");
+ 		    output.println("; /* empty statement to avoid compiler error */");
  		    /* TODO Add support for arrays, Currently handles only field pointers*/
  		    /* The while loop below removes all prefetch tuples with arrays from the set of prefetches */
  		    while(it.hasNext()) {
@@ -1529,7 +1530,7 @@ public class BuildCode {
 			    tstlbl += generateTemp(fm, id.getTempDescAt(i), lb) + "+";
 		    }
 		    tstlbl += id.offset.toString();
-		    output.println("if ("+tstlbl+"< 0 || "+tstlbl+" > "+
+		    output.println("if ("+tstlbl+"< 0 || "+tstlbl+" >= "+
 				    generateTemp(fm, pp.base, lb) + "->___length___) {");
 		    output.println("    failedboundschk();");
 		    output.println("}");

@@ -1,3 +1,4 @@
+/* This test case tests the thread joining for a threadDSM library */ 
 public class Atomic5 extends Thread {
 	public People[] team;
 	public Atomic5() {
@@ -9,6 +10,7 @@ public class Atomic5 extends Thread {
 		Integer age;
 		Atomic5 tmp;
 		Atomic5[] at5;
+		
 		atomic {
 			at5 =  global new Atomic5[4];
 		}
@@ -20,6 +22,7 @@ public class Atomic5 extends Thread {
 				at5[i].team[1] = global new People();
 				age = global new Integer(35);
 				at5[i].team[0].age = age;
+				at5[i].team[1].age = age;
 			}
 			b = at5[1].team[0].getAge();
 		}
@@ -29,6 +32,7 @@ public class Atomic5 extends Thread {
 			age = global new Integer(70);
 			at5[1].team[1].age = age;
 			c = at5[1].team[1].getAge();
+			//at5[20].team[1].age = age;
 		}
 		System.printInt(c);
 		System.printString("\n");
@@ -39,22 +43,21 @@ public class Atomic5 extends Thread {
 			}
 			tmp.start(mid);
 		}
-		/*
 		for(int i = 0; i< 4; i++) {
 			atomic {
 				tmp = at5[i];
 			}
 			tmp.join();
 		}
-		*/
 		System.printString("Finished\n");
+		/*
 		while(true) {
 			;
 		}
+		*/
 	}
 
 	public void run() {
-		/*
 		int ag;
 		boolean old = false;
 		atomic {
@@ -63,17 +66,12 @@ public class Atomic5 extends Thread {
 				old = true;
 		}
 		if(old){
-			System.printString(" gets Pension"); 
+			System.printString("Gets Pension"); 
+			System.printString("\n");
+		} else {
+			System.printString("Gets No Pension"); 
 			System.printString("\n");
 		}
-		*/
-		System.printString("Atomic5() Inside the run program"); 
-		System.printString("\n");
-		/*
-		for(int i=0; i<4 ; i++) {
-			at5[i].join();
-		}
-		*/
 	}
 }
 
