@@ -6,6 +6,7 @@ public class Atomic5 extends Thread {
 	public static void main(String[] st) {
 		int mid = (128<<24)|(195<<16)|(175<<8)|70;
 		int b = 0,c = 0;
+		int i;
 		
 		Integer age;
 		Atomic5 tmp;
@@ -15,7 +16,7 @@ public class Atomic5 extends Thread {
 			at5 =  global new Atomic5[4];
 		}
 		atomic {
-			for(int i = 0; i < 4; i++) {
+			for(i = 0; i < 4; i++) {
 				at5[i] = global new Atomic5();
 				at5[i].team = global new People[2];
 				at5[i].team[0] = global new People();
@@ -37,13 +38,13 @@ public class Atomic5 extends Thread {
 		System.printInt(c);
 		System.printString("\n");
 		System.printString("Starting\n");
-		for(int i = 0 ; i< 4; i++) {
+		for(i = 0 ; i< 4; i++) {
 			atomic {
 				tmp = at5[i];
 			}
 			tmp.start(mid);
 		}
-		for(int i = 0; i< 4; i++) {
+		for(i = 0; i< 4; i++) {
 			atomic {
 				tmp = at5[i];
 			}

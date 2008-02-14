@@ -257,5 +257,6 @@ unsigned int notifyhashResize(unsigned int newsize) {
 	}
 
 	free(ptr);		//Free the memory of the old hash table	
+	ptr = NULL;
 	return 0;
 }

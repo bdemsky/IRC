@@ -119,31 +119,25 @@ void prefetch(int ntuples, unsigned int *oids, unsigned short *endoffsets, short
 
 /* This function starts up the transaction runtime. */
 int dstmStartup(const char * option) {
-  pthread_t thread_Listen;
-  pthread_attr_t attr;
-  int master=option!=NULL && strcmp(option, "master")==0;
+	pthread_t thread_Listen;
+	pthread_attr_t attr;
+	int master=option!=NULL && strcmp(option, "master")==0;
 
 	if (processConfigFile() != 0)
 		return 0; //TODO: return error value, cause main program to exit
 
-	//TODO Remove after testing
-	//Initializing the global array
-	int i;
-	for (i = 0; i < 10000; i++) 
-		mlist[i] = NULL;
-	////////
-  dstmInit();
-  transInit();
+	dstmInit();
+	transInit();
 
-  if (master) {
-    pthread_attr_init(&attr);
-    pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
-    pthread_create(&thread_Listen, &attr, dstmListen, NULL);
-    return 1;
-  } else {
-    dstmListen();
-    return 0;
-  }
+	if (master) {
+		pthread_attr_init(&attr);
+		pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+		pthread_create(&thread_Listen, &attr, dstmListen, NULL);
+		return 1;
+	} else {
+		dstmListen();
+		return 0;
+	}
 
 }
 
@@ -244,20 +238,6 @@ transrecord_t *transStart()
 	transrecord_t *tmp = calloc(1, sizeof(transrecord_t));
 	tmp->cache = objstrCreate(1048576);
 	tmp->lookupTable = chashCreate(HASH_SIZE, LOADFACTOR);
-	//TODO Remove after testing
-	//Filling the global array when transansaction's record lookupTable
-	//is calloced 
-	pthread_mutex_lock(&mlock);
-	int ii;
-	for (ii = 0; ii < 10000; ii++) {
-		if (mlist[ii] == NULL) {
-			mlist[ii] = (void *)tmp->lookupTable; 
-			break;
-		}
-	}
-	if (ii == 10000) { fprintf(stderr, "Error"); }
-	pthread_mutex_unlock(&mlock);
-	////////////
 #ifdef COMPILER
 	tmp->revertlist=NULL;
 #endif
@@ -610,22 +590,6 @@ int transCommit(transrecord_t *record) {
 	if(treplyctrl == TRANS_ABORT) {
 		/* Free Resources */
 		objstrDelete(record->cache);
-		//TODO Remove after testing 
-		pthread_mutex_lock(&mlock);
-		int count = 0, jj = 0, ii = 0;
-		for (ii = 0; ii < 10000; ii++) {
-			if (mlist[ii] == (void *) record->lookupTable) {
-				count++; 
-				jj = ii;
-			}
-		}
-		if (count==2 || count == 0) { 
-			fprintf(stderr, "TRANS_ABORT CASE: Count for same addr:%d\n", count); 
-		}
-		if (count == 1) 
-			mlist[jj] = 0;
-		pthread_mutex_unlock(&mlock);
-		////////////
 		chashDelete(record->lookupTable);
 		free(record);
 		free(thread_data_array);
@@ -634,18 +598,6 @@ int transCommit(transrecord_t *record) {
 	} else if(treplyctrl == TRANS_COMMIT) {
 		/* Free Resources */
 		objstrDelete(record->cache);
-		//TODO Remove after Testing
-		pthread_mutex_lock(&mlock);
-		int count = 0, jj = 0, ii = 0;
-		for (ii = 0; ii < 10000; ii++) {
-			if (mlist[ii] == (void *) record->lookupTable) {count++; jj = ii;}
-		}
-		if (count==2 || count == 0) { 
-			fprintf(stderr, "TRANS_COMMIT CASE: Count for same addr:%d\n", count); 
-		}
-		if (count == 1) mlist[jj] = 0;
-		pthread_mutex_unlock(&mlock);
-		///////////////////////
 		chashDelete(record->lookupTable);
 		free(record);
 		free(thread_data_array);

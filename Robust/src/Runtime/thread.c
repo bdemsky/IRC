@@ -19,12 +19,12 @@ pthread_cond_t objcond;
 pthread_key_t threadlocks;
 pthread_mutex_t threadnotifylock;
 pthread_cond_t threadnotifycond;
-transrecord_t * trans;
 pthread_key_t oidval;
 
 void threadexit() {
   objheader_t* ptr;
   void *value;
+  transrecord_t * trans;
   unsigned int oidvalue;
 
 #ifdef THREADS
@@ -126,7 +126,6 @@ void CALL11(___Thread______sleep____J, long long ___millis___, long long ___mill
 #ifdef DSTM
 /* Add thread join capability */
 void CALL01(___Thread______join____, struct ___Thread___ * ___this___) {
-  pthread_t thread;
   unsigned int *oidarray;
   unsigned short *versionarray, version;
   transrecord_t *trans;
@@ -201,6 +200,7 @@ void globalDestructor(void *value) {
 
 void initDSMthread(int *ptr) {
   objheader_t *tmp;	
+  transrecord_t * trans;
   void *threadData;
   int oid=ptr[0];
   int type=ptr[1];
