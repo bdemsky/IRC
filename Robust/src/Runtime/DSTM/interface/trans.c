@@ -18,6 +18,9 @@
 #include <errno.h>
 #include <time.h>
 #include <string.h>
+#ifdef COMPILER
+#include "thread.h"
+#endif
 
 #define LISTEN_PORT 2156
 #define RECEIVE_BUFFER_SIZE 2048
@@ -125,6 +128,10 @@ int dstmStartup(const char * option) {
 
 	if (processConfigFile() != 0)
 		return 0; //TODO: return error value, cause main program to exit
+#ifdef COMPILER
+	if (!master)
+	  threadcount--;
+#endif
 
 	dstmInit();
 	transInit();
