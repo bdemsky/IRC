@@ -49,7 +49,12 @@ public class MatrixMultiply extends Thread{
 
 		atomic{
 			mm = global new MatrixMultiply[NUM_THREADS];
-			mm.mmul = global new MMul(0, 0, 0);
+		}
+
+		for(i = 0; i < NUM_THREADS; i++) {
+			atomic{
+				mm[i].mmul = global new MMul(0, 0, 0);
+			}
 		}
 
 		// Currently it is a 4 X 4 matrix divided into 4 blocks 
