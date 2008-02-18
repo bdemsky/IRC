@@ -437,6 +437,7 @@ int transCommit(transrecord_t *record) {
 	char treplyctrl = 0, treplyretry = 0; /* keeps track of the common response that needs to be sent */
 	char localstat = 0;
 
+
 	/* Look through all the objects in the transaction record and make piles 
 	 * for each machine involved in the transaction*/
 	pile_ptr = pile = createPiles(record);
@@ -862,7 +863,7 @@ void *getRemoteObj(transrecord_t *record, unsigned int mnum, unsigned int oid) {
 
 	/* Open connection */
 	if (connect(sd, (struct sockaddr *) &serv_addr, sizeof(struct sockaddr)) < 0) {
-		perror("Error in connect\n");
+		perror("getRemoteObj() Error in connect\n");
 		return NULL;
 	}
 	char readrequest[sizeof(char)+sizeof(unsigned int)];

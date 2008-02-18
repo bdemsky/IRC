@@ -774,8 +774,8 @@ void processReqNotify(unsigned int numoid, unsigned int *oidarry, unsigned short
 	int sd;
 	struct sockaddr_in remoteAddr;
 	int bytesSent;
-	int status, size, retry = 0;
-	
+	int status, size;
+
 	int i = 0;
 	while(i < numoid) {
 		oid = *(oidarry + i);

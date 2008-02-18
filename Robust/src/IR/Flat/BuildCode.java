@@ -1435,8 +1435,10 @@ public class BuildCode {
  		    Iterator it = fpn.hspp.iterator();
  		    output.println("/* prefetch */");
  		    output.println("; /* empty statement to avoid compiler error */");
+
  		    /* TODO Add support for arrays, Currently handles only field pointers*/
  		    /* The while loop below removes all prefetch tuples with arrays from the set of prefetches */
+		    /*
  		    while(it.hasNext()) {
  			    PrefetchPair pp = (PrefetchPair) it.next();
  			    for(i = 0; i < pp.desc.size(); i++) {
@@ -1447,7 +1449,8 @@ public class BuildCode {
  				    }
  			    }
  		    }
- 		    it = fpn.hspp.iterator();
+		    */
+ 		    //it = fpn.hspp.iterator();
 		    String oidlist = new String();
  		    while(it.hasNext()) {
  			    PrefetchPair pp = (PrefetchPair) it.next();
