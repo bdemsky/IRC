@@ -1,11 +1,9 @@
 public class MatrixMultiply extends Thread{
 	MMul mmul;
-	int x0, y0, x1, y1;
+	public int x0, y0, x1, y1;
 
 	public MatrixMultiply(MMul mmul, int x0, int y0, int x1, int y1) {
-		atomic {
-			this.mmul = mmul;
-		}
+		this.mmul = mmul;
 		this.x0 = x0;
 		this.y0 = y0;
 		this.x1 = x1;
@@ -15,8 +13,17 @@ public class MatrixMultiply extends Thread{
 	public void run() {
 		int innerProduct = 0;
 		int i, j;
-		for(i = x0; i<= x1; i++){
-			for (j = y0; j <= y1; j++) {
+		int xx0,xx1,yy0,yy1;
+
+		atomic {
+			xx0 = x0;
+			xx1 = x1;
+			yy0 = y0;
+			yy1 = y1;
+		}
+
+		for(i = xx0; i<= xx1; i++){
+			for (j = yy0; j <= yy1; j++) {
 				atomic {
 					innerProduct = mmul.multiply(i,j);
 				}
@@ -42,7 +49,7 @@ public class MatrixMultiply extends Thread{
 
 		atomic{
 			mm = global new MatrixMultiply[NUM_THREADS];
-			mm.mmul = global new MMul(0,0,0);
+			mm.mmul = global new MMul(0, 0, 0);
 		}
 
 		// Currently it is a 4 X 4 matrix divided into 4 blocks 
@@ -67,6 +74,32 @@ public class MatrixMultiply extends Thread{
 		System.printString("\t");
 		System.printString("N=");
 		System.printInt(r);
+		System.printString("\n");
+
+		//Print Matrices to be multiplied
+		System.printString("\n");
+		System.printString("a =");
+		for (i = 0; i < p; i++) {
+			for (j = 0; j < q; j++) {
+				atomic {
+					val = matrix.a[i][j];
+				}
+				System.printString(" " + val);
+				System.printString("\t");
+			}
+		}
+		System.printString("\n");
+
+		System.printString("b =");
+		for (i = 0; i < q; i++) {
+			for (j = 0; j < r; j++) {
+				atomic {
+					val = matrix.b[i][j];
+				}
+				System.printString(" " + val);
+				System.printString("\t");
+			}
+		}
 		System.printString("\n");
 
 		// start a thread to compute each c[l,n]
@@ -112,9 +145,9 @@ public class MMul{
 		this.L = L;
 		this.M = M;
 		this.N = N;
-		a = new int[L][M];  
-		b = new int[M][N]; 
-		c = new int[L][N]; 
+		a = global new int[L][M];  
+		b = global new int[M][N]; 
+		c = global new int[L][N]; 
 	}
 
 	public void setValues() {
@@ -147,32 +180,5 @@ public class MMul{
 		}
 		return prod;
 	}
-	/*
-	 //Print Matrices to be multiplied
-	   System.printString("\n");
-	   System.printString("a =");
-	   for (int l = 0; l < k; l++) {
-	   for (int m = 0; m < q; m++) {
-	   atomic {
-	   tt = mm.a[l][m];
-	   }
-	   System.printString(" " + tt);
-	   System.printString("\t");
-	   }
-	   }
-	   System.printString("\n");
 
-	//System.printString("\n");
-	System.printString("b =");
-	for (int m = 0; m < q; m++) {
-	for (int n = 0; n < r; n++) {
-	atomic {
-	tt = mm.b[m][n];
-	}
-	System.printString(" " + tt);
-	System.printString("\t");
-	}
-	}
-	System.printString("\n");
-	*/
 }
