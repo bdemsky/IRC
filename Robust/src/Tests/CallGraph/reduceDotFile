@@ -1,0 +1,24 @@
+#!/bin/bash
+
+echo 'Removing all entries in call graph dot files without'
+echo 'the prefix CGTest...'
+
+for dfile in `ls *.dot`
+do
+
+# we definitely want the first line of
+# the dot file, so just send it to the
+# temporary file
+sed -n '1,1 p' <$dfile >$dfile.temp
+
+# now take only the directed edge statements
+# from the dot file that have the pattern CGtest
+sed -n '/CGTest/ p' <$dfile >>$dfile.temp
+
+# then throw the closing bracket at the end
+echo '}' >>$dfile.temp
+
+# and then clobber the old file
+mv $dfile.temp $dfile
+done
+
