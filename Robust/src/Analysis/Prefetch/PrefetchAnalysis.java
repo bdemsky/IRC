@@ -29,7 +29,7 @@ public class PrefetchAnalysis {
 	public static final float PREFETCH_THRESHOLD_PROB = (float)0.30;
 	public static final float BRANCH_TRUE_EDGE_PROB = (float)0.5;
 	public static final float BRANCH_FALSE_EDGE_PROB = (float)0.5;
-
+	
 	public PrefetchAnalysis(State state, CallGraph callgraph, TypeUtil typeutil) {
 		this.typeutil=typeutil;
 		this.state=state;
@@ -37,6 +37,8 @@ public class PrefetchAnalysis {
 		prefetch_hash = new Hashtable<FlatNode, Hashtable<PrefetchPair,Float>>();
 		pmap_hash = new Hashtable<FlatNode, Hashtable<FlatNode, PairMap>>();
 		DoPrefetch();
+		prefetch_hash = null;
+		pmap_hash = null;
 	}
 
 	/** This function returns true if a tempdescriptor object is found in the array of descriptors
@@ -115,6 +117,8 @@ public class PrefetchAnalysis {
 			if(newprefetchset.size() > 0) {
 				addFlatPrefetchNode(newprefetchset);
 			}
+			newprefetchset = null;
+			pset1_hash = null;
 		}
 	}
 
@@ -128,6 +132,9 @@ public class PrefetchAnalysis {
 			prefetch_hash.put(fn, nodehash);
 			tovisit.remove(fn);
 		}
+
+		nodehash = null;
+
 		/* Visit and process nodes */
 		tovisit = fm.getNodeSet(); 
 		while(!tovisit.isEmpty()) {
@@ -191,7 +198,9 @@ public class PrefetchAnalysis {
 						child_prefetch_set_copy = (Hashtable<PrefetchPair,Float>) prefetch_hash.get(child_node).clone();
 					}
 					processFlatCondBranch(curr, child_prefetch_set_copy, i, branch_prefetch_set, parentpmap);
+					parentpmap = null;
 				}
+				branch_prefetch_set = null;
 				break;
 			case FKind.FlatOpNode:
 				processFlatOpNode(curr, child_prefetch_set_copy, parentpmap);
@@ -230,6 +239,10 @@ public class PrefetchAnalysis {
 				System.out.println("NO SUCH FLATNODE");
 				break;
 		}
+
+		/* Free Heap Memory */
+		child_prefetch_set_copy = null;
+		parentpmap = null;
 	}
 
 	/**This function compares all the prefetch pairs in a Prefetch set hashtable and
@@ -377,6 +390,11 @@ public class PrefetchAnalysis {
 			/* Overwrite the new prefetch set to the global hash table */
 			prefetch_hash.put(curr,tocompare); 
 		} 
+
+		/* Free Heap Memory */
+		currcopy = null;
+		tocompare = null;
+		pm = null;
 	}
 
 	/** This function processes the prefetch set of a FlatElementNode
@@ -487,6 +505,11 @@ public class PrefetchAnalysis {
 			/* Overwrite the new prefetch set to the global hash table */
 			prefetch_hash.put(curr,tocompare); 
 		} 
+
+		/* Free heap memory */
+		currcopy = null;
+		tocompare = null;
+		pm = null;
 	}
 
 	/** This function processes the prefetch set of a FlatSetFieldNode
@@ -566,6 +589,10 @@ public class PrefetchAnalysis {
 			/* Overwrite the new prefetch set to the global hash table */
 			prefetch_hash.put(curr,tocompare); 
 		} 
+
+		/* Free heap memory */
+		tocompare = null;
+		pm = null;
 	}
 
 	/** This function processes the prefetch set of a FlatSetElementNode
@@ -645,6 +672,9 @@ public class PrefetchAnalysis {
 			/* Overwrite the new prefetch set to the global hash table */
 			prefetch_hash.put(curr,tocompare); 
 		} 
+		/* Free heap memory */
+		tocompare = null;
+		pm = null;
 	}
 
 	/** This function applies rules and does analysis for a FlatOpNode 
@@ -686,6 +716,8 @@ public class PrefetchAnalysis {
 						}
 						child_prefetch_set_copy.remove(newpp);
 					}
+					newdesc = null;
+					newpp = null;
 					/* For cases like x=y  with child prefetch set r[i].x, r[x].p, r[p+x].q*/
 				} else if(isTempDescFound(copyofchildpp, currfopn.getDest())) {
 					ArrayList<Descriptor> newdesc = new ArrayList<Descriptor>();
@@ -706,6 +738,8 @@ public class PrefetchAnalysis {
 						}
 						child_prefetch_set_copy.remove(newpp);
 					}
+					newdesc = null;
+					newpp = null;
 				}else {
 					continue;
 				}
@@ -769,6 +803,9 @@ public class PrefetchAnalysis {
 			/* Overwrite the new prefetch set to the global hash table */
 			prefetch_hash.put(curr,tocompare); 
 		} 
+		/* Free heap memory */
+		tocompare = null;
+		pm = null;
 	}
 
 	/** This function processes a FlatLiteralNode where cases such as
@@ -851,6 +888,9 @@ public class PrefetchAnalysis {
 			/* Overwrite the new prefetch set to the global hash table */
 			prefetch_hash.put(curr,tocompare); 
 		} 
+		/* Free heap memory */
+		tocompare = null;
+		pm = null;
 	}
 
 	/** This function processes a FlatMethod where the method propagates
@@ -886,6 +926,8 @@ public class PrefetchAnalysis {
 			/* Overwrite the new prefetch set to the global hash table */
 			prefetch_hash.put(curr,tocompare); 
 		} 
+		tocompare = null;
+		pm = null;
 	}
 
 	/** This Function processes the FlatCalls 
@@ -930,6 +972,9 @@ public class PrefetchAnalysis {
 			/* Overwrite the new prefetch set to the global hash table */
 			prefetch_hash.put(curr,tocompare); 
 		} 
+		/* Free heap memory */
+		tocompare = null;
+		pm = null;
 	}
 
 	/** This function handles the processes the FlatNode of type FlatCondBranch
@@ -1022,6 +1067,9 @@ public class PrefetchAnalysis {
 				prefetch_hash.put(curr,branch_prefetch_set); 
 			} 
 		}
+		/* Free heap memory */
+		tocompare = null;
+		pm = null;
 	}
 
 	/** If FlatNode is not concerned with the prefetch set of its Child then propagate 
@@ -1058,6 +1106,9 @@ public class PrefetchAnalysis {
 			/* Overwrite the new prefetch set to the global hash table */
 			prefetch_hash.put(curr,tocompare); 
 		}
+		/* Free heap memory */
+		tocompare = null;
+		pm = null;
 	}
 
 	/** This functions processes for FlatNewNode
@@ -1146,6 +1197,9 @@ public class PrefetchAnalysis {
 			/* Overwrite the new prefetch set to the global hash table */
 			prefetch_hash.put(curr,tocompare); 
 		} 
+		/* Free heap memory */
+		tocompare = null;
+		pm = null;
 	}
 
 	/** This functions processes for FlatTagDeclaration
@@ -1190,6 +1244,10 @@ public class PrefetchAnalysis {
 			/* Overwrite the new prefetch set to the global hash table */
 			prefetch_hash.put(curr,tocompare); 
 		} 
+
+		/* Free heap memory */
+		tocompare = null;
+		pm = null;
 	}
 
 	/** This function prints the Prefetch pairs of a given flatnode */
@@ -1226,6 +1284,11 @@ public class PrefetchAnalysis {
 			}
 		}
 
+		/* Free Heap Memory */
+		pset1_init = null;
+		newtovisit = null;
+
+		/* Delete redundant and subset prefetch pairs */
 		delSubsetPPairs();
 	
 		/* Start with a top down sorted order of nodes */
@@ -1278,6 +1341,11 @@ public class PrefetchAnalysis {
 					ppairs.remove(pp);
 				}
 			}
+
+			/* Free heap memory */
+			pplist = null;
+			pplength = null;
+			ppisMod = null;
 		}
 	}
 
@@ -1464,6 +1532,12 @@ public class PrefetchAnalysis {
 				newprefetchset.put(fn, s); 
 			}
 		}
+
+		/* Free heap memory */
+		pset1 = null;
+		pset2 = null;
+		newpset = null;
+		prefetchset = null;
 	}
 
 	private void addFlatPrefetchNode(Hashtable<FlatNode, HashSet<PrefetchPair>> newprefetchset) {

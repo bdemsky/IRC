@@ -1298,7 +1298,6 @@ public class BuildCode {
 		    current_node=current_node.getNext(0);
 	    } else throw new Error();
 	}
-
 	output.println("}\n\n");
     }
 
@@ -1432,25 +1431,9 @@ public class BuildCode {
  	    int i,j;
  	   
  	    if (state.PREFETCH) {
- 		    Iterator it = fpn.hspp.iterator();
  		    output.println("/* prefetch */");
  		    output.println("; /* empty statement to avoid compiler error */");
-
- 		    /* TODO Add support for arrays, Currently handles only field pointers*/
- 		    /* The while loop below removes all prefetch tuples with arrays from the set of prefetches */
-		    /*
- 		    while(it.hasNext()) {
- 			    PrefetchPair pp = (PrefetchPair) it.next();
- 			    for(i = 0; i < pp.desc.size(); i++) {
- 				    if(pp.getDescAt(i) instanceof IndexDescriptor) {
- 					    fpn.hspp.remove((PrefetchPair) pp);
- 					    it = fpn.hspp.iterator();
- 					    break;
- 				    }
- 			    }
- 		    }
-		    */
- 		    //it = fpn.hspp.iterator();
+ 		    Iterator it = fpn.hspp.iterator();
 		    String oidlist = new String();
  		    while(it.hasNext()) {
  			    PrefetchPair pp = (PrefetchPair) it.next();
@@ -1513,10 +1496,15 @@ public class BuildCode {
  				    count+", fieldarry_"+count+");");
  		    count++;
  	    }   
+
+	    /* Free heap memory */
+ 	    fieldoffset = null;
+	    endoffset = null;
+ 	    oids = null;
     }   
 
     public void generateInsideTransCode(FlatMethod fm, LocalityBinding lb,PrintWriter output,PrefetchPair pp,Vector oids, Vector fieldoffset,Vector endoffset, int tuplecount){
-	    int i;
+	    int i,j;
  	    short offsetcount = 0;
 
 	    Object newdesc = pp.desc.get(0);
@@ -1543,6 +1531,7 @@ public class BuildCode {
 				    generateTemp(fm, pp.base, lb) + "[" + tstlbl + "] : NULL)");
 		    oids.add(oid);
 	    }
+
 	    for(i = 1; i < pp.desc.size(); i++) {
 		    TypeDescriptor newtd;
 		    String newfieldoffset;
@@ -1551,10 +1540,12 @@ public class BuildCode {
 		    if(desc instanceof FieldDescriptor) {
 			    Object prevdesc = pp.getDescAt(i-1);
 			    if(prevdesc instanceof IndexDescriptor){
-				    if((i-1) == 0)
+				    if((i-1) == 0) {
 					    newtd = pp.base.getType(); 
-				    //FIXME currently handles one dimensional arrays
-				    newtd = ((FieldDescriptor)pp.getDescAt(i-2)).getType();
+				    } else {
+					    //FIXME currently handles one dimensional arrays
+					    newtd = ((FieldDescriptor)pp.getDescAt(i-2)).getType();
+				    }
 			    } else {
 				    newtd = ((FieldDescriptor)pp.getDescAt(i-1)).getType();
 			    }
@@ -1563,8 +1554,8 @@ public class BuildCode {
 			    fieldoffset.add(newfieldoffset);
 		    } else {
 			    String tstlbl = new String();
-			    for(i=0; i<((IndexDescriptor)desc).tddesc.size(); i++) {
-				    tstlbl += generateTemp(fm, ((IndexDescriptor)desc).getTempDescAt(i), lb) + "+";
+			    for(j = 0; j < ((IndexDescriptor)desc).tddesc.size(); j++) {
+				    tstlbl += generateTemp(fm, ((IndexDescriptor)desc).getTempDescAt(j), lb) + "+";
 			    }
 			    tstlbl += ((IndexDescriptor)desc).offset.toString();
 			    newfieldoffset = new String("(short)("+tstlbl+")");
@@ -1581,7 +1572,7 @@ public class BuildCode {
     }
 
     public void generateOutsideTransCode(FlatMethod fm, LocalityBinding lb,PrefetchPair pp, Vector oids, Vector fieldoffset, Vector endoffset, int tuplecount) {
-	    int i;
+	    int i,j;
  	    short offsetcount = 0;
 
 	    String oid = new String(" (unsigned int) (" + generateTemp(fm, pp.base, lb)+ ")");
@@ -1597,8 +1588,12 @@ public class BuildCode {
 			    } else {
 				    Object prevdesc = pp.getDescAt(i-1);
 				    if(prevdesc instanceof IndexDescriptor){
-					    //FIXME currently handles one dimensional arrays
-					    newtd = ((FieldDescriptor)pp.getDescAt(i-2)).getType();
+					    if((i-1) == 0) {
+						    newtd = pp.base.getType(); 
+					    } else {
+						    //FIXME currently handles one dimensional arrays
+						    newtd = ((FieldDescriptor)pp.getDescAt(i-2)).getType();
+					    }
 				    } else {
 					    newtd = ((FieldDescriptor)pp.getDescAt(i-1)).getType();
 				    }
@@ -1607,8 +1602,8 @@ public class BuildCode {
 					    ((FieldDescriptor)desc).getSafeSymbol()+ "))");
 		    } else {
 			    String tstlbl = new String();
-			    for(i=0; i<((IndexDescriptor)desc).tddesc.size(); i++) {
-				    tstlbl += generateTemp(fm, ((IndexDescriptor)desc).getTempDescAt(i), lb) + "+";
+			    for(j = 0; j < ((IndexDescriptor)desc).tddesc.size(); j++) {
+				    tstlbl += generateTemp(fm, ((IndexDescriptor)desc).getTempDescAt(j), lb) + "+";
 			    }
 			    tstlbl += ((IndexDescriptor)desc).offset.toString();
 			    newfieldoffset = new String("(short)("+tstlbl+")");
@@ -1626,7 +1621,7 @@ public class BuildCode {
     }
 
     public void generateLocalTransCode(FlatMethod fm, LocalityBinding lb,PrefetchPair pp,Vector oids, Vector fieldoffset,Vector endoffset, int tuplecount) {
-	    int i, j;
+	    int i, j, k;
 	    short offsetcount = 0;
 
 	    Vector prefix = new Vector();
@@ -1646,7 +1641,7 @@ public class BuildCode {
 				    tstlbl += fd.getSafeSymbol() + ": NULL";
 				    oid += tstlbl+ " )";
 				    oids.add(oid);
-				    for(j=i+1; j < pp.desc.size(); j++) {
+				    for(j = i+1; j < pp.desc.size(); j++) {
 					    TypeDescriptor newtd;
 					    String newfieldoffset;
 					    Object desc = pp.getDescAt(j);
@@ -1663,8 +1658,8 @@ public class BuildCode {
 								    ((FieldDescriptor)desc).getSafeSymbol()+ "))");
 					    } else {
 						    String indexlbl = new String();
-						    for(i=0; i<((IndexDescriptor)desc).tddesc.size(); i++) {
-							    indexlbl += generateTemp(fm, ((IndexDescriptor)desc).getTempDescAt(i), lb) + "+";
+						    for(k = 0; k < ((IndexDescriptor)desc).tddesc.size(); k++) {
+							    indexlbl += generateTemp(fm, ((IndexDescriptor)desc).getTempDescAt(k), lb) + "+";
 						    }
 						    indexlbl += ((IndexDescriptor)desc).offset.toString();
 						    newfieldoffset = new String("(short)("+indexlbl+")");
@@ -1701,7 +1696,7 @@ public class BuildCode {
 				    tstlbl += prefix.get(j) + "[";
 			    }
 			    indexstring += "[";
-			    for(j=0; j<id.tddesc.size(); j++) {
+			    for(j = 0; j < id.tddesc.size(); j++) {
 				    tstlbl += generateTemp(fm, id.getTempDescAt(j), lb) + "+"; 
 				    indexstring += generateTemp(fm,id.getTempDescAt(j), lb) + "+";
 			    }
