@@ -51,12 +51,6 @@ public class MatrixMultiply extends Thread{
 			mm = global new MatrixMultiply[NUM_THREADS];
 		}
 
-		for(i = 0; i < NUM_THREADS; i++) {
-			atomic{
-				mm[i].mmul = global new MMul(0, 0, 0);
-			}
-		}
-
 		// Currently it is a 4 X 4 matrix divided into 4 blocks 
 		atomic {
 			mm[0] = global new MatrixMultiply(matrix,0,0,1,1);
@@ -71,6 +65,7 @@ public class MatrixMultiply extends Thread{
 		}
 
 		// print out the matrices to be multiplied
+		System.printString("\n");
 		System.printString("MatrixMultiply: L=");
 		System.printInt(p);
 		System.printString("\t");
@@ -82,28 +77,27 @@ public class MatrixMultiply extends Thread{
 		System.printString("\n");
 
 		//Print Matrices to be multiplied
-		System.printString("\n");
-		System.printString("a =");
+		System.printString("a =\n");
 		for (i = 0; i < p; i++) {
 			for (j = 0; j < q; j++) {
 				atomic {
 					val = matrix.a[i][j];
 				}
 				System.printString(" " + val);
-				System.printString("\t");
 			}
+			System.printString("\n");
 		}
 		System.printString("\n");
 
-		System.printString("b =");
+		System.printString("b =\n");
 		for (i = 0; i < q; i++) {
 			for (j = 0; j < r; j++) {
 				atomic {
 					val = matrix.b[i][j];
 				}
 				System.printString(" " + val);
-				System.printString("\t");
 			}
+			System.printString("\n");
 		}
 		System.printString("\n");
 
@@ -125,15 +119,15 @@ public class MatrixMultiply extends Thread{
 
 		// print out the result of the matrix multiply
 		System.printString("Starting\n");
-		System.printString("Matrix Product c =");
+		System.printString("Matrix Product c =\n");
 		for (i = 0; i < p; i++) {
 			for (j = 0; j < r; j++) {
 				atomic {
 					val = matrix.c[i][j];
 				}
-				System.printInt(val);
-				System.printString("\t");
+				System.printString(" " + val);
 			}
+			System.printString("\n");
 		}
 		System.printString("Finished\n");
 	}
