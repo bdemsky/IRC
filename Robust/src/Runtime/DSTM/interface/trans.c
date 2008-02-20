@@ -91,10 +91,6 @@ void prefetch(int ntuples, unsigned int *oids, unsigned short *endoffsets, short
 	int len = 0;
 	int i, rc;
 	
-	//do {
-	//	rc=pthread_create(&tPrefetch, NULL, transPrefetch, NULL);
-	//} while(rc!=0);
-	
 	/* Allocate for the queue node*/
 	char *node;
 	if(ntuples > 0) {
@@ -1590,16 +1586,11 @@ void getPrefetchResponse(int count, int sd) {
 
 	if(control == TRANS_PREFETCH_RESPONSE) {
 		/*For each oid and offset tuple sent as prefetch request to remote machine*/
-		while(i < count) {
+		while(N = recv((int)sd, &bufsize, sizeof(unsigned int), 0) != 0) {
+			bzero(&buffer, RECEIVE_BUFFER_SIZE);
 			sum = 0;
 			index = 0;
-			/* Read the size of buffer to be received */
-			if((N = read(sd, buffer, sizeof(unsigned int))) <= 0) {
-				perror("Size of buffer not recv\n");
-				return;
-			}
-			bufsize = *((unsigned int *) buffer);
-			ptr = buffer + sizeof(unsigned int);
+			ptr = buffer;
 			/* Keep receiving the buffer containing oid info */ 
 			do {
 				n = recv((int)sd, (void *)ptr+sum, bufsize-sum, 0);
@@ -1607,8 +1598,7 @@ void getPrefetchResponse(int count, int sd) {
 			} while(sum < bufsize && n != 0);
 
 			/* Decode the contents of the buffer */
-			index = sizeof(unsigned int);
-			while(index < (bufsize - sizeof(unsigned int))) {
+			while(index < bufsize ) {
 				if(buffer[index] == OBJECT_FOUND) {
 					/* Increment it to get the object */
 					index += sizeof(char);
@@ -1659,12 +1649,10 @@ void getPrefetchResponse(int count, int sd) {
 					printf("OBJECT NOT FOUND.... THIS SHOULD NOT HAPPEN...TERMINATE PROGRAM\n");
 					exit(-1);
 				} else {
-					printf("Error in decoding the index value %s, %d\n",__FILE__, __LINE__);
+					printf("Error in decoding the index value %d, %s, %d\n",index, __FILE__, __LINE__);
 					return;
 				}
 			}
-
-			i++;
 		}
 	} else
 		printf("Error in receving response for prefetch request %s, %d\n",__FILE__, __LINE__);

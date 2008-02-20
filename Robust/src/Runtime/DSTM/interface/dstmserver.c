@@ -651,23 +651,13 @@ int prefetchReq(int acceptfd) {
 	char control;
 	objheader_t * header;
 	int bytesRecvd;
-/*
-	unsigned int myIpAddr;
 
-#ifdef MAC
-	myIpAddr = getMyIpAddr("en1");
-#else
-	myIpAddr = getMyIpAddr("eth0");
-#endif
-*/
-	/* Repeatedly recv the oid and offset pairs sent for prefetch */
+	/* Repeatedly recv one oid and offset pair sent for prefetch */
 	while(numbytes = recv((int)acceptfd, &length, sizeof(int), 0) != 0) {
 		count++;
 		if(length == -1)
 			break;
-		index = sizeof(unsigned int); // Index starts with sizeof  unsigned int because the 
-		// first 4 bytes are saved to send the
-		// size of the buffer (that is computed at the end of the loop)
+		index = 0;  
 		bytesRecvd = 0;
 		do {
 			bytesRecvd += recv((int)acceptfd, (char *)&oid +bytesRecvd,
@@ -684,6 +674,7 @@ int prefetchReq(int acceptfd) {
 			sum += n; 
 		} while(sum < N && n != 0);	
 
+		bzero(&buffer, PRE_BUF_SIZE);
 		/* Process each oid */
 		if ((mobj = mhashSearch(oid)) == NULL) {/* Obj not found */
 			/* Save the oids not found in buffer for later use */
@@ -740,6 +731,7 @@ int prefetchReq(int acceptfd) {
 				}
 			}
 		}
+
 		/* Check for overflow in the buffer */
 		if (index >= PRE_BUF_SIZE) {
 			printf("Error: Buffer array overflow %s, %d\n", __FILE__, __LINE__);
@@ -754,11 +746,14 @@ int prefetchReq(int acceptfd) {
 			}
 		}
 
-		/* Add the buffer size into buffer as a parameter */
-		*((unsigned int *)buffer)=index;
+		//Send buffer size 
+		if((numbytes = send(acceptfd, &index, sizeof(unsigned int), MSG_NOSIGNAL)) < sizeof(unsigned int)) {
+			perror("Error: in sending PREFETCH RESPONSE to Coordinator\n");
+			return 1;
+		}
 
 		/* Send the entire buffer with its size and oids found and not found */
-		if(send((int)acceptfd, &buffer, index, MSG_NOSIGNAL) < sizeof(index -1)) {
+		if(send((int)acceptfd, &buffer, index, MSG_NOSIGNAL) < sizeof(index)) {
 			perror("Error: sending oids found\n");
 			return 1;
 		}
