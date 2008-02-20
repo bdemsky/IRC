@@ -1,5 +1,6 @@
 package Analysis.OwnershipAnalysis;
 
+import Analysis.CallGraph.*;
 import IR.*;
 import IR.Flat.*;
 import java.util.*;
@@ -8,22 +9,24 @@ import java.io.*;
 
 public class OwnershipAnalysis {
 
-    /*
     // from the compiler
-    private State state;
-    private int   allocationDepthK;
+    private State     state;
+    private CallGraph callGraph;
+    private int       allocationDepth;
 
     // Use these data structures to track progress of 
-    // processing all methods in the program
-    private HashSet  <FlatMethod>                       flatMethodsToVisit;
-    private Hashtable<FlatMethod, OwnershipGraph>       mapFlatMethodToCompleteOwnershipGraph;
-    private Hashtable<Descriptor, HashSet<Descriptor> > mapMethodToDependentMethods;
+    // processing all methods in the program, and by methods
+    // TaskDescriptor and MethodDescriptor are combined 
+    // together, with a common parent class Descriptor
+    private HashSet  <Descriptor>                 descriptorsToVisit;
+    private Hashtable<Descriptor, OwnershipGraph> mapDescriptorToCompleteOwnershipGraph;
 
     // Use these data structures to track progress of one pass of
-    // processing the FlatNodes in a FlatMethod
+    // processing the FlatNodes of a particular method
     private HashSet  <FlatNode>                 flatNodesToVisit;
     private Hashtable<FlatNode, OwnershipGraph> mapFlatNodeToOwnershipGraph;    
-    private HashSet  <FlatReturnNode>           returnNodesToCombineForComplete;
+    private HashSet  <FlatReturnNode>           returnNodesToCombineForCompleteOwnershipGraph;
+
 
     // for generating unique ownership node ID's throughout the
     // ownership analysis
@@ -37,105 +40,33 @@ public class OwnershipAnalysis {
 
     // this analysis generates an ownership graph for every task
     // in the program
-    public OwnershipAnalysis( State state ) throws java.io.IOException {
-	this.state            = state;      
-	this.allocationDepthK = 3;
+    public OwnershipAnalysis( State     state,
+			      CallGraph callGraph, 
+			      int       allocationDepth ) throws java.io.IOException {
+	this.state           = state;      
+	this.callGraph       = callGraph;
+	this.allocationDepth = allocationDepth;
 
-	// the analyzeMethods() function will keep analyzing the contents
-	// of flatMethodsToVisit until it is empty.  The following function
-	// will generate the method dependencies and put every task (subclass
-	// of method) in flatMethodsToVisit so the ownership analysis will
-	// cover at least every task, but might not analyze every method of
-	// the program if there is no dependency chain back to a task
-	prepareForAndEnqueueTasks();
+	mapDescriptorToCompleteOwnershipGraph =
+	    new Hashtable<Descriptor, OwnershipGraph>();
 
+	// initialize methods to visit as the set of
+	// all tasks
+	descriptorsToVisit = new HashSet<Descriptor>();
+	Iterator taskItr = state.getTaskSymbolTable().getDescriptorsIterator();
+	while( taskItr.hasNext() ) {
+	    descriptorsToVisit.add( (Descriptor) taskItr.next() );
+	}	
+	
 	// as mentioned above, analyze methods one-by-one, possibly revisiting
 	// a method if the methods that it calls are updated
 	analyzeMethods();
     }
 
-    // run once per program analysis
-    private void prepareForAndEnqueueTasks() {
-	flatMethodsToVisit = new HashSet<FlatMethod>();
-
-	mapFlatMethodToCompleteOwnershipGraph =
-	    new Hashtable<FlatMethod, OwnershipGraph>();
-
-	mapMethodToDependentMethods =
-	    new Hashtable<Descriptor, HashSet<Descriptor> >();
-
-	// once the dependency map is generated here it
-	// doesn't need to be modified anymore.  It is
-	// used when a method is updated to enqueue the
-	// methods that are dependent on the result.  They
-	// may or may not have a different analysis outcome
-
-	// first put all the tasks into the dependency map
-	Iterator itrTasks = state.getTaskSymbolTable().getDescriptorsIterator();
-	while( itrTasks.hasNext() ) {
-	    TaskDescriptor td = itrTasks.next();
-	    FlatMethod     fm = state.getMethodFlat( td );
-	    
-	    searchFlatMethodForCallNodes( td, fm );
-	}
-
-	// then put all the methods of classes into the map
-    }
-
-    // called on each task and class method before ownership
-    // analysis is started so the method dependency map can
-    // be generated
-    private void searchFlatMethodForCallNodes( Descriptor caller, FlatMethod fm ) {
-	// borrow this data structure before the ownership
-	// analysis proper begins in order to search the IR
-	flatNodesToVisit = new HashSet<FlatNode>();
-
-	flatNodesToVisit.add( fm );
-
-	while( !flatNodesToVisit.isEmpty() ) {
-	    FlatNode fn = (FlatNode) flatNodesToVisit.iterator().next();
-	    flatNodesToVisit.remove( fn );
-	    
-	    if( fn.kind() == FKind.FlatClass ) {
-		FlatCall fc = (FlatCall) fn;
-		addMethodDependency( caller, fc.getMethod() );
-	    }
-	}
-    }
-
-    // supports creation of the method dependency map
-    private void addMethodDependency( Descriptor caller, Descriptor callee ) {
-
-	// the caller is calling the callee so the caller's
-	// analysis depends on the callee's analysis,
-	// therefore build a map that looks like this:
-	//   callee: <caller1, caller2, ...>
-	//
-	// and only add the dependency if it doesn't already exist
-
-	if( !mapMethodToDependentMethods.containsKey( callee ) ) {
-	    // there is no map entry for this callee, so add it with
-	    // just the caller as the only dependent method and return
-	    mapMethodToDependentMethods.put( callee, caller );
-	    return;
-	}
-
-	// if there is already an entry for the callee, check to see
-	// if the caller is already in the value for that map entry
-	HashSet dependentMethods = (HashSet) mapMethodToDependentMethods.get( callee );
-	
-	if( !dependentMethods.contains( caller ) ) {
-	    // the caller is not in the set of dependent methods for
-	    // this callee, so add it and return
-	    dependentMethods.add( caller );
-	    return;
-	}
-
-	// the dependency was already there, do nothing
-    }
-
-
     private void analyzeMethods() throws java.io.IOException {
+
+
+	/*
 	for( Iterator it_tasks=state.getTaskSymbolTable().getDescriptorsIterator();
 	     it_tasks.hasNext();
 	     ) {
@@ -158,8 +89,10 @@ public class OwnershipAnalysis {
 	    String methodname = td.getSymbol();
 	    analyzeFlatIRGraph( fm, methodname );
 	}	
+	*/
     }
 
+    /*
     private OwnershipGraph getGraphFromFlatNode( FlatNode fn ) {
 	if( !flatNodeToOwnershipGraph.containsKey( fn ) ) {
 	    flatNodeToOwnershipGraph.put( fn, new OwnershipGraph( newDepthK ) );
@@ -309,5 +242,4 @@ public class OwnershipAnalysis {
 	return "method_"+methodname+"_Ownership_from"+id;
     }
     */
-
 }

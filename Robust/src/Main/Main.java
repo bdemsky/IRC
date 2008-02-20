@@ -406,7 +406,10 @@ public class Main {
       }
 
       if (state.OWNERSHIP) {
-	  //	  OwnershipAnalysis oa = new OwnershipAnalysis(state);
+	  CallGraph callGraph  = new CallGraph( state );
+	  int allocationDepth  = 3;
+	  OwnershipAnalysis oa =
+	      new OwnershipAnalysis( state, callGraph, allocationDepth );
       }
 
       System.exit(0);

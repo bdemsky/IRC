@@ -5,7 +5,7 @@ SOURCE_FILES=test01.java
 BUILDSCRIPT=~/research/Robust/src/buildscript
 BSFLAGS= -recover -flatirtasks -ownership -enable-assertions
 
-all: view
+all: $(PROGRAM).bin #view
 
 view: PNGs
 	eog *flatIRGraph*.png &
