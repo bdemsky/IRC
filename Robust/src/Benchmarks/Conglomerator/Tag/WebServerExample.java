@@ -13,7 +13,7 @@ task LookupS(Stock l{initialstate}) {
     String query="GET /"+l.url+" HTTP/1.1\r\nConnection: close\r\nHost:"+l.hostname+"\r\n\r\n";
     l.connect(l.hostname, 80);
     l.write(query.getBytes());
-    taskexit(l{!initialstate, query});
+    taskexit(l{initialstate, query});
 }
 
 task ReceiveQueryS(Stock l{query&&IOPending}) {
@@ -22,6 +22,7 @@ task ReceiveQueryS(Stock l{query&&IOPending}) {
     if (numchars<=0) {
 	l.fix();
 	l.close();
+	System.printString("Before exiting ReceiveQueryS...\n");
 	taskexit(l{!query,done}{});
     }
     String str=new String(buffer, 0, numchars);
@@ -108,7 +109,6 @@ task ProcessRequest(WebServerSocket web{WebInitialize}{link l}, MySocket s{IOPen
 
 //Do the WriteIO on server socket and send the requested file to Client
 task SendFile(WebServerSocket web{WritePending}{link l}, MySocket s{}{link l}) {
-//	System.printString("W> Inside SendFile ... \n");
 	web.sendfile(s);
 	s.close();
 	taskexit(web {!WritePending});
