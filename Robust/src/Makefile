@@ -104,7 +104,9 @@ Analysis/Scheduling/TransTaskSimulator.class
 
 
 
-all: Parse/Sym.class Parse/Parser.class $(CLASSFILES) javadoc
+all: compiler javadoc
+
+compiler: Parse/Sym.class Parse/Parser.class $(CLASSFILES)
 
 wc:
 	wc Interface/*.java Analysis/*/*.java IR/*.java IR/*/*.java Lex/*.java Util/*.java ClassLibrary/*.java
