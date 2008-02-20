@@ -12,8 +12,8 @@ public class MatrixMultiply extends Thread{
 
 	public void run() {
 		int innerProduct = 0;
-		int i, j;
-		int xx0,xx1,yy0,yy1;
+		int i, j, k;
+		int xx0, xx1, yy0, yy1;
 
 		atomic {
 			xx0 = x0;
@@ -25,10 +25,13 @@ public class MatrixMultiply extends Thread{
 		for(i = xx0; i<= xx1; i++){
 			for (j = yy0; j <= yy1; j++) {
 				atomic {
-					innerProduct = mmul.multiply(i,j);
+					for(k = 0; k < mmul.M; k++) {
+						innerProduct += mmul.a[i][k] * mmul.b[k][j];
+					}
 				}
 				atomic {
 					mmul.c[i][j] = innerProduct;
+					innerProduct = 0;
 				}
 			}
 		}
@@ -139,6 +142,7 @@ public class MMul{
 	public int[][] a;
 	public int[][] b;
 	public int[][] c;
+	int k;
 
 	public MMul(int L, int M, int N) {
 		this.L = L;
@@ -170,14 +174,5 @@ public class MMul{
 			}
 		}
 	}
-
-	public int multiply(int x, int y) {
-		int i;
-		int prod = 0;
-		for(i = 0; i < M; i++) {
-			prod+= a[x][i] * b[i][y];
-		}
-		return prod;
-	}
-
 }
+
