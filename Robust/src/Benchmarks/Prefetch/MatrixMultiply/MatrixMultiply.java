@@ -29,7 +29,7 @@ public class MatrixMultiply extends Thread{
 		atomic {
 		    //write the results
 		    for(int i=x0;i<=x1;i++) {
-			for(int j=y0;y<y1;j++) {
+			for(int j=y0;j<=y1;j++) {
 			    mmul.c[i][j]=localresults[i-x0][j-y0];
 			}
 		    }
@@ -141,7 +141,6 @@ public class MMul{
 	public int[][] a;
 	public int[][] b;
 	public int[][] c;
-	int k;
 
 	public MMul(int L, int M, int N) {
 		this.L = L;
