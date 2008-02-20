@@ -11,29 +11,28 @@ public class MatrixMultiply extends Thread{
 	}
 
 	public void run() {
-		int innerProduct = 0;
-		int i, j, k;
-		int xx0, xx1, yy0, yy1;
-
+		int localresults[][];
 		atomic {
-			xx0 = x0;
-			xx1 = x1;
-			yy0 = y0;
-			yy1 = y1;
-		}
-
-		for(i = xx0; i<= xx1; i++){
-			for (j = yy0; j <= yy1; j++) {
-				atomic {
-					for(k = 0; k < mmul.M; k++) {
-						innerProduct += mmul.a[i][k] * mmul.b[k][j];
-					}
-				}
-				atomic {
-					mmul.c[i][j] = innerProduct;
-					innerProduct = 0;
-				}
+		    //compute the results
+		    localresults=new int[1+x1-x0][1+y1-y0];
+		    
+		    for(int i = x0; i<= x1; i++){
+			for (int j = y0; j <= y1; j++) {
+			    int innerProduct=0;
+			    for(int k = 0; k < mmul.M; k++) {
+				innerProduct += mmul.a[i][k] * mmul.b[k][j];
+			    }
+			    localresults[i-x0][j-y0]=innerProduct;
 			}
+		    }
+		}
+		atomic {
+		    //write the results
+		    for(int i=x0;i<=x1;i++) {
+			for(int j=y0;y<y1;j++) {
+			    mmul.c[i][j]=localresults[i-x0][j-y0];
+			}
+		    }
 		}
 	}
 
