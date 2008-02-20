@@ -1,7 +1,5 @@
 package Analysis.Scheduling;
 
-import Analysis.TaskStateAnalysis.*;
-import IR.*;
 import java.util.*;
 
 import Util.GraphNode;
@@ -18,11 +16,6 @@ public class ScheduleNode extends GraphNode implements Cloneable{
     Vector<ScheduleEdge> scheduleEdges;
     
     private int executionTime;
-    
-    private int coreNum;
-    private Vector tasks;
-    private Hashtable<ClassDescriptor, Vector<ScheduleNode>> targetSNodes; 
-    private boolean sorted = false;
 
     /** Class constructor
      *	@param cd ClassDescriptor
@@ -31,14 +24,14 @@ public class ScheduleNode extends GraphNode implements Cloneable{
     public ScheduleNode(int gid) {
     	this.uid = ScheduleNode.nodeID++;
     	this.gid = gid;
-    	this.coreNum = -1;
     	this.executionTime = -1;
+    	this.classNodes = null;
+    	this.scheduleEdges = null;
     }
     
     public ScheduleNode(ClassNode cn, int gid) {
     	this.uid = ScheduleNode.nodeID++;
     	this.gid = gid;
-    	this.coreNum = -1;
     	this.classNodes = new Vector<ClassNode>();
     	this.scheduleEdges = new Vector<ScheduleEdge>();
     	this.classNodes.add(cn);
@@ -48,62 +41,6 @@ public class ScheduleNode extends GraphNode implements Cloneable{
    
     public int getuid() {
     	return uid;
-    }
-    
-    public int getCoreNum() {
-    	return this.coreNum;
-    }
-    
-    public void setCoreNum(int coreNum) {
-    	this.coreNum = coreNum;
-    }
-    
-    public void addTargetSNode(ClassDescriptor cd, ScheduleNode sn) {
-    	if(this.targetSNodes == null) {
-	    this.targetSNodes = new Hashtable<ClassDescriptor, Vector<ScheduleNode>>();
-    	}
-    	
-    	if(!this.targetSNodes.containsKey(cd)) {
-	    this.targetSNodes.put(cd, new Vector<ScheduleNode>());
-    	}
-    	this.targetSNodes.get(cd).add(sn);
-    }
-    
-    public void listTasks() {
-    	if(this.tasks == null) {
-	    this.tasks = new Vector();
-    	}
-    	
-    	int i = 0;
-    	for(i = 0; i < classNodes.size(); i++) {
-	    Iterator it_flags = classNodes.elementAt(i).getFlags();
-	    while(it_flags.hasNext()) {
-		FlagState fs = (FlagState)it_flags.next();
-		Iterator it_edges = fs.edges();
-		while(it_edges.hasNext()) {
-		    TaskDescriptor td = ((FEdge)it_edges.next()).getTask();
-		    if(!this.tasks.contains(td)) {
-			this.tasks.add(td);
-		    }
-		}
-	    }
-    	}
-    }
-    
-    public void addTask(TaskDescriptor task){
-    	tasks.add(task);
-    }
-    
-    public Vector getTasks(){
-    	return tasks;
-    }
-    
-    public boolean isSorted() {
-    	return sorted;
-    }
-    
-    public void setSorted(boolean sorted) {
-    	this.sorted = sorted;
     }
     
     public String toString() {
@@ -178,8 +115,7 @@ public class ScheduleNode extends GraphNode implements Cloneable{
 		    return false;
 		}
 	    }
-            if ((fs.sorted != this.sorted) ||
-		(fs.executionTime != this.executionTime)){ 
+            if ((fs.executionTime != this.executionTime)){ 
                 return false;
             }
             if(fs.classNodes != null) {
@@ -195,7 +131,7 @@ public class ScheduleNode extends GraphNode implements Cloneable{
     }
 
     public int hashCode() {
-	int hashcode = gid^uid^Boolean.toString(sorted).hashCode()^executionTime;//^scheduleEdges.hashCode();
+	int hashcode = gid^uid^executionTime;
 	if(this.classNodes != null) {
 	    hashcode ^= classNodes.hashCode();
 	}
@@ -208,9 +144,6 @@ public class ScheduleNode extends GraphNode implements Cloneable{
 
     public String getTextLabel() {
 	String label=null;
-	if(this.coreNum != -1) {
-	    label = "Core " + this.coreNum;
-	}
 	
 	if (label==null)
 	    return " ";
@@ -241,15 +174,18 @@ public class ScheduleNode extends GraphNode implements Cloneable{
 	    ScheduleEdge temp = this.scheduleEdges.elementAt(i);
 	    ScheduleEdge se = null;
 	    if(!temp.getIsNew()) {
-		se = new ScheduleEdge(o, "transmit",temp.getClassDescriptor(), false, gid);
+		se = new ScheduleEdge(o, "transmit",temp.getFstate(), false, gid);//new ScheduleEdge(o, "transmit",temp.getClassDescriptor(), false, gid);
 	    } else {
-		se = new ScheduleEdge(o, "new",temp.getClassDescriptor(), gid);
+		se = new ScheduleEdge(o, "new",temp.getFstate(), gid);//new ScheduleEdge(o, "new",temp.getClassDescriptor(), gid);
 	    }
 	    se.setSourceCNode(cn2cn.get(temp.getSourceCNode()));
 	    se.setTargetCNode(cn2cn.get(temp.getTargetCNode()));
 	    se.setProbability(temp.getProbability());
 	    se.setNewRate(temp.getNewRate());
 	    se.setTransTime(temp.getTransTime());
+	    se.setFEdge(temp.getFEdge());
+	    se.setTargetFState(temp.getTargetFState());
+	    se.setIsclone(true);
 	    tses.add(se);
     	}
     	o.classNodes = tcns;

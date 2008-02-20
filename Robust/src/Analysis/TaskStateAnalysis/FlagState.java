@@ -1,5 +1,5 @@
 package Analysis.TaskStateAnalysis;
-import Analysis.Scheduling.ClassNode;
+
 import Analysis.TaskStateAnalysis.*;
 import IR.*;
 import IR.Tree.*;
@@ -28,6 +28,7 @@ public class FlagState extends GraphNode implements Cloneable {
     
     // jzhou
     private int executeTime;
+    private int invokeNum;
 
     /** Class constructor
      *  Creates a new flagstate with all flags set to false.
@@ -40,6 +41,7 @@ public class FlagState extends GraphNode implements Cloneable {
 	this.uid=FlagState.nodeid++;
 	this.issourcenode=false;
 	this.executeTime = -1;
+	this.invokeNum = 0;
     }
 
     /** Class constructor
@@ -55,6 +57,7 @@ public class FlagState extends GraphNode implements Cloneable {
 	this.uid=FlagState.nodeid++;
 	this.issourcenode=false;
 	this.executeTime = -1;
+	this.invokeNum = 0;
     }
    
     public int getuid() {
@@ -351,5 +354,35 @@ public class FlagState extends GraphNode implements Cloneable {
     	    o.inedges.addElement(this.inedges.elementAt(i));
     	}
     	return o;
+    }
+    
+    public void init4Simulate() {
+	this.invokeNum = 0;
+    }
+    
+    public FEdge process(TaskDescriptor td) {
+	FEdge next = null;
+	this.invokeNum++;
+	// refresh all the expInvokeNum of each edge
+	for(int i = 0; i < this.edges.size(); i++) {
+	    next = (FEdge)this.edges.elementAt(i);
+	    next.setExpInvokeNum((int)Math.round(this.invokeNum * (next.getProbability() / 100)));
+	}
+	
+	// find the one with the biggest gap between its actual invoke time and the expected invoke time
+	// and associated with task td
+	int index = 0;
+	int gap = 0;
+	for(int i = 0; i < this.edges.size(); i++) {
+	    int temp = ((FEdge)this.edges.elementAt(index)).getInvokeNumGap();
+	    if((temp > gap) && (next.getTask().equals(td))){
+		index = i;
+		gap = temp;
+	    }
+	}
+	next = (FEdge)this.edges.elementAt(index);
+	next.process();
+	
+	return next;
     }
 }

@@ -1,4 +1,5 @@
 package Analysis.Scheduling;
+
 import java.util.Iterator;
 
 import IR.*;
@@ -15,7 +16,8 @@ public class ScheduleEdge extends Edge {
     private static int nodeID=0;
 
     private String label;
-    private final ClassDescriptor cd;
+    //private final ClassDescriptor cd;
+    private final FlagState fstate;
     private boolean isNew = true;
     
     private FlagState targetFState;
@@ -29,10 +31,12 @@ public class ScheduleEdge extends Edge {
     private FEdge fedge;
     private int newRate;
     
+    private boolean isclone;
+    
     /** Class Constructor
      * 
      */
-    public ScheduleEdge(ScheduleNode target, String label, ClassDescriptor cd, int gid) {
+    public ScheduleEdge(ScheduleNode target, String label, /*ClassDescriptor cd,*/FlagState fstate, int gid) {
     	super(target);
     	this.uid = ScheduleEdge.nodeID++;
     	this.gid = gid;
@@ -41,14 +45,16 @@ public class ScheduleEdge extends Edge {
     	this.sourceCNode = null;
     	this.targetCNode = null;
     	this.label = label;
-    	this.cd = cd;
+    	//this.cd = cd;
+    	this.fstate = fstate;
     	this.newRate = -1;
     	this.probability = 100;
     	this.transTime = -1;
     	this.listExeTime = -1;
+    	this.isclone = false;
     }
     
-    public ScheduleEdge(ScheduleNode target, String label, ClassDescriptor cd, boolean isNew, int gid) {
+    public ScheduleEdge(ScheduleNode target, String label, /*ClassDescriptor cd,*/FlagState fstate, boolean isNew, int gid) {
     	super(target);
     	this.uid = ScheduleEdge.nodeID++;
     	this.gid = gid;
@@ -57,14 +63,24 @@ public class ScheduleEdge extends Edge {
     	this.sourceCNode = null;
     	this.targetCNode = null;
     	this.label = label;
-    	this.cd = cd;
+    	//this.cd = cd;
+    	this.fstate = fstate;
     	this.newRate = -1;
     	this.probability = 100;
     	this.transTime = -1;
     	this.listExeTime = -1;
     	this.isNew = isNew;
+    	this.isclone = false;
     }
     
+    public boolean isclone() {
+        return isclone;
+    }
+
+    public void setIsclone(boolean isclone) {
+        this.isclone = isclone;
+    }
+
     public void setTarget(GraphNode sn) {
     	this.target = sn;
     }
@@ -78,8 +94,12 @@ public class ScheduleEdge extends Edge {
     	return completeLabel;
     }
     
-    public ClassDescriptor getClassDescriptor() {
+    /*public ClassDescriptor getClassDescriptor() {
     	return cd;
+    }*/
+    
+    public FlagState getFstate() {
+        return fstate;
     }
     
     public boolean getIsNew() {
@@ -145,7 +165,8 @@ public class ScheduleEdge extends Edge {
 	    if ((e.label.equals(label))&&
 		(e.target.equals(target))&&
 		(e.source.equals(source)) &&
-		(e.cd.equals(cd)) &&  
+		//(e.cd.equals(cd)) &&  
+		(e.fstate.equals(fstate)) &&
 		(e.sourceCNode.equals(sourceCNode)) &&
 		(e.targetCNode.equals(targetCNode)) &&
 		(e.newRate == newRate) && 
@@ -170,7 +191,7 @@ public class ScheduleEdge extends Edge {
     }
     
     public int hashCode(){
-	int hashcode = gid^uid^label.hashCode()^target.hashCode()^source.hashCode()^cd.hashCode()^
+	int hashcode = gid^uid^label.hashCode()^target.hashCode()^source.hashCode()^fstate.hashCode()^//cd.hashCode()^
 			sourceCNode.hashCode()^targetCNode.hashCode()^newRate^probability^
 			Boolean.toString(isNew).hashCode()^transTime^listExeTime;
 	if(targetFState != null) {

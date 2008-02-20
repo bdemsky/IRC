@@ -17,14 +17,21 @@ public class FEdge extends Edge {
     // jzhou
     private int executeTime;
     private Hashtable<ClassDescriptor, NewObjInfo> newObjInfos;
+    private int probability;
+    private int invokeNum;
+    private int expInvokeNum;
     
     public class NewObjInfo {
     	int newRate;
     	int probability;
+    	FlagState root;
+    	int invokeNum;
     	
     	public NewObjInfo() {
 	    newRate = 0;
 	    probability = 0;
+	    root = null;
+	    invokeNum = 0;
     	}
     	
     	public NewObjInfo(int newRate, int probability) {
@@ -48,11 +55,29 @@ public class FEdge extends Edge {
 	    this.probability = probability;
     	}
     	
-    	public boolean equals(Object o) {
+    	public FlagState getRoot() {
+	    return root;
+	}
+
+	public void setRoot(FlagState root) {
+	    this.root = root;
+	}
+
+	public int getInvokeNum() {
+	    return invokeNum;
+	}
+
+	public void incInvokeNum() {
+	    this.invokeNum++;
+	}
+
+	public boolean equals(Object o) {
             if (o instanceof NewObjInfo) {
             	NewObjInfo e=(NewObjInfo)o;
 		if (e.newRate == this.newRate &&
-		    e.probability == this.probability) {
+		    e.probability == this.probability &&
+		    e.invokeNum == this.invokeNum &&
+		    e.root.equals(this.root)) {
 		    return true;
 		}
             }
@@ -70,8 +95,19 @@ public class FEdge extends Edge {
 	this.parameterindex=parameterindex;
 	this.executeTime = -1;
 	this.newObjInfos = null;
+	this.probability = -1;
+	this.invokeNum = 0;
+	this.expInvokeNum = 0;
     }
-    
+
+    public int getProbability() {
+        return probability;
+    }
+
+    public void setProbability(int probability) {
+        this.probability = probability;
+    }
+
     public String getLabel() {
 	return label;
     }
@@ -139,4 +175,21 @@ public class FEdge extends Edge {
     	}
     	this.newObjInfos.put(cd, new NewObjInfo(newRate, probability));
     }
+    
+    public void process() {
+	this.invokeNum++;
+    }
+
+    public int getInvokeNum() {
+        return invokeNum;
+    }
+
+    public int getInvokeNumGap() {
+        return expInvokeNum - invokeNum;
+    }
+
+    public void setExpInvokeNum(int expInvokeNum) {
+        this.expInvokeNum = expInvokeNum;
+    }
+    
 }

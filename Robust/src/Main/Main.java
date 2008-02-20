@@ -1,5 +1,8 @@
 package Main;
 
+import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.io.PrintStream;
 import java.io.Reader;
 import java.io.BufferedReader;
 import java.io.FileReader;
@@ -16,9 +19,11 @@ import IR.ClassDescriptor;
 import IR.State;
 import IR.TaskDescriptor;
 import IR.TypeUtil;
+import Analysis.Scheduling.Schedule;
 import Analysis.Scheduling.ScheduleAnalysis;
 import Analysis.Scheduling.ScheduleEdge;
 import Analysis.Scheduling.ScheduleNode;
+import Analysis.Scheduling.ScheduleSimulator;
 import Analysis.TaskStateAnalysis.TaskAnalysis;
 import Analysis.TaskStateAnalysis.TaskTagAnalysis;
 import Analysis.TaskStateAnalysis.TaskGraph;
@@ -209,6 +214,39 @@ public class Main {
 	  }
 	  
 	  if (state.SCHEDULING) {
+	      // Save the current standard input, output, and error streams
+	      // for later restoration.
+	      PrintStream	origOut	= System.out;
+
+	      // Create a new output stream for the standard output.
+	      PrintStream	stdout	= null;
+	      try {
+		  stdout = new PrintStream (new FileOutputStream("SimulatorResult.out"));
+	      } catch (Exception e) {
+		  // Sigh.  Couldn't open the file.
+		  System.out.println ("Redirect:  Unable to open output file!");
+		  System.exit (1);
+	      }
+
+	      // Print stuff to the original output and error streams.
+	      // On most systems all of this will end up on your console when you
+	      // run this application.
+	      origOut.println ("\nRedirect:  Round #1");
+	      System.out.println ("Test output via 'System.out'.");
+	      origOut.println ("Test output via 'origOut' reference.");
+
+	      // Set the System out and err streams to use our replacements.
+	      System.setOut(stdout);
+
+	      // Print stuff to the original output and error streams.
+	      // The stuff printed through the 'origOut' and 'origErr' references
+	      // should go to the console on most systems while the messages
+	      // printed through the 'System.out' and 'System.err' will end up in
+	      // the files we created for them.
+	      origOut.println ("\nRedirect:  Round #2");
+	      System.out.println ("Test output via 'SimulatorResult.out'.");
+	      origOut.println ("Test output via 'origOut' reference.");
+	      
 	      // for test
 	      // Randomly set the newRate and probability of FEdges
 	      java.util.Random r=new java.util.Random();
@@ -226,8 +264,20 @@ public class Main {
 				      TaskDescriptor td = (TaskDescriptor)allocatingTasks.elementAt(k);
 				      Vector<FEdge> fev = (Vector<FEdge>)ta.getFEdgesFromTD(td);
 				      int numEdges = fev.size();
+				      int total = 100;
 				      for(int j = 0; j < numEdges; j++) {
 					  FEdge pfe = fev.elementAt(j);
+					  if(numEdges - j == 1) {
+					      pfe.setProbability(total);
+					  } else {
+					      if(total != 0) {
+						  do {
+						      tint = r.nextInt()%total;
+						  } while(tint <= 0);
+					      }
+					      pfe.setProbability(tint);
+					      total -= tint;
+					  }
 					  do {
 					      tint = r.nextInt()%10;
 					  } while(tint <= 0);
@@ -258,29 +308,78 @@ public class Main {
 		  }
 	      }
 	      
+	      // generate multiple schedulings
 	      ScheduleAnalysis scheduleAnalysis = new ScheduleAnalysis(state, ta);
 	      scheduleAnalysis.preSchedule();
+	      scheduleAnalysis.scheduleAnalysis();
+	      scheduleAnalysis.setCoreNum(scheduleAnalysis.getSEdges4Test().size());
+	      scheduleAnalysis.schedule();
 	      
-	      // Randomly set the newRate and probability of ScheduleEdges
-	      /*Vector<ScheduleEdge> sedges = scheduleAnalysis.getSEdges4Test();
-		java.util.Random r=new java.util.Random();
-		for(int i = 0; i < sedges.size(); i++) {
-		ScheduleEdge temp = sedges.elementAt(i);
-		int tint = 0;
-		do {
-		    tint = r.nextInt()%100;
-		}while(tint <= 0);
-		temp.setProbability(tint);
-		do {
-		    tint = r.nextInt()%10;
-		} while(tint <= 0);
-		temp.setNewRate(tint);
-		//temp.setNewRate((i+1)%2+1);
-		}
-		//sedges.elementAt(3).setNewRate(2);*/
-		scheduleAnalysis.scheduleAnalysis();
-		scheduleAnalysis.setCoreNum(scheduleAnalysis.getSEdges4Test().size() - 1);
-		scheduleAnalysis.schedule();
+	      //simulate these schedulings
+	      ScheduleSimulator scheduleSimulator = new ScheduleSimulator(scheduleAnalysis.getCoreNum(), state, ta);
+	      Iterator it_scheduling = scheduleAnalysis.getSchedulingsIter();
+	      int index = 0;
+	      Vector<Integer> selectedScheduling = new Vector<Integer>();
+	      int processTime = Integer.MAX_VALUE;
+	      while(it_scheduling.hasNext()) {
+		  Vector<Schedule> scheduling = (Vector<Schedule>)it_scheduling.next();
+		  scheduleSimulator.setScheduling(scheduling);
+		  int tmpTime = scheduleSimulator.process();
+		  if(tmpTime < processTime) {
+		      selectedScheduling.clear();
+		      selectedScheduling.add(index);
+		      processTime = tmpTime;
+		  } else if(tmpTime == processTime) {
+		      selectedScheduling.add(index);
+		  }
+		  index++;
+	      }
+	      System.out.print("Selected schedulings with least exectution time " + processTime + ": \n\t");
+	      for(int i = 0; i < selectedScheduling.size(); i++) {
+		  System.out.print(selectedScheduling.elementAt(i) + ", ");
+	      }
+	      System.out.println();
+	      
+	      /*ScheduleSimulator scheduleSimulator = new ScheduleSimulator(4, state, ta);
+	      Vector<Schedule> scheduling = new Vector<Schedule>();
+	      for(int i = 0; i < 4; i++) {
+		  Schedule schedule = new Schedule(i);
+		  scheduling.add(schedule);
+	      }
+	      Iterator it_tasks = state.getTaskSymbolTable().getAllDescriptorsIterator();
+	      while(it_tasks.hasNext()) {
+		  TaskDescriptor td = (TaskDescriptor)it_tasks.next();
+		  if(td.getSymbol().equals("t10")) {
+		      scheduling.elementAt(1).addTask(td);
+		  } else {
+		      scheduling.elementAt(0).addTask(td);
+		  }
+	      }
+	      ClassDescriptor cd = (ClassDescriptor)state.getClassSymbolTable().get("E");
+	      scheduling.elementAt(0).addTargetCore(cd, 1);
+	      scheduleSimulator.setScheduling(scheduling);
+	      scheduleSimulator.process();
+	      
+	      Vector<Schedule> scheduling1 = new Vector<Schedule>();
+	      for(int i = 0; i < 4; i++) {
+		  Schedule schedule = new Schedule(i);
+		  scheduling1.add(schedule);
+	      }
+	      Iterator it_tasks1 = state.getTaskSymbolTable().getAllDescriptorsIterator();
+	      while(it_tasks1.hasNext()) {
+		  TaskDescriptor td = (TaskDescriptor)it_tasks1.next();
+		  scheduling1.elementAt(0).addTask(td);
+	      }
+	      scheduleSimulator.setScheduling(scheduling1);
+	      scheduleSimulator.process();*/
+	      
+	      // Close the streams.
+	      try {
+		  stdout.close ();
+		  System.setOut(origOut);
+	      } catch (Exception e) {
+		  origOut.println ("Redirect:  Unable to close files!");
+	      }
 	  }
 	  
       }

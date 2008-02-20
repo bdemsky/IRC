@@ -1,32 +1,27 @@
 package Analysis.Scheduling;
 
 import Analysis.TaskStateAnalysis.*;
-import Analysis.TaskStateAnalysis.FEdge.NewObjInfo;
 import IR.*;
 
 import java.util.*;
-import java.io.*;
-
-import Util.Edge;
-import Util.GraphNode;
-import Util.Namer;
 
 /** This class holds flag transition diagram(s) can be put on one core.
  */
 public class ScheduleAnalysis {
     
-    TaskAnalysis taskanalysis;
     State state;
+    TaskAnalysis taskanalysis;
     Vector<ScheduleNode> scheduleNodes;
     Vector<ClassNode> classNodes;
+    Vector<ScheduleEdge> scheduleEdges;
     Hashtable<ClassDescriptor, ClassNode> cd2ClassNode;
     boolean sorted = false;
-    Vector<ScheduleEdge> scheduleEdges;
 
     int transThreshold;
     
     int coreNum;
-    Vector<Vector<ScheduleNode>> schedules;
+    Vector<Vector<ScheduleNode>> scheduleGraphs;
+    Vector<Vector<Schedule>> schedulings;
 
     public ScheduleAnalysis(State state, TaskAnalysis taskanalysis) {
 	this.state = state;
@@ -37,18 +32,32 @@ public class ScheduleAnalysis {
 	this.cd2ClassNode = new Hashtable<ClassDescriptor, ClassNode>();
 	this.transThreshold = 45;
 	this.coreNum = -1;
+	this.scheduleGraphs = null;
+	this.schedulings = null;
     } 
     
     public void setTransThreshold(int tt) {
     	this.transThreshold = tt;
     }
     
+    public int getCoreNum() {
+        return coreNum;
+    }
+
     public void setCoreNum(int coreNum) {
 	this.coreNum = coreNum;
     }
     
-    public Iterator getSchedules() {
-	return this.schedules.iterator();
+    public Iterator getScheduleGraphs() {
+	return this.scheduleGraphs.iterator();
+    }
+    
+    public Iterator getSchedulingsIter() {
+	return this.schedulings.iterator();
+    }
+    
+    public Vector<Vector<Schedule>> getSchedulings() {
+	return this.schedulings;
     }
     
     // for test
@@ -121,11 +130,15 @@ public class ScheduleAnalysis {
 				    // fake creating edge, do not need to create corresponding 'new' edge
 				    continue;
     	    			}
+    	    			if(noi.getRoot() == null) {
+    	    			    // set root FlagState
+    	    			    noi.setRoot(root);
+    	    			}
     	    			FlagState pfs = (FlagState)pfe.getTarget();
     	    			ClassDescriptor pcd = pfs.getClassDescriptor();
     	    			ClassNode pcNode = cdToCNodes.get(pcd);
 				
-        		    	ScheduleEdge sEdge = new ScheduleEdge(sNode, "new", cd, 0);
+        		    	ScheduleEdge sEdge = new ScheduleEdge(sNode, "new", root, 0);//new ScheduleEdge(sNode, "new", cd, 0);
         		    	sEdge.setFEdge(pfe);
         		    	sEdge.setSourceCNode(pcNode);
         		    	sEdge.setTargetCNode(cNode);
@@ -174,7 +187,7 @@ public class ScheduleAnalysis {
 	    }
 	}
 	
-	printScheduleGraph("scheduling_ori.dot", this.scheduleNodes);
+	SchedulingUtil.printScheduleGraph("scheduling_ori.dot", this.scheduleNodes);
     }
     
     public void scheduleAnalysis() {
@@ -334,7 +347,7 @@ public class ScheduleAnalysis {
     	fe2ses = null;
     	sn2fes = null;
     	
-    	printScheduleGraph("scheduling_extend.dot", this.scheduleNodes);
+    	SchedulingUtil.printScheduleGraph("scheduling_extend.dot", this.scheduleNodes);
     }
     
     private void handleScheduleEdge(ScheduleEdge se, boolean merge) {
@@ -398,15 +411,17 @@ public class ScheduleAnalysis {
 		ScheduleEdge tse = (ScheduleEdge)inedges.elementAt(i);
 		ScheduleEdge se;
 		if(tse.getIsNew()) {
-		    se = new ScheduleEdge(csNode, "new", tse.getClassDescriptor(), tse.getIsNew(), 0);
+		    se = new ScheduleEdge(csNode, "new", tse.getFstate(), tse.getIsNew(), 0); //new ScheduleEdge(csNode, "new", tse.getClassDescriptor(), tse.getIsNew(), 0);
 		    se.setProbability(100);
 		    se.setNewRate(1);
-		    se.setFEdge(tse.getFEdge());
 		} else {
-		    se = new ScheduleEdge(csNode, "transmit", tse.getClassDescriptor(), false, 0);
+		    se = new ScheduleEdge(csNode, "transmit", tse.getFstate(), false, 0);//new ScheduleEdge(csNode, "transmit", tse.getClassDescriptor(), false, 0);
 		}
 		se.setSourceCNode(tse.getSourceCNode());
 		se.setTargetCNode(cn2cn.get(tse.getTargetCNode()));
+		se.setFEdge(tse.getFEdge());
+		se.setTargetFState(tse.getTargetFState());
+		se.setIsclone(true);
 		tse.getSource().addEdge(se);
 		scheduleEdges.add(se);
 	    }
@@ -416,7 +431,8 @@ public class ScheduleAnalysis {
 	    sEdge.setTarget(csNode);
 	    csNode.getInedgeVector().add(sEdge);
 	    sEdge.setTargetCNode(cn2cn.get(sEdge.getTargetCNode()));
-	    sEdge.setTargetFState(null);
+	    //sEdge.setTargetFState(null);
+	    sEdge.setIsclone(true);
 	}
     	
     	Queue<ScheduleNode> toClone = new LinkedList<ScheduleNode>();
@@ -441,14 +457,17 @@ public class ScheduleAnalysis {
 	    	qcn2cn.add(tocn2cn);
 	    	ScheduleEdge se = null;
 	    	if(tse.getIsNew()) {
-	    	    se = new ScheduleEdge(tSNode, "new", tse.getClassDescriptor(), tse.getIsNew(), 0);
+	    	    se = new ScheduleEdge(tSNode, "new", tse.getFstate(), tse.getIsNew(), 0);//new ScheduleEdge(tSNode, "new", tse.getClassDescriptor(), tse.getIsNew(), 0);
 	    	    se.setProbability(tse.getProbability());
 	    	    se.setNewRate(tse.getNewRate());
 	    	} else {
-	    	    se = new ScheduleEdge(tSNode, "transmit", tse.getClassDescriptor(), false, 0);
+	    	    se = new ScheduleEdge(tSNode, "transmit", tse.getFstate(), false, 0);//new ScheduleEdge(tSNode, "transmit", tse.getClassDescriptor(), false, 0);
 	    	}
 	    	se.setSourceCNode(cn2cn.get(tse.getSourceCNode()));
 	    	se.setTargetCNode(tocn2cn.get(tse.getTargetCNode()));
+	    	se.setFEdge(tse.getFEdge());
+	    	se.setTargetFState(tse.getTargetFState());
+	    	se.setIsclone(true);
 	    	csNode.addEdge(se);
 	    	scheduleEdges.add(se);
 	    }
@@ -546,7 +565,7 @@ public class ScheduleAnalysis {
 	toiterate = null;
 	
 	// create a 'trans' ScheudleEdge between this new ScheduleNode and se's source ScheduleNode
-	ScheduleEdge sEdge = new ScheduleEdge(sNode, "transmit", cNode.getClassDescriptor(), false, 0);
+	ScheduleEdge sEdge = new ScheduleEdge(sNode, "transmit", (FlagState)fe.getTarget(), false, 0);//new ScheduleEdge(sNode, "transmit", cNode.getClassDescriptor(), false, 0);
 	sEdge.setTargetFState(fs);
 	sEdge.setFEdge(fe);
 	sEdge.setSourceCNode(sCNode);
@@ -596,15 +615,15 @@ public class ScheduleAnalysis {
 	    throw new Exception("Error: un-initialized coreNum when doing scheduling.");
 	}
 	
-	if(this.schedules == null) {
-	    this.schedules = new Vector<Vector<ScheduleNode>>();
+	if(this.scheduleGraphs == null) {
+	    this.scheduleGraphs = new Vector<Vector<ScheduleNode>>();
 	}
 	
 	int reduceNum = this.scheduleNodes.size() - this.coreNum;
 	
 	// Enough cores, no need to merge more ScheduleEdge
 	if(!(reduceNum > 0)) {
-	    this.schedules.addElement(this.scheduleNodes);
+	    this.scheduleGraphs.addElement(this.scheduleNodes);
 	} else {
 	    // sort the ScheduleEdges in dececending order of transmittime
 	    Vector<ScheduleEdge> sEdges = new Vector<ScheduleEdge>();
@@ -658,7 +677,7 @@ public class ScheduleAnalysis {
 			reduceEdges.add(sEdges.elementAt(((Integer)toreduce.elementAt(i)).intValue()));
 		    }
 		    Vector<ScheduleNode> sNodes = generateScheduling(reduceEdges, gid++);
-		    this.schedules.add(sNodes);
+		    this.scheduleGraphs.add(sNodes);
 		    reduceEdges = null;
 		    sNodes = null;
 		} else {
@@ -669,22 +688,67 @@ public class ScheduleAnalysis {
 	    sEdges = null;
 	    candidates = null;
 
-	/*
-	    // Assign a core to each ScheduleNode
-	    int i = 0;
-	    int coreNum = 1;
-	    for(i = 0; i < scheduleNodes.size(); i++) {
-		ScheduleNode sn = scheduleNodes.elementAt(i);
-		sn.setCoreNum(coreNum++);
-		sn.listTasks();
+	}
+	
+	if(this.schedulings == null) {
+	    this.schedulings = new Vector<Vector<Schedule>>();
+	}
+	
+	for(int i = 0; i < this.scheduleGraphs.size(); i++) {
+	    Vector<ScheduleNode> scheduleGraph = this.scheduleGraphs.elementAt(i);
+	    Vector<Schedule> scheduling = new Vector<Schedule>(scheduleGraph.size());
+	    // for each ScheduleNode create a schedule node representing a core
+	    Hashtable<ScheduleNode, Integer> sn2coreNum = new Hashtable<ScheduleNode, Integer>();
+	    int j = 0;
+	    for(j = 0; j < scheduleGraph.size(); j++) {
+		sn2coreNum.put(scheduleGraph.elementAt(j), j);
+	    }
+	    for(j = 0; j < scheduleGraph.size(); j++) {
+		Schedule tmpSchedule = new Schedule(j);
+		ScheduleNode sn = scheduleGraph.elementAt(j);
+		
+		Vector<ClassNode> cNodes = sn.getClassNodes();
+	    	for(int k = 0; k < cNodes.size(); k++) {
+		    Iterator it_flags = cNodes.elementAt(k).getFlags();
+		    while(it_flags.hasNext()) {
+			FlagState fs = (FlagState)it_flags.next();
+			Iterator it_edges = fs.edges();
+			while(it_edges.hasNext()) {
+			    TaskDescriptor td = ((FEdge)it_edges.next()).getTask();
+			    tmpSchedule.addTask(td);
+			}
+		    }
+	    	}
+
 		// For each of the ScheduleEdge out of this ScheduleNode, add the target ScheduleNode into the queue inside sn
 		Iterator it_edges = sn.edges();
 		while(it_edges.hasNext()) {
 		    ScheduleEdge se = (ScheduleEdge)it_edges.next();
 		    ScheduleNode target = (ScheduleNode)se.getTarget();
-		    sn.addTargetSNode(se.getTargetFState().getClassDescriptor(), target);
+		    if(se.getIsNew()) {
+			for(int k = 0; k < se.getNewRate(); k++) {
+			    tmpSchedule.addTargetCore(se.getFstate(), sn2coreNum.get(target));
+			}
+		    } else {
+			// 'transmit' edge
+			tmpSchedule.addTargetCore(se.getFstate(), sn2coreNum.get(target), se.getTargetFState());
+		    }
 		}
-	    }*/
+		it_edges = sn.getScheduleEdgesIterator();
+		while(it_edges.hasNext()) {
+		    ScheduleEdge se = (ScheduleEdge)it_edges.next();
+		    if(se.getIsNew()) {
+			for(int k = 0; k < se.getNewRate(); k++) {
+			    tmpSchedule.addTargetCore(se.getFstate(), j);
+			}
+		    } else {
+			// 'transmit' edge
+			tmpSchedule.addTargetCore(se.getFstate(), j, se.getTargetFState());
+		    }
+		}
+		scheduling.add(tmpSchedule);
+	    }
+	    this.schedulings.add(scheduling);
 	}
 	
     }
@@ -714,15 +778,17 @@ public class ScheduleAnalysis {
 	    Hashtable<ClassNode, ClassNode> targetcn2cn = sn2hash.get(ctarget);
 	    ScheduleEdge se;
 	    if(sse.getIsNew()) {
-		se = new ScheduleEdge(ctarget, "new", sse.getClassDescriptor(), sse.getIsNew(), gid);
+		se = new ScheduleEdge(ctarget, "new", sse.getFstate(), sse.getIsNew(), gid);//new ScheduleEdge(ctarget, "new", sse.getClassDescriptor(), sse.getIsNew(), gid);
 		se.setProbability(sse.getProbability());
 		se.setNewRate(sse.getNewRate());
-		se.setFEdge(sse.getFEdge());
 	    } else {
-		se = new ScheduleEdge(ctarget, "transmit", sse.getClassDescriptor(), false, gid);
+		se = new ScheduleEdge(ctarget, "transmit", sse.getFstate(), false, gid);//new ScheduleEdge(ctarget, "transmit", sse.getClassDescriptor(), false, gid);
 	    }
 	    se.setSourceCNode(sourcecn2cn.get(sse.getSourceCNode()));
 	    se.setTargetCNode(targetcn2cn.get(sse.getTargetCNode()));
+	    se.setFEdge(sse.getFEdge());
+	    se.setTargetFState(sse.getTargetFState());
+	    se.setIsclone(true);
 	    csource.addEdge(se);
 	    if(reduceEdges.contains(sse)) {
 		toMerge.add(se);
@@ -746,204 +812,9 @@ public class ScheduleAnalysis {
 	toMerge = null;
 	
 	String path = "scheduling_" + gid + ".dot";
-	printScheduleGraph(path, result);
+	SchedulingUtil.printScheduleGraph(path, result);
 	
 	return result;
-    }
-    
-    public void printScheduleGraph(String path, Vector<ScheduleNode> sNodes) {
-    	try {
-	    File file=new File(path);
-	    FileOutputStream dotstream=new FileOutputStream(file,false);
-	    PrintWriter output = new java.io.PrintWriter(dotstream, true);
-	    output.println("digraph G {");
-	    output.println("\tcompound=true;\n");
-	    traverseSNodes(output, sNodes);
-	    output.println("}\n");       
-    	} catch (Exception e) {
-	    e.printStackTrace();
-	    System.exit(-1);
-    	}
-    }
-    
-    private void traverseSNodes(PrintWriter output, Vector<ScheduleNode> sNodes){
-    	//Draw clusters representing ScheduleNodes
-        Iterator it = sNodes.iterator();
-        while (it.hasNext()) {
-	    ScheduleNode gn = (ScheduleNode) it.next();
-            Iterator edges = gn.edges();
-            output.println("\tsubgraph " + gn.getLabel() + "{");
-            output.println("\t\tlabel=\"" + gn.getTextLabel() + "\";");
-            Iterator it_cnodes = gn.getClassNodesIterator();
-            traverseCNodes(output, it_cnodes);
-            //Draw the internal 'new' edges
-            Iterator it_edges =gn.getScheduleEdgesIterator();
-            while(it_edges.hasNext()) {
-            	ScheduleEdge se = (ScheduleEdge)it_edges.next();
-            	output.print("\t");
-            	if(se.getSourceCNode().isclone()) {
-            	    output.print(se.getSourceCNode().getLabel());
-            	} else {
-            	    if(se.getSourceFState() == null) {
-            		output.print(se.getSourceCNode().getClusterLabel());
-            	    } else {
-            		output.print(se.getSourceFState().getLabel());
-            	    }
-            	}
-            	
-            	output.print(" -> ");
-            	if(se.getTargetFState() == null) {
-            	    if(se.getTargetCNode().isclone()) {
-            		output.print(se.getTargetCNode().getLabel());
-            	    } else {
-            		output.print(se.getTargetCNode().getClusterLabel());
-            	    }
-		    output.println(" [label=\"" + se.getLabel() + "\", color=red];");
-            	} else {
-		    output.print(se.getTargetFState().getLabel() + " [label=\"" + se.getLabel() + "\", color=red, ltail=");
-		    if(se.getSourceCNode().isclone()) {
-			output.println(se.getSourceCNode().getLabel() + "];");
-		    } else {
-			output.println(se.getSourceCNode().getClusterLabel() + "];");
-		    }
-            	}
-            }
-            output.println("\t}\n");
-            //Draw 'new' edges of this ScheduleNode
-            while(edges.hasNext()) {
-            	ScheduleEdge se = (ScheduleEdge)edges.next();
-            	output.print("\t");
-            	if(se.getSourceCNode().isclone()) {
-            	    output.print(se.getSourceCNode().getLabel());
-            	} else {
-            	    if(se.getSourceFState() == null) {
-            		output.print(se.getSourceCNode().getClusterLabel());
-            	    } else {
-            		output.print(se.getSourceFState().getLabel());
-            	    }
-            	}
-            	
-            	output.print(" -> ");
-            	if(se.getTargetFState() == null) {
-            	    if(se.getTargetCNode().isclone()) {
-            		output.print(se.getTargetCNode().getLabel());
-            	    } else {
-            		output.print(se.getTargetCNode().getClusterLabel());
-            	    }
-		    output.println(" [label=\"" + se.getLabel() + "\", color=red, style=dashed]");
-            	} else {
-		    output.println(se.getTargetFState().getLabel() + " [label=\"" + se.getLabel() + "\", color=red, style=dashed]");
-            	}
-            }
-        }
-    }
-    
-    private void traverseCNodes(PrintWriter output, Iterator it){
-    	//Draw clusters representing ClassNodes
-        while (it.hasNext()) {
-	    ClassNode gn = (ClassNode) it.next();
-	    if(gn.isclone()) {
-    	    	output.println("\t\t" + gn.getLabel() + " [style=dashed, label=\"" + gn.getTextLabel() + "\", shape=box];");
-	    } else {
-		output.println("\tsubgraph " + gn.getClusterLabel() + "{");
-		output.println("\t\tstyle=dashed;");
-		output.println("\t\tlabel=\"" + gn.getTextLabel() + "\";");
-		traverseFlagStates(output, gn.getFlagStates());
-		output.println("\t}\n");
-	    }
-        }
-    }
-    
-    private void traverseFlagStates(PrintWriter output, Collection nodes) {
-	Set cycleset=GraphNode.findcycles(nodes);
-	Vector namers=new Vector();
-	namers.add(new Namer());
-	namers.add(new Allocations());
-	//namers.add(new TaskEdges());
-	    
-	Iterator it = nodes.iterator();
-	while (it.hasNext()) {
-	    GraphNode gn = (GraphNode) it.next();
-	    Iterator edges = gn.edges();
-	    String label = "";
-	    String dotnodeparams="";
-	    	
-	    for(int i=0;i<namers.size();i++) {	
-		Namer name=(Namer) namers.get(i);
-		String newlabel=name.nodeLabel(gn);
-		String newparams=name.nodeOption(gn);
-		
-		if (!newlabel.equals("") && !label.equals("")) {
-		    label+=", ";
-		}
-		if (!newparams.equals("")) {
-		    dotnodeparams+=", " + name.nodeOption(gn);
-		}
-		label+=name.nodeLabel(gn);
-	    }
-	    label += ":[" + ((FlagState)gn).getExeTime() + "]";
-	    
-	    if (!gn.merge)
-		output.println("\t" + gn.getLabel() + " [label=\"" + label + "\"" + dotnodeparams + "];");
-	    
-	    if (!gn.merge)
-                while (edges.hasNext()) {
-                    Edge edge = (Edge) edges.next();
-                    GraphNode node = edge.getTarget();
-                    if (nodes.contains(node)) {
-                    	for(Iterator nodeit=nonmerge(node, nodes).iterator();nodeit.hasNext();) {
-			    GraphNode node2=(GraphNode)nodeit.next();
-			    String edgelabel = "";
-			    String edgedotnodeparams="";
-			    
-			    for(int i=0;i<namers.size();i++) {
-				Namer name=(Namer) namers.get(i);
-				String newlabel=name.edgeLabel(edge);
-				String newoption=name.edgeOption(edge);
-				if (!newlabel.equals("")&& ! edgelabel.equals(""))
-				    edgelabel+=", ";
-				edgelabel+=newlabel;
-				if (!newoption.equals(""))
-				    edgedotnodeparams+=", "+newoption;
-			    }
-			    edgelabel+=":[" + ((FEdge)edge).getExeTime() + "]";
-			    Hashtable<ClassDescriptor, NewObjInfo> hashtable = ((FEdge)edge).getNewObjInfoHashtable();
-			    if(hashtable != null) {
-			    	Set<ClassDescriptor> keys = hashtable.keySet();
-			    	Iterator it_keys = keys.iterator();
-			    	while(it_keys.hasNext()) {
-				    ClassDescriptor cd = (ClassDescriptor)it_keys.next();
-				    NewObjInfo noi = hashtable.get(cd);
-				    edgelabel += ":{ class " + cd.getSymbol() + " | " + noi.getNewRate() + " | (" + noi.getProbability() + "%) }";
-			    	}
-			    }
-			    output.println("\t" + gn.getLabel() + " -> " + node2.getLabel() + " [" + "label=\"" + edgelabel + "\"" + edgedotnodeparams + "];");
-                    	}
-                    }
-                }
-	}
-    }
-
-    private Set nonmerge(GraphNode gn, Collection nodes) {
-	HashSet newset=new HashSet();
-	HashSet toprocess=new HashSet();
-	toprocess.add(gn);
-	while(!toprocess.isEmpty()) {
-	    GraphNode gn2=(GraphNode)toprocess.iterator().next();
-	    toprocess.remove(gn2);
-	    if (!gn2.merge)
-		newset.add(gn2);
-	    else {
-		Iterator edges = gn2.edges();
-		while (edges.hasNext()) {
-		    Edge edge = (Edge) edges.next();
-		    GraphNode node = edge.getTarget();
-		    if (!newset.contains(node)&&nodes.contains(node))
-			toprocess.add(node);
-		}
-	    }
-	}
-	return newset;
     }
     
     class Combination{

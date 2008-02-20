@@ -269,7 +269,7 @@ private void analyseTasks(FlagState fs) {
  */
 
 
-private boolean isTaskTrigger_flag(FlagExpressionNode fen,FlagState fs) {
+public static boolean isTaskTrigger_flag(FlagExpressionNode fen,FlagState fs) {
     if (fen==null)
 	return true;
     else if (fen instanceof FlagNode)
