@@ -98,7 +98,7 @@ Analysis/Scheduling/ObjectSimulator.class                               \
 Analysis/Scheduling/RuntimeSchedule.class                               \
 Analysis/Scheduling/Schedule.class                                      \
 Analysis/Scheduling/ScheduleSimulator.class                             \
-Analysis/Scheduling/ScheudlingUtil.class                                \
+Analysis/Scheduling/SchedulingUtil.class                                \
 Analysis/Scheduling/TaskSimulator.class                                 \
 Analysis/Scheduling/TransTaskSimulator.class
 
