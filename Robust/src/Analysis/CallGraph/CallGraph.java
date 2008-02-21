@@ -32,6 +32,22 @@ public class CallGraph {
 	buildVirtualMap();
 	buildGraph();
     }
+
+    // this method returns the set of Descriptors 
+    // (MethodDescriptors and/or TaskDescriptors)
+    //  that call the given method
+    public Set getCallerSet( MethodDescriptor md ) {
+	return (Set) mapCallee2CallerSet.get( md );
+    }
+
+    // this method returns the set of MethodDescriptors that
+    // are called by the given method or task
+    public Set getCalleeSet( Descriptor d ) {
+	assert (d instanceof MethodDescriptor) ||
+	       (d instanceof   TaskDescriptor);
+
+	return (Set) mapCaller2CalleeSet.get( d );
+    }
     
     // build a mapping of virtual methods to all
     // possible implementations of that method
