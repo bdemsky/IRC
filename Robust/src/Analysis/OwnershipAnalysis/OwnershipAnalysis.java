@@ -50,12 +50,12 @@ public class OwnershipAnalysis {
 	mapDescriptorToCompleteOwnershipGraph =
 	    new Hashtable<Descriptor, OwnershipGraph>();
 
-	// initialize methods to visit as the set of
-	// all tasks
+	// initialize methods to visit as the set of all tasks
 	descriptorsToVisit = new HashSet<Descriptor>();
 	Iterator taskItr = state.getTaskSymbolTable().getDescriptorsIterator();
 	while( taskItr.hasNext() ) {
-	    descriptorsToVisit.add( (Descriptor) taskItr.next() );
+	    Descriptor d = (Descriptor) taskItr.next();
+	    descriptorsToVisit.add( d );
 	}	
 	
 	// as mentioned above, analyze methods one-by-one, possibly revisiting
@@ -64,6 +64,38 @@ public class OwnershipAnalysis {
     }
 
     private void analyzeMethods() throws java.io.IOException {
+	
+	while( !descriptorsToVisit.isEmpty() ) {
+	    Descriptor d = (Descriptor) descriptorsToVisit.iterator().next();
+	    descriptorsToVisit.remove( d );
+
+	    System.out.println( "Analyzing " + d );
+
+	    // because the task or method descriptor just extracted
+	    // in the "to visit" set it either hasn't been analyzed
+	    // yet, or some method that it depends on has been
+	    // updated.  Recompute a complete ownership graph for
+	    // this task/method and compare it to any previous result.
+	    // If there is a change detected, add any methods/tasks
+	    // that depend on this one to the "to visit" set.
+	    OwnershipGraph og = new OwnershipGraph( allocationDepth );
+
+	    
+	    OwnershipGraph ogPrev = mapDescriptorToCompleteOwnershipGraph.get( d );
+
+	    if( !og.equals( ogPrev ) ) {
+
+		mapDescriptorToCompleteOwnershipGraph.put( d, og );
+
+		// only methods have dependents, tasks cannot
+		// be invoked by any user program calls
+		if( d instanceof MethodDescriptor ) {
+		    MethodDescriptor md = (MethodDescriptor) d;
+		    Set dependents = callGraph.getCallerSet( md );
+		    descriptorsToVisit.addAll( dependents );
+		}
+	    }
+	}
 
 
 	/*

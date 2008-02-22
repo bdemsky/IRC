@@ -25,9 +25,11 @@ public class OwnershipGraph {
 
     protected int newDepthK;
     public Hashtable<FlatNew, NewCluster> fn2nc;
-
+    */
 
     public OwnershipGraph( int newDepthK ) {
+
+	/*
 	id2hrn    = new Hashtable<Integer, HeapRegionNode>();
 	heapRoots = new Hashtable<Integer, HeapRegionNode>();
 
@@ -39,9 +41,11 @@ public class OwnershipGraph {
 
 	this.newDepthK = newDepthK;
 	fn2nc          = new Hashtable<FlatNew, NewCluster>();
+	*/
     }
 
 
+    /*
     protected void addReferenceEdge( OwnershipNode  referencer,
 				     HeapRegionNode referencee,
 				     ReferenceEdgeProperties rep ) {
@@ -313,6 +317,11 @@ public class OwnershipGraph {
     ////////////////////////////////////////////////////
 
     public void merge( OwnershipGraph og ) {
+
+        if( og == null ) {
+	  return;
+        }
+
 	mergeOwnershipNodes ( og );
 	mergeReferenceEdges ( og );
 	mergeHeapRoots      ( og );
@@ -527,7 +536,7 @@ public class OwnershipGraph {
 	    }
 	}
     }
-
+    */
 
 
     // it is necessary in the equals() member functions
@@ -541,7 +550,12 @@ public class OwnershipGraph {
     // are equally present is to iterate over both data
     // structures and compare against the other graph.
     public boolean equals( OwnershipGraph og ) {
+
+        if( og == null ) {
+	  return false;
+        }
 	
+	/*
 	if( !areHeapRegionNodesEqual( og ) ) {
 	    return false;
 	}
@@ -569,10 +583,12 @@ public class OwnershipGraph {
 	if( !areNewClustersEqual( og ) ) {
 	    return false;
 	}
+	*/
 
 	return true;
     }
 
+    /*
     protected boolean areHeapRegionNodesEqual( OwnershipGraph og ) {
 	// check all nodes in A for presence in graph B
 	Set      sA = og.id2hrn.entrySet();
