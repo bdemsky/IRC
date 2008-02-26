@@ -51,13 +51,15 @@ void threadexit() {
   oidvalue = *((unsigned int *)value);
   goto transstart;
 transstart:
-  trans = transStart();
-  ptr = transRead(trans, oidvalue);
-  struct ___Thread___ *p = (struct ___Thread___ *) ptr;
-  p->___threadDone___ = 1;
-  *((unsigned int *)&((struct ___Object___ *) p)->___localcopy___) |=DIRTY;
-  if(transCommit(trans) != 0) {
-	  goto transstart;
+  {
+    transrecord_t * trans = transStart();
+    ptr = transRead(trans, oidvalue);
+    struct ___Thread___ *p = (struct ___Thread___ *) ptr;
+    p->___threadDone___ = 1;
+    *((unsigned int *)&((struct ___Object___ *) p)->___localcopy___) |=DIRTY;
+    if(transCommit(trans) != 0) {
+      goto transstart;
+    }
   }
 #endif	
   pthread_exit(NULL);
@@ -155,7 +157,13 @@ transstart:
 	  }
 	  versionarray[0] = version;
 	  /* Request Notification */
+#ifdef PRECISE_GC
+	  struct listitem *tmp=stopforgc((struct garbagelist *)___params___);
+#endif
 	  reqNotify(oidarray, versionarray, 1); 
+#ifdef PRECISE_GC
+	  restartaftergc(tmp);
+#endif
 	  free(oidarray);
 	  free(versionarray);
 	  transAbort(trans);
@@ -222,12 +230,14 @@ void initDSMthread(int *ptr) {
   /* Add transaction to check if thread finished for join operation */
   goto transstart;
 transstart:
-  trans = transStart();
-  tmp  = transRead(trans, (unsigned int) oid);
-  ((struct ___Thread___ *)tmp)->___threadDone___ = 1;
-  *((unsigned int *)&((struct ___Object___ *) tmp)->___localcopy___) |=DIRTY;
-  if(transCommit(trans)!= 0) {
-	  goto transstart;
+  {
+    transrecord_t * trans = transStart();
+    tmp  = transRead(trans, (unsigned int) oid);
+    ((struct ___Thread___ *)tmp)->___threadDone___ = 1;
+    *((unsigned int *)&((struct ___Object___ *) tmp)->___localcopy___) |=DIRTY;
+    if(transCommit(trans)!= 0) {
+      goto transstart;
+    }
   }
   pthread_exit(NULL);
 }
