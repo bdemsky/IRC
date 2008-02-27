@@ -2,7 +2,6 @@ package Analysis.OwnershipAnalysis;
 
 public class ReferenceEdgeProperties {
 
-    /*
     public ReferenceEdgeProperties( boolean isUnique ) {
 	this.isUnique = isUnique;
     }
@@ -32,5 +31,4 @@ public class ReferenceEdgeProperties {
     public void setIsUnique( boolean isUnique ) {
 	this.isUnique = isUnique;
     }
-    */
 }

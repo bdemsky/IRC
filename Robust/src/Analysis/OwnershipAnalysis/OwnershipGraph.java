@@ -10,42 +10,46 @@ public class OwnershipGraph {
     /*
     protected static final int VISIT_HRN_WRITE_FULL      = 0;
     protected static final int VISIT_HRN_WRITE_CONDENSED = 1;
+    */
 
+    private int allocationDepth;
 
-    protected static int heapRegionNodeIDs = 0;
+    //protected static int heapRegionNodeIDs = 0;
     public Hashtable<Integer, HeapRegionNode> id2hrn;
     public Hashtable<Integer, HeapRegionNode> heapRoots;
 
-    protected static int labelNodeIDs = 0;
+    //protected static int labelNodeIDs = 0;
     public Hashtable<TempDescriptor, LabelNode> td2ln;
 
-    public HashSet<TempDescriptor> analysisRegionLabels;
+    //public HashSet<TempDescriptor> analysisRegionLabels;
+    //protected Hashtable<TempDescriptor, TempDescriptor> linkedRegions;
 
-    protected Hashtable<TempDescriptor, TempDescriptor> linkedRegions;
 
-    protected int newDepthK;
-    public Hashtable<FlatNew, NewCluster> fn2nc;
-    */
+    //public Hashtable<FlatNew, NewCluster> fn2nc;
 
-    public OwnershipGraph( int newDepthK ) {
 
-	/*
-	id2hrn    = new Hashtable<Integer, HeapRegionNode>();
-	heapRoots = new Hashtable<Integer, HeapRegionNode>();
+    public OwnershipGraph( int allocationDepth ) {
+	this.allocationDepth = allocationDepth;
 
-	td2ln = new Hashtable<TempDescriptor, LabelNode>();
+	id2hrn    = new Hashtable<Integer,        HeapRegionNode>();
+	heapRoots = new Hashtable<Integer,        HeapRegionNode>();
+	td2ln     = new Hashtable<TempDescriptor, LabelNode>();
 
-	analysisRegionLabels = new HashSet<TempDescriptor>(); 
-
-	linkedRegions = new Hashtable<TempDescriptor, TempDescriptor>();
-
-	this.newDepthK = newDepthK;
-	fn2nc          = new Hashtable<FlatNew, NewCluster>();
-	*/
+	//analysisRegionLabels = new HashSet<TempDescriptor>(); 
+	//linkedRegions = new Hashtable<TempDescriptor, TempDescriptor>();
+	//fn2nc          = new Hashtable<FlatNew, NewCluster>();
     }
 
+    protected LabelNode getLabelNodeFromTemp( TempDescriptor td ) {
+	assert td != null;
+	
+	if( !td2ln.containsKey( td ) ) {
+	    td2ln.put( td, new LabelNode( td ) );
+	}
 
-    /*
+	return td2ln.get( td );
+    }
+    
     protected void addReferenceEdge( OwnershipNode  referencer,
 				     HeapRegionNode referencee,
 				     ReferenceEdgeProperties rep ) {
@@ -94,7 +98,7 @@ public class OwnershipGraph {
     }
     
 
-
+    /*
     ////////////////////////////////////////////////////
     //
     //  New Reference Methods
@@ -176,6 +180,7 @@ public class OwnershipGraph {
     // end new reference methods
     ////////////////////////////////////////////////////
 
+    */
 
     protected HeapRegionNode 
 	createNewHeapRegionNode( Integer id,
@@ -184,8 +189,9 @@ public class OwnershipGraph {
 				 boolean isNewSummary ) {
 
 	if( id == null ) {
-	    id = new Integer( heapRegionNodeIDs );
-	    ++heapRegionNodeIDs;
+	    //id = new Integer( heapRegionNodeIDs );
+	    //++heapRegionNodeIDs;
+	    id = OwnershipAnalysis.generateUniqueHeapRegionNodeID();
 	}
 
 	HeapRegionNode hrn = new HeapRegionNode( id,
@@ -196,18 +202,18 @@ public class OwnershipGraph {
 	return hrn;
     }
 
-
-    public void parameterAllocation( TempDescriptor td ) {
+    public void taskParameterAllocation( TempDescriptor td ) {
 	assert td != null;
 
-	LabelNode lnParam = getLabelNodeFromTemp( td );
-	HeapRegionNode hrn = createNewHeapRegionNode( null, false, true, false );
+	LabelNode      lnParam = getLabelNodeFromTemp( td );
+	HeapRegionNode hrn     = createNewHeapRegionNode( null, false, true, false );
 	heapRoots.put( hrn.getID(), hrn );
 
 	addReferenceEdge( lnParam, hrn, new ReferenceEdgeProperties( false ) );
 	addReferenceEdge( hrn,     hrn, new ReferenceEdgeProperties( false ) );
     }
     
+    /*
     public void assignTempToNewAllocation( TempDescriptor td, FlatNew fn ) {
 	assert td != null;
 	assert fn != null;
@@ -264,25 +270,6 @@ public class OwnershipGraph {
 	addReferenceEdge( dst, hrnNewest, rep );
     }
 
-    protected NewCluster getNewClusterFromFlatNew( FlatNew fn ) {
-	if( !fn2nc.containsKey( fn ) ) {
-	    NewCluster nc = new NewCluster( newDepthK );
-
-	    // the first k-1 nodes are single objects
-	    for( int i = 0; i < newDepthK - 1; ++i ) {
-		HeapRegionNode hrn = createNewHeapRegionNode( null, true, false, false );
-		nc.setIthOldest( i, hrn );
-	    }
-
-	    // the kth node is a newSummaryNode
-	    HeapRegionNode hrnNewSummary = createNewHeapRegionNode( null, false, false, true );
-	    nc.setIthOldest( newDepthK - 1, hrnNewSummary );
-
-	    fn2nc.put( fn, nc );
-	}
-
-	return fn2nc.get( fn );
-    }
 
 
 
@@ -307,6 +294,17 @@ public class OwnershipGraph {
 
 	return td2ln.get( td );
     }
+    */
+
+
+    // use the allocation site (unique to entire analysis) to
+    // locate the heap region nodes in this ownership graph
+    // that should be aged.  The process models the allocation
+    // of new objects and collects all the oldest allocations
+    // in a summary node to allow for a finite analysis
+    public void age( AllocationSite as ) {
+	
+    }
 
 
 
@@ -325,8 +323,8 @@ public class OwnershipGraph {
 	mergeOwnershipNodes ( og );
 	mergeReferenceEdges ( og );
 	mergeHeapRoots      ( og );
-	mergeAnalysisRegions( og );
-	mergeNewClusters    ( og );
+	//mergeAnalysisRegions( og );
+	//mergeNewClusters    ( og );
     }
 
     protected void mergeOwnershipNodes( OwnershipGraph og ) {
@@ -488,6 +486,7 @@ public class OwnershipGraph {
 	}
     }
 
+    /*
     protected void mergeAnalysisRegions( OwnershipGraph og ) {
 	Iterator iA = og.analysisRegionLabels.iterator();
 	while( iA.hasNext() ) {
@@ -555,7 +554,6 @@ public class OwnershipGraph {
 	  return false;
         }
 	
-	/*
 	if( !areHeapRegionNodesEqual( og ) ) {
 	    return false;
 	}
@@ -576,6 +574,7 @@ public class OwnershipGraph {
 	    return false;
 	}
 
+	/*
 	if( !areAnalysisRegionLabelsEqual( og ) ) {
 	    return false;
 	}
@@ -588,7 +587,6 @@ public class OwnershipGraph {
 	return true;
     }
 
-    /*
     protected boolean areHeapRegionNodesEqual( OwnershipGraph og ) {
 	// check all nodes in A for presence in graph B
 	Set      sA = og.id2hrn.entrySet();
@@ -864,6 +862,7 @@ public class OwnershipGraph {
 	return true;
     }
 
+    /*
     protected boolean areAnalysisRegionLabelsEqual( OwnershipGraph og ) {
 	if( og.analysisRegionLabels.size() != analysisRegionLabels.size() ) {
 	    return false;
@@ -917,13 +916,14 @@ public class OwnershipGraph {
 
 	return true;
     }
-
+    */
 
     public void writeGraph( String graphName ) throws java.io.IOException {
-
+	
 	BufferedWriter bw = new BufferedWriter( new FileWriter( graphName+".dot" ) );
 	bw.write( "digraph "+graphName+" {\n" );
 
+	/*
 	// first write out new clusters
 	Integer newClusterNum = new Integer( 100 );
 	Set      s = fn2nc.entrySet();
@@ -981,11 +981,13 @@ public class OwnershipGraph {
 			  "\"];\n" );
 	    }
 	}
+	*/
 
 	bw.write( "}\n" );
 	bw.close();
     }
 
+    /*
     public void writeCondensedAnalysis( String graphName ) throws java.io.IOException {
 	BufferedWriter bw = new BufferedWriter( new FileWriter( graphName+".dot" ) );
 	bw.write( "graph "+graphName+" {\n" );

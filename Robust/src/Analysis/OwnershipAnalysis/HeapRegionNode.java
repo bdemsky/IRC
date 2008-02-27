@@ -6,7 +6,6 @@ import java.util.*;
 
 public class HeapRegionNode extends OwnershipNode {
 
-    /*
     public HeapRegionNode( Integer id,
 			   boolean isSingleObject,
 			   boolean isFlagged,
@@ -17,7 +16,7 @@ public class HeapRegionNode extends OwnershipNode {
 	this.isNewSummary   = isNewSummary;
 
 	referencers           = new HashSet<OwnershipNode>();
-	analysisRegionAliases = new HashSet<TempDescriptor>();
+	//analysisRegionAliases = new HashSet<TempDescriptor>();
 	memberFields          = new HashSet<TempDescriptor>();
     }
 
@@ -117,6 +116,7 @@ public class HeapRegionNode extends OwnershipNode {
     ///////////////////////////////////////////////
     // analysis interface
     ///////////////////////////////////////////////
+    /*
     protected HashSet<TempDescriptor> analysisRegionAliases;
 
     public void addAnalysisRegionAlias( TempDescriptor td ) {
@@ -129,6 +129,7 @@ public class HeapRegionNode extends OwnershipNode {
     public Iterator iteratorToAnalysisRegionAliases() {
 	return analysisRegionAliases.iterator();
     }
+    */
     ///////////////////////////////////////////////
     // end analysis interface
     ///////////////////////////////////////////////
@@ -142,5 +143,4 @@ public class HeapRegionNode extends OwnershipNode {
     public String toString() {
 	return "HRN"+getIDString();
     }
-    */
 }

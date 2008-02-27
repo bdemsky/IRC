@@ -6,7 +6,6 @@ import java.util.*;
 
 public class OwnershipNode {   
 
-    /*
     public OwnershipNode() {
 	referencedRegions = 
 	    new Hashtable<HeapRegionNode, ReferenceEdgeProperties>();
@@ -54,5 +53,4 @@ public class OwnershipNode {
     ///////////////////////////////////////////////
     // end interface with larger graph
     ///////////////////////////////////////////////
-    */
 }

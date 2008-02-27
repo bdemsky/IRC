@@ -6,7 +6,6 @@ import java.util.*;
 
 public class LabelNode extends OwnershipNode {
 
-    /*
     public LabelNode( TempDescriptor td ) {
 	this.td = td;
     }
@@ -38,6 +37,4 @@ public class LabelNode extends OwnershipNode {
     public String toString() {
 	return "LN_"+getTempDescriptorString();
     }
-    */
-
 }
