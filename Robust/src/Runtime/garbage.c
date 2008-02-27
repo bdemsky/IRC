@@ -37,12 +37,11 @@ struct listitem * list=NULL;
 int listcount=0;
 #endif
 
+//Need to check if pointers are transaction pointers
 #ifdef DSTM
 #define ENQUEUE(orig, dst) \
 if ((!(((unsigned int)orig)&0x1))) {\
-if (orig>to_heapbase&&orig<to_heaptop) {\
-dst=NULL;\
-} else if (orig>curr_heapbase&&orig<curr_heaptop) {\
+if (orig>=curr_heapbase&&orig<curr_heaptop) {\
 void *copy;\
 if (gc_createcopy(orig,&copy))\
 enqueue(orig);\
