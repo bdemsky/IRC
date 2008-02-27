@@ -434,6 +434,7 @@ int transCommit(transrecord_t *record) {
 	char localstat = 0;
 
 
+
 	/* Look through all the objects in the transaction record and make piles 
 	 * for each machine involved in the transaction*/
 	pile_ptr = pile = createPiles(record);
@@ -623,7 +624,6 @@ int transCommit(transrecord_t *record) {
 void *transRequest(void *threadarg) {
 	int sd, i, n;
 	struct sockaddr_in serv_addr;
-	struct hostent *server;
 	thread_data_array_t *tdata;
 	objheader_t *headeraddr;
 	char buffer[RECEIVE_BUFFER_SIZE], control, recvcontrol;
@@ -722,11 +722,9 @@ void *transRequest(void *threadarg) {
 		pthread_exit(NULL);
 	}
 
-	if ((retval = recv((int)sd, &control, sizeof(char), 0))<= 0) {
-		printf("Error: In receiving control %s,%d\n", __FILE__, __LINE__);
-		close(sd);
-		pthread_exit(NULL);
-	}
+	do {
+	   retval = recv((int)sd, &control, sizeof(char), 0);
+	} while (retval < sizeof(char));
 
 	if(control == TRANS_UNSUCESSFUL) {
 		//printf("DEBUG-> TRANS_ABORTED\n");
@@ -798,9 +796,17 @@ char sendResponse(thread_data_array_t *tdata, int sd) {
 	char *ptr, retval = 0;
 	unsigned int *oidnotfound;
 
+	control = *(tdata->replyctrl);
+	if (send(sd, &control, sizeof(char), MSG_NOSIGNAL) < sizeof(char)) {
+		perror("Error sending ctrl message for participant\n");
+		return 0;
+	}
+
+	//FIXME read missing objects 
 	/* If the decided response is due to a soft abort and missing objects at the Participant's side */
+	/*
 	if(tdata->recvmsg[tdata->thread_id].rcv_status == TRANS_SOFT_ABORT) {
-		/* Read list of objects missing */
+		// Read list of objects missing  
 		if((read(sd, &oidcount, sizeof(int)) != 0) && (oidcount != 0)) {
 			N = oidcount * sizeof(unsigned int);
 			if((oidnotfound = calloc(oidcount, sizeof(unsigned int))) == NULL) {
@@ -815,18 +821,15 @@ char sendResponse(thread_data_array_t *tdata, int sd) {
 		}
 		retval =  TRANS_SOFT_ABORT;
 	}
+	*/
+
 	/* If the decided response is TRANS_ABORT */
 	if(*(tdata->replyctrl) == TRANS_ABORT) {
 		retval = TRANS_ABORT;
-	} else if(*(tdata->replyctrl) == TRANS_COMMIT) { /* If the decided response is TRANS_COMMIT */
+	} else if(*(tdata->replyctrl) == TRANS_COMMIT) { /* If the decided response is TRANS_COMMIT */ 
 		retval = TRANS_COMMIT;
 	}
-
-	if (send(sd, tdata->replyctrl, sizeof(char),MSG_NOSIGNAL) < sizeof(char)) {
-		perror("Error sending ctrl message for participant\n");
-		return 0;
-	}
-
+	
 	return retval;
 }
 
@@ -838,7 +841,6 @@ char sendResponse(thread_data_array_t *tdata, int sd) {
 void *getRemoteObj(transrecord_t *record, unsigned int mnum, unsigned int oid) {
 	int sd, size, val;
 	struct sockaddr_in serv_addr;
-	struct hostent *server;
 	char control;
 	char machineip[16];
 	objheader_t *h;
@@ -1495,10 +1497,10 @@ void *mcqProcess(void *threadid) {
 
 void sendPrefetchReq(prefetchpile_t *mcpilenode) {
 	int sd, i, off, len, endpair, count = 0;
-	struct sockaddr_in serv_addr;
-	struct hostent *server;
+	struct sockaddr_in remoteAddr;
 	char machineip[16], control;
 	objpile_t *tmp;
+	unsigned int mid;
 
 	/* Send Trans Prefetch Request */
 	if ((sd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
@@ -1506,16 +1508,17 @@ void sendPrefetchReq(prefetchpile_t *mcpilenode) {
 		return;
 	}
 
-	bzero((char*) &serv_addr, sizeof(serv_addr));
-	serv_addr.sin_family = AF_INET;
-	serv_addr.sin_port = htons(LISTEN_PORT);
-	midtoIP(mcpilenode->mid ,machineip);
-	machineip[15] = '\0';
-	serv_addr.sin_addr.s_addr = inet_addr(machineip);
+	mid = mcpilenode->mid;
+
+	bzero(&remoteAddr, sizeof(remoteAddr));
+	remoteAddr.sin_family = AF_INET;
+	remoteAddr.sin_port = htons(LISTEN_PORT);
+	remoteAddr.sin_addr.s_addr = htonl(mid);
 
 	/* Open Connection */
-	if (connect(sd, (struct sockaddr *) &serv_addr, sizeof(struct sockaddr)) < 0) {
-		perror("Error in connect for SEND_PREFETCH_REQUEST\n");
+	if (connect(sd, (struct sockaddr *)&remoteAddr, sizeof(remoteAddr)) < 0) {
+		printf("%s():error %d connecting to %s:%d\n", __func__, errno,
+			inet_ntoa(remoteAddr.sin_addr), LISTEN_PORT);
 		close(sd);
 		return;
 	}
@@ -1537,14 +1540,11 @@ void sendPrefetchReq(prefetchpile_t *mcpilenode) {
 		char oidnoffset[len];
 		bzero(oidnoffset, len);
 		*((unsigned int*)oidnoffset) = len;
-		//memcpy(oidnoffset, &len, sizeof(int));
 		off = sizeof(int);
 		*((unsigned int *)((char *)oidnoffset + off)) = tmp->oid;
-		//memcpy(oidnoffset + off, &tmp->oid, sizeof(unsigned int));
 		off += sizeof(unsigned int);
 		for(i = 0; i < tmp->numoffset; i++) {
 			*((unsigned short*)((char *)oidnoffset + off)) = tmp->offset[i];
-			//memcpy(oidnoffset + off, &(tmp->offset[i]), sizeof(short));
 			off+=sizeof(unsigned short);
 		}
 		
