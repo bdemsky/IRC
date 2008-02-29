@@ -202,11 +202,11 @@ public class OwnershipGraph {
 	return hrn;
     }
 
-    public void taskParameterAllocation( TempDescriptor td ) {
+    public void parameterAllocation( boolean isTask, TempDescriptor td ) {
 	assert td != null;
 
 	LabelNode      lnParam = getLabelNodeFromTemp( td );
-	HeapRegionNode hrn     = createNewHeapRegionNode( null, false, true, false );
+	HeapRegionNode hrn     = createNewHeapRegionNode( null, false, isTask, false );
 	heapRoots.put( hrn.getID(), hrn );
 
 	addReferenceEdge( lnParam, hrn, new ReferenceEdgeProperties( false ) );

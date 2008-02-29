@@ -6,19 +6,16 @@ public class Parameter {
 	a = 0; b = 0; f = null; g = null;
     }
 
-    public void foo() { a = 1; }
+    public void bar() { foo(); }
+    public void foo() { bar(); }
 }
 
 task Startup( StartupObject s{ initialstate } ) {
-    Parameter p1 = new Parameter(){!w};
-    Parameter p2 = new Parameter(){!w};
-    taskexit( s{ !initialstate } );
-}
 
-task DoStuff( Parameter p{!w} ) {
+    Parameter p = new Parameter(){!w};
     p.foo();
 
-    taskexit( p{w} );
+    taskexit( s{ !initialstate } );
 }
 
 /*

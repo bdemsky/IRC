@@ -49,17 +49,49 @@ public class OwnershipAnalysis {
 	mapFlatNewToAllocationSite =
 	    new Hashtable<FlatNew, AllocationSite>();
 
-	// initialize methods to visit as the set of all tasks
 	descriptorsToVisit = new HashSet<Descriptor>();
+
+	// use this set to prevent infinite recursion when
+	// traversing the call graph
+	HashSet<Descriptor> calleesScheduled = new HashSet<Descriptor>();
+
+	// initialize methods to visit as the set of all tasks in the
+	// program and then any method that could be called starting
+	// from those tasks
 	Iterator taskItr = state.getTaskSymbolTable().getDescriptorsIterator();
 	while( taskItr.hasNext() ) {
 	    Descriptor d = (Descriptor) taskItr.next();
 	    descriptorsToVisit.add( d );
-	}	
+
+	    // recursively find all callees from this task
+	    scheduleAllCallees( calleesScheduled, d );
+	}
 	
 	// as mentioned above, analyze methods one-by-one, possibly revisiting
 	// a method if the methods that it calls are updated
 	analyzeMethods();
+    }
+
+    private void scheduleAllCallees( HashSet<Descriptor> calleesScheduled,
+				     Descriptor d ) {
+	if( calleesScheduled.contains( d ) ) {
+	    return;
+	}
+	calleesScheduled.add( d );
+
+	Set callees = callGraph.getCalleeSet( d );
+	if( callees == null ) {
+	    return;
+	}
+
+	Iterator methItr = callees.iterator();
+	while( methItr.hasNext() ) {
+	    MethodDescriptor md = (MethodDescriptor) methItr.next();
+	    descriptorsToVisit.add( md );
+
+	    // recursively find all callees from this task
+	    scheduleAllCallees( calleesScheduled, md );
+	}
     }
 
 
@@ -104,8 +136,9 @@ public class OwnershipAnalysis {
 		if( d instanceof MethodDescriptor ) {
 		    MethodDescriptor md = (MethodDescriptor) d;
 		    Set dependents = callGraph.getCallerSet( md );
-		    System.out.println( "  Caller set is: " + dependents );
-		    descriptorsToVisit.addAll( dependents );
+		    if( dependents != null ) {
+			descriptorsToVisit.addAll( dependents );
+		    }
 		}
 	    }
 	}
@@ -202,14 +235,13 @@ public class OwnershipAnalysis {
 	case FKind.FlatMethod:
 	    FlatMethod fm = (FlatMethod) fn;
 
-	    if( isTask ) {
-		// add method parameters to the list of heap regions
-		// and remember names for analysis
-		for( int i = 0; i < fm.numParameters(); ++i ) {
-		    TempDescriptor tdParam = fm.getParameter( i );
-		    og.taskParameterAllocation( tdParam );
-		    //og.addAnalysisRegion( tdParam );
-		}
+	    // there should only be one FlatMethod node as the
+	    // parent of all other FlatNode objects, so take
+	    // the opportunity to construct the initial graph by
+	    // adding parameters labels to new heap regions
+	    for( int i = 0; i < fm.numParameters(); ++i ) {
+		TempDescriptor tdParam = fm.getParameter( i );		
+		og.parameterAllocation( isTask, tdParam );
 	    }
 	    break;
 	    
@@ -268,9 +300,10 @@ public class OwnershipAnalysis {
 	    */
 
 	case FKind.FlatCall:
-	    FlatCall         fc = (FlatCall) fn;
-	    MethodDescriptor md = fc.getMethod();
-	    descriptorsToVisit.add( md );
+	    //FlatCall         fc = (FlatCall) fn;
+	    //MethodDescriptor md = fc.getMethod();
+	    //descriptorsToVisit.add( md );
+	    //System.out.println( "    Descs to visit: " + descriptorsToVisit );
 	    break;
 
 	case FKind.FlatReturnNode:
