@@ -34,6 +34,7 @@ public class BuildCode {
     public static String PREFIX="";
     public static String arraytype="ArrayObject";
     public static int count = 0;
+    public static int flagcount = 0;
     Virtual virtualcalls;
     TypeUtil typeutil;
     private int maxtaskparams=0;
@@ -1427,7 +1428,7 @@ public class BuildCode {
 	    Vector endoffset = new Vector();
  	    Vector oids = new Vector();
 	    short offsetcount = 0;
- 	    int tuplecount = 0;
+ 	    int tuplecount = 0;  //Keeps track of number of prefetch tuples that need to be generated
  	    int i,j;
  	   
  	    if (state.PREFETCH) {
@@ -1522,18 +1523,29 @@ public class BuildCode {
 			    tstlbl += generateTemp(fm, id.getTempDescAt(i), lb) + "+";
 		    }
 		    tstlbl += id.offset.toString();
+ 		    output.println("   int flag_" + flagcount + "=  0;");
 		    output.println("if ("+tstlbl+"< 0 || "+tstlbl+" >= "+
 				    generateTemp(fm, pp.base, lb) + "->___length___) {");
-		    output.println("    failedboundschk();");
+		    output.println("    flag_" + flagcount+"  = 1;");
 		    output.println("}");
-		    String oid = new String("(unsigned int) (" + 
-				    generateTemp(fm, pp.base, lb) + " != NULL ? " + 
-				    generateTemp(fm, pp.base, lb) + "[" + tstlbl + "] : NULL)");
+
+		    output.println("if (flag_"+flagcount+") {");
+		    output.println("}");
+
+		    TypeDescriptor elementtype = pp.base.getType().dereference();
+		    String type="";
+		    if (elementtype.isArray()||elementtype.isClass())
+			    type="void *";
+		    else 
+			    type=elementtype.getSafeSymbol()+" ";
+
+		    String oid = new String("(unsigned int) (" + generateTemp(fm, pp.base, lb) + " != NULL ? " + "((" + type + "*)(((char *) &("+ generateTemp(fm, pp.base, lb)+ "->___length___))+sizeof(int)))["+tstlbl+"] : 0)");
 		    oids.add(oid);
 	    }
 
 	    for(i = 1; i < pp.desc.size(); i++) {
 		    TypeDescriptor newtd;
+		    ClassDescriptor cd;
 		    String newfieldoffset;
 		    Object desc = pp.getDescAt(i);
 		    offsetcount++;
@@ -1542,15 +1554,19 @@ public class BuildCode {
 			    if(prevdesc instanceof IndexDescriptor){
 				    if((i-1) == 0) {
 					    newtd = pp.base.getType(); 
+					    cd = newtd.getClassDesc();
 				    } else {
 					    //FIXME currently handles one dimensional arrays
 					    newtd = ((FieldDescriptor)pp.getDescAt(i-2)).getType();
+					    cd = newtd.getClassDesc();
 				    }
+				    newfieldoffset = new String("(unsigned int)(&(((struct "+ cd.getSafeSymbol() +" *)0)->"+ 
+						    ((FieldDescriptor)desc).getSafeSymbol()+ "))");
 			    } else {
 				    newtd = ((FieldDescriptor)pp.getDescAt(i-1)).getType();
-			    }
-			    newfieldoffset = new String("(short)(&(((struct "+ newtd.getSafeSymbol()+" *)0)->"+ 
+				    newfieldoffset = new String("(unsigned int)(&(((struct "+ newtd.getSafeSymbol()+" *)0)->"+ 
 					    ((FieldDescriptor)desc).getSafeSymbol()+ "))");
+			    }
 			    fieldoffset.add(newfieldoffset);
 		    } else {
 			    String tstlbl = new String();
@@ -1558,7 +1574,7 @@ public class BuildCode {
 				    tstlbl += generateTemp(fm, ((IndexDescriptor)desc).getTempDescAt(j), lb) + "+";
 			    }
 			    tstlbl += ((IndexDescriptor)desc).offset.toString();
-			    newfieldoffset = new String("(short)("+tstlbl+")");
+			    newfieldoffset = new String(tstlbl);
 			    fieldoffset.add(newfieldoffset);
 		    }
 	    }
@@ -1569,6 +1585,7 @@ public class BuildCode {
 	    }else {
 		    endoffset.add(offsetcount);
 	    }
+	    flagcount++;
     }
 
     public void generateOutsideTransCode(FlatMethod fm, LocalityBinding lb,PrefetchPair pp, Vector oids, Vector fieldoffset, Vector endoffset, int tuplecount) {
@@ -1579,34 +1596,41 @@ public class BuildCode {
 	    oids.add(oid);
 	    for(i = 0; i < pp.desc.size(); i++) {
 		    TypeDescriptor newtd;
+		    ClassDescriptor cd;
 		    String newfieldoffset;
 		    Object desc = pp.getDescAt(i);
 		    offsetcount++;
 		    if(desc instanceof FieldDescriptor) {
 			    if(i == 0){
 				    newtd = pp.base.getType(); 
+				    newfieldoffset = new String("(unsigned int)(&(((struct "+ newtd.getSafeSymbol()+" *)0)->"+ 
+						    ((FieldDescriptor)desc).getSafeSymbol()+ "))");
 			    } else {
 				    Object prevdesc = pp.getDescAt(i-1);
 				    if(prevdesc instanceof IndexDescriptor){
 					    if((i-1) == 0) {
 						    newtd = pp.base.getType(); 
+						    cd = newtd.getClassDesc();
 					    } else {
 						    //FIXME currently handles one dimensional arrays
 						    newtd = ((FieldDescriptor)pp.getDescAt(i-2)).getType();
+						    cd = newtd.getClassDesc();
 					    }
+					    newfieldoffset = new String("(unsigned int)(&(((struct "+ cd.getSafeSymbol() +" *)0)->"+ 
+							    ((FieldDescriptor)desc).getSafeSymbol()+ "))");
 				    } else {
 					    newtd = ((FieldDescriptor)pp.getDescAt(i-1)).getType();
+					    newfieldoffset = new String("(unsigned int)(&(((struct "+ newtd.getSafeSymbol()+" *)0)->"+ 
+							    ((FieldDescriptor)desc).getSafeSymbol()+ "))");
 				    }
 			    }
-			    newfieldoffset = new String("(short)(&(((struct "+ newtd.getSafeSymbol()+" *)0)->"+ 
-					    ((FieldDescriptor)desc).getSafeSymbol()+ "))");
 		    } else {
 			    String tstlbl = new String();
 			    for(j = 0; j < ((IndexDescriptor)desc).tddesc.size(); j++) {
 				    tstlbl += generateTemp(fm, ((IndexDescriptor)desc).getTempDescAt(j), lb) + "+";
 			    }
 			    tstlbl += ((IndexDescriptor)desc).offset.toString();
-			    newfieldoffset = new String("(short)("+tstlbl+")");
+			    newfieldoffset = new String(tstlbl);
 		    }
 		    fieldoffset.add(newfieldoffset);
 	    }
@@ -1617,7 +1641,6 @@ public class BuildCode {
 	    }else {
 		    endoffset.add(offsetcount);
 	    }
-	    tuplecount++;
     }
 
     public void generateLocalTransCode(FlatMethod fm, LocalityBinding lb,PrefetchPair pp,Vector oids, Vector fieldoffset,Vector endoffset, int tuplecount) {
@@ -1654,7 +1677,7 @@ public class BuildCode {
 						    } else {
 							    newtd = ((FieldDescriptor) pp.getDescAt(j-1)).getType();
 						    }
-						    newfieldoffset = new String("(short)(&(((struct "+ newtd.getSafeSymbol()+" *)0)->"+ 
+						    newfieldoffset = new String("(unsigned int)(&(((struct "+ newtd.getSafeSymbol()+" *)0)->"+ 
 								    ((FieldDescriptor)desc).getSafeSymbol()+ "))");
 					    } else {
 						    String indexlbl = new String();
@@ -1662,7 +1685,7 @@ public class BuildCode {
 							    indexlbl += generateTemp(fm, ((IndexDescriptor)desc).getTempDescAt(k), lb) + "+";
 						    }
 						    indexlbl += ((IndexDescriptor)desc).offset.toString();
-						    newfieldoffset = new String("(short)("+indexlbl+")");
+						    newfieldoffset = new String(indexlbl);
 					    }
 					    fieldoffset.add(newfieldoffset);
 				    }

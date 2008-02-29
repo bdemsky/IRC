@@ -448,7 +448,7 @@ int processClientReq(fixed_data_t *fixed, trans_commit_data_t *transinfo,
 /* This function increments counters while running a voting decision on all objects involved 
  * in TRANS_REQUEST and If a TRANS_DISAGREE sends the response immediately back to the coordinator */
 char handleTransReq(fixed_data_t *fixed, trans_commit_data_t *transinfo, unsigned int *listmid, char *objread, void *modptr, int acceptfd) {
-	int val, i = 0;
+	int val, i = 0, j;
 	unsigned short version;
 	char control = 0, *ptr;
 	unsigned int oid;

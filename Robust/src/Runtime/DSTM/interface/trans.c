@@ -1574,7 +1574,8 @@ void sendPrefetchReq(prefetchpile_t *mcpilenode) {
 void getPrefetchResponse(int count, int sd) {
 	int i = 0, val, n, N, sum, index, objsize;
 	unsigned int bufsize,oid;
-	char buffer[RECEIVE_BUFFER_SIZE], control;
+	char *buffer;
+	char control;
 	char *ptr;
 	void *modptr, *oldptr;
 
@@ -1587,7 +1588,10 @@ void getPrefetchResponse(int count, int sd) {
 	if(control == TRANS_PREFETCH_RESPONSE) {
 		/*For each oid and offset tuple sent as prefetch request to remote machine*/
 		while(N = recv((int)sd, &bufsize, sizeof(unsigned int), 0) != 0) {
-			bzero(&buffer, RECEIVE_BUFFER_SIZE);
+			if((buffer = calloc(1, bufsize)) == NULL) {
+				printf("Calloc Error in %s() at %s, %d\n", __func__, __FILE__, __LINE__);
+				return;
+			}
 			sum = 0;
 			index = 0;
 			ptr = buffer;
@@ -1611,6 +1615,7 @@ void getPrefetchResponse(int count, int sd) {
 					if ((modptr = objstrAlloc(prefetchcache, objsize)) == NULL) {
 						printf("Error: objstrAlloc error for copying into prefetch cache %s, %d\n", __FILE__, __LINE__);
 						pthread_mutex_unlock(&prefetchcache_mutex);
+						free(buffer);
 						return;
 					}
 					pthread_mutex_unlock(&prefetchcache_mutex);
@@ -1650,9 +1655,11 @@ void getPrefetchResponse(int count, int sd) {
 					exit(-1);
 				} else {
 					printf("Error in decoding the index value %d, %s, %d\n",index, __FILE__, __LINE__);
+					free(buffer);
 					return;
 				}
 			}
+			free(buffer);
 		}
 	} else
 		printf("Error in receving response for prefetch request %s, %d\n",__FILE__, __LINE__);
