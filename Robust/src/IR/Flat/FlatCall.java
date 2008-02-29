@@ -35,7 +35,7 @@ public class FlatCall extends FlatNode {
     }
 
     public String toString() {
-	String st="";
+	String st="FlatCall_";
 	if (dst==null) {
 	    if (method==null)
 		st+="null(";

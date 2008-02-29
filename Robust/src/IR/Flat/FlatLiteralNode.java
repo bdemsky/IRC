@@ -25,10 +25,12 @@ public class FlatLiteralNode extends FlatNode {
     }
 
     public String toString() {
+	String str = "FlatLiteralNode_"+dst;
 	if (value==null)
-	    return dst+"=null";
+	    str += "=null";
 	else
-	    return dst+"="+escapeString(value.toString());
+	    str += "="+escapeString(value.toString());
+	return str;
     }
     protected static String escapeString(String st) {
 	String new_st="";

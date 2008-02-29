@@ -11,7 +11,7 @@ public class FlatTagDeclaration extends FlatNode {
     }
 
     public String toString() {
-	return dst.toString()+"= new Tag("+type.toString()+")";
+	return "FlatTagDeclaration_"+dst.toString()+"= new Tag("+type.toString()+")";
     }
 
     public int kind() {

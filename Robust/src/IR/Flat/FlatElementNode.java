@@ -29,7 +29,7 @@ public class FlatElementNode extends FlatNode {
     }
 
     public String toString() {
-	return dst.toString()+"="+src.toString()+"["+index.toString()+"]";
+	return "FlatElementNode_"+dst.toString()+"="+src.toString()+"["+index.toString()+"]";
     }
 
     public int kind() {

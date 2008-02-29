@@ -87,7 +87,7 @@ public class FlatFlagActionNode extends FlatNode {
     }
 
     public String toString() {
-	String st="FlatFlagActionNode";
+	String st="FlatFlagActionNode_";
 	for(Iterator it=tempflagpairs.keySet().iterator();it.hasNext();) {
 	    TempFlagPair tfp=(TempFlagPair)it.next();
 	    st+=getFlagChange(tfp)?"":"!";

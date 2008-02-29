@@ -25,7 +25,7 @@ public class FlatFieldNode extends FlatNode {
     }
 
     public String toString() {
-	return dst.toString()+"="+src.toString()+"."+field.getSymbol();
+	return "FlatFieldNode_"+dst.toString()+"="+src.toString()+"."+field.getSymbol();
     }
 
     public int kind() {

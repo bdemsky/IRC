@@ -30,7 +30,7 @@ public class FlatCondBranch extends FlatNode {
     }
 
     public String toString(String negjump) {
-	return "if (!"+test_cond.toString()+") goto "+negjump;
+	return "FlatCondBranch_if (!"+test_cond.toString()+") goto "+negjump;
     }
 
     public void addNext(FlatNode n) {

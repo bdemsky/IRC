@@ -14,10 +14,12 @@ public class FlatGlobalConvNode extends FlatNode {
     }
 
     public String toString() {
+	String str = "FlatGlobalConvNode_"+src.toString();
 	if (makePtr)
-	    return src.toString()+"=(PTR)"+src.toString()+" "+lb;
+	    str += "=(PTR)";
 	else
-	    return src.toString()+"=(OID)"+src.toString()+" "+lb;
+	    str += "=(OID)";
+	return str+src.toString()+" "+lb;
     }
 
     public int kind() {

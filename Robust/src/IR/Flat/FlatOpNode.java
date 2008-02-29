@@ -32,12 +32,14 @@ public class FlatOpNode extends FlatNode {
     }
 
     public String toString() {
+	String str = "FlatOpNode_"+dest.toString();
 	if (right!=null)
-	    return dest.toString()+"="+left.toString()+op.toString()+right.toString();
+	    str += "="+left.toString()+op.toString()+right.toString();
 	else if (op.getOp()==Operation.ASSIGN)
-	    return dest.toString()+" = "+left.toString();
+	    str += " = "+left.toString();
 	else
-	    return dest.toString()+" "+op.toString() +" "+left.toString();
+	    str += " "+op.toString() +" "+left.toString();
+	return str;
     }
 
     public int kind() {

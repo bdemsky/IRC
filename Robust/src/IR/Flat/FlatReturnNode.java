@@ -8,7 +8,7 @@ public class FlatReturnNode extends FlatNode {
     }
 
     public String toString() {
-	return "return "+tempdesc;
+	return "FlatReturnNode_return "+tempdesc;
     }
 
     public int kind() {

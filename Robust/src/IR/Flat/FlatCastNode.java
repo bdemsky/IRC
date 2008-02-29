@@ -13,7 +13,7 @@ public class FlatCastNode extends FlatNode {
     }
 
     public String toString() {
-	return dst.toString()+"=("+type.toString()+")"+src.toString();
+	return "FlatCastNode_"+dst.toString()+"=("+type.toString()+")"+src.toString();
     }
 
     public int kind() {

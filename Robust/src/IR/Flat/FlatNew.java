@@ -26,10 +26,10 @@ public class FlatNew extends FlatNode {
     }
 
     public String toString() {
-	if (size==null)
-	    return dst.toString()+"= NEW "+type.toString();
-	else
-	    return dst.toString()+"= NEW "+type.toString()+"["+size.toString()+"]";
+	String str = "FlatNew_"+dst.toString()+"= NEW "+type.toString();
+	if (size!=null)
+	    str += "["+size.toString()+"]";
+	return str;
     }
 
     public int kind() {
