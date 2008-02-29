@@ -27,7 +27,10 @@ public class FlatMethod extends FlatNode {
     }
 
     public String toString() {
-	return method.toString();
+	if( method != null ) {
+	    return method.toString();
+	}
+	return task.toString();
     }
 
     public MethodDescriptor getMethod() {
