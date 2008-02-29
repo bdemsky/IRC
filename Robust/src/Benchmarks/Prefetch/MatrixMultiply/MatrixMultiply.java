@@ -12,15 +12,19 @@ public class MatrixMultiply extends Thread{
 
 	public void run() {
 		int localresults[][];
+
 		atomic {
 		    //compute the results
 		    localresults=new int[1+x1-x0][1+y1-y0];
 		    
 		    for(int i = x0; i<= x1; i++){
+			int a[]=mmul.a[i];
+			int b[][]=mmul.b;
+			int M=mmul.M;
 			for (int j = y0; j <= y1; j++) {
 			    int innerProduct=0;
-			    for(int k = 0; k < mmul.M; k++) {
-				innerProduct += mmul.a[i][k] * mmul.b[k][j];
+			    for(int k = 0; k < M; k++) {
+				innerProduct += a[k] * b[k][j];
 			    }
 			    localresults[i-x0][j-y0]=innerProduct;
 			}
@@ -29,23 +33,26 @@ public class MatrixMultiply extends Thread{
 		atomic {
 		    //write the results
 		    for(int i=x0;i<=x1;i++) {
+			int c[]=mmul.c[i];
 			for(int j=y0;j<=y1;j++) {
-			    mmul.c[i][j]=localresults[i-x0][j-y0];
+			    c[j]=localresults[i-x0][j-y0];
 			}
 		    }
 		}
 	}
 
 	public static void main(String[] args) {
-		int mid = (128<<24)|(195<<16)|(175<<8)|70;
-		int NUM_THREADS = 4;
-		int i, j, p, q, r, val;
+		int mid1 = (128<<24)|(195<<16)|(175<<8)|70;
+		int mid2 = (128<<24)|(195<<16)|(175<<8)|69;
+		int mid3 = (128<<24)|(195<<16)|(175<<8)|71;
+		int NUM_THREADS = 2;
+		int i, j, p, q, r;
 		MatrixMultiply[] mm;
 		MatrixMultiply tmp;
 		MMul matrix;
 
 		atomic {
-			matrix = global new MMul(4, 4, 4);
+			matrix = global new MMul(70, 70, 70);
 			matrix.setValues();
 		}
 
@@ -53,13 +60,12 @@ public class MatrixMultiply extends Thread{
 			mm = global new MatrixMultiply[NUM_THREADS];
 		}
 
-		// Currently it is a 4 X 4 matrix divided into 4 blocks 
+		// Currently it is a 70 X 70 matrix divided into 4 blocks 
 		atomic {
-			mm[0] = global new MatrixMultiply(matrix,0,0,1,1);
-			mm[1] = global new MatrixMultiply(matrix,0,2,1,3);
-			mm[2] = global new MatrixMultiply(matrix,2,0,3,1);
-			mm[3] = global new MatrixMultiply(matrix,2,2,3,3);
+			mm[0] = global new MatrixMultiply(matrix,0,0,69,35);
+			mm[1] = global new MatrixMultiply(matrix,0,36,69,69);
 		}
+
 		atomic {
 			p = matrix.L;
 			q = matrix.M;
@@ -79,6 +85,7 @@ public class MatrixMultiply extends Thread{
 		System.printString("\n");
 
 		//Print Matrices to be multiplied
+		/*
 		System.printString("a =\n");
 		for (i = 0; i < p; i++) {
 			for (j = 0; j < q; j++) {
@@ -102,13 +109,14 @@ public class MatrixMultiply extends Thread{
 			System.printString("\n");
 		}
 		System.printString("\n");
+		*/
 
 		// start a thread to compute each c[l,n]
 		for (i = 0; i < NUM_THREADS; i++) {
 			atomic {
 				tmp = mm[i];
 			}
-			tmp.start(mid);
+			tmp.start(mid1);
 		}
 
 		// wait for them to finish
@@ -122,15 +130,20 @@ public class MatrixMultiply extends Thread{
 		// print out the result of the matrix multiply
 		System.printString("Starting\n");
 		System.printString("Matrix Product c =\n");
-		for (i = 0; i < p; i++) {
-			for (j = 0; j < r; j++) {
-				atomic {
-					val = matrix.c[i][j];
+		StringBuffer sb = new StringBuffer("");
+		int val;
+		atomic {
+			for (i = 0; i < p; i++) {
+				int c[]=matrix.c[i];
+				for (j = 0; j < r; j++) {
+					val = c[j];
+					sb.append(" ");
+					sb.append((new Integer(val)).toString());
 				}
-				System.printString(" " + val);
+				sb.append("\n");
 			}
-			System.printString("\n");
 		}
+		System.printString(sb.toString());
 		System.printString("Finished\n");
 	}
 }
