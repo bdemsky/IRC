@@ -33,8 +33,8 @@ void COPY_OBJ(struct ___Object___ *obj) {
 #else
     struct ___Object___ * newobj=FREEMALLOC(size);
 #endif
-    memcpy(newobj, (struct ___Object___ *) ptrarray[1], size);
-    ((struct ___Object___*)ptrarray[1])->___localcopy___=newobj;
+    memcpy(newobj, (struct ___Object___ *) ptrarray[2], size);
+    ((struct ___Object___*)ptrarray[2])->___localcopy___=newobj;
   } else {
     /* We have an array */
     struct ArrayObject *ao=(struct ArrayObject *)obj;
@@ -47,7 +47,7 @@ void COPY_OBJ(struct ___Object___ *obj) {
 #else
     struct ___Object___ * newobj=FREEMALLOC(size);
 #endif
-    memcpy(newobj, (struct ___Object___ *) ptrarray[1], size);
-    ((struct ___Object___*)ptrarray[1])->___localcopy___=newobj;
+    memcpy(newobj, (struct ___Object___ *) ptrarray[2], size);
+    ((struct ___Object___*)ptrarray[2])->___localcopy___=newobj;
   }
 }

@@ -12,7 +12,9 @@
 #ifdef DMALLOC
 #include "dmalloc.h"
 #endif
-
+#ifdef DSTM
+#include "dstm.h"
+#endif
 
 #define NUMPTRS 100
 
@@ -287,10 +289,20 @@ void collect(struct garbagelist * stackptr) {
     if (pointer==0) {
       /* Array of primitives */
       /* Do nothing */
+#ifdef DSTM
+      struct ArrayObject *ao=(struct ArrayObject *) ptr;
+      struct ArrayObject *ao_cpy=(struct ArrayObject *) cpy;
+      ENQUEUE((void *)ao->___nextobject___, *((void **)&ao_cpy->___nextobject___));
+      ENQUEUE((void *)ao->___localcopy___, *((void **)&ao_cpy->___localcopy___));
+#endif
     } else if (((int)pointer)==1) {
       /* Array of pointers */
       struct ArrayObject *ao=(struct ArrayObject *) ptr;
       struct ArrayObject *ao_cpy=(struct ArrayObject *) cpy;
+#ifdef DSTM
+      ENQUEUE((void *)ao->___nextobject___, *((void **)&ao_cpy->___nextobject___));
+      ENQUEUE((void *)ao->___localcopy___, *((void **)&ao_cpy->___localcopy___));
+#endif
       int length=ao->___length___;
       int i;
       for(i=0;i<length;i++) {
@@ -387,7 +399,6 @@ void * tomalloc(int size) {
 }
 
 #if defined(THREADS)||defined(DSTM)
-
 void checkcollect(void * ptr) {
   if (needtocollect) {
     struct listitem * tmp=stopforgc((struct garbagelist *)ptr);
@@ -397,6 +408,20 @@ void checkcollect(void * ptr) {
 
   }
 }
+
+#ifdef DSTM
+void checkcollect2(void * ptr, transrecord_t *trans) {
+  if (needtocollect) {
+    int ptrarray[]={1, (int)ptr, (int) trans->revertlist};
+    struct listitem * tmp=stopforgc((struct garbagelist *)ptrarray);
+    pthread_mutex_lock(&gclock); // Wait for GC
+    restartaftergc(tmp);
+    pthread_mutex_unlock(&gclock);
+    trans->revertlist=(struct ___Object___*)ptrarray[2];
+  }
+}
+#endif
+
 
 struct listitem * stopforgc(struct garbagelist * ptr) {
   struct listitem * litem=malloc(sizeof(struct listitem));

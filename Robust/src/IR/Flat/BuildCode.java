@@ -811,7 +811,7 @@ public class BuildCode {
 		    objecttemps.addPrim(tmp);
 	    }
 	    /* Create temp to hold revert table */
-	    if (lb.getHasAtomic()) {
+	    if (lb.getHasAtomic()||lb.isAtomic()) {
 		TempDescriptor reverttmp=new TempDescriptor("revertlist", typeutil.getClass(TypeUtil.ObjectClass));
 		if (GENERATEPRECISEGC)
 		    objecttemps.addPtr(reverttmp);
@@ -1247,7 +1247,10 @@ public class BuildCode {
 	 * multi-threaded program...*/
 
 	if ((state.THREAD||state.DSM)&&GENERATEPRECISEGC) {
-	    output.println("checkcollect(&"+localsprefix+");");
+	    if (state.DSM&&lb.isAtomic())
+		output.println("checkcollect2(&"+localsprefix+",trans);");
+	    else
+		output.println("checkcollect(&"+localsprefix+");");
 	}
 	
 	/* Do the actual code generation */
@@ -1405,7 +1408,10 @@ public class BuildCode {
 	    return;
 	case FKind.FlatBackEdge:
 	    if ((state.THREAD||state.DSM)&&GENERATEPRECISEGC) {
-		output.println("checkcollect(&"+localsprefix+");");
+		if(state.DSM&&locality.getAtomic(lb).get(fn).intValue()>0) {
+		    output.println("checkcollect2(&"+localsprefix+",trans);");
+		} else
+		    output.println("checkcollect(&"+localsprefix+");");
 	    } else
 		output.println("/* nop */");
 	    return;
@@ -2042,12 +2048,14 @@ public class BuildCode {
 		/** Check if we need to copy */
 		output.println("if(!"+dst+"->"+localcopystr+") {");
 		/* Link object into list */
-		output.println(dst+"->"+nextobjstr+"=trans->revertlist;");
-		output.println("trans->revertlist=(struct ___Object___ *)"+dst+";");
+		String revertptr=generateTemp(fm, reverttable.get(lb),lb);
+		output.println(revertptr+"=trans->revertlist;");
 		if (GENERATEPRECISEGC)
 		    output.println("COPY_OBJ((struct garbagelist *)&"+localsprefix+",(struct ___Object___ *)"+dst+");");
 		else
 		    output.println("COPY_OBJ("+dst+");");
+		output.println(dst+"->"+nextobjstr+"="+revertptr+";");
+		output.println("trans->revertlist=(struct ___Object___ *)"+dst+";");
 		output.println("}");
 		if (srcglobal)
 		    output.println(dst+"->"+ fsfn.getField().getSafeSymbol()+"=srcoid;");
@@ -2132,9 +2140,26 @@ public class BuildCode {
 	    Integer statusdst=locality.getNodePreTempInfo(lb,fsen).get(fsen.getDst());
 	    boolean srcglobal=statussrc==LocalityAnalysis.GLOBAL;
 	    boolean dstglobal=statusdst==LocalityAnalysis.GLOBAL;
+	    boolean dstlocal=statusdst==LocalityAnalysis.LOCAL;
+	    
 	    if (dstglobal) {
 		output.println("*((unsigned int *)&("+generateTemp(fm,fsen.getDst(),lb)+"->___localcopy___))|=DIRTY;");
-	    }
+	    } else if (dstlocal) {
+		/** Check if we need to copy */
+		String dst=generateTemp(fm, fsen.getDst(),lb);
+		output.println("if(!"+dst+"->"+localcopystr+") {");
+		/* Link object into list */
+		String revertptr=generateTemp(fm, reverttable.get(lb),lb);
+		output.println(revertptr+"=trans->revertlist;");
+		if (GENERATEPRECISEGC)
+		    output.println("COPY_OBJ((struct garbagelist *)&"+localsprefix+",(struct ___Object___ *)"+dst+");");
+		else
+		    output.println("COPY_OBJ("+dst+");");
+		output.println(dst+"->"+nextobjstr+"="+revertptr+";");
+
+		output.println("trans->revertlist=(struct ___Object___ *)"+dst+";");
+		output.println("}");
+	    } else throw new Error("Unknown array type");
 	    if (srcglobal) {
 		output.println("{");
 		String src=generateTemp(fm, fsen.getSrc(), lb);
@@ -2149,6 +2174,11 @@ public class BuildCode {
     }
 
     private void generateFlatNew(FlatMethod fm, LocalityBinding lb, FlatNew fn, PrintWriter output) {
+	if (state.DSM && locality.getAtomic(lb).get(fn).intValue()>0&&!fn.isGlobal()) {
+	    //Stash pointer in case of GC
+	    String revertptr=generateTemp(fm, reverttable.get(lb),lb);
+	    output.println(revertptr+"=trans->revertlist;");
+	}
 	if (fn.getType().isArray()) {
 	    int arrayid=state.getArrayNumber(fn.getType())+state.numClasses();
 	    if (fn.isGlobal()) {
@@ -2166,6 +2196,10 @@ public class BuildCode {
 	    } else {
 		output.println(generateTemp(fm,fn.getDst(),lb)+"=allocate_new("+fn.getType().getClassDesc().getId()+");");
 	    }
+	}
+	if (state.DSM && locality.getAtomic(lb).get(fn).intValue()>0&&!fn.isGlobal()) {
+	    String revertptr=generateTemp(fm, reverttable.get(lb),lb);
+	    output.println("trans->revertlist="+revertptr+";");
 	}
     }
 
@@ -2218,7 +2252,17 @@ public class BuildCode {
 	    output.println(generateTemp(fm, fln.getDst(),lb)+"=0;");
 	else if (fln.getType().getSymbol().equals(TypeUtil.StringClass)) {
 	    if (GENERATEPRECISEGC) {
+		if (state.DSM && locality.getAtomic(lb).get(fln).intValue()>0) {
+		    //Stash pointer in case of GC
+		    String revertptr=generateTemp(fm, reverttable.get(lb),lb);
+		    output.println(revertptr+"=trans->revertlist;");
+		}
 		output.println(generateTemp(fm, fln.getDst(),lb)+"=NewString(&"+localsprefix+", \""+FlatLiteralNode.escapeString((String)fln.getValue())+"\","+((String)fln.getValue()).length()+");");
+		if (state.DSM && locality.getAtomic(lb).get(fln).intValue()>0) {
+		    //Stash pointer in case of GC
+		    String revertptr=generateTemp(fm, reverttable.get(lb),lb);
+		    output.println("trans->revertlist="+revertptr+";");
+		}
 	    } else {
 		output.println(generateTemp(fm, fln.getDst(),lb)+"=NewString(\""+FlatLiteralNode.escapeString((String)fln.getValue())+"\","+((String)fln.getValue()).length()+");");
 	    }

@@ -42,7 +42,7 @@ public class MatrixMultiply extends Thread{
 	}
 
 	public static void main(String[] args) {
-		int mid1 = (128<<24)|(195<<16)|(175<<8)|70;
+		int mid1 = (172<<24)|(16<<16)|(9<<8)|129;
 		int mid2 = (128<<24)|(195<<16)|(175<<8)|69;
 		int mid3 = (128<<24)|(195<<16)|(175<<8)|71;
 		int NUM_THREADS = 2;

@@ -500,7 +500,7 @@ char handleTransReq(fixed_data_t *fixed, trans_commit_data_t *transinfo, unsigne
 					/* Send TRANS_DISAGREE to Coordinator */
 					control = TRANS_DISAGREE;
 					if (objlocked > 0) {
-						for(j = 0; j < objlocked; j++) {
+					  for(j = 0; j < objlocked; j++) {
 							if((headptr = mhashSearch(oidlocked[j])) == NULL) {
 								printf("mhashSearch returns NULL at %s, %d\n", __FILE__, __LINE__);
 								return 0;
