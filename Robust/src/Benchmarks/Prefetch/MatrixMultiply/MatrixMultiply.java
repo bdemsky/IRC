@@ -17,7 +17,7 @@ public class MatrixMultiply extends Thread{
 		    //compute the results
 		    localresults=new int[1+x1-x0][1+y1-y0];
 		
-		    //Transpose b for cache performance
+		    //Use b transpose for cache performance
 		    for(int i = x0; i<= x1; i++){
 			int a[]=mmul.a[i];
 			int M=mmul.M;
@@ -56,13 +56,13 @@ public class MatrixMultiply extends Thread{
 		atomic {
 			matrix = global new MMul(800, 800, 800);
 			matrix.setValues();
+			matrix.transpose();
 		}
 
 		atomic{
 			mm = global new MatrixMultiply[NUM_THREADS];
 		}
 
-		// Currently it is a 70 X 70 matrix divided into 4 blocks 
 		atomic {
 			mm[0] = global new MatrixMultiply(matrix,0,0,799,300);
 			mm[1] = global new MatrixMultiply(matrix,0,301,799,799);
@@ -86,11 +86,6 @@ public class MatrixMultiply extends Thread{
 		System.printInt(r);
 		System.printString("\n");
 
-		//transpose matrix b
-		atomic {
-			matrix.transpose();
-		}
-
 		// start a thread to compute each c[l,n]
 		for (i = 0; i < NUM_THREADS; i++) {
 			atomic {
@@ -104,12 +99,11 @@ public class MatrixMultiply extends Thread{
 			atomic {
 				tmp = mm[i];
 			}
-			System.printString("Joining " + i + " ... ");
 			tmp.join();
-			System.printString("Joined " + i + "\n");
 		}
 
 		// print out the result of the matrix multiply
+		System.printString("Starting\n");
 		System.printString("Matrix Product c =\n");
 		int val;
 		atomic {
