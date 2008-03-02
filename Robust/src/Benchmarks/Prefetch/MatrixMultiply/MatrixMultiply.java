@@ -16,20 +16,22 @@ public class MatrixMultiply extends Thread{
 		atomic {
 		    //compute the results
 		    localresults=new int[1+x1-x0][1+y1-y0];
-		    
+		
+		    //Transpose b for cache performance
 		    for(int i = x0; i<= x1; i++){
 			int a[]=mmul.a[i];
-			int b[][]=mmul.b;
 			int M=mmul.M;
 			for (int j = y0; j <= y1; j++) {
 			    int innerProduct=0;
+			    int b[] = mmul.btranspose[j];
 			    for(int k = 0; k < M; k++) {
-				innerProduct += a[k] * b[k][j];
+				innerProduct += a[k] *b[k];
 			    }
 			    localresults[i-x0][j-y0]=innerProduct;
 			}
 		    }
 		}
+
 		atomic {
 		    //write the results
 		    for(int i=x0;i<=x1;i++) {
@@ -42,7 +44,7 @@ public class MatrixMultiply extends Thread{
 	}
 
 	public static void main(String[] args) {
-		int mid1 = (172<<24)|(16<<16)|(9<<8)|129;
+		int mid1 = (128<<24)|(195<<16)|(175<<8)|70;
 		int mid2 = (128<<24)|(195<<16)|(175<<8)|69;
 		int mid3 = (128<<24)|(195<<16)|(175<<8)|71;
 		int NUM_THREADS = 2;
@@ -52,7 +54,7 @@ public class MatrixMultiply extends Thread{
 		MMul matrix;
 
 		atomic {
-			matrix = global new MMul(70, 70, 70);
+			matrix = global new MMul(800, 800, 800);
 			matrix.setValues();
 		}
 
@@ -62,8 +64,8 @@ public class MatrixMultiply extends Thread{
 
 		// Currently it is a 70 X 70 matrix divided into 4 blocks 
 		atomic {
-			mm[0] = global new MatrixMultiply(matrix,0,0,69,35);
-			mm[1] = global new MatrixMultiply(matrix,0,36,69,69);
+			mm[0] = global new MatrixMultiply(matrix,0,0,799,300);
+			mm[1] = global new MatrixMultiply(matrix,0,301,799,799);
 		}
 
 		atomic {
@@ -84,32 +86,10 @@ public class MatrixMultiply extends Thread{
 		System.printInt(r);
 		System.printString("\n");
 
-		//Print Matrices to be multiplied
-		/*
-		System.printString("a =\n");
-		for (i = 0; i < p; i++) {
-			for (j = 0; j < q; j++) {
-				atomic {
-					val = matrix.a[i][j];
-				}
-				System.printString(" " + val);
-			}
-			System.printString("\n");
+		//transpose matrix b
+		atomic {
+			matrix.transpose();
 		}
-		System.printString("\n");
-
-		System.printString("b =\n");
-		for (i = 0; i < q; i++) {
-			for (j = 0; j < r; j++) {
-				atomic {
-					val = matrix.b[i][j];
-				}
-				System.printString(" " + val);
-			}
-			System.printString("\n");
-		}
-		System.printString("\n");
-		*/
 
 		// start a thread to compute each c[l,n]
 		for (i = 0; i < NUM_THREADS; i++) {
@@ -124,26 +104,22 @@ public class MatrixMultiply extends Thread{
 			atomic {
 				tmp = mm[i];
 			}
+			System.printString("Joining " + i + " ... ");
 			tmp.join();
+			System.printString("Joined " + i + "\n");
 		}
 
 		// print out the result of the matrix multiply
-		System.printString("Starting\n");
 		System.printString("Matrix Product c =\n");
-		StringBuffer sb = new StringBuffer("");
 		int val;
 		atomic {
 			for (i = 0; i < p; i++) {
 				int c[]=matrix.c[i];
 				for (j = 0; j < r; j++) {
 					val = c[j];
-					sb.append(" ");
-					sb.append((new Integer(val)).toString());
 				}
-				sb.append("\n");
 			}
 		}
-		System.printString(sb.toString());
 		System.printString("Finished\n");
 	}
 }
@@ -154,6 +130,7 @@ public class MMul{
 	public int[][] a;
 	public int[][] b;
 	public int[][] c;
+	public int[][] btranspose;
 
 	public MMul(int L, int M, int N) {
 		this.L = L;
@@ -162,6 +139,7 @@ public class MMul{
 		a = global new int[L][M];  
 		b = global new int[M][N]; 
 		c = global new int[L][N]; 
+		btranspose = global new int[N][M];
 	}
 
 	public void setValues() {
@@ -184,6 +162,20 @@ public class MMul{
 				c[i][j] = 0;
 			}
 		}
+		for(i = 0; i < N; i++) {
+			for(j = 0; j < M; j++) {
+				btranspose[i][j] = 0;
+			}
+		}
+	}
+
+	public void transpose() {
+		int row;
+		int col;
+		for(row = 0; row < M; row++) {
+			for(col = 0; col < N; col++) {
+				btranspose[col][row] = b[row][col];
+			}
+		}
 	}
 }
-
