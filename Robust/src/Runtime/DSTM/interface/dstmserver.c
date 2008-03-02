@@ -309,7 +309,7 @@ int readClientReq(trans_commit_data_t *transinfo, int acceptfd) {
 			  // keep reading all objects
 		sum = 0;
 		do {
-			n = recv((int)acceptfd, (void *) objread, N, 0);
+			n = recv((int)acceptfd, (void *) objread+sum, N-sum, 0);
 			sum += n;
 		} while(sum < N && n != 0);
 	}

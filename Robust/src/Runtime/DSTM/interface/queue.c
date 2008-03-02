@@ -50,6 +50,9 @@ prefetchqelem_t *pre_dequeue(void) {
 	prefetchqelem_t *retnode;
 	if (pqueue.front == NULL) {
 		printf("Queue empty: Underflow %s, %d\n", __FILE__, __LINE__);
+		if(pqueue.rear != NULL) {
+			printf("pqueue.front points to invalid location %s, %d\n", __FILE__, __LINE__);
+		}
 		return NULL;
 	}
 	retnode = pqueue.front;

@@ -1513,6 +1513,7 @@ public class BuildCode {
     public void generateInsideTransCode(FlatMethod fm, LocalityBinding lb,PrintWriter output,PrefetchPair pp,Vector oids, Vector fieldoffset,Vector endoffset, int tuplecount){
 	    int i,j;
  	    short offsetcount = 0;
+	    String test = new String();
 
 	    Object newdesc = pp.desc.get(0);
 	    if(newdesc instanceof FieldDescriptor) {
@@ -1529,13 +1530,9 @@ public class BuildCode {
 			    tstlbl += generateTemp(fm, id.getTempDescAt(i), lb) + "+";
 		    }
 		    tstlbl += id.offset.toString();
- 		    output.println("   int flag_" + flagcount + "=  0;");
 		    output.println("if ("+tstlbl+"< 0 || "+tstlbl+" >= "+
 				    generateTemp(fm, pp.base, lb) + "->___length___) {");
-		    output.println("    flag_" + flagcount+"  = 1;");
-		    output.println("}");
-
-		    output.println("if (flag_"+flagcount+") {");
+		    output.println("   failedboundschk();");
 		    output.println("}");
 
 		    TypeDescriptor elementtype = pp.base.getType().dereference();
@@ -1546,6 +1543,12 @@ public class BuildCode {
 			    type=elementtype.getSafeSymbol()+" ";
 
 		    String oid = new String("(unsigned int) (" + generateTemp(fm, pp.base, lb) + " != NULL ? " + "((" + type + "*)(((char *) &("+ generateTemp(fm, pp.base, lb)+ "->___length___))+sizeof(int)))["+tstlbl+"] : 0)");
+
+		    /*
+		    test = "(("+tstlbl+"< 0) || ("+tstlbl+" >= "+ generateTemp(fm, pp.base, lb) + "->___length___))";
+		    String oid = new String("(unsigned int) (" +genarateTemp(fm, pp.base, lb) + " != NULL ? (" +test+ " ? 0 : ((" + type + "*)(((char *) &("+ generateTemp(fm, pp.base, lb)+ "->___length___))+sizeof(int)))["+tstlbl+"]) : 0);"); 
+		    */
+		    
 		    oids.add(oid);
 	    }
 
