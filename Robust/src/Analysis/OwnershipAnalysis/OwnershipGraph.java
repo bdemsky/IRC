@@ -7,10 +7,10 @@ import java.io.*;
 
 public class OwnershipGraph {
 
-    /*
+
     protected static final int VISIT_HRN_WRITE_FULL      = 0;
-    protected static final int VISIT_HRN_WRITE_CONDENSED = 1;
-    */
+    //protected static final int VISIT_HRN_WRITE_CONDENSED = 1;
+
 
     private int allocationDepth;
 
@@ -98,7 +98,6 @@ public class OwnershipGraph {
     }
     
 
-    /*
     ////////////////////////////////////////////////////
     //
     //  New Reference Methods
@@ -180,7 +179,6 @@ public class OwnershipGraph {
     // end new reference methods
     ////////////////////////////////////////////////////
 
-    */
 
     protected HeapRegionNode 
 	createNewHeapRegionNode( Integer id,
@@ -918,8 +916,19 @@ public class OwnershipGraph {
     }
     */
 
-    public void writeGraph( String graphName ) throws java.io.IOException {
+    public void writeGraph( Descriptor methodDesc,
+			    FlatNode   fn ) throws java.io.IOException {
 	
+	String graphName =
+	    methodDesc.getSymbol() +
+	    methodDesc.getNum() +
+	    fn.toString();
+
+	// remove all non-word characters from the graph name so
+	// the filename and identifier in dot don't cause errors
+	graphName = graphName.replaceAll( "[\\W]", "" );
+
+
 	BufferedWriter bw = new BufferedWriter( new FileWriter( graphName+".dot" ) );
 	bw.write( "digraph "+graphName+" {\n" );
 
@@ -945,12 +954,14 @@ public class OwnershipGraph {
 
 	    bw.write( "  }\n" );
 	}
+	*/
+
 
 	// then visit every heap region node
 	HashSet<HeapRegionNode> visited = new HashSet<HeapRegionNode>();
 
-	s = heapRoots.entrySet();
-	i = s.iterator();
+	Set      s = heapRoots.entrySet();
+	Iterator i = s.iterator();
 	while( i.hasNext() ) {
 	    Map.Entry      me  = (Map.Entry)      i.next();
 	    HeapRegionNode hrn = (HeapRegionNode) me.getValue();
@@ -981,7 +992,6 @@ public class OwnershipGraph {
 			  "\"];\n" );
 	    }
 	}
-	*/
 
 	bw.write( "}\n" );
 	bw.close();
@@ -1025,6 +1035,7 @@ public class OwnershipGraph {
 	bw.write( "}\n" );
 	bw.close();
     }
+    */
 
     protected void traverseHeapRegionNodes( int mode,
 					    HeapRegionNode hrn,
@@ -1063,6 +1074,7 @@ public class OwnershipGraph {
                       "\"];\n" );
 	    break;
 
+	    /*
 	case VISIT_HRN_WRITE_CONDENSED:	    
 
 	    Iterator i = hrn.iteratorToAnalysisRegionAliases();
@@ -1089,11 +1101,11 @@ public class OwnershipGraph {
 
 	    hrn.addAnalysisRegionAlias( td );
 	    break;
+	    */
 	}
 
-
-	OwnershipNode onRef = null;
-	Iterator refItr = hrn.iteratorToReferencers();
+	OwnershipNode onRef  = null;
+	Iterator      refItr = hrn.iteratorToReferencers();
 	while( refItr.hasNext() ) {
 	    onRef = (OwnershipNode) refItr.next();
 
@@ -1130,6 +1142,4 @@ public class OwnershipGraph {
 	    traverseHeapRegionNodes( mode, hrnChild, bw, td, visited );
 	}
     }
-    */
-
 }

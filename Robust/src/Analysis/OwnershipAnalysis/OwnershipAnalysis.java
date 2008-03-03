@@ -117,15 +117,15 @@ public class OwnershipAnalysis {
 	    boolean    isTask;
 	    FlatMethod fm;
 	    if( d instanceof MethodDescriptor ) {
-		isTask = false;
+		//isTask = false;
 		fm     = state.getMethodFlat( (MethodDescriptor) d );
 	    } else {
 		assert d instanceof TaskDescriptor;
-		isTask = true;
+		//isTask = true;
 		fm     = state.getMethodFlat( (TaskDescriptor) d );
 	    }
 	    
-	    OwnershipGraph og     = analyzeFlatMethod( isTask, fm );
+	    OwnershipGraph og     = analyzeFlatMethod( d, fm );
 	    OwnershipGraph ogPrev = mapDescriptorToCompleteOwnershipGraph.get( d );
 
 	    if( !og.equals( ogPrev ) ) {
@@ -146,8 +146,10 @@ public class OwnershipAnalysis {
     }
 
 
+    // keep passing the Descriptor of the method along for debugging
+    // and dot file writing
     private OwnershipGraph
-	analyzeFlatMethod( boolean    isTask,
+	analyzeFlatMethod( Descriptor mDesc,
 			   FlatMethod flatm ) throws java.io.IOException {
 
 	// initialize flat nodes to visit as the flat method
@@ -183,7 +185,7 @@ public class OwnershipAnalysis {
 	    // apply the analysis of the flat node to the
 	    // ownership graph made from the merge of the
 	    // parent graphs
-	    analyzeFlatNode( isTask, fn, og );
+	    analyzeFlatNode( mDesc, fn, og );
 	    
 	    // if the results of the new graph are different from
 	    // the current graph at this node, replace the graph
@@ -216,7 +218,7 @@ public class OwnershipAnalysis {
 
 
     private void 
-	analyzeFlatNode( boolean        isTask,
+	analyzeFlatNode( Descriptor     methodDesc,
 			 FlatNode       fn,
 			 OwnershipGraph og ) throws java.io.IOException {
 
@@ -241,20 +243,19 @@ public class OwnershipAnalysis {
 	    // adding parameters labels to new heap regions
 	    for( int i = 0; i < fm.numParameters(); ++i ) {
 		TempDescriptor tdParam = fm.getParameter( i );		
-		og.parameterAllocation( isTask, tdParam );
+		og.parameterAllocation( methodDesc instanceof TaskDescriptor,
+					tdParam );
+		og.writeGraph( methodDesc, fn );
 	    }
 	    break;
 	    
-	    /*
 	case FKind.FlatOpNode:
 	    FlatOpNode fon = (FlatOpNode) fn;
 	    if( fon.getOp().getOp() == Operation.ASSIGN ) {
 		src = fon.getLeft();
 		dst = fon.getDest();
 		og.assignTempToTemp( src, dst );
-		//nodeDescription = "Op";
-		//writeGraph = true;
-		og.writeGraph( fn );
+		og.writeGraph( methodDesc, fn );
 	    }
 	    break;
 	    
@@ -265,9 +266,7 @@ public class OwnershipAnalysis {
 	    fld = ffn.getField();
 	    if( !fld.getType().isPrimitive() ) {
 		og.assignTempToField( src, dst, fld );
-		//nodeDescription = "Field";
-		//writeGraph = true;
-		og.writeGraph( fn );
+		og.writeGraph( methodDesc, fn );
 	    }
 	    break;
 	    
@@ -277,11 +276,10 @@ public class OwnershipAnalysis {
 	    dst = fsfn.getDst();
 	    fld = fsfn.getField();
 	    og.assignFieldToTemp( src, dst, fld );
-	    //nodeDescription = "SetField";
-	    //writeGraph = true;
-	    og.writeGraph( fn );
+	    og.writeGraph( methodDesc, fn );
 	    break;
 	    
+	    /*
 	case FKind.FlatNew:
 	    FlatNew fnn = (FlatNew) fn;
 	    dst = fnn.getDst();
@@ -304,23 +302,16 @@ public class OwnershipAnalysis {
 	    //MethodDescriptor md = fc.getMethod();
 	    //descriptorsToVisit.add( md );
 	    //System.out.println( "    Descs to visit: " + descriptorsToVisit );
+	    og.writeGraph( methodDesc, fn );
 	    break;
 
 	case FKind.FlatReturnNode:
 	    //nodeDescription = "Return";
 	    //writeGraph = true;
 	    //og.writeCondensedAnalysis( makeCondensedAnalysisName( methodname, flatnodetolabel.get(fn) ) );
-	    //og.writeGraph( fn );
+	    og.writeGraph( methodDesc, fn );
 	    break;
 	}
-	
-	/*
-	if( writeGraph ) {
-	    og.writeGraph( makeNodeName( methodname, 
-					 flatnodetolabel.get( fn ), 
-					 nodeDescription ) );
-	}
-	*/
     }
 
     static public Integer generateUniqueHeapRegionNodeID() {
