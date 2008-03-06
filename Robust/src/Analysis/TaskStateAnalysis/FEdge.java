@@ -113,7 +113,9 @@ public class FEdge extends Edge {
     }
     
     public int hashCode(){
-	int hashcode = label.hashCode()^target.hashCode()^source.hashCode()^td.hashCode()^parameterindex^executeTime;
+	int hashcode = label.hashCode()^target.hashCode()^source.hashCode()^parameterindex^executeTime;
+	if (td!=null)
+	    hashcode^=td.hashCode();
 	if(newObjInfos != null) {
 	    hashcode ^= newObjInfos.hashCode();
 	}
