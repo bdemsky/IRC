@@ -1530,10 +1530,6 @@ public class BuildCode {
 			    tstlbl += generateTemp(fm, id.getTempDescAt(i), lb) + "+";
 		    }
 		    tstlbl += id.offset.toString();
-		    output.println("if ("+tstlbl+"< 0 || "+tstlbl+" >= "+
-				    generateTemp(fm, pp.base, lb) + "->___length___) {");
-		    output.println("   failedboundschk();");
-		    output.println("}");
 
 		    TypeDescriptor elementtype = pp.base.getType().dereference();
 		    String type="";
@@ -1542,13 +1538,9 @@ public class BuildCode {
 		    else 
 			    type=elementtype.getSafeSymbol()+" ";
 
-		    String oid = new String("(unsigned int) (" + generateTemp(fm, pp.base, lb) + " != NULL ? " + "((" + type + "*)(((char *) &("+ generateTemp(fm, pp.base, lb)+ "->___length___))+sizeof(int)))["+tstlbl+"] : 0)");
-
-		    /*
-		    test = "(("+tstlbl+"< 0) || ("+tstlbl+" >= "+ generateTemp(fm, pp.base, lb) + "->___length___))";
-		    String oid = new String("(unsigned int) (" +genarateTemp(fm, pp.base, lb) + " != NULL ? (" +test+ " ? 0 : ((" + type + "*)(((char *) &("+ generateTemp(fm, pp.base, lb)+ "->___length___))+sizeof(int)))["+tstlbl+"]) : 0);"); 
-		    */
-		    
+		    String oid = new String("(unsigned int) (" + generateTemp(fm, pp.base, lb) + " != NULL ? " + 
+				    "((" + tstlbl+"< 0 || "+tstlbl+" >= "+ generateTemp(fm, pp.base, lb) + "->___length___) ? 0 :"+
+				    "((" + type + "*)(((char *) &("+ generateTemp(fm, pp.base, lb)+ "->___length___))+sizeof(int)))["+tstlbl+"]) : 0)");
 		    oids.add(oid);
 	    }
 
