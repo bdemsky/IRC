@@ -21,8 +21,9 @@ import java.util.*;
 
 public class AllocationSite {
 
-    protected int allocationDepth;
+    protected int             allocationDepth;
     protected Vector<Integer> ithOldest;
+    protected Integer         summary;
 
     public AllocationSite( int allocationDepth ) {
 	assert allocationDepth >= 3;
@@ -44,5 +45,18 @@ public class AllocationSite {
 	assert i <  allocationDepth;
 
 	return ithOldest.get( i );
+    }
+
+    public Integer getOldest() {
+	return ithOldest.get( allocationDepth - 1 );
+    }
+
+    public void setSummary( Integer id ) {
+	assert id != null;
+	summary = id;
+    }
+
+    public Integer getSummary() {
+	return summary;
     }
 }

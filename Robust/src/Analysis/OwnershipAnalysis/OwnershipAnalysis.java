@@ -15,6 +15,11 @@ public class OwnershipAnalysis {
     private int       allocationDepth;
 
 
+    // used to identify HeapRegionNode objects
+    // A unique ID equates an object in one
+    // ownership graph with an object in another
+    // graph that logically represents the same
+    // heap region
     static private int uniqueIDcount = 0;
 
 
@@ -222,13 +227,9 @@ public class OwnershipAnalysis {
 			 FlatNode       fn,
 			 OwnershipGraph og ) throws java.io.IOException {
 
-	//System.out.println( "Analyszing a flat node" );
-
 	TempDescriptor  src;
 	TempDescriptor  dst;
 	FieldDescriptor fld;
-	//String nodeDescription = "No description";
-	//boolean writeGraph = false;
 
 	// use node type to decide what alterations to make
 	// to the ownership graph	    
@@ -279,23 +280,16 @@ public class OwnershipAnalysis {
 	    og.writeGraph( methodDesc, fn );
 	    break;
 	    
-	    /*
 	case FKind.FlatNew:
 	    FlatNew fnn = (FlatNew) fn;
 	    dst = fnn.getDst();
-	    og.assignTempToNewAllocation( dst, fnn );
+	    AllocationSite as = getAllocationSiteFromFlatNew( fnn );
+	    og.assignTempToNewAllocation( dst, as );
 	    
 	    // !!!!!!!!!!!!!!
 	    // do this if the new object is a flagged type
-	    //og.addAnalysisRegion( tdParam );
-	    
-	    //nodeDescription = "New";
-	    //writeGraph = true;
-	    og.writeGraph( fn );
-
+	    //og.addAnalysisRegion( tdParam );	    
 	    break;
-	    
-	    */
 
 	case FKind.FlatCall:
 	    //FlatCall         fc = (FlatCall) fn;
@@ -306,18 +300,17 @@ public class OwnershipAnalysis {
 	    break;
 
 	case FKind.FlatReturnNode:
-	    //nodeDescription = "Return";
-	    //writeGraph = true;
-	    //og.writeCondensedAnalysis( makeCondensedAnalysisName( methodname, flatnodetolabel.get(fn) ) );
 	    og.writeGraph( methodDesc, fn );
 	    break;
 	}
     }
 
+
     static public Integer generateUniqueHeapRegionNodeID() {
 	++uniqueIDcount;
 	return new Integer( uniqueIDcount );
     }    
+
 
     private OwnershipGraph getGraphFromFlatNode( FlatNode fn ) {
 	if( !mapFlatNodeToOwnershipGraph.containsKey( fn ) ) {
@@ -331,21 +324,23 @@ public class OwnershipAnalysis {
 	mapFlatNodeToOwnershipGraph.put( fn, og );
     }
 
+
     private AllocationSite getAllocationSiteFromFlatNew( FlatNew fn ) {
 	if( !mapFlatNewToAllocationSite.containsKey( fn ) ) {
 	    AllocationSite as = new AllocationSite( allocationDepth );
 
 	    // the first k-1 nodes are single objects
-	    for( int i = 0; i < allocationDepth - 1; ++i ) {
-		//HeapRegionNode hrn = createNewHeapRegionNode( null, true, false, false );
+	    for( int i = 0; i < allocationDepth; ++i ) {
 		Integer id = generateUniqueHeapRegionNodeID();
+		//HeapRegionNode hrn = createNewHeapRegionNode( null, true, false, false );
 		as.setIthOldest( i, id );
 	    }
 
 	    // the kth node is a summary node
 	    //HeapRegionNode hrnNewSummary = createNewHeapRegionNode( null, false, false, true );
-	    Integer id2 = generateUniqueHeapRegionNodeID();
-	    as.setIthOldest( allocationDepth - 1, id2 );
+	    Integer idSummary = generateUniqueHeapRegionNodeID();
+	    //as.setIthOldest( allocationDepth - 1, id2 );
+	    as.setSummary( idSummary );
 
 	    mapFlatNewToAllocationSite.put( fn, as );
 	}

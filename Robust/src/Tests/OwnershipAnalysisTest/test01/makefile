@@ -20,6 +20,9 @@ PNGs: DOTs
 	rm -f *FlatOpNode*.dot
 	rm -f *FlatFieldNode*.dot
 	rm -f *FlatSetFieldNode*.dot
+	rm -f *FlatCall*.dot
+	rm -f *Parameter*.dot
+	rm -f *Penguin*.dot
 	d2p *.dot
 
 DOTs: $(PROGRAM).bin

@@ -2,6 +2,7 @@ public class Parameter {
     flag w;
     int a, b;
     Parameter f, g;
+    Penguin penguin;
 
     public Parameter() { a = 0; b = 0; f = null; g = null; }
 
@@ -19,11 +20,23 @@ public class Penguin {
 
 task Startup( StartupObject s{ initialstate } ) {
 
+    /*
     Parameter p = new Parameter(){!w};
     p.foo();
 
     Penguin g = new Penguin();
     g.bar();
+    */
+
+    Parameter p;
+
+    for( int i = 0; i < 3; ++i ) {
+	p = new Parameter();
+	p.penguin = new Penguin();
+	p.penguin.bar();
+    }
+
+    p = null;
 
     taskexit( s{ !initialstate } );
 }
@@ -91,6 +104,8 @@ task possibleAliasConditional
     taskexit( p1{w}, p2{w} );
 }
 */
+
+/*
 task bunchOfPaths
     ( Parameter p1{!w}, Parameter p2{!w} ) {
 
@@ -123,6 +138,8 @@ task bunchOfPaths
 
     taskexit( p1{w}, p2{w} );
 }
+*/
+
 /*
 task literalTest( Parameter p1{!w} ) {
     Parameter x = null;

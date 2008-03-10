@@ -7,25 +7,15 @@ import java.io.*;
 
 public class OwnershipGraph {
 
-
     protected static final int VISIT_HRN_WRITE_FULL      = 0;
     //protected static final int VISIT_HRN_WRITE_CONDENSED = 1;
 
-
     private int allocationDepth;
 
-    //protected static int heapRegionNodeIDs = 0;
     public Hashtable<Integer, HeapRegionNode> id2hrn;
     public Hashtable<Integer, HeapRegionNode> heapRoots;
 
-    //protected static int labelNodeIDs = 0;
     public Hashtable<TempDescriptor, LabelNode> td2ln;
-
-    //public HashSet<TempDescriptor> analysisRegionLabels;
-    //protected Hashtable<TempDescriptor, TempDescriptor> linkedRegions;
-
-
-    //public Hashtable<FlatNew, NewCluster> fn2nc;
 
 
     public OwnershipGraph( int allocationDepth ) {
@@ -34,11 +24,8 @@ public class OwnershipGraph {
 	id2hrn    = new Hashtable<Integer,        HeapRegionNode>();
 	heapRoots = new Hashtable<Integer,        HeapRegionNode>();
 	td2ln     = new Hashtable<TempDescriptor, LabelNode>();
-
-	//analysisRegionLabels = new HashSet<TempDescriptor>(); 
-	//linkedRegions = new Hashtable<TempDescriptor, TempDescriptor>();
-	//fn2nc          = new Hashtable<FlatNew, NewCluster>();
     }
+
 
     protected LabelNode getLabelNodeFromTemp( TempDescriptor td ) {
 	assert td != null;
@@ -49,6 +36,7 @@ public class OwnershipGraph {
 
 	return td2ln.get( td );
     }
+
     
     protected void addReferenceEdge( OwnershipNode  referencer,
 				     HeapRegionNode referencee,
@@ -107,6 +95,10 @@ public class OwnershipGraph {
     //  determining the references depends on the type
     //  of the FlatNode assignment and the predicates
     //  of the nodes and edges involved.
+    //
+    //  These procedures are used by several other
+    //  operations defined below (paramter allocation,
+    //  assignment to new allocation) 
     //
     ////////////////////////////////////////////////////
     public void assignTempToTemp( TempDescriptor src, 
@@ -187,8 +179,6 @@ public class OwnershipGraph {
 				 boolean isNewSummary ) {
 
 	if( id == null ) {
-	    //id = new Integer( heapRegionNodeIDs );
-	    //++heapRegionNodeIDs;
 	    id = OwnershipAnalysis.generateUniqueHeapRegionNodeID();
 	}
 
@@ -199,6 +189,7 @@ public class OwnershipGraph {
 	id2hrn.put( id, hrn );
 	return hrn;
     }
+
 
     public void parameterAllocation( boolean isTask, TempDescriptor td ) {
 	assert td != null;
@@ -211,88 +202,26 @@ public class OwnershipGraph {
 	addReferenceEdge( hrn,     hrn, new ReferenceEdgeProperties( false ) );
     }
     
-    /*
-    public void assignTempToNewAllocation( TempDescriptor td, FlatNew fn ) {
+
+    public void assignTempToNewAllocation( TempDescriptor td, AllocationSite as ) {
 	assert td != null;
-	assert fn != null;
+	assert as != null;
 
-	NewCluster nc = getNewClusterFromFlatNew( fn );	
+	age( as );
 
-	// move existing references down the line toward
-	// the oldest element
-	for( int i = newDepthK - 2; i >= 0; --i ) {	    
-	    // move references from the ith oldest to the i+1 oldest
-	    HeapRegionNode hrnIthOld = nc.getIthOldest( i );
-	    HeapRegionNode hrnIp1Old = nc.getIthOldest( i + 1 );
+	// after the age operation the newest (or zeroith oldest)
+	// node associated with the allocation site should have
+	// no references to it as if it were a newly allocated
+	// heap region, so make a reference to it to complete
+	// this operation
+	Integer        id        = as.getIthOldest( 0 );
+	HeapRegionNode hrnNewest = id2hrn.get( id );
+	assert hrnNewest != null;
 
-	    // clear i + 1 references in and out, unless it is the
-	    // oldest node which keeps everything
-	    if( !(i + 1 == newDepthK - 1) ) {
-		clearReferenceEdgesFrom( hrnIp1Old );
-		clearReferenceEdgesTo  ( hrnIp1Old );
-	    }
+	LabelNode dst = getLabelNodeFromTemp( td );
 
-	    // copy each edge in and out of i to i + 1	    
-	    HeapRegionNode hrnReferencee = null;
-	    Iterator       itrReferencee = hrnIthOld.setIteratorToReferencedRegions();
-	    while( itrReferencee.hasNext() ) {
-		Map.Entry               me  = (Map.Entry)               itrReferencee.next();
-		hrnReferencee               = (HeapRegionNode)          me.getKey();
-		ReferenceEdgeProperties rep = (ReferenceEdgeProperties) me.getValue();
-		
-		addReferenceEdge( hrnIp1Old, hrnReferencee, rep.copy() );
-	    }
-
-	    OwnershipNode onReferencer  = null;
-	    Iterator      itrReferencer = hrnIthOld.iteratorToReferencers();
-	    while( itrReferencer.hasNext() ) {
-		onReferencer = (OwnershipNode) itrReferencer.next();
-
-		ReferenceEdgeProperties rep = onReferencer.getReferenceTo( hrnIthOld );
-		assert rep != null;
-
-		addReferenceEdge( onReferencer, hrnIp1Old, rep.copy() );
-	    }	    
-	}
-
-	HeapRegionNode hrnNewest    = nc.getIthOldest( 0 );
-	ReferenceEdgeProperties rep = new ReferenceEdgeProperties( true );
-	LabelNode dst               = getLabelNodeFromTemp( td );
-
-	// clear all references in and out of newest node
-	clearReferenceEdgesFrom( hrnNewest );
-	clearReferenceEdgesTo  ( hrnNewest );
-
-	// finally assign the temp descriptor to the newest
-	// node in the new cluster
-	addReferenceEdge( dst, hrnNewest, rep );
+	addReferenceEdge( dst, hrnNewest, new ReferenceEdgeProperties( false ) );
     }
-
-
-
-
-    public void addAnalysisRegion( TempDescriptor td ) {
-	assert td != null;
-	analysisRegionLabels.add( td );
-    }
-
-    // This method gives an existing label node for a temp
-    // descriptor or creates one if it has not been requested
-    // yet.  The system is simple because temp descriptors and
-    // label nodes have a one-to-one mapping and no special
-    // predicates
-    protected LabelNode getLabelNodeFromTemp( TempDescriptor td ) {
-	assert td != null;
-
-	if( !td2ln.containsKey( td ) ) {
-	    Integer id = new Integer( labelNodeIDs );
-	    td2ln.put( td, new LabelNode( td ) );
-	    ++labelNodeIDs;
-	}
-
-	return td2ln.get( td );
-    }
-    */
 
 
     // use the allocation site (unique to entire analysis) to
@@ -300,8 +229,163 @@ public class OwnershipGraph {
     // that should be aged.  The process models the allocation
     // of new objects and collects all the oldest allocations
     // in a summary node to allow for a finite analysis
+    //
+    // There is an additional property of this method.  After
+    // running it on a particular ownership graph (many graphs
+    // may have heap regions related to the same allocation site)
+    // the heap region node objects in this ownership graph will be
+    // allocated.  Therefore, after aging a graph for an allocation
+    // site, attempts to retrieve the heap region nodes using the
+    // integer id's contained in the allocation site should always
+    // return non-null heap regions.
     public void age( AllocationSite as ) {
+
+	//////////////////////////////////////////////////////////////////
+	//
+	//  move existing references down the line toward
+	//  the oldest element, starting with the oldest
+	// 
+	//  An illustration:
+	//    TempDescriptor = the td passed into this function, left side of new statement
+	//    AllocationSite = { alpha0, alpha1, alpha2, alphaSummary }
+	//
+	//  1. Specially merge refs in/out at alpha2 into alphaSummary
+	//  2. Move refs in/out at alpha1 over to alpha2 (alpha1 becomes alpha2)
+	//  3. Move refs in/out at alpha0 over to alpha1
+	//  4. Assign reference from td to alpha0, which now represents a freshly allocated object
+	//
+	//////////////////////////////////////////////////////////////////
+
+
+	// first specially merge the references from the oldest
+	// node into the summary node, keeping track of 1-to-1 edges
+	Integer        idSummary  = as.getSummary();
+	HeapRegionNode hrnSummary = id2hrn.get( idSummary );
 	
+	// if this is null then we haven't touched this allocation site
+	// in the context of the current ownership graph, so simply
+	// allocate an appropriate heap region node
+	// this should only happen once per ownership per allocation site,
+	// and a particular integer id can be used to locate the heap region
+	// in different ownership graphs that represents the same part of an
+	// allocation site
+	if( hrnSummary == null ) {
+	    hrnSummary = createNewHeapRegionNode( idSummary, false, false, true );
+	}
+
+	// first transfer the references out of alpha_k to alpha_s
+	Integer        idK  = as.getOldest();
+	HeapRegionNode hrnK = id2hrn.get( idK );
+	
+	// see comment above about needing to allocate a heap region
+	// for the context of this ownership graph
+	if( hrnK == null ) {
+	    hrnK = createNewHeapRegionNode( idK, true, false, false );
+	}
+
+	HeapRegionNode hrnReferencee = null;
+	Iterator       itrReferencee = hrnK.setIteratorToReferencedRegions();
+	while( itrReferencee.hasNext() ) {
+	    Map.Entry               me  = (Map.Entry)               itrReferencee.next();
+	    hrnReferencee               = (HeapRegionNode)          me.getKey();
+	    ReferenceEdgeProperties rep = (ReferenceEdgeProperties) me.getValue();
+	    
+	    // determine if another summary node is already referencing this referencee
+	    boolean       hasSummaryReferencer = false;
+	    OwnershipNode onReferencer         = null;
+	    Iterator      itrReferencer        = hrnReferencee.iteratorToReferencers();
+	    while( itrReferencer.hasNext() ) {
+		onReferencer = (OwnershipNode) itrReferencer.next();
+		if( onReferencer instanceof HeapRegionNode ) {
+		    HeapRegionNode hrnPossibleSummary = (HeapRegionNode) onReferencer;
+		    if( hrnPossibleSummary.isNewSummary() ) {
+			hasSummaryReferencer = true;
+		    }
+		}
+	    }
+
+	    addReferenceEdge( hrnSummary,
+			      hrnReferencee,
+			      new ReferenceEdgeProperties( !hasSummaryReferencer ) );
+	}
+
+	// next transfer references to alpha_k over to alpha_s
+	OwnershipNode onReferencer  = null;
+	Iterator      itrReferencer = hrnK.iteratorToReferencers();
+	while( itrReferencer.hasNext() ) {
+	    onReferencer = (OwnershipNode) itrReferencer.next();
+	    
+	    ReferenceEdgeProperties rep = onReferencer.getReferenceTo( hrnK );
+	    assert rep != null;
+	    
+	    addReferenceEdge( onReferencer, hrnSummary, rep.copy() );
+	}
+
+	
+	// then move down the line of heap region nodes
+	// clobbering the ith and transferring all references
+	// to and from i-1 to node i.  Note that this clobbers
+	// the oldest node (alpha_k) that was just merged into
+	// the summary above and should move everything from
+	// alpha_0 to alpha_1 before we finish
+	for( int i = allocationDepth - 1; i > 0; --i ) {	    
+
+	    // move references from the ith oldest to the i+1 oldest
+	    Integer        idIth     = as.getIthOldest( i );
+	    HeapRegionNode hrnI      = id2hrn.get( idIth );
+	    Integer        idImin1th = as.getIthOldest( i - 1 );
+	    HeapRegionNode hrnImin1  = id2hrn.get( idImin1th );
+
+	    // see comment above about needing to allocate a heap region
+	    // for the context of this ownership graph
+	    if( hrnI == null ) {
+		hrnI = createNewHeapRegionNode( idIth, true, false, false );
+	    }
+	    if( hrnImin1 == null ) {
+		hrnImin1 = createNewHeapRegionNode( idImin1th, true, false, false );
+	    }
+
+	    // clear references in and out of node i
+	    clearReferenceEdgesFrom( hrnI );
+	    clearReferenceEdgesTo  ( hrnI );
+
+	    // copy each edge in and out of i-1 to i	    
+	    hrnReferencee = null;
+	    itrReferencee = hrnImin1.setIteratorToReferencedRegions();
+	    while( itrReferencee.hasNext() ) {
+		Map.Entry               me  = (Map.Entry)               itrReferencee.next();
+		hrnReferencee               = (HeapRegionNode)          me.getKey();
+		ReferenceEdgeProperties rep = (ReferenceEdgeProperties) me.getValue();
+		
+		addReferenceEdge( hrnI, hrnReferencee, rep.copy() );
+	    }
+
+	    onReferencer  = null;
+	    itrReferencer = hrnImin1.iteratorToReferencers();
+	    while( itrReferencer.hasNext() ) {
+		onReferencer = (OwnershipNode) itrReferencer.next();
+
+		ReferenceEdgeProperties rep = onReferencer.getReferenceTo( hrnImin1 );
+		assert rep != null;
+
+		addReferenceEdge( onReferencer, hrnI, rep.copy() );
+	    }	    
+	}
+
+	// as stated above, the newest node alpha_0 should have had its
+	// references moved over to alpha_1, so we can wipe alpha_0 clean
+	// in preparation for operations that want to reference a freshly
+	// allocated object from this allocation site
+	Integer        id0th = as.getIthOldest( 0 );
+	HeapRegionNode hrn0  = id2hrn.get( id0th );
+
+	// the loop to move references from i-1 to i should
+	// have touched this node, therefore assert it is non-null
+	assert hrn0 != null;
+
+	// clear all references in and out of newest node
+	clearReferenceEdgesFrom( hrn0 );
+	clearReferenceEdgesTo  ( hrn0 );	
     }
 
 
@@ -513,9 +597,9 @@ public class OwnershipGraph {
 	    // does not care whether the regions are part of clusters
 	    NewCluster ncB = null;
 	    if( !fn2nc.containsKey( fnA ) ) {
-		ncB = new NewCluster( newDepthK );
+		ncB = new NewCluster( allocationDepth );
 		
-		for( int i = 0; i < newDepthK; ++i ) {
+		for( int i = 0; i < allocationDepth; ++i ) {
 		    HeapRegionNode hrnA = ncA.getIthOldest( i );
 
 		    // this node shouldn't exist in graph B if the
@@ -947,7 +1031,7 @@ public class OwnershipGraph {
 	    bw.write( "    rankdir=LR;\n"                      );
 	    bw.write( "    label=\"" + fn.toString() + "\";\n" );
 	    
-	    for( int j = 0; j < newDepthK; ++j ) {
+	    for( int j = 0; j < allocationDepth; ++j ) {
 		HeapRegionNode hrn = nc.getIthOldest( j );
 		bw.write( "    " + hrn.toString() + ";\n" );
 	    }
