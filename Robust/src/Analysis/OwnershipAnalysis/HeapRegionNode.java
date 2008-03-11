@@ -9,11 +9,13 @@ public class HeapRegionNode extends OwnershipNode {
     public HeapRegionNode( Integer id,
 			   boolean isSingleObject,
 			   boolean isFlagged,
-			   boolean isNewSummary ) {
+			   boolean isNewSummary,
+			   String  description ) {
 	this.id = id;
 	this.isSingleObject = isSingleObject;
 	this.isFlagged      = isFlagged;
 	this.isNewSummary   = isNewSummary;
+	this.description    = description;
 
 	referencers           = new HashSet<OwnershipNode>();
 	//analysisRegionAliases = new HashSet<TempDescriptor>();
@@ -24,7 +26,8 @@ public class HeapRegionNode extends OwnershipNode {
 	return new HeapRegionNode( id,
 				   isSingleObject,
 				   isFlagged,
-				   isNewSummary );
+				   isNewSummary,
+				   description );
     }
 
 
@@ -43,7 +46,8 @@ public class HeapRegionNode extends OwnershipNode {
 	return id.equals( hrn.getID() )            &&
 	    isSingleObject == hrn.isSingleObject() &&
 	    isFlagged      == hrn.isFlagged()      &&
-	    isNewSummary   == hrn.isNewSummary();
+	    isNewSummary   == hrn.isNewSummary()   &&
+	    description.equals( hrn.getDescription() );
     }
     /////////////////
     // end equality  
@@ -136,11 +140,17 @@ public class HeapRegionNode extends OwnershipNode {
 
 
     // for writing out
+    String description;
+
     public String getIDString() {
 	return id.toString();
     }
 
     public String toString() {
 	return "HRN"+getIDString();
+    }
+
+    public String getDescription() {
+	return description;
     }
 }

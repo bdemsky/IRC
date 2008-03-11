@@ -1,3 +1,4 @@
+/*
 public class Parameter {
     flag w;
     int a, b;
@@ -17,164 +18,61 @@ public class Penguin {
 
     public void bar() { x = 1; }
 }
+*/
 
+public class Voo {
+    flag f; int x; Baw b;
+
+    public Voo() {}
+}
+
+public class Baw {
+    flag g; int y;
+
+    public Baw() {}
+}
+
+
+// this empty task should still create a non-empty
+// ownership graph showing parameter allocation
+// look for the parameter s as a label referencing
+// a heap region that is multi-object, flagged, not summary
 task Startup( StartupObject s{ initialstate } ) {
-
-    /*
-    Parameter p = new Parameter(){!w};
-    p.foo();
-
-    Penguin g = new Penguin();
-    g.bar();
-    */
-
-    Parameter p;
-
-    for( int i = 0; i < 3; ++i ) {
-	p = new Parameter();
-	p.penguin = new Penguin();
-	p.penguin.bar();
-    }
-
-    p = null;
-
     taskexit( s{ !initialstate } );
 }
 
-/*
-task aliasFromObjectAssignment
-    ( Parameter p1{!w}, Parameter p2{!w} ) {
-    
-    p1.f = p2.g;
+// this task allocates a new object, so there should
+// be a heap region for the parameter, and several
+// heap regions for the allocation site, but the label
+// merely points to the newest region
+task NewObject( Voo v{ f } ) {
+    Voo w = new Voo();
 
-    taskexit( p1{w}, p2{w} );
+    taskexit( v{ !f } );
 }
 
-task noAliasFromPrimitiveAssignment
-    ( Parameter p1{!w}, Parameter p2{!w} ) {
-    
-    p1.a = p2.b;
+// this task 
+task Branch( Voo v{ f } ) {
+    Voo w = new Voo();
+    Baw j = new Baw();
+    Baw k = new Baw();
 
-    taskexit( p1{w}, p2{w} );
-}
-
-task aliasWithTwoLinks
-    ( Parameter p1{!w}, Parameter p2{!w} ) {
-    
-    Parameter j = p1.f;
-    p2.f = j;
-
-    taskexit( p1{w}, p2{w} );
-}
-
-task aliasWithThreeLinks
-    ( Parameter p1{!w}, Parameter p2{!w} ) {
-    
-    Parameter j = p1.f;
-    Parameter k = j;
-    p2.f = k;
-
-    taskexit( p1{w}, p2{w} );
-}
-
-task noAliasBreakLinks
-    ( Parameter p1{!w}, Parameter p2{!w} ) {
-    
-    Parameter j = p1.f;
-    Parameter k = j;
-    k = p2.f;
-    p2.f = k;
-
-    taskexit( p1{w}, p2{w} );
-}
-
-task possibleAliasConditional
-    ( Parameter p1{!w}, Parameter p2{!w} ) {
-    
-    Parameter y;
-
-    if( p1.a == 0 ) {
-	y = p1.f;
+    if( v.x == 0 ) {
+	w.b = j;
     } else {
-	y = p2.f;
+	w.b = k;
     }
 
-    p2.g = y;
-
-    taskexit( p1{w}, p2{w} );
+    taskexit( v{ !f } );
 }
-*/
 
-/*
-task bunchOfPaths
-    ( Parameter p1{!w}, Parameter p2{!w} ) {
 
-    Parameter y;
+task NewInLoop( Voo v{ f } ) {
+    Voo w = new Voo();
 
-    for( int i =0; i < 100; ++i ) {
-
-	if( y == p1 ) {
-	    Parameter z;
-
-	    for( int j = 0; i < 50; ++j ) {
-		if( z == y ) {
-		    p1.f = y;
-		} else {
-		    z = p2.g;
-		}
-
-		p1.f = z;
-	    }
-
-	    y = p1.g;
-	} else {
-
-	    p2.f = y;
-	}
+    for( int i = 0; i < 10; ++i ) {
+	w.b = new Baw();
     }
 
-    p1.f = p2.g;
-
-
-    taskexit( p1{w}, p2{w} );
+    taskexit( v{ !f } );
 }
-*/
-
-/*
-task literalTest( Parameter p1{!w} ) {
-    Parameter x = null;
-    int y = 5;
-    String s = "Dude";
-
-    taskexit( p1{w} );
-}
-
-task newNoAlias
-    ( Parameter p1{!w}, Parameter p2{!w} ) {
-
-    for( int i = 0; i < 1; ++i ) {
-	p1.f = new Parameter();
-    }
-
-    taskexit( p1{w}, p2{w} );
-}
-
-task newPossibleAlias
-    ( Parameter p1{!w}, Parameter p2{!w} ) {
-
-    Parameter x, y;
-
-    for( int i = 0; i < 1; ++i ) {
-	p1.f = new Parameter();
-	if( true ) {
-	    x = p1.f;
-	} else {
-	    y = p1.f;
-	}
-    }
-
-    p2.f = y;
-
-    taskexit( p1{w}, p2{w} );
-}
-*/

@@ -1,6 +1,6 @@
-PROGRAM=test01
+PROGRAM=test02
 
-SOURCE_FILES=test01.java
+SOURCE_FILES=test02.java
 
 BUILDSCRIPT=~/research/Robust/src/buildscript
 BSFLAGS= -recover -flatirtasks -ownership -enable-assertions
@@ -9,7 +9,7 @@ BSFLAGS= -recover -flatirtasks -ownership -enable-assertions
 all: $(PROGRAM).bin
 
 view: PNGs
-	eog *flatIRGraph*.png &
+	#eog *flatIRGraph*.png &
 	#eog *FN*.png &
 	#eog *Ownership*.png &
 	eog *.png &
@@ -23,8 +23,6 @@ PNGs: DOTs
 	rm -f *FlatCall*.dot
 	rm -f *Parameter*.dot
 	rm -f *Penguin*.dot
-	rm -f *Voo*.dot
-	rm -f *Baw*.dot
 	d2p *.dot
 
 DOTs: $(PROGRAM).bin

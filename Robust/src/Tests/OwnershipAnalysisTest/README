@@ -1,0 +1,20 @@
+test01
+	This test program contains many tasks that
+individually illustrate the correctness of different
+ownership analysis elements.  The program source code
+includes comments that describe what the final ownership
+graphs for each task should be.  These are sort of like
+unit tests for the individual operations performed during
+ownership analysis.
+
+test02
+	This test program contains many tasks that are
+named to indicate whether they purposefully create aliases
+or not.  This test comes from the top-down approach to see
+that the individual operations of the ownership analysis
+work together to produce the correct results.
+
+testGraph
+	This test program puts some ownership graph
+objects and some supporting data in a vacuum to test
+the critical merge() and equals() members.

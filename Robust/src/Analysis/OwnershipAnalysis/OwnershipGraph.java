@@ -176,7 +176,8 @@ public class OwnershipGraph {
 	createNewHeapRegionNode( Integer id,
 				 boolean isSingleObject,
 				 boolean isFlagged,
-				 boolean isNewSummary ) {
+				 boolean isNewSummary,
+				 String  description ) {
 
 	if( id == null ) {
 	    id = OwnershipAnalysis.generateUniqueHeapRegionNodeID();
@@ -185,7 +186,8 @@ public class OwnershipGraph {
 	HeapRegionNode hrn = new HeapRegionNode( id,
 						 isSingleObject,
 						 isFlagged,
-						 isNewSummary );
+						 isNewSummary,
+						 description );
 	id2hrn.put( id, hrn );
 	return hrn;
     }
@@ -195,8 +197,8 @@ public class OwnershipGraph {
 	assert td != null;
 
 	LabelNode      lnParam = getLabelNodeFromTemp( td );
-	HeapRegionNode hrn     = createNewHeapRegionNode( null, false, isTask, false );
-	heapRoots.put( hrn.getID(), hrn );
+	HeapRegionNode hrn     = createNewHeapRegionNode( null, false, isTask, false, "param" );
+	//heapRoots.put( hrn.getID(), hrn );
 
 	addReferenceEdge( lnParam, hrn, new ReferenceEdgeProperties( false ) );
 	addReferenceEdge( hrn,     hrn, new ReferenceEdgeProperties( false ) );
@@ -270,7 +272,7 @@ public class OwnershipGraph {
 	// in different ownership graphs that represents the same part of an
 	// allocation site
 	if( hrnSummary == null ) {
-	    hrnSummary = createNewHeapRegionNode( idSummary, false, false, true );
+	    hrnSummary = createNewHeapRegionNode( idSummary, false, false, true, "summary" );
 	}
 
 	// first transfer the references out of alpha_k to alpha_s
@@ -280,7 +282,7 @@ public class OwnershipGraph {
 	// see comment above about needing to allocate a heap region
 	// for the context of this ownership graph
 	if( hrnK == null ) {
-	    hrnK = createNewHeapRegionNode( idK, true, false, false );
+	    hrnK = createNewHeapRegionNode( idK, true, false, false, "alpha" );
 	}
 
 	HeapRegionNode hrnReferencee = null;
@@ -339,10 +341,10 @@ public class OwnershipGraph {
 	    // see comment above about needing to allocate a heap region
 	    // for the context of this ownership graph
 	    if( hrnI == null ) {
-		hrnI = createNewHeapRegionNode( idIth, true, false, false );
+		hrnI = createNewHeapRegionNode( idIth, true, false, false, "alpha" );
 	    }
 	    if( hrnImin1 == null ) {
-		hrnImin1 = createNewHeapRegionNode( idImin1th, true, false, false );
+		hrnImin1 = createNewHeapRegionNode( idImin1th, true, false, false, "alpha" );
 	    }
 
 	    // clear references in and out of node i
@@ -404,7 +406,7 @@ public class OwnershipGraph {
 
 	mergeOwnershipNodes ( og );
 	mergeReferenceEdges ( og );
-	mergeHeapRoots      ( og );
+	//mergeHeapRoots      ( og );
 	//mergeAnalysisRegions( og );
 	//mergeNewClusters    ( og );
     }
@@ -552,6 +554,7 @@ public class OwnershipGraph {
 	}
     }
     
+    /*
     protected void mergeHeapRoots( OwnershipGraph og ) {
 	Set      sA = og.heapRoots.entrySet();
 	Iterator iA = sA.iterator();
@@ -567,6 +570,7 @@ public class OwnershipGraph {
 	    }
 	}
     }
+    */
 
     /*
     protected void mergeAnalysisRegions( OwnershipGraph og ) {
@@ -652,9 +656,11 @@ public class OwnershipGraph {
 	    return false;
 	}
 
+	/*
 	if( !areHeapRootsEqual( og ) ) {
 	    return false;
 	}
+	*/
 
 	/*
 	if( !areAnalysisRegionLabelsEqual( og ) ) {
@@ -914,6 +920,7 @@ public class OwnershipGraph {
 	return true;
     }
 
+    /*
     protected boolean areHeapRootsEqual( OwnershipGraph og ) {
 	if( og.heapRoots.size() != heapRoots.size() ) {
 	    return false;
@@ -943,6 +950,8 @@ public class OwnershipGraph {
 
 	return true;
     }
+    */
+
 
     /*
     protected boolean areAnalysisRegionLabelsEqual( OwnershipGraph og ) {
@@ -1044,12 +1053,15 @@ public class OwnershipGraph {
 	// then visit every heap region node
 	HashSet<HeapRegionNode> visited = new HashSet<HeapRegionNode>();
 
-	Set      s = heapRoots.entrySet();
+	//Set      s = heapRoots.entrySet();
+	Set      s = id2hrn.entrySet();
 	Iterator i = s.iterator();
 	while( i.hasNext() ) {
 	    Map.Entry      me  = (Map.Entry)      i.next();
 	    HeapRegionNode hrn = (HeapRegionNode) me.getValue();
-	    traverseHeapRegionNodes( VISIT_HRN_WRITE_FULL, hrn, bw, null, visited );
+	    if( !visited.contains( hrn ) ) {
+		traverseHeapRegionNodes( VISIT_HRN_WRITE_FULL, hrn, bw, null, visited );
+	    }
 	}
 
 	// then visit every label node
@@ -1136,25 +1148,26 @@ public class OwnershipGraph {
 	switch( mode ) {
 	case VISIT_HRN_WRITE_FULL:
 	    
-	    String isSingleObjectStr = "isSingleObject";
+	    String isSingleObjectStr = "Single";
 	    if( !hrn.isSingleObject() ) {
-		isSingleObjectStr = "!isSingleObject";
+		isSingleObjectStr = "!Single";
 	    }
 
-	    String isFlaggedStr = "isFlagged";
+	    String isFlaggedStr = "Flagged";
 	    if( !hrn.isFlagged() ) {
-		isFlaggedStr = "!isFlagged";
+		isFlaggedStr = "!Flagged";
 	    }
 
-	    String isNewSummaryStr = "isNewSummary";
+	    String isNewSummaryStr = "Summary";
 	    if( !hrn.isNewSummary() ) {
-		isNewSummaryStr = "!isNewSummary";
+		isNewSummaryStr = "!Summary";
 	    }
 
-	    bw.write( "  "                  + hrn.toString() + 
-		      "[shape=box,label=\"" + isFlaggedStr +
-		      "\\n"                 + isSingleObjectStr +
-		      "\\n"                 + isNewSummaryStr +
+	    bw.write( "  "                  + hrn.toString()       + 
+		      "[shape=box,label=\"" + hrn.getDescription() +
+		      "\\n"                 + isFlaggedStr         +
+		      "\\n"                 + isSingleObjectStr    +
+		      "\\n"                 + isNewSummaryStr      +
                       "\"];\n" );
 	    break;
 
@@ -1188,6 +1201,7 @@ public class OwnershipGraph {
 	    */
 	}
 
+	/*
 	OwnershipNode onRef  = null;
 	Iterator      refItr = hrn.iteratorToReferencers();
 	while( refItr.hasNext() ) {
@@ -1201,7 +1215,7 @@ public class OwnershipGraph {
 		break;
 	    }
 	}
-
+	*/
 
 	HeapRegionNode hrnChild = null;
 	Iterator childRegionsItr = hrn.setIteratorToReferencedRegions();
