@@ -3,9 +3,22 @@ import java.util.Vector;
 
 public class FlatCondBranch extends FlatNode {
     TempDescriptor test_cond;
+    double trueprob=0.5;
 
     public FlatCondBranch(TempDescriptor td) {
 	test_cond=td;
+    }
+
+    public void setTrueProb(double p) {
+	trueprob=p;
+    }
+
+    public double getTrueProb() {
+	return trueprob;
+    }
+
+    public double getFalseProb() {
+	return 1-trueprob;
     }
 
     public void addTrueNext(FlatNode n) {
