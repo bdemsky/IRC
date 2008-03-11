@@ -145,6 +145,8 @@ public class Main {
       readSourceFile(state, ClassLibraryPrefix+"SocketInputStream.java");
       readSourceFile(state, ClassLibraryPrefix+"SocketOutputStream.java");
       readSourceFile(state, ClassLibraryPrefix+"gnu/Random.java");
+	  readSourceFile(state, ClassLibraryPrefix+"Vector.java");
+	  readSourceFile(state, ClassLibraryPrefix+"Enumeration.java");
 
 
       if (state.TASK) {
