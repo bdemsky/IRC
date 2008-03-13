@@ -21,16 +21,28 @@ import java.util.*;
 
 public class AllocationSite {
 
+    static private int uniqueIDcount = 0;
+
+    protected Integer         id;
     protected int             allocationDepth;
     protected Vector<Integer> ithOldest;
     protected Integer         summary;
 
+
     public AllocationSite( int allocationDepth ) {
 	assert allocationDepth >= 3;
 
-	this.allocationDepth = allocationDepth;
+	this.allocationDepth = allocationDepth;	
+
 	ithOldest = new Vector<Integer>( allocationDepth );
+	id        = generateUniqueAllocationSiteID();
     }
+
+    static public Integer generateUniqueAllocationSiteID() {
+	++uniqueIDcount;
+	return new Integer( uniqueIDcount );
+    }    
+
     
     public void setIthOldest( int i, Integer id ) {
 	assert i  >= 0;
@@ -58,5 +70,9 @@ public class AllocationSite {
 
     public Integer getSummary() {
 	return summary;
+    }
+
+    public String toString() {
+	return "allocSite" + id;
     }
 }

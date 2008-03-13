@@ -119,15 +119,12 @@ public class OwnershipAnalysis {
 
 	    System.out.println( "Analyzing " + d );
 
-	    boolean    isTask;
 	    FlatMethod fm;
 	    if( d instanceof MethodDescriptor ) {
-		//isTask = false;
-		fm     = state.getMethodFlat( (MethodDescriptor) d );
+		fm = state.getMethodFlat( (MethodDescriptor) d );
 	    } else {
 		assert d instanceof TaskDescriptor;
-		//isTask = true;
-		fm     = state.getMethodFlat( (TaskDescriptor) d );
+		fm = state.getMethodFlat( (TaskDescriptor) d );
 	    }
 	    
 	    OwnershipGraph og     = analyzeFlatMethod( d, fm );
@@ -243,9 +240,9 @@ public class OwnershipAnalysis {
 	    // the opportunity to construct the initial graph by
 	    // adding parameters labels to new heap regions
 	    for( int i = 0; i < fm.numParameters(); ++i ) {
-		TempDescriptor tdParam = fm.getParameter( i );		
-		og.parameterAllocation( methodDesc instanceof TaskDescriptor,
-					tdParam );
+		TempDescriptor tdParam = fm.getParameter( i );
+		og.assignTempToParameterAllocation( methodDesc instanceof TaskDescriptor,
+						    tdParam );
 		og.writeGraph( methodDesc, fn );
 	    }
 	    break;
@@ -329,17 +326,14 @@ public class OwnershipAnalysis {
 	if( !mapFlatNewToAllocationSite.containsKey( fn ) ) {
 	    AllocationSite as = new AllocationSite( allocationDepth );
 
-	    // the first k-1 nodes are single objects
+	    // the newest nodes are single objects
 	    for( int i = 0; i < allocationDepth; ++i ) {
 		Integer id = generateUniqueHeapRegionNodeID();
-		//HeapRegionNode hrn = createNewHeapRegionNode( null, true, false, false );
 		as.setIthOldest( i, id );
 	    }
 
-	    // the kth node is a summary node
-	    //HeapRegionNode hrnNewSummary = createNewHeapRegionNode( null, false, false, true );
+	    // the oldest node is a summary node
 	    Integer idSummary = generateUniqueHeapRegionNodeID();
-	    //as.setIthOldest( allocationDepth - 1, id2 );
 	    as.setSummary( idSummary );
 
 	    mapFlatNewToAllocationSite.put( fn, as );
