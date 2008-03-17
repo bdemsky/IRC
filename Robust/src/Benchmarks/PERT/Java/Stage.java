@@ -37,9 +37,9 @@ public class Stage {
 		tint = r.nextInt()%50;
 	    } while(tint <= 0);
 	    this.samplings[i] = tint;
-	    System./*out.print*/printString(tint + "; ");
+	    //System./*out.print*/printString(tint + "; ");
 	}
-	System.printString("\n");//out.println();
+	//System.printString("\n");//out.println();
     }
 
     public void estimate() {

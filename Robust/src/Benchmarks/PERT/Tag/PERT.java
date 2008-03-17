@@ -1,7 +1,7 @@
 task startup(StartupObject s{initialstate}) {
 
     // read in configuration parameters
-    //System.printString("Top of task startup\n");
+    System.printString("Top of task startup\n");
     String path = new String("/home/jzhou/pert/conf.txt");
     FileInputStream iStream = new FileInputStream(path);
     byte[] b = new byte[1024];
@@ -23,7 +23,7 @@ task startup(StartupObject s{initialstate}) {
 }
 
 task sampling(Stage s{sampling}) {
-    //System.printString("Top of task sampling\n");
+    System.printString("Top of task sampling\n");
 
     s.sampling();
 
@@ -31,7 +31,7 @@ task sampling(Stage s{sampling}) {
 }
 
 task estimateStage(Stage s{estimate}) {
-    //System.printString("Top of task estimateStage\n");
+    System.printString("Top of task estimateStage\n");
 
     s.estimate();
 
@@ -39,7 +39,7 @@ task estimateStage(Stage s{estimate}) {
 }
 
 task estimate(Estimator e{estimate}, optional Stage s{merge}) {
-    //System.printString("Top of task estimate\n");
+    System.printString("Top of task estimate\n");
 
     boolean fake = false;
     if(!isavailable(s)) {
@@ -55,7 +55,7 @@ task estimate(Estimator e{estimate}, optional Stage s{merge}) {
 }
 
 task prob(Estimator e{prob}) {
-    //System.printString("Top of task prob\n");
+    System.printString("Top of task prob\n");
 
     if(e.isPartial()) {
 	System.printString("There are some sampling data unavailable. The anticipate probability may be greater than it should be!\n");
