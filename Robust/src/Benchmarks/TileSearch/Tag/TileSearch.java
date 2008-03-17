@@ -95,8 +95,12 @@ task Startup( StartupObject s{ initialstate } )
     taskexit( s{ !initialstate } );
 }
 
-task findNewFits( SubProblem sp{ findingNewFits }, GlobalCounter counter{ Init })
+task findNewFits(optional SubProblem sp{ findingNewFits }, GlobalCounter counter{ Init })
 {
+	if(!isavailable(sp)) {
+		counter.partial = true;
+		taskexit( sp{ !findingNewFits } );
+	}
 	System.printString("Top of task findNewFits\n");
     // if we have run out of iterations of the
     // findNewFits task, mark waitingForSubProblems
@@ -198,22 +202,22 @@ task scoreSubProbleam(SubProblem sp{ !scored && leaf }) {
 }
 
 //check the highest score
-task findHighestScore(SubProblem pSp{ !scored && main }, /*optional*/ SubProblem cSp{ scored && leaf }, GlobalCounter counter{ Init } ) {
+task findHighestScore(SubProblem pSp{ !scored && main }, optional SubProblem cSp{ scored && leaf }, GlobalCounter counter{ Init } ) {
 	System.printString("Top of task findHighestScore\n");
     --counter.counter;
     //System.printString( "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n" );
     //System.printString( "find highest score:\n" + counter.counter + "\n" );
     //System.printString( "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n" );
-    //if(isavailable(cSp)) {
+    if(isavailable(cSp)) {
 	if(pSp.highScore < cSp.highScore) {
 	    pSp.highScore = cSp.highScore;
 	}
-	if(cSp.partial == true) {
+	if((counter.partial == true) || (cSp.partial == true)) {
 	    pSp.partial = true;
 	}
-    /*} else {
+    } else {
 	pSp.partial = true;
-    }*/
+    }
     if(counter.counter == 0) {
 	taskexit(pSp{ scored }, cSp{ !leaf });
     } else {
