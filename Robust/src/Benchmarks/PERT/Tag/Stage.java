@@ -32,7 +32,7 @@ public class Stage {
 			int tmp = samplings[samplings.length];
 		}*/
 
-	/*Random r = new Random();
+	Random r = new Random(ID);
 	int tint = 0;
 	for(int i = 0; i < this.samplings.length; ++i) {
 	    do {
@@ -40,12 +40,12 @@ public class Stage {
 	    } while(tint <= 0);
 	    this.samplings[i] = tint;
 	    //System.printString(tint + "; ");
-	}*/
-	int tint = ID * 3;
-	for(int i = 0; i < this.samplings.length; ++i) {
-		this.samplings[i] = tint + i;
-		//System.printString(tint + "; ");
 	}
+	//int tint = ID * 3;
+	//for(int i = 0; i < this.samplings.length; ++i) {
+	//this.samplings[i] = tint + i;
+		//System.printString(tint + "; ");
+	//}
 	//System.printString("\n");
     }
 
