@@ -23,7 +23,7 @@ public class MapWorker {
 
 	locations = new String[r];
 	for(int i = 0; i < r; ++i) {
-	    StringBuffer temp = new StringBuffer("/scratch/mapreduce_opt/output-intermediate-map-");
+	    StringBuffer temp = new StringBuffer("/scratch/mapreduce_nor/output-intermediate-map-");
 	    temp.append(String.valueOf(ID));
 	    temp.append("-of-");
 	    temp.append(String.valueOf(r));

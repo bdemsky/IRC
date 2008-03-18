@@ -52,15 +52,22 @@ import mapreduce.ToolRunner;*/
 	}
 
 	boolean isspace(char c) {
-	    if((c == ' ') || 
-		    (c == '.') ||
-		    (c == '!') ||
-		    (c == '?') ||
-		    (c == '"') ||
-		    (c == '\n')) {
-		return true;
-	    }
-	    return false;
+	if((c == ' ') || 
+		(c == ',') ||
+		(c == '.') ||
+		(c == '!') ||
+		(c == '?') ||
+		(c == '"') ||
+		(c == '(') ||
+		(c == ')') ||
+		(c == '[') ||
+		(c == ']') ||
+		(c == '{') ||
+		(c == '}') ||
+		(c == '\n')) {
+	    return true;
+	}
+	return false;
 	}
     }
 

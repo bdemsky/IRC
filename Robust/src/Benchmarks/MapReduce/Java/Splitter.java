@@ -15,7 +15,7 @@ public class Splitter {
 	    //System.printString("Top of Splitter's constructor\n");
 	    filename = path;
 	    FileInputStream iStream = new FileInputStream(filename);
-	    byte[] b = new byte[1024 * 10];
+	    byte[] b = new byte[1024 * 1024];
 	    length = iStream.read(b);
 	    if(length < 0) {
 		System./*out.println*/printString("Error! Can not read from input file: " + filename + "\n");

@@ -32,7 +32,7 @@ public class ReduceWorker {
 	//this.sorts = null;
 
 	this.output = new OutputCollector();
-	this.outputfile = "/home/jzhou/mapreduce/output-intermediate-reduce-" + String.valueOf(id) + ".dat";
+	this.outputfile = "/scratch/mapreduce_java/output-intermediate-reduce-" + String.valueOf(id) + ".dat";
     }
 
     public MapReduceBase getMapreducer() {
@@ -57,7 +57,7 @@ public class ReduceWorker {
 	//try{
 	    for(int i = 0; i < interoutputs.size(); ++i) {
 		FileInputStream iStream = new FileInputStream((String)interoutputs.elementAt(i));
-		byte[] b = new byte[1024 * 100];
+		byte[] b = new byte[1024 * 10];
 		int length = iStream.read(b);
 		if(length < 0) {
 		    System./*out.println*/printString("Error! Can not read from intermediate ouput file of map worker: " + (String)interoutputs.elementAt(i) + "\n");
@@ -126,13 +126,14 @@ public class ReduceWorker {
 	    int temp = a[1];
 	}*/
 	
-	if(this.interoutputs == null) {
-	    return;
-	}
+	if(this.interoutputs != null) {
+	    //return;
+	//}
 	for(int i = 0; i < this.sorts.length; ++i) {
 	    String key = (String)this.keys.elementAt(this.sorts[i]);
 	    Vector values = (Vector)this.values.get(key);
 	    this.mapreducer.reduce(key, values, output);
+	}
 	}
 
 	//try{

@@ -42,7 +42,7 @@ public class Master {
 	}
 
 	this.splitter = splitter;
-	this.outputfile = new String("/home/jzhou/mapreduce/output.dat");
+	this.outputfile = new String("/scratch/mapreduce_opt/output.dat");
 
 	this.partial = false;
     }
@@ -97,7 +97,7 @@ public class Master {
     }
 
     public void addInterOutput(String interoutput) {
-	int start = interoutput.indexOf('_');
+	int start = interoutput.lastindexOf('_');
 	int end = interoutput.indexOf('.');
 	int index = Integer.parseInt(interoutput.subString(start + 1, end));
 	//System.printString(interoutput.subString(start + 1, end) + "\n");
@@ -135,7 +135,7 @@ public class Master {
     public void collectROutput(String file) {
 	FileInputStream iStream = new FileInputStream(file);
 	FileOutputStream oStream = new FileOutputStream(outputfile, true);
-	byte[] b = new byte[1024 * 100];
+	byte[] b = new byte[1024 * 10];
 	int length = iStream.read(b);
 	if(length < 0) {
 	    System.printString("Error! Can not read from intermediate output file from reduce worker: " + file + "\n");

@@ -1,7 +1,7 @@
 task startup(StartupObject s{initialstate}) {
     // read in configuration parameters
     // System.printString("Top of task startup\n");
-    String path = new String("/scratch/mapreduce_opt/conf.txt");
+    String path = new String("/scratch/mapreduce_nor/conf.txt");
     FileInputStream iStream = new FileInputStream(path);
     byte[] b = new byte[1024];
     int length = iStream.read(b);
@@ -64,9 +64,9 @@ task partition(MapWorker mworker{partition}) {
 }
 
 //Register the intermediate ouput from map worker to master
-task mapOutput(Master master{mapoutput}, optional MapWorker mworker{mapoutput}) {
+task mapOutput(Master master{mapoutput}, /*optional*/ MapWorker mworker{mapoutput}) {
     System.printString("Top of task mapOutput\n");
-    if(isavailable(mworker)) {
+    //if(isavailable(mworker)) {
 	int total = master.getR();
 	for(int i = 0; i < total; ++i) {
 	    String temp = mworker.outputFile(i);
@@ -75,10 +75,10 @@ task mapOutput(Master master{mapoutput}, optional MapWorker mworker{mapoutput}) 
 	    }
 	}
 	master.setMapFinish(mworker.getID());
-    } else {
+    /*} else {
 	master.setMapFail(mworker.getID());
 	master.setPartial(true);
-    }
+    }*/
     if(master.isMapFinish()) {
 	taskexit(master{!mapoutput, mapfinished, assignReduce}, mworker{!mapoutput});
     }
@@ -113,15 +113,15 @@ task reduce(ReduceWorker rworker{reduce}) {
 }
 
 //Collect the output into master
-task reduceOutput(Master master{reduceoutput}, optional ReduceWorker rworker{reduceoutput}) {
+task reduceOutput(Master master{reduceoutput}, /*optional*/ ReduceWorker rworker{reduceoutput}) {
     System.printString("Top of task reduceOutput\n");
-    if(isavailable(rworker)) {
+    //if(isavailable(rworker)) {
 	master.collectROutput(rworker.getOutputFile());
 	master.setReduceFinish(rworker.getID());
-    } else {
+   /* } else {
 	master.setReduceFail(rworker.getID());
 	master.setPartial(true);
-    }
+    }*/
     if(master.isReduceFinish()) {
 	//System.printString("reduce finish\n");
 	taskexit(master{!reduceoutput, reducefinished, output}, rworker{!reduceoutput});

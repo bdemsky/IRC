@@ -21,7 +21,7 @@ public class ReduceWorker {
 	//this.sorts = null;
 
 	this.output = new OutputCollector();
-	this.outputfile = "/scratch/mapreduce_opt/output-intermediate-reduce-" + String.valueOf(id) + ".dat";
+	this.outputfile = "/scratch/mapreduce_nor/output-intermediate-reduce-" + String.valueOf(id) + ".dat";
     }
 
     public void sortgroup() {
