@@ -9,11 +9,11 @@ public class JobClient{
 	Master master = new Master(conf.getM(), conf.getR(), splitter);
 	
 	// split input file
-	System.printString("Split\n");
+	//System.printString("Split\n");
 	master.split();
 	
 	// do 'map'
-	System.printString("Map\n");
+	//System.printString("Map\n");
 	MapWorker[] mworkers = master.assignMap();
 	for(int i = 0; i < mworkers.length; ++i) {
 	    MapWorker mworker = mworkers[i];
@@ -23,7 +23,7 @@ public class JobClient{
 	}
 	
 	// register intermediate output from map workers to master
-	System.printString("Mapoutput\n");
+	//System.printString("Mapoutput\n");
 	for(int i = 0; i < mworkers.length; ++i) {
 	    for(int j = 0; j < conf.getR(); ++j) {
 		String temp = mworkers[i].outputFile(j);
@@ -36,7 +36,7 @@ public class JobClient{
 	//assert(master.isMapFinish());
 	
 	// do 'reduce'
-	System.printString("Reduce\n");
+	//System.printString("Reduce\n");
 	ReduceWorker[] rworkers = master.assignReduce();
 	for(int i = 0; i < rworkers.length; ++i) {
 	    ReduceWorker rworker = rworkers[i];
@@ -46,7 +46,7 @@ public class JobClient{
 	}
 	
 	// merge all the intermediate output from reduce workers to master
-	System.printString("Merge\n");
+	//System.printString("Merge\n");
 	for(int i = 0; i < rworkers.length; ++i) {
 	    master.collectROutput(rworkers[i].getOutputFile());
 	    master.setReduceFinish(rworkers[i].getID());

@@ -32,7 +32,7 @@ task startup(StartupObject s{initialstate}) {
 
 //Split the input file into M pieces
 task split(Master master{split}) {
-    System.printString("Top of task split\n");
+    //System.printString("Top of task split\n");
     master.split();
 
     taskexit(master{!split, assignMap});
@@ -40,7 +40,7 @@ task split(Master master{split}) {
 
 //Select a map worker to handle one of the pieces of input file
 task assignMap(Master master{assignMap}) {
-    System.printString("Top of task assignMap\n");
+    //System.printString("Top of task assignMap\n");
     master.assignMap();
 
     taskexit(master{!assignMap, mapoutput});
@@ -48,7 +48,7 @@ task assignMap(Master master{assignMap}) {
 
 //MapWorker do 'map' function on a input file piece
 task map(MapWorker mworker{map}) {
-    System.printString("Top of task map\n");
+    //System.printString("Top of task map\n");
     mworker.map();
 
     taskexit(mworker{!map, partition});
@@ -57,7 +57,7 @@ task map(MapWorker mworker{map}) {
 //Partition the intermediate key/value pair generated
 //into R intermediate local files
 task partition(MapWorker mworker{partition}) {
-    System.printString("Top of task partition\n");
+    //System.printString("Top of task partition\n");
     mworker.partition();
 
     taskexit(mworker{!partition, mapoutput});
@@ -65,7 +65,7 @@ task partition(MapWorker mworker{partition}) {
 
 //Register the intermediate ouput from map worker to master
 task mapOutput(Master master{mapoutput}, optional MapWorker mworker{mapoutput}) {
-    System.printString("Top of task mapOutput\n");
+    //System.printString("Top of task mapOutput\n");
     if(isavailable(mworker)) {
 	int total = master.getR();
 	for(int i = 0; i < total; ++i) {
@@ -89,7 +89,7 @@ task mapOutput(Master master{mapoutput}, optional MapWorker mworker{mapoutput}) 
 //Assign the list of intermediate output associated to one key to
 //a reduce worker 
 task assignReduce(Master master{assignReduce}) {
-    System.printString("Top of task assignReduce\n");
+    //System.printString("Top of task assignReduce\n");
     master.assignReduce();
 
     taskexit(master{!assignReduce, reduceoutput});
@@ -98,7 +98,7 @@ task assignReduce(Master master{assignReduce}) {
 //First do sort and group on the intermediate key/value pairs assigned
 //to reduce worker
 task sortgroup(ReduceWorker rworker{sortgroup}) {
-    System.printString("Top of task sortgroup\n");
+    //System.printString("Top of task sortgroup\n");
     rworker.sortgroup();
 
     taskexit(rworker{!sortgroup, reduce});
@@ -106,7 +106,7 @@ task sortgroup(ReduceWorker rworker{sortgroup}) {
 
 //Do 'reduce' function
 task reduce(ReduceWorker rworker{reduce}) {
-    System.printString("Top of task reduce\n");
+    //System.printString("Top of task reduce\n");
     rworker.reduce();
 
     taskexit(rworker{!reduce, reduceoutput});
@@ -114,7 +114,7 @@ task reduce(ReduceWorker rworker{reduce}) {
 
 //Collect the output into master
 task reduceOutput(Master master{reduceoutput}, optional ReduceWorker rworker{reduceoutput}) {
-    System.printString("Top of task reduceOutput\n");
+    //System.printString("Top of task reduceOutput\n");
     if(isavailable(rworker)) {
 	master.collectROutput(rworker.getOutputFile());
 	master.setReduceFinish(rworker.getID());
@@ -131,7 +131,7 @@ task reduceOutput(Master master{reduceoutput}, optional ReduceWorker rworker{red
 }
 
 task output(Master master{output}) {
-    System.printString("Top of task output\n");
+    //System.printString("Top of task output\n");
     if(master.isPartial()) {
 	System.printString("Partial! The result may not be right due to some failure!\n");
     }

@@ -53,7 +53,7 @@
 
 task Startup( StartupObject s{ initialstate } )
 {
-	System.printString("Top of task Startup\n");
+	//System.printString("Top of task Startup\n");
     SubProblem top = new SubProblem(){ findingNewFits, main };
 
     /*
@@ -101,7 +101,7 @@ task findNewFits(optional SubProblem sp{ findingNewFits }, GlobalCounter counter
 		counter.partial = true;
 		taskexit( sp{ !findingNewFits } );
 	}
-	System.printString("Top of task findNewFits\n");
+	//System.printString("Top of task findNewFits\n");
     // if we have run out of iterations of the
     // findNewFits task, mark waitingForSubProblems
     if( sp.indexToFit == sp.tilesToFit.length )
@@ -196,14 +196,14 @@ task findNewFits(optional SubProblem sp{ findingNewFits }, GlobalCounter counter
 }
 
 task scoreSubProbleam(SubProblem sp{ !scored && leaf }) {
-	System.printString("Top of task scoreSubProblem\n");
+	//System.printString("Top of task scoreSubProblem\n");
     sp.scoreWorkingGrid();
     taskexit(sp { scored });
 }
 
 //check the highest score
 task findHighestScore(SubProblem pSp{ !scored && main }, optional SubProblem cSp{ scored && leaf }, GlobalCounter counter{ Init } ) {
-	System.printString("Top of task findHighestScore\n");
+	//System.printString("Top of task findHighestScore\n");
     --counter.counter;
     //System.printString( "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n" );
     //System.printString( "find highest score:\n" + counter.counter + "\n" );
@@ -226,7 +226,7 @@ task findHighestScore(SubProblem pSp{ !scored && main }, optional SubProblem cSp
 }
 
 task printHighestScore(SubProblem sp{ scored && main }) {
-	System.printString("Top of task printHighestScore\n");
+	//System.printString("Top of task printHighestScore\n");
  // if(isavailable(sp)) {
     if(sp.partial == true) {
 	System.printString ( "Result may not be the best one due to some failure during execution!\n" );
