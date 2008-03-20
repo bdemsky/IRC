@@ -27,7 +27,6 @@ extern int classsize[];
 objstr_t *mainobjstore;
 pthread_mutex_t mainobjstore_mutex;
 pthread_mutexattr_t mainobjstore_mutex_attr; /* Attribute for lock to make it a recursive lock */
-pthread_mutex_t threadnotify_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 /* This function initializes the main objects store and creates the 
  * global machine and location lookup table */
@@ -189,10 +188,22 @@ void *dstmAccept(void *acceptfd)
 			}
 			break;
 		case TRANS_PREFETCH:
-			if((val = prefetchReq((int)acceptfd)) != 0) {
-				printf("Error: In prefetchReq() %s, %d\n", __FILE__, __LINE__);
-				pthread_exit(NULL);
-			}
+			do {
+				if((val = prefetchReq((int)acceptfd)) != 0) {
+					printf("Error: In prefetchReq() %s, %d\n", __FILE__, __LINE__);
+					pthread_exit(NULL);
+				}
+
+				if((retval = recv((int)acceptfd, &control, sizeof(char), 0)) < 0) {
+					printf("%s() Error: Receiving control = %d at %s, %d\n", __func__, control, __FILE__, __LINE__);
+					pthread_exit(NULL);
+				} else if(retval == 0) {
+					printf("%s() Error: socket closed at the requesting side\n");
+					pthread_exit(NULL);
+				}
+
+			} while (control == TRANS_PREFETCH);
+
 			break;
 		case TRANS_PREFETCH_RESPONSE:
 			if((val = getPrefetchResponse((int) acceptfd)) != 0) {
@@ -268,7 +279,6 @@ void *dstmAccept(void *acceptfd)
 	/* Close connection */
 	if (close((int)acceptfd) == -1)
 		perror("close");
-	
 	pthread_exit(NULL);
 }
 
@@ -306,7 +316,7 @@ int readClientReq(trans_commit_data_t *transinfo, int acceptfd) {
 
 	/* Read oid and version tuples for those objects that are not modified in the transaction */
 	int numread = fixed.numread;
-	N = numread * (sizeof(unsigned int) + sizeof(short));
+	N = numread * (sizeof(unsigned int) + sizeof(unsigned short));
 	char objread[N];
 	if(numread != 0) { //If pile contains more than one object to be read, 
 			  // keep reading all objects
@@ -473,7 +483,7 @@ char handleTransReq(fixed_data_t *fixed, trans_commit_data_t *transinfo, unsigne
 	/* Process each oid in the machine pile/ group per thread */
 	for (i = 0; i < fixed->numread + fixed->nummod; i++) {
 		if (i < fixed->numread) {//Objs only read and not modified
-			int incr = sizeof(unsigned int) + sizeof(short);// Offset that points to next position in the objread array
+			int incr = sizeof(unsigned int) + sizeof(unsigned short);// Offset that points to next position in the objread array
 			incr *= i;
 			oid = *((unsigned int *)(objread + incr));
 			incr += sizeof(unsigned int);
@@ -676,7 +686,7 @@ int prefetchReq(int acceptfd) {
 	int length, sd;
 	char *recvbuffer, *sendbuffer, control;
 	unsigned int oid, mid;
-	unsigned short *offsetarry;
+	short *offsetarry;
 	objheader_t *header;
 	struct sockaddr_in remoteAddr;
 
@@ -693,12 +703,12 @@ int prefetchReq(int acceptfd) {
 			while(numbytes < size) {
 				numbytes += recv((int)acceptfd, recvbuffer+numbytes, size-numbytes, 0);
 			}
-
+			
 			oid = *((unsigned int *) recvbuffer);
 			mid = *((unsigned int *) (recvbuffer + sizeof(unsigned int)));
 			size = size - (2 * sizeof(unsigned int));
 			numoffset = size / sizeof(short);
-			if((offsetarry = calloc(numoffset, sizeof(unsigned short))) == NULL) {
+			if((offsetarry = calloc(numoffset, sizeof(short))) == NULL) {
 				printf("Calloc error at %s,%d\n", __FILE__, __LINE__);
 				free(recvbuffer);
 				return -1;
@@ -709,7 +719,7 @@ int prefetchReq(int acceptfd) {
 			/* Create socket to send information */
 			if ((sd = socket(AF_INET, SOCK_STREAM, 0)) < 0){
 				perror("prefetchReq():socket()");
-				return;
+				return -1;
 			}
 			bzero(&remoteAddr, sizeof(remoteAddr));
 			remoteAddr.sin_family = AF_INET;
@@ -779,6 +789,12 @@ int prefetchReq(int acceptfd) {
 					}
 					if(isArray == 1) {
 						int elementsize = classsize[TYPE(header)];
+						struct ArrayObject *ao = (struct ArrayObject *) (((char *)header) + sizeof(objheader_t));
+						unsigned short length = ao->___length___;
+						/* Check if array out of bounds */
+						if(offsetarry[i]< 0 || offsetarry[i] >= length) {
+							break;
+						}
 						oid = *((unsigned int *)(((char *)header) + sizeof(objheader_t) + sizeof(struct ArrayObject) + (elementsize*offsetarry[i])));
 					} else {
 						oid = *((unsigned int *)(((char *)header) + sizeof(objheader_t) + offsetarry[i]));

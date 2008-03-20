@@ -135,7 +135,7 @@ public class Operation {
 	    return "<<";
 	else if (operation==RIGHTSHIFT)
 	    return ">>";
-	else if (operation==RIGHTSHIFT)
+	else if (operation==URIGHTSHIFT)
 	    return ">>>";
 	else if (operation==SUB)
 	    return "-";

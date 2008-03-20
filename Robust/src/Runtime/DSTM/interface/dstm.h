@@ -186,6 +186,12 @@ typedef struct local_thread_data_array {
 	trans_commit_data_t *transinfo; /* Holds information of objects locked and not found in the participant */ 
 } local_thread_data_array_t;
 
+//Structure to store mid and socketid information
+typedef struct midSocketInfo {
+	unsigned int mid;
+	int sockid;
+} midSocketInfo_t;
+
 /* Initialize main object store and lookup tables, start server thread. */
 int dstmInit(void);
 
@@ -229,7 +235,6 @@ void *transRequest(void *);	//the C routine that the thread will execute when TR
 void decideResponse(thread_data_array_t *);// Coordinator decides what response to send to the participant
 char sendResponse(thread_data_array_t *, int); //Sends control message back to Participants
 void *getRemoteObj(transrecord_t *, unsigned int, unsigned int);
- 
 void *handleLocalReq(void *);
 int transComProcess(local_thread_data_array_t *);
 int transAbortProcess(local_thread_data_array_t *);
@@ -243,7 +248,7 @@ prefetchpile_t *foundLocal(prefetchqelem_t *);
 prefetchpile_t *makePreGroups(prefetchqelem_t *, int *);
 void checkPreCache(prefetchqelem_t *, int *, unsigned int, int);
 int transPrefetchProcess(transrecord_t *, int **, short);
-void sendPrefetchReq(prefetchpile_t*);
+void sendPrefetchReq(prefetchpile_t*, int);
 int getPrefetchResponse(int);
 unsigned short getObjType(unsigned int oid);
 int startRemoteThread(unsigned int oid, unsigned int mid);

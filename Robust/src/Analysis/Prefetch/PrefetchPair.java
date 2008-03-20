@@ -8,6 +8,7 @@ public class PrefetchPair {
 	public ArrayList<Descriptor> desc;
 
 	public PrefetchPair(){
+    base = new TempDescriptor("");
 		desc = new ArrayList<Descriptor>();
 	}
 
@@ -101,15 +102,16 @@ public class PrefetchPair {
 
 	public Object clone() {
 		PrefetchPair newpp = new PrefetchPair();
+    ArrayList<TempDescriptor> td =  null;
 		newpp.base = this.base;
-		ArrayList<TempDescriptor> td = new ArrayList<TempDescriptor>();
-		for(int i = 0; i<desc.size(); i++) {
+		for(int i = 0; i < this.desc.size(); i++) {
 			Object o = desc.get(i);
 			if(o instanceof FieldDescriptor) {
 				newpp.desc.add((FieldDescriptor) o);
 			} else {
-				for(int j=0; j<((IndexDescriptor)o).tddesc.size();j++) {
-					td.add((TempDescriptor)((IndexDescriptor)o).tddesc.get(j));
+        td = new ArrayList<TempDescriptor>();
+				for(int j = 0; j < ((IndexDescriptor)o).tddesc.size(); j++) {
+					td.add(((IndexDescriptor)o).getTempDescAt(j));
 				}
 				IndexDescriptor idesc = new IndexDescriptor();
 				idesc.tddesc = td;

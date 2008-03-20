@@ -42,14 +42,24 @@ public class PairMap {
 		return hashcode;
 	}
 
-	public String pairMapToString() {
+	public int size() {
+		return mappair.size();
+	}
+
+	public boolean contains(PrefetchPair ppKey) {
+		if(mappair.containsKey(ppKey))
+			return true;
+		return false;
+	}
+
+	public String toString() {
 		String label = null;
 		Set mapping = mappair.entrySet();
 		Iterator it = mapping.iterator();
 		label = "Mappings are:  ";
 		for(;it.hasNext();) {
 			Object o = it.next();
-			label += o.toString() + "  ";
+			label += o.toString() + " , ";
 		}
 		return label;
 	}

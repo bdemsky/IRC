@@ -53,7 +53,7 @@ public class IndexDescriptor extends Descriptor {
 	}
 
 	public TempDescriptor getTempDescAt(int index) {
-		return (TempDescriptor) tddesc.get(index);
+		return ((TempDescriptor) (tddesc.get(index)));
 	}
 
 	public int getOffset() {

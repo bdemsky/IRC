@@ -1499,8 +1499,10 @@ public class BuildCode {
  		    }
  		    output.println("};");
  		    /* make the prefetch call to Runtime */
- 		    output.println("   prefetch((int) numtuples_"+count+ ", oidarray_"+count+ ", endoffsetarry_"+
- 				    count+", fieldarry_"+count+");");
+		    if(tuplecount > 0) {
+			    output.println("   prefetch((int) numtuples_"+count+ ", oidarray_"+count+ ", endoffsetarry_"+
+					    count+", fieldarry_"+count+");");
+		    }
  		    count++;
  	    }   
 
