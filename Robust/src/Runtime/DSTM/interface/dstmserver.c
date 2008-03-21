@@ -27,6 +27,14 @@ extern int classsize[];
 objstr_t *mainobjstore;
 pthread_mutex_t mainobjstore_mutex;
 pthread_mutexattr_t mainobjstore_mutex_attr; /* Attribute for lock to make it a recursive lock */
+/**********************************************************
+ * Global variables to map socketid and remote mid
+ * to  resuse sockets
+ **************************************************/
+midSocketInfo_t sockArray[NUM_MACHINES];
+int sockCount; //number of connections with all remote machines(one socket per mc)
+int sockIdFound; //track if socket file descriptor is already established
+pthread_mutex_t sockLock = PTHREAD_MUTEX_INITIALIZER; //lock to prevent global sock variables to be inconsistent
 
 /* This function initializes the main objects store and creates the 
  * global machine and location lookup table */
@@ -47,6 +55,14 @@ int dstmInit(void)
 	if (notifyhashCreate(N_HASH_SIZE, N_LOADFACTOR))
 		return 1; //failure
 	
+	//Initialize mid to socketid mapping array
+	int t;
+	sockCount = 0;
+	for(t = 0; t < NUM_MACHINES; t++) {
+		sockArray[t].mid = 0;
+		sockArray[t].sockid = 0;
+	}
+
 	return 0;
 }
 
@@ -112,7 +128,7 @@ void *dstmListen()
  * and accordingly calls other functions to process new requests */
 void *dstmAccept(void *acceptfd)
 {
-	int val, retval, size, sum;
+	int val, retval, size, sum, sockid;
 	unsigned int oid;
 	char *buffer;
 	char control,ctrl;
@@ -130,18 +146,12 @@ void *dstmAccept(void *acceptfd)
 	transinfo.numnotfound = 0;
 
 	/* Receive control messages from other machines */
-	if((retval = recv((int)acceptfd, &control, sizeof(char), 0)) <= 0) {
-		printf("%s() Error: Receiving control = %d at %s, %d\n", __func__, control, __FILE__, __LINE__);
-		pthread_exit(NULL);
-	}
-	
+	recv_data((int)acceptfd, &control, sizeof(char));
+
 	switch(control) {
 		case READ_REQUEST:
 			/* Read oid requested and search if available */
-			if((retval = recv((int)acceptfd, &oid, sizeof(unsigned int), 0)) <= 0) {
-				perror("Error: receiving 0x0 object from cooridnator\n");
-				pthread_exit(NULL);
-			}
+			recv_data((int)acceptfd, &oid, sizeof(unsigned int));
 			if((srcObj = mhashSearch(oid)) == NULL) {
 				printf("Error: Object 0x%x is not found in Main Object Store %s, %d\n", oid, __FILE__, __LINE__);
 				pthread_exit(NULL);
@@ -149,25 +159,17 @@ void *dstmAccept(void *acceptfd)
 			h = (objheader_t *) srcObj;
 			GETSIZE(size, h);
 			size += sizeof(objheader_t);
+			sockid = (int) acceptfd;
 
 			if (h == NULL) {
 				ctrl = OBJECT_NOT_FOUND;
-				if(send((int)acceptfd, &ctrl, sizeof(char), MSG_NOSIGNAL) < sizeof(char)) {
-					perror("Error sending control msg to coordinator\n");
-					pthread_exit(NULL);
-				}
+				send_data(sockid, &ctrl, sizeof(char));
 			} else {
 				/* Type */
 				char msg[]={OBJECT_FOUND, 0, 0, 0, 0};
 				*((int *)&msg[1])=size;
-				if(send((int)acceptfd, &msg, sizeof(msg), MSG_NOSIGNAL) < sizeof(msg)) {
-					perror("Error sending size of object to coordinator\n");
-					pthread_exit(NULL);
-				}
-				if(send((int)acceptfd, h, size, MSG_NOSIGNAL) < size) {
-					perror("Error in sending object\n");
-					pthread_exit(NULL);
-				}
+				send_data(sockid, &msg, sizeof(msg));
+				send_data(sockid, h, size);
 			}
 			break;
 		
@@ -191,51 +193,34 @@ void *dstmAccept(void *acceptfd)
 			do {
 				if((val = prefetchReq((int)acceptfd)) != 0) {
 					printf("Error: In prefetchReq() %s, %d\n", __FILE__, __LINE__);
-					pthread_exit(NULL);
+					break;
 				}
-
-				if((retval = recv((int)acceptfd, &control, sizeof(char), 0)) < 0) {
-					printf("%s() Error: Receiving control = %d at %s, %d\n", __func__, control, __FILE__, __LINE__);
-					pthread_exit(NULL);
-				} else if(retval == 0) {
-					printf("%s() Error: socket closed at the requesting side\n");
-					pthread_exit(NULL);
-				}
-
+				recv_data((int)acceptfd, &control, sizeof(char));
 			} while (control == TRANS_PREFETCH);
-
 			break;
 		case TRANS_PREFETCH_RESPONSE:
-			if((val = getPrefetchResponse((int) acceptfd)) != 0) {
-				printf("Error: In getPrefetchResponse() %s, %d\n", __FILE__, __LINE__);
-				pthread_exit(NULL);
-			}
+			//do {
+				if((val = getPrefetchResponse((int) acceptfd)) != 0) {
+					printf("Error: In getPrefetchResponse() %s, %d\n", __FILE__, __LINE__);
+					pthread_exit(NULL);
+				}
+			//} while (control == TRANS_PREFETCH_RESPONSE);
 			break;
 		case START_REMOTE_THREAD:
-			retval = recv((int)acceptfd, &oid, sizeof(unsigned int), 0);
-			if (retval <= 0)
-				perror("dstmAccept(): error receiving START_REMOTE_THREAD msg");
-			else if (retval != sizeof(unsigned int))
-				printf("dstmAccept(): incorrect msg size %d for START_REMOTE_THREAD %s, %d\n",
-					retval, __FILE__, __LINE__);
-			else
-			{
-				objType = getObjType(oid);
-				startDSMthread(oid, objType);
-			}
+			recv_data((int)acceptfd, &oid, sizeof(unsigned int));
+			objType = getObjType(oid);
+			startDSMthread(oid, objType);
 			break;
 
 		case THREAD_NOTIFY_REQUEST:
-			retval = recv((int)acceptfd, &numoid, sizeof(unsigned int), 0);
+			recv_data((int)acceptfd, &numoid, sizeof(unsigned int));
 			size = (sizeof(unsigned int) + sizeof(unsigned short)) * numoid + 2 * sizeof(unsigned int);
 			if((buffer = calloc(1,size)) == NULL) {
 				printf("%s() Calloc error at %s, %d\n", __func__, __FILE__, __LINE__);
 				pthread_exit(NULL);
 			}
-			sum = 0;
-			do {
-				sum += recv((int)acceptfd, buffer+sum, size-sum, 0);
-			} while(sum < size);
+
+			recv_data((int)acceptfd, buffer, size);
 
 			oidarry = calloc(numoid, sizeof(unsigned int)); 
 			memcpy(oidarry, buffer, sizeof(unsigned int) * numoid);
@@ -258,10 +243,7 @@ void *dstmAccept(void *acceptfd)
 				pthread_exit(NULL);
 			}
 
-			sum = 0;
-			do {
-				sum += recv((int)acceptfd, buffer+sum, size-sum, 0);
-			} while(sum < size);
+			recv_data((int)acceptfd, buffer, size);
 
 			oid = *((unsigned int *)buffer);
 			size = sizeof(unsigned int);
@@ -290,41 +272,30 @@ int readClientReq(trans_commit_data_t *transinfo, int acceptfd) {
 	unsigned int *oidmod, oid;
 	fixed_data_t fixed;
 	objheader_t *headaddr;
-	int sum = 0, i, N, n, val;
+	int sum, i, size, n, val;
 
 	oidmod = NULL;
 
 	/* Read fixed_data_t data structure */ 
-	N = sizeof(fixed) - 1;
+	size = sizeof(fixed) - 1;
 	ptr = (char *)&fixed;;
 	fixed.control = TRANS_REQUEST;
-	do {
-		n = recv((int)acceptfd, (void *) ptr+1+sum, N-sum, 0);
-		sum += n;
-	} while(sum < N && n != 0); 
+	recv_data((int)acceptfd, ptr+1, size);
 
 	/* Read list of mids */
 	int mcount = fixed.mcount;
-	N = mcount * sizeof(unsigned int);
+	size = mcount * sizeof(unsigned int);
 	unsigned int listmid[mcount];
 	ptr = (char *) listmid;
-	sum = 0;
-	do {
-		n = recv((int)acceptfd, (void *) ptr+sum, N-sum, 0);
-		sum += n;
-	} while(sum < N && n != 0);
-
+	recv_data((int)acceptfd, ptr, size);
+	
 	/* Read oid and version tuples for those objects that are not modified in the transaction */
 	int numread = fixed.numread;
-	N = numread * (sizeof(unsigned int) + sizeof(unsigned short));
-	char objread[N];
+	size = numread * (sizeof(unsigned int) + sizeof(unsigned short));
+	char objread[size];
 	if(numread != 0) { //If pile contains more than one object to be read, 
 			  // keep reading all objects
-		sum = 0;
-		do {
-			n = recv((int)acceptfd, (void *) objread+sum, N-sum, 0);
-			sum += n;
-		} while(sum < N && n != 0);
+		recv_data((int)acceptfd, objread, size);	
 	}
 	
 	/* Read modified objects */
@@ -333,11 +304,8 @@ int readClientReq(trans_commit_data_t *transinfo, int acceptfd) {
 			printf("calloc error for modified objects %s, %d\n", __FILE__, __LINE__);
 			return 1;
 		}
-		sum = 0;
-		do { // Recv the objs that are modified by the Coordinator
-			n = recv((int)acceptfd, (char *) modptr+sum, fixed.sum_bytes-sum, 0);
-			sum += n;
-		} while (sum < fixed.sum_bytes && n != 0);
+		size = fixed.sum_bytes;
+		recv_data((int)acceptfd, modptr, size);	
 	}
 
 	/* Create an array of oids for modified objects */
@@ -391,10 +359,8 @@ int processClientReq(fixed_data_t *fixed, trans_commit_data_t *transinfo,
 		return 1;
 	}
 
-	do {
-		retval = recv((int)acceptfd, &control, sizeof(char), 0);
-	} while(retval < sizeof(char));
-
+	recv_data((int)acceptfd, &control, sizeof(char));
+	
 	/* Process the new control message */
 	switch(control) {
 		case TRANS_ABORT:
@@ -411,17 +377,7 @@ int processClientReq(fixed_data_t *fixed, trans_commit_data_t *transinfo,
 
 			/* Send ack to Coordinator */
 			sendctrl = TRANS_UNSUCESSFUL;
-			if(send((int)acceptfd, &sendctrl, sizeof(char), MSG_NOSIGNAL) < sizeof(char)) {
-				perror("Error: In sending ACK to coordinator\n");
-				if (transinfo->objlocked != NULL) {
-					free(transinfo->objlocked);
-				}
-				if (transinfo->objnotfound != NULL) {
-					free(transinfo->objnotfound);
-				}
-
-				return 1;
-			}
+			send_data((int)acceptfd, &sendctrl, sizeof(char));
 			break;
 
 		case TRANS_COMMIT:
@@ -522,10 +478,7 @@ char handleTransReq(fixed_data_t *fixed, trans_commit_data_t *transinfo, unsigne
 						}
 						free(oidlocked);
 					}
-					if((val = send(acceptfd, &control, sizeof(char), MSG_NOSIGNAL)) < sizeof(char)) {
-						perror("Error in sending control to the Coordinator\n");
-						return 0;
-					}
+					send_data(acceptfd, &control, sizeof(char));
 					return control;
 				}
 			} else {/* If Obj is not locked then lock object */
@@ -550,11 +503,7 @@ char handleTransReq(fixed_data_t *fixed, trans_commit_data_t *transinfo, unsigne
 					}
 
 					/* Send TRANS_DISAGREE to Coordinator */
-					if((val = send(acceptfd, &control, sizeof(char), MSG_NOSIGNAL)) < sizeof(char)) {
-						perror("Error in sending control to the Coordinator\n");
-						return 0;
-					}
-					
+					send_data(acceptfd, &control, sizeof(char));
 					return control;
 				}
 			}
@@ -583,34 +532,22 @@ char decideCtrlMessage(fixed_data_t *fixed, trans_commit_data_t *transinfo, int 
 	if(*(v_matchnolock) == fixed->numread + fixed->nummod) {
 		control = TRANS_AGREE;
 		/* Send control message */
-		if((val = send(acceptfd, &control, sizeof(char), MSG_NOSIGNAL)) < sizeof(char)) {
-			perror("Error in sending control to Coordinator\n");
-			return 0;
-		}
+		send_data(acceptfd, &control, sizeof(char));
 	}
 	/* Condition to send TRANS_SOFT_ABORT */
 	if((*(v_matchlock) > 0 && *(v_nomatch) == 0) || (*(objnotfound) > 0 && *(v_nomatch) == 0)) {
 		control = TRANS_SOFT_ABORT;
 
 		/* Send control message */
-		if((val = send(acceptfd, &control, sizeof(char),MSG_NOSIGNAL)) < sizeof(char)) {
-			perror("Error in sending TRANS_SOFT_ABORT control\n");
-			return 0;
-		}
-
+		send_data(acceptfd, &control, sizeof(char));
+	
 		/* Send number of oids not found and the missing oids if objects are missing in the machine */
 		if(*(objnotfound) != 0) { 
 			int msg[1];
 			msg[0] = *(objnotfound);
-			if((val = send(acceptfd, msg, sizeof(int) ,MSG_NOSIGNAL)) < sizeof(int)) {
-				perror("Error in sending objects that are not found\n");
-				return 0;
-			}
+			send_data(acceptfd, &msg, sizeof(int));
 			int size = sizeof(unsigned int)* *(objnotfound);
-			if((val = send(acceptfd, oidnotfound, size ,MSG_NOSIGNAL)) < size) {
-				perror("Error in sending objects that are not found\n");
-				return 0;
-			}
+			send_data(acceptfd, oidnotfound, size);
 		}
 	}
 
@@ -668,11 +605,7 @@ int transCommitProcess(void *modptr, unsigned int *oidmod, unsigned int *oidlock
 
 	/* Send ack to coordinator */
 	control = TRANS_SUCESSFUL;
-	if(send((int)acceptfd, &control, sizeof(char), MSG_NOSIGNAL) < sizeof(char)) {
-		perror("Error sending ACK to coordinator\n");
-		return 1;
-	}
-	
+	send_data((int)acceptfd, &control, sizeof(char));
 	return 0;
 }
 
@@ -683,27 +616,22 @@ int transCommitProcess(void *modptr, unsigned int *oidmod, unsigned int *oidlock
 
 int prefetchReq(int acceptfd) {
 	int i, size, objsize, numbytes = 0, isArray = 0, numoffset = 0;
-	int length, sd;
+	int length, sd = -1;
 	char *recvbuffer, *sendbuffer, control;
 	unsigned int oid, mid;
 	short *offsetarry;
 	objheader_t *header;
 	struct sockaddr_in remoteAddr;
 
-	while((numbytes = recv((int)acceptfd, &length, sizeof(int), 0)) != 0) {
-		if(length == -1) { //-1 is special character to represent end of sending oids and offsets
-			break;
-		} else {
-			numbytes = 0;
+	do {
+		recv_data((int)acceptfd, &length, sizeof(int));
+		if(length != -1) {
 			size = length - sizeof(int);
 			if((recvbuffer = calloc(1, size)) == NULL) {
 				printf("Calloc error at %s,%d\n", __FILE__, __LINE__);
 				return -1;
 			}
-			while(numbytes < size) {
-				numbytes += recv((int)acceptfd, recvbuffer+numbytes, size-numbytes, 0);
-			}
-			
+			recv_data((int)acceptfd, recvbuffer, size);
 			oid = *((unsigned int *) recvbuffer);
 			mid = *((unsigned int *) (recvbuffer + sizeof(unsigned int)));
 			size = size - (2 * sizeof(unsigned int));
@@ -715,23 +643,54 @@ int prefetchReq(int acceptfd) {
 			}
 			memcpy(offsetarry, recvbuffer + (2 * sizeof(unsigned int)), size);
 			free(recvbuffer);
-
-			/* Create socket to send information */
-			if ((sd = socket(AF_INET, SOCK_STREAM, 0)) < 0){
-				perror("prefetchReq():socket()");
-				return -1;
+#if 0
+			pthread_mutex_lock(&sockLock);
+			sockIdFound = 0;
+			pthread_mutex_unlock(&sockLock);
+			for(i = 0; i < NUM_MACHINES; i++) {
+				if(sockArray[i].mid == mid) {
+					sd = sockArray[i].sockid;
+					pthread_mutex_lock(&sockLock);
+					sockIdFound = 1;
+					pthread_mutex_unlock(&sockLock);
+					break;
+				}
 			}
-			bzero(&remoteAddr, sizeof(remoteAddr));
-			remoteAddr.sin_family = AF_INET;
-			remoteAddr.sin_port = htons(LISTEN_PORT);
-			remoteAddr.sin_addr.s_addr = htonl(mid);
 
-			if (connect(sd, (struct sockaddr *)&remoteAddr, sizeof(remoteAddr)) < 0){
-				printf("Error: prefetchReq():error %d connecting to %s:%d\n", errno,
-						inet_ntoa(remoteAddr.sin_addr), LISTEN_PORT);
-				close(sd);
-				return -1;
+			if(sockIdFound == 0) {
+				if(sockCount < NUM_MACHINES) {
+
+#endif
+					/* Create socket to send information */
+					if ((sd = socket(AF_INET, SOCK_STREAM, 0)) < 0){
+						perror("prefetchReq():socket()");
+						return -1;
+					}
+					bzero(&remoteAddr, sizeof(remoteAddr));
+					remoteAddr.sin_family = AF_INET;
+					remoteAddr.sin_port = htons(LISTEN_PORT);
+					remoteAddr.sin_addr.s_addr = htonl(mid);
+
+					if (connect(sd, (struct sockaddr *)&remoteAddr, sizeof(remoteAddr)) < 0){
+						printf("Error: prefetchReq():error %d connecting to %s:%d\n", errno,
+								inet_ntoa(remoteAddr.sin_addr), LISTEN_PORT);
+						close(sd);
+						return -1;
+					}
+
+#if 0
+					sockArray[sockCount].mid = mid;
+					sockArray[sockCount].sockid = sd;
+					pthread_mutex_lock(&sockLock);
+					sockCount++;
+					pthread_mutex_unlock(&sockLock);
+				} else {
+					//TODO Fix for connecting to more than 2 machines && close socket
+					printf("%s(): Error: Currently works for only 2 machines\n", __func__);
+					return -1;
+				}
 			}
+#endif
 
 			/*Process each oid */
 			if ((header = mhashSearch(oid)) == NULL) {/* Obj not found */
@@ -781,6 +740,7 @@ int prefetchReq(int acceptfd) {
 					close(sd);
 					return -1;
 				}
+
 				/* Calculate the oid corresponding to the offset value */
 				for(i = 0 ; i< numoffset ; i++) {
 					/* Check for arrays  */
@@ -852,29 +812,19 @@ int prefetchReq(int acceptfd) {
 				}
 				free(offsetarry);
 			}
+			close(sd);
 		}
-	}
-	close(sd);
+	} while (length != -1);
 	return 0;
 }
 
 int sendPrefetchResponse(int sd, char *control, char *sendbuffer, int *size) {
 	int numbytes = 0;
 
-	if((numbytes = send(sd, control, sizeof(char), MSG_NOSIGNAL)) < sizeof(char)) {
-		printf("%s() Error: in sending PREFETCH RESPONSE to Coordinator at %s, %d\n", __func__, __FILE__, __LINE__);
-		free(sendbuffer);
-		return -1;
-	}
-
+	send_data(sd, control, sizeof(char));
 	/* Send the buffer with its size */
-	if((numbytes = send(sd, sendbuffer, *(size), MSG_NOSIGNAL)) < *(size)) {
-		printf("%s() Error: in sending oid found at %s, %d size sent = %d, actual size = %d\n",
-				__func__, __FILE__, __LINE__, numbytes, *(size));
-		free(sendbuffer);
-		return -1;
-	}
-
+	int length = *(size);
+	send_data(sd, sendbuffer, length);
 	free(sendbuffer);
 	return 0;
 }
@@ -933,21 +883,8 @@ checkversion:
 						*((unsigned short *)(&msg[1]+size)) = newversion;
 						size += sizeof(unsigned short);
 						*((unsigned int *)(&msg[1]+size)) = threadid;
-						bytesSent = send(sd, msg, 1+ 2*sizeof(unsigned int) + sizeof(unsigned short), 0);
-						if (bytesSent < 0){
-							perror("processReqNotify():send()");
-							close(sd);
-							return;
-						} else if (bytesSent != 1 + sizeof(unsigned short) + 2*sizeof(unsigned int)){
-							printf("Error: processReqNotify(): error, sent %d bytes %s, %d\n", 
-									bytesSent, __FILE__, __LINE__);
-							close(sd);
-							return;
-						} else {
-							close(sd);
-							return;
-						}
-
+						size = 1+ 2*sizeof(unsigned int) + sizeof(unsigned short);
+						send_data(sd, msg, size);
 					}
 					close(sd);
 				}
@@ -961,4 +898,3 @@ checkversion:
 	free(oidarry);
 	free(versionarry);
 }
-
