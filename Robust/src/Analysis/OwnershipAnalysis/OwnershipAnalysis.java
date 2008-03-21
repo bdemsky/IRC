@@ -77,6 +77,8 @@ public class OwnershipAnalysis {
 	analyzeMethods();
     }
 
+    // called from the constructor to help initialize the set
+    // of methods that needs to be analyzed by ownership analysis
     private void scheduleAllCallees( HashSet<Descriptor> calleesScheduled,
 				     Descriptor d ) {
 	if( calleesScheduled.contains( d ) ) {
@@ -133,6 +135,8 @@ public class OwnershipAnalysis {
 	    if( !og.equals( ogPrev ) ) {
 		mapDescriptorToCompleteOwnershipGraph.put( d, og );
 
+		og.writeGraph( d );
+
 		// only methods have dependents, tasks cannot
 		// be invoked by any user program calls
 		if( d instanceof MethodDescriptor ) {
@@ -187,7 +191,10 @@ public class OwnershipAnalysis {
 	    // apply the analysis of the flat node to the
 	    // ownership graph made from the merge of the
 	    // parent graphs
-	    analyzeFlatNode( mDesc, fn, og );
+	    analyzeFlatNode( mDesc,
+			     fn, 
+			     returnNodesToCombineForCompleteOwnershipGraph,
+			     og );
 	    
 	    // if the results of the new graph are different from
 	    // the current graph at this node, replace the graph
@@ -220,9 +227,10 @@ public class OwnershipAnalysis {
 
 
     private void 
-	analyzeFlatNode( Descriptor     methodDesc,
-			 FlatNode       fn,
-			 OwnershipGraph og ) throws java.io.IOException {
+	analyzeFlatNode( Descriptor              methodDesc,
+			 FlatNode                fn,
+			 HashSet<FlatReturnNode> setRetNodes,
+			 OwnershipGraph          og ) throws java.io.IOException {
 
 	TempDescriptor  src;
 	TempDescriptor  dst;
@@ -243,7 +251,7 @@ public class OwnershipAnalysis {
 		TempDescriptor tdParam = fm.getParameter( i );
 		og.assignTempToParameterAllocation( methodDesc instanceof TaskDescriptor,
 						    tdParam );
-		og.writeGraph( methodDesc, fn );
+		//og.writeGraph( methodDesc, fn );
 	    }
 	    break;
 	    
@@ -253,7 +261,7 @@ public class OwnershipAnalysis {
 		src = fon.getLeft();
 		dst = fon.getDest();
 		og.assignTempToTemp( src, dst );
-		og.writeGraph( methodDesc, fn );
+		//og.writeGraph( methodDesc, fn );
 	    }
 	    break;
 	    
@@ -264,7 +272,7 @@ public class OwnershipAnalysis {
 	    fld = ffn.getField();
 	    if( !fld.getType().isPrimitive() ) {
 		og.assignTempToField( src, dst, fld );
-		og.writeGraph( methodDesc, fn );
+		//og.writeGraph( methodDesc, fn );
 	    }
 	    break;
 	    
@@ -274,7 +282,7 @@ public class OwnershipAnalysis {
 	    dst = fsfn.getDst();
 	    fld = fsfn.getField();
 	    og.assignFieldToTemp( src, dst, fld );
-	    og.writeGraph( methodDesc, fn );
+	    //og.writeGraph( methodDesc, fn );
 	    break;
 	    
 	case FKind.FlatNew:
@@ -293,11 +301,13 @@ public class OwnershipAnalysis {
 	    //MethodDescriptor md = fc.getMethod();
 	    //descriptorsToVisit.add( md );
 	    //System.out.println( "    Descs to visit: " + descriptorsToVisit );
-	    og.writeGraph( methodDesc, fn );
+	    //og.writeGraph( methodDesc, fn );
 	    break;
 
 	case FKind.FlatReturnNode:
-	    og.writeGraph( methodDesc, fn );
+	    FlatReturnNode frn = (FlatReturnNode) fn;
+	    setRetNodes.add( frn );
+	    //og.writeGraph( methodDesc, fn );
 	    break;
 	}
     }

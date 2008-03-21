@@ -30,6 +30,8 @@ public class Baw {
     flag g; int y;
 
     public Baw() {}
+
+    public void doTheBaw( Voo v ) { v = new Voo(); }
 }
 
 
@@ -47,6 +49,8 @@ task Startup( StartupObject s{ initialstate } ) {
 // merely points to the newest region
 task NewObject( Voo v{ f } ) {
     Voo w = new Voo();
+    Baw b = new Baw();
+    b.doTheBaw( w );
 
     taskexit( v{ !f } );
 }

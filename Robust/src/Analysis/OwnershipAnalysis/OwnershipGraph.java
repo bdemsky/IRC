@@ -875,15 +875,37 @@ public class OwnershipGraph {
     }
 
 
+    /*
+    // use this method to determine if two temp descriptors can possibly
+    // access the same heap regions, which means there is a possible alias
+    public boolean havePossibleAlias( TempDescriptor td1,
+				      TempDescriptor td2 ) {
+	
+
+	return false;
+    }
+    */
+
+
     // for writing ownership graphs to dot files
     public void writeGraph( Descriptor methodDesc,
 			    FlatNode   fn ) throws java.io.IOException {
-	
-	String graphName =
-	    methodDesc.getSymbol() +
-	    methodDesc.getNum() +
-	    fn.toString();
+	writeGraph(
+		   methodDesc.getSymbol() +
+		   methodDesc.getNum() +
+		   fn.toString()
+		   );
+    }
 
+    public void writeGraph( Descriptor methodDesc ) throws java.io.IOException {
+	writeGraph( 
+		   methodDesc.getSymbol() +
+		   methodDesc.getNum() +
+		   "COMPLETE"
+		    );
+    }
+
+    private void writeGraph( String graphName ) throws java.io.IOException {
 	// remove all non-word characters from the graph name so
 	// the filename and identifier in dot don't cause errors
 	graphName = graphName.replaceAll( "[\\W]", "" );
