@@ -8,6 +8,7 @@ echo -dmalloc link in dmalloc
 echo -recover compile task code
 echo -specdir directory
 echo -selfloop task - this task cannot self loop forever
+echo -excprefetch methoddescriptor - exclude prefetches for this method
 echo -taskstate do task state analysis
 echo -tagstate do tag state analysis
 echo -scheduling do task scheduling
@@ -68,6 +69,10 @@ shift
 elif [[ $1 = '-selfloop' ]]
 then
 JAVAOPTS="$JAVAOPTS -selfloop $2"
+shift
+elif [[ $1 = '-excprefetch' ]]
+then
+JAVAOPTS="$JAVAOPTS -excprefetch $2"
 shift
 elif [[ $1 = '-dsm' ]]
 then

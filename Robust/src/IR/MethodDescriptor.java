@@ -84,6 +84,10 @@ public class MethodDescriptor extends Descriptor {
 	return thisvd;
     }
 
+    public String getClassMethodName() {
+	return cd+"."+name;
+    }
+
     public String getSafeMethodDescriptor() {
 	String st="";
 	for(int i=0;i<numParameters();i++) {

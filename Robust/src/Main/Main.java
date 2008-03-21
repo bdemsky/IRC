@@ -59,6 +59,8 @@ public class Main {
 	      IR.Flat.BuildCode.PREFIX=args[++i]+"/";
 	  else if (option.equals("-selfloop"))
 	      state.selfloops.add(args[++i]);
+	  else if (option.equals("-excprefetch"))
+	      state.excprefetch.add(args[++i]);
 	  else if (option.equals("-classlibrary"))
 	      ClassLibraryPrefix=args[++i]+"/";
 	  else if (option.equals("-mainclass"))

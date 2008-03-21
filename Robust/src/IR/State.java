@@ -16,6 +16,7 @@ public class State {
 	this.arraytonumber=new Hashtable();
 	this.tagmap=new Hashtable();
 	this.selfloops=new HashSet();
+	this.excprefetch=new HashSet();
     }
 
     public void addParseNode(ParseNode parsetree) {
@@ -61,6 +62,7 @@ public class State {
     public String main;
 
     public HashSet selfloops;
+    public HashSet excprefetch;
     public SymbolTable classes;
     public SymbolTable tasks;
     public Set parsetrees;

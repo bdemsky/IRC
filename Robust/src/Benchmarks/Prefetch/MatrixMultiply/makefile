@@ -1,6 +1,6 @@
 MAINCLASS=MatrixMultiply
 SRC=${MAINCLASS}.java
-FLAGS=-dsm -prefetch -nooptimize -debug -mainclass ${MAINCLASS} -o ${MAINCLASS}
+FLAGS=-dsm -prefetch -optimize -profile -debug -mainclass ${MAINCLASS} -o ${MAINCLASS}
 default:
 	../../../buildscript ${FLAGS} ${SRC}
 clean:

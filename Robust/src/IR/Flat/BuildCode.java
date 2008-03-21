@@ -1422,7 +1422,8 @@ public class BuildCode {
 	    generateFlatFlagActionNode(fm, lb, (FlatFlagActionNode) fn, output);
 	    return;
 	case FKind.FlatPrefetchNode:
-	    generateFlatPrefetchNode(fm,lb, (FlatPrefetchNode) fn, output);
+	    if (!state.excprefetch.contains(fm.getMethod().getClassMethodName()))
+		generateFlatPrefetchNode(fm,lb, (FlatPrefetchNode) fn, output);
 	    return;
 	}
 	throw new Error();
