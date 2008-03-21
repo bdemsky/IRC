@@ -1342,10 +1342,10 @@ prefetchpile_t *foundLocal(prefetchqelem_t *node) {
 				if(isArray == 1) {
 					int elementsize = classsize[TYPE(objheader)];
 					struct ArrayObject *ao = (struct ArrayObject *) (tmp + sizeof(objheader_t));
-					unsigned short length = ao->___length___;
+					int length = ao->___length___;
 					/* Check if array out of bounds */
-					if(arryfields[arryfieldindex] < 0 || arryfields[arryfieldindex]>= length) {
-						break;
+					if(arryfields[arryfieldindex] < 0 || arryfields[arryfieldindex] >= length) {
+						break; //if yes then treat the object as found 
 					}
 					objoid = *((unsigned int *)(tmp + sizeof(objheader_t) + sizeof(struct ArrayObject) + (elementsize*arryfields[arryfieldindex])));
 				} else {
@@ -1381,6 +1381,7 @@ prefetchpile_t *foundLocal(prefetchqelem_t *node) {
 			/* Look in Prefetch cache */
 			checkPreCache(node, numoffset, oid[i],i); 
 		}
+		flag = 0;
 	}
 	
 	/* Make machine groups */
@@ -1422,8 +1423,15 @@ void checkPreCache(prefetchqelem_t *node, int *numoffset, unsigned int objoid, i
 			if(TYPE(header) > NUMCLASSES) {
 				isArray = 1;
 			}
+		
 			if(isArray == 1) {
 				int elementsize = classsize[TYPE(header)];
+				struct ArrayObject *ao = (struct ArrayObject *) (tmp + sizeof(objheader_t));
+				int length = ao->___length___;
+				/* Check if array out of bounds */
+				if(arryfields[arryfieldindex] < 0 || arryfields[arryfieldindex] >= length) {
+					break; //if yes treat the object as found
+				}
 				objoid = *((unsigned int *)(tmp + sizeof(objheader_t) + sizeof(struct ArrayObject) + (elementsize*arryfields[arryfieldindex])));
 			} else {
 				objoid = *((unsigned int *)(tmp + sizeof(objheader_t) + arryfields[arryfieldindex]));
@@ -1641,6 +1649,7 @@ int getPrefetchResponse(int sd) {
 		printf("%s() Calloc error at %s,%d\n", __func__, __FILE__, __LINE__);
 		return -1;
 	}
+
 	recv_data((int)sd, recvbuffer, size);
 
 	control = *((char *) recvbuffer);
