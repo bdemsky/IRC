@@ -54,7 +54,7 @@ public class MatrixMultiply extends Thread{
 		MMul matrix;
 
 		atomic {
-			matrix = global new MMul(400, 400, 400);
+			matrix = global new MMul(800, 800, 800);
 			matrix.setValues();
 			matrix.transpose();
 		}
@@ -64,7 +64,7 @@ public class MatrixMultiply extends Thread{
 		}
 
 		atomic {
-			mm[0] = global new MatrixMultiply(matrix,0,0,399,399);
+			mm[0] = global new MatrixMultiply(matrix,0,0,799,799);
 		}
 
 		atomic {
