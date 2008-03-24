@@ -924,10 +924,14 @@ public class BuildCode {
 	if (!fieldorder.containsKey(cn)) {
 	    Vector fields=new Vector();
 	    fieldorder.put(cn,fields);
+	    if (sp==null) {
+		fields.add(cn.getFieldTable().get("cachedCode"));
+	    }
 	    Iterator fieldit=cn.getFields();
 	    while(fieldit.hasNext()) {
 		FieldDescriptor fd=(FieldDescriptor)fieldit.next();
-		if (sp==null||!sp.getFieldTable().contains(fd.getSymbol()))
+		if ((sp==null||!sp.getFieldTable().contains(fd.getSymbol()))&&
+		    (!fd.getSymbol().equals("cachedCode")))
 		    fields.add(fd);
 	    }
 	}
@@ -2156,7 +2160,6 @@ public class BuildCode {
 		else
 		    output.println("COPY_OBJ("+dst+");");
 		output.println(dst+"->"+nextobjstr+"="+revertptr+";");
-
 		output.println("trans->revertlist=(struct ___Object___ *)"+dst+";");
 		output.println("}");
 	    } else throw new Error("Unknown array type");

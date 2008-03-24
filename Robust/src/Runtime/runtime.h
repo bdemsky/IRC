@@ -8,6 +8,9 @@ extern int failurecount;
 #include "dstm.h"
 #endif
 
+extern void * curr_heapbase;
+extern void * curr_heaptop;
+
 #define TAGARRAYINTERVAL 10
 #define OBJECTARRAYINTERVAL 10
 

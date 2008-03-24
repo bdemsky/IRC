@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include <pthread.h>
 
-#define N_LOADFACTOR 0.75
+#define N_LOADFACTOR 0.5
 #define N_HASH_SIZE 20
 
 //Structure to notify object of which other objects/threads are waiting on it

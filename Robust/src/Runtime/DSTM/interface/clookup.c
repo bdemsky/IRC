@@ -66,12 +66,10 @@ unsigned int chashInsert(chashtable_t *table, unsigned int key, void *val) {
 
 // Search for an address for a given oid
 void *chashSearch(chashtable_t *table, unsigned int key) {
-	int index;
-	chashlistnode_t *ptr, *node;
+	int index = chashFunction(table, key);
+	chashlistnode_t *ptr =table -> table;
+	chashlistnode_t *node = &ptr[index];
 
-	ptr = table->table;
-	index = chashFunction(table, key);
-	node = &ptr[index];
 	while(node != NULL) {
 		if(node->key == key) {
 			return node->val;

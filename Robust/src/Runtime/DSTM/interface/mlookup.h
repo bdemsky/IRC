@@ -5,7 +5,7 @@
 #include <stdio.h>
 #include <pthread.h>
 
-#define LOADFACTOR 0.75
+#define LOADFACTOR 0.5
 #define HASH_SIZE 100
 
 typedef struct mhashlistnode {

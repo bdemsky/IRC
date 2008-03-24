@@ -44,7 +44,7 @@ public class MatrixMultiply extends Thread{
 	}
 
 	public static void main(String[] args) {
-		int mid1 = (128<<24)|(195<<16)|(175<<8)|70;
+		int mid1 = (128<<24)|(195<<16)|(175<<8)|73;
 		int mid2 = (128<<24)|(195<<16)|(175<<8)|69;
 		int mid3 = (128<<24)|(195<<16)|(175<<8)|71;
 		int NUM_THREADS = 1;
@@ -54,7 +54,7 @@ public class MatrixMultiply extends Thread{
 		MMul matrix;
 
 		atomic {
-			matrix = global new MMul(800, 800, 800);
+			matrix = global new MMul(200, 200, 200);
 			matrix.setValues();
 			matrix.transpose();
 		}
@@ -64,7 +64,7 @@ public class MatrixMultiply extends Thread{
 		}
 
 		atomic {
-			mm[0] = global new MatrixMultiply(matrix,0,0,799,799);
+			mm[0] = global new MatrixMultiply(matrix,0,0,199,199);
 		}
 
 		atomic {

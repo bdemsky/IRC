@@ -309,111 +309,69 @@ transrecord_t *transStart()
 /* This function finds the location of the objects involved in a transaction
  * and returns the pointer to the object if found in a remote location */
 objheader_t *transRead(transrecord_t *record, unsigned int oid) {
-	unsigned int machinenumber;
-	objheader_t *tmp, *objheader;
-	objheader_t *objcopy;
-	int size, rc, found = 0;
-	void *buf;
-	struct timespec ts;
-	struct timeval tp;
-
-	if(oid == 0) {
-		printf("Error: %s, %d oid is NULL \n", __FILE__, __LINE__);
-		return NULL;
-	}
-        
-	rc = gettimeofday(&tp, NULL);
-
-	/* 1ms delay */
-	tp.tv_usec += 1000;
-	if (tp.tv_usec >= 1000000)
-	{
-		tp.tv_usec -= 1000000;
-		tp.tv_sec += 1;
-	}
-	/* Convert from timeval to timespec */
-	ts.tv_sec = tp.tv_sec;
-	ts.tv_nsec = tp.tv_usec * 1000;
-
-	/* Search local transaction cache */
-	if((objheader = (objheader_t *)chashSearch(record->lookupTable, oid)) != NULL){
-
+  unsigned int machinenumber;
+  objheader_t *tmp, *objheader;
+  objheader_t *objcopy;
+  int size, found = 0;
+  void *buf;
+  
+  if(oid == 0) {
+    printf("Error: %s, %d oid is NULL \n", __FILE__, __LINE__);
+    return NULL;
+  }
+  
+  /* Search local transaction cache */
+  if((objheader = (objheader_t *)chashSearch(record->lookupTable, oid)) != NULL){
 #ifdef COMPILER
-	  return &objheader[1];
+    return &objheader[1];
 #else
-	  return objheader;
+    return objheader;
 #endif
-	} else if ((objheader = (objheader_t *) mhashSearch(oid)) != NULL) {
-		/* Look up in machine lookup table  and copy  into cache*/
-		GETSIZE(size, objheader);
-		size += sizeof(objheader_t);
-		objcopy = (objheader_t *) objstrAlloc(record->cache, size);
-		memcpy(objcopy, objheader, size);
-		/* Insert into cache's lookup table */
-		chashInsert(record->lookupTable, OID(objheader), objcopy); 
+  } else if ((objheader = (objheader_t *) mhashSearch(oid)) != NULL) {
+    /* Look up in machine lookup table  and copy  into cache*/
+    GETSIZE(size, objheader);
+    size += sizeof(objheader_t);
+    objcopy = (objheader_t *) objstrAlloc(record->cache, size);
+    memcpy(objcopy, objheader, size);
+    /* Insert into cache's lookup table */
+    chashInsert(record->lookupTable, OID(objheader), objcopy); 
 #ifdef COMPILER
-		return &objcopy[1];
+    return &objcopy[1];
 #else
-		return objcopy;
+    return objcopy;
 #endif
-	} else if((tmp = (objheader_t *) prehashSearch(oid)) != NULL) { /* Look up in prefetch cache */
-		GETSIZE(size, tmp);
-		size+=sizeof(objheader_t);
-		objcopy = (objheader_t *) objstrAlloc(record->cache, size);
-		memcpy(objcopy, tmp, size);
-		/* Insert into cache's lookup table */
-		chashInsert(record->lookupTable, OID(tmp), objcopy); 
+  } else if((tmp = (objheader_t *) prehashSearch(oid)) != NULL) { /* Look up in prefetch cache */
+    GETSIZE(size, tmp);
+    size+=sizeof(objheader_t);
+    objcopy = (objheader_t *) objstrAlloc(record->cache, size);
+    memcpy(objcopy, tmp, size);
+    /* Insert into cache's lookup table */
+    chashInsert(record->lookupTable, OID(tmp), objcopy); 
 #ifdef COMPILER
-		return &objcopy[1];
+    return &objcopy[1];
 #else
-		return objcopy;
+    return objcopy;
 #endif
-	} else {
-		/*If object not found in prefetch cache then block until object appears in the prefetch cache */
-		/*
-		pthread_mutex_lock(&pflookup.lock);
-		while(!found) {
-			rc = pthread_cond_timedwait(&pflookup.cond, &pflookup.lock, &ts);
-			// Check Prefetch cache again 
-			if((tmp =(objheader_t *) prehashSearch(oid)) != NULL) {
-				found = 1;
-				GETSIZE(size,tmp);
-				size+=sizeof(objheader_t);
-				objcopy = (objheader_t *) objstrAlloc(record->cache, size);
-				memcpy(objcopy, tmp, size);
-				chashInsert(record->lookupTable, OID(tmp), objcopy); 
-				pthread_mutex_unlock(&pflookup.lock);
+  } else {
+    /* Get the object from the remote location */
+    if((machinenumber = lhashSearch(oid)) == 0) {
+      printf("Error: %s() No machine found for oid =% %s,%dx\n",__func__, machinenumber, __FILE__, __LINE__);
+      return NULL;
+    }
+    objcopy = getRemoteObj(record, machinenumber, oid);
+    
+    if(objcopy == NULL) {
+      printf("Error: Object not found in Remote location %s, %d\n", __FILE__, __LINE__);
+      return NULL;
+    } else {
+      
 #ifdef COMPILER
-				return &objcopy[1];
+      return &objcopy[1];
 #else
-				return objcopy;
+      return objcopy;
 #endif
-			} else if (rc == ETIMEDOUT) {
-				pthread_mutex_unlock(&pflookup.lock);
-				break;
-			}
-		}
-		*/
-
-		/* Get the object from the remote location */
-		if((machinenumber = lhashSearch(oid)) == 0) {
-			printf("Error: %s() No machine found for oid =% %s,%dx\n",__func__, machinenumber, __FILE__, __LINE__);
-			return NULL;
-		}
-		objcopy = getRemoteObj(record, machinenumber, oid);
-		
-		if(objcopy == NULL) {
-			printf("Error: Object not found in Remote location %s, %d\n", __FILE__, __LINE__);
-			return NULL;
-		} else {
-
-#ifdef COMPILER
-			return &objcopy[1];
-#else
-			return objcopy;
-#endif
-		}
-	}
+    }
+  }
 }
 
 /* This function creates objects in the transaction record */

@@ -7,7 +7,7 @@
 
 #define SIMPLE_LLOOKUP
 
-#define LOADFACTOR 0.75
+#define LOADFACTOR 0.5
 #define HASH_SIZE 100
 
 typedef struct lhashlistnode {
