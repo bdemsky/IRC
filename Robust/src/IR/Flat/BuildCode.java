@@ -1200,6 +1200,8 @@ public class BuildCode {
     /***** Generate code for FlatMethod fm. *****/
 
     private void generateFlatMethod(FlatMethod fm, LocalityBinding lb, PrintWriter output) {
+	if (State.PRINTFLAT)
+	    System.out.println(fm.printMethod());
 	MethodDescriptor md=fm.getMethod();
 	
 	TaskDescriptor task=fm.getTask();

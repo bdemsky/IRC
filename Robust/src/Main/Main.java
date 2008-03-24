@@ -65,6 +65,8 @@ public class Main {
 	      ClassLibraryPrefix=args[++i]+"/";
 	  else if (option.equals("-mainclass"))
 	      state.main=args[++i];
+	  else if (option.equals("-printflat"))
+	      State.PRINTFLAT=true;
 	  else if (option.equals("-struct"))
 	      state.structfile=args[++i];
 	  else if (option.equals("-conscheck"))
@@ -112,6 +114,7 @@ public class Main {
 	      System.out.println("-conscheck -- turn on consistency checking");
 	      System.out.println("-task -- compiler for tasks");
 	      System.out.println("-thread -- threads");
+	      System.out.println("-printflat -- print out flat representation");
 	      System.out.println("-instructionfailures -- insert code for instruction level failures");
 	      System.out.println("-taskstate -- do task state analysis");
 	      System.out.println("-flatirtasks -- create dot files for flat IR graphs of tasks");

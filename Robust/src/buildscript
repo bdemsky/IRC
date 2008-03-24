@@ -7,6 +7,7 @@ echo -check generate check code
 echo -dmalloc link in dmalloc
 echo -recover compile task code
 echo -specdir directory
+echo -printflat print out flat representation
 echo -selfloop task - this task cannot self loop forever
 echo "-excprefetch methoddescriptor - exclude prefetches for this method (specified as class.method)"
 echo -taskstate do task state analysis
@@ -81,6 +82,9 @@ DSMFLAG=true
 elif [[ $1 = '-prefetch' ]]
 then
 JAVAOPTS="$JAVAOPTS -prefetch"
+elif [[ $1 = '-printflat' ]]
+then
+JAVAOPTS="$JAVAOPTS -printflat"
 elif [[ $1 = '-mac' ]]
 then
 EXTRAOPTIONS="$EXTRAOPTIONS -DMAC"
