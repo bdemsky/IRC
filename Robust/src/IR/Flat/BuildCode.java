@@ -1444,6 +1444,7 @@ public class BuildCode {
 	    output.println("{");
 	    output.println("/* prefetch */");
 	    output.println("void * prefptr;");
+	    output.println("int tmpindex;");
 	    for(Iterator it = fpn.hspp.iterator();it.hasNext();) {
 		PrefetchPair pp = (PrefetchPair) it.next();
 		Integer statusbase = locality.getNodePreTempInfo(lb,fpn).get(pp.base);
@@ -1527,30 +1528,35 @@ public class BuildCode {
 	    !pp.base.equals(fm.getParameter(0));
 			    
 	for(int i=0;i<breakindex;i++) {
-	    String nextop;
+	    String indexcheck="";
 
 	    Descriptor desc=pp.getDescAt(i);
 	    if (desc instanceof FieldDescriptor) {
 		FieldDescriptor fd=(FieldDescriptor)desc;
-		nextop="->"+fd.getSafeSymbol();
+		if (maybenull) {
+		    if (!teststr.equals(""))
+			teststr+="&&";
+		    teststr+="prefptr="+basestr;
+		    basestr="((struct"+lasttype.getSafeSymbol()+"*)prefptr)->"+fd.getSafeSymbol();
+		} else {
+		    basestr=basestr+"->"+fd.getSafeSymbol();
+		    maybenull=true;
+		}
 		lasttype=fd.getType();
 	    } else {
 		IndexDescriptor id=(IndexDescriptor)desc;
-		nextop="[";
+		indexcheck="(tmpindex=";
 		for(int j=0;j<id.tddesc.size();j++) {
-		    nextop+=generateTemp(fm, id.getTempDescAt(j), lb)+"+";
+		    indexcheck+=generateTemp(fm, id.getTempDescAt(j), lb)+"+";
 		}
-		nextop+=id.offset+"]";
-		lasttype=lasttype.dereference();
-	    }
-	    if (maybenull) {
+		indexcheck+=id.offset+">0)&&(tmpindex<((struct ArrayObject *)prefptr)->___length___)";
+
 		if (!teststr.equals(""))
 		    teststr+="&&";
-		teststr+="prefptr="+basestr;
-		basestr="prefptr"+nextop;
-	    } else {
-		basestr+=nextop;
+		teststr+="prefptr="+basestr+"&&"+indexcheck;
+		basestr="((void **)(((char *) &(((struct ArrayObject*)prefptr)->___length___))+sizeof(int)))[tmpindex])";
 		maybenull=true;
+		lasttype=lasttype.dereference();
 	    }
 	}
 	
