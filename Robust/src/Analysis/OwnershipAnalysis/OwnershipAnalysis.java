@@ -27,10 +27,10 @@ public class OwnershipAnalysis {
     // processing all methods in the program, and by methods
     // TaskDescriptor and MethodDescriptor are combined 
     // together, with a common parent class Descriptor
-    private HashSet  <Descriptor>                 descriptorsToVisit;
-    private Hashtable<Descriptor, OwnershipGraph> mapDescriptorToCompleteOwnershipGraph;
-    private Hashtable<FlatNew,    AllocationSite> mapFlatNewToAllocationSite;
-
+    private HashSet  <Descriptor>                           descriptorsToVisit;
+    private Hashtable<Descriptor, OwnershipGraph>           mapDescriptorToCompleteOwnershipGraph;
+    private Hashtable<FlatNew,    AllocationSite>           mapFlatNewToAllocationSite;
+    private Hashtable<Descriptor, HashSet<AllocationSite> > mapDescriptorToAllocationSiteSet;
 
     // Use these data structures to track progress of one pass of
     // processing the FlatNodes of a particular method
@@ -48,13 +48,16 @@ public class OwnershipAnalysis {
 	this.callGraph       = callGraph;
 	this.allocationDepth = allocationDepth;
 
+	descriptorsToVisit = new HashSet<Descriptor>();
+
 	mapDescriptorToCompleteOwnershipGraph =
 	    new Hashtable<Descriptor, OwnershipGraph>();
 
 	mapFlatNewToAllocationSite =
 	    new Hashtable<FlatNew, AllocationSite>();
 
-	descriptorsToVisit = new HashSet<Descriptor>();
+	mapDescriptorToAllocationSiteSet =
+	    new Hashtable<Descriptor, HashSet<AllocationSite> >();
 
 	// use this set to prevent infinite recursion when
 	// traversing the call graph
@@ -287,20 +290,59 @@ public class OwnershipAnalysis {
 	    
 	case FKind.FlatNew:
 	    FlatNew fnn = (FlatNew) fn;
-	    dst = fnn.getDst();
+            dst = fnn.getDst();
 	    AllocationSite as = getAllocationSiteFromFlatNew( fnn );
+
 	    og.assignTempToNewAllocation( dst, as );
-	    
-	    // !!!!!!!!!!!!!!
-	    // do this if the new object is a flagged type
-	    //og.addAnalysisRegion( tdParam );	    
 	    break;
 
 	case FKind.FlatCall:
-	    //FlatCall         fc = (FlatCall) fn;
-	    //MethodDescriptor md = fc.getMethod();
-	    //descriptorsToVisit.add( md );
-	    //System.out.println( "    Descs to visit: " + descriptorsToVisit );
+	    FlatCall                fc           = (FlatCall) fn;
+	    MethodDescriptor        md           = fc.getMethod();
+	    FlatMethod              flatm        = state.getMethodFlat( md );
+	    HashSet<AllocationSite> allocSiteSet = getAllocationSiteSet( md );
+	    OwnershipGraph ogAllPossibleCallees  = new OwnershipGraph( allocationDepth );
+
+	    if( md.isStatic() ) {
+		// a static method is simply always the same, makes life easy
+		OwnershipGraph onlyPossibleCallee = mapDescriptorToCompleteOwnershipGraph.get( md );
+		ogAllPossibleCallees.merge( onlyPossibleCallee );
+
+	    } else {
+		// if the method descriptor is virtual, then there could be a
+		// set of possible methods that will actually be invoked, so
+		// find all of them and merge all of their graphs together
+		TypeDescriptor typeDesc        = fc.getThis().getType();
+		Set            possibleCallees = callGraph.getMethods( md, typeDesc );
+
+		Iterator i = possibleCallees.iterator();
+		while( i.hasNext() ) {
+		    MethodDescriptor possibleMd = (MethodDescriptor) i.next();
+		    allocSiteSet.addAll( getAllocationSiteSet( possibleMd ) );
+		    OwnershipGraph ogPotentialCallee = mapDescriptorToCompleteOwnershipGraph.get( possibleMd );
+		    ogAllPossibleCallees.merge( ogPotentialCallee );
+		}
+	    }
+
+	    // now we should have the following information to resolve this method call:
+	    // 
+	    // 1. A FlatCall fc to query for the caller's context (argument labels, etc)
+	    //
+	    // 2. Whether the method is static; if not we need to deal with the "this" pointer
+	    //
+	    // *******************************************************************************************
+	    // 3. The original FlatMethod flatm to query for callee's context (paramter labels)
+	    //   NOTE!  I assume FlatMethod before virtual dispatch accurately describes all possible methods!
+	    // *******************************************************************************************
+	    //
+	    // 4. The OwnershipGraph ogAllPossibleCallees is a merge of every ownership graph of all the possible
+	    // methods to capture any possible references made.
+	    //
+	    // 5. The Set of AllocationSite objects, allocSiteSet that is the set of allocation sites from
+	    // every possible method we might have chosen
+	    //
+	    og.resolveMethodCall( fc, md.isStatic(), flatm, ogAllPossibleCallees, allocSiteSet );
+
 	    //og.writeGraph( methodDesc, fn );
 	    break;
 
@@ -332,6 +374,7 @@ public class OwnershipAnalysis {
     }
 
 
+    // return just the allocation site associated with one FlatNew node
     private AllocationSite getAllocationSiteFromFlatNew( FlatNew fn ) {
 	if( !mapFlatNewToAllocationSite.containsKey( fn ) ) {
 	    AllocationSite as = new AllocationSite( allocationDepth );
@@ -350,5 +393,56 @@ public class OwnershipAnalysis {
 	}
 
 	return mapFlatNewToAllocationSite.get( fn );
+    }
+
+
+    // return all allocation sites in the method (there is one allocation
+    // site per FlatNew node in a method)
+    private HashSet<AllocationSite> getAllocationSiteSet( Descriptor d ) {
+	if( !mapDescriptorToAllocationSiteSet.containsKey( d ) ) {
+	    buildAllocationSiteSet( d );   
+	}
+
+	return mapDescriptorToAllocationSiteSet.get( d );
+
+    }
+
+    private void buildAllocationSiteSet( Descriptor d ) {
+	HashSet<AllocationSite> s = new HashSet<AllocationSite>();
+
+	FlatMethod fm;
+	if( d instanceof MethodDescriptor ) {
+	    fm = state.getMethodFlat( (MethodDescriptor) d );
+	} else {
+	    assert d instanceof TaskDescriptor;
+	    fm = state.getMethodFlat( (TaskDescriptor) d );
+	}
+
+	// visit every node in this FlatMethod's IR graph
+	// and make a set of the allocation sites from the
+	// FlatNew node's visited
+	HashSet<FlatNode> visited = new HashSet<FlatNode>();
+	HashSet<FlatNode> toVisit = new HashSet<FlatNode>();
+	toVisit.add( fm );
+
+	while( !toVisit.isEmpty() ) {
+	    FlatNode n = toVisit.iterator().next();
+
+	    if( n instanceof FlatNew ) {
+		s.add( getAllocationSiteFromFlatNew( (FlatNew) n ) );
+	    }
+
+	    toVisit.remove( n );
+	    visited.add( n );
+
+	    for( int i = 0; i < n.numNext(); ++i ) {
+		FlatNode child = n.getNext( i );
+		if( !visited.contains( child ) ) {
+		    toVisit.add( child );
+		}
+	    }
+	}
+
+	mapDescriptorToAllocationSiteSet.put( d, s );
     }
 }

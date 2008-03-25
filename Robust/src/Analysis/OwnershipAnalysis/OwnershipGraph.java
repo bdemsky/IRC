@@ -433,6 +433,88 @@ public class OwnershipGraph {
     }
 
 
+    
+    // some notes:
+    // the heap regions that are specially allocated as multiple-object
+    // regions for method parameters need to be remembered in order to
+    // resolve a function call.  So actually, we need a mapping from
+    // caller argument descriptors to the callee parameter heap regions
+    // to apply reference edges in the callee to the caller graph.
+    // 
+    // also, Constructors and virtual dispatch methods have a "this"
+    // argument that make the mapping of arguments to parameters a little
+    // tricky.  What happens to that this region?
+
+
+    public void resolveMethodCall( FlatCall                fc,
+				   boolean                 isStatic,
+				   FlatMethod              fm,
+				   OwnershipGraph          ogCallee,
+				   HashSet<AllocationSite> allocSiteSet ) {
+	
+	// first age all of the allocation sites from
+	// the callee graph in this graph
+	Iterator i = allocSiteSet.iterator();
+	while( i.hasNext() ) {
+	    this.age( (AllocationSite) i.next() );
+	}
+
+	// the heap regions represented by the arguments (caller graph)
+	// and heap regions for the parameters (callee graph)
+	// don't correspond to each other by heap region ID.  In fact,
+	// an argument label node can be referencing several heap regions
+	// so the parameter label always references a multiple-object
+	// heap region in order to handle the range of possible contexts
+	// for a method call.  This means we need to make a special mapping
+	// of argument->parameter regions in order to update the caller graph,
+	// then remember which heap regions were used so we can ignore them
+	// in the more general algorithm below that includes all heap regions
+	// of the callee graph
+	HashSet<Integer> calleeParameterIDs = new HashSet<Integer>();
+
+	if( isStatic ) {
+	    assert fc.numArgs()     == fm.numParameters();
+	} else {
+	    assert fc.numArgs() + 1 == fm.numParameters();
+	}
+
+	for( int a = 0; a < fc.numArgs(); ++a ) {
+	    
+	}
+
+	// for every heap region->heap region edge in the
+	// callee graph, create the matching edge or edges
+	// in the caller graph
+	Set      sCallee = ogCallee.id2hrn.entrySet();
+	Iterator iCallee = sCallee.iterator();
+	while( iCallee.hasNext() ) {
+	    Map.Entry      meCallee  = (Map.Entry)      iCallee.next();
+	    Integer        idCallee  = (Integer)        meCallee.getKey();
+	    HeapRegionNode hrnCallee = (HeapRegionNode) meCallee.getValue();
+
+	    HeapRegionNode hrnChildCallee = null;
+	    Iterator heapRegionsItrCallee = hrnCallee.setIteratorToReferencedRegions();	    
+	    while( heapRegionsItrCallee.hasNext() ) {
+		Map.Entry me                 = (Map.Entry)               heapRegionsItrCallee.next();
+		hrnChildCallee               = (HeapRegionNode)          me.getKey();
+		ReferenceEdgeProperties repC = (ReferenceEdgeProperties) me.getValue();
+
+		Integer idChildCallee = hrnChildCallee.getID();
+		
+		// now we know that in the callee method's ownership graph
+		// there is a heap region->heap region reference edge given
+		// by the ownership-graph independent ID's:
+		// idCallee->idChildCallee
+		// 
+
+
+		// at this point we know an edge in graph A exists
+		// idA -> idChildA, does this exist in B?
+	    } 
+	}	
+    }
+
+
 
     ////////////////////////////////////////////////////
     // in merge() and equals() methods the suffix A 
