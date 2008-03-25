@@ -33,7 +33,6 @@ public class BuildCode {
     public static boolean GENERATEPRECISEGC=false;
     public static String PREFIX="";
     public static String arraytype="ArrayObject";
-    public static int count = 0;
     public static int flagcount = 0;
     Virtual virtualcalls;
     TypeUtil typeutil;
@@ -1436,312 +1435,159 @@ public class BuildCode {
     }
  
     public void generateFlatPrefetchNode(FlatMethod fm, LocalityBinding lb, FlatPrefetchNode fpn, PrintWriter output) {
- 	    short[] arrayfields = null;
- 	    Vector fieldoffset = new Vector();
-	    Vector endoffset = new Vector();
- 	    Vector oids = new Vector();
-	    short offsetcount = 0;
- 	    int tuplecount = 0;  //Keeps track of number of prefetch tuples that need to be generated
- 	    int i,j;
- 	   
- 	    if (state.PREFETCH) {
- 		    output.println("/* prefetch */");
- 		    output.println("; /* empty statement to avoid compiler error */");
- 		    Iterator it = fpn.hspp.iterator();
-		    String oidlist = new String();
- 		    while(it.hasNext()) {
- 			    PrefetchPair pp = (PrefetchPair) it.next();
- 			    Integer statusbase = locality.getNodePreTempInfo(lb,fpn).get(pp.base);
-			    /* Find prefetches that can generate oid */
- 			    if(statusbase == LocalityAnalysis.GLOBAL) {
-				    if(locality.getAtomic(lb).get(fpn).intValue()>0) { /* Inside transaction */
-					    generateInsideTransCode(fm,lb,output, pp,oids,fieldoffset,endoffset,tuplecount);
-				    } else {/* Outside Transaction */
-					    generateOutsideTransCode(fm,lb,pp,oids,fieldoffset,endoffset,tuplecount);
-				    }
-				    tuplecount++;
-			    } else if(statusbase == LocalityAnalysis.LOCAL) {
-				    generateLocalTransCode(fm,lb,pp,oids,fieldoffset,endoffset,tuplecount);
-			    } else {
-				    continue;
-			    }
- 		    }
-
-		    /*Create C code for numtuples */
-		    output.println("   int numtuples_" + count + " = " + tuplecount + ";");
- 
- 		    /*Create C code for oid array */
- 		    output.print("   unsigned int oidarray_" + count + "[] = {");
- 		    boolean needcomma=false;
- 		    it = oids.iterator();
- 		    while(it.hasNext()) {
- 			    if (needcomma)
- 				    output.print(", ");
- 			    output.print(it.next());
- 			    needcomma=true;
- 		    }
- 		    output.println("};");
- 
- 		    /*Create C code for endoffset values */
- 		    output.print("   unsigned short endoffsetarry_" + count +"[] = {");
- 		    needcomma=false;
-		    it = endoffset.iterator();
-		    while(it.hasNext()) {
- 			    if (needcomma)
- 				    output.print(", ");
- 			    output.print(it.next());
- 			    needcomma=true;
- 		    }
- 		    output.println("};");
- 
- 		    /*Create C code for Field Offset Values */
- 		    output.print("   short fieldarry_" + count +"[] = {");
- 		    needcomma=false;
- 		    it = fieldoffset.iterator();
- 		    while(it.hasNext()) {
- 			    if (needcomma)
- 				    output.print(", ");
- 			    output.print(it.next());
- 			    needcomma=true;
- 		    }
- 		    output.println("};");
- 		    /* make the prefetch call to Runtime */
-		    if(tuplecount > 0) {
-			    output.println("   prefetch((int) numtuples_"+count+ ", oidarray_"+count+ ", endoffsetarry_"+
-					    count+", fieldarry_"+count+");");
-		    }
- 		    count++;
- 	    }   
-
-	    /* Free heap memory */
- 	    fieldoffset = null;
-	    endoffset = null;
- 	    oids = null;
+	Vector oids = new Vector();
+	Vector fieldoffset = new Vector();
+	Vector endoffset = new Vector();
+	int tuplecount = 0;  //Keeps track of number of prefetch tuples that need to be generated
+ 	
+	if (state.PREFETCH) {
+	    output.println("{");
+	    output.println("/* prefetch */");
+	    output.println("void * prefptr;");
+	    for(Iterator it = fpn.hspp.iterator();it.hasNext();) {
+		PrefetchPair pp = (PrefetchPair) it.next();
+		Integer statusbase = locality.getNodePreTempInfo(lb,fpn).get(pp.base);
+		/* Find prefetches that can generate oid */
+		if(statusbase == LocalityAnalysis.GLOBAL) {
+		    generateTransCode(fm, lb, pp, oids, fieldoffset, endoffset, tuplecount, locality.getAtomic(lb).get(fpn).intValue()>0, false);
+		    tuplecount++;
+		} else if (statusbase == LocalityAnalysis.LOCAL) {
+		    generateTransCode(fm,lb,pp,oids,fieldoffset,endoffset,tuplecount,false,true);
+		} else {
+		    continue;
+		}
+	    }
+	    if (tuplecount==0)
+		return;
+	    
+	    
+	    /*Create C code for oid array */
+	    output.print("   unsigned int oidarray_[] = {");
+	    boolean needcomma=false;
+	    for (Iterator it = oids.iterator();it.hasNext();) {
+		if (needcomma)
+		    output.print(", ");
+		output.print(it.next());
+		needcomma=true;
+	    }
+	    output.println("};");
+	    
+	    /*Create C code for endoffset values */
+	    output.print("   unsigned short endoffsetarry_[] = {");
+	    needcomma=false;
+	    for (Iterator it = endoffset.iterator();it.hasNext();) {
+		if (needcomma)
+		    output.print(", ");
+		output.print(it.next());
+		needcomma=true;
+	    }
+	    output.println("};");
+	    
+	    /*Create C code for Field Offset Values */
+	    output.print("   short fieldarry_[] = {");
+	    needcomma=false;
+	    for (Iterator it = fieldoffset.iterator();it.hasNext();) {
+		if (needcomma)
+		    output.print(", ");
+		output.print(it.next());
+		needcomma=true;
+	    }
+	    output.println("};");
+	    /* make the prefetch call to Runtime */
+	    output.println("   prefetch("+tuplecount+", oidarray_, endoffsetarry_, fieldarry_);");
+	    output.println("}");
+	}   
     }   
+    
+    public void generateTransCode(FlatMethod fm, LocalityBinding lb,PrefetchPair pp, Vector oids, Vector fieldoffset, Vector endoffset, int tuplecount, boolean inside, boolean localbase) {
+	short offsetcount = 0;
+	int breakindex=0;
+	if (inside) {
+	    breakindex=1;
+	} else if (localbase) {
+	    for(;breakindex<pp.desc.size();breakindex++) {
+		Descriptor desc=pp.getDescAt(breakindex);
+		if (desc instanceof FieldDescriptor) {
+		    FieldDescriptor fd=(FieldDescriptor)desc;
+		    if (fd.isGlobal()) {
+			break;
+		    }
+		}
+	    }
+	    breakindex++;
+	}
 
-    public void generateInsideTransCode(FlatMethod fm, LocalityBinding lb,PrintWriter output,PrefetchPair pp,Vector oids, Vector fieldoffset,Vector endoffset, int tuplecount){
-	    int i,j;
- 	    short offsetcount = 0;
-	    String test = new String();
+	if (breakindex>pp.desc.size()) //all local
+	    return;
 
-	    Object newdesc = pp.desc.get(0);
-	    if(newdesc instanceof FieldDescriptor) {
-		    FieldDescriptor fd = (FieldDescriptor)newdesc;
-		    String oid = new String("(unsigned int) (" + 
-				    generateTemp(fm, pp.base, lb) + " != NULL ? " + 
-				    generateTemp(fm, pp.base, lb) + "->" + ((FieldDescriptor)fd).getSafeSymbol() +
-				    " : NULL)");
-		    oids.add(oid);
+	TypeDescriptor lasttype=pp.base.getType();
+	String basestr=generateTemp(fm, pp.base, lb);
+	String teststr="";
+	boolean maybenull=fm.getMethod().isStatic()||
+	    !pp.base.equals(fm.getParameter(0));
+			    
+	for(int i=0;i<breakindex;i++) {
+	    String nextop;
+
+	    Descriptor desc=pp.getDescAt(i);
+	    if (desc instanceof FieldDescriptor) {
+		FieldDescriptor fd=(FieldDescriptor)desc;
+		nextop="->"+fd.getSafeSymbol();
+		lasttype=fd.getType();
 	    } else {
-		    IndexDescriptor id = (IndexDescriptor)newdesc;
-		    String tstlbl = new String();
-		    for(i=0; i<id.tddesc.size(); i++) {
-			    tstlbl += generateTemp(fm, id.getTempDescAt(i), lb) + "+";
-		    }
-		    tstlbl += id.offset.toString();
-
-		    TypeDescriptor elementtype = pp.base.getType().dereference();
-		    String type="";
-		    if (elementtype.isArray()||elementtype.isClass())
-			    type="void *";
-		    else 
-			    type=elementtype.getSafeSymbol()+" ";
-
-		    String oid = new String("(unsigned int) (" + generateTemp(fm, pp.base, lb) + " != NULL ? " + 
-				    "((" + tstlbl+"< 0 || "+tstlbl+" >= "+ generateTemp(fm, pp.base, lb) + "->___length___) ? 0 :"+
-				    "((" + type + "*)(((char *) &("+ generateTemp(fm, pp.base, lb)+ "->___length___))+sizeof(int)))["+tstlbl+"]) : 0)");
-		    oids.add(oid);
+		IndexDescriptor id=(IndexDescriptor)desc;
+		nextop="[";
+		for(int j=0;j<id.tddesc.size();j++) {
+		    nextop+=generateTemp(fm, id.getTempDescAt(j), lb)+"+";
+		}
+		nextop+=id.offset+"]";
+		lasttype=lasttype.dereference();
 	    }
+	    if (maybenull) {
+		if (!teststr.equals(""))
+		    teststr+="&&";
+		teststr+="prefptr="+basestr;
+		basestr="prefptr"+nextop;
+	    } else {
+		basestr+=nextop;
+		maybenull=true;
+	    }
+	}
+	
+	String oid;
+	if (teststr.equals("")) {
+	    oid="((unsigned int)"+basestr+")";
+	} else {
+	    oid="((unsigned int)("+teststr+")?"+basestr+":NULL)";
+	}
+	oids.add(oid);
+	
+	for(int i = breakindex; i < pp.desc.size(); i++) {
+	    String newfieldoffset;
+	    Object desc = pp.getDescAt(i);
+	    if(desc instanceof FieldDescriptor) {
+		FieldDescriptor fd=(FieldDescriptor)desc;
+		newfieldoffset = new String("(unsigned int)(&(((struct "+ lasttype.getSafeSymbol()+" *)0)->"+ fd.getSafeSymbol()+ "))");
+		lasttype=fd.getType();
+	    } else {
+		newfieldoffset = "";
+		IndexDescriptor id=(IndexDescriptor)desc;
+		for(int j = 0; j < id.tddesc.size(); j++) {
+		    newfieldoffset += generateTemp(fm, id.getTempDescAt(j), lb) + "+";
+		}
+		newfieldoffset += id.offset.toString();
+		lasttype=lasttype.dereference();
+	    }
+	    fieldoffset.add(newfieldoffset);
+	}
 
-	    for(i = 1; i < pp.desc.size(); i++) {
-		    TypeDescriptor newtd;
-		    ClassDescriptor cd;
-		    String newfieldoffset;
-		    Object desc = pp.getDescAt(i);
-		    offsetcount++;
-		    if(desc instanceof FieldDescriptor) {
-			    Object prevdesc = pp.getDescAt(i-1);
-			    if(prevdesc instanceof IndexDescriptor){
-				    if((i-1) == 0) {
-					    newtd = pp.base.getType(); 
-					    cd = newtd.getClassDesc();
-				    } else {
-					    //FIXME currently handles one dimensional arrays
-					    newtd = ((FieldDescriptor)pp.getDescAt(i-2)).getType();
-					    cd = newtd.getClassDesc();
-				    }
-				    newfieldoffset = new String("(unsigned int)(&(((struct "+ cd.getSafeSymbol() +" *)0)->"+ 
-						    ((FieldDescriptor)desc).getSafeSymbol()+ "))");
-			    } else {
-				    newtd = ((FieldDescriptor)pp.getDescAt(i-1)).getType();
-				    newfieldoffset = new String("(unsigned int)(&(((struct "+ newtd.getSafeSymbol()+" *)0)->"+ 
-					    ((FieldDescriptor)desc).getSafeSymbol()+ "))");
-			    }
-			    fieldoffset.add(newfieldoffset);
-		    } else {
-			    String tstlbl = new String();
-			    for(j = 0; j < ((IndexDescriptor)desc).tddesc.size(); j++) {
-				    tstlbl += generateTemp(fm, ((IndexDescriptor)desc).getTempDescAt(j), lb) + "+";
-			    }
-			    tstlbl += ((IndexDescriptor)desc).offset.toString();
-			    newfieldoffset = new String(tstlbl);
-			    fieldoffset.add(newfieldoffset);
-		    }
-	    }
-	    if(tuplecount > 0) {
-		    int tmp = (int) ((Short)(endoffset.get(tuplecount-1))).shortValue() + (int) offsetcount;
-		    short endoffsetval = (short) tmp;
-		    endoffset.add(endoffsetval);
-	    }else {
-		    endoffset.add(offsetcount);
-	    }
-	    flagcount++;
+	int base=(tuplecount>0)?((Short)endoffset.get(tuplecount-1)).intValue():0;
+	base+=pp.desc.size()-breakindex;
+	endoffset.add(new Short((short)base));
     }
 
-    public void generateOutsideTransCode(FlatMethod fm, LocalityBinding lb,PrefetchPair pp, Vector oids, Vector fieldoffset, Vector endoffset, int tuplecount) {
-	    int i,j;
- 	    short offsetcount = 0;
 
-	    String oid = new String(" (unsigned int) (" + generateTemp(fm, pp.base, lb)+ ")");
-	    oids.add(oid);
-	    for(i = 0; i < pp.desc.size(); i++) {
-		    TypeDescriptor newtd;
-		    ClassDescriptor cd;
-		    String newfieldoffset;
-		    Object desc = pp.getDescAt(i);
-		    offsetcount++;
-		    if(desc instanceof FieldDescriptor) {
-			    if(i == 0){
-				    newtd = pp.base.getType(); 
-				    newfieldoffset = new String("(unsigned int)(&(((struct "+ newtd.getSafeSymbol()+" *)0)->"+ 
-						    ((FieldDescriptor)desc).getSafeSymbol()+ "))");
-			    } else {
-				    Object prevdesc = pp.getDescAt(i-1);
-				    if(prevdesc instanceof IndexDescriptor){
-					    if((i-1) == 0) {
-						    newtd = pp.base.getType(); 
-						    cd = newtd.getClassDesc();
-					    } else {
-						    //FIXME currently handles one dimensional arrays
-						    newtd = ((FieldDescriptor)pp.getDescAt(i-2)).getType();
-						    cd = newtd.getClassDesc();
-					    }
-					    newfieldoffset = new String("(unsigned int)(&(((struct "+ cd.getSafeSymbol() +" *)0)->"+ 
-							    ((FieldDescriptor)desc).getSafeSymbol()+ "))");
-				    } else {
-					    newtd = ((FieldDescriptor)pp.getDescAt(i-1)).getType();
-					    newfieldoffset = new String("(unsigned int)(&(((struct "+ newtd.getSafeSymbol()+" *)0)->"+ 
-							    ((FieldDescriptor)desc).getSafeSymbol()+ "))");
-				    }
-			    }
-		    } else {
-			    String tstlbl = new String();
-			    for(j = 0; j < ((IndexDescriptor)desc).tddesc.size(); j++) {
-				    tstlbl += generateTemp(fm, ((IndexDescriptor)desc).getTempDescAt(j), lb) + "+";
-			    }
-			    tstlbl += ((IndexDescriptor)desc).offset.toString();
-			    newfieldoffset = new String(tstlbl);
-		    }
-		    fieldoffset.add(newfieldoffset);
-	    }
-	    if(tuplecount > 0) {
-		    int tmp = (int) ((Short)(endoffset.get(tuplecount-1))).shortValue() + (int) offsetcount;
-		    short endoffsetval = (short) tmp;
-		    endoffset.add(endoffsetval);
-	    }else {
-		    endoffset.add(offsetcount);
-	    }
-    }
-
-    public void generateLocalTransCode(FlatMethod fm, LocalityBinding lb,PrefetchPair pp,Vector oids, Vector fieldoffset,Vector endoffset, int tuplecount) {
-	    int i, j, k;
-	    short offsetcount = 0;
-
-	    Vector prefix = new Vector();
-	    prefix.add(generateTemp(fm,pp.base,lb));
-	    String tstlbl = new String("(" + prefix.get(0) + " != NULL ");
-	    for (i = 0; i < pp.desc.size(); i++) {
-		    Object newdesc = pp.desc.get(i);
-		    if(newdesc instanceof FieldDescriptor) {
-			    FieldDescriptor fd = (FieldDescriptor) newdesc;
-			    if(fd.isGlobal()){
-				    /* Field descriptor is global */
-				    String oid = new String(" (unsigned int) (");
-				    tstlbl += ") ? ";
-				    for(j = 0; j < prefix.size(); j++) {
-					    tstlbl += prefix.get(j) + "->";
-				    }
-				    tstlbl += fd.getSafeSymbol() + ": NULL";
-				    oid += tstlbl+ " )";
-				    oids.add(oid);
-				    for(j = i+1; j < pp.desc.size(); j++) {
-					    TypeDescriptor newtd;
-					    String newfieldoffset;
-					    Object desc = pp.getDescAt(j);
-					    offsetcount++;
-					    if(desc instanceof FieldDescriptor) {
-						    Object prevdesc = pp.getDescAt(j-1);
-						    if(prevdesc instanceof IndexDescriptor){
-							    //FIXME currently handles one dimensional arrays
-							    newtd = ((FieldDescriptor)pp.getDescAt(j-2)).getType();
-						    } else {
-							    newtd = ((FieldDescriptor) pp.getDescAt(j-1)).getType();
-						    }
-						    newfieldoffset = new String("(unsigned int)(&(((struct "+ newtd.getSafeSymbol()+" *)0)->"+ 
-								    ((FieldDescriptor)desc).getSafeSymbol()+ "))");
-					    } else {
-						    String indexlbl = new String();
-						    for(k = 0; k < ((IndexDescriptor)desc).tddesc.size(); k++) {
-							    indexlbl += generateTemp(fm, ((IndexDescriptor)desc).getTempDescAt(k), lb) + "+";
-						    }
-						    indexlbl += ((IndexDescriptor)desc).offset.toString();
-						    newfieldoffset = new String(indexlbl);
-					    }
-					    fieldoffset.add(newfieldoffset);
-				    }
-				    if(tuplecount > 0) {
-					    int tmp = (int) ((Short)(endoffset.get(tuplecount-1))).shortValue() + (int) offsetcount;
-					    short endoffsetval = (short) tmp;
-					    endoffset.add(endoffsetval);
-				    }else {
-					    endoffset.add(offsetcount);
-				    }
-				    tuplecount++;
-				    break; //break from outer for loop
-			    } else {
-				    tstlbl += "&& ";
-				    for(j = 0; j < prefix.size(); j++) {
-					    tstlbl += prefix.get(j) + "->";
-				    }
-				    prefix.add(fd.getSafeSymbol());
-				    tstlbl += fd.getSafeSymbol() + " != NULL";
-			    }
-		    } else { /* if Index descriptor */
-			    String indexstring = new String();
-			    IndexDescriptor id = (IndexDescriptor) newdesc;
-			    if(i == 0) {
-				    indexstring = generateTemp(fm, pp.base, lb);
-			    } else {
-				    indexstring = ((FieldDescriptor)pp.getDescAt(i-1)).getSafeSymbol();
-			    }
-			    tstlbl += "&& ";
-			    for(j = 0; j < prefix.size(); j++) {
-				    tstlbl += prefix.get(j) + "[";
-			    }
-			    indexstring += "[";
-			    for(j = 0; j < id.tddesc.size(); j++) {
-				    tstlbl += generateTemp(fm, id.getTempDescAt(j), lb) + "+"; 
-				    indexstring += generateTemp(fm,id.getTempDescAt(j), lb) + "+";
-			    }
-			    tstlbl += id.offset.toString()+ "]";
-			    indexstring += id.offset.toString()+ "]";
-			    prefix. removeElementAt(prefix.size() -1);
-			    prefix.add(indexstring);
-			    tstlbl += " != NULL";
-		    }
-	    }
-    }
-
+  
     public void generateFlatGlobalConvNode(FlatMethod fm, LocalityBinding lb, FlatGlobalConvNode fgcn, PrintWriter output) {
 	    if (lb!=fgcn.getLocality())
 		    return;
