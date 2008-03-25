@@ -161,17 +161,28 @@ public class PrefetchAnalysis {
      * returns: false
      */
     private boolean comparePrefetchSets(Hashtable<PrefetchPair, Double> oldPrefetchSet, Hashtable<PrefetchPair, Double> newPrefetchSet) {
-	if(oldPrefetchSet.size() != newPrefetchSet.size()) {
+	if (oldPrefetchSet.size()!=newPrefetchSet.size())
 	    return true;
-	}
+
 	for(Enumeration e = newPrefetchSet.keys();e.hasMoreElements();) {
 	    PrefetchPair pp = (PrefetchPair) e.nextElement();
 	    double newprob = newPrefetchSet.get(pp).doubleValue();
 	    if (!oldPrefetchSet.containsKey(pp))
-		return true;//item missing
-	    double oldprob = oldPrefetchSet.get(pp).doubleValue();
-	    if(((newprob - oldprob) > PROB_DIFF) || (newprob >= PREFETCH_THRESHOLD_PROB && oldprob < PREFETCH_THRESHOLD_PROB))//probability different
 		return true;
+	    
+	    double oldprob = oldPrefetchSet.get(pp).doubleValue();
+
+	    if((newprob - oldprob) > PROB_DIFF) {
+		return true;
+	    }
+	    if (newprob >= PREFETCH_THRESHOLD_PROB && oldprob < PREFETCH_THRESHOLD_PROB) {
+		return true;
+	    }
+	    if (oldprob>newprob) {
+		System.out.println("ERROR:" + pp);
+		System.out.println(oldprob + " -> "+ newprob);
+	    }
+
 	}
 	return false;
     }
@@ -770,7 +781,7 @@ public class PrefetchAnalysis {
 		}
 	    }
 	    
-	    updatePrefetchSet(curr, tocompare);
+	    updatePrefetchSet(curr, branch_prefetch_set);
 	}
     }
     
