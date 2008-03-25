@@ -98,4 +98,42 @@ public class PrefetchPair {
 	}
 	return newpp;
     }
+
+    /** This function returns true if a tempdescriptor object is found in the array of descriptors
+     *  for a given prefetch pair else returns false*/
+    public boolean containsTemp(TempDescriptor td) {
+	ArrayList<Descriptor> desc = (ArrayList<Descriptor>) getDesc();
+	for(ListIterator it = desc.listIterator();it.hasNext();) {
+	    Object o = it.next();
+	    if(o instanceof IndexDescriptor) {
+		ArrayList<TempDescriptor> tdarray = (ArrayList<TempDescriptor>)((IndexDescriptor)o).tddesc;
+		if(tdarray.contains(td)) {
+		    return true;
+		}
+	    }
+	}
+	return false;
+    }
+
+    /** This function creates a new Arraylist of Descriptors by replacing old tempdescriptors with new
+     * tempdescriptors when there is a match */
+    public PrefetchPair replaceTemp(TempDescriptor td, TempDescriptor[] newtd) {
+	PrefetchPair npp=(PrefetchPair)clone();
+	ArrayList<Descriptor> desc = (ArrayList<Descriptor>) npp.getDesc();
+	for(ListIterator it = desc.listIterator();it.hasNext();) {
+	    Object currdesc = it.next();
+	    if(currdesc instanceof IndexDescriptor) {
+		ArrayList<TempDescriptor> tdarray = (ArrayList<TempDescriptor>)((IndexDescriptor)currdesc).tddesc;
+		if (tdarray.contains(td)) {
+		    int index = tdarray.indexOf(td);
+		    tdarray.set(index, newtd[0]);
+		    for(int i=1;i<newtd.length;i++) {
+			tdarray.add(newtd[i]);
+		    }
+		}
+	    }
+	}
+	return npp;
+    }
+
 }
