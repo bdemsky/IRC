@@ -923,14 +923,14 @@ public class BuildCode {
 	if (!fieldorder.containsKey(cn)) {
 	    Vector fields=new Vector();
 	    fieldorder.put(cn,fields);
-	    if (sp==null) {
+	    if (sp==null&&!state.TASK) {
 		fields.add(cn.getFieldTable().get("cachedCode"));
 	    }
 	    Iterator fieldit=cn.getFields();
 	    while(fieldit.hasNext()) {
 		FieldDescriptor fd=(FieldDescriptor)fieldit.next();
 		if ((sp==null||!sp.getFieldTable().contains(fd.getSymbol()))&&
-		    (!fd.getSymbol().equals("cachedCode")))
+		    (!fd.getSymbol().equals("cachedCode")||state.TASK))
 		    fields.add(fd);
 	    }
 	}
