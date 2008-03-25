@@ -282,7 +282,7 @@ public class BuildFlat {
 
 	FlatOpNode fcomp=new FlatOpNode(tmpbool,index,temparray[i],new Operation(Operation.LT));
 	FlatCondBranch fcb=new FlatCondBranch(tmpbool);
-	fcb.setTrueProb(0.8);
+	fcb.setTrueProb(State.TRUEPROB);
 	//is index<temp[i]
 	TempDescriptor new_tmp=TempDescriptor.tempFactory("tmp",td);
 	FlatNew fn=new FlatNew(td, new_tmp, temparray[i+1], isglobal);
@@ -845,11 +845,13 @@ public class BuildFlat {
 	    NodePair body=flattenBlockNode(ln.getBody());
 	    FlatNode begin=initializer.getBegin();
 	    FlatCondBranch fcb=new FlatCondBranch(cond_temp);
-	    fcb.setTrueProb(0.8);
+	    fcb.setTrueProb(State.TRUEPROB);
 	    FlatNop nopend=new FlatNop();
 	    FlatBackEdge backedge=new FlatBackEdge();
 
-	    initializer.getEnd().addNext(condition.getBegin());
+	    FlatNop nop2=new FlatNop();
+	    initializer.getEnd().addNext(nop2);
+	    nop2.addNext(condition.getBegin());
 	    body.getEnd().addNext(update.getBegin());
 	    update.getEnd().addNext(backedge);
 	    backedge.addNext(condition.getBegin());
@@ -863,7 +865,7 @@ public class BuildFlat {
 	    NodePair body=flattenBlockNode(ln.getBody());
 	    FlatNode begin=condition.getBegin();
 	    FlatCondBranch fcb=new FlatCondBranch(cond_temp);
-	    fcb.setTrueProb(0.8);
+	    fcb.setTrueProb(State.TRUEPROB);
 	    FlatNop nopend=new FlatNop();
 	    FlatBackEdge backedge=new FlatBackEdge();
 
@@ -880,7 +882,7 @@ public class BuildFlat {
 	    NodePair body=flattenBlockNode(ln.getBody());
 	    FlatNode begin=body.getBegin();
 	    FlatCondBranch fcb=new FlatCondBranch(cond_temp);
-	    fcb.setTrueProb(0.8);
+	    fcb.setTrueProb(State.TRUEPROB);
 	    FlatNop nopend=new FlatNop();
 	    FlatBackEdge backedge=new FlatBackEdge();
 

@@ -2,6 +2,7 @@
 
 printhelp() {
 echo -dsm distributed shared memory
+echo -trueprob double - probabiltiy of true branch
 echo -mac distributed shared memory mac support
 echo -check generate check code
 echo -dmalloc link in dmalloc
@@ -85,6 +86,10 @@ JAVAOPTS="$JAVAOPTS -prefetch"
 elif [[ $1 = '-printflat' ]]
 then
 JAVAOPTS="$JAVAOPTS -printflat"
+elif [[ $1 = '-trueprob' ]]
+then
+JAVAOPTS="$JAVAOPTS -trueprob $2"
+shift
 elif [[ $1 = '-mac' ]]
 then
 EXTRAOPTIONS="$EXTRAOPTIONS -DMAC"
