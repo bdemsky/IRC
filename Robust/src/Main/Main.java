@@ -65,9 +65,9 @@ public class Main {
 	      ClassLibraryPrefix=args[++i]+"/";
 	  else if (option.equals("-mainclass"))
 	      state.main=args[++i];
-	  else if (option.equals("-trueprob"))
+	  else if (option.equals("-trueprob")) {
 	      state.TRUEPROB=Double.parseDouble(args[++i]);
-	  else if (option.equals("-printflat"))
+	  } else if (option.equals("-printflat"))
 	      State.PRINTFLAT=true;
 	  else if (option.equals("-struct"))
 	      state.structfile=args[++i];

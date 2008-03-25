@@ -102,20 +102,21 @@ public class PrefetchAnalysis {
 
 	/** This function calls analysis for every method in a class */
 	private void doMethodAnalysis(ClassDescriptor cn) {
-		Iterator methodit=cn.getMethods();
-		while(methodit.hasNext()) {
-			Hashtable<FlatNode, HashSet<PrefetchPair>> newprefetchset = new Hashtable<FlatNode, HashSet<PrefetchPair>>();
-			MethodDescriptor md=(MethodDescriptor)methodit.next();
-			FlatMethod fm=state.getMethodFlat(md);
-			doFlatNodeAnalysis(fm);
-			doInsPrefetchAnalysis(fm, newprefetchset);
-			if(newprefetchset.size() > 0) {
-				addFlatPrefetchNode(newprefetchset);
-			}
-			newprefetchset = null;
+	    for (Iterator methodit=cn.getMethods();methodit.hasNext();) {
+		MethodDescriptor md=(MethodDescriptor)methodit.next();
+		if (state.excprefetch.contains(md.getClassMethodName()))
+		    continue; //Skip this method
+		Hashtable<FlatNode, HashSet<PrefetchPair>> newprefetchset = new Hashtable<FlatNode, HashSet<PrefetchPair>>();
+		FlatMethod fm=state.getMethodFlat(md);
+		doFlatNodeAnalysis(fm);
+		doInsPrefetchAnalysis(fm, newprefetchset);
+		if(newprefetchset.size() > 0) {
+		    addFlatPrefetchNode(newprefetchset);
 		}
+		newprefetchset = null;
+	    }
 	}
-
+    
 	/** This function calls analysis for every node in a method */
 	private void doFlatNodeAnalysis(FlatMethod fm) {
 		tovisit = fm.getNodeSet(); 

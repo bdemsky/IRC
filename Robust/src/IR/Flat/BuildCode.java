@@ -1435,16 +1435,11 @@ public class BuildCode {
     }
  
     public void generateFlatPrefetchNode(FlatMethod fm, LocalityBinding lb, FlatPrefetchNode fpn, PrintWriter output) {
-	Vector oids = new Vector();
-	Vector fieldoffset = new Vector();
-	Vector endoffset = new Vector();
-	int tuplecount = 0;  //Keeps track of number of prefetch tuples that need to be generated
- 	
 	if (state.PREFETCH) {
-	    output.println("{");
-	    output.println("/* prefetch */");
-	    output.println("void * prefptr;");
-	    output.println("int tmpindex;");
+	    Vector oids = new Vector();
+	    Vector fieldoffset = new Vector();
+	    Vector endoffset = new Vector();
+	    int tuplecount = 0;  //Keeps track of number of prefetch tuples that need to be generated
 	    for(Iterator it = fpn.hspp.iterator();it.hasNext();) {
 		PrefetchPair pp = (PrefetchPair) it.next();
 		Integer statusbase = locality.getNodePreTempInfo(lb,fpn).get(pp.base);
@@ -1460,8 +1455,10 @@ public class BuildCode {
 	    }
 	    if (tuplecount==0)
 		return;
-	    
-	    
+	    output.println("{");
+	    output.println("/* prefetch */");
+	    output.println("void * prefptr;");
+	    output.println("int tmpindex;");
 	    /*Create C code for oid array */
 	    output.print("   unsigned int oidarray_[] = {");
 	    boolean needcomma=false;
