@@ -7,8 +7,7 @@ package IR;
  */
 
 public class FlagDescriptor extends Descriptor {
-    public static final String InitialFlag="initialstate";
-
+    public final static String InitialFlag="initialstate";
 
     public FlagDescriptor(String identifier) {
 	super(identifier);

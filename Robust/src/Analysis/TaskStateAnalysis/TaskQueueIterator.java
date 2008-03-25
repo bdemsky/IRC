@@ -56,6 +56,11 @@ public class TaskQueueIterator {
 	    i=0;
 	}
 
+	if (i==0&&index==0&&ftsarray[0]!=null&&!needit) {
+	    needinit=false;
+	    return true;
+	}
+
 	objloop:
 	for(;i<ftsarray.length;i++) {
 	    FlagState currfs=ftsarray[i].fs;

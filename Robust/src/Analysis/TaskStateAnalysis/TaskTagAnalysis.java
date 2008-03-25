@@ -40,6 +40,28 @@ public class TaskTagAnalysis {
 	    tasktable.put(td, new TaskQueue(td));
 	}
 	doAnalysis();
+	doOutput();
+    }
+
+    private void doOutput() {
+	try {
+	for(Iterator<TagDescriptor> tagit=tsresults.keySet().iterator();tagit.hasNext();) {
+	    TagDescriptor tag=tagit.next();
+	    Set<TagState> set=tsresults.get(tag);
+	    File dotfile_flagstates= new File("tag"+tag.getSymbol()+".dot");
+	    FileOutputStream dotstream=new FileOutputStream(dotfile_flagstates,false);
+	    TagState.DOTVisitor.visit(dotstream,set);
+	}
+	for(Iterator<ClassDescriptor> cdit=fsresults.keySet().iterator();cdit.hasNext();) {
+	    ClassDescriptor cd=cdit.next();
+	    Set<TagState> set=fsresults.get(cd);
+	    File dotfile_flagstates= new File("class"+cd.getSymbol()+".dot");
+	    FileOutputStream dotstream=new FileOutputStream(dotfile_flagstates,false);
+	    TagState.DOTVisitor.visit(dotstream,set);
+	}
+	} catch (Exception e) {
+	    e.printStackTrace();
+	}
     }
 
     private void doAnalysis() {
@@ -62,9 +84,12 @@ public class TaskTagAnalysis {
 	    FlagState fs=fsit.next();
 	    FlagTagState fts=new FlagTagState(ts, fs);
 	    for(int i=0;i<td.numParameters();i++) {
+		System.out.println("Trying to enqueue "+td);
 		if (canEnqueue(td, i, fs)) {
+		    System.out.println("Enqueued");
 		    TaskQueueIterator tqi=tq.enqueue(i, fts);
 		    while(tqi.hasNext()) {
+			System.out.println("binding");
 			processBinding(tqi);
 			tqi.next();
 		    }
