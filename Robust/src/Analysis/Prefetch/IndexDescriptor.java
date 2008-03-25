@@ -18,92 +18,76 @@ import IR.*;
  */
 
 public class IndexDescriptor extends Descriptor {
-	public ArrayList<TempDescriptor> tddesc;
-	public Integer offset;
+    public ArrayList<TempDescriptor> tddesc;
+    public Integer offset;
+    
+    public IndexDescriptor(Integer offset) {
+	super(offset.toString()); 
+	this.offset = offset;
+	this.tddesc=new ArrayList<TempDescriptor>();
+    }
+    
+    public IndexDescriptor(TempDescriptor tdesc, Integer offset) {
+	super(tdesc.toString()); 
+	tddesc = new ArrayList<TempDescriptor>();
+	tddesc.add(tdesc);
+	this.offset = offset;
+    }
+    
+    public IndexDescriptor() {
+	super("Empty");
+	tddesc = new ArrayList<TempDescriptor>();
+	offset = 0;
+    }
 
-	public IndexDescriptor(Integer offset) {
-		super(offset.toString()); 
-		this.offset = offset;
+    public IndexDescriptor(ArrayList<TempDescriptor> tdesc, Integer offset) {
+	super(tdesc.toString()); 
+	tddesc = new ArrayList<TempDescriptor>();
+	tddesc.addAll(tdesc);
+	this.offset = offset;
+    }
+    
+    public ArrayList<TempDescriptor> getTempDesc() {
+	return tddesc;
+    }
+    
+    public TempDescriptor getTempDescAt(int index) {
+	return ((TempDescriptor) (tddesc.get(index)));
+    }
+    
+    public int getOffset() {
+	return offset.intValue();
+    }
+    
+    public String toString() {
+	String label="[";
+	if(getTempDesc() == null) {
+	    label += offset.toString();
+	    return label;
+	} else {
+	    ListIterator lit = getTempDesc().listIterator();
+	    for(;lit.hasNext();) {
+		TempDescriptor td = (TempDescriptor) lit.next();
+		label += td.toString()+"+";
+	    }
+	    label +=offset.toString();
 	}
-
-	public IndexDescriptor(TempDescriptor tdesc, Integer offset) {
-		super(tdesc.toString()); 
-		if(tddesc == null)
-			tddesc = new ArrayList<TempDescriptor>();
-		tddesc.add(tdesc);
-		this.offset = offset;
+	label += "]";
+	return label;
+    }
+    
+    public int hashCode() {
+	int hashcode = (Integer) offset.hashCode();
+	hashcode^=tddesc.hashCode();
+	return hashcode;
+    }
+    
+    public boolean equals(Object o) {
+	if(o instanceof IndexDescriptor) {
+	    IndexDescriptor idesc = (IndexDescriptor) o;
+	    return offset==idesc.offset&&
+		tddesc.equals(idesc.tddesc);
 	}
-
-	public IndexDescriptor() {
-		super("Empty");
-		tddesc = new ArrayList<TempDescriptor>();
-		offset = 0;
-	}
-
-	public IndexDescriptor(ArrayList<TempDescriptor> tdesc, Integer offset) {
-		super(tdesc.toString()); 
-		if(tddesc == null)
-			tddesc = new ArrayList<TempDescriptor>();
-		tddesc.addAll(tdesc);
-		this.offset = offset;
-	}
-
-	public ArrayList<TempDescriptor> getTempDesc() {
-		return tddesc;
-	}
-
-	public TempDescriptor getTempDescAt(int index) {
-		return ((TempDescriptor) (tddesc.get(index)));
-	}
-
-	public int getOffset() {
-		return offset.intValue();
-	}
-
-	public String toString() {
-		String label="[";
-		if(getTempDesc() == null) {
-			label += offset.toString();
-			return label;
-		} else {
-			ListIterator lit = getTempDesc().listIterator();
-			for(;lit.hasNext();) {
-				TempDescriptor td = (TempDescriptor) lit.next();
-				label += td.toString()+"+";
-			}
-			label +=offset.toString();
-		}
-		label += "]";
-		return label;
-	}
-
-	public int hashCode() {
-		int hashcode = (Integer) offset.hashCode();
-		if(tddesc != null) {
-			ListIterator lit = tddesc.listIterator();
-			while(lit.hasNext()) {
-				hashcode = hashcode ^ lit.next().hashCode();
-			}
-		}
-		return hashcode;
-	}
-
-	public boolean equals(Object o) {
-		if(o instanceof IndexDescriptor) {
-			IndexDescriptor idesc = (IndexDescriptor) o;
-			if(!(offset.equals(idesc.offset))) {
-				return false;
-			}
-			if(tddesc == null && idesc.tddesc == null) {
-				return true;
-			} else if(tddesc!=null && idesc.tddesc!=null) {
-				if(tddesc.equals((ArrayList<TempDescriptor>)idesc.tddesc)){
-					return true;
-				}
-			}else {
-				return false;
-			}
-		}
-		return false;
-	}
+	return false;
+    }
 }
