@@ -113,18 +113,15 @@ public class PrefetchAnalysis {
 	    case FKind.FlatFlagActionNode:
 	    case FKind.FlatGlobalConvNode:
 	    case FKind.FlatNop:
-		processDefaultCase(curr,child_prefetch_set_copy);
-		break;
+	    case FKind.FlatNew:
+	    case FKind.FlatCastNode:
 	    case FKind.FlatCall:
-		//TODO change it to take care of FlatMethod, Flatcalls 
-		processFlatCall(curr, child_prefetch_set_copy);
+	    case FKind.FlatTagDeclaration:
+		processDefaultCase(curr,child_prefetch_set_copy);
 		break;
 	    case FKind.FlatMethod:
 		//TODO change it to take care of FlatMethod, Flatcalls 
 		processFlatMethod(curr, child_prefetch_set_copy);
-		break;
-	    case FKind.FlatNew:
-		processFlatNewNode(curr, child_prefetch_set_copy);
 		break;
 	    case FKind.FlatFieldNode:
 		processFlatFieldNode(curr, child_prefetch_set_copy);
@@ -143,12 +140,6 @@ public class PrefetchAnalysis {
 		break;
 	    case FKind.FlatSetFieldNode:
 		processFlatSetFieldNode(curr, child_prefetch_set_copy);
-		break;
-	    case FKind.FlatCastNode:
-		processFlatCastNode(curr, child_prefetch_set_copy);
-		break;
-	    case FKind.FlatTagDeclaration:
-		processFlatTagDeclaration(curr, child_prefetch_set_copy);
 		break;
 	    default:
 		throw new Error("No such Flatnode kind");
@@ -684,27 +675,6 @@ public class PrefetchAnalysis {
 	updatePrefetchSet(curr, tocompare);
     }
     
-    /** This Function processes the FlatCalls 
-     * It currently drops the propagation of those prefetchpairs whose base is
-     * same as the destination of the FlatCall 
-     */
-    private void processFlatCall(FlatNode curr, Hashtable<PrefetchPair, Double> child_prefetch_set_copy) {
-	Hashtable<PrefetchPair, Double> tocompare = new Hashtable<PrefetchPair, Double>();
-	FlatCall currfcn = (FlatCall) curr;
-	PairMap pm = new PairMap();
-	for (Enumeration ecld = child_prefetch_set_copy.keys();ecld.hasMoreElements();) {
-	    PrefetchPair childpp = (PrefetchPair) ecld.nextElement();
-	    PrefetchPair copyofchildpp = (PrefetchPair) childpp.clone();
-	    if(currfcn.getReturnTemp() != childpp.base) {
-		tocompare.put(childpp, child_prefetch_set_copy.get(childpp).doubleValue());
-		pm.addPair(childpp, childpp);
-	    }
-	}
-	
-	updatePairMap(curr, pm, 0);
-	updatePrefetchSet(curr, tocompare);
-    }
-    
     /** This function handles the processes the FlatNode of type FlatCondBranch
      * It combines prefetches of both child elements and create a new hash table called
      * branch_prefetch_set to contains the entries of both its children
@@ -792,75 +762,18 @@ public class PrefetchAnalysis {
 	Hashtable<PrefetchPair, Double> tocompare = new Hashtable<PrefetchPair, Double>();
 	
 	/* Propagate all child nodes */
+	nexttemp:
 	for(Enumeration e = child_prefetch_set_copy.keys(); e.hasMoreElements();) {
 	    PrefetchPair childpp = (PrefetchPair) e.nextElement();
-	    tocompare.put(childpp, child_prefetch_set_copy.get(childpp).doubleValue());
+	    TempDescriptor[] writearray=curr.writesTemps();
+	    for(int i=0;i<writearray.length;i++) {
+		TempDescriptor wtd=writearray[i];
+		if(childpp.base == wtd||
+		   childpp.containsTemp(wtd))
+		    continue nexttemp;
+	    }
+	    tocompare.put(childpp, child_prefetch_set_copy.get(childpp));
 	    pm.addPair(childpp, childpp);
-	}
-	
-	updatePairMap(curr, pm, 0);
-	updatePrefetchSet(curr, tocompare);
-    }
-    
-    /** This functions processes for FlatNewNode
-     * for e.g x = NEW(foo) followed by childnode with prefetch set x.f
-     * then drop the prefetches beyond this FlatNewNode */
-    private void processFlatNewNode(FlatNode curr, Hashtable<PrefetchPair, Double> child_prefetch_set_copy) {
-	Hashtable<PrefetchPair, Double> tocompare = new Hashtable<PrefetchPair, Double>();
-	FlatNew currfnn = (FlatNew) curr;
-	Double newprob = new Double(0.0);
-	PairMap pm = new PairMap();
-	
-	for (Enumeration ecld = child_prefetch_set_copy.keys();ecld.hasMoreElements();) {
-	    PrefetchPair childpp = (PrefetchPair) ecld.nextElement();
-	    if(childpp.base != currfnn.getDst()&&
-	       !childpp.containsTemp(currfnn.getDst())) {
-		tocompare.put(childpp, child_prefetch_set_copy.get(childpp));
-		pm.addPair(childpp, childpp);
-	    }
-	}
-	
-	updatePairMap(curr, pm, 0);
-	updatePrefetchSet(curr, tocompare);
-    }
-    
-    /** This functions processes for FlatCastNode
-     * for e.g x = (cast type) y followed by childnode with prefetch set x.f
-     * then drop the prefetches beyond this FlatCastNode */
-    private void processFlatCastNode(FlatNode curr, Hashtable<PrefetchPair, Double>child_prefetch_set_copy) {
-	Hashtable<PrefetchPair, Double> tocompare = new Hashtable<PrefetchPair, Double>();
-	FlatCastNode currfcn = (FlatCastNode) curr;
-	Double newprob = new Double(0.0);
-	PairMap pm = new PairMap();
-	for (Enumeration ecld = child_prefetch_set_copy.keys();ecld.hasMoreElements();) {
-	    PrefetchPair childpp = (PrefetchPair) ecld.nextElement();
-	    if(childpp.base != currfcn.getDst()&&
-	       !childpp.containsTemp(currfcn.getDst())) {
-		tocompare.put(childpp, child_prefetch_set_copy.get(childpp));
-		pm.addPair(childpp, childpp);
-	    }
-	}
-	
-	updatePairMap(curr, pm, 0);
-	updatePrefetchSet(curr, tocompare);
-    }
-    
-    /** This functions processes for FlatTagDeclaration
-     * for e.g x = (cast type) y followed by childnode with prefetch set x.f
-     * then drop the prefetches beyond this FlatTagDeclaration */
-    private void processFlatTagDeclaration(FlatNode curr, Hashtable<PrefetchPair, Double>child_prefetch_set_copy) {
-	Hashtable<PrefetchPair, Double> tocompare = new Hashtable<PrefetchPair, Double>();
-	FlatTagDeclaration currftd = (FlatTagDeclaration) curr;
-	Double newprob = new Double(0.0);
-	PairMap pm = new PairMap();
-	
-	for (Enumeration ecld = child_prefetch_set_copy.keys();ecld.hasMoreElements();) {
-	    PrefetchPair childpp = (PrefetchPair) ecld.nextElement();
-	    if(childpp.base != currftd.getDst()&&
-	       !childpp.containsTemp(currftd.getDst())) {
-		tocompare.put(childpp, child_prefetch_set_copy.get(childpp).doubleValue());
-		pm.addPair(childpp, childpp);
-	    }
 	}
 	
 	updatePairMap(curr, pm, 0);
