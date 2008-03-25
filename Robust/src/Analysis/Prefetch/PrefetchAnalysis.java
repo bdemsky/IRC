@@ -23,8 +23,6 @@ public class PrefetchAnalysis {
 	public static final double PROB_DIFF = 0.05;	//threshold for difference in probabilities during first phase of analysis
 	public static final double ANALYSIS_THRESHOLD_PROB = 0.10; //threshold for prefetches to stop propagating during first phase of analysis
 	public static final double PREFETCH_THRESHOLD_PROB = 0.30;//threshold for prefetches to stop propagating while applying prefetch rules during second phase of analysis
-	public static final double BRANCH_TRUE_EDGE_PROB = 0.5;
-	public static final double BRANCH_FALSE_EDGE_PROB = 0.5;
 
 	public PrefetchAnalysis(State state, CallGraph callgraph, TypeUtil typeutil) {
 		this.typeutil=typeutil;
@@ -41,8 +39,7 @@ public class PrefetchAnalysis {
 	 *  for a given prefetch pair else returns false*/
 	private boolean isTempDescFound(PrefetchPair pp, TempDescriptor td) {
 		ArrayList<Descriptor> desc = (ArrayList<Descriptor>) pp.getDesc();
-		ListIterator it = desc.listIterator();
-		for(;it.hasNext();) {
+		for(ListIterator it = desc.listIterator();it.hasNext();) {
 			Object o = it.next();
 			if(o instanceof IndexDescriptor) {
 				ArrayList<TempDescriptor> tdarray = (ArrayList<TempDescriptor>)((IndexDescriptor)o).tddesc;
@@ -58,8 +55,7 @@ public class PrefetchAnalysis {
 	 * tempdescriptors when there is a match */
 	private ArrayList<Descriptor> getNewDesc(PrefetchPair pp, TempDescriptor td, TempDescriptor newtd) {
 		ArrayList<Descriptor> desc = (ArrayList<Descriptor>) pp.getDesc();
-		ListIterator it = desc.listIterator();
-		for(;it.hasNext();) {
+		for(ListIterator it = desc.listIterator();it.hasNext();) {
 			Object currdesc = it.next();
 			if(currdesc instanceof IndexDescriptor) {
 				ArrayList<TempDescriptor> tdarray = (ArrayList<TempDescriptor>)((IndexDescriptor)currdesc).tddesc;
@@ -76,8 +72,7 @@ public class PrefetchAnalysis {
 	 * tempdescriptors when there is a match for e.g FlatOpNodes if i= i+j then replace i with i+j */
 	private ArrayList<Descriptor> getNewDesc(PrefetchPair pp, TempDescriptor td, TempDescriptor left, TempDescriptor right) {
 		ArrayList<Descriptor> desc = (ArrayList<Descriptor>) pp.getDesc();
-		ListIterator it = desc.listIterator();
-		for(;it.hasNext();) {
+		for(ListIterator it = desc.listIterator();it.hasNext();) {
 			Object currdesc = it.next();
 			if(currdesc instanceof IndexDescriptor) {
 				ArrayList<TempDescriptor> tdarray = (ArrayList<TempDescriptor>)((IndexDescriptor)currdesc).tddesc;
@@ -91,14 +86,13 @@ public class PrefetchAnalysis {
 		return desc;
 	}
 
-	/** This function starts the prefetch analysis */
-	private void DoPrefetch() {
-		Iterator classit=state.getClassSymbolTable().getDescriptorsIterator();
-		while(classit.hasNext()) {
-			ClassDescriptor cn=(ClassDescriptor)classit.next();
-			doMethodAnalysis(cn);
-		}
+    /** This function starts the prefetch analysis */
+    private void DoPrefetch() {
+	for(Iterator classit=state.getClassSymbolTable().getDescriptorsIterator();classit.hasNext();) {
+	    ClassDescriptor cn=(ClassDescriptor)classit.next();
+	    doMethodAnalysis(cn);
 	}
+    }
 
 	/** This function calls analysis for every method in a class */
 	private void doMethodAnalysis(ClassDescriptor cn) {
@@ -235,37 +229,21 @@ public class PrefetchAnalysis {
 	 * returns: true if something has changed in the new Prefetch set else
 	 * returns: false
 	 */
-	private boolean comparePrefetchSets(Hashtable<PrefetchPair, Double> oldPrefetchSet, Hashtable<PrefetchPair, Double>
-			newPrefetchSet) {
-		boolean hasChanged = false;
-		PrefetchPair oldpp = null;
-		PrefetchPair newpp = null;
-
-		if(oldPrefetchSet.size() != newPrefetchSet.size()) {
-			if(newPrefetchSet.size() == 0) {
-				return false;
-			}
-			return true;
-		} else {
-			Enumeration e = newPrefetchSet.keys();
-			while(e.hasMoreElements()) {
-				newpp = (PrefetchPair) e.nextElement();
-				double newprob = newPrefetchSet.get(newpp).doubleValue();
-				for(Enumeration elem = oldPrefetchSet.keys(); elem.hasMoreElements();) {
-					oldpp = (PrefetchPair) elem.nextElement();
-					if(oldpp.equals(newpp)) {
-						/*Compare the difference in their probabilities */ 
-						double oldprob = oldPrefetchSet.get(oldpp).doubleValue();
-						if(((newprob - oldprob) > PROB_DIFF) || (newprob >= PREFETCH_THRESHOLD_PROB && oldprob < PREFETCH_THRESHOLD_PROB)) {
-							return true;
-						}
-						break;
-					}
-				}
-			}
-		}
-		return hasChanged;
+    private boolean comparePrefetchSets(Hashtable<PrefetchPair, Double> oldPrefetchSet, Hashtable<PrefetchPair, Double> newPrefetchSet) {
+	if(oldPrefetchSet.size() != newPrefetchSet.size()) {
+	    return true;
 	}
+	for(Enumeration e = newPrefetchSet.keys();e.hasMoreElements();) {
+	    PrefetchPair pp = (PrefetchPair) e.nextElement();
+	    double newprob = newPrefetchSet.get(pp).doubleValue();
+	    if (!oldPrefetchSet.containsKey(pp))
+		return true;//item missing
+	    double oldprob = oldPrefetchSet.get(pp).doubleValue();
+	    if(((newprob - oldprob) > PROB_DIFF) || (newprob >= PREFETCH_THRESHOLD_PROB && oldprob < PREFETCH_THRESHOLD_PROB))//probability different
+		return true;
+	}
+	return false;
+    }
 
 	/** This function processes the prefetch set of FlatFieldNode
 	 * It generates a new prefetch set after comparision with its children
@@ -1609,86 +1587,5 @@ public class PrefetchAnalysis {
 				} //end of else
 			} //End of if
 		} //end of while
-	}
-
-	private void doAnalysis() {
-		Iterator classit=state.getClassSymbolTable().getDescriptorsIterator();
-		while(classit.hasNext()) {
-			ClassDescriptor cn=(ClassDescriptor)classit.next();
-			Iterator methodit=cn.getMethods();
-			while(methodit.hasNext()) {
-				/* Classify parameters */
-				MethodDescriptor md=(MethodDescriptor)methodit.next();
-				FlatMethod fm=state.getMethodFlat(md);
-				printMethod(fm);
-			}
-		}
-	}
-
-	private void printMethod(FlatMethod fm) {
-		System.out.println(fm.getMethod()+" {");
-		HashSet tovisit=new HashSet();
-		HashSet visited=new HashSet();
-		int labelindex=0;
-		Hashtable nodetolabel=new Hashtable();
-		tovisit.add(fm);
-		FlatNode current_node=null;
-		//Assign labels 1st
-		//Node needs a label if it is
-		while(!tovisit.isEmpty()) {
-			FlatNode fn=(FlatNode)tovisit.iterator().next();
-			tovisit.remove(fn);
-			visited.add(fn);
-
-			for(int i=0;i<fn.numNext();i++) {
-				FlatNode nn=fn.getNext(i);
-				if(i>0) {
-					//1) Edge >1 of node
-					nodetolabel.put(nn,new Integer(labelindex++));
-				}
-				if (!visited.contains(nn)&&!tovisit.contains(nn)) {
-					tovisit.add(nn);
-				} else {
-					//2) Join point
-					nodetolabel.put(nn,new Integer(labelindex++));
-				}
-			}
-		}
-		//Do the actual printing
-		tovisit=new HashSet();
-		visited=new HashSet();
-		tovisit.add(fm);
-		while(current_node!=null||!tovisit.isEmpty()) {
-			if (current_node==null) {
-				current_node=(FlatNode)tovisit.iterator().next();
-				tovisit.remove(current_node);
-			}
-			visited.add(current_node);
-			if (nodetolabel.containsKey(current_node))
-				System.out.println("L"+nodetolabel.get(current_node)+":");
-			if (current_node.numNext()==0) {
-				System.out.println("   "+current_node.toString());
-				current_node=null;
-			} else if(current_node.numNext()==1) {
-				System.out.println("   "+current_node.toString());
-				FlatNode nextnode=current_node.getNext(0);
-				if (visited.contains(nextnode)) {
-					System.out.println("goto L"+nodetolabel.get(nextnode));
-					current_node=null;
-				} else
-					current_node=nextnode;
-			} else if (current_node.numNext()==2) {
-				/* Branch */
-				System.out.println("   "+((FlatCondBranch)current_node).toString("L"+nodetolabel.get(current_node.getNext(1))));
-				if (!visited.contains(current_node.getNext(1)))
-					tovisit.add(current_node.getNext(1));
-				if (visited.contains(current_node.getNext(0))) {
-					System.out.println("goto L"+nodetolabel.get(current_node.getNext(0)));
-					current_node=null;
-				} else
-					current_node=current_node.getNext(0);
-			} else throw new Error();
-		}
-		System.out.println("}");
 	}
 }
