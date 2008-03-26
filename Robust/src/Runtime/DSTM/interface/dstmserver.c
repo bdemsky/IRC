@@ -150,27 +150,30 @@ void *dstmAccept(void *acceptfd)
 
 	switch(control) {
 		case READ_REQUEST:
-			/* Read oid requested and search if available */
-			recv_data((int)acceptfd, &oid, sizeof(unsigned int));
-			if((srcObj = mhashSearch(oid)) == NULL) {
-				printf("Error: Object 0x%x is not found in Main Object Store %s, %d\n", oid, __FILE__, __LINE__);
-				pthread_exit(NULL);
-			}
-			h = (objheader_t *) srcObj;
-			GETSIZE(size, h);
-			size += sizeof(objheader_t);
-			sockid = (int) acceptfd;
+            do {
+                /* Read oid requested and search if available */
+                recv_data((int)acceptfd, &oid, sizeof(unsigned int));
+                if((srcObj = mhashSearch(oid)) == NULL) {
+                    printf("Error: Object 0x%x is not found in Main Object Store %s, %d\n", oid, __FILE__, __LINE__);
+                    break;
+                }
+                h = (objheader_t *) srcObj;
+                GETSIZE(size, h);
+                size += sizeof(objheader_t);
+                sockid = (int) acceptfd;
 
-			if (h == NULL) {
-				ctrl = OBJECT_NOT_FOUND;
-				send_data(sockid, &ctrl, sizeof(char));
-			} else {
-				/* Type */
-				char msg[]={OBJECT_FOUND, 0, 0, 0, 0};
-				*((int *)&msg[1])=size;
-				send_data(sockid, &msg, sizeof(msg));
-				send_data(sockid, h, size);
-			}
+                if (h == NULL) {
+                    ctrl = OBJECT_NOT_FOUND;
+                    send_data(sockid, &ctrl, sizeof(char));
+                } else {
+                    /* Type */
+                    char msg[]={OBJECT_FOUND, 0, 0, 0, 0};
+                    *((int *)&msg[1])=size;
+                    send_data(sockid, &msg, sizeof(msg));
+                    send_data(sockid, h, size);
+                }
+				recv_data((int)acceptfd, &control, sizeof(char));
+            } while(control == READ_REQUEST);
 			break;
 		
 		case READ_MULT_REQUEST:
@@ -199,12 +202,13 @@ void *dstmAccept(void *acceptfd)
 			} while (control == TRANS_PREFETCH);
 			break;
 		case TRANS_PREFETCH_RESPONSE:
-			//do {
+			do {
 				if((val = getPrefetchResponse((int) acceptfd)) != 0) {
 					printf("Error: In getPrefetchResponse() %s, %d\n", __FILE__, __LINE__);
-					pthread_exit(NULL);
+					break;
 				}
-			//} while (control == TRANS_PREFETCH_RESPONSE);
+				recv_data((int)acceptfd, &control, sizeof(char));
+			} while (control == TRANS_PREFETCH_RESPONSE);
 			break;
 		case START_REMOTE_THREAD:
 			recv_data((int)acceptfd, &oid, sizeof(unsigned int));
@@ -643,10 +647,10 @@ int prefetchReq(int acceptfd) {
 			}
 			memcpy(offsetarry, recvbuffer + (2 * sizeof(unsigned int)), size);
 			free(recvbuffer);
-#if 0
 			pthread_mutex_lock(&sockLock);
 			sockIdFound = 0;
 			pthread_mutex_unlock(&sockLock);
+            /* If socket is already established then send data reusing socket */
 			for(i = 0; i < NUM_MACHINES; i++) {
 				if(sockArray[i].mid == mid) {
 					sd = sockArray[i].sockid;
@@ -659,8 +663,6 @@ int prefetchReq(int acceptfd) {
 
 			if(sockIdFound == 0) {
 				if(sockCount < NUM_MACHINES) {
-
-#endif
 					/* Create socket to send information */
 					if ((sd = socket(AF_INET, SOCK_STREAM, 0)) < 0){
 						perror("prefetchReq():socket()");
@@ -672,13 +674,12 @@ int prefetchReq(int acceptfd) {
 					remoteAddr.sin_addr.s_addr = htonl(mid);
 
 					if (connect(sd, (struct sockaddr *)&remoteAddr, sizeof(remoteAddr)) < 0){
+						perror("connect");
 						printf("Error: prefetchReq():error %d connecting to %s:%d\n", errno,
 								inet_ntoa(remoteAddr.sin_addr), LISTEN_PORT);
 						close(sd);
 						return -1;
 					}
-
-#if 0
 					sockArray[sockCount].mid = mid;
 					sockArray[sockCount].sockid = sd;
 					pthread_mutex_lock(&sockLock);
@@ -690,7 +691,6 @@ int prefetchReq(int acceptfd) {
 					return -1;
 				}
 			}
-#endif
 
 			/*Process each oid */
 			if ((header = mhashSearch(oid)) == NULL) {/* Obj not found */
@@ -812,7 +812,6 @@ int prefetchReq(int acceptfd) {
 				}
 				free(offsetarry);
 			}
-			close(sd);
 		}
 	} while (length != -1);
 	return 0;

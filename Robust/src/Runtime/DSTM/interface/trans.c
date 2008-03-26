@@ -48,13 +48,16 @@ unsigned int oidsPerBlock;
 unsigned int oidMin;
 unsigned int oidMax;
 
-/************************************************************
+/************************************************************************
  * Global variables to map socketid and remote mid to
- * reuse sockets
- ***********************************************************/
+ * reuse sockets for sending prefetches and making remote read requests
+ ************************************************************************/
 midSocketInfo_t midSocketArray[NUM_MACHINES];
 int sockCount; 		//number of connections with all remote machines(one socket per mc)
 int sockIdFound;	//track if socket file descriptor is already established 
+midSocketInfo_t sockArrayRemoteRead[NUM_MACHINES];
+int sockCountRemoteRead; 		//number of connections with all remote machines(one socket per mc)
+int sockIdFoundRemoteRead;	//track if socket file descriptor is already established 
 
 void printhex(unsigned char *, int);
 plistnode_t *createPiles(transrecord_t *);
@@ -70,7 +73,6 @@ void send_data(int fd , void *buf, int buflen) {
 		numbytes = send(fd, buffer, size, MSG_NOSIGNAL);
 		if (numbytes == -1) {
 			perror("send");
-			printf("error: at %s, %d\n", __FILE__, __LINE__);
 			exit(-1);
 		}
 		buffer += numbytes;
@@ -86,7 +88,6 @@ void recv_data(int fd , void *buf, int buflen) {
 		numbytes = recv(fd, buffer, size, 0);
 		if (numbytes == -1) {
 			perror("recv");
-			printf("error: at %s, %d\n", __FILE__, __LINE__);
 			exit(-1);
 		}
 		buffer += numbytes;
@@ -653,7 +654,6 @@ int transCommit(transrecord_t *record) {
 		printf("Error: in %s() THIS SHOULD NOT HAPPEN.....EXIT PROGRAM\n", __func__);
 		exit(-1);
 	}
-
 	return 0;
 }
 
@@ -861,24 +861,43 @@ void *getRemoteObj(transrecord_t *record, unsigned int mnum, unsigned int oid) {
 	objheader_t *h;
 	void *objcopy;
 
-	if ((sd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-		perror("Error in socket\n");
-		return NULL;
-	}
+    int i;
+    for(i = 0; i < NUM_MACHINES; i++) {
+        if(sockArrayRemoteRead[i].mid == mnum) {
+            sd = sockArrayRemoteRead[i].sockid;
+            sockIdFoundRemoteRead = 1;
+            break;
+        }
+    }
+    
+    if(sockIdFoundRemoteRead == 0) {
+        if(sockCountRemoteRead < NUM_MACHINES) {
+            /* Create socket */
+            if ((sd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+                perror("Error in socket\n");
+                return NULL;
+            }
 
-	bzero((char*) &serv_addr, sizeof(serv_addr));
-	serv_addr.sin_family = AF_INET;
-	serv_addr.sin_port = htons(LISTEN_PORT);
-	midtoIP(mnum,machineip);
-	machineip[15] = '\0';
-	serv_addr.sin_addr.s_addr = inet_addr(machineip);
-
-	// Open connection 
-	if (connect(sd, (struct sockaddr *) &serv_addr, sizeof(struct sockaddr)) < 0) {
-		perror("getRemoteObj() Error in connect\n");
-		return NULL;
-	}
-
+            bzero((char*) &serv_addr, sizeof(serv_addr));
+            serv_addr.sin_family = AF_INET;
+            serv_addr.sin_port = htons(LISTEN_PORT);
+            serv_addr.sin_addr.s_addr = htonl(mnum);
+            // Open connection 
+            if (connect(sd, (struct sockaddr *) &serv_addr, sizeof(struct sockaddr)) < 0) {
+                perror("getRemoteObj() Error in connect\n");
+                close(sd);
+                return NULL;
+            }
+            sockArrayRemoteRead[sockCountRemoteRead].mid = mnum;
+            sockArrayRemoteRead[sockCountRemoteRead].sockid = sd;
+            sockCountRemoteRead++;
+        } else {
+            //TODO Fix for connecting to more than 2 machines && close socket
+            printf("%s(): Error: Currently works for two remote machines\n", __func__);
+            return NULL;
+        }
+    }
+    
 	char readrequest[sizeof(char)+sizeof(unsigned int)];
 	readrequest[0] = READ_REQUEST;
 	*((unsigned int *)(&readrequest[1])) = oid;
@@ -904,8 +923,6 @@ void *getRemoteObj(transrecord_t *record, unsigned int mnum, unsigned int oid) {
 			return NULL;
 	}
 
-	//Close connection 
-	close(sd);
 	return objcopy;
 }
 
