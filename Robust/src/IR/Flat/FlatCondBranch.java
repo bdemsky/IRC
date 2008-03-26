@@ -4,9 +4,18 @@ import java.util.Vector;
 public class FlatCondBranch extends FlatNode {
     TempDescriptor test_cond;
     double trueprob=0.5;
+    boolean loop=false;
 
     public FlatCondBranch(TempDescriptor td) {
 	test_cond=td;
+    }
+
+    public void setLoop() {
+	loop=true;
+    }
+    
+    public boolean isLoopBranch() {
+	return loop;
     }
 
     public void setTrueProb(double p) {

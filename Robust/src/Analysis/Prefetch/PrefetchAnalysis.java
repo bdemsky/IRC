@@ -14,22 +14,25 @@ import IR.*;
 import IR.ClassDescriptor;
 
 public class PrefetchAnalysis {
-	State state;
-	CallGraph callgraph;
-	TypeUtil typeutil;
-	Set<FlatNode> tovisit;
-	public Hashtable<FlatNode, Hashtable<PrefetchPair, Double>> prefetch_hash;//holds all flatnodes and corresponding prefetch set
-	public Hashtable<FlatNode, Hashtable<FlatNode, PairMap>> pmap_hash;//holds all flatnodes and mappings between child prefetch pair and parent prefetch pair
-	public static final double PROB_DIFF = 0.05;	//threshold for difference in probabilities during first phase of analysis
-	public static final double ANALYSIS_THRESHOLD_PROB = 0.10; //threshold for prefetches to stop propagating during first phase of analysis
-	public static final double PREFETCH_THRESHOLD_PROB = 0.30;//threshold for prefetches to stop propagating while applying prefetch rules during second phase of analysis
-
+    State state;
+    CallGraph callgraph;
+    TypeUtil typeutil;
+    LoopExit loop;
+    
+    Set<FlatNode> tovisit;
+    public Hashtable<FlatNode, Hashtable<PrefetchPair, Double>> prefetch_hash;//holds all flatnodes and corresponding prefetch set
+    public Hashtable<FlatNode, Hashtable<FlatNode, PairMap>> pmap_hash;//holds all flatnodes and mappings between child prefetch pair and parent prefetch pair
+    public static final double PROB_DIFF = 0.05;	//threshold for difference in probabilities during first phase of analysis
+    public static final double ANALYSIS_THRESHOLD_PROB = 0.10; //threshold for prefetches to stop propagating during first phase of analysis
+    public static final double PREFETCH_THRESHOLD_PROB = 0.30;//threshold for prefetches to stop propagating while applying prefetch rules during second phase of analysis
+    
     public PrefetchAnalysis(State state, CallGraph callgraph, TypeUtil typeutil) {
 	this.typeutil=typeutil;
 	this.state=state;
 	this.callgraph=callgraph;
 	prefetch_hash = new Hashtable<FlatNode, Hashtable<PrefetchPair,Double>>();
 	pmap_hash = new Hashtable<FlatNode, Hashtable<FlatNode, PairMap>>();
+	this.loop=new LoopExit(state);
 	DoPrefetch();
     }
     
@@ -74,7 +77,7 @@ public class PrefetchAnalysis {
 	tovisit = fm.getNodeSet(); 
 	while(!tovisit.isEmpty()) {
 	    FlatNode fn = (FlatNode)tovisit.iterator().next();
-	    doChildNodeAnalysis(fn);
+	    doChildNodeAnalysis(fm.getMethod(),fn);
 	    tovisit.remove(fn);
 	}
     }
@@ -85,17 +88,9 @@ public class PrefetchAnalysis {
      * returns true: if the prefetch set has changed since last time the node was analysed
      * returns false : otherwise 
      */ 
-    private void doChildNodeAnalysis(FlatNode curr) {
+    private void doChildNodeAnalysis(MethodDescriptor md, FlatNode curr) {
 	if (curr.kind()==FKind.FlatCondBranch) {
-	    Hashtable<PrefetchPair, Double> child_prefetch_set_copy = new Hashtable<PrefetchPair, Double>();
-	    Hashtable<PrefetchPair, Double> branch_prefetch_set =  new Hashtable<PrefetchPair,Double>();
-	    for (int i = 0; i < curr.numNext(); i++) {
-		FlatNode child_node = curr.getNext(i);
-		if (prefetch_hash.containsKey(child_node)) {
-		    child_prefetch_set_copy = (Hashtable<PrefetchPair,Double>) prefetch_hash.get(child_node).clone();
-		}
-		processFlatCondBranch(curr, child_prefetch_set_copy, i, branch_prefetch_set);
-	    }
+	    processFlatCondBranch((FlatCondBranch)curr, md);
 	} else {
 	    Hashtable<PrefetchPair, Double> child_prefetch_set_copy = new Hashtable<PrefetchPair, Double>();
 	    if(curr.numNext() != 0) {
@@ -160,9 +155,8 @@ public class PrefetchAnalysis {
 	    double newprob = newPrefetchSet.get(pp).doubleValue();
 	    if (!oldPrefetchSet.containsKey(pp))
 		return true;
-	    
 	    double oldprob = oldPrefetchSet.get(pp).doubleValue();
-
+	    
 	    if((newprob - oldprob) > PROB_DIFF) {
 		return true;
 	    }
@@ -173,7 +167,6 @@ public class PrefetchAnalysis {
 		System.out.println("ERROR:" + pp);
 		System.out.println(oldprob + " -> "+ newprob);
 	    }
-
 	}
 	return false;
     }
@@ -679,80 +672,46 @@ public class PrefetchAnalysis {
      * It combines prefetches of both child elements and create a new hash table called
      * branch_prefetch_set to contains the entries of both its children
      */
-    private void processFlatCondBranch(FlatNode curr, Hashtable<PrefetchPair, Double> child_prefetch_set_copy, int index, Hashtable<PrefetchPair,Double> branch_prefetch_set) {
+    private void processFlatCondBranch(FlatCondBranch fcb, MethodDescriptor md) {
 	Hashtable<PrefetchPair, Double> tocompare = new Hashtable<PrefetchPair, Double>();//temporary hash table
-	FlatCondBranch currfcb = (FlatCondBranch) curr;
-	PairMap pm = new PairMap();
-	for (Enumeration ecld = child_prefetch_set_copy.keys();ecld.hasMoreElements();) {
-	    PrefetchPair childpp = (PrefetchPair) ecld.nextElement();
-	    /* True Edge */
-	    if(index == 0) {
-		Double newprob = child_prefetch_set_copy.get(childpp).doubleValue() * currfcb.getTrueProb();
-		tocompare.put(childpp, newprob); 
-		pm.addPair(childpp, childpp);
-	    } else if(index == 1) { /* False Edge */
-		Double newprob = child_prefetch_set_copy.get(childpp).doubleValue() * currfcb.getFalseProb();
-		tocompare.put(childpp, newprob); 
-		pm.addPair(childpp, childpp);
-	    } else {
-		throw new Error("processFlatCondBranch() has only two child edges");
-	    }
-	}
+	PairMap truepm = new PairMap();
+	PairMap falsepm = new PairMap();
+	Hashtable<PrefetchPair, Double> truechild=prefetch_hash.get(fcb.getNext(0));
+	Hashtable<PrefetchPair, Double> falsechild=prefetch_hash.get(fcb.getNext(1));
 	
-	updatePairMap(curr, pm, index);
+	HashSet<PrefetchPair> allpp=new HashSet<PrefetchPair>();
+	allpp.addAll(truechild.keySet());
+	allpp.addAll(falsechild.keySet());
 	
-	/* Update branch_prefetch_set (global hash table) to combine all prefetch pairs from childnodes of the
-	 * cond branch that is currently stored in the tocompare hash table */
-	if(!tocompare.isEmpty()) {
-	    if(index == 0) { /* True Edge */
-		branch_prefetch_set.putAll(tocompare);
-	    }else if(index == 1) { /* False Edge */
-		if(branch_prefetch_set.isEmpty()) {
-		    branch_prefetch_set.putAll(tocompare);
-		} else {
-		    for (Enumeration e = tocompare.keys();e.hasMoreElements();) {
-			PrefetchPair pp = (PrefetchPair) e.nextElement();
-			if(branch_prefetch_set.containsKey(pp)) {
-			    Double newprob = (branch_prefetch_set.get(pp).doubleValue() + tocompare.get(pp).doubleValue());
-			    if(newprob < ANALYSIS_THRESHOLD_PROB) {
-				branch_prefetch_set.remove(pp); 
-			    } else {
-				branch_prefetch_set.put(pp, newprob); 
-			    }
-			} else {
-			    branch_prefetch_set.put(pp,tocompare.get(pp).doubleValue());
-			}
-			tocompare.remove(pp);
-		    }
-		}
-	    } else {
-		throw new Error("processFlatCondBranch() has only two child edges");
-	    }
-	}
-	
-	/* Compare prefetch sets and enqueue parent nodes: Only possible after combining prefetch pairs of both child nodes 
-	 * into branch_prefetch_set hashtable*/
-	if(index == 1) {
-	    /* Delete the prefetch pairs below threshold */
-	    for(Iterator it = branch_prefetch_set.keySet().iterator(); it.hasNext();) {
-		PrefetchPair pp = (PrefetchPair) it.next();
-		if(branch_prefetch_set.get(pp).doubleValue() < ANALYSIS_THRESHOLD_PROB) {
-		    /* Delete pair mappings of PSChild-> PSParent for these prefetch pairs */ 
-		    for(int i = 0; i<curr.numNext(); i++) {
-			FlatNode fn = (FlatNode) curr.getNext(i);
-			Hashtable<FlatNode, PairMap> pairmap = pmap_hash.get(fn);
-			PairMap childpm = pairmap.get(curr);
-			if(childpm!=null && childpm.contains(pp)) {
-			    childpm.removePair(pp);
-			}
-		    }
-		    branch_prefetch_set.remove(pp);
-		    it = branch_prefetch_set.keySet().iterator();
-		}
+	for(Iterator<PrefetchPair> ppit=allpp.iterator();ppit.hasNext();) {
+	    PrefetchPair pp=ppit.next();
+	    double trueprob=0,falseprob=0;
+	    if (truechild.containsKey(pp))
+		trueprob=truechild.get(pp).doubleValue();
+	    if (falsechild.containsKey(pp))
+		falseprob=falsechild.get(pp).doubleValue();
+
+	    double newprob=trueprob*fcb.getTrueProb()+falseprob*fcb.getFalseProb();
+	    if (loop.isLoopingBranch(md,fcb)&&
+		newprob<falseprob) {
+		newprob=falseprob;
 	    }
 	    
-	    updatePrefetchSet(curr, branch_prefetch_set);
+	    if(newprob < ANALYSIS_THRESHOLD_PROB) //Skip pp that are below threshold
+		continue;
+
+	    tocompare.put(pp, newprob);
+	    if (truechild.containsKey(pp))
+		truepm.addPair(pp, pp);
+
+	    if (falsechild.containsKey(pp))
+		falsepm.addPair(pp, pp);
+
 	}
+	
+	updatePairMap(fcb, truepm, 0);
+	updatePairMap(fcb, falsepm, 1);
+	updatePrefetchSet(fcb, tocompare);
     }
     
     /** If FlatNode is not concerned with the prefetch set of its Child then propagate 
