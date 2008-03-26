@@ -40,6 +40,7 @@ public class LoopExit {
 	
 	while(!nodeset.isEmpty()) {
 	    FlatNode fn=nodeset.iterator().next();
+	    nodeset.remove(fn);
 	    if (fn.kind()==FKind.FlatCondBranch&&((FlatCondBranch)fn).isLoopBranch()) {
 		FlatCondBranch fcb=(FlatCondBranch)fn;
 		loopbranchset.add(fcb);
@@ -49,7 +50,8 @@ public class LoopExit {
 		propagateset(nodeset, table, fcb, fcb.getNext(1), null); 
 		loopbranchset.add(fcb);
 	    } else if (fn.kind()==FKind.FlatReturnNode) {
-		exitset.addAll(table.get(fn));
+		if (table.containsKey(fn))
+		    exitset.addAll(table.get(fn));
 	    } else {
 		for(int i=0;i<fn.numNext();i++)
 		    propagateset(nodeset, table, fn, fn.getNext(i), null); 
