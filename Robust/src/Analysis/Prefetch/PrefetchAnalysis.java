@@ -694,7 +694,6 @@ public class PrefetchAnalysis {
 	    double newprob=trueprob*fcb.getTrueProb()+falseprob*fcb.getFalseProb();
 	    if (loop.isLoopingBranch(md,fcb)&&
 		newprob<falseprob) {
-		System.out.println("Adjusting:"+fcb);
 		newprob=falseprob;
 	    }
 	    
