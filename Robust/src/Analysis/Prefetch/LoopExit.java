@@ -66,8 +66,12 @@ public class LoopExit {
 	if (table.containsKey(fn)) {
 	    if (!table.containsKey(fnnext))
 		table.put(fnnext, new HashSet<FlatCondBranch>());
-	    if(!table.get(fnnext).containsAll(table.get(fn))) {
-		table.get(fnnext).addAll(table.get(fn));
+	    HashSet<FlatCondBranch> toadd=new HashSet<FlatCondBranch>();
+	    toadd.addAll(table.get(fn));
+	    if (toadd.contains(fnnext)) //can't propagate back to node
+		toadd.remove(fnnext);
+	    if(!table.get(fnnext).containsAll(toadd)) {
+		table.get(fnnext).addAll(toadd);
 		enqueuechange=true;
 	    }
 	}
