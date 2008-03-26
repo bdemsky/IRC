@@ -48,7 +48,7 @@ public class MatrixMultiply extends Thread{
 		int mid2 = (128<<24)|(195<<16)|(175<<8)|69;
 		int mid3 = (128<<24)|(195<<16)|(175<<8)|71;
 		int NUM_THREADS = 1;
-		int i, j, p, q, r;
+		int p, q, r;
 		MatrixMultiply[] mm;
 		MatrixMultiply tmp;
 		MMul matrix;
@@ -86,7 +86,7 @@ public class MatrixMultiply extends Thread{
 		System.printString("\n");
 
 		// start a thread to compute each c[l,n]
-		for (i = 0; i < NUM_THREADS; i++) {
+		for (int i = 0; i < NUM_THREADS; i++) {
 			atomic {
 				tmp = mm[i];
 			}
@@ -94,7 +94,7 @@ public class MatrixMultiply extends Thread{
 		}
 
 		// wait for them to finish
-		for (i = 0; i < NUM_THREADS; i++) {
+		for (int i = 0; i < NUM_THREADS; i++) {
 			atomic {
 				tmp = mm[i];
 			}
@@ -106,9 +106,9 @@ public class MatrixMultiply extends Thread{
 		System.printString("Matrix Product c =\n");
 		int val;
 		atomic {
-			for (i = 0; i < p; i++) {
+			for (int i = 0; i < p; i++) {
 				int c[]=matrix.c[i];
-				for (j = 0; j < r; j++) {
+				for (int j = 0; j < r; j++) {
 					val = c[j];
 				}
 			}
@@ -136,38 +136,39 @@ public class MMul{
 	}
 
 	public void setValues() {
-		int i;
-		int j;
-		for(i = 0; i < L; i++) {
-			for(j = 0; j < M; j++) {
-				a[i][j] = j+1;
+		for(int i = 0; i < L; i++) {
+            int ai[] = a[i];
+			for(int j = 0; j < M; j++) {
+				ai[j] = j+1;
 			}
 		}
 
-		for(i = 0; i < M; i++) {
-			for(j = 0; j < N; j++) {
-				b[i][j] = j+1;
+		for(int i = 0; i < M; i++) {
+            int bi[] = b[i];
+			for(int j = 0; j < N; j++) {
+				bi[j] = j+1;
 			}
 		}
 
-		for(i = 0; i < L; i++) {
-			for(j = 0; j < N; j++) {
-				c[i][j] = 0;
+		for(int i = 0; i < L; i++) {
+            int ci[] = c[i];
+			for(int j = 0; j < N; j++) {
+				ci[j] = 0;
 			}
 		}
-		for(i = 0; i < N; i++) {
-			for(j = 0; j < M; j++) {
-				btranspose[i][j] = 0;
+		for(int i = 0; i < N; i++) {
+            int btransposei[] = btranspose[i];
+			for(int j = 0; j < M; j++) {
+				btransposei[j] = 0;
 			}
 		}
 	}
 
 	public void transpose() {
-		int row;
-		int col;
-		for(row = 0; row < M; row++) {
-			for(col = 0; col < N; col++) {
-				btranspose[col][row] = b[row][col];
+		for(int row = 0; row < M; row++) {
+            int brow[] = b[row];
+			for(int col = 0; col < N; col++) {
+				btranspose[col][row] = brow[col];
 			}
 		}
 	}
