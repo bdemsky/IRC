@@ -253,11 +253,13 @@ public class OwnershipAnalysis {
 	    for( int i = 0; i < fm.numParameters(); ++i ) {
 		TempDescriptor tdParam = fm.getParameter( i );
 		og.assignTempToParameterAllocation( methodDesc instanceof TaskDescriptor,
-						    tdParam );
+						    tdParam,
+						    new Integer( i ) );
 		//og.writeGraph( methodDesc, fn );
 	    }
+
 	    break;
-	    
+
 	case FKind.FlatOpNode:
 	    FlatOpNode fon = (FlatOpNode) fn;
 	    if( fon.getOp().getOp() == Operation.ASSIGN ) {

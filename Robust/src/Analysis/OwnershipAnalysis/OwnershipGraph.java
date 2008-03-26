@@ -19,13 +19,15 @@ public class OwnershipGraph {
 
     public Hashtable<Integer,        HeapRegionNode> id2hrn;
     public Hashtable<TempDescriptor, LabelNode     > td2ln;
+    public Hashtable<Integer,        Integer       > id2paramIndex;
 
 
     public OwnershipGraph( int allocationDepth ) {
 	this.allocationDepth = allocationDepth;
 
-	id2hrn = new Hashtable<Integer,        HeapRegionNode>();
-	td2ln  = new Hashtable<TempDescriptor, LabelNode     >();
+	id2hrn        = new Hashtable<Integer,        HeapRegionNode>();
+	td2ln         = new Hashtable<TempDescriptor, LabelNode     >();
+	id2paramIndex = new Hashtable<Integer,        Integer       >();
     }
 
 
@@ -215,8 +217,9 @@ public class OwnershipGraph {
 	}	
     }
 
-    public void assignTempToParameterAllocation( boolean isTask,
-						 TempDescriptor td ) {
+    public void assignTempToParameterAllocation( boolean        isTask,
+						 TempDescriptor td,
+						 Integer        paramIndex ) {
 	assert td != null;
 
 	LabelNode      lnParam = getLabelNodeFromTemp( td );
@@ -226,8 +229,20 @@ public class OwnershipGraph {
 							  false,
 							  "param" );
 
+	// keep track of heap regions that were created for
+	// parameter labels, the index of the parameter they
+	// are for is important when resolving method calls
+	Integer newID = hrn.getID();
+	assert !id2paramIndex.containsKey  ( newID );
+	assert !id2paramIndex.containsValue( paramIndex );
+	id2paramIndex.put( newID, paramIndex );
+
+	// heap regions for parameters are always multiple object (see above)
+	// and have a reference to themselves, because we can't know the
+	// structure of memory that is passed into the method.  We're assuming
+	// the worst here.
 	addReferenceEdge( lnParam, hrn, new ReferenceEdgeProperties( false ) );
-	addReferenceEdge( hrn,     hrn, new ReferenceEdgeProperties( false ) );
+	addReferenceEdge( hrn,     hrn, new ReferenceEdgeProperties( false, true ) );
     }
     
     public void assignTempToNewAllocation( TempDescriptor td,
@@ -459,6 +474,14 @@ public class OwnershipGraph {
 	    this.age( (AllocationSite) i.next() );
 	}
 
+	// in non-static methods there is a "this" pointer
+	// that should be taken into account
+	if( isStatic ) {
+	    assert fc.numArgs()     == fm.numParameters();
+	} else {
+	    assert fc.numArgs() + 1 == fm.numParameters();
+	}
+
 	// the heap regions represented by the arguments (caller graph)
 	// and heap regions for the parameters (callee graph)
 	// don't correspond to each other by heap region ID.  In fact,
@@ -466,21 +489,7 @@ public class OwnershipGraph {
 	// so the parameter label always references a multiple-object
 	// heap region in order to handle the range of possible contexts
 	// for a method call.  This means we need to make a special mapping
-	// of argument->parameter regions in order to update the caller graph,
-	// then remember which heap regions were used so we can ignore them
-	// in the more general algorithm below that includes all heap regions
-	// of the callee graph
-	HashSet<Integer> calleeParameterIDs = new HashSet<Integer>();
-
-	if( isStatic ) {
-	    assert fc.numArgs()     == fm.numParameters();
-	} else {
-	    assert fc.numArgs() + 1 == fm.numParameters();
-	}
-
-	for( int a = 0; a < fc.numArgs(); ++a ) {
-	    
-	}
+	// of argument->parameter regions in order to update the caller graph
 
 	// for every heap region->heap region edge in the
 	// callee graph, create the matching edge or edges
@@ -500,16 +509,78 @@ public class OwnershipGraph {
 		ReferenceEdgeProperties repC = (ReferenceEdgeProperties) me.getValue();
 
 		Integer idChildCallee = hrnChildCallee.getID();
+
+		// only address this edge if it is not a special reflexive edge
+		if( !repC.isInitialParamReflexive() ) {
 		
-		// now we know that in the callee method's ownership graph
-		// there is a heap region->heap region reference edge given
-		// by the ownership-graph independent ID's:
-		// idCallee->idChildCallee
-		// 
+		    // now we know that in the callee method's ownership graph
+		    // there is a heap region->heap region reference edge given
+		    // by heap region pointers:
+		    // hrnCallee -> heapChildCallee
+		    //
+		    // or by the ownership-graph independent ID's:
+		    // idCallee -> idChildCallee		
+		    //
+		    // So now make a set of possible source heaps in the caller graph
+		    // and a set of destination heaps in the caller graph, and make
+		    // a reference edge in the caller for every possible (src,dst) pair 
+		    HashSet<HeapRegionNode> possibleCallerSrcs = new HashSet<HeapRegionNode>();
+		    HashSet<HeapRegionNode> possibleCallerDsts = new HashSet<HeapRegionNode>();	      
+		    
+		    // first figure out the set of possible sources in the caller
+		    if( ogCallee.id2paramIndex.containsKey( idCallee ) ) {
+			// the heap region that is the source of this
+			// reference edge won't have a matching ID in the
+			// caller graph because it is specifically allocated
+			// for a particular parameter.  Use that information
+			// to find the corresponding argument label in the
+			// caller in order to create the proper reference edge
+			// or edges.
+			assert !id2hrn.containsKey( idCallee );
+			
+			Integer paramIndex = ogCallee.id2paramIndex.get( idCallee );
+			TempDescriptor argTemp;
+			
+			// now depending on whether the callee is static or not
+			// we need to account for a "this" argument in order to
+			// find the matching argument in the caller context
+			if( isStatic ) {
+			    argTemp = fc.getArg( paramIndex );
+			} else {
+			    if( paramIndex == 0 ) {
+				argTemp = fc.getThis();
+			    } else {
+				argTemp = fc.getArg( paramIndex - 1 );
+			    }
+			}
+			
+			LabelNode argLabel = getLabelNodeFromTemp( argTemp );
+			Iterator argHeapRegionsItr = argLabel.setIteratorToReferencedRegions();
+			while( argHeapRegionsItr.hasNext() ) {
+			    Map.Entry meArg                = (Map.Entry)               argHeapRegionsItr.next();
+			    HeapRegionNode argHeapRegion   = (HeapRegionNode)          meArg.getKey();
+			    ReferenceEdgeProperties repArg = (ReferenceEdgeProperties) meArg.getValue();
+			    
+			    possibleCallerSrcs.add( (HeapRegionNode) argHeapRegion );
+			}
+			
+		    } else {
+			// this heap region is not a parameter, so it should
+			// have a matching heap region in the caller graph
+			
+			/*
+			  try {
+			  ogCallee.writeGraph( "TheCallee" );
+			  writeGraph( "TheCaller" );
+			  } catch( Exception e ) {}
+			*/
+			
+			assert id2hrn.containsKey( idCallee );
+			possibleCallerSrcs.add( id2hrn.get( idCallee ) );
+		    }
 
-
-		// at this point we know an edge in graph A exists
-		// idA -> idChildA, does this exist in B?
+		    // second find the set of possible destinations in the caller
+		}
 	    } 
 	}	
     }
@@ -528,8 +599,9 @@ public class OwnershipGraph {
 	  return;
         }
 
-	mergeOwnershipNodes ( og );
-	mergeReferenceEdges ( og );
+	mergeOwnershipNodes( og );
+	mergeReferenceEdges( og );
+	mergeId2paramIndex( og );
     }
 
     protected void mergeOwnershipNodes( OwnershipGraph og ) {
@@ -675,6 +747,22 @@ public class OwnershipGraph {
 	}
     }
 
+    // you should only merge ownership graphs that have the
+    // same number of parameters, or if one or both parameter
+    // index tables are empty
+    protected void mergeId2paramIndex( OwnershipGraph og ) {
+	if( id2paramIndex.size() == 0 ) {
+	    id2paramIndex = og.id2paramIndex;
+	    return;
+	}
+
+	if( og.id2paramIndex.size() == 0 ) {
+	    return;
+	}
+
+	assert id2paramIndex.size() == og.id2paramIndex.size();
+    }
+
 
     // it is necessary in the equals() member functions
     // to "check both ways" when comparing the data
@@ -705,6 +793,10 @@ public class OwnershipGraph {
 	}
 
 	if( !areLabelToHeapRegionEdgesEqual( og ) ) {
+	    return false;
+	}
+
+	if( !areId2paramIndexEqual( og ) ) {
 	    return false;
 	}
 
@@ -955,6 +1047,12 @@ public class OwnershipGraph {
 
 	return true;
     }
+
+
+    protected boolean areId2paramIndexEqual( OwnershipGraph og ) {
+	return id2paramIndex.size() == og.id2paramIndex.size();
+    }
+
 
 
     /*
