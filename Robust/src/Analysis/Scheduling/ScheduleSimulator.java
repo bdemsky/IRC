@@ -135,6 +135,8 @@ public class ScheduleSimulator {
     public int process() {
 	assert(this.scheduling != null);
 	
+	this.invoketime++;
+	
 	if(this.checkpoints == null) {
 	    this.checkpoints = new Vector<CheckPoint>();
 	} else {
@@ -314,7 +316,6 @@ public class ScheduleSimulator {
 	for(int j = 0; j < this.cores.size(); j++) {
 	    System.out.println("\t\tcore" + j + ": " + getUtility(j) + "%");
 	}
-	this.invoketime++;
 	return this.processTime;
     }
     
