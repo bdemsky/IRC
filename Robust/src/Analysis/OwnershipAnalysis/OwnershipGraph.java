@@ -524,67 +524,97 @@ public class OwnershipGraph {
 		    // So now make a set of possible source heaps in the caller graph
 		    // and a set of destination heaps in the caller graph, and make
 		    // a reference edge in the caller for every possible (src,dst) pair 
-		    HashSet<HeapRegionNode> possibleCallerSrcs = new HashSet<HeapRegionNode>();
-		    HashSet<HeapRegionNode> possibleCallerDsts = new HashSet<HeapRegionNode>();	      
-		    
-		    // first figure out the set of possible sources in the caller
-		    if( ogCallee.id2paramIndex.containsKey( idCallee ) ) {
-			// the heap region that is the source of this
-			// reference edge won't have a matching ID in the
-			// caller graph because it is specifically allocated
-			// for a particular parameter.  Use that information
-			// to find the corresponding argument label in the
-			// caller in order to create the proper reference edge
-			// or edges.
-			assert !id2hrn.containsKey( idCallee );
-			
-			Integer paramIndex = ogCallee.id2paramIndex.get( idCallee );
-			TempDescriptor argTemp;
-			
-			// now depending on whether the callee is static or not
-			// we need to account for a "this" argument in order to
-			// find the matching argument in the caller context
-			if( isStatic ) {
-			    argTemp = fc.getArg( paramIndex );
-			} else {
-			    if( paramIndex == 0 ) {
-				argTemp = fc.getThis();
-			    } else {
-				argTemp = fc.getArg( paramIndex - 1 );
-			    }
-			}
-			
-			LabelNode argLabel = getLabelNodeFromTemp( argTemp );
-			Iterator argHeapRegionsItr = argLabel.setIteratorToReferencedRegions();
-			while( argHeapRegionsItr.hasNext() ) {
-			    Map.Entry meArg                = (Map.Entry)               argHeapRegionsItr.next();
-			    HeapRegionNode argHeapRegion   = (HeapRegionNode)          meArg.getKey();
-			    ReferenceEdgeProperties repArg = (ReferenceEdgeProperties) meArg.getValue();
-			    
-			    possibleCallerSrcs.add( (HeapRegionNode) argHeapRegion );
-			}
-			
-		    } else {
-			// this heap region is not a parameter, so it should
-			// have a matching heap region in the caller graph
-			
-			/*
-			  try {
-			  ogCallee.writeGraph( "TheCallee" );
-			  writeGraph( "TheCaller" );
-			  } catch( Exception e ) {}
-			*/
-			
-			assert id2hrn.containsKey( idCallee );
-			possibleCallerSrcs.add( id2hrn.get( idCallee ) );
-		    }
+		    HashSet<HeapRegionNode> possibleCallerSrcs =  
+			getHRNSetThatPossiblyMapToCalleeHRN( ogCallee,
+							     idCallee,
+							     fc,
+							     isStatic );
 
-		    // second find the set of possible destinations in the caller
+		    HashSet<HeapRegionNode> possibleCallerDsts = 
+			getHRNSetThatPossiblyMapToCalleeHRN( ogCallee,
+							     idChildCallee,
+							     fc,
+							     isStatic );
+
+		    // make every possible pair of {srcSet} -> {dstSet} edges in the caller
+		    Iterator srcItr = possibleCallerSrcs.iterator();
+		    while( srcItr.hasNext() ) {
+			HeapRegionNode src = (HeapRegionNode) srcItr.next();
+
+			Iterator dstItr = possibleCallerDsts.iterator();
+			while( dstItr.hasNext() ) {
+			    HeapRegionNode dst = (HeapRegionNode) dstItr.next();
+
+			    ReferenceEdgeProperties rep = new ReferenceEdgeProperties();
+			    addReferenceEdge( src, dst, rep );
+			}
+		    }
 		}
 	    } 
 	}	
     }
 
+    private HashSet<HeapRegionNode> getHRNSetThatPossiblyMapToCalleeHRN( OwnershipGraph ogCallee,
+									 Integer        idCallee,
+									 FlatCall       fc,
+									 boolean        isStatic ) {
+
+	HashSet<HeapRegionNode> possibleCallerHRNs = new HashSet<HeapRegionNode>();
+
+	if( ogCallee.id2paramIndex.containsKey( idCallee ) ) {
+	    // the heap region that is part of this
+	    // reference edge won't have a matching ID in the
+	    // caller graph because it is specifically allocated
+	    // for a particular parameter.  Use that information
+	    // to find the corresponding argument label in the
+	    // caller in order to create the proper reference edge
+	    // or edges.
+	    assert !id2hrn.containsKey( idCallee );
+	    
+	    Integer paramIndex = ogCallee.id2paramIndex.get( idCallee );
+	    TempDescriptor argTemp;
+	    
+	    // now depending on whether the callee is static or not
+	    // we need to account for a "this" argument in order to
+	    // find the matching argument in the caller context
+	    if( isStatic ) {
+		argTemp = fc.getArg( paramIndex );
+	    } else {
+		if( paramIndex == 0 ) {
+		    argTemp = fc.getThis();
+		} else {
+		    argTemp = fc.getArg( paramIndex - 1 );
+		}
+	    }
+	    
+	    LabelNode argLabel = getLabelNodeFromTemp( argTemp );
+	    Iterator argHeapRegionsItr = argLabel.setIteratorToReferencedRegions();
+	    while( argHeapRegionsItr.hasNext() ) {
+		Map.Entry meArg                = (Map.Entry)               argHeapRegionsItr.next();
+		HeapRegionNode argHeapRegion   = (HeapRegionNode)          meArg.getKey();
+		ReferenceEdgeProperties repArg = (ReferenceEdgeProperties) meArg.getValue();
+		
+		possibleCallerHRNs.add( (HeapRegionNode) argHeapRegion );
+	    }
+	    
+	} else {
+	    // this heap region is not a parameter, so it should
+	    // have a matching heap region in the caller graph
+	    
+	    /*
+	      try {
+	      ogCallee.writeGraph( "TheCallee" );
+	      writeGraph( "TheCaller" );
+	      } catch( Exception e ) {}
+	    */
+	    
+	    assert id2hrn.containsKey( idCallee );
+	    possibleCallerHRNs.add( id2hrn.get( idCallee ) );
+	}
+
+	return possibleCallerHRNs;
+    }
+    
 
 
     ////////////////////////////////////////////////////

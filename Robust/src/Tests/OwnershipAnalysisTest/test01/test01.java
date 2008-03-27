@@ -20,6 +20,7 @@ public class Penguin {
 }
 */
 
+/*
 public class Voo {
     flag f; int x; Baw b;
 
@@ -33,13 +34,30 @@ public class Baw {
 
     public void doTheBaw( Voo v ) { v = new Voo(); }
 }
+*/
 
+public class Foo {
+    public Foo() {}
+
+    public Foo x;
+
+    public void ruinSomeFoos( Foo a, Foo b ) {
+	a.x = b.x;
+    }
+}
 
 // this empty task should still create a non-empty
 // ownership graph showing parameter allocation
 // look for the parameter s as a label referencing
 // a heap region that is multi-object, flagged, not summary
 task Startup( StartupObject s{ initialstate } ) {
+ 
+    Foo a = new Foo();
+    Foo b = new Foo();
+    Foo c = new Foo();
+    
+    c.ruinSomeFoos( a, b );
+
     taskexit( s{ !initialstate } );
 }
 
@@ -47,6 +65,7 @@ task Startup( StartupObject s{ initialstate } ) {
 // be a heap region for the parameter, and several
 // heap regions for the allocation site, but the label
 // merely points to the newest region
+/*
 task NewObject( Voo v{ f } ) {
     Voo w = new Voo();
     Baw b = new Baw();
@@ -80,3 +99,4 @@ task NewInLoop( Voo v{ f } ) {
 
     taskexit( v{ !f } );
 }
+*/

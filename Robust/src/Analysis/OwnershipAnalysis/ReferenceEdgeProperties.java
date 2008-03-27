@@ -2,6 +2,11 @@ package Analysis.OwnershipAnalysis;
 
 public class ReferenceEdgeProperties {
 
+    public ReferenceEdgeProperties() {
+	this.isUnique                = false;
+	this.isInitialParamReflexive = false;
+    }    
+
     public ReferenceEdgeProperties( boolean isUnique ) {
 	this.isUnique                = isUnique;
 	this.isInitialParamReflexive = false;
