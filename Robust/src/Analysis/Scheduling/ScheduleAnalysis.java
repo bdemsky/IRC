@@ -576,9 +576,37 @@ public class ScheduleAnalysis {
 	sEdge.setTransTime(cNode.getTransTime());
 	se.getSource().addEdge(sEdge);
 	scheduleEdges.add(sEdge);
+	// remove the ClassNodes and internal ScheduleEdges out of this subtree to the new ScheduleNode
+	ScheduleNode oldSNode = (ScheduleNode)se.getSource();
+	Iterator it_isEdges = oldSNode.getScheduleEdgesIterator();
+	Vector<ScheduleEdge> toremove = new Vector<ScheduleEdge>();
+	Vector<ClassNode> rCNodes = new Vector<ClassNode>();
+	rCNodes.addElement(sCNode);
+	if(it_isEdges != null){
+	    while(it_isEdges.hasNext()) {
+		ScheduleEdge tse = (ScheduleEdge)it_isEdges.next();
+		if(rCNodes.contains(tse.getSourceCNode())) {
+		    if(sCNode == tse.getSourceCNode()) {
+			if ((tse.getSourceFState() != fs) && (sFStates.contains(tse.getSourceFState()))) {
+			    tse.setSource(cNode);
+			    tse.setSourceCNode(cNode);
+			} else {
+			    continue;
+			}
+		    }
+		    sNode.getScheduleEdges().addElement(tse);
+		    sNode.getClassNodes().addElement(tse.getTargetCNode());
+		    rCNodes.addElement(tse.getTargetCNode());
+		    oldSNode.getClassNodes().removeElement(tse.getTargetCNode());
+		    toremove.addElement(tse);
+		}
+	    }
+	}
+	oldSNode.getScheduleEdges().removeAll(toremove);
+	toremove.clear();
 	// redirect ScheudleEdges out of this subtree to the new ScheduleNode
 	Iterator it_sEdges = se.getSource().edges();
-	Vector<ScheduleEdge> toremove = new Vector<ScheduleEdge>();
+	//Vector<ScheduleEdge> toremove = new Vector<ScheduleEdge>();
 	while(it_sEdges.hasNext()) {
 	    ScheduleEdge tse = (ScheduleEdge)it_sEdges.next();
 	    if((tse != se) && (tse != sEdge) && (tse.getSourceCNode() == sCNode)) {
