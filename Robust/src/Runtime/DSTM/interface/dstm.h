@@ -42,6 +42,7 @@
 #define THREAD_NOTIFY_REQUEST		24
 #define THREAD_NOTIFY_RESPONSE		25
 #define TRANS_UNSUCESSFUL		26
+#define CLOSE_CONNECTION                27
 
 //Max number of objects 
 #define MAX_OBJECTS  20
@@ -200,6 +201,7 @@ typedef struct midSocketInfo {
 int dstmInit(void);
 void send_data(int fd, void *buf, int buflen);
 void recv_data(int fd, void *buf, int buflen);
+int recv_data_errorcode(int fd, void *buf, int buflen);
 
 /* Prototypes for object header */
 unsigned int getNewOID(void);

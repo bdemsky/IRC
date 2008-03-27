@@ -95,6 +95,21 @@ void recv_data(int fd , void *buf, int buflen) {
 	}
 }
 
+int recv_data_errorcode(int fd , void *buf, int buflen) {
+  char *buffer = (char *)(buf); 
+  int size = buflen;
+  int numbytes; 
+  while (size > 0) {
+    numbytes = recv(fd, buffer, size, 0);
+    if (numbytes == -1) {
+      return -1;
+    }
+    buffer += numbytes;
+    size -= numbytes;
+  }
+  return 0;
+}
+
 void printhex(unsigned char *ptr, int numBytes)
 {
 	int i;
