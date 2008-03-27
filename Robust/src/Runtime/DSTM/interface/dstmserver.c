@@ -145,7 +145,7 @@ void *dstmAccept(void *acceptfd) {
   transinfo.numnotfound = 0;
   
   /* Receive control messages from other machines */
-  while(true) {
+  while(1) {
     int ret=recv_data_errorcode((int)acceptfd, &control, sizeof(char));
     if (ret==-1)
       break;
