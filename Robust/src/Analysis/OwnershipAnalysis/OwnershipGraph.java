@@ -161,8 +161,9 @@ public class OwnershipGraph {
 	while( srcRegionsItr.hasNext() ) {
 	    Map.Entry               me  = (Map.Entry)               srcRegionsItr.next();
 	    newReferencee               = (HeapRegionNode)          me.getKey();
-	    ReferenceEdgeProperties rep = (ReferenceEdgeProperties) me.getValue();
-
+	    //ReferenceEdgeProperties rep = (ReferenceEdgeProperties) me.getValue();
+	    ReferenceEdgeProperties rep = new ReferenceEdgeProperties();
+	    
 	    addReferenceEdge( dstln, newReferencee, rep.copy() );
 	}
     }
@@ -186,7 +187,8 @@ public class OwnershipGraph {
 	    while( hrnRegionsItr.hasNext() ) {
 		Map.Entry               meH = (Map.Entry)               hrnRegionsItr.next();
 		hrnOneHop                   = (HeapRegionNode)          meH.getKey();
-		ReferenceEdgeProperties rep = (ReferenceEdgeProperties) meH.getValue();
+		//ReferenceEdgeProperties rep = (ReferenceEdgeProperties) meH.getValue();
+		ReferenceEdgeProperties rep = new ReferenceEdgeProperties();
 
 		addReferenceEdge( dstln, hrnOneHop, rep.copy() );
 	    }
@@ -210,7 +212,8 @@ public class OwnershipGraph {
 	    while( srcRegionsItr.hasNext() ) {
 		Map.Entry               meS = (Map.Entry)               srcRegionsItr.next();
 		hrnSrc                      = (HeapRegionNode)          meS.getKey();
-		ReferenceEdgeProperties rep = (ReferenceEdgeProperties) meS.getValue();
+		//ReferenceEdgeProperties rep = (ReferenceEdgeProperties) meS.getValue();
+		ReferenceEdgeProperties rep = new ReferenceEdgeProperties();
 
 		addReferenceEdge( hrn, hrnSrc, rep.copy() );
 	    }
@@ -1231,7 +1234,10 @@ public class OwnershipGraph {
 	    case VISIT_HRN_WRITE_FULL:
 		String edgeLabel = "";
 		if( rep.isUnique() ) {
-		    edgeLabel = "Unique";
+		    edgeLabel += "Unq";
+		}
+		if( rep.isInitialParamReflexive() ) {
+		    edgeLabel += "Rfx";
 		}
 		bw.write( "  "        + hrn.toString() +
 			  " -> "      + hrnChild.toString() +
