@@ -548,8 +548,7 @@ public class OwnershipGraph {
 			while( dstItr.hasNext() ) {
 			    HeapRegionNode dst = (HeapRegionNode) dstItr.next();
 
-			    ReferenceEdgeProperties rep = new ReferenceEdgeProperties();
-			    addReferenceEdge( src, dst, rep );
+			    addReferenceEdge( src, dst, repC.copy() );
 			}
 		    }
 		}
