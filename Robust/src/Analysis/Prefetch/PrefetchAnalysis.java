@@ -573,7 +573,14 @@ public class PrefetchAnalysis {
 		    continue;
 		}
 	    }
-	} else {
+	} else if(currfopn.getRight()!=null && (currfopn.getOp().getOp() == Operation.SUB)) {
+        for(Enumeration ecld = child_prefetch_set_copy.keys();ecld.hasMoreElements();) {
+            PrefetchPair childpp = (PrefetchPair) ecld.nextElement();
+            if(childpp.containsTemp(currfopn.getDest())) {
+                child_prefetch_set_copy.remove(childpp);
+            }
+        }
+    } else {
 	    //FIXME Is not taken care of for cases like x = -y followed by a[x].i
 	}
 	
