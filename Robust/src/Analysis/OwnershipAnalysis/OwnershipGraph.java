@@ -230,7 +230,7 @@ public class OwnershipGraph {
 							  false,
 							  isTask,
 							  false,
-							  "param" );
+							  "param" + paramIndex );
 
 	// keep track of heap regions that were created for
 	// parameter labels, the index of the parameter they
@@ -318,7 +318,7 @@ public class OwnershipGraph {
 	if( hrnSummary == null ) {
 	    hrnSummary = createNewHeapRegionNode( idSummary,
 						  false,
-						  false,
+						  as.getType().getClassDesc().hasFlags(),
 						  true,
 						  as + "\\nsummary" );
 	}
@@ -332,7 +332,7 @@ public class OwnershipGraph {
 	if( hrnK == null ) {
 	    hrnK = createNewHeapRegionNode( idK,
 					    true,
-					    false,
+					    as.getType().getClassDesc().hasFlags(),
 					    false,
 					    as + "\\noldest" );
 	}
@@ -395,14 +395,14 @@ public class OwnershipGraph {
 	    if( hrnI == null ) {
 		hrnI = createNewHeapRegionNode( idIth,
 						true,
-						false,
+						as.getType().getClassDesc().hasFlags(),
 						false,
 						as + "\\n" + Integer.toString( i ) + "th" );
 	    }
 	    if( hrnImin1 == null ) {
 		hrnImin1 = createNewHeapRegionNode( idImin1th,
 						    true,
-						    false,
+						    as.getType().getClassDesc().hasFlags(),
 						    false,
 						    as + "\\n" + Integer.toString( i-1 ) + "th" );
 	    }
@@ -1087,16 +1087,19 @@ public class OwnershipGraph {
 
 
 
-    /*
+   
     // use this method to determine if two temp descriptors can possibly
     // access the same heap regions, which means there is a possible alias
     public boolean havePossibleAlias( TempDescriptor td1,
 				      TempDescriptor td2 ) {
+	LabelNode ln1 = getLabelNodeFromTemp( td1 );
+	LabelNode ln2 = getLabelNodeFromTemp( td2 );
+	
 	
 
 	return false;
     }
-    */
+   
 
 
     // for writing ownership graphs to dot files
@@ -1139,6 +1142,7 @@ public class OwnershipGraph {
 	}
 
 	// then visit every label node
+	/*
 	s = td2ln.entrySet();
 	i = s.iterator();
 	while( i.hasNext() ) {
@@ -1162,6 +1166,7 @@ public class OwnershipGraph {
 			  "\"];\n" );
 	    }
 	}
+	*/
 
 	bw.write( "}\n" );
 	bw.close();

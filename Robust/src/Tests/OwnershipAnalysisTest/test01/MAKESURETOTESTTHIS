@@ -1,3 +1,0 @@
-Make sure to test that an initial parameter has a special reflexive edge, but if you
-actually remake that edge during the method analysis, it becomes a regular edge and
-then will get picked up by the method call resolution!

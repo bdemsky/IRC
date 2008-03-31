@@ -1,4 +1,4 @@
-/*
+
 public class Parameter {
     flag w;
     int a, b;
@@ -18,23 +18,22 @@ public class Penguin {
 
     public void bar() { x = 1; }
 }
-*/
 
-/*
 public class Voo {
-    flag f; int x; Baw b;
+    flag f; int x; Baw b; Baw bb;
 
     public Voo() {}
 }
 
 public class Baw {
     flag g; int y;
+    Foo f;
 
     public Baw() {}
 
     public void doTheBaw( Voo v ) { v = new Voo(); }
 }
-*/
+
 
 public class Foo {
     public Foo() {}
@@ -65,7 +64,7 @@ task Startup( StartupObject s{ initialstate } ) {
 // be a heap region for the parameter, and several
 // heap regions for the allocation site, but the label
 // merely points to the newest region
-/*
+
 task NewObject( Voo v{ f } ) {
     Voo w = new Voo();
     Baw b = new Baw();
@@ -90,13 +89,20 @@ task Branch( Voo v{ f } ) {
 }
 
 
-task NewInLoop( Voo v{ f } ) {
+task NoAliasNewInLoop( Voo v{ f } ) {
     Voo w = new Voo();
 
     for( int i = 0; i < 10; ++i ) {
 	w.b = new Baw();
+	w.b.f = new Foo();
     }
 
     taskexit( v{ !f } );
 }
-*/
+
+
+task ClobberInitParamReflex( Voo v{ f }, Voo w{ f } ) {
+    v.b = v.bb;
+
+    taskexit( v{ !f }, w{ !f } );
+}

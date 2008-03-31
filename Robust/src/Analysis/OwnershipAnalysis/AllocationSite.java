@@ -27,12 +27,14 @@ public class AllocationSite {
     protected int             allocationDepth;
     protected Vector<Integer> ithOldest;
     protected Integer         summary;
+    protected TypeDescriptor  type;
 
 
-    public AllocationSite( int allocationDepth ) {
+    public AllocationSite( int allocationDepth, TypeDescriptor type ) {
 	assert allocationDepth >= 3;
 
 	this.allocationDepth = allocationDepth;	
+	this.type            = type;
 
 	ithOldest = new Vector<Integer>( allocationDepth );
 	id        = generateUniqueAllocationSiteID();
@@ -72,7 +74,11 @@ public class AllocationSite {
 	return summary;
     }
 
+    public TypeDescriptor getType() {
+	return type;
+    }
+
     public String toString() {
-	return "allocSite" + id;
+	return "allocSite" + id + "\\n" + type;
     }
 }

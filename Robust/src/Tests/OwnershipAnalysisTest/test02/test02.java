@@ -41,7 +41,7 @@ task Startup( StartupObject s{ initialstate } ) {
     taskexit( s{ !initialstate } );
 }
 
-/*
+
 task aliasFromObjectAssignment
     ( Parameter p1{!w}, Parameter p2{!w} ) {
     
@@ -103,9 +103,7 @@ task possibleAliasConditional
 
     taskexit( p1{w}, p2{w} );
 }
-*/
 
-/*
 task bunchOfPaths
     ( Parameter p1{!w}, Parameter p2{!w} ) {
 
@@ -138,9 +136,7 @@ task bunchOfPaths
 
     taskexit( p1{w}, p2{w} );
 }
-*/
 
-/*
 task literalTest( Parameter p1{!w} ) {
     Parameter x = null;
     int y = 5;
@@ -177,4 +173,3 @@ task newPossibleAlias
 
     taskexit( p1{w}, p2{w} );
 }
-*/

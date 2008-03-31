@@ -379,7 +379,7 @@ public class OwnershipAnalysis {
     // return just the allocation site associated with one FlatNew node
     private AllocationSite getAllocationSiteFromFlatNew( FlatNew fn ) {
 	if( !mapFlatNewToAllocationSite.containsKey( fn ) ) {
-	    AllocationSite as = new AllocationSite( allocationDepth );
+	    AllocationSite as = new AllocationSite( allocationDepth, fn.getType() );
 
 	    // the newest nodes are single objects
 	    for( int i = 0; i < allocationDepth; ++i ) {
