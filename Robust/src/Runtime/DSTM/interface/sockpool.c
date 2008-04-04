@@ -31,14 +31,8 @@ int createSockPool(unsigned int size, float loadfactor) {
         printf("Calloc error at %s line %d\n", __FILE__, __LINE__);
         return -1;
     }
-    socknode_t **inuselist;
-    if ((inuselist = calloc(size, sizeof(socknode_t *))) < 0) {
-        printf("Calloc error at %s line %d\n", __FILE__, __LINE__);
-        free(nodelist);
-        return -1;
-    }
     sockhash.table = nodelist;
-    sockhash.inuse = inuselist;
+    sockhash.inuse = NULL;
     sockhash.size = size;
     sockhash.numelements = 0;
     sockhash.loadfactor = loadfactor;
@@ -86,14 +80,17 @@ int getSock(unsigned int mid) {
     int midFound = 0;
     Lock(&sockhash.mylock);
     socknode_t *ptr = sockhash.table[key];
+    socknode_t *prev = (socknode_t *) &(sockhash.table[key]);
     while (ptr != NULL) {
         if (mid == ptr->mid) {
             midFound = 1;
             int sd = ptr->sd;
+            prev = ptr->next;
             UnLock(&sockhash.mylock);
             insToList(ptr);
             return sd;
         }
+        prev = ptr;
         ptr = ptr->next;
     }
     UnLock(&sockhash.mylock);
@@ -112,28 +109,25 @@ int getSock(unsigned int mid) {
     return -1;
 }
 
-int insToList(socknode_t *inusenode) {
-    int key = (inusenode->mid)%(sockhash.size);
+void insToList(socknode_t *inusenode) {
     Lock(&sockhash.mylock);
-    inusenode->next = sockhash.inuse[key];
-    sockhash.inuse[key] = inusenode;
+    inusenode->next = sockhash.inuse;
+    sockhash.inuse = inusenode;
     UnLock(&sockhash.mylock);
-    return 0;
 } 
 
 int freeSock(unsigned int mid, int sd) {
-    int key = mid%(sockhash.size);
-
-    Lock(&sockhash.mylock);
-    socknode_t *ptr = sockhash.inuse[key]; 
-    ptr->mid = mid;
-    ptr->sd = sd;
-    sockhash.inuse[key] = ptr->next;
-    ptr->next = sockhash.table[key];
-    sockhash.table[key] = ptr;
-    UnLock(&sockhash.mylock);
-}
-
-int deleteSockpool(sockPoolHashTable_t *sockhash) {
-    free(sockhash->table);
+    if(sockhash.inuse != NULL) {
+        Lock(&sockhash.mylock);
+        socknode_t *ptr = sockhash.inuse; 
+        ptr->mid = mid;
+        ptr->sd = sd;
+        sockhash.inuse = ptr->next;
+        int key = mid%(sockhash.size);
+        ptr->next = sockhash.table[key];
+        sockhash.table[key] = ptr;
+        UnLock(&sockhash.mylock);
+        return 0;
+    }
+    return -1;
 }

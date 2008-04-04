@@ -15,7 +15,7 @@ typedef struct socknode {
 
 typedef struct sockPoolHashTable {
     socknode_t **table;
-    socknode_t **inuse;
+    socknode_t *inuse;
     unsigned int size;
     unsigned int numelements;
     float loadfactor;
@@ -26,7 +26,7 @@ int createSockPool(unsigned int, float);
 int getSock(unsigned int);
 int freeSock(unsigned int, int);
 int deleteSockpool(sockPoolHashTable_t *);
-int insToList(socknode_t *);
+void insToList(socknode_t *);
 int createNewSocket(unsigned int);
 int CompareAndSwap(int *, int, int);
 void InitLock(SpinLock *);
