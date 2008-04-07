@@ -8,21 +8,10 @@
 #include "prelookup.h"
 #include "threadnotify.h"
 #include "queue.h"
-#include <pthread.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netdb.h>
-#include <netinet/in.h>
-#include <sys/types.h>
-#include <unistd.h>
-#include <errno.h>
-#include <time.h>
-#include <string.h>
 #ifdef COMPILER
 #include "thread.h"
 #endif
 
-#define LISTEN_PORT 2156
 #define NUM_THREADS 1
 #define PREFETCH_CACHE_SIZE 1048576 //1MB
 #define CONFIG_FILENAME "dstm.conf"
@@ -30,7 +19,6 @@
 /* Global Variables */
 extern int classsize[];
 extern primarypfq_t pqueue; //Shared prefetch queue
-extern mcpileq_t mcqueue;  //Shared queue containing prefetch requests sorted by remote machineids 
 objstr_t *prefetchcache; //Global Prefetch cache
 pthread_mutex_t prefetchcache_mutex;// Mutex to lock Prefetch Cache
 pthread_mutexattr_t prefetchcache_mutex_attr; /* Attribute for lock to make it a recursive lock */
@@ -48,16 +36,8 @@ unsigned int oidsPerBlock;
 unsigned int oidMin;
 unsigned int oidMax;
 
-/************************************************************************
- * Global variables to map socketid and remote mid to
- * reuse sockets for sending prefetches and making remote read requests
- ************************************************************************/
-midSocketInfo_t midSocketArray[NUM_MACHINES];
-int sockCount; 		//number of connections with all remote machines(one socket per mc)
-int sockIdFound;	//track if socket file descriptor is already established 
-midSocketInfo_t sockArrayRemoteRead[NUM_MACHINES];
-int sockCountRemoteRead; 		//number of connections with all remote machines(one socket per mc)
-int sockIdFoundRemoteRead;	//track if socket file descriptor is already established 
+sockPoolHashTable_t *transReadSockPool;
+sockPoolHashTable_t *transPrefetchSockPool;
 
 void printhex(unsigned char *, int);
 plistnode_t *createPiles(transrecord_t *);
@@ -194,10 +174,18 @@ int dstmStartup(const char * option) {
 	  threadcount--;
 #endif
 
+    //Initialize socket pool
+    if((transReadSockPool = createSockPool(transReadSockPool, 2*numHostsInSystem+1, 0.5)) == NULL) {
+        printf("Error in creating new socket pool at  %s line %d\n", __FILE__, __LINE__);
+        return 0;
+    }
+    if((transPrefetchSockPool = createSockPool(transPrefetchSockPool, 2*numHostsInSystem+1, 0.5)) == NULL) {
+        printf("Error in creating new socket pool at  %s line %d\n", __FILE__, __LINE__);
+        return 0;
+    }
+
 	dstmInit();
 	transInit();
-
-
 
 	if (master) {
 		pthread_attr_init(&attr);
@@ -268,22 +256,6 @@ void transInit() {
 	  retval=pthread_create(&tPrefetch, NULL, transPrefetch, NULL);
 	} while(retval!=0);
 	pthread_detach(tPrefetch);
-
-	//Initialize mid to socketid mapping array
-	sockCount = 0;
-	for(t = 0; t < NUM_MACHINES; t++) {
-		midSocketArray[t].mid = 0;
-		midSocketArray[t].sockid = 0;
-	}
-
-	//Create and Initialize a pool of threads 
-	/* Threads are active for the entire period runtime is running */
-	for(t = 0; t< NUM_THREADS; t++) {
-	  do {
-		rc = pthread_create(&wthreads[t], NULL, mcqProcess, (void *)t);
-	  } while(rc!=0);
-	  pthread_detach(wthreads[t]);
-	}
 }
 
 /* This function stops the threads spawned */
@@ -833,8 +805,8 @@ char sendResponse(thread_data_array_t *tdata, int sd) {
 	control = *(tdata->replyctrl);
 	send_data(sd, &control, sizeof(char));
 
-	//TODO read missing objects to be used during object migration
-	/* If the decided response is due to a soft abort and missing objects at the Participant's side */
+	//TODO read missing objects during object migration
+	/* If response is a soft abort due to missing objects at the Participant's side */
 	/*
 	if(tdata->recvmsg[tdata->thread_id].rcv_status == TRANS_SOFT_ABORT) {
 		// Read list of objects missing  
@@ -869,48 +841,17 @@ char sendResponse(thread_data_array_t *tdata, int sd) {
  * */ 
 
 void *getRemoteObj(transrecord_t *record, unsigned int mnum, unsigned int oid) {
-	int sd, size, val;
+	int size, val;
 	struct sockaddr_in serv_addr;
 	char machineip[16];
 	char control;
 	objheader_t *h;
-	void *objcopy;
+	void *objcopy = NULL;
 
-    int i;
-    for(i = 0; i < NUM_MACHINES; i++) {
-        if(sockArrayRemoteRead[i].mid == mnum) {
-            sd = sockArrayRemoteRead[i].sockid;
-            sockIdFoundRemoteRead = 1;
-            break;
-        }
-    }
-    
-    if(sockIdFoundRemoteRead == 0) {
-        if(sockCountRemoteRead < NUM_MACHINES) {
-            /* Create socket */
-            if ((sd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-                perror("Error in socket\n");
-                return NULL;
-            }
-
-            bzero((char*) &serv_addr, sizeof(serv_addr));
-            serv_addr.sin_family = AF_INET;
-            serv_addr.sin_port = htons(LISTEN_PORT);
-            serv_addr.sin_addr.s_addr = htonl(mnum);
-            // Open connection 
-            if (connect(sd, (struct sockaddr *) &serv_addr, sizeof(struct sockaddr)) < 0) {
-                perror("getRemoteObj() Error in connect\n");
-                close(sd);
-                return NULL;
-            }
-            sockArrayRemoteRead[sockCountRemoteRead].mid = mnum;
-            sockArrayRemoteRead[sockCountRemoteRead].sockid = sd;
-            sockCountRemoteRead++;
-        } else {
-            //TODO Fix for connecting to more than 2 machines && close socket
-            printf("%s(): Error: Currently works for two remote machines\n", __func__);
-            return NULL;
-        }
+    int sd;
+    if((sd = getSock(transReadSockPool, mnum)) == -1) {
+        printf("%s(): Error: no socket id in the pool of sockets at %s, %d\n", __func__, __FILE__, __LINE__);
+        return NULL;
     }
     
 	char readrequest[sizeof(char)+sizeof(unsigned int)];
@@ -923,7 +864,8 @@ void *getRemoteObj(transrecord_t *record, unsigned int mnum, unsigned int oid) {
 
 	switch(control) {
 		case OBJECT_NOT_FOUND:
-			return NULL;
+            objcopy = NULL;
+            break;
 		case OBJECT_FOUND:
 			/* Read object if found into local cache */
 			recv_data(sd, &size, sizeof(int));
@@ -935,8 +877,14 @@ void *getRemoteObj(transrecord_t *record, unsigned int mnum, unsigned int oid) {
 			break;
 		default:
 			printf("Error: in recv response from participant on a READ_REQUEST %s, %d\n",__FILE__, __LINE__);
-			return NULL;
+            break;
 	}
+
+    int status;
+    if((status = freeSock(transReadSockPool, mnum, sd)) == -1) {
+        printf("Error in releasing socket at %s line %d\n", __FILE__, __LINE__);
+        return NULL;
+    }
 
 	return objcopy;
 }
@@ -1160,14 +1108,14 @@ void checkPrefetchTuples(prefetchqelem_t *node) {
 	int ntuples, slength;
 	unsigned int *oid;
 	unsigned short *endoffsets;
-	short *arryfields; 
+	short *offsets; 
 
 	/* Check for the case x.y.z and a.b.c are same oids */ 
 	ptr = (char *) node;
 	ntuples = *(GET_NTUPLES(ptr));
 	oid = GET_PTR_OID(ptr);
 	endoffsets = GET_PTR_EOFF(ptr, ntuples); 
-	arryfields = GET_PTR_ARRYFLD(ptr, ntuples);
+	offsets = GET_PTR_ARRYFLD(ptr, ntuples);
 	
 	/* Find offset length for each tuple */
 	int numoffset[ntuples];
@@ -1205,7 +1153,7 @@ void checkPrefetchTuples(prefetchqelem_t *node) {
 				}
 				index = endoffsets[j -1];
 				for(count = 0; count < slength; count ++) {
-					if (arryfields[k] != arryfields[index]) { 
+					if (offsets[k] != offsets[index]) { 
 						break;
 					}
 					index++;
@@ -1284,7 +1232,6 @@ prefetchpile_t *foundLocal(prefetchqelem_t *node) {
 	objheader_t *objheader;
 	unsigned short *endoffsets;
 	short *arryfields; 
-	prefetchpile_t *head = NULL;
 
 	ptr = (char *) node;
 	ntuples = *(GET_NTUPLES(ptr));
@@ -1384,6 +1331,7 @@ prefetchpile_t *foundLocal(prefetchqelem_t *node) {
 	}
 	
 	/* Make machine groups */
+	prefetchpile_t *head = NULL;
 	if((head = makePreGroups(node, numoffset)) == NULL) {
 		printf("Error in makePreGroups() %s %d\n", __FILE__, __LINE__);
 		return NULL;
@@ -1468,10 +1416,6 @@ void checkPreCache(prefetchqelem_t *node, int *numoffset, unsigned int objoid, i
 
 /* This function is called by the thread calling transPrefetch */
 void *transPrefetch(void *t) {
-	prefetchqelem_t *qnode;
-	prefetchpile_t *pilehead = NULL;
-	prefetchpile_t *ptr = NULL, *piletail = NULL;
-
 	while(1) {
 		/* lock mutex of primary prefetch queue */
 		pthread_mutex_lock(&pqueue.qlock);
@@ -1481,6 +1425,7 @@ void *transPrefetch(void *t) {
 		}
 
 		/* dequeue node to create a machine piles and  finally unlock mutex */
+        prefetchqelem_t *qnode;
 		if((qnode = pre_dequeue()) == NULL) {
 			printf("Error: No node returned %s, %d\n", __FILE__, __LINE__);
 			pthread_mutex_unlock(&pqueue.qlock);
@@ -1492,115 +1437,45 @@ void *transPrefetch(void *t) {
 		checkPrefetchTuples(qnode);
 		/* Check if the tuples are found locally, if yes then reduce them further*/ 
 		/* and group requests by remote machine ids by calling the makePreGroups() */
+        prefetchpile_t *pilehead = NULL;
 		if((pilehead = foundLocal(qnode)) == NULL) {
 			printf("Error: No node created for serving prefetch request %s %d\n", __FILE__, __LINE__);
 			pre_enqueue(qnode);
 			continue;
 		}
 
-		ptr = pilehead;
-		while(ptr != NULL) {
-			if(ptr->next == NULL) {
-				piletail = ptr;
-			} 
-			ptr = ptr->next;
-		}
+        // Get sock from shared pool 
+        int sd = -1;
+        if((sd = getSock(transPrefetchSockPool, pilehead->mid)) == -1) {
+            printf("Error: No socket id in pool of sockets at %s line %d\n", __FILE__, __LINE__);
+            exit(-1);
+        }
 
-		/* Lock mutex of pool queue */
-		pthread_mutex_lock(&mcqueue.qlock);
-		/* Update the pool queue with the new remote machine piles generated per prefetch call */
-		mcpileenqueue(pilehead, piletail);
-		/* Broadcast signal on machine pile queue */
-		pthread_cond_broadcast(&mcqueue.qcond);
-		/* Unlock mutex of  machine pile queue */
-		pthread_mutex_unlock(&mcqueue.qlock);
-		/* Deallocate the prefetch queue pile node */
+        /* Send  Prefetch Request */
+        prefetchpile_t *ptr = pilehead;
+        while(ptr != NULL) {
+            sendPrefetchReq(ptr, sd);
+            ptr = ptr->next; 
+        }
+
+        /* Release socket */
+        int status;
+        if((status = freeSock(transPrefetchSockPool, pilehead->mid, sd)) == -1) {
+            printf("Error: In realeasing socket at %s line %d\n", __FILE__, __LINE__);
+            return;
+        }
+
+        /* Deallocated pilehead */
+        mcdealloc(pilehead);
+
+		// Deallocate the prefetch queue pile node
 		predealloc(qnode);
 	}
 }
 
-/* Each thread in the  pool of threads calls this function to establish connection with
- * remote machines, send the prefetch requests and process the reponses from
- * the remote machines .
- * The thread is active throughout the period of runtime */
-
-void *mcqProcess(void *threadid) {
-	int tid, i;
-	prefetchpile_t *mcpilenode;
-	struct sockaddr_in remoteAddr;
-	int sd;
-
-	tid = (int) threadid;
-	while(1) {
-
-		sockIdFound = 0;
-		/* Lock mutex of mc pile queue */
-		pthread_mutex_lock(&mcqueue.qlock);
-		/* When mc pile queue is empty, wait */
-		while((mcqueue.front == NULL) && (mcqueue.rear == NULL)) {
-			pthread_cond_wait(&mcqueue.qcond, &mcqueue.qlock);
-		}
-		/* Dequeue node to send remote machine connections*/
-		if((mcpilenode = mcpiledequeue()) == NULL) {
-			printf("Dequeue Error: No node returned %s %d\n", __FILE__, __LINE__);
-			pthread_mutex_unlock(&mcqueue.qlock);
-			continue;
-		}
-		/* Unlock mutex */
-		pthread_mutex_unlock(&mcqueue.qlock);
-
-		/*Initiate connection to remote host and send prefetch request */ 
-		if(mcpilenode->mid != myIpAddr) {
-			/* Check to see if socket exists */
-			for(i = 0; i < NUM_MACHINES; i++) {
-				if(midSocketArray[i].mid == mcpilenode->mid) {
-					sendPrefetchReq(mcpilenode, midSocketArray[i].sockid);
-					sockIdFound = 1;
-					break;
-				}
-			}
-
-			if(sockIdFound == 0) {
-				if(sockCount < NUM_MACHINES) {
-					/* Open Socket */
-					if ((sd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-						printf("%s() Error: In creating socket at %s, %d\n", __func__, __FILE__, __LINE__);
-						return;
-					}
-
-					bzero(&remoteAddr, sizeof(remoteAddr));
-					remoteAddr.sin_family = AF_INET;
-					remoteAddr.sin_port = htons(LISTEN_PORT);
-					remoteAddr.sin_addr.s_addr = htonl(mcpilenode->mid);
-
-					/* Open Connection */
-					if (connect(sd, (struct sockaddr *)&remoteAddr, sizeof(remoteAddr)) < 0) {
-						printf("%s():error %d connecting to %s:%d\n", __func__, errno,
-								inet_ntoa(remoteAddr.sin_addr), LISTEN_PORT);
-						close(sd);
-						return;
-					}
-
-					midSocketArray[sockCount].mid = mcpilenode->mid;
-					midSocketArray[sockCount].sockid = sd;
-					sendPrefetchReq(mcpilenode, midSocketArray[sockCount].sockid);
-					sockCount++;
-				} else {
-					//TODO Fix for connecting to more than 2 machines && close socket
-					printf("%s(): Error: Currently works for only 2 machines\n", __func__);
-					return;
-				}
-			}
-		}
-
-		/* Deallocate the machine queue pile node */
-		mcdealloc(mcpilenode);
-	}
-}
-
 void sendPrefetchReq(prefetchpile_t *mcpilenode, int sd) {
-	int i, off, len, endpair, count = 0;
-	char machineip[16], control;
+	int off, len, endpair, count = 0;
+	char control;
 	objpile_t *tmp;
 
 	/* Send TRANS_PREFETCH control message */
@@ -1621,6 +1496,7 @@ void sendPrefetchReq(prefetchpile_t *mcpilenode, int sd) {
 		off += sizeof(unsigned int);
 		*((unsigned int *)(oidnoffset + off)) = myIpAddr; 
 		off += sizeof(unsigned int);
+        int i;
 		for(i = 0; i < tmp->numoffset; i++) {
 			*((short*)(oidnoffset + off)) = tmp->offset[i];
 			off+=sizeof(short);
@@ -1752,7 +1628,7 @@ int startRemoteThread(unsigned int oid, unsigned int mid)
 	else
 	{
 		msg[0] = START_REMOTE_THREAD;
-		memcpy(&msg[1], &oid, sizeof(unsigned int));
+        *((unsigned int *) &msg[1]) = oid;
 		send_data(sock, msg, 1 + sizeof(unsigned int));
 	}
 

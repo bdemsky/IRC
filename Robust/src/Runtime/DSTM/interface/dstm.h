@@ -48,9 +48,11 @@
 #define MAX_OBJECTS  20
 //Max remote-machine connections
 #define NUM_MACHINES 2
+#define LOADFACTOR 0.5
 #define DEFAULT_OBJ_STORE_SIZE 1048510 //1MB
 //Transaction id per machine
 #define TID_LEN 20
+#define LISTEN_PORT 2156
 
 
 #include <stdlib.h>
@@ -61,7 +63,15 @@
 #include "queue.h"
 #include "mcpileq.h"
 #include "threadnotify.h"
-
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netdb.h>
+#include <netinet/in.h>
+#include <sys/types.h>
+#include <unistd.h>
+#include <errno.h>
+#include <time.h>
+#include "sockpool.h"
 
 //bit designations for status field of objheader
 #define DIRTY 0x01
@@ -123,6 +133,11 @@ typedef struct objstr {
 	void *top;
 	struct objstr *next;
 } objstr_t;
+
+typedef struct oidmidpair {
+    unsigned int oid;
+    unsigned int mid;
+} oidmidpair_t;
 
 typedef struct transrecord {
   objstr_t *cache;

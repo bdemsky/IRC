@@ -1,14 +1,6 @@
 /* Coordinator => Machine that initiates the transaction request call for commiting a transaction
  * Participant => Machines that host the objects involved in a transaction commit */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <pthread.h>
-#include <netdb.h>
-#include <fcntl.h>
-#include <errno.h>
-#include <string.h>
 #include "dstm.h"
 #include "mlookup.h"
 #include "llookup.h"
@@ -17,24 +9,17 @@
 #include "thread.h"
 #endif
 
-
-#define LISTEN_PORT 2156
 #define BACKLOG 10 //max pending connections
 #define RECEIVE_BUFFER_SIZE 2048
 
 extern int classsize[];
+extern int numHostsInSystem;
 
 objstr_t *mainobjstore;
 pthread_mutex_t mainobjstore_mutex;
 pthread_mutexattr_t mainobjstore_mutex_attr; /* Attribute for lock to make it a recursive lock */
-/**********************************************************
- * Global variables to map socketid and remote mid
- * to  resuse sockets
- **************************************************/
-midSocketInfo_t sockArray[NUM_MACHINES];
-int sockCount; //number of connections with all remote machines(one socket per mc)
-int sockIdFound; //track if socket file descriptor is already established
-pthread_mutex_t sockLock = PTHREAD_MUTEX_INITIALIZER; //lock to prevent global sock variables to be inconsistent
+
+sockPoolHashTable_t *transPResponseSocketPool;
 
 /* This function initializes the main objects store and creates the 
  * global machine and location lookup table */
@@ -54,14 +39,12 @@ int dstmInit(void)
 
 	if (notifyhashCreate(N_HASH_SIZE, N_LOADFACTOR))
 		return 1; //failure
-	
-	//Initialize mid to socketid mapping array
-	int t;
-	sockCount = 0;
-	for(t = 0; t < NUM_MACHINES; t++) {
-		sockArray[t].mid = 0;
-		sockArray[t].sockid = 0;
-	}
+
+    //Initialize socket pool
+    if((transPResponseSocketPool = createSockPool(transPResponseSocketPool, 2*numHostsInSystem+1, LOADFACTOR)) == NULL) {
+        printf("Error in creating new socket pool at  %s line %d\n", __FILE__, __LINE__);
+        return 0;
+    }
 
 	return 0;
 }
@@ -138,11 +121,13 @@ void *dstmAccept(void *acceptfd) {
   unsigned short objType, *versionarry, version;
   unsigned int *oidarry, numoid, mid, threadid;
   
+  /*
   transinfo.objlocked = NULL;
   transinfo.objnotfound = NULL;
   transinfo.modptr = NULL;
   transinfo.numlocked = 0;
   transinfo.numnotfound = 0;
+  */
   
   /* Receive control messages from other machines */
   while(1) {
@@ -185,6 +170,11 @@ void *dstmAccept(void *acceptfd) {
       
     case TRANS_REQUEST:
       /* Read transaction request */
+      transinfo.objlocked = NULL;
+      transinfo.objnotfound = NULL;
+      transinfo.modptr = NULL;
+      transinfo.numlocked = 0;
+      transinfo.numnotfound = 0;
       if((val = readClientReq(&transinfo, (int)acceptfd)) != 0) {
 	printf("Error: In readClientReq() %s, %d\n", __FILE__, __LINE__);
 	pthread_exit(NULL);
@@ -559,7 +549,7 @@ char decideCtrlMessage(fixed_data_t *fixed, trans_commit_data_t *transinfo, int 
 	transinfo->modptr = modptr;
 	transinfo->numlocked = *(objlocked);
 	transinfo->numnotfound = *(objnotfound);
-	
+
 	return control;
 }
 
@@ -617,77 +607,29 @@ int transCommitProcess(void *modptr, unsigned int *oidmod, unsigned int *oidlock
 
 int prefetchReq(int acceptfd) {
 	int i, size, objsize, numbytes = 0, isArray = 0, numoffset = 0;
-	int length, sd = -1;
+	int length;
 	char *recvbuffer, *sendbuffer, control;
 	unsigned int oid, mid;
-	short *offsetarry;
 	objheader_t *header;
 	struct sockaddr_in remoteAddr;
+    oidmidpair_t oidmid;
 
 	do {
 		recv_data((int)acceptfd, &length, sizeof(int));
 		if(length != -1) {
-			size = length - sizeof(int);
-			if((recvbuffer = calloc(1, size)) == NULL) {
-				printf("Calloc error at %s,%d\n", __FILE__, __LINE__);
-				return -1;
-			}
-			recv_data((int)acceptfd, recvbuffer, size);
-			oid = *((unsigned int *) recvbuffer);
-			mid = *((unsigned int *) (recvbuffer + sizeof(unsigned int)));
-			size = size - (2 * sizeof(unsigned int));
-			numoffset = size / sizeof(short);
-			if((offsetarry = calloc(numoffset, sizeof(short))) == NULL) {
-				printf("Calloc error at %s,%d\n", __FILE__, __LINE__);
-				free(recvbuffer);
-				return -1;
-			}
-			memcpy(offsetarry, recvbuffer + (2 * sizeof(unsigned int)), size);
-			free(recvbuffer);
-			pthread_mutex_lock(&sockLock);
-			sockIdFound = 0;
-			pthread_mutex_unlock(&sockLock);
-            /* If socket is already established then send data reusing socket */
-			for(i = 0; i < NUM_MACHINES; i++) {
-				if(sockArray[i].mid == mid) {
-					sd = sockArray[i].sockid;
-					pthread_mutex_lock(&sockLock);
-					sockIdFound = 1;
-					pthread_mutex_unlock(&sockLock);
-					break;
-				}
-			}
+            recv_data((int)acceptfd, &oidmid, 2*sizeof(unsigned int));
+            oid = oidmid.oid;
+            mid = oidmid.mid;
+            size = length - sizeof(int) - (2 * sizeof(unsigned int));
+            numoffset = size/sizeof(short);
+            short offsetarry[numoffset];
+            recv_data((int) acceptfd, offsetarry, size);
 
-			if(sockIdFound == 0) {
-				if(sockCount < NUM_MACHINES) {
-					/* Create socket to send information */
-					if ((sd = socket(AF_INET, SOCK_STREAM, 0)) < 0){
-						perror("prefetchReq():socket()");
-						return -1;
-					}
-					bzero(&remoteAddr, sizeof(remoteAddr));
-					remoteAddr.sin_family = AF_INET;
-					remoteAddr.sin_port = htons(LISTEN_PORT);
-					remoteAddr.sin_addr.s_addr = htonl(mid);
-
-					if (connect(sd, (struct sockaddr *)&remoteAddr, sizeof(remoteAddr)) < 0){
-						perror("connect");
-						printf("Error: prefetchReq():error %d connecting to %s:%d\n", errno,
-								inet_ntoa(remoteAddr.sin_addr), LISTEN_PORT);
-						close(sd);
-						return -1;
-					}
-					sockArray[sockCount].mid = mid;
-					sockArray[sockCount].sockid = sd;
-					pthread_mutex_lock(&sockLock);
-					sockCount++;
-					pthread_mutex_unlock(&sockLock);
-				} else {
-					//TODO Fix for connecting to more than 2 machines && close socket
-					printf("%s(): Error: Currently works for only 2 machines\n", __func__);
-					return -1;
-				}
-			}
+            int sd = -1;
+            if((sd = getSock(transPResponseSocketPool, mid)) == -1) {
+                printf("Error: No socket id in pool of sockets at %s line %d\n", __FILE__, __LINE__);
+                exit(-1);
+            }
 
 			/*Process each oid */
 			if ((header = mhashSearch(oid)) == NULL) {/* Obj not found */
@@ -695,7 +637,6 @@ int prefetchReq(int acceptfd) {
 				size = sizeof(int) + sizeof(char) + sizeof(unsigned int) ;
 				if((sendbuffer = calloc(1, size)) == NULL) {
 					printf("Calloc error at %s,%d\n", __FILE__, __LINE__);
-					free(offsetarry);
 					close(sd);
 					return -1;
 				}
@@ -705,7 +646,6 @@ int prefetchReq(int acceptfd) {
 
 				control = TRANS_PREFETCH_RESPONSE;
 				if(sendPrefetchResponse(sd, &control, sendbuffer, &size) != 0) {
-					free(offsetarry);
 					printf("Error: %s() in sending prefetch response at %s, %d\n",
 							__func__, __FILE__, __LINE__);
 					close(sd);
@@ -717,7 +657,6 @@ int prefetchReq(int acceptfd) {
 				size = sizeof(int) + sizeof(char) + sizeof(unsigned int) + sizeof(objheader_t) + objsize;
 				if((sendbuffer = calloc(1, size)) == NULL) {
 					printf("Calloc error at %s,%d\n", __FILE__, __LINE__);
-					free(offsetarry);
 					close(sd);
 					return -1;
 				}
@@ -731,7 +670,6 @@ int prefetchReq(int acceptfd) {
 
 				control = TRANS_PREFETCH_RESPONSE;
 				if(sendPrefetchResponse(sd, &control, sendbuffer, &size) != 0) {
-					free(offsetarry);
 					printf("Error: %s() in sending prefetch response at %s, %d\n",
 							__func__, __FILE__, __LINE__);
 					close(sd);
@@ -761,7 +699,6 @@ int prefetchReq(int acceptfd) {
 						size = sizeof(int) + sizeof(char) + sizeof(unsigned int) ;
 						if((sendbuffer = calloc(1, size)) == NULL) {
 							printf("Calloc error at %s,%d\n", __FILE__, __LINE__);
-							free(offsetarry);
 							close(sd);
 							return -1;
 						}
@@ -771,7 +708,6 @@ int prefetchReq(int acceptfd) {
 
 						control = TRANS_PREFETCH_RESPONSE;
 						if(sendPrefetchResponse(sd, &control, sendbuffer, &size) != 0) {
-							free(offsetarry);
 							printf("Error: %s() in sending prefetch response at %s, %d\n",
 									__FILE__, __LINE__);
 							close(sd);
@@ -784,7 +720,6 @@ int prefetchReq(int acceptfd) {
 						size = sizeof(int) + sizeof(char) + sizeof(unsigned int) + sizeof(objheader_t) + objsize;
 						if((sendbuffer = calloc(1, size)) == NULL) {
 							printf("Calloc error at %s,%d\n", __func__, __FILE__, __LINE__);
-							free(offsetarry);
 							close(sd);
 							return -1;
 						}
@@ -798,7 +733,6 @@ int prefetchReq(int acceptfd) {
 
 						control = TRANS_PREFETCH_RESPONSE;
 						if(sendPrefetchResponse(sd, &control, sendbuffer, &size) != 0) {
-							free(offsetarry);
 							printf("Error: %s() in sending prefetch response at %s, %d\n",
 									__func__, __FILE__, __LINE__);
 							close(sd);
@@ -807,8 +741,14 @@ int prefetchReq(int acceptfd) {
 					}
 					isArray = 0;
 				}
-				free(offsetarry);
 			}
+
+            //Release socket
+            int status;
+            if((status = freeSock(transPResponseSocketPool, mid, sd)) == -1) {
+                printf("Error: in releasing socket at %s line %d\n", __FILE__, __LINE__);
+                return -1;
+            }
 		}
 	} while (length != -1);
 	return 0;

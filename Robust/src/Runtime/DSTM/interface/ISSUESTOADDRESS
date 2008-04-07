@@ -4,11 +4,17 @@ High priority list
   A) allocations always have to traverse to end of list
   B) do we need to zero first?? -- need to check about this one, it may be okay
 
+Status:Verified
+
 1) Wrap all receive calls in loops
   A) Perhaps the best way is to just define a macro or function call that
 does this. Look at GETSIZE macro for example...
 
+Status:DONE
+
 2) Check locking... There is likely a race condition on getObjType().  
+
+Status:DONE
 
 3) Receiving object code assume a maximum object size.  It is probably
 better to:
@@ -16,8 +22,12 @@ better to:
   B) allocate space for object at its final destination
   C) read into the space
 
+Status:DONE
+
 Low priority list
 ---------------------------------
 
 1) We shouldn't call memcopy for copying fixed-sized structs or primitive
 values...just use =
+
+Status: DONE in most places
