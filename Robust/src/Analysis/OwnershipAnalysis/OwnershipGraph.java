@@ -90,7 +90,8 @@ public class OwnershipGraph {
 				     HeapRegionNode referencee,
 				     ReferenceEdgeProperties rep ) {
 	assert referencer != null;
-	assert referencee != null;	
+	assert referencee != null;
+	assert rep        != null;
 	referencer.addReferencedRegion( referencee, rep );
 	referencee.addReferencer( referencer );
     }
@@ -159,12 +160,11 @@ public class OwnershipGraph {
 	HeapRegionNode newReferencee = null;
         Iterator srcRegionsItr = srcln.setIteratorToReferencedRegions();
 	while( srcRegionsItr.hasNext() ) {
-	    Map.Entry               me  = (Map.Entry)               srcRegionsItr.next();
-	    newReferencee               = (HeapRegionNode)          me.getKey();
-	    //ReferenceEdgeProperties rep = (ReferenceEdgeProperties) me.getValue();
-	    ReferenceEdgeProperties rep = new ReferenceEdgeProperties();
-	    
-	    addReferenceEdge( dstln, newReferencee, rep.copy() );
+	    Map.Entry     me = (Map.Entry)      srcRegionsItr.next();
+	    newReferencee    = (HeapRegionNode) me.getKey();
+
+	    ReferenceEdgeProperties rep = new ReferenceEdgeProperties();	    
+	    addReferenceEdge( dstln, newReferencee, rep );
 	}
     }
 
@@ -185,12 +185,11 @@ public class OwnershipGraph {
 	    HeapRegionNode hrnOneHop = null;
 	    Iterator hrnRegionsItr = hrn.setIteratorToReferencedRegions();
 	    while( hrnRegionsItr.hasNext() ) {
-		Map.Entry               meH = (Map.Entry)               hrnRegionsItr.next();
-		hrnOneHop                   = (HeapRegionNode)          meH.getKey();
-		//ReferenceEdgeProperties rep = (ReferenceEdgeProperties) meH.getValue();
-		ReferenceEdgeProperties rep = new ReferenceEdgeProperties();
+		Map.Entry meH = (Map.Entry)      hrnRegionsItr.next();
+		hrnOneHop     = (HeapRegionNode) meH.getKey();
 
-		addReferenceEdge( dstln, hrnOneHop, rep.copy() );
+		ReferenceEdgeProperties rep = new ReferenceEdgeProperties();
+		addReferenceEdge( dstln, hrnOneHop, rep );
 	    }
 	}
     }
@@ -210,12 +209,11 @@ public class OwnershipGraph {
 	    HeapRegionNode hrnSrc = null;
 	    Iterator srcRegionsItr = srcln.setIteratorToReferencedRegions();
 	    while( srcRegionsItr.hasNext() ) {
-		Map.Entry               meS = (Map.Entry)               srcRegionsItr.next();
-		hrnSrc                      = (HeapRegionNode)          meS.getKey();
-		//ReferenceEdgeProperties rep = (ReferenceEdgeProperties) meS.getValue();
-		ReferenceEdgeProperties rep = new ReferenceEdgeProperties();
+		Map.Entry meS = (Map.Entry)      srcRegionsItr.next();
+		hrnSrc        = (HeapRegionNode) meS.getKey();
 
-		addReferenceEdge( hrn, hrnSrc, rep.copy() );
+		ReferenceEdgeProperties rep = new ReferenceEdgeProperties();
+		addReferenceEdge( hrn, hrnSrc, rep );
 	    }
 	}	
     }
@@ -266,7 +264,27 @@ public class OwnershipGraph {
 
 	LabelNode dst = getLabelNodeFromTemp( td );
 
+
+
+	/*
+	try {
+	    if( dude < 9 ) {
+		writeGraph( "global"+dude+"_0before_assign_"+dst+"_2_"+hrnNewest.getID() );
+	    }
+	} catch( Exception e ) {}
+	*/
+	
+	clearReferenceEdgesFrom( dst );
 	addReferenceEdge( dst, hrnNewest, new ReferenceEdgeProperties( false ) );
+
+	/*
+	try {
+	    if( dude < 9 ) {
+		writeGraph( "global"+dude+"_1after_assign_"+dst+"_2_"+hrnNewest.getID() );
+	    }
+	    ++dude;
+	} catch( Exception e ) {}
+	*/
     }
 
 
@@ -284,7 +302,18 @@ public class OwnershipGraph {
     // site, attempts to retrieve the heap region nodes using the
     // integer id's contained in the allocation site should always
     // return non-null heap regions.
+
+    private static int dude = 0;
     public void age( AllocationSite as ) {
+
+	/*
+	try {
+	    if( dude < 9 ) {
+		writeGraph( "global"+dude+"_before_age"+as );
+	    }
+	    //++dude;
+	} catch( Exception e ) {}
+	*/
 
 	//////////////////////////////////////////////////////////////////
 	//
@@ -320,22 +349,22 @@ public class OwnershipGraph {
 						  false,
 						  as.getType().getClassDesc().hasFlags(),
 						  true,
-						  as + "\\nsummary" );
+						  as + "\\n" + as.getType() + "\\nsummary" );
+
+	    for( int i = 0; i < as.getAllocationDepth(); ++i ) {
+		Integer idIth = as.getIthOldest( i );
+		assert !id2hrn.containsKey( idIth );
+		createNewHeapRegionNode( idIth,
+					 true,
+					 as.getType().getClassDesc().hasFlags(),
+					 false,
+					 as + "\\n" + as.getType() + "\\n" + i + " oldest" );
+	    }
 	}
 
 	// first transfer the references out of alpha_k to alpha_s
 	Integer        idK  = as.getOldest();
 	HeapRegionNode hrnK = id2hrn.get( idK );
-	
-	// see comment above about needing to allocate a heap region
-	// for the context of this ownership graph
-	if( hrnK == null ) {
-	    hrnK = createNewHeapRegionNode( idK,
-					    true,
-					    as.getType().getClassDesc().hasFlags(),
-					    false,
-					    as + "\\noldest" );
-	}
 
 	HeapRegionNode hrnReferencee = null;
 	Iterator       itrReferencee = hrnK.setIteratorToReferencedRegions();
@@ -384,28 +413,11 @@ public class OwnershipGraph {
 	// alpha_0 to alpha_1 before we finish
 	for( int i = allocationDepth - 1; i > 0; --i ) {	    
 
-	    // move references from the ith oldest to the i+1 oldest
+	    // move references from the i-1 oldest to the ith oldest
 	    Integer        idIth     = as.getIthOldest( i );
 	    HeapRegionNode hrnI      = id2hrn.get( idIth );
 	    Integer        idImin1th = as.getIthOldest( i - 1 );
 	    HeapRegionNode hrnImin1  = id2hrn.get( idImin1th );
-
-	    // see comment above about needing to allocate a heap region
-	    // for the context of this ownership graph
-	    if( hrnI == null ) {
-		hrnI = createNewHeapRegionNode( idIth,
-						true,
-						as.getType().getClassDesc().hasFlags(),
-						false,
-						as + "\\n" + Integer.toString( i ) + "th" );
-	    }
-	    if( hrnImin1 == null ) {
-		hrnImin1 = createNewHeapRegionNode( idImin1th,
-						    true,
-						    as.getType().getClassDesc().hasFlags(),
-						    false,
-						    as + "\\n" + Integer.toString( i-1 ) + "th" );
-	    }
 
 	    // clear references in and out of node i
 	    clearReferenceEdgesFrom( hrnI );
@@ -447,7 +459,16 @@ public class OwnershipGraph {
 
 	// clear all references in and out of newest node
 	clearReferenceEdgesFrom( hrn0 );
-	clearReferenceEdgesTo  ( hrn0 );	
+	clearReferenceEdgesTo  ( hrn0 );
+
+	/*
+	try {
+	    if( dude < 9 ) {
+		writeGraph( "global"+dude+"_after_age"+as );
+	    }
+	    ++dude;
+	} catch( Exception e ) {}
+	*/
     }
 
 
@@ -624,7 +645,6 @@ public class OwnershipGraph {
     // represents the passed in graph and the suffix
     // B refers to the graph in this object
     ////////////////////////////////////////////////////
-
     public void merge( OwnershipGraph og ) {
 
         if( og == null ) {
@@ -1127,6 +1147,8 @@ public class OwnershipGraph {
 
 	BufferedWriter bw = new BufferedWriter( new FileWriter( graphName+".dot" ) );
 	bw.write( "digraph "+graphName+" {\n" );
+	//bw.write( "  size=\"7.5,10\";\n" );
+
 
 	// then visit every heap region node
 	HashSet<HeapRegionNode> visited = new HashSet<HeapRegionNode>();
@@ -1141,8 +1163,10 @@ public class OwnershipGraph {
 	    }
 	}
 
-	// then visit every label node
+	bw.write( "  graphTitle[label=\""+graphName+"\",shape=box];\n" );
+
 	/*
+	// then visit every label node	
 	s = td2ln.entrySet();
 	i = s.iterator();
 	while( i.hasNext() ) {
@@ -1168,6 +1192,7 @@ public class OwnershipGraph {
 	}
 	*/
 
+	
 	bw.write( "}\n" );
 	bw.close();
     }
@@ -1199,8 +1224,10 @@ public class OwnershipGraph {
 		attributes += ",style=filled,fillcolor=lightgrey";
 	    }
 
-	    attributes += ",label=\""           +
-		          hrn.getDescription()  +
+	    attributes += ",label=\"ID"        +
+		          hrn.getID()          +
+		          "\\n"                +
+            		  hrn.getDescription() + 
 		          "\"]";
 
 	    bw.write( "  " + hrn.toString() + attributes + ";\n" );
@@ -1208,10 +1235,10 @@ public class OwnershipGraph {
 	}
 
 
+	/*
 	// go back and let a compile flag control whether the light
 	// gray "referencer" edges are written to dot files.  It makes
-	// the graph cluttered but can be useful for debugging.
-	/*
+	// the graph cluttered but can be useful for debugging.	
 	OwnershipNode onRef  = null;
 	Iterator      refItr = hrn.iteratorToReferencers();
 	while( refItr.hasNext() ) {
@@ -1226,6 +1253,7 @@ public class OwnershipGraph {
 	    }
 	}
 	*/
+
 
 	HeapRegionNode hrnChild = null;
 	Iterator childRegionsItr = hrn.setIteratorToReferencedRegions();

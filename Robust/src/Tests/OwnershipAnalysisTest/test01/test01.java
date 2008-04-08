@@ -51,20 +51,29 @@ public class Foo {
 // a heap region that is multi-object, flagged, not summary
 task Startup( StartupObject s{ initialstate } ) {
  
+    /*
     Foo a = new Foo();
     Foo b = new Foo();
     Foo c = new Foo();
     
     c.ruinSomeFoos( a, b );
+    */
+
+    while( false ) {
+	Foo a = new Foo();
+	a.x   = new Foo();
+	a.x.x = new Foo();
+    }
 
     taskexit( s{ !initialstate } );
 }
+
+/*
 
 // this task allocates a new object, so there should
 // be a heap region for the parameter, and several
 // heap regions for the allocation site, but the label
 // merely points to the newest region
-
 task NewObject( Voo v{ f } ) {
     Voo w = new Voo();
     Baw b = new Baw();
@@ -106,3 +115,5 @@ task ClobberInitParamReflex( Voo v{ f }, Voo w{ f } ) {
 
     taskexit( v{ !f }, w{ !f } );
 }
+
+*/

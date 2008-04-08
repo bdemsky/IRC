@@ -17,9 +17,8 @@ public class HeapRegionNode extends OwnershipNode {
 	this.isNewSummary   = isNewSummary;
 	this.description    = description;
 
-	referencers           = new HashSet<OwnershipNode>();
-	//analysisRegionAliases = new HashSet<TempDescriptor>();
-	memberFields          = new HashSet<TempDescriptor>();
+	referencers  = new HashSet<OwnershipNode>();
+	memberFields = new HashSet<TempDescriptor>();
     }
 
     public HeapRegionNode copy() {
@@ -150,7 +149,9 @@ public class HeapRegionNode extends OwnershipNode {
 	return "HRN"+getIDString();
     }
 
+    // WHY WHY WHY WHY WHY WHY?!
     public String getDescription() {
-	return description;
+	return new String( description );
+	//return new String( description+" ID "+getIDString() );
     }
 }

@@ -46,6 +46,10 @@ public class AllocationSite {
     }    
 
     
+    public int getAllocationDepth() {
+	return allocationDepth;
+    }
+
     public void setIthOldest( int i, Integer id ) {
 	assert i  >= 0;
 	assert i  <  allocationDepth;
@@ -79,6 +83,6 @@ public class AllocationSite {
     }
 
     public String toString() {
-	return "allocSite" + id + "\\n" + type;
+	return "allocSite" + id;
     }
 }
