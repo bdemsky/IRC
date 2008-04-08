@@ -263,28 +263,9 @@ public class OwnershipGraph {
 	assert hrnNewest != null;
 
 	LabelNode dst = getLabelNodeFromTemp( td );
-
-
-
-	/*
-	try {
-	    if( dude < 9 ) {
-		writeGraph( "global"+dude+"_0before_assign_"+dst+"_2_"+hrnNewest.getID() );
-	    }
-	} catch( Exception e ) {}
-	*/
 	
 	clearReferenceEdgesFrom( dst );
 	addReferenceEdge( dst, hrnNewest, new ReferenceEdgeProperties( false ) );
-
-	/*
-	try {
-	    if( dude < 9 ) {
-		writeGraph( "global"+dude+"_1after_assign_"+dst+"_2_"+hrnNewest.getID() );
-	    }
-	    ++dude;
-	} catch( Exception e ) {}
-	*/
     }
 
 
@@ -302,18 +283,7 @@ public class OwnershipGraph {
     // site, attempts to retrieve the heap region nodes using the
     // integer id's contained in the allocation site should always
     // return non-null heap regions.
-
-    private static int dude = 0;
     public void age( AllocationSite as ) {
-
-	/*
-	try {
-	    if( dude < 9 ) {
-		writeGraph( "global"+dude+"_before_age"+as );
-	    }
-	    //++dude;
-	} catch( Exception e ) {}
-	*/
 
 	//////////////////////////////////////////////////////////////////
 	//
@@ -460,15 +430,6 @@ public class OwnershipGraph {
 	// clear all references in and out of newest node
 	clearReferenceEdgesFrom( hrn0 );
 	clearReferenceEdgesTo  ( hrn0 );
-
-	/*
-	try {
-	    if( dude < 9 ) {
-		writeGraph( "global"+dude+"_after_age"+as );
-	    }
-	    ++dude;
-	} catch( Exception e ) {}
-	*/
     }
 
 
@@ -622,15 +583,7 @@ public class OwnershipGraph {
 	    
 	} else {
 	    // this heap region is not a parameter, so it should
-	    // have a matching heap region in the caller graph
-	    
-	    /*
-	      try {
-	      ogCallee.writeGraph( "TheCallee" );
-	      writeGraph( "TheCaller" );
-	      } catch( Exception e ) {}
-	    */
-	    
+	    // have a matching heap region in the caller graph	   	    
 	    assert id2hrn.containsKey( idCallee );
 	    possibleCallerHRNs.add( id2hrn.get( idCallee ) );
 	}
@@ -1124,23 +1077,37 @@ public class OwnershipGraph {
 
     // for writing ownership graphs to dot files
     public void writeGraph( Descriptor methodDesc,
-			    FlatNode   fn ) throws java.io.IOException {
+			    FlatNode   fn,
+			    boolean    writeLabels,
+			    boolean    writeReferencers 
+			    ) throws java.io.IOException {
 	writeGraph(
 		   methodDesc.getSymbol() +
 		   methodDesc.getNum() +
-		   fn.toString()
+		   fn.toString(),
+		   writeLabels,
+		   writeReferencers
 		   );
     }
 
-    public void writeGraph( Descriptor methodDesc ) throws java.io.IOException {
+    public void writeGraph( Descriptor methodDesc,
+			    boolean    writeLabels,
+			    boolean    writeReferencers 
+			    ) throws java.io.IOException {
 	writeGraph( 
 		   methodDesc.getSymbol() +
 		   methodDesc.getNum() +
-		   "COMPLETE"
+		   "COMPLETE",
+		   writeLabels,
+		   writeReferencers
 		    );
     }
 
-    private void writeGraph( String graphName ) throws java.io.IOException {
+    private void writeGraph( String graphName,
+			     boolean writeLabels,
+			     boolean writeReferencers 
+			     ) throws java.io.IOException {
+
 	// remove all non-word characters from the graph name so
 	// the filename and identifier in dot don't cause errors
 	graphName = graphName.replaceAll( "[\\W]", "" );
@@ -1159,38 +1126,44 @@ public class OwnershipGraph {
 	    Map.Entry      me  = (Map.Entry)      i.next();
 	    HeapRegionNode hrn = (HeapRegionNode) me.getValue();
 	    if( !visited.contains( hrn ) ) {
-		traverseHeapRegionNodes( VISIT_HRN_WRITE_FULL, hrn, bw, null, visited );
+		traverseHeapRegionNodes( VISIT_HRN_WRITE_FULL, 
+					 hrn, 
+					 bw, 
+					 null, 
+					 visited, 
+					 writeReferencers );
 	    }
 	}
 
 	bw.write( "  graphTitle[label=\""+graphName+"\",shape=box];\n" );
 
-	/*
-	// then visit every label node	
-	s = td2ln.entrySet();
-	i = s.iterator();
-	while( i.hasNext() ) {
-	    Map.Entry me = (Map.Entry) i.next();
-	    LabelNode ln = (LabelNode) me.getValue();
 
-	    HeapRegionNode hrn = null;
-	    Iterator heapRegionsItr = ln.setIteratorToReferencedRegions();
-	    while( heapRegionsItr.hasNext() ) {
-		Map.Entry meH               = (Map.Entry)               heapRegionsItr.next();
-		hrn                         = (HeapRegionNode)          meH.getKey();
-		ReferenceEdgeProperties rep = (ReferenceEdgeProperties) meH.getValue();
-
-		String edgeLabel = "";
-		if( rep.isUnique() ) {
-		    edgeLabel = "Unique";
+	// then visit every label node, useful for debugging
+	if( writeLabels ) {
+	    s = td2ln.entrySet();
+	    i = s.iterator();
+	    while( i.hasNext() ) {
+		Map.Entry me = (Map.Entry) i.next();
+		LabelNode ln = (LabelNode) me.getValue();
+		
+		HeapRegionNode hrn = null;
+		Iterator heapRegionsItr = ln.setIteratorToReferencedRegions();
+		while( heapRegionsItr.hasNext() ) {
+		    Map.Entry meH               = (Map.Entry)               heapRegionsItr.next();
+		    hrn                         = (HeapRegionNode)          meH.getKey();
+		    ReferenceEdgeProperties rep = (ReferenceEdgeProperties) meH.getValue();
+		    
+		    String edgeLabel = "";
+		    if( rep.isUnique() ) {
+			edgeLabel = "Unique";
+		    }
+		    bw.write( "  "        + ln.toString() +
+			      " -> "      + hrn.toString() +
+			      "[label=\"" + edgeLabel +
+			      "\"];\n" );
 		}
-		bw.write( "  "        + ln.toString() +
-			  " -> "      + hrn.toString() +
-			  "[label=\"" + edgeLabel +
-			  "\"];\n" );
 	    }
 	}
-	*/
 
 	
 	bw.write( "}\n" );
@@ -1201,7 +1174,8 @@ public class OwnershipGraph {
 					    HeapRegionNode hrn,
 					    BufferedWriter bw,
 					    TempDescriptor td,
-					    HashSet<HeapRegionNode> visited
+					    HashSet<HeapRegionNode> visited,
+					    boolean writeReferencers
 					    ) throws java.io.IOException {
 
 	if( visited.contains( hrn ) ) {
@@ -1235,24 +1209,22 @@ public class OwnershipGraph {
 	}
 
 
-	/*
-	// go back and let a compile flag control whether the light
-	// gray "referencer" edges are written to dot files.  It makes
-	// the graph cluttered but can be useful for debugging.	
-	OwnershipNode onRef  = null;
-	Iterator      refItr = hrn.iteratorToReferencers();
-	while( refItr.hasNext() ) {
-	    onRef = (OwnershipNode) refItr.next();
-
-	    switch( mode ) {
-	    case VISIT_HRN_WRITE_FULL:
-		bw.write( "  "                    + hrn.toString() + 
-			  " -> "                  + onRef.toString() + 
-			  "[color=lightgray];\n" );
-		break;
+	// useful for debugging
+	if( writeReferencers ) {
+	    OwnershipNode onRef  = null;
+	    Iterator      refItr = hrn.iteratorToReferencers();
+	    while( refItr.hasNext() ) {
+		onRef = (OwnershipNode) refItr.next();
+		
+		switch( mode ) {
+		case VISIT_HRN_WRITE_FULL:
+		    bw.write( "  "                    + hrn.toString() + 
+			      " -> "                  + onRef.toString() + 
+			      "[color=lightgray];\n" );
+		    break;
+		}
 	    }
 	}
-	*/
 
 
 	HeapRegionNode hrnChild = null;
@@ -1278,7 +1250,12 @@ public class OwnershipGraph {
 		break;
 	    }
 
-	    traverseHeapRegionNodes( mode, hrnChild, bw, td, visited );
+	    traverseHeapRegionNodes( mode,
+				     hrnChild,
+				     bw,
+				     td,
+				     visited,
+				     writeReferencers );
 	}
     }
 }

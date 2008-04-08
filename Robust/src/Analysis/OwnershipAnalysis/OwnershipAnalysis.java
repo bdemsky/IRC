@@ -138,7 +138,7 @@ public class OwnershipAnalysis {
 	    if( !og.equals( ogPrev ) ) {
 		mapDescriptorToCompleteOwnershipGraph.put( d, og );
 
-		og.writeGraph( d );
+		og.writeGraph( d, false, false );
 
 		// only methods have dependents, tasks cannot
 		// be invoked by any user program calls
@@ -255,7 +255,6 @@ public class OwnershipAnalysis {
 		og.assignTempToParameterAllocation( methodDesc instanceof TaskDescriptor,
 						    tdParam,
 						    new Integer( i ) );
-		//og.writeGraph( methodDesc, fn );
 	    }
 
 	    break;
@@ -266,7 +265,6 @@ public class OwnershipAnalysis {
 		src = fon.getLeft();
 		dst = fon.getDest();
 		og.assignTempToTemp( src, dst );
-		//og.writeGraph( methodDesc, fn );
 	    }
 	    break;
 	    
@@ -277,7 +275,6 @@ public class OwnershipAnalysis {
 	    fld = ffn.getField();
 	    if( !fld.getType().isPrimitive() ) {
 		og.assignTempToField( src, dst, fld );
-		//og.writeGraph( methodDesc, fn );
 	    }
 	    break;
 	    
@@ -287,7 +284,6 @@ public class OwnershipAnalysis {
 	    dst = fsfn.getDst();
 	    fld = fsfn.getField();
 	    og.assignFieldToTemp( src, dst, fld );
-	    //og.writeGraph( methodDesc, fn );
 	    break;
 	    
 	case FKind.FlatNew:
