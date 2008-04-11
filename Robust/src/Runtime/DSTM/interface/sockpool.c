@@ -1,171 +1,141 @@
 #include "sockpool.h"
 
-inline int CompareAndSwap(int *a, int oldval, int newval) {
-    int temp = *a;
-    if (temp == oldval) {
-        *a = newval;
-        return 1;
-    } else 
-        return 0;
-    return 1;
-}
 
-inline void InitLock(SpinLock *s) {
-    *s = 0;
+#if defined(__i386__)
+inline static int test_and_set(volatile unsigned int *addr) {
+    int oldval;
+    /* Note: the "xchg" instruction does not need a "lock" prefix */
+    __asm__ __volatile__("xchgl %0, %1"
+        : "=r"(oldval), "=m"(*(addr))
+        : "0"(1), "m"(*(addr)));
+    return oldval;
 }
-
-inline void Lock(SpinLock *s) {
-    do {
-    } while(CompareAndSwap(s, 1, 1));
+inline static void UnLock(volatile unsigned int *addr) {
+    int oldval;
+    /* Note: the "xchg" instruction does not need a "lock" prefix */
+    __asm__ __volatile__("xchgl %0, %1"
+        : "=r"(oldval), "=m"(*(addr))
+        : "0"(0), "m"(*(addr)));
 }
+#elif
+#   error need implementation of test_and_set
+#endif
 
-inline void UnLock(SpinLock *s) {
-    *s = 0;
-}
+#define MAXSPINS 1000
 
-sockPoolHashTable_t *createSockPool(sockPoolHashTable_t * sockhash, unsigned int size, float loadfactor) {
-    if((sockhash = calloc(1, sizeof(sockPoolHashTable_t))) == NULL) {
-        printf("Calloc error at %s line %d\n", __FILE__, __LINE__);
-        return NULL;
+inline void Lock(unsigned int *s) {
+  while(test_and_set(s)) {
+    int i=0;
+    while(*s) {
+      if (i++>MAXSPINS) {
+	sched_yield();
+	i=0;
+      }
     }
+  }
+}
 
-    socknode_t **nodelist;
-    if ((nodelist = calloc(size, sizeof(socknode_t *))) < 0) {
-        printf("Calloc error at %s line %d\n", __FILE__, __LINE__);
-        free(sockhash);
-        return NULL;
-    }
 
-    sockhash->table = nodelist;
-    sockhash->inuse = NULL;
-    sockhash->size = size;
-    sockhash->numelements = 0;
-    sockhash->loadfactor = loadfactor;
-    InitLock(&sockhash->mylock);
-
-    return sockhash;
+sockPoolHashTable_t *createSockPool(sockPoolHashTable_t * sockhash, unsigned int size) {
+  if((sockhash = calloc(1, sizeof(sockPoolHashTable_t))) == NULL) {
+    printf("Calloc error at %s line %d\n", __FILE__, __LINE__);
+    return NULL;
+  }
+  
+  socknode_t **nodelist;
+  if ((nodelist = calloc(size, sizeof(socknode_t *))) < 0) {
+    printf("Calloc error at %s line %d\n", __FILE__, __LINE__);
+    free(sockhash);
+    return NULL;
+  }
+  
+  sockhash->table = nodelist;
+  sockhash->inuse = NULL;
+  sockhash->size = size;
+  sockhash->mylock=0;
+  
+  return sockhash;
 }
 
 int createNewSocket(unsigned int mid) {
-    int sd;
-    if((sd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-        printf("%s() Error: In creating socket at %s, %d\n", __func__, __FILE__, __LINE__);
-        return -1;
+  int sd;
+  if((sd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+    printf("%s() Error: In creating socket at %s, %d\n", __func__, __FILE__, __LINE__);
+    return -1;
+  }
+  struct sockaddr_in remoteAddr;
+  bzero(&remoteAddr, sizeof(remoteAddr));
+  remoteAddr.sin_family = AF_INET;
+  remoteAddr.sin_port = htons(LISTEN_PORT);
+  remoteAddr.sin_addr.s_addr = htonl(mid);
+  if(connect(sd, (struct sockaddr *)&remoteAddr, sizeof(remoteAddr)) < 0) {
+    printf("%s(): Error %d connecting to %s:%d\n", __func__, errno, inet_ntoa(remoteAddr.sin_addr), LISTEN_PORT);
+    close(sd);
+    return -1;
+  }
+  return sd;
+}
+
+
+int getSockWithLock(sockPoolHashTable_t *sockhash, unsigned int mid) {
+  socknode_t **ptr;
+  int key = mid%(sockhash->size);
+  int sd;
+  
+  Lock(&sockhash->mylock);
+  ptr=&sockhash->table[key];
+  
+  while(ptr!=NULL) {
+    if (mid == (*ptr)->mid) {
+      socknode_t *tmp=*ptr;
+      sd = tmp->sd;
+      *ptr=tmp->next;
+      tmp->next=sockhash->inuse;
+      sockhash->inuse=tmp;
+      UnLock(&sockhash->mylock);
+      return sd;
     }
-    struct sockaddr_in remoteAddr;
-    bzero(&remoteAddr, sizeof(remoteAddr));
-    remoteAddr.sin_family = AF_INET;
-    remoteAddr.sin_port = htons(LISTEN_PORT);
-    remoteAddr.sin_addr.s_addr = htonl(mid);
-    if(connect(sd, (struct sockaddr *)&remoteAddr, sizeof(remoteAddr)) < 0) {
-        printf("%s(): Error %d connecting to %s:%d\n", __func__, errno, inet_ntoa(remoteAddr.sin_addr), LISTEN_PORT);
-        close(sd);
-        return -1;
-    }
+    ptr=&((*ptr)->next);
+  }
+  UnLock(&sockhash->mylock);
+  if((sd = createNewSocket(mid)) != -1) {
+    socknode_t *inusenode = calloc(1, sizeof(socknode_t));
+    insToListWithLock(sockhash, inusenode);
     return sd;
+  } else {
+    return -1;
+  }
 }
 
 int getSock(sockPoolHashTable_t *sockhash, unsigned int mid) {
-    int key = mid%(sockhash->size);
-
-    if (sockhash->table[key] == NULL) {
-        int sd;
-        if((sd = createNewSocket(mid)) != -1) {
-            socknode_t *inusenode = calloc(1, sizeof(socknode_t));
-            inusenode->mid = mid; 
-            inusenode->sd = sd; 
-            insToList(sockhash, inusenode);
-            return sd;
-        } else {
-            return -1;
-        }
+  socknode_t **ptr;
+  int key = mid%(sockhash->size);
+  int sd;
+  
+  ptr=&sockhash->table[key];
+  
+  while(ptr!=NULL) {
+    if (mid == (*ptr)->mid) {
+      socknode_t *tmp=*ptr;
+      sd = tmp->sd;
+      *ptr=tmp->next;
+      tmp->next=sockhash->inuse;
+      sockhash->inuse=tmp;
+      return sd;
     }
-
-    int midFound = 0;
-    socknode_t *ptr = sockhash->table[key];
-    socknode_t *prev = (socknode_t *) &(sockhash->table[key]);
-    while (ptr != NULL) {
-        if (mid == ptr->mid) {
-            midFound = 1;
-            int sd = ptr->sd;
-            prev = ptr->next;
-            insToList(sockhash, ptr);
-            return sd;
-        }
-        prev = ptr;
-        ptr = ptr->next;
-    }
-
-    if(midFound == 0) {
-        int sd;
-        if((sd = createNewSocket(mid)) != -1) {
-            socknode_t *inusenode = calloc(1, sizeof(socknode_t));
-            inusenode->mid = mid; 
-            inusenode->sd = sd; 
-            insToList(sockhash, inusenode);
-            return sd;
-        } else {
-            return -1;
-        }
-    }
+    ptr=&((*ptr)->next);
+  }
+  if((sd = createNewSocket(mid)) != -1) {
+    socknode_t *inusenode = calloc(1, sizeof(socknode_t));
+    inusenode->next=sockhash->inuse;
+    sockhash->inuse=inusenode;
+    inusenode->next=sockhash;
+    sockhash=inusenode;
+    return sd;
+  } else {
     return -1;
+  }
 }
-
-int getSockWithLock(sockPoolHashTable_t *sockhash, unsigned int mid) {
-    int key = mid%(sockhash->size);
-
-    Lock(&sockhash->mylock);
-    if (sockhash->table[key] == NULL) {
-        UnLock(&sockhash->mylock);
-        int sd;
-        if((sd = createNewSocket(mid)) != -1) {
-            socknode_t *inusenode = calloc(1, sizeof(socknode_t));
-            inusenode->mid = mid; 
-            inusenode->sd = sd; 
-            insToListWithLock(sockhash, inusenode);
-            return sd;
-        } else {
-            return -1;
-        }
-    }
-    UnLock(&sockhash->mylock);
-    int midFound = 0;
-    Lock(&sockhash->mylock);
-    socknode_t *ptr = sockhash->table[key];
-    socknode_t *prev = (socknode_t *) &(sockhash->table[key]);
-    while (ptr != NULL) {
-        if (mid == ptr->mid) {
-            midFound = 1;
-            int sd = ptr->sd;
-            prev = ptr->next;
-            UnLock(&sockhash->mylock);
-            insToListWithLock(sockhash, ptr);
-            return sd;
-        }
-        prev = ptr;
-        ptr = ptr->next;
-    }
-    UnLock(&sockhash->mylock);
-
-    if(midFound == 0) {
-        int sd;
-        if((sd = createNewSocket(mid)) != -1) {
-            socknode_t *inusenode = calloc(1, sizeof(socknode_t));
-            inusenode->mid = mid; 
-            inusenode->sd = sd; 
-            insToListWithLock(sockhash, inusenode);
-            return sd;
-        } else {
-            return -1;
-        }
-    }
-    return -1;
-}
-
-void insToList(sockPoolHashTable_t *sockhash, socknode_t *inusenode) {
-    inusenode->next = sockhash->inuse;
-    sockhash->inuse = inusenode;
-} 
 
 void insToListWithLock(sockPoolHashTable_t *sockhash, socknode_t *inusenode) {
     Lock(&sockhash->mylock);
@@ -174,34 +144,27 @@ void insToListWithLock(sockPoolHashTable_t *sockhash, socknode_t *inusenode) {
     UnLock(&sockhash->mylock);
 } 
 
-int freeSock(sockPoolHashTable_t *sockhash, unsigned int mid, int sd) {
-    if(sockhash->inuse != NULL) {
-        socknode_t *ptr = sockhash->inuse; 
-        ptr->mid = mid;
-        ptr->sd = sd;
-        sockhash->inuse = ptr->next;
-        int key = mid%(sockhash->size);
-        ptr->next = sockhash->table[key];
-        sockhash->table[key] = ptr;
-        return 0;
-    }
-    return -1;
+void freeSock(sockPoolHashTable_t *sockhash, unsigned int mid, int sd) {
+    int key = mid%(sockhash->size);
+    socknode_t *ptr = sockhash->inuse; 
+    sockhash->inuse = ptr->next;
+    ptr->mid = mid;
+    ptr->sd = sd;
+    ptr->next = sockhash->table[key];
+    sockhash->table[key] = ptr;
 }
 
-int freeSockWithLock(sockPoolHashTable_t *sockhash, unsigned int mid, int sd) {
-    if(sockhash->inuse != NULL) {
-        Lock(&sockhash->mylock);
-        socknode_t *ptr = sockhash->inuse; 
-        ptr->mid = mid;
-        ptr->sd = sd;
-        sockhash->inuse = ptr->next;
-        int key = mid%(sockhash->size);
-        ptr->next = sockhash->table[key];
-        sockhash->table[key] = ptr;
-        UnLock(&sockhash->mylock);
-        return 0;
-    }
-    return -1;
+void freeSockWithLock(sockPoolHashTable_t *sockhash, unsigned int mid, int sd) {
+  int key = mid%(sockhash->size);
+  socknode_t *ptr;
+  Lock(&sockhash->mylock);
+  ptr = sockhash->inuse; 
+  sockhash->inuse = ptr->next;
+  ptr->mid = mid;
+  ptr->sd = sd;
+  ptr->next = sockhash->table[key];
+  sockhash->table[key] = ptr;
+  UnLock(&sockhash->mylock);
 }
 
 #if 0

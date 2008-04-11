@@ -3,7 +3,7 @@
 
 #include "dstm.h"
 
-typedef int SpinLock;
+
 typedef struct socknode {
     int sd;
     unsigned int mid;
@@ -14,9 +14,7 @@ typedef struct sockPoolHashTable {
     socknode_t **table;
     socknode_t *inuse;
     unsigned int size;
-    unsigned int numelements;
-    float loadfactor;
-    SpinLock mylock;
+    volatile unsigned int mylock;
 } sockPoolHashTable_t;
 
 sockPoolHashTable_t *createSockPool(sockPoolHashTable_t *, unsigned int, float);
