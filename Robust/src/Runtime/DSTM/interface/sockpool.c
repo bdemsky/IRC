@@ -23,7 +23,7 @@ inline static void UnLock(volatile unsigned int *addr) {
 
 #define MAXSPINS 1000
 
-inline void Lock(unsigned int *s) {
+inline void Lock(volatile unsigned int *s) {
   while(test_and_set(s)) {
     int i=0;
     while(*s) {
@@ -85,7 +85,7 @@ int getSockWithLock(sockPoolHashTable_t *sockhash, unsigned int mid) {
   Lock(&sockhash->mylock);
   ptr=&sockhash->table[key];
   
-  while(ptr!=NULL) {
+  while(*ptr!=NULL) {
     if (mid == (*ptr)->mid) {
       socknode_t *tmp=*ptr;
       sd = tmp->sd;
@@ -114,7 +114,7 @@ int getSock(sockPoolHashTable_t *sockhash, unsigned int mid) {
   
   ptr=&sockhash->table[key];
   
-  while(ptr!=NULL) {
+  while(*ptr!=NULL) {
     if (mid == (*ptr)->mid) {
       socknode_t *tmp=*ptr;
       sd = tmp->sd;
@@ -129,13 +129,35 @@ int getSock(sockPoolHashTable_t *sockhash, unsigned int mid) {
     socknode_t *inusenode = calloc(1, sizeof(socknode_t));
     inusenode->next=sockhash->inuse;
     sockhash->inuse=inusenode;
-    inusenode->next=sockhash;
-    sockhash=inusenode;
     return sd;
   } else {
     return -1;
   }
 }
+
+int getSock2(sockPoolHashTable_t *sockhash, unsigned int mid) {
+  socknode_t **ptr;
+  int key = mid%(sockhash->size);
+  int sd;
+  
+  ptr=&sockhash->table[key];
+  
+  while(*ptr!=NULL) {
+    if (mid == (*ptr)->mid) {
+      return (*ptr)->sd;
+    }
+    ptr=&((*ptr)->next);
+  }
+  if((sd = createNewSocket(mid)) != -1) {
+    *ptr=calloc(1, sizeof(socknode_t));
+    (*ptr)->mid=mid;
+    (*ptr)->sd=sd;
+    return sd;
+  } else {
+    return -1;
+  }
+}
+
 
 void insToListWithLock(sockPoolHashTable_t *sockhash, socknode_t *inusenode) {
     Lock(&sockhash->mylock);

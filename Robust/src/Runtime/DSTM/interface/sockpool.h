@@ -17,18 +17,15 @@ typedef struct sockPoolHashTable {
     volatile unsigned int mylock;
 } sockPoolHashTable_t;
 
-sockPoolHashTable_t *createSockPool(sockPoolHashTable_t *, unsigned int, float);
+sockPoolHashTable_t *createSockPool(sockPoolHashTable_t *, unsigned int);
 int getSock(sockPoolHashTable_t *, unsigned int);
+int getSock2(sockPoolHashTable_t *, unsigned int);
 int getSockWithLock(sockPoolHashTable_t *, unsigned int);
-int freeSock(sockPoolHashTable_t *, unsigned int, int);
-int freeSockWithLock(sockPoolHashTable_t *, unsigned int, int);
+void freeSock(sockPoolHashTable_t *, unsigned int, int);
+void freeSockWithLock(sockPoolHashTable_t *, unsigned int, int);
 void insToList(sockPoolHashTable_t *, socknode_t *);
 void insToListWithLock(sockPoolHashTable_t *, socknode_t *);
 int createNewSocket(unsigned int);
-int CompareAndSwap(int *, int, int);
-void InitLock(SpinLock *);
-void Lock (SpinLock *);
-void UnLock (SpinLock *);
 
 #if 0
 /************************************************

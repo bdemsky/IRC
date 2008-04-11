@@ -41,7 +41,7 @@ int dstmInit(void)
 		return 1; //failure
 
     //Initialize socket pool
-    if((transPResponseSocketPool = createSockPool(transPResponseSocketPool, 2*numHostsInSystem+1, LOADFACTOR)) == NULL) {
+    if((transPResponseSocketPool = createSockPool(transPResponseSocketPool, 2*numHostsInSystem+1)) == NULL) {
         printf("Error in creating new socket pool at  %s line %d\n", __FILE__, __LINE__);
         return 0;
     }
@@ -606,157 +606,143 @@ int transCommitProcess(void *modptr, unsigned int *oidmod, unsigned int *oidlock
  * then use offset values to prefetch references to other objects */
 
 int prefetchReq(int acceptfd) {
-	int i, size, objsize, numbytes = 0, isArray = 0, numoffset = 0;
-	int length;
-	char *recvbuffer, *sendbuffer, control;
-	unsigned int oid, mid;
-	objheader_t *header;
-	struct sockaddr_in remoteAddr;
-    oidmidpair_t oidmid;
-
-	do {
-		recv_data((int)acceptfd, &length, sizeof(int));
-		if(length != -1) {
-            recv_data((int)acceptfd, &oidmid, 2*sizeof(unsigned int));
-            oid = oidmid.oid;
-            mid = oidmid.mid;
-            size = length - sizeof(int) - (2 * sizeof(unsigned int));
-            numoffset = size/sizeof(short);
-            short offsetarry[numoffset];
-            recv_data((int) acceptfd, offsetarry, size);
-
-            int sd = -1;
-            if((sd = getSock(transPResponseSocketPool, mid)) == -1) {
-                printf("Error: No socket id in pool of sockets at %s line %d\n", __FILE__, __LINE__);
-                exit(-1);
-            }
-
-			/*Process each oid */
-			if ((header = mhashSearch(oid)) == NULL) {/* Obj not found */
-				/* Save the oids not found in buffer for later use */
-				size = sizeof(int) + sizeof(char) + sizeof(unsigned int) ;
-				if((sendbuffer = calloc(1, size)) == NULL) {
-					printf("Calloc error at %s,%d\n", __FILE__, __LINE__);
-					close(sd);
-					return -1;
-				}
-				*((int *) sendbuffer) = size;
-				*((char *)(sendbuffer + sizeof(int))) = OBJECT_NOT_FOUND;
-				*((unsigned int *)(sendbuffer + sizeof(int) + sizeof(char))) = oid;
-
-				control = TRANS_PREFETCH_RESPONSE;
-				if(sendPrefetchResponse(sd, &control, sendbuffer, &size) != 0) {
-					printf("Error: %s() in sending prefetch response at %s, %d\n",
-							__func__, __FILE__, __LINE__);
-					close(sd);
-					return -1;
-				}
-			} else { /* Object Found */
-				int incr = 0;
-				GETSIZE(objsize, header);
-				size = sizeof(int) + sizeof(char) + sizeof(unsigned int) + sizeof(objheader_t) + objsize;
-				if((sendbuffer = calloc(1, size)) == NULL) {
-					printf("Calloc error at %s,%d\n", __FILE__, __LINE__);
-					close(sd);
-					return -1;
-				}
-				*((int *) (sendbuffer + incr)) = size;
-				incr += sizeof(int);
-				*((char *)(sendbuffer + incr)) = OBJECT_FOUND;
-				incr += sizeof(char);
-				*((unsigned int *)(sendbuffer+incr)) = oid;
-				incr += sizeof(unsigned int);
-				memcpy(sendbuffer + incr, header, objsize + sizeof(objheader_t));
-
-				control = TRANS_PREFETCH_RESPONSE;
-				if(sendPrefetchResponse(sd, &control, sendbuffer, &size) != 0) {
-					printf("Error: %s() in sending prefetch response at %s, %d\n",
-							__func__, __FILE__, __LINE__);
-					close(sd);
-					return -1;
-				}
-
-				/* Calculate the oid corresponding to the offset value */
-				for(i = 0 ; i< numoffset ; i++) {
-					/* Check for arrays  */
-					if(TYPE(header) > NUMCLASSES) {
-						isArray = 1;
-					}
-					if(isArray == 1) {
-						int elementsize = classsize[TYPE(header)];
-						struct ArrayObject *ao = (struct ArrayObject *) (((char *)header) + sizeof(objheader_t));
-						unsigned short length = ao->___length___;
-						/* Check if array out of bounds */
-						if(offsetarry[i]< 0 || offsetarry[i] >= length) {
-							break;
-						}
-						oid = *((unsigned int *)(((char *)header) + sizeof(objheader_t) + sizeof(struct ArrayObject) + (elementsize*offsetarry[i])));
-					} else {
-						oid = *((unsigned int *)(((char *)header) + sizeof(objheader_t) + offsetarry[i]));
-					}
-
-					if((header = mhashSearch(oid)) == NULL) {
-						size = sizeof(int) + sizeof(char) + sizeof(unsigned int) ;
-						if((sendbuffer = calloc(1, size)) == NULL) {
-							printf("Calloc error at %s,%d\n", __FILE__, __LINE__);
-							close(sd);
-							return -1;
-						}
-						*((int *) sendbuffer) = size;
-						*((char *)(sendbuffer + sizeof(int))) = OBJECT_NOT_FOUND;
-						*((unsigned int *)(sendbuffer + sizeof(int) + sizeof(char))) = oid;
-
-						control = TRANS_PREFETCH_RESPONSE;
-						if(sendPrefetchResponse(sd, &control, sendbuffer, &size) != 0) {
-							printf("Error: %s() in sending prefetch response at %s, %d\n",
-									__FILE__, __LINE__);
-							close(sd);
-							return -1;
-						}
-						break;
-					} else {/* Obj Found */
-						int incr = 0;
-						GETSIZE(objsize, header);
-						size = sizeof(int) + sizeof(char) + sizeof(unsigned int) + sizeof(objheader_t) + objsize;
-						if((sendbuffer = calloc(1, size)) == NULL) {
-							printf("Calloc error at %s,%d\n", __func__, __FILE__, __LINE__);
-							close(sd);
-							return -1;
-						}
-						*((int *) (sendbuffer + incr)) = size;
-						incr += sizeof(int);
-						*((char *)(sendbuffer + incr)) = OBJECT_FOUND;
-						incr += sizeof(char);
-						*((unsigned int *)(sendbuffer+incr)) = oid;
-						incr += sizeof(unsigned int);
-						memcpy(sendbuffer + incr, header, objsize + sizeof(objheader_t));
-
-						control = TRANS_PREFETCH_RESPONSE;
-						if(sendPrefetchResponse(sd, &control, sendbuffer, &size) != 0) {
-							printf("Error: %s() in sending prefetch response at %s, %d\n",
-									__func__, __FILE__, __LINE__);
-							close(sd);
-							return -1;
-						}
-					}
-					isArray = 0;
-				}
-			}
-
-            //Release socket
-            int status;
-            if((status = freeSock(transPResponseSocketPool, mid, sd)) == -1) {
-                printf("Error: in releasing socket at %s line %d\n", __FILE__, __LINE__);
-                return -1;
-            }
-		}
-	} while (length != -1);
-	return 0;
+  int i, size, objsize, numoffset = 0;
+  int length;
+  char *recvbuffer, *sendbuffer, control;
+  unsigned int oid, mid=-1;
+  objheader_t *header;
+  oidmidpair_t oidmid;
+  int sd = -1;
+      
+  while(1) {
+    recv_data((int)acceptfd, &length, sizeof(int));
+    if(length == -1) 
+      break;
+    recv_data((int)acceptfd, &oidmid, 2*sizeof(unsigned int));
+    oid = oidmid.oid;
+    if (mid != oidmid.mid) {
+      if (mid!=-1) {
+	freeSockWithLock(transPResponseSocketPool, mid, sd);
+      }
+      mid=oidmid.mid;
+      if((sd = getSockWithLock(transPResponseSocketPool, mid)) == -1) {
+	printf("Error: No socket id in pool of sockets at %s line %d\n", __FILE__, __LINE__);
+	exit(-1);
+      }
+    }
+    size = length - sizeof(int) - (2 * sizeof(unsigned int));
+    numoffset = size/sizeof(short);
+    short offsetarry[numoffset];
+    recv_data((int) acceptfd, offsetarry, size);
+    
+    /*Process each oid */
+    if ((header = mhashSearch(oid)) == NULL) {/* Obj not found */
+      /* Save the oids not found in buffer for later use */
+      size = sizeof(int) + sizeof(char) + sizeof(unsigned int) ;
+      sendbuffer = calloc(1, size);
+      *((int *) sendbuffer) = size;
+      *((char *)(sendbuffer + sizeof(int))) = OBJECT_NOT_FOUND;
+      *((unsigned int *)(sendbuffer + sizeof(int) + sizeof(char))) = oid;
+      control = TRANS_PREFETCH_RESPONSE;
+      
+      if(sendPrefetchResponse(sd, &control, sendbuffer, &size) != 0) {
+	printf("Error: %s() in sending prefetch response at %s, %d\n",
+	       __func__, __FILE__, __LINE__);
+	close(sd);
+	return -1;
+      }
+    } else { /* Object Found */
+      int incr = 0;
+      GETSIZE(objsize, header);
+      size = sizeof(int) + sizeof(char) + sizeof(unsigned int) + sizeof(objheader_t) + objsize;
+      sendbuffer = calloc(1, size);
+      *((int *) (sendbuffer + incr)) = size;
+      incr += sizeof(int);
+      *((char *)(sendbuffer + incr)) = OBJECT_FOUND;
+      incr += sizeof(char);
+      *((unsigned int *)(sendbuffer+incr)) = oid;
+      incr += sizeof(unsigned int);
+      memcpy(sendbuffer + incr, header, objsize + sizeof(objheader_t));
+      
+      control = TRANS_PREFETCH_RESPONSE;
+      if(sendPrefetchResponse(sd, &control, sendbuffer, &size) != 0) {
+	printf("Error: %s() in sending prefetch response at %s, %d\n",
+	       __func__, __FILE__, __LINE__);
+	close(sd);
+	return -1;
+      }
+      
+      /* Calculate the oid corresponding to the offset value */
+      for(i = 0 ; i< numoffset ; i++) {
+	/* Check for arrays  */
+	if(TYPE(header) > NUMCLASSES) {
+	  int elementsize = classsize[TYPE(header)];
+	  struct ArrayObject *ao = (struct ArrayObject *) (((char *)header) + sizeof(objheader_t));
+	  unsigned short length = ao->___length___;
+	  /* Check if array out of bounds */
+	  if(offsetarry[i]< 0 || offsetarry[i] >= length) {
+	    break;
+	  }
+	  oid = *((unsigned int *)(((char *)header) + sizeof(objheader_t) + sizeof(struct ArrayObject) + (elementsize*offsetarry[i])));
+	} else {
+	  oid = *((unsigned int *)(((char *)header) + sizeof(objheader_t) + offsetarry[i]));
+	}
+	
+	if((header = mhashSearch(oid)) == NULL) {
+	  size = sizeof(int) + sizeof(char) + sizeof(unsigned int) ;
+	  if((sendbuffer = calloc(1, size)) == NULL) {
+	    printf("Calloc error at %s,%d\n", __FILE__, __LINE__);
+	    close(sd);
+	    return -1;
+	  }
+	  *((int *) sendbuffer) = size;
+	  *((char *)(sendbuffer + sizeof(int))) = OBJECT_NOT_FOUND;
+	  *((unsigned int *)(sendbuffer + sizeof(int) + sizeof(char))) = oid;
+	  
+	  control = TRANS_PREFETCH_RESPONSE;
+	  if(sendPrefetchResponse(sd, &control, sendbuffer, &size) != 0) {
+	    printf("Error: %s() in sending prefetch response at %s, %d\n",
+		   __FILE__, __LINE__);
+	    close(sd);
+	    return -1;
+	  }
+	  break;
+	} else {/* Obj Found */
+	  int incr = 0;
+	  GETSIZE(objsize, header);
+	  size = sizeof(int) + sizeof(char) + sizeof(unsigned int) + sizeof(objheader_t) + objsize;
+	  if((sendbuffer = calloc(1, size)) == NULL) {
+	    printf("Calloc error at %s,%d\n", __func__, __FILE__, __LINE__);
+	    close(sd);
+	    return -1;
+	  }
+	  *((int *) (sendbuffer + incr)) = size;
+	  incr += sizeof(int);
+	  *((char *)(sendbuffer + incr)) = OBJECT_FOUND;
+	  incr += sizeof(char);
+	  *((unsigned int *)(sendbuffer+incr)) = oid;
+	  incr += sizeof(unsigned int);
+	  memcpy(sendbuffer + incr, header, objsize + sizeof(objheader_t));
+	  
+	  control = TRANS_PREFETCH_RESPONSE;
+	  if(sendPrefetchResponse(sd, &control, sendbuffer, &size) != 0) {
+	    printf("Error: %s() in sending prefetch response at %s, %d\n",
+		   __func__, __FILE__, __LINE__);
+	    close(sd);
+	    return -1;
+	  }
+	}
+      }
+    }
+  }
+  //Release socket
+  if (mid!=-1)
+    freeSockWithLock(transPResponseSocketPool, mid, sd);
+    
+  return 0;
 }
 
 int sendPrefetchResponse(int sd, char *control, char *sendbuffer, int *size) {
-	int numbytes = 0;
-
 	send_data(sd, control, sizeof(char));
 	/* Send the buffer with its size */
 	int length = *(size);
