@@ -1174,7 +1174,7 @@ void sendPrefetchReq(prefetchpile_t *mcpilenode, int sd) {
     len = sizeof(int) + sizeof(unsigned int) + sizeof(unsigned int) + ((tmp->numoffset) * sizeof(short));
     char oidnoffset[len];
     char *buf=oidnoffset;
-    *((int*)buf) = len;
+    *((int*)buf) = tmp->numoffset;
     buf+=sizeof(int);
     *((unsigned int *)buf) = tmp->oid;
     buf+=sizeof(unsigned int);
@@ -1193,27 +1193,24 @@ void sendPrefetchReq(prefetchpile_t *mcpilenode, int sd) {
 }
 
 int getPrefetchResponse(int sd) {
-  int numbytes = 0, length = 0, size = 0;
-  char *recvbuffer, control;
+  int length = 0, size = 0;
+  char control;
   unsigned int oid;
   void *modptr, *oldptr;
   
   recv_data((int)sd, &length, sizeof(int)); 
   size = length - sizeof(int);
-  recvbuffer = calloc(1, size);
+  char recvbuffer[size];
 
   recv_data((int)sd, recvbuffer, size);
-
   control = *((char *) recvbuffer);
   if(control == OBJECT_FOUND) {
-    numbytes = 0;
     oid = *((unsigned int *)(recvbuffer + sizeof(char)));
     size = size - (sizeof(char) + sizeof(unsigned int));
     pthread_mutex_lock(&prefetchcache_mutex);
     if ((modptr = objstrAlloc(prefetchcache, size)) == NULL) {
       printf("Error: objstrAlloc error for copying into prefetch cache %s, %d\n", __FILE__, __LINE__);
       pthread_mutex_unlock(&prefetchcache_mutex);
-      free(recvbuffer);
       return -1;
     }
     pthread_mutex_unlock(&prefetchcache_mutex);
@@ -1226,8 +1223,6 @@ int getPrefetchResponse(int sd) {
       if(((objheader_t *)oldptr)->version <= ((objheader_t *)modptr)->version) {
 	prehashRemove(oid);
 	prehashInsert(oid, modptr);
-      } else {
-	/* TODO modptr should be reference counted */
       }
     } else {/* Else add the object ptr to hash table*/
       prehashInsert(oid, modptr);
@@ -1243,13 +1238,10 @@ int getPrefetchResponse(int sd) {
     /* TODO: For each object not found query DHT for new location and retrieve the object */
     /* Throw an error */
     printf("OBJECT %x NOT FOUND.... THIS SHOULD NOT HAPPEN...TERMINATE PROGRAM\n", oid);
-    free(recvbuffer);
     exit(-1);
   } else {
     printf("Error: in decoding the control value %d, %s, %d\n",control, __FILE__, __LINE__);
   }
-  
-  free(recvbuffer);
   
   return 0;
 }

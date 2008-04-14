@@ -142,6 +142,7 @@ transstart:
 	  transAbort(trans);
 	  return;
   } else {
+
 	  version = (ptr-1)->version;
 	  if((oidarray = calloc(1, sizeof(unsigned int))) == NULL) {
 		  printf("Calloc error %s, %d\n", __FILE__, __LINE__);
@@ -174,6 +175,11 @@ transstart:
 #endif
 
 #ifdef THREADS
+void CALL01(___Thread______nativeJoin____, struct ___Thread___ * ___this___) {
+  /* This is an evil, non portable hack*/
+  pthread_join((thread_t)___this___->___threadid___, NULL);
+}
+
 void CALL01(___Thread______nativeCreate____, struct ___Thread___ * ___this___) {
   pthread_t thread;
   int retval;
@@ -190,6 +196,8 @@ void CALL01(___Thread______nativeCreate____, struct ___Thread___ * ___this___) {
     if (retval!=0)
       usleep(1);
   } while(retval!=0);
+  /* This next statement will likely not work on many machines */
+  ___this___->___threadid___=thread;
 
   pthread_attr_destroy(&nattr);
 }

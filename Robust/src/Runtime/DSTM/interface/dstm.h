@@ -264,7 +264,7 @@ void *handleLocalReq(void *);//handles Local requests
 int transComProcess(local_thread_data_array_t *);
 int transAbortProcess(local_thread_data_array_t *);
 void transAbort(transrecord_t *trans);
-
+void sendPrefetchResponse(int sd, char *control, char *sendbuffer, int *size);
 void prefetch(int, unsigned int *, unsigned short *, short*);
 void *transPrefetch(void *);
 void *mcqProcess(void *);
