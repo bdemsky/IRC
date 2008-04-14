@@ -1,12 +1,11 @@
 #include "dstm.h"
 
-objstr_t *objstrCreate(unsigned int size)
-{
-	objstr_t *tmp = calloc(1, (sizeof(objstr_t) + size));
-	tmp->size = size;
-	tmp->next = NULL;
-	tmp->top = tmp + 1; //points to end of objstr_t structure!
-	return tmp;
+objstr_t *objstrCreate(unsigned int size) {
+  objstr_t *tmp = calloc(1, (sizeof(objstr_t) + size));
+  tmp->size = size;
+  tmp->next = NULL;
+  tmp->top = tmp + 1; //points to end of objstr_t structure!
+  return tmp;
 }
 
 //free entire list, starting at store

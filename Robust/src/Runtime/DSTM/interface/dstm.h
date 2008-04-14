@@ -266,10 +266,8 @@ void transAbort(transrecord_t *trans);
 void prefetch(int, unsigned int *, unsigned short *, short*);
 void *transPrefetch(void *);
 void *mcqProcess(void *);
-void checkPrefetchTuples(prefetchqelem_t *);
 prefetchpile_t *foundLocal(prefetchqelem_t *);// returns node with prefetch elements(oids, offsets)
-prefetchpile_t *makePreGroups(prefetchqelem_t *, int *);// returns node with prefetch elements(oids, offsets)
-void checkPreCache(prefetchqelem_t *, int *, unsigned int, int);
+int lookupObject(unsigned int * oid, short offset);
 int transPrefetchProcess(transrecord_t *, int **, short);
 void sendPrefetchReq(prefetchpile_t*, int);
 int getPrefetchResponse(int);
