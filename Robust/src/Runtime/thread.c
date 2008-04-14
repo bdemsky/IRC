@@ -16,6 +16,9 @@ pthread_mutex_t gclistlock;
 pthread_cond_t gccond;
 pthread_mutex_t objlock;
 pthread_cond_t objcond;
+
+pthread_mutex_t joinlock;
+pthread_cond_t joincond;
 pthread_key_t threadlocks;
 pthread_mutex_t threadnotifylock;
 pthread_cond_t threadnotifycond;
@@ -81,6 +84,8 @@ void initializethreads() {
   pthread_cond_init(&gccond, NULL);
   pthread_mutex_init(&objlock,NULL);
   pthread_cond_init(&objcond,NULL);
+  pthread_mutex_init(&joinlock,NULL);
+  pthread_cond_init(&joincond,NULL);
   pthread_key_create(&threadlocks, NULL);
   processOptions();
   initializeexithandler();
@@ -99,11 +104,17 @@ void initializethreads() {
 #ifdef THREADS
 void initthread(struct ___Thread___ * ___this___) {
 #ifdef PRECISE_GC
-  struct ___Thread______staticStart____L___Thread____params p={1, NULL, ___this___};
-  ___Thread______staticStart____L___Thread___(&p);
+  int p[]={1, (int) NULL, (int) ___this___};
+  ___Thread______staticStart____L___Thread___((struct ___Thread______staticStart____L___Thread____params *)p);
+  ___this___=(struct ___Thread___ *) p[2];
 #else
   ___Thread______staticStart____L___Thread___(___this___);
 #endif
+  ___this___->___finished___=1;
+  pthread_mutex_lock(&joinlock);
+  pthread_cond_signal(&joincond);
+  pthread_mutex_unlock(&joinlock);
+
   pthread_mutex_lock(&gclistlock);
   threadcount--;
   pthread_cond_signal(&gccond);
@@ -176,8 +187,10 @@ transstart:
 
 #ifdef THREADS
 void CALL01(___Thread______nativeJoin____, struct ___Thread___ * ___this___) {
-  /* This is an evil, non portable hack*/
-  pthread_join((pthread_t)VAR(___this___)->___threadid___, NULL);
+  pthread_mutex_lock(&joinlock);
+  while(!VAR(___this___)->___finished___)
+    pthread_cond_wait(&joincond, &joinlock);
+  pthread_mutex_unlock(&joinlock);  
 }
 
 void CALL01(___Thread______nativeCreate____, struct ___Thread___ * ___this___) {
@@ -197,7 +210,6 @@ void CALL01(___Thread______nativeCreate____, struct ___Thread___ * ___this___) {
       usleep(1);
   } while(retval!=0);
   /* This next statement will likely not work on many machines */
-  VAR(___this___)->___threadid___=thread;
 
   pthread_attr_destroy(&nattr);
 }

@@ -1,5 +1,5 @@
 public class Thread {
-    private int threadid;
+    private boolean finished;
 
     public void start() {
 	nativeCreate();
@@ -10,6 +10,7 @@ public class Thread {
     }
 
     public void join() {
+	nativeJoin();
     }
 
     private native void nativeJoin();
