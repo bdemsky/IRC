@@ -72,6 +72,7 @@
 #include <errno.h>
 #include <time.h>
 #include "sockpool.h"
+#include "prelookup.h"
 
 //bit designations for status field of objheader
 #define DIRTY 0x01
@@ -226,6 +227,7 @@ unsigned int getNewOID(void);
 objstr_t *objstrCreate(unsigned int size); //size in bytes
 void objstrDelete(objstr_t *store); //traverse and free entire list
 void *objstrAlloc(objstr_t *store, unsigned int size); //size in bytes
+void clearObjStore(); // TODO:currently only clears the prefetch cache object store
 /* end object store */
 
 /* Prototypes for server portion */

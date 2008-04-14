@@ -31,6 +31,7 @@ unsigned int prehashInsert(unsigned int key, void *val);
 void *prehashSearch(unsigned int key); //returns val, NULL if not found
 unsigned int prehashRemove(unsigned int key); //returns -1 if not found
 unsigned int prehashResize(unsigned int newsize);
+void prehashClear();
 /* end hash */
 
 #endif

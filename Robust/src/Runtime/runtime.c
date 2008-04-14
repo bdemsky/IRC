@@ -9,6 +9,7 @@
 #include "option.h"
 #ifdef DSTM
 #include "dstm.h"
+#include "prelookup.h"
 #endif
 
 extern int classsize[];
@@ -96,6 +97,13 @@ void CALL01(___System______printString____L___String___,struct ___String___ * __
 	putchar(sc);
     }
 }
+
+#ifdef DSTM
+void CALL00(___System______clearPrefetchCache____) {
+  clearObjStore();
+  prehashClear();
+}
+#endif
 
 /* Object allocation function */
 

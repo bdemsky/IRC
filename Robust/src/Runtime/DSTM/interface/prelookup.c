@@ -208,3 +208,28 @@ void prehashDelete() {
 
 	free(ptr);
 }
+
+//Note: This is based on the implementation of the inserting a key in the first position of the hashtable 
+void prehashClear() {
+  int i, isFirstBin;
+  prehashlistnode_t *ptr, *prev, *curr;
+
+  pthread_mutex_lock(&pflookup.lock);
+  ptr = pflookup.table; 
+  for(i = 0; i < pflookup.size; i++) {
+    prev = &ptr[i];
+    isFirstBin = 1;
+    while(prev->next != NULL) {
+      isFirstBin = 0;
+      curr = prev->next;
+      prev->next = curr->next;
+      free(curr);
+    }
+    if(isFirstBin == 1) {
+      prev->key = 0;
+      prev->next = NULL;
+    }
+  }
+  pthread_mutex_unlock(&pflookup.lock);
+}
+

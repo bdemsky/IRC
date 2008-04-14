@@ -1,4 +1,5 @@
 #include "dstm.h"
+extern objstr_t *prefetchcache;
 
 objstr_t *objstrCreate(unsigned int size) {
   objstr_t *tmp = calloc(1, (sizeof(objstr_t) + size));
@@ -60,3 +61,10 @@ void *objstrAlloc(objstr_t *store, unsigned int size)
 	}
 }
 
+void clearObjStore() {
+  objstr_t *tmp = prefetchcache;
+  while(tmp != NULL) {
+    bzero(tmp+1, tmp->size);
+    tmp = tmp->next;
+  }
+}
