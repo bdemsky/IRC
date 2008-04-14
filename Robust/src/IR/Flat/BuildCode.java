@@ -1697,10 +1697,16 @@ public class BuildCode {
 	    
 	    output.print(objectparams.numPointers());
 	    output.print(", & "+localsprefix);
-	    if (fc.getThis()!=null) {
+	    if (md.getThis()!=null) {
 		output.print(", ");
 		output.print("(struct "+md.getThis().getType().getSafeSymbol() +" *)"+ generateTemp(fm,fc.getThis(),lb));
 	    }
+	    if (fc.getThis()!=null&&md.getThis()==null) {
+		System.out.println("WARNING!!!!!!!!!!!!");
+		System.out.println("Source code calls static method"+md+"on an object in "+fm.getMethod()+"!");		
+	    }
+	    
+
 	    for(int i=0;i<fc.numArgs();i++) {
 		Descriptor var=md.getParameter(i);
 		TempDescriptor paramtemp=(TempDescriptor)temptovar.get(var);
