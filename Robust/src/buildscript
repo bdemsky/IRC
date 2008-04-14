@@ -178,7 +178,7 @@ fi
 # Build bristlecone/java sources
 
 #if ! java -Xms5m -Xmx100m $JAVAFORWARDOPTS -cp $ROBUSTROOT/../cup/:$ROBUSTROOT Main.Main -classlibrary \
-if ! java $JAVAFORWARDOPTS -cp $ROBUSTROOT/../cup/:$ROBUSTROOT Main.Main -classlibrary \
+if ! java $JAVAFORWARDOPTS -classpath $ROBUSTROOT/../cup/:$ROBUSTROOT Main.Main -classlibrary \
 $ROBUSTROOT/ClassLibrary/ -dir $BUILDDIR -precise \
 $JAVAOPTS $SRCFILES
 then exit $?

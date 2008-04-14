@@ -177,7 +177,7 @@ transstart:
 #ifdef THREADS
 void CALL01(___Thread______nativeJoin____, struct ___Thread___ * ___this___) {
   /* This is an evil, non portable hack*/
-  pthread_join((thread_t)___this___->___threadid___, NULL);
+  pthread_join((pthread_t)VAR(___this___)->___threadid___, NULL);
 }
 
 void CALL01(___Thread______nativeCreate____, struct ___Thread___ * ___this___) {
@@ -197,7 +197,7 @@ void CALL01(___Thread______nativeCreate____, struct ___Thread___ * ___this___) {
       usleep(1);
   } while(retval!=0);
   /* This next statement will likely not work on many machines */
-  ___this___->___threadid___=thread;
+  VAR(___this___)->___threadid___=thread;
 
   pthread_attr_destroy(&nattr);
 }
