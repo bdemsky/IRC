@@ -21,15 +21,13 @@ public class Barrier {
     int tmp;
     boolean retry=true;
 
-    if (b.numthreads == 1) 
-      return;
-
     do {
       if (!b.cleared) {
         b.entercount++;
         tmp = b.entercount;
         if (tmp==b.numthreads) {
-          b.cleared=true;
+          if(b.numthreads > 1)
+            b.cleared=true;
           b.entercount--;
           return;
         }

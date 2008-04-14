@@ -60,15 +60,12 @@ public class Em3d extends Thread
 
   public void run() {
     int iteration;
-    int b;
 
     atomic {
       iteration = numIter;
-      b = mybarr.numthreads;
     }
 
     for (int i = 0; i < iteration; i++) {
-      Barrier runBarrier = new Barrier();
       /* for  eNodes */
       atomic {
         Node prev, curr;
@@ -85,7 +82,7 @@ public class Em3d extends Thread
           }
           curr = curr.next;
         }
-        runBarrier.enterBarrier(mybarr);
+        Barrier.enterBarrier(mybarr);
       }
 
       /* for  hNodes */
@@ -104,7 +101,7 @@ public class Em3d extends Thread
           }
           curr = curr.next;
         }
-        runBarrier.enterBarrier(mybarr);
+        Barrier.enterBarrier(mybarr);
       }
     }
   }

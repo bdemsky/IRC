@@ -66,7 +66,7 @@ public class Node {
      * @param degree the out degree of each node
      * @return a table containing all the nodes.
      **/
-    public Node[] fillTable(int size, int degree, Random r)
+    public static Node[] fillTable(int size, int degree, Random r)
     {
         Node[] table = new Node[size];
 

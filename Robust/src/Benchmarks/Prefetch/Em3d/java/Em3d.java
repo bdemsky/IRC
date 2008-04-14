@@ -43,7 +43,6 @@ public class Em3d extends Thread
 
     public void run() {
         for (int i = 0; i < numIter; i++) {
-            Barrier runBarrier = new Barrier();
             /* for  eNodes */
             Node prev = bg.eNodes;
             Node curr = null;
@@ -58,8 +57,7 @@ public class Em3d extends Thread
                 }
                 curr = curr.next;
             }
-            runBarrier.enterBarrier(mybarr);
-            //mybarr.reset();
+            Barrier.enterBarrier(mybarr);
 
             /* for  hNodes */
             prev = bg.hNodes;
@@ -75,8 +73,7 @@ public class Em3d extends Thread
                 }
                 curr = curr.next;
             }
-            runBarrier.enterBarrier(mybarr);
-            //mybarr.reset();
+            Barrier.enterBarrier(mybarr);
         }
     }
         
@@ -118,7 +115,6 @@ public class Em3d extends Thread
         BiGraph graph1 = new BiGraph();
         int num_threads = 2;
         Barrier mybarr = new Barrier(num_threads);
-        System.out.println("DEBUG -> num_threads = " + num_threads);
         BiGraph graph = graph1.create(em.numNodes, em.numDegree, em.printResult, rand);
         
         long end0 = System.currentTimeMillis();

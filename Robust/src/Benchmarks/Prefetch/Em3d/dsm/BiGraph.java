@@ -38,14 +38,13 @@ public class BiGraph
 
   BiGraph create(int numNodes, int numDegree, boolean verbose, Random r)
   {
-    Node newnode = global new Node();
 
     // making nodes (we create a table)
     //if (verbose) System.printString("making nodes (tables in orig. version)");
     Node[] hTable = global new Node[numNodes];
     Node[] eTable = global new Node[numNodes];
-    hTable = newnode.fillTable(numNodes, numDegree, r);
-    eTable = newnode.fillTable(numNodes, numDegree, r);
+    hTable = Node.fillTable(numNodes, numDegree, r);
+    eTable = Node.fillTable(numNodes, numDegree, r);
 
     // making neighbors
     //if (verbose) System.printString("updating from and coeffs");
