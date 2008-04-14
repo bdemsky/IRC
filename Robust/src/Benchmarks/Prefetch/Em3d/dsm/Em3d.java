@@ -40,7 +40,6 @@ public class Em3d extends Thread
   BiGraph bg;
   int upperlimit;
   int lowerlimit;
-  //Random rand;
   Barrier mybarr;
 
   public Em3d() {
@@ -61,15 +60,18 @@ public class Em3d extends Thread
 
   public void run() {
     int iteration;
+    int b;
+
     atomic {
       iteration = numIter;
+      b = mybarr.numthreads;
     }
 
     for (int i = 0; i < iteration; i++) {
       Barrier runBarrier = new Barrier();
       /* for  eNodes */
-      Node prev, curr;
       atomic {
+        Node prev, curr;
         prev = bg.eNodes;
         curr = null;
         for(int j = 0; j<lowerlimit; j++){
@@ -84,11 +86,11 @@ public class Em3d extends Thread
           curr = curr.next;
         }
         runBarrier.enterBarrier(mybarr);
-        //mybarr.reset();
       }
 
       /* for  hNodes */
       atomic {
+        Node prev, curr;
         prev = bg.hNodes;
         curr = null;
         for(int j = 0; j<lowerlimit; j++){
@@ -103,7 +105,6 @@ public class Em3d extends Thread
           curr = curr.next;
         }
         runBarrier.enterBarrier(mybarr);
-        //mybarr.reset();
       }
     }
   }
@@ -116,7 +117,6 @@ public class Em3d extends Thread
    **/
   public static void main(String args[])
   {
-    Random rand = new Random(783);
     Em3d em;
     atomic {
       em = global new Em3d();
@@ -140,6 +140,10 @@ public class Em3d extends Thread
     }
     BiGraph graph;
     BiGraph graph1;
+    Random rand;
+    atomic {
+      rand = global new Random(783);
+    }
     atomic {
       graph1 = global new BiGraph();
       graph = global new BiGraph();

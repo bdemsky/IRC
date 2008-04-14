@@ -25,7 +25,6 @@ public class Barrier {
       return;
 
     do {
-      //System.out.println("Inside do");
       if (!b.cleared) {
         b.entercount++;
         tmp = b.entercount;
@@ -39,7 +38,6 @@ public class Barrier {
     } while(retry);
 
     while(true) {
-      //System.out.println("Inside while");
       if (b.cleared) {
         b.entercount--;
         int count = b.entercount;

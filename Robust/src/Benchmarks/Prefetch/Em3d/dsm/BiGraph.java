@@ -38,12 +38,14 @@ public class BiGraph
 
   BiGraph create(int numNodes, int numDegree, boolean verbose, Random r)
   {
-    Node newnode = new Node();
+    Node newnode = global new Node();
 
     // making nodes (we create a table)
     //if (verbose) System.printString("making nodes (tables in orig. version)");
-    Node[] hTable = newnode.fillTable(numNodes, numDegree, r);
-    Node[] eTable = newnode.fillTable(numNodes, numDegree, r);
+    Node[] hTable = global new Node[numNodes];
+    Node[] eTable = global new Node[numNodes];
+    hTable = newnode.fillTable(numNodes, numDegree, r);
+    eTable = newnode.fillTable(numNodes, numDegree, r);
 
     // making neighbors
     //if (verbose) System.printString("updating from and coeffs");
@@ -79,7 +81,7 @@ public class BiGraph
       n.updateFromNodes(r);
     }
 
-    BiGraph g = new BiGraph(eTable[0], hTable[0]);
+    BiGraph g = global new BiGraph(eTable[0], hTable[0]);
     return g;
   }
 

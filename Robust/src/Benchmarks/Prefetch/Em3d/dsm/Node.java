@@ -45,7 +45,7 @@ public class Node {
     {
         value = r.nextDouble();
         // create empty array for holding toNodes
-        toNodes = new Node[degree];
+        toNodes = global new Node[degree];
 
         next = null;
         for (int i = 0; i<fromCount; i++) {
@@ -65,12 +65,12 @@ public class Node {
      **/
     public Node[] fillTable(int size, int degree, Random r)
     {
-        Node[] table = new Node[size];
+        Node[] table = global new Node[size];
 
-        Node prevNode = new Node(degree, r);
+        Node prevNode = global new Node(degree, r);
         table[0] = prevNode;
         for (int i = 1; i < size; i++) {
-            Node curNode = new Node(degree, r);
+            Node curNode = global new Node(degree, r);
             table[i] = curNode;
             prevNode.next = curNode;
             prevNode = curNode;
@@ -102,7 +102,7 @@ public class Node {
                 // find a node with the random index in the given table
                 otherNode = nodeTable[index];
 
-                for (k = 0; (k < filled) && (!isBreak); k++) {
+                for (k = 0; (k < filled) && (isBreak==false); k++) {
                     if (otherNode == toNodes[filled]) 
                         isBreak = true;
                         //break;
@@ -116,41 +116,6 @@ public class Node {
             otherNode.fromCount++;
         }
     }
-
-    /*
-    public void makeUniqueNeighborsThread(Node[] nodeTable, Random rand, int l, int u)
-    {
-        for (int filled = 0; filled < toNodes.length; filled++) {
-            int k;
-            Node otherNode;
-            boolean isBreak;
-
-            do {
-                isBreak = false;
-                // generate a random number in the correct range
-                int index = rand.nextInt();
-                if (index < 0) index = -index;
-                index = index % nodeTable.length;
-
-                // find a node with the random index in the given table
-                otherNode = nodeTable[index];
-
-                for (k = 0; (k < filled) && (!isBreak); k++) {
-                    if (otherNode == toNodes[filled]) 
-                        isBreak = true;
-                        //break;
-                }
-            } while (k < filled);
-
-            // other node is definitely unique among "filled" toNodes
-            toNodes[filled] = otherNode;
-
-            // update fromCount for the other node
-            otherNode.fromCount++;
-        }
-    }
-    */
-
 
     /** 
      * Allocate the right number of FromNodes for this node. This
@@ -161,8 +126,8 @@ public class Node {
      **/
     public void makeFromNodes()
     {
-        fromNodes = new Node[fromCount]; // nodes fill be filled in later
-        coeffs = new double[fromCount];
+        fromNodes = global new Node[fromCount]; // nodes fill be filled in later
+        coeffs = global new double[fromCount];
     }
 
     /**
@@ -183,18 +148,8 @@ public class Node {
      * Get the new value of the current node based on its neighboring
      * from_nodes and coefficients.
      **/
-    /*
-    public void run() {
-        Node tmp = this;
-        while(tmp!= null) {
-            Node n = tmp;
-            for (int i = 0; i < n.fromCount; i++) {
-                n.value -= n.coeffs[i] * n.fromNodes[i].value;
-            }
-            tmp = tmp.next;
-        }
-    }
 
+    /*
     public void computeNewValue()
     {
         for (int i = 0; i < fromCount; i++) {
