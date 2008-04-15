@@ -4,7 +4,7 @@ SRC=${MAINCLASS}.java \
 	Node.java \
 	Barrier.java
 FLAGS=-dsm -prefetch -optimize -profile -debug -mainclass ${MAINCLASS} -o ${MAINCLASS}
-FLAGS2=-dsm -optimize -printflat -profile -debug -mainclass ${MAINCLASS} -o ${MAINCLASS}NP
+FLAGS2=-dsm -optimize -profile -debug -mainclass ${MAINCLASS} -o ${MAINCLASS}NP
 
 default:
 	../../../../buildscript ${FLAGS2} ${SRC}

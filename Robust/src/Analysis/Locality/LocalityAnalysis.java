@@ -196,7 +196,13 @@ public class LocalityAnalysis {
 	    MethodDescriptor md=lb.getMethod();
 	    Hashtable<FlatNode,Hashtable<TempDescriptor, Integer>> temptable=new Hashtable<FlatNode,Hashtable<TempDescriptor, Integer>>();
 	    Hashtable<FlatNode, Integer> atomictable=new Hashtable<FlatNode, Integer>();
-	    computeCallsFlags(md, lb, temptable, atomictable);
+	    try {
+		computeCallsFlags(md, lb, temptable, atomictable);
+	    } catch (Error e) {
+		System.out.println("Error in "+md+" context "+lb);
+		e.printStackTrace();
+		System.exit(-1);
+	    }
 	    atomictab.put(lb, atomictable);
 	    temptab.put(lb, temptable);
 
@@ -363,12 +369,13 @@ public class LocalityAnalysis {
 	Integer currreturnval=EITHER; //Start off with the either value
 	for(Iterator methodit=methodset.iterator();methodit.hasNext();) {
 	    MethodDescriptor md=(MethodDescriptor) methodit.next();
+
 	    boolean isnative=md.getModifiers().isNative();
 	    boolean isjoin = md.getClassDesc().getSymbol().equals(TypeUtil.ThreadClass)&&!nodemd.getModifiers().isStatic()&&nodemd.numParameters()==0&&md.getSymbol().equals("join");
 	    
 	    LocalityBinding lb=new LocalityBinding(md, isatomic);
 	    if (isnative&&isatomic) {
-		System.out.println("Don't call native methods in atomic blocks!");
+		System.out.println("Don't call native methods in atomic blocks!"+currlb.getMethod());
 	    }
 	    if (runmethodset==null||!runmethodset.contains(md)) {
 		//Skip this part if it is a run method
@@ -495,10 +502,14 @@ public class LocalityAnalysis {
     void processOpNode(FlatOpNode fon, Hashtable<TempDescriptor, Integer> currtable) {
 	/* Just propagate value */
 	Integer srcvalue=currtable.get(fon.getLeft());
+
 	if (srcvalue==null) {
-	    throw new Error(fon.getLeft()+" is undefined!");
+	    if (!fon.getLeft().getType().isPtr()) {
+		srcvalue=LOCAL;
+	    } else
+		throw new Error(fon.getLeft()+" is undefined!");
 	}
-	currtable.put(fon.getDest(), currtable.get(fon.getLeft()));
+	currtable.put(fon.getDest(), srcvalue);
     }
 
     void processCastNode(FlatCastNode fcn, Hashtable<TempDescriptor, Integer> currtable) {

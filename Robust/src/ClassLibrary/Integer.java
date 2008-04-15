@@ -40,7 +40,9 @@ public class Integer {
 		val=10+b-'a';
 	    else if (b>='A'&&b<='Z')
 		val=10+b-'A';
-	    else cont=false;
+	    else {
+		cont=false;
+	    }
 	    if (cont) {
 		if (val>=radix)
 		    System.error();

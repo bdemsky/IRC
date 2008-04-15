@@ -2016,7 +2016,9 @@ public class BuildCode {
 		output.println(dst+"->"+nextobjstr+"="+revertptr+";");
 		output.println("trans->revertlist=(struct ___Object___ *)"+dst+";");
 		output.println("}");
-	    } else throw new Error("Unknown array type");
+	    } else {
+		throw new Error("Unknown array type in"+fsen+" in " + fm+"\n"+(lb!=null?(lb+" "+lb.getExplanation()):""));
+	    }
 	    if (srcglobal) {
 		output.println("{");
 		String src=generateTemp(fm, fsen.getSrc(), lb);
