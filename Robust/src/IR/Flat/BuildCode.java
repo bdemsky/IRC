@@ -1557,8 +1557,8 @@ public class BuildCode {
 		if (maybenull) {
 		    if (!teststr.equals(""))
 			teststr+="&&";
-		    teststr+="prefptr="+basestr;
-		    basestr="((struct"+lasttype.getSafeSymbol()+"*)prefptr)->"+fd.getSafeSymbol();
+		    teststr+="((prefptr="+basestr+")!=NULL)";
+		    basestr="((struct "+lasttype.getSafeSymbol()+" *)prefptr)->"+fd.getSafeSymbol();
 		} else {
 		    basestr=basestr+"->"+fd.getSafeSymbol();
 		    maybenull=true;
@@ -1566,16 +1566,16 @@ public class BuildCode {
 		lasttype=fd.getType();
 	    } else {
 		IndexDescriptor id=(IndexDescriptor)desc;
-		indexcheck="(tmpindex=";
+		indexcheck="((tmpindex=";
 		for(int j=0;j<id.tddesc.size();j++) {
 		    indexcheck+=generateTemp(fm, id.getTempDescAt(j), lb)+"+";
 		}
-		indexcheck+=id.offset+">=0)&&(tmpindex<((struct ArrayObject *)prefptr)->___length___)";
+		indexcheck+=id.offset+")>=0)&&(tmpindex<((struct ArrayObject *)prefptr)->___length___)";
 
 		if (!teststr.equals(""))
 		    teststr+="&&";
-		teststr+="(((prefptr="+basestr+")!= NULL) &&"+indexcheck;
-		basestr="((void **)(((char *) &(((struct ArrayObject*)prefptr)->___length___))+sizeof(int)))[tmpindex]";
+		teststr+="((prefptr="+basestr+")!= NULL) &&"+indexcheck;
+		basestr="((void **)(((char *) &(((struct ArrayObject *)prefptr)->___length___))+sizeof(int)))[tmpindex]";
 		maybenull=true;
 		lasttype=lasttype.dereference();
 	    }
@@ -1585,7 +1585,7 @@ public class BuildCode {
 	if (teststr.equals("")) {
 	    oid="((unsigned int)"+basestr+")";
 	} else {
-	    oid="(unsigned int)("+teststr+")?"+basestr+":NULL)";
+	    oid="((unsigned int)(("+teststr+")?"+basestr+":NULL))";
 	}
 	oids.add(oid);
 	
