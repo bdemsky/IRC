@@ -1114,7 +1114,7 @@ public class BuildCode {
 	    printcomma=true;
 	}
 	
-	if (state.DSM&&lb.isAtomic()) {
+	if (state.DSM&&lb.isAtomic()&&!md.getModifiers().isNative()) {
 	    if (printcomma)
 		headersout.print(", ");
 	    headersout.print("transrecord_t * trans");
@@ -1781,7 +1781,7 @@ public class BuildCode {
 	    needcomma=true;
 	}
 
-	if (state.DSM&&locality.getBinding(lb,fc).isAtomic()) {
+	if (state.DSM&&locality.getBinding(lb,fc).isAtomic()&&!fc.getMethod().getModifiers().isNative()) {
 	    if (needcomma)
 		output.print(",");
 	    output.print("trans");
@@ -2016,9 +2016,7 @@ public class BuildCode {
 		output.println(dst+"->"+nextobjstr+"="+revertptr+";");
 		output.println("trans->revertlist=(struct ___Object___ *)"+dst+";");
 		output.println("}");
-	    } else {
-		throw new Error("Unknown array type in"+fsen+" in " + fm+"\n"+(lb!=null?(lb+" "+lb.getExplanation()):""));
-	    }
+	    } else throw new Error("Unknown array type");
 	    if (srcglobal) {
 		output.println("{");
 		String src=generateTemp(fm, fsen.getSrc(), lb);

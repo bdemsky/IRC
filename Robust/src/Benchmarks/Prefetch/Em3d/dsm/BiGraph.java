@@ -41,14 +41,8 @@ public class BiGraph
 
     // making nodes (we create a table)
     //if (verbose) System.printString("making nodes (tables in orig. version)");
-    Node[] hTable = global new Node[1];
-
-    Node[] eTable = global new Node[1];
-
-    if (true) {
-	eTable=Node.fillTable(numNodes, numDegree, r);
-	hTable=Node.fillTable(numNodes, numDegree, r);
-    }
+    Node [] eTable=Node.fillTable(numNodes, numDegree, r);
+    Node [] hTable=Node.fillTable(numNodes, numDegree, r);
 
     // making neighbors
     //if (verbose) System.printString("updating from and coeffs");

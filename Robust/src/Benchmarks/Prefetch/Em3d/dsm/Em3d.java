@@ -116,9 +116,10 @@ public class Em3d extends Thread
   {
     Em3d em;
     atomic {
-      em = global new Em3d();
-      em.parseCmdLine(args, em);
+	em = global new Em3d();
     }
+    Em3d.parseCmdLine(args, em);
+    
     boolean printMsgs, printResult;
     int numIter;
     atomic {
@@ -200,7 +201,7 @@ public class Em3d extends Thread
    * @param args the command line options.
    **/
 
-  public void parseCmdLine(String args[], Em3d em)
+  public static void parseCmdLine(String args[], Em3d em)
   {
     int i = 0;
     String arg;
@@ -211,11 +212,15 @@ public class Em3d extends Thread
       // check for options that require arguments
       if (arg.equals("-n")) {
         if (i < args.length) {
-          em.numNodes = new Integer(args[i++]).intValue();
+	    atomic {
+		em.numNodes = new Integer(args[i++]).intValue();
+	    }
         }
       } else if (arg.equals("-d")) {
         if (i < args.length) {
-          em.numDegree = new Integer(args[i++]).intValue();
+	    atomic {
+		em.numDegree = new Integer(args[i++]).intValue();
+	    }
         }
       } else if (arg.equals("-i")) {
         if (i < args.length) {
@@ -224,9 +229,13 @@ public class Em3d extends Thread
           }
         }
       } else if (arg.equals("-p")) {
-        em.printResult = true;
+	  atomic {
+	      em.printResult = true;
+	  }
       } else if (arg.equals("-m")) {
-        em.printMsgs = true;
+	  atomic {
+	      em.printMsgs = true;
+	  }
       } else if (arg.equals("-h")) {
         //em.usage();
       }

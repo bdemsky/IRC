@@ -14,12 +14,14 @@ public class LocalityAnalysis {
     Stack lbtovisit;
     Hashtable<LocalityBinding,LocalityBinding> discovered;
     Hashtable<LocalityBinding, Set<LocalityBinding>> dependence;
+    Hashtable<LocalityBinding, Set<LocalityBinding>> calldep;
     Hashtable<LocalityBinding, Hashtable<FlatNode,Hashtable<TempDescriptor, Integer>>> temptab;
     Hashtable<LocalityBinding, Hashtable<FlatNode, Integer>> atomictab;
     Hashtable<LocalityBinding, Hashtable<FlatAtomicEnterNode, Set<TempDescriptor>>> tempstosave;
     Hashtable<ClassDescriptor, Set<LocalityBinding>> classtolb;
     Hashtable<MethodDescriptor, Set<LocalityBinding>> methodtolb;
     private LocalityBinding lbmain;
+    private LocalityBinding lbrun;
 
     CallGraph callgraph;
     TypeUtil typeutil;
@@ -33,6 +35,7 @@ public class LocalityAnalysis {
 	this.state=state;
 	this.discovered=new Hashtable<LocalityBinding,LocalityBinding>();
 	this.dependence=new Hashtable<LocalityBinding, Set<LocalityBinding>>();
+	this.calldep=new Hashtable<LocalityBinding, Set<LocalityBinding>>();
 	this.temptab=new Hashtable<LocalityBinding, Hashtable<FlatNode,Hashtable<TempDescriptor, Integer>>>();
 	this.atomictab=new Hashtable<LocalityBinding, Hashtable<FlatNode, Integer>>();
 	this.lbtovisit=new Stack();
@@ -160,6 +163,34 @@ public class LocalityAnalysis {
     private void doAnalysis() {
 	computeLocalityBindings();
 	computeTempstoSave();
+	cleanSets();
+    }
+
+    private void cleanSets() {
+	HashSet<LocalityBinding> lbset=new HashSet<LocalityBinding>();
+	Stack<LocalityBinding> lbstack=new Stack<LocalityBinding>();
+	lbstack.add(lbmain);
+	lbstack.add(lbrun);
+	lbset.add(lbmain);
+	lbset.add(lbrun);
+	while(!lbstack.isEmpty()) {
+	    LocalityBinding lb=lbstack.pop();
+	    if (calldep.containsKey(lb)) {
+		Set<LocalityBinding> set=new HashSet<LocalityBinding>();
+		set.addAll(calldep.get(lb));
+		set.removeAll(lbset);
+		lbstack.addAll(set);
+		lbset.addAll(set);
+	    }
+	}
+	for(Iterator<LocalityBinding> lbit=discovered.keySet().iterator();lbit.hasNext();) {
+	    LocalityBinding lb=lbit.next();
+	    if (!lbset.contains(lb)) {
+		lbit.remove();
+		classtolb.get(lb.getMethod().getClassDesc()).remove(lb);
+		methodtolb.get(lb.getMethod()).remove(lb);
+	    }
+	}
     }
     
     private void computeLocalityBindings() {
@@ -177,7 +208,7 @@ public class LocalityAnalysis {
 	methodtolb.get(lbmain.getMethod()).add(lbmain);
 
 	//Do this to force a virtual table number for the run method
-	LocalityBinding lbrun=new LocalityBinding(typeutil.getRun(), false);
+	lbrun=new LocalityBinding(typeutil.getRun(), false);
 	lbrun.setGlobalReturn(EITHER);
 	lbrun.setGlobalThis(GLOBAL);
 	lbtovisit.add(lbrun);
@@ -196,6 +227,7 @@ public class LocalityAnalysis {
 	    MethodDescriptor md=lb.getMethod();
 	    Hashtable<FlatNode,Hashtable<TempDescriptor, Integer>> temptable=new Hashtable<FlatNode,Hashtable<TempDescriptor, Integer>>();
 	    Hashtable<FlatNode, Integer> atomictable=new Hashtable<FlatNode, Integer>();
+	    calldep.remove(lb);
 	    try {
 		computeCallsFlags(md, lb, temptable, atomictable);
 	    } catch (Error e) {
@@ -427,6 +459,10 @@ public class LocalityAnalysis {
 	    if (!dependence.containsKey(lb))
 		dependence.put(lb, new HashSet<LocalityBinding>());
 	    dependence.get(lb).add(currlb);
+
+	    if (!calldep.containsKey(currlb))
+		calldep.put(currlb, new HashSet<LocalityBinding>());
+	    calldep.get(currlb).add(lb);
 	}
 	if (fc.getReturnTemp()!=null) {
 	    currtable.put(fc.getReturnTemp(), currreturnval);
