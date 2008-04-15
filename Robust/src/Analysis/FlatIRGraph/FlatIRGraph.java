@@ -55,6 +55,9 @@ public class FlatIRGraph {
 	labelindex=0;
 	labelFlatNodes( fm );
 
+	// take symbols out of graphname that cause dot to fail
+	graphname = graphname.replaceAll( "[\\W]", "" );
+
 	flatbw=new BufferedWriter( new FileWriter( graphname+"_flatIRGraph.dot" ) );
 	flatbw.write("digraph "+graphname+" {\n");
 
