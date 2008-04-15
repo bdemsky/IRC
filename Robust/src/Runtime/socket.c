@@ -292,7 +292,13 @@ int CALL02(___ServerSocket______nativeaccept____L___Socket___,struct ___ServerSo
   fcntl(newfd, F_SETFL, fcntl(fd, F_GETFL)|O_NONBLOCK);
   RuntimeHashadd(fdtoobject, newfd, (int) VAR(___s___));
   addreadfd(newfd);
+#ifdef MULTICORE
+  flagorand(VAR(___this___),0,0xFFFFFFFE,objq4socketobj[corenum],numqueues4socketobj[corenum]);
+  enqueueObject(VAR(___this___), objq4socketobj[corenum], numqueues4socketobj[corenum]);
+#else
   flagorand(VAR(___this___),0,0xFFFFFFFE);
+  enqueueObject(VAR(___this___));
+#endif
 #endif
   return newfd;
 }
@@ -356,7 +362,13 @@ int CALL02(___Socket______nativeRead_____AR_B, struct ___Socket___ * ___this___,
     perror("");
   }
 #ifdef TASK
+#ifdef MULTICORE
+  flagorand(VAR(___this___),0,0xFFFFFFFE,objq4socketobj[corenum],numqueues4socketobj[corenum]);
+  enqueueObject(VAR(___this___),objq4socketobj[corenum],numqueues4socketobj[corenum]);
+#else
   flagorand(VAR(___this___),0,0xFFFFFFFE);
+  enqueueObject(VAR(___this___));
+#endif
 #endif
   return byteread;
 }
@@ -368,7 +380,13 @@ void CALL01(___Socket______nativeClose____, struct ___Socket___ * ___this___) {
   RuntimeHashget(fdtoobject, fd, &data);
   RuntimeHashremove(fdtoobject, fd, data);
   removereadfd(fd);
+#ifdef MULTICORE
+  flagorand(VAR(___this___),0,0xFFFFFFFE,objq4socketobj[corenum],numqueues4socketobj[corenum]);
+  enqueueObject(VAR(___this___),objq4socketobj[corenum],numqueues4socketobj[corenum]);
+#else
   flagorand(VAR(___this___),0,0xFFFFFFFE);
+  enqueueObject(VAR(___this___));
+#endif
 #endif
   close(fd);
 }

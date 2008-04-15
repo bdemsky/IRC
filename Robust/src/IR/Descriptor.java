@@ -39,4 +39,8 @@ public abstract class Descriptor {
     public int getNum() {
 	return uniqueid;
     }
+    
+    public String getCoreSafeSymbol(int num) {
+	return safename + "core" + num + "___";
+    }
 }

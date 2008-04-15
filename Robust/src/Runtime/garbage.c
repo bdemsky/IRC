@@ -25,7 +25,9 @@
 
 #ifdef TASK
 extern struct genhashtable * activetasks;
+#ifndef MULTICORE
 extern struct parameterwrapper * objectqueues[NUMCLASSES];
+#endif
 extern struct genhashtable * failedtasks;
 extern struct taskparamdescriptor *currtpd;
 extern struct RuntimeHash *forward;
@@ -188,6 +190,8 @@ void collect(struct garbagelist * stackptr) {
     /* Update objectsets */
     int i;
     for(i=0;i<NUMCLASSES;i++) {
+#ifdef MULTICORE
+#else
       struct parameterwrapper * p=objectqueues[i];
       while(p!=NULL) {
 	struct ObjectHash * set=p->objectset;
@@ -200,6 +204,7 @@ void collect(struct garbagelist * stackptr) {
 	ObjectHashrehash(set); /* Rehash the table */
 	p=p->next;
       }
+#endif
     }
   }
   

@@ -57,7 +57,10 @@ public class Schedule {
 	if(!this.targetCores.containsKey(fstate)) {
 	    this.targetCores.put(fstate, new LinkedList<Integer>());
 	}
-	this.targetCores.get(fstate).add(targetCore);
+	//if(!this.targetCores.get(fstate).contains(targetCore)) {
+	    this.targetCores.get(fstate).add(targetCore); // there may have some duplicate items,
+	                                                  // which reflects probabilities.
+	//}
     }
     
     public void addTargetCore(FlagState fstate, Integer targetCore, FlagState tfstate) {
@@ -67,11 +70,15 @@ public class Schedule {
 	if(!this.targetCores.containsKey(fstate)) {
 	    this.targetCores.put(fstate, new LinkedList<Integer>());
 	}
-	this.targetCores.get(fstate).add(targetCore);
+	//if(!this.targetCores.get(fstate).contains(targetCore)) {
+	    this.targetCores.get(fstate).add(targetCore);
+	//}
 	if(this.targetFState == null) {
 	    this.targetFState = new Hashtable<FlagState, FlagState>();
 	}
-	this.targetFState.put(fstate, tfstate);
+	//if(!this.targetFState.containsKey(fstate)) {
+	    this.targetFState.put(fstate, tfstate);
+	//}
     }
 
     public Vector<TaskDescriptor> getTasks() {

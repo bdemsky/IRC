@@ -22,7 +22,9 @@ extern int instaccum;
 #endif
 
 struct genhashtable * activetasks;
+#ifndef MULTICORE
 struct parameterwrapper * objectqueues[NUMCLASSES];
+#endif
 struct genhashtable * failedtasks;
 struct taskparamdescriptor * currtpd;
 struct RuntimeHash * forward;
@@ -77,8 +79,14 @@ void createstartupobject(int argc, char ** argv) {
     ((void **)(((char *)& stringarray->___length___)+sizeof(int)))[i-1]=newstring;
   }
   
-  /* Set initialized flag for startup object */
+  /* Set initialized flag for startup object */ 
+#ifdef MULTICORE
+  flagorand(startupobject,1,0xFFFFFFFF,NULL,0);
+  enqueueObject(startupobject, objq4startupobj[corenum], numqueues4startupobj[corenum]);
+#else
   flagorand(startupobject,1,0xFFFFFFFF);
+  enqueueObject(startupobject);
+#endif
 }
 
 int hashCodetpd(struct taskparamdescriptor *ftd) {
@@ -288,7 +296,11 @@ struct ___TagDescriptor___ * allocate_tag(int index) {
 /* This function updates the flag for object ptr.  It or's the flag
    with the or mask and and's it with the andmask. */
 
+#ifdef MULTICORE
+void flagbody(struct ___Object___ *ptr, int flag, struct parameterwrapper ** queues, int length);
+#else
 void flagbody(struct ___Object___ *ptr, int flag);
+#endif
 #ifdef OPTIONAL
 void enqueueoptional(struct ___Object___ * currobj, int numfailedfses, int * failedfses, struct taskdescriptor * task, int index);
 #endif
@@ -297,7 +309,11 @@ void enqueueoptional(struct ___Object___ * currobj, int numfailedfses, int * fai
    return (*val1)-(*val2);
  } 
 
+#ifdef MULTICORE
+void flagorand(void * ptr, int ormask, int andmask, struct parameterwrapper ** queues, int length) {
+#else
 void flagorand(void * ptr, int ormask, int andmask) {
+#endif
 #ifdef OPTIONAL
   struct ___Object___ * obj = (struct ___Object___ *)ptr;
   if(obj->numfses){/*store the information about fses*/
@@ -320,11 +336,15 @@ void flagorand(void * ptr, int ormask, int andmask) {
       int oldflag=((int *)ptr)[1];
       int flag=ormask|oldflag;
       flag&=andmask;
+#ifdef MULTICORE
+	  flagbody(ptr, flag, queues, length);
+#else
       flagbody(ptr, flag);
+#endif
     }
 }
  
-void intflagorand(void * ptr, int ormask, int andmask) {
+bool intflagorand(void * ptr, int ormask, int andmask) {
 #ifdef OPTIONAL
   struct ___Object___ * obj = (struct ___Object___ *)ptr;
   if(obj->numfses) {/*store the information about fses*/
@@ -348,8 +368,15 @@ void intflagorand(void * ptr, int ormask, int andmask) {
       int flag=ormask|oldflag;
       flag&=andmask;
       if (flag==oldflag) /* Don't do anything */
-	return;
-      else flagbody(ptr, flag);
+	return false;
+      else {
+#ifdef MULTICORE
+		 flagbody(ptr, flag, NULL, 0);
+#else
+		 flagbody(ptr, flag);
+#endif
+		 return true;
+	  }
     }
 }
 
@@ -357,28 +384,67 @@ void flagorandinit(void * ptr, int ormask, int andmask) {
   int oldflag=((int *)ptr)[1];
   int flag=ormask|oldflag;
   flag&=andmask;
+#ifdef MULTICORE
+  flagbody(ptr,flag,NULL,0);
+#else
   flagbody(ptr,flag);
+#endif
 }
 
+#ifdef MULTICORE
+void flagbody(struct ___Object___ *ptr, int flag, struct parameterwrapper ** queues, int length) {
+#else
 void flagbody(struct ___Object___ *ptr, int flag) {
+#endif
+#ifdef MULTICORE
+  struct parameterwrapper * flagptr = NULL;
+  int i = 0;
+#else
   struct parameterwrapper *flagptr=(struct parameterwrapper *)ptr->flagptr;
+#endif
   ptr->flag=flag;
   
   /*Remove object from all queues */
+#ifdef MULTICORE
+  for(i = 0; i < length; ++i) {
+	  flagptr = queues[i];
+#else
   while(flagptr!=NULL) {
+#endif
+#ifdef MULTICORE
+	int next;
+#else
     struct parameterwrapper *next;
+#endif
     int UNUSED, UNUSED2;
     int * enterflags;
     ObjectHashget(flagptr->objectset, (int) ptr, (int *) &next, (int *) &enterflags, &UNUSED, &UNUSED2);
     ObjectHashremove(flagptr->objectset, (int)ptr);
     if (enterflags!=NULL)
       free(enterflags);
+#ifdef MULTICORE
+	;
+#else
     flagptr=next;
+#endif
   }
+ }
+
+#ifdef MULTICORE
+ void enqueueObject(void * vptr, struct parameterwrapper ** queues, int length) {
+#else
+ void enqueueObject(void *vptr) {
+#endif
+   struct ___Object___ *ptr = (struct ___Object___ *)vptr;
   
   {
     struct QueueItem *tmpptr;
+#ifdef MULTICORE
+	struct parameterwrapper * parameter=NULL;
+	int j;
+#else
     struct parameterwrapper * parameter=objectqueues[ptr->type];
+#endif
     int i;
     struct parameterwrapper * prevptr=NULL;
     struct ___Object___ *tagptr=ptr->___tags___;
@@ -386,7 +452,12 @@ void flagbody(struct ___Object___ *ptr, int flag) {
     /* Outer loop iterates through all parameter queues an object of
        this type could be in.  */
     
+#ifdef MULTICORE
+	for(j = 0; j < length; ++j) {
+		parameter = queues[j];
+#else
     while(parameter!=NULL) {
+#endif
       /* Check tags */
       if (parameter->numbertags>0) {
 	if (tagptr==NULL)
@@ -420,19 +491,59 @@ void flagbody(struct ___Object___ *ptr, int flag) {
       for(i=0;i<parameter->numberofterms;i++) {
 	int andmask=parameter->intarray[i*2];
 	int checkmask=parameter->intarray[i*2+1];
-	if ((flag&andmask)==checkmask) {
+	if ((ptr->flag&andmask)==checkmask) {
 	  enqueuetasks(parameter, prevptr, ptr, NULL, 0);
 	  prevptr=parameter;
 	  break;
 	}
       }
     nextloop:
+#ifdef MULTICORE
+	  ;
+#else
       parameter=parameter->next;
+#endif
     }
+#ifdef MULTICORE
+	/*if(prevptr != NULL) {
+	  ptr->flagptr=prevptr->arrayindex;
+	} else {
+	  ptr->flagptr = 0;
+	}*/
+#else
     ptr->flagptr=prevptr;
+#endif
   }
 }
- 
+
+#ifdef MULTICORE
+
+void transferObject(void * obj, int targetcore) {
+	int type=((int *)obj)[0];
+ // if (type<NUMCLASSES) {
+    /* We have a normal object */
+    int size=classsize[type];
+
+#ifdef RAW
+#endif
+	
+    //struct ___Object___ * newobj=FREEMALLOC(size);
+    //memcpy(newobj, obj, size);
+    //obj->___localcopy___=newobj;
+  //} else {
+    /* We have an array */
+    /*struct ArrayObject *ao=(struct ArrayObject *)obj;
+    int elementsize=classsize[type];
+    int length=ao->___length___;
+    int size=sizeof(struct ArrayObject)+length*elementsize;
+    struct ___Object___ * newobj=FREEMALLOC(size);
+    memcpy(newobj, obj, size);
+    obj->___localcopy___=newobj;
+  }*/
+}
+
+#endif
+
 #ifdef OPTIONAL
 
 int checktags(struct ___Object___ * currobj, struct fsanalysiswrapper * fswrapper) {
@@ -876,7 +987,15 @@ int enqueuetasks(struct parameterwrapper *parameter, struct parameterwrapper *pr
     retval=0;
   } else {
 #endif
+#ifdef MULTICORE
+	/*int arrayindex = 0;
+	if(prevptr != NULL) {
+		arrayindex = prevptr->arrayindex;
+	}*/
+	ObjectHashadd(parameter->objectset, (int) ptr, 0, (int) enterflags, numenterflags, enterflags==NULL);//this add the object to parameterwrapper
+#else
     ObjectHashadd(parameter->objectset, (int) ptr, (int) prevptr, (int) enterflags, numenterflags, enterflags==NULL);//this add the object to parameterwrapper
+#endif
 #ifdef OPTIONAL
   }
 #endif
@@ -1060,7 +1179,13 @@ void executetasks() {
 	    void * objptr;
 	    //	    printf("Setting fd %d\n",fd);
 	    if (RuntimeHashget(fdtoobject, fd,(int *) &objptr)) {
-	      intflagorand(objptr,1,0xFFFFFFFF); /* Set the first flag to 1 */
+	      if(intflagorand(objptr,1,0xFFFFFFFF)) { /* Set the first flag to 1 */
+#ifdef MULTICORE
+			 enqueueObject(objptr, NULL, 0);
+#else
+			 enqueueObject(objptr);
+#endif
+		  }
 	    }
 	  }
 	}
@@ -1343,8 +1468,13 @@ void builditerators(struct taskdescriptor * task, int index, struct parameterwra
  void printdebug() {
    int i;
    int j;
+#ifdef MULTICORE
+   for(i=0;i<numtasks[corenum];i++) {
+     struct taskdescriptor * task=taskarray[corenum][i];
+#else
    for(i=0;i<numtasks;i++) {
-     struct taskdescriptor * task=taskarray[i];
+	 struct taskdescriptor * task=taskarray[i];
+#endif
      printf("%s\n", task->name);
      for(j=0;j<task->numParameters;j++) {
        struct parameterdescriptor *param=task->descriptorarray[j];
@@ -1388,10 +1518,16 @@ void builditerators(struct taskdescriptor * task, int index, struct parameterwra
 
 void processtasks() {
   int i;
+#ifdef MULTICORE
+  for(i=0;i<numtasks[corenum];i++) {
+    struct taskdescriptor * task=taskarray[corenum][i];
+#else
   for(i=0;i<numtasks;i++) {
-    struct taskdescriptor * task=taskarray[i];
+	struct taskdescriptor * task=taskarray[i];
+#endif
     int j;
 
+#ifndef MULTICORE
     for(j=0;j<task->numParameters;j++) {
       struct parameterdescriptor *param=task->descriptorarray[j];
       struct parameterwrapper * parameter=RUNMALLOC(sizeof(struct parameterwrapper));
@@ -1404,17 +1540,22 @@ void processtasks() {
       parameter->numbertags=param->numbertags;
       parameter->tagarray=param->tagarray;
       parameter->task=task;
+	  parameter->slot=j;
       /* Link new queue in */
       while((*ptr)!=NULL)
 	ptr=&((*ptr)->next);
       (*ptr)=parameter;
     }
+#endif
 
     /* Build iterators for parameters */
     for(j=0;j<task->numParameters;j++) {
       struct parameterdescriptor *param=task->descriptorarray[j];
-      struct parameterwrapper *parameter=param->queue;      
-      parameter->slot=j;
+      struct parameterwrapper *parameter=param->queue;
+#ifdef MULTICORE
+	  parameter->objectset=allocateObjectHash(10);
+	  parameter->task=task;
+#endif
       builditerators(task, j, parameter);
     }
   }

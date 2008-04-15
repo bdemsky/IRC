@@ -6,6 +6,8 @@ import java.util.Set;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Arrays;
+import java.util.Vector;
+
 import Util.Edge;
 import Analysis.CallGraph.CallGraph;
 import IR.SymbolTable;
@@ -137,6 +139,7 @@ private void computeCallsFlags(FlatMethod fm, Hashtable parammap, Set tagbinding
 			ffantemp=ttp.getTemp();
 		    }
 		}
+		Vector<FlagState> targetFStates = ffan.getTargetFStates4NewObj(ffantemp.getType().getClassDesc());
 		FlagState fs=new FlagState(ffantemp.getType().getClassDesc());
 		for(Iterator it=ffan.getTempFlagPairs();it.hasNext();) {
 		    TempFlagPair tfp=(TempFlagPair)it.next();
@@ -174,6 +177,9 @@ private void computeCallsFlags(FlatMethod fm, Hashtable parammap, Set tagbinding
 		    else
 			fs2=(FlagState) flagmap.get(fs2);
 		    newflags.add(fs2);
+		    if(!targetFStates.contains(fs2)) {
+			targetFStates.addElement(fs2);
+		    }
 		}
 	    }
 	}

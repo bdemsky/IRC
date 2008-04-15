@@ -205,7 +205,9 @@ private void analyseTasks(FlagState fs) {
 	    fsnew.setAsSourceNode();
 	    fsnew.addAllocatingTask(td);
 
-	    ((Vector)cdtorootnodes.get(fsnew.getClassDescriptor())).add(fsnew);
+	    if(!((Vector)cdtorootnodes.get(fsnew.getClassDescriptor())).contains(fsnew)) {
+		((Vector)cdtorootnodes.get(fsnew.getClassDescriptor())).add(fsnew);
+	    }
 	}
 	
 	Stack nodestack=new Stack();
@@ -231,6 +233,11 @@ private void analyseTasks(FlagState fs) {
 		    
 		} else if (ffan.getTaskType() == FlatFlagActionNode.TASKEXIT) {
 		    Vector<FlagState> fsv_taskexit=evalTaskExitNode(ffan,cd,fs,temp);
+		    Vector<FlagState> initFStates = ffan.getInitFStates(temp.getType().getClassDesc());
+		    if(!initFStates.contains(fs)) {
+			initFStates.addElement(fs);
+		    }
+		    Vector<FlagState> targetFStates = ffan.getTargetFStates(fs);
 		    for(Enumeration en=fsv_taskexit.elements();en.hasMoreElements();){
 			FlagState fs_taskexit=(FlagState)en.nextElement();
 			if (!sourcenodes.containsKey(fs_taskexit)) {
@@ -241,6 +248,10 @@ private void analyseTasks(FlagState fs) {
 			FEdge newedge=new FEdge(fs_taskexit,taskname, td, parameterindex);
 			((Vector<FEdge>)tdToFEdges.get(td)).add(newedge);
 			fs.addEdge(newedge);
+			
+			if(!targetFStates.contains(fs_taskexit)) {
+			    targetFStates.addElement(fs_taskexit);
+			}
 		    }
 		    continue;
 		}

@@ -2,6 +2,8 @@ package Analysis.Scheduling;
 
 import java.util.*;
 
+import Analysis.TaskStateAnalysis.FEdge;
+import Analysis.TaskStateAnalysis.FlagState;
 import Util.GraphNode;
 
 /** This class holds flag transition diagram(s) can be put on one core.
@@ -241,7 +243,8 @@ public class ScheduleNode extends GraphNode implements Cloneable{
     	this.executionTime += ((ScheduleNode)se.getTarget()).getExeTime();
     }
     
-    public void mergeSNode(ScheduleNode sn) throws Exception {
+    public void mergeTransEdge(ScheduleEdge se) throws Exception {
+	ScheduleNode sn = (ScheduleNode)se.getTarget();
     	Vector<ClassNode> targetCNodes = (Vector<ClassNode>)sn.getClassNodes();
     	Vector<ScheduleEdge> targetSEdges = (Vector<ScheduleEdge>)sn.getScheduleEdges();
     	
@@ -261,8 +264,9 @@ public class ScheduleNode extends GraphNode implements Cloneable{
 	    }
     	}
     	targetCNodes = null;
-	targetSEdges = null;
 
+	sn.removeInedge(se);
+    	this.removeEdge(se);
     	Iterator it_edges = sn.edges();
     	while(it_edges.hasNext()) {
 	    ScheduleEdge tse = (ScheduleEdge)it_edges.next();
@@ -270,6 +274,47 @@ public class ScheduleNode extends GraphNode implements Cloneable{
 	    this.edges.addElement(tse);
     	}
     	
+    	// merge the split ClassNode of same class
+    	FlagState sfs = se.getFstate();
+	FlagState tfs = se.getTargetFState();
+	ClassNode scn = se.getSourceCNode();
+	ClassNode tcn = se.getTargetCNode();
+	sfs.getEdgeVector().addAll(tfs.getEdgeVector());
+	// merge the subtree whose root is nfs from the whole flag transition tree
+	Vector<FlagState> sfss = scn.getFlagStates();
+	sfss.addAll(tcn.getFlagStates());
+	sfss.removeElement(tfs);
+	classNodes.removeElement(tcn);
+	
+	// flush the exeTime of fs and its ancestors
+	sfs.setExeTime(0);
+	Queue<FlagState> toiterate = new LinkedList<FlagState>();
+	toiterate.add(sfs);
+	while(!toiterate.isEmpty()) {
+	    FlagState tmpfs = toiterate.poll();
+	    int ttime = tmpfs.getExeTime();
+	    Iterator it_inedges = tmpfs.inedges();
+	    while(it_inedges.hasNext()) {
+		FEdge fEdge = (FEdge)it_inedges.next();
+		FlagState temp = (FlagState)fEdge.getSource();
+		int time = fEdge.getExeTime() + ttime;
+		if(temp.getExeTime() > time) {
+		    temp.setExeTime(time);
+		    toiterate.add(temp);
+		}
+	    }
+	}
+	toiterate = null;
+	
+	// redirct internal ScheduleEdge from tcn to scn
+	for(int i = 0; i < targetSEdges.size(); ++i) {
+	    ScheduleEdge tmpse = targetSEdges.elementAt(i);
+	    if(tmpse.getSourceCNode().equals(tcn)) {
+		tmpse.setSourceCNode(scn);
+	    }
+	}
+	targetSEdges = null;
+	
     	// As all tasks inside one ScheduleNode are executed sequentially,
     	// simply add the execution time of all the ClassNodes inside one ScheduleNode. 
     	if(this.executionTime == -1) {

@@ -14,6 +14,8 @@ echo "-excprefetch methoddescriptor - exclude prefetches for this method (specif
 echo -taskstate do task state analysis
 echo -tagstate do tag state analysis
 echo -scheduling do task scheduling
+echo -multicore generate multi-core version binary
+echo "-raw generate raw version binary (should be used with -multicore)"
 echo -optional enable optional
 echo -debug generate debug symbols
 echo -prefetch do prefetch analysis
@@ -31,13 +33,16 @@ echo "-enable-assertions execute assert statements during compilation"
 echo -help help
 }
 
-ROBUSTROOT=~/research/Robust/src
+#ROBUSTROOT=~/research/Robust/src
+ROBUSTROOT=~/workspace/Robust/src
 DSMRUNTIME=$ROBUSTROOT/Runtime/DSTM/interface/
 REPAIRROOT=~/research/Repair/RepairCompiler/
 CURDIR=`pwd`
 DSMFLAG=false
 CHECKFLAG=false
 RECOVERFLAG=false
+MULTICOREFLAG=false
+RAWFLAG=false
 USEDMALLOC=false
 THREADFLAG=false
 SPECDIR=`pwd`
@@ -105,6 +110,14 @@ JAVAOPTS="$JAVAOPTS -tagstate"
 elif [[ $1 = '-scheduling' ]]
 then
 JAVAOPTS="$JAVAOPTS -scheduling"
+elif [[ $1 = '-multicore' ]]
+then
+MULTICOREFLAG=true
+JAVAOPTS="$JAVAOPTS -multicore"
+elif [[ $1 = '-raw' ]]
+then
+RAWFLAG=true
+#JAVAOPTS="$JAVAOPTS -raw"
 elif [[ $1 = '-optional' ]]
 then
 JAVAOPTS="$JAVAOPTS -optional"
@@ -244,6 +257,14 @@ fi
 if $RECOVERFLAG
 then
 EXTRAOPTIONS="$EXTRAOPTIONS -DTASK"
+if $MULTICOREFLAG
+then
+EXTRAOPTIONS="$EXTRAOPTIONS -DMULTICORE"
+fi
+if $RAWFLAG
+then
+EXTRAOPTIONS="$EXTRAOPTIONS -DRAW"
+fi
 FILES="$FILES tmpbuilddirectory/taskdefs.c $ROBUSTROOT/Runtime/checkpoint.c"
 fi
 

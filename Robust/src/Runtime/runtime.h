@@ -79,9 +79,11 @@ void createstartupobject();
 
 #ifdef TASK
 #include "SimpleHash.h"
+#ifndef MULTICORE
 #include "ObjectHash.h"
-#include "task.h"
 #include "structdefs.h"
+#endif
+#include "task.h"
 #ifdef OPTIONAL
 #include "optionalstruct.h"
 #endif
@@ -96,11 +98,23 @@ struct failedtasklist {
 };
 #endif
 
+#ifdef MULTICORE
+void flagorand(void * ptr, int ormask, int andmask, struct parameterwrapper ** queues, int length);
+void flagorandinit(void * ptr, int ormask, int andmask);
+void enqueueObject(void * ptr, struct parameterwrapper ** queues, int length);
+#else
 void flagorand(void * ptr, int ormask, int andmask);
 void flagorandinit(void * ptr, int ormask, int andmask);
+void enqueueObject(void * ptr);
+#endif
 void executetasks();
 void processtasks();
 
+#ifdef MULTICORE
+void transferObject(void * ptr, int targetcore);
+#endif
+
+#ifndef MULTICORE
 struct tagobjectiterator {
   int istag; /* 0 if object iterator, 1 if tag iterator */
   struct ObjectIterator it; /* Object iterator */
@@ -129,6 +143,7 @@ struct parameterwrapper {
   int slot;
   struct tagobjectiterator iterators[MAXTASKPARAMS-1];
 };
+#endif
 
 struct taskparamdescriptor {
   struct taskdescriptor * task;

@@ -13,6 +13,7 @@ import java.util.Vector;
 import IR.Tree.ParseNode;
 import IR.Tree.BuildIR;
 import IR.Tree.SemanticCheck;
+import IR.Flat.BuildCodeMultiCore;
 import IR.Flat.BuildFlat;
 import IR.Flat.BuildCode;
 import IR.ClassDescriptor;
@@ -91,10 +92,14 @@ public class Main {
 	      state.FLATIRGRAPH=true;
 	      state.FLATIRGRAPHLIBMETHODS=true;
 	  }
+	  else if (option.equals("-multicore"))
+		  state.MULTICORE=true;
 	  else if (option.equals("-ownership"))
 	      state.OWNERSHIP=true;
 	  else if (option.equals("-optional"))
 	      state.OPTIONAL=true;
+	  /*else if (option.equals("-raw"))
+		  state.RAW=true;*/
 	  else if (option.equals("-scheduling"))
 		  state.SCHEDULING=true; 
 	  else if (option.equals("-thread"))
@@ -241,9 +246,9 @@ public class Main {
 	      // Print stuff to the original output and error streams.
 	      // On most systems all of this will end up on your console when you
 	      // run this application.
-	      origOut.println ("\nRedirect:  Round #1");
-	      System.out.println ("Test output via 'System.out'.");
-	      origOut.println ("Test output via 'origOut' reference.");
+	      //origOut.println ("\nRedirect:  Round #1");
+	      //System.out.println ("Test output via 'System.out'.");
+	      //origOut.println ("Test output via 'origOut' reference.");
 
 	      // Set the System out and err streams to use our replacements.
 	      System.setOut(stdout);
@@ -253,9 +258,9 @@ public class Main {
 	      // should go to the console on most systems while the messages
 	      // printed through the 'System.out' and 'System.err' will end up in
 	      // the files we created for them.
-	      origOut.println ("\nRedirect:  Round #2");
-	      System.out.println ("Test output via 'SimulatorResult.out'.");
-	      origOut.println ("Test output via 'origOut' reference.");
+	      //origOut.println ("\nRedirect:  Round #2");
+	      //System.out.println ("Test output via 'SimulatorResult.out'.");
+	      //origOut.println ("Test output via 'origOut' reference.");
 	      
 	      // for test
 	      // Randomly set the newRate and probability of FEdges
@@ -280,7 +285,7 @@ public class Main {
 					  if(numEdges - j == 1) {
 					      pfe.setProbability(total);
 					  } else {
-					      if(total != 0) {
+					      if((total != 0) && (total != 1)){
 						  do {
 						      tint = r.nextInt()%total;
 						  } while(tint <= 0);
@@ -288,11 +293,12 @@ public class Main {
 					      pfe.setProbability(tint);
 					      total -= tint;
 					  }
-					  do {
+					  /*do {
 					      tint = r.nextInt()%10;
-					  } while(tint <= 0);
+					  } while(tint <= 0);*/
 					  //int newRate = tint;
-					  int newRate = (j+1)%2+1;
+					  //int newRate = (j+1)%2+1;
+					  int newRate = 1;
 					  /*do {
 					      tint = r.nextInt()%100;
 					  } while(tint <= 0);
@@ -309,9 +315,10 @@ public class Main {
 			  FlagState fs = (FlagState)it_flags.next();
 			  Iterator it_edges = fs.edges();
 			  while(it_edges.hasNext()) {
-			      do {
+			      /*do {
 				  tint = r.nextInt()%10;
-			      } while(tint <= 0);
+			      } while(tint <= 0);*/
+			      tint = 1;
 			      ((FEdge)it_edges.next()).setExeTime(tint);
 			  }
 		      }
@@ -322,7 +329,9 @@ public class Main {
 	      ScheduleAnalysis scheduleAnalysis = new ScheduleAnalysis(state, ta);
 	      scheduleAnalysis.preSchedule();
 	      scheduleAnalysis.scheduleAnalysis();
-	      scheduleAnalysis.setCoreNum(scheduleAnalysis.getSEdges4Test().size());
+	      //scheduleAnalysis.setCoreNum(scheduleAnalysis.getSEdges4Test().size());
+	      scheduleAnalysis.setCoreNum(1);
+	      //scheduleAnalysis.setCoreNum(2);
 	      scheduleAnalysis.schedule();
 	      
 	      //simulate these schedulings
@@ -390,22 +399,31 @@ public class Main {
 	      } catch (Exception e) {
 		  origOut.println ("Redirect:  Unable to close files!");
 	      }
+	      
+	      if(state.MULTICORE) {
+		  it_scheduling = scheduleAnalysis.getSchedulingsIter();
+		  Vector<Schedule> scheduling = (Vector<Schedule>)it_scheduling.next();
+		  BuildCodeMultiCore bcm=new BuildCodeMultiCore(state, bf.getMap(), tu, sa, scheduling, scheduleAnalysis.getCoreNum());
+		  bcm.buildCode();
+	      }
 	  }
 	  
       }
 
-      if (state.DSM) {
-	  CallGraph callgraph=new CallGraph(state);
-	  if (state.PREFETCH) {
-	      PrefetchAnalysis pa=new PrefetchAnalysis(state, callgraph, tu);
+      if(!state.MULTICORE) {
+	  if (state.DSM) {
+	      CallGraph callgraph=new CallGraph(state);
+	      if (state.PREFETCH) {
+		  PrefetchAnalysis pa=new PrefetchAnalysis(state, callgraph, tu);
+	      }
+	      LocalityAnalysis la=new LocalityAnalysis(state, callgraph, tu);
+	      GenerateConversions gc=new GenerateConversions(la, state);
+	      BuildCode bc=new BuildCode(state, bf.getMap(), tu, la);
+	      bc.buildCode();
+	  } else {
+	      BuildCode bc=new BuildCode(state, bf.getMap(), tu, sa);
+	      bc.buildCode();
 	  }
-	  LocalityAnalysis la=new LocalityAnalysis(state, callgraph, tu);
-	  GenerateConversions gc=new GenerateConversions(la, state);
-	  BuildCode bc=new BuildCode(state, bf.getMap(), tu, la);
-	  bc.buildCode();
-      } else {
-	  BuildCode bc=new BuildCode(state, bf.getMap(), tu, sa);
-	  bc.buildCode();
       }
 
       if (state.FLATIRGRAPH) {

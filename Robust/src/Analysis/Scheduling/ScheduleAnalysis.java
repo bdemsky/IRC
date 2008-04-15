@@ -565,8 +565,7 @@ public class ScheduleAnalysis {
 	toiterate = null;
 	
 	// create a 'trans' ScheudleEdge between this new ScheduleNode and se's source ScheduleNode
-	ScheduleEdge sEdge = new ScheduleEdge(sNode, "transmit", (FlagState)fe.getTarget(), false, 0);//new ScheduleEdge(sNode, "transmit", cNode.getClassDescriptor(), false, 0);
-	sEdge.setTargetFState(fs);
+	ScheduleEdge sEdge = new ScheduleEdge(sNode, "transmit", fs, false, 0);//new ScheduleEdge(sNode, "transmit", cNode.getClassDescriptor(), false, 0);
 	sEdge.setFEdge(fe);
 	sEdge.setSourceCNode(sCNode);
 	sEdge.setTargetCNode(cNode);
@@ -830,12 +829,23 @@ public class ScheduleAnalysis {
 	for(int i = 0; i < toMerge.size(); i++) {
 	    ScheduleEdge sEdge = toMerge.elementAt(i);
 	    // merge this edge
-	    ((ScheduleNode)sEdge.getSource()).mergeSEdge(sEdge);
+	    if(sEdge.getIsNew()) {
+		((ScheduleNode)sEdge.getSource()).mergeSEdge(sEdge);
+	    } else {
+		try {
+		    ((ScheduleNode)sEdge.getSource()).mergeTransEdge(sEdge);
+		} catch(Exception e) {
+		    e.printStackTrace();
+		    System.exit(-1);
+		}
+	    }
 	    result.removeElement(sEdge.getTarget());
-	    // As se has been changed into an internal edge inside a ScheduleNode, 
-	    // change the source and target of se from original ScheduleNodes into ClassNodes.
-	    sEdge.setTarget(sEdge.getTargetCNode());
-	    sEdge.setSource(sEdge.getSourceCNode());
+	    if(sEdge.getIsNew()) {
+		// As se has been changed into an internal edge inside a ScheduleNode, 
+		// change the source and target of se from original ScheduleNodes into ClassNodes.
+		sEdge.setTarget(sEdge.getTargetCNode());
+		sEdge.setSource(sEdge.getSourceCNode());
+	    } 
 	}
 	toMerge = null;
 	

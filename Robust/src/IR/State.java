@@ -52,8 +52,10 @@ public class State {
     public boolean FLATIRGRAPHTASKS=false;
     public boolean FLATIRGRAPHUSERMETHODS=false;
     public boolean FLATIRGRAPHLIBMETHODS=false;
+    public boolean MULTICORE=false;
     public boolean OWNERSHIP=false;
     public boolean OPTIONAL=false;
+    //public boolean RAW=false;
     public boolean SCHEDULING=false;  
     public boolean THREAD=false;
     public boolean CONSCHECK=false;

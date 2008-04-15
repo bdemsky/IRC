@@ -1,9 +1,12 @@
 package IR.Flat;
+import Analysis.TaskStateAnalysis.FlagState;
+import IR.ClassDescriptor;
 import IR.FlagDescriptor;
 import IR.TagDescriptor;
 import java.util.Hashtable;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.Vector;
 
 public class FlatFlagActionNode extends FlatNode {
     Hashtable<TempFlagPair, Boolean> tempflagpairs; 
@@ -13,16 +16,54 @@ public class FlatFlagActionNode extends FlatNode {
     public static final int NEWOBJECT=0;
     public static final int PRE=1;
     public static final int TASKEXIT=2;
+    
+    Hashtable<ClassDescriptor, Vector<FlagState>> cd2initfs;
+    Hashtable<ClassDescriptor, Vector<FlagState>> cd2fs4new;
+    Hashtable<FlagState, Vector<FlagState>> fs2fs;
 
 
     public FlatFlagActionNode(int taskexit) {
 	tempflagpairs=new Hashtable<TempFlagPair, Boolean>();
 	temptagpairs=new Hashtable<TempTagPair, Boolean>();
 	this.taskexit=taskexit;
+	
+	this.cd2initfs = null;
+	this.cd2fs4new = null;
+	this.fs2fs = null;
     }
 
     public int getTaskType() {
 	return taskexit;
+    }
+    
+    public Vector<FlagState> getInitFStates(ClassDescriptor cd) {
+	if(this.cd2initfs == null) {
+	    this.cd2initfs = new Hashtable<ClassDescriptor, Vector<FlagState>>();
+	}
+	if(this.cd2initfs.get(cd) == null) {
+	    this.cd2initfs.put(cd, new Vector<FlagState>());
+	}
+	return this.cd2initfs.get(cd);
+    }
+    
+    public Vector<FlagState> getTargetFStates4NewObj(ClassDescriptor cd) {
+	if(this.cd2fs4new == null) {
+	    this.cd2fs4new = new Hashtable<ClassDescriptor, Vector<FlagState>>();
+	}
+	if(this.cd2fs4new.get(cd) == null) {
+	    this.cd2fs4new.put(cd, new Vector<FlagState>());
+	}
+	return this.cd2fs4new.get(cd);
+    }
+    
+    public Vector<FlagState> getTargetFStates(FlagState fs) {
+	if(this.fs2fs == null) {
+	    this.fs2fs = new Hashtable<FlagState, Vector<FlagState>>();
+	}
+	if(this.fs2fs.get(fs) == null) {
+	    this.fs2fs.put(fs, new Vector<FlagState>());
+	}
+	return this.fs2fs.get(fs);
     }
 
     public void addFlagAction(TempDescriptor td, FlagDescriptor fd, boolean status) {

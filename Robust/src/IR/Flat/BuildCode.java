@@ -36,7 +36,8 @@ public class BuildCode {
     public static int flagcount = 0;
     Virtual virtualcalls;
     TypeUtil typeutil;
-    private int maxtaskparams=0;
+    //private int maxtaskparams=0;
+    protected int maxtaskparams=0;
     private int maxcount=0;
     ClassDescriptor[] cdarray;
     TypeDescriptor[] arraytable;
@@ -300,12 +301,16 @@ public class BuildCode {
      * objets and array that stores supertype and then the code for
      * the Java methods.. */
 
-    private void outputMethods(PrintWriter outmethod) {
+    //private void outputMethods(PrintWriter outmethod) {
+    protected void outputMethods(PrintWriter outmethod) {
 	outmethod.println("#include \"methodheaders.h\"");
 	outmethod.println("#include \"virtualtable.h\"");
 	outmethod.println("#include <runtime.h>");
 	if (state.DSM) {
 	    outmethod.println("#include \"localobjects.h\"");
+	}
+	if(state.MULTICORE) {
+	    outmethod.println("#include \"task.h\"");
 	}
 	if (state.THREAD||state.DSM)
 	    outmethod.println("#include <thread.h>");
@@ -351,7 +356,8 @@ public class BuildCode {
 	} 
     }
 
-    private void outputStructs(PrintWriter outstructs) {
+    //private void outputStructs(PrintWriter outstructs) {
+    protected void outputStructs(PrintWriter outstructs) {
 	outstructs.println("#ifndef STRUCTDEFS_H");
 	outstructs.println("#define STRUCTDEFS_H");
 	outstructs.println("#include \"classdefs.h\"");
@@ -393,7 +399,8 @@ public class BuildCode {
 	}
     }
 
-    private void outputClassDeclarations(PrintWriter outclassdefs) {
+    //private void outputClassDeclarations(PrintWriter outclassdefs) {
+    protected void outputClassDeclarations(PrintWriter outclassdefs) {
 	if (state.THREAD||state.DSM)
 	    outclassdefs.println("#include <pthread.h>");
 	if(state.OPTIONAL)
@@ -416,7 +423,12 @@ public class BuildCode {
 	}
 	if (state.TASK) {
 	    outclassdefs.println("  int flag;");
-	    outclassdefs.println("  void * flagptr;");
+	    if(!state.MULTICORE) {
+		outclassdefs.println("  void * flagptr;");
+	    } /*else {
+		outclassdefs.println("  int corenum;");
+		outclassdefs.println("  int flagptr;");
+	    }*/
 	    if(state.OPTIONAL){
 		outclassdefs.println("  int numfses;");
 		outclassdefs.println("  int * fses;");
@@ -467,7 +479,9 @@ public class BuildCode {
 	    outrepairstructs.println("  int __type__;");
 	    if (state.TASK) {
 		outrepairstructs.println("  int __flag__;");
-		outrepairstructs.println("  int __flagptr__;");
+		if(!state.MULTICORE) {
+		    outrepairstructs.println("  int __flagptr__;");
+		}
 	    }
 	    printRepairStruct(cn, outrepairstructs);
 	    outrepairstructs.println("}\n");
@@ -512,7 +526,7 @@ public class BuildCode {
     }
 
     /** This method outputs TaskDescriptor information */
-    void generateTaskDescriptor(PrintWriter output, FlatMethod fm, TaskDescriptor task) {
+    private void generateTaskDescriptor(PrintWriter output, FlatMethod fm, TaskDescriptor task) {
 	for (int i=0;i<task.numParameters();i++) {
 	    VarDescriptor param_var=task.getParameter(i);
 	    TypeDescriptor param_type=task.getParamType(i);
@@ -604,7 +618,8 @@ public class BuildCode {
     /** The buildVirtualTables method outputs the virtual dispatch
      * tables for methods. */
 
-    private void buildVirtualTables(PrintWriter outvirtual) {
+    //private void buildVirtualTables(PrintWriter outvirtual) {
+    protected void buildVirtualTables(PrintWriter outvirtual) {
     	Iterator classit=state.getClassSymbolTable().getDescriptorsIterator();
 	while(classit.hasNext()) {
 	    ClassDescriptor cd=(ClassDescriptor)classit.next();
@@ -742,7 +757,8 @@ public class BuildCode {
      * These objects tell the compiler which temps need to be
      * allocated.  */
 
-    private void generateTempStructs(FlatMethod fm, LocalityBinding lb) {
+    //private void generateTempStructs(FlatMethod fm, LocalityBinding lb) {
+    protected void generateTempStructs(FlatMethod fm, LocalityBinding lb) {
 	MethodDescriptor md=fm.getMethod();
 	TaskDescriptor task=fm.getTask();
 	Set<TempDescriptor> saveset=lb!=null?locality.getTempSet(lb):null;
@@ -949,7 +965,8 @@ public class BuildCode {
     /* Map flags to integers consistently between inherited
      * classes. */
 
-    private void mapFlags(ClassDescriptor cn) {
+    //private void mapFlags(ClassDescriptor cn) {
+    protected void mapFlags(ClassDescriptor cn) {
 	ClassDescriptor sp=cn.getSuperDesc();
 	if (sp!=null)
 	    mapFlags(sp);
@@ -983,7 +1000,8 @@ public class BuildCode {
      * passed in (when PRECISE GC is enabled) and (2) function
      * prototypes for the methods */
 
-    private void generateCallStructs(ClassDescriptor cn, PrintWriter classdefout, PrintWriter output, PrintWriter headersout) {
+    //private void generateCallStructs(ClassDescriptor cn, PrintWriter classdefout, PrintWriter output, PrintWriter headersout) {
+    protected void generateCallStructs(ClassDescriptor cn, PrintWriter classdefout, PrintWriter output, PrintWriter headersout) {
 	/* Output class structure */
 	classdefout.println("struct "+cn.getSafeSymbol()+" {");
 	classdefout.println("  int type;");
@@ -995,7 +1013,11 @@ public class BuildCode {
 
 	if (state.TASK) {
 	    classdefout.println("  int flag;");
-	    classdefout.println("  void * flagptr;");
+	    if((!state.MULTICORE) || (cn.getSymbol().equals("TagDescriptor"))) {
+		classdefout.println("  void * flagptr;");
+	    } /*else {
+		classdefout.println("  int flagptr;");
+	    }*/
 	    if (state.OPTIONAL){
 		classdefout.println("  int numfses;");
 		classdefout.println("  int * fses;");
@@ -1312,7 +1334,8 @@ public class BuildCode {
 
     /** This method assigns labels to FlatNodes */
 
-    private Hashtable<FlatNode, Integer> assignLabels(FlatMethod fm) {
+    //private Hashtable<FlatNode, Integer> assignLabels(FlatMethod fm) {
+    protected Hashtable<FlatNode, Integer> assignLabels(FlatMethod fm) {
 	HashSet tovisit=new HashSet();
 	HashSet visited=new HashSet();
 	int labelindex=0;
@@ -1345,7 +1368,8 @@ public class BuildCode {
 
 
     /** Generate text string that corresponds to the TempDescriptor td. */
-    private String generateTemp(FlatMethod fm, TempDescriptor td, LocalityBinding lb) {
+    //private String generateTemp(FlatMethod fm, TempDescriptor td, LocalityBinding lb) {
+    protected String generateTemp(FlatMethod fm, TempDescriptor td, LocalityBinding lb) {
 	MethodDescriptor md=fm.getMethod();
 	TaskDescriptor task=fm.getTask();
 	TempObject objecttemps=(TempObject) tempstable.get(lb!=null?lb:md!=null?md:task);
@@ -1364,7 +1388,8 @@ public class BuildCode {
 	throw new Error();
     }
 
-    private void generateFlatNode(FlatMethod fm, LocalityBinding lb, FlatNode fn, PrintWriter output) {
+    //private void generateFlatNode(FlatMethod fm, LocalityBinding lb, FlatNode fn, PrintWriter output) {
+    protected void generateFlatNode(FlatMethod fm, LocalityBinding lb, FlatNode fn, PrintWriter output) {
 	switch(fn.kind()) {
 	case FKind.FlatAtomicEnterNode:
 	    generateFlatAtomicEnterNode(fm, lb, (FlatAtomicEnterNode) fn, output);
@@ -2147,7 +2172,8 @@ public class BuildCode {
 	    output.println("return;");
     }
 
-    private void generateFlatCondBranch(FlatMethod fm, LocalityBinding lb, FlatCondBranch fcb, String label, PrintWriter output) {
+    //private void generateFlatCondBranch(FlatMethod fm, LocalityBinding lb, FlatCondBranch fcb, String label, PrintWriter output) {
+    protected void generateFlatCondBranch(FlatMethod fm, LocalityBinding lb, FlatCondBranch fcb, String label, PrintWriter output) {
 	output.println("if (!"+generateTemp(fm, fcb.getTest(),lb)+") goto "+label+";");
     }
 
@@ -2337,14 +2363,29 @@ public class BuildCode {
 		ormask=((Integer)flagortable.get(temp)).intValue();
 	    if (flagandtable.containsKey(temp))
 		andmask=((Integer)flagandtable.get(temp)).intValue();
-	    if (ffan.getTaskType()==FlatFlagActionNode.NEWOBJECT) {
+	    /*if (ffan.getTaskType()==FlatFlagActionNode.NEWOBJECT) {
 		output.println("flagorandinit("+generateTemp(fm, temp, lb)+", 0x"+Integer.toHexString(ormask)+", 0x"+Integer.toHexString(andmask)+");");
 	    } else {
 		output.println("flagorand("+generateTemp(fm, temp, lb)+", 0x"+Integer.toHexString(ormask)+", 0x"+Integer.toHexString(andmask)+");");
-	    }
+	    }*/
+	    generateFlagOrAnd(ffan, fm, lb, temp, output, ormask, andmask);
+	    generateObjectDistribute(ffan, fm, lb, temp, output);
+	}
+    }
+    
+    protected void generateFlagOrAnd(FlatFlagActionNode ffan, FlatMethod fm, LocalityBinding lb, TempDescriptor temp, 
+	                             PrintWriter output, int ormask, int andmask) {
+	if (ffan.getTaskType()==FlatFlagActionNode.NEWOBJECT) {
+	    output.println("flagorandinit("+generateTemp(fm, temp, lb)+", 0x"+Integer.toHexString(ormask)+", 0x"+Integer.toHexString(andmask)+");");
+	} else {
+	    output.println("flagorand("+generateTemp(fm, temp, lb)+", 0x"+Integer.toHexString(ormask)+", 0x"+Integer.toHexString(andmask)+");");
 	}
     }
 
+    protected void generateObjectDistribute(FlatFlagActionNode ffan, FlatMethod fm, LocalityBinding lb, TempDescriptor temp, PrintWriter output) {
+	output.println("enqueueObject("+generateTemp(fm, temp, lb)+");");
+    }
+    
     void generateOptionalHeader(PrintWriter headers) {
 
 	 //GENERATE HEADERS

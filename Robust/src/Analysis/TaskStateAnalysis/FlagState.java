@@ -29,6 +29,11 @@ public class FlagState extends GraphNode implements Cloneable {
     // jzhou
     private int executeTime;
     private int invokeNum;
+    // for building multicore codes
+    private int andmask;
+    private int checkmask;
+    private boolean setmask;
+    private int iuid;
 
     /** Class constructor
      *  Creates a new flagstate with all flags set to false.
@@ -42,6 +47,10 @@ public class FlagState extends GraphNode implements Cloneable {
 	this.issourcenode=false;
 	this.executeTime = -1;
 	this.invokeNum = 0;
+	this.andmask = 0;
+	this.checkmask = 0;
+	this.setmask = false;
+	this.iuid = 0;
     }
 
     /** Class constructor
@@ -62,6 +71,18 @@ public class FlagState extends GraphNode implements Cloneable {
    
     public int getuid() {
 	return uid;
+    }
+    
+    public int getiuid() {
+	return iuid++;
+    }
+
+    public boolean isSetmask() {
+        return setmask;
+    }
+
+    public void setSetmask(boolean setmask) {
+        this.setmask = setmask;
     }
 
     /** Accessor method
@@ -317,6 +338,22 @@ public class FlagState extends GraphNode implements Cloneable {
 	this.executeTime = exeTime;
     }
     
+    public int getAndmask() {
+        return andmask;
+    }
+
+    public void setAndmask(int andmask) {
+        this.andmask = andmask;
+    }
+
+    public int getCheckmask() {
+        return checkmask;
+    }
+
+    public void setCheckmask(int checkmask) {
+        this.checkmask = checkmask;
+    }
+
     public void calExeTime() throws Exception {
     	Iterator it = this.edges();
     	if(it.hasNext()) {
