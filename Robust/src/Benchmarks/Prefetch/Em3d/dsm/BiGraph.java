@@ -36,7 +36,7 @@ public class BiGraph
    * @return the bi graph that we've created.
    **/
 
-  BiGraph create(int numNodes, int numDegree, boolean verbose, Random r)
+  static BiGraph create(int numNodes, int numDegree, boolean verbose, Random r)
   {
 
     // making nodes (we create a table)

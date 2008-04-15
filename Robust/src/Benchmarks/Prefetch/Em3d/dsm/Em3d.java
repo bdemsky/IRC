@@ -114,11 +114,13 @@ public class Em3d extends Thread
    **/
   public static void main(String args[])
   {
-    Em3d em;
+    Em3d em = new Em3d();
+    Em3d.parseCmdLine(args, em);
+    /*
     atomic {
 	em = global new Em3d();
-    }
     Em3d.parseCmdLine(args, em);
+    }
     
     boolean printMsgs, printResult;
     int numIter;
@@ -127,10 +129,11 @@ public class Em3d extends Thread
       numIter = em.numIter;
       printResult = em.printResult;
     }
-    if (printMsgs) 
+    */
+    if (em.printMsgs) 
       System.printString("Initializing em3d random graph...");
     long start0 = System.currentTimeMillis();
-    int numThreads = 2;
+    int numThreads = 1;
     System.printString("DEBUG -> numThreads = " + numThreads);
     Barrier mybarr;
     atomic {
@@ -138,21 +141,21 @@ public class Em3d extends Thread
     }
     BiGraph graph;
     BiGraph graph1;
-    Random rand;
+    Random rand = new Random(783);
+   // atomic {
+      //rand = global new Random(783);
+    //}
     atomic {
-      rand = global new Random(783);
-    }
-    atomic {
-      graph1 = global new BiGraph();
+      //graph1 = global new BiGraph();
       graph = global new BiGraph();
-      graph =  graph1.create(em.numNodes, em.numDegree, em.printResult, rand);
+      graph =  BiGraph.create(em.numNodes, em.numDegree, em.printResult, rand);
     }
 
     long end0 = System.currentTimeMillis();
 
     // compute a single iteration of electro-magnetic propagation
-    if (printMsgs) 
-      System.printString("Propagating field values for " + numIter + 
+    if (em.printMsgs) 
+      System.printString("Propagating field values for " + em.numIter + 
           " iteration(s)...");
     long start1 = System.currentTimeMillis();
     Em3d[] em3d;
@@ -161,8 +164,9 @@ public class Em3d extends Thread
     }
 
     atomic {
-      em3d[0] = global new Em3d(graph, 1, em.numNodes/2, em.numIter, mybarr);
-      em3d[1] = global new Em3d(graph, (em.numNodes/2)+1, em.numNodes, em.numIter, mybarr);
+      em3d[0] = global new Em3d(graph, 1, em.numNodes, em.numIter, mybarr);
+      //em3d[0] = global new Em3d(graph, 1, em.numNodes/2, em.numIter, mybarr);
+      //em3d[1] = global new Em3d(graph, (em.numNodes/2)+1, em.numNodes, em.numIter, mybarr);
     }
 
     int mid = (128<<24)|(195<<16)|(175<<8)|73;
@@ -183,11 +187,37 @@ public class Em3d extends Thread
     long end1 = System.currentTimeMillis();
 
     // print current field values
-    if (printResult) {
-      //System.printString(graph);
+    if (em.printResult) {
+     // System.printString(graph.eNodes);
+      StringBuffer retval = new StringBuffer();
+      double newtmp;
+      atomic {
+        newtmp = graph.eNodes.value;
+      }
+      int xtmp = (int)newtmp;
+      System.printString("Value = " +xtmp);
+      /*
+      while(newtmp!=null) {
+          Node n = newtmp;
+          retval.append("E: " + n + "\n");
+         // newtmp = newtmp.next;
+      }
+      */
+      /*
+      atomic {
+        newtmp = graph.hNodes;
+      }
+      while(newtmp!=null) {
+        Node n = newtmp;
+        retval.append("H: " + n + "\n");
+        newtmp = newtmp.next;
+      }
+
+      System.printString(retval.toString());
+      */
     }
 
-    if (printMsgs) {
+    if (em.printMsgs) {
       System.printString("EM3D build time "+ (long)((end0 - start0)/1000.0));
       System.printString("EM3D compute time " + (long)((end1 - start1)/1000.0));
       System.printString("EM3D total time " + (long)((end1 - start0)/1000.0));
@@ -212,37 +242,38 @@ public class Em3d extends Thread
       // check for options that require arguments
       if (arg.equals("-n")) {
         if (i < args.length) {
-	    atomic {
+	   // atomic {
 		em.numNodes = new Integer(args[i++]).intValue();
-	    }
+	   // }
         }
       } else if (arg.equals("-d")) {
         if (i < args.length) {
-	    atomic {
+	    //atomic {
 		em.numDegree = new Integer(args[i++]).intValue();
-	    }
+	    //}
         }
       } else if (arg.equals("-i")) {
         if (i < args.length) {
-          atomic {
-            em.numIter = global new Integer(args[i++]).intValue();
-          }
+          //atomic {
+            //em.numIter = global new Integer(args[i++]).intValue();
+            em.numIter = new Integer(args[i++]).intValue();
+          //}
         }
       } else if (arg.equals("-p")) {
-	  atomic {
+	  //atomic {
 	      em.printResult = true;
-	  }
+	  //}
       } else if (arg.equals("-m")) {
-	  atomic {
+	  //atomic {
 	      em.printMsgs = true;
-	  }
+	  //}
       } else if (arg.equals("-h")) {
-        //em.usage();
+        em.usage();
       }
     }
 
-    //if (em.numNodes == 0 || em.numDegree == 0) 
-      //em.usage();
+    if (em.numNodes == 0 || em.numDegree == 0) 
+      em.usage();
   }
 
   /**
