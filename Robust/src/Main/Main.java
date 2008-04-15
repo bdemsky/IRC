@@ -438,6 +438,7 @@ public class Main {
 	  int allocationDepth  = 3;
 	  OwnershipAnalysis oa =
 	      new OwnershipAnalysis( state, callGraph, allocationDepth );
+	  oa.writeAllAliases( "identifiedAliases.txt" );
       }
 
       System.exit(0);
