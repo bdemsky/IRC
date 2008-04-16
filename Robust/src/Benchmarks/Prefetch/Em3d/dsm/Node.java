@@ -33,10 +33,6 @@ public class Node {
    **/
   int fromLength;
 
-  public Node() {
-
-  }
-
   /** 
    * Constructor for a node with given `degree'.   The value of the
    * node is initialized to a random value.

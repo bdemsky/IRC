@@ -84,7 +84,7 @@ public class Em3d extends Thread
 
 	atomic {
 	    Node n = enodebase;
-	    for(int j = lowerlimit; j<=upperlimit; j++) {
+	    for(int j = lowerlimit; j<upperlimit; j++) {
 		for (int k = 0; k < n.fromCount; k++) {
 		    n.value -= n.coeffs[k] * n.fromNodes[k].value;
 		}
@@ -100,7 +100,7 @@ public class Em3d extends Thread
 	/* for  hNodes */
 	atomic {
 	    Node n = hnodebase;
-	    for(int j = lowerlimit; j<=upperlimit; j++) {
+	    for(int j = lowerlimit; j<upperlimit; j++) {
 		for (int k = 0; k < n.fromCount; k++) {
 		    n.value -= n.coeffs[k] * n.fromNodes[k].value;
 		}
@@ -145,7 +145,7 @@ public class Em3d extends Thread
     Em3d[] em3d;
     atomic {
       em3d = global new Em3d[numThreads];
-      em3d[0] = global new Em3d(graph, 1, em.numNodes, em.numIter, mybarr);
+      em3d[0] = global new Em3d(graph, 0, em.numNodes, em.numIter, mybarr);
     }
 
     int mid = (128<<24)|(195<<16)|(175<<8)|73;
