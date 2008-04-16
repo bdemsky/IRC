@@ -65,6 +65,8 @@ public class Em3d extends Thread
       iteration = numIter;
     }
 
+    System.clearPrefetchCache();
+
     for (int i = 0; i < iteration; i++) {
       /* for  eNodes */
       atomic {
@@ -116,20 +118,6 @@ public class Em3d extends Thread
   {
     Em3d em = new Em3d();
     Em3d.parseCmdLine(args, em);
-    /*
-    atomic {
-	em = global new Em3d();
-    Em3d.parseCmdLine(args, em);
-    }
-    
-    boolean printMsgs, printResult;
-    int numIter;
-    atomic {
-      printMsgs = em.printMsgs;
-      numIter = em.numIter;
-      printResult = em.printResult;
-    }
-    */
     if (em.printMsgs) 
       System.printString("Initializing em3d random graph...");
     long start0 = System.currentTimeMillis();
@@ -140,14 +128,8 @@ public class Em3d extends Thread
       mybarr = global new Barrier(numThreads);
     }
     BiGraph graph;
-    BiGraph graph1;
     Random rand = new Random(783);
-   // atomic {
-      //rand = global new Random(783);
-    //}
     atomic {
-      //graph1 = global new BiGraph();
-      graph = global new BiGraph();
       graph =  BiGraph.create(em.numNodes, em.numDegree, em.printResult, rand);
     }
 
@@ -165,8 +147,6 @@ public class Em3d extends Thread
 
     atomic {
       em3d[0] = global new Em3d(graph, 1, em.numNodes, em.numIter, mybarr);
-      //em3d[0] = global new Em3d(graph, 1, em.numNodes/2, em.numIter, mybarr);
-      //em3d[1] = global new Em3d(graph, (em.numNodes/2)+1, em.numNodes, em.numIter, mybarr);
     }
 
     int mid = (128<<24)|(195<<16)|(175<<8)|73;
@@ -188,33 +168,13 @@ public class Em3d extends Thread
 
     // print current field values
     if (em.printResult) {
-     // System.printString(graph.eNodes);
       StringBuffer retval = new StringBuffer();
-      double newtmp;
+      double dvalue;;
       atomic {
-        newtmp = graph.eNodes.value;
+        dvalue = graph.eNodes.value;
       }
-      int xtmp = (int)newtmp;
-      System.printString("Value = " +xtmp);
-      /*
-      while(newtmp!=null) {
-          Node n = newtmp;
-          retval.append("E: " + n + "\n");
-         // newtmp = newtmp.next;
-      }
-      */
-      /*
-      atomic {
-        newtmp = graph.hNodes;
-      }
-      while(newtmp!=null) {
-        Node n = newtmp;
-        retval.append("H: " + n + "\n");
-        newtmp = newtmp.next;
-      }
-
-      System.printString(retval.toString());
-      */
+      int intvalue = (int)dvalue;
+      System.printString("Value = " + intvalue + "\n");
     }
 
     if (em.printMsgs) {
@@ -242,31 +202,20 @@ public class Em3d extends Thread
       // check for options that require arguments
       if (arg.equals("-n")) {
         if (i < args.length) {
-	   // atomic {
 		em.numNodes = new Integer(args[i++]).intValue();
-	   // }
         }
       } else if (arg.equals("-d")) {
         if (i < args.length) {
-	    //atomic {
 		em.numDegree = new Integer(args[i++]).intValue();
-	    //}
         }
       } else if (arg.equals("-i")) {
         if (i < args.length) {
-          //atomic {
-            //em.numIter = global new Integer(args[i++]).intValue();
             em.numIter = new Integer(args[i++]).intValue();
-          //}
         }
       } else if (arg.equals("-p")) {
-	  //atomic {
 	      em.printResult = true;
-	  //}
       } else if (arg.equals("-m")) {
-	  //atomic {
 	      em.printMsgs = true;
-	  //}
       } else if (arg.equals("-h")) {
         em.usage();
       }

@@ -45,7 +45,6 @@ public class Node {
   {
     value = r.nextDouble();
     // create empty array for holding toNodes
-
     toNodes = global new Node[degree];
   }
 
@@ -136,20 +135,6 @@ public class Node {
     }
   }
 
-  /** 
-   * Get the new value of the current node based on its neighboring
-   * from_nodes and coefficients.
-   **/
-
-  /*
-     public void computeNewValue()
-     {
-     for (int i = 0; i < fromCount; i++) {
-     value -= coeffs[i] * fromNodes[i].value;
-     }
-     }
-     */
-
   /**
    * Override the toString method to return the value of the node.
    * @return the value of the node.
@@ -158,7 +143,6 @@ public class Node {
   {
     String returnString;
     returnString = "value " + (long)value + ", from_count " + fromCount;
-    //return "value " + value + ", from_count " + fromCount;
   }
 
 }
