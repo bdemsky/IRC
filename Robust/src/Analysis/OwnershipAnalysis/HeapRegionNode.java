@@ -6,15 +6,32 @@ import java.util.*;
 
 public class HeapRegionNode extends OwnershipNode {
 
-    public HeapRegionNode( Integer id,
-			   boolean isSingleObject,
-			   boolean isFlagged,
-			   boolean isNewSummary,
-			   String  description ) {
+    protected Integer id;
+
+    protected boolean isSingleObject;
+    protected boolean isFlagged;
+    protected boolean isNewSummary;
+
+    protected HashSet<TempDescriptor> memberFields;
+    protected HashSet<OwnershipNode>  referencers;
+
+    protected AllocationSite allocSite;
+
+    protected String description;
+
+
+
+    public HeapRegionNode( Integer        id,
+			   boolean        isSingleObject,
+			   boolean        isFlagged,
+			   boolean        isNewSummary,
+			   AllocationSite allocSite,
+			   String         description ) {
 	this.id = id;
 	this.isSingleObject = isSingleObject;
 	this.isFlagged      = isFlagged;
 	this.isNewSummary   = isNewSummary;
+	this.allocSite      = allocSite;
 	this.description    = description;
 
 	referencers  = new HashSet<OwnershipNode>();
@@ -26,14 +43,10 @@ public class HeapRegionNode extends OwnershipNode {
 				   isSingleObject,
 				   isFlagged,
 				   isNewSummary,
+				   allocSite,
 				   description );
     }
 
-
-    /////////////////
-    // equality  
-    /////////////////
-    protected Integer id;
 
     public Integer getID() {
 	return id;
@@ -48,40 +61,22 @@ public class HeapRegionNode extends OwnershipNode {
 	    isNewSummary   == hrn.isNewSummary()   &&
 	    description.equals( hrn.getDescription() );
     }
-    /////////////////
-    // end equality  
-    /////////////////
 
 
-    
-    /////////////////
-    // predicates
-    /////////////////
-    boolean isSingleObject;
+
     public boolean isSingleObject() {
 	return isSingleObject;
     }
 
-    boolean isFlagged;
     public boolean isFlagged() {
 	return isFlagged;
     }
 
-    boolean isNewSummary;
     public boolean isNewSummary() {
 	return isNewSummary;
     }
-    ///////////////////
-    // end predicates 
-    ///////////////////
 
 
-
-    ///////////////////////////////////////////
-    // interface with larger graph
-    ///////////////////////////////////////////
-    protected HashSet<TempDescriptor> memberFields;
-    protected HashSet<OwnershipNode>  referencers;
 
     public Iterator iteratorToReferencers() {
 	return referencers.iterator();
@@ -109,37 +104,11 @@ public class HeapRegionNode extends OwnershipNode {
 	assert on != null;
 	return referencers.contains( on );
     }
-    ///////////////////////////////////////////////
-    // end interface with larger graph
-    ///////////////////////////////////////////////
 
 
-
-
-    ///////////////////////////////////////////////
-    // analysis interface
-    ///////////////////////////////////////////////
-    /*
-    protected HashSet<TempDescriptor> analysisRegionAliases;
-
-    public void addAnalysisRegionAlias( TempDescriptor td ) {
-	assert td != null;
-	assert !analysisRegionAliases.contains( td );
-	
-	analysisRegionAliases.add( td );
+    public AllocationSite getAllocationSite() {
+	return allocSite;
     }
-
-    public Iterator iteratorToAnalysisRegionAliases() {
-	return analysisRegionAliases.iterator();
-    }
-    */
-    ///////////////////////////////////////////////
-    // end analysis interface
-    ///////////////////////////////////////////////
-
-
-    // for writing out
-    String description;
 
     public String getIDString() {
 	return id.toString();

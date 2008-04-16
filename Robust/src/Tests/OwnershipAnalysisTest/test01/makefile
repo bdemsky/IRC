@@ -3,7 +3,7 @@ PROGRAM=test01
 SOURCE_FILES=test01.java
 
 BUILDSCRIPT=~/research/Robust/src/buildscript
-BSFLAGS= -recover -flatirtasks -ownership #-enable-assertions
+BSFLAGS= -recover -flatirtasks -ownership -enable-assertions
 #BSFLAGS= -recover -ownership -enable-assertions
 
 all: $(PROGRAM).bin
@@ -54,3 +54,4 @@ clean:
 	rm -f  *.png
 	rm -f  *.ps
 	rm -f  *.eps
+	rm -f  identifiedAliases.txt

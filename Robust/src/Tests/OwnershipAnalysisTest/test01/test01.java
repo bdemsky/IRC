@@ -26,7 +26,7 @@ public class Voo {
 }
 
 public class Baw {
-    flag g; int y;
+    int y;
     Foo f;
 
     public Baw() {}
@@ -50,14 +50,6 @@ public class Foo {
 // look for the parameter s as a label referencing
 // a heap region that is multi-object, flagged, not summary
 task Startup( StartupObject s{ initialstate } ) {
- 
-    /*
-    Foo a = new Foo();
-    Foo b = new Foo();
-    Foo c = new Foo();
-    
-    c.ruinSomeFoos( a, b );
-    */
 
     while( false ) {
 	Foo a = new Foo();
@@ -68,7 +60,7 @@ task Startup( StartupObject s{ initialstate } ) {
     taskexit( s{ !initialstate } );
 }
 
-/*
+
 
 // this task allocates a new object, so there should
 // be a heap region for the parameter, and several
@@ -99,16 +91,29 @@ task Branch( Voo v{ f } ) {
 
 
 task NoAliasNewInLoop( Voo v{ f } ) {
-    Voo w = new Voo();
 
     for( int i = 0; i < 10; ++i ) {
-	w.b = new Baw();
+	Voo w = new Voo();
+	w.b   = new Baw();
 	w.b.f = new Foo();
     }
 
     taskexit( v{ !f } );
 }
 
+task NoAliasNewInLoopAnotherWay( Voo v{ f } ) {
+
+    for( int i = 0; i < 10; ++i ) {
+	Voo w = new Voo();
+	Baw b = new Baw();
+	Foo f = new Foo();
+
+	w.b = b;
+	b.f = f;
+    }
+
+    taskexit( v{ !f } );
+}
 
 task ClobberInitParamReflex( Voo v{ f }, Voo w{ f } ) {
     v.b = v.bb;
@@ -116,4 +121,3 @@ task ClobberInitParamReflex( Voo v{ f }, Voo w{ f } ) {
     taskexit( v{ !f }, w{ !f } );
 }
 
-*/

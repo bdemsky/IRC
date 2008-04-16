@@ -20,6 +20,9 @@ public class OwnershipGraph {
     public Hashtable<Integer,        HeapRegionNode> id2hrn;
     public Hashtable<TempDescriptor, LabelNode     > td2ln;
     public Hashtable<Integer,        Integer       > id2paramIndex;
+    public Hashtable<Integer,        Integer       > paramIndex2id;
+
+    public HashSet<AllocationSite> allocationSites;
 
 
     public OwnershipGraph( int allocationDepth ) {
@@ -28,6 +31,9 @@ public class OwnershipGraph {
 	id2hrn        = new Hashtable<Integer,        HeapRegionNode>();
 	td2ln         = new Hashtable<TempDescriptor, LabelNode     >();
 	id2paramIndex = new Hashtable<Integer,        Integer       >();
+	paramIndex2id = new Hashtable<Integer,        Integer       >();
+
+	allocationSites = new HashSet <AllocationSite>();
     }
 
 
@@ -55,11 +61,12 @@ public class OwnershipGraph {
     // in the merge() operation) or to create new heap
     // regions with a new unique ID.
     protected HeapRegionNode 
-	createNewHeapRegionNode( Integer id,
-				 boolean isSingleObject,
-				 boolean isFlagged,
-				 boolean isNewSummary,
-				 String  description ) {
+	createNewHeapRegionNode( Integer        id,
+				 boolean        isSingleObject,
+				 boolean        isFlagged,
+				 boolean        isNewSummary,
+				 AllocationSite allocSite,
+				 String         description ) {
 
 	if( id == null ) {
 	    id = OwnershipAnalysis.generateUniqueHeapRegionNodeID();
@@ -69,6 +76,7 @@ public class OwnershipGraph {
 						 isSingleObject,
 						 isFlagged,
 						 isNewSummary,
+						 allocSite,
 						 description );
 	id2hrn.put( id, hrn );
 	return hrn;
@@ -228,6 +236,7 @@ public class OwnershipGraph {
 							  false,
 							  isTask,
 							  false,
+							  null,
 							  "param" + paramIndex );
 
 	// keep track of heap regions that were created for
@@ -237,6 +246,7 @@ public class OwnershipGraph {
 	assert !id2paramIndex.containsKey  ( newID );
 	assert !id2paramIndex.containsValue( paramIndex );
 	id2paramIndex.put( newID, paramIndex );
+	paramIndex2id.put( paramIndex, newID );
 
 	// heap regions for parameters are always multiple object (see above)
 	// and have a reference to themselves, because we can't know the
@@ -285,6 +295,12 @@ public class OwnershipGraph {
     // return non-null heap regions.
     public void age( AllocationSite as ) {
 
+	// aging adds this allocation site to the graph's
+	// list of sites that exist in the graph, or does
+	// nothing if the site is already in the list
+	allocationSites.add( as );
+
+
 	//////////////////////////////////////////////////////////////////
 	//
 	//  move existing references down the line toward
@@ -315,10 +331,17 @@ public class OwnershipGraph {
 	// in different ownership graphs that represents the same part of an
 	// allocation site
 	if( hrnSummary == null ) {
+
+	    boolean hasFlags = false;
+	    if( as.getType().isClass() ) {
+		hasFlags =  as.getType().getClassDesc().hasFlags();
+	    }
+
 	    hrnSummary = createNewHeapRegionNode( idSummary,
 						  false,
-						  as.getType().getClassDesc().hasFlags(),
+						  hasFlags,
 						  true,
+						  as,
 						  as + "\\n" + as.getType() + "\\nsummary" );
 
 	    for( int i = 0; i < as.getAllocationDepth(); ++i ) {
@@ -326,8 +349,9 @@ public class OwnershipGraph {
 		assert !id2hrn.containsKey( idIth );
 		createNewHeapRegionNode( idIth,
 					 true,
-					 as.getType().getClassDesc().hasFlags(),
+					 hasFlags,
 					 false,
+					 as,
 					 as + "\\n" + as.getType() + "\\n" + i + " oldest" );
 	    }
 	}
@@ -449,14 +473,15 @@ public class OwnershipGraph {
     public void resolveMethodCall( FlatCall                fc,
 				   boolean                 isStatic,
 				   FlatMethod              fm,
-				   OwnershipGraph          ogCallee,
-				   HashSet<AllocationSite> allocSiteSet ) {
+				   OwnershipGraph          ogCallee ) { //,
+	//HashSet<AllocationSite> allocSiteSet ) {
 	
 	// first age all of the allocation sites from
 	// the callee graph in this graph
-	Iterator i = allocSiteSet.iterator();
+	Iterator i = ogCallee.allocationSites.iterator();
 	while( i.hasNext() ) {
-	    this.age( (AllocationSite) i.next() );
+	    AllocationSite allocSite = (AllocationSite) i.next();	    
+	    this.age( allocSite );
 	}
 
 	// in non-static methods there is a "this" pointer
@@ -509,6 +534,17 @@ public class OwnershipGraph {
 		    // So now make a set of possible source heaps in the caller graph
 		    // and a set of destination heaps in the caller graph, and make
 		    // a reference edge in the caller for every possible (src,dst) pair 
+		    if( !ogCallee.id2hrn.contains( idChildCallee ) ) {
+			//System.out.println( "Houston, we got a problem." );
+			//System.out.println( "idCallee is "+idCallee );
+			//System.out.println( "idChildCallee is "+idChildCallee );
+			
+			try {
+			    writeGraph( "caller", false, false );
+			    ogCallee.writeGraph( "callee", false, false );
+			} catch( IOException e ) {}
+		    }
+
 		    HashSet<HeapRegionNode> possibleCallerSrcs =  
 			getHRNSetThatPossiblyMapToCalleeHRN( ogCallee,
 							     idCallee,
@@ -604,9 +640,10 @@ public class OwnershipGraph {
 	  return;
         }
 
-	mergeOwnershipNodes( og );
-	mergeReferenceEdges( og );
-	mergeId2paramIndex( og );
+	mergeOwnershipNodes ( og );
+	mergeReferenceEdges ( og );
+	mergeId2paramIndex  ( og );
+	mergeAllocationSites( og );
     }
 
     protected void mergeOwnershipNodes( OwnershipGraph og ) {
@@ -758,6 +795,7 @@ public class OwnershipGraph {
     protected void mergeId2paramIndex( OwnershipGraph og ) {
 	if( id2paramIndex.size() == 0 ) {
 	    id2paramIndex = og.id2paramIndex;
+	    paramIndex2id = og.paramIndex2id;
 	    return;
 	}
 
@@ -766,6 +804,10 @@ public class OwnershipGraph {
 	}
 
 	assert id2paramIndex.size() == og.id2paramIndex.size();
+    }
+
+    protected void mergeAllocationSites( OwnershipGraph og ) {
+	allocationSites.addAll( og.allocationSites );
     }
 
 
@@ -804,6 +846,11 @@ public class OwnershipGraph {
 	if( !areId2paramIndexEqual( og ) ) {
 	    return false;
 	}
+
+	// if everything is equal up to this point,
+	// assert that allocationSites is also equal--
+	// this data is redundant and kept for efficiency
+	assert allocationSites.equals( og.allocationSites );
 
 	return true;
     }
@@ -1060,15 +1107,100 @@ public class OwnershipGraph {
 
 
 
-   
-    // use this method to determine if two temp descriptors can possibly
-    // access the same heap regions, which means there is a possible alias
-    public boolean havePossibleAlias( TempDescriptor td1,
-				      TempDescriptor td2 ) {
-	LabelNode ln1 = getLabelNodeFromTemp( td1 );
-	LabelNode ln2 = getLabelNodeFromTemp( td2 );
+    // given a set B of heap region node ID's, return the set of heap
+    // region node ID's that is reachable from B
+    public HashSet<Integer> getReachableSet( HashSet<Integer> idSetB ) {
+
+	HashSet<HeapRegionNode> toVisit = new HashSet<HeapRegionNode>();
+	HashSet<HeapRegionNode> visited = new HashSet<HeapRegionNode>();
+
+	// initial nodes to visit are from set B
+	Iterator initialItr = idSetB.iterator();
+	while( initialItr.hasNext() ) {
+	    Integer idInitial = (Integer) initialItr.next();
+	    assert id2hrn.contains( idInitial );
+	    HeapRegionNode hrnInitial = id2hrn.get( idInitial );
+	    toVisit.add( hrnInitial );
+	}
+
+	HashSet<Integer> idSetReachableFromB = new HashSet<Integer>();
+
+	// do a heap traversal
+	while( !toVisit.isEmpty() ) {
+	    HeapRegionNode hrnVisited = (HeapRegionNode) toVisit.iterator().next();
+	    toVisit.remove( hrnVisited );
+	    visited.add   ( hrnVisited );
+
+	    // for every node visited, add it to the total
+	    // reachable set
+	    idSetReachableFromB.add( hrnVisited.getID() );
+
+	    // find other reachable nodes
+	    Iterator referenceeItr = hrnVisited.setIteratorToReferencedRegions();
+	    while( referenceeItr.hasNext() ) {
+		Map.Entry me                 = (Map.Entry)               referenceeItr.next();
+		HeapRegionNode hrnReferencee = (HeapRegionNode)          me.getKey();
+		ReferenceEdgeProperties rep  = (ReferenceEdgeProperties) me.getValue();
+
+		if( !visited.contains( hrnReferencee ) ) {
+		    toVisit.add( hrnReferencee );
+		}
+	    }
+	}
+
+	return idSetReachableFromB;
+    }
+
+
+    // used to find if a heap region can possibly have a reference to
+    // any of the heap regions in the given set
+    // if the id supplied is in the set, then a self-referencing edge
+    // would return true, but that special case is specifically allowed
+    // meaning that it isn't an external alias
+    public boolean canIdReachSet( Integer id, HashSet<Integer> idSet ) {
+
+	assert id2hrn.contains( id );
+	HeapRegionNode hrn = id2hrn.get( id );
+
+	/*
+	HashSet<HeapRegionNode> hrnSet = new HashSet<HeapRegionNode>();
+
+	Iterator i = idSet.iterator();
+	while( i.hasNext() ) {
+	    Integer idFromSet = (Integer) i.next();
+	    assert id2hrn.contains( idFromSet );
+	    hrnSet.add( id2hrn.get( idFromSet ) );
+	}
+	*/
+
+	// do a traversal from hrn and see if any of the
+	// heap regions from the set come up during that
+	HashSet<HeapRegionNode> toVisit = new HashSet<HeapRegionNode>();
+	HashSet<HeapRegionNode> visited = new HashSet<HeapRegionNode>();
 	
-	
+	toVisit.add( hrn );
+	while( !toVisit.isEmpty() ) {
+	    HeapRegionNode hrnVisited = (HeapRegionNode) toVisit.iterator().next();
+	    toVisit.remove( hrnVisited );
+	    visited.add   ( hrnVisited );
+
+	    Iterator referenceeItr = hrnVisited.setIteratorToReferencedRegions();
+	    while( referenceeItr.hasNext() ) {
+		Map.Entry me                 = (Map.Entry)               referenceeItr.next();
+		HeapRegionNode hrnReferencee = (HeapRegionNode)          me.getKey();
+		ReferenceEdgeProperties rep  = (ReferenceEdgeProperties) me.getValue();
+
+		if( idSet.contains( hrnReferencee.getID() ) ) {
+		    if( !id.equals( hrnReferencee.getID() ) ) {
+			return true;
+		    }
+		}
+
+		if( !visited.contains( hrnReferencee ) ) {
+		    toVisit.add( hrnReferencee );
+		}
+	    }
+	}
 
 	return false;
     }
@@ -1103,10 +1235,10 @@ public class OwnershipGraph {
 		    );
     }
 
-    private void writeGraph( String graphName,
-			     boolean writeLabels,
-			     boolean writeReferencers 
-			     ) throws java.io.IOException {
+    public void writeGraph( String graphName,
+			    boolean writeLabels,
+			    boolean writeReferencers 
+			    ) throws java.io.IOException {
 
 	// remove all non-word characters from the graph name so
 	// the filename and identifier in dot don't cause errors

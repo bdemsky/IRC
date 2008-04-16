@@ -9,11 +9,154 @@ import java.io.*;
 
 public class OwnershipAnalysis {
 
-    // from the compiler
+    ///////////////////////////////////////////
+    //
+    //  Public interface to discover possible
+    //  aliases in the program under analysis
+    //
+    ///////////////////////////////////////////
+    public HashSet<AllocationSite> 
+	getFlaggedAllocationSitesReachableFromTask( TaskDescriptor td ) {
+
+	return getFlaggedAllocationSitesReachableFromTaskPRIVATE( td );
+    }
+
+    public AllocationSite getAllocationSiteFromFlatNew( FlatNew fn ) {
+	return getAllocationSiteFromFlatNewPRIVATE( fn );
+    }
+
+    public boolean createsPotentialAliases( Descriptor     taskOrMethod,
+					    int            paramIndex1,
+					    int            paramIndex2 ) {
+
+	OwnershipGraph og = mapDescriptorToCompleteOwnershipGraph.get( taskOrMethod );
+	assert( og != null );
+
+	return createsPotentialAliases( og,
+					getHeapRegionIDset( og, paramIndex1 ),
+					getHeapRegionIDset( og, paramIndex2 ) );
+    }
+
+    public boolean createsPotentialAliases( Descriptor     taskOrMethod,
+					    int            paramIndex,
+					    AllocationSite alloc ) {
+
+	OwnershipGraph og = mapDescriptorToCompleteOwnershipGraph.get( taskOrMethod );
+	assert( og != null );
+
+	return createsPotentialAliases( og,
+					getHeapRegionIDset( og, paramIndex ),
+					getHeapRegionIDset( alloc ) );
+    }
+
+    public boolean createsPotentialAliases( Descriptor     taskOrMethod, 
+					    AllocationSite alloc,
+					    int            paramIndex ) {
+
+ 	OwnershipGraph og = mapDescriptorToCompleteOwnershipGraph.get( taskOrMethod );
+	assert( og != null );
+
+	return createsPotentialAliases( og,
+					getHeapRegionIDset( og, paramIndex ),
+					getHeapRegionIDset( alloc ) );
+    }
+
+    public boolean createsPotentialAliases( Descriptor     taskOrMethod,
+					    AllocationSite alloc1,
+					    AllocationSite alloc2 ) {
+
+	OwnershipGraph og = mapDescriptorToCompleteOwnershipGraph.get( taskOrMethod );
+	assert( og != null );
+
+	return createsPotentialAliases( og,
+					getHeapRegionIDset( alloc1 ),
+					getHeapRegionIDset( alloc2 ) );
+    }
+
+    public boolean createsPotentialAliases( Descriptor              taskOrMethod,
+					    AllocationSite          alloc,
+					    HashSet<AllocationSite> allocSet ) {
+
+	OwnershipGraph og = mapDescriptorToCompleteOwnershipGraph.get( taskOrMethod );
+	assert( og != null );
+
+	return createsPotentialAliases( og,
+					getHeapRegionIDset( alloc ),
+					getHeapRegionIDset( allocSet ) );
+    }
+
+    // use the methods given above to check every possible alias
+    // between task parameters and flagged allocation sites reachable
+    // from the task
+    public void writeAllAliases( String outputFile ) throws java.io.IOException {
+
+	BufferedWriter bw = new BufferedWriter( new FileWriter( outputFile ) );
+	
+	// look through every task for potential aliases
+	Iterator taskItr = state.getTaskSymbolTable().getDescriptorsIterator();
+	while( taskItr.hasNext() ) {
+	    TaskDescriptor td = (TaskDescriptor) taskItr.next();
+
+	    HashSet<AllocationSite> allocSites = getFlaggedAllocationSitesReachableFromTask( td );
+
+	    // for each task parameter, check for aliases with
+	    // other task parameters and every allocation site
+	    // reachable from this task	    
+	    FlatMethod fm = state.getMethodFlat( td );
+	    for( int i = 0; i < fm.numParameters(); ++i ) {
+
+		// for the ith parameter check for aliases to all
+		// higher numbered parameters
+		for( int j = i + 1; j < fm.numParameters(); ++j ) {
+		    if( createsPotentialAliases( td, i, j ) ) {
+			bw.write( "Task "+td+" potentially aliases parameters "+i+" and "+j+".\n" );
+		    }
+		}
+
+		// for the ith parameter, check for aliases against
+		// the set of allocation sites reachable from this
+		// task context
+		Iterator allocItr = allocSites.iterator();
+		while( allocItr.hasNext() ) {
+		    AllocationSite as = (AllocationSite) allocItr.next();
+		    if( createsPotentialAliases( td, i, as ) ) {
+			bw.write( "Task "+td+" potentially aliases parameter "+i+" and "+as+".\n" );
+		    }
+		}
+	    }
+
+	    // for each allocation site check for aliases with
+	    // other allocation sites in the context of execution
+	    // of this task
+	    Iterator allocItr = allocSites.iterator();
+	    while( allocItr.hasNext() ) {
+		AllocationSite as = (AllocationSite) allocItr.next();
+		if( createsPotentialAliases( td, as, allocSites ) ) {
+		    bw.write( "Task "+td+" potentially aliases "+as+" and the rest of the set.\n" );
+		}
+	    }
+	}
+
+	bw.close();
+    }
+
+    ///////////////////////////////////////////
+    //
+    // end public interface
+    //
+    ///////////////////////////////////////////
+
+
+
+
+
+
+
+    
+    // data from the compiler
     private State     state;
     private CallGraph callGraph;
     private int       allocationDepth;
-
 
     // used to identify HeapRegionNode objects
     // A unique ID equates an object in one
@@ -289,7 +432,7 @@ public class OwnershipAnalysis {
 	case FKind.FlatNew:
 	    FlatNew fnn = (FlatNew) fn;
             dst = fnn.getDst();
-	    AllocationSite as = getAllocationSiteFromFlatNew( fnn );
+	    AllocationSite as = getAllocationSiteFromFlatNewPRIVATE( fnn );
 
 	    og.assignTempToNewAllocation( dst, as );
 	    break;
@@ -298,13 +441,20 @@ public class OwnershipAnalysis {
 	    FlatCall                fc           = (FlatCall) fn;
 	    MethodDescriptor        md           = fc.getMethod();
 	    FlatMethod              flatm        = state.getMethodFlat( md );
-	    HashSet<AllocationSite> allocSiteSet = getAllocationSiteSet( md );
+	    //HashSet<AllocationSite> allocSiteSet = getAllocationSiteSet( md );
 	    OwnershipGraph ogAllPossibleCallees  = new OwnershipGraph( allocationDepth );
 
 	    if( md.isStatic() ) {
 		// a static method is simply always the same, makes life easy
 		OwnershipGraph onlyPossibleCallee = mapDescriptorToCompleteOwnershipGraph.get( md );
 		ogAllPossibleCallees.merge( onlyPossibleCallee );
+
+		/*
+		if( onlyPossibleCallee != null ) {
+		    onlyPossibleCallee.writeGraph( "only", false, false );
+		    System.out.println( "There was only one possible callee, "+md );
+		}
+		*/
 
 	    } else {
 		// if the method descriptor is virtual, then there could be a
@@ -313,14 +463,28 @@ public class OwnershipAnalysis {
 		TypeDescriptor typeDesc        = fc.getThis().getType();
 		Set            possibleCallees = callGraph.getMethods( md, typeDesc );
 
+		//int j = 0;
+
 		Iterator i = possibleCallees.iterator();
 		while( i.hasNext() ) {
 		    MethodDescriptor possibleMd = (MethodDescriptor) i.next();
-		    allocSiteSet.addAll( getAllocationSiteSet( possibleMd ) );
+		    //allocSiteSet.addAll( getAllocationSiteSet( possibleMd ) );
 		    OwnershipGraph ogPotentialCallee = mapDescriptorToCompleteOwnershipGraph.get( possibleMd );
+
+		    /*
+		    if( ogPotentialCallee != null ) {
+			ogPotentialCallee.writeGraph( "potential"+j, false, false );
+			++j;
+		    }
+		    */
+
 		    ogAllPossibleCallees.merge( ogPotentialCallee );
 		}
+
+		//System.out.println( "There were "+j+" potential callees merged together." );
 	    }
+
+	    //System.out.println( "AllocationSiteSet has "+allocSiteSet.size()+" items." );
 
 	    // now we should have the following information to resolve this method call:
 	    // 
@@ -339,7 +503,7 @@ public class OwnershipAnalysis {
 	    // 5. The Set of AllocationSite objects, allocSiteSet that is the set of allocation sites from
 	    // every possible method we might have chosen
 	    //
-	    og.resolveMethodCall( fc, md.isStatic(), flatm, ogAllPossibleCallees, allocSiteSet );
+	    og.resolveMethodCall( fc, md.isStatic(), flatm, ogAllPossibleCallees );
 
 	    //og.writeGraph( methodDesc, fn );
 	    break;
@@ -372,8 +536,12 @@ public class OwnershipAnalysis {
     }
 
 
+
+    
+
+
     // return just the allocation site associated with one FlatNew node
-    private AllocationSite getAllocationSiteFromFlatNew( FlatNew fn ) {
+    private AllocationSite getAllocationSiteFromFlatNewPRIVATE( FlatNew fn ) {
 	if( !mapFlatNewToAllocationSite.containsKey( fn ) ) {
 	    AllocationSite as = new AllocationSite( allocationDepth, fn.getType() );
 
@@ -427,7 +595,7 @@ public class OwnershipAnalysis {
 	    FlatNode n = toVisit.iterator().next();
 
 	    if( n instanceof FlatNew ) {
-		s.add( getAllocationSiteFromFlatNew( (FlatNew) n ) );
+		s.add( getAllocationSiteFromFlatNewPRIVATE( (FlatNew) n ) );
 	    }
 
 	    toVisit.remove( n );
@@ -442,5 +610,120 @@ public class OwnershipAnalysis {
 	}
 
 	mapDescriptorToAllocationSiteSet.put( d, s );
+    }
+
+
+    private HashSet<AllocationSite> 
+	getFlaggedAllocationSitesReachableFromTaskPRIVATE( TaskDescriptor td ) {
+
+	HashSet<AllocationSite> asSetTotal = new HashSet<AllocationSite>();
+	HashSet<Descriptor>     toVisit    = new HashSet<Descriptor>();
+	HashSet<Descriptor>     visited    = new HashSet<Descriptor>();
+
+	toVisit.add( td );
+
+	// traverse this task and all methods reachable from this task
+	while( !toVisit.isEmpty() ) {
+	    Descriptor d = toVisit.iterator().next();
+	    toVisit.remove( d );
+	    visited.add( d );
+	    
+	    HashSet<AllocationSite> asSet = getAllocationSiteSet( d );
+	    Iterator asItr = asSet.iterator();
+	    while( asItr.hasNext() ) {
+		AllocationSite as = (AllocationSite) asItr.next();
+		if( as.getType().getClassDesc().hasFlags() ) {
+		    asSetTotal.add( as );
+		}
+	    }
+	    
+	    // enqueue callees of this method to be searched for
+	    // allocation sites also
+	    Set callees = callGraph.getCalleeSet( d );
+	    if( callees != null ) {
+		Iterator methItr = callees.iterator();
+		while( methItr.hasNext() ) {
+		    MethodDescriptor md = (MethodDescriptor) methItr.next();
+
+		    if( !visited.contains( md ) ) {
+			toVisit.add( md );
+		    }
+		}
+	    }
+	}
+	
+
+	return asSetTotal;
+    }
+
+
+
+    private HashSet<Integer> getHeapRegionIDset( OwnershipGraph og,
+						 int paramIndex ) {
+	
+	assert og.paramIndex2id.containsKey( paramIndex );
+	Integer idParam = og.paramIndex2id.get( paramIndex );
+
+	HashSet<Integer> idSet = new HashSet<Integer>();
+	idSet.add( idParam );
+
+	return idSet;
+    }
+
+    private HashSet<Integer> getHeapRegionIDset( AllocationSite alloc ) {
+
+	HashSet<Integer> idSet = new HashSet<Integer>();
+	
+	for( int i = 0; i < alloc.getAllocationDepth(); ++i ) {
+	    Integer id = alloc.getIthOldest( i );
+	    idSet.add( id );
+	}
+	
+	Integer idSummary = alloc.getSummary();
+	idSet.add( idSummary );
+
+	return idSet;
+    }
+
+    private HashSet<Integer> getHeapRegionIDset( HashSet<AllocationSite> allocSet ) {
+
+	HashSet<Integer> idSet = new HashSet<Integer>();
+	
+	Iterator allocItr = allocSet.iterator();
+	while( allocItr.hasNext() ) {
+	    AllocationSite alloc = (AllocationSite) allocItr.next();
+
+	    for( int i = 0; i < alloc.getAllocationDepth(); ++i ) {
+		Integer id = alloc.getIthOldest( i );
+		idSet.add( id );
+	    }
+       
+	    Integer idSummary = alloc.getSummary();
+	    idSet.add( idSummary );
+	}
+
+	return idSet;
+    }
+
+    private boolean createsPotentialAliases( OwnershipGraph   og,
+					     HashSet<Integer> idSetA,
+					     HashSet<Integer> idSetB ) {
+	boolean potentialAlias = false;
+
+	// first expand set B into the set of all heap region node ID's
+	// reachable from the nodes in set B
+	HashSet<Integer> idSetReachableFromB = og.getReachableSet( idSetB );
+
+	// then see if anything in A can reach a node in the set reachable
+	// from B.  If so, there is a potential alias.
+	Iterator i = idSetA.iterator();
+	while( i.hasNext() ) {
+	    Integer id = (Integer) i.next();
+	    if( og.canIdReachSet( id, idSetB ) ) {
+		return true;
+	    }
+	}
+
+	return false;
     }
 }
