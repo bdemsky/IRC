@@ -60,51 +60,54 @@ public class Em3d extends Thread
 
   public void run() {
     int iteration;
+    Barrier barr;
+    Node enodebase;
+    Node hnodebase;
 
     atomic {
       iteration = numIter;
+      barr=mybarr;
+    }
+    atomic {
+	enodebase=bg.eNodes;
+	hnodebase=bg.hNodes;
+	for(int j = 0; j<lowerlimit; j++){
+	    enodebase = enodebase.next;
+	    hnodebase = hnodebase.next;
+	}
     }
 
-    System.clearPrefetchCache();
 
     for (int i = 0; i < iteration; i++) {
       /* for  eNodes */
-      atomic {
-        Node prev, curr;
-        prev = bg.eNodes;
-        curr = null;
-        for(int j = 0; j<lowerlimit; j++){
-          curr = prev;
-          prev = prev.next;
-        }
-        for(int j = lowerlimit; j<=upperlimit; j++) {
-          Node n = curr;
-          for (int k = 0; k < n.fromCount; k++) {
-            n.value -= n.coeffs[k] * n.fromNodes[k].value;
-          }
-          curr = curr.next;
-        }
-        Barrier.enterBarrier(mybarr);
-      }
+	System.clearPrefetchCache();
 
-      /* for  hNodes */
-      atomic {
-        Node prev, curr;
-        prev = bg.hNodes;
-        curr = null;
-        for(int j = 0; j<lowerlimit; j++){
-          curr = prev;
-          prev = prev.next;
-        }
-        for(int j = lowerlimit; j<=upperlimit; j++) {
-          Node n = curr;
-          for (int k = 0; k < n.fromCount; k++) {
-            n.value -= n.coeffs[k] * n.fromNodes[k].value;
-          }
-          curr = curr.next;
-        }
-        Barrier.enterBarrier(mybarr);
-      }
+	atomic {
+	    Node n = enodebase;
+	    for(int j = lowerlimit; j<=upperlimit; j++) {
+		for (int k = 0; k < n.fromCount; k++) {
+		    n.value -= n.coeffs[k] * n.fromNodes[k].value;
+		}
+		n = n.next;
+	    }
+	}
+	
+	Barrier.enterBarrier(barr);
+	
+	System.clearPrefetchCache();
+	
+	
+	/* for  hNodes */
+	atomic {
+	    Node n = hnodebase;
+	    for(int j = lowerlimit; j<=upperlimit; j++) {
+		for (int k = 0; k < n.fromCount; k++) {
+		    n.value -= n.coeffs[k] * n.fromNodes[k].value;
+		}
+		n=n.next;
+	    }
+	}
+	Barrier.enterBarrier(barr);
     }
   }
 
@@ -114,8 +117,7 @@ public class Em3d extends Thread
    * waves through the graph.
    * @param args the command line arguments
    **/
-  public static void main(String args[])
-  {
+  public static void main(String args[]) {
     Em3d em = new Em3d();
     Em3d.parseCmdLine(args, em);
     if (em.printMsgs) 
@@ -143,9 +145,6 @@ public class Em3d extends Thread
     Em3d[] em3d;
     atomic {
       em3d = global new Em3d[numThreads];
-    }
-
-    atomic {
       em3d[0] = global new Em3d(graph, 1, em.numNodes, em.numIter, mybarr);
     }
 
@@ -169,7 +168,7 @@ public class Em3d extends Thread
     // print current field values
     if (em.printResult) {
       StringBuffer retval = new StringBuffer();
-      double dvalue;;
+      double dvalue;
       atomic {
         dvalue = graph.eNodes.value;
       }
