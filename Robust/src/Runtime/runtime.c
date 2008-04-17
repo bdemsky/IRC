@@ -100,7 +100,6 @@ void CALL01(___System______printString____L___String___,struct ___String___ * __
 
 #ifdef DSTM
 void CALL00(___System______clearPrefetchCache____) {
-  clearObjStore();
   prehashClear();
 }
 #endif

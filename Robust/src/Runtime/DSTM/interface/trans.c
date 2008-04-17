@@ -131,7 +131,13 @@ void prefetch(int ntuples, unsigned int *oids, unsigned short *endoffsets, short
   int top=endoffsets[ntuples-1];
   *((int *)(node+len))=ntuples;
   len += sizeof(int);
-  
+  /*  int i;
+  for(i=0;i<ntuples;i++) {
+    if (oids[i]%2==0&&(oids[i]!=0)) {
+      printf("Bad oid %ld\n",oids[i]);
+    }
+    }*/
+
   memcpy(node+len, oids, ntuples*sizeof(unsigned int));
   memcpy(node+len+ntuples*sizeof(unsigned int), endoffsets, ntuples*sizeof(unsigned short));
   memcpy(node+len+ntuples*(sizeof(unsigned int)+sizeof(short)), arrayfields, top*sizeof(short));
@@ -278,7 +284,6 @@ objheader_t *transRead(transrecord_t *record, unsigned int oid) {
   void *buf;
   
   if(oid == 0) {
-    printf("Error: %s, %d oid is NULL \n", __FILE__, __LINE__);
     return NULL;
   }
   
@@ -1025,6 +1030,8 @@ prefetchpile_t *foundLocal(prefetchqelem_t *node) {
     unsigned int oid=oidarray[i];
     int newbase;
     int machinenum;
+    if (oid==0)
+      continue;
     //Look up fields locally
     for(newbase=baseindex;newbase<endindex;newbase++) {
       if (!lookupObject(&oid, arryfields[newbase]))
@@ -1238,7 +1245,7 @@ int getPrefetchResponse(int sd) {
     /* TODO: For each object not found query DHT for new location and retrieve the object */
     /* Throw an error */
     printf("OBJECT %x NOT FOUND.... THIS SHOULD NOT HAPPEN...TERMINATE PROGRAM\n", oid);
-    exit(-1);
+    //    exit(-1);
   } else {
     printf("Error: in decoding the control value %d, %s, %d\n",control, __FILE__, __LINE__);
   }
@@ -1302,9 +1309,8 @@ int startRemoteThread(unsigned int oid, unsigned int mid)
 }
 
 //TODO: when reusing oids, make sure they are not already in use!
+static unsigned int id = 0xFFFFFFFF;
 unsigned int getNewOID(void) {
-	static unsigned int id = 0xFFFFFFFF;
-	
 	id += 2;
 	if (id > oidMax || id < oidMin)
 	{

@@ -60,11 +60,3 @@ void *objstrAlloc(objstr_t *store, unsigned int size)
 			store = store->next;
 	}
 }
-
-void clearObjStore() {
-  objstr_t *tmp = prefetchcache;
-  while(tmp != NULL) {
-    bzero(tmp+1, tmp->size);
-    tmp = tmp->next;
-  }
-}

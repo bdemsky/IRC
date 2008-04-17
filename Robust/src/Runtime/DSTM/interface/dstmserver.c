@@ -672,6 +672,10 @@ int prefetchReq(int acceptfd) {
 	  oid = *((unsigned int *)(((char *)header) + sizeof(objheader_t) + offsetarry[i]));
 	}
 	
+	/* Don't continue if we hit a NULL pointer */
+	if (oid==0)
+	  break;
+
 	if((header = mhashSearch(oid)) == NULL) {
 	  size = sizeof(int) + sizeof(char) + sizeof(unsigned int) ;
 	  char sendbuffer[size];
