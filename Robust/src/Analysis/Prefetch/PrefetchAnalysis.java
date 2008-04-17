@@ -100,6 +100,10 @@ public class PrefetchAnalysis {
 		}
 	    }
 	    switch(curr.kind()) {
+	    case FKind.FlatCall:
+		processCall((FlatCall)curr,child_prefetch_set_copy);
+		break;
+
 	    case FKind.FlatBackEdge:
 	    case FKind.FlatCheckNode:
 	    case FKind.FlatReturnNode:
@@ -110,7 +114,6 @@ public class PrefetchAnalysis {
 	    case FKind.FlatNop:
 	    case FKind.FlatNew:
 	    case FKind.FlatCastNode:
-	    case FKind.FlatCall:
 	    case FKind.FlatTagDeclaration:
 		processDefaultCase(curr,child_prefetch_set_copy);
 		break;
@@ -742,6 +745,34 @@ public class PrefetchAnalysis {
 	    pm.addPair(childpp, childpp);
 	}
 	
+	updatePairMap(curr, pm, 0);
+	updatePrefetchSet(curr, tocompare);
+    }
+
+    /** If FlatNode is not concerned with the prefetch set of its Child then propagate 
+     * prefetches up the FlatNode*/  
+    private void processCall(FlatCall curr, Hashtable<PrefetchPair, Double> child_prefetch_set_copy) {
+	PairMap pm = new PairMap();
+	Hashtable<PrefetchPair, Double> tocompare = new Hashtable<PrefetchPair, Double>();
+	
+	/* Don't propagate prefetches across cache clear */
+	if (!curr.getMethod().getClassMethodName().equals("System.clearPrefetchCache")) {
+	/* Propagate all child nodes */
+	nexttemp:
+	for(Enumeration e = child_prefetch_set_copy.keys(); e.hasMoreElements();) {
+	    PrefetchPair childpp = (PrefetchPair) e.nextElement();
+	    TempDescriptor[] writearray=curr.writesTemps();
+	    for(int i=0;i<writearray.length;i++) {
+		TempDescriptor wtd=writearray[i];
+		if(childpp.base == wtd||
+		   childpp.containsTemp(wtd))
+		    continue nexttemp;
+	    }
+	    tocompare.put(childpp, child_prefetch_set_copy.get(childpp));
+	    pm.addPair(childpp, childpp);
+	}
+	
+	}
 	updatePairMap(curr, pm, 0);
 	updatePrefetchSet(curr, tocompare);
     }
