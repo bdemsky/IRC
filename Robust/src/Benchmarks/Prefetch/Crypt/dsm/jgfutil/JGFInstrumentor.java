@@ -22,10 +22,6 @@
 **************************************************************************/
 
 
-//package jgfutil;
-
-//import java.util.*;
-
 public class JGFInstrumentor{
 
     private HashMap timers;
