@@ -53,7 +53,7 @@ public class JGFTimer {
 
 
   public void start(){
-    if (on) System.printString("Warning timer " + name + " was already turned on");
+    if (on) System.printString("Warning timer " + " was already turned on");
     on = true; 
     start_time = System.currentTimeMillis();
   }
@@ -61,7 +61,7 @@ public class JGFTimer {
 
   public void stop(){
     time += (double) (System.currentTimeMillis()-start_time) / 1000.;
-    if (!on) System.printString("Warning timer " + name + " wasn't turned on");
+    if (!on) System.printString("Warning timer " + " wasn't turned on");
     calls++;
     on = false;  
   }

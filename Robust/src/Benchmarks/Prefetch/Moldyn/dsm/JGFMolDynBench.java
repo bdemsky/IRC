@@ -108,7 +108,7 @@ public class JGFMolDynBench {
     }
 
     atomic {
-      thobjects[0] = new mdRunner(0,mold.mm,sh_force,sh_force2,br,mold.instr,mold.nthreads,mold);
+      thobjects[0] = global new mdRunner(0,mold.mm,sh_force,sh_force2,br,mold.instr,mold.nthreads,mold);
       thobjects[0].run();
     }
 
@@ -157,8 +157,8 @@ class mdRunner extends Thread {
 
   TournamentBarrier br;
   random randnum;
-  global JGFInstrumentor instr;
-  global JGFMolDynBench mymd;
+  JGFInstrumentor instr;
+  JGFMolDynBench mymd;
   int nthreads;
 
   particle[] one;
@@ -190,7 +190,7 @@ class mdRunner extends Thread {
     atomic {
       mdsize = mymd.PARTSIZE;
     }
-    one = new particle [mdsize];
+    one = global new particle [mdsize];
     atomic {
       l = mymd.LENGTH;
     }
@@ -220,7 +220,7 @@ class mdRunner extends Thread {
         for (i=0; i<mm; i++) {
           for (j=0; j<mm; j++) {
             for (k=0; k<mm; k++) {
-              one[ijk] = new particle((i*a+lg*a*0.5),(j*a+lg*a*0.5),(k*a),
+              one[ijk] = global new particle((i*a+lg*a*0.5),(j*a+lg*a*0.5),(k*a),
                   xvelocity,yvelocity,zvelocity,sh_force,sh_force2,id,this);
               ijk = ijk + 1;
             }
@@ -233,7 +233,7 @@ class mdRunner extends Thread {
         for (i=0; i<mm; i++) {
           for (j=0; j<mm; j++) {
             for (k=0; k<mm; k++) {
-              one[ijk] = new particle((i*a+(2-lg)*a*0.5),(j*a+(lg-1)*a*0.5),
+              one[ijk] = global new particle((i*a+(2-lg)*a*0.5),(j*a+(lg-1)*a*0.5),
                   (k*a+a*0.5),xvelocity,yvelocity,zvelocity,sh_force,sh_force2,id,this);
               ijk = ijk + 1;
             }
@@ -249,7 +249,7 @@ class mdRunner extends Thread {
     v1 = 0.0;
     v2 = 0.0;
 
-    randnum = new random(iseed,v1,v2);
+    randnum = global new random(iseed,v1,v2);
 
     for (i=0; i<mdsize; i+=2) {
       r  = randnum.seed();
