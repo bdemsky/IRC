@@ -7,6 +7,8 @@ public class Thread {
         threadDone = false;
     }
 
+    public static native void yield();
+
     public final native void join();
 
     public final native void start(int mid);

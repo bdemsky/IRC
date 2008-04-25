@@ -136,6 +136,12 @@ void CALL11(___Thread______sleep____J, long long ___millis___, long long ___mill
 #endif
 }
 
+#if defined(DSTM)||defined(THREADS)
+void CALL00(___Thread______yield____) {
+  pthread_yield();
+}
+#endif
+
 #ifdef DSTM
 /* Add thread join capability */
 void CALL01(___Thread______join____, struct ___Thread___ * ___this___) {

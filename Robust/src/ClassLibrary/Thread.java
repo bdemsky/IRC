@@ -9,6 +9,8 @@ public class Thread {
 	t.run();
     }
 
+    public static native void yield();
+
     public void join() {
 	nativeJoin();
     }
