@@ -1792,6 +1792,14 @@ public class BuildCode {
 		    output.print(temp.getType().getSafeSymbol());
 	    }
 
+	    if (state.DSM&&locality.getBinding(lb,fc).isAtomic()&&!fc.getMethod().getModifiers().isNative()) {
+		LocalityBinding fclb=locality.getBinding(lb, fc);
+		if (printcomma)
+		    output.print(", ");
+		output.print("transrecord_t *");
+		printcomma=true;
+	    }
+
 	    if (state.DSM) {
 		LocalityBinding fclb=locality.getBinding(lb, fc);
 		output.print("))virtualtable["+generateTemp(fm,fc.getThis(),lb)+"->type*"+maxcount+"+"+virtualcalls.getLocalityNumber(fclb)+"])");
