@@ -225,6 +225,13 @@ public class String {
 	    return o.toString();
     }
 
+    public static String valueOf(boolean b) {
+	if (b)
+	    return new String("true");
+	else
+	    return new String("false");
+    }
+
     public static String valueOf(char c) {
 	char ar[]=new char[1];
 	ar[0]=c;
