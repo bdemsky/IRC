@@ -114,7 +114,8 @@ int CALL12(___Socket______nativeBind_____AR_B_I, int ___port___,  struct ArrayOb
 #endif
 }
 
-struct ArrayObject * CALL01(___InetAddress______getHostByName_____AR_B, struct ___ArrayObject___ * ___hostname___) {
+struct ArrayObject * CALL01(___InetAddress______getHostByName_____AR_B, struct ArrayObject * ___hostname___) {
+//struct ArrayObject * CALL01(___InetAddress______getHostByName_____AR_B, struct ___ArrayObject___ * ___hostname___) {
   int length=VAR(___hostname___)->___length___;
   int i,j,n;
   char * str=malloc(length+1);
@@ -293,8 +294,10 @@ int CALL02(___ServerSocket______nativeaccept____L___Socket___,struct ___ServerSo
   RuntimeHashadd(fdtoobject, newfd, (int) VAR(___s___));
   addreadfd(newfd);
 #ifdef MULTICORE
-  flagorand(VAR(___this___),0,0xFFFFFFFE,objq4socketobj[corenum],numqueues4socketobj[corenum]);
-  enqueueObject(VAR(___this___), objq4socketobj[corenum], numqueues4socketobj[corenum]);
+  flagorand(VAR(___this___),0,0xFFFFFFFE,NULL,0);
+  enqueueObject(VAR(___this___), NULL, 0);
+  //flagorand(VAR(___this___),0,0xFFFFFFFE,objq4socketobj[corenum],numqueues4socketobj[corenum]);
+  //enqueueObject(VAR(___this___), objq4socketobj[corenum], numqueues4socketobj[corenum]);
 #else
   flagorand(VAR(___this___),0,0xFFFFFFFE);
   enqueueObject(VAR(___this___));
@@ -363,8 +366,10 @@ int CALL02(___Socket______nativeRead_____AR_B, struct ___Socket___ * ___this___,
   }
 #ifdef TASK
 #ifdef MULTICORE
-  flagorand(VAR(___this___),0,0xFFFFFFFE,objq4socketobj[corenum],numqueues4socketobj[corenum]);
-  enqueueObject(VAR(___this___),objq4socketobj[corenum],numqueues4socketobj[corenum]);
+  flagorand(VAR(___this___),0,0xFFFFFFFE,NULL,0);
+  enqueueObject(VAR(___this___), NULL, 0);
+  //flagorand(VAR(___this___),0,0xFFFFFFFE,objq4socketobj[corenum],numqueues4socketobj[corenum]);
+  //enqueueObject(VAR(___this___),objq4socketobj[corenum],numqueues4socketobj[corenum]);
 #else
   flagorand(VAR(___this___),0,0xFFFFFFFE);
   enqueueObject(VAR(___this___));
@@ -381,8 +386,10 @@ void CALL01(___Socket______nativeClose____, struct ___Socket___ * ___this___) {
   RuntimeHashremove(fdtoobject, fd, data);
   removereadfd(fd);
 #ifdef MULTICORE
-  flagorand(VAR(___this___),0,0xFFFFFFFE,objq4socketobj[corenum],numqueues4socketobj[corenum]);
-  enqueueObject(VAR(___this___),objq4socketobj[corenum],numqueues4socketobj[corenum]);
+  flagorand(VAR(___this___),0,0xFFFFFFFE,NULL,0);
+  enqueueObject(VAR(___this___), NULL, 0);
+  //flagorand(VAR(___this___),0,0xFFFFFFFE,objq4socketobj[corenum],numqueues4socketobj[corenum]);
+  //enqueueObject(VAR(___this___),objq4socketobj[corenum],numqueues4socketobj[corenum]);
 #else
   flagorand(VAR(___this___),0,0xFFFFFFFE);
   enqueueObject(VAR(___this___));

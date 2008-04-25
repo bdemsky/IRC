@@ -77,7 +77,7 @@ public class ScheduleAnalysis {
     	    Vector<FlagState> sFStates = FlagState.DFS.topology(fStates, null);
     	    
     	    Vector rootnodes  = taskanalysis.getRootNodes(cd);
-    	    if(((rootnodes != null) && (rootnodes.size() > 0)) || (cd.getSymbol().equals("StartupObject"))) {
+    	    if(((rootnodes != null) && (rootnodes.size() > 0)) || (cd.getSymbol().equals(TypeUtil.StartupClass))) {
     	    	ClassNode cNode = new ClassNode(cd, sFStates);
     	    	cNode.setSorted(true);
     	    	classNodes.add(cNode);
@@ -730,6 +730,14 @@ public class ScheduleAnalysis {
 	    for(j = 0; j < scheduleGraph.size(); j++) {
 		sn2coreNum.put(scheduleGraph.elementAt(j), j);
 	    }
+	    int startupcore = 0;
+	    boolean setstartupcore = false;
+	    Schedule startup = null;
+	    Vector<Integer> leafcores = new Vector<Integer>();
+	    Vector[] ancestorCores = new Vector[this.coreNum];
+	    for(j = 0; j < ancestorCores.length; ++j) {
+		ancestorCores[j] = new Vector();
+	    }
 	    for(j = 0; j < scheduleGraph.size(); j++) {
 		Schedule tmpSchedule = new Schedule(j);
 		ScheduleNode sn = scheduleGraph.elementAt(j);
@@ -743,22 +751,39 @@ public class ScheduleAnalysis {
 			while(it_edges.hasNext()) {
 			    TaskDescriptor td = ((FEdge)it_edges.next()).getTask();
 			    tmpSchedule.addTask(td);
+			    if(td.getParamType(0).getClassDesc().getSymbol().equals(TypeUtil.StartupClass)) {
+				assert(!setstartupcore);
+				startupcore = j;
+				startup = tmpSchedule;
+				setstartupcore = true;
+			    }
 			}
 		    }
 	    	}
 
 		// For each of the ScheduleEdge out of this ScheduleNode, add the target ScheduleNode into the queue inside sn
 		Iterator it_edges = sn.edges();
+		if(!it_edges.hasNext()) {
+		    // leaf core, considered as ancestor of startup core
+		    if(!leafcores.contains(Integer.valueOf(j))) {
+			leafcores.addElement(Integer.valueOf(j));
+		    }
+		}
 		while(it_edges.hasNext()) {
 		    ScheduleEdge se = (ScheduleEdge)it_edges.next();
 		    ScheduleNode target = (ScheduleNode)se.getTarget();
+		    Integer targetcore = sn2coreNum.get(target);
 		    if(se.getIsNew()) {
 			for(int k = 0; k < se.getNewRate(); k++) {
-			    tmpSchedule.addTargetCore(se.getFstate(), sn2coreNum.get(target));
+			    tmpSchedule.addTargetCore(se.getFstate(), targetcore);
 			}
 		    } else {
 			// 'transmit' edge
-			tmpSchedule.addTargetCore(se.getFstate(), sn2coreNum.get(target), se.getTargetFState());
+			tmpSchedule.addTargetCore(se.getFstate(), targetcore, se.getTargetFState());
+		    }
+		    tmpSchedule.addChildCores(targetcore);
+		    if((targetcore.intValue() != j) && (!ancestorCores[targetcore.intValue()].contains((Integer.valueOf(j))))) {
+			ancestorCores[targetcore.intValue()].addElement(Integer.valueOf(j));
 		    }
 		}
 		it_edges = sn.getScheduleEdgesIterator();
@@ -774,6 +799,11 @@ public class ScheduleAnalysis {
 		    }
 		}
 		scheduling.add(tmpSchedule);
+	    }
+	    leafcores.removeElement(Integer.valueOf(startupcore));
+	    ancestorCores[startupcore] = leafcores;
+	    for(j = 0; j < this.coreNum; ++j) {
+		scheduling.elementAt(j).setAncestorCores(ancestorCores[j]);
 	    }
 	    this.schedulings.add(scheduling);
 	}

@@ -62,6 +62,7 @@ public class State {
     public boolean INSTRUCTIONFAILURE=false;
     public static double TRUEPROB=0.8;
     public static boolean PRINTFLAT=false;
+    public int CORENUM = 1;
     public String structfile;
     public String main;
 

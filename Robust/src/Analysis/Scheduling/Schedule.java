@@ -15,6 +15,8 @@ public class Schedule {
     private Vector<TaskDescriptor> tasks;
     private Hashtable<FlagState, Queue<Integer>> targetCores;
     private Hashtable<FlagState, FlagState> targetFState;
+    private Vector<Integer> ancestorCores;
+    private Vector<Integer> childCores;
     
     public Schedule(int coreNum) {
 	super();
@@ -22,6 +24,7 @@ public class Schedule {
 	this.tasks = null;
 	this.targetCores = null;
 	this.targetFState = null;
+	this.ancestorCores = null;
     }
 
     public int getCoreNum() {
@@ -92,5 +95,54 @@ public class Schedule {
 	if(!this.tasks.contains(task)) {
 	    this.tasks.add(task);
 	}
-    } 
+    }
+
+    public Vector<Integer> getAncestorCores() {
+        return ancestorCores;
+    }
+
+    public void setAncestorCores(Vector<Integer> ancestorCores) {
+        this.ancestorCores = ancestorCores;
+    }
+
+    public void addAncestorCores(Integer ancestorCore) {
+	if(this.ancestorCores == null) {
+	    this.ancestorCores = new Vector<Integer>();
+	}
+	if((ancestorCore.intValue() != this.coreNum) && (!this.ancestorCores.contains(ancestorCore))) {
+	    this.ancestorCores.addElement(ancestorCore);
+	}
+    }
+    
+    public int ancestorCoresNum() {
+	if(this.ancestorCores == null) {
+	    return 0;
+	}
+	return this.ancestorCores.size();
+    }
+
+    public Vector<Integer> getChildCores() {
+        return childCores;
+    }
+
+    public void setChildCores(Vector<Integer> childCores) {
+        this.childCores = childCores;
+    }
+    
+    public void addChildCores(Integer childCore) {
+	if(this.childCores == null) {
+	    this.childCores = new Vector<Integer>();
+	}
+	if((childCore.intValue() != this.coreNum) && (!this.childCores.contains(childCore))) {
+	    this.childCores.addElement(childCore);
+	}
+    }
+    
+    public int childCoresNum() {
+	if(this.childCores == null) {
+	    return 0;
+	}
+	return this.childCores.size();
+    }
+    
 }

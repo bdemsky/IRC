@@ -16,7 +16,9 @@ echo -taskstate do task state analysis
 echo -tagstate do tag state analysis
 echo -scheduling do task scheduling
 echo -multicore generate multi-core version binary
-echo "-raw generate raw version binary (should be used with -multicore)"
+echo "-numcore set the number of cores (should be used together with -multicore), defaultly set as 1"
+echo "-raw generate raw version binary (should be used together with -multicore)"
+echo -threadsimulate generate multi-thread simulate version binary
 echo -optional enable optional
 echo -debug generate debug symbols
 echo -prefetch do prefetch analysis
@@ -43,6 +45,7 @@ CHECKFLAG=false
 RECOVERFLAG=false
 MULTICOREFLAG=false
 RAWFLAG=false
+THREADSIMULATEFLAG=false;
 USEDMALLOC=false
 THREADFLAG=false
 SPECDIR=`pwd`
@@ -118,10 +121,17 @@ elif [[ $1 = '-multicore' ]]
 then
 MULTICOREFLAG=true
 JAVAOPTS="$JAVAOPTS -multicore"
+elif [[ $1 = '-numcore' ]]
+then
+JAVAOPTS="$JAVAOPTS -numcore $2"
+shift
 elif [[ $1 = '-raw' ]]
 then
 RAWFLAG=true
 #JAVAOPTS="$JAVAOPTS -raw"
+elif [[ $1 = '-threadsimulate' ]]
+then
+THREADSIMULATEFLAG=true
 elif [[ $1 = '-optional' ]]
 then
 JAVAOPTS="$JAVAOPTS -optional"
@@ -194,11 +204,20 @@ fi
 
 # Build bristlecone/java sources
 
+if $MULTICOREFLAG
+then
+if ! java $JAVAFORWARDOPTS -classpath $ROBUSTROOT/../cup/:$ROBUSTROOT Main.Main -classlibrary \
+$ROBUSTROOT/ClassLibrary/ -dir $BUILDDIR \
+$JAVAOPTS $SRCFILES
+then exit $?
+fi
+else
 #if ! java -Xms5m -Xmx100m $JAVAFORWARDOPTS -cp $ROBUSTROOT/../cup/:$ROBUSTROOT Main.Main -classlibrary \
 if ! java $JAVAFORWARDOPTS -classpath $ROBUSTROOT/../cup/:$ROBUSTROOT Main.Main -classlibrary \
 $ROBUSTROOT/ClassLibrary/ -dir $BUILDDIR -precise \
 $JAVAOPTS $SRCFILES
 then exit $?
+fi
 fi
 
 # Build all of the consistency specs
@@ -244,7 +263,14 @@ cd $CURDIR
 INCLUDES="$INCLUDES -I$ROBUSTROOT/Runtime -I. -IRuntime/include \
 -I$BUILDDIR"
 
-FILES="$ROBUSTROOT/Runtime/runtime.c $ROBUSTROOT/Runtime/task.c \
+if $MULTICOREFLAG
+then
+RUNTIMEFILE="$ROBUSTROOT/Runtime/multicoreruntime.c $ROBUSTROOT/Runtime/multicoretask.c"
+else
+RUNTIMEFILE="$ROBUSTROOT/Runtime/runtime.c $ROBUSTROOT/Runtime/task.c"
+fi
+
+FILES="$RUNTIMEFILE \
 $ROBUSTROOT/Runtime/file.c $ROBUSTROOT/Runtime/Queue.c \
 $ROBUSTROOT/Runtime/SimpleHash.c $ROBUSTROOT/Runtime/option.c \
 $ROBUSTROOT/Runtime/ObjectHash.c \
@@ -265,11 +291,16 @@ if $MULTICOREFLAG
 then
 EXTRAOPTIONS="$EXTRAOPTIONS -DMULTICORE"
 fi
+FILES="$FILES tmpbuilddirectory/taskdefs.c $ROBUSTROOT/Runtime/checkpoint.c"
 if $RAWFLAG
 then
 EXTRAOPTIONS="$EXTRAOPTIONS -DRAW"
 fi
-FILES="$FILES tmpbuilddirectory/taskdefs.c $ROBUSTROOT/Runtime/checkpoint.c"
+if $THREADSIMULATEFLAG
+then
+# -lpthread for pthread functions, -lrt for message queue functions
+EXTRAOPTIONS="$EXTRAOPTIONS -DTHREADSIMULATE -lpthread -lrt"
+fi
 fi
 
 if $OPTIONALFLAG
@@ -294,8 +325,14 @@ then
 EXTRAOPTIONS="$EXTRAOPTIONS -ldmalloc -DDMALLOC"
 fi
 
+if $MULTICOREFLAG
+then
+gcc $INCLUDES $EXTRAOPTIONS \
+tmpbuilddirectory/methods.c $FILES -lm -o $MAINFILE.bin
+else
 gcc $INCLUDES $EXTRAOPTIONS -DPRECISE_GC \
 tmpbuilddirectory/methods.c $FILES -lm -o $MAINFILE.bin
+fi
 
 exit
 

@@ -64,6 +64,10 @@ public class Main {
 	      state.excprefetch.add(args[++i]);
 	  else if (option.equals("-classlibrary"))
 	      ClassLibraryPrefix=args[++i]+"/";
+	  else if(option.equals("-numcore")) {
+	      ++i;
+	      state.CORENUM = Integer.parseInt(args[i]);
+	  }
 	  else if (option.equals("-mainclass"))
 	      state.main=args[++i];
 	  else if (option.equals("-trueprob")) {
@@ -330,8 +334,7 @@ public class Main {
 	      scheduleAnalysis.preSchedule();
 	      scheduleAnalysis.scheduleAnalysis();
 	      //scheduleAnalysis.setCoreNum(scheduleAnalysis.getSEdges4Test().size());
-	      scheduleAnalysis.setCoreNum(1);
-	      //scheduleAnalysis.setCoreNum(2);
+	      scheduleAnalysis.setCoreNum(state.CORENUM);
 	      scheduleAnalysis.schedule();
 	      
 	      //simulate these schedulings

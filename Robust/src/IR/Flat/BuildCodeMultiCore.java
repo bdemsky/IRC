@@ -33,12 +33,14 @@ public class BuildCodeMultiCore extends BuildCode {
     int coreNum;
     Schedule currentSchedule;
     Hashtable[] fsate2qnames;
-    String objqs4startupprefix= "objqueuearray4startup";
-    String objqs4socketprefix= "objqueuearray4socket";
+    //String objqs4startupprefix= "objqueuearray4startup";
+    //String objqs4socketprefix= "objqueuearray4socket";
+    String objqarrayprefix= "objqueuearray4class";
     String objqueueprefix = "objqueue4parameter_";
     String taskprefix = "task_";
     String taskarrayprefix = "taskarray_core";
     String otqueueprefix = "___otqueue";
+    int startupcorenum;  // record the core containing startup task, suppose only one core can hava startup object
 
     public BuildCodeMultiCore(State st, Hashtable temptovar, TypeUtil typeutil, SafetyAnalysis sa, Vector<Schedule> scheduling, int coreNum) {
 	super(st, temptovar, typeutil, sa);
@@ -46,6 +48,7 @@ public class BuildCodeMultiCore extends BuildCode {
 	this.coreNum = coreNum;
 	this.currentSchedule = null;
 	this.fsate2qnames = null;
+	this.startupcorenum = 0;
     }
 
     public void buildCode() {
@@ -145,22 +148,20 @@ public class BuildCodeMultiCore extends BuildCode {
 		taskits[i] = null;
 	    }
 	    int[] numtasks = new int[this.coreNum];
+	    int[][] numqueues = new int[this.coreNum][numclasses];
 	    // arrays record the queues for startup object & socket object
-	    int[][] numqueues = new int[2][this.coreNum];
-	    /*Vector qnames[][]= new Vector[2][this.coreNum];
-	    for(int i = 0; i < qnames.length; ++i) {
-		qnames[i] = null;
-	    }*/
+	    //int[][] numqueues = new int[2][this.coreNum];
 	    /* Output code for tasks */
 	    for(int i = 0; i < this.scheduling.size(); ++i) {
 		this.currentSchedule = this.scheduling.elementAt(i);
-		outputTaskCode(outtaskdefs, outmethod, outtask, taskits, numtasks, numqueues);//, qnames);
+		outputTaskCode(outtaskdefs, outmethod, outtask, taskits, numtasks, numqueues);
 		/*outputTaskCode(outtaskdefs[this.currentSchedule.getCoreNum()], outmethod);
 		outtaskdefs[this.currentSchedule.getCoreNum()].close();*/
 	    }
 	    
 	    // Output task descriptors
 	    boolean comma = false;
+	    /*
 	    for(int index = 0; index < 2; ++index) {
 		if(index == 0) {
 		    outtaskdefs.println("struct parameterwrapper ** objq4startupobj[] = {");
@@ -174,7 +175,7 @@ public class BuildCodeMultiCore extends BuildCode {
 		    } else {
 			comma = true;
 		    }
-		    outtaskdefs.println("/* object queue array for core " + i + "*/");
+		    outtaskdefs.println("/* object queue array for core " + i + "* /");
 		    outtaskdefs.print(this.objqs4startupprefix + "_core" + i);
 		}
 		outtaskdefs.println("};");
@@ -194,7 +195,51 @@ public class BuildCodeMultiCore extends BuildCode {
 		    outtaskdefs.print(tmparray[i]);
 		}
 		outtaskdefs.println("};");
+	    }*/
+	    outtaskdefs.println("struct parameterwrapper ** objectqueues[][NUMCLASSES] = {");
+	    boolean needcomma = false;
+	    for(int i = 0; i < numqueues.length ; ++i) {
+		if(needcomma) {
+		    outtaskdefs.println(",");
+		} else {
+		    needcomma = true;
+		}
+		outtaskdefs.println("/* object queue array for core " + i + "*/");
+		outtaskdefs.print("{");
+		comma = false;
+		for(int j = 0; j < numclasses; ++j) {
+		    if(comma) {
+			outtaskdefs.println(",");
+		    } else {
+			comma = true;
+		    }
+		    outtaskdefs.print(this.objqarrayprefix + j + "_core" + i);
+		}
+		outtaskdefs.print("}");
 	    }
+	    outtaskdefs.println("};");
+	    needcomma = false;
+	    outtaskdefs.println("int numqueues[][NUMCLASSES] = {");
+	    for(int i = 0; i < numqueues.length; ++i) {
+		if(needcomma) {
+		    outtaskdefs.println(",");
+		} else {
+		    needcomma = true;
+		}
+		int[] tmparray = numqueues[i];
+		comma = false;
+		outtaskdefs.print("{");
+		for(int j = 0; j < tmparray.length; ++j) {
+		    if(comma) {
+			outtaskdefs.print(",");
+		    } else {
+			comma = true;
+		    }
+		    outtaskdefs.print(tmparray[j]);
+		}
+		outtaskdefs.print("}");
+	    }
+	    outtaskdefs.println("};");
 	    
 	    for(int i = 0; i < taskits.length; ++i) {
 		outtaskdefs.println("struct taskdescriptor * " + this.taskarrayprefix + i + "[]={");
@@ -225,12 +270,12 @@ public class BuildCodeMultiCore extends BuildCode {
 	    outtaskdefs.println("};");
 
 	    outtaskdefs.print("int numtasks[]= {");
+	    comma = false;
 	    for(int i = 0; i < taskits.length; ++i) {
-		boolean first=true;
-		if (first)
-		    first=false;
-		else
+		if (comma)
 		    outtaskdefs.print(",");
+		else
+		    comma=true;
 		outtaskdefs.print(numtasks[i]);
 	    }
 	    outtaskdefs.println("};");
@@ -243,11 +288,17 @@ public class BuildCodeMultiCore extends BuildCode {
 	    outtaskdefs.println("#endif");
 	    
 	    outtaskdefs.close();
-	    
 	    outtask.println("#endif");
 	    outtask.close();
 	    /* Record maximum number of task parameters */
 	    outstructs.println("#define MAXTASKPARAMS "+maxtaskparams);
+	    /* Record maximum number of all types, i.e. length of classsize[] */
+	    outstructs.println("#define NUMTYPES "+(state.numClasses() + state.numArrays()));
+	    /* Record number of cores */
+	    outstructs.println("#define NUMCORES "+this.coreNum);
+	    /* Record number of core containing startup task */
+	    outstructs.println("#define STARTUPCORE "+this.startupcorenum);
+	    //outstructs.println("#define STARTUPCORESTR \""+this.startupcorenum+"\"");
 	} //else if (state.main!=null) {
 	/* Generate main method */
 	// outputMainMethod(outmethod);
@@ -343,7 +394,7 @@ public class BuildCodeMultiCore extends BuildCode {
     /* This method outputs code for each task. */
 
     private void outputTaskCode(PrintWriter outtaskdefs, PrintWriter outmethod, PrintWriter outtask, Iterator[] taskits, int[] numtasks, 
-	                        int[][] numqueues) {//, Vector[] qnames) {
+	                        int[][] numqueues) {
 	/* Compile task based program */
 	outtaskdefs.println("#include \"task.h\"");
 	outtaskdefs.println("#include \"methodheaders.h\"");
@@ -351,7 +402,12 @@ public class BuildCodeMultiCore extends BuildCode {
 	/* Output object transfer queues into method.c*/
 	generateObjectTransQueues(outmethod);
 
-	Vector[] qnames = new Vector[2];
+	//Vector[] qnames = new Vector[2];
+	int numclasses = numqueues[0].length;
+	Vector qnames[]= new Vector[numclasses];
+	for(int i = 0; i < qnames.length; ++i) {
+	    qnames[i] = null;
+	}
 	Iterator<TaskDescriptor> taskit=this.currentSchedule.getTasks().iterator();
 	while(taskit.hasNext()) {
 	    TaskDescriptor td=taskit.next();
@@ -363,11 +419,11 @@ public class BuildCodeMultiCore extends BuildCode {
 	// generate queuearray for this core
 	int num = this.currentSchedule.getCoreNum();
 	boolean comma = false;
-	for(int i = 0; i < 2; ++i) {
+	/*for(int i = 0; i < 2; ++i) {
 	    if(i == 0) {
-		outtaskdefs.println("/* object queue array for class StartupObject on core " + num + "*/");
+		outtaskdefs.println("/* object queue array for class StartupObject on core " + num + "* /");
 	    } else {
-		outtaskdefs.println("/* object queue array for class Socket on core " + num + "*/");
+		outtaskdefs.println("/* object queue array for class Socket on core " + num + "* /");
 	    }
 	    if(i == 0) {
 		outtaskdefs.println("struct parameterwrapper * " + this.objqs4startupprefix + "_core" + num + "[] = {");
@@ -390,6 +446,27 @@ public class BuildCodeMultiCore extends BuildCode {
 		numqueues[i][num] = 0;
 	    }
 	    outtaskdefs.println();
+	    outtaskdefs.println("};");
+	}*/
+	for(int i = 0; i < qnames.length; ++i) {
+	    outtaskdefs.println("/* object queue array for class " + i + " on core " + num + "*/");
+	    outtaskdefs.println("struct parameterwrapper * " + this.objqarrayprefix + i + "_core" + num + "[] = {");
+	    //outtaskdefs.print("0");
+	    comma = false;
+	    Vector tmpvector = qnames[i];
+	    if(tmpvector != null) {
+		for(int j = 0; j < tmpvector.size(); ++j) {
+		    if(comma) {
+			outtaskdefs.println(",");
+		    } else {
+			comma = true;
+		    }
+		   outtaskdefs.print("&" + tmpvector.elementAt(j));
+		}
+		numqueues[num][i] = tmpvector.size();// + 1;
+	    } else {
+		numqueues[num][i] = 0;//1;
+	    }
 	    outtaskdefs.println("};");
 	}
 
@@ -424,7 +501,7 @@ public class BuildCodeMultiCore extends BuildCode {
 	outtask.println("};");
 	outtask.println();
 	outtask.println("struct parameterwrapper {");
-	outtask.println("  //struct parameterwrapper *next;");
+	outtask.println("  //int type;");
 	outtask.println("  struct ObjectHash * objectset;");
 	outtask.println("  int numberofterms;");
 	outtask.println("  int * intarray;");
@@ -435,10 +512,14 @@ public class BuildCodeMultiCore extends BuildCode {
 	outtask.println("  struct tagobjectiterator iterators[MAXTASKPARAMS-1];");
 	outtask.println("};");
 	outtask.println();
+	/*
 	outtask.println("extern struct parameterwrapper ** objq4startupobj[];");
 	outtask.println("extern int numqueues4startupobj[];");
 	outtask.println("extern struct parameterwrapper ** objq4socketobj[];");
 	outtask.println("extern int numqueues4socketobj[];");
+	*/
+	outtask.println("extern struct parameterwrapper ** objectqueues[][NUMCLASSES];");
+	outtask.println("extern int numqueues[][NUMCLASSES];");
 	outtask.println();
 	outtask.println("struct parameterdescriptor {");
 	outtask.println("  int type;");
@@ -475,32 +556,34 @@ public class BuildCodeMultiCore extends BuildCode {
 	Hashtable<FlagState, String> flag2qname = new Hashtable<FlagState, String>();
 	this.fsate2qnames[num] = flag2qname;
 	Hashtable<FlagState, Queue<Integer>> targetCoreTbl = this.currentSchedule.getTargetCoreTable();
-	Object[] keys = targetCoreTbl.keySet().toArray();
-	output.println();
-	output.println("/* Object transfer queues for core" + num + ".*/");
-	for(int i = 0; i < keys.length; ++i) {
-	    FlagState tmpfstate = (FlagState)keys[i];
-	    Object[] targetcores = targetCoreTbl.get(tmpfstate).toArray();
-	    String queuename = this.otqueueprefix + tmpfstate.getClassDescriptor().getCoreSafeSymbol(num) + tmpfstate.getuid() + "___";
-	    String queueins = queuename + "ins";
-	    flag2qname.put(tmpfstate, queuename);
-	    output.println("struct " + queuename + " {");
-	    output.println("  int * cores;");
-	    output.println("  int index;");
-	    output.println("  int length;");
-	    output.println("};");
-	    output.print("int " + queuename + "cores[] = {");
-	    for(int j = 0; j < targetcores.length; ++j) {
-		if(j > 0) {
-		    output.print(", ");
+	if(targetCoreTbl != null) {
+	    Object[] keys = targetCoreTbl.keySet().toArray();
+	    output.println();
+	    output.println("/* Object transfer queues for core" + num + ".*/");
+	    for(int i = 0; i < keys.length; ++i) {
+		FlagState tmpfstate = (FlagState)keys[i];
+		Object[] targetcores = targetCoreTbl.get(tmpfstate).toArray();
+		String queuename = this.otqueueprefix + tmpfstate.getClassDescriptor().getCoreSafeSymbol(num) + tmpfstate.getuid() + "___";
+		String queueins = queuename + "ins";
+		flag2qname.put(tmpfstate, queuename);
+		output.println("struct " + queuename + " {");
+		output.println("  int * cores;");
+		output.println("  int index;");
+		output.println("  int length;");
+		output.println("};");
+		output.print("int " + queuename + "cores[] = {");
+		for(int j = 0; j < targetcores.length; ++j) {
+		    if(j > 0) {
+			output.print(", ");
+		    }
+		    output.print(((Integer)targetcores[j]).intValue());
 		}
-		output.print(((Integer)targetcores[j]).intValue());
+		output.println("};");
+		output.println("struct " + queuename + " " + queueins + "= {");
+		output.println(/*".cores = " + */queuename + "cores,");
+		output.println(/*".index = " + */"0,");
+		output.println(/*".length = " +*/ targetcores.length + "};");
 	    }
-	    output.println("};");
-	    output.println("struct " + queuename + " " + queueins + "= {");
-	    output.println(/*".cores = " + */queuename + "cores,");
-	    output.println(/*".index = " + */"0,");
-	    output.println(/*".length = " +*/ targetcores.length + "};");
 	}
 	output.println();
     }
@@ -677,6 +760,9 @@ public class BuildCodeMultiCore extends BuildCode {
 	    // generate object queue for this parameter
 	    String qname = this.objqueueprefix+i+"_"+task.getCoreSafeSymbol(num);
 	    if(param_type.getClassDesc().getSymbol().equals("StartupObject")) {
+		this.startupcorenum = num;
+	    }
+	    /*if(param_type.getClassDesc().getSymbol().equals("StartupObject")) {
 		if(qnames[0] == null) {
 		    qnames[0] = new Vector();
 		}
@@ -686,9 +772,14 @@ public class BuildCodeMultiCore extends BuildCode {
 		    qnames[1] = new Vector();
 		}
 		qnames[1].addElement(qname);
+	    }*/
+	    if(qnames[param_type.getClassDesc().getId()] == null) {
+		qnames[param_type.getClassDesc().getId()] = new Vector();
 	    }
+	    qnames[param_type.getClassDesc().getId()].addElement(qname);
 	    outtask.println("extern struct parameterwrapper " + qname + ";"); 
 	    output.println("struct parameterwrapper " + qname + "={"); 
+	    //output.println(".type = " + param_type.getClassDesc().getId() + ","); // type
 	    output.println(".objectset = 0,"); // objectset
 	    output.println("/* number of DNF terms */ .numberofterms = "+dnfterms+","); // numberofterms
 	    output.println(".intarray = parameterdnf_"+i+"_"+task.getCoreSafeSymbol(num)+","); // intarray
@@ -869,7 +960,10 @@ public class BuildCodeMultiCore extends BuildCode {
 	    Vector<FlagState> tmpfstates = (Vector<FlagState>)targetFStates[j];
 	    for(int i = 0; i < tmpfstates.size(); ++i) {
 		FlagState tmpFState = tmpfstates.elementAt(i);
-		Queue<Integer> queue = targetCoreTbl.get(tmpFState);
+		Queue<Integer> queue = null;
+		if(targetCoreTbl != null) {
+		    queue = targetCoreTbl.get(tmpFState);
+		}
 		if((queue != null) && 
 			((queue.size() != 1) ||
 				((queue.size() == 1) && (queue.element().intValue() != num)))) {
@@ -899,6 +993,8 @@ public class BuildCodeMultiCore extends BuildCode {
 				output.println("/* transfer to core " + targetcore.toString() + "*/");
 				// method call of transfer objects
 				output.println("transferObject("+super.generateTemp(fm, temp, lb)+", " + targetcore.toString() + ");");
+				//output.println("transferObject("+super.generateTemp(fm, temp, lb)+", " + targetcore.toString() + 
+				//	       ", \"" + targetcore.toString() + "\"" + ");");
 			    }
 			    output.println("break;");
 			}
@@ -907,6 +1003,8 @@ public class BuildCodeMultiCore extends BuildCode {
 			output.println("/* transfer to core " + targetcore.toString() + "*/");
 			// method call of transfer objectts
 			output.println("transferObject("+super.generateTemp(fm, temp, lb)+", " + targetcore.toString() + ");");
+			//output.println("transferObject("+super.generateTemp(fm, temp, lb)+", " + targetcore.toString() + 
+			//	       ", \"" + targetcore.toString() + "\"" + ");");
 		    }
 		    output.println("/* increase index*/");
 		    output.println("++" + queueins + ".index;");
