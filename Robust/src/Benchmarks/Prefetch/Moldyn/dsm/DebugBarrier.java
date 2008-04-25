@@ -32,13 +32,14 @@ public class Barrier {
             if(b.numthreads > 1)
               b.cleared=true;
             b.entercount--;
+	    System.printString("Exiting Barrier #1\n");
             return;
           }
           retry=false;
         }
       }
     } while(retry);
-
+    System.printString("Waiting for last thread to enter\n");
     while(true) {
       atomic {
         if (b.cleared) {
@@ -46,6 +47,7 @@ public class Barrier {
           int count = b.entercount;
           if (count==0)
             b.cleared=false;
+	  System.printString("Exiting Barrier #2\n");
           return;
         }
       }
