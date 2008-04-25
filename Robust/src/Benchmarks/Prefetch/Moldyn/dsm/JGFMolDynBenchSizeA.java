@@ -24,8 +24,8 @@ public class JGFMolDynBenchSizeA {
     if(argv.length != 0 ) {
       nthreads = Integer.parseInt(argv[0]);
     } else {
-      System.printString("The no of threads has not been specified, defaulting to 1");
-      System.printString("  ");
+      System.printString("The no of threads has not been specified, defaulting to 1\n");
+      System.printString("  " + "\n");
       nthreads = 1;
     }
 
@@ -34,7 +34,7 @@ public class JGFMolDynBenchSizeA {
 
     JGFMolDynBench mold;
     atomic {
-      mold = global new JGFMolDynBench(nthreads, instr); 
+      mold = global new JGFMolDynBench(nthreads); 
     }
     int size = 0;
     JGFInstrumentor.addTimer("Section3:MolDyn:Total", "Solutions",size, instr.timers);
@@ -49,7 +49,6 @@ public class JGFMolDynBenchSizeA {
     JGFMolDynBench tmp;
     atomic {
       mold.JGFinitialise(); 
-      //tmp = mold;
     }
     JGFMolDynBench.JGFapplication(mold); 
     atomic {
@@ -66,8 +65,8 @@ public class JGFMolDynBenchSizeA {
     }
     double dev = Math.fabs(dval - refval[size]);
     if (dev > 1.0e-10 ){
-      System.printString("Validation failed");
-      System.printString("Kinetic Energy = " + (long)dval + "  " + (long)dev + "  " + size);
+      System.printString("Validation failed\n");
+      System.printString("Kinetic Energy = " + (long)dval + "  " + (long)dev + "  " + size + "\n");
     }
 
     JGFInstrumentor.stopTimer("Section3:MolDyn:Total", instr.timers);

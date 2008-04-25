@@ -40,7 +40,7 @@ public class TournamentBarrier {
 
     // Initialise the IsDone array. The choice of initial value is
     // arbitrary, but must be consistent!
-    IsDone = new boolean[numThreads];
+    IsDone = global new boolean[numThreads];
     for(int i = 0; i < n; i++) {
       IsDone[i] = false;
     }

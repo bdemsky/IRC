@@ -31,7 +31,7 @@ public class JGFInstrumentor{
 
     if (timers.containsKey(name)) {
       System.printString("JGFInstrumentor.addTimer: warning -  timer " + name + 
-          " already exists");
+          " already exists\n");
     }
     else {
       timers.put(name, new JGFTimer(name));
@@ -42,7 +42,7 @@ public class JGFInstrumentor{
 
     if (timers.containsKey(name)) {
       System.printString("JGFInstrumentor.addTimer: warning -  timer " + name + 
-          " already exists");
+          " already exists\n");
     }
     else {
       timers.put(name, new JGFTimer(name,opname));
@@ -54,7 +54,7 @@ public class JGFInstrumentor{
 
     if (timers.containsKey(name)) {
       System.printString("JGFInstrumentor.addTimer: warning -  timer " + name +
-          " already exists");
+          " already exists\n");
     }
     else {
       timers.put(name, new JGFTimer(name,opname,size));
@@ -68,7 +68,7 @@ public class JGFInstrumentor{
     }
     else {
       System.printString("JGFInstrumentor.startTimer: failed -  timer " + name + 
-          " does not exist");
+          " does not exist\n");
     }
 
   }
@@ -79,7 +79,7 @@ public class JGFInstrumentor{
     }
     else {
       System.printString("JGFInstrumentor.stopTimer: failed -  timer " + name + 
-          " does not exist");
+          " does not exist\n");
     }
   }
 
@@ -89,7 +89,7 @@ public class JGFInstrumentor{
     }
     else {
       System.printString("JGFInstrumentor.addOpsToTimer: failed -  timer " + name + 
-          " does not exist");
+          " does not exist\n");
     }
   }  
 
@@ -99,7 +99,7 @@ public class JGFInstrumentor{
     }
     else {
       System.printString("JGFInstrumentor.addTimeToTimer: failed -  timer " + name +
-          " does not exist");
+          " does not exist\n");
     }
 
 
@@ -113,7 +113,7 @@ public class JGFInstrumentor{
     }
     else {
       System.printString("JGFInstrumentor.readTimer: failed -  timer " + name + 
-          " does not exist");
+          " does not exist\n");
       time = 0.0; 
     }
     return time; 
@@ -125,7 +125,7 @@ public class JGFInstrumentor{
     }
     else {
       System.printString("JGFInstrumentor.resetTimer: failed -  timer " + name +
-          " does not exist");
+          " does not exist\n");
     }
   }
 
@@ -135,7 +135,7 @@ public class JGFInstrumentor{
     }
     else {
       System.printString("JGFInstrumentor.printTimer: failed -  timer " + name +
-          " does not exist");
+          " does not exist\n");
     }
   }
 
@@ -145,7 +145,7 @@ public class JGFInstrumentor{
     }
     else {
       System.printString("JGFInstrumentor.printTimer: failed -  timer " + name +
-          " does not exist");
+          " does not exist\n");
     }
   }
 
@@ -185,15 +185,15 @@ public class JGFInstrumentor{
         header = base + "3 - Size B";
     }
 
-    System.printString(header); 
+    System.printString(header + "\n"); 
 
     if (nthreads == 1) {
-      System.printString("Executing on " + nthreads + " thread");
+      System.printString("Executing on " + nthreads + " thread\n");
     }
     else {
-      System.printString("Executing on " + nthreads + " threads");
+      System.printString("Executing on " + nthreads + " threads\n");
     }
 
-    System.printString("");
+    System.printString(" \n");
   } 
 }
