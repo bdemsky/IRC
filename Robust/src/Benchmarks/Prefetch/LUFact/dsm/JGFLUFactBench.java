@@ -67,10 +67,10 @@ public class JGFLUFactBench {
 
     /* spawn threads */
     LinpackRunner[] thobjects;
-    TournamentBarrier br;
+    Barrier br;
     atomic {
       thobjects = global new LinpackRunner[numthreads];
-      br = global new TournamentBarrier(numthreads);
+      br = global new Barrier(numthreads);
     }
 
     //JGFInstrumentor.startTimer("Section2:LUFact:Kernel", instr.timers);  

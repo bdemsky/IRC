@@ -21,10 +21,10 @@
 class LinpackRunner extends Thread {
   int id,lda,n,info,ipvt[];
   double a[][];
-  TournamentBarrier br;
+  Barrier br;
   int nthreads;
 
-  public LinpackRunner(int id, double a[][], int lda, int n, int ipvt[],TournamentBarrier br, int nthreads) {
+  public LinpackRunner(int id, double a[][], int lda, int n, int ipvt[],Barrier br, int nthreads) {
     this.id = id;
     this.a=a;
     this.lda=lda;
@@ -40,76 +40,97 @@ class LinpackRunner extends Thread {
   }
 
   public void run() {
-    double[] col_k, col_j;
-    double t;
-    int j,k,kp1,l,nm1;
-    int info;
-    int slice,ilow,iupper;
-    // gaussian elimination with partial pivoting
-    atomic {
+      double[] col_k, col_j;
+      double t;
+      int j,k,kp1,l,nm1;
+      int info;
+      int slice,ilow,iupper;
+      // gaussian elimination with partial pivoting
       info = 0;
-      nm1 = n - 1;
+      int nlocal;
+      Barrier tmpbr;
+      int lid;
+      atomic {
+	  nlocal=n;
+	  tmpbr=br;
+	  lid=id;
+      }
+      
+      nm1 = nlocal - 1;
       if (nm1 >=  0) {
-        for (k = 0; k < nm1; k++) {
-          col_k = a[k];
-          kp1 = k + 1;
-          // find l = pivot index
-          l = idamax(n-k,col_k,k,1) + k;
-          if(id==0) {
-            ipvt[k] = l;
-          }
-          // synchronise threads
-          br.DoBarrier(id);
-          // zero pivot implies this column already triangularized
-          if (col_k[l] != 0) {
-            br.DoBarrier(id);
-            // interchange if necessary
-            if(id == 0 ) {
-              if (l != k) {
-                t = col_k[l];
-                col_k[l] = col_k[k];
-                col_k[k] = t;
-              }
-            }
-            // synchronise threads
-            br.DoBarrier(id);
-            // compute multipliers
-            t = -1.0/col_k[k];
-            if(id == 0) {
-              dscal(n-(kp1),t,col_k,kp1,1);
-            }
-            // synchronise threads
-            br.DoBarrier(id);
-            // row elimination with column indexing
-            slice = ((n-kp1) + nthreads-1)/nthreads;
-            ilow = (id*slice)+kp1;
-            iupper = ((id+1)*slice)+kp1;
-            if (iupper > n ) iupper=n;
-            if (ilow > n ) ilow=n;
-            for (j = ilow; j < iupper; j++) {
-              col_j = a[j];
-              t = col_j[l];
-              if (l != k) {
-                col_j[l] = col_j[k];
-                col_j[k] = t;
-              }
-              daxpy(n-(kp1),t,col_k,kp1,1,
-                  col_j,kp1,1);
-            }
-            // synchronise threads
-            br.DoBarrier(id);
-          } else {
-            info = k;
-          }
-          br.DoBarrier(id);
-        }
+	  for (k = 0; k < nm1; k++) {
+	      atomic {
+		  col_k = a[k];
+		  kp1 = k + 1;
+		  // find l = pivot index
+		  l = idamax(nlocal-k,col_k,k,1) + k;
+		  if(lid==0) {
+		      ipvt[k] = l;
+		  }
+	      }
+	      // synchronise threads
+	      Barrier.enterBarrier(tmpbr);
+	      // zero pivot implies this column already triangularized
+	      boolean b;
+	      atomic {
+		  b=col_k[l]!=0;
+	      }
+	      if (b) {
+		  Barrier.enterBarrier(tmpbr);
+		  // interchange if necessary
+		  atomic {
+		      if(lid == 0 ) {
+			  if (l != k) {
+			      t = col_k[l];
+			      col_k[l] = col_k[k];
+			      col_k[k] = t;
+			  }
+		      }
+		  }
+		  // synchronise threads
+		  Barrier.enterBarrier(tmpbr);
+		  // compute multipliers
+		  atomic {
+		      t = -1.0/col_k[k];
+		      if(lid == 0) {
+			  dscal(nlocal-(kp1),t,col_k,kp1,1);
+		      }
+		  }
+		  // synchronise threads
+		  Barrier.enterBarrier(tmpbr);
+		  // row elimination with column indexing
+		  atomic {
+		      slice = ((nlocal-kp1) + nthreads-1)/nthreads;
+		      ilow = (lid*slice)+kp1;
+		      iupper = ((lid+1)*slice)+kp1;
+		      if (iupper > nlocal ) iupper=nlocal;
+		      if (ilow > nlocal ) ilow=nlocal;
+		      for (j = ilow; j < iupper; j++) {
+			  col_j = a[j];
+			  t = col_j[l];
+			  if (l != k) {
+			      col_j[l] = col_j[k];
+			      col_j[k] = t;
+			  }
+			  daxpy(nlocal-(kp1),t,col_k,kp1,1,
+				col_j,kp1,1);
+		      }
+		  }
+		  // synchronise threads
+		  Barrier.enterBarrier(tmpbr);
+	      } else {
+		  info = k;
+	      }
+	      Barrier.enterBarrier(tmpbr);
+	  }
       }
-
-      if(id==0) {
-        ipvt[n-1] = n-1;
+      
+      atomic {
+	  if(lid==0) {
+	      ipvt[nlocal-1] = nlocal-1;
+	  }
+	  if (a[(nlocal-1)][(nlocal-1)] == 0) info = nlocal-1;
       }
-      if (a[(n-1)][(n-1)] == 0) info = n-1;
-    }
   }
 
   /*
