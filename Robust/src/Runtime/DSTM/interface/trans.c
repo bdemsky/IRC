@@ -38,6 +38,7 @@ unsigned int oidMax;
 
 sockPoolHashTable_t *transReadSockPool;
 sockPoolHashTable_t *transPrefetchSockPool;
+pthread_mutex_t notifymutex;
 
 void printhex(unsigned char *, int);
 plistnode_t *createPiles(transrecord_t *);
@@ -131,13 +132,6 @@ void prefetch(int ntuples, unsigned int *oids, unsigned short *endoffsets, short
   int top=endoffsets[ntuples-1];
   *((int *)(node+len))=ntuples;
   len += sizeof(int);
-  /*  int i;
-  for(i=0;i<ntuples;i++) {
-    if (oids[i]%2==0&&(oids[i]!=0)) {
-      printf("Bad oid %ld\n",oids[i]);
-    }
-    }*/
-
   memcpy(node+len, oids, ntuples*sizeof(unsigned int));
   memcpy(node+len+ntuples*sizeof(unsigned int), endoffsets, ntuples*sizeof(unsigned short));
   memcpy(node+len+ntuples*(sizeof(unsigned int)+sizeof(short)), arrayfields, top*sizeof(short));
@@ -222,6 +216,7 @@ void transInit() {
   
   pthread_mutex_init(&prefetchcache_mutex, &prefetchcache_mutex_attr);
   
+  pthread_mutex_init(&notifymutex, NULL);
   //Create prefetch cache lookup table
   if(prehashCreate(HASH_SIZE, LOADFACTOR)) {
     printf("ERROR\n");
@@ -265,7 +260,11 @@ void randomdelay() {
 
 /* This function initializes things required in the transaction start*/
 transrecord_t *transStart() {
-  transrecord_t *tmp = calloc(1, sizeof(transrecord_t));
+  transrecord_t *tmp;
+  if((tmp = calloc(1, sizeof(transrecord_t))) == NULL){
+    printf("%s() Calloc error at line %d, %s\n", __func__, __LINE__, __FILE__);
+    return NULL;
+  }
   tmp->cache = objstrCreate(1048576);
   tmp->lookupTable = chashCreate(HASH_SIZE, LOADFACTOR);
 #ifdef COMPILER
@@ -800,8 +799,6 @@ void *getRemoteObj(transrecord_t *record, unsigned int mnum, unsigned int oid) {
     chashInsert(record->lookupTable, oid, objcopy); 
   }
   
-  //    freeSock(transReadSockPool, mnum, sd);
-  
   return objcopy;
 }
 
@@ -977,17 +974,20 @@ int transComProcess(local_thread_data_array_t  *localtdata) {
 		}
 		GETSIZE(tmpsize, header);
 		pthread_mutex_lock(&mainobjstore_mutex);
-		memcpy((char*)header+sizeof(objheader_t), (char *)tcptr+ sizeof(objheader_t), tmpsize);
+        char *tmptcptr = (char *) tcptr;
+		memcpy((char*)header+sizeof(objheader_t), (char *)tmptcptr+ sizeof(objheader_t), tmpsize);
 		header->version += 1;
+        pthread_mutex_lock(&notifymutex);
 		if(header->notifylist != NULL) {
 			notifyAll(&header->notifylist, OID(header), header->version);
 		}
+        pthread_mutex_unlock(&notifymutex);
 		pthread_mutex_unlock(&mainobjstore_mutex);
 	}
 	/* If object is newly created inside transaction then commit it */
 	for (i = 0; i < numcreated; i++) {
 		if ((header = ((objheader_t *) chashSearch(localtdata->tdata->rec->lookupTable, oidcreated[i]))) == NULL) {
-			printf("Error: transComProcess() chashSearch returned NULL at %s, %d\n", __FILE__, __LINE__);
+			printf("Error: transComProcess() chashSearch returned NULL for oid = %x at %s, %d\n", oidcreated[i], __FILE__, __LINE__);
 			return 1;
 		}
 		GETSIZE(tmpsize, header);
@@ -1438,7 +1438,6 @@ int reqNotify(unsigned int *oidarry, unsigned short *versionarry, unsigned int n
 	pthread_cond_t threadcond = PTHREAD_COND_INITIALIZER;
 	notifydata_t *ndata;
 
-	//FIXME currently all oids belong to one machine
 	oid = oidarry[0];
 	if((mid = lhashSearch(oid)) == 0) {
 		printf("Error: %s() No such machine found for oid =%x\n",__func__, oid);
@@ -1585,6 +1584,7 @@ int notifyAll(threadlist_t **head, unsigned int oid, unsigned int version) {
 			printf("notifyAll():error %d connecting to %s:%d\n", errno,
 					inet_ntoa(remoteAddr.sin_addr), LISTEN_PORT);
 			status = -1;
+            fflush(stdout);
 		} else {
 			bzero(msg, (1+sizeof(unsigned short) + 2*sizeof(unsigned int)));
 			msg[0] = THREAD_NOTIFY_RESPONSE;
@@ -1607,7 +1607,7 @@ int notifyAll(threadlist_t **head, unsigned int oid, unsigned int version) {
 }
 
 void transAbort(transrecord_t *trans) {
-	objstrDelete(trans->cache);
-	chashDelete(trans->lookupTable);
-	free(trans);
+  objstrDelete(trans->cache);
+  chashDelete(trans->lookupTable);
+  free(trans);
 }

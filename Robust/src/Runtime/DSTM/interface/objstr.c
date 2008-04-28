@@ -2,7 +2,11 @@
 extern objstr_t *prefetchcache;
 
 objstr_t *objstrCreate(unsigned int size) {
-  objstr_t *tmp = calloc(1, (sizeof(objstr_t) + size));
+  objstr_t *tmp;
+  if((tmp = calloc(1, (sizeof(objstr_t) + size))) == NULL) {
+    printf("%s() Calloc error at line %d, %s\n", __func__, __LINE__, __FILE__);
+    return NULL;
+  }
   tmp->size = size;
   tmp->next = NULL;
   tmp->top = tmp + 1; //points to end of objstr_t structure!
@@ -38,7 +42,10 @@ void *objstrAlloc(objstr_t *store, unsigned int size)
 		{  //end of list, all full
 			if (size > DEFAULT_OBJ_STORE_SIZE) //in case of large objects
 			{
-				store->next = (objstr_t *)calloc(1,(sizeof(objstr_t) + size));
+				if((store->next = (objstr_t *)calloc(1,(sizeof(objstr_t) + size))) == NULL) {
+                  printf("%s() Calloc error at line %d, %s\n", __func__, __LINE__, __FILE__);
+                  return NULL;
+                }
 				if (store->next == NULL)
 					return NULL;
 				store = store->next;
@@ -46,7 +53,10 @@ void *objstrAlloc(objstr_t *store, unsigned int size)
 			}
 			else
 			{
-				store->next = calloc(1,(sizeof(objstr_t) + DEFAULT_OBJ_STORE_SIZE));
+				if((store->next = calloc(1,(sizeof(objstr_t) + DEFAULT_OBJ_STORE_SIZE))) == NULL) {
+                  printf("%s() Calloc error at line %d, %s\n", __func__, __LINE__, __FILE__);
+                  return NULL;
+                }
 				if (store->next == NULL)
 					return NULL;
 				store = store->next;

@@ -14,6 +14,7 @@
 
 extern int classsize[];
 extern int numHostsInSystem;
+extern pthread_mutex_t notifymutex;
 
 objstr_t *mainobjstore;
 pthread_mutex_t mainobjstore_mutex;
@@ -121,19 +122,13 @@ void *dstmAccept(void *acceptfd) {
   unsigned short objType, *versionarry, version;
   unsigned int *oidarry, numoid, mid, threadid;
   
-  /*
-  transinfo.objlocked = NULL;
-  transinfo.objnotfound = NULL;
-  transinfo.modptr = NULL;
-  transinfo.numlocked = 0;
-  transinfo.numnotfound = 0;
-  */
-  
   /* Receive control messages from other machines */
   while(1) {
     int ret=recv_data_errorcode((int)acceptfd, &control, sizeof(char));
-    if (ret==-1)
+    if (ret==-1) {
+      printf("DEBUG -> RECV Error!.. retrying\n");
       break;
+    }
     switch(control) {
     case READ_REQUEST:
       /* Read oid requested and search if available */
@@ -574,9 +569,11 @@ int transCommitProcess(void *modptr, unsigned int *oidmod, unsigned int *oidlock
 		memcpy((char*)header + sizeof(objheader_t), ((char *)modptr + sizeof(objheader_t) + offset), tmpsize);
 		header->version += 1; 
 		/* If threads are waiting on this object to be updated, notify them */
+        pthread_mutex_lock(&notifymutex);
 		if(header->notifylist != NULL) {
 			notifyAll(&header->notifylist, OID(header), header->version);
 		}
+        pthread_mutex_unlock(&notifymutex);
 		pthread_mutex_unlock(&mainobjstore_mutex);
 		offset += sizeof(objheader_t) + tmpsize;
 	}
@@ -728,8 +725,8 @@ void processReqNotify(unsigned int numoid, unsigned int *oidarry, unsigned short
 	struct sockaddr_in remoteAddr;
 	int bytesSent;
 	int size;
-
 	int i = 0;
+
 	while(i < numoid) {
 		oid = *(oidarry + i);
 		if((header = (objheader_t *) mhashSearch(oid)) == NULL) {
@@ -739,18 +736,21 @@ void processReqNotify(unsigned int numoid, unsigned int *oidarry, unsigned short
 			/* Check to see if versions are same */
 checkversion:
 			if ((STATUS(header) & LOCK) != LOCK) { 		
-				//FIXME make locking atomic
+                pthread_mutex_lock(&notifymutex);
 				STATUS(header) |= LOCK;
 				newversion = header->version;
 				if(newversion == *(versionarry + i)) {
 					//Add to the notify list 
 					if((header->notifylist = insNode(header->notifylist, threadid, mid)) == NULL) {
 						printf("Error: Obj notify list points to NULL %s, %d\n", __FILE__, __LINE__); 
+                        pthread_mutex_unlock(&notifymutex);
 						return;
 					}
 					STATUS(header) &= ~(LOCK); 		
+                    pthread_mutex_unlock(&notifymutex);
 				} else {
 					STATUS(header) &= ~(LOCK); 		
+                    pthread_mutex_unlock(&notifymutex);
 					if ((sd = socket(AF_INET, SOCK_STREAM, 0)) < 0){
 						perror("processReqNotify():socket()");
 						return;
