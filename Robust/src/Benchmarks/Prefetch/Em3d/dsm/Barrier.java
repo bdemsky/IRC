@@ -19,7 +19,7 @@ public class Barrier {
 
   public static void enterBarrier(Barrier b) {
     int tmp;
-    boolean retry=true;
+    boolean retry=true, ret1=false, ret2=true;;
 
     do {
       atomic {
@@ -30,21 +30,23 @@ public class Barrier {
             if(b.numthreads > 1)
               b.cleared=true;
             b.entercount--;
-            return;
+            //return;
+            ret1 = true;
           }
           retry=false;
         }
       }
     } while(retry);
-
-    while(true) {
+    if (ret1) return;
+    while(ret2) {
       atomic {
         if (b.cleared) {
           b.entercount--;
           int count = b.entercount;
           if (count==0)
             b.cleared=false;
-          return;
+          //return;
+          ret2=false;
         }
       }
     }
