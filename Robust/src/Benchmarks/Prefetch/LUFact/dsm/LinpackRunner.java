@@ -70,6 +70,8 @@ class LinpackRunner extends Thread {
 	      }
 	      // synchronise threads
 	      Barrier.enterBarrier(tmpbr);
+          System.clearPrefetchCache();
+
 	      // zero pivot implies this column already triangularized
 	      boolean b;
 	      atomic {
@@ -77,6 +79,7 @@ class LinpackRunner extends Thread {
 	      }
 	      if (b) {
 		  Barrier.enterBarrier(tmpbr);
+          System.clearPrefetchCache();
 		  // interchange if necessary
 		  atomic {
 		      if(lid == 0 ) {
@@ -89,6 +92,7 @@ class LinpackRunner extends Thread {
 		  }
 		  // synchronise threads
 		  Barrier.enterBarrier(tmpbr);
+          System.clearPrefetchCache();
 		  // compute multipliers
 		  atomic {
 		      t = -1.0/col_k[k];
@@ -98,6 +102,7 @@ class LinpackRunner extends Thread {
 		  }
 		  // synchronise threads
 		  Barrier.enterBarrier(tmpbr);
+	System.clearPrefetchCache();
 		  // row elimination with column indexing
 		  atomic {
 		      slice = ((nlocal-kp1) + nthreads-1)/nthreads;
@@ -118,10 +123,12 @@ class LinpackRunner extends Thread {
 		  }
 		  // synchronise threads
 		  Barrier.enterBarrier(tmpbr);
+          System.clearPrefetchCache();
 	      } else {
 		  info = k;
 	      }
 	      Barrier.enterBarrier(tmpbr);
+          System.clearPrefetchCache();
 	  }
       }
       

@@ -24,8 +24,8 @@ public class JGFLUFactBenchSizeA {
     if(argv.length != 0 ) { 
       nthreads = Integer.parseInt(argv[0]); 
     } else { 
-      System.printString("The no of threads has not been specified, defaulting to 1");
-      System.printString("  ");
+      System.printString("The no of threads has not been specified, defaulting to 1\n");
+      System.printString("  \n");
       nthreads = 1;
     }
 
@@ -33,24 +33,24 @@ public class JGFLUFactBenchSizeA {
     JGFInstrumentor.printHeader(2,0,nthreads);
     JGFLUFactBench lub;
     atomic {
-      //lub = global new JGFLUFactBench(nthreads, instr); 
       lub = global new JGFLUFactBench(nthreads); 
     }
 
     int size = 0;
-    //lub.JGFrun(0);
     JGFInstrumentor.addTimer("Section2:LUFact:Kernel", "Mflops", size, instr.timers);
     atomic {
       lub.JGFsetsize(size); 
       lub.JGFinitialise();
     }
     JGFLUFactBench.JGFkernel(lub);
+    System.printString("End of JGFkernel\n");
     int retval;
     atomic {
       retval = lub.JGFvalidate();
     }
+    System.printString("End of JGFvalidate\n");
     if(retval == 1) {
-      System.printString("Validation failed");
+      System.printString("Validation failed\n");
     }
     //JGFLUFactBench.JGFvalidate(lub);
 

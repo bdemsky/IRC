@@ -53,7 +53,7 @@ public class JGFTimer {
 
 
   public void start(){
-    if (on) System.printString("Warning timer " + " was already turned on");
+    if (on) System.printString("Warning timer " + " was already turned on\n");
     on = true; 
     start_time = System.currentTimeMillis();
   }
@@ -61,7 +61,7 @@ public class JGFTimer {
 
   public void stop(){
     time += (double) (System.currentTimeMillis()-start_time) / 1000.;
-    if (!on) System.printString("Warning timer " + " wasn't turned on");
+    if (!on) System.printString("Warning timer " + " wasn't turned on\n");
     calls++;
     on = false;  
   }
@@ -86,23 +86,23 @@ public class JGFTimer {
   }
 
   public void longprint(){
-    System.printString("Timer            Calls         Time(s)       Performance("+opname+"/s)");   
-    System.printString(name + "           " + calls +    "           "  +  (long)time + "        " + (long)this.perf());
+    System.printString("Timer            Calls         Time(s)       Performance("+opname+"/s)\n");   
+    System.printString(name + "           " + calls +    "           "  +  (long)time + "        " + (long)this.perf() + "\n");
   }
 
   public void print(){
     if (opname.equals("")) {
-      System.printString(name + "   " + (long)time + " (s)");
+      System.printString(name + "   " + (long)time + " (s)\n");
     }
     else {
       if(size == 0) {
-        System.printString(name + ":SizeA" + "\t" + (long)time + " (s) \t " + (long)this.perf() + "\t" + " ("+opname+"/s)");
+        System.printString(name + ":SizeA" + "\t" + (long)time + " (s) \t " + (long)this.perf() + "\t" + " ("+opname+"/s)\n");
       } else if (size == 1) {
-        System.printString(name + ":SizeB" + "\t" + (long)time + " (s) \t " + (long)this.perf() + "\t" + " ("+opname+"/s)");
+        System.printString(name + ":SizeB" + "\t" + (long)time + " (s) \t " + (long)this.perf() + "\t" + " ("+opname+"/s)\n");
       } else if (size == 2) {
-        System.printString(name + ":SizeC" + "\t" + (long)time + " (s) \t " + (long)this.perf() + "\t" + " ("+opname+"/s)");
+        System.printString(name + ":SizeC" + "\t" + (long)time + " (s) \t " + (long)this.perf() + "\t" + " ("+opname+"/s)\n");
       } else{
-        System.printString(name + "\t" + (long)time + " (s) \t " + (long)this.perf() + "\t" + " ("+opname+"/s)");
+        System.printString(name + "\t" + (long)time + " (s) \t " + (long)this.perf() + "\t" + " ("+opname+"/s)\n");
       }
     }
   }
@@ -117,7 +117,7 @@ public class JGFTimer {
     while ( name.length() < 40 ) name = name + " "; 
 
     System.printString(name + "\t" + (long)this.perf() + "\t"
-        + " ("+opname+"/s)");  
+        + " ("+opname+"/s)\n");  
   }
 
 }
