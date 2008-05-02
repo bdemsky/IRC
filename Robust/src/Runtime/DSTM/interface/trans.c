@@ -39,6 +39,7 @@ unsigned int oidMax;
 sockPoolHashTable_t *transReadSockPool;
 sockPoolHashTable_t *transPrefetchSockPool;
 pthread_mutex_t notifymutex;
+pthread_mutex_t atomicObjLock;
 
 void printhex(unsigned char *, int);
 plistnode_t *createPiles(transrecord_t *);
@@ -217,6 +218,7 @@ void transInit() {
   pthread_mutex_init(&prefetchcache_mutex, &prefetchcache_mutex_attr);
   
   pthread_mutex_init(&notifymutex, NULL);
+  pthread_mutex_init(&atomicObjLock, NULL);
   //Create prefetch cache lookup table
   if(prehashCreate(HASH_SIZE, LOADFACTOR)) {
     printf("ERROR\n");
@@ -544,7 +546,7 @@ int transCommit(transrecord_t *record) {
 	}
       free(thread_data_array[i].buffer);
     }
-    
+
     /* Free resources */	
     pthread_cond_destroy(&tcond);
     pthread_mutex_destroy(&tlock);
@@ -560,7 +562,6 @@ int transCommit(transrecord_t *record) {
     
     /* Retry trans commit procedure during soft_abort case */
   } while (treplyretry);
-  
   
   if(treplyctrl == TRANS_ABORT) {
     /* Free Resources */
@@ -854,26 +855,29 @@ void *handleLocalReq(void *threadarg) {
       objnotfound++;
     } else { /* If Obj found in machine (i.e. has not moved) */
       /* Check if Obj is locked by any previous transaction */
+      pthread_mutex_lock(&atomicObjLock);
       if ((STATUS((objheader_t *)mobj) & LOCK) == LOCK) {
-	if (version == ((objheader_t *)mobj)->version) {      /* If locked then match versions */ 
-	  v_matchlock++;
-	} else {/* If versions don't match ...HARD ABORT */
-	  v_nomatch++;
-	  /* Send TRANS_DISAGREE to Coordinator */
-	  localtdata->tdata->recvmsg[localtdata->tdata->thread_id].rcv_status = TRANS_DISAGREE;
-	}
+        pthread_mutex_unlock(&atomicObjLock);
+        if (version == ((objheader_t *)mobj)->version) {      /* If locked then match versions */ 
+          v_matchlock++;
+        } else {/* If versions don't match ...HARD ABORT */
+          v_nomatch++;
+          /* Send TRANS_DISAGREE to Coordinator */
+          localtdata->tdata->recvmsg[localtdata->tdata->thread_id].rcv_status = TRANS_DISAGREE;
+        }
       } else {/* If Obj is not locked then lock object */
-	STATUS(((objheader_t *)mobj)) |= LOCK;
-	/* Save all object oids that are locked on this machine during this transaction request call */
-	oidlocked[objlocked] = OID(((objheader_t *)mobj));
-	objlocked++;
-	if (version == ((objheader_t *)mobj)->version) { /* Check if versions match */
-	  v_matchnolock++;
-	} else { /* If versions don't match ...HARD ABORT */
-	  v_nomatch++;
-	  /* Send TRANS_DISAGREE to Coordinator */
-	  localtdata->tdata->recvmsg[localtdata->tdata->thread_id].rcv_status = TRANS_DISAGREE;
-	}
+        STATUS(((objheader_t *)mobj)) |= LOCK;
+        pthread_mutex_unlock(&atomicObjLock);
+        /* Save all object oids that are locked on this machine during this transaction request call */
+        oidlocked[objlocked] = OID(((objheader_t *)mobj));
+        objlocked++;
+        if (version == ((objheader_t *)mobj)->version) { /* Check if versions match */
+          v_matchnolock++;
+        } else { /* If versions don't match ...HARD ABORT */
+          v_nomatch++;
+          /* Send TRANS_DISAGREE to Coordinator */
+          localtdata->tdata->recvmsg[localtdata->tdata->thread_id].rcv_status = TRANS_DISAGREE;
+        }
       }
     }
   } // End for
@@ -1509,7 +1513,6 @@ int reqNotify(unsigned int *oidarry, unsigned short *versionarry, unsigned int n
 		*((unsigned int *)(&msg[1] + size)) = myIpAddr;
 		size += sizeof(unsigned int);
 		*((unsigned int *)(&msg[1] + size)) = threadid;
-
 		pthread_mutex_lock(&(ndata->threadnotify));
 		size = 1 + numoid * (sizeof(unsigned int) + sizeof(unsigned short)) + 3 * sizeof(unsigned int);
 		send_data(sock, msg, size);
