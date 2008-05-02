@@ -43,20 +43,14 @@ public class JGFLUFactBenchSizeA {
       lub.JGFinitialise();
     }
     JGFLUFactBench.JGFkernel(lub);
-    System.printString("End of JGFkernel\n");
     int retval;
     atomic {
       retval = lub.JGFvalidate();
     }
-    System.printString("End of JGFvalidate\n");
     if(retval == 1) {
       System.printString("Validation failed\n");
     }
-    //JGFLUFactBench.JGFvalidate(lub);
 
-    // atomic {
-    // lub.JGFvalidate();
-    //}
     double ops;
     atomic {
       ops = lub.ops;

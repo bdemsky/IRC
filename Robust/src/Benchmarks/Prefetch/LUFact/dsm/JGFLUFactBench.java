@@ -74,22 +74,25 @@ public class JGFLUFactBench {
     }
 
     //JGFInstrumentor.startTimer("Section2:LUFact:Kernel", instr.timers);  
-
     LinpackRunner tmp;
-    int mid = (128<<24)|(195<<16)|(175<<8)|73;
+    int[] mid = new int[4];
+    mid[0] = (128<<24)|(195<<16)|(175<<8)|73;
+    mid[1] = (128<<24)|(195<<16)|(175<<8)|69;
+    mid[2] = (128<<24)|(195<<16)|(175<<8)|78;
+    mid[3] = (128<<24)|(195<<16)|(175<<8)|79;
     for(int i=1;i<numthreads;i++) {
       atomic {
         thobjects[i] = global new LinpackRunner(i,lub.a,lub.lda,lub.n,lub.ipvt,br,lub.nthreads);
         tmp = thobjects[i];
       }
-      tmp.start(mid);
+      tmp.start(mid[i]);
     }
 
     atomic {
       thobjects[0] = global new LinpackRunner(0,lub.a,lub.lda,lub.n,lub.ipvt,br,lub.nthreads);
       tmp = thobjects[0];
     }
-    tmp.start(mid);
+    tmp.start(mid[0]);
     tmp.join();
 
     for(int i=1;i<numthreads;i++) {
@@ -102,6 +105,7 @@ public class JGFLUFactBench {
     atomic {
       lub.dgesl(lub.a,lub.lda,lub.n,lub.ipvt,lub.b,0);
     }
+
     //JGFInstrumentor.stopTimer("Section2:LUFact:Kernel", instr.timers); 
   }
 
@@ -142,8 +146,8 @@ public class JGFLUFactBench {
 
     if (lresidn > lref) {
       //System.printString("Validation failed");
-      System.printString("Computed Norm Res = " + (long) residn * 1000000);
-      System.printString("Reference Norm Res = " + (long) ref[size] * 1000000); 
+      //System.printString("Computed Norm Res = " + (long) residn * 1000000);
+      //System.printString("Reference Norm Res = " + (long) ref[size] * 1000000); 
       return 1;
     } else {
       return 0;
@@ -409,45 +413,4 @@ public class JGFLUFactBench {
       }
     }
   }
-  /*
-     public static void JGFvalidate(JGFLUFactBench lub) {
-     int i;
-     double eps,residn;
-     double[] ref;
-
-     ref = new double[3]; 
-     ref[0] = 6.0;
-     ref[1] = 12.0;
-     ref[2] = 20.0;
-
-     atomic {
-     for (i = 0; i < lub.n; i++) {
-     lub.x[i] = lub.b[i];
-     }
-     lub.norma = lub.matgen(lub.a,lub.lda,lub.n,lub.b);
-     for (i = 0; i < lub.n; i++) {
-     lub.b[i] = -(lub.b[i]);
-     }
-
-     lub.dmxpy(lub.n,lub.b,lub.n,lub.lda,lub.x,lub.a);
-     lub.resid = 0.0;
-     lub.normx = 0.0;
-     for (i = 0; i < lub.n; i++) {
-//resid = (resid > abs(b[i])) ? resid : abs(b[i]);
-//normx = (normx > abs(x[i])) ? normx : abs(x[i]);
-if (lub.resid <= abs(lub.b[i])) lub.resid = lub.abs(lub.b[i]);
-if (lub.normx <= abs(lub.x[i])) lub.normx = lub.abs(lub.x[i]);
-}
-eps =  lub.epslon((double)1.0);
-residn = lub.resid/( lub.n*lub.norma*lub.normx*eps );
-}
-
-if (residn > ref[size]) {
-System.printString("Validation failed");
-System.printString("Computed Norm Res = " + (long) residn);
-System.printString("Reference Norm Res = " + (long) ref[size]); 
-}
-}
-*/
-
 }

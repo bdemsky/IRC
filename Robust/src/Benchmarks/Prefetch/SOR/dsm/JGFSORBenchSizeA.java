@@ -27,8 +27,8 @@ public class JGFSORBenchSizeA{
     if(argv.length != 0 ) {
       nthreads = Integer.parseInt(argv[0]);
     } else {
-      System.printString("The no of threads has not been specified, defaulting to 1");
-      System.printString("  ");
+      System.printString("The no of threads has not been specified, defaulting to 1\n");
+      System.printString("  \n");
       nthreads = 1;
     }
 
@@ -47,13 +47,12 @@ public class JGFSORBenchSizeA{
       sor.JGFsetsize(size); 
     }
     JGFSORBench.JGFkernel(sor); 
-    System.printString("End of JGFkernel\n");
     int retval;
     atomic {
       retval = sor.JGFvalidate(); 
     }
     if(retval!=0) {
-      System.printString("Validation failed");
+      System.printString("Validation failed\n");
     }
 
     int jacobi;

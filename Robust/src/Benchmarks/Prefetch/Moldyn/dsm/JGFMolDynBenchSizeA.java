@@ -51,9 +51,6 @@ public class JGFMolDynBenchSizeA {
       mold.JGFinitialise(); 
     }
     JGFMolDynBench.JGFapplication(mold); 
-    atomic {
-      mold.JGFvalidate(); 
-    }
 
     /* Validate data */
     double[] refval = new double[2];
@@ -64,7 +61,9 @@ public class JGFMolDynBenchSizeA {
       dval = mold.ek[0];
     }
     double dev = Math.fabs(dval - refval[size]);
-    if (dev > 1.0e-10 ){
+    long l = (long) refval[size] *1000000;
+    long r = (long) dval * 1000000;
+    if (l != r ){
       System.printString("Validation failed\n");
       System.printString("Kinetic Energy = " + (long)dval + "  " + (long)dev + "  " + size + "\n");
     }

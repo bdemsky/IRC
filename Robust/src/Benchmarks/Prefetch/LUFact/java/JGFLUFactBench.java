@@ -33,7 +33,6 @@ public class JGFLUFactBench {
   int ipvt[];
 
   public JGFLUFactBench(int nthreads, JGFInstrumentor instr) {
-  //public JGFLUFactBench(int nthreads) {
     this.nthreads=nthreads;
     this.instr = instr;
     datasizes = new int[3];

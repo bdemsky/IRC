@@ -58,7 +58,6 @@ public class JGFSORBench {
     double[][] G;
     int M, N;
     atomic {
-      //G = global new double[datasize][datasize];
       G = sor.RandomMatrix(datasize, datasize, rand);
       M = G.length;
       N = G[0].length;
@@ -92,20 +91,23 @@ public class JGFSORBench {
     //JGFInstrumentor.startTimer("Section2:SOR:Kernel", instr.timers); 
 
     SORRunner tmp;
-    int mid = (128<<24)|(195<<16)|(175<<8)|73;
+    int[] mid = new int[4];
+    mid[0] = (128<<24)|(195<<16)|(175<<8)|69;
+    mid[1] = (128<<24)|(195<<16)|(175<<8)|78;
+    mid[2] = (128<<24)|(195<<16)|(175<<8)|73;
+    mid[3] = (128<<24)|(195<<16)|(175<<8)|79;
     for(int i=1;i<numthreads;i++) {
       atomic {
         thobjects[i] =  global new SORRunner(i,omega,G,num_iterations,sor.sync,numthreads);
         tmp = thobjects[i];
       }
-      tmp.start(mid);
+      tmp.start(mid[i]);
     }
-
     atomic {
-      thobjects[0] = global new SORRunner(0,omega,G,num_iterations,sor.sync,numthreads);
+      thobjects[0] =  global new SORRunner(0,omega,G,num_iterations,sor.sync,numthreads);
       tmp = thobjects[0];
     }
-    tmp.start(mid);
+    tmp.start(mid[0]);
     tmp.join();
 
     for(int i=1;i<numthreads;i++) {
@@ -116,7 +118,6 @@ public class JGFSORBench {
     }
 
     //JGFInstrumentor.stopTimer("Section2:SOR:Kernel", instr.timers);
-
     atomic {
       for (int i=1; i<Nm1; i++) {
         for (int j=1; j<Nm1; j++) {
@@ -127,7 +128,8 @@ public class JGFSORBench {
   }
 
   public long[][] init_sync(int nthreads, int cachelinesize) {
-    long sync[][] = global new long [nthreads][cachelinesize];
+    long[][] sync;
+    sync = global new long [nthreads][cachelinesize];
     for (int i = 0; i<nthreads; i++)
       sync[i][0] = 0;
     return sync;
@@ -153,7 +155,9 @@ public class JGFSORBench {
     refval[1] = 1.1234778980135105;
     refval[2] = 1.9954895063582696;
     double dev = Math.fabs(Gtotal - refval[size]);
-    if (dev > 1.0e-12 ){
+    long l = (long) refval[size] * 1000000;
+    long r = (long) Gtotal * 1000000;
+    if (l != r ){
       //System.printString("Validation failed");
       //System.printString("Gtotal = " + (long) Gtotal * 1000000 + "  " +(long) dev * 1000000 + "  " + size);
       return 1;
@@ -161,29 +165,4 @@ public class JGFSORBench {
       return 0;
     }
   }
-
-  /*
-     public void JGFtidyup(){
-     System.gc();
-     }  
-
-     public void JGFrun(int size){
-
-
-     JGFInstrumentor.addTimer("Section2:SOR:Kernel", "Iterations",size);
-
-     JGFsetsize(size); 
-     JGFinitialise(); 
-     JGFkernel(); 
-     JGFvalidate(); 
-     JGFtidyup(); 
-
-
-     JGFInstrumentor.addOpsToTimer("Section2:SOR:Kernel", (double) (JACOBI_NUM_ITER));
-
-     JGFInstrumentor.printTimer("Section2:SOR:Kernel"); 
-     }
-     */
-
-
 }

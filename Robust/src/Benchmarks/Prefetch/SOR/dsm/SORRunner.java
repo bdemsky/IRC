@@ -21,6 +21,7 @@
 
 class SORRunner extends Thread {
 
+  int donecount, prevvalue;
   int id,num_iterations;
   double G[][],omega;
   long sync[][];
@@ -33,12 +34,14 @@ class SORRunner extends Thread {
     this.num_iterations=num_iterations;
     this.sync=sync;
     this.nthreads = nthreads;
+    this.prevvalue = 0;
+    this.donecount = 0;
   }
 
   public void run() {
-
     int tmpid, M, N, numthreads;
     double omega_over_four, one_minus_omega;
+    int numiterations;
     atomic {
       M = G.length;
       N = G[0].length;
@@ -46,6 +49,7 @@ class SORRunner extends Thread {
       one_minus_omega = 1.0 - omega;
       numthreads = nthreads;
       tmpid = id;
+      numiterations = num_iterations;
     }
 
     // update interior points
@@ -65,7 +69,7 @@ class SORRunner extends Thread {
     if (tmpid == (numthreads-1)) iupper = Mm1+1;
 
     atomic {
-      for (int p=0; p<2*num_iterations; p++) {
+      for (int p=0; p<2*numiterations; p++) {
         for (int i=ilow+(p%2); i<iupper; i=i+2) {
 
           double [] Gi = G[i];
@@ -107,18 +111,33 @@ class SORRunner extends Thread {
           }
 
         }
-
         // Signal this thread has done iteration
         sync[id][0]++;
 
+        /* My modifications */
+        while (donecount < nthreads-1) {
+          if (sync[id][0] > prevvalue) {
+            donecount++;
+          }
+        }
+        if (id == 0) {
+          donecount = 0;
+          prevvalue++;
+        }
+        /*
         // Wait for neighbours;
         if (id > 0) {
+          System.printString("id: " + id + " sync: id-1 0 " + sync[id-1][0] + " id 0" + sync[id][0] + "\n");
           while (sync[id-1][0] < sync[id][0]) ;
+          System.printString("id: " + id + " sync: id-1 0 " + sync[id-1][0] + " id 0" + sync[id][0] + "\n");
         }
         if (id < nthreads -1) {
+          System.printString("id: " + id + " sync: id 0 " + sync[id][0] + " id+1 0" + sync[id+1][0] + "\n");
           while (sync[id+1][0] < sync[id][0]) ;
+          System.printString("id: " + id + " sync: id 0 " + sync[id][0] + " id+1 0" + sync[id+1][0] + "\n");
         }
-      }//end of outer for
-    }//end of atomic
-  }//end of run
+        */
+      }
+    } //end of atomic
+  } //end of run()
 }

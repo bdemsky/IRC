@@ -77,11 +77,8 @@ public class Em3d extends Thread
 	}
     }
 
-
     for (int i = 0; i < iteration; i++) {
       /* for  eNodes */
-	System.clearPrefetchCache();
-
 	atomic {
 	    Node n = enodebase;
 	    for(int j = lowerlimit; j<upperlimit; j++) {
@@ -93,10 +90,8 @@ public class Em3d extends Thread
 	}
 	
 	Barrier.enterBarrier(barr);
-	
 	System.clearPrefetchCache();
-	
-	
+
 	/* for  hNodes */
 	atomic {
 	    Node n = hnodebase;
@@ -108,6 +103,7 @@ public class Em3d extends Thread
 	    }
 	}
 	Barrier.enterBarrier(barr);
+	System.clearPrefetchCache();
     }
   }
 
@@ -121,10 +117,15 @@ public class Em3d extends Thread
     Em3d em = new Em3d();
     Em3d.parseCmdLine(args, em);
     if (em.printMsgs) 
-      System.printString("Initializing em3d random graph...");
+      System.printString("Initializing em3d random graph...\n");
     long start0 = System.currentTimeMillis();
-    int numThreads = 1;
-    System.printString("DEBUG -> numThreads = " + numThreads);
+    int numThreads = 4;
+    int[] mid = new int[numThreads];
+    mid[0] = (128<<24)|(195<<16)|(175<<8)|69;
+    mid[1] = (128<<24)|(195<<16)|(175<<8)|78;
+    mid[2] = (128<<24)|(195<<16)|(175<<8)|73;
+    mid[3] = (128<<24)|(195<<16)|(175<<8)|79;
+    System.printString("DEBUG -> numThreads = " + numThreads+"\n");
     Barrier mybarr;
     atomic {
       mybarr = global new Barrier(numThreads);
@@ -140,21 +141,23 @@ public class Em3d extends Thread
     // compute a single iteration of electro-magnetic propagation
     if (em.printMsgs) 
       System.printString("Propagating field values for " + em.numIter + 
-          " iteration(s)...");
+          " iteration(s)...\n");
     long start1 = System.currentTimeMillis();
     Em3d[] em3d;
     atomic {
       em3d = global new Em3d[numThreads];
-      em3d[0] = global new Em3d(graph, 0, em.numNodes, em.numIter, mybarr);
+      em3d[0] = global new Em3d(graph, 0, em.numNodes/4, em.numIter, mybarr);
+      em3d[1] = global new Em3d(graph, (em.numNodes/4) + 1, em.numNodes/2, em.numIter, mybarr);
+      em3d[2] = global new Em3d(graph, (em.numNodes/2) + 1, (3*em.numNodes)/4, em.numIter, mybarr);
+      em3d[3] = global new Em3d(graph, (3*em.numNodes)/4 + 1, em.numNodes, em.numIter, mybarr);
     }
 
-    int mid = (128<<24)|(195<<16)|(175<<8)|73;
     Em3d tmp;
     for(int i = 0; i<numThreads; i++) {
       atomic {
         tmp = em3d[i];
       }
-      tmp.start(mid);
+      tmp.start(mid[i]);
     }
 
     for(int i = 0; i<numThreads; i++) {
@@ -170,18 +173,17 @@ public class Em3d extends Thread
       StringBuffer retval = new StringBuffer();
       double dvalue;
       atomic {
-        dvalue = graph.eNodes.value;
+        dvalue = graph.hNodes.value;
       }
       int intvalue = (int)dvalue;
-      System.printString("Value = " + intvalue + "\n");
     }
 
     if (em.printMsgs) {
-      System.printString("EM3D build time "+ (long)((end0 - start0)/1000.0));
-      System.printString("EM3D compute time " + (long)((end1 - start1)/1000.0));
-      System.printString("EM3D total time " + (long)((end1 - start0)/1000.0));
+      System.printString("EM3D build time "+ (long)((end0 - start0)/1000.0) + "\n");
+      System.printString("EM3D compute time " + (long)((end1 - start1)/1000.0) + "\n");
+      System.printString("EM3D total time " + (long)((end1 - start0)/1000.0) + "\n");
     }
-    System.printString("Done!");
+    System.printString("Done!"+ "\n");
   }
 
 
@@ -229,13 +231,13 @@ public class Em3d extends Thread
    **/
   public void usage()
   {
-    System.printString("usage: java Em3d -n <nodes> -d <degree> [-p] [-m] [-h]");
-    System.printString("    -n the number of nodes");
-    System.printString("    -d the out-degree of each node");
-    System.printString("    -i the number of iterations");
-    System.printString("    -p (print detailed results)");
-    System.printString("    -m (print informative messages)");
-    System.printString("    -h (this message)");
+    System.printString("usage: java Em3d -n <nodes> -d <degree> [-p] [-m] [-h]\n");
+    System.printString("    -n the number of nodes\n");
+    System.printString("    -d the out-degree of each node\n");
+    System.printString("    -i the number of iterations\n");
+    System.printString("    -p (print detailed results\n)");
+    System.printString("    -m (print informative messages)\n");
+    System.printString("    -h (this message)\n");
   }
 
 }
