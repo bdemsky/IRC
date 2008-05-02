@@ -1,7 +1,7 @@
 #!/bin/sh 
 
-MACHINES2='dw-7.eecs.uci.edu'
-MACHINES4='dw-9.eecs.uci.edu dw-5.eecs.uci.edu dw-7.eecs.uci.edu'
+MACHINES2='dw-8.eecs.uci.edu'
+MACHINES4='dw-8.eecs.uci.edu dw-5.eecs.uci.edu dw-7.eecs.uci.edu'
 LOGDIR=/home/adash/research/Robust/src/Benchmarks/Prefetch/runlog
 TOPDIR=`pwd`
 
@@ -62,28 +62,31 @@ function callrun {
   NONPREFETCH4=${BENCHMARK}4NP.bin
   cd $BMDIR 
 
-# echo "---------- Running local $BMDIR non-prefetch ---------- "
-# localrun 5 
+
+  echo "---------- Running local $BMDIR non-prefetch ---------- "
+  localrun 1 
 
   echo "---------- Running remote $BMDIR non-prefetch 1 thread 2 machines ---------- "
   run 1 1 $NONPREFETCH
   echo "---------- Running remote $BMDIR prefetch 1 thread 2 machines ---------- "
   run 1 1 $PREFETCH
 
-#  echo "---------- Running remote $BMDIR non-prefetch 2 machines ---------- "
-#  run 5 2 $NONPREFETCH2 
-#  echo "---------- Running remote $BMDIR prefetch 2 machines ---------- "
-#  run 5 2 $PREFETCH2 
-#
-#  echo "---------- Running remote $BMDIR non-prefetch 4 machines ---------- "
-#  run 5 4 $NONPREFETCH4 
-#  echo "---------- Running remote $BMDIR prefetch 4 machines ---------- "
-#  run 5 4 $PREFETCH4 
+  echo "---------- Running remote $BMDIR non-prefetch 2 machines ---------- "
+  run 1 2 $NONPREFETCH2 
+  echo "---------- Running remote $BMDIR prefetch 2 machines ---------- "
+  run 1 2 $PREFETCH2 
+
+  echo "---------- Running remote $BMDIR non-prefetch 4 machines ---------- "
+  run 1 4 $NONPREFETCH4 
+  echo "---------- Running remote $BMDIR prefetch 4 machines ---------- "
+  run 1 4 $PREFETCH4 
   cd $TOPDIR
 }
 
 benchmarks='MatrixMultiply JGFSORBenchSizeA Em3d'
 
+echo "---------- Clean old files ---------- "
+rm runlog/*
 for b in `echo $benchmarks`
 do
   bm=`grep $b bm.txt`
