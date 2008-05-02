@@ -13,11 +13,11 @@ public class MatrixMultiply extends Thread{
     public void run() {
 	atomic {
 	    //Use btranspose for cache performance
-	    for(int i = x0; i<= x1; i++){
+	    for(int i = x0; i< x1; i++){
 		double a[]=mmul.a[i];
 		double c[]=mmul.c[i];
 		int M=mmul.M;
-		for (int j = y0; j <= y1; j++) {
+		for (int j = y0; j < y1; j++) {
 		    double innerProduct=0;
 		    double b[] = mmul.btranspose[j];
 		    for(int k = 0; k < M; k++) {
@@ -57,9 +57,9 @@ public class MatrixMultiply extends Thread{
 	    int base=0;
 	    for(int i=0;i<NUM_THREADS;i++) {
 		if ((i+1)==NUM_THREADS)
-		    mm[i]=global new MatrixMultiply(matrix,base, SIZE-1, 0, SIZE-1);
+		    mm[i]=global new MatrixMultiply(matrix,base, SIZE, 0, SIZE);
 		else
-		    mm[i]=global new MatrixMultiply(matrix,base, base+increment, 0, SIZE-1);
+		    mm[i]=global new MatrixMultiply(matrix,base, base+increment, 0, SIZE);
 		base+=increment;
 	    }
 	    p = matrix.L;
