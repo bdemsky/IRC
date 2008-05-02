@@ -38,7 +38,7 @@ public class MatrixMultiply extends Thread{
 		SIZE=Integer.parseInt(args[1]);
 	}
 	
-	int[] mid = new int[NUM_THREADS];
+	int[] mid = new int[4];
 	mid[0] = (128<<24)|(195<<16)|(175<<8)|80;
 	mid[1] = (128<<24)|(195<<16)|(175<<8)|73;
 	mid[2] = (128<<24)|(195<<16)|(175<<8)|78;
