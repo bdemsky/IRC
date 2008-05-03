@@ -10,9 +10,9 @@
  * participants involved in a transaction. */
 typedef struct plistnode {
 	unsigned int mid;
-	short numread;		/* no of objects modified */
-	short nummod;  		/* no of objects read */
-	short numcreated; /* no of objects created */
+	unsigned int numread;		/* no of objects modified */
+	unsigned int nummod;  		/* no of objects read */
+	unsigned int  numcreated; /* no of objects created */
 	int sum_bytes;		/* total bytes of objects modified */
 	char *objread;		/* Pointer to array containing oids of objects read and their version numbers*/
 	unsigned int *oidmod;	/* Pointer to array containing oids of modified objects */ 

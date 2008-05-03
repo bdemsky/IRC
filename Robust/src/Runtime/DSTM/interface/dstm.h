@@ -99,6 +99,9 @@ typedef struct objheader {
 #define STATUS(x)\
 	 *((unsigned int *) &(((struct ___Object___ *)((unsigned int) x + sizeof(objheader_t)))->___localcopy___))
 
+#define STATUSPTR(x)\
+	 ((unsigned int *) &(((struct ___Object___ *)((unsigned int) x + sizeof(objheader_t)))->___localcopy___))
+
 #define TYPE(x)\
         ((struct ___Object___ *)((unsigned int) x + sizeof(objheader_t)))->type
 
@@ -125,6 +128,7 @@ typedef struct objheader {
 #define OID(x) x->oid
 #define TYPE(x) x->type
 #define STATUS(x) x->status
+#define STATUSPTR(x) &x->status
 #define GETSIZE(size, x) size=classsize[TYPE(x)]
 #endif
 
@@ -158,9 +162,9 @@ typedef struct fixed_data {
   char control;			/* control message */
   char trans_id[TID_LEN];	/* transaction id */
   int mcount;			/* participant count */
-  short numread;		/* no of objects read */
-  short nummod;			/* no of objects modified */
-  short numcreated;		/* no of objects created */
+  unsigned int numread;		/* no of objects read */
+  unsigned int nummod;			/* no of objects modified */
+  unsigned int numcreated;		/* no of objects created */
   int sum_bytes;		/* total bytes of modified objects in a transaction */
 } fixed_data_t;
 

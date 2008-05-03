@@ -3,6 +3,8 @@
 
 #include "dstm.h"
 
+int test_and_set(volatile unsigned int *addr);
+void UnLock(volatile unsigned int *addr);
 
 typedef struct socknode {
     int sd;

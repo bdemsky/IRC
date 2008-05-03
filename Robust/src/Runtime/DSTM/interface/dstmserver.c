@@ -365,7 +365,7 @@ int processClientReq(fixed_data_t *fixed, trans_commit_data_t *transinfo,
 					printf("mhashSearch returns NULL at %s, %d\n", __FILE__, __LINE__);// find the header address
 					return 1;
 				}
-				STATUS(((objheader_t *)header)) &= ~(LOCK); 		
+				UnLock(STATUSPTR(header));
 			}
 
 			/* Send ack to Coordinator */
@@ -454,9 +454,8 @@ char handleTransReq(fixed_data_t *fixed, trans_commit_data_t *transinfo, unsigne
           objnotfound++;
         } else { /* If Obj found in machine (i.e. has not moved) */
           /* Check if Obj is locked by any previous transaction */
-          pthread_mutex_lock(&lockObjHeader);
-          if ((STATUS(((objheader_t *)mobj)) & LOCK) == LOCK) { 		
-            pthread_mutex_unlock(&lockObjHeader);
+          if (test_and_set(STATUSPTR(mobj))) {
+	    //don't have lock
             if (version == ((objheader_t *)mobj)->version) {      /* If locked then match versions */
               v_matchlock++;
             } else {/* If versions don't match ...HARD ABORT */
@@ -469,7 +468,7 @@ char handleTransReq(fixed_data_t *fixed, trans_commit_data_t *transinfo, unsigne
                     printf("mhashSearch returns NULL at %s, %d\n", __FILE__, __LINE__);
                     return 0;
                   }
-                  STATUS(headptr) &= ~(LOCK);
+		  UnLock(STATUSPTR(headptr));
                 }
                 free(oidlocked);
               }
@@ -477,8 +476,6 @@ char handleTransReq(fixed_data_t *fixed, trans_commit_data_t *transinfo, unsigne
               return control;
             }
           } else {/* If Obj is not locked then lock object */
-            STATUS(((objheader_t *)mobj)) |= LOCK;
-            pthread_mutex_unlock(&lockObjHeader);
             /* Save all object oids that are locked on this machine during this transaction request call */
             oidlocked[objlocked] = OID(((objheader_t *)mobj));
             objlocked++;
@@ -493,7 +490,7 @@ char handleTransReq(fixed_data_t *fixed, trans_commit_data_t *transinfo, unsigne
                     printf("mhashSearch returns NULL at %s, %d\n", __FILE__, __LINE__);
                     return 0;
                   }
-                  STATUS(headptr) &= ~(LOCK);
+		  UnLock(STATUSPTR(headptr));
                 }
                 free(oidlocked);
               }
@@ -562,47 +559,45 @@ char decideCtrlMessage(fixed_data_t *fixed, trans_commit_data_t *transinfo, int 
  * addresses in lookup table and also changes version number
  * Sends an ACK back to Coordinator */
 int transCommitProcess(void *modptr, unsigned int *oidmod, unsigned int *oidlocked, int nummod, int numlocked, int acceptfd) {
-	objheader_t *header;
-	objheader_t *newheader;
-	int i = 0, offset = 0;
-	char control;
-	int tmpsize;
-
-	/* Process each modified object saved in the mainobject store */
-	for(i = 0; i < nummod; i++) {
-		if((header = (objheader_t *) mhashSearch(oidmod[i])) == NULL) {
-			printf("Error: mhashsearch returns NULL at %s, %d\n", __FILE__, __LINE__);
-			return 1;
-		}
-		GETSIZE(tmpsize,header);
-		memcpy((char*)header + sizeof(objheader_t), ((char *)modptr + sizeof(objheader_t) + offset), tmpsize);
-		header->version += 1; 
-		/* If threads are waiting on this object to be updated, notify them */
-        pthread_mutex_lock(&notifymutex);
-		if(header->notifylist != NULL) {
-			notifyAll(&header->notifylist, OID(header), header->version);
-		}
-        pthread_mutex_unlock(&notifymutex);
-		offset += sizeof(objheader_t) + tmpsize;
-	}
-
-	if (nummod > 0)
-		free(modptr);
-
-	/* Unlock locked objects */
-	for(i = 0; i < numlocked; i++) {
-		if((header = (objheader_t *) mhashSearch(oidlocked[i])) == NULL) {
-			printf("Error: mhashsearch returns NULL at %s, %d\n", __FILE__, __LINE__);
-			return 1;
-		}
-		STATUS(header) &= ~(LOCK);
-	}
-	//TODO Update location lookup table
-
-	/* Send ack to coordinator */
-	control = TRANS_SUCESSFUL;
-	send_data((int)acceptfd, &control, sizeof(char));
-	return 0;
+  objheader_t *header;
+  objheader_t *newheader;
+  int i = 0, offset = 0;
+  char control;
+  int tmpsize;
+  
+  /* Process each modified object saved in the mainobject store */
+  for(i = 0; i < nummod; i++) {
+    if((header = (objheader_t *) mhashSearch(oidmod[i])) == NULL) {
+      printf("Error: mhashsearch returns NULL at %s, %d\n", __FILE__, __LINE__);
+      return 1;
+    }
+    GETSIZE(tmpsize,header);
+    memcpy((char*)header + sizeof(objheader_t), ((char *)modptr + sizeof(objheader_t) + offset), tmpsize);
+    header->version += 1; 
+    /* If threads are waiting on this object to be updated, notify them */
+    if(header->notifylist != NULL) {
+      notifyAll(&header->notifylist, OID(header), header->version);
+    }
+    offset += sizeof(objheader_t) + tmpsize;
+  }
+  
+  if (nummod > 0)
+    free(modptr);
+  
+  /* Unlock locked objects */
+  for(i = 0; i < numlocked; i++) {
+    if((header = (objheader_t *) mhashSearch(oidlocked[i])) == NULL) {
+      printf("Error: mhashsearch returns NULL at %s, %d\n", __FILE__, __LINE__);
+      return 1;
+    }
+    UnLock(STATUSPTR(header));
+  }
+  //TODO Update location lookup table
+  
+  /* Send ack to coordinator */
+  control = TRANS_SUCESSFUL;
+  send_data((int)acceptfd, &control, sizeof(char));
+  return 0;
 }
 
 /* This function recevies the oid and offset tuples from the Coordinator's prefetch call.
@@ -725,74 +720,70 @@ void sendPrefetchResponse(int sd, char *control, char *sendbuffer, int *size) {
 }
 
 void processReqNotify(unsigned int numoid, unsigned int *oidarry, unsigned short *versionarry, unsigned int mid, unsigned int threadid) {
-	objheader_t *header;
-	unsigned int oid;
-	unsigned short newversion;
- 	char msg[1+  2 * sizeof(unsigned int) + sizeof(unsigned short)];
-	int sd;
-	struct sockaddr_in remoteAddr;
-	int bytesSent;
-	int size;
-	int i = 0;
-
-	while(i < numoid) {
-		oid = *(oidarry + i);
-		if((header = (objheader_t *) mhashSearch(oid)) == NULL) {
-			printf("Error: mhashsearch returns NULL at %s, %d\n", __FILE__, __LINE__);
-			return;
-		} else {
-			/* Check to see if versions are same */
-checkversion:
-			if ((STATUS(header) & LOCK) != LOCK) { 		
-                pthread_mutex_lock(&notifymutex);
-				STATUS(header) |= LOCK;
-				newversion = header->version;
-				if(newversion == *(versionarry + i)) {
-					//Add to the notify list 
-					if((header->notifylist = insNode(header->notifylist, threadid, mid)) == NULL) {
-						printf("Error: Obj notify list points to NULL %s, %d\n", __FILE__, __LINE__); 
-                        pthread_mutex_unlock(&notifymutex);
-						return;
-					}
-					STATUS(header) &= ~(LOCK); 		
-                    pthread_mutex_unlock(&notifymutex);
-				} else {
-					STATUS(header) &= ~(LOCK); 		
-                    pthread_mutex_unlock(&notifymutex);
-					if ((sd = socket(AF_INET, SOCK_STREAM, 0)) < 0){
-						perror("processReqNotify():socket()");
-						return;
-					}
-					bzero(&remoteAddr, sizeof(remoteAddr));
-					remoteAddr.sin_family = AF_INET;
-					remoteAddr.sin_port = htons(LISTEN_PORT);
-					remoteAddr.sin_addr.s_addr = htonl(mid);
-
-					if (connect(sd, (struct sockaddr *)&remoteAddr, sizeof(remoteAddr)) < 0){
-						printf("Error: processReqNotify():error %d connecting to %s:%d\n", errno,
-								inet_ntoa(remoteAddr.sin_addr), LISTEN_PORT);
-						close(sd);
-						return;
-					} else {
-						//Send Update notification
-						msg[0] = THREAD_NOTIFY_RESPONSE;
-						*((unsigned int *)&msg[1]) = oid;
-						size = sizeof(unsigned int);
-						*((unsigned short *)(&msg[1]+size)) = newversion;
-						size += sizeof(unsigned short);
-						*((unsigned int *)(&msg[1]+size)) = threadid;
-						size = 1+ 2*sizeof(unsigned int) + sizeof(unsigned short);
-						send_data(sd, msg, size);
-					}
-					close(sd);
-				}
-			} else {
-				randomdelay();
-				goto checkversion;
-			}
-		}
-		i++;
+  objheader_t *header;
+  unsigned int oid;
+  unsigned short newversion;
+  char msg[1+  2 * sizeof(unsigned int) + sizeof(unsigned short)];
+  int sd;
+  struct sockaddr_in remoteAddr;
+  int bytesSent;
+  int size;
+  int i = 0;
+  
+  while(i < numoid) {
+    oid = *(oidarry + i);
+    if((header = (objheader_t *) mhashSearch(oid)) == NULL) {
+      printf("Error: mhashsearch returns NULL at %s, %d\n", __FILE__, __LINE__);
+      return;
+    } else {
+      /* Check to see if versions are same */
+    checkversion:
+      if (test_and_set(STATUSPTR(header))==0) {
+	//have lock
+	newversion = header->version;
+	if(newversion == *(versionarry + i)) {
+	  //Add to the notify list 
+	  if((header->notifylist = insNode(header->notifylist, threadid, mid)) == NULL) {
+	    printf("Error: Obj notify list points to NULL %s, %d\n", __FILE__, __LINE__); 
+	    return;
+	  }
+	  UnLock(STATUSPTR(header));
+	} else {
+	  UnLock(STATUSPTR(header));
+	  if ((sd = socket(AF_INET, SOCK_STREAM, 0)) < 0){
+	    perror("processReqNotify():socket()");
+	    return;
+	  }
+	  bzero(&remoteAddr, sizeof(remoteAddr));
+	  remoteAddr.sin_family = AF_INET;
+	  remoteAddr.sin_port = htons(LISTEN_PORT);
+	  remoteAddr.sin_addr.s_addr = htonl(mid);
+	  
+	  if (connect(sd, (struct sockaddr *)&remoteAddr, sizeof(remoteAddr)) < 0){
+	    printf("Error: processReqNotify():error %d connecting to %s:%d\n", errno,
+		   inet_ntoa(remoteAddr.sin_addr), LISTEN_PORT);
+	    close(sd);
+	    return;
+	  } else {
+	    //Send Update notification
+	    msg[0] = THREAD_NOTIFY_RESPONSE;
+	    *((unsigned int *)&msg[1]) = oid;
+	    size = sizeof(unsigned int);
+	    *((unsigned short *)(&msg[1]+size)) = newversion;
+	    size += sizeof(unsigned short);
+	    *((unsigned int *)(&msg[1]+size)) = threadid;
+	    size = 1+ 2*sizeof(unsigned int) + sizeof(unsigned short);
+	    send_data(sd, msg, size);
+	  }
+	  close(sd);
 	}
-	free(oidarry);
-	free(versionarry);
+      } else {
+	randomdelay();
+	goto checkversion;
+      }
+    }
+    i++;
+  }
+  free(oidarry);
+  free(versionarry);
 }

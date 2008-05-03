@@ -2,7 +2,7 @@
 #include <netinet/tcp.h>
 
 #if defined(__i386__)
-inline static int test_and_set(volatile unsigned int *addr) {
+inline int test_and_set(volatile unsigned int *addr) {
     int oldval;
     /* Note: the "xchg" instruction does not need a "lock" prefix */
     __asm__ __volatile__("xchgl %0, %1"
@@ -10,7 +10,7 @@ inline static int test_and_set(volatile unsigned int *addr) {
         : "0"(1), "m"(*(addr)));
     return oldval;
 }
-inline static void UnLock(volatile unsigned int *addr) {
+inline void UnLock(volatile unsigned int *addr) {
     int oldval;
     /* Note: the "xchg" instruction does not need a "lock" prefix */
     __asm__ __volatile__("xchgl %0, %1"
