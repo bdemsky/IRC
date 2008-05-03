@@ -52,9 +52,9 @@ unsigned int prehashInsert(unsigned int key, void *val) {
   
   ptr = pflookup.table;
   pflookup.numelements++;
-  index = prehashFunction(key);
   
   pthread_mutex_lock(&pflookup.lock);
+  index = prehashFunction(key);
   if(ptr[index].next == NULL && ptr[index].key == 0) {	// Insert at the first position in the hashtable
     ptr[index].key = key;
     ptr[index].val = val;
@@ -78,10 +78,10 @@ void *prehashSearch(unsigned int key) {
   int index;
   prehashlistnode_t *ptr, *node;
   
+  pthread_mutex_lock(&pflookup.lock);
   ptr = pflookup.table;
   index = prehashFunction(key);
   node = &ptr[index];
-  pthread_mutex_lock(&pflookup.lock);
   while(node != NULL) {
     if(node->key == key) {
       pthread_mutex_unlock(&pflookup.lock);
@@ -97,12 +97,12 @@ unsigned int prehashRemove(unsigned int key) {
   int index;
   prehashlistnode_t *curr, *prev;
   prehashlistnode_t *ptr, *node;
-  
-  ptr = pflookup.table;
+
+  pthread_mutex_lock(&pflookup.lock);
+    ptr = pflookup.table;
   index = prehashFunction(key);
   curr = &ptr[index];
   
-  pthread_mutex_lock(&pflookup.lock);
   for (; curr != NULL; curr = curr->next) {
     if (curr->key == key) {         // Find a match in the hash table
       pflookup.numelements--;  // Decrement the number of elements in the global hashtable
@@ -185,28 +185,6 @@ unsigned int prehashResize(unsigned int newsize) {
   
   free(ptr);		//Free the memory of the old hash table	
   return 0;
-}
-
-/* Deletes the prefetch Cache */
-void prehashDelete() {
-  int i, isFirst;
-  prehashlistnode_t *ptr, *curr, *next;
-  ptr = pflookup.table; 
-  
-  for(i=0 ; i<pflookup.size ; i++) {
-    curr = &ptr[i];
-    isFirst = 1;
-    while(curr != NULL) {
-      next = curr->next;
-      if(isFirst != 1) {
-	free(curr);
-      }
-      isFirst = 0;
-      curr = next;
-    }
-  }
-  
-  free(ptr);
 }
 
 //Note: This is based on the implementation of the inserting a key in the first position of the hashtable 
