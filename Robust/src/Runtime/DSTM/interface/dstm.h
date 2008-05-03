@@ -8,10 +8,10 @@
 /***********************************************************
  *       Macros
  **********************************************************/
-#define GET_NTUPLES(x) 	((int *)(x + sizeof(prefetchqelem_t)))
-#define GET_PTR_OID(x) 	((unsigned int *)(x + sizeof(prefetchqelem_t) + sizeof(int)))
-#define GET_PTR_EOFF(x,n) ((short *)(x + sizeof(prefetchqelem_t) + sizeof(int) + (n*sizeof(unsigned int))))
-#define GET_PTR_ARRYFLD(x,n) ((short *)(x + sizeof(prefetchqelem_t) + sizeof(int) + (n*sizeof(unsigned int)) + (n*sizeof(short))))
+#define GET_NTUPLES(x) 	((int *)(x))
+#define GET_PTR_OID(x) 	((unsigned int *)(x + sizeof(int)))
+#define GET_PTR_EOFF(x,n) ((short *)(x + sizeof(int) + (n*sizeof(unsigned int))))
+#define GET_PTR_ARRYFLD(x,n) ((short *)(x + sizeof(int) + (n*sizeof(unsigned int)) + (n*sizeof(short))))
 /*****************************************
  *  Coordinator Messages
  ***************************************/
@@ -268,7 +268,7 @@ void sendPrefetchResponse(int sd, char *control, char *sendbuffer, int *size);
 void prefetch(int, unsigned int *, unsigned short *, short*);
 void *transPrefetch(void *);
 void *mcqProcess(void *);
-prefetchpile_t *foundLocal(prefetchqelem_t *);// returns node with prefetch elements(oids, offsets)
+prefetchpile_t *foundLocal(char *);// returns node with prefetch elements(oids, offsets)
 int lookupObject(unsigned int * oid, short offset);
 int transPrefetchProcess(transrecord_t *, int **, short);
 void sendPrefetchReq(prefetchpile_t*, int);

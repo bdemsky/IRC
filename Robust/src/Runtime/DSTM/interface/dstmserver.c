@@ -1,6 +1,7 @@
 /* Coordinator => Machine that initiates the transaction request call for commiting a transaction
  * Participant => Machines that host the objects involved in a transaction commit */
 
+#include <netinet/tcp.h>
 #include "dstm.h"
 #include "mlookup.h"
 #include "llookup.h"
@@ -103,7 +104,9 @@ void *dstmListen()
 	while(1)
 	{
 	  int retval;
+	  int flag=1;
 	  acceptfd = accept(listenfd, (struct sockaddr *)&client_addr, &addrlength);
+	  setsockopt(acceptfd, IPPROTO_TCP, TCP_NODELAY, (char *) &flag, sizeof(flag));
 	  do {
 	    retval=pthread_create(&thread_dstm_accept, NULL, dstmAccept, (void *)acceptfd);
 	  } while(retval!=0);
@@ -127,6 +130,8 @@ void *dstmAccept(void *acceptfd) {
   /* Receive control messages from other machines */
   while(1) {
     int ret=recv_data_errorcode((int)acceptfd, &control, sizeof(char));
+    if (ret==0)
+      return;
     if (ret==-1) {
       printf("DEBUG -> RECV Error!.. retrying\n");
       break;

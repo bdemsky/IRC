@@ -1,81 +1,80 @@
 #include "queue.h"
 
-primarypfq_t pqueue; //Global queue
+volatile int headoffset, tailoffset;
+char * memory;
+pthread_mutex_t qlock;
+pthread_mutexattr_t qlockattr;
+pthread_cond_t qcond;
+
+
+#define QSIZE 1000000 //1 MB
 
 void queueInit(void) {
   /* Intitialize primary queue */
-  pqueue.front = pqueue.rear = NULL;
-  pthread_mutexattr_init(&pqueue.qlockattr);
-  pthread_mutexattr_settype(&pqueue.qlockattr, PTHREAD_MUTEX_RECURSIVE_NP);
-  pthread_mutex_init(&pqueue.qlock, &pqueue.qlockattr);
-  pthread_cond_init(&pqueue.qcond, NULL);
+  headoffset=0;
+  tailoffset=0;
+  memory=malloc(QSIZE);
+  pthread_mutexattr_init(&qlockattr);
+  pthread_mutexattr_settype(&qlockattr, PTHREAD_MUTEX_RECURSIVE_NP);
+  pthread_mutex_init(&qlock, &qlockattr);
+  pthread_cond_init(&qcond, NULL);
 }
 
-/* Delete the node pointed to by the front ptr of the queue */
-void delqnode() {
-  prefetchqelem_t *delnode;
-  if(pqueue.front == NULL) {
-    printf("The queue is empty: UNDERFLOW %s, %d\n", __FILE__, __LINE__);
-    return;
-  } else if (pqueue.front == pqueue.rear) {
-    free(pqueue.front);
-    pqueue.front = pqueue.rear = NULL;
+void * getmemory(int size) {
+  int tmpoffset=headoffset+size+sizeof(int);
+  if (tmpoffset>QSIZE) {
+    //Wait for tail to go past end
+    tmpoffset=size+sizeof(int);
+    while(headoffset<tailoffset)
+      ;
+    //Wait for tail to go past new start
+    while(tailoffset<tmpoffset)
+      ;
+    *((int *)(memory+headoffset))=-1;
+    *((int*)memory)=size+sizeof(int);
+    return memory+sizeof(int);
   } else {
-    delnode = pqueue.front;
-    pqueue.front = pqueue.front->next;
-    free(delnode);
+    while(headoffset<tailoffset&&tailoffset<tmpoffset)
+      ;
+    *((int*)(memory+headoffset))=size+sizeof(int);
+    return memory+headoffset+sizeof(int);
   }
 }
 
-void queueDelete(void) {
-  /* Remove each element */
-  while(pqueue.front != NULL)
-    delqnode();
+void movehead(int size) {
+  int tmpoffset=headoffset+size+sizeof(int);
+  if (tmpoffset>QSIZE) {
+    headoffset=size+sizeof(int);
+  } else
+    headoffset=tmpoffset;
+  pthread_cond_signal(&qcond);//wake the other thread up
 }
 
-/* Inserts to the rear of primary prefetch queue */
-void pre_enqueue(prefetchqelem_t *qnode) {
-  if(pqueue.front == NULL) {
-    pqueue.front = pqueue.rear = qnode;
-    qnode->next=NULL;
-  } else {
-    qnode->next = NULL;
-    pqueue.rear->next = qnode;
-    pqueue.rear = qnode;
+void * gettail() {
+  while(tailoffset==headoffset) {
+    //Sleep
+    pthread_mutex_lock(&qlock);
+    if (tailoffset==headoffset)
+      pthread_cond_wait(&qcond, &qlock);
+    pthread_mutex_unlock(&qlock);
   }
-}
-
-/* Return the node pointed to by the front ptr of the queue */
-prefetchqelem_t *pre_dequeue(void) {
-  prefetchqelem_t *retnode;
-  if (pqueue.front == NULL) {
-    printf("Queue empty: Underflow %s, %d\n", __FILE__, __LINE__);
-    return NULL;
+  if (*((int *)(memory+tailoffset))==-1) {
+    tailoffset=0;//do loop
   }
-  retnode = pqueue.front;
-  pqueue.front = pqueue.front->next;
-  if (pqueue.front == NULL)
-    pqueue.rear = NULL;
-  retnode->next = NULL;
-  
-  return retnode;
+
+  return memory+tailoffset+sizeof(int);
 }
 
-void queueDisplay() {
-  int offset = sizeof(prefetchqelem_t);
-  int *ptr;
-  int ntuples;
-  char *ptr1;
-  prefetchqelem_t *tmp = pqueue.front;
-  while(tmp != NULL) {
-    ptr1 = (char *) tmp;
-    ptr = (int *)(ptr1 + offset);
-    ntuples = *ptr;
-    tmp = tmp->next;
-  }
+void inctail() {
+  int tmpoffset=tailoffset+*((int *)(memory+tailoffset));
+  if (tmpoffset>QSIZE)
+    tailoffset=0;
+  else
+    tailoffset=tmpoffset;
 }
 
-void predealloc(prefetchqelem_t *node) {
-  free(node);
+
+void predealloc() {
+  free(memory);
 }
 

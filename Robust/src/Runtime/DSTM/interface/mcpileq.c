@@ -38,13 +38,6 @@ prefetchpile_t *mcpiledequeue(void) {
   return retnode;
 }
 
-void mcpiledelete(void) {
-  /* Remove each element */
-  while(mcqueue.front != NULL)
-    delqnode();
-}
-
-
 void mcpiledisplay() {
   int mid;
   

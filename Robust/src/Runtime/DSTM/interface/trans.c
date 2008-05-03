@@ -18,7 +18,6 @@
 
 /* Global Variables */
 extern int classsize[];
-extern primarypfq_t pqueue; //Shared prefetch queue
 objstr_t *prefetchcache; //Global Prefetch cache
 pthread_mutex_t prefetchcache_mutex;// Mutex to lock Prefetch Cache
 pthread_mutexattr_t prefetchcache_mutex_attr; /* Attribute for lock to make it a recursive lock */
@@ -83,13 +82,15 @@ int recv_data_errorcode(int fd , void *buf, int buflen) {
   int numbytes; 
   while (size > 0) {
     numbytes = recv(fd, buffer, size, 0);
+    if (numbytes==0)
+      return 0;
     if (numbytes == -1) {
       return -1;
     }
     buffer += numbytes;
     size -= numbytes;
   }
-  return 0;
+  return 1;
 }
 
 void printhex(unsigned char *ptr, int numBytes) {
@@ -126,22 +127,19 @@ inline int findmax(int *array, int arraylength) {
  * populates the shared primary prefetch queue*/
 void prefetch(int ntuples, unsigned int *oids, unsigned short *endoffsets, short *arrayfields) {
   /* Allocate for the queue node*/
-  int qnodesize = sizeof(prefetchqelem_t) + sizeof(int) + ntuples * (sizeof(unsigned short) + sizeof(unsigned int)) + endoffsets[ntuples - 1] * sizeof(short);
-  char * node= malloc(qnodesize);
+  int qnodesize = sizeof(int) + ntuples * (sizeof(unsigned short) + sizeof(unsigned int)) + endoffsets[ntuples - 1] * sizeof(short);
+  char * node= getmemory(qnodesize);
   /* Set queue node values */
-  int len = sizeof(prefetchqelem_t);
+  int len;
   int top=endoffsets[ntuples-1];
-  *((int *)(node+len))=ntuples;
-  len += sizeof(int);
+  *((int *)(node))=ntuples;
+  len = sizeof(int);
   memcpy(node+len, oids, ntuples*sizeof(unsigned int));
   memcpy(node+len+ntuples*sizeof(unsigned int), endoffsets, ntuples*sizeof(unsigned short));
   memcpy(node+len+ntuples*(sizeof(unsigned int)+sizeof(short)), arrayfields, top*sizeof(short));
 
   /* Lock and insert into primary prefetch queue */
-  pthread_mutex_lock(&pqueue.qlock);
-  pre_enqueue((prefetchqelem_t *)node);
-  pthread_cond_signal(&pqueue.qcond);
-  pthread_mutex_unlock(&pqueue.qlock);
+  movehead(qnodesize);
 }
 
 /* This function starts up the transaction runtime. */
@@ -1019,8 +1017,7 @@ int transComProcess(local_thread_data_array_t  *localtdata) {
 	return 0;
 }
 
-prefetchpile_t *foundLocal(prefetchqelem_t *node) {
-  char * ptr = (char *) node;
+prefetchpile_t *foundLocal(char *ptr) {
   int ntuples = *(GET_NTUPLES(ptr));
   unsigned int * oidarray = GET_PTR_OID(ptr);
   unsigned short * endoffsets = GET_PTR_EOFF(ptr, ntuples); 
@@ -1104,19 +1101,10 @@ int lookupObject(unsigned int * oid, short offset) {
 void *transPrefetch(void *t) {
   while(1) {
     /* lock mutex of primary prefetch queue */
-    pthread_mutex_lock(&pqueue.qlock);
-    /* while primary queue is empty, then wait */
-    while(pqueue.front == NULL) {
-      pthread_cond_wait(&pqueue.qcond, &pqueue.qlock);
-    }
-    
-    /* dequeue node to create a machine piles and  finally unlock mutex */
-    prefetchqelem_t *qnode = pre_dequeue();
-    pthread_mutex_unlock(&pqueue.qlock);
-    
+    void *node=gettail();
     /* Check if the tuples are found locally, if yes then reduce them further*/ 
     /* and group requests by remote machine ids by calling the makePreGroups() */
-    prefetchpile_t *pilehead = foundLocal(qnode);
+    prefetchpile_t *pilehead = foundLocal(node);
 
     if (pilehead!=NULL) {
       // Get sock from shared pool 
@@ -1134,10 +1122,9 @@ void *transPrefetch(void *t) {
       
       /* Deallocated pilehead */
       mcdealloc(pilehead);
-      
     }
     // Deallocate the prefetch queue pile node
-    predealloc(qnode);
+    inctail();
   }
 }
 
@@ -1217,6 +1204,7 @@ int getPrefetchResponse(int sd) {
   control = *((char *) recvbuffer);
   if(control == OBJECT_FOUND) {
     oid = *((unsigned int *)(recvbuffer + sizeof(char)));
+    //printf("oid %d found\n",oid);
     size = size - (sizeof(char) + sizeof(unsigned int));
     pthread_mutex_lock(&prefetchcache_mutex);
     if ((modptr = objstrAlloc(prefetchcache, size)) == NULL) {

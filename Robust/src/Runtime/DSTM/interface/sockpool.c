@@ -1,5 +1,5 @@
 #include "sockpool.h"
-
+#include <netinet/tcp.h>
 
 #if defined(__i386__)
 inline static int test_and_set(volatile unsigned int *addr) {
@@ -59,10 +59,12 @@ sockPoolHashTable_t *createSockPool(sockPoolHashTable_t * sockhash, unsigned int
 
 int createNewSocket(unsigned int mid) {
   int sd;
+  int flag=1;
   if((sd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
     printf("%s() Error: In creating socket at %s, %d\n", __func__, __FILE__, __LINE__);
     return -1;
   }
+  setsockopt(sd, IPPROTO_TCP, TCP_NODELAY, (char *) &flag, sizeof(flag));
   struct sockaddr_in remoteAddr;
   bzero(&remoteAddr, sizeof(remoteAddr));
   remoteAddr.sin_family = AF_INET;

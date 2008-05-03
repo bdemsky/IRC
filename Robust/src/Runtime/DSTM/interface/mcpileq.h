@@ -31,7 +31,6 @@ typedef struct mcpileq {
 void mcpileqInit(void);
 void mcpileenqueue(prefetchpile_t *, prefetchpile_t *);
 prefetchpile_t *mcpiledequeue(void);
-void mcpiledelete();
 void mcpiledisplay();
 void mcdealloc(prefetchpile_t *);
 
