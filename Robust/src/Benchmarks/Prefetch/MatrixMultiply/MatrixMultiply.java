@@ -16,14 +16,17 @@ public class MatrixMultiply extends Thread{
 		atomic {
 		    //compute the results
 		    localresults=new double[1+x1-x0][1+y1-y0];
-		
+		    double la[][]=mmul.a;
+		    double lbtranspose[][]=mmul.b;
+		    double lc[][]=mmul.c;
+		    int M=mmul.M;
+
 		    //Use b transpose for cache performance
 		    for(int i = x0; i<= x1; i++){
-			double a[]=mmul.a[i];
-			int M=mmul.M;
+			double a[]=la[i];
 			for (int j = y0; j <= y1; j++) {
 			    double innerProduct=0;
-			    double b[] = mmul.btranspose[j];
+			    double b[] = lbtranspose[j];
 			    for(int k = 0; k < M; k++) {
 				innerProduct += a[k] *b[k];
 			    }
@@ -44,6 +47,12 @@ public class MatrixMultiply extends Thread{
 	}
 
 	public static void main(String[] args) {
+<<<<<<< MatrixMultiply.java
+		int mid1 = (128<<24)|(195<<16)|(175<<8)|69;
+		int mid2 = (128<<24)|(195<<16)|(175<<8)|69;
+		int mid3 = (128<<24)|(195<<16)|(175<<8)|71;
+		int NUM_THREADS = 1;
+=======
       int NUM_THREADS = 4;
       int[] mid = new int[NUM_THREADS];
       mid[0] = (128<<24)|(195<<16)|(175<<8)|69;
@@ -52,6 +61,7 @@ public class MatrixMultiply extends Thread{
       mid[3] = (128<<24)|(195<<16)|(175<<8)|79;
 		//int mid1 = (128<<24)|(195<<16)|(175<<8)|69;
 		//int mid2 = (128<<24)|(195<<16)|(175<<8)|73;
+>>>>>>> 1.19
 		int p, q, r;
 		MatrixMultiply[] mm;
 		MatrixMultiply tmp;

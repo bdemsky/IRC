@@ -30,6 +30,7 @@ echo "-nooptimize call gcc with -O0 (do not optimize)"
 echo -curdir directory 
 echo -mainclass class with main method
 echo -o binary
+echo -nojava do not run bristlecone compiler
 echo -instructionfailures inject code for instructionfailures
 echo -profile build with profile options
 echo "-enable-assertions execute assert statements during compilation"
@@ -41,6 +42,7 @@ DSMRUNTIME=$ROBUSTROOT/Runtime/DSTM/interface/
 REPAIRROOT=~/research/Repair/RepairCompiler/
 CURDIR=`pwd`
 DSMFLAG=false
+NOJAVA=false
 CHECKFLAG=false
 RECOVERFLAG=false
 MULTICOREFLAG=false
@@ -72,6 +74,9 @@ elif [[ $1 = '-robustroot' ]]
 then
 ROBUSTROOT="$2"
 shift
+elif [[ $1 = '-nojava' ]]
+then
+NOJAVA=true
 elif [[ $1 = '-o' ]]
 then
 MAINFILE="$2"
@@ -213,10 +218,13 @@ then exit $?
 fi
 else
 #if ! java -Xms5m -Xmx100m $JAVAFORWARDOPTS -classpath $ROBUSTROOT/../cup/:$ROBUSTROOT Main.Main -classlibrary \
+if ! $NOJAVA
+then
 if ! java -Xms5m -Xmx100m $JAVAFORWARDOPTS -classpath $ROBUSTROOT/../cup/:$ROBUSTROOT Main.Main -classlibrary \
 $ROBUSTROOT/ClassLibrary/ -dir $BUILDDIR -precise \
 $JAVAOPTS $SRCFILES
 then exit $?
+fi
 fi
 fi
 

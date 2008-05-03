@@ -12,14 +12,18 @@ public class MatrixMultiply extends Thread{
     
     public void run() {
 	atomic {
+	    double la[][]=mmul.a;
+	    double lc[][]=mmul.c;
+	    double lb[][]=mmul.btranspose;
+	    int M=mmul.M;
+	    
 	    //Use btranspose for cache performance
 	    for(int i = x0; i< x1; i++){
-		double a[]=mmul.a[i];
-		double c[]=mmul.c[i];
-		int M=mmul.M;
+		double a[]=la[i];
+		double c[]=lc[i];
 		for (int j = y0; j < y1; j++) {
 		    double innerProduct=0;
-		    double b[] = mmul.btranspose[j];
+		    double b[] = lb[j];
 		    for(int k = 0; k < M; k++) {
 			innerProduct += a[k] *b[k];
 		    }
@@ -39,9 +43,9 @@ public class MatrixMultiply extends Thread{
 	}
 	
 	int[] mid = new int[4];
-	mid[0] = (128<<24)|(195<<16)|(175<<8)|80;
-	mid[1] = (128<<24)|(195<<16)|(175<<8)|73;
-	mid[2] = (128<<24)|(195<<16)|(175<<8)|78;
+	mid[0] = (128<<24)|(195<<16)|(175<<8)|69;
+	mid[1] = (128<<24)|(195<<16)|(175<<8)|70;
+	mid[2] = (128<<24)|(195<<16)|(175<<8)|71;
 	mid[3] = (128<<24)|(195<<16)|(175<<8)|79;
 	int p, q, r;
 	MatrixMultiply[] mm;

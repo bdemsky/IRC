@@ -417,8 +417,11 @@ public class Main {
 	  if (state.DSM) {
 	      CallGraph callgraph=new CallGraph(state);
 	      if (state.PREFETCH) {
-		  PrefetchAnalysis pa=new PrefetchAnalysis(state, callgraph, tu);
+		  //speed up prefetch generation using locality analysis results
+		  LocalityAnalysis la=new LocalityAnalysis(state, callgraph, tu);
+		  PrefetchAnalysis pa=new PrefetchAnalysis(state, callgraph, tu, la);
 	      }
+
 	      LocalityAnalysis la=new LocalityAnalysis(state, callgraph, tu);
 	      GenerateConversions gc=new GenerateConversions(la, state);
 	      BuildCode bc=new BuildCode(state, bf.getMap(), tu, la);

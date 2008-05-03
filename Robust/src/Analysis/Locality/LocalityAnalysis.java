@@ -91,6 +91,10 @@ public class LocalityAnalysis {
 	return methodtolb.get(md);
     }
 
+    public Set<MethodDescriptor> getMethods() {
+	return methodtolb.keySet();
+    }
+
     /** This method returns a set of LocalityBindings.  A
      * LocalityBinding specifies a context a method can be invoked in.
      * It specifies whether the method is in a transaction and whether
