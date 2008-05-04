@@ -39,7 +39,7 @@ public class JGFSORBench {
     RANDOM_SEED = 10101010;
     R = global new Random(RANDOM_SEED);
     Gtotal = 0.0;
-    cachelinesize = 128;
+    cachelinesize = 1;
   }
 
   public void JGFsetsize(int size){
@@ -92,10 +92,10 @@ public class JGFSORBench {
 
     SORRunner tmp;
     int[] mid = new int[4];
-    mid[0] = (128<<24)|(195<<16)|(175<<8)|69;
-    mid[1] = (128<<24)|(195<<16)|(175<<8)|78;
+    mid[0] = (128<<24)|(195<<16)|(175<<8)|79;
+    mid[1] = (128<<24)|(195<<16)|(175<<8)|80;
     mid[2] = (128<<24)|(195<<16)|(175<<8)|73;
-    mid[3] = (128<<24)|(195<<16)|(175<<8)|79;
+    mid[3] = (128<<24)|(195<<16)|(175<<8)|78;
     for(int i=1;i<numthreads;i++) {
       atomic {
         thobjects[i] =  global new SORRunner(i,omega,G,num_iterations,sor.sync,numthreads);
