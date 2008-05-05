@@ -41,11 +41,11 @@ unsigned int mhashInsert(unsigned int key, void *val) {
 	ptr = mlookup.table;
 	mlookup.numelements++;
 	
-	index = mhashFunction(key);
 #ifdef DEBUG
 	printf("DEBUG -> index = %d, key = %d, val = %x\n", index, key, val);
 #endif
 	pthread_mutex_lock(&mlookup.locktable);
+	index = mhashFunction(key);
 	if(ptr[index].next == NULL && ptr[index].key == 0) {	// Insert at the first position in the hashtable
 		ptr[index].key = key;
 		ptr[index].val = val;
@@ -69,10 +69,10 @@ void *mhashSearch(unsigned int key) {
 	int index;
 	mhashlistnode_t *ptr, *node;
 
+	pthread_mutex_lock(&mlookup.locktable);
 	ptr = mlookup.table;	// Address of the beginning of hash table	
 	index = mhashFunction(key);
 	node = &ptr[index];
-	pthread_mutex_lock(&mlookup.locktable);
 	while(node != NULL) {
 		if(node->key == key) {
 			pthread_mutex_unlock(&mlookup.locktable);
@@ -90,11 +90,10 @@ unsigned int mhashRemove(unsigned int key) {
 	mhashlistnode_t *curr, *prev;
 	mhashlistnode_t *ptr, *node;
 	
+	pthread_mutex_lock(&mlookup.locktable);
 	ptr = mlookup.table;
 	index = mhashFunction(key);
 	curr = &ptr[index];
-
-	pthread_mutex_lock(&mlookup.locktable);
 	for (; curr != NULL; curr = curr->next) {
 		if (curr->key == key) {         // Find a match in the hash table
 			mlookup.numelements--;  // Decrement the number of elements in the global hashtable
