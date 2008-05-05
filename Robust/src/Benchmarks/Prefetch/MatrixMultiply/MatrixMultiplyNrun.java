@@ -70,9 +70,9 @@ public class MatrixMultiply extends Thread{
 	    int base=0;
 	    for(int i=0;i<NUM_THREADS;i++) {
 		if ((i+1)==NUM_THREADS)
-		    mm[i]=global new MatrixMultiply(matrix,base, SIZE, 0, SIZE, NUM_MATRIX);
+		    mm[i]=global new MatrixMultiply(matrix,base, SIZE, 0, SIZE);
 		else
-		    mm[i]=global new MatrixMultiply(matrix,base, base+increment, 0, SIZE, NUM_MATRIX);
+		    mm[i]=global new MatrixMultiply(matrix,base, base+increment, 0, SIZE);
 		base+=increment;
 	    }
 	    p = matrix.L;
@@ -141,7 +141,7 @@ public class MMul{
     public void transpose() {
 	for(int q=0;q<P;q++) {
 	    double br=b[q];
-	    double bt=btrans[q];
+	    double bt=btranspose[q];
 	    for(int row = 0; row < M; row++) {
 		double brow[] = br[row];
 		for(int col = 0; col < N; col++) {
