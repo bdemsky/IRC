@@ -235,7 +235,8 @@ void clearObjStore(); // TODO:currently only clears the prefetch cache object st
 /* end object store */
 
 /* Prototypes for server portion */
-void *dstmListen();
+void *dstmListen(void *);
+int startlistening();
 void *dstmAccept(void *);
 int readClientReq(trans_commit_data_t *, int);
 int processClientReq(fixed_data_t *, trans_commit_data_t *,unsigned int *, char *, void *, unsigned int *, int);

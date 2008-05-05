@@ -132,6 +132,7 @@ void prefetch(int ntuples, unsigned int *oids, unsigned short *endoffsets, short
   /* Set queue node values */
   int len;
   int top=endoffsets[ntuples-1];
+
   *((int *)(node))=ntuples;
   len = sizeof(int);
   memcpy(node+len, oids, ntuples*sizeof(unsigned int));
@@ -147,7 +148,8 @@ int dstmStartup(const char * option) {
   pthread_t thread_Listen;
   pthread_attr_t attr;
   int master=option!=NULL && strcmp(option, "master")==0;
-  
+  int fd;
+
   if (processConfigFile() != 0)
     return 0; //TODO: return error value, cause main program to exit
 #ifdef COMPILER
@@ -162,13 +164,14 @@ int dstmStartup(const char * option) {
   dstmInit();
   transInit();
   
+  fd=startlistening();
   if (master) {
     pthread_attr_init(&attr);
     pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
-    pthread_create(&thread_Listen, &attr, dstmListen, NULL);
+    pthread_create(&thread_Listen, &attr, dstmListen, (void*)fd);
     return 1;
   } else {
-    dstmListen();
+    dstmListen((void *)fd);
     return 0;
   }
 }

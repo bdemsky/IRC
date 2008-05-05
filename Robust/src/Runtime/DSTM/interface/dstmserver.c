@@ -53,65 +53,67 @@ int dstmInit(void)
 	return 0;
 }
 
+
+int startlistening() {
+  int listenfd;
+  struct sockaddr_in my_addr;
+  socklen_t addrlength = sizeof(struct sockaddr);
+  int setsockflag=1;
+  
+  listenfd = socket(AF_INET, SOCK_STREAM, 0);
+  if (listenfd == -1) {
+    perror("socket");
+    exit(1);
+  }
+  
+  if (setsockopt(listenfd, SOL_SOCKET, SO_REUSEADDR, &setsockflag, sizeof (setsockflag)) < 0) {
+    perror("socket");
+    exit(1);
+  }
+#ifdef MAC
+  if (setsockopt(listenfd, SOL_SOCKET, SO_NOSIGPIPE, &setsockflag, sizeof (setsockflag)) < 0) {
+    perror("socket");
+    exit(1);
+  }
+#endif
+  
+  my_addr.sin_family = AF_INET;
+  my_addr.sin_port = htons(LISTEN_PORT);
+  my_addr.sin_addr.s_addr = INADDR_ANY;
+  memset(&(my_addr.sin_zero), '\0', 8);
+  
+  if (bind(listenfd, (struct sockaddr *)&my_addr, addrlength) == -1) {
+    perror("bind");
+    exit(1);
+  }
+  
+  if (listen(listenfd, BACKLOG) == -1) {
+    perror("listen");
+    exit(1);
+  }
+  return listenfd;
+}
+
 /* This function starts the thread to listen on a socket 
  * for tranaction calls */
-void *dstmListen()
-{
-	int listenfd, acceptfd;
-	struct sockaddr_in my_addr;
-	struct sockaddr_in client_addr;
-	socklen_t addrlength = sizeof(struct sockaddr);
-	pthread_t thread_dstm_accept;
-	int i;
-	int setsockflag=1;
-
-	listenfd = socket(AF_INET, SOCK_STREAM, 0);
-	if (listenfd == -1)
-	{
-		perror("socket");
-		exit(1);
-	}
-
-	if (setsockopt(listenfd, SOL_SOCKET, SO_REUSEADDR, &setsockflag, sizeof (setsockflag)) < 0) {
-	  perror("socket");
-	  exit(1);
-	}
-#ifdef MAC
-	if (setsockopt(listenfd, SOL_SOCKET, SO_NOSIGPIPE, &setsockflag, sizeof (setsockflag)) < 0) {
-	  perror("socket");
-	  exit(1);
-	}
-#endif
-
-	my_addr.sin_family = AF_INET;
-	my_addr.sin_port = htons(LISTEN_PORT);
-	my_addr.sin_addr.s_addr = INADDR_ANY;
-	memset(&(my_addr.sin_zero), '\0', 8);
-
-	if (bind(listenfd, (struct sockaddr *)&my_addr, addrlength) == -1)
-	{
-		perror("bind");
-		exit(1);
-	}
-	
-	if (listen(listenfd, BACKLOG) == -1)
-	{
-		perror("listen");
-		exit(1);
-	}
-
-	printf("Listening on port %d, fd = %d\n", LISTEN_PORT, listenfd);
-	while(1)
-	{
-	  int retval;
-	  int flag=1;
-	  acceptfd = accept(listenfd, (struct sockaddr *)&client_addr, &addrlength);
-	  setsockopt(acceptfd, IPPROTO_TCP, TCP_NODELAY, (char *) &flag, sizeof(flag));
-	  do {
-	    retval=pthread_create(&thread_dstm_accept, NULL, dstmAccept, (void *)acceptfd);
-	  } while(retval!=0);
-	  pthread_detach(thread_dstm_accept);
-	}
+void *dstmListen(void *lfd) {
+  int listenfd=(int)lfd;
+  int acceptfd;
+  struct sockaddr_in client_addr;
+  socklen_t addrlength = sizeof(struct sockaddr);
+  pthread_t thread_dstm_accept;
+  
+  printf("Listening on port %d, fd = %d\n", LISTEN_PORT, listenfd);
+  while(1) {
+    int retval;
+    int flag=1;
+    acceptfd = accept(listenfd, (struct sockaddr *)&client_addr, &addrlength);
+    setsockopt(acceptfd, IPPROTO_TCP, TCP_NODELAY, (char *) &flag, sizeof(flag));
+    do {
+      retval=pthread_create(&thread_dstm_accept, NULL, dstmAccept, (void *)acceptfd);
+    } while(retval!=0);
+    pthread_detach(thread_dstm_accept);
+  }
 }
 /* This function accepts a new connection request, decodes the control message in the connection 
  * and accordingly calls other functions to process new requests */
