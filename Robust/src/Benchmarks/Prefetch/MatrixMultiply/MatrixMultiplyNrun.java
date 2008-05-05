@@ -140,8 +140,8 @@ public class MMul{
     
     public void transpose() {
 	for(int q=0;q<P;q++) {
-	    double br=b[q];
-	    double bt=btranspose[q];
+	    double br[][]=b[q];
+	    double bt[][]=btranspose[q];
 	    for(int row = 0; row < M; row++) {
 		double brow[] = br[row];
 		for(int col = 0; col < N; col++) {
