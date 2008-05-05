@@ -1,15 +1,13 @@
 public class MatrixMultiply extends Thread{
     MMul mmul;
     public int x0, y0, x1, y1;
-    public int nummatrix;
     
-    public MatrixMultiply(MMul mmul, int x0, int x1, int y0, int y1, int nummatrix) {
+    public MatrixMultiply(MMul mmul, int x0, int x1, int y0, int y1) {
 	this.mmul = mmul;
 	this.x0 = x0;
 	this.y0 = y0;
 	this.x1 = x1;
 	this.y1 = y1;
-    this.nummatrix = nummatrix;
     }
     
     public void run() {
@@ -20,7 +18,6 @@ public class MatrixMultiply extends Thread{
         int M=mmul.M;
 
         //Use btranspose for cache performance
-        for (int l = 0; l < nummatrix; l++) { 
           for(int i = x0; i< x1; i++){
             double a[]=la[i];
             double c[]=lc[i];
@@ -33,9 +30,6 @@ public class MatrixMultiply extends Thread{
               c[j]=innerProduct;
             }
           }
-          System.clearPrefetchCache();
-          //System.clea
-        }
       }
     }
     
@@ -55,46 +49,47 @@ public class MatrixMultiply extends Thread{
 	int[] mid = new int[4];
 	mid[0] = (128<<24)|(195<<16)|(175<<8)|79;
 	mid[1] = (128<<24)|(195<<16)|(175<<8)|80;
-	mid[2] = (128<<24)|(195<<16)|(175<<8)|78;
-	mid[3] = (128<<24)|(195<<16)|(175<<8)|73;
+	mid[2] = (128<<24)|(195<<16)|(175<<8)|69;
+	mid[3] = (128<<24)|(195<<16)|(175<<8)|70;
 	int p, q, r;
 	MatrixMultiply[] mm;
 	MatrixMultiply tmp;
-	MMul matrix;
-	
-	atomic {
-	    matrix = global new MMul(SIZE, SIZE, SIZE);
-	    matrix.setValues();
-	    matrix.transpose();
-	    mm = global new MatrixMultiply[NUM_THREADS];
-	    int increment=SIZE/NUM_THREADS;
-	    int base=0;
-	    for(int i=0;i<NUM_THREADS;i++) {
-		if ((i+1)==NUM_THREADS)
-		    mm[i]=global new MatrixMultiply(matrix,base, SIZE, 0, SIZE, NUM_MATRIX);
-		else
-		    mm[i]=global new MatrixMultiply(matrix,base, base+increment, 0, SIZE, NUM_MATRIX);
-		base+=increment;
-	    }
-	    p = matrix.L;
-	    q = matrix.M;
-	    r = matrix.N;
-	}
-	
-	// print out the matrices to be multiplied
-	System.printString("\n");
-	System.printString("MatrixMultiply: L=");
-	System.printInt(p);
-	System.printString("\t");
-	System.printString("M=");
-	System.printInt(q);
-	System.printString("\t");
-	System.printString("N=");
-	System.printInt(r);
-	System.printString("\n");
-    
-	
-    //for(int j = 0; j < NUM_MATRIX; j++) {
+    MMul matrix;
+
+    for (int l = 0; l < NUM_MATRIX; l++) {
+      atomic {
+        matrix = global new MMul(SIZE, SIZE, SIZE);
+        matrix.setValues();
+        matrix.transpose();
+        mm = global new MatrixMultiply[NUM_THREADS];
+        int increment=SIZE/NUM_THREADS;
+        int base=0;
+        for(int i=0;i<NUM_THREADS;i++) {
+          if ((i+1)==NUM_THREADS)
+            mm[i]=global new MatrixMultiply(matrix,base, SIZE, 0, SIZE, NUM_MATRIX);
+          else
+            mm[i]=global new MatrixMultiply(matrix,base, base+increment, 0, SIZE, NUM_MATRIX);
+          base+=increment;
+        }
+        p = matrix.L;
+        q = matrix.M;
+        r = matrix.N;
+      }
+
+      // print out the matrices to be multiplied
+      /*
+      System.printString("\n");
+      System.printString("MatrixMultiply: L=");
+      System.printInt(p);
+      System.printString("\t");
+      System.printString("M=");
+      System.printInt(q);
+      System.printString("\t");
+      System.printString("N=");
+      System.printInt(r);
+      System.printString("\n");
+      */
+
       // start a thread to compute each c[l,n]
       for (int i = 0; i < NUM_THREADS; i++) {
         atomic {
@@ -110,7 +105,7 @@ public class MatrixMultiply extends Thread{
         }
         tmp.join();
       }
-    //}
+    }
 	// print out the result of the matrix multiply
 	System.printString("Finished\n");
     }
