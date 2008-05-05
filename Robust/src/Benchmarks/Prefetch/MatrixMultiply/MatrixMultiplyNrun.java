@@ -12,38 +12,43 @@ public class MatrixMultiply extends Thread{
     
     public void run() {
       atomic {
-        double la[][]=mmul.a;
-        double lc[][]=mmul.c;
-        double lb[][]=mmul.btranspose;
+        double la[][][]=mmul.a;
+        double lc[][][]=mmul.c;
+        double lb[][][]=mmul.btranspose;
         int M=mmul.M;
-
+	int P=mmul.P;
         //Use btranspose for cache performance
-          for(int i = x0; i< x1; i++){
-            double a[]=la[i];
-            double c[]=lc[i];
-            for (int j = y0; j < y1; j++) {
-              double innerProduct=0;
-              double b[] = lb[j];
-              for(int k = 0; k < M; k++) {
-                innerProduct += a[k] *b[k];
-              }
-              c[j]=innerProduct;
-            }
-          }
+	for(int q=0;q<P;q++) {
+	    double ra[][]=la[q];
+	    double rb[][]=lb[q];
+	    double rc[][]=lc[q];
+	    for(int i = x0; i< x1; i++){
+		double a[]=ra[i];
+		double c[]=rc[i];
+		for (int j = y0; j < y1; j++) {
+		    double innerProduct=0;
+		    double b[] = rb[j];
+		    for(int k = 0; k < M; k++) {
+			innerProduct += a[k] *b[k];
+		    }
+		    c[j]=innerProduct;
+		}
+	    }
+	}
       }
     }
     
     public static void main(String[] args) {
 	int NUM_THREADS = 4;
 	int SIZE=150;
-    int NUM_MATRIX = 1;
+	int NUM_MATRIX = 1;
 	if (args.length>0) {
-      NUM_THREADS=Integer.parseInt(args[0]);
-      if (args.length>1) {
-        SIZE=Integer.parseInt(args[1]);
-        if (args.length>2)
-          NUM_MATRIX=Integer.parseInt(args[2]);
-      }
+	    NUM_THREADS=Integer.parseInt(args[0]);
+	    if (args.length>1) {
+		SIZE=Integer.parseInt(args[1]);
+		if (args.length>2)
+		    NUM_MATRIX=Integer.parseInt(args[2]);
+	    }
 	}
 	
 	int[] mid = new int[4];
@@ -54,42 +59,27 @@ public class MatrixMultiply extends Thread{
 	int p, q, r;
 	MatrixMultiply[] mm;
 	MatrixMultiply tmp;
-    MMul matrix;
+	MMul matrix;
 
-    for (int l = 0; l < NUM_MATRIX; l++) {
-      atomic {
-        matrix = global new MMul(SIZE, SIZE, SIZE);
-        matrix.setValues();
-        matrix.transpose();
-        mm = global new MatrixMultiply[NUM_THREADS];
-        int increment=SIZE/NUM_THREADS;
-        int base=0;
-        for(int i=0;i<NUM_THREADS;i++) {
-          if ((i+1)==NUM_THREADS)
-            mm[i]=global new MatrixMultiply(matrix,base, SIZE, 0, SIZE, NUM_MATRIX);
-          else
-            mm[i]=global new MatrixMultiply(matrix,base, base+increment, 0, SIZE, NUM_MATRIX);
-          base+=increment;
-        }
-        p = matrix.L;
-        q = matrix.M;
-        r = matrix.N;
-      }
-
-      // print out the matrices to be multiplied
-      /*
-      System.printString("\n");
-      System.printString("MatrixMultiply: L=");
-      System.printInt(p);
-      System.printString("\t");
-      System.printString("M=");
-      System.printInt(q);
-      System.printString("\t");
-      System.printString("N=");
-      System.printInt(r);
-      System.printString("\n");
-      */
-
+	atomic {
+	    matrix = global new MMul(NUM_MATRIX, SIZE, SIZE, SIZE);
+	    matrix.setValues();
+	    matrix.transpose();
+	    mm = global new MatrixMultiply[NUM_THREADS];
+	    int increment=SIZE/NUM_THREADS;
+	    int base=0;
+	    for(int i=0;i<NUM_THREADS;i++) {
+		if ((i+1)==NUM_THREADS)
+		    mm[i]=global new MatrixMultiply(matrix,base, SIZE, 0, SIZE, NUM_MATRIX);
+		else
+		    mm[i]=global new MatrixMultiply(matrix,base, base+increment, 0, SIZE, NUM_MATRIX);
+		base+=increment;
+	    }
+	    p = matrix.L;
+	    q = matrix.M;
+	    r = matrix.N;
+	}
+	
       // start a thread to compute each c[l,n]
       for (int i = 0; i < NUM_THREADS; i++) {
         atomic {
@@ -105,7 +95,7 @@ public class MatrixMultiply extends Thread{
         }
         tmp.join();
       }
-    }
+    
 	// print out the result of the matrix multiply
 	System.printString("Finished\n");
     }
@@ -113,57 +103,51 @@ public class MatrixMultiply extends Thread{
 
 public class MMul{
 
-	public int L, M, N;
-	public double[][] a;
-	public double[][] b;
-	public double[][] c;
-	public double[][] btranspose;
+    public int L, M, N, P;
+    public double[][][] a;
+    public double[][][] b;
+    public double[][][] c;
+    public double[][][] btranspose;
+    
+    public MMul(int P, int L, int M, int N) {
+	this.L = L;
+	this.M = M;
+	this.N = N;
+	this.P = P;
+	a = global new double[P][L][M];  
+	b = global new double[P][M][N]; 
+	c = global new double[P][L][N]; 
+	btranspose = global new double[P][N][M];
+    }
 
-	public MMul(int L, int M, int N) {
-		this.L = L;
-		this.M = M;
-		this.N = N;
-		a = global new double[L][M];  
-		b = global new double[M][N]; 
-		c = global new double[L][N]; 
-		btranspose = global new double[N][M];
+    public void setValues() {
+	for(int q = 0; q < P; q++) {
+	    for(int i = 0; i < L; i++) {
+		double ai[] = a[q][i];
+		for(int j = 0; j < M; j++) {
+		    ai[j] = j+1;
+		}
+	    }
+	    
+	    for(int i = 0; i < M; i++) {
+		double bi[] = b[q][i];
+		for(int j = 0; j < N; j++) {
+		    bi[j] = j+1;
+		}
+	    }
 	}
-
-	public void setValues() {
-		for(int i = 0; i < L; i++) {
-            double ai[] = a[i];
-			for(int j = 0; j < M; j++) {
-				ai[j] = j+1;
-			}
+    }
+    
+    public void transpose() {
+	for(int q=0;q<P;q++) {
+	    double br=b[q];
+	    double bt=btrans[q];
+	    for(int row = 0; row < M; row++) {
+		double brow[] = br[row];
+		for(int col = 0; col < N; col++) {
+		    bt[col][row] = brow[col];
 		}
-
-		for(int i = 0; i < M; i++) {
-            double bi[] = b[i];
-			for(int j = 0; j < N; j++) {
-				bi[j] = j+1;
-			}
-		}
-
-		for(int i = 0; i < L; i++) {
-            double ci[] = c[i];
-			for(int j = 0; j < N; j++) {
-				ci[j] = 0;
-			}
-		}
-		for(int i = 0; i < N; i++) {
-            double btransposei[] = btranspose[i];
-			for(int j = 0; j < M; j++) {
-				btransposei[j] = 0;
-			}
-		}
+	    }
 	}
-
-	public void transpose() {
-		for(int row = 0; row < M; row++) {
-            double brow[] = b[row];
-			for(int col = 0; col < N; col++) {
-				btranspose[col][row] = brow[col];
-			}
-		}
-	}
+    }
 }
