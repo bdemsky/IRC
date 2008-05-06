@@ -492,6 +492,7 @@ char handleTransReq(fixed_data_t *fixed, trans_commit_data_t *transinfo, unsigne
                     printf("mhashSearch returns NULL at %s, %d\n", __FILE__, __LINE__);
                     return 0;
                   }
+		  UnLock(STATUSPTR(headptr));
                 }
                 free(oidlocked);
               }
