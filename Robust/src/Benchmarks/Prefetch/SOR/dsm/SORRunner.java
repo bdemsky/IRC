@@ -23,10 +23,10 @@ class SORRunner extends Thread {
 
   int id,num_iterations;
   double G[][],omega;
-  long sync[][];
+  int sync[][];
   int nthreads;
 
-  public SORRunner(int id, double omega, double G[][], int num_iterations,long[][] sync, int nthreads) {
+  public SORRunner(int id, double omega, double G[][], int num_iterations,int[][] sync, int nthreads) {
     this.id = id;
     this.omega=omega;
     this.G=G;
@@ -65,68 +65,69 @@ class SORRunner extends Thread {
     if (iupper > Mm1) iupper =  Mm1+1;
     if (tmpid == (numthreads-1)) iupper = Mm1+1;
 
-      for (int p=0; p<2*numiterations; p++) {
-        atomic {
-          for (int i=ilow+(p%2); i<iupper; i=i+2) {
+    for (int p=0; p<2*numiterations; p++) {
+      atomic {
+        for (int i=ilow+(p%2); i<iupper; i=i+2) {
 
-            double [] Gi = G[i];
-            double [] Gim1 = G[i-1];
+          double [] Gi = G[i];
+          double [] Gim1 = G[i-1];
 
-            if(i == 1) { 
-              double [] Gip1 = G[i+1];
+          if(i == 1) { 
+            double [] Gip1 = G[i+1];
 
-              for (int j=1; j<Nm1; j=j+2){
-                Gi[j] = omega_over_four * (Gim1[j] + Gip1[j] + Gi[j-1]
-                    + Gi[j+1]) + one_minus_omega * Gi[j];
+            for (int j=1; j<Nm1; j=j+2){
+              Gi[j] = omega_over_four * (Gim1[j] + Gip1[j] + Gi[j-1]
+                  + Gi[j+1]) + one_minus_omega * Gi[j];
 
+            }
+          } else if (i == Mm1) {
+
+            double [] Gim2 = G[i-2];
+
+            for (int j=1; j<Nm1; j=j+2){
+              if((j+1) != Nm1) {
+                Gim1[j+1]=omega_over_four * (Gim2[j+1] + Gi[j+1] + Gim1[j]
+                    + Gim1[j+2]) + one_minus_omega * Gim1[j+1];
               }
-            } else if (i == Mm1) {
+            }
 
-              double [] Gim2 = G[i-2];
+          } else {
 
-              for (int j=1; j<Nm1; j=j+2){
-                if((j+1) != Nm1) {
-                  Gim1[j+1]=omega_over_four * (Gim2[j+1] + Gi[j+1] + Gim1[j]
-                      + Gim1[j+2]) + one_minus_omega * Gim1[j+1];
-                }
-              }
+            double [] Gip1 = G[i+1];
+            double [] Gim2 = G[i-2];
 
-            } else {
+            for (int j=1; j<Nm1; j=j+2){
+              Gi[j] = omega_over_four * (Gim1[j] + Gip1[j] + Gi[j-1]
+                  + Gi[j+1]) + one_minus_omega * Gi[j];
 
-              double [] Gip1 = G[i+1];
-              double [] Gim2 = G[i-2];
-
-              for (int j=1; j<Nm1; j=j+2){
-                Gi[j] = omega_over_four * (Gim1[j] + Gip1[j] + Gi[j-1]
-                    + Gi[j+1]) + one_minus_omega * Gi[j];
-
-                if((j+1) != Nm1) {
-                  Gim1[j+1]=omega_over_four * (Gim2[j+1] + Gi[j+1] + Gim1[j]
-                      + Gim1[j+2]) + one_minus_omega * Gim1[j+1];
-                }
+              if((j+1) != Nm1) {
+                Gim1[j+1]=omega_over_four * (Gim2[j+1] + Gi[j+1] + Gim1[j]
+                    + Gim1[j+2]) + one_minus_omega * Gim1[j+1];
               }
             }
           }
-        } //close atomic
+        }
+      } //close atomic
+
+
+      int ourcount;
+      boolean done=true;
+      atomic {
         // Signal this thread has done iteration
+        sync[tmpid][0]++;
+        ourcount=sync[tmpid][0];
+      }
 
-        // Wait for neighbours;
-        long ourcount;
-        boolean done=true;
-
+      // Wait for neighbours;
+      while(done) {
         atomic {
-          sync[tmpid][0]++;
-          ourcount=sync[tmpid][0];
+          if ((tmpid==0 || ourcount <= sync[tmpid-1][0])
+              &&((tmpid==(numthreads-1))||ourcount<=sync[tmpid+1][0]))
+            done=false;
         }
+      }
 
-	while(done) {
-	    atomic {
-		if ((tmpid==0 || ourcount <= sync[tmpid-1][0])
-		    &&((tmpid==(numthreads-1))||ourcount<=sync[tmpid+1][0]))
-		    done=false;
-	    }
-        }
-
-      }//end of for
+      System.clearPrefetchCache();
+    }//end of for
   } //end of run()
 }

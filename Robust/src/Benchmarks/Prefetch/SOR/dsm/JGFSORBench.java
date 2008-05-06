@@ -27,7 +27,7 @@ public class JGFSORBench {
   Random R;
   public double Gtotal;
   public int cachelinesize;
-  public long sync[][];
+  public int sync[][];
 
   public JGFSORBench(int nthreads){
     this.nthreads = nthreads;
@@ -127,9 +127,9 @@ public class JGFSORBench {
     }
   }
 
-  public long[][] init_sync(int nthreads, int cachelinesize) {
-    long[][] sync;
-    sync = global new long [nthreads][cachelinesize];
+  public int[][] init_sync(int nthreads, int cachelinesize) {
+    int[][] sync;
+    sync = global new int [nthreads][cachelinesize];
     for (int i = 0; i<nthreads; i++)
       sync[i][0] = 0;
     return sync;
