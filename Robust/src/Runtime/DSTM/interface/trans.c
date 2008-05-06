@@ -410,18 +410,19 @@ int transCommit(transrecord_t *record) {
   unsigned int tot_bytes_mod, *listmid;
   plistnode_t *pile, *pile_ptr;
   int i, j, rc, val;
-  int pilecount, offset, threadnum = 0, trecvcount = 0;
+  int pilecount, offset, threadnum, trecvcount;
   char control;
   char transid[TID_LEN];
   trans_req_data_t *tosend;
   trans_commit_data_t transinfo;
   static int newtid = 0;
-  char treplyctrl = 0, treplyretry = 0; /* keeps track of the common response that needs to be sent */
-  char localstat = 0;
+  char treplyctrl, treplyretry; /* keeps track of the common response that needs to be sent */
   thread_data_array_t *thread_data_array;
   local_thread_data_array_t *ltdata;
+  int firsttime=1;
   
   do { 
+    treplyctrl=0;
     trecvcount = 0; 
     threadnum = 0; 
     treplyretry = 0;
@@ -430,8 +431,12 @@ int transCommit(transrecord_t *record) {
     
     /* Look through all the objects in the transaction record and make piles 
      * for each machine involved in the transaction*/
-    pile_ptr = pile = createPiles(record);
-    
+    if (firsttime)
+      pile_ptr = pile = createPiles(record);
+    else
+      pile=pile_ptr;
+    firsttime=0;
+
     /* Create the packet to be sent in TRANS_REQUEST */
     
     /* Count the number of participants */
@@ -461,7 +466,7 @@ int transCommit(transrecord_t *record) {
     pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
     pthread_mutex_init(&tlock, NULL);
     pthread_cond_init(&tcond, NULL);
-    
+
     /* Process each machine pile */
     while(pile != NULL) {
       //Create transaction id
@@ -552,7 +557,9 @@ int transCommit(transrecord_t *record) {
     pthread_cond_destroy(&tcond);
     pthread_mutex_destroy(&tlock);
     free(listmid);
-    pDelete(pile_ptr);
+
+    if (!treplyretry)
+      pDelete(pile_ptr);
     
     /* wait a random amount of time before retrying to commit transaction*/
     if(treplyretry) {
@@ -647,7 +654,7 @@ void *transRequest(void *threadarg) {
   /* Read control message from Participant */
   recv_data(sd, &control, sizeof(char));
   recvcontrol = control;
-  
+
   /* Update common data structure and increment count */
   tdata->recvmsg[tdata->thread_id].rcv_status = recvcontrol;
   
