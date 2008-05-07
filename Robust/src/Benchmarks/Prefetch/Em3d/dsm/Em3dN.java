@@ -44,57 +44,111 @@ public class Em3d extends Thread
   int lowerlimit;
   Barrier mybarr;
 
+  Random r;
+
+  // yipes! static members are not supported so
+  // using the following constants:
+  // runMode == 1 is RUNMODE_ALLOC
+  // runMode == 2 is RUNMODE_NEIGHBORS
+  // runMode == 3 is RUNMODE_MAKEFROM
+  // runMode == 4 is RUNMODE_FROMLINKS
+  // runMode == 5 is RUNMODE_WORK
+  int runMode;
+
+
   public Em3d() {
     numNodes = 0;
     numDegree = 0;
     numIter = 1;
     printResult = false;
     printMsgs = false;
+    runMode = 0;
   }
 
-  public Em3d(BiGraph bg, int lowerlimit, int upperlimit, int numIter, Barrier mybarr) {
+  public Em3d(BiGraph bg, int lowerlimit, int upperlimit, int numIter, Barrier mybarr, int numDegree, Random r, int runMode) {
     this.bg = bg;
     this.lowerlimit = lowerlimit;
     this.upperlimit = upperlimit;
     this.numIter = numIter;
     this.mybarr = mybarr;
+    this.runMode = runMode;
+    this.numDegree = numDegree;
+    this.r = r;
   }
 
   public void run() {
     int iteration;
     Barrier barr;
+    int degree;
+    Random random;
+    int mode;
 
     atomic {
       iteration = numIter;
       barr=mybarr;
+      degree = numDegree;
+      random = r;
+      mode = runMode;
     }
 
-    for (int i = 0; i < iteration; i++) {
-	/* for  eNodes */
+    if( mode == 1 ) {
 	atomic {
-	    for(int j = lowerlimit; j<upperlimit; j++) {
-		Node n = bg.eNodes[j];
-		
-		for (int k = 0; k < n.fromCount; k++) {
-		    n.value -= n.coeffs[k] * n.fromNodes[k].value;
-		}
-	    }
+	    bg.allocate( lowerlimit, upperlimit, degree, r );
 	}
-	
 	Barrier.enterBarrier(barr);
 	System.clearPrefetchCache();
 
-	/* for  hNodes */
+    } else if( mode == 2 ) {
 	atomic {
-	    for(int j = lowerlimit; j<upperlimit; j++) {
-		Node n = bg.hNodes[j];
-		for (int k = 0; k < n.fromCount; k++) {
-		    n.value -= n.coeffs[k] * n.fromNodes[k].value;
-		}
-	    }
+	    bg.makeNeighbors( lowerlimit, upperlimit, r );
 	}
 	Barrier.enterBarrier(barr);
 	System.clearPrefetchCache();
+
+    } else if( mode == 3 ) {
+	atomic {
+	    bg.makeFromNodes( lowerlimit, upperlimit );
+	}
+	Barrier.enterBarrier(barr);
+	System.clearPrefetchCache();
+
+    } else if( mode == 4 ) {
+	atomic {
+	    bg.makeFromLinks( lowerlimit, upperlimit, r );
+	}
+	Barrier.enterBarrier(barr);
+	System.clearPrefetchCache();
+
+    } else if( mode == 5 ) {
+
+	for (int i = 0; i < iteration; i++) {
+	    /* for  eNodes */
+	    atomic {
+		for(int j = lowerlimit; j<upperlimit; j++) {
+		    Node n = bg.eNodes[j];
+		    
+		    for (int k = 0; k < n.fromCount; k++) {
+			n.value -= n.coeffs[k] * n.fromNodes[k].value;
+		    }
+		}
+	    }
+	    
+	    Barrier.enterBarrier(barr);
+	    System.clearPrefetchCache();
+	    
+	    /* for  hNodes */
+	    atomic {
+		for(int j = lowerlimit; j<upperlimit; j++) {
+		    Node n = bg.hNodes[j];
+		    for (int k = 0; k < n.fromCount; k++) {
+			n.value -= n.coeffs[k] * n.fromNodes[k].value;
+		    }
+		}
+	    }
+	    Barrier.enterBarrier(barr);
+	    System.clearPrefetchCache();
+	}
+	
     }
   }
 
@@ -112,43 +166,186 @@ public class Em3d extends Thread
     long start0 = System.currentTimeMillis();
     int numThreads = em.numThreads;
     int[] mid = new int[4];
-    mid[0] = (128<<24)|(195<<16)|(175<<8)|69;
-    mid[1] = (128<<24)|(195<<16)|(175<<8)|80;
+    mid[0] = (128<<24)|(195<<16)|(175<<8)|69;//dw-1
+    mid[1] = (128<<24)|(195<<16)|(175<<8)|70;//dw-2
     mid[2] = (128<<24)|(195<<16)|(175<<8)|73;
     mid[3] = (128<<24)|(195<<16)|(175<<8)|78;
     System.printString("DEBUG -> numThreads = " + numThreads+"\n");
     Barrier mybarr;
     BiGraph graph;
-    Random rand = new Random(783);
+    Random rand;
+
+    
+    // initialization step 1: allocate BiGraph
+    System.printString( "Allocating BiGraph.\n" );
 
     atomic {
       mybarr = global new Barrier(numThreads);
+      rand = global new Random(783);
       graph =  BiGraph.create(em.numNodes, em.numDegree, em.printResult, rand);
     }
 
+    Em3d[] em3d;    
+    Em3d tmp;
+    int base;
+    int increment;
+
+
+	increment = em.numNodes/numThreads;
+
+
+    // initialization step 2: divide work of allocating nodes
+    System.printString( "Launching distributed allocation of nodes.\n" );
+
+    atomic {
+      em3d = global new Em3d[numThreads];
+      base=0;
+      for(int i=0;i<numThreads;i++) {
+	  if ((i+1)==numThreads)
+	      em3d[i] = global new Em3d(graph, base, em.numNodes, em.numIter, mybarr, em.numDegree, rand, 1);
+	  else
+	      em3d[i] = global new Em3d(graph, base, base+increment, em.numIter, mybarr, em.numDegree, rand, 1);
+	  base+=increment;
+      }
+    }
+
+    for(int i = 0; i<numThreads; i++) {
+      atomic {
+        tmp = em3d[i];
+      }
+      tmp.start(mid[i]);
+    }
+
+    for(int i = 0; i<numThreads; i++) {
+      atomic { 
+        tmp = em3d[i];
+      }
+      tmp.join();
+    }
+
+    // initialization step 3: link together the ends of segments
+    // that were allocated and internally linked in step 2
+    System.printString( "Linking together allocated segments.\n" );
+
+    base = 0;
+    for(int i = 0; i < numThreads - 1; i++) {
+	atomic {
+	    graph.linkSegments( base + increment );
+	    base += increment;   	    
+	}
+    }    
+
+    // initialization step 4: divide work of making links
+    System.printString( "Launching distributed neighbor initialization.\n" );
+
+    atomic {
+      em3d = global new Em3d[numThreads];
+      base=0;
+      for(int i=0;i<numThreads;i++) {
+	  if ((i+1)==numThreads)
+	      em3d[i] = global new Em3d(graph, base, em.numNodes, em.numIter, mybarr, em.numDegree, rand, 2);
+	  else
+	      em3d[i] = global new Em3d(graph, base, base+increment, em.numIter, mybarr, em.numDegree, rand, 2);
+	  base+=increment;
+      }
+    }
+
+    for(int i = 0; i<numThreads; i++) {
+      atomic {
+        tmp = em3d[i];
+      }
+      tmp.start(mid[i]);
+    }
+
+    for(int i = 0; i<numThreads; i++) {
+      atomic { 
+        tmp = em3d[i];
+      }
+      tmp.join();
+    }
+
+    // initialization step 5: divide work of making from links
+    System.printString( "Launching distributed makeFromNodes initialization.\n" );
+
+    atomic {
+      em3d = global new Em3d[numThreads];
+      base=0;
+      for(int i=0;i<numThreads;i++) {
+	  if ((i+1)==numThreads)
+	      em3d[i] = global new Em3d(graph, base, em.numNodes, em.numIter, mybarr, em.numDegree, rand, 3);
+	  else
+	      em3d[i] = global new Em3d(graph, base, base+increment, em.numIter, mybarr, em.numDegree, rand, 3);
+	  base+=increment;
+      }
+    }
+
+    for(int i = 0; i<numThreads; i++) {
+      atomic {
+        tmp = em3d[i];
+      }
+      tmp.start(mid[i]);
+    }
+
+    for(int i = 0; i<numThreads; i++) {
+      atomic { 
+        tmp = em3d[i];
+      }
+      tmp.join();
+    }
+
+    // initialization step 6: divide work of making from links
+    System.printString( "Launching distributed fromLink initialization.\n" );
+
+    atomic {
+      em3d = global new Em3d[numThreads];
+      base=0;
+      for(int i=0;i<numThreads;i++) {
+	  if ((i+1)==numThreads)
+	      em3d[i] = global new Em3d(graph, base, em.numNodes, em.numIter, mybarr, em.numDegree, rand, 4);
+	  else
+	      em3d[i] = global new Em3d(graph, base, base+increment, em.numIter, mybarr, em.numDegree, rand, 4);
+	  base+=increment;
+      }
+    }
+
+    for(int i = 0; i<numThreads; i++) {
+      atomic {
+        tmp = em3d[i];
+      }
+      tmp.start(mid[i]);
+    }
+
+    for(int i = 0; i<numThreads; i++) {
+      atomic { 
+        tmp = em3d[i];
+      }
+      tmp.join();
+    }
+
+    // initialization complete
+    System.printString( "Initialization complete.\n" );
+
     long end0 = System.currentTimeMillis();
+
 
     // compute a single iteration of electro-magnetic propagation
     if (em.printMsgs) 
       System.printString("Propagating field values for " + em.numIter + 
           " iteration(s)...\n");
     long start1 = System.currentTimeMillis();
-    Em3d[] em3d;
 
     atomic {
       em3d = global new Em3d[numThreads];
-      int increment=em.numNodes/numThreads;
-      int base=0;
+      base=0;
       for(int i=0;i<numThreads;i++) {
 	  if ((i+1)==numThreads)
-	      em3d[i] = global new Em3d(graph, base, em.numNodes, em.numIter, mybarr);
+	      em3d[i] = global new Em3d(graph, base, em.numNodes, em.numIter, mybarr, em.numDegree, rand, 5);
 	  else
-	      em3d[i] = global new Em3d(graph, base, base+increment, em.numIter, mybarr);
+	      em3d[i] = global new Em3d(graph, base, base+increment, em.numIter, mybarr, em.numDegree, rand, 5);
 	  base+=increment;
       }
     }
 
-    Em3d tmp;
     for(int i = 0; i<numThreads; i++) {
       atomic {
         tmp = em3d[i];

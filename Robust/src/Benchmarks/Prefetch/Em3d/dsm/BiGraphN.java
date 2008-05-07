@@ -36,51 +36,123 @@ public class BiGraph
    * @return the bi graph that we've created.
    **/
 
-  static BiGraph create(int numNodes, int numDegree, boolean verbose, Random r)
+  static BiGraph create(int numNodes, int degree, boolean verbose, Random r)
   {
-
     // making nodes (we create a table)
     //if (verbose) System.printString("making nodes (tables in orig. version)");
-    Node [] eTable=Node.fillTable(numNodes, numDegree, r);
-    Node [] hTable=Node.fillTable(numNodes, numDegree, r);
+    //Node [] eTable=Node.fillTable(numNodes, numDegree, r);
+    //Node [] hTable=Node.fillTable(numNodes, numDegree, r);
 
-    // making neighbors
-    //if (verbose) System.printString("updating from and coeffs");
-    for(int i = 0; i< numNodes; i++) {
-      Node n = hTable[i];
-      n.makeUniqueNeighbors(eTable, r);
-    }
+    Node [] eTable = global new Node[numNodes];
+    Node [] hTable = global new Node[numNodes];
 
-    for (int i = 0; i < numNodes; i++) {
-      Node n = eTable[i];
-      n.makeUniqueNeighbors(hTable, r);
-    }
-
-    // Create the fromNodes and coeff field
-    //if (verbose) System.printString("filling from fields");
-    for(int i = 0; i< numNodes; i++) {
-      Node n = hTable[i];
-      n.makeFromNodes();
-    }
-
-    for (int i = 0; i < numNodes; i++) {
-      Node n = eTable[i];
-      n.makeFromNodes();
-    }
-
-    // Update the fromNodes
-    for (int i = 0; i < numNodes; i++) {
-      Node n = hTable[i];
-      n.updateFromNodes(r);
-    }
-    for (int i = 0; i < numNodes; i++) {
-      Node n = eTable[i];
-      n.updateFromNodes(r);
-    }
-
+    eTable[0] = global new Node(degree, r);
+    hTable[0] = global new Node(degree, r);
+      
     BiGraph g = global new BiGraph(eTable, hTable);
+
     return g;
   }
+
+    
+  /**
+   * 
+   *
+   * @return 
+   **/
+  public void allocate( int indexBegin, int indexEnd, int degree, Random r )
+  { 
+      Node prevNodeE = global new Node(degree, r);
+      Node prevNodeH = global new Node(degree, r);
+
+      eNodes[indexBegin] = prevNodeE;
+      hNodes[indexBegin] = prevNodeH;
+
+      for( int i = indexBegin + 1; i < indexEnd; i++ ) {
+	  Node curNodeE = global new Node(degree, r);
+	  Node curNodeH = global new Node(degree, r);
+
+	  eNodes[i] = curNodeE;
+	  hNodes[i] = curNodeH;
+
+	  prevNodeE.next = curNodeE;
+	  prevNodeH.next = curNodeH;
+
+	  prevNodeE = curNodeE;
+	  prevNodeH = curNodeH;
+      }
+  }
+
+  
+  public void linkSegments( int index ) {
+      eNodes[index - 1].next = eNodes[index];
+      hNodes[index - 1].next = hNodes[index];
+  }
+
+
+  /**
+   * 
+   *
+   * @return 
+   **/
+  public void makeNeighbors( int indexBegin, int indexEnd, Random r )
+  {
+      System.printString( "Making unique neighbors for hNodes...\n" );
+
+      // making neighbors
+      //if (verbose) System.printString("updating from and coeffs");
+      for(int i = indexBegin; i < indexEnd; i++) {
+	  Node n = hNodes[i];
+	  n.makeUniqueNeighbors(eNodes, r);
+      }
+
+      System.printString( "Making unique neighbors for eNodes...\n" );
+
+      for (int i = indexBegin; i < indexEnd; i++) {
+	  Node n = eNodes[i];
+	  n.makeUniqueNeighbors(hNodes, r);
+      }
+  }
+
+
+  public void makeFromNodes( int indexBegin, int indexEnd )
+  {
+      System.printString( "Making h fromNodes...\n" );
+
+      // Create the fromNodes and coeff field
+      //if (verbose) System.printString("filling from fields");
+      for(int i = indexBegin; i < indexEnd; i++) {
+	  Node n = hNodes[i];
+	  n.makeFromNodes();
+      }
+      
+      System.printString( "Making e fromNodes...\n" );
+
+      for(int i = indexBegin; i < indexEnd; i++) {
+	  Node n = eNodes[i];
+	  n.makeFromNodes();
+      }   
+  }
+
+
+  public void makeFromLinks( int indexBegin, int indexEnd, Random r )
+  {
+      System.printString( "Updating h fromNodes...\n" );
+
+      // Update the fromNodes
+      for(int i = indexBegin; i < indexEnd; i++) {
+	  Node n = hNodes[i];
+	  n.updateFromNodes(r);
+      }
+
+      System.printString( "Updating e fromNodes...\n" );
+
+      for(int i = indexBegin; i < indexEnd; i++) {
+	  Node n = eNodes[i];
+	  n.updateFromNodes(r);
+      }      
+  }
+
 
   /**
    * Override the toString method to print out the values of the e and h nodes.

@@ -122,7 +122,7 @@ public class Node {
    * by this node.
    **/
   public void updateFromNodes(Random rand)
-  {
+  { 
     for (int i = 0; i < toNodes.length; i++) {
       Node otherNode = toNodes[i];
       int count = otherNode.fromLength++;
