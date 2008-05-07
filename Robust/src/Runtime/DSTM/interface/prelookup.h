@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <pthread.h>
+#include "dstm.h"
 
 #define LOADFACTOR 0.5
 #define HASH_SIZE 100
@@ -14,14 +15,18 @@ typedef struct prehashlistnode {
 	struct prehashlistnode *next;
 } prehashlistnode_t;
 
+struct objstr;
+
 typedef struct prehashtable {
-	prehashlistnode_t *table;	// points to beginning of hash table
-	unsigned int size;
-	unsigned int numelements;
-	float loadfactor;
-	pthread_mutex_t lock;
-	pthread_mutexattr_t prefetchmutexattr;
-	pthread_cond_t cond;
+  prehashlistnode_t *table;	// points to beginning of hash table
+  unsigned int size;
+  unsigned int numelements;
+  float loadfactor;
+  pthread_mutex_t lock;
+  pthread_mutexattr_t prefetchmutexattr;
+  pthread_cond_t cond;
+  struct objstr *hack2;
+  struct objstr *hack;
 } prehashtable_t;
 
 /* Prototypes for hash*/

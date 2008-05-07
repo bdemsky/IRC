@@ -654,7 +654,6 @@ void *transRequest(void *threadarg) {
   /* Read control message from Participant */
   recv_data(sd, &control, sizeof(char));
   recvcontrol = control;
-
   /* Update common data structure and increment count */
   tdata->recvmsg[tdata->thread_id].rcv_status = recvcontrol;
   
