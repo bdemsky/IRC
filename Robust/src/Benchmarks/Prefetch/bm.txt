@@ -1,5 +1,8 @@
-JGFSORBenchSizeA:SOR/dsm::2:4:sorverA
-MatrixMultiply:MatrixMultiply:1 200 30:2 200 30:4 200 30:mmver200
-MatrixMultiply:MatrixMultiply:1 150 30:2 150 30:4 150 30:mmver150
-Em3d:Em3d/dsm:-T 1 -N 4000 -d 200 -p -i 1:-T 2 -N 4000 -d 200 -p -i 1:-T 4 -N 4000 -d 200 -p -i 1:em3dver4000
-Em3d:Em3d/dsm:-T 1 -N 3000 -d 200 -p -i 1:-T 2 -N 3000 -d 200 -p -i 1:-T 4 -N 3000 -d 200 -p -i 1:em3dver3000
+JGFSORBenchSizeA:SOR/dsm::2:3:4:sorverA
+JGFLUFactBenchSizeA:LUFact/dsm::2:4:lufactverA
+JGFLUFactBenchSizeB:LUFact/dsm::2:4:lufactverB
+MatrixMultiply:MatrixMultiply:1 200 30:2 200 30:3 200 30:4 200 30:mmver200
+MatrixMultiply:MatrixMultiply:1 600:2 600:3 600:4 600:mmver600
+Em3d:Em3d/dsm:-T 1 -N 4000 -d 130 -p -i 3:-T 2 -N 4000 -d 130 -p -i 3:-T 3 -N 4000 -d 130 -p -i 3:-T 4 -N 4000 -d 130 -p -i 3:em3dver40001303
+Chase:Chase:::::chase
+Array:Array:::::array
