@@ -4,7 +4,7 @@ SRC=${MAINCLASS}.java \
 	JGFInstrumentor.java \
 	JGFTimer.java \
 	SORRunner.java
-FLAGS=-dsm -prefetch -nooptimize -debug -profile -excprefetch JGFSORBench.RandomMatrix -excprefetch JGFSORBench.init_sync -excprefetch JGFSORBench.JGFkernel -mainclass ${MAINCLASS} -trueprob 0.80
+FLAGS=-dsm -prefetch -nooptimize -debug -profile -excprefetch JGFSORBench.RandomMatrix -excprefetch JGFSORBench.init_sync -excprefetch JGFSORBench.JGFkernel -mainclass ${MAINCLASS} -trueprob 0.88
 FLAGS2=-dsm -nooptimize -debug -profile -mainclass ${MAINCLASS}
 
 default:
@@ -14,6 +14,8 @@ default:
 	../../../../buildscript ${FLAGS} -o ${MAINCLASS}1  ${SRC}
 	cp ${MAINCLASS}1NP.bin ${MAINCLASS}2NP.bin
 	cp ${MAINCLASS}1.bin ${MAINCLASS}2.bin
+	cp ${MAINCLASS}1NP.bin ${MAINCLASS}3NP.bin
+	cp ${MAINCLASS}1.bin ${MAINCLASS}3.bin
 	cp ${MAINCLASS}1NP.bin ${MAINCLASS}4NP.bin
 	cp ${MAINCLASS}1.bin ${MAINCLASS}4.bin
 
