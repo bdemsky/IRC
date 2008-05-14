@@ -1,5 +1,6 @@
 package Analysis.TaskStateAnalysis;
 
+import Analysis.Scheduling.ScheduleEdge;
 import Analysis.TaskStateAnalysis.*;
 import IR.*;
 import IR.Tree.*;
@@ -27,6 +28,7 @@ public class FlagState extends GraphNode implements Cloneable {
     public static final int KLIMIT=2;
     
     // jzhou
+    // for static scheduling
     private int executeTime;
     private int invokeNum;
     // for building multicore codes
@@ -34,6 +36,8 @@ public class FlagState extends GraphNode implements Cloneable {
     private int checkmask;
     private boolean setmask;
     private int iuid;
+    //private boolean isolate;
+    //private Vector<ScheduleEdge> allys;
 
     /** Class constructor
      *  Creates a new flagstate with all flags set to false.
@@ -51,6 +55,8 @@ public class FlagState extends GraphNode implements Cloneable {
 	this.checkmask = 0;
 	this.setmask = false;
 	this.iuid = 0;
+	//this.isolate = true;
+	//this.allys = null;
     }
 
     /** Class constructor
@@ -422,4 +428,22 @@ public class FlagState extends GraphNode implements Cloneable {
 	
 	return next;
     }
+
+    /*public Vector<ScheduleEdge> getAllys() {
+        return allys;
+    }
+
+    public void addAlly(ScheduleEdge se) {
+	if(this.allys == null) {
+	    assert(this.isolate == true);
+	    this.isolate = false;
+	    this.allys = new Vector<ScheduleEdge>();
+	}
+        this.allys.addElement(se);
+    }
+
+    public boolean isIsolate() {
+        return isolate;
+    }*/
+    
 }

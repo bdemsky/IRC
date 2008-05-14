@@ -6,6 +6,7 @@ import IR.Tree.TagExpressionList;
 import IR.*;
 import java.util.*;
 import java.io.*;
+
 import Util.Relation;
 import Analysis.TaskStateAnalysis.FlagState;
 import Analysis.TaskStateAnalysis.FlagComparator;
@@ -425,10 +426,11 @@ public class BuildCode {
 	    outclassdefs.println("  int flag;");
 	    if(!state.MULTICORE) {
 		outclassdefs.println("  void * flagptr;");
-	    } /*else {
-		outclassdefs.println("  int corenum;");
-		outclassdefs.println("  int flagptr;");
-	    }*/
+	    } else {
+		outclassdefs.println("  int isolate;"); // indicate if this object is shared or not
+		outclassdefs.println("  int version;");
+		outclassdefs.println("  struct ___Object___ * original;");
+	    }
 	    if(state.OPTIONAL){
 		outclassdefs.println("  int numfses;");
 		outclassdefs.println("  int * fses;");
@@ -1015,9 +1017,11 @@ public class BuildCode {
 	    classdefout.println("  int flag;");
 	    if((!state.MULTICORE) || (cn.getSymbol().equals("TagDescriptor"))) {
 		classdefout.println("  void * flagptr;");
-	    } /*else {
-		classdefout.println("  int flagptr;");
-	    }*/
+	    } else if (state.MULTICORE){
+		classdefout.println("  int isolate;"); // indicate if this object is shared or not
+		classdefout.println("  int version;");
+		classdefout.println("  struct ___Object___ * original;");
+	    }
 	    if (state.OPTIONAL){
 		classdefout.println("  int numfses;");
 		classdefout.println("  int * fses;");
@@ -2087,6 +2091,10 @@ public class BuildCode {
 		output.println(generateTemp(fm,fn.getDst(),lb)+"=allocate_new("+fn.getType().getClassDesc().getId()+");");
 	    }
 	}
+	if(state.MULTICORE) {
+	    output.println("   " + generateTemp(fm,fn.getDst(),lb)+"->isolate = 1;");
+	    output.println("   " + generateTemp(fm,fn.getDst(),lb)+"->version = 0;");
+	}
 	if (state.DSM && locality.getAtomic(lb).get(fn).intValue()>0&&!fn.isGlobal()) {
 	    String revertptr=generateTemp(fm, reverttable.get(lb),lb);
 	    output.println("trans->revertlist="+revertptr+";");
@@ -2170,14 +2178,15 @@ public class BuildCode {
 	    output.println(generateTemp(fm, fln.getDst(),lb)+"="+fln.getValue()+";");
     }
 
-    private void generateFlatReturnNode(FlatMethod fm, LocalityBinding lb, FlatReturnNode frn, PrintWriter output) {
+    protected void generateFlatReturnNode(FlatMethod fm, LocalityBinding lb, FlatReturnNode frn, PrintWriter output) {
 	if (frn.getReturnTemp()!=null) {
 	    if (frn.getReturnTemp().getType().isPtr())
 		output.println("return (struct "+fm.getMethod().getReturnType().getSafeSymbol()+"*)"+generateTemp(fm, frn.getReturnTemp(), lb)+";");
 	    else
 		output.println("return "+generateTemp(fm, frn.getReturnTemp(), lb)+";");
-	} else
+	} else {
 	    output.println("return;");
+	}
     }
 
     //private void generateFlatCondBranch(FlatMethod fm, LocalityBinding lb, FlatCondBranch fcb, String label, PrintWriter output) {
@@ -2793,6 +2802,9 @@ public class BuildCode {
 	}
 	
 	return l;
+    }
+    
+    protected void outputTransCode(PrintWriter output) {
     }
 }
 	 

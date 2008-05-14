@@ -17,6 +17,8 @@ public class Schedule {
     private Hashtable<FlagState, FlagState> targetFState;
     private Vector<Integer> ancestorCores;
     private Vector<Integer> childCores;
+    private Hashtable<FlagState, Vector<Integer>> allyCores;
+    private Hashtable<TaskDescriptor, Vector<FlagState>> td2fs;
     
     public Schedule(int coreNum) {
 	super();
@@ -25,6 +27,8 @@ public class Schedule {
 	this.targetCores = null;
 	this.targetFState = null;
 	this.ancestorCores = null;
+	this.allyCores = null;
+	this.td2fs = null;
     }
 
     public int getCoreNum() {
@@ -51,6 +55,28 @@ public class Schedule {
 	    return null;
 	}
 	return targetFState.get(fstate);
+    }
+    
+    public Hashtable<FlagState, Vector<Integer>> getAllyCoreTable() {
+        return this.allyCores;
+    }
+    
+    public Vector<Integer> getAllyCores(FlagState fstate) {
+	if(this.allyCores == null) {
+	    return null;
+	}
+	return this.allyCores.get(fstate);
+    }
+    
+    public Hashtable<TaskDescriptor, Vector<FlagState>> getTd2FsTable() {
+        return this.td2fs;
+    }
+    
+    public Vector<FlagState> getFStates4TD(TaskDescriptor td) {
+	if(this.td2fs == null) {
+	    return null;
+	}
+	return this.td2fs.get(td);
     }
 
     public void addTargetCore(FlagState fstate, Integer targetCore/*, Integer num*/) {
@@ -82,6 +108,31 @@ public class Schedule {
 	//if(!this.targetFState.containsKey(fstate)) {
 	    this.targetFState.put(fstate, tfstate);
 	//}
+    }
+    
+    public void addAllyCore(FlagState fstate, Integer targetCore/*, Integer num*/) {
+	if(this.allyCores == null) {
+	    this.allyCores = new Hashtable<FlagState, Vector<Integer>>();
+	}
+	if(!this.allyCores.containsKey(fstate)) {
+	    this.allyCores.put(fstate, new Vector<Integer>());
+	}
+	if((this.coreNum != targetCore.intValue()) && (!this.allyCores.get(fstate).contains(targetCore))) {
+	    this.allyCores.get(fstate).add(targetCore); // there may have some duplicate items,
+	                                                  // which reflects probabilities.
+	}
+    }
+    
+    public void addFState4TD(TaskDescriptor td, FlagState fstate) {
+	if(this.td2fs == null) {
+	    this.td2fs = new Hashtable<TaskDescriptor, Vector<FlagState>>();
+	}
+	if(!this.td2fs.containsKey(td)) {
+	    this.td2fs.put(td, new Vector<FlagState>());
+	}
+	if(!this.td2fs.get(td).contains(fstate)) {
+	    this.td2fs.get(td).add(fstate);
+	}
     }
 
     public Vector<TaskDescriptor> getTasks() {

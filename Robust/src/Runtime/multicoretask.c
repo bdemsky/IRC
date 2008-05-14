@@ -63,13 +63,21 @@ struct thread_data {
 struct thread_data thread_data_array[NUMCORES];
 mqd_t mqd[NUMCORES];
 static pthread_key_t key;
+static struct RuntimeHash* locktbl;
+static pthread_rwlock_t rwlock_tbl;
+static pthread_rwlock_t rwlock_init;
+#endif
 bool transStallMsg(int targetcore);
 void transTerminateMsg(int targetcore);
 void run(void * arg);
-#endif
+bool getreadlock(void* ptr);
+void releasereadlock(void* ptr);
+bool getwritelock(void* ptr);
+void releasewritelock(void* ptr);
 
 int main(int argc, char **argv) {
 #ifdef THREADSIMULATE
+	errno = 0;
 	int tids[NUMCORES];
 	int rc[NUMCORES];
 	pthread_t threads[NUMCORES];
@@ -106,10 +114,21 @@ int main(int argc, char **argv) {
 		int omodes = S_IRWXU|S_IRWXG|S_IRWXO;
 		mq_unlink(path);
 		mqd[i]= mq_open(path, oflags, omodes, NULL);
+		if(mqd[i] == -1) {
+			printf("[Main] mq_open %s fails: %d, error: %s\n", path, mqd[i], strerror(errno));
+			exit(-1);
+		} else {
+			printf("[Main] mq_open %s returns: %d\n", path, mqd[i]);
+		}
 	}
 
 	// create the key
 	pthread_key_create(&key, NULL);
+
+	// create the lock table and initialize its mutex
+	locktbl = allocateRuntimeHash(20);
+	int rc_locktbl = pthread_rwlock_init(&rwlock_tbl, NULL);
+	printf("[Main] initialize the rwlock for lock table: %d error: \n", rc_locktbl, strerror(rc_locktbl));
 
 /*	if(argc < 2) {
 		printf("Usage: <bin> <corenum>\n");
@@ -133,10 +152,10 @@ int main(int argc, char **argv) {
 		thread_data_array[i].argv = argv;
 		thread_data_array[i].numsendobjs = 0;
 		thread_data_array[i].numreceiveobjs = 0;
-		printf("In main: creating thread %d\n", i);
+		printf("[main] creating thread %d\n", i);
 		rc[i] = pthread_create(&threads[i], NULL, run, (void *)&thread_data_array[i]);
         if (rc[i]){
-			printf("ERROR; return code from pthread_create() is %d\n", rc[i]);
+			printf("[main] ERROR; return code from pthread_create() is %d\n", rc[i]);
 			fflush(stdout);
 			exit(-1);
 		}
@@ -160,7 +179,7 @@ void run(void* arg) {
 	pthread_setspecific(key, (void *)my_tdata->corenum);
 	int argc = my_tdata->argc;
 	char** argv = my_tdata->argv;
-	printf("Thread %d runs: %x\n", my_tdata->corenum, (int)pthread_self());
+	printf("[run, %d] Thread %d runs: %x\n", my_tdata->corenum, my_tdata->corenum, (int)pthread_self());
 	fflush(stdout);
 
 #endif
@@ -199,7 +218,7 @@ void run(void* arg) {
   while(true) {
 	  switch(receiveObject()) {
 		  case 0: {
-					  printf("[run] receive an object\n");
+					  printf("[run, %d] receive an object\n", numofcore);
 					  sendStall = false;
 					  // received an object
 					  // check if there are new active tasks can be executed
@@ -207,7 +226,7 @@ void run(void* arg) {
 					  break;
 				  }
 		  case 1: {
-					  //printf("[run] no msg\n");
+					  //printf("[run, %d] no msg\n", numofcore);
 					  // no msg received
 					  if(STARTUPCORE == numofcore) {
 						  corestatus[numofcore] = 0;
@@ -239,7 +258,46 @@ void run(void* arg) {
 									  }
 								  }
 								  mq_close(mqd[corenum]);*/
-								  printf("[run] terminate!\n");
+								  
+								  // release all locks
+								  struct RuntimeIterator* it_lock = RuntimeHashcreateiterator(locktbl); 
+								  while(0 != RunhasNext(it_lock)) {
+									  int key = Runkey(it_lock);
+									  pthread_rwlock_t* rwlock_obj = (pthread_rwlock_t*)Runnext(it_lock);
+									  int rc_des = pthread_rwlock_destroy(rwlock_obj);
+									  printf("[run, %d] destroy the rwlock for object: %d error: \n", numofcore, key, strerror(rc_des));
+								  }
+								  freeRuntimeHash(locktbl);
+								  locktbl = NULL;
+								  RUNFREE(it_lock);
+
+								  // destroy all message queues
+								  char * pathhead = "/msgqueue_";
+								  int targetlen = strlen(pathhead);
+								  for(i = 0; i < NUMCORES; ++i) {
+									  char corenumstr[3];
+									  int sourcelen = 0;
+									  if(i < 10) {
+										  corenumstr[0] = i + '0';
+										  corenumstr[1] = '\0';
+										  sourcelen = 1;
+									  } else if(i < 100) {
+										  corenumstr[1] = i %10 + '0';
+										  corenumstr[0] = (i / 10) + '0';
+										  corenumstr[2] = '\0';
+										  sourcelen = 2;
+									  } else {
+										  printf("Error: i >= 100\n");	
+										  fflush(stdout);
+										  exit(-1);
+									  }
+									  char path[targetlen + sourcelen + 1];
+									  strcpy(path, pathhead);
+									  strncat(path, corenumstr, sourcelen);
+									  mq_unlink(path);
+								  }
+
+								  printf("[run, %d] terminate!\n", numofcore);
 								  fflush(stdout);
 								  exit(0);
 							  }
@@ -253,14 +311,14 @@ void run(void* arg) {
 					  break;
 				  }
 		  case 2: {
-					  printf("[run] receive a stall msg\n");
+					  printf("[run, %d] receive a stall msg\n", numofcore);
 					  // receive a Stall Msg, do nothing
 					  assert(STARTUPCORE == numofcore); // only startup core can receive such msg
 					  sendStall = false;
 					  break;
 				  }
 		 /* case 3: {
-					  printf("[run] receive a terminate msg\n");
+					  printf("[run, %d] receive a terminate msg\n", numofcore);
 					  // receive a terminate Msg
 					  assert(STARTUPCORE != corenum); // only non-startup core can receive such msg
 					  mq_close(mqd[corenum]);
@@ -269,7 +327,7 @@ void run(void* arg) {
 					  break;
 				  }*/
 		  default: {
-					   printf("Error: invalid message type.\n");
+					   printf("[run, %d] Error: invalid message type.\n", numofcore);
 					   fflush(stdout);
 					   exit(-1);
 					   break;
@@ -302,6 +360,9 @@ void createstartupobject(int argc, char ** argv) {
     ((void **)(((char *)& stringarray->___length___)+sizeof(int)))[i-1]=newstring;
   }
   
+  startupobject->isolate = 1;
+  startupobject->version = 0;
+
   /* Set initialized flag for startup object */ 
   flagorandinit(startupobject,1,0xFFFFFFFF);
   enqueueObject(startupobject, NULL, 0);
@@ -683,6 +744,8 @@ void transferObject(void * obj, int targetcore) {
 	//printf( "umap ok \n" );
 #endif
 
+	int numofcore = pthread_getspecific(key);
+
 	// use POSIX message queue to transfer objects between cores
 	mqd_t mqdnum;
 	char corenumstr[3];
@@ -706,28 +769,33 @@ void transferObject(void * obj, int targetcore) {
 	char path[targetlen + sourcelen + 1];
 	strcpy(path, pathhead);
 	strncat(path, corenumstr, sourcelen);
-	int oflags = O_WRONLY|O_CREAT|O_NONBLOCK;
+	int oflags = O_WRONLY|O_NONBLOCK;
 	int omodes = S_IRWXU|S_IRWXG|S_IRWXO;
 	mqdnum = mq_open(path, oflags, omodes, NULL);
 	if(mqdnum==-1) {
-		printf("[transferObject] mq_open fail: %d, error: %s\n", mqdnum, strerror(errno));
+		printf("[transferObject, %d] mq_open %s fail: %d, error: %s\n", numofcore, path, mqdnum, strerror(errno));
 		fflush(stdout);
 		exit(-1);
 	}
+	struct ___Object___ * newobj = (struct ___Object___ *)obj;
+	if(0 == newobj->isolate) {
+		newobj = RUNMALLOC(size);
+		memcpy(newobj, obj, size);
+		newobj->original=obj;
+	}
 	int ret;
 	do {
-		ret=mq_send(mqdnum, obj, size, 0); // send the object into the queue
+		ret=mq_send(mqdnum, (void *)newobj, size, 0); // send the object into the queue
 		if(ret != 0) {
-			printf("[transferObject] mq_send returned: %d, error: %s\n", ret, strerror(errno));
+			printf("[transferObject, %d] mq_send to %s returned: %d, error: %s\n", numofcore, path, ret, strerror(errno));
 		}
-	}while(ret!=0);
-	int numofcore = pthread_getspecific(key);
+	}while(ret!=0);	
 	if(numofcore == STARTUPCORE) {
 		++numsendobjs[numofcore];
 	} else {
 		++(thread_data_array[numofcore].numsendobjs);
 	}
-	printf("[transferObject] mq_send returned: $%x\n",ret);
+	printf("[transferObject, %d] mq_send to %s returned: $%x\n", numofcore, path, ret);
 #endif
 }
 
@@ -796,22 +864,22 @@ bool transStallMsg(int targetcore) {
 	char path[targetlen + sourcelen + 1];
 	strcpy(path, pathhead);
 	strncat(path, corenumstr, sourcelen);
-	int oflags = O_WRONLY|O_CREAT|O_NONBLOCK;
+	int oflags = O_WRONLY|O_NONBLOCK;
 	int omodes = S_IRWXU|S_IRWXG|S_IRWXO;
 	mqdnum = mq_open(path, oflags, omodes, NULL);
 	if(mqdnum==-1) {
-		printf("[transStallMsg] mq_open fail: %d, error: %s\n", mqdnum, strerror(errno));
+		printf("[transStallMsg, %d] mq_open %s fail: %d, error: %s\n", numofcore, path, mqdnum, strerror(errno));
 		fflush(stdout);
 		exit(-1);
 	}
 	int ret;
 	ret=mq_send(mqdnum, (void *)&newobj, sizeof(struct ___Object___), 0); // send the object into the queue
 	if(ret != 0) {
-		printf("[transStallMsg] mq_send returned: %d, error: %s\n", ret, strerror(errno));
+		printf("[transStallMsg, %d] mq_send to %s returned: %d, error: %s\n", numofcore, path, ret, strerror(errno));
 		return false;
 	} else {
-		printf("[transStallMsg] mq_send returned: $%x\n", ret);
-		printf("index: %d, sendobjs: %d, receiveobjs: %d\n", newobj.flag, newobj.___cachedHash___, newobj.___cachedCode___);
+		printf("[transStallMsg, %d] mq_send to %s returned: $%x\n", numofcore, path, ret);
+		printf("<transStallMsg> to %s index: %d, sendobjs: %d, receiveobjs: %d\n", path, newobj.flag, newobj.___cachedHash___, newobj.___cachedCode___);
 		return true;
 	}
 #endif
@@ -851,7 +919,7 @@ void transTerminateMsg(int targetcore) {
 	char path[targetlen + sourcelen + 1];
 	strcpy(path, pathhead);
 	strncat(path, corenumstr, sourcelen);
-	int oflags = O_WRONLY|O_CREAT|O_NONBLOCK;
+	int oflags = O_WRONLY|O_NONBLOCK;
 	int omodes = S_IRWXU|S_IRWXG|S_IRWXO;
 	mqdnum = mq_open(path, oflags, omodes, NULL);
 	if(mqdnum==-1) {
@@ -922,12 +990,12 @@ int receiveObject() {
 	//printf("msg: %s\n",msgptr);
 	if(((int*)msgptr)[0] == -1) {
 		// StallMsg
-		int* tmpptr = (int*)msgptr;
-		int index = tmpptr[1];
+		struct ___Object___ * tmpptr = (struct ___Object___ *)msgptr;
+		int index = tmpptr->flag;
 		corestatus[index] = 0;
-		numsendobjs[index] = tmpptr[2];
-		numreceiveobjs[index] = ((int *)(msgptr + sizeof(int) * 3 + sizeof(void *)))[0];
-		printf("index: %d, sendobjs: %d, reveiveobjs: %d\n", index, numsendobjs[index], numreceiveobjs[index]);
+		numsendobjs[index] = tmpptr->___cachedHash___;
+		numreceiveobjs[index] = tmpptr->___cachedCode___;
+		printf("<receiveObject> index: %d, sendobjs: %d, reveiveobjs: %d\n", index, numsendobjs[index], numreceiveobjs[index]);
 		free(msgptr);
 		return 2;
 	} /*else if(((int*)msgptr)[0] == -2) {
@@ -946,6 +1014,157 @@ int receiveObject() {
 		enqueueObject(newobj, NULL, 0);
 		return 0;
 	}
+#endif
+}
+
+bool getreadlock(void * ptr) {
+#ifdef RAW
+
+#elif defined THREADSIMULATE
+	int numofcore = pthread_getspecific(key);
+
+	int rc = pthread_rwlock_tryrdlock(&rwlock_tbl);
+	printf("[getreadlock, %d] getting the read lock for locktbl: %d error: \n", numofcore, rc, strerror(rc));
+	if(EBUSY == rc) {
+		return false;
+	}
+	if(!RuntimeHashcontainskey(locktbl, (int)ptr)) {
+		// no locks for this object
+		// first time to operate on this shared object
+		// create a lock for it
+		rc = pthread_rwlock_unlock(&rwlock_tbl);
+		printf("[getreadlock, %d] release the read lock for locktbl: %d error: \n", numofcore, rc, strerror(rc));
+		pthread_rwlock_t* rwlock = (pthread_rwlock_t *)RUNMALLOC(sizeof(pthread_rwlock_t));
+		memcpy(rwlock, &rwlock_init, sizeof(pthread_rwlock_t));
+		rc = pthread_rwlock_init(rwlock, NULL);
+		printf("[getreadlock, %d] initialize the rwlock for object %d: %d error: \n", numofcore, (int)ptr, rc, strerror(rc));
+		rc = pthread_rwlock_trywrlock(&rwlock_tbl);
+		printf("[getreadlock, %d] getting the write lock for locktbl: %d error: \n", numofcore, rc, strerror(rc));
+		if(EBUSY == rc) {
+			return false;
+		} else {
+			RuntimeHashadd(locktbl, (int)ptr, (int)rwlock);
+			rc = pthread_rwlock_unlock(&rwlock_tbl);
+			printf("[getreadlock, %d] release the write lock for locktbl: %d error: \n", numofcore, rc, strerror(rc));
+		}
+		//rc = pthread_rwlock_rdlock(&rwlock);
+		rc = pthread_rwlock_tryrdlock(rwlock);
+		printf("[getreadlock, %d] getting read lock for object %d: %d error: \n", numofcore, (int)ptr, rc, strerror(rc));	
+		if(EBUSY == rc) {
+			return false;
+		} else {
+			return true;
+		}
+	} else {
+		pthread_rwlock_t* rwlock_obj = NULL;
+		RuntimeHashget(locktbl, (int)ptr, (int*)&rwlock_obj);
+		rc = pthread_rwlock_unlock(&rwlock_tbl);
+		printf("[getreadlock, %d] release the read lock for locktbl: %d error: \n", numofcore, rc, strerror(rc));
+		//int rc_obj = pthread_rwlock_rdlock(&rwlock_obj);
+		int rc_obj = pthread_rwlock_tryrdlock(rwlock_obj);
+		printf("[getreadlock, %d] getting read lock for object %d: %d error: \n", numofcore, (int)ptr, rc_obj, strerror(rc_obj));
+		if(EBUSY == rc_obj) {
+			return false;
+		} else {
+			return true;
+		}
+	}
+#endif
+}
+
+void releasereadlock(void * ptr) {
+#ifdef RAW
+
+#elif defined THREADSIMULATE
+	int numofcore = pthread_getspecific(key);
+	int rc = pthread_rwlock_rdlock(&rwlock_tbl);
+	printf("[releasereadlock, %d] getting the read lock for locktbl: %d error: \n", numofcore, rc, strerror(rc));
+	if(!RuntimeHashcontainskey(locktbl, (int)ptr)) {
+		printf("[releasereadlock, %d] Error: try to release a lock without previously grab it\n", numofcore);
+		exit(-1);
+	}
+	pthread_rwlock_t* rwlock_obj = NULL;
+	RuntimeHashget(locktbl, (int)ptr, (int*)&rwlock_obj);
+	int rc_obj = pthread_rwlock_unlock(rwlock_obj);
+	printf("[releasereadlock, %d] unlocked object %d: %d error: \n", numofcore, (int)ptr, rc_obj, strerror(rc_obj));
+	rc = pthread_rwlock_unlock(&rwlock_tbl);
+	printf("[releasereadlock, %d] release the read lock for locktbl: %d error: \n", numofcore, rc, strerror(rc));
+#endif
+}
+
+bool getwritelock(void * ptr) {
+#ifdef RAW
+
+#elif defined THREADSIMULATE
+	int numofcore = pthread_getspecific(key);
+
+	int rc = pthread_rwlock_tryrdlock(&rwlock_tbl);
+	printf("[getwritelock, %d] getting the read lock for locktbl: %d error: \n", numofcore, rc, strerror(rc));
+	if(EBUSY == rc) {
+		return false;
+	}
+	if(!RuntimeHashcontainskey(locktbl, (int)ptr)) {
+		// no locks for this object
+		// first time to operate on this shared object
+		// create a lock for it
+		rc = pthread_rwlock_unlock(&rwlock_tbl);
+		printf("[getwritelock, %d] release the read lock for locktbl: %d error: \n", numofcore, rc, strerror(rc));
+		pthread_rwlock_t* rwlock = (pthread_rwlock_t *)RUNMALLOC(sizeof(pthread_rwlock_t));
+		memcpy(rwlock, &rwlock_init, sizeof(pthread_rwlock_t));
+		rc = pthread_rwlock_init(rwlock, NULL);
+		printf("[getwritelock, %d] initialize the rwlock for object %d: %d error: \n", numofcore, (int)ptr, rc, strerror(rc));
+		rc = pthread_rwlock_trywrlock(&rwlock_tbl);
+		printf("[getwritelock, %d] getting the write lock for locktbl: %d error: \n", numofcore, rc, strerror(rc));
+		if(EBUSY == rc) {
+			return false;
+		} else {
+			RuntimeHashadd(locktbl, (int)ptr, (int)rwlock);
+			rc = pthread_rwlock_unlock(&rwlock_tbl);
+			printf("[getwritelock, %d] release the write lock for locktbl: %d error: \n", numofcore, rc, strerror(rc));
+		}
+		//rc = pthread_rwlock_wrlock(rwlock);
+		rc = pthread_rwlock_trywrlock(rwlock);
+		printf("[getwritelock, %d] getting write lock for object %d: %d error: \n", numofcore, (int)ptr, rc, strerror(rc));	
+		if(EBUSY == rc) {
+			return false;
+		} else {
+			return true;
+		}
+	} else {
+		pthread_rwlock_t* rwlock_obj = NULL;
+		RuntimeHashget(locktbl, (int)ptr, (int*)&rwlock_obj);
+		rc = pthread_rwlock_unlock(&rwlock_tbl);
+		printf("[getwritelock, %d] release the read lock for locktbl: %d error: \n", numofcore, rc, strerror(rc));
+		//int rc_obj = pthread_rwlock_wrlock(rwlock_obj);
+		int rc_obj = pthread_rwlock_trywrlock(rwlock_obj);
+		printf("[getwritelock, %d] getting write lock for object %d: %d error: \n", numofcore, (int)ptr, rc_obj, strerror(rc_obj));
+		if(EBUSY == rc_obj) {
+			return false;
+		} else {
+			return true;
+		}
+	}
+
+#endif
+}
+
+void releasewritelock(void * ptr) {
+#ifdef RAW
+
+#elif defined THREADSIMULATE
+	int numofcore = pthread_getspecific(key);
+	int rc = pthread_rwlock_rdlock(&rwlock_tbl);
+	printf("[releasewritelock, %d] getting the read lock for locktbl: %d error: \n", numofcore, rc, strerror(rc));
+	if(!RuntimeHashcontainskey(locktbl, (int)ptr)) {
+		printf("[releasewritelock, %d] Error: try to release a lock without previously grab it\n", numofcore);
+		exit(-1);
+	}
+	pthread_rwlock_t* rwlock_obj = NULL;
+	RuntimeHashget(locktbl, (int)ptr, (int*)&rwlock_obj);
+	int rc_obj = pthread_rwlock_unlock(rwlock_obj);
+	printf("[releasewritelock, %d] unlocked object %d: %d error:\n", numofcore, (int)ptr, rc_obj, strerror(rc_obj));
+	rc = pthread_rwlock_unlock(&rwlock_tbl);
+	printf("[releasewritelock, %d] release the read lock for locktbl: %d error: \n", numofcore, rc, strerror(rc));
 #endif
 }
 
@@ -1135,9 +1354,73 @@ void executetasks() {
       int numparams=currtpd->task->numParameters;
       int numtotal=currtpd->task->numTotal;
       
+	  int isolateflags[numparams];
       /* Make sure that the parameters are still in the queues */
       for(i=0;i<numparams;i++) {
 	void * parameter=currtpd->parameterArray[i];
+	struct ___Object___ * tmpparam = (struct ___Object___ *)parameter;
+	if(0 == tmpparam->isolate) {
+		isolateflags[i] = 0;
+		// shared object, need to flush with current value
+		//if(!getreadlock(tmpparam->original)) {
+		//	// fail to get read lock of the original object, try this task later
+		if(!getwritelock(tmpparam->original)) {
+			// fail to get write lock, release all obtained locks and try this task later
+			int j = 0;
+			for(j = 0; j < i; ++j) {
+				if(0 == isolateflags[j]) {
+					releasewritelock(taskpointerarray[j]);
+				}
+			}
+			genputtable(activetasks, currtpd, currtpd);
+			goto newtask;
+		}
+		if(tmpparam->version != tmpparam->original->version) {
+			// flush this object
+			memcpy(tmpparam, tmpparam->original, classsize[tmpparam->type]);
+			//releasereadlock(tmpparam->original);
+			// fail to get write lock, release all obtained locks and try this task later
+			int j = 0;
+			for(j = 0; j < i; ++j) {
+				if(0 == isolateflags[j]) {
+					releasewritelock(((struct ___Object___ *)taskpointerarray[j+OFFSET])->original);
+				}
+			}
+			releasewritelock(tmpparam->original);
+
+			// some task on another core has changed this object
+			// Free up task parameter descriptor
+			RUNFREE(currtpd->parameterArray);
+			RUNFREE(currtpd);
+			// dequeue this object
+#ifdef THREADSIMULATE
+			int numofcore = pthread_getspecific(key);
+			struct parameterwrapper ** queues = objectqueues[numofcore][tmpparam->type];
+			int length = numqueues[numofcore][tmpparam->type];
+#else
+			struct parameterwrapper ** queues = objectqueues[corenum][tmpparam->type];
+			int length = numqueues[corenum][tmpparam->type];
+#endif
+			for(j = 0; j < length; ++j) {
+				struct parameterwrapper * pw = queues[j];
+				if(ObjectHashcontainskey(pw->objectset, (int)tmpparam)) {
+					int next;
+					int UNUSED, UNUSED2;
+					int * enterflags;
+					ObjectHashget(pw->objectset, (int) tmpparam, (int *) &next, (int *) &enterflags, &UNUSED, &UNUSED2);
+					ObjectHashremove(pw->objectset, (int)tmpparam);
+					if (enterflags!=NULL)
+						free(enterflags);
+				}
+			}
+			// try to enqueue it again to check if it feeds other tasks;
+			enqueueObject(tmpparam, NULL, 0);
+			goto newtask;
+		}
+		//releasereadlock(tmpparam->original);
+	} else {
+		isolateflags[i] = 1;
+	}
 	struct parameterdescriptor * pd=currtpd->task->descriptorarray[i];
 	struct parameterwrapper *pw=(struct parameterwrapper *) pd->queue;
 	int j;
@@ -1168,6 +1451,27 @@ void executetasks() {
       for(;i<numtotal;i++) {
 	taskpointerarray[i+OFFSET]=currtpd->parameterArray[i];
       }
+
+	 for(i = 0; i < numparams; ++i) {
+		  if(0 == isolateflags[i]) {
+			  struct ___Object___ * tmpparam = (struct ___Object___ *)taskpointerarray[i+OFFSET];
+			  // shared object, need to replace this copy with original one
+			  /*if(!getwritelock(tmpparam->original)) {
+				  // fail to get write lock, release all obtained locks and try this task later
+				  int j = 0;
+				  for(j = 0; j < i; ++j) {
+					  if(0 == isolateflags[j]) {
+						  releasewritelock(taskpointerarray[j]);
+					  }
+				  }
+				  genputtable(activetasks, tpd, tpd);
+				  goto newtask;
+			  }*/
+			  if(tmpparam != tmpparam->original) {
+				  taskpointerarray[i+OFFSET] = tmpparam->original;
+			  }
+		  }
+	  }
 
       {
 	/* Checkpoint the state */
@@ -1212,6 +1516,13 @@ void executetasks() {
 	    printf("EXIT %s count=%d\n",currtpd->task->name, (instaccum-instructioncount));
 	  } else
 	    ((void (*) (void **)) currtpd->task->taskptr)(taskpointerarray);
+
+	  for(i = 0; i < numparams; ++i) {
+		  if(0 == isolateflags[i]) {
+			  struct ___Object___ * tmpparam = (struct ___Object___ *)taskpointerarray[i+OFFSET];
+			  releasewritelock(tmpparam);
+		  }
+	  }
 
 	  freeRuntimeHash(forward);
 	  freeRuntimeHash(reverse);
@@ -1391,12 +1702,18 @@ void processtasks() {
 #endif
     int j;
 
-    /* Build iterators for parameters */
-    for(j=0;j<task->numParameters;j++) {
+	/* Build objectsets */
+	for(j=0;j<task->numParameters;j++) {
       struct parameterdescriptor *param=task->descriptorarray[j];
       struct parameterwrapper *parameter=param->queue;
 	  parameter->objectset=allocateObjectHash(10);
 	  parameter->task=task;
+    }
+
+    /* Build iterators for parameters */
+    for(j=0;j<task->numParameters;j++) {
+      struct parameterdescriptor *param=task->descriptorarray[j];
+      struct parameterwrapper *parameter=param->queue;
       builditerators(task, j, parameter);
     }
   }

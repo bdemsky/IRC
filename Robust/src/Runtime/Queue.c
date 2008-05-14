@@ -5,7 +5,7 @@
 #endif
 
 struct Queue * createQueue() {
-  return RUNMALLOC(sizeof(struct Queue));
+  return (struct Queue *)RUNMALLOC(sizeof(struct Queue));
 }
 
 void freeQueue(struct Queue * q) {

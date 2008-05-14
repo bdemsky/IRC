@@ -49,6 +49,16 @@ public class BuildCodeMultiCore extends BuildCode {
 	this.currentSchedule = null;
 	this.fsate2qnames = null;
 	this.startupcorenum = 0;
+	
+	// sometimes there are extra cores then needed in scheduling
+	// TODO
+	// currently, it is guaranteed that in scheduling, the corenum
+	// is started from 0 and continuous.
+	// MAY need modification here in the future when take hardware
+	// information into account.
+	if(this.scheduling.size() < this.coreNum) {
+	    this.coreNum = this.scheduling.size();
+	}
     }
 
     public void buildCode() {
@@ -482,6 +492,7 @@ public class BuildCodeMultiCore extends BuildCode {
 	outtask.println("#define _TASK_H");
 	outtask.println("#include \"ObjectHash.h\"");
 	outtask.println("#include \"structdefs.h\"");
+	outtask.println("#include \"Queue.h\"");
 	outtask.println();
 	outtask.println("struct tagobjectiterator {");
 	outtask.println("  int istag; /* 0 if object iterator, 1 if tag iterator */");
@@ -630,6 +641,7 @@ public class BuildCodeMultiCore extends BuildCode {
 	    TempDescriptor temp = fm.getParameter(i);
 	    output.println("   int "+generateTempFlagName(fm, temp, lb)+" = "+super.generateTemp(fm, temp, lb)+
 	       "->flag;");
+	    output.println("   ++" + super.generateTemp(fm, temp, lb)+"->version;");
 	}
 
 	/* Assign labels to FlatNode's if necessary.*/
@@ -645,6 +657,11 @@ public class BuildCodeMultiCore extends BuildCode {
 	    else
 		output.println("checkcollect(&"+localsprefix+");");
 	}*/
+	
+	/* Create queues to store objects need to be transferred to other cores and their destination*/
+	output.println("   struct Queue * totransobjqueue = createQueue();");
+	output.println("   struct Queue * desqueue = createQueue();");
+	output.println("int tmpint = 0;");
 
 	/* Do the actual code generation */
 	FlatNode current_node=null;
@@ -670,6 +687,7 @@ public class BuildCodeMultiCore extends BuildCode {
 		output.print("   ");
 		super.generateFlatNode(fm, lb, current_node, output);
 		if (current_node.kind()!=FKind.FlatReturnNode) {
+		    outputTransCode(output);
 		    output.println("   return;");
 		}
 		current_node=null;
@@ -695,6 +713,7 @@ public class BuildCodeMultiCore extends BuildCode {
 		    current_node=current_node.getNext(0);
 	    } else throw new Error();
 	}
+	
 	output.println("}\n\n");
     }
 
@@ -867,7 +886,7 @@ public class BuildCodeMultiCore extends BuildCode {
 	    for(int i=0;i<fm.numTags();i++) {
 		TempDescriptor temp=fm.getTag(i);
 		int offset=i+objectparams.numPrimitives();
-		output.println("struct ___TagDescriptor___ * "+temp.getSafeSymbol()+"=parameterarray["+offset+"];");
+		output.println("struct ___TagDescriptor___ * "+temp.getSafeSymbol()+i+"___=parameterarray["+offset+"];");// add i to fix bugs of duplicate definition of tags
 	    }
 
 	    if ((objectparams.numPrimitives()+fm.numTags())>maxtaskparams)
@@ -885,7 +904,8 @@ public class BuildCodeMultiCore extends BuildCode {
 	    Vector<FlagState> initfstates = ffan.getInitFStates(cd);
 	    for(int i = 0; i < initfstates.size(); ++i) {
 		FlagState tmpFState = initfstates.elementAt(i);
-		QueueInfo qinfo = outputqueues(tmpFState, num, output);
+		
+		QueueInfo qinfo = outputqueues(tmpFState, num, output, false);
 		output.println("flagorand("+super.generateTemp(fm, temp, lb)+", 0x"+Integer.toHexString(ormask)+
 			       ", 0x"+Integer.toHexString(andmask)+", " + qinfo.qname + 
 			       ", " + qinfo.length + ");");
@@ -926,19 +946,25 @@ public class BuildCodeMultiCore extends BuildCode {
 		}
 	    }
 	}
+	boolean isolate = true; // check if this flagstate can associate to some task with multiple params which can
+	                        // reside on multiple cores
 	if((this.currentSchedule == null) && (fm.getMethod().getClassDesc().getSymbol().equals("ServerSocket"))) {
 	    // ServerSocket object will always reside on current core
 	    for(int j = 0; j < targetFStates.length; ++j) {
 		if(initfstates != null) {
 		    FlagState fs = initfstates.elementAt(j);
+		    //isolate = this.currentSchedule.getAllyCoreTable().keySet().contains(fs);
 		    output.println("if(" + generateTempFlagName(fm, temp, lb) + "&(0x" + Integer.toHexString(fs.getAndmask())
 			    + ")==(0x" + Integer.toHexString(fs.getCheckmask()) + ")) {");
 		}
 		Vector<FlagState> tmpfstates = (Vector<FlagState>)targetFStates[j];
 		for(int i = 0; i < tmpfstates.size(); ++i) {
 		    FlagState tmpFState = tmpfstates.elementAt(i);
+		    // TODO 
+		    // may have bugs here
 		    output.println("/* reside on this core*");
-		    output.println("enqueueObject("+super.generateTemp(fm, temp, lb)+", objq4socketobj[corenum], numqueues4socketobj[corenum]);");
+		    output.println("enqueueObject("+super.generateTemp(fm, temp, lb)+", NULL, 0);");
+		    //output.println("enqueueObject("+super.generateTemp(fm, temp, lb)+", objq4socketobj[corenum], numqueues4socketobj[corenum]);");
 		    //output.println("enqueueObject("+super.generateTemp(fm, temp, lb)+");");
 		}
 		if(initfstates != null) {
@@ -952,14 +978,34 @@ public class BuildCodeMultiCore extends BuildCode {
 	int num = this.currentSchedule.getCoreNum();
 	Hashtable<FlagState, Queue<Integer>> targetCoreTbl = this.currentSchedule.getTargetCoreTable();
 	for(int j = 0; j < targetFStates.length; ++j) {
+	    FlagState fs = null;
 	    if(initfstates != null) {
-		FlagState fs = initfstates.elementAt(j);
+		fs = initfstates.elementAt(j);
 		output.println("if((" + generateTempFlagName(fm, temp, lb) + "&(0x" + Integer.toHexString(fs.getAndmask())
 			+ "))==(0x" + Integer.toHexString(fs.getCheckmask()) + ")) {");
 	    }
 	    Vector<FlagState> tmpfstates = (Vector<FlagState>)targetFStates[j];
 	    for(int i = 0; i < tmpfstates.size(); ++i) {
 		FlagState tmpFState = tmpfstates.elementAt(i);
+		
+		if(this.currentSchedule.getAllyCoreTable() == null) {
+		    isolate = true;
+		} else {
+		    isolate = (this.currentSchedule.getAllyCoreTable().get(tmpFState) == null) || 
+		                (this.currentSchedule.getAllyCoreTable().get(tmpFState).size() == 0);
+		}
+		/*if(isolate) {
+		    output.println(super.generateTemp(fm, temp, lb) + "->isolate = 1;"); // not shared object
+		} else {*/
+		if(!isolate) {
+		    // indentify this object as a shared object
+		    // isolate flag is initially set as 1, once this flag is set as 0, it is never reset to 1, i.e. once an object 
+		    // is shared, it maybe shared all the time afterwards
+		    output.println(super.generateTemp(fm, temp, lb) + "->isolate = 0;"); 
+		    output.println(super.generateTemp(fm, temp, lb) + "->original = (struct ___Object___ *)" + super.generateTemp(fm, temp, lb) + ";");
+		}
+		
+		Vector<Integer> sendto = new Vector<Integer>();
 		Queue<Integer> queue = null;
 		if(targetCoreTbl != null) {
 		    queue = targetCoreTbl.get(tmpFState);
@@ -984,15 +1030,29 @@ public class BuildCodeMultiCore extends BuildCode {
 			    targetcore = (Integer)cores[k];
 			    if(targetcore.intValue() == num) {
 				output.println("/* reside on this core*/");
-				QueueInfo qinfo = outputqueues(tmpFState, num, output);
-				output.println("enqueueObject("+super.generateTemp(fm, temp, lb)+", " + qinfo.qname + 
-					       ", " + qinfo.length + ");");
+				if(isolate) {
+				    QueueInfo qinfo = outputqueues(tmpFState, num, output, true);
+				    output.println("enqueueObject("+super.generateTemp(fm, temp, lb)+", " + qinfo.qname + 
+					    ", " + qinfo.length + ");");
+				} else {
+				    output.println("enqueueObject("+super.generateTemp(fm, temp, lb)+", NULL, 0);");
+				}
 
 				//output.println("enqueueObject("+super.generateTemp(fm, temp, lb)+");");
 			    } else {
+				if(!isolate) {
+				    output.println("/* possibly needed by multi-parameter tasks on this core*/");
+				    output.println("enqueueObject("+super.generateTemp(fm, temp, lb)+", NULL, 0);");
+				}
 				output.println("/* transfer to core " + targetcore.toString() + "*/");
 				// method call of transfer objects
-				output.println("transferObject("+super.generateTemp(fm, temp, lb)+", " + targetcore.toString() + ");");
+				//output.println("transferObject("+super.generateTemp(fm, temp, lb)+", " + targetcore.toString() + ");");
+				// enqueue this object and its destination
+				output.println(";");
+				output.println("tmpint = "+targetcore.toString()+";");
+				output.println("addNewItem(totransobjqueue, (void*)" +super.generateTemp(fm, temp, lb) + ");");
+				output.println("addNewItem(desqueue, (void *)tmpint);");
+				sendto.add(targetcore);
 				//output.println("transferObject("+super.generateTemp(fm, temp, lb)+", " + targetcore.toString() + 
 				//	       ", \"" + targetcore.toString() + "\"" + ");");
 			    }
@@ -1000,9 +1060,19 @@ public class BuildCodeMultiCore extends BuildCode {
 			}
 			output.println("}");
 		    } else {
+			if(!isolate) {
+			    output.println("/* possibly needed by multi-parameter tasks on this core*/");
+			    output.println("enqueueObject("+super.generateTemp(fm, temp, lb)+", NULL, 0);");
+			}
 			output.println("/* transfer to core " + targetcore.toString() + "*/");
 			// method call of transfer objectts
-			output.println("transferObject("+super.generateTemp(fm, temp, lb)+", " + targetcore.toString() + ");");
+			//output.println("transferObject("+super.generateTemp(fm, temp, lb)+", " + targetcore.toString() + ");");
+			// enqueue this object and its destination
+			output.println(";");
+			output.println("tmpint = "+targetcore.toString()+";");
+			output.println("addNewItem(totransobjqueue, (void*)" +super.generateTemp(fm, temp, lb) + ");");
+			output.println("addNewItem(desqueue, (void *)tmpint);");
+			sendto.add(targetcore);
 			//output.println("transferObject("+super.generateTemp(fm, temp, lb)+", " + targetcore.toString() + 
 			//	       ", \"" + targetcore.toString() + "\"" + ");");
 		    }
@@ -1011,26 +1081,54 @@ public class BuildCodeMultiCore extends BuildCode {
 		} else {
 		    // this object will reside on current core
 		    output.println("/* reside on this core*/");
-		    QueueInfo qinfo = outputqueues(tmpFState, num, output);
-		    output.println("enqueueObject("+super.generateTemp(fm, temp, lb)+", " + qinfo.qname + 
-			           ", " + qinfo.length + ");");
+		    if(isolate) {
+			QueueInfo qinfo = outputqueues(tmpFState, num, output, true);
+			output.println("enqueueObject("+super.generateTemp(fm, temp, lb)+", " + qinfo.qname + 
+				", " + qinfo.length + ");");
+		    } else {
+			output.println("enqueueObject("+super.generateTemp(fm, temp, lb)+", NULL, 0);");
+		    }
 
 		    //output.println("enqueueObject("+super.generateTemp(fm, temp, lb)+");");
 		}
+		
+		// codes for multi-params tasks
+		if(!isolate) {
+		    // flagstate associated with some multi-params tasks
+		    // need to be send to other cores
+		    Vector<Integer> targetcores = this.currentSchedule.getAllyCores(tmpFState);
+		    output.println("/* send the shared object to possible queues on other cores*/");
+		    for(int k = 0; k < targetcores.size(); ++k) {
+			//QueueInfo qinfo = outputqueues(tmpFState, num, output);
+			// TODO
+			// add the information of exactly which queue
+			if(!sendto.contains(targetcores.elementAt(i))) {
+			    // previously not sended to this target core
+			    //output.println("transferObject("+super.generateTemp(fm, temp, lb)+", " + targetcores.elementAt(i).toString() + ");");
+			    // enqueue this object and its destination
+			    output.println(";");
+			    output.println("tmpint = "+targetcores.elementAt(i).toString()+";");
+			    output.println("addNewItem(totransobjqueue, (void*)" +super.generateTemp(fm, temp, lb) + ");");
+			    output.println("addNewItem(desqueue, (void *)tmpint);");
+			}
+		    }
+		}
 	    }
+	    
 	    if(initfstates != null) {
 		output.println("}");
 	    }
 	}
     }
     
-    private QueueInfo outputqueues(FlagState tmpFState, int num, PrintWriter output) {
+    private QueueInfo outputqueues(FlagState tmpFState, int num, PrintWriter output, boolean isEnqueue) {
 	// queue array
 	QueueInfo qinfo = new QueueInfo();
 	output.println(";");
 	qinfo.qname  = "queues_" + tmpFState.getLabel() + "_" + tmpFState.getiuid();
 	output.println("struct parameterwrapper * " + qinfo.qname + "[] = {");
 	Iterator it_edges = tmpFState.getEdgeVector().iterator();
+	Vector<TaskDescriptor> residetasks = this.currentSchedule.getTasks();
 	Vector<TaskDescriptor> tasks = new Vector<TaskDescriptor>();
 	Vector<Integer> indexes = new Vector<Integer>();
 	boolean comma = false;
@@ -1039,17 +1137,19 @@ public class BuildCodeMultiCore extends BuildCode {
 	    FEdge fe = (FEdge)it_edges.next();
 	    TaskDescriptor td = fe.getTask();
 	    int paraindex = fe.getIndex();
-	    if((!tasks.contains(td)) || 
-		    ((tasks.contains(td)) && (paraindex != indexes.elementAt(tasks.indexOf(td)).intValue()))) {
-		tasks.addElement(td);
-		indexes.addElement(paraindex);
-		if(comma) {
-		    output.println(",");
-		} else {
-		    comma = true;
+	    if((!isEnqueue) || (isEnqueue && residetasks.contains(td))) {
+		if((!tasks.contains(td)) || 
+			((tasks.contains(td)) && (paraindex != indexes.elementAt(tasks.indexOf(td)).intValue()))) {
+		    tasks.addElement(td);
+		    indexes.addElement(paraindex);
+		    if(comma) {
+			output.println(",");
+		    } else {
+			comma = true;
+		    }
+		    output.print("&" + this.objqueueprefix + paraindex + "_" + td.getCoreSafeSymbol(num));
+		    ++qinfo.length;
 		}
-		output.print("&" + this.objqueueprefix + paraindex + "_" + td.getCoreSafeSymbol(num));
-		++qinfo.length;
 	    }
 	}
 	output.println("};");
@@ -1078,5 +1178,31 @@ public class BuildCodeMultiCore extends BuildCode {
 	    return paramsprefix+"_"+td.getSafeSymbol() + "_oldflag";
 	}
 	throw new Error();
+    }
+    
+    protected void outputTransCode(PrintWriter output) {
+	output.println("while(0 == isEmpty(totransobjqueue)) {");
+	output.println("   struct QueueItem * totransitem = getTail(totransobjqueue);");
+	output.println("   struct QueueItem * desitem = getTail(desqueue);");
+	output.println("   transferObject(totransitem->objectptr, (int)desitem->objectptr);");
+	output.println("   removeItem(totransobjqueue, totransitem);");
+	output.println("   removeItem(desqueue, desitem);");
+	output.println("}");
+	output.println("freeQueue(totransobjqueue);");
+	output.println("freeQueue(desqueue);");
+    }
+    
+    protected void generateFlatReturnNode(FlatMethod fm, LocalityBinding lb, FlatReturnNode frn, PrintWriter output) {
+	if (frn.getReturnTemp()!=null) {
+	    if (frn.getReturnTemp().getType().isPtr())
+		output.println("return (struct "+fm.getMethod().getReturnType().getSafeSymbol()+"*)"+generateTemp(fm, frn.getReturnTemp(), lb)+";");
+	    else
+		output.println("return "+generateTemp(fm, frn.getReturnTemp(), lb)+";");
+	} else {
+	    if(fm.getTask() != null) {
+		outputTransCode(output);
+	    }
+	    output.println("return;");
+	}
     }
 }

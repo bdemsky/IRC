@@ -16,6 +16,8 @@ public class ScheduleNode extends GraphNode implements Cloneable{
 
     private Vector<ClassNode> classNodes;
     Vector<ScheduleEdge> scheduleEdges;
+    private Vector<ScheduleEdge> associateEdges;
+    private Vector<ScheduleEdge> inassociateEdges;
     
     private int executionTime;
 
@@ -29,6 +31,8 @@ public class ScheduleNode extends GraphNode implements Cloneable{
     	this.executionTime = -1;
     	this.classNodes = null;
     	this.scheduleEdges = null;
+    	this.associateEdges = new Vector<ScheduleEdge>();
+    	this.inassociateEdges = new Vector<ScheduleEdge>();
     }
     
     public ScheduleNode(ClassNode cn, int gid) {
@@ -39,6 +43,8 @@ public class ScheduleNode extends GraphNode implements Cloneable{
     	this.classNodes.add(cn);
     	this.addEdge(cn.getEdgeVector());
     	this.executionTime = -1;
+    	this.associateEdges = new Vector<ScheduleEdge>();
+    	this.inassociateEdges = new Vector<ScheduleEdge>();
     }
    
     public int getuid() {
@@ -82,6 +88,37 @@ public class ScheduleNode extends GraphNode implements Cloneable{
     
     public void resetScheduleEdges() {
     	scheduleEdges = null;
+    }
+    
+    public Vector getAssociateSEdges() {
+    	return this.associateEdges;
+    }
+    
+    public Iterator getAssociateSEdgesIterator() {
+    	return this.associateEdges.iterator();
+    }
+    
+    public void addAssociateSEdge(ScheduleEdge se) {
+	assert(ScheduleEdge.ASSOCEDGE == se.getType());
+	
+	this.associateEdges.addElement(se);
+	se.setSource(this);
+	ScheduleNode tonode=(ScheduleNode)se.getTarget();
+	tonode.addInAssociateSEdge(se);
+    }
+    
+    public Vector getInAssociateSEdges() {
+    	return this.inassociateEdges;
+    }
+    
+    public Iterator getInAssociateSEdgesIterator() {
+    	return this.inassociateEdges.iterator();
+    }
+    
+    public void addInAssociateSEdge(ScheduleEdge se) {
+	assert(ScheduleEdge.ASSOCEDGE == se.getType());
+	
+	this.inassociateEdges.addElement(se);
     }
     
     public int getExeTime() {
@@ -175,15 +212,27 @@ public class ScheduleNode extends GraphNode implements Cloneable{
     	for(i = 0; i < this.scheduleEdges.size(); i++) {
 	    ScheduleEdge temp = this.scheduleEdges.elementAt(i);
 	    ScheduleEdge se = null;
-	    if(!temp.getIsNew()) {
-		se = new ScheduleEdge(o, "transmit",temp.getFstate(), false, gid);//new ScheduleEdge(o, "transmit",temp.getClassDescriptor(), false, gid);
-	    } else {
-		se = new ScheduleEdge(o, "new",temp.getFstate(), gid);//new ScheduleEdge(o, "new",temp.getClassDescriptor(), gid);
+	    switch(temp.getType()) {
+	    case ScheduleEdge.NEWEDGE: {
+		se = new ScheduleEdge(o, "new", temp.getFstate(), ScheduleEdge.NEWEDGE, gid);
+		se.setProbability(temp.getProbability());
+		se.setNewRate(temp.getNewRate());
+		break;
+	    }
+	    case ScheduleEdge.TRANSEDGE: {
+		se = new ScheduleEdge(o, "transmit", temp.getFstate(), ScheduleEdge.TRANSEDGE, gid);
+		se.setProbability(temp.getProbability());
+		se.setNewRate(temp.getNewRate());
+		break;
+	    }
+	    case ScheduleEdge.ASSOCEDGE: {
+		//TODO
+		se = new ScheduleEdge(o, "associate", temp.getFstate(), ScheduleEdge.ASSOCEDGE, gid);
+		break;
+	    }
 	    }
 	    se.setSourceCNode(cn2cn.get(temp.getSourceCNode()));
 	    se.setTargetCNode(cn2cn.get(temp.getTargetCNode()));
-	    se.setProbability(temp.getProbability());
-	    se.setNewRate(temp.getNewRate());
 	    se.setTransTime(temp.getTransTime());
 	    se.setFEdge(temp.getFEdge());
 	    se.setTargetFState(temp.getTargetFState());
@@ -194,56 +243,49 @@ public class ScheduleNode extends GraphNode implements Cloneable{
     	o.scheduleEdges = tses;
     	tcns = null;
     	tses = null;
+    	
+    	/*Vector<ScheduleEdge> assses = new Vector<ScheduleEdge>();
+    	for(i = 0; i < this.scheduleEdges.size(); i++) {
+	    ScheduleEdge temp = this.scheduleEdges.elementAt(i);
+	    
+	    assert(ScheduleEdge.ASSOCEDGE == temp.getType());
+	    ScheduleEdge se = new ScheduleEdge(o, "associate", temp.getFstate(), ScheduleEdge.ASSOCEDGE, gid);
+	    se.setSourceCNode(cn2cn.get(temp.getSourceCNode()));
+	    se.setTargetCNode(cn2cn.get(temp.getTargetCNode()));
+	    se.setTransTime(temp.getTransTime());
+	    se.setFEdge(temp.getFEdge());
+	    se.setTargetFState(temp.getTargetFState());
+	    se.setIsclone(true);
+	    assses.add(se);
+    	}
+    	o.associateEdges = assses;
+    	assses = null;
+    	
+    	Vector<ScheduleEdge> assses = new Vector<ScheduleEdge>();
+    	for(i = 0; i < this.scheduleEdges.size(); i++) {
+	    ScheduleEdge temp = this.scheduleEdges.elementAt(i);
+	    
+	    assert(ScheduleEdge.ASSOCEDGE == temp.getType());
+	    ScheduleEdge se = new ScheduleEdge(o, "associate", temp.getFstate(), ScheduleEdge.ASSOCEDGE, gid);
+	    se.setSourceCNode(cn2cn.get(temp.getSourceCNode()));
+	    se.setTargetCNode(cn2cn.get(temp.getTargetCNode()));
+	    se.setTransTime(temp.getTransTime());
+	    se.setFEdge(temp.getFEdge());
+	    se.setTargetFState(temp.getTargetFState());
+	    se.setIsclone(true);
+	    assses.add(se);
+    	}
+    	o.associateEdges = assses;
+    	assses = null;*/
+    	
     	o.inedges = new Vector();
     	o.edges = new Vector();
-
+    	o.associateEdges = new Vector<ScheduleEdge>();
+    	o.inassociateEdges = new Vector<ScheduleEdge>();
     	return o;
     }
     
-    public void mergeSEdge(ScheduleEdge se) {
-	assert(se.getIsNew());
-	
-    	Vector<ClassNode> targetCNodes = (Vector<ClassNode>)((ScheduleNode)se.getTarget()).getClassNodes();
-    	Vector<ScheduleEdge> targetSEdges = (Vector<ScheduleEdge>)((ScheduleNode)se.getTarget()).getScheduleEdges();
-    	
-    	for(int i = 0; i <  targetCNodes.size(); i++) {
-	    targetCNodes.elementAt(i).setScheduleNode(this);
-    	}
-    	
-    	if(classNodes == null) {
-	    classNodes = targetCNodes;
-	    scheduleEdges = targetSEdges;
-    	} else {
-	    if(targetCNodes.size() != 0) {
-		classNodes.addAll(targetCNodes);
-	    }
-	    if(targetSEdges.size() != 0) {
-		scheduleEdges.addAll(targetSEdges);
-	    }
-    	}
-    	targetCNodes = null;
-	targetSEdges = null;
-    	
-    	scheduleEdges.add(se);
-    	se.resetListExeTime();
-    	se.getTarget().removeInedge(se);
-    	this.removeEdge(se);
-    	Iterator it_edges = se.getTarget().edges();
-    	while(it_edges.hasNext()) {
-	    ScheduleEdge tse = (ScheduleEdge)it_edges.next();
-	    tse.setSource(this);
-	    this.edges.addElement(tse);
-	}
-    	
-    	// As all tasks inside one ScheduleNode are executed sequentially,
-    	// simply add the execution time of all the ClassNodes inside one ScheduleNode. 
-    	if(this.executionTime == -1) {
-	    this.executionTime = 0;
-    	}
-    	this.executionTime += ((ScheduleNode)se.getTarget()).getExeTime();
-    }
-    
-    public void mergeTransEdge(ScheduleEdge se) throws Exception {
+    public void mergeSEdge(ScheduleEdge se) throws Exception {	
 	ScheduleNode sn = (ScheduleNode)se.getTarget();
     	Vector<ClassNode> targetCNodes = (Vector<ClassNode>)sn.getClassNodes();
     	Vector<ScheduleEdge> targetSEdges = (Vector<ScheduleEdge>)sn.getScheduleEdges();
@@ -264,64 +306,87 @@ public class ScheduleNode extends GraphNode implements Cloneable{
 	    }
     	}
     	targetCNodes = null;
-
-	sn.removeInedge(se);
-    	this.removeEdge(se);
-    	Iterator it_edges = sn.edges();
-    	while(it_edges.hasNext()) {
-	    ScheduleEdge tse = (ScheduleEdge)it_edges.next();
-	    tse.setSource(this);
-	    this.edges.addElement(tse);
-    	}
     	
-    	// merge the split ClassNode of same class
-    	FlagState sfs = se.getFstate();
-	FlagState tfs = se.getTargetFState();
-	ClassNode scn = se.getSourceCNode();
-	ClassNode tcn = se.getTargetCNode();
-	sfs.getEdgeVector().addAll(tfs.getEdgeVector());
-	// merge the subtree whose root is nfs from the whole flag transition tree
-	Vector<FlagState> sfss = scn.getFlagStates();
-	sfss.addAll(tcn.getFlagStates());
-	sfss.removeElement(tfs);
-	classNodes.removeElement(tcn);
-	
-	// flush the exeTime of fs and its ancestors
-	sfs.setExeTime(0);
-	Queue<FlagState> toiterate = new LinkedList<FlagState>();
-	toiterate.add(sfs);
-	while(!toiterate.isEmpty()) {
-	    FlagState tmpfs = toiterate.poll();
-	    int ttime = tmpfs.getExeTime();
-	    Iterator it_inedges = tmpfs.inedges();
-	    while(it_inedges.hasNext()) {
-		FEdge fEdge = (FEdge)it_inedges.next();
-		FlagState temp = (FlagState)fEdge.getSource();
-		int time = fEdge.getExeTime() + ttime;
-		if(temp.getExeTime() > time) {
-		    temp.setExeTime(time);
-		    toiterate.add(temp);
-		}
-	    }
-	}
-	toiterate = null;
-	
-	// redirct internal ScheduleEdge from tcn to scn
-	for(int i = 0; i < targetSEdges.size(); ++i) {
-	    ScheduleEdge tmpse = targetSEdges.elementAt(i);
-	    if(tmpse.getSourceCNode().equals(tcn)) {
-		tmpse.setSourceCNode(scn);
-	    }
-	}
-	targetSEdges = null;
-	
-    	// As all tasks inside one ScheduleNode are executed sequentially,
-    	// simply add the execution time of all the ClassNodes inside one ScheduleNode. 
-    	if(this.executionTime == -1) {
-	    throw new Exception("Error: ScheduleNode without initiate execution time when analysising.");
-    	}
-    	if(this.executionTime < sn.getExeTime()) {
-	    this.executionTime = sn.getExeTime();
+    	if(ScheduleEdge.TRANSEDGE == se.getType()) {
+    	    sn.removeInedge(se);
+    	    this.removeEdge(se);
+    	    Iterator it_edges = sn.edges();
+    	    while(it_edges.hasNext()) {
+    		ScheduleEdge tse = (ScheduleEdge)it_edges.next();
+    		tse.setSource(this);
+    		this.edges.addElement(tse);
+    	    }
+
+    	    // merge the split ClassNode of same class
+    	    FlagState sfs = se.getFstate();
+    	    FlagState tfs = se.getTargetFState();
+    	    ClassNode scn = se.getSourceCNode();
+    	    ClassNode tcn = se.getTargetCNode();
+    	    sfs.getEdgeVector().addAll(tfs.getEdgeVector());
+    	    // merge the subtree whose root is nfs from the whole flag transition tree
+    	    Vector<FlagState> sfss = scn.getFlagStates();
+    	    sfss.addAll(tcn.getFlagStates());
+    	    sfss.removeElement(tfs);
+    	    classNodes.removeElement(tcn);
+
+    	    // flush the exeTime of fs and its ancestors
+    	    sfs.setExeTime(0);
+    	    Queue<FlagState> toiterate = new LinkedList<FlagState>();
+    	    toiterate.add(sfs);
+    	    while(!toiterate.isEmpty()) {
+    		FlagState tmpfs = toiterate.poll();
+    		int ttime = tmpfs.getExeTime();
+    		Iterator it_inedges = tmpfs.inedges();
+    		while(it_inedges.hasNext()) {
+    		    FEdge fEdge = (FEdge)it_inedges.next();
+    		    FlagState temp = (FlagState)fEdge.getSource();
+    		    int time = fEdge.getExeTime() + ttime;
+    		    if(temp.getExeTime() > time) {
+    			temp.setExeTime(time);
+    			toiterate.add(temp);
+    		    }
+    		}
+    	    }
+    	    toiterate = null;
+
+    	    // redirct internal ScheduleEdge from tcn to scn
+    	    for(int i = 0; i < targetSEdges.size(); ++i) {
+    		ScheduleEdge tmpse = targetSEdges.elementAt(i);
+    		if(tmpse.getSourceCNode().equals(tcn)) {
+    		    tmpse.setSourceCNode(scn);
+    		}
+    	    }
+    	    
+    	    targetSEdges = null;
+    	    
+    	    // As all tasks inside one ScheduleNode are executed sequentially,
+    	    // simply add the execution time of all the ClassNodes inside one ScheduleNode. 
+    	    if(this.executionTime == -1) {
+    		throw new Exception("Error: ScheduleNode without initiate execution time when analysising.");
+    	    }
+    	    if(this.executionTime < sn.getExeTime()) {
+    		this.executionTime = sn.getExeTime();
+    	    }
+    	} else if(ScheduleEdge.NEWEDGE == se.getType()) {
+    	    targetSEdges = null;
+    	
+    	    scheduleEdges.add(se);
+    	    se.resetListExeTime();
+    	    sn.removeInedge(se);
+    	    this.removeEdge(se);
+    	    Iterator it_edges = sn.edges();
+    	    while(it_edges.hasNext()) {
+    		ScheduleEdge tse = (ScheduleEdge)it_edges.next();
+    		tse.setSource(this);
+    		this.edges.addElement(tse);
+    	    }
+    	    
+    	    // As all tasks inside one ScheduleNode are executed sequentially,
+    	    // simply add the execution time of all the ClassNodes inside one ScheduleNode. 
+    	    if(this.executionTime == -1) {
+    		this.executionTime = 0;
+    	    }
+    	    this.executionTime += ((ScheduleNode)se.getTarget()).getExeTime();
     	}
     }
 }

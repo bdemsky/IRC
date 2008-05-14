@@ -201,6 +201,20 @@ public class BuildFlat {
 	    FlatNew fn=new FlatNew(td, out_temp, con.isGlobal());
 	    TempDescriptor[] temps=new TempDescriptor[con.numArgs()];
 	    FlatNode last=fn;
+	    // Build arguments
+	    for(int i=0;i<con.numArgs();i++) {
+		ExpressionNode en=con.getArg(i);
+		TempDescriptor tmp=TempDescriptor.tempFactory("arg",en.getType());
+		temps[i]=tmp;
+		NodePair np=flattenExpressionNode(en, tmp);
+		last.addNext(np.getBegin());
+		last=np.getEnd();
+	    }
+	    MethodDescriptor md=con.getConstructor();
+	    //Call to constructor
+	    FlatCall fc=new FlatCall(md, null, out_temp, temps);
+	    last.addNext(fc);
+	    last=fc;
 	    if (td.getClassDesc().hasFlags()) {
 		//	    if (con.getFlagEffects()!=null) {
 		FlatFlagActionNode ffan=new FlatFlagActionNode(FlatFlagActionNode.NEWOBJECT);
@@ -223,20 +237,6 @@ public class BuildFlat {
 		last.addNext(ffan);
 		last=ffan;
 	    }
-	    //Build arguments
-	    for(int i=0;i<con.numArgs();i++) {
-		ExpressionNode en=con.getArg(i);
-		TempDescriptor tmp=TempDescriptor.tempFactory("arg",en.getType());
-		temps[i]=tmp;
-		NodePair np=flattenExpressionNode(en, tmp);
-		last.addNext(np.getBegin());
-		last=np.getEnd();
-	    }
-	    MethodDescriptor md=con.getConstructor();
-	    //Call to constructor
-	    FlatCall fc=new FlatCall(md, null, out_temp, temps);
-	    last.addNext(fc);
-	    last=fc;
 	    return new NodePair(fn,last); 
 	} else {
 	    FlatNode first=null;
