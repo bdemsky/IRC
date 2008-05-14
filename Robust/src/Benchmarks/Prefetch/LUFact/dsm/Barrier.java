@@ -30,7 +30,6 @@ public class Barrier {
             if(b.numthreads > 1)
               b.cleared=true;
             b.entercount--;
-            //return;
             ret1 = true;
           }
           retry=false;
@@ -45,7 +44,6 @@ public class Barrier {
           int count = b.entercount;
           if (count==0)
             b.cleared=false;
-          //return;
           ret2=false;
         }
       }

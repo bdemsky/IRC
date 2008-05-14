@@ -1,0 +1,6 @@
+Create the dstm.conf file
+To compile:
+    make
+To run the Em3dNP.bin on single machine 
+    ./Em3dNP.bin master -T <number of threads> -N <number of nodes> -d <no of iteration> -p
+    

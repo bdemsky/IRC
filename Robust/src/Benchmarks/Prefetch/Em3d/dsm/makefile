@@ -3,17 +3,27 @@ SRC=${MAINCLASS}.java \
 	BiGraph.java \
 	Node.java \
 	Barrier.java
-SRC1=${MAINCLASS}N.java \
-	BiGraphN.java \
+SRC1=${MAINCLASS}Nold.java \
+	BiGraphNold.java \
 	Node.java \
 	Barrier.java
 
-FLAGS=-dsm -prefetch -excprefetch Em3d.main -excprefetch BiGraph.create -excprefetch Node.Node -excprefetch Node.fillTable -excprefetch Node.makeUniqueNeighbors -excprefetch Node.makeFromNodes -excprefetch Node.updateFromNodes -nooptimize -debug -mainclass ${MAINCLASS}
-FLAGS2=-dsm -nooptimize -debug -mainclass ${MAINCLASS}
+FLAGS=-dsm -prefetch -profile -excprefetch Em3d.main -excprefetch BiGraph.create -excprefetch Node.Node -excprefetch Node.fillTable -excprefetch Node.makeUniqueNeighbors -excprefetch Node.makeFromNodes -excprefetch Node.updateFromNodes -nooptimize -debug -mainclass ${MAINCLASS} -trueprob 0.91
+FLAGS2=-dsm -nooptimize -debug -profile -mainclass ${MAINCLASS}
 
 default:
-	../../../../buildscript ${FLAGS2} -o ${MAINCLASS}NP ${SRC1}
-	../../../../buildscript ${FLAGS} -o ${MAINCLASS}P ${SRC1}
+	../../../../buildscript ${FLAGS2} -o ${MAINCLASS}NP ${SRC}
+	../../../../buildscript ${FLAGS} -o ${MAINCLASS} ${SRC}
+	../../../../buildscript ${FLAGS2} -o ${MAINCLASS}NNP ${SRC1}
+	../../../../buildscript ${FLAGS} -o ${MAINCLASS}N ${SRC1}
+	cp ${MAINCLASS}NNP.bin ${MAINCLASS}1NP.bin
+	cp ${MAINCLASS}N.bin ${MAINCLASS}1.bin
+	cp ${MAINCLASS}NNP.bin ${MAINCLASS}2NP.bin
+	cp ${MAINCLASS}N.bin ${MAINCLASS}2.bin
+	cp ${MAINCLASS}NNP.bin ${MAINCLASS}3NP.bin
+	cp ${MAINCLASS}N.bin ${MAINCLASS}3.bin
+	cp ${MAINCLASS}NNP.bin ${MAINCLASS}4NP.bin
+	cp ${MAINCLASS}N.bin ${MAINCLASS}4.bin
 
 clean:
 	rm -rf tmpbuilddirectory

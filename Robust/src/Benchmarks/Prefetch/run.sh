@@ -81,27 +81,27 @@ function callrun {
   cd $BMDIR 
 
   echo "---------- Running local $BMDIR non-prefetch on 1 machine ---------- "
-#localrun 10
+  localrun 10
 
   echo "---------- Running single thread remote $BMDIR non-prefetch on 2 machines ---------- "
-# oneremote 10 1 $NONPREFETCH
+  oneremote 10 1 $NONPREFETCH
   echo "---------- Running single thread remote $BMDIR prefetch on 2 machines ---------- "
-# oneremote 10 1 $PREFETCH
+  oneremote 10 1 $PREFETCH
 
   echo "---------- Running two threads $BMDIR non-prefetch on 2 machines ---------- "
-# run 10 2 $NONPREFETCH2 
+  run 10 2 $NONPREFETCH2 
   echo "---------- Running two threads $BMDIR prefetch on 2 machines ---------- "
-  run 4 2 $PREFETCH2 
+  run 10 2 $PREFETCH2 
 
   echo "---------- Running three threads $BMDIR non-prefetch on 3 machines ---------- "
-# run 10 3 $NONPREFETCH3 
+  run 10 3 $NONPREFETCH3 
   echo "---------- Running three threads $BMDIR prefetch on 3 machines ---------- "
-# run 10 3 $PREFETCH3 
+  run 10 3 $PREFETCH3 
 
   echo "---------- Running four threads $BMDIR non-prefetch on 4 machines ---------- "
-# run 10 4 $NONPREFETCH4 
+  run 10 4 $NONPREFETCH4 
   echo "---------- Running four threads $BMDIR prefetch on 4 machines ---------- "
-# run 10 4 $PREFETCH4 
+  run 10 4 $PREFETCH4 
 
   cd $TOPDIR
 }
@@ -119,8 +119,7 @@ function callmicrorun {
   cd $TOPDIR
 }
 
-benchmarks='array'
-#benchmarks='array chase mmver200 mmver600 em3dver40001303 sorverA'
+benchmarks='array chase mmver200 mmver600 em3dver40001303 sorverA'
 
 echo "---------- Clean old files ---------- "
 rm runlog/*
@@ -143,6 +142,7 @@ do
   fi
 done
 
+#----------Calulates  the averages ----------- 
 for file in `ls runlog/*.txt`
 do
   echo -n $file >> average.txt

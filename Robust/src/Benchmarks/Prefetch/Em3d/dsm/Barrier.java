@@ -30,14 +30,15 @@ public class Barrier {
             if(b.numthreads > 1)
               b.cleared=true;
             b.entercount--;
-            //return;
             ret1 = true;
           }
           retry=false;
         }
       }
     } while(retry);
-    if (ret1) return;
+    if (ret1) {
+      return;
+    }
     while(ret2) {
       atomic {
         if (b.cleared) {
@@ -45,7 +46,6 @@ public class Barrier {
           int count = b.entercount;
           if (count==0)
             b.cleared=false;
-          //return;
           ret2=false;
         }
       }

@@ -39,6 +39,7 @@
 
 //import java.util.*;
 //import jgfutil.*; 
+/*
 
 class IDEATest
 {
@@ -58,21 +59,21 @@ class IDEATest
     int [] Z;             // Encryption subkey (userkey derived).
     int [] DK;            // Decryption subkey (userkey derived).
 
-    void Do(int nthreads, JGFInstrumentor instr)
+    void Do(int nthreads)
     {
 
         int mid = (128<<24)|(195<<16)|(175<<8)|73;
 
-        IDEARunner tmp;
         IDEARunner[] th;
         atomic {
             th = global new IDEARunner [nthreads];
         }
 
         // Start the stopwatch.       
-        instr.startTimer("Section2:Crypt:Kernel"); 		
+        //instr.startTimer("Section2:Crypt:Kernel"); 		
 
         // Encrypt plain1.
+        IDEARunner tmp;
         for(int i=1;i<nthreads;i++) {
             atomic {
                 th[i] = global new IDEARunner(i,plain1,crypt1,Z,nthreads);
@@ -120,7 +121,7 @@ class IDEATest
 
 
         // Stop the stopwatch.
-        instr.stopTimer("Section2:Crypt:Kernel");
+        //instr.stopTimer("Section2:Crypt:Kernel");
 
     }
 
@@ -136,12 +137,13 @@ class IDEATest
         // Create three byte arrays that will be used (and reused) for
         // encryption/decryption operations.
 
-        plain1 = new byte [array_rows];
-        crypt1 = new byte [array_rows];
-        plain2 = new byte [array_rows];
+
+        plain1 = global new byte [array_rows];
+        crypt1 = global new byte [array_rows];
+        plain2 = global new byte [array_rows];
 
 
-        Random rndnum = new Random(136506717L);  // Create random number generator.
+        Random rndnum = global new Random(136506717L);  // Create random number generator.
 
 
         // Allocate three arrays to hold keys: userkey is the 128-bit key.
@@ -154,9 +156,9 @@ class IDEATest
         // then a final output transform with four of the keys; (8 * 6)
         // + 4 = 52 subkeys.
 
-        userkey = new short [8];  // User key has 8 16-bit shorts.
-        Z = new int [52];         // Encryption subkey (user key derived).
-        DK = new int [52];        // Decryption subkey (user key derived).
+        userkey = global new short [8];  // User key has 8 16-bit shorts.
+        Z = global new int [52];         // Encryption subkey (user key derived).
+        DK = global new int [52];        // Decryption subkey (user key derived).
 
         // Generate user key randomly; eight 16-bit values in an array.
 
@@ -418,10 +420,10 @@ class IDEATest
     }
 
 }
+*/
 
 
-
-class IDEARunner extends Thread {
+public class IDEARunner extends Thread {
 
     int id,key[];
     byte text1[],text2[];
@@ -588,12 +590,3 @@ class IDEARunner extends Thread {
 
     }   // End routine.
 }  // End of class
-
-
-
-
-
-
-
-
-

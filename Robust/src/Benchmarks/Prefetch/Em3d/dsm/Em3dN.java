@@ -166,8 +166,8 @@ public class Em3d extends Thread
     long start0 = System.currentTimeMillis();
     int numThreads = em.numThreads;
     int[] mid = new int[4];
-    mid[0] = (128<<24)|(195<<16)|(175<<8)|69;//dw-1
-    mid[1] = (128<<24)|(195<<16)|(175<<8)|70;//dw-2
+    mid[0] = (128<<24)|(195<<16)|(175<<8)|79;//dw-1
+    mid[1] = (128<<24)|(195<<16)|(175<<8)|80;//dw-2
     mid[2] = (128<<24)|(195<<16)|(175<<8)|73;
     mid[3] = (128<<24)|(195<<16)|(175<<8)|78;
     System.printString("DEBUG -> numThreads = " + numThreads+"\n");
@@ -177,7 +177,7 @@ public class Em3d extends Thread
 
     
     // initialization step 1: allocate BiGraph
-    System.printString( "Allocating BiGraph.\n" );
+   // System.printString( "Allocating BiGraph.\n" );
 
     atomic {
       mybarr = global new Barrier(numThreads);
@@ -195,7 +195,7 @@ public class Em3d extends Thread
 
 
     // initialization step 2: divide work of allocating nodes
-    System.printString( "Launching distributed allocation of nodes.\n" );
+   // System.printString( "Launching distributed allocation of nodes.\n" );
 
     atomic {
       em3d = global new Em3d[numThreads];
@@ -225,7 +225,7 @@ public class Em3d extends Thread
 
     // initialization step 3: link together the ends of segments
     // that were allocated and internally linked in step 2
-    System.printString( "Linking together allocated segments.\n" );
+    // System.printString( "Linking together allocated segments.\n" );
 
     base = 0;
     for(int i = 0; i < numThreads - 1; i++) {
@@ -236,7 +236,7 @@ public class Em3d extends Thread
     }    
 
     // initialization step 4: divide work of making links
-    System.printString( "Launching distributed neighbor initialization.\n" );
+   // System.printString( "Launching distributed neighbor initialization.\n" );
 
     atomic {
       em3d = global new Em3d[numThreads];
@@ -265,7 +265,7 @@ public class Em3d extends Thread
     }
 
     // initialization step 5: divide work of making from links
-    System.printString( "Launching distributed makeFromNodes initialization.\n" );
+    //System.printString( "Launching distributed makeFromNodes initialization.\n" );
 
     atomic {
       em3d = global new Em3d[numThreads];
@@ -294,7 +294,7 @@ public class Em3d extends Thread
     }
 
     // initialization step 6: divide work of making from links
-    System.printString( "Launching distributed fromLink initialization.\n" );
+    //System.printString( "Launching distributed fromLink initialization.\n" );
 
     atomic {
       em3d = global new Em3d[numThreads];
@@ -323,7 +323,7 @@ public class Em3d extends Thread
     }
 
     // initialization complete
-    System.printString( "Initialization complete.\n" );
+    //System.printString( "Initialization complete.\n" );
 
     long end0 = System.currentTimeMillis();
 

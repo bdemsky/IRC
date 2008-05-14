@@ -97,7 +97,7 @@ public class BiGraph
    **/
   public void makeNeighbors( int indexBegin, int indexEnd, Random r )
   {
-      System.printString( "Making unique neighbors for hNodes...\n" );
+      //System.printString( "Making unique neighbors for hNodes...\n" );
 
       // making neighbors
       //if (verbose) System.printString("updating from and coeffs");
@@ -106,7 +106,7 @@ public class BiGraph
 	  n.makeUniqueNeighbors(eNodes, r);
       }
 
-      System.printString( "Making unique neighbors for eNodes...\n" );
+      //System.printString( "Making unique neighbors for eNodes...\n" );
 
       for (int i = indexBegin; i < indexEnd; i++) {
 	  Node n = eNodes[i];
@@ -117,7 +117,7 @@ public class BiGraph
 
   public void makeFromNodes( int indexBegin, int indexEnd )
   {
-      System.printString( "Making h fromNodes...\n" );
+      //System.printString( "Making h fromNodes...\n" );
 
       // Create the fromNodes and coeff field
       //if (verbose) System.printString("filling from fields");
@@ -126,7 +126,7 @@ public class BiGraph
 	  n.makeFromNodes();
       }
       
-      System.printString( "Making e fromNodes...\n" );
+      //System.printString( "Making e fromNodes...\n" );
 
       for(int i = indexBegin; i < indexEnd; i++) {
 	  Node n = eNodes[i];
@@ -137,7 +137,7 @@ public class BiGraph
 
   public void makeFromLinks( int indexBegin, int indexEnd, Random r )
   {
-      System.printString( "Updating h fromNodes...\n" );
+      //System.printString( "Updating h fromNodes...\n" );
 
       // Update the fromNodes
       for(int i = indexBegin; i < indexEnd; i++) {
@@ -145,7 +145,7 @@ public class BiGraph
 	  n.updateFromNodes(r);
       }
 
-      System.printString( "Updating e fromNodes...\n" );
+      //System.printString( "Updating e fromNodes...\n" );
 
       for(int i = indexBegin; i < indexEnd; i++) {
 	  Node n = eNodes[i];

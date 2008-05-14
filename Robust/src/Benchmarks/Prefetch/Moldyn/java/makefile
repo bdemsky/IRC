@@ -1,8 +1,26 @@
-SRC = JGFMolDynBenchSizeA
+
+#SRC = JGFMolDynBenchSizeA
+#default:
+#	javac ${SRC}.java
+#run:
+#	java ${SRC} 2
+#
+#clean:
+#	rm *.class
+
+MAINCLASS=JGFMolDynBenchSizeA
+SRC=${MAINCLASS}.java \
+JGFInstrumentor.java \
+JGFTimer.java \
+JGFMolDynBench.java \
+Barrier.java
+#FLAGS=-dsm -prefetch -excprefetch particle.force -excprefetch particle.domove -excprefetch particle.mkekin -excprefetch TournamentBarrier.DoBarrier -excprefetch JGFMolDynBench.JGFvalidate -excprefetch JGFMolDynBench.JGFapplication -optimize -debug -profile -mainclass ${MAINCLASS} -o ${MAINCLASS} -trueprob 0.8
+FLAGS2= -thread -mainclass ${MAINCLASS} -o ${MAINCLASS}NP
+
 default:
-	javac ${SRC}.java
-run:
-	java ${SRC} 2
+	../../../../buildscript ${FLAGS2} ${SRC}
+#	../../../../buildscript ${FLAGS} ${SRC}
 
 clean:
-	rm *.class
+	rm -rf tmpbuilddirectory/
+	rm *.bin

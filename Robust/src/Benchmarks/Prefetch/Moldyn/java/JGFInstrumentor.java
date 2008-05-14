@@ -17,9 +17,6 @@
  *                         All rights reserved.                            *
  *                                                                         *
  **************************************************************************/
-
-import java.util.*;
-
 public class JGFInstrumentor{
 
   protected HashMap timers;
@@ -33,8 +30,8 @@ public class JGFInstrumentor{
   public static void addTimer (String name, HashMap timers){
 
     if (timers.containsKey(name)) {
-      System.out.println("JGFInstrumentor.addTimer: warning -  timer " + name + 
-          " already exists");
+      System.printString("JGFInstrumentor.addTimer: warning -  timer " + name + 
+          " already exists\n");
     }
     else {
       timers.put(name, new JGFTimer(name));
@@ -44,8 +41,8 @@ public class JGFInstrumentor{
   public static void addTimer (String name, String opname, HashMap timers){
 
     if (timers.containsKey(name)) {
-      System.out.println("JGFInstrumentor.addTimer: warning -  timer " + name + 
-          " already exists");
+      System.printString("JGFInstrumentor.addTimer: warning -  timer " + name + 
+          " already exists\n");
     }
     else {
       timers.put(name, new JGFTimer(name,opname));
@@ -56,8 +53,8 @@ public class JGFInstrumentor{
   public static void addTimer (String name, String opname, int size, HashMap timers){
 
     if (timers.containsKey(name)) {
-      System.out.println("JGFInstrumentor.addTimer: warning -  timer " + name +
-          " already exists");
+      System.printString("JGFInstrumentor.addTimer: warning -  timer " + name +
+          " already exists\n");
     }
     else {
       timers.put(name, new JGFTimer(name,opname,size));
@@ -70,8 +67,8 @@ public class JGFInstrumentor{
       ((JGFTimer) timers.get(name)).start();
     }
     else {
-      System.out.println("JGFInstrumentor.startTimer: failed -  timer " + name + 
-          " does not exist");
+      System.printString("JGFInstrumentor.startTimer: failed -  timer " + name + 
+          " does not exist\n");
     }
 
   }
@@ -81,8 +78,8 @@ public class JGFInstrumentor{
       ((JGFTimer) timers.get(name)).stop();
     }
     else {
-      System.out.println("JGFInstrumentor.stopTimer: failed -  timer " + name + 
-          " does not exist");
+      System.printString("JGFInstrumentor.stopTimer: failed -  timer " + name + 
+          " does not exist\n");
     }
   }
 
@@ -91,8 +88,8 @@ public class JGFInstrumentor{
       ((JGFTimer) timers.get(name)).addops(count);
     }
     else {
-      System.out.println("JGFInstrumentor.addOpsToTimer: failed -  timer " + name + 
-          " does not exist");
+      System.printString("JGFInstrumentor.addOpsToTimer: failed -  timer " + name + 
+          " does not exist\n");
     }
   }  
 
@@ -101,8 +98,8 @@ public class JGFInstrumentor{
       ((JGFTimer) timers.get(name)).addtime(added_time);
     }
     else {
-      System.out.println("JGFInstrumentor.addTimeToTimer: failed -  timer " + name +
-          " does not exist");
+      System.printString("JGFInstrumentor.addTimeToTimer: failed -  timer " + name +
+          " does not exist\n");
     }
 
 
@@ -115,8 +112,8 @@ public class JGFInstrumentor{
       time = ((JGFTimer) timers.get(name)).time;
     }
     else {
-      System.out.println("JGFInstrumentor.readTimer: failed -  timer " + name + 
-          " does not exist");
+      System.printString("JGFInstrumentor.readTimer: failed -  timer " + name + 
+          " does not exist\n");
       time = 0.0; 
     }
     return time; 
@@ -127,8 +124,8 @@ public class JGFInstrumentor{
       ((JGFTimer) timers.get(name)).reset();
     }
     else {
-      System.out.println("JGFInstrumentor.resetTimer: failed -  timer " + name +
-          " does not exist");
+      System.printString("JGFInstrumentor.resetTimer: failed -  timer " + name +
+          " does not exist\n");
     }
   }
 
@@ -137,8 +134,8 @@ public class JGFInstrumentor{
       ((JGFTimer) timers.get(name)).print();
     }
     else {
-      System.out.println("JGFInstrumentor.printTimer: failed -  timer " + name +
-          " does not exist");
+      System.printString("JGFInstrumentor.printTimer: failed -  timer " + name +
+          " does not exist\n");
     }
   }
 
@@ -147,8 +144,8 @@ public class JGFInstrumentor{
       ((JGFTimer) timers.get(name)).printperf();
     }
     else {
-      System.out.println("JGFInstrumentor.printTimer: failed -  timer " + name +
-          " does not exist");
+      System.printString("JGFInstrumentor.printTimer: failed -  timer " + name +
+          " does not exist\n");
     }
   }
 
@@ -167,46 +164,36 @@ public class JGFInstrumentor{
     header = "";
     base = "Java Grande Forum Thread Benchmark Suite - Version 1.0 - Section "; 
 
-    switch (section) {
-      case 1: 
-        header = base + "1";
-        break;
-      case 2:
-        switch (size) {
-          case 0:
-            header = base + "2 - Size A";
-            break;
-          case 1:
-            header = base + "2 - Size B";
-            break;
-          case 2:
-            header = base + "2 - Size C";
-            break;
-        }
-        break; 
-      case 3:    
-        switch (size) {
-          case 0:
-            header = base + "3 - Size A";
-            break;
-          case 1:
-            header = base + "3 - Size B";
-            break;
-        }
-        break; 
+    if (section == 1)
+    {
+      header = base + "1";
+    }
+    else if (section == 2)
+    {
+      if (size == 0)
+        header = base + "2 - Size A";
+      else if (size == 1)
+        header = base + "2 - Size B";
+      else if (size == 2)
+        header = base + "2 - Size C";
+    }
+    else if (section == 3)
+    {
+      if (size == 0)
+        header = base + "3 - Size A";
+      else if (size == 1)
+        header = base + "3 - Size B";
     }
 
-    System.out.println(header); 
+    System.printString(header + "\n"); 
 
     if (nthreads == 1) {
-      System.out.println("Executing on " + nthreads + " thread");
+      System.printString("Executing on " + nthreads + " thread\n");
     }
     else {
-      System.out.println("Executing on " + nthreads + " threads");
+      System.printString("Executing on " + nthreads + " threads\n");
     }
 
-    System.out.println("");
-
+    System.printString(" \n");
   } 
-
 }
