@@ -338,9 +338,9 @@ public class Main {
 	      scheduleAnalysis.schedule();
 	      
 	      //simulate these schedulings
-	      //ScheduleSimulator scheduleSimulator = new ScheduleSimulator(scheduleAnalysis.getCoreNum(), state, ta);
+	      ScheduleSimulator scheduleSimulator = new ScheduleSimulator(scheduleAnalysis.getCoreNum(), state, ta);
 	      Iterator it_scheduling = scheduleAnalysis.getSchedulingsIter();
-	      /*int index = 0;
+	      int index = 0;
 	      Vector<Integer> selectedScheduling = new Vector<Integer>();
 	      int processTime = Integer.MAX_VALUE;
 	      while(it_scheduling.hasNext()) {
@@ -360,7 +360,7 @@ public class Main {
 	      for(int i = 0; i < selectedScheduling.size(); i++) {
 		  System.out.print(selectedScheduling.elementAt(i) + ", ");
 	      }
-	      System.out.println();*/
+	      System.out.println();
 	      
 	      /*ScheduleSimulator scheduleSimulator = new ScheduleSimulator(4, state, ta);
 	      Vector<Schedule> scheduling = new Vector<Schedule>();

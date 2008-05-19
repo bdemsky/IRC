@@ -443,9 +443,11 @@ public class ScheduleAnalysis {
 		scheduleEdges.remove(se);
 		// As se has been changed into an internal edge inside a ScheduleNode, 
 		// change the source and target of se from original ScheduleNodes into ClassNodes.
-		se.setTarget(se.getTargetCNode());
-		se.setSource(se.getSourceCNode());
-		se.getTargetCNode().addEdge(se);
+		if(se.getType() == ScheduleEdge.NEWEDGE) {
+		    se.setTarget(se.getTargetCNode());
+		    se.setSource(se.getSourceCNode());
+		    se.getTargetCNode().addEdge(se);
+		}
 	    } else {
 		// clone the whole ScheduleNode lists starting with se's target
 		for(int j = 1; j < repeat; j++ ) {
@@ -786,9 +788,11 @@ public class ScheduleAnalysis {
 		scheduleEdges.removeElement(se);
 		// As se has been changed into an internal edge inside a ScheduleNode, 
 		// change the source and target of se from original ScheduleNodes into ClassNodes.
-		se.setTarget(se.getTargetCNode());
-		se.setSource(se.getSourceCNode());
-		se.getTargetCNode().addEdge(se);
+		if(se.getType() == ScheduleEdge.NEWEDGE) {
+		    se.setTarget(se.getTargetCNode());
+		    se.setSource(se.getSourceCNode());
+		    se.getTargetCNode().addEdge(se);
+		}
 	    } else {
 		handleScheduleEdge(se, true);
 	    }
@@ -984,10 +988,6 @@ public class ScheduleAnalysis {
 			}
 			break;
 		    }
-		    /*case ScheduleEdge.ASSOCEDGE: {
-			//TODO
-			+
-		    }*/
 		    }
 		    tmpSchedule.addChildCores(targetcore);
 		    if((targetcore.intValue() != j) && (!ancestorCores[targetcore.intValue()].contains((Integer.valueOf(j))))) {
@@ -1009,10 +1009,6 @@ public class ScheduleAnalysis {
 			tmpSchedule.addTargetCore(se.getFstate(), j, se.getTargetFState());
 			break;
 		    }
-		    /*case ScheduleEdge.ASSOCEDGE: {
-			//TODO
-			+
-		    }*/
 		    }
 		}
 		scheduling.add(tmpSchedule);
@@ -1091,11 +1087,6 @@ public class ScheduleAnalysis {
 		se = new ScheduleEdge(ctarget, "transmit", sse.getFstate(), sse.getType(), gid);//new ScheduleEdge(ctarget, "transmit", sse.getClassDescriptor(), false, gid);
 		break;
 	    }
-	    /*case ScheduleEdge.ASSOCEDGE: {
-		//TODO
-		se = new ScheduleEdge(ctarget, "associate", sse.getFstate(), sse.getType(), gid);//new ScheduleEdge(ctarget, "transmit", sse.getClassDescriptor(), false, gid);
-		break;
-	    }*/
 	    }
 	    se.setSourceCNode(sourcecn2cn.get(sse.getSourceCNode()));
 	    se.setTargetCNode(targetcn2cn.get(sse.getTargetCNode()));
@@ -1134,10 +1125,6 @@ public class ScheduleAnalysis {
 		}
 		break;
 	    }
-	    /*case ScheduleEdge.ASSOCEDGE: {
-		// TODO
-		+
-	    }*/
 	    }
 	    result.removeElement(sEdge.getTarget());
 	    if(ScheduleEdge.NEWEDGE == sEdge.getType()) {

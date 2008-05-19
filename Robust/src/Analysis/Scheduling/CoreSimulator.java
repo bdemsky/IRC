@@ -5,7 +5,6 @@ import java.util.Queue;
 import java.util.Vector;
 
 import Analysis.TaskStateAnalysis.FlagState;
-import IR.ClassDescriptor;
 import IR.TaskDescriptor;
 
 public class CoreSimulator {
@@ -13,6 +12,7 @@ public class CoreSimulator {
     RuntimeSchedule rSchedule;
     TaskSimulator rtask;
     Hashtable<FlagState, Queue<Integer>> targetCSimulator;
+    Hashtable<FlagState, Vector<Integer>> allyCSimulator;
     Hashtable<FlagState, FlagState> targetFState;
     int coreNum;
     int activeTime;
@@ -63,9 +63,19 @@ public class CoreSimulator {
 	return targetCSimulator.get(fstate);
     }
 
-    public void setTargetCSimulator(
-    	Hashtable<FlagState, Queue<Integer>> targetCSimulator) {
+    public void setTargetCSimulator(Hashtable<FlagState, Queue<Integer>> targetCSimulator) {
         this.targetCSimulator = targetCSimulator;
+    }
+    
+    public Vector<Integer> getAllyCores(FlagState fstate) {
+	if(allyCSimulator == null) {
+	    return null;
+	}
+	return allyCSimulator.get(fstate);
+    }
+
+    public void setAllyCSimulator(Hashtable<FlagState, Vector<Integer>> allyCSimulator) {
+        this.allyCSimulator = allyCSimulator;
     }
     
     public FlagState getTargetFState(FlagState fstate) {
@@ -108,7 +118,16 @@ public class CoreSimulator {
 	    return;
 	}
  	for(int i = 0; i < this.tasks.size(); i++) {
-	    this.tasks.elementAt(i).enquePara(newObj);
+	    this.tasks.elementAt(i).enquePara(newObj, null, 0, true);
+	}
+    }
+    
+    public void addObject(ObjectSimulator newObj, FlagState fs, int version) {
+	if(this.tasks == null) {
+	    return;
+	}
+ 	for(int i = 0; i < this.tasks.size(); i++) {
+	    this.tasks.elementAt(i).enquePara(newObj, fs, version, false);
 	}
     }
     
@@ -119,13 +138,35 @@ public class CoreSimulator {
 	Vector<Queue<ObjectSimulator>> paraQueues = this.rtask.getParaQueues();
 	for(int i = 0; i < paraQueues.size(); i++) {
 	    ObjectSimulator obj = paraQueues.elementAt(i).poll();
+	    obj.setHold(false);
 	    boolean remove = false;
 	    if((this.targetFState != null) && (this.targetFState.containsKey(obj.getCurrentFS()))) {
 		if(transObjs == null) {
 		    transObjs = new Vector<ObjectSimulator>();
 		}
-		transObjs.add(obj);
+		if(!transObjs.contains(obj)) {
+		    transObjs.add(obj);
+		}
 		remove = true;
+	    }
+	    // check if this object becoming shared or not
+	    Vector<Integer> allycores = this.getAllyCores(obj.getCurrentFS());
+	    if(allycores != null) {
+		obj.setShared(true);
+		for(int k = 0; k < allycores.size(); ++k) {
+		    Integer allyCore = allycores.elementAt(k);
+		    /*if(allyCore == coreNum) {
+			remove = false;
+		    } else {*/
+			if(transObjs == null) {
+			    transObjs = new Vector<ObjectSimulator>();
+			}
+			if(!transObjs.contains(obj)) {
+			    transObjs.add(obj);
+			}
+			remove = false; 
+		    //}
+		}
 	    }
 	    for(int j = 0; j < this.tasks.size(); j++) {
 		this.tasks.elementAt(j).refreshPara(obj, remove);

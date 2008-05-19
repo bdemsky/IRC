@@ -8,12 +8,18 @@ public class ObjectSimulator {
     ClassDescriptor cd;
     FlagState currentFS;
     boolean changed;
+    boolean shared;
+    boolean hold;
+    int version;
     
     public ObjectSimulator(ClassDescriptor cd, FlagState currentFS) {
 	super();
 	this.cd = cd;
 	this.currentFS = currentFS;
 	this.changed = true;
+	this.shared = false;
+	this.hold = false;
+	this.version = 0;
     }
     
     public void applyEdge(FEdge fedge) {
@@ -47,5 +53,28 @@ public class ObjectSimulator {
 	changed = true;
         this.currentFS = currentFS;
     }
-    
+
+    public boolean isHold() {
+        return hold;
+    }
+
+    public void setHold(boolean hold) {
+        this.hold = hold;
+    }
+
+    public boolean isShared() {
+        return shared;
+    }
+
+    public void setShared(boolean shared) {
+        this.shared = shared;
+    }
+
+    public int getVersion() {
+        return version;
+    }
+
+    public void increaseVersion() {
+        this.version++;
+    }
 }

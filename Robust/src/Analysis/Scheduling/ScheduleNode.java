@@ -310,12 +310,6 @@ public class ScheduleNode extends GraphNode implements Cloneable{
     	if(ScheduleEdge.TRANSEDGE == se.getType()) {
     	    sn.removeInedge(se);
     	    this.removeEdge(se);
-    	    Iterator it_edges = sn.edges();
-    	    while(it_edges.hasNext()) {
-    		ScheduleEdge tse = (ScheduleEdge)it_edges.next();
-    		tse.setSource(this);
-    		this.edges.addElement(tse);
-    	    }
 
     	    // merge the split ClassNode of same class
     	    FlagState sfs = se.getFstate();
@@ -356,6 +350,18 @@ public class ScheduleNode extends GraphNode implements Cloneable{
     		    tmpse.setSourceCNode(scn);
     		}
     	    }
+    	    
+    	    // redirect external ScheduleEdges to this ScheduleNode
+    	    // and scn if it is originally from tcn
+    	    Iterator it_edges = sn.edges();
+	    while(it_edges.hasNext()) {
+		ScheduleEdge tse = (ScheduleEdge)it_edges.next();
+		tse.setSource(this);
+		if(tse.getSourceCNode().equals(tcn)) {
+		tse.setSourceCNode(scn);
+		}
+		this.edges.addElement(tse);
+	    }
     	    
     	    targetSEdges = null;
     	    

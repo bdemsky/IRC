@@ -423,6 +423,38 @@ public class SchedulingUtil {
 			isTaskFinish[cNum] = false;
 			break;
 		    }
+		    case Action.TASKABORT: {
+			if(!isfirst) {
+			    tmpLabel.append("\\n");
+			}
+			tmpLabel.append("<" + taction.getTd().getSymbol() + ">aborts;");
+			if(!(lastTaskNodes[cNum].equals("first")) &&
+				!(lastTaskNodes[cNum].equals(tmpTaskNode))) {
+			    output.print("\t");
+			    output.println(lastTaskNodes[cNum] + "->" + tmpTaskNode);
+			    lastTaskNodes[cNum] = tmpTaskNode;
+			    isTaskFinish[cNum] = true;
+			} else {
+			    throw new Exception("Error: unexpected task aborts");
+			}
+			break;
+		    }
+		    case Action.TASKREMOVE: {
+			if(!isfirst) {
+			    tmpLabel.append("\\n");
+			}
+			tmpLabel.append("<" + taction.getTd().getSymbol() + ">removes;");
+			if(!(lastTaskNodes[cNum].equals("first")) &&
+				!(lastTaskNodes[cNum].equals(tmpTaskNode))) {
+			    output.print("\t");
+			    output.println(lastTaskNodes[cNum] + "->" + tmpTaskNode);
+			    lastTaskNodes[cNum] = tmpTaskNode;
+			    isTaskFinish[cNum] = true;
+			} else {
+			    throw new Exception("Error: unexpected task remove");
+			}
+			break;
+		    }
 		    }
 		}
 		Enumeration<String> keys = tmpTaskNodes.keys();

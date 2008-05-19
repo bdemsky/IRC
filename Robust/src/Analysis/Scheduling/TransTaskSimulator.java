@@ -4,9 +4,9 @@ import java.util.Queue;
 
 public class TransTaskSimulator extends TaskSimulator {
     private int targetCoreNum;
-    private Queue<ObjectSimulator> newObjs;
+    private Queue<ObjectInfo> newObjs;
 
-    public TransTaskSimulator(CoreSimulator cs, int targetCoreNum, Queue<ObjectSimulator> nobjs) {
+    public TransTaskSimulator(CoreSimulator cs, int targetCoreNum, Queue<ObjectInfo> nobjs) {
 	super(null, cs);
 	this.targetCoreNum = targetCoreNum;
 	this.newObjs = nobjs;
@@ -17,10 +17,10 @@ public class TransTaskSimulator extends TaskSimulator {
 	    this.currentRun = new ExeResult();
 	}
 
-	this.currentRun.finishTime = 1 * sizeof(this.newObjs.peek().getCd());
+	this.currentRun.finishTime = 1 * sizeof(this.newObjs.peek().obj.getCd());
     }
     
-    public ObjectSimulator refreshTask() {
+    public ObjectInfo refreshTask() {
 	return this.newObjs.poll();
     }
     

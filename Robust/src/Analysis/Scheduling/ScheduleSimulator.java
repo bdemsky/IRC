@@ -117,6 +117,7 @@ public class ScheduleSimulator {
             CoreSimulator cs = this.cores.elementAt(temp.getCoreNum());
             cs.deployTasks(temp.getTasks());
             cs.setTargetCSimulator(temp.getTargetCoreTable());
+            cs.setAllyCSimulator(temp.getAllyCoreTable());
             cs.setTargetFState(temp.getTargetFStateTable());
         }
         // inject a Startup Object to each core
@@ -204,8 +205,11 @@ public class ScheduleSimulator {
 		    TransTaskSimulator tmptask = (TransTaskSimulator)task;
 		    // add ADDOBJ task to targetCore
 		    int targetCoreNum = tmptask.getTargetCoreNum();
-		    ObjectSimulator nobj = tmptask.refreshTask();
-		    this.cores.elementAt(targetCoreNum).addObject(nobj);
+		    ObjectInfo objinfo = tmptask.refreshTask();
+		    ObjectSimulator nobj = objinfo.obj;
+		    FlagState fs = objinfo.fs;
+		    int version = objinfo.version;
+		    this.cores.elementAt(targetCoreNum).addObject(nobj, fs, version);
 		    action = new Action(targetCoreNum, Action.ADDOBJ, 1, nobj.getCd());
 		    cp.addAction(action);
 		    if(!tmptask.isFinished()) {
@@ -225,81 +229,131 @@ public class ScheduleSimulator {
 		} else {
 		    CoreSimulator cs = task.getCs();
 		    int coreNum = cs.getCoreNum();
-		    Hashtable<Integer, Queue<ObjectSimulator>> transObjQueues = new Hashtable<Integer, Queue<ObjectSimulator>>();
-		    if(task.getCurrentRun().getNewObjs() == null) {
-			action = new Action(coreNum, Action.TASKFINISH);
-			action.setTd(cs.getRtask().getTd());
-		    } else {
-			action = new Action(coreNum, Action.TFWITHOBJ);
-			action.setTd(cs.getRtask().getTd());
-			Vector<ObjectSimulator> nobjs = task.getCurrentRun().getNewObjs();
-			//Schedule schedule = this.scheduling.elementAt(coreNum);
-			for(int j = 0; j < nobjs.size(); j++) {
-			    ObjectSimulator nobj = nobjs.elementAt(j);
-			    action.addNewObj(nobj.getCd(), Integer.valueOf(1));
-			    // send the new object to target core according to pre-decide scheduling
-			    Queue<Integer> cores = cs.getTargetCores(nobj.getCurrentFS());
-			    if(cores == null) {
-				// this obj will reside on this core
-				cs.addObject(nobj);
-			    } else {
-				Integer targetCore = cores.poll();
-				if(targetCore == coreNum) {
+		    if(task.getCurrentRun().getExetype() == 0) {
+			Hashtable<Integer, Queue<ObjectInfo>> transObjQueues = new Hashtable<Integer, Queue<ObjectInfo>>();
+			if(task.getCurrentRun().getNewObjs() == null) {
+			    action = new Action(coreNum, Action.TASKFINISH);
+			    action.setTd(cs.getRtask().getTd());
+			} else {
+			    action = new Action(coreNum, Action.TFWITHOBJ);
+			    action.setTd(cs.getRtask().getTd());
+			    Vector<ObjectSimulator> nobjs = task.getCurrentRun().getNewObjs();
+			    //Schedule schedule = this.scheduling.elementAt(coreNum);
+			    for(int j = 0; j < nobjs.size(); j++) {
+				ObjectSimulator nobj = nobjs.elementAt(j);
+				action.addNewObj(nobj.getCd(), Integer.valueOf(1));
+				// send the new object to target core according to pre-decide scheduling
+				Queue<Integer> cores = cs.getTargetCores(nobj.getCurrentFS());
+				if(cores == null) {
 				    // this obj will reside on this core
 				    cs.addObject(nobj);
 				} else {
-				    if(!transObjQueues.containsKey(targetCore)) {
-					transObjQueues.put(targetCore, new LinkedList<ObjectSimulator>());
+				    Integer targetCore = cores.poll();
+				    if(targetCore == coreNum) {
+					// this obj will reside on this core
+					cs.addObject(nobj);
+				    } else {
+					if(!transObjQueues.containsKey(targetCore)) {
+					    transObjQueues.put(targetCore, new LinkedList<ObjectInfo>());
+					}
+					Queue<ObjectInfo> tmpqueue = transObjQueues.get(targetCore);
+					tmpqueue.add(new ObjectInfo(nobj));
 				    }
-				    Queue<ObjectSimulator> tmpqueue = transObjQueues.get(targetCore);
-				    tmpqueue.add(nobj);
+				    // enqueue this core again
+				    cores.add(targetCore);
 				}
-				// enqueue this core again
-				cores.add(targetCore);
+				// check if this object becoming shared or not
+				Vector<Integer> allycores = cs.getAllyCores(nobj.getCurrentFS());
+				if(allycores != null) {
+				    nobj.setShared(true);
+				    for(int k = 0; k < allycores.size(); ++k) {
+					Integer allyCore = allycores.elementAt(k);
+					if(allyCore == coreNum) {
+					    cs.addObject(nobj);
+					} else {
+					    if(!transObjQueues.containsKey(allyCore)) {
+						transObjQueues.put(allyCore, new LinkedList<ObjectInfo>());
+					    }
+					    Queue<ObjectInfo> tmpqueue = transObjQueues.get(allyCore);
+					    ObjectInfo nobjinfo = new ObjectInfo(nobj);
+					    if(!tmpqueue.contains(nobjinfo)) {
+						tmpqueue.add(nobjinfo);
+					    }
+					}
+				    }
+				}
 			    }
 			}
-		    }
-		    cp.addAction(action);
-		    Vector<ObjectSimulator> transObjs = cs.finishTask();
-		    if(transObjs != null) {
-			for(int j = 0; j < transObjs.size(); j++) {
-			    ObjectSimulator tobj = transObjs.elementAt(j);
-			    // send the object to target core according to pre-decide scheduling
-			    Queue<Integer> cores = cs.getTargetCores(tobj.getCurrentFS());
-			    tobj.setCurrentFS(cs.getTargetFState(tobj.getCurrentFS()));
-			    if(cores == null) {
-				// this obj will reside on this core
-				cs.addObject(tobj);
-			    } else {
-				Integer targetCore = cores.peek();
-				if(targetCore == coreNum) {
+			cp.addAction(action);
+			Vector<ObjectSimulator> transObjs = cs.finishTask();
+			if(transObjs != null) {
+			    for(int j = 0; j < transObjs.size(); j++) {
+				ObjectSimulator tobj = transObjs.elementAt(j);
+				// send the object to target core according to pre-decide scheduling
+				Queue<Integer> cores = cs.getTargetCores(tobj.getCurrentFS());
+				tobj.setCurrentFS(cs.getTargetFState(tobj.getCurrentFS()));
+				if(cores == null) {
 				    // this obj will reside on this core
 				    cs.addObject(tobj);
 				} else {
-				    if(!transObjQueues.containsKey(targetCore)) {
-					transObjQueues.put(targetCore, new LinkedList<ObjectSimulator>());
+				    Integer targetCore = cores.peek();
+				    if(targetCore == coreNum) {
+					// this obj will reside on this core
+					cs.addObject(tobj);
+				    } else {
+					if(!transObjQueues.containsKey(targetCore)) {
+					    transObjQueues.put(targetCore, new LinkedList<ObjectInfo>());
+					}
+					Queue<ObjectInfo> tmpqueue = transObjQueues.get(targetCore);
+					tmpqueue.add(new ObjectInfo(tobj));
 				    }
-				    Queue<ObjectSimulator> tmpqueue = transObjQueues.get(targetCore);
-				    tmpqueue.add(tobj);
+				}
+				// check if this object becoming shared or not
+				Vector<Integer> allycores = cs.getAllyCores(tobj.getCurrentFS());
+				if(allycores != null) {
+				    tobj.setShared(true);
+				    for(int k = 0; k < allycores.size(); ++k) {
+					Integer allyCore = allycores.elementAt(k);
+					if(allyCore == coreNum) {
+					    cs.addObject(tobj);
+					} else {
+					    if(!transObjQueues.containsKey(allyCore)) {
+						transObjQueues.put(allyCore, new LinkedList<ObjectInfo>());
+					    }
+					    Queue<ObjectInfo> tmpqueue = transObjQueues.get(allyCore);
+					    ObjectInfo nobjinfo = new ObjectInfo(tobj);
+					    if(!tmpqueue.contains(nobjinfo)) {
+						tmpqueue.add(nobjinfo);
+					    }
+					}
+				    }
 				}
 			    }
 			}
-		    }
-		    // add 'transport' tasks
-		    Iterator it_entries = transObjQueues.entrySet().iterator();
-		    while(it_entries.hasNext()) {
-			Entry<Integer, Queue<ObjectSimulator>> tmpentry = (Entry<Integer, Queue<ObjectSimulator>>)it_entries.next();
-			Integer tmpCoreNum = tmpentry.getKey();
-			Queue<ObjectSimulator> nobjs = tmpentry.getValue();
-			TransTaskSimulator tmptask = new TransTaskSimulator(cs, tmpCoreNum, nobjs);
-			this.tasks.add(tmptask);
-		    }
-		    // Choose a new task for this core
-		    TaskSimulator newTask = cs.process();
-		    if(newTask != null) {
-			this.tasks.add(newTask);
-			// add a TASKSTART action into this checkpoint
-			action = new Action(coreNum, Action.TASKSTART);
+			// add 'transport' tasks
+			Iterator it_entries = transObjQueues.entrySet().iterator();
+			while(it_entries.hasNext()) {
+			    Entry<Integer, Queue<ObjectInfo>> tmpentry = (Entry<Integer, Queue<ObjectInfo>>)it_entries.next();
+			    Integer tmpCoreNum = tmpentry.getKey();
+			    Queue<ObjectInfo> nobjs = tmpentry.getValue();
+			    TransTaskSimulator tmptask = new TransTaskSimulator(cs, tmpCoreNum, nobjs);
+			    this.tasks.add(tmptask);
+			}
+			// Choose a new task for this core
+			TaskSimulator newTask = cs.process();
+			if(newTask != null) {
+			    this.tasks.add(newTask);
+			    // add a TASKSTART action into this checkpoint
+			    action = new Action(coreNum, Action.TASKSTART);
+			    action.setTd(cs.getRtask().getTd());
+			    cp.addAction(action);
+			}
+		    } else if (task.getCurrentRun().getExetype() == 1) {
+			action = new Action(coreNum, Action.TASKABORT);
+			action.setTd(cs.getRtask().getTd());
+			cp.addAction(action);
+		    } else if (task.getCurrentRun().getExetype() == 2) {
+			action = new Action(coreNum, Action.TASKREMOVE);
 			action.setTd(cs.getRtask().getTd());
 			cp.addAction(action);
 		    }
@@ -347,6 +401,8 @@ public class ScheduleSimulator {
 	public static final int TASKFINISH = 1;
 	public static final int TFWITHOBJ = 2;
 	public static final int TASKSTART = 3;
+	public static final int TASKABORT = 4;
+	public static final int TASKREMOVE = 5;
 	
 	private int coreNum;
 	private int type;
