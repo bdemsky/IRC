@@ -39,7 +39,6 @@
 #include <netdb.h>
 #include <net/if.h>
 #include <linux/sockios.h>
-#include <sys/time.h>
 #include <sys/queue.h>
 #include "dht.h"
 #include "clookup.h" //this works for now, do we need anything better?

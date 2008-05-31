@@ -63,8 +63,11 @@
 #include "queue.h"
 #include "mcpileq.h"
 #include "threadnotify.h"
+#include <arpa/inet.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <sys/ioctl.h>
+#include <sys/time.h>
 #include <netdb.h>
 #include <netinet/in.h>
 #include <sys/types.h>
@@ -182,9 +185,11 @@ typedef struct trans_req_data {
 typedef struct trans_commit_data{
   unsigned int *objlocked;	/* Pointer to array holding oids of objects locked inside a transaction */
   unsigned int *objnotfound;    /* Pointer to array holding oids of objects not found on the participant machine */
+  unsigned int *objvernotmatch;    /* Pointer to array holding oids whose version doesn't match on the participant machine */
   void *modptr;			/* Pointer to the address in the mainobject store of the participant that holds all modified objects */
   int numlocked;		/* no of objects locked */
   int numnotfound;		/* no of objects not found */
+  int numvernotmatch;		/* no of objects whose version doesn't match */
 } trans_commit_data_t;
 
 
@@ -213,7 +218,7 @@ typedef struct local_thread_data_array {
 
 //Structure to store mid and socketid information
 typedef struct midSocketInfo {
-	unsigned int mid;		/* To communicate with mid use sockid in this data structure*/
+	unsigned int mid;		/* To communicate with mid use sockid in this data structure */
 	int sockid;
 } midSocketInfo_t;
 
@@ -280,6 +285,10 @@ void sendPrefetchReq(prefetchpile_t*, int);
 int getPrefetchResponse(int);
 unsigned short getObjType(unsigned int oid);
 int startRemoteThread(unsigned int oid, unsigned int mid);
+int updatePrefetchCache(thread_data_array_t *, int, char);
+
+
+
 /* Sends notification request for thread join, if sucessful returns 0 else returns -1 */
 int reqNotify(unsigned int *oidarry, unsigned short *versionarry, unsigned int numoid);
 void threadNotify(unsigned int oid, unsigned short version, unsigned int tid);
