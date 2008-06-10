@@ -35,7 +35,6 @@ inline void Lock(volatile unsigned int *s) {
   }
 }
 
-
 sockPoolHashTable_t *createSockPool(sockPoolHashTable_t * sockhash, unsigned int size) {
   if((sockhash = calloc(1, sizeof(sockPoolHashTable_t))) == NULL) {
     printf("Calloc error at %s line %d\n", __FILE__, __LINE__);
@@ -78,14 +77,13 @@ int createNewSocket(unsigned int mid) {
   return sd;
 }
 
-
 int getSockWithLock(sockPoolHashTable_t *sockhash, unsigned int mid) {
   socknode_t **ptr;
   int key = mid%(sockhash->size);
   int sd;
   
   Lock(&sockhash->mylock);
-  ptr=&sockhash->table[key];
+  ptr=&(sockhash->table[key]);
   
   while(*ptr!=NULL) {
     if (mid == (*ptr)->mid) {
@@ -114,7 +112,7 @@ int getSock(sockPoolHashTable_t *sockhash, unsigned int mid) {
   int key = mid%(sockhash->size);
   int sd;
   
-  ptr=&sockhash->table[key];
+  ptr=&(sockhash->table[key]);
   
   while(*ptr!=NULL) {
     if (mid == (*ptr)->mid) {
@@ -142,7 +140,7 @@ int getSock2(sockPoolHashTable_t *sockhash, unsigned int mid) {
   int key = mid%(sockhash->size);
   int sd;
   
-  ptr=&sockhash->table[key];
+  ptr=&(sockhash->table[key]);
   
   while(*ptr!=NULL) {
     if (mid == (*ptr)->mid) {
@@ -159,7 +157,6 @@ int getSock2(sockPoolHashTable_t *sockhash, unsigned int mid) {
     return -1;
   }
 }
-
 
 void insToListWithLock(sockPoolHashTable_t *sockhash, socknode_t *inusenode) {
     Lock(&sockhash->mylock);

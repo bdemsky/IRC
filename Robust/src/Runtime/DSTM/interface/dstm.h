@@ -53,6 +53,7 @@
 //Transaction id per machine
 #define TID_LEN 20
 #define LISTEN_PORT 2156
+#define UDP_PORT 2158
 
 
 #include <stdlib.h>

@@ -2,6 +2,7 @@
 #define _SOCKPOOL_H_
 
 #include "dstm.h"
+#include "ip.h"
 
 int test_and_set(volatile unsigned int *addr);
 void UnLock(volatile unsigned int *addr);
