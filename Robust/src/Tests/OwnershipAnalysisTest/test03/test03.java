@@ -39,11 +39,9 @@ task MakeGraph( Parameter1 p1{ !w } ) {
     Node n2 = Node.makeNode();
     Node n3 = Node.makeNode();
 
-    /*
     n1.addNeighbor( n2 );
     n2.addNeighbor( n3 );
     n3.addNeighbor( n1 );
-    */
 
     p1.root = n1;
 
