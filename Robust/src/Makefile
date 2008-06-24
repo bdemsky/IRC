@@ -80,6 +80,9 @@ Analysis/OwnershipAnalysis/LabelNode.class                              \
 Analysis/OwnershipAnalysis/HeapRegionNode.class                         \
 Analysis/OwnershipAnalysis/ReferenceEdgeProperties.class                \
 Analysis/OwnershipAnalysis/AllocationSite.class                         \
+Analysis/OwnershipAnalysis/TokenTuple.class                             \
+Analysis/OwnershipAnalysis/TokenTupleSet.class                          \
+Analysis/OwnershipAnalysis/ReachabilitySet.class                        \
 Util/GraphNode.class Util/Namer.class Util/Relation.class		\
 Interface/HTTPHeader.class Interface/HTTPResponse.class			\
 Interface/HTTPServices.class Interface/HashStrings.class		\
