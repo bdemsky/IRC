@@ -41,14 +41,38 @@ public class TokenTuple
 	}
     }
 
-    public boolean equals( TokenTuple tt ) {
+    public boolean equals( Object o ) {
+	if( !(o instanceof TokenTuple) ) {
+	    return false;
+	}
+
+	TokenTuple tt = (TokenTuple) o;
+
 	return token.equals( tt.getToken() ) &&
-   	       arity ==      tt.getArity();
+	       arity ==      tt.getArity();
+    }
+
+    public int hashCode() {
+	return token.intValue();
     }
 
     public TokenTuple copy() {
 	return new TokenTuple( token,
 			       isNewSummary,
 			       arity );
+    }
+
+    public String toString() {
+	String s = "";
+	if( isNewSummary ) {
+	    s = "sum";
+	}
+
+	String t = "1";
+	if( arity == ARITY_MANY ) {
+	    t = "many";
+	}
+
+	return new String( "<"+token+s+", "+t+">" );
     }
 }

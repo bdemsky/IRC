@@ -11,5 +11,5 @@ public class ReachabilitySet {
     public HashSet<TokenTupleSet> possibleReachabilities;
 
     
-
+    // this one has special union.
 }
