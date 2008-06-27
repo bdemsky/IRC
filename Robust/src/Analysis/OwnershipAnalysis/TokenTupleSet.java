@@ -25,11 +25,13 @@ public class TokenTupleSet {
 
     public TokenTupleSet union( TokenTupleSet ttsIn ) {
 	TokenTupleSet ttsOut = new TokenTupleSet( this );
-	//ttsOut.tokenTuples.addAll( ttsIn.tokenTuples );
+	ttsOut.tokenTuples.addAll( ttsIn.tokenTuples );
+	/*
 	Iterator i = ttsIn.tokenTuples.iterator();
 	while( i.hasNext() ) {
 	    ttsOut.tokenTuples.add( (TokenTuple) i.next() );
 	}
+	*/
 
 	return ttsOut;
     }

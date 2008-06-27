@@ -83,6 +83,8 @@ Analysis/OwnershipAnalysis/AllocationSite.class                         \
 Analysis/OwnershipAnalysis/TokenTuple.class                             \
 Analysis/OwnershipAnalysis/TokenTupleSet.class                          \
 Analysis/OwnershipAnalysis/ReachabilitySet.class                        \
+Analysis/OwnershipAnalysis/ChangeTuple.class                            \
+Analysis/OwnershipAnalysis/ChangeTupleSet.class                         \
 Util/GraphNode.class Util/Namer.class Util/Relation.class		\
 Interface/HTTPHeader.class Interface/HTTPResponse.class			\
 Interface/HTTPServices.class Interface/HashStrings.class		\
