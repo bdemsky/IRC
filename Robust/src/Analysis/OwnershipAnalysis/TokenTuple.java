@@ -63,14 +63,14 @@ public class TokenTuple
     public String toString() {
 	String s = "";
 	if( isNewSummary ) {
-	    s = "sum";
+	    s = "S";
 	}
 
 	String t = "1";
 	if( arity == ARITY_MANY ) {
-	    t = "many";
+	    t = "M";
 	}
 
-	return new String( "<"+token+s+", "+t+">" );
+	return new String( "<"+token+s+","+t+">" );
     }
 }

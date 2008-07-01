@@ -8,10 +8,15 @@ import java.io.*;
 
 public class ReachabilitySet {
 
-    public HashSet<TokenTupleSet> possibleReachabilities;
+    private HashSet<TokenTupleSet> possibleReachabilities;
 
     public ReachabilitySet() {
 	possibleReachabilities = new HashSet<TokenTupleSet>();
+    }
+
+    public ReachabilitySet( TokenTupleSet tts ) {
+	possibleReachabilities = new HashSet<TokenTupleSet>();
+	possibleReachabilities.add( tts );
     }
 
     public ReachabilitySet( ReachabilitySet rs ) {
@@ -59,49 +64,45 @@ public class ReachabilitySet {
 		while( itrRelement.hasNext() ) {
 		    TokenTuple e = (TokenTuple) itrRelement.next();
 
-		    if( o.contains( e ) ) {
-			theUnion.union( new TokenTupleSet( e.increaseArity() ) );
+		    if( o.containsToken( e.getToken() ) ) {
+			theUnion = theUnion.union( new TokenTupleSet( e.increaseArity() ) );
+		    } else {
+			theUnion = theUnion.union( new TokenTupleSet( e ) );
 		    }
+		}
+
+		Iterator itrOelement = o.iterator();
+		while( itrOelement.hasNext() ) {
+		    TokenTuple e = (TokenTuple) itrOelement.next();
+
+		    if( !theUnion.containsToken( e.getToken() ) ) {
+			theUnion = theUnion.union( new TokenTupleSet( e ) );
+		    }
+		}
+
+		if( !theUnion.isEmpty() ) {
+		    ctsOut = ctsOut.union( 
+			       new ChangeTupleSet( 
+			         new ChangeTuple( o, theUnion )
+					          )
+				          );
 		}
 	    }
 	}
 
 	return ctsOut;
     }
-}
 
-/*
-Set specialUnion( Set O, Set R ) {
-  Set C = {}
+    public String toString() {
+	String s = "[";
 
-  foreach o in O {
-    foreach r in R {
+	Iterator i = this.iterator();
+	while( i.hasNext() ) {
+	    s += "\n  "+i.next();
+	}
 
-      Set theUnion = {}
+	s += "\n]";
 
-      foreach e in r {
-        if o.contains( e ) {
-          if e.isSummaryToken() { // wait, stronger condition?
-            theUnion.add( e.copy().increaseArity() )
-          } else {
-            theUnion.add( e.copy() )
-          }
-        }
-      }
-
-      foreach e in o {
-        if !theUnion.contains( e ) {
-           theUnion.add( e.copy() )
-        }
-      }
-
-      if !theUnion.isEmpty() {
-        C.add( <o, theUnion> )
-      }
-
+	return s;	
     }
-  }
-
-  return C
 }
-*/

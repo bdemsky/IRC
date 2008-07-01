@@ -8,7 +8,7 @@ import java.io.*;
 
 public class ChangeTupleSet {
 
-    public HashSet<ChangeTuple> changeTuples;
+    private HashSet<ChangeTuple> changeTuples;
 
     public ChangeTupleSet() {
 	changeTuples = new HashSet<ChangeTuple>();
@@ -38,6 +38,15 @@ public class ChangeTupleSet {
     }
 
     public String toString() {
-	return changeTuples.toString();
+	String s = "[";
+
+	Iterator i = this.iterator();
+	while( i.hasNext() ) {
+	    s += "\n  "+i.next();
+	}
+
+	s += "\n]";
+
+	return s;
     }
 }

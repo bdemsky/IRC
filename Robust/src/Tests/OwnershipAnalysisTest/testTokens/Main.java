@@ -30,7 +30,9 @@ public class Main {
 					 true,
 					 TokenTuple.ARITY_ONE );
 
-	TokenTuple tt1 = tt0.copy();
+	TokenTuple tt1 = new TokenTuple( new Integer( 1 ),
+					 true,
+					 TokenTuple.ARITY_ONE );
 
 	TokenTuple tt2 = new TokenTuple( new Integer( 2 ),
 					 true,
@@ -52,7 +54,7 @@ public class Main {
 	test( "tt2 equals tt3?", false, tt2.equals( tt3 ) );
 	test( "tt3 equals tt2?", false, tt3.equals( tt2 ) );
 
-	tt1.increaseArity();
+	tt1 = tt1.increaseArity();
 
 	test( "tt1 equals tt2?", false, tt1.equals( tt2 ) );
 	test( "tt2 equals tt1?", false, tt2.equals( tt1 ) );
@@ -72,5 +74,38 @@ public class Main {
 	System.out.println( "tts4 is "+tts4 );
 	System.out.println( "tts5 is "+tts5 );
 	System.out.println( "tts6 is "+tts6 );
+
+	ReachabilitySet rs0 = new ReachabilitySet( tts0 );
+	rs0 = rs0.union( new ReachabilitySet( tts2 ) );
+	rs0 = rs0.union( new ReachabilitySet( tts5 ) );
+
+	System.out.println( "rs0 is "+rs0 );
+
+	TokenTuple tt4 = new TokenTuple( new Integer( 4 ),
+					 true,
+					 TokenTuple.ARITY_ONE );
+
+	/*	TokenTuple tt5 = new TokenTuple( new Integer( 4 ),
+					 true,
+					 TokenTuple.ARITY_ONE );
+	*/
+	TokenTuple tt6 = new TokenTuple( new Integer( 6 ),
+					 false,
+					 TokenTuple.ARITY_ONE );
+
+	TokenTupleSet tts7 = new TokenTupleSet( tt4 );
+	//TokenTupleSet tts8 = new TokenTupleSet( tt5 );
+	TokenTupleSet tts9 = new TokenTupleSet( tt1 );
+	tts9 = tts9.union( tts2 );
+
+	ReachabilitySet rs1 = new ReachabilitySet( tts7 );
+	//rs1 = rs1.union( new ReachabilitySet( tts8 ) );
+	rs1 = rs1.union( new ReachabilitySet( tts9 ) );
+
+	System.out.println( "rs1 is "+rs1 );
+
+
+	ChangeTupleSet cts0 = rs0.unionUpArity( rs1 );
+	System.out.println( "cts0 is "+cts0 );
     }
 }

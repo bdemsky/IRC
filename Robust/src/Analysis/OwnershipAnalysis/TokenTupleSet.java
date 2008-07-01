@@ -8,7 +8,7 @@ import java.io.*;
 
 public class TokenTupleSet {
 
-    public HashSet<TokenTuple> tokenTuples;
+    private HashSet<TokenTuple> tokenTuples;
 
     public TokenTupleSet() {
 	tokenTuples = new HashSet<TokenTuple>();
@@ -33,8 +33,24 @@ public class TokenTupleSet {
 	return ttsOut;
     }
 
-    public boolean contains( TokenTuple tt ) {
+    public boolean isEmpty() {
+	return tokenTuples.isEmpty();
+    }
+
+    public boolean containsTuple( TokenTuple tt ) {
 	return tokenTuples.contains( tt );
+    }
+
+    // this should be a hash table so we can do this by key
+    public boolean containsToken( Integer token ) {
+	Iterator itr = tokenTuples.iterator();
+	while( itr.hasNext() ) {
+	    TokenTuple tt = (TokenTuple) itr.next();
+	    if( token.equals( tt.getToken() ) ) {
+		return true;
+	    }
+	}
+	return false;
     }
 
     public String toString() {
