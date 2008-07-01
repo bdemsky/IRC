@@ -23,6 +23,10 @@ public class ChangeTupleSet {
 	changeTuples = (HashSet<ChangeTuple>) cts.changeTuples.clone(); //COPY?!
     }
 
+    public Iterator iterator() {
+	return changeTuples.iterator();
+    }
+
     public ChangeTupleSet union( ChangeTupleSet ctsIn ) {
 	ChangeTupleSet ctsOut = new ChangeTupleSet( this );
 	ctsOut.changeTuples.addAll( ctsIn.changeTuples );

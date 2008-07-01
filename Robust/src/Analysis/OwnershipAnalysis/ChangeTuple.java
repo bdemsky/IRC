@@ -9,6 +9,9 @@ import java.io.*;
 // a change touple is a pair that indicates if the
 // first TokenTupleSet is found in a ReachabilitySet,
 // then the second TokenTupleSet should be added
+
+// THIS CLASS IS IMMUTABLE!
+
 public class ChangeTuple
 {
     private TokenTupleSet toMatch;
@@ -36,10 +39,6 @@ public class ChangeTuple
 
     public int hashCode() {
 	return toMatch.hashCode() + toAdd.hashCode();
-    }
-
-    public ChangeTuple copy() {
-	return new ChangeTuple( toMatch, toAdd );
     }
 
     public String toString() {

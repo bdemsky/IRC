@@ -23,17 +23,18 @@ public class TokenTupleSet {
 	tokenTuples = (HashSet<TokenTuple>) tts.tokenTuples.clone(); //COPY?!
     }
 
+    public Iterator iterator() {
+	return tokenTuples.iterator();
+    }
+
     public TokenTupleSet union( TokenTupleSet ttsIn ) {
 	TokenTupleSet ttsOut = new TokenTupleSet( this );
 	ttsOut.tokenTuples.addAll( ttsIn.tokenTuples );
-	/*
-	Iterator i = ttsIn.tokenTuples.iterator();
-	while( i.hasNext() ) {
-	    ttsOut.tokenTuples.add( (TokenTuple) i.next() );
-	}
-	*/
-
 	return ttsOut;
+    }
+
+    public boolean contains( TokenTuple tt ) {
+	return tokenTuples.contains( tt );
     }
 
     public String toString() {

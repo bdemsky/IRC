@@ -8,6 +8,9 @@ import java.io.*;
 
 // a token touple is a pair that indicates a
 // heap region node and an arity
+
+// THIS CLASS IS IMMUTABLE!
+
 public class TokenTuple
 {
     private Integer token;
@@ -35,10 +38,11 @@ public class TokenTuple
     public Integer getToken() { return token; }
     public int     getArity() {	return arity; }
 
-    public void increaseArity() {
+    public TokenTuple increaseArity() {
 	if( isNewSummary ) {
-	    arity = ARITY_MANY;
+	    return new TokenTuple( token, isNewSummary, ARITY_MANY );
 	}
+	return this;
     }
 
     public boolean equals( Object o ) {
@@ -54,12 +58,6 @@ public class TokenTuple
 
     public int hashCode() {
 	return token.intValue();
-    }
-
-    public TokenTuple copy() {
-	return new TokenTuple( token,
-			       isNewSummary,
-			       arity );
     }
 
     public String toString() {
