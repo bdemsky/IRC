@@ -19,6 +19,10 @@ public class ReachabilitySet {
 	possibleReachabilities.add( tts );
     }
 
+    public ReachabilitySet( TokenTuple tt ) {
+	this( new TokenTupleSet( tt ) );
+    }
+
     public ReachabilitySet( ReachabilitySet rs ) {
 	possibleReachabilities = (HashSet<TokenTupleSet>) rs.possibleReachabilities.clone(); // again, DEEP COPY?!
     }
@@ -82,9 +86,7 @@ public class ReachabilitySet {
 
 		if( !theUnion.isEmpty() ) {
 		    ctsOut = ctsOut.union( 
-			       new ChangeTupleSet( 
-			         new ChangeTuple( o, theUnion )
-					          )
+		      new ChangeTupleSet( new ChangeTuple( o, theUnion ) )
 				          );
 		}
 	    }
@@ -92,6 +94,21 @@ public class ReachabilitySet {
 
 	return ctsOut;
     }
+
+
+    public String toStringEscapeNewline() {
+	String s = "[";
+
+	Iterator i = this.iterator();
+	while( i.hasNext() ) {
+	    s += "\\n  "+i.next();
+	}
+
+	s += "]";
+
+	return s;	
+    }
+
 
     public String toString() {
 	String s = "[";

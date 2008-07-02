@@ -17,21 +17,25 @@ public class HeapRegionNode extends OwnershipNode {
 
     protected AllocationSite allocSite;
 
+    protected ReachabilitySet alpha;
+
     protected String description;
 
 
 
-    public HeapRegionNode( Integer        id,
-			   boolean        isSingleObject,
-			   boolean        isFlagged,
-			   boolean        isNewSummary,
-			   AllocationSite allocSite,
-			   String         description ) {
+    public HeapRegionNode( Integer         id,
+			   boolean         isSingleObject,
+			   boolean         isFlagged,
+			   boolean         isNewSummary,
+			   AllocationSite  allocSite,
+			   ReachabilitySet alpha,
+			   String          description ) {
 	this.id = id;
 	this.isSingleObject = isSingleObject;
 	this.isFlagged      = isFlagged;
 	this.isNewSummary   = isNewSummary;
 	this.allocSite      = allocSite;
+	this.alpha          = alpha;
 	this.description    = description;
 
 	referencers  = new HashSet<OwnershipNode>();
@@ -44,6 +48,7 @@ public class HeapRegionNode extends OwnershipNode {
 				   isFlagged,
 				   isNewSummary,
 				   allocSite,
+				   alpha,
 				   description );
     }
 
@@ -110,8 +115,18 @@ public class HeapRegionNode extends OwnershipNode {
 	return allocSite;
     }
 
+
+    public ReachabilitySet getAlpha() {
+	return alpha;
+    }
+
+
     public String getIDString() {
 	return id.toString();
+    }
+
+    public String getAlphaString() {
+	return alpha.toStringEscapeNewline();
     }
 
     public String toString() {

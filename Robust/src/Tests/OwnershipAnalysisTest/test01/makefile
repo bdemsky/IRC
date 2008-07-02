@@ -9,10 +9,10 @@ BSFLAGS= -recover -flatirtasks -ownership -enable-assertions
 all: $(PROGRAM).bin
 
 view: PNGs
-	eog *flatIRGraph*.png &
+	#eog *flatIRGraph*.png &
 	#eog *FN*.png &
 	#eog *Ownership*.png &
-	eog *.png &
+	eog *COMPLETE*.png &
 
 printable:
 	rm -f *Startup*.dot

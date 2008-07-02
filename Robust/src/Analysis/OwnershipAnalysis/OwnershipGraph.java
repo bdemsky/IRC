@@ -25,8 +25,8 @@ public class OwnershipGraph {
     public HashSet<AllocationSite> allocationSites;
 
     // CHANGE!  Map HRN ID's to token sets (sets of IDs!)
-    public Hashtable< HeapRegionNode,     HashSet< HashSet<HeapRegionNode> > > alpha;
-  //public Hashtable< touple< HRN, HRN >, HashSet< HashSet<HeapRegionNode> > > beta;
+    //public Hashtable< HeapRegionNode,     HashSet< HashSet<HeapRegionNode> > > alpha;
+    //public Hashtable< touple< HRN, HRN >, HashSet< HashSet<HeapRegionNode> > > beta;
 
 
     public OwnershipGraph( int allocationDepth ) {
@@ -39,7 +39,7 @@ public class OwnershipGraph {
 
 	allocationSites = new HashSet <AllocationSite>();
 
-	alpha = new Hashtable< HeapRegionNode,     HashSet< HashSet<HeapRegionNode> > >();
+	//alpha = new Hashtable< HeapRegionNode, HashSet< HashSet<HeapRegionNode> > >();
     }
 
 
@@ -67,15 +67,27 @@ public class OwnershipGraph {
     // in the merge() operation) or to create new heap
     // regions with a new unique ID.
     protected HeapRegionNode 
-	createNewHeapRegionNode( Integer        id,
-				 boolean        isSingleObject,
-				 boolean        isFlagged,
-				 boolean        isNewSummary,
-				 AllocationSite allocSite,
-				 String         description ) {
+	createNewHeapRegionNode( Integer         id,
+				 boolean         isSingleObject,
+				 boolean         isFlagged,
+				 boolean         isNewSummary,
+				 boolean         isParameter,
+				 AllocationSite  allocSite,
+				 ReachabilitySet alpha,
+				 String          description ) {
 
 	if( id == null ) {
 	    id = OwnershipAnalysis.generateUniqueHeapRegionNodeID();
+	}
+
+	if( alpha == null ) {
+	    if( isFlagged || isParameter ) {
+		alpha = new ReachabilitySet( new TokenTuple( id, 
+							     isNewSummary,
+							     TokenTuple.ARITY_ONE ) );
+	    } else {
+		alpha = new ReachabilitySet();
+	    }
 	}
 
 	HeapRegionNode hrn = new HeapRegionNode( id,
@@ -83,6 +95,7 @@ public class OwnershipGraph {
 						 isFlagged,
 						 isNewSummary,
 						 allocSite,
+						 alpha,
 						 description );
 	id2hrn.put( id, hrn );
 	return hrn;
@@ -242,6 +255,8 @@ public class OwnershipGraph {
 							  false,
 							  isTask,
 							  false,
+							  true,
+							  null,
 							  null,
 							  "param" + paramIndex );
 
@@ -347,7 +362,9 @@ public class OwnershipGraph {
 						  false,
 						  hasFlags,
 						  true,
+						  false,
 						  as,
+						  null,
 						  as + "\\n" + as.getType() + "\\nsummary" );
 
 	    for( int i = 0; i < as.getAllocationDepth(); ++i ) {
@@ -357,7 +374,9 @@ public class OwnershipGraph {
 					 true,
 					 hasFlags,
 					 false,
+					 false,
 					 as,
+					 null,
 					 as + "\\n" + as.getType() + "\\n" + i + " oldest" );
 	    }
 	}
@@ -650,7 +669,7 @@ public class OwnershipGraph {
 	mergeReferenceEdges ( og );
 	mergeId2paramIndex  ( og );
 	mergeAllocationSites( og );
-	mergeTokenSets      ( og );
+	//mergeTokenSets      ( og );
     }
 
     protected void mergeOwnershipNodes( OwnershipGraph og ) {
@@ -819,7 +838,7 @@ public class OwnershipGraph {
 
 
     
-    protected void mergeTokenSets( OwnershipGraph og ) {
+    //protected void mergeTokenSets( OwnershipGraph og ) {
 	//	alpha = new Hashtable< HeapRegionNode,     HashSet< HashSet<HeapRegionNode> > >();
 
 	// if a key is in one or the other token set,
@@ -844,7 +863,7 @@ public class OwnershipGraph {
 	    }
 	}
 	*/
-    }
+    //}
 
 
 
@@ -1374,6 +1393,8 @@ public class OwnershipGraph {
 		          hrn.getID()          +
 		          "\\n"                +
             		  hrn.getDescription() + 
+		          "\\n"                +
+		          hrn.getAlphaString() +
 		          "\"]";
 
 	    bw.write( "  " + hrn.toString() + attributes + ";\n" );
