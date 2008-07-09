@@ -318,6 +318,11 @@ public class OwnershipAnalysis {
 	// the final ownership graph result to return as an empty set
 	returnNodesToCombineForCompleteOwnershipGraph = new HashSet<FlatReturnNode>();
 
+
+	// DEBUG
+	//int x = 0;
+
+
 	while( !flatNodesToVisit.isEmpty() ) {
 	    FlatNode fn = (FlatNode) flatNodesToVisit.iterator().next();
 	    flatNodesToVisit.remove( fn );
@@ -350,6 +355,20 @@ public class OwnershipAnalysis {
 
 	    if( !og.equals( ogPrev ) ) {
 		setGraphForFlatNode( fn, og );
+
+		// DEBUG
+		/*
+		++x;	
+
+		if( x > 5000 ) {
+		String s = String.format( "%04d", x );
+		og.writeGraph( "debug"+s, false, false );
+		}
+
+		if( x == 5020 ) {
+		    System.exit( -1 );
+		}
+		*/
 
 		for( int i = 0; i < fn.numNext(); i++ ) {
 		    FlatNode nn = fn.getNext( i );		  

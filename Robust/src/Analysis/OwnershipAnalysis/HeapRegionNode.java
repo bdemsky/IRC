@@ -57,6 +57,7 @@ public class HeapRegionNode extends OwnershipNode {
 	return id;
     }
 
+
     public boolean equals( HeapRegionNode hrn ) {
 	assert hrn != null;
 
@@ -64,6 +65,7 @@ public class HeapRegionNode extends OwnershipNode {
 	    isSingleObject == hrn.isSingleObject() &&
 	    isFlagged      == hrn.isFlagged()      &&
 	    isNewSummary   == hrn.isNewSummary()   &&
+	    alpha.equals( hrn.getAlpha() )         &&
 	    description.equals( hrn.getDescription() );
     }
 
@@ -115,6 +117,10 @@ public class HeapRegionNode extends OwnershipNode {
 	return allocSite;
     }
 
+
+    public void setAlpha( ReachabilitySet alpha ) {
+	this.alpha = alpha;
+    }
 
     public ReachabilitySet getAlpha() {
 	return alpha;

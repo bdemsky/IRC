@@ -5,17 +5,28 @@ public class ReferenceEdgeProperties {
     public ReferenceEdgeProperties() {
 	this.isUnique                = false;
 	this.isInitialParamReflexive = false;
+	this.beta                    = new ReachabilitySet();
     }    
 
     public ReferenceEdgeProperties( boolean isUnique ) {
 	this.isUnique                = isUnique;
 	this.isInitialParamReflexive = false;
+	this.beta                    = new ReachabilitySet();
     }
 
     public ReferenceEdgeProperties( boolean isUnique,
 				    boolean isInitialParamReflexive ) {
 	this.isUnique                = isUnique;
 	this.isInitialParamReflexive = isInitialParamReflexive;
+	this.beta                    = new ReachabilitySet();
+    }
+
+    public ReferenceEdgeProperties( boolean         isUnique,
+				    boolean         isInitialParamReflexive,
+				    ReachabilitySet beta) {
+	this.isUnique                = isUnique;
+	this.isInitialParamReflexive = isInitialParamReflexive;
+	this.beta                    = beta;
     }
 
 
@@ -40,6 +51,18 @@ public class ReferenceEdgeProperties {
     }
     public void setIsInitialParamReflexive( boolean isInitialParamReflexive ) {
 	this.isInitialParamReflexive = isInitialParamReflexive;
+    }
+
+
+    protected ReachabilitySet beta;
+    public ReachabilitySet getBeta() {
+	return beta;
+    }
+    public void setBeta( ReachabilitySet beta ) {
+	this.beta = beta;
+    }
+    public String getBetaString() {
+	return beta.toStringEscapeNewline();
     }
 
 

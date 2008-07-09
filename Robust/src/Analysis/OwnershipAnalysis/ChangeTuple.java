@@ -12,7 +12,7 @@ import java.io.*;
 
 // THIS CLASS IS IMMUTABLE!
 
-public class ChangeTuple
+public class ChangeTuple extends Canonical
 {
     private TokenTupleSet toMatch;
     private TokenTupleSet toAdd;
@@ -21,6 +21,10 @@ public class ChangeTuple
 			TokenTupleSet toAdd ) {
 	this.toMatch = toMatch;
 	this.toAdd   = toAdd;
+    }
+
+    public ChangeTuple makeCanonical() {
+	return (ChangeTuple) Canonical.makeCanonical( this );
     }
 
     public TokenTupleSet getSetToMatch() { return toMatch; }

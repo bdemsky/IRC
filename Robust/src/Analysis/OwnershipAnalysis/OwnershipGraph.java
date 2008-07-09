@@ -24,10 +24,6 @@ public class OwnershipGraph {
 
     public HashSet<AllocationSite> allocationSites;
 
-    // CHANGE!  Map HRN ID's to token sets (sets of IDs!)
-    //public Hashtable< HeapRegionNode,     HashSet< HashSet<HeapRegionNode> > > alpha;
-    //public Hashtable< touple< HRN, HRN >, HashSet< HashSet<HeapRegionNode> > > beta;
-
 
     public OwnershipGraph( int allocationDepth ) {
 	this.allocationDepth = allocationDepth;
@@ -38,8 +34,6 @@ public class OwnershipGraph {
 	paramIndex2id = new Hashtable<Integer,        Integer       >();
 
 	allocationSites = new HashSet <AllocationSite>();
-
-	//alpha = new Hashtable< HeapRegionNode, HashSet< HashSet<HeapRegionNode> > >();
     }
 
 
@@ -658,6 +652,9 @@ public class OwnershipGraph {
     // in merge() and equals() methods the suffix A 
     // represents the passed in graph and the suffix
     // B refers to the graph in this object
+    // Merging means to take the incoming graph A and
+    // merge it into B, so after the operation graph B
+    // is the final result.
     ////////////////////////////////////////////////////
     public void merge( OwnershipGraph og ) {
 
@@ -669,8 +666,8 @@ public class OwnershipGraph {
 	mergeReferenceEdges ( og );
 	mergeId2paramIndex  ( og );
 	mergeAllocationSites( og );
-	//mergeTokenSets      ( og );
     }
+
 
     protected void mergeOwnershipNodes( OwnershipGraph og ) {
 	Set      sA = og.id2hrn.entrySet();
@@ -685,6 +682,12 @@ public class OwnershipGraph {
 	    if( !id2hrn.containsKey( idA ) ) {
 		HeapRegionNode hrnB = hrnA.copy();
 		id2hrn.put( idA, hrnB );
+	    } else {
+		// otherwise this is a node present in both graphs
+		// so make the new reachability set a union of the
+		// nodes' reachability sets
+		HeapRegionNode hrnB = id2hrn.get( idA );
+		hrnB.setAlpha( hrnB.getAlpha().union( hrnA.getAlpha() ) );
 	    }
 	}
 
@@ -708,7 +711,8 @@ public class OwnershipGraph {
 	// for stroing heap region nodes retrieved by integer
 	// ids.  Because finding edges requires interacting
 	// with these disparate data structures frequently the
-	// process is nearly duplicated, one for each
+	// process is nearly duplicated, one for each structure
+	// that stores edges
 
 	// heap regions
 	Set      sA = og.id2hrn.entrySet();
@@ -733,14 +737,17 @@ public class OwnershipGraph {
 		assert id2hrn.containsKey( idA );
 		HeapRegionNode hrnB = id2hrn.get( idA );
 
-		HeapRegionNode hrnChildB = null;
+		HeapRegionNode          hrnChildB = null;
+		ReferenceEdgeProperties repB      = null;
 		Iterator heapRegionsItrB = hrnB.setIteratorToReferencedRegions();
 		while( heapRegionsItrB.hasNext() ) {
-		    Map.Entry meC = (Map.Entry)      heapRegionsItrB.next();
-		    hrnChildB     = (HeapRegionNode) meC.getKey();
+		    Map.Entry meC               = (Map.Entry)               heapRegionsItrB.next();
+		    hrnChildB                   = (HeapRegionNode)          meC.getKey();
+		    ReferenceEdgeProperties rep = (ReferenceEdgeProperties) meC.getValue();
 
 		    if( hrnChildB.equals( idChildA ) ) {
 			edgeFound = true;
+			repB      = rep;
 		    }
 		}
 
@@ -749,15 +756,15 @@ public class OwnershipGraph {
 		if( !edgeFound ) {
 		    assert id2hrn.containsKey( idChildA );
 		    hrnChildB = id2hrn.get( idChildA );
-		    ReferenceEdgeProperties repB = repA.copy();
+		    repB = repA.copy();
 		    addReferenceEdge( hrnB, hrnChildB, repB );
 		}
-		// otherwise, the edge already existed in both graphs.
-		// if this is the case, check to see whether the isUnique
-		// predicate of the edges might change
-		else
-		{
-
+		// otherwise, the edge already existed in both graphs
+		// so merge their reachability sets
+		else {
+		    // just replace this beta set with the union
+		    assert repB != null;
+		    repB.setBeta( repB.getBeta().union( repA.getBeta() ) );
 		}  
 	    } 
 	}
@@ -785,14 +792,17 @@ public class OwnershipGraph {
 		assert td2ln.containsKey( tdA );
 		LabelNode lnB = td2ln.get( tdA );
 
-		HeapRegionNode hrnChildB = null;
+		HeapRegionNode          hrnChildB = null;
+		ReferenceEdgeProperties repB      = null;
 		Iterator heapRegionsItrB = lnB.setIteratorToReferencedRegions();
 		while( heapRegionsItrB.hasNext() ) {
-		    Map.Entry meC = (Map.Entry)      heapRegionsItrB.next();
-		    hrnChildB     = (HeapRegionNode) meC.getKey();
+		    Map.Entry meC               = (Map.Entry)               heapRegionsItrB.next();
+		    hrnChildB                   = (HeapRegionNode)          meC.getKey();
+		    ReferenceEdgeProperties rep = (ReferenceEdgeProperties) meC.getValue();
 
 		    if( hrnChildB.equals( idChildA ) ) {
 			edgeFound = true;
+			repB      = rep;
 		    }
 		}
 
@@ -801,15 +811,15 @@ public class OwnershipGraph {
 		if( !edgeFound ) {
 		    assert id2hrn.containsKey( idChildA );
 		    hrnChildB = id2hrn.get( idChildA );
-		    ReferenceEdgeProperties repB = repA.copy();
+		    repB = repA.copy();
 		    addReferenceEdge( lnB, hrnChildB, repB );
 		}
-		// otherwise, the edge already existed in both graphs.
-		// if this is the case, check to see whether the isUnique
-		// predicate of the edges might change
-		else
-		{
-
+		// otherwise, the edge already existed in both graphs
+		// so merge the reachability sets
+		else {
+		    // just replace this beta set with the union
+		    assert repB != null;
+		    repB.setBeta( repB.getBeta().union( repA.getBeta() ) );
 		}  
 	    } 
 	}
@@ -835,38 +845,6 @@ public class OwnershipGraph {
     protected void mergeAllocationSites( OwnershipGraph og ) {
 	allocationSites.addAll( og.allocationSites );
     }
-
-
-    
-    //protected void mergeTokenSets( OwnershipGraph og ) {
-	//	alpha = new Hashtable< HeapRegionNode,     HashSet< HashSet<HeapRegionNode> > >();
-
-	// if a key is in one or the other token set,
-	// add it to the merged token set.
-	// if a key is in both graphs, the merged
-	// token set should have that key and the union
-	// of values as the merged value.
-
-	/*
-	Set      alphaB = og.alpha.entrySet();
-	Iterator iB     = alphaB.iterator();
-	while( iB.hasNext() ) {
-	    Map.Entry      meB     = (Map.Entry) iB.next();
-	    HeapRegionNode hrnKeyB = (HeapRegionNode) meB.getKey();
-	    HashSet< HashSet<HeapRegionNode> > > tokenSetsB = 
-		(HashSet< HashSet<HeapRegionNode> > >) meB.getValue();
-
-	    if( !alpha.containsKey( hrnKeyB ) ) {
-		alpha.put( hrnKeyB, tokenSetsB );
-	    } else {
-		
-	    }
-	}
-	*/
-    //}
-
-
-
 
 
 
@@ -927,7 +905,8 @@ public class OwnershipGraph {
 		return false;
 	    }
 
-	    HeapRegionNode hrnB = og.id2hrn.get( idA );	    
+	    //HeapRegionNode hrnB = og.id2hrn.get( idA );	    
+	    HeapRegionNode hrnB = id2hrn.get( idA );	    
 	    if( !hrnA.equals( hrnB ) ) {
 		return false;
 	    }       

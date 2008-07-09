@@ -11,7 +11,7 @@ import java.io.*;
 
 // THIS CLASS IS IMMUTABLE!
 
-public class TokenTuple
+public class TokenTuple extends Canonical
 {
     private Integer token;
     private boolean isNewSummary;
@@ -35,12 +35,18 @@ public class TokenTuple
 	this.arity        = arity;
     }
 
+    public TokenTuple makeCanonical() {
+	return (TokenTuple) Canonical.makeCanonical( this );
+    }
+
     public Integer getToken() { return token; }
     public int     getArity() {	return arity; }
 
     public TokenTuple increaseArity() {
 	if( isNewSummary ) {
-	    return new TokenTuple( token, isNewSummary, ARITY_MANY );
+	    return (TokenTuple) Canonical.makeCanonical( 
+	      new TokenTuple( token, isNewSummary, ARITY_MANY )
+							 );
 	}
 	return this;
     }

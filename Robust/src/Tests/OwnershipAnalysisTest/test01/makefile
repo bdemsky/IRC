@@ -13,6 +13,7 @@ view: PNGs
 	#eog *FN*.png &
 	#eog *Ownership*.png &
 	eog *COMPLETE*.png &
+	#eog *debug*.png &
 
 printable:
 	rm -f *Startup*.dot
@@ -30,6 +31,8 @@ printable:
 
 PNGs: DOTs
 	#rm -f *Startup*.dot
+	#rm -f *COMPLETE*.dot
+	rm -f *FlatIR*.dot
 	rm -f *FlatMethod*.dot
 	rm -f *FlatOpNode*.dot
 	rm -f *FlatFieldNode*.dot

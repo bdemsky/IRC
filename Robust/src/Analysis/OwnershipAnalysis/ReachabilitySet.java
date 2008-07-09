@@ -6,7 +6,7 @@ import java.util.*;
 import java.io.*;
 
 
-public class ReachabilitySet {
+public class ReachabilitySet extends Canonical {
 
     private HashSet<TokenTupleSet> possibleReachabilities;
 
@@ -27,6 +27,10 @@ public class ReachabilitySet {
 	possibleReachabilities = (HashSet<TokenTupleSet>) rs.possibleReachabilities.clone(); // again, DEEP COPY?!
     }
 
+    public ReachabilitySet makeCanonical() {
+	return (ReachabilitySet) Canonical.makeCanonical( this );
+    }
+
     public Iterator iterator() {
 	return possibleReachabilities.iterator();
     }
@@ -34,7 +38,7 @@ public class ReachabilitySet {
     public ReachabilitySet union( ReachabilitySet rsIn ) {
 	ReachabilitySet rsOut = new ReachabilitySet( this );
 	rsOut.possibleReachabilities.addAll( rsIn.possibleReachabilities );
-	return rsOut;
+	return rsOut.makeCanonical();
     }
 
     public ReachabilitySet intersection( ReachabilitySet rsIn ) {
@@ -48,7 +52,7 @@ public class ReachabilitySet {
 	    }
 	}
 
-	return rsOut;
+	return rsOut.makeCanonical();
     }
 
     public ChangeTupleSet unionUpArity( ReachabilitySet rsIn ) {
@@ -69,9 +73,9 @@ public class ReachabilitySet {
 		    TokenTuple e = (TokenTuple) itrRelement.next();
 
 		    if( o.containsToken( e.getToken() ) ) {
-			theUnion = theUnion.union( new TokenTupleSet( e.increaseArity() ) );
+			theUnion = theUnion.union( new TokenTupleSet( e.increaseArity() ) ).makeCanonical();
 		    } else {
-			theUnion = theUnion.union( new TokenTupleSet( e ) );
+			theUnion = theUnion.union( new TokenTupleSet( e                 ) ).makeCanonical();
 		    }
 		}
 
@@ -80,7 +84,7 @@ public class ReachabilitySet {
 		    TokenTuple e = (TokenTuple) itrOelement.next();
 
 		    if( !theUnion.containsToken( e.getToken() ) ) {
-			theUnion = theUnion.union( new TokenTupleSet( e ) );
+			theUnion = theUnion.union( new TokenTupleSet( e ) ).makeCanonical();
 		    }
 		}
 
@@ -92,7 +96,21 @@ public class ReachabilitySet {
 	    }
 	}
 
-	return ctsOut;
+	return ctsOut.makeCanonical();
+    }
+
+
+    public boolean equals( Object o ) {
+	if( !(o instanceof ReachabilitySet) ) {
+	    return false;
+	}
+
+	ReachabilitySet rs = (ReachabilitySet) o;
+	return possibleReachabilities.equals( rs.possibleReachabilities );
+    }
+
+    public int hashCode() {
+	return possibleReachabilities.hashCode();
     }
 
 
@@ -108,7 +126,6 @@ public class ReachabilitySet {
 
 	return s;	
     }
-
 
     public String toString() {
 	String s = "[";

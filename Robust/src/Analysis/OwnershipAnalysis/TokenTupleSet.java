@@ -6,7 +6,7 @@ import java.util.*;
 import java.io.*;
 
 
-public class TokenTupleSet {
+public class TokenTupleSet extends Canonical {
 
     private HashSet<TokenTuple> tokenTuples;
 
@@ -23,6 +23,10 @@ public class TokenTupleSet {
 	tokenTuples = (HashSet<TokenTuple>) tts.tokenTuples.clone(); //COPY?!
     }
 
+    public TokenTupleSet makeCanonical() {
+	return (TokenTupleSet) Canonical.makeCanonical( this );
+    }
+
     public Iterator iterator() {
 	return tokenTuples.iterator();
     }
@@ -30,7 +34,7 @@ public class TokenTupleSet {
     public TokenTupleSet union( TokenTupleSet ttsIn ) {
 	TokenTupleSet ttsOut = new TokenTupleSet( this );
 	ttsOut.tokenTuples.addAll( ttsIn.tokenTuples );
-	return ttsOut;
+	return ttsOut.makeCanonical();
     }
 
     public boolean isEmpty() {
@@ -39,6 +43,19 @@ public class TokenTupleSet {
 
     public boolean containsTuple( TokenTuple tt ) {
 	return tokenTuples.contains( tt );
+    }
+
+    public boolean equals( Object o ) {
+	if( !(o instanceof TokenTupleSet) ) {
+	    return false;
+	}
+
+	TokenTupleSet tts = (TokenTupleSet) o;
+	return tokenTuples.equals( tts.tokenTuples );
+    }
+
+    public int hashCode() {
+	return tokenTuples.hashCode();
     }
 
     // this should be a hash table so we can do this by key

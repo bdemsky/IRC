@@ -21,6 +21,7 @@ public class Main {
 
     public static void main(String args[]) throws Exception {
 
+	
 	// example test to know the testing routine is correct!
 	test( "4 == 5?", false, 4 == 5 );
 	test( "3 == 3?", true,  3 == 3 );
@@ -85,10 +86,10 @@ public class Main {
 					 true,
 					 TokenTuple.ARITY_ONE );
 
-	/*	TokenTuple tt5 = new TokenTuple( new Integer( 4 ),
-					 true,
+		TokenTuple tt5 = new TokenTuple( new Integer( 4 ),
+ 					 true,
 					 TokenTuple.ARITY_ONE );
-	*/
+	
 	TokenTuple tt6 = new TokenTuple( new Integer( 6 ),
 					 false,
 					 TokenTuple.ARITY_ONE );
@@ -107,5 +108,76 @@ public class Main {
 
 	ChangeTupleSet cts0 = rs0.unionUpArity( rs1 );
 	System.out.println( "cts0 is "+cts0 );
+	
+
+
+	TokenTuple tt00 = new TokenTuple( new Integer( 9 ),
+					  true,
+					  TokenTuple.ARITY_ONE );
+
+	TokenTuple tt01 = new TokenTuple( new Integer( 9 ),
+					  true,
+					  TokenTuple.ARITY_ONE );
+
+	test( "tt00 equals tt01?", true,  tt00.equals( tt01 ) );	
+	test( "tt00 ==     tt01?", false, tt00 ==      tt01   );	
+
+	tt00 = (TokenTuple) Canonical.makeCanonical( tt00 );
+	tt01 = (TokenTuple) Canonical.makeCanonical( tt01 );
+
+	test( "tt00 equals tt01?", true,  tt00.equals( tt01 ) );	
+	test( "tt00 ==     tt01?", true,  tt00 ==      tt01   );	
+
+
+	TokenTuple tt02 = 
+	    (TokenTuple) Canonical.makeCanonical( 
+						 new TokenTuple( new Integer( 10 ),
+								 true,
+								 TokenTuple.ARITY_ONE )
+						  );
+
+	TokenTuple tt03 = 
+	    (TokenTuple) Canonical.makeCanonical( 
+						 new TokenTuple( new Integer( 11 ),
+								 true,
+								 TokenTuple.ARITY_ONE )
+						  );
+
+	TokenTuple tt04 = 
+	    (TokenTuple) Canonical.makeCanonical( 
+						 new TokenTuple( new Integer( 12 ),
+								 true,
+								 TokenTuple.ARITY_ONE )
+						  );
+
+	TokenTupleSet ttsT00 =
+	    (TokenTupleSet) Canonical.makeCanonical( new TokenTupleSet( tt00 ) );
+
+	TokenTupleSet ttsT01 =
+	    (TokenTupleSet) Canonical.makeCanonical( new TokenTupleSet( tt01 ) );
+
+	TokenTupleSet ttsT02 =
+	    (TokenTupleSet) Canonical.makeCanonical( new TokenTupleSet( tt02 ) );
+
+	TokenTupleSet ttsT03 =
+	    (TokenTupleSet) Canonical.makeCanonical( new TokenTupleSet( tt03 ) );
+
+	TokenTupleSet ttsT04 =
+	    (TokenTupleSet) Canonical.makeCanonical( new TokenTupleSet( tt04 ) );
+
+	TokenTupleSet tts00 = ttsT00.union( ttsT02.union( ttsT03.union( ttsT04 ) ) );
+	TokenTupleSet tts01 = ttsT01.union( ttsT02.union( ttsT03.union( ttsT04 ) ) );
+
+	test( "tts00 equals tts01?", true,  tts00.equals( tts01 ) );
+
+	// It's OK that this one turns out true--I changed the union operator
+	// to automatically canonicalize stuff!
+	test( "tts00 ==     tts01?", false, tts00 ==      tts01   );	
+
+	tts00 = (TokenTupleSet) Canonical.makeCanonical( tts00 );
+	tts01 = (TokenTupleSet) Canonical.makeCanonical( tts01 );
+
+	test( "tts00 equals tts01?", true,  tts00.equals( tts01 ) );	
+	test( "tts00 ==     tts01?", true,  tts00 ==      tts01   );	
     }
 }

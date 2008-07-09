@@ -61,7 +61,7 @@ task Startup( StartupObject s{ initialstate } ) {
 }
 
 
-
+/*
 // this task allocates a new object, so there should
 // be a heap region for the parameter, and several
 // heap regions for the allocation site, but the label
@@ -73,6 +73,7 @@ task NewObject( Voo v{ f } ) {
 
     taskexit( v{ !f } );
 }
+
 
 // this task 
 task Branch( Voo v{ f } ) {
@@ -88,7 +89,7 @@ task Branch( Voo v{ f } ) {
 
     taskexit( v{ !f } );
 }
-
+*/
 
 task NoAliasNewInLoop( Voo v{ f } ) {
 
@@ -101,6 +102,7 @@ task NoAliasNewInLoop( Voo v{ f } ) {
     taskexit( v{ !f } );
 }
 
+/*
 task NoAliasNewInLoopAnotherWay( Voo v{ f } ) {
 
     for( int i = 0; i < 10; ++i ) {
@@ -121,3 +123,4 @@ task ClobberInitParamReflex( Voo v{ f }, Voo w{ f } ) {
     taskexit( v{ !f }, w{ !f } );
 }
 
+*/
