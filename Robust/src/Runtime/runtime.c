@@ -4,7 +4,6 @@
 #include "mem.h"
 #include<fcntl.h>
 #include<errno.h>
-#include<signal.h>
 #include<stdio.h>
 #include "option.h"
 #ifdef DSTM

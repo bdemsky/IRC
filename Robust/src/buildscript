@@ -22,6 +22,7 @@ echo -threadsimulate generate multi-thread simulate version binary
 echo -optional enable optional
 echo -debug generate debug symbols
 echo -prefetch do prefetch analysis
+echo -transstats generates transaction stats on commits and aborts
 echo -webinterface enable web interface
 echo -runtimedebug printout runtime debug messages
 echo "-thread use support for multiple threads"
@@ -46,6 +47,7 @@ NOJAVA=false
 CHECKFLAG=false
 RECOVERFLAG=false
 MULTICOREFLAG=false
+TRANSSTATSFLAG=false
 RAWFLAG=false
 THREADSIMULATEFLAG=false;
 USEDMALLOC=false
@@ -100,6 +102,9 @@ DSMFLAG=true
 elif [[ $1 = '-prefetch' ]]
 then
 JAVAOPTS="$JAVAOPTS -prefetch"
+elif [[ $1 = '-transstats' ]]
+then
+TRANSSTATSFLAG=true
 elif [[ $1 = '-printflat' ]]
 then
 JAVAOPTS="$JAVAOPTS -printflat"
@@ -284,11 +289,16 @@ $ROBUSTROOT/Runtime/SimpleHash.c $ROBUSTROOT/Runtime/option.c \
 $ROBUSTROOT/Runtime/ObjectHash.c \
 $ROBUSTROOT/Runtime/garbage.c $ROBUSTROOT/Runtime/socket.c \
 $ROBUSTROOT/Runtime/math.c \
+$ROBUSTROOT/Runtime/signal.c \
 $ROBUSTROOT/Runtime/GenericHashtable.c $ROBUSTROOT/Runtime/object.c"
 
 if $DSMFLAG
 then
 EXTRAOPTIONS="$EXTRAOPTIONS -lpthread -DCOMPILER -DDSTM -I$DSMRUNTIME"
+if $TRANSSTATSFLAG
+then
+EXTRAOPTIONS="$EXTRAOPTIONS -lpthread -DTRANSSTATS -DCOMPILER -DDSTM -I$DSMRUNTIME"
+fi
 FILES="$FILES $DSMRUNTIME/trans.c $DSMRUNTIME/mcpileq.c $DSMRUNTIME/objstr.c $DSMRUNTIME/dstm.c $DSMRUNTIME/mlookup.c $DSMRUNTIME/clookup.c $DSMRUNTIME/llookup.c $DSMRUNTIME/threadnotify.c $DSMRUNTIME/dstmserver.c $DSMRUNTIME/plookup.c $DSMRUNTIME/ip.c $DSMRUNTIME/queue.c $DSMRUNTIME/prelookup.c $DSMRUNTIME/machinepile.c $DSMRUNTIME/localobjects.c $ROBUSTROOT/Runtime/thread.c $DSMRUNTIME/sockpool.c $DSMRUNTIME/addUdpEnhance.c"
 fi
 

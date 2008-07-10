@@ -164,6 +164,7 @@ public class Main {
       readSourceFile(state, ClassLibraryPrefix+"gnu/Random.java");
 	  readSourceFile(state, ClassLibraryPrefix+"Vector.java");
 	  readSourceFile(state, ClassLibraryPrefix+"Enumeration.java");
+	  readSourceFile(state, ClassLibraryPrefix+"Signal.java");
 
 
       if (state.TASK) {

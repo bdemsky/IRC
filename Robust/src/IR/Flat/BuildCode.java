@@ -262,8 +262,10 @@ public class BuildCode {
 		outmethod.println("pthread_exit(NULL);");
 	}
 
-
+    outmethod.println("printf(\"numTransAbort= %d\\n\", numTransAbort);");
+    outmethod.println("printf(\"numTransCommit= %d\\n\", numTransCommit);");
 	outmethod.println("}");
+
     }
 
     /* This method outputs code for each task. */
@@ -717,6 +719,8 @@ public class BuildCode {
      * information. */
 
     private void generateSizeArray(PrintWriter outclassdefs) {
+	outclassdefs.print("int numTransAbort = 0;");
+	outclassdefs.print("int numTransCommit = 0;");
 	outclassdefs.print("int classsize[]={");
 	Iterator it=state.getClassSymbolTable().getDescriptorsIterator();
 	cdarray=new ClassDescriptor[state.numClasses()];

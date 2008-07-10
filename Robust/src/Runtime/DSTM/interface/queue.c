@@ -13,7 +13,7 @@ void queueInit(void) {
   /* Intitialize primary queue */
   headoffset=0;
   tailoffset=0;
-  memory=malloc(QSIZE);
+  memory=malloc(QSIZE+sizeof(int));//leave space for -1
   pthread_mutexattr_init(&qlockattr);
   pthread_mutexattr_settype(&qlockattr, PTHREAD_MUTEX_RECURSIVE_NP);
   pthread_mutex_init(&qlock, &qlockattr);
@@ -30,13 +30,13 @@ void * getmemory(int size) {
     //Wait for tail to go past new start
     while(tailoffset<tmpoffset)
       ;
-    *((int *)(memory+headoffset))=-1;
+    *((int *)(memory+headoffset))=-1;//safe because we left space
     *((int*)memory)=size+sizeof(int);
     return memory+sizeof(int);
   } else {
     while(headoffset<tailoffset&&tailoffset<tmpoffset)
       ;
-    *((int*)(memory+headoffset))=size+sizeof(int);
+     *((int*)(memory+headoffset))=size+sizeof(int);
     return memory+headoffset+sizeof(int);
   }
 }
@@ -72,7 +72,6 @@ void inctail() {
   else
     tailoffset=tmpoffset;
 }
-
 
 void predealloc() {
   free(memory);
