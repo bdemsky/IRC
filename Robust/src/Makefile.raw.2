@@ -1,0 +1,20 @@
+TOPDIR=/home/jzhou/starsearch
+include $(TOPDIR)/Makefile.include
+
+RGCCFLAGS += -O2 
+RGCCFLAGS += -DTASK -DMULTICORE -DRAW 
+
+SIM-CYCLES = 10000
+
+ATTRIBUTES += HWIC
+
+TILE_PATTERN = 4x2
+#INCLUDES += -I.
+
+OBJECT_FILES_COMMON = multicoretask.o multicoreruntime.o Queue.o file.o math.o object.o \
+		  GenericHashtable.o SimpleHash.o ObjectHash.o socket.o checkpoint.o\
+		  taskdefs.o methods.o raw_dataCache.o mem.o
+					  
+# this is for a multi-tile test
+include $(COMMONDIR)/Makefile.all
+
