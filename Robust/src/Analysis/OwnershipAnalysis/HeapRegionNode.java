@@ -18,6 +18,7 @@ public class HeapRegionNode extends OwnershipNode {
     protected AllocationSite allocSite;
 
     protected ReachabilitySet alpha;
+    protected ReachabilitySet alphaNew;
 
     protected String description;
 
@@ -36,6 +37,7 @@ public class HeapRegionNode extends OwnershipNode {
 	this.isNewSummary   = isNewSummary;
 	this.allocSite      = allocSite;
 	this.alpha          = alpha;
+	this.alphaNew       = null;
 	this.description    = description;
 
 	referencers  = new HashSet<OwnershipNode>();
@@ -124,6 +126,20 @@ public class HeapRegionNode extends OwnershipNode {
 
     public ReachabilitySet getAlpha() {
 	return alpha;
+    }
+
+    public ReachabilitySet getAlphaNew() {
+	return alphaNew;
+    }
+
+    public void setAlphaNew( ReachabilitySet alpha ) {
+	this.alphaNew = alpha;
+    }
+
+    public void applyAlphaNew() {
+	assert alphaNew != null;
+	alpha    = alphaNew;
+	alphaNew = null;
     }
 
 

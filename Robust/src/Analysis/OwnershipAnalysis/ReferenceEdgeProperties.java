@@ -2,16 +2,25 @@ package Analysis.OwnershipAnalysis;
 
 public class ReferenceEdgeProperties {
 
+    protected boolean isUnique;
+    protected boolean isInitialParamReflexive;
+
+    protected ReachabilitySet beta;
+    protected ReachabilitySet betaNew;
+
+
     public ReferenceEdgeProperties() {
 	this.isUnique                = false;
 	this.isInitialParamReflexive = false;
 	this.beta                    = new ReachabilitySet();
+	this.betaNew                 = null;
     }    
 
     public ReferenceEdgeProperties( boolean isUnique ) {
 	this.isUnique                = isUnique;
 	this.isInitialParamReflexive = false;
 	this.beta                    = new ReachabilitySet();
+	this.betaNew                 = null;
     }
 
     public ReferenceEdgeProperties( boolean isUnique,
@@ -19,6 +28,7 @@ public class ReferenceEdgeProperties {
 	this.isUnique                = isUnique;
 	this.isInitialParamReflexive = isInitialParamReflexive;
 	this.beta                    = new ReachabilitySet();
+	this.betaNew                 = null;
     }
 
     public ReferenceEdgeProperties( boolean         isUnique,
@@ -27,6 +37,7 @@ public class ReferenceEdgeProperties {
 	this.isUnique                = isUnique;
 	this.isInitialParamReflexive = isInitialParamReflexive;
 	this.beta                    = beta;
+	this.betaNew                 = null;
     }
 
 
@@ -37,7 +48,7 @@ public class ReferenceEdgeProperties {
     }
 
 
-    protected boolean isUnique;
+
     public boolean isUnique() {
 	return isUnique;
     }
@@ -46,7 +57,7 @@ public class ReferenceEdgeProperties {
     }
 
 
-    protected boolean isInitialParamReflexive;
+
     public boolean isInitialParamReflexive() {
 	return isInitialParamReflexive;
     }
@@ -55,13 +66,26 @@ public class ReferenceEdgeProperties {
     }
 
 
-    protected ReachabilitySet beta;
+
     public ReachabilitySet getBeta() {
 	return beta;
     }
     public void setBeta( ReachabilitySet beta ) {
 	this.beta = beta;
     }
+
+    public ReachabilitySet getBetaNew() {
+	return betaNew;
+    }
+    public void setBetaNew( ReachabilitySet beta ) {
+	this.betaNew = beta;
+    }
+    public void applyBetaNew() {
+	assert betaNew != null;
+	beta    = betaNew;
+	betaNew = null;
+    }
+
 
     public boolean equals( ReferenceEdgeProperties rep ) {
 	return isUnique                == rep.isUnique()                &&
@@ -80,7 +104,7 @@ public class ReferenceEdgeProperties {
 	}
 	*/
 	if( isInitialParamReflexive ) {
-	    edgeLabel += "Rfx\\n";
+	    edgeLabel += "Rflx\\n";
 	}
 	edgeLabel += getBetaString();
 	return edgeLabel;

@@ -36,6 +36,8 @@ public class Baw {
 
 
 public class Foo {
+    flag f;
+
     public Foo() {}
 
     public Foo x;
@@ -62,6 +64,18 @@ task Startup( StartupObject s{ initialstate } ) {
 }
 
 
+task NewObject( Foo a{ f }, Foo b{ f } ) {
+
+    Foo c = new Foo();
+
+    a.x = c;
+
+    taskexit( a{ !f }, b{ !f } );
+}
+
+
+
+/*
 // this task allocates a new object, so there should
 // be a heap region for the parameter, and several
 // heap regions for the allocation site, but the label
@@ -123,3 +137,4 @@ task ClobberInitParamReflex( Voo v{ f }, Voo w{ f } ) {
 
     taskexit( v{ !f }, w{ !f } );
 }
+*/

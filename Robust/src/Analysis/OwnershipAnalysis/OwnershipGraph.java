@@ -156,6 +156,12 @@ public class OwnershipGraph {
     }
     
 
+
+    protected void propagateTokens( HeapRegionNode nPrime, ChangeTupleSet c0 ) {
+
+    }
+
+
     ////////////////////////////////////////////////////
     //
     //  Assignment Operation Methods
@@ -215,6 +221,7 @@ public class OwnershipGraph {
 		ReachabilitySet beta2        = rep2.getBeta();
 
 		ReferenceEdgeProperties rep = rep2.copy();
+		rep.setIsInitialParamReflexive( false );
 		rep.setBeta( beta1.intersection( beta2 ) );
 
 		addReferenceEdge( dstln, hrnOneHop, rep );
@@ -225,25 +232,54 @@ public class OwnershipGraph {
     public void assignFieldToTemp( TempDescriptor  src, 
 				   TempDescriptor  dst,
 				   FieldDescriptor fd ) {
+
+	// I think my use of src and dst are actually backwards in this method!
+	// acccording to the Reachability Notes, think of dst at N and src as N prime
+
 	LabelNode srcln = getLabelNodeFromTemp( src );
 	LabelNode dstln = getLabelNodeFromTemp( dst );
 
-	HeapRegionNode hrn = null;
+	HashSet<HeapRegionNode>          nodesWithNewAlpha = new HashSet<HeapRegionNode>();
+	HashSet<ReferenceEdgeProperties> edgesWithNewBeta  = new HashSet<ReferenceEdgeProperties>();
+
+	HeapRegionNode          hrn = null;
+	ReferenceEdgeProperties rep = null;
 	Iterator dstRegionsItr = dstln.setIteratorToReferencedRegions();
 	while( dstRegionsItr.hasNext() ) {
-	    Map.Entry me = (Map.Entry)      dstRegionsItr.next();
-	    hrn          = (HeapRegionNode) me.getKey();
+	    Map.Entry me = (Map.Entry)               dstRegionsItr.next();
+	    hrn          = (HeapRegionNode)          me.getKey();
+	    rep          = (ReferenceEdgeProperties) me.getValue();
 
-	    HeapRegionNode hrnSrc = null;
+	    ReachabilitySet R = hrn.getAlpha().intersection( rep.getBeta() );
+
+	    HeapRegionNode          hrnSrc = null;
+	    ReferenceEdgeProperties repSrc = null;
 	    Iterator srcRegionsItr = srcln.setIteratorToReferencedRegions();
 	    while( srcRegionsItr.hasNext() ) {
-		Map.Entry meS = (Map.Entry)      srcRegionsItr.next();
-		hrnSrc        = (HeapRegionNode) meS.getKey();
+		Map.Entry meS = (Map.Entry)               srcRegionsItr.next();
+		hrnSrc        = (HeapRegionNode)          meS.getKey();
+		repSrc        = (ReferenceEdgeProperties) meS.getValue();
 
-		ReferenceEdgeProperties rep = new ReferenceEdgeProperties();
-		addReferenceEdge( hrn, hrnSrc, rep );
+		ReferenceEdgeProperties repNew 
+		    = new ReferenceEdgeProperties( false, false, null );
+
+		addReferenceEdge( hrn, hrnSrc, repNew );
+		
+		ReachabilitySet O = srcln.getReferenceTo( hrnSrc ).getBeta();
+		ChangeTupleSet  C = O.unionUpArity( R );
+		propagateTokens( hrnSrc, C );
 	    }
 	}	
+
+	Iterator nodeItr = nodesWithNewAlpha.iterator();
+	while( nodeItr.hasNext() ) {
+	    ((HeapRegionNode) nodeItr.next()).applyAlphaNew();
+	}
+
+	Iterator edgeItr = edgesWithNewBeta.iterator();
+	while( edgeItr.hasNext() ) {
+	    ((ReferenceEdgeProperties) edgeItr.next()).applyBetaNew();
+	}
     }
 
     public void assignTempToParameterAllocation( boolean        isTask,
