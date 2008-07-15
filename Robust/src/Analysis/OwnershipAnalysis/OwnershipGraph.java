@@ -115,6 +115,8 @@ public class OwnershipGraph {
 	assert rep        != null;
 	referencer.addReferencedRegion( referencee, rep );
 	referencee.addReferencer( referencer );
+	rep.setSrc( referencer );
+	rep.setDst( referencee );
     }
 
     protected void removeReferenceEdge( OwnershipNode  referencer,
@@ -158,7 +160,94 @@ public class OwnershipGraph {
 
 
     protected void propagateTokens( HeapRegionNode nPrime, ChangeTupleSet c0 ) {
+	HashSet<HeapRegionNode> todoNodes
+	    = new HashSet<HeapRegionNode>();
+	todoNodes.add( nPrime );
 
+	HashSet<ReferenceEdgeProperties> todoEdges 
+	    = new HashSet<ReferenceEdgeProperties>();
+	
+	Hashtable<HeapRegionNode, ChangeTupleSet> nodePlannedChanges 
+	    = new Hashtable<HeapRegionNode, ChangeTupleSet>();
+	nodePlannedChanges.put( nPrime, c0 );
+
+	Hashtable<ReferenceEdgeProperties, ChangeTupleSet> edgePlannedChanges 
+	    = new Hashtable<ReferenceEdgeProperties, ChangeTupleSet>();
+	
+	Hashtable<HeapRegionNode, ChangeTupleSet> nodeChangesMade
+	    = new Hashtable<HeapRegionNode, ChangeTupleSet>();
+
+	Hashtable<ReferenceEdgeProperties, ChangeTupleSet> edgeChangesMade
+	    = new Hashtable<ReferenceEdgeProperties, ChangeTupleSet>();
+
+	while( !todoNodes.isEmpty() ) {
+	    HeapRegionNode n = todoNodes.iterator().next();
+	    todoNodes.remove( n );
+
+	    if( !nodeChangesMade.containsKey( n ) ) {
+		nodeChangesMade.put( n, new ChangeTupleSet().makeCanonical() );
+	    }
+	    
+	    ChangeTupleSet C = nodePlannedChanges.get( n );
+
+	    Iterator itrC = C.iterator();
+	    while( itrC.hasNext() ) {
+		ChangeTuple c = (ChangeTuple) itrC.next();
+
+		if( n.getAlpha().contains( c.getSetToMatch() ) ) {
+		    n.setAlphaNew( n.getAlphaNew().union( c.getSetToAdd() ) );		    
+		    nodeChangesMade.put( n, nodeChangesMade.get( n ).union( c ) );
+		}
+	    }
+
+	    ChangeTupleSet Cprime = nodeChangesMade.get( n );
+
+	    Iterator referItr = n.iteratorToReferencers();
+	    while( referItr.hasNext() ) {
+		OwnershipNode           on  = (OwnershipNode) referItr.next();
+		ReferenceEdgeProperties rep = on.getReferenceTo( n );
+		todoEdges.add( rep );
+
+		if( !edgePlannedChanges.containsKey( rep ) ) {
+		    edgePlannedChanges.put( rep, new ChangeTupleSet().makeCanonical() );
+		}
+
+		edgePlannedChanges.put( rep, edgePlannedChanges.get( rep ).union( Cprime ) );
+	    }
+
+	    HeapRegionNode          m = null;
+	    ReferenceEdgeProperties f = null;
+	    Iterator refeeItr = n.setIteratorToReferencedRegions();
+	    while( refeeItr.hasNext() ) {
+		Map.Entry me = (Map.Entry)               refeeItr.next();
+		m            = (HeapRegionNode)          me.getKey();
+		f            = (ReferenceEdgeProperties) me.getValue();
+
+		ChangeTupleSet changesToPass = new ChangeTupleSet();
+
+		Iterator itrCprime = Cprime.iterator();
+		while( itrCprime.hasNext() ) {
+		    ChangeTuple c = (ChangeTuple) itrCprime.next();
+		    if( f.getBeta().contains( c.getSetToMatch() ) ) {
+			changesToPass = changesToPass.union( c );
+		    }
+		}
+
+		if( !changesToPass.isEmpty() ) {
+		    if( !nodePlannedChanges.containsKey( m ) ) {
+			nodePlannedChanges.put( m, new ChangeTupleSet().makeCanonical() );
+		    }
+
+		    ChangeTupleSet currentChanges = nodePlannedChanges.get( m );
+
+		    if( !changesToPass.isSubset( currentChanges ) ) {
+			todoNodes.add( m );
+			nodePlannedChanges.put( m, currentChanges.union( changesToPass ) );
+		    }
+		}
+	    }
+	}
+	
     }
 
 

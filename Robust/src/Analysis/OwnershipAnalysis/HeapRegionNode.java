@@ -37,8 +37,10 @@ public class HeapRegionNode extends OwnershipNode {
 	this.isNewSummary   = isNewSummary;
 	this.allocSite      = allocSite;
 	this.alpha          = alpha;
-	this.alphaNew       = null;
 	this.description    = description;
+
+	alphaNew = new ReachabilitySet();
+	alphaNew = alphaNew.makeCanonical();
 
 	referencers  = new HashSet<OwnershipNode>();
 	memberFields = new HashSet<TempDescriptor>();
@@ -138,8 +140,11 @@ public class HeapRegionNode extends OwnershipNode {
 
     public void applyAlphaNew() {
 	assert alphaNew != null;
-	alpha    = alphaNew;
-	alphaNew = null;
+
+	alpha = alphaNew;
+
+	alphaNew = new ReachabilitySet();
+	alphaNew = alphaNew.makeCanonical();
     }
 
 

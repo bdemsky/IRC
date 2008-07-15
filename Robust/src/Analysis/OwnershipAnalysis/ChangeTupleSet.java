@@ -32,12 +32,27 @@ public class ChangeTupleSet extends Canonical {
     }
 
     public ChangeTupleSet union( ChangeTupleSet ctsIn ) {
+	assert ctsIn != null;
+
 	ChangeTupleSet ctsOut = new ChangeTupleSet( this );
 	ctsOut.changeTuples.addAll( ctsIn.changeTuples );
 	return ctsOut.makeCanonical();
     }
 
+    public ChangeTupleSet union( ChangeTuple ctIn ) {
+	assert ctIn != null;
+
+	ChangeTupleSet ctsOut = new ChangeTupleSet( this );
+	ctsOut.changeTuples.add( ctIn );
+	return ctsOut.makeCanonical();
+    }
+
+    public boolean isEmpty() {
+	return changeTuples.isEmpty();
+    }
+
     public boolean isSubset( ChangeTupleSet ctsIn ) {
+	assert ctsIn != null;
 	return ctsIn.changeTuples.containsAll( this.changeTuples );
     }
 
