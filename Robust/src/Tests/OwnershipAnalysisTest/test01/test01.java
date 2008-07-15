@@ -45,6 +45,7 @@ public class Foo {
     }
 }
 
+
 // this empty task should still create a non-empty
 // ownership graph showing parameter allocation
 // look for the parameter s as a label referencing
@@ -61,7 +62,6 @@ task Startup( StartupObject s{ initialstate } ) {
 }
 
 
-/*
 // this task allocates a new object, so there should
 // be a heap region for the parameter, and several
 // heap regions for the allocation site, but the label
@@ -89,7 +89,7 @@ task Branch( Voo v{ f } ) {
 
     taskexit( v{ !f } );
 }
-*/
+
 
 task NoAliasNewInLoop( Voo v{ f } ) {
 
@@ -102,7 +102,7 @@ task NoAliasNewInLoop( Voo v{ f } ) {
     taskexit( v{ !f } );
 }
 
-/*
+
 task NoAliasNewInLoopAnotherWay( Voo v{ f } ) {
 
     for( int i = 0; i < 10; ++i ) {
@@ -117,10 +117,9 @@ task NoAliasNewInLoopAnotherWay( Voo v{ f } ) {
     taskexit( v{ !f } );
 }
 
+
 task ClobberInitParamReflex( Voo v{ f }, Voo w{ f } ) {
     v.b = v.bb;
 
     taskexit( v{ !f }, w{ !f } );
 }
-
-*/

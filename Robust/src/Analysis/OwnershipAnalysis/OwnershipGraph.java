@@ -178,45 +178,52 @@ public class OwnershipGraph {
 	LabelNode dstln = getLabelNodeFromTemp( dst );
 
 	clearReferenceEdgesFrom( dstln );
-	HeapRegionNode newReferencee = null;
-        Iterator srcRegionsItr = srcln.setIteratorToReferencedRegions();
-	while( srcRegionsItr.hasNext() ) {
-	    Map.Entry     me = (Map.Entry)      srcRegionsItr.next();
-	    newReferencee    = (HeapRegionNode) me.getKey();
 
-	    ReferenceEdgeProperties rep = new ReferenceEdgeProperties();	    
-	    addReferenceEdge( dstln, newReferencee, rep );
+	HeapRegionNode newReferencee = null;
+        Iterator       srcRegionsItr = srcln.setIteratorToReferencedRegions();
+	while( srcRegionsItr.hasNext() ) {
+	    Map.Entry me                = (Map.Entry)               srcRegionsItr.next();
+	    newReferencee               = (HeapRegionNode)          me.getKey();
+	    ReferenceEdgeProperties rep = (ReferenceEdgeProperties) me.getValue();
+
+	    addReferenceEdge( dstln, newReferencee, rep.copy() );
 	}
     }
 
-    public void assignTempToField( TempDescriptor src,
-				   TempDescriptor dst,
+    public void assignTempToField( TempDescriptor  src,
+				   TempDescriptor  dst,
 				   FieldDescriptor fd ) {
 	LabelNode srcln = getLabelNodeFromTemp( src );
 	LabelNode dstln = getLabelNodeFromTemp( dst );
 
 	clearReferenceEdgesFrom( dstln );
 
-	HeapRegionNode hrn = null;
-	Iterator srcRegionsItr = srcln.setIteratorToReferencedRegions();
+	HeapRegionNode hrn           = null;
+	Iterator       srcRegionsItr = srcln.setIteratorToReferencedRegions();
 	while( srcRegionsItr.hasNext() ) {
-	    Map.Entry me = (Map.Entry)      srcRegionsItr.next();
-	    hrn          = (HeapRegionNode) me.getKey();
+	    Map.Entry me                 = (Map.Entry)               srcRegionsItr.next();
+	    hrn                          = (HeapRegionNode)          me.getKey();
+	    ReferenceEdgeProperties rep1 = (ReferenceEdgeProperties) me.getValue();
+	    ReachabilitySet beta1        = rep1.getBeta();
 
 	    HeapRegionNode hrnOneHop = null;
 	    Iterator hrnRegionsItr = hrn.setIteratorToReferencedRegions();
 	    while( hrnRegionsItr.hasNext() ) {
-		Map.Entry meH = (Map.Entry)      hrnRegionsItr.next();
-		hrnOneHop     = (HeapRegionNode) meH.getKey();
+		Map.Entry meH                = (Map.Entry)               hrnRegionsItr.next();
+		hrnOneHop                    = (HeapRegionNode)          meH.getKey();
+		ReferenceEdgeProperties rep2 = (ReferenceEdgeProperties) meH.getValue();
+		ReachabilitySet beta2        = rep2.getBeta();
 
-		ReferenceEdgeProperties rep = new ReferenceEdgeProperties();
+		ReferenceEdgeProperties rep = rep2.copy();
+		rep.setBeta( beta1.intersection( beta2 ) );
+
 		addReferenceEdge( dstln, hrnOneHop, rep );
 	    }
 	}
     }
 
-    public void assignFieldToTemp( TempDescriptor src, 
-				   TempDescriptor dst,
+    public void assignFieldToTemp( TempDescriptor  src, 
+				   TempDescriptor  dst,
 				   FieldDescriptor fd ) {
 	LabelNode srcln = getLabelNodeFromTemp( src );
 	LabelNode dstln = getLabelNodeFromTemp( dst );
@@ -263,12 +270,16 @@ public class OwnershipGraph {
 	id2paramIndex.put( newID, paramIndex );
 	paramIndex2id.put( paramIndex, newID );
 
+	ReachabilitySet beta = new ReachabilitySet( new TokenTuple( newID, 
+								    false,
+								    TokenTuple.ARITY_ONE ) );
+
 	// heap regions for parameters are always multiple object (see above)
 	// and have a reference to themselves, because we can't know the
 	// structure of memory that is passed into the method.  We're assuming
 	// the worst here.
-	addReferenceEdge( lnParam, hrn, new ReferenceEdgeProperties( false ) );
-	addReferenceEdge( hrn,     hrn, new ReferenceEdgeProperties( false, true ) );
+	addReferenceEdge( lnParam, hrn, new ReferenceEdgeProperties( false, false, beta ) );
+	addReferenceEdge( hrn,     hrn, new ReferenceEdgeProperties( false, true,  beta ) );
     }
     
     public void assignTempToNewAllocation( TempDescriptor td,
@@ -278,13 +289,14 @@ public class OwnershipGraph {
 
 	age( as );
 
+
 	// after the age operation the newest (or zero-ith oldest)
 	// node associated with the allocation site should have
 	// no references to it as if it were a newly allocated
 	// heap region, so make a reference to it to complete
 	// this operation
-	Integer        id        = as.getIthOldest( 0 );
-	HeapRegionNode hrnNewest = id2hrn.get( id );
+	Integer        idNewest  = as.getIthOldest( 0 );
+	HeapRegionNode hrnNewest = id2hrn.get( idNewest );
 	assert hrnNewest != null;
 
 	LabelNode dst = getLabelNodeFromTemp( td );
@@ -474,7 +486,6 @@ public class OwnershipGraph {
 	clearReferenceEdgesFrom( hrn0 );
 	clearReferenceEdgesTo  ( hrn0 );
     }
-
 
     
     // some notes:
@@ -682,6 +693,7 @@ public class OwnershipGraph {
 	    if( !id2hrn.containsKey( idA ) ) {
 		HeapRegionNode hrnB = hrnA.copy();
 		id2hrn.put( idA, hrnB );
+		
 	    } else {
 		// otherwise this is a node present in both graphs
 		// so make the new reachability set a union of the
@@ -1323,13 +1335,9 @@ public class OwnershipGraph {
 		    hrn                         = (HeapRegionNode)          meH.getKey();
 		    ReferenceEdgeProperties rep = (ReferenceEdgeProperties) meH.getValue();
 		    
-		    String edgeLabel = "";
-		    if( rep.isUnique() ) {
-			edgeLabel = "Unique";
-		    }
 		    bw.write( "  "        + ln.toString() +
 			      " -> "      + hrn.toString() +
-			      "[label=\"" + edgeLabel +
+			      "[label=\"" + rep.toEdgeLabelString() +
 			      "\"];\n" );
 		}
 	    }
@@ -1408,16 +1416,9 @@ public class OwnershipGraph {
 
 	    switch( mode ) {
 	    case VISIT_HRN_WRITE_FULL:
-		String edgeLabel = "";
-		if( rep.isUnique() ) {
-		    edgeLabel += "Unq";
-		}
-		if( rep.isInitialParamReflexive() ) {
-		    edgeLabel += "Rfx";
-		}
 		bw.write( "  "        + hrn.toString() +
 			  " -> "      + hrnChild.toString() +
-			  "[label=\"" + edgeLabel +
+			  "[label=\"" + rep.toEdgeLabelString() +
 			  "\"];\n" );
 		break;
 	    }

@@ -32,7 +32,8 @@ public class ReferenceEdgeProperties {
 
     public ReferenceEdgeProperties copy() {
 	return new ReferenceEdgeProperties( isUnique,
-					    isInitialParamReflexive );
+					    isInitialParamReflexive,
+					    beta );
     }
 
 
@@ -61,13 +62,27 @@ public class ReferenceEdgeProperties {
     public void setBeta( ReachabilitySet beta ) {
 	this.beta = beta;
     }
-    public String getBetaString() {
-	return beta.toStringEscapeNewline();
-    }
-
 
     public boolean equals( ReferenceEdgeProperties rep ) {
 	return isUnique                == rep.isUnique()                &&
 	       isInitialParamReflexive == rep.isInitialParamReflexive();
+    }
+
+    public String getBetaString() {
+	return beta.toStringEscapeNewline();
+    }
+    
+    public String toEdgeLabelString() {
+	String edgeLabel = "";
+	/*
+	if( rep.isUnique() ) {
+	  edgeLabel += "Unq";
+	}
+	*/
+	if( isInitialParamReflexive ) {
+	    edgeLabel += "Rfx\\n";
+	}
+	edgeLabel += getBetaString();
+	return edgeLabel;
     }
 }

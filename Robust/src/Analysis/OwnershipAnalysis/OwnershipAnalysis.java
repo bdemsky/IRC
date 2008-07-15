@@ -277,11 +277,10 @@ public class OwnershipAnalysis {
 	    
 	    OwnershipGraph og     = analyzeFlatMethod( d, fm );
 	    OwnershipGraph ogPrev = mapDescriptorToCompleteOwnershipGraph.get( d );
-
 	    if( !og.equals( ogPrev ) ) {
 		mapDescriptorToCompleteOwnershipGraph.put( d, og );
 
-		og.writeGraph( d, false, false );
+		og.writeGraph( d, true, false );
 
 		// only methods have dependents, tasks cannot
 		// be invoked by any user program calls
@@ -523,14 +522,11 @@ public class OwnershipAnalysis {
 	    // every possible method we might have chosen
 	    //
 	    og.resolveMethodCall( fc, md.isStatic(), flatm, ogAllPossibleCallees );
-
-	    //og.writeGraph( methodDesc, fn );
 	    break;
 
 	case FKind.FlatReturnNode:
 	    FlatReturnNode frn = (FlatReturnNode) fn;
 	    setRetNodes.add( frn );
-	    //og.writeGraph( methodDesc, fn );
 	    break;
 	}
     }
@@ -561,6 +557,7 @@ public class OwnershipAnalysis {
 
     // return just the allocation site associated with one FlatNew node
     private AllocationSite getAllocationSiteFromFlatNewPRIVATE( FlatNew fn ) {
+
 	if( !mapFlatNewToAllocationSite.containsKey( fn ) ) {
 	    AllocationSite as = new AllocationSite( allocationDepth, fn.getType() );
 
@@ -689,12 +686,13 @@ public class OwnershipAnalysis {
 	return idSet;
     }
 
+
     private HashSet<Integer> getHeapRegionIDset( AllocationSite alloc ) {
 
 	HashSet<Integer> idSet = new HashSet<Integer>();
 	
-	for( int i = 0; i < alloc.getAllocationDepth(); ++i ) {
-	    Integer id = alloc.getIthOldest( i );
+	for( int i = 0; i < alloc.getAllocationDepth(); ++i ) {	  
+	    Integer id = alloc.getIthOldest( i );	  
 	    idSet.add( id );
 	}
 	
@@ -707,7 +705,7 @@ public class OwnershipAnalysis {
     private HashSet<Integer> getHeapRegionIDset( HashSet<AllocationSite> allocSet ) {
 
 	HashSet<Integer> idSet = new HashSet<Integer>();
-	
+
 	Iterator allocItr = allocSet.iterator();
 	while( allocItr.hasNext() ) {
 	    AllocationSite alloc = (AllocationSite) allocItr.next();
