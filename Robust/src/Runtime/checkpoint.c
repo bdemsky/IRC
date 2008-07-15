@@ -20,7 +20,11 @@ extern void * to_heaptop;
 struct malloclist {
   struct malloclist *next;
   int size;
+#ifdef RAW
+  char * space;
+#else
   char space[];
+#endif
 };
 
 struct malloclist * top=NULL;
@@ -28,6 +32,7 @@ int offset=0;
 
 void * cpmalloc(int size) {
   int endoffset=offset+size;
+  int tmpoffset=0;
   if (top==NULL||endoffset>top->size) {
     int basesize=MALLOCSIZE;
     struct malloclist *tmp;
@@ -39,7 +44,7 @@ void * cpmalloc(int size) {
     top->size=basesize;
     offset=0;
   }
-  int tmpoffset=offset;
+  tmpoffset=offset;
   offset+=size;
   return &top->space[tmpoffset];
 }
@@ -54,7 +59,9 @@ void freemalloc() {
 
 void checkvalid(void * ptr) {
   if (ptr>=curr_heapbase&&ptr<=curr_heaptop) {
+#ifndef RAW
     printf("Valid\n");
+#endif
   }
 }
 
@@ -73,7 +80,9 @@ void validitycheck(struct RuntimeHash *forward, struct RuntimeHash *reverse)  {
 	  int offset=pointer[i];
 	  void * ptr=*(void **) (((int) data) + offset);
 	  if (ptr!=NULL&&!RuntimeHashcontainskey(reverse, (int) ptr)) {
+#ifndef RAW
 	    printf("Bad\n");
+#endif
 	  }
 	  checkvalid(ptr);
 	}
@@ -83,18 +92,22 @@ void validitycheck(struct RuntimeHash *forward, struct RuntimeHash *reverse)  {
     RuntimeHashiterator(reverse, &rit);
     while(RunhasNext(&rit)) {
       struct ___Object___ * data=(struct ___Object___*) Runkey(&rit);
+	  int type=0;
+	  unsigned int * pointer=NULL;
+	  int size;
+	  int i;
       Runnext(&rit);
-      int type=data->type;
-      unsigned int * pointer=pointerarray[type];
-      int size;
-      int i;
+      type=data->type;
+      pointer=pointerarray[type];
       if (pointer!=0&&((int)pointer)!=1) {
 	size=pointer[0];
 	for(i=1;i<=size;i++) {
 	  int offset=pointer[i];
 	  void * ptr=*(void **) (((int) data) + offset);
 	  if (ptr!=NULL&&!RuntimeHashcontainskey(reverse, (int) ptr)) {
+#ifndef RAW
 	    printf("Bad2\n");
+#endif
 	  }
 	  checkvalid(ptr);
 	}
@@ -131,9 +144,10 @@ void ** makecheckpoint(int numparams, void ** srcpointer, struct RuntimeHash * f
     RuntimeHashremove(todo, (int) ptr, (int) ptr);
     {
       void *cpy;
+	  unsigned int * pointer=NULL;
       RuntimeHashget(forward, (int) ptr, (int *) &cpy);
 
-      unsigned int * pointer=pointerarray[type];
+      pointer=pointerarray[type];
 #ifdef TASK
       if (type==TAGTYPE) {
 	void *objptr=((struct ___TagDescriptor___*)ptr)->flagptr;

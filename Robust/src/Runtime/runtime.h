@@ -99,9 +99,25 @@ struct failedtasklist {
 #endif
 
 #ifdef MULTICORE
+struct transObjInfo {
+	void * objptr;
+	int targetcore;
+	int * queues;
+	int length;
+};
+#endif
+
+#ifdef RAW
+//struct RuntimeHash * ptbl = NULL;
+#endif
+
+#ifdef MULTICORE
 void flagorand(void * ptr, int ormask, int andmask, struct parameterwrapper ** queues, int length);
 void flagorandinit(void * ptr, int ormask, int andmask);
 void enqueueObject(void * ptr, struct parameterwrapper ** queues, int length);
+#ifdef RAW
+void enqueueObject_I(void * ptr, struct parameterwrapper ** queues, int length);
+#endif
 #else
 void flagorand(void * ptr, int ormask, int andmask);
 void flagorandinit(void * ptr, int ormask, int andmask);
@@ -111,7 +127,7 @@ void executetasks();
 void processtasks();
 
 #ifdef MULTICORE
-void transferObject(void * ptr, int targetcore);
+void transferObject(struct transObjInfo * transObj);
 #endif
 
 #ifndef MULTICORE
@@ -164,6 +180,9 @@ void processobject(struct parameterwrapper *parameter, int index, struct paramet
 void processtags(struct parameterdescriptor *pd, int index, struct parameterwrapper *parameter, int * iteratorcount, int *statusarray, int numparams);
 void builditerators(struct taskdescriptor * task, int index, struct parameterwrapper * parameter);
 int enqueuetasks(struct parameterwrapper *parameter, struct parameterwrapper *prevptr, struct ___Object___ *ptr, int * enterflags, int numenterflags);
+#ifdef RAW
+int enqueuetasks_I(struct parameterwrapper *parameter, struct parameterwrapper *prevptr, struct ___Object___ *ptr, int * enterflags, int numenterflags);
+#endif
 
 #endif
 

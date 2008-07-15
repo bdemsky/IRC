@@ -24,6 +24,9 @@ void freeObjectHash(struct ObjectHash *);
 
 void ObjectHashrehash(struct ObjectHash * thisvar);
 int ObjectHashadd(struct ObjectHash *, int key, int data, int data2, int data3, int data4);
+#ifdef RAW
+int ObjectHashadd_I(struct ObjectHash *, int key, int data, int data2, int data3, int data4);
+#endif
 int ObjectHashremove(struct ObjectHash *,int key);
 bool ObjectHashcontainskey(struct ObjectHash *,int key);
 bool ObjectHashcontainskeydata(struct ObjectHash *,int key, int data);

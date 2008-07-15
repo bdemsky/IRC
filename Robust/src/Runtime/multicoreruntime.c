@@ -5,8 +5,10 @@
 #include<fcntl.h>
 #include<errno.h>
 #include<signal.h>
+#ifndef RAW
 #include<stdio.h>
-#include "option.h"
+#endif
+//#include "option.h"
 
 extern int classsize[];
 jmp_buf error_handler;
@@ -25,6 +27,9 @@ int instaccum=0;
 #include "dmalloc.h"
 #endif
 
+#ifdef RAW
+void initializeexithandler() {}
+#else
 void exithandler(int sig, siginfo_t *info, void * uap) {
 #ifdef DEBUG
 	printf("exit in exithandler\n");
@@ -39,11 +44,15 @@ void initializeexithandler() {
   sigemptyset(&sig.sa_mask);
   sigaction(SIGUSR2, &sig, 0);
 }
-
+#endif
 
 /* This function inject failures */
 
 void injectinstructionfailure() {
+#ifdef RAW
+	// not supported in RAW version
+	return;
+#else
 #ifdef TASK
   if (injectinstructionfailures) {
     if (numfailures==0)
@@ -72,25 +81,49 @@ void injectinstructionfailure() {
   }
 #endif
 #endif
+#endif
 }
 
 void CALL11(___System______exit____I,int ___status___, int ___status___) {
 #ifdef DEBUG
 	printf("exit in CALL11\n");
 #endif
+#ifdef RAW
+	raw_test_done(___status___);
+#else
   exit(___status___);
+#endif
+}
+
+void CALL11(___System______printI____I,int ___status___, int ___status___) {
+#ifdef DEBUG
+	printf("printI in CALL11\n");
+#endif
+#ifdef RAW
+	raw_test_pass(0x1111);
+	raw_test_pass_reg(___status___);
+#else
+	printf("%d\n", ___status___);
+#endif
 }
 
 long CALL00(___System______currentTimeMillis____) {
+#ifdef RAW
+	// not supported in RAW version
+	return -1;
+#else
   struct timeval tv; long long retval;
   gettimeofday(&tv, NULL);
   retval = tv.tv_sec; /* seconds */
   retval*=1000; /* milliseconds */
   retval+= (tv.tv_usec/1000); /* adjust milliseconds & add them in */
   return retval;
+#endif
 }
 
 void CALL01(___System______printString____L___String___,struct ___String___ * ___s___) {
+#ifdef RAW
+#else
     struct ArrayObject * chararray=VAR(___s___)->___value___;
     int i;
     int offset=VAR(___s___)->___offset___;
@@ -98,6 +131,7 @@ void CALL01(___System______printString____L___String___,struct ___String___ * __
 	short sc=((short *)(((char *)& chararray->___length___)+sizeof(int)))[i+offset];
 	putchar(sc);
     }
+#endif
 }
 
 /* Object allocation function */
@@ -106,6 +140,8 @@ void CALL01(___System______printString____L___String___,struct ___String___ * __
 void * allocate_new(void * ptr, int type) {
   struct ___Object___ * v=(struct ___Object___ *) mygcmalloc((struct garbagelist *) ptr, classsize[type]);
   v->type=type;
+  v->isolate = 1;
+  v->version = 0;
 #ifdef THREADS
   v->tid=0;
   v->lockentry=0;
@@ -119,8 +155,12 @@ void * allocate_new(void * ptr, int type) {
 struct ArrayObject * allocate_newarray(void * ptr, int type, int length) {
   struct ArrayObject * v=mygcmalloc((struct garbagelist *) ptr, sizeof(struct ArrayObject)+length*classsize[type]);
   v->type=type;
+  v->isolate = 1;
+  v->version = 0;
   if (length<0) {
+#ifndef RAW
     printf("ERROR: negative array\n");
+#endif
     return NULL;
   }
   v->___length___=length;
@@ -136,6 +176,8 @@ struct ArrayObject * allocate_newarray(void * ptr, int type, int length) {
 void * allocate_new(int type) {
   struct ___Object___ * v=FREEMALLOC(classsize[type]);
   v->type=type;
+  v->isolate = 1;
+  v->version = 0;
   return v;
 }
 
@@ -144,6 +186,8 @@ void * allocate_new(int type) {
 struct ArrayObject * allocate_newarray(int type, int length) {
   struct ArrayObject * v=FREEMALLOC(sizeof(struct ArrayObject)+length*classsize[type]);
   v->type=type;
+  v->isolate = 1;
+  v->version = 0;
   v->___length___=length;
   return v;
 }

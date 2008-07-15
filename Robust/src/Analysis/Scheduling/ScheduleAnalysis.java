@@ -160,43 +160,6 @@ public class ScheduleAnalysis {
 	    }
     	}
     	cdToCNodes = null;
-    	
-    	// Create 'associate' edges between the ScheduleNodes.
-    	/*Iterator<TaskDescriptor> it_tasks = (Iterator<TaskDescriptor>)state.getTaskSymbolTable().getDescriptorsIterator();
-    	while(it_tasks.hasNext()) {
-    	    TaskDescriptor td = it_tasks.next();
-    	    int numParams = td.numParameters();
-    	    if(!(numParams > 1)) {
-    		// single parameter task
-    		continue;
-    	    }
-    	    ClassNode[] cNodes = new ClassNode[numParams];
-    	    for(i = 0; i < numParams; ++i) {
-    		cNodes[i] = this.cd2ClassNode.get(td.getParamType(i).getClassDesc());
-    	    }
-    	    Vector<FEdge> fev = (Vector<FEdge>)taskanalysis.getFEdgesFromTD(td);
-    	    // for each fedge associated to this td, create an associate ScheduleEdge
-    	    // from the ClassNode containg this FEdge to every other ClassNode representing
-    	    // other parameters.
-    	    for(i = 0; i < fev.size(); ++i) {
-    		FEdge tmpfe = fev.elementAt(i);
-    		for(int j = 0; j < numParams; ++j) {
-    		    if(j == tmpfe.getIndex()) {
-    			continue;
-    		    }
-    		    FlagState fs = (FlagState)tmpfe.getSource();
-    		    ScheduleEdge se = new ScheduleEdge(cNodes[j].getScheduleNode(), "associate", fs, ScheduleEdge.ASSOCEDGE, 0);
-    		    se.setFEdge(tmpfe);
-    		    se.setSourceCNode(cNodes[i]);
-    		    se.setTargetCNode(cNodes[j]);
-    		    // targetFState is always null
-    		    cNodes[i].getScheduleNode().addAssociateSEdge(se);
-    		    // scheduleEdges only holds new/transmit edges
-    		    //scheduleEdges.add(se);  
-    		    fs.addAlly(se);
-    		}
-    	    } 
-    	}*/
 
 	// Break down the 'cycle's
     	try {
@@ -211,9 +174,6 @@ public class ScheduleAnalysis {
 	
 	// Remove fake 'new' edges
 	for(i = 0; i < scheduleEdges.size(); i++) {
-	    /*if(ScheduleEdge.NEWEDGE != scheduleEdges.elementAt(i).getType()) {
-		continue;
-	    }*/
 	    ScheduleEdge se = (ScheduleEdge)scheduleEdges.elementAt(i);
 	    if((0 == se.getNewRate()) || (0 == se.getProbability())) {
 		scheduleEdges.removeElement(se);
@@ -487,12 +447,6 @@ public class ScheduleAnalysis {
 		    se.setNewRate(tse.getNewRate());
 		    break;
 		}
-		/*case ScheduleEdge.ASSOCEDGE: {
-		    se = new ScheduleEdge(csNode, "associate", tse.getFstate(), tse.getType(), 0);
-		    se.setProbability(tse.getProbability());
-		    se.setNewRate(tse.getNewRate());
-		    break;
-		}*/
 		default: {
 		    throw new Exception("Error: not valid ScheduleEdge here");
 		}
@@ -506,37 +460,11 @@ public class ScheduleAnalysis {
 		scheduleEdges.add(se);
 	    }
 	    inedges = null;
-	    
-	    // in associate ScheduleEdgs
-	    /*inedges = ((ScheduleNode)sEdge.getTarget()).getInAssociateSEdges();
-	    for(i = 0; i < inedges.size(); i++) {
-		ScheduleEdge tse = (ScheduleEdge)inedges.elementAt(i);
-		ScheduleEdge se;
-		switch(tse.getType()) {
-		case ScheduleEdge.ASSOCEDGE: {
-		    se = new ScheduleEdge(csNode, "associate", tse.getFstate(), tse.getType(), 0);
-		    se.setProbability(tse.getProbability());
-		    se.setNewRate(tse.getNewRate());
-		    break;
-		}
-		default: {
-		    throw new Exception("Error: not valid ScheduleEdge here");
-		}
-		}
-		se.setSourceCNode(tse.getSourceCNode());
-		se.setTargetCNode(cn2cn.get(tse.getTargetCNode()));
-		se.setFEdge(tse.getFEdge());
-		se.setTargetFState(tse.getTargetFState());
-		se.setIsclone(true);
-		((ScheduleNode)tse.getSource()).addAssociateSEdge(se);
-	    }
-	    inedges = null;*/
 	} else {
 	    sEdge.getTarget().removeInedge(sEdge);
 	    sEdge.setTarget(csNode);
 	    csNode.getInedgeVector().add(sEdge);
 	    sEdge.setTargetCNode(cn2cn.get(sEdge.getTargetCNode()));
-	    //sEdge.setTargetFState(null);
 	    sEdge.setIsclone(true);
 	}
     	
@@ -576,10 +504,6 @@ public class ScheduleAnalysis {
 	    	    se = new ScheduleEdge(tSNode, "transmit", tse.getFstate(), tse.getType(), 0);
 	    	    break;
 	    	}
-	    	/*case ScheduleEdge.ASSOCEDGE: {
-	    	    se = new ScheduleEdge(tSNode, "associate", tse.getFstate(), tse.getType(), 0);
-	    	    break;
-	    	}*/
 	    	default: {
 		    throw new Exception("Error: not valid ScheduleEdge here");
 		}
@@ -597,32 +521,6 @@ public class ScheduleAnalysis {
 	    tocn2cn = null;
 	    edges = null;
     	}
-
-    	// associate ScheduleEdges
-    	/*for(int j = 0; j < origins.size(); ++j) {
-    	    ScheduleNode osNode = origins.elementAt(i);
-    	    Vector<ScheduleEdge> edges = osNode.getAssociateSEdges();
-    	    ScheduleNode csNode = sn2sn.get(osNode);
-    	    for(i = 0; i < edges.size(); i++) {
-    		ScheduleEdge tse = (ScheduleEdge)edges.elementAt(i);
-    		assert(tse.getType() == ScheduleEdge.ASSOCEDGE);
-    		ScheduleNode tSNode = (ScheduleNode)tse.getTarget();
-    		if(origins.contains(tSNode)) {
-    		    tSNode = sn2sn.get(tSNode);
-    		}
-    		ScheduleEdge se = new ScheduleEdge(tSNode, "associate", tse.getFstate(), tse.getType(), 0);
-    		se.setSourceCNode(cn2cn.get(tse.getSourceCNode()));
-    		se.setTargetCNode(tocn2cn.get(tse.getTargetCNode()));
-    		se.setFEdge(tse.getFEdge());
-    		se.setTargetFState(tse.getTargetFState());
-    		se.setProbability(tse.getProbability());
-    		se.setNewRate(tse.getNewRate());
-    		se.setIsclone(true);
-    		csNode.addAssociateSEdge(se);
-    	    }
-    	    tocn2cn = null;
-    	    edges = null;
-    	}*/
     	
     	toClone = null;
     	clone = null;
@@ -642,13 +540,6 @@ public class ScheduleAnalysis {
 		throw new Exception("Error: ClassNode's inedges more than one!");
 	    }
 	    if(inedges.size() > 0) {
-		/*ScheduleEdge sEdge = null;
-		for(int i = 0; i < inedges.size(); ++i) {
-		    sEdge = (ScheduleEdge)inedges.elementAt(i);
-		    if(sEdge.getType() == ScheduleEdge.NEWEDGE) {
-			break;
-		    }
-		}*/
 		ScheduleEdge sEdge = (ScheduleEdge)inedges.elementAt(0);
 		cNode = (ClassNode)sEdge.getSource();
 		exeTime += cNode.getFlagStates().elementAt(0).getExeTime();
@@ -913,11 +804,6 @@ public class ScheduleAnalysis {
 	    int startupcore = 0;
 	    boolean setstartupcore = false;
 	    Schedule startup = null;
-	    Vector<Integer> leafcores = new Vector<Integer>();
-	    Vector[] ancestorCores = new Vector[this.coreNum];
-	    for(j = 0; j < ancestorCores.length; ++j) {
-		ancestorCores[j] = new Vector();
-	    }
 	    for(j = 0; j < scheduleGraph.size(); j++) {
 		Schedule tmpSchedule = new Schedule(j);
 		ScheduleNode sn = scheduleGraph.elementAt(j);
@@ -931,14 +817,16 @@ public class ScheduleAnalysis {
 			while(it_edges.hasNext()) {
 			    TaskDescriptor td = ((FEdge)it_edges.next()).getTask();
 			    tmpSchedule.addTask(td);
+			    if(!td2cores.containsKey(td)) {
+				td2cores.put(td, new Vector<Schedule>());
+			    }
+			    Vector<Schedule> tmpcores = td2cores.get(td);
+			    if(!tmpcores.contains(tmpSchedule)) {
+				tmpcores.add(tmpSchedule);
+			    }
+			    // if the FlagState can be fed to some multi-param tasks,
+			    // need to record corresponding ally cores later
 			    if(td.numParameters() > 1) {
-				if(!td2cores.containsKey(td)) {
-				    td2cores.put(td, new Vector<Schedule>());
-				}
-				Vector<Schedule> tmpcores = td2cores.get(td);
-				if(!tmpcores.contains(tmpSchedule)) {
-				    tmpcores.add(tmpSchedule);
-				}
 				tmpSchedule.addFState4TD(td, fs);
 			    }
 			    if(td.getParamType(0).getClassDesc().getSymbol().equals(TypeUtil.StartupClass)) {
@@ -953,12 +841,6 @@ public class ScheduleAnalysis {
 
 		// For each of the ScheduleEdge out of this ScheduleNode, add the target ScheduleNode into the queue inside sn
 		Iterator it_edges = sn.edges();
-		if(!it_edges.hasNext()) {
-		    // leaf core, considered as ancestor of startup core
-		    if(!leafcores.contains(Integer.valueOf(j))) {
-			leafcores.addElement(Integer.valueOf(j));
-		    }
-		}
 		while(it_edges.hasNext()) {
 		    ScheduleEdge se = (ScheduleEdge)it_edges.next();
 		    ScheduleNode target = (ScheduleNode)se.getTarget();
@@ -989,10 +871,6 @@ public class ScheduleAnalysis {
 			break;
 		    }
 		    }
-		    tmpSchedule.addChildCores(targetcore);
-		    if((targetcore.intValue() != j) && (!ancestorCores[targetcore.intValue()].contains((Integer.valueOf(j))))) {
-			ancestorCores[targetcore.intValue()].addElement(Integer.valueOf(j));
-		    }
 		}
 		it_edges = sn.getScheduleEdgesIterator();
 		while(it_edges.hasNext()) {
@@ -1013,33 +891,56 @@ public class ScheduleAnalysis {
 		}
 		scheduling.add(tmpSchedule);
 	    }	    
-	    
-	    leafcores.removeElement(Integer.valueOf(startupcore));
-	    ancestorCores[startupcore] = leafcores;
+
 	    int number = this.coreNum;
 	    if(scheduling.size() < number) {
 		number = scheduling.size();
 	    }
-	    for(j = 0; j < number; ++j) {
-		scheduling.elementAt(j).setAncestorCores(ancestorCores[j]);
-	    }
 	    
 	    // set up all the associate ally cores
-	    if(multiparamtds.size() > 0) {		
-		Object[] tds = (td2cores.keySet().toArray());
-		for(j = 0; j < tds.length; ++j) {
-		    TaskDescriptor td = (TaskDescriptor)tds[j];
+	    if(multiparamtds.size() > 0) {	
+		for(j = 0; j < multiparamtds.size(); ++j) {
+		    TaskDescriptor td = multiparamtds.elementAt(j);
+		    Vector<FEdge> fes = (Vector<FEdge>)this.taskanalysis.getFEdgesFromTD(td);
 		    Vector<Schedule> cores = td2cores.get(td);
-		    if(cores.size() == 1) {
-			continue;
-		    }
 		    for(int k = 0; k < cores.size(); ++k) {
 			Schedule tmpSchedule = cores.elementAt(k);
-			Vector<FlagState> tmpfss = tmpSchedule.getFStates4TD(td);
-			for(int h = 0; h < tmpfss.size(); ++h) {
-			    for(int l = 0; l < cores.size(); ++l) {
-				if(l != k) {
-				    tmpSchedule.addAllyCore(tmpfss.elementAt(h), cores.elementAt(l).getCoreNum());
+			
+			for(int h = 0; h < fes.size(); ++h) {
+			    FEdge tmpfe = fes.elementAt(h);
+			    FlagState tmpfs = (FlagState)tmpfe.getTarget();
+			    Vector<TaskDescriptor> tmptds = new Vector<TaskDescriptor>();
+			    if((tmpSchedule.getTargetCoreTable() == null) || (!tmpSchedule.getTargetCoreTable().contains(tmpfs))) {
+				// add up all possible cores' info
+				Iterator it_edges = tmpfs.edges();
+				while(it_edges.hasNext()) {
+				    TaskDescriptor tmptd = ((FEdge)it_edges.next()).getTask();
+				    if(!tmptds.contains(tmptd)) {
+					tmptds.add(tmptd);
+					Vector<Schedule> tmpcores = td2cores.get(tmptd);
+					for(int m = 0; m < tmpcores.size(); ++m) {
+					    if(m != tmpSchedule.getCoreNum()) {
+						// if the FlagState can be fed to some multi-param tasks,
+						// need to record corresponding ally cores later
+						if(tmptd.numParameters() > 1) {
+						    tmpSchedule.addAllyCore(tmpfs, tmpcores.elementAt(m).getCoreNum());
+						} else {
+						    tmpSchedule.addTargetCore(tmpfs, tmpcores.elementAt(m).getCoreNum());
+						}
+					    }
+					}
+				    }  
+				}
+			    }
+			}
+			
+			if(cores.size() > 1) {	
+			    Vector<FlagState> tmpfss = tmpSchedule.getFStates4TD(td);
+			    for(int h = 0; h < tmpfss.size(); ++h) {
+				for(int l = 0; l < cores.size(); ++l) {
+				    if(l != k) {
+					tmpSchedule.addAllyCore(tmpfss.elementAt(h), cores.elementAt(l).getCoreNum());
+				    }
 				}
 			    }
 			}

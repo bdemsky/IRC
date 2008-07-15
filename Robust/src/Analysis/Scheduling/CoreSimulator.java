@@ -80,7 +80,7 @@ public class CoreSimulator {
     
     public FlagState getTargetFState(FlagState fstate) {
 	if(targetFState == null) {
-	    return null;
+	    return fstate;
 	}
 	return targetFState.get(fstate);
     }
@@ -155,17 +155,13 @@ public class CoreSimulator {
 		obj.setShared(true);
 		for(int k = 0; k < allycores.size(); ++k) {
 		    Integer allyCore = allycores.elementAt(k);
-		    /*if(allyCore == coreNum) {
-			remove = false;
-		    } else {*/
-			if(transObjs == null) {
-			    transObjs = new Vector<ObjectSimulator>();
-			}
-			if(!transObjs.contains(obj)) {
-			    transObjs.add(obj);
-			}
-			remove = false; 
-		    //}
+		    if(transObjs == null) {
+			transObjs = new Vector<ObjectSimulator>();
+		    }
+		    if(!transObjs.contains(obj)) {
+			transObjs.add(obj);
+		    }
+		    remove = false; 
 		}
 	    }
 	    for(int j = 0; j < this.tasks.size(); j++) {

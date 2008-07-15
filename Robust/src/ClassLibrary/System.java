@@ -13,6 +13,8 @@ public class System {
     }
 
     public static native void exit(int status);
+    
+    public static native void printI(int status);
 
     public static native void clearPrefetchCache();
 }

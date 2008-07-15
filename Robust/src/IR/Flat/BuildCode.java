@@ -37,7 +37,6 @@ public class BuildCode {
     public static int flagcount = 0;
     Virtual virtualcalls;
     TypeUtil typeutil;
-    //private int maxtaskparams=0;
     protected int maxtaskparams=0;
     private int maxcount=0;
     ClassDescriptor[] cdarray;
@@ -304,11 +303,10 @@ public class BuildCode {
      * objets and array that stores supertype and then the code for
      * the Java methods.. */
 
-    //private void outputMethods(PrintWriter outmethod) {
     protected void outputMethods(PrintWriter outmethod) {
 	outmethod.println("#include \"methodheaders.h\"");
 	outmethod.println("#include \"virtualtable.h\"");
-	outmethod.println("#include <runtime.h>");
+	outmethod.println("#include \"runtime.h\"");
 	if (state.DSM) {
 	    outmethod.println("#include \"localobjects.h\"");
 	}
@@ -359,7 +357,6 @@ public class BuildCode {
 	} 
     }
 
-    //private void outputStructs(PrintWriter outstructs) {
     protected void outputStructs(PrintWriter outstructs) {
 	outstructs.println("#ifndef STRUCTDEFS_H");
 	outstructs.println("#define STRUCTDEFS_H");
@@ -402,7 +399,6 @@ public class BuildCode {
 	}
     }
 
-    //private void outputClassDeclarations(PrintWriter outclassdefs) {
     protected void outputClassDeclarations(PrintWriter outclassdefs) {
 	if (state.THREAD||state.DSM)
 	    outclassdefs.println("#include <pthread.h>");
@@ -621,8 +617,7 @@ public class BuildCode {
 
     /** The buildVirtualTables method outputs the virtual dispatch
      * tables for methods. */
-
-    //private void buildVirtualTables(PrintWriter outvirtual) {
+    
     protected void buildVirtualTables(PrintWriter outvirtual) {
     	Iterator classit=state.getClassSymbolTable().getDescriptorsIterator();
 	while(classit.hasNext()) {
@@ -763,7 +758,6 @@ public class BuildCode {
      * These objects tell the compiler which temps need to be
      * allocated.  */
 
-    //private void generateTempStructs(FlatMethod fm, LocalityBinding lb) {
     protected void generateTempStructs(FlatMethod fm, LocalityBinding lb) {
 	MethodDescriptor md=fm.getMethod();
 	TaskDescriptor task=fm.getTask();
@@ -971,7 +965,6 @@ public class BuildCode {
     /* Map flags to integers consistently between inherited
      * classes. */
 
-    //private void mapFlags(ClassDescriptor cn) {
     protected void mapFlags(ClassDescriptor cn) {
 	ClassDescriptor sp=cn.getSuperDesc();
 	if (sp!=null)
@@ -1006,7 +999,6 @@ public class BuildCode {
      * passed in (when PRECISE GC is enabled) and (2) function
      * prototypes for the methods */
 
-    //private void generateCallStructs(ClassDescriptor cn, PrintWriter classdefout, PrintWriter output, PrintWriter headersout) {
     protected void generateCallStructs(ClassDescriptor cn, PrintWriter classdefout, PrintWriter output, PrintWriter headersout) {
 	/* Output class structure */
 	classdefout.println("struct "+cn.getSafeSymbol()+" {");
@@ -1342,7 +1334,6 @@ public class BuildCode {
 
     /** This method assigns labels to FlatNodes */
 
-    //private Hashtable<FlatNode, Integer> assignLabels(FlatMethod fm) {
     protected Hashtable<FlatNode, Integer> assignLabels(FlatMethod fm) {
 	HashSet tovisit=new HashSet();
 	HashSet visited=new HashSet();
@@ -1376,7 +1367,6 @@ public class BuildCode {
 
 
     /** Generate text string that corresponds to the TempDescriptor td. */
-    //private String generateTemp(FlatMethod fm, TempDescriptor td, LocalityBinding lb) {
     protected String generateTemp(FlatMethod fm, TempDescriptor td, LocalityBinding lb) {
 	MethodDescriptor md=fm.getMethod();
 	TaskDescriptor task=fm.getTask();
@@ -1396,7 +1386,6 @@ public class BuildCode {
 	throw new Error();
     }
 
-    //private void generateFlatNode(FlatMethod fm, LocalityBinding lb, FlatNode fn, PrintWriter output) {
     protected void generateFlatNode(FlatMethod fm, LocalityBinding lb, FlatNode fn, PrintWriter output) {
 	switch(fn.kind()) {
 	case FKind.FlatAtomicEnterNode:
@@ -1911,7 +1900,9 @@ public class BuildCode {
 	    } else if (status==LocalityAnalysis.EITHER) {
 		//Code is reading from a null pointer
  		output.println("if ("+generateTemp(fm, ffn.getSrc(),lb)+") {");
+ 		output.println("#ifndef RAW");
  		output.println("printf(\"BIG ERROR\\n\");exit(-1);}");
+ 		output.println("#endif");
 		//This should throw a suitable null pointer error
 		output.println(generateTemp(fm, ffn.getDst(),lb)+"="+ generateTemp(fm,ffn.getSrc(),lb)+"->"+ ffn.getField().getSafeSymbol()+";");
 	    } else
@@ -1963,7 +1954,9 @@ public class BuildCode {
 	    } else if (statusdst.equals(LocalityAnalysis.EITHER)) {
 		//writing to a null...bad
 		output.println("if ("+dst+") {");
+		output.println("#ifndef RAW");
  		output.println("printf(\"BIG ERROR 2\\n\");exit(-1);}");
+ 		output.println("#endif");
 		if (srcglobal)
 		    output.println(dst+"->"+ fsfn.getField().getSafeSymbol()+"=srcoid;");
 		else
@@ -2006,7 +1999,9 @@ public class BuildCode {
 	    } else if (status==LocalityAnalysis.EITHER) {
 		//Code is reading from a null pointer
  		output.println("if ("+generateTemp(fm, fen.getSrc(),lb)+") {");
+ 		output.println("#ifndef RAW");
  		output.println("printf(\"BIG ERROR\\n\");exit(-1);}");
+ 		output.println("#endif");
 		//This should throw a suitable null pointer error
 		output.println(generateTemp(fm, fen.getDst(),lb)+"=(("+ type+"*)(((char *) &("+ generateTemp(fm,fen.getSrc(),lb)+"->___length___))+sizeof(int)))["+generateTemp(fm, fen.getIndex(),lb)+"];");
 	    } else
@@ -2094,10 +2089,6 @@ public class BuildCode {
 	    } else {
 		output.println(generateTemp(fm,fn.getDst(),lb)+"=allocate_new("+fn.getType().getClassDesc().getId()+");");
 	    }
-	}
-	if(state.MULTICORE) {
-	    output.println("   " + generateTemp(fm,fn.getDst(),lb)+"->isolate = 1;");
-	    output.println("   " + generateTemp(fm,fn.getDst(),lb)+"->version = 0;");
 	}
 	if (state.DSM && locality.getAtomic(lb).get(fn).intValue()>0&&!fn.isGlobal()) {
 	    String revertptr=generateTemp(fm, reverttable.get(lb),lb);
@@ -2193,7 +2184,6 @@ public class BuildCode {
 	}
     }
 
-    //private void generateFlatCondBranch(FlatMethod fm, LocalityBinding lb, FlatCondBranch fcb, String label, PrintWriter output) {
     protected void generateFlatCondBranch(FlatMethod fm, LocalityBinding lb, FlatCondBranch fcb, String label, PrintWriter output) {
 	output.println("if (!"+generateTemp(fm, fcb.getTest(),lb)+") goto "+label+";");
     }
@@ -2384,11 +2374,6 @@ public class BuildCode {
 		ormask=((Integer)flagortable.get(temp)).intValue();
 	    if (flagandtable.containsKey(temp))
 		andmask=((Integer)flagandtable.get(temp)).intValue();
-	    /*if (ffan.getTaskType()==FlatFlagActionNode.NEWOBJECT) {
-		output.println("flagorandinit("+generateTemp(fm, temp, lb)+", 0x"+Integer.toHexString(ormask)+", 0x"+Integer.toHexString(andmask)+");");
-	    } else {
-		output.println("flagorand("+generateTemp(fm, temp, lb)+", 0x"+Integer.toHexString(ormask)+", 0x"+Integer.toHexString(andmask)+");");
-	    }*/
 	    generateFlagOrAnd(ffan, fm, lb, temp, output, ormask, andmask);
 	    generateObjectDistribute(ffan, fm, lb, temp, output);
 	}

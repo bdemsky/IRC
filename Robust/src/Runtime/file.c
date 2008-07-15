@@ -1,7 +1,9 @@
 #include <fcntl.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <sys/uio.h>
+//#ifndef RAW
+//#include <sys/uio.h>
+//#endif
 #include <unistd.h>
 #include "structdefs.h"
 #include "mem.h"
@@ -17,7 +19,10 @@ void CALL11(___FileOutputStream______nativeClose____I, int fd, int fd) {
 }
 
 void CALL11(___FileOutputStream______nativeFlush____I, int fd, int fd) {
+	// not supported in RAW version
+#ifndef RAW
   fsync(fd);
+#endif
 }
 
 int CALL01(___FileOutputStream______nativeOpen_____AR_B, struct ArrayObject * ___filename___) {

@@ -37,6 +37,9 @@ void genfreehashtable(struct genhashtable * ht);
 void genrehash(struct genhashtable * ht);
 void * getnext(struct genhashtable *,void *);
 int genputtable(struct genhashtable *, void *, void *);
+#ifdef RAW
+int genputtable_I(struct genhashtable *, void *, void *);
+#endif
 void * gengettable(struct genhashtable *, void *);
 int gencontains(struct genhashtable *, void *);
 unsigned int genhashfunction(struct genhashtable *,void *);

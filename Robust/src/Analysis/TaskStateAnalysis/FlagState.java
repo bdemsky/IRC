@@ -364,10 +364,21 @@ public class FlagState extends GraphNode implements Cloneable {
     	Iterator it = this.edges();
     	if(it.hasNext()) {
 	    FEdge fe = (FEdge)it.next();
-	    if(fe.getExeTime() == -1) {
-		throw new Exception("Error: Uninitiate FEdge!");
+	    while((fe != null) && (fe.getTarget().equals(this))) {
+		if(it.hasNext()) {
+		    fe = (FEdge)it.next();
+		} else {
+		    fe = null;
+		}
 	    }
-	    this.executeTime = fe.getExeTime() + ((FlagState)fe.getTarget()).getExeTime();
+	    if(fe == null) {
+		this.executeTime = 0;
+	    } else {
+		if(fe.getExeTime() == -1) {
+		    throw new Exception("Error: Uninitiate FEdge!");
+		}
+		this.executeTime = fe.getExeTime() + ((FlagState)fe.getTarget()).getExeTime();
+	    }
     	} else {
 	    this.executeTime = 0;
     	}

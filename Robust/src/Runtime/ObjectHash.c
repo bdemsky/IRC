@@ -1,5 +1,9 @@
 #include "ObjectHash.h"
+#ifdef RAW
+#include <raw.h>
+#else
 #include <stdio.h>
+#endif
 #ifdef DMALLOC
 #include "dmalloc.h"
 #endif
@@ -18,11 +22,16 @@ struct ObjectHash * noargallocateObjectHash() {
 }
 
 struct ObjectHash * allocateObjectHash(int size) {
-    struct ObjectHash *thisvar=(struct ObjectHash *)RUNMALLOC(sizeof(struct ObjectHash));
+    struct ObjectHash *thisvar;//=(struct ObjectHash *)RUNMALLOC(sizeof(struct ObjectHash));
     if (size <= 0) {
+#ifdef RAW
+		raw_test_done(0xc001);
+#else
         printf("Negative Hashtable size Exception\n");
-        exit(-1);
+		exit(-1);
+#endif
     }
+	thisvar=(struct ObjectHash *)RUNMALLOC(sizeof(struct ObjectHash));
     thisvar->size = size;
     thisvar->bucket = (struct ObjectNode **) RUNMALLOC(sizeof(struct ObjectNode *)*size);
     /* Set allocation blocks*/
@@ -64,14 +73,16 @@ int ObjectHashremove(struct ObjectHash *thisvar, int key) {
 	  struct ObjectNode *toremove=*ptr;
 	  *ptr=(*ptr)->next;
 
-	  if (toremove->lprev!=NULL)
+	  if (toremove->lprev!=NULL) {
 	    toremove->lprev->lnext=toremove->lnext;
-	  else
+	  } else {
 	    thisvar->listhead=toremove->lnext;
-	  if (toremove->lnext!=NULL)
+	  }
+	  if (toremove->lnext!=NULL) {
 	    toremove->lnext->lprev=toremove->lprev;
-	  else
+	  } else {
 	    thisvar->listtail=toremove->lprev;
+	  }
 	  RUNFREE(toremove);
 
 	  thisvar->numelements--;
@@ -154,6 +165,61 @@ int ObjectHashadd(struct ObjectHash * thisvar,int key, int data, int data2, int 
   thisvar->numelements++;
   return 1;
 }
+
+#ifdef RAW
+int ObjectHashadd_I(struct ObjectHash * thisvar,int key, int data, int data2, int data3, int data4) {
+  /* Rehash code */
+  unsigned int hashkey;
+  struct ObjectNode **ptr;
+
+  if (thisvar->numelements>=thisvar->size) {
+    int newsize=2*thisvar->size+1;
+    struct ObjectNode ** newbucket = (struct ObjectNode **) RUNMALLOC_I(sizeof(struct ObjectNode *)*newsize);
+    int i;
+    for(i=thisvar->size-1;i>=0;i--) {
+        struct ObjectNode *ptr;
+        for(ptr=thisvar->bucket[i];ptr!=NULL;) {
+            struct ObjectNode * nextptr=ptr->next;
+            unsigned int newhashkey=(unsigned int)ptr->key % newsize;
+            ptr->next=newbucket[newhashkey];
+            newbucket[newhashkey]=ptr;
+            ptr=nextptr;
+        }
+    }
+    thisvar->size=newsize;
+    RUNFREE(thisvar->bucket);
+    thisvar->bucket=newbucket;
+  }
+
+  hashkey = (unsigned int)key % thisvar->size;
+  ptr = &thisvar->bucket[hashkey];
+
+  {
+    struct ObjectNode *node=RUNMALLOC_I(sizeof(struct ObjectNode));
+    node->data=data;
+    node->data2=data2;
+    node->data3=data3;
+    node->data4=data4;
+    node->key=key;
+    node->next=(*ptr);
+    *ptr=node;
+    if (thisvar->listhead==NULL) {
+      thisvar->listhead=node;
+      thisvar->listtail=node;
+      node->lnext=NULL;
+      node->lprev=NULL;
+    } else {
+      node->lprev=NULL;
+      node->lnext=thisvar->listhead;
+      thisvar->listhead->lprev=node;
+      thisvar->listhead=node;
+    }
+  }
+
+  thisvar->numelements++;
+  return 1;
+}
+#endif
 
 bool ObjectHashcontainskey(struct ObjectHash *thisvar,int key) {
     unsigned int hashkey = (unsigned int)key % thisvar->size;

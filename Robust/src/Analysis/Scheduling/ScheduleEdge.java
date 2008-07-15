@@ -11,7 +11,6 @@ public class ScheduleEdge extends Edge {
 
     public final static int NEWEDGE = 0;
     public final static int TRANSEDGE = 1;
-    public final static int ASSOCEDGE = 2;
 
     protected int uid;
     protected int gid;
@@ -21,9 +20,8 @@ public class ScheduleEdge extends Edge {
     protected final FlagState fstate;
     protected int type; // 0--new edge: indicate creating new objects
                         // 1--transmit edge: indicate transimitting an existing object
-                        // 2-- associate edge: indicate association with another object in that they are both parameters of one task
-
-    protected FlagState targetFState; // associate edge's targetFState is always null
+                        
+    protected FlagState targetFState; 
 
     private ClassNode sourceCNode;
     private ClassNode targetCNode;
@@ -132,7 +130,6 @@ public class ScheduleEdge extends Edge {
 
      public void setTargetCNode(ClassNode targetCNode) {
 	 this.targetCNode = targetCNode;
-	 //this.targetCNode.getInedgeVector().addElement(this);
 	 this.transTime = targetCNode.getTransTime();
      }
 

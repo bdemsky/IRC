@@ -5,7 +5,10 @@
 #endif
 
 struct Queue * createQueue() {
-  return (struct Queue *)RUNMALLOC(sizeof(struct Queue));
+  struct Queue * queue = (struct Queue *)RUNMALLOC(sizeof(struct Queue));
+  queue->head = NULL;
+  queue->tail = NULL;
+  return queue;
 }
 
 void freeQueue(struct Queue * q) {
@@ -30,6 +33,23 @@ struct QueueItem * addNewItem(struct Queue * queue, void * ptr) {
   }
   return item;
 }
+
+#ifdef RAW
+struct QueueItem * addNewItem_I(struct Queue * queue, void * ptr) {
+  struct QueueItem * item=RUNMALLOC_I(sizeof(struct QueueItem));
+  item->objectptr=ptr;
+  item->queue=queue;
+  if (queue->head==NULL) {
+    queue->head=item;
+    queue->tail=item;
+  } else {
+    item->next=queue->head;
+    queue->head->prev=item;
+    queue->head=item;
+  }
+  return item;
+}
+#endif
 
 struct QueueItem * findItem(struct Queue * queue, void *ptr) {
   struct QueueItem * item=queue->head;

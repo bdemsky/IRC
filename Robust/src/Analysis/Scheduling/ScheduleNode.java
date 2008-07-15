@@ -16,8 +16,6 @@ public class ScheduleNode extends GraphNode implements Cloneable{
 
     private Vector<ClassNode> classNodes;
     Vector<ScheduleEdge> scheduleEdges;
-    private Vector<ScheduleEdge> associateEdges;
-    private Vector<ScheduleEdge> inassociateEdges;
     
     private int executionTime;
 
@@ -31,8 +29,6 @@ public class ScheduleNode extends GraphNode implements Cloneable{
     	this.executionTime = -1;
     	this.classNodes = null;
     	this.scheduleEdges = null;
-    	this.associateEdges = new Vector<ScheduleEdge>();
-    	this.inassociateEdges = new Vector<ScheduleEdge>();
     }
     
     public ScheduleNode(ClassNode cn, int gid) {
@@ -43,8 +39,6 @@ public class ScheduleNode extends GraphNode implements Cloneable{
     	this.classNodes.add(cn);
     	this.addEdge(cn.getEdgeVector());
     	this.executionTime = -1;
-    	this.associateEdges = new Vector<ScheduleEdge>();
-    	this.inassociateEdges = new Vector<ScheduleEdge>();
     }
    
     public int getuid() {
@@ -88,37 +82,6 @@ public class ScheduleNode extends GraphNode implements Cloneable{
     
     public void resetScheduleEdges() {
     	scheduleEdges = null;
-    }
-    
-    public Vector getAssociateSEdges() {
-    	return this.associateEdges;
-    }
-    
-    public Iterator getAssociateSEdgesIterator() {
-    	return this.associateEdges.iterator();
-    }
-    
-    public void addAssociateSEdge(ScheduleEdge se) {
-	assert(ScheduleEdge.ASSOCEDGE == se.getType());
-	
-	this.associateEdges.addElement(se);
-	se.setSource(this);
-	ScheduleNode tonode=(ScheduleNode)se.getTarget();
-	tonode.addInAssociateSEdge(se);
-    }
-    
-    public Vector getInAssociateSEdges() {
-    	return this.inassociateEdges;
-    }
-    
-    public Iterator getInAssociateSEdgesIterator() {
-    	return this.inassociateEdges.iterator();
-    }
-    
-    public void addInAssociateSEdge(ScheduleEdge se) {
-	assert(ScheduleEdge.ASSOCEDGE == se.getType());
-	
-	this.inassociateEdges.addElement(se);
     }
     
     public int getExeTime() {
@@ -225,11 +188,6 @@ public class ScheduleNode extends GraphNode implements Cloneable{
 		se.setNewRate(temp.getNewRate());
 		break;
 	    }
-	    case ScheduleEdge.ASSOCEDGE: {
-		//TODO
-		se = new ScheduleEdge(o, "associate", temp.getFstate(), ScheduleEdge.ASSOCEDGE, gid);
-		break;
-	    }
 	    }
 	    se.setSourceCNode(cn2cn.get(temp.getSourceCNode()));
 	    se.setTargetCNode(cn2cn.get(temp.getTargetCNode()));
@@ -244,44 +202,8 @@ public class ScheduleNode extends GraphNode implements Cloneable{
     	tcns = null;
     	tses = null;
     	
-    	/*Vector<ScheduleEdge> assses = new Vector<ScheduleEdge>();
-    	for(i = 0; i < this.scheduleEdges.size(); i++) {
-	    ScheduleEdge temp = this.scheduleEdges.elementAt(i);
-	    
-	    assert(ScheduleEdge.ASSOCEDGE == temp.getType());
-	    ScheduleEdge se = new ScheduleEdge(o, "associate", temp.getFstate(), ScheduleEdge.ASSOCEDGE, gid);
-	    se.setSourceCNode(cn2cn.get(temp.getSourceCNode()));
-	    se.setTargetCNode(cn2cn.get(temp.getTargetCNode()));
-	    se.setTransTime(temp.getTransTime());
-	    se.setFEdge(temp.getFEdge());
-	    se.setTargetFState(temp.getTargetFState());
-	    se.setIsclone(true);
-	    assses.add(se);
-    	}
-    	o.associateEdges = assses;
-    	assses = null;
-    	
-    	Vector<ScheduleEdge> assses = new Vector<ScheduleEdge>();
-    	for(i = 0; i < this.scheduleEdges.size(); i++) {
-	    ScheduleEdge temp = this.scheduleEdges.elementAt(i);
-	    
-	    assert(ScheduleEdge.ASSOCEDGE == temp.getType());
-	    ScheduleEdge se = new ScheduleEdge(o, "associate", temp.getFstate(), ScheduleEdge.ASSOCEDGE, gid);
-	    se.setSourceCNode(cn2cn.get(temp.getSourceCNode()));
-	    se.setTargetCNode(cn2cn.get(temp.getTargetCNode()));
-	    se.setTransTime(temp.getTransTime());
-	    se.setFEdge(temp.getFEdge());
-	    se.setTargetFState(temp.getTargetFState());
-	    se.setIsclone(true);
-	    assses.add(se);
-    	}
-    	o.associateEdges = assses;
-    	assses = null;*/
-    	
     	o.inedges = new Vector();
     	o.edges = new Vector();
-    	o.associateEdges = new Vector<ScheduleEdge>();
-    	o.inassociateEdges = new Vector<ScheduleEdge>();
     	return o;
     }
     

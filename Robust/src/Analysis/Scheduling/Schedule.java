@@ -14,9 +14,7 @@ public class Schedule {
     private int coreNum;
     private Vector<TaskDescriptor> tasks;
     private Hashtable<FlagState, Queue<Integer>> targetCores;
-    private Hashtable<FlagState, FlagState> targetFState;
-    private Vector<Integer> ancestorCores;
-    private Vector<Integer> childCores;
+    private Hashtable<FlagState, FlagState> targetFState; // only affected by transimit edges
     private Hashtable<FlagState, Vector<Integer>> allyCores;
     private Hashtable<TaskDescriptor, Vector<FlagState>> td2fs;
     
@@ -26,7 +24,6 @@ public class Schedule {
 	this.tasks = null;
 	this.targetCores = null;
 	this.targetFState = null;
-	this.ancestorCores = null;
 	this.allyCores = null;
 	this.td2fs = null;
     }
@@ -79,17 +76,15 @@ public class Schedule {
 	return this.td2fs.get(td);
     }
 
-    public void addTargetCore(FlagState fstate, Integer targetCore/*, Integer num*/) {
+    public void addTargetCore(FlagState fstate, Integer targetCore) {
 	if(this.targetCores == null) {
 	    this.targetCores = new Hashtable<FlagState, Queue<Integer>>();
 	}
 	if(!this.targetCores.containsKey(fstate)) {
 	    this.targetCores.put(fstate, new LinkedList<Integer>());
 	}
-	//if(!this.targetCores.get(fstate).contains(targetCore)) {
-	    this.targetCores.get(fstate).add(targetCore); // there may have some duplicate items,
-	                                                  // which reflects probabilities.
-	//}
+	this.targetCores.get(fstate).add(targetCore); // there may have some duplicate items,
+	                                              // which reflects probabilities.
     }
     
     public void addTargetCore(FlagState fstate, Integer targetCore, FlagState tfstate) {
@@ -99,18 +94,14 @@ public class Schedule {
 	if(!this.targetCores.containsKey(fstate)) {
 	    this.targetCores.put(fstate, new LinkedList<Integer>());
 	}
-	//if(!this.targetCores.get(fstate).contains(targetCore)) {
-	    this.targetCores.get(fstate).add(targetCore);
-	//}
+	this.targetCores.get(fstate).add(targetCore);
 	if(this.targetFState == null) {
 	    this.targetFState = new Hashtable<FlagState, FlagState>();
 	}
-	//if(!this.targetFState.containsKey(fstate)) {
-	    this.targetFState.put(fstate, tfstate);
-	//}
+	this.targetFState.put(fstate, tfstate);
     }
     
-    public void addAllyCore(FlagState fstate, Integer targetCore/*, Integer num*/) {
+    public void addAllyCore(FlagState fstate, Integer targetCore) {
 	if(this.allyCores == null) {
 	    this.allyCores = new Hashtable<FlagState, Vector<Integer>>();
 	}
@@ -119,7 +110,7 @@ public class Schedule {
 	}
 	if((this.coreNum != targetCore.intValue()) && (!this.allyCores.get(fstate).contains(targetCore))) {
 	    this.allyCores.get(fstate).add(targetCore); // there may have some duplicate items,
-	                                                  // which reflects probabilities.
+	                                                // which reflects probabilities.
 	}
     }
     
@@ -146,54 +137,5 @@ public class Schedule {
 	if(!this.tasks.contains(task)) {
 	    this.tasks.add(task);
 	}
-    }
-
-    public Vector<Integer> getAncestorCores() {
-        return ancestorCores;
-    }
-
-    public void setAncestorCores(Vector<Integer> ancestorCores) {
-        this.ancestorCores = ancestorCores;
-    }
-
-    public void addAncestorCores(Integer ancestorCore) {
-	if(this.ancestorCores == null) {
-	    this.ancestorCores = new Vector<Integer>();
-	}
-	if((ancestorCore.intValue() != this.coreNum) && (!this.ancestorCores.contains(ancestorCore))) {
-	    this.ancestorCores.addElement(ancestorCore);
-	}
-    }
-    
-    public int ancestorCoresNum() {
-	if(this.ancestorCores == null) {
-	    return 0;
-	}
-	return this.ancestorCores.size();
-    }
-
-    public Vector<Integer> getChildCores() {
-        return childCores;
-    }
-
-    public void setChildCores(Vector<Integer> childCores) {
-        this.childCores = childCores;
-    }
-    
-    public void addChildCores(Integer childCore) {
-	if(this.childCores == null) {
-	    this.childCores = new Vector<Integer>();
-	}
-	if((childCore.intValue() != this.coreNum) && (!this.childCores.contains(childCore))) {
-	    this.childCores.addElement(childCore);
-	}
-    }
-    
-    public int childCoresNum() {
-	if(this.childCores == null) {
-	    return 0;
-	}
-	return this.childCores.size();
-    }
-    
+    }    
 }

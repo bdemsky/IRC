@@ -1,5 +1,9 @@
 #include "object.h"
+#ifdef RAW
+#include <raw.h>
+#else
 #include "stdio.h"
+#endif
 #include "stdlib.h"
 
 #ifdef THREADS
@@ -70,8 +74,12 @@ int CALL01(___Object______MonitorExit____, struct ___Object___ * ___this___) {
     pthread_cond_broadcast(&objcond);
     pthread_mutex_unlock(&objlock);
   } else {
+#ifdef RAW
+	  raw_test_done(-1);
+#else
     printf("ERROR...UNLOCKING LOCK WE DON'T HAVE\n");
     exit(-1);
+#endif
   }
 }
 #endif

@@ -1,17 +1,23 @@
 #include "runtime.h"
 #include "structdefs.h"
-#include <sys/socket.h>
 #include <fcntl.h>
+#ifndef RAW
+#include <sys/socket.h>
 #include <arpa/inet.h>
 #include <strings.h>
-#include <errno.h>
 #include <netdb.h>
+#endif
+#include <errno.h>
 #include "SimpleHash.h"
 #include "GenericHashtable.h"
 
-extern struct RuntimeHash *fdtoobject;
+struct RuntimeHash *fdtoobject;
 
 int CALL24(___Socket______nativeConnect____I__AR_B_I, int ___fd___, int ___port___, struct ___Socket___ * ___this___, int ___fd___, struct ArrayObject * ___address___ ,int ___port___) {
+#ifdef RAW
+	// not supported in RAW version
+	return -1;
+#else
   struct sockaddr_in sin;
   int rc;
   
@@ -49,6 +55,7 @@ int CALL24(___Socket______nativeConnect____I__AR_B_I, int ___fd___, int ___port_
  error:
   close(___fd___);
   return -1;
+#endif
 }
 
 #ifdef TASK
@@ -62,6 +69,10 @@ int CALL12(___Socket______nativeBindFD____I, int ___fd___, struct ___Socket___ *
 
 
 int CALL12(___Socket______nativeBind_____AR_B_I, int ___port___,  struct ArrayObject * ___address___, int ___port___) {
+#ifdef RAW
+	// not supported in RAW version
+	return -1;
+#else
   int fd;
   int rc;
   socklen_t sa_size;
@@ -112,9 +123,14 @@ int CALL12(___Socket______nativeBind_____AR_B_I, int ___port___,  struct ArrayOb
   exit(-1);
 #endif
 #endif
+#endif
 }
 
 struct ArrayObject * CALL01(___InetAddress______getHostByName_____AR_B, struct ArrayObject * ___hostname___) {
+#ifdef RAW
+	// not supported in RAW version
+	return NULL;
+#else
 //struct ArrayObject * CALL01(___InetAddress______getHostByName_____AR_B, struct ___ArrayObject___ * ___hostname___) {
   int length=VAR(___hostname___)->___length___;
   int i,j,n;
@@ -155,10 +171,15 @@ struct ArrayObject * CALL01(___InetAddress______getHostByName_____AR_B, struct A
   }
   
   return arraybytearray;
+#endif
 }
 
 
 int CALL12(___ServerSocket______createSocket____I, int port, struct ___ServerSocket___ * ___this___, int port) {
+#ifdef RAW
+	// not supported in RAW version
+	return -1;
+#else
   int fd;
 
   int n=1;
@@ -256,9 +277,14 @@ int CALL12(___ServerSocket______createSocket____I, int port, struct ___ServerSoc
   addreadfd(fd);
 #endif
   return fd;
+#endif
 }
 
 int CALL02(___ServerSocket______nativeaccept____L___Socket___,struct ___ServerSocket___ * ___this___, struct ___Socket___ * ___s___) {
+#ifdef RAW
+	// not supported in RAW version
+	return -1;
+#else
   struct sockaddr_in sin;
   unsigned int sinlen=sizeof(sin);
   int fd=VAR(___this___)->___fd___;
@@ -304,6 +330,7 @@ int CALL02(___ServerSocket______nativeaccept____L___Socket___,struct ___ServerSo
 #endif
 #endif
   return newfd;
+#endif
 }
 
 void CALL24(___Socket______nativeWrite_____AR_B_I_I, int offset, int length, struct ___Socket___ * ___this___, struct ArrayObject * ___b___, int offset, int length) {
@@ -321,8 +348,10 @@ void CALL24(___Socket______nativeWrite_____AR_B_I_I, int offset, int length, str
    }
 
     if (length!=0) {
+#ifndef RAW
       perror("ERROR IN NATIVEWRITE");
       printf("error=%d remaining bytes %d\n",errno, length); 
+#endif
     }
     break;
   }
@@ -361,8 +390,10 @@ int CALL02(___Socket______nativeRead_____AR_B, struct ___Socket___ * ___this___,
 
 
   if (byteread<0) {
+#ifndef RAW
     printf("ERROR IN NATIVEREAD\n");
     perror("");
+#endif
   }
 #ifdef TASK
 #ifdef MULTICORE

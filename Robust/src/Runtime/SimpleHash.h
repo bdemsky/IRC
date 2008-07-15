@@ -24,6 +24,9 @@ void freeRuntimeHash(struct RuntimeHash *);
 
 void RuntimeHashrehash(struct RuntimeHash * thisvar);
 int RuntimeHashadd(struct RuntimeHash *, int key, int data);
+#ifdef RAW
+int RuntimeHashadd_I(struct RuntimeHash *, int key, int data);
+#endif
 int RuntimeHashremovekey(struct RuntimeHash *,int key);
 int RuntimeHashremove(struct RuntimeHash *,int key, int data);
 bool RuntimeHashcontainskey(struct RuntimeHash *,int key);

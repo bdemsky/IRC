@@ -102,8 +102,8 @@ public class Main {
 	      state.OWNERSHIP=true;
 	  else if (option.equals("-optional"))
 	      state.OPTIONAL=true;
-	  /*else if (option.equals("-raw"))
-		  state.RAW=true;*/
+	  else if (option.equals("-raw"))
+		  state.RAW=true;
 	  else if (option.equals("-scheduling"))
 		  state.SCHEDULING=true; 
 	  else if (option.equals("-thread"))
@@ -152,19 +152,23 @@ public class Main {
       readSourceFile(state, ClassLibraryPrefix+"HashEntry.java");
       readSourceFile(state, ClassLibraryPrefix+"Integer.java");
       readSourceFile(state, ClassLibraryPrefix+"StringBuffer.java");
+      //if(!state.RAW) {
       readSourceFile(state, ClassLibraryPrefix+"FileInputStream.java");
       readSourceFile(state, ClassLibraryPrefix+"InputStream.java");
       readSourceFile(state, ClassLibraryPrefix+"OutputStream.java");
       readSourceFile(state, ClassLibraryPrefix+"FileOutputStream.java");
       readSourceFile(state, ClassLibraryPrefix+"File.java");
-      readSourceFile(state, ClassLibraryPrefix+"Math.java");
       readSourceFile(state, ClassLibraryPrefix+"InetAddress.java");
       readSourceFile(state, ClassLibraryPrefix+"SocketInputStream.java");
       readSourceFile(state, ClassLibraryPrefix+"SocketOutputStream.java");
+      //}
+      readSourceFile(state, ClassLibraryPrefix+"Math.java");
       readSourceFile(state, ClassLibraryPrefix+"gnu/Random.java");
 	  readSourceFile(state, ClassLibraryPrefix+"Vector.java");
 	  readSourceFile(state, ClassLibraryPrefix+"Enumeration.java");
+      if(!state.MULTICORE) {
 	  readSourceFile(state, ClassLibraryPrefix+"Signal.java");
+      }
 
 
       if (state.TASK) {

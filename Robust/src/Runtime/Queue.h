@@ -16,6 +16,9 @@ struct QueueItem {
 void freeQueue(struct Queue * q);
 struct Queue * createQueue();
 struct QueueItem * addNewItem(struct Queue * queue, void * ptr);
+#ifdef RAW
+struct QueueItem * addNewItem_I(struct Queue * queue, void * ptr);
+#endif
 struct QueueItem * findItem(struct Queue * queue, void * ptr);
 void removeItem(struct Queue * queue, struct QueueItem * item);
 int isEmpty(struct Queue *queue);

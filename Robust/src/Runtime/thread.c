@@ -9,7 +9,9 @@
 #include <DSTM/interface/dstm.h>
 #include <DSTM/interface/llookup.h>
 
+#ifndef RAW
 #include <stdio.h>
+#endif
 int threadcount;
 pthread_mutex_t gclock;
 pthread_mutex_t gclistlock;

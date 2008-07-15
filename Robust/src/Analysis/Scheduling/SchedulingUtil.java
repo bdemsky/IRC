@@ -121,7 +121,6 @@ public class SchedulingUtil {
             	}
             	
             	output.print(" -> ");
-            	//if(se.getTargetFState() == null) {
             	if(se.isclone()) {
             	    if(se.getTargetCNode().isclone()) {
             		output.print(se.getTargetCNode().getLabel());
@@ -154,7 +153,6 @@ public class SchedulingUtil {
             	}
             	
             	output.print(" -> ");
-            	//if(se.getTargetFState() == null) {
             	if(se.isclone()) {
             	    if(se.getTargetCNode().isclone()) {
             		output.print(se.getTargetCNode().getLabel());
@@ -190,7 +188,6 @@ public class SchedulingUtil {
 	Vector namers=new Vector();
 	namers.add(new Namer());
 	namers.add(new Allocations());
-	//namers.add(new TaskEdges());
 	    
 	Iterator it = nodes.iterator();
 	while (it.hasNext()) {
@@ -316,7 +313,6 @@ public class SchedulingUtil {
 		}
 		Vector<Action> actions = tcp.getActions();
 		Hashtable<String, StringBuffer> tmpTaskNodes = new Hashtable<String, StringBuffer>();
-		//Vector<String> sortedttnodes = new Vector<String>();
 		for(int i = 0; i < actions.size(); i++) {
 		    Action taction = actions.elementAt(i);
 		    int cNum = taction.getCoreNum();
@@ -326,16 +322,6 @@ public class SchedulingUtil {
 		    if(!tmpTaskNodes.containsKey(tmpTaskNode)) {
 			tmpTaskNodes.put(tmpTaskNode, new StringBuffer(tnode + ":"));
 			isfirst = true;
-			/*int length = sortedttnodes.size();
-			int k = length;
-			for(; k > 0; k--) {
-			    String tmptnode = sortedttnodes.elementAt(k-1);
-			    int tcorenum = Integer.parseInt(tmptnode.substring(tmptnode.indexOf("core") + 4, tmptnode.length() - 1));
-			    if(tcorenum < cNum) {
-				break;
-			    }
-			}
-			sortedttnodes.add(k, tmpTaskNode);*/
 		    }
 		    tmpLabel = tmpTaskNodes.get(tmpTaskNode);
 		    switch(taction.getType()){
@@ -364,11 +350,12 @@ public class SchedulingUtil {
 			    tmpLabel.append("\\n");
 			}
 			tmpLabel.append("<" + taction.getTd().getSymbol() + ">finishes;");
-			if(!(lastTaskNodes[cNum].equals("first")) &&
-				!(lastTaskNodes[cNum].equals(tmpTaskNode))) {
-			    output.print("\t");
-			    output.println(lastTaskNodes[cNum] + "->" + tmpTaskNode);
-			    lastTaskNodes[cNum] = tmpTaskNode;
+			if(!(lastTaskNodes[cNum].equals("first"))) {
+			    if(!(lastTaskNodes[cNum].equals(tmpTaskNode))) {
+				output.print("\t");
+				output.println(lastTaskNodes[cNum] + "->" + tmpTaskNode);
+				lastTaskNodes[cNum] = tmpTaskNode;
+			    }
 			    isTaskFinish[cNum] = true;
 			} else {
 			    throw new Exception("Error: unexpected task finish");
@@ -465,10 +452,6 @@ public class SchedulingUtil {
 		}
 		output.print("\t");
 		output.print("{rank=same; rankdir=LR; " + tnode + "; ");
-		/*for(int k = 0; k < sortedttnodes.size(); k++) {
-		    output.print(sortedttnodes.elementAt(k));
-		    output.print("; ");
-		}*/
 		keys = tmpTaskNodes.keys();
 		while(keys.hasMoreElements()) {
 		    String tmpTaskNode = keys.nextElement();
@@ -477,17 +460,10 @@ public class SchedulingUtil {
 		}
 		output.println("}");
 		output.print("\t");
-		/*output.print(tnode + "->");
-		for(int k = 0; k < sortedttnodes.size() - 1; k++) {
-		    output.print(sortedttnodes.elementAt(k) + "->");
-		}
-		output.println(sortedttnodes.lastElement() + " [style=dashed];");*/
 	    }
 	    output.print("\t");
-	    //output.println("node [shape=point, color=blue];");
 	    output.print("\t");
 	    output.println("\"Time\"->" + timeNodes.elementAt(0) + "[style=invis];");
-	    //for(j = 0; j < timeNodes.size() - 1; j++) {
 	    for(j = 0; j < time; j++) {
 		output.print(j + "->");
 	    }

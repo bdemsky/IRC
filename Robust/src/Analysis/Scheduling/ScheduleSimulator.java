@@ -238,7 +238,6 @@ public class ScheduleSimulator {
 			    action = new Action(coreNum, Action.TFWITHOBJ);
 			    action.setTd(cs.getRtask().getTd());
 			    Vector<ObjectSimulator> nobjs = task.getCurrentRun().getNewObjs();
-			    //Schedule schedule = this.scheduling.elementAt(coreNum);
 			    for(int j = 0; j < nobjs.size(); j++) {
 				ObjectSimulator nobj = nobjs.elementAt(j);
 				action.addNewObj(nobj.getCd(), Integer.valueOf(1));

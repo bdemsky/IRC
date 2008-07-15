@@ -18,6 +18,8 @@ echo -scheduling do task scheduling
 echo -multicore generate multi-core version binary
 echo "-numcore set the number of cores (should be used together with -multicore), defaultly set as 1"
 echo "-raw generate raw version binary (should be used together with -multicore)"
+echo "-interrupt generate raw version binary with interruption (should be used togethere with -raw)"
+echo "-rawconfig config raw simulator as 4xn (should be used together with -raw)"
 echo -threadsimulate generate multi-thread simulate version binary
 echo -optional enable optional
 echo -debug generate debug symbols
@@ -49,6 +51,8 @@ RECOVERFLAG=false
 MULTICOREFLAG=false
 TRANSSTATSFLAG=false
 RAWFLAG=false
+RAWCONFIG=''
+INTERRUPTFLAG=false
 THREADSIMULATEFLAG=false;
 USEDMALLOC=false
 THREADFLAG=false
@@ -138,7 +142,14 @@ shift
 elif [[ $1 = '-raw' ]]
 then
 RAWFLAG=true
-#JAVAOPTS="$JAVAOPTS -raw"
+JAVAOPTS="$JAVAOPTS -raw"
+elif [[ $1 = '-rawconfig' ]]
+then
+RAWCONFIG="$2"
+shift
+elif [[ $1 = '-interrupt' ]]
+then
+INTERRUPTFLAG=true
 elif [[ $1 = '-threadsimulate' ]]
 then
 THREADSIMULATEFLAG=true
@@ -271,6 +282,33 @@ fi # CHECKFLAG
 
 #build and link everything
 
+if $RAWFLAG
+then # RAWFLAG
+RAWDIR="$CURDIR/raw"
+MAKEFILE="../Makefile.raw"
+mkdir $RAWDIR
+cd $RAWDIR
+make clean
+rm ./*
+
+if $INTERRUPTFLAG
+then #INTERRUPT version
+MAKEFILE="$MAKEFILE.i"
+fi #INTERRUPT version
+
+MAKEFILE="$MAKEFILE.$RAWCONFIG"
+
+cp $MAKEFILE ./Makefile
+cp ../Runtime/*.c ./
+cp ../Runtime/*.h ./
+cp ../Runtime/*.S ./
+cp ../Runtime/*.s ./
+cp ../tmpbuilddirectory/*.c ./
+cp ../tmpbuilddirectory/*.h ./
+
+make
+
+else #!RAWFLAG
 cd $CURDIR 
 
 INCLUDES="$INCLUDES -I$ROBUSTROOT/Runtime -I. -IRuntime/include \
@@ -351,6 +389,8 @@ else
 gcc $INCLUDES $EXTRAOPTIONS -DPRECISE_GC \
 tmpbuilddirectory/methods.c $FILES -lm -o $MAINFILE.bin
 fi
+
+fi #!RAWFLAG
 
 exit
 

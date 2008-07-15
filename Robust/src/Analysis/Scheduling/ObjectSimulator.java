@@ -44,12 +44,6 @@ public class ObjectSimulator {
     }
 
     public void setCurrentFS(FlagState currentFS) {
-        /*if(!this.currentFS.equals(currentFS)) {
-            changed = true;
-            this.currentFS = currentFS;
-        } else {
-            changed = false;
-        }*/
 	changed = true;
         this.currentFS = currentFS;
     }

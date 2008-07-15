@@ -1,4 +1,8 @@
+#ifdef RAW
+#include <raw.h>
+#else
 #include <stdio.h>
+#endif
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -12,6 +16,9 @@
 #endif
 
 void * getfirstkey(struct genhashtable *ht) {
+	if(ht->list == NULL) {
+		return NULL;
+	}
   return ht->list->src;
 }
 
@@ -59,6 +66,52 @@ int genputtable(struct genhashtable *ht, void * key, void * object) {
   return 1;
 }
 
+#ifdef RAW
+int genputtable_I(struct genhashtable *ht, void * key, void * object) {
+  unsigned int bin=genhashfunction(ht,key);
+  struct genpointerlist * newptrlist=(struct genpointerlist *) RUNMALLOC_I(sizeof(struct genpointerlist));
+  newptrlist->src=key;
+  newptrlist->object=object;
+  newptrlist->next=ht->bins[bin];
+  newptrlist->inext=NULL;
+  /* maintain linked list of ht entries for iteration*/
+  if (ht->last==NULL) {
+    ht->last=newptrlist;
+    ht->list=newptrlist;
+    newptrlist->iprev=NULL;
+  } else {
+    ht->last->inext=newptrlist;
+    newptrlist->iprev=ht->last;
+    ht->last=newptrlist;
+  }
+  ht->bins[bin]=newptrlist;
+  ht->counter++;
+  if(ht->counter>ht->currentsize&&ht->currentsize!=INT_MAX) {
+    /* Expand hashtable */
+    long newcurrentsize=(ht->currentsize<(INT_MAX/2))?ht->currentsize*2:INT_MAX;
+    long oldcurrentsize=ht->currentsize;
+    struct genpointerlist **newbins=(struct genpointerlist **) RUNMALLOC_I(sizeof (struct genpointerlist *)*newcurrentsize);
+    struct genpointerlist **oldbins=ht->bins;
+    long j,i;
+    for(j=0;j<newcurrentsize;j++) newbins[j]=NULL;
+    ht->currentsize=newcurrentsize;
+    for(i=0;i<oldcurrentsize;i++) {
+      struct genpointerlist * tmpptr=oldbins[i];
+      while(tmpptr!=NULL) {
+        unsigned int hashcode=genhashfunction(ht, tmpptr->src);
+        struct genpointerlist *nextptr=tmpptr->next;
+        tmpptr->next=newbins[hashcode];
+        newbins[hashcode]=tmpptr;
+        tmpptr=nextptr;
+      }
+    }
+    ht->bins=newbins;
+    RUNFREE(oldbins);
+  }
+  return 1;
+}
+#endif
+
 int hashsize(struct genhashtable *ht) {
   return ht->counter;
 }
@@ -89,7 +142,9 @@ void * gengettable(struct genhashtable *ht, void * key) {
       return ptr->object;
     ptr=ptr->next;
   }
+#ifndef RAW
   printf("XXXXXXXXX: COULDN'T FIND ENTRY FOR KEY %p\n",key);
+#endif
   return NULL;
 }
 
@@ -103,7 +158,9 @@ void * getnext(struct genhashtable *ht, void * key) {
 	return NULL;
     ptr=ptr->next;
   }
+#ifndef RAW
   printf("XXXXXXXXX: COULDN'T FIND ENTRY FOR KEY %p...\n Likely concurrent removal--bad user!!!\n",key);
+#endif
   return NULL;
 }
 
@@ -158,7 +215,9 @@ void genfreekey(struct genhashtable *ht, void * key) {
     }
     ptr=ptr->next;
   }
+#ifndef RAW
   printf("XXXXXXXXX: COULDN'T FIND ENTRY FOR KEY %p\n",key);
+#endif
 }
 
 unsigned int genhashfunction(struct genhashtable *ht, void * key) {
@@ -169,11 +228,28 @@ unsigned int genhashfunction(struct genhashtable *ht, void * key) {
 }
 
 struct genhashtable * genallocatehashtable(unsigned int (*hash_function)(void *),int (*comp_function)(void *, void *)) {
-  struct genhashtable *ght=(struct genhashtable *) RUNMALLOC(sizeof(struct genhashtable));
-  struct genpointerlist **gpl=(struct genpointerlist **) RUNMALLOC(sizeof(struct genpointerlist *)*geninitialnumbins);
+  struct genhashtable *ght;
+  struct genpointerlist **gpl;
   int i;
-  for(i=0;i<geninitialnumbins;i++)
+
+#ifdef RAW
+  raw_test_pass(0xf000);
+#endif
+
+  gpl=(struct genpointerlist **) RUNMALLOC(sizeof(struct genpointerlist *)*geninitialnumbins);
+#ifdef RAW
+  raw_test_pass(0xf001);
+#endif
+  for(i=0;i<geninitialnumbins;i++) {
     gpl[i]=NULL;
+  }
+#ifdef RAW
+  raw_test_pass(0xf002);
+#endif
+  ght=(struct genhashtable *) RUNMALLOC(sizeof(struct genhashtable));
+#ifdef RAW
+  raw_test_pass(0xf003);
+#endif
   ght->hash_function=hash_function;
   ght->comp_function=comp_function;
   ght->currentsize=geninitialnumbins;
@@ -181,6 +257,9 @@ struct genhashtable * genallocatehashtable(unsigned int (*hash_function)(void *)
   ght->counter=0;
   ght->list=NULL;
   ght->last=NULL;
+#ifdef RAW
+  raw_test_pass(0xf004);
+#endif
   return ght;
 }
 

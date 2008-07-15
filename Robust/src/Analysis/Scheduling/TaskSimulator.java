@@ -266,8 +266,6 @@ public class TaskSimulator {
 		    }
 		}
 	    }
-	    //FlagState tFState = (FlagState)toexecute.getTarget();
-	    //tpara.setCurrentFS(tFState);
 	    tpara.applyEdge(toexecute);
 	    tpara.increaseVersion();
 	}
