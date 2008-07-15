@@ -104,10 +104,10 @@ void releasereadlock_I(void* ptr);
 bool getwritelock(void* ptr);
 void releasewritelock(void* ptr);
 
-#ifdef RAW
 void flushAll(void);
 
 void flushAll(void) {
+#ifdef RAW
 	int i = 0;
 #ifdef INTERRUPT
 	raw_user_interrupts_off();
@@ -123,8 +123,10 @@ void flushAll(void) {
 	raw_user_interrupts_on();
 #endif
 	raw_test_pass(0xec02);
+#endif
 }
 
+#ifdef RAW
 void recvMsg() {
 	raw_test_pass(0xefee);
 	raw_user_interrupts_off();
@@ -275,7 +277,8 @@ int main(int argc, char **argv) {
 		}
 	}
 	
-	pthread_exit(NULL);
+	//pthread_exit(NULL);
+	while(true) {}
 }
 
 void run(void* arg) {
@@ -2859,9 +2862,6 @@ void executetasks() {
       }
     }
   }
-#ifndef RAW
-  freeRuntimeHash(fdtoobject);
-#endif
 }
  
 /* This function processes an objects tags */
