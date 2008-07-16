@@ -157,9 +157,11 @@ public class OwnershipGraph {
 	}    
     }
     
+    protected void propagateTokens( HeapRegionNode                   nPrime,
+				    ChangeTupleSet                   c0,
+				    HashSet<HeapRegionNode>          nodesWithNewAlpha,
+				    HashSet<ReferenceEdgeProperties> edgesWithNewBeta ) {
 
-
-    protected void propagateTokens( HeapRegionNode nPrime, ChangeTupleSet c0 ) {
 	HashSet<HeapRegionNode> todoNodes
 	    = new HashSet<HeapRegionNode>();
 	todoNodes.add( nPrime );
@@ -180,9 +182,13 @@ public class OwnershipGraph {
 	Hashtable<ReferenceEdgeProperties, ChangeTupleSet> edgeChangesMade
 	    = new Hashtable<ReferenceEdgeProperties, ChangeTupleSet>();
 
+	System.out.println( "New propagation with changes "+c0 );
+
 	while( !todoNodes.isEmpty() ) {
 	    HeapRegionNode n = todoNodes.iterator().next();
 	    todoNodes.remove( n );
+
+	    System.out.println( "  Propagating tokens over "+n );
 
 	    if( !nodeChangesMade.containsKey( n ) ) {
 		nodeChangesMade.put( n, new ChangeTupleSet().makeCanonical() );
@@ -194,8 +200,11 @@ public class OwnershipGraph {
 	    while( itrC.hasNext() ) {
 		ChangeTuple c = (ChangeTuple) itrC.next();
 
+		System.out.println( "    Considering applying "+c );
+
 		if( n.getAlpha().contains( c.getSetToMatch() ) ) {
-		    n.setAlphaNew( n.getAlphaNew().union( c.getSetToAdd() ) );		    
+		    n.setAlphaNew( n.getAlpha().union( c.getSetToAdd() ) );
+		    nodesWithNewAlpha.add( n );
 		    nodeChangesMade.put( n, nodeChangesMade.get( n ).union( c ) );
 		}
 	    }
@@ -356,7 +365,7 @@ public class OwnershipGraph {
 		
 		ReachabilitySet O = srcln.getReferenceTo( hrnSrc ).getBeta();
 		ChangeTupleSet  C = O.unionUpArity( R );
-		propagateTokens( hrnSrc, C );
+		propagateTokens( hrnSrc, C, nodesWithNewAlpha, edgesWithNewBeta );
 	    }
 	}	
 
@@ -427,7 +436,8 @@ public class OwnershipGraph {
 	LabelNode dst = getLabelNodeFromTemp( td );
 	
 	clearReferenceEdgesFrom( dst );
-	addReferenceEdge( dst, hrnNewest, new ReferenceEdgeProperties( false ) );
+
+	addReferenceEdge( dst, hrnNewest, new ReferenceEdgeProperties( false, false, null ) );
     }
 
 

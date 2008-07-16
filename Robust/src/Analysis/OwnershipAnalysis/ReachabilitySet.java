@@ -12,16 +12,18 @@ public class ReachabilitySet extends Canonical {
 
     public ReachabilitySet() {
 	possibleReachabilities = new HashSet<TokenTupleSet>();
+	TokenTupleSet ttsEmpty = new TokenTupleSet().makeCanonical();
+	possibleReachabilities.add( ttsEmpty );	
     }
 
     public ReachabilitySet( TokenTupleSet tts ) {
+	this();
 	assert tts != null;
-	possibleReachabilities = new HashSet<TokenTupleSet>();
 	possibleReachabilities.add( tts );
     }
 
     public ReachabilitySet( TokenTuple tt ) {
-	this( new TokenTupleSet( tt ) );
+	this( new TokenTupleSet( tt ).makeCanonical() );
     }
 
     public ReachabilitySet( ReachabilitySet rs ) {
@@ -46,7 +48,14 @@ public class ReachabilitySet extends Canonical {
 	assert rsIn != null;
 
 	ReachabilitySet rsOut = new ReachabilitySet( this );
+
+	System.out.println( "rsIn  = "+rsIn );
+	System.out.println( "rsOut = "+rsOut );
+
 	rsOut.possibleReachabilities.addAll( rsIn.possibleReachabilities );
+
+	System.out.println( "union = "+rsOut );
+
 	return rsOut.makeCanonical();
     }
 
@@ -140,10 +149,17 @@ public class ReachabilitySet extends Canonical {
 
 	Iterator i = this.iterator();
 	while( i.hasNext() ) {
-	    s += "\\n  "+i.next();
+	    if( possibleReachabilities.size() > 1 ) {
+		s += "\\n";
+	    }
+	    s += " "+i.next();
 	}
 
-	s += "]";
+	if( possibleReachabilities.size() > 1 ) {
+	    s += "\\n";
+	}
+
+	s += " ]";
 
 	return s;	
     }
@@ -153,10 +169,17 @@ public class ReachabilitySet extends Canonical {
 
 	Iterator i = this.iterator();
 	while( i.hasNext() ) {
-	    s += "\n  "+i.next();
+	    if( possibleReachabilities.size() > 1 ) {
+		s += "\n";
+	    }
+	    s += " "+i.next();
+	}
+	
+	if( possibleReachabilities.size() > 1 ) {
+	    s += "\n";
 	}
 
-	s += "\n]";
+	s += " ]";
 
 	return s;	
     }

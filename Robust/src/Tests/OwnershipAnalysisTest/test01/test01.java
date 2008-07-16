@@ -54,11 +54,13 @@ public class Foo {
 // a heap region that is multi-object, flagged, not summary
 task Startup( StartupObject s{ initialstate } ) {
 
+    /*
     while( false ) {
 	Foo a = new Foo();
 	a.x   = new Foo();
 	a.x.x = new Foo();
     }
+    */
 
     taskexit( s{ !initialstate } );
 }
