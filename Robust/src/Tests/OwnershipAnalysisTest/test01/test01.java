@@ -65,7 +65,7 @@ task Startup( StartupObject s{ initialstate } ) {
     taskexit( s{ !initialstate } );
 }
 
-
+/*
 task NewObject( Foo a{ f }, Foo b{ f } ) {
 
     Foo c = new Foo();
@@ -74,7 +74,43 @@ task NewObject( Foo a{ f }, Foo b{ f } ) {
 
     taskexit( a{ !f }, b{ !f } );
 }
+*/
 
+task NewObjectA( Foo a{ f }, Foo b{ f } ) {
+
+    Foo c = new Foo();
+    Foo d = new Foo();
+
+    c.x = d;
+    a.x = c;
+
+    taskexit( a{ !f }, b{ !f } );
+}
+
+task NewObjectB( Foo a{ f }, Foo b{ f } ) {
+
+    Foo c = new Foo();
+    Foo d = new Foo();
+
+    a.x = c;
+    c.x = d;
+
+    taskexit( a{ !f }, b{ !f } );
+}
+
+/*
+task NewObject2( Foo a{ f }, Foo b{ f } ) {
+
+    Foo c;
+
+    while( false ) {
+	c   = new Foo();
+	c.x = new Foo();
+    }
+
+    taskexit( a{ !f }, b{ !f } );
+}
+*/
 
 
 /*
