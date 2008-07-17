@@ -18,7 +18,7 @@
 #ifdef RAW
 #include <raw.h>
 #include <raw_compiler_defs.h>
-#include <libints.h>
+//#include <libints.h>
 #elif defined THREADSIMULATE
 // use POSIX message queue
 // for each core, its message queue named as
@@ -201,8 +201,9 @@ int main(int argc, char **argv) {
 #ifdef INTERRUPT
 	if (corenum < NUMCORES) {
 	// set up interrupts
-	setup_interrupts();
-	start_gdn_avail_ints(recvMsg);
+	setup_ints();
+	//setup_interrupts();
+	//start_gdn_avail_ints(recvMsg);
 	raw_user_interrupts_on();
 	raw_test_pass(0xee04);
 	}
