@@ -29,6 +29,10 @@ public class AllocationSite {
     protected Integer         summary;
     protected TypeDescriptor  type;
 
+    public static final int AGE_notInThisSite = -1;
+    public static final int AGE_oldest        = -2;
+    public static final int AGE_summary       = -3;
+
 
     public AllocationSite( int allocationDepth, TypeDescriptor type ) {
 	assert allocationDepth >= 3;
@@ -80,6 +84,24 @@ public class AllocationSite {
 
     public TypeDescriptor getType() {
 	return type;
+    }
+
+    public int getAge( Integer id ) {
+	if( id.equals( summary ) ) {
+	    return AGE_summary;
+	}
+       
+	if( id.equals( getOldest() ) ) {
+	    return AGE_oldest;
+	}
+
+	for( int i = 0; i < allocationDepth - 1; ++i ) {
+	    if( id.equals( ithOldest.get( i ) ) ) {
+		return i;
+	    }
+	}
+
+	return AGE_notInThisSite;   
     }
 
     public String toString() {

@@ -143,6 +143,66 @@ public class TokenTupleSet extends Canonical {
 	return false;
     }
 
+    public TokenTupleSet ageTokens( AllocationSite as ) {
+	TokenTupleSet ttsOut = new TokenTupleSet( this );
+
+	TokenTuple ttSummary = null;
+	boolean foundOldest  = false;
+
+	Iterator itrT = this.iterator();
+	while( itrT.hasNext() ) {
+	    TokenTuple tt = (TokenTuple) itrT.next();
+
+	    Integer token = tt.getToken();
+	    int age = as.getAge( token );
+
+	    // summary tokens and tokens not associated with
+	    // the site should be left alone
+	    if( age != AllocationSite.AGE_notInThisSite ) {
+
+		if( age == AllocationSite.AGE_summary ) {
+		    // remember the summary tuple, but don't add it
+		    // we may combine it with the oldest tuple
+		    ttSummary = tt;
+
+		} else if( age == AllocationSite.AGE_oldest ) {
+		    // found a token		    
+		    foundOldest = true;
+
+		} else {
+		    // otherwise, we change this token to the
+		    // next older token
+		    Integer tokenToChangeTo = as.getIthOldest( age + 1 );
+		    tt = tt.changeTokenTo( tokenToChangeTo );
+		}
+	    }
+
+	    ttsOut.add( tt );
+	}
+
+	// there are four cases to consider here
+	// 1. we found a summary tuple and no oldest tuple
+	//    Here we just pass the summary unchanged
+	// 2. we found an oldest tuple, no summary
+	//    Make a new, arity-one summary tuple
+	// 3. we found both a summary and an oldest
+	//    Merge them by increasing arity of summary
+	// 4. (not handled) we found neither, do nothing
+	if       ( ttSummary != null && !foundOldest ) {
+	    ttsOut.add( ttSummary );
+
+	} else if( ttSummary == null &&  foundOldest ) {
+	    ttsOut.add( new TokenTuple( as.getSummary(),
+					true,
+					TokenTuple.ARITY_ONE ).makeCanonical() );	   
+	
+	} else if( ttSummary != null &&  foundOldest ) {
+	    ttsOut.add( ttSummary.increaseArity() );
+	}
+
+	return ttsOut.makeCanonical();
+    }
+
     public String toString() {
 	return tokenTuples.toString();
     }

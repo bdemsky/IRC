@@ -201,6 +201,19 @@ public class ReachabilitySet extends Canonical {
     }
 
 
+    public ReachabilitySet ageTokens( AllocationSite as ) {
+	ReachabilitySet rsOut = new ReachabilitySet();
+
+	Iterator itrS = this.iterator();
+	while( itrS.hasNext() ) {
+	    TokenTupleSet tts = (TokenTupleSet) itrS.next();
+	    rsOut.possibleReachabilities.add( tts.ageTokens( as ) );
+	}
+
+	return rsOut.makeCanonical();
+    }
+
+
     public boolean equals( Object o ) {
 	if( !(o instanceof ReachabilitySet) ) {
 	    return false;
@@ -235,17 +248,13 @@ public class ReachabilitySet extends Canonical {
 
 	Iterator i = this.iterator();
 	while( i.hasNext() ) {
-	    if( possibleReachabilities.size() > 1 ) {
+	    s += i.next();
+	    if( i.hasNext() ) {
 		s += "\n";
 	    }
-	    s += " "+i.next();
-	}
-	
-	if( possibleReachabilities.size() > 1 ) {
-	    s += "\n";
 	}
 
-	s += " ]";
+	s += "]";
 	return s;	
     }
 }

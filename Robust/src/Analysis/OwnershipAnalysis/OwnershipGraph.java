@@ -579,6 +579,7 @@ public class OwnershipGraph {
 	    ReferenceEdgeProperties rep = (ReferenceEdgeProperties) me.getValue();
 	    
 	    // determine if another summary node is already referencing this referencee
+	    /*
 	    boolean       hasSummaryReferencer = false;
 	    OwnershipNode onReferencer         = null;
 	    Iterator      itrReferencer        = hrnReferencee.iteratorToReferencers();
@@ -595,6 +596,20 @@ public class OwnershipGraph {
 	    addReferenceEdge( hrnSummary,
 			      hrnReferencee,
 			      new ReferenceEdgeProperties( !hasSummaryReferencer ) );
+	    */
+
+	    ReferenceEdgeProperties repSummary = hrnSummary.getReferenceTo( hrnReferencee );
+	    ReferenceEdgeProperties repMerged = rep.copy();
+
+	    if( repSummary == null ) {	    
+		// the merge is trivial, nothing to be done
+	    } else {
+		// otherwise an edge from the referencer to alpha_S exists already
+		// and the edge referencer->alpha_K should be merged with it
+		repMerged.setBeta( repMerged.getBeta().union( repSummary.getBeta() ) );
+	    }
+
+	    addReferenceEdge( hrnSummary, hrnReferencee, repMerged );
 	}
 
 	// next transfer references to alpha_k over to alpha_s
@@ -675,6 +690,47 @@ public class OwnershipGraph {
 	// clear all references in and out of newest node
 	clearReferenceEdgesFrom( hrn0 );
 	clearReferenceEdgesTo  ( hrn0 );
+
+	// now tokens in reachability sets need to "age" as well
+	ReferenceEdgeProperties repToAge = null;
+	Iterator itrAllLabelNodes = td2ln.entrySet().iterator();
+	while( itrAllLabelNodes.hasNext() ) {
+	    Map.Entry me = (Map.Entry) itrAllLabelNodes.next();
+	    LabelNode ln = (LabelNode) me.getValue();
+
+	    Iterator itrEdges = ln.setIteratorToReferencedRegions();
+	    while( itrEdges.hasNext() ) {
+		Map.Entry meE = (Map.Entry)               itrEdges.next();
+		repToAge      = (ReferenceEdgeProperties) meE.getValue();
+
+		ageTokens( as, repToAge );
+	    }
+	}
+
+	HeapRegionNode hrnToAge = null;
+	Iterator itrAllHRNodes = id2hrn.entrySet().iterator();
+	while( itrAllHRNodes.hasNext() ) {
+	    Map.Entry me = (Map.Entry)               itrAllHRNodes.next();
+	    hrnToAge     = (HeapRegionNode)          me.getValue();
+
+	    ageTokens( as, hrnToAge );
+
+	    Iterator itrEdges = hrnToAge.setIteratorToReferencedRegions();
+	    while( itrEdges.hasNext() ) {
+		Map.Entry meE = (Map.Entry)               itrEdges.next();
+		repToAge      = (ReferenceEdgeProperties) meE.getValue();
+
+		ageTokens( as, repToAge );
+	    }
+	}       	
+    }
+
+    protected void ageTokens( AllocationSite as, ReferenceEdgeProperties rep ) {
+	rep.setBeta( rep.getBeta().ageTokens( as ) );
+    }
+
+    protected void ageTokens( AllocationSite as, HeapRegionNode hrn ) {
+	hrn.setAlpha( hrn.getAlpha().ageTokens( as ) );
     }
 
     

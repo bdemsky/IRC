@@ -51,6 +51,14 @@ public class TokenTuple extends Canonical
 	return this;
     }
 
+    public TokenTuple changeTokenTo( Integer tokenToChangeTo ) {
+	assert isNewSummary == false;
+
+	return new TokenTuple( tokenToChangeTo,
+			       isNewSummary,
+			       arity ).makeCanonical();
+    }
+
     public boolean equals( Object o ) {
 	if( !(o instanceof TokenTuple) ) {
 	    return false;
