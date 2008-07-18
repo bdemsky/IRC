@@ -72,11 +72,11 @@ public class TokenTuple extends Canonical
 	    s = "S";
 	}
 
-	String t = "1";
+	String t = "";
 	if( arity == ARITY_MANY ) {
-	    t = "M";
+	    t = "*";
 	}
 
-	return new String( "<"+token+s+","+t+">" );
+	return new String( token+s+t );
     }
 }

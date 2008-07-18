@@ -399,8 +399,8 @@ public class OwnershipGraph {
 		
 		ReachabilitySet O = srcln.getReferenceTo( hrnSrc ).getBeta();
 
-		ChangeTupleSet Cy = O.unionUpArity( R );
-		ChangeTupleSet Cx = R.unionUpArity( O );
+		ChangeTupleSet Cy = O.unionUpArityToChangeSet( R );
+		ChangeTupleSet Cx = R.unionUpArityToChangeSet( O );
 
 		propagateTokens( hrnSrc, Cy, nodesWithNewAlpha, edgesWithNewBeta );
 		propagateTokens( hrn,    Cx, nodesWithNewAlpha, edgesWithNewBeta );
@@ -604,9 +604,19 @@ public class OwnershipGraph {
 	    onReferencer = (OwnershipNode) itrReferencer.next();
 	    
 	    ReferenceEdgeProperties rep = onReferencer.getReferenceTo( hrnK );
-	    assert rep != null;
-	    
-	    addReferenceEdge( onReferencer, hrnSummary, rep.copy() );
+	    assert rep != null;	    
+	    ReferenceEdgeProperties repSummary = onReferencer.getReferenceTo( hrnSummary );
+	    ReferenceEdgeProperties repMerged = rep.copy();
+
+	    if( repSummary == null ) {	    
+		// the merge is trivial, nothing to be done
+	    } else {
+		// otherwise an edge from the referencer to alpha_S exists already
+		// and the edge referencer->alpha_K should be merged with it
+		repMerged.setBeta( repMerged.getBeta().union( repSummary.getBeta() ) );
+	    }
+
+	    addReferenceEdge( onReferencer, hrnSummary, repMerged );
 	}
 
 	

@@ -54,13 +54,17 @@ public class Foo {
 // a heap region that is multi-object, flagged, not summary
 task Startup( StartupObject s{ initialstate } ) {
 
-    /*
     while( false ) {
 	Foo a = new Foo();
 	a.x   = new Foo();
-	a.x.x = new Foo();
     }
-    */
+
+    Foo b;
+    while( false ) {
+	Foo c = new Foo();
+	c.x = b;
+	b = c;
+    }
 
     taskexit( s{ !initialstate } );
 }
@@ -76,6 +80,7 @@ task NewObject( Foo a{ f }, Foo b{ f } ) {
 }
 */
 
+/*
 task NewObjectA( Foo a{ f }, Foo b{ f } ) {
 
     Foo c = new Foo();
@@ -97,6 +102,7 @@ task NewObjectB( Foo a{ f }, Foo b{ f } ) {
 
     taskexit( a{ !f }, b{ !f } );
 }
+*/
 
 /*
 task NewObject2( Foo a{ f }, Foo b{ f } ) {

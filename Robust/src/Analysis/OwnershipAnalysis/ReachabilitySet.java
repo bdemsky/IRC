@@ -26,6 +26,10 @@ public class ReachabilitySet extends Canonical {
 	this( new TokenTupleSet( tt ).makeCanonical() );
     }
 
+    public ReachabilitySet( HashSet<TokenTupleSet> possibleReachabilities ) {
+	this.possibleReachabilities = possibleReachabilities;
+    }
+
     public ReachabilitySet( ReachabilitySet rs ) {
 	assert rs != null;
 	possibleReachabilities = (HashSet<TokenTupleSet>) rs.possibleReachabilities.clone(); // again, DEEP COPY?!
@@ -38,6 +42,25 @@ public class ReachabilitySet extends Canonical {
     public boolean contains( TokenTupleSet tts ) {
 	assert tts != null;
 	return possibleReachabilities.contains( tts );
+    }
+
+    public ReachabilitySet add( TokenTupleSet tts ) {
+	ReachabilitySet rsOut = new ReachabilitySet( tts );
+	return this.union( rsOut );
+    }
+
+    public ReachabilitySet increaseArity( Integer token ) {
+	assert token != null;
+
+	HashSet<TokenTupleSet> possibleReachabilitiesNew = new HashSet<TokenTupleSet>();
+
+	Iterator itr = iterator();
+	while( itr.hasNext() ) {
+	    TokenTupleSet tts = (TokenTupleSet) itr.next();
+	    possibleReachabilitiesNew.add( tts.increaseArity( token ) );
+	}
+
+	return new ReachabilitySet( possibleReachabilitiesNew ).makeCanonical(); 
     }
 
     public Iterator iterator() {
@@ -75,8 +98,63 @@ public class ReachabilitySet extends Canonical {
 
 	return rsOut.makeCanonical();
     }
+    
+    /*
+    public ReachabilitySet unionUpArity( ReachabilitySet rsIn ) {
+	assert rsIn != null;
 
-    public ChangeTupleSet unionUpArity( ReachabilitySet rsIn ) {
+	ReachabilitySet rsOut = new ReachabilitySet();
+	Iterator itrIn;
+	Iterator itrThis;	
+
+	itrIn = rsIn.iterator();
+	while( itrIn.hasNext() ) {
+	    TokenTupleSet ttsIn = (TokenTupleSet) itrIn.next();
+
+	    boolean foundEqual = false;
+
+	    itrThis = this.iterator();
+	    while( itrThis.hasNext() ) {
+		TokenTupleSet ttsThis = (TokenTupleSet) itrThis.next();
+
+		if( ttsIn.equalWithoutArity( ttsThis ) ) {
+		    rsOut.possibleReachabilities.add( ttsIn.unionUpArity( ttsThis ) );
+		    foundEqual = true;
+		    continue;
+		}
+	    }
+
+	    if( !foundEqual ) {
+		rsOut.possibleReachabilities.add( ttsIn );
+	    }
+	}
+
+	itrThis = this.iterator();
+	while( itrThis.hasNext() ) {
+	    TokenTupleSet ttsThis = (TokenTupleSet) itrThis.next();
+
+	    boolean foundEqual = false;
+
+	    itrIn = rsIn.iterator();
+	    while( itrIn.hasNext() ) {
+		TokenTupleSet ttsIn = (TokenTupleSet) itrIn.next();
+
+		if( ttsThis.equalWithoutArity( ttsIn ) ) {
+		    foundEqual = true;
+		    continue;
+		}
+	    }
+
+	    if( !foundEqual ) {
+		rsOut.possibleReachabilities.add( ttsThis );
+	    }
+	}
+
+	return rsOut.makeCanonical();
+    }  
+    */
+
+    public ChangeTupleSet unionUpArityToChangeSet( ReachabilitySet rsIn ) {
 	assert rsIn != null;
 
 	ChangeTupleSet ctsOut = new ChangeTupleSet();
