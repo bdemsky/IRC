@@ -1,6 +1,6 @@
 #include <raw_asm.h>
 
-.text
+	.text
 	.align	2
 	.globl	setup_ints
 	.ent	setup_ints
@@ -11,7 +11,7 @@ setup_ints:
 
 	# set gdn_cfg
 	xor $8,$8,$8
-	aui $8,$8,(3<<11)|(0 <<6)|(0 <<1)
+	aui $8,$8,(3<<11)|(3 <<6)|(0 <<1)
 	ori $8, (0 <<12)|(2<<9)
 	mtsr	GDN_CFG,$8
 #	mtsr	PASS,$8
@@ -97,3 +97,4 @@ vec_gdn_avail:
 	dret
 vec_event_counters:
         empty_vec 0x2306
+

@@ -128,13 +128,13 @@ void flushAll(void) {
 
 #ifdef RAW
 void recvMsg() {
-	raw_test_pass(0xefee);
-	raw_user_interrupts_off();
-	raw_test_pass(0xef00);
+	//raw_test_pass(0xefee);
+	//raw_user_interrupts_off();
+	//raw_test_pass(0xef00);
 	receiveObject();
-	raw_test_pass(0xefff);
-	raw_user_interrupts_on();
-	raw_test_pass(0xefef);
+	//raw_test_pass(0xefff);
+	//raw_user_interrupts_on();
+	//raw_test_pass(0xefef);
 }
 
 void begin() {
@@ -426,12 +426,13 @@ void run(void* arg) {
 #endif
 		  raw_test_pass(0xee0e);
 	  }
+	  raw_test_pass(0xee0f);
 	  
 	  if(!tocontinue) {
 		  // check if stop
 		  if(STARTUPCORE == corenum) {
 			  if(isfirst) {
-				  raw_test_pass(0xee0f);
+				  raw_test_pass(0xee10);
 				  isfirst = false;
 			  }
 #ifdef INTERRUPT
@@ -465,7 +466,7 @@ void run(void* arg) {
 				  }
 				  if(0 == sumsendobj) {
 					  // terminate 
-					  raw_test_pass(0xee10);
+					  raw_test_pass(0xee11);
 					  raw_test_done(1);	// All done.
 				  }
 			  }
@@ -474,23 +475,23 @@ void run(void* arg) {
 #endif
 		  } else {
 			  if(!sendStall) {
-				  raw_test_pass(0xee11);
+				  raw_test_pass(0xee12);
 				  if(isfirst) {
 					  // wait for some time
 					  int halt = 10000;
-					  raw_test_pass(0xee12);
+					  raw_test_pass(0xee13);
 					  while(halt--){}
 					  isfirst = false;
-					  raw_test_pass(0xee13);
+					  raw_test_pass(0xee14);
 				  } else {
 				  	// send StallMsg to startup core
-					raw_test_pass(0xee14);
+					raw_test_pass(0xee15);
 				  	sendStall = transStallMsg(STARTUPCORE);
 					isfirst = true;
 				  }
 			  } else {
 				  isfirst = true;
-				  raw_test_pass(0xee15);
+				  raw_test_pass(0xee16);
 			  }
 		  }
 	  }
@@ -1464,6 +1465,7 @@ int receiveObject() {
 		}
 		return -1;
 	}
+msg:
 	raw_test_pass(0xcccc);
 	while((gdn_input_avail() != 0) && (msgdataindex < msglength)) {
 		msgdata[msgdataindex] = gdn_receive();
@@ -1691,6 +1693,9 @@ int receiveObject() {
 		//msgdataindex = 0;
 		msglength = 30;
 		raw_test_pass(0xe886);
+		if(gdn_input_avail() != 0) {
+			goto msg;
+		}
 		return type;
 	} else {
 		// not a whole msg
@@ -2588,10 +2593,11 @@ void executetasks() {
 	// require locks for this parameter
 	getwritelock(parameter);
 	grount = 0;
+	raw_user_interrupts_off();
 	while(!lockflag) {
-#ifndef INTERRUPT
+//#ifndef INTERRUPT
 		receiveObject();
-#endif
+//#endif
 	}
 #ifndef INTERRUPT
 	if(reside) {
@@ -2607,6 +2613,7 @@ void executetasks() {
 #ifndef INTERRUPT
 	reside = false;
 #endif
+	raw_user_interrupts_on();
 
 	if(grount == 0) {
 		raw_test_pass(0xe994);
@@ -2691,6 +2698,11 @@ void executetasks() {
 #ifdef RAW
 		  raw_test_pass(0xe995);
 #endif
+		// release grabbed locks
+		for(j = 0; j < i; ++j) {
+			releasewritelock(taskpointerarray[j+OFFSET]);
+		}
+		releasewritelock(parameter);
 	    RUNFREE(currtpd->parameterArray);
 	    RUNFREE(currtpd);
 	    goto newtask;
@@ -2863,6 +2875,9 @@ void executetasks() {
       }
     }
   }
+#ifdef RAW
+	raw_test_pass(0xe999);
+#endif
 }
  
 /* This function processes an objects tags */

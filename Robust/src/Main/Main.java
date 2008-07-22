@@ -308,6 +308,7 @@ public class Main {
 					  //int newRate = tint;
 					  //int newRate = (j+1)%2+1;
 					  int newRate = 1;
+					  //int newRate = 10;
 					  /*do {
 					      tint = r.nextInt()%100;
 					  } while(tint <= 0);
