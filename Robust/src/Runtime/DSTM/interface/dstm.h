@@ -12,6 +12,8 @@
 #define GET_PTR_OID(x) 	((unsigned int *)(x + sizeof(int)))
 #define GET_PTR_EOFF(x,n) ((short *)(x + sizeof(int) + (n*sizeof(unsigned int))))
 #define GET_PTR_ARRYFLD(x,n) ((short *)(x + sizeof(int) + (n*sizeof(unsigned int)) + (n*sizeof(short))))
+#define ENDEBUG(s) { printf("Inside %s()\n", s); fflush(stdout);}
+#define EXDEBUG(s) {printf("Outside %s()\n", s); fflush(stdout);}
 /*****************************************
  *  Coordinator Messages
  ***************************************/
@@ -77,12 +79,16 @@
 #include <time.h>
 #include "sockpool.h"
 #include "prelookup.h"
+#include <signal.h>
 
 //bit designations for status field of objheader
 #define DIRTY 0x01
 #define NEW   0x02
 #define LOCK  0x04
 #define LOCAL  0x08
+
+/*******Global statistics *********/
+extern int numprefetchsites;
 
 #ifdef COMPILER
 
@@ -283,6 +289,7 @@ prefetchpile_t *foundLocal(char *);// returns node with prefetch elements(oids, 
 int lookupObject(unsigned int * oid, short offset);
 int transPrefetchProcess(transrecord_t *, int **, short);
 void sendPrefetchReq(prefetchpile_t*, int);
+void sendPrefetchReqnew(prefetchpile_t*, int);
 int getPrefetchResponse(int);
 unsigned short getObjType(unsigned int oid);
 int startRemoteThread(unsigned int oid, unsigned int mid);

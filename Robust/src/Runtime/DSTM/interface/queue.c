@@ -28,15 +28,15 @@ void * getmemory(int size) {
     while(headoffset<tailoffset)
       ;
     //Wait for tail to go past new start
-    while(tailoffset<tmpoffset)
+    while(tailoffset<=tmpoffset)
       ;
     *((int *)(memory+headoffset))=-1;//safe because we left space
     *((int*)memory)=size+sizeof(int);
     return memory+sizeof(int);
   } else {
-    while(headoffset<tailoffset&&tailoffset<tmpoffset)
+    while(headoffset<tailoffset&&tailoffset<=tmpoffset)
       ;
-     *((int*)(memory+headoffset))=size+sizeof(int);
+    *((int*)(memory+headoffset))=size+sizeof(int);
     return memory+headoffset+sizeof(int);
   }
 }

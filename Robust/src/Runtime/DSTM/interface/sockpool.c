@@ -70,6 +70,7 @@ int createNewSocket(unsigned int mid) {
   remoteAddr.sin_port = htons(LISTEN_PORT);
   remoteAddr.sin_addr.s_addr = htonl(mid);
   if(connect(sd, (struct sockaddr *)&remoteAddr, sizeof(remoteAddr)) < 0) {
+    perror("socket connect: ");
     printf("%s(): Error %d connecting to %s:%d\n", __func__, errno, inet_ntoa(remoteAddr.sin_addr), LISTEN_PORT);
     close(sd);
     return -1;
