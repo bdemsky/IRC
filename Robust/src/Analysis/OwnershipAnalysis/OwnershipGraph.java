@@ -357,9 +357,10 @@ public class OwnershipGraph {
 		ReferenceEdgeProperties rep2 = (ReferenceEdgeProperties) meH.getValue();
 		ReachabilitySet beta2        = rep2.getBeta();
 
-		ReferenceEdgeProperties rep = rep2.copy();
-		rep.setIsInitialParamReflexive( false );
-		rep.setBeta( beta1.intersection( beta2 ) );
+		ReferenceEdgeProperties rep = 
+		    new ReferenceEdgeProperties( false,
+						 false,
+						 beta1.intersection( beta2 ) );
 
 		addReferenceEdge( dstln, hrnOneHop, rep );
 	    }
@@ -399,18 +400,27 @@ public class OwnershipGraph {
 		
 		ReachabilitySet O = srcln.getReferenceTo( hrnSrc ).getBeta();
 
+		ReferenceEdgeProperties repNew 
+		    = new ReferenceEdgeProperties( false, false, repSrc.getBeta() );
+
+		addReferenceEdge( hrn, hrnSrc, repNew );
+
+
+
 		ChangeTupleSet Cy = O.unionUpArityToChangeSet( R );
-		ChangeTupleSet Cx = R.unionUpArityToChangeSet( O );
+		//ChangeTupleSet Cx = R.unionUpArityToChangeSet( O );
 
 		propagateTokens( hrnSrc, Cy, nodesWithNewAlpha, edgesWithNewBeta );
-		propagateTokens( hrn,    Cx, nodesWithNewAlpha, edgesWithNewBeta );
+		//propagateTokens( hrn,    Cx, nodesWithNewAlpha, edgesWithNewBeta );
 
+		/*
 		// note that this picks up the beta after the propogation has
 		// been applied
 		ReferenceEdgeProperties repNew 
 		    = new ReferenceEdgeProperties( false, false, repSrc.getBetaNew() );
 
 		addReferenceEdge( hrn, hrnSrc, repNew );
+		*/
 	    }
 	}	
 
@@ -691,6 +701,7 @@ public class OwnershipGraph {
 	clearReferenceEdgesFrom( hrn0 );
 	clearReferenceEdgesTo  ( hrn0 );
 
+	/*
 	// now tokens in reachability sets need to "age" as well
 	ReferenceEdgeProperties repToAge = null;
 	Iterator itrAllLabelNodes = td2ln.entrySet().iterator();
@@ -722,7 +733,9 @@ public class OwnershipGraph {
 
 		ageTokens( as, repToAge );
 	    }
-	}       	
+	}
+	*/
+      	
     }
 
     protected void ageTokens( AllocationSite as, ReferenceEdgeProperties rep ) {

@@ -172,7 +172,7 @@ public class TokenTupleSet extends Canonical {
 		} else {
 		    // otherwise, we change this token to the
 		    // next older token
-		    Integer tokenToChangeTo = as.getIthOldest( age + 1 );
+		    Integer tokenToChangeTo = as.getIthOldest( age + 1 );		   
 		    tt = tt.changeTokenTo( tokenToChangeTo );
 		}
 	    }

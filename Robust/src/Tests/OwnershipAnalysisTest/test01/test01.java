@@ -59,12 +59,23 @@ task Startup( StartupObject s{ initialstate } ) {
 	a.x   = new Foo();
     }
 
+    /*
     Foo b;
     while( false ) {
 	Foo c = new Foo();
 	c.x = b;
 	b = c;
     }
+    */
+
+    /*
+    Foo a = new Foo();
+    Foo b = new Foo();
+    Foo c = new Foo();
+
+    a.x = b;
+    b.x = c;    
+    */
 
     taskexit( s{ !initialstate } );
 }
