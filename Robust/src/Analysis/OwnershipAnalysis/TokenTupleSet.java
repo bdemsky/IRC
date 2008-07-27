@@ -31,10 +31,12 @@ public class TokenTupleSet extends Canonical {
 	return tokenTuples.iterator();
     }
 
+    /*
     public TokenTupleSet add( TokenTuple tt ) {
 	TokenTupleSet ttsOut = new TokenTupleSet( tt );
 	return this.union( ttsOut );
     }
+    */
 
     public TokenTupleSet union( TokenTupleSet ttsIn ) {
 	TokenTupleSet ttsOut = new TokenTupleSet( this );
@@ -144,7 +146,7 @@ public class TokenTupleSet extends Canonical {
     }
 
     public TokenTupleSet ageTokens( AllocationSite as ) {
-	TokenTupleSet ttsOut = new TokenTupleSet( this );
+	TokenTupleSet ttsOut = new TokenTupleSet();
 
 	TokenTuple ttSummary = null;
 	boolean foundOldest  = false;
@@ -158,26 +160,29 @@ public class TokenTupleSet extends Canonical {
 
 	    // summary tokens and tokens not associated with
 	    // the site should be left alone
-	    if( age != AllocationSite.AGE_notInThisSite ) {
+	    if( age == AllocationSite.AGE_notInThisSite ) {
+		ttsOut.tokenTuples.add( tt );
 
+	    } else {
 		if( age == AllocationSite.AGE_summary ) {
 		    // remember the summary tuple, but don't add it
 		    // we may combine it with the oldest tuple
 		    ttSummary = tt;
 
 		} else if( age == AllocationSite.AGE_oldest ) {
-		    // found a token		    
+		    // found an oldest token, again just remember
+		    // for later
 		    foundOldest = true;
 
 		} else {
 		    // otherwise, we change this token to the
 		    // next older token
 		    Integer tokenToChangeTo = as.getIthOldest( age + 1 );		   
-		    tt = tt.changeTokenTo( tokenToChangeTo );
+		    TokenTuple ttAged       = tt.changeTokenTo( tokenToChangeTo );
+		    ttsOut.tokenTuples.add( ttAged );
 		}
-	    }
 
-	    ttsOut.add( tt );
+	    }
 	}
 
 	// there are four cases to consider here
@@ -189,15 +194,15 @@ public class TokenTupleSet extends Canonical {
 	//    Merge them by increasing arity of summary
 	// 4. (not handled) we found neither, do nothing
 	if       ( ttSummary != null && !foundOldest ) {
-	    ttsOut.add( ttSummary );
+	    ttsOut.tokenTuples.add( ttSummary );
 
 	} else if( ttSummary == null &&  foundOldest ) {
-	    ttsOut.add( new TokenTuple( as.getSummary(),
+	    ttsOut.tokenTuples.add( new TokenTuple( as.getSummary(),
 					true,
 					TokenTuple.ARITY_ONE ).makeCanonical() );	   
 	
 	} else if( ttSummary != null &&  foundOldest ) {
-	    ttsOut.add( ttSummary.increaseArity() );
+	    ttsOut.tokenTuples.add( ttSummary.increaseArity() );
 	}
 
 	return ttsOut.makeCanonical();

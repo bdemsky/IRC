@@ -53,29 +53,28 @@ public class Foo {
 // look for the parameter s as a label referencing
 // a heap region that is multi-object, flagged, not summary
 task Startup( StartupObject s{ initialstate } ) {
-
+    
     while( false ) {
 	Foo a = new Foo();
 	a.x   = new Foo();
+	a.x.x = new Foo();
     }
-
-    /*
+    
+    
     Foo b;
     while( false ) {
 	Foo c = new Foo();
 	c.x = b;
 	b = c;
     }
-    */
+    
+    
+    Foo d = new Foo();
+    Foo e = new Foo();
+    Foo f = new Foo();
 
-    /*
-    Foo a = new Foo();
-    Foo b = new Foo();
-    Foo c = new Foo();
-
-    a.x = b;
-    b.x = c;    
-    */
+    d.x = e;
+    e.x = f;    
 
     taskexit( s{ !initialstate } );
 }

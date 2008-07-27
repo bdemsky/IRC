@@ -405,22 +405,9 @@ public class OwnershipGraph {
 
 		addReferenceEdge( hrn, hrnSrc, repNew );
 
-
-
 		ChangeTupleSet Cy = O.unionUpArityToChangeSet( R );
-		//ChangeTupleSet Cx = R.unionUpArityToChangeSet( O );
 
 		propagateTokens( hrnSrc, Cy, nodesWithNewAlpha, edgesWithNewBeta );
-		//propagateTokens( hrn,    Cx, nodesWithNewAlpha, edgesWithNewBeta );
-
-		/*
-		// note that this picks up the beta after the propogation has
-		// been applied
-		ReferenceEdgeProperties repNew 
-		    = new ReferenceEdgeProperties( false, false, repSrc.getBetaNew() );
-
-		addReferenceEdge( hrn, hrnSrc, repNew );
-		*/
 	    }
 	}	
 
@@ -587,26 +574,6 @@ public class OwnershipGraph {
 	    Map.Entry               me  = (Map.Entry)               itrReferencee.next();
 	    hrnReferencee               = (HeapRegionNode)          me.getKey();
 	    ReferenceEdgeProperties rep = (ReferenceEdgeProperties) me.getValue();
-	    
-	    // determine if another summary node is already referencing this referencee
-	    /*
-	    boolean       hasSummaryReferencer = false;
-	    OwnershipNode onReferencer         = null;
-	    Iterator      itrReferencer        = hrnReferencee.iteratorToReferencers();
-	    while( itrReferencer.hasNext() ) {
-		onReferencer = (OwnershipNode) itrReferencer.next();
-		if( onReferencer instanceof HeapRegionNode ) {
-		    HeapRegionNode hrnPossibleSummary = (HeapRegionNode) onReferencer;
-		    if( hrnPossibleSummary.isNewSummary() ) {
-			hasSummaryReferencer = true;
-		    }
-		}
-	    }
-
-	    addReferenceEdge( hrnSummary,
-			      hrnReferencee,
-			      new ReferenceEdgeProperties( !hasSummaryReferencer ) );
-	    */
 
 	    ReferenceEdgeProperties repSummary = hrnSummary.getReferenceTo( hrnReferencee );
 	    ReferenceEdgeProperties repMerged = rep.copy();
@@ -643,6 +610,9 @@ public class OwnershipGraph {
 
 	    addReferenceEdge( onReferencer, hrnSummary, repMerged );
 	}
+
+	// then merge alpha_k reachability into alpha_s
+	hrnSummary.setAlpha( hrnSummary.getAlpha().union( hrnK.getAlpha() ) );
 
 	
 	// then move down the line of heap region nodes
@@ -684,6 +654,9 @@ public class OwnershipGraph {
 
 		addReferenceEdge( onReferencer, hrnI, rep.copy() );
 	    }	    
+
+	    // replace hrnI reachability with hrnImin1
+	    hrnI.setAlpha( hrnImin1.getAlpha() );
 	}
 
 	// as stated above, the newest node alpha_0 should have had its
@@ -697,11 +670,12 @@ public class OwnershipGraph {
 	// have touched this node, therefore assert it is non-null
 	assert hrn0 != null;
 
+
 	// clear all references in and out of newest node
 	clearReferenceEdgesFrom( hrn0 );
 	clearReferenceEdgesTo  ( hrn0 );
+	
 
-	/*
 	// now tokens in reachability sets need to "age" as well
 	ReferenceEdgeProperties repToAge = null;
 	Iterator itrAllLabelNodes = td2ln.entrySet().iterator();
@@ -717,7 +691,6 @@ public class OwnershipGraph {
 		ageTokens( as, repToAge );
 	    }
 	}
-
 	HeapRegionNode hrnToAge = null;
 	Iterator itrAllHRNodes = id2hrn.entrySet().iterator();
 	while( itrAllHRNodes.hasNext() ) {
@@ -734,8 +707,15 @@ public class OwnershipGraph {
 		ageTokens( as, repToAge );
 	    }
 	}
-	*/
-      	
+
+
+	// after tokens have been aged, reset newest node's reachability
+	hrn0.setAlpha( new ReachabilitySet( 
+			   new TokenTupleSet( 
+			       new TokenTuple( hrn0 ) 
+					    ) 
+					  ).makeCanonical() 
+		       );
     }
 
     protected void ageTokens( AllocationSite as, ReferenceEdgeProperties rep ) {
@@ -828,9 +808,9 @@ public class OwnershipGraph {
 			//System.out.println( "idCallee is "+idCallee );
 			//System.out.println( "idChildCallee is "+idChildCallee );
 			
-			try {
-			    writeGraph( "caller", false, false );
-			    ogCallee.writeGraph( "callee", false, false );
+			try {			    
+			    writeGraph( "caller", false, false, false );
+			    ogCallee.writeGraph( "callee", false, false, false );			    
 			} catch( IOException e ) {}
 		    }
 
@@ -1520,6 +1500,7 @@ public class OwnershipGraph {
     public void writeGraph( Descriptor methodDesc,
 			    FlatNode   fn,
 			    boolean    writeLabels,
+			    boolean    labelSelect,
 			    boolean    writeReferencers 
 			    ) throws java.io.IOException {
 	writeGraph(
@@ -1527,6 +1508,22 @@ public class OwnershipGraph {
 		   methodDesc.getNum() +
 		   fn.toString(),
 		   writeLabels,
+		   labelSelect,
+		   writeReferencers
+		   );
+    }
+
+    public void writeGraph( Descriptor methodDesc,
+			    FlatNode   fn,
+			    boolean    writeLabels,
+			    boolean    writeReferencers 
+			    ) throws java.io.IOException {
+	writeGraph(
+		   methodDesc.getSymbol() +
+		   methodDesc.getNum() +
+		   fn.toString(),
+		   writeLabels,
+		   false,
 		   writeReferencers
 		   );
     }
@@ -1540,12 +1537,29 @@ public class OwnershipGraph {
 		   methodDesc.getNum() +
 		   "COMPLETE",
 		   writeLabels,
+		   false,
+		   writeReferencers
+		    );
+    }
+
+    public void writeGraph( Descriptor methodDesc,
+			    boolean    writeLabels,
+			    boolean    labelSelect,
+			    boolean    writeReferencers 
+			    ) throws java.io.IOException {
+	writeGraph( 
+		   methodDesc.getSymbol() +
+		   methodDesc.getNum() +
+		   "COMPLETE",
+		   writeLabels,
+		   labelSelect,
 		   writeReferencers
 		    );
     }
 
     public void writeGraph( String graphName,
 			    boolean writeLabels,
+			    boolean labelSelect,
 			    boolean writeReferencers 
 			    ) throws java.io.IOException {
 
@@ -1587,6 +1601,16 @@ public class OwnershipGraph {
 		Map.Entry me = (Map.Entry) i.next();
 		LabelNode ln = (LabelNode) me.getValue();
 		
+		if( labelSelect ) {
+		    String labelStr = ln.getTempDescriptorString();
+		    if( labelStr.startsWith( "___temp"      ) ||
+			labelStr.startsWith( "___dst"       ) ||
+			labelStr.startsWith( "___srctmp"   ) ||
+			labelStr.startsWith( "___neverused" )   ) {
+			continue;
+		    }
+		}
+
 		HeapRegionNode hrn = null;
 		Iterator heapRegionsItr = ln.setIteratorToReferencedRegions();
 		while( heapRegionsItr.hasNext() ) {

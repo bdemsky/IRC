@@ -280,7 +280,7 @@ public class OwnershipAnalysis {
 	    if( !og.equals( ogPrev ) ) {
 		mapDescriptorToCompleteOwnershipGraph.put( d, og );
 
-		og.writeGraph( d, true, false );
+		og.writeGraph( d, true, true, false );
 
 		// only methods have dependents, tasks cannot
 		// be invoked by any user program calls
