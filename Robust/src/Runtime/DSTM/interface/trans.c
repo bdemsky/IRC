@@ -9,6 +9,7 @@
 #include "threadnotify.h"
 #include "queue.h"
 #include "addUdpEnhance.h"
+#include "gCollect.h"
 #ifdef COMPILER
 #include "thread.h"
 #endif
@@ -19,6 +20,7 @@
 
 /* Global Variables */
 extern int classsize[];
+
 objstr_t *prefetchcache; //Global Prefetch cache
 pthread_mutex_t prefetchcache_mutex;// Mutex to lock Prefetch Cache
 pthread_mutexattr_t prefetchcache_mutex_attr; /* Attribute for lock to make it a recursive lock */
@@ -44,8 +46,8 @@ pthread_mutex_t atomicObjLock;
 /***********************************
  * Global Variables for statistics
  **********************************/
-extern int numTransCommit;
-extern int numTransAbort;
+int numTransCommit = 0;
+int numTransAbort = 0;
 
 void printhex(unsigned char *, int);
 plistnode_t *createPiles(transrecord_t *);
@@ -92,6 +94,7 @@ int recv_data_errorcode(int fd , void *buf, int buflen) {
     if (numbytes==0)
       return 0;
     if (numbytes == -1) {
+      perror("recv");
       return -1;
     }
     buffer += numbytes;
@@ -226,6 +229,7 @@ void transInit() {
   int retval;
   //Create and initialize prefetch cache structure
   prefetchcache = objstrCreate(PREFETCH_CACHE_SIZE);
+  initializePCache();
   
   /* Initialize attributes for mutex */
   pthread_mutexattr_init(&prefetchcache_mutex_attr);
@@ -588,7 +592,7 @@ int transCommit(transrecord_t *record) {
   
   if(treplyctrl == TRANS_ABORT) {
 #ifdef TRANSSTATS
-    ++numTransAbort;
+    numTransAbort++;
 #endif
     /* Free Resources */
     objstrDelete(record->cache);
@@ -599,7 +603,7 @@ int transCommit(transrecord_t *record) {
     return TRANS_ABORT;
   } else if(treplyctrl == TRANS_COMMIT) {
 #ifdef TRANSSTATS
-    ++numTransCommit;
+    numTransCommit++;
 #endif
     /* Free Resources */
     objstrDelete(record->cache);
@@ -642,7 +646,7 @@ void *transRequest(void *threadarg) {
 
   /* Open Connection */
   if (connect(sd, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0) {
-    perror("Error in connect for TRANS_REQUEST\n");
+    perror("transRequest() connect");
     close(sd);
     pthread_exit(NULL);
   }
@@ -679,7 +683,7 @@ void *transRequest(void *threadarg) {
     recv_data(sd, &length, sizeof(int));
     void *newAddr;
     pthread_mutex_lock(&prefetchcache_mutex);
-    if ((newAddr = objstrAlloc(prefetchcache, length)) == NULL) {
+    if ((newAddr = prefetchobjstrAlloc((unsigned int)length)) == NULL) {
       printf("Error: %s() objstrAlloc error for copying into prefetch cache %s, %d\n", __func__, __FILE__, __LINE__);
       close(sd);
       pthread_exit(NULL);
@@ -841,8 +845,9 @@ int updatePrefetchCache(thread_data_array_t* tdata, int numoid, char oidType) {
     header = (objheader_t *) chashSearch(tdata->rec->lookupTable, oid);
     //copy object into prefetch cache
     GETSIZE(size, header);
-    if ((newAddr = objstrAlloc(prefetchcache, (size + sizeof(objheader_t)))) == NULL) {
+    if ((newAddr = prefetchobjstrAlloc(size + sizeof(objheader_t))) == NULL) {
       printf("Error: %s() objstrAlloc error for copying into prefetch cache %s, %d\n", __func__, __FILE__, __LINE__);
+      pthread_mutex_unlock(&prefetchcache_mutex);
       return -1;
     }
     pthread_mutex_unlock(&prefetchcache_mutex);
@@ -1320,10 +1325,9 @@ int getPrefetchResponse(int sd) {
   control = *((char *) recvbuffer);
   if(control == OBJECT_FOUND) {
     oid = *((unsigned int *)(recvbuffer + sizeof(char)));
-    //printf("oid %d found\n",oid);
     size = size - (sizeof(char) + sizeof(unsigned int));
     pthread_mutex_lock(&prefetchcache_mutex);
-    if ((modptr = objstrAlloc(prefetchcache, size)) == NULL) {
+    if ((modptr = prefetchobjstrAlloc(size)) == NULL) {
       printf("Error: objstrAlloc error for copying into prefetch cache %s, %d\n", __FILE__, __LINE__);
       pthread_mutex_unlock(&prefetchcache_mutex);
       return -1;

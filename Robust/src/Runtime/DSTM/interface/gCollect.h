@@ -2,7 +2,6 @@
 #define _GCOLLECT_H
 
 #include "dstm.h"
-//#include "prelookup.h"
 
 /***********************************
  ****** Global constants **********
@@ -25,8 +24,9 @@ typedef struct prefetchNodeInfo {
 void *prefetchobjstrAlloc(unsigned int size);
 void *normalPrefetchAlloc(objstr_t *, unsigned int);
 void initializePCache();
-void *lookUpFreeSpace(int);
-void *clearNBlocks(void *, void *, unsigned int);
+void *lookUpFreeSpace(void *, void *, int);
+void clearNBlocks(void *, void *);
 void clearPLookUpTable(void *, void *);
 void updatePtrs();
+void *allocateNew(unsigned int size);
 #endif

@@ -142,7 +142,6 @@ typedef struct objheader {
 #define GETSIZE(size, x) size=classsize[TYPE(x)]
 #endif
 
-
 typedef struct objstr {
 	unsigned int size; //this many bytes are allocated after this header
 	void *top;
