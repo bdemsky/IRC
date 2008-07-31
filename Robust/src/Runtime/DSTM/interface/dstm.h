@@ -8,10 +8,11 @@
 /***********************************************************
  *       Macros
  **********************************************************/
-#define GET_NTUPLES(x) 	((int *)(x))
-#define GET_PTR_OID(x) 	((unsigned int *)(x + sizeof(int)))
-#define GET_PTR_EOFF(x,n) ((short *)(x + sizeof(int) + (n*sizeof(unsigned int))))
-#define GET_PTR_ARRYFLD(x,n) ((short *)(x + sizeof(int) + (n*sizeof(unsigned int)) + (n*sizeof(short))))
+#define GET_SITEID(x) ((int *)(x))
+#define GET_NTUPLES(x) 	((int *)(x + sizeof(int)))
+#define GET_PTR_OID(x) 	((unsigned int *)(x + 2*sizeof(int)))
+#define GET_PTR_EOFF(x,n) ((short *)(x + 2*sizeof(int) + (n*sizeof(unsigned int))))
+#define GET_PTR_ARRYFLD(x,n) ((short *)(x + 2*sizeof(int) + (n*sizeof(unsigned int)) + (n*sizeof(short))))
 #define ENDEBUG(s) { printf("Inside %s()\n", s); fflush(stdout);}
 #define EXDEBUG(s) {printf("Outside %s()\n", s); fflush(stdout);}
 /*****************************************
@@ -44,7 +45,7 @@
 #define THREAD_NOTIFY_REQUEST		24
 #define THREAD_NOTIFY_RESPONSE		25
 #define TRANS_UNSUCESSFUL		26
-#define CLOSE_CONNECTION                27
+#define CLOSE_CONNECTION  27
 
 //Max number of objects 
 #define MAX_OBJECTS  20
@@ -56,7 +57,9 @@
 #define TID_LEN 20
 #define LISTEN_PORT 2156
 #define UDP_PORT 2158
-
+//Prefetch tuning paramters
+#define RETRYINTERVAL  100  //N
+#define SHUTDOWNINTERVAL  1  //M
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -80,6 +83,7 @@
 #include "sockpool.h"
 #include "prelookup.h"
 #include <signal.h>
+#include "addPrefetchEnhance.h"
 
 //bit designations for status field of objheader
 #define DIRTY 0x01
@@ -281,7 +285,7 @@ int transComProcess(local_thread_data_array_t *);
 int transAbortProcess(local_thread_data_array_t *);
 void transAbort(transrecord_t *trans);
 void sendPrefetchResponse(int sd, char *control, char *sendbuffer, int *size);
-void prefetch(int, unsigned int *, unsigned short *, short*);
+void prefetch(int, int, unsigned int *, unsigned short *, short*);
 void *transPrefetch(void *);
 void *mcqProcess(void *);
 prefetchpile_t *foundLocal(char *);// returns node with prefetch elements(oids, offsets)

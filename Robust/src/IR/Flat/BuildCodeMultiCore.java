@@ -13,6 +13,7 @@ import Analysis.Scheduling.Schedule;
 import Analysis.TaskStateAnalysis.FEdge;
 import Analysis.TaskStateAnalysis.FlagState;
 import Analysis.TaskStateAnalysis.SafetyAnalysis;
+import Analysis.Prefetch.*;
 import IR.ClassDescriptor;
 import IR.Descriptor;
 import IR.FlagDescriptor;
@@ -42,8 +43,8 @@ public class BuildCodeMultiCore extends BuildCode {
     String otqueueprefix = "___otqueue";
     int startupcorenum;  // record the core containing startup task, suppose only one core can hava startup object
 
-    public BuildCodeMultiCore(State st, Hashtable temptovar, TypeUtil typeutil, SafetyAnalysis sa, Vector<Schedule> scheduling, int coreNum) {
-	super(st, temptovar, typeutil, sa);
+    public BuildCodeMultiCore(State st, Hashtable temptovar, TypeUtil typeutil, SafetyAnalysis sa, Vector<Schedule> scheduling, int coreNum, PrefetchAnalysis pa) {
+	super(st, temptovar, typeutil, sa, pa);
 	this.scheduling = scheduling;
 	this.coreNum = coreNum;
 	this.currentSchedule = null;

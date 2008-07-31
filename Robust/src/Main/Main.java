@@ -166,10 +166,6 @@ public class Main {
       readSourceFile(state, ClassLibraryPrefix+"gnu/Random.java");
 	  readSourceFile(state, ClassLibraryPrefix+"Vector.java");
 	  readSourceFile(state, ClassLibraryPrefix+"Enumeration.java");
-      if(!state.MULTICORE) {
-	  readSourceFile(state, ClassLibraryPrefix+"Signal.java");
-      }
-
 
       if (state.TASK) {
 	  readSourceFile(state, ClassLibraryPrefix+"Object.java");
@@ -206,6 +202,7 @@ public class Main {
       BuildFlat bf=new BuildFlat(state,tu);
       bf.buildFlat();
       SafetyAnalysis sa=null;
+      PrefetchAnalysis pa=null;
 
       if (state.TAGSTATE) {
 	  CallGraph callgraph=new CallGraph(state);
@@ -412,7 +409,7 @@ public class Main {
 	      if(state.MULTICORE) {
 		  it_scheduling = scheduleAnalysis.getSchedulingsIter();
 		  Vector<Schedule> scheduling = (Vector<Schedule>)it_scheduling.next();
-		  BuildCodeMultiCore bcm=new BuildCodeMultiCore(state, bf.getMap(), tu, sa, scheduling, scheduleAnalysis.getCoreNum());
+		  BuildCodeMultiCore bcm=new BuildCodeMultiCore(state, bf.getMap(), tu, sa, scheduling, scheduleAnalysis.getCoreNum(), pa);
 		  bcm.buildCode();
 	      }
 	  }
@@ -425,15 +422,15 @@ public class Main {
 	      if (state.PREFETCH) {
 		  //speed up prefetch generation using locality analysis results
 		  LocalityAnalysis la=new LocalityAnalysis(state, callgraph, tu);
-		  PrefetchAnalysis pa=new PrefetchAnalysis(state, callgraph, tu, la);
+		  pa=new PrefetchAnalysis(state, callgraph, tu, la);
 	      }
 
 	      LocalityAnalysis la=new LocalityAnalysis(state, callgraph, tu);
 	      GenerateConversions gc=new GenerateConversions(la, state);
-	      BuildCode bc=new BuildCode(state, bf.getMap(), tu, la);
+	      BuildCode bc=new BuildCode(state, bf.getMap(), tu, la, pa);
 	      bc.buildCode();
 	  } else {
-	      BuildCode bc=new BuildCode(state, bf.getMap(), tu, sa);
+	      BuildCode bc=new BuildCode(state, bf.getMap(), tu, sa, pa);
 	      bc.buildCode();
 	  }
       }

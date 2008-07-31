@@ -45,17 +45,19 @@ public class BuildCode {
     Hashtable<TempDescriptor, TempDescriptor> backuptable;
     Hashtable<LocalityBinding, TempDescriptor> reverttable;
     SafetyAnalysis sa;
+    PrefetchAnalysis pa;
 
-    public BuildCode(State st, Hashtable temptovar, TypeUtil typeutil, SafetyAnalysis sa) {
-	this(st, temptovar, typeutil, null, sa);
+    public BuildCode(State st, Hashtable temptovar, TypeUtil typeutil, SafetyAnalysis sa, PrefetchAnalysis pa) {
+	this(st, temptovar, typeutil, null, sa, pa);
     }
 
-    public BuildCode(State st, Hashtable temptovar, TypeUtil typeutil, LocalityAnalysis locality) {
-	this(st, temptovar, typeutil, locality, null);
+    public BuildCode(State st, Hashtable temptovar, TypeUtil typeutil, LocalityAnalysis locality, PrefetchAnalysis pa) {
+	this(st, temptovar, typeutil, locality, null, pa);
     }
 
-    public BuildCode(State st, Hashtable temptovar, TypeUtil typeutil, LocalityAnalysis locality, SafetyAnalysis sa) {
+    public BuildCode(State st, Hashtable temptovar, TypeUtil typeutil, LocalityAnalysis locality, SafetyAnalysis sa, PrefetchAnalysis pa) {
 	this.sa=sa;
+	this.pa=pa;
 	state=st;
 	this.temptovar=temptovar;
 	paramstable=new Hashtable();
@@ -192,6 +194,9 @@ public class BuildCode {
     private void outputMainMethod(PrintWriter outmethod) {
 	outmethod.println("int main(int argc, const char *argv[]) {");
 	outmethod.println("  int i;");
+    outmethod.println("#ifdef TRANSSTATS \n");
+    outmethod.println("handle();\n");
+    outmethod.println("#endif\n");
 	if (state.THREAD||state.DSM) {
 	    outmethod.println("initializethreads();");
 	}
@@ -261,8 +266,11 @@ public class BuildCode {
 		outmethod.println("pthread_exit(NULL);");
 	}
 
+    outmethod.println("#ifdef TRANSSTATS \n");
+    outmethod.println("printf(\"******  Transaction Stats   ******\\n\");");
     outmethod.println("printf(\"numTransAbort= %d\\n\", numTransAbort);");
     outmethod.println("printf(\"numTransCommit= %d\\n\", numTransCommit);");
+    outmethod.println("#endif\n");
 	outmethod.println("}");
 
     }
@@ -307,6 +315,7 @@ public class BuildCode {
 	outmethod.println("#include \"methodheaders.h\"");
 	outmethod.println("#include \"virtualtable.h\"");
 	outmethod.println("#include \"runtime.h\"");
+	outmethod.println("#include \"dstm.h\"");
 	if (state.DSM) {
 	    outmethod.println("#include \"localobjects.h\"");
 	}
@@ -461,7 +470,6 @@ public class BuildCode {
 	outtask.println("struct taskdescriptor {");
 	outtask.println("void * taskptr;");
 	outtask.println("int numParameters;");
-	outtask.println("int numTotal;");
 	outtask.println("struct parameterdescriptor **descriptorarray;");
 	outtask.println("char * name;");
 	outtask.println("};");
@@ -714,9 +722,15 @@ public class BuildCode {
      * information. */
 
     private void generateSizeArray(PrintWriter outclassdefs) {
-	outclassdefs.print("int numTransAbort = 0;");
-	outclassdefs.print("int numTransCommit = 0;");
-	outclassdefs.print("int classsize[]={");
+      outclassdefs.print("extern struct prefetchCountStats * evalPrefetch;\n");
+      outclassdefs.print("#ifdef TRANSSTATS \n");
+      outclassdefs.print("extern int numTransAbort;\n");
+      outclassdefs.print("extern int numTransCommit;\n");
+      outclassdefs.print("extern void handle();\n");
+      outclassdefs.print("#endif\n");
+      outclassdefs.print("int numprefetchsites = " + pa.prefetchsiteid + ";\n");
+
+      outclassdefs.print("int classsize[]={");
 	Iterator it=state.getClassSymbolTable().getDescriptorsIterator();
 	cdarray=new ClassDescriptor[state.numClasses()];
 	while(it.hasNext()) {
@@ -1478,6 +1492,7 @@ public class BuildCode {
 		return;
 	    output.println("{");
 	    output.println("/* prefetch */");
+        output.println("/* prefetchid_" + fpn.siteid + " */");
 	    output.println("void * prefptr;");
 	    output.println("int tmpindex;");
 	    /*Create C code for oid array */
@@ -1513,7 +1528,14 @@ public class BuildCode {
 	    }
 	    output.println("};");
 	    /* make the prefetch call to Runtime */
-	    output.println("   prefetch("+tuplecount+", oidarray_, endoffsetarry_, fieldarry_);");
+        output.println("  if(evalPrefetch["+fpn.siteid+"].operMode) {");
+	    output.println("    prefetch("+fpn.siteid+" ,"+tuplecount+", oidarray_, endoffsetarry_, fieldarry_);");
+	    output.println("  } else if(evalPrefetch["+fpn.siteid+"].retrycount <= 0) {");
+	    output.println("    prefetch("+fpn.siteid+" ,"+tuplecount+", oidarray_, endoffsetarry_, fieldarry_);");
+	    output.println("    evalPrefetch["+fpn.siteid+"].retrycount = RETRYINTERVAL;");
+	    output.println("  } else {");
+	    output.println("    evalPrefetch["+fpn.siteid+"].retrycount--;");
+	    output.println("  }");
 	    output.println("}");
 	}   
     }   

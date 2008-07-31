@@ -26,6 +26,7 @@ public class PrefetchAnalysis {
     public static final double PROB_DIFF = 0.05;	//threshold for difference in probabilities during first phase of analysis
     public static final double ANALYSIS_THRESHOLD_PROB = 0.10; //threshold for prefetches to stop propagating during first phase of analysis
     public static final double PREFETCH_THRESHOLD_PROB = 0.30;//threshold for prefetches to stop propagating while applying prefetch rules during second phase of analysis
+    public static int prefetchsiteid = 1; //initialized to one because there is a prefetch siteid 0 for starting remote thread
     LocalityAnalysis locality;
 
     public PrefetchAnalysis(State state, CallGraph callgraph, TypeUtil typeutil, LocalityAnalysis locality) {
@@ -964,36 +965,38 @@ public class PrefetchAnalysis {
 	/* This modifies the Flat representation graph */
 	for(Enumeration e = newprefetchset.keys();e.hasMoreElements();) {
 	    FlatNode fn = (FlatNode) e.nextElement();
-	    FlatPrefetchNode fpn = new FlatPrefetchNode();
-	    if(newprefetchset.get(fn).size() > 0) {
-		fpn.insAllpp((HashSet)newprefetchset.get(fn));
-		if(fn.kind() == FKind.FlatMethod) {
-		    FlatNode nn = fn.getNext(0);
-		    fn.setNext(0, fpn);
-		    fpn.addNext(nn);
-		} else {
-		    /* Check if previous node of this FlatNode is a NEW node 
-		     * If yes, delete this flatnode and its prefetch set from hash table 
-		     * This eliminates prefetches for NULL ptrs*/
-		    for(int i = 0; i< fn.numPrev(); i++) {
-			FlatNode nn = fn.getPrev(i);
-			if(nn.kind() == FKind.FlatNew) {
-			    isFNPresent = true;
-			}
-		    }
-		    if(!isFNPresent) {
-			while(fn.numPrev() > 0) {
-			    FlatNode nn = fn.getPrev(0);
-			    for(int j = 0; j<nn.numNext(); j++) {
-				if(nn.getNext(j) == fn) {
-				    nn.setNext(j, fpn);
-				}
-			    }
-			}
-			fpn.addNext(fn);
-		    }
-		} //end of else
+        FlatPrefetchNode fpn = new FlatPrefetchNode();
+        if(newprefetchset.get(fn).size() > 0) {
+          fpn.insAllpp((HashSet)newprefetchset.get(fn));
+          if(fn.kind() == FKind.FlatMethod) {
+            FlatNode nn = fn.getNext(0);
+            fn.setNext(0, fpn);
+            fpn.addNext(nn);
+            fpn.siteid = prefetchsiteid++;
+          } else {
+            /* Check if previous node of this FlatNode is a NEW node 
+             * If yes, delete this flatnode and its prefetch set from hash table 
+             * This eliminates prefetches for NULL ptrs*/
+            for(int i = 0; i< fn.numPrev(); i++) {
+              FlatNode nn = fn.getPrev(i);
+              if(nn.kind() == FKind.FlatNew) {
+                isFNPresent = true;
+              }
+            }
+            if(!isFNPresent) {
+              while(fn.numPrev() > 0) {
+                FlatNode nn = fn.getPrev(0);
+                for(int j = 0; j<nn.numNext(); j++) {
+                  if(nn.getNext(j) == fn) {
+                    nn.setNext(j, fpn);
+                  }
+                }
+              }
+              fpn.addNext(fn);
+              fpn.siteid = prefetchsiteid++;
+            }
+          } //end of else
 	    } //End of if
-	} //end of while
+	} //end of for
     }
 }

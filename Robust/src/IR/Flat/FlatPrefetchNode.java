@@ -3,10 +3,12 @@ import Analysis.Prefetch.*;
 import java.util.*;
 
 public class FlatPrefetchNode extends FlatNode {
+    public Integer siteid;
 	HashSet<PrefetchPair> hspp;
 
 	public FlatPrefetchNode() {
 		hspp = new HashSet<PrefetchPair>();
+        siteid = new Integer(1);
 	}
 
 	public String toString() {
