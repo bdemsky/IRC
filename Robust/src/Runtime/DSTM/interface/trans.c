@@ -853,6 +853,7 @@ int updatePrefetchCache(thread_data_array_t* tdata, int numoid, char oidType) {
     }
     pthread_mutex_lock(&prefetchcache_mutex);
     header = (objheader_t *) chashSearch(tdata->rec->lookupTable, oid);
+    header->version += 1;
     //copy object into prefetch cache
     GETSIZE(size, header);
     if ((newAddr = prefetchobjstrAlloc(size + sizeof(objheader_t))) == NULL) {
@@ -1085,7 +1086,7 @@ int transAbortProcess(local_thread_data_array_t  *localtdata) {
   return 0;
 }
 
-/*This function completes the COMMIT process is the transaction is commiting*/
+/*This function completes the COMMIT process if the transaction is commiting*/
 int transComProcess(local_thread_data_array_t  *localtdata) {
   objheader_t *header, *tcptr;
   int i, nummod, tmpsize, numcreated, numlocked;

@@ -1495,6 +1495,8 @@ public class BuildCode {
         output.println("/* prefetchid_" + fpn.siteid + " */");
 	    output.println("void * prefptr;");
 	    output.println("int tmpindex;");
+
+        output.println("if((evalPrefetch["+fpn.siteid+"].operMode) || (evalPrefetch["+fpn.siteid+"].retrycount <= 0)) {");
 	    /*Create C code for oid array */
 	    output.print("   unsigned int oidarray_[] = {");
 	    boolean needcomma=false;
@@ -1528,14 +1530,13 @@ public class BuildCode {
 	    }
 	    output.println("};");
 	    /* make the prefetch call to Runtime */
-        output.println("  if(evalPrefetch["+fpn.siteid+"].operMode) {");
-	    output.println("    prefetch("+fpn.siteid+" ,"+tuplecount+", oidarray_, endoffsetarry_, fieldarry_);");
-	    output.println("  } else if(evalPrefetch["+fpn.siteid+"].retrycount <= 0) {");
-	    output.println("    prefetch("+fpn.siteid+" ,"+tuplecount+", oidarray_, endoffsetarry_, fieldarry_);");
-	    output.println("    evalPrefetch["+fpn.siteid+"].retrycount = RETRYINTERVAL;");
-	    output.println("  } else {");
-	    output.println("    evalPrefetch["+fpn.siteid+"].retrycount--;");
-	    output.println("  }");
+        output.println("   if(!evalPrefetch["+fpn.siteid+"].operMode) {"); 
+	    output.println("     evalPrefetch["+fpn.siteid+"].retrycount = RETRYINTERVAL;");
+	    output.println("   }");
+	    output.println("   prefetch("+fpn.siteid+" ,"+tuplecount+", oidarray_, endoffsetarry_, fieldarry_);");
+	    output.println(" } else {");
+	    output.println("   evalPrefetch["+fpn.siteid+"].retrycount--;");
+	    output.println(" }");
 	    output.println("}");
 	}   
     }   
