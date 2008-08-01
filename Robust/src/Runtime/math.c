@@ -41,3 +41,19 @@ double CALL11(___Math______sqrt____D, double ___a___, double ___a___) {
 double CALL22(___Math______pow____D_D, double ___a___, double ___b___, double ___a___, double ___b___) {
   return pow(___a___,___b___);
 }
+
+float CALL11(___Math______cosf____F, float ___a___, float ___a___) {
+  return cosf(___a___);
+}
+
+float CALL11(___Math______sinf____F, float ___a___, float ___a___) {
+  return sinf(___a___);
+}
+
+float CALL11(___Math______sqrtf____F, float ___a___, float ___a___) {
+  return sqrtf(___a___);
+}
+
+float CALL22(___Math______powf____F_F, float ___a___, float ___b___, float ___a___, float ___b___) {
+  return powf(___a___,___b___);
+}

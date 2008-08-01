@@ -52,48 +52,70 @@ vec_extern:
 vec_timer:
         empty_vec 0x2304
 vec_gdn_avail:
-	mtsri PASS, 0xef00
+#	mtsri PASS, 0xef00
 	uintoff
 
-	addiu   $sp,$sp,-64
-	sw      $31,0x3c($sp)
-	sw      $30,0x38($sp)
-	sw      $23,0x34($sp)
-	sw      $22,0x30($sp)
-	sw      $21,0x2c($sp)
-	sw      $20,0x28($sp)
-	sw      $19,0x24($sp)
-	sw      $18,0x20($sp)
-	sw      $17,0x1c($sp)
-	sw      $16,0x18($sp)
-	sw      $7,0x14($sp)
-	sw      $6,0x10($sp)
-	sw      $5,0xc($sp)
-	sw      $4,0x8($sp)
-	sw      $3,0x4($sp)
-	sw      $2,0x0($sp)
+	addiu   $sp,$sp,-104
+	sw      $31,0x64($sp)
+	sw      $30,0x60($sp)
+	sw      $23,0x5c($sp)
+	sw      $22,0x58($sp)
+	sw      $21,0x54($sp)
+	sw      $20,0x50($sp)
+	sw      $19,0x4c($sp)
+	sw      $18,0x48($sp)
+	sw      $17,0x44($sp)
+	sw      $16,0x40($sp)
+	sw      $15,0x3c($sp)
+	sw      $14,0x38($sp)
+	sw      $13,0x34($sp)
+	sw      $12,0x30($sp)
+	sw      $11,0x2c($sp)
+	sw      $10,0x28($sp)
+	sw      $9,0x24($sp)
+	sw      $8,0x20($sp)
+	sw      $7,0x1c($sp)
+	sw      $6,0x18($sp)
+	sw      $5,0x14($sp)
+	sw      $4,0x10($sp)
+	sw      $3,0xc($sp)
+	sw      $2,0x8($sp)
+	.set noat
+	sw      $1,0x4($sp)
+	.set at
 
 	jal receiveObject
 
-	lw      $31,0x3c($sp)
-	lw      $30,0x38($sp)
-	lw      $23,0x34($sp)
-	lw      $22,0x30($sp)
-	lw      $21,0x2c($sp)
-	lw      $20,0x28($sp)
-	lw      $19,0x24($sp)
-	lw      $18,0x20($sp)
-	lw      $17,0x1c($sp)
-	lw      $16,0x18($sp)
-	lw      $7,0x14($sp)
-	lw      $6,0x10($sp)
-	lw      $5,0xc($sp)
-	lw      $4,0x8($sp)
-	lw      $3,0x4($sp)
-	lw      $2,0x0($sp)
-	addiu   $sp,$sp,64
+	lw      $31,0x64($sp)
+	lw      $30,0x60($sp)
+	lw      $23,0x5c($sp)
+	lw      $22,0x58($sp)
+	lw      $21,0x54($sp)
+	lw      $20,0x50($sp)
+	lw      $19,0x4c($sp)
+	lw      $18,0x48($sp)
+	lw      $17,0x44($sp)
+	lw      $16,0x40($sp)
+	lw      $15,0x3c($sp)
+	lw      $14,0x38($sp)
+	lw      $13,0x34($sp)
+	lw      $12,0x30($sp)
+	lw      $11,0x2c($sp)
+	lw      $10,0x28($sp)
+	lw      $9,0x24($sp)
+	lw      $8,0x20($sp)
+	lw      $7,0x1c($sp)
+	lw      $6,0x18($sp)
+	lw      $5,0x14($sp)
+	lw      $4,0x10($sp)
+	lw      $3,0xc($sp)
+	lw      $2,0x8($sp)
+	.set noat
+	lw      $1,0x4($sp)
+	.set at
+	addiu   $sp,$sp,104
 
-	mtsri PASS, 0xefff
+#	mtsri PASS, 0xefff
 	dret
 vec_event_counters:
         empty_vec 0x2306

@@ -159,9 +159,9 @@ public class SchedulingUtil {
             	    } else {
             		output.print(se.getTargetCNode().getClusterLabel());
             	    }
-		    output.println(" [label=\"" + se.getLabel() + "\", color=red, style=dashed]");
+		    output.println(" [label=\"" + se.getLabel() + "\", color=red, style=dashed];");
             	} else {
-		    output.println(se.getTargetFState().getLabel() + " [label=\"" + se.getLabel() + "\", color=red, style=dashed]");
+		    output.println(se.getTargetFState().getLabel() + " [label=\"" + se.getLabel() + "\", color=red, style=dashed];");
             	}
             }
         }
@@ -299,14 +299,19 @@ public class SchedulingUtil {
 	    // time coordinate nodes
 	    Vector<String> timeNodes = new Vector<String>();
 	    String[] lastTaskNodes = new String[coreNum];
+	    String[] lastTasks = new String[coreNum];
 	    boolean[] isTaskFinish = new boolean[coreNum];
 	    for(j = 0; j < coreNum; j++) {
 		lastTaskNodes[j] = "first";
 		isTaskFinish[j] = true;
+		lastTasks[j] = "";
 	    }
 	    timeNodes.add("0");
 	    for(j = 0; j < checkpoints.size(); j++) {
 		CheckPoint tcp = checkpoints.elementAt(j);
+		Hashtable<Integer, String> tmplastTasks = new Hashtable<Integer, String>();
+		Vector<Integer> tmpisTaskFinish = new Vector<Integer>();
+		Vector<Integer> tmpisset = new Vector<Integer>();
 		String tnode = String.valueOf(tcp.getTimepoint());
 		if(!timeNodes.contains(tnode)) {
 		    timeNodes.add(tnode);
@@ -316,6 +321,12 @@ public class SchedulingUtil {
 		for(int i = 0; i < actions.size(); i++) {
 		    Action taction = actions.elementAt(i);
 		    int cNum = taction.getCoreNum();
+		    if(!tmplastTasks.contains(cNum)) {
+			tmplastTasks.put(cNum, lastTasks[cNum]);
+		    }
+		    if(!(tmpisset.contains(cNum)) && (isTaskFinish[cNum]) && !(tmpisTaskFinish.contains(cNum))) {
+			tmpisTaskFinish.add(cNum); // records those with task finished the first time visit it
+		    }
 		    String tmpTaskNode = "\"" + tnode + "core" + cNum + "\"";
 		    StringBuffer tmpLabel = null;
 		    boolean isfirst = false;
@@ -333,11 +344,11 @@ public class SchedulingUtil {
 			if(!(lastTaskNodes[cNum].equals(tmpTaskNode))) {
 			    output.print("\t");
 			    if(lastTaskNodes[cNum].equals("first")) {
-				output.println("\"core " + cNum + "\"->" + tmpTaskNode);
+				output.print("\"core " + cNum + "\"->" + tmpTaskNode);
 			    } else {
 				output.print(lastTaskNodes[cNum] + "->" + tmpTaskNode);
 			    }
-			    if(isTaskFinish[cNum]) {
+			    if(tmpisTaskFinish.contains(cNum)) {
 				output.print(" [style=invis]");
 			    }
 			    output.println(";");
@@ -353,10 +364,16 @@ public class SchedulingUtil {
 			if(!(lastTaskNodes[cNum].equals("first"))) {
 			    if(!(lastTaskNodes[cNum].equals(tmpTaskNode))) {
 				output.print("\t");
-				output.println(lastTaskNodes[cNum] + "->" + tmpTaskNode);
+				output.println(lastTaskNodes[cNum] + "->" + tmpTaskNode + ";");
 				lastTaskNodes[cNum] = tmpTaskNode;
 			    }
-			    isTaskFinish[cNum] = true;
+			    if(tmpisset.contains(cNum)) {
+				isTaskFinish[cNum] &= true;
+			    } else {
+				isTaskFinish[cNum] = true;
+				tmpisset.add(cNum);
+			    }
+			    lastTasks[cNum] = "";
 			} else {
 			    throw new Exception("Error: unexpected task finish");
 			}
@@ -377,12 +394,19 @@ public class SchedulingUtil {
 				tmpLabel.append(";");
 			    }
 			}
-			if(!(lastTaskNodes[cNum].equals("first")) &&
-				!(lastTaskNodes[cNum].equals(tmpTaskNode))) {
-			    output.print("\t");
-			    output.println(lastTaskNodes[cNum] + "->" + tmpTaskNode);
-			    lastTaskNodes[cNum] = tmpTaskNode;
-			    isTaskFinish[cNum] = true;
+			if(!(lastTaskNodes[cNum].equals("first"))) {
+			    if (!(lastTaskNodes[cNum].equals(tmpTaskNode))) {
+				output.print("\t");
+				output.println(lastTaskNodes[cNum] + "->" + tmpTaskNode + ";");
+				lastTaskNodes[cNum] = tmpTaskNode;
+			    }
+			    if(tmpisset.contains(cNum)) {
+				isTaskFinish[cNum] &= true;
+			    } else {
+				isTaskFinish[cNum] = true;
+				tmpisset.add(cNum);
+			    }
+			    lastTasks[cNum] = "";
 			} else {
 			    throw new Exception("Error: unexpected task finish");
 			}
@@ -393,6 +417,7 @@ public class SchedulingUtil {
 			    tmpLabel.append("\\n");
 			}
 			tmpLabel.append("<" + taction.getTd().getSymbol() + ">starts;");
+			lastTasks[cNum] = taction.getTd().getSymbol();
 			
 			if (!(lastTaskNodes[cNum].equals(tmpTaskNode))) {
 			    output.print("\t");
@@ -401,13 +426,13 @@ public class SchedulingUtil {
 			    } else {
 				output.print(lastTaskNodes[cNum] + "->" + tmpTaskNode);
 			    }
-			    if(isTaskFinish[cNum]) {
+			    if(tmpisTaskFinish.contains(cNum)) {
 				output.print(" [style=invis]");
 			    }
 			    output.println(";");
 			    lastTaskNodes[cNum] = tmpTaskNode;
 			}
-			isTaskFinish[cNum] = false;
+			isTaskFinish[cNum] &= false;
 			break;
 		    }
 		    case Action.TASKABORT: {
@@ -415,12 +440,20 @@ public class SchedulingUtil {
 			    tmpLabel.append("\\n");
 			}
 			tmpLabel.append("<" + taction.getTd().getSymbol() + ">aborts;");
-			if(!(lastTaskNodes[cNum].equals("first")) &&
-				!(lastTaskNodes[cNum].equals(tmpTaskNode))) {
-			    output.print("\t");
-			    output.println(lastTaskNodes[cNum] + "->" + tmpTaskNode);
-			    lastTaskNodes[cNum] = tmpTaskNode;
-			    isTaskFinish[cNum] = true;
+			if(!(lastTaskNodes[cNum].equals("first")) && 
+				(tmplastTasks.get(cNum).equals(taction.getTd().getSymbol()))) {
+			    if(!(lastTaskNodes[cNum].equals(tmpTaskNode))) {
+				output.print("\t");
+				output.println(lastTaskNodes[cNum] + "->" + tmpTaskNode + ";");
+				lastTaskNodes[cNum] = tmpTaskNode;
+			    }
+			    if(tmpisset.contains(cNum)) {
+				isTaskFinish[cNum] &= true;
+			    } else {
+				isTaskFinish[cNum] = true;
+				tmpisset.add(cNum);
+			    }
+			    lastTasks[cNum] = "";
 			} else {
 			    throw new Exception("Error: unexpected task aborts");
 			}
@@ -432,11 +465,19 @@ public class SchedulingUtil {
 			}
 			tmpLabel.append("<" + taction.getTd().getSymbol() + ">removes;");
 			if(!(lastTaskNodes[cNum].equals("first")) &&
-				!(lastTaskNodes[cNum].equals(tmpTaskNode))) {
-			    output.print("\t");
-			    output.println(lastTaskNodes[cNum] + "->" + tmpTaskNode);
-			    lastTaskNodes[cNum] = tmpTaskNode;
-			    isTaskFinish[cNum] = true;
+				(tmplastTasks.get(cNum).equals(taction.getTd().getSymbol()))) {
+			    if(!(lastTaskNodes[cNum].equals(tmpTaskNode))) {
+				output.print("\t");
+				output.println(lastTaskNodes[cNum] + "->" + tmpTaskNode + ";");
+				lastTaskNodes[cNum] = tmpTaskNode;
+			    }
+			    if(tmpisset.contains(cNum)) {
+				isTaskFinish[cNum] &= true;
+			    } else {
+				isTaskFinish[cNum] = true;
+				tmpisset.add(cNum);
+			    }
+			    lastTasks[cNum] = "";
 			} else {
 			    throw new Exception("Error: unexpected task remove");
 			}

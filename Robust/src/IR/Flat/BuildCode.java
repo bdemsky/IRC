@@ -315,7 +315,6 @@ public class BuildCode {
 	outmethod.println("#include \"methodheaders.h\"");
 	outmethod.println("#include \"virtualtable.h\"");
 	outmethod.println("#include \"runtime.h\"");
-	//outmethod.println("#include \"dstm.h\"");
 	if (state.DSM) {
 	    outmethod.println("#include \"dstm.h\"");
 	    outmethod.println("#include \"localobjects.h\"");

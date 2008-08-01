@@ -2,7 +2,7 @@ TOPDIR=/home/jzhou/starsearch
 include $(TOPDIR)/Makefile.include
 
 RGCCFLAGS += -O2 
-RGCCFLAGS += -DTASK -DMULTICORE -DRAW -DY2
+RGCCFLAGS += ${RAWRGCCFLAGS}
 
 SIM-CYCLES = 10000
 

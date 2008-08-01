@@ -232,22 +232,22 @@ struct genhashtable * genallocatehashtable(unsigned int (*hash_function)(void *)
   struct genpointerlist **gpl;
   int i;
 
-#ifdef RAW
+#ifdef RAWDEBUG
   raw_test_pass(0xf000);
 #endif
 
   gpl=(struct genpointerlist **) RUNMALLOC(sizeof(struct genpointerlist *)*geninitialnumbins);
-#ifdef RAW
+#ifdef RAWDEBUG
   raw_test_pass(0xf001);
 #endif
   for(i=0;i<geninitialnumbins;i++) {
     gpl[i]=NULL;
   }
-#ifdef RAW
+#ifdef RAWDEBUG
   raw_test_pass(0xf002);
 #endif
   ght=(struct genhashtable *) RUNMALLOC(sizeof(struct genhashtable));
-#ifdef RAW
+#ifdef RAWDEBUG
   raw_test_pass(0xf003);
 #endif
   ght->hash_function=hash_function;
@@ -257,7 +257,7 @@ struct genhashtable * genallocatehashtable(unsigned int (*hash_function)(void *)
   ght->counter=0;
   ght->list=NULL;
   ght->last=NULL;
-#ifdef RAW
+#ifdef RAWDEBUG
   raw_test_pass(0xf004);
 #endif
   return ght;

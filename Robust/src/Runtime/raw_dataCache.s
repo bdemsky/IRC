@@ -2,7 +2,7 @@
 .global flushAddr
 .global invalidateAddr
 .global flushCacheline
-
+.global invalidateCacheline
 	
 flushAddr:
 # arguments come in on $4 and $5
@@ -29,3 +29,12 @@ flushCacheline:
 	tagfl $4
 	jr $31
 
+invalidateCacheline:
+# arguments come in on $4
+# $4 has the base tag address
+
+	tagsw $0, $4
+#	mtsri PASS, 0x1111
+#	mtsr PASS, $8
+#	ainv $8, 0
+	jr $31

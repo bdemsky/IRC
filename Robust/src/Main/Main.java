@@ -305,7 +305,14 @@ public class Main {
 					  //int newRate = tint;
 					  //int newRate = (j+1)%2+1;
 					  int newRate = 1;
-					  //int newRate = 10;
+					  String cdname = cd.getSymbol();
+					  if(cdname.equals("SeriesRunner")) {
+					      newRate = 10;
+					  } else if(cdname.equals("MapWorker")) {
+					      newRate = 6;
+					  } else if(cdname.equals("ReduceWorker")) {
+					      newRate = 3;
+					  }
 					  /*do {
 					      tint = r.nextInt()%100;
 					  } while(tint <= 0);
@@ -407,8 +414,9 @@ public class Main {
 	      }
 	      
 	      if(state.MULTICORE) {
-		  it_scheduling = scheduleAnalysis.getSchedulingsIter();
-		  Vector<Schedule> scheduling = (Vector<Schedule>)it_scheduling.next();
+		  //it_scheduling = scheduleAnalysis.getSchedulingsIter();
+		  //Vector<Schedule> scheduling = (Vector<Schedule>)it_scheduling.next();
+		  Vector<Schedule> scheduling = scheduleAnalysis.getSchedulings().elementAt(selectedScheduling.elementAt(0));
 		  BuildCodeMultiCore bcm=new BuildCodeMultiCore(state, bf.getMap(), tu, sa, scheduling, scheduleAnalysis.getCoreNum(), pa);
 		  bcm.buildCode();
 	      }

@@ -16,15 +16,19 @@
 void * mycalloc(int m, int size) {
 	void * p = NULL;
 	int isize = 2*kCacheLineSize-4+(size-1)&(~kCacheLineMask);
+#ifdef RAWDEBUG
 	raw_test_pass(0xdd00);
+#endif
 #ifdef INTERRUPT
 	// shut down interrupt
 	raw_user_interrupts_off();
 #endif
 	p = calloc(m, isize);
 	//p = m_calloc(m, isize);
+#ifdef RAWDEBUG
 	raw_test_pass_reg(p);
 	raw_test_pass_reg((kCacheLineSize+((int)p-1)&(~kCacheLineMask)));
+#endif
 #ifdef INTERRUPT
 	// re-open interruption
 	raw_user_interrupts_on();
@@ -35,11 +39,15 @@ void * mycalloc(int m, int size) {
 void * mycalloc_i(int m, int size) {
 	void * p = NULL;
 	int isize = 2*kCacheLineSize-4+(size-1)&(~kCacheLineMask);
+#ifdef RAWDEBUG
 	raw_test_pass(0xdd00);
+#endif
 	p = calloc(m, isize);
 	//p = m_calloc(m, isize);
+#ifdef RAWDEBUG
 	raw_test_pass_reg(p);
 	raw_test_pass_reg((kCacheLineSize+((int)p-1)&(~kCacheLineMask)));
+#endif
 	return (void *)(kCacheLineSize+((int)p-1)&(~kCacheLineMask));
 }
 

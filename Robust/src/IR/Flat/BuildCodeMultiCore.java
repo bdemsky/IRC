@@ -612,8 +612,10 @@ public class BuildCodeMultiCore extends BuildCode {
 	output.println("for(;tmpindex < tmplen; tmpindex++) {");
 	output.println("   tmpsum = tmpsum * 10 + *(taskname + tmpindex) - '0';");
 	output.println("}");
+	output.println("#ifdef RAWDEBUG");
 	output.println("raw_test_pass(0xAAAA);");
 	output.println("raw_test_pass_reg(tmpsum);");
+	output.println("#endif");
 	output.println("#endif");
 	
 	for(int i = 0; i < fm.numParameters(); ++i) {
@@ -645,7 +647,8 @@ public class BuildCodeMultiCore extends BuildCode {
 		output.print("   ");
 		super.generateFlatNode(fm, lb, current_node, output);
 		if (current_node.kind()!=FKind.FlatReturnNode) {
-		    output.println("   flushAll();");
+		    //output.println("   flushAll();");
+		    output.println("raw_flush_entire_cache();");
 		    outputTransCode(output);
 		    output.println("   return;");
 		}
@@ -1221,7 +1224,8 @@ public class BuildCodeMultiCore extends BuildCode {
 		output.println("return "+generateTemp(fm, frn.getReturnTemp(), lb)+";");
 	} else {
 	    if(fm.getTask() != null) {
-		output.println("flushAll();");
+		//output.println("flushAll();");
+		output.println("raw_flush_entire_cache();");
 		outputTransCode(output);
 	    }
 	    output.println("return;");
