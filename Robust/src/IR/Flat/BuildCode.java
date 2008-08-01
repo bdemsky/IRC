@@ -315,8 +315,9 @@ public class BuildCode {
 	outmethod.println("#include \"methodheaders.h\"");
 	outmethod.println("#include \"virtualtable.h\"");
 	outmethod.println("#include \"runtime.h\"");
-	outmethod.println("#include \"dstm.h\"");
+	//outmethod.println("#include \"dstm.h\"");
 	if (state.DSM) {
+	    outmethod.println("#include \"dstm.h\"");
 	    outmethod.println("#include \"localobjects.h\"");
 	}
 	if(state.MULTICORE) {
@@ -470,6 +471,7 @@ public class BuildCode {
 	outtask.println("struct taskdescriptor {");
 	outtask.println("void * taskptr;");
 	outtask.println("int numParameters;");
+	outtask.println("  int numTotal;");
 	outtask.println("struct parameterdescriptor **descriptorarray;");
 	outtask.println("char * name;");
 	outtask.println("};");
