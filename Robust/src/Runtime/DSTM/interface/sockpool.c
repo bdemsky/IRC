@@ -101,6 +101,8 @@ int getSockWithLock(sockPoolHashTable_t *sockhash, unsigned int mid) {
   UnLock(&sockhash->mylock);
   if((sd = createNewSocket(mid)) != -1) {
     socknode_t *inusenode = calloc(1, sizeof(socknode_t));
+    inusenode->sd = sd;
+    inusenode->mid = mid;
     insToListWithLock(sockhash, inusenode);
     return sd;
   } else {
@@ -153,6 +155,33 @@ int getSock2(sockPoolHashTable_t *sockhash, unsigned int mid) {
     *ptr=calloc(1, sizeof(socknode_t));
     (*ptr)->mid=mid;
     (*ptr)->sd=sd;
+    return sd;
+  } else {
+    return -1;
+  }
+}
+
+/*socket pool with multiple TR threads asking to connect to same machine  */
+int getSock2WithLock(sockPoolHashTable_t *sockhash, unsigned int mid) {
+  socknode_t **ptr;
+  int key = mid%(sockhash->size);
+  int sd;
+  
+  Lock(&sockhash->mylock);
+  ptr=&(sockhash->table[key]);
+  while(*ptr!=NULL) {
+    if (mid == (*ptr)->mid) {
+      UnLock(&sockhash->mylock);
+      return (*ptr)->sd;
+    }
+    ptr=&((*ptr)->next);
+  }
+  UnLock(&sockhash->mylock);
+  if((sd = createNewSocket(mid)) != -1) {
+    *ptr=calloc(1, sizeof(socknode_t));
+    (*ptr)->mid=mid;
+    (*ptr)->sd=sd;
+    //insToListWithLock(sockhash, *ptr);
     return sd;
   } else {
     return -1;

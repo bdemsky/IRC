@@ -3,7 +3,6 @@
 
 #include <stdlib.h>
 #include <stdio.h>
-#include "dstm.h"
 
 /* This structure is created using a transaction record.
  * It is filled out with pile information necessary for 
@@ -21,7 +20,6 @@ typedef struct plistnode {
 } plistnode_t;
 
 plistnode_t  *pCreate(int);
-plistnode_t *pInsert(plistnode_t *pile, objheader_t *headeraddr, unsigned int mid, int num_objs);
 int pCount(plistnode_t *pile);
 int pListMid(plistnode_t *pile, unsigned int *list);
 void pDelete(plistnode_t *pile);

@@ -58,8 +58,8 @@
 #define LISTEN_PORT 2156
 #define UDP_PORT 2158
 //Prefetch tuning paramters
-#define RETRYINTERVAL  100  //N
-#define SHUTDOWNINTERVAL  1  //M
+#define RETRYINTERVAL  7 //N
+#define SHUTDOWNINTERVAL  4  //M
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -81,9 +81,8 @@
 #include <errno.h>
 #include <time.h>
 #include "sockpool.h"
-#include "prelookup.h"
 #include <signal.h>
-#include "addPrefetchEnhance.h"
+#include "plookup.h"
 
 //bit designations for status field of objheader
 #define DIRTY 0x01
@@ -209,7 +208,7 @@ typedef struct trans_commit_data{
 typedef struct thread_data_array {
   int thread_id;	
   int mid;    
-  trans_req_data_t *buffer;	/* Holds trans request information sent to participants */  
+  trans_req_data_t *buffer;	/* Holds trans request information sent to a participant, based on threadid */  
   thread_response_t *recvmsg;	/* Shared datastructure to keep track of the participants response to a trans request */
   pthread_cond_t *threshold;    /* Condition var to waking up a thread */
   pthread_mutex_t *lock;    	/* Lock for counting participants response */
@@ -217,6 +216,7 @@ typedef struct thread_data_array {
   char *replyctrl; 		/* Shared ctrl message that stores the reply to be sent to participants, filled by decideResponse() */
   char *replyretry;		/* Shared variable that keep track if coordinator needs retry */
   transrecord_t *rec;		/* To send modified objects */
+  plistnode_t *pilehead;   /*  Shared variable, ptr to the head of the machine piles for the transaction rec */
 } thread_data_array_t;
 
 
@@ -296,9 +296,7 @@ void sendPrefetchReqnew(prefetchpile_t*, int);
 int getPrefetchResponse(int);
 unsigned short getObjType(unsigned int oid);
 int startRemoteThread(unsigned int oid, unsigned int mid);
-int updatePrefetchCache(thread_data_array_t *, int, char);
-
-
+plistnode_t *pInsert(plistnode_t *pile, objheader_t *headeraddr, unsigned int mid, int num_objs);
 
 /* Sends notification request for thread join, if sucessful returns 0 else returns -1 */
 int reqNotify(unsigned int *oidarry, unsigned short *versionarry, unsigned int numoid);

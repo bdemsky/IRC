@@ -23,6 +23,7 @@ typedef struct sockPoolHashTable {
 sockPoolHashTable_t *createSockPool(sockPoolHashTable_t *, unsigned int);
 int getSock(sockPoolHashTable_t *, unsigned int);
 int getSock2(sockPoolHashTable_t *, unsigned int);
+int getSock2WithLock(sockPoolHashTable_t *h, unsigned int); 
 int getSockWithLock(sockPoolHashTable_t *, unsigned int);
 void freeSock(sockPoolHashTable_t *, unsigned int, int);
 void freeSockWithLock(sockPoolHashTable_t *, unsigned int, int);

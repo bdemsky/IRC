@@ -37,7 +37,7 @@ public class Em3d extends Thread
    **/
   private boolean printMsgs;
 
-    int numThreads;
+  int numThreads;
 
   BiGraph bg;
   int upperlimit;
@@ -82,7 +82,6 @@ public class Em3d extends Thread
 	}
 	
 	Barrier.enterBarrier(barr);
-	System.clearPrefetchCache();
 
 	/* for  hNodes */
 	atomic {
@@ -94,7 +93,6 @@ public class Em3d extends Thread
 	    }
 	}
 	Barrier.enterBarrier(barr);
-	System.clearPrefetchCache();
     }
   }
 
@@ -112,11 +110,11 @@ public class Em3d extends Thread
     long start0 = System.currentTimeMillis();
     int numThreads = em.numThreads;
     int[] mid = new int[4];
-    mid[0] = (128<<24)|(195<<16)|(175<<8)|69;
-    mid[1] = (128<<24)|(195<<16)|(175<<8)|80;
-    mid[2] = (128<<24)|(195<<16)|(175<<8)|73;
-    mid[3] = (128<<24)|(195<<16)|(175<<8)|78;
-    System.printString("DEBUG -> numThreads = " + numThreads+"\n");
+    mid[0] = (128<<24)|(195<<16)|(175<<8)|79;
+    mid[1] = (128<<24)|(195<<16)|(175<<8)|73;
+    mid[2] = (128<<24)|(195<<16)|(175<<8)|78;
+    mid[3] = (128<<24)|(195<<16)|(175<<8)|69;
+    //System.printString("DEBUG -> numThreads = " + numThreads+"\n");
     Barrier mybarr;
     BiGraph graph;
     Random rand = new Random(783);

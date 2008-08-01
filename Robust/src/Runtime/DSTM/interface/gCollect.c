@@ -1,4 +1,5 @@
 #include "gCollect.h"
+#include "prelookup.h"
 
 extern objstr_t *prefetchcache; //Global Prefetch cache
 extern pthread_mutex_t prefetchcache_mutex; //Mutex to lock Prefetch Cache

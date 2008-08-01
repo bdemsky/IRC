@@ -1,4 +1,5 @@
 #include "dstm.h"
+#include "addPrefetchEnhance.h"
 #include <signal.h>
 
 extern int numTransAbort;

@@ -62,5 +62,6 @@ public class JGFSORBenchSizeA{
 
     JGFInstrumentor.addOpsToTimer("Section2:SOR:Kernel", (double) jacobi, instr.timers);
     JGFInstrumentor.printTimer("Section2:SOR:Kernel", instr.timers); 
+    System.printString("Finished\n");
   }
 }

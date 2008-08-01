@@ -126,8 +126,6 @@ class SORRunner extends Thread {
             done=false;
         }
       }
-
-      System.clearPrefetchCache();
     }//end of for
   } //end of run()
 }

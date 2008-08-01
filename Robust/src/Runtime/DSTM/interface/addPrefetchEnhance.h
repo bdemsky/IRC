@@ -1,6 +1,10 @@
 #ifndef _ADDPREFETCHENHANCE_H_
 #define _ADDPREFETCHENHANCE_H_
 
+#include "dstm.h"
+#include "mlookup.h"
+#include "gCollect.h"
+
 typedef struct prefetchCountStats {
   int retrycount;    /* keeps track of when to retry and check if we can turn on this prefetch site */ 
   int uselesscount; /* keeps track of how long was the prefetching at site useles */ 
@@ -13,5 +17,8 @@ int getRetryCount(int siteid);
 int getUselessCount(int siteid);
 char getOperationMode(int);
 void handleDynPrefetching(int, int, int);
+void cleanPCache(thread_data_array_t *tdata);
+int updatePrefetchCache(thread_data_array_t *);
+int copyToCache(int , unsigned int *, thread_data_array_t *, char );
 
 #endif

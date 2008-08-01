@@ -316,7 +316,7 @@ public class BuildCode {
 	outmethod.println("#include \"virtualtable.h\"");
 	outmethod.println("#include \"runtime.h\"");
 	if (state.DSM) {
-	    outmethod.println("#include \"dstm.h\"");
+	    outmethod.println("#include \"addPrefetchEnhance.h\"");
 	    outmethod.println("#include \"localobjects.h\"");
 	}
 	if(state.MULTICORE) {
