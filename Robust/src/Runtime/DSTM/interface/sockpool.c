@@ -178,10 +178,10 @@ int getSock2WithLock(sockPoolHashTable_t *sockhash, unsigned int mid) {
   }
   UnLock(&sockhash->mylock);
   if((sd = createNewSocket(mid)) != -1) {
-    *ptr=calloc(1, sizeof(socknode_t));
-    (*ptr)->mid=mid;
-    (*ptr)->sd=sd;
-    //insToListWithLock(sockhash, *ptr);
+    socknode_t *inusenode = calloc(1, sizeof(socknode_t));
+    inusenode->sd = sd;
+    inusenode->mid = mid;
+    insToListWithLock(sockhash, inusenode);
     return sd;
   } else {
     return -1;
