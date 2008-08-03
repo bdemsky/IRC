@@ -5,6 +5,7 @@
 #include <math.h>
 #include <netinet/tcp.h>
 #include "addUdpEnhance.h"
+#include "prelookup.h"
 
 /************************
  * Global Variables *
@@ -148,11 +149,11 @@ int sendUdpMsg(thread_data_array_t *tdata, struct sockaddr_in *clientaddr, int i
   *((short *)&writeBuffer[0]) = INVALIDATE_OBJS; //control msg
   offset += sizeof(short);
   if(iteration == 0) { // iteration flag == zero, send single udp msg
-    *((short *) (writeBuffer+offset)) = (short) (sizeof(unsigned int) * (tdata->buffer->f.nummod));
+    *((short *) (writeBuffer+offset)) = (short) (sizeof(unsigned int) * (tdata->buffer->f.nummod)); //sizeof msg
     offset += sizeof(short);
     int i;
     for(i = 0; i < tdata->buffer->f.nummod; i++) {
-      *((unsigned int *) (writeBuffer+offset)) = tdata->buffer->oidmod[i];
+      *((unsigned int *) (writeBuffer+offset)) = tdata->buffer->oidmod[i];  //copy objects
       offset += sizeof(unsigned int);
     }
   } else { // iteration flag > zero, send multiple udp msg

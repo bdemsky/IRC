@@ -469,6 +469,12 @@ char handleTransReq(fixed_data_t *fixed, trans_commit_data_t *transinfo, unsigne
               numBytes += size;
               /* Send TRANS_DISAGREE to Coordinator */
               control = TRANS_DISAGREE;
+#ifdef CHECKTA
+  char b[] = "version mismatch";
+  char c[] = "object type";
+  TABORT3(__func__, b, c, TYPE(mobj));
+#endif
+
             }
           } else {/* If Obj is not locked then lock object */
             /* Save all object oids that are locked on this machine during this transaction request call */
@@ -485,6 +491,12 @@ char handleTransReq(fixed_data_t *fixed, trans_commit_data_t *transinfo, unsigne
               size += sizeof(objheader_t);
               numBytes += size;
               control = TRANS_DISAGREE;
+
+#ifdef CHECKTA
+  char b[] = "version mismatch";
+  char c[] = "object type";
+  TABORT3(__func__, b, c, TYPE(mobj));
+#endif
             }
           }
         }

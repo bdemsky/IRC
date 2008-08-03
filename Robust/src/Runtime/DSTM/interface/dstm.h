@@ -49,9 +49,6 @@
 
 //Max number of objects 
 #define MAX_OBJECTS  20
-//Max remote-machine connections
-#define NUM_MACHINES 2
-#define LOADFACTOR 0.5
 #define DEFAULT_OBJ_STORE_SIZE 1048510 //1MB
 //Transaction id per machine
 #define TID_LEN 20
@@ -83,6 +80,7 @@
 #include "sockpool.h"
 #include <signal.h>
 #include "plookup.h"
+#include "dsmdebug.h"
 
 //bit designations for status field of objheader
 #define DIRTY 0x01

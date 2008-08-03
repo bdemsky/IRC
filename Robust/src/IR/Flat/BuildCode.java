@@ -270,6 +270,10 @@ public class BuildCode {
     outmethod.println("printf(\"******  Transaction Stats   ******\\n\");");
     outmethod.println("printf(\"numTransAbort= %d\\n\", numTransAbort);");
     outmethod.println("printf(\"numTransCommit= %d\\n\", numTransCommit);");
+    outmethod.println("printf(\"nchashSearch= %d\\n\", nchashSearch);");
+    outmethod.println("printf(\"nmhashSearch= %d\\n\", nmhashSearch);");
+    outmethod.println("printf(\"nprehashSearch= %d\\n\", nprehashSearch);");
+    outmethod.println("printf(\"nRemoteReadSend= %d\\n\", nRemoteSend);");
     outmethod.println("#endif\n");
 	outmethod.println("}");
 
@@ -727,6 +731,10 @@ public class BuildCode {
       outclassdefs.print("#ifdef TRANSSTATS \n");
       outclassdefs.print("extern int numTransAbort;\n");
       outclassdefs.print("extern int numTransCommit;\n");
+      outclassdefs.print("extern int nchashSearch;\n");
+      outclassdefs.print("extern int nmhashSearch;\n");
+      outclassdefs.print("extern int nprehashSearch;\n");
+      outclassdefs.print("extern int nRemoteSend;\n");
       outclassdefs.print("extern void handle();\n");
       outclassdefs.print("#endif\n");
       outclassdefs.print("int numprefetchsites = " + pa.prefetchsiteid + ";\n");

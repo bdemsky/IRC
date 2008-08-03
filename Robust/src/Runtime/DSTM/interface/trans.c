@@ -1,6 +1,5 @@
 #include "dstm.h"
 #include "ip.h"
-#include "clookup.h"
 #include "machinepile.h"
 #include "mlookup.h"
 #include "llookup.h"
@@ -50,6 +49,10 @@ pthread_mutex_t atomicObjLock;
  **********************************/
 int numTransCommit = 0;
 int numTransAbort = 0;
+int nchashSearch = 0;
+int nmhashSearch = 0;
+int nprehashSearch = 0;
+int nRemoteSend = 0;
 
 void printhex(unsigned char *, int);
 plistnode_t *createPiles(transrecord_t *);
@@ -299,7 +302,7 @@ transrecord_t *transStart() {
     return NULL;
   }
   tmp->cache = objstrCreate(1048576);
-  tmp->lookupTable = chashCreate(HASH_SIZE, LOADFACTOR);
+  tmp->lookupTable = chashCreate(CHASH_SIZE, CLOADFACTOR);
 #ifdef COMPILER
   tmp->revertlist=NULL;
 #endif
@@ -319,7 +322,10 @@ objheader_t *transRead(transrecord_t *record, unsigned int oid) {
     return NULL;
   }
   
-  if((objheader = (objheader_t *)chashSearch(record->lookupTable, oid)) != NULL){
+  if((objheader = chashSearch(record->lookupTable, oid)) != NULL){
+#ifdef TRANSSTATS
+    nchashSearch++;
+#endif
     /* Search local transaction cache */
 #ifdef COMPILER
     return &objheader[1];
@@ -327,6 +333,9 @@ objheader_t *transRead(transrecord_t *record, unsigned int oid) {
     return objheader;
 #endif
   } else if ((objheader = (objheader_t *) mhashSearch(oid)) != NULL) {
+#ifdef TRANSSTATS
+    nmhashSearch++;
+#endif
     /* Look up in machine lookup table  and copy  into cache*/
     GETSIZE(size, objheader);
     size += sizeof(objheader_t);
@@ -341,6 +350,9 @@ objheader_t *transRead(transrecord_t *record, unsigned int oid) {
     return objcopy;
 #endif
   } else if((tmp = (objheader_t *) prehashSearch(oid)) != NULL) { 
+#ifdef TRANSSTATS
+    nprehashSearch++;
+#endif
     /* Look up in prefetch cache */
     GETSIZE(size, tmp);
     size+=sizeof(objheader_t);
@@ -365,6 +377,9 @@ objheader_t *transRead(transrecord_t *record, unsigned int oid) {
       printf("Error: Object not found in Remote location %s, %d\n", __FILE__, __LINE__);
       return NULL;
     } else {
+#ifdef TRANSSTATS
+    nRemoteSend++;
+#endif
       STATUS(objcopy)=0;      
 #ifdef COMPILER
       return &objcopy[1];
@@ -410,7 +425,7 @@ plistnode_t *createPiles(transrecord_t *record) {
       if(curr->key == 0)
 	break;
       
-      if ((headeraddr = chashSearch(record->lookupTable, curr->key)) == NULL) {
+      if ((headeraddr = (objheader_t *) chashSearch(record->lookupTable, curr->key)) == NULL) {
 	printf("Error: No such oid %s, %d\n", __FILE__, __LINE__);
 	return NULL;
       }
@@ -605,6 +620,10 @@ int transCommit(transrecord_t *record) {
 #ifdef TRANSSTATS
     numTransAbort++;
 #endif
+#ifdef CHECKTB
+    char a[] = "Aborting";
+    TABORT1(a);
+#endif
     /* Free Resources */
     objstrDelete(record->cache);
     chashDelete(record->lookupTable);
@@ -615,6 +634,10 @@ int transCommit(transrecord_t *record) {
   } else if(treplyctrl == TRANS_COMMIT) {
 #ifdef TRANSSTATS
     numTransCommit++;
+#endif
+#ifdef CHECKTB
+    char a[] = "Commiting";
+    TABORT1(a);
 #endif
     /* Free Resources */
     objstrDelete(record->cache);
@@ -649,10 +672,10 @@ void *transRequest(void *threadarg) {
     printf("transRequest(): socket create error\n");
     pthread_exit(NULL);
   }
-  
+
   /* Send bytes of data with TRANS_REQUEST control message */
   send_data(sd, &(tdata->buffer->f), sizeof(fixed_data_t));
-  
+
   /* Send list of machines involved in the transaction */
   {
     int size=sizeof(unsigned int)*tdata->buffer->f.mcount;
@@ -694,6 +717,10 @@ void *transRequest(void *threadarg) {
       objheader_t * header;
       header = (objheader_t *) (((char *)newAddr) + offset);
       oidToPrefetch = OID(header);
+#ifdef CHECKTA
+      char a[] = "object type";
+      TABORT8(__func__, a, TYPE(header));
+#endif
       int size = 0;
       GETSIZE(size, header);
       size += sizeof(objheader_t);
@@ -709,7 +736,13 @@ void *transRequest(void *threadarg) {
       offset += size;
     }
   }
+
   recvcontrol = control;
+#ifdef CHECKTA
+  char a[] = "mid";
+  char c[] = "status";
+  TABORT5(__func__, a, c, tdata->mid, control);
+#endif
   /* Update common data structure and increment count */
   tdata->recvmsg[tdata->thread_id].rcv_status = recvcontrol;
   
@@ -727,7 +760,18 @@ void *transRequest(void *threadarg) {
     pthread_cond_wait(tdata->threshold, tdata->lock);
   }
   pthread_mutex_unlock(tdata->lock);
+
+  /* Invalidate objects in other machine cache */
+  if(*(tdata->replyctrl) == TRANS_COMMIT) {
+    if(tdata->buffer->f.nummod > 0) {
+      if((retval = invalidateObj(tdata)) != 0) {
+        printf("Error: %s() in invalidating Objects %s, %d\n", __func__, __FILE__, __LINE__);
+        return;
+      }
+    }
+  }
   
+
   /* Send the final response such as TRANS_COMMIT or TRANS_ABORT 
    * to all participants in their respective socket */
   if (sendResponse(tdata, sd) == 0) { 
@@ -744,6 +788,7 @@ void *transRequest(void *threadarg) {
   } else {
     //printf("DEBUG-> Error: Incorrect Transaction End Message %d\n", control);
   }
+
   pthread_exit(NULL);
 }
 
@@ -786,17 +831,10 @@ void decideResponse(thread_data_array_t *tdata) {
     *(tdata->replyctrl) = TRANS_COMMIT;
     *(tdata->replyretry) = 0;
     int retval;
+    /* Update prefetch cache */
     if((retval = updatePrefetchCache(tdata)) != 0) {
       printf("Error: %s() in updating prefetch cache %s, %d\n", __func__, __FILE__, __LINE__);
       return;
-    }
-
-    /* Invalidate objects in other machine cache */
-    if(tdata->buffer->f.nummod > 0) {
-      if((retval = invalidateObj(tdata)) != 0) {
-        printf("Error: %s() in invalidating Objects %s, %d\n", __func__, __FILE__, __LINE__);
-        return;
-      }
     }
   } else { 
     /* Send Abort in soft abort case followed by retry commiting transaction again*/
@@ -929,6 +967,13 @@ void *handleLocalReq(void *threadarg) {
           v_nomatch++;
           /* Send TRANS_DISAGREE to Coordinator */
           localtdata->tdata->recvmsg[localtdata->tdata->thread_id].rcv_status = TRANS_DISAGREE;
+#ifdef CHECKTA
+  char a[] = "mid";
+  char b[] = "version mismatch";
+  char c[] = "object type";
+  TABORT7(__func__, b, a, c, localtdata->tdata->mid, TYPE(mobj));
+#endif
+          break;
         }
       } else {
 	//we're locked
@@ -941,6 +986,13 @@ void *handleLocalReq(void *threadarg) {
           v_nomatch++;
           /* Send TRANS_DISAGREE to Coordinator */
           localtdata->tdata->recvmsg[localtdata->tdata->thread_id].rcv_status = TRANS_DISAGREE;
+#ifdef CHECKTA
+  char a[] = "mid";
+  char b[] = "version mismatch";
+  char c[] = "object type";
+  TABORT7(__func__, b, a, c, localtdata->tdata->mid, TYPE(mobj));
+#endif
+          break;
         }
       }
     }
@@ -951,6 +1003,12 @@ void *handleLocalReq(void *threadarg) {
   }
   /* Condition to send TRANS_SOFT_ABORT */
   if((v_matchlock > 0 && v_nomatch == 0) || (numoidnotfound > 0 && v_nomatch == 0)) {
+#ifdef CHECKTA
+  char a[] = "mid";
+  char b[] = "version mismatch";
+  char c[] = "object type";
+  TABORT7(__func__, b, a, c, localtdata->tdata->mid, TYPE(mobj));
+#endif
     localtdata->tdata->recvmsg[localtdata->tdata->thread_id].rcv_status = TRANS_SOFT_ABORT;
   }
   
@@ -1434,6 +1492,10 @@ int processConfigFile()
 	myIpAddr = getMyIpAddr("en1");
 #else
 	myIpAddr = getMyIpAddr("eth0");
+#endif
+
+#ifdef CHECKTA
+    printf("My ip address = %x", myIpAddr);
 #endif
 	myIndexInHostArray = findHost(myIpAddr);
 	if (myIndexInHostArray == -1)

@@ -1,4 +1,4 @@
- #include "clookup.h"
+#include "clookup.h"
 #define INLINE    inline __attribute__((always_inline))
 
 chashtable_t *chashCreate(unsigned int size, float loadfactor) {
@@ -67,7 +67,7 @@ unsigned int chashInsert(chashtable_t *table, unsigned int key, void *val) {
 }
 
 // Search for an address for a given oid
-static INLINE void * chashSearch(chashtable_t *table, unsigned int key) {
+INLINE void * chashSearch(chashtable_t *table, unsigned int key) {
   //REMOVE HASH FUNCTION CALL TO MAKE SURE IT IS INLINED HERE
   chashlistnode_t *node = &table->table[(key & table->mask)>>1];
   
