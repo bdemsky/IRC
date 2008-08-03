@@ -312,7 +312,7 @@ objheader_t *transRead(transrecord_t *record, unsigned int oid) {
   unsigned int machinenumber;
   objheader_t *tmp, *objheader;
   objheader_t *objcopy;
-  int size, found = 0;
+  int size;
   void *buf;
   
   if(oid == 0) {
