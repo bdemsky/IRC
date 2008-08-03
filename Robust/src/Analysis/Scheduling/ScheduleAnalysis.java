@@ -372,7 +372,11 @@ public class ScheduleAnalysis {
 	    int repeat = (int)Math.ceil(se.getNewRate() * se.getProbability() / 100);
 	    if(merge) {
 		try {
-		    rate = (int)Math.ceil((se.getTransTime() - calInExeTime(se.getSourceFState()))/ se.getListExeTime());
+		    if(se.getListExeTime() == 0) {
+				rate = repeat;
+			} else {
+				rate = (int)Math.ceil((se.getTransTime() - calInExeTime(se.getSourceFState()))/ se.getListExeTime());
+			}
 		    if(rate < 0 ) {
 			rate = 0;
 		    }

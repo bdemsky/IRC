@@ -1859,7 +1859,7 @@ bool getreadlock(void * ptr) {
 #ifdef RAW
 	unsigned msgHdr;
 	int self_y, self_x, target_y, target_x;
-	int targetcore = ((int)ptr >> 1) % TOTALCORE;
+	int targetcore = ((int)ptr >> 5) % TOTALCORE;
 	// for 32 bit machine, the size is always 4 words
 	//int msgsize = sizeof(int) * 4;
 	int msgsize = 4;
@@ -2004,7 +2004,7 @@ void releasereadlock(void * ptr) {
 #ifdef RAW
 	unsigned msgHdr;
 	int self_y, self_x, target_y, target_x;
-	int targetcore = ((int)ptr >> 1) % TOTALCORE;
+	int targetcore = ((int)ptr >> 5) % TOTALCORE;
 	// for 32 bit machine, the size is always 3 words
 	//int msgsize = sizeof(int) * 3;
 	int msgsize = 3;
@@ -2075,7 +2075,7 @@ void releasereadlock(void * ptr) {
 bool getreadlock_I(void * ptr) {
 	unsigned msgHdr;
 	int self_y, self_x, target_y, target_x;
-	int targetcore = ((int)ptr >> 1) % TOTALCORE;
+	int targetcore = ((int)ptr >> 5) % TOTALCORE;
 	// for 32 bit machine, the size is always 4 words
 	//int msgsize = sizeof(int) * 4;
 	int msgsize = 4;
@@ -2158,7 +2158,7 @@ bool getreadlock_I(void * ptr) {
 void releasereadlock_I(void * ptr) {
 	unsigned msgHdr;
 	int self_y, self_x, target_y, target_x;
-	int targetcore = ((int)ptr >> 1) % TOTALCORE;
+	int targetcore = ((int)ptr >> 5) % TOTALCORE;
 	// for 32 bit machine, the size is always 3 words
 	//int msgsize = sizeof(int) * 3;
 	int msgsize = 3;
@@ -2210,7 +2210,7 @@ bool getwritelock(void * ptr) {
 #ifdef RAW
 	unsigned msgHdr;
 	int self_y, self_x, target_y, target_x;
-	int targetcore = ((int)ptr >> 1) % TOTALCORE;
+	int targetcore = ((int)ptr >> 5) % TOTALCORE;
 	// for 32 bit machine, the size is always 4 words
 	//int msgsize = sizeof(int) * 4;
 	int msgsize= 4;
@@ -2393,7 +2393,7 @@ void releasewritelock(void * ptr) {
 #ifdef RAW
 	unsigned msgHdr;
 	int self_y, self_x, target_y, target_x;
-	int targetcore = ((int)ptr >> 1) % TOTALCORE;
+	int targetcore = ((int)ptr >> 5) % TOTALCORE;
 	// for 32 bit machine, the size is always 3 words
 	//int msgsize = sizeof(int) * 3;
 	int msgsize = 3;
@@ -3056,7 +3056,6 @@ execute:
 	  } else {
 	    ((void (*) (void **)) currtpd->task->taskptr)(taskpointerarray);
 	  }
-
 	  if(lock) {
 #ifdef RAW
 	   for(i = 0; i < numparams; ++i) {
