@@ -8,12 +8,12 @@ SRC1=${MAINCLASS}Nold.java \
 	Node.java \
 	Barrier.java
 
-FLAGS=-dsm -prefetch -profile -excprefetch Em3d.main -excprefetch BiGraph.create -excprefetch Node.Node -excprefetch Node.fillTable -excprefetch Node.makeUniqueNeighbors -excprefetch Node.makeFromNodes -excprefetch Node.updateFromNodes -nooptimize -debug -mainclass ${MAINCLASS} -trueprob 0.91
-FLAGS2=-dsm -nooptimize -debug -profile -mainclass ${MAINCLASS}
+FLAGS=-dsm -prefetch -optimize -transstats -excprefetch Em3d.main -excprefetch BiGraph.create -excprefetch Node.Node -excprefetch Node.fillTable -excprefetch Node.makeUniqueNeighbors -excprefetch Node.makeFromNodes -excprefetch Node.updateFromNodes -nooptimize -debug -mainclass ${MAINCLASS} -trueprob 0.91
+FLAGS2=-dsm -optimize -transstats -mainclass ${MAINCLASS}
 
 default:
-	../../../../buildscript ${FLAGS2} -o ${MAINCLASS}NP ${SRC}
-	../../../../buildscript ${FLAGS} -o ${MAINCLASS} ${SRC}
+#	../../../../buildscript ${FLAGS2} -o ${MAINCLASS}NP ${SRC}
+#	../../../../buildscript ${FLAGS} -o ${MAINCLASS} ${SRC}
 	../../../../buildscript ${FLAGS2} -o ${MAINCLASS}NNP ${SRC1}
 	../../../../buildscript ${FLAGS} -o ${MAINCLASS}N ${SRC1}
 	cp ${MAINCLASS}NNP.bin ${MAINCLASS}1NP.bin
