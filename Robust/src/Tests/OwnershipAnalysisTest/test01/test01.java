@@ -57,17 +57,11 @@ task Startup( StartupObject s{ initialstate } ) {
     while( false ) {
 	Foo a = new Foo();
 	a.x   = new Foo();
-	a.x.x = new Foo();
+       	a.x.x = new Foo();
+
+	//Foo z = a.x;
+	//z.x = new Foo();
     }
-    
-    
-    Foo b;
-    while( false ) {
-	Foo c = new Foo();
-	c.x = b;
-	b = c;
-    }
-    
     
     Foo d = new Foo();
     Foo e = new Foo();
@@ -75,6 +69,19 @@ task Startup( StartupObject s{ initialstate } ) {
 
     d.x = e;
     e.x = f;    
+
+    // to look like Foo a above
+    //d.x.x = f;
+
+
+    /*
+    Foo b;
+    while( false ) {
+	Foo c = new Foo();
+	c.x = b;
+	b = c;
+    }
+    */
 
     taskexit( s{ !initialstate } );
 }

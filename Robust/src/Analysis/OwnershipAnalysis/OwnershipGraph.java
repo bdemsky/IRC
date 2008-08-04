@@ -157,10 +157,10 @@ public class OwnershipGraph {
 	}    
     }
     
-    protected void propagateTokens( HeapRegionNode                   nPrime,
-				    ChangeTupleSet                   c0,
-				    HashSet<HeapRegionNode>          nodesWithNewAlpha,
-				    HashSet<ReferenceEdgeProperties> edgesWithNewBeta ) {
+    protected void propagateTokensOverNodes( HeapRegionNode                   nPrime,
+					     ChangeTupleSet                   c0,
+					     HashSet<HeapRegionNode>          nodesWithNewAlpha,
+					     HashSet<ReferenceEdgeProperties> edgesWithNewBeta ) {
 
 	HashSet<HeapRegionNode> todoNodes
 	    = new HashSet<HeapRegionNode>();
@@ -249,7 +249,17 @@ public class OwnershipGraph {
 	    }
 	}
 
+	propagateTokensOverEdges( todoEdges, edgePlannedChanges, nodesWithNewAlpha, edgesWithNewBeta );
+    }
+
+
+    protected void propagateTokensOverEdges( 
+	 HashSet<ReferenceEdgeProperties>                   todoEdges,
+	 Hashtable<ReferenceEdgeProperties, ChangeTupleSet> edgePlannedChanges,
+	 HashSet<HeapRegionNode>                            nodesWithNewAlpha,
+	 HashSet<ReferenceEdgeProperties>                   edgesWithNewBeta ) {
        
+
 	while( !todoEdges.isEmpty() ) {
 	    ReferenceEdgeProperties e = todoEdges.iterator().next();
 	    todoEdges.remove( e );
@@ -400,14 +410,41 @@ public class OwnershipGraph {
 		
 		ReachabilitySet O = srcln.getReferenceTo( hrnSrc ).getBeta();
 
+
+		// propagate tokens over nodes starting from hrnSrc, and it will
+		// take care of propagating back up edges from any touched nodes
+		ChangeTupleSet Cy = O.unionUpArityToChangeSet( R );
+		propagateTokensOverNodes( hrnSrc, Cy, nodesWithNewAlpha, edgesWithNewBeta );
+
+
+		// then propagate back just up the edges from hrn
+		ChangeTupleSet Cx = R.unionUpArityToChangeSet( O );
+
+		HashSet<ReferenceEdgeProperties> todoEdges = 
+		    new HashSet<ReferenceEdgeProperties>();
+
+		Hashtable<ReferenceEdgeProperties, ChangeTupleSet> edgePlannedChanges =
+		    new Hashtable<ReferenceEdgeProperties, ChangeTupleSet>();
+
+		Iterator referItr = hrn.iteratorToReferencers();
+		while( referItr.hasNext() ) {
+		    OwnershipNode onRef = (OwnershipNode) referItr.next();
+		    ReferenceEdgeProperties repUpstream = onRef.getReferenceTo( hrn );
+
+		    todoEdges.add( repUpstream );
+		    edgePlannedChanges.put( repUpstream, Cx );
+		}
+
+		propagateTokensOverEdges( todoEdges, 
+					  edgePlannedChanges,
+					  nodesWithNewAlpha,
+					  edgesWithNewBeta );
+
+		// finally, create the actual reference edge hrn->hrnSrc
 		ReferenceEdgeProperties repNew 
-		    = new ReferenceEdgeProperties( false, false, repSrc.getBeta() );
+		    = new ReferenceEdgeProperties( false, false, repSrc.getBetaNew() );
 
 		addReferenceEdge( hrn, hrnSrc, repNew );
-
-		ChangeTupleSet Cy = O.unionUpArityToChangeSet( R );
-
-		propagateTokens( hrnSrc, Cy, nodesWithNewAlpha, edgesWithNewBeta );
 	    }
 	}	
 
