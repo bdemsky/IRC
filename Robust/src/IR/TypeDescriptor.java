@@ -30,7 +30,7 @@ public class TypeDescriptor extends Descriptor {
 	    TypeDescriptor t=(TypeDescriptor)o;
 	    if (t.type!=type)
 		return false;
-	    if ((type==CLASS)&&(t.class_desc!=class_desc))
+	    if ((type==CLASS)&&(!t.getSymbol().equals(getSymbol())))
 		return false;
 	    if (t.arraycount!=arraycount)
 		return false;
@@ -253,9 +253,19 @@ public class TypeDescriptor extends Descriptor {
     }
 
     public String toString() {
-	if (type==CLASS)
+	if (type==CLASS) {
 	    return name;
-	else 
+	} else 
+	    return decodeInt(type);
+    }
+
+    public String toPrettyString() {
+	if (type==CLASS) {
+	    String str=name;
+	    for(int i=0;i<arraycount;i++)
+		str+="[]";
+	    return str;
+	} else 
 	    return decodeInt(type);
     }
 
