@@ -202,7 +202,8 @@ public class ReachabilitySet extends Canonical {
 
 
     public ReachabilitySet ageTokens( AllocationSite as ) {	
-
+	assert as != null;
+	
 	ReachabilitySet rsOut = new ReachabilitySet();
 
 	Iterator itrS = this.iterator();
@@ -212,6 +213,32 @@ public class ReachabilitySet extends Canonical {
 	}
 
 	return rsOut.makeCanonical();
+    }
+
+
+    public ReachabilitySet pruneBy( ReachabilitySet rsIn ) {
+	assert rsIn != null;
+
+	ReachabilitySet rsOut = new ReachabilitySet();
+
+	Iterator itrB = this.iterator();
+	while( itrB.hasNext() ) {
+	    TokenTupleSet ttsB = (TokenTupleSet) itrB.next();
+
+	    boolean subsetExists = false;
+
+	    Iterator itrA = rsIn.iterator();
+	    while( itrA.hasNext() && !subsetExists ) {
+		TokenTupleSet ttsA = (TokenTupleSet) itrA.next();
+	    
+		if( ttsA.isSubset( ttsB ) ) {
+		    subsetExists = true;
+		    rsOut.possibleReachabilities.add( ttsB );		    
+		}
+	    }
+	}
+
+	return rsOut.makeCanonical();	
     }
 
 

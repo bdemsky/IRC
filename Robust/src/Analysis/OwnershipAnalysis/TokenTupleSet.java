@@ -76,6 +76,11 @@ public class TokenTupleSet extends Canonical {
 	return tokenTuples.isEmpty();
     }
 
+    public boolean isSubset( TokenTupleSet ttsIn ) {
+	assert ttsIn != null;
+	return ttsIn.tokenTuples.containsAll( this.tokenTuples );
+    }
+
     public boolean containsTuple( TokenTuple tt ) {
 	return tokenTuples.contains( tt );
     }

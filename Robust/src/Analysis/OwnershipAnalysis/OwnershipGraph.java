@@ -442,7 +442,10 @@ public class OwnershipGraph {
 
 		// finally, create the actual reference edge hrn->hrnSrc
 		ReferenceEdgeProperties repNew 
-		    = new ReferenceEdgeProperties( false, false, repSrc.getBetaNew() );
+		    = new ReferenceEdgeProperties( false, 
+						   false, 
+						   repSrc.getBetaNew().pruneBy( hrn.getAlpha() )
+						 );
 
 		addReferenceEdge( hrn, hrnSrc, repNew );
 	    }
