@@ -20,6 +20,7 @@ typedef struct sockPoolHashTable {
     volatile unsigned int mylock;
 } sockPoolHashTable_t;
 
+void addSockWithLock(sockPoolHashTable_t *sockhash, socknode_t *ptr);
 sockPoolHashTable_t *createSockPool(sockPoolHashTable_t *, unsigned int);
 int getSock(sockPoolHashTable_t *, unsigned int);
 int getSock2(sockPoolHashTable_t *, unsigned int);

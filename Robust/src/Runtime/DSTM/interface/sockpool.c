@@ -181,11 +181,19 @@ int getSock2WithLock(sockPoolHashTable_t *sockhash, unsigned int mid) {
     socknode_t *inusenode = calloc(1, sizeof(socknode_t));
     inusenode->sd = sd;
     inusenode->mid = mid;
-    insToListWithLock(sockhash, inusenode);
+    addSockWithLock(sockhash, inusenode);
     return sd;
   } else {
     return -1;
   }
+}
+
+void addSockWithLock(sockPoolHashTable_t *sockhash, socknode_t *ptr) {
+  int key = ptr->mid%(sockhash->size);
+  Lock(&sockhash->mylock);
+  ptr->next = sockhash->table[key];
+  sockhash->table[key] = ptr;
+  UnLock(&sockhash->mylock);
 }
 
 void insToListWithLock(sockPoolHashTable_t *sockhash, socknode_t *inusenode) {
