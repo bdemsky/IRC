@@ -307,7 +307,7 @@ public class Main {
 					  int newRate = 1;
 					  String cdname = cd.getSymbol();
 					  if(cdname.equals("SeriesRunner")) {
-					      newRate = 10;
+					      newRate = 16;
 					  } else if(cdname.equals("MapWorker")) {
 					      newRate = 6;
 					  } else if(cdname.equals("ReduceWorker")) {
@@ -332,7 +332,7 @@ public class Main {
 			      /*do {
 				  tint = r.nextInt()%10;
 			      } while(tint <= 0);*/
-			      tint = 1;
+			      tint = 3;
 			      ((FEdge)it_edges.next()).setExeTime(tint);
 			  }
 		      }
@@ -368,7 +368,7 @@ public class Main {
 	      }
 	      System.out.print("Selected schedulings with least exectution time " + processTime + ": \n\t");
 	      for(int i = 0; i < selectedScheduling.size(); i++) {
-		  System.out.print(selectedScheduling.elementAt(i) + ", ");
+		  System.out.print((selectedScheduling.elementAt(i) + 1) + ", ");
 	      }
 	      System.out.println();
 	      

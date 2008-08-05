@@ -94,11 +94,16 @@ public class ScheduleAnalysis {
     	    sFStates = null;
     	}
 
+    	ScheduleNode startupNode = null;
     	// For each ClassNode create a ScheduleNode containing it
     	int i = 0;
     	for(i = 0; i < classNodes.size(); i++) {
-	    ScheduleNode sn = new ScheduleNode(classNodes.elementAt(i), 0);
-	    classNodes.elementAt(i).setScheduleNode(sn);
+    	    ClassNode cn = classNodes.elementAt(i);
+	    ScheduleNode sn = new ScheduleNode(cn, 0);
+	    if(cn.getClassDescriptor().getSymbol().equals(TypeUtil.StartupClass)) {
+		startupNode = sn;
+	    }
+	    cn.setScheduleNode(sn);
 	    scheduleNodes.add(sn);
 	    try {
 	    	sn.calExeTime();
@@ -160,7 +165,7 @@ public class ScheduleAnalysis {
 	    }
     	}
     	cdToCNodes = null;
-
+    	
 	// Break down the 'cycle's
     	try {
     	    for(i = 0; i < toBreakDown.size(); i++ ) {
@@ -191,6 +196,21 @@ public class ScheduleAnalysis {
     	scheduleEdges = ssev;
     	ssev = null;
     	sorted = true;
+    	
+    	// Set the cid of these ScheduleNode
+    	Queue<ScheduleNode> toVisit = new LinkedList<ScheduleNode>();
+    	toVisit.add(startupNode);
+    	while(!toVisit.isEmpty()) {
+    	    ScheduleNode sn = toVisit.poll();
+    	    if(sn.getCid() == -1) {
+    		// not visited before
+    		sn.setCid(ScheduleNode.colorID++);
+    		Iterator it_edge = sn.edges();
+    		while(it_edge.hasNext()) {
+    		    toVisit.add((ScheduleNode)((ScheduleEdge)it_edge.next()).getTarget());
+    		}
+    	    }
+    	}
 	
 	SchedulingUtil.printScheduleGraph("scheduling_ori.dot", this.scheduleNodes);
     }
@@ -710,78 +730,52 @@ public class ScheduleAnalysis {
 	
 	int reduceNum = this.scheduleNodes.size() - this.coreNum;
 	
-	// Enough cores, no need to merge more ScheduleEdge
+	// Combine some ScheduleNode if necessary
+	// May generate multiple graphs suggesting candidate schedulings
 	if(!(reduceNum > 0)) {
+	    // Enough cores, no need to combine any ScheduleNode
 	    this.scheduleGraphs.addElement(this.scheduleNodes);
 	    int gid = 1;
 	    String path = "scheduling_" + gid + ".dot";
 	    SchedulingUtil.printScheduleGraph(path, this.scheduleNodes);
 	} else {
-	    // sort the ScheduleEdges in dececending order of transmittime
-	    Vector<ScheduleEdge> sEdges = new Vector<ScheduleEdge>();
-	    sEdges.addElement(this.scheduleEdges.elementAt(0));
-	    for(int i = 1; i < this.scheduleEdges.size(); i++) {
-		ScheduleEdge temp = this.scheduleEdges.elementAt(i);
-		int j = sEdges.size() - 1;
-		do {
-		    if(temp.getTransTime() > sEdges.elementAt(j--).getTransTime()) {
-			break;
-		    }
-		} while(j >= 0);
-		sEdges.add(j+1, temp);
-	    }
-
-	    int temp = sEdges.elementAt(reduceNum - 1).getTransTime();
-	    for(int i = sEdges.size() - 1; i > reduceNum - 1; i--) {
-		if(sEdges.elementAt(i).getTransTime() != temp) {
-		    sEdges.removeElementAt(i);
-		} else {
-		    break;
+	    // Go through all the Scheudle Nodes, organize them in order of their cid
+	    Vector<Vector<ScheduleNode>> sNodeVecs = new Vector<Vector<ScheduleNode>>();
+	    for(int i = 0; i < this.scheduleNodes.size(); i++) {
+		ScheduleNode tmpn = this.scheduleNodes.elementAt(i);
+		int index = tmpn.getCid();
+		while(sNodeVecs.size() <= index) {
+		    sNodeVecs.add(null);
 		}
+		if(sNodeVecs.elementAt(index) == null) {
+		    sNodeVecs.setElementAt(new Vector<ScheduleNode>(), index);
+		}
+		sNodeVecs.elementAt(index).add(tmpn);
 	    }
-	    int start = reduceNum - 2;
-	    for(; start >= 0; start--) {
-		if(sEdges.elementAt(start).getTransTime() != temp) {
-		    start++;
-		    reduceNum -= start;
-		    break;
-		} 
-	    }
-	    if(start < 0) {
-		start = 0;
-	    }
-
-	    // generate scheduling
-	    Vector candidates = new Vector();
-	    for(int i = start; i < sEdges.size(); i++) {
-		candidates.addElement(Integer.valueOf(i));
-	    }
-	    Combination combGen = new Combination(candidates, reduceNum);
-	    int gid = 1;
-	    do {
-		Vector toreduce = combGen.next();
-		if(toreduce != null) {
-		    Vector<ScheduleEdge> reduceEdges = new Vector<ScheduleEdge>();
-		    for(int i = 0; i < start; i++) {
-			reduceEdges.add(sEdges.elementAt(i));
-		    }
-		    for(int i = 0; i < toreduce.size(); i++) {
-			reduceEdges.add(sEdges.elementAt(((Integer)toreduce.elementAt(i)).intValue()));
-		    }
-		    Vector<ScheduleNode> sNodes = generateScheduling(reduceEdges, gid++);
+	    
+	    CombinationUtil.RootsGenerator rGen = CombinationUtil.allocateRootsGenerator(sNodeVecs, this.coreNum);
+	    
+	    while(rGen.nextGen()) {
+		// first get the chosen rootNodes
+		Vector<Vector<ScheduleNode>> rootNodes = rGen.getRootNodes();
+		Vector<Vector<ScheduleNode>> nodes2combine = rGen.getNode2Combine();
+		
+		CombinationUtil.CombineGenerator cGen = CombinationUtil.allocateCombineGenerator(rootNodes, nodes2combine);
+		int gid = 1;
+		while (cGen.nextGen()) {
+		    Vector<Vector<CombinationUtil.Combine>> combine = cGen.getCombine();
+		    Vector<ScheduleNode> sNodes = generateScheduling(rootNodes, combine, gid++);
 		    this.scheduleGraphs.add(sNodes);
-		    reduceEdges = null;
+		    combine = null;
 		    sNodes = null;
-		} else {
-		    break;
 		}
-		toreduce = null;
-	    }while(true);
-	    sEdges = null;
-	    candidates = null;
-
+		rootNodes = null;
+		nodes2combine = null;
+	    }
+	    sNodeVecs = null;
 	}
 	
+	// Generate schedulings according to result schedule graph
 	if(this.schedulings == null) {
 	    this.schedulings = new Vector<Vector<Schedule>>();
 	}
@@ -954,10 +948,9 @@ public class ScheduleAnalysis {
 	    
 	    this.schedulings.add(scheduling);
 	}
-	
     }
     
-    public Vector<ScheduleNode> generateScheduling(Vector<ScheduleEdge> reduceEdges, int gid) {
+    public Vector<ScheduleNode> generateScheduling(Vector<Vector<ScheduleNode>> rootnodes, Vector<Vector<CombinationUtil.Combine>> combine, int gid) {
 	Vector<ScheduleNode> result = new Vector<ScheduleNode>();
 
 	// clone the ScheduleNodes
@@ -972,8 +965,7 @@ public class ScheduleAnalysis {
 	    sn2sn.put(tocopy, temp);
 	    cn2cn = null;
 	}
-	// clone the ScheduleEdges and merge those in reduceEdges at the same time
-	Vector<ScheduleEdge> toMerge = new Vector<ScheduleEdge>();
+	// clone the ScheduleEdges
 	for(int i = 0; i < this.scheduleEdges.size(); i++) {
 	    ScheduleEdge sse = this.scheduleEdges.elementAt(i);
 	    ScheduleNode csource = sn2sn.get(sse.getSource());
@@ -999,129 +991,44 @@ public class ScheduleAnalysis {
 	    se.setTargetFState(sse.getTargetFState());
 	    se.setIsclone(true);
 	    csource.addEdge(se);
-	    if(reduceEdges.contains(sse)) {
-		toMerge.add(se);
-	    } 
 	    sourcecn2cn = null;
 	    targetcn2cn = null;
 	}
+	
+	// combine those nodes in combine with corresponding rootnodes
+	for(int i = 0; i < combine.size(); i++) {
+	    for(int j = 0; j < combine.elementAt(i).size(); j++) {
+		CombinationUtil.Combine tmpcombine = combine.elementAt(i).elementAt(j);
+		ScheduleNode tocombine = sn2sn.get(tmpcombine.node);
+		ScheduleNode root = sn2sn.get(rootnodes.elementAt(tmpcombine.root).elementAt(tmpcombine.index));
+		ScheduleEdge se = (ScheduleEdge)tocombine.inedges().next();
+		try{
+		    if(root.equals(((ScheduleNode)se.getSource()))) {
+			root.mergeSEdge(se);
+			if(ScheduleEdge.NEWEDGE == se.getType()) {
+			    // As se has been changed into an internal edge inside a ScheduleNode, 
+			    // change the source and target of se from original ScheduleNodes into ClassNodes.
+			    se.setTarget(se.getTargetCNode());
+			    se.setSource(se.getSourceCNode());
+			    se.getTargetCNode().addEdge(se);
+			}
+		    } else {
+			root.mergeSNode(tocombine);
+		    }
+		} catch(Exception e) {
+		    e.printStackTrace();
+		    System.exit(-1);
+		}
+		result.removeElement(tocombine);
+	    }
+	}
+	
 	sn2hash = null;
 	sn2sn = null;
-	
-	for(int i = 0; i < toMerge.size(); i++) {
-	    ScheduleEdge sEdge = toMerge.elementAt(i);
-	    // merge this edge
-	    switch(sEdge.getType()) {
-	    case ScheduleEdge.NEWEDGE: {
-		try {
-		    ((ScheduleNode)sEdge.getSource()).mergeSEdge(sEdge);
-		} catch(Exception e) {
-		    e.printStackTrace();
-		    System.exit(-1);
-		}
-		break;
-	    } 
-	    case ScheduleEdge.TRANSEDGE: {
-		try {
-		    ((ScheduleNode)sEdge.getSource()).mergeSEdge(sEdge);
-		} catch(Exception e) {
-		    e.printStackTrace();
-		    System.exit(-1);
-		}
-		break;
-	    }
-	    }
-	    result.removeElement(sEdge.getTarget());
-	    if(ScheduleEdge.NEWEDGE == sEdge.getType()) {
-		// As se has been changed into an internal edge inside a ScheduleNode, 
-		// change the source and target of se from original ScheduleNodes into ClassNodes.
-		sEdge.setTarget(sEdge.getTargetCNode());
-		sEdge.setSource(sEdge.getSourceCNode());
-		sEdge.getTargetCNode().addEdge(sEdge);
-	    } 
-	}
-	toMerge = null;
 	
 	String path = "scheduling_" + gid + ".dot";
 	SchedulingUtil.printScheduleGraph(path, result);
 	
 	return result;
-    }
-    
-    class Combination{
-	Combination tail;
-	Object head;
-	Vector factors;
-	int selectNum;
-	int resultNum;
-	
-	public Combination(Vector factors, int selectNum) throws Exception{
-	    this.factors = factors;
-	    if(factors.size() < selectNum) {
-		throw new Exception("Error: selectNum > candidates' number in combination.");
-	    }
-	    if(factors.size() == selectNum) {
-		this.resultNum = 1;
-		head = null;
-		tail = null;
-		return;
-	    } 
-	    this.head = this.factors.remove(0);
-	    if(selectNum == 1) {
-		this.resultNum = this.factors.size() + 1;
-		this.tail = null;
-		return;
-	    }	
-	    this.tail = new Combination((Vector)this.factors.clone(), selectNum - 1);
-	    this.selectNum = selectNum;
-	    this.resultNum = 1;
-	    for(int i = factors.size(); i > selectNum; i--) {
-		this.resultNum *= i;
-	    }
-	    for(int i = factors.size() - selectNum; i > 0; i--) {
-		this.resultNum /= i;
-	    }
-	}
-	
-	public Vector next() {
-	    if(resultNum == 0) {
-		return null;
-	    }
-	    if(head == null) {
-		resultNum--;
-		Vector result = this.factors;
-		return result;
-	    }
-	    if(this.tail == null) {
-		resultNum--;
-		Vector result = new Vector();
-		result.add(this.head);
-		if(resultNum != 0) {
-		    this.head = this.factors.remove(0);
-		}
-		return result;
-	    }
-	    Vector result = this.tail.next();
-	    if(result == null) {
-		if(this.factors.size() == this.selectNum) {
-		    this.head = null;
-		    this.tail = null;
-		    result = this.factors;
-		    this.resultNum--;
-		    return result;
-		}
-		this.head = this.factors.remove(0);
-		try {
-		    this.tail = new Combination((Vector)this.factors.clone(), selectNum - 1);
-		    result = this.tail.next();
-		} catch(Exception e) {
-		    e.printStackTrace();
-		}
-		
-	    }
-	    result.add(0, head);
-	    resultNum--;
-	    return result;
-	}
     }
 }
