@@ -157,10 +157,11 @@ public class OwnershipGraph {
 	}    
     }
     
+
     protected void propagateTokensOverNodes( HeapRegionNode                   nPrime,
 					     ChangeTupleSet                   c0,
 					     HashSet<HeapRegionNode>          nodesWithNewAlpha,
-					     HashSet<ReferenceEdgeProperties> edgesWithNewBeta ) {
+					     HashSet<ReferenceEdgeProperties> edgesWithNewBeta ) {	
 
 	HashSet<HeapRegionNode> todoNodes
 	    = new HashSet<HeapRegionNode>();
@@ -176,18 +177,10 @@ public class OwnershipGraph {
 	Hashtable<ReferenceEdgeProperties, ChangeTupleSet> edgePlannedChanges 
 	    = new Hashtable<ReferenceEdgeProperties, ChangeTupleSet>();
 	
-	Hashtable<HeapRegionNode, ChangeTupleSet> nodeChangesMade
-	    = new Hashtable<HeapRegionNode, ChangeTupleSet>();
 
 	while( !todoNodes.isEmpty() ) {
-	    HeapRegionNode n = todoNodes.iterator().next();
-	    todoNodes.remove( n );
-	    
+	    HeapRegionNode n = todoNodes.iterator().next();	   
 	    ChangeTupleSet C = nodePlannedChanges.get( n );
-
-	    if( !nodeChangesMade.containsKey( n ) ) {
-		nodeChangesMade.put( n, new ChangeTupleSet().makeCanonical() );
-	    }
 
 	    Iterator itrC = C.iterator();
 	    while( itrC.hasNext() ) {
@@ -197,11 +190,8 @@ public class OwnershipGraph {
 		    ReachabilitySet withChange = n.getAlpha().union( c.getSetToAdd() );
 		    n.setAlphaNew( n.getAlphaNew().union( withChange ) );
 		    nodesWithNewAlpha.add( n );
-		    nodeChangesMade.put( n, nodeChangesMade.get( n ).union( c ) );
 		}
 	    }
-
-	    ChangeTupleSet Cprime = nodeChangesMade.get( n );
 
 	    Iterator referItr = n.iteratorToReferencers();
 	    while( referItr.hasNext() ) {
@@ -213,7 +203,7 @@ public class OwnershipGraph {
 		    edgePlannedChanges.put( rep, new ChangeTupleSet().makeCanonical() );
 		}
 
-		edgePlannedChanges.put( rep, edgePlannedChanges.get( rep ).union( Cprime ) );
+		edgePlannedChanges.put( rep, edgePlannedChanges.get( rep ).union( C ) );
 	    }
 
 	    HeapRegionNode          m = null;
@@ -226,7 +216,7 @@ public class OwnershipGraph {
 
 		ChangeTupleSet changesToPass = new ChangeTupleSet().makeCanonical();
 
-		Iterator itrCprime = Cprime.iterator();
+		Iterator itrCprime = C.iterator();
 		while( itrCprime.hasNext() ) {
 		    ChangeTuple c = (ChangeTuple) itrCprime.next();
 		    if( f.getBeta().contains( c.getSetToMatch() ) ) {
@@ -242,11 +232,14 @@ public class OwnershipGraph {
 		    ChangeTupleSet currentChanges = nodePlannedChanges.get( m );
 
 		    if( !changesToPass.isSubset( currentChanges ) ) {
-			todoNodes.add( m );
+
 			nodePlannedChanges.put( m, currentChanges.union( changesToPass ) );
+			todoNodes.add( m );
 		    }
 		}
 	    }
+
+	    todoNodes.remove( n );
 	}
 
 	propagateTokensOverEdges( todoEdges, edgePlannedChanges, nodesWithNewAlpha, edgesWithNewBeta );

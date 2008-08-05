@@ -62,8 +62,13 @@ public class HeapRegionNode extends OwnershipNode {
     }
 
 
-    public boolean equals( HeapRegionNode hrn ) {
-	assert hrn != null;
+    public boolean equals( Object o ) {
+
+	if( !( o instanceof HeapRegionNode) ) {
+	    return false;
+	}
+
+	HeapRegionNode hrn = (HeapRegionNode) o;
 
 	return id.equals( hrn.getID() )            &&
 	    isSingleObject == hrn.isSingleObject() &&
@@ -71,6 +76,10 @@ public class HeapRegionNode extends OwnershipNode {
 	    isNewSummary   == hrn.isNewSummary()   &&
 	    alpha.equals( hrn.getAlpha() )         &&
 	    description.equals( hrn.getDescription() );
+    }
+
+    public int hashCode() {
+	return id.intValue();
     }
 
 

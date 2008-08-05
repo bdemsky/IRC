@@ -5,31 +5,31 @@ import IR.Flat.*;
 import java.util.*;
 
 public class LabelNode extends OwnershipNode {
+    protected TempDescriptor td;
 
     public LabelNode( TempDescriptor td ) {
 	this.td = td;
     }
 
-
-    /////////////////
-    // equality  
-    /////////////////
-    protected TempDescriptor td;
-
     public TempDescriptor getTempDescriptor() {
 	return td;
     }
 
-    public boolean equals( LabelNode ln ) {
-	assert ln != null;
+    public boolean equals( Object o ) {
+
+	if( !( o instanceof LabelNode) ) {
+	    return false;
+	}
+
+	LabelNode ln = (LabelNode) o;
+
 	return td == ln.getTempDescriptor();
     }
-    /////////////////
-    // end equality  
-    /////////////////
 
+    public int hashCode() {
+	return td.getNum();
+    }
 
-    // for writing out
     public String getTempDescriptorString() {
 	return td.toString();
     }
