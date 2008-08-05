@@ -732,7 +732,8 @@ public class PrefetchAnalysis {
 	Hashtable<PrefetchPair, Double> tocompare = new Hashtable<PrefetchPair, Double>();
 	
 	/* Don't propagate prefetches across cache clear */
-	if (!curr.getMethod().getClassMethodName().equals("System.clearPrefetchCache")) {
+	if (!(curr.getMethod().getClassMethodName().equals("System.clearPrefetchCache")||
+	      curr.getMethod().getClassMethodName().equals("Barrier.enterBarrier"))) {
 	/* Propagate all child nodes */
 	nexttemp:
 	for(Enumeration e = child_prefetch_set_copy.keys(); e.hasMoreElements();) {
