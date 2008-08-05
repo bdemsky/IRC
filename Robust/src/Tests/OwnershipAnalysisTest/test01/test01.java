@@ -45,6 +45,17 @@ public class Foo {
     public void ruinSomeFoos( Foo a, Foo b ) {
 	a.x = b.x;
     }
+
+    public void test( Foo p0, Foo p1 ) {
+	Foo f0 = new Foo();
+	Foo f1 = new Foo();
+	Foo f2 = new Foo();
+
+	f0.x = f1;
+	p0.x = f0;
+	p1.x = f1;
+	p1.x = f2;
+    }
 }
 
 
@@ -54,7 +65,7 @@ public class Foo {
 // a heap region that is multi-object, flagged, not summary
 task Startup( StartupObject s{ initialstate } ) {
     
-    
+    /*
     while( false ) {
 	Foo a = new Foo();
 	a.x   = new Foo();
@@ -98,7 +109,21 @@ task Startup( StartupObject s{ initialstate } ) {
 	c.x = b;
 	b = c;
     }
+    */
 
+    Foo aa = new Foo();
+    aa.test( aa, aa );
+
+    /*
+    Foo ab = new Foo();
+    Foo ac = new Foo();
+    Foo ad = new Foo();
+    
+    aa.x = ab;
+    ab.x = ac;
+    ab.x = aa;
+    ad.x = aa;
+    */
 
     taskexit( s{ !initialstate } );
 }
