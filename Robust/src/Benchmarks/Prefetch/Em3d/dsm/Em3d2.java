@@ -71,7 +71,7 @@ public class Em3d extends Thread {
 
     atomic {
 	//This is going to conflict badly...Minimize work here
-	bg.allocateNodes( lowerlimit, upperlimit, threadindex);
+	bg.allocateNodes ( lowerlimit, upperlimit, threadindex);
     }
     Barrier.enterBarrier(barr);
 
@@ -168,9 +168,9 @@ public class Em3d extends Thread {
       for(int i=0;i<numThreads;i++) {
 	  Em3d tmp;
 	  if ((i+1)==numThreads)
-	      tmp = global new Em3d(graph, base, em.numNodes, em.numIter, mybarr, em.numDegree, 1);
+	      tmp = global new Em3d(graph, base, em.numNodes, em.numIter, mybarr, em.numDegree, i);
 	  else
-	      tmp = global new Em3d(graph, base, base+increment, em.numIter, mybarr, em.numDegree, 1);
+	      tmp = global new Em3d(graph, base, base+increment, em.numIter, mybarr, em.numDegree, i);
 	  em3d[i]=new Em3dWrap(tmp);
 	  base+=increment;
       }
