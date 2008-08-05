@@ -84,23 +84,17 @@ void cleanPCache(thread_data_array_t *tdata) {
  * transaction commits 
  * Return -1 on error else returns 0 */ 
 int updatePrefetchCache(thread_data_array_t* tdata) {
-  plistnode_t *pile = tdata->pilehead;
-  while(pile != NULL) {
-    if(pile->mid != myIpAddr) { //Not local machine
-      int retval;
-      char oidType;
-      oidType = 'R';
-      if((retval = copyToCache(pile->numread, (unsigned int *)(pile->objread), tdata, oidType)) != 0) {
-        printf("%s(): Error in copying objects read at %s, %d\n", __func__, __FILE__, __LINE__);
-        return -1;
-      }
-      oidType = 'M';
-      if((retval = copyToCache(pile->nummod, pile->oidmod, tdata, oidType)) != 0) {
-        printf("%s(): Error in copying objects read at %s, %d\n", __func__, __FILE__, __LINE__);
-        return -1;
-      }
-    }
-    pile = pile->next;
+  int retval;
+  char oidType;
+  oidType = 'R';
+  if((retval = copyToCache(tdata->buffer->f.numread, (unsigned int *)(tdata->buffer->objread), tdata, oidType)) != 0) {
+    printf("%s(): Error in copying objects read at %s, %d\n", __func__, __FILE__, __LINE__);
+    return -1;
+  }
+  oidType = 'M';
+  if((retval = copyToCache(tdata->buffer->f.nummod, tdata->buffer->oidmod, tdata, oidType)) != 0) {
+    printf("%s(): Error in copying objects read at %s, %d\n", __func__, __FILE__, __LINE__);
+    return -1;
   }
   return 0;
 }
@@ -133,6 +127,7 @@ int copyToCache(int numoid, unsigned int *oidarray, thread_data_array_t *tdata, 
     //Increment version for every modified object
     if(oidType == 'M') {
       newAddr->version += 1;
+      newAddr->notifylist = NULL;
     }
     //make an entry in prefetch lookup hashtable
     void *oldptr;

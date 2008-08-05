@@ -7,7 +7,7 @@ extern prehashtable_t pflookup; //Global prefetch cache  lookup table
 prefetchNodeInfo_t *pNodeInfo; //Global prefetch holding metadata
 
 void initializePCache() {
-  pNodeInfo = calloc(1, sizeof(prefetchNodeInfo_t));
+  pNodeInfo = calloc(1, sizeof(prefetchNodeInfo_t)); //Not freed yet
   pNodeInfo->oldptr = prefetchcache;
   pNodeInfo->newptr = NULL;
   pNodeInfo->num_old_objstr = 1; //for prefetch cache allocated by objstralloc in trans.c file

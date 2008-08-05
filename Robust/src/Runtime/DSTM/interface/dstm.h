@@ -214,7 +214,6 @@ typedef struct thread_data_array {
   char *replyctrl; 		/* Shared ctrl message that stores the reply to be sent to participants, filled by decideResponse() */
   char *replyretry;		/* Shared variable that keep track if coordinator needs retry */
   transrecord_t *rec;		/* To send modified objects */
-  plistnode_t *pilehead;   /*  Shared variable, ptr to the head of the machine piles for the transaction rec */
 } thread_data_array_t;
 
 

@@ -11,6 +11,7 @@
  * Global Variables *
  ***********************/
 int udpSockFd;
+extern unsigned int myIpAddr;
 
 int createUdpSocket() {
   int sockfd;
@@ -116,7 +117,7 @@ int invalidateObj(thread_data_array_t *tdata) {
   clientaddr.sin_family = AF_INET;
   clientaddr.sin_port = htons(UDP_PORT);
   clientaddr.sin_addr.s_addr = INADDR_BROADCAST;
-  int maxObjsPerMsg = (MAX_SIZE - sizeof(unsigned int))/sizeof(unsigned int);
+  int maxObjsPerMsg = (MAX_SIZE - 2*sizeof(unsigned int))/sizeof(unsigned int);
   if(tdata->buffer->f.nummod < maxObjsPerMsg) {
     /* send single udp msg */
     int iteration = 0;
@@ -144,10 +145,12 @@ int invalidateObj(thread_data_array_t *tdata) {
  * returns -1 on error and 0 on success */
 int sendUdpMsg(thread_data_array_t *tdata, struct sockaddr_in *clientaddr, int iteration) {
   char writeBuffer[MAX_SIZE];
-  int maxObjsPerMsg = (MAX_SIZE - sizeof(unsigned int))/sizeof(unsigned int);
+  int maxObjsPerMsg = (MAX_SIZE - 2*sizeof(unsigned int))/sizeof(unsigned int);
   int offset = 0;
   *((short *)&writeBuffer[0]) = INVALIDATE_OBJS; //control msg
   offset += sizeof(short);
+  *((unsigned int *)(writeBuffer+offset)) = myIpAddr; //mid sending invalidation
+  offset += sizeof(unsigned int);
   if(iteration == 0) { // iteration flag == zero, send single udp msg
     *((short *) (writeBuffer+offset)) = (short) (sizeof(unsigned int) * (tdata->buffer->f.nummod)); //sizeof msg
     offset += sizeof(short);
@@ -184,18 +187,24 @@ int sendUdpMsg(thread_data_array_t *tdata, struct sockaddr_in *clientaddr, int i
  * returns -1 on error and 0 on success */
 int invalidateFromPrefetchCache(char *buffer) {
   int offset = sizeof(short);
-  /* Read objects sent */
-  int numObjsRecv = *((short *)(buffer+offset)) / sizeof(unsigned int);
-  int i;
-  for(i = 0; i < numObjsRecv; i++) {
-    unsigned int oid;
-    oid = *((unsigned int *)(buffer+offset));
-    objheader_t *header;
-    /* Lookup Objects in prefetch cache and remove them */
-    if((header = prehashSearch(oid)) != NULL) {
-      prehashRemove(oid);
+  /* Read mid from msg */
+  unsigned int mid = *((unsigned int *)(buffer+offset));
+  offset += sizeof(unsigned int);
+  //Invalidate only if broadcast if from different machine
+  if(mid != myIpAddr) {
+    /* Read objects sent */
+    int numObjsRecv = *((short *)(buffer+offset)) / sizeof(unsigned int);
+    int i;
+    for(i = 0; i < numObjsRecv; i++) {
+      unsigned int oid;
+      oid = *((unsigned int *)(buffer+offset));
+      objheader_t *header;
+      /* Lookup Objects in prefetch cache and remove them */
+      if((header = prehashSearch(oid)) != NULL) {
+        prehashRemove(oid);
+      }
+      offset += sizeof(unsigned int);
     }
-    offset += sizeof(unsigned int);
   }
   return 0;
 }
