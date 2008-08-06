@@ -42,17 +42,14 @@ public class Em3d extends Thread {
   BiGraph bg;
   int upperlimit;
   int lowerlimit;
- //Barrier barr;
- String hostname;
     public Em3d() {
     }
 
-    public Em3d(BiGraph bg, int lowerlimit, int upperlimit, int numIter, int numDegree, int threadindex, String name) {
+    public Em3d(BiGraph bg, int lowerlimit, int upperlimit, int numIter, int numDegree, int threadindex) {
     this.bg = bg;
     this.lowerlimit = lowerlimit;
     this.upperlimit = upperlimit;
     this.numIter = numIter;
-    this.hostname = name;
     this.numDegree = numDegree;
     this.threadindex=threadindex;
   }
@@ -62,42 +59,51 @@ public class Em3d extends Thread {
     Barrier barr;
     int degree;
     Random random;
+    String hname;
 
-    barr = new Barrier(hostname);
+    barr = new Barrier("128.195.175.78");
+    //System.printString("Inside run\n");
     atomic {
 	iteration = numIter;
 	degree = numDegree;
 	random = new Random(lowerlimit);
+    //barr =  mybarr;
     }
 
+    //System.printString("Here 1\n");
     atomic {
 	//This is going to conflict badly...Minimize work here
 	bg.allocateNodes ( lowerlimit, upperlimit, threadindex);
     }
     Barrier.enterBarrier(barr);
     System.clearPrefetchCache();
+    //System.printString("Here 2\n");
 
     atomic {
 	//initialize the eNodes
 	bg.initializeNodes(bg.eNodes, bg.hNodes, lowerlimit, upperlimit, degree, random, threadindex);
     }
     Barrier.enterBarrier(barr);
+    //System.printString("Here 3\n");
 
     atomic {
 	//initialize the hNodes
 	bg.initializeNodes(bg.hNodes, bg.eNodes, lowerlimit, upperlimit, degree, random, threadindex);
     }
     Barrier.enterBarrier(barr);
+    //System.printString("Here 4\n");
 
     atomic {
 	bg.makeFromNodes(bg.hNodes, lowerlimit, upperlimit, random);
     }
     Barrier.enterBarrier(barr);
+    //System.printString("Here 5\n");
 
     atomic {
 	bg.makeFromNodes(bg.eNodes, lowerlimit, upperlimit, random);
     }
     Barrier.enterBarrier(barr);
+    //System.printString("Here 6\n");
 
     //Do the computation
     for (int i = 0; i < iteration; i++) {
@@ -114,6 +120,7 @@ public class Em3d extends Thread {
 	
 	Barrier.enterBarrier(barr);
 	
+    //System.printString("Here 7\n");
 	/* for  hNodes */
 	atomic {
 	    for(int j = lowerlimit; j<upperlimit; j++) {
@@ -124,6 +131,7 @@ public class Em3d extends Thread {
 	    }
 	}
 	Barrier.enterBarrier(barr);
+    //System.printString("Here 8\n");
     }
   }
 
@@ -141,14 +149,16 @@ public class Em3d extends Thread {
     long start0 = System.currentTimeMillis();
     int numThreads = em.numThreads;
     int[] mid = new int[4];
-    String[] hostname;
-    atomic {
+    //String[] hostname;
+    //atomic {
+    /*
       hostname = global new String[4];
       hostname[0] = global new String("128.195.175.79");
       hostname[1] =  global new String("128.195.175.73");
       hostname[2] = global new String("128.195.175.78");
       hostname[3] = global new String("128.195.175.69");
-    }
+      */
+    //}
     mid[0] = (128<<24)|(195<<16)|(175<<8)|79;//dw-1
     mid[1] = (128<<24)|(195<<16)|(175<<8)|73;//dw-2
     mid[2] = (128<<24)|(195<<16)|(175<<8)|78;
@@ -179,24 +189,26 @@ public class Em3d extends Thread {
       for(int i=0;i<numThreads;i++) {
 	  Em3d tmp;
 	  if ((i+1)==numThreads)
-	      tmp = global new Em3d(graph, base, em.numNodes, em.numIter, em.numDegree, i, hostname[0]);
+	      tmp = global new Em3d(graph, base, em.numNodes, em.numIter, em.numDegree, i);
 	  else
-	      tmp = global new Em3d(graph, base, base+increment, em.numIter, em.numDegree, i, hostname[0]);
+	      tmp = global new Em3d(graph, base, base+increment, em.numIter, em.numDegree, i);
 	  em3d[i]=new Em3dWrap(tmp);
 	  base+=increment;
       }
     }
 
     //TODO check if correct
-    mybarr.start(mid[0]);
+    //
+    mybarr.start(mid[1]);
+    System.printString("Starting Barrier run\n");
     for(int i = 0; i<numThreads; i++) {
       em3d[i].em3d.start(mid[i]);
     }
-
-    mybarr.join();
     for(int i = 0; i<numThreads; i++) {
       em3d[i].em3d.join();
     }
+    //System.printString("Join Barrier run\n");
+    //mybarr.join();
     System.printString("Done!"+ "\n");
   }
 
