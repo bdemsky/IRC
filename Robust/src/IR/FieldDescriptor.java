@@ -43,4 +43,8 @@ public class FieldDescriptor extends Descriptor {
 	else
 	    return modifier.toString()+td.toString()+" "+getSymbol()+"="+en.printNode(0)+";";
     }
+
+    public String toStringBrief() {
+	return td.toString()+" "+getSymbol();
+    }
 }
