@@ -5,8 +5,8 @@ public class BarrierServer extends Thread {
 	numthreads=n;
     }
     
-    public run() {
-      int n;
+    public void run() {
+	int n;
 	atomic {
 	    n=numthreads;
 	}
@@ -34,13 +34,14 @@ public class BarrierServer extends Thread {
 public class Barrier {
     Socket s;
     public Barrier(String name) {
-      s=new Socket(name, 2000);
+	s=new Socket(name, 2000);
     }
     
     public static void enterBarrier(Barrier barr) {
-      byte b[]=new byte[1];
-      s.write(b);
-      while(s.read(b)!=1)
-        ;
+	byte b[]=new byte[1];
+	b[0]=(byte)'A';
+	barr.s.write(b);
+	while(barr.s.read(b)!=1)
+	    ;
     }
 }
