@@ -25,17 +25,23 @@ void * getmemory(int size) {
   if (tmpoffset>QSIZE) {
     //Wait for tail to go past end
     tmpoffset=size+sizeof(int);
-    if (headoffset<tailoffset)
+    if (headoffset<tailoffset) {
+      pthread_cond_signal(&qcond);//wake the other thread up
       return NULL;
+    }
     //Wait for tail to go past new start
-    if (tailoffset<=tmpoffset)
+    if (tailoffset<=tmpoffset) {
+      pthread_cond_signal(&qcond);//wake the other thread up
       return NULL;
+    }
     *((int *)(memory+headoffset))=-1;//safe because we left space
     *((int*)memory)=size+sizeof(int);
     return memory+sizeof(int);
   } else {
-    if (headoffset<tailoffset&&tailoffset<=tmpoffset)
+    if (headoffset<tailoffset&&tailoffset<=tmpoffset) {
+      pthread_cond_signal(&qcond);//wake the other thread up
       return NULL;
+    }
     *((int*)(memory+headoffset))=size+sizeof(int);
     return memory+headoffset+sizeof(int);
   }
