@@ -25,17 +25,17 @@ void * getmemory(int size) {
   if (tmpoffset>QSIZE) {
     //Wait for tail to go past end
     tmpoffset=size+sizeof(int);
-    while(headoffset<tailoffset)
-      ;
+    if (headoffset<tailoffset)
+      return NULL;
     //Wait for tail to go past new start
-    while(tailoffset<=tmpoffset)
-      ;
+    if (tailoffset<=tmpoffset)
+      return NULL;
     *((int *)(memory+headoffset))=-1;//safe because we left space
     *((int*)memory)=size+sizeof(int);
     return memory+sizeof(int);
   } else {
-    while(headoffset<tailoffset&&tailoffset<=tmpoffset)
-      ;
+    if (headoffset<tailoffset&&tailoffset<=tmpoffset)
+      return NULL;
     *((int*)(memory+headoffset))=size+sizeof(int);
     return memory+headoffset+sizeof(int);
   }

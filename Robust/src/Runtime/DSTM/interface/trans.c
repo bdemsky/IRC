@@ -143,10 +143,13 @@ inline int findmax(int *array, int arraylength) {
 void prefetch(int siteid, int ntuples, unsigned int *oids, unsigned short *endoffsets, short *arrayfields) {
   /* Allocate for the queue node*/
   int qnodesize = 2*sizeof(int) + ntuples * (sizeof(unsigned short) + sizeof(unsigned int)) + endoffsets[ntuples - 1] * sizeof(short);
-  char * node= getmemory(qnodesize);
-  /* Set queue node values */
   int len;
+  char * node= getmemory(qnodesize);
   int top=endoffsets[ntuples-1];
+  
+  if (node==NULL) 
+    return;
+  /* Set queue node values */
 
   /* TODO: Remove this after testing */
   evalPrefetch[siteid].callcount++;
