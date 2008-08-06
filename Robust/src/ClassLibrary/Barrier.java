@@ -1,10 +1,10 @@
 public class BarrierServer extends Thread {
     int numthreads;
-    int done;
+    boolean done;
 
     public BarrierServer(int n) {
 	numthreads=n;
-	done=0;
+	done=false;
     }
     
     public void run() {
@@ -12,7 +12,7 @@ public class BarrierServer extends Thread {
 	ServerSocket ss=new ServerSocket(2000);
 	atomic {
 	    n=numthreads;
-	    done=1;
+	    done=true;
 	}
 	Socket ar[]=new Socket[n];
 	for(int i=0;i<n;i++) {

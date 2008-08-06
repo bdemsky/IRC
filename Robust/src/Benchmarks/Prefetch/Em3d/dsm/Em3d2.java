@@ -176,6 +176,8 @@ public class Em3d extends Thread {
       mybarr = global new BarrierServer(numThreads);
       graph =  BiGraph.create(em.numNodes, em.numDegree, numThreads);
     }
+    mybarr.start(mid[1]);
+
 
     Em3dWrap[] em3d=new Em3dWrap[numThreads];    
     int increment = em.numNodes/numThreads;
@@ -197,9 +199,18 @@ public class Em3d extends Thread {
       }
     }
 
+    boolean waitfordone=true;
+    while(waitfordone) {
+	atomic {
+	    if (mybarr.done)
+		waitfordone=false;
+	}
+    }
+
+    
+
     //TODO check if correct
     //
-    mybarr.start(mid[1]);
     System.printString("Starting Barrier run\n");
     for(int i = 0; i<numThreads; i++) {
       em3d[i].em3d.start(mid[i]);
