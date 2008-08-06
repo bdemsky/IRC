@@ -173,6 +173,7 @@ public class Main {
       } else if (state.DSM) {
 	  readSourceFile(state, ClassLibraryPrefix+"ThreadDSM.java");
 	  readSourceFile(state, ClassLibraryPrefix+"ObjectJavaDSM.java");
+	  readSourceFile(state, ClassLibraryPrefix+"Barrier.java");
       } else {
 	  if (state.THREAD) {
 	      readSourceFile(state, ClassLibraryPrefix+"Thread.java");
