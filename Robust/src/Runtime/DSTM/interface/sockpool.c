@@ -21,7 +21,7 @@ inline void UnLock(volatile unsigned int *addr) {
 #   error need implementation of test_and_set
 #endif
 
-#define MAXSPINS 1000
+#define MAXSPINS 100
 
 inline void Lock(volatile unsigned int *s) {
   while(test_and_set(s)) {
