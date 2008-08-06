@@ -1,16 +1,19 @@
 public class BarrierServer extends Thread {
     int numthreads;
-    
+    int done;
+
     public BarrierServer(int n) {
 	numthreads=n;
+	done=0;
     }
     
     public void run() {
 	int n;
+	ServerSocket ss=new ServerSocket(2000);
 	atomic {
 	    n=numthreads;
+	    done=1;
 	}
-	ServerSocket ss=new ServerSocket(2000);
 	Socket ar[]=new Socket[n];
 	for(int i=0;i<n;i++) {
 	    ar[i]=ss.accept();
