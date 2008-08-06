@@ -42,16 +42,17 @@ public class Em3d extends Thread {
   BiGraph bg;
   int upperlimit;
   int lowerlimit;
-  Barrier mybarr;
+ //Barrier barr;
+ String hostname;
     public Em3d() {
     }
 
-    public Em3d(BiGraph bg, int lowerlimit, int upperlimit, int numIter, Barrier mybarr, int numDegree, int threadindex) {
+    public Em3d(BiGraph bg, int lowerlimit, int upperlimit, int numIter, int numDegree, int threadindex, String name) {
     this.bg = bg;
     this.lowerlimit = lowerlimit;
     this.upperlimit = upperlimit;
     this.numIter = numIter;
-    this.mybarr = mybarr;
+    this.hostname = name;
     this.numDegree = numDegree;
     this.threadindex=threadindex;
   }
@@ -62,9 +63,9 @@ public class Em3d extends Thread {
     int degree;
     Random random;
 
+    barr = new Barrier(hostname);
     atomic {
 	iteration = numIter;
-	barr=mybarr;
 	degree = numDegree;
 	random = new Random(lowerlimit);
     }
@@ -74,6 +75,7 @@ public class Em3d extends Thread {
 	bg.allocateNodes ( lowerlimit, upperlimit, threadindex);
     }
     Barrier.enterBarrier(barr);
+    System.clearPrefetchCache();
 
     atomic {
 	//initialize the eNodes
@@ -139,12 +141,21 @@ public class Em3d extends Thread {
     long start0 = System.currentTimeMillis();
     int numThreads = em.numThreads;
     int[] mid = new int[4];
+    String[] hostname;
+    atomic {
+      hostname = global new String[4];
+      hostname[0] = global new String("128.195.175.79");
+      hostname[1] =  global new String("128.195.175.73");
+      hostname[2] = global new String("128.195.175.78");
+      hostname[3] = global new String("128.195.175.69");
+    }
     mid[0] = (128<<24)|(195<<16)|(175<<8)|79;//dw-1
-    mid[1] = (128<<24)|(195<<16)|(175<<8)|80;//dw-2
-    mid[2] = (128<<24)|(195<<16)|(175<<8)|73;
-    mid[3] = (128<<24)|(195<<16)|(175<<8)|78;
+    mid[1] = (128<<24)|(195<<16)|(175<<8)|73;//dw-2
+    mid[2] = (128<<24)|(195<<16)|(175<<8)|78;
+    mid[3] = (128<<24)|(195<<16)|(175<<8)|69;
+
     System.printString("DEBUG -> numThreads = " + numThreads+"\n");
-    Barrier mybarr;
+    BarrierServer mybarr;
     BiGraph graph;
 
     
@@ -152,7 +163,7 @@ public class Em3d extends Thread {
    // System.printString( "Allocating BiGraph.\n" );
 
     atomic {
-      mybarr = global new Barrier(numThreads);
+      mybarr = global new BarrierServer(numThreads);
       graph =  BiGraph.create(em.numNodes, em.numDegree, numThreads);
     }
 
@@ -168,21 +179,25 @@ public class Em3d extends Thread {
       for(int i=0;i<numThreads;i++) {
 	  Em3d tmp;
 	  if ((i+1)==numThreads)
-	      tmp = global new Em3d(graph, base, em.numNodes, em.numIter, mybarr, em.numDegree, i);
+	      tmp = global new Em3d(graph, base, em.numNodes, em.numIter, em.numDegree, i, hostname[0]);
 	  else
-	      tmp = global new Em3d(graph, base, base+increment, em.numIter, mybarr, em.numDegree, i);
+	      tmp = global new Em3d(graph, base, base+increment, em.numIter, em.numDegree, i, hostname[0]);
 	  em3d[i]=new Em3dWrap(tmp);
 	  base+=increment;
       }
     }
 
+    //TODO check if correct
+    mybarr.start(mid[0]);
     for(int i = 0; i<numThreads; i++) {
-	em3d[i].em3d.start(mid[i]);
+      em3d[i].em3d.start(mid[i]);
     }
 
+    mybarr.join();
     for(int i = 0; i<numThreads; i++) {
-	em3d[i].em3d.join();
+      em3d[i].em3d.join();
     }
+    System.printString("Done!"+ "\n");
   }
 
 
