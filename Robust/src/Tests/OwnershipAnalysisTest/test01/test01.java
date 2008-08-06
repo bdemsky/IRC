@@ -46,7 +46,7 @@ public class Foo {
 	a.x = b.x;
     }
 
-    public void test( Foo p0, Foo p1 ) {
+    static public void test( Foo p0, Foo p1 ) {
 	Foo f0 = new Foo();
 	Foo f1 = new Foo();
 	Foo f2 = new Foo();
@@ -110,15 +110,8 @@ task Startup( StartupObject s{ initialstate } ) {
 	b = c;
     }
     */
-
-    Foo aa = new Foo();
-    aa.test( aa, aa );
-
-    /*
-    Foo ab = new Foo();
-    Foo ac = new Foo();
-    Foo ad = new Foo();
     
+    /*
     aa.x = ab;
     ab.x = ac;
     ab.x = aa;
@@ -126,6 +119,29 @@ task Startup( StartupObject s{ initialstate } ) {
     */
 
     taskexit( s{ !initialstate } );
+}
+
+
+task methodTest( Foo p0{ f } ) {
+
+    Foo a0;
+    if( false ) {
+	a0 = new Foo();
+    } else {
+	a0   = new Foo();
+	a0.x = new Foo();
+	p0.x = a0;
+    }
+
+    Foo a1 = new Foo();
+
+    if( false ) {	
+	p0.x = a1;
+    }
+
+    Foo.test( a0, a1 );
+
+    taskexit( p0{ !f } );
 }
 
 /*

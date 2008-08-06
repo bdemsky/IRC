@@ -1,8 +1,14 @@
 package Analysis.OwnershipAnalysis;
 
+import IR.*;
+import IR.Flat.*;
+
+
 public class ReferenceEdgeProperties {
 
-    protected boolean isUnique;
+    // a null field descriptor means "any field"
+    protected FieldDescriptor fieldDesc;
+
     protected boolean isInitialParamReflexive;
 
     protected ReachabilitySet beta;
@@ -12,29 +18,15 @@ public class ReferenceEdgeProperties {
     protected HeapRegionNode dst;
 
     public ReferenceEdgeProperties() {
-	this( false, false, null );
+	this( null, false, null );
     }    
 
-    public ReferenceEdgeProperties( boolean isUnique ) {
-	this( isUnique, false, null );
-    }
-
-    public ReferenceEdgeProperties( boolean isUnique,
-				    boolean isInitialParamReflexive ) {
-	this( isUnique, isInitialParamReflexive, null );
-    }
-
-    public ReferenceEdgeProperties( boolean         isUnique,
+    public ReferenceEdgeProperties( FieldDescriptor fieldDesc, 
 				    boolean         isInitialParamReflexive,
-				    ReachabilitySet beta) {
-	this.isUnique                = isUnique;
-	this.isInitialParamReflexive = isInitialParamReflexive;
+				    ReachabilitySet beta ) {
 
-	// these members are set by higher-level code
-	// when this ReferenceEdgeProperties object is
-	// applied to an edge
-	this.src = null;
-	this.dst = null;
+	this.fieldDesc               = fieldDesc;
+	this.isInitialParamReflexive = isInitialParamReflexive;	
 
 	if( beta != null ) {
 	    this.beta = beta;
@@ -43,6 +35,14 @@ public class ReferenceEdgeProperties {
 	    this.beta = this.beta.makeCanonical();
 	}
 
+	// these members are set by higher-level code
+	// when this ReferenceEdgeProperties object is
+	// applied to an edge
+	this.src = null;
+	this.dst = null;
+
+	// when edges are not undergoing a transitional operation
+	// that is changing beta info, betaNew is always empty
 	betaNew = new ReachabilitySet();
 	betaNew = betaNew.makeCanonical();
     }
@@ -67,20 +67,20 @@ public class ReferenceEdgeProperties {
     }
 
 
-    // copying does not copy source and destination members!
+    // copying does not copy source and destination members! or betaNew
     public ReferenceEdgeProperties copy() {
-	return new ReferenceEdgeProperties( isUnique,
+	return new ReferenceEdgeProperties( fieldDesc,
 					    isInitialParamReflexive,
 					    beta );
     }
 
 
-
-    public boolean isUnique() {
-	return isUnique;
+    public FieldDescriptor getFieldDesc() {
+	return fieldDesc;
     }
-    public void setIsUnique( boolean isUnique ) {
-	this.isUnique = isUnique;
+
+    public void setFieldDesc( FieldDescriptor fieldDesc ) {
+	this.fieldDesc = fieldDesc;
     }
 
 
@@ -91,7 +91,6 @@ public class ReferenceEdgeProperties {
     public void setIsInitialParamReflexive( boolean isInitialParamReflexive ) {
 	this.isInitialParamReflexive = isInitialParamReflexive;
     }
-
 
 
     public ReachabilitySet getBeta() {
@@ -122,12 +121,32 @@ public class ReferenceEdgeProperties {
     }
 
 
-    public boolean equals( ReferenceEdgeProperties rep ) {
-	assert rep != null;
+    public boolean equals( Object o ) {
+	if( o == null ) {
+	    return false;
+	}
+
+	if( !(o instanceof ReferenceEdgeProperties) ) {
+	    return false;
+	}
 	
-	return isUnique                == rep.isUnique()                &&
-	       isInitialParamReflexive == rep.isInitialParamReflexive();
+	ReferenceEdgeProperties rep = (ReferenceEdgeProperties) o;
+
+	// field descriptors maintain the invariant that they are reference comparable
+	return fieldDesc               == rep.fieldDesc               &&
+	       isInitialParamReflexive == rep.isInitialParamReflexive &&
+	       beta.equals( rep.beta );
     }
+
+    public int hashCode() {
+	int hash = 0;
+	if( fieldDesc != null ) {
+	    hash += fieldDesc.getType().hashCode();
+	}
+	hash += beta.hashCode();
+	return hash;
+    }
+
 
     public String getBetaString() {
 	return beta.toStringEscapeNewline();
@@ -135,11 +154,9 @@ public class ReferenceEdgeProperties {
     
     public String toEdgeLabelString() {
 	String edgeLabel = "";
-	/*
-	if( rep.isUnique() ) {
-	  edgeLabel += "Unq";
+	if( fieldDesc != null ) {
+	    edgeLabel += fieldDesc.toStringBrief() + "\\n";
 	}
-	*/
 	if( isInitialParamReflexive ) {
 	    edgeLabel += "Rflx\\n";
 	}

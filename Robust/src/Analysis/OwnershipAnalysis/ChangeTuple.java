@@ -31,6 +31,10 @@ public class ChangeTuple extends Canonical
     public TokenTupleSet getSetToAdd()   { return toAdd;   }
 
     public boolean equals( Object o ) {
+	if( o == null ) {
+	    return false;
+	}
+
 	if( !(o instanceof ChangeTuple) ) {
 	    return false;
 	}

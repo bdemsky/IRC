@@ -243,6 +243,10 @@ public class ReachabilitySet extends Canonical {
 
 
     public boolean equals( Object o ) {
+	if( o == null ) {
+	    return false;
+	}
+
 	if( !(o instanceof ReachabilitySet) ) {
 	    return false;
 	}

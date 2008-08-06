@@ -60,6 +60,10 @@ public class TokenTuple extends Canonical
     }
 
     public boolean equals( Object o ) {
+	if( o == null ) {
+	    return false;
+	}
+
 	if( !(o instanceof TokenTuple) ) {
 	    return false;
 	}

@@ -57,6 +57,10 @@ public class ChangeTupleSet extends Canonical {
     }
 
     public boolean equals( Object o ) {
+	if( o == null ) {
+	    return false;
+	}
+
 	if( !(o instanceof ChangeTupleSet) ) {
 	    return false;
 	}

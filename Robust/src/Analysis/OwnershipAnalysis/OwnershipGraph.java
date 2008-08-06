@@ -361,7 +361,7 @@ public class OwnershipGraph {
 		ReachabilitySet beta2        = rep2.getBeta();
 
 		ReferenceEdgeProperties rep = 
-		    new ReferenceEdgeProperties( false,
+		    new ReferenceEdgeProperties( null,
 						 false,
 						 beta1.intersection( beta2 ) );
 
@@ -435,7 +435,7 @@ public class OwnershipGraph {
 
 		// finally, create the actual reference edge hrn->hrnSrc
 		ReferenceEdgeProperties repNew 
-		    = new ReferenceEdgeProperties( false, 
+		    = new ReferenceEdgeProperties( fd, 
 						   false, 
 						   repSrc.getBetaNew().pruneBy( hrn.getAlpha() )
 						 );
@@ -487,8 +487,8 @@ public class OwnershipGraph {
 	// and have a reference to themselves, because we can't know the
 	// structure of memory that is passed into the method.  We're assuming
 	// the worst here.
-	addReferenceEdge( lnParam, hrn, new ReferenceEdgeProperties( false, false, beta ) );
-	addReferenceEdge( hrn,     hrn, new ReferenceEdgeProperties( false, true,  beta ) );
+	addReferenceEdge( lnParam, hrn, new ReferenceEdgeProperties( null, false, beta ) );
+	addReferenceEdge( hrn,     hrn, new ReferenceEdgeProperties( null, true,  beta ) );
     }
     
     public void assignTempToNewAllocation( TempDescriptor td,
@@ -512,7 +512,7 @@ public class OwnershipGraph {
 	
 	clearReferenceEdgesFrom( dst );
 	
-	addReferenceEdge( dst, hrnNewest, new ReferenceEdgeProperties( false, false, hrnNewest.getAlpha() ) );
+	addReferenceEdge( dst, hrnNewest, new ReferenceEdgeProperties( null, false, hrnNewest.getAlpha() ) );
     }
 
 
@@ -828,11 +828,7 @@ public class OwnershipGraph {
 	    AllocationSite allocSite = i.next();    
 	    HeapRegionNode hrnSummary       = getSummaryNode      ( allocSite );
 	    HeapRegionNode hrnShadowSummary = getShadowSummaryNode( allocSite );
-	}
-
-
-	
-	/*
+	}      
 
 	// in non-static methods there is a "this" pointer
 	// that should be taken into account
@@ -885,13 +881,13 @@ public class OwnershipGraph {
 		    // and a set of destination heaps in the caller graph, and make
 		    // a reference edge in the caller for every possible (src,dst) pair 
 		    if( !ogCallee.id2hrn.contains( idChildCallee ) ) {
-			//System.out.println( "Houston, we got a problem." );
-			//System.out.println( "idCallee is "+idCallee );
-			//System.out.println( "idChildCallee is "+idChildCallee );
+			System.out.println( "Houston, we got a problem." );
+			System.out.println( "idCallee is "+idCallee );
+			System.out.println( "idChildCallee is "+idChildCallee );
 			
 			try {			    
-			    writeGraph( "caller", false, false, false );
-			    ogCallee.writeGraph( "callee", false, false, false );			    
+			    writeGraph         ( "caller", false, false, false, false );
+			    ogCallee.writeGraph( "callee", false, false, false, false );			    
 			} catch( IOException e ) {}
 		    }
 
@@ -922,8 +918,8 @@ public class OwnershipGraph {
 		}
 	    } 
 	}	
-	*/
     }
+
 
     private HashSet<HeapRegionNode> getHRNSetThatPossiblyMapToCalleeHRN( OwnershipGraph ogCallee,
 									 Integer        idCallee,

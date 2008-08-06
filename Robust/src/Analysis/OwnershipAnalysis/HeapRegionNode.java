@@ -63,6 +63,9 @@ public class HeapRegionNode extends OwnershipNode {
 
 
     public boolean equals( Object o ) {
+	if( o == null ) {
+	    return false;
+	}
 
 	if( !( o instanceof HeapRegionNode) ) {
 	    return false;
