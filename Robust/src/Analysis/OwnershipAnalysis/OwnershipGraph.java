@@ -937,17 +937,6 @@ public class OwnershipGraph {
 		    // So now make a set of possible source heaps in the caller graph
 		    // and a set of destination heaps in the caller graph, and make
 		    // a reference edge in the caller for every possible (src,dst) pair 
-		    if( !ogCallee.id2hrn.contains( idChildCallee ) ) {
-			System.out.println( "Houston, we got a problem." );
-			System.out.println( "idCallee is "+idCallee );
-			System.out.println( "idChildCallee is "+idChildCallee );
-			
-			try {			    
-			    writeGraph         ( "caller", false, false, false, false );
-			    ogCallee.writeGraph( "callee", false, false, false, false );			    
-			} catch( IOException e ) {}
-		    }
-
 		    HashSet<HeapRegionNode> possibleCallerSrcs =  
 			getHRNSetThatPossiblyMapToCalleeHRN( ogCallee,
 							     idCallee,
