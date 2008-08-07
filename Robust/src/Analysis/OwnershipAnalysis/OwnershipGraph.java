@@ -823,9 +823,9 @@ public class OwnershipGraph {
 
 	// verify the existence of allocation sites and their
 	// shadows from the callee in the context of this caller graph
-	Iterator<AllocationSite> i = ogCallee.allocationSites.iterator();
-	while( i.hasNext() ) {
-	    AllocationSite allocSite = i.next();    
+	Iterator<AllocationSite> asItr = ogCallee.allocationSites.iterator();
+	while( asItr.hasNext() ) {
+	    AllocationSite allocSite        = asItr.next();    
 	    HeapRegionNode hrnSummary       = getSummaryNode      ( allocSite );
 	    HeapRegionNode hrnShadowSummary = getShadowSummaryNode( allocSite );
 	}      
@@ -837,6 +837,63 @@ public class OwnershipGraph {
 	} else {
 	    assert fc.numArgs() + 1 == fm.numParameters();
 	}
+
+	// make a change set to translate callee tokens into caller tokens
+	ChangeTupleSet C = new ChangeTupleSet().makeCanonical();
+
+	for( int i = 0; i < fm.numParameters(); ++i ) {
+	    
+	    Integer indexParam = new Integer( i );
+
+	    System.out.println( "In method "+fm+ " on param "+indexParam );
+
+	    assert ogCallee.paramIndex2id.containsKey( indexParam );	    
+	    Integer idParam = ogCallee.paramIndex2id.get( indexParam );
+
+	    assert ogCallee.id2hrn.containsKey( idParam );
+	    HeapRegionNode hrnParam = ogCallee.id2hrn.get( idParam );
+	    assert hrnParam != null;
+
+	    TokenTupleSet calleeTokenToMatch = 
+		new TokenTupleSet( new TokenTuple( hrnParam ) ).makeCanonical();
+
+	    
+	    // now depending on whether the callee is static or not
+	    // we need to account for a "this" argument in order to
+	    // find the matching argument in the caller context
+	    TempDescriptor argTemp;
+	    if( isStatic ) {
+		argTemp = fc.getArg( indexParam );
+	    } else {
+		if( indexParam == 0 ) {
+		    argTemp = fc.getThis();
+		} else {
+		    argTemp = fc.getArg( indexParam - 1 );
+		}
+	    }
+	    
+	    LabelNode argLabel = getLabelNodeFromTemp( argTemp );
+	    Iterator argHeapRegionsItr = argLabel.setIteratorToReferencedRegions();
+	    while( argHeapRegionsItr.hasNext() ) {
+		Map.Entry meArg                = (Map.Entry)               argHeapRegionsItr.next();
+		HeapRegionNode argHeapRegion   = (HeapRegionNode)          meArg.getKey();
+		ReferenceEdgeProperties repArg = (ReferenceEdgeProperties) meArg.getValue();
+		
+		Iterator<TokenTupleSet> ttsItr = repArg.getBeta().iterator();
+		while( ttsItr.hasNext() ) {
+		    TokenTupleSet callerTokensToReplace = ttsItr.next();
+
+		    ChangeTuple ct = new ChangeTuple( calleeTokenToMatch,
+						      callerTokensToReplace ).makeCanonical();
+
+		    C = C.union( ct );
+		}
+	    }
+	}
+
+	System.out.println( "Applying method call "+fm );
+	System.out.println( "  Change: "+C );
+
 
 	// the heap regions represented by the arguments (caller graph)
 	// and heap regions for the parameters (callee graph)
@@ -992,7 +1049,7 @@ public class OwnershipGraph {
 
 	mergeOwnershipNodes ( og );
 	mergeReferenceEdges ( og );
-	mergeId2paramIndex  ( og );
+	mergeId2paramIndex  ( og );	
 	mergeAllocationSites( og );
     }
 

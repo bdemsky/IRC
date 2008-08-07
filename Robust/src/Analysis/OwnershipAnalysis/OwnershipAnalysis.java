@@ -206,6 +206,7 @@ public class OwnershipAnalysis {
 	// traversing the call graph
 	HashSet<Descriptor> calleesScheduled = new HashSet<Descriptor>();
 
+
 	// initialize methods to visit as the set of all tasks in the
 	// program and then any method that could be called starting
 	// from those tasks
@@ -218,6 +219,26 @@ public class OwnershipAnalysis {
 	    scheduleAllCallees( calleesScheduled, d );
 	}
 	
+	// before beginning analysis, initialize every scheduled method
+	// with an ownership graph that has populated parameter index tables
+	// by analyzing the first node which is always a FlatMethod node
+	Iterator<Descriptor> dItr = calleesScheduled.iterator();
+	while( dItr.hasNext() ) {
+	    Descriptor     d  = dItr.next();
+	    OwnershipGraph og = new OwnershipGraph( allocationDepth );
+	    
+	    FlatMethod fm;
+	    if( d instanceof MethodDescriptor ) {
+		fm = state.getMethodFlat( (MethodDescriptor) d );
+	    } else {
+		assert d instanceof TaskDescriptor;
+		fm = state.getMethodFlat( (TaskDescriptor) d );
+	    }
+
+	    analyzeFlatNode( d, fm, null, og );
+	    mapDescriptorToCompleteOwnershipGraph.put( d, og );
+	}
+
 	// as mentioned above, analyze methods one-by-one, possibly revisiting
 	// a method if the methods that it calls are updated
 	analyzeMethods();
@@ -317,11 +338,6 @@ public class OwnershipAnalysis {
 	// the final ownership graph result to return as an empty set
 	returnNodesToCombineForCompleteOwnershipGraph = new HashSet<FlatReturnNode>();
 
-
-	// DEBUG
-	//int x = 0;
-
-
 	while( !flatNodesToVisit.isEmpty() ) {
 	    FlatNode fn = (FlatNode) flatNodesToVisit.iterator().next();
 	    flatNodesToVisit.remove( fn );
@@ -354,20 +370,6 @@ public class OwnershipAnalysis {
 
 	    if( !og.equals( ogPrev ) ) {
 		setGraphForFlatNode( fn, og );
-
-		// DEBUG
-		/*
-		++x;	
-
-		if( x > 5000 ) {
-		String s = String.format( "%04d", x );
-		og.writeGraph( "debug"+s, false, false );
-		}
-
-		if( x == 5020 ) {
-		    System.exit( -1 );
-		}
-		*/
 
 		for( int i = 0; i < fn.numNext(); i++ ) {
 		    FlatNode nn = fn.getNext( i );		  

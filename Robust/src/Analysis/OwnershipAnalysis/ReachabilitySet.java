@@ -12,8 +12,6 @@ public class ReachabilitySet extends Canonical {
 
     public ReachabilitySet() {
 	possibleReachabilities = new HashSet<TokenTupleSet>();
-	//TokenTupleSet ttsEmpty = new TokenTupleSet().makeCanonical();
-	//possibleReachabilities.add( ttsEmpty );	
     }
 
     public ReachabilitySet( TokenTupleSet tts ) {
