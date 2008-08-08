@@ -3,9 +3,9 @@ SRC=${MAINCLASS}.java \
 	JGFSORBench.java \
 	JGFInstrumentor.java \
 	JGFTimer.java \
-	SORRunner.java
-FLAGS=-dsm -prefetch -nooptimize -debug -profile -excprefetch JGFSORBench.RandomMatrix -excprefetch JGFSORBench.init_sync -excprefetch JGFSORBench.JGFkernel -mainclass ${MAINCLASS} -trueprob 0.88
-FLAGS2=-dsm -nooptimize -debug -profile -mainclass ${MAINCLASS}
+	SORRunner.java 
+FLAGS=-dsm -prefetch -optimize -excprefetch JGFSORBench.JGFSORBench -excprefetch JGFSORBenchSizeA.main -excprefetch JGFSORBench.RandomMatrix -excprefetch JGFSORBench.init_sync -excprefetch JGFSORBench.JGFkernel -mainclass ${MAINCLASS} -trueprob 0.88
+FLAGS2=-dsm -optimize -mainclass ${MAINCLASS}
 
 default:
 	../../../../buildscript ${FLAGS2} -o ${MAINCLASS}NP ${SRC}

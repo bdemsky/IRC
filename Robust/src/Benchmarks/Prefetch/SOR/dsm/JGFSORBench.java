@@ -26,8 +26,6 @@ public class JGFSORBench {
   public int nthreads;
   Random R;
   public double Gtotal;
-  public int cachelinesize;
-  public int sync[][];
 
   public JGFSORBench(int nthreads){
     this.nthreads = nthreads;
@@ -39,7 +37,6 @@ public class JGFSORBench {
     RANDOM_SEED = 10101010;
     R = global new Random(RANDOM_SEED);
     Gtotal = 0.0;
-    cachelinesize = 1;
   }
 
   public void JGFsetsize(int size){
@@ -48,12 +45,22 @@ public class JGFSORBench {
 
   public static void JGFkernel(JGFSORBench sor) {
     int numthreads, datasize;
+    BarrierServer mybarr;
     Random rand;
+
+    int[] mid = new int[4];
+    mid[0] = (128<<24)|(195<<16)|(175<<8)|79;
+    mid[1] = (128<<24)|(195<<16)|(175<<8)|73;
+    mid[2] = (128<<24)|(195<<16)|(175<<8)|78;
+    mid[3] = (128<<24)|(195<<16)|(175<<8)|69;
+
     atomic {
       numthreads = sor.nthreads;
       rand = sor.R;
       datasize = sor.datasizes[sor.size];
+      mybarr = global new BarrierServer(numthreads);
     }
+    mybarr.start(mid[0]);
 
     double[][] G;
     int M, N;
@@ -77,34 +84,31 @@ public class JGFSORBench {
     int Nm1 = N-1;
 
     //spawn threads
-    int tmpcachelinesize;
-    atomic {
-      tmpcachelinesize = sor.cachelinesize;
-    }
-
     SORRunner[] thobjects;
     atomic {
       thobjects = global new SORRunner[numthreads];
-      sor.sync = sor.init_sync(numthreads, tmpcachelinesize);
     }
 
     //JGFInstrumentor.startTimer("Section2:SOR:Kernel", instr.timers); 
 
+    boolean waitfordone=true;
+    while(waitfordone) {
+      atomic {
+        if (mybarr.done)
+          waitfordone=false;
+      }
+    }
+
     SORRunner tmp;
-    int[] mid = new int[4];
-    mid[0] = (128<<24)|(195<<16)|(175<<8)|79;
-    mid[1] = (128<<24)|(195<<16)|(175<<8)|73;
-    mid[2] = (128<<24)|(195<<16)|(175<<8)|78;
-    mid[3] = (128<<24)|(195<<16)|(175<<8)|69;
     for(int i=1;i<numthreads;i++) {
       atomic {
-        thobjects[i] =  global new SORRunner(i,omega,G,num_iterations,sor.sync,numthreads);
+        thobjects[i] =  global new SORRunner(i,omega,G,num_iterations,numthreads);
         tmp = thobjects[i];
       }
       tmp.start(mid[i]);
     }
     atomic {
-      thobjects[0] =  global new SORRunner(0,omega,G,num_iterations,sor.sync,numthreads);
+      thobjects[0] =  global new SORRunner(0,omega,G,num_iterations,numthreads);
       tmp = thobjects[0];
     }
     tmp.start(mid[0]);
@@ -125,14 +129,6 @@ public class JGFSORBench {
         }
       }               
     }
-  }
-
-  public int[][] init_sync(int nthreads, int cachelinesize) {
-    int[][] sync;
-    sync = global new int [nthreads][cachelinesize];
-    for (int i = 0; i<nthreads; i++)
-      sync[i][0] = 0;
-    return sync;
   }
 
   public double[][] RandomMatrix(int M, int N, Random R)

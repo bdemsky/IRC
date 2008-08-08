@@ -23,15 +23,13 @@ class SORRunner extends Thread {
 
   int id,num_iterations;
   double G[][],omega;
-  int sync[][];
   int nthreads;
 
-  public SORRunner(int id, double omega, double G[][], int num_iterations,int[][] sync, int nthreads) {
+  public SORRunner(int id, double omega, double G[][], int num_iterations, int nthreads) {
     this.id = id;
     this.omega=omega;
     this.G=G;
     this.num_iterations=num_iterations;
-    this.sync=sync;
     this.nthreads = nthreads;
   }
 
@@ -39,7 +37,10 @@ class SORRunner extends Thread {
     int tmpid, M, N, numthreads;
     double omega_over_four, one_minus_omega;
     int numiterations;
+    Barrier barr;
+    barr = new Barrier("128.195.175.79");
     atomic {
+      System.printString("Inside atomic 1\n");
       M = G.length;
       N = G[0].length;
       omega_over_four = omega * 0.25;
@@ -109,23 +110,7 @@ class SORRunner extends Thread {
         }
       } //close atomic
 
-
-      int ourcount;
-      boolean done=true;
-      atomic {
-        // Signal this thread has done iteration
-        sync[tmpid][0]++;
-        ourcount=sync[tmpid][0];
-      }
-
-      // Wait for neighbours;
-      while(done) {
-        atomic {
-          if ((tmpid==0 || ourcount <= sync[tmpid-1][0])
-              &&((tmpid==(numthreads-1))||ourcount<=sync[tmpid+1][0]))
-            done=false;
-        }
-      }
+      Barrier.enterBarrier(barr);
     }//end of for
   } //end of run()
 }
