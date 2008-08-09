@@ -24,7 +24,6 @@ public class JGFSORBench {
   int JACOBI_NUM_ITER;
   long RANDOM_SEED;
   public int nthreads;
-  Random R;
   public double Gtotal;
 
   public JGFSORBench(int nthreads){
@@ -35,7 +34,6 @@ public class JGFSORBench {
     datasizes[2] = 2000;
     JACOBI_NUM_ITER = 100;
     RANDOM_SEED = 10101010;
-    R = global new Random(RANDOM_SEED);
     Gtotal = 0.0;
   }
 
@@ -46,7 +44,6 @@ public class JGFSORBench {
   public static void JGFkernel(JGFSORBench sor) {
     int numthreads, datasize;
     BarrierServer mybarr;
-    Random rand;
 
     int[] mid = new int[4];
     mid[0] = (128<<24)|(195<<16)|(175<<8)|79;
@@ -54,42 +51,33 @@ public class JGFSORBench {
     mid[2] = (128<<24)|(195<<16)|(175<<8)|78;
     mid[3] = (128<<24)|(195<<16)|(175<<8)|69;
 
+    double[][] G;
+    int num_iterations;
+
     atomic {
       numthreads = sor.nthreads;
-      rand = sor.R;
       datasize = sor.datasizes[sor.size];
       mybarr = global new BarrierServer(numthreads);
+      G =  global new double[datasize][];
+      num_iterations = sor.JACOBI_NUM_ITER;
     }
     mybarr.start(mid[0]);
 
-    double[][] G;
-    int M, N;
-    atomic {
-      G = sor.RandomMatrix(datasize, datasize, rand);
-      M = G.length;
-      N = G[0].length;
-    }
     double omega = 1.25;
-    int num_iterations;
-    atomic {
-      num_iterations = sor.JACOBI_NUM_ITER;
-    }
-
     double omega_over_four = omega * 0.25;
     double one_minus_omega = 1.0 - omega;
 
     // update interior points
     //
-    int Mm1 = M-1;
-    int Nm1 = N-1;
-
     //spawn threads
-    SORRunner[] thobjects;
-    atomic {
-      thobjects = global new SORRunner[numthreads];
-    }
 
-    //JGFInstrumentor.startTimer("Section2:SOR:Kernel", instr.timers); 
+    SORWrap[] thobjects = new SORWrap[numthreads];
+
+    atomic {
+	for(int i=0;i<numthreads;i++) {
+	    thobjects[i] =  new SORWrap(global new SORRunner(i,omega,G,num_iterations,numthreads));
+	}
+    }
 
     boolean waitfordone=true;
     while(waitfordone) {
@@ -99,48 +87,22 @@ public class JGFSORBench {
       }
     }
 
-    SORRunner tmp;
-    for(int i=1;i<numthreads;i++) {
-      atomic {
-        thobjects[i] =  global new SORRunner(i,omega,G,num_iterations,numthreads);
-        tmp = thobjects[i];
-      }
-      tmp.start(mid[i]);
+    for(int i=0;i<numthreads;i++) {
+	thobjects[i].sor.start(mid[i]);
     }
-    atomic {
-      thobjects[0] =  global new SORRunner(0,omega,G,num_iterations,numthreads);
-      tmp = thobjects[0];
-    }
-    tmp.start(mid[0]);
-    tmp.join();
 
-    for(int i=1;i<numthreads;i++) {
-      atomic {
-        tmp = thobjects[i];
-      }
-      tmp.join();
+    for(int i=0;i<numthreads;i++) {
+      thobjects[i].sor.join();
     }
 
     //JGFInstrumentor.stopTimer("Section2:SOR:Kernel", instr.timers);
     atomic {
-      for (int i=1; i<Nm1; i++) {
-        for (int j=1; j<Nm1; j++) {
-          sor.Gtotal += G[i][j];
-        }
-      }               
+	for (int i=1; i<G.length-1; i++) {
+	    for (int j=1; j<G.length-1; j++) {
+		sor.Gtotal += G[i][j];
+	    }
+	}               
     }
-  }
-
-  public double[][] RandomMatrix(int M, int N, Random R)
-  {
-    double A[][] = global new double[M][N];
-
-    for (int i=0; i<N; i++)
-      for (int j=0; j<N; j++)
-      {
-        A[i][j] = R.nextDouble() * 1e-6;
-      }      
-    return A;
   }
 
   public int JGFvalidate(){
@@ -154,8 +116,6 @@ public class JGFSORBench {
     long l = (long) refval[size] * 1000000;
     long r = (long) Gtotal * 1000000;
     if (l != r ){
-      //System.printString("Validation failed");
-      //System.printString("Gtotal = " + (long) Gtotal * 1000000 + "  " +(long) dev * 1000000 + "  " + size);
       return 1;
     } else {
       return 0;

@@ -39,32 +39,45 @@ class SORRunner extends Thread {
     int numiterations;
     Barrier barr;
     barr = new Barrier("128.195.175.79");
+    int ilow, iupper, slice, tslice, ttslice, Mm1, Nm1;
+
     atomic {
       System.printString("Inside atomic 1\n");
-      M = G.length;
-      N = G[0].length;
+      N = M = G.length;
+      
       omega_over_four = omega * 0.25;
       one_minus_omega = 1.0 - omega;
       numthreads = nthreads;
       tmpid = id;
       numiterations = num_iterations;
+      Mm1 = M-1;
+      Nm1 = N-1;
+      tslice = (Mm1) / 2;
+      ttslice = (tslice + numthreads-1)/numthreads;
+      slice = ttslice*2;
+      ilow=tmpid*slice+1;
+      iupper = ((tmpid+1)*slice)+1;
+      if (iupper > Mm1) iupper =  Mm1+1;
+      if (tmpid == (numthreads-1)) iupper = Mm1+1;
+      for(int i=ilow;i<iupper;i++) {
+	  G[i]=global new double[N];
+      }
     }
+
+    Barrier.enterBarrier(barr);
+    atomic {
+	Random rand=new Random();
+	for(int i=ilow;i<iupper;i++) {
+	    double[] R=G[i];
+	    for(int j=0;j<M;j++)
+		R[j]=rand.nextDouble() * 1e-6;
+	}
+    }
+    Barrier.enterBarrier(barr);
 
     // update interior points
     //
-    int Mm1 = M-1;
-    int Nm1 = N-1;
 
-
-    int ilow, iupper, slice, tslice, ttslice;
-
-    tslice = (Mm1) / 2;
-    ttslice = (tslice + numthreads-1)/numthreads;
-    slice = ttslice*2;
-    ilow=tmpid*slice+1;
-    iupper = ((tmpid+1)*slice)+1;
-    if (iupper > Mm1) iupper =  Mm1+1;
-    if (tmpid == (numthreads-1)) iupper = Mm1+1;
 
     for (int p=0; p<2*numiterations; p++) {
       atomic {
