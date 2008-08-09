@@ -68,7 +68,7 @@ void send_data(int fd , void *buf, int buflen) {
     numbytes = send(fd, buffer, size, MSG_NOSIGNAL);
     if (numbytes == -1) {
       perror("send");
-      exit(-1);
+      return;
     }
     buffer += numbytes;
     size -= numbytes;
@@ -83,7 +83,7 @@ void recv_data(int fd , void *buf, int buflen) {
     numbytes = recv(fd, buffer, size, 0);
     if (numbytes == -1) {
       perror("recv");
-      exit(-1);
+      return;
     }
     buffer += numbytes;
     size -= numbytes;
@@ -693,7 +693,10 @@ void *transRequest(void *threadarg) {
   /* Send objects that are modified */
   for(i = 0; i < tdata->buffer->f.nummod ; i++) {
     int size;
-    headeraddr = chashSearch(tdata->rec->lookupTable, tdata->buffer->oidmod[i]);
+    if((headeraddr = chashSearch(tdata->rec->lookupTable, tdata->buffer->oidmod[i])) == NULL) {
+      printf("%s() Error: No such oid %s, %d\n", __func__, __FILE__, __LINE__);
+      pthread_exit(NULL);
+    }
     GETSIZE(size,headeraddr);
     size+=sizeof(objheader_t);
     send_data(sd, headeraddr, size);
@@ -946,8 +949,8 @@ void *handleLocalReq(void *threadarg) {
       int tmpsize;
       headptr = (objheader_t *) chashSearch(localtdata->tdata->rec->lookupTable, localtdata->tdata->buffer->oidmod[i-numread]);
       if (headptr == NULL) {
-	printf("Error: handleLocalReq() returning NULL %s, %d\n", __FILE__, __LINE__);
-	return NULL;
+        printf("Error: handleLocalReq() returning NULL, no such oid %s, %d\n", __FILE__, __LINE__);
+        return NULL;
       }
       oid = OID(headptr);
       version = headptr->version;
@@ -1378,18 +1381,39 @@ unsigned short getObjType(unsigned int oid) {
   objheader_t *objheader;
   unsigned short numoffset[] ={0};
   short fieldoffset[] ={};
-  
+
   if ((objheader = (objheader_t *) mhashSearch(oid)) == NULL) {
-      if ((objheader = (objheader_t *) prehashSearch(oid)) == NULL) {
-	prefetch(0, 1, &oid, numoffset, fieldoffset);
-	pthread_mutex_lock(&pflookup.lock);
-	while ((objheader = (objheader_t *) prehashSearch(oid)) == NULL) {
-	  pthread_cond_wait(&pflookup.cond, &pflookup.lock);
-	}
-	pthread_mutex_unlock(&pflookup.lock);
+    if ((objheader = (objheader_t *) prehashSearch(oid)) == NULL) {
+      unsigned int mid = lhashSearch(oid);
+      int sd = getSock2(transReadSockPool, mid);
+      char remotereadrequest[sizeof(char)+sizeof(unsigned int)];
+      remotereadrequest[0] = READ_REQUEST;
+      *((unsigned int *)(&remotereadrequest[1])) = oid;
+      send_data(sd, remotereadrequest, sizeof(remotereadrequest));
+
+      /* Read response from the Participant */
+      char control;
+      recv_data(sd, &control, sizeof(char));
+
+      if (control==OBJECT_NOT_FOUND) {
+        printf("Error: in %s() THIS SHOULD NOT HAPPEN.....EXIT PROGRAM\n", __func__);
+        fflush(stdout);
+        exit(-1);
+      } else {
+        /* Read object if found into local cache */
+        int size;
+        recv_data(sd, &size, sizeof(int));
+        pthread_mutex_lock(&prefetchcache_mutex);
+        if ((objheader = prefetchobjstrAlloc(size)) == NULL) {
+          printf("Error: %s() objstrAlloc error for copying into prefetch cache %s, %d\n", __func__, __FILE__, __LINE__);
+          pthread_exit(NULL);
+        }
+        pthread_mutex_unlock(&prefetchcache_mutex);
+        recv_data(sd, objheader, size);
+        prehashInsert(oid, objheader);
       }
+    }
   }
-  
   return TYPE(objheader);
 }
 
@@ -1494,10 +1518,6 @@ int processConfigFile()
 	myIpAddr = getMyIpAddr("en1");
 #else
 	myIpAddr = getMyIpAddr("eth0");
-#endif
-
-#ifdef CHECKTA
-    printf("My ip address = %x", myIpAddr);
 #endif
 	myIndexInHostArray = findHost(myIpAddr);
 	if (myIndexInHostArray == -1)
@@ -1669,7 +1689,7 @@ void threadNotify(unsigned int oid, unsigned short version, unsigned int tid) {
 			return;
 		} else {
 			if(version <= ndata->versionarry[index]){
-				printf("threadNotify(): New version %d has not changed since last version %s, %d\n", version, __FILE__, __LINE__);
+				printf("threadNotify(): New version %d has not changed since last version for oid = %d, %s, %d\n", version, oid, __FILE__, __LINE__);
 				return;
 			} else {
 				/* Clear from prefetch cache and free thread related data structure */

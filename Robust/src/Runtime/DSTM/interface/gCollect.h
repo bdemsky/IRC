@@ -6,7 +6,7 @@
 /***********************************
  ****** Global constants **********
  **********************************/
-#define PREFETCH_FLUSH_COUNT_THRESHOLD 20
+#define PREFETCH_FLUSH_COUNT_THRESHOLD 30
 
 /*********************************
  ********* Global variables ******

@@ -23,13 +23,14 @@ public class BarrierServer extends Thread {
 	    for(int j=0;j<n;j++) {
 		Socket s=ar[j];
 		byte b[]=new byte[1];
-		while(s.read(b)!=1)
+		while(s.read(b)!=1) {
 		    ;
+        }
 	    }
 	    byte b[]=new byte[1];
 	    b[0]= (byte) 'A';
 	    for(int j=0;j<n;j++)
-		ar[j].write(b);
+          ar[j].write(b);
 	}
     }
 }
@@ -44,7 +45,8 @@ public class Barrier {
 	byte b[]=new byte[1];
 	b[0]=(byte)'A';
 	barr.s.write(b);
-	while(barr.s.read(b)!=1)
-	    ;
+	while(barr.s.read(b)!=1) {
+      ;
+    }
     }
 }

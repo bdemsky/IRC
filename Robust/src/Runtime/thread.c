@@ -138,7 +138,7 @@ void CALL11(___Thread______sleep____J, long long ___millis___, long long ___mill
 #endif
 }
 
-#if defined(DSTM)||defined(THREADS)
+#if defined(DSTM)|| defined(THREADS)
 void CALL00(___Thread______yield____) {
   pthread_yield();
 }
@@ -157,7 +157,13 @@ transstart:
   trans = transStart();
   ptr = transRead(trans, (unsigned int) VAR(___this___));
   struct ___Thread___ *p = (struct ___Thread___ *) ptr;
+#ifdef THREADJOINDEBUG
+  printf("Start join process for Oid = %x\n", (unsigned int) VAR(___this___));
+#endif
   if(p->___threadDone___ == 1) {
+#ifdef THREADJOINDEBUG
+    printf("Thread oid = %x is done\n", (unsigned int) VAR(___this___));
+#endif
 	  transAbort(trans);
 	  return;
   } else {

@@ -42,7 +42,6 @@ class SORRunner extends Thread {
     int ilow, iupper, slice, tslice, ttslice, Mm1, Nm1;
 
     atomic {
-      System.printString("Inside atomic 1\n");
       N = M = G.length;
       
       omega_over_four = omega * 0.25;
@@ -59,19 +58,23 @@ class SORRunner extends Thread {
       iupper = ((tmpid+1)*slice)+1;
       if (iupper > Mm1) iupper =  Mm1+1;
       if (tmpid == (numthreads-1)) iupper = Mm1+1;
+      G[0]=global new double[N];
       for(int i=ilow;i<iupper;i++) {
-	  G[i]=global new double[N];
+        G[i]=global new double[N];
       }
     }
 
     Barrier.enterBarrier(barr);
     atomic {
-	Random rand=new Random();
-	for(int i=ilow;i<iupper;i++) {
-	    double[] R=G[i];
-	    for(int j=0;j<M;j++)
-		R[j]=rand.nextDouble() * 1e-6;
-	}
+      Random rand=new Random();
+      double[] R = G[0];
+      for(int j=0;j<M;j++)
+        R[j]=rand.nextDouble() * 1e-6;
+      for(int i=ilow;i<iupper;i++) {
+        R=G[i];
+        for(int j=0;j<M;j++)
+          R[j]=rand.nextDouble() * 1e-6;
+      }
     }
     Barrier.enterBarrier(barr);
 

@@ -111,7 +111,12 @@ int copyToCache(int numoid, unsigned int *oidarray, thread_data_array_t *tdata, 
       oid = oidarray[i];
     }
     pthread_mutex_lock(&prefetchcache_mutex);
-    objheader_t *header = (objheader_t *) chashSearch(tdata->rec->lookupTable, oid); 
+    objheader_t * header;
+    if((header = (objheader_t *) chashSearch(tdata->rec->lookupTable, oid)) == NULL) {
+      printf("%s() obj %x is no longer in transaction cache at %s , %d\n", __func__, oid,__FILE__, __LINE__);
+      fflush(stdout);
+      return -1;
+    }
     //copy into prefetch cache
     int size;
     GETSIZE(size, header);

@@ -60,7 +60,7 @@ public class Node {
 		index = rand.nextInt();
 		if (index < 0) index = -index;
 		//local vs remote from em3d benchmark
-		if ((rand.nextInt()%4)==0)
+		if ((rand.nextInt()%2)==0)
 		    index=index%nodeTable.length;
 		else
 		    index=begin+(index%(end-begin));
