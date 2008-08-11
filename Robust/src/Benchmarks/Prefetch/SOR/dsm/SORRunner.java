@@ -99,6 +99,29 @@ class SORRunner extends Thread {
             }
           } else if (i == Mm1) {
 
+          } else {
+
+            double [] Gip1 = G[i+1];
+
+            for (int j=1; j<Nm1; j=j+2){
+              Gi[j] = omega_over_four * (Gim1[j] + Gip1[j] + Gi[j-1]
+                  + Gi[j+1]) + one_minus_omega * Gi[j];
+
+            }
+          }
+        }
+      } //close atomic
+
+      Barrier.enterBarrier(barr);
+      atomic {
+        for (int i=ilow+(p%2); i<iupper; i=i+2) {
+
+          double [] Gi = G[i];
+          double [] Gim1 = G[i-1];
+
+          if(i == 1) { 
+          } else if (i == Mm1) {
+
             double [] Gim2 = G[i-2];
 
             for (int j=1; j<Nm1; j=j+2){
@@ -110,13 +133,9 @@ class SORRunner extends Thread {
 
           } else {
 
-            double [] Gip1 = G[i+1];
             double [] Gim2 = G[i-2];
 
             for (int j=1; j<Nm1; j=j+2){
-              Gi[j] = omega_over_four * (Gim1[j] + Gip1[j] + Gi[j-1]
-                  + Gi[j+1]) + one_minus_omega * Gi[j];
-
               if((j+1) != Nm1) {
                 Gim1[j+1]=omega_over_four * (Gim2[j+1] + Gi[j+1] + Gim1[j]
                     + Gim1[j+2]) + one_minus_omega * Gim1[j+1];
