@@ -46,6 +46,7 @@ public class Foo {
 	a.x = b.x;
     }
 
+    /*
     static public void test( Foo p0, Foo p1 ) {
 	Foo f0 = new Foo();
 	Foo f1 = new Foo();
@@ -56,6 +57,7 @@ public class Foo {
 	p1.x = f1;
 	p1.x = f2;
     }
+    */
 }
 
 
@@ -110,39 +112,62 @@ task Startup( StartupObject s{ initialstate } ) {
 	b = c;
     }
     */
-    
-    /*
-    aa.x = ab;
-    ab.x = ac;
-    ab.x = aa;
-    ad.x = aa;
-    */
 
     taskexit( s{ !initialstate } );
 }
 
 
-task methodTest( Foo p0{ f } ) {
+task basics( Foo p0{ f } ) {
 
-    Foo a0;
-    if( false ) {
-	a0 = new Foo();
-    } else {
-	a0   = new Foo();
-	a0.x = new Foo();
-	p0.x = a0;
-    }
+    //Foo a = new Foo();
+    //Foo b = new Foo();
 
-    Foo a1 = new Foo();
+    Foo a = new Foo();
+    a.x   = new Foo();
+    a.x.x = new Foo();
 
-    if( false ) {	
-	p0.x = a1;
-    }
-
-    Foo.test( a0, a1 );
+    //p0.x = a;
+    //a.x  = b;
 
     taskexit( p0{ !f } );
 }
+
+
+task methodTest( Foo p0{ f } ) {
+
+    Foo up0 = new Foo();
+    Foo up1 = new Foo();
+    Foo up2 = new Foo();
+
+    Foo a0;
+    Foo a1;
+
+    if( false ) {
+	a0    = new Foo();
+	up0.x = a0;	
+	a0.x  = new Foo();
+	//Foo temp = new Foo();
+    }
+
+    if( false ) {
+	a0    = new Foo();
+	a0.x  = new Foo();
+	a1    = a0;
+	up1.x = a0;
+    }
+
+    if( false ) {
+	a1    = new Foo();
+	up2.x = a1;
+    }
+
+    // Foo.test( a0, a1 );
+
+    taskexit( p0{ !f } );
+}
+
+
+
 
 /*
 task NewObject( Foo a{ f }, Foo b{ f } ) {

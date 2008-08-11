@@ -370,6 +370,12 @@ public class OwnershipGraph {
 	}
     }
 
+
+
+
+
+    static int x = 0;
+
     public void assignFieldToTemp( TempDescriptor  src, 
 				   TempDescriptor  dst,
 				   FieldDescriptor fd ) {
@@ -401,8 +407,20 @@ public class OwnershipGraph {
 		hrnSrc        = (HeapRegionNode)          meS.getKey();
 		repSrc        = (ReferenceEdgeProperties) meS.getValue();
 		
-		ReachabilitySet O = srcln.getReferenceTo( hrnSrc ).getBeta();
+		ReachabilitySet O = repSrc.getBeta();
 
+
+		x++;
+		System.out.println( "x is "+x );
+		if( x > 0 ) {
+		    String s = String.format( "debug%04d", x );
+		    try {
+		    writeGraph( s, true, true, true, false );
+		    } catch( Exception e ) {}
+		}
+
+
+		System.out.println( "  O is "+O );
 
 		// propagate tokens over nodes starting from hrnSrc, and it will
 		// take care of propagating back up edges from any touched nodes
@@ -422,16 +440,23 @@ public class OwnershipGraph {
 		Iterator referItr = hrn.iteratorToReferencers();
 		while( referItr.hasNext() ) {
 		    OwnershipNode onRef = (OwnershipNode) referItr.next();
+
+		    System.out.println( "    "+onRef+" is upstream" );
+
 		    ReferenceEdgeProperties repUpstream = onRef.getReferenceTo( hrn );
 
 		    todoEdges.add( repUpstream );
 		    edgePlannedChanges.put( repUpstream, Cx );
 		}
 
+		System.out.println( "plans "+edgePlannedChanges );
+
 		propagateTokensOverEdges( todoEdges, 
 					  edgePlannedChanges,
 					  nodesWithNewAlpha,
 					  edgesWithNewBeta );
+
+		System.out.println( "  Onew = "+repSrc.getBetaNew() );
 
 		// finally, create the actual reference edge hrn->hrnSrc
 		ReferenceEdgeProperties repNew 
@@ -452,7 +477,7 @@ public class OwnershipGraph {
 	Iterator edgeItr = edgesWithNewBeta.iterator();
 	while( edgeItr.hasNext() ) {
 	    ((ReferenceEdgeProperties) edgeItr.next()).applyBetaNew();
-	}
+	}	
     }
 
     public void assignTempToParameterAllocation( boolean        isTask,
@@ -821,6 +846,7 @@ public class OwnershipGraph {
 				   FlatMethod              fm,
 				   OwnershipGraph          ogCallee ) {
 
+	/*
 	// verify the existence of allocation sites and their
 	// shadows from the callee in the context of this caller graph
 	Iterator<AllocationSite> asItr = ogCallee.allocationSites.iterator();
@@ -964,6 +990,7 @@ public class OwnershipGraph {
 		}
 	    } 
 	}	
+	*/
     }
 
 

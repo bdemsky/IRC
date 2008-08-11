@@ -318,6 +318,9 @@ public class OwnershipAnalysis {
     }
 
 
+    int x = 0;
+
+
     // keep passing the Descriptor of the method along for debugging
     // and dot file writing
     private OwnershipGraph
@@ -370,6 +373,16 @@ public class OwnershipAnalysis {
 
 	    if( !og.equals( ogPrev ) ) {
 		setGraphForFlatNode( fn, og );
+
+
+
+		x++;
+		if( x > 0 ) {
+		    String s = String.format( "debug%04d", x );
+		    //og.writeGraph( s, true, true, true, false );
+		}
+
+
 
 		for( int i = 0; i < fn.numNext(); i++ ) {
 		    FlatNode nn = fn.getNext( i );		  

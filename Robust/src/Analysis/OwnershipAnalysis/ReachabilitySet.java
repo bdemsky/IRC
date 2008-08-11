@@ -42,6 +42,17 @@ public class ReachabilitySet extends Canonical {
 	return possibleReachabilities.contains( tts );
     }
 
+    public boolean containsTuple( TokenTuple tt ) {
+	Iterator itr = iterator();
+	while( itr.hasNext() ) {
+	    TokenTupleSet tts = (TokenTupleSet) itr.next();
+	    if( tts.containsTuple( tt ) ) {
+		return true;
+	    }
+	}
+	return false;
+    }
+
     public ReachabilitySet add( TokenTupleSet tts ) {
 	ReachabilitySet rsOut = new ReachabilitySet( tts );
 	return this.union( rsOut );

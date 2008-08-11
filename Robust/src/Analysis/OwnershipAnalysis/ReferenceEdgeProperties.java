@@ -6,6 +6,7 @@ import IR.Flat.*;
 
 public class ReferenceEdgeProperties {
 
+
     // a null field descriptor means "any field"
     protected FieldDescriptor fieldDesc;
 
@@ -16,6 +17,7 @@ public class ReferenceEdgeProperties {
 
     protected OwnershipNode  src;
     protected HeapRegionNode dst;
+
 
     public ReferenceEdgeProperties() {
 	this( null, false, null );
@@ -31,8 +33,7 @@ public class ReferenceEdgeProperties {
 	if( beta != null ) {
 	    this.beta = beta;
 	} else {
-	    this.beta = new ReachabilitySet();
-	    this.beta = this.beta.makeCanonical();
+	    this.beta = new ReachabilitySet().makeCanonical();
 	}
 
 	// these members are set by higher-level code
@@ -43,8 +44,7 @@ public class ReferenceEdgeProperties {
 
 	// when edges are not undergoing a transitional operation
 	// that is changing beta info, betaNew is always empty
-	betaNew = new ReachabilitySet();
-	betaNew = betaNew.makeCanonical();
+	betaNew = new ReachabilitySet().makeCanonical();
     }
 
 
@@ -84,7 +84,6 @@ public class ReferenceEdgeProperties {
     }
 
 
-
     public boolean isInitialParamReflexive() {
 	return isInitialParamReflexive;
     }
@@ -114,12 +113,15 @@ public class ReferenceEdgeProperties {
     public void applyBetaNew() {
 	assert betaNew != null;
 
-	beta = betaNew;
-
-	betaNew = new ReachabilitySet();
-	betaNew = betaNew.makeCanonical();
+	beta    = betaNew;
+	betaNew = new ReachabilitySet().makeCanonical();
     }
 
+
+    /*
+
+      WHY ARE THESE METHODS INCORRECT?  WHEN INCLUDED, THE ANALYSIS GOES
+      HAYWIRE WITH REGARD TO REFERENCE EDGES
 
     public boolean equals( Object o ) {
 	if( o == null ) {
@@ -140,12 +142,20 @@ public class ReferenceEdgeProperties {
 
     public int hashCode() {
 	int hash = 0;
+
 	if( fieldDesc != null ) {
 	    hash += fieldDesc.getType().hashCode();
 	}
+
+	if( isInitialParamReflexive ) {
+	    hash += 1;
+	}
+
 	hash += beta.hashCode();
+
 	return hash;
     }
+    */
 
 
     public String getBetaString() {

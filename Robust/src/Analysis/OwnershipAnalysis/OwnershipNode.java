@@ -47,6 +47,8 @@ public abstract class OwnershipNode {
     }
 
 
+    /*
     abstract public boolean equals( Object o );
     abstract public int hashCode();
+    */
 }
