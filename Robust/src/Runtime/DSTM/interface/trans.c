@@ -356,6 +356,10 @@ objheader_t *transRead(transrecord_t *record, unsigned int oid) {
 #ifdef TRANSSTATS
     nprehashSearch++;
 #endif
+#ifdef CHECKTA
+    printf("Prefetch cache read, oid = %x, oidtype =%d\n", oid, TYPE(tmp));
+    fflush(stdout);
+#endif
     /* Look up in prefetch cache */
     GETSIZE(size, tmp);
     size+=sizeof(objheader_t);
@@ -382,6 +386,10 @@ objheader_t *transRead(transrecord_t *record, unsigned int oid) {
     } else {
 #ifdef TRANSSTATS
     nRemoteSend++;
+#endif
+#ifdef CHECKTA
+    printf("Remote read, oid = %x, oidtype =%d\n", oid, TYPE(objcopy));
+    fflush(stdout);
 #endif
       STATUS(objcopy)=0;      
 #ifdef COMPILER
@@ -622,7 +630,7 @@ int transCommit(transrecord_t *record) {
 #ifdef TRANSSTATS
     numTransAbort++;
 #endif
-#ifdef CHECKTB
+#ifdef CHECKTA
     char a[] = "Aborting";
     TABORT1(a);
 #endif
@@ -637,7 +645,7 @@ int transCommit(transrecord_t *record) {
 #ifdef TRANSSTATS
     numTransCommit++;
 #endif
-#ifdef CHECKTB
+#ifdef CHECKTA
     char a[] = "Commiting";
     TABORT1(a);
 #endif
@@ -723,6 +731,7 @@ void *transRequest(void *threadarg) {
       header = (objheader_t *) (((char *)newAddr) + offset);
       oidToPrefetch = OID(header);
 #ifdef CHECKTA
+      printf("Trans disagree for oid = %x: ", OID(header));
       char a[] = "object type";
       TABORT8(__func__, a, TYPE(header));
 #endif
@@ -743,11 +752,6 @@ void *transRequest(void *threadarg) {
   }
 
   recvcontrol = control;
-#ifdef CHECKTA
-  char a[] = "mid";
-  char c[] = "status";
-  TABORT5(__func__, a, c, tdata->mid, control);
-#endif
   /* Update common data structure and increment count */
   tdata->recvmsg[tdata->thread_id].rcv_status = recvcontrol;
   
@@ -765,6 +769,29 @@ void *transRequest(void *threadarg) {
     pthread_cond_wait(tdata->threshold, tdata->lock);
   }
   pthread_mutex_unlock(tdata->lock);
+
+  /* clear objects from prefetch cache */
+  /*
+  if(*(tdata->replyctrl) == TRANS_ABORT) {
+    int i;
+    for(i=0; i<tdata->buffer->f.nummod; i++) {
+      unsigned int oid = tdata->buffer->oidmod[i];
+      objheader_t *header;
+      if((header = prehashSearch(oid)) != NULL) {
+        prehashRemove(oid);
+      }
+    }
+    for(i=0; i<tdata->buffer->f.numread; i++) {
+      char *objread = tdata->buffer->objread;
+      unsigned int oid = *((unsigned int *)(objread+(sizeof(unsigned int) +
+                  sizeof(unsigned short))*i));
+      objheader_t *header;
+      if((header = prehashSearch(oid)) != NULL) {
+        prehashRemove(oid);
+      }
+    }
+  }
+  */
 
   if(*(tdata->replyctrl) == TRANS_COMMIT) {
     int retval;
@@ -972,10 +999,17 @@ void *handleLocalReq(void *threadarg) {
           /* Send TRANS_DISAGREE to Coordinator */
           localtdata->tdata->recvmsg[localtdata->tdata->thread_id].rcv_status = TRANS_DISAGREE;
 #ifdef CHECKTA
-  char a[] = "mid";
-  char b[] = "version mismatch";
-  char c[] = "object type";
-  TABORT7(__func__, b, a, c, localtdata->tdata->mid, TYPE(mobj));
+      printf("Trans disagree for oid = %x: ", OID(mobj));
+      char a[] = "object type";
+      TABORT8(__func__, a, TYPE(mobj));
+#endif
+
+#ifdef CHECKTA
+  //char a[] = "mid";
+  //char b[] = "version mismatch";
+  //char c[] = "object type";
+  //char d[] = "oid";
+  //TABORT9(__func__, b, a, c, d, localtdata->tdata->mid, TYPE(mobj), OID(mobj));
 #endif
           break;
         }
@@ -991,10 +1025,16 @@ void *handleLocalReq(void *threadarg) {
           /* Send TRANS_DISAGREE to Coordinator */
           localtdata->tdata->recvmsg[localtdata->tdata->thread_id].rcv_status = TRANS_DISAGREE;
 #ifdef CHECKTA
-  char a[] = "mid";
-  char b[] = "version mismatch";
-  char c[] = "object type";
-  TABORT7(__func__, b, a, c, localtdata->tdata->mid, TYPE(mobj));
+      printf("Trans disagree for oid = %x: ", OID(mobj));
+      char a[] = "object type";
+      TABORT8(__func__, a, TYPE(mobj));
+#endif
+#ifdef CHECKTA
+  //char a[] = "mid";
+  //char b[] = "version mismatch";
+  //char c[] = "object type";
+  //char d[] = "oid";
+  //TABORT9(__func__, b, a, c, d, localtdata->tdata->mid, TYPE(mobj), OID(mobj));
 #endif
           break;
         }
@@ -1008,10 +1048,11 @@ void *handleLocalReq(void *threadarg) {
   /* Condition to send TRANS_SOFT_ABORT */
   if((v_matchlock > 0 && v_nomatch == 0) || (numoidnotfound > 0 && v_nomatch == 0)) {
 #ifdef CHECKTA
-  char a[] = "mid";
-  char b[] = "version mismatch";
-  char c[] = "object type";
-  TABORT7(__func__, b, a, c, localtdata->tdata->mid, TYPE(mobj));
+  //char a[] = "mid";
+  //char b[] = "version mismatch";
+  //char c[] = "object type";
+  //TABORT7(__func__, b, a, c, localtdata->tdata->mid, TYPE(mobj));
+  printf("%s() Soft abort\n", __func__);
 #endif
     localtdata->tdata->recvmsg[localtdata->tdata->thread_id].rcv_status = TRANS_SOFT_ABORT;
   }
@@ -1043,6 +1084,14 @@ void *handleLocalReq(void *threadarg) {
       pthread_exit(NULL);
     }
   } else if(*(localtdata->tdata->replyctrl) == TRANS_COMMIT) {
+    /* Invalidate objects in other machine cache */
+    if(localtdata->tdata->buffer->f.nummod > 0) {
+      int retval;
+      if((retval = invalidateObj(localtdata->tdata)) != 0) {
+        printf("Error: %s() in invalidating Objects %s, %d\n", __func__, __FILE__, __LINE__);
+        return;
+      }
+    }
     if(transComProcess(localtdata) != 0) {
       printf("Error in transComProcess() %s,%d\n", __FILE__, __LINE__);
       fflush(stdout);
@@ -1092,7 +1141,7 @@ int transComProcess(local_thread_data_array_t  *localtdata) {
   oidcreated = localtdata->tdata->buffer->oidcreated;
   numlocked = localtdata->transinfo->numlocked;
   oidlocked = localtdata->transinfo->objlocked;
-  
+
   for (i = 0; i < nummod; i++) {
     if((header = (objheader_t *) mhashSearch(oidmod[i])) == NULL) {
       printf("Error: transComProcess() mhashsearch returns NULL at %s, %d\n", __FILE__, __LINE__);

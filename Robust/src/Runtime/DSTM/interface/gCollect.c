@@ -137,7 +137,13 @@ void clearPLookUpTable(void *begin, void *end) {
     for(; curr != NULL; curr = curr->next) {
       if(((unsigned long int)(curr->val) >= tmpbegin) && ((unsigned long int)(curr->val) < tmpend)) {
         unsigned int oid = curr->key;
-        prehashRemove(oid);
+        objheader_t *objheader;
+        if((objheader = prehashSearch(oid)) != NULL) {
+          prehashRemove(oid);
+#ifdef CHECKTA
+        printf("%s() clearing Look up table for oid = %x\n", __func__, oid);
+#endif
+        }
       }
     }
   }
