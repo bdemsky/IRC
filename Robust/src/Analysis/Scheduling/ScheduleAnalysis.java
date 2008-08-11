@@ -755,13 +755,13 @@ public class ScheduleAnalysis {
 	    
 	    CombinationUtil.RootsGenerator rGen = CombinationUtil.allocateRootsGenerator(sNodeVecs, this.coreNum);
 	    
+	    int gid = 1;
 	    while(rGen.nextGen()) {
 		// first get the chosen rootNodes
 		Vector<Vector<ScheduleNode>> rootNodes = rGen.getRootNodes();
 		Vector<Vector<ScheduleNode>> nodes2combine = rGen.getNode2Combine();
 		
 		CombinationUtil.CombineGenerator cGen = CombinationUtil.allocateCombineGenerator(rootNodes, nodes2combine);
-		int gid = 1;
 		while (cGen.nextGen()) {
 		    Vector<Vector<CombinationUtil.Combine>> combine = cGen.getCombine();
 		    Vector<ScheduleNode> sNodes = generateScheduling(rootNodes, combine, gid++);
@@ -997,29 +997,31 @@ public class ScheduleAnalysis {
 	
 	// combine those nodes in combine with corresponding rootnodes
 	for(int i = 0; i < combine.size(); i++) {
-	    for(int j = 0; j < combine.elementAt(i).size(); j++) {
-		CombinationUtil.Combine tmpcombine = combine.elementAt(i).elementAt(j);
-		ScheduleNode tocombine = sn2sn.get(tmpcombine.node);
-		ScheduleNode root = sn2sn.get(rootnodes.elementAt(tmpcombine.root).elementAt(tmpcombine.index));
-		ScheduleEdge se = (ScheduleEdge)tocombine.inedges().next();
-		try{
-		    if(root.equals(((ScheduleNode)se.getSource()))) {
-			root.mergeSEdge(se);
-			if(ScheduleEdge.NEWEDGE == se.getType()) {
-			    // As se has been changed into an internal edge inside a ScheduleNode, 
-			    // change the source and target of se from original ScheduleNodes into ClassNodes.
-			    se.setTarget(se.getTargetCNode());
-			    se.setSource(se.getSourceCNode());
-			    se.getTargetCNode().addEdge(se);
+	    if(combine.elementAt(i) != null) {
+		for(int j = 0; j < combine.elementAt(i).size(); j++) {
+		    CombinationUtil.Combine tmpcombine = combine.elementAt(i).elementAt(j);
+		    ScheduleNode tocombine = sn2sn.get(tmpcombine.node);
+		    ScheduleNode root = sn2sn.get(rootnodes.elementAt(tmpcombine.root).elementAt(tmpcombine.index));
+		    ScheduleEdge se = (ScheduleEdge)tocombine.inedges().next();
+		    try{
+			if(root.equals(((ScheduleNode)se.getSource()))) {
+			    root.mergeSEdge(se);
+			    if(ScheduleEdge.NEWEDGE == se.getType()) {
+				// As se has been changed into an internal edge inside a ScheduleNode, 
+				// change the source and target of se from original ScheduleNodes into ClassNodes.
+				se.setTarget(se.getTargetCNode());
+				se.setSource(se.getSourceCNode());
+				se.getTargetCNode().addEdge(se);
+			    }
+			} else {
+			    root.mergeSNode(tocombine);
 			}
-		    } else {
-			root.mergeSNode(tocombine);
+		    } catch(Exception e) {
+			e.printStackTrace();
+			System.exit(-1);
 		    }
-		} catch(Exception e) {
-		    e.printStackTrace();
-		    System.exit(-1);
+		    result.removeElement(tocombine);
 		}
-		result.removeElement(tocombine);
 	    }
 	}
 	

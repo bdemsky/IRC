@@ -648,7 +648,17 @@ public class BuildCodeMultiCore extends BuildCode {
 		super.generateFlatNode(fm, lb, current_node, output);
 		if (current_node.kind()!=FKind.FlatReturnNode) {
 		    //output.println("   flushAll();");
+		    output.println("#ifdef RAW");
+ 		   output.println("raw_user_interrupts_off();");
+		    output.println("#ifdef RAWDEBUG");
+		    output.println("raw_test_pass(0xec00);");
+		    output.println("#endif");
 		    output.println("raw_flush_entire_cache();");
+		    output.println("#ifdef RAWDEBUG");
+		   output.println("raw_test_pass(0xecff);");
+		    output.println("#endif");
+		    output.println("raw_user_interrupts_on();");
+		    output.println("#endif");
 		    outputTransCode(output);
 		    output.println("   return;");
 		}
@@ -1225,7 +1235,17 @@ public class BuildCodeMultiCore extends BuildCode {
 	} else {
 	    if(fm.getTask() != null) {
 		//output.println("flushAll();");
+		output.println("#ifdef RAW");
+		output.println("raw_user_interrupts_off();");
+		output.println("#ifdef RAWDEBUG");
+		output.println("raw_test_pass(0xec00);");
+		output.println("#endif");
 		output.println("raw_flush_entire_cache();");
+		output.println("#ifdef RAWDEBUG");
+		output.println("raw_test_pass(0xecff);");
+		output.println("#endif");
+		output.println("raw_user_interrupts_on();");
+		output.println("#endif");
 		outputTransCode(output);
 	    }
 	    output.println("return;");

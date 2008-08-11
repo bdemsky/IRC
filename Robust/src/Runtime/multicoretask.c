@@ -410,6 +410,9 @@ void run(void* arg) {
 			  // and try to execute active tasks already enqueued first
 			  removeItem(&objqueue, objitem);
 			  addNewItem_I(&objqueue, objInfo);
+#ifdef INTERRUPT
+	                  raw_user_interrupts_on();
+#endif
 			  break;
 		  }
 #ifdef INTERRUPT
@@ -2785,6 +2788,7 @@ void executetasks() {
 	taskpointerarray[i+OFFSET]=parameter;
 	goto execute;
 	}
+		lock = true;
 	// require locks for this parameter if it is not a startup object
 	getwritelock(parameter);
 	grount = 0;
@@ -2845,6 +2849,7 @@ void executetasks() {
 	taskpointerarray[i+OFFSET]=parameter;
 	goto execute;
 	}
+	lock = true;
 	if(0 == tmpparam->isolate) {
 		isolateflags[i] = 0;
 		// shared object, need to flush with current value
@@ -3056,13 +3061,18 @@ execute:
 	  } else {
 	    ((void (*) (void **)) currtpd->task->taskptr)(taskpointerarray);
 	  }
+#ifdef RAWDEBUG
+	  raw_test_pass(0xe998);
+	  	 raw_test_pass_reg(lock);
+		  #endif
+
 	  if(lock) {
 #ifdef RAW
 	   for(i = 0; i < numparams; ++i) {
 		  int j = 0;
 		  struct ___Object___ * tmpparam = (struct ___Object___ *)taskpointerarray[i+OFFSET];
 #ifdef RAWDEBUG
-		  raw_test_pass(0xe998);
+		  raw_test_pass(0xe999);
 		raw_test_pass(0xdd100000 + tmpparam->flag);
 #endif
 		  releasewritelock(tmpparam);
@@ -3093,6 +3103,11 @@ execute:
 	  reverse=NULL;
 #endif
 #endif
+#ifdef RAWDEBUG
+	  raw_test_pass(0xe99a);
+	  	  raw_test_pass_reg(lock);
+		  #endif
+
 	}
       }
     }

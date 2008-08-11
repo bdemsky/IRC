@@ -307,13 +307,14 @@ public class Main {
 					  //int newRate = (j+1)%2+1;
 					  int newRate = 1;
 					  String cdname = cd.getSymbol();
-					  if(cdname.equals("SeriesRunner")) {
+					  if((cdname.equals("SeriesRunner")) || 
+						  (cdname.equals("MDRunner"))) {
 					      newRate = 16;
-					  } else if(cdname.equals("MapWorker")) {
-					      newRate = 6;
-					  } else if(cdname.equals("ReduceWorker")) {
+					  } else if(cdname.equals("SentenceParser")) {
+					      newRate = 4;
+					  } /*else if(cdname.equals("ReduceWorker")) {
 					      newRate = 3;
-					  }
+					  }*/
 					  /*do {
 					      tint = r.nextInt()%100;
 					  } while(tint <= 0);

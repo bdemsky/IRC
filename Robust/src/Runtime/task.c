@@ -903,8 +903,9 @@ int enqueuetasks(struct parameterwrapper *parameter, struct parameterwrapper *pr
   /* Find initial state */
   for(j=0;j<numiterators;j++) {
   backtrackinit:
-    if(toiHasNext(&parameter->iterators[j], taskpointerarray OPTARG(failed)))
+    if(toiHasNext(&parameter->iterators[j], taskpointerarray OPTARG(failed))){
       toiNext(&parameter->iterators[j], taskpointerarray OPTARG(failed));
+	}
     else if (j>0) {
       /* Need to backtrack */
       toiReset(&parameter->iterators[j]);
@@ -946,15 +947,16 @@ int enqueuetasks(struct parameterwrapper *parameter, struct parameterwrapper *pr
 #endif
       RUNFREE(tpd);
     }
-    
+
     /* This loop iterates to the next parameter combination */
     if (numiterators==0)
       return retval;
 
     for(j=numiterators-1; j<numiterators;j++) {
     backtrackinc:
-      if(toiHasNext(&parameter->iterators[j], taskpointerarray OPTARG(failed)))
+      if(toiHasNext(&parameter->iterators[j], taskpointerarray OPTARG(failed))){
 	toiNext(&parameter->iterators[j], taskpointerarray OPTARG(failed));
+	  }
       else if (j>0) {
 	/* Need to backtrack */
 	toiReset(&parameter->iterators[j]);
@@ -1647,7 +1649,8 @@ void toiNext(struct tagobjectiterator *it , void ** objectarray OPTARG(int * fai
     }
   } else {
     /* Iterate object */
-    objectarray[it->slot]=(void *)Objkey(&it->it);
+	  void * tmpp = (void *) Objkey(&it->it);
+    objectarray[it->slot]=tmpp;
 #ifdef OPTIONAL
     failed[it->slot]=it->failedstate;
     if (it->failedstate==0) {

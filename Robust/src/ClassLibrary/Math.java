@@ -29,5 +29,6 @@ public class Math {
     public static native float sinf(float a);
     public static native float cosf(float a);
     public static native float sqrtf(float a);
+    public static native double logf(float a);
     public static native float powf(float a, float b);
 }

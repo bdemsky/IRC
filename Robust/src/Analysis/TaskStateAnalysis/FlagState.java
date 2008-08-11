@@ -16,6 +16,7 @@ public class FlagState extends GraphNode implements Cloneable {
     public static final int ONETAG=1;
     public static final int NOTAGS=0;
     public static final int MULTITAGS=-1;
+    public static final int MAXTIME=10;
     
     private int uid;
     private static int nodeid=0;
@@ -30,6 +31,7 @@ public class FlagState extends GraphNode implements Cloneable {
     // jzhou
     // for static scheduling
     private int executeTime;
+    private int visited4time;
     private int invokeNum;
     // for building multicore codes
     private int andmask;
@@ -50,6 +52,7 @@ public class FlagState extends GraphNode implements Cloneable {
 	this.uid=FlagState.nodeid++;
 	this.issourcenode=false;
 	this.executeTime = -1;
+	this.visited4time = -1;
 	this.invokeNum = 0;
 	this.andmask = 0;
 	this.checkmask = 0;
@@ -72,6 +75,7 @@ public class FlagState extends GraphNode implements Cloneable {
 	this.uid=FlagState.nodeid++;
 	this.issourcenode=false;
 	this.executeTime = -1;
+	this.visited4time = -1;
 	this.invokeNum = 0;
     }
    
@@ -331,7 +335,15 @@ public class FlagState extends GraphNode implements Cloneable {
     public int getExeTime() {
     	try {
 	    if(this.executeTime == -1) {
-		calExeTime();
+		if(this.visited4time == -1) {
+		    this.visited4time = 0;
+		    calExeTime();
+		} else {
+		    // visited, this node is in a loop
+		    // TODO
+		    // currently set 10 as the largest time
+		    this.executeTime = FlagState.MAXTIME;
+		}
 	    }
     	} catch (Exception e) {
 	    e.printStackTrace();
