@@ -6,46 +6,51 @@ import java.util.*;
 
 public abstract class OwnershipNode {   
 
-    protected Hashtable <HeapRegionNode, ReferenceEdgeProperties> referencedRegions;
+    protected HashSet<ReferenceEdge> referencees;
 
     public OwnershipNode() {
-	referencedRegions = 
-	    new Hashtable<HeapRegionNode, ReferenceEdgeProperties>();
+	referencees = new HashSet<ReferenceEdge>();
     }
 
 
-    public Iterator setIteratorToReferencedRegions() {
-	Set s = referencedRegions.entrySet();
-	return s.iterator();
+    public Iterator<ReferenceEdge> iteratorToReferencees() {
+	return referencees.iterator();
     }
 
-    public Iterator setIteratorToReferencedRegionsClone() {
-	Hashtable ht = (Hashtable) referencedRegions.clone();
-	Set s = ht.entrySet();
-	return s.iterator();
+    public Iterator<ReferenceEdge> iteratorToReferenceesClone() {
+	HashSet<ReferenceEdge> clone = (HashSet<ReferenceEdge>) referencees.clone();
+	return clone.iterator();
     }
 
-    public void addReferencedRegion( HeapRegionNode hrn,
-				     ReferenceEdgeProperties rep ) {
-	assert hrn != null;
-	assert rep != null;
 
-	referencedRegions.put( hrn, rep );
+    public void addReferencee( ReferenceEdge edge ) {
+	assert edge != null;
+
+	referencees.add( edge );
     }
 
-    public void removeReferencedRegion( HeapRegionNode hrn ) {
-	assert hrn != null;
-	assert referencedRegions.containsKey( hrn );
+    public void removeReferencee( ReferenceEdge edge ) {
+	assert edge != null;
+	assert referencees.contains( edge );
 
-	referencedRegions.remove( hrn );
+	referencees.remove( edge );
     }
 
-    public ReferenceEdgeProperties getReferenceTo( HeapRegionNode hrn ) {
+    public ReferenceEdge getReferenceTo( HeapRegionNode  hrn,
+					 FieldDescriptor fd ) {
 	assert hrn != null;
 
-	return referencedRegions.get( hrn );
-    }
+	Iterator<ReferenceEdge> itrEdge = referencees.iterator();
+	while( itrEdge.hasNext() ) {
+	    ReferenceEdge edge = itrEdge.next();
+	    if( edge.getDst().equals( hrn ) &&
+		edge.getFieldDesc() == fd     ) {
+		return edge;
+	    }
+	}
 
+	return null;
+    }
 
     /*
     abstract public boolean equals( Object o );

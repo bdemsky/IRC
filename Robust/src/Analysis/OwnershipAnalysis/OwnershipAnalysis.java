@@ -15,6 +15,7 @@ public class OwnershipAnalysis {
     //  aliases in the program under analysis
     //
     ///////////////////////////////////////////
+    /*
     public HashSet<AllocationSite> 
 	getFlaggedAllocationSitesReachableFromTask( TaskDescriptor td ) {
 
@@ -84,14 +85,15 @@ public class OwnershipAnalysis {
 					getHeapRegionIDset( alloc ),
 					getHeapRegionIDset( allocSet ) );
     }
+    */
 
     // use the methods given above to check every possible alias
     // between task parameters and flagged allocation sites reachable
     // from the task
     public void writeAllAliases( String outputFile ) throws java.io.IOException {
-
-	BufferedWriter bw = new BufferedWriter( new FileWriter( outputFile ) );
 	
+	BufferedWriter bw = new BufferedWriter( new FileWriter( outputFile ) );
+	/*
 	// look through every task for potential aliases
 	Iterator taskItr = state.getTaskSymbolTable().getDescriptorsIterator();
 	while( taskItr.hasNext() ) {
@@ -138,8 +140,9 @@ public class OwnershipAnalysis {
 	}
 
 	bw.close();
+        */
     }
-
+    
     ///////////////////////////////////////////
     //
     // end public interface
@@ -440,7 +443,7 @@ public class OwnershipAnalysis {
 	    if( fon.getOp().getOp() == Operation.ASSIGN ) {
 		src = fon.getLeft();
 		dst = fon.getDest();
-		og.assignTempToTemp( src, dst );
+		og.assignTempXToTempY( src, dst );
 	    }
 	    break;
 	    
@@ -450,7 +453,7 @@ public class OwnershipAnalysis {
 	    dst = ffn.getDst();
 	    fld = ffn.getField();
 	    if( !fld.getType().isPrimitive() ) {
-		og.assignTempToField( src, dst, fld );
+		og.assignTempXToTempYFieldF( src, dst, fld );
 	    }
 	    break;
 	    
@@ -459,7 +462,7 @@ public class OwnershipAnalysis {
 	    src = fsfn.getSrc();
 	    dst = fsfn.getDst();
 	    fld = fsfn.getField();
-	    og.assignFieldToTemp( src, dst, fld );
+	    og.assignTempXFieldFToTempY( src, fld, dst );
 	    break;
 	    
 	case FKind.FlatNew:
@@ -467,7 +470,7 @@ public class OwnershipAnalysis {
             dst = fnn.getDst();
 	    AllocationSite as = getAllocationSiteFromFlatNewPRIVATE( fnn );
 
-	    og.assignTempToNewAllocation( dst, as );
+	    og.assignTempXToNewAllocation( dst, as );
 	    break;
 
 	case FKind.FlatCall:
@@ -745,6 +748,7 @@ public class OwnershipAnalysis {
 					     HashSet<Integer> idSetB ) {
 	boolean potentialAlias = false;
 
+	/*
 	// first expand set B into the set of all heap region node ID's
 	// reachable from the nodes in set B
 	HashSet<Integer> idSetReachableFromB = og.getReachableSet( idSetB );
@@ -758,6 +762,7 @@ public class OwnershipAnalysis {
 		return true;
 	    }
 	}
+	*/
 
 	return false;
     }

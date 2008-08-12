@@ -4,7 +4,7 @@ import IR.*;
 import IR.Flat.*;
 
 
-public class ReferenceEdgeProperties {
+public class ReferenceEdge {
 
 
     // a null field descriptor means "any field"
@@ -19,14 +19,14 @@ public class ReferenceEdgeProperties {
     protected HeapRegionNode dst;
 
 
-    public ReferenceEdgeProperties() {
-	this( null, false, null );
-    }    
+    public ReferenceEdge( OwnershipNode   src,
+			  HeapRegionNode  dst,			  
+			  FieldDescriptor fieldDesc, 
+			  boolean         isInitialParamReflexive,
+			  ReachabilitySet beta ) {
 
-    public ReferenceEdgeProperties( FieldDescriptor fieldDesc, 
-				    boolean         isInitialParamReflexive,
-				    ReachabilitySet beta ) {
-
+	this.src                     = src;
+	this.dst                     = dst;
 	this.fieldDesc               = fieldDesc;
 	this.isInitialParamReflexive = isInitialParamReflexive;	
 
@@ -36,15 +36,58 @@ public class ReferenceEdgeProperties {
 	    this.beta = new ReachabilitySet().makeCanonical();
 	}
 
-	// these members are set by higher-level code
-	// when this ReferenceEdgeProperties object is
-	// applied to an edge
-	this.src = null;
-	this.dst = null;
-
 	// when edges are not undergoing a transitional operation
 	// that is changing beta info, betaNew is always empty
 	betaNew = new ReachabilitySet().makeCanonical();
+    }
+
+
+    public ReferenceEdge copy() {
+	return new ReferenceEdge( src,
+				  dst,
+				  fieldDesc,
+				  isInitialParamReflexive,
+				  beta );
+    }
+
+
+    public boolean equals( Object o ) {
+	if( o == null ) {
+	    return false;
+	}
+
+	if( !(o instanceof ReferenceEdge) ) {
+	    return false;
+	}
+	
+	ReferenceEdge re = (ReferenceEdge) o;
+
+	// field descriptors maintain the invariant that they are reference comparable
+	return fieldDesc               == re.fieldDesc               &&
+	       isInitialParamReflexive == re.isInitialParamReflexive &&
+	       src.equals ( re.src  )                                &&
+	       dst.equals ( re.dst  )                                &&
+	       beta.equals( re.beta );
+    }
+
+    public int hashCode() {
+	int hash = 0;
+
+	if( fieldDesc != null ) {
+	    hash += fieldDesc.getType().hashCode();
+	}
+
+	if( isInitialParamReflexive ) {
+	    hash += 1;
+	}
+
+	hash += src.hashCode();
+
+	hash += dst.hashCode();
+
+	hash += beta.hashCode();
+
+	return hash;
     }
 
 
@@ -64,14 +107,6 @@ public class ReferenceEdgeProperties {
     public void setDst( HeapRegionNode hrn ) {
 	assert hrn != null;
 	dst = hrn;
-    }
-
-
-    // copying does not copy source and destination members! or betaNew
-    public ReferenceEdgeProperties copy() {
-	return new ReferenceEdgeProperties( fieldDesc,
-					    isInitialParamReflexive,
-					    beta );
     }
 
 
@@ -119,58 +154,24 @@ public class ReferenceEdgeProperties {
 
 
     /*
-
-      WHY ARE THESE METHODS INCORRECT?  WHEN INCLUDED, THE ANALYSIS GOES
-      HAYWIRE WITH REGARD TO REFERENCE EDGES
-
-    public boolean equals( Object o ) {
-	if( o == null ) {
-	    return false;
-	}
-
-	if( !(o instanceof ReferenceEdgeProperties) ) {
-	    return false;
-	}
-	
-	ReferenceEdgeProperties rep = (ReferenceEdgeProperties) o;
-
-	// field descriptors maintain the invariant that they are reference comparable
-	return fieldDesc               == rep.fieldDesc               &&
-	       isInitialParamReflexive == rep.isInitialParamReflexive &&
-	       beta.equals( rep.beta );
-    }
-
-    public int hashCode() {
-	int hash = 0;
-
-	if( fieldDesc != null ) {
-	    hash += fieldDesc.getType().hashCode();
-	}
-
-	if( isInitialParamReflexive ) {
-	    hash += 1;
-	}
-
-	hash += beta.hashCode();
-
-	return hash;
-    }
-    */
-
-
     public String getBetaString() {
 	return beta.toStringEscapeNewline();
     }
+    */
     
-    public String toEdgeLabelString() {
+    public String toGraphEdgeString() {
 	String edgeLabel = "";
+
 	if( fieldDesc != null ) {
 	    edgeLabel += fieldDesc.toStringBrief() + "\\n";
 	}
+
 	if( isInitialParamReflexive ) {
 	    edgeLabel += "Rflx\\n";
 	}
-	edgeLabel += getBetaString();
+
+	edgeLabel += beta.toStringEscapeNewline();
+
 	return edgeLabel;
     }
 }

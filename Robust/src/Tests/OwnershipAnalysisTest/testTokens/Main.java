@@ -7,61 +7,145 @@ import java.io.*;
 
 public class Main {
 
+    static boolean aTestFailed;
+
+
     protected static void test( String test,
 				boolean expected,
 				boolean result ) {
-
-	String outcome = "...\tFAILED";
+	String outcome;
 	if( expected == result ) {
 	    outcome = "...\tpassed";
+	} else {
+	    outcome = "...\tFAILED";
+	    aTestFailed = true;
 	}
 	
 	System.out.println( test+" expected "+expected+outcome );
     }
 
+
     public static void main(String args[]) throws Exception {
 
-	/*
+	aTestFailed = false;
+
+	testExample();
+	System.out.println( "---------------------------------------" );
+	testTokenTuple();
+	System.out.println( "---------------------------------------" );
+	testTokenTupleSet();
+	System.out.println( "---------------------------------------" );
+
+	if( aTestFailed ) {
+	    System.out.println( "<><><><><><><><><><><><><><><><><><><><><><><><>" );
+	    System.out.println( "<><><> WARNING: At least one test failed. <><><>" );
+	    System.out.println( "<><><><><><><><><><><><><><><><><><><><><><><><>" );
+	} else {
+	    System.out.println( "All tests passed." );
+	}
+    }
+
+    
+    public static void testExample() {
+	
 	// example test to know the testing routine is correct!
 	test( "4 == 5?", false, 4 == 5 );
 	test( "3 == 3?", true,  3 == 3 );
+    }
 
 
-	TokenTuple tt0 = new TokenTuple( new Integer( 1 ),
-					 true,
-					 TokenTuple.ARITY_ONE );
+    public static void testTokenTuple() {
 
-	TokenTuple tt1 = new TokenTuple( new Integer( 1 ),
-					 true,
-					 TokenTuple.ARITY_ONE );
-
-	TokenTuple tt2 = new TokenTuple( new Integer( 2 ),
-					 true,
-					 TokenTuple.ARITY_ONE );
-
-	TokenTuple tt3 = new TokenTuple( new Integer( 1 ),
-					 true,
-					 TokenTuple.ARITY_MANY );
+	TokenTuple tt0 = new TokenTuple( new Integer( 1 ), true,  TokenTuple.ARITY_ONE  );
+	TokenTuple tt1 = new TokenTuple( new Integer( 1 ), true,  TokenTuple.ARITY_ONE  );
+	TokenTuple tt2 = new TokenTuple( new Integer( 2 ), true,  TokenTuple.ARITY_ONE  );
+	TokenTuple tt3 = new TokenTuple( new Integer( 1 ), true,  TokenTuple.ARITY_MANY );
+	TokenTuple tt4 = new TokenTuple( new Integer( 3 ), false, TokenTuple.ARITY_ONE  );
+	TokenTuple tt5 = new TokenTuple( new Integer( 3 ), false, TokenTuple.ARITY_ONE  );
 
 	test( "tt0 equals tt1?", true,  tt0.equals( tt1 ) );
 	test( "tt1 equals tt0?", true,  tt1.equals( tt0 ) );
+	test( "tt1.hashCode == tt0.hashCode?", true, tt1.hashCode() == tt0.hashCode() );
 
 	test( "tt0 equals tt2?", false, tt0.equals( tt2 ) );
 	test( "tt2 equals tt0?", false, tt2.equals( tt0 ) );
+	test( "tt2.hashCode == tt0.hashCode?", false, tt2.hashCode() == tt0.hashCode() );
 
 	test( "tt0 equals tt3?", false, tt0.equals( tt3 ) );
 	test( "tt3 equals tt0?", false, tt3.equals( tt0 ) );
+	test( "tt3.hashCode == tt0.hashCode?", false, tt3.hashCode() == tt0.hashCode() );
 
 	test( "tt2 equals tt3?", false, tt2.equals( tt3 ) );
 	test( "tt3 equals tt2?", false, tt3.equals( tt2 ) );
+	test( "tt3.hashCode == tt2.hashCode?", false, tt3.hashCode() == tt2.hashCode() );
 
 	tt1 = tt1.increaseArity();
 
 	test( "tt1 equals tt2?", false, tt1.equals( tt2 ) );
 	test( "tt2 equals tt1?", false, tt2.equals( tt1 ) );
+	test( "tt2.hashCode == tt1.hashCode?", false, tt2.hashCode() == tt1.hashCode() );
 
 	test( "tt1 equals tt3?", true,  tt1.equals( tt3 ) );
-	test( "tt3 equals tt1?", true,  tt3.equals( tt1 ) );
+	test( "tt3 equals tt1?", true,  tt3.equals( tt1 ) );	
+	test( "tt3.hashCode == tt1.hashCode?", true, tt3.hashCode() == tt1.hashCode() );
+
+	test( "tt4 equals tt5?", true,  tt4.equals( tt5 ) );
+	test( "tt5 equals tt4?", true,  tt5.equals( tt4 ) );
+	test( "tt5.hashCode == tt4.hashCode?", true, tt5.hashCode() == tt4.hashCode() );
+
+	tt4 = tt4.increaseArity();
+
+	test( "tt4 equals tt5?", true,  tt4.equals( tt5 ) );
+	test( "tt5 equals tt4?", true,  tt5.equals( tt4 ) );
+	test( "tt5.hashCode == tt4.hashCode?", true, tt5.hashCode() == tt4.hashCode() );
+
+
+	TokenTuple tt6 = new TokenTuple( new Integer( 6 ), false, TokenTuple.ARITY_ONE  );
+	TokenTuple tt7 = new TokenTuple( new Integer( 6 ), false, TokenTuple.ARITY_ONE  );
+	TokenTuple tt8 = new TokenTuple( new Integer( 8 ), false, TokenTuple.ARITY_ONE  );
+	TokenTuple tt9 = new TokenTuple( new Integer( 9 ), false, TokenTuple.ARITY_ONE  );
+
+	test( "tt6 equals tt7?",               true,  tt6.equals( tt7 )                );
+	test( "tt6.hashCode == tt7.hashCode?", true,  tt6.hashCode() == tt7.hashCode() );
+
+	test( "tt8 equals tt7?",               false, tt8.equals( tt7 )                );
+	test( "tt8.hashCode == tt7.hashCode?", false, tt8.hashCode() == tt7.hashCode() );
+
+	// notice that this makes tt7 canonical
+	tt7 = tt7.changeTokenTo( new Integer( 8 ) );
+
+	test( "tt6 equals tt7?",               false, tt6.equals( tt7 )                );
+	test( "tt6.hashCode == tt7.hashCode?", false, tt6.hashCode() == tt7.hashCode() );
+
+	test( "tt8 equals tt7?",               true,  tt8.equals( tt7 )                );
+	test( "tt8.hashCode == tt7.hashCode?", true,  tt8.hashCode() == tt7.hashCode() );
+
+	test( "tt6 == tt7?", false, tt6 == tt7 );
+	test( "tt8 == tt7?", false, tt8 == tt7 );
+	test( "tt9 == tt7?", false, tt9 == tt7 );
+
+	tt6 = tt6.makeCanonical();
+	tt8 = tt8.makeCanonical();
+	tt9 = tt9.makeCanonical();
+
+	test( "tt6 == tt7?", false, tt6 == tt7 );
+	test( "tt8 == tt7?", true,  tt8 == tt7 );
+	test( "tt9 == tt7?", false, tt9 == tt7 );
+    }
+
+
+    public static void testTokenTupleSet() {
+
+
+    }
+
+
+
+
+    public static void garbage() {
+	/*
+
+
 	
 	
 	TokenTupleSet tts0 = new TokenTupleSet( tt0 );
@@ -191,7 +275,7 @@ public class Main {
 	System.out.println( "rs3 is "+rs3 );
 	*/
 
-
+	/*
 	TokenTuple tt11 = new TokenTuple( new Integer( 1 ),
 					 false,
 					 TokenTuple.ARITY_ONE );
@@ -215,7 +299,7 @@ public class Main {
 	TokenTuple tt16 = new TokenTuple( new Integer( 6 ),
 					 true,
 					 TokenTuple.ARITY_MANY );
-
+	*/
 	/*
 	TokenTupleSet tts10 = new TokenTupleSet();
 	tts10 = tts10.add( tt11 );
@@ -226,6 +310,7 @@ public class Main {
 	tts10 = tts10.add( tt16 );
 	*/
 
+	/*
 	TokenTuple tt21 = new TokenTuple( new Integer( 1 ),
 					 false,
 					 TokenTuple.ARITY_ONE );
@@ -249,7 +334,7 @@ public class Main {
 	TokenTuple tt26 = new TokenTuple( new Integer( 8 ),
 					 true,
 					 TokenTuple.ARITY_MANY );
-
+	*/
 	/*
 	TokenTupleSet tts20 = new TokenTupleSet();
 	tts20 = tts20.add( tt21 );
@@ -266,7 +351,7 @@ public class Main {
 	System.out.println( "" );
 	System.out.println( "tts30 is "+tts30 );
 	*/
-
+	/*
 	TokenTupleSet tts40 = new TokenTupleSet();
 	tts40 = tts40.add( tt21 );
 	tts40 = tts40.add( tt23 );
@@ -314,5 +399,6 @@ public class Main {
 	System.out.println( "rs50 is "+rs50 );
 	System.out.println( "" );
 	System.out.println( "rs60 is "+rs60 );
+	*/
     }
 }

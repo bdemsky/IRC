@@ -31,17 +31,16 @@ public class TokenTupleSet extends Canonical {
 	return tokenTuples.iterator();
     }
 
-    /*
-    public TokenTupleSet add( TokenTuple tt ) {
-	TokenTupleSet ttsOut = new TokenTupleSet( tt );
-	return this.union( ttsOut );
-    }
-    */
-
     public TokenTupleSet union( TokenTupleSet ttsIn ) {
 	TokenTupleSet ttsOut = new TokenTupleSet( this );
 	ttsOut.tokenTuples.addAll( ttsIn.tokenTuples );
 	return ttsOut.makeCanonical();
+    }
+
+    public TokenTupleSet add( TokenTuple tt ) {
+	TokenTupleSet ttsOut = new TokenTupleSet( this );
+	ttsOut = ttsOut.union( this );
+	return ttsOut;
     }
 
     /*

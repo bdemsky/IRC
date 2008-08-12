@@ -54,25 +54,25 @@ public class Main {
 	OwnershipGraph g0     = new OwnershipGraph( allocationDepth );
 	TempDescriptor g0tdp1 = new TempDescriptor( "p1" );
 	TempDescriptor g0tdx  = new TempDescriptor( "x" );
-	g0.parameterAllocation( true, g0tdp1 );
-	g0.assignTempToTemp   ( g0tdx, g0tdp1 );
+	g0.assignTempToParameterAllocation( true, g0tdp1, new Integer( 0 ) );
+	g0.assignTempXToTempY             ( g0tdx, g0tdp1 );
 
 	OwnershipGraph g1     = new OwnershipGraph( allocationDepth );
 	TempDescriptor g1tdp2 = new TempDescriptor( "p2" );
 	TempDescriptor g1tdy  = new TempDescriptor( "y" );
 	TempDescriptor g1tdz  = new TempDescriptor( "z" );
-	g1.parameterAllocation( true, g1tdp2 );
-	g1.assignTempToTemp   ( g1tdy, g1tdp2 );
-	g1.assignTempToField  ( g1tdz, g1tdp2, null );
+	g1.assignTempToParameterAllocation( true, g1tdp2, new Integer( 0 ) );
+	g1.assignTempXToTempY             ( g1tdy, g1tdp2 );
+	g1.assignTempXToTempYFieldF       ( g1tdz, g1tdp2, null );
 
 	OwnershipGraph g2     = new OwnershipGraph( allocationDepth );
 	TempDescriptor g2tdp3 = new TempDescriptor( "p3" );
 	TempDescriptor g2tdp4 = new TempDescriptor( "p4" );
 	TempDescriptor g2tdw  = new TempDescriptor( "w" );
-	g2.parameterAllocation( true, g2tdp3 );
-	g2.parameterAllocation( true, g2tdp4 );
-	g2.assignTempToTemp   ( g2tdw,  g2tdp4 );
-	g2.assignFieldToTemp  ( g2tdp3, g2tdw, null );
+	g2.assignTempToParameterAllocation( true, g2tdp3, new Integer( 0 ) );
+	g2.assignTempToParameterAllocation( true, g2tdp4, new Integer( 1 ) );
+	g2.assignTempXToTempY             ( g2tdw,  g2tdp4 );
+	g2.assignTempXFieldFToTempY       ( g2tdp3, null, g2tdw );
 
 	OwnershipGraph g3 = new OwnershipGraph( allocationDepth );
 	g3.merge( g0 );

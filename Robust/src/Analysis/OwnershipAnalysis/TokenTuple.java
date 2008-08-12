@@ -11,15 +11,17 @@ import java.io.*;
 
 // THIS CLASS IS IMMUTABLE!
 
-public class TokenTuple extends Canonical
-{
+public class TokenTuple extends Canonical {
+
     private Integer token;
     private boolean isNewSummary;
+
 
     // only summary tokens should have ARITY_MANY?
     public static final int ARITY_ONE  = 1;
     public static final int ARITY_MANY = 2;
     private int arity;
+
 
     public TokenTuple( HeapRegionNode hrn ) {
 	token        = hrn.getID();
@@ -35,12 +37,15 @@ public class TokenTuple extends Canonical
 	this.arity        = arity;
     }
 
+
     public TokenTuple makeCanonical() {
 	return (TokenTuple) Canonical.makeCanonical( this );
     }
 
+
     public Integer getToken() { return token; }
     public int     getArity() {	return arity; }
+
 
     public TokenTuple increaseArity() {
 	if( isNewSummary ) {
@@ -51,6 +56,7 @@ public class TokenTuple extends Canonical
 	return this;
     }
 
+
     public TokenTuple changeTokenTo( Integer tokenToChangeTo ) {
 	assert isNewSummary == false;
 
@@ -58,6 +64,7 @@ public class TokenTuple extends Canonical
 			       isNewSummary,
 			       arity ).makeCanonical();
     }
+
 
     public boolean equals( Object o ) {
 	if( o == null ) {
@@ -75,8 +82,9 @@ public class TokenTuple extends Canonical
     }
 
     public int hashCode() {
-	return token.intValue();
+	return token.intValue() + arity*100000;
     }
+
 
     public String toString() {
 	String s = "";

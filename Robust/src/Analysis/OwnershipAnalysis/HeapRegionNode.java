@@ -12,8 +12,7 @@ public class HeapRegionNode extends OwnershipNode {
     protected boolean isFlagged;
     protected boolean isNewSummary;
 
-    protected HashSet<TempDescriptor> memberFields;
-    protected HashSet<OwnershipNode>  referencers;
+    protected HashSet<ReferenceEdge>  referencers;
 
     protected AllocationSite allocSite;
 
@@ -39,11 +38,8 @@ public class HeapRegionNode extends OwnershipNode {
 	this.alpha          = alpha;
 	this.description    = description;
 
-	alphaNew = new ReachabilitySet();
-	alphaNew = alphaNew.makeCanonical();
-
-	referencers  = new HashSet<OwnershipNode>();
-	memberFields = new HashSet<TempDescriptor>();
+	referencers = new HashSet<ReferenceEdge>();
+	alphaNew    = new ReachabilitySet().makeCanonical();
     }
 
     public HeapRegionNode copy() {
@@ -62,7 +58,6 @@ public class HeapRegionNode extends OwnershipNode {
     }
 
 
-    /*
     public boolean equals( Object o ) {
 	if( o == null ) {
 	    return false;
@@ -85,7 +80,6 @@ public class HeapRegionNode extends OwnershipNode {
     public int hashCode() {
 	return id.intValue();
     }
-    */
 
 
     public boolean isSingleObject() {
@@ -102,31 +96,42 @@ public class HeapRegionNode extends OwnershipNode {
 
 
 
-    public Iterator iteratorToReferencers() {
+    public Iterator<ReferenceEdge> iteratorToReferencers() {
 	return referencers.iterator();
     }
 
-    public Iterator iteratorToReferencersClone() {
-	HashSet hs = (HashSet) referencers.clone();
-	return hs.iterator();
+    public Iterator<ReferenceEdge> iteratorToReferencersClone() {
+	HashSet<ReferenceEdge> clone = (HashSet<ReferenceEdge>) referencers.clone();
+	return clone.iterator();
     }
 
-    public void addReferencer( OwnershipNode on ) {
-	assert on != null;
+    public void addReferencer( ReferenceEdge edge ) {
+	assert edge != null;
 
-	referencers.add( on );
+	referencers.add( edge );
     }
 
-    public void removeReferencer( OwnershipNode on ) {
-	assert on != null;
-	assert referencers.contains( on );
+    public void removeReferencer( ReferenceEdge edge ) {
+	assert edge != null;
+	assert referencers.contains( edge );
 
-	referencers.remove( on );
+	referencers.remove( edge );
     }
 
-    public boolean isReferencedBy( OwnershipNode on ) {
+    public ReferenceEdge getReferenceFrom( OwnershipNode   on,
+					   FieldDescriptor fd ) {
 	assert on != null;
-	return referencers.contains( on );
+
+	Iterator<ReferenceEdge> itrEdge = referencers.iterator();
+	while( itrEdge.hasNext() ) {
+	    ReferenceEdge edge = itrEdge.next();
+	    if( edge.getSrc().equals( on ) &&
+		edge.getFieldDesc() == fd     ) {
+		return edge;
+	    }
+	}
+
+	return null;
     }
 
 

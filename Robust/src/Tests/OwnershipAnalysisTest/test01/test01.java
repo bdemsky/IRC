@@ -46,7 +46,7 @@ public class Foo {
 	a.x = b.x;
     }
 
-    /*
+
     static public void test( Foo p0, Foo p1 ) {
 	Foo f0 = new Foo();
 	Foo f1 = new Foo();
@@ -57,7 +57,6 @@ public class Foo {
 	p1.x = f1;
 	p1.x = f2;
     }
-    */
 }
 
 
@@ -67,7 +66,7 @@ public class Foo {
 // a heap region that is multi-object, flagged, not summary
 task Startup( StartupObject s{ initialstate } ) {
     
-    /*
+
     while( false ) {
 	Foo a = new Foo();
 	a.x   = new Foo();
@@ -111,7 +110,7 @@ task Startup( StartupObject s{ initialstate } ) {
 	c.x = b;
 	b = c;
     }
-    */
+
 
     taskexit( s{ !initialstate } );
 }
