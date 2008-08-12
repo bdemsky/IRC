@@ -46,101 +46,92 @@ public class MatrixMultiply extends Thread{
 		}
 	}
 
-	public static void main(String[] args) {
-<<<<<<< MatrixMultiply.java
-		int mid1 = (128<<24)|(195<<16)|(175<<8)|69;
-		int mid2 = (128<<24)|(195<<16)|(175<<8)|69;
-		int mid3 = (128<<24)|(195<<16)|(175<<8)|71;
-		int NUM_THREADS = 1;
-=======
+    public static void main(String[] args) {
       int NUM_THREADS = 4;
       int[] mid = new int[NUM_THREADS];
       mid[0] = (128<<24)|(195<<16)|(175<<8)|69;
       mid[1] = (128<<24)|(195<<16)|(175<<8)|73;
       mid[2] = (128<<24)|(195<<16)|(175<<8)|78;
       mid[3] = (128<<24)|(195<<16)|(175<<8)|79;
-		//int mid1 = (128<<24)|(195<<16)|(175<<8)|69;
-		//int mid2 = (128<<24)|(195<<16)|(175<<8)|73;
->>>>>>> 1.19
-		int p, q, r;
-		MatrixMultiply[] mm;
-		MatrixMultiply tmp;
-		MMul matrix;
+      int p, q, r;
+      MatrixMultiply[] mm;
+      MatrixMultiply tmp;
+      MMul matrix;
 
-		atomic {
-			matrix = global new MMul(400, 400, 400);
-			matrix.setValues();
-			matrix.transpose();
-		}
+      atomic {
+        matrix = global new MMul(400, 400, 400);
+        matrix.setValues();
+        matrix.transpose();
+      }
 
-		atomic{
-			mm = global new MatrixMultiply[NUM_THREADS];
-		}
+      atomic{
+        mm = global new MatrixMultiply[NUM_THREADS];
+      }
 
-		atomic {
-			mm[0] = global new MatrixMultiply(matrix,0,0,200,200);
-			mm[1] = global new MatrixMultiply(matrix,0,201,200,399);
-			mm[2] = global new MatrixMultiply(matrix,201,0,399,200);
-			mm[3] = global new MatrixMultiply(matrix,201,201,399,399);
-		}
+      atomic {
+        mm[0] = global new MatrixMultiply(matrix,0,0,200,200);
+        mm[1] = global new MatrixMultiply(matrix,0,201,200,399);
+        mm[2] = global new MatrixMultiply(matrix,201,0,399,200);
+        mm[3] = global new MatrixMultiply(matrix,201,201,399,399);
+      }
 
-		atomic {
-			p = matrix.L;
-			q = matrix.M;
-			r = matrix.N;
-		}
+      atomic {
+        p = matrix.L;
+        q = matrix.M;
+        r = matrix.N;
+      }
 
-		// print out the matrices to be multiplied
-		System.printString("\n");
-		System.printString("MatrixMultiply: L=");
-		System.printInt(p);
-		System.printString("\t");
-		System.printString("M=");
-		System.printInt(q);
-		System.printString("\t");
-		System.printString("N=");
-		System.printInt(r);
-		System.printString("\n");
+      // print out the matrices to be multiplied
+      System.printString("\n");
+      System.printString("MatrixMultiply: L=");
+      System.printInt(p);
+      System.printString("\t");
+      System.printString("M=");
+      System.printInt(q);
+      System.printString("\t");
+      System.printString("N=");
+      System.printInt(r);
+      System.printString("\n");
 
-		// start a thread to compute each c[l,n]
-		for (int i = 0; i < NUM_THREADS; i++) {
-			atomic {
-				tmp = mm[i];
-			}
-			tmp.start(mid[i]);
-		}
+      // start a thread to compute each c[l,n]
+      for (int i = 0; i < NUM_THREADS; i++) {
+        atomic {
+          tmp = mm[i];
+        }
+        tmp.start(mid[i]);
+      }
 
-		// wait for them to finish
-		for (int i = 0; i < NUM_THREADS; i++) {
-			atomic {
-				tmp = mm[i];
-			}
-			tmp.join();
-		}
+      // wait for them to finish
+      for (int i = 0; i < NUM_THREADS; i++) {
+        atomic {
+          tmp = mm[i];
+        }
+        tmp.join();
+      }
 
-		// print out the result of the matrix multiply
-		System.printString("Starting\n");
-		System.printString("Matrix Product c =\n");
-		double val;
-		atomic {
-			for (int i = 0; i < p; i++) {
-				double c[]=matrix.c[i];
-				for (int j = 0; j < r; j++) {
-					val = c[j];
-				}
-			}
-		}
-		System.printString("Finished\n");
-	}
+      // print out the result of the matrix multiply
+      System.printString("Starting\n");
+      System.printString("Matrix Product c =\n");
+      double val;
+      atomic {
+        for (int i = 0; i < p; i++) {
+          double c[]=matrix.c[i];
+          for (int j = 0; j < r; j++) {
+            val = c[j];
+          }
+        }
+      }
+      System.printString("Finished\n");
+    }
 }
 
 public class MMul{
 
-	public int L, M, N;
-	public double[][] a;
-	public double[][] b;
-	public double[][] c;
-	public double[][] btranspose;
+  public int L, M, N;
+  public double[][] a;
+  public double[][] b;
+  public double[][] c;
+  public double[][] btranspose;
 
 	public MMul(int L, int M, int N) {
 		this.L = L;

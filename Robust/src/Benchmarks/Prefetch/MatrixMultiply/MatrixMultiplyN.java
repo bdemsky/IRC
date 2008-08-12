@@ -1,7 +1,6 @@
 public class MatrixMultiply extends Thread{
     MMul mmul;
     public int x0, y0, x1, y1;
-    
     public MatrixMultiply(MMul mmul, int x0, int x1, int y0, int y1) {
 	this.mmul = mmul;
 	this.x0 = x0;
@@ -43,10 +42,10 @@ public class MatrixMultiply extends Thread{
 	}
 	
 	int[] mid = new int[4];
-	mid[0] = (128<<24)|(195<<16)|(175<<8)|69;
-	mid[1] = (128<<24)|(195<<16)|(175<<8)|70;
-	mid[2] = (128<<24)|(195<<16)|(175<<8)|71;
-	mid[3] = (128<<24)|(195<<16)|(175<<8)|79;
+	mid[0] = (128<<24)|(195<<16)|(175<<8)|79; //dw-8
+	mid[1] = (128<<24)|(195<<16)|(175<<8)|73; //dw-5
+	mid[2] = (128<<24)|(195<<16)|(175<<8)|78; //dw-7
+	mid[3] = (128<<24)|(195<<16)|(175<<8)|69; //dw-1
 	int p, q, r;
 	MatrixMultiply[] mm;
 	MatrixMultiply tmp;
@@ -90,6 +89,7 @@ public class MatrixMultiply extends Thread{
 	    }
 	    tmp.start(mid[i]);
 	}
+
 	
 	// wait for them to finish
 	for (int i = 0; i < NUM_THREADS; i++) {
