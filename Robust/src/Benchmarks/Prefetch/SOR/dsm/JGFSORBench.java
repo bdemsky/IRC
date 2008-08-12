@@ -28,10 +28,11 @@ public class JGFSORBench {
 
   public JGFSORBench(int nthreads){
     this.nthreads = nthreads;
-    datasizes = global new int[3];
+    datasizes = global new int[4];
     datasizes[0] = 1000;
     datasizes[1] = 1500;
     datasizes[2] = 2000;
+    datasizes[3] = 4000;
     JACOBI_NUM_ITER = 100;
     RANDOM_SEED = 10101010;
     Gtotal = 0.0;
@@ -112,6 +113,7 @@ public class JGFSORBench {
     refval[0] = 0.498574406322512;
     refval[1] = 1.1234778980135105;
     refval[2] = 1.9954895063582696;
+    refval[3] = 2.654895063582696;
     double dev = Math.fabs(Gtotal - refval[size]);
     long l = (long) refval[size] * 1000000;
     long r = (long) Gtotal * 1000000;

@@ -63,8 +63,8 @@ class SORRunner extends Thread {
         G[i]=global new double[N];
       }
     }
-
     Barrier.enterBarrier(barr);
+    
     atomic {
       Random rand=new Random();
       double[] R = G[0];

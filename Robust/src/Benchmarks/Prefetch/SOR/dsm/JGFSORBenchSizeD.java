@@ -18,7 +18,7 @@
 *                                                                         *
 **************************************************************************/
 
-public class JGFSORBenchSizeC{ 
+public class JGFSORBenchSizeD{ 
 
   public static void main(String argv[]){
 
@@ -31,25 +31,23 @@ public class JGFSORBenchSizeC{
       nthreads = 1;
     }
 
-    JGFInstrumentor instr = new JGFInstrumentor();
-    JGFInstrumentor.printHeader(2,2,nthreads);
-
     JGFSORBench sor;
     atomic {
       sor = global new JGFSORBench(nthreads); 
     }
 
-    int size = 2;
-    JGFInstrumentor.addTimer("Section2:SOR:Kernel", "Iterations",size, instr.timers);
+    int size = 3;
 
     atomic {
       sor.JGFsetsize(size); 
     }
     JGFSORBench.JGFkernel(sor); 
-    int retval;
+    int retval = 0;
+    /*
     atomic {
       retval = sor.JGFvalidate(); 
     }
+    */
     if(retval!=0) {
       System.printString("Validation failed\n");
     }
@@ -58,9 +56,6 @@ public class JGFSORBenchSizeC{
     atomic {
       jacobi = sor.JACOBI_NUM_ITER;
     }
-
-    JGFInstrumentor.addOpsToTimer("Section2:SOR:Kernel", (double) jacobi, instr.timers);
-    JGFInstrumentor.printTimer("Section2:SOR:Kernel", instr.timers); 
     System.printString("Finished\n");
   }
 }
