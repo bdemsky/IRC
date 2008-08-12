@@ -840,6 +840,7 @@ public class OwnershipGraph {
     }
     */
 
+    /*
     protected void ageTokens( AllocationSite as, ReferenceEdgeProperties rep ) {
 	rep.setBeta( rep.getBeta().ageTokens( as ) );
     }
@@ -855,7 +856,7 @@ public class OwnershipGraph {
     protected void majorAgeTokens( AllocationSite as, HeapRegionNode hrn ) {
 	//hrn.setAlpha( hrn.getAlpha().majorAgeTokens( as ) );
     }
-
+    */
     
     // some notes:
     // the heap regions that are specially allocated as multiple-object

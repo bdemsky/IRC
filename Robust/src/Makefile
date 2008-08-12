@@ -78,7 +78,7 @@ Analysis/OwnershipAnalysis/OwnershipGraph.class                         \
 Analysis/OwnershipAnalysis/OwnershipNode.class                          \
 Analysis/OwnershipAnalysis/LabelNode.class                              \
 Analysis/OwnershipAnalysis/HeapRegionNode.class                         \
-Analysis/OwnershipAnalysis/ReferenceEdgeProperties.class                \
+Analysis/OwnershipAnalysis/ReferenceEdge.class                          \
 Analysis/OwnershipAnalysis/AllocationSite.class                         \
 Analysis/OwnershipAnalysis/TokenTuple.class                             \
 Analysis/OwnershipAnalysis/TokenTupleSet.class                          \
