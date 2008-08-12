@@ -63,6 +63,7 @@ public class Em3d extends Thread {
 
     barr = new Barrier("128.195.175.79");
     atomic {
+    System.printString("Inside atomic 1\n");
 	iteration = numIter;
 	degree = numDegree;
 	random = new Random(lowerlimit);
@@ -70,6 +71,7 @@ public class Em3d extends Thread {
 
     atomic {
 	//This is going to conflict badly...Minimize work here
+    System.printString("Inside atomic 2\n");
 	bg.allocateNodes ( lowerlimit, upperlimit, threadindex);
     }
     Barrier.enterBarrier(barr);
@@ -77,23 +79,27 @@ public class Em3d extends Thread {
 
     atomic {
 	//initialize the eNodes
-	bg.initializeNodes(bg.eNodes, bg.hNodes, lowerlimit, upperlimit, degree, random, threadindex);
+    System.printString("Inside atomic 3\n");
+	bg.initializeNodes(bg.eNodes, bg.hNodes, bg.hreversetable, lowerlimit, upperlimit, degree, random, threadindex);
     }
     Barrier.enterBarrier(barr);
 
     atomic {
 	//initialize the hNodes
-	bg.initializeNodes(bg.hNodes, bg.eNodes, lowerlimit, upperlimit, degree, random, threadindex);
+    System.printString("Inside atomic 4\n");
+	bg.initializeNodes(bg.hNodes, bg.eNodes, bg.ereversetable, lowerlimit, upperlimit, degree, random, threadindex);
     }
     Barrier.enterBarrier(barr);
 
     atomic {
-	bg.makeFromNodes(bg.hNodes, lowerlimit, upperlimit, random);
+    System.printString("Inside atomic 5\n");
+	bg.makeFromNodes(bg.hNodes, bg.hreversetable, lowerlimit, upperlimit, random);
     }
     Barrier.enterBarrier(barr);
 
     atomic {
-	bg.makeFromNodes(bg.eNodes, lowerlimit, upperlimit, random);
+    System.printString("Inside atomic 6\n");
+	bg.makeFromNodes(bg.eNodes, bg.ereversetable, lowerlimit, upperlimit, random);
     }
     Barrier.enterBarrier(barr);
 
@@ -101,6 +107,7 @@ public class Em3d extends Thread {
     for (int i = 0; i < iteration; i++) {
 	/* for  eNodes */
 	atomic {
+    System.printString("Inside atomic 7\n");
 	    for(int j = lowerlimit; j<upperlimit; j++) {
 		Node n = bg.eNodes[j];
 		
@@ -114,6 +121,7 @@ public class Em3d extends Thread {
 	
 	/* for  hNodes */
 	atomic {
+    System.printString("Inside atomic 8\n");
 	    for(int j = lowerlimit; j<upperlimit; j++) {
 		Node n = bg.hNodes[j];
 		for (int k = 0; k < n.fromCount; k++) {

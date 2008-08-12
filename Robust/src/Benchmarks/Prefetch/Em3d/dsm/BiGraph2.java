@@ -15,7 +15,8 @@ public class BiGraph {
      **/
     Node[] hNodes;
     
-    EVector [][] reversetable;
+    EVector [][] ereversetable;
+    EVector [][] hreversetable;
     int numNodes;
 
     /**
@@ -43,7 +44,8 @@ public class BiGraph {
 	Node [] hTable = global new Node[numNodes];
 	BiGraph g = global new BiGraph(eTable, hTable);
 	g.numNodes=numNodes;
-	g.reversetable=global new EVector[numThreads][];
+	g.ereversetable=global new EVector[numThreads][];
+	g.hreversetable=global new EVector[numThreads][];
 	return g;
     }
     
@@ -58,10 +60,11 @@ public class BiGraph {
 	    eNodes[i]=global new Node();
 	    hNodes[i]=global new Node();
 	}
-	reversetable[threadIndex]=global new EVector[numNodes];
+	ereversetable[threadIndex]=global new EVector[numNodes];
+	hreversetable[threadIndex]=global new EVector[numNodes];
     }
     
-    public void initializeNodes(Node[] fromnodes, Node[] tonodes, int begin, int end, int degree, Random r, int threadIndex) {
+    public void initializeNodes(Node[] fromnodes, Node[] tonodes, EVector[][] reversetable, int begin, int end, int degree, Random r, int threadIndex) {
 	for(int i = begin; i < end; i++ ) {
 	    Node n=fromnodes[i];
 	    n.init(degree, r.nextDouble());
@@ -75,7 +78,7 @@ public class BiGraph {
      * @return 
      **/
     
-    public void makeFromNodes(Node[] nodes, int indexBegin, int indexEnd, Random r) {
+    public void makeFromNodes(Node[] nodes, EVector reversetable[][], int indexBegin, int indexEnd, Random r) {
 	// Create the fromNodes and coeff field
 	int numthreads=reversetable.length;
 	for(int i = indexBegin; i < indexEnd; i++) {
