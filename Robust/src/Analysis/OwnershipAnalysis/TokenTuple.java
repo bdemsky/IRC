@@ -82,7 +82,7 @@ public class TokenTuple extends Canonical {
     }
 
     public int hashCode() {
-	return token.intValue() + arity*100000;
+	return (Math.abs( token.intValue() + 20000 ) + arity*100000) % 12789;
     }
 
 

@@ -10,6 +10,7 @@ public class TokenTupleSet extends Canonical {
 
     private HashSet<TokenTuple> tokenTuples;
 
+
     public TokenTupleSet() {
 	tokenTuples = new HashSet<TokenTuple>();
     }
@@ -19,9 +20,11 @@ public class TokenTupleSet extends Canonical {
 	tokenTuples.add( tt );
     }
 
+    // okay to clone, TokenTuple and TokenTupleSet should be canonical
     public TokenTupleSet( TokenTupleSet tts ) {
-	tokenTuples = (HashSet<TokenTuple>) tts.tokenTuples.clone(); //COPY?!
+	tokenTuples = (HashSet<TokenTuple>) tts.tokenTuples.clone();
     }
+
 
     public TokenTupleSet makeCanonical() {
 	return (TokenTupleSet) Canonical.makeCanonical( this );
@@ -30,46 +33,6 @@ public class TokenTupleSet extends Canonical {
     public Iterator iterator() {
 	return tokenTuples.iterator();
     }
-
-    public TokenTupleSet union( TokenTupleSet ttsIn ) {
-	TokenTupleSet ttsOut = new TokenTupleSet( this );
-	ttsOut.tokenTuples.addAll( ttsIn.tokenTuples );
-	return ttsOut.makeCanonical();
-    }
-
-    public TokenTupleSet add( TokenTuple tt ) {
-	TokenTupleSet ttsOut = new TokenTupleSet( this );
-	ttsOut = ttsOut.union( this );
-	return ttsOut;
-    }
-
-    /*
-    public TokenTupleSet unionUpArity( TokenTupleSet ttsIn ) {
-	TokenTupleSet ttsOut = new TokenTupleSet();
-	
-	Iterator itrIn = ttsIn.iterator();
-	while( itrIn.hasNext() ) {
-	    TokenTuple ttIn = (TokenTuple) itrIn.next();
-
-	    if( this.containsToken( ttIn.getToken() ) ) {	
-		ttsOut.tokenTuples.add( ttIn.increaseArity() );
-	    } else {
-		ttsOut.tokenTuples.add( ttIn );
-	    }
-	}
-
-	Iterator itrThis = this.iterator();
-	while( itrThis.hasNext() ) {
-	    TokenTuple ttThis = (TokenTuple) itrThis.next();
-
-	    if( !ttsIn.containsToken( ttThis.getToken() ) ) {
-		ttsOut.tokenTuples.add( ttThis );
-	    }
-	}
-	
-	return ttsOut.makeCanonical();
-    }
-    */
 
     public boolean isEmpty() {
 	return tokenTuples.isEmpty();
@@ -84,19 +47,33 @@ public class TokenTupleSet extends Canonical {
 	return tokenTuples.contains( tt );
     }
 
-    // only needs to be done if newSummary is true?  RIGHT?
+
+    public TokenTupleSet union( TokenTupleSet ttsIn ) {
+	TokenTupleSet ttsOut = new TokenTupleSet( this );
+	ttsOut.tokenTuples.addAll( ttsIn.tokenTuples );
+	return ttsOut.makeCanonical();
+    }
+
+    public TokenTupleSet add( TokenTuple tt ) {
+	TokenTupleSet ttsOut = new TokenTupleSet( tt );
+	return ttsOut.union( this );
+    }
+
+
     public TokenTupleSet increaseArity( Integer token ) {
+	TokenTupleSet ttsOut = new TokenTupleSet( this );
 	TokenTuple tt 
 	    = new TokenTuple( token, true, TokenTuple.ARITY_ONE ).makeCanonical();
-	if( tokenTuples.contains( tt ) ) {
-	    tokenTuples.remove( tt );
-	    tokenTuples.add( 
-              new TokenTuple( token, true, TokenTuple.ARITY_MANY ).makeCanonical()
+	if( ttsOut.tokenTuples.contains( tt ) ) {
+	    ttsOut.tokenTuples.remove( tt );
+	    ttsOut.tokenTuples.add( 
+	      new TokenTuple( token, true, TokenTuple.ARITY_MANY ).makeCanonical()
 			     );
 	}
 	
-	return makeCanonical();
+	return ttsOut.makeCanonical();
     }
+
 
     public boolean equals( Object o ) {
 	if( o == null ) {
@@ -115,31 +92,6 @@ public class TokenTupleSet extends Canonical {
 	return tokenTuples.hashCode();
     }
 
-    /*
-    public boolean equalWithoutArity( TokenTupleSet ttsIn ) {
-	Iterator itrIn = ttsIn.iterator();
-	while( itrIn.hasNext() ) {
-	    TokenTuple ttIn = (TokenTuple) itrIn.next();
-
-	    if( !this.containsToken( ttIn.getToken() ) )
-	    {
-		return false;
-	    }
-	}
-
-	Iterator itrThis = this.iterator();
-	while( itrThis.hasNext() ) {
-	    TokenTuple ttThis = (TokenTuple) itrThis.next();
-
-	    if( !ttsIn.containsToken( ttThis.getToken() ) )
-	    {
-		return false;
-	    }
-	}
-	
-	return true;
-    }
-    */
 
     // this should be a hash table so we can do this by key
     public boolean containsToken( Integer token ) {
@@ -152,6 +104,7 @@ public class TokenTupleSet extends Canonical {
 	}
 	return false;
     }
+
 
     public TokenTupleSet ageTokens( AllocationSite as ) {
 	TokenTupleSet ttsOut = new TokenTupleSet();
@@ -215,6 +168,7 @@ public class TokenTupleSet extends Canonical {
 
 	return ttsOut.makeCanonical();
     }
+
 
     public String toString() {
 	return tokenTuples.toString();

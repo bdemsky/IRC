@@ -21,7 +21,7 @@ public class Main {
 	    aTestFailed = true;
 	}
 	
-	System.out.println( test+" expected "+expected+outcome );
+	System.out.println( test+" expect "+expected+outcome );
     }
 
 
@@ -41,7 +41,7 @@ public class Main {
 	    System.out.println( "<><><> WARNING: At least one test failed. <><><>" );
 	    System.out.println( "<><><><><><><><><><><><><><><><><><><><><><><><>" );
 	} else {
-	    System.out.println( "All tests passed." );
+	    System.out.println( "<><> All tests passed. <><>" );
 	}
     }
 
@@ -135,8 +135,183 @@ public class Main {
 
 
     public static void testTokenTupleSet() {
+	TokenTuple tt0 = new TokenTuple( new Integer( 0 ), false, TokenTuple.ARITY_ONE  ).makeCanonical();
+	TokenTuple tt1 = new TokenTuple( new Integer( 1 ), false, TokenTuple.ARITY_ONE  ).makeCanonical();
+	TokenTuple tt2 = new TokenTuple( new Integer( 2 ), false, TokenTuple.ARITY_ONE  ).makeCanonical();
+
+	TokenTupleSet tts0  = new TokenTupleSet( tt0 );
+	TokenTupleSet tts1  = new TokenTupleSet( tt1 );
+	TokenTupleSet tts2a = new TokenTupleSet( tt2 );
+	TokenTupleSet tts2b = new TokenTupleSet( tt2 );
+
+	test( "tts0.equals( null )?", false, tts0.equals( null ) );
+	test( "tts0.equals( tts1 )?", false, tts0.equals( tts1 ) );
+	test( "tts0.hashCode == tts1.hashCode?", false, tts0.hashCode() == tts1.hashCode() );
+
+	test( "tts2a.equals( tts2b )?", true, tts2a.equals( tts2b ) );
+	test( "tts2b.equals( tts2a )?", true, tts2b.equals( tts2a ) );
+	test( "tts2a.hashCode == tts2b.hashCode?", true, tts2a.hashCode() == tts2b.hashCode() );
 
 
+	TokenTupleSet tts012a = new TokenTupleSet();
+	tts012a = tts012a.add( tt0 );
+	tts012a = tts012a.add( tt1 );
+	tts012a = tts012a.add( tt2 );
+
+	TokenTupleSet tts012b = tts0.union( tts1.union( tts2b.union( tts2a ) ) );
+
+	test( "tts012a.equals( tts012b )?", true, tts012a.equals( tts012b ) );
+	test( "tts012a.hashCode == tts012b.hashCode?", true, tts012a.hashCode() == tts012b.hashCode() );
+
+
+	TokenTupleSet ttsEmpty = new TokenTupleSet();
+	
+	test( "tts012a.isEmpty()?",  false, tts012a.isEmpty()  );
+	test( "ttsEmpty.isEmpty()?", true,  ttsEmpty.isEmpty() );
+	test( "ttsEmpty.isSubset( tts012a )?", true,  ttsEmpty.isSubset( tts012a  ) );
+	test( "tts012a.isSubset( ttsEmpty )?", false, tts012a.isSubset ( ttsEmpty ) );
+	test( "tts2a.isSubset( tts012a )?",    true,  tts2a.isSubset   ( tts012a  ) );
+	test( "tts012a.isSubset( tts2a )?",    false, tts012a.isSubset ( tts2a    ) );
+	test( "tts2a.isSubset( tts2b )?",      true,  tts2a.isSubset   ( tts2b    ) );
+
+	
+	TokenTuple tt1star = new TokenTuple( new Integer( 1 ), true,  TokenTuple.ARITY_MANY ).makeCanonical();
+	TokenTuple tt3     = new TokenTuple( new Integer( 3 ), false, TokenTuple.ARITY_ONE  ).makeCanonical();
+
+	test( "ttsEmpty.containsTuple( tt2     )?", false, ttsEmpty.containsTuple( tt2     ) );
+	test( "ttsEmpty.containsTuple( tt1     )?", false, ttsEmpty.containsTuple( tt1     ) );
+	test( "ttsEmpty.containsTuple( tt1star )?", false, ttsEmpty.containsTuple( tt1star ) );
+	test( "ttsEmpty.containsTuple( tt3     )?", false, ttsEmpty.containsTuple( tt3     ) );
+
+	test( "tts2a.containsTuple( tt2     )?", true,  tts2a.containsTuple( tt2     ) );
+	test( "tts2a.containsTuple( tt1     )?", false, tts2a.containsTuple( tt1     ) );
+	test( "tts2a.containsTuple( tt1star )?", false, tts2a.containsTuple( tt1star ) );
+	test( "tts2a.containsTuple( tt3     )?", false, tts2a.containsTuple( tt3     ) );
+
+	test( "tts012a.containsTuple( tt2     )?", true,  tts012a.containsTuple( tt2     ) );
+	test( "tts012a.containsTuple( tt1     )?", true,  tts012a.containsTuple( tt1     ) );
+	test( "tts012a.containsTuple( tt1star )?", false, tts012a.containsTuple( tt1star ) );
+	test( "tts012a.containsTuple( tt3     )?", false, tts012a.containsTuple( tt3     ) );
+
+
+	TokenTuple tt4 = new TokenTuple( new Integer( 4 ), false, TokenTuple.ARITY_ONE  ).makeCanonical();
+	TokenTuple tt5 = new TokenTuple( new Integer( 5 ), true,  TokenTuple.ARITY_ONE  ).makeCanonical();
+	TokenTuple tt6 = new TokenTuple( new Integer( 6 ), true,  TokenTuple.ARITY_ONE  ).makeCanonical();
+	TokenTuple tt7 = new TokenTuple( new Integer( 7 ), true,  TokenTuple.ARITY_MANY ).makeCanonical();
+
+	TokenTuple tt5star = new TokenTuple( new Integer( 5 ), true,  TokenTuple.ARITY_MANY ).makeCanonical();
+	TokenTuple tt6star = new TokenTuple( new Integer( 6 ), true,  TokenTuple.ARITY_MANY ).makeCanonical();
+
+	TokenTupleSet tts4567a = new TokenTupleSet();
+	tts4567a = tts4567a.add( tt4 ).add( tt5 ).add( tt6 ).add( tt7 );
+
+	TokenTupleSet tts4567b = new TokenTupleSet( tts4567a );
+
+	TokenTupleSet tts4567c = new TokenTupleSet();
+	tts4567c = tts4567c.add( tt4 ).add( tt5star ).add( tt6 ).add( tt7 );
+
+	TokenTupleSet tts4567d = new TokenTupleSet();
+	tts4567d = tts4567d.add( tt4 ).add( tt5star ).add( tt6star ).add( tt7 );
+
+	test( "tts4567a.equals( tts4567b )?", true, tts4567a.equals( tts4567b ) );
+	test( "tts4567a.hashCode == tts4567b.hashCode?", true, tts4567a.hashCode() == tts4567b.hashCode() );
+
+	test( "tts4567a.equals( tts4567c )?", false, tts4567a.equals( tts4567c ) );
+	test( "tts4567a.hashCode == tts4567c.hashCode?", false, tts4567a.hashCode() == tts4567c.hashCode() );
+
+	test( "tts4567a.equals( tts4567d )?", false, tts4567a.equals( tts4567d ) );
+	test( "tts4567a.hashCode == tts4567d.hashCode?", false, tts4567a.hashCode() == tts4567d.hashCode() );
+
+	tts4567a = tts4567a.increaseArity( new Integer( 6 ) );
+
+	test( "tts4567a.equals( tts4567b )?", false, tts4567a.equals( tts4567b ) );
+	test( "tts4567a.hashCode == tts4567b.hashCode?", false, tts4567a.hashCode() == tts4567b.hashCode() );
+
+	test( "tts4567a.equals( tts4567c )?", false, tts4567a.equals( tts4567c ) );
+	// it's okay if the objects are not equal but hashcodes are, its a collision
+	//test( "tts4567a.hashCode == tts4567c.hashCode?", false, tts4567a.hashCode() == tts4567c.hashCode() );
+
+	test( "tts4567a.equals( tts4567d )?", false, tts4567a.equals( tts4567d ) );
+	test( "tts4567a.hashCode == tts4567d.hashCode?", false, tts4567a.hashCode() == tts4567d.hashCode() );
+
+	tts4567a = tts4567a.increaseArity( new Integer( 5 ) );
+
+
+	test( "tts4567a.equals( tts4567b )?", false, tts4567a.equals( tts4567b ) );
+	test( "tts4567a.hashCode == tts4567b.hashCode?", false, tts4567a.hashCode() == tts4567b.hashCode() );
+
+	test( "tts4567a.equals( tts4567c )?", false, tts4567a.equals( tts4567c ) );
+	test( "tts4567a.hashCode == tts4567c.hashCode?", false, tts4567a.hashCode() == tts4567c.hashCode() );
+
+	test( "tts4567a.equals( tts4567d )?", true, tts4567a.equals( tts4567d ) );
+	test( "tts4567a.hashCode == tts4567d.hashCode?", true, tts4567a.hashCode() == tts4567d.hashCode() );
+
+	
+	test( "tts4567a.containsToken( new Integer( 1 ) )?", false, tts4567a.containsToken( new Integer( 1 ) ) );
+	test( "tts4567a.containsToken( new Integer( 4 ) )?", true,  tts4567a.containsToken( new Integer( 4 ) ) );
+	test( "tts4567a.containsToken( new Integer( 5 ) )?", true,  tts4567a.containsToken( new Integer( 5 ) ) );
+	test( "tts4567a.containsToken( new Integer( 7 ) )?", true,  tts4567a.containsToken( new Integer( 7 ) ) );
+	test( "tts4567a.containsToken( new Integer( 8 ) )?", false, tts4567a.containsToken( new Integer( 8 ) ) );
+
+
+	TokenTuple tt10     = new TokenTuple( new Integer( 10 ), false, TokenTuple.ARITY_ONE  ).makeCanonical();
+	TokenTuple tt11     = new TokenTuple( new Integer( 11 ), false, TokenTuple.ARITY_ONE  ).makeCanonical();
+	TokenTuple tt12     = new TokenTuple( new Integer( 12 ), false, TokenTuple.ARITY_ONE  ).makeCanonical();
+	TokenTuple tt13     = new TokenTuple( new Integer( 13 ), true,  TokenTuple.ARITY_ONE  ).makeCanonical();
+	TokenTuple tt13star = new TokenTuple( new Integer( 13 ), true,  TokenTuple.ARITY_MANY ).makeCanonical();
+	TokenTuple tt42     = new TokenTuple( new Integer( 42 ), false, TokenTuple.ARITY_ONE  ).makeCanonical();
+	TokenTuple tt52     = new TokenTuple( new Integer( 52 ), true,  TokenTuple.ARITY_ONE  ).makeCanonical();
+	TokenTuple tt62star = new TokenTuple( new Integer( 62 ), true,  TokenTuple.ARITY_MANY ).makeCanonical();
+
+	AllocationSite as = new AllocationSite( 3, null );
+	as.setIthOldest( 0, new Integer( 10 ) );
+	as.setIthOldest( 1, new Integer( 11 ) );
+	as.setIthOldest( 2, new Integer( 12 ) );
+	as.setSummary  (    new Integer( 13 ) );
+
+
+	TokenTupleSet ttsAgeTest0a = new TokenTupleSet();
+	ttsAgeTest0a = ttsAgeTest0a.add( tt11 ).add( tt52 ).add( tt42 ).add( tt62star );
+
+	TokenTupleSet ttsAgeTest0b = new TokenTupleSet();
+	ttsAgeTest0b = ttsAgeTest0b.add( tt12 ).add( tt52 ).add( tt42 ).add( tt62star );
+
+	test( "ttsAgeTest0a.equals( ttsAgeTest0b )?", false, ttsAgeTest0a.equals( ttsAgeTest0b ) );
+	ttsAgeTest0a = ttsAgeTest0a.ageTokens( as );
+	test( "ttsAgeTest0a.equals( ttsAgeTest0b )?", true,  ttsAgeTest0a.equals( ttsAgeTest0b ) );
+
+
+	TokenTupleSet ttsAgeTest1a = new TokenTupleSet();
+	ttsAgeTest1a = ttsAgeTest1a.add( tt10 ).add( tt52 ).add( tt42 ).add( tt62star ).add( tt13 );
+
+	TokenTupleSet ttsAgeTest1b = new TokenTupleSet();
+	ttsAgeTest1b = ttsAgeTest1b.add( tt11 ).add( tt52 ).add( tt42 ).add( tt62star ).add( tt13 );
+
+	test( "ttsAgeTest1a.equals( ttsAgeTest1b )?", false, ttsAgeTest1a.equals( ttsAgeTest1b ) );
+	ttsAgeTest1a = ttsAgeTest1a.ageTokens( as );
+	test( "ttsAgeTest1a.equals( ttsAgeTest1b )?", true,  ttsAgeTest1a.equals( ttsAgeTest1b ) );
+
+
+	TokenTupleSet ttsAgeTest2a = new TokenTupleSet();
+	ttsAgeTest2a = ttsAgeTest2a.add( tt10 ).add( tt52 ).add( tt42 ).add( tt62star ).add( tt12 ).add( tt11 );
+
+	TokenTupleSet ttsAgeTest2b = new TokenTupleSet();
+	ttsAgeTest2b = ttsAgeTest2b.add( tt11 ).add( tt52 ).add( tt42 ).add( tt62star ).add( tt13 ).add( tt12 );
+
+	test( "ttsAgeTest2a.equals( ttsAgeTest2b )?", false, ttsAgeTest2a.equals( ttsAgeTest2b ) );
+	ttsAgeTest2a = ttsAgeTest2a.ageTokens( as );
+	test( "ttsAgeTest2a.equals( ttsAgeTest2b )?", true,  ttsAgeTest2a.equals( ttsAgeTest2b ) );
+
+
+	TokenTupleSet ttsAgeTest3a = new TokenTupleSet();
+	ttsAgeTest3a = ttsAgeTest3a.add( tt13 ).add( tt52 ).add( tt42 ).add( tt62star ).add( tt12 ).add( tt10 );
+
+	TokenTupleSet ttsAgeTest3b = new TokenTupleSet();
+	ttsAgeTest3b = ttsAgeTest3b.add( tt11 ).add( tt52 ).add( tt42 ).add( tt62star ).add( tt13star );
+
+	test( "ttsAgeTest3a.equals( ttsAgeTest3b )?", false, ttsAgeTest3a.equals( ttsAgeTest3b ) );
+	ttsAgeTest3a = ttsAgeTest3a.ageTokens( as );
+	test( "ttsAgeTest3a.equals( ttsAgeTest3b )?", true,  ttsAgeTest3a.equals( ttsAgeTest3b ) );
     }
 
 
