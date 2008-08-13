@@ -36,7 +36,7 @@ public class HeapRegionNode extends OwnershipNode {
 	this.isNewSummary   = isNewSummary;
 	this.allocSite      = allocSite;
 	this.alpha          = alpha;
-	this.description    = description;
+	this.description    = description;	
 
 	referencers = new HashSet<ReferenceEdge>();
 	alphaNew    = new ReachabilitySet().makeCanonical();
@@ -69,16 +69,29 @@ public class HeapRegionNode extends OwnershipNode {
 
 	HeapRegionNode hrn = (HeapRegionNode) o;
 
+	if( !id.equals( hrn.getID() ) ) {
+	    return false;
+	}
+
+	assert isSingleObject == hrn.isSingleObject();
+	assert isFlagged      == hrn.isFlagged();
+	assert isNewSummary   == hrn.isNewSummary();
+	assert description.equals( hrn.getDescription() ); 
+
+	return alpha.equals( hrn.getAlpha() );
+
+	/*
 	return id.equals( hrn.getID() )            &&
 	    isSingleObject == hrn.isSingleObject() &&
 	    isFlagged      == hrn.isFlagged()      &&
 	    isNewSummary   == hrn.isNewSummary()   &&
 	    alpha.equals( hrn.getAlpha() )         &&
 	    description.equals( hrn.getDescription() );
+	*/
     }
 
     public int hashCode() {
-	return id.intValue();
+	return id.intValue()*17 + alpha.hashCode();
     }
 
 

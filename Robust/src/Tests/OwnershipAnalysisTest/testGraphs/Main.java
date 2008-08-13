@@ -5,27 +5,157 @@ import java.util.*;
 import java.io.*;
 
 
+///////////////////////////////////////////
+//
+//  The testing of the ownership graph
+//  components relies on the testTokens
+//  test in another directory.  Those classes
+//  are assumed to be fully tested here.
+//
+///////////////////////////////////////////
+
+
 public class Main {
+
+    static boolean aTestFailed;
 
     protected static void test( String test,
 				boolean expected,
 				boolean result ) {
-
-	String outcome = "...\tFAILED";
+	String outcome;
 	if( expected == result ) {
 	    outcome = "...\tpassed";
+	} else {
+	    outcome = "...\tFAILED";
+	    aTestFailed = true;
 	}
 	
-	System.out.println( test+" expected "+expected+outcome );
+	System.out.println( test+" expect "+expected+outcome );
+    }
+    
+    public static void main(String args[]) throws Exception {
+	aTestFailed = false;
+
+	testExample();
+	System.out.println( "---------------------------------------" );
+	testNodesAndEdges();
+	System.out.println( "---------------------------------------" );
+
+	if( aTestFailed ) {
+	    System.out.println( "<><><><><><><><><><><><><><><><><><><><><><><><>" );
+	    System.out.println( "<><><> WARNING: At least one test failed. <><><>" );
+	    System.out.println( "<><><><><><><><><><><><><><><><><><><><><><><><>" );
+	} else {
+	    System.out.println( "<><> All tests passed. <><>" );
+	}
     }
 
-    public static void main(String args[]) throws Exception {
-
+    public static void testExample() {
 	// example test to know the testing routine is correct!
 	test( "4 == 5?", false, 4 == 5 );
 	test( "3 == 3?", true,  3 == 3 );
+    }
+    
+
+    public static void testNodesAndEdges() {
+	TempDescriptor lnTestA = new TempDescriptor( "lnTestA" );
+	TempDescriptor lnTestB = new TempDescriptor( "lnTestB" );
+
+	LabelNode ln0 = new LabelNode( lnTestA );
+	LabelNode ln1 = new LabelNode( lnTestA );
+	LabelNode ln2 = new LabelNode( lnTestB );
+
+	test( "ln0 equals ln1?", true,  ln0.equals( ln1 ) );
+	test( "ln1 equals ln0?", true,  ln1.equals( ln0 ) );
+	test( "ln0 equals ln2?", false, ln0.equals( ln2 ) );
+	test( "ln2 equals ln1?", false, ln2.equals( ln1 ) );
+
+	/*
+	public HeapRegionNode( Integer         id,
+			       boolean         isSingleObject,
+			       boolean         isFlagged,
+			       boolean         isNewSummary,
+			       AllocationSite  allocSite,
+			       ReachabilitySet alpha,
+			       String          description );
+	*/
+
+	TokenTuple tt00 = new TokenTuple( new Integer( 00 ), false, TokenTuple.ARITY_ONE );
+	TokenTuple tt01 = new TokenTuple( new Integer( 01 ), false, TokenTuple.ARITY_ONE );
+	TokenTupleSet tts0 = new TokenTupleSet( tt00 ).add( tt01 );
+	ReachabilitySet a0 = new ReachabilitySet( tts0 );
+
+	HeapRegionNode hrn00 = new HeapRegionNode( new Integer( 00 ),
+						   true,
+						   false,
+						   false,
+						   null,
+						   a0,
+						   "hrn00" );
+
+	HeapRegionNode hrn01 = new HeapRegionNode( new Integer( 01 ),
+						   true,
+						   false,
+						   false,
+						   null,
+						   a0,
+						   "hrn01" );
+
+	HeapRegionNode hrn02 = new HeapRegionNode( new Integer( 01 ),
+						   true,
+						   false,
+						   false,
+						   null,
+						   a0,
+						   "hrn01" );
+
+	test( "hrn01.equals( hrn00 )?", false, hrn01.equals( hrn00 ) );
+	test( "hrn01.equals( hrn02 )?", true,  hrn01.equals( hrn02 ) );
+
+	test( "hrn01.hashCode() == hrn00.hashCode()?", false, hrn01.hashCode() == hrn00.hashCode() );
+	test( "hrn01.hashCode() == hrn02.hashCode()?", true,  hrn01.hashCode() == hrn02.hashCode() );
+
+	HeapRegionNode hrn03 = new HeapRegionNode( new Integer( 00 ),
+						   true,
+						   false,
+						   false,
+						   null,
+						   a0,
+						   "hrn00" );
 
 
+	/*
+	public ReferenceEdge( OwnershipNode   src,
+			      HeapRegionNode  dst,			  
+			      FieldDescriptor fieldDesc, 
+			      boolean         isInitialParamReflexive,
+			      ReachabilitySet beta ) {
+	*/
+
+	ReferenceEdge edge0 = new ReferenceEdge(  ln0,  hrn00, null, false, a0 );
+	ReferenceEdge edge1 = new ReferenceEdge(  ln0,  hrn00, null, false, a0 );
+	ReferenceEdge edge2 = new ReferenceEdge( hrn01, hrn00, null, false, a0 );
+	ReferenceEdge edge3 = new ReferenceEdge( hrn02, hrn03, null, false, a0 );
+	ReferenceEdge edge4 = new ReferenceEdge( hrn01, hrn00, null, false, a0 );
+
+	test( "edge0.equals(       edge1 )?",          true,  edge0.equals(       edge1 ) );
+	test( "edge0.hashCode() == edge1.hashCode()?", true,  edge0.hashCode() == edge1.hashCode() );
+
+	test( "edge2.equals(       edge1 )?",          false, edge2.equals(       edge1 ) );
+	test( "edge2.hashCode() == edge1.hashCode()?", false, edge2.hashCode() == edge1.hashCode() );
+
+	test( "edge2.equals(       edge3 )?",          false, edge2.equals(       edge3 ) );
+	// a collision, because even though src and dst are not same objects, they are equivalent and
+	// produce the same hashcode
+	//test( "edge2.hashCode() == edge3.hashCode()?", false, edge2.hashCode() == edge3.hashCode() );
+
+	test( "edge2.equals(       edge4 )?",          true,  edge2.equals(       edge4 ) );
+	test( "edge2.hashCode() == edge4.hashCode()?", true,  edge2.hashCode() == edge4.hashCode() );
+
+    }
+
+
+    public static void garbage() {
 	// test equality of label objects that are logically
 	// same/different but all separate objects
 	// these tests show how a label node object or other
