@@ -32,7 +32,7 @@ public class JGFSORBench {
     datasizes[0] = 1000;
     datasizes[1] = 1500;
     datasizes[2] = 2000;
-    datasizes[3] = 4000;
+    datasizes[3] = 8000;
     JACOBI_NUM_ITER = 100;
     RANDOM_SEED = 10101010;
     Gtotal = 0.0;
@@ -47,10 +47,10 @@ public class JGFSORBench {
     BarrierServer mybarr;
 
     int[] mid = new int[4];
-    mid[0] = (128<<24)|(195<<16)|(175<<8)|79;
-    mid[1] = (128<<24)|(195<<16)|(175<<8)|73;
-    mid[2] = (128<<24)|(195<<16)|(175<<8)|78;
-    mid[3] = (128<<24)|(195<<16)|(175<<8)|69;
+    mid[0] = (128<<24)|(195<<16)|(175<<8)|79;//dw-8
+    mid[1] = (128<<24)|(195<<16)|(175<<8)|80;//dw-9
+    mid[2] = (128<<24)|(195<<16)|(175<<8)|78;//dw-7
+    mid[3] = (128<<24)|(195<<16)|(175<<8)|73;//dw-5
 
     double[][] G;
     int num_iterations;

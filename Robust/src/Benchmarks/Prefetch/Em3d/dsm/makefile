@@ -15,7 +15,7 @@ SRC3=${MAINCLASS}2.java \
 
 FLAGS=-dsm -prefetch -optimize -excprefetch Em3d.main -excprefetch BiGraph.create -excprefetch Node.Node -excprefetch Node.fillTable -excprefetch Node.makeUniqueNeighbors -excprefetch Node.makeFromNodes -excprefetch Node.updateFromNodes -debug -mainclass ${MAINCLASS} -trueprob 0.91
 FLAGS1=-dsm -prefetch -dsmcaching -optimize -excprefetch Node.makeUniqueNeighbors -excprefetch EVector.ensureCapacity -excprefetch EVector.addElement -excprefetch BiGraph.makeFromNodes -excprefetch EVector.elementAt -excprefetch BiGraph.initializeNodes -excprefetch BiGraph.allocateNodes -mainclass ${MAINCLASS} -trueprob 0.91
-FLAGS2=-dsm -dsmcaching -optimize -excprefetch Node.makeUniqueNeighbors -excprefetch EVector.ensureCapacity -excprefetch EVector.addElement -excprefetch BiGraph.makeFromNodes -excprefetch EVector.elementAt -excprefetch BiGraph.initializeNodes -excprefetch BiGraph.allocateNodes -mainclass ${MAINCLASS} -trueprob 0.91
+FLAGS2=-dsm -dsmcaching -optimize -mainclass ${MAINCLASS} -trueprob 0.91
 FLAGS3=-dsm -optimize -mainclass ${MAINCLASS}
 
 default:
@@ -33,9 +33,9 @@ default:
 	cp ${MAINCLASS}NPNC.bin ${MAINCLASS}3NPNC.bin
 	cp ${MAINCLASS}NP.bin ${MAINCLASS}3NP.bin
 	cp ${MAINCLASS}N.bin ${MAINCLASS}3.bin
-	cp ${MAINCLASS}NPNC.bin ${MAINCLASS}3NPNC.bin
-	cp ${MAINCLASS}NP.bin ${MAINCLASS}3NP.bin
-	cp ${MAINCLASS}N.bin ${MAINCLASS}3.bin
+	cp ${MAINCLASS}NPNC.bin ${MAINCLASS}4NPNC.bin
+	cp ${MAINCLASS}NP.bin ${MAINCLASS}4NP.bin
+	cp ${MAINCLASS}N.bin ${MAINCLASS}4.bin
 
 clean:
 	rm -rf tmpbuilddirectory

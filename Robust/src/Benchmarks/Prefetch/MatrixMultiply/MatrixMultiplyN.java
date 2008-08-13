@@ -43,9 +43,9 @@ public class MatrixMultiply extends Thread{
 	
 	int[] mid = new int[4];
 	mid[0] = (128<<24)|(195<<16)|(175<<8)|79; //dw-8
-	mid[1] = (128<<24)|(195<<16)|(175<<8)|73; //dw-5
+	mid[1] = (128<<24)|(195<<16)|(175<<8)|80; //dw-9
 	mid[2] = (128<<24)|(195<<16)|(175<<8)|78; //dw-7
-	mid[3] = (128<<24)|(195<<16)|(175<<8)|69; //dw-1
+	mid[3] = (128<<24)|(195<<16)|(175<<8)|73; //dw-5
 	int p, q, r;
 	MatrixMultiply[] mm;
 	MatrixMultiply tmp;

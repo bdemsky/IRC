@@ -17,7 +17,7 @@ public class Array extends Thread {
 	atomic {
 	    a=global new Array();
 	}
-	a.start((128<<24)|(195<<16)|(175<<8)|71);
+	a.start((128<<24)|(195<<16)|(175<<8)|79);
 	a.join();
     }
     
