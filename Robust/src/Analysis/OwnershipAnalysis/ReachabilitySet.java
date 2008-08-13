@@ -21,21 +21,31 @@ public class ReachabilitySet extends Canonical {
     }
 
     public ReachabilitySet( TokenTuple tt ) {
+	// can't assert before calling this(), it will
+	// do the checking though
 	this( new TokenTupleSet( tt ).makeCanonical() );
     }
 
     public ReachabilitySet( HashSet<TokenTupleSet> possibleReachabilities ) {
+	assert possibleReachabilities != null;
 	this.possibleReachabilities = possibleReachabilities;
     }
 
     public ReachabilitySet( ReachabilitySet rs ) {
 	assert rs != null;
-	possibleReachabilities = (HashSet<TokenTupleSet>) rs.possibleReachabilities.clone(); // again, DEEP COPY?!
+	// okay to clone, ReachabilitySet should be canonical
+	possibleReachabilities = (HashSet<TokenTupleSet>) rs.possibleReachabilities.clone();
     }
+
 
     public ReachabilitySet makeCanonical() {
 	return (ReachabilitySet) Canonical.makeCanonical( this );
     }
+
+    public Iterator iterator() {
+	return possibleReachabilities.iterator();
+    }
+
 
     public boolean contains( TokenTupleSet tts ) {
 	assert tts != null;
@@ -53,10 +63,6 @@ public class ReachabilitySet extends Canonical {
 	return false;
     }
 
-    public ReachabilitySet add( TokenTupleSet tts ) {
-	ReachabilitySet rsOut = new ReachabilitySet( tts );
-	return this.union( rsOut );
-    }
 
     public ReachabilitySet increaseArity( Integer token ) {
 	assert token != null;
@@ -72,9 +78,6 @@ public class ReachabilitySet extends Canonical {
 	return new ReachabilitySet( possibleReachabilitiesNew ).makeCanonical(); 
     }
 
-    public Iterator iterator() {
-	return possibleReachabilities.iterator();
-    }
 
     public ReachabilitySet union( ReachabilitySet rsIn ) {
 	assert rsIn != null;
@@ -108,60 +111,13 @@ public class ReachabilitySet extends Canonical {
 	return rsOut.makeCanonical();
     }
     
-    /*
-    public ReachabilitySet unionUpArity( ReachabilitySet rsIn ) {
-	assert rsIn != null;
 
-	ReachabilitySet rsOut = new ReachabilitySet();
-	Iterator itrIn;
-	Iterator itrThis;	
+    public ReachabilitySet add( TokenTupleSet tts ) {
+	assert tts != null;
+	ReachabilitySet rsOut = new ReachabilitySet( tts );
+	return rsOut.union( this );
+    }
 
-	itrIn = rsIn.iterator();
-	while( itrIn.hasNext() ) {
-	    TokenTupleSet ttsIn = (TokenTupleSet) itrIn.next();
-
-	    boolean foundEqual = false;
-
-	    itrThis = this.iterator();
-	    while( itrThis.hasNext() ) {
-		TokenTupleSet ttsThis = (TokenTupleSet) itrThis.next();
-
-		if( ttsIn.equalWithoutArity( ttsThis ) ) {
-		    rsOut.possibleReachabilities.add( ttsIn.unionUpArity( ttsThis ) );
-		    foundEqual = true;
-		    continue;
-		}
-	    }
-
-	    if( !foundEqual ) {
-		rsOut.possibleReachabilities.add( ttsIn );
-	    }
-	}
-
-	itrThis = this.iterator();
-	while( itrThis.hasNext() ) {
-	    TokenTupleSet ttsThis = (TokenTupleSet) itrThis.next();
-
-	    boolean foundEqual = false;
-
-	    itrIn = rsIn.iterator();
-	    while( itrIn.hasNext() ) {
-		TokenTupleSet ttsIn = (TokenTupleSet) itrIn.next();
-
-		if( ttsThis.equalWithoutArity( ttsIn ) ) {
-		    foundEqual = true;
-		    continue;
-		}
-	    }
-
-	    if( !foundEqual ) {
-		rsOut.possibleReachabilities.add( ttsThis );
-	    }
-	}
-
-	return rsOut.makeCanonical();
-    }  
-    */
 
     public ChangeTupleSet unionUpArityToChangeSet( ReachabilitySet rsIn ) {
 	assert rsIn != null;
@@ -242,8 +198,11 @@ public class ReachabilitySet extends Canonical {
 	    
 		if( ttsA.isSubset( ttsB ) ) {
 		    subsetExists = true;
-		    rsOut.possibleReachabilities.add( ttsB );		    
 		}
+	    }
+
+	    if( subsetExists ) {
+		rsOut.possibleReachabilities.add( ttsB );
 	    }
 	}
 

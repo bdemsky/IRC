@@ -24,6 +24,8 @@ public class TokenTuple extends Canonical {
 
 
     public TokenTuple( HeapRegionNode hrn ) {
+	assert hrn != null;
+
 	token        = hrn.getID();
 	isNewSummary = hrn.isNewSummary();
 	arity        = ARITY_ONE;
@@ -32,6 +34,8 @@ public class TokenTuple extends Canonical {
     public TokenTuple( Integer token,
 		       boolean isNewSummary,
 		       int     arity ) {
+	assert token != null;
+
 	this.token        = token;
 	this.isNewSummary = isNewSummary;
 	this.arity        = arity;
@@ -58,7 +62,8 @@ public class TokenTuple extends Canonical {
 
 
     public TokenTuple changeTokenTo( Integer tokenToChangeTo ) {
-	assert isNewSummary == false;
+	assert tokenToChangeTo != null;
+	assert isNewSummary    == false;
 
 	return new TokenTuple( tokenToChangeTo,
 			       isNewSummary,
@@ -82,7 +87,7 @@ public class TokenTuple extends Canonical {
     }
 
     public int hashCode() {
-	return (Math.abs( token.intValue() + 20000 ) + arity*100000) % 12789;
+	return token.intValue()*31 + arity;
     }
 
 

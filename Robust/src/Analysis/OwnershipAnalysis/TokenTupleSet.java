@@ -17,11 +17,13 @@ public class TokenTupleSet extends Canonical {
 
     public TokenTupleSet( TokenTuple tt ) {
 	this();
+	assert tt != null;
 	tokenTuples.add( tt );
     }
 
-    // okay to clone, TokenTuple and TokenTupleSet should be canonical
     public TokenTupleSet( TokenTupleSet tts ) {
+	assert tts != null;
+	// okay to clone, TokenTuple and TokenTupleSet should be canonical
 	tokenTuples = (HashSet<TokenTuple>) tts.tokenTuples.clone();
     }
 
@@ -44,23 +46,28 @@ public class TokenTupleSet extends Canonical {
     }
 
     public boolean containsTuple( TokenTuple tt ) {
+	assert tt != null;
 	return tokenTuples.contains( tt );
     }
 
 
     public TokenTupleSet union( TokenTupleSet ttsIn ) {
+	assert ttsIn != null;
 	TokenTupleSet ttsOut = new TokenTupleSet( this );
 	ttsOut.tokenTuples.addAll( ttsIn.tokenTuples );
 	return ttsOut.makeCanonical();
     }
 
     public TokenTupleSet add( TokenTuple tt ) {
+	assert tt != null;
 	TokenTupleSet ttsOut = new TokenTupleSet( tt );
 	return ttsOut.union( this );
     }
 
 
+    // this should only be done with a multiple-object heap region's token!
     public TokenTupleSet increaseArity( Integer token ) {
+	assert token != null;
 	TokenTupleSet ttsOut = new TokenTupleSet( this );
 	TokenTuple tt 
 	    = new TokenTuple( token, true, TokenTuple.ARITY_ONE ).makeCanonical();
@@ -95,6 +102,8 @@ public class TokenTupleSet extends Canonical {
 
     // this should be a hash table so we can do this by key
     public boolean containsToken( Integer token ) {
+	assert token != null;
+
 	Iterator itr = tokenTuples.iterator();
 	while( itr.hasNext() ) {
 	    TokenTuple tt = (TokenTuple) itr.next();
@@ -107,6 +116,8 @@ public class TokenTupleSet extends Canonical {
 
 
     public TokenTupleSet ageTokens( AllocationSite as ) {
+	assert as != null;
+
 	TokenTupleSet ttsOut = new TokenTupleSet();
 
 	TokenTuple ttSummary = null;

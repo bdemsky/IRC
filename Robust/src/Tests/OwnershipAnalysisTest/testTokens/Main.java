@@ -26,7 +26,6 @@ public class Main {
 
 
     public static void main(String args[]) throws Exception {
-
 	aTestFailed = false;
 
 	testExample();
@@ -34,6 +33,10 @@ public class Main {
 	testTokenTuple();
 	System.out.println( "---------------------------------------" );
 	testTokenTupleSet();
+	System.out.println( "---------------------------------------" );
+	testChangeTupleAndChangeTupleSet();
+	System.out.println( "---------------------------------------" );
+	testReachabilitySet();
 	System.out.println( "---------------------------------------" );
 
 	if( aTestFailed ) {
@@ -47,7 +50,6 @@ public class Main {
 
     
     public static void testExample() {
-	
 	// example test to know the testing routine is correct!
 	test( "4 == 5?", false, 4 == 5 );
 	test( "3 == 3?", true,  3 == 3 );
@@ -55,7 +57,6 @@ public class Main {
 
 
     public static void testTokenTuple() {
-
 	TokenTuple tt0 = new TokenTuple( new Integer( 1 ), true,  TokenTuple.ARITY_ONE  );
 	TokenTuple tt1 = new TokenTuple( new Integer( 1 ), true,  TokenTuple.ARITY_ONE  );
 	TokenTuple tt2 = new TokenTuple( new Integer( 2 ), true,  TokenTuple.ARITY_ONE  );
@@ -253,6 +254,11 @@ public class Main {
 	test( "tts4567a.containsToken( new Integer( 7 ) )?", true,  tts4567a.containsToken( new Integer( 7 ) ) );
 	test( "tts4567a.containsToken( new Integer( 8 ) )?", false, tts4567a.containsToken( new Integer( 8 ) ) );
 
+	// they should be canonical
+	test( "tts4567a.equals( tts4567d )?", true, tts4567a.equals( tts4567d ) );
+	test( "tts4567a == tts4567d?",        true, tts4567a == tts4567d );
+	
+
 
 	TokenTuple tt10     = new TokenTuple( new Integer( 10 ), false, TokenTuple.ARITY_ONE  ).makeCanonical();
 	TokenTuple tt11     = new TokenTuple( new Integer( 11 ), false, TokenTuple.ARITY_ONE  ).makeCanonical();
@@ -276,9 +282,11 @@ public class Main {
 	TokenTupleSet ttsAgeTest0b = new TokenTupleSet();
 	ttsAgeTest0b = ttsAgeTest0b.add( tt12 ).add( tt52 ).add( tt42 ).add( tt62star );
 
+	System.out.println( ttsAgeTest0a );	
 	test( "ttsAgeTest0a.equals( ttsAgeTest0b )?", false, ttsAgeTest0a.equals( ttsAgeTest0b ) );
 	ttsAgeTest0a = ttsAgeTest0a.ageTokens( as );
 	test( "ttsAgeTest0a.equals( ttsAgeTest0b )?", true,  ttsAgeTest0a.equals( ttsAgeTest0b ) );
+	System.out.println( ttsAgeTest0a );	
 
 
 	TokenTupleSet ttsAgeTest1a = new TokenTupleSet();
@@ -287,9 +295,11 @@ public class Main {
 	TokenTupleSet ttsAgeTest1b = new TokenTupleSet();
 	ttsAgeTest1b = ttsAgeTest1b.add( tt11 ).add( tt52 ).add( tt42 ).add( tt62star ).add( tt13 );
 
+	System.out.println( ttsAgeTest1a );	
 	test( "ttsAgeTest1a.equals( ttsAgeTest1b )?", false, ttsAgeTest1a.equals( ttsAgeTest1b ) );
 	ttsAgeTest1a = ttsAgeTest1a.ageTokens( as );
 	test( "ttsAgeTest1a.equals( ttsAgeTest1b )?", true,  ttsAgeTest1a.equals( ttsAgeTest1b ) );
+	System.out.println( ttsAgeTest1a );	
 
 
 	TokenTupleSet ttsAgeTest2a = new TokenTupleSet();
@@ -298,9 +308,11 @@ public class Main {
 	TokenTupleSet ttsAgeTest2b = new TokenTupleSet();
 	ttsAgeTest2b = ttsAgeTest2b.add( tt11 ).add( tt52 ).add( tt42 ).add( tt62star ).add( tt13 ).add( tt12 );
 
+	System.out.println( ttsAgeTest2a );	
 	test( "ttsAgeTest2a.equals( ttsAgeTest2b )?", false, ttsAgeTest2a.equals( ttsAgeTest2b ) );
 	ttsAgeTest2a = ttsAgeTest2a.ageTokens( as );
 	test( "ttsAgeTest2a.equals( ttsAgeTest2b )?", true,  ttsAgeTest2a.equals( ttsAgeTest2b ) );
+	System.out.println( ttsAgeTest2a );	
 
 
 	TokenTupleSet ttsAgeTest3a = new TokenTupleSet();
@@ -309,271 +321,233 @@ public class Main {
 	TokenTupleSet ttsAgeTest3b = new TokenTupleSet();
 	ttsAgeTest3b = ttsAgeTest3b.add( tt11 ).add( tt52 ).add( tt42 ).add( tt62star ).add( tt13star );
 
+	System.out.println( ttsAgeTest3a );	
 	test( "ttsAgeTest3a.equals( ttsAgeTest3b )?", false, ttsAgeTest3a.equals( ttsAgeTest3b ) );
 	ttsAgeTest3a = ttsAgeTest3a.ageTokens( as );
 	test( "ttsAgeTest3a.equals( ttsAgeTest3b )?", true,  ttsAgeTest3a.equals( ttsAgeTest3b ) );
+	System.out.println( ttsAgeTest3a );	
+
+
+	// they should be canonical
+	test( "ttsAgeTest3a.equals( ttsAgeTest3b )?", true, ttsAgeTest3a.equals( ttsAgeTest3b ) );
+	test( "ttsAgeTest3a == ttsAgeTest3b?",        true, ttsAgeTest3a == ttsAgeTest3b );	
     }
 
 
+    public static void testChangeTupleAndChangeTupleSet() {
+	TokenTuple tt0 = new TokenTuple( new Integer( 0 ), true,  TokenTuple.ARITY_ONE  ).makeCanonical();
+	TokenTuple tt1 = new TokenTuple( new Integer( 1 ), true,  TokenTuple.ARITY_ONE  ).makeCanonical();
+	TokenTuple tt2 = new TokenTuple( new Integer( 2 ), true,  TokenTuple.ARITY_ONE  ).makeCanonical();
+	TokenTuple tt8 = new TokenTuple( new Integer( 8 ), true,  TokenTuple.ARITY_ONE  ).makeCanonical();
+	TokenTuple tt8b = new TokenTuple( new Integer( 8 ), true, TokenTuple.ARITY_MANY ).makeCanonical();
 
+	TokenTupleSet tts01   = new TokenTupleSet().add( tt0 ).add( tt1 );
+	TokenTupleSet tts12   = new TokenTupleSet().add( tt1 ).add( tt2 );
+	TokenTupleSet tts128  = new TokenTupleSet().add( tt1 ).add( tt2 ).add( tt8 );
+	TokenTupleSet tts128b = new TokenTupleSet().add( tt1 ).add( tt2 ).add( tt8b );
 
-    public static void garbage() {
-	/*
+	ChangeTuple ct0 = new ChangeTuple( tts01, tts12 );
+	ChangeTuple ct1 = new ChangeTuple( tts12, tts01 );
+	ChangeTuple ct2 = new ChangeTuple( tts01, tts128 );
+	ChangeTuple ct3 = new ChangeTuple( tts01, tts128b );
+	ChangeTuple ct4 = new ChangeTuple( tts01, tts128 );
 
+	test( "ct0.equals(       ct1 )?",          false, ct0.equals(       ct1 ) );
+	test( "ct0            == ct1?",            false, ct0 ==            ct1 );
+	test( "ct0.hashCode() == ct1.hashCode()?", false, ct0.hashCode() == ct1.hashCode() );
 
-	
-	
-	TokenTupleSet tts0 = new TokenTupleSet( tt0 );
-	TokenTupleSet tts1 = new TokenTupleSet( tt1 );
-	TokenTupleSet tts2 = new TokenTupleSet( tt2 );
-	TokenTupleSet tts3 = new TokenTupleSet( tt3 );
-	TokenTupleSet tts4 = tts1.union( tts3 );
-	TokenTupleSet tts5 = tts0.union( tts2 );
-	TokenTupleSet tts6 = tts1.union( tts1 );
+	test( "ct0.equals(       ct2 )?",          false, ct0.equals(       ct2 ) );
+	test( "ct0            == ct2?",            false, ct0 ==            ct2 );
+	test( "ct0.hashCode() == ct2.hashCode()?", false, ct0.hashCode() == ct2.hashCode() );
 
-	System.out.println( "tts4 is "+tts4 );
-	System.out.println( "tts5 is "+tts5 );
-	System.out.println( "tts6 is "+tts6 );
+	test( "ct3.equals(       ct2 )?",          false, ct3.equals(       ct2 ) );
+	test( "ct3            == ct2?",            false, ct3 ==            ct2 );
+	test( "ct3.hashCode() == ct2.hashCode()?", false, ct3.hashCode() == ct2.hashCode() );
 
-	ReachabilitySet rs0 = new ReachabilitySet( tts0 );
-	rs0 = rs0.union( new ReachabilitySet( tts2 ) );
-	rs0 = rs0.union( new ReachabilitySet( tts5 ) );
+	test( "ct4.equals(       ct2 )?",          true,  ct4.equals(       ct2 ) );
+	test( "ct4            == ct2?",            false, ct4 ==            ct2 );
+	test( "ct4.hashCode() == ct2.hashCode()?", true,  ct4.hashCode() == ct2.hashCode() );
 
-	System.out.println( "rs0 is "+rs0 );
+	ct2 = ct2.makeCanonical();
+	ct4 = ct4.makeCanonical();
 
-	TokenTuple tt4 = new TokenTuple( new Integer( 4 ),
-					 true,
-					 TokenTuple.ARITY_ONE );
-
-		TokenTuple tt5 = new TokenTuple( new Integer( 4 ),
- 					 true,
-					 TokenTuple.ARITY_ONE );
-	
-	TokenTuple tt6 = new TokenTuple( new Integer( 6 ),
-					 false,
-					 TokenTuple.ARITY_ONE );
-
-	TokenTupleSet tts7 = new TokenTupleSet( tt4 );
-	//TokenTupleSet tts8 = new TokenTupleSet( tt5 );
-	TokenTupleSet tts9 = new TokenTupleSet( tt1 );
-	tts9 = tts9.union( tts2 );
-
-	ReachabilitySet rs1 = new ReachabilitySet( tts7 );
-	//rs1 = rs1.union( new ReachabilitySet( tts8 ) );
-	rs1 = rs1.union( new ReachabilitySet( tts9 ) );
-
-	System.out.println( "rs1 is "+rs1 );
-
-
-	ChangeTupleSet cts0 = rs0.unionUpArityToChangeSet( rs1 );
-	System.out.println( "cts0 is "+cts0 );
-	
-
-
-	TokenTuple tt00 = new TokenTuple( new Integer( 9 ),
-					  true,
-					  TokenTuple.ARITY_ONE );
-
-	TokenTuple tt01 = new TokenTuple( new Integer( 9 ),
-					  true,
-					  TokenTuple.ARITY_ONE );
-
-	test( "tt00 equals tt01?", true,  tt00.equals( tt01 ) );	
-	test( "tt00 ==     tt01?", false, tt00 ==      tt01   );	
-
-	tt00 = (TokenTuple) Canonical.makeCanonical( tt00 );
-	tt01 = (TokenTuple) Canonical.makeCanonical( tt01 );
-
-	test( "tt00 equals tt01?", true,  tt00.equals( tt01 ) );	
-	test( "tt00 ==     tt01?", true,  tt00 ==      tt01   );	
-
-
-	TokenTuple tt02 = 
-	    (TokenTuple) Canonical.makeCanonical( 
-						 new TokenTuple( new Integer( 10 ),
-								 true,
-								 TokenTuple.ARITY_ONE )
-						  );
-
-	TokenTuple tt03 = 
-	    (TokenTuple) Canonical.makeCanonical( 
-						 new TokenTuple( new Integer( 11 ),
-								 true,
-								 TokenTuple.ARITY_ONE )
-						  );
-
-	TokenTuple tt04 = 
-	    (TokenTuple) Canonical.makeCanonical( 
-						 new TokenTuple( new Integer( 12 ),
-								 true,
-								 TokenTuple.ARITY_ONE )
-						  );
-
-	TokenTupleSet ttsT00 =
-	    (TokenTupleSet) Canonical.makeCanonical( new TokenTupleSet( tt00 ) );
-
-	TokenTupleSet ttsT01 =
-	    (TokenTupleSet) Canonical.makeCanonical( new TokenTupleSet( tt01 ) );
-
-	TokenTupleSet ttsT02 =
-	    (TokenTupleSet) Canonical.makeCanonical( new TokenTupleSet( tt02 ) );
-
-	TokenTupleSet ttsT03 =
-	    (TokenTupleSet) Canonical.makeCanonical( new TokenTupleSet( tt03 ) );
-
-	TokenTupleSet ttsT04 =
-	    (TokenTupleSet) Canonical.makeCanonical( new TokenTupleSet( tt04 ) );
-
-	TokenTupleSet tts00 = ttsT00.union( ttsT02.union( ttsT03.union( ttsT04 ) ) );
-	TokenTupleSet tts01 = ttsT01.union( ttsT02.union( ttsT03.union( ttsT04 ) ) );
-
-	test( "tts00 equals tts01?", true,  tts00.equals( tts01 ) );
-
-	// It's OK that this one turns out true--I changed the union operator
-	// to automatically canonicalize stuff!
-	test( "tts00 ==     tts01?", false, tts00 ==      tts01   );	
-
-	tts00 = (TokenTupleSet) Canonical.makeCanonical( tts00 );
-	tts01 = (TokenTupleSet) Canonical.makeCanonical( tts01 );
-
-	test( "tts00 equals tts01?", true,  tts00.equals( tts01 ) );	
-	test( "tts00 ==     tts01?", true,  tts00 ==      tts01   );
-
+	test( "ct4.equals(       ct2 )?",          true,  ct4.equals(       ct2 ) );
+	test( "ct4            == ct2?",            true,  ct4 ==            ct2 );
+	test( "ct4.hashCode() == ct2.hashCode()?", true,  ct4.hashCode() == ct2.hashCode() );
 
 	
-	ReachabilitySet rs2 = new ReachabilitySet( tts00 );
-	ReachabilitySet rs3 = new ReachabilitySet( tts01 ).union( rs2 );
+	ChangeTupleSet cts0 = new ChangeTupleSet();
+	ChangeTupleSet cts1 = new ChangeTupleSet( ct0 );
+	ChangeTupleSet cts2 = new ChangeTupleSet( cts1 );
 
-	System.out.println( "rs3 is "+rs3 );
+	test( "cts1.equals(       cts0 )?",          false, cts1.equals(       cts0 ) );
+	test( "cts1            == cts0?",            false, cts1 ==            cts0 );
+	test( "cts1.hashCode() == cts0.hashCode()?", false, cts1.hashCode() == cts0.hashCode() );
 
-	rs3 = rs3.increaseArity( new Integer( 11 ) );
-	System.out.println( "rs3 is "+rs3 );
-	*/
+	test( "cts1.equals(       cts2 )?",          true,  cts1.equals(       cts2 ) );
+	test( "cts1            == cts2?",            false, cts1 ==            cts2 );
+	test( "cts1.hashCode() == cts2.hashCode()?", true,  cts1.hashCode() == cts2.hashCode() );
 
-	/*
-	TokenTuple tt11 = new TokenTuple( new Integer( 1 ),
-					 false,
-					 TokenTuple.ARITY_ONE );
+	cts1 = cts1.makeCanonical();
+	cts2 = cts2.makeCanonical();
 
-	TokenTuple tt12 = new TokenTuple( new Integer( 2 ),
-					 true,
-					 TokenTuple.ARITY_ONE );
+	test( "cts1.equals(       cts2 )?",          true,  cts1.equals(       cts2 ) );
+	test( "cts1            == cts2?",            true,  cts1 ==            cts2 );
+	test( "cts1.hashCode() == cts2.hashCode()?", true,  cts1.hashCode() == cts2.hashCode() );
 
-	TokenTuple tt13 = new TokenTuple( new Integer( 3 ),
-					 true,
-					 TokenTuple.ARITY_MANY );
+	ChangeTupleSet cts3 = new ChangeTupleSet( ct1 ).union( ct0 );
 
-	TokenTuple tt14 = new TokenTuple( new Integer( 4 ),
-					 true,
-					 TokenTuple.ARITY_ONE );
+	test( "cts0.isEmpty()?", true,  cts0.isEmpty() );
+	test( "cts1.isEmpty()?", false, cts1.isEmpty() );
 
-	TokenTuple tt15 = new TokenTuple( new Integer( 5 ),
-					 true,
-					 TokenTuple.ARITY_ONE );
+	test( "cts0.isSubset( cts1 )?", true,  cts0.isSubset( cts1 ) );
+	test( "cts1.isSubset( cts0 )?", false, cts1.isSubset( cts0 ) );
 
-	TokenTuple tt16 = new TokenTuple( new Integer( 6 ),
-					 true,
-					 TokenTuple.ARITY_MANY );
-	*/
-	/*
-	TokenTupleSet tts10 = new TokenTupleSet();
-	tts10 = tts10.add( tt11 );
-	tts10 = tts10.add( tt12 );
-	tts10 = tts10.add( tt13 );
-	tts10 = tts10.add( tt14 );
-	tts10 = tts10.add( tt15 );
-	tts10 = tts10.add( tt16 );
-	*/
+	test( "cts1.isSubset( cts2 )?", true,  cts1.isSubset( cts2 ) );
+	test( "cts2.isSubset( cts1 )?", true,  cts2.isSubset( cts1 ) );
 
-	/*
-	TokenTuple tt21 = new TokenTuple( new Integer( 1 ),
-					 false,
-					 TokenTuple.ARITY_ONE );
+	test( "cts1.isSubset( cts3 )?", true,  cts1.isSubset( cts3 ) );
+	test( "cts3.isSubset( cts1 )?", false, cts3.isSubset( cts1 ) );
+    }
 
-	TokenTuple tt22 = new TokenTuple( new Integer( 5 ),
-					 true,
-					 TokenTuple.ARITY_ONE );
 
-	TokenTuple tt23 = new TokenTuple( new Integer( 3 ),
-					 true,
-					 TokenTuple.ARITY_ONE );
+    public static void testReachabilitySet() {
+	TokenTuple tt0  = new TokenTuple( new Integer( 100 ), true,  TokenTuple.ARITY_ONE  ).makeCanonical();
+	TokenTuple tt1  = new TokenTuple( new Integer( 101 ), true,  TokenTuple.ARITY_ONE  ).makeCanonical();
+	TokenTuple tt2  = new TokenTuple( new Integer( 102 ), true,  TokenTuple.ARITY_ONE  ).makeCanonical();
+	TokenTuple tt3  = new TokenTuple( new Integer( 103 ), true,  TokenTuple.ARITY_MANY ).makeCanonical();
+	TokenTuple tt4  = new TokenTuple( new Integer( 104 ), false, TokenTuple.ARITY_ONE  ).makeCanonical();
+	TokenTuple tt5  = new TokenTuple( new Integer( 105 ), false, TokenTuple.ARITY_ONE  ).makeCanonical();
+	TokenTuple tt6  = new TokenTuple( new Integer( 106 ), false, TokenTuple.ARITY_ONE  ).makeCanonical();
+	TokenTuple tt7  = new TokenTuple( new Integer( 107 ), true,  TokenTuple.ARITY_ONE  ).makeCanonical();
+	TokenTuple tt8  = new TokenTuple( new Integer( 108 ), true,  TokenTuple.ARITY_ONE  ).makeCanonical();
+	TokenTuple tt9  = new TokenTuple( new Integer( 109 ), true,  TokenTuple.ARITY_MANY ).makeCanonical();
+	TokenTuple tt8b = new TokenTuple( new Integer( 108 ), true,  TokenTuple.ARITY_MANY ).makeCanonical();
 
-	TokenTuple tt24 = new TokenTuple( new Integer( 6 ),
-					 true,
-					 TokenTuple.ARITY_MANY );
 
-	TokenTuple tt25 = new TokenTuple( new Integer( 7 ),
-					 true,
-					 TokenTuple.ARITY_ONE );
+	AllocationSite as = new AllocationSite( 3, null );
+	as.setIthOldest( 0, new Integer( 104 ) );
+	as.setIthOldest( 1, new Integer( 105 ) );
+	as.setIthOldest( 2, new Integer( 106 ) );
+	as.setSummary  (    new Integer( 108 ) );
 
-	TokenTuple tt26 = new TokenTuple( new Integer( 8 ),
-					 true,
-					 TokenTuple.ARITY_MANY );
-	*/
-	/*
-	TokenTupleSet tts20 = new TokenTupleSet();
-	tts20 = tts20.add( tt21 );
-	tts20 = tts20.add( tt22 );
-	tts20 = tts20.add( tt23 );
-	tts20 = tts20.add( tt24 );
-	tts20 = tts20.add( tt25 );
-	tts20 = tts20.add( tt26 );		
 
-	TokenTupleSet tts30 = tts10.unionUpArity( tts20 );
+	TokenTupleSet tts01   = new TokenTupleSet().add( tt0 ).add( tt1 );
+	TokenTupleSet tts12   = new TokenTupleSet().add( tt1 ).add( tt2 );
+	TokenTupleSet tts128  = new TokenTupleSet().add( tt1 ).add( tt2 ).add( tt8 );
+	TokenTupleSet tts128b = new TokenTupleSet().add( tt1 ).add( tt2 ).add( tt8b );
 
-	System.out.println( "tts10 is "+tts10 );
-	System.out.println( "tts20 is "+tts20 );
-	System.out.println( "" );
-	System.out.println( "tts30 is "+tts30 );
-	*/
-	/*
-	TokenTupleSet tts40 = new TokenTupleSet();
-	tts40 = tts40.add( tt21 );
-	tts40 = tts40.add( tt23 );
+	ReachabilitySet rs0 = new ReachabilitySet( tts128 );
 
-	TokenTupleSet tts50 = new TokenTupleSet();
-	tts50 = tts50.add( tt21 );
-	tts50 = tts50.add( tt23 );
-	tts50 = tts50.add( tt22 );
+	test( "rs0.contains( tts01  )?", false, rs0.contains( tts01  ) );
+	test( "rs0.contains( tts128 )?", true,  rs0.contains( tts128 ) );
 
-	TokenTupleSet tts60 = new TokenTupleSet();
-	tts60 = tts60.add( tt21 );
-	tts60 = tts60.add( tt24 );
+	test( "rs0.containsTuple( tt8b )?", false, rs0.containsTuple( tt8b ) );
+	test( "rs0.containsTuple( tt8  )?", true,  rs0.containsTuple( tt8  ) );
 
-	TokenTupleSet tts70 = new TokenTupleSet();
-	tts70 = tts70.add( tt11 );
-	tts70 = tts70.add( tt13 );
-	tts70 = tts70.add( tt12 );
 
-	TokenTupleSet tts71 = new TokenTupleSet();
-	tts71 = tts71.add( tt13 );
-	tts71 = tts71.add( tt11 );
-	tts71 = tts71.add( tt15 );
+	TokenTupleSet tts048  = new TokenTupleSet().add( tt0 ).add( tt4 ).add( tt8 );
+	TokenTupleSet tts048b = new TokenTupleSet().add( tt0 ).add( tt4 ).add( tt8b );
 
-	TokenTupleSet tts72 = new TokenTupleSet();
-	tts72 = tts72.add( tt11 );
-	tts72 = tts72.add( tt16 );
+	ReachabilitySet rs1 = new ReachabilitySet( tts128 ).add( tts048 ).add( tts01 );
+	ReachabilitySet rs2 = rs1.increaseArity( new Integer( 108 ) );
 
-	TokenTupleSet tts73 = new TokenTupleSet();
-	tts73 = tts73.add( tt12 );
+	test( "rs1.equals( rs2 )?",                false, rs1.equals( rs2 ) );
+	test( "rs1 == rs2?",                       false, rs1 == rs2 );
+	test( "rs1.hashCode() == rs2.hashCode()?", false, rs1.hashCode() == rs2.hashCode() );
 
-	ReachabilitySet rs40 = new ReachabilitySet();
-	rs40 = rs40.add( tts40 );
-	rs40 = rs40.add( tts50 );
-	rs40 = rs40.add( tts60 );
+	ReachabilitySet rs3 = new ReachabilitySet( tts128b ).add( tts048b ).add( tts01 );
 
-	ReachabilitySet rs50 = new ReachabilitySet();
-	rs50 = rs50.add( tts70 );
-	rs50 = rs50.add( tts71 );
-	rs50 = rs50.add( tts72 );
-	rs50 = rs50.add( tts73 );
+	test( "rs2.equals( rs3 )?",                true, rs2.equals( rs3 ) );
+	test( "rs2 == rs3?",                       true, rs2 == rs3 );
+	test( "rs2.hashCode() == rs3.hashCode()?", true, rs2.hashCode() == rs3.hashCode() );
 
-	ReachabilitySet rs60 = rs50.unionUpArity( rs40 );
 
-	System.out.println( "rs40 is "+rs40 );
-	System.out.println( "rs50 is "+rs50 );
-	System.out.println( "" );
-	System.out.println( "rs60 is "+rs60 );
-	*/
+	ReachabilitySet rs4 = rs0.union( rs3 );
+	ReachabilitySet rs5 = new ReachabilitySet().union( tts128 ).union( tts128b ).union( tts048b ).union( tts01 );
+
+	test( "rs4.equals( rs5 )?",                true, rs4.equals( rs5 ) );
+	test( "rs4 == rs5?",                       true, rs4 == rs5 );
+	test( "rs4.hashCode() == rs5.hashCode()?", true, rs4.hashCode() == rs5.hashCode() );
+
+	
+	ReachabilitySet rs6 = new ReachabilitySet().add( tts128b ).add( tts048b ).add( tts01 ).add( tts12 );
+	ReachabilitySet rs7 = rs6.intersection( rs5 );
+
+	test( "rs6.equals(       rs7 )?",          false, rs6.equals(       rs7 ) );
+	test( "rs6 ==            rs7?",            false, rs6 ==            rs7 );
+	test( "rs6.hashCode() == rs7.hashCode()?", false, rs6.hashCode() == rs7.hashCode() );
+
+	test( "rs3.equals(       rs7 )?",          true, rs3.equals(       rs7 ) );
+	test( "rs3 ==            rs7?",            true, rs3 ==            rs7 );
+	test( "rs3.hashCode() == rs7.hashCode()?", true, rs3.hashCode() == rs7.hashCode() );
+
+      
+	TokenTupleSet tts67  = new TokenTupleSet().add( tt6 ).add( tt7 );
+	TokenTupleSet tts806 = new TokenTupleSet().add( tt8 ).add( tt0 ).add( tt6 );
+
+	TokenTupleSet tts058b = new TokenTupleSet().add( tt8b ).add( tt0 ).add( tt5 );
+	TokenTupleSet tts87   = new TokenTupleSet().add( tt8 ).add( tt7 );
+	TokenTupleSet tts08b  = new TokenTupleSet().add( tt0 ).add( tt8b );
+
+	ReachabilitySet rs8 = new ReachabilitySet().add( tts128 ).add( tts048b ).add( tts01 ).add( tts67 ).add( tts806 );
+	ReachabilitySet rs9 = new ReachabilitySet().add( tts128 ).add( tts058b ).add( tts01 ).add( tts87 ).add( tts08b );
+
+	test( "rs8.equals(       rs9 )?",          false, rs8.equals(       rs9 ) );
+	test( "rs8 ==            rs9?",            false, rs8 ==            rs9 );
+	test( "rs8.hashCode() == rs9.hashCode()?", false, rs8.hashCode() == rs9.hashCode() );
+
+	rs8 = rs8.ageTokens( as );
+
+	test( "rs8.equals(       rs9 )?",          true, rs8.equals(       rs9 ) );
+	test( "rs8 ==            rs9?",            true, rs8 ==            rs9 );
+	test( "rs8.hashCode() == rs9.hashCode()?", true, rs8.hashCode() == rs9.hashCode() );
+	
+	ReachabilitySet rs10 = new ReachabilitySet().add( tts08b ).add( tts01 );
+	ReachabilitySet rs11 = new ReachabilitySet().add( tts058b ).add( tts01 ).add( tts08b );
+	ReachabilitySet rs12 = new ReachabilitySet().add( tts128 ).add( tts058b ).add( tts01 ).add( tts87 ).add( tts08b );
+
+	test( "rs11.equals(       rs12 )?",          false, rs11.equals(       rs12 ) );
+	test( "rs11 ==            rs12?",            false, rs11 ==            rs12 );
+	test( "rs11.hashCode() == rs12.hashCode()?", false, rs11.hashCode() == rs12.hashCode() );
+
+	rs12 = rs12.pruneBy( rs10 );
+
+	test( "rs11.equals(       rs12 )?",          true, rs11.equals(       rs12 ) );
+	test( "rs11 ==            rs12?",            true, rs11 ==            rs12 );
+	test( "rs11.hashCode() == rs12.hashCode()?", true, rs11.hashCode() == rs12.hashCode() );
+
+
+	ReachabilitySet rs13 = new ReachabilitySet( tts128 ).add( tts048 ).add( tts01 );
+	ReachabilitySet rs14 = new ReachabilitySet( tts87 ).add( tts01 );
+
+	ChangeTupleSet cts0 = rs14.unionUpArityToChangeSet( rs13 );
+	System.out.println( cts0 );
+	
+
+	TokenTuple tt0b = new TokenTuple( new Integer( 100 ), true,  TokenTuple.ARITY_MANY  ).makeCanonical();
+	TokenTuple tt1b = new TokenTuple( new Integer( 101 ), true,  TokenTuple.ARITY_MANY  ).makeCanonical();
+	
+	TokenTupleSet tts01b28 = new TokenTupleSet().add( tt1b ).add( tt0 ).add( tt2 ).add( tt8 );
+	TokenTupleSet tts0b148 = new TokenTupleSet().add( tt0b ).add( tt1 ).add( tt4 ).add( tt8 );
+	TokenTupleSet tts0b1b  = new TokenTupleSet().add( tt1b ).add( tt0b );
+	TokenTupleSet tts1278b = new TokenTupleSet().add( tt1  ).add( tt7 ).add( tt2 ).add( tt8b );
+	TokenTupleSet tts0478b = new TokenTupleSet().add( tt0  ).add( tt7 ).add( tt4 ).add( tt8b );
+	TokenTupleSet tts1078  = new TokenTupleSet().add( tt1  ).add( tt7 ).add( tt0 ).add( tt8 );
+
+	ChangeTuple ct0 = new ChangeTuple( tts01, tts01b28 ); 
+	ChangeTuple ct1 = new ChangeTuple( tts01, tts0b148 );
+	ChangeTuple ct2 = new ChangeTuple( tts01, tts0b1b  ); 
+	ChangeTuple ct3 = new ChangeTuple( tts87, tts1278b ); 
+	ChangeTuple ct4 = new ChangeTuple( tts87, tts0478b ); 
+	ChangeTuple ct5 = new ChangeTuple( tts87, tts1078  ); 
+
+	ChangeTupleSet cts1 
+	  = new ChangeTupleSet( ct0 ).union( ct1 ).union( ct2 ).union( ct3 ).union( ct4 ).union( ct5 );
+
+	test( "cts1.equals(       cts0 )?",          true,  cts1.equals(       cts0 ) );
+	test( "cts1            == cts0?",            true,  cts1 ==            cts0 );
+	test( "cts1.hashCode() == cts0.hashCode()?", true,  cts1.hashCode() == cts0.hashCode() );
+
     }
 }

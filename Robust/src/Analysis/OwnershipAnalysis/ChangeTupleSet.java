@@ -20,7 +20,7 @@ public class ChangeTupleSet extends Canonical {
     }
 
     public ChangeTupleSet( ChangeTupleSet cts ) {
-	changeTuples = (HashSet<ChangeTuple>) cts.changeTuples.clone(); //COPY?!
+	changeTuples = (HashSet<ChangeTuple>) cts.changeTuples.clone();
     }
 
     public ChangeTupleSet makeCanonical() {

@@ -46,7 +46,7 @@ public class ChangeTuple extends Canonical
     }
 
     public int hashCode() {
-	return toMatch.hashCode() + toAdd.hashCode();
+	return toMatch.hashCode() + toAdd.hashCode()*3;
     }
 
     public String toString() {
