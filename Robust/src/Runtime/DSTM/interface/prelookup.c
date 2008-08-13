@@ -191,6 +191,7 @@ unsigned int prehashResize(unsigned int newsize) {
 
 //Note: This is based on the implementation of the inserting a key in the first position of the hashtable 
 void prehashClear() {
+#ifdef CACHE
   int i, isFirstBin;
   prehashlistnode_t *ptr, *prev, *curr;
   
@@ -220,5 +221,6 @@ void prehashClear() {
   }
   pflookup.hack2=pflookup.hack;
   pflookup.hack=oldcache;
+#endif
 }
 

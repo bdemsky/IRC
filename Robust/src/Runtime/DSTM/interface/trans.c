@@ -21,10 +21,10 @@
 /* Global Variables */
 extern int classsize[];
 pfcstats_t *evalPrefetch;
+extern pthread_mutex_t mainobjstore_mutex;// Mutex to lock main Object store
 objstr_t *prefetchcache; //Global Prefetch cache
 pthread_mutex_t prefetchcache_mutex;// Mutex to lock Prefetch Cache
 pthread_mutexattr_t prefetchcache_mutex_attr; /* Attribute for lock to make it a recursive lock */
-extern pthread_mutex_t mainobjstore_mutex;// Mutex to lock main Object store
 extern prehashtable_t pflookup; //Global Prefetch cache's lookup table
 pthread_t wthreads[NUM_THREADS]; //Worker threads for working on the prefetch queue
 pthread_t tPrefetch;		/* Primary Prefetch thread that processes the prefetch queue */
@@ -194,10 +194,12 @@ int dstmStartup(const char * option) {
   transInit();
   
   fd=startlistening();
-  udpfd = udpInit();
   pthread_attr_init(&attr);
   pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+#ifdef CACHE
+  udpfd = udpInit();
   pthread_create(&udp_thread_Listen, &attr, udpListenBroadcast, (void*)udpfd);
+#endif
   if (master) {
     pthread_create(&thread_Listen, &attr, dstmListen, (void*)fd);
     return 1;
@@ -238,24 +240,24 @@ void *pCacheAlloc(objstr_t *store, unsigned int size) {
  * prefetch requests */
 
 void transInit() {
-  int t, rc;
-  int retval;
   //Create and initialize prefetch cache structure
+#ifdef CACHE
   prefetchcache = objstrCreate(PREFETCH_CACHE_SIZE);
   initializePCache();
   if((evalPrefetch = initPrefetchStats()) == NULL) {
     printf("%s() Error allocating memory at %s, %d\n", __func__, __FILE__, __LINE__);
     exit(0);
   }
+#endif
   
   /* Initialize attributes for mutex */
   pthread_mutexattr_init(&prefetchcache_mutex_attr);
   pthread_mutexattr_settype(&prefetchcache_mutex_attr, PTHREAD_MUTEX_RECURSIVE_NP);
   
   pthread_mutex_init(&prefetchcache_mutex, &prefetchcache_mutex_attr);
-  
   pthread_mutex_init(&notifymutex, NULL);
   pthread_mutex_init(&atomicObjLock, NULL);
+#ifdef CACHE
   //Create prefetch cache lookup table
   if(prehashCreate(HASH_SIZE, LOADFACTOR)) {
     printf("ERROR\n");
@@ -268,18 +270,22 @@ void transInit() {
   mcpileqInit();
   
   //Create the primary prefetch thread 
+  int retval;
   do {
     retval=pthread_create(&tPrefetch, NULL, transPrefetch, NULL);
   } while(retval!=0);
   pthread_detach(tPrefetch);
+#endif
 }
 
 /* This function stops the threads spawned */
 void transExit() {
+#ifdef CACHE
   int t;
   pthread_cancel(tPrefetch);
   for(t = 0; t < NUM_THREADS; t++)
     pthread_cancel(wthreads[t]);
+#endif
   
   return;
 }
@@ -352,44 +358,39 @@ objheader_t *transRead(transrecord_t *record, unsigned int oid) {
 #else
     return objcopy;
 #endif
-  } else if((tmp = (objheader_t *) prehashSearch(oid)) != NULL) { 
-#ifdef TRANSSTATS
-    nprehashSearch++;
-#endif
-#ifdef CHECKTA
-    printf("Prefetch cache read, oid = %x, oidtype =%d\n", oid, TYPE(tmp));
-    fflush(stdout);
-#endif
-    /* Look up in prefetch cache */
-    GETSIZE(size, tmp);
-    size+=sizeof(objheader_t);
-    objcopy = (objheader_t *) objstrAlloc(record->cache, size);
-    memcpy(objcopy, tmp, size);
-    /* Insert into cache's lookup table */
-    chashInsert(record->lookupTable, OID(tmp), objcopy); 
-#ifdef COMPILER
-    return &objcopy[1];
-#else
-    return objcopy;
-#endif
   } else {
+#ifdef CACHE
+    if((tmp = (objheader_t *) prehashSearch(oid)) != NULL) { 
+#ifdef TRANSSTATS
+      nprehashSearch++;
+#endif
+      /* Look up in prefetch cache */
+      GETSIZE(size, tmp);
+      size+=sizeof(objheader_t);
+      objcopy = (objheader_t *) objstrAlloc(record->cache, size);
+      memcpy(objcopy, tmp, size);
+      /* Insert into cache's lookup table */
+      chashInsert(record->lookupTable, OID(tmp), objcopy); 
+#ifdef COMPILER
+      return &objcopy[1];
+#else
+      return objcopy;
+#endif
+    }
+#endif
     /* Get the object from the remote location */
     if((machinenumber = lhashSearch(oid)) == 0) {
       printf("Error: %s() No machine found for oid =% %s,%dx\n",__func__, machinenumber, __FILE__, __LINE__);
       return NULL;
     }
     objcopy = getRemoteObj(record, machinenumber, oid);
-    
+
     if(objcopy == NULL) {
       printf("Error: Object not found in Remote location %s, %d\n", __FILE__, __LINE__);
       return NULL;
     } else {
 #ifdef TRANSSTATS
-    nRemoteSend++;
-#endif
-#ifdef CHECKTA
-    printf("Remote read, oid = %x, oidtype =%d\n", oid, TYPE(objcopy));
-    fflush(stdout);
+      nRemoteSend++;
 #endif
       STATUS(objcopy)=0;      
 #ifdef COMPILER
@@ -630,10 +631,6 @@ int transCommit(transrecord_t *record) {
 #ifdef TRANSSTATS
     numTransAbort++;
 #endif
-#ifdef CHECKTA
-    char a[] = "Aborting";
-    TABORT1(a);
-#endif
     /* Free Resources */
     objstrDelete(record->cache);
     chashDelete(record->lookupTable);
@@ -644,10 +641,6 @@ int transCommit(transrecord_t *record) {
   } else if(treplyctrl == TRANS_COMMIT) {
 #ifdef TRANSSTATS
     numTransCommit++;
-#endif
-#ifdef CHECKTA
-    char a[] = "Commiting";
-    TABORT1(a);
 #endif
     /* Free Resources */
     objstrDelete(record->cache);
@@ -713,6 +706,7 @@ void *transRequest(void *threadarg) {
   /* Read control message from Participant */
   recv_data(sd, &control, sizeof(char));
   /* Recv Objects if participant sends TRANS_DISAGREE */
+#ifdef CACHE
   if(control == TRANS_DISAGREE) {
     int length;
     recv_data(sd, &length, sizeof(int));
@@ -730,11 +724,6 @@ void *transRequest(void *threadarg) {
       objheader_t * header;
       header = (objheader_t *) (((char *)newAddr) + offset);
       oidToPrefetch = OID(header);
-#ifdef CHECKTA
-      printf("Trans disagree for oid = %x: ", OID(header));
-      char a[] = "object type";
-      TABORT8(__func__, a, TYPE(header));
-#endif
       int size = 0;
       GETSIZE(size, header);
       size += sizeof(objheader_t);
@@ -750,6 +739,7 @@ void *transRequest(void *threadarg) {
       offset += size;
     }
   }
+#endif
 
   recvcontrol = control;
   /* Update common data structure and increment count */
@@ -793,6 +783,7 @@ void *transRequest(void *threadarg) {
   }
   */
 
+#ifdef CACHE
   if(*(tdata->replyctrl) == TRANS_COMMIT) {
     int retval;
      /* Update prefetch cache */
@@ -809,6 +800,7 @@ void *transRequest(void *threadarg) {
       }
     }
   }
+#endif
   
   /* Send the final response such as TRANS_COMMIT or TRANS_ABORT 
    * to all participants in their respective socket */
@@ -861,8 +853,10 @@ void decideResponse(thread_data_array_t *tdata) {
     /* Send Abort */
     *(tdata->replyctrl) = TRANS_ABORT;
     *(tdata->replyretry) = 0;
+#ifdef CACHE
     /* clear objects from prefetch cache */
     cleanPCache(tdata);
+#endif
   } else if(transagree == tdata->buffer->f.mcount){
     /* Send Commit */
     *(tdata->replyctrl) = TRANS_COMMIT;
@@ -998,19 +992,6 @@ void *handleLocalReq(void *threadarg) {
           v_nomatch++;
           /* Send TRANS_DISAGREE to Coordinator */
           localtdata->tdata->recvmsg[localtdata->tdata->thread_id].rcv_status = TRANS_DISAGREE;
-#ifdef CHECKTA
-      printf("Trans disagree for oid = %x: ", OID(mobj));
-      char a[] = "object type";
-      TABORT8(__func__, a, TYPE(mobj));
-#endif
-
-#ifdef CHECKTA
-  //char a[] = "mid";
-  //char b[] = "version mismatch";
-  //char c[] = "object type";
-  //char d[] = "oid";
-  //TABORT9(__func__, b, a, c, d, localtdata->tdata->mid, TYPE(mobj), OID(mobj));
-#endif
           break;
         }
       } else {
@@ -1024,18 +1005,6 @@ void *handleLocalReq(void *threadarg) {
           v_nomatch++;
           /* Send TRANS_DISAGREE to Coordinator */
           localtdata->tdata->recvmsg[localtdata->tdata->thread_id].rcv_status = TRANS_DISAGREE;
-#ifdef CHECKTA
-      printf("Trans disagree for oid = %x: ", OID(mobj));
-      char a[] = "object type";
-      TABORT8(__func__, a, TYPE(mobj));
-#endif
-#ifdef CHECKTA
-  //char a[] = "mid";
-  //char b[] = "version mismatch";
-  //char c[] = "object type";
-  //char d[] = "oid";
-  //TABORT9(__func__, b, a, c, d, localtdata->tdata->mid, TYPE(mobj), OID(mobj));
-#endif
           break;
         }
       }
@@ -1047,13 +1016,6 @@ void *handleLocalReq(void *threadarg) {
   }
   /* Condition to send TRANS_SOFT_ABORT */
   if((v_matchlock > 0 && v_nomatch == 0) || (numoidnotfound > 0 && v_nomatch == 0)) {
-#ifdef CHECKTA
-  //char a[] = "mid";
-  //char b[] = "version mismatch";
-  //char c[] = "object type";
-  //TABORT7(__func__, b, a, c, localtdata->tdata->mid, TYPE(mobj));
-  printf("%s() Soft abort\n", __func__);
-#endif
     localtdata->tdata->recvmsg[localtdata->tdata->thread_id].rcv_status = TRANS_SOFT_ABORT;
   }
   
@@ -1084,6 +1046,7 @@ void *handleLocalReq(void *threadarg) {
       pthread_exit(NULL);
     }
   } else if(*(localtdata->tdata->replyctrl) == TRANS_COMMIT) {
+#ifdef CACHE
     /* Invalidate objects in other machine cache */
     if(localtdata->tdata->buffer->f.nummod > 0) {
       int retval;
@@ -1092,6 +1055,7 @@ void *handleLocalReq(void *threadarg) {
         return;
       }
     }
+#endif
     if(transComProcess(localtdata) != 0) {
       printf("Error in transComProcess() %s,%d\n", __FILE__, __LINE__);
       fflush(stdout);
@@ -1432,7 +1396,9 @@ unsigned short getObjType(unsigned int oid) {
   short fieldoffset[] ={};
 
   if ((objheader = (objheader_t *) mhashSearch(oid)) == NULL) {
+#ifdef CACHE
     if ((objheader = (objheader_t *) prehashSearch(oid)) == NULL) {
+#endif
       unsigned int mid = lhashSearch(oid);
       int sd = getSock2(transReadSockPool, mid);
       char remotereadrequest[sizeof(char)+sizeof(unsigned int)];
@@ -1452,6 +1418,7 @@ unsigned short getObjType(unsigned int oid) {
         /* Read object if found into local cache */
         int size;
         recv_data(sd, &size, sizeof(int));
+#ifdef CACHE
         pthread_mutex_lock(&prefetchcache_mutex);
         if ((objheader = prefetchobjstrAlloc(size)) == NULL) {
           printf("Error: %s() objstrAlloc error for copying into prefetch cache %s, %d\n", __func__, __FILE__, __LINE__);
@@ -1460,8 +1427,24 @@ unsigned short getObjType(unsigned int oid) {
         pthread_mutex_unlock(&prefetchcache_mutex);
         recv_data(sd, objheader, size);
         prehashInsert(oid, objheader);
+        return TYPE(objheader);
+#else
+        char *buffer;
+        if((buffer = calloc(1, size)) == NULL) {
+          printf("%s() Calloc Error %s at line %d\n", __func__, __FILE__, __LINE__);
+          fflush(stdout);
+          return 0;
+        }
+        recv_data(sd, buffer, size);
+        objheader = (objheader_t *)buffer;
+        unsigned short type = TYPE(objheader);
+        free(buffer);
+        return type;
+#endif
       }
+#ifdef CACHE
     }
+#endif
   }
   return TYPE(objheader);
 }
@@ -1741,10 +1724,12 @@ void threadNotify(unsigned int oid, unsigned short version, unsigned int tid) {
 				printf("threadNotify(): New version %d has not changed since last version for oid = %d, %s, %d\n", version, oid, __FILE__, __LINE__);
 				return;
 			} else {
+#ifdef CACHE
 				/* Clear from prefetch cache and free thread related data structure */
 				if((ptr = prehashSearch(oid)) != NULL) {
 					prehashRemove(oid);
 				}
+#endif
 				pthread_cond_signal(&(ndata->threadcond));
 			}
 		}

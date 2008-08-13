@@ -469,12 +469,6 @@ char handleTransReq(fixed_data_t *fixed, trans_commit_data_t *transinfo, unsigne
               numBytes += size;
               /* Send TRANS_DISAGREE to Coordinator */
               control = TRANS_DISAGREE;
-#ifdef CHECKTA
-  char b[] = "version mismatch";
-  char c[] = "object type";
-  TABORT3(__func__, b, c, TYPE(mobj));
-#endif
-
             }
           } else {/* If Obj is not locked then lock object */
             /* Save all object oids that are locked on this machine during this transaction request call */
@@ -491,12 +485,6 @@ char handleTransReq(fixed_data_t *fixed, trans_commit_data_t *transinfo, unsigne
               size += sizeof(objheader_t);
               numBytes += size;
               control = TRANS_DISAGREE;
-
-#ifdef CHECKTA
-  char b[] = "version mismatch";
-  char c[] = "object type";
-  TABORT3(__func__, b, c, TYPE(mobj));
-#endif
             }
           }
         }
@@ -504,6 +492,7 @@ char handleTransReq(fixed_data_t *fixed, trans_commit_data_t *transinfo, unsigne
 	
 	/* send TRANS_DISAGREE and objs*/
     if(v_nomatch > 0) {
+#ifdef CACHE
       char *objs = calloc(1, numBytes);
       int j, offset = 0;
       for(j = 0; j<objvernotmatch; j++) {
@@ -514,6 +503,7 @@ char handleTransReq(fixed_data_t *fixed, trans_commit_data_t *transinfo, unsigne
         memcpy(objs+offset, header, size);
         offset += size;
       }
+#endif
       if (objlocked > 0) {
         for(j = 0; j < objlocked; j++) {
           if((headptr = mhashSearch(oidlocked[j])) == NULL) {
@@ -525,12 +515,14 @@ char handleTransReq(fixed_data_t *fixed, trans_commit_data_t *transinfo, unsigne
         free(oidlocked);
       }
       send_data(acceptfd, &control, sizeof(char));
+#ifdef CACHE
       send_data(acceptfd, &numBytes, sizeof(int));
       send_data(acceptfd, objs, numBytes);
       transinfo->objvernotmatch = oidvernotmatch;
       transinfo->numvernotmatch = objvernotmatch;
       free(objs);
       free(transinfo->objvernotmatch);
+#endif
       return control;
     }
 

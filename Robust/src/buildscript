@@ -4,6 +4,7 @@ printhelp() {
 echo -robustroot set up the ROBUSTROOT to directory other than default one
 echo -dsm distributed shared memory
 echo -trueprob double - probabiltiy of true branch
+echo -dsmcaching -enable caching in dsm runtime
 echo -mac distributed shared memory mac support
 echo -check generate check code
 echo -dmalloc link in dmalloc
@@ -190,8 +191,10 @@ RAWDEBUGFLAG=true
 EXTRAOPTIONS="$EXTRAOPTIONS -g"
 elif [[ $1 = '-runtimedebug' ]]
 then
-#EXTRAOPTIONS="$EXTRAOPTIONS -DDEBUG"
-EXTRAOPTIONS="$EXTRAOPTIONS -DCHECKTB"
+EXTRAOPTIONS="$EXTRAOPTIONS -DCHECKTA"
+elif [[ $1 = '-dsmcaching' ]]
+then
+EXTRAOPTIONS="$EXTRAOPTIONS -DCACHE"
 elif [[ $1 = '-nooptimize' ]]
 then
 EXTRAOPTIONS="$EXTRAOPTIONS -O0"

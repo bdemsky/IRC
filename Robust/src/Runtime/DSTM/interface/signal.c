@@ -21,9 +21,9 @@ void transStatsHandler(int sig, siginfo_t* info, void *context) {
   printf("nmhashSearch = %d\n", nmhashSearch);
   printf("nprehashSearch = %d\n", nprehashSearch);
   printf("nRemoteReadSend = %d\n", nRemoteSend);
-  int i;
   //TODO Remove later
   /*
+  int i;
   for(i=0; i<numprefetchsites; i++) {
     printf("siteid = %d,  callCount = %d\n", i, evalPrefetch[i].callcount);
   }
