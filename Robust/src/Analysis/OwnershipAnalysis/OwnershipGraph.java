@@ -150,6 +150,7 @@ public class OwnershipGraph {
 
 	    if( removeAll || edge.getFieldDesc() == fieldDesc ) {
 		HeapRegionNode referencee = edge.getDst();
+
 		removeReferenceEdge( referencer,
 				     referencee,
 				     edge.getFieldDesc() );
@@ -179,25 +180,24 @@ public class OwnershipGraph {
     }
     
 
-    /*
-    protected void propagateTokensOverNodes( HeapRegionNode                   nPrime,
-					     ChangeTupleSet                   c0,
-					     HashSet<HeapRegionNode>          nodesWithNewAlpha,
-					     HashSet<ReferenceEdgeProperties> edgesWithNewBeta ) {	
+    protected void propagateTokensOverNodes( HeapRegionNode          nPrime,
+					     ChangeTupleSet          c0,
+					     HashSet<HeapRegionNode> nodesWithNewAlpha,
+					     HashSet<ReferenceEdge>  edgesWithNewBeta ) {	
 
 	HashSet<HeapRegionNode> todoNodes
 	    = new HashSet<HeapRegionNode>();
 	todoNodes.add( nPrime );
 
-	HashSet<ReferenceEdgeProperties> todoEdges 
-	    = new HashSet<ReferenceEdgeProperties>();
+	HashSet<ReferenceEdge> todoEdges 
+	    = new HashSet<ReferenceEdge>();
 	
 	Hashtable<HeapRegionNode, ChangeTupleSet> nodePlannedChanges 
 	    = new Hashtable<HeapRegionNode, ChangeTupleSet>();
 	nodePlannedChanges.put( nPrime, c0 );
 
-	Hashtable<ReferenceEdgeProperties, ChangeTupleSet> edgePlannedChanges 
-	    = new Hashtable<ReferenceEdgeProperties, ChangeTupleSet>();
+	Hashtable<ReferenceEdge, ChangeTupleSet> edgePlannedChanges 
+	    = new Hashtable<ReferenceEdge, ChangeTupleSet>();
 	
 
 	while( !todoNodes.isEmpty() ) {
@@ -215,33 +215,29 @@ public class OwnershipGraph {
 		}
 	    }
 
-	    Iterator referItr = n.iteratorToReferencers();
+	    Iterator<ReferenceEdge> referItr = n.iteratorToReferencers();
 	    while( referItr.hasNext() ) {
-		OwnershipNode           on  = (OwnershipNode) referItr.next();
-		ReferenceEdgeProperties rep = on.getReferenceTo( n );
-		todoEdges.add( rep );
+		ReferenceEdge edge = referItr.next();
+		todoEdges.add( edge );
 
-		if( !edgePlannedChanges.containsKey( rep ) ) {
-		    edgePlannedChanges.put( rep, new ChangeTupleSet().makeCanonical() );
+		if( !edgePlannedChanges.containsKey( edge ) ) {
+		    edgePlannedChanges.put( edge, new ChangeTupleSet().makeCanonical() );
 		}
 
-		edgePlannedChanges.put( rep, edgePlannedChanges.get( rep ).union( C ) );
+		edgePlannedChanges.put( edge, edgePlannedChanges.get( edge ).union( C ) );
 	    }
 
-	    HeapRegionNode          m = null;
-	    ReferenceEdgeProperties f = null;
-	    Iterator refeeItr = n.setIteratorToReferencedRegions();
+	    Iterator<ReferenceEdge> refeeItr = n.iteratorToReferencees();
 	    while( refeeItr.hasNext() ) {
-		Map.Entry me = (Map.Entry)               refeeItr.next();
-		m            = (HeapRegionNode)          me.getKey();
-		f            = (ReferenceEdgeProperties) me.getValue();
+		ReferenceEdge  edgeF = refeeItr.next();
+		HeapRegionNode m     = edgeF.getDst();
 
 		ChangeTupleSet changesToPass = new ChangeTupleSet().makeCanonical();
 
-		Iterator itrCprime = C.iterator();
+		Iterator<ChangeTuple> itrCprime = C.iterator();
 		while( itrCprime.hasNext() ) {
-		    ChangeTuple c = (ChangeTuple) itrCprime.next();
-		    if( f.getBeta().contains( c.getSetToMatch() ) ) {
+		    ChangeTuple c = itrCprime.next();
+		    if( edgeF.getBeta().contains( c.getSetToMatch() ) ) {
 			changesToPass = changesToPass.union( c );
 		    }
 		}
@@ -269,60 +265,58 @@ public class OwnershipGraph {
 
 
     protected void propagateTokensOverEdges( 
-	 HashSet<ReferenceEdgeProperties>                   todoEdges,
-	 Hashtable<ReferenceEdgeProperties, ChangeTupleSet> edgePlannedChanges,
-	 HashSet<HeapRegionNode>                            nodesWithNewAlpha,
-	 HashSet<ReferenceEdgeProperties>                   edgesWithNewBeta ) {
+	 HashSet<ReferenceEdge>                   todoEdges,
+	 Hashtable<ReferenceEdge, ChangeTupleSet> edgePlannedChanges,
+	 HashSet<HeapRegionNode>                  nodesWithNewAlpha,
+	 HashSet<ReferenceEdge>                   edgesWithNewBeta ) {
        
 
 	while( !todoEdges.isEmpty() ) {
-	    ReferenceEdgeProperties e = todoEdges.iterator().next();
-	    todoEdges.remove( e );
+	    ReferenceEdge edgeE = todoEdges.iterator().next();
+	    todoEdges.remove( edgeE );
 
-	    if( !edgePlannedChanges.containsKey( e ) ) {
-		edgePlannedChanges.put( e, new ChangeTupleSet().makeCanonical() );
+	    if( !edgePlannedChanges.containsKey( edgeE ) ) {
+		edgePlannedChanges.put( edgeE, new ChangeTupleSet().makeCanonical() );
 	    }
 	    
-	    ChangeTupleSet C = edgePlannedChanges.get( e );
+	    ChangeTupleSet C = edgePlannedChanges.get( edgeE );
 
 	    ChangeTupleSet changesToPass = new ChangeTupleSet().makeCanonical();
 
-	    Iterator itrC = C.iterator();
+	    Iterator<ChangeTuple> itrC = C.iterator();
 	    while( itrC.hasNext() ) {
-		ChangeTuple c = (ChangeTuple) itrC.next();
-		if( e.getBeta().contains( c.getSetToMatch() ) ) {
-		    ReachabilitySet withChange = e.getBeta().union( c.getSetToAdd() );
-		    e.setBetaNew( e.getBetaNew().union( withChange ) );
-		    edgesWithNewBeta.add( e );
+		ChangeTuple c = itrC.next();
+		if( edgeE.getBeta().contains( c.getSetToMatch() ) ) {
+		    ReachabilitySet withChange = edgeE.getBeta().union( c.getSetToAdd() );
+		    edgeE.setBetaNew( edgeE.getBetaNew().union( withChange ) );
+		    edgesWithNewBeta.add( edgeE );
 		    changesToPass = changesToPass.union( c );
 		}
 	    }
 
-	    OwnershipNode onSrc = e.getSrc();
+	    OwnershipNode onSrc = edgeE.getSrc();
 
 	    if( !changesToPass.isEmpty() && onSrc instanceof HeapRegionNode ) {		
 		HeapRegionNode n = (HeapRegionNode) onSrc;
-		Iterator referItr = n.iteratorToReferencers();
 
+		Iterator<ReferenceEdge> referItr = n.iteratorToReferencers();
 		while( referItr.hasNext() ) {
-		    OwnershipNode onRef = (OwnershipNode) referItr.next();
-		    ReferenceEdgeProperties f = onRef.getReferenceTo( n );
+		    ReferenceEdge edgeF = referItr.next();
 		    
-		    if( !edgePlannedChanges.containsKey( f ) ) {
-			edgePlannedChanges.put( f, new ChangeTupleSet().makeCanonical() );
+		    if( !edgePlannedChanges.containsKey( edgeF ) ) {
+			edgePlannedChanges.put( edgeF, new ChangeTupleSet().makeCanonical() );
 		    }
 		  
-		    ChangeTupleSet currentChanges = edgePlannedChanges.get( f );
+		    ChangeTupleSet currentChanges = edgePlannedChanges.get( edgeF );
 		
 		    if( !changesToPass.isSubset( currentChanges ) ) {
-			todoEdges.add( f );
-			edgePlannedChanges.put( f, currentChanges.union( changesToPass ) );
+			todoEdges.add( edgeF );
+			edgePlannedChanges.put( edgeF, currentChanges.union( changesToPass ) );
 		    }
 		}
 	    }	    
 	}	
     }
-    */
 
 
     ////////////////////////////////////////////////////
@@ -405,10 +399,8 @@ public class OwnershipGraph {
 	LabelNode lnX = getLabelNodeFromTemp( x );
 	LabelNode lnY = getLabelNodeFromTemp( y );
 
-	/*
-	HashSet<HeapRegionNode>          nodesWithNewAlpha = new HashSet<HeapRegionNode>();
-	HashSet<ReferenceEdgeProperties> edgesWithNewBeta  = new HashSet<ReferenceEdgeProperties>();
-	*/
+	HashSet<HeapRegionNode> nodesWithNewAlpha = new HashSet<HeapRegionNode>();
+	HashSet<ReferenceEdge>  edgesWithNewBeta  = new HashSet<ReferenceEdge>();
 
 	Iterator<ReferenceEdge> itrXhrn = lnX.iteratorToReferencees();
 	while( itrXhrn.hasNext() ) {
@@ -416,80 +408,61 @@ public class OwnershipGraph {
 	    HeapRegionNode  hrnX  = edgeX.getDst();
 	    ReachabilitySet betaX = edgeX.getBeta();
 
-	    //ReachabilitySet R = hrn.getAlpha().intersection( rep.getBeta() );
+	    ReachabilitySet R = hrnX.getAlpha().intersection( edgeX.getBeta() );
 
 	    Iterator<ReferenceEdge> itrYhrn = lnY.iteratorToReferencees();
 	    while( itrYhrn.hasNext() ) {
 		ReferenceEdge   edgeY = itrYhrn.next();
-		HeapRegionNode  hrnY  = edgeY.getDst();
-		ReachabilitySet betaY = edgeY.getBeta();
-		
-		//ReachabilitySet O = repSrc.getBeta();
+		HeapRegionNode  hrnY  = edgeY.getDst();		
+		ReachabilitySet O     = edgeY.getBeta();
 
-		/*
 		// propagate tokens over nodes starting from hrnSrc, and it will
 		// take care of propagating back up edges from any touched nodes
 		ChangeTupleSet Cy = O.unionUpArityToChangeSet( R );
-		propagateTokensOverNodes( hrnSrc, Cy, nodesWithNewAlpha, edgesWithNewBeta );
+		propagateTokensOverNodes( hrnY, Cy, nodesWithNewAlpha, edgesWithNewBeta );
 
 
 		// then propagate back just up the edges from hrn
 		ChangeTupleSet Cx = R.unionUpArityToChangeSet( O );
 
-		HashSet<ReferenceEdgeProperties> todoEdges = 
-		    new HashSet<ReferenceEdgeProperties>();
+		HashSet<ReferenceEdge> todoEdges = new HashSet<ReferenceEdge>();
 
-		Hashtable<ReferenceEdgeProperties, ChangeTupleSet> edgePlannedChanges =
-		    new Hashtable<ReferenceEdgeProperties, ChangeTupleSet>();
+		Hashtable<ReferenceEdge, ChangeTupleSet> edgePlannedChanges =
+		    new Hashtable<ReferenceEdge, ChangeTupleSet>();
 
-		Iterator referItr = hrn.iteratorToReferencers();
+		Iterator<ReferenceEdge> referItr = hrnX.iteratorToReferencers();
 		while( referItr.hasNext() ) {
-		    OwnershipNode onRef = (OwnershipNode) referItr.next();
-
-		    System.out.println( "    "+onRef+" is upstream" );
-
-		    ReferenceEdgeProperties repUpstream = onRef.getReferenceTo( hrn );
-
-		    todoEdges.add( repUpstream );
-		    edgePlannedChanges.put( repUpstream, Cx );
+		    ReferenceEdge edgeUpstream = referItr.next();
+		    todoEdges.add( edgeUpstream );
+		    edgePlannedChanges.put( edgeUpstream, Cx );
 		}
-
-		System.out.println( "plans "+edgePlannedChanges );
 
 		propagateTokensOverEdges( todoEdges, 
 					  edgePlannedChanges,
 					  nodesWithNewAlpha,
 					  edgesWithNewBeta );
 
-		System.out.println( "  Onew = "+repSrc.getBetaNew() );
-		*/
-
 		// finally, create the actual reference edge hrnX.f -> hrnY
 		ReferenceEdge edgeNew = new ReferenceEdge( hrnX,
 							   hrnY,
 							   f,
 							   false,
-							   null );
-
-							   /*
-							   repSrc.getBetaNew().pruneBy( hrn.getAlpha()
-							   */
+							   edgeY.getBetaNew().pruneBy( hrnX.getAlpha() )
+							 );
 
 		addReferenceEdge( hrnX, hrnY, edgeNew );
 	    }
 	}	
 
-	/*
-	Iterator nodeItr = nodesWithNewAlpha.iterator();
+	Iterator<HeapRegionNode> nodeItr = nodesWithNewAlpha.iterator();
 	while( nodeItr.hasNext() ) {
-	    ((HeapRegionNode) nodeItr.next()).applyAlphaNew();
+	    nodeItr.next().applyAlphaNew();
 	}
 
-	Iterator edgeItr = edgesWithNewBeta.iterator();
+	Iterator<ReferenceEdge> edgeItr = edgesWithNewBeta.iterator();
 	while( edgeItr.hasNext() ) {
-	    ((ReferenceEdgeProperties) edgeItr.next()).applyBetaNew();
-	}	
-	*/
+	    edgeItr.next().applyBetaNew();
+	}
     }
 
 
@@ -621,39 +594,32 @@ public class OwnershipGraph {
 	clearReferenceEdgesFrom( hrn0, null, true );
 	clearReferenceEdgesTo  ( hrn0, null, true );
 	
-	/*
+	
 	// now tokens in reachability sets need to "age" also
-	ReferenceEdgeProperties repToAge = null;
 	Iterator itrAllLabelNodes = td2ln.entrySet().iterator();
 	while( itrAllLabelNodes.hasNext() ) {
 	    Map.Entry me = (Map.Entry) itrAllLabelNodes.next();
 	    LabelNode ln = (LabelNode) me.getValue();
 
-	    Iterator itrEdges = ln.setIteratorToReferencedRegions();
+	    Iterator<ReferenceEdge> itrEdges = ln.iteratorToReferencees();
 	    while( itrEdges.hasNext() ) {
-		Map.Entry meE = (Map.Entry)               itrEdges.next();
-		repToAge      = (ReferenceEdgeProperties) meE.getValue();
-
-		ageTokens( as, repToAge );
+		ageTokens( as, itrEdges.next() );
 	    }
 	}
-	HeapRegionNode hrnToAge = null;
+
 	Iterator itrAllHRNodes = id2hrn.entrySet().iterator();
 	while( itrAllHRNodes.hasNext() ) {
-	    Map.Entry me = (Map.Entry)               itrAllHRNodes.next();
-	    hrnToAge     = (HeapRegionNode)          me.getValue();
+	    Map.Entry      me       = (Map.Entry)      itrAllHRNodes.next();
+	    HeapRegionNode hrnToAge = (HeapRegionNode) me.getValue();
 
 	    ageTokens( as, hrnToAge );
 
-	    Iterator itrEdges = hrnToAge.setIteratorToReferencedRegions();
+	    Iterator<ReferenceEdge> itrEdges = hrnToAge.iteratorToReferencees();
 	    while( itrEdges.hasNext() ) {
-		Map.Entry meE = (Map.Entry)               itrEdges.next();
-		repToAge      = (ReferenceEdgeProperties) meE.getValue();
-
-		ageTokens( as, repToAge );
+		ageTokens( as, itrEdges.next() );
 	    }
 	}
-	*/
+
 
 	// after tokens have been aged, reset newest node's reachability
 	hrn0.setAlpha( new ReachabilitySet( 
@@ -832,23 +798,22 @@ public class OwnershipGraph {
     }
 
 
-    /*
-    protected void ageTokens( AllocationSite as, ReferenceEdgeProperties rep ) {
-	rep.setBeta( rep.getBeta().ageTokens( as ) );
+    protected void ageTokens( AllocationSite as, ReferenceEdge edge ) {
+	edge.setBeta( edge.getBeta().ageTokens( as ) );
     }
 
     protected void ageTokens( AllocationSite as, HeapRegionNode hrn ) {
 	hrn.setAlpha( hrn.getAlpha().ageTokens( as ) );
     }
 
-    protected void majorAgeTokens( AllocationSite as, ReferenceEdgeProperties rep ) {
-	//rep.setBeta( rep.getBeta().majorAgeTokens( as ) );
+    protected void majorAgeTokens( AllocationSite as, ReferenceEdge edge ) {
+	//edge.setBeta( edge.getBeta().majorAgeTokens( as ) );
     }
 
     protected void majorAgeTokens( AllocationSite as, HeapRegionNode hrn ) {
 	//hrn.setAlpha( hrn.getAlpha().majorAgeTokens( as ) );
     }
-    */
+
     
     // some notes:
     // the heap regions that are specially allocated as multiple-object
@@ -1156,10 +1121,11 @@ public class OwnershipGraph {
 
 		    ReferenceEdge  edgeB     = heapRegionsItrB.next();
 		    HeapRegionNode hrnChildB = edgeB.getDst();
+		    Integer        idChildB  = hrnChildB.getID();
 
 		    // don't use the ReferenceEdge.equals() here because
 		    // we're talking about existence between graphs
-		    if( hrnChildB.equals( idChildA ) &&
+		    if( idChildB.equals( idChildA ) &&
 			edgeB.getFieldDesc() == edgeA.getFieldDesc() ) {
 			edgeToMerge = edgeB;
 		    }
@@ -1347,7 +1313,7 @@ public class OwnershipGraph {
 	    }
 
 	    HeapRegionNode hrnB = ogB.id2hrn.get( idA );	    
-	    if( !hrnA.equals( hrnB ) ) {
+	    if( !hrnA.equalsIncludingAlpha( hrnB ) ) {
 		return false;
 	    }       
 	}
@@ -1480,8 +1446,9 @@ public class OwnershipGraph {
 	    while( itrB.hasNext() ) {
 		ReferenceEdge  edgeB     = itrB.next();
 		HeapRegionNode hrnChildB = edgeB.getDst();
+		Integer        idChildB  = hrnChildB.getID();
 
-		if( idChildA.equals( hrnChildB.getID() ) &&
+		if( idChildA.equals( idChildB ) &&
 		    edgeA.getFieldDesc() == edgeB.getFieldDesc() ) {
 
 		    // there is an edge in the right place with the right field,

@@ -186,25 +186,25 @@ public class Main {
 	OwnershipGraph g0     = new OwnershipGraph( allocationDepth );
 	TempDescriptor g0tdp1 = new TempDescriptor( "p1" );
 	TempDescriptor g0tdx  = new TempDescriptor( "x" );
-	g0.assignTempToParameterAllocation( true, g0tdp1, new Integer( 0 ) );
-	g0.assignTempXToTempY             ( g0tdx, g0tdp1 );
+	g0.assignParameterAllocationToTemp( true, g0tdp1, new Integer( 0 ) );
+	g0.assignTempYToTempX             ( g0tdp1, g0tdx );
 
 	OwnershipGraph g1     = new OwnershipGraph( allocationDepth );
 	TempDescriptor g1tdp2 = new TempDescriptor( "p2" );
 	TempDescriptor g1tdy  = new TempDescriptor( "y" );
 	TempDescriptor g1tdz  = new TempDescriptor( "z" );
-	g1.assignTempToParameterAllocation( true, g1tdp2, new Integer( 0 ) );
-	g1.assignTempXToTempY             ( g1tdy, g1tdp2 );
-	g1.assignTempXToTempYFieldF       ( g1tdz, g1tdp2, null );
+	g1.assignParameterAllocationToTemp( true, g1tdp2, new Integer( 0 ) );
+	g1.assignTempYToTempX             ( g1tdp2, g1tdy );
+	g1.assignTempYFieldFToTempX       ( g1tdp2, null, g1tdz );
 
 	OwnershipGraph g2     = new OwnershipGraph( allocationDepth );
 	TempDescriptor g2tdp3 = new TempDescriptor( "p3" );
 	TempDescriptor g2tdp4 = new TempDescriptor( "p4" );
 	TempDescriptor g2tdw  = new TempDescriptor( "w" );
-	g2.assignTempToParameterAllocation( true, g2tdp3, new Integer( 0 ) );
-	g2.assignTempToParameterAllocation( true, g2tdp4, new Integer( 1 ) );
-	g2.assignTempXToTempY             ( g2tdw,  g2tdp4 );
-	g2.assignTempXFieldFToTempY       ( g2tdp3, null, g2tdw );
+	g2.assignParameterAllocationToTemp( true, g2tdp3, new Integer( 0 ) );
+	g2.assignParameterAllocationToTemp( true, g2tdp4, new Integer( 1 ) );
+	g2.assignTempYToTempX             ( g2tdp4, g2tdw );
+	g2.assignTempYToTempXFieldF       ( g2tdw, g2tdp3, null );
 
 	OwnershipGraph g3 = new OwnershipGraph( allocationDepth );
 	g3.merge( g0 );
@@ -219,13 +219,15 @@ public class Main {
 	OwnershipGraph g5     = new OwnershipGraph( allocationDepth );
 	TempDescriptor g5tdp1 = new TempDescriptor( "p1" );
 	TempDescriptor g5tdy  = new TempDescriptor( "y" );
-	g5.assignTempToParameterAllocation( true, g5tdp1, new Integer( 0 ) );
-	g5.assignTempXToTempY             ( g5tdy, g5tdp1 );
+	g5.assignParameterAllocationToTemp( true, g5tdp1, new Integer( 0 ) );
+	g5.assignTempYToTempX             ( g5tdp1, g5tdy );
 
+	/*
 	try {
 	    g3.writeGraph( "g3", true, false, false, false );
 	    g4.writeGraph( "g4", true, false, false, false );
 	} catch( IOException e ) {}
+	*/
 
 	test( "g0 equals to g1?", false, g0.equals( g1 ) );
 	test( "g1 equals to g0?", false, g1.equals( g0 ) );

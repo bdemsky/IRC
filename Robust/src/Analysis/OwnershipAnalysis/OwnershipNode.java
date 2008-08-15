@@ -51,27 +51,4 @@ public abstract class OwnershipNode {
 
 	return null;
     }
-
-    /*
-    public HashSet<ReferenceEdge> getAllReferencesTo( HeapRegionNode  hrn ) {
-	assert hrn != null;
-
-	HashSet<ReferenceEdge> s = new HashSet<ReferenceEdge>();
-
-	Iterator<ReferenceEdge> itrEdge = referencees.iterator();
-	while( itrEdge.hasNext() ) {
-	    ReferenceEdge edge = itrEdge.next();
-	    if( edge.getDst().equals( hrn ) ) {
-		s.add( edge );
-	    }
-	}
-
-	return s;
-    }
-    */
-
-    /*
-    abstract public boolean equals( Object o );
-    abstract public int hashCode();
-    */
 }

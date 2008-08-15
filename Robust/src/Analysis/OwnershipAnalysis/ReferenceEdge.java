@@ -66,12 +66,6 @@ public class ReferenceEdge {
 	    return false;
 	}
 
-	/*
-	if( !src.equals( edge.src ) ||
-	    !dst.equals( edge.dst )   ) {
-	    return false;
-	}
-	*/
 	// Equality of edges is only valid within a graph, so
 	// compare src and dst by reference
 	if( !(src == edge.src) ||
@@ -79,23 +73,7 @@ public class ReferenceEdge {
 	    return false;
 	}
 
-	// think of this as being used to put edges in a hashset
-	// as a work pool.  If the field src, dst and field match
-	// then it should otherwise be the same edge
-
-	assert isInitialParamReflexive == edge.isInitialParamReflexive;
-	assert beta.equals( edge.beta );
-
 	return true;
-
-	/*
-	// field descriptors maintain the invariant that they are reference comparable
-	return fieldDesc               == re.fieldDesc               &&
-	       isInitialParamReflexive == re.isInitialParamReflexive &&
-	       src.equals ( re.src  )                                &&
-	       dst.equals ( re.dst  )                                &&
-	       beta.equals( re.beta );
-	*/
     }
 
     public int hashCode() {
@@ -105,15 +83,8 @@ public class ReferenceEdge {
 	    hash += fieldDesc.getType().hashCode();
 	}
 
-	if( isInitialParamReflexive ) {
-	    hash += 1;
-	}
-
 	hash += src.hashCode()*11;
-
 	hash += dst.hashCode();
-
-	hash += beta.hashCode()*2;
 
 	return hash;
     }
@@ -180,12 +151,6 @@ public class ReferenceEdge {
 	betaNew = new ReachabilitySet().makeCanonical();
     }
 
-
-    /*
-    public String getBetaString() {
-	return beta.toStringEscapeNewline();
-    }
-    */
     
     public String toGraphEdgeString() {
 	String edgeLabel = "";
