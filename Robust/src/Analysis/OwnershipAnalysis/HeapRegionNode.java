@@ -114,6 +114,11 @@ public class HeapRegionNode extends OwnershipNode {
 	return clone.iterator();
     }
 
+    public int getNumReferencers() {
+	return referencers.size();
+    }
+
+
     public void addReferencer( ReferenceEdge edge ) {
 	assert edge != null;
 

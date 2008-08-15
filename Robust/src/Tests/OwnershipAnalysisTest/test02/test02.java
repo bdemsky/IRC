@@ -173,3 +173,29 @@ task newPossibleAlias
 
     taskexit( p1{w}, p2{w} );
 }
+
+task NoAliasNewInLoop( Voo v{ f } ) {
+
+    for( int i = 0; i < 10; ++i ) {
+	Voo w = new Voo();
+	w.b   = new Baw();
+	w.b.f = new Foo();
+    }
+
+    taskexit( v{ !f } );
+}
+
+
+task NoAliasNewInLoopAnotherWay( Voo v{ f } ) {
+
+    for( int i = 0; i < 10; ++i ) {
+	Voo w = new Voo();
+	Baw b = new Baw();
+	Foo f = new Foo();
+
+	w.b = b;
+	b.f = f;
+    }
+
+    taskexit( v{ !f } );
+}

@@ -449,8 +449,34 @@ public class OwnershipGraph {
 							   false,
 							   edgeY.getBetaNew().pruneBy( hrnX.getAlpha() )
 							 );
+		if( f != null ) {
+		    // we can do a strong update here if one of two cases holds
+		    if( (hrnX.getNumReferencers() == 1)                           ||
+			( lnX.getNumReferencees() == 1 && hrnX.isSingleObject() )
+		      ) {
+			clearReferenceEdgesFrom( hrnX, f, false );
+		    }
 
-		addReferenceEdge( hrnX, hrnY, edgeNew );
+		    addReferenceEdge( hrnX, hrnY, edgeNew );
+
+		} else {
+		    // if the field is null, or "any" field, then
+		    // look to see if an any field already exists
+		    // and merge with it, otherwise just add the edge
+		    ReferenceEdge edgeExisting = hrnX.getReferenceTo( hrnY, f );
+
+		    if( edgeExisting != null ) {
+			edgeExisting.setBetaNew( 
+			  edgeExisting.getBetaNew().union( edgeNew.getBeta() ) 
+					       );
+			// a new edge here cannot be reflexive, so existing will
+			// always be also not reflexive anymore
+			edgeExisting.setIsInitialParamReflexive( false );
+			
+		    } else {
+			addReferenceEdge( hrnX, hrnY, edgeNew );
+		    }
+		}
 	    }
 	}	
 
@@ -815,22 +841,10 @@ public class OwnershipGraph {
     }
 
     
-    // some notes:
-    // the heap regions that are specially allocated as multiple-object
-    // regions for method parameters need to be remembered in order to
-    // resolve a function call.  So actually, we need a mapping from
-    // caller argument descriptors to the callee parameter heap regions
-    // to apply reference edges in the callee to the caller graph.
-    // 
-    // also, Constructors and virtual dispatch methods have a "this"
-    // argument that make the mapping of arguments to parameters a little
-    // tricky.  What happens to that this region?
-
-
-    public void resolveMethodCall( FlatCall                fc,
-				   boolean                 isStatic,
-				   FlatMethod              fm,
-				   OwnershipGraph          ogCallee ) {
+    public void resolveMethodCall( FlatCall       fc,
+				   boolean        isStatic,
+				   FlatMethod     fm,
+				   OwnershipGraph ogCallee ) {
 
 	/*
 	// verify the existence of allocation sites and their
@@ -975,8 +989,8 @@ public class OwnershipGraph {
 		    }
 		}
 	    } 
-	}	
-	*/
+	}
+	*/	
     }
 
     /*

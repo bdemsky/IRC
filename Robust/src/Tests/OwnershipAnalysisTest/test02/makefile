@@ -1,29 +1,17 @@
-PROGRAM=test02
+PROGRAM=test01
 
-SOURCE_FILES=test02.java
+SOURCE_FILES=$(PROGRAM).java
 
 BUILDSCRIPT=~/research/Robust/src/buildscript
 BSFLAGS= -recover -flatirtasks -ownership -enable-assertions
-#BSFLAGS= -recover -ownership -enable-assertions
 
 all: $(PROGRAM).bin
 
 view: PNGs
-	#eog *flatIRGraph*.png &
-	#eog *FN*.png &
-	#eog *Ownership*.png &
-	eog *.png &
+	eog *.png
 
 PNGs: DOTs
-	#rm -f *Startup*.dot
-	rm -f *FlatMethod*.dot
-	rm -f *FlatOpNode*.dot
-	rm -f *FlatFieldNode*.dot
-	rm -f *FlatSetFieldNode*.dot
-	rm -f *FlatCall*.dot
-	rm -f *Parameter*.dot
-	rm -f *Penguin*.dot
-	d2p *.dot
+	d2p *COMPLETE*.dot
 
 DOTs: $(PROGRAM).bin
 
@@ -36,3 +24,6 @@ clean:
 	rm -f  *~
 	rm -f  *.dot
 	rm -f  *.png
+	rm -f  *.ps
+	rm -f  *.eps
+	rm -f  identifiedAliases.txt

@@ -1,48 +1,17 @@
 PROGRAM=test01
 
-SOURCE_FILES=test01.java
+SOURCE_FILES=$(PROGRAM).java
 
 BUILDSCRIPT=~/research/Robust/src/buildscript
 BSFLAGS= -recover -flatirtasks -ownership -enable-assertions
-#BSFLAGS= -recover -ownership -enable-assertions
 
 all: $(PROGRAM).bin
 
 view: PNGs
-	#eog *flatIRGraph*.png &
-	#eog *FN*.png &
-	#eog *Ownership*.png &
-	eog *COMPLETE*.png &
-	#eog *debug*.png &
-
-printable:
-	rm -f *Startup*.dot
-	rm -f *FlatMethod*.dot
-	rm -f *FlatOpNode*.dot
-	rm -f *FlatFieldNode*.dot
-	rm -f *FlatSetFieldNode*.dot
-	rm -f *FlatCall*.dot
-	rm -f *Parameter*.dot
-	rm -f *Penguin*.dot
-	rm -f *Voo*.dot
-	rm -f *Baw*.dot
-	rm -f *COMPLETE.dot
-	dot2eps *.dot
+	eog *.png
 
 PNGs: DOTs
-	#rm -f *Startup*.dot
-	#rm -f *COMPLETE*.dot
-	rm -f *FlatIR*.dot
-	rm -f *FlatMethod*.dot
-	rm -f *FlatOpNode*.dot
-	rm -f *FlatFieldNode*.dot
-	rm -f *FlatSetFieldNode*.dot
-	rm -f *FlatCall*.dot
-	rm -f *Parameter*.dot
-	rm -f *Penguin*.dot
-	rm -f *Voo*.dot
-	rm -f *Baw*.dot
-	d2p *.dot
+	d2p *COMPLETE*.dot
 
 DOTs: $(PROGRAM).bin
 

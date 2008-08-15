@@ -22,6 +22,9 @@ public abstract class OwnershipNode {
 	return clone.iterator();
     }
 
+    public int getNumReferencees() {
+	return referencees.size();
+    }
 
     public void addReferencee( ReferenceEdge edge ) {
 	assert edge != null;
