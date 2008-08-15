@@ -40,6 +40,8 @@ public class Main {
 	System.out.println( "---------------------------------------" );
 	testNodesAndEdges();
 	System.out.println( "---------------------------------------" );
+	testGraphs();
+	System.out.println( "---------------------------------------" );
 
 	if( aTestFailed ) {
 	    System.out.println( "<><><><><><><><><><><><><><><><><><><><><><><><>" );
@@ -155,7 +157,7 @@ public class Main {
     }
 
 
-    public static void garbage() {
+    public static void testGraphs() {
 	// test equality of label objects that are logically
 	// same/different but all separate objects
 	// these tests show how a label node object or other
@@ -214,6 +216,17 @@ public class Main {
 	g4.merge( g2 );
 	g4.merge( g0 );
 
+	OwnershipGraph g5     = new OwnershipGraph( allocationDepth );
+	TempDescriptor g5tdp1 = new TempDescriptor( "p1" );
+	TempDescriptor g5tdy  = new TempDescriptor( "y" );
+	g5.assignTempToParameterAllocation( true, g5tdp1, new Integer( 0 ) );
+	g5.assignTempXToTempY             ( g5tdy, g5tdp1 );
+
+	try {
+	    g3.writeGraph( "g3", true, false, false, false );
+	    g4.writeGraph( "g4", true, false, false, false );
+	} catch( IOException e ) {}
+
 	test( "g0 equals to g1?", false, g0.equals( g1 ) );
 	test( "g1 equals to g0?", false, g1.equals( g0 ) );
 
@@ -233,5 +246,8 @@ public class Main {
 	
 	test( "g3 equals to g4?", true,  g3.equals( g4 ) );
 	test( "g4 equals to g3?", true,  g4.equals( g3 ) );
+
+	test( "g0 equals to g5?", false, g0.equals( g5 ) );
+	test( "g5 equals to g0?", false, g5.equals( g0 ) );
     }
 }

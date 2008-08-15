@@ -1,4 +1,4 @@
-
+/*
 public class Parameter {
     flag w;
     int a, b;
@@ -33,7 +33,7 @@ public class Baw {
 
     public void doTheBaw( Voo v ) { v = new Voo(); }
 }
-
+*/
 
 public class Foo {
     flag f;
@@ -42,6 +42,7 @@ public class Foo {
 
     public Foo x;
 
+    /*
     public void ruinSomeFoos( Foo a, Foo b ) {
 	a.x = b.x;
     }
@@ -57,6 +58,7 @@ public class Foo {
 	p1.x = f1;
 	p1.x = f2;
     }
+    */
 }
 
 
@@ -66,7 +68,7 @@ public class Foo {
 // a heap region that is multi-object, flagged, not summary
 task Startup( StartupObject s{ initialstate } ) {
     
-
+    /*
     while( false ) {
 	Foo a = new Foo();
 	a.x   = new Foo();
@@ -110,16 +112,19 @@ task Startup( StartupObject s{ initialstate } ) {
 	c.x = b;
 	b = c;
     }
-
+    */
 
     taskexit( s{ !initialstate } );
 }
 
 
-task basics( Foo p0{ f } ) {
+task basics( Foo p0{ f }, Foo p1{ f } ) {
 
     //Foo a = new Foo();
     //Foo b = new Foo();
+
+    Foo q = p0;
+    p0.x = p1;
 
     Foo a = new Foo();
     a.x   = new Foo();
@@ -128,10 +133,10 @@ task basics( Foo p0{ f } ) {
     //p0.x = a;
     //a.x  = b;
 
-    taskexit( p0{ !f } );
+    taskexit( p0{ !f }, p1{ !f } );
 }
 
-
+/*
 task methodTest( Foo p0{ f } ) {
 
     Foo up0 = new Foo();
@@ -164,7 +169,7 @@ task methodTest( Foo p0{ f } ) {
 
     taskexit( p0{ !f } );
 }
-
+*/
 
 
 

@@ -341,8 +341,8 @@ public class OwnershipGraph {
     //  of the nodes and edges involved.
     //
     ////////////////////////////////////////////////////
-    public void assignTempXToTempY( TempDescriptor x, 
-				    TempDescriptor y ) {
+    public void assignTempYToTempX( TempDescriptor y, 
+				    TempDescriptor x ) {
 
 	LabelNode lnX = getLabelNodeFromTemp( x );
 	LabelNode lnY = getLabelNodeFromTemp( y );
@@ -361,9 +361,9 @@ public class OwnershipGraph {
     }
 
 
-    public void assignTempXToTempYFieldF( TempDescriptor  x,
-					  TempDescriptor  y,
-					  FieldDescriptor f ) {
+    public void assignTempYFieldFToTempX( TempDescriptor  y,
+					  FieldDescriptor f,
+					  TempDescriptor  x ) {
 
 	LabelNode lnX = getLabelNodeFromTemp( x );
 	LabelNode lnY = getLabelNodeFromTemp( y );
@@ -398,9 +398,9 @@ public class OwnershipGraph {
     }
 
 
-    public void assignTempXFieldFToTempY( TempDescriptor  x,
-					  FieldDescriptor f, 
-					  TempDescriptor  y ) {
+    public void assignTempYToTempXFieldF( TempDescriptor  y,
+					  TempDescriptor  x,
+					  FieldDescriptor f ) {
 
 	LabelNode lnX = getLabelNodeFromTemp( x );
 	LabelNode lnY = getLabelNodeFromTemp( y );
@@ -493,7 +493,7 @@ public class OwnershipGraph {
     }
 
 
-    public void assignTempToParameterAllocation( boolean        isTask,
+    public void assignParameterAllocationToTemp( boolean        isTask,
 						 TempDescriptor td,
 						 Integer        paramIndex ) {
 	assert td != null;
@@ -537,12 +537,12 @@ public class OwnershipGraph {
     }
 
     
-    public void assignTempXToNewAllocation( TempDescriptor x,
+    public void assignNewAllocationToTempX( TempDescriptor x,
 					    AllocationSite as ) {
 	assert x  != null;
 	assert as != null;
 
-	//age( as );
+	age( as );
 
 	// after the age operation the newest (or zero-ith oldest)
 	// node associated with the allocation site should have
@@ -550,7 +550,6 @@ public class OwnershipGraph {
 	// heap region, so make a reference to it to complete
 	// this operation
 
-	/*
 	Integer        idNewest  = as.getIthOldest( 0 );
 	HeapRegionNode hrnNewest = id2hrn.get( idNewest );
 	assert hrnNewest != null;
@@ -562,11 +561,7 @@ public class OwnershipGraph {
 	    new ReferenceEdge( lnX, hrnNewest, null, false, hrnNewest.getAlpha() );	
 	
 	addReferenceEdge( lnX, hrnNewest, edgeNew );
-	*/
     }
-
-
-    /*
 
 
     // use the allocation site (unique to entire analysis) to
@@ -626,7 +621,7 @@ public class OwnershipGraph {
 	clearReferenceEdgesFrom( hrn0, null, true );
 	clearReferenceEdgesTo  ( hrn0, null, true );
 	
-
+	/*
 	// now tokens in reachability sets need to "age" also
 	ReferenceEdgeProperties repToAge = null;
 	Iterator itrAllLabelNodes = td2ln.entrySet().iterator();
@@ -658,7 +653,7 @@ public class OwnershipGraph {
 		ageTokens( as, repToAge );
 	    }
 	}
-
+	*/
 
 	// after tokens have been aged, reset newest node's reachability
 	hrn0.setAlpha( new ReachabilitySet( 
@@ -759,48 +754,46 @@ public class OwnershipGraph {
 	assert hrnSummary.isNewSummary();
 
 	// transfer references _from_ hrn over to hrnSummary
-	HeapRegionNode hrnReferencee = null;
-	Iterator       itrReferencee = hrn.setIteratorToReferencedRegions();
+	Iterator<ReferenceEdge> itrReferencee = hrn.iteratorToReferencees();
 	while( itrReferencee.hasNext() ) {
-	    Map.Entry               me  = (Map.Entry)               itrReferencee.next();
-	    hrnReferencee               = (HeapRegionNode)          me.getKey();
-	    ReferenceEdgeProperties rep = (ReferenceEdgeProperties) me.getValue();
+	    ReferenceEdge edge       = itrReferencee.next();
+	    ReferenceEdge edgeMerged = edge.copy();
+	    edgeMerged.setSrc( hrnSummary );
 
-	    ReferenceEdgeProperties repSummary = hrnSummary.getReferenceTo( hrnReferencee );
-	    ReferenceEdgeProperties repMerged = rep.copy();
+	    HeapRegionNode hrnReferencee = edge.getDst();
+	    ReferenceEdge  edgeSummary   = hrnSummary.getReferenceTo( hrnReferencee, edge.getFieldDesc() );
 
-	    if( repSummary == null ) {	    
+	    if( edgeSummary == null ) {	    
 		// the merge is trivial, nothing to be done
 	    } else {
 		// otherwise an edge from the referencer to hrnSummary exists already
 		// and the edge referencer->hrn should be merged with it
-		repMerged.setBeta( repMerged.getBeta().union( repSummary.getBeta() ) );
+		edgeMerged.setBeta( edgeMerged.getBeta().union( edgeSummary.getBeta() ) );
 	    }
 
-	    addReferenceEdge( hrnSummary, hrnReferencee, repMerged );
+	    addReferenceEdge( hrnSummary, hrnReferencee, edgeMerged );
 	}
-
+	
 	// next transfer references _to_ hrn over to hrnSummary
-	OwnershipNode onReferencer  = null;
-	Iterator      itrReferencer = hrn.iteratorToReferencers();
+	Iterator<ReferenceEdge> itrReferencer = hrn.iteratorToReferencers();
 	while( itrReferencer.hasNext() ) {
-	    onReferencer = (OwnershipNode) itrReferencer.next();
-	    
-	    ReferenceEdgeProperties rep = onReferencer.getReferenceTo( hrn );
-	    assert rep != null;	    
-	    ReferenceEdgeProperties repSummary = onReferencer.getReferenceTo( hrnSummary );
-	    ReferenceEdgeProperties repMerged = rep.copy();
+	    ReferenceEdge edge         = itrReferencer.next();
+	    ReferenceEdge edgeMerged   = edge.copy();
+	    edgeMerged.setDst( hrnSummary );
 
-	    if( repSummary == null ) {	    
+	    OwnershipNode onReferencer = edge.getSrc();
+	    ReferenceEdge edgeSummary  = onReferencer.getReferenceTo( hrnSummary, edge.getFieldDesc() );
+		
+	    if( edgeSummary == null ) {	    
 		// the merge is trivial, nothing to be done
 	    } else {
 		// otherwise an edge from the referencer to alpha_S exists already
 		// and the edge referencer->alpha_K should be merged with it
-		repMerged.setBeta( repMerged.getBeta().union( repSummary.getBeta() ) );
+		edgeMerged.setBeta( edgeMerged.getBeta().union( edgeSummary.getBeta() ) );
 	    }
-
-	    addReferenceEdge( onReferencer, hrnSummary, repMerged );
-	}
+	    
+	    addReferenceEdge( onReferencer, hrnSummary, edgeMerged );
+	}	
 
 	// then merge hrn reachability into hrnSummary
 	hrnSummary.setAlpha( hrnSummary.getAlpha().union( hrn.getAlpha() ) );
@@ -810,35 +803,34 @@ public class OwnershipGraph {
     protected void transferOnto( HeapRegionNode hrnA, HeapRegionNode hrnB ) {
 
 	// clear references in and out of node i
-	clearReferenceEdgesFrom( hrnB );
-	clearReferenceEdgesTo  ( hrnB );
+	clearReferenceEdgesFrom( hrnB, null, true );
+	clearReferenceEdgesTo  ( hrnB, null, true );
 	
 	// copy each edge in and out of A to B
-	HeapRegionNode hrnReferencee = null;
-	Iterator       itrReferencee = hrnA.setIteratorToReferencedRegions();
+	Iterator<ReferenceEdge> itrReferencee = hrnA.iteratorToReferencees();
 	while( itrReferencee.hasNext() ) {
-	    Map.Entry               me  = (Map.Entry)               itrReferencee.next();
-	    hrnReferencee               = (HeapRegionNode)          me.getKey();
-	    ReferenceEdgeProperties rep = (ReferenceEdgeProperties) me.getValue();
-	    
-	    addReferenceEdge( hrnB, hrnReferencee, rep.copy() );
+	    ReferenceEdge  edge          = itrReferencee.next();
+	    HeapRegionNode hrnReferencee = edge.getDst();
+	    ReferenceEdge  edgeNew       = edge.copy();
+	    edgeNew.setSrc( hrnB );
+
+	    addReferenceEdge( hrnB, hrnReferencee, edgeNew );
 	}
 	
-	OwnershipNode onReferencer  = null;
-	Iterator      itrReferencer = hrnA.iteratorToReferencers();
+	Iterator<ReferenceEdge> itrReferencer = hrnA.iteratorToReferencers();
 	while( itrReferencer.hasNext() ) {
-	    onReferencer = (OwnershipNode) itrReferencer.next();
-	    
-	    ReferenceEdgeProperties rep = onReferencer.getReferenceTo( hrnA );
-	    assert rep != null;
-	    
-	    addReferenceEdge( onReferencer, hrnB, rep.copy() );
+	    ReferenceEdge edge         = itrReferencer.next();
+	    OwnershipNode onReferencer = edge.getSrc();
+	    ReferenceEdge edgeNew      = edge.copy();
+	    edgeNew.setDst( hrnB );
+	    	    
+	    addReferenceEdge( onReferencer, hrnB, edgeNew );
 	}	    
 	
 	// replace hrnB reachability with hrnA's
 	hrnB.setAlpha( hrnA.getAlpha() );
     }
-    */
+
 
     /*
     protected void ageTokens( AllocationSite as, ReferenceEdgeProperties rep ) {
@@ -1210,7 +1202,7 @@ public class OwnershipGraph {
 	    while( heapRegionsItrA.hasNext() ) {
 		ReferenceEdge  edgeA     = heapRegionsItrA.next();
 		HeapRegionNode hrnChildA = edgeA.getDst();
-		Integer        idChildA  = hrnChildA.getID();
+		Integer        idChildA  = hrnChildA.getID();		
 
 		// at this point we know an edge in graph A exists
 		// tdA -> idChildA, does this exist in B?
@@ -1218,16 +1210,23 @@ public class OwnershipGraph {
 		LabelNode     lnB         = td2ln.get( tdA );
 		ReferenceEdge edgeToMerge = null;
 
+		// labels never have edges with a field
+		//assert edgeA.getFieldDesc() == null;
+
 		Iterator<ReferenceEdge> heapRegionsItrB = lnB.iteratorToReferencees();
 		while( heapRegionsItrB.hasNext() &&
 		       edgeToMerge == null          ) {
 
 		    ReferenceEdge  edgeB     = heapRegionsItrB.next();
 		    HeapRegionNode hrnChildB = edgeB.getDst();
+		    Integer        idChildB  = hrnChildB.getID();
+
+		    // labels never have edges with a field
+		    //assert edgeB.getFieldDesc() == null;
 
 		    // don't use the ReferenceEdge.equals() here because
 		    // we're talking about existence between graphs
-		    if( hrnChildB.equals( idChildA ) &&
+		    if( idChildB.equals( idChildA ) &&
 			edgeB.getFieldDesc() == edgeA.getFieldDesc() ) {
 			edgeToMerge = edgeB;
 		    }
@@ -1247,7 +1246,6 @@ public class OwnershipGraph {
 		// so merge their reachability sets
 		else {
 		    // just replace this beta set with the union
-		    assert edgeToMerge != null;
 		    edgeToMerge.setBeta( 
 		      edgeToMerge.getBeta().union( edgeA.getBeta() ) 
 				       );
@@ -1735,6 +1733,8 @@ public class OwnershipGraph {
 			continue;
 		    }
 		}
+
+		bw.write( ln.toString() + ";\n" );
 
 		Iterator<ReferenceEdge> heapRegionsItr = ln.iteratorToReferencees();
 		while( heapRegionsItr.hasNext() ) {

@@ -15,7 +15,6 @@ public class LabelNode extends OwnershipNode {
 	return td;
     }
 
-
     public boolean equals( Object o ) {
 	if( o == null ) {
 	    return false;
@@ -33,7 +32,6 @@ public class LabelNode extends OwnershipNode {
     public int hashCode() {
 	return td.getNum();
     }
-
 
     public String getTempDescriptorString() {
 	return td.toString();

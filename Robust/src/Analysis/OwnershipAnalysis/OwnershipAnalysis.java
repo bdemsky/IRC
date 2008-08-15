@@ -303,7 +303,13 @@ public class OwnershipAnalysis {
 	    OwnershipGraph ogPrev = mapDescriptorToCompleteOwnershipGraph.get( d );
 	    if( !og.equals( ogPrev ) ) {
 		mapDescriptorToCompleteOwnershipGraph.put( d, og );
-
+		
+		/*
+		boolean writeLabels,
+		boolean labelSelect,
+		boolean pruneGarbage,
+		boolean writeReferencers 
+		*/
 		og.writeGraph( d, true, true, true, false );
 
 		// only methods have dependents, tasks cannot
@@ -431,7 +437,7 @@ public class OwnershipAnalysis {
 	    // adding parameters labels to new heap regions
 	    for( int i = 0; i < fm.numParameters(); ++i ) {
 		TempDescriptor tdParam = fm.getParameter( i );
-		og.assignTempToParameterAllocation( methodDesc instanceof TaskDescriptor,
+		og.assignParameterAllocationToTemp( methodDesc instanceof TaskDescriptor,
 						    tdParam,
 						    new Integer( i ) );
 	    }
@@ -443,7 +449,7 @@ public class OwnershipAnalysis {
 	    if( fon.getOp().getOp() == Operation.ASSIGN ) {
 		src = fon.getLeft();
 		dst = fon.getDest();
-		og.assignTempXToTempY( src, dst );
+		og.assignTempYToTempX( src, dst );
 	    }
 	    break;
 	    
@@ -453,7 +459,7 @@ public class OwnershipAnalysis {
 	    dst = ffn.getDst();
 	    fld = ffn.getField();
 	    if( !fld.getType().isPrimitive() ) {
-		og.assignTempXToTempYFieldF( src, dst, fld );
+		og.assignTempYFieldFToTempX( src, fld, dst );
 	    }
 	    break;
 	    
@@ -462,7 +468,7 @@ public class OwnershipAnalysis {
 	    src = fsfn.getSrc();
 	    dst = fsfn.getDst();
 	    fld = fsfn.getField();
-	    og.assignTempXFieldFToTempY( src, fld, dst );
+	    og.assignTempYToTempXFieldF( src, dst, fld );
 	    break;
 	    
 	case FKind.FlatNew:
@@ -470,7 +476,7 @@ public class OwnershipAnalysis {
             dst = fnn.getDst();
 	    AllocationSite as = getAllocationSiteFromFlatNewPRIVATE( fnn );
 
-	    og.assignTempXToNewAllocation( dst, as );
+	    og.assignNewAllocationToTempX( dst, as );
 	    break;
 
 	case FKind.FlatCall:

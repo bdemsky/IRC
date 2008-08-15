@@ -12,7 +12,7 @@ public class HeapRegionNode extends OwnershipNode {
     protected boolean isFlagged;
     protected boolean isNewSummary;
 
-    protected HashSet<ReferenceEdge>  referencers;
+    protected HashSet<ReferenceEdge> referencers;
 
     protected AllocationSite allocSite;
 
