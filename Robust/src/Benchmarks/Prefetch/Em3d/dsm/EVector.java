@@ -50,7 +50,7 @@ public class EVector {
 		newsize=array.length+capacityIncrement;
 	    if (newsize<minCapacity)
 		newsize=minCapacity;
-	    Object [] newarray=global new Object[minCapacity];
+	    Object [] newarray=global new Object[newsize];
 	    for(int i=0;i<size;i++)
 		newarray[i]=array[i];
 	    array=newarray;
