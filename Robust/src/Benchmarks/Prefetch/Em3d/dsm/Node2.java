@@ -50,7 +50,8 @@ public class Node {
      * @param nodeTable the list of nodes to choose from.
      **/
     public void makeUniqueNeighbors(EVector[] reversetable,Node[] nodeTable, Random rand, int begin, int end) {
-	for (int filled = 0; filled < toNodes.length; filled++) {
+	int len=toNodes.length;
+	for (int filled = 0; filled < len; filled++) {
 	    int k;
 	    Node otherNode;
 	    int index;
@@ -60,7 +61,7 @@ public class Node {
 		index = rand.nextInt();
 		if (index < 0) index = -index;
 		//local vs remote from em3d benchmark
-		if ((rand.nextInt()%2)==0)
+		if (filled<(len/4))
 		    index=index%nodeTable.length;
 		else
 		    index=begin+(index%(end-begin));
