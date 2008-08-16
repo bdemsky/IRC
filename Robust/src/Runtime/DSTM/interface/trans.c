@@ -186,9 +186,9 @@ int dstmStartup(const char * option) {
 #endif
   
   //Initialize socket pool
-  transReadSockPool = createSockPool(transReadSockPool, 2*numHostsInSystem+1);
-  transPrefetchSockPool = createSockPool(transPrefetchSockPool, 2*numHostsInSystem+1);
-  transRequestSockPool = createSockPool(transRequestSockPool, 2*numHostsInSystem+1);
+  transReadSockPool = createSockPool(transReadSockPool, DEFAULTSOCKPOOLSIZE);
+  transPrefetchSockPool = createSockPool(transPrefetchSockPool, DEFAULTSOCKPOOLSIZE);
+  transRequestSockPool = createSockPool(transRequestSockPool, DEFAULTSOCKPOOLSIZE);
   
   dstmInit();
   transInit();

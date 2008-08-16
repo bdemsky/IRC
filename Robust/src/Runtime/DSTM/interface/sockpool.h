@@ -3,6 +3,7 @@
 
 #include "dstm.h"
 #include "ip.h"
+#define DEFAULTSOCKPOOLSIZE 128
 
 int test_and_set(volatile unsigned int *addr);
 void UnLock(volatile unsigned int *addr);
@@ -17,6 +18,7 @@ typedef struct sockPoolHashTable {
     socknode_t **table;
     socknode_t *inuse;
     unsigned int size;
+  unsigned int mask;
     volatile unsigned int mylock;
 } sockPoolHashTable_t;
 

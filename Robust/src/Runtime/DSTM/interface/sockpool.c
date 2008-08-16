@@ -21,7 +21,7 @@ inline void UnLock(volatile unsigned int *addr) {
 #   error need implementation of test_and_set
 #endif
 
-#define MAXSPINS 100
+#define MAXSPINS 4
 
 inline void Lock(volatile unsigned int *s) {
   while(test_and_set(s)) {
@@ -51,6 +51,7 @@ sockPoolHashTable_t *createSockPool(sockPoolHashTable_t * sockhash, unsigned int
   sockhash->table = nodelist;
   sockhash->inuse = NULL;
   sockhash->size = size;
+  sockhash->mask = size - 1;
   sockhash->mylock=0;
   
   return sockhash;
@@ -80,7 +81,7 @@ int createNewSocket(unsigned int mid) {
 
 int getSockWithLock(sockPoolHashTable_t *sockhash, unsigned int mid) {
   socknode_t **ptr;
-  int key = mid%(sockhash->size);
+  int key = mid&(sockhash->mask);
   int sd;
   
   Lock(&sockhash->mylock);
@@ -112,7 +113,7 @@ int getSockWithLock(sockPoolHashTable_t *sockhash, unsigned int mid) {
 
 int getSock(sockPoolHashTable_t *sockhash, unsigned int mid) {
   socknode_t **ptr;
-  int key = mid%(sockhash->size);
+  int key = mid&(sockhash->mask);
   int sd;
   
   ptr=&(sockhash->table[key]);
@@ -140,7 +141,7 @@ int getSock(sockPoolHashTable_t *sockhash, unsigned int mid) {
 
 int getSock2(sockPoolHashTable_t *sockhash, unsigned int mid) {
   socknode_t **ptr;
-  int key = mid%(sockhash->size);
+  int key = mid&(sockhash->mask);
   int sd;
   
   ptr=&(sockhash->table[key]);
@@ -164,7 +165,7 @@ int getSock2(sockPoolHashTable_t *sockhash, unsigned int mid) {
 /*socket pool with multiple TR threads asking to connect to same machine  */
 int getSock2WithLock(sockPoolHashTable_t *sockhash, unsigned int mid) {
   socknode_t **ptr;
-  int key = mid%(sockhash->size);
+  int key = mid&(sockhash->mask);
   int sd;
   
   Lock(&sockhash->mylock);
@@ -189,7 +190,7 @@ int getSock2WithLock(sockPoolHashTable_t *sockhash, unsigned int mid) {
 }
 
 void addSockWithLock(sockPoolHashTable_t *sockhash, socknode_t *ptr) {
-  int key = ptr->mid%(sockhash->size);
+  int key = ptr->mid&(sockhash->mask);
   Lock(&sockhash->mylock);
   ptr->next = sockhash->table[key];
   sockhash->table[key] = ptr;
@@ -204,7 +205,7 @@ void insToListWithLock(sockPoolHashTable_t *sockhash, socknode_t *inusenode) {
 } 
 
 void freeSock(sockPoolHashTable_t *sockhash, unsigned int mid, int sd) {
-    int key = mid%(sockhash->size);
+    int key = mid&(sockhash->mask);
     socknode_t *ptr = sockhash->inuse; 
     sockhash->inuse = ptr->next;
     ptr->mid = mid;
@@ -214,7 +215,7 @@ void freeSock(sockPoolHashTable_t *sockhash, unsigned int mid, int sd) {
 }
 
 void freeSockWithLock(sockPoolHashTable_t *sockhash, unsigned int mid, int sd) {
-  int key = mid%(sockhash->size);
+  int key = mid&(sockhash->mask);
   socknode_t *ptr;
   Lock(&sockhash->mylock);
   ptr = sockhash->inuse; 

@@ -45,7 +45,7 @@ int dstmInit(void)
 		return 1; //failure
 
     //Initialize socket pool
-    if((transPResponseSocketPool = createSockPool(transPResponseSocketPool, 2*numHostsInSystem+1)) == NULL) {
+    if((transPResponseSocketPool = createSockPool(transPResponseSocketPool, DEFAULTSOCKPOOLSIZE)) == NULL) {
         printf("Error in creating new socket pool at  %s line %d\n", __FILE__, __LINE__);
         return 0;
     }
