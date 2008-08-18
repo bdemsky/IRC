@@ -147,8 +147,18 @@ Parse/Parser.java Parse/Sym.java: Parse/java14.cup
 	javac -cp ../cup:.:$(CLASSPATH) $<
 
 tabbing: 
-	uncrustify -c standard.cfg --replace $(JAVAFILES)
-	uncrustify -c standard.cfg --replace $(CFILES)
+	uncrustify -c standard.cfg --no-backup $(JAVAFILES)
+	uncrustify -c standard.cfg --no-backup $(CFILES)
+
+commit: tabbing
+	cvs commit .
+
+update:	tabbing
+	cvs update -d .
+
+mytabbing:
+	uncrustify -c my.cfg --no-backup $(JAVAFILES)
+	uncrustify -c my.cfg --no-backup $(CFILES)
 
 javadoc:
 	mkdir javadoc
