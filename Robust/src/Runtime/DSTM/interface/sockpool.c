@@ -228,9 +228,9 @@ void freeSockWithLock(sockPoolHashTable_t *sockhash, unsigned int mid, int sd) {
 }
 
 #if 0
-/ ***************************************/
-* Array Implementation for socket resuse 
-* ***************************************/
+/***************************************
+ * Array Implementation for socket reuse 
+ ****************************************/
 
 int num_machines;
 
