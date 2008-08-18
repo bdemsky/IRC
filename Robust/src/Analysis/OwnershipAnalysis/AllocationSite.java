@@ -35,7 +35,7 @@ public class AllocationSite {
 
 
     public AllocationSite( int allocationDepth, TypeDescriptor type ) {
-	assert allocationDepth >= 3;
+	assert allocationDepth >= 1;
 
 	this.allocationDepth = allocationDepth;	
 	this.type            = type;

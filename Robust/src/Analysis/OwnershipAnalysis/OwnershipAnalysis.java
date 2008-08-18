@@ -194,6 +194,9 @@ public class OwnershipAnalysis {
 	this.callGraph       = callGraph;
 	this.allocationDepth = allocationDepth;
 
+	// temporary for debugging
+	this.allocationDepth = 1;
+
 	descriptorsToVisit = new HashSet<Descriptor>();
 
 	mapDescriptorToCompleteOwnershipGraph =
@@ -310,7 +313,7 @@ public class OwnershipAnalysis {
 		boolean pruneGarbage,
 		boolean writeReferencers 
 		*/
-		og.writeGraph( d, true, true, false, false );
+		og.writeGraph( d, true, true, true, false );
 
 		// only methods have dependents, tasks cannot
 		// be invoked by any user program calls

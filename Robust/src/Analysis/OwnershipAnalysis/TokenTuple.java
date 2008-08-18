@@ -92,16 +92,16 @@ public class TokenTuple extends Canonical {
 
 
     public String toString() {
-	String s = "";
+	String s = token.toString();
+
 	if( isNewSummary ) {
-	    s = "S";
+	    s += "S";
 	}
 
-	String t = "";
 	if( arity == ARITY_MANY ) {
-	    t = "*";
+	    s += "*";
 	}
 
-	return new String( token+s+t );
+	return s;
     }
 }

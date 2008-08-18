@@ -1,3 +1,4 @@
+/*
 public class Parameter {
     flag w;
     int a, b;
@@ -34,6 +35,7 @@ public class Baw {
 
     public void doTheBaw( Voo v ) { v = new Voo(); }
 }
+*/
 
 public class Foo {
     flag f;
@@ -43,6 +45,7 @@ public class Foo {
     public Foo x;
     public Foo y;
 
+    /*
     public void ruinSomeFoos( Foo a, Foo b ) {
 	a.x = b.x;
     }
@@ -57,6 +60,7 @@ public class Foo {
 	p1.x = f1;
 	p1.x = f2;
     }
+    */
 }
 
 
@@ -68,7 +72,7 @@ task Startup( StartupObject s{ initialstate } ) {
     taskexit( s{ !initialstate } );
 }
 
-
+/*
 task NewObjectA( Foo a{ f }, Foo b{ f } ) {
 
     Foo c = new Foo();
@@ -90,8 +94,14 @@ task NewObjectB( Foo a{ f }, Foo b{ f } ) {
 
     taskexit( a{ !f }, b{ !f } );
 }
+*/
 
+/*
 task NewObjectC( Foo a{ f }, Foo b{ f } ) {
+
+    Foo z = new Foo();
+    a.x = z;
+    a.y = z;
 
     Foo c;
 
@@ -104,9 +114,32 @@ task NewObjectC( Foo a{ f }, Foo b{ f } ) {
 
     taskexit( a{ !f }, b{ !f } );
 }
+*/
+
+
+task forMethod( Foo p0{ f } ) {
+
+    Foo a0;
+    Foo a1;
+
+    while( false ) {	
+	a1 = a0;	    
+	if( false ) {
+	    a0 = new Foo();
+	}
+    }
+
+    Foo z = new Foo();
+    a1.x = z;
+    z.x  = a1;
+
+
+    taskexit( p0{ !f } );
+}
 
 
 
+/*
 // this task allocates a new object, so there should
 // be a heap region for the parameter, and several
 // heap regions for the allocation site, but the label
@@ -229,3 +262,4 @@ task methodTest( Foo p0{ f } ) {
 
     taskexit( p0{ !f } );
 }
+*/

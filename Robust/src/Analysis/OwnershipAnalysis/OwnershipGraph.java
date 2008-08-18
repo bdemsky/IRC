@@ -27,7 +27,7 @@ public class OwnershipGraph {
 
     public OwnershipGraph( int allocationDepth ) {
 	this.allocationDepth = allocationDepth;
-
+	
 	id2hrn        = new Hashtable<Integer,        HeapRegionNode>();
 	td2ln         = new Hashtable<TempDescriptor, LabelNode     >();
 	id2paramIndex = new Hashtable<Integer,        Integer       >();
@@ -77,7 +77,7 @@ public class OwnershipGraph {
 	if( alpha == null ) {
 	    if( isFlagged || isParameter ) {
 		alpha = new ReachabilitySet( new TokenTuple( id, 
-							     isNewSummary,
+							     !isSingleObject,
 							     TokenTuple.ARITY_ONE )
 					   ).makeCanonical();
 	    } else {
@@ -418,6 +418,7 @@ public class OwnershipGraph {
 		HeapRegionNode  hrnY  = edgeY.getDst();		
 		ReachabilitySet O     = edgeY.getBeta();
 
+
 		// propagate tokens over nodes starting from hrnSrc, and it will
 		// take care of propagating back up edges from any touched nodes
 		ChangeTupleSet Cy = O.unionUpArityToChangeSet( R );
@@ -444,23 +445,29 @@ public class OwnershipGraph {
 					  nodesWithNewAlpha,
 					  edgesWithNewBeta );
 
-		// finally, create the actual reference edge hrnX.f -> hrnY
+
+
+		//System.out.println( edgeY.getBetaNew() + "\nbeing pruned by\n" + hrnX.getAlpha() );
+
+		// create the actual reference edge hrnX.f -> hrnY
 		ReferenceEdge edgeNew = new ReferenceEdge( hrnX,
 							   hrnY,
 							   f,
 							   false,
 							   edgeY.getBetaNew().pruneBy( hrnX.getAlpha() )
+							   //edgeY.getBeta().pruneBy( hrnX.getAlpha() )
 							 );
+		addReferenceEdge( hrnX, hrnY, edgeNew );
+
+		/*
 		if( f != null ) {
 		    // we can do a strong update here if one of two cases holds
 		    // SAVE FOR LATER, WITHOUT STILL CORRECT
-		    /*
 		    if( (hrnX.getNumReferencers() == 1)                           ||
 			( lnX.getNumReferencees() == 1 && hrnX.isSingleObject() )
 		      ) {
 			clearReferenceEdgesFrom( hrnX, f, false );
-		    }
-		    */
+		    }	
 
 		    addReferenceEdge( hrnX, hrnY, edgeNew );
 
@@ -482,6 +489,7 @@ public class OwnershipGraph {
 			addReferenceEdge( hrnX, hrnY, edgeNew );
 		    }
 		}
+		*/
 	    }
 	}	
 
@@ -522,7 +530,7 @@ public class OwnershipGraph {
 	paramIndex2id.put( paramIndex, newID );
 
 	ReachabilitySet beta = new ReachabilitySet( new TokenTuple( newID, 
-								    false,
+								    true,
 								    TokenTuple.ARITY_ONE ) );
 
 	// heap regions for parameters are always multiple object (see above)
