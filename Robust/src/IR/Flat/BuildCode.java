@@ -1500,7 +1500,7 @@ public class BuildCode {
 	    }
 	    if (tuplecount==0)
 		return;
-	    System.out.println("Adding prefetch to method:" +fm);
+	    System.out.println("Adding prefetch "+fpn+ " to method:" +fm);
 	    output.println("{");
 	    output.println("/* prefetch */");
         output.println("/* prefetchid_" + fpn.siteid + " */");
