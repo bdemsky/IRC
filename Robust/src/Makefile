@@ -122,7 +122,8 @@ JAVAFILES=IR/*.java \
 	Util/*.java \
 	ClassLibrary/*.java \
 	ClassLibrary/gnu/*.java \
-	Interface/*.java
+	Interface/*.java \
+	Lex/*.java
 
 CFILES=Runtime/*.c \
 	Runtime/*.h \
@@ -147,8 +148,8 @@ Parse/Parser.java Parse/Sym.java: Parse/java14.cup
 	javac -cp ../cup:.:$(CLASSPATH) $<
 
 tabbing: 
-	uncrustify -c standard.cfg --no-backup $(JAVAFILES)
-	uncrustify -c standard.cfg --no-backup $(CFILES)
+	uncrustify -c java.cfg --no-backup $(JAVAFILES)
+	uncrustify -c c.cfg --no-backup $(CFILES)
 
 commit: tabbing
 	cvs commit .
@@ -157,8 +158,8 @@ update:	tabbing
 	cvs update -d .
 
 mytabbing:
-	uncrustify -c my.cfg --no-backup $(JAVAFILES)
-	uncrustify -c my.cfg --no-backup $(CFILES)
+	uncrustify -c myjava.cfg --no-backup $(JAVAFILES)
+	uncrustify -c myc.cfg --no-backup $(CFILES)
 
 javadoc:
 	mkdir javadoc
