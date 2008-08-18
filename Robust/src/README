@@ -1,2 +1,4 @@
 See the wiki page at http://demsky.eecs.uci.edu/compiler/
 
+To set emacs tabbing add to your .emacs file:
+(setq c-basic-offset 2)
