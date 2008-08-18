@@ -108,7 +108,27 @@ Analysis/Scheduling/SchedulingUtil.class                                \
 Analysis/Scheduling/TaskSimulator.class                                 \
 Analysis/Scheduling/TransTaskSimulator.class
 
+JAVAFILES=IR/*.java \
+	IR/Flat/*.java \
+	IR/Tree/*.java \
+	Main/*.java \
+	Analysis/CallGraph/*.java \
+	Analysis/Flag/*.java \
+	Analysis/FlatIRGraph/*.java \
+	Analysis/Locality/*.java \
+	Analysis/OwnershipAnalysis/*.java \
+	Analysis/Prefetch/*.java \
+	Anaysis/Scheduling/*.java \
+	Analysis/TaskStateAnalysis/*.java \
+	Util/*.java \
+	ClassLibrary/*.java \
+	ClassLibrary/gnu/*.java \
+	Interface/*.java
 
+CFILES=Runtime/*.c \
+	Runtime/*.h \
+	Runtime/DSTM/interface/*.c \
+	Runtime/DSTM/interface/*.h
 
 all: compiler javadoc
 
@@ -126,6 +146,10 @@ Parse/Parser.java Parse/Sym.java: Parse/java14.cup
 
 %.class: %.java
 	javac -cp ../cup:.:$(CLASSPATH) $<
+
+tabbing: 
+	uncrustify -c standard.cfg --replace $(JAVAFILES)
+	uncrustify -c standard.cfg --replace $(CFILES)
 
 javadoc:
 	mkdir javadoc
