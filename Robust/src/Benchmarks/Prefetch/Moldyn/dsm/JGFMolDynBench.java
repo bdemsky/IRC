@@ -68,6 +68,13 @@ public class JGFMolDynBench {
 
   public static void JGFapplication(JGFMolDynBench mold) { 
     // Create new arrays 
+    BarrierServer mybarr;
+    int[] mid = new int[4];
+    mid[0] = (128<<24)|(195<<16)|(175<<8)|79;
+    mid[1] = (128<<24)|(195<<16)|(175<<8)|80;
+    mid[2] = (128<<24)|(195<<16)|(175<<8)|78;
+    mid[3] = (128<<24)|(195<<16)|(175<<8)|73; 
+
     atomic {
       mold.epot = global new double [mold.nthreads];
       mold.vir  = global new double [mold.nthreads];
@@ -79,7 +86,9 @@ public class JGFMolDynBench {
     atomic {
       partsize = mold.PARTSIZE;
       numthreads = mold.nthreads;
+      mybarr = global new BarrierServer(numthreads);
     }
+    mybarr.start(mid[0]);
 
     double sh_force [][];
     double sh_force2 [][][];
@@ -90,29 +99,29 @@ public class JGFMolDynBench {
 
     // spawn threads 
     mdRunner[] thobjects;
-    Barrier br;
     atomic {
       thobjects = global new mdRunner[numthreads];
-      br= global new Barrier(numthreads);
     }
-
-    int[] mid = new int[4];
-    mid[0] = (128<<24)|(195<<16)|(175<<8)|73;
-    mid[1] = (128<<24)|(195<<16)|(175<<8)|69;
-    mid[2] = (128<<24)|(195<<16)|(175<<8)|79;
-    mid[3] = (128<<24)|(195<<16)|(175<<8)|78;
     mdRunner tmp;
+
+    boolean waitfordone=true;
+    while(waitfordone) {
+      atomic{
+        if(mybarr.done)
+          waitfordone=false;
+      }
+    }
 
     for(int i=1;i<numthreads;i++) {
       atomic {
-        thobjects[i] = global new mdRunner(i,mold.mm,sh_force,sh_force2,br,mold.nthreads,mold);
+        thobjects[i] = global new mdRunner(i,mold.mm,sh_force,sh_force2,mold.nthreads,mold);
         tmp = thobjects[i];
       }
       tmp.start(mid[i]);
     }
 
     atomic {
-      thobjects[0] = global new mdRunner(0,mold.mm,sh_force,sh_force2,br,mold.nthreads,mold);
+      thobjects[0] = global new mdRunner(0,mold.mm,sh_force,sh_force2,mold.nthreads,mold);
       tmp = thobjects[0];
     }
     tmp.start(mid[0]);
@@ -160,20 +169,18 @@ class mdRunner extends Thread {
   int istop;
   int iprint;
 
-  Barrier br;
   random randnum;
   JGFMolDynBench mymd;
   int nthreads;
 
   particle[] one;
 
-  public mdRunner(int id, int mm, double [][] sh_force, double [][][] sh_force2,Barrier br, 
+  public mdRunner(int id, int mm, double [][] sh_force, double [][][] sh_force2, 
 		  int nthreads, JGFMolDynBench mymd) {
     this.id=id;
     this.mm=mm;
     this.sh_force=sh_force;
     this.sh_force2=sh_force2;
-    this.br=br;
     this.nthreads = nthreads;
     this.mymd = mymd;
     count = 0.0;
@@ -192,10 +199,10 @@ class mdRunner extends Thread {
     int tmpmdsize;
     double tmpden;
     int movemx=50;
-    Barrier tmpbr;
+    Barrier barr;
+    barr = new Barrier("128.195.175.79");
 
     atomic {
-      tmpbr=br;
       mdsize = mymd.PARTSIZE;
       one = global new particle[mdsize];
       l = mymd.LENGTH;
@@ -324,8 +331,7 @@ class mdRunner extends Thread {
 
     /* Synchronise threads and start timer before MD simulation */
 
-    Barrier.enterBarrier(tmpbr);
-    System.clearPrefetchCache();
+    Barrier.enterBarrier(barr);
 
     /* MD simulation */
 
@@ -339,8 +345,7 @@ class mdRunner extends Thread {
       }
 
       /* Barrier */
-      Barrier.enterBarrier(tmpbr);
-      System.clearPrefetchCache();
+      Barrier.enterBarrier(barr);
 
       atomic {
 
@@ -359,8 +364,7 @@ class mdRunner extends Thread {
 
 
       /* Barrier */
-      Barrier.enterBarrier(tmpbr);
-      System.clearPrefetchCache();
+      Barrier.enterBarrier(barr);
 
       atomic {
         /* compute forces */
@@ -371,8 +375,7 @@ class mdRunner extends Thread {
 
       }
       /* Barrier */
-      Barrier.enterBarrier(tmpbr);
-      System.clearPrefetchCache();
+      Barrier.enterBarrier(barr);
 
       /* update force arrays */
       atomic {
@@ -413,8 +416,7 @@ class mdRunner extends Thread {
       }
 
       /* Barrier */
-      Barrier.enterBarrier(tmpbr);
-      System.clearPrefetchCache();
+      Barrier.enterBarrier(barr);
 
       atomic {
         if(id == 0) {
@@ -430,8 +432,7 @@ class mdRunner extends Thread {
 
 
       /* Barrier */
-      Barrier.enterBarrier(tmpbr);
-      System.clearPrefetchCache();
+      Barrier.enterBarrier(barr);
 
       atomic {
         /*scale forces, update velocities */
@@ -477,12 +478,10 @@ class mdRunner extends Thread {
           rp = (count / tmpmdsize) * 100.0;
         }
       }
-      Barrier.enterBarrier(tmpbr);
-      System.clearPrefetchCache();
+      Barrier.enterBarrier(barr);
     }
 
-    Barrier.enterBarrier(tmpbr);
-    System.clearPrefetchCache();
+    Barrier.enterBarrier(barr);
     //if (id == 0) JGFInstrumentor.stopTimer("Section3:MolDyn:Run", instr.timers);
   }
 
