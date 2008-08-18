@@ -58,7 +58,7 @@ public class JGFMolDynBenchSizeA {
     refval[1] = 7397.392307839352;
     double dval;
     atomic {
-      dval = mold.ek[0];
+      dval = mold.ek[0].d;
     }
     double dev = Math.fabs(dval - refval[size]);
     long l = (long) refval[size] *1000000;

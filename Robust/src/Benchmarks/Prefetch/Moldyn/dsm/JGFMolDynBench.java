@@ -28,15 +28,15 @@ public class JGFMolDynBench {
 
   public int PARTSIZE;
 
-  public double[] epot;
-  public double[] vir;
-  public double[] ek;
+  public DoubleWrapper[] epot;
+  public DoubleWrapper[] vir;
+  public DoubleWrapper[] ek;
 
   int size,mm;
   int[] datasizes;
 
   public int interactions;
-  public int[] interacts;
+  public IntWrapper[] interacts;
 
   public int nthreads;
   public JGFInstrumentor instr;
@@ -75,13 +75,8 @@ public class JGFMolDynBench {
     mid[2] = (128<<24)|(195<<16)|(175<<8)|78;
     mid[3] = (128<<24)|(195<<16)|(175<<8)|73; 
 
-    atomic {
-      mold.epot = global new double [mold.nthreads];
-      mold.vir  = global new double [mold.nthreads];
-      mold.ek   = global new double [mold.nthreads];
-      mold.interacts = global new int [mold.nthreads];
-    }
-
+    double sh_force [][];
+    double sh_force2 [][][];
     int partsize, numthreads;
     atomic {
       partsize = mold.PARTSIZE;
@@ -89,57 +84,53 @@ public class JGFMolDynBench {
       mybarr = global new BarrierServer(numthreads);
     }
     mybarr.start(mid[0]);
-
-    double sh_force [][];
-    double sh_force2 [][][];
+    
     atomic {
       sh_force = global new double[3][partsize];
       sh_force2 = global new double[3][numthreads][partsize];
+      mold.epot = global new DoubleWrapper[numthreads];
+      mold.vir  = global new DoubleWrapper[numthreads];
+      mold.ek   = global new DoubleWrapper[numthreads];
+      mold.interacts = global new IntWrapper[numthreads];
+      for(int i=0;i<numthreads;i++) {
+	mold.epot[i]=global new DoubleWrapper();
+	mold.vir[i]=global new DoubleWrapper();
+	mold.ek[i]=global new DoubleWrapper();
+	mold.interacts[i]=global new IntWrapper();
+      }
     }
-
+    
     // spawn threads 
-    mdRunner[] thobjects;
+    MDWrap[] thobjects = new MDWrap[numthreads];
+    
     atomic {
-      thobjects = global new mdRunner[numthreads];
+      for(int i=0;i<numthreads;i++) {
+        thobjects[i] = new MDWrap(global new mdRunner(i,mold.mm,sh_force,sh_force2,mold.nthreads,mold));
+      }
     }
-    mdRunner tmp;
-
+    
     boolean waitfordone=true;
     while(waitfordone) {
       atomic{
-        if(mybarr.done)
+        if (mybarr.done)
           waitfordone=false;
       }
     }
-
-    for(int i=1;i<numthreads;i++) {
-      atomic {
-        thobjects[i] = global new mdRunner(i,mold.mm,sh_force,sh_force2,mold.nthreads,mold);
-        tmp = thobjects[i];
-      }
-      tmp.start(mid[i]);
+    
+    for(int i=0;i<numthreads;i++) {
+      thobjects[i].md.start(mid[i]);
     }
-
-    atomic {
-      thobjects[0] = global new mdRunner(0,mold.mm,sh_force,sh_force2,mold.nthreads,mold);
-      tmp = thobjects[0];
+    
+    for(int i=0;i<numthreads;i++) {
+      thobjects[i].md.join();
     }
-    tmp.start(mid[0]);
-    tmp.join();
-
-    for(int i=1;i<numthreads;i++) {
-      atomic {
-        tmp = thobjects[i];
-      }
-      tmp.join();
-    }
-  } 
+  }
 
   public void JGFvalidate(){
     double[] refval = new double[2];
     refval[0] = 1731.4306625334357;
     refval[1] = 7397.392307839352;
-    double dev = Math.fabs(ek[0] - refval[size]);
+    double dev = Math.fabs(ek[0].d - refval[size]);
     if (dev > 1.0e-10 ){
       //System.printString("Validation failed\n");
       //System.printString("Kinetic Energy = " + (long)ek[0] + "  " + (long)dev + "  " + size + "\n");
@@ -150,7 +141,7 @@ public class JGFMolDynBench {
 class mdRunner extends Thread {
 
   double count;
-  int id,i,j,k,lg,mdsize,mm;
+  int id,i,j,k,lg,mm;
   double l,rcoff,rcoffs,side,sideh,hsq,hsq2,vel,velt;
   double a,r,sum,tscale,sc,ekin,ts,sp;
   double den;
@@ -158,7 +149,7 @@ class mdRunner extends Thread {
   double h;
   double vaver,vaverh,rand;
   double etot,temp,pres,rp;
-  double u1,u2,v1,v2,s, xx, yy, zz;
+  double u1, u2, s, xx, yy, zz;
   double xvelocity, yvelocity, zvelocity;
 
   double [][] sh_force;
@@ -169,11 +160,8 @@ class mdRunner extends Thread {
   int istop;
   int iprint;
 
-  random randnum;
   JGFMolDynBench mymd;
   int nthreads;
-
-  particle[] one;
 
   public mdRunner(int id, int mm, double [][] sh_force, double [][][] sh_force2, 
 		  int nthreads, JGFMolDynBench mymd) {
@@ -193,31 +181,29 @@ class mdRunner extends Thread {
   } 
 
   public void run() {
-
     /* Parameter determination */
-
-    int tmpmdsize;
+    
+    int mdsize;
     double tmpden;
     int movemx=50;
-    Barrier barr;
-    barr = new Barrier("128.195.175.79");
+    Barrier barr=new Barrier("128.195.175.79");
+    particle[] one;
 
     atomic {
       mdsize = mymd.PARTSIZE;
-      one = global new particle[mdsize];
+      one=new particle[mdsize];
       l = mymd.LENGTH;
-      tmpmdsize = mdsize;
       tmpden = den;
-      side = Math.pow((tmpmdsize/tmpden),0.3333333);
+      side = Math.pow((mdsize/tmpden),0.3333333);
       rcoff = mm/4.0;
 
       a = side/mm;
       sideh = side*0.5;
       hsq = h*h;
       hsq2 = hsq*0.5;
-      npartm = tmpmdsize - 1;
+      npartm = mdsize - 1;
       rcoffs = rcoff * rcoff;
-      tscale = 16.0 / (1.0 * tmpmdsize - 1.0);
+      tscale = 16.0 / (1.0 * mdsize - 1.0);
       vaver = 1.13 * Math.sqrt(tref / 24.0);
       vaverh = vaver * h;
 
@@ -232,8 +218,8 @@ class mdRunner extends Thread {
         for (i=0; i<mm; i++) {
           for (j=0; j<mm; j++) {
             for (k=0; k<mm; k++) {
-              one[ijk] = global new particle((i*a+lg*a*0.5),(j*a+lg*a*0.5),(k*a),
-                  xvelocity,yvelocity,zvelocity,sh_force,sh_force2,id,this);
+              one[ijk] = new particle((i*a+lg*a*0.5),(j*a+lg*a*0.5),(k*a),
+                  xvelocity,yvelocity,zvelocity,sh_force,sh_force2,id,one);
               ijk = ijk + 1;
             }
           }
@@ -244,8 +230,8 @@ class mdRunner extends Thread {
         for (i=0; i<mm; i++) {
           for (j=0; j<mm; j++) {
             for (k=0; k<mm; k++) {
-              one[ijk] = global new particle((i*a+(2-lg)*a*0.5),(j*a+(lg-1)*a*0.5),
-                  (k*a+a*0.5),xvelocity,yvelocity,zvelocity,sh_force,sh_force2,id,this);
+              one[ijk] = new particle((i*a+(2-lg)*a*0.5),(j*a+(lg-1)*a*0.5),
+				      (k*a+a*0.5),xvelocity,yvelocity,zvelocity,sh_force,sh_force2,id,one);
               ijk = ijk + 1;
             }
           }
@@ -255,23 +241,24 @@ class mdRunner extends Thread {
       /* Initialise velocities */
 
       iseed = 0;
-      v1 = 0.0;
-      v2 = 0.0;
-      randnum = global new random(iseed,v1,v2);
-
-      for (i=0; i<tmpmdsize; i+=2) {
+      double v1 = 0.0;
+      double v2 = 0.0;
+      random randnum = new random(iseed,v1,v2);
+      
+      
+      for (i=0; i<mdsize; i+=2) {
         r  = randnum.seed();
         one[i].xvelocity = r*randnum.v1;
         one[i+1].xvelocity  = r*randnum.v2;
       }
 
-      for (i=0; i<tmpmdsize; i+=2) {
+      for (i=0; i<mdsize; i+=2) {
         r  = randnum.seed();
         one[i].yvelocity = r*randnum.v1;
         one[i+1].yvelocity  = r*randnum.v2;
       }
 
-      for (i=0; i<tmpmdsize; i+=2) {
+      for (i=0; i<mdsize; i+=2) {
         r  = randnum.seed();
         one[i].zvelocity = r*randnum.v1;
         one[i+1].zvelocity  = r*randnum.v2;
@@ -283,35 +270,35 @@ class mdRunner extends Thread {
       ekin = 0.0;
       sp = 0.0;
 
-      for(i=0;i<tmpmdsize;i++) {
+      for(i=0;i<mdsize;i++) {
         sp = sp + one[i].xvelocity;
       }
-      sp = sp / tmpmdsize;
+      sp = sp / mdsize;
 
-      for(i=0;i<tmpmdsize;i++) {
+      for(i=0;i<mdsize;i++) {
         one[i].xvelocity = one[i].xvelocity - sp;
         ekin = ekin + one[i].xvelocity*one[i].xvelocity;
       }
 
       sp = 0.0;
-      for(i=0;i<tmpmdsize;i++) {
+      for(i=0;i<mdsize;i++) {
         sp = sp + one[i].yvelocity;
       }
-      sp = sp / tmpmdsize;
+      sp = sp / mdsize;
 
-      for(i=0;i<tmpmdsize;i++) {
+      for(i=0;i<mdsize;i++) {
         one[i].yvelocity = one[i].yvelocity - sp;
         ekin = ekin + one[i].yvelocity*one[i].yvelocity;
       }
 
 
       sp = 0.0;
-      for(i=0;i<tmpmdsize;i++) {
+      for(i=0;i<mdsize;i++) {
         sp = sp + one[i].zvelocity;
       }
-      sp = sp / tmpmdsize;
+      sp = sp / mdsize;
 
-      for(i=0;i<tmpmdsize;i++) {
+      for(i=0;i<mdsize;i++) {
         one[i].zvelocity = one[i].zvelocity - sp;
         ekin = ekin + one[i].zvelocity*one[i].zvelocity;
       }
@@ -320,7 +307,7 @@ class mdRunner extends Thread {
       sc = h * Math.sqrt(tref/ts);
 
 
-      for(i=0;i<tmpmdsize;i++) {
+      for(i=0;i<mdsize;i++) {
 
         one[i].xvelocity = one[i].xvelocity * sc;     
         one[i].yvelocity = one[i].yvelocity * sc;     
@@ -338,8 +325,7 @@ class mdRunner extends Thread {
     for (int move=0;move<movemx;move++) {
       atomic {
         /* move the particles and update velocities */
-
-        for (i=0;i<tmpmdsize;i++) {
+        for (i=0;i<mdsize;i++) {
           one[i].domove(side,i);       
         }
       }
@@ -348,96 +334,80 @@ class mdRunner extends Thread {
       Barrier.enterBarrier(barr);
 
       atomic {
-
         if(id==0) {
           for(j=0;j<3;j++) {
-            for (i=0;i<tmpmdsize;i++) {
+            for (i=0;i<mdsize;i++) {
               sh_force[j][i] = 0.0;
             }
           }
         }
-
-        mymd.epot[id] = 0.0;
-        mymd.vir[id] = 0.0;
-        mymd.interacts[id] = 0;
+	
+        mymd.epot[id].d = 0.0;
+        mymd.vir[id].d = 0.0;
+        mymd.interacts[id].i = 0;
       }
 
 
       /* Barrier */
       Barrier.enterBarrier(barr);
-
+      
       atomic {
         /* compute forces */
-
-        for (i=0+id;i<tmpmdsize;i+=nthreads) {
-          one[i].force(side,rcoff,tmpmdsize,i,xx,yy,zz,mymd); 
+	
+        for (i=0+id;i<mdsize;i+=nthreads) {
+          one[i].force(side,rcoff,mdsize,i,xx,yy,zz,mymd); 
         }
-
       }
+
       /* Barrier */
       Barrier.enterBarrier(barr);
 
       /* update force arrays */
       atomic {
-
         if(id == 0) {
           for(int k=0;k<3;k++) {
-            for(i=0;i<tmpmdsize;i++) {
+            for(i=0;i<mdsize;i++) {
               for(j=0;j<nthreads;j++) {
                 sh_force[k][i] += sh_force2[k][j][i];
               }
             }
           }
-        }
-
-        if(id == 0) {
+	  
           for(int k=0;k<3;k++) {
-            for(i=0;i<tmpmdsize;i++) {
+            for(i=0;i<mdsize;i++) {
               for(j=0;j<nthreads;j++) {
                 sh_force2[k][j][i] = 0.0;
               }
             }
           }
-        }
 
-        if(id==0) {
           for(j=1;j<nthreads;j++) {
-            mymd.epot[0] += mymd.epot[j];
-            mymd.vir[0] += mymd.vir[j];
+            mymd.epot[0].d += mymd.epot[j].d;
+            mymd.vir[0].d += mymd.vir[j].d;
           }
           for(j=1;j<nthreads;j++) {       
-            mymd.epot[j] = mymd.epot[0];
-            mymd.vir[j] = mymd.vir[0];
+            mymd.epot[j].d = mymd.epot[0].d;
+            mymd.vir[j].d = mymd.vir[0].d;
           }
           for(j=0;j<nthreads;j++) {
-            mymd.interactions += mymd.interacts[j]; 
+            mymd.interactions += mymd.interacts[j].i; 
           }
-        }
+
+	  for (j=0;j<3;j++) {
+	    for (i=0;i<mdsize;i++) {
+	      sh_force[j][i] = sh_force[j][i] * hsq2;
+	    }
+	  }
+	}
       }
-
-      /* Barrier */
-      Barrier.enterBarrier(barr);
-
-      atomic {
-        if(id == 0) {
-          for (j=0;j<3;j++) {
-            for (i=0;i<tmpmdsize;i++) {
-              sh_force[j][i] = sh_force[j][i] * hsq2;
-            }
-          }
-        }
-
-        sum = 0.0;
-      }
-
 
       /* Barrier */
       Barrier.enterBarrier(barr);
 
       atomic {
         /*scale forces, update velocities */
-
-        for (i=0;i<tmpmdsize;i++) {
+        sum = 0.0;
+        for (i=0;i<mdsize;i++) {
           sum = sum + one[i].mkekin(hsq2,i);  
         }
 
@@ -448,7 +418,7 @@ class mdRunner extends Thread {
 
         /* average velocity */
 
-        for (i=0;i<tmpmdsize;i++) {
+        for (i=0;i<mdsize;i++) {
           velt = one[i].velavg(vaverh,h);
           if(velt > vaverh) { count = count + 1.0; }
           vel = vel + velt;                    
@@ -460,7 +430,7 @@ class mdRunner extends Thread {
 
         if((move < istop) && (((move+1) % irep) == 0)) {
           sc = Math.sqrt(tref / (tscale*ekin));
-          for (i=0;i<tmpmdsize;i++) {
+          for (i=0;i<mdsize;i++) {
             one[i].dscal(sc,1);
           }
           ekin = tref / tscale;
@@ -469,13 +439,13 @@ class mdRunner extends Thread {
         /* sum to get full potential energy and virial */
 
         if(((move+1) % iprint) == 0) {
-          mymd.ek[id] = 24.0*ekin;
-          mymd.epot[id] = 4.0*mymd.epot[id];
-          etot = mymd.ek[id] + mymd.epot[id];
+          mymd.ek[id].d = 24.0*ekin;
+          mymd.epot[id].d = 4.0*mymd.epot[id].d;
+          etot = mymd.ek[id].d + mymd.epot[id].d;
           temp = tscale * ekin;
-          pres = tmpden * 16.0 * (ekin - mymd.vir[id]) / tmpmdsize;
-          vel = vel / tmpmdsize; 
-          rp = (count / tmpmdsize) * 100.0;
+          pres = tmpden * 16.0 * (ekin - mymd.vir[id].d) / mdsize;
+          vel = vel / mdsize; 
+          rp = (count / mdsize) * 100.0;
         }
       }
       Barrier.enterBarrier(barr);
@@ -493,13 +463,13 @@ class particle {
   public double xvelocity,yvelocity,zvelocity;
   int part_id;
   int id;
-  double [][] sh_force;
-  double [][][] sh_force2;
-  mdRunner runner;
-
+  global double [][] sh_force;
+  global double [][][] sh_force2;
+  particle[] one;
+  
   public particle(double xcoord, double ycoord, double zcoord, double xvelocity,
-      double yvelocity,double zvelocity,double [][] sh_force, 
-      double [][][] sh_force2,int id,mdRunner runner) {
+		  double yvelocity,double zvelocity, double [][] sh_force, 
+		  double [][][] sh_force2,int id, particle[] one) {
 
     this.xcoord = xcoord; 
     this.ycoord = ycoord; 
@@ -510,7 +480,7 @@ class particle {
     this.sh_force = sh_force;
     this.sh_force2 = sh_force2;
     this.id=id;
-    this.runner=runner;
+    this.one=one;
   }
 
   public void domove(double side,int part_id) {
@@ -549,9 +519,9 @@ class particle {
     fzi = 0.0;
 
     for (int i=x+1;i<mdsize;i++) {
-      xx = this.xcoord - runner.one[i].xcoord;
-      yy = this.ycoord - runner.one[i].ycoord;
-      zz = this.zcoord - runner.one[i].zcoord;
+      xx = this.xcoord - one[i].xcoord;
+      yy = this.ycoord - one[i].ycoord;
+      zz = this.zcoord - one[i].zcoord;
 
       if(xx < (-sideh)) { xx = xx + side; }
       if(xx > (sideh))  { xx = xx - side; }
@@ -570,9 +540,9 @@ class particle {
         rrd4 = rrd2*rrd2;
         rrd6 = rrd2*rrd4;
         rrd7 = rrd6*rrd;
-        mymd.epot[id] = mymd.epot[id] + (rrd6 - rrd3);
+        mymd.epot[id].d += (rrd6 - rrd3);
         r148 = rrd7 - 0.5*rrd4;
-        mymd.vir[id] = mymd.vir[id] - rd*r148;
+        mymd.vir[id].d += - rd*r148;
         forcex = xx * r148;
         fxi = fxi + forcex;
 
@@ -588,7 +558,7 @@ class particle {
 
         sh_force2[2][id][i] = sh_force2[2][id][i] - forcez;
 
-        mymd.interacts[id]++;
+        mymd.interacts[id].i++;
       }
 
     }
@@ -624,15 +594,10 @@ class particle {
   }
 
   public void dscal(double sc,int incx) {
-
     xvelocity = xvelocity * sc;
     yvelocity = yvelocity * sc;   
     zvelocity = zvelocity * sc;   
-
-
-
   }
-
 }
 
 class random {
