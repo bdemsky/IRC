@@ -310,7 +310,7 @@ public class OwnershipAnalysis {
 		boolean pruneGarbage,
 		boolean writeReferencers 
 		*/
-		og.writeGraph( d, true, true, true, false );
+		og.writeGraph( d, true, true, false, false );
 
 		// only methods have dependents, tasks cannot
 		// be invoked by any user program calls

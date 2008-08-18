@@ -2,7 +2,8 @@ public class Parameter {
     flag w;
     int a, b;
     Parameter f, g;
-    Penguin penguin;
+    Penguin p;
+    Foo h;
 
     public Parameter() { a = 0; b = 0; f = null; g = null; }
 
@@ -12,6 +13,7 @@ public class Parameter {
 
 public class Penguin {
     int x, y;
+    Foo h;    
 
     public Penguin() { x = 0; y = 0; }
 
@@ -94,13 +96,14 @@ task NewObjectC( Foo a{ f }, Foo b{ f } ) {
     Foo c;
 
     while( false ) {
-	c   = new Foo();
-	c.x = new Foo();
+	c     = new Foo();
+	Foo f = new Foo();
+	c.x   = f;
+	c.y   = f;
     }
 
     taskexit( a{ !f }, b{ !f } );
 }
-
 
 
 
@@ -121,6 +124,24 @@ task ClobberInitParamReflex( Voo v{ f }, Voo w{ f } ) {
     v.b = v.bb;
 
     taskexit( v{ !f }, w{ !f } );
+}
+
+
+task BackToItself( Parameter p0{ w } ) {
+
+    Penguin p = new Penguin();
+    p0.p = p;
+    p.h = p0.h;
+
+    while( false ) {
+	Parameter p1   = new Parameter();
+	          p1.h = new Foo();
+	Penguin   q    = new Penguin();
+	p1.p = q;
+	q.h  = p1.h;
+    }
+
+    taskexit( p0{ !w } );
 }
 
 

@@ -8,7 +8,7 @@ BSFLAGS= -recover -flatirtasks -ownership -enable-assertions
 all: $(PROGRAM).bin
 
 view: PNGs
-	eog *.png
+	eog *.png &
 
 PNGs: DOTs
 	d2p *COMPLETE*.dot

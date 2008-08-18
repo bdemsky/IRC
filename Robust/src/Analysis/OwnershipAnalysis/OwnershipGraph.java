@@ -78,9 +78,11 @@ public class OwnershipGraph {
 	    if( isFlagged || isParameter ) {
 		alpha = new ReachabilitySet( new TokenTuple( id, 
 							     isNewSummary,
-							     TokenTuple.ARITY_ONE ) );
+							     TokenTuple.ARITY_ONE )
+					   ).makeCanonical();
 	    } else {
-		alpha = new ReachabilitySet();
+		alpha = new ReachabilitySet( new TokenTupleSet() 
+					   ).makeCanonical();
 	    }
 	}
 
@@ -451,11 +453,14 @@ public class OwnershipGraph {
 							 );
 		if( f != null ) {
 		    // we can do a strong update here if one of two cases holds
+		    // SAVE FOR LATER, WITHOUT STILL CORRECT
+		    /*
 		    if( (hrnX.getNumReferencers() == 1)                           ||
 			( lnX.getNumReferencees() == 1 && hrnX.isSingleObject() )
 		      ) {
 			clearReferenceEdgesFrom( hrnX, f, false );
 		    }
+		    */
 
 		    addReferenceEdge( hrnX, hrnY, edgeNew );
 
@@ -648,12 +653,17 @@ public class OwnershipGraph {
 
 
 	// after tokens have been aged, reset newest node's reachability
-	hrn0.setAlpha( new ReachabilitySet( 
-			   new TokenTupleSet( 
-			       new TokenTuple( hrn0 ) 
-					    ) 
-					  ).makeCanonical() 
-		       );
+	if( hrn0.isFlagged() ) {
+	    hrn0.setAlpha( new ReachabilitySet( new TokenTupleSet( 
+								  new TokenTuple( hrn0 ) 
+								 ) 
+					      ).makeCanonical() 
+		         );
+	} else {
+	    hrn0.setAlpha( new ReachabilitySet( new TokenTupleSet()						
+					      ).makeCanonical() 
+			 ); 
+	}
     }
  
 
@@ -1467,12 +1477,11 @@ public class OwnershipGraph {
 
 		    // there is an edge in the right place with the right field,
 		    // but do they have the same attributes?
-		    if( edgeA.isInitialParamReflexive() == edgeB.isInitialParamReflexive() &&
-			edgeA.getBeta().equals( edgeB.getBeta() )                          ) {
+		    if( edgeA.getBeta().equals( edgeB.getBeta() ) ) {
 			
 			edgeFound = true;
-		    } else {
-			return false;
+			//} else {
+			//return false;
 		    }
 		}
 	    }

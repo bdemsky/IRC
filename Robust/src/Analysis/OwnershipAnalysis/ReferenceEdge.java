@@ -76,6 +76,12 @@ public class ReferenceEdge {
 	return true;
     }
 
+
+    public boolean equalsIncludingBeta( ReferenceEdge edge ) {
+	return equals( edge ) && beta.equals( edge.beta );
+    }
+
+
     public int hashCode() {
 	int hash = 0;
 
