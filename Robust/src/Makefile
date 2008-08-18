@@ -113,12 +113,11 @@ JAVAFILES=IR/*.java \
 	IR/Tree/*.java \
 	Main/*.java \
 	Analysis/CallGraph/*.java \
-	Analysis/Flag/*.java \
 	Analysis/FlatIRGraph/*.java \
 	Analysis/Locality/*.java \
 	Analysis/OwnershipAnalysis/*.java \
 	Analysis/Prefetch/*.java \
-	Anaysis/Scheduling/*.java \
+	Analysis/Scheduling/*.java \
 	Analysis/TaskStateAnalysis/*.java \
 	Util/*.java \
 	ClassLibrary/*.java \
