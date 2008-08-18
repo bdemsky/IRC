@@ -93,10 +93,10 @@ public class JGFMolDynBench {
       mold.ek   = global new DoubleWrapper[numthreads];
       mold.interacts = global new IntWrapper[numthreads];
       for(int i=0;i<numthreads;i++) {
-	mold.epot[i]=global new DoubleWrapper();
-	mold.vir[i]=global new DoubleWrapper();
-	mold.ek[i]=global new DoubleWrapper();
-	mold.interacts[i]=global new IntWrapper();
+        mold.epot[i]=global new DoubleWrapper();
+        mold.vir[i]=global new DoubleWrapper();
+        mold.ek[i]=global new DoubleWrapper();
+        mold.interacts[i]=global new IntWrapper();
       }
     }
     
@@ -180,40 +180,7 @@ class mdRunner extends Thread {
     iprint = 10;
   } 
 
-  public void run() {
-    /* Parameter determination */
-    
-    int mdsize;
-    double tmpden;
-    int movemx=50;
-    Barrier barr=new Barrier("128.195.175.79");
-    particle[] one;
-
-    atomic {
-      mdsize = mymd.PARTSIZE;
-      one=new particle[mdsize];
-      l = mymd.LENGTH;
-      tmpden = den;
-      side = Math.pow((mdsize/tmpden),0.3333333);
-      rcoff = mm/4.0;
-
-      a = side/mm;
-      sideh = side*0.5;
-      hsq = h*h;
-      hsq2 = hsq*0.5;
-      npartm = mdsize - 1;
-      rcoffs = rcoff * rcoff;
-      tscale = 16.0 / (1.0 * mdsize - 1.0);
-      vaver = 1.13 * Math.sqrt(tref / 24.0);
-      vaverh = vaver * h;
-
-      /* Particle Generation */
-
-      xvelocity = 0.0;
-      yvelocity = 0.0;
-      zvelocity = 0.0;
-      ijk = 0;
-
+    public void init(particle[] one, int mdsize) {
       for (lg=0; lg<=1; lg++) {
         for (i=0; i<mm; i++) {
           for (j=0; j<mm; j++) {
@@ -314,6 +281,43 @@ class mdRunner extends Thread {
         one[i].zvelocity = one[i].zvelocity * sc;     
 
       }
+
+    }
+
+  public void run() {
+    /* Parameter determination */
+    
+    int mdsize;
+    double tmpden;
+    int movemx=50;
+    Barrier barr=new Barrier("128.195.175.79");
+    particle[] one;
+    atomic {
+      mdsize = mymd.PARTSIZE;
+      one=new particle[mdsize];
+      l = mymd.LENGTH;
+      tmpden = den;
+      side = Math.pow((mdsize/tmpden),0.3333333);
+      rcoff = mm/4.0;
+
+      a = side/mm;
+      sideh = side*0.5;
+      hsq = h*h;
+      hsq2 = hsq*0.5;
+      npartm = mdsize - 1;
+      rcoffs = rcoff * rcoff;
+      tscale = 16.0 / (1.0 * mdsize - 1.0);
+      vaver = 1.13 * Math.sqrt(tref / 24.0);
+      vaverh = vaver * h;
+
+      /* Particle Generation */
+
+      xvelocity = 0.0;
+      yvelocity = 0.0;
+      zvelocity = 0.0;
+      ijk = 0;
+      init(one, mdsize);
+
     }
 
     /* Synchronise threads and start timer before MD simulation */
