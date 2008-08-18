@@ -1935,7 +1935,8 @@ public class BuildCode {
 		String src=generateTemp(fm, ffn.getSrc(),lb);
 		String dst=generateTemp(fm, ffn.getDst(),lb);
 		output.println(dst+"="+ src +"->"+field+ ";");
-		output.println(dst+"=(void *) transRead(trans, (unsigned int) "+dst+");");
+		if (locality.getAtomic(lb).get(ffn).intValue()>0)
+		  output.println(dst+"=(void *) transRead(trans, (unsigned int) "+dst+");");
 	      } else
 		output.println(generateTemp(fm, ffn.getDst(),lb)+"="+ generateTemp(fm,ffn.getSrc(),lb)+"->"+ ffn.getField().getSafeSymbol()+";");
 	    } else if (status==LocalityAnalysis.EITHER) {
