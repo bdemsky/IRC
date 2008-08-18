@@ -43,7 +43,7 @@ int main(int argc, char **argv) {
 #endif
 
 void begin(void) {
-	int datasize = 16;
+	int datasize = 32;
 	int i = 0;
 	/* Main loop: */
 	for(i = 0; i < datasize; ++i) {

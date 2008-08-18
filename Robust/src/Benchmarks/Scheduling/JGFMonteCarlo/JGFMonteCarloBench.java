@@ -23,16 +23,48 @@
 task t1(StartupObject s{initialstate}) {
     //System.printString("task t1\n");
     
-    int datasize = 32;
-    for(int i = 0; i < datasize; ++i) {
-	SeriesRunner sr = new SeriesRunner(i){!finish};
+    int datasize = 1000;  //should be times of 2
+    int nruns = 64 * 16;
+    int group = 16;
+    
+    AppDemo ad = new AppDemo(datasize, nruns, group){merge};
+    
+    ad.initSerial();
+    
+    for(int i = 0; i < group; i++) {
+	AppDemoRunner adr = new AppDemoRunner(i, nruns, group, ad.initAllTasks){run};
     }
     
     taskexit(s{!initialstate});
 }
 
-task t2(SeriesRunner sr{!finish}) {
+task t2(AppDemoRunner adr{run}) {
     //System.printString("task t2\n");
-    sr.run();
-    taskexit(sr{finish});
+    
+    //  Now do the computation.
+    adr.run();
+    
+    taskexit(adr{!run, turnin});
 }
+
+task t3(AppDemo ad{merge}, AppDemoRunner adr{turnin}) {
+    //System.printString("task t3\n");
+    boolean isFinish = ad.processResults(adr.results);
+    
+    if(isFinish) {
+	taskexit(ad{!merge, validate}, adr{!turnin});
+    }
+    taskexit(adr{!turnin});
+}
+
+task t5(AppDemo ad{validate}) {
+    //System.printString("task t5\n");
+    float refval = (float)(-0.0333976656762814);
+    float dev = Math.abs(ad.JGFavgExpectedReturnRateMC - refval);
+    if (dev > 1.0e-12 ){
+      //System.printString("Validation failed");
+      //System.printString(" expectedReturnRate= " + (int)(ad.JGFavgExpectedReturnRateMC*10000) + "  " + (int)(dev*10000) + "\n");
+    }
+    taskexit(ad{!validate});
+}
+

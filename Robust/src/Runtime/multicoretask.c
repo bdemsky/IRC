@@ -72,6 +72,12 @@ int msgdata[30];
 int msgtype;
 int msgdataindex;
 int msglength;
+int outmsgdata[30];
+int outmsgindex;
+int outmsglast;
+int outmsgleft;
+bool isMsgHanging;
+bool isMsgSending;
 void calCoords(int core_num, int* coordY, int* coordX);
 #elif defined THREADSIMULATE
 static struct RuntimeHash* locktbl;
@@ -144,6 +150,15 @@ int main(int argc, char **argv) {
 	msgtype = -1;
 	msgdataindex = 0;
 	msglength = 30;
+
+	for(i = 0; i < 30; ++i) {
+		outmsgdata[i] = -1;
+	}
+	outmsgindex = 0;
+	outmsglast = 0;
+	outmsgleft = 0;
+	isMsgHanging = false;
+	isMsgSending = false;
 #ifdef RAWDEBUG
 	raw_test_pass(0xee02);
 #endif
@@ -381,7 +396,7 @@ void run(void* arg) {
 
 		  if(grount == 1) {
 			  int k = 0;
-			  raw_invalidate_cache_range(obj, classsize[((struct ___Object___ *)obj)->type]);
+			  raw_invalidate_cache_range((int)obj, classsize[((struct ___Object___ *)obj)->type]);
 			  // flush the obj
 			  /*for(k = 0; k < classsize[((struct ___Object___ *)obj)->type]; ++k) {
 				  invalidateAddr(obj + k);
@@ -1292,6 +1307,8 @@ void transferObject(struct transObjInfo * transObj) {
     msgHdr = construct_dyn_hdr(0, msgsize, 0,		// msgsize word sent.
 			                   self_y, self_x,
 							   target_y, target_x);
+	// start sending msg, set sand msg flag
+	isMsgSending = true;
 	gdn_send(msgHdr);		// Send the message header to EAST to handle fab(n - 1).
 #ifdef RAWDEBUG
 	raw_test_pass(0xbbbb);
@@ -1325,6 +1342,48 @@ void transferObject(struct transObjInfo * transObj) {
 	raw_test_pass(0xffff);
 #endif
 	++(self_numsendobjs);
+	// end of sending this msg, set sand msg flag false
+	isMsgSending = false;
+	// check if there are pending msgs 
+	while(isMsgHanging) {
+		// get the msg from outmsgdata[]
+		// length + target + msg
+		outmsgleft = outmsgdata[outmsgindex++];
+		targetcore = outmsgdata[outmsgindex++];
+		calCoords(targetcore, &target_y, &target_x);
+		// Build the message header
+		msgHdr = construct_dyn_hdr(0, outmsgleft, 0,		// msgsize word sent.
+				                   self_y, self_x,
+								   target_y, target_x);
+		isMsgSending = true;
+		gdn_send(msgHdr);		// Send the message header to EAST to handle fab(n - 1).
+#ifdef RAWDEBUG
+		raw_test_pass(0xbbbb);
+		raw_test_pass(0xb000 + targetcore); // targetcore
+#endif
+		while(outmsgleft-- > 0) {
+    		gdn_send(outmsgdata[outmsgindex++]);
+#ifdef RAWDEBUG
+    		raw_test_pass_reg(outmsgdata[outmsgindex - 1]);
+#endif
+		}
+#ifdef RAWDEBUG
+		raw_test_pass(0xffff);
+#endif
+		isMsgSending = false;
+#ifdef INTERRUPT
+		raw_user_interrupts_off();
+#endif
+		// check if there are still msg hanging
+		if(outmsgindex == outmsglast) {
+			// no more msgs
+			outmsgindex = outmsglast = 0;
+			isMsgHanging = false;
+		} 
+#ifdef INTERRUPT
+		raw_user_interrupts_on();
+#endif
+	}
 #elif defined THREADSIMULATE
 	int numofcore = pthread_getspecific(key);
 
@@ -1406,6 +1465,8 @@ bool transStallMsg(int targetcore) {
     msgHdr = construct_dyn_hdr(0, msgsize, 0,		// msgsize word sent.
 			                   self_y, self_x,
 							   target_y, target_x);
+	// start sending msgs, set msg sending flag
+	isMsgSending = true;
 	gdn_send(msgHdr);		// Send the message header to EAST to handle fab(n - 1).
 #ifdef RAWDEBUG
 	raw_test_pass(0xbbbb);
@@ -1428,6 +1489,48 @@ bool transStallMsg(int targetcore) {
 	raw_test_pass_reg(self_numreceiveobjs);
 	raw_test_pass(0xffff);
 #endif
+	// end of sending this msg, set sand msg flag false
+	isMsgSending = false;
+	// check if there are pending msgs 
+	while(isMsgHanging) {
+		// get the msg from outmsgdata[]
+		// length + target + msg
+		outmsgleft = outmsgdata[outmsgindex++];
+		targetcore = outmsgdata[outmsgindex++];
+		calCoords(targetcore, &target_y, &target_x);
+		// Build the message header
+		msgHdr = construct_dyn_hdr(0, outmsgleft, 0,		// msgsize word sent.
+				                   self_y, self_x,
+								   target_y, target_x);
+		isMsgSending = true;
+		gdn_send(msgHdr);		// Send the message header to EAST to handle fab(n - 1).
+#ifdef RAWDEBUG
+		raw_test_pass(0xbbbb);
+		raw_test_pass(0xb000 + targetcore); // targetcore
+#endif
+		while(outmsgleft-- > 0) {
+    		gdn_send(outmsgdata[outmsgindex++]);
+#ifdef RAWDEBUG
+    		raw_test_pass_reg(outmsgdata[outmsgindex - 1]);
+#endif
+		}
+#ifdef RAWDEBUG
+		raw_test_pass(0xffff);
+#endif
+		isMsgSending = false;
+#ifdef INTERRUPT
+		raw_user_interrupts_off();
+#endif
+		// check if there are still msg hanging
+		if(outmsgindex == outmsglast) {
+			// no more msgs
+			outmsgindex = outmsglast = 0;
+			isMsgHanging = false;
+		} 
+#ifdef INTERRUPT
+		raw_user_interrupts_on();
+#endif
+	}
 	return true;
 #elif defined THREADSIMULATE
 	struct ___Object___ *newobj = RUNMALLOC(sizeof(struct ___Object___));
@@ -1595,8 +1698,27 @@ msg:
 							raw_test_pass_reg(transObj->queues[2*k+1]);
 #endif
 						}
+						// check if there is an existing duplicate item
+						{
+							struct QueueItem * qitem = getTail(&objqueue);
+							struct QueueItem * prev = NULL;
+							while(qitem != NULL) {
+								struct transObjInfo * tmpinfo = (struct transObjInfo *)(qitem->objectptr);
+								if(tmpinfo->objptr == transObj->objptr) {
+									// the same object, remove outdate one
+									removeItem(&objqueue, qitem);
+								} else {
+									prev = qitem;
+								}
+								if(prev == NULL) {
+									qitem = getTail(&objqueue);
+								} else {
+									qitem = getNext(prev);
+								}
+							}
 						//memcpy(transObj->queues, msgdata[3], sizeof(int)*(msglength - 3));
 						addNewItem_I(&objqueue, (void *)transObj);
+						}
 						++(self_numreceiveobjs);
 #ifdef RAWDEBUG
 						raw_test_pass(0xe881);
@@ -1679,39 +1801,62 @@ msg:
 #endif
 						}
 						targetcore = data3;
-						calCoords(corenum, &self_y, &self_x);
-						calCoords(targetcore, &target_y, &target_x);
-						// Build the message header
-						msgHdr = construct_dyn_hdr(0, msgsize, 0,		// msgsize word sent.
-								                   self_y, self_x,
-												   target_y, target_x);
-						gdn_send(msgHdr);		// Send the message header to EAST to handle fab(n - 1).
+						// check if there is still some msg on sending
+						if(isMsgSending) {
 #ifdef RAWDEBUG
-						raw_test_pass(0xbbbb);
-						raw_test_pass(0xb000 + targetcore); // targetcore
+							raw_test_pass(0xe885);
 #endif
-						if(deny == true) {
-							// deny the lock request
-							gdn_send(4); // lock request
-#ifdef RAWDEBUG
-							raw_test_pass(4);
-#endif
+							isMsgHanging = true;
+							// cache the msg in outmsgdata and send it later
+							// msglength + target core + msg
+							outmsgdata[outmsglast++] = msgsize;
+							outmsgdata[outmsglast++] = targetcore;
+							if(deny == true) {
+								outmsgdata[outmsglast++] = 4;
+							} else {
+								outmsgdata[outmsglast++] = 3;
+							}
+							outmsgdata[outmsglast++] = data1;
+							outmsgdata[outmsglast++] = data2;
 						} else {
-							// grount the lock request		
-							gdn_send(3); // lock request
 #ifdef RAWDEBUG
-							raw_test_pass(3);
+							raw_test_pass(0xe886);
+#endif
+							// no msg on sending, send it out
+							calCoords(corenum, &self_y, &self_x);
+							calCoords(targetcore, &target_y, &target_x);
+							// Build the message header
+							msgHdr = construct_dyn_hdr(0, msgsize, 0,		// msgsize word sent.
+									                   self_y, self_x,
+													   target_y, target_x);
+							gdn_send(msgHdr);		// Send the message header to EAST to handle fab(n - 1).
+#ifdef RAWDEBUG
+							raw_test_pass(0xbbbb);
+							raw_test_pass(0xb000 + targetcore); // targetcore
+#endif
+							if(deny == true) {
+								// deny the lock request
+								gdn_send(4); // lock request
+#ifdef RAWDEBUG
+								raw_test_pass(4);
+#endif
+							} else {
+								// grount the lock request		
+								gdn_send(3); // lock request
+#ifdef RAWDEBUG
+								raw_test_pass(3);
+#endif
+							}
+							gdn_send(data1); // lock type
+#ifdef RAWDEBUG
+							raw_test_pass_reg(data1);
+#endif
+							gdn_send(data2); // lock target
+#ifdef RAWDEBUG
+							raw_test_pass_reg(data2);
+							raw_test_pass(0xffff);
 #endif
 						}
-						gdn_send(data1); // lock type
-#ifdef RAWDEBUG
-						raw_test_pass_reg(data1);
-#endif
-						gdn_send(data2); // lock target
-#ifdef RAWDEBUG
-						raw_test_pass_reg(data2);
-						raw_test_pass(0xffff);
-#endif
 						break;
 					}
 			case 3: {
@@ -1757,7 +1902,7 @@ msg:
 							int rwlock_obj = 0;
 							RuntimeHashget(locktbl, data2, &rwlock_obj);
 #ifdef RAWDEBUG
-							raw_test_pass(0xe885);
+							raw_test_pass(0xe887);
 							raw_test_pass_reg(rwlock_obj);
 #endif
 							if(data1 == 0) {
@@ -1785,7 +1930,7 @@ msg:
 		//msgdataindex = 0;
 		msglength = 30;
 #ifdef RAWDEBUG
-		raw_test_pass(0xe886);
+		raw_test_pass(0xe888);
 #endif
 		if(gdn_input_avail() != 0) {
 			goto msg;
@@ -1794,7 +1939,7 @@ msg:
 	} else {
 		// not a whole msg
 #ifdef RAWDEBUG
-		raw_test_pass(0xe887);
+		raw_test_pass(0xe889);
 #endif
 		return -2;
 	}
@@ -1862,10 +2007,18 @@ bool getreadlock(void * ptr) {
 #ifdef RAW
 	unsigned msgHdr;
 	int self_y, self_x, target_y, target_x;
-	int targetcore = ((int)ptr >> 5) % TOTALCORE;
+	int targetcore = 0; //((int)ptr >> 5) % TOTALCORE;
 	// for 32 bit machine, the size is always 4 words
 	//int msgsize = sizeof(int) * 4;
 	int msgsize = 4;
+	int tc = TOTALCORE;
+#ifdef INTERRUPT
+	raw_user_interrupts_off();
+#endif
+	targetcore = ((int)ptr >> 5) % tc;
+#ifdef INTERRUPT
+	raw_user_interrupts_on();
+#endif
 
 	lockobj = (int)ptr;
 	lockflag = false;
@@ -1923,6 +2076,8 @@ bool getreadlock(void * ptr) {
     msgHdr = construct_dyn_hdr(0, msgsize, 0,		// msgsize word sent.
 			                   self_y, self_x,
 							   target_y, target_x);
+	// start sending the msg, set send msg flag
+	isMsgSending = true;
 	gdn_send(msgHdr);		// Send the message header to EAST to handle fab(n - 1).
 #ifdef RAWDEBUG
 	raw_test_pass(0xbbbb);
@@ -1945,6 +2100,48 @@ bool getreadlock(void * ptr) {
 	raw_test_pass_reg(corenum);
 	raw_test_pass(0xffff);
 #endif
+	// end of sending this msg, set sand msg flag false
+	isMsgSending = false;
+	// check if there are pending msgs 
+	while(isMsgHanging) {
+		// get the msg from outmsgdata[]
+		// length + target + msg
+		outmsgleft = outmsgdata[outmsgindex++];
+		targetcore = outmsgdata[outmsgindex++];
+		calCoords(targetcore, &target_y, &target_x);
+		// Build the message header
+		msgHdr = construct_dyn_hdr(0, outmsgleft, 0,		// msgsize word sent.
+				                   self_y, self_x,
+								   target_y, target_x);
+		isMsgSending = true;
+		gdn_send(msgHdr);		// Send the message header to EAST to handle fab(n - 1).
+#ifdef RAWDEBUG
+		raw_test_pass(0xbbbb);
+		raw_test_pass(0xb000 + targetcore); // targetcore
+#endif
+		while(outmsgleft-- > 0) {
+    		gdn_send(outmsgdata[outmsgindex++]);
+#ifdef RAWDEBUG
+    		raw_test_pass_reg(outmsgdata[outmsgindex - 1]);
+#endif
+		}
+#ifdef RAWDEBUG
+		raw_test_pass(0xffff);
+#endif
+		isMsgSending = false;
+#ifdef INTERRUPT
+		raw_user_interrupts_off();
+#endif
+		// check if there are still msg hanging
+		if(outmsgindex == outmsglast) {
+			// no more msgs
+			outmsgindex = outmsglast = 0;
+			isMsgHanging = false;
+		} 
+#ifdef INTERRUPT
+		raw_user_interrupts_on();
+#endif
+	}
 	return true;
 #elif defined THREADSIMULATE
 	int numofcore = pthread_getspecific(key);
@@ -2007,10 +2204,18 @@ void releasereadlock(void * ptr) {
 #ifdef RAW
 	unsigned msgHdr;
 	int self_y, self_x, target_y, target_x;
-	int targetcore = ((int)ptr >> 5) % TOTALCORE;
+	int targetcore = 0; //((int)ptr >> 5) % TOTALCORE;
 	// for 32 bit machine, the size is always 3 words
 	//int msgsize = sizeof(int) * 3;
 	int msgsize = 3;
+	int tc = TOTALCORE;
+#ifdef INTERRUPT
+	raw_user_interrupts_off();
+#endif
+	targetcore = ((int)ptr >> 5) % tc;
+#ifdef INTERRUPT
+	raw_user_interrupts_on();
+#endif
 
 	if(targetcore == corenum) {
 #ifdef INTERRUPT
@@ -2039,6 +2244,8 @@ void releasereadlock(void * ptr) {
     msgHdr = construct_dyn_hdr(0, msgsize, 0,		// msgsize word sent.
 			                   self_y, self_x,
 							   target_y, target_x);
+	// start sending the msg, set send msg flag
+	isMsgSending = true;
 	gdn_send(msgHdr);		// Send the message header to EAST to handle fab(n - 1).
 #ifdef RAWDEBUG
 	raw_test_pass(0xbbbb);
@@ -2057,6 +2264,48 @@ void releasereadlock(void * ptr) {
 	raw_test_pass_reg(ptr);
 	raw_test_pass(0xffff);
 #endif
+	// end of sending this msg, set sand msg flag false
+	isMsgSending = false;
+	// check if there are pending msgs 
+	while(isMsgHanging) {
+		// get the msg from outmsgdata[]
+		// length + target + msg
+		outmsgleft = outmsgdata[outmsgindex++];
+		targetcore = outmsgdata[outmsgindex++];
+		calCoords(targetcore, &target_y, &target_x);
+		// Build the message header
+		msgHdr = construct_dyn_hdr(0, outmsgleft, 0,		// msgsize word sent.
+				                   self_y, self_x,
+								   target_y, target_x);
+		isMsgSending = true;
+		gdn_send(msgHdr);		// Send the message header to EAST to handle fab(n - 1).
+#ifdef RAWDEBUG
+		raw_test_pass(0xbbbb);
+		raw_test_pass(0xb000 + targetcore); // targetcore
+#endif
+		while(outmsgleft-- > 0) {
+    		gdn_send(outmsgdata[outmsgindex++]);
+#ifdef RAWDEBUG
+    		raw_test_pass_reg(outmsgdata[outmsgindex - 1]);
+#endif
+		}
+#ifdef RAWDEBUG
+		raw_test_pass(0xffff);
+#endif
+		isMsgSending = false;
+#ifdef INTERRUPT
+		raw_user_interrupts_off();
+#endif
+		// check if there are still msg hanging
+		if(outmsgindex == outmsglast) {
+			// no more msgs
+			outmsgindex = outmsglast = 0;
+			isMsgHanging = false;
+		} 
+#ifdef INTERRUPT
+		raw_user_interrupts_on();
+#endif
+	}
 #elif defined THREADSIMULATE
 	int numofcore = pthread_getspecific(key);
 	int rc = pthread_rwlock_rdlock(&rwlock_tbl);
@@ -2213,17 +2462,17 @@ bool getwritelock(void * ptr) {
 #ifdef RAW
 	unsigned msgHdr;
 	int self_y, self_x, target_y, target_x;
-	int targetcore = ((int)ptr >> 5) % TOTALCORE;
+	int targetcore = 0; //((int)ptr >> 5) % TOTALCORE;
 	// for 32 bit machine, the size is always 4 words
 	//int msgsize = sizeof(int) * 4;
 	int msgsize= 4;
 	int tc = TOTALCORE;
 #ifdef INTERRUPT
-	//raw_user_interrupts_off();
+	raw_user_interrupts_off();
 #endif
-	//targetcore = ((int)ptr) % tc;
+	targetcore = ((int)ptr >> 5) % tc;
 #ifdef INTERRUPT
-	//raw_user_interrupts_on();
+	raw_user_interrupts_on();
 #endif
 
 #ifdef RAWDEBUG
@@ -2309,6 +2558,8 @@ bool getwritelock(void * ptr) {
     msgHdr = construct_dyn_hdr(0, msgsize, 0,		// msgsize word sent.
 			                   self_y, self_x,
 							   target_y, target_x);
+	// start sending the msg, set send msg flag
+	isMsgSending = true;
 	gdn_send(msgHdr);		// Send the message header to EAST to handle fab(n - 1).
 #ifdef RAWDEBUG
 	raw_test_pass(0xbbbb);
@@ -2331,6 +2582,48 @@ bool getwritelock(void * ptr) {
 	raw_test_pass_reg(corenum);
 	raw_test_pass(0xffff);
 #endif
+	// end of sending this msg, set sand msg flag false
+	isMsgSending = false;
+	// check if there are pending msgs 
+	while(isMsgHanging) {
+		// get the msg from outmsgdata[]
+		// length + target + msg
+		outmsgleft = outmsgdata[outmsgindex++];
+		targetcore = outmsgdata[outmsgindex++];
+		calCoords(targetcore, &target_y, &target_x);
+		// Build the message header
+		msgHdr = construct_dyn_hdr(0, outmsgleft, 0,		// msgsize word sent.
+				                   self_y, self_x,
+								   target_y, target_x);
+		isMsgSending = true;
+		gdn_send(msgHdr);		// Send the message header to EAST to handle fab(n - 1).
+#ifdef RAWDEBUG
+		raw_test_pass(0xbbbb);
+		raw_test_pass(0xb000 + targetcore); // targetcore
+#endif
+		while(outmsgleft-- > 0) {
+    		gdn_send(outmsgdata[outmsgindex++]);
+#ifdef RAWDEBUG
+    		raw_test_pass_reg(outmsgdata[outmsgindex - 1]);
+#endif
+		}
+#ifdef RAWDEBUG
+		raw_test_pass(0xffff);
+#endif
+		isMsgSending = false;
+#ifdef INTERRUPT
+		raw_user_interrupts_off();
+#endif
+		// check if there are still msg hanging
+		if(outmsgindex == outmsglast) {
+			// no more msgs
+			outmsgindex = outmsglast = 0;
+			isMsgHanging = false;
+		} 
+#ifdef INTERRUPT
+		raw_user_interrupts_on();
+#endif
+	}
 	return true;
 #elif defined THREADSIMULATE
 	int numofcore = pthread_getspecific(key);
@@ -2396,10 +2689,18 @@ void releasewritelock(void * ptr) {
 #ifdef RAW
 	unsigned msgHdr;
 	int self_y, self_x, target_y, target_x;
-	int targetcore = ((int)ptr >> 5) % TOTALCORE;
+	int targetcore = 0; //((int)ptr >> 5) % TOTALCORE;
 	// for 32 bit machine, the size is always 3 words
 	//int msgsize = sizeof(int) * 3;
 	int msgsize = 3;
+	int tc = TOTALCORE;
+#ifdef INTERRUPT
+	raw_user_interrupts_off();
+#endif
+	targetcore = ((int)ptr >> 5) % tc;
+#ifdef INTERRUPT
+	raw_user_interrupts_on();
+#endif
 
 	if(targetcore == corenum) {
 #ifdef INTERRUPT
@@ -2440,6 +2741,8 @@ void releasewritelock(void * ptr) {
     msgHdr = construct_dyn_hdr(0, msgsize, 0,		// msgsize word sent.
 			                   self_y, self_x,
 							   target_y, target_x);
+	// start sending the msg, set send msg flag
+	isMsgSending = true;
 	gdn_send(msgHdr);		// Send the message header to EAST to handle fab(n - 1).
 #ifdef RAWDEBUG
 	raw_test_pass(0xbbbb);
@@ -2458,6 +2761,48 @@ void releasewritelock(void * ptr) {
 	raw_test_pass_reg(ptr);
 	raw_test_pass(0xffff);
 #endif
+	// end of sending this msg, set sand msg flag false
+	isMsgSending = false;
+	// check if there are pending msgs 
+	while(isMsgHanging) {
+		// get the msg from outmsgdata[]
+		// length + target + msg
+		outmsgleft = outmsgdata[outmsgindex++];
+		targetcore = outmsgdata[outmsgindex++];
+		calCoords(targetcore, &target_y, &target_x);
+		// Build the message header
+		msgHdr = construct_dyn_hdr(0, outmsgleft, 0,		// msgsize word sent.
+				                   self_y, self_x,
+								   target_y, target_x);
+		isMsgSending = true;
+		gdn_send(msgHdr);		// Send the message header to EAST to handle fab(n - 1).
+#ifdef RAWDEBUG
+		raw_test_pass(0xbbbb);
+		raw_test_pass(0xb000 + targetcore); // targetcore
+#endif
+		while(outmsgleft-- > 0) {
+    		gdn_send(outmsgdata[outmsgindex++]);
+#ifdef RAWDEBUG
+    		raw_test_pass_reg(outmsgdata[outmsgindex - 1]);
+#endif
+		}
+#ifdef RAWDEBUG
+		raw_test_pass(0xffff);
+#endif
+		isMsgSending = false;
+#ifdef INTERRUPT
+		raw_user_interrupts_off();
+#endif
+		// check if there are still msg hanging
+		if(outmsgindex == outmsglast) {
+			// no more msgs
+			outmsgindex = outmsglast = 0;
+			isMsgHanging = false;
+		} 
+#ifdef INTERRUPT
+		raw_user_interrupts_on();
+#endif
+	}
 #elif defined THREADSIMULATE
 	int numofcore = pthread_getspecific(key);
 	int rc = pthread_rwlock_rdlock(&rwlock_tbl);
@@ -3105,8 +3450,10 @@ execute:
 #endif
 #ifdef RAWDEBUG
 	  raw_test_pass(0xe99a);
-	  	  raw_test_pass_reg(lock);
-		  #endif
+#endif
+#ifdef RAWPATH
+	  raw_test_pass(0xe99a);
+#endif
 
 	}
       }

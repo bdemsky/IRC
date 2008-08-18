@@ -59,7 +59,6 @@ public class SeriesRunner {
 	    // Calculate the fundamental frequency.
 	    // ( 2 * pi ) / period...and since the period
 	    // is 2, omega is simply pi.
-	    //float omega = (float) 3.1415926535897932; // Fundamental frequency.
 	    float omega = (float) 3.1415926535897932; // Fundamental frequency.
 
 	    // Calculate A[i] terms. Note, once again, that we

@@ -308,13 +308,14 @@ public class Main {
 					  int newRate = 1;
 					  String cdname = cd.getSymbol();
 					  if((cdname.equals("SeriesRunner")) || 
-						  (cdname.equals("MDRunner"))) {
+						  (cdname.equals("MDRunner")) ||
+						  (cdname.equals("Stage")) ||
+						  (cdname.equals("AppDemoRunner")) || 
+						  (cdname.equals("FilterBankAtom"))) {
 					      newRate = 16;
 					  } else if(cdname.equals("SentenceParser")) {
 					      newRate = 4;
-					  } /*else if(cdname.equals("ReduceWorker")) {
-					      newRate = 3;
-					  }*/
+					  } 
 					  /*do {
 					      tint = r.nextInt()%100;
 					  } while(tint <= 0);
@@ -418,7 +419,7 @@ public class Main {
 	      if(state.MULTICORE) {
 		  //it_scheduling = scheduleAnalysis.getSchedulingsIter();
 		  //Vector<Schedule> scheduling = (Vector<Schedule>)it_scheduling.next();
-		  Vector<Schedule> scheduling = scheduleAnalysis.getSchedulings().elementAt(selectedScheduling.elementAt(0));
+		  Vector<Schedule> scheduling = scheduleAnalysis.getSchedulings().elementAt(selectedScheduling.lastElement());
 		  BuildCodeMultiCore bcm=new BuildCodeMultiCore(state, bf.getMap(), tu, sa, scheduling, scheduleAnalysis.getCoreNum(), pa);
 		  bcm.buildCode();
 	      }

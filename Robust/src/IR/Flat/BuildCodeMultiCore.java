@@ -612,6 +612,10 @@ public class BuildCodeMultiCore extends BuildCode {
 	output.println("for(;tmpindex < tmplen; tmpindex++) {");
 	output.println("   tmpsum = tmpsum * 10 + *(taskname + tmpindex) - '0';");
 	output.println("}");
+	output.println("#ifdef RAWPATH");
+	output.println("raw_test_pass(0xAAAA);");
+	output.println("raw_test_pass_reg(tmpsum);");
+	output.println("#endif");
 	output.println("#ifdef RAWDEBUG");
 	output.println("raw_test_pass(0xAAAA);");
 	output.println("raw_test_pass_reg(tmpsum);");
@@ -968,7 +972,7 @@ public class BuildCodeMultiCore extends BuildCode {
 		    output.println("}");
 		}
 		
-		Vector<Integer> sendto = new Vector<Integer>();
+		Vector<TranObjInfo> sendto = new Vector<TranObjInfo>();
 		Queue<Integer> queue = null;
 		if(targetCoreTbl != null) {
 		    queue = targetCoreTbl.get(tmpFState);
@@ -1017,20 +1021,26 @@ public class BuildCodeMultiCore extends BuildCode {
 				// enqueue this object and its destinations for later process
 				// all the possible queues
 				QueueInfo qinfo = null;
+				TranObjInfo tmpinfo = new TranObjInfo();
+				tmpinfo.name = super.generateTemp(fm, temp, lb);
+				tmpinfo.targetcore = targetcore;
 				FlagState targetFS = this.currentSchedule.getTargetFState(tmpFState);
 				if(targetFS != null) {
-				    qinfo = outputtransqueues(targetFS, targetcore, output);
+				    tmpinfo.fs = targetFS;
 				} else {
-				    qinfo = outputtransqueues(tmpFState, targetcore, output);
+				    tmpinfo.fs = tmpFState;
 				}
-				output.println("tmpObjInfo = RUNMALLOC(sizeof(struct transObjInfo));");
-				output.println("tmpObjInfo->objptr = (void *)" + super.generateTemp(fm, temp, lb) + ";");
-				output.println("tmpObjInfo->targetcore = "+targetcore.toString()+";");
-				output.println("tmpObjInfo->queues = " + qinfo.qname + ";");
-				output.println("tmpObjInfo->length = " + qinfo.length + ";");
-				output.println("addNewItem(totransobjqueue, (void*)tmpObjInfo);");
+				if(!contains(sendto, tmpinfo)){
+				    qinfo = outputtransqueues(tmpinfo.fs, targetcore, output);
+				    output.println("tmpObjInfo = RUNMALLOC(sizeof(struct transObjInfo));");
+				    output.println("tmpObjInfo->objptr = (void *)" + tmpinfo.name + ";");
+				    output.println("tmpObjInfo->targetcore = "+targetcore.toString()+";");
+				    output.println("tmpObjInfo->queues = " + qinfo.qname + ";");
+				    output.println("tmpObjInfo->length = " + qinfo.length + ";");
+				    output.println("addNewItem(totransobjqueue, (void*)tmpObjInfo);");
+				    sendto.add(tmpinfo);
+				}
 				output.println("}");
-				sendto.add(targetcore);
 			    }
 			    output.println("break;");
 			}
@@ -1047,20 +1057,26 @@ public class BuildCodeMultiCore extends BuildCode {
 			// enqueue this object and its destinations for later process
 			// all the possible queues
 			QueueInfo qinfo = null;
+			TranObjInfo tmpinfo = new TranObjInfo();
+			tmpinfo.name = super.generateTemp(fm, temp, lb);
+			tmpinfo.targetcore = targetcore;
 			FlagState targetFS = this.currentSchedule.getTargetFState(tmpFState);
 			if(targetFS != null) {
-			    qinfo = outputtransqueues(targetFS, targetcore, output);
+			    tmpinfo.fs = targetFS;
 			} else {
-			    qinfo = outputtransqueues(tmpFState, targetcore, output);
+			    tmpinfo.fs = tmpFState;
 			}
-			output.println("tmpObjInfo = RUNMALLOC(sizeof(struct transObjInfo));");
-			output.println("tmpObjInfo->objptr = (void *)" + super.generateTemp(fm, temp, lb) + ";");
-			output.println("tmpObjInfo->targetcore = "+targetcore.toString()+";");
-			output.println("tmpObjInfo->queues = " + qinfo.qname + ";");
-			output.println("tmpObjInfo->length = " + qinfo.length + ";");
-			output.println("addNewItem(totransobjqueue, (void*)tmpObjInfo);");
+			if(!contains(sendto, tmpinfo)){
+			    qinfo = outputtransqueues(tmpinfo.fs, targetcore, output);
+			    output.println("tmpObjInfo = RUNMALLOC(sizeof(struct transObjInfo));");
+			    output.println("tmpObjInfo->objptr = (void *)" + tmpinfo.name + ";");
+			    output.println("tmpObjInfo->targetcore = "+targetcore.toString()+";");
+			    output.println("tmpObjInfo->queues = " + qinfo.qname + ";");
+			    output.println("tmpObjInfo->length = " + qinfo.length + ";");
+			    output.println("addNewItem(totransobjqueue, (void*)tmpObjInfo);");
+			    sendto.add(tmpinfo);
+			}
 			output.println("}");
-			sendto.add(targetcore);
 		    }
 		    output.println("/* increase index*/");
 		    output.println("++" + queueins + ".index;");
@@ -1089,26 +1105,33 @@ public class BuildCodeMultiCore extends BuildCode {
 		    for(int k = 0; k < targetcores.size(); ++k) {
 			// TODO
 			// add the information of exactly which queue
-			if(!sendto.contains(targetcores.elementAt(i))) {
+			//if(!sendto.contains(targetcores.elementAt(i))) {
 			    // previously not sended to this target core
 			    // enqueue this object and its destinations for later process
 			    output.println("{");
 			    // all the possible queues
 			    QueueInfo qinfo = null;
+			    TranObjInfo tmpinfo = new TranObjInfo();
+			    tmpinfo.name = super.generateTemp(fm, temp, lb);
+			    tmpinfo.targetcore = targetcores.elementAt(i);
 			    FlagState targetFS = this.currentSchedule.getTargetFState(tmpFState);
 			    if(targetFS != null) {
-				qinfo = outputtransqueues(targetFS, targetcores.elementAt(i), output);
+				tmpinfo.fs = targetFS;
 			    } else {
-				qinfo = outputtransqueues(tmpFState, targetcores.elementAt(i), output);
+				tmpinfo.fs = tmpFState;
 			    }
-			    output.println("tmpObjInfo = RUNMALLOC(sizeof(struct transObjInfo));");
-			    output.println("tmpObjInfo->objptr = (void *)" + super.generateTemp(fm, temp, lb) + ";");
-			    output.println("tmpObjInfo->targetcore = "+targetcores.elementAt(i).toString()+";");
-			    output.println("tmpObjInfo->queues = " + qinfo.qname + ";");
-			    output.println("tmpObjInfo->length = " + qinfo.length + ";");
-			    output.println("addNewItem(totransobjqueue, (void*)tmpObjInfo);");
+			    if(!contains(sendto, tmpinfo)){
+				qinfo = outputtransqueues(tmpinfo.fs, targetcores.elementAt(i), output);
+				output.println("tmpObjInfo = RUNMALLOC(sizeof(struct transObjInfo));");
+				output.println("tmpObjInfo->objptr = (void *)" + tmpinfo.name + ";");
+				output.println("tmpObjInfo->targetcore = "+targetcores.elementAt(i).toString()+";");
+				output.println("tmpObjInfo->queues = " + qinfo.qname + ";");
+				output.println("tmpObjInfo->length = " + qinfo.length + ";");
+				output.println("addNewItem(totransobjqueue, (void*)tmpObjInfo);");
+				sendto.add(tmpinfo);
+			    }
 			    output.println("}");
-			}
+			//}
 		    }
 		}
 	    }
@@ -1250,5 +1273,30 @@ public class BuildCodeMultiCore extends BuildCode {
 	    }
 	    output.println("return;");
 	}
+    }
+    
+    class TranObjInfo {
+	public String name;
+	public int targetcore;
+	public FlagState fs;
+    }
+    
+    private boolean contains(Vector<TranObjInfo> sendto, TranObjInfo t) {
+	if(sendto.size() == 0) {
+	    return false;
+	}
+	for(int i = 0; i < sendto.size(); i++) {
+	    TranObjInfo tmp = sendto.elementAt(i);
+	    if(!tmp.name.equals(t.name)) {
+		return false;
+	    }
+	    if(tmp.targetcore != t.targetcore) {
+		return false;
+	    }
+	    if(tmp.fs != t.fs) {
+		return false;
+	    }
+	}
+	return true;
     }
 }

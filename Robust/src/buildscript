@@ -21,6 +21,7 @@ echo "-numcore set the number of cores (should be used together with -multicore)
 echo "-raw generate raw version binary (should be used together with -multicore)"
 echo "-interrupt generate raw version binary with interruption (should be used togethere with -raw)"
 echo "-rawconfig config raw simulator as 4xn (should be used together with -raw)"
+echo "-rawpath print out execute path information for raw version (should be used together with -raw)"
 echo -threadsimulate generate multi-thread simulate version binary
 echo -optional enable optional
 echo -debug generate debug symbols
@@ -54,6 +55,7 @@ TRANSSTATSFLAG=false
 RAWFLAG=false
 RAWCONFIG=''
 RAWDEBUGFLAG=false
+RAWPATHFLAG=false
 INTERRUPTFLAG=false
 THREADSIMULATEFLAG=false;
 USEDMALLOC=false
@@ -189,6 +191,9 @@ elif [[ $1 = '-debug' ]]
 then
 RAWDEBUGFLAG=true
 EXTRAOPTIONS="$EXTRAOPTIONS -g"
+elif [[ $1 = '-rawpath' ]]
+then
+RAWPATHFLAG=true
 elif [[ $1 = '-runtimedebug' ]]
 then
 EXTRAOPTIONS="$EXTRAOPTIONS -DCHECKTA"
@@ -298,6 +303,11 @@ make clean
 rm ./*
 
 export RAWRGCCFLAGS="-DTASK -DMULTICORE -DRAW"
+
+if $RAWPATHFLAG
+then # print path
+RAWRGCCFLAGS="${RAWRGCCFLAGS} -DRAWPATH"
+fi
 
 if $RAWDEBUGFLAG
 then #debug version

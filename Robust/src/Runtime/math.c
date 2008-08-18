@@ -50,6 +50,10 @@ float CALL11(___Math______sinf____F, float ___a___, float ___a___) {
   return sinf(___a___);
 }
 
+float CALL11(___Math______expf____F, float ___a___, float ___a___) {
+  return expf(___a___);
+}
+
 float CALL11(___Math______sqrtf____F, float ___a___, float ___a___) {
   return sqrtf(___a___);
 }

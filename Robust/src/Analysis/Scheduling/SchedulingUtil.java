@@ -235,6 +235,7 @@ public class SchedulingUtil {
 				    edgedotnodeparams+=", "+newoption;
 			    }
 			    edgelabel+=":[" + ((FEdge)edge).getExeTime() + "]";
+			    edgelabel+=":(" + ((FEdge)edge).getProbability() + "%)";
 			    Hashtable<ClassDescriptor, NewObjInfo> hashtable = ((FEdge)edge).getNewObjInfoHashtable();
 			    if(hashtable != null) {
 			    	Set<ClassDescriptor> keys = hashtable.keySet();
