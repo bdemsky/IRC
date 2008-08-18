@@ -350,6 +350,7 @@ public class BuildCode {
                 MethodDescriptor md=lb.getMethod();
 	        FlatMethod fm=state.getMethodFlat(md);
 	        if (!md.getModifiers().isNative()) {
+		    System.out.println("***"+fm);
 		        generateFlatMethod(fm, lb, outmethod);
 	        }
 	    }
@@ -1928,6 +1929,14 @@ public class BuildCode {
 		    output.println(dst+"="+ src+"->"+field+";");
 		}
 	    } else if (status==LocalityAnalysis.LOCAL) {
+	      if (ffn.getField().getType().isPtr()&&
+		  ffn.getField().isGlobal()) {
+		String field=ffn.getField().getSafeSymbol();
+		String src=generateTemp(fm, ffn.getSrc(),lb);
+		String dst=generateTemp(fm, ffn.getDst(),lb);
+		output.println(dst+"="+ src +"->"+field+ ";");
+		output.println(dst+"=(void *) transRead(trans, (unsigned int) "+dst+");");
+	      } else
 		output.println(generateTemp(fm, ffn.getDst(),lb)+"="+ generateTemp(fm,ffn.getSrc(),lb)+"->"+ ffn.getField().getSafeSymbol()+";");
 	    } else if (status==LocalityAnalysis.EITHER) {
 		//Code is reading from a null pointer
