@@ -706,7 +706,7 @@ public class SemanticCheck {
 		//we have a type
 		ClassDescriptor cd=typeutil.getClass(min.getBaseName().getSymbol());
 		if (cd==null)
-		    throw new Error(min.getBaseName()+" undefined");
+		    throw new Error("md = "+ md.toString()+ "  "+min.getBaseName()+" undefined");
 		typetolookin=new TypeDescriptor(cd);
 	    }
 	} else if ((md instanceof MethodDescriptor)&&min.getMethodName().equals("super")) {

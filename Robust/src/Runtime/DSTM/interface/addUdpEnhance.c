@@ -90,7 +90,7 @@ void *udpListenBroadcast(void *sockfd) {
     short status = *((short *) &readBuffer[0]);
     switch (status) {
       case INVALIDATE_OBJS:
-        if((retval = invalidateFromPrefetchCache(readBuffer))!= 0) {
+       if((retval = invalidateFromPrefetchCache(readBuffer))!= 0) {
           printf("Error: In invalidateFromPrefetchCache() at %s, %d\n", __FILE__, __LINE__);
           break;
         }
@@ -194,13 +194,14 @@ int invalidateFromPrefetchCache(char *buffer) {
   if(mid != myIpAddr) {
     /* Read objects sent */
     int numObjsRecv = *((short *)(buffer+offset)) / sizeof(unsigned int);
+    offset += sizeof(short);
     int i;
     for(i = 0; i < numObjsRecv; i++) {
       unsigned int oid;
       oid = *((unsigned int *)(buffer+offset));
       objheader_t *header;
       /* Lookup Objects in prefetch cache and remove them */
-      if((header = prehashSearch(oid)) != NULL) {
+      if(((header = prehashSearch(oid)) != NULL)) {
         prehashRemove(oid);
       }
       offset += sizeof(unsigned int);

@@ -55,8 +55,8 @@
 #define LISTEN_PORT 2156
 #define UDP_PORT 2158
 //Prefetch tuning paramters
-#define RETRYINTERVAL  7 //N
-#define SHUTDOWNINTERVAL  4  //M
+#define RETRYINTERVAL  20//N
+#define SHUTDOWNINTERVAL  3  //M
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -213,7 +213,7 @@ typedef struct thread_data_array {
   int *count;             	/* Variable to count responses from all participants to the TRANS_REQUEST protocol */
   char *replyctrl; 		/* Shared ctrl message that stores the reply to be sent to participants, filled by decideResponse() */
   char *replyretry;		/* Shared variable that keep track if coordinator needs retry */
-  transrecord_t *rec;		/* To send modified objects */
+  transrecord_t *rec;		/* Shared variable transaction record send to all thread data */
 } thread_data_array_t;
 
 

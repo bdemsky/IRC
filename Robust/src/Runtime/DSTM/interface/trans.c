@@ -21,6 +21,7 @@
 /* Global Variables */
 extern int classsize[];
 pfcstats_t *evalPrefetch;
+extern int numprefetchsites; //Global variable containing number of prefetch sites 
 extern pthread_mutex_t mainobjstore_mutex;// Mutex to lock main Object store
 objstr_t *prefetchcache; //Global Prefetch cache
 pthread_mutex_t prefetchcache_mutex;// Mutex to lock Prefetch Cache
@@ -68,7 +69,7 @@ void send_data(int fd , void *buf, int buflen) {
     numbytes = send(fd, buffer, size, MSG_NOSIGNAL);
     if (numbytes == -1) {
       perror("send");
-      return;
+      exit(0);
     }
     buffer += numbytes;
     size -= numbytes;
@@ -83,7 +84,7 @@ void recv_data(int fd , void *buf, int buflen) {
     numbytes = recv(fd, buffer, size, 0);
     if (numbytes == -1) {
       perror("recv");
-      return;
+      exit(0);
     }
     buffer += numbytes;
     size -= numbytes;
@@ -861,6 +862,14 @@ void decideResponse(thread_data_array_t *tdata) {
     /* Send Commit */
     *(tdata->replyctrl) = TRANS_COMMIT;
     *(tdata->replyretry) = 0;
+#ifdef CACHE
+#if 0
+    /* Turn prefetching on */
+    int i;
+    for (i=0; i<numprefetchsites; i++)
+      evalPrefetch[i].operMode = 1;
+#endif
+#endif
   } else { 
     /* Send Abort in soft abort case followed by retry commiting transaction again*/
     *(tdata->replyctrl) = TRANS_ABORT;
@@ -1795,29 +1804,29 @@ void transAbort(transrecord_t *trans) {
 plistnode_t *pInsert(plistnode_t *pile, objheader_t *headeraddr, unsigned int mid, int num_objs) {
   plistnode_t *ptr, *tmp;
   int found = 0, offset = 0;
-  
+
   tmp = pile;
   //Add oid into a machine that is already present in the pile linked list structure
   while(tmp != NULL) {
     if (tmp->mid == mid) {
       int tmpsize;
-      
+
       if (STATUS(headeraddr) & NEW) {
-	tmp->oidcreated[tmp->numcreated] = OID(headeraddr);
-	tmp->numcreated++;
-	GETSIZE(tmpsize, headeraddr);
-	tmp->sum_bytes += sizeof(objheader_t) + tmpsize;
+        tmp->oidcreated[tmp->numcreated] = OID(headeraddr);
+        tmp->numcreated++;
+        GETSIZE(tmpsize, headeraddr);
+        tmp->sum_bytes += sizeof(objheader_t) + tmpsize;
       }else if (STATUS(headeraddr) & DIRTY) {
-	tmp->oidmod[tmp->nummod] = OID(headeraddr);
-	tmp->nummod++;
-	GETSIZE(tmpsize, headeraddr);
-	tmp->sum_bytes += sizeof(objheader_t) + tmpsize;
+        tmp->oidmod[tmp->nummod] = OID(headeraddr);
+        tmp->nummod++;
+        GETSIZE(tmpsize, headeraddr);
+        tmp->sum_bytes += sizeof(objheader_t) + tmpsize;
       } else {
-	offset = (sizeof(unsigned int) + sizeof(short)) * tmp->numread;
-	*((unsigned int *)(((char *)tmp->objread) + offset))=OID(headeraddr);
-	offset += sizeof(unsigned int);
-	*((short *)(((char *)tmp->objread) + offset)) = headeraddr->version;
-	tmp->numread ++;
+        offset = (sizeof(unsigned int) + sizeof(short)) * tmp->numread;
+        *((unsigned int *)(((char *)tmp->objread) + offset))=OID(headeraddr);
+        offset += sizeof(unsigned int);
+        *((short *)(((char *)tmp->objread) + offset)) = headeraddr->version;
+        tmp->numread ++;
       }
       found = 1;
       break;

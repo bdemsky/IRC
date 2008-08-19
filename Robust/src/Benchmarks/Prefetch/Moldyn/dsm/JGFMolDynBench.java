@@ -181,10 +181,11 @@ class mdRunner extends Thread {
   } 
 
     public void init(particle[] one, int mdsize) {
-      for (lg=0; lg<=1; lg++) {
-        for (i=0; i<mm; i++) {
-          for (j=0; j<mm; j++) {
-            for (k=0; k<mm; k++) {
+	int id=this.id;
+	for (int lg=0; lg<=1; lg++) {
+        for (int i=0; i<mm; i++) {
+          for (int j=0; j<mm; j++) {
+            for (int k=0; k<mm; k++) {
               one[ijk] = new particle((i*a+lg*a*0.5),(j*a+lg*a*0.5),(k*a),
                   xvelocity,yvelocity,zvelocity,sh_force,sh_force2,id,one);
               ijk = ijk + 1;
@@ -193,10 +194,10 @@ class mdRunner extends Thread {
         }
       }
 
-      for (lg=1; lg<=2; lg++) {
-        for (i=0; i<mm; i++) {
-          for (j=0; j<mm; j++) {
-            for (k=0; k<mm; k++) {
+      for (int lg=1; lg<=2; lg++) {
+        for (int i=0; i<mm; i++) {
+          for (int j=0; j<mm; j++) {
+            for (int k=0; k<mm; k++) {
               one[ijk] = new particle((i*a+(2-lg)*a*0.5),(j*a+(lg-1)*a*0.5),
 				      (k*a+a*0.5),xvelocity,yvelocity,zvelocity,sh_force,sh_force2,id,one);
               ijk = ijk + 1;
@@ -213,19 +214,19 @@ class mdRunner extends Thread {
       random randnum = new random(iseed,v1,v2);
       
       
-      for (i=0; i<mdsize; i+=2) {
+      for (int i=0; i<mdsize; i+=2) {
         r  = randnum.seed();
         one[i].xvelocity = r*randnum.v1;
         one[i+1].xvelocity  = r*randnum.v2;
       }
 
-      for (i=0; i<mdsize; i+=2) {
+      for (int i=0; i<mdsize; i+=2) {
         r  = randnum.seed();
         one[i].yvelocity = r*randnum.v1;
         one[i+1].yvelocity  = r*randnum.v2;
       }
 
-      for (i=0; i<mdsize; i+=2) {
+      for (int i=0; i<mdsize; i+=2) {
         r  = randnum.seed();
         one[i].zvelocity = r*randnum.v1;
         one[i+1].zvelocity  = r*randnum.v2;
@@ -237,35 +238,35 @@ class mdRunner extends Thread {
       ekin = 0.0;
       sp = 0.0;
 
-      for(i=0;i<mdsize;i++) {
+      for(int i=0;i<mdsize;i++) {
         sp = sp + one[i].xvelocity;
       }
       sp = sp / mdsize;
 
-      for(i=0;i<mdsize;i++) {
+      for(int i=0;i<mdsize;i++) {
         one[i].xvelocity = one[i].xvelocity - sp;
         ekin = ekin + one[i].xvelocity*one[i].xvelocity;
       }
 
       sp = 0.0;
-      for(i=0;i<mdsize;i++) {
+      for(int i=0;i<mdsize;i++) {
         sp = sp + one[i].yvelocity;
       }
       sp = sp / mdsize;
 
-      for(i=0;i<mdsize;i++) {
+      for(int i=0;i<mdsize;i++) {
         one[i].yvelocity = one[i].yvelocity - sp;
         ekin = ekin + one[i].yvelocity*one[i].yvelocity;
       }
 
 
       sp = 0.0;
-      for(i=0;i<mdsize;i++) {
+      for(int i=0;i<mdsize;i++) {
         sp = sp + one[i].zvelocity;
       }
       sp = sp / mdsize;
 
-      for(i=0;i<mdsize;i++) {
+      for(int i=0;i<mdsize;i++) {
         one[i].zvelocity = one[i].zvelocity - sp;
         ekin = ekin + one[i].zvelocity*one[i].zvelocity;
       }
@@ -274,7 +275,7 @@ class mdRunner extends Thread {
       sc = h * Math.sqrt(tref/ts);
 
 
-      for(i=0;i<mdsize;i++) {
+      for(int i=0;i<mdsize;i++) {
 
         one[i].xvelocity = one[i].xvelocity * sc;     
         one[i].yvelocity = one[i].yvelocity * sc;     
@@ -284,6 +285,60 @@ class mdRunner extends Thread {
 
     }
 
+    public void doinit(int mdsize) {
+	for(int j=0;j<3;j++) {
+	    double[] sh=sh_force[j];
+            for (int i=0;i<mdsize;i++) {
+		sh[i] = 0.0;
+            }
+	}
+    }
+
+
+    public void doinit2(int mdsize) {
+          for(int k=0;k<3;k++) {
+	      double[] sh=sh_force[k];
+	      double [][] sha=sh_force2[k];
+              for(int j=0;j<nthreads;j++) {
+		  double[] sha2=sha[j];
+		  for(int i=0;i<mdsize;i++) {
+                sh[i] += sha2[i];
+              }
+            }
+          }
+	  
+          for(int k=0;k<3;k++) {
+	      double [][] sh1=sh_force2[k];
+              for(int j=0;j<nthreads;j++) {
+		  double[] sh2=sh1[j];
+            for(int i=0;i<mdsize;i++) {
+		
+
+                sh2[i] = 0.0;
+              }
+            }
+          }
+
+          for(int j=1;j<nthreads;j++) {
+            mymd.epot[0].d += mymd.epot[j].d;
+            mymd.vir[0].d += mymd.vir[j].d;
+          }
+          for(int j=1;j<nthreads;j++) {       
+            mymd.epot[j].d = mymd.epot[0].d;
+            mymd.vir[j].d = mymd.vir[0].d;
+          }
+          for(int j=0;j<nthreads;j++) {
+            mymd.interactions += mymd.interacts[j].i; 
+          }
+
+	  for (int j=0;j<3;j++) {
+	      double sh[]=sh_force[j];
+	    for (int i=0;i<mdsize;i++) {
+	      sh[i] = sh[i] * hsq2;
+	    }
+	  }
+}
+
   public void run() {
     /* Parameter determination */
     
@@ -292,7 +347,9 @@ class mdRunner extends Thread {
     int movemx=50;
     Barrier barr=new Barrier("128.195.175.79");
     particle[] one;
+    int id;
     atomic {
+	id=this.id;
       mdsize = mymd.PARTSIZE;
       one=new particle[mdsize];
       l = mymd.LENGTH;
@@ -329,7 +386,7 @@ class mdRunner extends Thread {
     for (int move=0;move<movemx;move++) {
       atomic {
         /* move the particles and update velocities */
-        for (i=0;i<mdsize;i++) {
+        for (int i=0;i<mdsize;i++) {
           one[i].domove(side,i);       
         }
       }
@@ -339,11 +396,7 @@ class mdRunner extends Thread {
 
       atomic {
         if(id==0) {
-          for(j=0;j<3;j++) {
-            for (i=0;i<mdsize;i++) {
-              sh_force[j][i] = 0.0;
-            }
-          }
+	    doinit(mdsize);
         }
 	
         mymd.epot[id].d = 0.0;
@@ -358,7 +411,7 @@ class mdRunner extends Thread {
       atomic {
         /* compute forces */
 	
-        for (i=0+id;i<mdsize;i+=nthreads) {
+        for (int i=0+id;i<mdsize;i+=nthreads) {
           one[i].force(side,rcoff,mdsize,i,xx,yy,zz,mymd); 
         }
       }
@@ -369,39 +422,7 @@ class mdRunner extends Thread {
       /* update force arrays */
       atomic {
         if(id == 0) {
-          for(int k=0;k<3;k++) {
-            for(i=0;i<mdsize;i++) {
-              for(j=0;j<nthreads;j++) {
-                sh_force[k][i] += sh_force2[k][j][i];
-              }
-            }
-          }
-	  
-          for(int k=0;k<3;k++) {
-            for(i=0;i<mdsize;i++) {
-              for(j=0;j<nthreads;j++) {
-                sh_force2[k][j][i] = 0.0;
-              }
-            }
-          }
-
-          for(j=1;j<nthreads;j++) {
-            mymd.epot[0].d += mymd.epot[j].d;
-            mymd.vir[0].d += mymd.vir[j].d;
-          }
-          for(j=1;j<nthreads;j++) {       
-            mymd.epot[j].d = mymd.epot[0].d;
-            mymd.vir[j].d = mymd.vir[0].d;
-          }
-          for(j=0;j<nthreads;j++) {
-            mymd.interactions += mymd.interacts[j].i; 
-          }
-
-	  for (j=0;j<3;j++) {
-	    for (i=0;i<mdsize;i++) {
-	      sh_force[j][i] = sh_force[j][i] * hsq2;
-	    }
-	  }
+	    doinit2(mdsize);
 	}
       }
 
@@ -411,7 +432,7 @@ class mdRunner extends Thread {
       atomic {
         /*scale forces, update velocities */
         sum = 0.0;
-        for (i=0;i<mdsize;i++) {
+        for (int i=0;i<mdsize;i++) {
           sum = sum + one[i].mkekin(hsq2,i);  
         }
 
@@ -422,7 +443,7 @@ class mdRunner extends Thread {
 
         /* average velocity */
 
-        for (i=0;i<mdsize;i++) {
+        for (int i=0;i<mdsize;i++) {
           velt = one[i].velavg(vaverh,h);
           if(velt > vaverh) { count = count + 1.0; }
           vel = vel + velt;                    
@@ -434,7 +455,7 @@ class mdRunner extends Thread {
 
         if((move < istop) && (((move+1) % irep) == 0)) {
           sc = Math.sqrt(tref / (tscale*ekin));
-          for (i=0;i<mdsize;i++) {
+          for (int i=0;i<mdsize;i++) {
             one[i].dscal(sc,1);
           }
           ekin = tref / tscale;
@@ -455,7 +476,6 @@ class mdRunner extends Thread {
       Barrier.enterBarrier(barr);
     }
 
-    Barrier.enterBarrier(barr);
     //if (id == 0) JGFInstrumentor.stopTimer("Section3:MolDyn:Run", instr.timers);
   }
 
@@ -514,7 +534,7 @@ class particle {
     double fxi,fyi,fzi;
     double rd,rrd,rrd2,rrd3,rrd4,rrd6,rrd7,r148;
     double forcex,forcey,forcez;
-
+    int id=this.id;
     sideh = 0.5*side; 
     rcoffs = rcoff*rcoff;
 

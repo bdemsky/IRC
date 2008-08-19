@@ -50,8 +50,9 @@ void handleDynPrefetching(int numLocal, int ntuples, int siteid) {
   } else {
     if(getOperationMode(siteid) != 0) {
       evalPrefetch[siteid].uselesscount--;
-      if(evalPrefetch[siteid].uselesscount <= 0)
+      if(evalPrefetch[siteid].uselesscount <= 0) {
         evalPrefetch[siteid].operMode = 0;
+      }
     }
   }
 }

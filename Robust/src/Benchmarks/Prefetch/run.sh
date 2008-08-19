@@ -63,11 +63,11 @@ function oneremote {
 
 function localrun {
   i=0;
-  while [ $i -lt $1 ]; do
-    /usr/bin/time -f "%e" ./${NONPREFETCH} master $ARGS1 2>> ${LOGDIR}/${NONPREFETCH}_local_${EXTENSION}.txt
-    sleep 4
-    i=`expr $i + 1`
-  done
+#while [ $i -lt $1 ]; do
+#    /usr/bin/time -f "%e" ./${NONPREFETCH} master $ARGS1 2>> ${LOGDIR}/${NONPREFETCH}_local_${EXTENSION}.txt
+#   sleep 4
+#   i=`expr $i + 1`
+# done
   i=0;
   while [ $i -lt $1 ]; do
     /usr/bin/time -f "%e" ./${NONPREFETCH_NONCACHE} master $ARGS1 2>> ${LOGDIR}/${NONPREFETCH_NONCACHE}_local_${EXTENSION}.txt
@@ -95,30 +95,30 @@ function callrun {
   localrun 3
 
   echo "---------- Running single thread remote $BMDIR non-prefetch + non-cache on 2 machines ---------- "
-  oneremote 3 1 $NONPREFETCH_NONCACHE
+#  oneremote 1 1 $NONPREFETCH_NONCACHE
   echo "---------- Running single thread remote $BMDIR non-prefetch on 2 machines ---------- "
-  oneremote 3 1 $NONPREFETCH
+#  oneremote 1 1 $NONPREFETCH
   echo "---------- Running single thread remote $BMDIR prefetch on 2 machines ---------- "
-  oneremote 3 1 $PREFETCH
+#  oneremote 1 1 $PREFETCH
 
   echo "---------- Running two threads $BMDIR non-prefetch + non-cache on 2 machines ---------- "
   run 3 2 $NONPREFETCH_NONCACHE2 
   echo "---------- Running two threads $BMDIR non-prefetch on 2 machines ---------- "
-  run 3 2 $NONPREFETCH2 
+#  run 3 2 $NONPREFETCH2 
   echo "---------- Running two threads $BMDIR prefetch on 2 machines ---------- "
   run 3 2 $PREFETCH2 
 
   echo "---------- Running three threads $BMDIR non-prefetch + non-cache on 3 machines ---------- "
   run 3 3 $NONPREFETCH_NONCACHE3 
   echo "---------- Running three threads $BMDIR non-prefetch on 3 machines ---------- "
-  run 3 3 $NONPREFETCH3 
+#  run 3 3 $NONPREFETCH3 
   echo "---------- Running three threads $BMDIR prefetch on 3 machines ---------- "
   run 3 3 $PREFETCH3 
 
   echo "---------- Running four threads $BMDIR non-prefetch + non-cache on 4 machines ---------- "
   run 3 4 $NONPREFETCH_NONCACHE4 
   echo "---------- Running four threads $BMDIR non-prefetch on 4 machines ---------- "
-  run 3 4 $NONPREFETCH4 
+#  run 3 4 $NONPREFETCH4 
   echo "---------- Running four threads $BMDIR prefetch on 4 machines ---------- "
   run 3 4 $PREFETCH4 
 
@@ -142,7 +142,9 @@ function callmicrorun {
 }
 
 benchmarks='array chase mmver200 mmver600'
-#benchmarks='em3dver40001303 sorverD'
+#benchmarks='em3dver10000100015'
+#benchmarks='moldynverA'
+#benchmarks='sorverD' //8000 X 8000 matrix
 
 echo "---------- Clean old files ---------- "
 rm runlog/*

@@ -350,7 +350,6 @@ public class BuildCode {
                 MethodDescriptor md=lb.getMethod();
 	        FlatMethod fm=state.getMethodFlat(md);
 	        if (!md.getModifiers().isNative()) {
-		    System.out.println("***"+fm);
 		        generateFlatMethod(fm, lb, outmethod);
 	        }
 	    }

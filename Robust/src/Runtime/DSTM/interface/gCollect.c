@@ -140,9 +140,6 @@ void clearPLookUpTable(void *begin, void *end) {
         objheader_t *objheader;
         if((objheader = prehashSearch(oid)) != NULL) {
           prehashRemove(oid);
-#ifdef CHECKTA
-        printf("%s() clearing Look up table for oid = %x\n", __func__, oid);
-#endif
         }
       }
     }

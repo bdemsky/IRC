@@ -6,8 +6,7 @@ pthread_mutex_t qlock;
 pthread_mutexattr_t qlockattr;
 pthread_cond_t qcond;
 
-
-#define QSIZE 1000000 //1 MB
+#define QSIZE 2048 //2 KB
 
 void queueInit(void) {
   /* Intitialize primary queue */

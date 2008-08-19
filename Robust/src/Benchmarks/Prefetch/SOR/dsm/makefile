@@ -7,7 +7,7 @@ SRC=${MAINCLASS}.java \
 	JGFTimer.java \
 	SORRunner.java \
 	SORWrap.java
-FLAGS=-dsm -prefetch -dsmcaching -optimize -excprefetch JGFSORBench.JGFSORBench -excprefetch JGFSORBenchSizeA.main -excprefetch JGFSORBench.RandomMatrix -excprefetch JGFSORBench.init_sync -excprefetch JGFSORBench.JGFkernel -mainclass ${MAINCLASS} -trueprob 0.73
+FLAGS=-dsm -prefetch -dsmcaching -optimize -excprefetch JGFSORBench.JGFSORBench -excprefetch JGFSORBenchSizeA.main -excprefetch JGFSORBench.RandomMatrix -excprefetch JGFSORBench.init_sync -excprefetch JGFSORBench.JGFkernel -mainclass ${MAINCLASS} -trueprob 0.72
 FLAGS1=-dsm -dsmcaching -optimize -mainclass ${MAINCLASS} 
 FLAGS2=-dsm -optimize -mainclass ${MAINCLASS}
 
