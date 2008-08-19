@@ -169,7 +169,7 @@ public class TaskSimulator {
 	  } else {
 	    if((this.paraQueues != null) &&
 	       (this.paraQueues.elementAt(i) != null)  &&
-	       (this.paraQueues.elementAt(i).contains(obj))){
+	       (this.paraQueues.elementAt(i).contains(obj))) {
 	      this.paraQueues.elementAt(i).remove(obj);
 	      this.objVersionTbl.remove(obj);
 	    }

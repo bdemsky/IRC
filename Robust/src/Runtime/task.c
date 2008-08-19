@@ -85,7 +85,7 @@ void createstartupobject(int argc, char ** argv) {
 int hashCodetpd(struct taskparamdescriptor *ftd) {
   int hash=(int)ftd->task;
   int i;
-  for(i=0; i<ftd->numParameters; i++){
+  for(i=0; i<ftd->numParameters; i++) {
     hash^=(int)ftd->parameterArray[i];
   }
   return hash;
@@ -301,7 +301,7 @@ int flagcomp(const int *val1, const int *val2) {
 void flagorand(void * ptr, int ormask, int andmask) {
 #ifdef OPTIONAL
   struct ___Object___ * obj = (struct ___Object___ *)ptr;
-  if(obj->numfses){ /*store the information about fses*/
+  if(obj->numfses) { /*store the information about fses*/
     int flag, i, j,counter, offset=0;
     for(i=0; i<obj->numfses; i++) {
       int oldoffset;
@@ -444,7 +444,7 @@ nextloop:
 int checktags(struct ___Object___ * currobj, struct fsanalysiswrapper * fswrapper) {
   /* Check Tags */
   struct ___Object___ * tagptr = currobj->___tags___;
-  if(fswrapper->numtags>0){
+  if(fswrapper->numtags>0) {
     if (tagptr==NULL)
       return 0; //that means the object has no tag but that param
     //needs tag
@@ -901,7 +901,7 @@ int enqueuetasks(struct parameterwrapper *parameter, struct parameterwrapper *pr
   /* Find initial state */
   for(j=0; j<numiterators; j++) {
 backtrackinit:
-    if(toiHasNext(&parameter->iterators[j], taskpointerarray OPTARG(failed))){
+    if(toiHasNext(&parameter->iterators[j], taskpointerarray OPTARG(failed))) {
       toiNext(&parameter->iterators[j], taskpointerarray OPTARG(failed));
     } else if (j>0) {
       /* Need to backtrack */
@@ -925,7 +925,7 @@ backtrackinit:
 #ifdef OPTIONAL
     tpd->failed=RUNMALLOC(sizeof(int)*(numiterators+1));
 #endif
-    for(j=0; j<=numiterators; j++){
+    for(j=0; j<=numiterators; j++) {
       tpd->parameterArray[j]=taskpointerarray[j]; //store the actual parameters
 #ifdef OPTIONAL
       tpd->failed[j]=failed[j];
@@ -951,7 +951,7 @@ backtrackinit:
 
     for(j=numiterators-1; j<numiterators; j++) {
 backtrackinc:
-      if(toiHasNext(&parameter->iterators[j], taskpointerarray OPTARG(failed))){
+      if(toiHasNext(&parameter->iterators[j], taskpointerarray OPTARG(failed))) {
 	toiNext(&parameter->iterators[j], taskpointerarray OPTARG(failed));
       } else if (j>0) {
 	/* Need to backtrack */
@@ -1177,7 +1177,7 @@ parameterpresent:
 	  restorecheckpoint(currtpd->task->numParameters, currtpd->parameterArray, checkpoint, forward, reverse);
 
 #ifdef OPTIONAL
-	  for(counter=0; counter<currtpd->task->numParameters; counter++){
+	  for(counter=0; counter<currtpd->task->numParameters; counter++) {
 	    //enqueue as failed
 	    enqueueoptional(currtpd->parameterArray[counter], numfsesarray[counter], fsesarray[counter], currtpd->task, counter);
 
@@ -1200,7 +1200,7 @@ parameterpresent:
 	  }
 	  /* Actually call task */
 #ifdef PRECISE_GC
-	              ((int *)taskpointerarray)[0]=currtpd->numParameters;
+	                          ((int *)taskpointerarray)[0]=currtpd->numParameters;
 	  taskpointerarray[1]=NULL;
 #endif
 #ifdef OPTIONAL
@@ -1211,7 +1211,7 @@ parameterpresent:
 	    ((struct ___Object___ *)taskpointerarray[i+OFFSET])->fses=fsesarray[i];
 	  }
 #endif
-	  if(debugtask){
+	  if(debugtask) {
 	    printf("ENTER %s count=%d\n",currtpd->task->name, (instaccum-instructioncount));
 	    ((void(*) (void **))currtpd->task->taskptr)(taskpointerarray);
 	    printf("EXIT %s count=%d\n",currtpd->task->name, (instaccum-instructioncount));

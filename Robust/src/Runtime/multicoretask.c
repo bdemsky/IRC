@@ -258,7 +258,7 @@ int main(int argc, char **argv) {
     thread_data_array[i].numreceiveobjs = 0;
     printf("[main] creating thread %d\n", i);
     rc[i] = pthread_create(&threads[i], NULL, run, (void *)&thread_data_array[i]);
-    if (rc[i]){
+    if (rc[i]) {
       printf("[main] ERROR; return code from pthread_create() is %d\n", rc[i]);
       fflush(stdout);
       exit(-1);
@@ -511,7 +511,7 @@ void run(void* arg) {
 #ifdef RAWDEBUG
 	    raw_test_pass(0xee13);
 #endif
-	    while(halt--){
+	    while(halt--) {
 	    }
 	    isfirst = false;
 #ifdef RAWDEBUG
@@ -703,7 +703,7 @@ void createstartupobject(int argc, char ** argv) {
 int hashCodetpd(struct taskparamdescriptor *ftd) {
   int hash=(int)ftd->task;
   int i;
-  for(i=0; i<ftd->numParameters; i++){
+  for(i=0; i<ftd->numParameters; i++) {
     hash^=(int)ftd->parameterArray[i];
   }
   return hash;
@@ -2877,7 +2877,7 @@ backtrackinit:
     tpd->task=task;
     tpd->numParameters=numiterators+1;
     tpd->parameterArray=RUNMALLOC(sizeof(void *)*(numiterators+1));
-    for(j=0; j<=numiterators; j++){
+    for(j=0; j<=numiterators; j++) {
       tpd->parameterArray[j]=taskpointerarray[j]; //store the actual parameters
     }
     /* Enqueue task */
@@ -2955,7 +2955,7 @@ backtrackinit:
     tpd->task=task;
     tpd->numParameters=numiterators+1;
     tpd->parameterArray=RUNMALLOC_I(sizeof(void *)*(numiterators+1));
-    for(j=0; j<=numiterators; j++){
+    for(j=0; j<=numiterators; j++) {
       tpd->parameterArray[j]=taskpointerarray[j]; //store the actual parameters
     }
     /* Enqueue task */
@@ -3186,7 +3186,7 @@ newtask:
 	  if(hashsize(activetasks) == 1) {
 	    // only one task right now, wait a little while before next try
 	    int halt = 10000;
-	    while(halt--){
+	    while(halt--) {
 	    }
 	  }
 	  goto newtask;
@@ -3404,11 +3404,11 @@ parameterpresent:
 	     }*/
 	  /* Actually call task */
 #ifdef PRECISE_GC
-	              ((int *)taskpointerarray)[0]=currtpd->numParameters;
+	                          ((int *)taskpointerarray)[0]=currtpd->numParameters;
 	  taskpointerarray[1]=NULL;
 #endif
 execute:
-	  if(debugtask){
+	  if(debugtask) {
 #ifndef RAW
 	    printf("ENTER %s count=%d\n",currtpd->task->name, (instaccum-instructioncount));
 #endif

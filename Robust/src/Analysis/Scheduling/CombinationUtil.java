@@ -233,7 +233,7 @@ public class CombinationUtil {
 	      this.lastchoices[next]++;
 	      if((this.lastchoices[next] == this.rootNodes.size() ||
 	          (this.rootNodes.elementAt(this.lastchoices[next]).elementAt(0).getCid() >
-	           this.node2Combine.elementAt(next).elementAt(0).getCid()))){
+	           this.node2Combine.elementAt(next).elementAt(0).getCid()))) {
 		// break the rule that a node can only be combined to nodes with smaller colorid.
 		// or no more buckets
 		// backtrack

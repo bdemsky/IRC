@@ -306,7 +306,7 @@ int readClientReq(trans_commit_data_t *transinfo, int acceptfd) {
 
   /* Create an array of oids for modified objects */
   oidmod = (unsigned int *) calloc(fixed.nummod, sizeof(unsigned int));
-  if (oidmod == NULL){
+  if (oidmod == NULL) {
     printf("calloc error %s, %d\n", __FILE__, __LINE__);
     return 1;
   }
@@ -774,7 +774,7 @@ checkversion:
 	  UnLock(STATUSPTR(header));
 	} else {
 	  UnLock(STATUSPTR(header));
-	  if ((sd = socket(AF_INET, SOCK_STREAM, 0)) < 0){
+	  if ((sd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
 	    perror("processReqNotify():socket()");
 	    return;
 	  }
@@ -783,7 +783,7 @@ checkversion:
 	  remoteAddr.sin_port = htons(LISTEN_PORT);
 	  remoteAddr.sin_addr.s_addr = htonl(mid);
 
-	  if (connect(sd, (struct sockaddr *)&remoteAddr, sizeof(remoteAddr)) < 0){
+	  if (connect(sd, (struct sockaddr *)&remoteAddr, sizeof(remoteAddr)) < 0) {
 	    printf("Error: processReqNotify():error %d connecting to %s:%d\n", errno,
 	           inet_ntoa(remoteAddr.sin_addr), LISTEN_PORT);
 	    close(sd);

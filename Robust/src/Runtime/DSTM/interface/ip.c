@@ -67,7 +67,7 @@ unsigned int getMyIpAddr(const char *interfaceStr) {
 
   memset(&interfaceInfo, 0, sizeof(struct ifreq));
 
-  if((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0){
+  if((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
     perror("getMyIpAddr():socket()");
     return 1;
   }
@@ -75,7 +75,7 @@ unsigned int getMyIpAddr(const char *interfaceStr) {
   strcpy(interfaceInfo.ifr_name, interfaceStr);
   myAddr->sin_family = AF_INET;
 
-  if(ioctl(sock, SIOCGIFADDR, &interfaceInfo) != 0){
+  if(ioctl(sock, SIOCGIFADDR, &interfaceInfo) != 0) {
     perror("getMyIpAddr():ioctl()");
     return 1;
   }

@@ -23,7 +23,7 @@ public class JhttpServer extends Thread {
     try {
       System.out.println("creating the port");
       server = new ServerSocket(port);
-    } catch (IOException e)  {
+    } catch (IOException e) {
       System.err.println(e);
       System.exit(1);
     }
@@ -35,10 +35,10 @@ public class JhttpServer extends Thread {
 
   public void run() {
     // infinite loop
-    while (true){
+    while (true) {
       try {
 	startWorker(server.accept());
-      } catch (Exception e)  {
+      } catch (Exception e) {
 	System.err.println(e);
       }
     }

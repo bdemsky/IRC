@@ -131,7 +131,7 @@ inline int arrayLength(int *array) {
 inline int findmax(int *array, int arraylength) {
   int max, i;
   max = array[0];
-  for(i = 0; i < arraylength; i++){
+  for(i = 0; i < arraylength; i++) {
     if(array[i] > max) {
       max = array[i];
     }
@@ -307,7 +307,7 @@ void randomdelay() {
 /* This function initializes things required in the transaction start*/
 transrecord_t *transStart() {
   transrecord_t *tmp;
-  if((tmp = calloc(1, sizeof(transrecord_t))) == NULL){
+  if((tmp = calloc(1, sizeof(transrecord_t))) == NULL) {
     printf("%s() Calloc error at line %d, %s\n", __func__, __LINE__, __FILE__);
     return NULL;
   }
@@ -332,7 +332,7 @@ objheader_t *transRead(transrecord_t *record, unsigned int oid) {
     return NULL;
   }
 
-  if((objheader = chashSearch(record->lookupTable, oid)) != NULL){
+  if((objheader = chashSearch(record->lookupTable, oid)) != NULL) {
 #ifdef TRANSSTATS
     nchashSearch++;
 #endif
@@ -595,7 +595,7 @@ int transCommit(transrecord_t *record) {
 
     for (i = 0; i < threadnum; i++) {
       rc = pthread_join(thread[i], NULL);
-      if(rc){
+      if(rc) {
 	printf("Error: return code from pthread_join() is %d\n", rc);
 	pthread_cond_destroy(&tcond);
 	pthread_mutex_destroy(&tlock);
@@ -858,7 +858,7 @@ void decideResponse(thread_data_array_t *tdata) {
     /* clear objects from prefetch cache */
     cleanPCache(tdata);
 #endif
-  } else if(transagree == tdata->buffer->f.mcount){
+  } else if(transagree == tdata->buffer->f.mcount) {
     /* Send Commit */
     *(tdata->replyctrl) = TRANS_COMMIT;
     *(tdata->replyretry) = 0;
@@ -1048,7 +1048,7 @@ void *handleLocalReq(void *threadarg) {
     pthread_cond_wait(localtdata->tdata->threshold, localtdata->tdata->lock);
   }
   pthread_mutex_unlock(localtdata->tdata->lock);
-  if(*(localtdata->tdata->replyctrl) == TRANS_ABORT){
+  if(*(localtdata->tdata->replyctrl) == TRANS_ABORT) {
     if(transAbortProcess(localtdata) != 0) {
       printf("Error in transAbortProcess() %s,%d\n", __FILE__, __LINE__);
       fflush(stdout);
@@ -1191,7 +1191,7 @@ prefetchpile_t *foundLocal(char *ptr) {
 	goto tuple;
     }
     //Entire prefetch is local
-    if (newbase==endindex&&checkoid(oid)){
+    if (newbase==endindex&&checkoid(oid)) {
       numLocal++;
       goto tuple;
     }
@@ -1465,7 +1465,7 @@ int startRemoteThread(unsigned int oid, unsigned int mid) {
   int bytesSent;
   int status;
 
-  if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0){
+  if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
     perror("startRemoteThread():socket()");
     return -1;
   }
@@ -1475,7 +1475,7 @@ int startRemoteThread(unsigned int oid, unsigned int mid) {
   remoteAddr.sin_port = htons(LISTEN_PORT);
   remoteAddr.sin_addr.s_addr = htonl(mid);
 
-  if (connect(sock, (struct sockaddr *)&remoteAddr, sizeof(remoteAddr)) < 0){
+  if (connect(sock, (struct sockaddr *)&remoteAddr, sizeof(remoteAddr)) < 0) {
     printf("startRemoteThread():error %d connecting to %s:%d\n", errno,
            inet_ntoa(remoteAddr.sin_addr), LISTEN_PORT);
     status = -1;
@@ -1494,7 +1494,7 @@ int startRemoteThread(unsigned int oid, unsigned int mid) {
 static unsigned int id = 0xFFFFFFFF;
 unsigned int getNewOID(void) {
   id += 2;
-  if (id > oidMax || id < oidMin){
+  if (id > oidMax || id < oidMin) {
     id = (oidMin | 1);
   }
   return id;
@@ -1510,7 +1510,7 @@ int processConfigFile() {
   in_addr_t tmpAddr;
 
   configFile = fopen(CONFIG_FILENAME, "r");
-  if (configFile == NULL){
+  if (configFile == NULL) {
     printf("error opening %s:\n", CONFIG_FILENAME);
     perror("");
     return -1;
@@ -1520,14 +1520,14 @@ int processConfigFile() {
   sizeOfHostArray = 8;
   hostIpAddrs = calloc(sizeOfHostArray, sizeof(unsigned int));
 
-  while(fgets(lineBuffer, maxLineLength, configFile) != NULL){
+  while(fgets(lineBuffer, maxLineLength, configFile) != NULL) {
     commentBegin = strchr(lineBuffer, '#');
     if (commentBegin != NULL)
       *commentBegin = '\0';
     token = strtok(lineBuffer, delimiters);
-    while (token != NULL){
+    while (token != NULL) {
       tmpAddr = inet_addr(token);
-      if ((int)tmpAddr == -1){
+      if ((int)tmpAddr == -1) {
 	printf("error in %s: bad token:%s\n", CONFIG_FILENAME, token);
 	fclose(configFile);
 	return -1;
@@ -1539,7 +1539,7 @@ int processConfigFile() {
 
   fclose(configFile);
 
-  if (numHostsInSystem < 1){
+  if (numHostsInSystem < 1) {
     printf("error in %s: no IP Adresses found\n", CONFIG_FILENAME);
     return -1;
   }
@@ -1549,7 +1549,7 @@ int processConfigFile() {
   myIpAddr = getMyIpAddr("eth0");
 #endif
   myIndexInHostArray = findHost(myIpAddr);
-  if (myIndexInHostArray == -1){
+  if (myIndexInHostArray == -1) {
     printf("error in %s: IP Address of eth0 not found\n", CONFIG_FILENAME);
     return -1;
   }
@@ -1569,7 +1569,7 @@ void addHost(unsigned int hostIp) {
   if (findHost(hostIp) != -1)
     return;
 
-  if (numHostsInSystem == sizeOfHostArray){
+  if (numHostsInSystem == sizeOfHostArray) {
     tmpArray = calloc(sizeOfHostArray * 2, sizeof(unsigned int));
     memcpy(tmpArray, hostIpAddrs, sizeof(unsigned int) * numHostsInSystem);
     free(hostIpAddrs);
@@ -1614,7 +1614,7 @@ int reqNotify(unsigned int *oidarry, unsigned short *versionarry, unsigned int n
     return;
   }
 
-  if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0){
+  if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
     perror("reqNotify():socket()");
     return -1;
   }
@@ -1645,7 +1645,7 @@ int reqNotify(unsigned int *oidarry, unsigned short *versionarry, unsigned int n
   }
 
   /* Send  number of oids, oidarry, version array, machine id and threadid */
-  if (connect(sock, (struct sockaddr *)&remoteAddr, sizeof(remoteAddr)) < 0){
+  if (connect(sock, (struct sockaddr *)&remoteAddr, sizeof(remoteAddr)) < 0) {
     printf("reqNotify():error %d connecting to %s:%d\n", errno,
            inet_ntoa(remoteAddr.sin_addr), LISTEN_PORT);
     free(ndata);
@@ -1704,16 +1704,16 @@ void threadNotify(unsigned int oid, unsigned short version, unsigned int tid) {
     return;
   } else  {
     for(i = 0; i < ndata->numoid; i++) {
-      if(ndata->oidarry[i] == oid){
+      if(ndata->oidarry[i] == oid) {
 	objIsFound = 1;
 	index = i;
       }
     }
-    if(objIsFound == 0){
+    if(objIsFound == 0) {
       printf("threadNotify(): Oid not found %s, %d\n", __FILE__, __LINE__);
       return;
     } else {
-      if(version <= ndata->versionarry[index]){
+      if(version <= ndata->versionarry[index]) {
 	printf("threadNotify(): New version %d has not changed since last version for oid = %d, %s, %d\n", version, oid, __FILE__, __LINE__);
 	return;
       } else {
@@ -1741,7 +1741,7 @@ int notifyAll(threadlist_t **head, unsigned int oid, unsigned int version) {
     ptr = *head;
     mid = ptr->mid;
     //create a socket connection to that machine
-    if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0){
+    if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
       perror("notifyAll():socket()");
       return -1;
     }
@@ -1751,7 +1751,7 @@ int notifyAll(threadlist_t **head, unsigned int oid, unsigned int version) {
     remoteAddr.sin_port = htons(LISTEN_PORT);
     remoteAddr.sin_addr.s_addr = htonl(mid);
     //send Thread Notify response and threadid to that machine
-    if (connect(sock, (struct sockaddr *)&remoteAddr, sizeof(remoteAddr)) < 0){
+    if (connect(sock, (struct sockaddr *)&remoteAddr, sizeof(remoteAddr)) < 0) {
       printf("notifyAll():error %d connecting to %s:%d\n", errno,
              inet_ntoa(remoteAddr.sin_addr), LISTEN_PORT);
       fflush(stdout);

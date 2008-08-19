@@ -175,7 +175,7 @@ public class BuildIR {
     ParseNodeVector pnv=paramlist.getChildren();
     for(int i=0; i<pnv.size(); i++) {
       ParseNode paramn=pnv.elementAt(i);
-      if(paramn.getChild("optional")!=null){
+      if(paramn.getChild("optional")!=null) {
 	optional = true;
 	paramn = paramn.getChild("optional").getFirstChild();
 	System.out.println("OPTIONAL FOUND!!!!!!!");

@@ -604,9 +604,9 @@ public class TaskTagAnalysis {
 
 
   private static boolean isTaskTrigger_tag(TagExpressionList tel, FlagState fs) {
-    if (tel!=null){
-      for (int i=0; i<tel.numTags() ; i++){
-	switch (fs.getTagCount(tel.getType(i))){
+    if (tel!=null) {
+      for (int i=0; i<tel.numTags() ; i++) {
+	switch (fs.getTagCount(tel.getType(i))) {
 	case FlagState.ONETAG:
 	case FlagState.MULTITAGS:
 	  break;

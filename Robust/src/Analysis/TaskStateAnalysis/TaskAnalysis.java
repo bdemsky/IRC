@@ -238,7 +238,7 @@ public class TaskAnalysis {
 	      initFStates.addElement(fs);
 	    }
 	    Vector<FlagState> targetFStates = ffan.getTargetFStates(fs);
-	    for(Enumeration en=fsv_taskexit.elements(); en.hasMoreElements();){
+	    for(Enumeration en=fsv_taskexit.elements(); en.hasMoreElements();) {
 	      FlagState fs_taskexit=(FlagState)en.nextElement();
 	      if (!sourcenodes.containsKey(fs_taskexit)) {
 		toprocess.add(fs_taskexit);
@@ -303,9 +303,9 @@ public class TaskAnalysis {
 
   private boolean isTaskTrigger_tag(TagExpressionList tel, FlagState fs) {
 
-    if (tel!=null){
-      for (int i=0; i<tel.numTags() ; i++){
-	switch (fs.getTagCount(tel.getType(i))){
+    if (tel!=null) {
+      for (int i=0; i<tel.numTags() ; i++) {
+	switch (fs.getTagCount(tel.getType(i))) {
 	case FlagState.ONETAG:
 	case FlagState.MULTITAGS:
 	  break;
@@ -343,9 +343,9 @@ public class TaskAnalysis {
 	Vector<FlagState> oldprocess=processed;
 	processed=new Vector<FlagState>();
 
-	for (Enumeration en=oldprocess.elements(); en.hasMoreElements();){
+	for (Enumeration en=oldprocess.elements(); en.hasMoreElements();) {
 	  FlagState fsworking=(FlagState)en.nextElement();
-	  if (!ffan.getTagChange(ttp)){
+	  if (!ffan.getTagChange(ttp)) {
 	    processed.addAll(Arrays.asList(fsworking.clearTag(ttp.getTag())));
 	  } else processed.add(fsworking);
 	}
@@ -359,9 +359,9 @@ public class TaskAnalysis {
 	Vector<FlagState> oldprocess=processed;
 	processed=new Vector<FlagState>();
 
-	for (Enumeration en=oldprocess.elements(); en.hasMoreElements();){
+	for (Enumeration en=oldprocess.elements(); en.hasMoreElements();) {
 	  FlagState fsworking=(FlagState)en.nextElement();
-	  if (ffan.getTagChange(ttp)){
+	  if (ffan.getTagChange(ttp)) {
 	    processed.addAll(Arrays.asList(fsworking.setTag(ttp.getTag())));
 	  } else processed.add(fsworking);
 	}

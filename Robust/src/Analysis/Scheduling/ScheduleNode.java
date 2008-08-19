@@ -132,7 +132,7 @@ public class ScheduleNode extends GraphNode implements Cloneable {
 	  return false;
 	}
       }
-      if ((fs.executionTime != this.executionTime)){
+      if ((fs.executionTime != this.executionTime)) {
 	return false;
       }
       if(fs.classNodes != null) {
@@ -171,7 +171,7 @@ public class ScheduleNode extends GraphNode implements Cloneable {
     ScheduleNode o = null;
     try {
       o = (ScheduleNode) super.clone();
-    } catch(CloneNotSupportedException e){
+    } catch(CloneNotSupportedException e) {
       e.printStackTrace();
     }
     o.uid = ScheduleNode.nodeID++;

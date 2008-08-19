@@ -271,10 +271,10 @@ public class Main {
 	int tint = 0;
 	for(Iterator it_classes=state.getClassSymbolTable().getDescriptorsIterator(); it_classes.hasNext();) {
 	  ClassDescriptor cd=(ClassDescriptor) it_classes.next();
-	  if(cd.hasFlags()){
+	  if(cd.hasFlags()) {
 	    Vector rootnodes=ta.getRootNodes(cd);
 	    if(rootnodes!=null)
-	      for(Iterator it_rootnodes=rootnodes.iterator(); it_rootnodes.hasNext();){
+	      for(Iterator it_rootnodes=rootnodes.iterator(); it_rootnodes.hasNext();) {
 		FlagState root=(FlagState)it_rootnodes.next();
 		Vector allocatingTasks = root.getAllocatingTasks();
 		if(allocatingTasks != null) {
@@ -288,7 +288,7 @@ public class Main {
 		      if(numEdges - j == 1) {
 			pfe.setProbability(total);
 		      } else {
-			if((total != 0) && (total != 1)){
+			if((total != 0) && (total != 1)) {
 			  do {
 			    tint = r.nextInt()%total;
 			  } while(tint <= 0);

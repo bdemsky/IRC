@@ -46,16 +46,16 @@ public class JhttpWorker extends Thread {
           client.getInputStream()));
 
       out = client.getOutputStream();
-    } catch(IOException e)  {
+    } catch(IOException e) {
       // I'm not too good at HTTP. Normally, we should put some
       // error code here. Anyway, I have assumed that an error
       // is equivalent to an unhandled request / method (501)
       resp.returnCode = 501;
     }
 
-    if(resp.returnCode == 200){
+    if(resp.returnCode == 200) {
       // call the appropriate hanndler
-      switch(method(in)){
+      switch(method(in)) {
 
       case 0:
 	if (webinterface.specialRequest(fileName)) {
@@ -88,7 +88,7 @@ public class JhttpWorker extends Thread {
 	out.close();
 	in.close();
 	client.close();
-      } catch(IOException e)  {
+      } catch(IOException e) {
 	;         // do nothing
       }
     }
@@ -115,10 +115,10 @@ public class JhttpWorker extends Thread {
       line = in.readLine();
       // only spaces used
       StringTokenizer tok = new StringTokenizer(line, " ");
-      if (tok.hasMoreTokens()){     // make sure there is a request
+      if (tok.hasMoreTokens()) {    // make sure there is a request
 	String str = tok.nextToken();
 
-	if ( str.equals("GET") ){
+	if ( str.equals("GET") ) {
 	  ret = 0;
 	  methodType = "GET";
 	} else if ( str.equals("HEAD") ) {
@@ -137,9 +137,9 @@ public class JhttpWorker extends Thread {
       }
 
       // get the filename
-      if (tok.hasMoreTokens()){
+      if (tok.hasMoreTokens()) {
 	fileName = tok.nextToken();
-	if(fileName.equals("/")){
+	if(fileName.equals("/")) {
 	  fileName = "/index.html";
 	}
       } else
@@ -152,7 +152,7 @@ public class JhttpWorker extends Thread {
 
       // read the http version number
       // - right now nothing is done with this information
-      if (tok.hasMoreTokens()){
+      if (tok.hasMoreTokens()) {
 	httpVersion = tok.nextToken();
       } else
       {
@@ -161,15 +161,15 @@ public class JhttpWorker extends Thread {
 
       // read remainder of the browser's header
       // - nothing done right now with this info... placeholder
-      while((line = in.readLine()) != null){
+      while((line = in.readLine()) != null) {
 	StringTokenizer token = new StringTokenizer(line," ");
 
 	// do processing here
-	if(!token.hasMoreTokens()){
+	if(!token.hasMoreTokens()) {
 	  break;
 	}
       }
-    } catch(Exception e)  {
+    } catch(Exception e) {
       System.err.println(e);
       return -1;
     }

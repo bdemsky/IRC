@@ -119,7 +119,7 @@ public class ScheduleAnalysis {
       ClassDescriptor cd = cNode.getClassDescriptor();
       Vector rootnodes  = taskanalysis.getRootNodes(cd);
       if(rootnodes != null) {
-	for(int h = 0; h < rootnodes.size(); h++){
+	for(int h = 0; h < rootnodes.size(); h++) {
 	  FlagState root=(FlagState)rootnodes.elementAt(h);
 	  Vector allocatingTasks = root.getAllocatingTasks();
 	  if(allocatingTasks != null) {
@@ -236,7 +236,7 @@ public class ScheduleAnalysis {
 	  try {
 	    int repeat = (int)Math.ceil(se.getNewRate() * se.getProbability() / 100);
 	    int rate = 0;
-	    if(repeat > 1){
+	    if(repeat > 1) {
 	      for(int j = 1; j< repeat; j++ ) {
 		cloneSNodeList(se, true);
 	      }
@@ -412,7 +412,7 @@ public class ScheduleAnalysis {
 	  se.setProbability(100);
 	} else {
 	  repeat -= rate;
-	  if(repeat > 0){
+	  if(repeat > 0) {
 	    // clone the whole ScheduleNode lists starting with se's target
 	    for(int j = 0; j < repeat; j++ ) {
 	      cloneSNodeList(se, true);
@@ -596,7 +596,7 @@ public class ScheduleAnalysis {
     Queue<FlagState> toiterate = new LinkedList<FlagState>();
     toiterate.add(nfs);
     fStates.add(nfs);
-    while(!toiterate.isEmpty()){
+    while(!toiterate.isEmpty()) {
       FlagState tfs = toiterate.poll();
       Iterator it_edges = tfs.edges();
       while(it_edges.hasNext()) {
@@ -660,7 +660,7 @@ public class ScheduleAnalysis {
     Vector<ScheduleEdge> toremove = new Vector<ScheduleEdge>();
     Vector<ClassNode> rCNodes = new Vector<ClassNode>();
     rCNodes.addElement(sCNode);
-    if(it_isEdges != null){
+    if(it_isEdges != null) {
       while(it_isEdges.hasNext()) {
 	ScheduleEdge tse = (ScheduleEdge)it_isEdges.next();
 	if(rCNodes.contains(tse.getSourceCNode())) {

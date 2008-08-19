@@ -114,7 +114,7 @@ public class FlagState extends GraphNode implements Cloneable {
   /**  Sets the flagstate as a source node.
    */
   public void setAsSourceNode() {
-    if(!issourcenode){
+    if(!issourcenode) {
       issourcenode=true;
       this.tasks=new Vector();
     }
@@ -172,10 +172,10 @@ public class FlagState extends GraphNode implements Cloneable {
     HashSet newset1=(HashSet)flagstate.clone();
     Hashtable<TagDescriptor,Integer> newtags1=(Hashtable<TagDescriptor,Integer>)tags.clone();
 
-    if (tags.containsKey(tag)){
+    if (tags.containsKey(tag)) {
       //Code could try to remove flag that doesn't exist
 
-      switch (tags.get(tag).intValue()){
+      switch (tags.get(tag).intValue()) {
       case ONETAG:
 	newtags1.put(tag,new Integer(MULTITAGS));
 	return new FlagState[] {this, new FlagState(newset1, cd, newtags1)};
@@ -203,8 +203,8 @@ public class FlagState extends GraphNode implements Cloneable {
   }
 
   public FlagState[] clearTag(TagDescriptor tag) {
-    if (tags.containsKey(tag)){
-      switch(tags.get(tag).intValue()){
+    if (tags.containsKey(tag)) {
+      switch(tags.get(tag).intValue()) {
       case ONETAG:
 	HashSet newset=(HashSet)flagstate.clone();
 	Hashtable<TagDescriptor,Integer> newtags=(Hashtable<TagDescriptor,Integer>)tags.clone();
@@ -239,7 +239,7 @@ public class FlagState extends GraphNode implements Cloneable {
    */
   public String toString(FlagDescriptor[] flags) {
     StringBuffer sb = new StringBuffer(flagstate.size());
-    for(int i=0; i < flags.length; i++){
+    for(int i=0; i < flags.length; i++) {
       if (get(flags[i]))
 	sb.append(1);
       else
@@ -268,7 +268,7 @@ public class FlagState extends GraphNode implements Cloneable {
     Hashtable<TagDescriptor,Integer> newtags=(Hashtable<TagDescriptor,Integer>)tags.clone();
     if (status)
       newset.add(fd);
-    else if (newset.contains(fd)){
+    else if (newset.contains(fd)) {
       newset.remove(fd);
     }
 
@@ -305,9 +305,9 @@ public class FlagState extends GraphNode implements Cloneable {
       else
 	label+=", "+fd.toString();
     }
-    for (Enumeration en_tags=getTags(); en_tags.hasMoreElements();){
+    for (Enumeration en_tags=getTags(); en_tags.hasMoreElements();) {
       TagDescriptor td=(TagDescriptor)en_tags.nextElement();
-      switch (tags.get(td).intValue()){
+      switch (tags.get(td).intValue()) {
       case ONETAG:
 	if (label==null)
 	  label=td.toString()+"(1)";
@@ -410,7 +410,7 @@ public class FlagState extends GraphNode implements Cloneable {
     FlagState o = null;
     try {
       o = (FlagState) super.clone();
-    } catch(CloneNotSupportedException e){
+    } catch(CloneNotSupportedException e) {
       e.printStackTrace();
     }
     o.uid = FlagState.nodeid++;
@@ -444,7 +444,7 @@ public class FlagState extends GraphNode implements Cloneable {
     int gap = 0;
     for(int i = 0; i < this.edges.size(); i++) {
       int temp = ((FEdge) this.edges.elementAt(index)).getInvokeNumGap();
-      if((temp > gap) && (next.getTask().equals(td))){
+      if((temp > gap) && (next.getTask().equals(td))) {
 	index = i;
 	gap = temp;
       }

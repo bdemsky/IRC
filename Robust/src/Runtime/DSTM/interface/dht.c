@@ -336,7 +336,7 @@ void dhtInit(unsigned int seedIpAddr, unsigned int maxKeyCapacity) {
   if (bind(udpPollSock.fd, (struct sockaddr *)&myAddr, socklen) < 0)
     perror("dhtInit():bind()");
 
-  if (seed == 0){
+  if (seed == 0) {
     dhtLog("I am the leader\n");
     leader = myHostData.ipAddr;
     setState(LEAD_NORMAL1_STATE);
@@ -385,7 +385,7 @@ int dhtInsert(unsigned int key, unsigned int val) {
   toAddr.sin_family = AF_INET;
   toAddr.sin_port = htons(UDP_PORT);
 
-  while (status != OPERATION_OK){
+  while (status != OPERATION_OK) {
     pthread_mutex_lock(&stateMutex);
     while (!(state == NORMAL_STATE || state == LEAD_NORMAL1_STATE
              || state == LEAD_NORMAL2_STATE || state == REBUILD4_STATE
@@ -394,7 +394,7 @@ int dhtInsert(unsigned int key, unsigned int val) {
     toAddr.sin_addr.s_addr = htonl(getKeyOwner(key));
     pthread_mutex_unlock(&stateMutex);
 
-    if ((pollsock.fd = socket(AF_INET, SOCK_DGRAM, 0)) < 0){
+    if ((pollsock.fd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
       perror("dhtInsert():socket()");
       return -1;
     }
@@ -404,29 +404,29 @@ int dhtInsert(unsigned int key, unsigned int val) {
     write4(&outBuffer[1], key);
     write4(&outBuffer[5], val);
 
-    for (i = 0; i < INSERT_RETRIES; i++){
+    for (i = 0; i < INSERT_RETRIES; i++) {
       if (sendto(pollsock.fd, outBuffer, 9, 0, (struct sockaddr *)&toAddr,
-                 socklen) < 0){
+                 socklen) < 0) {
 	perror("dhtInsert():sendto()");
 	break;
       }
       retval = poll(&pollsock, 1, INSERT_TIMEOUT_MS);
-      if (retval < 0){
+      if (retval < 0) {
 	perror("dhtInsert():poll()");
 	break;
       }
-      if (retval > 0){
+      if (retval > 0) {
 	bytesRcvd = recvfrom(pollsock.fd, inBuffer, 2, 0,
 	                     (struct sockaddr *)&fromAddr, &socklen);
 	if (fromAddr.sin_addr.s_addr == toAddr.sin_addr.s_addr
 	    && fromAddr.sin_port == toAddr.sin_port
-	    && bytesRcvd == 2 && inBuffer[0] == INSERT_RES){
+	    && bytesRcvd == 2 && inBuffer[0] == INSERT_RES) {
 	  status = inBuffer[1];                               //status from remote host
 	  break;
 	}
       }
     }
-    if (status != OPERATION_OK){
+    if (status != OPERATION_OK) {
       pthread_mutex_lock(&stateMutex);
       setState(REBUILD0_STATE);
       outBuffer[0] = REBUILD_REQ;
@@ -445,7 +445,7 @@ int dhtInsertMult(unsigned int numKeys, unsigned int *keys,     unsigned int *va
   int i;
 
   status = 0;
-  for (i = 0; i < numKeys; i++){
+  for (i = 0; i < numKeys; i++) {
     if (dhtInsert(keys[i], vals[i]) != 0)
       status = -1;
   }
@@ -468,7 +468,7 @@ int dhtRemove(unsigned int key) {
   toAddr.sin_family = AF_INET;
   toAddr.sin_port = htons(UDP_PORT);
 
-  while (!(status == OPERATION_OK || status == KEY_NOT_FOUND)){
+  while (!(status == OPERATION_OK || status == KEY_NOT_FOUND)) {
     pthread_mutex_lock(&stateMutex);
     while (!(state == NORMAL_STATE || state == LEAD_NORMAL1_STATE
              || state == LEAD_NORMAL2_STATE))
@@ -476,7 +476,7 @@ int dhtRemove(unsigned int key) {
     toAddr.sin_addr.s_addr = htonl(getKeyOwner(key));
     pthread_mutex_unlock(&stateMutex);
 
-    if ((pollsock.fd = socket(AF_INET, SOCK_DGRAM, 0)) < 0){
+    if ((pollsock.fd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
       perror("dhtRemove():socket()");
       return -1;
     }
@@ -485,29 +485,29 @@ int dhtRemove(unsigned int key) {
     outBuffer[0] = REMOVE_CMD;
     write4(&outBuffer[1], key);
 
-    for (i = 0; i < REMOVE_RETRIES; i++){
+    for (i = 0; i < REMOVE_RETRIES; i++) {
       if (sendto(pollsock.fd, outBuffer, 5, 0, (struct sockaddr *)&toAddr,
-                 socklen) < 0){
+                 socklen) < 0) {
 	perror("dhtRemove():sendto()");
 	break;
       }
       retval = poll(&pollsock, 1, REMOVE_TIMEOUT_MS);
-      if (retval < 0){
+      if (retval < 0) {
 	perror("dhtRemove():poll()");
 	break;
       }
-      if (retval > 0){
+      if (retval > 0) {
 	bytesRcvd = recvfrom(pollsock.fd, inBuffer, 2, 0,
 	                     (struct sockaddr *)&fromAddr, &socklen);
 	if (fromAddr.sin_addr.s_addr == toAddr.sin_addr.s_addr
 	    && fromAddr.sin_port == toAddr.sin_port
-	    && bytesRcvd == 2 && inBuffer[0] == REMOVE_RES){
+	    && bytesRcvd == 2 && inBuffer[0] == REMOVE_RES) {
 	  status = inBuffer[1];                               //status from remote host
 	  break;
 	}
       }
     }
-    if (!(status == OPERATION_OK || status == KEY_NOT_FOUND)){
+    if (!(status == OPERATION_OK || status == KEY_NOT_FOUND)) {
       pthread_mutex_lock(&stateMutex);
       setState(REBUILD0_STATE);
       outBuffer[0] = REBUILD_REQ;
@@ -526,7 +526,7 @@ int dhtRemoveMult(unsigned int numKeys, unsigned int *keys) {
   int i;
 
   status = 0;
-  for (i = 0; i < numKeys; i++){
+  for (i = 0; i < numKeys; i++) {
     if (dhtRemove(keys[i]) != 0)
       status = -1;
   }
@@ -549,14 +549,14 @@ int dhtSearch(unsigned int key, unsigned int *val) {
   toAddr.sin_family = AF_INET;
   toAddr.sin_port = htons(UDP_PORT);
 
-  while (!(status == OPERATION_OK || status == KEY_NOT_FOUND)){
+  while (!(status == OPERATION_OK || status == KEY_NOT_FOUND)) {
     pthread_mutex_lock(&stateMutex);
     while (numBlocks == 0)
       pthread_cond_wait(&stateCond, &stateMutex);
     toAddr.sin_addr.s_addr = htonl(getKeyOwner(key));
     pthread_mutex_unlock(&stateMutex);
 
-    if ((pollsock.fd = socket(AF_INET, SOCK_DGRAM, 0)) < 0){
+    if ((pollsock.fd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
       perror("dhtSearch():socket()");
       return -1;
     }
@@ -565,30 +565,30 @@ int dhtSearch(unsigned int key, unsigned int *val) {
     outBuffer[0] = SEARCH_CMD;
     write4(&outBuffer[1], key);
 
-    for (i = 0; i < SEARCH_RETRIES; i++){
+    for (i = 0; i < SEARCH_RETRIES; i++) {
       if (sendto(pollsock.fd, outBuffer, 5, 0, (struct sockaddr *)&toAddr,
-                 socklen) < 0){
+                 socklen) < 0) {
 	perror("dhtSearch():sendto()");
 	break;
       }
       retval = poll(&pollsock, 1, SEARCH_TIMEOUT_MS);
-      if (retval < 0){
+      if (retval < 0) {
 	perror("dhtSearch():poll()");
 	break;
       }
-      if (retval > 0){
+      if (retval > 0) {
 	bytesRcvd = recvfrom(pollsock.fd, inBuffer, 6, 0,
 	                     (struct sockaddr *)&fromAddr, &socklen);
 	if (fromAddr.sin_addr.s_addr == toAddr.sin_addr.s_addr
 	    && fromAddr.sin_port == toAddr.sin_port
-	    && bytesRcvd == 6 && inBuffer[0] == SEARCH_RES){
+	    && bytesRcvd == 6 && inBuffer[0] == SEARCH_RES) {
 	  status = inBuffer[1];                               //status from remote host
 	  *val = read4(&inBuffer[2]);
 	  break;
 	}
       }
     }
-    if (!(status == OPERATION_OK || status == KEY_NOT_FOUND)){
+    if (!(status == OPERATION_OK || status == KEY_NOT_FOUND)) {
       pthread_mutex_lock(&stateMutex);
       setState(REBUILD0_STATE);
       outBuffer[0] = REBUILD_REQ;
@@ -605,7 +605,7 @@ int dhtSearch(unsigned int key, unsigned int *val) {
 int dhtSearchMult(unsigned int numKeys, unsigned int *keys, unsigned int *vals) {
   int i;
   int status = 0;
-  for (i = 0; i < numKeys; i++){
+  for (i = 0; i < numKeys; i++) {
     if (dhtSearch(keys[i], &vals[i]) != 0)
       status = -1;
   }
@@ -623,7 +623,7 @@ int msgSizeOk(unsigned char *msg, unsigned int size) {
   if (size < 1)
     return 1;
 
-  switch (msg[0]){
+  switch (msg[0]) {
   case WHO_IS_LEADER_CMD:
   case LEAVE_REQ:
   case LEAVE_RES:
@@ -713,7 +713,7 @@ unsigned int getMyIpAddr(const char *interfaceStr) {
 
   memset(&interfaceInfo, 0, sizeof(struct ifreq));
 
-  if((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0){
+  if((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
     perror("getMyIpAddr():socket()");
     return 1;
   }
@@ -721,7 +721,7 @@ unsigned int getMyIpAddr(const char *interfaceStr) {
   strcpy(interfaceInfo.ifr_name, interfaceStr);
   myAddr->sin_family = AF_INET;
 
-  if(ioctl(sock, SIOCGIFADDR, &interfaceInfo) != 0){
+  if(ioctl(sock, SIOCGIFADDR, &interfaceInfo) != 0) {
     perror("getMyIpAddr():ioctl()");
     return 1;
   }
@@ -738,7 +738,7 @@ int udpSend(unsigned char *msg, unsigned int size, unsigned int destIp) {
   peerAddr.sin_addr.s_addr = htonl(destIp);
   peerAddr.sin_port = htons(UDP_PORT);
 
-  if (size >= 1){
+  if (size >= 1) {
     if (msg[0] < NUM_MSG_TYPES)
       dhtLog("udpSend(): sending %s to %s, %d bytes\n", msg_types[msg[0]],
              inet_ntoa(peerAddr.sin_addr), size);
@@ -748,7 +748,7 @@ int udpSend(unsigned char *msg, unsigned int size, unsigned int destIp) {
   }
 
   if (sendto(udpPollSock.fd, (void *)msg, size, 0, (struct sockaddr *)&peerAddr,
-             socklen) < 0){
+             socklen) < 0) {
     perror("udpSend():sendto()");
     return -1;
   }
@@ -759,8 +759,8 @@ int udpSend(unsigned char *msg, unsigned int size, unsigned int destIp) {
 int udpSendAll(unsigned char *msg, unsigned int size) {
   int i;
   int status = 0;
-  for (i = 0; i < numHosts; i++){
-    if ((hostReplied[i] == 0) && (hostArray[i].ipAddr != myHostData.ipAddr)){
+  for (i = 0; i < numHosts; i++) {
+    if ((hostReplied[i] == 0) && (hostArray[i].ipAddr != myHostData.ipAddr)) {
       if (udpSend(msg, size, hostArray[i].ipAddr) != 0)
 	status = -1;
     }
@@ -786,12 +786,12 @@ void setState(unsigned int newState) {
 
   gettimeofday(&now, NULL);
 
-  if (newState >= NUM_STATES){
+  if (newState >= NUM_STATES) {
     dhtLog("setState(): ERROR: invalid state %d\n", newState);
   } else
   {
     if (timeout_vals[newState].tv_sec == 0
-        && timeout_vals[newState].tv_usec == 0){ //no timer
+        && timeout_vals[newState].tv_usec == 0) { //no timer
       timerSet = 0;
     } else
     {
@@ -852,14 +852,14 @@ int removeHost(unsigned int ipAddr) {
   if (i == -1)
     return -1;
 
-  for (j = 0; j < numBlocks; j++){
+  for (j = 0; j < numBlocks; j++) {
     if (blockOwnerArray[j] == i)
       blockOwnerArray[j] = 0;                   //TODO: is this what I want to have happen?
     else if (blockOwnerArray[j] > i)
       blockOwnerArray[j]--;
   }
 
-  for (; i < numHosts - 1; i++){
+  for (; i < numHosts - 1; i++) {
     hostArray[i] = hostArray[i+1];
     hostReplied[i] = hostReplied[i+1];
   }
@@ -871,7 +871,7 @@ int removeHost(unsigned int ipAddr) {
 void removeUnresponsiveHosts() {
   int i;
 
-  for (i = 0; i < numHosts; i++){
+  for (i = 0; i < numHosts; i++) {
     if (!hostReplied[i] && hostArray[i].ipAddr != myHostData.ipAddr)
       removeHost(hostArray[i].ipAddr);
   }
@@ -883,13 +883,13 @@ int addHost(struct hostData newHost) {
   int i;
   int j;
 
-  for (i = 0; i < numHosts; i++){
-    if (hostArray[i].ipAddr == newHost.ipAddr){
+  for (i = 0; i < numHosts; i++) {
+    if (hostArray[i].ipAddr == newHost.ipAddr) {
       hostArray[i] = newHost;
       hostReplied[i] = 0;
       return 0;
     } else if (hostArray[i].ipAddr > newHost.ipAddr) {
-      if (numHosts == hostArraySize){
+      if (numHosts == hostArraySize) {
 	newHostArray = calloc(2 * hostArraySize, sizeof(struct hostData));
 	newHostReplied = calloc(2 * hostArraySize, sizeof(unsigned char));
 	memcpy(newHostArray, hostArray, (i * sizeof(struct hostData)));
@@ -907,14 +907,14 @@ int addHost(struct hostData newHost) {
 	hostArraySize = 2 * hostArraySize;
       } else
       {
-	for (j = numHosts; j > i; j--){
+	for (j = numHosts; j > i; j--) {
 	  hostArray[j] = hostArray[j-1];
 	  hostReplied[j] = hostReplied[j-1];
 	}
 	hostArray[i] = newHost;
 	hostReplied[i] = 0;
       }
-      for(j = 0; j < numBlocks; j++){
+      for(j = 0; j < numBlocks; j++) {
 	if (blockOwnerArray[j] >= i)
 	  blockOwnerArray[j]++;
       }
@@ -924,7 +924,7 @@ int addHost(struct hostData newHost) {
   }
 
   //nothing greater, add to end
-  if (numHosts == hostArraySize){
+  if (numHosts == hostArraySize) {
     newHostArray = calloc(2 * hostArraySize, sizeof(struct hostData));
     newHostReplied = calloc(2 * hostArraySize, sizeof(unsigned char));
     memcpy(newHostArray, hostArray, (numHosts * sizeof(struct hostData)));
@@ -945,7 +945,7 @@ int addHost(struct hostData newHost) {
 void makeAssignments() {
   int i;
 
-  if (numBlocks < numHosts){
+  if (numBlocks < numHosts) {
     free(blockOwnerArray);
     while (numBlocks < numHosts)
       numBlocks *= 2;
@@ -963,7 +963,7 @@ void writeHostList() {
   struct in_addr tmpAddr;
 
   fprintf(logfile, "numHosts = %d\n", numHosts);
-  for (i = 0; i < numHosts; i++){
+  for (i = 0; i < numHosts; i++) {
     tmpAddr.s_addr = htonl(hostArray[i].ipAddr);
     fprintf(logfile, "%d) %s, %d\n", i, inet_ntoa(tmpAddr),
             hostArray[i].maxKeyCapacity);
@@ -980,10 +980,10 @@ void dhtLog(const char *format, ...) {
   va_start(args, format);
 //	if (fprintf(logfile, "%d.%06d:", now.tv_sec, now.tv_usec) < 0)
 //	{	perror("dhtLog():fprintf()"); }
-  if (vfprintf(logfile, format, args) < 0){
+  if (vfprintf(logfile, format, args) < 0) {
     perror("dhtLog():vfprintf()");
   }
-  if (fflush(logfile) == EOF){
+  if (fflush(logfile) == EOF) {
     perror("dhtLog():fflush()");
   }
   va_end(args);
@@ -1033,16 +1033,16 @@ void *udpListen() {
 
   dhtLog("udpListen(): linstening on port %d...\n", UDP_PORT);
 
-  while (1){
+  while (1) {
     pollret = poll(&udpPollSock, 1, TIMEOUT_PERIOD);
     pthread_mutex_lock(&stateMutex);
     oldState = state;
-    if (pollret < 0){
+    if (pollret < 0) {
       perror("udpListen():poll()");
     } else if (pollret > 0) {
       bytesRcvd = recvfrom(udpPollSock.fd, inBuffer, MAX_MSG_SIZE, 0,
                            (struct sockaddr *)&peerAddr, &socklen);
-      if (bytesRcvd < 1){
+      if (bytesRcvd < 1) {
 	dhtLog("udpListen(): ERROR: bytesRcvd = %d\n", bytesRcvd);
       } else if (inBuffer[0] >= NUM_MSG_TYPES) {
 	dhtLog("udpListen(): ERROR: unknown msg type = %d\n", inBuffer[0]);
@@ -1058,7 +1058,7 @@ void *udpListen() {
 	  dhtLog(" %x", inBuffer[i]);
 	dhtLog("\n");
 	peerIp = ntohl(peerAddr.sin_addr.s_addr);
-	if (peerIp == seed && inBuffer[0] == WHO_IS_LEADER_RES){
+	if (peerIp == seed && inBuffer[0] == WHO_IS_LEADER_RES) {
 	  tmpHost.ipAddr = peerIp;
 	  tmpHost.maxKeyCapacity = 0;
 	  addHost(tmpHost);
@@ -1066,7 +1066,7 @@ void *udpListen() {
 	  leader = read4(&inBuffer[1]);
 	  tmpAddr.s_addr = htonl(leader);
 	  dhtLog("leader = %s\n", inet_ntoa(tmpAddr));
-	  if (leader != 0){
+	  if (leader != 0) {
 	    setState(INIT2_STATE);
 	    outBuffer[0] = JOIN_REQ;
 	    write4(&outBuffer[1], myHostData.maxKeyCapacity);
@@ -1088,15 +1088,15 @@ void *udpListen() {
 	  dhtLog(" %x", inBuffer[i]);
 	dhtLog("\n");
 	peerIp = ntohl(peerAddr.sin_addr.s_addr);
-	switch (inBuffer[0]){
+	switch (inBuffer[0]) {
 	case INSERT_CMD:
 	  if (state == NORMAL_STATE || state == LEAD_NORMAL1_STATE
 	      || state == LEAD_NORMAL2_STATE || state == REBUILD4_STATE
-	      || state == REBUILD5_STATE || state == LEAD_REBUILD3_STATE){
+	      || state == REBUILD5_STATE || state == LEAD_REBUILD3_STATE) {
 	    tmpKey = read4(&inBuffer[1]);
 	    tmpVal = read4(&inBuffer[5]);
 	    outBuffer[0] = INSERT_RES;
-	    if (getKeyOwner(tmpKey) == myHostData.ipAddr){
+	    if (getKeyOwner(tmpKey) == myHostData.ipAddr) {
 	      if (chashInsert(myHashTable, tmpKey, (void *)tmpVal) == 0)
 		outBuffer[1] = OPERATION_OK;
 	      else
@@ -1113,10 +1113,10 @@ void *udpListen() {
 
 	case REMOVE_CMD:
 	  if (state == NORMAL_STATE || state == LEAD_NORMAL1_STATE
-	      || state == LEAD_NORMAL2_STATE){
+	      || state == LEAD_NORMAL2_STATE) {
 	    tmpKey = read4(&inBuffer[1]);
 	    outBuffer[0] = REMOVE_RES;
-	    if (getKeyOwner(tmpKey) == myHostData.ipAddr){
+	    if (getKeyOwner(tmpKey) == myHostData.ipAddr) {
 	      if (chashRemove(myHashTable, tmpKey) == 0)
 		outBuffer[1] = OPERATION_OK;
 	      else
@@ -1133,11 +1133,11 @@ void *udpListen() {
 
 	case SEARCH_CMD:
 	  if (state == NORMAL_STATE || state == LEAD_NORMAL1_STATE
-	      || state == LEAD_NORMAL2_STATE){
+	      || state == LEAD_NORMAL2_STATE) {
 	    tmpKey = read4(&inBuffer[1]);
 	    outBuffer[0] = SEARCH_RES;
-	    if (getKeyOwner(tmpKey) == myHostData.ipAddr){
-	      if ((tmpVal = (unsigned int)chashSearch(myHashTable, tmpKey)) != 0){
+	    if (getKeyOwner(tmpKey) == myHostData.ipAddr) {
+	      if ((tmpVal = (unsigned int)chashSearch(myHashTable, tmpKey)) != 0) {
 		outBuffer[1] = OPERATION_OK;
 		write4(&outBuffer[2], tmpVal);
 	      } else
@@ -1168,7 +1168,7 @@ void *udpListen() {
 	  break;
 
 	case JOIN_REQ:
-	  if (state == LEAD_NORMAL1_STATE || state == LEAD_NORMAL2_STATE){
+	  if (state == LEAD_NORMAL1_STATE || state == LEAD_NORMAL2_STATE) {
 	    tmpHost.ipAddr = peerIp;
 	    tmpHost.maxKeyCapacity = read4(&inBuffer[1]);
 	    addHost(tmpHost);
@@ -1184,7 +1184,7 @@ void *udpListen() {
 	    outBuffer[0] = JOIN_RES;
 	    outBuffer[1] = 0;                                             //status, success
 	    udpSend(outBuffer, 2, peerIp);
-	    if (allReplied()){
+	    if (allReplied()) {
 	      makeAssignments();
 	      setState(LEAD_REBUILD2_STATE);
 	      outBuffer[0] = DHT_UPDATE_CMD;
@@ -1200,7 +1200,7 @@ void *udpListen() {
 	  break;
 
 	case JOIN_RES:
-	  if (state == REBUILD1_STATE){
+	  if (state == REBUILD1_STATE) {
 	    setState(REBUILD2_STATE);
 	  } else if (state == INIT2_STATE) {
 	    setState(NORMAL_STATE);
@@ -1208,7 +1208,7 @@ void *udpListen() {
 	  break;
 
 	case LEAVE_REQ:
-	  if (state == LEAD_NORMAL1_STATE || state == LEAD_NORMAL2_STATE){ //TODO: make this graceful, instead of just rebuilding
+	  if (state == LEAD_NORMAL1_STATE || state == LEAD_NORMAL2_STATE) { //TODO: make this graceful, instead of just rebuilding
 	    removeHost(peerIp);
 	    if (state != LEAD_NORMAL2_STATE)
 	      setState(LEAD_NORMAL2_STATE);
@@ -1216,7 +1216,7 @@ void *udpListen() {
 	  break;
 
 	case DHT_UPDATE_CMD:
-	  if (state == REBUILD2_STATE && peerIp == leader){
+	  if (state == REBUILD2_STATE && peerIp == leader) {
 	    free(hostArray);
 	    free(blockOwnerArray);
 	    numHosts = read2(&inBuffer[1]);
@@ -1235,9 +1235,9 @@ void *udpListen() {
 	  break;
 
 	case DHT_UPDATE_RES:
-	  if (state == LEAD_REBUILD2_STATE){
+	  if (state == LEAD_REBUILD2_STATE) {
 	    checkReplied(peerIp);
-	    if (allReplied()){
+	    if (allReplied()) {
 	      setState(LEAD_REBUILD3_STATE);
 	      outBuffer[0] = FILL_DHT_CMD;
 	      udpSendAll(outBuffer, 1);
@@ -1253,7 +1253,7 @@ void *udpListen() {
 	case ELECT_LEADER_CMD:
 	  tmpUInt = read4(&inBuffer[1]);
 	  if ((state == ELECT1_STATE || state == ELECT2_STATE)
-	      && tmpUInt >= electionOriginator){  //already participating in a higher-priority election
+	      && tmpUInt >= electionOriginator) { //already participating in a higher-priority election
 	    outBuffer[0] = ELECT_LEADER_RES;
 	    outBuffer[1] = 0xFF;
 	    udpSend(outBuffer, 2, peerIp);
@@ -1267,7 +1267,7 @@ void *udpListen() {
 	    //don't bother forwarding the message to originator or parent
 	    checkReplied(electionOriginator);
 	    checkReplied(electionParent);
-	    if (allReplied()){                            //in case that is everybody I know of
+	    if (allReplied()) {                           //in case that is everybody I know of
 	      setState(ELECT2_STATE);
 	      outBuffer[0] = ELECT_LEADER_RES;
 	      outBuffer[1] = 0;
@@ -1284,20 +1284,20 @@ void *udpListen() {
 	  break;
 
 	case ELECT_LEADER_RES:
-	  if (state == ELECT1_STATE){
+	  if (state == ELECT1_STATE) {
 	    checkReplied(peerIp);
-	    if (inBuffer[1] != 0xFF){
+	    if (inBuffer[1] != 0xFF) {
 	      tmpUShort = read2(&inBuffer[2]);
 	      hostDataPtr = (struct hostData *)&inBuffer[4];
 	      for (i = 0; i < tmpUShort; i++)
 		addHost(hostDataPtr[i]);
 	      writeHostList();
 	    }
-	    if (allReplied()){
+	    if (allReplied()) {
 	      setState(ELECT2_STATE);
-	      if (electionOriginator == myHostData.ipAddr){
+	      if (electionOriginator == myHostData.ipAddr) {
 		leader = hostArray[0].ipAddr;
-		if (leader == myHostData.ipAddr){                         //I am the leader
+		if (leader == myHostData.ipAddr) {                        //I am the leader
 		  dhtLog("I am the leader!\n");
 		  setState(LEAD_REBUILD1_STATE);
 		  outBuffer[0] = REBUILD_CMD;
@@ -1328,7 +1328,7 @@ void *udpListen() {
 	  break;
 
 	case CONGRATS_CMD:
-	  if (state == ELECT2_STATE){             //I am the leader
+	  if (state == ELECT2_STATE) {            //I am the leader
 	    leader = myHostData.ipAddr;
 	    dhtLog("I am the leader!\n");
 	    tmpUShort = read2(&inBuffer[1]);
@@ -1343,7 +1343,7 @@ void *udpListen() {
 	  break;
 
 	case REBUILD_REQ:
-	  if (state == LEAD_NORMAL1_STATE || state == LEAD_NORMAL2_STATE){
+	  if (state == LEAD_NORMAL1_STATE || state == LEAD_NORMAL2_STATE) {
 	    setState(LEAD_REBUILD1_STATE);
 	    outBuffer[0] = REBUILD_CMD;
 	    udpSendAll(outBuffer, 1);
@@ -1359,7 +1359,7 @@ void *udpListen() {
 	  break;
 
 	case FILL_DHT_CMD:
-	  if (state == REBUILD3_STATE && peerIp == leader){
+	  if (state == REBUILD3_STATE && peerIp == leader) {
 	    setState(REBUILD4_STATE);
 	    if (fillStatus != 0)
 	      dhtLog("udpListen(): ERROR: fillTask already running\n");
@@ -1370,9 +1370,9 @@ void *udpListen() {
 	  break;
 
 	case FILL_DHT_RES:
-	  if (state == LEAD_REBUILD3_STATE){
+	  if (state == LEAD_REBUILD3_STATE) {
 	    checkReplied(peerIp);
-	    if (allReplied() && fillStatus == 2){
+	    if (allReplied() && fillStatus == 2) {
 	      fillStatus = 0;
 	      setState(LEAD_REBUILD4_STATE);
 	      outBuffer[0] = RESUME_NORMAL_CMD;
@@ -1382,7 +1382,7 @@ void *udpListen() {
 	  break;
 
 	case RESUME_NORMAL_CMD:
-	  if (state == REBUILD5_STATE && peerIp == leader){
+	  if (state == REBUILD5_STATE && peerIp == leader) {
 	    setState(NORMAL_STATE);
 	    outBuffer[0] = RESUME_NORMAL_RES;
 	    udpSend(outBuffer, 1, leader);
@@ -1390,9 +1390,9 @@ void *udpListen() {
 	  break;
 
 	case RESUME_NORMAL_RES:
-	  if (state == LEAD_REBUILD4_STATE){
+	  if (state == LEAD_REBUILD4_STATE) {
 	    checkReplied(peerIp);
-	    if (allReplied()){
+	    if (allReplied()) {
 	      setState(LEAD_NORMAL1_STATE);
 	    }
 	  }
@@ -1400,8 +1400,8 @@ void *udpListen() {
 	}
       }
     }
-    if (state == REBUILD4_STATE){
-      switch (fillStatus){
+    if (state == REBUILD4_STATE) {
+      switch (fillStatus) {
       case 0: dhtLog("udpListen(): ERROR: fillStatus=0 in REBUILD4_STATE\n");
 	break;
 
@@ -1423,8 +1423,8 @@ void *udpListen() {
 	break;
       }
     }
-    if (state == LEAD_REBUILD3_STATE){
-      switch (fillStatus){
+    if (state == LEAD_REBUILD3_STATE) {
+      switch (fillStatus) {
       case 0: dhtLog("udpListen(): ERROR: fillStatus=0 in LEAD_REBUILD3_STATE\n");
 	break;
 
@@ -1432,7 +1432,7 @@ void *udpListen() {
 	break;
 
       case 2:                           //I'm done, now is everybody else also done?
-	if (allReplied()){
+	if (allReplied()) {
 	  fillStatus = 0;
 	  setState(LEAD_REBUILD4_STATE);
 	  outBuffer[0] = RESUME_NORMAL_CMD;
@@ -1448,14 +1448,14 @@ void *udpListen() {
 	break;
       }
     }
-    if (timerSet){
+    if (timerSet) {
       gettimeofday(&now, NULL);
-      if (timercmp(&now, &timer, >)){
-	if (timeoutCntr < retry_vals[state]){
+      if (timercmp(&now, &timer, >)) {
+	if (timeoutCntr < retry_vals[state]) {
 	  timeoutCntr++;
 	  timeradd(&now, &timeout_vals[state], &timer);
 	  dhtLog("udpListen(): retry: %d\n", timeoutCntr);
-	  switch (state){
+	  switch (state) {
 	  case INIT1_STATE:
 	    outBuffer[0] = WHO_IS_LEADER_CMD;
 	    udpSend(outBuffer, 1, seed);
@@ -1474,7 +1474,7 @@ void *udpListen() {
 	    break;
 
 	  case ELECT2_STATE:
-	    if (electionOriginator == myHostData.ipAddr){ //retry notify leader
+	    if (electionOriginator == myHostData.ipAddr) { //retry notify leader
 	      outBuffer[0] = CONGRATS_CMD;
 	      write2(&outBuffer[1], numHosts);
 	      memcpy(&outBuffer[3], hostArray, sizeof(struct hostData)
@@ -1552,7 +1552,7 @@ void *udpListen() {
 	{
 	  dhtLog("udpListen(): timed out in state %s after %d retries\n",
 	         state_names[state], timeoutCntr);
-	  switch (state){
+	  switch (state) {
 	  case INIT1_STATE:
 	    setState(EXIT2_STATE);
 	    break;
@@ -1570,9 +1570,9 @@ void *udpListen() {
 	    dhtLog("after\n");
 	    writeHostList();
 	    setState(ELECT2_STATE);
-	    if (electionOriginator == myHostData.ipAddr){
+	    if (electionOriginator == myHostData.ipAddr) {
 	      leader = hostArray[0].ipAddr;
-	      if (leader == myHostData.ipAddr){                   //I am the leader
+	      if (leader == myHostData.ipAddr) {                  //I am the leader
 		dhtLog("I am the leader!\n");
 		setState(LEAD_REBUILD1_STATE);
 		outBuffer[0] = REBUILD_CMD;

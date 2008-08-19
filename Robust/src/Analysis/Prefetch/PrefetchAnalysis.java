@@ -428,7 +428,7 @@ public class PrefetchAnalysis {
 
     for (Enumeration ecld = child_prefetch_set_copy.keys(); ecld.hasMoreElements();) {
       PrefetchPair childpp = (PrefetchPair) ecld.nextElement();
-      if (childpp.base == currfsen.getDst()){
+      if (childpp.base == currfsen.getDst()) {
 	int sizedesc = childpp.desc.size();
 	if((childpp.getDescAt(0) instanceof IndexDescriptor)) {
 	  int sizetempdesc = ((IndexDescriptor)(childpp.getDescAt(0))).tddesc.size();
@@ -792,7 +792,7 @@ nexttemp:
       newvisited.addLast(fn);
       for(int i=0; i<fn.numNext(); i++) {
 	FlatNode nn = fn.getNext(i);
-	if(!newtovisit.contains(nn) && !newvisited.contains(nn)){
+	if(!newtovisit.contains(nn) && !newvisited.contains(nn)) {
 	  newtovisit.addLast(nn);
 	}
       }
@@ -845,7 +845,7 @@ nexttemp:
     for (int j = 0; j < shrt.desc.size(); j++) {
       if(shrt.getDescAt(j) instanceof IndexDescriptor) {
 	IndexDescriptor shrtid = (IndexDescriptor) shrt.getDescAt(j);
-	if(lng.getDescAt(j) instanceof IndexDescriptor){
+	if(lng.getDescAt(j) instanceof IndexDescriptor) {
 	  IndexDescriptor lngid = (IndexDescriptor) lng.getDescAt(j);
 	  if(shrtid.equals(lngid)) {
 	    continue;
@@ -856,7 +856,7 @@ nexttemp:
 	  return false;
 	}
       } else  {
-	if ((Descriptor)shrt.getDescAt(j) != (Descriptor)lng.getDescAt(j)){
+	if ((Descriptor)shrt.getDescAt(j) != (Descriptor)lng.getDescAt(j)) {
 	  return false;
 	}
       }

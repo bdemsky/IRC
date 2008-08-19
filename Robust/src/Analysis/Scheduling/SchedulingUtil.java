@@ -339,7 +339,7 @@ public class SchedulingUtil {
 	    isfirst = true;
 	  }
 	  tmpLabel = tmpTaskNodes.get(tmpTaskNode);
-	  switch(taction.getType()){
+	  switch(taction.getType()) {
 	  case Action.ADDOBJ: {
 	    if(!isfirst) {
 	      tmpLabel.append("\\n");

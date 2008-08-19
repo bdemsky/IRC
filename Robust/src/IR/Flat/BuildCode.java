@@ -99,7 +99,7 @@ public class BuildCode {
       if (state.TASK) {
 	outtask=new PrintWriter(new FileOutputStream(PREFIX+"task.h"), true);
 	outtaskdefs=new PrintWriter(new FileOutputStream(PREFIX+"taskdefs.c"), true);
-	if (state.OPTIONAL){
+	if (state.OPTIONAL) {
 	  outoptionalarrays=new PrintWriter(new FileOutputStream(PREFIX+"optionalarrays.c"), true);
 	  optionalheaders=new PrintWriter(new FileOutputStream(PREFIX+"optionalstruct.h"), true);
 	}
@@ -168,7 +168,7 @@ public class BuildCode {
     }
 
     /* Generate information for task with optional parameters */
-    if (state.TASK&&state.OPTIONAL){
+    if (state.TASK&&state.OPTIONAL) {
       generateOptionalArrays(outoptionalarrays, optionalheaders, state.getAnalysisResult(), state.getOptionalTaskDescriptors());
       outoptionalarrays.close();
     }
@@ -442,7 +442,7 @@ public class BuildCode {
 	outclassdefs.println("  int version;");
 	outclassdefs.println("  struct ___Object___ * original;");
       }
-      if(state.OPTIONAL){
+      if(state.OPTIONAL) {
 	outclassdefs.println("  int numfses;");
 	outclassdefs.println("  int * fses;");
       }
@@ -1036,12 +1036,12 @@ public class BuildCode {
       classdefout.println("  int flag;");
       if((!state.MULTICORE) || (cn.getSymbol().equals("TagDescriptor"))) {
 	classdefout.println("  void * flagptr;");
-      } else if (state.MULTICORE){
+      } else if (state.MULTICORE) {
 	classdefout.println("  int isolate;");        // indicate if this object is shared or not
 	classdefout.println("  int version;");
 	classdefout.println("  struct ___Object___ * original;");
       }
-      if (state.OPTIONAL){
+      if (state.OPTIONAL) {
 	classdefout.println("  int numfses;");
 	classdefout.println("  int * fses;");
       }
@@ -2519,7 +2519,7 @@ public class BuildCode {
     Hashtable<TempDescriptor, Integer> slotnumber=new Hashtable<TempDescriptor, Integer>();
     int current_slot=0;
 
-    for(Iterator vard_it = c_vard.iterator(); vard_it.hasNext();){
+    for(Iterator vard_it = c_vard.iterator(); vard_it.hasNext();) {
       VarDescriptor vard = (VarDescriptor)vard_it.next();
       TypeDescriptor typed = vard.getType();
 
@@ -2527,8 +2527,8 @@ public class BuildCode {
       HashSet fen_hashset = predicate.flags.get(vard.getSymbol());
       output.println("int predicateflags_"+predicateindex+"_OTD"+otd.getuid()+"_"+cdtemp.getSafeSymbol()+"[]={");
       int numberterms=0;
-      if (fen_hashset!=null){
-	for (Iterator fen_it = fen_hashset.iterator(); fen_it.hasNext();){
+      if (fen_hashset!=null) {
+	for (Iterator fen_it = fen_hashset.iterator(); fen_it.hasNext();) {
 	  FlagExpressionNode fen = (FlagExpressionNode)fen_it.next();
 	  if (fen!=null) {
 	    DNFFlag dflag=fen.getDNF();
@@ -2562,7 +2562,7 @@ public class BuildCode {
       TagExpressionList tagel = predicate.tags.get(vard.getSymbol());
       output.println("int predicatetags_"+predicateindex+"_OTD"+otd.getuid()+"_"+cdtemp.getSafeSymbol()+"[]={");
       int numtags = 0;
-      if (tagel!=null){
+      if (tagel!=null) {
 	for(int j=0; j<tagel.numTags(); j++) {
 	  if (j!=0)
 	    output.println(",");
@@ -2592,7 +2592,7 @@ public class BuildCode {
 
     //generate an array that stores the entire predicate
     output.println("struct predicatemember * predicatememberarray_OTD"+otd.getuid()+"_"+cdtemp.getSafeSymbol()+"[]={");
-    for( int j = 0; j<predicateindex; j++){
+    for( int j = 0; j<predicateindex; j++) {
       if( j != predicateindex-1) output.println("&predicatemember_"+j+"_OTD"+otd.getuid()+"_"+cdtemp.getSafeSymbol()+",");
       else output.println("&predicatemember_"+j+"_OTD"+otd.getuid()+"_"+cdtemp.getSafeSymbol());
     }
@@ -2620,8 +2620,8 @@ public class BuildCode {
       Collection c_otd = ((Hashtable)optionaltaskdescriptors.get(cdtemp)).values();
       numotd = c_otd.size();
       if(maxotd<numotd) maxotd = numotd;
-      if( !c_otd.isEmpty() ){
-	for(Iterator otd_it = c_otd.iterator(); otd_it.hasNext();){
+      if( !c_otd.isEmpty() ) {
+	for(Iterator otd_it = c_otd.iterator(); otd_it.hasNext();) {
 	  OptionalTaskDescriptor otd = (OptionalTaskDescriptor)otd_it.next();
 
 	  //generate the int arrays for the predicate
@@ -2631,10 +2631,10 @@ public class BuildCode {
 	  //iterate through possible FSes corresponding to
 	  //the state when entering
 
-	  for(Iterator fses = otd.enterflagstates.iterator(); fses.hasNext();){
+	  for(Iterator fses = otd.enterflagstates.iterator(); fses.hasNext();) {
 	    FlagState fs = (FlagState)fses.next();
 	    int flagid=0;
-	    for(Iterator flags = fs.getFlags(); flags.hasNext();){
+	    for(Iterator flags = fs.getFlags(); flags.hasNext();) {
 	      FlagDescriptor flagd = (FlagDescriptor)flags.next();
 	      int id=1<<((Integer)flaginfo.get(flagd)).intValue();
 	      flagid|=id;
@@ -2673,9 +2673,9 @@ public class BuildCode {
 
       output.println("struct optionaltaskdescriptor * otdarray"+cdtemp.getSafeSymbol()+"[]={");
       c_otd = ((Hashtable)optionaltaskdescriptors.get(cdtemp)).values();
-      if( !c_otd.isEmpty() ){
+      if( !c_otd.isEmpty() ) {
 	boolean needcomma=false;
-	for(Iterator otd_it = c_otd.iterator(); otd_it.hasNext();){
+	for(Iterator otd_it = c_otd.iterator(); otd_it.hasNext();) {
 	  OptionalTaskDescriptor otd = (OptionalTaskDescriptor)otd_it.next();
 	  if(needcomma)
 	    output.println(",");
@@ -2701,7 +2701,7 @@ public class BuildCode {
 	//top) into an array
 
 	output.println("struct optionaltaskdescriptor * optionaltaskdescriptorarray_FS"+fscounter+"_"+cdtemp.getSafeSymbol()+"[] = {");
-	for(Iterator<OptionalTaskDescriptor> mos = ordertd(availabletasks).iterator(); mos.hasNext();){
+	for(Iterator<OptionalTaskDescriptor> mos = ordertd(availabletasks).iterator(); mos.hasNext();) {
 	  OptionalTaskDescriptor mm = mos.next();
 	  if(!mos.hasNext())
 	    output.println("&optionaltaskdescriptor_"+mm.getuid()+"_"+cdtemp.getSafeSymbol());
@@ -2714,7 +2714,7 @@ public class BuildCode {
 	//process flag information (what the flag after failure is) so we know what optionaltaskdescriptors to choose.
 
 	int flagid=0;
-	for(Iterator flags = fs.getFlags(); flags.hasNext();){
+	for(Iterator flags = fs.getFlags(); flags.hasNext();) {
 	  FlagDescriptor flagd = (FlagDescriptor)flags.next();
 	  int id=1<<((Integer)flaginfo.get(flagd)).intValue();
 	  flagid|=id;
@@ -2726,7 +2726,7 @@ public class BuildCode {
 	boolean first = true;
 	Enumeration tag_enum = fs.getTags();
 	output.println("int tags_FS"+fscounter+"_"+cdtemp.getSafeSymbol()+"[]={");
-	while(tag_enum.hasMoreElements()){
+	while(tag_enum.hasMoreElements()) {
 	  tagcounter++;
 	  TagDescriptor tagd = (TagDescriptor)tag_enum.nextElement();
 	  if(first==true)
@@ -2798,7 +2798,7 @@ public class BuildCode {
       //Build the array of fsanalysiswrappers
       output.println("struct fsanalysiswrapper * fsanalysiswrapperarray_"+cdtemp.getSafeSymbol()+"[] = {");
       boolean needcomma=false;
-      for(int i = 0; i<fscounter; i++){
+      for(int i = 0; i<fscounter; i++) {
 	if (needcomma) output.print(",");
 	output.println("&fsanalysiswrapper_FS"+(i+1)+"_"+cdtemp.getSafeSymbol());
 	needcomma=true;

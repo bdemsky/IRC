@@ -1030,7 +1030,7 @@ public class BuildCodeMultiCore extends BuildCode {
 		} else {
 		  tmpinfo.fs = tmpFState;
 		}
-		if(!contains(sendto, tmpinfo)){
+		if(!contains(sendto, tmpinfo)) {
 		  qinfo = outputtransqueues(tmpinfo.fs, targetcore, output);
 		  output.println("tmpObjInfo = RUNMALLOC(sizeof(struct transObjInfo));");
 		  output.println("tmpObjInfo->objptr = (void *)" + tmpinfo.name + ";");
@@ -1066,7 +1066,7 @@ public class BuildCodeMultiCore extends BuildCode {
 	    } else {
 	      tmpinfo.fs = tmpFState;
 	    }
-	    if(!contains(sendto, tmpinfo)){
+	    if(!contains(sendto, tmpinfo)) {
 	      qinfo = outputtransqueues(tmpinfo.fs, targetcore, output);
 	      output.println("tmpObjInfo = RUNMALLOC(sizeof(struct transObjInfo));");
 	      output.println("tmpObjInfo->objptr = (void *)" + tmpinfo.name + ";");
@@ -1120,7 +1120,7 @@ public class BuildCodeMultiCore extends BuildCode {
 	    } else {
 	      tmpinfo.fs = tmpFState;
 	    }
-	    if(!contains(sendto, tmpinfo)){
+	    if(!contains(sendto, tmpinfo)) {
 	      qinfo = outputtransqueues(tmpinfo.fs, targetcores.elementAt(i), output);
 	      output.println("tmpObjInfo = RUNMALLOC(sizeof(struct transObjInfo));");
 	      output.println("tmpObjInfo->objptr = (void *)" + tmpinfo.name + ";");

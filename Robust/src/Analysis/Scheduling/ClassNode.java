@@ -135,7 +135,7 @@ public class ClassNode extends GraphNode implements Cloneable {
     ClassNode o = null;
     try {
       o = (ClassNode) super.clone();
-    } catch(CloneNotSupportedException e){
+    } catch(CloneNotSupportedException e) {
       e.printStackTrace();
     }
     o.uid = ClassNode.nodeID++;

@@ -39,7 +39,7 @@ public class HTTPServices {
       while((size = reader.read(buffer,0,buffer.length)) != -1)
 	out.write(buffer,0,size);
       reader.close();
-    } catch(IOException e)  {
+    } catch(IOException e) {
       e.printStackTrace();
       resp.returnCode = 501;       // error during transmision
     }
@@ -57,7 +57,7 @@ public class HTTPServices {
     try {
       reader = get_reader(fileName, resp);
       resp.returnCode = 200;
-    } catch(IOException e)  {
+    } catch(IOException e) {
       resp.returnCode = 404;       // file not found
     }
 

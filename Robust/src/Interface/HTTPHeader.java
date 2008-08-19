@@ -73,7 +73,7 @@ public class HTTPHeader {
              "Content-Length: "+ fileLength + "\n\n"; // length
     try {
       out.write(header.getBytes());
-    } catch(IOException e)  {
+    } catch(IOException e) {
       e.printStackTrace();     // do nothing!
     }
   }

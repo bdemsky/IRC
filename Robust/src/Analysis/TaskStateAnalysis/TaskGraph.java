@@ -86,17 +86,17 @@ public class TaskGraph {
 	for(Iterator it2=src.iterator(); it2.hasNext();) {
 	  TaskDescriptor td=(TaskDescriptor)it2.next();
 	  sn=new TaskNode(td.getSymbol());
-	  if(fs.edges().hasNext()){
+	  if(fs.edges().hasNext()) {
 	    addEdges(fs,sn,tasknodes);
 	  }
 	}
       }
 
-      while(it_inedges.hasNext()){
+      while(it_inedges.hasNext()) {
 
 	FEdge inedge=(FEdge)it_inedges.next();
 	tn=new TaskNode(inedge.getLabel());
-	if(fs.edges().hasNext()){
+	if(fs.edges().hasNext()) {
 	  addEdges(fs,tn,tasknodes);
 	}
       }
@@ -106,7 +106,7 @@ public class TaskGraph {
   private void produceAllTaskNodes() {
     alltasknodes=new Hashtable<TaskNode,TaskNode>();
 
-    for(Iterator it_tasks=state.getTaskSymbolTable().getDescriptorsIterator(); it_tasks.hasNext();){
+    for(Iterator it_tasks=state.getTaskSymbolTable().getDescriptorsIterator(); it_tasks.hasNext();) {
       TaskDescriptor td=(TaskDescriptor)it_tasks.next();
       TaskNode tn=new TaskNode(td.getSymbol());
       alltasknodes.put(tn,tn);
@@ -119,7 +119,7 @@ public class TaskGraph {
       ClassDescriptor cd=(ClassDescriptor) classit.next();
       Set fsnodes;
 
-      if (cd.hasFlags()&&((fsnodes=taskanalysis.getFlagStates(cd))!=null)){
+      if (cd.hasFlags()&&((fsnodes=taskanalysis.getFlagStates(cd))!=null)) {
 	//
 	System.out.println("\nWorking on fses of Class: "+cd.getSymbol());
 	//
@@ -132,17 +132,17 @@ public class TaskGraph {
 	  TaskNode tn,sn;
 
 
-	  if (fs.isSourceNode()){
+	  if (fs.isSourceNode()) {
 	    //
 	    System.out.println("A sourcenode");
 	    //
-	    if(fs.edges().hasNext()){
+	    if(fs.edges().hasNext()) {
 	      Vector allocatingtasks=fs.getAllocatingTasks();
 	      //
 	      if (allocatingtasks.iterator().hasNext())
 		System.out.println("has been allocated by "+allocatingtasks.size()+" tasks");
 	      //
-	      for(Iterator it_at=allocatingtasks.iterator(); it_at.hasNext();){
+	      for(Iterator it_at=allocatingtasks.iterator(); it_at.hasNext();) {
 		TaskDescriptor allocatingtd=(TaskDescriptor)it_at.next();
 		//
 		System.out.println(allocatingtd.getSymbol());
@@ -154,10 +154,10 @@ public class TaskGraph {
 	    }
 	  }
 
-	  while(it_inedges.hasNext()){
+	  while(it_inedges.hasNext()) {
 	    FEdge inedge=(FEdge)it_inedges.next();
 	    tn=new TaskNode(inedge.getLabel());
-	    if(fs.edges().hasNext()){
+	    if(fs.edges().hasNext()) {
 	      addEdges(fs,tn,alltasknodes,ColorID);
 	    }
 	  }
@@ -202,7 +202,7 @@ public class TaskGraph {
 
     //  Hashtable<TaskNode,TaskNode> tasknodes=(Hashtable<TaskNode,TaskNode>)cdtonodes.get(fs.getClassDescriptor());
     tn=(TaskNode)canonicalizeTaskNode(tasknodes, tn);
-    for (Iterator it_edges=fs.edges(); it_edges.hasNext();){
+    for (Iterator it_edges=fs.edges(); it_edges.hasNext();) {
       TaskNode target=new TaskNode(((FEdge)it_edges.next()).getLabel());
       target=(TaskNode)canonicalizeTaskNode(tasknodes,target);
 
@@ -216,7 +216,7 @@ public class TaskGraph {
   private void addEdges(FlagState fs, TaskNode tn,Hashtable<TaskNode,TaskNode> tasknodes,int ColorID) {
 
     tn=(TaskNode)canonicalizeTaskNode(tasknodes, tn);
-    for (Iterator it_edges=fs.edges(); it_edges.hasNext();){
+    for (Iterator it_edges=fs.edges(); it_edges.hasNext();) {
       TaskNode target=new TaskNode(((FEdge)it_edges.next()).getLabel());
       target=(TaskNode)canonicalizeTaskNode(tasknodes,target);
 
