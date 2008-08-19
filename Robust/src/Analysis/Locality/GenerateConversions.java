@@ -47,7 +47,7 @@ public class GenerateConversions {
       FlatNode fn=toprocess.iterator().next();
       toprocess.remove(fn);
       boolean isatomic=atomictab.get(fn).intValue()>0;
-      if (!isatomic && fn.kind()!=FlatAtomicExitNode)//Don't process past the bounds of a transaction
+      if (!isatomic && fn.kind()!=FKind.FlatAtomicExitNode)//Don't process past the bounds of a transaction
 	continue;
 
       Hashtable<TempDescriptor, Integer> nodetemptab=temptab.get(fn);
