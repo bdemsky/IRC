@@ -10,18 +10,22 @@ class FIFO {
   java_cup.runtime.Symbol[] backing = new java_cup.runtime.Symbol[10];
   int start=0, end=0;
   final Getter getter;
-  FIFO(Getter getter) { this.getter = getter; }
-  public boolean isEmpty() { return start==end; }
+  FIFO(Getter getter) {
+    this.getter = getter;
+  }
+  public boolean isEmpty() {
+    return start==end;
+  }
   private boolean isFull() {
     return start==end+1 || (start==0 && end==backing.length-1);
   }
   private int size() {
-    return ((end<start)?end+backing.length:end)-start;
+    return ((end<start) ? end+backing.length : end)-start;
   }
   public void put(java_cup.runtime.Symbol o) {
     if (isFull()) {
       java_cup.runtime.Symbol[] nbacking =
-	new java_cup.runtime.Symbol[backing.length*2];
+        new java_cup.runtime.Symbol[backing.length*2];
       System.arraycopy(backing, start, nbacking, 0, backing.length-start);
       System.arraycopy(backing, 0, nbacking, backing.length-start, start);
       start = 0;
@@ -54,11 +58,11 @@ class FIFO {
   }
   abstract static class Getter {
     abstract java_cup.runtime.Symbol next()
-      throws java.io.IOException;
+    throws java.io.IOException;
   }
   private static void ASSERT(boolean b) {
     if (!b) throw new RuntimeException();
   }
 }
-	
-    
+
+

@@ -1,17 +1,17 @@
 public class File {
-    String path;
+  String path;
 
-    public File(String path) {
-	this.path=path;
-    }
+  public File(String path) {
+    this.path=path;
+  }
 
-    String getPath() {
-	return path;
-    }
+  String getPath() {
+    return path;
+  }
 
-    long length() {
-	return nativeLength(path.getBytes());
-    }
+  long length() {
+    return nativeLength(path.getBytes());
+  }
 
-    private static native long nativeLength(byte[] pathname);
+  private static native long nativeLength(byte[] pathname);
 }

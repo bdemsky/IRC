@@ -5,9 +5,15 @@ import Parse.Sym;
 
 class BooleanLiteral extends Literal {
   Boolean val;
-  BooleanLiteral(boolean b) { this.val = new Boolean(b); }
+  BooleanLiteral(boolean b) {
+    this.val = new Boolean(b);
+  }
 
-  Symbol token() { return new Symbol(Sym.BOOLEAN_LITERAL, val); }
+  Symbol token() {
+    return new Symbol(Sym.BOOLEAN_LITERAL, val);
+  }
 
-  public String toString() { return "BooleanLiteral <"+val.toString()+">"; }
+  public String toString() {
+    return "BooleanLiteral <"+val.toString()+">";
+  }
 }

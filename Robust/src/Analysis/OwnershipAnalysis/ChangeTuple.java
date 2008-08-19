@@ -14,42 +14,46 @@ import java.io.*;
 
 public class ChangeTuple extends Canonical
 {
-    private TokenTupleSet toMatch;
-    private TokenTupleSet toAdd;
+  private TokenTupleSet toMatch;
+  private TokenTupleSet toAdd;
 
-    public ChangeTuple( TokenTupleSet toMatch,
-			TokenTupleSet toAdd ) {
-	this.toMatch = toMatch;
-	this.toAdd   = toAdd;
+  public ChangeTuple(TokenTupleSet toMatch,
+                     TokenTupleSet toAdd) {
+    this.toMatch = toMatch;
+    this.toAdd   = toAdd;
+  }
+
+  public ChangeTuple makeCanonical() {
+    return (ChangeTuple) Canonical.makeCanonical(this);
+  }
+
+  public TokenTupleSet getSetToMatch() {
+    return toMatch;
+  }
+  public TokenTupleSet getSetToAdd() {
+    return toAdd;
+  }
+
+  public boolean equals(Object o) {
+    if( o == null ) {
+      return false;
     }
 
-    public ChangeTuple makeCanonical() {
-	return (ChangeTuple) Canonical.makeCanonical( this );
+    if( !(o instanceof ChangeTuple) ) {
+      return false;
     }
 
-    public TokenTupleSet getSetToMatch() { return toMatch; }
-    public TokenTupleSet getSetToAdd()   { return toAdd;   }
+    ChangeTuple ct = (ChangeTuple) o;
 
-    public boolean equals( Object o ) {
-	if( o == null ) {
-	    return false;
-	}
+    return toMatch.equals(ct.getSetToMatch() ) &&
+           toAdd.equals(ct.getSetToAdd()   );
+  }
 
-	if( !(o instanceof ChangeTuple) ) {
-	    return false;
-	}
+  public int hashCode() {
+    return toMatch.hashCode() + toAdd.hashCode()*3;
+  }
 
-	ChangeTuple ct = (ChangeTuple) o;
-
-	return toMatch.equals( ct.getSetToMatch() ) &&
-	         toAdd.equals( ct.getSetToAdd()   );
-    }
-
-    public int hashCode() {
-	return toMatch.hashCode() + toAdd.hashCode()*3;
-    }
-
-    public String toString() {
-	return new String( "<"+toMatch+" -> "+toAdd+">" );
-    }
+  public String toString() {
+    return new String("<"+toMatch+" -> "+toAdd+">");
+  }
 }

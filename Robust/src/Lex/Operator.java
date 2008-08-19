@@ -6,13 +6,17 @@ import Parse.Sym;
 
 class Operator extends Token {
   String which;
-  Operator(String which) { this.which = which; }
+  Operator(String which) {
+    this.which = which;
+  }
 
-  public String toString() { return "Operator <"+which+">"; }
+  public String toString() {
+    return "Operator <"+which+">";
+  }
 
-  Symbol token() { 
+  Symbol token() {
     Integer i = (Integer) op_table.get(which);
-    return new Symbol(i.intValue()); 
+    return new Symbol(i.intValue());
   }
 
   static private final Hashtable op_table = new Hashtable();

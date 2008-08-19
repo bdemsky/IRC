@@ -19,13 +19,13 @@ public class Lexer {
   int line_pos = 1;
   int line_num = 0;
   LineList lineL = new LineList(-line_pos, null); // sentinel for line #0
-  
+
   public Lexer(Reader reader) {
     this.reader = new LineNumberReader(new EscapedUnicodeReader(reader));
     this.isJava12 = true;
     this.isJava14 = true;
   }
-  
+
   public java_cup.runtime.Symbol nextToken() throws java.io.IOException {
     java_cup.runtime.Symbol sym =
       lookahead==null ? _nextToken() : lookahead.get();
@@ -37,9 +37,9 @@ public class Lexer {
     if (last==null || last.sym!=Sym.IDENTIFIER)
       return false;
     if (lookahead==null) lookahead = new FIFO(new FIFO.Getter() {
-	java_cup.runtime.Symbol next() throws java.io.IOException
-	{ return _nextToken(); }
-      });
+                                                java_cup.runtime.Symbol next() throws java.io.IOException
+                                                { return _nextToken(); }
+					      });
     int i=0;
     // skip past IDENTIFIER (DOT IDENTIFIER)*
     if (lookahead.peek(i++).sym != Sym.IDENTIFIER)
@@ -59,6 +59,7 @@ public class Lexer {
     switch(lookahead.peek(i).sym) {
     default:
       return false;
+
     case Sym.LT:
     case Sym.GT:
     case Sym.COMMA:
@@ -103,9 +104,13 @@ public class Lexer {
   }
 
   String comment;
-  public String lastComment() { return comment; }
-  public void clearComment() { comment=""; }
-  
+  public String lastComment() {
+    return comment;
+  }
+  public void clearComment() {
+    comment="";
+  }
+
   InputElement getInputElement() throws java.io.IOException {
     if (line_num == 0)
       nextLine();
@@ -116,14 +121,14 @@ public class Lexer {
       if (line==null)
 	return new EOF();
     }
-    
+
     switch (line.charAt(line_pos)) {
 
       // White space:
-    case ' ':	// ASCII SP
-    case '\t':	// ASCII HT
-    case '\f':	// ASCII FF
-    case '\n':	// LineTerminator
+    case ' ':    // ASCII SP
+    case '\t':    // ASCII HT
+    case '\f':    // ASCII FF
+    case '\n':    // LineTerminator
       return new WhiteSpace(consume());
 
       // EOF character:
@@ -149,6 +154,7 @@ public class Lexer {
       comment = line.substring(line_pos+2);
       line_pos = line.length();
       return new EndOfLineComment(comment);
+
     case '*': // TraditionalComment or DocumentationComment
       line_pos += 2;
       if (line.charAt(line_pos)=='*') { // DocumentationComment
@@ -156,6 +162,7 @@ public class Lexer {
       } else { // TraditionalComment
 	return snarfComment(new TraditionalComment());
       }
+
     default: // it's a token, not a comment.
       return getToken();
     }
@@ -171,7 +178,7 @@ public class Lexer {
 	  c.appendLine(text.toString()); text.setLength(0);
 	  line_pos = line.length();
 	  nextLine();
-	  if (line==null) 
+	  if (line==null)
 	    throw new Error("Unterminated comment at end of file.");
 	} else {
 	  text.append(line.substring(line_pos, star_pos));
@@ -218,8 +225,10 @@ public class Lexer {
     case '^':
     case '%':
       return getOperator();
+
     case '\'':
       return getCharLiteral();
+
     case '\"':
       return getStringLiteral();
 
@@ -228,12 +237,13 @@ public class Lexer {
       if (Character.digit(line.charAt(line_pos+1),10)!=-1)
 	return getNumericLiteral();
       else if (isJava15 &&
-	       line.charAt(line_pos+1)=='.' &&
-	       line.charAt(line_pos+2)=='.') {
+               line.charAt(line_pos+1)=='.' &&
+               line.charAt(line_pos+2)=='.') {
 	consume(); consume(); consume();
 	return new Separator('\u2026'); // unicode ellipsis character.
       } else return new Separator(consume());
-    default: 
+
+    default:
       break;
     }
     if (Character.isJavaIdentifierStart(line.charAt(line_pos)))
@@ -246,16 +256,17 @@ public class Lexer {
   static final String[] keywords = new String[] {
     "abstract", "assert", "atomic", "boolean", "break", "byte", "case", "catch", "char",
     "class", "const", "continue", "default", "do", "double", "else", "enum",
-    "extends", "external", "final", "finally", 
+    "extends", "external", "final", "finally",
     "flag", //keyword for failure aware computation
-    "float", "for", "global", "goto", "if", 
+    "float", "for", "global", "goto", "if",
     "implements", "import", "instanceof", "int", "interface", "isavailable",
-    "long",  
-    "native", "new", "optional", "package", "private", "protected", "public", 
+    "long",
+    "native", "new", "optional", "package", "private", "protected", "public",
     "return", "short", "static", "strictfp", "super", "switch", "synchronized",
     "tag", "task", "taskexit", //keywords for failure aware computation
     "this", "throw", "throws", "transient", "try", "void",
-    "volatile", "while"};
+    "volatile", "while"
+  };
   Token getIdentifier() {
     // Get id string.
     StringBuffer sb = new StringBuffer().append(consume());
@@ -279,7 +290,7 @@ public class Lexer {
     // use binary search.
     for (int l=0, r=keywords.length; r > l; ) {
       int x = (l+r)/2, cmp = s.compareTo(keywords[x]);
-      if (cmp < 0) r=x; else l=x+1;
+      if (cmp < 0) r=x;else l=x+1;
       if (cmp== 0) return new Keyword(s);
     }
     // not a keyword.
@@ -292,9 +303,9 @@ public class Lexer {
       return getFloatingPointLiteral();
     // 0x indicates Hex.
     if (line.charAt(line_pos)=='0' &&
-	(line.charAt(line_pos+1)=='x' ||
-	 line.charAt(line_pos+1)=='X')) {
-      line_pos+=2; return getIntegerLiteral(/*base*/16);
+        (line.charAt(line_pos+1)=='x' ||
+         line.charAt(line_pos+1)=='X')) {
+      line_pos+=2; return getIntegerLiteral(/*base*/ 16);
     }
     // otherwise scan to first non-numeric
     for (i=line_pos; Character.digit(line.charAt(i),10)!=-1; )
@@ -308,12 +319,13 @@ public class Lexer {
     case 'e':
     case 'E':
       return getFloatingPointLiteral();
+
     case 'L':
     case 'l':
     default:
       if (line.charAt(line_pos)=='0')
-	return getIntegerLiteral(/*base*/8);
-      return getIntegerLiteral(/*base*/10);
+	return getIntegerLiteral(/*base*/ 8);
+      return getIntegerLiteral(/*base*/ 10);
     }
   }
   NumericLiteral getIntegerLiteral(int radix) {
@@ -321,14 +333,14 @@ public class Lexer {
     while (Character.digit(line.charAt(line_pos),radix)!=-1)
       val = (val*radix) + Character.digit(consume(),radix);
     if (line.charAt(line_pos) == 'l' ||
-	line.charAt(line_pos) == 'L') {
+        line.charAt(line_pos) == 'L') {
       consume();
       return new LongLiteral(val);
-    } 
+    }
     // we compare MAX_VALUE against val/2 to allow constants like
     // 0xFFFF0000 to get past the test. (unsigned long->signed int)
     if ((val/2) > Integer.MAX_VALUE ||
-	 val    < Integer.MIN_VALUE)
+        val    < Integer.MIN_VALUE)
       throw new Error("Constant does not fit in integer on line "+line_num);
     return new IntegerLiteral((int)val);
   }
@@ -337,10 +349,10 @@ public class Lexer {
     if (line.charAt(line_pos)=='.')
       rep+=consume() + getDigits();
     if (line.charAt(line_pos)=='e' ||
-	line.charAt(line_pos)=='E') {
+        line.charAt(line_pos)=='E') {
       rep+=consume();
       if (line.charAt(line_pos)=='+' ||
-	  line.charAt(line_pos)=='-')
+          line.charAt(line_pos)=='-')
 	rep+=consume();
       rep+=getDigits();
     }
@@ -350,9 +362,11 @@ public class Lexer {
       case 'F':
 	consume();
 	return new FloatLiteral(Float.valueOf(rep).floatValue());
+
       case 'd':
       case 'D':
 	consume();
+
 	/* falls through */
       default:
 	return new DoubleLiteral(Double.valueOf(rep).doubleValue());
@@ -378,23 +392,25 @@ public class Lexer {
     case '?':
     case ':':
       return new Operator(new String(new char[] {first}));
+
       // doubled operators
     case '+':
     case '-':
     case '&':
     case '|':
-      if (first==second) 
+      if (first==second)
 	return new Operator(new String(new char[] {first, consume()}));
+
     default:
       break;
     }
     // Check for trailing '='
     if (second=='=')
-	return new Operator(new String(new char[] {first, consume()}));
+      return new Operator(new String(new char[] {first, consume()}));
 
     // Special-case '<<', '>>' and '>>>'
     if ((first=='<' && second=='<') || // <<
-	(first=='>' && second=='>')) {  // >>
+        (first=='>' && second=='>')) {  // >>
       String op = new String(new char[] {first, consume()});
       if (first=='>' && line.charAt(line_pos)=='>') // >>>
 	op += consume();
@@ -414,10 +430,13 @@ public class Lexer {
     case '\\':
       val = getEscapeSequence();
       break;
+
     case '\'':
       throw new Error("Invalid character literal on line "+line_num);
+
     case '\n':
       throw new Error("Invalid character literal on line "+line_num);
+
     default:
       val = consume();
       break;
@@ -435,8 +454,10 @@ public class Lexer {
       case '\\':
 	val.append(getEscapeSequence());
 	break;
+
       case '\n':
 	throw new Error("Invalid string literal on line " + line_num);
+
       default:
 	val.append(consume());
 	break;
@@ -445,7 +466,7 @@ public class Lexer {
     char closequote = consume();
     if (openquote != '\"' || closequote != '\"')
       throw new Error("Invalid string literal on line " + line_num);
-    
+
     return new StringLiteral(val.toString().intern());
   }
 
@@ -455,30 +476,40 @@ public class Lexer {
     switch(line.charAt(line_pos)) {
     case 'b':
       consume(); return '\b';
+
     case 't':
       consume(); return '\t';
+
     case 'n':
       consume(); return '\n';
+
     case 'f':
       consume(); return '\f';
+
     case 'r':
       consume(); return '\r';
+
     case '\"':
       consume(); return '\"';
+
     case '\'':
       consume(); return '\'';
+
     case '\\':
       consume(); return '\\';
+
     case '0':
     case '1':
     case '2':
     case '3':
       return (char) getOctal(3);
+
     case '4':
     case '5':
     case '6':
     case '7':
       return (char) getOctal(2);
+
     default:
       throw new Error("Invalid escape sequence on line " + line_num);
     }
@@ -494,29 +525,37 @@ public class Lexer {
     return val;
   }
 
-  char consume() { return line.charAt(line_pos++); }
+  char consume() {
+    return line.charAt(line_pos++);
+  }
   void nextLine() throws java.io.IOException {
     line=reader.readLine();
-    if (line!=null) line=line+'\n'; 
+    if (line!=null) line=line+'\n';
     lineL = new LineList(lineL.head+line_pos, lineL); // for error reporting
-    line_pos=0; 
-    line_num++; 
+    line_pos=0;
+    line_num++;
   }
 
   // Deal with error messages.
   public void errorMsg(String msg, java_cup.runtime.Symbol info) {
     int n=line_num, c=info.left-lineL.head;
     for (LineList p = lineL; p!=null; p=p.tail, n--)
-	if (p.head<=info.left) { c=info.left-p.head; break; }
+      if (p.head<=info.left) {
+	c=info.left-p.head; break;
+      }
     System.err.println(msg+" at line "+n);
     num_errors++;
   }
   private int num_errors = 0;
-  public int numErrors() { return num_errors; }
-  
+  public int numErrors() {
+    return num_errors;
+  }
+
   class LineList {
     int head;
     LineList tail;
-    LineList(int head, LineList tail) { this.head = head; this.tail = tail; }
+    LineList(int head, LineList tail) {
+      this.head = head; this.tail = tail;
+    }
   }
 }

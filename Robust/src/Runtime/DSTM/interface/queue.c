@@ -12,7 +12,7 @@ void queueInit(void) {
   /* Intitialize primary queue */
   headoffset=0;
   tailoffset=0;
-  memory=malloc(QSIZE+sizeof(int));//leave space for -1
+  memory=malloc(QSIZE+sizeof(int)); //leave space for -1
   pthread_mutexattr_init(&qlockattr);
   pthread_mutexattr_settype(&qlockattr, PTHREAD_MUTEX_RECURSIVE_NP);
   pthread_mutex_init(&qlock, &qlockattr);
@@ -25,20 +25,20 @@ void * getmemory(int size) {
     //Wait for tail to go past end
     tmpoffset=size+sizeof(int);
     if (headoffset<tailoffset) {
-      pthread_cond_signal(&qcond);//wake the other thread up
+      pthread_cond_signal(&qcond); //wake the other thread up
       return NULL;
     }
     //Wait for tail to go past new start
     if (tailoffset<=tmpoffset) {
-      pthread_cond_signal(&qcond);//wake the other thread up
+      pthread_cond_signal(&qcond); //wake the other thread up
       return NULL;
     }
-    *((int *)(memory+headoffset))=-1;//safe because we left space
+    *((int *)(memory+headoffset))=-1; //safe because we left space
     *((int*)memory)=size+sizeof(int);
     return memory+sizeof(int);
   } else {
     if (headoffset<tailoffset&&tailoffset<=tmpoffset) {
-      pthread_cond_signal(&qcond);//wake the other thread up
+      pthread_cond_signal(&qcond); //wake the other thread up
       return NULL;
     }
     *((int*)(memory+headoffset))=size+sizeof(int);
@@ -52,7 +52,7 @@ void movehead(int size) {
     headoffset=size+sizeof(int);
   } else
     headoffset=tmpoffset;
-  pthread_cond_signal(&qcond);//wake the other thread up
+  pthread_cond_signal(&qcond); //wake the other thread up
 }
 
 void * gettail() {
@@ -64,7 +64,7 @@ void * gettail() {
     pthread_mutex_unlock(&qlock);
   }
   if (*((int *)(memory+tailoffset))==-1) {
-    tailoffset=0;//do loop
+    tailoffset=0; //do loop
   }
 
   return memory+tailoffset+sizeof(int);

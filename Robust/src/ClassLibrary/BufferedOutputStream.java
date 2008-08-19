@@ -1,19 +1,19 @@
 public class BufferedOutputStream extends OutputStream {
-    OutputStream o;
+  OutputStream o;
 
-    public BufferedOutputStream(OutputStream o) {
-	this.o=o;
-    }
+  public BufferedOutputStream(OutputStream o) {
+    this.o=o;
+  }
 
-    public void write(byte []b, int off, int len) {
-	o.write(b, off, len);
-    }
+  public void write(byte [] b, int off, int len) {
+    o.write(b, off, len);
+  }
 
-    public void flush() {
-	o.flush();
-    }
+  public void flush() {
+    o.flush();
+  }
 
-    public void close() {
-	o.close();
-    }
+  public void close() {
+    o.close();
+  }
 }

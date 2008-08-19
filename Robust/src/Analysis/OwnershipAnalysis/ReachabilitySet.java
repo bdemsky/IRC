@@ -8,253 +8,253 @@ import java.io.*;
 
 public class ReachabilitySet extends Canonical {
 
-    private HashSet<TokenTupleSet> possibleReachabilities;
+  private HashSet<TokenTupleSet> possibleReachabilities;
 
-    public ReachabilitySet() {
-	possibleReachabilities = new HashSet<TokenTupleSet>();
+  public ReachabilitySet() {
+    possibleReachabilities = new HashSet<TokenTupleSet>();
+  }
+
+  public ReachabilitySet(TokenTupleSet tts) {
+    this();
+    assert tts != null;
+    possibleReachabilities.add(tts);
+  }
+
+  public ReachabilitySet(TokenTuple tt) {
+    // can't assert before calling this(), it will
+    // do the checking though
+    this( new TokenTupleSet(tt).makeCanonical() );
+  }
+
+  public ReachabilitySet(HashSet<TokenTupleSet> possibleReachabilities) {
+    assert possibleReachabilities != null;
+    this.possibleReachabilities = possibleReachabilities;
+  }
+
+  public ReachabilitySet(ReachabilitySet rs) {
+    assert rs != null;
+    // okay to clone, ReachabilitySet should be canonical
+    possibleReachabilities = (HashSet<TokenTupleSet>)rs.possibleReachabilities.clone();
+  }
+
+
+  public ReachabilitySet makeCanonical() {
+    return (ReachabilitySet) Canonical.makeCanonical(this);
+  }
+
+  public Iterator iterator() {
+    return possibleReachabilities.iterator();
+  }
+
+
+  public boolean contains(TokenTupleSet tts) {
+    assert tts != null;
+    return possibleReachabilities.contains(tts);
+  }
+
+  public boolean containsTuple(TokenTuple tt) {
+    Iterator itr = iterator();
+    while( itr.hasNext() ) {
+      TokenTupleSet tts = (TokenTupleSet) itr.next();
+      if( tts.containsTuple(tt) ) {
+	return true;
+      }
+    }
+    return false;
+  }
+
+
+  public ReachabilitySet increaseArity(Integer token) {
+    assert token != null;
+
+    HashSet<TokenTupleSet> possibleReachabilitiesNew = new HashSet<TokenTupleSet>();
+
+    Iterator itr = iterator();
+    while( itr.hasNext() ) {
+      TokenTupleSet tts = (TokenTupleSet) itr.next();
+      possibleReachabilitiesNew.add(tts.increaseArity(token) );
     }
 
-    public ReachabilitySet( TokenTupleSet tts ) {
-	this();
-	assert tts != null;
-	possibleReachabilities.add( tts );
+    return new ReachabilitySet(possibleReachabilitiesNew).makeCanonical();
+  }
+
+
+  public ReachabilitySet union(ReachabilitySet rsIn) {
+    assert rsIn != null;
+
+    ReachabilitySet rsOut = new ReachabilitySet(this);
+    rsOut.possibleReachabilities.addAll(rsIn.possibleReachabilities);
+    return rsOut.makeCanonical();
+  }
+
+  public ReachabilitySet union(TokenTupleSet ttsIn) {
+    assert ttsIn != null;
+
+    ReachabilitySet rsOut = new ReachabilitySet(this);
+    rsOut.possibleReachabilities.add(ttsIn);
+    return rsOut.makeCanonical();
+  }
+
+  public ReachabilitySet intersection(ReachabilitySet rsIn) {
+    assert rsIn != null;
+
+    ReachabilitySet rsOut = new ReachabilitySet();
+
+    Iterator i = this.iterator();
+    while( i.hasNext() ) {
+      TokenTupleSet tts = (TokenTupleSet) i.next();
+      if( rsIn.possibleReachabilities.contains(tts) ) {
+	rsOut.possibleReachabilities.add(tts);
+      }
     }
 
-    public ReachabilitySet( TokenTuple tt ) {
-	// can't assert before calling this(), it will
-	// do the checking though
-	this( new TokenTupleSet( tt ).makeCanonical() );
-    }
-
-    public ReachabilitySet( HashSet<TokenTupleSet> possibleReachabilities ) {
-	assert possibleReachabilities != null;
-	this.possibleReachabilities = possibleReachabilities;
-    }
-
-    public ReachabilitySet( ReachabilitySet rs ) {
-	assert rs != null;
-	// okay to clone, ReachabilitySet should be canonical
-	possibleReachabilities = (HashSet<TokenTupleSet>) rs.possibleReachabilities.clone();
-    }
+    return rsOut.makeCanonical();
+  }
 
 
-    public ReachabilitySet makeCanonical() {
-	return (ReachabilitySet) Canonical.makeCanonical( this );
-    }
-
-    public Iterator iterator() {
-	return possibleReachabilities.iterator();
-    }
+  public ReachabilitySet add(TokenTupleSet tts) {
+    assert tts != null;
+    ReachabilitySet rsOut = new ReachabilitySet(tts);
+    return rsOut.union(this);
+  }
 
 
-    public boolean contains( TokenTupleSet tts ) {
-	assert tts != null;
-	return possibleReachabilities.contains( tts );
-    }
+  public ChangeTupleSet unionUpArityToChangeSet(ReachabilitySet rsIn) {
+    assert rsIn != null;
 
-    public boolean containsTuple( TokenTuple tt ) {
-	Iterator itr = iterator();
-	while( itr.hasNext() ) {
-	    TokenTupleSet tts = (TokenTupleSet) itr.next();
-	    if( tts.containsTuple( tt ) ) {
-		return true;
-	    }
-	}
-	return false;
-    }
+    ChangeTupleSet ctsOut = new ChangeTupleSet();
 
+    Iterator itrO = this.iterator();
+    while( itrO.hasNext() ) {
+      TokenTupleSet o = (TokenTupleSet) itrO.next();
 
-    public ReachabilitySet increaseArity( Integer token ) {
-	assert token != null;
+      Iterator itrR = rsIn.iterator();
+      while( itrR.hasNext() ) {
+	TokenTupleSet r = (TokenTupleSet) itrR.next();
 
-	HashSet<TokenTupleSet> possibleReachabilitiesNew = new HashSet<TokenTupleSet>();
+	TokenTupleSet theUnion = new TokenTupleSet();
 
-	Iterator itr = iterator();
-	while( itr.hasNext() ) {
-	    TokenTupleSet tts = (TokenTupleSet) itr.next();
-	    possibleReachabilitiesNew.add( tts.increaseArity( token ) );
-	}
+	Iterator itrRelement = r.iterator();
+	while( itrRelement.hasNext() ) {
+	  TokenTuple e = (TokenTuple) itrRelement.next();
 
-	return new ReachabilitySet( possibleReachabilitiesNew ).makeCanonical(); 
-    }
-
-
-    public ReachabilitySet union( ReachabilitySet rsIn ) {
-	assert rsIn != null;
-
-	ReachabilitySet rsOut = new ReachabilitySet( this );
-	rsOut.possibleReachabilities.addAll( rsIn.possibleReachabilities );
-	return rsOut.makeCanonical();
-    }
-
-    public ReachabilitySet union( TokenTupleSet ttsIn ) {
-	assert ttsIn != null;
-
-	ReachabilitySet rsOut = new ReachabilitySet( this );
-	rsOut.possibleReachabilities.add( ttsIn );
-	return rsOut.makeCanonical();
-    }
-
-    public ReachabilitySet intersection( ReachabilitySet rsIn ) {
-	assert rsIn != null;
-
-	ReachabilitySet rsOut = new ReachabilitySet();
-
-	Iterator i = this.iterator();
-	while( i.hasNext() ) {
-	    TokenTupleSet tts = (TokenTupleSet) i.next();
-	    if( rsIn.possibleReachabilities.contains( tts ) ) {
-		rsOut.possibleReachabilities.add( tts );
-	    }
-	}
-
-	return rsOut.makeCanonical();
-    }
-    
-
-    public ReachabilitySet add( TokenTupleSet tts ) {
-	assert tts != null;
-	ReachabilitySet rsOut = new ReachabilitySet( tts );
-	return rsOut.union( this );
-    }
-
-
-    public ChangeTupleSet unionUpArityToChangeSet( ReachabilitySet rsIn ) {
-	assert rsIn != null;
-
-	ChangeTupleSet ctsOut = new ChangeTupleSet();
-
-	Iterator itrO = this.iterator();
-	while( itrO.hasNext() ) {
-	    TokenTupleSet o = (TokenTupleSet) itrO.next();
-
-	    Iterator itrR = rsIn.iterator();
-	    while( itrR.hasNext() ) {
-		TokenTupleSet r = (TokenTupleSet) itrR.next();
-
-		TokenTupleSet theUnion = new TokenTupleSet();
-
-		Iterator itrRelement = r.iterator();
-		while( itrRelement.hasNext() ) {
-		    TokenTuple e = (TokenTuple) itrRelement.next();
-
-		    if( o.containsToken( e.getToken() ) ) {
-			theUnion = theUnion.union( new TokenTupleSet( e.increaseArity() ) ).makeCanonical();
-		    } else {
-			theUnion = theUnion.union( new TokenTupleSet( e                 ) ).makeCanonical();
-		    }
-		}
-
-		Iterator itrOelement = o.iterator();
-		while( itrOelement.hasNext() ) {
-		    TokenTuple e = (TokenTuple) itrOelement.next();
-
-		    if( !theUnion.containsToken( e.getToken() ) ) {
-			theUnion = theUnion.union( new TokenTupleSet( e ) ).makeCanonical();
-		    }
-		}
-
-		if( !theUnion.isEmpty() ) {
-		    ctsOut = ctsOut.union( 
-		      new ChangeTupleSet( new ChangeTuple( o, theUnion ) )
-				          );
-		}
-	    }
+	  if( o.containsToken(e.getToken() ) ) {
+	    theUnion = theUnion.union(new TokenTupleSet(e.increaseArity() ) ).makeCanonical();
+	  } else {
+	    theUnion = theUnion.union(new TokenTupleSet(e) ).makeCanonical();
+	  }
 	}
 
-	return ctsOut.makeCanonical();
-    }
+	Iterator itrOelement = o.iterator();
+	while( itrOelement.hasNext() ) {
+	  TokenTuple e = (TokenTuple) itrOelement.next();
 
-
-    public ReachabilitySet ageTokens( AllocationSite as ) {	
-	assert as != null;
-	
-	ReachabilitySet rsOut = new ReachabilitySet();
-
-	Iterator itrS = this.iterator();
-	while( itrS.hasNext() ) {
-	    TokenTupleSet tts = (TokenTupleSet) itrS.next();
-	    rsOut.possibleReachabilities.add( tts.ageTokens( as ) );
+	  if( !theUnion.containsToken(e.getToken() ) ) {
+	    theUnion = theUnion.union(new TokenTupleSet(e) ).makeCanonical();
+	  }
 	}
 
-	return rsOut.makeCanonical();
-    }
-
-
-    public ReachabilitySet pruneBy( ReachabilitySet rsIn ) {
-	assert rsIn != null;
-
-	ReachabilitySet rsOut = new ReachabilitySet();
-
-	Iterator itrB = this.iterator();
-	while( itrB.hasNext() ) {
-	    TokenTupleSet ttsB = (TokenTupleSet) itrB.next();
-
-	    boolean subsetExists = false;
-
-	    Iterator itrA = rsIn.iterator();
-	    while( itrA.hasNext() && !subsetExists ) {
-		TokenTupleSet ttsA = (TokenTupleSet) itrA.next();
-	    
-		if( ttsA.isSubset( ttsB ) ) {
-		    subsetExists = true;
-		}
-	    }
-
-	    if( subsetExists ) {
-		rsOut.possibleReachabilities.add( ttsB );
-	    }
+	if( !theUnion.isEmpty() ) {
+	  ctsOut = ctsOut.union(
+	    new ChangeTupleSet(new ChangeTuple(o, theUnion) )
+	    );
 	}
-
-	return rsOut.makeCanonical();	
+      }
     }
 
+    return ctsOut.makeCanonical();
+  }
 
-    public boolean equals( Object o ) {
-	if( o == null ) {
-	    return false;
+
+  public ReachabilitySet ageTokens(AllocationSite as) {
+    assert as != null;
+
+    ReachabilitySet rsOut = new ReachabilitySet();
+
+    Iterator itrS = this.iterator();
+    while( itrS.hasNext() ) {
+      TokenTupleSet tts = (TokenTupleSet) itrS.next();
+      rsOut.possibleReachabilities.add(tts.ageTokens(as) );
+    }
+
+    return rsOut.makeCanonical();
+  }
+
+
+  public ReachabilitySet pruneBy(ReachabilitySet rsIn) {
+    assert rsIn != null;
+
+    ReachabilitySet rsOut = new ReachabilitySet();
+
+    Iterator itrB = this.iterator();
+    while( itrB.hasNext() ) {
+      TokenTupleSet ttsB = (TokenTupleSet) itrB.next();
+
+      boolean subsetExists = false;
+
+      Iterator itrA = rsIn.iterator();
+      while( itrA.hasNext() && !subsetExists ) {
+	TokenTupleSet ttsA = (TokenTupleSet) itrA.next();
+
+	if( ttsA.isSubset(ttsB) ) {
+	  subsetExists = true;
 	}
+      }
 
-	if( !(o instanceof ReachabilitySet) ) {
-	    return false;
-	}
-
-	ReachabilitySet rs = (ReachabilitySet) o;
-	return possibleReachabilities.equals( rs.possibleReachabilities );
+      if( subsetExists ) {
+	rsOut.possibleReachabilities.add(ttsB);
+      }
     }
 
-    public int hashCode() {
-	return possibleReachabilities.hashCode();
+    return rsOut.makeCanonical();
+  }
+
+
+  public boolean equals(Object o) {
+    if( o == null ) {
+      return false;
     }
 
-
-    public String toStringEscapeNewline() {
-	String s = "[";
-
-	Iterator i = this.iterator();
-	while( i.hasNext() ) {
-	    s += i.next();
-	    if( i.hasNext() ) {
-		s += "\\n";
-	    }
-	}
-
-	s += "]";
-	return s;	
+    if( !(o instanceof ReachabilitySet) ) {
+      return false;
     }
 
-    public String toString() {
-	String s = "[";
+    ReachabilitySet rs = (ReachabilitySet) o;
+    return possibleReachabilities.equals(rs.possibleReachabilities);
+  }
 
-	Iterator i = this.iterator();
-	while( i.hasNext() ) {
-	    s += i.next();
-	    if( i.hasNext() ) {
-		s += "\n";
-	    }
-	}
+  public int hashCode() {
+    return possibleReachabilities.hashCode();
+  }
 
-	s += "]";
-	return s;	
+
+  public String toStringEscapeNewline() {
+    String s = "[";
+
+    Iterator i = this.iterator();
+    while( i.hasNext() ) {
+      s += i.next();
+      if( i.hasNext() ) {
+	s += "\\n";
+      }
     }
+
+    s += "]";
+    return s;
+  }
+
+  public String toString() {
+    String s = "[";
+
+    Iterator i = this.iterator();
+    while( i.hasNext() ) {
+      s += i.next();
+      if( i.hasNext() ) {
+	s += "\n";
+      }
+    }
+
+    s += "]";
+    return s;
+  }
 }

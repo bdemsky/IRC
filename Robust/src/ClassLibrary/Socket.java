@@ -1,71 +1,71 @@
 public class Socket {
-    /* Data pending flag */
-    external flag IOPending;    
-    /* File Descriptor */
-    int fd;
-    private SocketInputStream sin;
-    private SocketOutputStream sout;
-    
-    public Socket() {
-	sin=new SocketInputStream(this);
-	sout=new SocketOutputStream(this);
-    }
+  /* Data pending flag */
+  external flag IOPending;
+  /* File Descriptor */
+  int fd;
+  private SocketInputStream sin;
+  private SocketOutputStream sout;
 
-    public InputStream getInputStream() {
-	return sin;
-    }
+  public Socket() {
+    sin=new SocketInputStream(this);
+    sout=new SocketOutputStream(this);
+  }
 
-    public OutputStream getOutputStream() {
-	return sout;
-    }
+  public InputStream getInputStream() {
+    return sin;
+  }
 
-    public Socket(String host, int port) {
-	InetAddress address=InetAddress.getByName(host);
-	fd=nativeBind(address.getAddress(), port);
-	nativeConnect(fd, address.getAddress(), port);
-    }
-    
-    public Socket(InetAddress address, int port) {
-	fd=nativeBind(address.getAddress(), port);
-	nativeConnect(fd, address.getAddress(), port);
-    }
+  public OutputStream getOutputStream() {
+    return sout;
+  }
 
-    public void connect(String host, int port) {
-	InetAddress address=InetAddress.getByName(host);
-	fd=nativeBind(address.getAddress(), port);
-	nativeConnect(fd, address.getAddress(), port);
-    }
+  public Socket(String host, int port) {
+    InetAddress address=InetAddress.getByName(host);
+    fd=nativeBind(address.getAddress(), port);
+    nativeConnect(fd, address.getAddress(), port);
+  }
 
-    public void connect(InetAddress address, int port) {
-	fd=nativeBind(address.getAddress(), port);
-	nativeConnect(fd, address.getAddress(), port);
-    }
+  public Socket(InetAddress address, int port) {
+    fd=nativeBind(address.getAddress(), port);
+    nativeConnect(fd, address.getAddress(), port);
+  }
 
-    public static native int nativeBind(byte[] address, int port);
+  public void connect(String host, int port) {
+    InetAddress address=InetAddress.getByName(host);
+    fd=nativeBind(address.getAddress(), port);
+    nativeConnect(fd, address.getAddress(), port);
+  }
 
-    public native int nativeConnect(int fd, byte[] address, int port);
-    
-    int setFD(int filed) {
-	fd=filed;
-    }
+  public void connect(InetAddress address, int port) {
+    fd=nativeBind(address.getAddress(), port);
+    nativeConnect(fd, address.getAddress(), port);
+  }
 
-    public int read(byte[] b) {
-	return nativeRead(b);
-    }
-    public void write(byte[] b) {
-	nativeWrite(b, 0, b.length);
-    }
+  public static native int nativeBind(byte[] address, int port);
 
-    public void write(byte[] b, int offset, int len) {
-	nativeWrite(b, offset, len);
-    }
+  public native int nativeConnect(int fd, byte[] address, int port);
 
-    private native void nativeBindFD(int fd);
-    private native int nativeRead(byte[] b);
-    private native void nativeWrite(byte[] b, int offset, int len);
-    private native void nativeClose();
+  int setFD(int filed) {
+    fd=filed;
+  }
 
-    public void close() {
-	nativeClose();
-    }
+  public int read(byte[] b) {
+    return nativeRead(b);
+  }
+  public void write(byte[] b) {
+    nativeWrite(b, 0, b.length);
+  }
+
+  public void write(byte[] b, int offset, int len) {
+    nativeWrite(b, offset, len);
+  }
+
+  private native void nativeBindFD(int fd);
+  private native int nativeRead(byte[] b);
+  private native void nativeWrite(byte[] b, int offset, int len);
+  private native void nativeClose();
+
+  public void close() {
+    nativeClose();
+  }
 }

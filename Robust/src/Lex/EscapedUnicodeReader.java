@@ -13,8 +13,8 @@ public class EscapedUnicodeReader extends FilterReader {
     super(in);
   }
   public int read() throws IOException {
-    int r = (pushback==-1)?in.read():pushback; pushback=-1;
-    
+    int r = (pushback==-1) ? in.read() : pushback; pushback=-1;
+
     if (r!='\\') {
       isEvenSlash=true;
       return r;
@@ -23,7 +23,7 @@ public class EscapedUnicodeReader extends FilterReader {
 	isEvenSlash=true;
 	return r;
       }
-      
+
       // Check for the trailing u.
       pushback=in.read();
       if (pushback!='u') {
@@ -31,12 +31,12 @@ public class EscapedUnicodeReader extends FilterReader {
 	return '\\';
       }
 
-      // OK, we've found backslash-u.  
+      // OK, we've found backslash-u.
       // Reset pushback and snarf up all trailing u's.
       pushback=-1;
       while((r=in.read())=='u')
 	;
-      // Now we should find 4 hex digits. 
+      // Now we should find 4 hex digits.
       // If we don't, we can raise bloody hell.
       int val=0;
       for (int i=0; i<4; i++, r=in.read()) {
@@ -55,13 +55,15 @@ public class EscapedUnicodeReader extends FilterReader {
   public int read(char cbuf[], int off, int len) throws IOException {
     for (int i=0; i<len; i++) {
       int c = read();
-      if (c==-1) return (i==0)?-1:i; // end of stream reached.
+      if (c==-1) return (i==0) ? -1 : i; // end of stream reached.
       else cbuf[i+off] = (char) c;
     }
     return len;
   }
 
-  public boolean markSupported() { return false; }
+  public boolean markSupported() {
+    return false;
+  }
 
   public boolean ready() throws IOException {
     if (pushback!=-1) return true;

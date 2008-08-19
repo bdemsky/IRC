@@ -2,41 +2,41 @@ package IR.Flat;
 import IR.FieldDescriptor;
 
 public class FlatSetElementNode extends FlatNode {
-    TempDescriptor src;
-    TempDescriptor dst;
-    TempDescriptor index;
-    
-    public FlatSetElementNode(TempDescriptor dst, TempDescriptor index, TempDescriptor src) {
-	this.index=index;
-	this.src=src;
-	this.dst=dst;
-    }
+  TempDescriptor src;
+  TempDescriptor dst;
+  TempDescriptor index;
 
-    public boolean needsBoundsCheck() {
-	return true;
-    }
+  public FlatSetElementNode(TempDescriptor dst, TempDescriptor index, TempDescriptor src) {
+    this.index=index;
+    this.src=src;
+    this.dst=dst;
+  }
 
-    public TempDescriptor getSrc() {
-	return src;
-    }
+  public boolean needsBoundsCheck() {
+    return true;
+  }
 
-    public TempDescriptor getIndex() {
-	return index;
-    }
+  public TempDescriptor getSrc() {
+    return src;
+  }
 
-    public TempDescriptor getDst() {
-	return dst;
-    }
+  public TempDescriptor getIndex() {
+    return index;
+  }
 
-    public String toString() {
-	return "FlatSetElementNode_"+dst.toString()+"["+index.toString()+"]="+src.toString();
-    }
+  public TempDescriptor getDst() {
+    return dst;
+  }
 
-    public int kind() {
-	return FKind.FlatSetElementNode;
-    }
-    
-    public TempDescriptor [] readsTemps() {
-	return new TempDescriptor [] {src,dst,index};
-    }
+  public String toString() {
+    return "FlatSetElementNode_"+dst.toString()+"["+index.toString()+"]="+src.toString();
+  }
+
+  public int kind() {
+    return FKind.FlatSetElementNode;
+  }
+
+  public TempDescriptor [] readsTemps() {
+    return new TempDescriptor [] {src,dst,index};
+  }
 }

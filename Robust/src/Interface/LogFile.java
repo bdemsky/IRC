@@ -26,48 +26,48 @@ import java.net.*;
 
 public class LogFile
 {
-    static public final String log_file_name = "server.log";
+  static public final String log_file_name = "server.log";
 
-    static public String write_log(Socket s, String Method, String URI,
-				   String Protocol, 
-				   int ReturnCode, long BytesSent){
+  static public String write_log(Socket s, String Method, String URI,
+                                 String Protocol,
+                                 int ReturnCode, long BytesSent) {
 
-	// Socket.toString() calls (indirectly) some Hashtable.get
-	// method  - I tool care of it!
+    // Socket.toString() calls (indirectly) some Hashtable.get
+    // method  - I tool care of it!
 
-	/*
-	String addr = s.toString();	
-	String Address = addr.substring(addr.indexOf('/') + 1,
-					addr.indexOf(','));
-	*/
+    /*
+       String addr = s.toString();
+       String Address = addr.substring(addr.indexOf('/') + 1,
+                                    addr.indexOf(','));
+     */
 
-	//	SimpleDateFormat sdf =
-	//	    new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss zzz");  // RFC 1123
-	//	sdf.setTimeZone(TimeZone.getTimeZone("GMT"));
-	//	String Date = sdf.format(new Date());
+    //	SimpleDateFormat sdf =
+    //	    new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss zzz");  // RFC 1123
+    //	sdf.setTimeZone(TimeZone.getTimeZone("GMT"));
+    //	String Date = sdf.format(new Date());
 
-	String Entry = 
-	    /* Address + */ " - - [" +                      // IP address
-	    "Date" + "] \"" +                         // date
-	    Method + " " +                            // get, post, head
-	    URI + " " +                               // filename
-	    Protocol + "\" " +                        // http/1.?
-	    ReturnCode + " " +      // 200-500
-	    BytesSent + "\n";       // bytes sent
+    String Entry =
+      /* Address + */ " - - [" +                           // IP address
+      "Date" + "] \"" +                            // date
+      Method + " " +                                 // get, post, head
+      URI + " " +                                    // filename
+      Protocol + "\" " +                            // http/1.?
+      ReturnCode + " " +           // 200-500
+      BytesSent + "\n";           // bytes sent
 
-	try{
-	    BufferedWriter out = new BufferedWriter(
-				 new OutputStreamWriter(
-				 new FileOutputStream(log_file_name, true)));
-	    
-	    out.write(Entry,0,Entry.length());
-	    out.flush();
-	    out.close();
-	}
-	catch (IOException e){
-	    System.err.println("Gicu " + e);
-	}
+    try{
+      BufferedWriter out = new BufferedWriter(
+        new OutputStreamWriter(
+          new FileOutputStream(log_file_name, true)));
 
-	return Entry;
+      out.write(Entry,0,Entry.length());
+      out.flush();
+      out.close();
     }
+    catch (IOException e){
+      System.err.println("Gicu " + e);
+    }
+
+    return Entry;
+  }
 }

@@ -1,13 +1,13 @@
 #ifndef _MCPILEQ_H_
 #define _MCPILEQ_H_
 
-#include<pthread.h>
-#include<stdio.h>
-#include<stdlib.h>
-#include<string.h>
+#include <pthread.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 //Structure to make machine groups when prefetching
-typedef struct objpile { 
+typedef struct objpile {
   unsigned int oid;
   short numoffset;
   short *offset;

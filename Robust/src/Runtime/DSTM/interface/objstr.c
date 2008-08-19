@@ -35,20 +35,20 @@ void *objstrAlloc(objstr_t *store, unsigned int size) {
     if (store->next == NULL) {
       //end of list, all full
       if (size > DEFAULT_OBJ_STORE_SIZE) {
-        //in case of large objects
-        if((store->next = (objstr_t *)calloc(1,(sizeof(objstr_t) + size))) == NULL) {
-          printf("%s() Calloc error at line %d, %s\n", __func__, __LINE__, __FILE__);
-          return NULL;
-        }
-        store = store->next;
-        store->size = size;
+	//in case of large objects
+	if((store->next = (objstr_t *)calloc(1,(sizeof(objstr_t) + size))) == NULL) {
+	  printf("%s() Calloc error at line %d, %s\n", __func__, __LINE__, __FILE__);
+	  return NULL;
+	}
+	store = store->next;
+	store->size = size;
       } else {
-        if((store->next = calloc(1,(sizeof(objstr_t) + DEFAULT_OBJ_STORE_SIZE))) == NULL) {
-          printf("%s() Calloc error at line %d, %s\n", __func__, __LINE__, __FILE__);
-          return NULL;
-        }
-        store = store->next;
-        store->size = DEFAULT_OBJ_STORE_SIZE;
+	if((store->next = calloc(1,(sizeof(objstr_t) + DEFAULT_OBJ_STORE_SIZE))) == NULL) {
+	  printf("%s() Calloc error at line %d, %s\n", __func__, __LINE__, __FILE__);
+	  return NULL;
+	}
+	store = store->next;
+	store->size = DEFAULT_OBJ_STORE_SIZE;
       }
       store->top = (void *)(((unsigned int)store) + sizeof(objstr_t) + size);
       return (void *)(((unsigned int)store) + sizeof(objstr_t));

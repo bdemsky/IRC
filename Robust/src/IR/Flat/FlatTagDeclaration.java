@@ -2,35 +2,35 @@ package IR.Flat;
 import IR.TagDescriptor;
 
 public class FlatTagDeclaration extends FlatNode {
-    TempDescriptor dst;
-    TagDescriptor type;
-    
-    public FlatTagDeclaration(TagDescriptor type, TempDescriptor dst) {
-	this.type=type;
-	this.dst=dst;
-    }
+  TempDescriptor dst;
+  TagDescriptor type;
 
-    public String toString() {
-	return "FlatTagDeclaration_"+dst.toString()+"= new Tag("+type.toString()+")";
-    }
+  public FlatTagDeclaration(TagDescriptor type, TempDescriptor dst) {
+    this.type=type;
+    this.dst=dst;
+  }
 
-    public int kind() {
-	return FKind.FlatTagDeclaration;
-    }
+  public String toString() {
+    return "FlatTagDeclaration_"+dst.toString()+"= new Tag("+type.toString()+")";
+  }
 
-    public TempDescriptor [] writesTemps() {
-	return new TempDescriptor[] {dst};
-    }
+  public int kind() {
+    return FKind.FlatTagDeclaration;
+  }
 
-    public TempDescriptor [] readsTemps() {
-	return new TempDescriptor[0];
-    }
+  public TempDescriptor [] writesTemps() {
+    return new TempDescriptor[] {dst};
+  }
 
-    public TempDescriptor getDst() {
-	return dst;
-    }
+  public TempDescriptor [] readsTemps() {
+    return new TempDescriptor[0];
+  }
 
-    public TagDescriptor getType() {
-	return type;
-    }
+  public TempDescriptor getDst() {
+    return dst;
+  }
+
+  public TagDescriptor getType() {
+    return type;
+  }
 }

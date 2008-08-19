@@ -3,37 +3,37 @@ import IR.AssignOperation;
 import IR.TypeDescriptor;
 
 public class AssignmentNode extends ExpressionNode {
-    ExpressionNode left;
-    ExpressionNode right;
-    AssignOperation op;
+  ExpressionNode left;
+  ExpressionNode right;
+  AssignOperation op;
 
-    public AssignmentNode(ExpressionNode l, ExpressionNode r, AssignOperation op) {
-	left=l;
-	right=r;
-	this.op=op;
-    }
-    
-    public ExpressionNode getDest() {
-	return left;
-    }
+  public AssignmentNode(ExpressionNode l, ExpressionNode r, AssignOperation op) {
+    left=l;
+    right=r;
+    this.op=op;
+  }
 
-    public ExpressionNode getSrc() {
-	return right;
-    }
+  public ExpressionNode getDest() {
+    return left;
+  }
 
-    public AssignOperation getOperation() {
-	return op;
-    }
+  public ExpressionNode getSrc() {
+    return right;
+  }
 
-    public String printNode(int indent) {
-	return left.printNode(indent)+" "+op.toString()+" "+right.printNode(indent);
-    }
+  public AssignOperation getOperation() {
+    return op;
+  }
 
-    public TypeDescriptor getType() {
-	return left.getType();
-    }
+  public String printNode(int indent) {
+    return left.printNode(indent)+" "+op.toString()+" "+right.printNode(indent);
+  }
 
-    public int kind() {
-	return Kind.AssignmentNode;
-    }
+  public TypeDescriptor getType() {
+    return left.getType();
+  }
+
+  public int kind() {
+    return Kind.AssignmentNode;
+  }
 }

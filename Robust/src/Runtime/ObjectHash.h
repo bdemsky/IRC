@@ -38,11 +38,11 @@ void ObjectHashiterator(struct ObjectHash *, struct ObjectIterator * it);
 int ObjectHashcount(struct ObjectHash *, int key);
 
 struct ObjectHash {
-    int numelements;
-    int size;
-    struct ObjectNode **bucket;
-    struct ObjectNode *listhead;
-    struct ObjectNode *listtail;
+  int numelements;
+  int size;
+  struct ObjectNode **bucket;
+  struct ObjectNode *listhead;
+  struct ObjectNode *listtail;
 };
 
 inline int ObjectHashcountset(struct ObjectHash * thisvar);

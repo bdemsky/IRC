@@ -1,56 +1,56 @@
 package IR;
 
 /**
- * Descriptor 
+ * Descriptor
  *
  * represents a symbol in the language (var name, function name, etc).
  */
 
 public class TagVarDescriptor extends Descriptor {
 
-    protected TagDescriptor td;
-    protected String identifier;
-    
-    public TagVarDescriptor(TagDescriptor t, String identifier) {
-	super(identifier);
-	this.td=t;
-	this.identifier=identifier;
-        this.safename = "___" + name + "___";
-	this.uniqueid=count++;
-    }
+  protected TagDescriptor td;
+  protected String identifier;
 
-    public String getName() {
-	return identifier;
-    }
+  public TagVarDescriptor(TagDescriptor t, String identifier) {
+    super(identifier);
+    this.td=t;
+    this.identifier=identifier;
+    this.safename = "___" + name + "___";
+    this.uniqueid=count++;
+  }
 
-    public TagDescriptor getTag() {
-	return td;
-    }
+  public String getName() {
+    return identifier;
+  }
 
-    public TypeDescriptor getType() {
-	return new TypeDescriptor(TypeDescriptor.TAG);
-    }
+  public TagDescriptor getTag() {
+    return td;
+  }
 
-    /*    public boolean equals(Object o) {
-	if (o instanceof TagVarDescriptor) {
-	    TagVarDescriptor tvd=(TagVarDescriptor)o;
-	    if (tvd.identifier.equals(identifier)) {
-		if (tvd.td!=null) {
-		    if (!tvd.td.equals(td))
-			throw new Error();
-		} else if (td!=null)
-		    throw new Error();
-		return true;
-	    }
-	}
-	return false;
-    }
+  public TypeDescriptor getType() {
+    return new TypeDescriptor(TypeDescriptor.TAG);
+  }
 
-    public int hashCode() {
-	return identifier.hashCode();
-	}*/
+  /*    public boolean equals(Object o) {
+      if (o instanceof TagVarDescriptor) {
+          TagVarDescriptor tvd=(TagVarDescriptor)o;
+          if (tvd.identifier.equals(identifier)) {
+              if (tvd.td!=null) {
+                  if (!tvd.td.equals(td))
+                      throw new Error();
+              } else if (td!=null)
+                  throw new Error();
+              return true;
+          }
+      }
+      return false;
+     }
 
-    public String toString() {
-	    return td.toString()+" "+identifier;
-    }
+     public int hashCode() {
+      return identifier.hashCode();
+      }*/
+
+  public String toString() {
+    return td.toString()+" "+identifier;
+  }
 }

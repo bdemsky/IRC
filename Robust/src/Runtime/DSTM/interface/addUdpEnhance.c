@@ -50,7 +50,7 @@ int udpInit() {
     exit(1);
   }
 
-#ifdef MAC 
+#ifdef MAC
   if(setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &setsockflag, sizeof(setsockflag)) < 0) {
     perror("socket");
     exit(1);
@@ -89,14 +89,15 @@ void *udpListenBroadcast(void *sockfd) {
     }
     short status = *((short *) &readBuffer[0]);
     switch (status) {
-      case INVALIDATE_OBJS:
-       if((retval = invalidateFromPrefetchCache(readBuffer))!= 0) {
-          printf("Error: In invalidateFromPrefetchCache() at %s, %d\n", __FILE__, __LINE__);
-          break;
-        }
-        break;
-      default:
-        printf("Error: Cannot regcognize the status in file %s, at line %d\n", __FILE__, __LINE__);
+    case INVALIDATE_OBJS:
+      if((retval = invalidateFromPrefetchCache(readBuffer))!= 0) {
+	printf("Error: In invalidateFromPrefetchCache() at %s, %d\n", __FILE__, __LINE__);
+	break;
+      }
+      break;
+
+    default:
+      printf("Error: Cannot regcognize the status in file %s, at line %d\n", __FILE__, __LINE__);
     }
   }
 
@@ -132,15 +133,15 @@ int invalidateObj(thread_data_array_t *tdata) {
     int i;
     for(i = 1; i <= maxUdpMsg; i++) {
       if((retval = sendUdpMsg(tdata, &clientaddr, i)) < 0) {
-        printf("%s() error in sending udp message at %s, %d\n", __func__, __FILE__, __LINE__);
-        return -1;
+	printf("%s() error in sending udp message at %s, %d\n", __func__, __FILE__, __LINE__);
+	return -1;
       }
     }
   }
   return 0;
 }
 
-/* Function sends a udp broadcast, also distinguishes 
+/* Function sends a udp broadcast, also distinguishes
  * msg size to be sent based on the iteration flag
  * returns -1 on error and 0 on success */
 int sendUdpMsg(thread_data_array_t *tdata, struct sockaddr_in *clientaddr, int iteration) {
@@ -152,7 +153,7 @@ int sendUdpMsg(thread_data_array_t *tdata, struct sockaddr_in *clientaddr, int i
   *((unsigned int *)(writeBuffer+offset)) = myIpAddr; //mid sending invalidation
   offset += sizeof(unsigned int);
   if(iteration == 0) { // iteration flag == zero, send single udp msg
-    *((short *) (writeBuffer+offset)) = (short) (sizeof(unsigned int) * (tdata->buffer->f.nummod)); //sizeof msg
+    *((short *)(writeBuffer+offset)) = (short) (sizeof(unsigned int) * (tdata->buffer->f.nummod));  //sizeof msg
     offset += sizeof(short);
     int i;
     for(i = 0; i < tdata->buffer->f.nummod; i++) {
@@ -161,11 +162,11 @@ int sendUdpMsg(thread_data_array_t *tdata, struct sockaddr_in *clientaddr, int i
     }
   } else { // iteration flag > zero, send multiple udp msg
     int numObj;
-    if((tdata->buffer->f.nummod - (iteration * maxObjsPerMsg)) > 0) 
+    if((tdata->buffer->f.nummod - (iteration * maxObjsPerMsg)) > 0)
       numObj = maxObjsPerMsg;
-    else  
+    else
       numObj = tdata->buffer->f.nummod - ((iteration - 1)*maxObjsPerMsg);
-    *((short *) (writeBuffer+offset)) = (short) (sizeof(unsigned int) * numObj);
+    *((short *)(writeBuffer+offset)) = (short) (sizeof(unsigned int) * numObj);
     offset += sizeof(short);
     int index = (iteration - 1) * maxObjsPerMsg;
     int i;
@@ -181,9 +182,9 @@ int sendUdpMsg(thread_data_array_t *tdata, struct sockaddr_in *clientaddr, int i
     return -1;
   }
   return 0;
-} 
+}
 
-/* Function searches given oid in prefetch cache and invalidates obj from cache 
+/* Function searches given oid in prefetch cache and invalidates obj from cache
  * returns -1 on error and 0 on success */
 int invalidateFromPrefetchCache(char *buffer) {
   int offset = sizeof(short);
@@ -202,7 +203,7 @@ int invalidateFromPrefetchCache(char *buffer) {
       objheader_t *header;
       /* Lookup Objects in prefetch cache and remove them */
       if(((header = prehashSearch(oid)) != NULL)) {
-        prehashRemove(oid);
+	prehashRemove(oid);
       }
       offset += sizeof(unsigned int);
     }

@@ -5,70 +5,70 @@ import Analysis.TaskStateAnalysis.FlagState;
 import IR.ClassDescriptor;
 
 public class ObjectSimulator {
-    ClassDescriptor cd;
-    FlagState currentFS;
-    boolean changed;
-    boolean shared;
-    boolean hold;
-    int version;
-    
-    public ObjectSimulator(ClassDescriptor cd, FlagState currentFS) {
-	super();
-	this.cd = cd;
-	this.currentFS = currentFS;
-	this.changed = true;
-	this.shared = false;
-	this.hold = false;
-	this.version = 0;
-    }
-    
-    public void applyEdge(FEdge fedge) {
-	if(!currentFS.equals((FlagState)fedge.getTarget())) {
-	    this.changed = true;
-	    currentFS = (FlagState)fedge.getTarget();
-	} else {
-	    this.changed = false;
-	}
-    }
+  ClassDescriptor cd;
+  FlagState currentFS;
+  boolean changed;
+  boolean shared;
+  boolean hold;
+  int version;
 
-    public ClassDescriptor getCd() {
-        return cd;
-    }
+  public ObjectSimulator(ClassDescriptor cd, FlagState currentFS) {
+    super();
+    this.cd = cd;
+    this.currentFS = currentFS;
+    this.changed = true;
+    this.shared = false;
+    this.hold = false;
+    this.version = 0;
+  }
 
-    public FlagState getCurrentFS() {
-        return currentFS;
+  public void applyEdge(FEdge fedge) {
+    if(!currentFS.equals((FlagState)fedge.getTarget())) {
+      this.changed = true;
+      currentFS = (FlagState)fedge.getTarget();
+    } else {
+      this.changed = false;
     }
+  }
 
-    public boolean isChanged() {
-        return changed;
-    }
+  public ClassDescriptor getCd() {
+    return cd;
+  }
 
-    public void setCurrentFS(FlagState currentFS) {
-	changed = true;
-        this.currentFS = currentFS;
-    }
+  public FlagState getCurrentFS() {
+    return currentFS;
+  }
 
-    public boolean isHold() {
-        return hold;
-    }
+  public boolean isChanged() {
+    return changed;
+  }
 
-    public void setHold(boolean hold) {
-        this.hold = hold;
-    }
+  public void setCurrentFS(FlagState currentFS) {
+    changed = true;
+    this.currentFS = currentFS;
+  }
 
-    public boolean isShared() {
-        return shared;
-    }
+  public boolean isHold() {
+    return hold;
+  }
 
-    public void setShared(boolean shared) {
-        this.shared = shared;
-    }
+  public void setHold(boolean hold) {
+    this.hold = hold;
+  }
 
-    public int getVersion() {
-        return version;
-    }
+  public boolean isShared() {
+    return shared;
+  }
 
-    public void increaseVersion() {
-        this.version++;
-    }
+  public void setShared(boolean shared) {
+    this.shared = shared;
+  }
+
+  public int getVersion() {
+    return version;
+  }
+
+  public void increaseVersion() {
+    this.version++;
+  }
 }

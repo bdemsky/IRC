@@ -5,39 +5,39 @@ import IR.Flat.*;
 import java.util.*;
 
 public class LabelNode extends OwnershipNode {
-    protected TempDescriptor td;
+  protected TempDescriptor td;
 
-    public LabelNode( TempDescriptor td ) {
-	this.td = td;
+  public LabelNode(TempDescriptor td) {
+    this.td = td;
+  }
+
+  public TempDescriptor getTempDescriptor() {
+    return td;
+  }
+
+  public boolean equals(Object o) {
+    if( o == null ) {
+      return false;
     }
 
-    public TempDescriptor getTempDescriptor() {
-	return td;
+    if( !( o instanceof LabelNode) ) {
+      return false;
     }
 
-    public boolean equals( Object o ) {
-	if( o == null ) {
-	    return false;
-	}
+    LabelNode ln = (LabelNode) o;
 
-	if( !( o instanceof LabelNode) ) {
-	    return false;
-	}
+    return td == ln.getTempDescriptor();
+  }
 
-	LabelNode ln = (LabelNode) o;
+  public int hashCode() {
+    return td.getNum();
+  }
 
-	return td == ln.getTempDescriptor();
-    }
+  public String getTempDescriptorString() {
+    return td.toString();
+  }
 
-    public int hashCode() {
-	return td.getNum();
-    }
-
-    public String getTempDescriptorString() {
-	return td.toString();
-    }
-
-    public String toString() {
-	return "LN_"+getTempDescriptorString();
-    }
+  public String toString() {
+    return "LN_"+getTempDescriptorString();
+  }
 }

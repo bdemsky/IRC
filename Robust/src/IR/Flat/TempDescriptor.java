@@ -2,81 +2,81 @@ package IR.Flat;
 import IR.*;
 
 public class TempDescriptor extends Descriptor {
-    static int currentid=0;
-    int id;
-    //    String safename;
-    TypeDescriptor type;
-    TagDescriptor tag;
+  static int currentid=0;
+  int id;
+  //    String safename;
+  TypeDescriptor type;
+  TagDescriptor tag;
 
-    public TempDescriptor(String name) {
-	super(name);
-	id=currentid++;
-    }
+  public TempDescriptor(String name) {
+    super(name);
+    id=currentid++;
+  }
 
-    public TempDescriptor(String name, TypeDescriptor td) {
-	this(name);
-	type=td;
-    }
+  public TempDescriptor(String name, TypeDescriptor td) {
+    this(name);
+    type=td;
+  }
 
-    public TempDescriptor(String name, ClassDescriptor cd) {
-	this(name);
-	type=new TypeDescriptor(cd);
-    }
+  public TempDescriptor(String name, ClassDescriptor cd) {
+    this(name);
+    type=new TypeDescriptor(cd);
+  }
 
-    public TempDescriptor(String name, TypeDescriptor type, TagDescriptor td) {
-	this(name);
-	this.type=type;
-	tag=td;
-    }
+  public TempDescriptor(String name, TypeDescriptor type, TagDescriptor td) {
+    this(name);
+    this.type=type;
+    tag=td;
+  }
 
-    public TempDescriptor createNew() {
-	if (tag==null)
-	    return new TempDescriptor(name+"_"+currentid, type);
-	else
-	    return new TempDescriptor(name+"_"+currentid, type, tag);
-    }
-    
-    public static TempDescriptor tempFactory() {
-	return new TempDescriptor("temp_"+currentid);
-    }
+  public TempDescriptor createNew() {
+    if (tag==null)
+      return new TempDescriptor(name+"_"+currentid, type);
+    else
+      return new TempDescriptor(name+"_"+currentid, type, tag);
+  }
 
-    public static TempDescriptor tempFactory(String name) {
-	return new TempDescriptor(name+currentid);
-    }
+  public static TempDescriptor tempFactory() {
+    return new TempDescriptor("temp_"+currentid);
+  }
 
-    public static TempDescriptor tempFactory(String name, TypeDescriptor td) {
-	return new TempDescriptor(name+currentid,td);
-    }
+  public static TempDescriptor tempFactory(String name) {
+    return new TempDescriptor(name+currentid);
+  }
 
-    public static TempDescriptor tempFactory(String name, TypeDescriptor type, TagDescriptor tag) {
-	return new TempDescriptor(name+currentid,type,tag);
-    }
+  public static TempDescriptor tempFactory(String name, TypeDescriptor td) {
+    return new TempDescriptor(name+currentid,td);
+  }
 
-    public static TempDescriptor paramtempFactory(String name, TypeDescriptor td) {
-	return new TempDescriptor(name,td);
-    }
+  public static TempDescriptor tempFactory(String name, TypeDescriptor type, TagDescriptor tag) {
+    return new TempDescriptor(name+currentid,type,tag);
+  }
 
-    public static TempDescriptor paramtempFactory(String name, TypeDescriptor tagtype, TagDescriptor tag) {
-	return new TempDescriptor(name, tagtype, tag);
-    }
+  public static TempDescriptor paramtempFactory(String name, TypeDescriptor td) {
+    return new TempDescriptor(name,td);
+  }
 
-    public String toString() {
-	return safename;
-    }
+  public static TempDescriptor paramtempFactory(String name, TypeDescriptor tagtype, TagDescriptor tag) {
+    return new TempDescriptor(name, tagtype, tag);
+  }
 
-    public void setType(TypeDescriptor td) {
-	type=td;
-    }
+  public String toString() {
+    return safename;
+  }
 
-    public TypeDescriptor getType() {
-	return type;
-    }
+  public void setType(TypeDescriptor td) {
+    type=td;
+  }
 
-    public TagDescriptor getTag() {
-	return tag;
-    }
+  public TypeDescriptor getType() {
+    return type;
+  }
 
-    public void setTag(TagDescriptor tag) {
-	this.tag=tag;
-    }
+  public TagDescriptor getTag() {
+    return tag;
+  }
+
+  public void setTag(TagDescriptor tag) {
+    this.tag=tag;
+  }
 }

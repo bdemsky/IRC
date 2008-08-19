@@ -23,7 +23,7 @@ void dhtExit();
 //returns 0 if successful, -1 if an error occurred
 int dhtInsert(unsigned int key, unsigned int val);
 //simultaneously inserts the key-val pairs in the given arrays
-int dhtInsertMult(unsigned int numKeys, unsigned int *keys,	unsigned int *vals);
+int dhtInsertMult(unsigned int numKeys, unsigned int *keys,     unsigned int *vals);
 //returns 0 if successful, -1 if an error occurred
 int dhtRemove(unsigned int key);
 //simultaneously delete the keys in the given array

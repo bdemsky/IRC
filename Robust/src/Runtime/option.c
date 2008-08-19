@@ -19,13 +19,13 @@ extern char ** environ;
 void processOptions() {
   int i;
   options=NULL;
-  for(i=0;environ[i]!=0;i++) {
+  for(i=0; environ[i]!=0; i++) {
     if (strncmp(environ[i],"BRISTLECONE=",12)==0) {
       options=environ[i]+12;
       break;
     }
   }
-  
+
   while(options!=NULL) {
     if (strncmp(options,"-injectfailures",sizeof("-injectfailures")-1)==0) {
       options=strchr(options,' ');

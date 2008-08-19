@@ -7,7 +7,7 @@ extern objstr_t *prefetchcache; //Global Prefetch cache
 extern pthread_mutex_t prefetchcache_mutex; //Mutex to lock Prefetch Cache
 extern unsigned int myIpAddr;
 
-/* This function creates and initializes the 
+/* This function creates and initializes the
  * evalPrefetch global array */
 pfcstats_t *initPrefetchStats() {
   pfcstats_t *ptr;
@@ -38,7 +38,7 @@ char getOperationMode(int siteid) {
   return evalPrefetch[siteid].operMode;
 }
 
-/* This function updates counters and mode of operation of a 
+/* This function updates counters and mode of operation of a
  * prefetch site during runtime. When the prefetch call at a site
  * generates oids that are found/not found in the prefetch cache,
  * we take action accordingly */
@@ -51,13 +51,13 @@ void handleDynPrefetching(int numLocal, int ntuples, int siteid) {
     if(getOperationMode(siteid) != 0) {
       evalPrefetch[siteid].uselesscount--;
       if(evalPrefetch[siteid].uselesscount <= 0) {
-        evalPrefetch[siteid].operMode = 0;
+	evalPrefetch[siteid].operMode = 0;
       }
     }
   }
 }
 
-/* This function clears from prefetch cache those 
+/* This function clears from prefetch cache those
  * entries that caused a transaction abort */
 void cleanPCache(thread_data_array_t *tdata) {
   transrecord_t *rec = tdata->rec;
@@ -67,13 +67,13 @@ void cleanPCache(thread_data_array_t *tdata) {
   for(i = 0; i < size; i++) {
     chashlistnode_t *curr = &ptr[i]; //for each entry in the cache lookupTable
     while(curr != NULL) {
-      if(curr->key == 0) 
-        break;
+      if(curr->key == 0)
+	break;
       objheader_t *header1, *header2;
       if((header1 = mhashSearch(curr->key)) == NULL && ((header2 = prehashSearch(curr->key)) != NULL)) {
-        /* Not found in local machine's object store and found in prefetch cache */
-        /* Remove from prefetch cache */
-        prehashRemove(curr->key);
+	/* Not found in local machine's object store and found in prefetch cache */
+	/* Remove from prefetch cache */
+	prehashRemove(curr->key);
       }
       curr = curr->next;
     }
@@ -81,9 +81,9 @@ void cleanPCache(thread_data_array_t *tdata) {
 }
 
 /* This function updates the prefetch cache with
- * entires from the transaction cache when a 
- * transaction commits 
- * Return -1 on error else returns 0 */ 
+ * entires from the transaction cache when a
+ * transaction commits
+ * Return -1 on error else returns 0 */
 int updatePrefetchCache(thread_data_array_t* tdata) {
   int retval;
   char oidType;
@@ -100,14 +100,14 @@ int updatePrefetchCache(thread_data_array_t* tdata) {
   return 0;
 }
 
-int copyToCache(int numoid, unsigned int *oidarray, thread_data_array_t *tdata, char oidType) { 
+int copyToCache(int numoid, unsigned int *oidarray, thread_data_array_t *tdata, char oidType) {
   int i;
   for (i = 0; i < numoid; i++) {
     unsigned int oid;
     if(oidType == 'R') {
       char * objread = (char *) oidarray;
       oid = *((unsigned int *)(objread+(sizeof(unsigned int)+
-              sizeof(unsigned short))*i));
+                                        sizeof(unsigned short))*i));
     } else {
       oid = oidarray[i];
     }
@@ -123,8 +123,8 @@ int copyToCache(int numoid, unsigned int *oidarray, thread_data_array_t *tdata, 
     GETSIZE(size, header);
     objheader_t * newAddr;
     if((newAddr = prefetchobjstrAlloc(size + sizeof(objheader_t))) == NULL) {
-      printf("%s(): Error in getting memory from prefetch cache at %s, %d\n", __func__, 
-          __FILE__, __LINE__);
+      printf("%s(): Error in getting memory from prefetch cache at %s, %d\n", __func__,
+             __FILE__, __LINE__);
       pthread_mutex_unlock(&prefetchcache_mutex);
       return -1;
     }

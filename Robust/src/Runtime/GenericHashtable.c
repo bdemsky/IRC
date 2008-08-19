@@ -16,9 +16,9 @@
 #endif
 
 void * getfirstkey(struct genhashtable *ht) {
-	if(ht->list == NULL) {
-		return NULL;
-	}
+  if(ht->list == NULL) {
+    return NULL;
+  }
   return ht->list->src;
 }
 
@@ -43,21 +43,21 @@ int genputtable(struct genhashtable *ht, void * key, void * object) {
   ht->counter++;
   if(ht->counter>ht->currentsize&&ht->currentsize!=INT_MAX) {
     /* Expand hashtable */
-    long newcurrentsize=(ht->currentsize<(INT_MAX/2))?ht->currentsize*2:INT_MAX;
+    long newcurrentsize=(ht->currentsize<(INT_MAX/2)) ? ht->currentsize*2 : INT_MAX;
     long oldcurrentsize=ht->currentsize;
     struct genpointerlist **newbins=(struct genpointerlist **) RUNMALLOC(sizeof (struct genpointerlist *)*newcurrentsize);
     struct genpointerlist **oldbins=ht->bins;
     long j,i;
-    for(j=0;j<newcurrentsize;j++) newbins[j]=NULL;
+    for(j=0; j<newcurrentsize; j++) newbins[j]=NULL;
     ht->currentsize=newcurrentsize;
-    for(i=0;i<oldcurrentsize;i++) {
+    for(i=0; i<oldcurrentsize; i++) {
       struct genpointerlist * tmpptr=oldbins[i];
       while(tmpptr!=NULL) {
-        unsigned int hashcode=genhashfunction(ht, tmpptr->src);
-        struct genpointerlist *nextptr=tmpptr->next;
-        tmpptr->next=newbins[hashcode];
-        newbins[hashcode]=tmpptr;
-        tmpptr=nextptr;
+	unsigned int hashcode=genhashfunction(ht, tmpptr->src);
+	struct genpointerlist *nextptr=tmpptr->next;
+	tmpptr->next=newbins[hashcode];
+	newbins[hashcode]=tmpptr;
+	tmpptr=nextptr;
       }
     }
     ht->bins=newbins;
@@ -88,21 +88,21 @@ int genputtable_I(struct genhashtable *ht, void * key, void * object) {
   ht->counter++;
   if(ht->counter>ht->currentsize&&ht->currentsize!=INT_MAX) {
     /* Expand hashtable */
-    long newcurrentsize=(ht->currentsize<(INT_MAX/2))?ht->currentsize*2:INT_MAX;
+    long newcurrentsize=(ht->currentsize<(INT_MAX/2)) ? ht->currentsize*2 : INT_MAX;
     long oldcurrentsize=ht->currentsize;
     struct genpointerlist **newbins=(struct genpointerlist **) RUNMALLOC_I(sizeof (struct genpointerlist *)*newcurrentsize);
     struct genpointerlist **oldbins=ht->bins;
     long j,i;
-    for(j=0;j<newcurrentsize;j++) newbins[j]=NULL;
+    for(j=0; j<newcurrentsize; j++) newbins[j]=NULL;
     ht->currentsize=newcurrentsize;
-    for(i=0;i<oldcurrentsize;i++) {
+    for(i=0; i<oldcurrentsize; i++) {
       struct genpointerlist * tmpptr=oldbins[i];
       while(tmpptr!=NULL) {
-        unsigned int hashcode=genhashfunction(ht, tmpptr->src);
-        struct genpointerlist *nextptr=tmpptr->next;
-        tmpptr->next=newbins[hashcode];
-        newbins[hashcode]=tmpptr;
-        tmpptr=nextptr;
+	unsigned int hashcode=genhashfunction(ht, tmpptr->src);
+	struct genpointerlist *nextptr=tmpptr->next;
+	tmpptr->next=newbins[hashcode];
+	newbins[hashcode]=tmpptr;
+	tmpptr=nextptr;
       }
     }
     ht->bins=newbins;
@@ -121,7 +121,7 @@ void genrehash(struct genhashtable * ht) {
   struct genpointerlist **oldbins=ht->bins;
   long j,i;
 
-  for(i=0;i<ht->currentsize;i++) {
+  for(i=0; i<ht->currentsize; i++) {
     struct genpointerlist * tmpptr=oldbins[i];
     while(tmpptr!=NULL) {
       unsigned int hashcode=genhashfunction(ht, tmpptr->src);
@@ -178,7 +178,7 @@ int gencontains(struct genhashtable *ht, void * key) {
 
 void genfreekey(struct genhashtable *ht, void * key) {
   struct genpointerlist * ptr=ht->bins[genhashfunction(ht,key)];
-  
+
   if (((ht->comp_function==NULL)&&(ptr->src==key))||((ht->comp_function!=NULL)&&(*ht->comp_function)(ptr->src,key))) {
     ht->bins[genhashfunction(ht,key)]=ptr->next;
 
@@ -192,7 +192,7 @@ void genfreekey(struct genhashtable *ht, void * key) {
       ptr->iprev->inext=ptr->inext;
     if (ptr->inext!=NULL)
       ptr->inext->iprev=ptr->iprev;
-    
+
     RUNFREE(ptr);
     ht->counter--;
     return;
@@ -240,7 +240,7 @@ struct genhashtable * genallocatehashtable(unsigned int (*hash_function)(void *)
 #ifdef RAWDEBUG
   raw_test_pass(0xf001);
 #endif
-  for(i=0;i<geninitialnumbins;i++) {
+  for(i=0; i<geninitialnumbins; i++) {
     gpl[i]=NULL;
   }
 #ifdef RAWDEBUG
@@ -265,7 +265,7 @@ struct genhashtable * genallocatehashtable(unsigned int (*hash_function)(void *)
 
 void genfreehashtable(struct genhashtable * ht) {
   int i;
-  for (i=0;i<ht->currentsize;i++) {
+  for (i=0; i<ht->currentsize; i++) {
     if (ht->bins[i]!=NULL) {
       struct genpointerlist *genptr=ht->bins[i];
       while(genptr!=NULL) {

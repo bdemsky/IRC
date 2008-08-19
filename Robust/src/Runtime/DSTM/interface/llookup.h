@@ -11,17 +11,17 @@
 #define HASH_SIZE 100
 
 typedef struct lhashlistnode {
-	unsigned int oid;
-	unsigned int mid;
-	struct lhashlistnode *next;
+  unsigned int oid;
+  unsigned int mid;
+  struct lhashlistnode *next;
 } lhashlistnode_t;
 
 typedef struct lhashtable {
-	lhashlistnode_t *table;	// points to beginning of hash table
-	unsigned int size;
-	unsigned int numelements;
-	float loadfactor;
-	pthread_mutex_t locktable;
+  lhashlistnode_t *table;       // points to beginning of hash table
+  unsigned int size;
+  unsigned int numelements;
+  float loadfactor;
+  pthread_mutex_t locktable;
 } lhashtable_t;
 
 //returns 0 for success and 1 for failure

@@ -1,10 +1,10 @@
 #ifndef _QUEUE_H_
 #define _QUEUE_H_
 
-#include<stdio.h>
-#include<stdlib.h>
-#include<pthread.h>
-#include<string.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <pthread.h>
+#include <string.h>
 #include "dstm.h"
 
 void queueInit(void);

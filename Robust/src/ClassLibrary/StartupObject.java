@@ -1,5 +1,5 @@
 public class StartupObject {
-    flag initialstate;
+  flag initialstate;
 
-    String [] parameters;
+  String [] parameters;
 }

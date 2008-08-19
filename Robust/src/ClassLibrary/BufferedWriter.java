@@ -1,24 +1,24 @@
 public class BufferedWriter extends Writer {
-    Writer out;
+  Writer out;
 
-    public BufferedWriter(Writer out) {
-	this.out=out;
-    }
+  public BufferedWriter(Writer out) {
+    this.out=out;
+  }
 
-    public void write(String s) {
-	out.write(s);
-    }
+  public void write(String s) {
+    out.write(s);
+  }
 
-    public void newLine() {
-	out.write("\n");
-    }
+  public void newLine() {
+    out.write("\n");
+  }
 
-    public void flush() {
-	out.flush();
-    }
+  public void flush() {
+    out.flush();
+  }
 
-    public void close() {
-	out.close();
-    }
+  public void close() {
+    out.close();
+  }
 
 }

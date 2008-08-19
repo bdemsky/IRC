@@ -2,41 +2,41 @@ package IR.Flat;
 import IR.FieldDescriptor;
 
 public class FlatFieldNode extends FlatNode {
-    TempDescriptor src;
-    TempDescriptor dst;
-    FieldDescriptor field;
-    
-    public FlatFieldNode(FieldDescriptor field, TempDescriptor src, TempDescriptor dst) {
-	this.field=field;
-	this.src=src;
-	this.dst=dst;
-    }
+  TempDescriptor src;
+  TempDescriptor dst;
+  FieldDescriptor field;
 
-    public FieldDescriptor getField() {
-	return field;
-    }
+  public FlatFieldNode(FieldDescriptor field, TempDescriptor src, TempDescriptor dst) {
+    this.field=field;
+    this.src=src;
+    this.dst=dst;
+  }
 
-    public TempDescriptor getSrc() {
-	return src;
-    }
+  public FieldDescriptor getField() {
+    return field;
+  }
 
-    public TempDescriptor getDst() {
-	return dst;
-    }
+  public TempDescriptor getSrc() {
+    return src;
+  }
 
-    public String toString() {
-	return "FlatFieldNode_"+dst.toString()+"="+src.toString()+"."+field.getSymbol();
-    }
+  public TempDescriptor getDst() {
+    return dst;
+  }
 
-    public int kind() {
-	return FKind.FlatFieldNode;
-    }
+  public String toString() {
+    return "FlatFieldNode_"+dst.toString()+"="+src.toString()+"."+field.getSymbol();
+  }
 
-    public TempDescriptor [] writesTemps() {
-	return new TempDescriptor[] {dst};
-    }
+  public int kind() {
+    return FKind.FlatFieldNode;
+  }
 
-    public TempDescriptor [] readsTemps() {
-	return new TempDescriptor[] {src};
-    }
+  public TempDescriptor [] writesTemps() {
+    return new TempDescriptor[] {dst};
+  }
+
+  public TempDescriptor [] readsTemps() {
+    return new TempDescriptor[] {src};
+  }
 }

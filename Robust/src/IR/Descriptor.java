@@ -1,46 +1,46 @@
 package IR;
 
 /**
- * Descriptor 
+ * Descriptor
  *
  * represents a symbol in the language (var name, function name, etc).
  */
 
 public abstract class Descriptor {
 
-    protected String name;
-    protected String safename;
-    static int count=0;
-    int uniqueid;
-    
-    public Descriptor(String name) {
-	this.name = name;
-        this.safename = "___" + name + "___";
-	this.uniqueid=count++;
-    }
+  protected String name;
+  protected String safename;
+  static int count=0;
+  int uniqueid;
 
-    protected Descriptor(String name, String safename) {
-	this.name = name;
-        this.safename = safename;
-	this.uniqueid=count++;
-    }
-    
-    public String toString() {
-	return name;
-    }
-    
-    public String getSymbol() {
-	return name;
-    }
+  public Descriptor(String name) {
+    this.name = name;
+    this.safename = "___" + name + "___";
+    this.uniqueid=count++;
+  }
 
-    public String getSafeSymbol() {
-        return safename;
-    }
-    public int getNum() {
-	return uniqueid;
-    }
-    
-    public String getCoreSafeSymbol(int num) {
-	return safename + "core" + num + "___";
-    }
+  protected Descriptor(String name, String safename) {
+    this.name = name;
+    this.safename = safename;
+    this.uniqueid=count++;
+  }
+
+  public String toString() {
+    return name;
+  }
+
+  public String getSymbol() {
+    return name;
+  }
+
+  public String getSafeSymbol() {
+    return safename;
+  }
+  public int getNum() {
+    return uniqueid;
+  }
+
+  public String getCoreSafeSymbol(int num) {
+    return safename + "core" + num + "___";
+  }
 }

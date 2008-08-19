@@ -3,7 +3,7 @@
 #include "structdefs.h"
 #include "garbage.h"
 void REVERT_OBJ(struct ___Object___ *);
-#define COMMIT_OBJ(obj) obj->___localcopy___=NULL;\
+#define COMMIT_OBJ(obj) obj->___localcopy___=NULL; \
   obj->___nextobject___=NULL
 
 #ifdef PRECISE_GC

@@ -44,20 +44,20 @@ int listcount=0;
 //Need to check if pointers are transaction pointers
 #ifdef DSTM
 #define ENQUEUE(orig, dst) \
-if ((!(((unsigned int)orig)&0x1))) {\
-if (orig>=curr_heapbase&&orig<curr_heaptop) {\
-void *copy;\
-if (gc_createcopy(orig,&copy))\
-enqueue(orig);\
-dst=copy;\
-}\
-}
+  if ((!(((unsigned int)orig)&0x1))) { \
+    if (orig>=curr_heapbase&&orig<curr_heaptop) { \
+      void *copy; \
+      if (gc_createcopy(orig,&copy)) \
+	enqueue(orig);\
+      dst=copy; \
+    } \
+  }
 #else
 #define ENQUEUE(orig, dst) \
-void *copy; \
-if (gc_createcopy(orig,&copy))\
-enqueue(orig);\
-dst=copy
+  void *copy; \
+  if (gc_createcopy(orig,&copy)) \
+    enqueue(orig);\
+  dst=copy
 #endif
 
 struct pointerblock {
@@ -84,10 +84,10 @@ struct pointerblock *spare=NULL;
 void enqueue(void *ptr) {
   if (headindex==NUMPTRS) {
     struct pointerblock * tmp;
-    if (spare!=NULL) { 
+    if (spare!=NULL) {
       tmp=spare;
       spare=NULL;
-    } else 
+    } else
       tmp=malloc(sizeof(struct pointerblock));
     head->next=tmp;
     head=tmp;
@@ -159,14 +159,14 @@ void collect(struct garbagelist * stackptr) {
 
   /* Check current stack */
 #if defined(THREADS)||defined(DSTM)
- {
-   struct listitem *listptr=list;
-   while(1) {
+  {
+    struct listitem *listptr=list;
+    while(1) {
 #endif
-     
+
   while(stackptr!=NULL) {
     int i;
-    for(i=0;i<stackptr->size;i++) {
+    for(i=0; i<stackptr->size; i++) {
       void * orig=stackptr->array[i];
       ENQUEUE(orig, stackptr->array[i]);
     }
@@ -181,15 +181,15 @@ void collect(struct garbagelist * stackptr) {
     listptr=listptr->next;
   } else
     break;
-   }
- }
+}
+}
 #endif
-  
+
 #ifdef TASK
   {
     /* Update objectsets */
     int i;
-    for(i=0;i<NUMCLASSES;i++) {
+    for(i=0; i<NUMCLASSES; i++) {
 #ifdef MULTICORE
 #else
       struct parameterwrapper * p=objectqueues[i];
@@ -207,7 +207,7 @@ void collect(struct garbagelist * stackptr) {
 #endif
     }
   }
-  
+
   if (forward!=NULL) {
     struct RuntimeNode * ptr=forward->listhead;
     while(ptr!=NULL) {
@@ -239,20 +239,20 @@ void collect(struct garbagelist * stackptr) {
   {
     /* Update current task descriptor */
     int i;
-    for(i=0;i<currtpd->numParameters;i++) {
+    for(i=0; i<currtpd->numParameters; i++) {
       void *orig=currtpd->parameterArray[i];
       ENQUEUE(orig, currtpd->parameterArray[i]);
     }
 
   }
 
-    /* Update active tasks */
+  /* Update active tasks */
   {
     struct genpointerlist * ptr=activetasks->list;
     while(ptr!=NULL) {
       struct taskparamdescriptor *tpd=ptr->src;
       int i;
-      for(i=0;i<tpd->numParameters;i++) {
+      for(i=0; i<tpd->numParameters; i++) {
 	void * orig=tpd->parameterArray[i];
 	ENQUEUE(orig, tpd->parameterArray[i]);
       }
@@ -261,13 +261,13 @@ void collect(struct garbagelist * stackptr) {
     genrehash(activetasks);
   }
 
-    /* Update failed tasks */
+  /* Update failed tasks */
   {
     struct genpointerlist * ptr=failedtasks->list;
     while(ptr!=NULL) {
       struct taskparamdescriptor *tpd=ptr->src;
       int i;
-      for(i=0;i<tpd->numParameters;i++) {
+      for(i=0; i<tpd->numParameters; i++) {
 	void * orig=tpd->parameterArray[i];
 	ENQUEUE(orig, tpd->parameterArray[i]);
       }
@@ -310,17 +310,17 @@ void collect(struct garbagelist * stackptr) {
 #endif
       int length=ao->___length___;
       int i;
-      for(i=0;i<length;i++) {
-	void *objptr=((void **)(((char *)& ao->___length___)+sizeof(int)))[i];
-	ENQUEUE(objptr, ((void **)(((char *)& ao_cpy->___length___)+sizeof(int)))[i]);
+      for(i=0; i<length; i++) {
+	void *objptr=((void **)(((char *)&ao->___length___)+sizeof(int)))[i];
+	ENQUEUE(objptr, ((void **)(((char *)&ao_cpy->___length___)+sizeof(int)))[i]);
       }
     } else {
       int size=pointer[0];
       int i;
-      for(i=1;i<=size;i++) {
+      for(i=1; i<=size; i++) {
 	unsigned int offset=pointer[i];
 	void * objptr=*((void **)(((int)ptr)+offset));
-	ENQUEUE(objptr, *((void **) (((int)cpy)+offset)));
+	ENQUEUE(objptr, *((void **)(((int)cpy)+offset)));
       }
     }
   }
@@ -342,7 +342,7 @@ void fixtags() {
   while(taghead!=NULL) {
     int i;
     struct pointerblock *tmp=taghead->next;
-    for(i=0;i<tagindex;i++) {
+    for(i=0; i<tagindex; i++) {
       struct ___TagDescriptor___ *tagd=taghead->ptrs[i];
       struct ___Object___ *obj=tagd->flagptr;
       struct ___TagDescriptor___ *copy=((struct ___TagDescriptor___**)tagd)[1];
@@ -358,21 +358,21 @@ void fixtags() {
 	int j;
 	int k=0;
 	struct ArrayObject *aonew;
-	
+
 	/* Count live objects */
-	for(j=0;j<ao->___cachedCode___;j++) {
+	for(j=0; j<ao->___cachedCode___; j++) {
 	  struct ___Object___ * tobj=ARRAYGET(ao, struct ___Object___ *, j);
 	  if (tobj->type==-1)
 	    livecount++;
 	}
-	
+
 	livecount=((livecount-1)/OBJECTARRAYINTERVAL+1)*OBJECTARRAYINTERVAL;
 	aonew=(struct ArrayObject *) tomalloc(sizeof(struct ArrayObject)+sizeof(struct ___Object___*)*livecount);
 	memcpy(aonew, ao, sizeof(struct ArrayObject));
 	aonew->type=OBJECTARRAYTYPE;
 	aonew->___length___=livecount;
 	copy->flagptr=aonew;
-	for(j=0;j<ao->___cachedCode___;j++) {
+	for(j=0; j<ao->___cachedCode___; j++) {
 	  struct ___Object___ * tobj=ARRAYGET(ao, struct ___Object___ *, j);
 	  if (tobj->type==-1) {
 	    struct ___Object___ * tobjcpy=((struct ___Object___**)tobj)[1];
@@ -380,7 +380,7 @@ void fixtags() {
 	  }
 	}
 	aonew->___cachedCode___=k;
-	for(;k<livecount;k++) {
+	for(; k<livecount; k++) {
 	  ARRAYSET(aonew, struct ___Object___*, k, NULL);
 	}
       } else {
@@ -512,7 +512,7 @@ void * mygcmalloc(struct garbagelist * stackptr, int size) {
 	to_heapptr=to_heapbase;
       }
     }
-   
+
     /* Do our collection */
     collect(stackptr);
 
@@ -528,12 +528,12 @@ void * mygcmalloc(struct garbagelist * stackptr, int size) {
       tmp=to_heaptop;
       to_heaptop=curr_heaptop;
       curr_heaptop=tmp;
-      
+
       tmp=to_heapptr;
       curr_heapptr=to_heapptr+size;
       curr_heapgcpoint=((char *) curr_heapbase)+GCPOINT(curr_heaptop-curr_heapbase);
       to_heapptr=to_heapbase;
-      
+
       /* Not enough room :(, redo gc */
       if (curr_heapptr>curr_heapgcpoint) {
 #if defined(THREADS)||defined(DSTM)
@@ -541,7 +541,7 @@ void * mygcmalloc(struct garbagelist * stackptr, int size) {
 #endif
 	return mygcmalloc(stackptr, size);
       }
-      
+
       bzero(tmp, curr_heaptop-tmp);
 #if defined(THREADS)||defined(DSTM)
       pthread_mutex_unlock(&gclock);
@@ -566,7 +566,8 @@ int gc_createcopy(void * orig, void ** copy_ptr) {
     if (type==-1) {
       *copy_ptr=((void **)orig)[1];
       return 0;
-    } if (type<NUMCLASSES) {
+    }
+    if (type<NUMCLASSES) {
       /* We have a normal object */
       int size=classsize[type];
       void *newobj=tomalloc(size);

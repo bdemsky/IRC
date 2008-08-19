@@ -2,25 +2,25 @@ package IR.Flat;
 import java.util.Vector;
 
 public class FlatAtomicEnterNode extends FlatNode {
-    private static int identifier=0;
+  private static int identifier=0;
 
-    private int id;
+  private int id;
 
-    public FlatAtomicEnterNode() {
-	this.id=identifier++;
-    }
+  public FlatAtomicEnterNode() {
+    this.id=identifier++;
+  }
 
-    /* Returns an unique identifier for this atomic enter node */
+  /* Returns an unique identifier for this atomic enter node */
 
-    public int getIdentifier() {
-	return id;
-    }
+  public int getIdentifier() {
+    return id;
+  }
 
-    public String toString() {
-	return "atomicenter";
-    }
+  public String toString() {
+    return "atomicenter";
+  }
 
-    public int kind() {
-	return FKind.FlatAtomicEnterNode;
-    }
+  public int kind() {
+    return FKind.FlatAtomicEnterNode;
+  }
 }

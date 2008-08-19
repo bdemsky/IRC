@@ -10,7 +10,7 @@
 
 /* SIMPLE HASH ********************************************************/
 struct ObjectIterator* ObjectHashcreateiterator(struct ObjectHash * thisvar) {
-    return allocateObjectIterator(thisvar->listhead);
+  return allocateObjectIterator(thisvar->listhead);
 }
 
 void ObjectHashiterator(struct ObjectHash *thisvar, struct ObjectIterator * it) {
@@ -18,43 +18,43 @@ void ObjectHashiterator(struct ObjectHash *thisvar, struct ObjectIterator * it) 
 }
 
 struct ObjectHash * noargallocateObjectHash() {
-    return allocateObjectHash(100);
+  return allocateObjectHash(100);
 }
 
 struct ObjectHash * allocateObjectHash(int size) {
-    struct ObjectHash *thisvar;//=(struct ObjectHash *)RUNMALLOC(sizeof(struct ObjectHash));
-    if (size <= 0) {
+  struct ObjectHash *thisvar;  //=(struct ObjectHash *)RUNMALLOC(sizeof(struct ObjectHash));
+  if (size <= 0) {
 #ifdef RAW
-		raw_test_done(0xc001);
+    raw_test_done(0xc001);
 #else
-        printf("Negative Hashtable size Exception\n");
-		exit(-1);
+    printf("Negative Hashtable size Exception\n");
+    exit(-1);
 #endif
-    }
-	thisvar=(struct ObjectHash *)RUNMALLOC(sizeof(struct ObjectHash));
-    thisvar->size = size;
-    thisvar->bucket = (struct ObjectNode **) RUNMALLOC(sizeof(struct ObjectNode *)*size);
-    /* Set allocation blocks*/
-    thisvar->listhead=NULL;
-    thisvar->listtail=NULL;
-    /*Set data counts*/
-    thisvar->numelements = 0;
-    return thisvar;
+  }
+  thisvar=(struct ObjectHash *)RUNMALLOC(sizeof(struct ObjectHash));
+  thisvar->size = size;
+  thisvar->bucket = (struct ObjectNode **) RUNMALLOC(sizeof(struct ObjectNode *)*size);
+  /* Set allocation blocks*/
+  thisvar->listhead=NULL;
+  thisvar->listtail=NULL;
+  /*Set data counts*/
+  thisvar->numelements = 0;
+  return thisvar;
 }
 
 void freeObjectHash(struct ObjectHash *thisvar) {
-    struct ObjectNode *ptr=thisvar->listhead;
-    RUNFREE(thisvar->bucket);
-    while(ptr) {
-        struct ObjectNode *next=ptr->lnext;
-        RUNFREE(ptr);
-        ptr=next;
-    }
-    RUNFREE(thisvar);
+  struct ObjectNode *ptr=thisvar->listhead;
+  RUNFREE(thisvar->bucket);
+  while(ptr) {
+    struct ObjectNode *next=ptr->lnext;
+    RUNFREE(ptr);
+    ptr=next;
+  }
+  RUNFREE(thisvar);
 }
 
 inline int ObjectHashcountset(struct ObjectHash * thisvar) {
-    return thisvar->numelements;
+  return thisvar->numelements;
 }
 
 int ObjectHashfirstkey(struct ObjectHash *thisvar) {
@@ -63,44 +63,44 @@ int ObjectHashfirstkey(struct ObjectHash *thisvar) {
 }
 
 int ObjectHashremove(struct ObjectHash *thisvar, int key) {
-    unsigned int hashkey = (unsigned int)key % thisvar->size;
+  unsigned int hashkey = (unsigned int)key % thisvar->size;
 
-    struct ObjectNode **ptr = &thisvar->bucket[hashkey];
-    int i;
+  struct ObjectNode **ptr = &thisvar->bucket[hashkey];
+  int i;
 
-    while (*ptr) {
-      if ((*ptr)->key == key) {
-	  struct ObjectNode *toremove=*ptr;
-	  *ptr=(*ptr)->next;
+  while (*ptr) {
+    if ((*ptr)->key == key) {
+      struct ObjectNode *toremove=*ptr;
+      *ptr=(*ptr)->next;
 
-	  if (toremove->lprev!=NULL) {
-	    toremove->lprev->lnext=toremove->lnext;
-	  } else {
-	    thisvar->listhead=toremove->lnext;
-	  }
-	  if (toremove->lnext!=NULL) {
-	    toremove->lnext->lprev=toremove->lprev;
-	  } else {
-	    thisvar->listtail=toremove->lprev;
-	  }
-	  RUNFREE(toremove);
+      if (toremove->lprev!=NULL) {
+	toremove->lprev->lnext=toremove->lnext;
+      } else {
+	thisvar->listhead=toremove->lnext;
+      }
+      if (toremove->lnext!=NULL) {
+	toremove->lnext->lprev=toremove->lprev;
+      } else {
+	thisvar->listtail=toremove->lprev;
+      }
+      RUNFREE(toremove);
 
-	  thisvar->numelements--;
-	  return 1;
-        }
-        ptr = &((*ptr)->next);
+      thisvar->numelements--;
+      return 1;
     }
+    ptr = &((*ptr)->next);
+  }
 
-    return 0;
+  return 0;
 }
 
 void ObjectHashrehash(struct ObjectHash * thisvar) {
   int newsize=thisvar->size;
   struct ObjectNode ** newbucket = (struct ObjectNode **) RUNMALLOC(sizeof(struct ObjectNode *)*newsize);
   int i;
-  for(i=thisvar->size-1;i>=0;i--) {
+  for(i=thisvar->size-1; i>=0; i--) {
     struct ObjectNode *ptr;
-    for(ptr=thisvar->bucket[i];ptr!=NULL;) {
+    for(ptr=thisvar->bucket[i]; ptr!=NULL;) {
       struct ObjectNode * nextptr=ptr->next;
       unsigned int newhashkey=(unsigned int)ptr->key % newsize;
       ptr->next=newbucket[newhashkey];
@@ -122,15 +122,15 @@ int ObjectHashadd(struct ObjectHash * thisvar,int key, int data, int data2, int 
     int newsize=2*thisvar->size+1;
     struct ObjectNode ** newbucket = (struct ObjectNode **) RUNMALLOC(sizeof(struct ObjectNode *)*newsize);
     int i;
-    for(i=thisvar->size-1;i>=0;i--) {
-        struct ObjectNode *ptr;
-        for(ptr=thisvar->bucket[i];ptr!=NULL;) {
-            struct ObjectNode * nextptr=ptr->next;
-            unsigned int newhashkey=(unsigned int)ptr->key % newsize;
-            ptr->next=newbucket[newhashkey];
-            newbucket[newhashkey]=ptr;
-            ptr=nextptr;
-        }
+    for(i=thisvar->size-1; i>=0; i--) {
+      struct ObjectNode *ptr;
+      for(ptr=thisvar->bucket[i]; ptr!=NULL;) {
+	struct ObjectNode * nextptr=ptr->next;
+	unsigned int newhashkey=(unsigned int)ptr->key % newsize;
+	ptr->next=newbucket[newhashkey];
+	newbucket[newhashkey]=ptr;
+	ptr=nextptr;
+      }
     }
     thisvar->size=newsize;
     RUNFREE(thisvar->bucket);
@@ -176,15 +176,15 @@ int ObjectHashadd_I(struct ObjectHash * thisvar,int key, int data, int data2, in
     int newsize=2*thisvar->size+1;
     struct ObjectNode ** newbucket = (struct ObjectNode **) RUNMALLOC_I(sizeof(struct ObjectNode *)*newsize);
     int i;
-    for(i=thisvar->size-1;i>=0;i--) {
-        struct ObjectNode *ptr;
-        for(ptr=thisvar->bucket[i];ptr!=NULL;) {
-            struct ObjectNode * nextptr=ptr->next;
-            unsigned int newhashkey=(unsigned int)ptr->key % newsize;
-            ptr->next=newbucket[newhashkey];
-            newbucket[newhashkey]=ptr;
-            ptr=nextptr;
-        }
+    for(i=thisvar->size-1; i>=0; i--) {
+      struct ObjectNode *ptr;
+      for(ptr=thisvar->bucket[i]; ptr!=NULL;) {
+	struct ObjectNode * nextptr=ptr->next;
+	unsigned int newhashkey=(unsigned int)ptr->key % newsize;
+	ptr->next=newbucket[newhashkey];
+	newbucket[newhashkey]=ptr;
+	ptr=nextptr;
+      }
     }
     thisvar->size=newsize;
     RUNFREE(thisvar->bucket);
@@ -222,93 +222,93 @@ int ObjectHashadd_I(struct ObjectHash * thisvar,int key, int data, int data2, in
 #endif
 
 bool ObjectHashcontainskey(struct ObjectHash *thisvar,int key) {
-    unsigned int hashkey = (unsigned int)key % thisvar->size;
+  unsigned int hashkey = (unsigned int)key % thisvar->size;
 
-    struct ObjectNode *ptr = thisvar->bucket[hashkey];
-    while (ptr) {
-        if (ptr->key == key) {
-            /* we already have thisvar object
-               stored in the hash so just return */
-            return true;
-        }
-        ptr = ptr->next;
+  struct ObjectNode *ptr = thisvar->bucket[hashkey];
+  while (ptr) {
+    if (ptr->key == key) {
+      /* we already have thisvar object
+         stored in the hash so just return */
+      return true;
     }
-    return false;
+    ptr = ptr->next;
+  }
+  return false;
 }
 
 bool ObjectHashcontainskeydata(struct ObjectHash *thisvar, int key, int data) {
-    unsigned int hashkey = (unsigned int)key % thisvar->size;
+  unsigned int hashkey = (unsigned int)key % thisvar->size;
 
-    struct ObjectNode *ptr = thisvar->bucket[hashkey];
-    while (ptr) {
-        if (ptr->key == key && ptr->data == data) {
-            /* we already have thisvar object
-               stored in the hash so just return*/
-            return true;
-        }
-        ptr = ptr->next;
+  struct ObjectNode *ptr = thisvar->bucket[hashkey];
+  while (ptr) {
+    if (ptr->key == key && ptr->data == data) {
+      /* we already have thisvar object
+         stored in the hash so just return*/
+      return true;
     }
-    return false;
+    ptr = ptr->next;
+  }
+  return false;
 }
 
 int ObjectHashcount(struct ObjectHash *thisvar,int key) {
-    unsigned int hashkey = (unsigned int)key % thisvar->size;
-    int count = 0;
+  unsigned int hashkey = (unsigned int)key % thisvar->size;
+  int count = 0;
 
-    struct ObjectNode *ptr = thisvar->bucket[hashkey];
-    while (ptr) {
-        if (ptr->key == key) {
-            count++;
-        }
-        ptr = ptr->next;
+  struct ObjectNode *ptr = thisvar->bucket[hashkey];
+  while (ptr) {
+    if (ptr->key == key) {
+      count++;
     }
-    return count;
+    ptr = ptr->next;
+  }
+  return count;
 }
 
 int ObjectHashget(struct ObjectHash *thisvar, int key, int *data, int *data2, int *data3, int *data4) {
-    unsigned int hashkey = (unsigned int)key % thisvar->size;
+  unsigned int hashkey = (unsigned int)key % thisvar->size;
 
-    struct ObjectNode *ptr = thisvar->bucket[hashkey];
-    while (ptr) {
-        if (ptr->key == key) {
-            *data = ptr->data;
-	    *data2 = ptr->data2;
-	    *data3 = ptr->data3;
-	    *data4 = ptr->data4;
-            return 1; /* success */
-        }
-        ptr = ptr->next;
+  struct ObjectNode *ptr = thisvar->bucket[hashkey];
+  while (ptr) {
+    if (ptr->key == key) {
+      *data = ptr->data;
+      *data2 = ptr->data2;
+      *data3 = ptr->data3;
+      *data4 = ptr->data4;
+      return 1;       /* success */
     }
+    ptr = ptr->next;
+  }
 
-    return 0; /* failure */
+  return 0;   /* failure */
 }
 
 int ObjectHashupdate(struct ObjectHash *thisvar, int key, int data, int data2, int data3, int data4) {
-    unsigned int hashkey = (unsigned int)key % thisvar->size;
+  unsigned int hashkey = (unsigned int)key % thisvar->size;
 
-    struct ObjectNode *ptr = thisvar->bucket[hashkey];
-    while (ptr) {
-        if (ptr->key == key) {
-	  ptr->data=data;
-	  ptr->data2=data2;
-	  ptr->data3=data3;
-	  ptr->data4=data4;
-	  return 1; /* success */
-        }
-        ptr = ptr->next;
+  struct ObjectNode *ptr = thisvar->bucket[hashkey];
+  while (ptr) {
+    if (ptr->key == key) {
+      ptr->data=data;
+      ptr->data2=data2;
+      ptr->data3=data3;
+      ptr->data4=data4;
+      return 1;     /* success */
     }
-    return 0; /* failure */
+    ptr = ptr->next;
+  }
+  return 0;   /* failure */
 }
 
 
 inline struct ObjectIterator * noargallocateObjectIterator() {
-    return (struct ObjectIterator*)RUNMALLOC(sizeof(struct ObjectIterator));
+  return (struct ObjectIterator*)RUNMALLOC(sizeof(struct ObjectIterator));
 }
 
 inline struct ObjectIterator * allocateObjectIterator(struct ObjectNode *start) {
-    struct ObjectIterator *thisvar=(struct ObjectIterator*)RUNMALLOC(sizeof(struct ObjectIterator));
-    thisvar->cur = start;
-    return thisvar;
+  struct ObjectIterator *thisvar=(struct ObjectIterator*)RUNMALLOC(sizeof(struct ObjectIterator));
+  thisvar->cur = start;
+  return thisvar;
 }
 
 inline int ObjhasNext(struct ObjectIterator *thisvar) {

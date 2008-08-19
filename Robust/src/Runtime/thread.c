@@ -35,14 +35,14 @@ void threadexit() {
 #ifdef THREADS
   struct ___Object___ *ll=pthread_getspecific(threadlocks);
   while(ll!=NULL) {
-    struct ___Object___ *llnext=ll->___nextlockobject___;    
+    struct ___Object___ *llnext=ll->___nextlockobject___;
     ll->___nextlockobject___=NULL;
     ll->___prevlockobject___=NULL;
     ll->lockcount=0;
     ll->tid=0; //unlock it
     ll=llnext;
   }
-  pthread_mutex_lock(&objlock);//wake everyone up
+  pthread_mutex_lock(&objlock); //wake everyone up
   pthread_cond_broadcast(&objcond);
   pthread_mutex_unlock(&objlock);
 #endif
@@ -66,7 +66,7 @@ transstart:
       goto transstart;
     }
   }
-#endif	
+#endif
   pthread_exit(NULL);
 }
 
@@ -130,7 +130,7 @@ void CALL11(___Thread______sleep____J, long long ___millis___, long long ___mill
   struct listitem *tmp=stopforgc((struct garbagelist *)___params___);
 #endif
 #endif
-  usleep(___millis___);  
+  usleep(___millis___);
 #ifdef THREADS
 #ifdef PRECISE_GC
   restartaftergc(tmp);
@@ -164,36 +164,36 @@ transstart:
 #ifdef THREADJOINDEBUG
     printf("Thread oid = %x is done\n", (unsigned int) VAR(___this___));
 #endif
-	  transAbort(trans);
-	  return;
+    transAbort(trans);
+    return;
   } else {
 
-	  version = (ptr-1)->version;
-	  if((oidarray = calloc(1, sizeof(unsigned int))) == NULL) {
-		  printf("Calloc error %s, %d\n", __FILE__, __LINE__);
-		  return;
-	  }
+    version = (ptr-1)->version;
+    if((oidarray = calloc(1, sizeof(unsigned int))) == NULL) {
+      printf("Calloc error %s, %d\n", __FILE__, __LINE__);
+      return;
+    }
 
-	  oidarray[0] = (unsigned int) VAR(___this___);
+    oidarray[0] = (unsigned int) VAR(___this___);
 
-	  if((versionarray = calloc(1, sizeof(unsigned short))) == NULL) {
-		  printf("Calloc error %s, %d\n", __FILE__, __LINE__);
-		  free(oidarray);
-		  return;
-	  }
-	  versionarray[0] = version;
-	  /* Request Notification */
+    if((versionarray = calloc(1, sizeof(unsigned short))) == NULL) {
+      printf("Calloc error %s, %d\n", __FILE__, __LINE__);
+      free(oidarray);
+      return;
+    }
+    versionarray[0] = version;
+    /* Request Notification */
 #ifdef PRECISE_GC
-	  struct listitem *tmp=stopforgc((struct garbagelist *)___params___);
+    struct listitem *tmp=stopforgc((struct garbagelist *)___params___);
 #endif
-	  reqNotify(oidarray, versionarray, 1); 
+    reqNotify(oidarray, versionarray, 1);
 #ifdef PRECISE_GC
-	  restartaftergc(tmp);
+    restartaftergc(tmp);
 #endif
-	  free(oidarray);
-	  free(versionarray);
-	  transAbort(trans);
-	  goto transstart;
+    free(oidarray);
+    free(versionarray);
+    transAbort(trans);
+    goto transstart;
   }
   return;
 }
@@ -204,7 +204,7 @@ void CALL01(___Thread______nativeJoin____, struct ___Thread___ * ___this___) {
   pthread_mutex_lock(&joinlock);
   while(!VAR(___this___)->___finished___)
     pthread_cond_wait(&joincond, &joinlock);
-  pthread_mutex_unlock(&joinlock);  
+  pthread_mutex_unlock(&joinlock);
 }
 
 void CALL01(___Thread______nativeCreate____, struct ___Thread___ * ___this___) {
@@ -217,7 +217,7 @@ void CALL01(___Thread______nativeCreate____, struct ___Thread___ * ___this___) {
   pthread_mutex_unlock(&gclistlock);
   pthread_attr_init(&nattr);
   pthread_attr_setdetachstate(&nattr, PTHREAD_CREATE_DETACHED);
-  
+
   do {
     retval=pthread_create(&thread, &nattr, (void * (*)(void *)) &initthread, VAR(___this___));
     if (retval!=0)
@@ -237,12 +237,12 @@ void CALL12(___Thread______start____I, int ___mid___, struct ___Thread___ * ___t
 
 #ifdef DSTM
 void globalDestructor(void *value) {
-	free(value);
-	pthread_setspecific(oidval, NULL);
+  free(value);
+  pthread_setspecific(oidval, NULL);
 }
 
 void initDSMthread(int *ptr) {
-  objheader_t *tmp;	
+  objheader_t *tmp;
   transrecord_t * trans;
   void *threadData;
   int oid=ptr[0];
@@ -250,9 +250,9 @@ void initDSMthread(int *ptr) {
   free(ptr);
 #ifdef PRECISE_GC
   int p[]={1, 0 /* NULL */, oid};
-  ((void (*)(void *))virtualtable[type*MAXCOUNT+RUNMETHOD])(p);
+  ((void(*) (void *))virtualtable[type*MAXCOUNT+RUNMETHOD])(p);
 #else
-  ((void (*)(void *))virtualtable[type*MAXCOUNT+RUNMETHOD])(oid);
+  ((void(*) (void *))virtualtable[type*MAXCOUNT+RUNMETHOD])(oid);
 #endif
   threadData = calloc(1, sizeof(unsigned int));
   *((unsigned int *) threadData) = oid;
@@ -277,13 +277,13 @@ transstart:
 }
 
 void startDSMthread(int oid, int objType) {
-	pthread_t thread;
-	int retval;
-	pthread_attr_t nattr;
+  pthread_t thread;
+  int retval;
+  pthread_attr_t nattr;
 
-	pthread_mutex_lock(&gclistlock);
-	threadcount++;
-	pthread_mutex_unlock(&gclistlock);
+  pthread_mutex_lock(&gclistlock);
+  threadcount++;
+  pthread_mutex_unlock(&gclistlock);
   pthread_attr_init(&nattr);
   pthread_attr_setdetachstate(&nattr, PTHREAD_CREATE_DETACHED);
   int * ptr=malloc(sizeof(int)*2);

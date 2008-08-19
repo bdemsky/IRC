@@ -1,6 +1,7 @@
 class HashEntry {
-    public HashEntry() {}
-    Object key;
-    Object value;
-    HashEntry next;    
+  public HashEntry() {
+  }
+  Object key;
+  Object value;
+  HashEntry next;
 }

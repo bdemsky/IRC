@@ -8,13 +8,13 @@
 #define CHASH_SIZE 1024
 
 typedef struct chashlistnode {
-	unsigned int key;
-	void *val; //this can be cast to another type or used to point to a larger structure
-	struct chashlistnode *next;
+  unsigned int key;
+  void *val;       //this can be cast to another type or used to point to a larger structure
+  struct chashlistnode *next;
 } chashlistnode_t;
 
 typedef struct chashtable {
-  chashlistnode_t *table;	// points to beginning of hash table
+  chashlistnode_t *table;       // points to beginning of hash table
   unsigned int size;
   unsigned int mask;
   unsigned int numelements;

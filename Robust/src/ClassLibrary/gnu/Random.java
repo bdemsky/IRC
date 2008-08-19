@@ -1,39 +1,39 @@
 /* Random.java -- a pseudo-random number generator
    Copyright (C) 1998, 1999, 2000, 2001, 2002 Free Software Foundation, Inc.
 
-This file is part of GNU Classpath.
+   This file is part of GNU Classpath.
 
-GNU Classpath is free software; you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2, or (at your option)
-any later version.
+   GNU Classpath is free software; you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation; either version 2, or (at your option)
+   any later version.
 
-GNU Classpath is distributed in the hope that it will be useful, but
-WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-General Public License for more details.
+   GNU Classpath is distributed in the hope that it will be useful, but
+   WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   General Public License for more details.
 
-You should have received a copy of the GNU General Public License
-along with GNU Classpath; see the file COPYING.  If not, write to the
-Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
-02110-1301 USA.
+   You should have received a copy of the GNU General Public License
+   along with GNU Classpath; see the file COPYING.  If not, write to the
+   Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+   02110-1301 USA.
 
-Linking this library statically or dynamically with other modules is
-making a combined work based on this library.  Thus, the terms and
-conditions of the GNU General Public License cover the whole
-combination.
+   Linking this library statically or dynamically with other modules is
+   making a combined work based on this library.  Thus, the terms and
+   conditions of the GNU General Public License cover the whole
+   combination.
 
-As a special exception, the copyright holders of this library give you
-permission to link this library with independent modules to produce an
-executable, regardless of the license terms of these independent
-modules, and to copy and distribute the resulting executable under
-terms of your choice, provided that you also meet, for each linked
-independent module, the terms and conditions of the license of that
-module.  An independent module is a module which is not derived from
-or based on this library.  If you modify this library, you may extend
-this exception to your version of the library, but you are not
-obligated to do so.  If you do not wish to do so, delete this
-exception statement from your version. */
+   As a special exception, the copyright holders of this library give you
+   permission to link this library with independent modules to produce an
+   executable, regardless of the license terms of these independent
+   modules, and to copy and distribute the resulting executable under
+   terms of your choice, provided that you also meet, for each linked
+   independent module, the terms and conditions of the license of that
+   module.  An independent module is a module which is not derived from
+   or based on this library.  If you modify this library, you may extend
+   this exception to your version of the library, but you are not
+   obligated to do so.  If you do not wish to do so, delete this
+   exception statement from your version. */
 
 
 /**
@@ -110,8 +110,7 @@ public class Random
    *
    * @see System#currentTimeMillis()
    */
-  public Random()
-  {
+  public Random() {
     setSeed(System.currentTimeMillis());
   }
 
@@ -121,8 +120,7 @@ public class Random
    *
    * @param seed the initial seed
    */
-  public Random(long seed)
-  {
+  public Random(long seed) {
     setSeed(seed);
   }
 
@@ -132,16 +130,15 @@ public class Random
    * same seed, should produce the same results, if the same methods
    * are called.  The implementation for java.util.Random is:
    *
-<pre>public synchronized void setSeed(long seed)
-{
-  this.seed = (seed ^ 0x5DEECE66DL) & ((1L &lt;&lt; 48) - 1);
-  haveNextNextGaussian = false;
-}</pre>
+     <pre>public synchronized void setSeed(long seed)
+     {
+     this.seed = (seed ^ 0x5DEECE66DL) & ((1L &lt;&lt; 48) - 1);
+     haveNextNextGaussian = false;
+     }</pre>
    *
    * @param seed the new seed
    */
-  public synchronized void setSeed(long seed)
-  {
+  public synchronized void setSeed(long seed) {
     this.seed = (seed ^ 0x5DEECE66DL) & ((1L << 48) - 1);
     haveNextNextGaussian = false;
   }
@@ -152,18 +149,17 @@ public class Random
    * independent chosen random bits (0 and 1 are equally likely).
    * The implementation for java.util.Random is:
    *
-<pre>protected synchronized int next(int bits)
-{
-  seed = (seed * 0x5DEECE66DL + 0xBL) & ((1L &lt;&lt; 48) - 1);
-  return (int) (seed &gt;&gt;&gt; (48 - bits));
-}</pre>
+     <pre>protected synchronized int next(int bits)
+     {
+     seed = (seed * 0x5DEECE66DL + 0xBL) & ((1L &lt;&lt; 48) - 1);
+     return (int) (seed &gt;&gt;&gt; (48 - bits));
+     }</pre>
    *
    * @param bits the number of random bits to generate, in the range 1..32
    * @return the next pseudorandom value
    * @since 1.1
    */
-  protected synchronized int next(int bits)
-  {
+  protected synchronized int next(int bits) {
     seed = (seed * 0x5DEECE66DL + 0xBL) & ((1L << 48) - 1);
     return (int) (seed >>> (48 - bits));
   }
@@ -173,45 +169,43 @@ public class Random
    * are (approximately) equally likely.
    * The JDK documentation gives no implementation, but it seems to be:
    *
-<pre>public void nextBytes(byte[] bytes)
-{
-  for (int i = 0; i &lt; bytes.length; i += 4)
-  {
-    int random = next(32);
-    for (int j = 0; i + j &lt; bytes.length && j &lt; 4; j++)
-    {
+     <pre>public void nextBytes(byte[] bytes)
+     {
+     for (int i = 0; i &lt; bytes.length; i += 4)
+     {
+     int random = next(32);
+     for (int j = 0; i + j &lt; bytes.length && j &lt; 4; j++)
+     {
       bytes[i+j] = (byte) (random & 0xff)
       random &gt;&gt;= 8;
-    }
-  }
-}</pre>
+     }
+     }
+     }</pre>
    *
    * @param bytes the byte array that should be filled
    * @throws NullPointerException if bytes is null
    * @since 1.1
    */
-  public void nextBytes(byte[] bytes)
-  {
+  public void nextBytes(byte[] bytes) {
     int random;
     // Do a little bit unrolling of the above algorithm.
     int max = bytes.length & ~0x3;
     for (int i = 0; i < max; i += 4)
+    {
+      random = next(32);
+      bytes[i] = (byte) random;
+      bytes[i + 1] = (byte) (random >> 8);
+      bytes[i + 2] = (byte) (random >> 16);
+      bytes[i + 3] = (byte) (random >> 24);
+    }
+    if (max < bytes.length){
+      random = next(32);
+      for (int j = max; j < bytes.length; j++)
       {
-        random = next(32);
-        bytes[i] = (byte) random;
-        bytes[i + 1] = (byte) (random >> 8);
-        bytes[i + 2] = (byte) (random >> 16);
-        bytes[i + 3] = (byte) (random >> 24);
+	bytes[j] = (byte) random;
+	random >>= 8;
       }
-    if (max < bytes.length)
-      {
-        random = next(32);
-        for (int j = max; j < bytes.length; j++)
-          {
-            bytes[j] = (byte) random;
-            random >>= 8;
-          }
-      }
+    }
   }
 
   /**
@@ -219,16 +213,15 @@ public class Random
    * an int value whose 32 bits are independent chosen random bits
    * (0 and 1 are equally likely).  The implementation for
    * java.util.Random is:
-   * 
-<pre>public int nextInt()
-{
-  return next(32);
-}</pre>
+   *
+     <pre>public int nextInt()
+     {
+     return next(32);
+     }</pre>
    *
    * @return the next pseudorandom value
    */
-  public int nextInt()
-  {
+  public int nextInt() {
     return next(32);
   }
 
@@ -238,27 +231,27 @@ public class Random
    * each value has the same likelihodd (1/<code>n</code>).
    * (0 and 1 are equally likely).  The implementation for
    * java.util.Random is:
-   * 
-<pre>
-public int nextInt(int n)
-{
-  if (n &lt;= 0)
-    throw new IllegalArgumentException("n must be positive");
+   *
+     <pre>
+     public int nextInt(int n)
+     {
+     if (n &lt;= 0)
+     throw new IllegalArgumentException("n must be positive");
 
-  if ((n & -n) == n)  // i.e., n is a power of 2
-    return (int)((n * (long) next(31)) &gt;&gt; 31);
+     if ((n & -n) == n)  // i.e., n is a power of 2
+     return (int)((n * (long) next(31)) &gt;&gt; 31);
 
-  int bits, val;
-  do
-  {
-    bits = next(31);
-    val = bits % n;
-  }
-  while(bits - val + (n-1) &lt; 0);
+     int bits, val;
+     do
+     {
+     bits = next(31);
+     val = bits % n;
+     }
+     while(bits - val + (n-1) &lt; 0);
 
-  return val;
-}</pre>
-   *   
+     return val;
+     }</pre>
+   *
    * <p>This algorithm would return every value with exactly the same
    * probability, if the next()-method would be a perfect random number
    * generator.
@@ -279,19 +272,16 @@ public int nextInt(int n)
    * @return the next pseudorandom value
    * @since 1.2
    */
-  public int nextInt(int n)
-  {
+  public int nextInt(int n) {
     if (n <= 0)
-    System.printString("ERROR: n must be positive\n");
+      System.printString("ERROR: n must be positive\n");
     if ((n & -n) == n) // i.e., n is a power of 2
       return (int) ((n * (long) next(31)) >> 31);
     int bits, val;
-    do
-      {
-        bits = next(31);
-        val = bits % n;
-      }
-    while (bits - val + (n - 1) < 0);
+    do {
+      bits = next(31);
+      val = bits % n;
+    } while (bits - val + (n - 1) < 0);
     return val;
   }
 
@@ -300,32 +290,30 @@ public int nextInt(int n)
    * long are independently chosen and 0 and 1 have equal likelihood.
    * The implementation for java.util.Random is:
    *
-<pre>public long nextLong()
-{
-  return ((long) next(32) &lt;&lt; 32) + next(32);
-}</pre>
+     <pre>public long nextLong()
+     {
+     return ((long) next(32) &lt;&lt; 32) + next(32);
+     }</pre>
    *
    * @return the next pseudorandom value
    */
-  public long nextLong()
-  {
+  public long nextLong() {
     return ((long) next(32) << 32) + next(32);
   }
 
   /**
    * Generates the next pseudorandom boolean.  True and false have
    * the same probability.  The implementation is:
-   * 
-<pre>public boolean nextBoolean()
-{
-  return next(1) != 0;
-}</pre>
+   *
+     <pre>public boolean nextBoolean()
+     {
+     return next(1) != 0;
+     }</pre>
    *
    * @return the next pseudorandom boolean
    * @since 1.2
    */
-  public boolean nextBoolean()
-  {
+  public boolean nextBoolean() {
     return next(1) != 0;
   }
 
@@ -333,16 +321,15 @@ public int nextInt(int n)
    * Generates the next pseudorandom float uniformly distributed
    * between 0.0f (inclusive) and 1.0f (exclusive).  The
    * implementation is as follows.
-   * 
-<pre>public float nextFloat()
-{
-  return next(24) / ((float)(1 &lt;&lt; 24));
-}</pre>
+   *
+     <pre>public float nextFloat()
+     {
+     return next(24) / ((float)(1 &lt;&lt; 24));
+     }</pre>
    *
    * @return the next pseudorandom float
    */
-  public float nextFloat()
-  {
+  public float nextFloat() {
     return next(24) / (float) (1 << 24);
   }
 
@@ -351,15 +338,14 @@ public int nextInt(int n)
    * between 0.0 (inclusive) and 1.0 (exclusive).  The
    * implementation is as follows.
    *
-<pre>public double nextDouble()
-{
-  return (((long) next(26) &lt;&lt; 27) + next(27)) / (double)(1L &lt;&lt; 53);
-}</pre>
+     <pre>public double nextDouble()
+     {
+     return (((long) next(26) &lt;&lt; 27) + next(27)) / (double)(1L &lt;&lt; 53);
+     }</pre>
    *
    * @return the next pseudorandom double
    */
-  public double nextDouble()
-  {
+  public double nextDouble() {
     return (((long) next(26) << 27) + next(27)) / (double) (1L << 53);
   }
 
@@ -367,52 +353,48 @@ public int nextInt(int n)
    * Generates the next pseudorandom, Gaussian (normally) distributed
    * double value, with mean 0.0 and standard deviation 1.0.
    * The algorithm is as follows.
-   * 
-<pre>public synchronized double nextGaussian()
-{
-  if (haveNextNextGaussian)
-  {
-    haveNextNextGaussian = false;
-    return nextNextGaussian;
-  }
-  else
-  {
-    double v1, v2, s;
-    do
-    {
+   *
+     <pre>public synchronized double nextGaussian()
+     {
+     if (haveNextNextGaussian)
+     {
+     haveNextNextGaussian = false;
+     return nextNextGaussian;
+     }
+     else
+     {
+     double v1, v2, s;
+     do
+     {
       v1 = 2 * nextDouble() - 1; // between -1.0 and 1.0
       v2 = 2 * nextDouble() - 1; // between -1.0 and 1.0
       s = v1 * v1 + v2 * v2;
-    }
-    while (s >= 1);
+     }
+     while (s >= 1);
 
-    double norm = Math.sqrt(-2 * Math.log(s) / s);
-    nextNextGaussian = v2 * norm;
-    haveNextNextGaussian = true;
-    return v1 * norm;
-  }
-}</pre>
+     double norm = Math.sqrt(-2 * Math.log(s) / s);
+     nextNextGaussian = v2 * norm;
+     haveNextNextGaussian = true;
+     return v1 * norm;
+     }
+     }</pre>
    *
    * <p>This is described in section 3.4.1 of <em>The Art of Computer
    * Programming, Volume 2</em> by Donald Knuth.
    *
    * @return the next pseudorandom Gaussian distributed double
    */
-  public synchronized double nextGaussian()
-  {
-    if (haveNextNextGaussian)
-      {
-        haveNextNextGaussian = false;
-        return nextNextGaussian;
-      }
+  public synchronized double nextGaussian() {
+    if (haveNextNextGaussian){
+      haveNextNextGaussian = false;
+      return nextNextGaussian;
+    }
     double v1, v2, s;
-    do
-      {
-        v1 = 2 * nextDouble() - 1; // Between -1.0 and 1.0.
-        v2 = 2 * nextDouble() - 1; // Between -1.0 and 1.0.
-        s = v1 * v1 + v2 * v2;
-      }
-    while (s >= 1);
+    do {
+      v1 = 2 * nextDouble() - 1;   // Between -1.0 and 1.0.
+      v2 = 2 * nextDouble() - 1;   // Between -1.0 and 1.0.
+      s = v1 * v1 + v2 * v2;
+    } while (s >= 1);
     double norm = Math.sqrt(-2 * Math.log(s) / s);
     nextNextGaussian = v2 * norm;
     haveNextNextGaussian = true;

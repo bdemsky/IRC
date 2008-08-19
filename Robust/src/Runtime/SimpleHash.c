@@ -10,7 +10,7 @@
 
 /* SIMPLE HASH ********************************************************/
 struct RuntimeIterator* RuntimeHashcreateiterator(struct RuntimeHash * thisvar) {
-    return allocateRuntimeIterator(thisvar->listhead);
+  return allocateRuntimeIterator(thisvar->listhead);
 }
 
 void RuntimeHashiterator(struct RuntimeHash *thisvar, struct RuntimeIterator * it) {
@@ -18,43 +18,43 @@ void RuntimeHashiterator(struct RuntimeHash *thisvar, struct RuntimeIterator * i
 }
 
 struct RuntimeHash * noargallocateRuntimeHash() {
-    return allocateRuntimeHash(100);
+  return allocateRuntimeHash(100);
 }
 
 struct RuntimeHash * allocateRuntimeHash(int size) {
-    struct RuntimeHash *thisvar;//=(struct RuntimeHash *)RUNMALLOC(sizeof(struct RuntimeHash));
-    if (size <= 0) {
+  struct RuntimeHash *thisvar;  //=(struct RuntimeHash *)RUNMALLOC(sizeof(struct RuntimeHash));
+  if (size <= 0) {
 #ifdef RAW
-		raw_test_done(0xb001);
+    raw_test_done(0xb001);
 #else
-        printf("Negative Hashtable size Exception\n");
-		exit(-1);
+    printf("Negative Hashtable size Exception\n");
+    exit(-1);
 #endif
-    }
-	thisvar=(struct RuntimeHash *)RUNMALLOC(sizeof(struct RuntimeHash));
-    thisvar->size = size;
-    thisvar->bucket = (struct RuntimeNode **) RUNMALLOC(sizeof(struct RuntimeNode *)*size);
-    /* Set allocation blocks*/
-    thisvar->listhead=NULL;
-    thisvar->listtail=NULL;
-    /*Set data counts*/
-    thisvar->numelements = 0;
-    return thisvar;
+  }
+  thisvar=(struct RuntimeHash *)RUNMALLOC(sizeof(struct RuntimeHash));
+  thisvar->size = size;
+  thisvar->bucket = (struct RuntimeNode **) RUNMALLOC(sizeof(struct RuntimeNode *)*size);
+  /* Set allocation blocks*/
+  thisvar->listhead=NULL;
+  thisvar->listtail=NULL;
+  /*Set data counts*/
+  thisvar->numelements = 0;
+  return thisvar;
 }
 
 void freeRuntimeHash(struct RuntimeHash *thisvar) {
-    struct RuntimeNode *ptr=thisvar->listhead;
-    RUNFREE(thisvar->bucket);
-    while(ptr) {
-        struct RuntimeNode *next=ptr->lnext;
-        RUNFREE(ptr);
-        ptr=next;
-    }
-    RUNFREE(thisvar);
+  struct RuntimeNode *ptr=thisvar->listhead;
+  RUNFREE(thisvar->bucket);
+  while(ptr) {
+    struct RuntimeNode *next=ptr->lnext;
+    RUNFREE(ptr);
+    ptr=next;
+  }
+  RUNFREE(thisvar);
 }
 
 inline int RuntimeHashcountset(struct RuntimeHash * thisvar) {
-    return thisvar->numelements;
+  return thisvar->numelements;
 }
 
 int RuntimeHashfirstkey(struct RuntimeHash *thisvar) {
@@ -63,76 +63,76 @@ int RuntimeHashfirstkey(struct RuntimeHash *thisvar) {
 }
 
 int RuntimeHashremovekey(struct RuntimeHash *thisvar, int key) {
-    unsigned int hashkey = (unsigned int)key % thisvar->size;
+  unsigned int hashkey = (unsigned int)key % thisvar->size;
 
-    struct RuntimeNode **ptr = &thisvar->bucket[hashkey];
-    int i;
+  struct RuntimeNode **ptr = &thisvar->bucket[hashkey];
+  int i;
 
-    while (*ptr) {
-        if ((*ptr)->key == key) {
-	  struct RuntimeNode *toremove=*ptr;
-	  *ptr=(*ptr)->next;
+  while (*ptr) {
+    if ((*ptr)->key == key) {
+      struct RuntimeNode *toremove=*ptr;
+      *ptr=(*ptr)->next;
 
-	  if (toremove->lprev!=NULL) {
-	    toremove->lprev->lnext=toremove->lnext;
-	  } else {
-	    thisvar->listhead=toremove->lnext;
-	  }
-	  if (toremove->lnext!=NULL) {
-	    toremove->lnext->lprev=toremove->lprev;
-	  } else{
-	    thisvar->listtail=toremove->lprev;
-	  }
-	  RUNFREE(toremove);
+      if (toremove->lprev!=NULL) {
+	toremove->lprev->lnext=toremove->lnext;
+      } else {
+	thisvar->listhead=toremove->lnext;
+      }
+      if (toremove->lnext!=NULL) {
+	toremove->lnext->lprev=toremove->lprev;
+      } else{
+	thisvar->listtail=toremove->lprev;
+      }
+      RUNFREE(toremove);
 
-	  thisvar->numelements--;
-	  return 1;
-        }
-        ptr = &((*ptr)->next);
+      thisvar->numelements--;
+      return 1;
     }
+    ptr = &((*ptr)->next);
+  }
 
-    return 0;
+  return 0;
 }
 
 int RuntimeHashremove(struct RuntimeHash *thisvar, int key, int data) {
-    unsigned int hashkey = (unsigned int)key % thisvar->size;
+  unsigned int hashkey = (unsigned int)key % thisvar->size;
 
-    struct RuntimeNode **ptr = &thisvar->bucket[hashkey];
-    int i;
+  struct RuntimeNode **ptr = &thisvar->bucket[hashkey];
+  int i;
 
-    while (*ptr) {
-        if ((*ptr)->key == key && (*ptr)->data == data) {
-	  struct RuntimeNode *toremove=*ptr;
-	  *ptr=(*ptr)->next;
+  while (*ptr) {
+    if ((*ptr)->key == key && (*ptr)->data == data) {
+      struct RuntimeNode *toremove=*ptr;
+      *ptr=(*ptr)->next;
 
-	  if (toremove->lprev!=NULL) {
-	    toremove->lprev->lnext=toremove->lnext;
-	  } else {
-	    thisvar->listhead=toremove->lnext;
-	  }
-	  if (toremove->lnext!=NULL) {
-	    toremove->lnext->lprev=toremove->lprev;
-	  } else {
-	    thisvar->listtail=toremove->lprev;
-	  }
-	  RUNFREE(toremove);
+      if (toremove->lprev!=NULL) {
+	toremove->lprev->lnext=toremove->lnext;
+      } else {
+	thisvar->listhead=toremove->lnext;
+      }
+      if (toremove->lnext!=NULL) {
+	toremove->lnext->lprev=toremove->lprev;
+      } else {
+	thisvar->listtail=toremove->lprev;
+      }
+      RUNFREE(toremove);
 
-	  thisvar->numelements--;
-	  return 1;
-        }
-        ptr = &((*ptr)->next);
+      thisvar->numelements--;
+      return 1;
     }
+    ptr = &((*ptr)->next);
+  }
 
-    return 0;
+  return 0;
 }
 
 void RuntimeHashrehash(struct RuntimeHash * thisvar) {
   int newsize=thisvar->size;
   struct RuntimeNode ** newbucket = (struct RuntimeNode **) RUNMALLOC(sizeof(struct RuntimeNode *)*newsize);
   int i;
-  for(i=thisvar->size-1;i>=0;i--) {
+  for(i=thisvar->size-1; i>=0; i--) {
     struct RuntimeNode *ptr;
-    for(ptr=thisvar->bucket[i];ptr!=NULL;) {
+    for(ptr=thisvar->bucket[i]; ptr!=NULL;) {
       struct RuntimeNode * nextptr=ptr->next;
       unsigned int newhashkey=(unsigned int)ptr->key % newsize;
       ptr->next=newbucket[newhashkey];
@@ -154,15 +154,15 @@ int RuntimeHashadd(struct RuntimeHash * thisvar,int key, int data) {
     int newsize=2*thisvar->size+1;
     struct RuntimeNode ** newbucket = (struct RuntimeNode **) RUNMALLOC(sizeof(struct RuntimeNode *)*newsize);
     int i;
-    for(i=thisvar->size-1;i>=0;i--) {
-        struct RuntimeNode *ptr;
-        for(ptr=thisvar->bucket[i];ptr!=NULL;) {
-            struct RuntimeNode * nextptr=ptr->next;
-            unsigned int newhashkey=(unsigned int)ptr->key % newsize;
-            ptr->next=newbucket[newhashkey];
-            newbucket[newhashkey]=ptr;
-            ptr=nextptr;
-        }
+    for(i=thisvar->size-1; i>=0; i--) {
+      struct RuntimeNode *ptr;
+      for(ptr=thisvar->bucket[i]; ptr!=NULL;) {
+	struct RuntimeNode * nextptr=ptr->next;
+	unsigned int newhashkey=(unsigned int)ptr->key % newsize;
+	ptr->next=newbucket[newhashkey];
+	newbucket[newhashkey]=ptr;
+	ptr=nextptr;
+      }
     }
     thisvar->size=newsize;
     RUNFREE(thisvar->bucket);
@@ -215,15 +215,15 @@ int RuntimeHashadd_I(struct RuntimeHash * thisvar,int key, int data) {
     int newsize=2*thisvar->size+1;
     struct RuntimeNode ** newbucket = (struct RuntimeNode **) RUNMALLOC_I(sizeof(struct RuntimeNode *)*newsize);
     int i;
-    for(i=thisvar->size-1;i>=0;i--) {
-        struct RuntimeNode *ptr;
-        for(ptr=thisvar->bucket[i];ptr!=NULL;) {
-            struct RuntimeNode * nextptr=ptr->next;
-            unsigned int newhashkey=(unsigned int)ptr->key % newsize;
-            ptr->next=newbucket[newhashkey];
-            newbucket[newhashkey]=ptr;
-            ptr=nextptr;
-        }
+    for(i=thisvar->size-1; i>=0; i--) {
+      struct RuntimeNode *ptr;
+      for(ptr=thisvar->bucket[i]; ptr!=NULL;) {
+	struct RuntimeNode * nextptr=ptr->next;
+	unsigned int newhashkey=(unsigned int)ptr->key % newsize;
+	ptr->next=newbucket[newhashkey];
+	newbucket[newhashkey]=ptr;
+	ptr=nextptr;
+      }
     }
     thisvar->size=newsize;
     RUNFREE(thisvar->bucket);
@@ -268,47 +268,47 @@ int RuntimeHashadd_I(struct RuntimeHash * thisvar,int key, int data) {
 #endif
 
 bool RuntimeHashcontainskey(struct RuntimeHash *thisvar,int key) {
-    unsigned int hashkey = (unsigned int)key % thisvar->size;
+  unsigned int hashkey = (unsigned int)key % thisvar->size;
 
-    struct RuntimeNode *ptr = thisvar->bucket[hashkey];
-    while (ptr) {
-        if (ptr->key == key) {
-            /* we already have thisvar object
-               stored in the hash so just return */
-            return true;
-        }
-        ptr = ptr->next;
+  struct RuntimeNode *ptr = thisvar->bucket[hashkey];
+  while (ptr) {
+    if (ptr->key == key) {
+      /* we already have thisvar object
+         stored in the hash so just return */
+      return true;
     }
-    return false;
+    ptr = ptr->next;
+  }
+  return false;
 }
 
 bool RuntimeHashcontainskeydata(struct RuntimeHash *thisvar, int key, int data) {
-    unsigned int hashkey = (unsigned int)key % thisvar->size;
+  unsigned int hashkey = (unsigned int)key % thisvar->size;
 
-    struct RuntimeNode *ptr = thisvar->bucket[hashkey];
-    while (ptr) {
-        if (ptr->key == key && ptr->data == data) {
-            /* we already have thisvar object
-               stored in the hash so just return*/
-            return true;
-        }
-        ptr = ptr->next;
+  struct RuntimeNode *ptr = thisvar->bucket[hashkey];
+  while (ptr) {
+    if (ptr->key == key && ptr->data == data) {
+      /* we already have thisvar object
+         stored in the hash so just return*/
+      return true;
     }
-    return false;
+    ptr = ptr->next;
+  }
+  return false;
 }
 
 int RuntimeHashcount(struct RuntimeHash *thisvar,int key) {
-    unsigned int hashkey = (unsigned int)key % thisvar->size;
-    int count = 0;
+  unsigned int hashkey = (unsigned int)key % thisvar->size;
+  int count = 0;
 
-    struct RuntimeNode *ptr = thisvar->bucket[hashkey];
-    while (ptr) {
-        if (ptr->key == key) {
-            count++;
-        }
-        ptr = ptr->next;
+  struct RuntimeNode *ptr = thisvar->bucket[hashkey];
+  while (ptr) {
+    if (ptr->key == key) {
+      count++;
     }
-    return count;
+    ptr = ptr->next;
+  }
+  return count;
 }
 
 struct RuntimeHash * RuntimeHashimageSet(struct RuntimeHash *thisvar, int key) {
@@ -318,7 +318,7 @@ struct RuntimeHash * RuntimeHashimageSet(struct RuntimeHash *thisvar, int key) {
   struct RuntimeNode *ptr = thisvar->bucket[hashkey];
   while (ptr) {
     if (ptr->key == key) {
-        RuntimeHashadd(newset,ptr->data,ptr->data);
+      RuntimeHashadd(newset,ptr->data,ptr->data);
     }
     ptr = ptr->next;
   }
@@ -326,28 +326,28 @@ struct RuntimeHash * RuntimeHashimageSet(struct RuntimeHash *thisvar, int key) {
 }
 
 int RuntimeHashget(struct RuntimeHash *thisvar, int key, int *data) {
-    unsigned int hashkey = (unsigned int)key % thisvar->size;
+  unsigned int hashkey = (unsigned int)key % thisvar->size;
 
-    struct RuntimeNode *ptr = thisvar->bucket[hashkey];
-    while (ptr) {
-        if (ptr->key == key) {
-            *data = ptr->data;
-            return 1; /* success */
-        }
-        ptr = ptr->next;
+  struct RuntimeNode *ptr = thisvar->bucket[hashkey];
+  while (ptr) {
+    if (ptr->key == key) {
+      *data = ptr->data;
+      return 1;       /* success */
     }
+    ptr = ptr->next;
+  }
 
-    return 0; /* failure */
+  return 0;   /* failure */
 }
 
 inline struct RuntimeIterator * noargallocateRuntimeIterator() {
-    return (struct RuntimeIterator*)RUNMALLOC(sizeof(struct RuntimeIterator));
+  return (struct RuntimeIterator*)RUNMALLOC(sizeof(struct RuntimeIterator));
 }
 
 inline struct RuntimeIterator * allocateRuntimeIterator(struct RuntimeNode *start) {
-    struct RuntimeIterator *thisvar=(struct RuntimeIterator*)RUNMALLOC(sizeof(struct RuntimeIterator));
-    thisvar->cur = start;
-    return thisvar;
+  struct RuntimeIterator *thisvar=(struct RuntimeIterator*)RUNMALLOC(sizeof(struct RuntimeIterator));
+  thisvar->cur = start;
+  return thisvar;
 }
 
 inline int RunhasNext(struct RuntimeIterator *thisvar) {

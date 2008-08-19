@@ -23,11 +23,11 @@ void transStatsHandler(int sig, siginfo_t* info, void *context) {
   printf("nRemoteReadSend = %d\n", nRemoteSend);
   //TODO Remove later
   /*
-  int i;
-  for(i=0; i<numprefetchsites; i++) {
-    printf("siteid = %d,  callCount = %d\n", i, evalPrefetch[i].callcount);
-  }
-  */
+     int i;
+     for(i=0; i<numprefetchsites; i++) {
+     printf("siteid = %d,  callCount = %d\n", i, evalPrefetch[i].callcount);
+     }
+   */
   exit(0);
 #endif
 }

@@ -13,14 +13,14 @@
 
 struct RuntimeHash *fdtoobject;
 
-int CALL24(___Socket______nativeConnect____I__AR_B_I, int ___fd___, int ___port___, struct ___Socket___ * ___this___, int ___fd___, struct ArrayObject * ___address___ ,int ___port___) {
+int CALL24(___Socket______nativeConnect____I__AR_B_I, int ___fd___, int ___port___, struct ___Socket___ * ___this___, int ___fd___, struct ArrayObject * ___address___,int ___port___) {
 #ifdef RAW
-	// not supported in RAW version
-	return -1;
+  // not supported in RAW version
+  return -1;
 #else
   struct sockaddr_in sin;
   int rc;
-  
+
   bzero(&sin, sizeof(sin));
   sin.sin_family= AF_INET;
   sin.sin_port=htons(___port___);
@@ -39,7 +39,7 @@ int CALL24(___Socket______nativeConnect____I__AR_B_I, int ___fd___, int ___port_
 #endif
 #endif
 
-  
+
   if (rc<0) goto error;
 
 #ifdef TASK
@@ -51,8 +51,8 @@ int CALL24(___Socket______nativeConnect____I__AR_B_I, int ___fd___, int ___port_
 #endif
 
   return 0;
-  
- error:
+
+error:
   close(___fd___);
   return -1;
 #endif
@@ -61,7 +61,7 @@ int CALL24(___Socket______nativeConnect____I__AR_B_I, int ___fd___, int ___port_
 #ifdef TASK
 int CALL12(___Socket______nativeBindFD____I, int ___fd___, struct ___Socket___ * ___this___, int ___fd___) {
   if (RuntimeHashcontainskey(fdtoobject, ___fd___))
-      RuntimeHashremovekey(fdtoobject, ___fd___);
+    RuntimeHashremovekey(fdtoobject, ___fd___);
   RuntimeHashadd(fdtoobject, ___fd___, (int) VAR(___this___));
   addreadfd(___fd___);
 }
@@ -70,8 +70,8 @@ int CALL12(___Socket______nativeBindFD____I, int ___fd___, struct ___Socket___ *
 
 int CALL12(___Socket______nativeBind_____AR_B_I, int ___port___,  struct ArrayObject * ___address___, int ___port___) {
 #ifdef RAW
-	// not supported in RAW version
-	return -1;
+  // not supported in RAW version
+  return -1;
 #else
   int fd;
   int rc;
@@ -81,7 +81,7 @@ int CALL12(___Socket______nativeBind_____AR_B_I, int ___port___,  struct ArrayOb
   sin.sin_family= AF_INET;
   sin.sin_port=0;
   sin.sin_addr.s_addr=INADDR_ANY;
-  
+
   fd=socket(AF_INET, SOCK_STREAM, 0);
   if (fd<0) {
 #ifdef DEBUG
@@ -98,7 +98,7 @@ int CALL12(___Socket______nativeBind_____AR_B_I, int ___port___,  struct ArrayOb
 #endif
 #endif
   }
-  
+
   rc = bind(fd, (struct sockaddr *) &sin, sizeof(sin));
   if (rc<0) goto error;
 
@@ -108,7 +108,7 @@ int CALL12(___Socket______nativeBind_____AR_B_I, int ___port___,  struct ArrayOb
 
   return fd;
 
- error:
+error:
   close(fd);
 #ifdef DEBUG
   perror(NULL);
@@ -128,8 +128,8 @@ int CALL12(___Socket______nativeBind_____AR_B_I, int ___port___,  struct ArrayOb
 
 struct ArrayObject * CALL01(___InetAddress______getHostByName_____AR_B, struct ArrayObject * ___hostname___) {
 #ifdef RAW
-	// not supported in RAW version
-	return NULL;
+  // not supported in RAW version
+  return NULL;
 #else
 //struct ArrayObject * CALL01(___InetAddress______getHostByName_____AR_B, struct ___ArrayObject___ * ___hostname___) {
   int length=VAR(___hostname___)->___length___;
@@ -138,21 +138,21 @@ struct ArrayObject * CALL01(___InetAddress______getHostByName_____AR_B, struct A
   struct hostent *h;
   struct ArrayObject * arraybytearray;
 
-  for(i=0;i<length;i++) {
+  for(i=0; i<length; i++) {
     str[i]=(((char *)&VAR(___hostname___)->___length___)+sizeof(int))[i];
   }
   str[length]=0;
   h=gethostbyname(str);
   free(str);
-  
+
   for (n=0; h->h_addr_list[n]; n++) /* do nothing */ ;
-  
+
 #ifdef PRECISE_GC
   arraybytearray=allocate_newarray(___params___,BYTEARRAYARRAYTYPE,n);
 #else
   arraybytearray=allocate_newarray(BYTEARRAYARRAYTYPE,n);
 #endif
-  for(i=0;i<n;i++) {
+  for(i=0; i<n; i++) {
     struct ArrayObject *bytearray;
 #ifdef PRECISE_GC
     {
@@ -169,7 +169,7 @@ struct ArrayObject * CALL01(___InetAddress______getHostByName_____AR_B, struct A
       (&bytearray->___length___)[1]=ha;
     }
   }
-  
+
   return arraybytearray;
 #endif
 }
@@ -177,8 +177,8 @@ struct ArrayObject * CALL01(___InetAddress______getHostByName_____AR_B, struct A
 
 int CALL12(___ServerSocket______createSocket____I, int port, struct ___ServerSocket___ * ___this___, int port) {
 #ifdef RAW
-	// not supported in RAW version
-	return -1;
+  // not supported in RAW version
+  return -1;
 #else
   int fd;
 
@@ -187,8 +187,8 @@ int CALL12(___ServerSocket______createSocket____I, int port, struct ___ServerSoc
 
   bzero(&sin, sizeof(sin));
   sin.sin_family = AF_INET;
-  sin.sin_port = htons (port);
-  sin.sin_addr.s_addr = htonl (INADDR_ANY);
+  sin.sin_port = htons(port);
+  sin.sin_addr.s_addr = htonl(INADDR_ANY);
   fd=socket(AF_INET, SOCK_STREAM, 0);
   if (fd<0) {
 #ifdef DEBUG
@@ -206,7 +206,7 @@ int CALL12(___ServerSocket______createSocket____I, int port, struct ___ServerSoc
 #endif
   }
 
-  if (setsockopt (fd, SOL_SOCKET, SO_REUSEADDR, (char *)&n, sizeof (n)) < 0) {
+  if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, (char *)&n, sizeof (n)) < 0) {
     close(fd);
 #ifdef DEBUG
     perror("");
@@ -224,10 +224,10 @@ int CALL12(___ServerSocket______createSocket____I, int port, struct ___ServerSoc
   }
 
 #ifdef MAC
-        if (setsockopt(fd, SOL_SOCKET, SO_NOSIGPIPE, &n, sizeof (n)) < 0) {
-	  perror("socket");
-	  exit(-1);
-	}
+  if (setsockopt(fd, SOL_SOCKET, SO_NOSIGPIPE, &n, sizeof (n)) < 0) {
+    perror("socket");
+    exit(-1);
+  }
 #endif
 
 #ifdef TASK
@@ -236,7 +236,7 @@ int CALL12(___ServerSocket______createSocket____I, int port, struct ___ServerSoc
 #endif
 
   /* bind to port */
-  if (bind(fd, (struct sockaddr *) &sin, sizeof(sin))<0) { 
+  if (bind(fd, (struct sockaddr *) &sin, sizeof(sin))<0) {
     close(fd);
 #ifdef DEBUG
     perror("");
@@ -254,8 +254,8 @@ int CALL12(___ServerSocket______createSocket____I, int port, struct ___ServerSoc
   }
 
   /* listen */
-  if (listen(fd, 5)<0) { 
-    close (fd);
+  if (listen(fd, 5)<0) {
+    close(fd);
 #ifdef DEBUG
     perror("");
     printf("createSocket error #4\n");
@@ -282,8 +282,8 @@ int CALL12(___ServerSocket______createSocket____I, int port, struct ___ServerSoc
 
 int CALL02(___ServerSocket______nativeaccept____L___Socket___,struct ___ServerSocket___ * ___this___, struct ___Socket___ * ___s___) {
 #ifdef RAW
-	// not supported in RAW version
-	return -1;
+  // not supported in RAW version
+  return -1;
 #else
   struct sockaddr_in sin;
   unsigned int sinlen=sizeof(sin);
@@ -300,7 +300,7 @@ int CALL02(___ServerSocket______nativeaccept____L___Socket___,struct ___ServerSo
   restartaftergc(tmp);
 #endif
 #endif
-  if (newfd<0) { 
+  if (newfd<0) {
 #ifdef DEBUG
     perror(NULL);
     printf("acceptSocket error #1\n");
@@ -335,7 +335,7 @@ int CALL02(___ServerSocket______nativeaccept____L___Socket___,struct ___ServerSo
 
 void CALL24(___Socket______nativeWrite_____AR_B_I_I, int offset, int length, struct ___Socket___ * ___this___, struct ArrayObject * ___b___, int offset, int length) {
   int fd=VAR(___this___)->___fd___;
-  char * charstr=((char *)& VAR(___b___)->___length___)+sizeof(int)+offset;
+  char * charstr=((char *)&VAR(___b___)->___length___)+sizeof(int)+offset;
   while(1) {
     int offset=0;
     int bytewritten;
@@ -345,12 +345,12 @@ void CALL24(___Socket______nativeWrite_____AR_B_I_I, int offset, int length, str
 	break;
       length-=bytewritten;
       offset+=bytewritten;
-   }
+    }
 
     if (length!=0) {
 #ifndef RAW
       perror("ERROR IN NATIVEWRITE");
-      printf("error=%d remaining bytes %d\n",errno, length); 
+      printf("error=%d remaining bytes %d\n",errno, length);
 #endif
     }
     break;
@@ -362,7 +362,7 @@ int CALL02(___Socket______nativeRead_____AR_B, struct ___Socket___ * ___this___,
   int length=VAR(___b___)->___length___;
 
   char * charstr=malloc(length);
-  
+
 #if defined(THREADS)||defined(DSTM)
 #ifdef PRECISE_GC
   struct listitem *tmp=stopforgc((struct garbagelist *)___params___);
@@ -379,11 +379,11 @@ int CALL02(___Socket______nativeRead_____AR_B, struct ___Socket___ * ___this___,
   restartaftergc(tmp);
 #endif
 #endif
-  
+
   {
     int i;
-    for(i=0;i<byteread;i++) {
-      (((char *)& VAR(___b___)->___length___)+sizeof(int))[i]=charstr[i];
+    for(i=0; i<byteread; i++) {
+      (((char *)&VAR(___b___)->___length___)+sizeof(int))[i]=charstr[i];
     }
     free(charstr);
   }

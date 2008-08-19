@@ -15,7 +15,7 @@ import java.io.*;
 // Purpose: constructs the header to be returned by the server
 //****************************************************************************
 
-public class HTTPHeader{
+public class HTTPHeader {
 
   // make a hashtable of return codes to messages
   static private HashStrings rc = new HashStrings();
@@ -51,32 +51,32 @@ public class HTTPHeader{
     ct.put("class", "application/octet-stream");
     ct.put("ps", "application/postscript");
   }
-  
+
 //*************************************************************************
 // Constructor: send_header(int, String, int)
 // Purpose:     Send an HTTP header
 //*************************************************************************
 
   static public void send_header(OutputStream out, int returnCode,
-				   String filename, long fileLength){
-      String contentType  = getContentTypeFor(filename);
-      String returnString = (String) rc.get(String.valueOf(returnCode));
-      String header;
+                                 String filename, long fileLength) {
+    String contentType  = getContentTypeFor(filename);
+    String returnString = (String) rc.get(String.valueOf(returnCode));
+    String header;
 
-      header = "HTTP/1.0 " + returnCode + " " + returnString + "\n" +
-	  "Date: " + "1/1/01" + "\n" +                   // date
-	  "Expires: 1/1/00\n"+
-	  "Allow: GET\n" +                               // allowed methods
-	  "MIME-Version: 1.0\n" +                        // mime version
-	  "Server : SpinWeb Custom HTTP Server\n" +      // server type
-	  "Content-Type: " + contentType + "\n" +        // type
-	  "Content-Length: "+ fileLength + "\n\n";       // length
-      try{
-	  out.write(header.getBytes());
-      }
-      catch(IOException e){
-	  e.printStackTrace(); // do nothing!
-      }
+    header = "HTTP/1.0 " + returnCode + " " + returnString + "\n" +
+             "Date: " + "1/1/01" + "\n" +            // date
+             "Expires: 1/1/00\n"+
+             "Allow: GET\n" +                          // allowed methods
+             "MIME-Version: 1.0\n" +                   // mime version
+             "Server : SpinWeb Custom HTTP Server\n" + // server type
+             "Content-Type: " + contentType + "\n" +  // type
+             "Content-Length: "+ fileLength + "\n\n"; // length
+    try{
+      out.write(header.getBytes());
+    }
+    catch(IOException e){
+      e.printStackTrace();     // do nothing!
+    }
   }
 
 //*************************************************************************
@@ -85,26 +85,25 @@ public class HTTPHeader{
 //          file suffix.  It removes any anchors (#) in case the string is
 //          a URL and then operates on the name without path.
 //*************************************************************************
-  
-  static private String getContentTypeFor(String filename)
-  {
+
+  static private String getContentTypeFor(String filename) {
     int position = filename.lastIndexOf('#');
     if (position != -1)
       filename = filename.substring(0, position - 1);
-      
+
     File f      = new File(filename);
     String name = f.getName();         // name w/o directory
 
     position = name.lastIndexOf('.');
-    
+
     String contentType;
 
     if (position == -1)  // if no extension, txt is assigned by default
-	contentType = "txt";    
-    else  
-	contentType = name.substring(position + 1);
-    
+      contentType = "txt";
+    else
+      contentType = name.substring(position + 1);
+
     return (String) ct.get(contentType);
-  } 
+  }
 
 }

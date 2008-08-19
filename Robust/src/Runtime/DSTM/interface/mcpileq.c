@@ -3,13 +3,13 @@
 mcpileq_t mcqueue; //Global queue
 
 void mcpileqInit(void) {
-  /* Initialize machine queue that containing prefetch oids and offset values  sorted by remote machineid */  
+  /* Initialize machine queue that containing prefetch oids and offset values  sorted by remote machineid */
   mcqueue.front = mcqueue.rear = NULL;
   //Intiliaze and set machile pile queue's mutex attribute
   pthread_mutexattr_init(&mcqueue.qlockattr);
   pthread_mutexattr_settype(&mcqueue.qlockattr, PTHREAD_MUTEX_RECURSIVE_NP);
-  pthread_mutex_init(&mcqueue.qlock,&mcqueue.qlockattr); 
-  pthread_cond_init(&mcqueue.qcond, NULL); 
+  pthread_mutex_init(&mcqueue.qlock,&mcqueue.qlockattr);
+  pthread_cond_init(&mcqueue.qcond, NULL);
 }
 
 /* Insert to the rear of machine pile queue */
@@ -34,13 +34,13 @@ prefetchpile_t *mcpiledequeue(void) {
   if (mcqueue.front == NULL)
     mcqueue.rear = NULL;
   retnode->next = NULL;
-  
+
   return retnode;
 }
 
 void mcpiledisplay() {
   int mid;
-  
+
   prefetchpile_t *tmp = mcqueue.front;
   while(tmp != NULL) {
     printf("Remote machine id = %d\n", tmp->mid);
@@ -54,9 +54,9 @@ void mcdealloc(prefetchpile_t *node) {
   prefetchpile_t *prefetchpile_next_ptr;
   objpile_t *objpile_ptr;
   objpile_t *objpile_next_ptr;
-  
+
   prefetchpile_ptr = node;
-  
+
   while (prefetchpile_ptr != NULL) {
     prefetchpile_next_ptr = prefetchpile_ptr;
     while(prefetchpile_ptr->objpiles != NULL) {

@@ -15,10 +15,10 @@ extern void * curr_heaptop;
 #define OBJECTARRAYINTERVAL 10
 
 #define ARRAYSET(array, type, index, value) \
-((type *)(&(& array->___length___)[1]))[index]=value
+  ((type *)(& (& array->___length___)[1]))[index]=value
 
 #define ARRAYGET(array, type, index) \
-((type *)(&(& array->___length___)[1]))[index]
+  ((type *)(& (& array->___length___)[1]))[index]
 
 #ifdef OPTIONAL
 #define OPTARG(x) , x
@@ -100,10 +100,10 @@ struct failedtasklist {
 
 #ifdef MULTICORE
 struct transObjInfo {
-	void * objptr;
-	int targetcore;
-	int * queues;
-	int length;
+  void * objptr;
+  int targetcore;
+  int * queues;
+  int length;
 };
 #endif
 
@@ -175,7 +175,7 @@ int comparetpd(struct taskparamdescriptor *, struct taskparamdescriptor *);
 
 void toiReset(struct tagobjectiterator * it);
 int toiHasNext(struct tagobjectiterator *it, void ** objectarray OPTARG(int * failed));
-void toiNext(struct tagobjectiterator *it , void ** objectarray OPTARG(int * failed));
+void toiNext(struct tagobjectiterator *it, void ** objectarray OPTARG(int * failed));
 void processobject(struct parameterwrapper *parameter, int index, struct parameterdescriptor *pd, int *iteratorcount, int * statusarray, int numparams);
 void processtags(struct parameterdescriptor *pd, int index, struct parameterwrapper *parameter, int * iteratorcount, int *statusarray, int numparams);
 void builditerators(struct taskdescriptor * task, int index, struct parameterwrapper * parameter);

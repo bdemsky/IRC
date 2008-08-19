@@ -40,11 +40,11 @@ int RuntimeHashcount(struct RuntimeHash *, int key);
 struct RuntimeHash * RuntimeHashimageSet(struct RuntimeHash *, int key);
 
 struct RuntimeHash {
-    int numelements;
-    int size;
-    struct RuntimeNode **bucket;
-    struct RuntimeNode *listhead;
-    struct RuntimeNode *listtail;
+  int numelements;
+  int size;
+  struct RuntimeNode **bucket;
+  struct RuntimeNode *listhead;
+  struct RuntimeNode *listtail;
 };
 
 inline int RuntimeHashcountset(struct RuntimeHash * thisvar);

@@ -6,13 +6,17 @@ import Parse.Sym;
 
 class Keyword extends Token {
   String keyword;
-  Keyword(String s) { keyword = s; }
+  Keyword(String s) {
+    keyword = s;
+  }
 
   Symbol token() {
     Integer i = (Integer) key_table.get(keyword);
     return new Symbol(i.intValue());
   }
-  public String toString() { return "Keyword <"+keyword+">"; }
+  public String toString() {
+    return "Keyword <"+keyword+">";
+  }
 
   static private final Hashtable key_table = new Hashtable();
   static {

@@ -13,95 +13,99 @@ import java.io.*;
 
 public class TokenTuple extends Canonical {
 
-    private Integer token;
-    private boolean isNewSummary;
+  private Integer token;
+  private boolean isNewSummary;
 
 
-    // only summary tokens should have ARITY_MANY?
-    public static final int ARITY_ONE  = 1;
-    public static final int ARITY_MANY = 2;
-    private int arity;
+  // only summary tokens should have ARITY_MANY?
+  public static final int ARITY_ONE  = 1;
+  public static final int ARITY_MANY = 2;
+  private int arity;
 
 
-    public TokenTuple( HeapRegionNode hrn ) {
-	assert hrn != null;
+  public TokenTuple(HeapRegionNode hrn) {
+    assert hrn != null;
 
-	token        = hrn.getID();
-	isNewSummary = hrn.isNewSummary();
-	arity        = ARITY_ONE;
+    token        = hrn.getID();
+    isNewSummary = hrn.isNewSummary();
+    arity        = ARITY_ONE;
+  }
+
+  public TokenTuple(Integer token,
+                    boolean isNewSummary,
+                    int arity) {
+    assert token != null;
+
+    this.token        = token;
+    this.isNewSummary = isNewSummary;
+    this.arity        = arity;
+  }
+
+
+  public TokenTuple makeCanonical() {
+    return (TokenTuple) Canonical.makeCanonical(this);
+  }
+
+
+  public Integer getToken() {
+    return token;
+  }
+  public int     getArity() {
+    return arity;
+  }
+
+
+  public TokenTuple increaseArity() {
+    if( isNewSummary ) {
+      return (TokenTuple) Canonical.makeCanonical(
+               new TokenTuple(token, isNewSummary, ARITY_MANY)
+               );
+    }
+    return this;
+  }
+
+
+  public TokenTuple changeTokenTo(Integer tokenToChangeTo) {
+    assert tokenToChangeTo != null;
+    assert isNewSummary    == false;
+
+    return new TokenTuple(tokenToChangeTo,
+                          isNewSummary,
+                          arity).makeCanonical();
+  }
+
+
+  public boolean equals(Object o) {
+    if( o == null ) {
+      return false;
     }
 
-    public TokenTuple( Integer token,
-		       boolean isNewSummary,
-		       int     arity ) {
-	assert token != null;
-
-	this.token        = token;
-	this.isNewSummary = isNewSummary;
-	this.arity        = arity;
+    if( !(o instanceof TokenTuple) ) {
+      return false;
     }
 
+    TokenTuple tt = (TokenTuple) o;
 
-    public TokenTuple makeCanonical() {
-	return (TokenTuple) Canonical.makeCanonical( this );
+    return token.equals(tt.getToken() ) &&
+           arity ==      tt.getArity();
+  }
+
+  public int hashCode() {
+    return token.intValue()*31 + arity;
+  }
+
+
+  public String toString() {
+    String s = token.toString();
+
+    if( isNewSummary ) {
+      s += "S";
     }
 
-
-    public Integer getToken() { return token; }
-    public int     getArity() {	return arity; }
-
-
-    public TokenTuple increaseArity() {
-	if( isNewSummary ) {
-	    return (TokenTuple) Canonical.makeCanonical( 
-	      new TokenTuple( token, isNewSummary, ARITY_MANY )
-							 );
-	}
-	return this;
+    if( arity == ARITY_MANY ) {
+      s += "*";
     }
 
-
-    public TokenTuple changeTokenTo( Integer tokenToChangeTo ) {
-	assert tokenToChangeTo != null;
-	assert isNewSummary    == false;
-
-	return new TokenTuple( tokenToChangeTo,
-			       isNewSummary,
-			       arity ).makeCanonical();
-    }
-
-
-    public boolean equals( Object o ) {
-	if( o == null ) {
-	    return false;
-	}
-
-	if( !(o instanceof TokenTuple) ) {
-	    return false;
-	}
-
-	TokenTuple tt = (TokenTuple) o;
-
-	return token.equals( tt.getToken() ) &&
-	       arity ==      tt.getArity();
-    }
-
-    public int hashCode() {
-	return token.intValue()*31 + arity;
-    }
-
-
-    public String toString() {
-	String s = token.toString();
-
-	if( isNewSummary ) {
-	    s += "S";
-	}
-
-	if( arity == ARITY_MANY ) {
-	    s += "*";
-	}
-
-	return s;
-    }
+    return s;
+  }
 }

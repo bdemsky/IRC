@@ -7,7 +7,7 @@ void insertPile(int mid, unsigned int oid, short numoffset, short *offset, prefe
   objpile_t **tmp;
 
   //Loop through the machines
-  for(;1;head=&((*head)->next)) {
+  for(; 1; head=&((*head)->next)) {
     int tmid;
     if ((*head)==NULL||(tmid=(*head)->mid)>mid) {
       prefetchpile_t * tmp = (prefetchpile_t *) malloc(sizeof(prefetchpile_t));
@@ -26,9 +26,9 @@ void insertPile(int mid, unsigned int oid, short numoffset, short *offset, prefe
     //keep looking
     if (tmid < mid)
       continue;
-    
+
     //found mid list
-    for(tmp=&((*head)->objpiles);1;tmp=&((*tmp)->next)) {
+    for(tmp=&((*head)->objpiles); 1; tmp=&((*tmp)->next)) {
       int toid;
       int matchstatus;
 
@@ -43,13 +43,13 @@ void insertPile(int mid, unsigned int oid, short numoffset, short *offset, prefe
       }
       if (toid < oid)
 	continue;
-      
+
       /* Fill objpiles DS */
       int i;
       int onumoffset=(*tmp)->numoffset;
       short * ooffset=(*tmp)->offset;
 
-      for(i=0;i<numoffset;i++) {
+      for(i=0; i<numoffset; i++) {
 	if (i>onumoffset) {
 	  //We've matched, let's just extend the current prefetch
 	  (*tmp)->numoffset=numoffset;
@@ -71,10 +71,10 @@ void insertPile(int mid, unsigned int oid, short numoffset, short *offset, prefe
       }
       //if we get to the end, we're already covered by this prefetch
       return;
-    oidloop:
+oidloop:
       ;
     }
   }
-  
+
 
 }

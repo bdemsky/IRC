@@ -1,20 +1,20 @@
 package IR.Tree;
 
 public class AtomicNode extends BlockStatementNode {
-    BlockNode bn;
-    public AtomicNode(BlockNode bn) {
-        this.bn=bn;
-    }
-    
-    public String printNode(int indent) {
-        return printSpace(indent)+"atomic {\n"+bn.printNode(indent)+"\n"+printSpace(indent)+"}";
-    }
+  BlockNode bn;
+  public AtomicNode(BlockNode bn) {
+    this.bn=bn;
+  }
 
-    public BlockNode getBlockNode() {
-        return bn;
-    }
+  public String printNode(int indent) {
+    return printSpace(indent)+"atomic {\n"+bn.printNode(indent)+"\n"+printSpace(indent)+"}";
+  }
 
-    public int kind() {
-        return Kind.AtomicNode;
-    }
+  public BlockNode getBlockNode() {
+    return bn;
+  }
+
+  public int kind() {
+    return Kind.AtomicNode;
+  }
 }
