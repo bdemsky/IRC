@@ -87,7 +87,7 @@ public class WebInterface {
   }
 
   private String task(TaskDescriptor td, OutputStream out, HTTPResponse resp) {
-    try{
+    try {
       PrintWriter pw=new PrintWriter(out);
       pw.println("<br><br><h3>Task:&nbsp;&nbsp;&nbsp;"+td.toString()+"</h3><br>");
       printTask(td,pw);
@@ -103,12 +103,14 @@ public class WebInterface {
       }
 
       pw.flush();
-    } catch (Exception e) {e.printStackTrace(); System.exit(-1);}
+    } catch (Exception e) {
+      e.printStackTrace(); System.exit(-1);
+    }
     return null;
   }
 
   private String printTask(TaskDescriptor td, PrintWriter pw) {
-    try{
+    try {
 
       for(int i=0; i < td.numParameters(); i++){
 	pw.println("FlagState Graph:&nbsp;&nbsp;<a href=\"/"+td.getParamType(i)+".html\">"+td.getParamType(i)+"</a><br>");
@@ -116,7 +118,9 @@ public class WebInterface {
 	           +td.getParamType(i)+"</a><br>");
       }
       pw.flush();
-    } catch(Exception e) {e.printStackTrace(); System.exit(-1);}
+    } catch(Exception e) {
+      e.printStackTrace(); System.exit(-1);
+    }
     return null;
   }
 
@@ -125,7 +129,7 @@ public class WebInterface {
     for(Iterator it_rootnodes=rootnodes.iterator(); it_rootnodes.hasNext();){
       FlagState root=(FlagState)it_rootnodes.next();
       if (root.getLabel().equals((String)cd_nodeid.elementAt(1))){
-	try{
+	try {
 	  PrintWriter pw=new PrintWriter(out);
 	  pw.println("<br><br><h3>Allocating tasks for "+root.getTextLabel()+":</h3><br>");
 	  Vector tasks=root.getAllocatingTasks();
@@ -135,7 +139,9 @@ public class WebInterface {
 	    printTask(td,pw);
 	  }
 
-	} catch (Exception e) {e.printStackTrace(); System.exit(-1);}
+	} catch (Exception e) {
+	  e.printStackTrace(); System.exit(-1);
+	}
 	break;
       }
 
@@ -176,7 +182,9 @@ public class WebInterface {
       }
 
       pw.flush();
-    } catch (Exception e) {e.printStackTrace(); System.exit(-1);}
+    } catch (Exception e) {
+      e.printStackTrace(); System.exit(-1);
+    }
     return null;
   }
 
@@ -212,7 +220,9 @@ public class WebInterface {
 	pw.println(str);
       }
       pw.flush();
-    } catch (Exception e) {e.printStackTrace(); System.exit(-1);}
+    } catch (Exception e) {
+      e.printStackTrace(); System.exit(-1);
+    }
     return null;
   }
 
@@ -273,7 +283,9 @@ public class WebInterface {
 	pw.println(str);
 
       pw.flush();
-    } catch (Exception e) {e.printStackTrace(); System.exit(-1);}
+    } catch (Exception e) {
+      e.printStackTrace(); System.exit(-1);
+    }
     return null;
   }
 

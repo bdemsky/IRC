@@ -71,10 +71,9 @@ public class HTTPHeader {
              "Server : SpinWeb Custom HTTP Server\n" + // server type
              "Content-Type: " + contentType + "\n" +  // type
              "Content-Length: "+ fileLength + "\n\n"; // length
-    try{
+    try {
       out.write(header.getBytes());
-    }
-    catch(IOException e){
+    } catch(IOException e)  {
       e.printStackTrace();     // do nothing!
     }
   }

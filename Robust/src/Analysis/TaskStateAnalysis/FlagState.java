@@ -239,8 +239,7 @@ public class FlagState extends GraphNode implements Cloneable {
    */
   public String toString(FlagDescriptor[] flags) {
     StringBuffer sb = new StringBuffer(flagstate.size());
-    for(int i=0; i < flags.length; i++)
-    {
+    for(int i=0; i < flags.length; i++){
       if (get(flags[i]))
 	sb.append(1);
       else

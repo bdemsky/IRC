@@ -62,7 +62,7 @@ public class TaskGraph {
   private TaskNode canonicalizeTaskNode(Hashtable nodes, TaskNode node) {
     if (nodes.containsKey(node))
       return (TaskNode)nodes.get(node);
-    else{
+    else {
       nodes.put(node,node);
       return (TaskNode)node;
     }

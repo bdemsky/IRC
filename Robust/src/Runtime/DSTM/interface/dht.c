@@ -404,8 +404,7 @@ int dhtInsert(unsigned int key, unsigned int val) {
     write4(&outBuffer[1], key);
     write4(&outBuffer[5], val);
 
-    for (i = 0; i < INSERT_RETRIES; i++)
-    {
+    for (i = 0; i < INSERT_RETRIES; i++){
       if (sendto(pollsock.fd, outBuffer, 9, 0, (struct sockaddr *)&toAddr,
                  socklen) < 0){
 	perror("dhtInsert():sendto()");
@@ -446,8 +445,7 @@ int dhtInsertMult(unsigned int numKeys, unsigned int *keys,     unsigned int *va
   int i;
 
   status = 0;
-  for (i = 0; i < numKeys; i++)
-  {
+  for (i = 0; i < numKeys; i++){
     if (dhtInsert(keys[i], vals[i]) != 0)
       status = -1;
   }
@@ -487,8 +485,7 @@ int dhtRemove(unsigned int key) {
     outBuffer[0] = REMOVE_CMD;
     write4(&outBuffer[1], key);
 
-    for (i = 0; i < REMOVE_RETRIES; i++)
-    {
+    for (i = 0; i < REMOVE_RETRIES; i++){
       if (sendto(pollsock.fd, outBuffer, 5, 0, (struct sockaddr *)&toAddr,
                  socklen) < 0){
 	perror("dhtRemove():sendto()");
@@ -529,8 +526,7 @@ int dhtRemoveMult(unsigned int numKeys, unsigned int *keys) {
   int i;
 
   status = 0;
-  for (i = 0; i < numKeys; i++)
-  {
+  for (i = 0; i < numKeys; i++){
     if (dhtRemove(keys[i]) != 0)
       status = -1;
   }
@@ -569,8 +565,7 @@ int dhtSearch(unsigned int key, unsigned int *val) {
     outBuffer[0] = SEARCH_CMD;
     write4(&outBuffer[1], key);
 
-    for (i = 0; i < SEARCH_RETRIES; i++)
-    {
+    for (i = 0; i < SEARCH_RETRIES; i++){
       if (sendto(pollsock.fd, outBuffer, 5, 0, (struct sockaddr *)&toAddr,
                  socklen) < 0){
 	perror("dhtSearch():sendto()");
@@ -610,8 +605,7 @@ int dhtSearch(unsigned int key, unsigned int *val) {
 int dhtSearchMult(unsigned int numKeys, unsigned int *keys, unsigned int *vals) {
   int i;
   int status = 0;
-  for (i = 0; i < numKeys; i++)
-  {
+  for (i = 0; i < numKeys; i++){
     if (dhtSearch(keys[i], &vals[i]) != 0)
       status = -1;
   }
@@ -765,8 +759,7 @@ int udpSend(unsigned char *msg, unsigned int size, unsigned int destIp) {
 int udpSendAll(unsigned char *msg, unsigned int size) {
   int i;
   int status = 0;
-  for (i = 0; i < numHosts; i++)
-  {
+  for (i = 0; i < numHosts; i++){
     if ((hostReplied[i] == 0) && (hostArray[i].ipAddr != myHostData.ipAddr)){
       if (udpSend(msg, size, hostArray[i].ipAddr) != 0)
 	status = -1;
@@ -859,16 +852,14 @@ int removeHost(unsigned int ipAddr) {
   if (i == -1)
     return -1;
 
-  for (j = 0; j < numBlocks; j++)
-  {
+  for (j = 0; j < numBlocks; j++){
     if (blockOwnerArray[j] == i)
       blockOwnerArray[j] = 0;                   //TODO: is this what I want to have happen?
     else if (blockOwnerArray[j] > i)
       blockOwnerArray[j]--;
   }
 
-  for (; i < numHosts - 1; i++)
-  {
+  for (; i < numHosts - 1; i++){
     hostArray[i] = hostArray[i+1];
     hostReplied[i] = hostReplied[i+1];
   }
@@ -880,8 +871,7 @@ int removeHost(unsigned int ipAddr) {
 void removeUnresponsiveHosts() {
   int i;
 
-  for (i = 0; i < numHosts; i++)
-  {
+  for (i = 0; i < numHosts; i++){
     if (!hostReplied[i] && hostArray[i].ipAddr != myHostData.ipAddr)
       removeHost(hostArray[i].ipAddr);
   }
@@ -893,13 +883,12 @@ int addHost(struct hostData newHost) {
   int i;
   int j;
 
-  for (i = 0; i < numHosts; i++)
-  {
+  for (i = 0; i < numHosts; i++){
     if (hostArray[i].ipAddr == newHost.ipAddr){
       hostArray[i] = newHost;
       hostReplied[i] = 0;
       return 0;
-    } else if (hostArray[i].ipAddr > newHost.ipAddr)  {
+    } else if (hostArray[i].ipAddr > newHost.ipAddr) {
       if (numHosts == hostArraySize){
 	newHostArray = calloc(2 * hostArraySize, sizeof(struct hostData));
 	newHostReplied = calloc(2 * hostArraySize, sizeof(unsigned char));
@@ -918,16 +907,14 @@ int addHost(struct hostData newHost) {
 	hostArraySize = 2 * hostArraySize;
       } else
       {
-	for (j = numHosts; j > i; j--)
-	{
+	for (j = numHosts; j > i; j--){
 	  hostArray[j] = hostArray[j-1];
 	  hostReplied[j] = hostReplied[j-1];
 	}
 	hostArray[i] = newHost;
 	hostReplied[i] = 0;
       }
-      for(j = 0; j < numBlocks; j++)
-      {
+      for(j = 0; j < numBlocks; j++){
 	if (blockOwnerArray[j] >= i)
 	  blockOwnerArray[j]++;
       }
@@ -976,8 +963,7 @@ void writeHostList() {
   struct in_addr tmpAddr;
 
   fprintf(logfile, "numHosts = %d\n", numHosts);
-  for (i = 0; i < numHosts; i++)
-  {
+  for (i = 0; i < numHosts; i++){
     tmpAddr.s_addr = htonl(hostArray[i].ipAddr);
     fprintf(logfile, "%d) %s, %d\n", i, inet_ntoa(tmpAddr),
             hostArray[i].maxKeyCapacity);
@@ -1053,19 +1039,19 @@ void *udpListen() {
     oldState = state;
     if (pollret < 0){
       perror("udpListen():poll()");
-    } else if (pollret > 0)  {
+    } else if (pollret > 0) {
       bytesRcvd = recvfrom(udpPollSock.fd, inBuffer, MAX_MSG_SIZE, 0,
                            (struct sockaddr *)&peerAddr, &socklen);
       if (bytesRcvd < 1){
 	dhtLog("udpListen(): ERROR: bytesRcvd = %d\n", bytesRcvd);
-      } else if (inBuffer[0] >= NUM_MSG_TYPES)  {
+      } else if (inBuffer[0] >= NUM_MSG_TYPES) {
 	dhtLog("udpListen(): ERROR: unknown msg type = %d\n", inBuffer[0]);
-      } else if (!msgSizeOk(inBuffer, bytesRcvd))  {
+      } else if (!msgSizeOk(inBuffer, bytesRcvd)) {
 	dhtLog("udpListen(): ERROR: msg size not ok: type = %s\n, size = %d\n",
 	       msg_types[inBuffer[0]], bytesRcvd);
-      } else if (state == EXIT2_STATE)  {
+      } else if (state == EXIT2_STATE) {
 	//do nothing
-      } else if (state == INIT1_STATE)  { //after initialization with seed, do not proceed until seed replies
+      } else if (state == INIT1_STATE) {  //after initialization with seed, do not proceed until seed replies
 	dhtLog("udpListen(): received %s from %s, %d bytes\n",
 	       msg_types[inBuffer[0]], inet_ntoa(peerAddr.sin_addr), bytesRcvd);
 	for (i = 0; i < bytesRcvd; i++)
@@ -1192,7 +1178,7 @@ void *udpListen() {
 	    outBuffer[0] = JOIN_RES;
 	    outBuffer[1] = 0;                                             //status, success
 	    udpSend(outBuffer, 2, peerIp);
-	  } else if (state == LEAD_REBUILD1_STATE)  {
+	  } else if (state == LEAD_REBUILD1_STATE) {
 	    //note: I don't need to addHost().
 	    checkReplied(peerIp);
 	    outBuffer[0] = JOIN_RES;
@@ -1216,7 +1202,7 @@ void *udpListen() {
 	case JOIN_RES:
 	  if (state == REBUILD1_STATE){
 	    setState(REBUILD2_STATE);
-	  } else if (state == INIT2_STATE)  {
+	  } else if (state == INIT2_STATE) {
 	    setState(NORMAL_STATE);
 	  }
 	  break;

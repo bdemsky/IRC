@@ -1010,7 +1010,7 @@ public class ScheduleAnalysis {
 	  ScheduleNode tocombine = sn2sn.get(tmpcombine.node);
 	  ScheduleNode root = sn2sn.get(rootnodes.elementAt(tmpcombine.root).elementAt(tmpcombine.index));
 	  ScheduleEdge se = (ScheduleEdge)tocombine.inedges().next();
-	  try{
+	  try {
 	    if(root.equals(((ScheduleNode)se.getSource()))) {
 	      root.mergeSEdge(se);
 	      if(ScheduleEdge.NEWEDGE == se.getType()) {

@@ -46,8 +46,7 @@ public class JhttpWorker extends Thread {
           client.getInputStream()));
 
       out = client.getOutputStream();
-    }
-    catch(IOException e){
+    } catch(IOException e)  {
       // I'm not too good at HTTP. Normally, we should put some
       // error code here. Anyway, I have assumed that an error
       // is equivalent to an unhandled request / method (501)
@@ -80,7 +79,7 @@ public class JhttpWorker extends Thread {
 	resp.returnCode = 501;         //error
       }
 
-      try{
+      try {
 	out.flush();
 	if (logging)
 	  LogFile.write_log(client,methodType,fileName,httpVersion,
@@ -89,8 +88,7 @@ public class JhttpWorker extends Thread {
 	out.close();
 	in.close();
 	client.close();
-      }
-      catch(IOException e){
+      } catch(IOException e)  {
 	;         // do nothing
       }
     }
@@ -110,7 +108,7 @@ public class JhttpWorker extends Thread {
   private int method(BufferedReader in) {
     int ret = -1;
 
-    try{
+    try {
       String line;
 
       // read just the first line
@@ -123,17 +121,17 @@ public class JhttpWorker extends Thread {
 	if ( str.equals("GET") ){
 	  ret = 0;
 	  methodType = "GET";
-	} else if ( str.equals("HEAD") )   {
+	} else if ( str.equals("HEAD") ) {
 	  ret = 1;
 	  methodType = "HEAD";
-	} else if ( str.equals("POST") )   {
+	} else if ( str.equals("POST") ) {
 	  ret = 2;
 	  methodType = "POST";
-	} else{
+	} else {
 	  System.out.println("501 - unsupported request:" +str);
 	  return -1;
 	}
-      } else{
+      } else {
 	// System.out.println("Request from browser was empty!");
 	return -1;
       }
@@ -171,8 +169,7 @@ public class JhttpWorker extends Thread {
 	  break;
 	}
       }
-    }
-    catch(Exception e){
+    } catch(Exception e)  {
       System.err.println(e);
       return -1;
     }

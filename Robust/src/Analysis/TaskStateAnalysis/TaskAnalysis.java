@@ -374,7 +374,7 @@ public class TaskAnalysis {
   private FlagState canonicalizeFlagState(Hashtable sourcenodes, FlagState fs) {
     if (sourcenodes.containsKey(fs))
       return (FlagState)sourcenodes.get(fs);
-    else{
+    else {
       sourcenodes.put(fs,fs);
       return fs;
     }

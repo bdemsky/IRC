@@ -190,8 +190,7 @@ public class Random
     int random;
     // Do a little bit unrolling of the above algorithm.
     int max = bytes.length & ~0x3;
-    for (int i = 0; i < max; i += 4)
-    {
+    for (int i = 0; i < max; i += 4){
       random = next(32);
       bytes[i] = (byte) random;
       bytes[i + 1] = (byte) (random >> 8);
@@ -200,8 +199,7 @@ public class Random
     }
     if (max < bytes.length){
       random = next(32);
-      for (int j = max; j < bytes.length; j++)
-      {
+      for (int j = max; j < bytes.length; j++){
 	bytes[j] = (byte) random;
 	random >>= 8;
       }

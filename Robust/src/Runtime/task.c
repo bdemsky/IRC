@@ -903,7 +903,7 @@ int enqueuetasks(struct parameterwrapper *parameter, struct parameterwrapper *pr
 backtrackinit:
     if(toiHasNext(&parameter->iterators[j], taskpointerarray OPTARG(failed))){
       toiNext(&parameter->iterators[j], taskpointerarray OPTARG(failed));
-    } else if (j>0)       {
+    } else if (j>0) {
       /* Need to backtrack */
       toiReset(&parameter->iterators[j]);
       j--;
@@ -953,7 +953,7 @@ backtrackinit:
 backtrackinc:
       if(toiHasNext(&parameter->iterators[j], taskpointerarray OPTARG(failed))){
 	toiNext(&parameter->iterators[j], taskpointerarray OPTARG(failed));
-      } else if (j>0)       {
+      } else if (j>0) {
 	/* Need to backtrack */
 	toiReset(&parameter->iterators[j]);
 	j--;
@@ -1200,7 +1200,7 @@ parameterpresent:
 	  }
 	  /* Actually call task */
 #ifdef PRECISE_GC
-	        ((int *)taskpointerarray)[0]=currtpd->numParameters;
+	              ((int *)taskpointerarray)[0]=currtpd->numParameters;
 	  taskpointerarray[1]=NULL;
 #endif
 #ifdef OPTIONAL

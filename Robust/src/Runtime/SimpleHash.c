@@ -80,7 +80,7 @@ int RuntimeHashremovekey(struct RuntimeHash *thisvar, int key) {
       }
       if (toremove->lnext!=NULL) {
 	toremove->lnext->lprev=toremove->lprev;
-      } else{
+      } else {
 	thisvar->listtail=toremove->lprev;
       }
       RUNFREE(toremove);

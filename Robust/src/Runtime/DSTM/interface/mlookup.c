@@ -195,8 +195,7 @@ unsigned int *mhashGetKeys(unsigned int *numKeys) {
   keys = calloc(*numKeys, sizeof(unsigned int));
 
   keyindex = 0;
-  for (i = 0; i < mlookup.size; i++)
-  {
+  for (i = 0; i < mlookup.size; i++){
     if (mlookup.table[i].key != 0){
       curr = &mlookup.table[i];
       while (curr != NULL){

@@ -1800,7 +1800,7 @@ plistnode_t *pInsert(plistnode_t *pile, objheader_t *headeraddr, unsigned int mi
 	tmp->numcreated++;
 	GETSIZE(tmpsize, headeraddr);
 	tmp->sum_bytes += sizeof(objheader_t) + tmpsize;
-      } else if (STATUS(headeraddr) & DIRTY)  {
+      } else if (STATUS(headeraddr) & DIRTY) {
 	tmp->oidmod[tmp->nummod] = OID(headeraddr);
 	tmp->nummod++;
 	GETSIZE(tmpsize, headeraddr);

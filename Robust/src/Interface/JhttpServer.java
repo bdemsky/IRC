@@ -20,11 +20,10 @@ public class JhttpServer extends Thread {
   public JhttpServer(int port, WebInterface webinterface) {
     System.out.println("starting...");
     this.webinterface=webinterface;
-    try{
+    try {
       System.out.println("creating the port");
       server = new ServerSocket(port);
-    }
-    catch (IOException e){
+    } catch (IOException e)  {
       System.err.println(e);
       System.exit(1);
     }
@@ -37,10 +36,9 @@ public class JhttpServer extends Thread {
   public void run() {
     // infinite loop
     while (true){
-      try{
+      try {
 	startWorker(server.accept());
-      }
-      catch (Exception e){
+      } catch (Exception e)  {
 	System.err.println(e);
       }
     }

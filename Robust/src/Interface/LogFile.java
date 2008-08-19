@@ -55,7 +55,7 @@ public class LogFile
       ReturnCode + " " +           // 200-500
       BytesSent + "\n";           // bytes sent
 
-    try{
+    try {
       BufferedWriter out = new BufferedWriter(
         new OutputStreamWriter(
           new FileOutputStream(log_file_name, true)));
@@ -63,8 +63,7 @@ public class LogFile
       out.write(Entry,0,Entry.length());
       out.flush();
       out.close();
-    }
-    catch (IOException e){
+    } catch (IOException e)  {
       System.err.println("Gicu " + e);
     }
 

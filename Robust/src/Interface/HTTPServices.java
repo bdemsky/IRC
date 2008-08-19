@@ -35,12 +35,11 @@ public class HTTPServices {
 
     buffer = new byte[1024];
 
-    try{
+    try {
       while((size = reader.read(buffer,0,buffer.length)) != -1)
 	out.write(buffer,0,size);
       reader.close();
-    }
-    catch(IOException e){
+    } catch(IOException e)  {
       e.printStackTrace();
       resp.returnCode = 501;       // error during transmision
     }
@@ -55,17 +54,16 @@ public class HTTPServices {
                                                   OutputStream out,HTTPResponse resp) {
     FileInputStream reader = null;
 
-    try{
+    try {
       reader = get_reader(fileName, resp);
       resp.returnCode = 200;
-    }
-    catch(IOException e){
+    } catch(IOException e)  {
       resp.returnCode = 404;       // file not found
     }
 
     if(resp.returnCode == 200)
       HTTPHeader.send_header(out, resp.returnCode, fileName, resp.sentBytes);
-    else{
+    else {
       HTTPHeader.send_header(out, resp.returnCode, fileName, 0);
       return null;
     }

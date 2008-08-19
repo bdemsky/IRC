@@ -86,10 +86,10 @@ public class Main {
       else if (option.equals("-flatirtasks")) {
 	state.FLATIRGRAPH=true;
 	state.FLATIRGRAPHTASKS=true;
-      } else if (option.equals("-flatirusermethods"))    {
+      } else if (option.equals("-flatirusermethods")) {
 	state.FLATIRGRAPH=true;
 	state.FLATIRGRAPHUSERMETHODS=true;
-      } else if (option.equals("-flatirlibmethods"))    {
+      } else if (option.equals("-flatirlibmethods")) {
 	state.FLATIRGRAPH=true;
 	state.FLATIRGRAPHLIBMETHODS=true;
       } else if (option.equals("-multicore"))
