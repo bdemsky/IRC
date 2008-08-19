@@ -47,6 +47,9 @@ public class GenerateConversions {
       FlatNode fn=toprocess.iterator().next();
       toprocess.remove(fn);
       boolean isatomic=atomictab.get(fn).intValue()>0;
+      if (!isatomic && fn.kind()!=FlatAtomicExitNode)//Don't process past the bounds of a transaction
+	continue;
+
       Hashtable<TempDescriptor, Integer> nodetemptab=temptab.get(fn);
 
       List<TempDescriptor> reads=Arrays.asList(fn.readsTemps());
@@ -72,20 +75,14 @@ public class GenerateConversions {
 	    tempset.add(tnp);
 	    continue;
 	  }
-	  if (reads.contains(tnp.getTemp())&&tnp.getNode()!=null) {
-	    //Value actually is read...
-	    nodetoconvs.get(tnp.getNode()).add(tnp.getTemp());
-	  }
 	  if (writes.contains(tnp.getTemp()))           //value overwritten
 	    continue;
 	  if (!isatomic&&fn.kind()==FKind.FlatAtomicExitNode) {
 	    //Create new node and tag it with this exit
 	    if (tnp.getNode()==null) {
-	      TempNodePair tnp2=new TempNodePair(tnp.getTemp());
-	      tnp2.setNode(fn);
-	      tempset.add(tnp2);
+	      nodetoconvs.get(fn).add(tnp.getTemp());//have to hide cached copies from gc
 	    } else
-	      tempset.add(tnp);
+	      throw new Error();
 	  } else
 	    tempset.add(tnp);
 	}
