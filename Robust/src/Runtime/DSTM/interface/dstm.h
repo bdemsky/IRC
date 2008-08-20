@@ -105,7 +105,7 @@ typedef struct objheader {
   (*((unsigned int *)&((struct ___Object___ *)((unsigned int) x + sizeof(objheader_t)))->___nextobject___))
 
 #define COMPOID(x) \
-  ((void *x)!=NULL)?(*((unsigned int *)&((struct ___Object___ *) x)->___nextobject___)):0
+  (((void *)x)!=NULL)?(*((unsigned int *)&((struct ___Object___ *) x)->___nextobject___)):0
 
 #define STATUS(x) \
   *((unsigned int *) &(((struct ___Object___ *)((unsigned int) x + sizeof(objheader_t)))->___localcopy___))
