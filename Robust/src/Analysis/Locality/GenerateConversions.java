@@ -92,7 +92,6 @@ public class GenerateConversions {
 	      nodetoconvs2.get(fn).add(tnp.getTemp());  //have to hide cached copies from gc
 	    } else
 	      tempset.add(tnp);
-	    throw new Error();
 	  } else
 	    tempset.add(tnp);
 	}
