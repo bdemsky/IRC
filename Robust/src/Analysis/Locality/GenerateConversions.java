@@ -40,6 +40,7 @@ public class GenerateConversions {
     FlatMethod fm=state.getMethodFlat(md);
     Hashtable<FlatNode, Set<TempNodePair>> nodetotnpair=new Hashtable<FlatNode, Set<TempNodePair>>();
     Hashtable<FlatNode, Set<TempDescriptor>> nodetoconvs=new Hashtable<FlatNode, Set<TempDescriptor>>();
+    Hashtable<FlatNode, Set<TempDescriptor>> nodetoconvs2=new Hashtable<FlatNode, Set<TempDescriptor>>();
 
     Set<FlatNode> toprocess=fm.getNodeSet();
 
@@ -47,8 +48,6 @@ public class GenerateConversions {
       FlatNode fn=toprocess.iterator().next();
       toprocess.remove(fn);
       boolean isatomic=atomictab.get(fn).intValue()>0;
-      if (!isatomic && fn.kind()!=FKind.FlatAtomicExitNode)//Don't process past the bounds of a transaction
-	continue;
 
       Hashtable<TempDescriptor, Integer> nodetemptab=temptab.get(fn);
 
@@ -56,8 +55,10 @@ public class GenerateConversions {
       List<TempDescriptor> writes=Arrays.asList(fn.writesTemps());
 
       if (!isatomic&&fn.kind()==FKind.FlatAtomicExitNode
-          &&!nodetoconvs.containsKey(fn))
+          &&!nodetoconvs.containsKey(fn)) {
 	nodetoconvs.put(fn, new HashSet<TempDescriptor>());
+	nodetoconvs2.put(fn, new HashSet<TempDescriptor>());
+      }
 
       HashSet<TempNodePair> tempset=new HashSet<TempNodePair>();
 
@@ -75,14 +76,23 @@ public class GenerateConversions {
 	    tempset.add(tnp);
 	    continue;
 	  }
+	  if (reads.contains(tnp.getTemp())&&tnp.getNode()!=null) {
+	    //Value actually is read...
+	    nodetoconvs.get(tnp.getNode()).add(tnp.getTemp());
+	  }
+
 	  if (writes.contains(tnp.getTemp()))           //value overwritten
 	    continue;
 	  if (!isatomic&&fn.kind()==FKind.FlatAtomicExitNode) {
 	    //Create new node and tag it with this exit
 	    if (tnp.getNode()==null) {
-	      nodetoconvs.get(fn).add(tnp.getTemp());//have to hide cached copies from gc
+	      TempNodePair tnp2=new TempNodePair(tnp.getTemp());
+	      tnp2.setNode(fn);
+	      tempset.add(tnp2);
+	      nodetoconvs2.get(fn).add(tnp.getTemp());  //have to hide cached copies from gc
 	    } else
-	      throw new Error();
+	      tempset.add(tnp);
+	    throw new Error();
 	  } else
 	    tempset.add(tnp);
 	}
@@ -126,9 +136,10 @@ public class GenerateConversions {
 	//sanity check
 	assert(fn.kind()==FKind.FlatAtomicExitNode);
 	//insert calls here...
-	Set<TempDescriptor> tempset=nodetoconvs.get(fn);
+	Set<TempDescriptor> tempset=nodetoconvs2.get(fn);
 	for(Iterator<TempDescriptor> tempit=tempset.iterator(); tempit.hasNext();) {
-	  FlatGlobalConvNode fgcn=new FlatGlobalConvNode(tempit.next(), lb, false);
+	  TempDescriptor tmpd=tempit.next();
+	  FlatGlobalConvNode fgcn=new FlatGlobalConvNode(tmpd, lb, false, nodetoconvs.get(fn).containsKey(tmpd));
 	  atomictab.put(fgcn, atomictab.get(fn));
 	  temptab.put(fgcn, (Hashtable<TempDescriptor, Integer>)temptab.get(fn).clone());
 
