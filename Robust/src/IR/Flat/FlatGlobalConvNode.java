@@ -6,11 +6,23 @@ public class FlatGlobalConvNode extends FlatNode {
   TempDescriptor src;
   LocalityBinding lb;
   boolean makePtr;
+  boolean doactualconvert=true;
 
   public FlatGlobalConvNode(TempDescriptor src, LocalityBinding lb, boolean makePtr) {
     this.src=src;
     this.lb=lb;
     this.makePtr=makePtr;
+  }
+
+  public FlatGlobalConvNode(TempDescriptor src, LocalityBinding lb, boolean makePtr, boolean doactualconvert) {
+    this.src=src;
+    this.lb=lb;
+    this.makePtr=makePtr;
+    this.convert=doactualconvert;
+  }
+
+  boolean doConvert() {
+    return convert;
   }
 
   public String toString() {
