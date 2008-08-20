@@ -139,7 +139,7 @@ public class GenerateConversions {
 	Set<TempDescriptor> tempset=nodetoconvs2.get(fn);
 	for(Iterator<TempDescriptor> tempit=tempset.iterator(); tempit.hasNext();) {
 	  TempDescriptor tmpd=tempit.next();
-	  FlatGlobalConvNode fgcn=new FlatGlobalConvNode(tmpd, lb, false, nodetoconvs.get(fn).containsKey(tmpd));
+	  FlatGlobalConvNode fgcn=new FlatGlobalConvNode(tmpd, lb, false, nodetoconvs.get(fn).contains(tmpd));
 	  atomictab.put(fgcn, atomictab.get(fn));
 	  temptab.put(fgcn, (Hashtable<TempDescriptor, Integer>)temptab.get(fn).clone());
 
