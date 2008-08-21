@@ -223,15 +223,13 @@ public class TokenTupleSet extends Canonical {
       Iterator<TokenTupleSet> replaceItr = replacements.iterator();
       while( replaceItr.hasNext() ) {
 	TokenTupleSet replacement = replaceItr.next();
-	TokenTupleSet replaced = new TokenTupleSet();
-	replaced.tokenTuples.addAll( ttsMinusToken.tokenTuples );
-	replaced.tokenTuples.addAll( replacement.tokenTuples );
-	replaced = replaced.makeCanonical();
+	TokenTupleSet replaced = new TokenTupleSet( ttsMinusToken );
+	replaced = replaced.unionUpArity( replacement );
 	rsOut = rsOut.add( replaced );
       }
     }
     
-    return rsOut;
+    return rsOut.makeCanonical();
   }
   
 
