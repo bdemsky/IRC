@@ -1001,6 +1001,8 @@ public class OwnershipGraph {
     }
 
 
+    HashSet<HeapRegionNode> nodesWithNewAlpha = new HashSet<HeapRegionNode>();
+
     Iterator lnArgItr = paramIndex2ln.entrySet().iterator();
     while( lnArgItr.hasNext() ) {
       Map.Entry me      = (Map.Entry) lnArgItr.next();
@@ -1040,73 +1042,26 @@ public class OwnershipGraph {
       while( hrnItr.hasNext() ) {
 	HeapRegionNode hrn = hrnItr.next();
 
-	rewriteCallerNodeAlpha( index,
+	rewriteCallerNodeAlpha( fm.numParameters(),
+				index,
 				hrn,
 				paramIndex2rewriteH,
 				paramIndex2rewriteD,
 				paramIndex2paramToken,
-				paramTokenStar2paramIndex );
+				paramIndex2paramTokenStar );
+
+	nodesWithNewAlpha.add( hrn );
       }
     }    
     
 
-
-
-
-    /*
-    // make a change set to translate callee tokens into caller tokens
-    ChangeTupleSet C = new ChangeTupleSet().makeCanonical();
-
-    for( int i = 0; i < fm.numParameters(); ++i ) {
-      
-      Integer paramIndex = new Integer( i );
-      
-      System.out.println( "In method "+fm+ " on param "+paramIndex );
-      
-      assert ogCallee.paramIndex2id.containsKey( paramIndex );
-      Integer idParam = ogCallee.paramIndex2id.get( paramIndex );
-      
-      assert ogCallee.id2hrn.containsKey( idParam );
-      HeapRegionNode hrnParam = ogCallee.id2hrn.get( idParam );
-      assert hrnParam != null;
-      
-      TokenTupleSet calleeTokenToMatch =
-	new TokenTupleSet( new TokenTuple( hrnParam ) ).makeCanonical();
-      
-      
-      // now depending on whether the callee is static or not
-      // we need to account for a "this" argument in order to
-      // find the matching argument in the caller context
-      TempDescriptor argTemp;
-      if( isStatic ) {
-	argTemp = fc.getArg( paramIndex );
-      } else {
-	if( paramIndex == 0 ) {
-	  argTemp = fc.getThis();
-	} else {
-	  argTemp = fc.getArg( paramIndex - 1 );
-	}
-      }
-      
-      LabelNode argLabel = getLabelNodeFromTemp( argTemp );
-      Iterator argHeapRegionsItr = argLabel.setIteratorToReferencedRegions();
-      while( argHeapRegionsItr.hasNext() ) {
-	Map.Entry meArg                = (Map.Entry)               argHeapRegionsItr.next();
-	HeapRegionNode argHeapRegion   = (HeapRegionNode)          meArg.getKey();
-	ReferenceEdgeProperties repArg = (ReferenceEdgeProperties) meArg.getValue();
-	
-	Iterator<TokenTupleSet> ttsItr = repArg.getBeta().iterator();
-	while( ttsItr.hasNext() ) {
-	  TokenTupleSet callerTokensToReplace = ttsItr.next();
-	  
-	  ChangeTuple ct = new ChangeTuple( calleeTokenToMatch,
-					    callerTokensToReplace ).makeCanonical();
-	  
-	  C = C.union( ct );
-	}
-      }
+    // commit changes to alpha
+    Iterator<HeapRegionNode> nodeItr = nodesWithNewAlpha.iterator();
+    while( nodeItr.hasNext() ) {
+      nodeItr.next().applyAlphaNew();
     }
-    */
+
+
 
     /*
     System.out.println( "Applying method call "+fm );
@@ -1186,12 +1141,13 @@ public class OwnershipGraph {
   }
 
 
-  private void rewriteCallerNodeAlpha( Integer paramIndex, 
+  private void rewriteCallerNodeAlpha( int numParameters, 
+				       Integer paramIndex, 
 				       HeapRegionNode hrn,
 				       Hashtable<Integer, ReachabilitySet> paramIndex2rewriteH,
 				       Hashtable<Integer, ReachabilitySet> paramIndex2rewriteD,
 				       Hashtable<Integer, TokenTuple> paramIndex2paramToken,
-				       Hashtable<TokenTuple, Integer> paramTokenStar2paramIndex ) {
+				       Hashtable<Integer, TokenTuple> paramIndex2paramTokenStar ) {
    
     ReachabilitySet rules = paramIndex2rewriteH.get( paramIndex );
     assert rules != null;
@@ -1199,20 +1155,88 @@ public class OwnershipGraph {
     TokenTuple tokenToRewrite = paramIndex2paramToken.get( paramIndex );
     assert tokenToRewrite != null;
 
-    ReachabilitySet r0 = new ReachabilitySet().makeCanonical();
-    
+    ReachabilitySet r0 = new ReachabilitySet().makeCanonical();    
     Iterator<TokenTupleSet> ttsItr = rules.iterator();
     while( ttsItr.hasNext() ) {
       TokenTupleSet tts = ttsItr.next();
-      r0 = r0.union( tts.rewrite( tokenToRewrite, hrn.getAlpha() ) );
+      r0 = r0.union( tts.simpleRewriteToken( tokenToRewrite, hrn.getAlpha() ) );
     }
     
-    //ReachabilitySet r1 = D( r0 );
+    ReachabilitySet r1 = new ReachabilitySet().makeCanonical();
+    ttsItr = r0.iterator();
+    while( ttsItr.hasNext() ) {
+      TokenTupleSet tts = ttsItr.next();
+      r1 = r1.union( rewriteDpass( numParameters,
+				   paramIndex,
+				   tts,
+				   paramIndex2rewriteD,
+				   paramIndex2paramToken,
+				   paramIndex2paramTokenStar ) );
+    }    
 
-    hrn.setAlphaNew( r0 );
+    hrn.setAlphaNew( r1 );
   }
 
 
+  private ReachabilitySet rewriteDpass( int numParameters, 
+					Integer paramIndex,
+					TokenTupleSet ttsIn,
+					Hashtable<Integer, ReachabilitySet> paramIndex2rewriteD,
+					Hashtable<Integer, TokenTuple> paramIndex2paramToken,
+					Hashtable<Integer, TokenTuple> paramIndex2paramTokenStar ) {
+
+    ReachabilitySet rsOut = new ReachabilitySet().makeCanonical();
+
+    boolean rewritten = false;
+
+    for( int j = 0; j < numParameters; ++j ) {
+      Integer paramIndexJ = new Integer( j );
+      ReachabilitySet D_j = paramIndex2rewriteD.get( paramIndexJ );
+      assert D_j != null;
+      
+      if( paramIndexJ != paramIndex ) {
+	TokenTuple tokenToRewriteJ = paramIndex2paramToken.get( paramIndexJ );
+	assert tokenToRewriteJ != null;
+	if( ttsIn.containsTuple( tokenToRewriteJ ) ) {
+	  ReachabilitySet r = ttsIn.exhaustiveRewriteToken( tokenToRewriteJ, D_j );
+	  Iterator<TokenTupleSet> ttsItr = r.iterator();
+	  while( ttsItr.hasNext() ) {
+	    TokenTupleSet tts = ttsItr.next();
+	    rsOut = rsOut.union( rewriteDpass( numParameters,
+					       paramIndex,
+					       tts,
+					       paramIndex2rewriteD,
+					       paramIndex2paramToken,
+					       paramIndex2paramTokenStar ) );
+	    rewritten = true;
+	  }	 
+	}
+      }
+      
+      TokenTuple tokenStarToRewriteJ = paramIndex2paramTokenStar.get( paramIndexJ );
+      assert tokenStarToRewriteJ != null;		
+      if( ttsIn.containsTuple( tokenStarToRewriteJ ) ) {
+	ReachabilitySet r = ttsIn.exhaustiveRewriteToken( tokenStarToRewriteJ, D_j );
+	Iterator<TokenTupleSet> ttsItr = r.iterator();
+	while( ttsItr.hasNext() ) {
+	  TokenTupleSet tts = ttsItr.next();
+	  rsOut = rsOut.union( rewriteDpass( numParameters,
+					     paramIndex,
+					     tts,
+					     paramIndex2rewriteD,
+					     paramIndex2paramToken,
+					     paramIndex2paramTokenStar ) );
+	  rewritten = true;
+	}
+      }
+    }
+
+    if( !rewritten ) {
+      rsOut = rsOut.union( ttsIn );
+    }
+    
+    return rsOut;
+  }
 
 
   /*

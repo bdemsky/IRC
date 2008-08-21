@@ -44,6 +44,7 @@ public class Foo {
 
     public Foo x;
     public Foo y;
+    public Foo z;
 
     /*
     public void ruinSomeFoos( Foo a, Foo b ) {
@@ -61,6 +62,85 @@ public class Foo {
 	p1.x = f2;
     }
     */
+
+  static public void m1_( Foo p0 ) {
+    Foo g0 = new Foo();
+    Foo g1 = new Foo();
+
+    g0.x = p0;
+    p0.x = g1;
+  }
+
+  static public void m2_( Foo p0 ) {
+    Foo g0 = new Foo();
+
+    g0.x = p0;
+    g0.y = p0;
+  }
+
+  static public void m3_( Foo p0 ) {
+    Foo g0 = new Foo();
+
+    p0.x = g0;
+    p0.y = g0;
+  }
+
+  static public void m4_( Foo p0 ) {
+    p0.x = p0;
+  }
+
+  static public void m5_( Foo p0 ) {
+    Foo g0 = new Foo();
+    p0.x = g0;
+    g0.x = p0;
+  }
+
+  static public void m6_( Foo p0, Foo p1 ) {
+    Foo g0 = new Foo();
+    Foo g1 = new Foo();
+    Foo g2 = new Foo();
+    Foo g3 = new Foo();
+
+    g0.x = p0;
+    p0.x = g1;
+
+    g2.x = p1;
+    p1.x = g3;
+
+    p0.y = p1;
+  }
+
+  static public void m7_( Foo p0, Foo p1 ) {
+    Foo g0 = new Foo();
+    Foo g1 = new Foo();
+    Foo g2 = new Foo();
+    Foo g3 = new Foo();
+
+    g0.x = p0;
+    p0.x = g1;
+
+    g2.x = p1;
+    p1.x = g3;
+
+    p0.y = p1;
+    p0.z = p1;
+  }
+
+  static public void m8_( Foo p0, Foo p1 ) {
+    Foo g0 = new Foo();
+    Foo g1 = new Foo();
+    Foo g2 = new Foo();
+    Foo g3 = new Foo();
+
+    g0.x = p0;
+    p0.x = g1;
+
+    g2.x = p1;
+    p1.x = g3;
+
+    p0.y = p1;
+    p1.y = p0;
+  }
 }
 
 
@@ -116,7 +196,7 @@ task NewObjectC( Foo a{ f }, Foo b{ f } ) {
 }
 */
 
-
+/*
 task forMethod( Foo p0{ f } ) {
 
     Foo a0;
@@ -136,7 +216,7 @@ task forMethod( Foo p0{ f } ) {
 
     taskexit( p0{ !f } );
 }
-
+*/
 
 
 /*
@@ -263,3 +343,229 @@ task methodTest( Foo p0{ f } ) {
     taskexit( p0{ !f } );
 }
 */
+
+
+task methodTest01_( Foo p0{ f }, Foo p1{ f } ) {
+
+  Foo a0before = new Foo();
+  if( false ) {
+    a0before.x = new Foo();
+  } else {
+    a0before.x = new Foo();
+  }
+
+  Foo a0after = new Foo();
+  if( false ) {
+    a0after.x = new Foo();
+  } else {
+    a0after.x = new Foo();
+  }
+
+  Foo.m1_( a0after );
+
+
+  taskexit( p0{ !f }, p1{ !f } );
+}
+
+
+task methodTest02_( Foo p0{ f }, Foo p1{ f } ) {
+
+  Foo a0before = new Foo();
+  if( false ) {
+    a0before.x = new Foo();
+  } else {
+    a0before.x = new Foo();
+  }
+
+  Foo a0after = new Foo();
+  if( false ) {
+    a0after.x = new Foo();
+  } else {
+    a0after.x = new Foo();
+  }
+
+  Foo.m2_( a0after );
+
+
+  taskexit( p0{ !f }, p1{ !f } );
+}
+
+
+task methodTest03_( Foo p0{ f }, Foo p1{ f } ) {
+
+  Foo a0before = new Foo();
+  if( false ) {
+    a0before.x = new Foo();
+  } else {
+    a0before.x = new Foo();
+  }
+
+  Foo a0after = new Foo();
+  if( false ) {
+    a0after.x = new Foo();
+  } else {
+    a0after.x = new Foo();
+  }
+
+  Foo.m3_( a0after );
+
+
+  taskexit( p0{ !f }, p1{ !f } );
+}
+
+
+task methodTest04_( Foo p0{ f }, Foo p1{ f } ) {
+
+  Foo a0before = new Foo();
+  if( false ) {
+    a0before.x = new Foo();
+  } else {
+    a0before.x = new Foo();
+  }
+
+  Foo a0after = new Foo();
+  if( false ) {
+    a0after.x = new Foo();
+  } else {
+    a0after.x = new Foo();
+  }
+
+  Foo.m4_( a0after );
+
+
+  taskexit( p0{ !f }, p1{ !f } );
+}
+
+
+task methodTest05_( Foo p0{ f }, Foo p1{ f } ) {
+
+  Foo a0before = new Foo();
+  if( false ) {
+    a0before.x = new Foo();
+  } else {
+    a0before.x = new Foo();
+  }
+
+  Foo a0after = new Foo();
+  if( false ) {
+    a0after.x = new Foo();
+  } else {
+    a0after.x = new Foo();
+  }
+
+  Foo.m5_( a0after );
+
+
+  taskexit( p0{ !f }, p1{ !f } );
+}
+
+
+task methodTest06_( Foo p0{ f }, Foo p1{ f } ) {
+
+  Foo a0before = new Foo();
+  if( false ) {
+    a0before.x = new Foo();
+  } else {
+    a0before.x = new Foo();
+  }
+
+  Foo a0after = new Foo();
+  if( false ) {
+    a0after.x = new Foo();
+  } else {
+    a0after.x = new Foo();
+  }
+
+  Foo a1before = new Foo();
+  if( false ) {
+    a1before.x = new Foo();
+  } else {
+    a1before.x = new Foo();
+  }
+
+  Foo a1after = new Foo();
+  if( false ) {
+    a1after.x = new Foo();
+  } else {
+    a1after.x = new Foo();
+  }
+
+  Foo.m6_( a0after, a1after );
+
+
+  taskexit( p0{ !f }, p1{ !f } );
+}
+
+
+task methodTest07_( Foo p0{ f }, Foo p1{ f } ) {
+
+  Foo a0before = new Foo();
+  if( false ) {
+    a0before.x = new Foo();
+  } else {
+    a0before.x = new Foo();
+  }
+
+  Foo a0after = new Foo();
+  if( false ) {
+    a0after.x = new Foo();
+  } else {
+    a0after.x = new Foo();
+  }
+
+  Foo a1before = new Foo();
+  if( false ) {
+    a1before.x = new Foo();
+  } else {
+    a1before.x = new Foo();
+  }
+
+  Foo a1after = new Foo();
+  if( false ) {
+    a1after.x = new Foo();
+  } else {
+    a1after.x = new Foo();
+  }
+
+  Foo.m7_( a0after, a1after );
+
+
+  taskexit( p0{ !f }, p1{ !f } );
+}
+
+
+task methodTest08_( Foo p0{ f }, Foo p1{ f } ) {
+
+  Foo a0before = new Foo();
+  if( false ) {
+    a0before.x = new Foo();
+  } else {
+    a0before.x = new Foo();
+  }
+
+  Foo a0after = new Foo();
+  if( false ) {
+    a0after.x = new Foo();
+  } else {
+    a0after.x = new Foo();
+  }
+
+  Foo a1before = new Foo();
+  if( false ) {
+    a1before.x = new Foo();
+  } else {
+    a1before.x = new Foo();
+  }
+
+  Foo a1after = new Foo();
+  if( false ) {
+    a1after.x = new Foo();
+  } else {
+    a1after.x = new Foo();
+  }
+
+  Foo.m8_( a0after, a1after );
+
+
+  taskexit( p0{ !f }, p1{ !f } );
+}
