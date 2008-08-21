@@ -181,6 +181,33 @@ public class TokenTupleSet extends Canonical {
   }
 
 
+  public ReachabilitySet rewrite( TokenTuple tokenToRewrite,
+				  ReachabilitySet replacements ) {
+    
+    ReachabilitySet rsOut = new ReachabilitySet().makeCanonical();
+
+    if( !tokenTuples.contains( tokenToRewrite ) ) {
+      rsOut.add( this );
+
+    } else {
+      TokenTupleSet ttsMinusToken = new TokenTupleSet( this );
+      ttsMinusToken.tokenTuples.remove( tokenToRewrite );
+
+      Iterator<TokenTupleSet> replaceItr = replacements.iterator();
+      while( replaceItr.hasNext() ) {
+	TokenTupleSet replacement = replaceItr.next();
+	TokenTupleSet replaced = new TokenTupleSet();
+	replaced.tokenTuples.addAll( ttsMinusToken.tokenTuples );
+	replaced.tokenTuples.addAll( replacement.tokenTuples );
+	replaced = replaced.makeCanonical();
+	rsOut.add( replaced );
+      }
+    }
+
+    return rsOut;
+  }
+
+
   public String toString() {
     return tokenTuples.toString();
   }

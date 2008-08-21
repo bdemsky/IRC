@@ -42,7 +42,7 @@ public class ReachabilitySet extends Canonical {
     return (ReachabilitySet) Canonical.makeCanonical(this);
   }
 
-  public Iterator iterator() {
+  public Iterator<TokenTupleSet> iterator() {
     return possibleReachabilities.iterator();
   }
 

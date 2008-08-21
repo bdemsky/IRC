@@ -18,6 +18,9 @@ public class TokenTuple extends Canonical {
 
 
   // only summary tokens should have ARITY_MANY?
+  // acutally, multiple-object regions can be arity-many
+  // so isNewSummary actually means "multi-object" in
+  // this class.  CHANGE THIS SOMETIME!
   public static final int ARITY_ONE  = 1;
   public static final int ARITY_MANY = 2;
   private int arity;
