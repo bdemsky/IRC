@@ -210,6 +210,55 @@ public class ReachabilitySet extends Canonical {
   }
 
 
+  public ReachabilitySet exhaustiveArityCombinations() {
+    ReachabilitySet rsOut = new ReachabilitySet();
+
+    int numDimensions = this.possibleReachabilities.size();  
+
+    // add an extra digit to detect termination
+    int[] digits = new int[numDimensions+1];
+
+    int minArity = 0;
+    int maxArity = 2;
+
+    // start with the minimum possible coordinate
+    for( int i = 0; i < numDimensions+1; ++i ) {
+      digits[i] = minArity;
+    }
+
+    // and stop when the highest-ordered axis rolls above the minimum
+    while( digits[numDimensions] == minArity ) {
+      
+      // spit out a "coordinate" made from these digits
+      TokenTupleSet ttsCoordinate = new TokenTupleSet();
+      Iterator<TokenTupleSet> ttsItr = this.iterator();
+      for( int i = 0; i < numDimensions; ++i ) {
+	assert ttsItr.hasNext();
+	TokenTupleSet ttsUnit = ttsItr.next();
+	for( int j = 0; j < digits[i]; ++j ) {
+	  ttsCoordinate = ttsCoordinate.unionUpArity( ttsUnit );
+	}
+      }
+      rsOut = rsOut.add( ttsCoordinate.makeCanonical() );
+
+      // increment
+      for( int i = 0; i < numDimensions+1; ++i ) {
+        digits[i]++;
+        if( digits[i] > maxArity ) {
+	  // this axis reached its max, so roll it back to min and increment next higher digit
+	  digits[i] = minArity;
+	  
+        } else {
+	  // this axis did not reach its max so we just enumerated a new unique coordinate, stop
+	  break;
+        }
+      }
+    }
+
+    return rsOut.makeCanonical();
+  }
+
+
   public boolean equals(Object o) {
     if( o == null ) {
       return false;

@@ -58,6 +58,33 @@ public class TokenTupleSet extends Canonical {
     return ttsOut.makeCanonical();
   }
 
+  public TokenTupleSet unionUpArity( TokenTupleSet ttsIn ) {
+    assert ttsIn != null;
+    TokenTupleSet ttsOut = new TokenTupleSet();
+
+    Iterator<TokenTuple> ttItr = this.iterator();
+    while( ttItr.hasNext() ) {
+      TokenTuple tt = ttItr.next();
+
+      if( ttsIn.containsToken( tt.getToken() ) ) {
+	ttsOut.tokenTuples.add(tt.increaseArity());
+      } else {
+	ttsOut.tokenTuples.add(tt);
+      }
+    }
+
+    ttItr = ttsIn.iterator();
+    while( ttItr.hasNext() ) {
+      TokenTuple tt = ttItr.next();
+
+      if( !ttsOut.containsToken(tt.getToken()) ) {
+	ttsOut.tokenTuples.add(tt);
+      }
+    }
+
+    return ttsOut.makeCanonical();    
+  }
+
   public TokenTupleSet add(TokenTuple tt) {
     assert tt != null;
     TokenTupleSet ttsOut = new TokenTupleSet(tt);
@@ -181,18 +208,18 @@ public class TokenTupleSet extends Canonical {
   }
 
 
-  public ReachabilitySet simpleRewriteToken( TokenTuple tokenToRewrite,
-					     ReachabilitySet replacements ) {
+  public ReachabilitySet rewriteToken( TokenTuple tokenToRewrite,
+				       ReachabilitySet replacements ) {
     
     ReachabilitySet rsOut = new ReachabilitySet().makeCanonical();
-
+    
     if( !tokenTuples.contains( tokenToRewrite ) ) {
       rsOut = rsOut.add( this );
-
+      
     } else {
       TokenTupleSet ttsMinusToken = new TokenTupleSet( this );
       ttsMinusToken.tokenTuples.remove( tokenToRewrite );
-
+      
       Iterator<TokenTupleSet> replaceItr = replacements.iterator();
       while( replaceItr.hasNext() ) {
 	TokenTupleSet replacement = replaceItr.next();
@@ -203,39 +230,10 @@ public class TokenTupleSet extends Canonical {
 	rsOut = rsOut.add( replaced );
       }
     }
-
-    return rsOut;
-  }
-
-
-  public ReachabilitySet exhaustiveRewriteToken( TokenTuple tokenToRewrite,
-						 ReachabilitySet replacements ) {
     
-    ReachabilitySet rsOut = new ReachabilitySet().makeCanonical();
-
-    /*
-    if( !tokenTuples.contains( tokenToRewrite ) ) {
-      rsOut = rsOut.add( this );
-
-    } else {
-      TokenTupleSet ttsMinusToken = new TokenTupleSet( this );
-      ttsMinusToken.tokenTuples.remove( tokenToRewrite );
-
-      Iterator<TokenTupleSet> replaceItr = replacements.iterator();
-      while( replaceItr.hasNext() ) {
-	TokenTupleSet replacement = replaceItr.next();
-	TokenTupleSet replaced = new TokenTupleSet();
-	replaced.tokenTuples.addAll( ttsMinusToken.tokenTuples );
-	replaced.tokenTuples.addAll( replacement.tokenTuples );
-	replaced = replaced.makeCanonical();
-	rsOut = rsOut.add( replaced );
-      }
-    }
-    */
-
     return rsOut;
   }
-
+  
 
   public String toString() {
     return tokenTuples.toString();

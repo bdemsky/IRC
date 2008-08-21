@@ -549,5 +549,22 @@ public class Main {
 	test( "cts1            == cts0?",            true,  cts1 ==            cts0 );
 	test( "cts1.hashCode() == cts0.hashCode()?", true,  cts1.hashCode() == cts0.hashCode() );
 
+
+	TokenTuple tt173  = new TokenTuple( new Integer( 173 ), false, TokenTuple.ARITY_ONE  ).makeCanonical();
+	TokenTuple tt174  = new TokenTuple( new Integer( 174 ), true,  TokenTuple.ARITY_ONE  ).makeCanonical();
+	TokenTuple tt174b = new TokenTuple( new Integer( 174 ), true,  TokenTuple.ARITY_MANY ).makeCanonical();
+	TokenTuple tt177  = new TokenTuple( new Integer( 177 ), true,  TokenTuple.ARITY_ONE  ).makeCanonical();
+
+	TokenTupleSet tts3   = new TokenTupleSet().add( tt173 );
+	TokenTupleSet tts4   = new TokenTupleSet().add( tt174 );
+	TokenTupleSet tts7   = new TokenTupleSet().add( tt177 );
+	TokenTupleSet tts4b7 = new TokenTupleSet().add( tt174b ).add( tt177 );
+	TokenTupleSet tts43  = new TokenTupleSet().add( tt174 ).add( tt173 );
+
+	ReachabilitySet rs100 = new ReachabilitySet().add( tts3 ).add( tts4 ).add( tts7 ).add( tts4b7 ).add( tts43 );
+	ReachabilitySet rs101 = rs100.exhaustiveArityCombinations();
+
+	System.out.println( "#####################\nrs100 = \n"+rs100 );
+	System.out.println( "#####################\nrs101 = \n"+rs101 );
     }
 }

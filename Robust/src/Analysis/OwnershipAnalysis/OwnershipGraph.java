@@ -997,6 +997,7 @@ public class OwnershipGraph {
 	ReferenceEdge edge = edgeItr.next();
 	D_i = D_i.union( edge.getBeta() );
       }
+      D_i = D_i.exhaustiveArityCombinations();
       paramIndex2rewriteD.put( paramIndex, D_i );
     }
 
@@ -1159,7 +1160,7 @@ public class OwnershipGraph {
     Iterator<TokenTupleSet> ttsItr = rules.iterator();
     while( ttsItr.hasNext() ) {
       TokenTupleSet tts = ttsItr.next();
-      r0 = r0.union( tts.simpleRewriteToken( tokenToRewrite, hrn.getAlpha() ) );
+      r0 = r0.union( tts.rewriteToken( tokenToRewrite, hrn.getAlpha() ) );
     }
     
     ReachabilitySet r1 = new ReachabilitySet().makeCanonical();
@@ -1198,7 +1199,7 @@ public class OwnershipGraph {
 	TokenTuple tokenToRewriteJ = paramIndex2paramToken.get( paramIndexJ );
 	assert tokenToRewriteJ != null;
 	if( ttsIn.containsTuple( tokenToRewriteJ ) ) {
-	  ReachabilitySet r = ttsIn.exhaustiveRewriteToken( tokenToRewriteJ, D_j );
+	  ReachabilitySet r = ttsIn.rewriteToken( tokenToRewriteJ, D_j );
 	  Iterator<TokenTupleSet> ttsItr = r.iterator();
 	  while( ttsItr.hasNext() ) {
 	    TokenTupleSet tts = ttsItr.next();
@@ -1216,7 +1217,7 @@ public class OwnershipGraph {
       TokenTuple tokenStarToRewriteJ = paramIndex2paramTokenStar.get( paramIndexJ );
       assert tokenStarToRewriteJ != null;		
       if( ttsIn.containsTuple( tokenStarToRewriteJ ) ) {
-	ReachabilitySet r = ttsIn.exhaustiveRewriteToken( tokenStarToRewriteJ, D_j );
+	ReachabilitySet r = ttsIn.rewriteToken( tokenStarToRewriteJ, D_j );
 	Iterator<TokenTupleSet> ttsItr = r.iterator();
 	while( ttsItr.hasNext() ) {
 	  TokenTupleSet tts = ttsItr.next();
