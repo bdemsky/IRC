@@ -69,8 +69,19 @@ public class AllocationSite {
     return ithOldest.get(i);
   }
 
+  public Integer getIthOldestShadow(int i) {
+    assert i >= 0;
+    assert i <  allocationDepth;
+
+    return -ithOldest.get(i);
+  }
+
   public Integer getOldest() {
     return ithOldest.get(allocationDepth - 1);
+  }
+
+  public Integer getOldestShadow() {
+    return -ithOldest.get(allocationDepth - 1);
   }
 
   public void setSummary(Integer id) {
@@ -80,6 +91,10 @@ public class AllocationSite {
 
   public Integer getSummary() {
     return summary;
+  }
+
+  public Integer getSummaryShadow() {
+    return -summary;
   }
 
   public TypeDescriptor getType() {

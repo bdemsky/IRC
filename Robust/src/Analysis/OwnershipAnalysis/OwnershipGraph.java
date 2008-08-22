@@ -733,7 +733,7 @@ public class OwnershipGraph {
 
   protected HeapRegionNode getShadowSummaryNode(AllocationSite as) {
 
-    Integer idShadowSummary  = -(as.getSummary());
+    Integer idShadowSummary  = as.getSummaryShadow();
     HeapRegionNode hrnShadowSummary = id2hrn.get(idShadowSummary);
 
     if( hrnShadowSummary == null ) {
@@ -753,7 +753,7 @@ public class OwnershipGraph {
                                                  as + "\\n" + as.getType() + "\\nshadowSum");
 
       for( int i = 0; i < as.getAllocationDepth(); ++i ) {
-	Integer idShadowIth = -(as.getIthOldest(i));
+	Integer idShadowIth = as.getIthOldestShadow(i);
 	assert !id2hrn.containsKey(idShadowIth);
 	createNewHeapRegionNode(idShadowIth,
 	                        true,
@@ -874,29 +874,7 @@ public class OwnershipGraph {
                                 FlatMethod fm,
                                 OwnershipGraph ogCallee) {
 
-    // verify the existence of allocation sites and their
-    // shadows from the callee in the context of this caller graph
-    Iterator<AllocationSite> asItr = ogCallee.allocationSites.iterator();
-    while( asItr.hasNext() ) {
-      AllocationSite allocSite        = asItr.next();
-      HeapRegionNode hrnSummary       = getSummaryNode      ( allocSite );
-
-      // assert that the shadow nodes have no reference edges
-      // because they're brand new to the graph, or last time
-      // they were used they should have been cleared of edges
-      HeapRegionNode hrnShadowSummary = getShadowSummaryNode( allocSite );
-      assert hrnShadowSummary.getNumReferencers() == 0;
-      assert hrnShadowSummary.getNumReferencees() == 0;
-      for( int i = 0; i < allocSite.getAllocationDepth(); ++i ) {
-	Integer idShadowIth = -(allocSite.getIthOldest(i));
-	assert id2hrn.containsKey(idShadowIth);
-	HeapRegionNode hrnShadowIth = id2hrn.get(idShadowIth);
-	assert hrnShadowIth.getNumReferencers() == 0;
-	assert hrnShadowIth.getNumReferencees() == 0;
-      }      
-    }
-
-    
+   
     // define rewrite rules and other structures to organize
     // data by parameter/argument index
     Hashtable<Integer, ReachabilitySet> paramIndex2rewriteH =
@@ -926,6 +904,26 @@ public class OwnershipGraph {
 
     Hashtable<Integer, LabelNode> paramIndex2ln =
       new Hashtable<Integer, LabelNode>();
+
+    Hashtable<Integer, HashSet<HeapRegionNode> > paramIndex2reachableCallerNodes =
+      new Hashtable<Integer, HashSet<HeapRegionNode> >();
+
+
+    // add a bogus entry with the identity rule for easy rewrite
+    // of new callee nodes and edges, doesn't belong to any parameter
+    Integer bogusID = new Integer( -1 );
+    Integer bogusIndex = new Integer( -1 );
+    TokenTuple bogusToken = new TokenTuple( bogusID, true, TokenTuple.ARITY_ONE );
+    TokenTuple bogusTokenStar = new TokenTuple( bogusID, true, TokenTuple.ARITY_MANY );
+    ReachabilitySet rsIdentity = 
+      new ReachabilitySet( new TokenTupleSet( bogusToken ).makeCanonical() ).makeCanonical();
+
+    paramIndex2rewriteH.put( bogusIndex, rsIdentity ); 
+    paramIndex2rewriteJ.put( bogusIndex, rsIdentity );
+    paramToken2paramIndex.put( bogusToken, bogusIndex );
+    paramIndex2paramToken.put( bogusIndex, bogusToken );
+    paramTokenStar2paramIndex.put( bogusTokenStar, bogusIndex );
+    paramIndex2paramTokenStar.put( bogusIndex, bogusTokenStar );
 
 
     for( int i = 0; i < fm.numParameters(); ++i ) {
@@ -998,7 +996,7 @@ public class OwnershipGraph {
       paramIndex2rewriteD.put( paramIndex, D_i );
     }
 
-
+    
     HashSet<HeapRegionNode> nodesWithNewAlpha = new HashSet<HeapRegionNode>();
     HashSet<ReferenceEdge>  edgesWithNewBeta  = new HashSet<ReferenceEdge>();
 
@@ -1037,6 +1035,9 @@ public class OwnershipGraph {
 	  }
 	}	
       }
+      
+      // save for later
+      paramIndex2reachableCallerNodes.put( index, reachableNodes );
 
       // now iterate over reachable nodes to update their alpha, and
       // classify edges found as "argument reachable" or "upstream"
@@ -1144,20 +1145,63 @@ public class OwnershipGraph {
 
 
 
-    /*
-    System.out.println( "Applying method call "+fm );
-    System.out.println( "  Change: "+C );
-    
-    
-    // the heap regions represented by the arguments (caller graph)
-    // and heap regions for the parameters (callee graph)
-    // don't correspond to each other by heap region ID.  In fact,
-    // an argument label node can be referencing several heap regions
-    // so the parameter label always references a multiple-object
-    // heap region in order to handle the range of possible contexts
-    // for a method call.  This means we need to make a special mapping
-    // of argument->parameter regions in order to update the caller graph
-    
+    // verify the existence of allocation sites and their
+    // shadows from the callee in the context of this caller graph
+    // then map allocated nodes of callee onto the caller shadows
+    // of them
+    Iterator<AllocationSite> asItr = ogCallee.allocationSites.iterator();
+    while( asItr.hasNext() ) {
+      AllocationSite allocSite  = asItr.next();
+      HeapRegionNode hrnSummary = getSummaryNode( allocSite );
+      
+      // assert that the shadow nodes have no reference edges
+      // because they're brand new to the graph, or last time
+      // they were used they should have been cleared of edges
+      HeapRegionNode hrnShadowSummary = getShadowSummaryNode( allocSite );
+      assert hrnShadowSummary.getNumReferencers() == 0;
+      assert hrnShadowSummary.getNumReferencees() == 0;
+
+      // then bring g_ij onto g'_ij and rewrite
+      transferOnto( hrnSummary, hrnShadowSummary );
+
+      // TODO REPLACE NORMAL TOKEN WITH SHADOW TOKEN BEFORE PROCEEDING!!
+
+      // shadow nodes only are touched by a rewrite one time,
+      // so rewrite and immediately commit--and they don't belong
+      // to a particular parameter, so use a bogus param index
+      // that pulls a self-rewrite out of H
+      rewriteCallerNodeAlpha( fm.numParameters(),
+			      bogusIndex,
+			      hrnShadowSummary,
+			      paramIndex2rewriteH,
+			      paramIndex2rewriteD,
+			      paramIndex2paramToken,
+			      paramIndex2paramTokenStar );
+
+
+      for( int i = 0; i < allocSite.getAllocationDepth(); ++i ) {
+	Integer idIth = allocSite.getIthOldest(i);
+	assert id2hrn.containsKey(idIth);
+	HeapRegionNode hrnIth = id2hrn.get(idIth);
+
+	Integer idShadowIth = -(allocSite.getIthOldest(i));
+	assert id2hrn.containsKey(idShadowIth);
+	HeapRegionNode hrnIthShadow = id2hrn.get(idShadowIth);
+	assert hrnIthShadow.getNumReferencers() == 0;
+	assert hrnIthShadow.getNumReferencees() == 0;
+
+	transferOnto( hrnIth, hrnIthShadow );
+
+	rewriteCallerNodeAlpha( fm.numParameters(),
+				bogusIndex,
+				hrnIthShadow,
+				paramIndex2rewriteH,
+				paramIndex2rewriteD,
+				paramIndex2paramToken,
+				paramIndex2paramTokenStar );	
+      }
+    }
+        
     // for every heap region->heap region edge in the
     // callee graph, create the matching edge or edges
     // in the caller graph
@@ -1168,17 +1212,14 @@ public class OwnershipGraph {
       Integer        idCallee  = (Integer)        meCallee.getKey();
       HeapRegionNode hrnCallee = (HeapRegionNode) meCallee.getValue();
       
-      HeapRegionNode hrnChildCallee = null;
-      Iterator heapRegionsItrCallee = hrnCallee.setIteratorToReferencedRegions();
+      Iterator<ReferenceEdge> heapRegionsItrCallee = hrnCallee.iteratorToReferencees();
       while( heapRegionsItrCallee.hasNext() ) {
-	Map.Entry me                 = (Map.Entry)               heapRegionsItrCallee.next();
-	hrnChildCallee               = (HeapRegionNode)          me.getKey();
-	ReferenceEdgeProperties repC = (ReferenceEdgeProperties) me.getValue();
-	
-	Integer idChildCallee = hrnChildCallee.getID();
+	ReferenceEdge edgeCallee      =  heapRegionsItrCallee.next();
+	HeapRegionNode hrnChildCallee = edgeCallee.getDst();       
+	Integer idChildCallee         = hrnChildCallee.getID();
 	
 	// only address this edge if it is not a special reflexive edge
-	if( !repC.isInitialParamReflexive() ) {
+	if( !edgeCallee.isInitialParamReflexive() ) {
 	  
 	  // now we know that in the callee method's ownership graph
 	  // there is a heap region->heap region reference edge given
@@ -1187,21 +1228,41 @@ public class OwnershipGraph {
 	  //
 	  // or by the ownership-graph independent ID's:
 	  // idCallee -> idChildCallee
-	  //
+
+	  // make the edge with src and dst so beta info is
+	  // calculated once, then copy it for each new edge in caller
+	  ReferenceEdge edgeNewInCallerTemplate = new ReferenceEdge( null,
+								     null,
+								     edgeCallee.getFieldDesc(),
+								     false,
+								     edgeCallee.getBeta() );
+	  rewriteCallerEdgeBeta( fm.numParameters(),
+				 bogusIndex,
+				 edgeNewInCallerTemplate,
+				 paramIndex2rewriteJ,
+				 paramIndex2rewriteD,
+				 paramIndex2paramToken,
+				 paramIndex2paramTokenStar,
+				 false,
+				 null );
+
+
+
+
 	  // So now make a set of possible source heaps in the caller graph
 	  // and a set of destination heaps in the caller graph, and make
 	  // a reference edge in the caller for every possible (src,dst) pair
 	  HashSet<HeapRegionNode> possibleCallerSrcs =
 	    getHRNSetThatPossiblyMapToCalleeHRN( ogCallee,
-						 idCallee,
-						 fc,
-						 isStatic );
+						 edgeCallee,
+						 true,
+						 paramIndex2reachableCallerNodes );
 	  
 	  HashSet<HeapRegionNode> possibleCallerDsts =
 	    getHRNSetThatPossiblyMapToCalleeHRN( ogCallee,
-						 idChildCallee,
-						 fc,
-						 isStatic );
+						 edgeCallee,
+						 false,
+						 paramIndex2reachableCallerNodes );
 	  
 	  // make every possible pair of {srcSet} -> {dstSet} edges in the caller
 	  Iterator srcItr = possibleCallerSrcs.iterator();
@@ -1212,13 +1273,24 @@ public class OwnershipGraph {
 	    while( dstItr.hasNext() ) {
 	      HeapRegionNode dst = (HeapRegionNode) dstItr.next();
 	      
-	      addReferenceEdge( src, dst, repC.copy() );
+	      ReferenceEdge edgeNewInCaller = edgeNewInCallerTemplate.copy();
+	      edgeNewInCaller.setSrc( src );
+	      edgeNewInCaller.setDst( dst );
+	      
+	      ReferenceEdge edgeExisting = src.getReferenceTo( dst, edgeNewInCaller.getFieldDesc() );
+	      if( edgeExisting == null ) {
+		// if this edge doesn't exist in the caller, create it
+		addReferenceEdge( src, dst, edgeNewInCaller );
+	      } else {
+		// if it already exists, merge with it
+		edgeExisting.setBeta( edgeExisting.getBeta().union( edgeNewInCaller.getBeta() ) );
+	      }
 	    }
 	  }
 	}
       }
     }
-    */
+
   }
 
 
@@ -1414,60 +1486,60 @@ public class OwnershipGraph {
   }
 
 
-  /*
-     private HashSet<HeapRegionNode> getHRNSetThatPossiblyMapToCalleeHRN( OwnershipGraph ogCallee,
-                                                                       Integer        idCallee,
-                                                                       FlatCall       fc,
-                                                                       boolean        isStatic ) {
+  private HashSet<HeapRegionNode> 
+    getHRNSetThatPossiblyMapToCalleeHRN( OwnershipGraph ogCallee,
+					 ReferenceEdge edgeCallee,
+					 boolean mapFromSrc,
+					 Hashtable<Integer, HashSet<HeapRegionNode> > paramIndex2reachableCallerNodes
+					 ) {
+    
+    HashSet<HeapRegionNode> possibleCallerHRNs = new HashSet<HeapRegionNode>();
+    
+    HeapRegionNode hrnCallee;
+    if( mapFromSrc ) {
+      OwnershipNode on = edgeCallee.getSrc();
+      assert on instanceof HeapRegionNode;
+      hrnCallee = (HeapRegionNode) on;
+    } else {
+      hrnCallee = edgeCallee.getDst();
+    }
 
-      HashSet<HeapRegionNode> possibleCallerHRNs = new HashSet<HeapRegionNode>();
+    Integer paramIndexCallee = ogCallee.id2paramIndex.get( hrnCallee.getID() );
 
-      if( ogCallee.id2paramIndex.containsKey( idCallee ) ) {
-          // the heap region that is part of this
-          // reference edge won't have a matching ID in the
-          // caller graph because it is specifically allocated
-          // for a particular parameter.  Use that information
-          // to find the corresponding argument label in the
-          // caller in order to create the proper reference edge
-          // or edges.
-          assert !id2hrn.containsKey( idCallee );
+    if( paramIndexCallee == null ) {
+      // this is a node allocated in the callee then and it has
+      // exactly one shadow node in the caller to map to
+      AllocationSite as = hrnCallee.getAllocationSite();
+      assert as != null;
 
-          Integer paramIndex = ogCallee.id2paramIndex.get( idCallee );
-          TempDescriptor argTemp;
+      int age = as.getAge( hrnCallee.getID() );
+      assert age != AllocationSite.AGE_notInThisSite;
 
-          // now depending on whether the callee is static or not
-          // we need to account for a "this" argument in order to
-          // find the matching argument in the caller context
-          if( isStatic ) {
-              argTemp = fc.getArg( paramIndex );
-          } else {
-              if( paramIndex == 0 ) {
-                  argTemp = fc.getThis();
-              } else {
-                  argTemp = fc.getArg( paramIndex - 1 );
-              }
-          }
-
-          LabelNode argLabel = getLabelNodeFromTemp( argTemp );
-          Iterator argHeapRegionsItr = argLabel.setIteratorToReferencedRegions();
-          while( argHeapRegionsItr.hasNext() ) {
-              Map.Entry meArg                = (Map.Entry)               argHeapRegionsItr.next();
-              HeapRegionNode argHeapRegion   = (HeapRegionNode)          meArg.getKey();
-              ReferenceEdgeProperties repArg = (ReferenceEdgeProperties) meArg.getValue();
-
-              possibleCallerHRNs.add( (HeapRegionNode) argHeapRegion );
-          }
-
+      Integer idCaller;
+      if( age == AllocationSite.AGE_summary ) {
+	idCaller = as.getSummaryShadow();
+      } else if( age == AllocationSite.AGE_oldest ) {
+	idCaller = as.getOldestShadow();
       } else {
-          // this heap region is not a parameter, so it should
-          // have a matching heap region in the caller graph
-          assert id2hrn.containsKey( idCallee );
-          possibleCallerHRNs.add( id2hrn.get( idCallee ) );
+	idCaller = as.getIthOldestShadow( age );
       }
 
-      return possibleCallerHRNs;
-     }
-   */
+      assert id2hrn.containsKey( idCaller );
+      HeapRegionNode hrnCaller = id2hrn.get( idCaller );
+      possibleCallerHRNs.add( hrnCaller );
+      
+    } else {
+      // this is a node that was created to represent a parameter
+      // so it maps to a whole mess of heap regions
+      assert paramIndex2reachableCallerNodes.containsKey( paramIndexCallee );
+      possibleCallerHRNs = paramIndex2reachableCallerNodes.get( paramIndexCallee );
+
+      // TODO PRUNE BY TYPE/FIELD NAME!!
+    }
+
+    return possibleCallerHRNs;
+  }
+  
 
 
   ////////////////////////////////////////////////////
