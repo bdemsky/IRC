@@ -209,7 +209,9 @@ public class TokenTupleSet extends Canonical {
 
 
   public ReachabilitySet rewriteToken( TokenTuple tokenToRewrite,
-				       ReachabilitySet replacements ) {
+				       ReachabilitySet replacements,
+				       boolean makeChangeSet,
+				       Hashtable<TokenTupleSet, TokenTupleSet> forChangeSet ) {
     
     ReachabilitySet rsOut = new ReachabilitySet().makeCanonical();
     
@@ -226,6 +228,11 @@ public class TokenTupleSet extends Canonical {
 	TokenTupleSet replaced = new TokenTupleSet( ttsMinusToken );
 	replaced = replaced.unionUpArity( replacement );
 	rsOut = rsOut.add( replaced );
+
+	if( makeChangeSet ) {
+	  assert forChangeSet != null;
+	  forChangeSet.put( this, replaced );
+	}
       }
     }
     

@@ -264,14 +264,13 @@ public class OwnershipGraph {
       todoNodes.remove(n);
     }
 
-    propagateTokensOverEdges(todoEdges, edgePlannedChanges, nodesWithNewAlpha, edgesWithNewBeta);
+    propagateTokensOverEdges(todoEdges, edgePlannedChanges, edgesWithNewBeta);
   }
 
 
   protected void propagateTokensOverEdges(
     HashSet<ReferenceEdge>                   todoEdges,
     Hashtable<ReferenceEdge, ChangeTupleSet> edgePlannedChanges,
-    HashSet<HeapRegionNode>                  nodesWithNewAlpha,
     HashSet<ReferenceEdge>                   edgesWithNewBeta) {
 
 
@@ -444,7 +443,6 @@ public class OwnershipGraph {
 
 	propagateTokensOverEdges(todoEdges,
 	                         edgePlannedChanges,
-	                         nodesWithNewAlpha,
 	                         edgesWithNewBeta);
 
 
@@ -913,7 +911,7 @@ public class OwnershipGraph {
     Hashtable<Integer, ReachabilitySet> paramIndex2rewriteD =
       new Hashtable<Integer, ReachabilitySet>();
 
-
+    // helpful structures
     Hashtable<TokenTuple, Integer> paramToken2paramIndex =
       new Hashtable<TokenTuple, Integer>();
 
@@ -925,7 +923,6 @@ public class OwnershipGraph {
 
     Hashtable<Integer, TokenTuple> paramIndex2paramTokenStar =
       new Hashtable<Integer, TokenTuple>();
-
 
     Hashtable<Integer, LabelNode> paramIndex2ln =
       new Hashtable<Integer, LabelNode>();
@@ -1003,6 +1000,10 @@ public class OwnershipGraph {
 
 
     HashSet<HeapRegionNode> nodesWithNewAlpha = new HashSet<HeapRegionNode>();
+    HashSet<ReferenceEdge>  edgesWithNewBeta  = new HashSet<ReferenceEdge>();
+
+    HashSet<ReferenceEdge>  edgesReachable    = new HashSet<ReferenceEdge>();
+    HashSet<ReferenceEdge>  edgesUpstream     = new HashSet<ReferenceEdge>();
 
     Iterator lnArgItr = paramIndex2ln.entrySet().iterator();
     while( lnArgItr.hasNext() ) {
@@ -1052,14 +1053,93 @@ public class OwnershipGraph {
 				paramIndex2paramTokenStar );
 
 	nodesWithNewAlpha.add( hrn );
+	
+	// look at all incoming edges to the reachable nodes
+	// and sort them as edges reachable from the argument
+	// label node, or upstream edges
+	Iterator<ReferenceEdge> edgeItr = hrn.iteratorToReferencers();
+	while( edgeItr.hasNext() ) {
+	  ReferenceEdge edge = edgeItr.next();
+
+	  OwnershipNode on = edge.getSrc();
+
+	  if( on instanceof LabelNode ) {
+
+	    LabelNode ln0 = (LabelNode) on;
+	    if( ln0.equals( lnArg_i ) ) {
+	      edgesReachable.add( edge );
+	    } else { 
+	      edgesUpstream.add( edge );
+	    }
+
+	  } else {
+
+	    HeapRegionNode hrn0 = (HeapRegionNode) on;
+	    if( reachableNodes.contains( hrn0 ) ) {
+	      edgesReachable.add( edge );
+	    } else {
+	      edgesUpstream.add( edge );
+	    }
+	  }
+	}	
       }
+
+
+      // update reachable edges
+      Iterator<ReferenceEdge> edgeReachableItr = edgesReachable.iterator();
+      while( edgeReachableItr.hasNext() ) {
+	ReferenceEdge edgeReachable = edgeReachableItr.next();
+
+	rewriteCallerEdgeBeta( fm.numParameters(),
+			       index,
+			       edgeReachable,
+			       paramIndex2rewriteJ,
+			       paramIndex2rewriteD,
+			       paramIndex2paramToken,
+			       paramIndex2paramTokenStar,
+			       false,
+			       null );
+	
+	edgesWithNewBeta.add( edgeReachable );	
+      } 
+
+
+      // update upstream edges
+      Hashtable<ReferenceEdge, ChangeTupleSet> edgeUpstreamPlannedChanges
+	= new Hashtable<ReferenceEdge, ChangeTupleSet>();
+
+      Iterator<ReferenceEdge> edgeUpstreamItr = edgesUpstream.iterator();
+      while( edgeUpstreamItr.hasNext() ) {
+	ReferenceEdge edgeUpstream = edgeUpstreamItr.next();
+
+	rewriteCallerEdgeBeta( fm.numParameters(),
+			       index,
+			       edgeUpstream,
+			       paramIndex2rewriteK,
+			       paramIndex2rewriteD,
+			       paramIndex2paramToken,
+			       paramIndex2paramTokenStar,
+			       true,
+			       edgeUpstreamPlannedChanges );
+	
+	edgesWithNewBeta.add( edgeUpstream );	
+      }
+
+      propagateTokensOverEdges( edgesUpstream,
+				edgeUpstreamPlannedChanges,
+				edgesWithNewBeta );
     }    
     
 
-    // commit changes to alpha
+    // commit changes to alpha and beta
     Iterator<HeapRegionNode> nodeItr = nodesWithNewAlpha.iterator();
     while( nodeItr.hasNext() ) {
       nodeItr.next().applyAlphaNew();
+    }
+
+    Iterator<ReferenceEdge> edgeItr = edgesWithNewBeta.iterator();
+    while( edgeItr.hasNext() ) {
+      edgeItr.next().applyBetaNew();
     }
 
 
@@ -1160,7 +1240,10 @@ public class OwnershipGraph {
     Iterator<TokenTupleSet> ttsItr = rules.iterator();
     while( ttsItr.hasNext() ) {
       TokenTupleSet tts = ttsItr.next();
-      r0 = r0.union( tts.rewriteToken( tokenToRewrite, hrn.getAlpha() ) );
+      r0 = r0.union( tts.rewriteToken( tokenToRewrite,
+				       hrn.getAlpha(),
+				       false,
+				       null ) );
     }
     
     ReachabilitySet r1 = new ReachabilitySet().makeCanonical();
@@ -1175,7 +1258,92 @@ public class OwnershipGraph {
 				   paramIndex2paramTokenStar ) );
     }    
 
-    hrn.setAlphaNew( r1 );
+    hrn.setAlphaNew( hrn.getAlphaNew().union( r1 ) );
+  }
+
+
+  private void rewriteCallerEdgeBeta( int numParameters, 
+				      Integer paramIndex, 
+				      ReferenceEdge edge,
+				      Hashtable<Integer, ReachabilitySet> paramIndex2rewriteJorK,
+				      Hashtable<Integer, ReachabilitySet> paramIndex2rewriteD,
+				      Hashtable<Integer, TokenTuple> paramIndex2paramToken,
+				      Hashtable<Integer, TokenTuple> paramIndex2paramTokenStar,
+				      boolean makeChangeSet,
+				      Hashtable<ReferenceEdge, ChangeTupleSet> edgePlannedChanges) {
+    
+    ReachabilitySet rules = paramIndex2rewriteJorK.get( paramIndex );
+    assert rules != null;
+
+    TokenTuple tokenToRewrite = paramIndex2paramToken.get( paramIndex );
+    assert tokenToRewrite != null;
+
+    ChangeTupleSet cts0 = new ChangeTupleSet().makeCanonical();
+
+    Iterator<TokenTupleSet> ttsItr = rules.iterator();
+    while( ttsItr.hasNext() ) {
+      TokenTupleSet tts = ttsItr.next();
+
+      Hashtable<TokenTupleSet, TokenTupleSet> forChangeSet =
+	new Hashtable<TokenTupleSet, TokenTupleSet>();
+      
+      ReachabilitySet rTemp = tts.rewriteToken( tokenToRewrite,
+						edge.getBeta(),
+						true,
+						forChangeSet );
+
+      Iterator fcsItr = forChangeSet.entrySet().iterator();
+      while( fcsItr.hasNext() ) {
+	Map.Entry me = (Map.Entry) fcsItr.next();
+	TokenTupleSet ttsMatch = (TokenTupleSet) me.getKey();
+	TokenTupleSet ttsAdd   = (TokenTupleSet) me.getValue();
+	
+	ChangeTuple ct = new ChangeTuple( ttsMatch,
+					  ttsAdd
+					  ).makeCanonical();
+	
+	cts0 = cts0.union( ct );
+      }
+    }
+
+    
+    ReachabilitySet r1 = new ReachabilitySet().makeCanonical();
+    ChangeTupleSet cts1 = new ChangeTupleSet().makeCanonical();
+
+    Iterator<ChangeTuple> ctItr = cts0.iterator();
+    while( ctItr.hasNext() ) {
+      ChangeTuple ct = ctItr.next();
+
+      ReachabilitySet rTemp = rewriteDpass( numParameters,
+					    paramIndex,
+					    ct.getSetToAdd(),
+					    paramIndex2rewriteD,
+					    paramIndex2paramToken,
+					    paramIndex2paramTokenStar
+					    ).makeCanonical();
+      r1 = r1.union( rTemp );
+      
+      if( makeChangeSet ) {
+	assert edgePlannedChanges != null;
+	
+	Iterator<TokenTupleSet> ttsTempItr = rTemp.iterator();
+	while( ttsTempItr.hasNext() ) {
+	  TokenTupleSet tts = ttsTempItr.next();
+
+	  ChangeTuple ctFinal = new ChangeTuple( ct.getSetToMatch(),
+						 tts
+						 ).makeCanonical();
+
+	  cts1 = cts1.union( ctFinal );
+	}
+      }
+    }
+
+    if( makeChangeSet ) {
+      edgePlannedChanges.put( edge, cts1 );
+    }
+
+    edge.setBetaNew( edge.getBetaNew().union( r1 ) );
   }
 
 
@@ -1199,7 +1367,10 @@ public class OwnershipGraph {
 	TokenTuple tokenToRewriteJ = paramIndex2paramToken.get( paramIndexJ );
 	assert tokenToRewriteJ != null;
 	if( ttsIn.containsTuple( tokenToRewriteJ ) ) {
-	  ReachabilitySet r = ttsIn.rewriteToken( tokenToRewriteJ, D_j );
+	  ReachabilitySet r = ttsIn.rewriteToken( tokenToRewriteJ,
+						  D_j,
+						  false,
+						  null );
 	  Iterator<TokenTupleSet> ttsItr = r.iterator();
 	  while( ttsItr.hasNext() ) {
 	    TokenTupleSet tts = ttsItr.next();
@@ -1217,7 +1388,10 @@ public class OwnershipGraph {
       TokenTuple tokenStarToRewriteJ = paramIndex2paramTokenStar.get( paramIndexJ );
       assert tokenStarToRewriteJ != null;		
       if( ttsIn.containsTuple( tokenStarToRewriteJ ) ) {
-	ReachabilitySet r = ttsIn.rewriteToken( tokenStarToRewriteJ, D_j );
+	ReachabilitySet r = ttsIn.rewriteToken( tokenStarToRewriteJ,
+						D_j,
+						false,
+						null );
 	Iterator<TokenTupleSet> ttsItr = r.iterator();
 	while( ttsItr.hasNext() ) {
 	  TokenTupleSet tts = ttsItr.next();
