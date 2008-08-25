@@ -860,14 +860,6 @@ public class OwnershipGraph {
     hrn.setAlpha(hrn.getAlpha().ageTokens(as) );
   }
 
-  protected void majorAgeTokens(AllocationSite as, ReferenceEdge edge) {
-    //edge.setBeta( edge.getBeta().majorAgeTokens( as ) );
-  }
-
-  protected void majorAgeTokens(AllocationSite as, HeapRegionNode hrn) {
-    //hrn.setAlpha( hrn.getAlpha().majorAgeTokens( as ) );
-  }
-
 
   public void resolveMethodCall(FlatCall fc,
                                 boolean isStatic,
@@ -935,11 +927,15 @@ public class OwnershipGraph {
       assert ogCallee.id2hrn.containsKey( idParam );
       HeapRegionNode hrnParam = ogCallee.id2hrn.get( idParam );
       assert hrnParam != null;
-      paramIndex2rewriteH.put( paramIndex, hrnParam.getAlpha() );
+      paramIndex2rewriteH.put( paramIndex,
+			       toShadowTokens( ogCallee, hrnParam.getAlpha() )
+			       );
 
       ReferenceEdge edgeReflexive_i = hrnParam.getReferenceTo( hrnParam, null );
       assert edgeReflexive_i != null;
-      paramIndex2rewriteJ.put( paramIndex, edgeReflexive_i.getBeta() );
+      paramIndex2rewriteJ.put( paramIndex, 
+			       toShadowTokens( ogCallee, edgeReflexive_i.getBeta() )
+			       );
 
       TempDescriptor tdParamQ = ogCallee.paramIndex2tdQ.get( paramIndex );
       assert tdParamQ != null;
@@ -947,7 +943,9 @@ public class OwnershipGraph {
       assert lnParamQ != null;
       ReferenceEdge edgeSpecialQ_i = lnParamQ.getReferenceTo( hrnParam, null );
       assert edgeSpecialQ_i != null;
-      paramIndex2rewriteK.put( paramIndex, edgeSpecialQ_i.getBeta() );
+      paramIndex2rewriteK.put( paramIndex, 
+			       toShadowTokens( ogCallee, edgeSpecialQ_i.getBeta() )
+			       );
 
       TokenTuple p_i = new TokenTuple( hrnParam.getID(),
 				       true,
@@ -1164,7 +1162,7 @@ public class OwnershipGraph {
       // then bring g_ij onto g'_ij and rewrite
       transferOnto( hrnSummary, hrnShadowSummary );
 
-      // TODO REPLACE NORMAL TOKEN WITH SHADOW TOKEN BEFORE PROCEEDING!!
+      hrnShadowSummary.setAlpha( toShadowTokens( ogCallee, hrnShadowSummary.getAlpha() ) );
 
       // shadow nodes only are touched by a rewrite one time,
       // so rewrite and immediately commit--and they don't belong
@@ -1191,6 +1189,8 @@ public class OwnershipGraph {
 	assert hrnIthShadow.getNumReferencees() == 0;
 
 	transferOnto( hrnIth, hrnIthShadow );
+	
+	hrnIthShadow.setAlpha( toShadowTokens( ogCallee, hrnIthShadow.getAlpha() ) );
 
 	rewriteCallerNodeAlpha( fm.numParameters(),
 				bogusIndex,
@@ -1235,7 +1235,8 @@ public class OwnershipGraph {
 								     null,
 								     edgeCallee.getFieldDesc(),
 								     false,
-								     edgeCallee.getBeta() );
+								     toShadowTokens( ogCallee, edgeCallee.getBeta() )
+								     );
 	  rewriteCallerEdgeBeta( fm.numParameters(),
 				 bogusIndex,
 				 edgeNewInCallerTemplate,
@@ -1291,6 +1292,22 @@ public class OwnershipGraph {
       }
     }
 
+  }
+
+
+  private ReachabilitySet toShadowTokens( OwnershipGraph ogCallee,
+					  ReachabilitySet rsIn ) {
+
+    ReachabilitySet rsOut = new ReachabilitySet( rsIn );
+
+    Iterator<AllocationSite> allocItr = ogCallee.allocationSites.iterator();
+    while( allocItr.hasNext() ) {
+      AllocationSite as = allocItr.next();
+
+      rsOut = rsOut.toShadowTokens( as );
+    }
+
+    return rsOut.makeCanonical();
   }
 
 
@@ -1540,6 +1557,15 @@ public class OwnershipGraph {
     return possibleCallerHRNs;
   }
   
+
+  protected void majorAgeTokens(AllocationSite as, ReferenceEdge edge) {
+    //edge.setBeta( edge.getBeta().majorAgeTokens( as ) );
+  }
+
+  protected void majorAgeTokens(AllocationSite as, HeapRegionNode hrn) {
+    //hrn.setAlpha( hrn.getAlpha().majorAgeTokens( as ) );
+  }
+
 
 
   ////////////////////////////////////////////////////

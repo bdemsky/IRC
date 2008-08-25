@@ -208,6 +208,38 @@ public class TokenTupleSet extends Canonical {
   }
 
 
+  public TokenTupleSet toShadowTokens(AllocationSite as) {
+    assert as != null;
+
+    TokenTupleSet ttsOut = new TokenTupleSet();
+
+    Iterator itrT = this.iterator();
+    while( itrT.hasNext() ) {
+      TokenTuple tt = (TokenTuple) itrT.next();
+
+      Integer token = tt.getToken();
+      int age = as.getAge(token);
+
+      // summary tokens and tokens not associated with
+      // the site should be left alone
+      if( age == AllocationSite.AGE_notInThisSite ) {
+	ttsOut.tokenTuples.add(tt);
+
+      } else if( age == AllocationSite.AGE_summary ) {
+	ttsOut.tokenTuples.add(tt.changeTokenTo( as.getSummaryShadow() ));
+
+      } else if( age == AllocationSite.AGE_oldest ) {
+	ttsOut.tokenTuples.add(tt.changeTokenTo( as.getOldestShadow() ));
+
+      } else {
+	ttsOut.tokenTuples.add(tt.changeTokenTo( as.getIthOldestShadow( age ) ));
+      }
+    }
+
+    return ttsOut.makeCanonical();
+  }
+
+
   public ReachabilitySet rewriteToken( TokenTuple tokenToRewrite,
 				       ReachabilitySet replacements,
 				       boolean makeChangeSet,

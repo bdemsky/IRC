@@ -174,7 +174,22 @@ public class ReachabilitySet extends Canonical {
     Iterator itrS = this.iterator();
     while( itrS.hasNext() ) {
       TokenTupleSet tts = (TokenTupleSet) itrS.next();
-      rsOut.possibleReachabilities.add(tts.ageTokens(as) );
+      rsOut.possibleReachabilities.add( tts.ageTokens(as) );
+    }
+
+    return rsOut.makeCanonical();
+  }
+
+
+  public ReachabilitySet toShadowTokens(AllocationSite as) {
+    assert as != null;
+
+    ReachabilitySet rsOut = new ReachabilitySet();
+
+    Iterator itrS = this.iterator();
+    while( itrS.hasNext() ) {
+      TokenTupleSet tts = (TokenTupleSet) itrS.next();
+      rsOut.possibleReachabilities.add( tts.toShadowTokens(as) );
     }
 
     return rsOut.makeCanonical();

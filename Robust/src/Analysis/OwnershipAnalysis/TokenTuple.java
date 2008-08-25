@@ -70,7 +70,6 @@ public class TokenTuple extends Canonical {
 
   public TokenTuple changeTokenTo(Integer tokenToChangeTo) {
     assert tokenToChangeTo != null;
-    assert isNewSummary    == false;
 
     return new TokenTuple(tokenToChangeTo,
                           isNewSummary,
