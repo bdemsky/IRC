@@ -1162,7 +1162,8 @@ public class OwnershipGraph {
       // then bring g_ij onto g'_ij and rewrite
       transferOnto( hrnSummary, hrnShadowSummary );
 
-      hrnShadowSummary.setAlpha( toShadowTokens( ogCallee, hrnShadowSummary.getAlpha() ) );
+      HeapRegionNode hrnSummaryCallee = ogCallee.getSummaryNode( allocSite );      
+      hrnShadowSummary.setAlpha( toShadowTokens( ogCallee, hrnSummaryCallee.getAlpha() ) );
 
       // shadow nodes only are touched by a rewrite one time,
       // so rewrite and immediately commit--and they don't belong
@@ -1175,6 +1176,8 @@ public class OwnershipGraph {
 			      paramIndex2rewriteD,
 			      paramIndex2paramToken,
 			      paramIndex2paramTokenStar );
+      
+      hrnShadowSummary.applyAlphaNew();
 
 
       for( int i = 0; i < allocSite.getAllocationDepth(); ++i ) {
@@ -1190,7 +1193,9 @@ public class OwnershipGraph {
 
 	transferOnto( hrnIth, hrnIthShadow );
 	
-	hrnIthShadow.setAlpha( toShadowTokens( ogCallee, hrnIthShadow.getAlpha() ) );
+	assert ogCallee.id2hrn.containsKey(idIth);
+	HeapRegionNode hrnIthCallee = ogCallee.id2hrn.get(idIth);
+	hrnIthShadow.setAlpha( toShadowTokens( ogCallee, hrnIthCallee.getAlpha() ) );
 
 	rewriteCallerNodeAlpha( fm.numParameters(),
 				bogusIndex,
@@ -1199,9 +1204,17 @@ public class OwnershipGraph {
 				paramIndex2rewriteD,
 				paramIndex2paramToken,
 				paramIndex2paramTokenStar );	
+
+	hrnIthShadow.applyAlphaNew();
       }
     }
         
+
+    try{
+      writeGraph("test",true,true,true,false);
+    } catch(Exception e){}
+
+
     // for every heap region->heap region edge in the
     // callee graph, create the matching edge or edges
     // in the caller graph
@@ -1247,6 +1260,7 @@ public class OwnershipGraph {
 				 false,
 				 null );
 
+	  edgeNewInCallerTemplate.applyBetaNew();
 
 
 
