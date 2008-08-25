@@ -181,7 +181,15 @@ public class HeapRegionNode extends OwnershipNode {
 
 
   public String getIDString() {
-    return id.toString();
+    String s;
+
+    if( id < 0 ) {
+      s = "minus" + new Integer(-id).toString();
+    } else {
+      s = id.toString();
+    }
+
+    return s;
   }
 
   public String getAlphaString() {

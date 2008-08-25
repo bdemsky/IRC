@@ -29,13 +29,19 @@ public class AllocationSite {
   protected Integer summary;
   protected TypeDescriptor type;
 
-  public static final int AGE_notInThisSite = -1;
-  public static final int AGE_oldest        = -2;
-  public static final int AGE_summary       = -3;
+  public static final int AGE_notInThisSite = 100;
+  public static final int AGE_in_I          = 101;
+  public static final int AGE_oldest        = 102;
+  public static final int AGE_summary       = 103;
+
+  public static final int SHADOWAGE_notInThisSite = -100;
+  public static final int SHADOWAGE_in_I          = -101;
+  public static final int SHADOWAGE_oldest        = -102;
+  public static final int SHADOWAGE_summary       = -103;
 
 
   public AllocationSite(int allocationDepth, TypeDescriptor type) {
-    assert allocationDepth >= 1;
+    assert allocationDepth >= 2;
 
     this.allocationDepth = allocationDepth;
     this.type            = type;
@@ -101,7 +107,8 @@ public class AllocationSite {
     return type;
   }
 
-  public int getAge(Integer id) {
+  public int getAgeCategory(Integer id) {
+    
     if( id.equals(summary) ) {
       return AGE_summary;
     }
@@ -112,11 +119,49 @@ public class AllocationSite {
 
     for( int i = 0; i < allocationDepth - 1; ++i ) {
       if( id.equals(ithOldest.get(i) ) ) {
-	return i;
+	return AGE_in_I;
       }
     }
 
     return AGE_notInThisSite;
+  }
+
+  public Integer getAge(Integer id) {
+    for( int i = 0; i < allocationDepth - 1; ++i ) {
+      if( id.equals(ithOldest.get(i) ) ) {
+	return new Integer( i );
+      }
+    }
+    
+    return null;
+  }
+  
+  public int getShadowAgeCategory(Integer id) {
+    if( id.equals(-summary) ) {
+      return SHADOWAGE_summary;
+    }
+
+    if( id.equals(getOldestShadow() ) ) {
+      return SHADOWAGE_oldest;
+    }
+
+    for( int i = 0; i < allocationDepth - 1; ++i ) {
+      if( id.equals( getIthOldestShadow(i) ) ) {
+	return SHADOWAGE_in_I;
+      }
+    }
+
+    return SHADOWAGE_notInThisSite;
+  }
+
+  public Integer getShadowAge( Integer id ) {
+    for( int i = 0; i < allocationDepth - 1; ++i ) {
+      if( id.equals( getIthOldestShadow(i) ) ) {
+	return new Integer( -i );
+      }
+    }
+
+    return null;
   }
 
   public String toString() {

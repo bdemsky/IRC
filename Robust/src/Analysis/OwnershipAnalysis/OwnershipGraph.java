@@ -1292,6 +1292,77 @@ public class OwnershipGraph {
       }
     }
 
+
+    // merge the shadow nodes of allocation sites back down to normal capacity
+    Iterator<AllocationSite> allocItr = ogCallee.allocationSites.iterator();
+    while( allocItr.hasNext() ) {
+      AllocationSite as = allocItr.next();
+
+      // first age each allocation site enough times to make room for the shadow nodes
+      for( int i = 0; i < as.getAllocationDepth(); ++i ) {
+	age( as );
+      }
+
+      // then merge the shadow summary into the normal summary
+      HeapRegionNode hrnSummary = getSummaryNode( as );
+      assert hrnSummary != null;
+
+      HeapRegionNode hrnSummaryShadow = getShadowSummaryNode( as );
+      assert hrnSummaryShadow != null;
+
+      mergeIntoSummary( hrnSummaryShadow, hrnSummary );
+
+      // then transplant shadow nodes onto the now clean normal nodes
+      for( int i = 0; i < as.getAllocationDepth(); ++i ) {
+	
+	Integer idIth = as.getIthOldest(i);
+	HeapRegionNode hrnIth = id2hrn.get(idIth);
+
+	Integer idIthShadow = as.getIthOldestShadow(i);
+	HeapRegionNode hrnIthShadow = id2hrn.get(idIthShadow);
+	
+	transferOnto(hrnIthShadow, hrnIth);
+	
+	// clear off shadow nodes after transfer
+	clearReferenceEdgesFrom(hrnIthShadow, null, true);
+	clearReferenceEdgesTo(hrnIthShadow, null, true);
+	hrnIthShadow.setAlpha( new ReachabilitySet().makeCanonical() );
+      }     
+
+      // finally, globally change shadow tokens into normal tokens
+      Iterator itrAllLabelNodes = td2ln.entrySet().iterator();
+      while( itrAllLabelNodes.hasNext() ) {
+	Map.Entry me = (Map.Entry)itrAllLabelNodes.next();
+	LabelNode ln = (LabelNode) me.getValue();
+	
+	Iterator<ReferenceEdge> itrEdges = ln.iteratorToReferencees();
+	while( itrEdges.hasNext() ) {
+	  unshadowTokens(as, itrEdges.next() );
+	}
+      }
+      
+      Iterator itrAllHRNodes = id2hrn.entrySet().iterator();
+      while( itrAllHRNodes.hasNext() ) {
+	Map.Entry me       = (Map.Entry)itrAllHRNodes.next();
+	HeapRegionNode hrnToAge = (HeapRegionNode) me.getValue();
+	
+	unshadowTokens(as, hrnToAge);
+	
+	Iterator<ReferenceEdge> itrEdges = hrnToAge.iteratorToReferencees();
+	while( itrEdges.hasNext() ) {
+	  unshadowTokens(as, itrEdges.next() );
+	}
+      }      
+    }
+  }
+
+
+  protected void unshadowTokens(AllocationSite as, ReferenceEdge edge) {
+    edge.setBeta(edge.getBeta().unshadowTokens(as) );
+  }
+
+  protected void unshadowTokens(AllocationSite as, HeapRegionNode hrn) {
+    hrn.setAlpha(hrn.getAlpha().unshadowTokens(as) );
   }
 
 
@@ -1529,7 +1600,7 @@ public class OwnershipGraph {
       AllocationSite as = hrnCallee.getAllocationSite();
       assert as != null;
 
-      int age = as.getAge( hrnCallee.getID() );
+      int age = as.getAgeCategory( hrnCallee.getID() );
       assert age != AllocationSite.AGE_notInThisSite;
 
       Integer idCaller;
@@ -1538,7 +1609,12 @@ public class OwnershipGraph {
       } else if( age == AllocationSite.AGE_oldest ) {
 	idCaller = as.getOldestShadow();
       } else {
-	idCaller = as.getIthOldestShadow( age );
+	assert age == AllocationSite.AGE_in_I;
+
+	Integer I = as.getAge( hrnCallee.getID() );
+	assert I != null;
+	
+	idCaller = as.getIthOldestShadow( I );
       }
 
       assert id2hrn.containsKey( idCaller );
@@ -1557,15 +1633,6 @@ public class OwnershipGraph {
     return possibleCallerHRNs;
   }
   
-
-  protected void majorAgeTokens(AllocationSite as, ReferenceEdge edge) {
-    //edge.setBeta( edge.getBeta().majorAgeTokens( as ) );
-  }
-
-  protected void majorAgeTokens(AllocationSite as, HeapRegionNode hrn) {
-    //hrn.setAlpha( hrn.getAlpha().majorAgeTokens( as ) );
-  }
-
 
 
   ////////////////////////////////////////////////////

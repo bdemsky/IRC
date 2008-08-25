@@ -181,6 +181,21 @@ public class ReachabilitySet extends Canonical {
   }
 
 
+  public ReachabilitySet unshadowTokens(AllocationSite as) {
+    assert as != null;
+
+    ReachabilitySet rsOut = new ReachabilitySet();
+
+    Iterator itrS = this.iterator();
+    while( itrS.hasNext() ) {
+      TokenTupleSet tts = (TokenTupleSet) itrS.next();
+      rsOut.possibleReachabilities.add( tts.unshadowTokens(as) );
+    }
+
+    return rsOut.makeCanonical();
+  }  
+
+
   public ReachabilitySet toShadowTokens(AllocationSite as) {
     assert as != null;
 

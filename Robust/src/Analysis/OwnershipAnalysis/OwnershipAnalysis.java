@@ -196,8 +196,6 @@ public class OwnershipAnalysis {
     this.callGraph       = callGraph;
     this.allocationDepth = allocationDepth;
 
-    // temporary for debugging
-    this.allocationDepth = 1;
 
     descriptorsToVisit = new HashSet<Descriptor>();
 
