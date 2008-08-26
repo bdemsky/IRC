@@ -175,7 +175,6 @@ public class OwnershipAnalysis {
   // processing all methods in the program, and by methods
   // TaskDescriptor and MethodDescriptor are combined
   // together, with a common parent class Descriptor
-  private HashSet  <Descriptor>                           descriptorsToVisit;
   private Hashtable<Descriptor, OwnershipGraph>           mapDescriptorToCompleteOwnershipGraph;
   private Hashtable<FlatNew,    AllocationSite>           mapFlatNewToAllocationSite;
   private Hashtable<Descriptor, HashSet<AllocationSite> > mapDescriptorToAllocationSiteSet;
@@ -185,6 +184,18 @@ public class OwnershipAnalysis {
   private HashSet  <FlatNode>                 flatNodesToVisit;
   private Hashtable<FlatNode, OwnershipGraph> mapFlatNodeToOwnershipGraph;
   private HashSet  <FlatReturnNode>           returnNodesToCombineForCompleteOwnershipGraph;
+
+  // descriptorsToAnalyze identifies the set of tasks and methods
+  // that are reachable from the program tasks, this set is initialized
+  // and then remains static
+  private HashSet<Descriptor> descriptorsToAnalyze;
+
+  // descriptorsToVisit is initialized to descriptorsToAnalyze and is
+  // reduced by visiting a descriptor during analysis.  When dependents
+  // must be scheduled, only those contained in descriptorsToAnalyze
+  // should be re-added to this set
+  private HashSet<Descriptor> descriptorsToVisit;
+
 
 
   // this analysis generates an ownership graph for every task
@@ -197,7 +208,7 @@ public class OwnershipAnalysis {
     this.allocationDepth = allocationDepth;
 
 
-    descriptorsToVisit = new HashSet<Descriptor>();
+    descriptorsToAnalyze = new HashSet<Descriptor>();
 
     mapDescriptorToCompleteOwnershipGraph =
       new Hashtable<Descriptor, OwnershipGraph>();
@@ -208,10 +219,6 @@ public class OwnershipAnalysis {
     mapDescriptorToAllocationSiteSet =
       new Hashtable<Descriptor, HashSet<AllocationSite> >();
 
-    // use this set to prevent infinite recursion when
-    // traversing the call graph
-    HashSet<Descriptor> calleesScheduled = new HashSet<Descriptor>();
-
 
     // initialize methods to visit as the set of all tasks in the
     // program and then any method that could be called starting
@@ -219,16 +226,13 @@ public class OwnershipAnalysis {
     Iterator taskItr = state.getTaskSymbolTable().getDescriptorsIterator();
     while( taskItr.hasNext() ) {
       Descriptor d = (Descriptor) taskItr.next();
-      descriptorsToVisit.add(d);
-
-      // recursively find all callees from this task
-      scheduleAllCallees(calleesScheduled, d);
+      scheduleAllCallees(d);
     }
 
     // before beginning analysis, initialize every scheduled method
     // with an ownership graph that has populated parameter index tables
     // by analyzing the first node which is always a FlatMethod node
-    Iterator<Descriptor> dItr = calleesScheduled.iterator();
+    Iterator<Descriptor> dItr = descriptorsToAnalyze.iterator();
     while( dItr.hasNext() ) {
       Descriptor d  = dItr.next();
       OwnershipGraph og = new OwnershipGraph(allocationDepth);
@@ -252,25 +256,27 @@ public class OwnershipAnalysis {
 
   // called from the constructor to help initialize the set
   // of methods that needs to be analyzed by ownership analysis
-  private void scheduleAllCallees(HashSet<Descriptor> calleesScheduled,
-                                  Descriptor d) {
-    if( calleesScheduled.contains(d) ) {
+  private void scheduleAllCallees(Descriptor d) {
+    if( descriptorsToAnalyze.contains(d) ) {
       return;
     }
-    calleesScheduled.add(d);
+    descriptorsToAnalyze.add(d);
 
-    Set callees = callGraph.getCalleeSet(d);
-    if( callees == null ) {
-      return;
+    // start with all method calls to further schedule
+    Set moreMethodsToCheck = moreMethodsToCheck = callGraph.getMethodCalls( d );
+
+    if( d instanceof MethodDescriptor ) {
+      // see if this method has virtual dispatch
+      Set virtualMethods = callGraph.getMethods( (MethodDescriptor)d );
+      moreMethodsToCheck.addAll( virtualMethods );
     }
 
-    Iterator methItr = callees.iterator();
+    // keep following any further methods identified in
+    // the call chain
+    Iterator methItr = moreMethodsToCheck.iterator();
     while( methItr.hasNext() ) {
-      MethodDescriptor md = (MethodDescriptor) methItr.next();
-      descriptorsToVisit.add(md);
-
-      // recursively find all callees from this task
-      scheduleAllCallees(calleesScheduled, md);
+      Descriptor m = (Descriptor) methItr.next();
+      scheduleAllCallees(m);
     }
   }
 
@@ -279,6 +285,8 @@ public class OwnershipAnalysis {
   // and be sure to reschedule tasks/methods when the methods
   // they call are updated
   private void analyzeMethods() throws java.io.IOException {
+    
+    descriptorsToVisit = (HashSet<Descriptor>)descriptorsToAnalyze.clone();
 
     while( !descriptorsToVisit.isEmpty() ) {
       Descriptor d = (Descriptor) descriptorsToVisit.iterator().next();
@@ -313,7 +321,7 @@ public class OwnershipAnalysis {
 	   boolean pruneGarbage,
 	   boolean writeReferencers
 	 */
-	og.writeGraph(d, true, true, true, false);
+	og.writeGraph(d, true, true, false, false);
 
 	// only methods have dependents, tasks cannot
 	// be invoked by any user program calls
@@ -321,16 +329,19 @@ public class OwnershipAnalysis {
 	  MethodDescriptor md = (MethodDescriptor) d;
 	  Set dependents = callGraph.getCallerSet(md);
 	  if( dependents != null ) {
-	    descriptorsToVisit.addAll(dependents);
+	    Iterator depItr = dependents.iterator();
+	    while( depItr.hasNext() ) {
+	      Descriptor dependent = (Descriptor) depItr.next();
+	      if( descriptorsToAnalyze.contains( dependent ) ) {
+		descriptorsToVisit.add(dependent);
+	      }
+	    }
 	  }
 	}
       }
     }
 
   }
-
-
-  int x = 0;
 
 
   // keep passing the Descriptor of the method along for debugging
@@ -385,16 +396,6 @@ public class OwnershipAnalysis {
 
       if( !og.equals(ogPrev) ) {
 	setGraphForFlatNode(fn, og);
-
-
-
-	x++;
-	if( x > 0 ) {
-	  String s = String.format("debug%04d", x);
-	  //og.writeGraph( s, true, true, true, false );
-	}
-
-
 
 	for( int i = 0; i < fn.numNext(); i++ ) {
 	  FlatNode nn = fn.getNext(i);
@@ -483,55 +484,32 @@ public class OwnershipAnalysis {
       break;
 
     case FKind.FlatCall:
-      FlatCall fc           = (FlatCall) fn;
-      MethodDescriptor md           = fc.getMethod();
-      FlatMethod flatm        = state.getMethodFlat(md);
-      //HashSet<AllocationSite> allocSiteSet = getAllocationSiteSet( md );
-      OwnershipGraph ogAllPossibleCallees  = new OwnershipGraph(allocationDepth);
+      FlatCall fc = (FlatCall) fn;
+      MethodDescriptor md = fc.getMethod();
+      FlatMethod flatm = state.getMethodFlat(md);
+      OwnershipGraph ogAllPossibleCallees = new OwnershipGraph(allocationDepth);
 
       if( md.isStatic() ) {
 	// a static method is simply always the same, makes life easy
 	OwnershipGraph onlyPossibleCallee = mapDescriptorToCompleteOwnershipGraph.get(md);
 	ogAllPossibleCallees.merge(onlyPossibleCallee);
 
-	/*
-	   if( onlyPossibleCallee != null ) {
-	    onlyPossibleCallee.writeGraph( "only", false, false );
-	    System.out.println( "There was only one possible callee, "+md );
-	   }
-	 */
-
       } else {
 	// if the method descriptor is virtual, then there could be a
 	// set of possible methods that will actually be invoked, so
 	// find all of them and merge all of their graphs together
-	TypeDescriptor typeDesc        = fc.getThis().getType();
+	TypeDescriptor typeDesc = fc.getThis().getType();
 	Set possibleCallees = callGraph.getMethods(md, typeDesc);
-
-	//int j = 0;
 
 	Iterator i = possibleCallees.iterator();
 	while( i.hasNext() ) {
 	  MethodDescriptor possibleMd = (MethodDescriptor) i.next();
-	  //allocSiteSet.addAll( getAllocationSiteSet( possibleMd ) );
 	  OwnershipGraph ogPotentialCallee = mapDescriptorToCompleteOwnershipGraph.get(possibleMd);
-
-	  /*
-	     if( ogPotentialCallee != null ) {
-	      ogPotentialCallee.writeGraph( "potential"+j, false, false );
-	   ++j;
-	     }
-	   */
-
 	  ogAllPossibleCallees.merge(ogPotentialCallee);
 	}
-
-	//System.out.println( "There were "+j+" potential callees merged together." );
       }
-
-      //System.out.println( "AllocationSiteSet has "+allocSiteSet.size()+" items." );
-
-      // now we should have the following information to resolve this method call:
+      
+      // Now we should have the following information to resolve this method call:
       //
       // 1. A FlatCall fc to query for the caller's context (argument labels, etc)
       //
@@ -544,9 +522,6 @@ public class OwnershipAnalysis {
       //
       // 4. The OwnershipGraph ogAllPossibleCallees is a merge of every ownership graph of all the possible
       // methods to capture any possible references made.
-      //
-      // 5. The Set of AllocationSite objects, allocSiteSet that is the set of allocation sites from
-      // every possible method we might have chosen
       //
       og.resolveMethodCall(fc, md.isStatic(), flatm, ogAllPossibleCallees);
       break;

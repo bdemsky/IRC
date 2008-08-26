@@ -1,4 +1,4 @@
-PROGRAM=test01
+PROGRAM=test02
 
 SOURCE_FILES=$(PROGRAM).java
 

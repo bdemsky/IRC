@@ -100,14 +100,25 @@ public class CallGraph {
 
   /** Given a call to MethodDescriptor, lists the methods which
       could actually be call by that method. */
+  public Set getMethodCalls(TaskDescriptor td) {
+    return getMethodCalls( (Descriptor) td );
+  }
+
   public Set getMethodCalls(MethodDescriptor md) {
+    return getMethodCalls( (Descriptor) md );
+  }
+
+  public Set getMethodCalls(Descriptor d) {
+    assert d instanceof MethodDescriptor ||
+      d instanceof TaskDescriptor;
+    
     HashSet ns=new HashSet();
-    ns.add(md);
-    Set s=(Set)mapCaller2CalleeSet.get(md);
+    ns.add(d);
+    Set s=(Set)mapCaller2CalleeSet.get(d);
     if (s!=null)
       for(Iterator it=s.iterator(); it.hasNext();) {
-	MethodDescriptor md2=(MethodDescriptor)it.next();
-	ns.addAll(getMethodCalls(md2));
+	MethodDescriptor md=(MethodDescriptor)it.next();
+	ns.addAll(getMethodCalls(md));
       }
     return ns;
   }
@@ -169,7 +180,85 @@ public class CallGraph {
     }
   }
 
-  public void writeToDot(String graphName)  throws java.io.IOException {
+
+  public void writeVirtual2ImplemToDot(String graphName)  throws java.io.IOException {
+    HashSet labeledInDot = new HashSet();
+
+    BufferedWriter bw = new BufferedWriter(new FileWriter(graphName+".dot") );
+    bw.write("digraph "+graphName+" {\n");
+    Iterator mapItr =  mapVirtual2ImplementationSet.entrySet().iterator();
+    while( mapItr.hasNext() ) {
+      Map.Entry        me        = (Map.Entry)        mapItr.next();
+      MethodDescriptor virtual   = (MethodDescriptor) me.getKey();
+      HashSet          implemSet = (HashSet)          me.getValue();
+
+      if( !labeledInDot.contains(virtual) ) {
+	labeledInDot.add(virtual);
+	bw.write("  "+virtual.getNum()+"[label=\""+virtual+"\"];\n");
+      }
+
+      Iterator implemItr = implemSet.iterator();
+      while( implemItr.hasNext() ) {
+	Descriptor implem = (Descriptor) implemItr.next();
+
+	if( !labeledInDot.contains(implem) ) {
+	  labeledInDot.add(implem);
+	  bw.write("  "+implem.getNum()+"[label=\""+implem+"\"];\n");
+	}
+
+	bw.write("  "+virtual.getNum()+"->"+implem.getNum()+";\n");
+      }
+    }
+    bw.write("}\n");
+    bw.close();
+  }
+
+
+  public void writeCaller2CalleesToDot(String graphName)  throws java.io.IOException {
+    // write out the call graph (should be equivalent) by
+    // using the callers mapping
+    HashSet labeledInDot = new HashSet();
+    BufferedWriter bw = new BufferedWriter(new FileWriter(graphName+"byCallers.dot") );
+    bw.write("digraph "+graphName+"byCallers {\n");
+    Iterator mapItr = mapCaller2CalleeSet.entrySet().iterator();
+    while( mapItr.hasNext() ) {
+      Map.Entry me        = (Map.Entry)mapItr.next();
+      Descriptor caller    = (Descriptor) me.getKey();
+      HashSet calleeSet = (HashSet)    me.getValue();
+
+      String callerString =  caller.toString().replaceAll("[\\W]", "");
+
+      /*
+      if( !labeledInDot.contains(caller) ) {
+	labeledInDot.add(caller);
+	bw.write("  " + caller.getNum() + "[label=\"" + callerString + "\"];\n");
+      }
+      */
+
+      Iterator calleeItr = calleeSet.iterator();
+      while( calleeItr.hasNext() ) {
+	MethodDescriptor callee = (MethodDescriptor) calleeItr.next();
+
+	String calleeString =  callee.toString().replaceAll("[\\W]", "");
+
+	/*
+	if( !labeledInDot.contains(callee) ) {
+	  labeledInDot.add(callee);
+	  bw.write("  " + callee.getNum() + "[label=\"" + calleeString + "\"];\n");
+	}
+	*/
+	bw.write("  " + caller.getNum() + "->" + callee.getNum() + ";\n");
+	
+
+	//bw.write("  " + callerString + "->" + calleeString + ";\n");
+      }
+    }
+    bw.write("}\n");
+    bw.close();
+  }
+
+
+  public void writeCallee2CallersToDot(String graphName)  throws java.io.IOException {
     // each task or method only needs to be labeled once
     // in a dot file
     HashSet labeledInDot = new HashSet();
@@ -183,52 +272,31 @@ public class CallGraph {
       MethodDescriptor callee    = (MethodDescriptor) me.getKey();
       HashSet callerSet = (HashSet)          me.getValue();
 
+      String calleeString =  callee.toString().replaceAll("[\\W]", "");
+
+      /*
       if( !labeledInDot.contains(callee) ) {
 	labeledInDot.add(callee);
-	bw.write("  " + callee.getNum() + "[label=\"" + callee + "\"];\n");
+	bw.write("  " + callee.getNum() + "[label=\"" + calleeString + "\"];\n");
       }
+      */
 
       Iterator callerItr = callerSet.iterator();
       while( callerItr.hasNext() ) {
 	Descriptor caller = (Descriptor) callerItr.next();
+	String callerString =  caller.toString().replaceAll("[\\W]", "");
 
+	/*
 	if( !labeledInDot.contains(caller) ) {
 	  labeledInDot.add(caller);
-	  bw.write("  " + caller.getNum() + "[label=\"" + caller + "\"];\n");
+	  bw.write("  " + caller.getNum() + "[label=\"" + callerString + "\"];\n");
 	}
+	*/
 
-	bw.write("  " + callee.getNum() + "->" + caller.getNum() + ";\n");
-      }
-    }
-    bw.write("}\n");
-    bw.close();
+	bw.write("  " + caller.getNum() + "->" + callee.getNum() + ";\n");
 
-    // write out the call graph (should be equivalent) by
-    // using the callers mapping
-    labeledInDot = new HashSet();
-    bw = new BufferedWriter(new FileWriter(graphName+"byCallers.dot") );
-    bw.write("digraph "+graphName+"byCallers {\n");
-    mapItr = mapCaller2CalleeSet.entrySet().iterator();
-    while( mapItr.hasNext() ) {
-      Map.Entry me        = (Map.Entry)mapItr.next();
-      Descriptor caller    = (Descriptor) me.getKey();
-      HashSet calleeSet = (HashSet)    me.getValue();
 
-      if( !labeledInDot.contains(caller) ) {
-	labeledInDot.add(caller);
-	bw.write("  " + caller.getNum() + "[label=\"" + caller + "\"];\n");
-      }
-
-      Iterator calleeItr = calleeSet.iterator();
-      while( calleeItr.hasNext() ) {
-	MethodDescriptor callee = (MethodDescriptor) calleeItr.next();
-
-	if( !labeledInDot.contains(callee) ) {
-	  labeledInDot.add(callee);
-	  bw.write("  " + callee.getNum() + "[label=\"" + callee + "\"];\n");
-	}
-
-	bw.write("  " + callee.getNum() + "->" + caller.getNum() + ";\n");
+	//bw.write("  " + callerString + "->" + calleeString + ";\n");
       }
     }
     bw.write("}\n");

@@ -18,6 +18,46 @@ public class Penguin {
     public void bar() { x = 1; }
 }
 
+public class Voo {
+    flag f; int x; Baw b; Baw bb;
+
+    public Voo() {}
+}
+
+public class Baw {
+    int y;
+    Foo f;
+
+    public Baw() {}
+
+    public void doTheBaw( Voo v ) { v = new Voo(); }
+}
+
+public class Foo {
+    flag f;
+
+    public Foo() {}
+
+    public Foo x;
+    public Foo y;
+    public Foo z;
+
+    public void ruinSomeFoos( Foo a, Foo b ) {
+	a.x = b.x;
+    }
+
+    static public void aStaticMethod( Foo p0, Foo p1 ) {
+	Foo f0 = new Foo();
+	Foo f1 = new Foo();
+	Foo f2 = new Foo();
+
+	f0.x = f1;
+	p0.x = f0;
+	p1.x = f1;
+	p1.x = f2;
+    }
+}
+
 task Startup( StartupObject s{ initialstate } ) {
 
     /*
