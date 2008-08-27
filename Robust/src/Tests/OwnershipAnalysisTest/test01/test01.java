@@ -1,26 +1,26 @@
 /*
 public class Parameter {
-    flag w;
-    int a, b;
-    Parameter f, g;
-    Penguin p;
-    Foo h;
-
-    public Parameter() { a = 0; b = 0; f = null; g = null; }
-
-    public void bar() { foo(); }
-    public void foo() { bar(); }
+  flag w;
+  int a, b;
+  Parameter f, g;
+  Penguin p;
+  Foo h;
+  
+  public Parameter() { a = 0; b = 0; f = null; g = null; }
+  
+  public void bar() { foo(); }
+  public void foo() { bar(); }
 }
 
 public class Penguin {
-    int x, y;
-    Foo h;    
-
-    public Penguin() { x = 0; y = 0; }
-
-    public void bar() { x = 1; }
+  int x, y;
+  Foo h;    
+  
+  public Penguin() { x = 0; y = 0; }
+  
+  public void bar() { x = 1; }
 }
-*/
+
 public class Voo {
   flag f; int x; Baw b; Baw bb;
   
@@ -39,60 +39,81 @@ public class Voo {
 }
 
 public class Baw {
-    int y;
-    Foo f;
+  int y;
+  Foo f;
+  
+  public Baw() {}
+  
+  public void doTheBaw( Voo v ) { v = new Voo(); }
+}
+*/
 
-    public Baw() {}
 
-    public void doTheBaw( Voo v ) { v = new Voo(); }
+task ObjectChainByMethodCalls( Foo a{ f } ) {
+
+  Foo f = a.getAFoo();
+  Foo g = a.newFooChain( f );
+  // g -> f
+
+  taskexit( a{ !f } );
 }
 
 
 public class Foo {
-    flag f;
+  flag f;
+  
+  public Foo() {}
+  
+  public Foo x;
+  public Foo y;
+  public Foo z;
 
-    public Foo() {}
 
-    public Foo x;
-    public Foo y;
-    public Foo z;
+  public Foo getAFoo() {
+    return new Foo();
+  }
 
-    /*
-    public void ruinSomeFoos( Foo a, Foo b ) {
-	a.x = b.x;
-    }
+  public Foo newFooChain( Foo a ) {
+    Foo b = new Foo();
+    b.x = a;
+    return b;
+  }
 
-    static public void aStaticMethod( Foo p0, Foo p1 ) {
-	Foo f0 = new Foo();
-	Foo f1 = new Foo();
-	Foo f2 = new Foo();
-
-	f0.x = f1;
-	p0.x = f0;
-	p1.x = f1;
-	p1.x = f2;
-    }
-    */
-
+  
+  /*
+  public void ruinSomeFoos( Foo a, Foo b ) {
+    a.x = b.x;
+  }
+  
+  static public void aStaticMethod( Foo p0, Foo p1 ) {
+    Foo f0 = new Foo();
+    Foo f1 = new Foo();
+    Foo f2 = new Foo();
+    
+    f0.x = f1;
+    p0.x = f0;
+    p1.x = f1;
+    p1.x = f2;
+  }
+  
   static public void m1_( Foo p0 ) {
     Foo g0 = new Foo();
     Foo g1 = new Foo();
-
+    
     g0.x = p0;
     p0.x = g1;
   }
-
-  /*
+  
   static public void m2_( Foo p0 ) {
     Foo g0 = new Foo();
-
+    
     g0.x = p0;
     g0.y = p0;
   }
-
+  
   static public void m3_( Foo p0 ) {
     Foo g0 = new Foo();
-
+    
     p0.x = g0;
     p0.y = g0;
   }
@@ -177,6 +198,7 @@ task NewObjectA( Foo a{ f }, Foo b{ f } ) {
     taskexit( a{ !f }, b{ !f } );
 }
 
+
 task NewObjectB( Foo a{ f }, Foo b{ f } ) {
 
     Foo c = new Foo();
@@ -187,9 +209,8 @@ task NewObjectB( Foo a{ f }, Foo b{ f } ) {
 
     taskexit( a{ !f }, b{ !f } );
 }
-*/
 
-/*
+
 task NewObjectC( Foo a{ f }, Foo b{ f } ) {
 
     Foo z = new Foo();
@@ -207,9 +228,8 @@ task NewObjectC( Foo a{ f }, Foo b{ f } ) {
 
     taskexit( a{ !f }, b{ !f } );
 }
-*/
 
-/*
+
 task forMethod( Foo p0{ f } ) {
 
     Foo a0;
@@ -229,10 +249,8 @@ task forMethod( Foo p0{ f } ) {
 
     taskexit( p0{ !f } );
 }
-*/
 
 
-/*
 // this task allocates a new object, so there should
 // be a heap region for the parameter, and several
 // heap regions for the allocation site, but the label
@@ -355,7 +373,6 @@ task methodTest( Foo p0{ f } ) {
 
     taskexit( p0{ !f } );
 }
-*/
 
 
 task getNewFromMethod( Foo p0{ f } ) { 
@@ -387,7 +404,7 @@ task methodTest01_( Foo p0{ f }, Foo p1{ f } ) {
   taskexit( p0{ !f }, p1{ !f } );
 }
 
-/*
+
 task methodTest02_( Foo p0{ f }, Foo p1{ f } ) {
 
   Foo a0before = new Foo();

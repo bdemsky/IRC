@@ -358,6 +358,16 @@ public class OwnershipAnalysis {
     flatNodesToVisit = new HashSet<FlatNode>();
     flatNodesToVisit.add(flatm);
 
+
+    // A YUCKY HACK--this is to make sure that an initially empty
+    // graph (no parameters) will get passed the first "any changes?"
+    // test when it comes up for analysis.  It's ugly but throwing
+    // a child in works.
+    FlatNode fnJ = flatm.getNext(0);
+    assert fnJ != null;
+    flatNodesToVisit.add(fnJ);
+
+
     // initilize the mapping of flat nodes in this flat method to
     // ownership graph results to an empty mapping
     mapFlatNodeToOwnershipGraph = new Hashtable<FlatNode, OwnershipGraph>();
@@ -454,16 +464,16 @@ public class OwnershipAnalysis {
     case FKind.FlatOpNode:
       FlatOpNode fon = (FlatOpNode) fn;
       if( fon.getOp().getOp() == Operation.ASSIGN ) {
-	lhs = fon.getLeft();
-	rhs = fon.getDest();
+	lhs = fon.getDest();
+	rhs = fon.getLeft();
 	og.assignTempXEqualToTempY(lhs, rhs);
       }
       break;
 
     case FKind.FlatFieldNode:
       FlatFieldNode ffn = (FlatFieldNode) fn;
-      lhs = ffn.getSrc();
-      rhs = ffn.getDst();
+      lhs = ffn.getDst();
+      rhs = ffn.getSrc();
       fld = ffn.getField();
       if( !fld.getType().isPrimitive() ) {
 	og.assignTempXEqualToTempYFieldF(lhs, rhs, fld);
@@ -472,9 +482,9 @@ public class OwnershipAnalysis {
 
     case FKind.FlatSetFieldNode:
       FlatSetFieldNode fsfn = (FlatSetFieldNode) fn;
-      lhs = fsfn.getSrc();
+      lhs = fsfn.getDst();
       fld = fsfn.getField();
-      rhs = fsfn.getDst();
+      rhs = fsfn.getSrc();
       og.assignTempXFieldFEqualToTempY(lhs, fld, rhs);
       break;
 

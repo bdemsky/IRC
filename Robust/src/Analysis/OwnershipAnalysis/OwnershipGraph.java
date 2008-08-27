@@ -26,7 +26,7 @@ public class OwnershipGraph {
   public HashSet<AllocationSite> allocationSites;
 
 
-  protected static TempDescriptor lnReturn = new TempDescriptor("_Return___");
+  protected static TempDescriptor tdReturn = new TempDescriptor("_Return___");
 
 
   public OwnershipGraph(int allocationDepth) {
@@ -564,7 +564,7 @@ public class OwnershipGraph {
 
   public void assignReturnEqualToTemp(TempDescriptor x) {
 
-    LabelNode lnR = getLabelNodeFromTemp(lnReturn);
+    LabelNode lnR = getLabelNodeFromTemp(tdReturn);
     LabelNode lnX = getLabelNodeFromTemp(x);
 
     clearReferenceEdgesFrom(lnR, null, true);
@@ -1287,13 +1287,13 @@ public class OwnershipGraph {
 	  // a reference edge in the caller for every possible (src,dst) pair
 	  HashSet<HeapRegionNode> possibleCallerSrcs =
 	    getHRNSetThatPossiblyMapToCalleeHRN(ogCallee,
-	                                        edgeCallee,
+	                                        (HeapRegionNode) edgeCallee.getSrc(),
 	                                        true,
 	                                        paramIndex2reachableCallerNodes);
 
 	  HashSet<HeapRegionNode> possibleCallerDsts =
 	    getHRNSetThatPossiblyMapToCalleeHRN(ogCallee,
-	                                        edgeCallee,
+	                                        edgeCallee.getDst(),
 	                                        false,
 	                                        paramIndex2reachableCallerNodes);
 
@@ -1323,6 +1323,46 @@ public class OwnershipGraph {
 	}
       }
     }
+
+
+
+    // return value may need to be assigned in caller
+    if( fc.getReturnTemp() != null ) {
+
+      HashSet<HeapRegionNode> assignCallerRhs = new HashSet<HeapRegionNode>();
+
+      LabelNode lnReturnCallee = ogCallee.getLabelNodeFromTemp(tdReturn);
+      Iterator<ReferenceEdge> edgeCalleeItr = lnReturnCallee.iteratorToReferencees();
+      while( edgeCalleeItr.hasNext() ) {
+	ReferenceEdge edgeCallee = edgeCalleeItr.next();
+
+	HashSet<HeapRegionNode> possibleCallerHRNs =
+	  getHRNSetThatPossiblyMapToCalleeHRN(ogCallee,
+	                                      edgeCallee.getDst(),
+	                                      false,
+	                                      paramIndex2reachableCallerNodes);
+
+	assignCallerRhs.addAll(possibleCallerHRNs);
+      }
+
+      LabelNode lnLhsCaller = getLabelNodeFromTemp(fc.getReturnTemp() );
+      clearReferenceEdgesFrom(lnLhsCaller, null, true);
+
+      Iterator<HeapRegionNode> itrHrn = assignCallerRhs.iterator();
+      while( itrHrn.hasNext() ) {
+	HeapRegionNode hrnCaller = itrHrn.next();
+
+	ReferenceEdge edgeNew = new ReferenceEdge(lnLhsCaller,
+	                                          hrnCaller,
+	                                          null,
+	                                          false,
+	                                          new ReachabilitySet().makeCanonical()
+	                                          );
+
+	addReferenceEdge(lnLhsCaller, hrnCaller, edgeNew);
+      }
+    }
+
 
 
     // merge the shadow nodes of allocation sites back down to normal capacity
@@ -1608,21 +1648,12 @@ public class OwnershipGraph {
 
   private HashSet<HeapRegionNode>
   getHRNSetThatPossiblyMapToCalleeHRN(OwnershipGraph ogCallee,
-                                      ReferenceEdge edgeCallee,
+                                      HeapRegionNode hrnCallee,
                                       boolean mapFromSrc,
                                       Hashtable<Integer, HashSet<HeapRegionNode> > paramIndex2reachableCallerNodes
                                       ) {
 
     HashSet<HeapRegionNode> possibleCallerHRNs = new HashSet<HeapRegionNode>();
-
-    HeapRegionNode hrnCallee;
-    if( mapFromSrc ) {
-      OwnershipNode on = edgeCallee.getSrc();
-      assert on instanceof HeapRegionNode;
-      hrnCallee = (HeapRegionNode) on;
-    } else {
-      hrnCallee = edgeCallee.getDst();
-    }
 
     Integer paramIndexCallee = ogCallee.id2paramIndex.get(hrnCallee.getID() );
 
