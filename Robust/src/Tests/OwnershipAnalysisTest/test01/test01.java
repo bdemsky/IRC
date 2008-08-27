@@ -20,11 +20,22 @@ public class Penguin {
 
     public void bar() { x = 1; }
 }
-
+*/
 public class Voo {
-    flag f; int x; Baw b; Baw bb;
-
-    public Voo() {}
+  flag f; int x; Baw b; Baw bb;
+  
+  public Voo() {}
+  
+  static Voo getAVoo( Voo bogus ) {
+    while( false ) {
+      if( false ) {
+	return new Voo();
+      } else {
+	return new Voo();
+      }
+    }
+    return new Voo();
+  }
 }
 
 public class Baw {
@@ -35,7 +46,7 @@ public class Baw {
 
     public void doTheBaw( Voo v ) { v = new Voo(); }
 }
-*/
+
 
 public class Foo {
     flag f;
@@ -345,6 +356,13 @@ task methodTest( Foo p0{ f } ) {
     taskexit( p0{ !f } );
 }
 */
+
+
+task getNewFromMethod( Foo p0{ f } ) { 
+  Voo g = Voo.getAVoo( null );
+
+  taskexit( p0{ !f } );
+}
 
 
 task methodTest01_( Foo p0{ f }, Foo p1{ f } ) {

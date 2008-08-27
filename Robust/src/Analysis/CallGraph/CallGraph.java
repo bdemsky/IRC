@@ -101,17 +101,17 @@ public class CallGraph {
   /** Given a call to MethodDescriptor, lists the methods which
       could actually be call by that method. */
   public Set getMethodCalls(TaskDescriptor td) {
-    return getMethodCalls( (Descriptor) td );
+    return getMethodCalls( (Descriptor) td);
   }
 
   public Set getMethodCalls(MethodDescriptor md) {
-    return getMethodCalls( (Descriptor) md );
+    return getMethodCalls( (Descriptor) md);
   }
 
   public Set getMethodCalls(Descriptor d) {
     assert d instanceof MethodDescriptor ||
-      d instanceof TaskDescriptor;
-    
+    d instanceof TaskDescriptor;
+
     HashSet ns=new HashSet();
     ns.add(d);
     Set s=(Set)mapCaller2CalleeSet.get(d);
@@ -188,9 +188,9 @@ public class CallGraph {
     bw.write("digraph "+graphName+" {\n");
     Iterator mapItr =  mapVirtual2ImplementationSet.entrySet().iterator();
     while( mapItr.hasNext() ) {
-      Map.Entry        me        = (Map.Entry)        mapItr.next();
+      Map.Entry me        = (Map.Entry)mapItr.next();
       MethodDescriptor virtual   = (MethodDescriptor) me.getKey();
-      HashSet          implemSet = (HashSet)          me.getValue();
+      HashSet implemSet = (HashSet)          me.getValue();
 
       if( !labeledInDot.contains(virtual) ) {
 	labeledInDot.add(virtual);
@@ -222,35 +222,25 @@ public class CallGraph {
     bw.write("digraph "+graphName+"byCallers {\n");
     Iterator mapItr = mapCaller2CalleeSet.entrySet().iterator();
     while( mapItr.hasNext() ) {
-      Map.Entry me        = (Map.Entry)mapItr.next();
-      Descriptor caller    = (Descriptor) me.getKey();
+      Map.Entry me      = (Map.Entry)mapItr.next();
+      Descriptor caller = (Descriptor) me.getKey();
       HashSet calleeSet = (HashSet)    me.getValue();
 
-      String callerString =  caller.toString().replaceAll("[\\W]", "");
-
-      /*
       if( !labeledInDot.contains(caller) ) {
 	labeledInDot.add(caller);
-	bw.write("  " + caller.getNum() + "[label=\"" + callerString + "\"];\n");
+	bw.write("  "+caller.getNum()+"[label=\"" +caller+"\"];\n");
       }
-      */
 
       Iterator calleeItr = calleeSet.iterator();
       while( calleeItr.hasNext() ) {
 	MethodDescriptor callee = (MethodDescriptor) calleeItr.next();
 
-	String calleeString =  callee.toString().replaceAll("[\\W]", "");
-
-	/*
 	if( !labeledInDot.contains(callee) ) {
 	  labeledInDot.add(callee);
-	  bw.write("  " + callee.getNum() + "[label=\"" + calleeString + "\"];\n");
+	  bw.write("  "+callee.getNum()+"[label=\""+callee+"\"];\n");
 	}
-	*/
-	bw.write("  " + caller.getNum() + "->" + callee.getNum() + ";\n");
-	
 
-	//bw.write("  " + callerString + "->" + calleeString + ";\n");
+	bw.write("  "+caller.getNum()+"->"+callee.getNum()+";\n");
       }
     }
     bw.write("}\n");
@@ -272,31 +262,21 @@ public class CallGraph {
       MethodDescriptor callee    = (MethodDescriptor) me.getKey();
       HashSet callerSet = (HashSet)          me.getValue();
 
-      String calleeString =  callee.toString().replaceAll("[\\W]", "");
-
-      /*
       if( !labeledInDot.contains(callee) ) {
 	labeledInDot.add(callee);
-	bw.write("  " + callee.getNum() + "[label=\"" + calleeString + "\"];\n");
+	bw.write("  "+callee.getNum()+"[label=\""+callee+"\"];\n");
       }
-      */
 
       Iterator callerItr = callerSet.iterator();
       while( callerItr.hasNext() ) {
 	Descriptor caller = (Descriptor) callerItr.next();
-	String callerString =  caller.toString().replaceAll("[\\W]", "");
 
-	/*
 	if( !labeledInDot.contains(caller) ) {
 	  labeledInDot.add(caller);
-	  bw.write("  " + caller.getNum() + "[label=\"" + callerString + "\"];\n");
+	  bw.write("  "+caller.getNum()+"[label=\""+caller+"\"];\n");
 	}
-	*/
 
-	bw.write("  " + caller.getNum() + "->" + callee.getNum() + ";\n");
-
-
-	//bw.write("  " + callerString + "->" + calleeString + ";\n");
+	bw.write("  "+caller.getNum()+"->"+callee.getNum()+";\n");
       }
     }
     bw.write("}\n");

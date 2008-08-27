@@ -174,7 +174,7 @@ public class ReachabilitySet extends Canonical {
     Iterator itrS = this.iterator();
     while( itrS.hasNext() ) {
       TokenTupleSet tts = (TokenTupleSet) itrS.next();
-      rsOut.possibleReachabilities.add( tts.ageTokens(as) );
+      rsOut.possibleReachabilities.add(tts.ageTokens(as) );
     }
 
     return rsOut.makeCanonical();
@@ -189,11 +189,11 @@ public class ReachabilitySet extends Canonical {
     Iterator itrS = this.iterator();
     while( itrS.hasNext() ) {
       TokenTupleSet tts = (TokenTupleSet) itrS.next();
-      rsOut.possibleReachabilities.add( tts.unshadowTokens(as) );
+      rsOut.possibleReachabilities.add(tts.unshadowTokens(as) );
     }
 
     return rsOut.makeCanonical();
-  }  
+  }
 
 
   public ReachabilitySet toShadowTokens(AllocationSite as) {
@@ -204,7 +204,7 @@ public class ReachabilitySet extends Canonical {
     Iterator itrS = this.iterator();
     while( itrS.hasNext() ) {
       TokenTupleSet tts = (TokenTupleSet) itrS.next();
-      rsOut.possibleReachabilities.add( tts.toShadowTokens(as) );
+      rsOut.possibleReachabilities.add(tts.toShadowTokens(as) );
     }
 
     return rsOut.makeCanonical();
@@ -243,7 +243,7 @@ public class ReachabilitySet extends Canonical {
   public ReachabilitySet exhaustiveArityCombinations() {
     ReachabilitySet rsOut = new ReachabilitySet();
 
-    int numDimensions = this.possibleReachabilities.size();  
+    int numDimensions = this.possibleReachabilities.size();
 
     // add an extra digit to detect termination
     int[] digits = new int[numDimensions+1];
@@ -258,7 +258,7 @@ public class ReachabilitySet extends Canonical {
 
     // and stop when the highest-ordered axis rolls above the minimum
     while( digits[numDimensions] == minArity ) {
-      
+
       // spit out a "coordinate" made from these digits
       TokenTupleSet ttsCoordinate = new TokenTupleSet();
       Iterator<TokenTupleSet> ttsItr = this.iterator();
@@ -266,22 +266,22 @@ public class ReachabilitySet extends Canonical {
 	assert ttsItr.hasNext();
 	TokenTupleSet ttsUnit = ttsItr.next();
 	for( int j = 0; j < digits[i]; ++j ) {
-	  ttsCoordinate = ttsCoordinate.unionUpArity( ttsUnit );
+	  ttsCoordinate = ttsCoordinate.unionUpArity(ttsUnit);
 	}
       }
-      rsOut = rsOut.add( ttsCoordinate.makeCanonical() );
+      rsOut = rsOut.add(ttsCoordinate.makeCanonical() );
 
       // increment
       for( int i = 0; i < numDimensions+1; ++i ) {
-        digits[i]++;
-        if( digits[i] > maxArity ) {
+	digits[i]++;
+	if( digits[i] > maxArity ) {
 	  // this axis reached its max, so roll it back to min and increment next higher digit
 	  digits[i] = minArity;
-	  
-        } else {
+
+	} else {
 	  // this axis did not reach its max so we just enumerated a new unique coordinate, stop
 	  break;
-        }
+	}
       }
     }
 

@@ -3,7 +3,8 @@ PROGRAM=test03
 SOURCE_FILES=$(PROGRAM).java
 
 BUILDSCRIPT=~/research/Robust/src/buildscript
-BSFLAGS= -recover -flatirtasks -ownership -enable-assertions
+#BSFLAGS= -recover -flatirtasks -ownership -enable-assertions
+BSFLAGS= -recover -ownership -enable-assertions
 
 all: $(PROGRAM).bin
 
@@ -11,7 +12,8 @@ view: PNGs
 	eog *.png
 
 PNGs: DOTs
-	d2p *COMPLETE*.dot
+	#d2p *COMPLETE*.dot
+	d2p *.dot	
 
 DOTs: $(PROGRAM).bin
 

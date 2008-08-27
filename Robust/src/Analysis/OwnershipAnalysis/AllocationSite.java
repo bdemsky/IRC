@@ -108,7 +108,7 @@ public class AllocationSite {
   }
 
   public int getAgeCategory(Integer id) {
-    
+
     if( id.equals(summary) ) {
       return AGE_summary;
     }
@@ -129,13 +129,13 @@ public class AllocationSite {
   public Integer getAge(Integer id) {
     for( int i = 0; i < allocationDepth - 1; ++i ) {
       if( id.equals(ithOldest.get(i) ) ) {
-	return new Integer( i );
+	return new Integer(i);
       }
     }
-    
+
     return null;
   }
-  
+
   public int getShadowAgeCategory(Integer id) {
     if( id.equals(-summary) ) {
       return SHADOWAGE_summary;
@@ -146,7 +146,7 @@ public class AllocationSite {
     }
 
     for( int i = 0; i < allocationDepth - 1; ++i ) {
-      if( id.equals( getIthOldestShadow(i) ) ) {
+      if( id.equals(getIthOldestShadow(i) ) ) {
 	return SHADOWAGE_in_I;
       }
     }
@@ -154,10 +154,10 @@ public class AllocationSite {
     return SHADOWAGE_notInThisSite;
   }
 
-  public Integer getShadowAge( Integer id ) {
+  public Integer getShadowAge(Integer id) {
     for( int i = 0; i < allocationDepth - 1; ++i ) {
-      if( id.equals( getIthOldestShadow(i) ) ) {
-	return new Integer( -i );
+      if( id.equals(getIthOldestShadow(i) ) ) {
+	return new Integer(-i);
       }
     }
 

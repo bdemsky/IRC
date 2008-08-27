@@ -245,9 +245,13 @@ public class OwnershipAnalysis {
 	fm = state.getMethodFlat( (TaskDescriptor) d);
       }
 
+      System.out.println("Previsiting " + d);
+
       analyzeFlatNode(d, fm, null, og);
       mapDescriptorToCompleteOwnershipGraph.put(d, og);
     }
+
+    System.out.println("");
 
     // as mentioned above, analyze methods one-by-one, possibly revisiting
     // a method if the methods that it calls are updated
@@ -263,12 +267,12 @@ public class OwnershipAnalysis {
     descriptorsToAnalyze.add(d);
 
     // start with all method calls to further schedule
-    Set moreMethodsToCheck = moreMethodsToCheck = callGraph.getMethodCalls( d );
+    Set moreMethodsToCheck = moreMethodsToCheck = callGraph.getMethodCalls(d);
 
     if( d instanceof MethodDescriptor ) {
       // see if this method has virtual dispatch
-      Set virtualMethods = callGraph.getMethods( (MethodDescriptor)d );
-      moreMethodsToCheck.addAll( virtualMethods );
+      Set virtualMethods = callGraph.getMethods( (MethodDescriptor)d);
+      moreMethodsToCheck.addAll(virtualMethods);
     }
 
     // keep following any further methods identified in
@@ -285,7 +289,7 @@ public class OwnershipAnalysis {
   // and be sure to reschedule tasks/methods when the methods
   // they call are updated
   private void analyzeMethods() throws java.io.IOException {
-    
+
     descriptorsToVisit = (HashSet<Descriptor>)descriptorsToAnalyze.clone();
 
     while( !descriptorsToVisit.isEmpty() ) {
@@ -310,18 +314,16 @@ public class OwnershipAnalysis {
 	fm = state.getMethodFlat( (TaskDescriptor) d);
       }
 
-      OwnershipGraph og     = analyzeFlatMethod(d, fm);
+      OwnershipGraph og = analyzeFlatMethod(d, fm);
       OwnershipGraph ogPrev = mapDescriptorToCompleteOwnershipGraph.get(d);
       if( !og.equals(ogPrev) ) {
 	mapDescriptorToCompleteOwnershipGraph.put(d, og);
 
-	/*
-	   boolean writeLabels,
+	/* boolean writeLabels,
 	   boolean labelSelect,
 	   boolean pruneGarbage,
-	   boolean writeReferencers
-	 */
-	og.writeGraph(d, true, true, false, false);
+	   boolean writeReferencers */
+	og.writeGraph(d, true, true, true, false);
 
 	// only methods have dependents, tasks cannot
 	// be invoked by any user program calls
@@ -332,7 +334,7 @@ public class OwnershipAnalysis {
 	    Iterator depItr = dependents.iterator();
 	    while( depItr.hasNext() ) {
 	      Descriptor dependent = (Descriptor) depItr.next();
-	      if( descriptorsToAnalyze.contains( dependent ) ) {
+	      if( descriptorsToAnalyze.contains(dependent) ) {
 		descriptorsToVisit.add(dependent);
 	      }
 	    }
@@ -363,6 +365,7 @@ public class OwnershipAnalysis {
     // initialize the set of return nodes that will be combined as
     // the final ownership graph result to return as an empty set
     returnNodesToCombineForCompleteOwnershipGraph = new HashSet<FlatReturnNode>();
+
 
     while( !flatNodesToVisit.isEmpty() ) {
       FlatNode fn = (FlatNode) flatNodesToVisit.iterator().next();
@@ -424,8 +427,8 @@ public class OwnershipAnalysis {
                   HashSet<FlatReturnNode> setRetNodes,
                   OwnershipGraph og) throws java.io.IOException {
 
-    TempDescriptor src;
-    TempDescriptor dst;
+    TempDescriptor lhs;
+    TempDescriptor rhs;
     FieldDescriptor fld;
 
     // use node type to decide what alterations to make
@@ -441,9 +444,9 @@ public class OwnershipAnalysis {
       // adding parameters labels to new heap regions
       for( int i = 0; i < fm.numParameters(); ++i ) {
 	TempDescriptor tdParam = fm.getParameter(i);
-	og.assignParameterAllocationToTemp(methodDesc instanceof TaskDescriptor,
-	                                   tdParam,
-	                                   new Integer(i) );
+	og.assignTempEqualToParamAlloc(tdParam,
+	                               methodDesc instanceof TaskDescriptor,
+	                               new Integer(i) );
       }
 
       break;
@@ -451,36 +454,36 @@ public class OwnershipAnalysis {
     case FKind.FlatOpNode:
       FlatOpNode fon = (FlatOpNode) fn;
       if( fon.getOp().getOp() == Operation.ASSIGN ) {
-	src = fon.getLeft();
-	dst = fon.getDest();
-	og.assignTempYToTempX(src, dst);
+	lhs = fon.getLeft();
+	rhs = fon.getDest();
+	og.assignTempXEqualToTempY(lhs, rhs);
       }
       break;
 
     case FKind.FlatFieldNode:
       FlatFieldNode ffn = (FlatFieldNode) fn;
-      src = ffn.getSrc();
-      dst = ffn.getDst();
+      lhs = ffn.getSrc();
+      rhs = ffn.getDst();
       fld = ffn.getField();
       if( !fld.getType().isPrimitive() ) {
-	og.assignTempYFieldFToTempX(src, fld, dst);
+	og.assignTempXEqualToTempYFieldF(lhs, rhs, fld);
       }
       break;
 
     case FKind.FlatSetFieldNode:
       FlatSetFieldNode fsfn = (FlatSetFieldNode) fn;
-      src = fsfn.getSrc();
-      dst = fsfn.getDst();
+      lhs = fsfn.getSrc();
       fld = fsfn.getField();
-      og.assignTempYToTempXFieldF(src, dst, fld);
+      rhs = fsfn.getDst();
+      og.assignTempXFieldFEqualToTempY(lhs, fld, rhs);
       break;
 
     case FKind.FlatNew:
       FlatNew fnn = (FlatNew) fn;
-      dst = fnn.getDst();
+      lhs = fnn.getDst();
       AllocationSite as = getAllocationSiteFromFlatNewPRIVATE(fnn);
 
-      og.assignNewAllocationToTempX(dst, as);
+      og.assignTempEqualToNewAlloc(lhs, as);
       break;
 
     case FKind.FlatCall:
@@ -508,7 +511,7 @@ public class OwnershipAnalysis {
 	  ogAllPossibleCallees.merge(ogPotentialCallee);
 	}
       }
-      
+
       // Now we should have the following information to resolve this method call:
       //
       // 1. A FlatCall fc to query for the caller's context (argument labels, etc)
@@ -528,6 +531,12 @@ public class OwnershipAnalysis {
 
     case FKind.FlatReturnNode:
       FlatReturnNode frn = (FlatReturnNode) fn;
+      rhs = frn.getReturnTemp();
+
+      if( rhs != null ) {
+	og.assignReturnEqualToTemp(rhs);
+      }
+
       setRetNodes.add(frn);
       break;
     }
