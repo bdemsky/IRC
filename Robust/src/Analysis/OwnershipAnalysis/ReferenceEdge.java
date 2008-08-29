@@ -86,7 +86,7 @@ public class ReferenceEdge {
     int hash = 0;
 
     if( fieldDesc != null ) {
-      hash += fieldDesc.getType().hashCode();
+      hash += fieldDesc.hashCode();
     }
 
     hash += src.hashCode()*11;
@@ -172,5 +172,9 @@ public class ReferenceEdge {
     edgeLabel += beta.toStringEscapeNewline();
 
     return edgeLabel;
+  }
+
+  public String toString() {
+    return new String( "("+src+" "+fieldDesc+" "+dst+")" );
   }
 }

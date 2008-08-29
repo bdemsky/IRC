@@ -3,6 +3,7 @@ package Analysis.OwnershipAnalysis;
 import Analysis.CallGraph.*;
 import IR.*;
 import IR.Flat.*;
+import IR.Tree.Modifiers;
 import java.util.*;
 import java.io.*;
 
@@ -196,6 +197,12 @@ public class OwnershipAnalysis {
   // should be re-added to this set
   private HashSet<Descriptor> descriptorsToVisit;
 
+  // a special field descriptor for all array elements
+  private static FieldDescriptor fdElement = new FieldDescriptor(new Modifiers(Modifiers.PUBLIC),
+								 new TypeDescriptor( "Array[]" ),
+								 "elements",
+								 null,
+								 false);
 
 
   // this analysis generates an ownership graph for every task
@@ -487,6 +494,24 @@ public class OwnershipAnalysis {
       rhs = fsfn.getSrc();
       og.assignTempXFieldFEqualToTempY(lhs, fld, rhs);
       break;
+     
+    case FKind.FlatElementNode:
+      FlatElementNode fen = (FlatElementNode) fn;
+      lhs = fen.getDst();
+      rhs = fen.getSrc();
+      if( !lhs.getType().isPrimitive() ) {
+	og.assignTempXEqualToTempYFieldF(lhs, rhs, fdElement);
+      }
+      break;
+
+    case FKind.FlatSetElementNode:
+      FlatSetElementNode fsen = (FlatSetElementNode) fn;
+      lhs = fsen.getDst();
+      rhs = fsen.getSrc();
+      if( !rhs.getType().isPrimitive() ) {
+	og.assignTempXFieldFEqualToTempY(lhs, fdElement, rhs);
+      }
+      break;
 
     case FKind.FlatNew:
       FlatNew fnn = (FlatNew) fn;
@@ -573,9 +598,6 @@ public class OwnershipAnalysis {
   private void setGraphForFlatNode(FlatNode fn, OwnershipGraph og) {
     mapFlatNodeToOwnershipGraph.put(fn, og);
   }
-
-
-
 
 
 

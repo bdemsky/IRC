@@ -339,8 +339,24 @@ task strongUpdates( Foo p0{ f } ) {
     
     taskexit( p0{ !f } );
 }
+*/
 
+task arrayAssignments( Foo a{ f } ) {
 
+  Foo f[] = new Foo[3];
+
+  Foo g = new Foo();
+  Foo h = new Foo();
+
+  f[1] = g;
+  f[2] = h;
+
+  Foo i = f[0];
+
+  taskexit( a{ !f } );
+}
+
+/*
 task methodTest( Foo p0{ f } ) {
 
     Foo up0 = new Foo();

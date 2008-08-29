@@ -16,6 +16,8 @@ public class OwnershipGraph {
   // actions to take during the traversal
   protected static final int VISIT_HRN_WRITE_FULL = 0;
 
+  protected static TempDescriptor tdReturn = new TempDescriptor("_Return___");
+
 
   public Hashtable<Integer,        HeapRegionNode> id2hrn;
   public Hashtable<TempDescriptor, LabelNode     > td2ln;
@@ -26,7 +28,6 @@ public class OwnershipGraph {
   public HashSet<AllocationSite> allocationSites;
 
 
-  protected static TempDescriptor tdReturn = new TempDescriptor("_Return___");
 
 
   public OwnershipGraph(int allocationDepth) {
@@ -364,7 +365,6 @@ public class OwnershipGraph {
   public void assignTempXEqualToTempYFieldF(TempDescriptor x,
                                             TempDescriptor y,
                                             FieldDescriptor f) {
-
     LabelNode lnX = getLabelNodeFromTemp(x);
     LabelNode lnY = getLabelNodeFromTemp(y);
 
@@ -401,7 +401,6 @@ public class OwnershipGraph {
   public void assignTempXFieldFEqualToTempY(TempDescriptor x,
                                             FieldDescriptor f,
                                             TempDescriptor y) {
-
     LabelNode lnX = getLabelNodeFromTemp(x);
     LabelNode lnY = getLabelNodeFromTemp(y);
 
@@ -1329,37 +1328,56 @@ public class OwnershipGraph {
     // return value may need to be assigned in caller
     if( fc.getReturnTemp() != null ) {
 
-      HashSet<HeapRegionNode> assignCallerRhs = new HashSet<HeapRegionNode>();
+      LabelNode lnLhsCaller = getLabelNodeFromTemp(fc.getReturnTemp() );
+      clearReferenceEdgesFrom(lnLhsCaller, null, true);
 
       LabelNode lnReturnCallee = ogCallee.getLabelNodeFromTemp(tdReturn);
       Iterator<ReferenceEdge> edgeCalleeItr = lnReturnCallee.iteratorToReferencees();
       while( edgeCalleeItr.hasNext() ) {
 	ReferenceEdge edgeCallee = edgeCalleeItr.next();
 
-	HashSet<HeapRegionNode> possibleCallerHRNs =
+	ReferenceEdge edgeNewInCallerTemplate = new ReferenceEdge(null,
+								  null,
+								  edgeCallee.getFieldDesc(),
+								  false,
+								  toShadowTokens(ogCallee, edgeCallee.getBeta() )
+								  );
+	rewriteCallerEdgeBeta(fm.numParameters(),
+			      bogusIndex,
+			      edgeNewInCallerTemplate,
+			      paramIndex2rewriteJ,
+			      paramIndex2rewriteD,
+			      paramIndex2paramToken,
+			      paramIndex2paramTokenStar,
+			      false,
+			      null);
+	
+	edgeNewInCallerTemplate.applyBetaNew();
+
+
+	HashSet<HeapRegionNode> assignCallerRhs =
 	  getHRNSetThatPossiblyMapToCalleeHRN(ogCallee,
 	                                      edgeCallee.getDst(),
 	                                      false,
 	                                      paramIndex2reachableCallerNodes);
 
-	assignCallerRhs.addAll(possibleCallerHRNs);
-      }
+	Iterator<HeapRegionNode> itrHrn = assignCallerRhs.iterator();
+	while( itrHrn.hasNext() ) {
+	  HeapRegionNode hrnCaller = itrHrn.next();
+	 
+	  ReferenceEdge edgeNewInCaller = edgeNewInCallerTemplate.copy();
+	  edgeNewInCaller.setSrc(lnLhsCaller);
+	  edgeNewInCaller.setDst(hrnCaller);
 
-      LabelNode lnLhsCaller = getLabelNodeFromTemp(fc.getReturnTemp() );
-      clearReferenceEdgesFrom(lnLhsCaller, null, true);
-
-      Iterator<HeapRegionNode> itrHrn = assignCallerRhs.iterator();
-      while( itrHrn.hasNext() ) {
-	HeapRegionNode hrnCaller = itrHrn.next();
-
-	ReferenceEdge edgeNew = new ReferenceEdge(lnLhsCaller,
-	                                          hrnCaller,
-	                                          null,
-	                                          false,
-	                                          new ReachabilitySet().makeCanonical()
-	                                          );
-
-	addReferenceEdge(lnLhsCaller, hrnCaller, edgeNew);
+	  ReferenceEdge edgeExisting = lnLhsCaller.getReferenceTo(hrnCaller, edgeNewInCaller.getFieldDesc() );
+	  if( edgeExisting == null ) {
+	    // if this edge doesn't exist in the caller, create it
+	    addReferenceEdge(lnLhsCaller, hrnCaller, edgeNewInCaller);
+	  } else {
+	    // if it already exists, merge with it
+	    edgeExisting.setBeta(edgeExisting.getBeta().union(edgeNewInCaller.getBeta() ) );
+	  }	 
+	}
       }
     }
 
@@ -1383,6 +1401,11 @@ public class OwnershipGraph {
       assert hrnSummaryShadow != null;
 
       mergeIntoSummary(hrnSummaryShadow, hrnSummary);
+
+      // then clear off after merge
+      clearReferenceEdgesFrom(hrnSummaryShadow, null, true);
+      clearReferenceEdgesTo(hrnSummaryShadow, null, true);
+      hrnSummaryShadow.setAlpha(new ReachabilitySet().makeCanonical() );
 
       // then transplant shadow nodes onto the now clean normal nodes
       for( int i = 0; i < as.getAllocationDepth(); ++i ) {
