@@ -1,8 +1,10 @@
-/*
+
 public class Parameter {
   flag w;
-  int a, b;
-  Parameter f, g;
+  int a;
+  int b;
+  Parameter f;
+  Parameter g;
   Penguin p;
   Foo h;
   
@@ -13,7 +15,8 @@ public class Parameter {
 }
 
 public class Penguin {
-  int x, y;
+  int x;
+  int y;
   Foo h;    
   
   public Penguin() { x = 0; y = 0; }
@@ -46,17 +49,6 @@ public class Baw {
   
   public void doTheBaw( Voo v ) { v = new Voo(); }
 }
-*/
-
-
-task ObjectChainByMethodCalls( Foo a{ f } ) {
-
-  Foo f = a.getAFoo();
-  Foo g = a.newFooChain( f );
-  // g -> f
-
-  taskexit( a{ !f } );
-}
 
 
 public class Foo {
@@ -67,7 +59,7 @@ public class Foo {
   public Foo x;
   public Foo y;
   public Foo z;
-
+  public Baw b;
 
   public Foo getAFoo() {
     return new Foo();
@@ -339,8 +331,19 @@ task strongUpdates( Foo p0{ f } ) {
     
     taskexit( p0{ !f } );
 }
+
+
+task ObjectChainByMethodCalls( Foo a{ f } ) {
+
+  Foo f = a.getAFoo();
+  Foo g = a.newFooChain( f );
+  // g -> f
+
+  taskexit( a{ !f } );
+}
 */
 
+/*
 task arrayAssignments( Foo a{ f } ) {
 
   Foo f[] = new Foo[3];
@@ -352,6 +355,31 @@ task arrayAssignments( Foo a{ f } ) {
   f[2] = h;
 
   Foo i = f[0];
+
+  taskexit( a{ !f } );
+}
+*/
+
+public class Zool {
+  public Zool() {}
+
+  public static void FooToBaw( Baw x, Foo y ) {
+    x.f.b = y.b;
+  }
+}
+
+task showPrunedEdgesInMethodCall( Foo a{ f } ) {
+
+  Foo b = new Foo();
+  b.x   = a;
+  b.y   = new Foo();
+  b.b   = new Baw();
+
+  Baw c = new Baw();
+  c.f   = new Foo();
+  c.f.b = new Baw();
+  
+  Zool.FooToBaw( c, b );
 
   taskexit( a{ !f } );
 }

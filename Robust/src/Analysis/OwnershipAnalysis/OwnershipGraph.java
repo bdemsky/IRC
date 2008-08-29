@@ -1280,31 +1280,60 @@ public class OwnershipGraph {
 	  edgeNewInCallerTemplate.applyBetaNew();
 
 
-
 	  // So now make a set of possible source heaps in the caller graph
 	  // and a set of destination heaps in the caller graph, and make
 	  // a reference edge in the caller for every possible (src,dst) pair
 	  HashSet<HeapRegionNode> possibleCallerSrcs =
 	    getHRNSetThatPossiblyMapToCalleeHRN(ogCallee,
 	                                        (HeapRegionNode) edgeCallee.getSrc(),
-	                                        true,
 	                                        paramIndex2reachableCallerNodes);
 
 	  HashSet<HeapRegionNode> possibleCallerDsts =
 	    getHRNSetThatPossiblyMapToCalleeHRN(ogCallee,
 	                                        edgeCallee.getDst(),
-	                                        false,
 	                                        paramIndex2reachableCallerNodes);
+	  
 
 	  // make every possible pair of {srcSet} -> {dstSet} edges in the caller
 	  Iterator srcItr = possibleCallerSrcs.iterator();
 	  while( srcItr.hasNext() ) {
 	    HeapRegionNode src = (HeapRegionNode) srcItr.next();
 
+	    // check that if this source node has a definite type that
+	    // it also has the appropriate field, otherwise prune this
+	    AllocationSite asSrc = src.getAllocationSite();
+	    if( asSrc != null ) {
+	      boolean foundField = false;	      
+	      Iterator fieldsSrcItr = asSrc.getType().getClassDesc().getFields();
+	      while( fieldsSrcItr.hasNext() ) {
+		FieldDescriptor fd = (FieldDescriptor) fieldsSrcItr.next();
+		if( fd == edgeCallee.getFieldDesc() ) {
+		  foundField = true;
+		  break;
+		}
+	      }
+	      if( !foundField ) {
+		// prune this source node possibility
+		continue;
+	      }
+	    }
+
 	    Iterator dstItr = possibleCallerDsts.iterator();
 	    while( dstItr.hasNext() ) {
 	      HeapRegionNode dst = (HeapRegionNode) dstItr.next();
 
+	      // check if this dst node has a definite type and
+	      // if it matches the callee edge
+	      AllocationSite asDst = dst.getAllocationSite();
+	      if( asDst != null && edgeCallee.getFieldDesc() != null ) {
+		if( asDst.getType() == null && edgeCallee.getFieldDesc().getType() != null ) { continue; }
+		if( asDst.getType() != null && edgeCallee.getFieldDesc().getType() == null ) { continue; }
+		if( asDst.getType() != null && edgeCallee.getFieldDesc().getType() != null ) {
+		  if( !asDst.getType().equals( edgeCallee.getFieldDesc().getType() ) ) { continue; }
+		}
+	      }	      
+
+	      // otherwise the caller src and dst pair can match the edge, so make it
 	      ReferenceEdge edgeNewInCaller = edgeNewInCallerTemplate.copy();
 	      edgeNewInCaller.setSrc(src);
 	      edgeNewInCaller.setDst(dst);
@@ -1358,13 +1387,26 @@ public class OwnershipGraph {
 	HashSet<HeapRegionNode> assignCallerRhs =
 	  getHRNSetThatPossiblyMapToCalleeHRN(ogCallee,
 	                                      edgeCallee.getDst(),
-	                                      false,
 	                                      paramIndex2reachableCallerNodes);
 
 	Iterator<HeapRegionNode> itrHrn = assignCallerRhs.iterator();
 	while( itrHrn.hasNext() ) {
 	  HeapRegionNode hrnCaller = itrHrn.next();
 	 
+	  // check if this dst node has a definite type and
+	  // if it matches the callee edge
+	  // check if this dst node has a definite type and
+	  // if it matches the callee edge
+	  AllocationSite asDst = hrnCaller.getAllocationSite();
+	  if( asDst != null && edgeCallee.getFieldDesc() != null ) {
+	    if( asDst.getType() == null && edgeCallee.getFieldDesc().getType() != null ) { continue; }
+	    if( asDst.getType() != null && edgeCallee.getFieldDesc().getType() == null ) { continue; }
+	    if( asDst.getType() != null && edgeCallee.getFieldDesc().getType() != null ) {
+	      if( !asDst.getType().equals( edgeCallee.getFieldDesc().getType() ) ) { continue; }
+	    }
+	  }	      
+
+	  // otherwise caller node can match callee edge, so make it
 	  ReferenceEdge edgeNewInCaller = edgeNewInCallerTemplate.copy();
 	  edgeNewInCaller.setSrc(lnLhsCaller);
 	  edgeNewInCaller.setDst(hrnCaller);
@@ -1672,7 +1714,6 @@ public class OwnershipGraph {
   private HashSet<HeapRegionNode>
   getHRNSetThatPossiblyMapToCalleeHRN(OwnershipGraph ogCallee,
                                       HeapRegionNode hrnCallee,
-                                      boolean mapFromSrc,
                                       Hashtable<Integer, HashSet<HeapRegionNode> > paramIndex2reachableCallerNodes
                                       ) {
 
@@ -1712,8 +1753,6 @@ public class OwnershipGraph {
       // so it maps to a whole mess of heap regions
       assert paramIndex2reachableCallerNodes.containsKey(paramIndexCallee);
       possibleCallerHRNs = paramIndex2reachableCallerNodes.get(paramIndexCallee);
-
-      // TODO PRUNE BY TYPE/FIELD NAME!!
     }
 
     return possibleCallerHRNs;
