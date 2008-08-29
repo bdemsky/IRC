@@ -37,6 +37,30 @@ public class FieldDescriptor extends Descriptor {
     return td;
   }
 
+  public boolean equals( Object o ) {
+    if( o == null ) return false;
+    if( !(o instanceof FieldDescriptor) ) return false;
+
+    FieldDescriptor fd = (FieldDescriptor) o;
+    if( modifier == null && fd.modifier != null ) return false;    
+    if( modifier != null && !modifier.equals( fd.modifier ) ) return false;
+    if( !(td == fd.td) ) return false;
+    if( !(en == fd.en) ) return false;
+    if( !isglobal == fd.isglobal ) return false;
+    if( identifier == null && fd.identifier != null ) return false;
+    if( identifier != null && !identifier.equals( fd.identifier ) ) return false;
+    return true;
+  }
+
+  public int hashCode() {
+    int hashCode = modifier.hashCode();
+    hashCode += td.hashCode();
+    if( en != null ) hashCode += 81;
+    if( isglobal ) hashCode += 11;
+    if( identifier != null ) hashCode += identifier.hashCode();
+    return hashCode;
+  }
+
   public String toString() {
     if (en==null)
       return modifier.toString()+td.toString()+" "+getSymbol()+";";
