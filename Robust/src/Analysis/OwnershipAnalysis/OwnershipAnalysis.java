@@ -10,83 +10,82 @@ import java.io.*;
 
 public class OwnershipAnalysis {
 
+
   ///////////////////////////////////////////
   //
   //  Public interface to discover possible
   //  aliases in the program under analysis
   //
   ///////////////////////////////////////////
+
+  public HashSet<AllocationSite>
+    getFlaggedAllocationSitesReachableFromTask( TaskDescriptor td ) {
+    return getFlaggedAllocationSitesReachableFromTaskPRIVATE( td );
+  }
+
+  public AllocationSite getAllocationSiteFromFlatNew( FlatNew fn ) {
+    return getAllocationSiteFromFlatNewPRIVATE( fn );
+  }
+
+  public boolean createsPotentialAliases( Descriptor taskOrMethod,
+                                          int        paramIndex1,
+                                          int        paramIndex2 ) {
+    
+    OwnershipGraph og = mapDescriptorToCompleteOwnershipGraph.get( taskOrMethod );
+    assert( og != null );    
+
+    return og.hasPotentialAlias( paramIndex1, paramIndex2 );
+    /*
+    return createsPotentialAliases( og,
+				    getHeapRegionIDset( og, paramIndex1 ),
+				    getHeapRegionIDset( og, paramIndex2 ) );
+    */
+  }
+
   /*
-     public HashSet<AllocationSite>
-      getFlaggedAllocationSitesReachableFromTask( TaskDescriptor td ) {
-
-      return getFlaggedAllocationSitesReachableFromTaskPRIVATE( td );
-     }
-
-     public AllocationSite getAllocationSiteFromFlatNew( FlatNew fn ) {
-      return getAllocationSiteFromFlatNewPRIVATE( fn );
-     }
-
-     public boolean createsPotentialAliases( Descriptor     taskOrMethod,
-                                          int            paramIndex1,
-                                          int            paramIndex2 ) {
-
-      OwnershipGraph og = mapDescriptorToCompleteOwnershipGraph.get( taskOrMethod );
-      assert( og != null );
-
-      return createsPotentialAliases( og,
-                                      getHeapRegionIDset( og, paramIndex1 ),
-                                      getHeapRegionIDset( og, paramIndex2 ) );
-     }
-
-     public boolean createsPotentialAliases( Descriptor     taskOrMethod,
+  public boolean createsPotentialAliases( Descriptor     taskOrMethod,
                                           int            paramIndex,
                                           AllocationSite alloc ) {
-
-      OwnershipGraph og = mapDescriptorToCompleteOwnershipGraph.get( taskOrMethod );
-      assert( og != null );
-
-      return createsPotentialAliases( og,
-                                      getHeapRegionIDset( og, paramIndex ),
-                                      getHeapRegionIDset( alloc ) );
-     }
-
-     public boolean createsPotentialAliases( Descriptor     taskOrMethod,
+    
+    OwnershipGraph og = mapDescriptorToCompleteOwnershipGraph.get( taskOrMethod );
+    assert( og != null );    
+    return createsPotentialAliases( og,
+				    getHeapRegionIDset( og, paramIndex ),
+				    getHeapRegionIDset( alloc ) );
+  }
+  
+  public boolean createsPotentialAliases( Descriptor     taskOrMethod,
                                           AllocationSite alloc,
                                           int            paramIndex ) {
-
-      OwnershipGraph og = mapDescriptorToCompleteOwnershipGraph.get( taskOrMethod );
-      assert( og != null );
-
-      return createsPotentialAliases( og,
-                                      getHeapRegionIDset( og, paramIndex ),
-                                      getHeapRegionIDset( alloc ) );
-     }
-
-     public boolean createsPotentialAliases( Descriptor     taskOrMethod,
+    
+    OwnershipGraph og = mapDescriptorToCompleteOwnershipGraph.get( taskOrMethod );
+    assert( og != null );    
+    return createsPotentialAliases( og,
+				    getHeapRegionIDset( og, paramIndex ),
+				    getHeapRegionIDset( alloc ) );
+  }
+  
+  public boolean createsPotentialAliases( Descriptor     taskOrMethod,
                                           AllocationSite alloc1,
                                           AllocationSite alloc2 ) {
-
-      OwnershipGraph og = mapDescriptorToCompleteOwnershipGraph.get( taskOrMethod );
-      assert( og != null );
-
-      return createsPotentialAliases( og,
-                                      getHeapRegionIDset( alloc1 ),
-                                      getHeapRegionIDset( alloc2 ) );
-     }
-
-     public boolean createsPotentialAliases( Descriptor              taskOrMethod,
+    
+    OwnershipGraph og = mapDescriptorToCompleteOwnershipGraph.get( taskOrMethod );
+    assert( og != null );    
+    return createsPotentialAliases( og,
+				    getHeapRegionIDset( alloc1 ),
+				    getHeapRegionIDset( alloc2 ) );
+  }
+  
+  public boolean createsPotentialAliases( Descriptor              taskOrMethod,
                                           AllocationSite          alloc,
-                                          HashSet<AllocationSite> allocSet ) {
-
-      OwnershipGraph og = mapDescriptorToCompleteOwnershipGraph.get( taskOrMethod );
-      assert( og != null );
-
-      return createsPotentialAliases( og,
-                                      getHeapRegionIDset( alloc ),
-                                      getHeapRegionIDset( allocSet ) );
-     }
-   */
+                                          HashSet<AllocationSite> allocSet ) {    
+    OwnershipGraph og = mapDescriptorToCompleteOwnershipGraph.get( taskOrMethod );
+    assert( og != null );    
+    return createsPotentialAliases( og,
+				    getHeapRegionIDset( alloc ),
+				    getHeapRegionIDset( allocSet ) );
+  }
+  */
 
   // use the methods given above to check every possible alias
   // between task parameters and flagged allocation sites reachable
@@ -94,54 +93,64 @@ public class OwnershipAnalysis {
   public void writeAllAliases(String outputFile) throws java.io.IOException {
 
     BufferedWriter bw = new BufferedWriter(new FileWriter(outputFile) );
-    /*
-       // look through every task for potential aliases
-       Iterator taskItr = state.getTaskSymbolTable().getDescriptorsIterator();
-       while( taskItr.hasNext() ) {
-        TaskDescriptor td = (TaskDescriptor) taskItr.next();
 
-        HashSet<AllocationSite> allocSites = getFlaggedAllocationSitesReachableFromTask( td );
+    // look through every task for potential aliases
+    Iterator taskItr = state.getTaskSymbolTable().getDescriptorsIterator();
+    while( taskItr.hasNext() ) {
+      TaskDescriptor td = (TaskDescriptor) taskItr.next();
+      
+      //HashSet<AllocationSite> allocSites = getFlaggedAllocationSitesReachableFromTask( td );
+      
+      // for each task parameter, check for aliases with
+      // other task parameters and every allocation site
+      // reachable from this task
+      boolean foundSomeAlias = false;
 
-        // for each task parameter, check for aliases with
-        // other task parameters and every allocation site
-        // reachable from this task
-        FlatMethod fm = state.getMethodFlat( td );
-        for( int i = 0; i < fm.numParameters(); ++i ) {
+      FlatMethod fm = state.getMethodFlat( td );
+      for( int i = 0; i < fm.numParameters(); ++i ) {
 
-            // for the ith parameter check for aliases to all
-            // higher numbered parameters
-            for( int j = i + 1; j < fm.numParameters(); ++j ) {
-                if( createsPotentialAliases( td, i, j ) ) {
-                    bw.write( "Task "+td+" potentially aliases parameters "+i+" and "+j+".\n" );
-                }
-            }
+	// for the ith parameter check for aliases to all
+	// higher numbered parameters
+	for( int j = i + 1; j < fm.numParameters(); ++j ) {
+	  if( createsPotentialAliases( td, i, j ) ) {
+	    foundSomeAlias = true;
+	    bw.write( "Task "+td+" potentially aliases parameters "+i+" and "+j+".\n" );
+	  }
+	}
 
-            // for the ith parameter, check for aliases against
-            // the set of allocation sites reachable from this
-            // task context
-            Iterator allocItr = allocSites.iterator();
-            while( allocItr.hasNext() ) {
-                AllocationSite as = (AllocationSite) allocItr.next();
-                if( createsPotentialAliases( td, i, as ) ) {
-                    bw.write( "Task "+td+" potentially aliases parameter "+i+" and "+as+".\n" );
-                }
-            }
-        }
+	/*
+	// for the ith parameter, check for aliases against
+	// the set of allocation sites reachable from this
+	// task context
+	Iterator allocItr = allocSites.iterator();
+	while( allocItr.hasNext() ) {
+	  AllocationSite as = (AllocationSite) allocItr.next();
+	  if( createsPotentialAliases( td, i, as ) ) {
+	    bw.write( "Task "+td+" potentially aliases parameter "+i+" and "+as+".\n" );
+	  }
+	}
+	*/
+      }
 
-        // for each allocation site check for aliases with
-        // other allocation sites in the context of execution
-        // of this task
-        Iterator allocItr = allocSites.iterator();
-        while( allocItr.hasNext() ) {
-            AllocationSite as = (AllocationSite) allocItr.next();
-            if( createsPotentialAliases( td, as, allocSites ) ) {
-                bw.write( "Task "+td+" potentially aliases "+as+" and the rest of the set.\n" );
-            }
-        }
-       }
+      /*
+      // for each allocation site check for aliases with
+      // other allocation sites in the context of execution
+      // of this task
+      Iterator allocItr = allocSites.iterator();
+      while( allocItr.hasNext() ) {
+	AllocationSite as = (AllocationSite) allocItr.next();
+	if( createsPotentialAliases( td, as, allocSites ) ) {
+	  bw.write( "Task "+td+" potentially aliases "+as+" and the rest of the set.\n" );
+	}
+      }
+      */
 
-       bw.close();
-     */
+      if( !foundSomeAlias ) {
+	bw.write( "Task "+td+" contains no aliases between flagged objects.\n" );
+      }
+    }
+    
+    bw.close();
   }
 
   ///////////////////////////////////////////
@@ -263,6 +272,8 @@ public class OwnershipAnalysis {
     // as mentioned above, analyze methods one-by-one, possibly revisiting
     // a method if the methods that it calls are updated
     analyzeMethods();
+
+    writeAllAliases( "identifiedAliases.txt" );
   }
 
   // called from the constructor to help initialize the set

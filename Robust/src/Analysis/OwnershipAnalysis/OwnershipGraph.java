@@ -2202,6 +2202,67 @@ public class OwnershipGraph {
   }
 
 
+  public boolean hasPotentialAlias( Integer paramIndex1, Integer paramIndex2 ) {
+
+    // get parameter's heap region
+    assert paramIndex2id.containsKey(paramIndex1);
+    Integer idParam1 = paramIndex2id.get(paramIndex1);
+
+    assert id2hrn.containsKey(idParam1);
+    HeapRegionNode hrnParam1 = id2hrn.get(idParam1);
+    assert hrnParam1 != null;
+
+    // get tokens for this parameter
+    TokenTuple p1 = new TokenTuple(hrnParam1.getID(),
+				   true,
+				   TokenTuple.ARITY_ONE).makeCanonical();
+
+    TokenTuple pStar1 = new TokenTuple(hrnParam1.getID(),
+				       true,
+				       TokenTuple.ARITY_MANY).makeCanonical();    
+
+
+    // get tokens for the other parameter
+    assert paramIndex2id.containsKey(paramIndex2);
+    Integer idParam2 = paramIndex2id.get(paramIndex2);
+
+    assert id2hrn.containsKey(idParam2);
+    HeapRegionNode hrnParam2 = id2hrn.get(idParam2);
+    assert hrnParam2 != null;
+
+    TokenTuple p2 = new TokenTuple(hrnParam2.getID(),
+				   true,
+				   TokenTuple.ARITY_ONE).makeCanonical();
+
+    TokenTuple pStar2 = new TokenTuple(hrnParam2.getID(),
+				       true,
+				       TokenTuple.ARITY_MANY).makeCanonical();    
+
+
+    // get special label p_q for first parameter
+    TempDescriptor tdParamQ1 = paramIndex2tdQ.get(paramIndex1);
+    assert tdParamQ1 != null;    
+    LabelNode lnParamQ1 = td2ln.get(tdParamQ1);
+    assert lnParamQ1 != null;
+
+    // then get the edge from label q to parameter's hrn
+    ReferenceEdge edgeSpecialQ1 = lnParamQ1.getReferenceTo(hrnParam1, null);
+    assert edgeSpecialQ1 != null;
+
+    // if the beta of this edge has tokens from both parameters in one
+    // token tuple set, then there is a potential alias between them
+    ReachabilitySet beta1 = edgeSpecialQ1.getBeta();
+    assert beta1 != null;
+
+    if( beta1.containsTupleSetWithBoth( p1,     p2     ) ) { return true; }
+    if( beta1.containsTupleSetWithBoth( pStar1, p2     ) ) { return true; }
+    if( beta1.containsTupleSetWithBoth( p1,     pStar2 ) ) { return true; }
+    if( beta1.containsTupleSetWithBoth( pStar1, pStar2 ) ) { return true; }
+    
+    return false;
+  }
+
+
   /*
      // given a set B of heap region node ID's, return the set of heap
      // region node ID's that is reachable from B
@@ -2321,39 +2382,6 @@ public class OwnershipGraph {
       writeReferencers
       );
   }
-
-  /*
-     public void writeGraph(Descriptor methodDesc,
-                         FlatNode fn,
-                         boolean writeLabels,
-                         boolean writeReferencers
-                         ) throws java.io.IOException {
-     writeGraph(
-      methodDesc.getSymbol() +
-      methodDesc.getNum() +
-      fn.toString(),
-      writeLabels,
-      false,
-      false,
-      writeReferencers
-      );
-     }
-
-     public void writeGraph(Descriptor methodDesc,
-                         boolean writeLabels,
-                         boolean writeReferencers
-                         ) throws java.io.IOException {
-     writeGraph(
-      methodDesc.getSymbol() +
-      methodDesc.getNum() +
-      "COMPLETE",
-      writeLabels,
-      false,
-      false,
-      writeReferencers
-      );
-     }
-   */
 
   public void writeGraph(Descriptor methodDesc,
                          boolean writeLabels,

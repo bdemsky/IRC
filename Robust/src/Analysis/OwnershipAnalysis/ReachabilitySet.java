@@ -63,6 +63,16 @@ public class ReachabilitySet extends Canonical {
     return false;
   }
 
+  public boolean containsTupleSetWithBoth(TokenTuple tt1, TokenTuple tt2) {
+    Iterator itr = iterator();
+    while( itr.hasNext() ) {
+      TokenTupleSet tts = (TokenTupleSet) itr.next();
+      if( tts.containsTuple(tt1) && tts.containsTuple(tt2) ) {
+	return true;
+      }
+    }
+    return false;
+  }
 
   public ReachabilitySet increaseArity(Integer token) {
     assert token != null;
