@@ -2327,105 +2327,110 @@ public class OwnershipGraph {
   }
 
 
-  /*
-     // given a set B of heap region node ID's, return the set of heap
-     // region node ID's that is reachable from B
-     public HashSet<Integer> getReachableSet( HashSet<Integer> idSetB ) {
+  public boolean hasPotentialAlias( AllocationSite as1, AllocationSite as2 ) {
 
-      HashSet<HeapRegionNode> toVisit = new HashSet<HeapRegionNode>();
-      HashSet<HeapRegionNode> visited = new HashSet<HeapRegionNode>();
-
-      // initial nodes to visit are from set B
-      Iterator initialItr = idSetB.iterator();
-      while( initialItr.hasNext() ) {
-          Integer idInitial = (Integer) initialItr.next();
-          assert id2hrn.contains( idInitial );
-          HeapRegionNode hrnInitial = id2hrn.get( idInitial );
-          toVisit.add( hrnInitial );
-      }
-
-      HashSet<Integer> idSetReachableFromB = new HashSet<Integer>();
-
-      // do a heap traversal
-      while( !toVisit.isEmpty() ) {
-          HeapRegionNode hrnVisited = (HeapRegionNode) toVisit.iterator().next();
-          toVisit.remove( hrnVisited );
-          visited.add   ( hrnVisited );
-
-          // for every node visited, add it to the total
-          // reachable set
-          idSetReachableFromB.add( hrnVisited.getID() );
-
-          // find other reachable nodes
-          Iterator referenceeItr = hrnVisited.setIteratorToReferencedRegions();
-          while( referenceeItr.hasNext() ) {
-              Map.Entry me                 = (Map.Entry)               referenceeItr.next();
-              HeapRegionNode hrnReferencee = (HeapRegionNode)          me.getKey();
-              ReferenceEdgeProperties rep  = (ReferenceEdgeProperties) me.getValue();
-
-              if( !visited.contains( hrnReferencee ) ) {
-                  toVisit.add( hrnReferencee );
-              }
-          }
-      }
-
-      return idSetReachableFromB;
-     }
+    // get tokens for summary nodes
+    TokenTuple gs1 = new TokenTuple(as1.getSummary(),
+				    true,
+				    TokenTuple.ARITY_ONE).makeCanonical();
+    
+    TokenTuple gsStar1 = new TokenTuple(as1.getSummary(),
+					true,
+					TokenTuple.ARITY_MANY).makeCanonical();
+    
+    // get summary node's alpha
+    Integer idSum1 = as1.getSummary();
+    assert id2hrn.containsKey( idSum1 );
+    HeapRegionNode hrnSum1 = id2hrn.get( idSum1 );
+    assert hrnSum1 != null;
+    ReachabilitySet alphaSum1 = hrnSum1.getAlpha();
+    assert alphaSum1 != null;
 
 
-     // used to find if a heap region can possibly have a reference to
-     // any of the heap regions in the given set
-     // if the id supplied is in the set, then a self-referencing edge
-     // would return true, but that special case is specifically allowed
-     // meaning that it isn't an external alias
-     public boolean canIdReachSet( Integer id, HashSet<Integer> idSet ) {
+    // and for the other one
+    TokenTuple gs2 = new TokenTuple(as2.getSummary(),
+				    true,
+				    TokenTuple.ARITY_ONE).makeCanonical();
+    
+    TokenTuple gsStar2 = new TokenTuple(as2.getSummary(),
+					true,
+					TokenTuple.ARITY_MANY).makeCanonical();
+    
+    // get summary node's alpha
+    Integer idSum2 = as2.getSummary();
+    assert id2hrn.containsKey( idSum2 );
+    HeapRegionNode hrnSum2 = id2hrn.get( idSum2 );
+    assert hrnSum2 != null;
+    ReachabilitySet alphaSum2 = hrnSum2.getAlpha();
+    assert alphaSum2 != null;
 
-      assert id2hrn.contains( id );
-      HeapRegionNode hrn = id2hrn.get( id );
+    // does either one report reachability from the other tokens?
+    if( alphaSum1.containsTuple( gsStar2 ) ) { return true; }
+    if( alphaSum2.containsTuple( gsStar1 ) ) { return true; }
+
+    // only check non-star token if they are different sites
+    if( as1 != as2 ) {
+      if( alphaSum1.containsTuple( gs2 ) ) { return true; }
+      if( alphaSum2.containsTuple( gs1 ) ) { return true; }
+    }
 
 
-      //HashSet<HeapRegionNode> hrnSet = new HashSet<HeapRegionNode>();
+    // check sum2 against alloc1 nodes
+    for( int i = 0; i < as1.getAllocationDepth(); ++i ) {
+      Integer idI1 = as1.getIthOldest(i);
+      assert id2hrn.containsKey( idI1 );
+      HeapRegionNode hrnI1 = id2hrn.get( idI1 );
+      assert hrnI1 != null;
+      ReachabilitySet alphaI1 = hrnI1.getAlpha();
+      assert alphaI1 != null;
 
-      //Iterator i = idSet.iterator();
-      //while( i.hasNext() ) {
-      //    Integer idFromSet = (Integer) i.next();
-      //   assert id2hrn.contains( idFromSet );
-      //    hrnSet.add( id2hrn.get( idFromSet ) );
-      //}
+      // the other nodes of an allocation site are single, no stars
+      TokenTuple gi1 = new TokenTuple(as1.getIthOldest(i),
+				      false,
+				      TokenTuple.ARITY_ONE).makeCanonical();
 
+      if( alphaSum2.containsTuple( gi1     ) ) { return true; }
+      if( alphaI1.containsTuple  ( gs2     ) ) { return true; }
+      if( alphaI1.containsTuple  ( gsStar2 ) ) { return true; }
+    }    
 
-      // do a traversal from hrn and see if any of the
-      // heap regions from the set come up during that
-      HashSet<HeapRegionNode> toVisit = new HashSet<HeapRegionNode>();
-      HashSet<HeapRegionNode> visited = new HashSet<HeapRegionNode>();
+    // check sum1 against alloc2 nodes
+    for( int i = 0; i < as2.getAllocationDepth(); ++i ) {
+      Integer idI2 = as2.getIthOldest(i);
+      assert id2hrn.containsKey( idI2 );
+      HeapRegionNode hrnI2 = id2hrn.get( idI2 );
+      assert hrnI2 != null;
+      ReachabilitySet alphaI2 = hrnI2.getAlpha();
+      assert alphaI2 != null;
 
-      toVisit.add( hrn );
-      while( !toVisit.isEmpty() ) {
-          HeapRegionNode hrnVisited = (HeapRegionNode) toVisit.iterator().next();
-          toVisit.remove( hrnVisited );
-          visited.add   ( hrnVisited );
+      TokenTuple gi2 = new TokenTuple(as2.getIthOldest(i),
+				      false,
+				      TokenTuple.ARITY_ONE).makeCanonical();
 
-          Iterator referenceeItr = hrnVisited.setIteratorToReferencedRegions();
-          while( referenceeItr.hasNext() ) {
-              Map.Entry me                 = (Map.Entry)               referenceeItr.next();
-              HeapRegionNode hrnReferencee = (HeapRegionNode)          me.getKey();
-              ReferenceEdgeProperties rep  = (ReferenceEdgeProperties) me.getValue();
+      if( alphaSum1.containsTuple( gi2     ) ) { return true; }
+      if( alphaI2.containsTuple  ( gs1     ) ) { return true; }
+      if( alphaI2.containsTuple  ( gsStar1 ) ) { return true; }
 
-              if( idSet.contains( hrnReferencee.getID() ) ) {
-                  if( !id.equals( hrnReferencee.getID() ) ) {
-                      return true;
-                  }
-              }
+      // while we're at it, do an inner loop for alloc2 vs alloc1 nodes
+      for( int j = 0; j < as1.getAllocationDepth(); ++j ) {	
+	Integer idI1 = as1.getIthOldest(j);
+	
+	// if these are the same site, don't look for the same token, no alias
+	// different tokens of the same site could alias together though
+	if( idI1 == idI2 ) { continue; }
 
-              if( !visited.contains( hrnReferencee ) ) {
-                  toVisit.add( hrnReferencee );
-              }
-          }
-      }
-
-      return false;
-     }
-   */
+	HeapRegionNode hrnI1 = id2hrn.get( idI1 );
+	ReachabilitySet alphaI1 = hrnI1.getAlpha();
+	TokenTuple gi1 = new TokenTuple(as1.getIthOldest(j),
+					false,
+					TokenTuple.ARITY_ONE).makeCanonical();	
+	if( alphaI2.containsTuple( gi1 ) ) { return true; }
+	if( alphaI1.containsTuple( gi2 ) ) { return true; }
+      }    
+    }
+    
+    return false;
+  }
 
 
   // for writing ownership graphs to dot files

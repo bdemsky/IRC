@@ -244,3 +244,13 @@ task AliasParamToNew( Voo v{ f }, Voo w{ f } ) {
 
   taskexit( v{ !f }, w{ !f } );
 }
+
+task AliasNewToNew( Voo v{ f }, Voo w{ f } ) {
+  
+  Baw m = new Baw();
+
+  Voo x = new Voo();
+  x.b = m;
+
+  taskexit( v{ !f }, w{ !f } );
+}

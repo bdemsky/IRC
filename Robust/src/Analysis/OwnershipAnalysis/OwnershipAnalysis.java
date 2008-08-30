@@ -54,28 +54,14 @@ public class OwnershipAnalysis {
     return og.hasPotentialAlias( paramIndex, alloc );
   }
 
-  /*
   public boolean createsPotentialAliases( Descriptor     taskOrMethod,
                                           AllocationSite alloc1,
                                           AllocationSite alloc2 ) {
     
     OwnershipGraph og = mapDescriptorToCompleteOwnershipGraph.get( taskOrMethod );
     assert( og != null );    
-    return createsPotentialAliases( og,
-				    getHeapRegionIDset( alloc1 ),
-				    getHeapRegionIDset( alloc2 ) );
+    return og.hasPotentialAlias( alloc1, alloc2 );
   }
-  
-  public boolean createsPotentialAliases( Descriptor              taskOrMethod,
-                                          AllocationSite          alloc,
-                                          HashSet<AllocationSite> allocSet ) {    
-    OwnershipGraph og = mapDescriptorToCompleteOwnershipGraph.get( taskOrMethod );
-    assert( og != null );    
-    return createsPotentialAliases( og,
-				    getHeapRegionIDset( alloc ),
-				    getHeapRegionIDset( allocSet ) );
-  }
-  */
 
   // use the methods given above to check every possible alias
   // between task parameters and flagged allocation sites reachable
@@ -89,6 +75,8 @@ public class OwnershipAnalysis {
     while( taskItr.hasNext() ) {
       TaskDescriptor td = (TaskDescriptor) taskItr.next();
       
+      bw.write( "\n---------"+td+"--------\n" );
+
       HashSet<AllocationSite> allocSites = getFlaggedAllocationSitesReachableFromTask( td );
       
       // for each task parameter, check for aliases with
@@ -104,7 +92,7 @@ public class OwnershipAnalysis {
 	for( int j = i + 1; j < fm.numParameters(); ++j ) {
 	  if( createsPotentialAliases( td, i, j ) ) {
 	    foundSomeAlias = true;
-	    bw.write( "Task "+td+" potentially aliases parameters "+i+" and "+j+".\n" );
+	    bw.write( "Potential alias between parameters "+i+" and "+j+".\n" );
 	  }
 	}
 
@@ -116,23 +104,31 @@ public class OwnershipAnalysis {
 	  AllocationSite as = (AllocationSite) allocItr.next();
 	  if( createsPotentialAliases( td, i, as ) ) {
 	    foundSomeAlias = true;
-	    bw.write( "Task "+td+" potentially aliases parameter "+i+" and "+as+".\n" );
+	    bw.write( "Potential alias between parameter "+i+" and "+as+".\n" );
 	  }
 	}
       }
 
-      /*
       // for each allocation site check for aliases with
       // other allocation sites in the context of execution
       // of this task
-      Iterator allocItr = allocSites.iterator();
-      while( allocItr.hasNext() ) {
-	AllocationSite as = (AllocationSite) allocItr.next();
-	if( createsPotentialAliases( td, as, allocSites ) ) {
-	  bw.write( "Task "+td+" potentially aliases "+as+" and the rest of the set.\n" );
+      HashSet<AllocationSite> outerChecked = new HashSet<AllocationSite>();
+      Iterator allocItr1 = allocSites.iterator();
+      while( allocItr1.hasNext() ) {
+	AllocationSite as1 = (AllocationSite) allocItr1.next();
+
+	Iterator allocItr2 = allocSites.iterator();
+	while( allocItr2.hasNext() ) {
+	  AllocationSite as2 = (AllocationSite) allocItr2.next();
+
+	  if( !outerChecked.contains( as2 ) &&
+	      createsPotentialAliases( td, as1, as2 ) ) {
+	    bw.write( "Potential alias between "+as1+" and "+as2+".\n" );
+	  }
 	}
+
+	outerChecked.add( as1 );
       }
-      */
 
       if( !foundSomeAlias ) {
 	bw.write( "Task "+td+" contains no aliases between flagged objects.\n" );
@@ -716,79 +712,5 @@ public class OwnershipAnalysis {
 
 
     return asSetTotal;
-  }
-
-
-
-  private HashSet<Integer> getHeapRegionIDset(OwnershipGraph og,
-                                              int paramIndex) {
-
-    assert og.paramIndex2id.containsKey(paramIndex);
-    Integer idParam = og.paramIndex2id.get(paramIndex);
-
-    HashSet<Integer> idSet = new HashSet<Integer>();
-    idSet.add(idParam);
-
-    return idSet;
-  }
-
-
-  private HashSet<Integer> getHeapRegionIDset(AllocationSite alloc) {
-
-    HashSet<Integer> idSet = new HashSet<Integer>();
-
-    for( int i = 0; i < alloc.getAllocationDepth(); ++i ) {
-      Integer id = alloc.getIthOldest(i);
-      idSet.add(id);
-    }
-
-    Integer idSummary = alloc.getSummary();
-    idSet.add(idSummary);
-
-    return idSet;
-  }
-
-  private HashSet<Integer> getHeapRegionIDset(HashSet<AllocationSite> allocSet) {
-
-    HashSet<Integer> idSet = new HashSet<Integer>();
-
-    Iterator allocItr = allocSet.iterator();
-    while( allocItr.hasNext() ) {
-      AllocationSite alloc = (AllocationSite) allocItr.next();
-
-      for( int i = 0; i < alloc.getAllocationDepth(); ++i ) {
-	Integer id = alloc.getIthOldest(i);
-	idSet.add(id);
-      }
-
-      Integer idSummary = alloc.getSummary();
-      idSet.add(idSummary);
-    }
-
-    return idSet;
-  }
-
-  private boolean createsPotentialAliases(OwnershipGraph og,
-                                          HashSet<Integer> idSetA,
-                                          HashSet<Integer> idSetB) {
-    boolean potentialAlias = false;
-
-    /*
-       // first expand set B into the set of all heap region node ID's
-       // reachable from the nodes in set B
-       HashSet<Integer> idSetReachableFromB = og.getReachableSet( idSetB );
-
-       // then see if anything in A can reach a node in the set reachable
-       // from B.  If so, there is a potential alias.
-       Iterator i = idSetA.iterator();
-       while( i.hasNext() ) {
-        Integer id = (Integer) i.next();
-        if( og.canIdReachSet( id, idSetB ) ) {
-            return true;
-        }
-       }
-     */
-
-    return false;
   }
 }
