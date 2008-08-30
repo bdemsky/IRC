@@ -2263,6 +2263,70 @@ public class OwnershipGraph {
   }
 
 
+  public boolean hasPotentialAlias( Integer paramIndex, AllocationSite as ) {
+
+    // get parameter's heap region
+    assert paramIndex2id.containsKey(paramIndex);
+    Integer idParam = paramIndex2id.get(paramIndex);
+
+    assert id2hrn.containsKey(idParam);
+    HeapRegionNode hrnParam = id2hrn.get(idParam);
+    assert hrnParam != null;
+
+    // get tokens for this parameter
+    TokenTuple p = new TokenTuple(hrnParam.getID(),
+				  true,
+				  TokenTuple.ARITY_ONE).makeCanonical();
+
+    TokenTuple pStar = new TokenTuple(hrnParam.getID(),
+				      true,
+				      TokenTuple.ARITY_MANY).makeCanonical();    
+
+    // get special label p_q
+    TempDescriptor tdParamQ = paramIndex2tdQ.get(paramIndex);
+    assert tdParamQ != null;    
+    LabelNode lnParamQ = td2ln.get(tdParamQ);
+    assert lnParamQ != null;
+
+    // then get the edge from label q to parameter's hrn
+    ReferenceEdge edgeSpecialQ = lnParamQ.getReferenceTo(hrnParam, null);
+    assert edgeSpecialQ != null;
+
+    // look through this beta set for potential aliases
+    ReachabilitySet beta = edgeSpecialQ.getBeta();
+    assert beta != null;
+
+
+    // get tokens for summary node
+    TokenTuple gs = new TokenTuple(as.getSummary(),
+				  true,
+				  TokenTuple.ARITY_ONE).makeCanonical();
+
+    TokenTuple gsStar = new TokenTuple(as.getSummary(),
+				       true,
+				       TokenTuple.ARITY_MANY).makeCanonical();    
+
+    if( beta.containsTupleSetWithBoth( p,     gs     ) ) { return true; }
+    if( beta.containsTupleSetWithBoth( pStar, gs     ) ) { return true; }
+    if( beta.containsTupleSetWithBoth( p,     gsStar ) ) { return true; }
+    if( beta.containsTupleSetWithBoth( pStar, gsStar ) ) { return true; }
+
+    // check for other nodes
+    for( int i = 0; i < as.getAllocationDepth(); ++i ) {
+
+      // the other nodes of an allocation site are single, no stars
+      TokenTuple gi = new TokenTuple(as.getIthOldest(i),
+				     false,
+				     TokenTuple.ARITY_ONE).makeCanonical();
+
+      if( beta.containsTupleSetWithBoth( p,     gi     ) ) { return true; }
+      if( beta.containsTupleSetWithBoth( pStar, gi     ) ) { return true; }
+    }    
+    
+    return false;
+  }
+
+
   /*
      // given a set B of heap region node ID's, return the set of heap
      // region node ID's that is reachable from B

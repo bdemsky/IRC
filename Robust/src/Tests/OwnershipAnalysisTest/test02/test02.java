@@ -232,3 +232,15 @@ task NoAliasNewInLoopAnotherWay( Voo v{ f } ) {
   
   taskexit( v{ !f } );
 }
+
+
+task AliasParamToNew( Voo v{ f }, Voo w{ f } ) {
+  
+  Baw m = new Baw();
+  w.b = m;
+
+  Voo x = new Voo();
+  x.b = m;
+
+  taskexit( v{ !f }, w{ !f } );
+}

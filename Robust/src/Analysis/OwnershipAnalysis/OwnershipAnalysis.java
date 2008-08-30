@@ -33,38 +33,28 @@ public class OwnershipAnalysis {
     
     OwnershipGraph og = mapDescriptorToCompleteOwnershipGraph.get( taskOrMethod );
     assert( og != null );    
-
     return og.hasPotentialAlias( paramIndex1, paramIndex2 );
-    /*
-    return createsPotentialAliases( og,
-				    getHeapRegionIDset( og, paramIndex1 ),
-				    getHeapRegionIDset( og, paramIndex2 ) );
-    */
   }
 
-  /*
   public boolean createsPotentialAliases( Descriptor     taskOrMethod,
                                           int            paramIndex,
                                           AllocationSite alloc ) {
     
     OwnershipGraph og = mapDescriptorToCompleteOwnershipGraph.get( taskOrMethod );
     assert( og != null );    
-    return createsPotentialAliases( og,
-				    getHeapRegionIDset( og, paramIndex ),
-				    getHeapRegionIDset( alloc ) );
+    return og.hasPotentialAlias( paramIndex, alloc );
   }
-  
+
   public boolean createsPotentialAliases( Descriptor     taskOrMethod,
                                           AllocationSite alloc,
                                           int            paramIndex ) {
     
     OwnershipGraph og = mapDescriptorToCompleteOwnershipGraph.get( taskOrMethod );
     assert( og != null );    
-    return createsPotentialAliases( og,
-				    getHeapRegionIDset( og, paramIndex ),
-				    getHeapRegionIDset( alloc ) );
+    return og.hasPotentialAlias( paramIndex, alloc );
   }
-  
+
+  /*
   public boolean createsPotentialAliases( Descriptor     taskOrMethod,
                                           AllocationSite alloc1,
                                           AllocationSite alloc2 ) {
@@ -99,7 +89,7 @@ public class OwnershipAnalysis {
     while( taskItr.hasNext() ) {
       TaskDescriptor td = (TaskDescriptor) taskItr.next();
       
-      //HashSet<AllocationSite> allocSites = getFlaggedAllocationSitesReachableFromTask( td );
+      HashSet<AllocationSite> allocSites = getFlaggedAllocationSitesReachableFromTask( td );
       
       // for each task parameter, check for aliases with
       // other task parameters and every allocation site
@@ -118,7 +108,6 @@ public class OwnershipAnalysis {
 	  }
 	}
 
-	/*
 	// for the ith parameter, check for aliases against
 	// the set of allocation sites reachable from this
 	// task context
@@ -126,10 +115,10 @@ public class OwnershipAnalysis {
 	while( allocItr.hasNext() ) {
 	  AllocationSite as = (AllocationSite) allocItr.next();
 	  if( createsPotentialAliases( td, i, as ) ) {
+	    foundSomeAlias = true;
 	    bw.write( "Task "+td+" potentially aliases parameter "+i+" and "+as+".\n" );
 	  }
 	}
-	*/
       }
 
       /*
