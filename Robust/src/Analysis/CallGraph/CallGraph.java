@@ -114,14 +114,25 @@ public class CallGraph {
 
     HashSet ns=new HashSet();
     ns.add(d);
+    return getMoreMethodCalls( ns, d );
+  }
+
+  private Set getMoreMethodCalls( HashSet found, Descriptor d ) {
+    HashSet ns=new HashSet();
+    ns.add(d);
+    found.add(d);
     Set s=(Set)mapCaller2CalleeSet.get(d);
     if (s!=null)
       for(Iterator it=s.iterator(); it.hasNext();) {
 	MethodDescriptor md=(MethodDescriptor)it.next();
-	ns.addAll(getMethodCalls(md));
+	if( !found.contains(md) ) {
+	  found.contains(md);
+	  ns.addAll(getMoreMethodCalls(found, md));
+	}
       }
-    return ns;
+    return ns;    
   }
+
 
   private void buildGraph() {
     Iterator it=state.getClassSymbolTable().getDescriptorsIterator();
