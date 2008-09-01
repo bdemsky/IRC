@@ -457,11 +457,11 @@ public class OwnershipAnalysis {
       // adding parameters labels to new heap regions
       for( int i = 0; i < fm.numParameters(); ++i ) {
 	TempDescriptor tdParam = fm.getParameter(i);
+
 	og.assignTempEqualToParamAlloc(tdParam,
 	                               methodDesc instanceof TaskDescriptor,
 	                               new Integer(i) );
       }
-
       break;
 
     case FKind.FlatOpNode:
@@ -521,43 +521,36 @@ public class OwnershipAnalysis {
       FlatCall fc = (FlatCall) fn;
       MethodDescriptor md = fc.getMethod();
       FlatMethod flatm = state.getMethodFlat(md);
-      OwnershipGraph ogAllPossibleCallees = new OwnershipGraph(allocationDepth);
+      OwnershipGraph ogMergeOfAllPossibleCalleeResults = new OwnershipGraph(allocationDepth);
 
       if( md.isStatic() ) {
 	// a static method is simply always the same, makes life easy
 	OwnershipGraph onlyPossibleCallee = mapDescriptorToCompleteOwnershipGraph.get(md);
-	ogAllPossibleCallees.merge(onlyPossibleCallee);
-
+	ogMergeOfAllPossibleCalleeResults = og;
+	ogMergeOfAllPossibleCalleeResults.resolveMethodCall(fc, md.isStatic(), flatm, onlyPossibleCallee);
       } else {
 	// if the method descriptor is virtual, then there could be a
 	// set of possible methods that will actually be invoked, so
-	// find all of them and merge all of their graphs together
+	// find all of them and merge all of their results together
 	TypeDescriptor typeDesc = fc.getThis().getType();
 	Set possibleCallees = callGraph.getMethods(md, typeDesc);
-
+	
 	Iterator i = possibleCallees.iterator();
 	while( i.hasNext() ) {
 	  MethodDescriptor possibleMd = (MethodDescriptor) i.next();
+	  
+	  // don't alter the working graph (og) until we compute a result for every
+	  // possible callee, merge them all together, then set og to that
+	  OwnershipGraph ogCopy = new OwnershipGraph(allocationDepth);
+	  ogCopy.merge( og );
+	  
 	  OwnershipGraph ogPotentialCallee = mapDescriptorToCompleteOwnershipGraph.get(possibleMd);
-	  ogAllPossibleCallees.merge(ogPotentialCallee);
+	  ogCopy.resolveMethodCall(fc, md.isStatic(), flatm, ogPotentialCallee );
+	  ogMergeOfAllPossibleCalleeResults.merge( ogCopy );
 	}
       }
 
-      // Now we should have the following information to resolve this method call:
-      //
-      // 1. A FlatCall fc to query for the caller's context (argument labels, etc)
-      //
-      // 2. Whether the method is static; if not we need to deal with the "this" pointer
-      //
-      // *******************************************************************************************
-      // 3. The original FlatMethod flatm to query for callee's context (paramter labels)
-      //   NOTE!  I assume FlatMethod before virtual dispatch accurately describes all possible methods!
-      // *******************************************************************************************
-      //
-      // 4. The OwnershipGraph ogAllPossibleCallees is a merge of every ownership graph of all the possible
-      // methods to capture any possible references made.
-      //
-      og.resolveMethodCall(fc, md.isStatic(), flatm, ogAllPossibleCallees);
+      og = ogMergeOfAllPossibleCalleeResults;
       break;
 
     case FKind.FlatReturnNode:

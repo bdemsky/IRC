@@ -887,7 +887,6 @@ public class OwnershipGraph {
                                 FlatMethod fm,
                                 OwnershipGraph ogCallee) {
 
-
     // define rewrite rules and other structures to organize
     // data by parameter/argument index
     Hashtable<Integer, ReachabilitySet> paramIndex2rewriteH =
@@ -1303,18 +1302,21 @@ public class OwnershipGraph {
 	    // it also has the appropriate field, otherwise prune this
 	    AllocationSite asSrc = src.getAllocationSite();
 	    if( asSrc != null ) {
-	      boolean foundField = false;	      
-	      Iterator fieldsSrcItr = asSrc.getType().getClassDesc().getFields();
-	      while( fieldsSrcItr.hasNext() ) {
-		FieldDescriptor fd = (FieldDescriptor) fieldsSrcItr.next();
-		if( fd == edgeCallee.getFieldDesc() ) {
-		  foundField = true;
-		  break;
+	      boolean foundField = false;	
+	      TypeDescriptor tdSrc = asSrc.getType();
+	      if( tdSrc != null && tdSrc.isClass() ) {
+		Iterator fieldsSrcItr = tdSrc.getClassDesc().getFields();
+		while( fieldsSrcItr.hasNext() ) {
+		  FieldDescriptor fd = (FieldDescriptor) fieldsSrcItr.next();
+		  if( fd == edgeCallee.getFieldDesc() ) {
+		    foundField = true;
+		    break;
+		  }
 		}
-	      }
-	      if( !foundField ) {
-		// prune this source node possibility
-		continue;
+		if( !foundField ) {
+		  // prune this source node possibility
+		  continue;
+		}
 	      }
 	    }
 
@@ -2504,6 +2506,14 @@ public class OwnershipGraph {
 
     bw.write("  graphTitle[label=\""+graphName+"\",shape=box];\n");
 
+    Set df = paramIndex2id.entrySet();
+    Iterator ih = df.iterator();
+    while( ih.hasNext() ) {
+      Map.Entry meh = (Map.Entry)ih.next();
+      Integer pi = (Integer) meh.getKey();
+      Integer id = (Integer) meh.getValue();
+      bw.write("  pindex"+pi+"[label=\""+pi+" to "+id+"\",shape=box];\n");
+    }
 
     // then visit every label node, useful for debugging
     if( writeLabels ) {
