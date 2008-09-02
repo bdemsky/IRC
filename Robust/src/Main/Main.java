@@ -453,8 +453,7 @@ public class Main {
       CallGraph callGraph  = new CallGraph(state);
       int allocationDepth  = 3;
       OwnershipAnalysis oa =
-        new OwnershipAnalysis(state, callGraph, allocationDepth);
-      //This was breaking the compile
+        new OwnershipAnalysis(state, callGraph, allocationDepth, true, true);
       //	  oa.writeAllAliases( "identifiedAliases.txt" );
     }
 

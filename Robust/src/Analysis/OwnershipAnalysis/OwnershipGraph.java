@@ -2527,6 +2527,22 @@ public class OwnershipGraph {
                );
   }
 
+  public void writeGraph(Descriptor methodDesc,
+                         Integer numUpdate,
+                         boolean writeLabels,
+                         boolean labelSelect,
+                         boolean pruneGarbage,
+                         boolean writeReferencers
+                         ) throws java.io.IOException {
+
+    writeGraph(methodDesc+"COMPLETE"+String.format("%05d", numUpdate),
+               writeLabels,
+               labelSelect,
+               pruneGarbage,
+               writeReferencers
+               );
+  }
+
   public void writeGraph(String graphName,
                          boolean writeLabels,
                          boolean labelSelect,

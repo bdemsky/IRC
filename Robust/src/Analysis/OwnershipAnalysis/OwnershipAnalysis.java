@@ -170,9 +170,11 @@ public class OwnershipAnalysis {
   // processing all methods in the program, and by methods
   // TaskDescriptor and MethodDescriptor are combined
   // together, with a common parent class Descriptor
+  private Hashtable<FlatMethod, OwnershipGraph>           mapFlatMethodToInitialParamAllocGraph;
   private Hashtable<Descriptor, OwnershipGraph>           mapDescriptorToCompleteOwnershipGraph;
   private Hashtable<FlatNew,    AllocationSite>           mapFlatNewToAllocationSite;
   private Hashtable<Descriptor, HashSet<AllocationSite> > mapDescriptorToAllocationSiteSet;
+  private Hashtable<Descriptor, Integer>                  mapDescriptorToNumUpdates;
 
   // Use these data structures to track progress of one pass of
   // processing the FlatNodes of a particular method
@@ -197,19 +199,30 @@ public class OwnershipAnalysis {
                                                                  "elements",
                                                                  null,
                                                                  false);
+  // for controlling DOT file output
+  private boolean writeFinalGraphs;
+  private boolean writeAllUpdates;
+
 
 
   // this analysis generates an ownership graph for every task
   // in the program
   public OwnershipAnalysis(State state,
                            CallGraph callGraph,
-                           int allocationDepth) throws java.io.IOException {
-    this.state           = state;
-    this.callGraph       = callGraph;
-    this.allocationDepth = allocationDepth;
+                           int allocationDepth,
+                           boolean writeFinalGraphs,
+                           boolean writeAllUpdates) throws java.io.IOException {
 
+    this.state            = state;
+    this.callGraph        = callGraph;
+    this.allocationDepth  = allocationDepth;
+    this.writeFinalGraphs = writeFinalGraphs;
+    this.writeAllUpdates  = writeAllUpdates;
 
     descriptorsToAnalyze = new HashSet<Descriptor>();
+
+    mapFlatMethodToInitialParamAllocGraph =
+      new Hashtable<FlatMethod, OwnershipGraph>();
 
     mapDescriptorToCompleteOwnershipGraph =
       new Hashtable<Descriptor, OwnershipGraph>();
@@ -220,6 +233,9 @@ public class OwnershipAnalysis {
     mapDescriptorToAllocationSiteSet =
       new Hashtable<Descriptor, HashSet<AllocationSite> >();
 
+    if( writeAllUpdates ) {
+      mapDescriptorToNumUpdates = new Hashtable<Descriptor, Integer>();
+    }
 
     // initialize methods to visit as the set of all tasks in the
     // program and then any method that could be called starting
@@ -249,7 +265,7 @@ public class OwnershipAnalysis {
       System.out.println("Previsiting " + d);
 
       analyzeFlatNode(d, fm, null, og);
-      mapDescriptorToCompleteOwnershipGraph.put(d, og);
+      setGraphForDescriptor(d, og);
     }
 
     System.out.println("");
@@ -320,13 +336,8 @@ public class OwnershipAnalysis {
       OwnershipGraph og = analyzeFlatMethod(d, fm);
       OwnershipGraph ogPrev = mapDescriptorToCompleteOwnershipGraph.get(d);
       if( !og.equals(ogPrev) ) {
-	mapDescriptorToCompleteOwnershipGraph.put(d, og);
 
-	/* boolean writeLabels,
-	   boolean labelSelect,
-	   boolean pruneGarbage,
-	   boolean writeReferencers */
-	og.writeGraph(d, true, true, true, false);
+	setGraphForDescriptor(d, og);
 
 	// only methods have dependents, tasks cannot
 	// be invoked by any user program calls
@@ -358,18 +369,9 @@ public class OwnershipAnalysis {
     // initialize flat nodes to visit as the flat method
     // because all other nodes in this flat method are
     // decendents of the flat method itself
+
     flatNodesToVisit = new HashSet<FlatNode>();
     flatNodesToVisit.add(flatm);
-
-
-    // A YUCKY HACK--this is to make sure that an initially empty
-    // graph (no parameters) will get passed the first "any changes?"
-    // test when it comes up for analysis.  It's ugly but throwing
-    // a child in works.
-    FlatNode fnJ = flatm.getNext(0);
-    assert fnJ != null;
-    flatNodesToVisit.add(fnJ);
-
 
     // initilize the mapping of flat nodes in this flat method to
     // ownership graph results to an empty mapping
@@ -455,12 +457,29 @@ public class OwnershipAnalysis {
       // parent of all other FlatNode objects, so take
       // the opportunity to construct the initial graph by
       // adding parameters labels to new heap regions
-      for( int i = 0; i < fm.numParameters(); ++i ) {
-	TempDescriptor tdParam = fm.getParameter(i);
+      // AND this should be done once globally so that the
+      // parameter IDs are consistent between analysis
+      // iterations, so if this step has been done already
+      // just merge in the cached version
+      OwnershipGraph ogInitParamAlloc = mapFlatMethodToInitialParamAllocGraph.get(fm);
+      if( ogInitParamAlloc == null ) {
 
-	og.assignTempEqualToParamAlloc(tdParam,
-	                               methodDesc instanceof TaskDescriptor,
-	                               new Integer(i) );
+	// analyze this node one time globally
+	for( int i = 0; i < fm.numParameters(); ++i ) {
+	  TempDescriptor tdParam = fm.getParameter(i);
+	  og.assignTempEqualToParamAlloc(tdParam,
+	                                 methodDesc instanceof TaskDescriptor,
+	                                 new Integer(i) );
+	}
+
+	// then remember it
+	OwnershipGraph ogResult = new OwnershipGraph(allocationDepth);
+	ogResult.merge(og);
+	mapFlatMethodToInitialParamAllocGraph.put(fm, ogResult);
+
+      } else {
+	// or just leverage the cached copy
+	og.merge(ogInitParamAlloc);
       }
       break;
 
@@ -576,6 +595,34 @@ public class OwnershipAnalysis {
   }
 
 
+  private void setGraphForDescriptor(Descriptor d, OwnershipGraph og)
+  throws IOException {
+
+    mapDescriptorToCompleteOwnershipGraph.put(d, og);
+
+    // arguments to writeGraph are:
+    // boolean writeLabels,
+    // boolean labelSelect,
+    // boolean pruneGarbage,
+    // boolean writeReferencers
+
+    if( writeFinalGraphs ) {
+
+      if( !writeAllUpdates ) {
+	og.writeGraph(d, true, true, true, false);
+
+      } else {
+	if( !mapDescriptorToNumUpdates.containsKey(d) ) {
+	  mapDescriptorToNumUpdates.put(d, new Integer(0) );
+	}
+	Integer n = mapDescriptorToNumUpdates.get(d);
+	og.writeGraph(d, n, true, true, true, false);
+	mapDescriptorToNumUpdates.put(d, n + 1);
+      }
+    }
+  }
+
+
   private OwnershipGraph getGraphFromFlatNode(FlatNode fn) {
     if( !mapFlatNodeToOwnershipGraph.containsKey(fn) ) {
       mapFlatNodeToOwnershipGraph.put(fn, new OwnershipGraph(allocationDepth) );
@@ -587,7 +634,6 @@ public class OwnershipAnalysis {
   private void setGraphForFlatNode(FlatNode fn, OwnershipGraph og) {
     mapFlatNodeToOwnershipGraph.put(fn, og);
   }
-
 
 
   // return just the allocation site associated with one FlatNew node
