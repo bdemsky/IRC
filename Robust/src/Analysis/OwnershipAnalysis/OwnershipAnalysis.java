@@ -19,48 +19,48 @@ public class OwnershipAnalysis {
   ///////////////////////////////////////////
 
   public HashSet<AllocationSite>
-    getFlaggedAllocationSitesReachableFromTask( TaskDescriptor td ) {
-    return getFlaggedAllocationSitesReachableFromTaskPRIVATE( td );
+  getFlaggedAllocationSitesReachableFromTask(TaskDescriptor td) {
+    return getFlaggedAllocationSitesReachableFromTaskPRIVATE(td);
   }
 
-  public AllocationSite getAllocationSiteFromFlatNew( FlatNew fn ) {
-    return getAllocationSiteFromFlatNewPRIVATE( fn );
+  public AllocationSite getAllocationSiteFromFlatNew(FlatNew fn) {
+    return getAllocationSiteFromFlatNewPRIVATE(fn);
   }
 
-  public boolean createsPotentialAliases( Descriptor taskOrMethod,
-                                          int        paramIndex1,
-                                          int        paramIndex2 ) {
-    
-    OwnershipGraph og = mapDescriptorToCompleteOwnershipGraph.get( taskOrMethod );
-    assert( og != null );    
-    return og.hasPotentialAlias( paramIndex1, paramIndex2 );
+  public boolean createsPotentialAliases(Descriptor taskOrMethod,
+                                         int paramIndex1,
+                                         int paramIndex2) {
+
+    OwnershipGraph og = mapDescriptorToCompleteOwnershipGraph.get(taskOrMethod);
+    assert(og != null);
+    return og.hasPotentialAlias(paramIndex1, paramIndex2);
   }
 
-  public boolean createsPotentialAliases( Descriptor     taskOrMethod,
-                                          int            paramIndex,
-                                          AllocationSite alloc ) {
-    
-    OwnershipGraph og = mapDescriptorToCompleteOwnershipGraph.get( taskOrMethod );
-    assert( og != null );    
-    return og.hasPotentialAlias( paramIndex, alloc );
+  public boolean createsPotentialAliases(Descriptor taskOrMethod,
+                                         int paramIndex,
+                                         AllocationSite alloc) {
+
+    OwnershipGraph og = mapDescriptorToCompleteOwnershipGraph.get(taskOrMethod);
+    assert(og != null);
+    return og.hasPotentialAlias(paramIndex, alloc);
   }
 
-  public boolean createsPotentialAliases( Descriptor     taskOrMethod,
-                                          AllocationSite alloc,
-                                          int            paramIndex ) {
-    
-    OwnershipGraph og = mapDescriptorToCompleteOwnershipGraph.get( taskOrMethod );
-    assert( og != null );    
-    return og.hasPotentialAlias( paramIndex, alloc );
+  public boolean createsPotentialAliases(Descriptor taskOrMethod,
+                                         AllocationSite alloc,
+                                         int paramIndex) {
+
+    OwnershipGraph og = mapDescriptorToCompleteOwnershipGraph.get(taskOrMethod);
+    assert(og != null);
+    return og.hasPotentialAlias(paramIndex, alloc);
   }
 
-  public boolean createsPotentialAliases( Descriptor     taskOrMethod,
-                                          AllocationSite alloc1,
-                                          AllocationSite alloc2 ) {
-    
-    OwnershipGraph og = mapDescriptorToCompleteOwnershipGraph.get( taskOrMethod );
-    assert( og != null );    
-    return og.hasPotentialAlias( alloc1, alloc2 );
+  public boolean createsPotentialAliases(Descriptor taskOrMethod,
+                                         AllocationSite alloc1,
+                                         AllocationSite alloc2) {
+
+    OwnershipGraph og = mapDescriptorToCompleteOwnershipGraph.get(taskOrMethod);
+    assert(og != null);
+    return og.hasPotentialAlias(alloc1, alloc2);
   }
 
   // use the methods given above to check every possible alias
@@ -74,25 +74,25 @@ public class OwnershipAnalysis {
     Iterator taskItr = state.getTaskSymbolTable().getDescriptorsIterator();
     while( taskItr.hasNext() ) {
       TaskDescriptor td = (TaskDescriptor) taskItr.next();
-      
-      bw.write( "\n---------"+td+"--------\n" );
 
-      HashSet<AllocationSite> allocSites = getFlaggedAllocationSitesReachableFromTask( td );
-      
+      bw.write("\n---------"+td+"--------\n");
+
+      HashSet<AllocationSite> allocSites = getFlaggedAllocationSitesReachableFromTask(td);
+
       // for each task parameter, check for aliases with
       // other task parameters and every allocation site
       // reachable from this task
       boolean foundSomeAlias = false;
 
-      FlatMethod fm = state.getMethodFlat( td );
+      FlatMethod fm = state.getMethodFlat(td);
       for( int i = 0; i < fm.numParameters(); ++i ) {
 
 	// for the ith parameter check for aliases to all
 	// higher numbered parameters
 	for( int j = i + 1; j < fm.numParameters(); ++j ) {
-	  if( createsPotentialAliases( td, i, j ) ) {
+	  if( createsPotentialAliases(td, i, j) ) {
 	    foundSomeAlias = true;
-	    bw.write( "Potential alias between parameters "+i+" and "+j+".\n" );
+	    bw.write("Potential alias between parameters "+i+" and "+j+".\n");
 	  }
 	}
 
@@ -102,9 +102,9 @@ public class OwnershipAnalysis {
 	Iterator allocItr = allocSites.iterator();
 	while( allocItr.hasNext() ) {
 	  AllocationSite as = (AllocationSite) allocItr.next();
-	  if( createsPotentialAliases( td, i, as ) ) {
+	  if( createsPotentialAliases(td, i, as) ) {
 	    foundSomeAlias = true;
-	    bw.write( "Potential alias between parameter "+i+" and "+as+".\n" );
+	    bw.write("Potential alias between parameter "+i+" and "+as+".\n");
 	  }
 	}
       }
@@ -121,20 +121,20 @@ public class OwnershipAnalysis {
 	while( allocItr2.hasNext() ) {
 	  AllocationSite as2 = (AllocationSite) allocItr2.next();
 
-	  if( !outerChecked.contains( as2 ) &&
-	      createsPotentialAliases( td, as1, as2 ) ) {
-	    bw.write( "Potential alias between "+as1+" and "+as2+".\n" );
+	  if( !outerChecked.contains(as2) &&
+	      createsPotentialAliases(td, as1, as2) ) {
+	    bw.write("Potential alias between "+as1+" and "+as2+".\n");
 	  }
 	}
 
-	outerChecked.add( as1 );
+	outerChecked.add(as1);
       }
 
       if( !foundSomeAlias ) {
-	bw.write( "Task "+td+" contains no aliases between flagged objects.\n" );
+	bw.write("Task "+td+" contains no aliases between flagged objects.\n");
       }
     }
-    
+
     bw.close();
   }
 
@@ -193,10 +193,10 @@ public class OwnershipAnalysis {
 
   // a special field descriptor for all array elements
   private static FieldDescriptor fdElement = new FieldDescriptor(new Modifiers(Modifiers.PUBLIC),
-								 new TypeDescriptor( "Array[]" ),
-								 "elements",
-								 null,
-								 false);
+                                                                 new TypeDescriptor("Array[]"),
+                                                                 "elements",
+                                                                 null,
+                                                                 false);
 
 
   // this analysis generates an ownership graph for every task
@@ -258,7 +258,7 @@ public class OwnershipAnalysis {
     // a method if the methods that it calls are updated
     analyzeMethods();
 
-    writeAllAliases( "identifiedAliases.txt" );
+    writeAllAliases("identifiedAliases.txt");
   }
 
   // called from the constructor to help initialize the set
@@ -490,7 +490,7 @@ public class OwnershipAnalysis {
       rhs = fsfn.getSrc();
       og.assignTempXFieldFEqualToTempY(lhs, fld, rhs);
       break;
-     
+
     case FKind.FlatElementNode:
       FlatElementNode fen = (FlatElementNode) fn;
       lhs = fen.getDst();
@@ -534,19 +534,19 @@ public class OwnershipAnalysis {
 	// find all of them and merge all of their results together
 	TypeDescriptor typeDesc = fc.getThis().getType();
 	Set possibleCallees = callGraph.getMethods(md, typeDesc);
-	
+
 	Iterator i = possibleCallees.iterator();
 	while( i.hasNext() ) {
 	  MethodDescriptor possibleMd = (MethodDescriptor) i.next();
-	  
+
 	  // don't alter the working graph (og) until we compute a result for every
 	  // possible callee, merge them all together, then set og to that
 	  OwnershipGraph ogCopy = new OwnershipGraph(allocationDepth);
-	  ogCopy.merge( og );
-	  
+	  ogCopy.merge(og);
+
 	  OwnershipGraph ogPotentialCallee = mapDescriptorToCompleteOwnershipGraph.get(possibleMd);
-	  ogCopy.resolveMethodCall(fc, md.isStatic(), flatm, ogPotentialCallee );
-	  ogMergeOfAllPossibleCalleeResults.merge( ogCopy );
+	  ogCopy.resolveMethodCall(fc, md.isStatic(), flatm, ogPotentialCallee);
+	  ogMergeOfAllPossibleCalleeResults.merge(ogCopy);
 	}
       }
 

@@ -175,6 +175,6 @@ public class ReferenceEdge {
   }
 
   public String toString() {
-    return new String( "("+src+" "+fieldDesc+" "+dst+")" );
+    return new String("("+src+" "+fieldDesc+" "+dst+")");
   }
 }

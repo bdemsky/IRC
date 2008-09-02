@@ -114,10 +114,10 @@ public class CallGraph {
 
     HashSet ns=new HashSet();
     ns.add(d);
-    return getMoreMethodCalls( ns, d );
+    return getMoreMethodCalls(ns, d);
   }
 
-  private Set getMoreMethodCalls( HashSet found, Descriptor d ) {
+  private Set getMoreMethodCalls(HashSet found, Descriptor d) {
     HashSet ns=new HashSet();
     ns.add(d);
     found.add(d);
@@ -130,7 +130,7 @@ public class CallGraph {
 	  ns.addAll(getMoreMethodCalls(found, md));
 	}
       }
-    return ns;    
+    return ns;
   }
 
 
