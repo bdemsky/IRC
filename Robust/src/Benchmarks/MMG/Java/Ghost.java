@@ -1,223 +1,251 @@
 public class Ghost {
-    public int x;
-    public int y;
-    public int index;
-    public int target;
-    public int direction;  // 0:still, 1:up, 2:down, 3:left, 4:right
-    int dx;
-    int dy;
-    int destinationX;
-    int destinationY;
-    Map map;
+    
+    public int m_locX;
+    public int m_locY;
+    public int m_index;
+    public int m_target;
+    public int m_direction;  // 0:still, 1:up, 2:down, 3:left, 4:right
+    int m_dx;
+    int m_dy;
+    Map m_map;
     
     public Ghost(int x, int y, Map map) {
-	this.x = x;
-	this.y = y;
-	this.dx = this.dy = 0;
-	this.index = -1;
-	this.target = -1;
-	this.direction = 0;
-	this.destinationX = -1;
-	this.destinationY = -1;
-	this.map = map;
-    }
-    
-    public void setTarget(int pacman) {
-	this.target = pacman;
+	this.m_locX = x;
+	this.m_locY = y;
+	this.m_dx = this.m_dy = 0;
+	this.m_index = -1;
+	this.m_target = -1;
+	this.m_direction = 0;
+	this.m_map = map;
     }
     
     // 0:still, 1:up, 2:down, 3:left, 4:right
     public void tryMove() {
-	//System.printString("step 1\n");
-	//System.printString("target: " + this.target + "\n");
-	
-	// Don't let the ghost go back the way it came.
-	int prevDirection = 0;
+	// System.printString("step 1\n");
+	int i = 0;
 
-	// If there is a destination, then check if the destination has been reached.
-	if (destinationX >= 0 && destinationY >= 0) {
-	    // Check if the destination has been reached, if so, then
-	    // get new destination.
-	    if (destinationX == x && destinationY == y) {
-		destinationX = -1;
-		destinationY = -1;
-		prevDirection = direction;
-	    } else {
-		// Otherwise, we haven't reached the destionation so
-		// continue in same direction.
-		return;
+	// check the nearest pacman and set it as current target
+	this.m_target = -1;
+	int deltaX = this.m_map.m_nrofblocks;
+	int deltaY = this.m_map.m_nrofblocks;
+	int distance = deltaX * deltaX + deltaY * deltaY;
+	for(i = 0; i < this.m_map.m_nrofpacs; i++) {
+	    if(this.m_map.m_pacMenX[i] != -1) {
+		int dx = this.m_locX - this.m_map.m_pacMenX[i];
+		int dy = this.m_locY - this.m_map.m_pacMenY[i];
+		int dd = dx*dx+dy*dy;
+		if(distance > dd) {
+		    this.m_target = i;
+		    distance = dd;
+		    deltaX = dx;
+		    deltaY = dy;
+		}
 	    }
 	}
-	setNextDirection (prevDirection);
+	// System.printString("target: " + this.m_target + "\n");
+	
+	if(this.m_target == -1) {
+	    // no more pacmen to chase, stay still
+	    this.m_dx = 0;
+	    this.m_dy = 0;
+	    this.m_direction = this.m_map.m_ghostdirections[this.m_index] = 0;
+	    return;
+	}
+	
+	// find the shortest way to the chosen target
+	setNextDirection();
     }
     
-    private void setNextDirection(int prevDirection) {
+    private void setNextDirection() {
+	// current position of the ghost
+	Node start = this.m_map.m_mapNodes[this.m_locY * this.m_map.m_nrofblocks + this.m_locX];
+	
 	// get target's position
-	int targetx = this.map.pacMenX[this.target];
-	//System.printString("aaa\n");
-	int targety = this.map.pacMenY[this.target];
+	int targetx = this.m_map.m_pacMenX[this.m_target];
+	int targety = this.m_map.m_pacMenY[this.m_target];
 	int[] nextLocation = new int[2];
 	nextLocation[0] = nextLocation[1] = -1;
-	
-	//System.printString("bbb\n");
-	if(targetx == -1) {
-	    //System.printString("a\n");
-	    // already kicked off, choose another target
-	    int i = 0;
-	    boolean found = false;
-	    while((!found) && (i < map.pacMenX.length)) {
-		if(this.map.pacMenX[i] != -1) {
-		    this.target = i;
-		    targetx = this.map.pacMenX[i];
-		    targety = this.map.pacMenY[i];
-		    this.map.targets[i] = this.target;
-		    found = true;
-		}
-		i++;
-	    }
-	    //System.printString("b\n");
-	    if(i == this.map.pacMenX.length) {
-		//System.printString("c\n");
-		// no more pacmen to chase
-		this.dx = 0;
-		this.dy = 0;
-		this.direction = 0;
-		return;
-	    }
-	    //System.printString("d\n");
-	}
-	getDestination (this.map.pacmen[this.target].direction, targetx, targety, nextLocation);
+	// check the target pacman's possible destination
+	getDestination (this.m_map.m_directions[this.m_target], targetx, targety, nextLocation);
 	targetx = nextLocation[0];
 	targety = nextLocation[1];
+	// target's position
+	Node end = this.m_map.m_mapNodes[targety * this.m_map.m_nrofblocks + targetx];
+	// reset the target as index of the end node
+	this.m_target = this.m_map.m_targets[this.m_index] = end.getIndex();
 	
-	//System.printString("step 2\n");
-	// check the distance
-	int deltax = this.x - targetx; // <0: move right; >0: move left
-	int deltay = this.y - targety; // <0: move down; >0: move up
-	// decide the priority of four moving directions
-	int[] bestDirection = new int[4];
-	//System.printString("dx: " + deltax + "; dy: " + deltay + "\n");
-	if((Math.abs(deltax) > Math.abs(deltay)) && (deltay != 0)) {
-	    // go first along y
-	    if(deltay > 0) {
-		bestDirection[0] = 1;
-		bestDirection[3] = 2;
-		if(deltax > 0) {
-		    bestDirection[1] = 3;
-		    bestDirection[2] = 4;
-		} else {
-		    bestDirection[1] = 4;
-		    bestDirection[2] = 3;
-		}
-	    } else {
-		bestDirection[0] = 2;
-		bestDirection[3] = 1;
-		if(deltax > 0) {
-		    bestDirection[1] = 3;
-		    bestDirection[2] = 4;
-		} else {
-		    bestDirection[1] = 4;
-		    bestDirection[2] = 3;
-		}
-	    }
-	} else {
-	    if(deltax > 0) {
-		bestDirection[0] = 3;
-		bestDirection[3] = 4;
-		if(deltay > 0) {
-		    bestDirection[1] = 1;
-		    bestDirection[2] = 2;
-		} else {
-		    bestDirection[1] = 2;
-		    bestDirection[2] = 1;
-		}
-	    } else {
-		bestDirection[0] = 4;
-		bestDirection[3] = 3;
-		if(deltay > 0) {
-		    bestDirection[1] = 1;
-		    bestDirection[2] = 2;
-		} else {
-		    bestDirection[1] = 2;
-		    bestDirection[2] = 1;
-		}
-	    }
-	}
-	/*for(int i = 0; i < 4; i++) {
-	    System.printString(bestDirection[i] + ",");
-	}
-	System.printString("\n");*/
-	
-	// There's a 50% chance that the ghost will try the sub-optimal direction first.
-	// This will keep the ghosts from following each other and to trap Pacman.
-	if (this.map.r.nextDouble() < .50) {  
-	    int temp = bestDirection[0];
-	    bestDirection[0] = bestDirection[1];
-	    bestDirection[1] = temp;
-	}
-	      
-	//System.printString("step 3\n");
-	// try to move one by one
-	int i = 0;
+	// breadth-first traverse the graph view of the maze
+	// check the shortest path for the start node to the end node
 	boolean set = false;
-	this.dx = 0;
-	this.dy = 0;
-	while((!set) && (i < 4)) {
-	    if(bestDirection[i] == 1) {
-		// try to move up
-		if((prevDirection != 2) && ((int)(this.map.map[y * this.map.nrofblocks + x] & 2) == 0)) {
-		    //System.printString("a\n");
-		    if (getDestination (1, this.x, this.y, nextLocation)) {
-			this.dx = 0;
-			this.dy = -1;
-			set = true;
+	Vector cuts = new Vector();
+	int tmpdx = 0;
+	int tmpdy = 0;
+	int tmpdirection = 0;
+	boolean first = true;
+	while(!set) {
+	    int parents[] = new int[this.m_map.m_nrofblocks * this.m_map.m_nrofblocks];
+	    for(int i = 0; i < parents.length; i++) {
+		parents[i] = -1;
+	    }
+	    if(!BFS(start, end, parents, cuts)) {
+		this.m_dx = tmpdx;
+		this.m_dy = tmpdy;
+		this.m_map.m_ghostdirections[this.m_index] = this.m_direction = tmpdirection;
+		set = true;
+		//System.printString("Use first choice: (" + this.m_dx + ", " + this.m_dy + ")\n");
+	    } else {
+		// Reversely go over the parents array to find the next node to reach
+		boolean found = false;
+		int index = end.getIndex();
+		while(!found) {
+		    int parent = parents[index];
+		    if(parent == start.getIndex()) {
+			found = true;
+		    } else {
+			index = parent;
 		    }
 		}
-	    } else if (bestDirection[i] == 2) {
-		// try to move down
-		if((prevDirection != 1) && ((int)(this.map.map[y * this.map.nrofblocks + x] & 8) == 0)) {
-		    //System.printString("b\n");
-		    if (getDestination (2, this.x, this.y, nextLocation)) {
-			this.dx = 0;
-			this.dy = 1;
-			set = true;
-		    }
+
+		// set the chase direction
+		int nx = this.m_map.m_mapNodes[index].getXLoc();
+		int ny = this.m_map.m_mapNodes[index].getYLoc();
+		this.m_dx = nx - this.m_locX;
+		this.m_dy = ny - this.m_locY;
+		if(this.m_dx > 0) {
+		    // right
+		    this.m_direction = 4;
+		} else if(this.m_dx < 0) {
+		    // left
+		    this.m_direction = 3;
+		} else if(this.m_dy > 0) {
+		    // down
+		    this.m_direction = 2;
+		} else if(this.m_dy < 0) {
+		    // up
+		    this.m_direction = 1;
+		} else {
+		    // still
+		    this.m_direction = 0;
 		}
-	    } else if (bestDirection[i] == 3) {
-		// try to move left
-		if((prevDirection != 4) && ((int)(this.map.map[y * this.map.nrofblocks + x] & 1) == 0)) {
-		    //System.printString("c\n");
-		    if (getDestination (3, this.x, this.y, nextLocation)) {
-			this.dx = -1;
-			this.dy = 0;
-			set = true;
-		    }
+		if(first) {
+		    tmpdx = this.m_dx;
+		    tmpdy = this.m_dy;
+		    tmpdirection = this.m_direction;
+		    first = false;
+		    //System.printString("First choice: (" + tmpdx + ", " + tmpdy + ")\n");
 		}
-	    } else if (bestDirection[i] == 4) {
-		// try to move right
-		if((prevDirection != 3) && ((int)(this.map.map[y * this.map.nrofblocks + x] & 4) == 0)) {
-		    //System.printString("d\n");
-		    if (getDestination (4, this.x, this.y, nextLocation)) {
-			this.dx = 1;
-			this.dy = 0;
-			set = true;
+
+		// check if this choice follows some other ghosts' path
+		if(!isFollowing()) {
+		    this.m_map.m_ghostdirections[this.m_index] = this.m_direction;
+		    set = true;
+		} else {
+		    cuts.addElement(new Integer(index));
+		    /*for( int h = 0; h < cuts.size(); h++) {
+			System.printString(cuts.elementAt(h) + ", ");
+		    }
+		    System.printString("\n");*/
+		}
+	    }
+	}
+    }
+    
+    // This methos do BFS from start node to end node
+    // If there is a path from start to end, return true; otherwise, return false
+    // Array parents records parent for a node in the BFS search
+    // Vector cuts specifies which nodes can not be the first one to access in this BFS
+    private boolean BFS(Node start, Node end, int[] parents, Vector cuts) {
+	Vector toaccess = new Vector();
+	toaccess.addElement(start);
+	while(toaccess.size() > 0) {
+	    // pull out the first one to access
+	    Node access = (Node)toaccess.elementAt(0);
+	    toaccess.removeElementAt(0);
+	    if(access.getIndex() == end.getIndex()) {
+		// hit the end node
+		return true;
+	    }
+	    Vector neighbours = access.getNeighbours();
+	    for(int i = 0; i < neighbours.size(); i++) {
+		Node neighbour = (Node)neighbours.elementAt(i);
+		if(parents[neighbour.getIndex()] == -1) {
+		    // not accessed
+		    boolean ignore = false;
+		    if(access.getIndex() == start.getIndex()) {
+			// start node, check if the neighbour node is in cuts
+			int j = 0;
+			while((!ignore) && (j < cuts.size())) {
+			    int tmp = ((Integer)cuts.elementAt(j)).intValue();
+			    if(tmp == neighbour.getIndex()) {
+				ignore = true;
+			    }
+			    j++;
+			}
+		    }
+		    if(!ignore) {
+			parents[neighbour.getIndex()] = access.getIndex();
+			toaccess.addElement(neighbour);
 		    }
 		}
 	    }
-	    i++;
 	}
-	//System.printString("step 4\n");
+	return false;
+    }
+    
+    // This method returns true if this ghost is traveling to the same
+    // destination with the same direction as another ghost.
+    private boolean isFollowing () {
+	boolean bFollowing = false;
+	double  dRandom;
+
+	// If the ghost is in the same location as another ghost
+	// and moving in the same direction, then they are on
+	// top of each other and should not follow.
+	for (int i = 0; i < this.m_map.m_ghostsX.length; i++) {
+	    // Ignore myself
+	    if (this.m_index != i) {
+		if (this.m_map.m_ghostsX[i] == this.m_locX &&
+			this.m_map.m_ghostsY[i] == this.m_locY &&
+			this.m_map.m_ghostdirections[i] == this.m_direction) {
+		    return true;
+		}
+	    }
+	}
+
+	// This will allow ghosts to often
+	// clump together for easier eating
+	dRandom = this.m_map.m_r.nextDouble();
+	if (dRandom < .90) {  
+	    //if (m_bInsaneAI && dRandom < .25)
+	    //   return false;
+	    //else
+	    return false;
+	}
+
+	// If ghost is moving to the same location and using the
+	// same direction, then it is following another ghost.      
+	for (int i = 0; i < this.m_map.m_ghostsX.length; i++) {        
+	    // Ignore myself        
+	    if (this.m_index != i) {
+		if (this.m_map.m_targets[i] == this.m_target &&
+			this.m_map.m_ghostdirections[i] == this.m_direction) {
+		    return true;
+		}
+	    }
+	}
+
+	return bFollowing;
     }
     
     // This method will take the specified location and direction and determine
     // for the given location if the thing moved in that direction, what the
     // next possible turning location would be.
-    boolean getDestination (int direction, int locX, int locY, int[] point) {
+    private boolean getDestination (int direction, int locX, int locY, int[] point) {
        // If the request direction is blocked by a wall, then just return the current location
-       if ((direction == 1 && (this.map.map[locX + locY * this.map.nrofblocks] & 2) != 0) || // up
-           (direction == 3 && (this.map.map[locX + locY * this.map.nrofblocks] & 1) != 0) ||  // left
-           (direction == 2 && (this.map.map[locX + locY * this.map.nrofblocks] & 8) != 0) || // down
-           (direction == 4 && (this.map.map[locX + locY * this.map.nrofblocks] & 4) != 0)) { // right 
+       if (((direction == 1) && ((int)(this.m_map.m_map[locX + locY * this.m_map.m_nrofblocks] & 2) != 0)) || // up
+           ((direction == 3) && ((int)(this.m_map.m_map[locX + locY * this.m_map.m_nrofblocks] & 1) != 0)) ||  // left
+           ((direction == 2) && ((int)(this.m_map.m_map[locX + locY * this.m_map.m_nrofblocks] & 8) != 0)) || // down
+           ((direction == 4) && ((int)(this.m_map.m_map[locX + locY * this.m_map.m_nrofblocks] & 4) != 0))) { // right 
           point[0] = locX;
           point[1] = locY;
           return false;
@@ -242,20 +270,20 @@ public class Ghost {
        // then return false.
        if (locY < 0 ||
            locX < 0 ||
-           locY == this.map.nrofblocks ||
-           locX == this.map.nrofblocks) {
+           locY == this.m_map.m_nrofblocks ||
+           locX == this.m_map.m_nrofblocks) {
 	   return false;
        }
        
        boolean set = false;
-       // Determine next turning location..
+       // Determine next turning location.
        while (!set) {
           if (direction == 1 || direction == 2) { 
               // up or down
-              if ((this.map.map[locX + locY * this.map.nrofblocks] & 4) == 0 || // right
-        	      (this.map.map[locX + locY * this.map.nrofblocks] & 1) == 0 || // left
-        	      (this.map.map[locX + locY * this.map.nrofblocks] & 2) != 0 || // up
-        	      (this.map.map[locX + locY * this.map.nrofblocks] & 8) != 0)  { // down
+              if (((int)(this.m_map.m_map[locX + locY * this.m_map.m_nrofblocks] & 4) == 0) || // right
+        	      ((int)(this.m_map.m_map[locX + locY * this.m_map.m_nrofblocks] & 1) == 0) || // left
+        	      ((int)(this.m_map.m_map[locX + locY * this.m_map.m_nrofblocks] & 2) != 0) || // up
+        	      ((int)(this.m_map.m_map[locX + locY * this.m_map.m_nrofblocks] & 8) != 0))  { // down
         	  point[0] = locX;
         	  point[1] = locY;
         	  set = true;
@@ -264,14 +292,14 @@ public class Ghost {
         	       // Check for Top Warp
         	       if (locY == 0) {
         		   point[0] = locX;
-        		   point[1] = this.map.nrofblocks - 1;
+        		   point[1] = this.m_map.m_nrofblocks - 1;
         		   set = true;
         	       } else {
         		   locY--;
         	       }
         	   } else {
         	       // Check for Bottom Warp
-        	       if (locY == this.map.nrofblocks - 1) {
+        	       if (locY == this.m_map.m_nrofblocks - 1) {
         		   point[0] = locX;
         		   point[1] = 0;
         		   set = true;
@@ -282,10 +310,10 @@ public class Ghost {
                }
           } else {
               // left or right
-              if ((this.map.map[locX + locY * this.map.nrofblocks] & 2) == 0 || // up
-        	      (this.map.map[locX + locY * this.map.nrofblocks] & 8) == 0 || // down
-        	      (this.map.map[locX + locY * this.map.nrofblocks] & 4) != 0 || // right
-        	      (this.map.map[locX + locY * this.map.nrofblocks] & 1) != 0) { // left  
+              if (((int)(this.m_map.m_map[locX + locY * this.m_map.m_nrofblocks] & 2) == 0) || // up
+        	      ((int)(this.m_map.m_map[locX + locY * this.m_map.m_nrofblocks] & 8) == 0) || // down
+        	      ((int)(this.m_map.m_map[locX + locY * this.m_map.m_nrofblocks] & 4) != 0) || // right
+        	      ((int)(this.m_map.m_map[locX + locY * this.m_map.m_nrofblocks] & 1) != 0)) { // left  
         	  point[0] = locX;
         	  point[1] = locY;
         	  set = true;
@@ -293,7 +321,7 @@ public class Ghost {
         	  if (direction == 3) {
         	      // Check for Left Warp
         	      if (locX == 0) {
-        		  point[0] = this.map.nrofblocks - 1;
+        		  point[0] = this.m_map.m_nrofblocks - 1;
         		  point[1] = locY;
         		  set = true;
         	      } else {
@@ -301,7 +329,7 @@ public class Ghost {
         	      }
         	  } else {
         	      // Check for Right Warp
-        	      if (locX == this.map.nrofblocks - 1) {
+        	      if (locX == this.m_map.m_nrofblocks - 1) {
         		  point[0] = 0;
         		  point[1] = locY;
         		  set = true;
@@ -316,9 +344,10 @@ public class Ghost {
     }
     
     public void doMove() {
-	this.x += this.dx;
-	this.y += this.dy;
-	//this.dx = 0;
-	//this.dy = 0;
+	this.m_locX += this.m_dx;
+	this.m_locY += this.m_dy;
+	this.m_dx = 0;
+	this.m_dy = 0;
+	//System.printString("Ghost " + this.m_index + ": (" + this.m_locX + ", " + this.m_locY + ")\n");
     }
 }

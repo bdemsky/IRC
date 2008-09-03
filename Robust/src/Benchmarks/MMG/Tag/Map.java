@@ -5,107 +5,158 @@ public class Map {
     flag next;
     flag finish;
     
-    public int[] map;
-    public int[] pacMenX;
-    public int[] pacMenY;
-    public int[] directions;
-    public int[] ghostsX;
-    public int[] ghostsY;
-    public int[] ghostdirections;
-    public int[] targets;
-    public int[] desX;
-    public int[] desY;
+    // maze
+    private int m_nrofblocks;
+    public int[] m_map;
+    public Node[] m_mapNodes;
     
-    public int nrofghosts;
-    public int nrofpacs;
-    private int nrofblocks;
-    //public boolean toupdate;
-    public int ghostcount;
-    public int paccount;
-    public int deathcount;
-    public int failghostcount;
+    // pacmen information
+    public int m_nrofpacs;
+    public int[] m_pacMenX;
+    public int[] m_pacMenY;
+    public int[] m_directions;
+    public int[] m_desX;
+    public int[] m_desY;
+    public int m_paccount;
+    public int m_deathcount;
     
-    public Random r;
+    // ghosts information
+    public int m_nrofghosts;
+    public int[] m_ghostsX;
+    public int[] m_ghostsY;
+    public int[] m_ghostdirections;
+    public int[] m_targets;
+    public int m_ghostcount;
+    public int m_failghostcount;
+    
+    // helper member
+    public Random m_r;
     
     public Map(int nrofpacs, int nrofghosts) {
 	//System.printString("step 1\n");
-	this.nrofblocks = 15;
-	this.map = new int[this.nrofblocks*this.nrofblocks];
-	this.nrofpacs = nrofpacs;
-	this.nrofghosts = nrofghosts;
-	this.pacMenX = new int[this.nrofpacs];
-	this.pacMenY = new int[this.nrofpacs];
-	this.directions = new int[this.nrofpacs];
-	this.ghostsX = new int[this.nrofghosts];
-	this.ghostsY = new int[this.nrofghosts];
-	this.ghostdirections = new int[this.nrofghosts];
-	this.targets = new int[this.nrofghosts];
-	this.desX = new int[this.nrofpacs];
-	this.desY = new int[this.nrofpacs];
-	//this.toupdate = false;
-	this.ghostcount = 0;
-	this.paccount = 0;
-	this.deathcount = 0;
-	this.failghostcount = 0;
+	this.m_nrofblocks = 15;
+	this.m_map = new int[this.m_nrofblocks*this.m_nrofblocks];
+	this.m_mapNodes = new Node[this.m_nrofblocks*this.m_nrofblocks];
 	
-	this.r = new Random();
+	this.m_nrofpacs = nrofpacs;
+	this.m_pacMenX = new int[this.m_nrofpacs];
+	this.m_pacMenY = new int[this.m_nrofpacs];
+	this.m_directions = new int[this.m_nrofpacs];
+	this.m_desX = new int[this.m_nrofpacs];
+	this.m_desY = new int[this.m_nrofpacs];
+	this.m_paccount = 0;
+	this.m_deathcount = 0;
+	
+	this.m_nrofghosts = nrofghosts;
+	this.m_ghostsX = new int[this.m_nrofghosts];
+	this.m_ghostsY = new int[this.m_nrofghosts];
+	this.m_ghostdirections = new int[this.m_nrofghosts];
+	this.m_targets = new int[this.m_nrofghosts];
+	this.m_ghostcount = 0;
+	this.m_failghostcount = 0;
+	
+	this.m_r = new Random();
+	
+	for(int i = 0; i < this.m_nrofblocks*this.m_nrofblocks; i++) {
+	    this.m_map[i] = -1;
+	    this.m_mapNodes[i] = new Node(i%this.m_nrofblocks, i/this.m_nrofblocks, i);
+	}
 	
 	//System.printString("step 2\n");
-	for(int i = 0; i < this.nrofpacs; i++) {
-	    this.pacMenX[i] = this.pacMenY[i] = -1;
-	    this.desX[i] = this.desY[i] = -1;
+	for(int i = 0; i < this.m_nrofpacs; i++) {
+	    this.m_pacMenX[i] = this.m_pacMenY[i] = -1;
+	    this.m_desX[i] = this.m_desY[i] = -1;
 	}
 	//System.printString("step 3\n");
-	for(int i = 0; i < this.nrofghosts; i++) {
-	    this.ghostsX[i] = this.ghostsY[i] = -1;
-	    this.targets[i] = -1;
+	for(int i = 0; i < this.m_nrofghosts; i++) {
+	    this.m_ghostsX[i] = this.m_ghostsY[i] = -1;
+	    this.m_targets[i] = -1;
 	}
 	//System.printString("step 4\n");
     }
     
     public void init() {
+	// initilize the maze
 	int i = 0;
-	this.map[i++]=3;this.map[i++]=10;this.map[i++]=10;this.map[i++]=6;this.map[i++]=9;this.map[i++]=12;this.map[i++]=3;this.map[i++]=10;this.map[i++]=6;this.map[i++]=9;this.map[i++]=12;this.map[i++]=3;this.map[i++]=10;this.map[i++]=10;this.map[i++]=6;
-	this.map[i++]=5;this.map[i++]=11;this.map[i++]=14;this.map[i++]=1;this.map[i++]=10;this.map[i++]=10;this.map[i++]=4;this.map[i++]=15;this.map[i++]=1;this.map[i++]=10;this.map[i++]=10;this.map[i++]=4;this.map[i++]=11;this.map[i++]=14;this.map[i++]=5;
-	this.map[i++]=1;this.map[i++]=10;this.map[i++]=10;this.map[i++]=4;this.map[i++]=11;this.map[i++]=6;this.map[i++]=1;this.map[i++]=10;this.map[i++]=4;this.map[i++]=3;this.map[i++]=14;this.map[i++]=1;this.map[i++]=10;this.map[i++]=10;this.map[i++]=4;
-	this.map[i++]=5;this.map[i++]=3;this.map[i++]=6;this.map[i++]=9;this.map[i++]=6;this.map[i++]=5;this.map[i++]=5;this.map[i++]=7;this.map[i++]=5;this.map[i++]=5;this.map[i++]=3;this.map[i++]=12;this.map[i++]=3;this.map[i++]=6;this.map[i++]=5;
-	this.map[i++]=5;this.map[i++]=9;this.map[i++]=8;this.map[i++]=14;this.map[i++]=5;this.map[i++]=13;this.map[i++]=5;this.map[i++]=5;this.map[i++]=5;this.map[i++]=13;this.map[i++]=5;this.map[i++]=11;this.map[i++]=8;this.map[i++]=12;this.map[i++]=5;
-	this.map[i++]=9;this.map[i++]=2;this.map[i++]=10;this.map[i++]=2;this.map[i++]=8;this.map[i++]=2;this.map[i++]=12;this.map[i++]=5;this.map[i++]=9;this.map[i++]=2;this.map[i++]=8;this.map[i++]=2;this.map[i++]=10;this.map[i++]=2;this.map[i++]=12;
-	this.map[i++]=6;this.map[i++]=5;this.map[i++]=7;this.map[i++]=5;this.map[i++]=7;this.map[i++]=5;this.map[i++]=11;this.map[i++]=8;this.map[i++]=14;this.map[i++]=5;this.map[i++]=7;this.map[i++]=5;this.map[i++]=7;this.map[i++]=5;this.map[i++]=3;
-	this.map[i++]=4;this.map[i++]=5;this.map[i++]=5;this.map[i++]=5;this.map[i++]=5;this.map[i++]=5;this.map[i++]=10;this.map[i++]=10;this.map[i++]=10;this.map[i++]=5;this.map[i++]=5;this.map[i++]=5;this.map[i++]=5;this.map[i++]=5;this.map[i++]=1;
-	this.map[i++]=12;this.map[i++]=5;this.map[i++]=13;this.map[i++]=5;this.map[i++]=13;this.map[i++]=5;this.map[i++]=11;this.map[i++]=10;this.map[i++]=14;this.map[i++]=5;this.map[i++]=13;this.map[i++]=5;this.map[i++]=13;this.map[i++]=5;this.map[i++]=9;
-	this.map[i++]=3;this.map[i++]=8;this.map[i++]=10;this.map[i++]=8;this.map[i++]=10;this.map[i++]=0;this.map[i++]=10;this.map[i++]=2;this.map[i++]=10;this.map[i++]=0;this.map[i++]=10;this.map[i++]=8;this.map[i++]=10;this.map[i++]=8;this.map[i++]=6;
-	this.map[i++]=5;this.map[i++]=3;this.map[i++]=2;this.map[i++]=2;this.map[i++]=6;this.map[i++]=5;this.map[i++]=15;this.map[i++]=5;this.map[i++]=15;this.map[i++]=5;this.map[i++]=3;this.map[i++]=2;this.map[i++]=2;this.map[i++]=6;this.map[i++]=5;
-	this.map[i++]=5;this.map[i++]=9;this.map[i++]=8;this.map[i++]=8;this.map[i++]=4;this.map[i++]=1;this.map[i++]=10;this.map[i++]=8;this.map[i++]=10;this.map[i++]=4;this.map[i++]=1;this.map[i++]=8;this.map[i++]=8;this.map[i++]=12;this.map[i++]=5;
-	this.map[i++]=1;this.map[i++]=10;this.map[i++]=10;this.map[i++]=6;this.map[i++]=13;this.map[i++]=5;this.map[i++]=11;this.map[i++]=2;this.map[i++]=14;this.map[i++]=5;this.map[i++]=13;this.map[i++]=3;this.map[i++]=10;this.map[i++]=10;this.map[i++]=4;
-	this.map[i++]=5;this.map[i++]=11;this.map[i++]=14;this.map[i++]=1;this.map[i++]=10;this.map[i++]=8;this.map[i++]=6;this.map[i++]=13;this.map[i++]=3;this.map[i++]=8;this.map[i++]=10;this.map[i++]=4;this.map[i++]=11;this.map[i++]=14;this.map[i++]=5;
-	this.map[i++]=9;this.map[i++]=10;this.map[i++]=10;this.map[i++]=12;this.map[i++]=3;this.map[i++]=6;this.map[i++]=9;this.map[i++]=10;this.map[i++]=12;this.map[i++]=3;this.map[i++]=6;this.map[i++]=9;this.map[i++]=10;this.map[i++]=10;this.map[i++]=12; // 15*15    
+	this.m_map[i++]=3;this.m_map[i++]=10;this.m_map[i++]=10;this.m_map[i++]=6;this.m_map[i++]=9;this.m_map[i++]=12;this.m_map[i++]=3;this.m_map[i++]=10;this.m_map[i++]=6;this.m_map[i++]=9;this.m_map[i++]=12;this.m_map[i++]=3;this.m_map[i++]=10;this.m_map[i++]=10;this.m_map[i++]=6;
+	this.m_map[i++]=5;this.m_map[i++]=11;this.m_map[i++]=14;this.m_map[i++]=1;this.m_map[i++]=10;this.m_map[i++]=10;this.m_map[i++]=4;this.m_map[i++]=15;this.m_map[i++]=1;this.m_map[i++]=10;this.m_map[i++]=10;this.m_map[i++]=4;this.m_map[i++]=11;this.m_map[i++]=14;this.m_map[i++]=5;
+	this.m_map[i++]=1;this.m_map[i++]=10;this.m_map[i++]=10;this.m_map[i++]=4;this.m_map[i++]=11;this.m_map[i++]=6;this.m_map[i++]=1;this.m_map[i++]=10;this.m_map[i++]=4;this.m_map[i++]=3;this.m_map[i++]=14;this.m_map[i++]=1;this.m_map[i++]=10;this.m_map[i++]=10;this.m_map[i++]=4;
+	this.m_map[i++]=5;this.m_map[i++]=3;this.m_map[i++]=6;this.m_map[i++]=9;this.m_map[i++]=6;this.m_map[i++]=5;this.m_map[i++]=5;this.m_map[i++]=7;this.m_map[i++]=5;this.m_map[i++]=5;this.m_map[i++]=3;this.m_map[i++]=12;this.m_map[i++]=3;this.m_map[i++]=6;this.m_map[i++]=5;
+	this.m_map[i++]=5;this.m_map[i++]=9;this.m_map[i++]=8;this.m_map[i++]=14;this.m_map[i++]=5;this.m_map[i++]=13;this.m_map[i++]=5;this.m_map[i++]=5;this.m_map[i++]=5;this.m_map[i++]=13;this.m_map[i++]=5;this.m_map[i++]=11;this.m_map[i++]=8;this.m_map[i++]=12;this.m_map[i++]=5;
+	this.m_map[i++]=9;this.m_map[i++]=2;this.m_map[i++]=10;this.m_map[i++]=2;this.m_map[i++]=8;this.m_map[i++]=2;this.m_map[i++]=12;this.m_map[i++]=5;this.m_map[i++]=9;this.m_map[i++]=2;this.m_map[i++]=8;this.m_map[i++]=2;this.m_map[i++]=10;this.m_map[i++]=2;this.m_map[i++]=12;
+	this.m_map[i++]=6;this.m_map[i++]=5;this.m_map[i++]=7;this.m_map[i++]=5;this.m_map[i++]=7;this.m_map[i++]=5;this.m_map[i++]=11;this.m_map[i++]=8;this.m_map[i++]=14;this.m_map[i++]=5;this.m_map[i++]=7;this.m_map[i++]=5;this.m_map[i++]=7;this.m_map[i++]=5;this.m_map[i++]=3;
+	this.m_map[i++]=4;this.m_map[i++]=5;this.m_map[i++]=5;this.m_map[i++]=5;this.m_map[i++]=5;this.m_map[i++]=5;this.m_map[i++]=10;this.m_map[i++]=10;this.m_map[i++]=10;this.m_map[i++]=5;this.m_map[i++]=5;this.m_map[i++]=5;this.m_map[i++]=5;this.m_map[i++]=5;this.m_map[i++]=1;
+	this.m_map[i++]=12;this.m_map[i++]=5;this.m_map[i++]=13;this.m_map[i++]=5;this.m_map[i++]=13;this.m_map[i++]=5;this.m_map[i++]=11;this.m_map[i++]=10;this.m_map[i++]=14;this.m_map[i++]=5;this.m_map[i++]=13;this.m_map[i++]=5;this.m_map[i++]=13;this.m_map[i++]=5;this.m_map[i++]=9;
+	this.m_map[i++]=3;this.m_map[i++]=8;this.m_map[i++]=10;this.m_map[i++]=8;this.m_map[i++]=10;this.m_map[i++]=0;this.m_map[i++]=10;this.m_map[i++]=2;this.m_map[i++]=10;this.m_map[i++]=0;this.m_map[i++]=10;this.m_map[i++]=8;this.m_map[i++]=10;this.m_map[i++]=8;this.m_map[i++]=6;
+	this.m_map[i++]=5;this.m_map[i++]=3;this.m_map[i++]=2;this.m_map[i++]=2;this.m_map[i++]=6;this.m_map[i++]=5;this.m_map[i++]=15;this.m_map[i++]=5;this.m_map[i++]=15;this.m_map[i++]=5;this.m_map[i++]=3;this.m_map[i++]=2;this.m_map[i++]=2;this.m_map[i++]=6;this.m_map[i++]=5;
+	this.m_map[i++]=5;this.m_map[i++]=9;this.m_map[i++]=8;this.m_map[i++]=8;this.m_map[i++]=4;this.m_map[i++]=1;this.m_map[i++]=10;this.m_map[i++]=8;this.m_map[i++]=10;this.m_map[i++]=4;this.m_map[i++]=1;this.m_map[i++]=8;this.m_map[i++]=8;this.m_map[i++]=12;this.m_map[i++]=5;
+	this.m_map[i++]=1;this.m_map[i++]=10;this.m_map[i++]=10;this.m_map[i++]=6;this.m_map[i++]=13;this.m_map[i++]=5;this.m_map[i++]=11;this.m_map[i++]=2;this.m_map[i++]=14;this.m_map[i++]=5;this.m_map[i++]=13;this.m_map[i++]=3;this.m_map[i++]=10;this.m_map[i++]=10;this.m_map[i++]=4;
+	this.m_map[i++]=5;this.m_map[i++]=11;this.m_map[i++]=14;this.m_map[i++]=1;this.m_map[i++]=10;this.m_map[i++]=8;this.m_map[i++]=6;this.m_map[i++]=13;this.m_map[i++]=3;this.m_map[i++]=8;this.m_map[i++]=10;this.m_map[i++]=4;this.m_map[i++]=11;this.m_map[i++]=14;this.m_map[i++]=5;
+	this.m_map[i++]=9;this.m_map[i++]=10;this.m_map[i++]=10;this.m_map[i++]=12;this.m_map[i++]=3;this.m_map[i++]=6;this.m_map[i++]=9;this.m_map[i++]=10;this.m_map[i++]=12;this.m_map[i++]=3;this.m_map[i++]=6;this.m_map[i++]=9;this.m_map[i++]=10;this.m_map[i++]=10;this.m_map[i++]=12; // 15*15
+	
+	// initilize the graph of the maze
+	for(i = 0; i < this.m_nrofblocks*this.m_nrofblocks; i++) {
+	    int tmp = this.m_map[i];
+	    Node tmpNode = this.m_mapNodes[i];
+	    int locX = tmpNode.getXLoc();
+	    int locY = tmpNode.getYLoc();
+	    if((int)(tmp & 1) == 0) {
+		// can go left
+		if(locX == 0) {
+		    tmpNode.addNeighbour(this.m_mapNodes[locY * this.m_nrofblocks + this.m_nrofblocks - 1]);
+		} else {
+		    tmpNode.addNeighbour(this.m_mapNodes[i - 1]);
+		}
+	    } 
+	    if((int)(tmp & 2) == 0) {
+		// can go up
+		if(locY == 0) {
+		    tmpNode.addNeighbour(this.m_mapNodes[(this.m_nrofblocks - 1) * this.m_nrofblocks + locX]);
+		} else {
+		    tmpNode.addNeighbour(this.m_mapNodes[(locY - 1) * this.m_nrofblocks + locX]);
+		}
+	    }
+	    if((int)(tmp & 4) == 0) {
+		// can go right
+		if(locX == this.m_nrofblocks - 1) {
+		    tmpNode.addNeighbour(this.m_mapNodes[locY * this.m_nrofblocks]);
+		} else {
+		    tmpNode.addNeighbour(this.m_mapNodes[i + 1]);
+		}
+	    }
+	    if((int)(tmp & 8) == 0) {
+		// can go down
+		if(locY == this.m_nrofblocks - 1) {
+		    tmpNode.addNeighbour(this.m_mapNodes[locX]);
+		} else {
+		    tmpNode.addNeighbour(this.m_mapNodes[(locY + 1) * this.m_nrofblocks + locX]);
+		}
+	    }
+	}
     } 
 
     public void placePacman(Pacman t) {
-	this.pacMenX[t.index] = t.x;
-	this.pacMenY[t.index] = t.y;
-	//this.map[t.y * this.nrofblocks + t.x - 1] |= 16;
-	this.paccount++;
+	this.m_pacMenX[t.m_index] = t.m_locX;
+	this.m_pacMenY[t.m_index] = t.m_locY;
+	this.m_paccount++;
     }
     
     public void placeGhost(Ghost t) {
-	this.ghostsX[t.index] = t.x;
-	this.ghostsY[t.index] = t.y;
-	//this.map[t.y * this.nrofblocks + t.x - 1] |= 32;
-	this.ghostcount++;
+	this.m_ghostsX[t.m_index] = t.m_locX;
+	this.m_ghostsY[t.m_index] = t.m_locY;
+	this.m_ghostcount++;
     }
     
     public boolean check(Pacman t) {
 	boolean death = false;
 	int i = 0;
-	while((!death) && (i < this.nrofghosts)) {
-	    if((t.x == this.ghostsX[i]) && (t.y == this.ghostsY[i])) {
+	while((!death) && (i < this.m_ghostsX.length)) {
+	    if((t.m_locX == this.m_ghostsX[i]) && (t.m_locY == this.m_ghostsY[i])) {
 		death = true;
 	    }
 	    i++;
 	}
-	if((!death) && (t.x == t.tx) && (t.y == t.ty)) {
+	if((!death) && (t.m_locX == t.m_tx) && (t.m_locY == t.m_ty)) {
 	    // reach the destination
 	    //System.printString("Hit destination!\n");
 	    death = true;
@@ -113,17 +164,17 @@ public class Map {
 	if(death) {
 	    // pacman caught by ghost
 	    // set pacman as death
-	    t.death = true;
+	    t.m_death = true;
 	    // kick it out
-	    //this.map[t.y * this.nrofblocks + t.x - 1] -= 16;
-	    this.deathcount++;
-	    this.pacMenX[t.index] = -1;
-	    this.pacMenY[t.index] = -1;
+	    //this.m_map[t.y * this.m_nrofblocks + t.x - 1] -= 16;
+	    this.m_deathcount++;
+	    this.m_pacMenX[t.m_index] = -1;
+	    this.m_pacMenY[t.m_index] = -1;
 	}
 	return death;
     }
     
     public boolean isfinish() {
-	return nrofpacs == 0;
+	return this.m_nrofpacs == 0;
     }
 }

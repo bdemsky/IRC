@@ -14,27 +14,25 @@ task initMap(Map map{init}) {
     
     int i = 0;
     // create ghosts
-    for(i = 0; i < map.nrofghosts; i++) {
+    for(i = 0; i < map.m_nrofghosts; i++) {
 	Ghost ghost = new Ghost(7, 7, map){move};
-	ghost.setTarget(i%map.nrofpacs);
-	ghost.index = i;
+	ghost.m_index = i;
 	map.placeGhost(ghost);
-	map.targets[i] = ghost.target;
     }
     // create pacmen
     int tx = 14;
     int ty = 14;
-    for(i = 0; i < map.nrofpacs; i++) {
+    for(i = 0; i < map.m_nrofpacs; i++) {
 	  Pacman pacman = new Pacman(5, 7, map){move};
 	  pacman.setTarget(tx*(i/2), ty*(i%2));
-	  pacman.index = i;
+	  pacman.m_index = i;
 	  map.placePacman(pacman);
-	  map.desX[i] = tx*(i/2);
-	  map.desY[i] = ty*(i%2);
+	  map.m_desX[i] = tx*(i/2);
+	  map.m_desY[i] = ty*(i%2);
     }
     
-    map.ghostcount = 0;
-    map.paccount = 0;
+    map.m_ghostcount = 0;
+    map.m_paccount = 0;
     
     taskexit(map{!init, updateGhost});
 }
@@ -61,19 +59,16 @@ task updateGhost(Map map{updateGhost}, optional Ghost g{update}) {
     if(isavailable(g)) {
 	g.doMove();
 	map.placeGhost(g);
-	map.ghostdirections[g.index] = g.direction;
     } else {
-	//System.printString("FAILURE ghost!!!\n");
-	//map.failghostcount++;
-	map.ghostcount++;
+	map.m_ghostcount++;
     }
     
-    if(map.ghostcount == map.nrofghosts) {
-	//map.nrofghosts -= map.failghostcount;
-	map.ghostcount = 0;
-	map.failghostcount = 0;
-	/*for(int i = 0; i < map.ghostsX.length; i++) {
-	    System.printString("(" + map.ghostsX[i] + "," + map.ghostsY[i] + ") ");
+    if(map.m_ghostcount == map.m_nrofghosts) {
+	//map.m_nrofghosts -= map.m_failghostcount;
+	map.m_ghostcount = 0;
+	map.m_failghostcount = 0;
+	/*for(int i = 0; i < map.m_ghostsX.length; i++) {
+	    System.printString("(" + map.m_ghostsX[i] + "," + map.m_ghostsY[i] + ") ");
 	}
 	System.printString("\n");*/
 	taskexit(map{updatePac, !updateGhost}, g{!update});
@@ -87,23 +82,21 @@ task updatePac(Map map{updatePac}, optional Pacman p{update}) {
     if(isavailable(p)) {
 	p.doMove();
 	map.placePacman(p);
-	map.directions[p.index] = p.direction;
-	//System.printString("Pacman " + p.index + ": (" + map.pacMenX[p.index] + "," + map.pacMenY[p.index] + ")\n");
+	//System.printString("Pacman " + p.m_index + ": (" + map.m_pacMenX[p.m_index] + "," + map.m_pacMenY[p.m_index] + ")\n");
 	boolean death = map.check(p);
 	/*if(death) {
-	    System.printString("Pacman " + p.index + " caught!\n");
+	    System.printString("Pacman " + p.m_index + " caught!\n");
 	}*/
     } else {
-	//System.printString("FAILURE pacman!!!\n");
-	map.deathcount++;
-	map.paccount++;
+	map.m_deathcount++;
+	map.m_paccount++;
     }
     
-    boolean finish = map.paccount == map.nrofpacs;
+    boolean finish = map.m_paccount == map.m_nrofpacs;
     
     if(finish) {
-	map.nrofpacs -= map.deathcount;
-	//System.printString(map.nrofpacs + " pacmen left. \n");
+	map.m_nrofpacs -= map.m_deathcount;
+	//System.printString(map.m_nrofpacs + " pacmen left. \n");
 	if(map.isfinish()) {
 	    taskexit(map{finish, !updatePac}, p{!update, !move});
 	} else {
@@ -118,25 +111,24 @@ task next(Map map{next}) {
     //System.printString("Task next\n");
     
     int i = 0;
-    for(i = 0; i < map.nrofghosts; i++) {
-	Ghost ghost = new Ghost(map.ghostsX[i], map.ghostsY[i], map){move};
-	ghost.setTarget(map.targets[i]);
-	ghost.index = i;
-	ghost.direction = map.ghostdirections[i];
+    for(i = 0; i < map.m_nrofghosts; i++) {
+	Ghost ghost = new Ghost(map.m_ghostsX[i], map.m_ghostsY[i], map){move};
+	ghost.m_index = i;
+	ghost.m_direction = map.m_ghostdirections[i];
     }
-    for(i = 0; i < map.pacMenX.length; i++) {
-	if(map.pacMenX[i] != -1) {
+    for(i = 0; i < map.m_pacMenX.length; i++) {
+	if(map.m_pacMenX[i] != -1) {
 	    // still in the map
 	    //System.printString("new Pacman\n");
-	    Pacman pacman = new Pacman(map.pacMenX[i], map.pacMenY[i], map){move};
-	    pacman.setTarget(map.desX[i], map.desY[i]);
-	    pacman.index = i;
-	    pacman.direction = map.directions[i];
+	    Pacman pacman = new Pacman(map.m_pacMenX[i], map.m_pacMenY[i], map){move};
+	    pacman.setTarget(map.m_desX[i], map.m_desY[i]);
+	    pacman.m_index = i;
+	    pacman.m_direction = map.m_directions[i];
 	}
     }
     
-    map.paccount = 0;
-    map.deathcount = 0;
+    map.m_paccount = 0;
+    map.m_deathcount = 0;
     
     taskexit(map{!next, updateGhost});
 }

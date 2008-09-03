@@ -2,201 +2,299 @@ public class Pacman {
     flag move;
     flag update;
 
-    public int x;
-    public int y;
-    public boolean death;
-    public int index;
-    public int direction;  // 0:still, 1:up, 2:down, 3:left, 4:right
-    int dx;
-    int dy;
-    public int tx;
-    public int ty;
-    int destinationX;
-    int destinationY;
-    Map map;
+    public int m_locX;
+    public int m_locY;
+    public boolean m_death;
+    public int m_index;
+    public int m_direction;  // 0:still, 1:up, 2:down, 3:left, 4:right
+    int m_dx;
+    int m_dy;
+    public int m_tx;
+    public int m_ty;
+    Map m_map;
     
     public Pacman(int x, int y, Map map) {
-	this.x = x;
-	this.y = y;
-	this.dx = this.dy = 0;
-	this.death = false;
-	this.index = -1;
-	this.tx = this.ty = -1;
-	this.direction = 0;
-	this.destinationX = -1;
-	this.destinationY = -1;
-	this.map = map;
+	this.m_locX = x;
+	this.m_locY = y;
+	this.m_dx = this.m_dy = 0;
+	this.m_death = false;
+	this.m_index = -1;
+	this.m_tx = this.m_ty = -1;
+	this.m_direction = 0;
+	this.m_map = map;
     }
     
     public void setTarget(int x, int y) {
-	this.tx = x;
-	this.ty = y;
+	this.m_tx = x;
+	this.m_ty = y;
     }
     
     public void tryMove() {
 	// decide dx & dy
-
-	// Don't let the pacman go back the way it came.
-	int prevDirection = 0;
-
-	// If there is a destination, then check if the destination has been reached.
-	if (destinationX >= 0 && destinationY >= 0) {
-	    // Check if the destination has been reached, if so, then
-	    // get new destination.
-	    if (destinationX == x && destinationY == y) {
-		destinationX = -1;
-		destinationY = -1;
-		prevDirection = direction;
-	    } else {
-		// Otherwise, we haven't reached the destionation so
-		// continue in same direction.
-		return;
-	    }
-	}
-	setNextDirection (prevDirection);
+	
+	// find the shortest possible way to the chosen target
+	setNextDirection();
     }
     
-    private void setNextDirection(int prevDirection) {
+    private void setNextDirection() {
+	// current position of the ghost
+	Node start = this.m_map.m_mapNodes[this.m_locY * this.m_map.m_nrofblocks + this.m_locX];
+	
 	// get target's position
-	int targetx = this.tx;
-	//System.printString("aaa\n");
-	int targety = this.ty;
+	int targetx = this.m_tx;
+	int targety = this.m_ty;
 	int[] nextLocation = new int[2];
 	nextLocation[0] = nextLocation[1] = -1;
 	
-	//System.printString("bbb\n");
-	getDestination (this.direction, targetx, targety, nextLocation);
-	targetx = nextLocation[0];
-	targety = nextLocation[1];
+	// target's position
+	Node end = this.m_map.m_mapNodes[targety * this.m_map.m_nrofblocks + targetx];
 	
-	//System.printString("step 2\n");
-	// check the distance
-	int deltax = this.x - targetx; // <0: move right; >0: move left
-	int deltay = this.y - targety; // <0: move down; >0: move up
-	// decide the priority of four moving directions
-	int[] bestDirection = new int[4];
-	//System.printString("dx: " + deltax + "; dy: " + deltay + "\n");
-	if((Math.abs(deltax) > Math.abs(deltay)) && (deltay != 0)) {
-	    // go first along y
-	    if(deltay > 0) {
-		bestDirection[0] = 1;
-		bestDirection[3] = 2;
-		if(deltax > 0) {
-		    bestDirection[1] = 3;
-		    bestDirection[2] = 4;
-		} else {
-		    bestDirection[1] = 4;
-		    bestDirection[2] = 3;
-		}
-	    } else {
-		bestDirection[0] = 2;
-		bestDirection[3] = 1;
-		if(deltax > 0) {
-		    bestDirection[1] = 3;
-		    bestDirection[2] = 4;
-		} else {
-		    bestDirection[1] = 4;
-		    bestDirection[2] = 3;
-		}
-	    }
-	} else {
-	    if(deltax > 0) {
-		bestDirection[0] = 3;
-		bestDirection[3] = 4;
-		if(deltay > 0) {
-		    bestDirection[1] = 1;
-		    bestDirection[2] = 2;
-		} else {
-		    bestDirection[1] = 2;
-		    bestDirection[2] = 1;
-		}
-	    } else {
-		bestDirection[0] = 4;
-		bestDirection[3] = 3;
-		if(deltay > 0) {
-		    bestDirection[1] = 1;
-		    bestDirection[2] = 2;
-		} else {
-		    bestDirection[1] = 2;
-		    bestDirection[2] = 1;
-		}
-	    }
-	}
-	/*for(int i = 0; i < 4; i++) {
-	    System.printString(bestDirection[i] + ",");
-	}
-	System.printString("\n");*/
-	
-	// There's a 50% chance that the ghost will try the sub-optimal direction first.
-	// This will keep the ghosts from following each other and to trap Pacman.
-	if (this.map.r.nextDouble() < .50) {  
-	    int temp = bestDirection[0];
-	    bestDirection[0] = bestDirection[1];
-	    bestDirection[1] = temp;
-	}
-	      
-	//System.printString("step 3\n");
-	// try to move one by one
-	int i = 0;
+	// breadth-first traverse the graph view of the maze
+	// check the shortest path for the start node to the end node
 	boolean set = false;
-	this.dx = 0;
-	this.dy = 0;
-	while((!set) && (i < 4)) {
-	    if(bestDirection[i] == 1) {
-		// try to move up
-		if((prevDirection != 2) && ((int)(this.map.map[y * this.map.nrofblocks + x] & 2) == 0)) {
-		    //System.printString("a\n");
-		    if (getDestination (1, this.x, this.y, nextLocation)) {
-			this.dx = 0;
-			this.dy = -1;
-			set = true;
+	Vector cuts = new Vector();
+	int tmpdx = 0;
+	int tmpdy = 0;
+	int tmpdirection = 0;
+	boolean first = true;
+	while(!set) {
+	    int parents[] = new int[this.m_map.m_nrofblocks * this.m_map.m_nrofblocks + 1];
+	    for(int i = 0; i < parents.length; i++) {
+		parents[i] = -1;
+	    }
+	    if(!BFS(start, end, parents, cuts)) {
+		this.m_dx = tmpdx;
+		this.m_dy = tmpdy;
+		this.m_map.m_ghostdirections[this.m_index] = this.m_direction = tmpdirection;
+		set = true;
+		//System.printString("Use first choice: (" + this.m_dx + ", " + this.m_dy + ")\n");
+	    } else {
+		// Reversely go over the parents array to find the next node to reach
+		boolean found = false;
+		int index = end.getIndex();
+		while(!found) {
+		    int parent = parents[index];
+		    if(parent == start.getIndex()) {
+			found = true;
+		    } else {
+			index = parent;
 		    }
 		}
-	    } else if (bestDirection[i] == 2) {
-		// try to move down
-		if((prevDirection != 1) && ((int)(this.map.map[y * this.map.nrofblocks + x] & 8) == 0)) {
-		    //System.printString("b\n");
-		    if (getDestination (2, this.x, this.y, nextLocation)) {
-			this.dx = 0;
-			this.dy = 1;
-			set = true;
-		    }
+
+		// set the chase direction
+		int nx = this.m_map.m_mapNodes[index].getXLoc();
+		int ny = this.m_map.m_mapNodes[index].getYLoc();
+		this.m_dx = nx - this.m_locX;
+		this.m_dy = ny - this.m_locY;
+		if(this.m_dx > 0) {
+		    // right
+		    this.m_direction = 4;
+		} else if(this.m_dx < 0) {
+		    // left
+		    this.m_direction = 3;
+		} else if(this.m_dy > 0) {
+		    // down
+		    this.m_direction = 2;
+		} else if(this.m_dy < 0) {
+		    // up
+		    this.m_direction = 1;
+		} else {
+		    // still
+		    this.m_direction = 0;
 		}
-	    } else if (bestDirection[i] == 3) {
-		// try to move left
-		if((prevDirection != 4) && ((int)(this.map.map[y * this.map.nrofblocks + x] & 1) == 0)) {
-		    //System.printString("c\n");
-		    if (getDestination (3, this.x, this.y, nextLocation)) {
-			this.dx = -1;
-			this.dy = 0;
-			set = true;
-		    }
+		if(first) {
+		    tmpdx = this.m_dx;
+		    tmpdy = this.m_dy;
+		    tmpdirection = this.m_direction;
+		    first = false;
+		    //System.printString("First choice: (" + tmpdx + ", " + tmpdy + ")\n");
 		}
-	    } else if (bestDirection[i] == 4) {
-		// try to move right
-		if((prevDirection != 3) && ((int)(this.map.map[y * this.map.nrofblocks + x] & 4) == 0)) {
-		    //System.printString("d\n");
-		    if (getDestination (4, this.x, this.y, nextLocation)) {
-			this.dx = 1;
-			this.dy = 0;
-			set = true;
+
+		// check if this choice follows some other ghosts' path
+		if(canFlee()) {
+		    this.m_map.m_directions[this.m_index] = this.m_direction;
+		    set = true;
+		} else {
+		    cuts.addElement(new Integer(index));
+		    /*for( int h = 0; h < cuts.size(); h++) {
+			System.printString(cuts.elementAt(h) + ", ");
+		    }
+		    System.printString("\n");*/
+		}
+	    }
+	}
+    }
+    
+    // This methos do BFS from start node to end node
+    // If there is a path from start to end, return true; otherwise, return false
+    // Array parents records parent for a node in the BFS search, 
+    // the last item of parents records the least steps to reach end node from start node
+    // Vector cuts specifies which nodes can not be the first one to access in this BFS
+    private boolean BFS(Node start, Node end, int[] parents, Vector cuts) {
+	int steps = 0;
+	Vector toaccess = new Vector();
+	toaccess.addElement(start);
+	while(toaccess.size() > 0) {
+	    // pull out the first one to access
+	    Node access = (Node)toaccess.elementAt(0);
+	    toaccess.removeElementAt(0);
+	    if(access.getIndex() == end.getIndex()) {
+		// hit the end node
+		parents[parents.length - 1] = steps;
+		return true;
+	    }
+	    steps++;
+	    Vector neighbours = access.getNeighbours();
+	    for(int i = 0; i < neighbours.size(); i++) {
+		Node neighbour = (Node)neighbours.elementAt(i);
+		if(parents[neighbour.getIndex()] == -1) {
+		    // not accessed
+		    boolean ignore = false;
+		    if(access.getIndex() == start.getIndex()) {
+			// start node, check if the neighbour node is in cuts
+			int j = 0;
+			while((!ignore) && (j < cuts.size())) {
+			    int tmp = ((Integer)cuts.elementAt(j)).intValue();
+			    if(tmp == neighbour.getIndex()) {
+				ignore = true;
+			    }
+			    j++;
+			}
+		    }
+		    if(!ignore) {
+			parents[neighbour.getIndex()] = access.getIndex();
+			toaccess.addElement(neighbour);
 		    }
 		}
 	    }
-	    i++;
 	}
-	//System.printString("step 4\n");
+	parents[parents.length - 1] = -1;
+	return false;
+    }
+    
+    // This method returns true if this pacmen can flee in this direction.
+    private boolean canFlee () {
+	int steps = 0;
+	int locX = this.m_locX;
+	int locY = this.m_locY;
+	int[] point = new int[2];
+	point[0] = point[1] = -1;
+	
+	// Start off by advancing one in direction for specified location
+	if (this.m_direction == 1) {
+	    // up
+	    locY--;
+	} else if (this.m_direction == 2) {
+	    // down
+	    locY++;
+	} else if (this.m_direction == 3) {
+	    // left
+	    locX--;
+	} else if (this.m_direction == 4) {
+	    // right
+	    locX++;
+	}
+	steps++; 
+	
+	boolean set = false;
+	// Determine next turning location.
+	while (!set) {
+	    if (this.m_direction == 1 || this.m_direction == 2) { 
+		// up or down
+		if (((int)(this.m_map.m_map[locX + locY * this.m_map.m_nrofblocks] & 4) == 0) || // right
+			((int)(this.m_map.m_map[locX + locY * this.m_map.m_nrofblocks] & 1) == 0) || // left
+			((int)(this.m_map.m_map[locX + locY * this.m_map.m_nrofblocks] & 2) != 0) || // up
+			((int)(this.m_map.m_map[locX + locY * this.m_map.m_nrofblocks] & 8) != 0))  { // down
+		    point[0] = locX;
+		    point[1] = locY;
+		    set = true;
+		} else {
+		    if (this.m_direction == 1) {
+			// Check for Top Warp
+			if (locY == 0) {
+			    point[0] = locX;
+			    point[1] = this.m_map.m_nrofblocks - 1;
+			    set = true;
+			} else {
+			    locY--;
+			    steps++;
+			}
+		    } else {
+			// Check for Bottom Warp
+			if (locY == this.m_map.m_nrofblocks - 1) {
+			    point[0] = locX;
+			    point[1] = 0;
+			    set = true;
+			} else {
+			    locY++;
+			    steps++;
+			}
+		    }
+		}
+	    } else {
+		// left or right
+		if (((int)(this.m_map.m_map[locX + locY * this.m_map.m_nrofblocks] & 2) == 0) || // up
+			((int)(this.m_map.m_map[locX + locY * this.m_map.m_nrofblocks] & 8) == 0) || // down
+			((int)(this.m_map.m_map[locX + locY * this.m_map.m_nrofblocks] & 4) != 0) || // right
+			((int)(this.m_map.m_map[locX + locY * this.m_map.m_nrofblocks] & 1) != 0)) { // left  
+		    point[0] = locX;
+		    point[1] = locY;
+		    set = true;
+		} else {
+		    if (this.m_direction == 3) {
+			// Check for Left Warp
+			if (locX == 0) {
+			    point[0] = this.m_map.m_nrofblocks - 1;
+			    point[1] = locY;
+			    set = true;
+			} else {
+			    locX--;
+			    steps++;
+			}
+		    } else {
+			// Check for Right Warp
+			if (locX == this.m_map.m_nrofblocks - 1) {
+			    point[0] = 0;
+			    point[1] = locY;
+			    set = true;
+			} else {
+			    locX++;
+			    steps++;
+			}
+		    }
+		}
+	    }
+	}
+	
+	// check the least steps for the ghosts to reach point location
+	int chasesteps = -1;
+	Node end = this.m_map.m_mapNodes[point[1] * this.m_map.m_nrofblocks + point[0]];
+	for(int i = 0; i < this.m_map.m_ghostsX.length; i++) {
+	    Node start = this.m_map.m_mapNodes[this.m_map.m_ghostsY[i] * this.m_map.m_nrofblocks + this.m_map.m_ghostsX[i]];
+	    int parents[] = new int[this.m_map.m_nrofblocks * this.m_map.m_nrofblocks + 1];
+	    for(int j = 0; j < parents.length; j++) {
+		parents[j] = -1;
+	    }
+	    if(BFS(start, end, parents, new Vector())) {
+		if((chasesteps == -1) ||
+			(chasesteps > parents[parents.length - 1])) {
+		    chasesteps = parents[parents.length - 1];
+		}
+	    }
+	}
+
+	return ((chasesteps == -1) || (steps < chasesteps));
     }
     
     // This method will take the specified location and direction and determine
     // for the given location if the thing moved in that direction, what the
     // next possible turning location would be.
-    boolean getDestination (int direction, int locX, int locY, int[] point) {
+    private boolean getDestination (int direction, int locX, int locY, int[] point) {
        // If the request direction is blocked by a wall, then just return the current location
-       if ((direction == 1 && (this.map.map[locX + locY * this.map.nrofblocks] & 2) != 0) || // up
-           (direction == 3 && (this.map.map[locX + locY * this.map.nrofblocks] & 1) != 0) ||  // left
-           (direction == 2 && (this.map.map[locX + locY * this.map.nrofblocks] & 8) != 0) || // down
-           (direction == 4 && (this.map.map[locX + locY * this.map.nrofblocks] & 4) != 0)) { // right 
+       if (((direction == 1) && ((int)(this.m_map.m_map[locX + locY * this.m_map.m_nrofblocks] & 2) != 0)) || // up
+           ((direction == 3) && ((int)(this.m_map.m_map[locX + locY * this.m_map.m_nrofblocks] & 1) != 0)) ||  // left
+           ((direction == 2) && ((int)(this.m_map.m_map[locX + locY * this.m_map.m_nrofblocks] & 8) != 0)) || // down
+           ((direction == 4) && ((int)(this.m_map.m_map[locX + locY * this.m_map.m_nrofblocks] & 4) != 0))) { // right 
           point[0] = locX;
           point[1] = locY;
           return false;
@@ -221,20 +319,20 @@ public class Pacman {
        // then return false.
        if (locY < 0 ||
            locX < 0 ||
-           locY == this.map.nrofblocks ||
-           locX == this.map.nrofblocks) {
+           locY == this.m_map.m_nrofblocks ||
+           locX == this.m_map.m_nrofblocks) {
 	   return false;
        }
        
        boolean set = false;
-       // Determine next turning location..
+       // Determine next turning location.
        while (!set) {
           if (direction == 1 || direction == 2) { 
               // up or down
-              if ((this.map.map[locX + locY * this.map.nrofblocks] & 4) == 0 || // right
-        	      (this.map.map[locX + locY * this.map.nrofblocks] & 1) == 0 || // left
-        	      (this.map.map[locX + locY * this.map.nrofblocks] & 2) != 0 || // up
-        	      (this.map.map[locX + locY * this.map.nrofblocks] & 8) != 0)  { // down
+              if (((int)(this.m_map.m_map[locX + locY * this.m_map.m_nrofblocks] & 4) == 0) || // right
+        	      ((int)(this.m_map.m_map[locX + locY * this.m_map.m_nrofblocks] & 1) == 0) || // left
+        	      ((int)(this.m_map.m_map[locX + locY * this.m_map.m_nrofblocks] & 2) != 0) || // up
+        	      ((int)(this.m_map.m_map[locX + locY * this.m_map.m_nrofblocks] & 8) != 0))  { // down
         	  point[0] = locX;
         	  point[1] = locY;
         	  set = true;
@@ -243,14 +341,14 @@ public class Pacman {
         	       // Check for Top Warp
         	       if (locY == 0) {
         		   point[0] = locX;
-        		   point[1] = this.map.nrofblocks - 1;
+        		   point[1] = this.m_map.m_nrofblocks - 1;
         		   set = true;
         	       } else {
         		   locY--;
         	       }
         	   } else {
         	       // Check for Bottom Warp
-        	       if (locY == this.map.nrofblocks - 1) {
+        	       if (locY == this.m_map.m_nrofblocks - 1) {
         		   point[0] = locX;
         		   point[1] = 0;
         		   set = true;
@@ -261,10 +359,10 @@ public class Pacman {
                }
           } else {
               // left or right
-              if ((this.map.map[locX + locY * this.map.nrofblocks] & 2) == 0 || // up
-        	      (this.map.map[locX + locY * this.map.nrofblocks] & 8) == 0 || // down
-        	      (this.map.map[locX + locY * this.map.nrofblocks] & 4) != 0 || // right
-        	      (this.map.map[locX + locY * this.map.nrofblocks] & 1) != 0) { // left  
+              if (((int)(this.m_map.m_map[locX + locY * this.m_map.m_nrofblocks] & 2) == 0) || // up
+        	      ((int)(this.m_map.m_map[locX + locY * this.m_map.m_nrofblocks] & 8) == 0) || // down
+        	      ((int)(this.m_map.m_map[locX + locY * this.m_map.m_nrofblocks] & 4) != 0) || // right
+        	      ((int)(this.m_map.m_map[locX + locY * this.m_map.m_nrofblocks] & 1) != 0)) { // left  
         	  point[0] = locX;
         	  point[1] = locY;
         	  set = true;
@@ -272,7 +370,7 @@ public class Pacman {
         	  if (direction == 3) {
         	      // Check for Left Warp
         	      if (locX == 0) {
-        		  point[0] = this.map.nrofblocks - 1;
+        		  point[0] = this.m_map.m_nrofblocks - 1;
         		  point[1] = locY;
         		  set = true;
         	      } else {
@@ -280,7 +378,7 @@ public class Pacman {
         	      }
         	  } else {
         	      // Check for Right Warp
-        	      if (locX == this.map.nrofblocks - 1) {
+        	      if (locX == this.m_map.m_nrofblocks - 1) {
         		  point[0] = 0;
         		  point[1] = locY;
         		  set = true;
@@ -295,10 +393,10 @@ public class Pacman {
     }
     
     public void doMove() {
-	// System.printString("dx: " + this.dx + ", dy: " + this.dy + "\n");
-	this.x += this.dx;
-	this.y += this.dy;
-	//this.dx = 0;
-	//this.dy = 0;
+	this.m_locX += this.m_dx;
+	this.m_locY += this.m_dy;
+	this.m_dx = 0;
+	this.m_dy = 0;
+	//System.printString("Pacmen " + this.m_index + ": (" + this.m_locX + ", " + this.m_locY + ")\n");
     }
 }
