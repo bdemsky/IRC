@@ -38,7 +38,7 @@ public class Pacman {
     
     private void setNextDirection() {
 	// current position of the ghost
-	Node start = this.m_map.m_mapNodes[this.m_locY * this.m_map.m_nrofblocks + this.m_locX];
+	int start = this.m_locY * this.m_map.m_nrofblocks + this.m_locX;
 	
 	// get target's position
 	int targetx = this.m_tx;
@@ -47,7 +47,7 @@ public class Pacman {
 	nextLocation[0] = nextLocation[1] = -1;
 	
 	// target's position
-	Node end = this.m_map.m_mapNodes[targety * this.m_map.m_nrofblocks + targetx];
+	int end = targety * this.m_map.m_nrofblocks + targetx;
 	
 	// breadth-first traverse the graph view of the maze
 	// check the shortest path for the start node to the end node
@@ -71,10 +71,10 @@ public class Pacman {
 	    } else {
 		// Reversely go over the parents array to find the next node to reach
 		boolean found = false;
-		int index = end.getIndex();
+		int index = end;
 		while(!found) {
 		    int parent = parents[index];
-		    if(parent == start.getIndex()) {
+		    if(parent == start) {
 			found = true;
 		    } else {
 			index = parent;
@@ -82,8 +82,8 @@ public class Pacman {
 		}
 
 		// set the chase direction
-		int nx = this.m_map.m_mapNodes[index].getXLoc();
-		int ny = this.m_map.m_mapNodes[index].getYLoc();
+		int nx = index % this.m_map.m_nrofblocks;
+		int ny = index / this.m_map.m_nrofblocks;
 		this.m_dx = nx - this.m_locX;
 		this.m_dy = ny - this.m_locY;
 		if(this.m_dx > 0) {
@@ -130,40 +130,40 @@ public class Pacman {
     // Array parents records parent for a node in the BFS search, 
     // the last item of parents records the least steps to reach end node from start node
     // Vector cuts specifies which nodes can not be the first one to access in this BFS
-    private boolean BFS(Node start, Node end, int[] parents, Vector cuts) {
+    private boolean BFS(int start, int end, int[] parents, Vector cuts) {
 	int steps = 0;
 	Vector toaccess = new Vector();
-	toaccess.addElement(start);
+	toaccess.addElement(new Integer(start));
 	while(toaccess.size() > 0) {
 	    // pull out the first one to access
-	    Node access = (Node)toaccess.elementAt(0);
+	    int access = ((Integer)toaccess.elementAt(0)).intValue();
 	    toaccess.removeElementAt(0);
-	    if(access.getIndex() == end.getIndex()) {
+	    if(access == end) {
 		// hit the end node
 		parents[parents.length - 1] = steps;
 		return true;
 	    }
 	    steps++;
-	    Vector neighbours = access.getNeighbours();
+	    Vector neighbours = this.m_map.getNeighbours(access);
 	    for(int i = 0; i < neighbours.size(); i++) {
-		Node neighbour = (Node)neighbours.elementAt(i);
-		if(parents[neighbour.getIndex()] == -1) {
+		int neighbour = ((Integer)neighbours.elementAt(i)).intValue();
+		if(parents[neighbour] == -1) {
 		    // not accessed
 		    boolean ignore = false;
-		    if(access.getIndex() == start.getIndex()) {
+		    if(access == start) {
 			// start node, check if the neighbour node is in cuts
 			int j = 0;
 			while((!ignore) && (j < cuts.size())) {
 			    int tmp = ((Integer)cuts.elementAt(j)).intValue();
-			    if(tmp == neighbour.getIndex()) {
+			    if(tmp == neighbour) {
 				ignore = true;
 			    }
 			    j++;
 			}
 		    }
 		    if(!ignore) {
-			parents[neighbour.getIndex()] = access.getIndex();
-			toaccess.addElement(neighbour);
+			parents[neighbour] = access;
+			toaccess.addElement(new Integer(neighbour));
 		    }
 		}
 	    }
@@ -195,7 +195,7 @@ public class Pacman {
 	    locX++;
 	}
 	steps++; 
-	
+
 	boolean set = false;
 	// Determine next turning location.
 	while (!set) {
@@ -268,9 +268,9 @@ public class Pacman {
 	
 	// check the least steps for the ghosts to reach point location
 	int chasesteps = -1;
-	Node end = this.m_map.m_mapNodes[point[1] * this.m_map.m_nrofblocks + point[0]];
+	int end = point[1] * this.m_map.m_nrofblocks + point[0];
 	for(int i = 0; i < this.m_map.m_ghostsX.length; i++) {
-	    Node start = this.m_map.m_mapNodes[this.m_map.m_ghostsY[i] * this.m_map.m_nrofblocks + this.m_map.m_ghostsX[i]];
+	    int start = this.m_map.m_ghostsY[i] * this.m_map.m_nrofblocks + this.m_map.m_ghostsX[i];
 	    int parents[] = new int[this.m_map.m_nrofblocks * this.m_map.m_nrofblocks + 1];
 	    for(int j = 0; j < parents.length; j++) {
 		parents[j] = -1;

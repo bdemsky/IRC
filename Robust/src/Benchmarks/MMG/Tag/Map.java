@@ -8,7 +8,6 @@ public class Map {
     // maze
     private int m_nrofblocks;
     public int[] m_map;
-    public Node[] m_mapNodes;
     
     // pacmen information
     public int m_nrofpacs;
@@ -36,7 +35,6 @@ public class Map {
 	//System.printString("step 1\n");
 	this.m_nrofblocks = 15;
 	this.m_map = new int[this.m_nrofblocks*this.m_nrofblocks];
-	this.m_mapNodes = new Node[this.m_nrofblocks*this.m_nrofblocks];
 	
 	this.m_nrofpacs = nrofpacs;
 	this.m_pacMenX = new int[this.m_nrofpacs];
@@ -59,7 +57,6 @@ public class Map {
 	
 	for(int i = 0; i < this.m_nrofblocks*this.m_nrofblocks; i++) {
 	    this.m_map[i] = -1;
-	    this.m_mapNodes[i] = new Node(i%this.m_nrofblocks, i/this.m_nrofblocks, i);
 	}
 	
 	//System.printString("step 2\n");
@@ -93,46 +90,6 @@ public class Map {
 	this.m_map[i++]=1;this.m_map[i++]=10;this.m_map[i++]=10;this.m_map[i++]=6;this.m_map[i++]=13;this.m_map[i++]=5;this.m_map[i++]=11;this.m_map[i++]=2;this.m_map[i++]=14;this.m_map[i++]=5;this.m_map[i++]=13;this.m_map[i++]=3;this.m_map[i++]=10;this.m_map[i++]=10;this.m_map[i++]=4;
 	this.m_map[i++]=5;this.m_map[i++]=11;this.m_map[i++]=14;this.m_map[i++]=1;this.m_map[i++]=10;this.m_map[i++]=8;this.m_map[i++]=6;this.m_map[i++]=13;this.m_map[i++]=3;this.m_map[i++]=8;this.m_map[i++]=10;this.m_map[i++]=4;this.m_map[i++]=11;this.m_map[i++]=14;this.m_map[i++]=5;
 	this.m_map[i++]=9;this.m_map[i++]=10;this.m_map[i++]=10;this.m_map[i++]=12;this.m_map[i++]=3;this.m_map[i++]=6;this.m_map[i++]=9;this.m_map[i++]=10;this.m_map[i++]=12;this.m_map[i++]=3;this.m_map[i++]=6;this.m_map[i++]=9;this.m_map[i++]=10;this.m_map[i++]=10;this.m_map[i++]=12; // 15*15
-	
-	// initilize the graph of the maze
-	for(i = 0; i < this.m_nrofblocks*this.m_nrofblocks; i++) {
-	    int tmp = this.m_map[i];
-	    Node tmpNode = this.m_mapNodes[i];
-	    int locX = tmpNode.getXLoc();
-	    int locY = tmpNode.getYLoc();
-	    if((int)(tmp & 1) == 0) {
-		// can go left
-		if(locX == 0) {
-		    tmpNode.addNeighbour(this.m_mapNodes[locY * this.m_nrofblocks + this.m_nrofblocks - 1]);
-		} else {
-		    tmpNode.addNeighbour(this.m_mapNodes[i - 1]);
-		}
-	    } 
-	    if((int)(tmp & 2) == 0) {
-		// can go up
-		if(locY == 0) {
-		    tmpNode.addNeighbour(this.m_mapNodes[(this.m_nrofblocks - 1) * this.m_nrofblocks + locX]);
-		} else {
-		    tmpNode.addNeighbour(this.m_mapNodes[(locY - 1) * this.m_nrofblocks + locX]);
-		}
-	    }
-	    if((int)(tmp & 4) == 0) {
-		// can go right
-		if(locX == this.m_nrofblocks - 1) {
-		    tmpNode.addNeighbour(this.m_mapNodes[locY * this.m_nrofblocks]);
-		} else {
-		    tmpNode.addNeighbour(this.m_mapNodes[i + 1]);
-		}
-	    }
-	    if((int)(tmp & 8) == 0) {
-		// can go down
-		if(locY == this.m_nrofblocks - 1) {
-		    tmpNode.addNeighbour(this.m_mapNodes[locX]);
-		} else {
-		    tmpNode.addNeighbour(this.m_mapNodes[(locY + 1) * this.m_nrofblocks + locX]);
-		}
-	    }
-	}
     } 
 
     public void placePacman(Pacman t) {
@@ -176,5 +133,45 @@ public class Map {
     
     public boolean isfinish() {
 	return this.m_nrofpacs == 0;
+    }
+    
+    public Vector getNeighbours(int index) {
+	Vector neighbours = new Vector();
+	int tmp = this.m_map[index];
+	int locX = index % this.m_nrofblocks;
+	int locY = index / this.m_nrofblocks;
+	if((int)(tmp & 1) == 0) {
+	    // can go left
+	    if(locX == 0) {
+		neighbours.addElement(new Integer(locY * this.m_nrofblocks + this.m_nrofblocks - 1));
+	    } else {
+		neighbours.addElement(new Integer(index - 1));
+	    }
+	} 
+	if((int)(tmp & 2) == 0) {
+	    // can go up
+	    if(locY == 0) {
+		neighbours.addElement(new Integer((this.m_nrofblocks - 1) * this.m_nrofblocks + locX));
+	    } else {
+		neighbours.addElement(new Integer((locY - 1) * this.m_nrofblocks + locX));
+	    }
+	}
+	if((int)(tmp & 4) == 0) {
+	    // can go right
+	    if(locX == this.m_nrofblocks - 1) {
+		neighbours.addElement(new Integer(locY * this.m_nrofblocks));
+	    } else {
+		neighbours.addElement(new Integer(index + 1));
+	    }
+	}
+	if((int)(tmp & 8) == 0) {
+	    // can go down
+	    if(locY == this.m_nrofblocks - 1) {
+		neighbours.addElement(new Integer(locX));
+	    } else {
+		neighbours.addElement(new Integer((locY + 1) * this.m_nrofblocks + locX));
+	    }
+	}
+	return neighbours;
     }
 }

@@ -32,7 +32,7 @@ public class Ghost {
     
     private void setNextDirection() {
 	// current position of the ghost
-	Node start = this.m_map.m_mapNodes[this.m_locY * this.m_map.m_nrofblocks + this.m_locX];
+	int start = this.m_locY * this.m_map.m_nrofblocks + this.m_locX;
 	boolean set = false;
 	Vector cuts = new Vector();
 	int tmptarget = 0;
@@ -59,7 +59,7 @@ public class Ghost {
 		//System.printString("Target: " + this.m_target + "\n");
 		while(!found) {
 		    int parent = parents[index];
-		    if(parent == start.getIndex()) {
+		    if(parent == start) {
 			found = true;
 		    } else {
 			index = parent;
@@ -67,8 +67,8 @@ public class Ghost {
 		}
 
 		// set the chase direction
-		int nx = this.m_map.m_mapNodes[index].getXLoc();
-		int ny = this.m_map.m_mapNodes[index].getYLoc();
+		int nx = index % this.m_map.m_nrofblocks;
+		int ny = index / this.m_map.m_nrofblocks;
 		this.m_dx = nx - this.m_locX;
 		this.m_dy = ny - this.m_locY;
 		if(this.m_dx > 0) {
@@ -116,18 +116,18 @@ public class Ghost {
     // Array parents records parent for a node in the BFS search,
     // the last item of parents records the least steps to reach end node from start node
     // Vector cuts specifies which nodes can not be the first one to access in this BFS
-    private boolean BFS(Node start, int[] parents, Vector cuts) {
+    private boolean BFS(int start, int[] parents, Vector cuts) {
 	//System.printString("aaa\n");
 	int steps = 0;
 	Vector toaccess = new Vector();
-	toaccess.addElement(start);
+	toaccess.addElement(new Integer(start));
 	while(toaccess.size() > 0) {
 	    //System.printString("bbb\n");
 	    // pull out the first one to access
-	    Node access = (Node)toaccess.elementAt(0);
+	    int access = ((Integer)toaccess.elementAt(0)).intValue();
 	    toaccess.removeElementAt(0);
 	    for(int i = 0; i < this.m_map.m_pacMenX.length; i++) {
-		if((access.getXLoc() == this.m_map.m_pacMenX[i]) && (access.getYLoc() == this.m_map.m_pacMenY[i])) {
+		if(((access%this.m_map.m_nrofblocks) == this.m_map.m_pacMenX[i]) && ((access/this.m_map.m_nrofblocks) == this.m_map.m_pacMenY[i])) {
 		    // hit one pacman
 		    this.m_target = i;
 		    parents[parents.length - 1] = steps;
@@ -135,26 +135,26 @@ public class Ghost {
 		}
 	    }
 	    steps++;
-	    Vector neighbours = access.getNeighbours();
+	    Vector neighbours = this.m_map.getNeighbours(access);
 	    for(int i = 0; i < neighbours.size(); i++) {
-		Node neighbour = (Node)neighbours.elementAt(i);
-		if(parents[neighbour.getIndex()] == -1) {
+		int neighbour = ((Integer)neighbours.elementAt(i)).intValue();
+		if(parents[neighbour] == -1) {
 		    // not accessed
 		    boolean ignore = false;
-		    if(access.getIndex() == start.getIndex()) {
+		    if(access == start) {
 			// start node, check if the neighbour node is in cuts
 			int j = 0;
 			while((!ignore) && (j < cuts.size())) {
 			    int tmp = ((Integer)cuts.elementAt(j)).intValue();
-			    if(tmp == neighbour.getIndex()) {
+			    if(tmp == neighbour) {
 				ignore = true;
 			    }
 			    j++;
 			}
 		    }
 		    if(!ignore) {
-			parents[neighbour.getIndex()] = access.getIndex();
-			toaccess.addElement(neighbour);
+			parents[neighbour] = access;
+			toaccess.addElement(new Integer(neighbour));
 		    }
 		}
 	    }
