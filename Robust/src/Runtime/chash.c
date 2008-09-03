@@ -1,7 +1,9 @@
 #include "chash.h"
 #define INLINE    inline __attribute__((always_inline))
 
-void crehash(ctable_t *table);
+void crehash(ctable_t *table) {
+  cResize(table, table->size);
+}
 
 ctable_t *cCreate(unsigned int size, float loadfactor) {
   ctable_t *ctable;
@@ -25,7 +27,7 @@ ctable_t *cCreate(unsigned int size, float loadfactor) {
   ctable->mask = (size << 2)-1;
   ctable->numelements = 0; // Initial number of elements in the hash
   ctable->loadfactor = loadfactor;
-  ctable->head=NULL;
+  ctable->listhead=NULL;
 
   return ctable;
 }
@@ -56,6 +58,8 @@ unsigned int cInsert(ctable_t *table, unsigned int key, void *val) {
     node->key = key;
     node->val = val;
     node->next = ptr[index].next;
+    node->lnext=table->listhead;
+    table->listhead=node;
     ptr[index].next = node;
   }
   return 0;
@@ -113,6 +117,7 @@ unsigned int cResize(ctable_t *table, unsigned int newsize) {
   int isfirst;    // Keeps track of the first element in the chashlistnode_t for each bin in hashtable
   int i,index;
   cnode_t *newnode;
+  cnode_t *last=NULL;
 
   ptr = table->table;
   oldsize = table->size;
@@ -137,14 +142,13 @@ unsigned int cResize(ctable_t *table, unsigned int newsize) {
       next = curr->next;
 
       index =(curr->key & table->mask)>>2;
-#ifdef DEBUG
-      printf("DEBUG(resize) -> index = %d, key = %d, val = %x\n", index, curr->key, curr->val);
-#endif
       // Insert into the new table
       if(table->table[index].next == NULL && table->table[index].key == 0) {
 	table->table[index].key = curr->key;
 	table->table[index].val = curr->val;
 	table->numelements++;
+	table->table[index].lnext=last;
+	last=&table->table[index];
       } else {
 	if((newnode = calloc(1, sizeof(cnode_t))) == NULL) {
 	  printf("Calloc error %s, %d\n", __FILE__, __LINE__);
@@ -155,6 +159,8 @@ unsigned int cResize(ctable_t *table, unsigned int newsize) {
 	newnode->next = table->table[index].next;
 	table->table[index].next = newnode;
 	table->numelements++;
+	newnode->lnext=last;
+	last=newnode;
       }
 
       //free the linked list of chashlistnode_t if not the first element in the hash table
@@ -166,7 +172,7 @@ unsigned int cResize(ctable_t *table, unsigned int newsize) {
       curr = next;
     }
   }
-
+  table->listhead=last;
   free(ptr);            //Free the memory of the old hash table
   return 0;
 }
