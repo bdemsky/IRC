@@ -20,8 +20,8 @@ typedef struct ctable {
 
 /* Prototypes for hash*/
 ctable_t *cCreate(unsigned int size, float loadfactor);
-unsigned int cInsert(ctable_t *table, unsigned int key, void *val);
-void *cSearch(chashtable_t *table, unsigned int key); //returns val, NULL if not found
+unsigned int cInsert(ctable_t *table, unsigned int key, unsigned int val);
+unsigned int cSearch(chashtable_t *table, unsigned int key); //returns val, NULL if not found
 unsigned int cRemove(chashtable_t *table, unsigned int key); //returns -1 if not found
 unsigned int cResize(chashtable_t *table, unsigned int newsize);
 void cDelete(chashtable_t *table);
