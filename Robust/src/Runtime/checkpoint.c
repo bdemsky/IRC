@@ -67,10 +67,10 @@ void checkvalid(void * ptr) {
 }
 
 /*
-void validitycheck(struct ctable *forward, struct ctable *reverse) {
-  struct RuntimeIterator rit;
-  RuntimeHashiterator(forward, &rit);
-  while(RunhasNext(&rit)) {
+   void validitycheck(struct ctable *forward, struct ctable *reverse) {
+   struct RuntimeIterator rit;
+   RuntimeHashiterator(forward, &rit);
+   while(RunhasNext(&rit)) {
     struct ___Object___ * data=(struct ___Object___*) Runnext(&rit);
     int type=data->type;
     unsigned int * pointer=pointerarray[type];
@@ -79,20 +79,20 @@ void validitycheck(struct ctable *forward, struct ctable *reverse) {
     if (pointer!=0&&((int)pointer)!=1) {
       size=pointer[0];
       for(i=1; i<=size; i++) {
-	int offset=pointer[i];
-	void * ptr=*(void **)(((int) data) + offset);
-	if (ptr!=NULL&&!RuntimeHashcontainskey(reverse, (int) ptr)) {
-#ifndef RAW
-	  printf("Bad\n");
-#endif
-	}
-	checkvalid(ptr);
+        int offset=pointer[i];
+        void * ptr=*(void **)(((int) data) + offset);
+        if (ptr!=NULL&&!RuntimeHashcontainskey(reverse, (int) ptr)) {
+ #ifndef RAW
+          printf("Bad\n");
+ #endif
+        }
+        checkvalid(ptr);
       }
     }
-  }
+   }
 
-  RuntimeHashiterator(reverse, &rit);
-  while(RunhasNext(&rit)) {
+   RuntimeHashiterator(reverse, &rit);
+   while(RunhasNext(&rit)) {
     struct ___Object___ * data=(struct ___Object___*) Runkey(&rit);
     int type=0;
     unsigned int * pointer=NULL;
@@ -104,19 +104,19 @@ void validitycheck(struct ctable *forward, struct ctable *reverse) {
     if (pointer!=0&&((int)pointer)!=1) {
       size=pointer[0];
       for(i=1; i<=size; i++) {
-	int offset=pointer[i];
-	void * ptr=*(void **)(((int) data) + offset);
-	if (ptr!=NULL&&!RuntimeHashcontainskey(reverse, (int) ptr)) {
-#ifndef RAW
-	  printf("Bad2\n");
-#endif
-	}
-	checkvalid(ptr);
+        int offset=pointer[i];
+        void * ptr=*(void **)(((int) data) + offset);
+        if (ptr!=NULL&&!RuntimeHashcontainskey(reverse, (int) ptr)) {
+ #ifndef RAW
+          printf("Bad2\n");
+ #endif
+        }
+        checkvalid(ptr);
       }
     }
-  }
-}
-*/
+   }
+   }
+ */
 
 
 void ** makecheckpoint(int numparams, void ** srcpointer, struct ctable * forward, struct ctable * reverse) {
@@ -163,9 +163,9 @@ void ** makecheckpoint(int numparams, void ** srcpointer, struct ctable * forwar
 	    ((struct ___TagDescriptor___*)cpy)->flagptr=copy;
 	  } else {
 	    ((struct ___TagDescriptor___*) cpy)->flagptr=dst;
+	  }
 	}
-      }
-    } else
+      } else
 #endif
       if (pointer==0) {
 	/* Array of primitives */

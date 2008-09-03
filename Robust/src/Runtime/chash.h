@@ -20,7 +20,7 @@ typedef struct ctable {
   unsigned int numelements;
   unsigned int resize;
   float loadfactor;
-  struct cnode *listhead;  
+  struct cnode *listhead;
 } ctable_t;
 
 /* Prototypes for hash*/

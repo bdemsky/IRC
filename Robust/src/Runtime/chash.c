@@ -130,7 +130,7 @@ unsigned int cResize(ctable_t *table, unsigned int newsize) {
       cnode_t * next = curr->next;
       int index =(curr->key & mask)>>2;
       cnode_t * newnode=&ntable[index];
-      
+
       if(newnode->key==0) {
 	newnode->key=curr->key;
 	newnode->val=curr->val;
@@ -144,7 +144,7 @@ unsigned int cResize(ctable_t *table, unsigned int newsize) {
 	tmp->val=curr->val;
 	tmp->lnext=last;
 	last=tmp;
-      }      
+      }
       if (isfirst) {
 	isfirst=0;
       } else {
