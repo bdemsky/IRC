@@ -370,7 +370,7 @@ if $MULTICOREFLAG
 then
 EXTRAOPTIONS="$EXTRAOPTIONS -DMULTICORE"
 fi
-FILES="$FILES tmpbuilddirectory/taskdefs.c $ROBUSTROOT/Runtime/checkpoint.c"
+FILES="$FILES tmpbuilddirectory/taskdefs.c $ROBUSTROOT/Runtime/checkpoint.c $ROBUSTROOT/Runtime/chash.c"
 if $RAWFLAG
 then
 EXTRAOPTIONS="$EXTRAOPTIONS -DRAW"
