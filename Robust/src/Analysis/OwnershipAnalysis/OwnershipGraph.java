@@ -1299,8 +1299,8 @@ public class OwnershipGraph {
 	  Iterator srcItr = possibleCallerSrcs.iterator();
 	  while( srcItr.hasNext() ) {
 	    HeapRegionNode src = (HeapRegionNode) srcItr.next();
-	    
-	    if( !hasMatchingField( src, edgeCallee ) ) {
+
+	    if( !hasMatchingField(src, edgeCallee) ) {
 	      // prune this source node possibility
 	      continue;
 	    }
@@ -1309,7 +1309,7 @@ public class OwnershipGraph {
 	    while( dstItr.hasNext() ) {
 	      HeapRegionNode dst = (HeapRegionNode) dstItr.next();
 
-	      if( !hasMatchingType( edgeCallee, dst ) ) {
+	      if( !hasMatchingType(edgeCallee, dst) ) {
 		// prune
 		continue;
 	      }
@@ -1374,7 +1374,7 @@ public class OwnershipGraph {
 	while( itrHrn.hasNext() ) {
 	  HeapRegionNode hrnCaller = itrHrn.next();
 
-	  if( !hasMatchingType( edgeCallee, hrnCaller ) ) {
+	  if( !hasMatchingType(edgeCallee, hrnCaller) ) {
 	    // prune
 	    continue;
 	  }
@@ -1468,17 +1468,21 @@ public class OwnershipGraph {
   }
 
 
-  protected boolean hasMatchingField( HeapRegionNode src, ReferenceEdge edge ) {
-    
+  protected boolean hasMatchingField(HeapRegionNode src, ReferenceEdge edge) {
+
     // if no allocation site, then it's a match-everything region
     AllocationSite asSrc = src.getAllocationSite();
-    if( asSrc == null ) { return true; }
-    
+    if( asSrc == null ) {
+      return true;
+    }
+
     TypeDescriptor tdSrc = asSrc.getType();
     assert tdSrc != null;
 
     // if it's not a class, it doesn't have any fields to match
-    if( !tdSrc.isClass() ) { return false; }
+    if( !tdSrc.isClass() ) {
+      return false;
+    }
 
     Iterator fieldsSrcItr = tdSrc.getClassDesc().getFields();
     while( fieldsSrcItr.hasNext() ) {
@@ -1494,11 +1498,13 @@ public class OwnershipGraph {
   }
 
 
-  protected boolean hasMatchingType( ReferenceEdge edge, HeapRegionNode dst ) {
+  protected boolean hasMatchingType(ReferenceEdge edge, HeapRegionNode dst) {
 
     // if the region has no type, matches everything
     AllocationSite asDst = dst.getAllocationSite();
-    if( asDst == null ) { return true; }
+    if( asDst == null ) {
+      return true;
+    }
 
     TypeDescriptor tdDst = asDst.getType();
     assert tdDst != null;
@@ -1506,15 +1512,19 @@ public class OwnershipGraph {
     // if the type is not a class don't match because
     // primitives are copied, no memory aliases
     ClassDescriptor cdDst = tdDst.getClassDesc();
-    if( cdDst == null ) { return false; }
+    if( cdDst == null ) {
+      return false;
+    }
 
     // if the field is null, it matches everything
     FieldDescriptor fd = edge.getFieldDesc();
-    if( fd == null ) { return true; }
+    if( fd == null ) {
+      return true;
+    }
     TypeDescriptor tdFd = fd.getType();
     assert tdFd != null;
 
-    return typeUtil.isSuperorType( tdFd, tdDst );
+    return typeUtil.isSuperorType(tdFd, tdDst);
   }
 
 

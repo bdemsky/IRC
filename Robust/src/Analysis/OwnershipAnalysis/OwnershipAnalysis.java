@@ -211,7 +211,7 @@ public class OwnershipAnalysis {
   // this analysis generates an ownership graph for every task
   // in the program
   public OwnershipAnalysis(State state,
-			   TypeUtil tu,
+                           TypeUtil tu,
                            CallGraph callGraph,
                            int allocationDepth,
                            boolean writeFinalGraphs,
@@ -407,9 +407,9 @@ public class OwnershipAnalysis {
       // ownership graph made from the merge of the
       // parent graphs
       og = analyzeFlatNode(mDesc,
-			   fn,
-			   returnNodesToCombineForCompleteOwnershipGraph,
-			   og);
+                           fn,
+                           returnNodesToCombineForCompleteOwnershipGraph,
+                           og);
 
       // if the results of the new graph are different from
       // the current graph at this node, replace the graph
