@@ -76,6 +76,7 @@ public class OwnershipAnalysis {
       TaskDescriptor td = (TaskDescriptor) taskItr.next();
 
       bw.write("\n---------"+td+"--------\n");
+      bw.flush();
 
       HashSet<AllocationSite> allocSites = getFlaggedAllocationSitesReachableFromTask(td);
 
@@ -123,6 +124,7 @@ public class OwnershipAnalysis {
 
 	  if( !outerChecked.contains(as2) &&
 	      createsPotentialAliases(td, as1, as2) ) {
+	    foundSomeAlias = true;
 	    bw.write("Potential alias between "+as1+" and "+as2+".\n");
 	  }
 	}
@@ -153,6 +155,7 @@ public class OwnershipAnalysis {
 
   // data from the compiler
   private State state;
+  private TypeUtil typeUtil;
   private CallGraph callGraph;
   private int allocationDepth;
 
@@ -208,12 +211,14 @@ public class OwnershipAnalysis {
   // this analysis generates an ownership graph for every task
   // in the program
   public OwnershipAnalysis(State state,
+			   TypeUtil tu,
                            CallGraph callGraph,
                            int allocationDepth,
                            boolean writeFinalGraphs,
                            boolean writeAllUpdates) throws java.io.IOException {
 
     this.state            = state;
+    this.typeUtil         = tu;
     this.callGraph        = callGraph;
     this.allocationDepth  = allocationDepth;
     this.writeFinalGraphs = writeFinalGraphs;
@@ -252,7 +257,7 @@ public class OwnershipAnalysis {
     Iterator<Descriptor> dItr = descriptorsToAnalyze.iterator();
     while( dItr.hasNext() ) {
       Descriptor d  = dItr.next();
-      OwnershipGraph og = new OwnershipGraph(allocationDepth);
+      OwnershipGraph og = new OwnershipGraph(allocationDepth, typeUtil);
 
       FlatMethod fm;
       if( d instanceof MethodDescriptor ) {
@@ -264,7 +269,7 @@ public class OwnershipAnalysis {
 
       System.out.println("Previsiting " + d);
 
-      analyzeFlatNode(d, fm, null, og);
+      og = analyzeFlatNode(d, fm, null, og);
       setGraphForDescriptor(d, og);
     }
 
@@ -389,7 +394,7 @@ public class OwnershipAnalysis {
       // perform this node's contributions to the ownership
       // graph on a new copy, then compare it to the old graph
       // at this node to see if anything was updated.
-      OwnershipGraph og = new OwnershipGraph(allocationDepth);
+      OwnershipGraph og = new OwnershipGraph(allocationDepth, typeUtil);
 
       // start by merging all node's parents' graphs
       for( int i = 0; i < fn.numPrev(); ++i ) {
@@ -401,10 +406,10 @@ public class OwnershipAnalysis {
       // apply the analysis of the flat node to the
       // ownership graph made from the merge of the
       // parent graphs
-      analyzeFlatNode(mDesc,
-                      fn,
-                      returnNodesToCombineForCompleteOwnershipGraph,
-                      og);
+      og = analyzeFlatNode(mDesc,
+			   fn,
+			   returnNodesToCombineForCompleteOwnershipGraph,
+			   og);
 
       // if the results of the new graph are different from
       // the current graph at this node, replace the graph
@@ -425,7 +430,7 @@ public class OwnershipAnalysis {
     // end by merging all return nodes into a complete
     // ownership graph that represents all possible heap
     // states after the flat method returns
-    OwnershipGraph completeGraph = new OwnershipGraph(allocationDepth);
+    OwnershipGraph completeGraph = new OwnershipGraph(allocationDepth, typeUtil);
     Iterator retItr = returnNodesToCombineForCompleteOwnershipGraph.iterator();
     while( retItr.hasNext() ) {
       FlatReturnNode frn = (FlatReturnNode) retItr.next();
@@ -436,7 +441,7 @@ public class OwnershipAnalysis {
   }
 
 
-  private void
+  private OwnershipGraph
   analyzeFlatNode(Descriptor methodDesc,
                   FlatNode fn,
                   HashSet<FlatReturnNode> setRetNodes,
@@ -473,7 +478,7 @@ public class OwnershipAnalysis {
 	}
 
 	// then remember it
-	OwnershipGraph ogResult = new OwnershipGraph(allocationDepth);
+	OwnershipGraph ogResult = new OwnershipGraph(allocationDepth, typeUtil);
 	ogResult.merge(og);
 	mapFlatMethodToInitialParamAllocGraph.put(fm, ogResult);
 
@@ -540,7 +545,7 @@ public class OwnershipAnalysis {
       FlatCall fc = (FlatCall) fn;
       MethodDescriptor md = fc.getMethod();
       FlatMethod flatm = state.getMethodFlat(md);
-      OwnershipGraph ogMergeOfAllPossibleCalleeResults = new OwnershipGraph(allocationDepth);
+      OwnershipGraph ogMergeOfAllPossibleCalleeResults = new OwnershipGraph(allocationDepth, typeUtil);
 
       if( md.isStatic() ) {
 	// a static method is simply always the same, makes life easy
@@ -560,7 +565,7 @@ public class OwnershipAnalysis {
 
 	  // don't alter the working graph (og) until we compute a result for every
 	  // possible callee, merge them all together, then set og to that
-	  OwnershipGraph ogCopy = new OwnershipGraph(allocationDepth);
+	  OwnershipGraph ogCopy = new OwnershipGraph(allocationDepth, typeUtil);
 	  ogCopy.merge(og);
 
 	  OwnershipGraph ogPotentialCallee = mapDescriptorToCompleteOwnershipGraph.get(possibleMd);
@@ -583,6 +588,8 @@ public class OwnershipAnalysis {
       setRetNodes.add(frn);
       break;
     }
+
+    return og;
   }
 
 
@@ -625,7 +632,7 @@ public class OwnershipAnalysis {
 
   private OwnershipGraph getGraphFromFlatNode(FlatNode fn) {
     if( !mapFlatNodeToOwnershipGraph.containsKey(fn) ) {
-      mapFlatNodeToOwnershipGraph.put(fn, new OwnershipGraph(allocationDepth) );
+      mapFlatNodeToOwnershipGraph.put(fn, new OwnershipGraph(allocationDepth, typeUtil) );
     }
 
     return mapFlatNodeToOwnershipGraph.get(fn);
@@ -729,8 +736,12 @@ public class OwnershipAnalysis {
       Iterator asItr = asSet.iterator();
       while( asItr.hasNext() ) {
 	AllocationSite as = (AllocationSite) asItr.next();
-	if( as.getType().getClassDesc().hasFlags() ) {
-	  asSetTotal.add(as);
+	TypeDescriptor typed = as.getType();
+	if( typed != null ) {
+	  ClassDescriptor cd = typed.getClassDesc();
+	  if( cd != null && cd.hasFlags() ) {
+	    asSetTotal.add(as);
+	  }
 	}
       }
 

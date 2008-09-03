@@ -453,7 +453,7 @@ public class Main {
       CallGraph callGraph  = new CallGraph(state);
       int allocationDepth  = 3;
       OwnershipAnalysis oa =
-        new OwnershipAnalysis(state, callGraph, allocationDepth, true, true);
+        new OwnershipAnalysis(state, tu, callGraph, allocationDepth, true, false);
       //	  oa.writeAllAliases( "identifiedAliases.txt" );
     }
 

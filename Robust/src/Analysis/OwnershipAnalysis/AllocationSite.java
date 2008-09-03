@@ -167,4 +167,8 @@ public class AllocationSite {
   public String toString() {
     return "allocSite" + id;
   }
+
+  public String toStringVerbose() {
+    return "allocSite" + id + " "+type.toPrettyString();
+  }
 }

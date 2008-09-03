@@ -8,6 +8,7 @@ import java.io.*;
 public class OwnershipGraph {
 
   private int allocationDepth;
+  private TypeUtil typeUtil;
 
   // there was already one other very similar reason
   // for traversing heap nodes that is no longer needed
@@ -30,8 +31,9 @@ public class OwnershipGraph {
 
 
 
-  public OwnershipGraph(int allocationDepth) {
+  public OwnershipGraph(int allocationDepth, TypeUtil typeUtil) {
     this.allocationDepth = allocationDepth;
+    this.typeUtil        = typeUtil;
 
     id2hrn         = new Hashtable<Integer,        HeapRegionNode>();
     td2ln          = new Hashtable<TempDescriptor, LabelNode     >();
@@ -1297,48 +1299,19 @@ public class OwnershipGraph {
 	  Iterator srcItr = possibleCallerSrcs.iterator();
 	  while( srcItr.hasNext() ) {
 	    HeapRegionNode src = (HeapRegionNode) srcItr.next();
-
-	    // check that if this source node has a definite type that
-	    // it also has the appropriate field, otherwise prune this
-	    AllocationSite asSrc = src.getAllocationSite();
-	    if( asSrc != null ) {
-	      boolean foundField = false;
-	      TypeDescriptor tdSrc = asSrc.getType();
-	      if( tdSrc != null && tdSrc.isClass() ) {
-		Iterator fieldsSrcItr = tdSrc.getClassDesc().getFields();
-		while( fieldsSrcItr.hasNext() ) {
-		  FieldDescriptor fd = (FieldDescriptor) fieldsSrcItr.next();
-		  if( fd == edgeCallee.getFieldDesc() ) {
-		    foundField = true;
-		    break;
-		  }
-		}
-		if( !foundField ) {
-		  // prune this source node possibility
-		  continue;
-		}
-	      }
+	    
+	    if( !hasMatchingField( src, edgeCallee ) ) {
+	      // prune this source node possibility
+	      continue;
 	    }
 
 	    Iterator dstItr = possibleCallerDsts.iterator();
 	    while( dstItr.hasNext() ) {
 	      HeapRegionNode dst = (HeapRegionNode) dstItr.next();
 
-	      // check if this dst node has a definite type and
-	      // if it matches the callee edge
-	      AllocationSite asDst = dst.getAllocationSite();
-	      if( asDst != null && edgeCallee.getFieldDesc() != null ) {
-		if( asDst.getType() == null && edgeCallee.getFieldDesc().getType() != null ) {
-		  continue;
-		}
-		if( asDst.getType() != null && edgeCallee.getFieldDesc().getType() == null ) {
-		  continue;
-		}
-		if( asDst.getType() != null && edgeCallee.getFieldDesc().getType() != null ) {
-		  if( !asDst.getType().equals(edgeCallee.getFieldDesc().getType() ) ) {
-		    continue;
-		  }
-		}
+	      if( !hasMatchingType( edgeCallee, dst ) ) {
+		// prune
+		continue;
 	      }
 
 	      // otherwise the caller src and dst pair can match the edge, so make it
@@ -1401,23 +1374,9 @@ public class OwnershipGraph {
 	while( itrHrn.hasNext() ) {
 	  HeapRegionNode hrnCaller = itrHrn.next();
 
-	  // check if this dst node has a definite type and
-	  // if it matches the callee edge
-	  // check if this dst node has a definite type and
-	  // if it matches the callee edge
-	  AllocationSite asDst = hrnCaller.getAllocationSite();
-	  if( asDst != null && edgeCallee.getFieldDesc() != null ) {
-	    if( asDst.getType() == null && edgeCallee.getFieldDesc().getType() != null ) {
-	      continue;
-	    }
-	    if( asDst.getType() != null && edgeCallee.getFieldDesc().getType() == null ) {
-	      continue;
-	    }
-	    if( asDst.getType() != null && edgeCallee.getFieldDesc().getType() != null ) {
-	      if( !asDst.getType().equals(edgeCallee.getFieldDesc().getType() ) ) {
-		continue;
-	      }
-	    }
+	  if( !hasMatchingType( edgeCallee, hrnCaller ) ) {
+	    // prune
+	    continue;
 	  }
 
 	  // otherwise caller node can match callee edge, so make it
@@ -1427,6 +1386,7 @@ public class OwnershipGraph {
 
 	  ReferenceEdge edgeExisting = lnLhsCaller.getReferenceTo(hrnCaller, edgeNewInCaller.getFieldDesc() );
 	  if( edgeExisting == null ) {
+
 	    // if this edge doesn't exist in the caller, create it
 	    addReferenceEdge(lnLhsCaller, hrnCaller, edgeNewInCaller);
 	  } else {
@@ -1506,6 +1466,57 @@ public class OwnershipGraph {
       }
     }
   }
+
+
+  protected boolean hasMatchingField( HeapRegionNode src, ReferenceEdge edge ) {
+    
+    // if no allocation site, then it's a match-everything region
+    AllocationSite asSrc = src.getAllocationSite();
+    if( asSrc == null ) { return true; }
+    
+    TypeDescriptor tdSrc = asSrc.getType();
+    assert tdSrc != null;
+
+    // if it's not a class, it doesn't have any fields to match
+    if( !tdSrc.isClass() ) { return false; }
+
+    Iterator fieldsSrcItr = tdSrc.getClassDesc().getFields();
+    while( fieldsSrcItr.hasNext() ) {
+      FieldDescriptor fd = (FieldDescriptor) fieldsSrcItr.next();
+      if( fd == edge.getFieldDesc() ) {
+	return true;
+      }
+    }
+
+    // otherwise it is a class with fields
+    // but we didn't find a match
+    return false;
+  }
+
+
+  protected boolean hasMatchingType( ReferenceEdge edge, HeapRegionNode dst ) {
+
+    // if the region has no type, matches everything
+    AllocationSite asDst = dst.getAllocationSite();
+    if( asDst == null ) { return true; }
+
+    TypeDescriptor tdDst = asDst.getType();
+    assert tdDst != null;
+
+    // if the type is not a class don't match because
+    // primitives are copied, no memory aliases
+    ClassDescriptor cdDst = tdDst.getClassDesc();
+    if( cdDst == null ) { return false; }
+
+    // if the field is null, it matches everything
+    FieldDescriptor fd = edge.getFieldDesc();
+    if( fd == null ) { return true; }
+    TypeDescriptor tdFd = fd.getType();
+    assert tdFd != null;
+
+    return typeUtil.isSuperorType( tdFd, tdDst );
+  }
+
 
 
   protected void unshadowTokens(AllocationSite as, ReferenceEdge edge) {
