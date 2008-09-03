@@ -3,6 +3,8 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#define INLINE    inline __attribute__((always_inline))
+//#define INLINE
 
 typedef struct cnode {
   unsigned int key;
@@ -16,13 +18,14 @@ typedef struct ctable {
   unsigned int size;
   unsigned int mask;
   unsigned int numelements;
+  unsigned int resize;
   float loadfactor;
   struct cnode *listhead;  
 } ctable_t;
 
 /* Prototypes for hash*/
 ctable_t *cCreate(unsigned int size, float loadfactor);
-unsigned int cInsert(ctable_t *table, unsigned int key, void * val);
+void cInsert(ctable_t *table, unsigned int key, void * val);
 void * cSearch(ctable_t *table, unsigned int key); //returns val, NULL if not found
 unsigned int cRemove(ctable_t *table, unsigned int key); //returns -1 if not found
 unsigned int cResize(ctable_t *table, unsigned int newsize);

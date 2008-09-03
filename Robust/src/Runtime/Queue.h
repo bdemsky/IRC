@@ -13,6 +13,9 @@ struct QueueItem {
   struct QueueItem * prev;
 };
 
+#define isEmpty(x) (x->head==NULL)
+
+void * getItem(struct Queue * queue);
 void freeQueue(struct Queue * q);
 struct Queue * createQueue();
 struct QueueItem * addNewItem(struct Queue * queue, void * ptr);
@@ -21,7 +24,6 @@ struct QueueItem * addNewItem_I(struct Queue * queue, void * ptr);
 #endif
 struct QueueItem * findItem(struct Queue * queue, void * ptr);
 void removeItem(struct Queue * queue, struct QueueItem * item);
-int isEmpty(struct Queue *queue);
 struct QueueItem * getTail(struct Queue * queue);
 
 

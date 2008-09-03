@@ -79,6 +79,7 @@ void createstartupobject();
 
 #ifdef TASK
 #include "SimpleHash.h"
+#include "chash.h"
 #ifndef MULTICORE
 #include "ObjectHash.h"
 #include "structdefs.h"

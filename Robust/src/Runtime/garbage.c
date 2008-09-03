@@ -3,6 +3,7 @@
 #include "structdefs.h"
 #include "Queue.h"
 #include "SimpleHash.h"
+#include "chash.h"
 #include "GenericHashtable.h"
 #include <string.h>
 #if defined(THREADS) || defined(DSTM)
@@ -30,8 +31,8 @@ extern struct parameterwrapper * objectqueues[NUMCLASSES];
 #endif
 extern struct genhashtable * failedtasks;
 extern struct taskparamdescriptor *currtpd;
-extern struct RuntimeHash *forward;
-extern struct RuntimeHash *reverse;
+extern struct ctable *forward;
+extern struct ctable *reverse;
 extern struct RuntimeHash *fdtoobject;
 #endif
 
@@ -209,20 +210,20 @@ void collect(struct garbagelist * stackptr) {
   }
 
   if (forward!=NULL) {
-    struct RuntimeNode * ptr=forward->listhead;
+    struct cnode * ptr=forward->listhead;
     while(ptr!=NULL) {
       void * orig=(void *)ptr->key;
       ENQUEUE(orig, *((void **)(&ptr->key)));
       ptr=ptr->lnext;
     }
-    RuntimeHashrehash(forward); /* Rehash the table */
+    crehash(forward); /* Rehash the table */
   }
 
   if (reverse!=NULL) {
-    struct RuntimeNode * ptr=reverse->listhead;
+    struct cnode * ptr=reverse->listhead;
     while(ptr!=NULL) {
-      void *orig=(void *)ptr->data;
-      ENQUEUE(orig, *((void**)(&ptr->data)));
+      void *orig=(void *)ptr->val;
+      ENQUEUE(orig, *((void**)(&ptr->val)));
       ptr=ptr->lnext;
     }
   }

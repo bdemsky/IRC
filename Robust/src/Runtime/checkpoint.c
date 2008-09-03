@@ -2,6 +2,7 @@
 #include "runtime.h"
 #include "structdefs.h"
 #include <string.h>
+#include "Queue.h"
 #ifdef DMALLOC
 #include "dmalloc.h"
 #endif
@@ -65,7 +66,8 @@ void checkvalid(void * ptr) {
   }
 }
 
-void validitycheck(struct RuntimeHash *forward, struct RuntimeHash *reverse) {
+/*
+void validitycheck(struct ctable *forward, struct ctable *reverse) {
   struct RuntimeIterator rit;
   RuntimeHashiterator(forward, &rit);
   while(RunhasNext(&rit)) {
@@ -114,55 +116,56 @@ void validitycheck(struct RuntimeHash *forward, struct RuntimeHash *reverse) {
     }
   }
 }
+*/
 
 
-
-void ** makecheckpoint(int numparams, void ** srcpointer, struct RuntimeHash * forward, struct RuntimeHash * reverse) {
+void ** makecheckpoint(int numparams, void ** srcpointer, struct ctable * forward, struct ctable * reverse) {
 #ifdef PRECISE_GC
   void **newarray=cpmalloc(sizeof(void *)*numparams);
 #else
   void **newarray=RUNMALLOC(sizeof(void *)*numparams);
 #endif
-  struct RuntimeHash *todo=allocateRuntimeHash(100);
+  struct Queue *todo=createQueue();
   int i;
 
   for(i=0; i<numparams; i++) {
     void * objptr=srcpointer[i];
-    if (RuntimeHashcontainskey(forward, (int) objptr))
-      RuntimeHashget(forward,(int) objptr,(int *) &newarray[i]);
+    void *dst;
+    if ((dst=cSearch(forward, (int) objptr))!=NULL)
+      newarray[i]=dst;
     else {
       void * copy=createcopy(objptr);
-      RuntimeHashadd(forward, (int) objptr, (int)copy);
-      RuntimeHashadd(reverse, (int) copy, (int) objptr);
-      RuntimeHashadd(todo, (int) objptr, (int) objptr);
+      cInsert(forward, (int) objptr, copy);
+      cInsert(reverse, (int) copy, objptr);
+      addNewItem(todo, objptr);
       newarray[i]=copy;
     }
   }
-  while(RuntimeHashcountset(todo)!=0) {
-    void * ptr=(void *) RuntimeHashfirstkey(todo);
+  while(!isEmpty(todo)) {
+    void * ptr=getItem(todo);
     int type=((int *)ptr)[0];
-    RuntimeHashremove(todo, (int) ptr, (int) ptr);
     {
       void *cpy;
       unsigned int * pointer=NULL;
-      RuntimeHashget(forward, (int) ptr, (int *) &cpy);
+      cpy=cSearch(forward, (unsigned int)ptr);
 
       pointer=pointerarray[type];
 #ifdef TASK
       if (type==TAGTYPE) {
 	void *objptr=((struct ___TagDescriptor___*)ptr)->flagptr;
 	if (objptr!=NULL) {
-	  if (!RuntimeHashcontainskey(forward, (int) objptr)) {
+	  void *dst;
+	  if ((dst=cSearch(forward, (unsigned int)objptr))==NULL) {
 	    void *copy=createcopy(objptr);
-	    RuntimeHashadd(forward, (int) objptr, (int) copy);
-	    RuntimeHashadd(reverse, (int) copy, (int) objptr);
-	    RuntimeHashadd(todo, (int) objptr, (int) objptr);
+	    cInsert(forward, (int) objptr, copy);
+	    cInsert(reverse, (int) copy,  objptr);
+	    addNewItem(todo, objptr);
 	    ((struct ___TagDescriptor___*)cpy)->flagptr=copy;
 	  } else {
-	    RuntimeHashget(forward, (int) objptr, (int *) &(((struct ___TagDescriptor___*) cpy)->flagptr));
-	  }
+	    ((struct ___TagDescriptor___*) cpy)->flagptr=dst;
 	}
-      } else
+      }
+    } else
 #endif
       if (pointer==0) {
 	/* Array of primitives */
@@ -174,16 +177,17 @@ void ** makecheckpoint(int numparams, void ** srcpointer, struct RuntimeHash * f
 	int length=ao->___length___;
 	int i;
 	for(i=0; i<length; i++) {
+	  void *dst;
 	  void *objptr=((void **)(((char *)&ao->___length___)+sizeof(int)))[i];
 	  if (objptr==NULL) {
 	    ((void **)(((char *)&ao_cpy->___length___)+sizeof(int)))[i]=NULL;
-	  } else if (RuntimeHashcontainskey(forward, (int) objptr))
-	    RuntimeHashget(forward,(int) objptr,(int *) &((void **)(((char *)&ao_cpy->___length___)+sizeof(int)))[i]);
+	  } else if ((dst=cSearch(forward, (int)objptr))!=NULL)
+	    ((void **)(((char *)&ao_cpy->___length___)+sizeof(int)))[i]=dst;
 	  else {
 	    void * copy=createcopy(objptr);
-	    RuntimeHashadd(forward, (int) objptr, (int)copy);
-	    RuntimeHashadd(reverse, (int) copy, (int) objptr);
-	    RuntimeHashadd(todo, (int) objptr, (int) objptr);
+	    cInsert(forward, (int) objptr, copy);
+	    cInsert(reverse, (int) copy, objptr);
+	    addNewItem(todo, objptr);
 	    ((void **)(((char *)&ao_cpy->___length___)+sizeof(int)))[i]=copy;
 	  }
 	}
@@ -193,22 +197,23 @@ void ** makecheckpoint(int numparams, void ** srcpointer, struct RuntimeHash * f
 	for(i=1; i<=size; i++) {
 	  int offset=pointer[i];
 	  void * objptr=*((void **)(((int)ptr)+offset));
+	  void *dst;
 	  if (objptr==NULL) {
 	    *((void **)(((int)cpy)+offset))=NULL;
-	  } else if (RuntimeHashcontainskey(forward, (int) objptr))
-	    RuntimeHashget(forward, (int) objptr, (int *) &(((char *)cpy)[offset]));
+	  } else if ((dst=cSearch(forward, (unsigned int)objptr))!=NULL)
+	    *((void **) &(((char *)cpy)[offset]))=dst;
 	  else {
 	    void * copy=createcopy(objptr);
-	    RuntimeHashadd(forward, (int) objptr, (int) copy);
-	    RuntimeHashadd(reverse, (int) copy, (int) objptr);
-	    RuntimeHashadd(todo, (int) objptr, (int) objptr);
+	    cInsert(forward, (int) objptr, copy);
+	    cInsert(reverse, (int) copy, objptr);
+	    addNewItem(todo, objptr);
 	    *((void **)(((int)cpy)+offset))=copy;
 	  }
 	}
       }
     }
   }
-  freeRuntimeHash(todo);
+  freeQueue(todo);
   return newarray;
 }
 
@@ -244,28 +249,27 @@ void * createcopy(void * orig) {
   }
 }
 
-void restorecheckpoint(int numparams, void ** original, void ** checkpoint, struct RuntimeHash *forward, struct RuntimeHash * reverse) {
-  struct RuntimeHash *todo=allocateRuntimeHash(100);
-  struct RuntimeHash *visited=allocateRuntimeHash(100);
+void restorecheckpoint(int numparams, void ** original, void ** checkpoint, struct ctable *forward, struct ctable * reverse) {
+  struct Queue *todo=createQueue();
+  struct ctable *visited=cCreate(256, 0.5);
   int i;
 
   for(i=0; i<numparams; i++) {
     if (checkpoint[i]!=NULL) {
-      RuntimeHashadd(todo, (int) checkpoint[i], (int) checkpoint[i]);
-      RuntimeHashadd(visited, (int) checkpoint[i], (int) checkpoint[i]);
+      addNewItem(todo, checkpoint[i]);
+      cInsert(visited, (unsigned int) checkpoint[i], checkpoint[i]);
     }
   }
 
-  while(RuntimeHashcountset(todo)!=0) {
-    void * ptr=(void *) RuntimeHashfirstkey(todo);
+  while(!isEmpty(todo)) {
+    void * ptr=(void *) getItem(todo);
     int type=((int *)ptr)[0];
-    RuntimeHashremove(todo, (int) ptr, (int) ptr);
 
     {
       void *cpy;
       unsigned int *pointer;
       int size;
-      RuntimeHashget(reverse, (int) ptr, (int *) &cpy);
+      cpy=cSearch(reverse, (int) ptr);
       pointer=pointerarray[type];
       size=classsize[type];
 #ifdef TASK
@@ -273,11 +277,11 @@ void restorecheckpoint(int numparams, void ** original, void ** checkpoint, stru
 	void *objptr=((struct ___TagDescriptor___*)ptr)->flagptr;
 	memcpy(cpy, ptr, size);
 	if (objptr!=NULL) {
-	  if (!RuntimeHashcontainskey(visited, (int) objptr)) {
-	    RuntimeHashadd(visited, (int) objptr, (int) objptr);
-	    RuntimeHashadd(todo, (int) objptr, (int) objptr);
+	  if (cSearch(visited, (unsigned int)objptr)==NULL) {
+	    cInsert(visited, (int) objptr, objptr);
+	    addNewItem(todo, objptr);
 	  }
-	  RuntimeHashget(reverse, (int) objptr, (int *) &(((struct ___TagDescriptor___ *)cpy)->flagptr));
+	  *((void **) &(((struct ___TagDescriptor___ *)cpy)->flagptr))=cSearch(reverse, (int) objptr);
 	}
       } else
 #endif
@@ -301,11 +305,11 @@ void restorecheckpoint(int numparams, void ** original, void ** checkpoint, stru
 	  if (objptr==NULL)
 	    ((void **)(((char *)&ao_cpy->___length___)+sizeof(int)))[i]=NULL;
 	  else {
-	    if (!RuntimeHashcontainskey(visited, (int) objptr)) {
-	      RuntimeHashadd(visited, (int) objptr, (int) objptr);
-	      RuntimeHashadd(todo, (int) objptr, (int) objptr);
+	    if (cSearch(visited, (int) objptr)==NULL) {
+	      cInsert(visited, (int) objptr, objptr);
+	      addNewItem(todo, objptr);
 	    }
-	    RuntimeHashget(reverse, (int) objptr, (int *) &((void **)(((char *)&ao_cpy->___length___)+sizeof(int)))[i]);
+	    *((void **) &((void **)(((char *)&ao_cpy->___length___)+sizeof(int)))[i])=cSearch(reverse, (int) objptr);
 	  }
 	}
       } else {
@@ -326,11 +330,11 @@ void restorecheckpoint(int numparams, void ** original, void ** checkpoint, stru
 	  if (objptr==NULL)
 	    *((void **)(((int)cpy)+offset))=NULL;
 	  else {
-	    if (!RuntimeHashcontainskey(visited, (int) objptr)) {
-	      RuntimeHashadd(visited, (int) objptr, (int) objptr);
-	      RuntimeHashadd(todo, (int) objptr, (int) objptr);
+	    if (cSearch(visited, (int)objptr)==NULL) {
+	      cInsert(visited, (int) objptr, objptr);
+	      addNewItem(todo, objptr);
 	    }
-	    RuntimeHashget(reverse, (int) objptr, (int *) &(((char *)cpy)[offset]));
+	    *((void **) &(((char *)cpy)[offset]))=cSearch(reverse, (int) objptr);
 	  }
 	}
 	if (hasflags[type]) {
@@ -347,6 +351,6 @@ void restorecheckpoint(int numparams, void ** original, void ** checkpoint, stru
       }
     }
   }
-  freeRuntimeHash(todo);
-  freeRuntimeHash(visited);
+  freeQueue(todo);
+  cDelete(visited);
 }

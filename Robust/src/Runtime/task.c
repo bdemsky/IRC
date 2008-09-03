@@ -25,8 +25,8 @@ struct genhashtable * activetasks;
 struct parameterwrapper * objectqueues[NUMCLASSES];
 struct genhashtable * failedtasks;
 struct taskparamdescriptor * currtpd;
-struct RuntimeHash * forward;
-struct RuntimeHash * reverse;
+struct ctable * forward;
+struct ctable * reverse;
 
 int main(int argc, char **argv) {
 #ifdef BOEHM_GC
@@ -1163,8 +1163,8 @@ parameterpresent:
 
       {
 	/* Checkpoint the state */
-	forward=allocateRuntimeHash(100);
-	reverse=allocateRuntimeHash(100);
+	forward=cCreate(256, 0.4);
+	reverse=cCreate(256, 0.4);
 	void ** checkpoint=makecheckpoint(currtpd->task->numParameters, currtpd->parameterArray, forward, reverse);
 	int x;
 	if (x=setjmp(error_handler)) {
@@ -1186,8 +1186,8 @@ parameterpresent:
 	      RUNFREE(fsesarray[counter]);
 	  }
 #endif
-	  freeRuntimeHash(forward);
-	  freeRuntimeHash(reverse);
+	  cDelete(forward);
+	  cDelete(reverse);
 	  freemalloc();
 	  forward=NULL;
 	  reverse=NULL;
@@ -1226,8 +1226,8 @@ parameterpresent:
 	  }
 #endif
 
-	  freeRuntimeHash(forward);
-	  freeRuntimeHash(reverse);
+	  cDelete(forward);
+	  cDelete(reverse);
 	  freemalloc();
 	  // Free up task parameter descriptor
 	  RUNFREE(currtpd->parameterArray);

@@ -15,10 +15,6 @@ void freeQueue(struct Queue * q) {
   RUNFREE(q);
 }
 
-int isEmpty(struct Queue *queue) {
-  return queue->head==NULL;
-}
-
 struct QueueItem * addNewItem(struct Queue * queue, void * ptr) {
   struct QueueItem * item=RUNMALLOC(sizeof(struct QueueItem));
   item->objectptr=ptr;
@@ -81,4 +77,12 @@ struct QueueItem * getTail(struct Queue * queue) {
 
 struct QueueItem * getNext(struct QueueItem * qi) {
   return qi->next;
+}
+
+void * getItem(struct Queue * queue) {
+  struct QueueItem * q=queue->head;
+  void * ptr=q->objectptr;
+  queue->head=q->next;
+  RUNFREE(q);
+  return ptr;
 }

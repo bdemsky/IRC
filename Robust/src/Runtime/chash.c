@@ -1,5 +1,4 @@
 #include "chash.h"
-#define INLINE    inline __attribute__((always_inline))
 
 void crehash(ctable_t *table) {
   cResize(table, table->size);
@@ -27,42 +26,40 @@ ctable_t *cCreate(unsigned int size, float loadfactor) {
   ctable->mask = (size << 2)-1;
   ctable->numelements = 0; // Initial number of elements in the hash
   ctable->loadfactor = loadfactor;
+  ctable->resize=loadfactor*size;
   ctable->listhead=NULL;
 
   return ctable;
 }
 
 //Store objects and their pointers into hash
-unsigned int cInsert(ctable_t *table, unsigned int key, void *val) {
+INLINE void cInsert(ctable_t *table, unsigned int key, void *val) {
   unsigned int newsize;
   int index;
   cnode_t *ptr, *node;
 
-  if(table->numelements > (table->loadfactor * table->size)) {
-    //Resize
+  ptr = &table->table[(key & table->mask)>>2];
+  if (ptr->key==0) {
+    ptr->key=key;
+    ptr->val=val;
+    ptr->lnext=table->listhead;
+    table->listhead=ptr;
+    return;
+  }
+
+  cnode_t *tmp=malloc(sizeof(cnode_t));
+  tmp->next=ptr->next;
+  ptr->next=tmp;
+  tmp->key=key;
+  tmp->val=val;
+  tmp->lnext=table->listhead;
+  table->listhead=tmp;
+
+  table->numelements++;
+  if(table->numelements > table->resize) {
     newsize = table->size << 1;
     cResize(table,newsize);
   }
-
-  ptr = table->table;
-  table->numelements++;
-  index =(key & table->mask)>>2;
-  if(ptr[index].next == NULL && ptr[index].key == 0) {  // Insert at the first position in the hashtable
-    ptr[index].key = key;
-    ptr[index].val = val;
-  } else { // Insert in the beginning of linked list
-    if ((node = calloc(1, sizeof(cnode_t))) == NULL) {
-      printf("Calloc error %s, %d\n", __FILE__, __LINE__);
-      return 1;
-    }
-    node->key = key;
-    node->val = val;
-    node->next = ptr[index].next;
-    node->lnext=table->listhead;
-    table->listhead=node;
-    ptr[index].next = node;
-  }
-  return 0;
 }
 
 // Search for an address for a given oid
@@ -112,63 +109,47 @@ unsigned int cRemove(ctable_t *table, unsigned int key) {
 }
 
 unsigned int cResize(ctable_t *table, unsigned int newsize) {
-  cnode_t *node, *ptr, *curr, *next;    // curr and next keep track of the current and the next chashlistnodes in a linked list
-  unsigned int oldsize;
-  int isfirst;    // Keeps track of the first element in the chashlistnode_t for each bin in hashtable
-  int i,index;
-  cnode_t *newnode;
+  int i;
   cnode_t *last=NULL;
+  int mask=(newsize<<2)-1;
+  int oldsize = table->size;
+  cnode_t *ptr = table->table;
+  cnode_t * ntable=calloc(newsize, sizeof(cnode_t));
 
-  ptr = table->table;
-  oldsize = table->size;
-
-  if((node = calloc(newsize, sizeof(cnode_t))) == NULL) {
-    printf("Calloc error %s %d\n", __FILE__, __LINE__);
-    return 1;
-  }
-
-  table->table = node;          //Update the global hashtable upon resize()
+  table->table = ntable;
   table->size = newsize;
-  table->mask = (newsize << 2)-1;
-  table->numelements = 0;
+  table->mask = mask;
+  table->resize=newsize*table->loadfactor;
 
-  for(i = 0; i < oldsize; i++) {                        //Outer loop for each bin in hash table
-    curr = &ptr[i];
-    isfirst = 1;
-    while (curr != NULL) {                      //Inner loop to go through linked lists
-      if (curr->key == 0) {             //Exit inner loop if there the first element for a given bin/index is NULL
-	break;                  //key = val =0 for element if not present within the hash table
-      }
-      next = curr->next;
-
-      index =(curr->key & table->mask)>>2;
-      // Insert into the new table
-      if(table->table[index].next == NULL && table->table[index].key == 0) {
-	table->table[index].key = curr->key;
-	table->table[index].val = curr->val;
-	table->numelements++;
-	table->table[index].lnext=last;
-	last=&table->table[index];
-      } else {
-	if((newnode = calloc(1, sizeof(cnode_t))) == NULL) {
-	  printf("Calloc error %s, %d\n", __FILE__, __LINE__);
-	  return 1;
-	}
-	newnode->key = curr->key;
-	newnode->val = curr->val;
-	newnode->next = table->table[index].next;
-	table->table[index].next = newnode;
-	table->numelements++;
+  for(i = 0; i < oldsize; i++) {
+    int isfirst=1;
+    cnode_t * curr=&ptr[i];
+    if (curr->key==0)
+      continue;
+    while(curr!=NULL) {
+      cnode_t * next = curr->next;
+      int index =(curr->key & mask)>>2;
+      cnode_t * newnode=&ntable[index];
+      
+      if(newnode->key==0) {
+	newnode->key=curr->key;
+	newnode->val=curr->val;
 	newnode->lnext=last;
 	last=newnode;
-      }
-
-      //free the linked list of chashlistnode_t if not the first element in the hash table
-      if (isfirst != 1) {
+      } else {
+	cnode_t *tmp=malloc(sizeof(cnode_t));
+	tmp->next=newnode->next;
+	newnode->next=tmp;
+	tmp->key=curr->key;
+	tmp->val=curr->val;
+	tmp->lnext=last;
+	last=tmp;
+      }      
+      if (isfirst) {
+	isfirst=0;
+      } else {
 	free(curr);
       }
-
-      isfirst = 0;
       curr = next;
     }
   }
