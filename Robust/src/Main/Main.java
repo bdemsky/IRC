@@ -96,6 +96,15 @@ public class Main {
 	state.MULTICORE=true;
       else if (option.equals("-ownership"))
 	state.OWNERSHIP=true;
+      else if (option.equals("-ownallocdepth")) {
+	state.OWNERSHIPALLOCDEPTH=Integer.parseInt(args[++i]);
+      } else if (option.equals("-ownwritedots")) {
+	state.OWNERSHIPWRITEDOTS=true;
+	if (args[++i].equals("all")) {
+	  state.OWNERSHIPWRITEALL=true;
+	}
+      } else if (option.equals("-ownaliasfile"))
+	state.OWNERSHIPALIASFILE=args[++i];
       else if (option.equals("-optional"))
 	state.OPTIONAL=true;
       else if (option.equals("-raw"))
@@ -130,6 +139,9 @@ public class Main {
 	System.out.println("-flatirlibmethods -- create dot files for flat IR graphs of library class methods");
 	System.out.println("  note: -flatirusermethods or -flatirlibmethods currently generate all class method flat IR graphs");
 	System.out.println("-ownership -- do ownership analysis");
+	System.out.println("-ownallocdepth <d> -- set allocation depth for ownership analysis");
+	System.out.println("-ownwritedots <all/final> -- write ownership graphs; can be all results or just final results");
+	System.out.println("-ownaliasfile <filename> -- write a text file showing all detected aliases in program tasks");
 	System.out.println("-optional -- enable optional arguments");
 	System.out.println("-webinterface -- enable web interface");
 	System.out.println("-help -- print out help");
@@ -450,11 +462,14 @@ public class Main {
     }
 
     if (state.OWNERSHIP) {
-      CallGraph callGraph  = new CallGraph(state);
-      int allocationDepth  = 3;
-      OwnershipAnalysis oa =
-        new OwnershipAnalysis(state, tu, callGraph, allocationDepth, true, false);
-      //	  oa.writeAllAliases( "identifiedAliases.txt" );
+      CallGraph callGraph = new CallGraph(state);
+      OwnershipAnalysis oa = new OwnershipAnalysis(state,
+                                                   tu,
+                                                   callGraph,
+                                                   state.OWNERSHIPALLOCDEPTH,
+                                                   state.OWNERSHIPWRITEDOTS,
+                                                   state.OWNERSHIPWRITEALL,
+                                                   state.OWNERSHIPALIASFILE);
     }
 
     System.exit(0);

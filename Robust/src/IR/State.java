@@ -54,6 +54,10 @@ public class State {
   public boolean FLATIRGRAPHLIBMETHODS=false;
   public boolean MULTICORE=false;
   public boolean OWNERSHIP=false;
+  public int OWNERSHIPALLOCDEPTH=3;
+  public boolean OWNERSHIPWRITEDOTS=false;
+  public boolean OWNERSHIPWRITEALL=false;
+  public String OWNERSHIPALIASFILE=null;
   public boolean OPTIONAL=false;
   public boolean RAW=false;
   public boolean SCHEDULING=false;

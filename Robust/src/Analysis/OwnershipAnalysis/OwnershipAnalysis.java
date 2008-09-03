@@ -203,8 +203,8 @@ public class OwnershipAnalysis {
                                                                  null,
                                                                  false);
   // for controlling DOT file output
-  private boolean writeFinalGraphs;
-  private boolean writeAllUpdates;
+  private boolean writeDOTs;
+  private boolean writeAllDOTs;
 
 
 
@@ -214,15 +214,16 @@ public class OwnershipAnalysis {
                            TypeUtil tu,
                            CallGraph callGraph,
                            int allocationDepth,
-                           boolean writeFinalGraphs,
-                           boolean writeAllUpdates) throws java.io.IOException {
+                           boolean writeDOTs,
+                           boolean writeAllDOTs,
+                           String aliasFile) throws java.io.IOException {
 
-    this.state            = state;
-    this.typeUtil         = tu;
-    this.callGraph        = callGraph;
-    this.allocationDepth  = allocationDepth;
-    this.writeFinalGraphs = writeFinalGraphs;
-    this.writeAllUpdates  = writeAllUpdates;
+    this.state           = state;
+    this.typeUtil        = tu;
+    this.callGraph       = callGraph;
+    this.allocationDepth = allocationDepth;
+    this.writeDOTs       = writeDOTs;
+    this.writeAllDOTs    = writeAllDOTs;
 
     descriptorsToAnalyze = new HashSet<Descriptor>();
 
@@ -238,7 +239,7 @@ public class OwnershipAnalysis {
     mapDescriptorToAllocationSiteSet =
       new Hashtable<Descriptor, HashSet<AllocationSite> >();
 
-    if( writeAllUpdates ) {
+    if( writeAllDOTs ) {
       mapDescriptorToNumUpdates = new Hashtable<Descriptor, Integer>();
     }
 
@@ -279,7 +280,11 @@ public class OwnershipAnalysis {
     // a method if the methods that it calls are updated
     analyzeMethods();
 
-    writeAllAliases("identifiedAliases.txt");
+    System.out.println("");
+
+    if( aliasFile != null ) {
+      writeAllAliases(aliasFile);
+    }
   }
 
   // called from the constructor to help initialize the set
@@ -613,9 +618,9 @@ public class OwnershipAnalysis {
     // boolean pruneGarbage,
     // boolean writeReferencers
 
-    if( writeFinalGraphs ) {
+    if( writeDOTs ) {
 
-      if( !writeAllUpdates ) {
+      if( !writeAllDOTs ) {
 	og.writeGraph(d, true, true, true, false);
 
       } else {
