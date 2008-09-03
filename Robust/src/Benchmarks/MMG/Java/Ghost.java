@@ -114,14 +114,8 @@ public class Ghost {
     // Array parents records parent for a node in the BFS search,
     // the last item of parents records the least steps to reach end node from start node
     // Vector cuts specifies which nodes can not be the first one to access in this BFS
-<<<<<<< Ghost.java
     private boolean BFS(Node start, int[] parents, Vector cuts) {
-	//System.printString("aaa\n");
 	int steps = 0;
-=======
-    private boolean BFS(Node start, Node end, int[] parents, Vector cuts) {
-	int steps = 0;
->>>>>>> 1.3
 	Vector toaccess = new Vector();
 	toaccess.addElement(start);
 	while(toaccess.size() > 0) {
@@ -129,7 +123,6 @@ public class Ghost {
 	    // pull out the first one to access
 	    Node access = (Node)toaccess.elementAt(0);
 	    toaccess.removeElementAt(0);
-<<<<<<< Ghost.java
 	    for(int i = 0; i < this.m_map.m_pacMenX.length; i++) {
 		if((access.getXLoc() == this.m_map.m_pacMenX[i]) && (access.getYLoc() == this.m_map.m_pacMenY[i])) {
 		    // hit one pacman
@@ -137,12 +130,6 @@ public class Ghost {
 		    parents[parents.length - 1] = steps;
 		    return true;
 		}
-=======
-	    if(access.getIndex() == end.getIndex()) {
-		// hit the end node
-		parents[parents.length - 1] = steps;
-		return true;
->>>>>>> 1.3
 	    }
 	    steps++;
 	    Vector neighbours = access.getNeighbours();
@@ -169,12 +156,7 @@ public class Ghost {
 		}
 	    }
 	}
-<<<<<<< Ghost.java
-	//System.printString("ccc\n");
 	parents[parents.length - 1] = -1;
-=======
-	parents[parents.length - 1] = -1;
->>>>>>> 1.3
 	return false;
     }
     
