@@ -1,6 +1,8 @@
 #include "chash.h"
 #define INLINE    inline __attribute__((always_inline))
 
+void crehash(ctable_t *table);
+
 ctable_t *cCreate(unsigned int size, float loadfactor) {
   ctable_t *ctable;
   cnode_t *nodes;
@@ -20,9 +22,10 @@ ctable_t *cCreate(unsigned int size, float loadfactor) {
 
   ctable->table = nodes;
   ctable->size = size;
-  ctable->mask = (size << 1)-1;
+  ctable->mask = (size << 2)-1;
   ctable->numelements = 0; // Initial number of elements in the hash
   ctable->loadfactor = loadfactor;
+  ctable->head=NULL;
 
   return ctable;
 }
@@ -121,7 +124,7 @@ unsigned int cResize(ctable_t *table, unsigned int newsize) {
 
   table->table = node;          //Update the global hashtable upon resize()
   table->size = newsize;
-  table->mask = (newsize << 1)-1;
+  table->mask = (newsize << 2)-1;
   table->numelements = 0;
 
   for(i = 0; i < oldsize; i++) {                        //Outer loop for each bin in hash table
@@ -133,7 +136,7 @@ unsigned int cResize(ctable_t *table, unsigned int newsize) {
       }
       next = curr->next;
 
-      index =(key & table->mask)>>2;
+      index =(curr->key & table->mask)>>2;
 #ifdef DEBUG
       printf("DEBUG(resize) -> index = %d, key = %d, val = %x\n", index, curr->key, curr->val);
 #endif
