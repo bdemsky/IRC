@@ -24,36 +24,8 @@ public class Ghost {
     // 0:still, 1:up, 2:down, 3:left, 4:right
     public void tryMove() {
 	//System.printString("step 1\n");
-	int i = 0;
-
-	// check the nearest pacman and set it as current target
+	// reset the target
 	this.m_target = -1;
-	int deltaX = this.m_map.m_nrofblocks;
-	int deltaY = this.m_map.m_nrofblocks;
-	int distance = deltaX * deltaX + deltaY * deltaY;
-	for(i = 0; i < this.m_map.m_nrofpacs; i++) {
-	    if(this.m_map.m_pacMenX[i] != -1) {
-		int dx = this.m_locX - this.m_map.m_pacMenX[i];
-		int dy = this.m_locY - this.m_map.m_pacMenY[i];
-		int dd = dx*dx+dy*dy;
-		if(distance > dd) {
-		    this.m_target = i;
-		    distance = dd;
-		    deltaX = dx;
-		    deltaY = dy;
-		}
-	    }
-	}
-	// System.printString("target: " + this.m_target + "\n");
-	
-	if(this.m_target == -1) {
-	    // no more pacmen to chase, stay still
-	    this.m_dx = 0;
-	    this.m_dy = 0;
-	    this.m_direction = this.m_map.m_ghostdirections[this.m_index] = 0;
-	    return;
-	}
-	
 	// find the shortest possible way to the chosen target
 	setNextDirection();
     }
@@ -61,25 +33,9 @@ public class Ghost {
     private void setNextDirection() {
 	// current position of the ghost
 	Node start = this.m_map.m_mapNodes[this.m_locY * this.m_map.m_nrofblocks + this.m_locX];
-	
-	// get target's position
-	int targetx = this.m_map.m_pacMenX[this.m_target];
-	int targety = this.m_map.m_pacMenY[this.m_target];
-	int[] nextLocation = new int[2];
-	nextLocation[0] = nextLocation[1] = -1;
-	// check the target pacman's possible destination
-	getDestination (this.m_map.m_directions[this.m_target], targetx, targety, nextLocation);
-	targetx = nextLocation[0];
-	targety = nextLocation[1];
-	// target's position
-	Node end = this.m_map.m_mapNodes[targety * this.m_map.m_nrofblocks + targetx];
-	// reset the target as index of the end node
-	this.m_target = this.m_map.m_targets[this.m_index] = end.getIndex();
-	
-	// breadth-first traverse the graph view of the maze
-	// check the shortest path for the start node to the end node
 	boolean set = false;
 	Vector cuts = new Vector();
+	int tmptarget = 0;
 	int tmpdx = 0;
 	int tmpdy = 0;
 	int tmpdirection = 0;
@@ -89,7 +45,8 @@ public class Ghost {
 	    for(int i = 0; i < parents.length; i++) {
 		parents[i] = -1;
 	    }
-	    if(!BFS(start, end, parents, cuts)) {
+	    if(!BFS(start, parents, cuts)) {
+		this.m_target = tmptarget;
 		this.m_dx = tmpdx;
 		this.m_dy = tmpdy;
 		this.m_map.m_ghostdirections[this.m_index] = this.m_direction = tmpdirection;
@@ -98,7 +55,8 @@ public class Ghost {
 	    } else {
 		// Reversely go over the parents array to find the next node to reach
 		boolean found = false;
-		int index = end.getIndex();
+		int index = this.m_map.m_pacMenY[this.m_target] * this.m_map.m_nrofblocks + this.m_map.m_pacMenX[this.m_target];
+		//System.printString("Target: " + this.m_target + "\n");
 		while(!found) {
 		    int parent = parents[index];
 		    if(parent == start.getIndex()) {
@@ -130,6 +88,7 @@ public class Ghost {
 		    this.m_direction = 0;
 		}
 		if(first) {
+		    tmptarget = this.m_target;
 		    tmpdx = this.m_dx;
 		    tmpdy = this.m_dy;
 		    tmpdirection = this.m_direction;
@@ -155,20 +114,25 @@ public class Ghost {
     // This methos do BFS from start node to end node
     // If there is a path from start to end, return true; otherwise, return false
     // Array parents records parent for a node in the BFS search,
-//  the last item of parents records the least steps to reach end node from start node
+    // the last item of parents records the least steps to reach end node from start node
     // Vector cuts specifies which nodes can not be the first one to access in this BFS
-    private boolean BFS(Node start, Node end, int[] parents, Vector cuts) {
+    private boolean BFS(Node start, int[] parents, Vector cuts) {
+	//System.printString("aaa\n");
 	int steps = 0;
 	Vector toaccess = new Vector();
 	toaccess.addElement(start);
 	while(toaccess.size() > 0) {
+	    //System.printString("bbb\n");
 	    // pull out the first one to access
 	    Node access = (Node)toaccess.elementAt(0);
 	    toaccess.removeElementAt(0);
-	    if(access.getIndex() == end.getIndex()) {
-		// hit the end node
-		parents[parents.length - 1] = steps;
-		return true;
+	    for(int i = 0; i < this.m_map.m_pacMenX.length; i++) {
+		if((access.getXLoc() == this.m_map.m_pacMenX[i]) && (access.getYLoc() == this.m_map.m_pacMenY[i])) {
+		    // hit one pacman
+		    this.m_target = i;
+		    parents[parents.length - 1] = steps;
+		    return true;
+		}
 	    }
 	    steps++;
 	    Vector neighbours = access.getNeighbours();
@@ -195,6 +159,7 @@ public class Ghost {
 		}
 	    }
 	}
+	//System.printString("ccc\n");
 	parents[parents.length - 1] = -1;
 	return false;
     }

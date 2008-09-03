@@ -67,7 +67,7 @@ public class MMG {
 		    boolean death = map.check(map.m_pacmen[i]);
 		    /*if(death) {
 			System.printString("Pacman " + map.m_pacmen[i].m_index + " caught!\n");
-		    }*/
+		    } */
 		}
 	    }
 	    map.m_nrofpacs -= map.m_deathcount;
