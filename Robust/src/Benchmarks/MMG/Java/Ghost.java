@@ -83,7 +83,7 @@ public class Ghost {
 	int tmpdirection = 0;
 	boolean first = true;
 	while(!set) {
-	    int parents[] = new int[this.m_map.m_nrofblocks * this.m_map.m_nrofblocks];
+	    int parents[] = new int[this.m_map.m_nrofblocks * this.m_map.m_nrofblocks + 1];
 	    for(int i = 0; i < parents.length; i++) {
 		parents[i] = -1;
 	    }
@@ -155,6 +155,7 @@ public class Ghost {
     // Array parents records parent for a node in the BFS search
     // Vector cuts specifies which nodes can not be the first one to access in this BFS
     private boolean BFS(Node start, Node end, int[] parents, Vector cuts) {
+	int steps = 0;
 	Vector toaccess = new Vector();
 	toaccess.addElement(start);
 	while(toaccess.size() > 0) {
@@ -163,8 +164,10 @@ public class Ghost {
 	    toaccess.removeElementAt(0);
 	    if(access.getIndex() == end.getIndex()) {
 		// hit the end node
+		parents[parents.length - 1] = steps;
 		return true;
 	    }
+	    steps++;
 	    Vector neighbours = access.getNeighbours();
 	    for(int i = 0; i < neighbours.size(); i++) {
 		Node neighbour = (Node)neighbours.elementAt(i);
@@ -189,6 +192,7 @@ public class Ghost {
 		}
 	    }
 	}
+	parents[parents.length - 1] = -1;
 	return false;
     }
     
