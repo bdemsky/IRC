@@ -70,13 +70,14 @@ public class OwnershipAnalysis {
 
     BufferedWriter bw = new BufferedWriter(new FileWriter(outputFile) );
 
+    bw.write("Conducting ownership analysis with allocation depth = "+allocationDepth);
+
     // look through every task for potential aliases
     Iterator taskItr = state.getTaskSymbolTable().getDescriptorsIterator();
     while( taskItr.hasNext() ) {
       TaskDescriptor td = (TaskDescriptor) taskItr.next();
 
       bw.write("\n---------"+td+"--------\n");
-      bw.flush();
 
       HashSet<AllocationSite> allocSites = getFlaggedAllocationSitesReachableFromTask(td);
 
