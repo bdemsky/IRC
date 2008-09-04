@@ -770,8 +770,8 @@ void enqueueoptional(struct ___Object___ * currobj, int numfailedfses, int * fai
 	      totallength+=otd->numenterflags; //1 is to store the lengths
 	    }
 	    pw=currtask->descriptorarray[currindex]->queue;
-	    enterflags=RUNMALLOC((totallength+numenterflags)*sizeof(int));
 	    numenterflags=j-start;
+	    enterflags=RUNMALLOC((totallength+numenterflags)*sizeof(int));
 
 	    offset=0;
 	    for(start; start<j; start++) {
