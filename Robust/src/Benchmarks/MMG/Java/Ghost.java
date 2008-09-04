@@ -52,46 +52,56 @@ public class Ghost {
 		//System.printString("Use first choice: (" + this.m_dx + ", " + this.m_dy + ")\n");
 	    } else {
 		// Reversely go over the parents array to find the next node to reach
-		boolean found = false;
 		int index = this.m_map.m_pacMenY[this.m_target] * this.m_map.m_nrofblocks + this.m_map.m_pacMenX[this.m_target];
-		//System.printString("Target: " + this.m_target + "\n");
-		while(!found) {
-		    int parent = parents[index];
-		    if(parent == start) {
-			found = true;
-		    } else {
-			index = parent;
-		    }
-		}
-
-		// set the chase direction
-		int nx = index % this.m_map.m_nrofblocks;
-		int ny = index / this.m_map.m_nrofblocks;
-		this.m_dx = nx - this.m_locX;
-		this.m_dy = ny - this.m_locY;
-		if(this.m_dx > 0) {
-		    // right
-		    this.m_direction = 4;
-		} else if(this.m_dx < 0) {
-		    // left
-		    this.m_direction = 3;
-		} else if(this.m_dy > 0) {
-		    // down
-		    this.m_direction = 2;
-		} else if(this.m_dy < 0) {
-		    // up
-		    this.m_direction = 1;
+		int steps = parents[parents.length - 1];
+		if(steps == 0) {
+		    // already caught one pacman, stay still
+		    this.m_dx = this.m_dy = 0;
+		    this.m_map.m_ghostdirections[this.m_index] = this.m_direction = 0;
+		    //System.printString("Stay still\n");
+		    set = true;
 		} else {
-		    // still
-		    this.m_direction = 0;
-		}
-		if(first) {
-		    tmptarget = this.m_target;
-		    tmpdx = this.m_dx;
-		    tmpdy = this.m_dy;
-		    tmpdirection = this.m_direction;
-		    first = false;
-		    //System.printString("First choice: (" + tmpdx + ", " + tmpdy + ")\n");
+		    boolean found = false;
+		    while(!found) {
+			int parent = parents[index];
+			if(parent == start) {
+			    found = true;
+			} else {
+			    index = parent;
+			}
+			// System.printString("parent: " + parent + "\n");
+		    }
+		    //System.printString("Index: " + index + "\n");
+
+		    // set the chase direction
+		    int nx = index % this.m_map.m_nrofblocks;
+		    int ny = index / this.m_map.m_nrofblocks;
+		    this.m_dx = nx - this.m_locX;
+		    this.m_dy = ny - this.m_locY;
+		    if(this.m_dx > 0) {
+			// right
+			this.m_direction = 4;
+		    } else if(this.m_dx < 0) {
+			// left
+			this.m_direction = 3;
+		    } else if(this.m_dy > 0) {
+			// down
+			this.m_direction = 2;
+		    } else if(this.m_dy < 0) {
+			// up
+			this.m_direction = 1;
+		    } else {
+			// still
+			this.m_direction = 0;
+		    }
+		    if(first) {
+			tmptarget = this.m_target;
+			tmpdx = this.m_dx;
+			tmpdy = this.m_dy;
+			tmpdirection = this.m_direction;
+			first = false;
+			//System.printString("First choice: (" + tmpdx + ", " + tmpdy + ")\n");
+		    }
 		}
 
 		// check if this choice follows some other ghosts' path

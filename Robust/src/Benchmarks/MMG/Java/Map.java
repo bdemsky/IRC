@@ -10,6 +10,10 @@ public class Map {
     public int[] m_pacMenX;
     public int[] m_pacMenY;
     public int[] m_directions;
+    public int[] m_pacOriX;
+    public int[] m_pacOriY;
+    public int[] m_leftLives;
+    public int[] m_leftLevels;
     public int[] m_desX;
     public int[] m_desY;
     public int m_paccount;
@@ -35,6 +39,10 @@ public class Map {
 	this.m_pacMenX = new int[this.m_nrofpacs];
 	this.m_pacMenY = new int[this.m_nrofpacs];
 	this.m_directions = new int[this.m_nrofpacs];
+	this.m_pacOriX = new int[this.m_nrofpacs];
+	this.m_pacOriY = new int[this.m_nrofpacs];
+	this.m_leftLives = new int[this.m_nrofpacs];
+	this.m_leftLevels = new int[this.m_nrofpacs];
 	this.m_desX = new int[this.m_nrofpacs];
 	this.m_desY = new int[this.m_nrofpacs];
 	this.m_paccount = 0;
@@ -59,6 +67,9 @@ public class Map {
 	//System.printString("step 2\n");
 	for(int i = 0; i < this.m_nrofpacs; i++) {
 	    this.m_pacMenX[i] = this.m_pacMenY[i] = -1;
+	    this.m_directions[i] = 0;
+	    this.m_pacOriX[i] = this.m_pacOriY[i] = -1;
+	    this.m_leftLives[i] = this.m_leftLevels[i] = 0;
 	    this.m_desX[i] = this.m_desY[i] = -1;
 	    this.m_pacmen[i] = null;
 	}
@@ -109,6 +120,9 @@ public class Map {
 	while((!death) && (i < this.m_ghostsX.length)) {
 	    if((t.m_locX == this.m_ghostsX[i]) && (t.m_locY == this.m_ghostsY[i])) {
 		death = true;
+		t.m_death = true;
+		t.m_leftLives--;
+		//System.printString("Pacman " + t.m_index + " caught! " + t.m_leftLives + "\n");
 	    }
 	    i++;
 	}
@@ -116,16 +130,29 @@ public class Map {
 	    // reach the destination
 	    //System.printString("Hit destination!\n");
 	    death = true;
+	    t.m_success = true;
+	    t.m_leftLevels--;
+	    //System.printString("Pacman " + t.m_index + " hit, upgrade! " + t.m_leftLevels + "\n");
 	}
 	if(death) {
-	    // pacman caught by ghost
-	    // set pacman as death
-	    t.m_death = true;
-	    // kick it out
-	    //this.m_map[t.y * this.m_nrofblocks + t.x - 1] -= 16;
-	    this.m_deathcount++;
-	    this.m_pacMenX[t.m_index] = -1;
-	    this.m_pacMenY[t.m_index] = -1;
+	    if(t.isFinish()) {
+		// pacman has no more lives or no more levels
+		// kick it out
+		this.m_deathcount++;
+		this.m_pacMenX[t.m_index] = -1;
+		this.m_pacMenY[t.m_index] = -1;
+	    } else {
+		if(t.m_death) {
+		    this.m_leftLives[t.m_index]--;
+		} else if(t.m_success) {
+		    this.m_leftLevels[t.m_index]--;
+		}
+		t.reset();
+		this.m_pacMenX[t.m_index] = t.m_locX;
+		this.m_pacMenY[t.m_index] = t.m_locY;
+		this.m_directions[t.m_index] = 0;
+		//System.printString("Pacman " + t.m_index + " reset: (" + t.m_locX + ", " + t.m_locY + ")\n");
+	    }
 	}
 	return death;
     }

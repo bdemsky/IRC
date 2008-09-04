@@ -5,28 +5,56 @@ public class Pacman {
     public int m_locX;
     public int m_locY;
     public boolean m_death;
+    public boolean m_success;
     public int m_index;
     public int m_direction;  // 0:still, 1:up, 2:down, 3:left, 4:right
     int m_dx;
     int m_dy;
     public int m_tx;
     public int m_ty;
+    public int m_oriLocX;
+    public int m_oriLocY;
+    public int m_leftLives;
+    public int m_leftLevels;
     Map m_map;
     
     public Pacman(int x, int y, Map map) {
-	this.m_locX = x;
-	this.m_locY = y;
+	this.m_oriLocX = this.m_locX = x;
+	this.m_oriLocY = this.m_locY = y;
 	this.m_dx = this.m_dy = 0;
 	this.m_death = false;
+	this.m_success = false;
 	this.m_index = -1;
 	this.m_tx = this.m_ty = -1;
 	this.m_direction = 0;
+	this.m_leftLives = 0;
+	this.m_leftLevels = 0;
 	this.m_map = map;
     }
     
     public void setTarget(int x, int y) {
 	this.m_tx = x;
 	this.m_ty = y;
+    }
+    
+    public void reset() {
+	if(this.m_death) {
+	    this.m_locX = this.m_oriLocX;
+	    this.m_locY = this.m_oriLocY;
+	    this.m_death = false;
+	} else if(this.m_success) {
+	    this.m_locX = this.m_oriLocX;
+	    this.m_locY = this.m_oriLocY;
+	    this.m_success = false;
+	}
+    }
+    
+    public boolean isFinish() {
+	if(this.m_death) {
+	    return this.m_leftLives == 0;
+	} else if(this.m_success) {
+	    return this.m_leftLevels == 0;
+	}
     }
     
     public void tryMove() {

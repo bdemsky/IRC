@@ -22,13 +22,26 @@ task initMap(Map map{init}) {
     // create pacmen
     int tx = 14;
     int ty = 14;
+    //int tmpx = 0;
+    //int tmpy = 0;
     for(i = 0; i < map.m_nrofpacs; i++) {
-	  Pacman pacman = new Pacman(5, 7, map){move};
-	  pacman.setTarget(tx*(i/2), ty*(i%2));
-	  pacman.m_index = i;
-	  map.placePacman(pacman);
-	  map.m_desX[i] = tx*(i/2);
-	  map.m_desY[i] = ty*(i%2);
+	/*do {
+	    tmpx = map.m_r.nextInt() % 14;
+	} while(tmpx < 0);
+	do {
+	    tmpy = map.m_r.nextInt() % 14;
+	} while(tmpy < 0);*/
+	Pacman pacman = new Pacman(5, 7, map){move};
+	//Pacman pacman = new Pacman(tmpx, tmpy, map){move};
+	//System.printString("Pacman: (" + tmpx + ", " + tmpy + ")\n");
+	pacman.setTarget(tx*(i/2), ty*(i%2));
+	pacman.m_index = i;
+	map.placePacman(pacman);
+	map.m_desX[i] = tx*(i/2);
+	map.m_desY[i] = ty*(i%2);
+	map.m_pacOriX[i] = pacman.m_locX;
+	map.m_pacOriY[i] = pacman.m_locY;
+	map.m_leftLives[i] = map.m_leftLevels[i] = 10;
     }
     
     map.m_ghostcount = 0;
@@ -56,9 +69,12 @@ task movePacman(Pacman p{move}) {
 task updateGhost(Map map{updateGhost}, /*optional*/ Ghost g{update}) {
     //System.printString("Task updateGhost\n");
     
+    //System.printString("Ghost: " + g.m_index + "\n");
+    
     //if(isavailable(g)) {
 	g.doMove();
 	map.placeGhost(g);
+	//System.printString("place Ghost\n");
     /*} else {
 	map.m_ghostcount++;
     }*/
@@ -84,9 +100,6 @@ task updatePac(Map map{updatePac}, /*optional*/ Pacman p{update}) {
 	map.placePacman(p);
 	//System.printString("Pacman " + p.m_index + ": (" + map.m_pacMenX[p.m_index] + "," + map.m_pacMenY[p.m_index] + ")\n");
 	boolean death = map.check(p);
-	/*if(death) {
-	    System.printString("Pacman " + p.m_index + " caught!\n");
-	}*/
     /*} else {
 	map.m_deathcount++;
 	map.m_paccount++;
@@ -124,6 +137,10 @@ task next(Map map{next}) {
 	    pacman.setTarget(map.m_desX[i], map.m_desY[i]);
 	    pacman.m_index = i;
 	    pacman.m_direction = map.m_directions[i];
+	    pacman.m_oriLocX = map.m_pacOriX[i];
+	    pacman.m_oriLocY = map.m_pacOriY[i];
+	    pacman.m_leftLives = map.m_leftLives[i];
+	    pacman.m_leftLevels = map.m_leftLevels[i];
 	}
     }
     

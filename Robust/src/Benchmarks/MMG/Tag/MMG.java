@@ -29,6 +29,12 @@ task initMap(Map map{init}) {
 	  map.placePacman(pacman);
 	  map.m_desX[i] = tx*(i/2);
 	  map.m_desY[i] = ty*(i%2);
+	  map.m_pacOriX[i] = pacman.m_locX;
+	  map.m_pacOriY[i] = pacman.m_locY;
+	  map.m_leftLives[i] = map.m_leftLevels[i] = 10;
+	  pacman.m_leftLives = pacman.m_leftLevels = 10;
+	  //map.m_destinationX[i] = pacman.m_locX;
+	  //map.m_destinationY[i] = pacman.m_locY;
     }
     
     map.m_ghostcount = 0;
@@ -84,9 +90,6 @@ task updatePac(Map map{updatePac}, optional Pacman p{update}) {
 	map.placePacman(p);
 	//System.printString("Pacman " + p.m_index + ": (" + map.m_pacMenX[p.m_index] + "," + map.m_pacMenY[p.m_index] + ")\n");
 	boolean death = map.check(p);
-	/*if(death) {
-	    System.printString("Pacman " + p.m_index + " caught!\n");
-	}*/
     } else {
 	map.m_deathcount++;
 	map.m_paccount++;
@@ -124,6 +127,19 @@ task next(Map map{next}) {
 	    pacman.setTarget(map.m_desX[i], map.m_desY[i]);
 	    pacman.m_index = i;
 	    pacman.m_direction = map.m_directions[i];
+	    pacman.m_oriLocX = map.m_pacOriX[i];
+	    pacman.m_oriLocY = map.m_pacOriY[i];
+	    pacman.m_leftLives = map.m_leftLives[i];
+	    pacman.m_leftLevels = map.m_leftLevels[i];
+	    
+	    // reset the destinations of all the pacmen in map
+	    //int[] point = new int[2];
+	    //pacman.getDestination(pacman.m_direction, pacman.m_locX, pacman.m_locY, point);
+	    //map.m_destinationX[i] = point[0];
+	    //map.m_destinationY[i] = point[1];
+	} else {
+	    // reset the destinations of all the pacmen in map
+	    //map.m_destinationX[i] = map.m_destinationY[i] = -1;
 	}
     }
     
