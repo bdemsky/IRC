@@ -33,8 +33,8 @@ public class MMG {
 	    map.m_desY[i] = ty*(i%2);
 	    map.m_pacOriX[i] = pacman.m_locX;
 	    map.m_pacOriY[i] = pacman.m_locY;
-	    map.m_leftLives[i] = map.m_leftLevels[i] = 10;
-	    pacman.m_leftLives = pacman.m_leftLevels = 10;
+	    map.m_leftLives[i] = map.m_leftLevels[i] = 60;
+	    pacman.m_leftLives = pacman.m_leftLevels = 60;
 	    map.m_pacmen[i] = pacman;
 	    //System.printString("destination: " + map.desX[i] + "," + map.desY[i] + "\n");
 	}
@@ -85,6 +85,6 @@ public class MMG {
 	    map.m_deathcount = 0;
 	}
 	
-	System.printString("Task Finish\n");
+	//System.printString("Task Finish\n");
     }
 }
