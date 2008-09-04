@@ -135,16 +135,6 @@ public class Map {
 	    t.m_leftLevels--;
 	    //System.printString("Pacman " + t.m_index + " hit, upgrade! " + t.m_leftLevels + "\n");
 	}
-	if((!death) && (this.m_directions[t.m_index] == 0)) {
-	    // the pacman stay still
-	    // check if the pacman can not move any more
-	    if(this.m_map[t.m_locX + t.m_locY * this.m_nrofblocks] == (1+2+4+8)) {
-		// no way to go out, dead
-		death = true;
-		t.m_death = true;
-		t.m_leftLives--;
-	    }
-	}
 	if(death) {
 	    if(t.isFinish()) {
 		// pacman has no more lives or no more levels
