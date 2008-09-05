@@ -1,5 +1,3 @@
-//package mapreduce;
-
-public /*interface*/ class Tool {
+public class Tool {
     public int run(String[] args);
 }

@@ -1,47 +1,25 @@
-//package mapreduce;
-
-/*import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.util.Vector;*/
-
 public class Master {
 
     int m;
     int r;
     int[] mworkerStates; // array of map worker's state
-    // 0: idle  1: process  2: finished 3: fail
+                         // 0: idle  1: process  2: finished 3: fail
     int[] rworkerStates; // array of reduce worker's state
     Vector[] interoutputs; // array of string vector containing
-    // paths of intermediate outputs from
-    // map worker
-
+                           // paths of intermediate outputs from
+                           // map worker
     Splitter splitter;
-
     String outputfile;  // path of final output file
-
     boolean partial;
 
     public Master(int m, int r, Splitter splitter) {
 	this.m = m;
 	this.r = r;
-
-	mworkerStates = new int[m];
-	rworkerStates = new int[r];
-	for(int i = 0; i < m; ++i) {
-	    mworkerStates[i] = 0;
-	}
-	for(int i = 0; i < r; ++i) {
-	    rworkerStates[i] = 0;
-	}
-
-	interoutputs = new Vector[r];
-	for(int i = 0; i < r; ++i) {
-	    interoutputs[i] = null;
-	}
-
+	this.mworkerStates = new int[m];
+	this.rworkerStates = new int[r];
+	this.interoutputs = new Vector[r];
 	this.splitter = splitter;
 	this.outputfile = new String("/scratch/mapreduce_java/output.dat");
-
 	this.partial = false;
     }
 
@@ -61,12 +39,12 @@ public class Master {
 	this.partial = partial || this.partial;
     }
 
-    public void split() {
+    /*public void split() {
 	splitter.split();
-    }
+    }*/
 
     public MapWorker[] assignMap() {
-	String[] contentsplits = splitter.getSlices();
+	String[] contentsplits = splitter.split();//splitter.getSlices();
 	MapWorker[] mworkers = new MapWorker[contentsplits.length];
 	for(int i = 0; i < contentsplits.length; ++i) {
 	    //System.printString("*************************\n");
@@ -76,6 +54,7 @@ public class Master {
 	    mworkerStates[i] = 1;
 	    mworkers[i] = mworker;
 	}
+	this.splitter = null;
 	return mworkers;
     }
 
@@ -114,7 +93,9 @@ public class Master {
 	    ReduceWorker rworker = new ReduceWorker(interoutputs[i], i);
 	    rworkerStates[i] = 1;
 	    rworkers[i] = rworker;
+	    this.interoutputs[i] = null;
 	}
+	this.interoutputs.clear();
 	return rworkers;
     }
 
@@ -137,22 +118,17 @@ public class Master {
     }
 
     public void collectROutput(String file) {
-	//try{
-	    FileInputStream iStream = new FileInputStream(file);
-	    FileOutputStream oStream = new FileOutputStream(outputfile, true);
-	    byte[] b = new byte[1024 * 10];
-	    int length = iStream.read(b);
-	    if(length < 0) {
-		System./*out.println*/printString("Error! Can not read from intermediate output file from reduce worker: " + file + "\n");
-		System.exit(-1);
-	    }
-	    //System.printString(new String(b, 0, length) + "\n");
-	    oStream.write(b, 0, length);
-	    iStream.close();
-	    oStream.close();
-	/*} catch(Exception e) {
-	    e.printStackTrace();
+	FileInputStream iStream = new FileInputStream(file);
+	FileOutputStream oStream = new FileOutputStream(outputfile, true);
+	byte[] b = new byte[1024 * 10];
+	int length = iStream.read(b);
+	if(length < 0) {
+	    System.printString("Error! Can not read from intermediate output file from reduce worker: " + file + "\n");
 	    System.exit(-1);
-	}*/
+	}
+	//System.printString(new String(b, 0, length) + "\n");
+	oStream.write(b, 0, length);
+	iStream.close();
+	oStream.close();
     }
 }

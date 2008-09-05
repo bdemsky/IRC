@@ -1,5 +1,3 @@
-//package mapreduce;
-
 public class Configured {
     
     Configuration conf;

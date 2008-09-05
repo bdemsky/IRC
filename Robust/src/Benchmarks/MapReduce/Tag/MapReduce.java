@@ -25,15 +25,17 @@ task startup(StartupObject s{initialstate}) {
     char seperator = temp.charAt(0);
     //System.printString(inputfile + "; " + String.valueOf(m) + "; " + String.valueOf(r) + "\n");
     Splitter splitter = new Splitter(inputfile, m, seperator);
-    Master master = new Master(m, r, splitter){split};
+    Master master = new Master(m, r, splitter){mapoutput};//{split};
+    
+    master.assignMap();
 
     taskexit(s{!initialstate});
 }
 
 //Split the input file into M pieces
-task split(Master master{split}) {
+/*task split(Master master{split}) {
     //System.printString("Top of task split\n");
-    master.split();
+    //master.split();
 
     taskexit(master{!split, assignMap});
 }
@@ -43,24 +45,26 @@ task assignMap(Master master{assignMap}) {
     //System.printString("Top of task assignMap\n");
     master.assignMap();
 
-    taskexit(master{!assignMap, mapoutput});
-}
+    //taskexit(master{!assignMap, mapoutput});
+    taskexit(master{!split, mapoutput});
+}*/
 
 //MapWorker do 'map' function on a input file piece
 task map(MapWorker mworker{map}) {
     //System.printString("Top of task map\n");
     mworker.map();
 
-    taskexit(mworker{!map, partition});
+    /*taskexit(mworker{!map, partition});
 }
 
 //Partition the intermediate key/value pair generated
 //into R intermediate local files
 task partition(MapWorker mworker{partition}) {
-    //System.printString("Top of task partition\n");
+    //System.printString("Top of task partition\n");*/
     mworker.partition();
 
-    taskexit(mworker{!partition, mapoutput});
+    taskexit(mworker{!map, mapoutput});
+    //taskexit(mworker{!partition, mapoutput});
 }
 
 //Register the intermediate ouput from map worker to master
@@ -69,6 +73,7 @@ task mapOutput(Master master{mapoutput}, optional MapWorker mworker{mapoutput}) 
     if(isavailable(mworker)) {
 	int total = master.getR();
 	for(int i = 0; i < total; ++i) {
+	    //System.printString("mapOutput\n");
 	    String temp = mworker.outputFile(i);
 	    if(temp != null) {
 		master.addInterOutput(temp); 
@@ -101,15 +106,16 @@ task sortgroup(ReduceWorker rworker{sortgroup}) {
     //System.printString("Top of task sortgroup\n");
     rworker.sortgroup();
 
-    taskexit(rworker{!sortgroup, reduce});
+    /*taskexit(rworker{!sortgroup, reduce});
 }
 
 //Do 'reduce' function
 task reduce(ReduceWorker rworker{reduce}) {
-    //System.printString("Top of task reduce\n");
+    //System.printString("Top of task reduce\n");*/
     rworker.reduce();
 
-    taskexit(rworker{!reduce, reduceoutput});
+    //taskexit(rworker{!reduce, reduceoutput});
+    taskexit(rworker{!sortgroup, reduceoutput});
 }
 
 //Collect the output into master
@@ -132,9 +138,9 @@ task reduceOutput(Master master{reduceoutput}, optional ReduceWorker rworker{red
 
 task output(Master master{output}) {
     //System.printString("Top of task output\n");
-    if(master.isPartial()) {
+    /*if(master.isPartial()) {
 	System.printString("Partial! The result may not be right due to some failure!\n");
     }
-    System.printString("Finish! Results are in the output file: " + master.getOutputFile() + "\n");
+    System.printString("Finish! Results are in the output file: " + master.getOutputFile() + "\n");*/
     taskexit(master{!output});
 }

@@ -1,15 +1,3 @@
-
-//import java.io.FileInputStream;
-//import java.util.Vector;
-
-/*import mapreduce.Configuration;
-import mapreduce.Configured;
-import mapreduce.JobClient;
-import mapreduce.MapReduceBase;
-import mapreduce.OutputCollector;
-import mapreduce.Tool;
-import mapreduce.ToolRunner;*/
-
 /**
      * Counts the words in each line.
      * For each line of input, break the line into words and emit them as
@@ -71,12 +59,12 @@ import mapreduce.ToolRunner;*/
 	}
     }
 
-public class WordCounter /*implements*/extends Tool {
+public class WordCounter extends Tool {
 
-	public WordCounter() {}
+    public WordCounter() {}
 
     static int printUsage() {
-	System./*out.println*/printString("<conffile>\n");
+	System.printString("<conffile>\n");
 	return -1;
     }
 
@@ -87,50 +75,45 @@ public class WordCounter /*implements*/extends Tool {
      *                     job tracker.
      */
     public int run(String[] args) {
-	//try {
-	    MapReduceClass mapreducer = new MapReduceClass();       
+	MapReduceClass mapreducer = new MapReduceClass();       
 
-	    FileInputStream iStream = new FileInputStream(args[0]);
-	    byte[] b = new byte[1024];
-	    int length = iStream.read(b);
-	    if(length < 0 ) {
-		System./*out.println*/printString("Error! Can not read from configure file: " + args[0] + "\n");
-		System.exit(-1);
-	    }
-	    String content = new String(b, 0, length);
-	    //System.out.println(content);
-	    int index = content.indexOf('\n');
-	    String inputfile = content.substring(0, index);
-	    content = content.substring(index + 1);
-	    index = content.indexOf('\n');
-	    int m = Integer.parseInt(content.substring(0, index));
-	    content = content.substring(index + 1);
-	    index = content.indexOf('\n');
-	    int r = Integer.parseInt(content.substring(0, index));
-	    content = content.substring(index + 1);
-	    index = content.indexOf('\n');
-	    String temp = content.substring(0, index);
-	    char seperator = temp.charAt(0);
-	    //System.out.println(inputfile + "; " + String.valueOf(m) + "; " + String.valueOf(r));
-	    
-	    Configuration conf = new Configuration();
-	    conf.setMapReduceClass(mapreducer);
-	    conf.setInputfile(inputfile);
-	    conf.setM(m);
-	    conf.setR(r);
-	    conf.setSeperator(seperator);
-
-	    JobClient.runJob(conf);
-	/*} catch (Exception e) {
-	    e.printStackTrace();
+	FileInputStream iStream = new FileInputStream(args[0]);
+	byte[] b = new byte[1024];
+	int length = iStream.read(b);
+	if(length < 0 ) {
+	    System.printString("Error! Can not read from configure file: " + args[0] + "\n");
 	    System.exit(-1);
-	}*/
+	}
+	String content = new String(b, 0, length);
+	//System.out.println(content);
+	int index = content.indexOf('\n');
+	String inputfile = content.substring(0, index);
+	content = content.substring(index + 1);
+	index = content.indexOf('\n');
+	int m = Integer.parseInt(content.substring(0, index));
+	content = content.substring(index + 1);
+	index = content.indexOf('\n');
+	int r = Integer.parseInt(content.substring(0, index));
+	content = content.substring(index + 1);
+	index = content.indexOf('\n');
+	String temp = content.substring(0, index);
+	char seperator = temp.charAt(0);
+	//System.out.println(inputfile + "; " + String.valueOf(m) + "; " + String.valueOf(r));
+
+	Configuration conf = new Configuration();
+	conf.setMapReduceClass(mapreducer);
+	conf.setInputfile(inputfile);
+	conf.setM(m);
+	conf.setR(r);
+	conf.setSeperator(seperator);
+
+	JobClient.runJob(conf);
 	
 	return 0;
     }
 
 
-    public static void main(String[] args) /*throws Exception*/ {
+    public static void main(String[] args) {
 	int res = ToolRunner.run(new WordCounter(), args);
 	System.exit(res);
     }

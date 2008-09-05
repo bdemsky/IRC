@@ -1,5 +1,3 @@
-//package mapreduce;
-
 public class JobClient{
     
     public JobClient() {}
@@ -10,7 +8,7 @@ public class JobClient{
 	
 	// split input file
 	//System.printString("Split\n");
-	master.split();
+	//master.split();
 	
 	// do 'map'
 	//System.printString("Map\n");
@@ -53,7 +51,7 @@ public class JobClient{
 	}
 	//assert(master.isReduceFinish());
 	
-	System./*out.println*/printString("Finish! Results are in the output file: " + master.getOutputFile() + "\n");
+	//System./*out.println*/printString("Finish! Results are in the output file: " + master.getOutputFile() + "\n");
     }
     
 }

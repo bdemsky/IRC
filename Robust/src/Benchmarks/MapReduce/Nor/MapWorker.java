@@ -4,14 +4,12 @@ public class MapWorker {
     flag mapoutput;
 
     int ID;
-
     int r;
     String key;
     String value;
     OutputCollector output;
-
-    String[] locations;
-    FileOutputStream[] outputs;
+    String locationPrefix;
+    boolean[] outputsexit;
 
     public MapWorker(String key, String value, int r, int id) {
 	this.ID = id;
@@ -20,38 +18,23 @@ public class MapWorker {
 	this.key = key;
 	this.value = value;
 	this.output = new OutputCollector();
-
-	locations = new String[r];
-	for(int i = 0; i < r; ++i) {
-	    StringBuffer temp = new StringBuffer("/scratch/mapreduce_nor/output-intermediate-map-");
-	    temp.append(String.valueOf(ID));
-	    temp.append("-of-");
-	    temp.append(String.valueOf(r));
-	    temp.append("_");
-	    temp.append(String.valueOf(i));
-	    temp.append(".dat");
-	    locations[i] = new String(temp);
-	}
-
-	outputs = new FileOutputStream[r];
-	for(int i = 0; i < r; ++i) {
-	    outputs[i] = null;
-	}
+	this.locationPrefix = "/scratch/mapreduce_nor/output-intermediate-map-";
+	
+	this.outputsexit = new boolean[r];
     }
 
     public void map() {
-	/*if(ID % 2 == 1) {
-		String temp = locations[locations.length];
-	}*/
-
 	MapReduceBase.map(key, value, output);
+	this.key = null;
+	this.value = null;
     }
 
     public void partition() {
-	/*if(ID % 2 == 1) {
-		String temp = locations[locations.length];
-	}*/
-
+	FileOutputStream[] outputs = new FileOutputStream[r];
+	for(int i = 0; i < r; ++i) {
+	    outputs[i] = null;
+	}
+	
 	int size = this.output.size();
 	for(int i = 0; i < size; ++i) {
 	    String key = this.output.getKey(i);
@@ -62,9 +45,11 @@ public class MapWorker {
 	    FileOutputStream oStream = outputs[index];
 	    if(oStream == null) {
 		// open the file
-		String filepath = locations[index];
+		String filepath = this.locationPrefix + this.ID + "-of-" + this.r + "_" + index + ".dat";
+		//System.printString("partition: " + filepath + "\n");
 		oStream = new FileOutputStream(filepath, true); // append
 		outputs[index] = oStream;
+		this.outputsexit[index] = true;
 	    }
 	    // format: key value\n
 	    oStream.write(key.getBytes());
@@ -75,17 +60,27 @@ public class MapWorker {
 	}
 
 	// close the output files
-	for(int i = 0; i < this.outputs.length; ++i) {
-	    FileOutputStream temp = this.outputs[i];
+	for(int i = 0; i < outputs.length; ++i) {
+	    FileOutputStream temp = outputs[i];
 	    if(temp != null) {
 		temp.close();
+		outputs[i] = null;
 	    }
 	}
+	
+	this.output = null;
     }
 
     public String outputFile(int i) {
-	if(outputs[i] != null) {
-	    return locations[i];
+	if(outputsexit[i]) {
+	    StringBuffer temp = new StringBuffer(this.locationPrefix);
+	    temp.append(String.valueOf(ID));
+	    temp.append("-of-");
+	    temp.append(String.valueOf(r));
+	    temp.append("_");
+	    temp.append(String.valueOf(i));
+	    temp.append(".dat");
+	    return new String(temp);
 	} else {
 	    return null;
 	}

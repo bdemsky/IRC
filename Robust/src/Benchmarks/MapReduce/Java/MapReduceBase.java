@@ -1,13 +1,9 @@
-//package mapreduce;
-
-//import java.util.Vector;
-
-public /*abstract*/ class MapReduceBase {
+public class MapReduceBase {
     
     public MapReduceBase() {}
     
-    public /*abstract*/ void map(String key, String value, OutputCollector output);
+    public void map(String key, String value, OutputCollector output);
     
-    public /*abstract*/ void reduce(String key, Vector values, OutputCollector output);
+    public void reduce(String key, Vector values, OutputCollector output);
 }
 

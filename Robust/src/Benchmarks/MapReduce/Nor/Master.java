@@ -11,39 +11,23 @@ public class Master {
     int m;
     int r;
     int[] mworkerStates; // array of map worker's state
-    // 0: idle  1: process  2: finished 3: fail
+                         // 0: idle  1: process  2: finished 3: fail
     int[] rworkerStates; // array of reduce worker's state
     Vector[] interoutputs; // array of string vector containing
-    // paths of intermediate outputs from
-    // map worker
-
+                           // paths of intermediate outputs from
+                           // map worker
     Splitter splitter;
-
     String outputfile;  // path of final output file
-
     boolean partial;
 
     public Master(int m, int r, Splitter splitter) {
 	this.m = m;
 	this.r = r;
-
-	mworkerStates = new int[m];
-	rworkerStates = new int[r];
-	for(int i = 0; i < m; ++i) {
-	    mworkerStates[i] = 0;
-	}
-	for(int i = 0; i < r; ++i) {
-	    rworkerStates[i] = 0;
-	}
-
-	interoutputs = new Vector[r];
-	for(int i = 0; i < r; ++i) {
-	    interoutputs[i] = null;
-	}
-
+	this.mworkerStates = new int[m];
+	this.rworkerStates = new int[r];
+	this.interoutputs = new Vector[r];
 	this.splitter = splitter;
 	this.outputfile = new String("/scratch/mapreduce_nor/output.dat");
-
 	this.partial = false;
     }
 
@@ -63,12 +47,12 @@ public class Master {
 	this.partial = partial || this.partial;
     }
 
-    public void split() {
+    /*public void split() {
 	splitter.split();
-    }
+    }*/
 
     public void assignMap() {
-	String[] contentsplits = splitter.getSlices();
+	String[] contentsplits = splitter.split();//splitter.getSlices();
 	for(int i = 0; i < contentsplits.length; ++i) {
 	    //System.printString("*************************\n");
 	    //System.printString(contentsplits[i] + "\n");
@@ -76,6 +60,8 @@ public class Master {
 	    MapWorker mworker = new MapWorker(splitter.getFilename(), contentsplits[i], r, i){map};
 	    mworkerStates[i] = 1;
 	}
+	
+	this.splitter = null;
     }
 
     public void setMapFinish(int i) {
@@ -111,7 +97,9 @@ public class Master {
 	for(int i = 0; i < interoutputs.length; ++i) {
 	    ReduceWorker rworker = new ReduceWorker(interoutputs[i], i){sortgroup};
 	    rworkerStates[i] = 1;
+	    this.interoutputs[i] = null;
 	}
+	this.interoutputs.clear();
     }
 
     public void setReduceFinish(int i) {

@@ -5,7 +5,7 @@ public class ReduceWorker {
 
     int ID;
     Vector interoutputs;  // string vector containing paths
-    // of intermediate outputs from map worker
+                          // of intermediate outputs from map worker
     Vector keys;
     HashMap values; // hashmap map key to vector of string vector
     int[] sorts; // array record the sort of keys
@@ -15,21 +15,13 @@ public class ReduceWorker {
     public ReduceWorker(Vector interoutputs, int id) {
 	this.ID = id;
 	this.interoutputs = interoutputs;
-
 	this.keys = new Vector();
 	this.values = new HashMap();
-	//this.sorts = null;
-
 	this.output = new OutputCollector();
 	this.outputfile = "/scratch/mapreduce_nor/output-intermediate-reduce-" + String.valueOf(id) + ".dat";
     }
 
     public void sortgroup() {
-	/*if(ID % 2 == 1) {
-		int a[] = new int[1];
-		int temp = a[1];
-	}*/
-
 	// group values associated to the same key
 	//System.printString("================================\n");
 	if(interoutputs == null) {
@@ -66,9 +58,9 @@ public class ReduceWorker {
 	//System.printString("================================\n");
 
 	/*for(int i = 0; i < this.keys.size(); ++i) {
-			System.printString((String)this.keys.elementAt(i) + ", " + ((String)this.keys.elementAt(i)).hashCode() + "; ");
-		}
-		System.printString("\n");*/
+	    System.printString((String)this.keys.elementAt(i) + ", " + ((String)this.keys.elementAt(i)).hashCode() + "; ");
+	}
+	System.printString("\n");*/
 
 	// sort all the keys inside interoutputs
 	this.sorts = new int[this.keys.size()];
@@ -91,25 +83,18 @@ public class ReduceWorker {
 	    this.sorts[index] = tosort;
 	}
 	/*for(int i = 0; i < this.sorts.length; ++i) {
-			System.printString(this.sorts[i] + "; ");
-		}
-		System.printString("\n");*/
+	    System.printString(this.sorts[i] + "; ");
+	}
+	System.printString("\n");*/
     }
 
     public void reduce() {
-	/*if(ID % 2 == 1) {
-		int a[] = new int[1];
-		int temp = a[1];
-	}*/
-
 	if(this.interoutputs != null) {
-	   // return;
-	//}
-	for(int i = 0; i < this.sorts.length; ++i) {
-	    String key = (String)this.keys.elementAt(this.sorts[i]);
-	    Vector values = (Vector)this.values.get(key);
-	    MapReduceBase.reduce(key, values, output);
-	}
+	    for(int i = 0; i < this.sorts.length; ++i) {
+		String key = (String)this.keys.elementAt(this.sorts[i]);
+		Vector values = (Vector)this.values.get(key);
+		MapReduceBase.reduce(key, values, output);
+	    }
 	}
 
 	// output all the result into some local file
@@ -126,6 +111,8 @@ public class ReduceWorker {
 	    oStream.flush();
 	}
 	oStream.close();
+	this.keys = null;
+	this.values = null;
     }
 
     public String getOutputFile() {
