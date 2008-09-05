@@ -50,17 +50,6 @@ public class Modifiers {
     return ((value&FINAL)!=0);
   }
 
-  public boolean equals(Object o) {
-    if( o == null ) return false;
-    if( !(o instanceof Modifiers) ) return false;
-    Modifiers m = (Modifiers) o;
-    return value == m.value;
-  }
-
-  public int hashCode() {
-    return value*7+1;
-  }
-
   public String toString() {
     String st="";
     if ((value&PUBLIC)!=0)
