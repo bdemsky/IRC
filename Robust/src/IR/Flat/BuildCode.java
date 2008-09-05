@@ -274,6 +274,7 @@ public class BuildCode {
     outmethod.println("printf(\"nmhashSearch= %d\\n\", nmhashSearch);");
     outmethod.println("printf(\"nprehashSearch= %d\\n\", nprehashSearch);");
     outmethod.println("printf(\"nRemoteReadSend= %d\\n\", nRemoteSend);");
+    outmethod.println("printf(\"nSoftAbort= %d\\n\", nSoftAbort);");
     outmethod.println("#endif\n");
     outmethod.println("}");
 
@@ -735,6 +736,7 @@ public class BuildCode {
     outclassdefs.print("extern int nmhashSearch;\n");
     outclassdefs.print("extern int nprehashSearch;\n");
     outclassdefs.print("extern int nRemoteSend;\n");
+    outclassdefs.print("extern int nSoftAbort;\n");
     outclassdefs.print("extern void handle();\n");
     outclassdefs.print("#endif\n");
     outclassdefs.print("int numprefetchsites = " + pa.prefetchsiteid + ";\n");

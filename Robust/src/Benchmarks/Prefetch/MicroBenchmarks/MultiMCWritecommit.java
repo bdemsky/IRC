@@ -24,7 +24,6 @@ public class WriteArrayObj extends Thread {
     }
 
     Barrier.enterBarrier(barr);
-/*
     //Write into array elements
     Integer val;
     for(int j=0; j<10000; j++) {
@@ -35,7 +34,6 @@ public class WriteArrayObj extends Thread {
         }
       }
     }
-    */
   }
 
   public static void main(String[] args) {

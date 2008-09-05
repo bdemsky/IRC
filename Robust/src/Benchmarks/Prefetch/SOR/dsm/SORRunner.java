@@ -21,7 +21,7 @@
 
 class SORRunner extends Thread {
 
-  int id,num_iterations;
+  int id, num_iterations;
   double G[][],omega;
   int nthreads;
 
@@ -38,7 +38,7 @@ class SORRunner extends Thread {
     double omega_over_four, one_minus_omega;
     int numiterations;
     Barrier barr;
-    barr = new Barrier("128.195.175.79");
+    barr = new Barrier("128.195.175.84");
     int ilow, iupper, slice, tslice, ttslice, Mm1, Nm1;
 
     atomic {

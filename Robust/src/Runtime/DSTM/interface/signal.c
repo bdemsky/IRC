@@ -8,6 +8,7 @@ extern int nchashSearch;
 extern int nmhashSearch;
 extern int nprehashSearch;
 extern int nRemoteSend;
+extern int nSoftAbort;
 extern int numprefetchsites;
 void handle();
 extern pfcstats_t *evalPrefetch;
@@ -21,6 +22,7 @@ void transStatsHandler(int sig, siginfo_t* info, void *context) {
   printf("nmhashSearch = %d\n", nmhashSearch);
   printf("nprehashSearch = %d\n", nprehashSearch);
   printf("nRemoteReadSend = %d\n", nRemoteSend);
+  printf("nSoftAbort = %d\n", nSoftAbort);
   //TODO Remove later
   /*
      int i;

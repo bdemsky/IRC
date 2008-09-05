@@ -256,6 +256,10 @@ char handleTransReq(fixed_data_t *, trans_commit_data_t *, unsigned int *, char 
 char decideCtrlMessage(fixed_data_t *, trans_commit_data_t *, int *, int *, int *, int *, int *, void *, unsigned int *, unsigned int *, int);
 int transCommitProcess(void *, unsigned int *, unsigned int *, int, int, int);
 void processReqNotify(unsigned int numoid, unsigned int *oid, unsigned short *version, unsigned int mid, unsigned int threadid);
+void getCommitCountForObjMod(unsigned int *, unsigned int *, unsigned int *, int *,
+                             int *, int *, int *, int *, int *, int *, char *, unsigned int, unsigned short);
+void getCommitCountForObjRead(unsigned int *, unsigned int *, unsigned int *, int *, int *, int *, int *, int *,
+                              int *, int *, char *, unsigned int, unsigned short);
 /* end server portion */
 
 /* Prototypes for transactions */
@@ -294,6 +298,8 @@ int getPrefetchResponse(int);
 unsigned short getObjType(unsigned int oid);
 int startRemoteThread(unsigned int oid, unsigned int mid);
 plistnode_t *pInsert(plistnode_t *pile, objheader_t *headeraddr, unsigned int mid, int num_objs);
+void commitCountForObjRead(local_thread_data_array_t *, unsigned int *, unsigned int *, int *, int *, int *, int *, int *, unsigned int, unsigned short);
+void commitCountForObjMod(local_thread_data_array_t *, unsigned int *, unsigned int *, int *, int *, int *, int *, int *, unsigned int, unsigned short);
 
 /* Sends notification request for thread join, if sucessful returns 0 else returns -1 */
 int reqNotify(unsigned int *oidarry, unsigned short *versionarry, unsigned int numoid);

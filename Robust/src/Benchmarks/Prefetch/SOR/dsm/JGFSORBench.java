@@ -47,10 +47,10 @@ public class JGFSORBench {
     BarrierServer mybarr;
 
     int[] mid = new int[4];
-    mid[0] = (128<<24)|(195<<16)|(175<<8)|79;//dw-8
-    mid[1] = (128<<24)|(195<<16)|(175<<8)|80;//dw-9
-    mid[2] = (128<<24)|(195<<16)|(175<<8)|78;//dw-7
-    mid[3] = (128<<24)|(195<<16)|(175<<8)|73;//dw-5
+    mid[0] = (128<<24)|(195<<16)|(175<<8)|84;//dw-10
+    mid[1] = (128<<24)|(195<<16)|(175<<8)|85;//dw-11
+    mid[2] = (128<<24)|(195<<16)|(175<<8)|86;//dw-12
+    mid[3] = (128<<24)|(195<<16)|(175<<8)|87;//dw-13
 
     double[][] G;
     int num_iterations;
@@ -109,7 +109,7 @@ public class JGFSORBench {
   public int JGFvalidate(){
 
     double refval[];
-    refval = new double[3];
+    refval = new double[4];
     refval[0] = 0.498574406322512;
     refval[1] = 1.1234778980135105;
     refval[2] = 1.9954895063582696;

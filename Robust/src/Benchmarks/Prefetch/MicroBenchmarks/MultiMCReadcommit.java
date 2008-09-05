@@ -25,7 +25,6 @@ public class ReadArrayObj extends Thread {
 
     Barrier.enterBarrier(barr);
 
-    /*
     //All machines reading data from array
     int val;
     for(int i=0; i<10000; i++) {
@@ -35,7 +34,6 @@ public class ReadArrayObj extends Thread {
         }
       }
     }
-    */
   }
 
   public static void main(String[] args) {

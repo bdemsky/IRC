@@ -61,7 +61,7 @@ public class Em3d extends Thread {
     Random random;
     String hname;
 
-    barr = new Barrier("128.195.175.79");
+    barr = new Barrier("128.195.175.84");
     atomic {
 	iteration = numIter;
 	degree = numDegree;
@@ -139,10 +139,10 @@ public class Em3d extends Thread {
     long start0 = System.currentTimeMillis();
     int numThreads = em.numThreads;
     int[] mid = new int[4];
-    mid[0] = (128<<24)|(195<<16)|(175<<8)|79;//dw-8
-    mid[1] = (128<<24)|(195<<16)|(175<<8)|80;//dw-9
-    mid[2] = (128<<24)|(195<<16)|(175<<8)|78;//dw-7
-    mid[3] = (128<<24)|(195<<16)|(175<<8)|73;//dw-5
+    mid[0] = (128<<24)|(195<<16)|(175<<8)|84;//dw-8
+    mid[1] = (128<<24)|(195<<16)|(175<<8)|85;//dw-9
+    mid[2] = (128<<24)|(195<<16)|(175<<8)|86;//dw-7
+    mid[3] = (128<<24)|(195<<16)|(175<<8)|87;//dw-5
 
     System.printString("DEBUG -> numThreads = " + numThreads+"\n");
     BarrierServer mybarr;
