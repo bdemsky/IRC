@@ -418,8 +418,23 @@ public class Pacman {
     }
     
     public void doMove() {
-	this.m_locX += this.m_dx;
-	this.m_locY += this.m_dy;
+	if((this.m_dx == -1) && (this.m_locX == 0)) {
+	    // go left and currently this.m_locX is 0
+	    this.m_locX = this.m_map.m_nrofblocks - 1;
+	} else if((this.m_dx == 1) && (this.m_locX == this.m_map.m_nrofblocks - 1)) {
+	    this.m_locX = 0;
+	} else {
+	    this.m_locX += this.m_dx;
+	}
+
+	if((this.m_dy == -1) && (this.m_locY == 0)) {
+	    // go up and currently this.m_locY is 0
+	    this.m_locY = this.m_map.m_nrofblocks - 1;
+	} else if((this.m_dy == 1) && (this.m_locY == this.m_map.m_nrofblocks - 1)) {
+	    this.m_locY = 0;
+	} else {
+	    this.m_locY += this.m_dy;
+	}
 	this.m_dx = 0;
 	this.m_dy = 0;
 	//System.printString("Pacmen " + this.m_index + ": (" + this.m_locX + ", " + this.m_locY + ")\n");

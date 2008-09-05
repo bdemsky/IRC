@@ -31,8 +31,8 @@ task initMap(Map map{init}) {
 	  map.m_desY[i] = ty*(i%2);
 	  map.m_pacOriX[i] = pacman.m_locX;
 	  map.m_pacOriY[i] = pacman.m_locY;
-	  map.m_leftLives[i] = map.m_leftLevels[i] = 60;
-	  pacman.m_leftLives = pacman.m_leftLevels = 60;
+	  map.m_leftLives[i] = map.m_leftLevels[i] = 20;
+	  pacman.m_leftLives = pacman.m_leftLevels = 20;
 	  //map.m_destinationX[i] = pacman.m_locX;
 	  //map.m_destinationY[i] = pacman.m_locY;
     }
@@ -91,7 +91,6 @@ task updatePac(Map map{updatePac}, optional Pacman p{update}) {
 	//System.printString("Pacman " + p.m_index + ": (" + map.m_pacMenX[p.m_index] + "," + map.m_pacMenY[p.m_index] + ")\n");
 	boolean death = map.check(p);
     } else {
-	map.m_deathcount++;
 	map.m_paccount++;
     }
     
