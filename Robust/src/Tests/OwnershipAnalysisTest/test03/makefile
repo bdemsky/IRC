@@ -3,22 +3,21 @@ PROGRAM=test03
 SOURCE_FILES=$(PROGRAM).java
 
 BUILDSCRIPT=~/research/Robust/src/buildscript
-#BSFLAGS= -recover -flatirtasks -ownership -enable-assertions
-BSFLAGS= -recover -ownership -enable-assertions
+BSFLAGS= -recover -ownership -ownaliasfile aliases.txt -enable-assertions
+OUTFLAGS= -ownwritedots final #-flatirusermethods
 
 all: $(PROGRAM).bin
 
 view: PNGs
-	eog *.png
+	eog *.png &
 
 PNGs: DOTs
-	#d2p *COMPLETE*.dot
-	d2p *.dot	
+	d2p *COMPLETE*.dot
 
 DOTs: $(PROGRAM).bin
 
 $(PROGRAM).bin: $(SOURCE_FILES)
-	$(BUILDSCRIPT) $(BSFLAGS) -o $(PROGRAM) $(SOURCE_FILES)
+	$(BUILDSCRIPT) $(BSFLAGS) $(OUTFLAGS) -o $(PROGRAM) $(SOURCE_FILES)
 
 clean:
 	rm -f  $(PROGRAM).bin
@@ -26,6 +25,4 @@ clean:
 	rm -f  *~
 	rm -f  *.dot
 	rm -f  *.png
-	rm -f  *.ps
-	rm -f  *.eps
-	rm -f  identifiedAliases.txt
+	rm -f  aliases.txt
