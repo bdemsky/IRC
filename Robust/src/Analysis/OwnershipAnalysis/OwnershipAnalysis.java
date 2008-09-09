@@ -636,18 +636,19 @@ public class OwnershipAnalysis {
     // boolean labelSelect,
     // boolean pruneGarbage,
     // boolean writeReferencers
+    // boolean writeParamMappings
 
     if( writeDOTs ) {
 
       if( !writeAllDOTs ) {
-	og.writeGraph(d, true, true, true, false);
+	og.writeGraph(d, true, true, true, false, false);
 
       } else {
 	if( !mapDescriptorToNumUpdates.containsKey(d) ) {
 	  mapDescriptorToNumUpdates.put(d, new Integer(0) );
 	}
 	Integer n = mapDescriptorToNumUpdates.get(d);
-	og.writeGraph(d, n, true, true, true, false);
+	og.writeGraph(d, n, true, true, true, false, false);
 	mapDescriptorToNumUpdates.put(d, n + 1);
       }
     }

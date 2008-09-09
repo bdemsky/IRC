@@ -2520,7 +2520,8 @@ public class OwnershipGraph {
                          boolean writeLabels,
                          boolean labelSelect,
                          boolean pruneGarbage,
-                         boolean writeReferencers
+                         boolean writeReferencers,
+			 boolean writeParamMappings
                          ) throws java.io.IOException {
     writeGraph(
       methodDesc.getSymbol() +
@@ -2529,7 +2530,8 @@ public class OwnershipGraph {
       writeLabels,
       labelSelect,
       pruneGarbage,
-      writeReferencers
+      writeReferencers,
+      writeParamMappings
       );
   }
 
@@ -2537,14 +2539,16 @@ public class OwnershipGraph {
                          boolean writeLabels,
                          boolean labelSelect,
                          boolean pruneGarbage,
-                         boolean writeReferencers
+                         boolean writeReferencers,
+			 boolean writeParamMappings
                          ) throws java.io.IOException {
 
     writeGraph(methodDesc+"COMPLETE",
                writeLabels,
                labelSelect,
                pruneGarbage,
-               writeReferencers
+               writeReferencers,
+	       writeParamMappings
                );
   }
 
@@ -2553,14 +2557,16 @@ public class OwnershipGraph {
                          boolean writeLabels,
                          boolean labelSelect,
                          boolean pruneGarbage,
-                         boolean writeReferencers
+                         boolean writeReferencers,
+			 boolean writeParamMappings
                          ) throws java.io.IOException {
 
     writeGraph(methodDesc+"COMPLETE"+String.format("%05d", numUpdate),
                writeLabels,
                labelSelect,
                pruneGarbage,
-               writeReferencers
+               writeReferencers,
+	       writeParamMappings
                );
   }
 
@@ -2568,7 +2574,8 @@ public class OwnershipGraph {
                          boolean writeLabels,
                          boolean labelSelect,
                          boolean pruneGarbage,
-                         boolean writeReferencers
+                         boolean writeReferencers,
+			 boolean writeParamMappings
                          ) throws java.io.IOException {
 
     // remove all non-word characters from the graph name so
@@ -2577,7 +2584,6 @@ public class OwnershipGraph {
 
     BufferedWriter bw = new BufferedWriter(new FileWriter(graphName+".dot") );
     bw.write("digraph "+graphName+" {\n");
-    //bw.write( "  size=\"7.5,10\";\n" );
 
     HashSet<HeapRegionNode> visited = new HashSet<HeapRegionNode>();
 
@@ -2601,13 +2607,15 @@ public class OwnershipGraph {
 
     bw.write("  graphTitle[label=\""+graphName+"\",shape=box];\n");
 
-    Set df = paramIndex2id.entrySet();
-    Iterator ih = df.iterator();
-    while( ih.hasNext() ) {
-      Map.Entry meh = (Map.Entry)ih.next();
-      Integer pi = (Integer) meh.getKey();
-      Integer id = (Integer) meh.getValue();
-      bw.write("  pindex"+pi+"[label=\""+pi+" to "+id+"\",shape=box];\n");
+    if( writeParamMappings ) {
+      Set df = paramIndex2id.entrySet();
+      Iterator ih = df.iterator();
+      while( ih.hasNext() ) {
+	Map.Entry meh = (Map.Entry)ih.next();
+	Integer pi = (Integer) meh.getKey();
+	Integer id = (Integer) meh.getValue();
+	bw.write("  pindex"+pi+"[label=\""+pi+" to "+id+"\",shape=box];\n");
+      }
     }
 
     // then visit every label node, useful for debugging

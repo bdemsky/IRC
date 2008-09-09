@@ -179,9 +179,9 @@ task Startup( StartupObject s{ initialstate } ) {
   //int a, b, c;
 
 
-  int a;
-  int b;
-  int c;
+  int a = 1;
+  int b = 2;
+  int c = 3;
 
   b = c;
   a = b;
