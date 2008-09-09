@@ -457,6 +457,8 @@ public class OwnershipAnalysis {
     TempDescriptor rhs;
     FieldDescriptor fld;
 
+    //System.out.println("  "+fn.kind());
+
     // use node type to decide what alterations to make
     // to the ownership graph
     switch( fn.kind() ) {
@@ -580,7 +582,7 @@ public class OwnershipAnalysis {
 	}
       }
 
-      og = ogMergeOfAllPossibleCalleeResults;
+      og = ogMergeOfAllPossibleCalleeResults;      
       break;
 
     case FKind.FlatReturnNode:
@@ -595,8 +597,24 @@ public class OwnershipAnalysis {
       break;
     }
 
+
+    /*
+    ++x;
+    if( x > 10000 ) {
+      og.writeGraph( String.format("test%04d",x-10000)+fn, true, true, true, false );
+    }
+    if( x == 10050 ) {
+      System.exit( 0 );
+    }
+    */
+
+
     return og;
   }
+
+
+  //int x = 0;
+
 
 
   // this method should generate integers strictly greater than zero!
