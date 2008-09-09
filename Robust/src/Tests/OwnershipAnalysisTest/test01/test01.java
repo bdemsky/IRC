@@ -71,8 +71,6 @@ public class Foo {
     return b;
   }
 
-  
-  /*
   public void ruinSomeFoos( Foo a, Foo b ) {
     a.x = b.x;
   }
@@ -166,8 +164,8 @@ public class Foo {
     p0.y = p1;
     p1.y = p0;
   }
-  */
 }
+
 
 
 // this empty task should still create a non-empty
@@ -175,10 +173,24 @@ public class Foo {
 // look for the parameter s as a label referencing
 // a heap region that is multi-object, flagged, not summary
 task Startup( StartupObject s{ initialstate } ) {
-    taskexit( s{ !initialstate } );
+
+  Parameter p0 = new Parameter();
+
+  //int a, b, c;
+
+
+  int a;
+  int b;
+  int c;
+
+  b = c;
+  a = b;
+
+
+  taskexit( s{ !initialstate } );
 }
 
-/*
+
 task NewObjectA( Foo a{ f }, Foo b{ f } ) {
 
     Foo c = new Foo();
@@ -341,9 +353,8 @@ task ObjectChainByMethodCalls( Foo a{ f } ) {
 
   taskexit( a{ !f } );
 }
-*/
 
-/*
+
 task arrayAssignments( Foo a{ f } ) {
 
   Foo f[] = new Foo[3];
@@ -358,7 +369,7 @@ task arrayAssignments( Foo a{ f } ) {
 
   taskexit( a{ !f } );
 }
-*/
+
 
 public class Zool {
   public Zool() {}
@@ -384,7 +395,7 @@ task showPrunedEdgesInMethodCall( Foo a{ f } ) {
   taskexit( a{ !f } );
 }
 
-/*
+
 task methodTest( Foo p0{ f } ) {
 
     Foo up0 = new Foo();
@@ -650,4 +661,3 @@ task methodTest08_( Foo p0{ f }, Foo p1{ f } ) {
 
   taskexit( p0{ !f }, p1{ !f } );
 }
-*/
