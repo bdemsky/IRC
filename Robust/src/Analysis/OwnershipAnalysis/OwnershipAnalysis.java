@@ -404,9 +404,11 @@ public class OwnershipAnalysis {
 
       // start by merging all node's parents' graphs
       for( int i = 0; i < fn.numPrev(); ++i ) {
-	FlatNode pn       = fn.getPrev(i);
-	OwnershipGraph ogParent = getGraphFromFlatNode(pn);
-	og.merge(ogParent);
+	FlatNode pn = fn.getPrev(i);	
+	if( mapFlatNodeToOwnershipGraph.containsKey(pn) ) {
+	  OwnershipGraph ogParent = mapFlatNodeToOwnershipGraph.get(pn);
+	  og.merge(ogParent);
+	}
       }
 
       // apply the analysis of the flat node to the
@@ -421,10 +423,9 @@ public class OwnershipAnalysis {
       // the current graph at this node, replace the graph
       // with the update and enqueue the children for
       // processing
-      OwnershipGraph ogPrev = getGraphFromFlatNode(fn);
-
+      OwnershipGraph ogPrev = mapFlatNodeToOwnershipGraph.get(fn);
       if( !og.equals(ogPrev) ) {
-	setGraphForFlatNode(fn, og);
+	mapFlatNodeToOwnershipGraph.put(fn, og);
 
 	for( int i = 0; i < fn.numNext(); i++ ) {
 	  FlatNode nn = fn.getNext(i);
@@ -440,7 +441,8 @@ public class OwnershipAnalysis {
     Iterator retItr = returnNodesToCombineForCompleteOwnershipGraph.iterator();
     while( retItr.hasNext() ) {
       FlatReturnNode frn = (FlatReturnNode) retItr.next();
-      OwnershipGraph ogr = getGraphFromFlatNode(frn);
+      assert mapFlatNodeToOwnershipGraph.containsKey(frn);
+      OwnershipGraph ogr = mapFlatNodeToOwnershipGraph.get(frn);
       completeGraph.merge(ogr);
     }
     return completeGraph;
@@ -456,8 +458,6 @@ public class OwnershipAnalysis {
     TempDescriptor lhs;
     TempDescriptor rhs;
     FieldDescriptor fld;
-
-    //System.out.println("  "+fn.kind());
 
     // use node type to decide what alterations to make
     // to the ownership graph
@@ -597,23 +597,35 @@ public class OwnershipAnalysis {
       break;
     }
 
-
-    /*
-    ++x;
-    if( x > 10000 ) {
-      og.writeGraph( String.format("test%04d",x-10000)+fn, true, true, true, false );
-    }
-    if( x == 10050 ) {
-      System.exit( 0 );
-    }
-    */
-
-
     return og;
   }
 
 
-  //int x = 0;
+  // insert a call to debugSnapshot() somewhere in the analysis to get
+  // successive captures of the analysis state
+  int debugCounter = 0;
+  int numIterationsIn = 30;
+  int numIterationsToCapture = 20;
+  void debugSnapshot( OwnershipGraph og, FlatNode fn ) {
+    ++debugCounter;
+    if( debugCounter > numIterationsIn ) {
+      System.out.println( "   @@@ capturing debug "+(debugCounter-numIterationsIn)+" @@@" );
+      String graphName = String.format("test%04d",debugCounter-numIterationsIn);
+      if( fn != null ) {
+	graphName = graphName+fn;
+      }
+      try {
+	og.writeGraph( graphName, true, true, true, false, false );
+      } catch( Exception e ) {
+	System.out.println( "Error writing debug capture." );
+	System.exit( 0 );	
+      }
+    }
+    if( debugCounter == numIterationsIn + numIterationsToCapture ) {
+      System.out.println( "Stopping analysis after debug captures." );
+      System.exit( 0 );
+    }
+  }
 
 
 
@@ -652,19 +664,6 @@ public class OwnershipAnalysis {
 	mapDescriptorToNumUpdates.put(d, n + 1);
       }
     }
-  }
-
-
-  private OwnershipGraph getGraphFromFlatNode(FlatNode fn) {
-    if( !mapFlatNodeToOwnershipGraph.containsKey(fn) ) {
-      mapFlatNodeToOwnershipGraph.put(fn, new OwnershipGraph(allocationDepth, typeUtil) );
-    }
-
-    return mapFlatNodeToOwnershipGraph.get(fn);
-  }
-
-  private void setGraphForFlatNode(FlatNode fn, OwnershipGraph og) {
-    mapFlatNodeToOwnershipGraph.put(fn, og);
   }
 
 
