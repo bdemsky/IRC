@@ -54,6 +54,6 @@ public class ChangeTuple extends Canonical
   }
 
   public String toString() {
-    return new String("<"+toMatch+" -> "+toAdd+">");
+    return new String("("+toMatch+" -> "+toAdd+")");
   }
 }
