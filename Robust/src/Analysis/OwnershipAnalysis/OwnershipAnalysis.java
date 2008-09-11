@@ -604,13 +604,13 @@ public class OwnershipAnalysis {
   // insert a call to debugSnapshot() somewhere in the analysis to get
   // successive captures of the analysis state
   int debugCounter = 0;
-  int numIterationsIn = 30;
-  int numIterationsToCapture = 20;
+  int numIterationsIn = 80000;
+  int numIterationsToCapture = 53;
   void debugSnapshot( OwnershipGraph og, FlatNode fn ) {
     ++debugCounter;
     if( debugCounter > numIterationsIn ) {
       System.out.println( "   @@@ capturing debug "+(debugCounter-numIterationsIn)+" @@@" );
-      String graphName = String.format("test%04d",debugCounter-numIterationsIn);
+      String graphName = String.format("snap%04d",debugCounter-numIterationsIn);
       if( fn != null ) {
 	graphName = graphName+fn;
       }

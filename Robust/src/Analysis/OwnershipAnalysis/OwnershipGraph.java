@@ -1616,8 +1616,8 @@ public class OwnershipGraph {
     while( ttsItr.hasNext() ) {
       TokenTupleSet tts = ttsItr.next();
 
-      Hashtable<TokenTupleSet, TokenTupleSet> forChangeSet =
-        new Hashtable<TokenTupleSet, TokenTupleSet>();
+      Hashtable<TokenTupleSet, HashSet<TokenTupleSet> > forChangeSet =
+        new Hashtable<TokenTupleSet, HashSet<TokenTupleSet> >();
 
       ReachabilitySet rTemp = tts.rewriteToken(tokenToRewrite,
                                                edge.getBeta(),
@@ -1628,13 +1628,17 @@ public class OwnershipGraph {
       while( fcsItr.hasNext() ) {
 	Map.Entry me = (Map.Entry)fcsItr.next();
 	TokenTupleSet ttsMatch = (TokenTupleSet) me.getKey();
-	TokenTupleSet ttsAdd   = (TokenTupleSet) me.getValue();
+	HashSet<TokenTupleSet> ttsAddSet = (HashSet<TokenTupleSet>) me.getValue();
+	Iterator<TokenTupleSet> ttsAddItr = ttsAddSet.iterator();
+	while( ttsAddItr.hasNext() ) {
+	  TokenTupleSet ttsAdd = ttsAddItr.next();
 
-	ChangeTuple ct = new ChangeTuple(ttsMatch,
-	                                 ttsAdd
-	                                 ).makeCanonical();
+	  ChangeTuple ct = new ChangeTuple(ttsMatch,
+					   ttsAdd
+					   ).makeCanonical();
 
-	cts0 = cts0.union(ct);
+	  cts0 = cts0.union(ct);
+	}
       }
     }
 
