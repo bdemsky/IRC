@@ -24,7 +24,7 @@ Def 2- An operation in $T_i$ is said to have "used" the data when it has read so
 
 Def 3- A transaction $T_i$ is said to "commit" at instant $t_i$, if and only if it reflects its "changes" in the filesystem or equivalently makes it changes visible to the whole system for all members of $T$ accesing the data at instant $t_j$ such that $t_j > t_i$ . An operation $\in OP_{T_i}$ is said to commit if and only if $T_i$ commits. Commit instant are not splittable, hence it appears to other transactions that all changes are refleted in the file system together.\\ 
 
-Def 4-  $\forall op_i \in OP_{T_i}$, $\forall op_j in OP{T_i}$, $op_i$ precedes $op_j$ if and only if $op_j$ does not use the data changed by $op_i$ OR if it does, then $op_j$ should be able to see the changes made by $op_i$ unless data has been changed by a more recent precedessor  \\ 
+Def 4-  $\forall op_i \in OP_{T_i}$, $\forall op_j in OP{T_i}$, $op_i$ precedes $op_j$ if and only if $op_j$ does not use the data changed by $op_i$ OR if it does, then $op_j$ sees the changes made by $op_i$ unless data has been changed by a more recent precedessor. Furthermore  \\ 
 
 Def 5- Succeds relationship is defined similarly.  \\
 
@@ -84,12 +84,16 @@ Below we will give a list of principles with the proofs on the operations and ho
 Assumption : The reads within transaction do actually occur when they are encountered. However, no change to the file system is done before commit instant as said before (writes, changing the offset and etc.)\\
 
 
-Assumption: seek operation means after this operation is executed, the offset should be at the chosen value regardless of the actual value of the offset in the file system.
+Assumption: seek operation means after this operation is executed, the offset should be at the chosen value regardless of the actual value of the offset in the file system.\\
+
+Principle 0: An operation should not see any modifications other than those made by precedessors (either in the same transaction or others)\\
+
+proof: Obviously such modifications are not valid and are probably part of a faulty operation.\\
 
 
-Principle 1) If an operation $a$ that "uses" some data (reads the data at some $t < t_{commit}$(the commit instant)), it should be ensured that the data is still valid in the actual file system at $t_{commit}$ (commit instant) or $T_i$ has to abort.//
+Principle 1) If an operation $a$ that "uses" some data (reads the data at some $t < t_{commit}$(the commit instant)), it should be ensured that the data is still valid in the actual file system at $t_{commit}$ (commit instant) or $T_i$ has to abort.\\
 
-proof: If the data is not valid anymore it means the data has changed since $t_{i-1}$. This implies at least one operation $b$ has chaged the data since the use. $b$ is either a succesor in the same transaction or a different one. According to Def 1 and Def 3, however if $b$ is in the same transaction, then $b$ can not have commited yet and hence the changes are not reflected in the filesystem. Hence $b$ belongs to a different transaction namely $T_j$. Since $T_j$ should have already commited, according to Rule 6 all operation in $OP_{T_i}$ should succed those in $OP_{T_j}$, however, we know there is at least an operation $a$ that does not succced $b$ (since it has not seen the "changes" made by $b$). Hence, $T_i$ can not commit.\\
+proof: If the data is not valid anymore it means the data has changed since $t_{i-1}$. This implies at least one operation $b$ has chaged the data since the use. $b$ is either a succesor (since the changes were not seen) in the same transaction or a different one. According to Def 1 and Def 3, however if $b$ is in the same transaction, then $b$ can not have commited yet and hence the changes are not reflected in the filesystem. Hence $b$ belongs to a different transaction namely $T_j$. Since $T_j$ should have already commited, according to Rule 6 all operation in $OP_{T_i}$ should succed those in $OP_{T_j}$, however, we know there is at least an operation $a$ that does not succced $b$ (since it has not seen the "changes" made by $b$). Hence, $T_i$ can not commit.\\
 
 
 Principle 2) 1-A seek operation in $OP_{T_i}$ does not make $T_i$ dependent on any data and hence does not count as "using" ("use" as defined in Def 1).\\
@@ -104,9 +108,11 @@ Principle 4) 1- A write operation in $OP_{T_i}$ does not make $T_i$ dependent on
 
 proof: The result of a write would always be the same contents thus, according to Def 2 does not count as using.\\
 
-Assumption: Each operation has an offset status assioated with it. We call this operation.offsetstatus\\
+Assumption: Each operation has a offset status assioated with it. We call this operation.offsetstatus. Each operation has a data satus assosiated with it namely operation.datastatus\\
 
-Assumption: An operation with Speculative offset means the offset that the operation would be perfomed at can be relocated in the commit instant. An operation with absolute offset means the value is absolute and does not depend on any other operation OR the operation only specifies a specific value for the offset for the next operation (i.e. seek). An operation with defenite offset means the offset value that operation has to be carried on from, can not be relocated, but still could have changed before commit instant by other committed transactions. \\
+Assumption:  An operation with Speculative offset means the offset that the operation would be perfomed at can be relocated in the commit instant. An operation with absolute offset means the value is absolute and does not depend on any other operation OR the operation only specifies a specific value for the offset for the next operation (i.e. seek). An operation with defenite offset means the offset value that operation has to be carried on from, can not be relocated, but still could have changed before commit instant by other committed transaction and not being valid at commit instant\\
+
+Assumption: Based on previous assumptions read.datastatus = Defenite and others are Speculative, hence they do not use the "file contents"
 
 Principle 5: an operation with defeinte offset status assosiated with it is the only one "using" the offset value.\\
 
@@ -141,7 +147,7 @@ Req 2- 1- Any operations $op$ that applying $f$ on it would yield in Definite, h
 
 proof: 1- if $f$ makes the output Defenite it means this operation should "use" offset value at that time unless some previous instruction has set the offset to specific value independent of other transactions and thus changing the offset value would not have any effect on the outcome of $op$ as the value $op$ should be carried on from would be independent. Operation having such an effect is the one with Absolute offsettype.\\
 
-2- The following operation should be Defenite type since $op$ has bound the offset to a value that should be validated at commit instant (Principle 1), unless it is a seek that only sets the offset. 
+2- The following operation should be Defenite type since $op$ has bound the offset to a value that should be validated at commit instant (Principle 1), unless it is a seek that only sets the offset.\\ 
 
 Req 3: Any operation with offsetstaus = Defenite, should change the offsetstatus for prveious operations with a value of Speculative, to Defenite.\\
 
@@ -151,6 +157,11 @@ Req 4: Any operation $op$ which applying $f$ on it yields in Speculative has off
 
 proof: If we denote $OP_{prev}.offsettype$ as the offsettypes for the prviously encountered operations, considering all requirements this means all (if any) the members of $OP_{prev}$ should be Speculative for $op$ to be able to be Speculative. In this case the offset passed to $op$ is Speculative and if $op$ is Speculative as considered alone then it would carry on the actions in the passed-in Speculative offset.\\ 
 
+Req 5: An operation with datastatus = Defenite, converts all the speculative offsttypes of the previous operations to Defenite. This requirement is always enforced.\\
+
+proof: Since if datastatus = Defenite, this mean the operation is "using" or "reading" some file contents- an irreversible action- and as this operation should be able to see the modifications made by all preceding operations, if these are speculative, at commit instant they may "relocate" their modifications, this means eitehr $op$ may not see some changes made by precedessors or may see some changes not made by any precedessors (since the speculatively changes were used by $op$ however these did not get reflected in the actual file system since they were relocated at commit instant). Either way contradicts the defenitions and principles (Def 8 and Principle 0).\\
+
+Note: Req 5 suggest if datatype = Definite this causes all the previous operation with Speculative as offsettype to be changed to Defenite.
 
 Def: We define a function $g(offsetstat_1, offsettat_2, ..., offsetstat_{n-1}, operation)$ that takes an input  $n-1$ number of $op.offsetstatus$ plus an operation and gives as the output $n$ number of $op.offsetstatus$. The $g$ functions provides the requirements mentioned above. Follwing rules determine the output, the rules are ordererd according to their priority:\\
 
@@ -175,8 +186,9 @@ Def: We define a function $g(offsetstat_1, offsettat_2, ..., offsetstat_{n-1}, o
 \hspace{ 8mm}
 	3.3- else $g(offsetstat_1, ..., offsetstat_{n-1}, operation) = (offsetstat_1, ..., offsetstat_{n-1}, Speculative)$\\
 
+4- After doing the above check if datastatus = Defenite, then change all offsettypes in the input that are Speculative to Defenite in the output.
 
-1, 2.1, 3.1 ensure Req 1. 2.2 and 3.2 ensures Req 2. 2. ensure Req 3, and finally 3.3 provides Req 4.  
+1, 2.1, 3.1 ensure Req 1. 2.2 and 3.2 ensures Req 2. 2. ensure Req 3, and finally 3.3 provides Req 4. 4 also ensures Req 5. 
 
 
 
