@@ -196,7 +196,7 @@ Def: We define a function $g(offsetstat_1, offsettat_2, ..., offsetstat_{n-1}, o
 \section{Implementation Overview}
 
 %proof: A write operation writes to the most recently commited offset (unless imposed otherwise by a seek or a prior read or a following read as shown above) of the file descriptor.  According to Def 2, it does not "use" any data. Since the write does not happen till commit instant, the offset chosen during the execution of transaction can be speculative, and the actual offset to be written to, is determined at the sommit instant, when the most recently commited offset is known. 
-Now we will describe the components of our system and demosntrate how the algorithm 
+Now we will describe the components of our system and demosntrate how the algorithm conforms to the function just described, and how all the rules principles are gurantedd. 
 
 
 
