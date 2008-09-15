@@ -76,6 +76,8 @@ TransactioalFiles can be either created inside or outside $T$. The Transactional
 A Transactionalfile can be shared among any subset of the members of $T$. If shared, the offset is shared between these too. 
 
 \section{Implications for the System}
+
+\subsection{General Principles}
 Now, if $T_i$ and $T_j$ do not either modify the data the other one uses, according to Rule 4 both can commit. This means even if $T_i$ accesses $tr_k$ before $T_j$ does, but $T_j$ commits before $T_i$, given that $T_j$ has not modified the data in use by $T_i$, $T_i$ could still commit. \\
 
 
@@ -102,11 +104,13 @@ The seek operations seeks to an offste within the file descriptor regardless of 
 
 Principle 3) 1- A read operation in $OP_{T_i}$ "uses" contents read and makes $T_i$ dependent on the file contents read.\\
 
-proof: Due to assumtion 1 and since the data read by this operation can be used for computation, in case the data read would change, the data and hence computations results would be different. According to Def 2 it uses the data\\
+proof: Due to assumption 1 and since the data read by this operation can be used for computation, in case the data read would change, the data and hence computations results would be different. According to Def 2 it uses the data\\
 
 Principle 4) 1- A write operation in $OP_{T_i}$ does not make $T_i$ dependent on file contents.\\   
 
 proof: The result of a write would always be the same contents thus, according to Def 2 does not count as using.\\
+
+\subsection{A Model for Offset and Data Dependeny for Operations}
 
 Assumption: Each operation has a offset status assioated with it. We call this operation.offsetstatus. Each operation has a data satus assosiated with it namely operation.datastatus\\
 
