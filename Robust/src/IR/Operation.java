@@ -101,7 +101,7 @@ public class Operation {
     else if (st.equals("comp"))
       return COMP;
     else
-      throw new Error();
+      throw new Error(st);
   }
 
   public String toString() {
@@ -161,7 +161,9 @@ public class Operation {
       return "predec";
     else if (operation==ASSIGN)
       return "assign";
-    else throw new Error();
+    else if (operation==ISAVAILABLE)
+      return "isavailable";
+    else throw new Error("op="+operation);
   }
 
 
