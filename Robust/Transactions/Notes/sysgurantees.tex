@@ -119,7 +119,7 @@ A Transactionalfile can be shared among any subset of the members of $T$. If sha
 Now, if $T_i$ and $T_j$ do not either write the data the other one reads, according to Rule 2 and 3 both can commit. This means even if $T_i$ accesses $r_k$ before $T_j$ does, but $T_j$ commits before $T_i$, given that $T_j$ has not modified the data in use by $T_i$, $T_i$ could still commit. \\
 
 
-Below we will give a list of principles with the proofs on the operations and how they affect the data. We would using this table then establish the rules our system would go by. Before going to this, it should be noted that according to rule 3 even if all but one operations in a set precede all operations in the other, still the transaction can not commit. Therefore it takes only one operation to make the transaction dependent (all the committed transaction should precede this transaction but can not since one of the operations in the committed transaction does not precede an operation in this transaction). Formally, if there is an operation $b \in OP_{T_j}$ and an operation $a \in OP_{T_i}$ such that $a$ does not precede $b$ then $T_i$ can not precede $T_j$. In the rules below $T_i$ is not commited yet and $T$ denotes the set of all commited or active transactions. \\
+It should be noted that according to Rule 3 even if all but one of the transactions in the set of committed transaction precede $T_i$ which is about to commit, , still the transaction can not commit. Therefore it takes only one operation to make the transaction dependent (all the committed transaction should precede this transaction but can not since one of the operations in the committed transaction does not precede an operation in this transaction). Formally, if there is an operation $b \in OP_{T_j}$ and an operation $a \in OP_{T_i}$ such that $a$ does not precede $b$ then $T_i$ can not precede $T_j$. In the rules below $T_i$ is not commited yet and $T$ denotes the set of all commited or active transactions. \\
 
 %Assumption : The reads within transaction do actually occur when they are encountered. However, no change to the file system is done before commit instant as said before (writes, changing the offset and etc.)\\
 
@@ -150,56 +150,56 @@ proof: If the data is not valid anymore it means the data $r_n$ has been written
 
 \subsection{A Model for Offset and Data Dependeny for Operations}
 
-Assumption: Each operation has a offset status assioated with it. We call this operation.offsetstatus. Each operation has a data satus assosiated with it namely operation.datastatus\\
+%Assumption: Each operation has a offset status assioated with it. We call this operation.offsetstatus. Each operation has a data satus assosiated with it namely operation.datastatus\\
 
-Assumption:  An operation with Speculative offset means the offset that the operation would be perfomed at can be relocated in the commit instant. An operation with absolute offset means the value is absolute and does not depend on any other operation OR the operation only specifies a specific value for the offset for the next operation (i.e. seek). An operation with defenite offset means the offset value that operation has to be carried on from, can not be relocated, but still could have changed before commit instant by other committed transaction and not being valid at commit instant\\
+%Assumption:  An operation with Speculative offset means the offset that the operation would be perfomed at can be relocated in the commit instant. An operation with absolute offset means the value is absolute and does not depend on any other operation OR the operation only specifies a specific value for the offset for the next operation (i.e. seek). An operation with defenite offset means the offset value that operation has to be carried on from, can not be relocated, but still could have changed before commit instant by other committed transaction and not being valid at commit instant\\
 
-Assumption: Based on previous assumptions read.datastatus = Defenite and others are Speculative, hence they do not use the "file contents"
+%Assumption: Based on previous assumptions read.datastatus = Defenite and others are Speculative, hence they do not use the "file contents"
 
-Principle 5: an operation with defeinte offset status assosiated with it is the only one "using" the offset value.\\
+%Principle 5: an operation with defeinte offset status assosiated with it is the only one "using" the offset value.\\
 
-proof: For speculative and absolute it comes form the defeniton that they do not count as using, since one is determined at commit instant and hence read at the same time, and the other is always the same value. However, with defenite, if some other transaction changes the offset of the file descriptor, then the result of the operation would have been possibly different. According to Def 2 it uses the offset data.\\ 
-
-
+%proof: For speculative and absolute it comes form the defeniton that they do not count as using, since one is determined at commit instant and hence read at the same time, and the other is always the same value. However, with defenite, if some other transaction changes the offset of the file descriptor, then the result of the operation would have been possibly different. According to Def 2 it uses the offset data.\\ 
 
 
-Def: We define a function $f$ that takes as input an operation (i.e. seek, read, write) and gives as the output the offsetstatus assosiated with that operation. In speaking, $f$ determines the offsetstatus assoiated with an operation given that it is the ONLY operation in the operation set of the transaction. \\
 
-1- $f$(Seek) = Absolute 
 
-proof: seek operation does not invlove reading offset value hence, according to assumptions it is considered as absoulute.\\
+%Def: We define a function $f$ that takes as input an operation (i.e. seek, read, write) and gives as the output the offsetstatus assosiated with that operation. In speaking, $f$ determines the offsetstatus assoiated with an operation given that it is the ONLY operation in the operation set of the transaction. \\
 
-2-$f$(Read) = Defenite
+%1- $f$(Seek) = Absolute 
 
-proof: Since according to Principle 3, read is actually done before the commit instant and hence can not be relocated in the commit instant. According to Principle 1 and 5 the offset the read is done from should not be affected by other members of $T$ before this transaction gets to its commit instant. This means not the only offset can not be relocated, but a check should be done at the commit instant for its validity.\\
+%proof: seek operation does not invlove reading offset value hence, according to assumptions it is considered as absoulute.\\
 
-3-$f$(Write) = Speculative
+%2-$f$(Read) = Defenite
 
-proof: If write is the only operation, then since according to Principle 4 the write does not use any file contents before commit instant, hence the ofsset value can be determined at commit instant from the most recently commited offset value by then. Then the write is done on the offset. This preserves the semantics since the commit instant is atomic by defenition and Rule 6 and 5 are preserved, as the write operation is getting the most recent data(offset) and hence would see all the changes made to it by commited transactions so far and hence this write operation would succed all the operations in other commited transaction. Consequently this transaction can succed those.\\   
+%proof: Since according to Principle 3, read is actually done before the commit instant and hence can not be relocated in the commit instant. According to Principle 1 and 5 the offset the read is done from should not be affected by other members of $T$ before this transaction gets to its commit instant. This means not the only offset can not be relocated, but a check should be done at the commit instant for its validity.\\
 
-Requirements: To determine an operation should use Absolute, Define or Speculative offset type (the first and third would be used in commit instant) respective to other operatins in the set, the requirements below should be provided:\\
+%3-$f$(Write) = Speculative
 
-Req 1- 1-Any operation follwoing an operation $op$ (which belongs to the same set of operations) with offsetstatus = Absolute, has offsetstatus = Absolute itself. 2-Any operation that applying $f$ to it would yield in Absolute, has offsettype = absolute \\
+%proof: If write is the only operation, then since according to Principle 4 the write does not use any file contents before commit instant, hence the ofsset value can be determined at commit instant from the most recently commited offset value by then. Then the write is done on the offset. This preserves the semantics since the commit instant is atomic by defenition and Rule 6 and 5 are preserved, as the write operation is getting the most recent data(offset) and hence would see all the changes made to it by commited transactions so far and hence this write operation would succed all the operations in other commited transaction. Consequently this transaction can succed those.\\   
 
-proof: 1-Lets assume $op$ is the first operation with offsettype = Absolute in the set of operatopns. The immediate operation ($op_{imm}$) after $op$ uses the absolute offset specified by $op$ or the absolute offset advanced by a certain number in case of read or write. $op_{imm}$ either advances this value or specifies another absolute value, in either case the offset type for $op_{imm}$ would be absolute. The same reasoning could be done for all the follwing operations.\\
+%Requirements: To determine an operation should use Absolute, Define or Speculative offset type (the first and third would be used in commit instant) respective to other operatins in the set, the requirements below should be provided:\\
 
-2- Since such an operation is seek and seek regardless of all other operation (in and out of transaction) sets the offset and hence is always absolute.\\
+%Req 1- 1-Any operation follwoing an operation $op$ (which belongs to the same set of operations) with offsetstatus = Absolute, has offsetstatus = Absolute itself. 2-Any operation that applying $f$ to it would yield in Absolute, has offsettype = absolute \\
 
-Req 2- 1- Any operations $op$ that applying $f$ on it would yield in Definite, has offsettype = Defenite unless speified otherwise by Req 1  2-Any operation immediately follwoing an operation $op$ (which belongs to the same set of operations) with offsetstatus = Defenite, has offsetstatus = Defenite itself. unless specified otherwise by Req 1\\
+%proof: 1-Lets assume $op$ is the first operation with offsettype = Absolute in the set of operatopns. The immediate operation ($op_{imm}$) after $op$ uses the absolute offset specified by $op$ or the absolute offset advanced by a certain number in case of read or write. $op_{imm}$ either advances this value or specifies another absolute value, in either case the offset type for $op_{imm}$ would be absolute. The same reasoning could be done for all the follwing operations.\\
 
-proof: 1- if $f$ makes the output Defenite it means this operation should "use" offset value at that time unless some previous instruction has set the offset to specific value independent of other transactions and thus changing the offset value would not have any effect on the outcome of $op$ as the value $op$ should be carried on from would be independent. Operation having such an effect is the one with Absolute offsettype.\\
+%2- Since such an operation is seek and seek regardless of all other operation (in and out of transaction) sets the offset and hence is always absolute.\\
 
-2- The following operation should be Defenite type since $op$ has bound the offset to a value that should be validated at commit instant (Principle 1), unless it is a seek that only sets the offset.\\ 
+%Req 2- 1- Any operations $op$ that applying $f$ on it would yield in Definite, has offsettype = Defenite unless speified otherwise by Req 1  2-Any operation immediately follwoing an operation $op$ (which belongs to the same set of operations) with offsetstatus = Defenite, has offsetstatus = Defenite itself. unless specified otherwise by Req 1\\
 
-Req 3: Any operation with offsetstaus = Defenite, should change the offsetstatus for prveious operations with a value of Speculative, to Defenite.\\
+%proof: 1- if $f$ makes the output Defenite it means this operation should "use" offset value at that time unless some previous instruction has set the offset to specific value independent of other transactions and thus changing the offset value would not have any effect on the outcome of $op$ as the value $op$ should be carried on from would be independent. Operation having such an effect is the one with Absolute offsettype.\\
 
-If $op.offsettype = Definte$ means no previous operations are Absolute (Req 1). So it just could be a mixture of Speculative and Defenite. Lets assume $op_{Def}$ as the first operation after a $op_{spec}$ a Speculative one (Rq 2 ensure after A Defenite there is no Speculative).  $op_{Def}$ makes the offset bound to a specific value and $op_{Def} succeds $op{Spec}$ so it should be able to see the changes made by $op{Spec} this neccesitaes that $op{Spec}$ be done at a specific offset such that when advanced as the effect of operation, it gives the offset chosen by $op{Def}$, otherwise $op{Def}$ does not see the effects of $op{Spec}$ which is in contradiction to presumtions. Hence, $op_{Spec}.offsettype$ should be converted to Defenite.\\
+%2- The following operation should be Defenite type since $op$ has bound the offset to a value that should be validated at commit instant (Principle 1), unless it is a seek that only sets the offset.\\ 
 
-Req 4: Any operation $op$ which applying $f$ on it yields in Speculative has offsettype=Speculative unless specified otherwise by previous requirements.\\
+%Req 3: Any operation with offsetstaus = Defenite, should change the offsetstatus for prveious operations with a value of Speculative, to Defenite.\\
 
-proof: If we denote $OP_{prev}.offsettype$ as the offsettypes for the prviously encountered operations, considering all requirements this means all (if any) the members of $OP_{prev}$ should be Speculative for $op$ to be able to be Speculative. In this case the offset passed to $op$ is Speculative and if $op$ is Speculative as considered alone then it would carry on the actions in the passed-in Speculative offset.\\ 
+%If $op.offsettype = Definte$ means no previous operations are Absolute (Req 1). So it just could be a mixture of Speculative and Defenite. Lets assume $op_{Def}$ as the first operation after a $op_{spec}$ a Speculative one (Rq 2 ensure after A Defenite there is no Speculative).  $op_{Def}$ makes the offset bound to a specific value and $op_{Def} succeds $op{Spec}$ so it should be able to see the changes made by $op{Spec} this neccesitaes that $op{Spec}$ be done at a specific offset such that when advanced as the effect of operation, it gives the offset chosen by $op{Def}$, otherwise $op{Def}$ does not see the effects of $op{Spec}$ which is in contradiction to presumtions. Hence, $op_{Spec}.offsettype$ should be converted to Defenite.\\
 
-Req 5: An operation with datastatus = Defenite, converts all the speculative offsttypes of the previous operations to Defenite. This requirement is always enforced.\\
+%Req 4: Any operation $op$ which applying $f$ on it yields in Speculative has offsettype=Speculative unless specified otherwise by previous requirements.\\
+
+%proof: If we denote $OP_{prev}.offsettype$ as the offsettypes for the prviously encountered operations, considering all requirements this means all (if any) the members of $OP_{prev}$ should be Speculative for $op$ to be able to be Speculative. In this case the offset passed to $op$ is Speculative and if $op$ is Speculative as considered alone then it would carry on the actions in the passed-in Speculative offset.\\ 
+
+%Req 5: An operation with datastatus = Defenite, converts all the speculative offsttypes of the previous operations to Defenite. This requirement is always enforced.\\
 
 proof: Since if datastatus = Defenite, this mean the operation is "using" or "reading" some file contents- an irreversible action- and as this operation should be able to see the modifications made by all preceding operations, if these are speculative, at commit instant they may "relocate" their modifications, this means eitehr $op$ may not see some changes made by precedessors or may see some changes not made by any precedessors (since the speculatively changes were used by $op$ however these did not get reflected in the actual file system since they were relocated at commit instant). Either way contradicts the defenitions and principles (Def 8 and Principle 0).\\
 
