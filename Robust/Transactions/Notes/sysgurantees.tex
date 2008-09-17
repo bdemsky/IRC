@@ -87,13 +87,13 @@ Rule 1- if $T_i \rightarrow T_k$ and $T_k \rightarrow T_j$ then $T_i \rightarrow
 
 proof: Since Def 9 ensures all operations in $OP_{T_i}$ precede those in $OP_{T_j}$. \\ 
 
-Rule 2- If $T_j$ "commits" at instant $t_j$, and $T_{commited}$ denotes the set of all commited transactions at $t_i$ such that $t_j > t_i$ then all members of $T_{commited}$ should precede $T_j$ (hence they should succed)\\
+Rule 2-  \emph{Committed transaction Should Precede the About to Commit Transaction}: $T_j$ "commits" at instant $t_j$ - $T_{commited}$ denotes the set of all commited transactions at $t_i$ such that $t_j > t_i$- only if all members of $T_{commited}$ precede $T_j$ (hence they should succed)\\
 
 proof: $T_i$ denotes the last commited member of $T_{commited}$. Lets assume on the contrary $T_i$ does not precede $T_j$ and hence $T_j \rightarrow T_i$.\\
 
 If there is not a pair of (read, write) or (write, read), sharing resource $r_n$ in the two transaction, then $T_i \rightarrow T_j$ according to Def 7 and Def 9.\\
 
-If there are such operations, 1-At least an operation $a$ reads from $r_n$ in $OP_i$ sees the writes made by a write operation on $r_n$($b$) in $OP_j$, however since $T_j$ is just about to commit and acording to Def 4, writes are not reflected till commit instant, hence $a$ could not have read the writes made by $b$ and consequently $a$ does not precede $b$ contradicting the assumption $T_j \rightarrow T_i$ . OR 2- An operation $a$ in $T_i$ writes to resource $r_i$ and operation $b$ in $T_j$ reads resource $b$, according to Def 5 and Def 5 $a$ precedes $b$ and $b$ does not precede $a$, hence contradicting the assumption that $T_j \rightarrow T_i$.\\ 
+If there are such operations, 1-At least an operation $a$ reads from $r_n$ in $OP_i$ sees the writes made by a write operation on $r_n$($b$) in $OP_j$, however since $T_j$ has commited after $T_i$ and writes are not reflected till commit instant, hence $a$ could not have read the writes made by $b$ and consequently $a$ does not precede $b$ contradicting the assumption $T_j \rightarrow T_i$ . OR 2- An operation $a$ in $T_i$ writes to resource $r_i$ and operation $b$ in $T_j$ reads resource $r_i$, according to Def 5 $a$ precedes $b$ and $b$ does not precede $a$, hence contradicting the assumption that $T_j \rightarrow T_i$.\\ 
 
 
 The same reasoning could be done for $T_i$ and $T_{i-1}$, $T_{i-1}$ the last commited transaction before $T_{i}$. Now according to rule 3, since $T_{i-1}$ precedes $T_i$ and $T_i$ precedes $T_{j}$, hence $T_{i-1}$ precedes $T_{j}$. Same reasoning is applied for all the members of $T_{commited}$. \\
@@ -103,9 +103,13 @@ The same reasoning could be done for $T_i$ and $T_{i-1}$, $T_{i-1}$ the last com
 
 
 
-Rule 3- If $T_j$ "commits" at instant $t_j$, and $T_{commited}$ denotes the set of all commited transactions at $t_i$ such that $t_j > t_i$ then $\forall op_i \in OP_{T_i}$, $\forall op_{all} \in$ the union of $OP_j$, such that $OP_j$ is the set of operations  for every $T_j \in T_{commited}$, then $op_{all}$  should precede $op_{i}$.\\
+Rule 3-\emph{Operation in the Committed Transactions Precede Those in The Transaction About to Commit}: $T_j$ "commits" at instant $t_j$ - $T_{commited}$ denoting the set of all commited transactions at $t_i$ such that $t_j > t_i$- only if $\forall op_i \in OP_{T_i}$, $\forall op_{all} \in$ the union of $OP_j$, such that $OP_j$ is the set of operations  for every $T_j \in T_{commited}$, $op_{all}$  should precede $op_{i}$.\\
 
-Follows immediately from Rule 2 and Def 7. 
+proof: Follows immediately from Rul2 and Def 7.
+
+Rule 4- \emph{If All committed Transactions Precede A Transaction About to Commit, It Commits}: $T_i$ commits if at its commit instant, $\forall T_j \in T_ccommitted T_j \rightarrow T_i$.
+
+proof: If $\forall T_j \in T_committed T_j \rightarrow T_i$, a total ordering can be established corresponding the precedence relationship and all writes made by committed transaction have been seen by reads in $T_i$, hence according to Def 8, a consistent sequence of transactions would be provided. 
 
 \subsection{TransactionalFile Opeartions}
 TransactioalFiles can be either created inside or outside $T$. The TransactionalFile object ensures transactional access no matter where it is created and accessed. Meaning the first time $T_i$ \emph {uses} $tf_j$ the flow of the program should look like no other piece of code (i.e Transactional and non-transactional) outside $T_i$ will \emph {modify} $tf_j$ before $OP(endtransaction)_{T_i}$. Otherwise, $T_i$ has to abort. \\
@@ -131,10 +135,15 @@ It should be noted that according to Rule 3 even if all but one of the transacti
 proof: Obviously such modifications are not valid and are probably part of a faulty operation.\\
 
 
-Principle 1) If an operation $a$ that "reads" some data $r_n$ (reads the data at some $t < t_{commit-of-the-transaction}$(the commit instant)), it should be ensured that the data $r_n$ is still valid in the actual file system at $t_{commit-of-the-transaction}$ (commit instant) or $T_i$ has to abort.\\
+Principle 1) \emph{Reads Should be Validated At Commit Instant}: If an operation $a$ that "reads" some data $r_n$ (reads the data at some $t < t_{commit-of-the-transaction}$(the commit instant)), it should be ensured that the data $r_n$ is still valid in the actual file system at $t_{commit-of-the-transaction}$ (commit instant) or $T_i$ has to abort.\\
 
 proof: If the data is not valid anymore it means the data $r_n$ has been written since $t_{i-1}$. This implies at least one operation $b$ has written the data since the use and $b$ does not precede $a$ and $a$ precedes $b$. $b$ is either an operation in the same transaction or a different one. According to Def 4, however if $b$ is in the same transaction, then $b$ can not have commited yet and hence the changes are not reflected in the filesystem so it is still valid at commit instant. Hence, $b$ belongs to a different transaction namely $T_j$. Since $T_j$ should have already commited, according to Rule 3 all operation in $OP_{T_j}$ should precede those in $OP_{T_i}$, however, we know there is at least an operation $b$ that does not precede $a$ (since $a$ has not seen the "writes" made to $r_n$ by $b$). Hence, $T_i$ can not commit.\\
 
+The same reasoning could be done for $T_i$ and $T_{i-1}$, $T_{i-1}$ the last commited transaction before $T_{i}$. Now according to rule 3, since $T_j$ succeds $T_i$ and $T_i$ succeds $T_{i-1}$, hence $T_j$ succeds $T_{i-1}$. Same reasoning is applied for all the members of $T_{commited}$. \\ 
+
+Principle 2: emph{If Reads Are Valid At Commit Instant, the Transaction Commits}: If by applying Principle 1 for $T_i$ it is ensured that $\forall r_i \in R{T_i}$ (all data read by $T_i$) is still valid at commit instant, then $\forall T_j \in T_{committed} T_j \rightarrow T_j$ and hence according to Rule 4 $T_i$ commits.\\
+
+proof: If all data read is still valid at commit instant, means all operation in the set of operations belonging to committed transactions, precede those in $T_i$ (since no writes have been seen), and consequently all those transactions precede $T_i$.\\ 
 
 %Principle 2) 1-A seek operation in $OP_{T_i}$ does not make $T_i$ dependent on any data and hence does not count as "using" ("use" as defined in Def 1).\\
 
@@ -148,7 +157,7 @@ proof: If the data is not valid anymore it means the data $r_n$ has been written
 
 %proof: The result of a write would always be the same contents thus, according to Def 2 does not count as using.\\
 
-\subsection{A Model for Offset and Data Dependeny for Operations}
+%\subsection{A Model for Offset and Data Dependeny for Operations}
 
 %Assumption: Each operation has a offset status assioated with it. We call this operation.offsetstatus. Each operation has a data satus assosiated with it namely operation.datastatus\\
 
@@ -201,36 +210,36 @@ proof: If the data is not valid anymore it means the data $r_n$ has been written
 
 %Req 5: An operation with datastatus = Defenite, converts all the speculative offsttypes of the previous operations to Defenite. This requirement is always enforced.\\
 
-proof: Since if datastatus = Defenite, this mean the operation is "using" or "reading" some file contents- an irreversible action- and as this operation should be able to see the modifications made by all preceding operations, if these are speculative, at commit instant they may "relocate" their modifications, this means eitehr $op$ may not see some changes made by precedessors or may see some changes not made by any precedessors (since the speculatively changes were used by $op$ however these did not get reflected in the actual file system since they were relocated at commit instant). Either way contradicts the defenitions and principles (Def 8 and Principle 0).\\
+%proof: Since if datastatus = Defenite, this mean the operation is "using" or "reading" some file contents- an irreversible action- and as this operation should be able to see the modifications made by all preceding operations, if these are speculative, at commit instant they may "relocate" their modifications, this means eitehr $op$ may not see some changes made by precedessors or may see some changes not made by any precedessors (since the speculatively changes were used by $op$ however these did not get reflected in the actual file system since they were relocated at commit instant). Either way contradicts the defenitions and principles (Def 8 and Principle 0).\\
 
-Note: Req 5 suggest if datatype = Definite this causes all the previous operation with Speculative as offsettype to be changed to Defenite.
+%Note: Req 5 suggest if datatype = Definite this causes all the previous operation with Speculative as offsettype to be changed to Defenite.
 
-Def: We define a function $g(offsetstat_1, offsettat_2, ..., offsetstat_{n-1}, operation)$ that takes an input  $n-1$ number of $op.offsetstatus$ plus an operation and gives as the output $n$ number of $op.offsetstatus$. The $g$ functions provides the requirements mentioned above. Follwing rules determine the output, the rules are ordererd according to their priority:\\
+%Def: We define a function $g(offsetstat_1, offsettat_2, ..., offsetstat_{n-1}, operation)$ that takes an input  $n-1$ number of $op.offsetstatus$ plus an operation and gives as the output $n$ number of $op.offsetstatus$. The $g$ functions provides the requirements mentioned above. Follwing rules determine the output, the rules are ordererd according to their priority:\\
 
-1- if $f(operation) = Absolute$, $g(offsetstat_1, ..., {offsetstat_{n-1}}, operation) = ({offsetstat_1}, ..., {offsetstat_{n-1}}, Absolute)$ leaving all offsetstats intact.\\
+%1- if $f(operation) = Absolute$, $g(offsetstat_1, ..., {offsetstat_{n-1}}, operation) = ({offsetstat_1}, ..., {offsetstat_{n-1}}, Absolute)$ leaving all offsetstats intact.\\
 
-2- if $f(operation) = Defenite$:\\
+%2- if $f(operation) = Defenite$:\\
 
-\hspace{ 8mm}
-	2.1- if $\exists offset \in \{offsetstat_1, ..., offsetstat_{n-1}$\} such that offset = Absolute,  $g(offsetstat_1, ..., offsetstat_{n-1}, operation) = (offsetstat_1, ... ,Absolute)$ leaving all offsestats intact.\\ 
+%\hspace{ 8mm}
+%	2.1- if $\exists offset \in \{offsetstat_1, ..., offsetstat_{n-1}$\} such that offset = Absolute,  $g(offsetstat_1, ..., offsetstat_{n-1}, operation) = (offsetstat_1, ... ,Absolute)$ leaving all offsestats intact.\\ 
 
-\hspace{ 8mm}
-	2.2- else $\forall offsetstat \in (offsetstat_0, ..., offsetstat_{n-1})$ if offsetstat = Speculative, change its value to Defenite in the output of $g$, plus appending a Defenite to the output (for instane $g(speculative, speculative, read) = (defenite, defeinte, definte)$)\\
+%\hspace{ 8mm}
+%	2.2- else $\forall offsetstat \in (offsetstat_0, ..., offsetstat_{n-1})$ if offsetstat = Speculative, change its value to Defenite in the output of $g$, plus appending a Defenite to the output (for instane $g(speculative, speculative, read) = (defenite, defeinte, definte)$)\\
 
-3- if $f(operation) = Speculative$:\\
+%3- if $f(operation) = Speculative$:\\
 
-\hspace{ 8mm}
-	3.1- if $\exists offset \in \{offsetstat_1, ..., offsetstat_{n-1}\}$ such that offset = Absolute, $g(offsetstat_1, ... offsetstat_{n-1}, operation) = (offsetstat_1, ... Absolute)$ leaving all offsestats intact.\\ 
+%\hspace{ 8mm}
+%	3.1- if $\exists offset \in \{offsetstat_1, ..., offsetstat_{n-1}\}$ such that offset = Absolute, $g(offsetstat_1, ... offsetstat_{n-1}, operation) = (offsetstat_1, ... Absolute)$ leaving all offsestats intact.\\ 
 
-\hspace{ 8mm}
-	3.2- else if $\exists offsetstat \in \{offsetstat_1, ..., offsetstat_{n-1}\}$ such that offsetstat = {Defenite},  $g(offsetstat_1, ...,  offsetstat_{n-1}, operation) = (offsetstat_1 ,..., offsetstat_{n-1}, Defenite)$\\
+%\hspace{ 8mm}
+%	3.2- else if $\exists offsetstat \in \{offsetstat_1, ..., offsetstat_{n-1}\}$ such that offsetstat = {Defenite},  $g(offsetstat_1, ...,  offsetstat_{n-1}, operation) = (offsetstat_1 ,..., offsetstat_{n-1}, Defenite)$\\
 
-\hspace{ 8mm}
-	3.3- else $g(offsetstat_1, ..., offsetstat_{n-1}, operation) = (offsetstat_1, ..., offsetstat_{n-1}, Speculative)$\\
+%\hspace{ 8mm}
+%	3.3- else $g(offsetstat_1, ..., offsetstat_{n-1}, operation) = (offsetstat_1, ..., offsetstat_{n-1}, Speculative)$\\
 
-4- After doing the above check if datastatus = Defenite, then change all offsettypes in the input that are Speculative to Defenite in the output.
+%4- After doing the above check if datastatus = Defenite, then change all offsettypes in the input that are Speculative to Defenite in the output.
 
-1, 2.1, 3.1 ensure Req 1. 2.2 and 3.2 ensures Req 2. 2. ensure Req 3, and finally 3.3 provides Req 4. 4 also ensures Req 5. 
+%51, 2.1, 3.1 ensure Req 1. 2.2 and 3.2 ensures Req 2. 2. ensure Req 3, and finally 3.3 provides Req 4. 4 also ensures Req 5. 
 
 
 
