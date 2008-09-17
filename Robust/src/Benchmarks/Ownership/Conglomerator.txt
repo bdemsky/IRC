@@ -1,0 +1,36 @@
+Conducting ownership analysis with allocation depth = 3
+---------LogRequest(WebServerSocket web, Logger log)--------
+Task LogRequest(WebServerSocket web, Logger log) contains no aliases between flagged objects.
+
+---------ReceiveQueryW(Weather l)--------
+Task ReceiveQueryW(Weather l) contains no aliases between flagged objects.
+
+---------LookupS(Stock l)--------
+Task LookupS(Stock l) contains no aliases between flagged objects.
+
+---------LookupG(Google l)--------
+Task LookupG(Google l) contains no aliases between flagged objects.
+
+---------Transaction(WebServerSocket web, Weather weather, Google g, MySocket s, Stock st)--------
+Task Transaction(WebServerSocket web, Weather weather, Google g, MySocket s, Stock st) contains no aliases between flagged objects.
+
+---------ReceiveQueryG(Google l)--------
+Task ReceiveQueryG(Google l) contains no aliases between flagged objects.
+
+---------SendFile(WebServerSocket web, MySocket s)--------
+Task SendFile(WebServerSocket web, MySocket s) contains no aliases between flagged objects.
+
+---------AcceptConnection(ServerSocket ss)--------
+Task AcceptConnection(ServerSocket ss) contains no aliases between flagged objects.
+
+---------ReceiveQueryS(Stock l)--------
+Task ReceiveQueryS(Stock l) contains no aliases between flagged objects.
+
+---------Startup(StartupObject s)--------
+Task Startup(StartupObject s) contains no aliases between flagged objects.
+
+---------ProcessRequest(WebServerSocket web, MySocket s)--------
+Task ProcessRequest(WebServerSocket web, MySocket s) contains no aliases between flagged objects.
+
+---------LookupW(Weather l)--------
+Task LookupW(Weather l) contains no aliases between flagged objects.

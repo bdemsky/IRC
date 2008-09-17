@@ -1,0 +1,21 @@
+intractable:
+
+
+Analyzing public String Query.makewebcanonical(String page)
+Analyzing processPage(Query q, QueryList ql)
+Analyzing public String InetAddress.toString()
+Analyzing public static String String.valueOf(Object o)
+Analyzing readResponse(Query q, Socket s)
+Analyzing public String Integer.toString()
+Analyzing public static String String.valueOf(Object o)
+Analyzing public String Query.getPathName(String page)
+Analyzing processPage(Query q, QueryList ql)
+Analyzing public String Query.makewebcanonical(String page)
+Analyzing public  Query.Query(String hostname, String path)
+Analyzing processPage(Query q, QueryList ql)
+exhaustiveArityCombinations numDimensions = 12
+x x x exhaustiveArityCombinations numDimensions = 12
+x x x exhaustiveArityCombinations numDimensions = 12
+x x x exhaustiveArityCombinations numDimensions = 24
+x x x x x x
+

@@ -1,5 +1,5 @@
 BUILDSCRIPT=~/research/Robust/src/buildscript
-BSFLAGS= -recover -ownership -ownaliasfile aliases.txt -enable-assertions
+BSFLAGS= -recover -ownership -ownaliasfile aliases.txt -enable-assertions #-flatirtasks
 AD3= -ownallocdepth 3
 AD5= -ownallocdepth 5
 AD9= -ownallocdepth 9

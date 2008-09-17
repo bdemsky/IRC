@@ -1,0 +1,23 @@
+No reported aliases in:
+-BankApp
+-Conglomerator 
+-PERTTag
+-SchedulingFilterBank
+-SchedulingJGFSeries
+-TileSearchTag
+-TTTTag
+
+
+Aliases:
+-ChatTag shows 3 tasks with aliases, with allocation depth = 3 or 9
+-WebServerTag shows 1 task with aliases, ad=3 or 9
+
+
+Out of Memory:
+-MMGTag
+
+
+Intractable:
+-MapReduceTag quit at exhaustive arity dimension = 24
+-SpiderBRTag quit at d=24
+-SpiderBR quit at d=17
