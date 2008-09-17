@@ -34,8 +34,9 @@ Def 5- \emph{No See In Future}: Assume $T_i$ is an uncomiited transaction and $T
 
 \hspace{7mm} 2- $a \in OP_{T_i}$ and $a$ happens before $b$ in the natural order of the transaction. Formally, $a$ has a lower position than that of $b$ in $OP_{T_i}$ = \{$OP_1$, ..., $OP_n$\} \\
 
+Def 6- \emph{Precedence Relationship for Read-Write Operations}:
 
-Def 7- \emph{Precedence Relationship for Read-Write Operations}: Assume $b$ is a read operation and $a$ is a write operation, and $a$ and $b$ share resource $r_i$, $a$ precedes $b$ ($a \rightarrow b$) if complying with Def 5, $b$ is allowed to see the writes to $r_i$ made by $a$. Otherwise, $b \rightarrow a$. \\
+Def 7- \emph{Precedence Relationship for Read-Write Operations}: Assume $b$ is a read operation and $a$ is a write operation, and $a$ and $b$ share resource $r_i$, $a$ precedes $b$ ($a \rightarrow b$) if complying with Def 5, $b$ is allowed to see the writes to $r_i$ made by $a$. Otherwise, $b \rightarrow a$. For other pairs of operations or read-writes that do not share resources $a \rightarrow b$ and $b \rightarrow a$.\\
 
 
 Corrolary- \emph{Read Must See Most Recent Comitted Write}: If $a \in OP{T_i}$ reads the resource $r_i$, in case $a$ has multiple precedessors sharing $r_i$ (denoted as $OP_{precedessors-for-r_i}$), then if all of them are from sets other than $OP_{T_i}$, $a$ sees the writes made by $op_{T_j} \in OP_{precedessors-for-r_i}$ such that $T_j$ has the greatest "commit instant" between all transaction with such operations. Otherwise, $a$ sees the most recent precedessor in $OP_{T_i}$. \\
@@ -45,15 +46,15 @@ proof: Consider case 1 that all precedessors are from sets of operations other t
 In case 2 that there are operations preceding $a$ in $OP_{T_i}$, according to defenition of transaction $r_i$ should be read from the writes made by write operations in $T_i$, and as the last of such write operation overrides the written data to $r_i$ by other operations, $a$ gets to see the most recent precedessor in $T_i$.\\   
 
 
-Def 8- \emph{Precedence Relationship for Other Types of Operations}:  Follwoing rules are ONLY enforced if precedence relationship is not detemined between two operations by Def 6. 1-If $T_i$ and $T_j$ are two transactions both committed with commit instant of $T_j$ being greater than commit instant of $T_i$ then $\forall op_i \in OP_{T_i}, \forall op_j \in OP_{T_j} op_i \rightarrow op_j$. 2-If two operation belong to the same transaction, then the one that occurs earlier in natural order of transaction precedes the other. 3- If $T_i$ is committed and $T_j$ is not, $\forall op_i \in OP_{T_i}, \forall op_j \in OP_{T_j} op_i \rightarrow op_j$. 4- If neither $T_i$ has commited nor $T_j$, then  $\forall op_i \in OP_{T_i}, \forall op_j \in OP_{T_j} op_i \rightarrow op_j$, if there is either not a precedence relationship between $op_i$ and $op_j$ OR it is $op_i \rightarrow op_j$. 5- Otherwise, it means some operations in $T_i$ precede some of thos in $T_j$ and the other way around, for thos pairs not having such relationship it is assigned arbitrarily.\\
+%Def 8- \emph{Precedence Relationship for Other Types of Operations}:  Follwoing rules are ONLY enforced if precedence relationship is not detemined between two operations by Def 6. 1-If $T_i$ and $T_j$ are two transactions both committed with commit instant of $T_j$ being greater than commit instant of $T_i$ then $\forall op_i \in OP_{T_i}, \forall op_j \in OP_{T_j} op_i \rightarrow op_j$. 2-If two operation belong to the same transaction, then the one that occurs earlier in natural order of transaction precedes the other. 3- If $T_i$ is committed and $T_j$ is not, $\forall op_i \in OP_{T_i}, \forall op_j \in OP_{T_j} op_i \rightarrow op_j$. 4- If neither $T_i$ has commited nor $T_j$, then  $\forall op_i \in OP_{T_i}, \forall op_j \in OP_{T_j} op_i \rightarrow op_j$, if there is either not a precedence relationship between $op_i$ and $op_j$ OR it is $op_i \rightarrow op_j$. 5- Otherwise, it means some operations in $T_i$ precede some of thos in $T_j$ and the other way around, for thos pairs not having such relationship it is assigned arbitrarily.\\
 
-Def 9- $\forall$ $op_{T_i}$ $\in OP_{T_i}$ and $\forall op_{T_j}\in OP_{T_j}$ if and only if $op_{T_i} \rightarrow op_{T_j}$ then $T_i$ $\rightarrow T_j$ \hspace{8mm} (this defines precedes relationship for members of $T$) \\
+Def 8- $\forall$ $op_{T_i}$ $\in OP_{T_i}$ and $\forall op_{T_j}\in OP_{T_j}$ if and only if $op_{T_i} \rightarrow op_{T_j}$ then $T_i$ $\rightarrow T_j$ \hspace{8mm} (this defines precedes relationship for members of $T$) \\
 
-Def 10- A sequence of tarnsaction are said to be consistent if and only if a total ordeing of them according to precedence relationship can be established.\\ 
+Def 9- A sequence of tarnsaction are said to be consistent if and only if a total ordeing of them according to precedence relationship can be established.\\ 
 
 Corrolary: \emph{Upon Commit All Mebers of $T_{commit}$ Should Precede $T_i$}
 
-proof: Follows imeediately from Def 9 and Def 10.
+proof: Follows imeediately from Def 8 and Def 9.
 
 %Def 2- An operation in $T_i$ is said to have "used" the data when it has read some data and has done some actions that is potentially irreversible. hence if the data in question was to change, $op$ would have different results. A transaction with such an operation in its operations set is said to have used that data. Any data read and used within a transaction at its commit instant does not count as using. "Use" can just be attributed to the operations actually reading data before commit instant. \\   
 
@@ -78,21 +79,25 @@ i%Rule 1- for any pair of operations (transactions) $a$ and $b$ their relationsh
 
 %proof: the first part follows from Def 4 , second derives from Def 4 and second part of Def 1.\\
 
-Rule 3- $\forall op_i \in  OP{T_i}$, $\forall op_j \in  OP{T_j}$, $\forall op_k \in  OP{T_k}$, if there is a precedence relationship between $op_i$ and $op_k$ sand $op_i \rightarrow op_k$, and if there is a relationship between $op_k$ and $op_j$ and $op_k \rightarrow op_j$, then $op_i \rightarrow op_j$ \\
+%Rule 1- $\forall op_i \in  OP{T_i}$, $\forall op_j \in  OP{T_j}$, $\forall op_k \in  OP{T_k}$, if there is a precedence relationship between $op_i$ and $op_k$ sand $op_i \rightarrow op_k$, and if there is a relationship between $op_k$ and $op_j$ and $op_k \rightarrow op_j$, then $op_i \rightarrow op_j$ \\
 
 proof: Follows from the defenition of $\rightarrow$ \\
 
 
-Rule 4- if $T_i \rightarrow T_k$ and $T_k \rightarrow T_j$ then $T_i \rightarrow T_j$ \\
+Rule 2- if $T_i \rightarrow T_k$ and $T_k \rightarrow T_j$ then $T_i \rightarrow T_j$ \\
 
-proof: Follows from Rule 2 and Def 7. \\ 
+proof: Since Def 9 ensures all operations in $OP_{T_i}$ precede those in $OP_{T_j}$. \\ 
 
+Rule 5- If $T_j$ "commits" at instant $t_j$, and $T_{commited}$ denotes the set of all commited transactions at $t_i$ such that $t_j > t_i$ then all members of $T_{commited}$ should precede $T_j$ (hence they should succed)\\
 
-Rule 5- If $T_j$ "commits" at instant $t_j$, and $T_{commited}$ denotes the set of all commited transactions at $t_i$ such that $t_j > t_i$ then $T_j$ should not \emph ONLY precede any members of $T_{commited}$ (hence they should succed)\\
+proof: $T_i$ denotes the last commited member of $T_{commited}$. Lets assume on the contrary $T_i$ does not precede $T_j$ and hence $T_j \rightarrow T_i$.\\
 
-proof: $T_i$ denotes the last commited member of $T_{commited}$. Lets assume on the contrary $T_j$ only precedes $T_i$. This means according to def 7, all operations in $OP_i$ sees the effects made by those in $OP_j$. \\ 
+If there is not a pair of (read, write) or (write, read), sharing resource $r_n$ in the two transaction, then $T_i \rightarrow T_j$ according to Def 7 and Def 9.\\
 
-If an operation $op_{i_1}$ in $OP_i$, affects some data used by an operation $op_{j_i}$ in $OP_j$, then $op_{j_1}$ can not precede $op_{i_1}$ since then it could not have seen the changes by it, however def 3 says it does, this is in contrats to the assumption. On the other hand, if $op_{j_1}$ affects some data used by $op{i_1}$, then since $op{i_1}$ has not seen the change, $op{j_1}$ can not precede $op{i_1}$. If no operations in $OP_i$ affects another in $OP_j$, then the set of all opeartions in $OP_i$ both precede and succed those in $OP_j$, and hence the contraray to the assumption. In this case, the transaction are conceptually interchangable. In either case, $T_j$ either "succeds" or "succeds and precedes" $T_i$. Either way it succeds the other. \\
+If there are such operations, 1-At least an operation $a$ reads from $r_n$ in $OP_i$ sees the writes made by a write operation on $r_n$($b$) in $OP_j$, however since $T_j$ is just about to commit and acording to Def 4, writes are not reflected till commit instant, hence $a$ could not have read the writes made by $b$ and consequently $a$ does not precede $b$ contradicting the assumption $T_j \rightarrow T_i$ . OR 2- An operation $a$ in $T_i$ writes to resource $r_i$ and operation $b$ in $T_j$ reads resource $b$, according to Def 5 and Def 5 $a$ precedes $b$ and $b$ does not precede $a$, hence contradicting the assumption that $T_j \rightarrow T_i$.\\ 
+
+If
+If an operation $op_{i_1}$ in $OP_i$, writes some data used by an operation $op_{j_i}$ in $OP_j$, then $op_{j_1}$ can not precede $op_{i_1}$ since then it could not have seen the changes by it, however def 3 says it does, this is in contrats to the assumption. On the other hand, if $op_{j_1}$ affects some data used by $op{i_1}$, then since $op{i_1}$ has not seen the change, $op{j_1}$ can not precede $op{i_1}$. If no operations in $OP_i$ affects another in $OP_j$, then the set of all opeartions in $OP_i$ both precede and succed those in $OP_j$, and hence the contraray to the assumption. In this case, the transaction are conceptually interchangable. In either case, $T_j$ either "succeds" or "succeds and precedes" $T_i$. Either way it succeds the other. \\
 
 
 The same reasoning could be done for $T_i$ and $T_{i-1}$, $T_{i-1}$ the last commited transaction before $T_{i}$. Now according to rule 3, since $T_j$ succeds $T_i$ and $T_i$ succeds $T_{i-1}$, hence $T_j$ succeds $T_{i-1}$. Same reasoning is applied for all the members of $T_{commited}$. \\ 
