@@ -397,6 +397,8 @@ public class OwnershipAnalysis {
       FlatNode fn = (FlatNode) flatNodesToVisit.iterator().next();
       flatNodesToVisit.remove(fn);
 
+      //System.out.println( "  "+fn );
+
       // perform this node's contributions to the ownership
       // graph on a new copy, then compare it to the old graph
       // at this node to see if anything was updated.
@@ -418,6 +420,12 @@ public class OwnershipAnalysis {
                            fn,
                            returnNodesToCombineForCompleteOwnershipGraph,
                            og);
+
+
+
+      //debugSnapshot(og,fn);
+
+
 
       // if the results of the new graph are different from
       // the current graph at this node, replace the graph
@@ -603,14 +611,20 @@ public class OwnershipAnalysis {
 
   // insert a call to debugSnapshot() somewhere in the analysis to get
   // successive captures of the analysis state
-  int debugCounter = 0;
-  int numIterationsIn = 80000;
-  int numIterationsToCapture = 53;
+  int debugCounter        = 0;
+  int numStartCountReport = 66000;
+  int freqCountReport     = 50;
+  int iterStartCapture    = 70000;
+  int numIterToCapture    = 100;
   void debugSnapshot( OwnershipGraph og, FlatNode fn ) {
     ++debugCounter;
-    if( debugCounter > numIterationsIn ) {
-      System.out.println( "   @@@ capturing debug "+(debugCounter-numIterationsIn)+" @@@" );
-      String graphName = String.format("snap%04d",debugCounter-numIterationsIn);
+    if( debugCounter > numStartCountReport &&
+	debugCounter % freqCountReport == 0 ) {
+      System.out.println( "    @@@ debug counter = "+debugCounter );
+    }
+    if( debugCounter > iterStartCapture ) {
+      System.out.println( "    @@@ capturing debug "+(debugCounter-iterStartCapture)+" @@@" );
+      String graphName = String.format("snap%04d",debugCounter-iterStartCapture);
       if( fn != null ) {
 	graphName = graphName+fn;
       }
@@ -621,7 +635,7 @@ public class OwnershipAnalysis {
 	System.exit( 0 );	
       }
     }
-    if( debugCounter == numIterationsIn + numIterationsToCapture ) {
+    if( debugCounter == iterStartCapture + numIterToCapture ) {
       System.out.println( "Stopping analysis after debug captures." );
       System.exit( 0 );
     }

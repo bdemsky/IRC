@@ -255,6 +255,10 @@ public class ReachabilitySet extends Canonical {
 
     int numDimensions = this.possibleReachabilities.size();
 
+    if( numDimensions > 10 ) {
+      System.out.println( "exhaustiveArityCombinations numDimensions = "+numDimensions );
+    }
+
     // add an extra digit to detect termination
     int[] digits = new int[numDimensions+1];
 
@@ -284,6 +288,20 @@ public class ReachabilitySet extends Canonical {
       // increment
       for( int i = 0; i < numDimensions+1; ++i ) {
 	digits[i]++;
+
+
+	if( i == 11 ) {
+	  System.out.print( "x " );
+	}
+
+	if( i == 15 ) {
+	  System.out.print( "@ " );
+	}
+
+	if( i == 17 ) {
+	  System.out.print( "# " );
+	}
+
 	if( digits[i] > maxArity ) {
 	  // this axis reached its max, so roll it back to min and increment next higher digit
 	  digits[i] = minArity;

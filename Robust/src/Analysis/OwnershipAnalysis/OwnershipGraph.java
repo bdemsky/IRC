@@ -1013,7 +1013,9 @@ public class OwnershipGraph {
 	ReferenceEdge edge = edgeItr.next();
 	D_i = D_i.union(edge.getBeta() );
       }
+
       D_i = D_i.exhaustiveArityCombinations();
+
       paramIndex2rewriteD.put(paramIndex, D_i);
     }
 
@@ -1106,7 +1108,6 @@ public class OwnershipGraph {
 	}
       }
 
-
       // update reachable edges
       Iterator<ReferenceEdge> edgeReachableItr = edgesReachable.iterator();
       while( edgeReachableItr.hasNext() ) {
@@ -1124,7 +1125,6 @@ public class OwnershipGraph {
 
 	edgesWithNewBeta.add(edgeReachable);
       }
-
 
       // update upstream edges
       Hashtable<ReferenceEdge, ChangeTupleSet> edgeUpstreamPlannedChanges
@@ -1163,7 +1163,6 @@ public class OwnershipGraph {
     while( edgeItr.hasNext() ) {
       edgeItr.next().applyBetaNew();
     }
-
 
 
     // verify the existence of allocation sites and their
@@ -1334,7 +1333,6 @@ public class OwnershipGraph {
     }
 
 
-
     // return value may need to be assigned in caller
     if( fc.getReturnTemp() != null ) {
 
@@ -1396,7 +1394,6 @@ public class OwnershipGraph {
 	}
       }
     }
-
 
 
     // merge the shadow nodes of allocation sites back down to normal capacity
