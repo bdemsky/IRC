@@ -115,38 +115,38 @@ A Transactionalfile can be shared among any subset of the members of $T$. If sha
 
 \section{Implications for the System}
 
-\subsection{General Principles}
-Now, if $T_i$ and $T_j$ do not either modify the data the other one uses, according to Rule 4 both can commit. This means even if $T_i$ accesses $tr_k$ before $T_j$ does, but $T_j$ commits before $T_i$, given that $T_j$ has not modified the data in use by $T_i$, $T_i$ could still commit. \\
+\subsection{General Implications}
+Now, if $T_i$ and $T_j$ do not either write the data the other one reads, according to Rule 2 and 3 both can commit. This means even if $T_i$ accesses $r_k$ before $T_j$ does, but $T_j$ commits before $T_i$, given that $T_j$ has not modified the data in use by $T_i$, $T_i$ could still commit. \\
 
 
-Below we will give a list of principles with the proofs on the operations and how they affect the data. We would using this table then establish the rules our system would go by. Before going to this, it should be noted that according to rule 6 even if all but one operations in a set suucced all operations in the other, still the transaction can not commit. therefore it takes only one operation to make the transaction dependent (it should succced others but can not since one of the operations in its set already preceded an operation in an already commited transaction). Formally, if there is an operation $b \in OP_{T_j}$ and an operation $a \in OP_{T_j}$ such that $b$ does not succed $a$ (or equivalently only precedes $a$) then $T_j$ can not succed $T_i$. In the rules below $T_i$ is not commited yet and $T$ denotes the set of all commited or active transactions. \\
+Below we will give a list of principles with the proofs on the operations and how they affect the data. We would using this table then establish the rules our system would go by. Before going to this, it should be noted that according to rule 3 even if all but one operations in a set precede all operations in the other, still the transaction can not commit. Therefore it takes only one operation to make the transaction dependent (all the committed transaction should precede this transaction but can not since one of the operations in the committed transaction does not precede an operation in this transaction). Formally, if there is an operation $b \in OP_{T_j}$ and an operation $a \in OP_{T_i}$ such that $a$ does not precede $b$ then $T_i$ can not precede $T_j$. In the rules below $T_i$ is not commited yet and $T$ denotes the set of all commited or active transactions. \\
 
-Assumption : The reads within transaction do actually occur when they are encountered. However, no change to the file system is done before commit instant as said before (writes, changing the offset and etc.)\\
+%Assumption : The reads within transaction do actually occur when they are encountered. However, no change to the file system is done before commit instant as said before (writes, changing the offset and etc.)\\
 
 
-Assumption: seek operation means after this operation is executed, the offset should be at the chosen value regardless of the actual value of the offset in the file system.\\
+%Assumption: seek operation means after this operation is executed, the offset should be at the chosen value regardless of the actual value of the offset in the file system.\\
 
-Principle 0: An operation should not see any modifications other than those made by precedessors (either in the same transaction or others)\\
+%Principle 0: An operation should not see any modifications other than those made by precedessors (either in the same transaction or others)\\
 
 proof: Obviously such modifications are not valid and are probably part of a faulty operation.\\
 
 
-Principle 1) If an operation $a$ that "uses" some data (reads the data at some $t < t_{commit}$(the commit instant)), it should be ensured that the data is still valid in the actual file system at $t_{commit}$ (commit instant) or $T_i$ has to abort.\\
+Principle 1) If an operation $a$ that "reads" some data $r_n$ (reads the data at some $t < t_{commit-of-the-transaction}$(the commit instant)), it should be ensured that the data $r_n$ is still valid in the actual file system at $t_{commit-of-the-transaction}$ (commit instant) or $T_i$ has to abort.\\
 
-proof: If the data is not valid anymore it means the data has changed since $t_{i-1}$. This implies at least one operation $b$ has chaged the data since the use. $b$ is either a succesor (since the changes were not seen) in the same transaction or a different one. According to Def 1 and Def 3, however if $b$ is in the same transaction, then $b$ can not have commited yet and hence the changes are not reflected in the filesystem. Hence $b$ belongs to a different transaction namely $T_j$. Since $T_j$ should have already commited, according to Rule 6 all operation in $OP_{T_i}$ should succed those in $OP_{T_j}$, however, we know there is at least an operation $a$ that does not succced $b$ (since it has not seen the "changes" made by $b$). Hence, $T_i$ can not commit.\\
+proof: If the data is not valid anymore it means the data $r_n$ has been written since $t_{i-1}$. This implies at least one operation $b$ has written the data since the use and $b$ does not precede $a$ and $a$ precedes $b$. $b$ is either an operation in the same transaction or a different one. According to Def 4, however if $b$ is in the same transaction, then $b$ can not have commited yet and hence the changes are not reflected in the filesystem so it is still valid at commit instant. Hence, $b$ belongs to a different transaction namely $T_j$. Since $T_j$ should have already commited, according to Rule 3 all operation in $OP_{T_j}$ should precede those in $OP_{T_i}$, however, we know there is at least an operation $b$ that does not precede $a$ (since $a$ has not seen the "writes" made to $r_n$ by $b$). Hence, $T_i$ can not commit.\\
 
 
-Principle 2) 1-A seek operation in $OP_{T_i}$ does not make $T_i$ dependent on any data and hence does not count as "using" ("use" as defined in Def 1).\\
+%Principle 2) 1-A seek operation in $OP_{T_i}$ does not make $T_i$ dependent on any data and hence does not count as "using" ("use" as defined in Def 1).\\
 
-The seek operations seeks to an offste within the file descriptor regardless of the changes made by opretaions in all transaction, hence the result would always be the same so according to Def 2 it does not count as using.\\ 
+%The seek operations seeks to an offste within the file descriptor regardless of the changes made by opretaions in all transaction, hence the result would always be the same so according to Def 2 it does not count as using.\\ 
 
-Principle 3) 1- A read operation in $OP_{T_i}$ "uses" contents read and makes $T_i$ dependent on the file contents read.\\
+%rinciple 3) 1- A read operation in $OP_{T_i}$ "uses" contents read and makes $T_i$ dependent on the file contents read.\\
 
-proof: Due to assumption 1 and since the data read by this operation can be used for computation, in case the data read would change, the data and hence computations results would be different. According to Def 2 it uses the data\\
+%proof: Due to assumption 1 and since the data read by this operation can be used for computation, in case the data read would change, the data and hence computations results would be different. According to Def 2 it uses the data\\
 
-Principle 4) 1- A write operation in $OP_{T_i}$ does not make $T_i$ dependent on file contents.\\   
+%Principle 4) 1- A write operation in $OP_{T_i}$ does not make $T_i$ dependent on file contents.\\   
 
-proof: The result of a write would always be the same contents thus, according to Def 2 does not count as using.\\
+%proof: The result of a write would always be the same contents thus, according to Def 2 does not count as using.\\
 
 \subsection{A Model for Offset and Data Dependeny for Operations}
 
