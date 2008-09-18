@@ -27,7 +27,7 @@ public class AllocationSite {
   protected int allocationDepth;
   protected Vector<Integer> ithOldest;
   protected Integer summary;
-  protected TypeDescriptor type;
+  protected FlatNew flatNew;
 
   public static final int AGE_notInThisSite = 100;
   public static final int AGE_in_I          = 101;
@@ -40,11 +40,11 @@ public class AllocationSite {
   public static final int SHADOWAGE_summary       = -103;
 
 
-  public AllocationSite(int allocationDepth, TypeDescriptor type) {
+  public AllocationSite(int allocationDepth, FlatNew flatNew) {
     assert allocationDepth >= 1;
 
     this.allocationDepth = allocationDepth;
-    this.type            = type;
+    this.flatNew         = flatNew;
 
     ithOldest = new Vector<Integer>(allocationDepth);
     id        = generateUniqueAllocationSiteID();
@@ -103,8 +103,12 @@ public class AllocationSite {
     return -summary;
   }
 
+  public FlatNew getFlatNew() {
+    return flatNew;
+  }
+
   public TypeDescriptor getType() {
-    return type;
+    return flatNew.getType();
   }
 
   public int getAgeCategory(Integer id) {
@@ -169,6 +173,6 @@ public class AllocationSite {
   }
 
   public String toStringVerbose() {
-    return "allocSite" + id + " "+type.toPrettyString();
+    return "allocSite" + id + " "+flatNew.getType().toPrettyString();
   }
 }

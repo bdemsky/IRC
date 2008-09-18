@@ -174,6 +174,12 @@ public class Main {
     readSourceFile(state, ClassLibraryPrefix+"gnu/Random.java");
     readSourceFile(state, ClassLibraryPrefix+"Vector.java");
     readSourceFile(state, ClassLibraryPrefix+"Enumeration.java");
+    readSourceFile(state, ClassLibraryPrefix+"Dictionary.java");
+    readSourceFile(state, ClassLibraryPrefix+"Writer.java");
+    readSourceFile(state, ClassLibraryPrefix+"BufferedWriter.java");
+    readSourceFile(state, ClassLibraryPrefix+"OutputStreamWriter.java");
+    readSourceFile(state, ClassLibraryPrefix+"FileWriter.java");
+    readSourceFile(state, ClassLibraryPrefix+"Date.java");
 
     if (state.TASK) {
       readSourceFile(state, ClassLibraryPrefix+"Object.java");

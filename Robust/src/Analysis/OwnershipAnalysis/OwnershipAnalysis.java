@@ -106,7 +106,7 @@ public class OwnershipAnalysis {
 	  AllocationSite as = (AllocationSite) allocItr.next();
 	  if( createsPotentialAliases(td, i, as) ) {
 	    foundSomeAlias = true;
-	    bw.write("Potential alias between parameter "+i+" and "+as+".\n");
+	    bw.write("Potential alias between parameter "+i+" and "+as.getFlatNew()+".\n");
 	  }
 	}
       }
@@ -126,7 +126,7 @@ public class OwnershipAnalysis {
 	  if( !outerChecked.contains(as2) &&
 	      createsPotentialAliases(td, as1, as2) ) {
 	    foundSomeAlias = true;
-	    bw.write("Potential alias between "+as1+" and "+as2+".\n");
+	    bw.write("Potential alias between "+as1.getFlatNew()+" and "+as2.getFlatNew()+".\n");
 	  }
 	}
 
@@ -686,7 +686,7 @@ public class OwnershipAnalysis {
   private AllocationSite getAllocationSiteFromFlatNewPRIVATE(FlatNew fn) {
 
     if( !mapFlatNewToAllocationSite.containsKey(fn) ) {
-      AllocationSite as = new AllocationSite(allocationDepth, fn.getType() );
+      AllocationSite as = new AllocationSite(allocationDepth, fn );
 
       // the newest nodes are single objects
       for( int i = 0; i < allocationDepth; ++i ) {
