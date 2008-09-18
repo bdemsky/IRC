@@ -44,7 +44,8 @@ public class Voo {
 public class Baw {
   int y;
   Foo f;
-  
+  String s;
+
   public Baw() {}
   
   public void doTheBaw( Voo v ) { v = new Voo(); }
@@ -391,6 +392,23 @@ task showPrunedEdgesInMethodCall( Foo a{ f } ) {
   c.f.b = new Baw();
   
   Zool.FooToBaw( c, b );
+
+  taskexit( a{ !f } );
+}
+
+task showStringIsImmutable( Foo a{ f } ) {
+
+  Baw x = new Baw();
+  Baw y = new Baw();
+
+  Foo f = new Foo();
+  String s = new String();
+
+  x.f = f;
+  y.f = f;
+
+  x.s = s;
+  y.s = s;
 
   taskexit( a{ !f } );
 }

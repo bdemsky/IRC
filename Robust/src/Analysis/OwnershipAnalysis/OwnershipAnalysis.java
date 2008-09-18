@@ -347,7 +347,6 @@ public class OwnershipAnalysis {
       OwnershipGraph og = analyzeFlatMethod(d, fm);
       OwnershipGraph ogPrev = mapDescriptorToCompleteOwnershipGraph.get(d);
       if( !og.equals(ogPrev) ) {
-
 	setGraphForDescriptor(d, og);
 
 	// only methods have dependents, tasks cannot
@@ -452,7 +451,8 @@ public class OwnershipAnalysis {
       assert mapFlatNodeToOwnershipGraph.containsKey(frn);
       OwnershipGraph ogr = mapFlatNodeToOwnershipGraph.get(frn);
       completeGraph.merge(ogr);
-    }
+    }   
+
     return completeGraph;
   }
 
@@ -518,7 +518,7 @@ public class OwnershipAnalysis {
       lhs = ffn.getDst();
       rhs = ffn.getSrc();
       fld = ffn.getField();
-      if( !fld.getType().isPrimitive() ) {
+      if( !fld.getType().isImmutable() ) {
 	og.assignTempXEqualToTempYFieldF(lhs, rhs, fld);
       }
       break;
@@ -528,14 +528,16 @@ public class OwnershipAnalysis {
       lhs = fsfn.getDst();
       fld = fsfn.getField();
       rhs = fsfn.getSrc();
-      og.assignTempXFieldFEqualToTempY(lhs, fld, rhs);
+      if( !fld.getType().isImmutable() ) {
+	og.assignTempXFieldFEqualToTempY(lhs, fld, rhs);
+      }
       break;
 
     case FKind.FlatElementNode:
       FlatElementNode fen = (FlatElementNode) fn;
       lhs = fen.getDst();
       rhs = fen.getSrc();
-      if( !lhs.getType().isPrimitive() ) {
+      if( !lhs.getType().isImmutable() ) {
 	og.assignTempXEqualToTempYFieldF(lhs, rhs, fdElement);
       }
       break;
@@ -544,7 +546,7 @@ public class OwnershipAnalysis {
       FlatSetElementNode fsen = (FlatSetElementNode) fn;
       lhs = fsen.getDst();
       rhs = fsen.getSrc();
-      if( !rhs.getType().isPrimitive() ) {
+      if( !rhs.getType().isImmutable() ) {
 	og.assignTempXFieldFEqualToTempY(lhs, fdElement, rhs);
       }
       break;
@@ -552,9 +554,10 @@ public class OwnershipAnalysis {
     case FKind.FlatNew:
       FlatNew fnn = (FlatNew) fn;
       lhs = fnn.getDst();
-      AllocationSite as = getAllocationSiteFromFlatNewPRIVATE(fnn);
-
-      og.assignTempEqualToNewAlloc(lhs, as);
+      if( !lhs.getType().isImmutable() ) {
+	AllocationSite as = getAllocationSiteFromFlatNewPRIVATE(fnn);
+	og.assignTempEqualToNewAlloc(lhs, as);
+      }
       break;
 
     case FKind.FlatCall:
@@ -596,11 +599,9 @@ public class OwnershipAnalysis {
     case FKind.FlatReturnNode:
       FlatReturnNode frn = (FlatReturnNode) fn;
       rhs = frn.getReturnTemp();
-
-      if( rhs != null ) {
+      if( rhs != null && !rhs.getType().isImmutable() ) {
 	og.assignReturnEqualToTemp(rhs);
       }
-
       setRetNodes.add(frn);
       break;
     }
@@ -612,10 +613,10 @@ public class OwnershipAnalysis {
   // insert a call to debugSnapshot() somewhere in the analysis to get
   // successive captures of the analysis state
   int debugCounter        = 0;
-  int numStartCountReport = 66000;
-  int freqCountReport     = 50;
-  int iterStartCapture    = 70000;
-  int numIterToCapture    = 100;
+  int numStartCountReport = 10000;
+  int freqCountReport     = 10;
+  int iterStartCapture    = 50;
+  int numIterToCapture    = 16;
   void debugSnapshot( OwnershipGraph og, FlatNode fn ) {
     ++debugCounter;
     if( debugCounter > numStartCountReport &&

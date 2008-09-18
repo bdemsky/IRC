@@ -1334,9 +1334,10 @@ public class OwnershipGraph {
 
 
     // return value may need to be assigned in caller
-    if( fc.getReturnTemp() != null ) {
+    TempDescriptor returnTemp = fc.getReturnTemp();
+    if( returnTemp != null && !returnTemp.getType().isImmutable() ) {
 
-      LabelNode lnLhsCaller = getLabelNodeFromTemp(fc.getReturnTemp() );
+      LabelNode lnLhsCaller = getLabelNodeFromTemp(returnTemp);
       clearReferenceEdgesFrom(lnLhsCaller, null, true);
 
       LabelNode lnReturnCallee = ogCallee.getLabelNodeFromTemp(tdReturn);
