@@ -221,6 +221,10 @@ public class TypeDescriptor extends Descriptor {
     return type==TAG;
   }
 
+  public boolean isImmutable() {
+    return isPrimitive() || isString();
+  }
+
   public TypeDescriptor(NameDescriptor name) {
     super(name.toString());
     this.type=CLASS;
