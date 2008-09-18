@@ -46,6 +46,11 @@ public class ReachabilitySet extends Canonical {
     return possibleReachabilities.iterator();
   }
 
+  
+  public int size() {
+    return possibleReachabilities.size();
+  }
+
 
   public boolean contains(TokenTupleSet tts) {
     assert tts != null;
@@ -256,7 +261,8 @@ public class ReachabilitySet extends Canonical {
     int numDimensions = this.possibleReachabilities.size();
 
     if( numDimensions > 10 ) {
-      System.out.println( "exhaustiveArityCombinations numDimensions = "+numDimensions );
+      System.out.println( "    exhaustiveArityCombinations numDimensions = "+numDimensions );
+      System.out.println( this );
     }
 
     // add an extra digit to detect termination
@@ -291,15 +297,15 @@ public class ReachabilitySet extends Canonical {
 
 
 	if( i == 11 ) {
-	  System.out.print( "x " );
+	  System.out.print( "x" );
 	}
 
 	if( i == 15 ) {
-	  System.out.print( "@ " );
+	  System.out.print( "@" );
 	}
 
 	if( i == 17 ) {
-	  System.out.print( "# " );
+	  System.out.print( "#" );
 	}
 
 	if( digits[i] > maxArity ) {
@@ -311,6 +317,10 @@ public class ReachabilitySet extends Canonical {
 	  break;
 	}
       }
+    }
+
+    if( numDimensions > 10 ) {
+      System.out.println( "" );
     }
 
     return rsOut.makeCanonical();

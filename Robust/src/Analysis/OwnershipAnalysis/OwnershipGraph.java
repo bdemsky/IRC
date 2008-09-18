@@ -1011,7 +1011,7 @@ public class OwnershipGraph {
       Iterator<ReferenceEdge> edgeItr = argLabel_i.iteratorToReferencees();
       while( edgeItr.hasNext() ) {
 	ReferenceEdge edge = edgeItr.next();
-	D_i = D_i.union(edge.getBeta() );
+	D_i = D_i.union(edge.getBeta());
       }
 
       D_i = D_i.exhaustiveArityCombinations();
