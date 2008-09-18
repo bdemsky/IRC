@@ -6,7 +6,7 @@ Task SendFile(WebServerSocket web, Socket s) contains no aliases between flagged
 Task ProcessRequest(WebServerSocket web, Socket s) contains no aliases between flagged objects.
 
 ---------Transaction(WebServerSocket web, Inventory inventorylist, Socket s)--------
-Potential alias between parameters 0 and 1.
+Task Transaction(WebServerSocket web, Inventory inventorylist, Socket s) contains no aliases between flagged objects.
 
 ---------LogRequest(WebServerSocket web, Logger log)--------
 Task LogRequest(WebServerSocket web, Logger log) contains no aliases between flagged objects.
