@@ -18,44 +18,47 @@ A Transaction consists of a sequence of operations. Thus, a transaction can be r
 
 \subsection{Defenitions}
 
-Def 1- \emph{Set of Operations}: Operations are taken from the set \{readoffset(fildescriptor), getoffset(filedescriptor), writeoffset(filedescriptor), readdata(inode, offset, length), writedata(inode, offset, length), commit\}. We denote read operations as readoffset and readdata and write operations as writeoffset and writedata.\\
+\textbf{Def 1-} \emph{Set of Operations}: Operations are taken from the set \{readoffset(fildescriptor), getoffset(filedescriptor), writeoffset(filedescriptor), readdata(inode, offset, length), writedata(inode, offset, length), commit\}. We denote read operations as readoffset and readdata and write operations as writeoffset and writedata.\\
 
-Def 2- \emph{Operations Sharing Resources} 1- A readoffset operation and writeoffset operations are said to be sharing resources if they both operate on the same filedescriptor. 2- A readdata and writedata operations are said to be sharing resources if they both operate on the same inode AND the range of (offset, offset + length) within one overlaps with that of the other.\\ 
+\textbf{Def 2-} \emph{Operations Sharing Resources} 1- A readoffset operation and writeoffset operations are said to be sharing resources if they both operate on the same filedescriptor. 2- A readdata and writedata operations are said to be sharing resources if they both operate on the same inode AND the range of (offset, offset + length) within one overlaps with that of the other.\\ 
 
-Def 3- A read operation can only see the writes made by write operations sharing reources.\\ 
+\textbf{Def 3-} A read operation can only see the writes made by write operations sharing reources.\\ 
 
-Def 4- \emph{Commit Instant and Commit Operation}: A transaction commits when it invokes the "commit" operation. A transaction $T_i$ is said to "commit" at instant $t_i$, if and only if it reflects its "writes" mabe by write operations in the filesystem or equivalently makes it writes visible to the whole system for all members of $T$ accesing the data at instant $t_j$ such that $t_j > t_i$. After a transaction invokes commit operation, the transactin ends and no more operation by transaction is done. An operation $\in OP_{T_i}$ is said to commit if and only if $T_i$ commits. Commit instant are not splittable, hence it appears to other transactions that all writes are refleted in the file system together.\\ 
+\textbf{Def 4-} \emph{Commit Instant and Commit Operation}: A transaction commits when it invokes the "commit" operation. A transaction $T_i$ is said to "commit" at instant $t_i$, if and only if it reflects its "writes" mabe by write operations in the filesystem or equivalently makes it writes visible to the whole system for all members of $T$ accesing the data at instant $t_j$ such that $t_j > t_i$. After a transaction invokes commit operation, the transactin ends and no more operation by transaction is done. An operation $\in OP_{T_i}$ is said to commit if and only if $T_i$ commits. Commit instant are not splittable, hence it appears to other transactions that all writes are refleted in the file system together.\\ 
 
-Def 5- \emph{Precedence Relationship}: If $OP_{executed} = \{op_0, op_1, ..., op_n\}$ represnts the operations executed so far(from all transactions running), and the indices represnt the order of operations executed so far in an ascending manner, we define $op_i \rightarrow op_j$ (precedes) if and only if $i<j$.\\ 
+\textbf{Def 5-} \emph{Precedence Relationship}: If $OP_{executed} = \{op_0, op_1, ..., op_n\}$ represnts the operations executed so far(from all transactions running), and the indices represnt the order of operations executed so far in an ascending manner, we define $op_i \rightarrow op_j$ (precedes) if and only if $i<j$.\\ 
 
-Def 6- \emph{Visbility of Writes}: Assume $T_i$ is an uncommitted transaction and $T_{commited}$ indicates the set of commited transaction (those which have invoked the "commit" operation). A read operation $b \in OP_{T_i}$ MAY ONLY see the writes(changes) made by precedent write operation $a$ that shares resources with $b$ AND also is subject to one of the following conditions:\\
+\textbf{Def 6-} \emph{Visbility of Writes}: Assume $T_i$ is an uncommitted transaction and $T_{commited}$ indicates the set of commited transaction (those which have invoked the "commit" operation). A read operation $b \in OP_{T_i}$ MAY ONLY see the writes(changes) made by precedent write operation $a$ that shares resources with $b$ AND also is subject to one of the following conditions:\\
 
 \hspace{7mm} 1- $a \in OP_{T_j}$ ($j \neq i$) such that $T_j \in T_{commited}$ \\
 
 \hspace{7mm} 2- $a \in OP_{T_i}$ and $a$ happens before $b$ in the natural order of the transaction. Formally, $a \rightarrow b$\\
  
 
-Corrolary 1- \emph{No See in The Fututre}: If $ \exists op_i \in WRITEOP_{T_i}$ and $\exists op_j \in READOP{T_j}$ such that $i \neq j$ and $op_i \rightarrow op_j$ then if $op_j \rightarrow commit-operation_{T_i}$, writes made by $op_j$ are not seen by $op_i$.i\\
+\textbf{Corrolary 1-} \emph{No See in The Fututre}: If $ \exists op_i \in WRITEOP_{T_i}$ and $\exists op_j \in READOP{T_j}$ such that $i \neq j$ and $op_i \rightarrow op_j$ then if $op_j \rightarrow commit-operation_{T_i}$, writes made by $op_j$ are not seen by $op_i$.i\\
 
 proof: Follows immediately from Def 5 and Def 6.\\
 
-Corrolary 2- \emph{Read Must See Most Recent Comitted Write}: If $a \in OP{T_i}$ reads the resource $r_i$ at $t_i$. In case $a$ has multiple writer precedessors sharing $r_i$ (denoted as $OP_{precedessors-for-r_i}$), then if all of them are from sets other than $OP_{T_i}$, $a$ sees the writes made by $op_{T_j} \in OP_{precedessors-for-r_i}$ such that $T_j$ has the greatest "commit instant" less than $t_i$ between all transaction with such operations . Otherwise, $a$ sees the most recent precedessor in $OP_{T_i}$. \\
+\textbf{Corrolary 2-} \emph{Read Must See Most Recent Comitted Write}: If $a \in OP{T_i}$ reads the resource $r_i$ at $t_i$. In case $a$ has multiple writer precedessors sharing $r_i$ (denoted as $OP_{precedessors-for-r_i}$), then if all of them are from sets other than $OP_{T_i}$, $a$ sees the writes made by $op_{T_j} \in OP_{precedessors-for-r_i}$ such that $T_j$ has the greatest "commit instant" less than $t_i$ between all transaction with such operations . Otherwise, $a$ sees the most recent precedessor in $OP_{T_i}$. \\
 
 axiom: Assume $a$ is accessing data at $t_i$, according to Def 6, only writes by those transactions that have already committed would be visble. Hence, $t_i$ is neccasarily gretaer than all members of \{$committime_{T_1}, ..., commitime_{T_{i-1}}$\},and hence the writes to $r_i$ made by these commited transaction, have accroding to Def 4 been already reflected in the file system. Since, $T_{i-1}$ has the greatest commit instant its changes have overriden that of previously commited transactions and thus, $a$ reading $r_i$ from file system sees these changes.\\
 
 In case 2 that there are writer operations writng $r_i$ and preceding $a$ in $OP_{T_i}$, according to defenition of transaction, $r_i$ should be read from the writes made by write operations in $T_i$, and as the last of such write operation overrides the written data to $r_i$ by other operations, $a$ gets to see the most recent precedessor in $T_i$.\\   
 
 
-Def 7- $\forall$ $op_{T_i}$ $\in OP_{T_i}$ and $\forall op_{T_j}\in OP_{T_j}$ if and only if $op_{T_i} \rightarrow op_{T_j}$ then $T_i$ $\rightarrow T_j$ \hspace{8mm} (this defines precedes relationship for members of $T$) \\
+\textbf{Def 7-} $\forall$ $op_{T_i}$ $\in OP_{T_i}$ and $\forall op_{T_j}\in OP_{T_j}$ if and only if $op_{T_i} \rightarrow op_{T_j}$ then $T_i$ $\rightarrow T_j$ \hspace{8mm} (this defines precedes relationship for members of $T$) \\
 
-Def 8- \emph{Correctness}: A sequence of tarnsaction are said to be consistent if and only if a total ordeing of them according to precedence relationship can be established that demonstrates the same behavior as the execution of the program. Behavior for an operation means the data it has read. Demonstrating the same behavior thus means all the read operations should still see the same data in the new sequence as they have seen in the actual sequence.\\
+\textbf{Def 8-} \emph{Correctness}: A sequence of tarnsaction are said to be consistent if and only if a total ordeing of them according to precedence relationship can be established that demonstrates the same behavior as the execution of the program. Behavior for an operation means the data it has read. Demonstrating the same behavior thus means all the read operations should still see the same data in the new sequence as they have seen in the actual sequence.\\
 
-Note: Def 7 and Def 8 indicate that if operations can be commuted in a given sequnce of $OP_{executed} = \{op_{T_1}(0), op_{T_4}(0), ... op_{T_1}(n)\}$ such that a total ordering of transactions (e.g \{$OP_{T_1}, OP_{T_2}, ..., OP_{T_n}) $\} can be obtained then the execution is consistent and correct. The eligiblity to commute is subject to conforming to Corrolary 1 \& 2.\\
+\textbf{Note 1:} Def 7 and Def 8 indicate that if operations can be commuted in a given sequnce of $OP_{executed} = \{op_{T_1}(0), op_{T_4}(0), ... op_{T_1}(n)\}$ such that a total ordering of transactions (e.g \{$OP_{T_1}, OP_{T_2}, ..., OP_{T_n}) $\} can be obtained then the execution is consistent and correct. The eligiblity to commute is subject to conforming to Corrolary 1 \& 2.\\
 
-Def 9- \emph{Relocation Operations in A Sequence}: In a sequence of operations $OP = \{op_1, op_2, ...,op_n\}$, any operation can relocate its position in the sequence unless as a result of this change, the behavior of a read operation changes (it reads different data).\\
+\textbf{Def 9-} \emph{Relocation Operations in A Sequence}: In a sequence of operations $OP = \{op_1, op_2, ...,op_n\}$, any operation can relocate its position in the sequence unless as a result of this change, the behavior of a read operation changes (it reads different data).\\
 
-Note: \emph{No Exchange for Operations Belonging to The Same Transaction}: If $op_i \in OP_{T_i}$ and $op_{i+1} \in OP_{T_i}$, we never exchange $op_i$ and $op_{i+1}$, since even if this exchange does not change any operations behavior, there is still no point in doing this as the aim is to put all operations belonging to the same transaction together, the internal order among these is not any of our concern, and the precedence relationship among these as indicated by the execution should be maintained.\\ 
+\textbf{Note 2:} \emph{No Commute for Operations Belonging to The Same Transaction}: If $op_i \in OP_{T_i}$ and $op_{i+1} \in OP_{T_i}$, we never commute $op_i$ and $op_{i+1}$, since even if this exchange does not change any operations behavior, there is still no point in doing this as the aim is to put all operations belonging to the same transaction together, the internal order among these is not any of our concern, and the precedence relationship among these as indicated by the execution should be maintained.\\ 
 
+\textbf{Note 3:} \emph{Precedence Relationship Between Commit Operations Should Be Preserved}: As a rquirement we want to have the notion that transaction are executed in the serial order imposed by their commit operations. Hence, commit operations can not be commuted.\\
+
+All the rules explained later are based on the assumptions made in Note 2 \& 3, hence these two types of commution are ruled out by default.\\
 
 %Def 9- A pair of operations are said to be conflictant if they form a pair of (read, write) or (write, read) acting on the same resource $r_n$.  
 
@@ -65,57 +68,42 @@ Note: \emph{No Exchange for Operations Belonging to The Same Transaction}: If $o
 
 \subsection{Rules}
 
-Rule 1- $\forall op_i \in  OP{T_i}$, $\forall op_j \in  OP{T_j}$, $\forall op_k \in  OP{T_k}$, if $op_i \rightarrow op_k$ and  $op_k \rightarrow op_j$, then $op_i \rightarrow op_j$ \\
+\textbf{Rule 1-} $\forall op_i \in  OP{T_i}$, $\forall op_j \in  OP{T_j}$, $\forall op_k \in  OP{T_k}$, if $op_i \rightarrow op_k$ and  $op_k \rightarrow op_j$, then $op_i \rightarrow op_j$ \\
 
 proof: Follows from the defenition of $\rightarrow$ \\
 
 
-Rule 2- If $T_i \rightarrow T_k$ and $T_k \rightarrow T_j$ then $T_i \rightarrow T_j$ \\
+\textbf{Rule 2-} If $T_i \rightarrow T_k$ and $T_k \rightarrow T_j$ then $T_i \rightarrow T_j$ \\
 
 proof: Follws from Rule 1 and Def 7. \\ 
 
-Rule 3- \emph{Exchnaging Position of Consecutive Operations}: Formally having the sequence of operations $OP = \{op_1,...,op_i,op_{i+1},...,op_n\}$, if $op_i \in OP_{T_n}$ and $op_{i+1} \in OP{T_m}$ such that $ n\neq m$, $op_i$ and $op_{i+1}$ can exchange positions if and only if none of the follwing conditions apply:\\
+\textbf{Rule 3-} \emph{Exchnaging Position of Consecutive Operations}: Formally having the sequence of operations $OP = \{op_1,...,op_i,op_{i+1},...,op_n\}$, if $op_i \in OP_{T_n}$ and $op_{i+1} \in OP{T_m}$ such that $ n\neq m$, $op_i$ and $op_{i+1}$ can exchange positions if and only if none of the follwing conditions apply:\\
 
-\hspace{8mm} 1- If $op_i = {commit}$ and $op_{i+1} = {read}$ and $op_{i+1}$ reads $r_k$, then if there is at least another operation in $T_n$ that writes the data $r_k$, $op_i$ and $op_{i+1}$ can not exchange positions.\\ 
+\hspace{8mm} 1- If $op_i = {commit}$ and $op_{i+1} = {read}$ and $op_{i+1}$ reads $r_k$, and $\not \exists op_k$ in $OP_{T_m}$ such that writes to $r_k$, and if there  $exists op_l \in OP_{T_n}$ such that writes the data $r_k$, then $op_i$ and $op_{i+1}$ can not exchange positions.\\ 
 
-\hspace{8mm} 2- If $op_{i+1} = {commit}$ and $op_{i} = {read}$ and $op_{i}$ reads $r_k$, then if there is at least another operation in $T_m$ that writes the data $r_k$, $op_i$ and $op_{i+1}$ can not exchange positions.\\ 
+\hspace{8mm} 2- If $op_{i+1} = {commit}$ and $op_{i} = {read}$ and $op_{i}$ reads $r_k$ and $\not \exists op_k$ in $OP_{T_n}$ such that writes to $r_k$, and if there $exists op_l \in OP_{T_m}$ such that writes the data $r_k$, $op_i$ and $op_{i+1}$ can not exchange positions.\\ 
 
 
 proof: According to Def 9, none of the operatios in the sequence should change behavior as the result of this exchange, however in this argument only $op_i$ and $op_{i+1}$ may change behavior as those are the only operations that their postions in the sequence is changed. However, since behavior is only defined for read operations, one of these without losing generality lets say $op_i$ should be a read operation on agiven resource $r_k$.\\
 
-Now changing the $(op_i, op_{i+1})$ to $(op_{i+1}, op_i)$ changes the behavior of $op_i$ if and inly if $op_{i+1}$ writes $r_k$ at the file system (all the previous precedessors are still the same, only $op{i+1}$ has been added). This means by defenition the $op_{i+1}$ should be a commit operation. And, if $op_{i+1}$ is a commit operation for $T_m$, and there is at least one write operation in $T_m$ writing to $r_k$, then according to Corrolary 2, $op_i$ should see the most recent results and hence sees these changes. These changes could not have been seen in the first case $(op_i, op_{i+1})$ due to Corrolary 1 (No See in The Futture).\\ 
+Now changing the $(op_i, op_{i+1})$ to $(op_{i+1}, op_i)$ changes the behavior of $op_i$ if and only if $op_{i+1}$ writes $r_k$ at the file system (all the previous precedessors are still the same, only $op{i+1}$ has been added). This means by defenition the $op_{i+1}$ should be a commit operation. And, if $op_{i+1}$ is a commit operation for $T_m$, and there is at least one write operation in $T_m$ writing to $r_k$, then according to Corrolary $op_i$ should see the most recent results and hence if there is no precedessor for $op_i$ in $T_n$ itself that writes to $r_k$, then $op_i$ sees the changes made by the write operarion in $T_m$. These changes could not have been seen in the first case $(op_i, op_{i+1})$ due to Corrolary 1 (No See in The Future).\\ 
 
 
-Rule 4 -\emph{Relocating the Position of an Operation Within the Sequence}: Given a sequence of operations $OP = \{op_1, ..., op_i, op_{i+1}, ..., op_j, op_{j+1}, ..., op_n\}$, $op_j$ can be put into the standing $i<j$ within the sequence (resulting in $OP = \{op_1, ..., op_i,op_j,op_{i+1},..., op_{j+1},...,op_n\}$) if and only if $\forall op \in \{op_{i+1}, ..., op_{j-1}\}$, $op$ and $op_j$ belong to different transactions and the pair $(op_j, op)$ or $(op,op_j)$ is not a pair subject to one of the conditions in Rule 3. The same holds true for $i>j$.\\
+\textbf{Rule 4} -\emph{Relocating the Position of an Operation Within the Sequence}: Given a sequence of operations $OP = \{op_1, ..., op_i, op_{i+1}, ..., op_j, op_{j+1}, ..., op_n\}$, $op_j$ can be put into the standing $i<j$ within the sequence (resulting in $OP = \{op_1, ..., op_i,op_j,op_{i+1},..., op_{j+1},...,op_n\}$) if and only if $\forall op \in \{op_{i+1}, ..., op_{j-1}\}$, $op$ and $op_j$ belong to different transactions and the pair $(op_j, op)$ or $(op,op_j)$ is not a pair subject to one of the conditions in Rule 3. The same holds true for $i>j$.\\
 
 proof: We use induction to prove if assumptions above hold true $op_j$ can be relocated to $i = j-n$. Assume the same $OP$ as before. If $n = 1$ then since according to assumption the pair $(op_j, op_{j-1})$ is not subject to the conditions in Rule 3, these two can be easily exchanged. Now, lets assume the $op_j$ can be relocated to $j-n-1$, now we prove it for $n$.  After relocation to $j-n-1$, $op_{i+1}$ immediately precedes $op_j$, as according to assumption and Rule 3 $op_j$ and $op_{i+1}$ can exchange positions. After this exchange, $op_j$ has been relocated by $n$ and to $i$ and $op_i$ now immediately precedes $op_j$.\\
 
-The same argument can be used for $i > j$.\\
+Now we prove the other side of the argument, that if $op_j$ can be relocated in $i$, $\forall op \in \{op_{i+1}, ..., op{j-1}\}, (op_j, op)$ is not a pair subject to the condition in Rule 3. Lets assume there is $op$ in $T_i$ such that $(op, op_{j})$ is a $({read r_n}, {commit})$  and the commit invlolves making a write in $T_j$ to $r_n$ durable and a precedessor writer that writes to $r_n$ does not exists for $op$ in $OP_{T_i}$ , now if $op_j$ is relocated to position $i$, $op_j$ would precede $op$ and hence $op$ would see the writes by the operation in $T_j$ (defenition of commit Def 4 \& Corrolary  2) and hence the behavior of $op$ would change as it does not read the same data as before (the data read before could not have been the same thing due to Corrolary 1). If the pair of $(op, op_j)$ is $({commit}, {read r_n})$ the same reasoning would do.\\   
 
-%proof: If the sequence of operations $OP$ is a consistent one, exchanging the position of $a$ and $b$ does not violate this property as no difference in the bahvior of neither $op_i$ nor $op_{i+1}$ is made. If ($op_i, op_{i+1}) is changed to ($op_{i+1}, op_i) they would still both read the same data (if they are reads), since there is no other operation in the middle and Corrolary 2 says the read from $r_n$ reads the most commited write to $r-n$ and as no writes are reflected before the commit operation for that transaction is invoked, and none of these operations is a write, consequently exchanging their positions does not change the data read by them and hence the behavior.\\ 
-Rule 3-  \emph{Committed transaction Should Precede the About to Commit Transaction}: $T_j$ "commits" at instant $t_j$ - $T_{commited}$ denoting the set of all commited transactions at $t_i$ such that $t_j > t_i$- only if a sequence preseving the behavior of the program can be found that in it all members of $T_{commited}$ precede $T_j$.\\
+The whole argument can be used to prove the Rule for $i > j$ as well.\\
 
-proof: $T_i$ denotes the last commited member of $T_{commited}$. Lets assume on the contrary $T_i$ does not precede $T_j$ and hence $T_j \rightarrow T_i$.\\
-
-If there is not a pair of (read, write) or (write, read), sharing resource $r_n$ in the two transaction, then $T_i \rightarrow T_j$ according to Def 7 and Def 9.\\
-
-If there are such operations, 1-At least an operation $a$ reads from $r_n$ in $OP_i$ sees the writes made by a write operation on $r_n$($b$) in $OP_j$, however since $T_j$ has commited after $T_i$ and writes are not reflected till commit instant, hence $a$ could not have read the writes made by $b$ and consequently $a$ does not precede $b$ contradicting the assumption $T_j \rightarrow T_i$ . OR 2- An operation $a$ in $T_i$ writes to resource $r_i$ and operation $b$ in $T_j$ reads resource $r_i$, according to Def 5 $a$ precedes $b$ and $b$ does not precede $a$, hence contradicting the assumption that $T_j \rightarrow T_i$.\\ 
+\textbf{Rule 5-}\emph{Operation in the Set of Execeuted Operations Belongin to Committed Transactions Should Be Able To Precede Those in The Transaction About to Commit}: $OP_{executed} = \{op_1,..., op_n\}$ represents the set of executed operations before instant $t_j$ and $T_{committed}$ represents the set of committed transactions committed successfully before $t_j$. If $T_j$ invokes ${commit}$ operation at instant $t_j$ - then $T_j$ commits at instant $t_j$ if and only if operations in $OP$ can be commuted in a way such that $\forall op_i \in OP_{T{committed}}$, $\forall op_j \in OP_{T_j}$, $op_i \rightarrow op_j$.\\
 
 
-The same reasoning could be done for $T_i$ and $T_{i-1}$, $T_{i-1}$ the last commited transaction before $T_{i}$. Now according to rule 3, since $T_{i-1}$ precedes $T_i$ and $T_i$ precedes $T_{j}$, hence $T_{i-1}$ precedes $T_{j}$. Same reasoning is applied for all the members of $T_{commited}$. \\
+proof: If all those operations can be commuted tp precede those in $T_j$ we could have $OP_{executed} = \{op_1,...,OP{T_j}\}$. This by defenition of transaction means $T_j$ can commit (it is executed in its whole entierty).\\
 
-%If an operation $op_{i_1}$ in $OP_i$, writes some data used by an operation $op_{j_i}$ in $OP_j$, then $op_{j_1}$ can not precede $op_{i_1}$ since then it could not have seen the changes by it, however def 3 says it does, this is in contrats to the assumption. On the other hand, if $op_{j_1}$ affects some data used by $op{i_1}$, then since $op{i_1}$ has not seen the change, $op{j_1}$ can not precede $op{i_1}$. If no operations in $OP_i$ affects another in $OP_j$, then the set of all opeartions in $OP_i$ both precede and succed those in $OP_j$, and hence the contraray to the assumption. In this case, the transaction are conceptually interchangable. In either case, $T_j$ either "succeds" or "succeds and precedes" $T_i$. Either way it succeds the other. \\
+Now we have to prove $T_j$ commits only if $\forall T_i \in T_{committed} T_i \rightarrow T_j$. Now we'll show that if all committed operations can not precede operation of $T_j$ the $T_j$ can not commit. $OP = \{op_{T_j}(1), ..., op{T_j}(m)} represent the operations in $T_j$ excluding the ${commit}$ in the order they have occured in $OP_{executed}$. Assume \{op_{T_j}(k),...op{T_j}(m)\} can be relocated in $OP_{executed}$ in the standing \{n-(m-k), ...,n-1) but op_{T_j}(k-1) can not. This means first of all op_{T_j}(k-1) is a ${read}$ operation reading $r_n$(each transaction has only one ${commit$} operation). Furthermore, this implies there is a ${commit}$ operation by some transactione $T_i$ between $op{T_j}(k-1)$ and commit operation by $T_j$ and $ \exists op in OP{T_i}$ such that writes $r_n$ and $\not \exists op_i \in OP{T_j}$ such that $op_i \rightarrow op_{T_i}(k-1)$. On the other hand since there is a ${commit}$ by $T_i$ in the middle, the commit by $T_J$ can not be commuted in a way so $OP$ precedes it without any operation belonging to other transaction in the middle (two ${commits}$ can not commute). Hence we can not have a sequence where all operations belonging to $T_j$ are located next to each other, this contradicts the defenition of transaction, hence the transaction can not commit.  
 
-
-
-
-Rule 3-\emph{Operation in the Committed Transactions Precede Those in The Transaction About to Commit}: $T_j$ "commits" at instant $t_j$ - $T_{commited}$ denoting the set of all commited transactions at $t_i$ such that $t_j > t_i$- only if $\forall op_i \in OP_{T_i}$, $\forall op_{all} \in$ the union of $OP_j$, such that $OP_j$ is the set of operations  for every $T_j \in T_{commited}$, $op_{all}$  should precede $op_{i}$.\\
-
-proof: Follows immediately from Rul2 and Def 7.\\
-
-Rule 4- \emph{If All committed Transactions Precede A Transaction About to Commit, It Commits}: $T_i$ commits if at its commit instant, $\forall T_j \in T_ccommitted T_j \rightarrow T_i$.
-
-proof: If $\forall T_j \in T_committed T_j \rightarrow T_i$, a total ordering can be established corresponding the precedence relationship and all writes made by committed transaction have been seen by reads in $T_i$, hence according to Def 8, a consistent sequence of transactions would be provided. 
 
 \subsection{TransactionalFile Opeartions}
 TransactioalFiles can be either created inside or outside $T$. The TransactionalFile object ensures transactional access no matter where it is created and accessed. Meaning the first time $T_i$ \emph {uses} $tf_j$ the flow of the program should look like no other piece of code (i.e Transactional and non-transactional) outside $T_i$ will \emph {modify} $tf_j$ before $OP(endtransaction)_{T_i}$. Otherwise, $T_i$ has to abort. \\
