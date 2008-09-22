@@ -51,6 +51,9 @@ public class ReachabilitySet extends Canonical {
     return possibleReachabilities.size();
   }
 
+  public boolean isEmpty() {
+    return possibleReachabilities.isEmpty();
+  }
 
   public boolean contains(TokenTupleSet tts) {
     assert tts != null;

@@ -31,6 +31,10 @@ public class ChangeTupleSet extends Canonical {
     return changeTuples.iterator();
   }
 
+  public int size() {
+    return changeTuples.size();
+  }
+
   public ChangeTupleSet union(ChangeTupleSet ctsIn) {
     assert ctsIn != null;
 

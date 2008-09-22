@@ -889,6 +889,13 @@ public class OwnershipGraph {
                                 FlatMethod fm,
                                 OwnershipGraph ogCallee) {
 
+    
+    try {
+      writeGraph( "caller", true, false, false, false, false );
+      ogCallee.writeGraph( "callee", true, false, false, false, false );
+    } catch( Exception e ) {}
+
+
     // define rewrite rules and other structures to organize
     // data by parameter/argument index
     Hashtable<Integer, ReachabilitySet> paramIndex2rewriteH =
@@ -989,7 +996,7 @@ public class OwnershipGraph {
       if( isStatic ) {
 	argTemp_i = fc.getArg(paramIndex);
       } else {
-	if( paramIndex == 0 ) {
+	if( paramIndex.equals( 0 ) ) {
 	  argTemp_i = fc.getThis();
 	} else {
 	  argTemp_i = fc.getArg(paramIndex - 1);
@@ -1074,7 +1081,9 @@ public class OwnershipGraph {
 	                       paramIndex2rewriteH,
 	                       paramIndex2rewriteD,
 	                       paramIndex2paramToken,
-	                       paramIndex2paramTokenStar);
+	                       paramIndex2paramTokenStar,
+	                       paramToken2paramIndex,
+	                       paramTokenStar2paramIndex);
 
 	nodesWithNewAlpha.add(hrn);
 
@@ -1120,6 +1129,8 @@ public class OwnershipGraph {
 	                      paramIndex2rewriteD,
 	                      paramIndex2paramToken,
 	                      paramIndex2paramTokenStar,
+			      paramToken2paramIndex,
+			      paramTokenStar2paramIndex,
 	                      false,
 	                      null);
 
@@ -1141,6 +1152,8 @@ public class OwnershipGraph {
 	                      paramIndex2rewriteD,
 	                      paramIndex2paramToken,
 	                      paramIndex2paramTokenStar,
+			      paramToken2paramIndex,
+			      paramTokenStar2paramIndex,
 	                      true,
 	                      edgeUpstreamPlannedChanges);
 
@@ -1197,7 +1210,9 @@ public class OwnershipGraph {
                              paramIndex2rewriteH,
                              paramIndex2rewriteD,
                              paramIndex2paramToken,
-                             paramIndex2paramTokenStar);
+                             paramIndex2paramTokenStar,
+			     paramToken2paramIndex,
+			     paramTokenStar2paramIndex);
 
       hrnShadowSummary.applyAlphaNew();
 
@@ -1225,7 +1240,9 @@ public class OwnershipGraph {
 	                       paramIndex2rewriteH,
 	                       paramIndex2rewriteD,
 	                       paramIndex2paramToken,
-	                       paramIndex2paramTokenStar);
+	                       paramIndex2paramTokenStar,
+	                       paramToken2paramIndex,
+	                       paramTokenStar2paramIndex);
 
 	hrnIthShadow.applyAlphaNew();
       }
@@ -1274,6 +1291,8 @@ public class OwnershipGraph {
 	                        paramIndex2rewriteD,
 	                        paramIndex2paramToken,
 	                        paramIndex2paramTokenStar,
+				paramToken2paramIndex,
+				paramTokenStar2paramIndex,
 	                        false,
 	                        null);
 
@@ -1358,6 +1377,8 @@ public class OwnershipGraph {
 	                      paramIndex2rewriteD,
 	                      paramIndex2paramToken,
 	                      paramIndex2paramTokenStar,
+			      paramToken2paramIndex,
+			      paramTokenStar2paramIndex,
 	                      false,
 	                      null);
 
@@ -1552,43 +1573,97 @@ public class OwnershipGraph {
   }
 
 
+
+  // TODO: this and rewriteCallerEdgeBeta turned out to be almost
+  // the same code, combine into a single more flexible method
+
   private void rewriteCallerNodeAlpha(int numParameters,
                                       Integer paramIndex,
                                       HeapRegionNode hrn,
                                       Hashtable<Integer, ReachabilitySet> paramIndex2rewriteH,
                                       Hashtable<Integer, ReachabilitySet> paramIndex2rewriteD,
                                       Hashtable<Integer, TokenTuple> paramIndex2paramToken,
-                                      Hashtable<Integer, TokenTuple> paramIndex2paramTokenStar) {
+                                      Hashtable<Integer, TokenTuple> paramIndex2paramTokenStar,
+                                      Hashtable<TokenTuple, Integer> paramToken2paramIndex,
+                                      Hashtable<TokenTuple, Integer> paramTokenStar2paramIndex ) {
+
+    ReachabilitySet callerReachability = new ReachabilitySet().makeCanonical();
 
     ReachabilitySet rules = paramIndex2rewriteH.get(paramIndex);
     assert rules != null;
 
-    TokenTuple tokenToRewrite = paramIndex2paramToken.get(paramIndex);
-    assert tokenToRewrite != null;
+    TokenTuple p_i = paramIndex2paramToken.get(paramIndex);
+    assert p_i != null;
 
-    ReachabilitySet r0 = new ReachabilitySet().makeCanonical();
-    Iterator<TokenTupleSet> ttsItr = rules.iterator();
-    while( ttsItr.hasNext() ) {
-      TokenTupleSet tts = ttsItr.next();
-      r0 = r0.union(tts.rewriteToken(tokenToRewrite,
-                                     hrn.getAlpha(),
-                                     false,
-                                     null) );
+    Iterator<TokenTupleSet> rulesItr = rules.iterator();
+    while(rulesItr.hasNext()) {
+      TokenTupleSet rule = rulesItr.next();
+
+      TokenTupleSet ttsEmpty = new TokenTupleSet().makeCanonical();
+      ReachabilitySet rewrittenRule = new ReachabilitySet(ttsEmpty).makeCanonical();
+
+      Iterator<TokenTuple> ruleItr = rule.iterator();
+      while(ruleItr.hasNext()) {
+	TokenTuple ttCallee = ruleItr.next();
+
+	// compute the possibilities for rewriting this callee token
+	ReachabilitySet ttCalleeRewrites = null;
+
+	if( ttCallee.equals( p_i ) ) {
+	  // replace the arity-one token of the current parameter with the reachability
+	  // information from the caller node
+	  ttCalleeRewrites = hrn.getAlpha();
+	  
+	} else if( paramToken2paramIndex.containsKey( ttCallee ) ||
+		   paramTokenStar2paramIndex.containsKey( ttCallee ) ) {
+	  // this token is another callee parameter, or any ARITY_MANY callee parameter,
+	  // so rewrite it with the D rules for that parameter
+	  Integer paramIndex_j;
+	  if( paramToken2paramIndex.containsKey( ttCallee ) ) {
+	    paramIndex_j = paramToken2paramIndex.get( ttCallee );
+	  } else {
+	    paramIndex_j = paramTokenStar2paramIndex.get( ttCallee );
+	  }
+
+	  ttCalleeRewrites = paramIndex2rewriteD.get( paramIndex_j );
+	  assert ttCalleeRewrites != null;
+
+	} else {
+	  // otherwise there's no need for a rewrite, just pass this one on
+	  TokenTupleSet ttsCaller = new TokenTupleSet(ttCallee).makeCanonical();
+	  ttCalleeRewrites = new ReachabilitySet(ttsCaller).makeCanonical();
+	}
+       
+	// branch every version of the working rewritten rule with 
+	// the possibilities for rewriting the current callee token
+	ReachabilitySet rewrittenRuleWithTTCallee = new ReachabilitySet().makeCanonical();
+
+	Iterator<TokenTupleSet> rewrittenRuleItr = rewrittenRule.iterator();
+	while( rewrittenRuleItr.hasNext() ) {
+	  TokenTupleSet ttsRewritten = rewrittenRuleItr.next();
+
+	  Iterator<TokenTupleSet> ttCalleeRewritesItr = ttCalleeRewrites.iterator();
+	  while( ttCalleeRewritesItr.hasNext() ) {
+	    TokenTupleSet ttsBranch = ttCalleeRewritesItr.next();
+	  
+	    rewrittenRuleWithTTCallee = 
+	      rewrittenRuleWithTTCallee.union( ttsRewritten.unionUpArity( ttsBranch ) );
+	  }
+	}
+
+	// now the rewritten rule's possibilities have been extended by
+	// rewriting the current callee token, remember result
+	rewrittenRule = rewrittenRuleWithTTCallee;
+      }
+
+      // the rule has been entirely rewritten into the caller context
+      // now, so add it to the new reachability information
+      callerReachability =
+	callerReachability.union( rewrittenRule );
     }
 
-    ReachabilitySet r1 = new ReachabilitySet().makeCanonical();
-    ttsItr = r0.iterator();
-    while( ttsItr.hasNext() ) {
-      TokenTupleSet tts = ttsItr.next();
-      r1 = r1.union(rewriteDpass(numParameters,
-                                 paramIndex,
-                                 tts,
-                                 paramIndex2rewriteD,
-                                 paramIndex2paramToken,
-                                 paramIndex2paramTokenStar) );
-    }
-
-    hrn.setAlphaNew(hrn.getAlphaNew().union(r1) );
+    // finally update caller node with new information
+    hrn.setAlphaNew(hrn.getAlphaNew().union(callerReachability) );
   }
 
 
@@ -1599,153 +1674,145 @@ public class OwnershipGraph {
                                      Hashtable<Integer, ReachabilitySet> paramIndex2rewriteD,
                                      Hashtable<Integer, TokenTuple> paramIndex2paramToken,
                                      Hashtable<Integer, TokenTuple> paramIndex2paramTokenStar,
+				     Hashtable<TokenTuple, Integer> paramToken2paramIndex,
+				     Hashtable<TokenTuple, Integer> paramTokenStar2paramIndex,
                                      boolean makeChangeSet,
                                      Hashtable<ReferenceEdge, ChangeTupleSet> edgePlannedChanges) {
+
+    ReachabilitySet callerReachability = new ReachabilitySet().makeCanonical();
+
+    // for initializing structures in this method
+    TokenTupleSet ttsEmpty = new TokenTupleSet().makeCanonical();
+
+    // use this to construct a change set if required; the idea is to
+    // map every partially rewritten token tuple set to the set of 
+    // caller-context token tuple sets that were used to generate it
+    Hashtable<TokenTupleSet, HashSet<TokenTupleSet> > rewritten2source =
+      new Hashtable<TokenTupleSet, HashSet<TokenTupleSet> >();
+    rewritten2source.put(ttsEmpty, new HashSet<TokenTupleSet>() );
 
     ReachabilitySet rules = paramIndex2rewriteJorK.get(paramIndex);
     assert rules != null;
 
-    TokenTuple tokenToRewrite = paramIndex2paramToken.get(paramIndex);
-    assert tokenToRewrite != null;
+    TokenTuple p_i = paramIndex2paramToken.get(paramIndex);
+    assert p_i != null;
 
-    ChangeTupleSet cts0 = new ChangeTupleSet().makeCanonical();
+    Iterator<TokenTupleSet> rulesItr = rules.iterator();
+    while(rulesItr.hasNext()) {
+      TokenTupleSet rule = rulesItr.next();
 
-    Iterator<TokenTupleSet> ttsItr = rules.iterator();
-    while( ttsItr.hasNext() ) {
-      TokenTupleSet tts = ttsItr.next();
+      ReachabilitySet rewrittenRule = new ReachabilitySet(ttsEmpty).makeCanonical();
 
-      Hashtable<TokenTupleSet, HashSet<TokenTupleSet> > forChangeSet =
-        new Hashtable<TokenTupleSet, HashSet<TokenTupleSet> >();
+      Iterator<TokenTuple> ruleItr = rule.iterator();
+      while(ruleItr.hasNext()) {
+	TokenTuple ttCallee = ruleItr.next();
 
-      ReachabilitySet rTemp = tts.rewriteToken(tokenToRewrite,
-                                               edge.getBeta(),
-                                               true,
-                                               forChangeSet);
+	// compute the possibilities for rewriting this callee token
+	ReachabilitySet ttCalleeRewrites = null;
+	boolean callerSourceUsed = false;
 
-      Iterator fcsItr = forChangeSet.entrySet().iterator();
-      while( fcsItr.hasNext() ) {
-	Map.Entry me = (Map.Entry)fcsItr.next();
-	TokenTupleSet ttsMatch = (TokenTupleSet) me.getKey();
-	HashSet<TokenTupleSet> ttsAddSet = (HashSet<TokenTupleSet>) me.getValue();
-	Iterator<TokenTupleSet> ttsAddItr = ttsAddSet.iterator();
-	while( ttsAddItr.hasNext() ) {
-	  TokenTupleSet ttsAdd = ttsAddItr.next();
+	if( ttCallee.equals( p_i ) ) {
+	  // replace the arity-one token of the current parameter with the reachability
+	  // information from the caller edge
+	  ttCalleeRewrites = edge.getBeta();
+	  callerSourceUsed = true;
+	  
+	} else if( paramToken2paramIndex.containsKey( ttCallee ) ||
+		   paramTokenStar2paramIndex.containsKey( ttCallee ) ) {
+	  // this token is another callee parameter, or any ARITY_MANY callee parameter,
+	  // so rewrite it with the D rules for that parameter
+	  Integer paramIndex_j;
+	  if( paramToken2paramIndex.containsKey( ttCallee ) ) {
+	    paramIndex_j = paramToken2paramIndex.get( ttCallee );
+	  } else {
+	    paramIndex_j = paramTokenStar2paramIndex.get( ttCallee );
+	  }
 
-	  ChangeTuple ct = new ChangeTuple(ttsMatch,
-					   ttsAdd
-					   ).makeCanonical();
+	  ttCalleeRewrites = paramIndex2rewriteD.get( paramIndex_j );
+	  assert ttCalleeRewrites != null;
 
-	  cts0 = cts0.union(ct);
+	} else {
+	  // otherwise there's no need for a rewrite, just pass this one on
+	  TokenTupleSet ttsCaller = new TokenTupleSet(ttCallee).makeCanonical();
+	  ttCalleeRewrites = new ReachabilitySet(ttsCaller).makeCanonical();
 	}
-      }
-    }
+       
+	// branch every version of the working rewritten rule with 
+	// the possibilities for rewriting the current callee token
+	ReachabilitySet rewrittenRuleWithTTCallee = new ReachabilitySet().makeCanonical();
 
+	Iterator<TokenTupleSet> rewrittenRuleItr = rewrittenRule.iterator();
+	while( rewrittenRuleItr.hasNext() ) {
+	  TokenTupleSet ttsRewritten = rewrittenRuleItr.next();
 
-    ReachabilitySet r1 = new ReachabilitySet().makeCanonical();
-    ChangeTupleSet cts1 = new ChangeTupleSet().makeCanonical();
+	  Iterator<TokenTupleSet> ttCalleeRewritesItr = ttCalleeRewrites.iterator();
+	  while( ttCalleeRewritesItr.hasNext() ) {
+	    TokenTupleSet ttsBranch = ttCalleeRewritesItr.next();
 
-    Iterator<ChangeTuple> ctItr = cts0.iterator();
-    while( ctItr.hasNext() ) {
-      ChangeTuple ct = ctItr.next();
+	    TokenTupleSet ttsRewrittenNext = ttsRewritten.unionUpArity( ttsBranch );
 
-      ReachabilitySet rTemp = rewriteDpass(numParameters,
-                                           paramIndex,
-                                           ct.getSetToAdd(),
-                                           paramIndex2rewriteD,
-                                           paramIndex2paramToken,
-                                           paramIndex2paramTokenStar
-                                           ).makeCanonical();
-      r1 = r1.union(rTemp);
+	    if( makeChangeSet ) {
+	      // in order to keep the list of source token tuple sets
+	      // start with the sets used to make the partially rewritten
+	      // rule up to this point
+	      HashSet<TokenTupleSet> sourceSets = rewritten2source.get( ttsRewritten );
+	      assert sourceSets != null;
 
-      if( makeChangeSet ) {
-	assert edgePlannedChanges != null;
+	      // make a shallow copy for possible modification
+	      sourceSets = (HashSet<TokenTupleSet>) sourceSets.clone();
 
-	Iterator<TokenTupleSet> ttsTempItr = rTemp.iterator();
-	while( ttsTempItr.hasNext() ) {
-	  TokenTupleSet tts = ttsTempItr.next();
+	      // if we used something from the caller to rewrite it, remember
+	      if( callerSourceUsed ) {
+		sourceSets.add( ttsBranch );
+	      }
 
-	  ChangeTuple ctFinal = new ChangeTuple(ct.getSetToMatch(),
-	                                        tts
-	                                        ).makeCanonical();
-
-	  cts1 = cts1.union(ctFinal);
+	      // set mapping for the further rewritten rule
+	      rewritten2source.put( ttsRewrittenNext, sourceSets );
+	    }
+	  
+	    rewrittenRuleWithTTCallee = 
+	      rewrittenRuleWithTTCallee.union( ttsRewrittenNext );
+	  }
 	}
+
+	// now the rewritten rule's possibilities have been extended by
+	// rewriting the current callee token, remember result
+	rewrittenRule = rewrittenRuleWithTTCallee;
       }
+
+      // the rule has been entirely rewritten into the caller context
+      // now, so add it to the new reachability information
+      callerReachability =
+	callerReachability.union( rewrittenRule );
     }
 
     if( makeChangeSet ) {
-      edgePlannedChanges.put(edge, cts1);
-    }
+      ChangeTupleSet callerChangeSet = new ChangeTupleSet().makeCanonical();
+      
+      // each possibility for the final reachability should have a set of
+      // caller sources mapped to it, use to create the change set
+      Iterator<TokenTupleSet> callerReachabilityItr = callerReachability.iterator();
+      while( callerReachabilityItr.hasNext() ) {
+	TokenTupleSet ttsRewrittenFinal = callerReachabilityItr.next();
+	HashSet<TokenTupleSet> sourceSets = rewritten2source.get( ttsRewrittenFinal );
+	assert sourceSets != null;
 
-    edge.setBetaNew(edge.getBetaNew().union(r1) );
-  }
+	Iterator<TokenTupleSet> sourceSetsItr = sourceSets.iterator();
+	while( sourceSetsItr.hasNext() ) {
+	  TokenTupleSet ttsSource = sourceSetsItr.next();      
 
-
-  private ReachabilitySet rewriteDpass(int numParameters,
-                                       Integer paramIndex,
-                                       TokenTupleSet ttsIn,
-                                       Hashtable<Integer, ReachabilitySet> paramIndex2rewriteD,
-                                       Hashtable<Integer, TokenTuple> paramIndex2paramToken,
-                                       Hashtable<Integer, TokenTuple> paramIndex2paramTokenStar) {
-
-    ReachabilitySet rsOut = new ReachabilitySet().makeCanonical();
-
-    boolean rewritten = false;
-
-    for( int j = 0; j < numParameters; ++j ) {
-      Integer paramIndexJ = new Integer(j);
-      ReachabilitySet D_j = paramIndex2rewriteD.get(paramIndexJ);
-      assert D_j != null;
-
-      if( paramIndexJ != paramIndex ) {
-	TokenTuple tokenToRewriteJ = paramIndex2paramToken.get(paramIndexJ);
-	assert tokenToRewriteJ != null;
-	if( ttsIn.containsTuple(tokenToRewriteJ) ) {
-	  ReachabilitySet r = ttsIn.rewriteToken(tokenToRewriteJ,
-	                                         D_j,
-	                                         false,
-	                                         null);
-	  Iterator<TokenTupleSet> ttsItr = r.iterator();
-	  while( ttsItr.hasNext() ) {
-	    TokenTupleSet tts = ttsItr.next();
-	    rsOut = rsOut.union(rewriteDpass(numParameters,
-	                                     paramIndex,
-	                                     tts,
-	                                     paramIndex2rewriteD,
-	                                     paramIndex2paramToken,
-	                                     paramIndex2paramTokenStar) );
-	    rewritten = true;
-	  }
+	  callerChangeSet =
+	    callerChangeSet.union( new ChangeTuple( ttsSource, ttsRewrittenFinal ) );
 	}
       }
 
-      TokenTuple tokenStarToRewriteJ = paramIndex2paramTokenStar.get(paramIndexJ);
-      assert tokenStarToRewriteJ != null;
-      if( ttsIn.containsTuple(tokenStarToRewriteJ) ) {
-	ReachabilitySet r = ttsIn.rewriteToken(tokenStarToRewriteJ,
-	                                       D_j,
-	                                       false,
-	                                       null);
-	Iterator<TokenTupleSet> ttsItr = r.iterator();
-	while( ttsItr.hasNext() ) {
-	  TokenTupleSet tts = ttsItr.next();
-	  rsOut = rsOut.union(rewriteDpass(numParameters,
-	                                   paramIndex,
-	                                   tts,
-	                                   paramIndex2rewriteD,
-	                                   paramIndex2paramToken,
-	                                   paramIndex2paramTokenStar) );
-	  rewritten = true;
-	}
-      }
+      assert edgePlannedChanges != null;
+      edgePlannedChanges.put(edge, callerChangeSet);
     }
 
-    if( !rewritten ) {
-      rsOut = rsOut.union(ttsIn);
-    }
-
-    return rsOut;
+    edge.setBetaNew(edge.getBetaNew().union(callerReachability) );
   }
+
 
 
   private HashSet<HeapRegionNode>
@@ -2638,7 +2705,7 @@ public class OwnershipGraph {
 	  }
 	}
 
-	bw.write(ln.toString() + ";\n");
+	//bw.write("  "+ln.toString() + ";\n");
 
 	Iterator<ReferenceEdge> heapRegionsItr = ln.iteratorToReferencees();
 	while( heapRegionsItr.hasNext() ) {
