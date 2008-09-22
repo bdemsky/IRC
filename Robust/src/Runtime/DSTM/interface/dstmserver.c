@@ -24,6 +24,7 @@ pthread_mutexattr_t mainobjstore_mutex_attr; /* Attribute for lock to make it a 
 
 sockPoolHashTable_t *transPResponseSocketPool;
 
+
 /* This function initializes the main objects store and creates the
  * global machine and location lookup table */
 
@@ -353,9 +354,7 @@ int processClientReq(fixed_data_t *fixed, trans_commit_data_t *transinfo,
     printf("Error: In handleTransReq() %s, %d\n", __FILE__, __LINE__);
     return 1;
   }
-
   recv_data((int)acceptfd, &control, sizeof(char));
-
   /* Process the new control message */
   switch(control) {
   case TRANS_ABORT:
@@ -378,10 +377,6 @@ int processClientReq(fixed_data_t *fixed, trans_commit_data_t *transinfo,
 	read_unlock(STATUSPTR(header));
       }
     }
-
-    /* Send ack to Coordinator */
-    sendctrl = TRANS_UNSUCESSFUL;
-    send_data((int)acceptfd, &sendctrl, sizeof(char));
     break;
 
   case TRANS_COMMIT:
@@ -407,7 +402,6 @@ int processClientReq(fixed_data_t *fixed, trans_commit_data_t *transinfo,
     //TODO Use fixed.trans_id  TID since Client may have died
     break;
   }
-
   /* Free memory */
   if (transinfo->objlocked != NULL) {
     free(transinfo->objlocked);
@@ -443,7 +437,7 @@ char handleTransReq(fixed_data_t *fixed, trans_commit_data_t *transinfo, unsigne
   /* Process each oid in the machine pile/ group per thread */
   for (i = 0; i < fixed->numread + fixed->nummod; i++) {
     if (i < fixed->numread) { //Objs only read and not modified
-      int incr = sizeof(unsigned int) + sizeof(unsigned short); // Offset that points to next position in the objread array
+     int incr = sizeof(unsigned int) + sizeof(unsigned short); // Offset that points to next position in the objread array
       incr *= i;
       oid = *((unsigned int *)(objread + incr));
       incr += sizeof(unsigned int);
@@ -518,7 +512,6 @@ char handleTransReq(fixed_data_t *fixed, trans_commit_data_t *transinfo, unsigne
     printf("Error: In decideCtrlMessage() %s, %d\n", __FILE__, __LINE__);
     return 0;
   }
-
   return control;
 }
 
@@ -706,10 +699,6 @@ int transCommitProcess(void *modptr, unsigned int *oidmod, unsigned int *oidlock
     }
   }
   //TODO Update location lookup table
-
-  /* Send ack to coordinator */
-  control = TRANS_SUCESSFUL;
-  send_data((int)acceptfd, &control, sizeof(char));
   return 0;
 }
 
