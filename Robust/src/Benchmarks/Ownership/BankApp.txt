@@ -1,9 +1,9 @@
-Conducting ownership analysis with allocation depth = 3
+Conducting ownership analysis with allocation depth = 1
 ---------AcceptConnection(ServerSocket ss)--------
 Task AcceptConnection(ServerSocket ss) contains no aliases between flagged objects.
 
----------ProcessRequest(BankAppSocket bas, BankDatabase Bank)--------
-Task ProcessRequest(BankAppSocket bas, BankDatabase Bank) contains no aliases between flagged objects.
-
 ---------Startup(StartupObject s)--------
 Task Startup(StartupObject s) contains no aliases between flagged objects.
+
+---------ProcessRequest(BankAppSocket bas, BankDatabase Bank)--------
+Task ProcessRequest(BankAppSocket bas, BankDatabase Bank) contains no aliases between flagged objects.

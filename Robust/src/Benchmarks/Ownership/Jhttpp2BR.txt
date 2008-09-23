@@ -1,0 +1,30 @@
+Conducting ownership analysis with allocation depth = 1
+---------request(Jhttpp2HTTPSession session, Jhttpp2ClientInputStream jcis, MySocket socket, Request rold)--------
+Task request(Jhttpp2HTTPSession session, Jhttpp2ClientInputStream jcis, MySocket socket, Request rold) contains no aliases between flagged objects.
+
+---------start(StartupObject s)--------
+Task start(StartupObject s) contains no aliases between flagged objects.
+
+---------sendnext(Request rprev, Request r)--------
+Task sendnext(Request rprev, Request r) contains no aliases between flagged objects.
+
+---------sendfirst(Request r)--------
+Task sendfirst(Request r) contains no aliases between flagged objects.
+
+---------sendfirstresp(Request r, MySocket sock)--------
+Task sendfirstresp(Request r, MySocket sock) contains no aliases between flagged objects.
+
+---------recvreq(Request r)--------
+Task recvreq(Request r) contains no aliases between flagged objects.
+
+---------requestmore(Jhttpp2HTTPSession session, Jhttpp2ClientInputStream jcis, Request rold)--------
+Task requestmore(Jhttpp2HTTPSession session, Jhttpp2ClientInputStream jcis, Request rold) contains no aliases between flagged objects.
+
+---------sendresp(Request rprev, Request r, MySocket sock)--------
+Task sendresp(Request rprev, Request r, MySocket sock) contains no aliases between flagged objects.
+
+---------acceptconnection(ServerSocket ss)--------
+Task acceptconnection(ServerSocket ss) contains no aliases between flagged objects.
+
+---------requestfirst(Jhttpp2HTTPSession session, Jhttpp2ClientInputStream jcis, MySocket socket)--------
+Task requestfirst(Jhttpp2HTTPSession session, Jhttpp2ClientInputStream jcis, MySocket socket) contains no aliases between flagged objects.

@@ -1,12 +1,12 @@
-Conducting ownership analysis with allocation depth = 3
----------t2(FilterBankAtom fba)--------
-Task t2(FilterBankAtom fba) contains no aliases between flagged objects.
-
+Conducting ownership analysis with allocation depth = 1
 ---------t1(StartupObject s)--------
 Task t1(StartupObject s) contains no aliases between flagged objects.
 
----------t3(FilterBank fb, FilterBankAtom fba)--------
-Task t3(FilterBank fb, FilterBankAtom fba) contains no aliases between flagged objects.
+---------t2(FilterBankAtom fba)--------
+Task t2(FilterBankAtom fba) contains no aliases between flagged objects.
 
 ---------t4(FilterBank fb)--------
 Task t4(FilterBank fb) contains no aliases between flagged objects.
+
+---------t3(FilterBank fb, FilterBankAtom fba)--------
+Task t3(FilterBank fb, FilterBankAtom fba) contains no aliases between flagged objects.

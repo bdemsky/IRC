@@ -1,0 +1,18 @@
+Conducting ownership analysis with allocation depth = 1
+---------LogRequest(WebServerSocket web, Logger log)--------
+Task LogRequest(WebServerSocket web, Logger log) contains no aliases between flagged objects.
+
+---------ProcessRequest(WebServerSocket web)--------
+Task ProcessRequest(WebServerSocket web) contains no aliases between flagged objects.
+
+---------AcceptConnection(ServerSocket ss)--------
+Task AcceptConnection(ServerSocket ss) contains no aliases between flagged objects.
+
+---------Transaction(WebServerSocket web, Inventory inventorylist)--------
+Task Transaction(WebServerSocket web, Inventory inventorylist) contains no aliases between flagged objects.
+
+---------Startup(StartupObject s)--------
+Task Startup(StartupObject s) contains no aliases between flagged objects.
+
+---------SendFile(WebServerSocket web)--------
+Task SendFile(WebServerSocket web) contains no aliases between flagged objects.

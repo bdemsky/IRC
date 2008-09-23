@@ -1,21 +1,12 @@
-intractable:
+Conducting ownership analysis with allocation depth = 1
+---------requestQuery(Query q, Socket s)--------
+Task requestQuery(Query q, Socket s) contains no aliases between flagged objects.
 
+---------Startup(StartupObject s)--------
+Task Startup(StartupObject s) contains no aliases between flagged objects.
 
-Analyzing public String Query.makewebcanonical(String page)
-Analyzing processPage(Query q, QueryList ql)
-Analyzing public String InetAddress.toString()
-Analyzing public static String String.valueOf(Object o)
-Analyzing readResponse(Query q, Socket s)
-Analyzing public String Integer.toString()
-Analyzing public static String String.valueOf(Object o)
-Analyzing public String Query.getPathName(String page)
-Analyzing processPage(Query q, QueryList ql)
-Analyzing public String Query.makewebcanonical(String page)
-Analyzing public  Query.Query(String hostname, String path)
-Analyzing processPage(Query q, QueryList ql)
-exhaustiveArityCombinations numDimensions = 12
-x x x exhaustiveArityCombinations numDimensions = 12
-x x x exhaustiveArityCombinations numDimensions = 12
-x x x exhaustiveArityCombinations numDimensions = 24
-x x x x x x
+---------processPage(Query q, QueryList ql)--------
+Task processPage(Query q, QueryList ql) contains no aliases between flagged objects.
 
+---------readResponse(Query q, Socket s)--------
+Task readResponse(Query q, Socket s) contains no aliases between flagged objects.

@@ -1,15 +1,15 @@
-Conducting ownership analysis with allocation depth = 3
----------findNewFits(SubProblem sp, GlobalCounter counter)--------
-Task findNewFits(SubProblem sp, GlobalCounter counter) contains no aliases between flagged objects.
-
----------Startup(StartupObject s)--------
-Task Startup(StartupObject s) contains no aliases between flagged objects.
-
----------findHighestScore(SubProblem pSp, SubProblem cSp, GlobalCounter counter)--------
-Task findHighestScore(SubProblem pSp, SubProblem cSp, GlobalCounter counter) contains no aliases between flagged objects.
-
+Conducting ownership analysis with allocation depth = 1
 ---------printHighestScore(SubProblem sp)--------
 Task printHighestScore(SubProblem sp) contains no aliases between flagged objects.
 
 ---------scoreSubProbleam(SubProblem sp)--------
 Task scoreSubProbleam(SubProblem sp) contains no aliases between flagged objects.
+
+---------findHighestScore(SubProblem pSp, SubProblem cSp, GlobalCounter counter)--------
+Task findHighestScore(SubProblem pSp, SubProblem cSp, GlobalCounter counter) contains no aliases between flagged objects.
+
+---------Startup(StartupObject s)--------
+Task Startup(StartupObject s) contains no aliases between flagged objects.
+
+---------findNewFits(SubProblem sp, GlobalCounter counter)--------
+Task findNewFits(SubProblem sp, GlobalCounter counter) contains no aliases between flagged objects.

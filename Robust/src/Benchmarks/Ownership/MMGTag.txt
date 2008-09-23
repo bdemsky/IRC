@@ -1,38 +1,75 @@
-Out of memory:
-
-
-Previsiting public int Integer.intValue()
-Previsiting public double Random.nextDouble()
-Previsiting public void Vector.addElement(Object obj)
-Previsiting private  Vector.ensureCapacity(int minCapacity)
-Previsiting public  Map.Map(int nrofpacs, int nrofghosts)
-Previsiting public  Vector.Vector()
-Previsiting private boolean Pacman.canFlee()
-Previsiting updatePac(Map map, Pacman p)
-Previsiting protected synchronized int Random.next(int bits)
-Previsiting moveGhost(Ghost g)
-Previsiting private boolean Ghost.BFS(int start, int parents, Vector cuts)
-Previsiting public  Pacman.Pacman(int x, int y, Map map)
-
+Analyzing public  Pacman.Pacman(int x, int y, Map map)
 Analyzing next(Map map)
-Analyzing private void Pacman.setNextDirection()
-Analyzing public void Map.placeGhost(Ghost t)
-Analyzing finish(Map map)
-Analyzing public void Pacman.setTarget(int x, int y)
-Analyzing next(Map map)
-Analyzing startup(StartupObject s)
-Analyzing public boolean Pacman.isFinish()
-Analyzing public void Pacman.doMove()
-Analyzing private boolean Ghost.isFollowing()
-Analyzing public void Map.init()
-Exception in thread "main" java.lang.OutOfMemoryError: Java heap space
-        at java.util.Hashtable.rehash(Hashtable.java:358)
-        at java.util.Hashtable.put(Hashtable.java:414)
-        at Analysis.OwnershipAnalysis.OwnershipGraph.getLabelNodeFromTemp(OwnershipGraph.java:59)
-        at Analysis.OwnershipAnalysis.OwnershipGraph.mergeOwnershipNodes(OwnershipGraph.java:1853)
-        at Analysis.OwnershipAnalysis.OwnershipGraph.merge(OwnershipGraph.java:1813)
-        at Analysis.OwnershipAnalysis.OwnershipAnalysis.analyzeFlatMethod(OwnershipAnalysis.java:412)
-        at Analysis.OwnershipAnalysis.OwnershipAnalysis.analyzeMethods(OwnershipAnalysis.java:347)
-        at Analysis.OwnershipAnalysis.OwnershipAnalysis.<init>(OwnershipAnalysis.java:282)
-        at Main.Main.main(Main.java:466)
+    exhaustiveArityCombinations numDimensions = 11
+[[92, 93S, 14S*]
+[14S, 92, 93S*]
+[92, 14S*]
+[92, 93S, 14S*, 90]
+[92]
+[14S, 92, 90]
+[14S, 92]
+[92, 93S*, 14S*]
+[92, 93S*, 14S*, 90]
+[92, 14S*, 90]
+[14S, 92, 93S]]
+x
+    exhaustiveArityCombinations numDimensions = 12
+[[14S, 92, 93S*]
+[92, 93S, 14S*]
+[92, 14S*]
+[92]
+[92, 93S, 14S*, 90]
+[14S, 92, 90]
+[14S, 92]
+[92, 93S*, 14S*]
+[92, 93S*, 14S*, 90]
+[92, 14S*, 90]
+[14S, 92, 93S, 90]
+[14S, 92, 93S]]
+xxx
+    exhaustiveArityCombinations numDimensions = 13
+[[92, 93S, 14S*]
+[14S, 92, 93S*]
+[92]
+[14S, 92]
+[92, 93S*, 14S*]
+[92, 93S*, 14S*, 90]
+[92, 14S*, 90]
+[92, 14S*]
+[92, 93S, 14S*, 90]
+[14S, 92, 93S*, 90]
+[14S, 92, 90]
+[14S, 92, 93S, 90]
+[14S, 92, 93S]]
+xxxxxxxxx
+    exhaustiveArityCombinations numDimensions = 27
+[[14S, 92, 91S, 90]
+[92]
+[92, 93S*, 14S*, 90]
+[92, 14S*, 90]
+[91S*, 92, 14S*]
+[92, 14S*]
+[91S*, 92, 14S*, 90]
+[91S*, 92, 93S, 14S*, 90]
+[92, 93S*, 14S*, 91S, 90]
+[14S, 92, 91S]
+[92, 14S*, 91S, 90]
+[92, 93S*, 14S*, 91S]
+[91S*, 92, 93S, 14S*]
+[92, 93S, 14S*, 91S, 90]
+[14S, 92, 93S]
+[14S, 92, 93S*]
+[92, 93S, 14S*]
+[91S*, 92, 93S*, 14S*]
+[14S, 92]
+[91S*, 92, 93S*, 14S*, 90]
+[92, 93S*, 14S*]
+[92, 93S, 14S*, 91S]
+[92, 14S*, 91S]
+[92, 93S, 14S*, 90]
+[14S, 92, 93S*, 90]
+[14S, 92, 90]
+[14S, 92, 93S, 90]]
+x
+
 

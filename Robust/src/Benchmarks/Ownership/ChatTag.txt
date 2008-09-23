@@ -1,0 +1,18 @@
+Conducting ownership analysis with allocation depth = 1
+---------Message(ChatSocket cs, Socket s)--------
+Potential alias between parameter 0 and FlatNew____m2782___= NEW Message.
+
+---------SendMessage(Message m)--------
+Task SendMessage(Message m) contains no aliases between flagged objects.
+
+---------Startup(StartupObject s)--------
+Task Startup(StartupObject s) contains no aliases between flagged objects.
+
+---------ReadRequest(ChatSocket cs, Socket s)--------
+Task ReadRequest(ChatSocket cs, Socket s) contains no aliases between flagged objects.
+
+---------AcceptConnection(ServerSocket ss)--------
+Potential alias between FlatNew____cs2817___= NEW ChatSocket and FlatNew____s1933___= NEW Socket.
+
+---------ProcessRoom(ChatSocket cs, RoomObject ro)--------
+Potential alias between parameters 0 and 1.
