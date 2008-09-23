@@ -239,7 +239,7 @@ public class TokenTupleSet extends Canonical {
 	foundShadowSummary = true;
 
       } else if( shadowAge == AllocationSite.SHADOWAGE_oldest ) {
-	Integer tokenToChangeTo = as.getOldestShadow();
+	Integer tokenToChangeTo = as.getOldest();
 	TokenTuple ttNormal = tt.changeTokenTo(tokenToChangeTo);
 	ttsOut.tokenTuples.add(ttNormal);
 

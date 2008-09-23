@@ -94,7 +94,8 @@ public class Foo {
     g0.x = p0;
     p0.x = g1;
   }
-  
+
+  /*
   static public void m2_( Foo p0 ) {
     Foo g0 = new Foo();
     
@@ -165,6 +166,7 @@ public class Foo {
     p0.y = p1;
     p1.y = p0;
   }
+  */
 }
 
 
@@ -192,6 +194,7 @@ task Startup( StartupObject s{ initialstate } ) {
 }
 
 
+/*
 task NewObjectA( Foo a{ f }, Foo b{ f } ) {
 
     Foo c = new Foo();
@@ -453,7 +456,7 @@ task getNewFromMethod( Foo p0{ f } ) {
 
   taskexit( p0{ !f } );
 }
-
+*/
 
 task methodTest01_( Foo p0{ f }, Foo p1{ f } ) {
 
@@ -478,6 +481,7 @@ task methodTest01_( Foo p0{ f }, Foo p1{ f } ) {
 }
 
 
+/*
 task methodTest02_( Foo p0{ f }, Foo p1{ f } ) {
 
   Foo a0before = new Foo();
@@ -679,3 +683,4 @@ task methodTest08_( Foo p0{ f }, Foo p1{ f } ) {
 
   taskexit( p0{ !f }, p1{ !f } );
 }
+*/
