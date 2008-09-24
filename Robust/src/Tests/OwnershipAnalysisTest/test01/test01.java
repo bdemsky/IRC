@@ -3,17 +3,32 @@ public class Parameter {
   flag w;
   int a;
   int b;
-  Parameter f;
-  Parameter g;
-  Penguin p;
-  Foo h;
+  //Parameter f;
+  //Parameter g;
+  //Penguin p;
+  //Foo h;
   
-  public Parameter() { a = 0; b = 0; f = null; g = null; }
+  public Parameter() {} // a = 0; b = 0; f = null; g = null; }
   
-  public void bar() { foo(); }
-  public void foo() { bar(); }
+  //public void bar() { foo(); }
+  //public void foo() { bar(); }
+
+  static public void proof( Fooz p0, Fooz p1 ) {
+    Fooz c = new Fooz();
+    Fooz d = new Fooz();
+
+    c.x  = d;
+    p0.x = c;
+    p1.x = d;
+  }
 }
 
+public class Fooz {
+  public Fooz() {}
+  public Fooz x;
+}
+
+/*
 public class Penguin {
   int x;
   int y;
@@ -95,7 +110,6 @@ public class Foo {
     p0.x = g1;
   }
 
-  /*
   static public void m2_( Foo p0 ) {
     Foo g0 = new Foo();
     
@@ -166,9 +180,8 @@ public class Foo {
     p0.y = p1;
     p1.y = p0;
   }
-  */
 }
-
+*/
 
 
 // this empty task should still create a non-empty
@@ -177,18 +190,20 @@ public class Foo {
 // a heap region that is multi-object, flagged, not summary
 task Startup( StartupObject s{ initialstate } ) {
 
-  Parameter p0 = new Parameter();
+  //Parameter p0 = new Parameter();
 
   //int a, b, c;
 
+  Parameter.proof( null, null );
 
+  /*
   int a = 1;
   int b = 2;
   int c = 3;
 
   b = c;
   a = b;
-
+  */
 
   taskexit( s{ !initialstate } );
 }
@@ -458,6 +473,7 @@ task getNewFromMethod( Foo p0{ f } ) {
 }
 */
 
+/*
 task methodTest01_( Foo p0{ f }, Foo p1{ f } ) {
 
   Foo a0before = new Foo();
@@ -479,7 +495,7 @@ task methodTest01_( Foo p0{ f }, Foo p1{ f } ) {
 
   taskexit( p0{ !f }, p1{ !f } );
 }
-
+*/
 
 /*
 task methodTest02_( Foo p0{ f }, Foo p1{ f } ) {

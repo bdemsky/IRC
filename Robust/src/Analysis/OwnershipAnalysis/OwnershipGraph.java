@@ -433,6 +433,7 @@ public class OwnershipGraph {
 	// then propagate back just up the edges from hrn
 	ChangeTupleSet Cx = R.unionUpArityToChangeSet(O);
 
+
 	HashSet<ReferenceEdge> todoEdges = new HashSet<ReferenceEdge>();
 
 	Hashtable<ReferenceEdge, ChangeTupleSet> edgePlannedChanges =
@@ -450,8 +451,19 @@ public class OwnershipGraph {
 	                         edgesWithNewBeta);
 
 
+	if( edgeY.getBetaNew().equals( new ReachabilitySet() ) ) {
+	  edgeY.setBetaNew( new ReachabilitySet( new TokenTupleSet().makeCanonical() ).makeCanonical() );
+	}
 
-	//System.out.println( edgeY.getBetaNew() + "\nbeing pruned by\n" + hrnX.getAlpha() );
+	/*
+	System.out.println( "---------------------------\n" +
+			    edgeY.getBetaNew() + 
+			    "\nbeing pruned by\n" + 
+			    hrnX.getAlpha() + 
+			    "\nis\n" + 
+			    edgeY.getBetaNew().pruneBy(hrnX.getAlpha())
+			    );
+	*/
 
 	// create the actual reference edge hrnX.f -> hrnY
 	ReferenceEdge edgeNew = new ReferenceEdge(hrnX,
