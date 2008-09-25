@@ -912,6 +912,9 @@ public class OwnershipGraph {
     Hashtable<Integer, ReachabilitySet> paramIndex2rewriteK =
       new Hashtable<Integer, ReachabilitySet>();
 
+    Hashtable<Integer, ReachabilitySet> paramIndex2rewrite_d =
+      new Hashtable<Integer, ReachabilitySet>();
+
     Hashtable<Integer, ReachabilitySet> paramIndex2rewriteD =
       new Hashtable<Integer, ReachabilitySet>();
 
@@ -1019,15 +1022,15 @@ public class OwnershipGraph {
       LabelNode argLabel_i = getLabelNodeFromTemp(argTemp_i);
       paramIndex2ln.put(paramIndex, argLabel_i);
 
-      ReachabilitySet D_i = new ReachabilitySet().makeCanonical();
+      ReachabilitySet d_i = new ReachabilitySet().makeCanonical();
       Iterator<ReferenceEdge> edgeItr = argLabel_i.iteratorToReferencees();
       while( edgeItr.hasNext() ) {
 	ReferenceEdge edge = edgeItr.next();
-	D_i = D_i.union(edge.getBeta());
+	d_i = d_i.union(edge.getBeta());
       }
+      paramIndex2rewrite_d.put(paramIndex, d_i);
 
-      D_i = D_i.exhaustiveArityCombinations();
-
+      ReachabilitySet D_i = d_i.exhaustiveArityCombinations();
       paramIndex2rewriteD.put(paramIndex, D_i);
     }
 
@@ -1084,6 +1087,7 @@ public class OwnershipGraph {
 				  hrn,
 				  null,
 				  paramIndex2rewriteH.get(index),
+				  paramIndex2rewrite_d,
 				  paramIndex2rewriteD,
 				  paramIndex2paramToken.get(index),
 				  paramToken2paramIndex,
@@ -1132,6 +1136,7 @@ public class OwnershipGraph {
 				  null,
 				  edgeReachable,
 				  paramIndex2rewriteJ.get(index),
+				  paramIndex2rewrite_d,
 				  paramIndex2rewriteD,
 				  paramIndex2paramToken.get(index),
 				  paramToken2paramIndex,
@@ -1154,6 +1159,7 @@ public class OwnershipGraph {
 				  null,
 				  edgeUpstream,
 				  paramIndex2rewriteK.get(index),
+				  paramIndex2rewrite_d,
 				  paramIndex2rewriteD,
 				  paramIndex2paramToken.get(index),
 				  paramToken2paramIndex,
@@ -1212,6 +1218,7 @@ public class OwnershipGraph {
 				hrnShadowSummary,
 				null,
 				hrnShadowSummary.getAlpha(),
+				paramIndex2rewrite_d,
 				paramIndex2rewriteD,
 				bogusToken,
 				paramToken2paramIndex,
@@ -1243,6 +1250,7 @@ public class OwnershipGraph {
 				  hrnIthShadow,
 				  null,
 				  hrnIthShadow.getAlpha(),
+				  paramIndex2rewrite_d,
 				  paramIndex2rewriteD,
 				  bogusToken,
 				  paramToken2paramIndex,
@@ -1294,6 +1302,7 @@ public class OwnershipGraph {
 				    null,
 				    edgeNewInCallerTemplate,
 				    edgeNewInCallerTemplate.getBeta(),
+				    paramIndex2rewrite_d,
 				    paramIndex2rewriteD,
 				    bogusToken,
 				    paramToken2paramIndex,
@@ -1379,6 +1388,7 @@ public class OwnershipGraph {
 				  null,
 				  edgeNewInCallerTemplate,
 				  edgeNewInCallerTemplate.getBeta(),
+				  paramIndex2rewrite_d,
 				  paramIndex2rewriteD,
 				  bogusToken,
 				  paramToken2paramIndex,
@@ -1581,6 +1591,7 @@ public class OwnershipGraph {
 					 HeapRegionNode hrn,
 					 ReferenceEdge edge,
 					 ReachabilitySet rules,
+					 Hashtable<Integer, ReachabilitySet> paramIndex2rewrite_d,
 					 Hashtable<Integer, ReachabilitySet> paramIndex2rewriteD,
 					 TokenTuple p_i,
 					 Hashtable<TokenTuple, Integer> paramToken2paramIndex,
@@ -1633,23 +1644,21 @@ public class OwnershipGraph {
 	  ttCalleeRewrites = callerReachabilityCurrent;
 	  callerSourceUsed = true;
 	  
-	} else if( paramToken2paramIndex.containsKey( ttCallee ) ||
-		   paramTokenStar2paramIndex.containsKey( ttCallee ) ) {
+	} else if( paramToken2paramIndex.containsKey( ttCallee ) ) {
+	  // use little d
+	  Integer paramIndex_j = paramToken2paramIndex.get( ttCallee );
+	  assert paramIndex_j != null;
+	  ttCalleeRewrites = paramIndex2rewrite_d.get( paramIndex_j );
+	  assert ttCalleeRewrites != null;
 
-	  // this token is another callee parameter, or any ARITY_MANY callee parameter,
-	  // so rewrite it with the D rules for that parameter
-	  Integer paramIndex_j;
-	  if( paramToken2paramIndex.containsKey( ttCallee ) ) {
-	    paramIndex_j = paramToken2paramIndex.get( ttCallee );
-	  } else {
-	    paramIndex_j = paramTokenStar2paramIndex.get( ttCallee );
-	  }
-
+	} else if( paramTokenStar2paramIndex.containsKey( ttCallee ) ) {
+	  // worse, use big D
+	  Integer paramIndex_j = paramTokenStar2paramIndex.get( ttCallee );
+	  assert paramIndex_j != null;
 	  ttCalleeRewrites = paramIndex2rewriteD.get( paramIndex_j );
 	  assert ttCalleeRewrites != null;
 
 	} else {
-
 	  // otherwise there's no need for a rewrite, just pass this one on
 	  TokenTupleSet ttsCaller = new TokenTupleSet(ttCallee).makeCanonical();
 	  ttCalleeRewrites = new ReachabilitySet(ttsCaller).makeCanonical();
@@ -2579,23 +2588,27 @@ public class OwnershipGraph {
     HashSet<HeapRegionNode> visited = new HashSet<HeapRegionNode>();
 
     // then visit every heap region node
-    if( !pruneGarbage ) {
-      Set s = id2hrn.entrySet();
-      Iterator i = s.iterator();
-      while( i.hasNext() ) {
-	Map.Entry me  = (Map.Entry)i.next();
-	HeapRegionNode hrn = (HeapRegionNode) me.getValue();
+    Set s = id2hrn.entrySet();
+    Iterator i = s.iterator();
+    while( i.hasNext() ) {
+      Map.Entry me  = (Map.Entry)i.next();
+      HeapRegionNode hrn = (HeapRegionNode) me.getValue();
+      if( !pruneGarbage ||
+	  hrn.isFlagged() ||
+	  hrn.getDescription().startsWith( "param" )
+	) {
+	
 	if( !visited.contains(hrn) ) {
 	  traverseHeapRegionNodes(VISIT_HRN_WRITE_FULL,
-	                          hrn,
-	                          bw,
-	                          null,
-	                          visited,
-	                          writeReferencers);
+				  hrn,
+				  bw,
+				  null,
+				  visited,
+				  writeReferencers);
 	}
       }
     }
-
+    
     bw.write("  graphTitle[label=\""+graphName+"\",shape=box];\n");
 
     if( writeParamMappings ) {
@@ -2611,8 +2624,8 @@ public class OwnershipGraph {
 
     // then visit every label node, useful for debugging
     if( writeLabels ) {
-      Set s = td2ln.entrySet();
-      Iterator i = s.iterator();
+      s = td2ln.entrySet();
+      i = s.iterator();
       while( i.hasNext() ) {
 	Map.Entry me = (Map.Entry)i.next();
 	LabelNode ln = (LabelNode) me.getValue();
