@@ -118,7 +118,9 @@ We could also think of this as a state machine for each writedata operation. The
 
 \includegraphics[scale = 0.3]{hello2.png}\\
 
-\section{Commuting Operations}
+The final state for all $writedata$ operations is Absolute, since the write should be perfomed at a specefic offset eventually. However, depending on the prevuious circumstances the system would immediately prior to commit determine the offset or would have realized it earlier.\\ 
+
+\section{Guidelines for Implementaion}
 
 As we saw earlier in Rule 4, any two operations can commute across each other unless they are subject to one of the two conditions in Rule 3.\\  
 
@@ -129,8 +131,27 @@ $forced-readoffset(fd)$, as this would mean even if $\exists writeoffset \in OP_
 
 This stems from the definition of EndTransaction operation, and the state diagram. A $forced-readoffset$ can be issued at any place in $OP_T{i}$ however it would always precede the $writeoffset(fd) \in OP_{T_i}$ since this is last operation in $OP_{T_i}$ before $commit$.\\
 
-\textbf{guideline 2}: \emph{Commuting readdata Operations}:% A $readdata(fd_i.inode,offset_i, lenght_i) \in OP_{T_i}$ can go past a $commit_{T_j}$ if and only if $\not \exists writedata(fd_j.inode, offset_j, length_j) in OP{T_j}$ such that fd_j.inode= fd_i.inode and the two ranges (offset_i, offset_i + length_i) and (offset_i, offset_j + length_j) have an intersection.\\
+\textbf{Guideline 2}: \emph{Commuting readdata Operations}: A $readdata(fd_i.inode,offset_i, lenght_i) \in OP_{T_i}$ can go past a $commit_{T_j}$ if and only if \\
 
-%\textbf{Axiom}:\ This is 
+1- $\not \exists writedata(fd_j.inode, offset_j, length_j) in OP{T_j}$ such that $fd_j.inode= fd_i.inode$ and the two ranges $(offset_i, offset_i + length_i)$ and $(offset_i, offset_j + length_j)$ have an intersection.\\
+
+ OR\\
+
+2- $\exists$ a set of $writedata(fd_j.inode,offset_j, lenght_j) in OP_{T_i}$ such that for all of them $writedata \rightarrow readdata$ and $fd_i.inode = fd_j.inode$ and the range $(offset_i, offset_i + length)$ is a subrange for a combiantion of ranges for these $writedata$ operations.\\
+
+\textbf{Axiom}: This follows imeediately from Rule 4 (1 and 2 are concrete representations for conditions 1 and 2 in Rule 3). However, it should be noted that whenever a $readata$ operation wants to commute across a $commit$ operation $\in T_j$, if $ \exists writedata \in OP_{T_j}$, the offset for the $wtitedata$ operation is known at this instant (according to the state diagram demonstarted below and regardless of whether $i = j$ or not), hence it would be trivial to see whether these $writedata$ operations intersect (or include in case they are in the same transaction as the $readata$) with the $readdata$ or not.\\
+
+\textbf{Guideline 3:} \emph{Reads Should be Validated At Commit Instant}:
+If an operation $a$ that "reads" some data $r_n$ (reads the data at some $t < t_{commit-of-the-transaction}$(the commit instant)), it should be ensured that the data $r_n$ is still valid in the actual file system at $t_{commit-of-the-transaction}$ (commit instant) or $T_i$ has to abort.\\
+
+\textbf{Axiom}: If the data is not valid anymore it means the data $r_n$ has been written since $t_{i-1}$. This implies at least one operation $b$ has written the data since the use and $b$ does not precede $a$ and $a$ precedes $b$. $b$ is either an operation in the same transaction or a different one. However, if $b$ is in the same transaction, then the data read is valid at commit instant by defenition. On the other hand, assume $b$ belongs to a different transaction namely $T_j$. Since $T_j$ should have already commited, according to Corrolary 2 all operation in $OP_{T_j}$ should precede those in $OP_{T_i}$, however, we know there is at least an operation $b$ that does not precede $a$ (since $a$ has not seen the "writes" made to $r_n$ by $b$). Hence, $T_i$ can not commit.\\
+
+
+\textbf{Guideline 4}: \emph{If Reads Are Valid At Commit Instant, the Transaction Commits}: If by applying Guideline 3 for $T_i$ it is ensured that $\forall r_i \in R{T_i}$ (all data read by $T_i$) is still valid at commit instant, then $\forall T_j \in T_{committed} T_j \rightarrow T_j$ and hence according to Rule 4 $T_i$ commits.\\
+
+proof: If all data read is still valid at commit instant, means all operation in the set of operations belonging to committed transactions, precede those in $T_i$ (since no writes have been seen), and consequently all those transactions precede $T_i$. Rule 5 ensures such transaction would be able to commit.\\ 
+
+
+
 
 \end{document}
