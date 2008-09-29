@@ -82,21 +82,6 @@ public class ReachabilitySet extends Canonical {
     return false;
   }
 
-  public ReachabilitySet increaseArity(Integer token) {
-    assert token != null;
-
-    HashSet<TokenTupleSet> possibleReachabilitiesNew = new HashSet<TokenTupleSet>();
-
-    Iterator itr = iterator();
-    while( itr.hasNext() ) {
-      TokenTupleSet tts = (TokenTupleSet) itr.next();
-      possibleReachabilitiesNew.add(tts.increaseArity(token) );
-    }
-
-    return new ReachabilitySet(possibleReachabilitiesNew).makeCanonical();
-  }
-
-
   public ReachabilitySet union(ReachabilitySet rsIn) {
     assert rsIn != null;
 
@@ -154,28 +139,28 @@ public class ReachabilitySet extends Canonical {
 
 	Iterator itrRelement = r.iterator();
 	while( itrRelement.hasNext() ) {
-	  TokenTuple e = (TokenTuple) itrRelement.next();
+	  TokenTuple ttR = (TokenTuple) itrRelement.next();
+	  TokenTuple ttO = o.containsToken( ttR.getToken() );
 
-	  if( o.containsToken(e.getToken() ) ) {
-	    theUnion = theUnion.union(new TokenTupleSet(e.increaseArity() ) ).makeCanonical();
+	  if( ttO != null ) {
+	    theUnion = theUnion.union( new TokenTupleSet( ttR.unionArity(ttO) ) ).makeCanonical();
 	  } else {
-	    theUnion = theUnion.union(new TokenTupleSet(e) ).makeCanonical();
+	    theUnion = theUnion.union( new TokenTupleSet( ttR                 ) ).makeCanonical();
 	  }
 	}
 
 	Iterator itrOelement = o.iterator();
 	while( itrOelement.hasNext() ) {
-	  TokenTuple e = (TokenTuple) itrOelement.next();
+	  TokenTuple ttO = (TokenTuple) itrOelement.next();
+	  TokenTuple ttR = theUnion.containsToken( ttO.getToken() );
 
-	  if( !theUnion.containsToken(e.getToken() ) ) {
-	    theUnion = theUnion.union(new TokenTupleSet(e) ).makeCanonical();
+	  if( ttR == null ) {
+	    theUnion = theUnion.union( new TokenTupleSet(ttO) ).makeCanonical();
 	  }
 	}
-
+	
 	if( !theUnion.isEmpty() ) {
-	  ctsOut = ctsOut.union(
-	    new ChangeTupleSet(new ChangeTuple(o, theUnion) )
-	    );
+	  ctsOut = ctsOut.union( new ChangeTupleSet( new ChangeTuple(o, theUnion) ) );
 	}
       }
     }
@@ -263,10 +248,21 @@ public class ReachabilitySet extends Canonical {
 
     int numDimensions = this.possibleReachabilities.size();
 
-    if( numDimensions > 10 ) {
-      System.out.println( "    exhaustiveArityCombinations numDimensions = "+numDimensions );
-      System.out.println( this );
+    if( numDimensions > 6 ) {
+      // for problems that are too big, punt and use less
+      // precise arity for reachability information
+      TokenTupleSet ttsImprecise = new TokenTupleSet().makeCanonical();
+
+      Iterator<TokenTupleSet> itrThis = this.iterator();
+      while( itrThis.hasNext() ) {
+	TokenTupleSet ttsUnit = itrThis.next();
+	ttsImprecise = ttsImprecise.unionUpArity( ttsUnit.makeArityZeroOrMore() );
+      }
+
+      rsOut = rsOut.union( ttsImprecise );
+      return rsOut;
     }
+
 
     // add an extra digit to detect termination
     int[] digits = new int[numDimensions+1];
@@ -283,7 +279,7 @@ public class ReachabilitySet extends Canonical {
     while( digits[numDimensions] == minArity ) {
 
       // spit out a "coordinate" made from these digits
-      TokenTupleSet ttsCoordinate = new TokenTupleSet();
+      TokenTupleSet ttsCoordinate = new TokenTupleSet().makeCanonical();
       Iterator<TokenTupleSet> ttsItr = this.iterator();
       for( int i = 0; i < numDimensions; ++i ) {
 	assert ttsItr.hasNext();
@@ -298,19 +294,6 @@ public class ReachabilitySet extends Canonical {
       for( int i = 0; i < numDimensions+1; ++i ) {
 	digits[i]++;
 
-
-	if( i == 11 ) {
-	  System.out.print( "x" );
-	}
-
-	if( i == 15 ) {
-	  System.out.print( "@" );
-	}
-
-	if( i == 17 ) {
-	  System.out.print( "#" );
-	}
-
 	if( digits[i] > maxArity ) {
 	  // this axis reached its max, so roll it back to min and increment next higher digit
 	  digits[i] = minArity;
@@ -320,10 +303,6 @@ public class ReachabilitySet extends Canonical {
 	  break;
 	}
       }
-    }
-
-    if( numDimensions > 10 ) {
-      System.out.println( "" );
     }
 
     return rsOut.makeCanonical();

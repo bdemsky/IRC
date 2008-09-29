@@ -58,54 +58,41 @@ public class TokenTupleSet extends Canonical {
     return ttsOut.makeCanonical();
   }
 
+
   public TokenTupleSet unionUpArity(TokenTupleSet ttsIn) {
     assert ttsIn != null;
     TokenTupleSet ttsOut = new TokenTupleSet();
 
     Iterator<TokenTuple> ttItr = this.iterator();
     while( ttItr.hasNext() ) {
-      TokenTuple tt = ttItr.next();
+      TokenTuple ttThis = ttItr.next();
+      TokenTuple ttIn   = ttsIn.containsToken( ttThis.getToken() );
 
-      if( ttsIn.containsToken(tt.getToken() ) ) {
-	ttsOut.tokenTuples.add(tt.increaseArity());
+      if( ttIn != null ) {
+	ttsOut.tokenTuples.add( ttThis.unionArity( ttIn ) );
       } else {
-	ttsOut.tokenTuples.add(tt);
+	ttsOut.tokenTuples.add( ttThis );
       }
     }
 
     ttItr = ttsIn.iterator();
     while( ttItr.hasNext() ) {
-      TokenTuple tt = ttItr.next();
+      TokenTuple ttIn   = ttItr.next();
+      TokenTuple ttThis = ttsOut.containsToken( ttIn.getToken() );
 
-      if( !ttsOut.containsToken(tt.getToken()) ) {
-	ttsOut.tokenTuples.add(tt);
+      if( ttThis == null ) {
+	ttsOut.tokenTuples.add( ttIn );
       }
     }
 
     return ttsOut.makeCanonical();
   }
 
+
   public TokenTupleSet add(TokenTuple tt) {
     assert tt != null;
     TokenTupleSet ttsOut = new TokenTupleSet(tt);
     return ttsOut.union(this);
-  }
-
-
-  // this should only be done with a multiple-object heap region's token!
-  public TokenTupleSet increaseArity(Integer token) {
-    assert token != null;
-    TokenTupleSet ttsOut = new TokenTupleSet(this);
-    TokenTuple tt
-    = new TokenTuple(token, true, TokenTuple.ARITY_ONE).makeCanonical();
-    if( ttsOut.tokenTuples.contains(tt) ) {
-      ttsOut.tokenTuples.remove(tt);
-      ttsOut.tokenTuples.add(
-        new TokenTuple(token, true, TokenTuple.ARITY_MANY).makeCanonical()
-        );
-    }
-
-    return ttsOut.makeCanonical();
   }
 
 
@@ -128,17 +115,17 @@ public class TokenTupleSet extends Canonical {
 
 
   // this should be a hash table so we can do this by key
-  public boolean containsToken(Integer token) {
+  public TokenTuple containsToken(Integer token) {
     assert token != null;
 
     Iterator itr = tokenTuples.iterator();
     while( itr.hasNext() ) {
       TokenTuple tt = (TokenTuple) itr.next();
       if( token.equals(tt.getToken() ) ) {
-	return true;
+	return tt;
       }
     }
-    return false;
+    return null;
   }
 
 
@@ -148,7 +135,7 @@ public class TokenTupleSet extends Canonical {
     TokenTupleSet ttsOut = new TokenTupleSet();
 
     TokenTuple ttSummary = null;
-    boolean foundOldest  = false;
+    TokenTuple ttOldest  = null;
 
     Iterator itrT = this.iterator();
     while( itrT.hasNext() ) {
@@ -170,7 +157,7 @@ public class TokenTupleSet extends Canonical {
       } else if( age == AllocationSite.AGE_oldest ) {
 	// found an oldest token, again just remember
 	// for later
-	foundOldest = true;
+	ttOldest = tt;
 
       } else {
 	assert age == AllocationSite.AGE_in_I;
@@ -192,18 +179,25 @@ public class TokenTupleSet extends Canonical {
     // 2. we found an oldest tuple, no summary
     //    Make a new, arity-one summary tuple
     // 3. we found both a summary and an oldest
-    //    Merge them by increasing arity of summary
+    //    Merge them by arity
     // 4. (not handled) we found neither, do nothing
-    if       ( ttSummary != null && !foundOldest ) {
+    if       ( ttSummary != null && ttOldest == null ) {
       ttsOut.tokenTuples.add(ttSummary);
 
-    } else if( ttSummary == null &&  foundOldest ) {
+    } else if( ttSummary == null && ttOldest != null ) {
       ttsOut.tokenTuples.add(new TokenTuple(as.getSummary(),
                                             true,
-                                            TokenTuple.ARITY_ONE).makeCanonical() );
+                                            ttOldest.getArity() 
+					   ).makeCanonical() 
+			     );
 
-    } else if( ttSummary != null &&  foundOldest ) {
-      ttsOut.tokenTuples.add(ttSummary.increaseArity() );
+    } else if( ttSummary != null && ttOldest != null ) {
+      ttsOut.tokenTuples.add(ttSummary.unionArity(new TokenTuple(as.getSummary(),
+								 true,
+								 ttOldest.getArity() 
+								 ).makeCanonical()
+						  )
+			     );
     }
 
     return ttsOut.makeCanonical();
@@ -215,8 +209,8 @@ public class TokenTupleSet extends Canonical {
 
     TokenTupleSet ttsOut = new TokenTupleSet();
 
-    TokenTuple ttSummary = null;
-    boolean foundShadowSummary = false;
+    TokenTuple ttSummary       = null;
+    TokenTuple ttShadowSummary = null;
 
     Iterator itrT = this.iterator();
     while( itrT.hasNext() ) {
@@ -236,7 +230,7 @@ public class TokenTupleSet extends Canonical {
       } else if( shadowAge == AllocationSite.SHADOWAGE_summary ) {
 	// found the shadow summary token, again just remember
 	// for later
-	foundShadowSummary = true;
+	ttShadowSummary = tt;
 
       } else if( shadowAge == AllocationSite.SHADOWAGE_oldest ) {
 	Integer tokenToChangeTo = as.getOldest();
@@ -255,17 +249,23 @@ public class TokenTupleSet extends Canonical {
       }
     }
 
-    if       ( ttSummary != null && !foundShadowSummary ) {
+    if       ( ttSummary != null && ttShadowSummary == null ) {
       ttsOut.tokenTuples.add(ttSummary);
 
-    } else if( ttSummary == null &&  foundShadowSummary ) {
-      ttSummary = new TokenTuple(as.getSummary(),
-                                 true,
-                                 TokenTuple.ARITY_ONE).makeCanonical();
-      ttsOut.tokenTuples.add(ttSummary);
+    } else if( ttSummary == null && ttShadowSummary != null ) {
+      ttsOut.tokenTuples.add( new TokenTuple(as.getSummary(),
+					     true,
+					     ttShadowSummary.getArity()
+					     ).makeCanonical()
+			      );
 
-    } else if( ttSummary != null &&  foundShadowSummary ) {
-      ttsOut.tokenTuples.add(ttSummary.increaseArity() );
+    } else if( ttSummary != null && ttShadowSummary != null ) {
+      ttsOut.tokenTuples.add(ttSummary.unionArity( new TokenTuple(as.getSummary(),
+								  true,
+								  ttShadowSummary.getArity()
+								  ).makeCanonical()
+						   )
+			     );
     }
 
     return ttsOut.makeCanonical();
@@ -275,7 +275,7 @@ public class TokenTupleSet extends Canonical {
   public TokenTupleSet toShadowTokens(AllocationSite as) {
     assert as != null;
 
-    TokenTupleSet ttsOut = new TokenTupleSet();
+    TokenTupleSet ttsOut = new TokenTupleSet().makeCanonical();
 
     Iterator itrT = this.iterator();
     while( itrT.hasNext() ) {
@@ -343,6 +343,24 @@ public class TokenTupleSet extends Canonical {
     }
 
     return rsOut.makeCanonical();
+  }
+
+
+  public TokenTupleSet makeArityZeroOrMore() {
+    TokenTupleSet ttsOut = new TokenTupleSet().makeCanonical();
+
+    Iterator<TokenTuple> itrThis = this.iterator();
+    while( itrThis.hasNext() ) {
+      TokenTuple tt = itrThis.next();
+
+      ttsOut.tokenTuples.add( new TokenTuple( tt.getToken(),
+					     tt.isMultiObject(),
+					     TokenTuple.ARITY_ZEROORMORE 
+					    ).makeCanonical()
+			      );
+    }
+
+    return ttsOut.makeCanonical();
   }
 
 

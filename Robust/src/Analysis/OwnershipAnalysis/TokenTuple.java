@@ -14,34 +14,30 @@ import java.io.*;
 public class TokenTuple extends Canonical {
 
   private Integer token;
-  private boolean isNewSummary;
+  private boolean isMultiObject;
 
-
-  // only summary tokens should have ARITY_MANY?
-  // acutally, multiple-object regions can be arity-many
-  // so isNewSummary actually means "multi-object" in
-  // this class.  CHANGE THIS SOMETIME!
-  public static final int ARITY_ONE  = 1;
-  public static final int ARITY_MANY = 2;
+  public static final int ARITY_ZEROORMORE = 0;
+  public static final int ARITY_ONE        = 1;
+  public static final int ARITY_ONEORMORE  = 2;
   private int arity;
 
 
   public TokenTuple(HeapRegionNode hrn) {
     assert hrn != null;
 
-    token        = hrn.getID();
-    isNewSummary = hrn.isNewSummary();
-    arity        = ARITY_ONE;
+    token         = hrn.getID();
+    isMultiObject = !hrn.isSingleObject();
+    arity         = ARITY_ONE;
   }
 
   public TokenTuple(Integer token,
-                    boolean isNewSummary,
+                    boolean isMultiObject,
                     int arity) {
     assert token != null;
 
-    this.token        = token;
-    this.isNewSummary = isNewSummary;
-    this.arity        = arity;
+    this.token         = token;
+    this.isMultiObject = isMultiObject;
+    this.arity         = arity;
   }
 
 
@@ -53,18 +49,39 @@ public class TokenTuple extends Canonical {
   public Integer getToken() {
     return token;
   }
-  public int     getArity() {
+
+  public boolean isMultiObject() {
+    return isMultiObject;
+  }
+
+  public int getArity() {
     return arity;
   }
 
 
-  public TokenTuple increaseArity() {
-    if( isNewSummary ) {
-      return (TokenTuple) Canonical.makeCanonical(
-               new TokenTuple(token, isNewSummary, ARITY_MANY)
-               );
+  public TokenTuple unionArity( TokenTuple tt ) {
+    assert tt            != null;
+    assert token         == tt.token;
+    assert isMultiObject == tt.isMultiObject;
+
+    if( isMultiObject ) {
+      // for multiple objects only zero-or-mores combined are still zero-or-more
+      // when two tokens are present (absence of a token is arity=zero and is
+      // handled outside of this method)
+      if( arity == ARITY_ZEROORMORE && tt.arity == ARITY_ZEROORMORE ) {
+	return new TokenTuple( token, true, ARITY_ZEROORMORE ).makeCanonical();
+      } else {
+	return new TokenTuple( token, true, ARITY_ONEORMORE ).makeCanonical();
+      }
+
+    } else {
+      // a single object region's token can only have ZEROORMORE or ONE
+      if( arity == ARITY_ZEROORMORE && tt.arity == ARITY_ZEROORMORE ) {
+	return new TokenTuple( token, false, ARITY_ZEROORMORE ).makeCanonical();
+      } else {
+	return new TokenTuple( token, false, ARITY_ONE ).makeCanonical();
+      }
     }
-    return this;
   }
 
 
@@ -72,7 +89,7 @@ public class TokenTuple extends Canonical {
     assert tokenToChangeTo != null;
 
     return new TokenTuple(tokenToChangeTo,
-                          isNewSummary,
+                          isMultiObject,
                           arity).makeCanonical();
   }
 
@@ -89,7 +106,7 @@ public class TokenTuple extends Canonical {
     TokenTuple tt = (TokenTuple) o;
 
     return token.equals(tt.getToken() ) &&
-           arity ==      tt.getArity();
+           arity ==     tt.getArity();
   }
 
   public int hashCode() {
@@ -100,12 +117,14 @@ public class TokenTuple extends Canonical {
   public String toString() {
     String s = token.toString();
 
-    if( isNewSummary ) {
-      s += "S";
+    if( isMultiObject ) {
+      s += "M";
     }
 
-    if( arity == ARITY_MANY ) {
+    if( arity == ARITY_ZEROORMORE ) {
       s += "*";
+    } else if( arity == ARITY_ONEORMORE ) {
+      s += "+";
     }
 
     return s;

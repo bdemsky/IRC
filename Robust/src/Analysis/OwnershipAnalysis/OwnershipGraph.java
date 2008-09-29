@@ -925,10 +925,10 @@ public class OwnershipGraph {
     Hashtable<Integer, TokenTuple> paramIndex2paramToken =
       new Hashtable<Integer, TokenTuple>();
 
-    Hashtable<TokenTuple, Integer> paramTokenStar2paramIndex =
+    Hashtable<TokenTuple, Integer> paramTokenPlus2paramIndex =
       new Hashtable<TokenTuple, Integer>();
 
-    Hashtable<Integer, TokenTuple> paramIndex2paramTokenStar =
+    Hashtable<Integer, TokenTuple> paramIndex2paramTokenPlus =
       new Hashtable<Integer, TokenTuple>();
 
     Hashtable<Integer, LabelNode> paramIndex2ln =
@@ -943,7 +943,7 @@ public class OwnershipGraph {
     Integer bogusID = new Integer(-1);
     Integer bogusIndex = new Integer(-1);
     TokenTuple bogusToken = new TokenTuple(bogusID, true, TokenTuple.ARITY_ONE);
-    TokenTuple bogusTokenStar = new TokenTuple(bogusID, true, TokenTuple.ARITY_MANY);
+    TokenTuple bogusTokenPlus = new TokenTuple(bogusID, true, TokenTuple.ARITY_ONEORMORE);
     ReachabilitySet rsIdentity =
       new ReachabilitySet(new TokenTupleSet(bogusToken).makeCanonical() ).makeCanonical();
 
@@ -951,8 +951,8 @@ public class OwnershipGraph {
     paramIndex2rewriteJ.put(bogusIndex, rsIdentity);
     paramToken2paramIndex.put(bogusToken, bogusIndex);
     paramIndex2paramToken.put(bogusIndex, bogusToken);
-    paramTokenStar2paramIndex.put(bogusTokenStar, bogusIndex);
-    paramIndex2paramTokenStar.put(bogusIndex, bogusTokenStar);
+    paramTokenPlus2paramIndex.put(bogusTokenPlus, bogusIndex);
+    paramIndex2paramTokenPlus.put(bogusIndex, bogusTokenPlus);
 
 
     for( int i = 0; i < fm.numParameters(); ++i ) {
@@ -991,11 +991,11 @@ public class OwnershipGraph {
       paramToken2paramIndex.put(p_i, paramIndex);
       paramIndex2paramToken.put(paramIndex, p_i);
 
-      TokenTuple p_i_star = new TokenTuple(hrnParam.getID(),
+      TokenTuple p_i_plus = new TokenTuple(hrnParam.getID(),
                                            true,
-                                           TokenTuple.ARITY_MANY).makeCanonical();
-      paramTokenStar2paramIndex.put(p_i_star, paramIndex);
-      paramIndex2paramTokenStar.put(paramIndex, p_i_star);
+                                           TokenTuple.ARITY_ONEORMORE).makeCanonical();
+      paramTokenPlus2paramIndex.put(p_i_plus, paramIndex);
+      paramIndex2paramTokenPlus.put(paramIndex, p_i_plus);
 
       // now depending on whether the callee is static or not
       // we need to account for a "this" argument in order to
@@ -1091,7 +1091,7 @@ public class OwnershipGraph {
 				  paramIndex2rewriteD,
 				  paramIndex2paramToken.get(index),
 				  paramToken2paramIndex,
-				  paramTokenStar2paramIndex,
+				  paramTokenPlus2paramIndex,
 				  false,
 				  null);
 
@@ -1140,7 +1140,7 @@ public class OwnershipGraph {
 				  paramIndex2rewriteD,
 				  paramIndex2paramToken.get(index),
 				  paramToken2paramIndex,
-				  paramTokenStar2paramIndex,
+				  paramTokenPlus2paramIndex,
 				  false,
 				  null);
 
@@ -1163,7 +1163,7 @@ public class OwnershipGraph {
 				  paramIndex2rewriteD,
 				  paramIndex2paramToken.get(index),
 				  paramToken2paramIndex,
-				  paramTokenStar2paramIndex,
+				  paramTokenPlus2paramIndex,
 				  true,
 				  edgeUpstreamPlannedChanges);
 
@@ -1222,7 +1222,7 @@ public class OwnershipGraph {
 				paramIndex2rewriteD,
 				bogusToken,
 				paramToken2paramIndex,
-				paramTokenStar2paramIndex,
+				paramTokenPlus2paramIndex,
 				false,
 				null);
 
@@ -1254,7 +1254,7 @@ public class OwnershipGraph {
 				  paramIndex2rewriteD,
 				  bogusToken,
 				  paramToken2paramIndex,
-				  paramTokenStar2paramIndex,
+				  paramTokenPlus2paramIndex,
 				  false,
 				  null);
 
@@ -1306,7 +1306,7 @@ public class OwnershipGraph {
 				    paramIndex2rewriteD,
 				    bogusToken,
 				    paramToken2paramIndex,
-				    paramTokenStar2paramIndex,
+				    paramTokenPlus2paramIndex,
 				    false,
 				    null);
 
@@ -1392,7 +1392,7 @@ public class OwnershipGraph {
 				  paramIndex2rewriteD,
 				  bogusToken,
 				  paramToken2paramIndex,
-				  paramTokenStar2paramIndex,
+				  paramTokenPlus2paramIndex,
 				  false,
 				  null);
 
@@ -1595,7 +1595,7 @@ public class OwnershipGraph {
 					 Hashtable<Integer, ReachabilitySet> paramIndex2rewriteD,
 					 TokenTuple p_i,
 					 Hashtable<TokenTuple, Integer> paramToken2paramIndex,
-					 Hashtable<TokenTuple, Integer> paramTokenStar2paramIndex,
+					 Hashtable<TokenTuple, Integer> paramTokenPlus2paramIndex,
 					 boolean makeChangeSet,
 					 Hashtable<ReferenceEdge, ChangeTupleSet> edgePlannedChanges) {
     assert (hrn == null && edge != null) || 
@@ -1651,9 +1651,9 @@ public class OwnershipGraph {
 	  ttCalleeRewrites = paramIndex2rewrite_d.get( paramIndex_j );
 	  assert ttCalleeRewrites != null;
 
-	} else if( paramTokenStar2paramIndex.containsKey( ttCallee ) ) {
+	} else if( paramTokenPlus2paramIndex.containsKey( ttCallee ) ) {
 	  // worse, use big D
-	  Integer paramIndex_j = paramTokenStar2paramIndex.get( ttCallee );
+	  Integer paramIndex_j = paramTokenPlus2paramIndex.get( ttCallee );
 	  assert paramIndex_j != null;
 	  ttCalleeRewrites = paramIndex2rewriteD.get( paramIndex_j );
 	  assert ttCalleeRewrites != null;
@@ -2252,9 +2252,13 @@ public class OwnershipGraph {
                                    true,
                                    TokenTuple.ARITY_ONE).makeCanonical();
 
+    TokenTuple pPlus1 = new TokenTuple(hrnParam1.getID(),
+                                       true,
+                                       TokenTuple.ARITY_ONEORMORE).makeCanonical();
+
     TokenTuple pStar1 = new TokenTuple(hrnParam1.getID(),
                                        true,
-                                       TokenTuple.ARITY_MANY).makeCanonical();
+                                       TokenTuple.ARITY_ZEROORMORE).makeCanonical();
 
 
     // get tokens for the other parameter
@@ -2269,9 +2273,13 @@ public class OwnershipGraph {
                                    true,
                                    TokenTuple.ARITY_ONE).makeCanonical();
 
+    TokenTuple pPlus2 = new TokenTuple(hrnParam2.getID(),
+                                       true,
+                                       TokenTuple.ARITY_ONEORMORE).makeCanonical();
+
     TokenTuple pStar2 = new TokenTuple(hrnParam2.getID(),
                                        true,
-                                       TokenTuple.ARITY_MANY).makeCanonical();
+                                       TokenTuple.ARITY_ZEROORMORE).makeCanonical();
 
 
     // get special label p_q for first parameter
@@ -2289,18 +2297,15 @@ public class OwnershipGraph {
     ReachabilitySet beta1 = edgeSpecialQ1.getBeta();
     assert beta1 != null;
 
-    if( beta1.containsTupleSetWithBoth(p1,     p2) ) {
-      return true;
-    }
-    if( beta1.containsTupleSetWithBoth(pStar1, p2) ) {
-      return true;
-    }
-    if( beta1.containsTupleSetWithBoth(p1,     pStar2) ) {
-      return true;
-    }
-    if( beta1.containsTupleSetWithBoth(pStar1, pStar2) ) {
-      return true;
-    }
+    if( beta1.containsTupleSetWithBoth(p1,     p2    ) ) { return true; }
+    if( beta1.containsTupleSetWithBoth(pPlus1, p2    ) ) { return true; }
+    if( beta1.containsTupleSetWithBoth(pStar1, p2    ) ) { return true; }
+    if( beta1.containsTupleSetWithBoth(p1,     pPlus2) ) { return true; }
+    if( beta1.containsTupleSetWithBoth(pPlus1, pPlus2) ) { return true; }
+    if( beta1.containsTupleSetWithBoth(pStar1, pPlus2) ) { return true; }
+    if( beta1.containsTupleSetWithBoth(p1,     pStar2) ) { return true; }
+    if( beta1.containsTupleSetWithBoth(pPlus1, pStar2) ) { return true; }
+    if( beta1.containsTupleSetWithBoth(pStar1, pStar2) ) { return true; }
 
     return false;
   }
@@ -2321,9 +2326,13 @@ public class OwnershipGraph {
                                   true,
                                   TokenTuple.ARITY_ONE).makeCanonical();
 
+    TokenTuple pPlus = new TokenTuple(hrnParam.getID(),
+                                      true,
+                                      TokenTuple.ARITY_ONEORMORE).makeCanonical();
+
     TokenTuple pStar = new TokenTuple(hrnParam.getID(),
                                       true,
-                                      TokenTuple.ARITY_MANY).makeCanonical();
+                                      TokenTuple.ARITY_ZEROORMORE).makeCanonical();
 
     // get special label p_q
     TempDescriptor tdParamQ = paramIndex2tdQ.get(paramIndex);
@@ -2345,37 +2354,43 @@ public class OwnershipGraph {
                                    true,
                                    TokenTuple.ARITY_ONE).makeCanonical();
 
+    TokenTuple gsPlus = new TokenTuple(as.getSummary(),
+                                       true,
+                                       TokenTuple.ARITY_ONEORMORE).makeCanonical();
+
     TokenTuple gsStar = new TokenTuple(as.getSummary(),
                                        true,
-                                       TokenTuple.ARITY_MANY).makeCanonical();
+                                       TokenTuple.ARITY_ZEROORMORE).makeCanonical();
 
-    if( beta.containsTupleSetWithBoth(p,     gs) ) {
-      return true;
-    }
-    if( beta.containsTupleSetWithBoth(pStar, gs) ) {
-      return true;
-    }
-    if( beta.containsTupleSetWithBoth(p,     gsStar) ) {
-      return true;
-    }
-    if( beta.containsTupleSetWithBoth(pStar, gsStar) ) {
-      return true;
-    }
+
+    if( beta.containsTupleSetWithBoth(p,     gs    ) ) { return true; }
+    if( beta.containsTupleSetWithBoth(pPlus, gs    ) ) { return true; }
+    if( beta.containsTupleSetWithBoth(pStar, gs    ) ) { return true; }
+    if( beta.containsTupleSetWithBoth(p,     gsPlus) ) { return true; }
+    if( beta.containsTupleSetWithBoth(pPlus, gsPlus) ) { return true; }
+    if( beta.containsTupleSetWithBoth(pStar, gsPlus) ) { return true; }
+    if( beta.containsTupleSetWithBoth(p,     gsStar) ) { return true; }
+    if( beta.containsTupleSetWithBoth(pPlus, gsStar) ) { return true; }
+    if( beta.containsTupleSetWithBoth(pStar, gsStar) ) { return true; }
 
     // check for other nodes
     for( int i = 0; i < as.getAllocationDepth(); ++i ) {
 
-      // the other nodes of an allocation site are single, no stars
+      // the other nodes of an allocation site are single, no plus
       TokenTuple gi = new TokenTuple(as.getIthOldest(i),
                                      false,
                                      TokenTuple.ARITY_ONE).makeCanonical();
 
-      if( beta.containsTupleSetWithBoth(p,     gi) ) {
-	return true;
-      }
-      if( beta.containsTupleSetWithBoth(pStar, gi) ) {
-	return true;
-      }
+      TokenTuple giStar = new TokenTuple(as.getIthOldest(i),
+					 false,
+					 TokenTuple.ARITY_ZEROORMORE).makeCanonical();
+
+      if( beta.containsTupleSetWithBoth(p,     gi    ) ) { return true; }
+      if( beta.containsTupleSetWithBoth(pPlus, gi    ) ) { return true; }
+      if( beta.containsTupleSetWithBoth(pStar, gi    ) ) { return true; }
+      if( beta.containsTupleSetWithBoth(p,     giStar) ) { return true; }
+      if( beta.containsTupleSetWithBoth(pPlus, giStar) ) { return true; }
+      if( beta.containsTupleSetWithBoth(pStar, giStar) ) { return true; }
     }
 
     return false;
@@ -2389,9 +2404,13 @@ public class OwnershipGraph {
                                     true,
                                     TokenTuple.ARITY_ONE).makeCanonical();
 
+    TokenTuple gsPlus1 = new TokenTuple(as1.getSummary(),
+                                        true,
+                                        TokenTuple.ARITY_ONEORMORE).makeCanonical();
+
     TokenTuple gsStar1 = new TokenTuple(as1.getSummary(),
                                         true,
-                                        TokenTuple.ARITY_MANY).makeCanonical();
+                                        TokenTuple.ARITY_ZEROORMORE).makeCanonical();
 
     // get summary node's alpha
     Integer idSum1 = as1.getSummary();
@@ -2407,9 +2426,13 @@ public class OwnershipGraph {
                                     true,
                                     TokenTuple.ARITY_ONE).makeCanonical();
 
+    TokenTuple gsPlus2 = new TokenTuple(as2.getSummary(),
+                                        true,
+                                        TokenTuple.ARITY_ONEORMORE).makeCanonical();
+
     TokenTuple gsStar2 = new TokenTuple(as2.getSummary(),
                                         true,
-                                        TokenTuple.ARITY_MANY).makeCanonical();
+                                        TokenTuple.ARITY_ZEROORMORE).makeCanonical();
 
     // get summary node's alpha
     Integer idSum2 = as2.getSummary();
@@ -2420,21 +2443,15 @@ public class OwnershipGraph {
     assert alphaSum2 != null;
 
     // does either one report reachability from the other tokens?
-    if( alphaSum1.containsTuple(gsStar2) ) {
-      return true;
-    }
-    if( alphaSum2.containsTuple(gsStar1) ) {
-      return true;
-    }
+    if( alphaSum1.containsTuple(gsPlus2) ) { return true; }
+    if( alphaSum1.containsTuple(gsStar2) ) { return true; }
+    if( alphaSum2.containsTuple(gsPlus1) ) { return true; }
+    if( alphaSum2.containsTuple(gsStar1) ) { return true; }
 
-    // only check non-star token if they are different sites
+    // only check ONE token if they are different sites
     if( as1 != as2 ) {
-      if( alphaSum1.containsTuple(gs2) ) {
-	return true;
-      }
-      if( alphaSum2.containsTuple(gs1) ) {
-	return true;
-      }
+      if( alphaSum1.containsTuple(gs2) ) { return true; }
+      if( alphaSum2.containsTuple(gs1) ) { return true; }
     }
 
 
@@ -2452,15 +2469,15 @@ public class OwnershipGraph {
                                       false,
                                       TokenTuple.ARITY_ONE).makeCanonical();
 
-      if( alphaSum2.containsTuple(gi1) ) {
-	return true;
-      }
-      if( alphaI1.containsTuple(gs2) ) {
-	return true;
-      }
-      if( alphaI1.containsTuple(gsStar2) ) {
-	return true;
-      }
+      TokenTuple giStar1 = new TokenTuple(as1.getIthOldest(i),
+					  false,
+					  TokenTuple.ARITY_ZEROORMORE).makeCanonical();
+
+      if( alphaSum2.containsTuple(gi1    ) ) { return true; }
+      if( alphaSum2.containsTuple(giStar1) ) { return true; }
+      if(   alphaI1.containsTuple(gs2    ) ) { return true; }
+      if(   alphaI1.containsTuple(gsPlus2) ) { return true; }
+      if(   alphaI1.containsTuple(gsStar2) ) { return true; }
     }
 
     // check sum1 against alloc2 nodes
@@ -2476,21 +2493,21 @@ public class OwnershipGraph {
                                       false,
                                       TokenTuple.ARITY_ONE).makeCanonical();
 
-      if( alphaSum1.containsTuple(gi2) ) {
-	return true;
-      }
-      if( alphaI2.containsTuple(gs1) ) {
-	return true;
-      }
-      if( alphaI2.containsTuple(gsStar1) ) {
-	return true;
-      }
+      TokenTuple giStar2 = new TokenTuple(as2.getIthOldest(i),
+					  false,
+					  TokenTuple.ARITY_ZEROORMORE).makeCanonical();
+
+      if( alphaSum1.containsTuple(gi2    ) ) { return true; }
+      if( alphaSum1.containsTuple(giStar2) ) { return true; }
+      if(   alphaI2.containsTuple(gs1    ) ) { return true; }
+      if(   alphaI2.containsTuple(gsPlus1) ) { return true; }
+      if(   alphaI2.containsTuple(gsStar1) ) { return true; }
 
       // while we're at it, do an inner loop for alloc2 vs alloc1 nodes
       for( int j = 0; j < as1.getAllocationDepth(); ++j ) {
 	Integer idI1 = as1.getIthOldest(j);
 
-	// if these are the same site, don't look for the same token, no alias
+	// if these are the same site, don't look for the same token, no alias.
 	// different tokens of the same site could alias together though
 	if( idI1 == idI2 ) {
 	  continue;
@@ -2501,12 +2518,15 @@ public class OwnershipGraph {
 	TokenTuple gi1 = new TokenTuple(as1.getIthOldest(j),
 	                                false,
 	                                TokenTuple.ARITY_ONE).makeCanonical();
-	if( alphaI2.containsTuple(gi1) ) {
-	  return true;
-	}
-	if( alphaI1.containsTuple(gi2) ) {
-	  return true;
-	}
+
+	TokenTuple giStar1 = new TokenTuple(as1.getIthOldest(j),
+					    false,
+					    TokenTuple.ARITY_ZEROORMORE).makeCanonical();
+
+	if( alphaI2.containsTuple(gi1    ) ) { return true; }
+	if( alphaI2.containsTuple(giStar1) ) { return true; }
+	if( alphaI1.containsTuple(gi2    ) ) { return true; }
+	if( alphaI1.containsTuple(giStar2) ) { return true; }
       }
     }
 
