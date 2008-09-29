@@ -1,6 +1,6 @@
 \documentclass[a4paper, 11pt]{article}
 \begin{document}
-\section{Requirements}
+\section{Correctness}
 \subsection{Transactions}
 We have a set of Threads $T$ each representing a transaction.The code for a 
 Transaction is like below:
@@ -18,17 +18,17 @@ A Transaction consists of a sequence of operations. Thus, a transaction can be r
 
 \subsection{Defenitions}
 
-\textbf{Def 1-} \emph{Set of Operations}: Operations are taken from the set \{readoffset(fildescriptor), getoffset(filedescriptor), writeoffset(filedescriptor), readdata(inode, offset, length), writedata(inode, offset, length), commit\}. We denote read operations as readoffset and readdata and write operations as writeoffset and writedata.\\
+\textbf{Def 1-} \emph{Set of Operations}: Operations are taken from the set \{forcedreadoffset(filedescriptor), writeoffset(filedescriptor), readdata(inode, offset, length), writedata(inode, offset, length), commit\}. We denote read operations as readoffset and readdata and write operations as writeoffset and writedata.\\
 
-\textbf{Def 2-} \emph{Operations Sharing Resources} 1- A readoffset operation and writeoffset operations are said to be sharing resources if they both operate on the same filedescriptor. 2- A readdata and writedata operations are said to be sharing resources if they both operate on the same inode AND the range of (offset, offset + length) within one overlaps with that of the other.\\ 
+\textbf{Def 2-} \emph{Operations Sharing Resources} 1- A forcedreadoffset operation and writeoffset operations are said to be sharing resources if they both operate on the same filedescriptor. 2- A readdata and writedata operations are said to be sharing resources if they both operate on the same inode AND the range of (offset, offset + length) within one overlaps with that of the other.\\ 
 
 \textbf{Def 3-} A read operation can only see the writes made by write operations sharing reources.\\ 
 
-\textbf{Def 4-} \emph{Commit Instant and Commit Operation}: A transaction commits when it invokes the "commit" operation. A transaction $T_i$ is said to "commit" at instant $t_i$, if and only if it reflects its "writes" mabe by write operations in the filesystem or equivalently makes it writes visible to the whole system for all members of $T$ accesing the data at instant $t_j$ such that $t_j > t_i$. After a transaction invokes commit operation, the transactin ends and no more operation by transaction is done. An operation $\in OP_{T_i}$ is said to commit if and only if $T_i$ commits. Commit instant are not splittable, hence it appears to other transactions that all writes are refleted in the file system together.\\ 
+\textbf{Def 4-} \emph{Commit Instant and Commit Operation}: A transaction commits when it invokes the "commit" operation. A transaction $T_i$ is said to "commit" at instant $t_i$, if and only if it reflects its "writes" made by write operations in the filesystem or equivalently makes it writes visible to the whole system for all members of $T$ accesing the data at instant $t_j$ such that $t_j > t_i$. After a transaction invokes commit operation, the transactin ends and no more operation by transaction is done. An operation $\in OP_{T_i}$ is said to commit if and only if $T_i$ commits. Commit instant are not splittable, hence it appears to other transactions that all writes are refleted in the file system together.\\ 
 
 \textbf{Def 5-} \emph{Precedence Relationship}: If $OP_{executed} = \{op_0, op_1, ..., op_n\}$ represnts the operations executed so far(from all transactions running), and the indices represnt the order of operations executed so far in an ascending manner, we define $op_i \rightarrow op_j$ (precedes) if and only if $i<j$.\\ 
 
-\textbf{Def 6-} \emph{Visbility of Writes}: Assume $T_i$ is an uncommitted transaction and $T_{commited}$ indicates the set of commited transaction (those which have invoked the "commit" operation). A read operation $b \in OP_{T_i}$ MAY ONLY see the writes(changes) made by precedent write operation $a$ that shares resources with $b$ AND also is subject to one of the following conditions:\\
+\textbf{Def 6-} \emph{Visbility of Writes}: Assume $T_i$ is an uncommitted transaction and $T_{commited}$ indicates the set of commited transaction (those which have invoked the "commit" operation). A read operation $b \in OP_{T_i}$ MAY ONLY see the writes(changes) made by preceding write operation $a$ that shares resources with $b$ AND also is subject to one of the following conditions:\\
 
 \hspace{7mm} 1- $a \in OP_{T_j}$ ($j \neq i$) such that $T_j \in T_{commited}$ \\
 
@@ -66,7 +66,7 @@ All the rules explained later are based on the assumptions made in Note 2 \& 3, 
 
 %proof: Follows immediately from Def 7 and Def 8. This is later proven formally.\\
 
-\subsection{Rules}
+\section{Rules For }
 
 \textbf{Rule 1-} $\forall op_i \in  OP{T_i}$, $\forall op_j \in  OP{T_j}$, $\forall op_k \in  OP{T_k}$, if $op_i \rightarrow op_k$ and  $op_k \rightarrow op_j$, then $op_i \rightarrow op_j$ \\
 
@@ -97,12 +97,12 @@ Now we prove the other side of the argument, that if $op_j$ can be relocated in 
 
 The whole argument can be used to prove the Rule for $i > j$ as well.\\
 
-\textbf{Rule 5-}\emph{Operation in the Set of Execeuted Operations Belongin to Committed Transactions Should Be Able To Precede Those in The Transaction About to Commit}: $OP_{executed} = \{op_1,..., op_n\}$ represents the set of executed operations before instant $t_j$ and $T_{committed}$ represents the set of committed transactions committed successfully before $t_j$. If $T_j$ invokes ${commit}$ operation at instant $t_j$ - then $T_j$ commits at instant $t_j$ if and only if operations in $OP$ can be commuted in a way such that $\forall op_i \in OP_{T{committed}}$, $\forall op_j \in OP_{T_j}$, $op_i \rightarrow op_j$.\\
+\textbf{Rule 5-}\emph{Operation in the Set of Execeuted Operations Belonging to Committed Transactions Should Be Able To Precede Those in The Transaction About to Commit}: $OP_{executed} = \{op_1,..., op_n\}$ represents the set of executed operations before instant $t_j$ and $T_{committed}$ represents the set of committed transactions committed successfully before $t_j$. If $T_j$ invokes ${commit}$ operation at instant $t_j$ - then $T_j$ commits at instant $t_j$ if and only if operations in $OP$ can be commuted in a way such that $\forall op_i \in OP_{T{committed}}$, $\forall op_j \in OP_{T_j}$, $op_i \rightarrow op_j$.\\
 
 
 proof: If all those operations can be commuted tp precede those in $T_j$ we could have $OP_{executed} = \{op_1,...,OP{T_j}\}$. This by defenition of transaction means $T_j$ can commit (it is executed in its whole entierty).\\
 
-Now we have to prove $T_j$ commits only if $\forall T_i \in T_{committed} T_i \rightarrow T_j$. Now we'll show that if all committed operations can not precede operation of $T_j$ the $T_j$ can not commit. $OP = \{op_{T_j}(1), ..., op{T_j}(m)} represent the operations in $T_j$ excluding the ${commit}$ in the order they have occured in $OP_{executed}$. Assume \{op_{T_j}(k),...op{T_j}(m)\} can be relocated in $OP_{executed}$ in the standing \{n-(m-k), ...,n-1) but op_{T_j}(k-1) can not. This means first of all op_{T_j}(k-1) is a ${read}$ operation reading $r_n$(each transaction has only one ${commit$} operation). Furthermore, this implies there is a ${commit}$ operation by some transactione $T_i$ between $op{T_j}(k-1)$ and commit operation by $T_j$ and $ \exists op in OP{T_i}$ such that writes $r_n$ and $\not \exists op_i \in OP{T_j}$ such that $op_i \rightarrow op_{T_i}(k-1)$. On the other hand since there is a ${commit}$ by $T_i$ in the middle, the commit by $T_J$ can not be commuted in a way so $OP$ precedes it without any operation belonging to other transaction in the middle (two ${commits}$ can not commute). Hence we can not have a sequence where all operations belonging to $T_j$ are located next to each other, this contradicts the defenition of transaction, hence the transaction can not commit.  
+Now we have to prove $T_j$ commits only if $\forall T_i \in T_{committed} T_i \rightarrow T_j$. Now we'll show that if all committed operations can not precede operation of $T_j$ the $T_j$ can not commit. $OP = \{op_{T_j}(1), ..., op{T_j}(m)\}$ represent the operations in $T_j$ excluding the ${commit}$ in the order they have occured in $OP_{executed}$. Assume \{$op_{T_j}(k),...op{T_j}(m)$\} can be relocated in $OP_{executed}$ in the standing \{n-(m-k), ...,n-1) but $op_{T_j}(k-1)$ can not. This means first of all $op_{T_j}(k-1)$ is a ${read}$ operation reading $r_n$(each transaction has only one ${commit}$ operation). Furthermore, this implies there is a ${commit}$ operation by some transactione $T_i$ between $op{T_j}(k-1)$ and commit operation by $T_j$ and $ \exists op in OP{T_i}$ such that writes $r_n$ and $\not \exists op_i \in OP{T_j}$ such that $op_i \rightarrow op_{T_i}(k-1)$. On the other hand since there is a ${commit}$ by $T_i$ in the middle, the commit by $T_J$ can not be commuted in a way so $OP$ precedes it without any operation belonging to other transaction in the middle (two ${commits}$ can not commute). Hence we can not have a sequence where all operations belonging to $T_j$ are located next to each other, this contradicts the defenition of transaction, hence the transaction can not commit.  
 
 
 \subsection{TransactionalFile Opeartions}
@@ -126,18 +126,18 @@ It should be noted that according to Rule 3 even if all but one of the transacti
 
 %Principle 0: An operation should not see any modifications other than those made by precedessors (either in the same transaction or others)\\
 
-proof: Obviously such modifications are not valid and are probably part of a faulty operation.\\
+%proof: Obviously such modifications are not valid and are probably part of a faulty operation.\\
 
 
-Principle 1) \emph{Reads Should be Validated At Commit Instant}: If an operation $a$ that "reads" some data $r_n$ (reads the data at some $t < t_{commit-of-the-transaction}$(the commit instant)), it should be ensured that the data $r_n$ is still valid in the actual file system at $t_{commit-of-the-transaction}$ (commit instant) or $T_i$ has to abort.\\
+%Principle 1) \emph{Reads Should be Validated At Commit Instant}: If an operation $a$ that "reads" some data $r_n$ (reads the data at some $t < t_{commit-of-the-transaction}$(the commit instant)), it should be ensured that the data $r_n$ is still valid in the actual file system at $t_{commit-of-the-transaction}$ (commit instant) or $T_i$ has to abort.\\
 
-proof: If the data is not valid anymore it means the data $r_n$ has been written since $t_{i-1}$. This implies at least one operation $b$ has written the data since the use and $b$ does not precede $a$ and $a$ precedes $b$. $b$ is either an operation in the same transaction or a different one. According to Def 4, however if $b$ is in the same transaction, then $b$ can not have commited yet and hence the changes are not reflected in the filesystem so it is still valid at commit instant. Hence, $b$ belongs to a different transaction namely $T_j$. Since $T_j$ should have already commited, according to Rule 3 all operation in $OP_{T_j}$ should precede those in $OP_{T_i}$, however, we know there is at least an operation $b$ that does not precede $a$ (since $a$ has not seen the "writes" made to $r_n$ by $b$). Hence, $T_i$ can not commit.\\
+%proof: If the data is not valid anymore it means the data $r_n$ has been written since $t_{i-1}$. This implies at least one operation $b$ has written the data since the use and $b$ does not precede $a$ and $a$ precedes $b$. $b$ is either an operation in the same transaction or a different one. According to Def 4, however if $b$ is in the same transaction, then $b$ can not have commited yet and hence the changes are not reflected in the filesystem so it is still valid at commit instant. Hence, $b$ belongs to a different transaction namely $T_j$. Since $T_j$ should have already commited, according to Rule 3 all operation in $OP_{T_j}$ should precede those in $OP_{T_i}$, however, we know there is at least an operation $b$ that does not precede $a$ (since $a$ has not seen the "writes" made to $r_n$ by $b$). Hence, $T_i$ can not commit.\\
 
-The same reasoning could be done for $T_i$ and $T_{i-1}$, $T_{i-1}$ the last commited transaction before $T_{i}$. Now according to rule 3, since $T_j$ succeds $T_i$ and $T_i$ succeds $T_{i-1}$, hence $T_j$ succeds $T_{i-1}$. Same reasoning is applied for all the members of $T_{commited}$. \\ 
+%The same reasoning could be done for $T_i$ and $T_{i-1}$, $T_{i-1}$ the last commited transaction before $T_{i}$. Now according to rule 3, since $T_j$ succeds $T_i$ and $T_i$ succeds $T_{i-1}$, hence $T_j$ succeds $T_{i-1}$. Same reasoning is applied for all the members of $T_{commited}$. \\ 
 
-Principle 2: emph{If Reads Are Valid At Commit Instant, the Transaction Commits}: If by applying Principle 1 for $T_i$ it is ensured that $\forall r_i \in R{T_i}$ (all data read by $T_i$) is still valid at commit instant, then $\forall T_j \in T_{committed} T_j \rightarrow T_j$ and hence according to Rule 4 $T_i$ commits.\\
+%Principle 2: emph{If Reads Are Valid At Commit Instant, the Transaction Commits}: If by applying Principle 1 for $T_i$ it is ensured that $\forall r_i \in R{T_i}$ (all data read by $T_i$) is still valid at commit instant, then $\forall T_j \in T_{committed} T_j \rightarrow T_j$ and hence according to Rule 4 $T_i$ commits.\\
 
-proof: If all data read is still valid at commit instant, means all operation in the set of operations belonging to committed transactions, precede those in $T_i$ (since no writes have been seen), and consequently all those transactions precede $T_i$.\\ 
+%proof: If all data read is still valid at commit instant, means all operation in the set of operations belonging to committed transactions, precede those in $T_i$ (since no writes have been seen), and consequently all those transactions precede $T_i$.\\ 
 
 %Principle 2) 1-A seek operation in $OP_{T_i}$ does not make $T_i$ dependent on any data and hence does not count as "using" ("use" as defined in Def 1).\\
 
@@ -250,10 +250,11 @@ proof: If all data read is still valid at commit instant, means all operation in
 
 %2- Since all the following read and writes at least succed this seek operation, they should be able to see the changes made by it unless some other operation in between changes the data in question (offset). Lets first assume the operation ($op$) following the seek. If $op$ is a read or write, then it would carry on reading or writing the data from the absolute offset so it would advance the aboslute offset resulting in another absolute offset and hence no "use" of the actual offset would be applicable. If the following is a seek, then the resultant offset would be another absolute offste. Same reasoning could be done for all the succeding operations and hence the offset would be still absolute. To prove only seek can make the offset absolute it should have been made absolute by read or write, however as we'll see in Principles 2 and 3 they can not yield in an absolute offset. Hence, an absolute offset indicates there has been a seek.\\
 %According to priciple 1 the offset chosen should be validated at the the commit instant.\\
-\section{Implementation Overview}
+%\section{Implementation Overview}
 
 %proof: A write operation writes to the most recently commited offset (unless imposed otherwise by a seek or a prior read or a following read as shown above) of the file descriptor.  According to Def 2, it does not "use" any data. Since the write does not happen till commit instant, the offset chosen during the execution of transaction can be speculative, and the actual offset to be written to, is determined at the sommit instant, when the most recently commited offset is known. 
-Now we will describe the components of our system and demosntrate how the algorithm conforms to the function just described, and how all the rules principles are gurantedd. 
+
+%Now we will describe the components of our system and demosntrate how the algorithm conforms to the function just described, and how all the rules principles are gurantedd. 
 
 
 
@@ -263,7 +264,7 @@ Now we will describe the components of our system and demosntrate how the algori
 
 
 
-to be continued
+%to be continued
 
 %\begin{tabular}{c|c|c|}
 \end{document}
