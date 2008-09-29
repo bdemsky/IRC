@@ -11,14 +11,13 @@ Transaction is like below:
 
 \hspace{12mm}	\}
 
-This is adopted from dstm and can and may be changed. Within this block which 
-represents a member of set $T$. The functions beginTransction and endTransaction are implicitly called by the system without the intervention of the programmer.However, the programmer can read and write from TransactionalFile Objects within the blocks of a member of $T$. To provide consisteny the read and write from ordinary Java object files should be prohibited, otherwise the semantics of transactions would not be preserved. Hence, the sequence of operations provided to the programmer within a member of $T$ is the set \{TransactionalFile.Read(), TransactionalFile.Write()i, TransactionalFile.Seek()\}. However, always a beginTransaction() and commitTransaction() (if the transaction does not abort prior to this point) are performed too. \\ 
+This is adopted from dstm and can and may be changed. Within this block which represents a member of set $T$. The functions beginTransction and endTransaction are implicitly called by the system without the intervention of the programmer.However, the programmer can read and write from TransactionalFile Objects within the blocks of a member of $T$. To provide consisteny the read and write from ordinary Java object files should be prohibited, otherwise the semantics of transactions would not be preserved. Hence, the sequence of operations provided to the programmer within a member of $T$ is the set \{TransactionalFile.Read(), TransactionalFile.Write()i, TransactionalFile.Seek()\}. However, always a beginTransaction() and commitTransaction() (if the transaction does not abort prior to this point) are performed too. \\ 
 
 A Transaction consists of a sequence of operations. Thus, a transaction can be represented as the \{$op_1$, $op_2$, ..., $op_n$\}. The flow of program should be in a manner that we could have an arbitrary serial order of the members of $T$ (e.g. $T_5,T_6,T_1$,...) or any other order. The serial order should be in such a way that for any given two members of the set $T$, it looks all the operations of one occur before all the operation of the other. %In the first case we would say the $T_i$ precedes $T_j$ and in the seconds case $T_j$ preceds $T_i$ and $T_i$ can observe all the effects made by the operations in $T_j$. \\
 
 \subsection{Defenitions}
 
-\textbf{Def 1-} \emph{Set of Operations}: Operations are taken from the set \{forcedreadoffset(filedescriptor), writeoffset(filedescriptor), readdata(inode, offset, length), writedata(inode, offset, length), commit\}. We denote read operations as readoffset and readdata and write operations as writeoffset and writedata.\\
+textbf{Def 1-} \emph{Set of Primitive Operations}: Operations are taken from the set \{forcedreadoffset(filedescriptor), writeoffset(filedescriptor), readdata(inode, offset, length), writedata(inode, offset, length), commit\}. We denote read operations as readoffset and readdata and write operations as writeoffset and writedata.\\
 
 \textbf{Def 2-} \emph{Operations Sharing Resources} 1- A forcedreadoffset operation and writeoffset operations are said to be sharing resources if they both operate on the same filedescriptor. 2- A readdata and writedata operations are said to be sharing resources if they both operate on the same inode AND the range of (offset, offset + length) within one overlaps with that of the other.\\ 
 
@@ -46,9 +45,9 @@ axiom: Assume $a$ is accessing data at $t_i$, according to Def 6, only writes by
 In case 2 that there are writer operations writng $r_i$ and preceding $a$ in $OP_{T_i}$, according to defenition of transaction, $r_i$ should be read from the writes made by write operations in $T_i$, and as the last of such write operation overrides the written data to $r_i$ by other operations, $a$ gets to see the most recent precedessor in $T_i$.\\   
 
 
-\textbf{Def 7-} $\forall$ $op_{T_i}$ $\in OP_{T_i}$ and $\forall op_{T_j}\in OP_{T_j}$ if and only if $op_{T_i} \rightarrow op_{T_j}$ then $T_i$ $\rightarrow T_j$ \hspace{8mm} (this defines precedes relationship for members of $T$) \\
+\textbf{Def 7-} \emph{Precedence Relationship For Transactions:} $\forall$ $op_{T_i}$ $\in OP_{T_i}$ and $\forall op_{T_j}\in OP_{T_j}$ if and only if $op_{T_i} \rightarrow op_{T_j}$ then $T_i$ $\rightarrow T_j$ \hspace{8mm} (this defines precedes relationship for members of $T$) \\
 
-\textbf{Def 8-} \emph{Correctness}: A sequence of tarnsaction are said to be consistent if and only if a total ordeing of them according to precedence relationship can be established that demonstrates the same behavior as the execution of the program. Behavior for an operation means the data it has read. Demonstrating the same behavior thus means all the read operations should still see the same data in the new sequence as they have seen in the actual sequence.\\
+\textbf{Def 8-} \emph{Correctness:} A sequence of transactions are said to be consistent if and only if a total ordeing of them according to precedence relationship can be established that demonstrates the same behavior as the execution of the program. Behavior for an operation means the data it has read or wants to write. Demonstrating the same behavior thus means all the read operations should still see the same data in the new sequence as they have seen in the actual sequence. However writs always writes the same value no matter what. Hence the behavior of a write operation is not alterable
 
 \textbf{Note 1:} Def 7 and Def 8 indicate that if operations can be commuted in a given sequnce of $OP_{executed} = \{op_{T_1}(0), op_{T_4}(0), ... op_{T_1}(n)\}$ such that a total ordering of transactions (e.g \{$OP_{T_1}, OP_{T_2}, ..., OP_{T_n}) $\} can be obtained then the execution is consistent and correct. The eligiblity to commute is subject to conforming to Corrolary 1 \& 2.\\
 
@@ -66,7 +65,7 @@ All the rules explained later are based on the assumptions made in Note 2 \& 3, 
 
 %proof: Follows immediately from Def 7 and Def 8. This is later proven formally.\\
 
-\section{Rules For }
+\subsection{Rules}
 
 \textbf{Rule 1-} $\forall op_i \in  OP{T_i}$, $\forall op_j \in  OP{T_j}$, $\forall op_k \in  OP{T_k}$, if $op_i \rightarrow op_k$ and  $op_k \rightarrow op_j$, then $op_i \rightarrow op_j$ \\
 
