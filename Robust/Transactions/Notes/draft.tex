@@ -49,7 +49,7 @@ In case 2 that there are writer operations writng $r_i$ and preceding $a$ in $OP
 
 \textbf{Def 7-} \emph{Precedence Relationship For Transactions:} $\forall$ $op_{T_i}$ $\in OP_{T_i}$ and $\forall op_{T_j}\in OP_{T_j}$ if and only if $op_{T_i} \rightarrow op_{T_j}$ then $T_i$ $\rightarrow T_j$ \hspace{8mm} (this defines precedes relationship for members of $T$) \\
 
-\textbf{Def 8-} \emph{Correctness:} A sequence of transactions are said to be consistent if and only if a total ordeing of them according to precedence relationship can be established that demonstrates the same behavior as the execution of the program. Behavior for an operation means the data it has read or wants to write. Demonstrating the same behavior thus means all the read operations should still see the same data in the new sequence as they have seen in the actual sequence. However writs always writes the same value no matter what. Hence the behavior of a write operation is not alterable
+\textbf{Def 8-} \emph{Correctness:} A sequence of transactions are said to be consistent if and only if a total ordeing of them according to precedence relationship can be established that demonstrates the same behavior as the execution of the program. Behavior for an operation means the data it has read or wants to write. Demonstrating the same behavior thus means all the read operations should still see the same data in the new sequence as they have seen in the actual sequence. However writs always writes the same value no matter what. Hence the behavior of a write operation is not alterable.\\
 
 \textbf{Note 1:} Def 7 and Def 8 indicate that if operations can be commuted in a given sequnce of $OP_{executed} = \{op_{T_1}(0), op_{T_4}(0), ... op_{T_1}(n)\}$ such that a total ordering of transactions (e.g \{$OP_{T_1}, OP_{T_2}, ..., OP_{T_n}) $\} can be obtained then the execution is consistent and correct. The eligiblity to commute is subject to conforming to Corrolary 1 \& 2.\\
 
@@ -81,7 +81,7 @@ proof: Follws from Rule 1 and Def 7. \\
 \hspace{8mm} 2- If $op_{i+1} = {commit}$ and $op_{i} = {read}$ and $op_{i}$ reads $r_k$ and $\not \exists op_k$ in $OP_{T_n}$ such that writes to $r_k$, and if there $exists op_l \in OP_{T_m}$ such that writes the data $r_k$, $op_i$ and $op_{i+1}$ can not exchange positions.\\ 
 
 
-proof: According to Def 9, none of the operatios in the sequence should change behavior as the result of this exchange, however in this argument only $op_i$ and $op_{i+1}$ may change behavior as those are the only operations that their postions in the sequence is changed. However, since behavior is only defined for read operations, one of these without losing generality lets say $op_i$ should be a read operation on agiven resource $r_k$.\\
+\textbf{Proof}: According to Def 9, none of the operatios in the sequence should change behavior as the result of this exchange, however in this argument only $op_i$ and $op_{i+1}$ may change behavior as those are the only operations that their postions in the sequence is changed. However, since behavior is only defined for read operations, one of these without losing generality lets say $op_i$ should be a read operation on agiven resource $r_k$.\\
 
 Now changing the $(op_i, op_{i+1})$ to $(op_{i+1}, op_i)$ changes the behavior of $op_i$ if and only if $op_{i+1}$ writes $r_k$ at the file system (all the previous precedessors are still the same, only $op{i+1}$ has been added). This means by defenition the $op_{i+1}$ should be a commit operation. And, if $op_{i+1}$ is a commit operation for $T_m$, and there is at least one write operation in $T_m$ writing to $r_k$, then according to Corrolary $op_i$ should see the most recent results and hence if there is no precedessor for $op_i$ in $T_n$ itself that writes to $r_k$, then $op_i$ sees the changes made by the write operarion in $T_m$. These changes could not have been seen in the first case $(op_i, op_{i+1})$ due to Corrolary 1 (No See in The Future).\\ 
 
@@ -99,7 +99,9 @@ The whole argument can be used to prove the Rule for $i > j$ as well.\\
 
 proof: If all those operations can be commuted tp precede those in $T_j$ we could have $OP_{executed} = \{op_1,...,OP{T_j}\}$. This by defenition of transaction means $T_j$ can commit (it is executed in its whole entierty).\\
 
-Now we have to prove $T_j$ commits only if $\forall T_i \in T_{committed} T_i \rightarrow T_j$. Now we'll show that if all committed operations can not precede operation of $T_j$ the $T_j$ can not commit. $OP = \{op_{T_j}(1), ..., op{T_j}(m)\}$ represent the operations in $T_j$ excluding the ${commit}$ in the order they have occured in $OP_{executed}$. Assume \{$op_{T_j}(k),...op{T_j}(m)$\} can be relocated in $OP_{executed}$ in the standing \{n-(m-k), ...,n-1) but $op_{T_j}(k-1)$ can not. This means first of all $op_{T_j}(k-1)$ is a ${read}$ operation reading $r_n$(each transaction has only one ${commit}$ operation). Furthermore, this implies there is a ${commit}$ operation by some transactione $T_i$ between $op{T_j}(k-1)$ and commit operation by $T_j$ and $ \exists op in OP{T_i}$ such that writes $r_n$ and $\not \exists op_i \in OP{T_j}$ such that $op_i \rightarrow op_{T_i}(k-1)$. On the other hand since there is a ${commit}$ by $T_i$ in the middle, the commit by $T_J$ can not be commuted in a way so $OP$ precedes it without any operation belonging to other transaction in the middle (two ${commits}$ can not commute). Hence we can not have a sequence where all operations belonging to $T_j$ are located next to each other, this contradicts the defenition of transaction, hence the transaction can not commit.  
+Now we have to prove $T_j$ commits only if $\forall T_i \in T_{committed} T_i \rightarrow T_j$. Now we'll show that if all committed operations can not precede operation of $T_j$ the $T_j$ can not commit. $OP = \{op_{T_j}(1), ..., op{T_j}(m)\}$ represent the operations in $T_j$ excluding the ${commit}$ in the order they have occured in $OP_{executed}$. Assume \{$op_{T_j}(k),...op{T_j}(m)$\} can be relocated in $OP_{executed}$ in the standing \{n-(m-k), ...,n-1) but $op_{T_j}(k-1)$ can not. This means first of all $op_{T_j}(k-1)$ is a ${read}$ operation reading $r_n$(each transaction has only one ${commit}$ operation).\\
+
+Furthermore, this implies there is a ${commit}$ operation by some transactione $T_i$ between $op{T_j}(k-1)$ and commit operation by $T_j$ and $ \exists op in OP{T_i}$ such that writes $r_n$ and $\not \exists op_i \in OP{T_j}$ such that $op_i \rightarrow op_{T_i}(k-1)$. On the other hand since there is a ${commit}$ by $T_i$ in the middle, the commit by $T_J$ can not be commuted in a way so $OP$ precedes it without any operation belonging to other transaction in the middle (two ${commits}$ can not commute). Hence we can not have a sequence where all operations belonging to $T_j$ are located next to each other, this contradicts the defenition of transaction, hence the transaction can not commit.  
 
 
 %\subsection{TransactionalFile Opeartions}
@@ -263,9 +265,9 @@ Now we have to prove $T_j$ commits only if $\forall T_i \in T_{committed} T_i \r
 
 \textbf{Note 4-} \emph{Assignment Operations Need Not Be Shown In $OP_{excecuted}$}: Operations like offset = offset + length and other assignment operations in $OP_{T_i}$ need not be shown in the actual sequence of operations namely $OP_{executed}$ that consists of operations executed by different transaction so far, the reason is simply all such operations are local to the transaction and do not affect any other transaction's state and hence do not restrict the commution of other operations in any manner.\\
 
-\textbf{Note 4-} \emph{Forced-Readoffset(fd)}: Reads the offset for the filedescriptor and makes the transaction bound to this value.\\
+\textbf{Note 5-} \emph{Forced-Readoffset(fd)}: Reads the offset for the filedescriptor and makes the transaction bound to this value.\\
 
-\subsection{Transaction Dependency on FileDescriptor Offset}:
+\subsection{Transaction Dependency on FileDescriptor Offset}
 
 Each filedescriptor has an associated offset with it, within each transaction this offset can be in 4 different states, these states indicate the dependency the transaction has on the value of this offset:\\
 
@@ -403,6 +405,59 @@ If an operation $a$ that "reads" some data $r_n$ (reads the data at some $t < t_
 
 \textbf{Axiom}: If all data read is still valid at commit instant, means all operation in the set of operations belonging to committed transactions, can be relocated to precede those in $T_i$ (since no writes have been seen), and consequently all those transactions precede $T_i$. Rule 5 ensures such transaction would be able to commit.\\ 
 
+\textbf{Guideline 5}: \emph{A Transaction About to Commit Can Abort Other Transaction Safely}: A transaction about to commit can check to what resources it has alreay written (denote this as $R_i$), an then $\forall T_j in T$  such that $T_j$ is active at this instant can check to see if any of those have read $r_i \in R_i$, if so and no other operation in $OP_{T_j}$ preceding this read has written to $r_i$ then $T_i$ can abort $T_j$, since $T_j$ is doomed to abrot anyway (according to Guideline 3).\\ 
+ 
+
+\section{System Implementation Overview}
+
+\subsection{Components}
+
+In this sextion we will show how our system conforms to the guidlines and rules required by the system. Only the main components of the system are depicted in the figure and listed below. It should be noted that even for theses classes the major functions and fields are exposed in the illustration.\\
+
+\includegraphics[scale = 0.3]{uml.png}\\
+
+\textbf{TransactionalFile}: This is the object most user-level operations are perfomed on. It can be either created inside or outside a transaction. Accessing a TransactionalFile by $T_i$ means $T_i$ has invoked a user-level operation on the object. A Transactionalfile can be shared among any subset of the members of $T$. If shared, the offset is shared between these as well.\\
+
+\textbf{ExtendedTransaction}: The class and data structures required to do the actions required by a transaction (commit, abort, ...).\\
+
+\textbf{TransactionalLocalFileAttributes}: The class to maintain the data structures specific to a transaction regarding an already accessed TransactionalFile object (offset status for the transaction, inital offset status for each Write operation and etc.).\\
+
+\textbf{GlobalOffset}: The class to maintain the global offset assosiated with each TransactionalFile object (the value, who owns the offset, who reads the offset, etc.) \\
+
+\textbf{GlobalDataStructure}: The class to maintain the global data structure assosiated with each inode (such as mapping of block locks for each inode).\\
+
+\textbf{ConflictManager}: The manager to resolve the conflict, this can be  when a transaction can not successfully commit  or a read or write has to do subsidary actions regarding other transaction or conflict over locks and etc.\\ 
+
+\textbf{BlockDataStructure}: The data structure representing a block in an inode. GlobalDataStructure uses instances of this class to preserve the info
+rmation.\\
+
+\textbf{WriteOperation}: The structure of a writedata operatin, including the range it is supposed to write, the data to be written and wether this is an absolute or unknown offset value.\\
+
+\subsection{Algorithm}
+
+In this section we examine the psudecode for user-level operations in the propsed system and show how our system conforms to the formalisatiom buitl up in earlier sections.
+
+\textbf{$tf_i$.Read(data[])}{\\
+
+\hspace{8mm} If (tfla = currenttransaction.accessedfile.contains($tf_i$))
+
+\hspace{11mm}	for any of the writes in writeuffer to $tf_i$.inode
+
+\hspace{14mm}		if [tfla.localoffset, tfla.offset + data.length] overlaps with range for the write
+
+\hspace{17mm}			copy the intersect portion to the correspondent portion of data[]
+
+\hspace{11mm}	if any non-filled portion of data[] exists{
+
+\hspace{14mm}		try to lock $tf_i$.offset.lock
+	
+\hspace{14mm}		try to lock all the blocks within range [tfla.localoffset, tfla.offset + data.length]
+
+\hspace{14mm}		if all locks succeed then read the non-filled portions from $tf_i$.file
+
+\hspace{14mm}		if not succeed consult contentionManager to resolve the conflict
+
+\hspace{8mm} else add $tf_i$.inode to files accessed by this transaction and create the corresponding TransactionalLocalFileAttributes and call Read(data[])
 
 
 
