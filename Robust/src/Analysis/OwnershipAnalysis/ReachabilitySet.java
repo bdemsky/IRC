@@ -135,7 +135,7 @@ public class ReachabilitySet extends Canonical {
       while( itrR.hasNext() ) {
 	TokenTupleSet r = (TokenTupleSet) itrR.next();
 
-	TokenTupleSet theUnion = new TokenTupleSet();
+	TokenTupleSet theUnion = new TokenTupleSet().makeCanonical();
 
 	Iterator itrRelement = r.iterator();
 	while( itrRelement.hasNext() ) {
@@ -248,7 +248,7 @@ public class ReachabilitySet extends Canonical {
 
     int numDimensions = this.possibleReachabilities.size();
 
-    if( numDimensions > 6 ) {
+    if( numDimensions > 1 ) {
       // for problems that are too big, punt and use less
       // precise arity for reachability information
       TokenTupleSet ttsImprecise = new TokenTupleSet().makeCanonical();
@@ -259,10 +259,10 @@ public class ReachabilitySet extends Canonical {
 	ttsImprecise = ttsImprecise.unionUpArity( ttsUnit.makeArityZeroOrMore() );
       }
 
+      //rsOut = this.union( ttsImprecise );
       rsOut = rsOut.union( ttsImprecise );
       return rsOut;
     }
-
 
     // add an extra digit to detect termination
     int[] digits = new int[numDimensions+1];
@@ -322,8 +322,24 @@ public class ReachabilitySet extends Canonical {
     return possibleReachabilities.equals(rs.possibleReachabilities);
   }
 
+
+  private boolean oldHashSet = false;
+  private int     oldHash    = 0;
   public int hashCode() {
-    return possibleReachabilities.hashCode();
+    int currentHash = possibleReachabilities.hashCode();
+
+    if( oldHashSet == false ) {
+      oldHash = currentHash;
+      oldHashSet = true;
+    } else {
+      if( oldHash != currentHash ) {
+	System.out.println( "IF YOU SEE THIS A CANONICAL ReachabilitySet CHANGED" );
+	Integer x = null;
+	x.toString();
+      }
+    }
+
+    return currentHash;
   }
 
 

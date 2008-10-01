@@ -60,6 +60,7 @@ public class ChangeTupleSet extends Canonical {
     return ctsIn.changeTuples.containsAll(this.changeTuples);
   }
 
+
   public boolean equals(Object o) {
     if( o == null ) {
       return false;
@@ -73,9 +74,25 @@ public class ChangeTupleSet extends Canonical {
     return changeTuples.equals(cts.changeTuples);
   }
 
+  private boolean oldHashSet = false;
+  private int     oldHash    = 0;
   public int hashCode() {
-    return changeTuples.hashCode();
+    int currentHash = changeTuples.hashCode();
+
+    if( oldHashSet == false ) {
+      oldHash = currentHash;
+      oldHashSet = true;
+    } else {
+      if( oldHash != currentHash ) {
+	System.out.println( "IF YOU SEE THIS A CANONICAL ChangeTupleSet CHANGED" );
+	Integer x = null;
+	x.toString();
+      }
+    }
+
+    return currentHash;
   }
+
 
   public String toString() {
     String s = "[";

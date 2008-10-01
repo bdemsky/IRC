@@ -109,8 +109,23 @@ public class TokenTuple extends Canonical {
            arity ==     tt.getArity();
   }
 
+  private boolean oldHashSet = false;
+  private int     oldHash    = 0;
   public int hashCode() {
-    return token.intValue()*31 + arity;
+    int currentHash = token.intValue()*31 + arity;
+
+    if( oldHashSet == false ) {
+      oldHash = currentHash;
+      oldHashSet = true;
+    } else {
+      if( oldHash != currentHash ) {
+	System.out.println( "IF YOU SEE THIS A CANONICAL TokenTuple CHANGED" );
+	Integer x = null;
+	x.toString();
+      }
+    }
+
+    return currentHash;
   }
 
 

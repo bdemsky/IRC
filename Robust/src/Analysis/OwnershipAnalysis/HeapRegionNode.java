@@ -172,11 +172,8 @@ public class HeapRegionNode extends OwnershipNode {
 
   public void applyAlphaNew() {
     assert alphaNew != null;
-
     alpha = alphaNew;
-
-    alphaNew = new ReachabilitySet();
-    alphaNew = alphaNew.makeCanonical();
+    alphaNew = new ReachabilitySet().makeCanonical();
   }
 
 

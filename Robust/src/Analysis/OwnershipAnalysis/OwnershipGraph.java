@@ -84,12 +84,15 @@ public class OwnershipGraph {
 
     if( alpha == null ) {
       if( isFlagged || isParameter ) {
-	alpha = new ReachabilitySet(new TokenTuple(id,
+	alpha = new ReachabilitySet(
+				    new TokenTuple(id,
 	                                           !isSingleObject,
-	                                           TokenTuple.ARITY_ONE)
+	                                           TokenTuple.ARITY_ONE
+						   ).makeCanonical()
 	                            ).makeCanonical();
       } else {
-	alpha = new ReachabilitySet(new TokenTupleSet()
+	alpha = new ReachabilitySet(
+				    new TokenTupleSet().makeCanonical()
 	                            ).makeCanonical();
       }
     }
@@ -451,9 +454,13 @@ public class OwnershipGraph {
 	                         edgesWithNewBeta);
 
 
-	if( edgeY.getBetaNew().equals( new ReachabilitySet() ) ) {
+	// THIS IS A HACK--NEED TO CHANGE GENERATATION OF BETA-NEW SO THIS DOESN'T
+	// HAPPEN OTHERWISE PROPAGATION FAILS
+	if( edgeY.getBetaNew().equals( new ReachabilitySet().makeCanonical() ) ) {
 	  edgeY.setBetaNew( new ReachabilitySet( new TokenTupleSet().makeCanonical() ).makeCanonical() );
 	}
+	
+
 
 	/*
 	System.out.println( "---------------------------\n" +
@@ -553,7 +560,8 @@ public class OwnershipGraph {
 
     ReachabilitySet beta = new ReachabilitySet(new TokenTuple(newID,
                                                               true,
-                                                              TokenTuple.ARITY_ONE) );
+                                                              TokenTuple.ARITY_ONE).makeCanonical()
+					       ).makeCanonical();
 
     // heap regions for parameters are always multiple object (see above)
     // and have a reference to themselves, because we can't know the
@@ -707,13 +715,15 @@ public class OwnershipGraph {
 
     // after tokens have been aged, reset newest node's reachability
     if( hrn0.isFlagged() ) {
-      hrn0.setAlpha(new ReachabilitySet(new TokenTupleSet(
-                                          new TokenTuple(hrn0)
-                                          )
+      hrn0.setAlpha(new ReachabilitySet(
+					new TokenTupleSet(
+							  new TokenTuple(hrn0).makeCanonical()
+							  ).makeCanonical()
                                         ).makeCanonical()
                     );
     } else {
-      hrn0.setAlpha(new ReachabilitySet(new TokenTupleSet()
+      hrn0.setAlpha(new ReachabilitySet(
+					new TokenTupleSet().makeCanonical()
                                         ).makeCanonical()
                     );
     }
@@ -942,10 +952,12 @@ public class OwnershipGraph {
     // of new callee nodes and edges, doesn't belong to any parameter
     Integer bogusID = new Integer(-1);
     Integer bogusIndex = new Integer(-1);
-    TokenTuple bogusToken = new TokenTuple(bogusID, true, TokenTuple.ARITY_ONE);
-    TokenTuple bogusTokenPlus = new TokenTuple(bogusID, true, TokenTuple.ARITY_ONEORMORE);
+    TokenTuple bogusToken = new TokenTuple(bogusID, true, TokenTuple.ARITY_ONE).makeCanonical();
+    TokenTuple bogusTokenPlus = new TokenTuple(bogusID, true, TokenTuple.ARITY_ONEORMORE).makeCanonical();
     ReachabilitySet rsIdentity =
-      new ReachabilitySet(new TokenTupleSet(bogusToken).makeCanonical() ).makeCanonical();
+      new ReachabilitySet(
+			  new TokenTupleSet(bogusToken).makeCanonical()
+			  ).makeCanonical();
 
     paramIndex2rewriteH.put(bogusIndex, rsIdentity);
     paramIndex2rewriteJ.put(bogusIndex, rsIdentity);
@@ -1296,7 +1308,8 @@ public class OwnershipGraph {
 	                                                            null,
 	                                                            edgeCallee.getFieldDesc(),
 	                                                            false,
-	                                                            toShadowTokens(ogCallee, edgeCallee.getBeta() )
+	                                                            toShadowTokens(ogCallee,
+										   edgeCallee.getBeta() )
 	                                                            );
 	  rewriteCallerReachability(bogusIndex,
 				    null,
@@ -1382,7 +1395,8 @@ public class OwnershipGraph {
 	                                                          null,
 	                                                          edgeCallee.getFieldDesc(),
 	                                                          false,
-	                                                          toShadowTokens(ogCallee, edgeCallee.getBeta() )
+	                                                          toShadowTokens(ogCallee,
+										 edgeCallee.getBeta() )
 	                                                          );
 	rewriteCallerReachability(bogusIndex,
 				  null,
@@ -1574,7 +1588,7 @@ public class OwnershipGraph {
   private ReachabilitySet toShadowTokens(OwnershipGraph ogCallee,
                                          ReachabilitySet rsIn) {
 
-    ReachabilitySet rsOut = new ReachabilitySet(rsIn);
+    ReachabilitySet rsOut = new ReachabilitySet(rsIn).makeCanonical();
 
     Iterator<AllocationSite> allocItr = ogCallee.allocationSites.iterator();
     while( allocItr.hasNext() ) {

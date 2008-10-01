@@ -421,7 +421,6 @@ public class OwnershipAnalysis {
                            og);
 
 
-
       //debugSnapshot(og,fn);
 
 
@@ -613,10 +612,10 @@ public class OwnershipAnalysis {
   // insert a call to debugSnapshot() somewhere in the analysis to get
   // successive captures of the analysis state
   int debugCounter        = 0;
-  int numStartCountReport = 10000;
-  int freqCountReport     = 10;
-  int iterStartCapture    = 50;
-  int numIterToCapture    = 16;
+  int numStartCountReport = 0;
+  int freqCountReport     = 1000;
+  int iterStartCapture    = 20000;
+  int numIterToCapture    = 400;
   void debugSnapshot( OwnershipGraph og, FlatNode fn ) {
     ++debugCounter;
     if( debugCounter > numStartCountReport &&
@@ -630,7 +629,7 @@ public class OwnershipAnalysis {
 	graphName = graphName+fn;
       }
       try {
-	og.writeGraph( graphName, true, true, true, false, false );
+	og.writeGraph( graphName, true, true, false, false, false );
       } catch( Exception e ) {
 	System.out.println( "Error writing debug capture." );
 	System.exit( 0 );	

@@ -51,6 +51,13 @@ public class TokenTupleSet extends Canonical {
   }
 
 
+  public TokenTupleSet union(TokenTuple ttIn) {
+    assert ttIn != null;
+    TokenTupleSet ttsOut = new TokenTupleSet(this);
+    ttsOut.tokenTuples.add(ttIn);
+    return ttsOut.makeCanonical();
+  }
+
   public TokenTupleSet union(TokenTupleSet ttsIn) {
     assert ttsIn != null;
     TokenTupleSet ttsOut = new TokenTupleSet(this);
@@ -109,8 +116,25 @@ public class TokenTupleSet extends Canonical {
     return tokenTuples.equals(tts.tokenTuples);
   }
 
+
+
+  private boolean oldHashSet = false;
+  private int     oldHash    = 0;
   public int hashCode() {
-    return tokenTuples.hashCode();
+    int currentHash = tokenTuples.hashCode();
+
+    if( oldHashSet == false ) {
+      oldHash = currentHash;
+      oldHashSet = true;
+    } else {
+      if( oldHash != currentHash ) {
+	System.out.println( "IF YOU SEE THIS A CANONICAL TokenTupleSet CHANGED" );
+	Integer x = null;
+	x.toString();
+      }
+    }
+
+    return currentHash;
   }
 
 
@@ -287,13 +311,13 @@ public class TokenTupleSet extends Canonical {
       // summary tokens and tokens not associated with
       // the site should be left alone
       if( age == AllocationSite.AGE_notInThisSite ) {
-	ttsOut.tokenTuples.add(tt);
+	ttsOut = ttsOut.union(tt);
 
       } else if( age == AllocationSite.AGE_summary ) {
-	ttsOut.tokenTuples.add(tt.changeTokenTo(as.getSummaryShadow() ));
+	ttsOut = ttsOut.union(tt.changeTokenTo(as.getSummaryShadow() ));
 
       } else if( age == AllocationSite.AGE_oldest ) {
-	ttsOut.tokenTuples.add(tt.changeTokenTo(as.getOldestShadow() ));
+	ttsOut = ttsOut.union(tt.changeTokenTo(as.getOldestShadow() ));
 
       } else {
 	assert age == AllocationSite.AGE_in_I;
@@ -301,7 +325,7 @@ public class TokenTupleSet extends Canonical {
 	Integer I = as.getAge(token);
 	assert I != null;
 
-	ttsOut.tokenTuples.add(tt.changeTokenTo(as.getIthOldestShadow(I) ));
+	ttsOut = ttsOut.union(tt.changeTokenTo(as.getIthOldestShadow(I) ));
       }
     }
 
@@ -326,7 +350,7 @@ public class TokenTupleSet extends Canonical {
       Iterator<TokenTupleSet> replaceItr = replacements.iterator();
       while( replaceItr.hasNext() ) {
 	TokenTupleSet replacement = replaceItr.next();
-	TokenTupleSet replaced = new TokenTupleSet(ttsMinusToken);
+	TokenTupleSet replaced = new TokenTupleSet(ttsMinusToken).makeCanonical();
 	replaced = replaced.unionUpArity(replacement);
 	rsOut = rsOut.add(replaced);
 
@@ -362,8 +386,7 @@ public class TokenTupleSet extends Canonical {
 
     return ttsOut.makeCanonical();
   }
-
-
+ 
   public String toString() {
     return tokenTuples.toString();
   }

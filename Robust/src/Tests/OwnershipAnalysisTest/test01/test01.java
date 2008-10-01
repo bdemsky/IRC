@@ -3,15 +3,15 @@ public class Parameter {
   flag w;
   int a;
   int b;
-  //Parameter f;
-  //Parameter g;
-  //Penguin p;
-  //Foo h;
+  Parameter f;
+  Parameter g;
+  Penguin p;
+  Foo h;
   
-  public Parameter() {} // a = 0; b = 0; f = null; g = null; }
+  public Parameter() {}
   
-  //public void bar() { foo(); }
-  //public void foo() { bar(); }
+  public void bar() { foo(); }
+  public void foo() { bar(); }
 
   static public void proof( Fooz p0, Fooz p1 ) {
     Fooz c = new Fooz();
@@ -28,7 +28,6 @@ public class Fooz {
   public Fooz x;
 }
 
-/*
 public class Penguin {
   int x;
   int y;
@@ -180,8 +179,15 @@ public class Foo {
     p0.y = p1;
     p1.y = p0;
   }
+
+  static public void m9_( Foo p0, Foo p1 ) {
+    Foo g0 = new Foo();
+
+    p1.x = p1.y;
+    p1.y = g0;
+  }
 }
-*/
+
 
 
 // this empty task should still create a non-empty
@@ -196,20 +202,11 @@ task Startup( StartupObject s{ initialstate } ) {
 
   Parameter.proof( null, null );
 
-  /*
-  int a = 1;
-  int b = 2;
-  int c = 3;
-
-  b = c;
-  a = b;
-  */
-
   taskexit( s{ !initialstate } );
 }
 
-
 /*
+
 task NewObjectA( Foo a{ f }, Foo b{ f } ) {
 
     Foo c = new Foo();
@@ -471,9 +468,8 @@ task getNewFromMethod( Foo p0{ f } ) {
 
   taskexit( p0{ !f } );
 }
-*/
 
-/*
+
 task methodTest01_( Foo p0{ f }, Foo p1{ f } ) {
 
   Foo a0before = new Foo();
@@ -495,9 +491,8 @@ task methodTest01_( Foo p0{ f }, Foo p1{ f } ) {
 
   taskexit( p0{ !f }, p1{ !f } );
 }
-*/
 
-/*
+
 task methodTest02_( Foo p0{ f }, Foo p1{ f } ) {
 
   Foo a0before = new Foo();
@@ -620,7 +615,7 @@ task methodTest06_( Foo p0{ f }, Foo p1{ f } ) {
     a1after.x = new Foo();
   }
 
-  Foo.m6_( a0after, a1after );
+  //Foo.m6_( a0after, a1after );
 
 
   taskexit( p0{ !f }, p1{ !f } );
@@ -657,7 +652,7 @@ task methodTest07_( Foo p0{ f }, Foo p1{ f } ) {
     a1after.x = new Foo();
   }
 
-  Foo.m7_( a0after, a1after );
+  //Foo.m7_( a0after, a1after );
 
 
   taskexit( p0{ !f }, p1{ !f } );
@@ -694,9 +689,47 @@ task methodTest08_( Foo p0{ f }, Foo p1{ f } ) {
     a1after.x = new Foo();
   }
 
-  Foo.m8_( a0after, a1after );
+  //Foo.m8_( a0after, a1after );
 
 
   taskexit( p0{ !f }, p1{ !f } );
 }
 */
+
+
+task methodTest09_( Foo p0{ f }, Foo p1{ f } ) {
+
+  Foo a0before = new Foo();
+  if( false ) {
+    a0before.x = new Foo();
+  } else {
+    a0before.x = new Foo();
+  }
+
+  Foo a0after = new Foo();
+  if( false ) {
+    a0after.x = new Foo();
+  } else {
+    a0after.x = new Foo();
+  }
+
+  Foo a1before = new Foo();
+  if( false ) {
+    a1before.x = new Foo();
+  } else {
+    a1before.x = new Foo();
+  }
+
+  Foo a1after = new Foo();
+  if( false ) {
+    a1after.x = new Foo();
+  } else {
+    a1after.x = new Foo();
+  }
+
+  Foo.m9_( a0after, a1after );
+
+
+  taskexit( p0{ !f }, p1{ !f } );
+}
+

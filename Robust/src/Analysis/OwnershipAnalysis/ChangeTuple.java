@@ -34,6 +34,7 @@ public class ChangeTuple extends Canonical
     return toAdd;
   }
 
+
   public boolean equals(Object o) {
     if( o == null ) {
       return false;
@@ -49,9 +50,25 @@ public class ChangeTuple extends Canonical
            toAdd.equals(ct.getSetToAdd()   );
   }
 
+  private boolean oldHashSet = false;
+  private int     oldHash    = 0;
   public int hashCode() {
-    return toMatch.hashCode() + toAdd.hashCode()*3;
+    int currentHash = toMatch.hashCode() + toAdd.hashCode()*3;
+
+    if( oldHashSet == false ) {
+      oldHash = currentHash;
+      oldHashSet = true;
+    } else {
+      if( oldHash != currentHash ) {
+	System.out.println( "IF YOU SEE THIS A CANONICAL ChangeTuple CHANGED" );
+	Integer x = null;
+	x.toString();
+      }
+    }
+
+    return currentHash;
   }
+
 
   public String toString() {
     return new String("("+toMatch+" -> "+toAdd+")");
