@@ -1,21 +1,21 @@
 Conducting ownership analysis with allocation depth = 1
 ---------AcceptConnection(ServerSocket ss)--------
-Task AcceptConnection(ServerSocket ss) contains no aliases between flagged objects.
+No aliases between flagged objects in Task AcceptConnection(ServerSocket ss).
 
 ---------Startup(StartupObject s)--------
-Task Startup(StartupObject s) contains no aliases between flagged objects.
+No aliases between flagged objects in Task Startup(StartupObject s).
 
 ---------SendBoardDisplay(TTTServerSocket ttts, Board tttBoard, Socket s)--------
-Task SendBoardDisplay(TTTServerSocket ttts, Board tttBoard, Socket s) contains no aliases between flagged objects.
+No aliases between flagged objects in Task SendBoardDisplay(TTTServerSocket ttts, Board tttBoard, Socket s).
 
 ---------ProcessRequest(TTTServerSocket ttts, Socket s)--------
-Task ProcessRequest(TTTServerSocket ttts, Socket s) contains no aliases between flagged objects.
+No aliases between flagged objects in Task ProcessRequest(TTTServerSocket ttts, Socket s).
 
 ---------ProcessMove(TTTServerSocket ttts, Board tttBoard)--------
-Task ProcessMove(TTTServerSocket ttts, Board tttBoard) contains no aliases between flagged objects.
+No aliases between flagged objects in Task ProcessMove(TTTServerSocket ttts, Board tttBoard).
 
 ---------SendErrorMessage(TTTServerSocket ttts, Board tttBoard, Socket s)--------
-Task SendErrorMessage(TTTServerSocket ttts, Board tttBoard, Socket s) contains no aliases between flagged objects.
+No aliases between flagged objects in Task SendErrorMessage(TTTServerSocket ttts, Board tttBoard, Socket s).
 
 ---------GameOver(TTTServerSocket ttts, Board tttBoard, Socket s)--------
-Task GameOver(TTTServerSocket ttts, Board tttBoard, Socket s) contains no aliases between flagged objects.
+No aliases between flagged objects in Task GameOver(TTTServerSocket ttts, Board tttBoard, Socket s).

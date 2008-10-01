@@ -1,75 +1,26 @@
-Analyzing public  Pacman.Pacman(int x, int y, Map map)
-Analyzing next(Map map)
-    exhaustiveArityCombinations numDimensions = 11
-[[92, 93S, 14S*]
-[14S, 92, 93S*]
-[92, 14S*]
-[92, 93S, 14S*, 90]
-[92]
-[14S, 92, 90]
-[14S, 92]
-[92, 93S*, 14S*]
-[92, 93S*, 14S*, 90]
-[92, 14S*, 90]
-[14S, 92, 93S]]
-x
-    exhaustiveArityCombinations numDimensions = 12
-[[14S, 92, 93S*]
-[92, 93S, 14S*]
-[92, 14S*]
-[92]
-[92, 93S, 14S*, 90]
-[14S, 92, 90]
-[14S, 92]
-[92, 93S*, 14S*]
-[92, 93S*, 14S*, 90]
-[92, 14S*, 90]
-[14S, 92, 93S, 90]
-[14S, 92, 93S]]
-xxx
-    exhaustiveArityCombinations numDimensions = 13
-[[92, 93S, 14S*]
-[14S, 92, 93S*]
-[92]
-[14S, 92]
-[92, 93S*, 14S*]
-[92, 93S*, 14S*, 90]
-[92, 14S*, 90]
-[92, 14S*]
-[92, 93S, 14S*, 90]
-[14S, 92, 93S*, 90]
-[14S, 92, 90]
-[14S, 92, 93S, 90]
-[14S, 92, 93S]]
-xxxxxxxxx
-    exhaustiveArityCombinations numDimensions = 27
-[[14S, 92, 91S, 90]
-[92]
-[92, 93S*, 14S*, 90]
-[92, 14S*, 90]
-[91S*, 92, 14S*]
-[92, 14S*]
-[91S*, 92, 14S*, 90]
-[91S*, 92, 93S, 14S*, 90]
-[92, 93S*, 14S*, 91S, 90]
-[14S, 92, 91S]
-[92, 14S*, 91S, 90]
-[92, 93S*, 14S*, 91S]
-[91S*, 92, 93S, 14S*]
-[92, 93S, 14S*, 91S, 90]
-[14S, 92, 93S]
-[14S, 92, 93S*]
-[92, 93S, 14S*]
-[91S*, 92, 93S*, 14S*]
-[14S, 92]
-[91S*, 92, 93S*, 14S*, 90]
-[92, 93S*, 14S*]
-[92, 93S, 14S*, 91S]
-[92, 14S*, 91S]
-[92, 93S, 14S*, 90]
-[14S, 92, 93S*, 90]
-[14S, 92, 90]
-[14S, 92, 93S, 90]]
-x
+Conducting ownership analysis with allocation depth = 1
+---------movePacman(Pacman p)--------
+No aliases between flagged objects in Task movePacman(Pacman p).
 
+---------initMap(Map map)--------
+Potential alias between parameter 0 and FlatNew____pacman6987___= NEW Pacman.
+Potential alias between parameter 0 and FlatNew____ghost6966___= NEW Ghost.
 
+---------updatePac(Map map, Pacman p)--------
+No aliases between flagged objects in Task updatePac(Map map, Pacman p).
+
+---------next(Map map)--------
+Potential alias between parameter 0 and FlatNew____pacman7136___= NEW Pacman.
+Potential alias between parameter 0 and FlatNew____ghost7100___= NEW Ghost.
+
+---------startup(StartupObject s)--------
+No aliases between flagged objects in Task startup(StartupObject s).
+
+---------finish(Map map)--------
+No aliases between flagged objects in Task finish(Map map).
+
+---------updateGhost(Map map, Ghost g)--------
+No aliases between flagged objects in Task updateGhost(Map map, Ghost g).
+
+---------moveGhost(Ghost g)--------
+No aliases between flagged objects in Task moveGhost(Ghost g).

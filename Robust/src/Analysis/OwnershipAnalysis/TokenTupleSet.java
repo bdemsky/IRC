@@ -377,11 +377,11 @@ public class TokenTupleSet extends Canonical {
     while( itrThis.hasNext() ) {
       TokenTuple tt = itrThis.next();
 
-      ttsOut.tokenTuples.add( new TokenTuple( tt.getToken(),
+      ttsOut = ttsOut.union( new TokenTuple( tt.getToken(),
 					     tt.isMultiObject(),
 					     TokenTuple.ARITY_ZEROORMORE 
-					    ).makeCanonical()
-			      );
+					     ).makeCanonical()
+			     );
     }
 
     return ttsOut.makeCanonical();

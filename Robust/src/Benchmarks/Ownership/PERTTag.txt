@@ -1,15 +1,15 @@
 Conducting ownership analysis with allocation depth = 1
 ---------estimateStage(Stage s)--------
-Task estimateStage(Stage s) contains no aliases between flagged objects.
+No aliases between flagged objects in Task estimateStage(Stage s).
 
 ---------sampling(Stage s)--------
-Task sampling(Stage s) contains no aliases between flagged objects.
+No aliases between flagged objects in Task sampling(Stage s).
 
 ---------estimate(Estimator e, Stage s)--------
-Task estimate(Estimator e, Stage s) contains no aliases between flagged objects.
+No aliases between flagged objects in Task estimate(Estimator e, Stage s).
 
 ---------startup(StartupObject s)--------
-Task startup(StartupObject s) contains no aliases between flagged objects.
+No aliases between flagged objects in Task startup(StartupObject s).
 
 ---------prob(Estimator e)--------
-Task prob(Estimator e) contains no aliases between flagged objects.
+No aliases between flagged objects in Task prob(Estimator e).

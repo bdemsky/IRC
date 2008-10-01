@@ -134,7 +134,7 @@ public class OwnershipAnalysis {
       }
 
       if( !foundSomeAlias ) {
-	bw.write("Task "+td+" contains no aliases between flagged objects.\n");
+	bw.write("No aliases between flagged objects in Task "+td+".\n");
       }
     }
 

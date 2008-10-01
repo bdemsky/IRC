@@ -1,33 +1,33 @@
 Conducting ownership analysis with allocation depth = 1
 ---------t8(ReduceWorker rworker)--------
-Task t8(ReduceWorker rworker) contains no aliases between flagged objects.
+No aliases between flagged objects in Task t8(ReduceWorker rworker).
 
 ---------t5(MapWorker mworker)--------
-Task t5(MapWorker mworker) contains no aliases between flagged objects.
+No aliases between flagged objects in Task t5(MapWorker mworker).
 
 ---------t10(Master master, ReduceWorker rworker)--------
-Task t10(Master master, ReduceWorker rworker) contains no aliases between flagged objects.
+No aliases between flagged objects in Task t10(Master master, ReduceWorker rworker).
 
 ---------t4(MapWorker mworker)--------
-Task t4(MapWorker mworker) contains no aliases between flagged objects.
+No aliases between flagged objects in Task t4(MapWorker mworker).
 
 ---------t2(Master master)--------
-Task t2(Master master) contains no aliases between flagged objects.
+No aliases between flagged objects in Task t2(Master master).
 
 ---------t6(Master master, MapWorker mworker)--------
 Potential alias between parameters 0 and 1.
 
 ---------t3(Master master)--------
-Task t3(Master master) contains no aliases between flagged objects.
+No aliases between flagged objects in Task t3(Master master).
 
 ---------t1(StartupObject s)--------
-Task t1(StartupObject s) contains no aliases between flagged objects.
+No aliases between flagged objects in Task t1(StartupObject s).
 
 ---------t7(Master master)--------
 Potential alias between parameter 0 and FlatNew____rworker3429___= NEW ReduceWorker.
 
 ---------t11(Master master)--------
-Task t11(Master master) contains no aliases between flagged objects.
+No aliases between flagged objects in Task t11(Master master).
 
 ---------t9(ReduceWorker rworker)--------
-Task t9(ReduceWorker rworker) contains no aliases between flagged objects.
+No aliases between flagged objects in Task t9(ReduceWorker rworker).

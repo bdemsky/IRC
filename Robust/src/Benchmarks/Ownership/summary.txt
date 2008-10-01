@@ -1,24 +1,25 @@
 No reported aliases in:
--BankApp
--Conglomerator 
--Jhttpp2BR
--PERTTag
--SchedulingFilterBank
--SchedulingJGFMonteCarlo
--SchedulingJGFSeries
--SpiderBR
--SpiderBRTag
--TileSearchTag
--TTTTag
--WebServer
--WebServerTag
+-BankApp                  (7.1s)
+-Conglomerator            (7.4s)
+-Jhttpp2BR                (8.6s)
+-PERTTag                  (5.0s)
+-SchedulingFilterBank     (3.8s)
+-SchedulingJGFMonteCarlo  (8.4s)
+-SchedulingJGFSeries      (3.4s)
+-SpiderBR                 (9.3s)
+-SpiderBRTag              (9.4s)
+-TileSearchTag           (11.0s)
+-TTTTag                   (5.7s)
+-WebServer                (9.1s)
+-WebServerTag            (10.8s)
 
 
 Aliases:
--ChatTag shows 3 tasks with aliases
--MapReduceTag shows 1 task with aliases
--SchedulingMapReduce shows 2 tasks with aliases
+-ChatTag              (6.4s) shows 3 tasks with aliases
+-MapReduceTag        (39.9s) shows 1 task with aliases
+-MMGTag              (63.8s) shows 4 tasks with aliases
+-SchedulingMapReduce (14.5s) shows 2 tasks with aliases
 
 
-Intractable:
--MMGTag
+
+

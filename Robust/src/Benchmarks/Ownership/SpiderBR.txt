@@ -1,12 +1,12 @@
 Conducting ownership analysis with allocation depth = 1
 ---------processPage(Query q, QueryList ql)--------
-Task processPage(Query q, QueryList ql) contains no aliases between flagged objects.
+No aliases between flagged objects in Task processPage(Query q, QueryList ql).
 
 ---------requestQuery(Query q)--------
-Task requestQuery(Query q) contains no aliases between flagged objects.
+No aliases between flagged objects in Task requestQuery(Query q).
 
 ---------readResponse(Query q)--------
-Task readResponse(Query q) contains no aliases between flagged objects.
+No aliases between flagged objects in Task readResponse(Query q).
 
 ---------Startup(StartupObject s)--------
-Task Startup(StartupObject s) contains no aliases between flagged objects.
+No aliases between flagged objects in Task Startup(StartupObject s).
