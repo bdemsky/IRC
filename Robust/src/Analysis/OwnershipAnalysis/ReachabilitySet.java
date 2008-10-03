@@ -46,7 +46,7 @@ public class ReachabilitySet extends Canonical {
     return possibleReachabilities.iterator();
   }
 
-  
+
   public int size() {
     return possibleReachabilities.size();
   }
@@ -140,27 +140,27 @@ public class ReachabilitySet extends Canonical {
 	Iterator itrRelement = r.iterator();
 	while( itrRelement.hasNext() ) {
 	  TokenTuple ttR = (TokenTuple) itrRelement.next();
-	  TokenTuple ttO = o.containsToken( ttR.getToken() );
+	  TokenTuple ttO = o.containsToken(ttR.getToken() );
 
 	  if( ttO != null ) {
-	    theUnion = theUnion.union( new TokenTupleSet( ttR.unionArity(ttO) ) ).makeCanonical();
+	    theUnion = theUnion.union(new TokenTupleSet(ttR.unionArity(ttO) ) ).makeCanonical();
 	  } else {
-	    theUnion = theUnion.union( new TokenTupleSet( ttR                 ) ).makeCanonical();
+	    theUnion = theUnion.union(new TokenTupleSet(ttR) ).makeCanonical();
 	  }
 	}
 
 	Iterator itrOelement = o.iterator();
 	while( itrOelement.hasNext() ) {
 	  TokenTuple ttO = (TokenTuple) itrOelement.next();
-	  TokenTuple ttR = theUnion.containsToken( ttO.getToken() );
+	  TokenTuple ttR = theUnion.containsToken(ttO.getToken() );
 
 	  if( ttR == null ) {
-	    theUnion = theUnion.union( new TokenTupleSet(ttO) ).makeCanonical();
+	    theUnion = theUnion.union(new TokenTupleSet(ttO) ).makeCanonical();
 	  }
 	}
-	
+
 	if( !theUnion.isEmpty() ) {
-	  ctsOut = ctsOut.union( new ChangeTupleSet( new ChangeTuple(o, theUnion) ) );
+	  ctsOut = ctsOut.union(new ChangeTupleSet(new ChangeTuple(o, theUnion) ) );
 	}
       }
     }
@@ -256,11 +256,11 @@ public class ReachabilitySet extends Canonical {
       Iterator<TokenTupleSet> itrThis = this.iterator();
       while( itrThis.hasNext() ) {
 	TokenTupleSet ttsUnit = itrThis.next();
-	ttsImprecise = ttsImprecise.unionUpArity( ttsUnit.makeArityZeroOrMore() );
+	ttsImprecise = ttsImprecise.unionUpArity(ttsUnit.makeArityZeroOrMore() );
       }
 
       //rsOut = this.union( ttsImprecise );
-      rsOut = rsOut.union( ttsImprecise );
+      rsOut = rsOut.union(ttsImprecise);
       return rsOut;
     }
 
@@ -324,7 +324,7 @@ public class ReachabilitySet extends Canonical {
 
 
   private boolean oldHashSet = false;
-  private int     oldHash    = 0;
+  private int oldHash    = 0;
   public int hashCode() {
     int currentHash = possibleReachabilities.hashCode();
 
@@ -333,7 +333,7 @@ public class ReachabilitySet extends Canonical {
       oldHashSet = true;
     } else {
       if( oldHash != currentHash ) {
-	System.out.println( "IF YOU SEE THIS A CANONICAL ReachabilitySet CHANGED" );
+	System.out.println("IF YOU SEE THIS A CANONICAL ReachabilitySet CHANGED");
 	Integer x = null;
 	x.toString();
       }

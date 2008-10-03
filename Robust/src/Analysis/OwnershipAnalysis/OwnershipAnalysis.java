@@ -405,7 +405,7 @@ public class OwnershipAnalysis {
 
       // start by merging all node's parents' graphs
       for( int i = 0; i < fn.numPrev(); ++i ) {
-	FlatNode pn = fn.getPrev(i);	
+	FlatNode pn = fn.getPrev(i);
 	if( mapFlatNodeToOwnershipGraph.containsKey(pn) ) {
 	  OwnershipGraph ogParent = mapFlatNodeToOwnershipGraph.get(pn);
 	  og.merge(ogParent);
@@ -450,7 +450,7 @@ public class OwnershipAnalysis {
       assert mapFlatNodeToOwnershipGraph.containsKey(frn);
       OwnershipGraph ogr = mapFlatNodeToOwnershipGraph.get(frn);
       completeGraph.merge(ogr);
-    }   
+    }
 
     return completeGraph;
   }
@@ -592,7 +592,7 @@ public class OwnershipAnalysis {
 	}
       }
 
-      og = ogMergeOfAllPossibleCalleeResults;      
+      og = ogMergeOfAllPossibleCalleeResults;
       break;
 
     case FKind.FlatReturnNode:
@@ -616,28 +616,28 @@ public class OwnershipAnalysis {
   int freqCountReport     = 1000;
   int iterStartCapture    = 20000;
   int numIterToCapture    = 400;
-  void debugSnapshot( OwnershipGraph og, FlatNode fn ) {
+  void debugSnapshot(OwnershipGraph og, FlatNode fn) {
     ++debugCounter;
     if( debugCounter > numStartCountReport &&
-	debugCounter % freqCountReport == 0 ) {
-      System.out.println( "    @@@ debug counter = "+debugCounter );
+        debugCounter % freqCountReport == 0 ) {
+      System.out.println("    @@@ debug counter = "+debugCounter);
     }
     if( debugCounter > iterStartCapture ) {
-      System.out.println( "    @@@ capturing debug "+(debugCounter-iterStartCapture)+" @@@" );
+      System.out.println("    @@@ capturing debug "+(debugCounter-iterStartCapture)+" @@@");
       String graphName = String.format("snap%04d",debugCounter-iterStartCapture);
       if( fn != null ) {
 	graphName = graphName+fn;
       }
       try {
-	og.writeGraph( graphName, true, true, false, false, false );
+	og.writeGraph(graphName, true, true, false, false, false);
       } catch( Exception e ) {
-	System.out.println( "Error writing debug capture." );
-	System.exit( 0 );	
+	System.out.println("Error writing debug capture.");
+	System.exit(0);
       }
     }
     if( debugCounter == iterStartCapture + numIterToCapture ) {
-      System.out.println( "Stopping analysis after debug captures." );
-      System.exit( 0 );
+      System.out.println("Stopping analysis after debug captures.");
+      System.exit(0);
     }
   }
 
@@ -685,7 +685,7 @@ public class OwnershipAnalysis {
   private AllocationSite getAllocationSiteFromFlatNewPRIVATE(FlatNew fn) {
 
     if( !mapFlatNewToAllocationSite.containsKey(fn) ) {
-      AllocationSite as = new AllocationSite(allocationDepth, fn );
+      AllocationSite as = new AllocationSite(allocationDepth, fn);
 
       // the newest nodes are single objects
       for( int i = 0; i < allocationDepth; ++i ) {

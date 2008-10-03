@@ -13,7 +13,7 @@ struct QueueItem {
   struct QueueItem * prev;
 };
 
-#define isEmpty(x) (x->head==NULL)
+#define isEmpty(x) ((x)->head==NULL)
 
 void * getItem(struct Queue * queue);
 void freeQueue(struct Queue * q);

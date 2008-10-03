@@ -75,7 +75,7 @@ public class ChangeTupleSet extends Canonical {
   }
 
   private boolean oldHashSet = false;
-  private int     oldHash    = 0;
+  private int oldHash    = 0;
   public int hashCode() {
     int currentHash = changeTuples.hashCode();
 
@@ -84,7 +84,7 @@ public class ChangeTupleSet extends Canonical {
       oldHashSet = true;
     } else {
       if( oldHash != currentHash ) {
-	System.out.println( "IF YOU SEE THIS A CANONICAL ChangeTupleSet CHANGED" );
+	System.out.println("IF YOU SEE THIS A CANONICAL ChangeTupleSet CHANGED");
 	Integer x = null;
 	x.toString();
       }

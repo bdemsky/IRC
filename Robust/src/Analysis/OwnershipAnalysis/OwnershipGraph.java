@@ -85,15 +85,15 @@ public class OwnershipGraph {
     if( alpha == null ) {
       if( isFlagged || isParameter ) {
 	alpha = new ReachabilitySet(
-				    new TokenTuple(id,
-	                                           !isSingleObject,
-	                                           TokenTuple.ARITY_ONE
-						   ).makeCanonical()
-	                            ).makeCanonical();
+	  new TokenTuple(id,
+	                 !isSingleObject,
+	                 TokenTuple.ARITY_ONE
+	                 ).makeCanonical()
+	  ).makeCanonical();
       } else {
 	alpha = new ReachabilitySet(
-				    new TokenTupleSet().makeCanonical()
-	                            ).makeCanonical();
+	  new TokenTupleSet().makeCanonical()
+	  ).makeCanonical();
       }
     }
 
@@ -456,21 +456,21 @@ public class OwnershipGraph {
 
 	// THIS IS A HACK--NEED TO CHANGE GENERATATION OF BETA-NEW SO THIS DOESN'T
 	// HAPPEN OTHERWISE PROPAGATION FAILS
-	if( edgeY.getBetaNew().equals( new ReachabilitySet().makeCanonical() ) ) {
-	  edgeY.setBetaNew( new ReachabilitySet( new TokenTupleSet().makeCanonical() ).makeCanonical() );
+	if( edgeY.getBetaNew().equals(new ReachabilitySet().makeCanonical() ) ) {
+	  edgeY.setBetaNew(new ReachabilitySet(new TokenTupleSet().makeCanonical() ).makeCanonical() );
 	}
-	
+
 
 
 	/*
-	System.out.println( "---------------------------\n" +
-			    edgeY.getBetaNew() + 
-			    "\nbeing pruned by\n" + 
-			    hrnX.getAlpha() + 
-			    "\nis\n" + 
-			    edgeY.getBetaNew().pruneBy(hrnX.getAlpha())
-			    );
-	*/
+	   System.out.println( "---------------------------\n" +
+	                    edgeY.getBetaNew() +
+	                    "\nbeing pruned by\n" +
+	                    hrnX.getAlpha() +
+	                    "\nis\n" +
+	                    edgeY.getBetaNew().pruneBy(hrnX.getAlpha())
+	                    );
+	 */
 
 	// create the actual reference edge hrnX.f -> hrnY
 	ReferenceEdge edgeNew = new ReferenceEdge(hrnX,
@@ -561,7 +561,7 @@ public class OwnershipGraph {
     ReachabilitySet beta = new ReachabilitySet(new TokenTuple(newID,
                                                               true,
                                                               TokenTuple.ARITY_ONE).makeCanonical()
-					       ).makeCanonical();
+                                               ).makeCanonical();
 
     // heap regions for parameters are always multiple object (see above)
     // and have a reference to themselves, because we can't know the
@@ -716,15 +716,15 @@ public class OwnershipGraph {
     // after tokens have been aged, reset newest node's reachability
     if( hrn0.isFlagged() ) {
       hrn0.setAlpha(new ReachabilitySet(
-					new TokenTupleSet(
-							  new TokenTuple(hrn0).makeCanonical()
-							  ).makeCanonical()
-                                        ).makeCanonical()
+                      new TokenTupleSet(
+                        new TokenTuple(hrn0).makeCanonical()
+                        ).makeCanonical()
+                      ).makeCanonical()
                     );
     } else {
       hrn0.setAlpha(new ReachabilitySet(
-					new TokenTupleSet().makeCanonical()
-                                        ).makeCanonical()
+                      new TokenTupleSet().makeCanonical()
+                      ).makeCanonical()
                     );
     }
   }
@@ -956,8 +956,8 @@ public class OwnershipGraph {
     TokenTuple bogusTokenPlus = new TokenTuple(bogusID, true, TokenTuple.ARITY_ONEORMORE).makeCanonical();
     ReachabilitySet rsIdentity =
       new ReachabilitySet(
-			  new TokenTupleSet(bogusToken).makeCanonical()
-			  ).makeCanonical();
+        new TokenTupleSet(bogusToken).makeCanonical()
+        ).makeCanonical();
 
     paramIndex2rewriteH.put(bogusIndex, rsIdentity);
     paramIndex2rewriteJ.put(bogusIndex, rsIdentity);
@@ -1016,7 +1016,7 @@ public class OwnershipGraph {
       if( isStatic ) {
 	argTemp_i = fc.getArg(paramIndex);
       } else {
-	if( paramIndex.equals( 0 ) ) {
+	if( paramIndex.equals(0) ) {
 	  argTemp_i = fc.getThis();
 	} else {
 	  argTemp_i = fc.getArg(paramIndex - 1);
@@ -1096,16 +1096,16 @@ public class OwnershipGraph {
 	HeapRegionNode hrn = hrnItr.next();
 
 	rewriteCallerReachability(index,
-				  hrn,
-				  null,
-				  paramIndex2rewriteH.get(index),
-				  paramIndex2rewrite_d,
-				  paramIndex2rewriteD,
-				  paramIndex2paramToken.get(index),
-				  paramToken2paramIndex,
-				  paramTokenPlus2paramIndex,
-				  false,
-				  null);
+	                          hrn,
+	                          null,
+	                          paramIndex2rewriteH.get(index),
+	                          paramIndex2rewrite_d,
+	                          paramIndex2rewriteD,
+	                          paramIndex2paramToken.get(index),
+	                          paramToken2paramIndex,
+	                          paramTokenPlus2paramIndex,
+	                          false,
+	                          null);
 
 	nodesWithNewAlpha.add(hrn);
 
@@ -1145,39 +1145,39 @@ public class OwnershipGraph {
 	ReferenceEdge edgeReachable = edgeReachableItr.next();
 
 	rewriteCallerReachability(index,
-				  null,
-				  edgeReachable,
-				  paramIndex2rewriteJ.get(index),
-				  paramIndex2rewrite_d,
-				  paramIndex2rewriteD,
-				  paramIndex2paramToken.get(index),
-				  paramToken2paramIndex,
-				  paramTokenPlus2paramIndex,
-				  false,
-				  null);
+	                          null,
+	                          edgeReachable,
+	                          paramIndex2rewriteJ.get(index),
+	                          paramIndex2rewrite_d,
+	                          paramIndex2rewriteD,
+	                          paramIndex2paramToken.get(index),
+	                          paramToken2paramIndex,
+	                          paramTokenPlus2paramIndex,
+	                          false,
+	                          null);
 
 	edgesWithNewBeta.add(edgeReachable);
       }
 
       // update upstream edges
       Hashtable<ReferenceEdge, ChangeTupleSet> edgeUpstreamPlannedChanges =
-	new Hashtable<ReferenceEdge, ChangeTupleSet>();
+        new Hashtable<ReferenceEdge, ChangeTupleSet>();
 
       Iterator<ReferenceEdge> edgeUpstreamItr = edgesUpstream.iterator();
       while( edgeUpstreamItr.hasNext() ) {
 	ReferenceEdge edgeUpstream = edgeUpstreamItr.next();
 
 	rewriteCallerReachability(index,
-				  null,
-				  edgeUpstream,
-				  paramIndex2rewriteK.get(index),
-				  paramIndex2rewrite_d,
-				  paramIndex2rewriteD,
-				  paramIndex2paramToken.get(index),
-				  paramToken2paramIndex,
-				  paramTokenPlus2paramIndex,
-				  true,
-				  edgeUpstreamPlannedChanges);
+	                          null,
+	                          edgeUpstream,
+	                          paramIndex2rewriteK.get(index),
+	                          paramIndex2rewrite_d,
+	                          paramIndex2rewriteD,
+	                          paramIndex2paramToken.get(index),
+	                          paramToken2paramIndex,
+	                          paramTokenPlus2paramIndex,
+	                          true,
+	                          edgeUpstreamPlannedChanges);
 
 	edgesWithNewBeta.add(edgeUpstream);
       }
@@ -1227,16 +1227,16 @@ public class OwnershipGraph {
       // to a particular parameter, so use a bogus param index
       // that pulls a self-rewrite out of H
       rewriteCallerReachability(bogusIndex,
-				hrnShadowSummary,
-				null,
-				hrnShadowSummary.getAlpha(),
-				paramIndex2rewrite_d,
-				paramIndex2rewriteD,
-				bogusToken,
-				paramToken2paramIndex,
-				paramTokenPlus2paramIndex,
-				false,
-				null);
+                                hrnShadowSummary,
+                                null,
+                                hrnShadowSummary.getAlpha(),
+                                paramIndex2rewrite_d,
+                                paramIndex2rewriteD,
+                                bogusToken,
+                                paramToken2paramIndex,
+                                paramTokenPlus2paramIndex,
+                                false,
+                                null);
 
       hrnShadowSummary.applyAlphaNew();
 
@@ -1259,16 +1259,16 @@ public class OwnershipGraph {
 	hrnIthShadow.setAlpha(toShadowTokens(ogCallee, hrnIthCallee.getAlpha() ) );
 
 	rewriteCallerReachability(bogusIndex,
-				  hrnIthShadow,
-				  null,
-				  hrnIthShadow.getAlpha(),
-				  paramIndex2rewrite_d,
-				  paramIndex2rewriteD,
-				  bogusToken,
-				  paramToken2paramIndex,
-				  paramTokenPlus2paramIndex,
-				  false,
-				  null);
+	                          hrnIthShadow,
+	                          null,
+	                          hrnIthShadow.getAlpha(),
+	                          paramIndex2rewrite_d,
+	                          paramIndex2rewriteD,
+	                          bogusToken,
+	                          paramToken2paramIndex,
+	                          paramTokenPlus2paramIndex,
+	                          false,
+	                          null);
 
 	hrnIthShadow.applyAlphaNew();
       }
@@ -1309,19 +1309,19 @@ public class OwnershipGraph {
 	                                                            edgeCallee.getFieldDesc(),
 	                                                            false,
 	                                                            toShadowTokens(ogCallee,
-										   edgeCallee.getBeta() )
+	                                                                           edgeCallee.getBeta() )
 	                                                            );
 	  rewriteCallerReachability(bogusIndex,
-				    null,
-				    edgeNewInCallerTemplate,
-				    edgeNewInCallerTemplate.getBeta(),
-				    paramIndex2rewrite_d,
-				    paramIndex2rewriteD,
-				    bogusToken,
-				    paramToken2paramIndex,
-				    paramTokenPlus2paramIndex,
-				    false,
-				    null);
+	                            null,
+	                            edgeNewInCallerTemplate,
+	                            edgeNewInCallerTemplate.getBeta(),
+	                            paramIndex2rewrite_d,
+	                            paramIndex2rewriteD,
+	                            bogusToken,
+	                            paramToken2paramIndex,
+	                            paramTokenPlus2paramIndex,
+	                            false,
+	                            null);
 
 	  edgeNewInCallerTemplate.applyBetaNew();
 
@@ -1396,19 +1396,19 @@ public class OwnershipGraph {
 	                                                          edgeCallee.getFieldDesc(),
 	                                                          false,
 	                                                          toShadowTokens(ogCallee,
-										 edgeCallee.getBeta() )
+	                                                                         edgeCallee.getBeta() )
 	                                                          );
 	rewriteCallerReachability(bogusIndex,
-				  null,
-				  edgeNewInCallerTemplate,
-				  edgeNewInCallerTemplate.getBeta(),
-				  paramIndex2rewrite_d,
-				  paramIndex2rewriteD,
-				  bogusToken,
-				  paramToken2paramIndex,
-				  paramTokenPlus2paramIndex,
-				  false,
-				  null);
+	                          null,
+	                          edgeNewInCallerTemplate,
+	                          edgeNewInCallerTemplate.getBeta(),
+	                          paramIndex2rewrite_d,
+	                          paramIndex2rewriteD,
+	                          bogusToken,
+	                          paramToken2paramIndex,
+	                          paramTokenPlus2paramIndex,
+	                          false,
+	                          null);
 
 	edgeNewInCallerTemplate.applyBetaNew();
 
@@ -1602,18 +1602,18 @@ public class OwnershipGraph {
 
 
   private void rewriteCallerReachability(Integer paramIndex,
-					 HeapRegionNode hrn,
-					 ReferenceEdge edge,
-					 ReachabilitySet rules,
-					 Hashtable<Integer, ReachabilitySet> paramIndex2rewrite_d,
-					 Hashtable<Integer, ReachabilitySet> paramIndex2rewriteD,
-					 TokenTuple p_i,
-					 Hashtable<TokenTuple, Integer> paramToken2paramIndex,
-					 Hashtable<TokenTuple, Integer> paramTokenPlus2paramIndex,
-					 boolean makeChangeSet,
-					 Hashtable<ReferenceEdge, ChangeTupleSet> edgePlannedChanges) {
-    assert (hrn == null && edge != null) || 
-           (hrn != null && edge == null);
+                                         HeapRegionNode hrn,
+                                         ReferenceEdge edge,
+                                         ReachabilitySet rules,
+                                         Hashtable<Integer, ReachabilitySet> paramIndex2rewrite_d,
+                                         Hashtable<Integer, ReachabilitySet> paramIndex2rewriteD,
+                                         TokenTuple p_i,
+                                         Hashtable<TokenTuple, Integer> paramToken2paramIndex,
+                                         Hashtable<TokenTuple, Integer> paramTokenPlus2paramIndex,
+                                         boolean makeChangeSet,
+                                         Hashtable<ReferenceEdge, ChangeTupleSet> edgePlannedChanges) {
+    assert(hrn == null && edge != null) ||
+    (hrn != null && edge == null);
 
     assert rules != null;
     assert p_i != null;
@@ -1631,7 +1631,7 @@ public class OwnershipGraph {
     TokenTupleSet ttsEmpty = new TokenTupleSet().makeCanonical();
 
     // use this to construct a change set if required; the idea is to
-    // map every partially rewritten token tuple set to the set of 
+    // map every partially rewritten token tuple set to the set of
     // caller-context token tuple sets that were used to generate it
     Hashtable<TokenTupleSet, HashSet<TokenTupleSet> > rewritten2source =
       new Hashtable<TokenTupleSet, HashSet<TokenTupleSet> >();
@@ -1652,24 +1652,24 @@ public class OwnershipGraph {
 	ReachabilitySet ttCalleeRewrites = null;
 	boolean callerSourceUsed = false;
 
-	if( ttCallee.equals( p_i ) ) {
+	if( ttCallee.equals(p_i) ) {
 	  // replace the arity-one token of the current parameter with the reachability
 	  // information from the caller edge
 	  ttCalleeRewrites = callerReachabilityCurrent;
 	  callerSourceUsed = true;
-	  
-	} else if( paramToken2paramIndex.containsKey( ttCallee ) ) {
+
+	} else if( paramToken2paramIndex.containsKey(ttCallee) ) {
 	  // use little d
-	  Integer paramIndex_j = paramToken2paramIndex.get( ttCallee );
+	  Integer paramIndex_j = paramToken2paramIndex.get(ttCallee);
 	  assert paramIndex_j != null;
-	  ttCalleeRewrites = paramIndex2rewrite_d.get( paramIndex_j );
+	  ttCalleeRewrites = paramIndex2rewrite_d.get(paramIndex_j);
 	  assert ttCalleeRewrites != null;
 
-	} else if( paramTokenPlus2paramIndex.containsKey( ttCallee ) ) {
+	} else if( paramTokenPlus2paramIndex.containsKey(ttCallee) ) {
 	  // worse, use big D
-	  Integer paramIndex_j = paramTokenPlus2paramIndex.get( ttCallee );
+	  Integer paramIndex_j = paramTokenPlus2paramIndex.get(ttCallee);
 	  assert paramIndex_j != null;
-	  ttCalleeRewrites = paramIndex2rewriteD.get( paramIndex_j );
+	  ttCalleeRewrites = paramIndex2rewriteD.get(paramIndex_j);
 	  assert ttCalleeRewrites != null;
 
 	} else {
@@ -1677,8 +1677,8 @@ public class OwnershipGraph {
 	  TokenTupleSet ttsCaller = new TokenTupleSet(ttCallee).makeCanonical();
 	  ttCalleeRewrites = new ReachabilitySet(ttsCaller).makeCanonical();
 	}
-       
-	// branch every version of the working rewritten rule with 
+
+	// branch every version of the working rewritten rule with
 	// the possibilities for rewriting the current callee token
 	ReachabilitySet rewrittenRuleWithTTCallee = new ReachabilitySet().makeCanonical();
 
@@ -1690,29 +1690,29 @@ public class OwnershipGraph {
 	  while( ttCalleeRewritesItr.hasNext() ) {
 	    TokenTupleSet ttsBranch = ttCalleeRewritesItr.next();
 
-	    TokenTupleSet ttsRewrittenNext = ttsRewritten.unionUpArity( ttsBranch );
+	    TokenTupleSet ttsRewrittenNext = ttsRewritten.unionUpArity(ttsBranch);
 
 	    if( makeChangeSet ) {
 	      // in order to keep the list of source token tuple sets
 	      // start with the sets used to make the partially rewritten
 	      // rule up to this point
-	      HashSet<TokenTupleSet> sourceSets = rewritten2source.get( ttsRewritten );
+	      HashSet<TokenTupleSet> sourceSets = rewritten2source.get(ttsRewritten);
 	      assert sourceSets != null;
 
 	      // make a shallow copy for possible modification
-	      sourceSets = (HashSet<TokenTupleSet>) sourceSets.clone();
+	      sourceSets = (HashSet<TokenTupleSet>)sourceSets.clone();
 
 	      // if we used something from the caller to rewrite it, remember
 	      if( callerSourceUsed ) {
-		sourceSets.add( ttsBranch );
+		sourceSets.add(ttsBranch);
 	      }
 
 	      // set mapping for the further rewritten rule
-	      rewritten2source.put( ttsRewrittenNext, sourceSets );
+	      rewritten2source.put(ttsRewrittenNext, sourceSets);
 	    }
-	  
-	    rewrittenRuleWithTTCallee = 
-	      rewrittenRuleWithTTCallee.union( ttsRewrittenNext );
+
+	    rewrittenRuleWithTTCallee =
+	      rewrittenRuleWithTTCallee.union(ttsRewrittenNext);
 	  }
 	}
 
@@ -1724,26 +1724,26 @@ public class OwnershipGraph {
       // the rule has been entirely rewritten into the caller context
       // now, so add it to the new reachability information
       callerReachabilityNew =
-	callerReachabilityNew.union( rewrittenRule );
+        callerReachabilityNew.union(rewrittenRule);
     }
 
     if( makeChangeSet ) {
       ChangeTupleSet callerChangeSet = new ChangeTupleSet().makeCanonical();
-      
+
       // each possibility for the final reachability should have a set of
       // caller sources mapped to it, use to create the change set
       Iterator<TokenTupleSet> callerReachabilityItr = callerReachabilityNew.iterator();
       while( callerReachabilityItr.hasNext() ) {
 	TokenTupleSet ttsRewrittenFinal = callerReachabilityItr.next();
-	HashSet<TokenTupleSet> sourceSets = rewritten2source.get( ttsRewrittenFinal );
+	HashSet<TokenTupleSet> sourceSets = rewritten2source.get(ttsRewrittenFinal);
 	assert sourceSets != null;
 
 	Iterator<TokenTupleSet> sourceSetsItr = sourceSets.iterator();
 	while( sourceSetsItr.hasNext() ) {
-	  TokenTupleSet ttsSource = sourceSetsItr.next();      
+	  TokenTupleSet ttsSource = sourceSetsItr.next();
 
 	  callerChangeSet =
-	    callerChangeSet.union( new ChangeTuple( ttsSource, ttsRewrittenFinal ) );
+	    callerChangeSet.union(new ChangeTuple(ttsSource, ttsRewrittenFinal) );
 	}
       }
 
@@ -2311,15 +2311,33 @@ public class OwnershipGraph {
     ReachabilitySet beta1 = edgeSpecialQ1.getBeta();
     assert beta1 != null;
 
-    if( beta1.containsTupleSetWithBoth(p1,     p2    ) ) { return true; }
-    if( beta1.containsTupleSetWithBoth(pPlus1, p2    ) ) { return true; }
-    if( beta1.containsTupleSetWithBoth(pStar1, p2    ) ) { return true; }
-    if( beta1.containsTupleSetWithBoth(p1,     pPlus2) ) { return true; }
-    if( beta1.containsTupleSetWithBoth(pPlus1, pPlus2) ) { return true; }
-    if( beta1.containsTupleSetWithBoth(pStar1, pPlus2) ) { return true; }
-    if( beta1.containsTupleSetWithBoth(p1,     pStar2) ) { return true; }
-    if( beta1.containsTupleSetWithBoth(pPlus1, pStar2) ) { return true; }
-    if( beta1.containsTupleSetWithBoth(pStar1, pStar2) ) { return true; }
+    if( beta1.containsTupleSetWithBoth(p1,     p2) ) {
+      return true;
+    }
+    if( beta1.containsTupleSetWithBoth(pPlus1, p2) ) {
+      return true;
+    }
+    if( beta1.containsTupleSetWithBoth(pStar1, p2) ) {
+      return true;
+    }
+    if( beta1.containsTupleSetWithBoth(p1,     pPlus2) ) {
+      return true;
+    }
+    if( beta1.containsTupleSetWithBoth(pPlus1, pPlus2) ) {
+      return true;
+    }
+    if( beta1.containsTupleSetWithBoth(pStar1, pPlus2) ) {
+      return true;
+    }
+    if( beta1.containsTupleSetWithBoth(p1,     pStar2) ) {
+      return true;
+    }
+    if( beta1.containsTupleSetWithBoth(pPlus1, pStar2) ) {
+      return true;
+    }
+    if( beta1.containsTupleSetWithBoth(pStar1, pStar2) ) {
+      return true;
+    }
 
     return false;
   }
@@ -2377,15 +2395,33 @@ public class OwnershipGraph {
                                        TokenTuple.ARITY_ZEROORMORE).makeCanonical();
 
 
-    if( beta.containsTupleSetWithBoth(p,     gs    ) ) { return true; }
-    if( beta.containsTupleSetWithBoth(pPlus, gs    ) ) { return true; }
-    if( beta.containsTupleSetWithBoth(pStar, gs    ) ) { return true; }
-    if( beta.containsTupleSetWithBoth(p,     gsPlus) ) { return true; }
-    if( beta.containsTupleSetWithBoth(pPlus, gsPlus) ) { return true; }
-    if( beta.containsTupleSetWithBoth(pStar, gsPlus) ) { return true; }
-    if( beta.containsTupleSetWithBoth(p,     gsStar) ) { return true; }
-    if( beta.containsTupleSetWithBoth(pPlus, gsStar) ) { return true; }
-    if( beta.containsTupleSetWithBoth(pStar, gsStar) ) { return true; }
+    if( beta.containsTupleSetWithBoth(p,     gs) ) {
+      return true;
+    }
+    if( beta.containsTupleSetWithBoth(pPlus, gs) ) {
+      return true;
+    }
+    if( beta.containsTupleSetWithBoth(pStar, gs) ) {
+      return true;
+    }
+    if( beta.containsTupleSetWithBoth(p,     gsPlus) ) {
+      return true;
+    }
+    if( beta.containsTupleSetWithBoth(pPlus, gsPlus) ) {
+      return true;
+    }
+    if( beta.containsTupleSetWithBoth(pStar, gsPlus) ) {
+      return true;
+    }
+    if( beta.containsTupleSetWithBoth(p,     gsStar) ) {
+      return true;
+    }
+    if( beta.containsTupleSetWithBoth(pPlus, gsStar) ) {
+      return true;
+    }
+    if( beta.containsTupleSetWithBoth(pStar, gsStar) ) {
+      return true;
+    }
 
     // check for other nodes
     for( int i = 0; i < as.getAllocationDepth(); ++i ) {
@@ -2396,15 +2432,27 @@ public class OwnershipGraph {
                                      TokenTuple.ARITY_ONE).makeCanonical();
 
       TokenTuple giStar = new TokenTuple(as.getIthOldest(i),
-					 false,
-					 TokenTuple.ARITY_ZEROORMORE).makeCanonical();
+                                         false,
+                                         TokenTuple.ARITY_ZEROORMORE).makeCanonical();
 
-      if( beta.containsTupleSetWithBoth(p,     gi    ) ) { return true; }
-      if( beta.containsTupleSetWithBoth(pPlus, gi    ) ) { return true; }
-      if( beta.containsTupleSetWithBoth(pStar, gi    ) ) { return true; }
-      if( beta.containsTupleSetWithBoth(p,     giStar) ) { return true; }
-      if( beta.containsTupleSetWithBoth(pPlus, giStar) ) { return true; }
-      if( beta.containsTupleSetWithBoth(pStar, giStar) ) { return true; }
+      if( beta.containsTupleSetWithBoth(p,     gi) ) {
+	return true;
+      }
+      if( beta.containsTupleSetWithBoth(pPlus, gi) ) {
+	return true;
+      }
+      if( beta.containsTupleSetWithBoth(pStar, gi) ) {
+	return true;
+      }
+      if( beta.containsTupleSetWithBoth(p,     giStar) ) {
+	return true;
+      }
+      if( beta.containsTupleSetWithBoth(pPlus, giStar) ) {
+	return true;
+      }
+      if( beta.containsTupleSetWithBoth(pStar, giStar) ) {
+	return true;
+      }
     }
 
     return false;
@@ -2457,15 +2505,27 @@ public class OwnershipGraph {
     assert alphaSum2 != null;
 
     // does either one report reachability from the other tokens?
-    if( alphaSum1.containsTuple(gsPlus2) ) { return true; }
-    if( alphaSum1.containsTuple(gsStar2) ) { return true; }
-    if( alphaSum2.containsTuple(gsPlus1) ) { return true; }
-    if( alphaSum2.containsTuple(gsStar1) ) { return true; }
+    if( alphaSum1.containsTuple(gsPlus2) ) {
+      return true;
+    }
+    if( alphaSum1.containsTuple(gsStar2) ) {
+      return true;
+    }
+    if( alphaSum2.containsTuple(gsPlus1) ) {
+      return true;
+    }
+    if( alphaSum2.containsTuple(gsStar1) ) {
+      return true;
+    }
 
     // only check ONE token if they are different sites
     if( as1 != as2 ) {
-      if( alphaSum1.containsTuple(gs2) ) { return true; }
-      if( alphaSum2.containsTuple(gs1) ) { return true; }
+      if( alphaSum1.containsTuple(gs2) ) {
+	return true;
+      }
+      if( alphaSum2.containsTuple(gs1) ) {
+	return true;
+      }
     }
 
 
@@ -2484,14 +2544,24 @@ public class OwnershipGraph {
                                       TokenTuple.ARITY_ONE).makeCanonical();
 
       TokenTuple giStar1 = new TokenTuple(as1.getIthOldest(i),
-					  false,
-					  TokenTuple.ARITY_ZEROORMORE).makeCanonical();
+                                          false,
+                                          TokenTuple.ARITY_ZEROORMORE).makeCanonical();
 
-      if( alphaSum2.containsTuple(gi1    ) ) { return true; }
-      if( alphaSum2.containsTuple(giStar1) ) { return true; }
-      if(   alphaI1.containsTuple(gs2    ) ) { return true; }
-      if(   alphaI1.containsTuple(gsPlus2) ) { return true; }
-      if(   alphaI1.containsTuple(gsStar2) ) { return true; }
+      if( alphaSum2.containsTuple(gi1) ) {
+	return true;
+      }
+      if( alphaSum2.containsTuple(giStar1) ) {
+	return true;
+      }
+      if(   alphaI1.containsTuple(gs2) ) {
+	return true;
+      }
+      if(   alphaI1.containsTuple(gsPlus2) ) {
+	return true;
+      }
+      if(   alphaI1.containsTuple(gsStar2) ) {
+	return true;
+      }
     }
 
     // check sum1 against alloc2 nodes
@@ -2508,14 +2578,24 @@ public class OwnershipGraph {
                                       TokenTuple.ARITY_ONE).makeCanonical();
 
       TokenTuple giStar2 = new TokenTuple(as2.getIthOldest(i),
-					  false,
-					  TokenTuple.ARITY_ZEROORMORE).makeCanonical();
+                                          false,
+                                          TokenTuple.ARITY_ZEROORMORE).makeCanonical();
 
-      if( alphaSum1.containsTuple(gi2    ) ) { return true; }
-      if( alphaSum1.containsTuple(giStar2) ) { return true; }
-      if(   alphaI2.containsTuple(gs1    ) ) { return true; }
-      if(   alphaI2.containsTuple(gsPlus1) ) { return true; }
-      if(   alphaI2.containsTuple(gsStar1) ) { return true; }
+      if( alphaSum1.containsTuple(gi2) ) {
+	return true;
+      }
+      if( alphaSum1.containsTuple(giStar2) ) {
+	return true;
+      }
+      if(   alphaI2.containsTuple(gs1) ) {
+	return true;
+      }
+      if(   alphaI2.containsTuple(gsPlus1) ) {
+	return true;
+      }
+      if(   alphaI2.containsTuple(gsStar1) ) {
+	return true;
+      }
 
       // while we're at it, do an inner loop for alloc2 vs alloc1 nodes
       for( int j = 0; j < as1.getAllocationDepth(); ++j ) {
@@ -2534,13 +2614,21 @@ public class OwnershipGraph {
 	                                TokenTuple.ARITY_ONE).makeCanonical();
 
 	TokenTuple giStar1 = new TokenTuple(as1.getIthOldest(j),
-					    false,
-					    TokenTuple.ARITY_ZEROORMORE).makeCanonical();
+	                                    false,
+	                                    TokenTuple.ARITY_ZEROORMORE).makeCanonical();
 
-	if( alphaI2.containsTuple(gi1    ) ) { return true; }
-	if( alphaI2.containsTuple(giStar1) ) { return true; }
-	if( alphaI1.containsTuple(gi2    ) ) { return true; }
-	if( alphaI1.containsTuple(giStar2) ) { return true; }
+	if( alphaI2.containsTuple(gi1) ) {
+	  return true;
+	}
+	if( alphaI2.containsTuple(giStar1) ) {
+	  return true;
+	}
+	if( alphaI1.containsTuple(gi2) ) {
+	  return true;
+	}
+	if( alphaI1.containsTuple(giStar2) ) {
+	  return true;
+	}
       }
     }
 
@@ -2555,7 +2643,7 @@ public class OwnershipGraph {
                          boolean labelSelect,
                          boolean pruneGarbage,
                          boolean writeReferencers,
-			 boolean writeParamMappings
+                         boolean writeParamMappings
                          ) throws java.io.IOException {
     writeGraph(
       methodDesc.getSymbol() +
@@ -2574,7 +2662,7 @@ public class OwnershipGraph {
                          boolean labelSelect,
                          boolean pruneGarbage,
                          boolean writeReferencers,
-			 boolean writeParamMappings
+                         boolean writeParamMappings
                          ) throws java.io.IOException {
 
     writeGraph(methodDesc+"COMPLETE",
@@ -2582,7 +2670,7 @@ public class OwnershipGraph {
                labelSelect,
                pruneGarbage,
                writeReferencers,
-	       writeParamMappings
+               writeParamMappings
                );
   }
 
@@ -2592,7 +2680,7 @@ public class OwnershipGraph {
                          boolean labelSelect,
                          boolean pruneGarbage,
                          boolean writeReferencers,
-			 boolean writeParamMappings
+                         boolean writeParamMappings
                          ) throws java.io.IOException {
 
     writeGraph(methodDesc+"COMPLETE"+String.format("%05d", numUpdate),
@@ -2600,7 +2688,7 @@ public class OwnershipGraph {
                labelSelect,
                pruneGarbage,
                writeReferencers,
-	       writeParamMappings
+               writeParamMappings
                );
   }
 
@@ -2609,7 +2697,7 @@ public class OwnershipGraph {
                          boolean labelSelect,
                          boolean pruneGarbage,
                          boolean writeReferencers,
-			 boolean writeParamMappings
+                         boolean writeParamMappings
                          ) throws java.io.IOException {
 
     // remove all non-word characters from the graph name so
@@ -2628,21 +2716,21 @@ public class OwnershipGraph {
       Map.Entry me  = (Map.Entry)i.next();
       HeapRegionNode hrn = (HeapRegionNode) me.getValue();
       if( !pruneGarbage ||
-	  hrn.isFlagged() ||
-	  hrn.getDescription().startsWith( "param" )
-	) {
-	
+          hrn.isFlagged() ||
+          hrn.getDescription().startsWith("param")
+          ) {
+
 	if( !visited.contains(hrn) ) {
 	  traverseHeapRegionNodes(VISIT_HRN_WRITE_FULL,
-				  hrn,
-				  bw,
-				  null,
-				  visited,
-				  writeReferencers);
+	                          hrn,
+	                          bw,
+	                          null,
+	                          visited,
+	                          writeReferencers);
 	}
       }
     }
-    
+
     bw.write("  graphTitle[label=\""+graphName+"\",shape=box];\n");
 
     if( writeParamMappings ) {

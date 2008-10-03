@@ -73,22 +73,22 @@ public class TokenTupleSet extends Canonical {
     Iterator<TokenTuple> ttItr = this.iterator();
     while( ttItr.hasNext() ) {
       TokenTuple ttThis = ttItr.next();
-      TokenTuple ttIn   = ttsIn.containsToken( ttThis.getToken() );
+      TokenTuple ttIn   = ttsIn.containsToken(ttThis.getToken() );
 
       if( ttIn != null ) {
-	ttsOut.tokenTuples.add( ttThis.unionArity( ttIn ) );
+	ttsOut.tokenTuples.add(ttThis.unionArity(ttIn) );
       } else {
-	ttsOut.tokenTuples.add( ttThis );
+	ttsOut.tokenTuples.add(ttThis);
       }
     }
 
     ttItr = ttsIn.iterator();
     while( ttItr.hasNext() ) {
       TokenTuple ttIn   = ttItr.next();
-      TokenTuple ttThis = ttsOut.containsToken( ttIn.getToken() );
+      TokenTuple ttThis = ttsOut.containsToken(ttIn.getToken() );
 
       if( ttThis == null ) {
-	ttsOut.tokenTuples.add( ttIn );
+	ttsOut.tokenTuples.add(ttIn);
       }
     }
 
@@ -119,7 +119,7 @@ public class TokenTupleSet extends Canonical {
 
 
   private boolean oldHashSet = false;
-  private int     oldHash    = 0;
+  private int oldHash    = 0;
   public int hashCode() {
     int currentHash = tokenTuples.hashCode();
 
@@ -128,7 +128,7 @@ public class TokenTupleSet extends Canonical {
       oldHashSet = true;
     } else {
       if( oldHash != currentHash ) {
-	System.out.println( "IF YOU SEE THIS A CANONICAL TokenTupleSet CHANGED" );
+	System.out.println("IF YOU SEE THIS A CANONICAL TokenTupleSet CHANGED");
 	Integer x = null;
 	x.toString();
       }
@@ -211,17 +211,17 @@ public class TokenTupleSet extends Canonical {
     } else if( ttSummary == null && ttOldest != null ) {
       ttsOut.tokenTuples.add(new TokenTuple(as.getSummary(),
                                             true,
-                                            ttOldest.getArity() 
-					   ).makeCanonical() 
-			     );
+                                            ttOldest.getArity()
+                                            ).makeCanonical()
+                             );
 
     } else if( ttSummary != null && ttOldest != null ) {
       ttsOut.tokenTuples.add(ttSummary.unionArity(new TokenTuple(as.getSummary(),
-								 true,
-								 ttOldest.getArity() 
-								 ).makeCanonical()
-						  )
-			     );
+                                                                 true,
+                                                                 ttOldest.getArity()
+                                                                 ).makeCanonical()
+                                                  )
+                             );
     }
 
     return ttsOut.makeCanonical();
@@ -277,19 +277,19 @@ public class TokenTupleSet extends Canonical {
       ttsOut.tokenTuples.add(ttSummary);
 
     } else if( ttSummary == null && ttShadowSummary != null ) {
-      ttsOut.tokenTuples.add( new TokenTuple(as.getSummary(),
-					     true,
-					     ttShadowSummary.getArity()
-					     ).makeCanonical()
-			      );
+      ttsOut.tokenTuples.add(new TokenTuple(as.getSummary(),
+                                            true,
+                                            ttShadowSummary.getArity()
+                                            ).makeCanonical()
+                             );
 
     } else if( ttSummary != null && ttShadowSummary != null ) {
-      ttsOut.tokenTuples.add(ttSummary.unionArity( new TokenTuple(as.getSummary(),
-								  true,
-								  ttShadowSummary.getArity()
-								  ).makeCanonical()
-						   )
-			     );
+      ttsOut.tokenTuples.add(ttSummary.unionArity(new TokenTuple(as.getSummary(),
+                                                                 true,
+                                                                 ttShadowSummary.getArity()
+                                                                 ).makeCanonical()
+                                                  )
+                             );
     }
 
     return ttsOut.makeCanonical();
@@ -356,11 +356,11 @@ public class TokenTupleSet extends Canonical {
 
 	if( makeChangeSet ) {
 	  assert forChangeSet != null;
-	  
+
 	  if( forChangeSet.get(this) == null ) {
 	    forChangeSet.put(this, new HashSet<TokenTupleSet>() );
 	  }
-	  
+
 	  forChangeSet.get(this).add(replaced);
 	}
       }
@@ -377,16 +377,16 @@ public class TokenTupleSet extends Canonical {
     while( itrThis.hasNext() ) {
       TokenTuple tt = itrThis.next();
 
-      ttsOut = ttsOut.union( new TokenTuple( tt.getToken(),
-					     tt.isMultiObject(),
-					     TokenTuple.ARITY_ZEROORMORE 
-					     ).makeCanonical()
-			     );
+      ttsOut = ttsOut.union(new TokenTuple(tt.getToken(),
+                                           tt.isMultiObject(),
+                                           TokenTuple.ARITY_ZEROORMORE
+                                           ).makeCanonical()
+                            );
     }
 
     return ttsOut.makeCanonical();
   }
- 
+
   public String toString() {
     return tokenTuples.toString();
   }

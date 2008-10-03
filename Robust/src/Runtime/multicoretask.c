@@ -16,9 +16,12 @@
 #include <errno.h>
 #endif
 #ifdef RAW
+#ifdef RAWPROFILE
+#include "stdio.h"
+#include "string.h"
+#endif
 #include <raw.h>
 #include <raw_compiler_defs.h>
-//#include <libints.h>
 #elif defined THREADSIMULATE
 // use POSIX message queue
 // for each core, its message queue named as
@@ -109,8 +112,48 @@ void releasereadlock_I(void* ptr);
 bool getwritelock(void* ptr);
 void releasewritelock(void* ptr);
 
+// profiling mode of RAW version
+#ifdef RAWPROFILE
+//#include "stdio.h"
+//#include "string.h"
+
+#define TASKINFOLENGTH 150
+#define INTERRUPTINFOLENGTH 500
+
+bool stall;
+bool isInterrupt;
+int totalexetime;
+
+typedef struct task_info {
+  char* taskName;
+  int startTime;
+  int endTime;
+} TaskInfo;
+
+typedef struct interrupt_info {
+  int startTime;
+  int endTime;
+} InterruptInfo;
+
+TaskInfo * taskInfoArray[TASKINFOLENGTH];
+int taskInfoIndex;
+bool taskInfoOverflow;
+InterruptInfo * interruptInfoArray[INTERRUPTINFOLENGTH];
+int interruptInfoIndex;
+bool interruptInfoOverflow;
+int profilestatus[NUMCORES]; // records status of each core
+                             // 1: running tasks
+// 0: stall
+bool transProfileRequestMsg(int targetcore);
+void outputProfileData();
+#endif
+
 #ifdef RAW
+#ifdef RAWPROFILE
+int main(void) {
+#else
 void begin() {
+#endif
 #else
 int main(int argc, char **argv) {
 #endif
@@ -140,6 +183,11 @@ int main(int argc, char **argv) {
       numsendobjs[i] = 0;                   // assume all variables in RAW are local variables! MAY BE WRONG!!!
       numreceiveobjs[i] = 0;
     }
+#ifdef RAWPROFILE
+    for(i = 0; i < NUMCORES; ++i) {
+      profilestatus[i] = 1;
+    }
+#endif
   }
   self_numsendobjs = 0;
   self_numreceiveobjs = 0;
@@ -181,6 +229,16 @@ int main(int argc, char **argv) {
   objqueue.tail = NULL;
 #ifdef RAWDEBUG
   raw_test_pass(0xee03);
+#endif
+
+#ifdef RAWPROFILE
+  stall = false;
+  isInterrupt = true;
+  totalexetime = -1;
+  taskInfoIndex = 0;
+  interruptInfoIndex = 0;
+  taskInfoOverflow = false;
+  interruptInfoOverflow = false;
 #endif
 
 #ifdef INTERRUPT
@@ -298,6 +356,21 @@ void run(void* arg) {
   if(corenum > NUMCORES - 1) {
     failedtasks = NULL;
     activetasks = NULL;
+/*#ifdef RAWPROFILE
+        raw_test_pass(0xee01);
+        raw_test_pass_reg(taskInfoIndex);
+        raw_test_pass_reg(taskInfoOverflow);
+        if(!taskInfoOverflow) {
+        TaskInfo* taskInfo = RUNMALLOC(sizeof(struct task_info));
+        taskInfoArray[taskInfoIndex] = taskInfo;
+        taskInfo->taskName = "msg handling";
+        taskInfo->startTime = raw_get_cycle();
+        taskInfo->endTime = -1;
+        }
+ #endif*/
+#ifdef RAWPROFILE
+    isInterrupt = false;
+#endif
     while(true) {
       receiveObject();
     }
@@ -361,10 +434,27 @@ void run(void* arg) {
 #ifdef RAWDEBUG
     raw_test_pass(0xee0d);
 #endif
+#ifdef RAWPROFILE
+    {
+      bool isChecking = false;
+      if(!isEmpty(&objqueue)) {
+	if(!taskInfoOverflow) {
+	  TaskInfo* taskInfo = RUNMALLOC(sizeof(struct task_info));
+	  taskInfoArray[taskInfoIndex] = taskInfo;
+	  taskInfo->taskName = "objqueue checking";
+	  taskInfo->startTime = raw_get_cycle();
+	  taskInfo->endTime = -1;
+	}
+	isChecking = true;
+      }
+#endif
     while(!isEmpty(&objqueue)) {
       void * obj = NULL;
 #ifdef INTERRUPT
       raw_user_interrupts_off();
+#endif
+#ifdef RAWPROFILE
+      isInterrupt = false;
 #endif
 #ifdef RAWDEBUG
       raw_test_pass(0xeee1);
@@ -426,6 +516,9 @@ void run(void* arg) {
 	// and try to execute active tasks already enqueued first
 	removeItem(&objqueue, objitem);
 	addNewItem_I(&objqueue, objInfo);
+#ifdef RAWPROFILE
+	isInterrupt = true;
+#endif
 #ifdef INTERRUPT
 	raw_user_interrupts_on();
 #endif
@@ -438,6 +531,16 @@ void run(void* arg) {
       raw_test_pass(0xee0e);
 #endif
     }
+#ifdef RAWPROFILE
+    if(isChecking && (!taskInfoOverflow)) {
+      taskInfoArray[taskInfoIndex]->endTime = raw_get_cycle();
+      taskInfoIndex++;
+      if(taskInfoIndex == TASKINFOLENGTH) {
+	taskInfoOverflow = true;
+      }
+    }
+  }
+#endif
 #ifdef RAWDEBUG
     raw_test_pass(0xee0f);
 #endif
@@ -473,7 +576,8 @@ void run(void* arg) {
 	}
 	if(allStall) {
 	  // check if the sum of send objs and receive obj are the same
-	  // yes->terminate
+	  // yes->terminate; for profiling mode, yes->send request to all
+	  // other cores to pour out profiling data
 	  // no->go on executing
 	  sumsendobj = 0;
 	  for(i = 0; i < NUMCORES; ++i) {
@@ -493,7 +597,57 @@ void run(void* arg) {
 #ifdef RAWDEBUG
 	    raw_test_pass(0xee11);
 #endif
+#ifdef RAWPROFILE
+	    totalexetime = raw_get_cycle();
+#else
+	    raw_test_pass(0xbbbbbbbb);
 	    raw_test_pass(raw_get_cycle());
+#endif
+
+	    // profile mode, send msgs to other cores to request pouring
+	    // out progiling data
+#ifdef RAWPROFILE
+#ifdef INTERRUPT
+	    // reopen gdn_avail interrupts
+	    raw_user_interrupts_on();
+#endif
+	    for(i = 1; i < NUMCORES; ++i) {
+	      transProfileRequestMsg(i);
+	    }
+	    // pour profiling data on startup core
+	    outputProfileData();
+	    while(true) {
+#ifdef INTERRUPT
+	      raw_user_interrupts_off();
+#endif
+	      profilestatus[corenum] = 0;
+	      // check the status of all cores
+	      allStall = true;
+#ifdef RAWDEBUG
+	      raw_test_pass_reg(NUMCORES);
+#endif
+	      for(i = 0; i < NUMCORES; ++i) {
+#ifdef RAWDEBUG
+		raw_test_pass(0xe000 + profilestatus[i]);
+#endif
+		if(profilestatus[i] != 0) {
+		  allStall = false;
+		  break;
+		}
+	      }
+	      if(!allStall) {
+		int halt = 10000;
+#ifdef INTERRUPT
+		raw_user_interrupts_on();
+#endif
+		while(halt--) {
+		}
+	      } else {
+		break;
+	      }
+	    }
+#endif
+
 	    raw_test_done(1);                                   // All done.
 	  }
 	}
@@ -504,6 +658,9 @@ void run(void* arg) {
 	if(!sendStall) {
 #ifdef RAWDEBUG
 	  raw_test_pass(0xee12);
+#endif
+#ifdef RAWPROFILE
+	  if(!stall) {
 #endif
 	  if(isfirst) {
 	    // wait for some time
@@ -525,6 +682,9 @@ void run(void* arg) {
 	    sendStall = transStallMsg(STARTUPCORE);
 	    isfirst = true;
 	  }
+#ifdef RAWPROFILE
+	}
+#endif
 	} else {
 	  isfirst = true;
 #ifdef RAWDEBUG
@@ -1275,12 +1435,16 @@ void calCoords(int core_num, int* coordY, int* coordX) {
  *       3 -- lock grount
  *       4 -- lock deny
  *       5 -- lock release
+ *       6 -- transfer profile output msg
+ *       7 -- transfer profile ouput finish msg
  *
  * ObjMsg: 0 + size of msg + obj's address + (task index + param index)+
  * StallMsg: 1 + corenum + sendobjs + receiveobjs (size is always 4 * sizeof(int))
  * LockMsg: 2 + lock type + obj pointer + request core (size is always 4 * sizeof(int))
  *          3/4/5 + lock type + obj pointer (size is always 3 * sizeof(int))
  *          lock type: 0 -- read; 1 -- write
+ * ProfileMsg: 6 + totalexetime (size is always 2 * sizeof(int))
+ *             7 + corenum (size is always 2 * sizeof(int))
  */
 
 // transfer an object to targetcore
@@ -1593,6 +1757,196 @@ bool transStallMsg(int targetcore) {
 #endif
 }
 
+#ifdef RAWPROFILE
+// send profile request message to targetcore
+// format: 6
+bool transProfileRequestMsg(int targetcore) {
+  unsigned msgHdr;
+  int self_y, self_x, target_y, target_x;
+  // for 32 bit machine, the size is always 4 words
+  //int msgsize = sizeof(int) * 4;
+  int msgsize = 2;
+
+  calCoords(corenum, &self_y, &self_x);
+  calCoords(targetcore, &target_y, &target_x);
+  // Build the message header
+  msgHdr = construct_dyn_hdr(0, msgsize, 0,             // msgsize word sent.
+                             self_y, self_x,
+                             target_y, target_x);
+  // start sending msgs, set msg sending flag
+  isMsgSending = true;
+  gdn_send(msgHdr);                     // Send the message header to EAST to handle fab(n - 1).
+#ifdef RAWDEBUG
+  raw_test_pass(0xbbbb);
+  raw_test_pass(0xb000 + targetcore);       // targetcore
+#endif
+  gdn_send(6);
+#ifdef RAWDEBUG
+  raw_test_pass(6);
+#endif
+  gdn_send(totalexetime);
+#ifdef RAWDEBUG
+  raw_test_pass_reg(totalexetime);
+  raw_test_pass(0xffff);
+#endif
+  // end of sending this msg, set sand msg flag false
+  isMsgSending = false;
+  // check if there are pending msgs
+  while(isMsgHanging) {
+    // get the msg from outmsgdata[]
+    // length + target + msg
+    outmsgleft = outmsgdata[outmsgindex++];
+    targetcore = outmsgdata[outmsgindex++];
+    calCoords(targetcore, &target_y, &target_x);
+    // Build the message header
+    msgHdr = construct_dyn_hdr(0, outmsgleft, 0,                        // msgsize word sent.
+                               self_y, self_x,
+                               target_y, target_x);
+    isMsgSending = true;
+    gdn_send(msgHdr);
+#ifdef RAWDEBUG
+    raw_test_pass(0xbbbb);
+    raw_test_pass(0xb000 + targetcore);             // targetcore
+#endif
+    while(outmsgleft-- > 0) {
+      gdn_send(outmsgdata[outmsgindex++]);
+#ifdef RAWDEBUG
+      raw_test_pass_reg(outmsgdata[outmsgindex - 1]);
+#endif
+    }
+#ifdef RAWDEBUG
+    raw_test_pass(0xffff);
+#endif
+    isMsgSending = false;
+#ifdef INTERRUPT
+    raw_user_interrupts_off();
+#endif
+    // check if there are still msg hanging
+    if(outmsgindex == outmsglast) {
+      // no more msgs
+      outmsgindex = outmsglast = 0;
+      isMsgHanging = false;
+    }
+#ifdef INTERRUPT
+    raw_user_interrupts_on();
+#endif
+  }
+  return true;
+}
+
+// output the profiling data
+void outputProfileData() {
+  FILE * fp;
+  char fn[50];
+  int self_y, self_x;
+  char c_y, c_x;
+  int i;
+  int totaltasktime = 0;
+  int preprocessingtime = 0;
+  int objqueuecheckingtime = 0;
+  int postprocessingtime = 0;
+  //int interruptiontime = 0;
+  int other = 0;
+  int averagetasktime = 0;
+  int tasknum = 0;
+
+  for(i = 0; i < 50; i++) {
+    fn[i] = 0;
+  }
+
+  calCoords(corenum, &self_y, &self_x);
+  c_y = (char)self_y + '0';
+  c_x = (char)self_x + '0';
+  strcat(fn, "profile_");
+  strcat(fn, &c_x);
+  strcat(fn, "_");
+  strcat(fn, &c_y);
+  strcat(fn, ".rst");
+
+  if((fp = fopen(fn, "w+")) == NULL) {
+    fprintf(stderr, "fopen error\n");
+    return -1;
+  }
+
+  fprintf(fp, "Task Name, Start Time, End Time, Duration\n");
+  // output task related info
+  for(i = 0; i < taskInfoIndex; i++) {
+    TaskInfo* tmpTInfo = taskInfoArray[i];
+    int duration = tmpTInfo->endTime - tmpTInfo->startTime;
+    fprintf(fp, "%s, %d, %d, %d\n", tmpTInfo->taskName, tmpTInfo->startTime, tmpTInfo->endTime, duration);
+    if(strcmp(tmpTInfo->taskName, "tpd checking") == 0) {
+      preprocessingtime += duration;
+    } else if(strcmp(tmpTInfo->taskName, "post task execution") == 0) {
+      postprocessingtime += duration;
+    } else if(strcmp(tmpTInfo->taskName, "objqueue checking") == 0) {
+      objqueuecheckingtime += duration;
+    } else {
+      totaltasktime += duration;
+      averagetasktime += duration;
+      tasknum++;
+    }
+  }
+
+  if(taskInfoOverflow) {
+    fprintf(stderr, "Caution: task info overflow!\n");
+  }
+
+  other = totalexetime - totaltasktime - preprocessingtime - postprocessingtime;
+  averagetasktime /= tasknum;
+
+  fprintf(fp, "\nTotal time: %d\n", totalexetime);
+  fprintf(fp, "Total task execution time: %d (%f%%)\n", totaltasktime, ((double)totaltasktime/(double)totalexetime)*100);
+  fprintf(fp, "Total objqueue checking time: %d (%f%%)\n", objqueuecheckingtime, ((double)objqueuecheckingtime/(double)totalexetime)*100);
+  fprintf(fp, "Total pre-processing time: %d (%f%%)\n", preprocessingtime, ((double)preprocessingtime/(double)totalexetime)*100);
+  fprintf(fp, "Total post-processing time: %d (%f%%)\n", postprocessingtime, ((double)postprocessingtime/(double)totalexetime)*100);
+  fprintf(fp, "Other time: %d (%f%%)\n", other, ((double)other/(double)totalexetime)*100);
+
+  fprintf(fp, "\nAverage task execution time: %d\n", averagetasktime);
+
+  fclose(fp);
+
+  /*
+     int i = 0;
+     int j = 0;
+
+     raw_test_pass(0xdddd);
+     // output task related info
+     for(i= 0; i < taskInfoIndex; i++) {
+          TaskInfo* tmpTInfo = taskInfoArray[i];
+          char* tmpName = tmpTInfo->taskName;
+          int nameLen = strlen(tmpName);
+          raw_test_pass(0xddda);
+          for(j = 0; j < nameLen; j++) {
+                  raw_test_pass_reg(tmpName[j]);
+          }
+          raw_test_pass(0xdddb);
+          raw_test_pass_reg(tmpTInfo->startTime);
+          raw_test_pass_reg(tmpTInfo->endTime);
+          raw_test_pass(0xdddc);
+     }
+
+     if(taskInfoOverflow) {
+          raw_test_pass(0xefee);
+     }
+
+     // output interrupt related info
+     for(i = 0; i < interruptInfoIndex; i++) {
+          InterruptInfo* tmpIInfo = interruptInfoArray[i];
+          raw_test_pass(0xddde);
+          raw_test_pass_reg(tmpIInfo->startTime);
+          raw_test_pass_reg(tmpIInfo->endTime);
+          raw_test_pass(0xdddf);
+     }
+
+     if(interruptInfoOverflow) {
+          raw_test_pass(0xefef);
+     }
+
+     raw_test_pass(0xeeee);
+   */
+}
+#endif
+
 // receive object transferred from other cores
 // or the terminate message from other cores
 // NOTICE: following format is for threadsimulate version only
@@ -1620,6 +1974,14 @@ int receiveObject() {
 #endif
     return -1;
   }
+#ifdef RAWPROFILE
+  if(isInterrupt && (!interruptInfoOverflow)) {
+    // raw_test_pass(0xffff);
+    interruptInfoArray[interruptInfoIndex] = RUNMALLOC_I(sizeof(struct interrupt_info));
+    interruptInfoArray[interruptInfoIndex]->startTime = raw_get_cycle();
+    interruptInfoArray[interruptInfoIndex]->endTime = -1;
+  }
+#endif
 msg:
 #ifdef RAWDEBUG
   raw_test_pass(0xcccc);
@@ -1627,7 +1989,11 @@ msg:
   while((gdn_input_avail() != 0) && (msgdataindex < msglength)) {
     msgdata[msgdataindex] = gdn_receive();
     if(msgdataindex == 0) {
-      if(msgdata[0] > 2) {
+      if(msgdata[0] == 7) {
+	msglength = 2;
+      } else if(msgdata[0] == 6) {
+	msglength = 2;
+      } else if(msgdata[0] > 2) {
 	msglength = 3;
       } else if(msgdata[0] > 0) {
 	msglength = 4;
@@ -1929,6 +2295,69 @@ msg:
       break;
     }
 
+#ifdef RAWPROFILE
+    case 6: {
+      // receive an output request msg
+      if(corenum == STARTUPCORE) {
+	// startup core can not receive profile output finish msg
+	// return -1
+	raw_test_done(0xa00a);
+      }
+      {
+	int msgsize = 2;
+	stall = true;
+	totalexetime = data1;
+	outputProfileData();
+	/*if(data1 >= NUMCORES) {
+	        raw_test_pass(0xee04);
+	   raw_test_pass_reg(taskInfoIndex);
+	   raw_test_pass_reg(taskInfoOverflow);
+	        if(!taskInfoOverflow) {
+	                taskInfoArray[taskInfoIndex]->endTime = raw_get_cycle();
+	                taskInfoIndex++;
+	                if(taskInfoIndex == TASKINFOLENGTH) {
+	                        taskInfoOverflow = true;
+	                }
+	        }
+	   }*/
+	// no msg on sending, send it out
+	targetcore = STARTUPCORE;
+	calCoords(corenum, &self_y, &self_x);
+	calCoords(targetcore, &target_y, &target_x);
+	// Build the message header
+	msgHdr = construct_dyn_hdr(0, msgsize, 0,                                                               // msgsize word sent.
+	                           self_y, self_x,
+	                           target_y, target_x);
+	gdn_send(msgHdr);
+#ifdef RAWDEBUG
+	raw_test_pass(0xbbbb);
+	raw_test_pass(0xb000 + targetcore);                                                 // targetcore
+#endif
+	gdn_send(7);
+#ifdef RAWDEBUG
+	raw_test_pass(7);
+#endif
+	gdn_send(corenum);
+#ifdef RAWDEBUG
+	raw_test_pass_reg(corenum);
+	raw_test_pass(0xffff);
+#endif
+      }
+      break;
+    }
+
+    case 7: {
+      // receive a profile output finish msg
+      if(corenum != STARTUPCORE) {
+	// non startup core can not receive profile output finish msg
+	// return -1
+	raw_test_done(0xa00b);
+      }
+      profilestatus[data1] = 0;
+      break;
+    }
+#endif
+
     default:
       break;
     }
@@ -1946,11 +2375,29 @@ msg:
     if(gdn_input_avail() != 0) {
       goto msg;
     }
+#ifdef RAWPROFILE
+    if(isInterrupt && (!interruptInfoOverflow)) {
+      interruptInfoArray[interruptInfoIndex]->endTime = raw_get_cycle();
+      interruptInfoIndex++;
+      if(interruptInfoIndex == INTERRUPTINFOLENGTH) {
+	interruptInfoOverflow = true;
+      }
+    }
+#endif
     return type;
   } else {
     // not a whole msg
 #ifdef RAWDEBUG
     raw_test_pass(0xe889);
+#endif
+#ifdef RAWPROFILE
+    if(isInterrupt && (!interruptInfoOverflow)) {
+      interruptInfoArray[interruptInfoIndex]->endTime = raw_get_cycle();
+      interruptInfoIndex++;
+      if(interruptInfoIndex == INTERRUPTINFOLENGTH) {
+	interruptInfoOverflow = true;
+      }
+    }
 #endif
     return -2;
   }
@@ -3116,6 +3563,15 @@ newtask:
     /* See if there are any active tasks */
     if (hashsize(activetasks)>0) {
       int i;
+#ifdef RAWPROFILE
+      if(!taskInfoOverflow) {
+	TaskInfo* checkTaskInfo = RUNMALLOC(sizeof(struct task_info));
+	taskInfoArray[taskInfoIndex] = checkTaskInfo;
+	checkTaskInfo->taskName = "tpd checking";
+	checkTaskInfo->startTime = raw_get_cycle();
+	checkTaskInfo->endTime = -1;
+      }
+#endif
       currtpd=(struct taskparamdescriptor *) getfirstkey(activetasks);
       genfreekey(activetasks, currtpd);
 
@@ -3153,6 +3609,9 @@ newtask:
 #ifdef INTERRUPT
 	raw_user_interrupts_off();
 #endif
+#ifdef RAWPROFILE
+	isInterrupt = false;
+#endif
 	while(!lockflag) {
 	  receiveObject();
 	}
@@ -3169,6 +3628,9 @@ newtask:
 	lockflag = false;
 #ifndef INTERRUPT
 	reside = false;
+#endif
+#ifdef RAWPROFILE
+	isInterrupt = true;
 #endif
 #ifdef INTERRUPT
 	raw_user_interrupts_on();
@@ -3189,6 +3651,16 @@ newtask:
 	    while(halt--) {
 	    }
 	  }
+#ifdef RAWPROFILE
+	  // fail, set the end of the checkTaskInfo
+	  if(!taskInfoOverflow) {
+	    taskInfoArray[taskInfoIndex]->endTime = raw_get_cycle();
+	    taskInfoIndex++;
+	    if(taskInfoIndex == TASKINFOLENGTH) {
+	      taskInfoOverflow = true;
+	    }
+	  }
+#endif
 	  goto newtask;
 	}
 	// flush the object
@@ -3321,6 +3793,16 @@ newtask:
 	    releasewritelock(parameter);
 	    RUNFREE(currtpd->parameterArray);
 	    RUNFREE(currtpd);
+#ifdef RAWPROFILE
+	    // fail, set the end of the checkTaskInfo
+	    if(!taskInfoOverflow) {
+	      taskInfoArray[taskInfoIndex]->endTime = raw_get_cycle();
+	      taskInfoIndex++;
+	      if(taskInfoIndex == TASKINFOLENGTH) {
+		taskInfoOverflow = true;
+	      }
+	    }
+#endif
 	    goto newtask;
 	  }
 	}
@@ -3404,10 +3886,31 @@ parameterpresent:
 	     }*/
 	  /* Actually call task */
 #ifdef PRECISE_GC
-	                                                        ((int *)taskpointerarray)[0]=currtpd->numParameters;
+	                                                                    ((int *)taskpointerarray)[0]=currtpd->numParameters;
 	  taskpointerarray[1]=NULL;
 #endif
 execute:
+#ifdef RAWPROFILE
+	  {
+	    // check finish, set the end of the checkTaskInfo
+	    if(!taskInfoOverflow) {
+	      taskInfoArray[taskInfoIndex]->endTime = raw_get_cycle();
+	      taskInfoIndex++;
+	      if(taskInfoIndex == TASKINFOLENGTH) {
+		taskInfoOverflow = true;
+	      }
+	    }
+	  }
+	  if(!taskInfoOverflow) {
+	    // new a taskInfo for the task execution
+	    TaskInfo* taskInfo = RUNMALLOC(sizeof(struct task_info));
+	    taskInfoArray[taskInfoIndex] = taskInfo;
+	    taskInfo->taskName = currtpd->task->name;
+	    taskInfo->startTime = raw_get_cycle();
+	    taskInfo->endTime = -1;
+	  }
+#endif
+
 	  if(debugtask) {
 #ifndef RAW
 	    printf("ENTER %s count=%d\n",currtpd->task->name, (instaccum-instructioncount));
@@ -3419,10 +3922,28 @@ execute:
 	  } else {
 	    ((void(*) (void **))currtpd->task->taskptr)(taskpointerarray);
 	  }
+#ifdef RAWPROFILE
+	  // task finish, set the end of the checkTaskInfo
+	  if(!taskInfoOverflow) {
+	    taskInfoArray[taskInfoIndex]->endTime = raw_get_cycle();
+	    taskInfoIndex++;
+	    if(taskInfoIndex == TASKINFOLENGTH) {
+	      taskInfoOverflow = true;
+	    }
+	  }
+	  // new a PostTaskInfo for the post-task execution
+	  if(!taskInfoOverflow) {
+	    TaskInfo* postTaskInfo = RUNMALLOC(sizeof(struct task_info));
+	    taskInfoArray[taskInfoIndex] = postTaskInfo;
+	    postTaskInfo->taskName = "post task execution";
+	    postTaskInfo->startTime = raw_get_cycle();
+	    postTaskInfo->endTime = -1;
+	  }
+#endif
 #ifdef RAWDEBUG
 	  raw_test_pass(0xe998);
 	  raw_test_pass_reg(lock);
-		  #endif
+#endif
 
 	  if(lock) {
 #ifdef RAW
@@ -3445,13 +3966,24 @@ execute:
 #endif
 	  }
 
+#ifdef RAWPROFILE
+	  // post task execution finish, set the end of the postTaskInfo
+	  if(!taskInfoOverflow) {
+	    taskInfoArray[taskInfoIndex]->endTime = raw_get_cycle();
+	    taskInfoIndex++;
+	    if(taskInfoIndex == TASKINFOLENGTH) {
+	      taskInfoOverflow = true;
+	    }
+	  }
+#endif
+
 #if 0
 #ifndef RAW
 	  freeRuntimeHash(forward);
 	  freeRuntimeHash(reverse);
-#endif
-#endif
 	  freemalloc();
+#endif
+#endif
 	  // Free up task parameter descriptor
 	  RUNFREE(currtpd->parameterArray);
 	  RUNFREE(currtpd);

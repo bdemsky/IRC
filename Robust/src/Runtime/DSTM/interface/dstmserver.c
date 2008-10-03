@@ -437,7 +437,7 @@ char handleTransReq(fixed_data_t *fixed, trans_commit_data_t *transinfo, unsigne
   /* Process each oid in the machine pile/ group per thread */
   for (i = 0; i < fixed->numread + fixed->nummod; i++) {
     if (i < fixed->numread) { //Objs only read and not modified
-     int incr = sizeof(unsigned int) + sizeof(unsigned short); // Offset that points to next position in the objread array
+      int incr = sizeof(unsigned int) + sizeof(unsigned short); // Offset that points to next position in the objread array
       incr *= i;
       oid = *((unsigned int *)(objread + incr));
       incr += sizeof(unsigned int);

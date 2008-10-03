@@ -23,7 +23,7 @@
 task t1(StartupObject s{initialstate}) {
     //System.printString("task t1\n");
     
-    int datasize = 32;
+    int datasize = 16;
     for(int i = 0; i < datasize; ++i) {
 	SeriesRunner sr = new SeriesRunner(i){!finish};
     }

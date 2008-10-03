@@ -15,23 +15,23 @@
 
 #define ARRAY_SIZE 10100
 #define GETSTARTDELAY(start, count) { \
-  struct timeval tv; \
-  count++; \
-  gettimeofday(&tv, NULL); \
-  start = tv.tv_sec+(tv.tv_usec/1000000.0); \
+    struct timeval tv; \
+    count++; \
+    gettimeofday(&tv, NULL); \
+    start = tv.tv_sec+(tv.tv_usec/1000000.0); \
 }
 
 #define GETSTART(start) { \
-  struct timeval tv; \
-  gettimeofday(&tv, NULL); \
-  start = tv.tv_sec+(tv.tv_usec/1000000.0); \
+    struct timeval tv; \
+    gettimeofday(&tv, NULL); \
+    start = tv.tv_sec+(tv.tv_usec/1000000.0); \
 }
 
 #define GETENDDELAY(start, end, time) { \
-  struct timeval tv; \
-  gettimeofday(&tv, NULL); \
-  end = tv.tv_sec+(tv.tv_usec/1000000.0); \
-  time = (end-start); \
+    struct timeval tv; \
+    gettimeofday(&tv, NULL); \
+    end = tv.tv_sec+(tv.tv_usec/1000000.0); \
+    time = (end-start); \
 }
 
 #endif

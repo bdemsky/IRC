@@ -56,6 +56,7 @@ RAWFLAG=false
 RAWCONFIG=''
 RAWDEBUGFLAG=false
 RAWPATHFLAG=false
+RAWPROFILEFLAG=false
 INTERRUPTFLAG=false
 THREADSIMULATEFLAG=false;
 USEDMALLOC=false
@@ -125,6 +126,7 @@ then
 EXTRAOPTIONS="$EXTRAOPTIONS -DMAC"
 elif [[ $1 = '-profile' ]]
 then
+RAWPROFILEFLAG=true
 EXTRAOPTIONS="$EXTRAOPTIONS -pg"
 elif [[ $1 = '-taskstate' ]]
 then
@@ -312,6 +314,11 @@ fi
 if $RAWDEBUGFLAG
 then #debug version
 RAWRGCCFLAGS="${RAWRGCCFLAGS} -DRAWDEBUG"
+fi
+
+if $RAWPROFILEFLAG
+then # profile version
+RAWRGCCFLAGS="${RAWRGCCFLAGS} -DRAWPROFILE"
 fi
 
 if $INTERRUPTFLAG

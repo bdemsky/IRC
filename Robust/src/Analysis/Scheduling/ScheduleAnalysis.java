@@ -702,6 +702,7 @@ public class ScheduleAnalysis {
     try {
       if(!copy) {
 	//merge se into its source ScheduleNode
+	sNode.setCid(((ScheduleNode)se.getSource()).getCid());
 	((ScheduleNode)se.getSource()).mergeSEdge(se);
 	scheduleNodes.remove(se.getTarget());
 	scheduleEdges.removeElement(se);
@@ -713,6 +714,7 @@ public class ScheduleAnalysis {
 	  se.getTargetCNode().addEdge(se);
 	}
       } else {
+	sNode.setCid(ScheduleNode.colorID++);
 	handleScheduleEdge(se, true);
       }
     } catch (Exception e) {

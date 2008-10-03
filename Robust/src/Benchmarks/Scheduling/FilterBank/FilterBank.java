@@ -4,7 +4,7 @@ task t1(StartupObject s{initialstate}) {
 	int N_sim=1200;
 	int N_samp=8;
 	int N_ch=16;
-	int N_col=256;
+	int N_col=128;
 	int i,j;
 
 	float r[] = new float[N_sim];

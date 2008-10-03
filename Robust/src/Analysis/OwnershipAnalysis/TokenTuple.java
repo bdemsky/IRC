@@ -59,7 +59,7 @@ public class TokenTuple extends Canonical {
   }
 
 
-  public TokenTuple unionArity( TokenTuple tt ) {
+  public TokenTuple unionArity(TokenTuple tt) {
     assert tt            != null;
     assert token         == tt.token;
     assert isMultiObject == tt.isMultiObject;
@@ -69,17 +69,17 @@ public class TokenTuple extends Canonical {
       // when two tokens are present (absence of a token is arity=zero and is
       // handled outside of this method)
       if( arity == ARITY_ZEROORMORE && tt.arity == ARITY_ZEROORMORE ) {
-	return new TokenTuple( token, true, ARITY_ZEROORMORE ).makeCanonical();
+	return new TokenTuple(token, true, ARITY_ZEROORMORE).makeCanonical();
       } else {
-	return new TokenTuple( token, true, ARITY_ONEORMORE ).makeCanonical();
+	return new TokenTuple(token, true, ARITY_ONEORMORE).makeCanonical();
       }
 
     } else {
       // a single object region's token can only have ZEROORMORE or ONE
       if( arity == ARITY_ZEROORMORE && tt.arity == ARITY_ZEROORMORE ) {
-	return new TokenTuple( token, false, ARITY_ZEROORMORE ).makeCanonical();
+	return new TokenTuple(token, false, ARITY_ZEROORMORE).makeCanonical();
       } else {
-	return new TokenTuple( token, false, ARITY_ONE ).makeCanonical();
+	return new TokenTuple(token, false, ARITY_ONE).makeCanonical();
       }
     }
   }
@@ -110,7 +110,7 @@ public class TokenTuple extends Canonical {
   }
 
   private boolean oldHashSet = false;
-  private int     oldHash    = 0;
+  private int oldHash    = 0;
   public int hashCode() {
     int currentHash = token.intValue()*31 + arity;
 
@@ -119,7 +119,7 @@ public class TokenTuple extends Canonical {
       oldHashSet = true;
     } else {
       if( oldHash != currentHash ) {
-	System.out.println( "IF YOU SEE THIS A CANONICAL TokenTuple CHANGED" );
+	System.out.println("IF YOU SEE THIS A CANONICAL TokenTuple CHANGED");
 	Integer x = null;
 	x.toString();
       }

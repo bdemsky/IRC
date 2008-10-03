@@ -24,7 +24,7 @@ task t1(StartupObject s{initialstate}) {
     //System.printString("task t1\n");
     
     int datasize = 1000;  //should be times of 2
-    int nruns = 64 * 16;
+    int nruns = 32 * 16;
     int group = 16;
     
     AppDemo ad = new AppDemo(datasize, nruns, group){merge};
