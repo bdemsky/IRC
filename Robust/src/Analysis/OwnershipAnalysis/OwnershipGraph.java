@@ -437,7 +437,7 @@ public class OwnershipGraph {
 	ChangeTupleSet Cx = R.unionUpArityToChangeSet(O);
 
 
-	HashSet<ReferenceEdge> todoEdges = new HashSet<ReferenceEdge>();
+  	HashSet<ReferenceEdge> todoEdges = new HashSet<ReferenceEdge>();
 
 	Hashtable<ReferenceEdge, ChangeTupleSet> edgePlannedChanges =
 	  new Hashtable<ReferenceEdge, ChangeTupleSet>();
@@ -453,32 +453,21 @@ public class OwnershipGraph {
 	                         edgePlannedChanges,
 	                         edgesWithNewBeta);
 
-
-	// THIS IS A HACK--NEED TO CHANGE GENERATATION OF BETA-NEW SO THIS DOESN'T
-	// HAPPEN OTHERWISE PROPAGATION FAILS
-	if( edgeY.getBetaNew().equals(new ReachabilitySet().makeCanonical() ) ) {
-	  edgeY.setBetaNew(new ReachabilitySet(new TokenTupleSet().makeCanonical() ).makeCanonical() );
+	// if edgeY's beta was updated, use that to calculate beta for new edge
+	// otherwise the edgeY didn't change and it is the source for the calc
+	ReachabilitySet sourceBetaForNewEdge;
+	if( edgesWithNewBeta.contains( edgeY ) ) {
+	  sourceBetaForNewEdge = edgeY.getBetaNew();
+	} else {
+	  sourceBetaForNewEdge = edgeY.getBeta();
 	}
-
-
-
-	/*
-	   System.out.println( "---------------------------\n" +
-	                    edgeY.getBetaNew() +
-	                    "\nbeing pruned by\n" +
-	                    hrnX.getAlpha() +
-	                    "\nis\n" +
-	                    edgeY.getBetaNew().pruneBy(hrnX.getAlpha())
-	                    );
-	 */
 
 	// create the actual reference edge hrnX.f -> hrnY
 	ReferenceEdge edgeNew = new ReferenceEdge(hrnX,
 	                                          hrnY,
 	                                          f,
 	                                          false,
-	                                          edgeY.getBetaNew().pruneBy(hrnX.getAlpha() )
-	                                          //edgeY.getBeta().pruneBy( hrnX.getAlpha() )
+	                                          sourceBetaForNewEdge.pruneBy(hrnX.getAlpha() )
 	                                          );
 	addReferenceEdge(hrnX, hrnY, edgeNew);
 

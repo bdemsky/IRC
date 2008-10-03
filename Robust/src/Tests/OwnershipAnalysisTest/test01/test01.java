@@ -1,12 +1,12 @@
 
 public class Parameter {
   flag w;
-  int a;
-  int b;
-  Parameter f;
-  Parameter g;
-  Penguin p;
-  Foo h;
+  //int a;
+  //int b;
+  //Parameter f;
+  //Parameter g;
+  //Penguin p;
+  //Foo h;
   
   public Parameter() {}
   
@@ -28,6 +28,7 @@ public class Fooz {
   public Fooz x;
 }
 
+/*
 public class Penguin {
   int x;
   int y;
@@ -187,7 +188,7 @@ public class Foo {
     p1.y = g0;
   }
 }
-
+*/
 
 
 // this empty task should still create a non-empty
@@ -696,7 +697,7 @@ task methodTest08_( Foo p0{ f }, Foo p1{ f } ) {
 }
 */
 
-
+/*
 task methodTest09_( Foo p0{ f }, Foo p1{ f } ) {
 
   Foo a0before = new Foo();
@@ -732,4 +733,4 @@ task methodTest09_( Foo p0{ f }, Foo p1{ f } ) {
 
   taskexit( p0{ !f }, p1{ !f } );
 }
-
+*/
