@@ -462,46 +462,45 @@ public class OwnershipGraph {
 	  sourceBetaForNewEdge = edgeY.getBeta();
 	}
 
-	// create the actual reference edge hrnX.f -> hrnY
+	// prepare the new reference edge hrnX.f -> hrnY
 	ReferenceEdge edgeNew = new ReferenceEdge(hrnX,
 	                                          hrnY,
 	                                          f,
 	                                          false,
 	                                          sourceBetaForNewEdge.pruneBy(hrnX.getAlpha() )
 	                                          );
-	addReferenceEdge(hrnX, hrnY, edgeNew);
 
-	/*
-	   if( f != null ) {
-	    // we can do a strong update here if one of two cases holds
-	    // SAVE FOR LATER, WITHOUT STILL CORRECT
-	    if( (hrnX.getNumReferencers() == 1)                           ||
-	        ( lnX.getNumReferencees() == 1 && hrnX.isSingleObject() )
-	      ) {
-	        clearReferenceEdgesFrom( hrnX, f, false );
-	    }
+	// we can do a strong update here if one of two cases holds	
+	boolean strongUpdate = false;
+	if( f != null &&
+	    (   (hrnX.getNumReferencers() == 1)                           ||
+		( lnX.getNumReferencees() == 1 && hrnX.isSingleObject() )
+	    )
+	  ) {
+	  strongUpdate = true;
+	  //clearReferenceEdgesFrom( hrnX, f, false );
+	}
 
-	    addReferenceEdge( hrnX, hrnY, edgeNew );
+	// look to see if an edge with same field exists
+	// and merge with it, otherwise just add the edge
+	ReferenceEdge edgeExisting = hrnX.getReferenceTo( hrnY, f );
+	  
+	if( edgeExisting != null ) {
+	  edgeExisting.setBetaNew(
+				  edgeExisting.getBetaNew().union( edgeNew.getBeta() )
+				  );
+	  // a new edge here cannot be reflexive, so existing will
+	  // always be also not reflexive anymore
+	  edgeExisting.setIsInitialParamReflexive( false );
+	} else {
+	  addReferenceEdge( hrnX, hrnY, edgeNew );
+	}
 
-	   } else {
-	    // if the field is null, or "any" field, then
-	    // look to see if an any field already exists
-	    // and merge with it, otherwise just add the edge
-	    ReferenceEdge edgeExisting = hrnX.getReferenceTo( hrnY, f );
-
-	    if( edgeExisting != null ) {
-	        edgeExisting.setBetaNew(
-	          edgeExisting.getBetaNew().union( edgeNew.getBeta() )
-	                               );
-	        // a new edge here cannot be reflexive, so existing will
-	        // always be also not reflexive anymore
-	        edgeExisting.setIsInitialParamReflexive( false );
-
-	    } else {
-	        addReferenceEdge( hrnX, hrnY, edgeNew );
-	    }
-	   }
-	 */
+	// if it was a strong update, make sure to improve
+	// reachability with a global sweep
+	if( strongUpdate ) {
+	  globalSweep();
+	}	
       }
     }
 
@@ -1501,6 +1500,10 @@ public class OwnershipGraph {
 	}
       }
     }
+
+    // last thing in the entire method call is to do a global sweep
+    // and try to clean up a little bit
+    globalSweep();
   }
 
 
@@ -1795,6 +1798,20 @@ public class OwnershipGraph {
 
     return possibleCallerHRNs;
   }
+
+
+
+  ////////////////////////////////////////////////////
+  //
+  //  This global sweep is an optional step to prune
+  //  reachability sets that are not internally
+  //  consistent with the global graph.  It should be
+  //  invoked after strong updates or method calls.
+  //
+  ////////////////////////////////////////////////////
+  protected void globalSweep() {
+    
+  }  
 
 
 
@@ -2238,7 +2255,6 @@ public class OwnershipGraph {
   protected boolean areId2paramIndexEqual(OwnershipGraph og) {
     return id2paramIndex.size() == og.id2paramIndex.size();
   }
-
 
   public boolean hasPotentialAlias(Integer paramIndex1, Integer paramIndex2) {
 
