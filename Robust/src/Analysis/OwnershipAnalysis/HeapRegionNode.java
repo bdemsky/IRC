@@ -10,6 +10,7 @@ public class HeapRegionNode extends OwnershipNode {
 
   protected boolean isSingleObject;
   protected boolean isFlagged;
+  protected boolean isParameter;
   protected boolean isNewSummary;
 
   protected HashSet<ReferenceEdge> referencers;
@@ -26,6 +27,7 @@ public class HeapRegionNode extends OwnershipNode {
   public HeapRegionNode(Integer id,
                         boolean isSingleObject,
                         boolean isFlagged,
+			boolean isParameter,
                         boolean isNewSummary,
                         AllocationSite allocSite,
                         ReachabilitySet alpha,
@@ -33,6 +35,7 @@ public class HeapRegionNode extends OwnershipNode {
     this.id = id;
     this.isSingleObject = isSingleObject;
     this.isFlagged      = isFlagged;
+    this.isParameter    = isParameter;
     this.isNewSummary   = isNewSummary;
     this.allocSite      = allocSite;
     this.alpha          = alpha;
@@ -46,6 +49,7 @@ public class HeapRegionNode extends OwnershipNode {
     return new HeapRegionNode(id,
                               isSingleObject,
                               isFlagged,
+			      isParameter,
                               isNewSummary,
                               allocSite,
                               alpha,
@@ -80,6 +84,7 @@ public class HeapRegionNode extends OwnershipNode {
 
     assert isSingleObject == hrn.isSingleObject();
     assert isFlagged      == hrn.isFlagged();
+    assert isParameter    == hrn.isParameter();
     assert isNewSummary   == hrn.isNewSummary();
     assert description.equals(hrn.getDescription() );
 
@@ -97,6 +102,10 @@ public class HeapRegionNode extends OwnershipNode {
 
   public boolean isFlagged() {
     return isFlagged;
+  }
+
+  public boolean isParameter() {
+    return isParameter;
   }
 
   public boolean isNewSummary() {

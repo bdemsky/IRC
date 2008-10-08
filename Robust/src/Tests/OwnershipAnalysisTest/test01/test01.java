@@ -206,7 +206,7 @@ task Startup( StartupObject s{ initialstate } ) {
   taskexit( s{ !initialstate } );
 }
 
-/*
+
 
 task NewObjectA( Foo a{ f }, Foo b{ f } ) {
 
@@ -327,7 +327,7 @@ task SummaryNodeTokens( Foo p0{ f } ) {
 
     taskexit( p0{ !f } );
 }
-*/
+
 
 task strongUpdates( Foo p0{ f } ) {
 
@@ -363,7 +363,7 @@ task strongUpdates( Foo p0{ f } ) {
     taskexit( p0{ !f } );
 }
 
-/*
+
 
 task ObjectChainByMethodCalls( Foo a{ f } ) {
 
@@ -619,7 +619,7 @@ task methodTest06_( Foo p0{ f }, Foo p1{ f } ) {
     a1after.x = new Foo();
   }
 
-  //Foo.m6_( a0after, a1after );
+  Foo.m6_( a0after, a1after );
 
 
   taskexit( p0{ !f }, p1{ !f } );
@@ -656,7 +656,7 @@ task methodTest07_( Foo p0{ f }, Foo p1{ f } ) {
     a1after.x = new Foo();
   }
 
-  //Foo.m7_( a0after, a1after );
+  Foo.m7_( a0after, a1after );
 
 
   taskexit( p0{ !f }, p1{ !f } );
@@ -693,14 +693,13 @@ task methodTest08_( Foo p0{ f }, Foo p1{ f } ) {
     a1after.x = new Foo();
   }
 
-  //Foo.m8_( a0after, a1after );
+  Foo.m8_( a0after, a1after );
 
 
   taskexit( p0{ !f }, p1{ !f } );
 }
-*/
 
-/*
+
 task methodTest09_( Foo p0{ f }, Foo p1{ f } ) {
 
   Foo a0before = new Foo();
@@ -736,4 +735,4 @@ task methodTest09_( Foo p0{ f }, Foo p1{ f } ) {
 
   taskexit( p0{ !f }, p1{ !f } );
 }
-*/
+

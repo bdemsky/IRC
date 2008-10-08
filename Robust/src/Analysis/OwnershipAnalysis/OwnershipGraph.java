@@ -100,6 +100,7 @@ public class OwnershipGraph {
     HeapRegionNode hrn = new HeapRegionNode(id,
                                             isSingleObject,
                                             isFlagged,
+					    isParameter,
                                             isNewSummary,
                                             allocSite,
                                             alpha,
@@ -412,12 +413,39 @@ public class OwnershipGraph {
     HashSet<HeapRegionNode> nodesWithNewAlpha = new HashSet<HeapRegionNode>();
     HashSet<ReferenceEdge>  edgesWithNewBeta  = new HashSet<ReferenceEdge>();
 
+
+    // first look for possible strong updates and remove those edges
     boolean strongUpdate = false;
 
     Iterator<ReferenceEdge> itrXhrn = lnX.iteratorToReferencees();
     while( itrXhrn.hasNext() ) {
       ReferenceEdge edgeX = itrXhrn.next();
-      HeapRegionNode hrnX  = edgeX.getDst();
+      HeapRegionNode hrnX = edgeX.getDst();
+
+      Iterator<ReferenceEdge> itrYhrn = lnY.iteratorToReferencees();
+      while( itrYhrn.hasNext() ) {
+	ReferenceEdge edgeY = itrYhrn.next();
+	HeapRegionNode hrnY = edgeY.getDst();
+
+	// we can do a strong update here if one of two cases holds	
+	if( f != null &&
+	    hrnX.isSingleObject() &&
+	    (   (hrnX.getNumReferencers() == 1)                           ||
+		( lnX.getNumReferencees() == 1)
+	    )
+	  ) {
+	  strongUpdate = true;
+	  clearReferenceEdgesFrom( hrnX, f, false );
+	}
+      }
+    }
+
+    
+    // then do all token propagation
+    itrXhrn = lnX.iteratorToReferencees();
+    while( itrXhrn.hasNext() ) {
+      ReferenceEdge edgeX = itrXhrn.next();
+      HeapRegionNode hrnX = edgeX.getDst();
       ReachabilitySet betaX = edgeX.getBeta();
 
       ReachabilitySet R = hrnX.getAlpha().intersection(edgeX.getBeta() );
@@ -425,8 +453,8 @@ public class OwnershipGraph {
       Iterator<ReferenceEdge> itrYhrn = lnY.iteratorToReferencees();
       while( itrYhrn.hasNext() ) {
 	ReferenceEdge edgeY = itrYhrn.next();
-	HeapRegionNode hrnY  = edgeY.getDst();
-	ReachabilitySet O     = edgeY.getBeta();
+	HeapRegionNode hrnY = edgeY.getDst();
+	ReachabilitySet O = edgeY.getBeta();
 
 
 	// propagate tokens over nodes starting from hrnSrc, and it will
@@ -454,59 +482,11 @@ public class OwnershipGraph {
 	propagateTokensOverEdges(todoEdges,
 	                         edgePlannedChanges,
 	                         edgesWithNewBeta);
-
-	// if edgeY's beta was updated, use that to calculate beta for new edge
-	// otherwise the edgeY didn't change and it is the source for the calc
-	ReachabilitySet sourceBetaForNewEdge;
-	//if( edgesWithNewBeta.contains( edgeY ) ) {
-	if( !edgeY.getBetaNew().equals( new ReachabilitySet().makeCanonical() ) ) {
-	  sourceBetaForNewEdge = edgeY.getBetaNew();
-	} else {
-	  sourceBetaForNewEdge = edgeY.getBeta();
-	}
-
-	ReachabilitySet sourceAlphaForPrune;
-	if( !hrnX.getAlphaNew().equals( new ReachabilitySet().makeCanonical() ) ) {
-	  sourceAlphaForPrune = hrnX.getAlphaNew();
-	} else {
-	  sourceAlphaForPrune = hrnX.getAlpha();
-	}       
-
-	// prepare the new reference edge hrnX.f -> hrnY
-	ReferenceEdge edgeNew = new ReferenceEdge(hrnX,
-	                                          hrnY,
-	                                          f,
-	                                          false,
-	                                          sourceBetaForNewEdge.pruneBy( sourceAlphaForPrune )
-	                                          );
-
-	// we can do a strong update here if one of two cases holds	
-	if( f != null &&
-	    (   (hrnX.getNumReferencers() == 1)                           ||
-		( lnX.getNumReferencees() == 1 && hrnX.isSingleObject() )
-	    )
-	  ) {
-	  strongUpdate = true;
-	  clearReferenceEdgesFrom( hrnX, f, false );
-	}
-
-	// look to see if an edge with same field exists
-	// and merge with it, otherwise just add the edge
-	ReferenceEdge edgeExisting = hrnX.getReferenceTo( hrnY, f );
-	  
-	if( edgeExisting != null ) {
-	  edgeExisting.setBetaNew(
-				  edgeExisting.getBetaNew().union( edgeNew.getBeta() )
-				  );
-	  // a new edge here cannot be reflexive, so existing will
-	  // always be also not reflexive anymore
-	  edgeExisting.setIsInitialParamReflexive( false );
-	} else {
-	  addReferenceEdge( hrnX, hrnY, edgeNew );
-	}
       }
     }
 
+
+    // apply the updates to reachability
     Iterator<HeapRegionNode> nodeItr = nodesWithNewAlpha.iterator();
     while( nodeItr.hasNext() ) {
       nodeItr.next().applyAlphaNew();
@@ -517,14 +497,48 @@ public class OwnershipGraph {
       edgeItr.next().applyBetaNew();
     }
 
-    // if it was a strong update, make sure to improve
+
+    // then go back through and add the new edges
+    itrXhrn = lnX.iteratorToReferencees();
+    while( itrXhrn.hasNext() ) {
+      ReferenceEdge edgeX = itrXhrn.next();
+      HeapRegionNode hrnX = edgeX.getDst();
+
+      Iterator<ReferenceEdge> itrYhrn = lnY.iteratorToReferencees();
+      while( itrYhrn.hasNext() ) {
+	ReferenceEdge edgeY = itrYhrn.next();
+	HeapRegionNode hrnY = edgeY.getDst();
+
+	// prepare the new reference edge hrnX.f -> hrnY
+	ReferenceEdge edgeNew = new ReferenceEdge(hrnX,
+	                                          hrnY,
+	                                          f,
+	                                          false,
+	                                          edgeY.getBeta().pruneBy( hrnX.getAlpha() )
+	                                          );
+
+	// look to see if an edge with same field exists
+	// and merge with it, otherwise just add the edge
+	ReferenceEdge edgeExisting = hrnX.getReferenceTo( hrnY, f );
+	
+	if( edgeExisting != null ) {
+	  edgeExisting.setBeta(
+			       edgeExisting.getBeta().union( edgeNew.getBeta() )
+			      );
+	  // a new edge here cannot be reflexive, so existing will
+	  // always be also not reflexive anymore
+	  edgeExisting.setIsInitialParamReflexive( false );
+	} else {
+	  addReferenceEdge( hrnX, hrnY, edgeNew );
+	}
+      }
+    }
+
+
+    // if there was a strong update, make sure to improve
     // reachability with a global sweep
     if( strongUpdate ) {      
-      //try {
-      //writeGraph( "testBefore", true, true, true, false, false );
-	globalSweep();
-	//writeGraph( "testPost", true, true, true, false, false );
-	//} catch( Exception e ) {}
+      globalSweep();
     }	
   }
 
@@ -1514,8 +1528,7 @@ public class OwnershipGraph {
       }
     }
 
-    // last thing in the entire method call is to do a global sweep
-    // and try to clean up a little bit
+    // improve reachability as much as possible
     globalSweep();
   }
 
@@ -1828,8 +1841,8 @@ public class OwnershipGraph {
     Hashtable<HeapRegionNode, HashSet<TokenTupleSet> > workSet = 
       new Hashtable<HeapRegionNode, HashSet<TokenTupleSet> >();
 
-    // first initialize every alphaNew for a flagged region to
-    // a set with just that token
+    // first initialize every alphaNew for a flagged region
+    // (or parameter region) to a set with just that token
     Set hrns = id2hrn.entrySet();
     Iterator itrHrns = hrns.iterator();
     while( itrHrns.hasNext() ) {
@@ -1840,8 +1853,6 @@ public class OwnershipGraph {
       // assert that this node and incoming edges have clean alphaNew
       // and betaNew sets, respectively
       ReachabilitySet rsEmpty = new ReachabilitySet().makeCanonical();
-      //System.out.println( "hrn="+hrn );
-      //System.out.println( "alphaNew="+hrn.getAlphaNew() );
       assert rsEmpty.equals( hrn.getAlphaNew() );
 
       Iterator<ReferenceEdge> itrRes = hrn.iteratorToReferencers();
@@ -1859,7 +1870,7 @@ public class OwnershipGraph {
       TokenTupleSet ttsStar  = new TokenTupleSet( ttStar ).makeCanonical();
       TokenTupleSet ttsEmpty = new TokenTupleSet(        ).makeCanonical();
 
-      if( hrn.isFlagged() ) {
+      if( hrn.isFlagged() || hrn.isParameter() ) {
 	HashSet<TokenTupleSet> subWorkSet = new HashSet<TokenTupleSet>();
 	subWorkSet.add( tts     );
 	subWorkSet.add( ttsPlus );
@@ -1893,13 +1904,13 @@ public class OwnershipGraph {
       Iterator<ReferenceEdge> itrRes = hrn.iteratorToReferencees();
       while( itrRes.hasNext() ) {
 	ReferenceEdge edge = itrRes.next();
+
 	if( edge.getBeta().containsSuperSet( tts ) ) {
 	  HeapRegionNode dst = edge.getDst();
 
 	  // make a set of possible contributions this token
 	  // might have on the alpha set here
 	  HashSet<TokenTupleSet> ttsNewSet = new HashSet<TokenTupleSet>();
-	  //ttsNewSet.add( tts );
 
 	  Iterator<TokenTupleSet> itrDstAlphaNew = dst.getAlphaNew().iterator();
 	  while( itrDstAlphaNew.hasNext() ) {
