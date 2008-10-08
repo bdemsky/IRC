@@ -50,6 +50,37 @@ public class TokenTupleSet extends Canonical {
     return tokenTuples.contains(tt);
   }
 
+  public boolean containsWithZeroes(TokenTupleSet tts) {
+    assert tts != null;
+
+    // first establish that every token tuple from tts is
+    // also in this set
+    Iterator<TokenTuple> ttItrIn = tts.iterator();
+    while( ttItrIn.hasNext() ) {
+      TokenTuple ttIn   = ttItrIn.next();
+      TokenTuple ttThis = this.containsToken(ttIn.getToken() );
+
+      if( ttThis == null ) {
+	return false;
+      }
+    }    
+    
+    // then establish that anything in this set that is
+    // not in tts is a zero-arity token tuple, which is okay    
+    Iterator<TokenTuple> ttItrThis = this.iterator();
+    while( ttItrThis.hasNext() ) {
+      TokenTuple ttThis = ttItrThis.next();
+      TokenTuple ttIn   = tts.containsToken(ttThis.getToken() );
+
+      if( ttIn == null && 
+	  ttThis.getArity() != TokenTuple.ARITY_ZEROORMORE ) {
+	return false;
+      }
+    }    
+
+    // if so this set contains tts with zeroes
+    return true;
+  }
 
   public TokenTupleSet union(TokenTuple ttIn) {
     assert ttIn != null;

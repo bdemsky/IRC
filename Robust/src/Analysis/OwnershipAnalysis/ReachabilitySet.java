@@ -60,6 +60,43 @@ public class ReachabilitySet extends Canonical {
     return possibleReachabilities.contains(tts);
   }
 
+  public boolean containsWithZeroes(TokenTupleSet tts) {
+    assert tts != null;
+
+    if( possibleReachabilities.contains(tts) ) {
+      return true;
+    }
+
+    Iterator itr = iterator();
+    while( itr.hasNext() ) {
+      TokenTupleSet ttsThis = (TokenTupleSet) itr.next();
+      if( ttsThis.containsWithZeroes(tts) ) {
+	return true;
+      }
+    }
+
+    return false;    
+  }
+
+  public boolean containsSuperSet(TokenTupleSet tts) {
+    assert tts != null;
+
+    if( possibleReachabilities.contains(tts) ) {
+      return true;
+    }
+
+    Iterator itr = iterator();
+    while( itr.hasNext() ) {
+      TokenTupleSet ttsThis = (TokenTupleSet) itr.next();
+      if( tts.isSubset(ttsThis) ) {
+	return true;
+      }
+    }
+
+    return false;    
+  }
+
+
   public boolean containsTuple(TokenTuple tt) {
     Iterator itr = iterator();
     while( itr.hasNext() ) {

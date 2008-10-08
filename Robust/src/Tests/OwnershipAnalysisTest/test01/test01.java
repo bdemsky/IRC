@@ -1,12 +1,12 @@
 
 public class Parameter {
   flag w;
-  //int a;
-  //int b;
-  //Parameter f;
-  //Parameter g;
-  //Penguin p;
-  //Foo h;
+  int a;
+  int b;
+  Parameter f;
+  Parameter g;
+  Penguin p;
+  Foo h;
   
   public Parameter() {}
   
@@ -28,7 +28,7 @@ public class Fooz {
   public Fooz x;
 }
 
-/*
+
 public class Penguin {
   int x;
   int y;
@@ -188,7 +188,7 @@ public class Foo {
     p1.y = g0;
   }
 }
-*/
+
 
 
 // this empty task should still create a non-empty
@@ -327,7 +327,7 @@ task SummaryNodeTokens( Foo p0{ f } ) {
 
     taskexit( p0{ !f } );
 }
-
+*/
 
 task strongUpdates( Foo p0{ f } ) {
 
@@ -335,12 +335,13 @@ task strongUpdates( Foo p0{ f } ) {
 
     Foo a = new Foo();
     if( false ) {
-	a.x = new Foo();
-	a.y = new Foo();
+      a.x = new Foo();
+      a.y = new Foo();
     } else if( false ) {
-	a.x = new Foo();
-	a.y = new Foo();
+      a.x = new Foo();
+      a.y = new Foo();
     }
+    
 
     // this should effect a strong update
     a.x = b;
@@ -357,10 +358,12 @@ task strongUpdates( Foo p0{ f } ) {
     // p0 points to a multiple-object heap region
     // so this should not make a strong update
     p0.x = b;
-    
+
+
     taskexit( p0{ !f } );
 }
 
+/*
 
 task ObjectChainByMethodCalls( Foo a{ f } ) {
 
