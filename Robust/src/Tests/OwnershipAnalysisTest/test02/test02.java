@@ -51,6 +51,37 @@ public class Foo {
   }
 }
 
+public class Zub {
+  flag q;
+  public Zub() {}
+  public Fub f;
+  public Zod z;
+
+  public void addStuff() {
+    f = new Fub();
+    z.h = new Hod();
+  }
+}
+
+public class Zod {
+  flag r;
+  public Zod() {}
+  public Hod h;
+}
+
+public class Fub { public Fub() {} }
+public class Hod { public Hod() {} }
+
+task improveMethodCallWithGlobal( Parameter notUsed{w} ) {
+
+  Zub a0 = new Zub();
+  a0.z = new Zod();
+  a0.addStuff();
+
+  taskexit( notUsed{!w} );
+}
+
+
 task Startup( StartupObject s{ initialstate } ) {
   
   /*
@@ -74,7 +105,7 @@ task Startup( StartupObject s{ initialstate } ) {
   taskexit( s{ !initialstate } );
 }
 
-
+/*
 task aliasFromObjectAssignment
   ( Parameter p1{!w}, Parameter p2{!w} ) {
   
@@ -254,3 +285,4 @@ task AliasNewToNew( Voo v{ f }, Voo w{ f } ) {
 
   taskexit( v{ !f }, w{ !f } );
 }
+*/
