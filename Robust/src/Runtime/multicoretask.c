@@ -17,8 +17,10 @@
 #endif
 #ifdef RAW
 #ifdef RAWPROFILE
+#ifdef RAWUSEIO
 #include "stdio.h"
 #include "string.h"
+#endif
 #endif
 #include <raw.h>
 #include <raw_compiler_defs.h>
@@ -114,14 +116,12 @@ void releasewritelock(void* ptr);
 
 // profiling mode of RAW version
 #ifdef RAWPROFILE
-//#include "stdio.h"
-//#include "string.h"
 
 #define TASKINFOLENGTH 150
-#define INTERRUPTINFOLENGTH 500
+//#define INTERRUPTINFOLENGTH 500
 
 bool stall;
-bool isInterrupt;
+//bool isInterrupt;
 int totalexetime;
 
 typedef struct task_info {
@@ -130,17 +130,17 @@ typedef struct task_info {
   int endTime;
 } TaskInfo;
 
-typedef struct interrupt_info {
+/*typedef struct interrupt_info {
   int startTime;
   int endTime;
-} InterruptInfo;
+} InterruptInfo;*/
 
 TaskInfo * taskInfoArray[TASKINFOLENGTH];
 int taskInfoIndex;
 bool taskInfoOverflow;
-InterruptInfo * interruptInfoArray[INTERRUPTINFOLENGTH];
+/*InterruptInfo * interruptInfoArray[INTERRUPTINFOLENGTH];
 int interruptInfoIndex;
-bool interruptInfoOverflow;
+bool interruptInfoOverflow;*/
 int profilestatus[NUMCORES]; // records status of each core
                              // 1: running tasks
 // 0: stall
@@ -149,7 +149,8 @@ void outputProfileData();
 #endif
 
 #ifdef RAW
-#ifdef RAWPROFILE
+//#ifdef RAWPROFILE
+#ifdef RAWUSEIO
 int main(void) {
 #else
 void begin() {
@@ -233,20 +234,18 @@ int main(int argc, char **argv) {
 
 #ifdef RAWPROFILE
   stall = false;
-  isInterrupt = true;
+  //isInterrupt = true;
   totalexetime = -1;
   taskInfoIndex = 0;
-  interruptInfoIndex = 0;
+  /*interruptInfoIndex = 0;
   taskInfoOverflow = false;
-  interruptInfoOverflow = false;
+  interruptInfoOverflow = false;*/
 #endif
 
 #ifdef INTERRUPT
   if (corenum < NUMCORES) {
     // set up interrupts
     setup_ints();
-    //setup_interrupts();
-    //start_gdn_avail_ints(recvMsg);
     raw_user_interrupts_on();
 #ifdef RAWDEBUG
     raw_test_pass(0xee04);
@@ -369,7 +368,7 @@ void run(void* arg) {
         }
  #endif*/
 #ifdef RAWPROFILE
-    isInterrupt = false;
+    //isInterrupt = false;
 #endif
     while(true) {
       receiveObject();
@@ -454,7 +453,7 @@ void run(void* arg) {
       raw_user_interrupts_off();
 #endif
 #ifdef RAWPROFILE
-      isInterrupt = false;
+      //isInterrupt = false;
 #endif
 #ifdef RAWDEBUG
       raw_test_pass(0xeee1);
@@ -517,7 +516,7 @@ void run(void* arg) {
 	removeItem(&objqueue, objitem);
 	addNewItem_I(&objqueue, objInfo);
 #ifdef RAWPROFILE
-	isInterrupt = true;
+	//isInterrupt = true;
 #endif
 #ifdef INTERRUPT
 	raw_user_interrupts_on();
@@ -597,7 +596,8 @@ void run(void* arg) {
 #ifdef RAWDEBUG
 	    raw_test_pass(0xee11);
 #endif
-#ifdef RAWPROFILE
+//#ifdef RAWPROFILE
+#ifdef RAWUSEIO
 	    totalexetime = raw_get_cycle();
 #else
 	    raw_test_pass(0xbbbbbbbb);
@@ -1836,6 +1836,7 @@ bool transProfileRequestMsg(int targetcore) {
 
 // output the profiling data
 void outputProfileData() {
+#ifdef RAWUSEIO
   FILE * fp;
   char fn[50];
   int self_y, self_x;
@@ -1904,8 +1905,7 @@ void outputProfileData() {
   fprintf(fp, "\nAverage task execution time: %d\n", averagetasktime);
 
   fclose(fp);
-
-  /*
+#else
      int i = 0;
      int j = 0;
 
@@ -1930,7 +1930,7 @@ void outputProfileData() {
      }
 
      // output interrupt related info
-     for(i = 0; i < interruptInfoIndex; i++) {
+     /*for(i = 0; i < interruptInfoIndex; i++) {
           InterruptInfo* tmpIInfo = interruptInfoArray[i];
           raw_test_pass(0xddde);
           raw_test_pass_reg(tmpIInfo->startTime);
@@ -1940,10 +1940,10 @@ void outputProfileData() {
 
      if(interruptInfoOverflow) {
           raw_test_pass(0xefef);
-     }
+     }*/
 
      raw_test_pass(0xeeee);
-   */
+#endif
 }
 #endif
 
@@ -1975,12 +1975,12 @@ int receiveObject() {
     return -1;
   }
 #ifdef RAWPROFILE
-  if(isInterrupt && (!interruptInfoOverflow)) {
+  /*if(isInterrupt && (!interruptInfoOverflow)) {
     // raw_test_pass(0xffff);
     interruptInfoArray[interruptInfoIndex] = RUNMALLOC_I(sizeof(struct interrupt_info));
     interruptInfoArray[interruptInfoIndex]->startTime = raw_get_cycle();
     interruptInfoArray[interruptInfoIndex]->endTime = -1;
-  }
+  }*/
 #endif
 msg:
 #ifdef RAWDEBUG
@@ -2376,13 +2376,13 @@ msg:
       goto msg;
     }
 #ifdef RAWPROFILE
-    if(isInterrupt && (!interruptInfoOverflow)) {
+/*    if(isInterrupt && (!interruptInfoOverflow)) {
       interruptInfoArray[interruptInfoIndex]->endTime = raw_get_cycle();
       interruptInfoIndex++;
       if(interruptInfoIndex == INTERRUPTINFOLENGTH) {
 	interruptInfoOverflow = true;
       }
-    }
+    }*/
 #endif
     return type;
   } else {
@@ -2391,13 +2391,13 @@ msg:
     raw_test_pass(0xe889);
 #endif
 #ifdef RAWPROFILE
-    if(isInterrupt && (!interruptInfoOverflow)) {
+/*    if(isInterrupt && (!interruptInfoOverflow)) {
       interruptInfoArray[interruptInfoIndex]->endTime = raw_get_cycle();
       interruptInfoIndex++;
       if(interruptInfoIndex == INTERRUPTINFOLENGTH) {
 	interruptInfoOverflow = true;
       }
-    }
+    }*/
 #endif
     return -2;
   }
@@ -3610,7 +3610,7 @@ newtask:
 	raw_user_interrupts_off();
 #endif
 #ifdef RAWPROFILE
-	isInterrupt = false;
+	//isInterrupt = false;
 #endif
 	while(!lockflag) {
 	  receiveObject();
@@ -3630,7 +3630,7 @@ newtask:
 	reside = false;
 #endif
 #ifdef RAWPROFILE
-	isInterrupt = true;
+	//isInterrupt = true;
 #endif
 #ifdef INTERRUPT
 	raw_user_interrupts_on();

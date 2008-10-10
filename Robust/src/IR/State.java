@@ -61,6 +61,7 @@ public class State {
   public boolean OPTIONAL=false;
   public boolean RAW=false;
   public boolean SCHEDULING=false;
+  public boolean USEPROFILE=false;
   public boolean THREAD=false;
   public boolean CONSCHECK=false;
   public boolean INSTRUCTIONFAILURE=false;

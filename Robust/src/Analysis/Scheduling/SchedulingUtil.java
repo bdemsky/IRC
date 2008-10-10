@@ -513,11 +513,48 @@ public class SchedulingUtil {
       }
       output.print("\t");
       output.print("\t");
+      int prev = Integer.parseInt(timeNodes.elementAt(0));
+      int next = 0;
+      int max = 0;
+      int max2 = 0;
+      for(j = 1; j < timeNodes.size(); j++) {
+	  next = Integer.parseInt(timeNodes.elementAt(j));
+	  int delta = next - prev;
+	  if(max < delta) {
+	      max2 = max;
+	      max = delta;
+	  } else if((max != delta) && (max2 < delta)) {
+	      max2 = delta;
+	  }
+	  prev = next;
+      }
+      if(max2 == 0) {
+	  max2 = 1;
+      } else if(max/max2 > 100) {
+	  max2 = max/100;
+      }
       output.println("\"Time\"->" + timeNodes.elementAt(0) + "[style=invis];");
-      for(j = 0; j < time; j++) {
+      prev = Integer.parseInt(timeNodes.elementAt(0));
+      next = 0;
+      for(j = 1; j < timeNodes.size(); j++) {
+	  next = Integer.parseInt(timeNodes.elementAt(j));
+	  if(next - prev > max2) {
+	      do {
+		  output.print(prev + "->");
+		  prev += max2;
+	      }while(next - prev > max2);
+	      output.println(next + ";");
+	  } else {
+	      output.println("{rank=same; rankdir=LR; " + prev + "; " + next + "}");
+	      output.println(prev + "->" + next + "[style=invis];");
+	  }
+	  prev = next;
+      }
+      
+      /*for(j = 0; j < time; j++) {
 	output.print(j + "->");
       }
-      output.println(timeNodes.lastElement() + ";");
+      output.println(timeNodes.lastElement() + ";");*/
       output.println("}");
       output.close();
     } catch (Exception e) {

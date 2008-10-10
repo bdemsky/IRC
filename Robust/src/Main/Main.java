@@ -111,6 +111,8 @@ public class Main {
 	state.RAW=true;
       else if (option.equals("-scheduling"))
 	state.SCHEDULING=true;
+      else if (option.equals("-useprofile"))
+	  state.USEPROFILE=true;
       else if (option.equals("-thread"))
 	state.THREAD=true;
       else if (option.equals("-dsm"))
@@ -283,77 +285,207 @@ public class Main {
 	//System.out.println ("Test output via 'SimulatorResult.out'.");
 	//origOut.println ("Test output via 'origOut' reference.");
 
-	// for test
-	// Randomly set the newRate and probability of FEdges
-	java.util.Random r=new java.util.Random();
-	int tint = 0;
-	for(Iterator it_classes=state.getClassSymbolTable().getDescriptorsIterator(); it_classes.hasNext();) {
-	  ClassDescriptor cd=(ClassDescriptor) it_classes.next();
-	  if(cd.hasFlags()) {
-	    Vector rootnodes=ta.getRootNodes(cd);
-	    if(rootnodes!=null)
-	      for(Iterator it_rootnodes=rootnodes.iterator(); it_rootnodes.hasNext();) {
-		FlagState root=(FlagState)it_rootnodes.next();
-		Vector allocatingTasks = root.getAllocatingTasks();
-		if(allocatingTasks != null) {
-		  for(int k = 0; k < allocatingTasks.size(); k++) {
-		    TaskDescriptor td = (TaskDescriptor)allocatingTasks.elementAt(k);
-		    Vector<FEdge> fev = (Vector<FEdge>)ta.getFEdgesFromTD(td);
-		    int numEdges = fev.size();
-		    int total = 100;
-		    for(int j = 0; j < numEdges; j++) {
-		      FEdge pfe = fev.elementAt(j);
-		      if(numEdges - j == 1) {
-			pfe.setProbability(total);
-		      } else {
-			if((total != 0) && (total != 1)) {
-			  do {
-			    tint = r.nextInt()%total;
-			  } while(tint <= 0);
-			}
-			pfe.setProbability(tint);
-			total -= tint;
-		      }
-		      /*do {
-		          tint = r.nextInt()%10;
-		         } while(tint <= 0);*/
-		      //int newRate = tint;
-		      //int newRate = (j+1)%2+1;
-		      int newRate = 1;
-		      String cdname = cd.getSymbol();
-		      if((cdname.equals("SeriesRunner")) ||
-		         (cdname.equals("MDRunner")) ||
-		         (cdname.equals("Stage")) ||
-		         (cdname.equals("AppDemoRunner")) ||
-		         (cdname.equals("FilterBankAtom"))) {
-			newRate = 16;
-		      } else if(cdname.equals("SentenceParser")) {
-			newRate = 4;
-		      }
-		      /*do {
-		          tint = r.nextInt()%100;
-		         } while(tint <= 0);
-		         int probability = tint;*/
-		      int probability = 100;
-		      pfe.addNewObjInfo(cd, newRate, probability);
-		    }
-		  }
-		}
-	      }
-
-	    Iterator it_flags = ta.getFlagStates(cd).iterator();
-	    while(it_flags.hasNext()) {
-	      FlagState fs = (FlagState)it_flags.next();
-	      Iterator it_edges = fs.edges();
-	      while(it_edges.hasNext()) {
-		/*do {
-		    tint = r.nextInt()%10;
-		   } while(tint <= 0);*/
-		tint = 3;
-		((FEdge)it_edges.next()).setExeTime(tint);
-	      }
+	if(state.USEPROFILE) {
+	    // read in profile data and set 
+	    FileInputStream inStream = new FileInputStream("/scratch/profile.rst");
+	    byte[] b = new byte[1024 * 100];
+	    int length = inStream.read(b);
+	    if(length < 0) {
+		System.out.print("No content in input file: /scratch/profile.rst\n");
+		System.exit(-1);
 	    }
-	  }
+	    String profiledata = new String(b, 0, length);
+	    java.util.Hashtable<String, Integer> taskinfo = new java.util.Hashtable<String, Integer>();
+	    
+	    int inindex = profiledata.indexOf('\n');
+	    while((inindex != -1) ) {
+		String inline = profiledata.substring(0, inindex);
+		profiledata = profiledata.substring(inindex + 1);
+		//System.printString(inline + "\n");
+		int tmpinindex = inline.indexOf(',');
+		if(tmpinindex == -1) {
+		    break;
+		}
+		String inname = inline.substring(0, tmpinindex);
+		String inint = inline.substring(tmpinindex + 1);
+		while(inint.startsWith(" ")) {
+		    inint = inint.substring(1);
+		}
+		int duration = Integer.parseInt(inint);
+		taskinfo.put(inname, duration);
+		inindex = profiledata.indexOf('\n');
+	    }
+	    
+	    java.util.Random r=new java.util.Random();
+	    int tint = 0;
+	    for(Iterator it_classes=state.getClassSymbolTable().getDescriptorsIterator(); it_classes.hasNext();) {
+		ClassDescriptor cd=(ClassDescriptor) it_classes.next();
+		if(cd.hasFlags()) {
+		    Vector rootnodes=ta.getRootNodes(cd);
+		    if(rootnodes!=null) {
+			for(Iterator it_rootnodes=rootnodes.iterator(); it_rootnodes.hasNext();) {
+			    FlagState root=(FlagState)it_rootnodes.next();
+			    Vector allocatingTasks = root.getAllocatingTasks();
+			    if(allocatingTasks != null) {
+				for(int k = 0; k < allocatingTasks.size(); k++) {
+				    TaskDescriptor td = (TaskDescriptor)allocatingTasks.elementAt(k);
+				    Vector<FEdge> fev = (Vector<FEdge>)ta.getFEdgesFromTD(td);
+				    int numEdges = fev.size();
+				    int total = 100;
+				    for(int j = 0; j < numEdges; j++) {
+					FEdge pfe = fev.elementAt(j);
+					if(numEdges - j == 1) {
+					    pfe.setProbability(total);
+					} else {
+					    if((total != 0) && (total != 1)) {
+						do {
+						    tint = r.nextInt()%total;
+						} while(tint <= 0);
+					    }
+					    pfe.setProbability(tint);
+					    total -= tint;
+					}
+					//do {
+					//   tint = r.nextInt()%10;
+					//  } while(tint <= 0);
+					//int newRate = tint;
+					//int newRate = (j+1)%2+1;
+					int newRate = 1;
+					String cdname = cd.getSymbol();
+					if((cdname.equals("SeriesRunner")) ||
+						(cdname.equals("MDRunner")) ||
+						(cdname.equals("Stage")) ||
+						(cdname.equals("AppDemoRunner")) ||
+						(cdname.equals("FilterBankAtom"))) {
+					    newRate = 16;
+					} else if(cdname.equals("SentenceParser")) {
+					    newRate = 4;
+					}
+					//do {
+					//    tint = r.nextInt()%100;
+					//   } while(tint <= 0);
+					//   int probability = tint;
+					int probability = 100;
+					pfe.addNewObjInfo(cd, newRate, probability);
+				    }
+				}
+			    }
+			}
+		    }
+		    Iterator it_flags = ta.getFlagStates(cd).iterator();
+		    while(it_flags.hasNext()) {
+			FlagState fs = (FlagState)it_flags.next();
+			Iterator it_edges = fs.edges();
+			int total = 100;
+			while(it_edges.hasNext()) {
+			    //do {
+			    //    tint = r.nextInt()%10;
+			    //   } while(tint <= 0);
+			    FEdge edge = (FEdge)it_edges.next();
+			    tint = taskinfo.get(edge.getTask().getSymbol()).intValue();
+			    edge.setExeTime(tint);
+			    if(!it_edges.hasNext()) {
+				edge.setProbability(total);
+			    } else {
+				if((total != 0) && (total != 1)) {
+				    do {
+					tint = r.nextInt()%total;
+				    } while(tint <= 0);
+				}
+				edge.setProbability(tint);
+				total -= tint;
+			    }
+			}
+		    }
+		}
+	    }
+	} else {
+	    // for test
+	    // Randomly set the newRate and probability of FEdges
+	    java.util.Random r=new java.util.Random();
+	    int tint = 0;
+	    for(Iterator it_classes=state.getClassSymbolTable().getDescriptorsIterator(); it_classes.hasNext();) {
+		ClassDescriptor cd=(ClassDescriptor) it_classes.next();
+		if(cd.hasFlags()) {
+		    Vector rootnodes=ta.getRootNodes(cd);
+		    if(rootnodes!=null) {
+			for(Iterator it_rootnodes=rootnodes.iterator(); it_rootnodes.hasNext();) {
+			    FlagState root=(FlagState)it_rootnodes.next();
+			    Vector allocatingTasks = root.getAllocatingTasks();
+			    if(allocatingTasks != null) {
+				for(int k = 0; k < allocatingTasks.size(); k++) {
+				    TaskDescriptor td = (TaskDescriptor)allocatingTasks.elementAt(k);
+				    Vector<FEdge> fev = (Vector<FEdge>)ta.getFEdgesFromTD(td);
+				    int numEdges = fev.size();
+				    int total = 100;
+				    for(int j = 0; j < numEdges; j++) {
+					FEdge pfe = fev.elementAt(j);
+					if(numEdges - j == 1) {
+					    pfe.setProbability(total);
+					} else {
+					    if((total != 0) && (total != 1)) {
+						do {
+						    tint = r.nextInt()%total;
+						} while(tint <= 0);
+					    }
+					    pfe.setProbability(tint);
+					    total -= tint;
+					}
+					//do {
+					//   tint = r.nextInt()%10;
+					//  } while(tint <= 0);
+					//int newRate = tint;
+					//int newRate = (j+1)%2+1;
+					int newRate = 1;
+					String cdname = cd.getSymbol();
+					if((cdname.equals("SeriesRunner")) ||
+						(cdname.equals("MDRunner")) ||
+						(cdname.equals("Stage")) ||
+						(cdname.equals("AppDemoRunner")) ||
+						(cdname.equals("FilterBankAtom"))) {
+					    newRate = 16;
+					} else if(cdname.equals("SentenceParser")) {
+					    newRate = 4;
+					}
+					//do {
+					//    tint = r.nextInt()%100;
+					//   } while(tint <= 0);
+					//   int probability = tint;
+					int probability = 100;
+					pfe.addNewObjInfo(cd, newRate, probability);
+				    }
+				}
+			    }
+			}
+		    }
+
+		    Iterator it_flags = ta.getFlagStates(cd).iterator();
+		    while(it_flags.hasNext()) {
+			FlagState fs = (FlagState)it_flags.next();
+			Iterator it_edges = fs.edges();
+			int total = 100;
+			while(it_edges.hasNext()) {
+			    //do {
+			    //    tint = r.nextInt()%10;
+			    //   } while(tint <= 0);
+			    tint = 3;
+			    FEdge edge = (FEdge)it_edges.next();
+			    edge.setExeTime(tint);
+			    if(!it_edges.hasNext()) {
+				edge.setProbability(total);
+			    } else {
+				if((total != 0) && (total != 1)) {
+				    do {
+					tint = r.nextInt()%total;
+				    } while(tint <= 0);
+				}
+				edge.setProbability(tint);
+				total -= tint;
+			    }
+			}
+		    }
+		}
+	    }
 	}
 
 	// generate multiple schedulings
