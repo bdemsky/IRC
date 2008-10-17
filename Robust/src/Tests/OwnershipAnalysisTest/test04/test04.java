@@ -6,19 +6,17 @@ public class Parameter {
 }
 
 public class Node {
-  HashSet neighbors;
+  Node f;
   
-  public Node() {
-    neighbors = new HashSet();
-  }
+  public Node() {}
   
-  public static Node makeNode() {
-    return new Node();
-  }
-  
-  public addNeighbor( Node n ) {
-    neighbors.add( n );
-  }
+  public static void makeGraph( Node head ) {
+    Node s = new Node();
+    Node t = new Node();
+    s.f = t; 
+    t.f = s;
+    head.f = s;
+  }  
 }
 
 task Startup( StartupObject s{ initialstate } ) {
@@ -28,30 +26,18 @@ task Startup( StartupObject s{ initialstate } ) {
   taskexit( s{ !initialstate } );
 }
 
+task graphLoop( Parameter p1{ !w } ) {
 
-task MakeGraph( Parameter p1{ !w } ) {
+  Node[] a = new Node[3];
 
-  Parameter pKeep0;
-  Parameter pKeep1;
-  Parameter pKeep2;
-  Parameter p2;
+  for( int i = 0; i < 3; ++i ) {
+    Parameter p = new Parameter();
 
-  while( false ) {  
-    pKeep2 = pKeep1;
-    pKeep1 = pKeep0;
-    pKeep0 = p2;
+    Node n = new Node();
+    p.root = n;
 
-    p2 = new Parameter();    
-
-    Node n1 = Node.makeNode();
-    Node n2 = Node.makeNode();
-    Node n3 = Node.makeNode();
-    
-    n1.addNeighbor( n2 );
-    n2.addNeighbor( n3 );
-    n3.addNeighbor( n1 );
-    
-    p2.root = n1;
+    Node.makeGraph( n );
+    a[i] = n;
   }
 
   taskexit( p1{ w } );
