@@ -79,6 +79,7 @@ public class JGFMolDynBenchSizeA {
 
     JGFInstrumentor.printTimer("Section3:MolDyn:Run", instr.timers); 
     JGFInstrumentor.printTimer("Section3:MolDyn:Total", instr.timers); 
+    System.printString("Finished\n");
   }
 }
 

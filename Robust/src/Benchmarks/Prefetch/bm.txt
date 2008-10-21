@@ -1,22 +1,12 @@
-JGFSORBenchSizeA:SOR/dsm:1:2:3:4:sorverA
-JGFSORBenchSizeC:SOR/dsm:1:2:3:4:sorverC
-JGFSORBenchSizeD:SOR/dsm:1:2:3:4:sorverD
-JGFMolDynBenchSizeA:Moldyn/dsm:1:2:3:4:moldynverA
+JGFSORBenchSizeA:SOR/dsm:1:2:3:4:5:6:7:8:sorverA
+JGFSORBenchSizeD:SOR/dsm:1:2:3:4:5:6:7:8:sorverD
+JGFMolDynBenchSizeA:Moldyn/dsm:1:2:3:4:5:6:7:8:moldynverA
+JGFMolDynBenchSizeD:Moldyn/dsm:1:2:3:4:5:6:7:8:moldynverD
 JGFLUFactBenchSizeA:LUFact/dsm:1:2:3:4:lufactverA
-MatrixMultiply:MM200:1 200 30:2 200 30:3 200 30:4 200 30:mmver200
-MatrixMultiply:MatrixMultiply:1 600:2 600:3 600:4 600:mmver600
-Em3d:Em3d/dsm:-T 1 -N 4000 -d 130 -p -i 3:-T 2 -N 4000 -d 130 -p -i 3:-T 3 -N 4000 -d 130 -p -i 3:-T 4 -N 4000 -d 130 -p -i 3:em3dver40001303
-Em3d:Em3d/dsm:-T 1 -N 4000 -d 130 -p -i 6:-T 2 -N 4000 -d 130 -p -i 6:-T 3 -N 4000 -d 130 -p -i 6:-T 4 -N 4000 -d 130 -p -i 6:em3dver40001306
-Em3d:Em3d/dsm:-T 1 -N 6000 -d 250 -p -i 6:-T 2 -N 6000 -d 250 -p -i 6:-T 3 -N 6000 -d 250 -p -i 6:-T 4 -N 6000 -d 250 -p -i 6:em3dver60002506
-Em3d:Em3d/dsm:-T 1 -N 6000 -d 200 -p -i 6:-T 2 -N 6000 -d 200 -p -i 6:-T 3 -N 6000 -d 200 -p -i 6:-T 4 -N 6000 -d 200 -p -i 6:em3dver60002006
-Em3d:Em3d/dsm:-T 1 -N 6000 -d 200 -p -i 10:-T 2 -N 6000 -d 200 -p -i 10:-T 3 -N 6000 -d 200 -p -i 10:-T 4 -N 6000 -d 200 -p -i 10:em3dver600020010
-Em3d:Em3d/dsm:-T 1 -N 8000 -d 270 -p -i 6:-T 2 -N 8000 -d 270 -p -i 6:-T 3 -N 8000 -d 270 -p -i 6:-T 4 -N 8000 -d 270 -p -i 6:em3dver80002706
-Em3d:Em3d/dsm:-T 1 -N 8000 -d 270 -p -i 10:-T 2 -N 8000 -d 270 -p -i 10:-T 3 -N 8000 -d 270 -p -i 10:-T 4 -N 8000 -d 270 -p -i 10:em3dver800027010
-Em3d:Em3d/dsm:-T 1 -N 10000 -d 400 -p -i 150:-T 2 -N 10000 -d 400 -p -i 150:-T 3 -N 10000 -d 400 -p -i 150:-T 4 -N 10000 -d 400 -p -i 150:em3dver10000400150
-Em3d:Em3d/dsm:-T 1 -N 10000 -d 800 -p -i 15:-T 2 -N 10000 -d 800 -p -i 15:-T 3 -N 10000 -d 800 -p -i 15:-T 4 -N 10000 -d 800 -p -i 15:em3dver1000080015
-Em3d:Em3d/dsm:-T 1 -N 10000 -d 1000 -p -i 15:-T 2 -N 10000 -d 1000 -p -i 15:-T 3 -N 10000 -d 1000 -p -i 15:-T 4 -N 10000 -d 1000 -p -i 15:em3dver10000100015
-Em3d:Em3d/dsm:-T 1 -N 20000 -d 800 -p -i 15:-T 2 -N 20000 -d 800 -p -i 15:-T 3 -N 20000 -d 800 -p -i 15:-T 4 -N 20000 -d 800 -p -i 15:em3dver2000080015
-Em3d:Em3d/dsm:-T 1 -N 20000 -d 600 -p -i 15:-T 2 -N 20000 -d 600 -p -i 15:-T 3 -N 20000 -d 600 -p -i 15:-T 4 -N 20000 -d 600 -p -i 15:em3dver2000060015
-Em3d:Em3d/dsm:-T 1 -N 20000 -d 1000 -p -i 15:-T 2 -N 20000 -d 1000 -p -i 15:-T 3 -N 20000 -d 1000 -p -i 15:-T 4 -N 20000 -d 1000 -p -i 15:em3dver20000100015
+MatrixMultiply:MM200:1 200 30:2 200 30:3 200 30:4 200 30:5 200 30:6 200 30:7 200 30:8 200 30:mmver200
+MatrixMultiply:MatrixMultiply:1 600:2 600:3 600:4 600:5 600:6 600:7 600:8 600:mmver600
+Em3d:Em3d/dsm:-T 1 -N 4000 -d 130 -p -i 6:-T 2 -N 4000 -d 130 -p -i 6:-T 3 -N 4000 -d 130 -p -i 6:-T 4 -N 4000 -d 130 -p -i 6:-T 5 -N 4000 -d 130 -p -i 6:-T 6 -N 4000 -d 130 -p -i 6:-T 7 -N 4000 -d 130 -p -i 6:-T 8 -N 4000 -d 130 -p -i 6:em3dver40001306
+Em3d:Em3d/dsm:-T 1 -N 6000 -d 200 -p -i 10:-T 2 -N 6000 -d 200 -p -i 10:-T 3 -N 6000 -d 200 -p -i 10:-T 4 -N 6000 -d 200 -p -i 10:-T 5 -N 6000 -d 200 -p -i 10:-T 6 -N 6000 -d 200 -p -i 10:-T 7 -N 6000 -d 200 -p -i 10:-T 8 -N 6000 -d 200 -p -i 10:em3dver600020010
+Em3d:Em3d/dsm:-T 1 -N 10000 -d 1000 -i 15:-T 2 -N 10000 -d 1000 -i 15:-T 3 -N 10000 -d 1000 -i 15:-T 4 -N 10000 -d 1000 -i 15:-T 5 -N 10000 -d 1000 -i 15:-T 6 -N 10000 -d 1000 -i 15:-T 7 -N 10000 -d 1000 -i 15:-T 8 -N 10000 -d 1000 -i 15:em3dver10000100015
 Chase:Chase:::::chase
 Array:Array:::::array

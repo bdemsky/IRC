@@ -69,11 +69,15 @@ public class JGFMolDynBench {
   public static void JGFapplication(JGFMolDynBench mold) { 
     // Create new arrays 
     BarrierServer mybarr;
-    int[] mid = new int[4];
-    mid[0] = (128<<24)|(195<<16)|(175<<8)|79;
-    mid[1] = (128<<24)|(195<<16)|(175<<8)|80;
-    mid[2] = (128<<24)|(195<<16)|(175<<8)|78;
-    mid[3] = (128<<24)|(195<<16)|(175<<8)|73; 
+    int[] mid = new int[8];
+    mid[0] = (128<<24)|(195<<16)|(175<<8)|84;//dw-10
+    mid[1] = (128<<24)|(195<<16)|(175<<8)|85;//dw-11
+    mid[2] = (128<<24)|(195<<16)|(175<<8)|86;//dw-12
+    mid[3] = (128<<24)|(195<<16)|(175<<8)|87;//dw-13
+    mid[4] = (128<<24)|(195<<16)|(175<<8)|88;//dw-14
+    mid[5] = (128<<24)|(195<<16)|(175<<8)|89;//dw-15
+    mid[6] = (128<<24)|(195<<16)|(175<<8)|90;//dw-16
+    mid[7] = (128<<24)|(195<<16)|(175<<8)|91;//dw-17
 
     double sh_force [][];
     double sh_force2 [][][];
@@ -345,7 +349,7 @@ class mdRunner extends Thread {
     int mdsize;
     double tmpden;
     int movemx=50;
-    Barrier barr=new Barrier("128.195.175.79");
+    Barrier barr=new Barrier("128.195.175.84");
     particle[] one;
     int id;
     atomic {

@@ -1,9 +1,13 @@
 #!/bin/sh 
 
 #set -x
-MACHINES2='dw-9.eecs.uci.edu'
-MACHINES3='dw-9.eecs.uci.edu dw-7.eecs.uci.edu'
-MACHINES4='dw-9.eecs.uci.edu dw-7.eecs.uci.edu dw-5.eecs.uci.edu'
+MACHINES2='dw-11.eecs.uci.edu'
+MACHINES3='dw-11.eecs.uci.edu dw-12.eecs.uci.edu'
+MACHINES4='dw-11.eecs.uci.edu dw-12.eecs.uci.edu dw-13.eecs.uci.edu'
+MACHINES5='dw-11.eecs.uci.edu dw-12.eecs.uci.edu dw-13.eecs.uci.edu dw-14.eecs.uci.edu'
+MACHINES6='dw-11.eecs.uci.edu dw-12.eecs.uci.edu dw-13.eecs.uci.edu dw-14.eecs.uci.edu dw-15.eecs.uci.edu'
+MACHINES7='dw-11.eecs.uci.edu dw-12.eecs.uci.edu dw-13.eecs.uci.edu dw-14.eecs.uci.edu dw-15.eecs.uci.edu dw-16.eecs.uci.edu'
+MACHINES8='dw-11.eecs.uci.edu dw-12.eecs.uci.edu dw-13.eecs.uci.edu dw-14.eecs.uci.edu dw-15.eecs.uci.edu dw-16.eecs.uci.edu dw-17.eecs.uci.edu'
 LOGDIR=/home/adash/research/Robust/src/Benchmarks/Prefetch/runlog
 TOPDIR=`pwd`
 
@@ -24,6 +28,22 @@ function run {
     if [ $2 -eq 4 ]; then 
       arg=$ARGS4
       MACHINES=$MACHINES4
+    fi
+    if [ $2 -eq 5 ]; then 
+      arg=$ARGS5
+      MACHINES=$MACHINES5
+    fi
+    if [ $2 -eq 6 ]; then 
+      arg=$ARGS6
+      MACHINES=$MACHINES6
+    fi
+    if [ $2 -eq 7 ]; then 
+      arg=$ARGS7
+      MACHINES=$MACHINES7
+    fi
+    if [ $2 -eq 8 ]; then 
+      arg=$ARGS8
+      MACHINES=$MACHINES8
     fi
     chmod +x ~/.tmpvars
     for machine in `echo $MACHINES`
@@ -89,10 +109,22 @@ function callrun {
   PREFETCH4=${BENCHMARK}4.bin
   NONPREFETCH4=${BENCHMARK}4NP.bin
   NONPREFETCH_NONCACHE4=${BENCHMARK}4NPNC.bin
+  PREFETCH5=${BENCHMARK}5.bin
+  NONPREFETCH5=${BENCHMARK}5NP.bin
+  NONPREFETCH_NONCACHE5=${BENCHMARK}5NPNC.bin
+  PREFETCH6=${BENCHMARK}6.bin
+  NONPREFETCH6=${BENCHMARK}6NP.bin
+  NONPREFETCH_NONCACHE6=${BENCHMARK}6NPNC.bin
+  PREFETCH7=${BENCHMARK}7.bin
+  NONPREFETCH7=${BENCHMARK}7NP.bin
+  NONPREFETCH_NONCACHE7=${BENCHMARK}7NPNC.bin
+  PREFETCH8=${BENCHMARK}8.bin
+  NONPREFETCH8=${BENCHMARK}8NP.bin
+  NONPREFETCH_NONCACHE8=${BENCHMARK}8NPNC.bin
   cd $BMDIR 
 
   echo "---------- Running local $BMDIR non-prefetch on 1 machine ---------- "
-  localrun 3
+ # localrun 1
 
   echo "---------- Running single thread remote $BMDIR non-prefetch + non-cache on 2 machines ---------- "
 #  oneremote 1 1 $NONPREFETCH_NONCACHE
@@ -102,25 +134,54 @@ function callrun {
 #  oneremote 1 1 $PREFETCH
 
   echo "---------- Running two threads $BMDIR non-prefetch + non-cache on 2 machines ---------- "
-  run 3 2 $NONPREFETCH_NONCACHE2 
+  run 1 2 $NONPREFETCH_NONCACHE2 
   echo "---------- Running two threads $BMDIR non-prefetch on 2 machines ---------- "
-#  run 3 2 $NONPREFETCH2 
+  run 1 2 $NONPREFETCH2 
   echo "---------- Running two threads $BMDIR prefetch on 2 machines ---------- "
-  run 3 2 $PREFETCH2 
+  run 1 2 $PREFETCH2 
 
   echo "---------- Running three threads $BMDIR non-prefetch + non-cache on 3 machines ---------- "
-  run 3 3 $NONPREFETCH_NONCACHE3 
+  run 1 3 $NONPREFETCH_NONCACHE3 
   echo "---------- Running three threads $BMDIR non-prefetch on 3 machines ---------- "
-#  run 3 3 $NONPREFETCH3 
+  run 1 3 $NONPREFETCH3 
   echo "---------- Running three threads $BMDIR prefetch on 3 machines ---------- "
-  run 3 3 $PREFETCH3 
+  run 1 3 $PREFETCH3 
 
   echo "---------- Running four threads $BMDIR non-prefetch + non-cache on 4 machines ---------- "
-  run 3 4 $NONPREFETCH_NONCACHE4 
+  run 1 4 $NONPREFETCH_NONCACHE4 
   echo "---------- Running four threads $BMDIR non-prefetch on 4 machines ---------- "
-#  run 3 4 $NONPREFETCH4 
+  run 1 4 $NONPREFETCH4 
   echo "---------- Running four threads $BMDIR prefetch on 4 machines ---------- "
-  run 3 4 $PREFETCH4 
+  run 1 4 $PREFETCH4 
+
+  echo "---------- Running five threads $BMDIR non-prefetch + non-cache on 5 machines ---------- "
+  run 1 5 $NONPREFETCH_NONCACHE5 
+  echo "---------- Running five threads $BMDIR non-prefetch on 5 machines ---------- "
+  run 1 5 $NONPREFETCH5 
+  echo "---------- Running five threads $BMDIR prefetch on 5 machines ---------- "
+  run 1 5 $PREFETCH5
+
+  echo "---------- Running six threads $BMDIR non-prefetch + non-cache on 6 machines ---------- "
+  run 1 6 $NONPREFETCH_NONCACHE6 
+  echo "---------- Running six threads $BMDIR non-prefetch on 6 machines ---------- "
+  run 1 6 $NONPREFETCH6 
+  echo "---------- Running six threads $BMDIR prefetch on 6 machines ---------- "
+  run 1 6 $PREFETCH6 
+
+
+  echo "---------- Running seven threads $BMDIR non-prefetch + non-cache on 7 machines ---------- "
+  run 1 7 $NONPREFETCH_NONCACHE7 
+  echo "---------- Running seven threads $BMDIR non-prefetch on 7 machines ---------- "
+  run 1 7 $NONPREFETCH7 
+  echo "---------- Running seven threads $BMDIR prefetch on 7 machines ---------- "
+  run 1 7 $PREFETCH7 
+
+  echo "---------- Running eight threads $BMDIR non-prefetch + non-cache on 8 machines ---------- "
+  run 1 8 $NONPREFETCH_NONCACHE8 
+  echo "---------- Running eight threads $BMDIR non-prefetch on 8 machines ---------- "
+  run 1 8 $NONPREFETCH8 
+  echo "---------- Running eight threads $BMDIR prefetch on 8 machines ---------- "
+  run 1 8 $PREFETCH8 
 
   cd $TOPDIR
 }
@@ -141,10 +202,7 @@ function callmicrorun {
   cd $TOPDIR
 }
 
-benchmarks='array chase mmver200 mmver600'
-#benchmarks='em3dver10000100015'
-#benchmarks='moldynverA'
-#benchmarks='sorverD' //8000 X 8000 matrix
+benchmarks='mmver600 mmver200 moldynverA sorverD em3dver10000100015'
 
 echo "---------- Clean old files ---------- "
 rm runlog/*
@@ -157,7 +215,11 @@ do
   ARGS2=`echo $bm | cut -f4 -d":"`
   ARGS3=`echo $bm | cut -f5 -d":"`
   ARGS4=`echo $bm | cut -f6 -d":"`
-  EXTENSION=`echo $bm | cut -f7 -d":"`
+  ARGS5=`echo $bm | cut -f7 -d":"`
+  ARGS6=`echo $bm | cut -f8 -d":"`
+  ARGS7=`echo $bm | cut -f9 -d":"`
+  ARGS8=`echo $bm | cut -f10 -d":"`
+  EXTENSION=`echo $bm | cut -f11 -d":"`
   name1='array'
   name2='chase'
   if [ $b == $name1 ] || [ $b == $name2 ]; then

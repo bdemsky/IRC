@@ -31,6 +31,9 @@ public class JGFSORBenchSizeD{
       nthreads = 1;
     }
 
+    JGFInstrumentor instr = new JGFInstrumentor();
+    JGFInstrumentor.printHeader(2,0,nthreads);
+
     JGFSORBench sor;
     atomic {
       sor = global new JGFSORBench(nthreads); 

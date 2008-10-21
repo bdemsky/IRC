@@ -22,20 +22,32 @@ default:
 #	../../../../buildscript ${FLAGS2} -o ${MAINCLASS}NP ${SRC}
 #	../../../../buildscript ${FLAGS} -o ${MAINCLASS} ${SRC}
 	../../../../buildscript ${FLAGS3} -o ${MAINCLASS}NPNC ${SRC3}
-	../../../../buildscript ${FLAGS2} -o ${MAINCLASS}NP ${SRC3}
+#	../../../../buildscript ${FLAGS2} -o ${MAINCLASS}NP ${SRC3}
 	../../../../buildscript ${FLAGS1} -o ${MAINCLASS}N ${SRC3}
 	cp ${MAINCLASS}NPNC.bin ${MAINCLASS}1NPNC.bin
-	cp ${MAINCLASS}NP.bin ${MAINCLASS}1NP.bin
+#	cp ${MAINCLASS}NP.bin ${MAINCLASS}1NP.bin
 	cp ${MAINCLASS}N.bin ${MAINCLASS}1.bin
 	cp ${MAINCLASS}NPNC.bin ${MAINCLASS}2NPNC.bin
-	cp ${MAINCLASS}NP.bin ${MAINCLASS}2NP.bin
+#	cp ${MAINCLASS}NP.bin ${MAINCLASS}2NP.bin
 	cp ${MAINCLASS}N.bin ${MAINCLASS}2.bin
 	cp ${MAINCLASS}NPNC.bin ${MAINCLASS}3NPNC.bin
-	cp ${MAINCLASS}NP.bin ${MAINCLASS}3NP.bin
+#	cp ${MAINCLASS}NP.bin ${MAINCLASS}3NP.bin
 	cp ${MAINCLASS}N.bin ${MAINCLASS}3.bin
 	cp ${MAINCLASS}NPNC.bin ${MAINCLASS}4NPNC.bin
-	cp ${MAINCLASS}NP.bin ${MAINCLASS}4NP.bin
+#	cp ${MAINCLASS}NP.bin ${MAINCLASS}4NP.bin
 	cp ${MAINCLASS}N.bin ${MAINCLASS}4.bin
+	cp ${MAINCLASS}NPNC.bin ${MAINCLASS}5NPNC.bin
+#	cp ${MAINCLASS}NP.bin ${MAINCLASS}5NP.bin
+	cp ${MAINCLASS}N.bin ${MAINCLASS}5.bin
+	cp ${MAINCLASS}NPNC.bin ${MAINCLASS}6NPNC.bin
+#	cp ${MAINCLASS}NP.bin ${MAINCLASS}6NP.bin
+	cp ${MAINCLASS}N.bin ${MAINCLASS}6.bin
+	cp ${MAINCLASS}NPNC.bin ${MAINCLASS}7NPNC.bin
+#	cp ${MAINCLASS}NP.bin ${MAINCLASS}7NP.bin
+	cp ${MAINCLASS}N.bin ${MAINCLASS}7.bin
+	cp ${MAINCLASS}NPNC.bin ${MAINCLASS}8NPNC.bin
+#	cp ${MAINCLASS}NP.bin ${MAINCLASS}8NP.bin
+	cp ${MAINCLASS}N.bin ${MAINCLASS}8.bin
 
 clean:
 	rm -rf tmpbuilddirectory
