@@ -435,18 +435,36 @@ public class FlagState extends GraphNode implements Cloneable {
     // refresh all the expInvokeNum of each edge
     for(int i = 0; i < this.edges.size(); i++) {
       next = (FEdge) this.edges.elementAt(i);
-      next.setExpInvokeNum((int)Math.round(this.invokeNum * (next.getProbability() / 100)));
+      next.setExpInvokeNum((int)(Math.ceil(this.invokeNum * next.getProbability() / 100)));
     }
 
     // find the one with the biggest gap between its actual invoke time and the expected invoke time
     // and associated with task td
     int index = 0;
     int gap = 0;
+    double prob = 0;
+    boolean isbackedge = true;
     for(int i = 0; i < this.edges.size(); i++) {
-      int temp = ((FEdge) this.edges.elementAt(index)).getInvokeNumGap();
+      next = ((FEdge) this.edges.elementAt(i));
+      int temp = next.getInvokeNumGap();
+      boolean exchange = false;
       if((temp > gap) && (next.getTask().equals(td))) {
+	exchange = true;
+      } else if(temp == gap) {
+	if(next.getProbability() > prob) {
+	  exchange = true;
+	} else if(next.getProbability() == prob) {
+	  if(!isbackedge && next.isbackedge()) {
+	    // backedge has higher priority
+	    exchange = true;
+	  }
+	}
+      }
+      if(exchange) {
 	index = i;
 	gap = temp;
+	prob = next.getProbability();
+	isbackedge = next.isbackedge();
       }
     }
     next = (FEdge) this.edges.elementAt(index);

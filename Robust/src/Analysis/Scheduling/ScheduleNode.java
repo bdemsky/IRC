@@ -260,6 +260,7 @@ public class ScheduleNode extends GraphNode implements Cloneable {
       Vector<FlagState> sfss = scn.getFlagStates();
       sfss.addAll(tcn.getFlagStates());
       sfss.removeElement(tfs);
+      sfss = null;
       classNodes.removeElement(tcn);
 
       // flush the exeTime of fs and its ancestors

@@ -50,6 +50,7 @@ public class CombinationUtil {
 	}
 	int next = 1;
 	trial = trial(num2choose, next);
+	toadd = null;
       } else {
 	if(this.rootNodes.size() == 1) {
 	  return false;
@@ -89,6 +90,7 @@ public class CombinationUtil {
 	      for(index = 0; index < toadd.size(); index++) {
 		this.node2Combine.lastElement().add(toadd.elementAt(index));
 	      }
+	      toadd = null;
 	    } else {
 	      this.node2Combine.add(null);
 	    }
@@ -101,6 +103,7 @@ public class CombinationUtil {
 	      this.node2Combine.lastElement().add(toadd.elementAt(index));
 	    }
 	  }
+	  toadd = null;
 	  next++;
 	}
 	while(next < this.sNodeVecs.size()) {
@@ -110,6 +113,7 @@ public class CombinationUtil {
 	    for(index = 0; index < toadd.size(); index++) {
 	      this.node2Combine.lastElement().add(toadd.elementAt(index));
 	    }
+	    toadd = null;
 	  } else {
 	    this.node2Combine.add(null);
 	  }

@@ -108,10 +108,6 @@ struct transObjInfo {
 };
 #endif
 
-#ifdef RAW
-//struct RuntimeHash * ptbl = NULL;
-#endif
-
 #ifdef MULTICORE
 void flagorand(void * ptr, int ormask, int andmask, struct parameterwrapper ** queues, int length);
 void flagorandinit(void * ptr, int ormask, int andmask);
@@ -119,6 +115,7 @@ void enqueueObject(void * ptr, struct parameterwrapper ** queues, int length);
 #ifdef RAW
 void enqueueObject_I(void * ptr, struct parameterwrapper ** queues, int length);
 #endif
+void addAliasLock(void * ptr, int lock);
 #else
 void flagorand(void * ptr, int ormask, int andmask);
 void flagorandinit(void * ptr, int ormask, int andmask);

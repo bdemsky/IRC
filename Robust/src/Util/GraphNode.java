@@ -380,7 +380,7 @@ public class GraphNode {
     }
 
     /** Returns whether the strongly connected component i contains a cycle */
-    boolean hasCycle(int i) {
+    public boolean hasCycle(int i) {
       Integer scc=new Integer(i);
       Set s=(Set)map.get(scc);
       if (s.size()>1)

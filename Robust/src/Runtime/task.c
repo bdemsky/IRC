@@ -1200,7 +1200,7 @@ parameterpresent:
 	  }
 	  /* Actually call task */
 #ifdef PRECISE_GC
-	                                                              ((int *)taskpointerarray)[0]=currtpd->numParameters;
+	                                                                    ((int *)taskpointerarray)[0]=currtpd->numParameters;
 	  taskpointerarray[1]=NULL;
 #endif
 #ifdef OPTIONAL

@@ -38,8 +38,10 @@ public class FIFORSchedule extends RuntimeSchedule {
 	}
       }
       if(j == pqueues.size()) {
+	pqueues = null;
 	return next;
       }
+      pqueues = null;
     }
     if(i == tasks.size()) {
       return null;

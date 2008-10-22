@@ -5,7 +5,9 @@ import java.io.PrintWriter;
 import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.Queue;
+import java.util.Set;
 import java.util.Vector;
 
 import Analysis.Locality.LocalityBinding;
@@ -13,6 +15,8 @@ import Analysis.Scheduling.Schedule;
 import Analysis.TaskStateAnalysis.FEdge;
 import Analysis.TaskStateAnalysis.FlagState;
 import Analysis.TaskStateAnalysis.SafetyAnalysis;
+import Analysis.OwnershipAnalysis.AllocationSite;
+import Analysis.OwnershipAnalysis.OwnershipAnalysis;
 import Analysis.Prefetch.*;
 import IR.ClassDescriptor;
 import IR.Descriptor;
@@ -43,6 +47,12 @@ public class BuildCodeMultiCore extends BuildCode {
   String otqueueprefix = "___otqueue";
   int startupcorenum;    // record the core containing startup task, suppose only one core can hava startup object
 
+  private OwnershipAnalysis m_oa;
+  private Vector<Vector<Integer>> m_aliasSets;
+  Hashtable<Integer, Vector<FlatNew>> m_aliasFNTbl4Para;
+  Hashtable<FlatNew, Vector<FlatNew>> m_aliasFNTbl;
+  Hashtable<FlatNew, Vector<Integer>> m_aliaslocksTbl4FN;
+
   public BuildCodeMultiCore(State st, Hashtable temptovar, TypeUtil typeutil, SafetyAnalysis sa, Vector<Schedule> scheduling, int coreNum, PrefetchAnalysis pa) {
     super(st, temptovar, typeutil, sa, pa);
     this.scheduling = scheduling;
@@ -60,6 +70,16 @@ public class BuildCodeMultiCore extends BuildCode {
     if(this.scheduling.size() < this.coreNum) {
       this.coreNum = this.scheduling.size();
     }
+
+    this.m_oa = null;
+    this.m_aliasSets = null;
+    this.m_aliasFNTbl4Para = null;
+    this.m_aliasFNTbl = null;
+    this.m_aliaslocksTbl4FN = null;
+  }
+
+  public void setOwnershipAnalysis(OwnershipAnalysis m_oa) {
+    this.m_oa = m_oa;
   }
 
   public void buildCode() {
@@ -603,8 +623,15 @@ public class BuildCodeMultiCore extends BuildCode {
     output.println("   struct Queue * totransobjqueue = createQueue();");
     output.println("   struct transObjInfo * tmpObjInfo = NULL;");
 
+    this.m_aliasSets = null;
+    this.m_aliasFNTbl4Para = null;
+    this.m_aliasFNTbl = null;
+    this.m_aliaslocksTbl4FN = null;
+    outputAliasLockCode(fm, lb, output);
+
     /* generate print information for RAW version */
     output.println("#ifdef RAW");
+    output.println("{");
     output.println("int tmpsum = 0;");
     output.println("char * taskname = \"" + task.getSymbol() + "\";");
     output.println("int tmplen = " + task.getSymbol().length() + ";");
@@ -620,6 +647,7 @@ public class BuildCodeMultiCore extends BuildCode {
     output.println("raw_test_pass(0xAAAA);");
     output.println("raw_test_pass_reg(tmpsum);");
     output.println("#endif");
+    output.println("}");
     output.println("#endif");
 
     for(int i = 0; i < fm.numParameters(); ++i) {
@@ -1241,12 +1269,258 @@ public class BuildCodeMultiCore extends BuildCode {
     output.println("while(0 == isEmpty(totransobjqueue)) {");
     output.println("   struct QueueItem * totransitem = getTail(totransobjqueue);");
 
-    output.println("   transferObject((struct transObjInfo *)totransitem->objectptr);");
-    output.println("   RUNFREE(((struct transObjInfo *)totransitem->objectptr)->queues);");
+    output.println("   transferObject((struct transObjInfo *)(totransitem->objectptr));");
+    output.println("   RUNFREE(((struct transObjInfo *)(totransitem->objectptr))->queues);");
     output.println("   RUNFREE(totransitem->objectptr);");
     output.println("   removeItem(totransobjqueue, totransitem);");
     output.println("}");
     output.println("freeQueue(totransobjqueue);");
+  }
+
+  protected void outputAliasLockCode(FlatMethod fm, LocalityBinding lb, PrintWriter output) {
+    if(this.m_oa == null) {
+      return;
+    }
+    TaskDescriptor td = fm.getTask();
+    Object[] allocSites = this.m_oa.getFlaggedAllocationSitesReachableFromTask(td).toArray();
+    Vector<Vector<Integer>> aliasSets = new Vector<Vector<Integer>>();
+    Vector<Vector<FlatNew>> aliasFNSets = new Vector<Vector<FlatNew>>();
+    Hashtable<Integer, Vector<FlatNew>> aliasFNTbl4Para = new Hashtable<Integer, Vector<FlatNew>>();
+    Hashtable<FlatNew, Vector<FlatNew>> aliasFNTbl = new Hashtable<FlatNew, Vector<FlatNew>>();
+    for( int i = 0; i < fm.numParameters(); ++i ) {
+      // for the ith parameter check for aliases to all
+      // higher numbered parameters
+      aliasSets.add(null);
+      for( int j = i + 1; j < fm.numParameters(); ++j ) {
+	if(this.m_oa.createsPotentialAliases(td, i, j)) {
+	  // ith parameter and jth parameter has alias, create lock to protect them
+	  if(aliasSets.elementAt(i) == null) {
+	    aliasSets.setElementAt(new Vector<Integer>(), i);
+	  }
+	  aliasSets.elementAt(i).add(j);
+	}
+      }
+
+      // for the ith parameter, check for aliases against
+      // the set of allocation sites reachable from this
+      // task context
+      aliasFNSets.add(null);
+      for(int j = 0; j < allocSites.length; j++) {
+	AllocationSite as = (AllocationSite)allocSites[j];
+	if( this.m_oa.createsPotentialAliases(td, i, as) ) {
+	  // ith parameter and allocationsite as has alias
+	  if(aliasFNSets.elementAt(i) == null) {
+	    aliasFNSets.setElementAt(new Vector<FlatNew>(), i);
+	  }
+	  aliasFNSets.elementAt(i).add(as.getFlatNew());
+	}
+      }
+    }
+
+    // for each allocation site check for aliases with
+    // other allocation sites in the context of execution
+    // of this task
+    for( int i = 0; i < allocSites.length; ++i ) {
+      AllocationSite as1 = (AllocationSite)allocSites[i];
+      for(int j = i + 1; j < allocSites.length; j++) {
+	AllocationSite as2 = (AllocationSite)allocSites[j];
+
+	if( this.m_oa.createsPotentialAliases(td, as1, as2) ) {
+	  // as1 and as2 has alias
+	  if(!aliasFNTbl.contains(as1.getFlatNew())) {
+	    aliasFNTbl.put(as1.getFlatNew(), new Vector<FlatNew>());
+	  }
+	  if(!aliasFNTbl.get(as1.getFlatNew()).contains(as2.getFlatNew())) {
+	    aliasFNTbl.get(as1.getFlatNew()).add(as2.getFlatNew());
+	  }
+	}
+      }
+    }
+
+    // if FlatNew N1->N2->N3, we group N1, N2, N3 together
+    Iterator<FlatNew> it = aliasFNTbl.keySet().iterator();
+    Vector<FlatNew> visited = new Vector<FlatNew>();
+    while(it.hasNext()) {
+      FlatNew tmpfn = it.next();
+      if(visited.contains(tmpfn)) {
+	continue;
+      }
+      visited.add(tmpfn);
+      Queue<FlatNew> tovisit = new LinkedList<FlatNew>();
+      Vector<FlatNew> tmpv = aliasFNTbl.get(tmpfn);
+      if(tmpv == null) {
+	continue;
+      }
+
+      for(int j = 0; j < tmpv.size(); j++) {
+	tovisit.add(tmpv.elementAt(j));
+      }
+
+      while(!tovisit.isEmpty()) {
+	FlatNew fn = tovisit.poll();
+	visited.add(fn);
+	Vector<FlatNew> tmpset = aliasFNTbl.get(fn);
+	if(tmpset != null) {
+	  // merge tmpset to the alias set of the ith parameter
+	  for(int j = 0; j < tmpset.size(); j++) {
+	    if(!tmpv.contains(tmpset.elementAt(j))) {
+	      tmpv.add(tmpset.elementAt(j));
+	      tovisit.add(tmpset.elementAt(j));
+	    }
+	  }
+	  aliasFNTbl.remove(fn);
+	}
+      }
+      it = aliasFNTbl.keySet().iterator();
+    }
+
+    // check alias between parameters and between parameter-flatnew
+    for(int i = 0; i < aliasSets.size(); i++) {
+      Queue<Integer> tovisit = new LinkedList<Integer>();
+      Vector<Integer> tmpv = aliasSets.elementAt(i);
+      if(tmpv == null) {
+	continue;
+      }
+
+      for(int j = 0; j < tmpv.size(); j++) {
+	tovisit.add(tmpv.elementAt(j));
+      }
+
+      while(!tovisit.isEmpty()) {
+	int index = tovisit.poll().intValue();
+	Vector<Integer> tmpset = aliasSets.elementAt(index);
+	if(tmpset != null) {
+	  // merge tmpset to the alias set of the ith parameter
+	  for(int j = 0; j < tmpset.size(); j++) {
+	    if(!tmpv.contains(tmpset.elementAt(j))) {
+	      tmpv.add(tmpset.elementAt(j));
+	      tovisit.add(tmpset.elementAt(j));
+	    }
+	  }
+	  aliasSets.setElementAt(null, index);
+	}
+
+	Vector<FlatNew> tmpFNSet = aliasFNSets.elementAt(index);
+	if(tmpFNSet != null) {
+	  // merge tmpFNSet to the aliasFNSet of the ith parameter
+	  if(aliasFNSets.elementAt(i) == null) {
+	    aliasFNSets.setElementAt(tmpFNSet, i);
+	  } else {
+	    Vector<FlatNew> tmpFNv = aliasFNSets.elementAt(i);
+	    for(int j = 0; j < tmpFNSet.size(); j++) {
+	      if(!tmpFNv.contains(tmpFNSet.elementAt(j))) {
+		tmpFNv.add(tmpFNSet.elementAt(j));
+	      }
+	    }
+	  }
+	  aliasFNSets.setElementAt(null, index);
+	}
+      }
+    }
+
+    int numlock = 0;
+    int numparalock = 0;
+    Vector<Vector<Integer>> tmpaliasSets = new Vector<Vector<Integer>>();
+    for(int i = 0; i < aliasSets.size(); i++) {
+      Vector<Integer> tmpv = aliasSets.elementAt(i);
+      if(tmpv != null) {
+	tmpv.add(0, i);
+	tmpaliasSets.add(tmpv);
+	numlock++;
+      }
+
+      Vector<FlatNew> tmpFNv = aliasFNSets.elementAt(i);
+      if(tmpFNv != null) {
+	aliasFNTbl4Para.put(i, tmpFNv);
+	if(tmpv == null) {
+	  numlock++;
+	}
+      }
+    }
+    numparalock = numlock;
+    aliasSets.clear();
+    aliasSets = null;
+    this.m_aliasSets = tmpaliasSets;
+    tmpaliasSets.clear();
+    tmpaliasSets = null;
+    aliasFNSets.clear();
+    aliasFNSets = null;
+    this.m_aliasFNTbl4Para = aliasFNTbl4Para;
+    this.m_aliasFNTbl = aliasFNTbl;
+    numlock += this.m_aliasFNTbl.size();
+
+    // create locks
+    if(numlock > 0) {
+      output.println("int aliaslocks[" + numlock + "];");
+      output.println("int tmpi = 0;");
+      output.println("for(tmpi = 0; tmpi < " + numlock + "; tmpi++) {");
+      output.println("  aliaslocks[tmpi] = (int)(RUNMALLOC(sizeof(int)));");
+      output.println("  *(int *)(aliaslocks[tmpi]) = 0;");
+      output.println("}");
+      // associate locks with parameters
+      int lockindex = 0;
+      for(int i = 0; i < this.m_aliasSets.size(); i++) {
+	Vector<Integer> toadd = this.m_aliasSets.elementAt(i);
+	for(int j = 0; j < toadd.size(); j++) {
+	  int para = toadd.elementAt(j).intValue();
+	  output.println("addAliasLock("  + super.generateTemp(fm, fm.getParameter(para), lb) + ", aliaslocks[" + i + "]);");
+	}
+	// check if this lock is also associated with any FlatNew nodes
+	if(this.m_aliasFNTbl4Para.contains(toadd.elementAt(0))) {
+	  if(this.m_aliaslocksTbl4FN == null) {
+	    this.m_aliaslocksTbl4FN = new Hashtable<FlatNew, Vector<Integer>>();
+	  }
+	  Vector<FlatNew> tmpv = this.m_aliasFNTbl4Para.get(toadd.elementAt(0));
+	  for(int j = 0; j < tmpv.size(); j++) {
+	    FlatNew fn = tmpv.elementAt(j);
+	    if(!this.m_aliaslocksTbl4FN.contains(fn)) {
+	      this.m_aliaslocksTbl4FN.put(fn, new Vector<Integer>());
+	    }
+	    this.m_aliaslocksTbl4FN.get(fn).add(i);
+	  }
+	  this.m_aliasFNTbl4Para.remove(toadd.elementAt(0));
+	}
+	lockindex++;
+      }
+      Object[] key = this.m_aliasFNTbl4Para.keySet().toArray();
+      for(int i = 0; i < key.length; i++) {
+	int para = ((Integer)key[i]).intValue();
+	output.println("addAliasLock(" + super.generateTemp(fm, fm.getParameter(para), lb) + ", aliaslocks[" + lockindex + "]);");
+	Vector<FlatNew> tmpv = this.m_aliasFNTbl4Para.get(para);
+	for(int j = 0; j < tmpv.size(); j++) {
+	  FlatNew fn = tmpv.elementAt(j);
+	  if(this.m_aliaslocksTbl4FN == null) {
+	    this.m_aliaslocksTbl4FN = new Hashtable<FlatNew, Vector<Integer>>();
+	  }
+	  if(!this.m_aliaslocksTbl4FN.contains(fn)) {
+	    this.m_aliaslocksTbl4FN.put(fn, new Vector<Integer>());
+	  }
+	  this.m_aliaslocksTbl4FN.get(fn).add(lockindex);
+	}
+	lockindex++;
+      }
+      // check m_aliasFNTbl for locks associated with FlatNew nodes
+      Object[] FNkey = this.m_aliasFNTbl.keySet().toArray();
+      for(int i = 0; i < FNkey.length; i++) {
+	FlatNew fn = (FlatNew)FNkey[i];
+	Vector<FlatNew> tmpv = this.m_aliasFNTbl.get(fn);
+	if(this.m_aliaslocksTbl4FN == null) {
+	  this.m_aliaslocksTbl4FN = new Hashtable<FlatNew, Vector<Integer>>();
+	}
+	if(!this.m_aliaslocksTbl4FN.contains(fn)) {
+	  this.m_aliaslocksTbl4FN.put(fn, new Vector<Integer>());
+	}
+	this.m_aliaslocksTbl4FN.get(fn).add(lockindex);
+	for(int j = 0; j < tmpv.size(); j++) {
+	  FlatNew tfn = tmpv.elementAt(j);
+	  if(!this.m_aliaslocksTbl4FN.contains(tfn)) {
+	    this.m_aliaslocksTbl4FN.put(tfn, new Vector<Integer>());
+	  }
+	  this.m_aliaslocksTbl4FN.get(tfn).add(lockindex);
+	}
+	lockindex++;
+      }
+    }
   }
 
   protected void generateFlatReturnNode(FlatMethod fm, LocalityBinding lb, FlatReturnNode frn, PrintWriter output) {
@@ -1272,6 +1546,60 @@ public class BuildCodeMultiCore extends BuildCode {
 	outputTransCode(output);
       }
       output.println("return;");
+    }
+  }
+
+  protected void generateFlatNew(FlatMethod fm, LocalityBinding lb, FlatNew fn,
+                                 PrintWriter output) {
+    if (state.DSM && locality.getAtomic(lb).get(fn).intValue() > 0
+        && !fn.isGlobal()) {
+      // Stash pointer in case of GC
+      String revertptr = super.generateTemp(fm, reverttable.get(lb), lb);
+      output.println(revertptr + "=trans->revertlist;");
+    }
+    if (fn.getType().isArray()) {
+      int arrayid = state.getArrayNumber(fn.getType())
+                    + state.numClasses();
+      if (fn.isGlobal()) {
+	output.println(super.generateTemp(fm, fn.getDst(), lb)
+	               + "=allocate_newarrayglobal(trans, " + arrayid + ", "
+	               + super.generateTemp(fm, fn.getSize(), lb) + ");");
+      } else if (GENERATEPRECISEGC) {
+	output.println(super.generateTemp(fm, fn.getDst(), lb)
+	               + "=allocate_newarray(&" + localsprefix + ", "
+	               + arrayid + ", " + super.generateTemp(fm, fn.getSize(), lb)
+	               + ");");
+      } else {
+	output.println(super.generateTemp(fm, fn.getDst(), lb)
+	               + "=allocate_newarray(" + arrayid + ", "
+	               + super.generateTemp(fm, fn.getSize(), lb) + ");");
+      }
+    } else {
+      if (fn.isGlobal()) {
+	output.println(super.generateTemp(fm, fn.getDst(), lb)
+	               + "=allocate_newglobal(trans, "
+	               + fn.getType().getClassDesc().getId() + ");");
+      } else if (GENERATEPRECISEGC) {
+	output.println(super.generateTemp(fm, fn.getDst(), lb)
+	               + "=allocate_new(&" + localsprefix + ", "
+	               + fn.getType().getClassDesc().getId() + ");");
+      } else {
+	output.println(super.generateTemp(fm, fn.getDst(), lb)
+	               + "=allocate_new("
+	               + fn.getType().getClassDesc().getId() + ");");
+      }
+    }
+    if (state.DSM && locality.getAtomic(lb).get(fn).intValue() > 0
+        && !fn.isGlobal()) {
+      String revertptr = super.generateTemp(fm, reverttable.get(lb), lb);
+      output.println("trans->revertlist=" + revertptr + ";");
+    }
+    // create alias lock if necessary
+    if((this.m_aliaslocksTbl4FN != null) && (this.m_aliaslocksTbl4FN.contains(fn))) {
+      Vector<Integer> tmpv = this.m_aliaslocksTbl4FN.get(fn);
+      for(int i = 0; i < tmpv.size(); i++) {
+	output.println("addAliasLock(" + super.generateTemp(fm, fn.getDst(), lb) + ", aliaslocks[" + tmpv.elementAt(i).intValue() + "]);");
+      }
     }
   }
 

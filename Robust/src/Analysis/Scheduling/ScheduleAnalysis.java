@@ -211,6 +211,7 @@ public class ScheduleAnalysis {
 	}
       }
     }
+    toVisit = null;
 
     SchedulingUtil.printScheduleGraph("scheduling_ori.dot", this.scheduleNodes);
   }
@@ -554,6 +555,8 @@ public class ScheduleAnalysis {
     clone = null;
     qcn2cn = null;
     cn2cn = null;
+    origins = null;
+    sn2sn = null;
   }
 
   private int calInExeTime(FlagState fs) throws Exception {
@@ -697,6 +700,7 @@ public class ScheduleAnalysis {
     }
     se.getSource().getEdgeVector().removeAll(toremove);
     toremove = null;
+    rCNodes = null;
     sFStates = null;
 
     try {
@@ -828,6 +832,7 @@ public class ScheduleAnalysis {
 	      if(!tmpcores.contains(tmpSchedule)) {
 		tmpcores.add(tmpSchedule);
 	      }
+	      tmpcores = null;
 	      // if the FlagState can be fed to some multi-param tasks,
 	      // need to record corresponding ally cores later
 	      if(td.numParameters() > 1) {
@@ -842,6 +847,7 @@ public class ScheduleAnalysis {
 	    }
 	  }
 	}
+	cNodes = null;
 
 	// For each of the ScheduleEdge out of this ScheduleNode, add the target ScheduleNode into the queue inside sn
 	Iterator it_edges = sn.edges();
@@ -935,9 +941,11 @@ public class ScheduleAnalysis {
 			}
 		      }
 		    }
+		    tmpcores = null;
 		  }
 		}
 	      }
+	      tmptds = null;
 	    }
 
 	    if(cores.size() > 1) {
@@ -949,13 +957,20 @@ public class ScheduleAnalysis {
 		  }
 		}
 	      }
+	      tmpfss = null;
 	    }
 	  }
+	  fes = null;
+	  cores = null;
 	}
       }
-
       this.schedulings.add(scheduling);
+      td2cores = null;
+      scheduleGraph = null;
+      scheduling = null;
+      sn2coreNum = null;
     }
+    multiparamtds = null;
   }
 
   public Vector<ScheduleNode> generateScheduling(Vector<Vector<ScheduleNode>> rootnodes, Vector<Vector<CombinationUtil.Combine>> combine, int gid) {

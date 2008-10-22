@@ -1,8 +1,5 @@
 package Analysis.TaskStateAnalysis;
 import IR.*;
-import Analysis.TaskStateAnalysis.*;
-import IR.Tree.*;
-import IR.Flat.*;
 import java.util.*;
 import Util.Edge;
 
@@ -17,9 +14,10 @@ public class FEdge extends Edge {
   // jzhou
   private int executeTime;
   private Hashtable<ClassDescriptor, NewObjInfo> newObjInfos;
-  private int probability;
+  private double probability;
   private int invokeNum;
   private int expInvokeNum;
+  private boolean m_isbackedge;
 
   public class NewObjInfo {
     int newRate;
@@ -98,14 +96,23 @@ public class FEdge extends Edge {
     this.probability = -1;
     this.invokeNum = 0;
     this.expInvokeNum = 0;
+    this.m_isbackedge = false;
   }
 
-  public int getProbability() {
-    return probability;
+  public double getProbability() {
+    return this.probability;
   }
 
-  public void setProbability(int probability) {
+  public void setProbability(double probability) {
     this.probability = probability;
+  }
+
+  public boolean isbackedge() {
+    return m_isbackedge;
+  }
+
+  public void setisbackedge(boolean isbackedge) {
+    this.m_isbackedge = isbackedge;
   }
 
   public String getLabel() {
@@ -187,7 +194,7 @@ public class FEdge extends Edge {
   }
 
   public int getInvokeNumGap() {
-    return expInvokeNum - invokeNum;
+    return this.expInvokeNum - this.invokeNum;
   }
 
   public void setExpInvokeNum(int expInvokeNum) {

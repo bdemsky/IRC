@@ -135,38 +135,42 @@ public class CoreSimulator {
     assert(this.rtask != null);
 
     Vector<ObjectSimulator> transObjs = null;
-    Vector<Queue<ObjectSimulator>> paraQueues = this.rtask.getParaQueues();
-    for(int i = 0; i < paraQueues.size(); i++) {
-      ObjectSimulator obj = paraQueues.elementAt(i).poll();
-      obj.setHold(false);
-      boolean remove = false;
-      if((this.targetFState != null) && (this.targetFState.containsKey(obj.getCurrentFS()))) {
-	if(transObjs == null) {
-	  transObjs = new Vector<ObjectSimulator>();
-	}
-	if(!transObjs.contains(obj)) {
-	  transObjs.add(obj);
-	}
-	remove = true;
-      }
-      // check if this object becoming shared or not
-      Vector<Integer> allycores = this.getAllyCores(obj.getCurrentFS());
-      if(allycores != null) {
-	obj.setShared(true);
-	for(int k = 0; k < allycores.size(); ++k) {
-	  Integer allyCore = allycores.elementAt(k);
+    if(this.rtask.currentRun.getExetype() == 0) {
+      Vector<Queue<ObjectSimulator>> paraQueues = this.rtask.getParaQueues();
+      for(int i = 0; i < paraQueues.size(); i++) {
+	ObjectSimulator obj = paraQueues.elementAt(i).poll();
+	obj.setHold(false);
+	boolean remove = false;
+	if((this.targetFState != null) && (this.targetFState.containsKey(obj.getCurrentFS()))) {
 	  if(transObjs == null) {
 	    transObjs = new Vector<ObjectSimulator>();
 	  }
 	  if(!transObjs.contains(obj)) {
 	    transObjs.add(obj);
 	  }
-	  remove = false;
+	  remove = true;
+	}
+	// check if this object becoming shared or not
+	Vector<Integer> allycores = this.getAllyCores(obj.getCurrentFS());
+	if(allycores != null) {
+	  obj.setShared(true);
+	  for(int k = 0; k < allycores.size(); ++k) {
+	    //Integer allyCore = allycores.elementAt(k);
+	    if(transObjs == null) {
+	      transObjs = new Vector<ObjectSimulator>();
+	    }
+	    if(!transObjs.contains(obj)) {
+	      transObjs.add(obj);
+	    }
+	    remove = false;
+	  }
+	  allycores = null;
+	}
+	for(int j = 0; j < this.tasks.size(); j++) {
+	  this.tasks.elementAt(j).refreshPara(obj, remove);
 	}
       }
-      for(int j = 0; j < this.tasks.size(); j++) {
-	this.tasks.elementAt(j).refreshPara(obj, remove);
-      }
+      paraQueues = null;
     }
     this.activeTime += this.rtask.getCurrentRun().getFinishTime();
     this.rtask.finish();

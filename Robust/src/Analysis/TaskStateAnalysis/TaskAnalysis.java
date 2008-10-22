@@ -224,6 +224,7 @@ public class TaskAnalysis {
 	  FEdge newedge=new FEdge(fs, taskname, td, parameterindex);
 	  ((Vector<FEdge>)tdToFEdges.get(td)).add(newedge);
 	  fs.addEdge(newedge);
+	  newedge.setisbackedge(true);
 	  continue;
 	} else if (fn1.kind()==FKind.FlatFlagActionNode) {
 	  FlatFlagActionNode ffan=(FlatFlagActionNode)fn1;

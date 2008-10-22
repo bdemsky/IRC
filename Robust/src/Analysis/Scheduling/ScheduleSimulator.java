@@ -257,10 +257,12 @@ public class ScheduleSimulator {
 		    }
 		    Queue<ObjectInfo> tmpqueue = transObjQueues.get(targetCore);
 		    tmpqueue.add(new ObjectInfo(nobj));
+		    tmpqueue = null;
 		  }
 		  // enqueue this core again
 		  cores.add(targetCore);
 		}
+		cores = null;
 		// check if this object becoming shared or not
 		Vector<Integer> allycores = cs.getAllyCores(nobj.getCurrentFS());
 		if(allycores != null) {
@@ -278,10 +280,13 @@ public class ScheduleSimulator {
 		      if(!tmpqueue.contains(nobjinfo)) {
 			tmpqueue.add(nobjinfo);
 		      }
+		      tmpqueue = null;
 		    }
 		  }
+		  allycores = null;
 		}
 	      }
+	      nobjs = null;
 	    }
 	    cp.addAction(action);
 	    Vector<ObjectSimulator> transObjs = cs.finishTask();
@@ -305,7 +310,9 @@ public class ScheduleSimulator {
 		    }
 		    Queue<ObjectInfo> tmpqueue = transObjQueues.get(targetCore);
 		    tmpqueue.add(new ObjectInfo(tobj));
+		    tmpqueue = null;
 		  }
+		  cores = null;
 		}
 		// check if this object becoming shared or not
 		Vector<Integer> allycores = cs.getAllyCores(tobj.getCurrentFS());
@@ -324,10 +331,13 @@ public class ScheduleSimulator {
 		      if(!tmpqueue.contains(nobjinfo)) {
 			tmpqueue.add(nobjinfo);
 		      }
+		      tmpqueue = null;
 		    }
 		  }
+		  allycores = null;
 		}
 	      }
+	      transObjs = null;
 	    }
 	    // add 'transport' tasks
 	    Iterator it_entries = transObjQueues.entrySet().iterator();
@@ -337,28 +347,34 @@ public class ScheduleSimulator {
 	      Queue<ObjectInfo> nobjs = tmpentry.getValue();
 	      TransTaskSimulator tmptask = new TransTaskSimulator(cs, tmpCoreNum, nobjs);
 	      this.tasks.add(tmptask);
+	      tmpentry = null;
+	      nobjs = null;
 	    }
-	    // Choose a new task for this core
-	    TaskSimulator newTask = cs.process();
-	    if(newTask != null) {
-	      this.tasks.add(newTask);
-	      // add a TASKSTART action into this checkpoint
-	      action = new Action(coreNum, Action.TASKSTART);
-	      action.setTd(cs.getRtask().getTd());
-	      cp.addAction(action);
-	    }
+	    transObjQueues = null;
 	  } else if (task.getCurrentRun().getExetype() == 1) {
 	    action = new Action(coreNum, Action.TASKABORT);
 	    action.setTd(cs.getRtask().getTd());
 	    cp.addAction(action);
+	    Vector<ObjectSimulator> transObjs = cs.finishTask();
 	  } else if (task.getCurrentRun().getExetype() == 2) {
 	    action = new Action(coreNum, Action.TASKREMOVE);
+	    action.setTd(cs.getRtask().getTd());
+	    cp.addAction(action);
+	    Vector<ObjectSimulator> transObjs = cs.finishTask();
+	  }
+	  // Choose a new task for this core
+	  TaskSimulator newTask = cs.process();
+	  if(newTask != null) {
+	    this.tasks.add(newTask);
+	    // add a TASKSTART action into this checkpoint
+	    action = new Action(coreNum, Action.TASKSTART);
 	    action.setTd(cs.getRtask().getTd());
 	    cp.addAction(action);
 	  }
 	}
       }
       this.checkpoints.add(cp);
+      finishTasks = null;
     }
 
     SchedulingUtil.printSimulationResult("SimulatorResult_" + this.invoketime + ".dot", this.processTime,

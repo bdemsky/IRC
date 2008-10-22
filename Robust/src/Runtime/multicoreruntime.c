@@ -143,6 +143,8 @@ void * allocate_new(void * ptr, int type) {
   v->type=type;
   v->isolate = 1;
   v->version = 0;
+  v->numlocks = 0;
+  v->locks = NULL;
 #ifdef THREADS
   v->tid=0;
   v->lockentry=0;
@@ -158,6 +160,8 @@ struct ArrayObject * allocate_newarray(void * ptr, int type, int length) {
   v->type=type;
   v->isolate = 1;
   v->version = 0;
+  v->numlocks = 0;
+  v->locks = NULL;
   if (length<0) {
 #ifndef RAW
     printf("ERROR: negative array\n");
@@ -179,6 +183,8 @@ void * allocate_new(int type) {
   v->type=type;
   v->isolate = 1;
   v->version = 0;
+  v->numlocks = 0;
+  v->locks = NULL;
   return v;
 }
 
@@ -189,6 +195,8 @@ struct ArrayObject * allocate_newarray(int type, int length) {
   v->type=type;
   v->isolate = 1;
   v->version = 0;
+  v->numlocks = 0;
+  v->locks = NULL;
   v->___length___=length;
   return v;
 }

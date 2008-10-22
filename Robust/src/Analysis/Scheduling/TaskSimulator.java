@@ -61,6 +61,13 @@ public class TaskSimulator {
     public void setExetype(int exetype) {
       this.exetype = exetype;
     }
+
+    public void init() {
+      finishTime = 0;
+      if(newObjs != null) {
+	newObjs.clear();
+      }
+    }
   }
 
   public TaskSimulator(TaskDescriptor td, CoreSimulator cs) {
@@ -188,6 +195,8 @@ public class TaskSimulator {
 
     if(this.currentRun == null) {
       this.currentRun = new ExeResult();
+    } else {
+      this.currentRun.init();
     }
 
     int finishTime = 0;
@@ -204,7 +213,7 @@ public class TaskSimulator {
       if(tpara.isShared()) {
 	if(tpara.isHold()) {
 	  // shared object held by other tasks
-	  finishTime = 1;           // TODO currenly assume the effort on requesting locks are only 1
+	  finishTime = 800;           // TODO currenly assume the effort on requesting locks are only 1
 	  this.currentRun.setFinishTime(finishTime);
 	  this.currentRun.setExetype(1);
 	  paraQueues.elementAt(i).poll();
@@ -219,7 +228,7 @@ public class TaskSimulator {
 	  return;
 	} else if (tpara.getVersion() != this.objVersionTbl.get(tpara)) {
 	  // shared object has been updated and no longer fitted to this task
-	  finishTime = 1;           // TODO currenly assume the effort on requesting locks are only 1
+	  finishTime = 800;           // TODO currenly assume the effort on requesting locks are only 1
 	  this.currentRun.setFinishTime(finishTime);
 	  this.currentRun.setExetype(2);
 	  paraQueues.elementAt(i).poll();

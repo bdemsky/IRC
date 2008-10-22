@@ -56,7 +56,7 @@ struct RuntimeHash * reverse;
 
 int corestatus[NUMCORES]; // records status of each core
                           // 1: running tasks
-// 0: stall
+                          // 0: stall
 int numsendobjs[NUMCORES]; // records how many objects a core has sent out
 int numreceiveobjs[NUMCORES]; // records how many objects a core has received
 #ifdef RAW
@@ -117,7 +117,7 @@ void releasewritelock(void* ptr);
 // profiling mode of RAW version
 #ifdef RAWPROFILE
 
-#define TASKINFOLENGTH 150
+#define TASKINFOLENGTH 300
 //#define INTERRUPTINFOLENGTH 500
 
 bool stall;
@@ -131,25 +131,24 @@ typedef struct task_info {
 } TaskInfo;
 
 /*typedef struct interrupt_info {
-  int startTime;
-  int endTime;
-} InterruptInfo;*/
+   int startTime;
+   int endTime;
+   } InterruptInfo;*/
 
 TaskInfo * taskInfoArray[TASKINFOLENGTH];
 int taskInfoIndex;
 bool taskInfoOverflow;
 /*InterruptInfo * interruptInfoArray[INTERRUPTINFOLENGTH];
-int interruptInfoIndex;
-bool interruptInfoOverflow;*/
+   int interruptInfoIndex;
+   bool interruptInfoOverflow;*/
 int profilestatus[NUMCORES]; // records status of each core
                              // 1: running tasks
-// 0: stall
+                             // 0: stall
 bool transProfileRequestMsg(int targetcore);
 void outputProfileData();
 #endif
 
 #ifdef RAW
-//#ifdef RAWPROFILE
 #ifdef RAWUSEIO
 int main(void) {
 #else
@@ -195,7 +194,6 @@ int main(int argc, char **argv) {
   for(i = 0; i < 30; ++i) {
     msgdata[i] = -1;
   }
-  //msgdata = NULL;
   msgtype = -1;
   msgdataindex = 0;
   msglength = 30;
@@ -238,8 +236,8 @@ int main(int argc, char **argv) {
   totalexetime = -1;
   taskInfoIndex = 0;
   /*interruptInfoIndex = 0;
-  taskInfoOverflow = false;
-  interruptInfoOverflow = false;*/
+     taskInfoOverflow = false;
+     interruptInfoOverflow = false;*/
 #endif
 
 #ifdef INTERRUPT
@@ -322,7 +320,6 @@ int main(int argc, char **argv) {
     }
   }
 
-  //pthread_exit(NULL);
   while(true) {
   }
 }
@@ -411,11 +408,6 @@ void run(void* arg) {
 #endif
 
   while(true) {
-/*#ifndef INTERRUPT
-          while(receiveObject() != -1) {
-          }
- #endif*/
-
     // check if there are new active tasks can be executed
     executetasks();
 
@@ -449,6 +441,8 @@ void run(void* arg) {
 #endif
     while(!isEmpty(&objqueue)) {
       void * obj = NULL;
+      int * locks = NULL;
+      int numlocks = 0;
 #ifdef INTERRUPT
       raw_user_interrupts_off();
 #endif
@@ -461,36 +455,48 @@ void run(void* arg) {
       sendStall = false;
       tocontinue = true;
       objitem = getTail(&objqueue);
-      //obj = objitem->objectptr;
       objInfo = (struct transObjInfo *)objitem->objectptr;
       obj = objInfo->objptr;
 #ifdef RAWDEBUG
       raw_test_pass_reg((int)obj);
 #endif
       // grab lock and flush the obj
-      getreadlock_I(obj);
-      while(!lockflag) {
-	receiveObject();
+      grount = 0;
+      if(((struct ___Object___ *)obj)->numlocks == 0) {
+	locks = obj;
+	numlocks = 1;
+      } else {
+	locks = ((struct ___Object___ *)obj)->locks;
+	numlocks = ((struct ___Object___ *)obj)->numlocks;
       }
-      grount = lockresult;
+      for(; numlocks > 0; numlocks--) {
+	getreadlock_I(locks);
+	while(!lockflag) {
+	  receiveObject();
+	}
+	grount = grount || lockresult;
 #ifdef RAWDEBUG
-      raw_test_pass_reg(grount);
+	raw_test_pass_reg(grount);
 #endif
 
-      lockresult = 0;
-      lockobj = 0;
-      lockflag = false;
+	lockresult = 0;
+	lockobj = 0;
+	lockflag = false;
 #ifndef INTERRUPT
-      reside = false;
+	reside = false;
 #endif
+
+	if(grount == 0) {
+	  goto grablockfail;
+	}
+
+	locks = (int*)(*locks);
+      }
 
       if(grount == 1) {
 	int k = 0;
+	// flush the object
 	raw_invalidate_cache_range((int)obj, classsize[((struct ___Object___ *)obj)->type]);
-	// flush the obj
-	/*for(k = 0; k < classsize[((struct ___Object___ *)obj)->type]; ++k) {
-	        invalidateAddr(obj + k);
-	   }*/
 	// enqueue the object
 	for(k = 0; k < objInfo->length; ++k) {
 	  int taskindex = objInfo->queues[2 * k];
@@ -503,18 +509,35 @@ void run(void* arg) {
 	  enqueueObject_I(obj, queues, 1);
 	}
 	removeItem(&objqueue, objitem);
-	releasereadlock_I(obj);
+	if(((struct ___Object___ *)obj)->numlocks == 0) {
+	  locks = obj;
+	  numlocks = 1;
+	} else {
+	  locks = ((struct ___Object___ *)obj)->locks;
+	  numlocks = ((struct ___Object___ *)obj)->numlocks;
+	}
+	for(; numlocks > 0; numlocks--) {
+	  releasereadlock_I(locks);
+	  locks = (int *)(*locks);
+	}
 	RUNFREE(objInfo->queues);
 	RUNFREE(objInfo);
-	/*enqueueObject_I(obj, NULL, 0);
-	   removeItem(&objqueue, objitem);
-	   releasereadlock_I(obj);*/
       } else {
+grablockfail:
 	// can not get lock
 	// put it at the end of the queue
 	// and try to execute active tasks already enqueued first
 	removeItem(&objqueue, objitem);
 	addNewItem_I(&objqueue, objInfo);
+	if(((struct ___Object___ *)obj)->numlocks > 0) {
+	  //release grabbed locks
+	  numlocks = ((struct ___Object___ *)obj)->numlocks - numlocks;
+	  locks = ((struct ___Object___ *)obj)->locks;
+	  for(; numlocks > 0; numlocks--) {
+	    releasereadlock_I(locks);
+	    locks = (int *)(*locks);
+	  }
+	}
 #ifdef RAWPROFILE
 	//isInterrupt = true;
 #endif
@@ -596,7 +619,6 @@ void run(void* arg) {
 #ifdef RAWDEBUG
 	    raw_test_pass(0xee11);
 #endif
-//#ifdef RAWPROFILE
 #ifdef RAWUSEIO
 	    totalexetime = raw_get_cycle();
 #else
@@ -707,7 +729,7 @@ void run(void* arg) {
   while(true) {
     switch(receiveObject()) {
     case 0: {
-      printf("[run, %d] receive an object\n", numofcore);
+      //printf("[run, %d] receive an object\n", numofcore);
       sendStall = false;
       // received an object
       // check if there are new active tasks can be executed
@@ -805,15 +827,6 @@ void run(void* arg) {
       break;
     }
 
-      /* case 3: {
-                               printf("[run, %d] receive a terminate msg\n", numofcore);
-                               // receive a terminate Msg
-                               assert(STARTUPCORE != corenum); // only non-startup core can receive such msg
-                               mq_close(mqd[corenum]);
-                               fflush(stdout);
-                               exit(0);
-                               break;
-                       }*/
     default: {
       printf("[run, %d] Error: invalid message type.\n", numofcore);
       fflush(stdout);
@@ -850,12 +863,13 @@ void createstartupobject(int argc, char ** argv) {
 
   startupobject->isolate = 1;
   startupobject->version = 0;
+  startupobject->numlocks = 0;
+  startupobject->locks = NULL;
 
   /* Set initialized flag for startup object */
   flagorandinit(startupobject,1,0xFFFFFFFF);
   enqueueObject(startupobject, NULL, 0);
 #ifdef RAW
-  //flushAll();
   raw_flush_entire_cache();
 #endif
 }
@@ -1427,6 +1441,37 @@ void calCoords(int core_num, int* coordY, int* coordX) {
 }
 #endif
 
+void addAliasLock(void * ptr, int lock) {
+  struct ___Object___ * obj = (struct ___Object___ *)ptr;
+  if(obj->numlocks == 0) {
+    // originally no alias locks associated
+    obj->locks = (int *)lock;
+    *(obj->locks) = 0;
+    obj->numlocks++;
+  } else {
+    // already have some alias locks
+    // insert the new lock into the sorted lock linklist
+    int prev, next;
+    prev = next = (int)obj->locks;
+    while(next != 0) {
+      if(next < lock) {
+	// next is less than lock, move to next node
+	prev = next;
+	next = *((int *)next);
+      } else if(next == lock) {
+	// already have this lock, do nothing
+	return;
+      } else {
+	// insert the lock between prev and next
+	break;
+      }
+    }
+    *(int *)prev = lock;
+    *(int *)lock = next;
+    obj->numlocks++;
+  }
+}
+
 /* Message format for RAW version:
  *      type + Msgbody
  * type: 0 -- transfer object
@@ -1436,7 +1481,7 @@ void calCoords(int core_num, int* coordY, int* coordX) {
  *       4 -- lock deny
  *       5 -- lock release
  *       6 -- transfer profile output msg
- *       7 -- transfer profile ouput finish msg
+ *       7 -- transfer profile output finish msg
  *
  * ObjMsg: 0 + size of msg + obj's address + (task index + param index)+
  * StallMsg: 1 + corenum + sendobjs + receiveobjs (size is always 4 * sizeof(int))
@@ -1454,21 +1499,15 @@ void transferObject(struct transObjInfo * transObj) {
   int type=((int *)obj)[0];
   int size=classsize[type];
   int targetcore = transObj->targetcore;
-  //assert(type < NUMCLASSES); // can only transfer normal object
 
 #ifdef RAW
   unsigned msgHdr;
   int self_y, self_x, target_y, target_x;
-  //int isshared = 0;
   // for 32 bit machine, the size of fixed part is always 3 words
-  //int msgsize = sizeof(int) * 2 + sizeof(void *);
   int msgsize = 3 + transObj->length * 2;
   int i = 0;
 
   struct ___Object___ * newobj = (struct ___Object___ *)obj;
-  /*if(0 == newobj->isolate) {
-          isshared = 1;
-     }*/
 
   calCoords(corenum, &self_y, &self_x);
   calCoords(targetcore, &target_y, &target_x);
@@ -1587,12 +1626,6 @@ void transferObject(struct transObjInfo * transObj) {
     fflush(stdout);
     exit(-1);
   }
-  /*struct ___Object___ * newobj = (struct ___Object___ *)obj;
-     if(0 == newobj->isolate) {
-          newobj = RUNMALLOC(size);
-          memcpy(newobj, obj, size);
-          newobj->original=obj;
-     }*/
   struct transObjInfo * tmptransObj = RUNMALLOC(sizeof(struct transObjInfo));
   memcpy(tmptransObj, transObj, sizeof(struct transObjInfo));
   int * tmpqueue = RUNMALLOC(sizeof(int)*2*tmptransObj->length);
@@ -1764,7 +1797,6 @@ bool transProfileRequestMsg(int targetcore) {
   unsigned msgHdr;
   int self_y, self_x, target_y, target_x;
   // for 32 bit machine, the size is always 4 words
-  //int msgsize = sizeof(int) * 4;
   int msgsize = 2;
 
   calCoords(corenum, &self_y, &self_x);
@@ -1906,43 +1938,43 @@ void outputProfileData() {
 
   fclose(fp);
 #else
-     int i = 0;
-     int j = 0;
+  int i = 0;
+  int j = 0;
 
-     raw_test_pass(0xdddd);
-     // output task related info
-     for(i= 0; i < taskInfoIndex; i++) {
-          TaskInfo* tmpTInfo = taskInfoArray[i];
-          char* tmpName = tmpTInfo->taskName;
-          int nameLen = strlen(tmpName);
-          raw_test_pass(0xddda);
-          for(j = 0; j < nameLen; j++) {
-                  raw_test_pass_reg(tmpName[j]);
-          }
-          raw_test_pass(0xdddb);
-          raw_test_pass_reg(tmpTInfo->startTime);
-          raw_test_pass_reg(tmpTInfo->endTime);
-          raw_test_pass(0xdddc);
-     }
+  raw_test_pass(0xdddd);
+  // output task related info
+  for(i= 0; i < taskInfoIndex; i++) {
+    TaskInfo* tmpTInfo = taskInfoArray[i];
+    char* tmpName = tmpTInfo->taskName;
+    int nameLen = strlen(tmpName);
+    raw_test_pass(0xddda);
+    for(j = 0; j < nameLen; j++) {
+      raw_test_pass_reg(tmpName[j]);
+    }
+    raw_test_pass(0xdddb);
+    raw_test_pass_reg(tmpTInfo->startTime);
+    raw_test_pass_reg(tmpTInfo->endTime);
+    raw_test_pass(0xdddc);
+  }
 
-     if(taskInfoOverflow) {
-          raw_test_pass(0xefee);
-     }
+  if(taskInfoOverflow) {
+    raw_test_pass(0xefee);
+  }
 
-     // output interrupt related info
-     /*for(i = 0; i < interruptInfoIndex; i++) {
-          InterruptInfo* tmpIInfo = interruptInfoArray[i];
-          raw_test_pass(0xddde);
-          raw_test_pass_reg(tmpIInfo->startTime);
-          raw_test_pass_reg(tmpIInfo->endTime);
-          raw_test_pass(0xdddf);
+  // output interrupt related info
+  /*for(i = 0; i < interruptInfoIndex; i++) {
+       InterruptInfo* tmpIInfo = interruptInfoArray[i];
+       raw_test_pass(0xddde);
+       raw_test_pass_reg(tmpIInfo->startTime);
+       raw_test_pass_reg(tmpIInfo->endTime);
+       raw_test_pass(0xdddf);
      }
 
      if(interruptInfoOverflow) {
-          raw_test_pass(0xefef);
+       raw_test_pass(0xefef);
      }*/
 
-     raw_test_pass(0xeeee);
+  raw_test_pass(0xeeee);
 #endif
 }
 #endif
@@ -1976,11 +2008,11 @@ int receiveObject() {
   }
 #ifdef RAWPROFILE
   /*if(isInterrupt && (!interruptInfoOverflow)) {
-    // raw_test_pass(0xffff);
-    interruptInfoArray[interruptInfoIndex] = RUNMALLOC_I(sizeof(struct interrupt_info));
-    interruptInfoArray[interruptInfoIndex]->startTime = raw_get_cycle();
-    interruptInfoArray[interruptInfoIndex]->endTime = -1;
-  }*/
+     // raw_test_pass(0xffff);
+     interruptInfoArray[interruptInfoIndex] = RUNMALLOC_I(sizeof(struct interrupt_info));
+     interruptInfoArray[interruptInfoIndex]->startTime = raw_get_cycle();
+     interruptInfoArray[interruptInfoIndex]->endTime = -1;
+     }*/
 #endif
 msg:
 #ifdef RAWDEBUG
@@ -2005,38 +2037,6 @@ msg:
     raw_test_pass_reg(msgdata[msgdataindex]);
 #endif
     msgdataindex++;
-
-    /*if(msgdataindex == 0) {
-            // type
-            msgtype = gdn_receive();
-            if(msgtype > 2) {
-                    msglength = 3;
-            } else {
-                    msglength = 4;
-            }
-            if(msgtype != 0) {
-                    msgdata = (int *)RUNMALLOC_I(msglength * sizeof(int));
-                    msgdata[msgdataindex] = msgtype;
-            }
-     #ifdef RAWDEBUG
-            raw_test_pass_reg(msgtype);
-     #endif
-       } else if((msgdataindex == 1) && (msgtype == 0)) {
-            // object transfer msg
-            msglength = gdn_receive();
-            msgdata = (int *)RUNMALLOC_I(msglength * sizeof(int));
-            msgdata[0] = msgtype;
-            msgdata[msgdataindex] = msglength;
-     #ifdef RAWDEBUG
-            raw_test_pass_reg(msgdata[msgdataindex]);
-     #endif
-       } else {
-            msgdata[msgdataindex] = gdn_receive();
-     #ifdef RAWDEBUG
-            raw_test_pass_reg(msgdata[msgdataindex]);
-     #endif
-       }
-       msgdataindex++;*/
   }
 #ifdef RAWDEBUG
   raw_test_pass(0xffff);
@@ -2087,20 +2087,12 @@ msg:
 	    qitem = getNext(prev);
 	  }
 	}
-	//memcpy(transObj->queues, msgdata[3], sizeof(int)*(msglength - 3));
 	addNewItem_I(&objqueue, (void *)transObj);
       }
       ++(self_numreceiveobjs);
 #ifdef RAWDEBUG
       raw_test_pass(0xe881);
 #endif
-      /*
-         addNewItem_I(&objqueue, (void *)data2);
-       ++(self_numreceiveobjs);
-       #ifdef RAWDEBUG
-         raw_test_pass(0xe881);
-       #endif
-       */
       break;
     }
 
@@ -2273,6 +2265,7 @@ msg:
       // receive lock release msg
       if(!RuntimeHashcontainskey(locktbl, data2)) {
 	// no locks for this object, something is wrong
+	//raw_test_pass_reg(data2);
 	raw_test_done(0xa004);
       } else {
 	int rwlock_obj = 0;
@@ -2300,7 +2293,6 @@ msg:
       // receive an output request msg
       if(corenum == STARTUPCORE) {
 	// startup core can not receive profile output finish msg
-	// return -1
 	raw_test_done(0xa00a);
       }
       {
@@ -2350,7 +2342,6 @@ msg:
       // receive a profile output finish msg
       if(corenum != STARTUPCORE) {
 	// non startup core can not receive profile output finish msg
-	// return -1
 	raw_test_done(0xa00b);
       }
       profilestatus[data1] = 0;
@@ -2361,13 +2352,10 @@ msg:
     default:
       break;
     }
-    //RUNFREE(msgdata);
-    //msgdata = NULL;
     for(msgdataindex--; msgdataindex > 0; --msgdataindex) {
       msgdata[msgdataindex] = -1;
     }
     msgtype = -1;
-    //msgdataindex = 0;
     msglength = 30;
 #ifdef RAWDEBUG
     raw_test_pass(0xe888);
@@ -2380,7 +2368,7 @@ msg:
       interruptInfoArray[interruptInfoIndex]->endTime = raw_get_cycle();
       interruptInfoIndex++;
       if(interruptInfoIndex == INTERRUPTINFOLENGTH) {
-	interruptInfoOverflow = true;
+        interruptInfoOverflow = true;
       }
     }*/
 #endif
@@ -2395,7 +2383,7 @@ msg:
       interruptInfoArray[interruptInfoIndex]->endTime = raw_get_cycle();
       interruptInfoIndex++;
       if(interruptInfoIndex == INTERRUPTINFOLENGTH) {
-	interruptInfoOverflow = true;
+        interruptInfoOverflow = true;
       }
     }*/
 #endif
@@ -2425,11 +2413,7 @@ msg:
     printf("<receiveObject> index: %d, sendobjs: %d, reveiveobjs: %d\n", index, numsendobjs[index], numreceiveobjs[index]);
     free(msgptr);
     return 2;
-  }       /*else if(((int*)msgptr)[0] == -2) {
-	        // terminate msg
-	        return 3;
-	     } */
-  else {
+  } else {
     // an object
     if(numofcore == STARTUPCORE) {
       ++(numreceiveobjs[numofcore]);
@@ -2468,7 +2452,6 @@ bool getreadlock(void * ptr) {
   int self_y, self_x, target_y, target_x;
   int targetcore = 0;       //((int)ptr >> 5) % TOTALCORE;
   // for 32 bit machine, the size is always 4 words
-  //int msgsize = sizeof(int) * 4;
   int msgsize = 4;
   int tc = TOTALCORE;
 #ifdef INTERRUPT
@@ -2665,7 +2648,6 @@ void releasereadlock(void * ptr) {
   int self_y, self_x, target_y, target_x;
   int targetcore = 0;       //((int)ptr >> 5) % TOTALCORE;
   // for 32 bit machine, the size is always 3 words
-  //int msgsize = sizeof(int) * 3;
   int msgsize = 3;
   int tc = TOTALCORE;
 #ifdef INTERRUPT
@@ -2788,7 +2770,6 @@ bool getreadlock_I(void * ptr) {
   int self_y, self_x, target_y, target_x;
   int targetcore = ((int)ptr >> 5) % TOTALCORE;
   // for 32 bit machine, the size is always 4 words
-  //int msgsize = sizeof(int) * 4;
   int msgsize = 4;
 
   lockobj = (int)ptr;
@@ -2871,7 +2852,6 @@ void releasereadlock_I(void * ptr) {
   int self_y, self_x, target_y, target_x;
   int targetcore = ((int)ptr >> 5) % TOTALCORE;
   // for 32 bit machine, the size is always 3 words
-  //int msgsize = sizeof(int) * 3;
   int msgsize = 3;
 
   if(targetcore == corenum) {
@@ -2923,7 +2903,6 @@ bool getwritelock(void * ptr) {
   int self_y, self_x, target_y, target_x;
   int targetcore = 0;       //((int)ptr >> 5) % TOTALCORE;
   // for 32 bit machine, the size is always 4 words
-  //int msgsize = sizeof(int) * 4;
   int msgsize= 4;
   int tc = TOTALCORE;
 #ifdef INTERRUPT
@@ -3150,7 +3129,6 @@ void releasewritelock(void * ptr) {
   int self_y, self_x, target_y, target_x;
   int targetcore = 0;       //((int)ptr >> 5) % TOTALCORE;
   // for 32 bit machine, the size is always 3 words
-  //int msgsize = sizeof(int) * 3;
   int msgsize = 3;
   int tc = TOTALCORE;
 #ifdef INTERRUPT
@@ -3575,13 +3553,6 @@ newtask:
       currtpd=(struct taskparamdescriptor *) getfirstkey(activetasks);
       genfreekey(activetasks, currtpd);
 
-      /* Check if this task has failed, allow a task that contains optional objects to fire */
-      /*if (gencontains(failedtasks, currtpd)) {
-         // Free up task parameter descriptor
-         RUNFREE(currtpd->parameterArray);
-         RUNFREE(currtpd);
-         goto newtask;
-         }*/
       numparams=currtpd->task->numParameters;
       numtotal=currtpd->task->numTotal;
 
@@ -3591,6 +3562,8 @@ newtask:
       /* Make sure that the parameters are still in the queues */
       for(i=0; i<numparams; i++) {
 	void * parameter=currtpd->parameterArray[i];
+	int * locks;
+	int numlocks;
 #ifdef RAW
 #ifdef RAWDEBUG
 	raw_test_pass(0xe993);
@@ -3603,46 +3576,80 @@ newtask:
 	}
 	lock = true;
 	// require locks for this parameter if it is not a startup object
-	getwritelock(parameter);
+	if(((struct ___Object___ *)parameter)->numlocks == 0) {
+	  numlocks = 1;
+	  locks = parameter;
+	} else {
+	  numlocks = ((struct ___Object___ *)parameter)->numlocks;
+	  locks = ((struct ___Object___ *)parameter)->locks;
+	}
+
 	grount = 0;
+	for(; numlocks > 0; numlocks--) {
+	  getwritelock(locks);
 
 #ifdef INTERRUPT
-	raw_user_interrupts_off();
+	  raw_user_interrupts_off();
 #endif
 #ifdef RAWPROFILE
-	//isInterrupt = false;
+	  //isInterrupt = false;
 #endif
-	while(!lockflag) {
-	  receiveObject();
-	}
-#ifndef INTERRUPT
-	if(reside) {
-	  while(receiveObject() != -1) {
+	  while(!lockflag) {
+	    receiveObject();
 	  }
-	}
-#endif
-	grount = lockresult;
-
-	lockresult = 0;
-	lockobj = 0;
-	lockflag = false;
 #ifndef INTERRUPT
-	reside = false;
+	  if(reside) {
+	    while(receiveObject() != -1) {
+	    }
+	  }
+#endif
+	  grount = grount || lockresult;
+
+	  lockresult = 0;
+	  lockobj = 0;
+	  lockflag = false;
+#ifndef INTERRUPT
+	  reside = false;
 #endif
 #ifdef RAWPROFILE
-	//isInterrupt = true;
+	  //isInterrupt = true;
 #endif
 #ifdef INTERRUPT
-	raw_user_interrupts_on();
+	  raw_user_interrupts_on();
 #endif
+
+	  if(grount == 0) {
+	    goto grablock_fail;
+	  }
+	  locks = (int *)(*locks);
+	}
 
 	if(grount == 0) {
+grablock_fail:
 #ifdef RAWDEBUG
 	  raw_test_pass(0xe994);
 #endif
 	  // can not get the lock, try later
+	  // first release all grabbed locks for this parameter
+	  numlocks = ((struct ___Object___ *)parameter)->numlocks - numlocks;
+	  locks = ((struct ___Object___ *)parameter)->locks;
+	  for(; numlocks > 0; numlocks--) {
+	    releasewritelock(locks);
+	    locks = (int *)(*locks);
+	  }
+	  // then releas all grabbed locks for previous parameters
 	  for(j = 0; j < i; ++j) {
-	    releasewritelock(taskpointerarray[j+OFFSET]);
+	    if(((struct ___Object___ *)taskpointerarray[j+OFFSET])->numlocks == 0) {
+	      locks = taskpointerarray[j+OFFSET];
+	      numlocks = 1;
+	    } else {
+	      locks = ((struct ___Object___ *)taskpointerarray[j+OFFSET])->locks;
+	      numlocks = ((struct ___Object___ *)taskpointerarray[j+OFFSET])->numlocks;
+	    }
+	    for(; numlocks > 0; numlocks--) {
+	      releasewritelock(locks);
+	      locks = (int *)(*locks);
+	    }
 	  }
 	  genputtable(activetasks, currtpd, currtpd);
 	  if(hashsize(activetasks) == 1) {
@@ -3666,10 +3673,6 @@ newtask:
 	// flush the object
 	{
 	  raw_invalidate_cache_range((int)parameter, classsize[((struct ___Object___ *)parameter)->type]);
-	  /*int tmp = 0;
-	     for(tmp = 0; tmp < classsize[((struct ___Object___ *)parameter)->type]; ++tmp) {
-	          invalidateAddr(parameter + tmp);
-	     }*/
 	}
 #endif
 	tmpparam = (struct ___Object___ *)parameter;
@@ -3683,8 +3686,7 @@ newtask:
 	if(0 == tmpparam->isolate) {
 	  isolateflags[i] = 0;
 	  // shared object, need to flush with current value
-	  //if(!getreadlock(tmpparam->original)) {
-	  //	// fail to get read lock of the original object, try this task later
+	  // TODO: need modification according to added alias locks
 	  if(!getwritelock(tmpparam->original)) {
 	    // fail to get write lock, release all obtained locks and try this task later
 	    int j = 0;
@@ -3697,9 +3699,6 @@ newtask:
 	    goto newtask;
 	  }
 	  if(tmpparam->version != tmpparam->original->version) {
-	    // some task on another core has changed this object
-	    // flush this object
-	    //memcpy(tmpparam, tmpparam->original, classsize[tmpparam->type]);
 	    // release all obtained locks
 	    int j = 0;
 	    for(j = 0; j < i; ++j) {
@@ -3725,8 +3724,6 @@ newtask:
 		  free(enterflags);
 	      }
 	    }
-	    // try to enqueue it again to check if it feeds other tasks;
-	    //enqueueObject(tmpparam, NULL, 0);
 	    // Free up task parameter descriptor
 	    RUNFREE(currtpd->parameterArray);
 	    RUNFREE(currtpd);
@@ -3746,9 +3743,29 @@ newtask:
 #endif
 	    // release grabbed locks
 	    for(j = 0; j < i; ++j) {
-	      releasewritelock(taskpointerarray[j+OFFSET]);
+	      if(((struct ___Object___ *)taskpointerarray[j+OFFSET])->numlocks == 0) {
+		numlocks = 1;
+		locks = ((struct ___Object___ *)taskpointerarray[j+OFFSET])->locks;
+	      } else {
+		numlocks = ((struct ___Object___ *)taskpointerarray[j+OFFSET])->numlocks;
+		locks = ((struct ___Object___ *)taskpointerarray[j+OFFSET])->locks;
+	      }
+	      for(; numlocks > 0; numlocks--) {
+		releasewritelock(locks);
+		locks = (int *)(*locks);
+	      }
 	    }
-	    releasewritelock(parameter);
+	    if(((struct ___Object___ *)parameter)->numlocks == 0) {
+	      numlocks = 1;
+	      locks = parameter;
+	    } else {
+	      numlocks = ((struct ___Object___ *)parameter)->numlocks;
+	      locks = ((struct ___Object___ *)parameter)->locks;
+	    }
+	    for(; numlocks > 0; numlocks--) {
+	      releasewritelock(locks);
+	      locks = (int *)(*locks);
+	    }
 	    RUNFREE(currtpd->parameterArray);
 	    RUNFREE(currtpd);
 	    goto newtask;
@@ -3788,9 +3805,29 @@ newtask:
 	      free(enterflags);
 	    // release grabbed locks
 	    for(j = 0; j < i; ++j) {
-	      releasewritelock(taskpointerarray[j+OFFSET]);
+	      if(((struct ___Object___ *)taskpointerarray[j+OFFSET])->numlocks == 0) {
+		numlocks = 1;
+		locks = taskpointerarray[j+OFFSET];
+	      } else {
+		numlocks = ((struct ___Object___ *)taskpointerarray[j+OFFSET])->numlocks;
+		locks = ((struct ___Object___ *)taskpointerarray[j+OFFSET])->locks;
+	      }
+	      for(; numlocks > 0; numlocks--) {
+		releasewritelock(locks);
+		locks = (int *)(*locks);
+	      }
 	    }
-	    releasewritelock(parameter);
+	    if(((struct ___Object___ *)parameter)->numlocks == 0) {
+	      numlocks = 1;
+	      locks = parameter;
+	    } else {
+	      numlocks = ((struct ___Object___ *)parameter)->numlocks;
+	      locks = ((struct ___Object___ *)parameter)->locks;
+	    }
+	    for(; numlocks > 0; numlocks--) {
+	      releasewritelock(locks);
+	      locks = (int *)(*locks);
+	    }
 	    RUNFREE(currtpd->parameterArray);
 	    RUNFREE(currtpd);
 #ifdef RAWPROFILE
@@ -3886,7 +3923,7 @@ parameterpresent:
 	     }*/
 	  /* Actually call task */
 #ifdef PRECISE_GC
-	                                                                    ((int *)taskpointerarray)[0]=currtpd->numParameters;
+	                                                                          ((int *)taskpointerarray)[0]=currtpd->numParameters;
 	  taskpointerarray[1]=NULL;
 #endif
 execute:
@@ -3950,17 +3987,39 @@ execute:
 	    for(i = 0; i < numparams; ++i) {
 	      int j = 0;
 	      struct ___Object___ * tmpparam = (struct ___Object___ *)taskpointerarray[i+OFFSET];
+	      int numlocks;
+	      int * locks;
 #ifdef RAWDEBUG
 	      raw_test_pass(0xe999);
 	      raw_test_pass(0xdd100000 + tmpparam->flag);
 #endif
-	      releasewritelock(tmpparam);
+	      if(tmpparam->numlocks == 0) {
+		numlocks = 1;
+		locks = tmpparam;
+	      } else {
+		numlocks = tmpparam->numlocks;
+		locks = tmpparam->locks;
+	      }
+	      for(; numlocks > 0; numlocks--) {
+		releasewritelock(locks);
+		locks = (int *)(*locks);
+	      }
 	    }
 #elif defined THREADSIMULATE
 	    for(i = 0; i < numparams; ++i) {
 	      if(0 == isolateflags[i]) {
 		struct ___Object___ * tmpparam = (struct ___Object___ *)taskpointerarray[i+OFFSET];
-		releasewritelock(tmpparam);
+		if(tmpparam->numlocks == 0) {
+		  numlocks = 1;
+		  locks = tmpparam;
+		} else {
+		  numlocks = tmpparam->numlocks;
+		  locks = tmpparam->locks;
+		}
+		for(; numlocks > 0; numlocks--) {
+		  releasewritelock(locks);
+		  locks = (int *)(*locks);
+		}
 	      }
 	    }
 #endif

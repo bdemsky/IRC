@@ -508,8 +508,14 @@ public class SchedulingUtil {
 	  output.print(tmpTaskNode);
 	  output.print("; ");
 	}
+	keys = null;
 	output.println("}");
 	output.print("\t");
+	tmplastTasks = null;
+	tmpisTaskFinish = null;
+	tmpisset = null;
+	actions = null;
+	tmpTaskNodes = null;
       }
       output.print("\t");
       output.print("\t");
@@ -518,45 +524,49 @@ public class SchedulingUtil {
       int max = 0;
       int max2 = 0;
       for(j = 1; j < timeNodes.size(); j++) {
-	  next = Integer.parseInt(timeNodes.elementAt(j));
-	  int delta = next - prev;
-	  if(max < delta) {
-	      max2 = max;
-	      max = delta;
-	  } else if((max != delta) && (max2 < delta)) {
-	      max2 = delta;
-	  }
-	  prev = next;
+	next = Integer.parseInt(timeNodes.elementAt(j));
+	int delta = next - prev;
+	if(max < delta) {
+	  max2 = max;
+	  max = delta;
+	} else if((max != delta) && (max2 < delta)) {
+	  max2 = delta;
+	}
+	prev = next;
       }
       if(max2 == 0) {
-	  max2 = 1;
+	max2 = 1;
       } else if(max/max2 > 100) {
-	  max2 = max/100;
+	max2 = max/100;
       }
       output.println("\"Time\"->" + timeNodes.elementAt(0) + "[style=invis];");
       prev = Integer.parseInt(timeNodes.elementAt(0));
       next = 0;
       for(j = 1; j < timeNodes.size(); j++) {
-	  next = Integer.parseInt(timeNodes.elementAt(j));
-	  if(next - prev > max2) {
-	      do {
-		  output.print(prev + "->");
-		  prev += max2;
-	      }while(next - prev > max2);
-	      output.println(next + ";");
-	  } else {
-	      output.println("{rank=same; rankdir=LR; " + prev + "; " + next + "}");
-	      output.println(prev + "->" + next + "[style=invis];");
-	  }
-	  prev = next;
+	next = Integer.parseInt(timeNodes.elementAt(j));
+	if(next - prev > max2) {
+	  do {
+	    output.print(prev + "->");
+	    prev += max2;
+	  } while(next - prev > max2);
+	  output.println(next + ";");
+	} else {
+	  output.println("{rank=same; rankdir=LR; " + prev + "; " + next + "}");
+	  output.println(prev + "->" + next + "[style=invis];");
+	}
+	prev = next;
       }
-      
+
       /*for(j = 0; j < time; j++) {
-	output.print(j + "->");
-      }
-      output.println(timeNodes.lastElement() + ";");*/
+         output.print(j + "->");
+         }
+         output.println(timeNodes.lastElement() + ";");*/
       output.println("}");
       output.close();
+      timeNodes = null;
+      lastTaskNodes = null;
+      lastTasks = null;
+      isTaskFinish = null;
     } catch (Exception e) {
       e.printStackTrace();
       System.exit(-1);
