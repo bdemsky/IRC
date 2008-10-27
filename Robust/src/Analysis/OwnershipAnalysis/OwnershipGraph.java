@@ -427,6 +427,13 @@ public class OwnershipGraph {
 	ReferenceEdge edgeY = itrYhrn.next();
 	HeapRegionNode hrnY = edgeY.getDst();
 
+
+
+	// THIS IS WRONG!!!!  It doesn't always have to be a single object
+	// heap region, not when there is only one reference into the source
+	// heap region (I think!)  CHECK AND CHANGE!
+
+
 	// we can do a strong update here if one of two cases holds	
 	if( f != null &&
 	    hrnX.isSingleObject() &&
