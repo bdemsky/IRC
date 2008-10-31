@@ -1,5 +1,9 @@
 public class Math {
-  //public static final double PI=3.14159265358979323846;
+
+  public static double setPI() {
+    double PI = 3.14159265358979323846;
+    return PI;
+  }
 
   public static double fabs(double x) {
     if (x < 0) {
@@ -13,6 +17,51 @@ public class Math {
     if (a<0)
       return -a;
     else return a;
+  }
+
+  public static double max(double a, double b) {
+    if(a == b)
+      return a;
+    if(a > b) {
+      return a;
+    } else {
+      return b;
+    }
+  }
+
+  public static int imax(int a, int b) {
+    if(a == b)
+      return a;
+    if(a > b) {
+      return a;
+    } else {
+      return b;
+    }
+  }
+
+  public static int imin(int a, int b) {
+    if(a == b)
+      return a;
+    if(a > b) {
+      return b;
+    } else {
+      return a;
+    }
+  }
+
+  /** sqrt(a^2 + b^2) without under/overflow. **/
+  public static double hypot(double a, double b) {
+    double r;
+    if (fabs(a) > fabs(b)) {
+      r = b/a;
+      r = fabs(a)*sqrt(1+r*r);
+    } else if (b != 0) {
+      r = a/b;
+      r = fabs(b)*sqrt(1+r*r);
+    } else {
+      r = 0.0;
+    }
+    return r;
   }
 
   public static native double sin(double a);
