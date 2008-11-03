@@ -98,7 +98,7 @@ public class fft1d{
     outputIm = global new double[N];
 
     factorize();
-    printFactors();
+    //printFactors();
 
     // Allocate memory for intermediate result of FFT.
     temRe = global new double[maxFactor]; //Check usage of this
@@ -136,19 +136,20 @@ public class fft1d{
   public void printFactors() {
     if (factorsWerePrinted) return;
     factorsWerePrinted = true;
+    System.printString("factors.length = " + factors.length + "\n");
     for (int i = 0; i < factors.length; i++)
-      System.printString("factors[i] = " + factors[i]);
+      System.printString("factors[i] = " + factors[i] + "\n");
   }
 
   public void factorize() {
-    int radices[] = new int[6];
+    int radices[] = global new int[6];
     radices[0] = 2;
     radices[1] = 3;
     radices[2] = 4;
     radices[3] = 5;
     radices[4] = 8;
     radices[5] = 10;
-    int temFactors[] = new int[MaxFactorsNumber];
+    int temFactors[] = global new int[MaxFactorsNumber];
 
     // 1 - point FFT, no need to factorize N.
     if (N == 1) {
@@ -201,7 +202,7 @@ public class fft1d{
     //   maxFactor = 10;
 
     // Inverse temFactors and store factors into factors[].
-    factors = new int[NumofFactors];
+    factors = global new int[NumofFactors];
     for (i = 0; i < NumofFactors; i++) {
       factors[i] = temFactors[NumofFactors - i - 1];
     }
@@ -210,8 +211,8 @@ public class fft1d{
     // sofar[]  : finished factors before the current stage.
     // factors[]: factors of N processed in the current stage.
     // remain[] : finished factors after the current stage.
-    sofar = new int[NumofFactors];
-    remain = new int[NumofFactors];
+    sofar = global new int[NumofFactors];
+    remain = global new int[NumofFactors];
 
     remain[0] = N / factors[0];
     sofar[0] = 1;

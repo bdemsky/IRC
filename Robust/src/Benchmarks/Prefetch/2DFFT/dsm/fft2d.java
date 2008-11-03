@@ -12,9 +12,10 @@ public class fft2d extends Thread {
   public fft1d fft1, fft2;
   public Matrix data;
   public int x0, x1, y0, y1;
+  public double inputRe[], inputIm[];
 
   // Constructor: 2-d FFT of Complex data.
-  public fft2d(Matrix data, fft1d fft1, fft1d fft2, int x0, int x1, int y0, int y1) {
+  public fft2d(double[] inputRe, double[] inputIm, Matrix data, fft1d fft1, fft1d fft2, int x0, int x1, int y0, int y1) {
     this.data = data;
     this.x0 = x0;
     this.x1 = x1;
@@ -22,6 +23,8 @@ public class fft2d extends Thread {
     this.y1 = y1;
     this.fft1 = fft1;
     this.fft2 = fft2;
+    this.inputRe = inputRe;
+    this.inputIm = inputIm;
   }
 
   public void run() {
@@ -29,10 +32,9 @@ public class fft2d extends Thread {
     barr = new Barrier("128.195.175.84");
     double tempdataRe[][];
     double tempdataIm[][];
+    double mytemRe[][];
+    double mytemIm[][];
     int rowlength, columnlength;
-    double temRe[];// intermediate results
-    double temIm[]; 
-
 
     atomic {
       rowlength = data.M;  //height
@@ -41,8 +43,7 @@ public class fft2d extends Thread {
       tempdataIm = data.dataIm;
 
       // Calculate FFT for each row of the data.
-      // for (int i = 0; i < height; i++)
-      // fft1.fft(dataRe[i], dataIm[i]);
+      //System.printString("x0= " + x0 + " x1= " + x1 + " y0= "+ y0 + " y1= " + y1 + " width = " + columnlength + " height= " + rowlength+ "\n");
       for (int i = x0; i < x1; i++) {
         int N = fft1.N;
         if(columnlength != N) {
@@ -56,8 +57,8 @@ public class fft2d extends Thread {
           //output of FFT
           double outputRe[] = fft1.outputRe; //local array
           double outputIm[] = fft1.outputIm;
-          temRe = fft1.temRe;   // intermediate results
-          temIm = fft1.temIm;
+          double temRe[] = fft1.temRe;   // intermediate results
+          double temIm[] = fft1.temIm;
           int count[] = new int[fft1.MaxFactorsNumber];
           int j; 
           int k = 0;
@@ -86,7 +87,6 @@ public class fft2d extends Thread {
           for (int factorIndex = 0; factorIndex < fft1.NumofFactors; factorIndex++) {
             twiddle(factorIndex, fft1, temRe, temIm, outputRe, outputIm);
           }
-          //System.printString("ready to copy");
           // Copy the output[] data to input[], so the output can be
           // returned in the input array.
           for (int b = 0; b < N; b++) {
@@ -94,20 +94,20 @@ public class fft2d extends Thread {
             inputIm[b] = outputIm[b];
           }
         }
-      }
+      }//end of for
     }
+
     //Start Barrier
     Barrier.enterBarrier(barr);
 
     // Tranpose data.
-    double mytemRe[][], mytemIm[][];
     atomic {
-      tempdataRe = data.dataRe;
-      tempdataIm = data.dataIm;
+      mytemRe = new double[columnlength][rowlength];
+      mytemIm = new double[columnlength][rowlength];
       for(int i = x0; i<x1; i++) {
         double tRe[] = tempdataRe[i];
         double tIm[] = tempdataIm[i];
-        for(int j = 0; j<columnlength; j++) { //TODO Check this
+        for(int j = y0; j<y1; j++) { 
           mytemRe[j][i] = tRe[j];
           mytemIm[j][i] = tIm[j];
         }
@@ -116,13 +116,10 @@ public class fft2d extends Thread {
 
     //Start Barrier
     Barrier.enterBarrier(barr);
-   // double temRe[][] = transpose(data.dataRe);
-    //double temIm[][] = transpose(data.dataIm);
 
     // Calculate FFT for each column of the data.
     atomic {
       for (int j = y0; j < y1; j++) {
-        //fft2.fft(temRe[j], temIm[j]);
         int N = fft2.N;
         if(rowlength != N) {
           System.printString("Error: the length of real part & imaginary part " + "of the input to 1-d FFT are different");
@@ -135,8 +132,8 @@ public class fft2d extends Thread {
           //output of FFT
           double outputRe[] = fft2.outputRe; //local array
           double outputIm[] = fft2.outputIm;
-          temRe = fft2.temRe;   // intermediate results
-          temIm = fft2.temIm;
+          double temRe[] = fft2.temRe;   // intermediate results
+          double temIm[] = fft2.temIm;
           int count[] = new int[fft2.MaxFactorsNumber];
           int r; 
           int k = 0;
@@ -165,7 +162,6 @@ public class fft2d extends Thread {
           for (int factorIndex = 0; factorIndex < fft2.NumofFactors; factorIndex++) {
             twiddle(factorIndex, fft2, temRe, temIm, outputRe, outputIm);
           }
-          //System.printString("ready to copy");
           // Copy the output[] data to input[], so the output can be
           // returned in the input array.
           for (int b = 0; b < N; b++) {
@@ -182,16 +178,19 @@ public class fft2d extends Thread {
     // Tranpose data.
     // Copy the result to input[], so the output can be
     // returned in the input array.
-
-    for (int i = x0; i < x1; i++) {
+    atomic {
       for (int j = y0; j < y1; j++) {
-        tempdataRe[i][j] =  mytemRe[j][i];
-        tempdataIm[i][j] = mytemIm[j][i];
-        //inputRe[i * width + j] = temRe[j][i];
-        //inputIm[i * width + j] = temIm[j][i];
+        double tRe[] = mytemRe[j];
+        double tIm[] = mytemIm[j];
+        for (int i = x0; i < x1; i++) {
+          inputRe[i* data.N + j] = tRe[i];
+          inputIm[i* data.N + j] = tIm[i];
+        }
       }
     }
+
   }//end of run
+
 
   //("ready to twiddle");
   private void twiddle(int factorIndex, fft1d myfft, double[] temRe, double[] temIm, 
@@ -564,6 +563,8 @@ public class fft2d extends Thread {
         SIZE = Integer.parseInt(args[1]);
     }
 
+    System.printString("Num threads = " + NUM_THREADS + " SIZE= " + SIZE + "\n");
+
     // Initialize Matrix 
     // Matrix inputRe, inputIm;
 
@@ -578,6 +579,13 @@ public class fft2d extends Thread {
         inputIm[i] = i;
       }
     }
+
+    /* For testing 
+    atomic {
+      System.printString("Element 231567 is " + (int)inputRe[231567]+ "\n");
+      System.printString("Element 10 is " + (int)inputIm[10]+ "\n");
+    }
+    */
 
     int[] mid = new int[8];
     mid[0] = (128<<24)|(195<<16)|(175<<8)|84; //dw-10
@@ -596,7 +604,6 @@ public class fft2d extends Thread {
     }
     mybarr.start(mid[0]);
 
-
     // Width and height of 2-d matrix inputRe or inputIm.
     int width, height;
     width = inputWidth;
@@ -607,6 +614,7 @@ public class fft2d extends Thread {
       Imlength = inputIm.length;
     }
 
+    //System.printString("Initialized width and height\n");
     Matrix data;
     fft1d fft1, fft2;
     // First make sure inputRe & inputIm are of the same length in terms of columns
@@ -627,13 +635,13 @@ public class fft2d extends Thread {
       fft2d[] myfft2d;
       atomic {
         myfft2d = global new fft2d[NUM_THREADS];
-        int increment = SIZE/NUM_THREADS;
+        int increment = height/NUM_THREADS;
         int base = 0;
         for(int i =0 ; i<NUM_THREADS; i++) {
           if((i+1)==NUM_THREADS)
-            myfft2d[i] = global new fft2d(data, fft1, fft2, base, SIZE, 0, SIZE);
+            myfft2d[i] = global new fft2d(inputRe, inputIm, data, fft1, fft2, base, increment, 0, width);
           else
-            myfft2d[i] = global new fft2d(data, fft1, fft2, base, base+increment, 0, SIZE);
+            myfft2d[i] = global new fft2d(inputRe, inputIm, data, fft1, fft2, base, base+increment, 0, width);
           base+=increment;
         }
       }
@@ -664,19 +672,27 @@ public class fft2d extends Thread {
       }
     }
 
+    System.printString("2DFFT done! \n");
+    /* For testing 
+    atomic {
+      System.printString("Element 231567 is " + (int)inputRe[231567]+ "\n");
+      System.printString("Element 10 is " + (int)inputIm[10]+ "\n");
+    }
+    */
+
     // Display results
     // Tranpose data.
     // Copy the result to input[], so the output can be
     // returned in the input array.
+    /* For testing
     atomic {
       for (int i = 0; i < height; i++) {
         for (int j = 0; j < width; j++) {
-          //inputRe[i * width + j] = temRe[j][i];
-          System.printInt((int)inputRe[i * width + j]);
-          //inputIm[i * width + j] = temIm[j][i];
-          System.printInt((int)inputIm[i * width + j]);
+          System.printString((int)inputRe[i * width + j]+ "\n");
+          System.printString((int)inputIm[i * width + j]+ "\n");
         }
       }
     }
+    */
   }
 }
