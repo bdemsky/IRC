@@ -128,6 +128,8 @@ typedef struct task_info {
   char* taskName;
   int startTime;
   int endTime;
+  int exitIndex;
+  struct Queue * newObjs; 
 } TaskInfo;
 
 /*typedef struct interrupt_info {
@@ -435,6 +437,8 @@ void run(void* arg) {
 	  taskInfo->taskName = "objqueue checking";
 	  taskInfo->startTime = raw_get_cycle();
 	  taskInfo->endTime = -1;
+	  taskInfo->exitIndex = -1;
+	  taskInfo->newObjs = NULL;
 	}
 	isChecking = true;
       }
@@ -1898,15 +1902,42 @@ void outputProfileData() {
 
   if((fp = fopen(fn, "w+")) == NULL) {
     fprintf(stderr, "fopen error\n");
-    return -1;
+    return;
   }
 
-  fprintf(fp, "Task Name, Start Time, End Time, Duration\n");
+  fprintf(fp, "Task Name, Start Time, End Time, Duration, Exit Index(, NewObj Name, Num)+\n");
   // output task related info
   for(i = 0; i < taskInfoIndex; i++) {
     TaskInfo* tmpTInfo = taskInfoArray[i];
     int duration = tmpTInfo->endTime - tmpTInfo->startTime;
-    fprintf(fp, "%s, %d, %d, %d\n", tmpTInfo->taskName, tmpTInfo->startTime, tmpTInfo->endTime, duration);
+    fprintf(fp, "%s, %d, %d, %d, %d", tmpTInfo->taskName, tmpTInfo->startTime, tmpTInfo->endTime, duration, tmpTInfo->exitIndex);
+	// summarize new obj info
+	if(tmpTInfo->newObjs != NULL) {
+		struct RuntimeHash * nobjtbl = allocateRuntimeHash(5);
+		struct RuntimeIterator * iter = NULL;
+		while(0 == isEmpty(tmpTInfo->newObjs)) {
+			char * objtype = (char *)(getItem(tmpTInfo->newObjs));
+			if(RuntimeHashcontainskey(nobjtbl, (int)(objtype))) {
+				int num = 0;
+				RuntimeHashget(nobjtbl, (int)objtype, &num);
+				RuntimeHashremovekey(nobjtbl, (int)objtype);
+				num++;
+				RuntimeHashadd(nobjtbl, (int)objtype, num);
+			} else {
+				RuntimeHashadd(nobjtbl, (int)objtype, 1);
+			}
+			//fprintf(stderr, "new obj!\n");
+		}
+
+		// output all new obj info
+		iter = RuntimeHashcreateiterator(nobjtbl);
+		while(RunhasNext(iter)) {
+			char * objtype = (char *)Runkey(iter);
+			int num = Runnext(iter);
+			fprintf(fp, ", %s, %d", objtype, num);
+		}
+	}
+	fprintf(fp, "\n");
     if(strcmp(tmpTInfo->taskName, "tpd checking") == 0) {
       preprocessingtime += duration;
     } else if(strcmp(tmpTInfo->taskName, "post task execution") == 0) {
@@ -1954,6 +1985,37 @@ void outputProfileData() {
     raw_test_pass(0xdddb);
     raw_test_pass_reg(tmpTInfo->startTime);
     raw_test_pass_reg(tmpTInfo->endTime);
+	raw_test_pass_reg(tmpTInfo->exitIndex);
+	if(tmpTInfo->newObjs != NULL) {
+		struct RuntimeHash * nobjtbl = allocateRuntimeHash(5);
+		struct RuntimeIterator * iter = NULL;
+		while(0 == isEmpty(tmpTInfo->newObjs)) {
+			char * objtype = (char *)(getItem(tmpTInfo->newObjs));
+			if(RuntimeHashcontainskey(nobjtbl, (int)(objtype))) {
+				int num = 0;
+				RuntimeHashget(nobjtbl, (int)objtype, &num);
+				RuntimeHashremovekey(nobjtbl, (int)objtype);
+				num++;
+				RuntimeHashadd(nobjtbl, (int)objtype, num);
+			} else {
+				RuntimeHashadd(nobjtbl, (int)objtype, 1);
+			}
+		}
+
+		// ouput all new obj info
+		iter = RuntimeHashcreateiterator(nobjtbl);
+		while(RunhasNext(iter)) {
+			char * objtype = (char *)Runkey(iter);
+			int num = Runnext(iter);
+			int nameLen = strlen(objtype);
+			raw_test_pass(0xddda);
+			for(j = 0; j < nameLen; j++) {
+				raw_test_pass_reg(objtype[j]);
+			}
+			raw_test_pass(0xdddb);
+			raw_test_pass_reg(num);
+		}
+	}
     raw_test_pass(0xdddc);
   }
 
@@ -1976,6 +2038,17 @@ void outputProfileData() {
 
   raw_test_pass(0xeeee);
 #endif
+}
+
+inline void setTaskExitIndex(int index) {
+	taskInfoArray[taskInfoIndex]->exitIndex = index;
+}
+
+inline void addNewObjInfo(void * nobj) {
+	if(taskInfoArray[taskInfoIndex]->newObjs == NULL) {
+		taskInfoArray[taskInfoIndex]->newObjs = createQueue();
+	}
+	addNewItem(taskInfoArray[taskInfoIndex]->newObjs, nobj);
 }
 #endif
 
@@ -3548,6 +3621,8 @@ newtask:
 	checkTaskInfo->taskName = "tpd checking";
 	checkTaskInfo->startTime = raw_get_cycle();
 	checkTaskInfo->endTime = -1;
+	checkTaskInfo->exitIndex = -1;
+	checkTaskInfo->newObjs = NULL;
       }
 #endif
       currtpd=(struct taskparamdescriptor *) getfirstkey(activetasks);
@@ -3945,6 +4020,8 @@ execute:
 	    taskInfo->taskName = currtpd->task->name;
 	    taskInfo->startTime = raw_get_cycle();
 	    taskInfo->endTime = -1;
+		taskInfo->exitIndex = -1;
+		taskInfo->newObjs = NULL;
 	  }
 #endif
 
@@ -3975,6 +4052,8 @@ execute:
 	    postTaskInfo->taskName = "post task execution";
 	    postTaskInfo->startTime = raw_get_cycle();
 	    postTaskInfo->endTime = -1;
+		postTaskInfo->exitIndex = -1;
+		postTaskInfo->newObjs = NULL;
 	  }
 #endif
 #ifdef RAWDEBUG

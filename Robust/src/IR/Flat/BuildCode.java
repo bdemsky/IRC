@@ -442,6 +442,8 @@ public class BuildCode {
 	outclassdefs.println("  int isolate;");        // indicate if this object is shared or not
 	outclassdefs.println("  int version;");
 	outclassdefs.println("  struct ___Object___ * original;");
+	outclassdefs.println("  int numlocks;");        // array for locks
+	outclassdefs.println("  int * locks;");
       }
       if(state.OPTIONAL) {
 	outclassdefs.println("  int numfses;");
@@ -1042,6 +1044,8 @@ public class BuildCode {
 	classdefout.println("  int isolate;");        // indicate if this object is shared or not
 	classdefout.println("  int version;");
 	classdefout.println("  struct ___Object___ * original;");
+	classdefout.println("  int numlocks;");        // array for locks
+	classdefout.println("  int * locks;");
       }
       if (state.OPTIONAL) {
 	classdefout.println("  int numfses;");
@@ -2131,7 +2135,7 @@ public class BuildCode {
       output.println("(("+type +"*)(((char *) &("+ generateTemp(fm,fsen.getDst(),lb)+"->___length___))+sizeof(int)))["+generateTemp(fm, fsen.getIndex(),lb)+"]="+generateTemp(fm,fsen.getSrc(),lb)+";");
   }
 
-  private void generateFlatNew(FlatMethod fm, LocalityBinding lb, FlatNew fn, PrintWriter output) {
+  protected void generateFlatNew(FlatMethod fm, LocalityBinding lb, FlatNew fn, PrintWriter output) {
     if (state.DSM && locality.getAtomic(lb).get(fn).intValue()>0&&!fn.isGlobal()) {
       //Stash pointer in case of GC
       String revertptr=generateTemp(fm, reverttable.get(lb),lb);

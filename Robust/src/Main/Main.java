@@ -6,6 +6,7 @@ import java.io.Reader;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.FileInputStream;
+import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.Set;
 import java.util.Vector;
@@ -278,6 +279,7 @@ public class Main {
 		}
 	      }
 	    }
+	    fss = null;
 	  }
 	}
 
@@ -292,8 +294,10 @@ public class Main {
 	    System.exit(-1);
 	  }
 	  String profiledata = new String(b, 0, length);
-	  java.util.Hashtable<String, Integer> taskinfo = new java.util.Hashtable<String, Integer>();
+	  java.util.Hashtable<String, TaskInfo> taskinfos = new java.util.Hashtable<String, TaskInfo>();
 
+	  // profile data format:
+	  //   taskname, numoftaskexits(; exetime, probability, numofnewobjtypes(, newobj type, num of objs)+)+
 	  int inindex = profiledata.indexOf('\n');
 	  while((inindex != -1) ) {
 	    String inline = profiledata.substring(0, inindex);
@@ -308,8 +312,76 @@ public class Main {
 	    while(inint.startsWith(" ")) {
 	      inint = inint.substring(1);
 	    }
-	    int duration = Integer.parseInt(inint);
-	    taskinfo.put(inname, duration);
+	    tmpinindex = inint.indexOf(';');
+	    int numofexits = Integer.parseInt(inint.substring(0, tmpinindex));
+	    TaskInfo tinfo = new TaskInfo(numofexits);
+	    inint = inint.substring(tmpinindex + 1);
+	    while(inint.startsWith(" ")) {
+		inint = inint.substring(1);
+	    }
+	    for(int i = 0; i < numofexits; i++) {
+		String tmpinfo = null;
+		if(i < numofexits - 1) {
+		    tmpinindex = inint.indexOf(';');
+		    tmpinfo = inint.substring(0, tmpinindex);
+		    inint = inint.substring(tmpinindex + 1);
+		    while(inint.startsWith(" ")) {
+			inint = inint.substring(1);
+		    }
+		} else {
+		    tmpinfo = inint;
+		}
+		
+		tmpinindex = tmpinfo.indexOf(',');
+		tinfo.m_exetime[i] = Integer.parseInt(tmpinfo.substring(0, tmpinindex));
+		tmpinfo = tmpinfo.substring(tmpinindex + 1);
+		while(tmpinfo.startsWith(" ")) {
+		    tmpinfo = tmpinfo.substring(1);
+		}
+		tmpinindex = tmpinfo.indexOf(',');
+		tinfo.m_probability[i] = Double.parseDouble(tmpinfo.substring(0, tmpinindex));
+		tmpinfo = tmpinfo.substring(tmpinindex + 1);
+		while(tmpinfo.startsWith(" ")) {
+		    tmpinfo = tmpinfo.substring(1);
+		}
+		tmpinindex = tmpinfo.indexOf(',');
+		int numofnobjs = 0;
+		if(tmpinindex == -1) {
+		    numofnobjs = Integer.parseInt(tmpinfo);
+		    if(numofnobjs != 0) {
+			System.err.println("Error profile data format!");
+			System.exit(-1);
+		    }
+		} else {
+		    tinfo.m_newobjinfo.setElementAt(new Hashtable<String,Integer>(), i);
+		    numofnobjs = Integer.parseInt(tmpinfo.substring(0, tmpinindex));
+		    tmpinfo = tmpinfo.substring(tmpinindex + 1);
+		    while(tmpinfo.startsWith(" ")) {
+			tmpinfo = tmpinfo.substring(1);
+		    }
+		    for(int j = 0; j < numofnobjs; j++) {
+			tmpinindex = tmpinfo.indexOf(',');
+			String nobjtype = tmpinfo.substring(0, tmpinindex);
+			tmpinfo = tmpinfo.substring(tmpinindex + 1);
+			while(tmpinfo.startsWith(" ")) {
+			    tmpinfo = tmpinfo.substring(1);
+			}
+			int objnum = 0;
+			if(j < numofnobjs - 1) {
+			    tmpinindex = tmpinfo.indexOf(',');
+			    objnum  = Integer.parseInt(tmpinfo.substring(0, tmpinindex));
+			    tmpinfo = tmpinfo.substring(tmpinindex + 1);
+			    while(tmpinfo.startsWith(" ")) {
+				tmpinfo = tmpinfo.substring(1);
+			    }
+			} else {
+			    objnum = Integer.parseInt(tmpinfo);
+			}
+			tinfo.m_newobjinfo.elementAt(i).put(nobjtype, objnum);
+		    }
+		}
+	    }
+	    taskinfos.put(inname, tinfo);
 	    inindex = profiledata.indexOf('\n');
 	  }
 
@@ -331,40 +403,18 @@ public class Main {
 		      int total = 100;
 		      for(int j = 0; j < numEdges; j++) {
 			FEdge pfe = fev.elementAt(j);
-			if(numEdges - j == 1) {
-			  pfe.setProbability(total);
-			} else {
-			  if((total != 0) && (total != 1)) {
-			    do {
-			      tint = r.nextInt()%total;
-			    } while(tint <= 0);
-			  }
-			  pfe.setProbability(tint);
-			  total -= tint;
+			tint = taskinfos.get(td.getSymbol()).m_exetime[pfe.getTaskExitIndex()];
+			pfe.setExeTime(tint);
+			double idouble = taskinfos.get(td.getSymbol()).m_probability[pfe.getTaskExitIndex()];
+			pfe.setProbability(idouble);
+			int newRate = 0;
+			if((taskinfos.get(td.getSymbol()).m_newobjinfo.elementAt(pfe.getTaskExitIndex()) != null)
+				&& (taskinfos.get(td.getSymbol()).m_newobjinfo.elementAt(pfe.getTaskExitIndex()).containsKey(cd.getSymbol()))) {
+			    newRate = taskinfos.get(td.getSymbol()).m_newobjinfo.elementAt(pfe.getTaskExitIndex()).get(cd.getSymbol());
 			}
-			//do {
-			//   tint = r.nextInt()%10;
-			//  } while(tint <= 0);
-			//int newRate = tint;
-			//int newRate = (j+1)%2+1;
-			int newRate = 1;
-			String cdname = cd.getSymbol();
-			if((cdname.equals("SeriesRunner")) ||
-			   (cdname.equals("MDRunner")) ||
-			   (cdname.equals("Stage")) ||
-			   (cdname.equals("AppDemoRunner")) ||
-			   (cdname.equals("FilterBankAtom"))) {
-			  newRate = 16;
-			} else if(cdname.equals("SentenceParser")) {
-			  newRate = 4;
-			}
-			//do {
-			//    tint = r.nextInt()%100;
-			//   } while(tint <= 0);
-			//   int probability = tint;
-			int probability = 100;
-			pfe.addNewObjInfo(cd, newRate, probability);
+			pfe.addNewObjInfo(cd, newRate, idouble);
 		      }
+		      fev = null;
 		    }
 		  }
 		}
@@ -375,39 +425,16 @@ public class Main {
 		Iterator it_edges = fs.edges();
 		int total = 100;
 		while(it_edges.hasNext()) {
-		  //do {
-		  //    tint = r.nextInt()%10;
-		  //   } while(tint <= 0);
 		  FEdge edge = (FEdge)it_edges.next();
-		  tint = taskinfo.get(edge.getTask().getSymbol()).intValue();
+		  tint = taskinfos.get(edge.getTask().getSymbol()).m_exetime[edge.getTaskExitIndex()];
 		  edge.setExeTime(tint);
-		  if((fs.getClassDescriptor().getSymbol().equals("MD")) && (edge.getTask().getSymbol().equals("t6"))) {
-		    if(edge.isbackedge()) {
-		      if(edge.getTarget().equals(edge.getSource())) {
-			edge.setProbability(93.75);
-		      } else {
-			edge.setProbability(3.125);
-		      }
-		    } else {
-		      edge.setProbability(3.125);
-		    }
-		    continue;
-		  }
-		  if(!it_edges.hasNext()) {
-		    edge.setProbability(total);
-		  } else {
-		    if((total != 0) && (total != 1)) {
-		      do {
-			tint = r.nextInt()%total;
-		      } while(tint <= 0);
-		    }
-		    edge.setProbability(tint);
-		    total -= tint;
-		  }
+		  double idouble = taskinfos.get(edge.getTask().getSymbol()).m_probability[edge.getTaskExitIndex()];
+		  edge.setProbability(idouble);
 		}
 	      }
 	    }
 	  }
+	  taskinfos = null;
 	} else {
 	  // for test
 	  // Randomly set the newRate and probability of FEdges
@@ -463,6 +490,7 @@ public class Main {
 			int probability = 100;
 			pfe.addNewObjInfo(cd, newRate, probability);
 		      }
+		      fev = null;
 		    }
 		  }
 		}
@@ -577,6 +605,7 @@ public class Main {
 	  } else if(tmpTime == processTime) {
 	    selectedScheduling.add(index);
 	  }
+	  scheduling = null;
 	  index++;
 	}
 	System.out.print("Selected schedulings with least exectution time " + processTime + ": \n\t");
@@ -633,7 +662,9 @@ public class Main {
 	  BuildCodeMultiCore bcm=new BuildCodeMultiCore(state, bf.getMap(), tu, sa, scheduling, scheduleAnalysis.getCoreNum(), pa);
 	  bcm.setOwnershipAnalysis(oa);
 	  bcm.buildCode();
+	  scheduling = null;
 	}
+	selectedScheduling = null;
       }
 
     }
@@ -698,5 +729,22 @@ public class Main {
       System.out.println("Error parsing "+sourcefile);
       System.exit(l.numErrors());
     }
+  }
+  
+  static class TaskInfo {
+      public int m_numofexits;
+      public int[] m_exetime;
+      public double[] m_probability;
+      public Vector<Hashtable<String, Integer>> m_newobjinfo;
+      
+      public TaskInfo(int numofexits) {
+	  this.m_numofexits = numofexits;
+	  this.m_exetime = new int[this.m_numofexits];
+	  this.m_probability = new double[this.m_numofexits];
+	  this.m_newobjinfo = new Vector<Hashtable<String, Integer>>();
+	  for(int i = 0; i < this.m_numofexits; i++) {
+	      this.m_newobjinfo.add(null);
+	  }
+      }
   }
 }

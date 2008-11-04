@@ -911,6 +911,12 @@ public class BuildCodeMultiCore extends BuildCode {
 	               ", " + qinfo.length + ");");
 	output.println("}");
       }
+      if(ffan.getTaskType()==FlatFlagActionNode.TASKEXIT) {
+	  // generate codes for profiling, recording which task exit it is
+	  output.println("#ifdef RAWPROFILE");
+	  output.println("setTaskExitIndex(" + ffan.getTaskExitIndex() + ");");
+	  output.println("#endif");
+      }
     }
   }
 
@@ -1267,12 +1273,15 @@ public class BuildCodeMultiCore extends BuildCode {
 
   protected void outputTransCode(PrintWriter output) {
     output.println("while(0 == isEmpty(totransobjqueue)) {");
-    output.println("   struct QueueItem * totransitem = getTail(totransobjqueue);");
-
-    output.println("   transferObject((struct transObjInfo *)(totransitem->objectptr));");
-    output.println("   RUNFREE(((struct transObjInfo *)(totransitem->objectptr))->queues);");
-    output.println("   RUNFREE(totransitem->objectptr);");
-    output.println("   removeItem(totransobjqueue, totransitem);");
+    //output.println("   struct QueueItem * totransitem = getTail(totransobjqueue);");
+    //output.println("   transferObject((struct transObjInfo *)(totransitem->objectptr));");
+    //output.println("   RUNFREE(((struct transObjInfo *)(totransitem->objectptr))->queues);");
+    //output.println("   RUNFREE(totransitem->objectptr);");
+    //output.println("   removeItem(totransobjqueue, totransitem);");
+    output.println("   struct transObjInfo * totransobj = (struct transObjInfo *)(getItem(totransobjqueue));");
+    output.println("   transferObject(totransobj);");
+    output.println("   RUNFREE(totransobj->queues);");
+    output.println("   RUNFREE(totransobj);");
     output.println("}");
     output.println("freeQueue(totransobjqueue);");
   }
@@ -1600,6 +1609,12 @@ public class BuildCodeMultiCore extends BuildCode {
       for(int i = 0; i < tmpv.size(); i++) {
 	output.println("addAliasLock(" + super.generateTemp(fm, fn.getDst(), lb) + ", aliaslocks[" + tmpv.elementAt(i).intValue() + "]);");
       }
+    }
+    // generate codes for profiling, recording how many new objects are created
+    if((fn.getType().getClassDesc() != null) && (fn.getType().getClassDesc().hasFlags())) {
+	output.println("#ifdef RAWPROFILE");
+	output.println("addNewObjInfo(\"" + fn.getType().getClassDesc().getSymbol() + "\");");
+	output.println("#endif");
     }
   }
 

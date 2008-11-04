@@ -939,6 +939,7 @@ public class BuildFlat {
 
   private NodePair flattenTaskExitNode(TaskExitNode ten) {
     FlatFlagActionNode ffan=new FlatFlagActionNode(FlatFlagActionNode.TASKEXIT);
+    ffan.setTaskExitIndex(ten.getTaskExitIndex());
     updateFlagActionNode(ffan, ten.getFlagEffects());
     NodePair fcn=flattenConstraintCheck(ten.getChecks());
     ffan.addNext(fcn.getBegin());

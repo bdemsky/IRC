@@ -105,6 +105,9 @@ public class ScheduleSimulator {
 	this.cores.add(new CoreSimulator(FIFORSchedule.getFIFORSchedule(), i));
       }
     }
+    if(this.checkpoints != null) {
+	this.checkpoints.clear();
+    }
 
     applyScheduling();
   }
@@ -140,9 +143,9 @@ public class ScheduleSimulator {
 
     if(this.checkpoints == null) {
       this.checkpoints = new Vector<CheckPoint>();
-    } else {
+    } /*else {
       this.checkpoints.clear();
-    }
+    }*/
 
     this.processTime = 0;
 
@@ -385,6 +388,9 @@ public class ScheduleSimulator {
     for(int j = 0; j < this.cores.size(); j++) {
       System.out.println("\t\tcore" + j + ": " + getUtility(j) + "%");
     }
+    
+    this.checkpoints.clear();
+    this.checkpoints = null;
     return this.processTime;
   }
 

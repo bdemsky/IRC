@@ -18,10 +18,11 @@ public class FEdge extends Edge {
   private int invokeNum;
   private int expInvokeNum;
   private boolean m_isbackedge;
+  private int m_taskexitindex;
 
   public class NewObjInfo {
     int newRate;
-    int probability;
+    double probability;
     FlagState root;
     int invokeNum;
 
@@ -32,7 +33,7 @@ public class FEdge extends Edge {
       invokeNum = 0;
     }
 
-    public NewObjInfo(int newRate, int probability) {
+    public NewObjInfo(int newRate, double probability) {
       this.newRate = newRate;
       this.probability = probability;
     }
@@ -45,11 +46,11 @@ public class FEdge extends Edge {
       this.newRate = newRate;
     }
 
-    public int getProbability() {
+    public double getProbability() {
       return this.probability;
     }
 
-    public void setProbability(int probability) {
+    public void setProbability(double probability) {
       this.probability = probability;
     }
 
@@ -97,6 +98,15 @@ public class FEdge extends Edge {
     this.invokeNum = 0;
     this.expInvokeNum = 0;
     this.m_isbackedge = false;
+    this.m_taskexitindex = 0;
+  }
+
+  public int getTaskExitIndex() {
+      return m_taskexitindex;
+  }
+
+  public void setTaskExitIndex(int taskexitindex) {
+      this.m_taskexitindex = taskexitindex;
   }
 
   public double getProbability() {
@@ -178,7 +188,7 @@ public class FEdge extends Edge {
     return this.newObjInfos.get(cd);
   }
 
-  public void addNewObjInfo(ClassDescriptor cd, int newRate, int probability) {
+  public void addNewObjInfo(ClassDescriptor cd, int newRate, double probability) {
     if(this.newObjInfos == null) {
       this.newObjInfos = new Hashtable<ClassDescriptor, NewObjInfo>();
     }

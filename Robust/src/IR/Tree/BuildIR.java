@@ -5,9 +5,14 @@ import java.util.*;
 
 public class BuildIR {
   State state;
+  
+  private int m_taskexitnum;
+  
   public BuildIR(State state) {
     this.state=state;
+    this.m_taskexitnum = 0;
   }
+  
   public void buildtree() {
     for(Iterator it=state.parsetrees.iterator(); it.hasNext();) {
       ParseNode pn=(ParseNode)it.next();
@@ -560,6 +565,7 @@ public class BuildIR {
   }
 
   public BlockNode parseBlock(ParseNode pn) {
+      this.m_taskexitnum = 0;
     if (pn==null||isEmpty(pn.getTerminal()))
       return new BlockNode();
     ParseNode bsn=pn.getChild("block_statement_list");
@@ -636,7 +642,7 @@ public class BuildIR {
       if (pn.getChild("cons_checks")!=null)
 	ccs=parseChecks(pn.getChild("cons_checks"));
 
-      blockstatements.add(new TaskExitNode(vfe, ccs));
+      blockstatements.add(new TaskExitNode(vfe, ccs, this.m_taskexitnum++));
     } else if (isNode(pn,"atomic")) {
       BlockNode bn=parseBlockHelper(pn);
       blockstatements.add(new AtomicNode(bn));

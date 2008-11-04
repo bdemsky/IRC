@@ -21,6 +21,7 @@ public class FlatFlagActionNode extends FlatNode {
   Hashtable<ClassDescriptor, Vector<FlagState>> cd2fs4new;
   Hashtable<FlagState, Vector<FlagState>> fs2fs;
 
+  int m_taskexitindex;
 
   public FlatFlagActionNode(int taskexit) {
     tempflagpairs=new Hashtable<TempFlagPair, Boolean>();
@@ -30,6 +31,15 @@ public class FlatFlagActionNode extends FlatNode {
     this.cd2initfs = null;
     this.cd2fs4new = null;
     this.fs2fs = null;
+    this.m_taskexitindex = 0;
+  }
+
+  public int getTaskExitIndex() {
+      return m_taskexitindex;
+  }
+
+  public void setTaskExitIndex(int taskexitindex) {
+      this.m_taskexitindex = taskexitindex;
   }
 
   public int getTaskType() {

@@ -114,6 +114,10 @@ void flagorandinit(void * ptr, int ormask, int andmask);
 void enqueueObject(void * ptr, struct parameterwrapper ** queues, int length);
 #ifdef RAW
 void enqueueObject_I(void * ptr, struct parameterwrapper ** queues, int length);
+#ifdef RAWPROFILE
+inline void setTaskExitIndex(int index);
+inline void addNewObjInfo(void * nobj);
+#endif
 #endif
 void addAliasLock(void * ptr, int lock);
 #else

@@ -4,9 +4,12 @@ import java.util.Vector;
 public class TaskExitNode extends BlockStatementNode {
   Vector vfe;
   Vector ccs;
-  public TaskExitNode(Vector vfe, Vector ccs) {
+  int m_taskexitindex;
+  
+  public TaskExitNode(Vector vfe, Vector ccs, int taskexitindex) {
     this.vfe=vfe;
     this.ccs=ccs;
+    this.m_taskexitindex = taskexitindex;
   }
 
   public String printNode(int indent) {
@@ -23,5 +26,9 @@ public class TaskExitNode extends BlockStatementNode {
 
   public int kind() {
     return Kind.TaskExitNode;
+  }
+
+  public int getTaskExitIndex() {
+      return m_taskexitindex;
   }
 }

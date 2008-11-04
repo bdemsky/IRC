@@ -26,7 +26,7 @@ public class ScheduleEdge extends Edge {
   private ClassNode sourceCNode;
   private ClassNode targetCNode;
 
-  private int probability;
+  private double probability;
   private int transTime;
   private int listExeTime;
 
@@ -77,7 +77,7 @@ public class ScheduleEdge extends Edge {
     if(ScheduleEdge.NEWEDGE == this.type) {
       completeLabel += ":" + Integer.toString(this.newRate);
     }
-    completeLabel += ":(" + Integer.toString(this.probability) + "%)" + ":[" + Integer.toString(this.transTime) + "]";
+    completeLabel += ":(" + Double.toString(this.probability) + "%)" + ":[" + Integer.toString(this.transTime) + "]";
     return completeLabel;
   }
 
@@ -108,7 +108,7 @@ public class ScheduleEdge extends Edge {
     return this.targetFState;
   }
 
-  public int getProbability() {
+  public double getProbability() {
     return this.probability;
   }
 
@@ -170,7 +170,7 @@ public class ScheduleEdge extends Edge {
 
   public int hashCode() {
     int hashcode = gid^uid^label.hashCode()^target.hashCode()^source.hashCode()^fstate.hashCode()^
-                   sourceCNode.hashCode()^targetCNode.hashCode()^newRate^probability^
+                   sourceCNode.hashCode()^targetCNode.hashCode()^newRate^(int)probability^
                    type^transTime^listExeTime;
     if(targetFState != null) {
       hashcode ^= targetFState.hashCode();
@@ -181,7 +181,7 @@ public class ScheduleEdge extends Edge {
     return hashcode;
   }
 
-  public void setProbability(int prob) {
+  public void setProbability(double prob) {
     this.probability = prob;
   }
 

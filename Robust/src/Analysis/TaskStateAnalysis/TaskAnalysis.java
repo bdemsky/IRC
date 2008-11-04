@@ -247,6 +247,7 @@ public class TaskAnalysis {
 	      //seen this node already
 	      fs_taskexit=canonicalizeFlagState(sourcenodes,fs_taskexit);
 	      FEdge newedge=new FEdge(fs_taskexit,taskname, td, parameterindex);
+	      newedge.setTaskExitIndex(ffan.getTaskExitIndex());
 	      ((Vector<FEdge>)tdToFEdges.get(td)).add(newedge);
 	      fs.addEdge(newedge);
 
