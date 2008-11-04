@@ -1,5 +1,5 @@
 public class Matrix {
-  public int M, N; //M = height, N = width
+  public int M, N; //M = column, N = row
   public double[][] dataRe;
   public double[][] dataIm;
 
@@ -10,13 +10,24 @@ public class Matrix {
     dataIm = global new double[M][N];
   }
 
-  public void setValues(double[] inputRe, double[] inputIm) {
+  public void setValues() {
     for (int i = 0; i<M; i++) {
       double dataRei[] = dataRe[i];
       double dataImi[] = dataIm[i];
       for(int j = 0; j<N; j++) {
-        dataRei[j] = inputRe[i * N +j];
-        dataImi[j] = inputIm[i * N +j];
+	dataRei[j] = j + 1;
+	dataImi[j] = j + 1;
+      }
+    }
+  }
+
+  public void setZeros() {
+    for (int i = 0; i<M; i++) {
+      double dataRei[] = dataRe[i];
+      double dataImi[] = dataIm[i];
+      for(int j = 0; j<N; j++) {
+	dataRei[j] = 0;
+	dataImi[j] = 0;
       }
     }
   }
@@ -27,7 +38,7 @@ public class Matrix {
 
     for (int j = 0; j < N; j++)
       for (int i = 0; i < M; i++)
-        output[j][i] = input[i][j];
+	output[j][i] = input[i][j];
 
     return output;
   } // End of function transpose().

@@ -9,92 +9,45 @@ public class fft2d extends Thread {
   //
   // Code borrowed from :Java Digital Signal Processing book by Lyon and Rao
 
-  public fft1d fft1, fft2;
-  public Matrix data;
+  public Matrix data1, data2;
   public int x0, x1, y0, y1;
-  public double inputRe[], inputIm[];
 
   // Constructor: 2-d FFT of Complex data.
-  public fft2d(double[] inputRe, double[] inputIm, Matrix data, fft1d fft1, fft1d fft2, int x0, int x1, int y0, int y1) {
-    this.data = data;
+  public fft2d(Matrix data1, Matrix data2, int x0, int x1, int y0, int y1) {
+    this.data1 = data1;
+    this.data2 = data2;
     this.x0 = x0;
     this.x1 = x1;
     this.y0 = y0;
     this.y1 = y1;
-    this.fft1 = fft1;
-    this.fft2 = fft2;
-    this.inputRe = inputRe;
-    this.inputIm = inputIm;
   }
 
   public void run() {
+    fft1d fft1, fft2;
     Barrier barr;
     barr = new Barrier("128.195.175.84");
     double tempdataRe[][];
     double tempdataIm[][];
-    double mytemRe[][];
-    double mytemIm[][];
     int rowlength, columnlength;
+    int start, end;
 
+    // Calculate FFT for each row of the data.
     atomic {
-      rowlength = data.M;  //height
-      columnlength = data.N; //width
-      tempdataRe = data.dataRe;
-      tempdataIm = data.dataIm;
+      rowlength = data1.M;
+      columnlength = data1.N;
+      tempdataRe = data1.dataRe;
+      tempdataIm = data1.dataIm;
+      start = x0;
+      end = x1;
 
-      // Calculate FFT for each row of the data.
-      //System.printString("x0= " + x0 + " x1= " + x1 + " y0= "+ y0 + " y1= " + y1 + " width = " + columnlength + " height= " + rowlength+ "\n");
+      fft1 = new fft1d(columnlength);
+      fft2 = new fft1d(rowlength);
       for (int i = x0; i < x1; i++) {
-        int N = fft1.N;
-        if(columnlength != N) {
-          System.printString("Error: the length of real part & imaginary part " + "of the input to 1-d FFT are different");
-          return;
-        } else {
-          //Permute() operation on fft1
-          //input of FFT
-          double inputRe[] = tempdataRe[i]; //local array
-          double inputIm[] = tempdataIm[i];
-          //output of FFT
-          double outputRe[] = fft1.outputRe; //local array
-          double outputIm[] = fft1.outputIm;
-          double temRe[] = fft1.temRe;   // intermediate results
-          double temIm[] = fft1.temIm;
-          int count[] = new int[fft1.MaxFactorsNumber];
-          int j; 
-          int k = 0;
-          for(int a = 0; a < N-1; a++) {
-            outputRe[a] = inputRe[k];
-            outputIm[a] = inputIm[k];
-            j = 0;
-            k = k + fft1.remain[j];
-            count[0] = count[0] + 1;
-            while (count[j] >= fft1.factors[j]) {
-              count[j] = 0;
-              int tmp;
-              if(j == 0) 
-                tmp = N;
-              else
-                tmp = fft1.remain[j - 1];
-              k = k - tmp + fft1.remain[j + 1];
-              j++;
-              count[j] = count[j] + 1;
-            }
-          }
-          outputRe[N - 1] = inputRe[N - 1];
-          outputIm[N - 1] = inputIm[N - 1];
-
-          //Twiddle oeration on fft1
-          for (int factorIndex = 0; factorIndex < fft1.NumofFactors; factorIndex++) {
-            twiddle(factorIndex, fft1, temRe, temIm, outputRe, outputIm);
-          }
-          // Copy the output[] data to input[], so the output can be
-          // returned in the input array.
-          for (int b = 0; b < N; b++) {
-            inputRe[b] = outputRe[b];
-            inputIm[b] = outputIm[b];
-          }
-        }
-      }//end of for
+	//input of FFT
+	double inputRe[] = tempdataRe[i]; //local array
+	double inputIm[] = tempdataIm[i];
+	fft(fft1, inputRe, inputIm);
+      } //end of for
     }
 
     //Start Barrier
@@ -102,15 +55,17 @@ public class fft2d extends Thread {
 
     // Tranpose data.
     atomic {
-      mytemRe = new double[columnlength][rowlength];
-      mytemIm = new double[columnlength][rowlength];
-      for(int i = x0; i<x1; i++) {
-        double tRe[] = tempdataRe[i];
-        double tIm[] = tempdataIm[i];
-        for(int j = y0; j<y1; j++) { 
-          mytemRe[j][i] = tRe[j];
-          mytemIm[j][i] = tIm[j];
-        }
+      if(x0 == 0) {
+	for(int i = 0; i<rowlength; i++) {
+	  double tRe[] = tempdataRe[i];
+	  double tIm[] = tempdataIm[i];
+	  for(int j = 0; j<columnlength; j++) {
+	    data2.dataRe[j][i] = tRe[j];
+	    data2.dataIm[j][i] = tIm[j];
+	  }
+	}
+      } else {
+	;
       }
     }
 
@@ -118,83 +73,152 @@ public class fft2d extends Thread {
     Barrier.enterBarrier(barr);
 
     // Calculate FFT for each column of the data.
+    double transtempRe[][];
+    double transtempIm[][];
     atomic {
+      transtempRe = data2.dataRe;
+      transtempIm = data2.dataIm;
       for (int j = y0; j < y1; j++) {
-        int N = fft2.N;
-        if(rowlength != N) {
-          System.printString("Error: the length of real part & imaginary part " + "of the input to 1-d FFT are different");
-          return;
-        } else {
-          //Permute() operation on fft2
-          //input of FFT
-          double inputRe[] = mytemRe[j]; //local array
-          double inputIm[] = mytemIm[j];
-          //output of FFT
-          double outputRe[] = fft2.outputRe; //local array
-          double outputIm[] = fft2.outputIm;
-          double temRe[] = fft2.temRe;   // intermediate results
-          double temIm[] = fft2.temIm;
-          int count[] = new int[fft2.MaxFactorsNumber];
-          int r; 
-          int k = 0;
-          for(int a = 0; a < N-1; a++) {
-            outputRe[a] = inputRe[k];
-            outputIm[a] = inputIm[k];
-            r = 0;
-            k = k + fft2.remain[r];
-            count[0] = count[0] + 1;
-            while (count[r] >= fft2.factors[r]) {
-              count[r] = 0;
-              int tmp;
-              if(r == 0)
-                tmp = N;
-              else
-                tmp = fft2.remain[r - 1];
-              k = k - tmp + fft2.remain[r + 1];
-              r++;
-              count[r] = count[r] + 1;
-            }
-          }
-          outputRe[N - 1] = inputRe[N - 1];
-          outputIm[N - 1] = inputIm[N - 1];
+	//input of FFT
+	double inputRe[] = transtempRe[j]; //local array
+	double inputIm[] = transtempIm[j];
+	fft(fft2, inputRe, inputIm);
+      } //end of fft2 for
+    }
+  } //end of run
 
-          //Twiddle oeration on fft2
-          for (int factorIndex = 0; factorIndex < fft2.NumofFactors; factorIndex++) {
-            twiddle(factorIndex, fft2, temRe, temIm, outputRe, outputIm);
-          }
-          // Copy the output[] data to input[], so the output can be
-          // returned in the input array.
-          for (int b = 0; b < N; b++) {
-            inputRe[b] = outputRe[b];
-            inputIm[b] = outputIm[b];
-          }
-        }
-      }//end of fft2 for
+  public static void main(String[] args) {
+    int NUM_THREADS = 1;
+    int SIZE = 800;
+    int inputWidth = 10;
+    if(args.length>0) {
+      NUM_THREADS=Integer.parseInt(args[0]);
+      if(args.length > 1)
+	SIZE = Integer.parseInt(args[1]);
     }
 
-    //Start Barrier
-    Barrier.enterBarrier(barr);
+    System.printString("Num threads = " + NUM_THREADS + " SIZE= " + SIZE + "\n");
 
-    // Tranpose data.
-    // Copy the result to input[], so the output can be
-    // returned in the input array.
+    int[] mid = new int[8];
+    mid[0] = (128<<24)|(195<<16)|(175<<8)|84; //dw-10
+    mid[1] = (128<<24)|(195<<16)|(175<<8)|85; //dw-11
+    mid[2] = (128<<24)|(195<<16)|(175<<8)|86; //dw-12
+    mid[3] = (128<<24)|(195<<16)|(175<<8)|87; //dw-13
+    mid[4] = (128<<24)|(195<<16)|(175<<8)|88; //dw-14
+    mid[5] = (128<<24)|(195<<16)|(175<<8)|89; //dw-15
+    mid[6] = (128<<24)|(195<<16)|(175<<8)|90; //dw-16
+    mid[7] = (128<<24)|(195<<16)|(175<<8)|91; //dw-17
+
+    // Start Barrier Server
+    BarrierServer mybarr;
     atomic {
-      for (int j = y0; j < y1; j++) {
-        double tRe[] = mytemRe[j];
-        double tIm[] = mytemIm[j];
-        for (int i = x0; i < x1; i++) {
-          inputRe[i* data.N + j] = tRe[i];
-          inputIm[i* data.N + j] = tIm[i];
-        }
+      mybarr = global new BarrierServer(NUM_THREADS);
+    }
+    mybarr.start(mid[0]);
+
+    Matrix data1;
+    Matrix data2;
+
+    // Create threads to do FFT
+    fft2d[] myfft2d;
+    atomic {
+      // Set up data for FFT transform
+      data1 = global new Matrix(SIZE, SIZE);
+      data2 = global new Matrix(SIZE, SIZE);
+      data1.setValues(); //Input Matrix
+      data2.setZeros(); //Transpose Matrix
+      myfft2d = global new fft2d[NUM_THREADS];
+      int increment = SIZE/NUM_THREADS;
+      int base = 0;
+      for(int i =0 ; i<NUM_THREADS; i++) {
+	if((i+1)==NUM_THREADS)
+	  myfft2d[i] = global new fft2d(data1, data2, base, SIZE, 0, SIZE);
+	else
+	  myfft2d[i] = global new fft2d(data1, data2, base, base+increment, 0, SIZE);
+	base+=increment;
       }
     }
 
-  }//end of run
+    boolean waitfordone=true;
+    while(waitfordone) {
+      atomic {
+	if (mybarr.done)
+	  waitfordone=false;
+      }
+    }
 
+    fft2d tmp;
+    //Start a thread to compute each c[l,n]
+    for(int i = 0; i<NUM_THREADS; i++) {
+      atomic {
+	tmp = myfft2d[i];
+      }
+      tmp.start(mid[i]);
+    }
 
-  //("ready to twiddle");
-  private void twiddle(int factorIndex, fft1d myfft, double[] temRe, double[] temIm, 
-      double[] outputRe, double[] outputIm) {
+    //Wait for thread to finish
+    for(int i = 0; i<NUM_THREADS; i++) {
+      atomic {
+	tmp = myfft2d[i];
+      }
+      tmp.join();
+    }
+
+    System.printString("2DFFT done! \n");
+  }
+
+  public void fft(fft1d myfft, double inputRe[], double inputIm[]) {
+    //output of FFT
+    double outputRe[] = myfft.outputRe;
+    double outputIm[] = myfft.outputIm;
+    // intermediate results
+    double temRe[] = myfft.temRe;
+    double temIm[] = myfft.temIm;
+    //Permute() operation
+    permute(myfft, outputRe, outputIm, inputRe, inputIm);
+
+    //System.printString("ready to twiddle");
+    for (int factorIndex = 0; factorIndex < myfft.NumofFactors; factorIndex++)
+      twiddle(factorIndex, myfft, temRe, temIm, outputRe, outputIm);
+
+    //System.printString("ready to copy");
+    // Copy the output[] data to input[], so the output can be
+    // returned in the input array.
+    for (int i = 0; i < myfft.N; i++) {
+      inputRe[i] = outputRe[i];
+      inputIm[i] = outputIm[i];
+    }
+  }
+
+  private void permute(fft1d myfft, double[] outputRe, double[] outputIm, double[] inputRe, double[] inputIm) {
+    int count[] = new int[myfft.MaxFactorsNumber];
+    int j;
+    int k = 0;
+
+    for (int i = 0; i < myfft.N - 1; i++) {
+      outputRe[i] = inputRe[k];
+      outputIm[i] = inputIm[k];
+      j = 0;
+      k = k + myfft.remain[j];
+      count[0] = count[0] + 1;
+      while (count[j] >= myfft.factors[j]) {
+	count[j] = 0;
+	int tmp;
+	if(j == 0)
+	  tmp = myfft.N;
+	else
+	  tmp = myfft.remain[j - 1];
+	k = k - tmp + myfft.remain[j + 1];
+	j++;
+	count[j] = count[j] + 1;
+      }
+    }
+    outputRe[myfft.N - 1] = inputRe[myfft.N - 1];
+    outputIm[myfft.N - 1] = inputIm[myfft.N - 1];
+  }   // End of function permute().
+
+  private void twiddle(int factorIndex, fft1d myfft, double[] temRe, double[] temIm,
+                       double[] outputRe, double[] outputIm) {
     // Get factor data.
     int sofarRadix = myfft.sofar[factorIndex];
     int radix = myfft.factors[factorIndex];
@@ -216,84 +240,85 @@ public class fft2d extends Thread {
     for (int dataNo = 0; dataNo < sofarRadix; dataNo++) {
       //System.printString("datano="+dataNo);
       if (sofarRadix > 1) {
-        twiddleRe[0] = 1.0f;
-        twiddleIm[0] = 0.0f;
-        twiddleRe[1] = twRe;
-        twiddleIm[1] = twIm;
-        for (int i = 2; i < radix; i++) {
-          twiddleRe[i] = twRe * twiddleRe[i - 1] - twIm * twiddleIm[i - 1];
-          twiddleIm[i] = twIm * twiddleRe[i - 1] + twRe * twiddleIm[i - 1];
-        }
-        tem = cosW * twRe - sinW * twIm;
-        twIm = sinW * twRe + cosW * twIm;
-        twRe = tem;
+	twiddleRe[0] = 1.0f;
+	twiddleIm[0] = 0.0f;
+	twiddleRe[1] = twRe;
+	twiddleIm[1] = twIm;
+	for (int i = 2; i < radix; i++) {
+	  twiddleRe[i] = twRe * twiddleRe[i - 1] - twIm * twiddleIm[i - 1];
+	  twiddleIm[i] = twIm * twiddleRe[i - 1] + twRe * twiddleIm[i - 1];
+	}
+	tem = cosW * twRe - sinW * twIm;
+	twIm = sinW * twRe + cosW * twIm;
+	twRe = tem;
       }
       for (int groupNo = 0; groupNo < remainRadix; groupNo++) {
-        //System.printString("groupNo="+groupNo);
-        if ((sofarRadix > 1) && (dataNo > 0)) {
-          temRe[0] = outputRe[address];
-          temIm[0] = outputIm[address];
-          int blockIndex = 1;
-          do {
-            address = address + sofarRadix;
-            temRe[blockIndex] = twiddleRe[blockIndex] * outputRe[address] -
-              twiddleIm[blockIndex] * outputIm[address];
-            temIm[blockIndex] = twiddleRe[blockIndex] * outputIm[address] +
-              twiddleIm[blockIndex] * outputRe[address];
-            blockIndex++;
-          } while (blockIndex < radix);
-        } else
-          for (int i = 0; i < radix; i++) {
-            //System.printString("temRe.length="+temRe.length);
-            //System.printString("i = "+i);
-            temRe[i] = outputRe[address];
-            temIm[i] = outputIm[address];
-            address += sofarRadix;
-          }
-        //System.printString("radix="+radix);
-        if(radix == 2) {
-          tem = temRe[0] + temRe[1];
-          temRe[1] = temRe[0] - temRe[1];
-          temRe[0] = tem;
-          tem = temIm[0] + temIm[1];
-          temIm[1] = temIm[0] - temIm[1];
-          temIm[0] = tem;
-        } else if( radix == 3) {
-          double t1Re = temRe[1] + temRe[2];
-          double t1Im = temIm[1] + temIm[2];
-          temRe[0] = temRe[0] + t1Re;
-          temIm[0] = temIm[0] + t1Im;
+	//System.printString("groupNo="+groupNo);
+	if ((sofarRadix > 1) && (dataNo > 0)) {
+	  temRe[0] = outputRe[address];
+	  temIm[0] = outputIm[address];
+	  int blockIndex = 1;
+	  do {
+	    address = address + sofarRadix;
+	    temRe[blockIndex] = twiddleRe[blockIndex] * outputRe[address] -
+	                        twiddleIm[blockIndex] * outputIm[address];
+	    temIm[blockIndex] = twiddleRe[blockIndex] * outputIm[address] +
+	                        twiddleIm[blockIndex] * outputRe[address];
+	    blockIndex++;
+	  } while (blockIndex < radix);
+	} else {
+	  for (int i = 0; i < radix; i++) {
+	    //System.printString("temRe.length="+temRe.length);
+	    //System.printString("i = "+i);
+	    temRe[i] = outputRe[address];
+	    temIm[i] = outputIm[address];
+	    address += sofarRadix;
+	  }
+	}
+	//System.printString("radix="+radix);
+	if(radix == 2) {
+	  tem = temRe[0] + temRe[1];
+	  temRe[1] = temRe[0] - temRe[1];
+	  temRe[0] = tem;
+	  tem = temIm[0] + temIm[1];
+	  temIm[1] = temIm[0] - temIm[1];
+	  temIm[0] = tem;
+	} else if( radix == 3) {
+	  double t1Re = temRe[1] + temRe[2];
+	  double t1Im = temIm[1] + temIm[2];
+	  temRe[0] = temRe[0] + t1Re;
+	  temIm[0] = temIm[0] + t1Im;
 
-          double m1Re = myfft.cos2to3PI * t1Re;
-          double m1Im = myfft.cos2to3PI * t1Im;
-          double m2Re = myfft.sin2to3PI * (temIm[1] - temIm[2]);
-          double m2Im = myfft.sin2to3PI * (temRe[2] - temRe[1]);
-          double s1Re = temRe[0] + m1Re;
-          double s1Im = temIm[0] + m1Im;
+	  double m1Re = myfft.cos2to3PI * t1Re;
+	  double m1Im = myfft.cos2to3PI * t1Im;
+	  double m2Re = myfft.sin2to3PI * (temIm[1] - temIm[2]);
+	  double m2Im = myfft.sin2to3PI * (temRe[2] - temRe[1]);
+	  double s1Re = temRe[0] + m1Re;
+	  double s1Im = temIm[0] + m1Im;
 
-          temRe[1] = s1Re + m2Re;
-          temIm[1] = s1Im + m2Im;
-          temRe[2] = s1Re - m2Re;
-          temIm[2] = s1Im - m2Im;
-        } else if(radix == 4) {
-          fft4(temRe, temIm);
-        } else if(radix == 5) {
-          fft5(myfft, temRe, temIm);
-        } else if(radix == 8) {
-          fft8(myfft, temRe, temIm);
-        } else if(radix == 10) {
-          fft10(myfft, temRe, temIm);
-        } else {
-          fftPrime(radix, temRe, temIm);
-        }
-        address = groupOffset;
-        for (int i = 0; i < radix; i++) {
-          outputRe[address] = temRe[i];
-          outputIm[address] = temIm[i];
-          address += sofarRadix;
-        }
-        groupOffset += sofarRadix * radix;
-        address = groupOffset;
+	  temRe[1] = s1Re + m2Re;
+	  temIm[1] = s1Im + m2Im;
+	  temRe[2] = s1Re - m2Re;
+	  temIm[2] = s1Im - m2Im;
+	} else if(radix == 4) {
+	  fft4(temRe, temIm);
+	} else if(radix == 5) {
+	  fft5(myfft, temRe, temIm);
+	} else if(radix == 8) {
+	  fft8(myfft, temRe, temIm);
+	} else if(radix == 10) {
+	  fft10(myfft, temRe, temIm);
+	} else {
+	  fftPrime(radix, temRe, temIm);
+	}
+	address = groupOffset;
+	for (int i = 0; i < radix; i++) {
+	  outputRe[address] = temRe[i];
+	  outputIm[address] = temIm[i];
+	  address += sofarRadix;
+	}
+	groupOffset += sofarRadix * radix;
+	address = groupOffset;
       }
       groupOffset = ++dataOffset;
       address = groupOffset;
@@ -532,19 +557,19 @@ public class fft2d extends Thread {
       temIm[radix - j] = temIm[0];
       k = j;
       for (int i = 1; i < max; i++) {
-        rere = WRe[k] * tem1Re[i];
-        imim = WIm[k] * tem1Im[i];
-        reim = WRe[k] * tem2Im[i];
-        imre = WIm[k] * tem2Re[i];
+	rere = WRe[k] * tem1Re[i];
+	imim = WIm[k] * tem1Im[i];
+	reim = WRe[k] * tem2Im[i];
+	imre = WIm[k] * tem2Re[i];
 
-        temRe[radix - j] += rere + imim;
-        temIm[radix - j] += reim - imre;
-        temRe[j] += rere - imim;
-        temIm[j] += reim + imre;
+	temRe[radix - j] += rere + imim;
+	temIm[radix - j] += reim - imre;
+	temRe[j] += rere - imim;
+	temIm[j] += reim + imre;
 
-        k = k + j;
-        if (k >= radix)
-          k = k - radix;
+	k = k + j;
+	if (k >= radix)
+	  k = k - radix;
       }
     }
     for (j = 1; j < max; j++) {
@@ -552,147 +577,4 @@ public class fft2d extends Thread {
       temIm[0] = temIm[0] + tem2Im[j];
     }
   }   // End of function fftPrime().
-
-  public static void main(String[] args) {
-    int NUM_THREADS = 1;
-    int SIZE = 800;
-    int inputWidth = 10;
-    if(args.length>0) {
-      NUM_THREADS=Integer.parseInt(args[0]);
-      if(args.length > 1)
-        SIZE = Integer.parseInt(args[1]);
-    }
-
-    System.printString("Num threads = " + NUM_THREADS + " SIZE= " + SIZE + "\n");
-
-    // Initialize Matrix 
-    // Matrix inputRe, inputIm;
-
-    double[] inputRe;
-    double[] inputIm;
-    atomic {
-      inputRe = global new double[SIZE];
-      inputIm = global new double[SIZE];
-
-      for(int i = 0; i<SIZE; i++){
-        inputRe[i] = i;
-        inputIm[i] = i;
-      }
-    }
-
-    /* For testing 
-    atomic {
-      System.printString("Element 231567 is " + (int)inputRe[231567]+ "\n");
-      System.printString("Element 10 is " + (int)inputIm[10]+ "\n");
-    }
-    */
-
-    int[] mid = new int[8];
-    mid[0] = (128<<24)|(195<<16)|(175<<8)|84; //dw-10
-    mid[1] = (128<<24)|(195<<16)|(175<<8)|85; //dw-11
-    mid[2] = (128<<24)|(195<<16)|(175<<8)|86; //dw-12
-    mid[3] = (128<<24)|(195<<16)|(175<<8)|87; //dw-13
-    mid[4] = (128<<24)|(195<<16)|(175<<8)|88; //dw-14
-    mid[5] = (128<<24)|(195<<16)|(175<<8)|89; //dw-15
-    mid[6] = (128<<24)|(195<<16)|(175<<8)|90; //dw-16
-    mid[7] = (128<<24)|(195<<16)|(175<<8)|91; //dw-17
-
-    // Start Barrier Server
-    BarrierServer mybarr;
-    atomic {
-       mybarr = global new BarrierServer(NUM_THREADS);
-    }
-    mybarr.start(mid[0]);
-
-    // Width and height of 2-d matrix inputRe or inputIm.
-    int width, height;
-    width = inputWidth;
-    int Relength, Imlength;
-    atomic {
-      height = inputRe.length / width;
-      Relength = inputRe.length;
-      Imlength = inputIm.length;
-    }
-
-    //System.printString("Initialized width and height\n");
-    Matrix data;
-    fft1d fft1, fft2;
-    // First make sure inputRe & inputIm are of the same length in terms of columns
-    if (Relength != Imlength) {
-      System.printString("Error: the length of real part & imaginary part " +
-          "of the input to 2-d FFT are different");
-      return;
-    } else {
-      atomic {
-        fft1 = global new fft1d(width);
-        fft2 = global new fft1d(height);
-        // Set up data for FFT transform 
-        data = global new Matrix(height, width);
-        data.setValues(inputRe, inputIm);
-      }
-
-      // Create threads to do FFT 
-      fft2d[] myfft2d;
-      atomic {
-        myfft2d = global new fft2d[NUM_THREADS];
-        int increment = height/NUM_THREADS;
-        int base = 0;
-        for(int i =0 ; i<NUM_THREADS; i++) {
-          if((i+1)==NUM_THREADS)
-            myfft2d[i] = global new fft2d(inputRe, inputIm, data, fft1, fft2, base, increment, 0, width);
-          else
-            myfft2d[i] = global new fft2d(inputRe, inputIm, data, fft1, fft2, base, base+increment, 0, width);
-          base+=increment;
-        }
-      }
-
-      boolean waitfordone=true;
-      while(waitfordone) {
-        atomic {
-          if (mybarr.done)
-            waitfordone=false;
-        }
-      }
-
-      fft2d tmp;
-      //Start a thread to compute each c[l,n]
-      for(int i = 0; i<NUM_THREADS; i++) {
-        atomic {
-          tmp = myfft2d[i];
-        }
-        tmp.start(mid[i]);
-      }
-
-      //Wait for thread to finish 
-      for(int i = 0; i<NUM_THREADS; i++) {
-        atomic {
-          tmp = myfft2d[i];
-        }
-        tmp.join();
-      }
-    }
-
-    System.printString("2DFFT done! \n");
-    /* For testing 
-    atomic {
-      System.printString("Element 231567 is " + (int)inputRe[231567]+ "\n");
-      System.printString("Element 10 is " + (int)inputIm[10]+ "\n");
-    }
-    */
-
-    // Display results
-    // Tranpose data.
-    // Copy the result to input[], so the output can be
-    // returned in the input array.
-    /* For testing
-    atomic {
-      for (int i = 0; i < height; i++) {
-        for (int j = 0; j < width; j++) {
-          System.printString((int)inputRe[i * width + j]+ "\n");
-          System.printString((int)inputIm[i * width + j]+ "\n");
-        }
-      }
-    }
-    */
-  }
 }
