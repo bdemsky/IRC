@@ -10,7 +10,7 @@ public class Grid {
     flag rebuild;
     flag computeDens;
     flag computeDens2;
-    flag computeForce;
+    flag computeForces;
     flag procCollision;
     flag finish;
     
@@ -88,31 +88,31 @@ public class Grid {
     }
     
     public void initNeighCells(Cell[][][] _cells, PSFADemo _psfaDemo) {
-	for(int iz = 0; iz < this.m_ez; iz = this.m_ez - 1) {
-	    for(int iy = 0; iy < this.m_ey; iy++) {
-		for(int ix = 0; ix < this.m_ex; ix++) {
+	for(int iz = 0; iz < this.m_ez - this.m_sz; iz += this.m_ez - this.m_sz - 1) {
+	    for(int iy = 0; iy < this.m_ey - this.m_sy; iy++) {
+		for(int ix = 0; ix < this.m_ex - this.m_sx; ix++) {
 		    for(int dk = -1; dk <= 1; ++dk) {
 			for(int dj = -1; dj <= 1; ++dj) {
 			    for(int di = -1; di <= 1; ++di) {
 				int ci = ix + this.m_sx + di;
 				int cj = iy + this.m_sy + dj;
 				int ck = iz + this.m_sz + dk;
-
+				
 				if(ci < 0) {
-				    ci = 0; 
-				} else if(ci > (this.m_nx-1)) {
-				    ci = this.m_nx-1;
-				}
-				if(cj < 0) {
-				    cj = 0; 
-				} else if(cj > (this.m_ny-1)) {
-				    cj = this.m_ny-1;
-				}
-				if(ck < 0) {
-				    ck = 0; 
-				} else if(ck > (this.m_nz-1)) {
-				    ck = this.m_nz-1;
-				}
+                                    ci = 0;
+                                } else if(ci > (this.m_nx-1)) {
+                                    ci = this.m_nx-1;
+                                }
+                                if(cj < 0) {
+                                    cj = 0;
+                                } else if(cj > (this.m_ny-1)) {
+                                    cj = this.m_ny-1;
+                                }
+                                if(ck < 0) {
+                                    ck = 0;
+                                } else if(ck > (this.m_nz-1)) {
+                                    ck = this.m_nz-1;
+                                }
 
 				if( ci < this.m_sx || ci >= this.m_ex ||
 					cj < this.m_sy || cj >= this.m_ey ||
@@ -132,75 +132,31 @@ public class Grid {
 	    }
 	}
 	
-	for(int iy = 0; iy < this.m_ey; iy = this.m_ey - 1) {
-	    for(int iz = 0; iz < this.m_ez; iz++) {
-		for(int ix = 0; ix < this.m_ex; ix++) {
+	for(int ix = 0; ix < this.m_ex - this.m_sx; ix += this.m_ex - this.m_sx - 1) {
+	    for(int iy = 0; iy < this.m_ey - this.m_sy; iy++) {
+		for(int iz = 0; iz < this.m_ez - this.m_sz; iz++) {
 		    for(int dk = -1; dk <= 1; ++dk) {
 			for(int dj = -1; dj <= 1; ++dj) {
 			    for(int di = -1; di <= 1; ++di) {
 				int ci = ix + this.m_sx + di;
 				int cj = iy + this.m_sy + dj;
 				int ck = iz + this.m_sz + dk;
-
+				
 				if(ci < 0) {
-				    ci = 0; 
-				} else if(ci > (this.m_nx-1)) {
-				    ci = this.m_nx-1;
-				}
-				if(cj < 0) {
-				    cj = 0; 
-				} else if(cj > (this.m_ny-1)) {
-				    cj = this.m_ny-1;
-				}
-				if(ck < 0) {
-				    ck = 0; 
-				} else if(ck > (this.m_nz-1)) {
-				    ck = this.m_nz-1;
-				}
-
-				if( ci < this.m_sx || ci >= this.m_ex ||
-					cj < this.m_sy || cj >= this.m_ey ||
-					ck < this.m_sz || ck >= this.m_ez ) {
-				    Integer index = new Integer((ck*this.m_ny 
-					          + cj)*this.m_nx + ci);
-				    if(!this.m_neighCells.containsKey(index)) {
-					this.m_neighCells.put(index, 
-						new Cell(index.intValue()));
-				    }
-				    _psfaDemo.addBorderCells(index.intValue());
-				}
-			    }
-			}
-		    }
-		}
-	    }
-	}
-	
-	for(int ix = 0; ix < this.m_ex; ix = this.m_ex - 1) {
-	    for(int iy = 0; iy < this.m_ey; iy++) {
-		for(int iz = 0; iz < this.m_ez; iz++) {
-		    for(int dk = -1; dk <= 1; ++dk) {
-			for(int dj = -1; dj <= 1; ++dj) {
-			    for(int di = -1; di <= 1; ++di) {
-				int ci = ix + this.m_sx + di;
-				int cj = iy + this.m_sy + dj;
-				int ck = iz + this.m_sz + dk;
-
-				if(ci < 0) {
-				    ci = 0; 
-				} else if(ci > (this.m_nx-1)) {
-				    ci = this.m_nx-1;
-				}
-				if(cj < 0) {
-				    cj = 0; 
-				} else if(cj > (this.m_ny-1)) {
-				    cj = this.m_ny-1;
-				}
-				if(ck < 0) {
-				    ck = 0; 
-				} else if(ck > (this.m_nz-1)) {
-				    ck = this.m_nz-1;
-				}
+                                    ci = 0;
+                                } else if(ci > (this.m_nx-1)) {
+                                    ci = this.m_nx-1;
+                                }
+                                if(cj < 0) {
+                                    cj = 0;
+                                } else if(cj > (this.m_ny-1)) {
+                                    cj = this.m_ny-1;
+                                }
+                                if(ck < 0) {
+                                    ck = 0;
+                                } else if(ck > (this.m_nz-1)) {
+                                    ck = this.m_nz-1;
+                                }
 
 				if( ci < this.m_sx || ci >= this.m_ex ||
 					cj < this.m_sy || cj >= this.m_ey ||
@@ -448,6 +404,7 @@ public class Grid {
 		for(int ix = 0; ix < this.m_ex - this.m_sx; ++ix) {
 		    Cell cell = this.m_cells[ix][iy][iz];
 		    int np = cell.m_numPars;
+
 		    if(np != 0) {
 			int numNeighCells = InitNeighCellList(ix + this.m_sx, 
 				iy + this.m_sy, 
