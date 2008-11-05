@@ -415,7 +415,7 @@ public class BuildFlat {
       if (base!=null) {
 	//If it is a preinc we need to store the initial value
 	TempDescriptor src_tmp2=pre ? TempDescriptor.tempFactory("src",an.getDest().getType()) : out_temp;
-	TempDescriptor tmp=TempDescriptor.tempFactory("srctmp3",an.getDest().getType());
+	TempDescriptor tmp=TempDescriptor.tempFactory("srctmp3_",an.getDest().getType());
 	FlatFieldNode ffn=new FlatFieldNode(fan.getField(), dst_tmp, src_tmp2);
 	last.addNext(ffn);
 	last=ffn;
@@ -466,7 +466,7 @@ public class BuildFlat {
       if (base!=null) {
 	//If it is a preinc we need to store the initial value
 	TempDescriptor src_tmp2=pre ? TempDescriptor.tempFactory("src",an.getDest().getType()) : out_temp;
-	TempDescriptor tmp=TempDescriptor.tempFactory("srctmp3",an.getDest().getType());
+	TempDescriptor tmp=TempDescriptor.tempFactory("srctmp3_",an.getDest().getType());
 
 	FlatElementNode fen=new FlatElementNode(dst_tmp, index_tmp, src_tmp2);
 	last.addNext(fen);
@@ -518,7 +518,7 @@ public class BuildFlat {
 	if (base!=null) {
 	  //If it is a preinc we need to store the initial value
 	  TempDescriptor src_tmp2=pre ? TempDescriptor.tempFactory("src",an.getDest().getType()) : out_temp;
-	  TempDescriptor tmp=TempDescriptor.tempFactory("srctmp3",an.getDest().getType());
+	  TempDescriptor tmp=TempDescriptor.tempFactory("srctmp3_",an.getDest().getType());
 
 	  FlatFieldNode ffn=new FlatFieldNode(fan.getField(), dst_tmp, src_tmp2);
 	  last.addNext(ffn);
@@ -559,7 +559,7 @@ public class BuildFlat {
 	  if (base!=null) {
 	    //If it is a preinc we need to store the initial value
 	    TempDescriptor src_tmp2=pre ? TempDescriptor.tempFactory("src",an.getDest().getType()) : out_temp;
-	    TempDescriptor tmp=TempDescriptor.tempFactory("srctmp3",an.getDest().getType());
+	    TempDescriptor tmp=TempDescriptor.tempFactory("srctmp3_",an.getDest().getType());
 
 	    FlatFieldNode ffn=new FlatFieldNode(nn.getField(), getTempforVar(nn.getVar()), src_tmp2);
 	    if (first==null)
@@ -605,7 +605,7 @@ public class BuildFlat {
 	  if (base!=null) {
 	    //If it is a preinc we need to store the initial value
 	    TempDescriptor src_tmp2=getTempforVar(nn.getVar());
-	    TempDescriptor tmp=TempDescriptor.tempFactory("srctmp3",an.getDest().getType());
+	    TempDescriptor tmp=TempDescriptor.tempFactory("srctmp3_",an.getDest().getType());
 	    if (!pre) {
 	      FlatOpNode fon=new FlatOpNode(out_temp, src_tmp2, null, new Operation(Operation.ASSIGN));
 	      if (first==null)
