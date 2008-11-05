@@ -10,16 +10,14 @@ public class fft2d extends Thread {
   // Code borrowed from :Java Digital Signal Processing book by Lyon and Rao
 
   public Matrix data1, data2;
-  public int x0, x1, y0, y1;
+  public int x0, x1;
 
   // Constructor: 2-d FFT of Complex data.
-  public fft2d(Matrix data1, Matrix data2, int x0, int x1, int y0, int y1) {
+  public fft2d(Matrix data1, Matrix data2, int x0, int x1) {
     this.data1 = data1;
     this.data2 = data2;
     this.x0 = x0;
     this.x1 = x1;
-    this.y0 = y0;
-    this.y1 = y1;
   }
 
   public void run() {
@@ -78,7 +76,7 @@ public class fft2d extends Thread {
     atomic {
       transtempRe = data2.dataRe;
       transtempIm = data2.dataIm;
-      for (int j = y0; j < y1; j++) {
+      for (int j = x0; j < x1; j++) {
 	//input of FFT
 	double inputRe[] = transtempRe[j]; //local array
 	double inputIm[] = transtempIm[j];
@@ -132,9 +130,9 @@ public class fft2d extends Thread {
       int base = 0;
       for(int i =0 ; i<NUM_THREADS; i++) {
 	if((i+1)==NUM_THREADS)
-	  myfft2d[i] = global new fft2d(data1, data2, base, SIZE, 0, SIZE);
+	  myfft2d[i] = global new fft2d(data1, data2, base, SIZE);
 	else
-	  myfft2d[i] = global new fft2d(data1, data2, base, base+increment, 0, SIZE);
+	  myfft2d[i] = global new fft2d(data1, data2, base, base+increment);
 	base+=increment;
       }
     }
