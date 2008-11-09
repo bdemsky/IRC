@@ -340,12 +340,12 @@ then #INTERRUPT version
 RAWRGCCFLAGS="${RAWRGCCFLAGS} -DINTERRUPT"
 fi #INTERRUPT version
 
-MAKEFILE="$MAKEFILE.$RAWCONFIG"
-
 if $RAWUSEIOFLAG
 then # useio version
 MAKEFILE="$MAKEFILE.io"
 echo "+++++++++++use Makefile.raw.io++++++++++++++++"
+else
+MAKEFILE="$MAKEFILE.$RAWCONFIG"
 fi #useio version
 
 cp $MAKEFILE ./Makefile
