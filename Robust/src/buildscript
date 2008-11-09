@@ -342,6 +342,12 @@ fi #INTERRUPT version
 
 MAKEFILE="$MAKEFILE.$RAWCONFIG"
 
+if $RAWUSEIOFLAG
+then # useio version
+MAKEFILE="$MAKEFILE.io"
+echo "+++++++++++use Makefile.raw.io++++++++++++++++"
+fi #useio version
+
 cp $MAKEFILE ./Makefile
 cp ../Runtime/*.c ./
 cp ../Runtime/*.h ./
