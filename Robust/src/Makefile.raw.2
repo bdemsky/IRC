@@ -1,8 +1,10 @@
 TOPDIR=/home/jzhou/starsearch
 include $(TOPDIR)/Makefile.include
 
-RGCCFLAGS += -O0 
+RGCCFLAGS += -O2 
 RGCCFLAGS += ${RAWRGCCFLAGS}
+
+USE_SLGCC=1
 
 SIM-CYCLES = 10000
 
