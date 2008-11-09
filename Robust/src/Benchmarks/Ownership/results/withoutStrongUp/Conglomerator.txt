@@ -1,0 +1,36 @@
+Conducting ownership analysis with allocation depth = 1
+---------LogRequest(WebServerSocket web, Logger log)--------
+No aliases between flagged objects in Task LogRequest(WebServerSocket web, Logger log).
+
+---------SendFile(WebServerSocket web, MySocket s)--------
+No aliases between flagged objects in Task SendFile(WebServerSocket web, MySocket s).
+
+---------LookupS(Stock l)--------
+No aliases between flagged objects in Task LookupS(Stock l).
+
+---------Startup(StartupObject s)--------
+No aliases between flagged objects in Task Startup(StartupObject s).
+
+---------ReceiveQueryS(Stock l)--------
+No aliases between flagged objects in Task ReceiveQueryS(Stock l).
+
+---------AcceptConnection(ServerSocket ss)--------
+No aliases between flagged objects in Task AcceptConnection(ServerSocket ss).
+
+---------LookupW(Weather l)--------
+No aliases between flagged objects in Task LookupW(Weather l).
+
+---------Transaction(WebServerSocket web, Weather weather, Google g, MySocket s, Stock st)--------
+No aliases between flagged objects in Task Transaction(WebServerSocket web, Weather weather, Google g, MySocket s, Stock st).
+
+---------ReceiveQueryG(Google l)--------
+No aliases between flagged objects in Task ReceiveQueryG(Google l).
+
+---------ReceiveQueryW(Weather l)--------
+No aliases between flagged objects in Task ReceiveQueryW(Weather l).
+
+---------LookupG(Google l)--------
+No aliases between flagged objects in Task LookupG(Google l).
+
+---------ProcessRequest(WebServerSocket web, MySocket s)--------
+No aliases between flagged objects in Task ProcessRequest(WebServerSocket web, MySocket s).

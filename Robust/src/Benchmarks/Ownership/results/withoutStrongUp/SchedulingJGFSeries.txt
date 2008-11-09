@@ -1,0 +1,6 @@
+Conducting ownership analysis with allocation depth = 1
+---------t1(StartupObject s)--------
+No aliases between flagged objects in Task t1(StartupObject s).
+
+---------t2(SeriesRunner sr)--------
+No aliases between flagged objects in Task t2(SeriesRunner sr).
