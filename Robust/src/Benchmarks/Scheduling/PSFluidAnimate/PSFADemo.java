@@ -108,7 +108,7 @@ public class PSFADemo {
 	    }
 	}
 	// border cells of g
-	for(int iz = 0; iz < g.m_ez - g.m_sz; iz += g.m_ez - g.m_sz - 1) {
+	for(int iz = 0; iz < g.m_ez - g.m_sz;) {
 	    for(int iy = 0; iy < g.m_ey - g.m_sy; iy++) {
 		for(int ix = 0; ix < g.m_ex - g.m_sx; ix++) {
 		    Integer index = new Integer(((iz + g.m_sz)*this.m_ny + (iy 
@@ -140,9 +140,14 @@ public class PSFADemo {
 		    }
 		}
 	    }
+	    if(g.m_ez - g.m_sz - 1 > 0) {
+		iz += g.m_ez - g.m_sz - 1;
+	    } else {
+		iz++;
+	    }
 	}
 
-	for(int ix = 0; ix < g.m_ex - g.m_sx; ix += g.m_ex - g.m_sx - 1) {
+	for(int ix = 0; ix < g.m_ex - g.m_sx;) {
 	    for(int iy = 0; iy < g.m_ey - g.m_sy; iy++) {
 		for(int iz = 0; iz < g.m_ez - g.m_sz; iz++) {
 		    Integer index = new Integer(((iz + g.m_sz)*this.m_ny + (iy 
@@ -173,6 +178,11 @@ public class PSFADemo {
 			visited.put(index, index);
 		    }
 		}
+	    }
+	    if(g.m_ex - g.m_sx - 1 > 0) {
+		ix += g.m_ex - g.m_sx - 1;
+	    } else {
+		ix++;
 	    }
 	}
     }
@@ -211,7 +221,7 @@ public class PSFADemo {
 	}
 	
 	// border cells of g
-	for(int iz = 0; iz < g.m_ez - g.m_sz; iz += g.m_ez - g.m_sz - 1) {
+	for(int iz = 0; iz < g.m_ez - g.m_sz;) {
 	    for(int iy = 0; iy < g.m_ey - g.m_sy; iy++) {
 		for(int ix = 0; ix < g.m_ex - g.m_sx; ix++) {
 		    Integer index = new Integer(((iz + g.m_sz)*this.m_ny + (iy 
@@ -244,9 +254,14 @@ public class PSFADemo {
 		    }
 		}
 	    }
+	    if(g.m_ez - g.m_sz - 1 > 0) {
+		iz += g.m_ez - g.m_sz - 1;
+	    } else {
+		iz++;
+	    }
 	}
 	
-	for(int ix = 0; ix < g.m_ex - g.m_sx; ix += g.m_ex - g.m_sx - 1) {
+	for(int ix = 0; ix < g.m_ex - g.m_sx;) {
 	    for(int iy = 0; iy < g.m_ey - g.m_sy; iy++) {
 		for(int iz = 0; iz < g.m_ez - g.m_sz; iz++) {
 		    Integer index = new Integer(((iz + g.m_sz)*this.m_ny + (iy 
@@ -278,6 +293,11 @@ public class PSFADemo {
 			visited.put(index, index);
 		    }
 		}
+	    }
+	    if(g.m_ex - g.m_sx - 1 > 0) {
+		ix += g.m_ex - g.m_sx - 1;
+	    } else {
+		ix++;
 	    }
 	}
     }
@@ -300,7 +320,7 @@ public class PSFADemo {
 	}
 	
 	// border cells of g
-	for(int iz = 0; iz < g.m_ez - g.m_sz; iz += g.m_ez - g.m_sz - 1) {
+	for(int iz = 0; iz < g.m_ez - g.m_sz;) {
 	    for(int iy = 0; iy < g.m_ey - g.m_sy; iy++) {
 		for(int ix = 0; ix < g.m_ex - g.m_sx; ix++) {
 		    Integer index = new Integer(((iz + g.m_sz)*this.m_ny + (iy 
@@ -317,9 +337,14 @@ public class PSFADemo {
 		    }
 		}
 	    }
+	    if(g.m_ez - g.m_sz - 1 > 0) {
+		iz += g.m_ez - g.m_sz - 1;
+	    } else {
+		iz++;
+	    }
 	}
 	
-	for(int ix = 0; ix < g.m_ex - g.m_sx; ix += g.m_ex - g.m_sx - 1) {
+	for(int ix = 0; ix < g.m_ex - g.m_sx;) {
 	    for(int iy = 0; iy < g.m_ey - g.m_sy; iy++) {
 		for(int iz = 0; iz < g.m_ez - g.m_sz; iz++) {
 		    Integer index = new Integer(((iz + g.m_sz)*this.m_ny + (iy 
@@ -335,6 +360,11 @@ public class PSFADemo {
 			visited.put(index, index);
 		    }
 		}
+	    }
+	    if(g.m_ex - g.m_sx - 1 > 0) {
+		ix += g.m_ex - g.m_sx - 1;
+	    } else {
+		ix++;
 	    }
 	}
     }
@@ -356,7 +386,7 @@ public class PSFADemo {
 	}
 	
 	// border cells of g
-	for(int iz = 0; iz < g.m_ez - g.m_sz; iz += g.m_ez - g.m_sz - 1) {
+	for(int iz = 0; iz < g.m_ez - g.m_sz;) {
 	    for(int iy = 0; iy < g.m_ey - g.m_sy; iy++) {
 		for(int ix = 0; ix < g.m_ex - g.m_sx; ix++) {
 		    Integer index = new Integer(((iz + g.m_sz)*this.m_ny + (iy 
@@ -373,9 +403,14 @@ public class PSFADemo {
 		    }
 		}
 	    }
+	    if(g.m_ez - g.m_sz - 1 > 0) {
+		iz += g.m_ez - g.m_sz - 1;
+	    } else {
+		iz++;
+	    }
 	}
 	
-	for(int ix = 0; ix < g.m_ex - g.m_sx; ix += g.m_ex - g.m_sx - 1) {
+	for(int ix = 0; ix < g.m_ex - g.m_sx;) {
 	    for(int iy = 0; iy < g.m_ey - g.m_sy; iy++) {
 		for(int iz = 0; iz < g.m_ez - g.m_sz; iz++) {
 		    Integer index = new Integer(((iz + g.m_sz)*this.m_ny + (iy 
@@ -391,6 +426,11 @@ public class PSFADemo {
 			visited.put(index, index);
 		    }
 		}
+	    }
+	    if(g.m_ex - g.m_sx - 1 > 0) {
+		ix += g.m_ex - g.m_sx - 1;
+	    } else {
+		ix++;
 	    }
 	}
     }
@@ -398,7 +438,7 @@ public class PSFADemo {
     public void sum3(Grid g) {
 	HashMap visited = new HashMap();
 	// border cells of g
-	for(int iz = 0; iz < g.m_ez - g.m_sz; iz += g.m_ez - g.m_sz - 1) {
+	for(int iz = 0; iz < g.m_ez - g.m_sz;) {
 	    for(int iy = 0; iy < g.m_ey - g.m_sy; iy++) {
 		for(int ix = 0; ix < g.m_ex - g.m_sx; ix++) {
 		    Integer index = new Integer(((iz + g.m_sz)*this.m_ny + (iy 
@@ -415,9 +455,14 @@ public class PSFADemo {
 		    }
 		}
 	    }
+	    if(g.m_ez - g.m_sz - 1 > 0) {
+		iz += g.m_ez - g.m_sz - 1;
+	    } else {
+		iz++;
+	    }
 	}
 	
-	for(int ix = 0; ix < g.m_ex - g.m_sx; ix += g.m_ex - g.m_sx - 1) {
+	for(int ix = 0; ix < g.m_ex - g.m_sx;) {
 	    for(int iy = 0; iy < g.m_ey - g.m_sy; iy++) {
 		for(int iz = 0; iz < g.m_ez - g.m_sz; iz++) {
 		    Integer index = new Integer(((iz + g.m_sz)*this.m_ny + (iy 
@@ -433,6 +478,11 @@ public class PSFADemo {
 			visited.put(index, index);
 		    }
 		}
+	    }
+	    if(g.m_ex - g.m_sx - 1 > 0) {
+		ix += g.m_ex - g.m_sx - 1;
+	    } else {
+		ix++;
 	    }
 	}
     }
@@ -470,7 +520,7 @@ public class PSFADemo {
 	}
 	
 	// border cells of g
-	for(int iz = 0; iz < g.m_ez - g.m_sz; iz += g.m_ez - g.m_sz - 1) {
+	for(int iz = 0; iz < g.m_ez - g.m_sz;) {
 	    for(int iy = 0; iy < g.m_ey - g.m_sy; iy++) {
 		for(int ix = 0; ix < g.m_ex - g.m_sx; ix++) {
 		    Integer index = new Integer(((iz + g.m_sz)*this.m_ny + (iy 
@@ -492,9 +542,14 @@ public class PSFADemo {
 		    }
 		}
 	    }
+	    if(g.m_ez - g.m_sz - 1 > 0) {
+		iz += g.m_ez - g.m_sz - 1;
+	    } else {
+		iz++;
+	    }
 	}
 	
-	for(int ix = 0; ix < g.m_ex - g.m_sx; ix += g.m_ex - g.m_sx - 1) {
+	for(int ix = 0; ix < g.m_ex - g.m_sx;) {
 	    for(int iy = 0; iy < g.m_ey - g.m_sy; iy++) {
 		for(int iz = 0; iz < g.m_ez - g.m_sz; iz++) {
 		    Integer index = new Integer(((iz + g.m_sz)*this.m_ny + (iy 
@@ -515,6 +570,11 @@ public class PSFADemo {
 			visited.put(index, index);
 		    }
 		}
+	    }
+	    if(g.m_ex - g.m_sx - 1 > 0) {
+		ix += g.m_ex - g.m_sx - 1;
+	    } else {
+		ix++;
 	    }
 	}
 	
@@ -552,7 +612,7 @@ public class PSFADemo {
 	}
 	
 	// border cells of g
-	for(int iz = 0; iz < g.m_ez - g.m_sz; iz += g.m_ez - g.m_sz - 1) {
+	for(int iz = 0; iz < g.m_ez - g.m_sz;) {
 	    for(int iy = 0; iy < g.m_ey - g.m_sy; iy++) {
 		for(int ix = 0; ix < g.m_ex - g.m_sx; ix++) {
 		    Integer index = new Integer(((iz + g.m_sz)*this.m_ny + (iy 
@@ -571,9 +631,14 @@ public class PSFADemo {
 		    }
 		}
 	    }
+	    if(g.m_ez - g.m_sz - 1 > 0) {
+		iz += g.m_ez - g.m_sz - 1;
+	    } else {
+		iz++;
+	    }
 	}
 	
-	for(int ix = 0; ix < g.m_ex - g.m_sx; ix += g.m_ex - g.m_sx - 1) {
+	for(int ix = 0; ix < g.m_ex - g.m_sx;) {
 	    for(int iy = 0; iy < g.m_ey - g.m_sy; iy++) {
 		for(int iz = 0; iz < g.m_ez - g.m_sz; iz++) {
 		    Integer index = new Integer(((iz + g.m_sz)*this.m_ny + (iy 
@@ -591,6 +656,11 @@ public class PSFADemo {
 			visited.put(index, index);
 		    }
 		}
+	    }
+	    if(g.m_ex - g.m_sx - 1 > 0) {
+		ix += g.m_ex - g.m_sx - 1;
+	    } else {
+		ix++;
 	    }
 	}
     }

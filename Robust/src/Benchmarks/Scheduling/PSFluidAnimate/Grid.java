@@ -88,7 +88,7 @@ public class Grid {
     }
     
     public void initNeighCells(Cell[][][] _cells, PSFADemo _psfaDemo) {
-	for(int iz = 0; iz < this.m_ez - this.m_sz; iz += this.m_ez - this.m_sz - 1) {
+	for(int iz = 0; iz < this.m_ez - this.m_sz; ) {
 	    for(int iy = 0; iy < this.m_ey - this.m_sy; iy++) {
 		for(int ix = 0; ix < this.m_ex - this.m_sx; ix++) {
 		    for(int dk = -1; dk <= 1; ++dk) {
@@ -113,7 +113,7 @@ public class Grid {
                                 } else if(ck > (this.m_nz-1)) {
                                     ck = this.m_nz-1;
                                 }
-
+ 
 				if( ci < this.m_sx || ci >= this.m_ex ||
 					cj < this.m_sy || cj >= this.m_ey ||
 					ck < this.m_sz || ck >= this.m_ez ) {
@@ -130,9 +130,14 @@ public class Grid {
 		    }
 		}
 	    }
+	    if(this.m_ez - this.m_sz - 1 > 0) {
+		iz += this.m_ez - this.m_sz - 1;
+	    } else {
+		iz++;
+	    }
 	}
-	
-	for(int ix = 0; ix < this.m_ex - this.m_sx; ix += this.m_ex - this.m_sx - 1) {
+
+	for(int ix = 0; ix < this.m_ex - this.m_sx;) {
 	    for(int iy = 0; iy < this.m_ey - this.m_sy; iy++) {
 		for(int iz = 0; iz < this.m_ez - this.m_sz; iz++) {
 		    for(int dk = -1; dk <= 1; ++dk) {
@@ -174,7 +179,13 @@ public class Grid {
 		    }
 		}
 	    }
+	    if(this.m_ex - this.m_sx - 1 > 0) {
+		ix += this.m_ex - this.m_sx - 1;
+	    } else {
+		ix++;
+	    }
 	}
+
     }
 
     public void ClearParticlesMT() {
