@@ -249,7 +249,7 @@ fi
 
 if $MULTICOREFLAG
 then
-if ! java -Xms50m -Xmx600m $JAVAFORWARDOPTS -classpath $ROBUSTROOT/../cup/:$ROBUSTROOT Main.Main -classlibrary \
+if ! java -Xms50m -Xmx800m $JAVAFORWARDOPTS -classpath $ROBUSTROOT/../cup/:$ROBUSTROOT Main.Main -classlibrary \
 $ROBUSTROOT/ClassLibrary/ -dir $BUILDDIR \
 $JAVAOPTS $SRCFILES
 then exit $?
@@ -337,7 +337,6 @@ fi
 
 if $INTERRUPTFLAG
 then #INTERRUPT version
-MAKEFILE="$MAKEFILE.i"
 RAWRGCCFLAGS="${RAWRGCCFLAGS} -DINTERRUPT"
 fi #INTERRUPT version
 
