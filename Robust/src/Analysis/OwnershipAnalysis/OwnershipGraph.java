@@ -882,7 +882,7 @@ public class OwnershipGraph {
 
   protected void transferOnto(HeapRegionNode hrnA, HeapRegionNode hrnB) {
 
-    // clear references in and out of node i
+    // clear references in and out of node b
     clearReferenceEdgesFrom(hrnB, null, true);
     clearReferenceEdgesTo(hrnB, null, true);
 
@@ -1215,6 +1215,31 @@ public class OwnershipGraph {
     }
 
 
+
+
+    // check for parameters that are aliased prior to this call site
+    // if so, come to a grinding halt.  Later, we should move this
+    // up before doing any alpha/beta updates
+    for( int i = 0; i < fm.numParameters(); ++i ) {
+      for( int j = 0; j < i; ++j ) {	
+	HashSet<HeapRegionNode> s1 = paramIndex2reachableCallerNodes.get( i );
+	HashSet<HeapRegionNode> s2 = paramIndex2reachableCallerNodes.get( j );
+
+	Set<HeapRegionNode> intersection = new HashSet<HeapRegionNode>(s1);
+	intersection.retainAll(s2);
+
+	if( !intersection.isEmpty() ) {
+	  // uh oh
+	  System.out.println( "  Arguments "+j+" and "+i+" are aliased just before" );
+	  System.out.println( "  "+fc+" calls "+fm+"\n" );
+	  //System.exit( -1 );
+	}
+      }
+    }
+
+
+
+
     // verify the existence of allocation sites and their
     // shadows from the callee in the context of this caller graph
     // then map allocated nodes of callee onto the caller shadows
@@ -1222,6 +1247,9 @@ public class OwnershipGraph {
     Iterator<AllocationSite> asItr = ogCallee.allocationSites.iterator();
     while( asItr.hasNext() ) {
       AllocationSite allocSite  = asItr.next();
+
+      // grab the summary in the caller just to make sure
+      // the allocation site has nodes in the caller
       HeapRegionNode hrnSummary = getSummaryNode(allocSite);
 
       // assert that the shadow nodes have no reference edges
@@ -1232,8 +1260,6 @@ public class OwnershipGraph {
       assert hrnShadowSummary.getNumReferencees() == 0;
 
       // then bring g_ij onto g'_ij and rewrite
-      transferOnto(hrnSummary, hrnShadowSummary);
-
       HeapRegionNode hrnSummaryCallee = ogCallee.getSummaryNode(allocSite);
       hrnShadowSummary.setAlpha(toShadowTokens(ogCallee, hrnSummaryCallee.getAlpha() ) );
 
@@ -1266,8 +1292,6 @@ public class OwnershipGraph {
 	HeapRegionNode hrnIthShadow = id2hrn.get(idShadowIth);
 	assert hrnIthShadow.getNumReferencers() == 0;
 	assert hrnIthShadow.getNumReferencees() == 0;
-
-	transferOnto(hrnIth, hrnIthShadow);
 
 	assert ogCallee.id2hrn.containsKey(idIth);
 	HeapRegionNode hrnIthCallee = ogCallee.id2hrn.get(idIth);
