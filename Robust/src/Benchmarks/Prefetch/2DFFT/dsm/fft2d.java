@@ -37,7 +37,6 @@ public class fft2d extends Thread {
       tempdataIm = data1.dataIm;
       start = x0;
       end = x1;
-
       fft1 = new fft1d(columnlength);
       fft2 = new fft1d(rowlength);
       for (int i = x0; i < x1; i++) {
@@ -52,8 +51,8 @@ public class fft2d extends Thread {
     Barrier.enterBarrier(barr);
 
     // Tranpose data.
-    atomic {
-      if(x0 == 0) {
+    if (start == 0) {
+      atomic {
 	for(int i = 0; i<rowlength; i++) {
 	  double tRe[] = tempdataRe[i];
 	  double tIm[] = tempdataIm[i];
@@ -62,8 +61,6 @@ public class fft2d extends Thread {
 	    data2.dataIm[j][i] = tIm[j];
 	  }
 	}
-      } else {
-	;
       }
     }
 
@@ -76,7 +73,7 @@ public class fft2d extends Thread {
     atomic {
       transtempRe = data2.dataRe;
       transtempIm = data2.dataIm;
-      for (int j = x0; j < x1; j++) {
+      for (int j = start; j < end; j++) {
 	//input of FFT
 	double inputRe[] = transtempRe[j]; //local array
 	double inputIm[] = transtempIm[j];
@@ -165,7 +162,7 @@ public class fft2d extends Thread {
     System.printString("2DFFT done! \n");
   }
 
-  public void fft(fft1d myfft, double inputRe[], double inputIm[]) {
+  public static void fft(fft1d myfft, double inputRe[], double inputIm[]) {
     //output of FFT
     double outputRe[] = myfft.outputRe;
     double outputIm[] = myfft.outputIm;
@@ -188,7 +185,7 @@ public class fft2d extends Thread {
     }
   }
 
-  private void permute(fft1d myfft, double[] outputRe, double[] outputIm, double[] inputRe, double[] inputIm) {
+  private static void permute(fft1d myfft, double[] outputRe, double[] outputIm, double[] inputRe, double[] inputIm) {
     int count[] = new int[myfft.MaxFactorsNumber];
     int j;
     int k = 0;
@@ -215,7 +212,7 @@ public class fft2d extends Thread {
     outputIm[myfft.N - 1] = inputIm[myfft.N - 1];
   }   // End of function permute().
 
-  private void twiddle(int factorIndex, fft1d myfft, double[] temRe, double[] temIm,
+  private static void twiddle(int factorIndex, fft1d myfft, double[] temRe, double[] temIm,
                        double[] outputRe, double[] outputIm) {
     // Get factor data.
     int sofarRadix = myfft.sofar[factorIndex];
@@ -324,7 +321,7 @@ public class fft2d extends Thread {
   } //twiddle operation
 
   // The two arguments dataRe[], dataIm[] are mainly for using in fft8();
-  private void fft4(double dataRe[], double dataIm[]) {
+  private static void fft4(double dataRe[], double dataIm[]) {
     double t1Re,t1Im, t2Re,t2Im;
     double m2Re,m2Im, m3Re,m3Im;
 
@@ -349,7 +346,7 @@ public class fft2d extends Thread {
   }   // End of function fft4().
 
   // The two arguments dataRe[], dataIm[] are mainly for using in fft10();
-  private void fft5(fft1d myfft, double dataRe[], double dataIm[]) {
+  private static void fft5(fft1d myfft, double dataRe[], double dataIm[]) {
     double t1Re,t1Im, t2Re,t2Im, t3Re,t3Im, t4Re,t4Im, t5Re,t5Im;
     double m1Re,m1Im, m2Re,m2Im, m3Re,m3Im, m4Re,m4Im, m5Re,m5Im;
     double s1Re,s1Im, s2Re,s2Im, s3Re,s3Im, s4Re,s4Im, s5Re,s5Im;
@@ -400,7 +397,7 @@ public class fft2d extends Thread {
     dataIm[4] = s2Im - s3Im;
   }   // End of function fft5().
 
-  private void fft8(fft1d myfft, double[] temRe, double[] temIm) {
+  private static void fft8(fft1d myfft, double[] temRe, double[] temIm) {
     double data1Re[] = new double[4];
     double data1Im[] = new double[4];
     double data2Re[] = new double[4];
@@ -458,7 +455,7 @@ public class fft2d extends Thread {
     temIm[7] = data1Im[3] - data2Im[3];
   }   // End of function fft8().
 
-  private void fft10(fft1d myfft, double[] temRe, double[] temIm) {
+  private static void fft10(fft1d myfft, double[] temRe, double[] temIm) {
     double data1Re[] = new double[5];
     double data1Im[] = new double[5];
     double data2Re[] = new double[5];
@@ -513,7 +510,7 @@ public class fft2d extends Thread {
     temIm[9] = data1Im[4] - data2Im[4];
   }   // End of function fft10().
 
-  private void fftPrime(int radix, double[] temRe, double[] temIm) {
+  private static void fftPrime(int radix, double[] temRe, double[] temIm) {
     // Initial WRe, WIm.
     double W = 2 * (double) Math.setPI() / radix;
     double cosW = (double) Math.cos(W);
