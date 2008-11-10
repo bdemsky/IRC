@@ -1,0 +1,42 @@
+Conducting ownership analysis with allocation depth = 1
+---------t8(Grid g)--------
+No aliases between flagged objects in Task t8(Grid g).
+
+---------t3(PSFADemo demo, Grid g)--------
+No aliases between flagged objects in Task t3(PSFADemo demo, Grid g).
+
+---------t13(PSFADemo demo, Grid g)--------
+No aliases between flagged objects in Task t13(PSFADemo demo, Grid g).
+
+---------t14(Grid g)--------
+No aliases between flagged objects in Task t14(Grid g).
+
+---------t1(StartupObject s)--------
+No aliases between flagged objects in Task t1(StartupObject s).
+
+---------t11(Grid g)--------
+No aliases between flagged objects in Task t11(Grid g).
+
+---------t12(PSFADemo demo, Grid g)--------
+No aliases between flagged objects in Task t12(PSFADemo demo, Grid g).
+
+---------t4(PSFADemo demo, Grid g)--------
+No aliases between flagged objects in Task t4(PSFADemo demo, Grid g).
+
+---------t7(PSFADemo demo, Grid g)--------
+No aliases between flagged objects in Task t7(PSFADemo demo, Grid g).
+
+---------t2(Grid g)--------
+No aliases between flagged objects in Task t2(Grid g).
+
+---------t5(Grid g)--------
+No aliases between flagged objects in Task t5(Grid g).
+
+---------t6(PSFADemo demo, Grid g)--------
+No aliases between flagged objects in Task t6(PSFADemo demo, Grid g).
+
+---------t9(PSFADemo demo, Grid g)--------
+No aliases between flagged objects in Task t9(PSFADemo demo, Grid g).
+
+---------t10(PSFADemo demo, Grid g)--------
+No aliases between flagged objects in Task t10(PSFADemo demo, Grid g).
