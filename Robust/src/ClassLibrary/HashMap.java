@@ -21,10 +21,10 @@ public class HashMap {
     this.numItems=0;
   }
 
-  private int hash(Object o) {
+  private static int hash(Object o, int length) {
     if (o==null)
       return 0;
-    int value=o.hashCode()%table.length;
+    int value=o.hashCode()%length;
     if (value<0)
       return -value;
     return value;
@@ -39,7 +39,7 @@ public class HashMap {
       HashEntry e=oldtable[i];
       while(e!=null) {
 	HashEntry next=e.next;
-	int bin=hash(e.key);
+	int bin=hash(e.key, newCapacity);
 	e.next=table[bin];
 	table[bin]=e;
 	e=next;
@@ -61,7 +61,7 @@ public class HashMap {
   }
 
   Object remove(Object key) {
-    int bin=hash(key);
+    int bin=hash(key, table.length);
     HashEntry ptr=table[bin];
     if (ptr!=null) {
       if (ptr.key.equals(key)) {
@@ -83,7 +83,7 @@ public class HashMap {
   }
 
   Object get(Object key) {
-    int bin=hash(key);
+    int bin=hash(key, table.length);
     HashEntry ptr=table[bin];
     while(ptr!=null) {
       if (ptr.key.equals(key)) {
@@ -95,7 +95,7 @@ public class HashMap {
   }
 
   boolean containsKey(Object key) {
-    int bin=hash(key);
+    int bin=hash(key, table.length);
     HashEntry ptr=table[bin];
     while(ptr!=null) {
       if (ptr.key.equals(key)) {
@@ -112,7 +112,7 @@ public class HashMap {
       //Resize the table
       resize();
     }
-    int bin=hash(key);
+    int bin=hash(key, table.length);
     HashEntry ptr=table[bin];
     while(ptr!=null) {
       if (ptr.key.equals(key)) {
