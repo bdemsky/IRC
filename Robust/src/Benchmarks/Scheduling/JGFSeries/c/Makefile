@@ -4,6 +4,8 @@ include $(TOPDIR)/Makefile.include
 RGCCFLAGS += -O2 
 RGCCFLAGS += -DRAW 
 
+USE_SLGCC=1
+
 SIM-CYCLES = 10000
 
 ATTRIBUTES += HWIC
