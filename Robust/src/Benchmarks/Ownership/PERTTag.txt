@@ -1,9 +1,9 @@
 Conducting ownership analysis with allocation depth = 1
----------estimateStage(Stage s)--------
-No aliases between flagged objects in Task estimateStage(Stage s).
-
 ---------sampling(Stage s)--------
 No aliases between flagged objects in Task sampling(Stage s).
+
+---------estimateStage(Stage s)--------
+No aliases between flagged objects in Task estimateStage(Stage s).
 
 ---------estimate(Estimator e, Stage s)--------
 No aliases between flagged objects in Task estimate(Estimator e, Stage s).

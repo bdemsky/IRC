@@ -1,17 +1,17 @@
 Conducting ownership analysis with allocation depth = 1
----------movePacman(Pacman p)--------
-No aliases between flagged objects in Task movePacman(Pacman p).
-
 ---------initMap(Map map)--------
-Potential alias between parameter 0 and FlatNew____pacman6987___= NEW Pacman.
-Potential alias between parameter 0 and FlatNew____ghost6966___= NEW Ghost.
-
----------updatePac(Map map, Pacman p)--------
-No aliases between flagged objects in Task updatePac(Map map, Pacman p).
+Potential alias between parameter 0 and FlatNew____pacman7083___= NEW Pacman.
+Potential alias between parameter 0 and FlatNew____ghost7062___= NEW Ghost.
 
 ---------next(Map map)--------
-Potential alias between parameter 0 and FlatNew____pacman7136___= NEW Pacman.
-Potential alias between parameter 0 and FlatNew____ghost7100___= NEW Ghost.
+Potential alias between parameter 0 and FlatNew____pacman7202___= NEW Pacman.
+Potential alias between parameter 0 and FlatNew____ghost7166___= NEW Ghost.
+
+---------updateGhost(Map map, Ghost g)--------
+No aliases between flagged objects in Task updateGhost(Map map, Ghost g).
+
+---------moveGhost(Ghost g)--------
+No aliases between flagged objects in Task moveGhost(Ghost g).
 
 ---------startup(StartupObject s)--------
 No aliases between flagged objects in Task startup(StartupObject s).
@@ -19,8 +19,8 @@ No aliases between flagged objects in Task startup(StartupObject s).
 ---------finish(Map map)--------
 No aliases between flagged objects in Task finish(Map map).
 
----------updateGhost(Map map, Ghost g)--------
-No aliases between flagged objects in Task updateGhost(Map map, Ghost g).
+---------updatePac(Map map, Pacman p)--------
+No aliases between flagged objects in Task updatePac(Map map, Pacman p).
 
----------moveGhost(Ghost g)--------
-No aliases between flagged objects in Task moveGhost(Ghost g).
+---------movePacman(Pacman p)--------
+No aliases between flagged objects in Task movePacman(Pacman p).

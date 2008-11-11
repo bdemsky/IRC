@@ -1,12 +1,12 @@
 Conducting ownership analysis with allocation depth = 1
+---------t5(AppDemo ad)--------
+No aliases between flagged objects in Task t5(AppDemo ad).
+
+---------t1(StartupObject s)--------
+No aliases between flagged objects in Task t1(StartupObject s).
+
 ---------t3(AppDemo ad, AppDemoRunner adr)--------
 No aliases between flagged objects in Task t3(AppDemo ad, AppDemoRunner adr).
 
 ---------t2(AppDemoRunner adr)--------
 No aliases between flagged objects in Task t2(AppDemoRunner adr).
-
----------t1(StartupObject s)--------
-No aliases between flagged objects in Task t1(StartupObject s).
-
----------t5(AppDemo ad)--------
-No aliases between flagged objects in Task t5(AppDemo ad).

@@ -1,21 +1,21 @@
 Conducting ownership analysis with allocation depth = 1
----------sortgroup(ReduceWorker rworker)--------
-No aliases between flagged objects in Task sortgroup(ReduceWorker rworker).
-
----------assignReduce(Master master)--------
-Potential alias between parameter 0 and FlatNew____rworker894___= NEW ReduceWorker.
-
 ---------map(MapWorker mworker)--------
 No aliases between flagged objects in Task map(MapWorker mworker).
 
 ---------reduceOutput(Master master, ReduceWorker rworker)--------
 No aliases between flagged objects in Task reduceOutput(Master master, ReduceWorker rworker).
 
+---------sortgroup(ReduceWorker rworker)--------
+No aliases between flagged objects in Task sortgroup(ReduceWorker rworker).
+
 ---------mapOutput(Master master, MapWorker mworker)--------
 No aliases between flagged objects in Task mapOutput(Master master, MapWorker mworker).
 
 ---------startup(StartupObject s)--------
 No aliases between flagged objects in Task startup(StartupObject s).
+
+---------assignReduce(Master master)--------
+Potential alias between parameter 0 and FlatNew____rworker1019___= NEW ReduceWorker.
 
 ---------output(Master master)--------
 No aliases between flagged objects in Task output(Master master).
