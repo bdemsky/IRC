@@ -27,11 +27,12 @@ public class OwnershipAnalysis {
     return getAllocationSiteFromFlatNewPRIVATE(fn);
   }
 
+
   public boolean createsPotentialAliases(Descriptor taskOrMethod,
                                          int paramIndex1,
                                          int paramIndex2) {
 
-    OwnershipGraph og = mapDescriptorToCompleteOwnershipGraph.get(taskOrMethod);
+    OwnershipGraph og = getGraphOfAllContextsFromDescriptor(taskOrMethod);
     assert(og != null);
     return og.hasPotentialAlias(paramIndex1, paramIndex2);
   }
@@ -40,7 +41,7 @@ public class OwnershipAnalysis {
                                          int paramIndex,
                                          AllocationSite alloc) {
 
-    OwnershipGraph og = mapDescriptorToCompleteOwnershipGraph.get(taskOrMethod);
+    OwnershipGraph og = getGraphOfAllContextsFromDescriptor(taskOrMethod);
     assert(og != null);
     return og.hasPotentialAlias(paramIndex, alloc);
   }
@@ -49,7 +50,7 @@ public class OwnershipAnalysis {
                                          AllocationSite alloc,
                                          int paramIndex) {
 
-    OwnershipGraph og = mapDescriptorToCompleteOwnershipGraph.get(taskOrMethod);
+    OwnershipGraph og = getGraphOfAllContextsFromDescriptor(taskOrMethod);
     assert(og != null);
     return og.hasPotentialAlias(paramIndex, alloc);
   }
@@ -58,10 +59,32 @@ public class OwnershipAnalysis {
                                          AllocationSite alloc1,
                                          AllocationSite alloc2) {
 
-    OwnershipGraph og = mapDescriptorToCompleteOwnershipGraph.get(taskOrMethod);
+    OwnershipGraph og = getGraphOfAllContextsFromDescriptor(taskOrMethod);
     assert(og != null);
     return og.hasPotentialAlias(alloc1, alloc2);
   }
+
+
+  protected OwnershipGraph getGraphOfAllContextsFromDescriptor(Descriptor d) {
+    assert d != null;
+
+    OwnershipGraph og = new OwnershipGraph( allocationDepth, typeUtil );
+
+    assert mapDescriptorToAllMethodContexts.containsKey( d );
+    HashSet<MethodContext> contexts = mapDescriptorToAllMethodContexts.get( d );
+    Iterator<MethodContext> mcItr = contexts.iterator();
+    while( mcItr.hasNext() ) {
+      MethodContext mc = mcItr.next();
+
+      OwnershipGraph ogContext = mapMethodContextToCompleteOwnershipGraph.get(mc);
+      assert ogContext != null;
+
+      og.merge( ogContext );
+    }
+
+    return og;
+  }
+
 
   // use the methods given above to check every possible alias
   // between task parameters and flagged allocation sites reachable
@@ -174,11 +197,12 @@ public class OwnershipAnalysis {
   // processing all methods in the program, and by methods
   // TaskDescriptor and MethodDescriptor are combined
   // together, with a common parent class Descriptor
-  private Hashtable<FlatMethod, OwnershipGraph>           mapFlatMethodToInitialParamAllocGraph;
-  private Hashtable<Descriptor, OwnershipGraph>           mapDescriptorToCompleteOwnershipGraph;
-  private Hashtable<FlatNew,    AllocationSite>           mapFlatNewToAllocationSite;
-  private Hashtable<Descriptor, HashSet<AllocationSite> > mapDescriptorToAllocationSiteSet;
-  private Hashtable<Descriptor, Integer>                  mapDescriptorToNumUpdates;
+  private Hashtable<MethodContext, OwnershipGraph>           mapMethodContextToInitialParamAllocGraph;
+  private Hashtable<MethodContext, OwnershipGraph>           mapMethodContextToCompleteOwnershipGraph;
+  private Hashtable<FlatNew,       AllocationSite>           mapFlatNewToAllocationSite;
+  private Hashtable<Descriptor,    HashSet<AllocationSite> > mapDescriptorToAllocationSiteSet;
+  private Hashtable<MethodContext, Integer>                  mapMethodContextToNumUpdates;
+  private Hashtable<Descriptor,    HashSet<MethodContext> >  mapDescriptorToAllMethodContexts;
 
   // Use these data structures to track progress of one pass of
   // processing the FlatNodes of a particular method
@@ -195,7 +219,7 @@ public class OwnershipAnalysis {
   // reduced by visiting a descriptor during analysis.  When dependents
   // must be scheduled, only those contained in descriptorsToAnalyze
   // should be re-added to this set
-  private HashSet<Descriptor> descriptorsToVisit;
+  private HashSet<MethodContext> methodContextsToVisit;
 
   // a special field descriptor for all array elements
   private static FieldDescriptor fdElement = new FieldDescriptor(new Modifiers(Modifiers.PUBLIC),
@@ -203,6 +227,12 @@ public class OwnershipAnalysis {
                                                                  "elements",
                                                                  null,
                                                                  false);
+
+  // a special temp descriptor for setting more than one parameter label
+  // to the all-aliased-parameters heap region node
+  protected static TempDescriptor tdAliasedParams = new TempDescriptor("_AllAliasedParams___");
+
+
   // for controlling DOT file output
   private boolean writeDOTs;
   private boolean writeAllDOTs;
@@ -228,11 +258,11 @@ public class OwnershipAnalysis {
 
     descriptorsToAnalyze = new HashSet<Descriptor>();
 
-    mapFlatMethodToInitialParamAllocGraph =
-      new Hashtable<FlatMethod, OwnershipGraph>();
+    mapMethodContextToInitialParamAllocGraph =
+      new Hashtable<MethodContext, OwnershipGraph>();
 
-    mapDescriptorToCompleteOwnershipGraph =
-      new Hashtable<Descriptor, OwnershipGraph>();
+    mapMethodContextToCompleteOwnershipGraph =
+      new Hashtable<MethodContext, OwnershipGraph>();
 
     mapFlatNewToAllocationSite =
       new Hashtable<FlatNew, AllocationSite>();
@@ -240,8 +270,12 @@ public class OwnershipAnalysis {
     mapDescriptorToAllocationSiteSet =
       new Hashtable<Descriptor, HashSet<AllocationSite> >();
 
+    mapDescriptorToAllMethodContexts = 
+      new Hashtable<Descriptor, HashSet<MethodContext> >();
+
+
     if( writeAllDOTs ) {
-      mapDescriptorToNumUpdates = new Hashtable<Descriptor, Integer>();
+      mapMethodContextToNumUpdates = new Hashtable<MethodContext, Integer>();
     }
 
     // initialize methods to visit as the set of all tasks in the
@@ -269,10 +303,16 @@ public class OwnershipAnalysis {
 	fm = state.getMethodFlat( (TaskDescriptor) d);
       }
 
-      System.out.println("Previsiting " + d);
+      MethodContext mc = new MethodContext( d );
+      assert !mapDescriptorToAllMethodContexts.containsKey( d );
+      HashSet<MethodContext> s = new HashSet<MethodContext>();
+      s.add( mc );
+      mapDescriptorToAllMethodContexts.put( d, s );
 
-      og = analyzeFlatNode(d, fm, null, og);
-      setGraphForDescriptor(d, og);
+      System.out.println("Previsiting " + mc);
+
+      og = analyzeFlatNode(mc, fm, null, og);
+      setGraphForMethodContext(mc, og);
     }
 
     System.out.println("");
@@ -320,11 +360,22 @@ public class OwnershipAnalysis {
   // they call are updated
   private void analyzeMethods() throws java.io.IOException {
 
-    descriptorsToVisit = (HashSet<Descriptor>)descriptorsToAnalyze.clone();
+    methodContextsToVisit = new HashSet<MethodContext>();    
+    Iterator<Descriptor> itrd2a = descriptorsToAnalyze.iterator();
+    while( itrd2a.hasNext() ) {
+      HashSet<MethodContext> mcs = mapDescriptorToAllMethodContexts.get( itrd2a.next() );
+      assert mcs != null;
 
-    while( !descriptorsToVisit.isEmpty() ) {
-      Descriptor d = (Descriptor) descriptorsToVisit.iterator().next();
-      descriptorsToVisit.remove(d);
+      Iterator<MethodContext> itrmc = mcs.iterator();
+      while( itrmc.hasNext() ) {
+	methodContextsToVisit.add( itrmc.next() );
+      }
+    }
+
+    while( !methodContextsToVisit.isEmpty() ) {
+      MethodContext mc = methodContextsToVisit.iterator().next();
+      methodContextsToVisit.remove(mc);
+
 
       // because the task or method descriptor just extracted
       // was in the "to visit" set it either hasn't been analyzed
@@ -334,8 +385,9 @@ public class OwnershipAnalysis {
       // If there is a change detected, add any methods/tasks
       // that depend on this one to the "to visit" set.
 
-      System.out.println("Analyzing " + d);
+      System.out.println("Analyzing " + mc);
 
+      Descriptor d = mc.getDescriptor();
       FlatMethod fm;
       if( d instanceof MethodDescriptor ) {
 	fm = state.getMethodFlat( (MethodDescriptor) d);
@@ -344,10 +396,10 @@ public class OwnershipAnalysis {
 	fm = state.getMethodFlat( (TaskDescriptor) d);
       }
 
-      OwnershipGraph og = analyzeFlatMethod(d, fm);
-      OwnershipGraph ogPrev = mapDescriptorToCompleteOwnershipGraph.get(d);
+      OwnershipGraph og = analyzeFlatMethod(mc, fm);
+      OwnershipGraph ogPrev = mapMethodContextToCompleteOwnershipGraph.get(mc);
       if( !og.equals(ogPrev) ) {
-	setGraphForDescriptor(d, og);
+	setGraphForMethodContext(mc, og);
 
 	// only methods have dependents, tasks cannot
 	// be invoked by any user program calls
@@ -359,7 +411,14 @@ public class OwnershipAnalysis {
 	    while( depItr.hasNext() ) {
 	      Descriptor dependent = (Descriptor) depItr.next();
 	      if( descriptorsToAnalyze.contains(dependent) ) {
-		descriptorsToVisit.add(dependent);
+		
+		HashSet<MethodContext> mcs = mapDescriptorToAllMethodContexts.get( dependent );
+		assert mcs != null;
+		
+		Iterator<MethodContext> itrmc = mcs.iterator();
+		while( itrmc.hasNext() ) {
+		  methodContextsToVisit.add( itrmc.next() );
+		}
 	      }
 	    }
 	  }
@@ -373,12 +432,11 @@ public class OwnershipAnalysis {
   // keep passing the Descriptor of the method along for debugging
   // and dot file writing
   private OwnershipGraph
-  analyzeFlatMethod(Descriptor mDesc,
+  analyzeFlatMethod(MethodContext mc,
                     FlatMethod flatm) throws java.io.IOException {
 
     // initialize flat nodes to visit as the flat method
-    // because all other nodes in this flat method are
-    // decendents of the flat method itself
+    // because it is the entry point
 
     flatNodesToVisit = new HashSet<FlatNode>();
     flatNodesToVisit.add(flatm);
@@ -415,7 +473,7 @@ public class OwnershipAnalysis {
       // apply the analysis of the flat node to the
       // ownership graph made from the merge of the
       // parent graphs
-      og = analyzeFlatNode(mDesc,
+      og = analyzeFlatNode(mc,
                            fn,
                            returnNodesToCombineForCompleteOwnershipGraph,
                            og);
@@ -457,7 +515,7 @@ public class OwnershipAnalysis {
 
 
   private OwnershipGraph
-  analyzeFlatNode(Descriptor methodDesc,
+  analyzeFlatNode(MethodContext mc,
                   FlatNode fn,
                   HashSet<FlatReturnNode> setRetNodes,
                   OwnershipGraph og) throws java.io.IOException {
@@ -481,21 +539,41 @@ public class OwnershipAnalysis {
       // parameter IDs are consistent between analysis
       // iterations, so if this step has been done already
       // just merge in the cached version
-      OwnershipGraph ogInitParamAlloc = mapFlatMethodToInitialParamAllocGraph.get(fm);
+      OwnershipGraph ogInitParamAlloc = mapMethodContextToInitialParamAllocGraph.get(mc);
       if( ogInitParamAlloc == null ) {
 
-	// analyze this node one time globally
-	for( int i = 0; i < fm.numParameters(); ++i ) {
-	  TempDescriptor tdParam = fm.getParameter(i);
-	  og.assignTempEqualToParamAlloc(tdParam,
-	                                 methodDesc instanceof TaskDescriptor,
-	                                 new Integer(i) );
+	// if the method context has aliased parameters, make sure
+	// there is a blob region for all those param labels to
+	// reference
+	Set<Integer> aliasedParamIndices = mc.getAliasedParamIndices();
+	if( !aliasedParamIndices.isEmpty() ) {
+	  og.makeAliasedParamHeapRegionNode( tdAliasedParams );
 	}
 
-	// then remember it
+	// set up each parameter
+	for( int i = 0; i < fm.numParameters(); ++i ) {
+	  TempDescriptor tdParam = fm.getParameter( i );
+	  Integer        paramIndex = new Integer( i );
+
+	  if( aliasedParamIndices.contains( paramIndex ) ) {
+	    // just point this one to the alias blob
+	    og.assignTempEqualToAliasedParam( tdParam,
+					      tdAliasedParams,
+					      paramIndex );	    
+	  } else {
+	    // this parameter is not aliased to others, give it
+	    // a fresh parameter heap region
+	    
+	    og.assignTempEqualToParamAlloc(tdParam,
+					   mc.getDescriptor() instanceof TaskDescriptor,
+					   paramIndex );
+	  }
+	}
+	
+	// cache the graph
 	OwnershipGraph ogResult = new OwnershipGraph(allocationDepth, typeUtil);
 	ogResult.merge(og);
-	mapFlatMethodToInitialParamAllocGraph.put(fm, ogResult);
+	mapMethodContextToInitialParamAllocGraph.put(mc, ogResult);
 
       } else {
 	// or just leverage the cached copy
@@ -567,9 +645,22 @@ public class OwnershipAnalysis {
 
       if( md.isStatic() ) {
 	// a static method is simply always the same, makes life easy
-	OwnershipGraph onlyPossibleCallee = mapDescriptorToCompleteOwnershipGraph.get(md);
 	ogMergeOfAllPossibleCalleeResults = og;
-	ogMergeOfAllPossibleCalleeResults.resolveMethodCall(fc, md.isStatic(), flatm, onlyPossibleCallee);
+
+	Set<Integer> aliasedParamIndices = 
+	  ogMergeOfAllPossibleCalleeResults.calculateAliasedParamSet(fc, md.isStatic(), flatm);
+	MethodContext mcNew = new MethodContext( md, aliasedParamIndices );      
+	OwnershipGraph onlyPossibleCallee = mapMethodContextToCompleteOwnershipGraph.get( mcNew );
+
+	if( onlyPossibleCallee == null ) {
+	  // if this method context has never been analyzed just schedule it for analysis
+	  // and skip over this call site for now
+	  methodContextsToVisit.add( mcNew );
+	  
+	} else {
+	  ogMergeOfAllPossibleCalleeResults.resolveMethodCall(fc, md.isStatic(), flatm, onlyPossibleCallee);
+	}
+
       } else {
 	// if the method descriptor is virtual, then there could be a
 	// set of possible methods that will actually be invoked, so
@@ -580,14 +671,27 @@ public class OwnershipAnalysis {
 	Iterator i = possibleCallees.iterator();
 	while( i.hasNext() ) {
 	  MethodDescriptor possibleMd = (MethodDescriptor) i.next();
+	  FlatMethod pflatm = state.getMethodFlat(possibleMd);
 
 	  // don't alter the working graph (og) until we compute a result for every
 	  // possible callee, merge them all together, then set og to that
 	  OwnershipGraph ogCopy = new OwnershipGraph(allocationDepth, typeUtil);
 	  ogCopy.merge(og);
 
-	  OwnershipGraph ogPotentialCallee = mapDescriptorToCompleteOwnershipGraph.get(possibleMd);
-	  ogCopy.resolveMethodCall(fc, md.isStatic(), flatm, ogPotentialCallee);
+	  Set<Integer> aliasedParamIndices = 
+	    ogCopy.calculateAliasedParamSet(fc, possibleMd.isStatic(), pflatm);
+	  MethodContext mcNew = new MethodContext( possibleMd, aliasedParamIndices );
+	  OwnershipGraph ogPotentialCallee = mapMethodContextToCompleteOwnershipGraph.get( mcNew );
+
+	  if( ogPotentialCallee == null ) {
+	    // if this method context has never been analyzed just schedule it for analysis
+	    // and skip over this call site for now
+	    methodContextsToVisit.add( mcNew );
+	    
+	  } else {
+	    ogCopy.resolveMethodCall(fc, possibleMd.isStatic(), pflatm, ogPotentialCallee);
+	  }
+
 	  ogMergeOfAllPossibleCalleeResults.merge(ogCopy);
 	}
       }
@@ -652,10 +756,10 @@ public class OwnershipAnalysis {
   }
 
 
-  private void setGraphForDescriptor(Descriptor d, OwnershipGraph og)
+  private void setGraphForMethodContext(MethodContext mc, OwnershipGraph og)
   throws IOException {
 
-    mapDescriptorToCompleteOwnershipGraph.put(d, og);
+    mapMethodContextToCompleteOwnershipGraph.put(mc, og);
 
     // arguments to writeGraph are:
     // boolean writeLabels,
@@ -667,15 +771,15 @@ public class OwnershipAnalysis {
     if( writeDOTs ) {
 
       if( !writeAllDOTs ) {
-	og.writeGraph(d, true, true, true, false, false);
+	og.writeGraph(mc, true, true, true, false, false);
 
       } else {
-	if( !mapDescriptorToNumUpdates.containsKey(d) ) {
-	  mapDescriptorToNumUpdates.put(d, new Integer(0) );
+	if( !mapMethodContextToNumUpdates.containsKey(mc) ) {
+	  mapMethodContextToNumUpdates.put(mc, new Integer(0) );
 	}
-	Integer n = mapDescriptorToNumUpdates.get(d);
-	og.writeGraph(d, n, true, true, true, false, false);
-	mapDescriptorToNumUpdates.put(d, n + 1);
+	Integer n = mapMethodContextToNumUpdates.get(mc);
+	og.writeGraph(mc, n, true, true, true, false, false);
+	mapMethodContextToNumUpdates.put(mc, n + 1);
       }
     }
   }

@@ -19,10 +19,12 @@ public class OwnershipGraph {
 
   protected static TempDescriptor tdReturn = new TempDescriptor("_Return___");
 
+  protected static final int bogusParamIndexInt = -2;
+
 
   public Hashtable<Integer,        HeapRegionNode> id2hrn;
   public Hashtable<TempDescriptor, LabelNode     > td2ln;
-  public Hashtable<Integer,        Integer       > id2paramIndex;
+  public Hashtable<Integer,        Set<Integer>  > id2paramIndexSet;
   public Hashtable<Integer,        Integer       > paramIndex2id;
   public Hashtable<Integer,        TempDescriptor> paramIndex2tdQ;
 
@@ -35,11 +37,11 @@ public class OwnershipGraph {
     this.allocationDepth = allocationDepth;
     this.typeUtil        = typeUtil;
 
-    id2hrn         = new Hashtable<Integer,        HeapRegionNode>();
-    td2ln          = new Hashtable<TempDescriptor, LabelNode     >();
-    id2paramIndex  = new Hashtable<Integer,        Integer       >();
-    paramIndex2id  = new Hashtable<Integer,        Integer       >();
-    paramIndex2tdQ = new Hashtable<Integer,        TempDescriptor>();
+    id2hrn           = new Hashtable<Integer,        HeapRegionNode>();
+    td2ln            = new Hashtable<TempDescriptor, LabelNode     >();
+    id2paramIndexSet = new Hashtable<Integer,        Set<Integer>  >();
+    paramIndex2id    = new Hashtable<Integer,        Integer       >();
+    paramIndex2tdQ   = new Hashtable<Integer,        TempDescriptor>();
 
     allocationSites = new HashSet <AllocationSite>();
   }
@@ -567,9 +569,10 @@ public class OwnershipGraph {
     // parameter labels, the index of the parameter they
     // are for is important when resolving method calls
     Integer newID = hrn.getID();
-    assert !id2paramIndex.containsKey(newID);
-    assert !id2paramIndex.containsValue(paramIndex);
-    id2paramIndex.put(newID, paramIndex);
+    assert !id2paramIndexSet.containsKey(newID);
+    Set s = new HashSet<Integer>();
+    s.add( paramIndex );
+    id2paramIndexSet.put(newID, s);
     paramIndex2id.put(paramIndex, newID);
     paramIndex2tdQ.put(paramIndex, tdParamQ);
 
@@ -596,6 +599,94 @@ public class OwnershipGraph {
     addReferenceEdge(lnParamQ, hrn, edgeFromLabelQ);
     addReferenceEdge(hrn,      hrn, edgeReflexive);
   }
+
+  public void makeAliasedParamHeapRegionNode(TempDescriptor td) {
+    assert td != null;
+
+    LabelNode lnParam = getLabelNodeFromTemp(td);
+    HeapRegionNode hrn = createNewHeapRegionNode(null,
+                                                 false,
+                                                 false,
+                                                 false,
+                                                 true,
+                                                 null,
+                                                 null,
+                                                 "aliasedParams");
+
+
+    ReachabilitySet beta = new ReachabilitySet(new TokenTuple(hrn.getID(),
+                                                              true,
+                                                              TokenTuple.ARITY_ONE).makeCanonical()
+                                               ).makeCanonical();
+
+    // heap regions for parameters are always multiple object (see above)
+    // and have a reference to themselves, because we can't know the
+    // structure of memory that is passed into the method.  We're assuming
+    // the worst here.
+
+    ReferenceEdge edgeFromLabel =
+      new ReferenceEdge(lnParam, hrn, null, false, beta);
+
+    ReferenceEdge edgeReflexive =
+      new ReferenceEdge(hrn,     hrn, null, true,  beta);
+
+    addReferenceEdge(lnParam, hrn, edgeFromLabel);
+    addReferenceEdge(hrn,     hrn, edgeReflexive);
+  }
+
+  public void assignTempEqualToAliasedParam(TempDescriptor tdParam,
+					    TempDescriptor tdAliased,
+					    Integer paramIndex ) {
+
+    assert tdParam   != null;
+    assert tdAliased != null;
+
+    LabelNode lnParam   = getLabelNodeFromTemp(tdParam);
+    LabelNode lnAliased = getLabelNodeFromTemp(tdAliased);
+
+    // this is a non-program-accessible label that picks up beta
+    // info to be used for fixing a caller of this method
+    TempDescriptor tdParamQ = new TempDescriptor(tdParam+"specialQ");
+    LabelNode lnParamQ = getLabelNodeFromTemp(tdParamQ);
+
+    // the lnAliased should always only reference one node, and that
+    // heap region node is the aliased param blob
+    assert lnAliased.getNumReferencees() == 1;
+    HeapRegionNode hrnAliasBlob = lnAliased.iteratorToReferencees().next().getDst();
+
+    // keep track of heap regions that were created for
+    // parameter labels, the index of the parameter they
+    // are for is important when resolving method calls
+    Integer idAliased = hrnAliasBlob.getID();
+    Set s = id2paramIndexSet.get( idAliased );
+    if( s == null ) {
+      s = new HashSet<Integer>();
+    }
+    s.add( paramIndex );
+    id2paramIndexSet.put(idAliased, s);
+    paramIndex2id.put(paramIndex, idAliased);
+    paramIndex2tdQ.put(paramIndex, tdParamQ);
+
+    ReachabilitySet beta = new ReachabilitySet(new TokenTuple(idAliased,
+                                                              true,
+                                                              TokenTuple.ARITY_ONE).makeCanonical()
+                                               ).makeCanonical();
+
+    // heap regions for parameters are always multiple object (see above)
+    // and have a reference to themselves, because we can't know the
+    // structure of memory that is passed into the method.  We're assuming
+    // the worst here.
+
+    ReferenceEdge edgeFromLabel =
+      new ReferenceEdge(lnParam, hrnAliasBlob, null, false, beta);
+
+    ReferenceEdge edgeFromLabelQ =
+      new ReferenceEdge(lnParamQ, hrnAliasBlob, null, false, beta);
+
+    addReferenceEdge(lnParam,  hrnAliasBlob, edgeFromLabel);
+    addReferenceEdge(lnParamQ, hrnAliasBlob, edgeFromLabelQ);
+  }
+
 
 
   public void assignReturnEqualToTemp(TempDescriptor x) {
@@ -921,6 +1012,104 @@ public class OwnershipGraph {
   }
 
 
+  public Set<Integer> calculateAliasedParamSet(FlatCall fc,
+					       boolean isStatic,
+					       FlatMethod fm) {
+
+    Hashtable<Integer, LabelNode> paramIndex2ln =
+      new Hashtable<Integer, LabelNode>();
+
+    Hashtable<Integer, HashSet<HeapRegionNode> > paramIndex2reachableCallerNodes =
+      new Hashtable<Integer, HashSet<HeapRegionNode> >();
+
+    for( int i = 0; i < fm.numParameters(); ++i ) {
+      Integer paramIndex = new Integer(i);
+
+      // now depending on whether the callee is static or not
+      // we need to account for a "this" argument in order to
+      // find the matching argument in the caller context
+      TempDescriptor argTemp_i;
+      if( isStatic ) {
+	argTemp_i = fc.getArg(paramIndex);
+      } else {
+	if( paramIndex.equals(0) ) {
+	  argTemp_i = fc.getThis();
+	} else {
+	  argTemp_i = fc.getArg(paramIndex - 1);
+	}
+      }
+
+      // in non-static methods there is a "this" pointer
+      // that should be taken into account
+      if( isStatic ) {
+	assert fc.numArgs()     == fm.numParameters();
+      } else {
+	assert fc.numArgs() + 1 == fm.numParameters();
+      }
+
+      LabelNode argLabel_i = getLabelNodeFromTemp(argTemp_i);
+      paramIndex2ln.put(paramIndex, argLabel_i);
+    }
+
+    Iterator lnArgItr = paramIndex2ln.entrySet().iterator();
+    while( lnArgItr.hasNext() ) {
+      Map.Entry me      = (Map.Entry)lnArgItr.next();
+      Integer index   = (Integer)   me.getKey();
+      LabelNode lnArg_i = (LabelNode) me.getValue();
+
+      // rewrite alpha for the nodes reachable from argument label i
+      HashSet<HeapRegionNode> reachableNodes = new HashSet<HeapRegionNode>();
+      HashSet<HeapRegionNode> todoNodes = new HashSet<HeapRegionNode>();
+
+      // to find all reachable nodes, start with label referencees
+      Iterator<ReferenceEdge> edgeArgItr = lnArg_i.iteratorToReferencees();
+      while( edgeArgItr.hasNext() ) {
+	ReferenceEdge edge = edgeArgItr.next();
+	todoNodes.add(edge.getDst() );
+      }
+
+      // then follow links until all reachable nodes have been found
+      while( !todoNodes.isEmpty() ) {
+	HeapRegionNode hrn = todoNodes.iterator().next();
+	todoNodes.remove(hrn);
+	reachableNodes.add(hrn);
+
+	Iterator<ReferenceEdge> edgeItr = hrn.iteratorToReferencees();
+	while( edgeItr.hasNext() ) {
+	  ReferenceEdge edge = edgeItr.next();
+
+	  if( !reachableNodes.contains(edge.getDst() ) ) {
+	    todoNodes.add(edge.getDst() );
+	  }
+	}
+      }
+
+      // save for later
+      paramIndex2reachableCallerNodes.put(index, reachableNodes);
+    }
+
+    Set<Integer> aliasedIndices = new HashSet<Integer>();
+
+    // check for arguments that are aliased
+    for( int i = 0; i < fm.numParameters(); ++i ) {
+      for( int j = 0; j < i; ++j ) {	
+	HashSet<HeapRegionNode> s1 = paramIndex2reachableCallerNodes.get( i );
+	HashSet<HeapRegionNode> s2 = paramIndex2reachableCallerNodes.get( j );
+
+	Set<HeapRegionNode> intersection = new HashSet<HeapRegionNode>(s1);
+	intersection.retainAll(s2);
+
+	if( !intersection.isEmpty() ) {
+	  aliasedIndices.add( new Integer( i ) );
+	  aliasedIndices.add( new Integer( j ) );
+	}
+      }
+    }
+
+    return aliasedIndices;
+  }
+
+
   public void resolveMethodCall(FlatCall fc,
                                 boolean isStatic,
                                 FlatMethod fm,
@@ -965,8 +1154,8 @@ public class OwnershipGraph {
 
     // add a bogus entry with the identity rule for easy rewrite
     // of new callee nodes and edges, doesn't belong to any parameter
-    Integer bogusID = new Integer(-1);
-    Integer bogusIndex = new Integer(-1);
+    Integer bogusID = new Integer(bogusParamIndexInt);
+    Integer bogusIndex = new Integer(bogusParamIndexInt);
     TokenTuple bogusToken = new TokenTuple(bogusID, true, TokenTuple.ARITY_ONE).makeCanonical();
     TokenTuple bogusTokenPlus = new TokenTuple(bogusID, true, TokenTuple.ARITY_ONEORMORE).makeCanonical();
     ReachabilitySet rsIdentity =
@@ -1213,31 +1402,6 @@ public class OwnershipGraph {
     while( edgeItr.hasNext() ) {
       edgeItr.next().applyBetaNew();
     }
-
-
-
-
-    // check for parameters that are aliased prior to this call site
-    // if so, come to a grinding halt.  Later, we should move this
-    // up before doing any alpha/beta updates
-    for( int i = 0; i < fm.numParameters(); ++i ) {
-      for( int j = 0; j < i; ++j ) {	
-	HashSet<HeapRegionNode> s1 = paramIndex2reachableCallerNodes.get( i );
-	HashSet<HeapRegionNode> s2 = paramIndex2reachableCallerNodes.get( j );
-
-	Set<HeapRegionNode> intersection = new HashSet<HeapRegionNode>(s1);
-	intersection.retainAll(s2);
-
-	if( !intersection.isEmpty() ) {
-	  // uh oh
-	  System.out.println( "  Arguments "+j+" and "+i+" are aliased just before" );
-	  System.out.println( "  "+fc+" calls "+fm+"\n" );
-	  //System.exit( -1 );
-	}
-      }
-    }
-
-
 
 
     // verify the existence of allocation sites and their
@@ -1810,9 +1974,9 @@ public class OwnershipGraph {
 
     HashSet<HeapRegionNode> possibleCallerHRNs = new HashSet<HeapRegionNode>();
 
-    Integer paramIndexCallee = ogCallee.id2paramIndex.get(hrnCallee.getID() );
+    Set<Integer> paramIndicesCallee = ogCallee.id2paramIndexSet.get( hrnCallee.getID() );
 
-    if( paramIndexCallee == null ) {
+    if( paramIndicesCallee == null ) {
       // this is a node allocated in the callee then and it has
       // exactly one shadow node in the caller to map to
       AllocationSite as = hrnCallee.getAllocationSite();
@@ -1842,8 +2006,12 @@ public class OwnershipGraph {
     } else {
       // this is a node that was created to represent a parameter
       // so it maps to a whole mess of heap regions
-      assert paramIndex2reachableCallerNodes.containsKey(paramIndexCallee);
-      possibleCallerHRNs = paramIndex2reachableCallerNodes.get(paramIndexCallee);
+      Iterator<Integer> itrIndex = paramIndicesCallee.iterator();
+      while( itrIndex.hasNext() ) {
+	Integer paramIndexCallee = itrIndex.next();
+	assert paramIndex2reachableCallerNodes.containsKey(paramIndexCallee);
+	possibleCallerHRNs.addAll( paramIndex2reachableCallerNodes.get(paramIndexCallee) );
+      }
     }
 
     return possibleCallerHRNs;
@@ -2244,18 +2412,18 @@ public class OwnershipGraph {
   // same number of parameters, or if one or both parameter
   // index tables are empty
   protected void mergeId2paramIndex(OwnershipGraph og) {
-    if( id2paramIndex.size() == 0 ) {
-      id2paramIndex  = og.id2paramIndex;
-      paramIndex2id  = og.paramIndex2id;
-      paramIndex2tdQ = og.paramIndex2tdQ;
+    if( id2paramIndexSet.size() == 0 ) {
+      id2paramIndexSet = og.id2paramIndexSet;
+      paramIndex2id    = og.paramIndex2id;
+      paramIndex2tdQ   = og.paramIndex2tdQ;
       return;
     }
 
-    if( og.id2paramIndex.size() == 0 ) {
+    if( og.id2paramIndexSet.size() == 0 ) {
       return;
     }
 
-    assert id2paramIndex.size() == og.id2paramIndex.size();
+    assert id2paramIndexSet.size() == og.id2paramIndexSet.size();
   }
 
   protected void mergeAllocationSites(OwnershipGraph og) {
@@ -2490,7 +2658,7 @@ public class OwnershipGraph {
 
 
   protected boolean areId2paramIndexEqual(OwnershipGraph og) {
-    return id2paramIndex.size() == og.id2paramIndex.size();
+    return id2paramIndexSet.size() == og.id2paramIndexSet.size();
   }
 
   public boolean hasPotentialAlias(Integer paramIndex1, Integer paramIndex2) {
@@ -2879,7 +3047,7 @@ public class OwnershipGraph {
 
 
   // for writing ownership graphs to dot files
-  public void writeGraph(Descriptor methodDesc,
+  public void writeGraph(MethodContext mc,
                          FlatNode fn,
                          boolean writeLabels,
                          boolean labelSelect,
@@ -2888,8 +3056,7 @@ public class OwnershipGraph {
                          boolean writeParamMappings
                          ) throws java.io.IOException {
     writeGraph(
-      methodDesc.getSymbol() +
-      methodDesc.getNum() +
+      mc.toString() +
       fn.toString(),
       writeLabels,
       labelSelect,
@@ -2899,7 +3066,7 @@ public class OwnershipGraph {
       );
   }
 
-  public void writeGraph(Descriptor methodDesc,
+  public void writeGraph(MethodContext mc,
                          boolean writeLabels,
                          boolean labelSelect,
                          boolean pruneGarbage,
@@ -2907,7 +3074,7 @@ public class OwnershipGraph {
                          boolean writeParamMappings
                          ) throws java.io.IOException {
 
-    writeGraph(methodDesc+"COMPLETE",
+    writeGraph(mc+"COMPLETE",
                writeLabels,
                labelSelect,
                pruneGarbage,
@@ -2916,7 +3083,7 @@ public class OwnershipGraph {
                );
   }
 
-  public void writeGraph(Descriptor methodDesc,
+  public void writeGraph(MethodContext mc,
                          Integer numUpdate,
                          boolean writeLabels,
                          boolean labelSelect,
@@ -2925,7 +3092,7 @@ public class OwnershipGraph {
                          boolean writeParamMappings
                          ) throws java.io.IOException {
 
-    writeGraph(methodDesc+"COMPLETE"+String.format("%05d", numUpdate),
+    writeGraph(mc+"COMPLETE"+String.format("%05d", numUpdate),
                writeLabels,
                labelSelect,
                pruneGarbage,
