@@ -249,6 +249,8 @@ public class OwnershipAnalysis {
                            boolean writeAllDOTs,
                            String aliasFile) throws java.io.IOException {
 
+    double timeStartAnalysis = (double) System.nanoTime();
+
     this.state           = state;
     this.typeUtil        = tu;
     this.callGraph       = callGraph;
@@ -309,19 +311,24 @@ public class OwnershipAnalysis {
       s.add( mc );
       mapDescriptorToAllMethodContexts.put( d, s );
 
-      System.out.println("Previsiting " + mc);
+      //System.out.println("Previsiting " + mc);
 
       og = analyzeFlatNode(mc, fm, null, og);
       setGraphForMethodContext(mc, og);
     }
 
-    System.out.println("");
+    //System.out.println("");
 
     // as mentioned above, analyze methods one-by-one, possibly revisiting
     // a method if the methods that it calls are updated
     analyzeMethods();
 
-    System.out.println("");
+    //System.out.println("");
+
+    double timeEndAnalysis = (double) System.nanoTime();
+    double dt = (timeEndAnalysis - timeStartAnalysis)/(Math.pow( 10.0, 9.0 ) );
+    String treport = String.format( "The analysis took %.3f sec.", dt );
+    System.out.println( treport );
 
     if( aliasFile != null ) {
       writeAllAliases(aliasFile);
@@ -385,7 +392,7 @@ public class OwnershipAnalysis {
       // If there is a change detected, add any methods/tasks
       // that depend on this one to the "to visit" set.
 
-      System.out.println("Analyzing " + mc);
+      //System.out.println("Analyzing " + mc);
 
       Descriptor d = mc.getDescriptor();
       FlatMethod fm;
