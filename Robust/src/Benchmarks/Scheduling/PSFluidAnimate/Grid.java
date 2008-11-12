@@ -250,6 +250,12 @@ public class Grid {
 			    cell = this.m_cells[ix][iy][iz];
 			}
 			np = cell.m_numPars;
+			if(cell.m_p[np] == null) {
+			    cell.m_p[np] = new Vec3();
+			    cell.m_hv[np] = new Vec3();
+			    cell.m_v[np] = new Vec3();
+			    cell.m_a[np] = new Vec3();
+			}
 			cell.m_p[np].m_x = cell2.m_p[j].m_x;
 			cell.m_p[np].m_y = cell2.m_p[j].m_y;
 			cell.m_p[np].m_z = cell2.m_p[j].m_z;

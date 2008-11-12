@@ -117,7 +117,7 @@ void releasewritelock(void* ptr);
 // profiling mode of RAW version
 #ifdef RAWPROFILE
 
-#define TASKINFOLENGTH 300
+#define TASKINFOLENGTH 10000
 //#define INTERRUPTINFOLENGTH 500
 
 bool stall;
@@ -1534,7 +1534,7 @@ void transferObject(struct transObjInfo * transObj) {
 #ifdef RAWDEBUG
   raw_test_pass_reg(msgsize);
 #endif
-  gdn_send(obj);
+  gdn_send((int)obj);
 #ifdef RAWDEBUG
   raw_test_pass_reg(obj);
 #endif
@@ -2157,7 +2157,7 @@ msg:
 	  if(prev == NULL) {
 	    qitem = getTail(&objqueue);
 	  } else {
-	    qitem = getNext(prev);
+	    qitem = getNextQueueItem(prev);
 	  }
 	}
 	addNewItem_I(&objqueue, (void *)transObj);
@@ -2606,7 +2606,7 @@ bool getreadlock(void * ptr) {
 #ifdef RAWDEBUG
   raw_test_pass(0);
 #endif
-  gdn_send(ptr);
+  gdn_send((int)ptr);
 #ifdef RAWDEBUG
   raw_test_pass_reg(ptr);
 #endif
@@ -2773,7 +2773,7 @@ void releasereadlock(void * ptr) {
 #ifdef RAWDEBUG
   raw_test_pass(0);
 #endif
-  gdn_send(ptr);
+  gdn_send((int)ptr);
 #ifdef RAWDEBUG
   raw_test_pass_reg(ptr);
   raw_test_pass(0xffff);
@@ -2908,7 +2908,7 @@ bool getreadlock_I(void * ptr) {
 #ifdef RAWDEBUG
   raw_test_pass(0);
 #endif
-  gdn_send(ptr);
+  gdn_send((int)ptr);
 #ifdef RAWDEBUG
   raw_test_pass_reg(ptr);
 #endif
@@ -2961,7 +2961,7 @@ void releasereadlock_I(void * ptr) {
 #ifdef RAWDEBUG
   raw_test_pass(0);
 #endif
-  gdn_send(ptr);
+  gdn_send((int)ptr);
 #ifdef RAWDEBUG
   raw_test_pass_reg(ptr);
   raw_test_pass(0xffff);
@@ -3084,7 +3084,7 @@ bool getwritelock(void * ptr) {
 #ifdef RAWDEBUG
   raw_test_pass(1);
 #endif
-  gdn_send(ptr);
+  gdn_send((int)ptr);
 #ifdef RAWDEBUG
   raw_test_pass_reg(ptr);
 #endif
@@ -3266,7 +3266,7 @@ void releasewritelock(void * ptr) {
 #ifdef RAWDEBUG
   raw_test_pass(1);
 #endif
-  gdn_send(ptr);
+  gdn_send((int)ptr);
 #ifdef RAWDEBUG
   raw_test_pass_reg(ptr);
   raw_test_pass(0xffff);
@@ -4074,7 +4074,7 @@ execute:
 #endif
 	      if(tmpparam->numlocks == 0) {
 		numlocks = 1;
-		locks = tmpparam;
+		locks = (int*)tmpparam;
 	      } else {
 		numlocks = tmpparam->numlocks;
 		locks = tmpparam->locks;
@@ -4090,7 +4090,7 @@ execute:
 		struct ___Object___ * tmpparam = (struct ___Object___ *)taskpointerarray[i+OFFSET];
 		if(tmpparam->numlocks == 0) {
 		  numlocks = 1;
-		  locks = tmpparam;
+		  locks = (int*)tmpparam;
 		} else {
 		  numlocks = tmpparam->numlocks;
 		  locks = tmpparam->locks;

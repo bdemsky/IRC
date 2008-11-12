@@ -25,6 +25,6 @@ struct QueueItem * addNewItem_I(struct Queue * queue, void * ptr);
 struct QueueItem * findItem(struct Queue * queue, void * ptr);
 void removeItem(struct Queue * queue, struct QueueItem * item);
 struct QueueItem * getTail(struct Queue * queue);
-
+struct QueueItem * getNextQueueItem(struct QueueItem * qi);
 
 #endif

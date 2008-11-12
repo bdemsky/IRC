@@ -1611,7 +1611,9 @@ public class BuildCodeMultiCore extends BuildCode {
       }
     }
     // generate codes for profiling, recording how many new objects are created
-    if((fn.getType().getClassDesc() != null) && (fn.getType().getClassDesc().hasFlags())) {
+    if(!fn.getType().isArray() && 
+	    (fn.getType().getClassDesc() != null) 
+	    && (fn.getType().getClassDesc().hasFlags())) {
 	output.println("#ifdef RAWPROFILE");
 	output.println("addNewObjInfo(\"" + fn.getType().getClassDesc().getSymbol() + "\");");
 	output.println("#endif");

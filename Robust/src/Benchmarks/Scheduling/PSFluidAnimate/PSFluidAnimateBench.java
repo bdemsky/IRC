@@ -4,30 +4,10 @@ task t1(StartupObject s{initialstate}) {
     //System.printString("task t1\n");
     
     int threadnum = 16;
-    int lsb = 0;
-    int framenum = 1;
+    int framenum = 4;
     
-    int weight=0;
-    int mask= 1;
-    int count=0;
-    lsb=-1;
-    int x = threadnum;
-    while(x > 0) {
-	int temp;
-	temp=(x&mask);
-	if((x&mask) == 1) {
-	    weight++;
-	    if(lsb == -1) {
-		lsb = count;
-	    }
-	}
-	x >>= 1;
-	count++;
-    }
-    
-    int XDIVS = 1<<(lsb/2);	// number of partitions in X
-    int ZDIVS = 1<<(lsb/2);	// number of partitions in Z
-    if(XDIVS*ZDIVS != threadnum) XDIVS*=2;
+    int XDIVS = 4;// number of partitions in X
+    int ZDIVS = 4;// number of partitions in Z
     int NUM_GRIDS = XDIVS * ZDIVS;
     
     // initialize the simulation
@@ -74,90 +54,53 @@ task t1(StartupObject s{initialstate}) {
     
     PSFADemo demo = new PSFADemo(NUM_GRIDS, numCells, numParticles, nx, ny, nz, 
 	    viscosityCoeff, new Vec3(delta.m_x, delta.m_y, delta.m_z)){tosum};
-	    
+
+    float px, py, pz, hvx, hvy, hvz, vx, vy, vz;
+    long seed = 12345678;
+    Random r = new Random(seed);
+    int maxint = (1<<31) - 1;
+    float dx = (float)0.005;
+    float dy = (float)0.005;
+    float dz = (float)0.005;
+    px = domainMin.m_x;
+    py = domainMin.m_y;
+    pz = domainMin.m_z;
+    hvx = (float)0.2;
+    hvy = (float)0.5;
+    hvz = (float)0.3;
+    vx = (float)0.2;
+    vy = (float)0.5;
+    vz = (float)0.3;
+    //int p = 0;
+    int xn = 0;
+    int yn = 0;
+    int zn = 0;
     Cell[][][] cells = new Cell[nx][ny][nz];
+    int p=0;
     for(int i = 0; i < nx; i++) {
 	for(int j = 0; j < ny; j++) {
 	    for(int k = 0; k < nz; k++) {
 		int index = (k*ny + j)*nx + i;
 		cells[i][j][k] = new Cell(index);
+		if (p<numParticles) {
+		    Cell cell = cells[i][j][k];
+		    int np = cell.m_numPars;
+		    cell.m_p[np].m_x = (float)((i+0.5)*delta.m_x+px);
+		    cell.m_p[np].m_y = (float)((j+0.5)*delta.m_y+py);
+		    cell.m_p[np].m_z = (float)((k+0.5)*delta.m_z+pz);
+		    cell.m_hv[np].m_x = hvx;
+		    cell.m_hv[np].m_y = hvy;
+		    cell.m_hv[np].m_z = hvz;
+		    cell.m_v[np].m_x = vx;
+		    cell.m_v[np].m_y = vy;
+		    cell.m_v[np].m_z = vz;
+		    ++cell.m_numPars;
+		    p++;
+		}
 	    }
 	}
     }
-    
-    float px, py, pz, hvx, hvy, hvz, vx, vy, vz;
-    long seed = 12345678;
-    Random r = new Random(seed);
-    int maxint = (1<<31) - 1;
-    for(int i = 0; i < numParticles; ) {
-	
-	do {
-	    px = (float)((((float)r.nextInt()) / maxint) * 0.07 - 0.06);
-	} while((px < -0.0661478) || (px > 0.0108902));
-	do {
-	    py = (float)((((float)r.nextInt()) / maxint) * 0.079975 - 0.08);
-	} while((py < -0.08255) || (py > -0.0000257124));
-	do {
-	    pz = (float)((((float)r.nextInt()) / maxint) * 0.12 - 0.06);
-	} while((pz < -0.0656068) || (pz > 0.06557));
-	do {
-	    hvx = (float)((((float)r.nextInt()) / maxint) * 0.71 - 0.44);
-	} while((hvx < -0.442022) || (hvx > 0.277284));
-	do {
-	    hvy = (float)((((float)r.nextInt()) / maxint) * 0.84 - 0.33);
-	} while((hvy < -0.336931) || (hvy > 0.513108));
-	do {
-	    hvz = (float)((((float)r.nextInt()) / maxint) * 0.63 - 0.32);
-	} while((hvz < -0.320125) || (hvz > 0.315038));
-	do {
-	    vx = (float)((((float)r.nextInt()) / maxint) * 0.69 - 0.41);
-	} while((vx < -0.41846) || (vx > 0.280465));
-	do {
-	    vy = (float)((((float)r.nextInt()) / maxint) * 0.87 - 0.36);
-	} while((vy < -0.36748) || (vy > 0.515511));
-	do {
-	    vz = (float)((((float)r.nextInt()) / maxint) * 0.64 - 0.32);
-	} while((vz < -0.321845) || (vz > 0.32013));
-	
-	int ci = (int)((px - domainMin.m_x) / delta.m_x);
-	int cj = (int)((py - domainMin.m_y) / delta.m_y);
-	int ck = (int)((pz - domainMin.m_z) / delta.m_z);
 
-	if(ci < 0) {
-	    ci = 0; 
-	} else if(ci > (nx-1)) {
-	    ci = nx-1;
-	}
-	if(cj < 0) {
-	    cj = 0; 
-	} else if(cj > (ny-1)) {
-	    cj = ny-1;
-	}
-	if(ck < 0) {
-	    ck = 0; 
-	} else if(ck > (nz-1)) {
-	    ck = nz-1;
-	}
-
-	Cell cell = cells[ci][cj][ck];
-	int np = cell.m_numPars;
-	if(np < 16) {
-		cell.m_p[np].m_x = px;
-		cell.m_p[np].m_y = py;
-		cell.m_p[np].m_z = pz;
-		cell.m_hv[np].m_x = hvx;
-		cell.m_hv[np].m_y = hvy;
-		cell.m_hv[np].m_z = hvz;
-		cell.m_v[np].m_x = vx;
-		cell.m_v[np].m_y = vy;
-		cell.m_v[np].m_z = vz;
-		++cell.m_numPars;
-		i++;
-	}
-	
-    }
-
-    
     int gi = 0;
     int sx, sz, ex, ez;
     ex = 0;
@@ -174,6 +117,7 @@ task t1(StartupObject s{initialstate}) {
 		    new Vec3(delta.m_x, delta.m_y, delta.m_z),
 		    densityCoeff, pressureCoeff, viscosityCoeff, nx, ny, nz,
 		    framenum){rebuild};
+	    // initialize the cells
 	    grid.initCells(cells);
 	    grid.initNeighCells(cells, demo);
 	}

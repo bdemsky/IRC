@@ -12,7 +12,7 @@ DEFS	+= -D$(shell uname -s) -D__raw__
 TOPDIR=/home/jzhou/starsearch
 include $(TOPDIR)/Makefile.include
 
-RGCCFLAGS += -O0 
+RGCCFLAGS += -O2 
 RGCCFLAGS += ${RAWRGCCFLAGS} 
 
 USE_SLGCC=1
