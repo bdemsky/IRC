@@ -34,7 +34,7 @@ public class Convolution {
               tinput3[j+b]*kernel[3][b] + tinput4[j+b]*kernel[4][b]);
         }
       }
-      if(i != 4095) {
+      if(i != 8191) {
         tinput0 = tinput1; tinput1=tinput2; tinput2=tinput3; tinput3=tinput4; tinput4=tempinput[i+5];
       }
     }
