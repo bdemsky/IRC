@@ -19,7 +19,7 @@
 
 #define NUMPTRS 100
 
-#define INITIALHEAPSIZE 10*1024
+#define INITIALHEAPSIZE 8192*1024
 #define GCPOINT(x) ((int)((x)*0.9))
 /* This define takes in how full the heap is initially and returns a new heap size to use */
 #define HEAPSIZE(x,y) (((int)((x)/0.6))+y)

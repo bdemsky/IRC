@@ -55,8 +55,10 @@
 #define LISTEN_PORT 2156
 #define UDP_PORT 2158
 //Prefetch tuning paramters
-#define RETRYINTERVAL  20 //N
-#define SHUTDOWNINTERVAL  3  //M
+//#define RETRYINTERVAL  20 //N (For Em3d, SOR, Moldyn benchmarks)
+//#define SHUTDOWNINTERVAL  3  //M
+#define RETRYINTERVAL  100 //N  (For MatrixMultiply, 2DFFT benchmarks)
+#define SHUTDOWNINTERVAL  1  //M
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -90,6 +92,9 @@
 
 /*******Global statistics *********/
 extern int numprefetchsites;
+
+double idForTimeDelay;           /* TODO Remove, necessary to get time delay for starting transRequest for this id */
+int transCount;                  /* TODO Remove, necessary to the transaction id */
 
 #ifdef COMPILER
 
@@ -208,9 +213,9 @@ typedef struct thread_data_array {
   int mid;
   trans_req_data_t *buffer;     /* Holds trans request information sent to a participant, based on threadid */
   thread_response_t *recvmsg;   /* Shared datastructure to keep track of the participants response to a trans request */
-  pthread_cond_t *threshold;    /* Condition var to waking up a thread */
+  pthread_cond_t *threshold;    /* Condition var to wake up a thread */
   pthread_mutex_t *lock;        /* Lock for counting participants response */
-  int *count;                   /* Variable to count responses from all participants to the TRANS_REQUEST protocol */
+  int *count;                   /* Shared variable to count responses from all participants to the TRANS_REQUEST protocol */
   char *replyctrl;              /* Shared ctrl message that stores the reply to be sent to participants, filled by decideResponse() */
   char *replyretry;             /* Shared variable that keep track if coordinator needs retry */
   transrecord_t *rec;           /* Shared variable transaction record send to all thread data */
@@ -278,12 +283,12 @@ objheader_t *transRead(transrecord_t *, unsigned int);
 objheader_t *transCreateObj(transrecord_t *, unsigned int); //returns oid header
 int transCommit(transrecord_t *record); //return 0 if successful
 void *transRequest(void *);     //the C routine that the thread will execute when TRANS_REQUEST begins
-void decideResponse(thread_data_array_t *); // Coordinator decides what response to send to the participant
-char sendResponse(thread_data_array_t *, int); //Sends control message back to Participants
+char decideResponse(char *, char *, transrecord_t *, int); // Coordinator decides what response to send to the participant
 void *getRemoteObj(transrecord_t *, unsigned int, unsigned int); // returns object header from main object store after object is copied into it from remote machine
-void *handleLocalReq(void *); //handles Local requests
-int transComProcess(local_thread_data_array_t *);
-int transAbortProcess(local_thread_data_array_t *);
+void handleLocalReq(trans_req_data_t *, trans_commit_data_t *, transrecord_t *, char *);
+int transComProcess(trans_req_data_t *, trans_commit_data_t *, transrecord_t *);
+void doLocalProcess(char, trans_req_data_t *tdata, trans_commit_data_t *, transrecord_t *);
+int transAbortProcess(trans_commit_data_t *);
 void transAbort(transrecord_t *trans);
 void sendPrefetchResponse(int sd, char *control, char *sendbuffer, int *size);
 void prefetch(int, int, unsigned int *, unsigned short *, short*);
@@ -298,13 +303,27 @@ int getPrefetchResponse(int);
 unsigned short getObjType(unsigned int oid);
 int startRemoteThread(unsigned int oid, unsigned int mid);
 plistnode_t *pInsert(plistnode_t *pile, objheader_t *headeraddr, unsigned int mid, int num_objs);
-void commitCountForObjRead(local_thread_data_array_t *, unsigned int *, unsigned int *, int *, int *, int *, int *, int *, unsigned int, unsigned short);
-void commitCountForObjMod(local_thread_data_array_t *, unsigned int *, unsigned int *, int *, int *, int *, int *, int *, unsigned int, unsigned short);
+void commitCountForObjRead(char *, unsigned int *, unsigned int *, int *, int *, int *, int *, int *, unsigned int, unsigned short);
+void commitCountForObjMod(char *, unsigned int *, unsigned int *, int *, int *, int *, int *, int *, unsigned int, unsigned short);
 
 /* Sends notification request for thread join, if sucessful returns 0 else returns -1 */
 int reqNotify(unsigned int *oidarry, unsigned short *versionarry, unsigned int numoid);
 void threadNotify(unsigned int oid, unsigned short version, unsigned int tid);
 int notifyAll(threadlist_t **head, unsigned int oid, unsigned int version);
+
+/* Internal functions from signal.c */
+int getthreadid();
+double getMax(double *array, int size);
+double getMin(double *array, int size);
+double getfast(int siteid, int threadid);
+double getslowest(int siteid, int threadid);
+double getavg(int siteid, int threadid);
+double getavgperthd(int siteid, int threadid);
+double avgfast(int siteid, int threadid);
+double avgslow(int siteid, int threadid);
+void bubblesort();
+void swap(double *e1, double *e2);
+double avgofthreads(int siteid, int threadid);
 
 /* end transactions */
 #endif

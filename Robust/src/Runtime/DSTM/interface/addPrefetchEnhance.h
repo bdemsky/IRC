@@ -17,8 +17,8 @@ int getRetryCount(int siteid);
 int getUselessCount(int siteid);
 char getOperationMode(int);
 void handleDynPrefetching(int, int, int);
-void cleanPCache(thread_data_array_t *tdata);
-int updatePrefetchCache(thread_data_array_t *);
-int copyToCache(int, unsigned int *, thread_data_array_t *, char);
+void cleanPCache(transrecord_t *);
+int updatePrefetchCache(trans_req_data_t *, transrecord_t *);
+int copyToCache(int, unsigned int *, transrecord_t *rec, char);
 
 #endif

@@ -24,7 +24,6 @@ pthread_mutexattr_t mainobjstore_mutex_attr; /* Attribute for lock to make it a 
 
 sockPoolHashTable_t *transPResponseSocketPool;
 
-
 /* This function initializes the main objects store and creates the
  * global machine and location lookup table */
 
@@ -344,6 +343,7 @@ int readClientReq(trans_commit_data_t *transinfo, int acceptfd) {
  * Following this it also receives a new control message from the co-ordinator and processes this message*/
 int processClientReq(fixed_data_t *fixed, trans_commit_data_t *transinfo,
                      unsigned int *listmid, char *objread, void *modptr, unsigned int *oidmod, int acceptfd) {
+
   char control, sendctrl, retval;
   objheader_t *tmp_header;
   void *header;
@@ -354,6 +354,7 @@ int processClientReq(fixed_data_t *fixed, trans_commit_data_t *transinfo,
     printf("Error: In handleTransReq() %s, %d\n", __FILE__, __LINE__);
     return 1;
   }
+
   recv_data((int)acceptfd, &control, sizeof(char));
   /* Process the new control message */
   switch(control) {
@@ -402,6 +403,7 @@ int processClientReq(fixed_data_t *fixed, trans_commit_data_t *transinfo,
     //TODO Use fixed.trans_id  TID since Client may have died
     break;
   }
+
   /* Free memory */
   if (transinfo->objlocked != NULL) {
     free(transinfo->objlocked);
@@ -409,6 +411,7 @@ int processClientReq(fixed_data_t *fixed, trans_commit_data_t *transinfo,
   if (transinfo->objnotfound != NULL) {
     free(transinfo->objnotfound);
   }
+
   return 0;
 }
 
@@ -542,6 +545,7 @@ void getCommitCountForObjMod(unsigned int *oidnotfound, unsigned int *oidlocked,
 	*numBytes += size;
 	/* Send TRANS_DISAGREE to Coordinator */
 	*control = TRANS_DISAGREE;
+	//printf("%s() oid = %d, type = %d\t", __func__, OID(mobj), TYPE((objheader_t *)mobj));
       }
       //Keep track of oid locked
       oidlocked[*objlocked] = OID(((objheader_t *)mobj));
@@ -558,6 +562,7 @@ void getCommitCountForObjMod(unsigned int *oidnotfound, unsigned int *oidlocked,
 	size += sizeof(objheader_t);
 	*numBytes += size;
 	*control = TRANS_DISAGREE;
+	//printf("%s() oid = %d, type = %d\t", __func__, OID(mobj), TYPE((objheader_t *)mobj));
       }
     }
   }
@@ -588,6 +593,7 @@ void getCommitCountForObjRead(unsigned int *oidnotfound, unsigned int *oidlocked
 	*numBytes += size;
 	/* Send TRANS_DISAGREE to Coordinator */
 	*control = TRANS_DISAGREE;
+	//printf("%s() oid = %d, type = %d\t", __func__, OID(mobj), TYPE((objheader_t *)mobj));
       }
       //Keep track of oid locked
       oidlocked[*objlocked] = OID(((objheader_t *)mobj));
@@ -604,6 +610,7 @@ void getCommitCountForObjRead(unsigned int *oidnotfound, unsigned int *oidlocked
 	size += sizeof(objheader_t);
 	*numBytes += size;
 	*control = TRANS_DISAGREE;
+	//printf("%s() oid = %d, type = %d\t", __func__, OID(mobj), TYPE((objheader_t *)mobj));
       }
     }
   }
@@ -647,7 +654,6 @@ char decideCtrlMessage(fixed_data_t *fixed, trans_commit_data_t *transinfo, int 
   transinfo->modptr = modptr;
   transinfo->numlocked = *(objlocked);
   transinfo->numnotfound = *(objnotfound);
-
   return control;
 }
 
