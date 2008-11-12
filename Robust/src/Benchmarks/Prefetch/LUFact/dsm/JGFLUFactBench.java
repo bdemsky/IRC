@@ -50,6 +50,7 @@ public class JGFLUFactBench {
     lda = ldaa + 1;
 
     a = global new double[ldaa][lda];
+    //System.printString("row_ldaa = "+ldaa + "column_lda= "+lda+ "\n");
     b = global new double [ldaa];
     x = global new double [ldaa];
     ipvt = global new int [ldaa];
@@ -65,37 +66,50 @@ public class JGFLUFactBench {
       numthreads = lub.nthreads;
     }
 
+    int[] mid = new int[4];
+    mid[0] = (128<<24)|(195<<16)|(175<<8)|84; //dw-10
+    mid[1] = (128<<24)|(195<<16)|(175<<8)|85; //dw-11
+    mid[2] = (128<<24)|(195<<16)|(175<<8)|86; //dw-12
+    mid[3] = (128<<24)|(195<<16)|(175<<8)|87; //dw-13
+
     /* spawn threads */
     LinpackRunner[] thobjects;
-    Barrier br;
+    BarrierServer mybarr;
     atomic {
       thobjects = global new LinpackRunner[numthreads];
-      br = global new Barrier(numthreads);
+      mybarr = global new BarrierServer(numthreads);
     }
 
+    mybarr.start(mid[0]);
     //JGFInstrumentor.startTimer("Section2:LUFact:Kernel", instr.timers);  
     LinpackRunner tmp;
-    int[] mid = new int[4];
-    mid[0] = (128<<24)|(195<<16)|(175<<8)|73;
-    mid[1] = (128<<24)|(195<<16)|(175<<8)|69;
-    mid[2] = (128<<24)|(195<<16)|(175<<8)|78;
-    mid[3] = (128<<24)|(195<<16)|(175<<8)|79;
-    for(int i=1;i<numthreads;i++) {
+    
+    boolean waitfordone=true;
+    while(waitfordone) {
       atomic {
-        thobjects[i] = global new LinpackRunner(i,lub.a,lub.lda,lub.n,lub.ipvt,br,lub.nthreads);
+        //System.printString("HERE #1\n");
+        if (mybarr.done)
+          waitfordone=false;
+      }
+    }
+
+    for(int i=0;i<numthreads;i++) {
+      atomic {
+        thobjects[i] = global new LinpackRunner(i,lub.a,lub.lda,lub.n,lub.ipvt,lub.nthreads);
         tmp = thobjects[i];
       }
       tmp.start(mid[i]);
     }
 
+    /*
     atomic {
-      thobjects[0] = global new LinpackRunner(0,lub.a,lub.lda,lub.n,lub.ipvt,br,lub.nthreads);
+      thobjects[0] = global new LinpackRunner(0,lub.a,lub.lda,lub.n,lub.ipvt,lub.nthreads);
       tmp = thobjects[0];
     }
     tmp.start(mid[0]);
     tmp.join();
-
-    for(int i=1;i<numthreads;i++) {
+*/
+    for(int i=0;i<numthreads;i++) {
       atomic {
         tmp = thobjects[i];
       }
@@ -103,6 +117,7 @@ public class JGFLUFactBench {
     }
 
     atomic {
+      //System.printString("HERE #2\n");
       lub.dgesl(lub.a,lub.lda,lub.n,lub.ipvt,lub.b,0);
     }
 

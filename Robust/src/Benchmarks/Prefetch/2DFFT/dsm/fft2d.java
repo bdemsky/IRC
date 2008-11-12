@@ -53,14 +53,7 @@ public class fft2d extends Thread {
     // Tranpose data.
     if (start == 0) {
       atomic {
-	for(int i = 0; i<rowlength; i++) {
-	  double tRe[] = tempdataRe[i];
-	  double tIm[] = tempdataIm[i];
-	  for(int j = 0; j<columnlength; j++) {
-	    data2.dataRe[j][i] = tRe[j];
-	    data2.dataIm[j][i] = tIm[j];
-	  }
-	}
+	transpose(tempdataRe,tempdataIm, data2.dataRe,data2.dataIm, rowlength, columnlength);
       }
     }
 
@@ -81,6 +74,18 @@ public class fft2d extends Thread {
       } //end of fft2 for
     }
   } //end of run
+
+  public void transpose(double[][] tempdataRe, double[][] tempdataIm, double[][] outputRe,
+                        double[][] outputIm, int rowlength, int columnlength) {
+    for(int i = 0; i<rowlength; i++) {
+      double tRe[] = tempdataRe[i];
+      double tIm[] = tempdataIm[i];
+      for(int j = 0; j<columnlength; j++) {
+	outputRe[j][i] = tRe[j];
+	outputIm[j][i] = tIm[j];
+      }
+    }
+  }
 
   public static void main(String[] args) {
     int NUM_THREADS = 1;
@@ -213,7 +218,7 @@ public class fft2d extends Thread {
   }   // End of function permute().
 
   private static void twiddle(int factorIndex, fft1d myfft, double[] temRe, double[] temIm,
-                       double[] outputRe, double[] outputIm) {
+                              double[] outputRe, double[] outputIm) {
     // Get factor data.
     int sofarRadix = myfft.sofar[factorIndex];
     int radix = myfft.factors[factorIndex];

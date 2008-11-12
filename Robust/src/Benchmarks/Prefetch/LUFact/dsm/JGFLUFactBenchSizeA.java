@@ -57,6 +57,7 @@ public class JGFLUFactBenchSizeA {
     }
     JGFInstrumentor.addOpsToTimer("Section2:LUFact:Kernel", ((long)ops)/1.0e06, instr.timers);
     JGFInstrumentor.printTimer("Section2:LUFact:Kernel", instr.timers); 
+    System.printString("Finished\n");
   }
 }
 
