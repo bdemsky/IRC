@@ -1,7 +1,7 @@
 MAINCLASS=Convolution
 SRC=${MAINCLASS}.java 
 default:
-	../../../../buildscript -nooptimize -debug -mainclass ${MAINCLASS} ${SRC} -o ${MAINCLASS}
+	../../../../buildscript -optimize -mainclass ${MAINCLASS} ${SRC} -o ${MAINCLASS}
 
 clean:
 	rm -rf tmpbuilddirectory

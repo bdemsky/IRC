@@ -14,28 +14,26 @@ public class Convolution {
     int kernelHeight = 5;
     int kernelWidth = 5;
     double[][] kernel = new double[kernelHeight][kernelWidth];
-
     initKernel(kernel);
     double tempinput[][] = img.inputImage;
     double tempout[][] = img.outputImage;
 
-    double tinput0[] = tempinput[x0];
-    double tinput1[] = tempinput[x0+1];
-    double tinput2[] = tempinput[x0+2];
-    double tinput3[] = tempinput[x0+3];
-    double tinput4[] = tempinput[x0+4];
+    double tinput1[] = tempinput[x0];
+    double tinput2[] = tempinput[x0+1];
+    double tinput3[] = tempinput[x0+2];
+    double tinput4[] = tempinput[x0+3];
+    double tinput0[] = tinput1;
 
-    for(int i=x0;i<x1;++i){
-      double tout[] = tempout[x0];
+    int l=x0+4;
+    for(int i=x0;i<x1;i++,l++){
+      double tout[] = tempout[i];
+      tinput0 = tinput1; tinput1=tinput2; tinput2=tinput3; tinput3=tinput4; tinput4=tempinput[l];
       for(int j=y0;j<y1;++j){
-        tout[y0] = 0;
+        tout[j] = 0;
         for(int b=0;b<kernelHeight;++b){
-          tout[y0] = tout[y0] + (tinput0[j+b] * kernel[0][b] + tinput1[j+b] * kernel[1][b] + tinput2[j+b]*kernel[2][b] +
+          tout[j] = tout[j] + (tinput0[j+b] * kernel[0][b] + tinput1[j+b] * kernel[1][b] + tinput2[j+b]*kernel[2][b] +
               tinput3[j+b]*kernel[3][b] + tinput4[j+b]*kernel[4][b]);
         }
-      }
-      if(i != 8191) {
-        tinput0 = tinput1; tinput1=tinput2; tinput2=tinput3; tinput3=tinput4; tinput4=tempinput[i+5];
       }
     }
   }
@@ -68,11 +66,15 @@ public class Convolution {
       base+=increment;
     }
 
+    //System.printString("img.outputImage[10][20] = " +(int) img.outputImage[10][20] + "\n");
+    //System.printString("img.outputImage[256][890] = " +(int) img.outputImage[256][890] + "\n");
     for(int i = 0; i <NUM_THREADS; i++) {
       tmp = conv[i];
       tmp.run();
     }
 
+    //System.printString("img.outputImage[10][20] = " +(int) img.outputImage[10][20] + "\n");
+    //System.printString("img.outputImage[256][890] = " +(int) img.outputImage[256][890] + "\n");
     System.printString("Done!");
   }
 
