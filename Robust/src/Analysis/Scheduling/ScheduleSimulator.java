@@ -303,7 +303,7 @@ public class ScheduleSimulator {
 		  // this obj will reside on this core
 		  cs.addObject(tobj);
 		} else {
-		  Integer targetCore = cores.peek();
+		  Integer targetCore = cores.poll();
 		  if(targetCore == coreNum) {
 		    // this obj will reside on this core
 		    cs.addObject(tobj);
@@ -315,8 +315,9 @@ public class ScheduleSimulator {
 		    tmpqueue.add(new ObjectInfo(tobj));
 		    tmpqueue = null;
 		  }
-		  cores = null;
+		  cores.add(targetCore);
 		}
+		cores = null;
 		// check if this object becoming shared or not
 		Vector<Integer> allycores = cs.getAllyCores(tobj.getCurrentFS());
 		if(allycores != null) {
@@ -380,8 +381,10 @@ public class ScheduleSimulator {
       finishTasks = null;
     }
 
-    SchedulingUtil.printSimulationResult("SimulatorResult_" + this.invoketime + ".dot", this.processTime,
-                                         this.coreNum, this.checkpoints);
+    if(this.state.PRINTSCHEDULESIM) {
+	SchedulingUtil.printSimulationResult("SimulatorResult_" + this.invoketime + ".dot", this.processTime,
+		this.coreNum, this.checkpoints);
+    }
     System.out.println("Simulate scheduling #" + this.invoketime + ": ");
     System.out.println("\tTotal execution time is: " + this.processTime);
     System.out.println("\tUtility of cores: ");

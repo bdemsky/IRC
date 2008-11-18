@@ -3985,6 +3985,7 @@ parameterpresent:
 #ifdef RAWDEBUG
 	  raw_test_pass_reg(x);
 #endif
+	  raw_test_pass_reg(x);
 	  raw_test_done(0xa009);
 #else
 	  exit(-1);

@@ -213,7 +213,9 @@ public class ScheduleAnalysis {
     }
     toVisit = null;
 
-    SchedulingUtil.printScheduleGraph("scheduling_ori.dot", this.scheduleNodes);
+    if(this.state.PRINTSCHEDULING) {
+	SchedulingUtil.printScheduleGraph("scheduling_ori.dot", this.scheduleNodes);
+    }
   }
 
   public void scheduleAnalysis() {
@@ -384,7 +386,9 @@ public class ScheduleAnalysis {
     fe2ses = null;
     sn2fes = null;
 
-    SchedulingUtil.printScheduleGraph("scheduling_extend.dot", this.scheduleNodes);
+    if(this.state.PRINTSCHEDULING) {
+	SchedulingUtil.printScheduleGraph("scheduling_extend.dot", this.scheduleNodes);
+    }
   }
 
   private void handleScheduleEdge(ScheduleEdge se, boolean merge) {
@@ -746,8 +750,10 @@ public class ScheduleAnalysis {
       // Enough cores, no need to combine any ScheduleNode
       this.scheduleGraphs.addElement(this.scheduleNodes);
       int gid = 1;
-      String path = "scheduling_" + gid + ".dot";
-      SchedulingUtil.printScheduleGraph(path, this.scheduleNodes);
+      if(this.state.PRINTSCHEDULING) {
+	  String path = "scheduling_" + gid + ".dot";
+	  SchedulingUtil.printScheduleGraph(path, this.scheduleNodes);
+      }
     } else {
       // Go through all the Scheudle Nodes, organize them in order of their cid
       Vector<Vector<ScheduleNode>> sNodeVecs = new Vector<Vector<ScheduleNode>>();
@@ -1052,8 +1058,10 @@ public class ScheduleAnalysis {
     sn2hash = null;
     sn2sn = null;
 
-    String path = "scheduling_" + gid + ".dot";
-    SchedulingUtil.printScheduleGraph(path, result);
+    if(this.state.PRINTSCHEDULING) {
+	String path = "scheduling_" + gid + ".dot";
+	SchedulingUtil.printScheduleGraph(path, result);
+    }
 
     return result;
   }

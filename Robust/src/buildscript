@@ -24,6 +24,8 @@ echo "-rawconfig config raw simulator as 4xn (should be used together with -raw)
 echo "-rawpath print out execute path information for raw version (should be used together with -raw)"
 echo "-useprofile use profiling data for scheduling (should be used together with -raw)"
 echo -threadsimulate generate multi-thread simulate version binary
+echo -printscheduling print out scheduling graphs
+echo -printschedulesim print out scheduling simulator result graphs
 echo -optional enable optional
 echo -debug generate debug symbols
 echo -prefetch do prefetch analysis

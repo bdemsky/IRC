@@ -166,6 +166,17 @@ public class CoreSimulator {
 	  }
 	  allycores = null;
 	}
+	// check if need to transfer to other cores
+	Queue<Integer> targetcores = this.getTargetCores(obj.getCurrentFS());
+	if(targetcores != null) {
+	    if(transObjs == null) {
+		transObjs = new Vector<ObjectSimulator>();
+	    }
+	    if(!transObjs.contains(obj)) {
+		transObjs.add(obj);
+	    }
+	    remove = true;
+	}
 	for(int j = 0; j < this.tasks.size(); j++) {
 	  this.tasks.elementAt(j).refreshPara(obj, remove);
 	}

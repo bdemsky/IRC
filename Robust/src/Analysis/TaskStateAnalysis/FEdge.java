@@ -206,6 +206,10 @@ public class FEdge extends Edge {
   public int getInvokeNumGap() {
     return this.expInvokeNum - this.invokeNum;
   }
+  
+  public int getInvokeNumGapByObj(int byObj) {
+      return this.expInvokeNum - (this.invokeNum/byObj);
+  }
 
   public void setExpInvokeNum(int expInvokeNum) {
     this.expInvokeNum = expInvokeNum;

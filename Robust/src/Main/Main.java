@@ -75,6 +75,10 @@ public class Main {
 	state.TRUEPROB=Double.parseDouble(args[++i]);
       } else if (option.equals("-printflat"))
 	State.PRINTFLAT=true;
+      else if (option.equals("-printscheduling"))
+		State.PRINTSCHEDULING=true;
+      else if (option.equals("-printschedulesim"))
+		State.PRINTSCHEDULESIM=true;
       else if (option.equals("-struct"))
 	state.structfile=args[++i];
       else if (option.equals("-conscheck"))
@@ -147,6 +151,18 @@ public class Main {
 	System.out.println("-ownwritedots <all/final> -- write ownership graphs; can be all results or just final results");
 	System.out.println("-ownaliasfile <filename> -- write a text file showing all detected aliases in program tasks");
 	System.out.println("-optional -- enable optional arguments");
+	System.out.println("-scheduling do task scheduling" );
+	System.out.println("-multicore generate multi-core version binary");
+	System.out.println("-numcore set the number of cores (should be used together with -multicore), defaultly set as 1");
+	System.out.println("-raw generate raw version binary (should be used together with -multicore)");
+	System.out.println("-interrupt generate raw version binary with interruption (should be used togethere with -raw)");
+	System.out.println("-rawconfig config raw simulator as 4xn (should be used together with -raw)");
+	System.out.println("-rawpath print out execute path information for raw version (should be used together with -raw)");
+	System.out.println("-useprofile use profiling data for scheduling (should be used together with -raw)");
+	System.out.println("-threadsimulate generate multi-thread simulate version binary");
+	System.out.println("-rawuseio use standard io to output profiling data (should be used together with -raw and -profile), it only works with single core version");
+	System.out.println("-printscheduling -- print out scheduling graphs");
+	System.out.println("-printschedulesim -- print out scheduling simulation result graphs");
 	System.out.println("-webinterface -- enable web interface");
 	System.out.println("-help -- print out help");
 	System.exit(0);
@@ -312,9 +328,21 @@ public class Main {
 	    while(inint.startsWith(" ")) {
 	      inint = inint.substring(1);
 	    }
-	    tmpinindex = inint.indexOf(';');
+	    tmpinindex = inint.indexOf(',');
+	    if(tmpinindex == -1) {
+	      break;
+	    }
 	    int numofexits = Integer.parseInt(inint.substring(0, tmpinindex));
 	    TaskInfo tinfo = new TaskInfo(numofexits);
+	    inint = inint.substring(tmpinindex + 1);
+	    while(inint.startsWith(" ")) {
+	      inint = inint.substring(1);
+	    }
+	    tmpinindex = inint.indexOf(';');
+	    int byObj = Integer.parseInt(inint.substring(0, tmpinindex));
+	    if(byObj != -1) {
+		tinfo.m_byObj = byObj;
+	    }
 	    inint = inint.substring(tmpinindex + 1);
 	    while(inint.startsWith(" ")) {
 		inint = inint.substring(1);
@@ -403,16 +431,20 @@ public class Main {
 		      int total = 100;
 		      for(int j = 0; j < numEdges; j++) {
 			FEdge pfe = fev.elementAt(j);
-			tint = taskinfos.get(td.getSymbol()).m_exetime[pfe.getTaskExitIndex()];
+			TaskInfo taskinfo = taskinfos.get(td.getSymbol());
+			tint = taskinfo.m_exetime[pfe.getTaskExitIndex()];
 			pfe.setExeTime(tint);
-			double idouble = taskinfos.get(td.getSymbol()).m_probability[pfe.getTaskExitIndex()];
+			double idouble = taskinfo.m_probability[pfe.getTaskExitIndex()];
 			pfe.setProbability(idouble);
 			int newRate = 0;
-			if((taskinfos.get(td.getSymbol()).m_newobjinfo.elementAt(pfe.getTaskExitIndex()) != null)
-				&& (taskinfos.get(td.getSymbol()).m_newobjinfo.elementAt(pfe.getTaskExitIndex()).containsKey(cd.getSymbol()))) {
-			    newRate = taskinfos.get(td.getSymbol()).m_newobjinfo.elementAt(pfe.getTaskExitIndex()).get(cd.getSymbol());
+			if((taskinfo.m_newobjinfo.elementAt(pfe.getTaskExitIndex()) != null)
+				&& (taskinfo.m_newobjinfo.elementAt(pfe.getTaskExitIndex()).containsKey(cd.getSymbol()))) {
+			    newRate = taskinfo.m_newobjinfo.elementAt(pfe.getTaskExitIndex()).get(cd.getSymbol());
 			}
 			pfe.addNewObjInfo(cd, newRate, idouble);
+			if(taskinfo.m_byObj != -1) {
+			    ((FlagState)pfe.getSource()).setByObj(taskinfo.m_byObj);
+			}
 		      }
 		      fev = null;
 		    }
@@ -426,10 +458,14 @@ public class Main {
 		int total = 100;
 		while(it_edges.hasNext()) {
 		  FEdge edge = (FEdge)it_edges.next();
-		  tint = taskinfos.get(edge.getTask().getSymbol()).m_exetime[edge.getTaskExitIndex()];
+		  TaskInfo taskinfo = taskinfos.get(edge.getTask().getSymbol());
+		  tint = taskinfo.m_exetime[edge.getTaskExitIndex()];
 		  edge.setExeTime(tint);
-		  double idouble = taskinfos.get(edge.getTask().getSymbol()).m_probability[edge.getTaskExitIndex()];
+		  double idouble = taskinfo.m_probability[edge.getTaskExitIndex()];
 		  edge.setProbability(idouble);
+		  if(taskinfo.m_byObj != -1) {
+		      ((FlagState)edge.getSource()).setByObj(taskinfo.m_byObj);
+		  }
 		}
 	      }
 	    }
@@ -478,7 +514,8 @@ public class Main {
 			   (cdname.equals("MDRunner")) ||
 			   (cdname.equals("Stage")) ||
 			   (cdname.equals("AppDemoRunner")) ||
-			   (cdname.equals("FilterBankAtom"))) {
+			   (cdname.equals("FilterBankAtom")) ||
+			   (cdname.equals("Grid"))) {
 			  newRate = 16;
 			} else if(cdname.equals("SentenceParser")) {
 			  newRate = 4;
@@ -554,7 +591,7 @@ public class Main {
 	// Create a new output stream for the standard output.
 	PrintStream stdout  = null;
 	try {
-	  stdout = new PrintStream(new FileOutputStream("SimulatorResult.out"));
+	  stdout = new PrintStream(new FileOutputStream("/scratch/SimulatorResult.out"));
 	} catch (Exception e) {
 	  // Sigh.  Couldn't open the file.
 	  System.out.println("Redirect:  Unable to open output file!");
@@ -590,62 +627,54 @@ public class Main {
 
 	//simulate these schedulings
 	ScheduleSimulator scheduleSimulator = new ScheduleSimulator(scheduleAnalysis.getCoreNum(), state, ta);
-	Iterator it_scheduling = scheduleAnalysis.getSchedulingsIter();
-	int index = 0;
+	Vector<Vector<Schedule>> schedulings = scheduleAnalysis.getSchedulings();
 	Vector<Integer> selectedScheduling = new Vector<Integer>();
 	int processTime = Integer.MAX_VALUE;
-	while(it_scheduling.hasNext()) {
-	  Vector<Schedule> scheduling = (Vector<Schedule>)it_scheduling.next();
-	  scheduleSimulator.setScheduling(scheduling);
-	  int tmpTime = scheduleSimulator.process();
-	  if(tmpTime < processTime) {
-	    selectedScheduling.clear();
-	    selectedScheduling.add(index);
-	    processTime = tmpTime;
-	  } else if(tmpTime == processTime) {
-	    selectedScheduling.add(index);
-	  }
-	  scheduling = null;
-	  index++;
+	if(schedulings.size() > 1500) {
+	    int index = 0;
+	    int upperbound = schedulings.size();
+	    long seed = 0;
+	    java.util.Random r = new java.util.Random(seed);
+	    for(int ii = 0; ii < 1500; ii++) {
+		index = (int)((Math.abs((double)r.nextInt() / (double)Integer.MAX_VALUE)) * upperbound);
+		System.out.println("Scheduling index:" + index);
+		//System.err.println("Scheduling index:" + index);
+		Vector<Schedule> scheduling = schedulings.elementAt(index);
+		scheduleSimulator.setScheduling(scheduling);
+		int tmpTime = scheduleSimulator.process();
+		if(tmpTime < processTime) {
+		    selectedScheduling.clear();
+		    selectedScheduling.add(index);
+		    processTime = tmpTime;
+		} else if(tmpTime == processTime) {
+		    selectedScheduling.add(index);
+		}
+		scheduling = null;
+	    }
+	} else {
+	    Iterator it_scheduling = scheduleAnalysis.getSchedulingsIter();
+	    int index = 0;
+	    while(it_scheduling.hasNext()) {
+		Vector<Schedule> scheduling = (Vector<Schedule>)it_scheduling.next();
+		scheduleSimulator.setScheduling(scheduling);
+		int tmpTime = scheduleSimulator.process();
+		if(tmpTime < processTime) {
+		    selectedScheduling.clear();
+		    selectedScheduling.add(index);
+		    processTime = tmpTime;
+		} else if(tmpTime == processTime) {
+		    selectedScheduling.add(index);
+		}
+		scheduling = null;
+		index++;
+	    }
 	}
+
 	System.out.print("Selected schedulings with least exectution time " + processTime + ": \n\t");
 	for(int i = 0; i < selectedScheduling.size(); i++) {
 	  System.out.print((selectedScheduling.elementAt(i) + 1) + ", ");
 	}
 	System.out.println();
-
-	/*ScheduleSimulator scheduleSimulator = new ScheduleSimulator(4, state, ta);
-	   Vector<Schedule> scheduling = new Vector<Schedule>();
-	   for(int i = 0; i < 4; i++) {
-	    Schedule schedule = new Schedule(i);
-	    scheduling.add(schedule);
-	   }
-	   Iterator it_tasks = state.getTaskSymbolTable().getAllDescriptorsIterator();
-	   while(it_tasks.hasNext()) {
-	    TaskDescriptor td = (TaskDescriptor)it_tasks.next();
-	    if(td.getSymbol().equals("t10")) {
-	        scheduling.elementAt(1).addTask(td);
-	    } else {
-	        scheduling.elementAt(0).addTask(td);
-	    }
-	   }
-	   ClassDescriptor cd = (ClassDescriptor)state.getClassSymbolTable().get("E");
-	   scheduling.elementAt(0).addTargetCore(cd, 1);
-	   scheduleSimulator.setScheduling(scheduling);
-	   scheduleSimulator.process();
-
-	   Vector<Schedule> scheduling1 = new Vector<Schedule>();
-	   for(int i = 0; i < 4; i++) {
-	    Schedule schedule = new Schedule(i);
-	    scheduling1.add(schedule);
-	   }
-	   Iterator it_tasks1 = state.getTaskSymbolTable().getAllDescriptorsIterator();
-	   while(it_tasks1.hasNext()) {
-	    TaskDescriptor td = (TaskDescriptor)it_tasks1.next();
-	    scheduling1.elementAt(0).addTask(td);
-	   }
-	   scheduleSimulator.setScheduling(scheduling1);
-	   scheduleSimulator.process();*/
 
 	// Close the streams.
 	try {
@@ -736,6 +765,7 @@ public class Main {
       public int[] m_exetime;
       public double[] m_probability;
       public Vector<Hashtable<String, Integer>> m_newobjinfo;
+      public int m_byObj;
       
       public TaskInfo(int numofexits) {
 	  this.m_numofexits = numofexits;
@@ -745,6 +775,7 @@ public class Main {
 	  for(int i = 0; i < this.m_numofexits; i++) {
 	      this.m_newobjinfo.add(null);
 	  }
+	  this.m_byObj = -1;
       }
   }
 }

@@ -213,11 +213,26 @@ public class TaskSimulator {
       if(tpara.isShared()) {
 	if(tpara.isHold()) {
 	  // shared object held by other tasks
-	  finishTime = 800;           // TODO currenly assume the effort on requesting locks are only 1
-	  this.currentRun.setFinishTime(finishTime);
+	  finishTime = 800;           // TODO currenly assume the effort on requesting locks are only 800
+	  /*this.currentRun.setFinishTime(finishTime);
 	  this.currentRun.setExetype(1);
 	  paraQueues.elementAt(i).poll();
 	  paraQueues.elementAt(i).add(tpara);
+	  for(int j = 0; j < i; ++j) {
+	    tpara = this.paraQueues.elementAt(j).poll();
+	    if(tpara.isShared() && tpara.isHold()) {
+	      tpara.setHold(false);
+	    }
+	    this.paraQueues.elementAt(j).add(tpara);
+	  }*/
+	  // remove it instead
+	  this.currentRun.setFinishTime(finishTime);
+	  this.currentRun.setExetype(2);
+	  paraQueues.elementAt(i).poll();
+	  // remove this object from the remaining parameter queues
+	  for(int j = i + 1; j < paraQueues.size(); j++) {
+	    paraQueues.elementAt(j).remove(tpara);
+	  }
 	  for(int j = 0; j < i; ++j) {
 	    tpara = this.paraQueues.elementAt(j).poll();
 	    if(tpara.isShared() && tpara.isHold()) {
@@ -228,7 +243,7 @@ public class TaskSimulator {
 	  return;
 	} else if (tpara.getVersion() != this.objVersionTbl.get(tpara)) {
 	  // shared object has been updated and no longer fitted to this task
-	  finishTime = 800;           // TODO currenly assume the effort on requesting locks are only 1
+	  finishTime = 800;           // TODO currenly assume the effort on requesting locks are only 800
 	  this.currentRun.setFinishTime(finishTime);
 	  this.currentRun.setExetype(2);
 	  paraQueues.elementAt(i).poll();

@@ -33,6 +33,7 @@ public class FlagState extends GraphNode implements Cloneable {
   private int executeTime;
   private int visited4time;
   private int invokeNum;
+  private int byObj;
   // for building multicore codes
   private int andmask;
   private int checkmask;
@@ -54,6 +55,7 @@ public class FlagState extends GraphNode implements Cloneable {
     this.executeTime = -1;
     this.visited4time = -1;
     this.invokeNum = 0;
+    this.byObj = 0;
     this.andmask = 0;
     this.checkmask = 0;
     this.setmask = false;
@@ -283,13 +285,16 @@ public class FlagState extends GraphNode implements Cloneable {
       FlagState fs=(FlagState)o;
       if (fs.cd!=cd)
 	return false;
+      if(fs.byObj != this.byObj) {
+	  return false;
+      }
       return (fs.flagstate.equals(flagstate) & fs.tags.equals(tags));
     }
     return false;
   }
 
   public int hashCode() {
-    return cd.hashCode()^flagstate.hashCode()^tags.hashCode();
+    return cd.hashCode()^flagstate.hashCode()^tags.hashCode()^byObj;
   }
 
   public String getLabel() {
@@ -422,6 +427,7 @@ public class FlagState extends GraphNode implements Cloneable {
     for(int i = 0; i < this.inedges.size(); i++) {
       o.inedges.addElement(this.inedges.elementAt(i));
     }
+    o.byObj = this.byObj;
     return o;
   }
 
@@ -435,7 +441,11 @@ public class FlagState extends GraphNode implements Cloneable {
     // refresh all the expInvokeNum of each edge
     for(int i = 0; i < this.edges.size(); i++) {
       next = (FEdge) this.edges.elementAt(i);
-      next.setExpInvokeNum((int)(Math.ceil(this.invokeNum * next.getProbability() / 100)));
+      if(this.byObj == 0) {
+	  next.setExpInvokeNum((int)(Math.ceil(this.invokeNum * next.getProbability() / 100)));
+      } else {
+	  next.setExpInvokeNum((int)(Math.ceil(((this.invokeNum - 1) / this.byObj + 1) * next.getProbability() / 100)));
+      }
     }
 
     // find the one with the biggest gap between its actual invoke time and the expected invoke time
@@ -446,7 +456,7 @@ public class FlagState extends GraphNode implements Cloneable {
     boolean isbackedge = true;
     for(int i = 0; i < this.edges.size(); i++) {
       next = ((FEdge) this.edges.elementAt(i));
-      int temp = next.getInvokeNumGap();
+      int temp = (this.byObj == 0) ? next.getInvokeNumGap() : next.getInvokeNumGapByObj(this.byObj);
       boolean exchange = false;
       if((temp > gap) && (next.getTask().equals(td))) {
 	exchange = true;
@@ -471,6 +481,14 @@ public class FlagState extends GraphNode implements Cloneable {
     next.process();
 
     return next;
+  }
+
+  public int getByObj() {
+      return byObj;
+  }
+
+  public void setByObj(int byObj) {
+      this.byObj = byObj;
   }
 
   /*public Vector<ScheduleEdge> getAllys() {

@@ -88,26 +88,28 @@ public class PSFADemo {
 		Cell toadd = (Cell)(g.m_neighCells.get(key));
 		int toaddnp = toadd.m_numPars;
 		for(int j = 0; j < toaddnp; ++j) {
-		    if(cell.m_p[np] == null) {
-			cell.m_p[np] = new Vec3();
-			cell.m_hv[np] = new Vec3();
-			cell.m_v[np] = new Vec3();
-			cell.m_a[np] = new Vec3();
+		    if(np < cell.m_p.length) {
+			if(cell.m_p[np] == null) {
+			    cell.m_p[np] = new Vec3();
+			    cell.m_hv[np] = new Vec3();
+			    cell.m_v[np] = new Vec3();
+			    cell.m_a[np] = new Vec3();
+			}
+			cell.m_p[np].m_x = toadd.m_p[j].m_x;
+			cell.m_p[np].m_y = toadd.m_p[j].m_y;
+			cell.m_p[np].m_z = toadd.m_p[j].m_z;
+			cell.m_hv[np].m_x = toadd.m_hv[j].m_x;
+			cell.m_hv[np].m_y = toadd.m_hv[j].m_y;
+			cell.m_hv[np].m_z = toadd.m_hv[j].m_z;
+			cell.m_v[np].m_x = toadd.m_v[j].m_x;
+			cell.m_v[np].m_y = toadd.m_v[j].m_y;
+			cell.m_v[np].m_z = toadd.m_v[j].m_z;
+			cell.m_a[np].m_x = toadd.m_a[j].m_x;
+			cell.m_a[np].m_y = toadd.m_a[j].m_y;
+			cell.m_a[np].m_z = toadd.m_a[j].m_z;
+			cell.m_density[np] = toadd.m_density[j];
+			np++;
 		    }
-		    cell.m_p[np].m_x = toadd.m_p[j].m_x;
-		    cell.m_p[np].m_y = toadd.m_p[j].m_y;
-		    cell.m_p[np].m_z = toadd.m_p[j].m_z;
-		    cell.m_hv[np].m_x = toadd.m_hv[j].m_x;
-		    cell.m_hv[np].m_y = toadd.m_hv[j].m_y;
-		    cell.m_hv[np].m_z = toadd.m_hv[j].m_z;
-		    cell.m_v[np].m_x = toadd.m_v[j].m_x;
-		    cell.m_v[np].m_y = toadd.m_v[j].m_y;
-		    cell.m_v[np].m_z = toadd.m_v[j].m_z;
-		    cell.m_a[np].m_x = toadd.m_a[j].m_x;
-		    cell.m_a[np].m_y = toadd.m_a[j].m_y;
-		    cell.m_a[np].m_z = toadd.m_a[j].m_z;
-		    cell.m_density[np] = toadd.m_density[j];
-		    np++;
 		}
 		cell.m_numPars += toaddnp;
 		visited.put(key, key);
@@ -126,26 +128,28 @@ public class PSFADemo {
 			Cell toadd = g.m_cells[ix][iy][iz];
 			int toaddnp = toadd.m_numPars;
 			for(int j = 0; j < toaddnp; ++j) {
-			    if(cell.m_p[np] == null) {
-				cell.m_p[np] = new Vec3();
-				cell.m_hv[np] = new Vec3();
-				cell.m_v[np] = new Vec3();
-				cell.m_a[np] = new Vec3();
+			    if(np < cell.m_p.length) {
+				if(cell.m_p[np] == null) {
+				    cell.m_p[np] = new Vec3();
+				    cell.m_hv[np] = new Vec3();
+				    cell.m_v[np] = new Vec3();
+				    cell.m_a[np] = new Vec3();
+				}
+				cell.m_p[np].m_x = toadd.m_p[j].m_x;
+				cell.m_p[np].m_y = toadd.m_p[j].m_y;
+				cell.m_p[np].m_z = toadd.m_p[j].m_z;
+				cell.m_hv[np].m_x = toadd.m_hv[j].m_x;
+				cell.m_hv[np].m_y = toadd.m_hv[j].m_y;
+				cell.m_hv[np].m_z = toadd.m_hv[j].m_z;
+				cell.m_v[np].m_x = toadd.m_v[j].m_x;
+				cell.m_v[np].m_y = toadd.m_v[j].m_y;
+				cell.m_v[np].m_z = toadd.m_v[j].m_z;
+				cell.m_a[np].m_x = toadd.m_a[j].m_x;
+				cell.m_a[np].m_y = toadd.m_a[j].m_y;
+				cell.m_a[np].m_z = toadd.m_a[j].m_z;
+				cell.m_density[np] = toadd.m_density[j];
+				np++;
 			    }
-			    cell.m_p[np].m_x = toadd.m_p[j].m_x;
-			    cell.m_p[np].m_y = toadd.m_p[j].m_y;
-			    cell.m_p[np].m_z = toadd.m_p[j].m_z;
-			    cell.m_hv[np].m_x = toadd.m_hv[j].m_x;
-			    cell.m_hv[np].m_y = toadd.m_hv[j].m_y;
-			    cell.m_hv[np].m_z = toadd.m_hv[j].m_z;
-			    cell.m_v[np].m_x = toadd.m_v[j].m_x;
-			    cell.m_v[np].m_y = toadd.m_v[j].m_y;
-			    cell.m_v[np].m_z = toadd.m_v[j].m_z;
-			    cell.m_a[np].m_x = toadd.m_a[j].m_x;
-			    cell.m_a[np].m_y = toadd.m_a[j].m_y;
-			    cell.m_a[np].m_z = toadd.m_a[j].m_z;
-			    cell.m_density[np] = toadd.m_density[j];
-			    np++;
 			}
 			cell.m_numPars += toaddnp;
 			visited.put(index, index);
@@ -171,26 +175,28 @@ public class PSFADemo {
 			Cell toadd = g.m_cells[ix][iy][iz];
 			int toaddnp = toadd.m_numPars;
 			for(int j = 0; j < toaddnp; ++j) {
-			    if(cell.m_p[np] == null) {
-				cell.m_p[np] = new Vec3();
-				cell.m_hv[np] = new Vec3();
-				cell.m_v[np] = new Vec3();
-				cell.m_a[np] = new Vec3();
+			    if(np < cell.m_p.length) {
+				if(cell.m_p[np] == null) {
+				    cell.m_p[np] = new Vec3();
+				    cell.m_hv[np] = new Vec3();
+				    cell.m_v[np] = new Vec3();
+				    cell.m_a[np] = new Vec3();
+				}
+				cell.m_p[np].m_x = toadd.m_p[j].m_x;
+				cell.m_p[np].m_y = toadd.m_p[j].m_y;
+				cell.m_p[np].m_z = toadd.m_p[j].m_z;
+				cell.m_hv[np].m_x = toadd.m_hv[j].m_x;
+				cell.m_hv[np].m_y = toadd.m_hv[j].m_y;
+				cell.m_hv[np].m_z = toadd.m_hv[j].m_z;
+				cell.m_v[np].m_x = toadd.m_v[j].m_x;
+				cell.m_v[np].m_y = toadd.m_v[j].m_y;
+				cell.m_v[np].m_z = toadd.m_v[j].m_z;
+				cell.m_a[np].m_x = toadd.m_a[j].m_x;
+				cell.m_a[np].m_y = toadd.m_a[j].m_y;
+				cell.m_a[np].m_z = toadd.m_a[j].m_z;
+				cell.m_density[np] = toadd.m_density[j];
+				np++;
 			    }
-			    cell.m_p[np].m_x = toadd.m_p[j].m_x;
-			    cell.m_p[np].m_y = toadd.m_p[j].m_y;
-			    cell.m_p[np].m_z = toadd.m_p[j].m_z;
-			    cell.m_hv[np].m_x = toadd.m_hv[j].m_x;
-			    cell.m_hv[np].m_y = toadd.m_hv[j].m_y;
-			    cell.m_hv[np].m_z = toadd.m_hv[j].m_z;
-			    cell.m_v[np].m_x = toadd.m_v[j].m_x;
-			    cell.m_v[np].m_y = toadd.m_v[j].m_y;
-			    cell.m_v[np].m_z = toadd.m_v[j].m_z;
-			    cell.m_a[np].m_x = toadd.m_a[j].m_x;
-			    cell.m_a[np].m_y = toadd.m_a[j].m_y;
-			    cell.m_a[np].m_z = toadd.m_a[j].m_z;
-			    cell.m_density[np] = toadd.m_density[j];
-			    np++;
 			}
 			cell.m_numPars += toaddnp;
 			visited.put(index, index);
@@ -218,26 +224,28 @@ public class PSFADemo {
 		cell.m_numPars = 0;
 		int np = 0;
 		for(int j = 0; j < toflushnp; ++j) {
-		    if(cell.m_p[np] == null) {
-			cell.m_p[np] = new Vec3();
-			cell.m_hv[np] = new Vec3();
-			cell.m_v[np] = new Vec3();
-			cell.m_a[np] = new Vec3();
+		    if(np < cell.m_p.length) {
+			if(cell.m_p[np] == null) {
+			    cell.m_p[np] = new Vec3();
+			    cell.m_hv[np] = new Vec3();
+			    cell.m_v[np] = new Vec3();
+			    cell.m_a[np] = new Vec3();
+			}
+			cell.m_p[np].m_x = toflush.m_p[j].m_x;
+			cell.m_p[np].m_y = toflush.m_p[j].m_y;
+			cell.m_p[np].m_z = toflush.m_p[j].m_z;
+			cell.m_hv[np].m_x = toflush.m_hv[j].m_x;
+			cell.m_hv[np].m_y = toflush.m_hv[j].m_y;
+			cell.m_hv[np].m_z = toflush.m_hv[j].m_z;
+			cell.m_v[np].m_x = toflush.m_v[j].m_x;
+			cell.m_v[np].m_y = toflush.m_v[j].m_y;
+			cell.m_v[np].m_z = toflush.m_v[j].m_z;
+			cell.m_a[np].m_x = toflush.m_a[j].m_x;
+			cell.m_a[np].m_y = toflush.m_a[j].m_y;
+			cell.m_a[np].m_z = toflush.m_a[j].m_z;
+			cell.m_density[np] = toflush.m_density[j];
+			np++;
 		    }
-		    cell.m_p[np].m_x = toflush.m_p[j].m_x;
-		    cell.m_p[np].m_y = toflush.m_p[j].m_y;
-		    cell.m_p[np].m_z = toflush.m_p[j].m_z;
-		    cell.m_hv[np].m_x = toflush.m_hv[j].m_x;
-		    cell.m_hv[np].m_y = toflush.m_hv[j].m_y;
-		    cell.m_hv[np].m_z = toflush.m_hv[j].m_z;
-		    cell.m_v[np].m_x = toflush.m_v[j].m_x;
-		    cell.m_v[np].m_y = toflush.m_v[j].m_y;
-		    cell.m_v[np].m_z = toflush.m_v[j].m_z;
-		    cell.m_a[np].m_x = toflush.m_a[j].m_x;
-		    cell.m_a[np].m_y = toflush.m_a[j].m_y;
-		    cell.m_a[np].m_z = toflush.m_a[j].m_z;
-		    cell.m_density[np] = toflush.m_density[j];
-		    np++;
 		}
 		cell.m_numPars += toflushnp;
 		visited.put(key, key);
@@ -258,26 +266,28 @@ public class PSFADemo {
 			cell.m_numPars = 0;
 			int np = 0;
 			for(int j = 0; j < toflushnp; ++j) {
-			    if(cell.m_p[np] == null) {
-				cell.m_p[np] = new Vec3();
-				cell.m_hv[np] = new Vec3();
-				cell.m_v[np] = new Vec3();
-				cell.m_a[np] = new Vec3();
+			    if(np < cell.m_p.length) {
+				if(cell.m_p[np] == null) {
+				    cell.m_p[np] = new Vec3();
+				    cell.m_hv[np] = new Vec3();
+				    cell.m_v[np] = new Vec3();
+				    cell.m_a[np] = new Vec3();
+				}
+				cell.m_p[np].m_x = toflush.m_p[j].m_x;
+				cell.m_p[np].m_y = toflush.m_p[j].m_y;
+				cell.m_p[np].m_z = toflush.m_p[j].m_z;
+				cell.m_hv[np].m_x = toflush.m_hv[j].m_x;
+				cell.m_hv[np].m_y = toflush.m_hv[j].m_y;
+				cell.m_hv[np].m_z = toflush.m_hv[j].m_z;
+				cell.m_v[np].m_x = toflush.m_v[j].m_x;
+				cell.m_v[np].m_y = toflush.m_v[j].m_y;
+				cell.m_v[np].m_z = toflush.m_v[j].m_z;
+				cell.m_a[np].m_x = toflush.m_a[j].m_x;
+				cell.m_a[np].m_y = toflush.m_a[j].m_y;
+				cell.m_a[np].m_z = toflush.m_a[j].m_z;
+				cell.m_density[np] = toflush.m_density[j];
+				np++;
 			    }
-			    cell.m_p[np].m_x = toflush.m_p[j].m_x;
-			    cell.m_p[np].m_y = toflush.m_p[j].m_y;
-			    cell.m_p[np].m_z = toflush.m_p[j].m_z;
-			    cell.m_hv[np].m_x = toflush.m_hv[j].m_x;
-			    cell.m_hv[np].m_y = toflush.m_hv[j].m_y;
-			    cell.m_hv[np].m_z = toflush.m_hv[j].m_z;
-			    cell.m_v[np].m_x = toflush.m_v[j].m_x;
-			    cell.m_v[np].m_y = toflush.m_v[j].m_y;
-			    cell.m_v[np].m_z = toflush.m_v[j].m_z;
-			    cell.m_a[np].m_x = toflush.m_a[j].m_x;
-			    cell.m_a[np].m_y = toflush.m_a[j].m_y;
-			    cell.m_a[np].m_z = toflush.m_a[j].m_z;
-			    cell.m_density[np] = toflush.m_density[j];
-			    np++;
 			}
 			cell.m_numPars += toflushnp;
 			visited.put(index, index);
@@ -304,26 +314,28 @@ public class PSFADemo {
 			cell.m_numPars = 0;
 			int np = 0;
 			for(int j = 0; j < toflushnp; ++j) {
-			    if(cell.m_p[np] == null) {
-				cell.m_p[np] = new Vec3();
-				cell.m_hv[np] = new Vec3();
-				cell.m_v[np] = new Vec3();
-				cell.m_a[np] = new Vec3();
+			    if(np < cell.m_p.length) {
+				if(cell.m_p[np] == null) {
+				    cell.m_p[np] = new Vec3();
+				    cell.m_hv[np] = new Vec3();
+				    cell.m_v[np] = new Vec3();
+				    cell.m_a[np] = new Vec3();
+				}
+				cell.m_p[np].m_x = toflush.m_p[j].m_x;
+				cell.m_p[np].m_y = toflush.m_p[j].m_y;
+				cell.m_p[np].m_z = toflush.m_p[j].m_z;
+				cell.m_hv[np].m_x = toflush.m_hv[j].m_x;
+				cell.m_hv[np].m_y = toflush.m_hv[j].m_y;
+				cell.m_hv[np].m_z = toflush.m_hv[j].m_z;
+				cell.m_v[np].m_x = toflush.m_v[j].m_x;
+				cell.m_v[np].m_y = toflush.m_v[j].m_y;
+				cell.m_v[np].m_z = toflush.m_v[j].m_z;
+				cell.m_a[np].m_x = toflush.m_a[j].m_x;
+				cell.m_a[np].m_y = toflush.m_a[j].m_y;
+				cell.m_a[np].m_z = toflush.m_a[j].m_z;
+				cell.m_density[np] = toflush.m_density[j];
+				np++;
 			    }
-			    cell.m_p[np].m_x = toflush.m_p[j].m_x;
-			    cell.m_p[np].m_y = toflush.m_p[j].m_y;
-			    cell.m_p[np].m_z = toflush.m_p[j].m_z;
-			    cell.m_hv[np].m_x = toflush.m_hv[j].m_x;
-			    cell.m_hv[np].m_y = toflush.m_hv[j].m_y;
-			    cell.m_hv[np].m_z = toflush.m_hv[j].m_z;
-			    cell.m_v[np].m_x = toflush.m_v[j].m_x;
-			    cell.m_v[np].m_y = toflush.m_v[j].m_y;
-			    cell.m_v[np].m_z = toflush.m_v[j].m_z;
-			    cell.m_a[np].m_x = toflush.m_a[j].m_x;
-			    cell.m_a[np].m_y = toflush.m_a[j].m_y;
-			    cell.m_a[np].m_z = toflush.m_a[j].m_z;
-			    cell.m_density[np] = toflush.m_density[j];
-			    np++;
 			}
 			cell.m_numPars += toflushnp;
 			visited.put(index, index);
@@ -546,12 +558,6 @@ public class PSFADemo {
 		int np = cell.m_numPars;
 		Cell toadd = (Cell)(g.m_neighCells.get(key));
 		for(int j = 0; j < np; ++j) {
-		    if(cell.m_p[np] == null) {
-			cell.m_p[np] = new Vec3();
-			cell.m_hv[np] = new Vec3();
-			cell.m_v[np] = new Vec3();
-			cell.m_a[np] = new Vec3();
-		    }
 		    cell.m_v[j].m_x += toadd.m_v[j].m_x - cell.m_a[j].m_x;
 		    cell.m_v[j].m_y += toadd.m_v[j].m_y - cell.m_a[j].m_y;
 		    cell.m_v[j].m_z += toadd.m_v[j].m_z - cell.m_a[j].m_z;
@@ -571,12 +577,6 @@ public class PSFADemo {
 			int np = cell.m_numPars;
 			Cell toadd = g.m_cells[ix][iy][iz];
 			for(int j = 0; j < np; ++j) {
-			    if(cell.m_p[np] == null) {
-				cell.m_p[np] = new Vec3();
-				cell.m_hv[np] = new Vec3();
-				cell.m_v[np] = new Vec3();
-				cell.m_a[np] = new Vec3();
-			    }
 			    cell.m_v[j].m_x = toadd.m_v[j].m_x - 
 			                       cell.m_a[j].m_x;
 			    cell.m_v[j].m_y = toadd.m_v[j].m_y - 
@@ -606,12 +606,6 @@ public class PSFADemo {
 			int np = cell.m_numPars;
 			Cell toadd = g.m_cells[ix][iy][iz];
 			for(int j = 0; j < np; ++j) {
-			    if(cell.m_p[np] == null) {
-				cell.m_p[np] = new Vec3();
-				cell.m_hv[np] = new Vec3();
-				cell.m_v[np] = new Vec3();
-				cell.m_a[np] = new Vec3();
-			    }
 			    cell.m_v[j].m_x = toadd.m_v[j].m_x - 
 			                      cell.m_a[j].m_x;
 			    cell.m_v[j].m_y = toadd.m_v[j].m_y - 
@@ -636,12 +630,6 @@ public class PSFADemo {
 		Cell cell = (Cell)it_values.next();
 		int np = cell.m_numPars;
 		for(int j = 0; j < np; ++j) {
-		    if(cell.m_p[np] == null) {
-			cell.m_p[np] = new Vec3();
-			cell.m_hv[np] = new Vec3();
-			cell.m_v[np] = new Vec3();
-			cell.m_a[np] = new Vec3();
-		    }
 		    cell.m_a[j].m_x += cell.m_v[j].m_x;
 		    cell.m_a[j].m_y += cell.m_v[j].m_y;
 		    cell.m_a[j].m_z += cell.m_v[j].m_z;
@@ -661,12 +649,6 @@ public class PSFADemo {
 		Cell cell = (Cell)(g.m_neighCells.get(key));
 		int np = cell.m_numPars;
 		for(int j = 0; j < np; ++j) {
-		    if(cell.m_p[np] == null) {
-			cell.m_p[np] = new Vec3();
-			cell.m_hv[np] = new Vec3();
-			cell.m_v[np] = new Vec3();
-			cell.m_a[np] = new Vec3();
-		    }
 		    cell.m_a[j].m_x = toflush.m_a[j].m_x;
 		    cell.m_a[j].m_y = toflush.m_a[j].m_y;
 		    cell.m_a[j].m_z = toflush.m_a[j].m_z;
@@ -687,12 +669,6 @@ public class PSFADemo {
 			Cell cell = g.m_cells[ix][iy][iz];
 			int np = cell.m_numPars;
 			for(int j = 0; j < np; ++j) {
-			    if(cell.m_p[np] == null) {
-				cell.m_p[np] = new Vec3();
-				cell.m_hv[np] = new Vec3();
-				cell.m_v[np] = new Vec3();
-				cell.m_a[np] = new Vec3();
-			    }
 			    cell.m_a[j].m_x = toflush.m_a[j].m_x;
 			    cell.m_a[j].m_y = toflush.m_a[j].m_y;
 			    cell.m_a[j].m_z = toflush.m_a[j].m_z;
@@ -719,12 +695,6 @@ public class PSFADemo {
 			Cell cell = g.m_cells[ix][iy][iz];
 			int np = cell.m_numPars;
 			for(int j = 0; j < np; ++j) {
-			    if(cell.m_p[np] == null) {
-				cell.m_p[np] = new Vec3();
-				cell.m_hv[np] = new Vec3();
-				cell.m_v[np] = new Vec3();
-				cell.m_a[np] = new Vec3();
-			    }
 			    cell.m_a[j].m_x = toflush.m_a[j].m_x;
 			    cell.m_a[j].m_y = toflush.m_a[j].m_y;
 			    cell.m_a[j].m_z = toflush.m_a[j].m_z;
