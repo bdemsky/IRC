@@ -1,15 +1,15 @@
-public class Barrier {
+public class OldBarrier {
   int numthreads;
   int entercount;
   boolean cleared;
 
-  public Barrier(int n) {
+  public OldBarrier(int n) {
     numthreads=n;
     cleared = false;
     entercount = 0;
   }
 
-  public Barrier() {
+  public OldBarrier() {
   }
 
   public void reset() {
@@ -17,7 +17,7 @@ public class Barrier {
     entercount = 0;
   }
 
-  public static void enterBarrier(Barrier b) {
+  public static void enterBarrier(OldBarrier b) {
     int tmp;
     boolean retry=true, ret1=false, ret2=true;;
 

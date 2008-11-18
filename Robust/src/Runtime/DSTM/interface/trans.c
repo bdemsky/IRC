@@ -57,6 +57,8 @@ int nmhashSearch = 0;
 int nprehashSearch = 0;
 int nRemoteSend = 0;
 int nSoftAbort = 0;
+int bytesSent = 0;
+int bytesRecv = 0;
 
 void printhex(unsigned char *, int);
 plistnode_t *createPiles(transrecord_t *);
@@ -71,6 +73,7 @@ void send_data(int fd, void *buf, int buflen) {
   int numbytes;
   while (size > 0) {
     numbytes = send(fd, buffer, size, MSG_NOSIGNAL);
+    bytesSent = bytesSent + numbytes;
     if (numbytes == -1) {
       perror("send");
       exit(0);
@@ -86,6 +89,7 @@ void recv_data(int fd, void *buf, int buflen) {
   int numbytes;
   while (size > 0) {
     numbytes = recv(fd, buffer, size, 0);
+    bytesRecv = bytesRecv + numbytes;
     if (numbytes == -1) {
       perror("recv");
       exit(0);

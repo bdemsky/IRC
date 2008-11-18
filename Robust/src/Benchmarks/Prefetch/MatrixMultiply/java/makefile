@@ -1,5 +1,5 @@
 MAINCLASS=MatrixMultiply
-SRC=${MAINCLASS}.java
+SRC=${MAINCLASS}N.java
 default:
 	javac ${SRC}
 run:

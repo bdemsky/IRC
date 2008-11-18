@@ -59,7 +59,6 @@ public class Em3d extends Thread {
     Barrier barr;
     int degree;
     Random random;
-    String hname;
 
     barr = new Barrier("128.195.175.84");
     atomic {

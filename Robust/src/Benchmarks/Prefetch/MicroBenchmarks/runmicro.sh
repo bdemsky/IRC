@@ -5,6 +5,9 @@ MACHINES2='dw-11.eecs.uci.edu'
 MACHINES3='dw-11.eecs.uci.edu dw-12.eecs.uci.edu'
 MACHINES4='dw-11.eecs.uci.edu dw-12.eecs.uci.edu dw-13.eecs.uci.edu'
 MACHINES5='dw-11.eecs.uci.edu dw-12.eecs.uci.edu dw-13.eecs.uci.edu dw-14.eecs.uci.edu'
+MACHINES6='dw-11.eecs.uci.edu dw-12.eecs.uci.edu dw-13.eecs.uci.edu dw-14.eecs.uci.edu dw-15.eecs.uci.edu'
+MACHINES7='dw-11.eecs.uci.edu dw-12.eecs.uci.edu dw-13.eecs.uci.edu dw-14.eecs.uci.edu dw-15.eecs.uci.edu dw-16.eecs.uci.edu'
+MACHINES8='dw-11.eecs.uci.edu dw-12.eecs.uci.edu dw-13.eecs.uci.edu dw-14.eecs.uci.edu dw-15.eecs.uci.edu dw-16.eecs.uci.edu dw-17.eecs.uci.edu'
 LOGDIR=/home/adash/research/Robust/src/Benchmarks/Prefetch/runlog
 TOPDIR=`pwd`
 
@@ -30,13 +33,25 @@ function run {
       arg=$ARGS5
       MACHINES=$MACHINES5
     fi
+    if [ $2 -eq 6 ]; then 
+      arg=$ARGS6
+      MACHINES=$MACHINES6
+    fi
+    if [ $2 -eq 7 ]; then 
+      arg=$ARGS7
+      MACHINES=$MACHINES7
+    fi
+    if [ $2 -eq 8 ]; then 
+      arg=$ARGS8
+      MACHINES=$MACHINES8
+    fi
     chmod +x ~/.tmpvars
     for machine in `echo $MACHINES`
     do
       ssh ${machine} 'cd `cat ~/.tmpdir`; source ~/.tmpvars; ./$bin' &
       echo ""
     done
-    sleep 2
+    sleep 2 
     /usr/bin/time -f "%e" ./$3 master $arg 2>> ${LOGDIR}/${3}.txt
     echo "Terminating ... "
     for machine in `echo $MACHINES`
@@ -63,18 +78,27 @@ function callrun {
   NONPREFETCH3=${BENCHMARK}3NP.bin
   NONPREFETCH4=${BENCHMARK}4NP.bin
   NONPREFETCH5=${BENCHMARK}5NP.bin
+  NONPREFETCH6=${BENCHMARK}6NP.bin
+  NONPREFETCH7=${BENCHMARK}7NP.bin
+  NONPREFETCH8=${BENCHMARK}8NP.bin
 
   echo "---------- Running ${BENCHMARK} local non-prefetch on 1 machine ---------- "
-  localrun 1
+  localrun 10
 
   echo "---------- Running ${BENCHMARK} two threads non-prefetch on 2 machines ---------- "
-  run 1 2 $NONPREFETCH2 
+  run 10 2 $NONPREFETCH2 
   echo "---------- Running ${BENCHMARK} three threads non-prefetch on 3 machines ---------- "
-  run 1 3 $NONPREFETCH3 
+  run 10 3 $NONPREFETCH3 
   echo "---------- Running ${BENCHMARK} four threads non-prefetch on 4 machines ---------- "
-  run 1 4 $NONPREFETCH4 
+  run 5 4 $NONPREFETCH4 
   echo "---------- Running ${BENCHMARK} five threads non-prefetch on 5 machines ---------- "
-  run 1 5 $NONPREFETCH5 
+  run 10 5 $NONPREFETCH5 
+  echo "---------- Running ${BENCHMARK} six threads non-prefetch on 6 machines ---------- "
+  run 10 6 $NONPREFETCH6 
+  echo "---------- Running ${BENCHMARK} seven threads non-prefetch on 7 machines ---------- "
+  run 10 7 $NONPREFETCH7 
+  echo "---------- Running ${BENCHMARK} eight threads non-prefetch on 8 machines ---------- "
+  run 10 8 $NONPREFETCH8 
 
   cd $TOPDIR
 }
@@ -92,7 +116,10 @@ do
   ARGS3=`echo $bm | cut -f4 -d":"`
   ARGS4=`echo $bm | cut -f5 -d":"`
   ARGS5=`echo $bm | cut -f6 -d":"`
-  EXTENSION=`echo $bm | cut -f7 -d":"`
+  ARGS6=`echo $bm | cut -f7 -d":"`
+  ARGS7=`echo $bm | cut -f8 -d":"`
+  ARGS8=`echo $bm | cut -f9 -d":"`
+  EXTENSION=`echo $bm | cut -f10 -d":"`
   callrun
 done
 
@@ -100,7 +127,7 @@ done
 for file in `ls ../runlog/*.txt`
 do
   echo -n $file >> average.txt
-  cat $file | awk '{sum += $1} END {print " "sum/NR}' >> average.txt
+  cat $file | grep -v "^Command" | awk '{sum += $1} END {print " "sum/NR}' >> average.txt
 done
 echo "===========" >> average.txt
 echo "" >> average.txt

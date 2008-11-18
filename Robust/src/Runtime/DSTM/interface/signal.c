@@ -9,6 +9,8 @@ extern int nmhashSearch;
 extern int nprehashSearch;
 extern int nRemoteSend;
 extern int nSoftAbort;
+extern int bytesSent;
+extern int bytesRecv;
 extern unsigned int myIpAddr;
 
 void handle();
@@ -24,6 +26,8 @@ void transStatsHandler(int sig, siginfo_t* info, void *context) {
   printf("nprehashSearch = %d\n", nprehashSearch);
   printf("nRemoteReadSend = %d\n", nRemoteSend);
   printf("nSoftAbort = %d\n", nSoftAbort);
+  printf("bytesSent = %d\n", bytesSent);
+  printf("bytesRecv = %d\n", bytesRecv);
   exit(0);
 #endif
 }

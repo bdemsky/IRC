@@ -207,7 +207,7 @@ then
 RAWPATHFLAG=true
 elif [[ $1 = '-runtimedebug' ]]
 then
-EXTRAOPTIONS="$EXTRAOPTIONS -DCHECKTA"
+EXTRAOPTIONS="$EXTRAOPTIONS -DDEBUG"
 elif [[ $1 = '-dsmcaching' ]]
 then
 EXTRAOPTIONS="$EXTRAOPTIONS -DCACHE"
