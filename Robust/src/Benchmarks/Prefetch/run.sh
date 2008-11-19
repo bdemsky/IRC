@@ -94,30 +94,10 @@ function localrun {
 }
 
 function callrun {
-  PREFETCH=${BENCHMARK}1.bin
-  NONPREFETCH=${BENCHMARK}1NP.bin
-  NONPREFETCH_NONCACHE=${BENCHMARK}1NPNC.bin
-  PREFETCH2=${BENCHMARK}2.bin
-  NONPREFETCH2=${BENCHMARK}2NP.bin
-  NONPREFETCH_NONCACHE2=${BENCHMARK}2NPNC.bin
-  PREFETCH3=${BENCHMARK}3.bin
-  NONPREFETCH3=${BENCHMARK}3NP.bin
-  NONPREFETCH_NONCACHE3=${BENCHMARK}3NPNC.bin
-  PREFETCH4=${BENCHMARK}4.bin
-  NONPREFETCH4=${BENCHMARK}4NP.bin
-  NONPREFETCH_NONCACHE4=${BENCHMARK}4NPNC.bin
-  PREFETCH5=${BENCHMARK}5.bin
-  NONPREFETCH5=${BENCHMARK}5NP.bin
-  NONPREFETCH_NONCACHE5=${BENCHMARK}5NPNC.bin
-  PREFETCH6=${BENCHMARK}6.bin
-  NONPREFETCH6=${BENCHMARK}6NP.bin
-  NONPREFETCH_NONCACHE6=${BENCHMARK}6NPNC.bin
-  PREFETCH7=${BENCHMARK}7.bin
-  NONPREFETCH7=${BENCHMARK}7NP.bin
-  NONPREFETCH_NONCACHE7=${BENCHMARK}7NPNC.bin
-  PREFETCH8=${BENCHMARK}8.bin
-  NONPREFETCH8=${BENCHMARK}8NP.bin
-  NONPREFETCH_NONCACHE8=${BENCHMARK}8NPNC.bin
+  PREFETCH=${BENCHMARK}N.bin
+  NONPREFETCH=${BENCHMARK}NP.bin
+  NONPREFETCH_NONCACHE=${BENCHMARK}NPNC.bin
+
   cd $BMDIR 
 
   echo "---------- Running local $BMDIR non-prefetch on 1 machine ---------- "
@@ -130,57 +110,16 @@ function callrun {
   echo "---------- Running single thread remote $BMDIR prefetch on 2 machines ---------- "
 #  oneremote 1 1 $PREFETCH
 
-  echo "---------- Running two threads $BMDIR non-prefetch + non-cache on 2 machines ---------- "
-  run 10 2 $NONPREFETCH_NONCACHE2 
-  echo "---------- Running two threads $BMDIR non-prefetch on 2 machines ---------- "
-#  run 1 2 $NONPREFETCH2 
-  echo "---------- Running two threads $BMDIR prefetch on 2 machines ---------- "
-  run 10 2 $PREFETCH2 
 
-  echo "---------- Running three threads $BMDIR non-prefetch + non-cache on 3 machines ---------- "
-#  run 10 3 $NONPREFETCH_NONCACHE3 
-  echo "---------- Running three threads $BMDIR non-prefetch on 3 machines ---------- "
-#  run 1 3 $NONPREFETCH3 
-  echo "---------- Running three threads $BMDIR prefetch on 3 machines ---------- "
-#  run 10 3 $PREFETCH3 
+for count in 2 3 4 5 6 7 8
+do
+echo "------- Running $count threads $BMDIR non-prefetch + non-cache on $count machines -----"
+run 10 $count $NONREFETCH_NONCACHE
+echo "------- Running $count threads $BMDIR prefetch on $count machines -----"
+run 10 $count $PREFETCH
+done
 
-  echo "---------- Running four threads $BMDIR non-prefetch + non-cache on 4 machines ---------- "
-  run 10 4 $NONPREFETCH_NONCACHE4 
-  echo "---------- Running four threads $BMDIR non-prefetch on 4 machines ---------- "
-#  run 1 4 $NONPREFETCH4 
-  echo "---------- Running four threads $BMDIR prefetch on 4 machines ---------- "
-  run 10 4 $PREFETCH4 
-
-  echo "---------- Running five threads $BMDIR non-prefetch + non-cache on 5 machines ---------- "
-#  run 1 5 $NONPREFETCH_NONCACHE5 
-  echo "---------- Running five threads $BMDIR non-prefetch on 5 machines ---------- "
-#  run 1 5 $NONPREFETCH5 
-  echo "---------- Running five threads $BMDIR prefetch on 5 machines ---------- "
-#  run 1 5 $PREFETCH5
-
-  echo "---------- Running six threads $BMDIR non-prefetch + non-cache on 6 machines ---------- "
-#  run 1 6 $NONPREFETCH_NONCACHE6 
-  echo "---------- Running six threads $BMDIR non-prefetch on 6 machines ---------- "
-#  run 1 6 $NONPREFETCH6 
-  echo "---------- Running six threads $BMDIR prefetch on 6 machines ---------- "
-#  run 1 6 $PREFETCH6 
-
-
-  echo "---------- Running seven threads $BMDIR non-prefetch + non-cache on 7 machines ---------- "
-#  run 1 7 $NONPREFETCH_NONCACHE7 
-  echo "---------- Running seven threads $BMDIR non-prefetch on 7 machines ---------- "
-#  run 1 7 $NONPREFETCH7 
-  echo "---------- Running seven threads $BMDIR prefetch on 7 machines ---------- "
-#  run 1 7 $PREFETCH7 
-
-  echo "---------- Running eight threads $BMDIR non-prefetch + non-cache on 8 machines ---------- "
-  run 10 8 $NONPREFETCH_NONCACHE8 
-  echo "---------- Running eight threads $BMDIR non-prefetch on 8 machines ---------- "
-#  run 1 8 $NONPREFETCH8 
-  echo "---------- Running eight threads $BMDIR prefetch on 8 machines ---------- "
-  run 10 8 $PREFETCH8 
-
-  cd $TOPDIR
+cd $TOPDIR
 }
 
 function callmicrorun {
