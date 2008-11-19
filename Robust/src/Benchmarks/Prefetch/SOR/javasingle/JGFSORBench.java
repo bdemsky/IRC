@@ -86,17 +86,11 @@ public class JGFSORBench {
 
     thobjects[0] = new SORRunner(0,omega,G,num_iterations,sor.sync,numthreads);
     thobjects[0].start();
-    try {
-      thobjects[0].join();
-    }
-    catch (InterruptedException e) {}
+    thobjects[0].join();
 
 
     for(int i=1;i<numthreads;i++) {
-      try {
         thobjects[i].join();
-      }
-      catch (InterruptedException e) {}
     }
 
     JGFInstrumentor.stopTimer("Section2:SOR:Kernel", instr.timers);
@@ -118,12 +112,15 @@ public class JGFSORBench {
 
   public void JGFvalidate(){
 
-    double refval[] = {0.498574406322512,1.1234778980135105,1.9954895063582696};
-    double dev = Math.abs(Gtotal - refval[size]);
-    if (dev > 1.0e-12 ){
-      System.out.println("Validation failed");
-      System.out.println("Gtotal = " + Gtotal + "  " + dev + "  " + size);
-    }
+      double refval[]=new double[3];
+      refval[0]=0.498574406322512;
+      refval[1]=1.1234778980135105;
+      refval[2]=1.9954895063582696;
+      double dev = Math.abs(Gtotal - refval[size]);
+      if (dev > 1.0e-12 ){
+	  System.printString("Validation failed");
+	  System.printString("Gtotal = " + Gtotal + "  " + dev + "  " + size);
+      }
   }
 
   /*

@@ -31,7 +31,7 @@ public class JGFInstrumentor{
   public static void addTimer (String name, HashMap timers){
 
     if (timers.containsKey(name)) {
-      System.out.println("JGFInstrumentor.addTimer: warning -  timer " + name + 
+      System.printString("JGFInstrumentor.addTimer: warning -  timer " + name + 
           " already exists");
     }
     else {
@@ -42,7 +42,7 @@ public class JGFInstrumentor{
   public static void addTimer (String name, String opname, HashMap timers){
 
     if (timers.containsKey(name)) {
-      System.out.println("JGFInstrumentor.addTimer: warning -  timer " + name + 
+      System.printString("JGFInstrumentor.addTimer: warning -  timer " + name + 
           " already exists");
     }
     else {
@@ -54,7 +54,7 @@ public class JGFInstrumentor{
   public static void addTimer (String name, String opname, int size, HashMap timers){
 
     if (timers.containsKey(name)) {
-      System.out.println("JGFInstrumentor.addTimer: warning -  timer " + name +
+      System.printString("JGFInstrumentor.addTimer: warning -  timer " + name +
           " already exists");
     }
     else {
@@ -68,7 +68,7 @@ public class JGFInstrumentor{
       ((JGFTimer) timers.get(name)).start();
     }
     else {
-      System.out.println("JGFInstrumentor.startTimer: failed -  timer " + name + 
+      System.printString("JGFInstrumentor.startTimer: failed -  timer " + name + 
           " does not exist");
     }
 
@@ -79,7 +79,7 @@ public class JGFInstrumentor{
       ((JGFTimer) timers.get(name)).stop();
     }
     else {
-      System.out.println("JGFInstrumentor.stopTimer: failed -  timer " + name + 
+      System.printString("JGFInstrumentor.stopTimer: failed -  timer " + name + 
           " does not exist");
     }
   }
@@ -89,7 +89,7 @@ public class JGFInstrumentor{
       ((JGFTimer) timers.get(name)).addops(count);
     }
     else {
-      System.out.println("JGFInstrumentor.addOpsToTimer: failed -  timer " + name + 
+      System.printString("JGFInstrumentor.addOpsToTimer: failed -  timer " + name + 
           " does not exist");
     }
   }  
@@ -99,7 +99,7 @@ public class JGFInstrumentor{
       ((JGFTimer) timers.get(name)).addtime(added_time);
     }
     else {
-      System.out.println("JGFInstrumentor.addTimeToTimer: failed -  timer " + name +
+      System.printString("JGFInstrumentor.addTimeToTimer: failed -  timer " + name +
           " does not exist");
     }
 
@@ -113,7 +113,7 @@ public class JGFInstrumentor{
       time = ((JGFTimer) timers.get(name)).time;
     }
     else {
-      System.out.println("JGFInstrumentor.readTimer: failed -  timer " + name + 
+      System.printString("JGFInstrumentor.readTimer: failed -  timer " + name + 
           " does not exist");
       time = 0.0; 
     }
@@ -125,7 +125,7 @@ public class JGFInstrumentor{
       ((JGFTimer) timers.get(name)).reset();
     }
     else {
-      System.out.println("JGFInstrumentor.resetTimer: failed -  timer " + name +
+      System.printString("JGFInstrumentor.resetTimer: failed -  timer " + name +
           " does not exist");
     }
   }
@@ -135,7 +135,7 @@ public class JGFInstrumentor{
       ((JGFTimer) timers.get(name)).print();
     }
     else {
-      System.out.println("JGFInstrumentor.printTimer: failed -  timer " + name +
+      System.printString("JGFInstrumentor.printTimer: failed -  timer " + name +
           " does not exist");
     }
   }
@@ -145,7 +145,7 @@ public class JGFInstrumentor{
       ((JGFTimer) timers.get(name)).printperf();
     }
     else {
-      System.out.println("JGFInstrumentor.printTimer: failed -  timer " + name +
+      System.printString("JGFInstrumentor.printTimer: failed -  timer " + name +
           " does not exist");
     }
   }
@@ -186,15 +186,15 @@ public class JGFInstrumentor{
         header = base + "3 - Size B";
     }
 
-    System.out.println(header); 
+    System.printString(header); 
 
     if (nthreads == 1) {
-      System.out.println("Executing on " + nthreads + " thread");
+      System.printString("Executing on " + nthreads + " thread");
     }
     else {
-      System.out.println("Executing on " + nthreads + " threads");
+      System.printString("Executing on " + nthreads + " threads");
     }
 
-    System.out.println("");
+    System.printString("");
   } 
 }

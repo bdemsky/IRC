@@ -1,4 +1,4 @@
-MAINCLASS=JGFSORBenchSizeC
+MAINCLASS=JGFSORBenchSizeA
 SRC=${MAINCLASS}.java \
 JGFInstrumentor.java \
 JGFTimer.java \

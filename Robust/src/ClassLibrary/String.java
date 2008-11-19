@@ -270,6 +270,10 @@ public class String {
     return new String(chararray);
   }
 
+  public static String valueOf(double x) {
+      return valueOf((long)x);
+  }
+
   public static String valueOf(long x) {
     int length=0;
     long tmp;

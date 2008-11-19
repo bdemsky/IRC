@@ -28,8 +28,8 @@ public class JGFSORBenchSizeA{
     if(argv.length != 0 ) {
       nthreads = Integer.parseInt(argv[0]);
     } else {
-      System.out.println("The no of threads has not been specified, defaulting to 1");
-      System.out.println("  ");
+      System.printString("The no of threads has not been specified, defaulting to 1");
+      System.printString("  ");
       nthreads = 1;
     }
 
