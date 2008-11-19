@@ -1,5 +1,5 @@
-MAINCLASS=Convolution
-SRC=${MAINCLASS}.java 
+MAINCLASS=MatrixMultiply
+SRC=${MAINCLASS}.java
 default:
 	../../../../buildscript -optimize -thread -debug -mainclass ${MAINCLASS} ${SRC} -o ${MAINCLASS}
 
