@@ -1,8 +1,8 @@
-MAINCLASS=JGFMolDynBenchSizeC
+MAINCLASS=JGFSORBenchSizeC
 SRC=${MAINCLASS}.java \
 JGFInstrumentor.java \
 JGFTimer.java \
-JGFMolDynBench.java \
+JGFSORBench.java \
 SORRunner.java
 
 FLAGS2= -thread -optimize -mainclass ${MAINCLASS} -o ${MAINCLASS}NP
