@@ -1,6 +1,6 @@
 #MAINCLASS=JGFSORBenchSizeA
 #MAINCLASS=JGFSORBenchSizeC
-MAINCLASS=JGFSORBenchSizeD
+MAINCLASS=JGFSORBenchSizeC
 SRC=${MAINCLASS}.java \
 	JGFSORBench.java \
 	JGFInstrumentor.java \

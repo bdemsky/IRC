@@ -1,13 +1,8 @@
 #!/bin/sh 
 
 #set -x
-MACHINES2='dw-11.eecs.uci.edu'
-MACHINES3='dw-11.eecs.uci.edu dw-12.eecs.uci.edu'
-MACHINES4='dw-11.eecs.uci.edu dw-12.eecs.uci.edu dw-13.eecs.uci.edu'
-MACHINES5='dw-11.eecs.uci.edu dw-12.eecs.uci.edu dw-13.eecs.uci.edu dw-14.eecs.uci.edu'
-MACHINES6='dw-11.eecs.uci.edu dw-12.eecs.uci.edu dw-13.eecs.uci.edu dw-14.eecs.uci.edu dw-15.eecs.uci.edu'
-MACHINES7='dw-11.eecs.uci.edu dw-12.eecs.uci.edu dw-13.eecs.uci.edu dw-14.eecs.uci.edu dw-15.eecs.uci.edu dw-16.eecs.uci.edu'
-MACHINES8='dw-11.eecs.uci.edu dw-12.eecs.uci.edu dw-13.eecs.uci.edu dw-14.eecs.uci.edu dw-15.eecs.uci.edu dw-16.eecs.uci.edu dw-17.eecs.uci.edu'
+MACHINELIST='dc-1.calit2.uci.edu dc-2.calit2.uci.edu dc-3.calit2.uci.edu dc-4.calit2.uci.edu dc-5.calit2.uci.edu dc-6.calit2.uci.edu dc-7.calit2.uci.edu dc-8.calit2.uci.edu'
+
 LOGDIR=/home/adash/research/Robust/src/Benchmarks/Prefetch/runlog
 TOPDIR=`pwd`
 
@@ -17,33 +12,35 @@ function run {
   while [ $i -lt $1 ]; do
     echo "$DIR" > ~/.tmpdir
     echo "bin=$3" > ~/.tmpvars
+    ct=0
+    MACHINES=''
+    for j in $MACHINELIST; do
+      if [ $ct -lt $2 ]; then
+         MACHINES='$MACHINES $j'
+      fi
+      let ct=$ct+1
+    done
+
     if [ $2 -eq 2 ]; then 
       arg=$ARGS2
-      MACHINES=$MACHINES2
     fi
     if [ $2 -eq 3 ]; then 
       arg=$ARGS3
-      MACHINES=$MACHINES3
     fi
     if [ $2 -eq 4 ]; then 
       arg=$ARGS4
-      MACHINES=$MACHINES4
     fi
     if [ $2 -eq 5 ]; then 
       arg=$ARGS5
-      MACHINES=$MACHINES5
     fi
     if [ $2 -eq 6 ]; then 
       arg=$ARGS6
-      MACHINES=$MACHINES6
     fi
     if [ $2 -eq 7 ]; then 
       arg=$ARGS7
-      MACHINES=$MACHINES7
     fi
     if [ $2 -eq 8 ]; then 
       arg=$ARGS8
-      MACHINES=$MACHINES8
     fi
     chmod +x ~/.tmpvars
     for machine in `echo $MACHINES`
