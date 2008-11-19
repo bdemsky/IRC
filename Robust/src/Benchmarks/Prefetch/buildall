@@ -1,0 +1,9 @@
+#!/bin/bash
+curpath=`pwd`
+for i in */dsm */javasingle
+do
+echo Building $i
+cd $i
+make
+cd $curpath
+done
