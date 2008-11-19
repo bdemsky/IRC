@@ -509,6 +509,10 @@ void * mygcmalloc(struct garbagelist * stackptr, int size) {
       if (last_heapsize>to_heapsize) {
 	free(to_heapbase);
 	to_heapbase=malloc(last_heapsize);
+	if (to_heapbase==NULL) {
+	  printf("Error Allocating enough memory\n");
+	  exit(-1);
+	}
 	to_heaptop=to_heapbase+last_heapsize;
 	to_heapptr=to_heapbase;
       }
