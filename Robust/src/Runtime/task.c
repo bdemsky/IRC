@@ -16,6 +16,7 @@ extern int injectfailures;
 extern float failurechance;
 extern int debugtask;
 extern int instaccum;
+extern int errors;
 
 #ifdef CONSCHECK
 #include "instrument.h"
@@ -1033,10 +1034,12 @@ void executetasks() {
   sigemptyset(&sig.sa_mask);
 
   /* Catch bus errors, segmentation faults, and floating point exceptions*/
-  sigaction(SIGBUS,&sig,0);
-  sigaction(SIGSEGV,&sig,0);
-  sigaction(SIGFPE,&sig,0);
-  sigaction(SIGPIPE,&sig,0);
+  if (!errors) {
+    sigaction(SIGBUS,&sig,0);
+    sigaction(SIGSEGV,&sig,0);
+    sigaction(SIGFPE,&sig,0);
+    sigaction(SIGPIPE,&sig,0);
+  }
 
   /* Zero fd set */
   FD_ZERO(&readfds);

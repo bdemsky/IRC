@@ -18,6 +18,7 @@ char *options;
 int injectfailures=0;
 float failurechance=0;
 int debugtask=0;
+int errors=0;
 int injectinstructionfailures;
 int failurecount;
 float instfailurechance=0;

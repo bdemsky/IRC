@@ -9,6 +9,7 @@ extern char *options;
 extern int injectfailures;
 extern float failurechance;
 extern int debugtask;
+extern int errors;
 extern int injectinstructionfailures;
 extern int failurecount;
 extern float instfailurechance;
@@ -69,6 +70,11 @@ void processOptions() {
       if (options!=NULL) options++;
       debugtask=1;
       printf("Debug task option on.\n");
+    } else if (strncmp(options, "-errors",sizeof("-errors")-1)==0) {
+      options=strchr(options,' ');
+      if (options!=NULL) options++;
+      errors=1;
+      printf("Errors on.\n");
     } else if (strncmp(options, "-initializerandom", sizeof("-initializerandom")-1)==0) {
       options=strchr(options,' ');
       if (options!=NULL) options++;
