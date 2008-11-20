@@ -10,14 +10,8 @@ FLAGS2=-dsm -optimize -mainclass ${MAINCLASS}
 default:
 #../../../../buildscript ${FLAGS2} ${SRC}
 #	../../../../buildscript ${FLAGS} ${SRC}
-	../../../../buildscript ${FLAGS2} -o ${MAINCLASS}1NPNC ${SRC}
-	../../../../buildscript ${FLAGS} -o ${MAINCLASS}1  ${SRC}
-	cp ${MAINCLASS}1NPNC.bin ${MAINCLASS}2NPNC.bin
-	cp ${MAINCLASS}1.bin ${MAINCLASS}2.bin
-	cp ${MAINCLASS}1NPNC.bin ${MAINCLASS}3NPNC.bin
-	cp ${MAINCLASS}1.bin ${MAINCLASS}3.bin
-	cp ${MAINCLASS}1NPNC.bin ${MAINCLASS}4NPNC.bin
-	cp ${MAINCLASS}1.bin ${MAINCLASS}4.bin
+	../../../../buildscript ${FLAGS2} -o ${MAINCLASS}NPNC ${SRC}
+	../../../../buildscript ${FLAGS} -o ${MAINCLASS}N  ${SRC}
 
 clean:
 	rm -rf tmpbuilddirectory

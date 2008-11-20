@@ -56,34 +56,27 @@ public class Em3d {
 
   public void run() {
     int iteration;
-    //Barrier barr;
     int degree;
     Random random;
     String hname;
 
-    //barr = new Barrier("128.195.175.84");
     iteration = numIter;
     degree = numDegree;
     random = new Random(lowerlimit);
 
     //This is going to conflict badly...Minimize work here
     bg.allocateNodes ( lowerlimit, upperlimit, threadindex);
-    //Barrier.enterBarrier(barr);
 
 
     //initialize the eNodes
     bg.initializeNodes(bg.eNodes, bg.hNodes, bg.hreversetable, lowerlimit, upperlimit, degree, random, threadindex);
-    //Barrier.enterBarrier(barr);
 
     //initialize the hNodes
     bg.initializeNodes(bg.hNodes, bg.eNodes, bg.ereversetable, lowerlimit, upperlimit, degree, random, threadindex);
-    //Barrier.enterBarrier(barr);
 
     bg.makeFromNodes(bg.hNodes, bg.hreversetable, lowerlimit, upperlimit, random);
-    //Barrier.enterBarrier(barr);
 
     bg.makeFromNodes(bg.eNodes, bg.ereversetable, lowerlimit, upperlimit, random);
-    //Barrier.enterBarrier(barr);
 
     //Do the computation
     for (int i = 0; i < iteration; i++) {
@@ -96,7 +89,6 @@ public class Em3d {
         }
       }
 
-      //Barrier.enterBarrier(barr);
 
       /* for  hNodes */
       for(int j = lowerlimit; j<upperlimit; j++) {
@@ -105,7 +97,6 @@ public class Em3d {
           n.value -= n.coeffs[k] * n.fromNodes[k].value;
         }
       }
-      //Barrier.enterBarrier(barr);
     }
   }
 
@@ -122,30 +113,15 @@ public class Em3d {
       System.printString("Initializing em3d random graph...\n");
     long start0 = System.currentTimeMillis();
     int numThreads = em.numThreads;
-    /*
-    int[] mid = new int[8];
-    mid[0] = (128<<24)|(195<<16)|(175<<8)|84;//dw-10
-    mid[1] = (128<<24)|(195<<16)|(175<<8)|85;//dw-11
-    mid[2] = (128<<24)|(195<<16)|(175<<8)|86;//dw-12
-    mid[3] = (128<<24)|(195<<16)|(175<<8)|87;//dw-13
-    mid[4] = (128<<24)|(195<<16)|(175<<8)|88;//dw-14
-    mid[5] = (128<<24)|(195<<16)|(175<<8)|89;//dw-15
-    mid[6] = (128<<24)|(195<<16)|(175<<8)|90;//dw-16
-    mid[7] = (128<<24)|(195<<16)|(175<<8)|91;//dw-17
-    */
 
     System.printString("DEBUG -> numThreads = " + numThreads+"\n");
-    //BarrierServer mybarr;
     BiGraph graph;
 
 
     // initialization step 1: allocate BiGraph
     // System.printString( "Allocating BiGraph.\n" );
 
-    //mybarr = new BarrierServer(numThreads);
     graph =  BiGraph.create(em.numNodes, em.numDegree, numThreads);
-    //mybarr.run();
-    //mybarr.start(mid[0]);
 
 
     Em3dWrap[] em3d=new Em3dWrap[numThreads];    
@@ -166,24 +142,11 @@ public class Em3d {
       base+=increment;
     }
 
-/*
-    boolean waitfordone=true;
-    while(waitfordone) {
-      if (mybarr.done)
-        waitfordone=false;
-    }
-    */
-
     //System.printString("Starting Barrier run\n");
     for(int i = 0; i<numThreads; i++) {
-      //em3d[i].em3d.start(mid[i]);
       em3d[i].em3d.run();
     }
-    /*
-    for(int i = 0; i<numThreads; i++) {
-      em3d[i].em3d.join();
-    }
-    */
+
     System.printString("Done!"+ "\n");
   }
 

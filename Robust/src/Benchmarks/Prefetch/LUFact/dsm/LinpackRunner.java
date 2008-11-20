@@ -39,7 +39,7 @@ class LinpackRunner extends Thread {
 
   public void run() {
     Barrier barr;
-    barr = new Barrier("128.195.175.84");
+    barr = new Barrier("128.195.136.162");
     double[] col_k, col_j;
     double t;
     int j,k,kp1,l,nm1;

@@ -349,7 +349,7 @@ class mdRunner extends Thread {
     int mdsize;
     double tmpden;
     int movemx=50;
-    Barrier barr=new Barrier("128.195.175.84");
+    Barrier barr=new Barrier("128.195.136.162");
     particle[] one;
     int id;
     atomic {

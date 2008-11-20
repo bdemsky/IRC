@@ -60,7 +60,7 @@ public class Em3d extends Thread {
     int degree;
     Random random;
 
-    barr = new Barrier("128.195.175.84");
+    barr = new Barrier("128.195.136.162");
     atomic {
 	iteration = numIter;
 	degree = numDegree;
