@@ -1,0 +1,271 @@
+#
+# An unexpected error has been detected by HotSpot Virtual Machine:
+#
+#  SIGSEGV (0xb) at pc=0xb77de7ec, pid=27887, tid=2979900304
+#
+# Java VM: Java HotSpot(TM) Client VM (1.5.0_14-b03 mixed mode, sharing)
+# Problematic frame:
+# V  [libjvm.so+0x1a27ec]
+#
+
+---------------  T H R E A D  ---------------
+
+Current thread (0x081a9258):  JavaThread "Thread-9" [_thread_in_vm, id=27904]
+
+siginfo:si_signo=11, si_errno=0, si_code=1, si_addr=0x0000008c
+
+Registers:
+EAX=0x00000008, EBX=0xb79c934c, ECX=0x00000ffc, EDX=0xb19d9adc
+ESP=0xb19d9a74, EBP=0xb19d9aac, ESI=0x00000000, EDI=0x00000005
+EIP=0xb77de7ec, CR2=0x0000008c, EFLAGS=0x00210202
+
+Top of Stack: (sp=0xb19d9a74)
+0xb19d9a74:   081a9258 b19d9a78 90999ddb b77d90f7
+0xb19d9a84:   081a9258 00000000 911c25b0 b19d9a9c
+0xb19d9a94:   b19d9ac4 b2608b3b 88e4cde8 b7f509a8
+0xb19d9aa4:   8ca5d5b0 081a9258 b19d9b0c b7f4f79a
+0xb19d9ab4:   081a9318 b19d9ad8 00000000 00000005
+0xb19d9ac4:   b19d9b6c b2608b3b 00008414 00000000
+0xb19d9ad4:   00000000 b19d9ad0 90997dc3 b19d9afc
+0xb19d9ae4:   911bf418 00000000 00000005 00008414 
+
+Instructions: (pc=0xb77de7ec)
+0xb77de7dc:   ff ff ff 8b 42 04 8b 75 10 83 c0 08 8d 54 72 0c
+0xb77de7ec:   8b b0 84 00 00 00 8b 45 18 0f af fe 56 57 50 52 
+
+Stack: [0xb195a000,0xb19db000),  sp=0xb19d9a74,  free space=510k
+Native frames: (J=compiled Java code, j=interpreted, Vv=VM code, C=native code)
+V  [libjvm.so+0x1a27ec]
+C  [libkooni.so+0x79a]  Java_TransactionalIO_core_ExtendedTransaction_nativepwrite+0x8b
+j  TransactionalIO.core.ExtendedTransaction.nativepwrite([BJILjava/io/FileDescriptor;)I+0
+j  TransactionalIO.core.ExtendedTransaction.invokeNativepwrite([BJILjava/io/RandomAccessFile;)I+18
+j  TransactionalIO.core.ExtendedTransaction.commitChanges()V+202
+j  TransactionalIO.core.Wrapper.commitIO()V+3
+j  dstm2.Thread.doIt(Ljava/util/concurrent/Callable;)Ljava/lang/Object;+129
+j  dstm2.benchmark.CustomThread.financialBenchmark()V+380
+j  dstm2.benchmark.CustomThread.run()V+28
+j  dstm2.Thread$3.run()V+18
+j  java.lang.Thread.run()V+11
+v  ~StubRoutines::call_stub
+V  [libjvm.so+0x17b2bc]
+V  [libjvm.so+0x28ff98]
+V  [libjvm.so+0x17ab15]
+V  [libjvm.so+0x17abae]
+V  [libjvm.so+0x1f2b15]
+V  [libjvm.so+0x2f99f3]
+V  [libjvm.so+0x290ba8]
+C  [libpthread.so.0+0x54fb]
+
+Java frames: (J=compiled Java code, j=interpreted, Vv=VM code)
+j  TransactionalIO.core.ExtendedTransaction.nativepwrite([BJILjava/io/FileDescriptor;)I+0
+j  TransactionalIO.core.ExtendedTransaction.invokeNativepwrite([BJILjava/io/RandomAccessFile;)I+18
+j  TransactionalIO.core.ExtendedTransaction.commitChanges()V+202
+j  TransactionalIO.core.Wrapper.commitIO()V+3
+j  dstm2.Thread.doIt(Ljava/util/concurrent/Callable;)Ljava/lang/Object;+129
+j  dstm2.benchmark.CustomThread.financialBenchmark()V+380
+j  dstm2.benchmark.CustomThread.run()V+28
+j  dstm2.Thread$3.run()V+18
+j  java.lang.Thread.run()V+11
+v  ~StubRoutines::call_stub
+
+---------------  P R O C E S S  ---------------
+
+Java Threads: ( => current thread )
+=>0x081a9258 JavaThread "Thread-9" [_thread_in_vm, id=27904]
+  0x081a8280 JavaThread "Thread-8" [_thread_blocked, id=27903]
+  0x081aa3d0 JavaThread "Thread-7" [_thread_blocked, id=27902]
+  0x081a6b58 JavaThread "Thread-6" [_thread_blocked, id=27901]
+  0x081a5218 JavaThread "Thread-5" [_thread_blocked, id=27900]
+  0x081a4228 JavaThread "Thread-4" [_thread_blocked, id=27899]
+  0x081a2248 JavaThread "Thread-2" [_thread_blocked, id=27897]
+  0x081a1070 JavaThread "Thread-1" [_thread_blocked, id=27896]
+  0x08199380 JavaThread "Thread-0" [_thread_blocked, id=27895]
+  0x080a6980 JavaThread "Low Memory Detector" daemon [_thread_blocked, id=27893]
+  0x080a53d0 JavaThread "CompilerThread0" daemon [_thread_blocked, id=27892]
+  0x080a4330 JavaThread "Signal Dispatcher" daemon [_thread_blocked, id=27891]
+  0x0809d760 JavaThread "Finalizer" daemon [_thread_blocked, id=27890]
+  0x0809ca48 JavaThread "Reference Handler" daemon [_thread_blocked, id=27889]
+  0x0805cd58 JavaThread "main" [_thread_blocked, id=27887]
+
+Other Threads:
+  0x0809b5f8 VMThread [id=27888]
+  0x080a7e70 WatcherThread [id=27894]
+
+VM state:not at safepoint (normal execution)
+
+VM Mutex/Monitor currently owned by a thread: None
+
+Heap
+ def new generation   total 576K, used 106K [0x88950000, 0x889f0000, 0x88e30000)
+  eden space 512K,   8% used [0x88950000, 0x8895aba8, 0x889d0000)
+  from space 64K, 100% used [0x889d0000, 0x889e0000, 0x889e0000)
+  to   space 64K,   0% used [0x889e0000, 0x889e0000, 0x889f0000)
+ tenured generation   total 1408K, used 500K [0x88e30000, 0x88f90000, 0x8c950000)
+   the space 1408K,  35% used [0x88e30000, 0x88ead340, 0x88ead400, 0x88f90000)
+ compacting perm gen  total 8192K, used 1111K [0x8c950000, 0x8d150000, 0x90950000)
+   the space 8192K,  13% used [0x8c950000, 0x8ca65eb0, 0x8ca66000, 0x8d150000)
+    ro space 8192K,  68% used [0x90950000, 0x90ed2bd8, 0x90ed2c00, 0x91150000)
+    rw space 12288K,  48% used [0x91150000, 0x91721490, 0x91721600, 0x91d50000)
+
+Dynamic libraries:
+08048000-08057000 r-xp 00000000 08:01 15269937   /usr/lib/jvm/java-1.5.0-sun-1.5.0.14/jre/bin/java
+08057000-08059000 rwxp 0000e000 08:01 15269937   /usr/lib/jvm/java-1.5.0-sun-1.5.0.14/jre/bin/java
+08059000-081c3000 rwxp 08059000 00:00 0          [heap]
+88950000-889f0000 rwxp 88950000 00:00 0 
+889f0000-88e30000 rwxp 889f0000 00:00 0 
+88e30000-88f90000 rwxp 88e30000 00:00 0 
+88f90000-8c950000 rwxp 88f90000 00:00 0 
+8c950000-8d150000 rwxp 8c950000 00:00 0 
+8d150000-90950000 rwxp 8d150000 00:00 0 
+90950000-90ed3000 r-xs 00001000 08:01 15270044   /usr/lib/jvm/java-1.5.0-sun-1.5.0.14/jre/lib/i386/client/classes.jsa
+90ed3000-91150000 rwxp 90ed3000 00:00 0 
+91150000-91722000 rwxp 00584000 08:01 15270044   /usr/lib/jvm/java-1.5.0-sun-1.5.0.14/jre/lib/i386/client/classes.jsa
+91722000-91d50000 rwxp 91722000 00:00 0 
+91d50000-91e20000 rwxp 00b56000 08:01 15270044   /usr/lib/jvm/java-1.5.0-sun-1.5.0.14/jre/lib/i386/client/classes.jsa
+91e20000-92150000 rwxp 91e20000 00:00 0 
+92150000-92154000 r-xs 00c26000 08:01 15270044   /usr/lib/jvm/java-1.5.0-sun-1.5.0.14/jre/lib/i386/client/classes.jsa
+92154000-92550000 rwxp 92154000 00:00 0 
+b195a000-b195d000 ---p b195a000 00:00 0 
+b195d000-b19db000 rwxp b195d000 00:00 0 
+b19db000-b19de000 ---p b19db000 00:00 0 
+b19de000-b1a5c000 rwxp b19de000 00:00 0 
+b1a5c000-b1a5f000 ---p b1a5c000 00:00 0 
+b1a5f000-b1add000 rwxp b1a5f000 00:00 0 
+b1add000-b1ae0000 ---p b1add000 00:00 0 
+b1ae0000-b1b5e000 rwxp b1ae0000 00:00 0 
+b1b5e000-b1b61000 ---p b1b5e000 00:00 0 
+b1b61000-b1bdf000 rwxp b1b61000 00:00 0 
+b1bdf000-b1be2000 ---p b1bdf000 00:00 0 
+b1be2000-b1c60000 rwxp b1be2000 00:00 0 
+b1c60000-b1c63000 rwxp b1c60000 00:00 0 
+b1c63000-b1ce1000 rwxp b1c63000 00:00 0 
+b1ce1000-b1ce4000 ---p b1ce1000 00:00 0 
+b1ce4000-b1d62000 rwxp b1ce4000 00:00 0 
+b1d62000-b1d65000 ---p b1d62000 00:00 0 
+b1d65000-b1de3000 rwxp b1d65000 00:00 0 
+b1de3000-b1de6000 ---p b1de3000 00:00 0 
+b1de6000-b1e64000 rwxp b1de6000 00:00 0 
+b1e64000-b1e65000 r-xp 00000000 00:12 19466915   /home/navid/libnativeIO.so
+b1e65000-b1e66000 rwxp 00000000 00:12 19466915   /home/navid/libnativeIO.so
+b1e66000-b1e91000 r-xs 00000000 00:12 21938239   /home/navid/TransactionalIO/dist/TransactionalIO.jar
+b1e91000-b1f14000 r-xs 00000000 00:12 19730820   /home/navid/dstm2-release/bcel/bcel-5.2/bcel-5.2.jar
+b1f14000-b1f17000 r-xs 00000000 08:01 15257714   /usr/lib/jvm/java-1.5.0-sun-1.5.0.14/jre/lib/ext/dnsns.jar
+b1f17000-b1fdd000 r-xs 00000000 08:01 15257715   /usr/lib/jvm/java-1.5.0-sun-1.5.0.14/jre/lib/ext/localedata.jar
+b1fdd000-b2004000 r-xs 00000000 08:01 15257713   /usr/lib/jvm/java-1.5.0-sun-1.5.0.14/jre/lib/ext/sunjce_provider.jar
+b2004000-b202f000 r-xs 00000000 08:01 15257763   /usr/lib/jvm/java-1.5.0-sun-1.5.0.14/jre/lib/ext/sunpkcs11.jar
+b202f000-b2030000 ---p b202f000 00:00 0 
+b2030000-b20b0000 rwxp b2030000 00:00 0 
+b20b0000-b20b3000 ---p b20b0000 00:00 0 
+b20b3000-b2131000 rwxp b20b3000 00:00 0 
+b2131000-b2134000 ---p b2131000 00:00 0 
+b2134000-b21b2000 rwxp b2134000 00:00 0 
+b21b2000-b21b5000 ---p b21b2000 00:00 0 
+b21b5000-b2233000 rwxp b21b5000 00:00 0 
+b2233000-b236d000 r-xp 00000000 08:01 14418247   /usr/lib/locale/locale-archive
+b236d000-b2370000 ---p b236d000 00:00 0 
+b2370000-b23ee000 rwxp b2370000 00:00 0 
+b23ee000-b23f1000 ---p b23ee000 00:00 0 
+b23f1000-b246f000 rwxp b23f1000 00:00 0 
+b246f000-b2470000 ---p b246f000 00:00 0 
+b2470000-b2501000 rwxp b2470000 00:00 0 
+b2501000-b251d000 rwxp b2501000 00:00 0 
+b251d000-b251e000 rwxp b251d000 00:00 0 
+b251e000-b253b000 rwxp b251e000 00:00 0 
+b253b000-b253c000 rwxp b253b000 00:00 0 
+b253c000-b253d000 rwxp b253c000 00:00 0 
+b253d000-b253f000 rwxp b253d000 00:00 0 
+b253f000-b255b000 rwxp b253f000 00:00 0 
+b255b000-b255f000 rwxp b255b000 00:00 0 
+b255f000-b257b000 rwxp b255f000 00:00 0 
+b257b000-b2589000 rwxp b257b000 00:00 0 
+b2589000-b2606000 rwxp b2589000 00:00 0 
+b2606000-b26b6000 rwxp b2606000 00:00 0 
+b26b6000-b4606000 rwxp b26b6000 00:00 0 
+b4606000-b4e75000 r-xs 00000000 08:01 15257723   /usr/lib/jvm/java-1.5.0-sun-1.5.0.14/jre/lib/charsets.jar
+b4e75000-b4e8a000 r-xs 00000000 08:01 15257716   /usr/lib/jvm/java-1.5.0-sun-1.5.0.14/jre/lib/jce.jar
+b4e8a000-b4f0f000 r-xs 00000000 08:01 15257711   /usr/lib/jvm/java-1.5.0-sun-1.5.0.14/jre/lib/jsse.jar
+b4f0f000-b4f78000 rwxp b4f0f000 00:00 0 
+b4f78000-b75a2000 r-xs 00000000 08:01 15257790   /usr/lib/jvm/java-1.5.0-sun-1.5.0.14/jre/lib/rt.jar
+b75a2000-b75b1000 r-xp 00000000 08:01 15257733   /usr/lib/jvm/java-1.5.0-sun-1.5.0.14/jre/lib/i386/libzip.so
+b75b1000-b75b3000 rwxp 0000e000 08:01 15257733   /usr/lib/jvm/java-1.5.0-sun-1.5.0.14/jre/lib/i386/libzip.so
+b75b3000-b75d4000 r-xp 00000000 08:01 15257732   /usr/lib/jvm/java-1.5.0-sun-1.5.0.14/jre/lib/i386/libjava.so
+b75d4000-b75d6000 rwxp 00020000 08:01 15257732   /usr/lib/jvm/java-1.5.0-sun-1.5.0.14/jre/lib/i386/libjava.so
+b75d6000-b75df000 r-xp 00000000 08:01 5357751    /lib/i686/cmov/libnss_files-2.7.so
+b75df000-b75e1000 rwxp 00008000 08:01 5357751    /lib/i686/cmov/libnss_files-2.7.so
+b75e1000-b75e9000 r-xp 00000000 08:01 5357777    /lib/i686/cmov/libnss_nis-2.7.so
+b75e9000-b75eb000 rwxp 00007000 08:01 5357777    /lib/i686/cmov/libnss_nis-2.7.so
+b75eb000-b75ff000 r-xp 00000000 08:01 5357730    /lib/i686/cmov/libnsl-2.7.so
+b75ff000-b7601000 rwxp 00013000 08:01 5357730    /lib/i686/cmov/libnsl-2.7.so
+b7601000-b7603000 rwxp b7601000 00:00 0 
+b7603000-b760e000 r-xp 00000000 08:01 15257731   /usr/lib/jvm/java-1.5.0-sun-1.5.0.14/jre/lib/i386/libverify.so
+b760e000-b760f000 rwxp 0000b000 08:01 15257731   /usr/lib/jvm/java-1.5.0-sun-1.5.0.14/jre/lib/i386/libverify.so
+b760f000-b7617000 rwxs 00000000 08:01 16122660   /tmp/hsperfdata_navid/27887
+b7617000-b763a000 r-xp 00000000 08:01 5357724    /lib/i686/cmov/libm-2.7.so
+b763a000-b763c000 rwxp 00023000 08:01 5357724    /lib/i686/cmov/libm-2.7.so
+b763c000-b79ae000 r-xp 00000000 08:01 15269960   /usr/lib/jvm/java-1.5.0-sun-1.5.0.14/jre/lib/i386/client/libjvm.so
+b79ae000-b79cc000 rwxp 00372000 08:01 15269960   /usr/lib/jvm/java-1.5.0-sun-1.5.0.14/jre/lib/i386/client/libjvm.so
+b79cc000-b7de4000 rwxp b79cc000 00:00 0 
+b7de4000-b7f2c000 r-xp 00000000 08:01 5357719    /lib/i686/cmov/libc-2.7.so
+b7f2c000-b7f2d000 r-xp 00148000 08:01 5357719    /lib/i686/cmov/libc-2.7.so
+b7f2d000-b7f2f000 rwxp 00149000 08:01 5357719    /lib/i686/cmov/libc-2.7.so
+b7f2f000-b7f33000 rwxp b7f2f000 00:00 0 
+b7f33000-b7f35000 r-xp 00000000 08:01 5357723    /lib/i686/cmov/libdl-2.7.so
+b7f35000-b7f37000 rwxp 00001000 08:01 5357723    /lib/i686/cmov/libdl-2.7.so
+b7f37000-b7f4b000 r-xp 00000000 08:01 5357878    /lib/i686/cmov/libpthread-2.7.so
+b7f4b000-b7f4d000 rwxp 00013000 08:01 5357878    /lib/i686/cmov/libpthread-2.7.so
+b7f4d000-b7f4f000 rwxp b7f4d000 00:00 0 
+b7f4f000-b7f50000 r-xp 00000000 00:12 19467075   /home/navid/libkooni.so
+b7f50000-b7f51000 rwxp 00000000 00:12 19467075   /home/navid/libkooni.so
+b7f51000-b7f58000 r-xp 00000000 08:01 5357742    /lib/i686/cmov/libnss_compat-2.7.so
+b7f58000-b7f5a000 rwxp 00006000 08:01 5357742    /lib/i686/cmov/libnss_compat-2.7.so
+b7f5a000-b7f60000 r-xp 00000000 08:01 15269955   /usr/lib/jvm/java-1.5.0-sun-1.5.0.14/jre/lib/i386/native_threads/libhpi.so
+b7f60000-b7f61000 rwxp 00006000 08:01 15269955   /usr/lib/jvm/java-1.5.0-sun-1.5.0.14/jre/lib/i386/native_threads/libhpi.so
+b7f61000-b7f62000 rwxp b7f61000 00:00 0 
+b7f62000-b7f63000 r-xp b7f62000 00:00 0 
+b7f63000-b7f65000 rwxp b7f63000 00:00 0 
+b7f65000-b7f7f000 r-xp 00000000 08:01 5357576    /lib/ld-2.7.so
+b7f7f000-b7f81000 rwxp 00019000 08:01 5357576    /lib/ld-2.7.so
+bfbe6000-bfbe9000 ---p bfbe6000 00:00 0 
+bfbe9000-bfde6000 rwxp bfbe9000 00:00 0          [stack]
+ffffe000-fffff000 r-xp 00000000 00:00 0          [vdso]
+
+VM Arguments:
+java_command: dstm2.benchmark.Main_for_Book_BenchMArk -b dstm2.benchmark.FinancialTransaction
+Launcher Type: SUN_STANDARD
+
+Environment Variables:
+PATH=/usr/local/bin:/usr/bin:/bin:/usr/games
+USERNAME=navid
+LD_LIBRARY_PATH=/usr/lib/jvm/java-1.5.0-sun-1.5.0.14/jre/lib/i386/client:/usr/lib/jvm/java-1.5.0-sun-1.5.0.14/jre/lib/i386:/usr/lib/jvm/java-1.5.0-sun-1.5.0.14/jre/../lib/i386
+SHELL=/bin/bash
+DISPLAY=:0.0
+
+Signal Handlers:
+SIGSEGV: [libjvm.so+0x32b7d0], sa_mask[0]=0x7ffbfeff, sa_flags=0x10000004
+SIGBUS: [libjvm.so+0x32b7d0], sa_mask[0]=0x7ffbfeff, sa_flags=0x10000004
+SIGFPE: [libjvm.so+0x28efd0], sa_mask[0]=0x7ffbfeff, sa_flags=0x10000004
+SIGPIPE: [libjvm.so+0x28efd0], sa_mask[0]=0x7ffbfeff, sa_flags=0x10000004
+SIGILL: [libjvm.so+0x28efd0], sa_mask[0]=0x7ffbfeff, sa_flags=0x10000004
+SIGUSR1: SIG_DFL, sa_mask[0]=0x00000000, sa_flags=0x00000000
+SIGUSR2: [libjvm.so+0x291420], sa_mask[0]=0x00000004, sa_flags=0x10000004
+SIGHUP: [libjvm.so+0x290e50], sa_mask[0]=0x7ffbfeff, sa_flags=0x10000004
+SIGINT: SIG_IGN, sa_mask[0]=0x00000000, sa_flags=0x00000000
+SIGQUIT: [libjvm.so+0x290e50], sa_mask[0]=0x7ffbfeff, sa_flags=0x10000004
+SIGTERM: [libjvm.so+0x290e50], sa_mask[0]=0x7ffbfeff, sa_flags=0x10000004
+
+
+---------------  S Y S T E M  ---------------
+
+OS:lenny/sid
+
+uname:Linux 2.6.22-3-686 #1 SMP Sun Feb 10 20:20:49 UTC 2008 i686
+libc:glibc 2.7 NPTL 2.7 
+rlimit: STACK 8192k, CORE 0k, NPROC 8108, NOFILE 1024, AS infinity
+load average:0.14 0.20 0.14
+
+CPU:total 2 (cores per cpu 2, threads per core 1) family 6 model 15 stepping 6, cmov, cx8, fxsr, mmx, sse, sse2
+
+Memory: 4k page, physical 1025800k(22112k free), swap 2610520k(160556k free)
+
+vm_info: Java HotSpot(TM) Client VM (1.5.0_14-b03) for linux-x86, built on Oct  5 2007 01:55:14 by java_re with gcc 3.2.1-7a (J2SE release)
+
