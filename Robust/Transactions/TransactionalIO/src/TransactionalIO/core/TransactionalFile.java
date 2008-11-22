@@ -383,7 +383,7 @@ public class TransactionalFile implements Comparable{
         int result = 0;
 
 
-
+ 
         if (me == null) {  // not a transaction, but any I/O operation even though within a non-transaction is considered a single opertion transactiion 
             return non_Transactional_Read(b);
         }
