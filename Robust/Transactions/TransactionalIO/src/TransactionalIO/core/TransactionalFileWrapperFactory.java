@@ -22,10 +22,10 @@ public class TransactionalFileWrapperFactory {
     
     private static native long getINodeNative(String filename);
     
-    static{
+   // static{
         //System.load("/home/navid/libnav.so");
-        System.load("/home/navid/libnativeIO.so");
-    }
+       // System.load("/home/navid/libkooni.so");
+  //  }
     
     static INode getINodefromFileName(String filename) {
         return new INode(getINodeNative(filename), filename);

@@ -40,10 +40,11 @@ import sun.misc.ConditionLock;
 
 public class TransactionalFile implements Comparable{
 
-    
+    private native int nativepwrite(byte buff[], long offset, int size, FileDescriptor fd);
     private native int nativepread(byte buff[], long offset, int size, FileDescriptor fd);
     
     {
+        
         System.load("/home/navid/libkooni.so");
     }
     
@@ -134,6 +135,21 @@ public class TransactionalFile implements Comparable{
         }
         
     }
+    
+    public int invokeNativepwrite(byte buff[], long offset, int size, RandomAccessFile file) {
+        try {
+            //System.out.println(buff.length);
+           // System.out.println(offset);
+            return nativepwrite(buff, offset, buff.length, file.getFD());
+        } catch (IOException ex) {
+            
+            Logger.getLogger(TransactionalFile.class.getName()).log(Level.SEVERE, null, ex);
+            return -1;
+        }
+        
+    }
+    
+    
 
     
     public int getSequenceNum() {

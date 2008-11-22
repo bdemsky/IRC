@@ -45,9 +45,9 @@ public class ExtendedTransaction implements TransactionStatu {
     
     private native int nativepwrite(byte buff[], long offset, int size, FileDescriptor fd);
     
-    {
-        System.load("/home/navid/libkooni.so");
-    }
+   // {
+   //     System.load("/home/navid/libkooni.so");
+   // }
     
     private boolean flag = true;
     public TransactionStatu memorystate; 
