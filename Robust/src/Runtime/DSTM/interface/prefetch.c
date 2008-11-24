@@ -50,11 +50,15 @@ int getsize(short *ptr, int n) {
 }
 
 void checkIfLocal(char *ptr) {
+  int siteid = *(GET_SITEID(ptr));
   unsigned int *baseoids = GET_PTR_OID(ptr);
   unsigned int ntuples = *(GET_NTUPLES(ptr));
   unsigned short *endoffsets = GET_PTR_EOFF(ptr, ntuples);
   short *offsets = GET_PTR_ARRYFLD(ptr, ntuples);
   int i, j, k;
+  int numLocal = 0;
+
+  prefetchpile_t * head=NULL;
 
   // Iterate for each object
   for (i = 0; i < ntuples; i++) {
@@ -73,8 +77,17 @@ void checkIfLocal(char *ptr) {
     for (j = 0; j < numoffset; j++) {
       // Iterate over each element to be visited
       while (visited != tovisit) {
+        if(chldOffstFrmBase[visited+1] == 0) {
+          visited++;
+          continue;
+        }
         if (!isOidAvail(chldOffstFrmBase[visited+1])) { 
-          //1. Add oid and  remaining part to prefetch
+          // Add to remote requests 
+          unsigned int oid = chldOffstFrmBase[visited+1];
+          unsigned int * oidarray = NULL; //TODO FILL THIS ARRAY
+          int machinenum = lhashSearch(oid);
+          insertPile(machinenum, oidarray, numoffset-j, offsets, &head);
+          break;
         } else {
           // iterate over each offset
           int retval;
@@ -83,15 +96,22 @@ void checkIfLocal(char *ptr) {
             printf("%s() Error: Object not found %s at line %d\n", 
                 __func__, __FILE__, __LINE__); 
           }
-          // compute new object
-          // add new object
-          // if new objects to compute
-          //     chldOffstFrmBase[++tovisit] = new object oid
         }
         visited++;
       } 
     } // end iterate for each element of offsets
+
+    //Entire prefetch found locally
+    if(j == numoffset) {
+      numLocal++;
+      goto tuple;
+    }
+tuple:
+    ;
   } // end iterate for each object
+
+  /* handle dynamic prefetching */
+  handleDynPrefetching(numLocal, ntuples, siteid);
 }
 
 int isOidAvail(unsigned int oid) {
@@ -126,37 +146,73 @@ int lookForObjs(int *chldOffstFrmBase, short *offsets,
     struct ArrayObject *ao = (struct ArrayObject *) (((char *)header) + sizeof(objheader_t));
     int length = ao->___length___;
     /* Check if array out of bounds */
-    int start = offsets[*index];
+    int startindex = offsets[*index];
     int range = GET_RANGE(offsets[(*index)+1]);
-    short stride = GET_STRIDE(offsets[(*index)+1]);
-    stride = stride + 1; //NOTE  bit pattern 000 => stride = 1, 001 => stride = 2
-    int i;
-    for(i = start; ; i= i+stride) {
-      if(offsets[i]>=length || offsets[i] < 0) {
-        chldOffstFrmBase[*tovisit] = 0;
-        break;
-      } else {
-      //if yes treat the object as found
-        unsigned int oid;
-        oid = *((unsigned int *)(((char *)ao) + 
-              sizeof(struct ArrayObject) + (elementsize*i)));
-
-        //TODO check is stride +ve or negative
-
-
+    if(range > 0 && range < length) {
+      short stride = GET_STRIDE(offsets[(*index)+1]);
+      stride = stride + 1; //NOTE  bit pattern 000 => stride = 1, 001 => stride = 2
+      int i;
+      //check is stride +ve or negative
+      if(GET_STRIDEINC(offsets[(*index)]+1)) { //-ve stride
+        for(i = startindex; i <= range+1; i = i - stride) {
+          unsigned int oid = 0;
+          if((i < 0 || i >= length)) {
+            //if yes treat the object as found
+            oid = 0;
+            continue;
+          } else {
+            // compute new object
+            oid = *((unsigned int *)(((char *)ao) + sizeof(struct ArrayObject) + (elementsize*i)));
+          }
+          // add new object
+          chldOffstFrmBase[*tovisit] = oid;
+          *tovisit = *tovisit + 1;
+        }
+      } else { //+ve stride
+        for(i = startindex; i <= range; i = i + stride) {
+          unsigned int oid = 0;
+          if(i < 0 || i >= length) {
+            //if yes treat the object as found
+            oid = 0;
+            continue;
+          } else {
+            // compute new object
+            oid = *((unsigned int *)(((char *)ao) + sizeof(struct ArrayObject) + (elementsize*i)));
+          }
+          // add new object
+          chldOffstFrmBase[*tovisit] = oid;
+          *tovisit = *tovisit + 1;
+        }
+      }
+    } else if(range == 0) {
+      if(startindex >=0 || startindex < length) {
+        unsigned int oid = *((unsigned int *)(((char *)ao) + sizeof(struct ArrayObject) + (elementsize*startindex)));
+        // add new object
+        chldOffstFrmBase[*tovisit] = oid;
+        *tovisit = *tovisit + 1;
       }
     }
-    return 1;
   } else { //linked list
+    int startindex = offsets[*index];
+    int range = GET_RANGE(offsets[(*index)+1]);
     unsigned int oid;
-    oid = *((unsigned int *)(((char *)header) + sizeof(objheader_t) + *index));
-    return 1;
-    //(*newbase)++;
+    if(range == 0) {
+      oid = *((unsigned int *)(((char *)header) + sizeof(objheader_t) + startindex));
+      // add new object
+      chldOffstFrmBase[*tovisit] = oid;
+      *tovisit = *tovisit + 1;
+    } else {
+      int i;
+      for(i = 0; i < range; i++) {
+        oid = *((unsigned int *)(((char *)header) + sizeof(objheader_t) + startindex));
+        // add new object
+        chldOffstFrmBase[*tovisit] = oid;
+        *tovisit = *tovisit + 1;
+      }
+    }
   }
-  // compute new object
-  // add new object
-  // if new objects to compute
-  //     chldOffstFrmBase[++tovisit] = new object oid
+  *index = *index + 2;
+  return 1;
 }
 
 #if 0
@@ -246,9 +302,7 @@ int getOtherOid(header, ao, offset, numoids, newbase) {
   }
 }
 
-#endif
 
-/*
 void checkIfLocal(char *ptr) {
   int siteid = *(GET_SITEID(ptr));
   int ntuples = *(GET_NTUPLES(ptr));
@@ -295,4 +349,4 @@ tuple:
     ;
   }
 }
-*/
+#endif
