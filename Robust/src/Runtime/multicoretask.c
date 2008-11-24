@@ -4087,6 +4087,8 @@ execute:
 	    }
 #elif defined THREADSIMULATE
 	    for(i = 0; i < numparams; ++i) {
+			int numlocks;
+	      int * locks;
 	      if(0 == isolateflags[i]) {
 		struct ___Object___ * tmpparam = (struct ___Object___ *)taskpointerarray[i+OFFSET];
 		if(tmpparam->numlocks == 0) {
