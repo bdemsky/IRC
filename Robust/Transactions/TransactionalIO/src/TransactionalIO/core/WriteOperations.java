@@ -27,11 +27,11 @@ public class WriteOperations implements Comparable{
         this.belongingto = belongingto;
     }
 
-    public TransactionalFile getOwnertransactionalFile() {
+    public TransactionalFile getOwnerTF() {
         return ownertransactionalfile;
     }
 
-    public void setOwnertransaction(TransactionalFile ownertransaction) {
+    public void setOwnerTF(TransactionalFile ownertransaction) {
         this.ownertransactionalfile = ownertransaction;
     }
     
@@ -62,11 +62,11 @@ public class WriteOperations implements Comparable{
         this.unknownoffset = unknownoffset;
     }
 
-    public TransactionLocalFileAttributes getBelongingto() {
+    public TransactionLocalFileAttributes getTFA() {
         return belongingto;
     }
 
-    public void setBelongingto(TransactionLocalFileAttributes belongingto) {
+    public void setTFA(TransactionLocalFileAttributes belongingto) {
         this.belongingto = belongingto;
     }
     
