@@ -45,9 +45,9 @@ public class ExtendedTransaction implements TransactionStatu {
     
     private native int nativepwrite(byte buff[], long offset, int size, FileDescriptor fd);
     
-   // {
-   //     System.load("/home/navid/libkooni.so");
-   // }
+    {
+        System.load("/home/navid/libkooni.so");
+    }
     
     private boolean flag = true;
     public TransactionStatu memorystate; 
@@ -253,31 +253,20 @@ public class ExtendedTransaction implements TransactionStatu {
     
     
 
-    public void addFile(TransactionalFile tf, long offstenumber) {
+    public void addFile(TransactionalFile tf, long offsetnumber/*, TransactionLocalFileAttributes tmp*/) {
 
-       
-            //tf.lockOffset(this);
-  
-           TransactionLocalFileAttributes tmp = new TransactionLocalFileAttributes(offstenumber/*, tf.getInodestate().commitedfilesize.get()*/);
-  
-            //tf.offsetlock.unlock();     
-            
-            
-          
-            Vector dummy;     
-            
-            if (AccessedFiles.containsKey(tf.getInode())){
-                    dummy = (Vector) AccessedFiles.get(tf.getInode());
-            }
-            else{ 
-                dummy = new Vector();
-                AccessedFiles.put(tf.getInode(), dummy);
-            }
-            
-            dummy.add(tf);
-            GlobaltoLocalMappings.put(tf, tmp);
-            merge_for_writes_done.put(tf.getInode(), Boolean.TRUE);
+        TransactionLocalFileAttributes tmp = new TransactionLocalFileAttributes(offsetnumber/*, tf.getInodestate().commitedfilesize.get()*/);
+        Vector dummy;
 
+        if (AccessedFiles.containsKey(tf.getInode())) {
+            dummy = (Vector) AccessedFiles.get(tf.getInode());
+        } else {
+            dummy = new Vector();
+            AccessedFiles.put(tf.getInode(), dummy);
+        }
+        dummy.add(tf);
+        GlobaltoLocalMappings.put(tf, tmp);
+        merge_for_writes_done.put(tf.getInode(), Boolean.TRUE);
     }
 
 
@@ -394,16 +383,31 @@ public class ExtendedTransaction implements TransactionStatu {
         
         
         if (mode == BlockAccessModesEnum.READ){
-                lock = block.getLock().readLock();     
-        }
+                lock = block.getLock().readLock();
+                  
+             
+            }
         else {
+              
             lock = block.getLock().writeLock();
+            
         }
         
         while (this.getStatus() == Status.ACTIVE) {
+            //synchronized(block){
+                
+              //  if (lock.tryLock()) {
                 lock.lock();    
+                   // synchronized(benchmark.lock){
+                  //      System.out.println(Thread.currentThread() + " Lock the block lock for " + lock +" number " + block.getBlocknumber());
+                  //  }
                     heldblocklocks.add(lock);
+                //    block.setOwner(this);
                     return true;
+               // }
+                
+                
+                    //getContentionmanager().resolveConflict(this, block);
         }
         
         return false;
@@ -510,11 +514,11 @@ public class ExtendedTransaction implements TransactionStatu {
                     long end;
                     
                     //synchronized(value.getOwnertransactionalFile().getCommitedoffset()){
-                        start = value.getRange().getStart() - value.getTFA().getCopylocaloffset() + value.getOwnerTF().getCommitedoffset().getOffsetnumber();
-                        end = value.getRange().getEnd() - value.getTFA().getCopylocaloffset() + value.getOwnerTF().getCommitedoffset().getOffsetnumber();
-                        if (value.getTFA().isUnknown_inital_offset_for_write()){
-                            value.getTFA().setLocaloffset(value.getTFA().getLocaloffset() - value.getTFA().getCopylocaloffset() + value.getOwnerTF().getCommitedoffset().getOffsetnumber());
-                            value.getTFA().setUnknown_inital_offset_for_write(false);
+                        start = value.getRange().getStart() - value.getBelongingto().getCopylocaloffset() + value.getOwnertransactionalFile().getCommitedoffset().getOffsetnumber();
+                        end = value.getRange().getEnd() - value.getBelongingto().getCopylocaloffset() + value.getOwnertransactionalFile().getCommitedoffset().getOffsetnumber();
+                        if (value.getBelongingto().isUnknown_inital_offset_for_write()){
+                            value.getBelongingto().setLocaloffset(value.getBelongingto().getLocaloffset() - value.getBelongingto().getCopylocaloffset() + value.getOwnertransactionalFile().getCommitedoffset().getOffsetnumber());
+                            value.getBelongingto().setUnknown_inital_offset_for_write(false);
                         }
                     
                     //}
@@ -670,7 +674,7 @@ public class ExtendedTransaction implements TransactionStatu {
                 //        writeop.getOwnertransactionalFile().file.seek(writeop.getRange().getStart());
                    //    System.out.println(Thread.currentThread() + " range " + writeop.getRange().getStart());
                  //       writeop.getOwnertransactionalFile().file.write(bytedata);
-                        invokeNativepwrite(bytedata, writeop.getRange().getStart(), bytedata.length, writeop.getOwnerTF().file);
+                        invokeNativepwrite(bytedata, writeop.getRange().getStart(), bytedata.length, writeop.getOwnertransactionalFile().file);
                        // System.out.println(Thread.currentThread() + " " + bytedata);
                         
                  //  } catch (IOException ex) {
