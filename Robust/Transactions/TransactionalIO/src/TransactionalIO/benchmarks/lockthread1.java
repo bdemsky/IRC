@@ -69,7 +69,7 @@ public class lockthread1 extends Thread{
                 byte[] towrite = new byte[String.valueOf(holder, 0, i).length()];
                 towrite = String.valueOf(holder, 0, i).getBytes();
                 try {
-                    ((TransactionalFile) (benchmark.m.get(String.valueOf(holder,0,i).toLowerCase().substring(0, 1)))).file.write(towrite);
+                    ((RandomAccessFile) (benchmark.m.get(String.valueOf(holder,0,i).toLowerCase().substring(0, 1)))).write(towrite);
                 } catch (IOException ex) {
                     Logger.getLogger(thread1.class.getName()).log(Level.SEVERE, null, ex);
                 }

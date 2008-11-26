@@ -8,6 +8,7 @@ package TransactionalIO.benchmarks;
 
 import TransactionalIO.core.TransactionalFile;
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -130,11 +131,11 @@ public class MainforLocks {
             System.out.println((endttime - starttime) / 1000000);
              int index =97;
             for (int j = 0; j < 26; j++) {
-                ((TransactionalFile)(benchmark.m.get(String.valueOf((char) (index+j))))).close();
+                ((RandomAccessFile)(benchmark.m.get(String.valueOf((char) (index+j))))).close();
             }
-        } catch (InterruptedException ex) {
+        } catch (IOException ex) {
             Logger.getLogger(MainforLocks.class.getName()).log(Level.SEVERE, null, ex);
-        } catch (FileNotFoundException ex) {
+        } catch (InterruptedException ex) {
             Logger.getLogger(MainforLocks.class.getName()).log(Level.SEVERE, null, ex);
         }
         

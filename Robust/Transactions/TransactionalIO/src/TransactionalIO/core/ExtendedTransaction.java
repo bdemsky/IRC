@@ -71,7 +71,7 @@ public class ExtendedTransaction implements TransactionStatu {
     public HashMap merge_for_writes_done;
     private HashMap writeBuffer;
     private ContentionManager contentionmanager;
-    private /*volatile*/ Status status;
+    private volatile Status status;
     private int id;
 
     public ExtendedTransaction() {
@@ -114,14 +114,11 @@ public class ExtendedTransaction implements TransactionStatu {
 
     public void abort() {
         synchronized (this) {
-
             this.status = Status.ABORTED;
             if (this.memorystate != null && !(this.memorystate).isAborted()) {
                 this.memorystate.abortThisSystem();
             }
-
         }
-
     }
 
     public Status getStatus() {
@@ -209,33 +206,21 @@ public class ExtendedTransaction implements TransactionStatu {
 
         TreeMap hm = getSortedFileAccessMap(AccessedFiles);
         Iterator iter = hm.keySet().iterator();
-
+        
         while (iter.hasNext() && (this.getStatus() == Status.ACTIVE)) {
             INode key = (INode) iter.next();
-
             Vector vec = (Vector) AccessedFiles.get(key);
             Collections.sort(vec);
             Iterator it = vec.iterator();
-            while (it.hasNext()) {
+            while (it.hasNext() && this.getStatus() == Status.ACTIVE) {
                 TransactionalFile value = (TransactionalFile) it.next();
-                while (this.getStatus() == Status.ACTIVE) {
-                    value.offsetlock.lock();
-
-                    heldoffsetlocks.add(value.offsetlock);
-                    break;
-
-                }
-                if (this.getStatus() != Status.ACTIVE) {
-
-
-                    return false;
-                }
+                value.offsetlock.lock();
+                heldoffsetlocks.add(value.offsetlock);
+                break;
             }
-
         }
+
         if (this.getStatus() != Status.ACTIVE) {
-
-
             return false;
         }
         return true;
@@ -250,13 +235,11 @@ public class ExtendedTransaction implements TransactionStatu {
 
             lock = block.getLock().writeLock();
         }
-
-        while (this.getStatus() == Status.ACTIVE) {
-            lock.lock();
-            heldblocklocks.add(lock);
-            return true;
-        }
-        return false;
+        
+        lock.lock();
+        heldblocklocks.add(lock);
+        return true;
+       
     }
 
     public void prepareCommit() {
@@ -324,24 +307,24 @@ public class ExtendedTransaction implements TransactionStatu {
             }
 
         }
-
+        
+        
         Iterator it = this.getAccessedBlocks().keySet().iterator();
-        while (it.hasNext() && (this.getStatus() == Status.ACTIVE)) {
-            INode inode = (INode) it.next();
-            GlobalINodeState inodestate = TransactionalFileWrapperFactory.getTateransactionalFileINodeState(inode);
-            TreeMap vec2 = (TreeMap) this.getAccessedBlocks().get(inode);
-            Iterator iter2 = vec2.keySet().iterator();
-            while (iter2.hasNext()) {
-                Integer num = (Integer) iter2.next();
-
-                BlockDataStructure blockobj = inodestate.getBlockDataStructure(num);
-
-                ok = this.lockBlock(blockobj, (BlockAccessModesEnum) vec2.get(num));
-                if (ok == false) {
-                    break;
+        BlockDataStructure[] blocks = new BlockDataStructure[100];
+        if (this.getStatus() == Status.ACTIVE)
+            while (it.hasNext() /*&& (this.getStatus() == Status.ACTIVE)*/) {
+                INode inode = (INode) it.next();
+                GlobalINodeState inodestate = TransactionalFileWrapperFactory.getTateransactionalFileINodeState(inode);
+                TreeMap vec2 = (TreeMap) this.getAccessedBlocks().get(inode);
+                Iterator iter2 = vec2.keySet().iterator();
+            
+                while (iter2.hasNext() && this.getStatus() == Status.ACTIVE) {
+                    Integer num = (Integer) iter2.next();    
+                    BlockDataStructure blockobj = inodestate.getBlockDataStructure(num);
+                    this.lockBlock(blockobj, (BlockAccessModesEnum) vec2.get(num));
+                    
                 }
             }
-        }
 
         if (this.getStatus() != Status.ACTIVE) {
 
@@ -393,14 +376,14 @@ public class ExtendedTransaction implements TransactionStatu {
             Lock lock = (Lock) it.next();
             lock.unlock();
         }
-        heldblocklocks.clear();
+   //     heldblocklocks.clear();
 
         it = heldoffsetlocks.iterator();
         while (it.hasNext()) {
             ReentrantLock lock = (ReentrantLock) it.next();
             lock.unlock();
         }
-        heldoffsetlocks.clear();
+    //    heldoffsetlocks.clear();
     }
 
     public void abortAllReaders() {
@@ -440,8 +423,8 @@ public class ExtendedTransaction implements TransactionStatu {
 
                 Integer num = (Integer) it2.next();
                 if (vec2.get(num) != BlockAccessModesEnum.READ) {
-                    BlockDataStructure blockobj = (BlockDataStructure) inodestate.getBlockDataStructure(num);//lockmap.get(num);
-
+                    BlockDataStructure blockobj = (BlockDataStructure) inodestate.getBlockDataStructure(num);
+                    //lockmap.get(num);
                     Iterator it4 = blockobj.getReaders().iterator(); // from here for visible readers strategy
 
                     while (it4.hasNext()) {
@@ -452,7 +435,6 @@ public class ExtendedTransaction implements TransactionStatu {
                         }
                     }
                     blockobj.getReaders().clear();
-
                 }
             }
 

@@ -236,9 +236,12 @@ public class benchmark {
             int index = 97;
             for (int i = 0; i < 26; i++) {
            
-                m.put(String.valueOf((char) (index+i)), new TransactionalFile("/scratch/TransactionalIO/PureIOBenchmarkFiles/"
+            m.put(String.valueOf((char) (index+i)), new TransactionalFile("/scratch/TransactionalIO/PureIOBenchmarkFiles/"
 + String.valueOf((char) (index+i)) + ".text", "rw"));
                 count++;
+            /*   m.put(String.valueOf((char) (index+i)), new RandomAccessFile("/scratch/TransactionalIO/PureIOBenchmarkFiles/"
++ String.valueOf((char) (index+i)) + ".text", "rw"));
+                count++;*/
             }
             count = 0;
             m2 = Collections.synchronizedMap(hotwords);
