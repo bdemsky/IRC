@@ -1,5 +1,8 @@
-
 #!/bin/bash
+if [ -n $DISABLEAFID ]
+then
+javac $@
+else
 if [ -a ~/.AFID/FindSource ]
 then 
 if [ -z $OLDPATH ]
@@ -20,4 +23,5 @@ javac $@
 fi
 else
 javac $@
+fi
 fi

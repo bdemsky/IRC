@@ -1,5 +1,8 @@
-
 #!/bin/bash
+if [ -n $DISABLEAFID ]
+then
+java $@
+else
 if [ -a ~/.AFID/SaveTestCase ]
 then 
 if [ -z $OLDPATH ]
@@ -20,4 +23,5 @@ java $@
 fi
 else
 java $@
+fi
 fi
