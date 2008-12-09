@@ -133,7 +133,7 @@ CFILES=Runtime/*.c \
 
 all: compiler javadoc
 
-compiler: Parse/Sym.class Parse/Parser.class $(CLASSFILES)
+compiler: Parse/Sym.class Parse/Parser.class $(CLASSFILES) 
 
 wc:
 	wc Interface/*.java Analysis/*/*.java IR/*.java IR/*/*.java Lex/*.java Util/*.java ClassLibrary/*.java
@@ -146,7 +146,7 @@ Parse/Parser.java Parse/Sym.java: Parse/java14.cup
         java -cp ../../cup:$(CLASSPATH) java_cup.Main -parser Parser -symbols Sym < java14.cup
 
 %.class: %.java
-	javac -cp ../cup:.:$(CLASSPATH) $<
+	./ourjavac -cp ../cup:.:$(CLASSPATH) $<
 
 tabbing: 
 	uncrustify -c java.cfg --no-backup $(JAVAFILES)
