@@ -1,0 +1,11 @@
+MatrixMultiplyN:MatrixMultiply/javasingle:1 200 30:200mmver
+MatrixMultiply:MatrixMultiply/javasingle:1 800:800mmver
+MatrixMultiply:MatrixMultiply/javasingle:1 600:mmver600
+fft2d:2DFFT/javasingle:1 1600:1600fft2d
+fft2d:2DFFT/javasingle:1 1152:1152fft2d
+Convolution:2DConv/javasingle:1 4096:40962dconv
+Convolution:2DConv/javasingle:1 8192:81922dconv
+Convolution:2DConv/javasingle:1 2048:20482dconv
+JGFMolDynBenchSizeA:Moldyn/javasingle:1:moldynverA
+JGFSORBenchSizeD:SOR/javasingle:1:sorverD
+Em3d:Em3d/javasingle:-T 1 -N 10000 -d 1000 -i 15:em3dver10000100015
