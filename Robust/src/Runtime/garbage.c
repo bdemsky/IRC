@@ -406,25 +406,20 @@ void * tomalloc(int size) {
 
 #if defined(THREADS)||defined(DSTM)
 void checkcollect(void * ptr) {
-  if (needtocollect) {
-    struct listitem * tmp=stopforgc((struct garbagelist *)ptr);
-    pthread_mutex_lock(&gclock); // Wait for GC
-    restartaftergc(tmp);
-    pthread_mutex_unlock(&gclock);
-
-  }
+  struct listitem * tmp=stopforgc((struct garbagelist *)ptr);
+  pthread_mutex_lock(&gclock); // Wait for GC
+  restartaftergc(tmp);
+  pthread_mutex_unlock(&gclock);
 }
 
 #ifdef DSTM
 void checkcollect2(void * ptr, transrecord_t *trans) {
-  if (needtocollect) {
-    int ptrarray[]={1, (int)ptr, (int) trans->revertlist};
-    struct listitem * tmp=stopforgc((struct garbagelist *)ptrarray);
-    pthread_mutex_lock(&gclock); // Wait for GC
-    restartaftergc(tmp);
-    pthread_mutex_unlock(&gclock);
-    trans->revertlist=(struct ___Object___*)ptrarray[2];
-  }
+  int ptrarray[]={1, (int)ptr, (int) trans->revertlist};
+  struct listitem * tmp=stopforgc((struct garbagelist *)ptrarray);
+  pthread_mutex_lock(&gclock); // Wait for GC
+  restartaftergc(tmp);
+  pthread_mutex_unlock(&gclock);
+  trans->revertlist=(struct ___Object___*)ptrarray[2];
 }
 #endif
 

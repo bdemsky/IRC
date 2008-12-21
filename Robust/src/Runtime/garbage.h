@@ -18,6 +18,7 @@ void fixtags();
 #endif
 
 #if defined(THREADS)||defined(DSTM)
+extern int needtocollect;
 void checkcollect(void * ptr);
 struct listitem * stopforgc(struct garbagelist * ptr);
 void restartaftergc(struct listitem * litem);

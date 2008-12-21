@@ -1483,9 +1483,9 @@ public class BuildCode {
     case FKind.FlatBackEdge:
       if ((state.THREAD||state.DSM)&&GENERATEPRECISEGC) {
 	if(state.DSM&&locality.getAtomic(lb).get(fn).intValue()>0) {
-	  output.println("checkcollect2(&"+localsprefix+",trans);");
+	  output.println("if (needtocollect) checkcollect2(&"+localsprefix+",trans);");
 	} else
-	  output.println("checkcollect(&"+localsprefix+");");
+	  output.println("if (needtocollect) checkcollect(&"+localsprefix+");");
       } else
 	output.println("/* nop */");
       return;
