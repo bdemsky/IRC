@@ -40,6 +40,7 @@ public class State {
     return optionaltaskdescriptors;
   }
 
+
   /** Boolean flag which indicates whether compiler is compiling a task-based
    * program. */
   public boolean WEBINTERFACE=false;
@@ -87,6 +88,7 @@ public class State {
   private int arraycount=0;
 
 
+
   private Hashtable<ClassDescriptor, Hashtable<OptionalTaskDescriptor, OptionalTaskDescriptor>> optionaltaskdescriptors;
   private Hashtable<ClassDescriptor, Hashtable<FlagState, Set<OptionalTaskDescriptor>>> analysisresults;
 
@@ -114,7 +116,9 @@ public class State {
   }
 
   public int getArrayNumber(TypeDescriptor td) {
-    return ((Integer)arraytonumber.get(td)).intValue();
+    if (arraytonumber.containsKey(td))
+      return ((Integer)arraytonumber.get(td)).intValue();
+    else throw new Error("Could not find array type:" + td.toPrettyString());
   }
 
   public int numArrays() {
