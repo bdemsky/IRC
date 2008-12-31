@@ -1,3 +1,5 @@
+#ifndef _PREFETCH_H_
+#define _PREFETCH_H_
 #include "queue.h"
 #include "dstm.h"
 
@@ -33,13 +35,16 @@ proPrefetchQ_t prefetchQ;
 void proPrefetchQDealloc(perMcPrefetchList_t *);
 
 /******** Process Queue Element functions ***********/
-void rangePrefetch(int, int, unsigned int *, unsigned short *, short *offset);
+//void rangePrefetch(int, int, unsigned int *, unsigned short *, short *offset);
+void rangePrefetch(unsigned int, short, short *);
 void *transPrefetchNew();
 perMcPrefetchList_t* checkIfLocal(char *ptr);
 int isOidAvail(unsigned int oid);
 int lookForObjs(int*, short *, int *, int *, int *);
-void insertPrefetch(int, unsigned int, short, short*, perMcPrefetchList_t **); 
+void insertPrefetch(int, unsigned int, short, short*, perMcPrefetchList_t **);
 void sendRangePrefetchReq(perMcPrefetchList_t *, int sd);
 
 /************* Internal functions *******************/
 int getsize(short *ptr, int n);
+
+#endif

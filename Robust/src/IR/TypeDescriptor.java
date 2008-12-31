@@ -19,10 +19,11 @@ public class TypeDescriptor extends Descriptor {
   public static final int NULL=10;
   public static final int TAG=11;
   public static final int CLASS=12;
+  public static final int OFFSET=13;
 
 
   int arraycount;
-  int type;
+  private int type;
   ClassDescriptor class_desc;
 
   public boolean equals(Object o) {
@@ -106,6 +107,8 @@ public class TypeDescriptor extends Descriptor {
       return "double";
     else if (isFloat())
       return "float";
+    else if (isOffset())
+      return "short";
     else throw new Error("Error Type: "+type);
   }
 
@@ -195,6 +198,10 @@ public class TypeDescriptor extends Descriptor {
   }
   public boolean isVoid() {
     return type==VOID;
+  }
+
+  public boolean isOffset() {
+    return type==OFFSET;
   }
 
   public boolean isPtr() {
@@ -296,6 +303,8 @@ public class TypeDescriptor extends Descriptor {
       return "null";
     else if (type==TAG)
       return TypeUtil.TagClass;
+    else if (type==OFFSET)
+      return "offset";
     else throw new Error();
   }
 }

@@ -372,6 +372,10 @@ public class SemanticCheck {
     case Kind.OpNode:
       checkOpNode(md,nametable,(OpNode)en,td);
       return;
+
+    case Kind.OffsetNode:
+      checkOffsetNode(md, nametable, (OffsetNode)en, new TypeDescriptor(TypeDescriptor.OFFSET));
+      return;
     }
     throw new Error();
   }
@@ -494,6 +498,33 @@ public class SemanticCheck {
 	if (!typeutil.isSuperorType(td,nn.getType()))
 	  throw new Error("Field node returns "+nn.getType()+", but need "+td);
     }
+  }
+
+  void checkOffsetNode(Descriptor md, SymbolTable nameTable, OffsetNode ofn, TypeDescriptor td) {
+    TypeDescriptor ltd = ofn.td;
+    //System.out.println("Testing TypeDescriptor ltd = " + ofn.td);
+    String fieldname = ofn.fieldname;
+    //System.out.println("Testing String fieldname = " + ofn.fieldname);
+    Descriptor d = (Descriptor) nameTable.get(fieldname);
+    //System.out.println("Testing Descriptor d = " + d.toString());
+
+    ClassDescriptor cd = null;
+    checkTypeDescriptor(ltd);
+    cd = ltd.getClassDesc();
+    ofn.setClassDesc(cd);
+    //System.out.println("Testing for ClassDescriptor cd = " + cd.toString());
+
+    FieldDescriptor fd=null;
+    if (ltd.isArray()&&fieldname.equals("length")) {
+      fd=FieldDescriptor.arrayLength;
+    } else {
+      fd=(FieldDescriptor) cd.getFieldTable().get(fieldname);
+    }
+    //System.out.println("Testing for FieldDescriptor fd = " + fd.toString());
+    ofn.setField(fd);
+    if (fd==null)
+      throw new Error("Unknown field "+fieldname + " in "+ofn.printNode(1)+" in "+md);
+    ofn.setType(td);
   }
 
   void checkAssignmentNode(Descriptor md, SymbolTable nametable, AssignmentNode an, TypeDescriptor td) {

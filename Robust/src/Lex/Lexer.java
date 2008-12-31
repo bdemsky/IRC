@@ -258,7 +258,7 @@ public class Lexer {
     "class", "const", "continue", "default", "do", "double", "else", "enum",
     "extends", "external", "final", "finally",
     "flag", //keyword for failure aware computation
-    "float", "for", "global", "goto", "if",
+    "float", "for","getoffset", "global", "goto", "if",
     "implements", "import", "instanceof", "int", "interface", "isavailable",
     "long",
     "native", "new", "optional", "package", "private", "protected", "public",

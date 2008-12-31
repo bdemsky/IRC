@@ -178,6 +178,7 @@ public class BuildFlat {
   }
 
   private NodePair flattenBlockExpressionNode(BlockExpressionNode en) {
+    //System.out.println("DEBUG -> inside flattenBlockExpressionNode\n");
     TempDescriptor tmp=TempDescriptor.tempFactory("neverused",en.getExpression().getType());
     return flattenExpressionNode(en.getExpression(),tmp);
   }
@@ -193,6 +194,19 @@ public class BuildFlat {
   private NodePair flattenLiteralNode(LiteralNode ln,TempDescriptor out_temp) {
     FlatLiteralNode fln=new FlatLiteralNode(ln.getType(), ln.getValue(), out_temp);
     return new NodePair(fln,fln);
+  }
+
+  private NodePair flattenOffsetNode(OffsetNode ofn, TempDescriptor out_temp) {
+    FlatLiteralNode fln = new FlatLiteralNode(ofn.getType(), ofn, out_temp);
+    return new NodePair(fln, fln);
+    /* Another possible approach
+       ClassDescriptor cd = ofn.getClassDesc();
+       FieldDescriptor fd = ofn.getField();
+       FlatOffsetNode fon = new FlatOffsetNode(fd, cd, out_temp);
+       TypeDescriptor type=new TypeDescriptor(ofn.getType());
+       System.out.println("TempDescriptor out_temp = " + out_temp.toString() + "Type of out_temp = " + out_temp.getType());
+       return new NodePair(fon, fon);
+     */
   }
 
   private NodePair flattenCreateObjectNode(CreateObjectNode con,TempDescriptor out_temp) {
@@ -385,8 +399,8 @@ public class BuildFlat {
     }
     FlatNode first=null;
     FlatNode last=null;
-    TempDescriptor src_tmp=an.getSrc()==null ? TempDescriptor.tempFactory("srctmp",an.getDest().getType()) : TempDescriptor.tempFactory("srctmp",an.getSrc().getType());
-
+    TempDescriptor src_tmp = src_tmp=an.getSrc()==null ? TempDescriptor.tempFactory("srctmp",an.getDest().getType()) : TempDescriptor.tempFactory("srctmp",an.getSrc().getType());
+    
     //Get src value
     if (an.getSrc()!=null) {
       NodePair np_src=flattenExpressionNode(an.getSrc(),src_tmp);
@@ -502,6 +516,8 @@ public class BuildFlat {
     } else if (an.getDest().kind()==Kind.NameNode) {
       //We could be assigning a field or variable
       NameNode nn=(NameNode)an.getDest();
+
+
       if (nn.getExpression()!=null) {
 	//It is a field
 	FieldAccessNode fan=(FieldAccessNode)nn.getExpression();
@@ -638,6 +654,7 @@ public class BuildFlat {
 	  }
 
 	  FlatOpNode fon=new FlatOpNode(getTempforVar(nn.getVar()), src_tmp, null, new Operation(Operation.ASSIGN));
+
 	  last.addNext(fon);
 	  last=fon;
 	  if (pre) {
@@ -645,10 +662,11 @@ public class BuildFlat {
 	    fon.addNext(fon2);
 	    last=fon2;
 	  }
-	  return new NodePair(first, last);
-	}
+      return new NodePair(first, last);
+	} //end of else
       }
     }
+
     throw new Error();
   }
 
@@ -757,6 +775,9 @@ public class BuildFlat {
 
     case Kind.OpNode:
       return flattenOpNode((OpNode)en,out_temp);
+
+    case Kind.OffsetNode:
+      return flattenOffsetNode((OffsetNode)en,out_temp);
     }
     throw new Error();
   }

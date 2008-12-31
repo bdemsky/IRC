@@ -17,4 +17,7 @@ public class System {
   public static native void printI(int status);
 
   public static native void clearPrefetchCache();
+
+  public static native void rangePrefetch(Object o, short numoffset,  short[] offsets); //TODO Complete this definition
+
 }

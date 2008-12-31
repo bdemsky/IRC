@@ -76,9 +76,9 @@ public class Main {
       } else if (option.equals("-printflat"))
 	State.PRINTFLAT=true;
       else if (option.equals("-printscheduling"))
-		State.PRINTSCHEDULING=true;
+	State.PRINTSCHEDULING=true;
       else if (option.equals("-printschedulesim"))
-		State.PRINTSCHEDULESIM=true;
+	State.PRINTSCHEDULESIM=true;
       else if (option.equals("-struct"))
 	state.structfile=args[++i];
       else if (option.equals("-conscheck"))
@@ -151,7 +151,7 @@ public class Main {
 	System.out.println("-ownwritedots <all/final> -- write ownership graphs; can be all results or just final results");
 	System.out.println("-ownaliasfile <filename> -- write a text file showing all detected aliases in program tasks");
 	System.out.println("-optional -- enable optional arguments");
-	System.out.println("-scheduling do task scheduling" );
+	System.out.println("-scheduling do task scheduling");
 	System.out.println("-multicore generate multi-core version binary");
 	System.out.println("-numcore set the number of cores (should be used together with -multicore), defaultly set as 1");
 	System.out.println("-raw generate raw version binary (should be used together with -multicore)");
@@ -341,73 +341,73 @@ public class Main {
 	    tmpinindex = inint.indexOf(';');
 	    int byObj = Integer.parseInt(inint.substring(0, tmpinindex));
 	    if(byObj != -1) {
-		tinfo.m_byObj = byObj;
+	      tinfo.m_byObj = byObj;
 	    }
 	    inint = inint.substring(tmpinindex + 1);
 	    while(inint.startsWith(" ")) {
-		inint = inint.substring(1);
+	      inint = inint.substring(1);
 	    }
 	    for(int i = 0; i < numofexits; i++) {
-		String tmpinfo = null;
-		if(i < numofexits - 1) {
-		    tmpinindex = inint.indexOf(';');
-		    tmpinfo = inint.substring(0, tmpinindex);
-		    inint = inint.substring(tmpinindex + 1);
-		    while(inint.startsWith(" ")) {
-			inint = inint.substring(1);
-		    }
-		} else {
-		    tmpinfo = inint;
+	      String tmpinfo = null;
+	      if(i < numofexits - 1) {
+		tmpinindex = inint.indexOf(';');
+		tmpinfo = inint.substring(0, tmpinindex);
+		inint = inint.substring(tmpinindex + 1);
+		while(inint.startsWith(" ")) {
+		  inint = inint.substring(1);
 		}
-		
-		tmpinindex = tmpinfo.indexOf(',');
-		tinfo.m_exetime[i] = Integer.parseInt(tmpinfo.substring(0, tmpinindex));
+	      } else {
+		tmpinfo = inint;
+	      }
+
+	      tmpinindex = tmpinfo.indexOf(',');
+	      tinfo.m_exetime[i] = Integer.parseInt(tmpinfo.substring(0, tmpinindex));
+	      tmpinfo = tmpinfo.substring(tmpinindex + 1);
+	      while(tmpinfo.startsWith(" ")) {
+		tmpinfo = tmpinfo.substring(1);
+	      }
+	      tmpinindex = tmpinfo.indexOf(',');
+	      tinfo.m_probability[i] = Double.parseDouble(tmpinfo.substring(0, tmpinindex));
+	      tmpinfo = tmpinfo.substring(tmpinindex + 1);
+	      while(tmpinfo.startsWith(" ")) {
+		tmpinfo = tmpinfo.substring(1);
+	      }
+	      tmpinindex = tmpinfo.indexOf(',');
+	      int numofnobjs = 0;
+	      if(tmpinindex == -1) {
+		numofnobjs = Integer.parseInt(tmpinfo);
+		if(numofnobjs != 0) {
+		  System.err.println("Error profile data format!");
+		  System.exit(-1);
+		}
+	      } else {
+		tinfo.m_newobjinfo.setElementAt(new Hashtable<String,Integer>(), i);
+		numofnobjs = Integer.parseInt(tmpinfo.substring(0, tmpinindex));
 		tmpinfo = tmpinfo.substring(tmpinindex + 1);
 		while(tmpinfo.startsWith(" ")) {
-		    tmpinfo = tmpinfo.substring(1);
+		  tmpinfo = tmpinfo.substring(1);
 		}
-		tmpinindex = tmpinfo.indexOf(',');
-		tinfo.m_probability[i] = Double.parseDouble(tmpinfo.substring(0, tmpinindex));
-		tmpinfo = tmpinfo.substring(tmpinindex + 1);
-		while(tmpinfo.startsWith(" ")) {
+		for(int j = 0; j < numofnobjs; j++) {
+		  tmpinindex = tmpinfo.indexOf(',');
+		  String nobjtype = tmpinfo.substring(0, tmpinindex);
+		  tmpinfo = tmpinfo.substring(tmpinindex + 1);
+		  while(tmpinfo.startsWith(" ")) {
 		    tmpinfo = tmpinfo.substring(1);
-		}
-		tmpinindex = tmpinfo.indexOf(',');
-		int numofnobjs = 0;
-		if(tmpinindex == -1) {
-		    numofnobjs = Integer.parseInt(tmpinfo);
-		    if(numofnobjs != 0) {
-			System.err.println("Error profile data format!");
-			System.exit(-1);
-		    }
-		} else {
-		    tinfo.m_newobjinfo.setElementAt(new Hashtable<String,Integer>(), i);
-		    numofnobjs = Integer.parseInt(tmpinfo.substring(0, tmpinindex));
+		  }
+		  int objnum = 0;
+		  if(j < numofnobjs - 1) {
+		    tmpinindex = tmpinfo.indexOf(',');
+		    objnum  = Integer.parseInt(tmpinfo.substring(0, tmpinindex));
 		    tmpinfo = tmpinfo.substring(tmpinindex + 1);
 		    while(tmpinfo.startsWith(" ")) {
-			tmpinfo = tmpinfo.substring(1);
+		      tmpinfo = tmpinfo.substring(1);
 		    }
-		    for(int j = 0; j < numofnobjs; j++) {
-			tmpinindex = tmpinfo.indexOf(',');
-			String nobjtype = tmpinfo.substring(0, tmpinindex);
-			tmpinfo = tmpinfo.substring(tmpinindex + 1);
-			while(tmpinfo.startsWith(" ")) {
-			    tmpinfo = tmpinfo.substring(1);
-			}
-			int objnum = 0;
-			if(j < numofnobjs - 1) {
-			    tmpinindex = tmpinfo.indexOf(',');
-			    objnum  = Integer.parseInt(tmpinfo.substring(0, tmpinindex));
-			    tmpinfo = tmpinfo.substring(tmpinindex + 1);
-			    while(tmpinfo.startsWith(" ")) {
-				tmpinfo = tmpinfo.substring(1);
-			    }
-			} else {
-			    objnum = Integer.parseInt(tmpinfo);
-			}
-			tinfo.m_newobjinfo.elementAt(i).put(nobjtype, objnum);
-		    }
+		  } else {
+		    objnum = Integer.parseInt(tmpinfo);
+		  }
+		  tinfo.m_newobjinfo.elementAt(i).put(nobjtype, objnum);
 		}
+	      }
 	    }
 	    taskinfos.put(inname, tinfo);
 	    inindex = profiledata.indexOf('\n');
@@ -438,12 +438,12 @@ public class Main {
 			pfe.setProbability(idouble);
 			int newRate = 0;
 			if((taskinfo.m_newobjinfo.elementAt(pfe.getTaskExitIndex()) != null)
-				&& (taskinfo.m_newobjinfo.elementAt(pfe.getTaskExitIndex()).containsKey(cd.getSymbol()))) {
-			    newRate = taskinfo.m_newobjinfo.elementAt(pfe.getTaskExitIndex()).get(cd.getSymbol());
+			   && (taskinfo.m_newobjinfo.elementAt(pfe.getTaskExitIndex()).containsKey(cd.getSymbol()))) {
+			  newRate = taskinfo.m_newobjinfo.elementAt(pfe.getTaskExitIndex()).get(cd.getSymbol());
 			}
 			pfe.addNewObjInfo(cd, newRate, idouble);
 			if(taskinfo.m_byObj != -1) {
-			    ((FlagState)pfe.getSource()).setByObj(taskinfo.m_byObj);
+			  ((FlagState)pfe.getSource()).setByObj(taskinfo.m_byObj);
 			}
 		      }
 		      fev = null;
@@ -464,7 +464,7 @@ public class Main {
 		  double idouble = taskinfo.m_probability[edge.getTaskExitIndex()];
 		  edge.setProbability(idouble);
 		  if(taskinfo.m_byObj != -1) {
-		      ((FlagState)edge.getSource()).setByObj(taskinfo.m_byObj);
+		    ((FlagState)edge.getSource()).setByObj(taskinfo.m_byObj);
 		  }
 		}
 	      }
@@ -631,43 +631,43 @@ public class Main {
 	Vector<Integer> selectedScheduling = new Vector<Integer>();
 	int processTime = Integer.MAX_VALUE;
 	if(schedulings.size() > 1500) {
-	    int index = 0;
-	    int upperbound = schedulings.size();
-	    long seed = 0;
-	    java.util.Random r = new java.util.Random(seed);
-	    for(int ii = 0; ii < 1500; ii++) {
-		index = (int)((Math.abs((double)r.nextInt() / (double)Integer.MAX_VALUE)) * upperbound);
-		System.out.println("Scheduling index:" + index);
-		//System.err.println("Scheduling index:" + index);
-		Vector<Schedule> scheduling = schedulings.elementAt(index);
-		scheduleSimulator.setScheduling(scheduling);
-		int tmpTime = scheduleSimulator.process();
-		if(tmpTime < processTime) {
-		    selectedScheduling.clear();
-		    selectedScheduling.add(index);
-		    processTime = tmpTime;
-		} else if(tmpTime == processTime) {
-		    selectedScheduling.add(index);
-		}
-		scheduling = null;
+	  int index = 0;
+	  int upperbound = schedulings.size();
+	  long seed = 0;
+	  java.util.Random r = new java.util.Random(seed);
+	  for(int ii = 0; ii < 1500; ii++) {
+	    index = (int)((Math.abs((double)r.nextInt() / (double)Integer.MAX_VALUE)) * upperbound);
+	    System.out.println("Scheduling index:" + index);
+	    //System.err.println("Scheduling index:" + index);
+	    Vector<Schedule> scheduling = schedulings.elementAt(index);
+	    scheduleSimulator.setScheduling(scheduling);
+	    int tmpTime = scheduleSimulator.process();
+	    if(tmpTime < processTime) {
+	      selectedScheduling.clear();
+	      selectedScheduling.add(index);
+	      processTime = tmpTime;
+	    } else if(tmpTime == processTime) {
+	      selectedScheduling.add(index);
 	    }
+	    scheduling = null;
+	  }
 	} else {
-	    Iterator it_scheduling = scheduleAnalysis.getSchedulingsIter();
-	    int index = 0;
-	    while(it_scheduling.hasNext()) {
-		Vector<Schedule> scheduling = (Vector<Schedule>)it_scheduling.next();
-		scheduleSimulator.setScheduling(scheduling);
-		int tmpTime = scheduleSimulator.process();
-		if(tmpTime < processTime) {
-		    selectedScheduling.clear();
-		    selectedScheduling.add(index);
-		    processTime = tmpTime;
-		} else if(tmpTime == processTime) {
-		    selectedScheduling.add(index);
-		}
-		scheduling = null;
-		index++;
+	  Iterator it_scheduling = scheduleAnalysis.getSchedulingsIter();
+	  int index = 0;
+	  while(it_scheduling.hasNext()) {
+	    Vector<Schedule> scheduling = (Vector<Schedule>)it_scheduling.next();
+	    scheduleSimulator.setScheduling(scheduling);
+	    int tmpTime = scheduleSimulator.process();
+	    if(tmpTime < processTime) {
+	      selectedScheduling.clear();
+	      selectedScheduling.add(index);
+	      processTime = tmpTime;
+	    } else if(tmpTime == processTime) {
+	      selectedScheduling.add(index);
 	    }
+	    scheduling = null;
+	    index++;
+	  }
 	}
 
 	System.out.print("Selected schedulings with least exectution time " + processTime + ": \n\t");
@@ -759,23 +759,23 @@ public class Main {
       System.exit(l.numErrors());
     }
   }
-  
+
   static class TaskInfo {
-      public int m_numofexits;
-      public int[] m_exetime;
-      public double[] m_probability;
-      public Vector<Hashtable<String, Integer>> m_newobjinfo;
-      public int m_byObj;
-      
-      public TaskInfo(int numofexits) {
-	  this.m_numofexits = numofexits;
-	  this.m_exetime = new int[this.m_numofexits];
-	  this.m_probability = new double[this.m_numofexits];
-	  this.m_newobjinfo = new Vector<Hashtable<String, Integer>>();
-	  for(int i = 0; i < this.m_numofexits; i++) {
-	      this.m_newobjinfo.add(null);
-	  }
-	  this.m_byObj = -1;
+    public int m_numofexits;
+    public int[] m_exetime;
+    public double[] m_probability;
+    public Vector<Hashtable<String, Integer>> m_newobjinfo;
+    public int m_byObj;
+
+    public TaskInfo(int numofexits) {
+      this.m_numofexits = numofexits;
+      this.m_exetime = new int[this.m_numofexits];
+      this.m_probability = new double[this.m_numofexits];
+      this.m_newobjinfo = new Vector<Hashtable<String, Integer>>();
+      for(int i = 0; i < this.m_numofexits; i++) {
+	this.m_newobjinfo.add(null);
       }
+      this.m_byObj = -1;
+    }
   }
 }

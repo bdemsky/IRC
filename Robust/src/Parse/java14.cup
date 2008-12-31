@@ -256,7 +256,9 @@ non terminal ParseNode tag_change;
 //distributed transaction keywords
 terminal ATOMIC;
 terminal GLOBAL;
+terminal GETOFFSET;
 non terminal ParseNode atomic_statement;
+non terminal ParseNode getoffset_expression;
 
 
 start with goal;
@@ -499,7 +501,7 @@ literal ::=	INTEGER_LITERAL:integer_lit
 	|	BOOLEAN_LITERAL:boolean_lit
 	{:
 		ParseNode pn=new ParseNode("literal");
-		pn.addChild("boolean").setLiteral(boolean_lit);
+		pn.addChild("boolean").setLiteral(boolean_lit);
 		RESULT=pn;
 	:}
 	|	CHARACTER_LITERAL:char_lit
@@ -1575,6 +1577,7 @@ array_access ::=
 //		RESULT=pn;
 //	:}
 	;
+
 postfix_expression ::=
 		primary:exp {: 
 	RESULT=exp; :}
@@ -1798,11 +1801,22 @@ conditional_expression ::=
 //	|	conditional_or_expression QUESTION expression 
 //			COLON conditional_expression
 	;
+getoffset_expression ::=
+        GETOFFSET LBRACE class_or_interface_type:type COMMA IDENTIFIER:id RBRACE {:
+        ParseNode pn = new ParseNode("getoffset");
+        pn.addChild(type);
+        pn.addChild("field").addChild(id);
+        RESULT = pn;
+      :}
+   ;
+ 
 assignment_expression ::=
 		conditional_expression:expr {: 
 			RESULT=expr; :} |
 		assignment:assign {: 
-			RESULT=assign; :}
+			RESULT=assign; :}             |
+        getoffset_expression:expr {:
+            RESULT=expr; :}
 	;
 // semantic check necessary here to ensure a valid left-hand side.
 // allowing a parenthesized variable here on the lhs was introduced in

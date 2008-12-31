@@ -271,7 +271,7 @@ public class String {
   }
 
   public static String valueOf(double x) {
-      return valueOf((long)x);
+    return valueOf((long)x);
   }
 
   public static String valueOf(long x) {

@@ -5,7 +5,7 @@ public class TaskExitNode extends BlockStatementNode {
   Vector vfe;
   Vector ccs;
   int m_taskexitindex;
-  
+
   public TaskExitNode(Vector vfe, Vector ccs, int taskexitindex) {
     this.vfe=vfe;
     this.ccs=ccs;
@@ -29,6 +29,6 @@ public class TaskExitNode extends BlockStatementNode {
   }
 
   public int getTaskExitIndex() {
-      return m_taskexitindex;
+    return m_taskexitindex;
   }
 }

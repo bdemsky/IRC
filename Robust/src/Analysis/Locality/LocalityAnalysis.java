@@ -357,6 +357,12 @@ public class LocalityAnalysis {
 	throw new Error("Incompatible with tasks!");
 
       case FKind.FlatMethod:
+
+      case FKind.FlatOffsetNode:
+	//System.out.println("In FKind.FlatOffsetNode\n");
+	processOffsetNode((FlatOffsetNode)fn, currtable);
+	break;
+
       default:
 	throw new Error();
       }
@@ -432,8 +438,9 @@ public class LocalityAnalysis {
 	for(int i=0; i<fc.numArgs(); i++) {
 	  TempDescriptor arg=fc.getArg(i);
 	  if(isnative&&(currtable.get(arg).equals(GLOBAL)||
-	                currtable.get(arg).equals(CONFLICT)))
+	                currtable.get(arg).equals(CONFLICT))&& !(nodemd.getSymbol().equals("rangePrefetch"))) {
 	    throw new Error("Potential call to native method "+md+" with global parameter:\n"+currlb.getExplanation());
+	  }
 	  lb.setGlobal(i,currtable.get(arg));
 	}
       }
@@ -564,6 +571,11 @@ public class LocalityAnalysis {
 	throw new Error(fon.getLeft()+" is undefined!");
     }
     currtable.put(fon.getDest(), srcvalue);
+  }
+
+  void processOffsetNode(FlatOffsetNode fon, Hashtable<TempDescriptor, Integer> currtable) {
+    /* Just propagate value */
+    currtable.put(fon.getDst(), LOCAL);
   }
 
   void processCastNode(FlatCastNode fcn, Hashtable<TempDescriptor, Integer> currtable) {

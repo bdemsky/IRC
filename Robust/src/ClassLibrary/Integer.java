@@ -57,17 +57,17 @@ public class Integer {
   public String toString() {
     return String.valueOf(value);
   }
-  
+
   public int hashCode() {
-      return value;
+    return value;
   }
 
   public boolean equals(Object o) {
-      if (o.getType()!=getType())
-	  return false;
-      Integer s=(Integer)o;
-      if (s.intValue()!=this.value)
-	  return false;
-      return true;
+    if (o.getType()!=getType())
+      return false;
+    Integer s=(Integer)o;
+    if (s.intValue()!=this.value)
+      return false;
+    return true;
   }
 }

@@ -5,14 +5,14 @@ import java.util.*;
 
 public class BuildIR {
   State state;
-  
+
   private int m_taskexitnum;
-  
+
   public BuildIR(State state) {
     this.state=state;
     this.m_taskexitnum = 0;
   }
-  
+
   public void buildtree() {
     for(Iterator it=state.parsetrees.iterator(); it.hasNext();) {
       ParseNode pn=(ParseNode)it.next();
@@ -274,7 +274,6 @@ public class BuildIR {
 
   private TypeDescriptor parseTypeDescriptor(ParseNode pn) {
     ParseNode tn=pn.getChild("type");
-
     String type_st=tn.getTerminal();
     if(type_st.equals("byte")) {
       return state.getTypeDescriptor(TypeDescriptor.BYTE);
@@ -457,7 +456,8 @@ public class BuildIR {
       }
       return min;
     } else if (isNode(pn,"fieldaccess")) {
-      ExpressionNode en=parseExpression(pn.getChild("base").getFirstChild());          String fieldname=pn.getChild("field").getTerminal();
+      ExpressionNode en=parseExpression(pn.getChild("base").getFirstChild());
+      String fieldname=pn.getChild("field").getTerminal();
       return new FieldAccessNode(en,fieldname);
     } else if (isNode(pn,"arrayaccess")) {
       ExpressionNode en=parseExpression(pn.getChild("base").getFirstChild());
@@ -467,6 +467,11 @@ public class BuildIR {
       return new CastNode(parseTypeDescriptor(pn.getChild("type")),parseExpression(pn.getChild("exp").getFirstChild()));
     } else if (isNode(pn,"cast2")) {
       return new CastNode(parseExpression(pn.getChild("type").getFirstChild()),parseExpression(pn.getChild("exp").getFirstChild()));
+    } else if (isNode(pn, "getoffset")) {
+      TypeDescriptor td=parseTypeDescriptor(pn);
+      String fieldname = pn.getChild("field").getTerminal();
+      //System.out.println("Checking the values of: "+ " td.toString()= " + td.toString()+ "  fieldname= " + fieldname);
+      return new OffsetNode(td, fieldname);
     } else {
       System.out.println("---------------------");
       System.out.println(pn.PPrint(3,true));
@@ -565,7 +570,7 @@ public class BuildIR {
   }
 
   public BlockNode parseBlock(ParseNode pn) {
-      this.m_taskexitnum = 0;
+    this.m_taskexitnum = 0;
     if (pn==null||isEmpty(pn.getTerminal()))
       return new BlockNode();
     ParseNode bsn=pn.getChild("block_statement_list");

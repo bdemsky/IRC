@@ -144,6 +144,10 @@ public class PrefetchAnalysis {
 	processFlatSetFieldNode(curr, child_prefetch_set_copy);
 	break;
 
+      case FKind.FlatOffsetNode:
+	processDefaultCase(curr,child_prefetch_set_copy);
+	break;
+
       default:
 	throw new Error("No such Flatnode kind");
       }

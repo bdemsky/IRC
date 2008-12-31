@@ -5,31 +5,26 @@
 extern sockPoolHashTable_t *transPrefetchSockPool;
 extern unsigned int myIpAddr;
 
-/* Steps for the new prefetch call */
 // Function for new prefetch call
-void rangePrefetch(int prefetchsiteid, int ntuples, unsigned int *baseoids, 
-    unsigned short *numoffsets, short *offsets) {
+void rangePrefetch(unsigned int oid, short numoffset, short *offsets) {
   // a[0][1] - a[3][1] = a.0.3
   // a.f.h   = a.f.h
   // a.f.next.h = a.f.0.next.0.h
   // a.f.next.next.h  = a.f.next.2.h
+  printf("DEBUG-> Inside rangePrefetch\n");
   /* Allocate memory in prefetch queue and push the block there */
-  int qnodesize = 2*sizeof(int)+ ntuples *(sizeof(unsigned int) + sizeof(unsigned short)) + numoffsets[ntuples -1] * sizeof(short);
+  int qnodesize = sizeof(unsigned int) + sizeof(unsigned short) + numoffset * sizeof(short);
   char *node = (char *) getmemory(qnodesize);
-  int top = numoffsets[ntuples -1];
 
   if(node == NULL)
     return;
 
   int index = 0;
-  *((int *)(node)) = prefetchsiteid;
-  *((int *)(node + sizeof(int))) = ntuples;
-  index = 2 * sizeof(int);
-  memcpy(node+index, baseoids, ntuples * sizeof(unsigned int));
-  index = index + ntuples *(sizeof(unsigned int));
-  memcpy(node+index, numoffsets, ntuples * sizeof(unsigned short));
-  index = index + ntuples *(sizeof(unsigned short));
-  memcpy(node+index, offsets, top * sizeof(short));
+  *(node+index) = oid;
+  index = index + (sizeof(unsigned int));
+  *(node+index) = numoffset;
+  index = index + (sizeof(short));
+  memcpy(node+index, offsets, numoffset * sizeof(short));
 
   movehead(qnodesize);
 }
@@ -48,8 +43,8 @@ void *transPrefetchNew() {
       /* Send  Prefetch Request */
       perMcPrefetchList_t *ptr = pilehead;
       while(ptr != NULL) {
-        sendRangePrefetchReq(ptr, sd);
-        ptr = ptr->next;
+	sendRangePrefetchReq(ptr, sd);
+	ptr = ptr->next;
       }
 
       /* Deallocated pilehead */
@@ -83,7 +78,7 @@ perMcPrefetchList_t*  checkIfLocal(char *ptr) {
   // Iterate for each object
   for (i = 0; i < ntuples; i++) {
     int numoffset = (i == 0) ? endoffsets[0] : (endoffsets[i] - endoffsets[i-1]);
-    int sizetmpObjSet = numoffset >> 1; 
+    int sizetmpObjSet = numoffset >> 1;
     unsigned short tmpobjset[sizetmpObjSet];
     int l;
     for (l = 0; l < sizetmpObjSet; l++) {
@@ -97,29 +92,29 @@ perMcPrefetchList_t*  checkIfLocal(char *ptr) {
     for (j = 0; j < numoffset; j++) {
       // Iterate over each element to be visited
       while (visited != tovisit) {
-        if(chldOffstFrmBase[visited+1] == 0) {
-          visited++;
-          continue;
-        }
+	if(chldOffstFrmBase[visited+1] == 0) {
+	  visited++;
+	  continue;
+	}
 
-        if (!isOidAvail(chldOffstFrmBase[visited+1])) { 
-          // Add to remote requests 
-          unsigned int oid = chldOffstFrmBase[visited+1];
-          int machinenum = lhashSearch(oid);
-          //TODO Group a bunch of oids to send in one prefetch request
-          insertPrefetch(machinenum, oid, numoffset-j, offsets, &head);
-          break;
-        } else {
-          // iterate over each offset
-          int retval;
-          if((retval = lookForObjs(chldOffstFrmBase, offsets, &j, 
-              &visited, &tovisit)) == 0) {
-            printf("%s() Error: Object not found %s at line %d\n", 
-                __func__, __FILE__, __LINE__); 
-          }
-        }
-        visited++;
-      } 
+	if (!isOidAvail(chldOffstFrmBase[visited+1])) {
+	  // Add to remote requests
+	  unsigned int oid = chldOffstFrmBase[visited+1];
+	  int machinenum = lhashSearch(oid);
+	  //TODO Group a bunch of oids to send in one prefetch request
+	  insertPrefetch(machinenum, oid, numoffset-j, offsets, &head);
+	  break;
+	} else {
+	  // iterate over each offset
+	  int retval;
+	  if((retval = lookForObjs(chldOffstFrmBase, offsets, &j,
+	                           &visited, &tovisit)) == 0) {
+	    printf("%s() Error: Object not found %s at line %d\n",
+	           __func__, __FILE__, __LINE__);
+	  }
+	}
+	visited++;
+      }
     } // end iterate for each element of offsets
 
     //Entire prefetch found locally
@@ -148,8 +143,8 @@ int isOidAvail(unsigned int oid) {
   }
 }
 
-int lookForObjs(int *chldOffstFrmBase, short *offsets, 
-    int *index, int *visited, int *tovisit) {
+int lookForObjs(int *chldOffstFrmBase, short *offsets,
+                int *index, int *visited, int *tovisit) {
   objheader_t *header;
   unsigned int oid = chldOffstFrmBase[*visited+1];
   if((header = (objheader_t *)mhashSearch(oid))!= NULL) {
@@ -176,42 +171,42 @@ int lookForObjs(int *chldOffstFrmBase, short *offsets,
       int i;
       //check is stride +ve or negative
       if(GET_STRIDEINC(offsets[(*index)]+1)) { //-ve stride
-        for(i = startindex; i <= range+1; i = i - stride) {
-          unsigned int oid = 0;
-          if((i < 0 || i >= length)) {
-            //if yes treat the object as found
-            oid = 0;
-            continue;
-          } else {
-            // compute new object
-            oid = *((unsigned int *)(((char *)ao) + sizeof(struct ArrayObject) + (elementsize*i)));
-          }
-          // add new object
-          chldOffstFrmBase[*tovisit] = oid;
-          *tovisit = *tovisit + 1;
-        }
+	for(i = startindex; i <= range+1; i = i - stride) {
+	  unsigned int oid = 0;
+	  if((i < 0 || i >= length)) {
+	    //if yes treat the object as found
+	    oid = 0;
+	    continue;
+	  } else {
+	    // compute new object
+	    oid = *((unsigned int *)(((char *)ao) + sizeof(struct ArrayObject) + (elementsize*i)));
+	  }
+	  // add new object
+	  chldOffstFrmBase[*tovisit] = oid;
+	  *tovisit = *tovisit + 1;
+	}
       } else { //+ve stride
-        for(i = startindex; i <= range; i = i + stride) {
-          unsigned int oid = 0;
-          if(i < 0 || i >= length) {
-            //if yes treat the object as found
-            oid = 0;
-            continue;
-          } else {
-            // compute new object
-            oid = *((unsigned int *)(((char *)ao) + sizeof(struct ArrayObject) + (elementsize*i)));
-          }
-          // add new object
-          chldOffstFrmBase[*tovisit] = oid;
-          *tovisit = *tovisit + 1;
-        }
+	for(i = startindex; i <= range; i = i + stride) {
+	  unsigned int oid = 0;
+	  if(i < 0 || i >= length) {
+	    //if yes treat the object as found
+	    oid = 0;
+	    continue;
+	  } else {
+	    // compute new object
+	    oid = *((unsigned int *)(((char *)ao) + sizeof(struct ArrayObject) + (elementsize*i)));
+	  }
+	  // add new object
+	  chldOffstFrmBase[*tovisit] = oid;
+	  *tovisit = *tovisit + 1;
+	}
       }
     } else if(range == 0) {
       if(startindex >=0 || startindex < length) {
-        unsigned int oid = *((unsigned int *)(((char *)ao) + sizeof(struct ArrayObject) + (elementsize*startindex)));
-        // add new object
-        chldOffstFrmBase[*tovisit] = oid;
-        *tovisit = *tovisit + 1;
+	unsigned int oid = *((unsigned int *)(((char *)ao) + sizeof(struct ArrayObject) + (elementsize*startindex)));
+	// add new object
+	chldOffstFrmBase[*tovisit] = oid;
+	*tovisit = *tovisit + 1;
       }
     }
   } else { //linked list
@@ -226,10 +221,10 @@ int lookForObjs(int *chldOffstFrmBase, short *offsets,
     } else {
       int i;
       for(i = 0; i < range; i++) {
-        oid = *((unsigned int *)(((char *)header) + sizeof(objheader_t) + startindex));
-        // add new object
-        chldOffstFrmBase[*tovisit] = oid;
-        *tovisit = *tovisit + 1;
+	oid = *((unsigned int *)(((char *)header) + sizeof(objheader_t) + startindex));
+	// add new object
+	chldOffstFrmBase[*tovisit] = oid;
+	*tovisit = *tovisit + 1;
       }
     }
   }
@@ -278,7 +273,7 @@ void insertPrefetch(int mid, unsigned int oid, short numoffset, short *offsets, 
       tmp->next = *head;
       *head=tmp;
       return;
-    }   
+    }
 
     //keep looking
     if (tmid < mid)
@@ -290,16 +285,16 @@ void insertPrefetch(int mid, unsigned int oid, short numoffset, short *offsets, 
       int matchstatus;
 
       if ((*tmp)==NULL||((toid=(*tmp)->oid)>oid)) {
-        objnode = (objOffsetPile_t *) malloc(sizeof(objOffsetPile_t));
-        objnode->offsets = offsets;
-        objnode->oid = oid;
-        objnode->numoffset = numoffset;
-        objnode->next = *tmp;
-        *tmp = objnode;
-        return;
-      }   
+	objnode = (objOffsetPile_t *) malloc(sizeof(objOffsetPile_t));
+	objnode->offsets = offsets;
+	objnode->oid = oid;
+	objnode->numoffset = numoffset;
+	objnode->next = *tmp;
+	*tmp = objnode;
+	return;
+      }
       if (toid < oid)
-        continue;
+	continue;
 
       /* Fill list DS */
       int i;
@@ -307,24 +302,24 @@ void insertPrefetch(int mid, unsigned int oid, short numoffset, short *offsets, 
       short * ooffset=(*tmp)->offsets;
 
       for(i=0; i<numoffset; i++) {
-        if (i>onumoffset) {
-          //We've matched, let's just extend the current prefetch
-          (*tmp)->numoffset=numoffset;
-          (*tmp)->offsets=offsets;
-          return;
-        }
-        if (ooffset[i]<offsets[i]) {
-          goto oidloop;
-        } else if (ooffset[i]>offsets[i]) {
-          //Place item before the current one
-          objnode = (objOffsetPile_t *) malloc(sizeof(objOffsetPile_t));
-          objnode->offsets = offsets;
-          objnode->oid = oid;
-          objnode->numoffset = numoffset;
-          objnode->next = *tmp;
-          *tmp = objnode;
-          return;
-        }
+	if (i>onumoffset) {
+	  //We've matched, let's just extend the current prefetch
+	  (*tmp)->numoffset=numoffset;
+	  (*tmp)->offsets=offsets;
+	  return;
+	}
+	if (ooffset[i]<offsets[i]) {
+	  goto oidloop;
+	} else if (ooffset[i]>offsets[i]) {
+	  //Place item before the current one
+	  objnode = (objOffsetPile_t *) malloc(sizeof(objOffsetPile_t));
+	  objnode->offsets = offsets;
+	  objnode->oid = oid;
+	  objnode->numoffset = numoffset;
+	  objnode->next = *tmp;
+	  *tmp = objnode;
+	  return;
+	}
       }
       //if we get to the end, we're already covered by this prefetch
       return;

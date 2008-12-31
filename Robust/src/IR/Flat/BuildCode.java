@@ -3,6 +3,7 @@ import IR.Tree.FlagExpressionNode;
 import IR.Tree.DNFFlag;
 import IR.Tree.DNFFlagAtom;
 import IR.Tree.TagExpressionList;
+import IR.Tree.OffsetNode;
 import IR.*;
 import java.util.*;
 import java.io.*;
@@ -17,6 +18,7 @@ import Analysis.TaskStateAnalysis.TaskIndex;
 import Analysis.Locality.LocalityAnalysis;
 import Analysis.Locality.LocalityBinding;
 import Analysis.Prefetch.*;
+
 
 public class BuildCode {
   State state;
@@ -1405,6 +1407,7 @@ public class BuildCode {
     TempObject objecttemps=(TempObject) tempstable.get(lb!=null ? lb : md!=null ? md : task);
 
     if (objecttemps.isLocalPrim(td)||objecttemps.isParamPrim(td)) {
+      //System.out.println("generateTemp returns " + td.getSafeSymbol());
       return td.getSafeSymbol();
     }
 
@@ -1501,8 +1504,21 @@ public class BuildCode {
     case FKind.FlatPrefetchNode:
       generateFlatPrefetchNode(fm,lb, (FlatPrefetchNode) fn, output);
       return;
+
+    case FKind.FlatOffsetNode:
+      generateFlatOffsetNode(fm, lb, (FlatOffsetNode)fn, output);
+      return;
     }
     throw new Error();
+  }
+
+  public void generateFlatOffsetNode(FlatMethod fm, LocalityBinding lb, FlatOffsetNode fofn, PrintWriter output) {
+    output.println("/* FlatOffsetNode */");
+    ClassDescriptor cn = fofn.getClassDesc();
+    FieldDescriptor fd = fofn.getField();
+    System.out.println("ClassDescriptor cn =" + cn.toString() + " FieldDescriptor fd =" + fd.toString());
+    System.out.println("TempDescriptor td =" + fofn.getDst().toString() + "Type of TempDescriptor =" + fofn.getDst().getType());
+    output.println("((struct "+cn.getSafeSymbol() +" *)0)->"+ fd.getSafeSymbol()+";");
   }
 
   public void generateFlatPrefetchNode(FlatMethod fm, LocalityBinding lb, FlatPrefetchNode fpn, PrintWriter output) {
@@ -2214,6 +2230,16 @@ public class BuildCode {
   }
 
   private void generateFlatLiteralNode(FlatMethod fm, LocalityBinding lb, FlatLiteralNode fln, PrintWriter output) {
+    if (fln.getType().isOffset()) {
+      if (fln.getValue() instanceof OffsetNode) {
+	OffsetNode ofn = (OffsetNode) fln.getValue();
+	output.println(generateTemp(fm, fln.getDst(),lb)+
+	               " = (short) (&((struct "+ofn.getClassDesc().getSafeSymbol() +" *)0)->"+
+	               ofn.getField().getSafeSymbol()+");");
+      }
+      output.println("/* offset */");
+      return;
+    }
     if (fln.getValue()==null)
       output.println(generateTemp(fm, fln.getDst(),lb)+"=0;");
     else if (fln.getType().getSymbol().equals(TypeUtil.StringClass)) {

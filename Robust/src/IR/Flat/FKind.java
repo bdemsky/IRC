@@ -22,4 +22,5 @@ public class FKind {
   public static final int FlatAtomicExitNode=19;
   public static final int FlatGlobalConvNode=20;
   public static final int FlatPrefetchNode=21;
+  public static final int FlatOffsetNode=22;
 }

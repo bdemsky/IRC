@@ -172,6 +172,7 @@ NextMethod:
   }
 
   public boolean isSuperorType(TypeDescriptor possiblesuper, TypeDescriptor cd2) {
+    if (possiblesuper.isOffset() || cd2.isOffset()) return true;
     //Matching type are always okay
     if (possiblesuper.equals(cd2))
       return true;

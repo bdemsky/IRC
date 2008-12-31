@@ -22,4 +22,5 @@ public class Kind {
   public final static int TaskExitNode=19;
   public final static int TagDeclarationNode=20;
   public final static int AtomicNode=21;
+  public final static int OffsetNode=22;
 }

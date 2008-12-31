@@ -9,6 +9,7 @@
 #ifdef DSTM
 #include "dstm.h"
 #include "prelookup.h"
+#include "prefetch.h"
 #endif
 
 extern int classsize[];
@@ -105,6 +106,20 @@ void CALL01(___System______printString____L___String___,struct ___String___ * __
 #ifdef DSTM
 void CALL00(___System______clearPrefetchCache____) {
   prehashClear();
+}
+
+void CALL12(___System______rangePrefetch____L___Object____S__AR_S, struct ___Object___ * ___o___, short ___numoffset___, struct ArrayObject * ___offsets___) {
+  /* Manual Prefetches to be inserted */
+  unsigned int oid;
+  oid = ((int *) VAR(___o___))[0];
+  int numoffset=VAR(___offsets___)->___length___;
+  int i;
+  short offArry[numoffset];
+  for(i = 0; i<numoffset; i++) {
+    offArry[i] = *((short *)(((char *)&VAR(___offsets___)->___length___) + sizeof(int) + i * sizeof(short)));
+    //printf("Testing-> offArry[%d] = %d\n", i, offArry[i]);
+  }
+  rangePrefetch(oid, (short)numoffset, offArry);
 }
 #endif
 
