@@ -687,7 +687,7 @@ public class Main {
 	if(state.MULTICORE) {
 	  //it_scheduling = scheduleAnalysis.getSchedulingsIter();
 	  //Vector<Schedule> scheduling = (Vector<Schedule>)it_scheduling.next();
-	  Vector<Schedule> scheduling = scheduleAnalysis.getSchedulings().elementAt(selectedScheduling.lastElement());
+	  Vector<Schedule> scheduling = scheduleAnalysis.getSchedulings().elementAt(selectedScheduling.firstElement());
 	  BuildCodeMultiCore bcm=new BuildCodeMultiCore(state, bf.getMap(), tu, sa, scheduling, scheduleAnalysis.getCoreNum(), pa);
 	  bcm.setOwnershipAnalysis(oa);
 	  bcm.buildCode();

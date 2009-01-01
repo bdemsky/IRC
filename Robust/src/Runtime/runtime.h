@@ -106,6 +106,9 @@ struct transObjInfo {
   int * queues;
   int length;
 };
+#ifdef RAW
+struct RuntimeHash * lockRedirectTbl;
+#endif
 #endif
 
 #ifdef MULTICORE
@@ -119,6 +122,7 @@ inline void setTaskExitIndex(int index);
 inline void addNewObjInfo(void * nobj);
 #endif
 #endif
+int * getAliasLock(void ** ptrs, int length, struct RuntimeHash * tbl);
 void addAliasLock(void * ptr, int lock);
 #else
 void flagorand(void * ptr, int ormask, int andmask);

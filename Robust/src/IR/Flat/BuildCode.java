@@ -446,8 +446,8 @@ public class BuildCode {
 	outclassdefs.println("  int isolate;");        // indicate if this object is shared or not
 	outclassdefs.println("  int version;");
 	outclassdefs.println("  struct ___Object___ * original;");
-	outclassdefs.println("  int numlocks;");        // array for locks
-	outclassdefs.println("  int * locks;");
+	//outclassdefs.println("  int numlocks;");        // array for locks
+	outclassdefs.println("  int * lock;");
       }
       if(state.OPTIONAL) {
 	outclassdefs.println("  int numfses;");
@@ -1050,8 +1050,8 @@ public class BuildCode {
 	classdefout.println("  int isolate;");        // indicate if this object is shared or not
 	classdefout.println("  int version;");
 	classdefout.println("  struct ___Object___ * original;");
-	classdefout.println("  int numlocks;");        // array for locks
-	classdefout.println("  int * locks;");
+	//classdefout.println("  int numlocks;");        // array for locks
+	classdefout.println("  int * lock;");
       }
       if (state.OPTIONAL) {
 	classdefout.println("  int numfses;");

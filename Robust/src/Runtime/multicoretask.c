@@ -62,11 +62,17 @@ int numreceiveobjs[NUMCORES]; // records how many objects a core has received
 #ifdef RAW
 struct RuntimeHash locktable;
 static struct RuntimeHash* locktbl = &locktable;
+struct LockValue {
+	int redirectlock;
+	int value;
+};
+struct RuntimeHash * objRedirectLockTbl;
 void * curr_heapbase=0;
 void * curr_heaptop=0;
 int self_numsendobjs;
 int self_numreceiveobjs;
 int lockobj;
+int lock2require;
 int lockresult;
 bool lockflag;
 #ifndef INTERRUPT
@@ -108,16 +114,21 @@ int receiveObject();
 bool getreadlock(void* ptr);
 void releasereadlock(void* ptr);
 #ifdef RAW
-bool getreadlock_I(void* ptr);
-void releasereadlock_I(void* ptr);
+bool getreadlock_I_r(void * ptr, void * redirectlock, int core, bool cache);
 #endif
 bool getwritelock(void* ptr);
 void releasewritelock(void* ptr);
+void releasewritelock_r(void * lock, void * redirectlock);
+#ifdef RAW
+bool getwritelock_I(void* ptr);
+bool getwritelock_I_r(void* lock, void* redirectlock, int core, bool cache);
+void releasewritelock_I(void * ptr);
+#endif
 
 // profiling mode of RAW version
 #ifdef RAWPROFILE
 
-#define TASKINFOLENGTH 10000
+#define TASKINFOLENGTH 1000
 //#define INTERRUPTINFOLENGTH 500
 
 bool stall;
@@ -221,6 +232,7 @@ int main(int argc, char **argv) {
   /*Set data counts*/
   locktable.numelements = 0;
   lockobj = 0;
+  lock2require = 0;
   lockresult = 0;
   lockflag = false;
 #ifndef INTERRUPT
@@ -228,6 +240,8 @@ int main(int argc, char **argv) {
 #endif
   objqueue.head = NULL;
   objqueue.tail = NULL;
+  lockRedirectTbl = allocateRuntimeHash(20);
+  objRedirectLockTbl = allocateRuntimeHash(20);
 #ifdef RAWDEBUG
   raw_test_pass(0xee03);
 #endif
@@ -445,8 +459,6 @@ void run(void* arg) {
 #endif
     while(!isEmpty(&objqueue)) {
       void * obj = NULL;
-      int * locks = NULL;
-      int numlocks = 0;
 #ifdef INTERRUPT
       raw_user_interrupts_off();
 #endif
@@ -466,41 +478,34 @@ void run(void* arg) {
 #endif
       // grab lock and flush the obj
       grount = 0;
-      if(((struct ___Object___ *)obj)->numlocks == 0) {
-	locks = obj;
-	numlocks = 1;
-      } else {
-	locks = ((struct ___Object___ *)obj)->locks;
-	numlocks = ((struct ___Object___ *)obj)->numlocks;
-      }
-      for(; numlocks > 0; numlocks--) {
-	getreadlock_I(locks);
+	getwritelock_I(obj);
 	while(!lockflag) {
 	  receiveObject();
 	}
-	grount = grount || lockresult;
+	grount = lockresult;
 #ifdef RAWDEBUG
 	raw_test_pass_reg(grount);
 #endif
 
 	lockresult = 0;
 	lockobj = 0;
+	lock2require = 0;
 	lockflag = false;
 #ifndef INTERRUPT
 	reside = false;
 #endif
 
-	if(grount == 0) {
-	  goto grablockfail;
-	}
-
-	locks = (int*)(*locks);
-      }
-
       if(grount == 1) {
 	int k = 0;
 	// flush the object
 	raw_invalidate_cache_range((int)obj, classsize[((struct ___Object___ *)obj)->type]);
+	/*if(RuntimeHashcontainskey(objRedirectLockTbl, (int)obj)) {
+		int redirectlock = 0;
+		RuntimeHashget(objRedirectLockTbl, (int)obj, &redirectlock);
+		((struct ___Object___ *)obj)->lock = redirectlock;
+		raw_flush_cache_range((int)obj, classsize[((struct ___Object___ *)obj)->type]);
+		RuntimeHashremovekey(objRedirectLockTbl, (int)obj);
+	}*/
 	// enqueue the object
 	for(k = 0; k < objInfo->length; ++k) {
 	  int taskindex = objInfo->queues[2 * k];
@@ -513,35 +518,15 @@ void run(void* arg) {
 	  enqueueObject_I(obj, queues, 1);
 	}
 	removeItem(&objqueue, objitem);
-	if(((struct ___Object___ *)obj)->numlocks == 0) {
-	  locks = obj;
-	  numlocks = 1;
-	} else {
-	  locks = ((struct ___Object___ *)obj)->locks;
-	  numlocks = ((struct ___Object___ *)obj)->numlocks;
-	}
-	for(; numlocks > 0; numlocks--) {
-	  releasereadlock_I(locks);
-	  locks = (int *)(*locks);
-	}
+	  releasewritelock_I(obj);
 	RUNFREE(objInfo->queues);
 	RUNFREE(objInfo);
       } else {
-grablockfail:
 	// can not get lock
 	// put it at the end of the queue
 	// and try to execute active tasks already enqueued first
 	removeItem(&objqueue, objitem);
 	addNewItem_I(&objqueue, objInfo);
-	if(((struct ___Object___ *)obj)->numlocks > 0) {
-	  //release grabbed locks
-	  numlocks = ((struct ___Object___ *)obj)->numlocks - numlocks;
-	  locks = ((struct ___Object___ *)obj)->locks;
-	  for(; numlocks > 0; numlocks--) {
-	    releasereadlock_I(locks);
-	    locks = (int *)(*locks);
-	  }
-	}
 #ifdef RAWPROFILE
 	//isInterrupt = true;
 #endif
@@ -673,7 +658,6 @@ grablockfail:
 	      }
 	    }
 #endif
-
 	    raw_test_done(1);                                   // All done.
 	  }
 	}
@@ -720,7 +704,7 @@ grablockfail:
       }
     }
   }
-}
+  }
 #elif defined THREADSIMULATE
   /* Start executing the tasks */
   executetasks();
@@ -867,8 +851,7 @@ void createstartupobject(int argc, char ** argv) {
 
   startupobject->isolate = 1;
   startupobject->version = 0;
-  startupobject->numlocks = 0;
-  startupobject->locks = NULL;
+  startupobject->lock = NULL;
 
   /* Set initialized flag for startup object */
   flagorandinit(startupobject,1,0xFFFFFFFF);
@@ -1445,34 +1428,73 @@ void calCoords(int core_num, int* coordY, int* coordX) {
 }
 #endif
 
+int * getAliasLock(void ** ptrs, int length, struct RuntimeHash * tbl) {
+	if(length == 0) {
+		return (int*)(RUNMALLOC(sizeof(int)));
+	} else {
+		int i = 0;
+		int locks[length];
+		int locklen = 0;
+		bool redirect = false;
+		int redirectlock = 0;
+		for(; i < length; i++) {
+			struct ___Object___ * ptr = (struct ___Object___ *)(ptrs[i]);
+			int lock = 0;
+			int j = 0;
+			if(ptr->lock == NULL) {
+				lock = (int)(ptr);
+			} else {
+				lock = (int)(ptr->lock);
+			}
+			if(redirect) {
+				if(lock != redirectlock) {
+					RuntimeHashadd(tbl, lock, redirectlock);
+				}
+			} else {
+				if(RuntimeHashcontainskey(tbl, lock)) {
+					// already redirected
+					redirect = true;
+					RuntimeHashget(tbl, lock, &redirectlock);
+					for(; j < locklen; j++) {
+						if(locks[j] != redirectlock) {
+							RuntimeHashadd(tbl, locks[j], redirectlock);
+						}
+					}
+				} else {
+					bool insert = true;
+					for(j = 0; j < locklen; j++) {
+						if(locks[j] == lock) {
+							insert = false;
+							break;
+						} else if(locks[j] > lock) {
+							break;
+						}
+					}
+					if(insert) {
+						int h = locklen;
+						for(; h > j; h--) {
+							locks[h] = locks[h-1];
+						}	
+						locks[j] = lock;
+						locklen++;
+					}
+				}
+			}
+		}
+		if(redirect) {
+			return (int *)redirectlock;
+		} else {
+			return (int *)(locks[0]);
+		}
+	}
+}
+
 void addAliasLock(void * ptr, int lock) {
   struct ___Object___ * obj = (struct ___Object___ *)ptr;
-  if(obj->numlocks == 0) {
-    // originally no alias locks associated
-    obj->locks = (int *)lock;
-    *(obj->locks) = 0;
-    obj->numlocks++;
-  } else {
-    // already have some alias locks
-    // insert the new lock into the sorted lock linklist
-    int prev, next;
-    prev = next = (int)obj->locks;
-    while(next != 0) {
-      if(next < lock) {
-	// next is less than lock, move to next node
-	prev = next;
-	next = *((int *)next);
-      } else if(next == lock) {
-	// already have this lock, do nothing
-	return;
-      } else {
-	// insert the lock between prev and next
-	break;
-      }
-    }
-    *(int *)prev = lock;
-    *(int *)lock = next;
-    obj->numlocks++;
+  if(((int)ptr != lock) && (obj->lock != (int*)lock)) {
+    // originally no alias lock associated or have a different alias lock
+    // flush it as the new one
+    obj->lock = (int *)lock;
   }
 }
 
@@ -1484,13 +1506,22 @@ void addAliasLock(void * ptr, int lock) {
  *       3 -- lock grount
  *       4 -- lock deny
  *       5 -- lock release
+ *       // add for profile info
  *       6 -- transfer profile output msg
  *       7 -- transfer profile output finish msg
+ *       // add for alias lock strategy
+ *       8 -- redirect lock request
+ *       9 -- lock grant with redirect info
+ *       a -- lock deny with redirect info
+ *       b -- lock release with redirect info
  *
  * ObjMsg: 0 + size of msg + obj's address + (task index + param index)+
  * StallMsg: 1 + corenum + sendobjs + receiveobjs (size is always 4 * sizeof(int))
- * LockMsg: 2 + lock type + obj pointer + request core (size is always 4 * sizeof(int))
- *          3/4/5 + lock type + obj pointer (size is always 3 * sizeof(int))
+ * LockMsg: 2 + lock type + obj pointer + lock + request core (size is always 5 * sizeof(int))
+ *          3/4/5 + lock type + obj pointer + lock (size is always 4 * sizeof(int))
+ *          8 + lock type + obj pointer +  redirect lock + root request core + request core (size is always 6 * sizeof(int))
+ *          9/a + lock type + obj pointer + redirect lock (size is always 4 * sizeof(int))
+ *          b + lock type + lock + redirect lock (size is always 4 * sizeof(int))
  *          lock type: 0 -- read; 1 -- write
  * ProfileMsg: 6 + totalexetime (size is always 2 * sizeof(int))
  *             7 + corenum (size is always 2 * sizeof(int))
@@ -1568,7 +1599,7 @@ void transferObject(struct transObjInfo * transObj) {
                                self_y, self_x,
                                target_y, target_x);
     isMsgSending = true;
-    gdn_send(msgHdr);                           // Send the message header to EAST to handle fab(n - 1).
+    gdn_send(msgHdr);                           
 #ifdef RAWDEBUG
     raw_test_pass(0xbbbb);
     raw_test_pass(0xb000 + targetcore);             // targetcore
@@ -2094,15 +2125,19 @@ msg:
   while((gdn_input_avail() != 0) && (msgdataindex < msglength)) {
     msgdata[msgdataindex] = gdn_receive();
     if(msgdataindex == 0) {
-      if(msgdata[0] == 7) {
-	msglength = 2;
-      } else if(msgdata[0] == 6) {
-	msglength = 2;
-      } else if(msgdata[0] > 2) {
-	msglength = 3;
-      } else if(msgdata[0] > 0) {
-	msglength = 4;
-      }
+		if(msgdata[0] > 8) {
+			msglength = 4;
+		} else if(msgdata[0] == 8) {
+			msglength = 6;
+		} else if(msgdata[0] > 5) {
+			msglength = 2;
+		} else if (msgdata[0] > 2) {
+			msglength = 4;
+		} else if (msgdata[0] == 2) {
+			msglength = 5;
+		} else if (msgdata[0] > 0) {
+			msglength = 4;
+		}
     } else if((msgdataindex == 1) && (msgdata[0] == 0)) {
       msglength = msgdata[msgdataindex];
     }
@@ -2116,20 +2151,19 @@ msg:
 #endif
   if(msgdataindex == msglength) {
     // received a whole msg
-    int type, data1, data2;             // will receive at least 3 words including type
+    int type, data1;             // will receive at least 2 words including type
     type = msgdata[0];
     data1 = msgdata[1];
-    data2 = msgdata[2];
     switch(type) {
     case 0: {
       // receive a object transfer msg
       struct transObjInfo * transObj = RUNMALLOC_I(sizeof(struct transObjInfo));
       int k = 0;
       if(corenum > NUMCORES - 1) {
-	raw_test_done(0xa00a);
+	raw_test_done(0xa001);
       }
       // store the object and its corresponding queue info, enqueue it later
-      transObj->objptr = (void *)data2;                                           // data1 is now size of the msg
+      transObj->objptr = (void *)msgdata[2];                                           // data1 is now size of the msg
       transObj->length = (msglength - 3) / 2;
       transObj->queues = RUNMALLOC_I(sizeof(int)*(msglength - 3));
       for(k = 0; k < transObj->length; ++k) {
@@ -2174,14 +2208,14 @@ msg:
       if(corenum != STARTUPCORE) {
 	// non startup core can not receive stall msg
 	// return -1
-	raw_test_done(0xa001);
+	raw_test_done(0xa002);
       }
       if(data1 < NUMCORES) {
 #ifdef RAWDEBUG
 	raw_test_pass(0xe882);
 #endif
 	corestatus[data1] = 0;
-	numsendobjs[data1] = data2;
+	numsendobjs[data1] = msgdata[2];
 	numreceiveobjs[data1] = msgdata[3];
       }
       break;
@@ -2189,121 +2223,146 @@ msg:
 
     case 2: {
       // receive lock request msg
-      // for 32 bit machine, the size is always 3 words
-      //int msgsize = sizeof(int) * 3;
-      int msgsize = 3;
+      // for 32 bit machine, the size is always 4 words
+      //int msgsize = sizeof(int) * 4;
+      int msgsize = 4;
       // lock request msg, handle it right now
       // check to see if there is a lock exist in locktbl for the required obj
-      int data3 = msgdata[3];
+	  // data1 -> lock type
+	  int data2 = msgdata[2]; // obj pointer
+      int data3 = msgdata[3]; // lock
+	  int data4 = msgdata[4]; // request core
       deny = false;
-      if(!RuntimeHashcontainskey(locktbl, data2)) {
+      if(!RuntimeHashcontainskey(locktbl, data3)) {
 	// no locks for this object
 	// first time to operate on this shared object
 	// create a lock for it
 	// the lock is an integer: 0 -- stall, >0 -- read lock, -1 -- write lock
+	struct LockValue * lockvalue = (struct LockValue *)(RUNMALLOC_I(sizeof(struct LockValue)));
+	lockvalue->redirectlock = 0;
 #ifdef RAWDEBUG
 	raw_test_pass(0xe883);
 #endif
 	if(data1 == 0) {
-	  RuntimeHashadd_I(locktbl, data2, 1);
+		lockvalue->value = 1;
 	} else {
-	  RuntimeHashadd_I(locktbl, data2, -1);
+		lockvalue->value = -1;
 	}
+	RuntimeHashadd_I(locktbl, data3, (int)lockvalue);
       } else {
 	int rwlock_obj = 0;
+	struct LockValue * lockvalue = NULL;
 #ifdef RAWDEBUG
 	raw_test_pass(0xe884);
 #endif
-	RuntimeHashget(locktbl, data2, &rwlock_obj);
+	RuntimeHashget(locktbl, data3, &rwlock_obj);
+	lockvalue = (struct LockValue *)(rwlock_obj);
 #ifdef RAWDEBUG
-	raw_test_pass_reg(rwlock_obj);
+	raw_test_pass_reg(lockvalue->redirectlock);
 #endif
-	if(0 == rwlock_obj) {
-	  if(data1 == 0) {
-	    rwlock_obj = 1;
-	  } else {
-	    rwlock_obj = -1;
+	if(lockvalue->redirectlock != 0) {
+		// this lock is redirected
+#ifdef RAWDEBUG
+		raw_test_pass(0xe885);
+#endif
+		if(data1 == 0) {
+			getreadlock_I_r((void *)data2, (void *)lockvalue->redirectlock, data4, true);
+		} else {
+			getwritelock_I_r((void *)data2, (void *)lockvalue->redirectlock, data4, true);
+		}
+		break;
+	} else {
+#ifdef RAWDEBUG
+		raw_test_pass_reg(lockvalue->value);
+#endif
+		if(0 == lockvalue->value) {
+			if(data1 == 0) {
+				lockvalue->value = 1;
+			} else {
+				lockvalue->value = -1;
+			}
+		} else if((lockvalue->value > 0) && (data1 == 0)) {
+		  // read lock request and there are only read locks
+		  lockvalue->value++;
+		} else {
+		  deny = true;
+		}
+#ifdef RAWDEBUG
+		raw_test_pass_reg(lockvalue->value);
+#endif
+	}
 	  }
-	  RuntimeHashremovekey(locktbl, data2);
-	  RuntimeHashadd_I(locktbl, data2, rwlock_obj);
-	} else if((rwlock_obj > 0) && (data1 == 0)) {
-	  // read lock request and there are only read locks
-	  rwlock_obj++;
-	  RuntimeHashremovekey(locktbl, data2);
-	  RuntimeHashadd_I(locktbl, data2, rwlock_obj);
-	} else {
-	  deny = true;
-	}
+      	targetcore = data4;
+      	// check if there is still some msg on sending
+     	if(isMsgSending) {
 #ifdef RAWDEBUG
-	raw_test_pass_reg(rwlock_obj);
+			raw_test_pass(0xe886);
 #endif
-      }
-      targetcore = data3;
-      // check if there is still some msg on sending
-      if(isMsgSending) {
+			isMsgHanging = true;
+			// cache the msg in outmsgdata and send it later
+			// msglength + target core + msg
+			outmsgdata[outmsglast++] = msgsize;
+			outmsgdata[outmsglast++] = targetcore;
+			if(deny == true) {
+				outmsgdata[outmsglast++] = 4;
+			} else {
+				outmsgdata[outmsglast++] = 3;
+			}
+			outmsgdata[outmsglast++] = data1;
+			outmsgdata[outmsglast++] = data2;
+			outmsgdata[outmsglast++] = data3;
+		} else {
 #ifdef RAWDEBUG
-	raw_test_pass(0xe885);
+			raw_test_pass(0xe887);
 #endif
-	isMsgHanging = true;
-	// cache the msg in outmsgdata and send it later
-	// msglength + target core + msg
-	outmsgdata[outmsglast++] = msgsize;
-	outmsgdata[outmsglast++] = targetcore;
-	if(deny == true) {
-	  outmsgdata[outmsglast++] = 4;
-	} else {
-	  outmsgdata[outmsglast++] = 3;
-	}
-	outmsgdata[outmsglast++] = data1;
-	outmsgdata[outmsglast++] = data2;
-      } else {
+			// no msg on sending, send it out
+			calCoords(corenum, &self_y, &self_x);
+			calCoords(targetcore, &target_y, &target_x);
+			// Build the message header
+			msgHdr = construct_dyn_hdr(0, msgsize, 0,                                                               // msgsize word sent.
+			                           self_y, self_x,
+	    		                       target_y, target_x);
+			gdn_send(msgHdr);                                                               // Send the message header to EAST to handle fab(n - 1).
 #ifdef RAWDEBUG
-	raw_test_pass(0xe886);
+			raw_test_pass(0xbbbb);
+			raw_test_pass(0xb000 + targetcore);                                                 // targetcore
 #endif
-	// no msg on sending, send it out
-	calCoords(corenum, &self_y, &self_x);
-	calCoords(targetcore, &target_y, &target_x);
-	// Build the message header
-	msgHdr = construct_dyn_hdr(0, msgsize, 0,                                                               // msgsize word sent.
-	                           self_y, self_x,
-	                           target_y, target_x);
-	gdn_send(msgHdr);                                                               // Send the message header to EAST to handle fab(n - 1).
+			if(deny == true) {
+			  // deny the lock request
+			  gdn_send(4);                                                       // lock request
 #ifdef RAWDEBUG
-	raw_test_pass(0xbbbb);
-	raw_test_pass(0xb000 + targetcore);                                                 // targetcore
+			  raw_test_pass(4);
 #endif
-	if(deny == true) {
-	  // deny the lock request
-	  gdn_send(4);                                                       // lock request
+			} else {
+			  // grount the lock request
+			  gdn_send(3);                                                       // lock request
 #ifdef RAWDEBUG
-	  raw_test_pass(4);
+			  raw_test_pass(3);
 #endif
-	} else {
-	  // grount the lock request
-	  gdn_send(3);                                                       // lock request
+			}
+			gdn_send(data1);                                                 // lock type
 #ifdef RAWDEBUG
-	  raw_test_pass(3);
+			raw_test_pass_reg(data1);
 #endif
-	}
-	gdn_send(data1);                                                 // lock type
+			gdn_send(data2);                                                 // obj pointer
 #ifdef RAWDEBUG
-	raw_test_pass_reg(data1);
+			raw_test_pass_reg(data2);
 #endif
-	gdn_send(data2);                                                 // lock target
+			gdn_send(data3);                                                 // lock
 #ifdef RAWDEBUG
-	raw_test_pass_reg(data2);
-	raw_test_pass(0xffff);
+			raw_test_pass_reg(data3);
+			raw_test_pass(0xffff);
 #endif
-      }
+		}
       break;
     }
 
     case 3: {
       // receive lock grount msg
       if(corenum > NUMCORES - 1) {
-	raw_test_done(0xa00b);
+	raw_test_done(0xa003);
       }
-      if(lockobj == data2) {
+      if((lockobj == msgdata[2]) && (lock2require == msgdata[3])) {
 	lockresult = 1;
 	lockflag = true;
 #ifndef INTERRUPT
@@ -2311,7 +2370,7 @@ msg:
 #endif
       } else {
 	// conflicts on lockresults
-	raw_test_done(0xa002);
+	raw_test_done(0xa004);
       }
       break;
     }
@@ -2319,9 +2378,9 @@ msg:
     case 4: {
       // receive lock grount/deny msg
       if(corenum > NUMCORES - 1) {
-	raw_test_done(0xa00c);
+	raw_test_done(0xa005);
       }
-      if(lockobj == data2) {
+      if((lockobj == msgdata[2]) && (lock2require == msgdata[3])) {
 	lockresult = 0;
 	lockflag = true;
 #ifndef INTERRUPT
@@ -2329,33 +2388,33 @@ msg:
 #endif
       } else {
 	// conflicts on lockresults
-	raw_test_done(0xa003);
+	raw_test_done(0xa006);
       }
       break;
     }
 
     case 5: {
       // receive lock release msg
-      if(!RuntimeHashcontainskey(locktbl, data2)) {
+      if(!RuntimeHashcontainskey(locktbl, msgdata[3])) {
 	// no locks for this object, something is wrong
-	//raw_test_pass_reg(data2);
-	raw_test_done(0xa004);
+	//raw_test_pass_reg(msgdata[3]);
+	raw_test_done(0xa007);
       } else {
 	int rwlock_obj = 0;
-	RuntimeHashget(locktbl, data2, &rwlock_obj);
+	struct LockValue * lockvalue = NULL;
+	RuntimeHashget(locktbl, msgdata[3], &rwlock_obj);
+	lockvalue = (struct LockValue*)(rwlock_obj);
 #ifdef RAWDEBUG
-	raw_test_pass(0xe887);
-	raw_test_pass_reg(rwlock_obj);
+	raw_test_pass(0xe888);
+	raw_test_pass_reg(lockvalue->value);
 #endif
 	if(data1 == 0) {
-	  rwlock_obj--;
+	  lockvalue->value--;
 	} else {
-	  rwlock_obj++;
+	  lockvalue->value++;
 	}
-	RuntimeHashremovekey(locktbl, data2);
-	RuntimeHashadd_I(locktbl, data2, rwlock_obj);
 #ifdef RAWDEBUG
-	raw_test_pass_reg(rwlock_obj);
+	raw_test_pass_reg(lockvalue->value);
 #endif
       }
       break;
@@ -2366,7 +2425,7 @@ msg:
       // receive an output request msg
       if(corenum == STARTUPCORE) {
 	// startup core can not receive profile output finish msg
-	raw_test_done(0xa00a);
+	raw_test_done(0xa008);
       }
       {
 	int msgsize = 2;
@@ -2415,13 +2474,216 @@ msg:
       // receive a profile output finish msg
       if(corenum != STARTUPCORE) {
 	// non startup core can not receive profile output finish msg
-	raw_test_done(0xa00b);
+	raw_test_done(0xa009);
       }
       profilestatus[data1] = 0;
       break;
     }
 #endif
 
+	case 8: {
+		// receive a redirect lock request msg
+		// for 32 bit machine, the size is always 4 words
+      //int msgsize = sizeof(int) * 4;
+      int msgsize = 4;
+      // lock request msg, handle it right now
+      // check to see if there is a lock exist in locktbl for the required obj
+	  // data1 -> lock type
+	  int data2 = msgdata[2]; // obj pointer
+      int data3 = msgdata[3]; // redirect lock
+	  int data4 = msgdata[4]; // root request core
+	  int data5 = msgdata[5]; // request core
+      deny = false;
+      if(!RuntimeHashcontainskey(locktbl, data3)) {
+	// no locks for this object
+	// first time to operate on this shared object
+	// create a lock for it
+	// the lock is an integer: 0 -- stall, >0 -- read lock, -1 -- write lock
+	struct LockValue * lockvalue = (struct LockValue *)(RUNMALLOC_I(sizeof(struct LockValue)));
+	lockvalue->redirectlock = 0;
+#ifdef RAWDEBUG
+	raw_test_pass(0xe889);
+#endif
+	if(data1 == 0) {
+		lockvalue->value = 1;
+	} else {
+		lockvalue->value = -1;
+	}
+	RuntimeHashadd_I(locktbl, data3, (int)lockvalue);
+      } else {
+	int rwlock_obj = 0;
+	struct LockValue * lockvalue = NULL;
+#ifdef RAWDEBUG
+	raw_test_pass(0xe88a);
+#endif
+	RuntimeHashget(locktbl, data3, &rwlock_obj);
+	lockvalue = (struct LockValue *)(rwlock_obj);
+#ifdef RAWDEBUG
+	raw_test_pass_reg(lockvalue->redirectlock);
+#endif
+	if(lockvalue->redirectlock != 0) {
+		// this lock is redirected
+#ifdef RAWDEBUG
+		raw_test_pass(0xe88b);
+#endif
+		if(data1 == 0) {
+			getreadlock_I_r((void *)data2, (void *)lockvalue->redirectlock, data4, true);
+		} else {
+			getwritelock_I_r((void *)data2, (void *)lockvalue->redirectlock, data4, true);
+		}
+		break;
+	} else {
+#ifdef RAWDEBUG
+		raw_test_pass_reg(lockvalue->value);
+#endif
+		if(0 == lockvalue->value) {
+			if(data1 == 0) {
+				lockvalue->value = 1;
+			} else {
+				lockvalue->value = -1;
+			}
+		} else if((lockvalue->value > 0) && (data1 == 0)) {
+		  // read lock request and there are only read locks
+		  lockvalue->value++;
+		} else {
+		  deny = true;
+		}
+#ifdef RAWDEBUG
+		raw_test_pass_reg(lockvalue->value);
+#endif
+	}
+	  }
+      	targetcore = data4;
+      	// check if there is still some msg on sending
+     	if(isMsgSending) {
+#ifdef RAWDEBUG
+			raw_test_pass(0xe88c);
+#endif
+			isMsgHanging = true;
+			// cache the msg in outmsgdata and send it later
+			// msglength + target core + msg
+			outmsgdata[outmsglast++] = msgsize;
+			outmsgdata[outmsglast++] = targetcore;
+			if(deny == true) {
+				outmsgdata[outmsglast++] = 0xa;
+			} else {
+				outmsgdata[outmsglast++] = 9;
+			}
+			outmsgdata[outmsglast++] = data1;
+			outmsgdata[outmsglast++] = data2;
+			outmsgdata[outmsglast++] = data3; 
+		} else {
+#ifdef RAWDEBUG
+			raw_test_pass(0xe88d);
+#endif
+			// no msg on sending, send it out
+			calCoords(corenum, &self_y, &self_x);
+			calCoords(targetcore, &target_y, &target_x);
+			// Build the message header
+			msgHdr = construct_dyn_hdr(0, msgsize, 0,                                                               // msgsize word sent.
+			                           self_y, self_x,
+	    		                       target_y, target_x);
+			gdn_send(msgHdr);                                                               // Send the message header to EAST to handle fab(n - 1).
+#ifdef RAWDEBUG
+			raw_test_pass(0xbbbb);
+			raw_test_pass(0xb000 + targetcore);                                                 // targetcore
+#endif
+			if(deny == true) {
+			  // deny the lock request
+			  gdn_send(0xa);                                                       // lock request
+#ifdef RAWDEBUG
+			  raw_test_pass(0xa);
+#endif
+			} else {
+			  // grount the lock request
+			  gdn_send(9);                                                       // lock request
+#ifdef RAWDEBUG
+			  raw_test_pass(9);
+#endif
+			}
+			gdn_send(data1);                                                 // lock type
+#ifdef RAWDEBUG
+			raw_test_pass_reg(data1);
+#endif
+			gdn_send(data2);                                                 // obj pointer
+#ifdef RAWDEBUG
+			raw_test_pass_reg(data2);
+#endif
+			gdn_send(data3);                                                 // lock
+#ifdef RAWDEBUG
+			raw_test_pass_reg(data3);
+			raw_test_pass(0xffff);
+#endif
+		}
+		break;
+	}
+
+	case 9: {
+		// receive a lock grant msg with redirect info
+		if(corenum > NUMCORES - 1) {
+	raw_test_done(0xa00a);
+      }
+      if(lockobj == msgdata[2]) {
+	lockresult = 1;
+	lockflag = true;
+	RuntimeHashadd_I(objRedirectLockTbl, lockobj, msgdata[3]);
+#ifndef INTERRUPT
+	reside = false;
+#endif
+      } else {
+	// conflicts on lockresults
+	raw_test_done(0xa00b);
+      }
+		break;
+	}
+	
+	case 0xa: {
+		// receive a lock deny msg with redirect info
+		if(corenum > NUMCORES - 1) {
+	raw_test_done(0xa00c);
+      }
+      if(lockobj == msgdata[2]) {
+	lockresult = 0;
+	lockflag = true;
+	//RuntimeHashadd_I(objRedirectLockTbl, lockobj, msgdata[3]);
+#ifndef INTERRUPT
+	reside = false;
+#endif
+      } else {
+	// conflicts on lockresults
+	raw_test_done(0xa00d);
+      }
+		break;
+	}
+
+	case 0xb: {
+		// receive a lock release msg with redirect info
+		if(!RuntimeHashcontainskey(locktbl, msgdata[2])) {
+	// no locks for this object, something is wrong
+	//raw_test_pass_reg(msgdata[2]);
+	raw_test_done(0xa00e);
+      } else {
+	int rwlock_obj = 0;
+	struct LockValue * lockvalue = NULL;
+	RuntimeHashget(locktbl, msgdata[2], &rwlock_obj);
+	lockvalue = (struct LockValue*)(rwlock_obj);
+#ifdef RAWDEBUG
+	raw_test_pass(0xe88e);
+	raw_test_pass_reg(lockvalue->value);
+#endif
+	if(data1 == 0) {
+	  lockvalue->value--;
+	} else {
+	  lockvalue->value++;
+	}
+#ifdef RAWDEBUG
+	raw_test_pass_reg(lockvalue->value);
+#endif
+	lockvalue->redirectlock = msgdata[3];
+      }
+		break;
+	}
+	
     default:
       break;
     }
@@ -2431,7 +2693,7 @@ msg:
     msgtype = -1;
     msglength = 30;
 #ifdef RAWDEBUG
-    raw_test_pass(0xe888);
+    raw_test_pass(0xe88f);
 #endif
     if(gdn_input_avail() != 0) {
       goto msg;
@@ -2449,7 +2711,7 @@ msg:
   } else {
     // not a whole msg
 #ifdef RAWDEBUG
-    raw_test_pass(0xe889);
+    raw_test_pass(0xe890);
 #endif
 #ifdef RAWPROFILE
 /*    if(isInterrupt && (!interruptInfoOverflow)) {
@@ -2523,19 +2785,17 @@ bool getreadlock(void * ptr) {
 #ifdef RAW
   unsigned msgHdr;
   int self_y, self_x, target_y, target_x;
-  int targetcore = 0;       //((int)ptr >> 5) % TOTALCORE;
-  // for 32 bit machine, the size is always 4 words
-  int msgsize = 4;
-  int tc = TOTALCORE;
-#ifdef INTERRUPT
-  raw_user_interrupts_off();
-#endif
-  targetcore = ((int)ptr >> 5) % tc;
-#ifdef INTERRUPT
-  raw_user_interrupts_on();
-#endif
+  int targetcore = 0;
+  // for 32 bit machine, the size is always 5 words
+  int msgsize = 5;
 
   lockobj = (int)ptr;
+  if(((struct ___Object___ *)ptr)->lock == NULL) {
+	lock2require = lockobj;
+  } else {
+	lock2require = (int)(((struct ___Object___ *)ptr)->lock);
+  }
+  targetcore = (lock2require >> 5) % TOTALCORE;
   lockflag = false;
 #ifndef INTERRUPT
   reside = false;
@@ -2548,22 +2808,31 @@ bool getreadlock(void * ptr) {
 #ifdef INTERRUPT
     raw_user_interrupts_off();
 #endif
-    if(!RuntimeHashcontainskey(locktbl, (int)ptr)) {
+    if(!RuntimeHashcontainskey(locktbl, lock2require)) {
       // no locks for this object
       // first time to operate on this shared object
       // create a lock for it
       // the lock is an integer: 0 -- stall, >0 -- read lock, -1 -- write lock
-      RuntimeHashadd_I(locktbl, (int)ptr, 1);
+	  struct LockValue * lockvalue = (struct LockValue *)(RUNMALLOC_I(sizeof(struct LockValue)));
+	  lockvalue->redirectlock = 0;
+	  lockvalue->value = 1;
+      RuntimeHashadd_I(locktbl, lock2require, (int)lockvalue);
     } else {
       int rwlock_obj = 0;
-      RuntimeHashget(locktbl, (int)ptr, &rwlock_obj);
-      if(-1 != rwlock_obj) {
-	rwlock_obj++;
-	RuntimeHashremovekey(locktbl, (int)ptr);
-	RuntimeHashadd_I(locktbl, (int)ptr, rwlock_obj);
-      } else {
-	deny = true;
-      }
+	  struct LockValue* lockvalue;
+      RuntimeHashget(locktbl, lock2require, &rwlock_obj);
+	  lockvalue = (struct LockValue*)rwlock_obj;
+	  if(lockvalue->redirectlock != 0) {
+		  // the lock is redirected
+		  getreadlock_I_r(ptr, (void *)lockvalue->redirectlock, corenum, false);
+		  return true;
+	  } else {
+	      if(-1 != lockvalue->value) {
+			  lockvalue->value++;
+		  } else {
+			  deny = true;
+		  }
+	  }
     }
 #ifdef INTERRUPT
     raw_user_interrupts_on();
@@ -2580,7 +2849,7 @@ bool getreadlock(void * ptr) {
 #endif
     } else {
       // conflicts on lockresults
-      raw_test_done(0xa005);
+      raw_test_done(0xa00f);
     }
     return true;
   }
@@ -2599,18 +2868,22 @@ bool getreadlock(void * ptr) {
   raw_test_pass(0xb000 + targetcore);       // targetcore
 #endif
   gdn_send(2);   // lock request
- #ifdef RAWDEBUG
+#ifdef RAWDEBUG
   raw_test_pass(2);
 #endif
   gdn_send(0);       // read lock
 #ifdef RAWDEBUG
   raw_test_pass(0);
 #endif
-  gdn_send((int)ptr);
+  gdn_send((int)ptr);  // obj pointer
 #ifdef RAWDEBUG
   raw_test_pass_reg(ptr);
 #endif
-  gdn_send(corenum);
+  gdn_send(lock2require); // lock
+#ifdef RAWDEBUG
+  raw_test_pass_reg(lock2require);
+#endif
+  gdn_send(corenum);  // request core
 #ifdef RAWDEBUG
   raw_test_pass_reg(corenum);
   raw_test_pass(0xffff);
@@ -2659,6 +2932,7 @@ bool getreadlock(void * ptr) {
   }
   return true;
 #elif defined THREADSIMULATE
+  // TODO : need modification for alias lock
   int numofcore = pthread_getspecific(key);
 
   int rc = pthread_rwlock_tryrdlock(&rwlock_tbl);
@@ -2719,32 +2993,31 @@ void releasereadlock(void * ptr) {
 #ifdef RAW
   unsigned msgHdr;
   int self_y, self_x, target_y, target_x;
-  int targetcore = 0;       //((int)ptr >> 5) % TOTALCORE;
-  // for 32 bit machine, the size is always 3 words
-  int msgsize = 3;
-  int tc = TOTALCORE;
-#ifdef INTERRUPT
-  raw_user_interrupts_off();
-#endif
-  targetcore = ((int)ptr >> 5) % tc;
-#ifdef INTERRUPT
-  raw_user_interrupts_on();
-#endif
+  int targetcore = 0;
+  // for 32 bit machine, the size is always 4 words
+  int msgsize = 4;
 
+  int reallock = 0;
+  if(((struct ___Object___ *)ptr)->lock == NULL) {
+	reallock = (int)ptr;
+  } else {
+	reallock = (int)(((struct ___Object___ *)ptr)->lock);
+  }
+  targetcore = (reallock >> 5) % TOTALCORE;
   if(targetcore == corenum) {
 #ifdef INTERRUPT
     raw_user_interrupts_off();
 #endif
     // reside on this core
-    if(!RuntimeHashcontainskey(locktbl, (int)ptr)) {
+    if(!RuntimeHashcontainskey(locktbl, reallock)) {
       // no locks for this object, something is wrong
-      raw_test_done(0xa006);
+      raw_test_done(0xa010);
     } else {
       int rwlock_obj = 0;
-      RuntimeHashget(locktbl, (int)ptr, &rwlock_obj);
-      rwlock_obj--;
-      RuntimeHashremovekey(locktbl, (int)ptr);
-      RuntimeHashadd_I(locktbl, (int)ptr, rwlock_obj);
+	  struct LockValue * lockvalue = NULL;
+      RuntimeHashget(locktbl, reallock, &rwlock_obj);
+	  lockvalue = (struct LockValue *)rwlock_obj;
+      lockvalue->value--;
     }
 #ifdef INTERRUPT
     raw_user_interrupts_on();
@@ -2773,9 +3046,13 @@ void releasereadlock(void * ptr) {
 #ifdef RAWDEBUG
   raw_test_pass(0);
 #endif
-  gdn_send((int)ptr);
+  gdn_send((int)ptr);       // obj pointer
 #ifdef RAWDEBUG
   raw_test_pass_reg(ptr);
+#endif
+  gdn_send(reallock);  // lock
+#ifdef RAWDEBUG
+  raw_test_pass_reg(reallock);
   raw_test_pass(0xffff);
 #endif
   // end of sending this msg, set sand msg flag false
@@ -2838,134 +3115,183 @@ void releasereadlock(void * ptr) {
 }
 
 #ifdef RAW
-bool getreadlock_I(void * ptr) {
+// redirected lock request
+bool getreadlock_I_r(void * ptr, void * redirectlock, int core, bool cache) {
   unsigned msgHdr;
   int self_y, self_x, target_y, target_x;
-  int targetcore = ((int)ptr >> 5) % TOTALCORE;
-  // for 32 bit machine, the size is always 4 words
-  int msgsize = 4;
+  int targetcore = 0;
+  // for 32 bit machine, the size is always 6 words
+  int msgsize = 6;
 
-  lockobj = (int)ptr;
-  lockflag = false;
+  if(core == corenum) {
+	  lockobj = (int)ptr;
+	  lock2require = (int)redirectlock;
+	  lockflag = false;
 #ifndef INTERRUPT
-  reside = false;
+	  reside = false;
 #endif
-  lockresult = 0;
-
+	  lockresult = 0;
+  }  
+  targetcore = ((int)redirectlock >> 5) % TOTALCORE;
+  
   if(targetcore == corenum) {
     // reside on this core
     bool deny = false;
-    if(!RuntimeHashcontainskey(locktbl, (int)ptr)) {
+    if(!RuntimeHashcontainskey(locktbl, (int)redirectlock)) {
       // no locks for this object
       // first time to operate on this shared object
       // create a lock for it
       // the lock is an integer: 0 -- stall, >0 -- read lock, -1 -- write lock
-      RuntimeHashadd_I(locktbl, (int)ptr, 1);
+	  struct LockValue * lockvalue = (struct LockValue *)(RUNMALLOC_I(sizeof(struct LockValue)));
+	  lockvalue->redirectlock = 0;
+	  lockvalue->value = 1;
+      RuntimeHashadd_I(locktbl, (int)redirectlock, (int)lockvalue);
     } else {
       int rwlock_obj = 0;
-      RuntimeHashget(locktbl, (int)ptr, &rwlock_obj);
-      if(-1 != rwlock_obj) {
-	rwlock_obj++;
-	RuntimeHashremovekey(locktbl, (int)ptr);
-	RuntimeHashadd_I(locktbl, (int)ptr, rwlock_obj);
-      } else {
-	deny = true;
-      }
+	  struct LockValue* lockvalue;
+      RuntimeHashget(locktbl, (int)redirectlock, &rwlock_obj);
+	  lockvalue = (struct LockValue*)rwlock_obj;
+	  if(lockvalue->redirectlock != 0) {
+		  // the lock is redirected
+		  getreadlock_I_r(ptr, (void *)lockvalue->redirectlock, core, cache);
+		  return true;
+	  } else {
+		  if(-1 != lockvalue->value) {
+			  lockvalue->value++;
+		  } else {
+			  deny = true;
+		  }
+	  }
     }
-    if(lockobj == (int)ptr) {
-      if(deny) {
-	lockresult = 0;
-      } else {
-	lockresult = 1;
-      }
-      lockflag = true;
+	if(core == corenum) {
+    	if(lockobj == (int)ptr) {
+	      if(deny) {
+		lockresult = 0;
+	      } else {
+		lockresult = 1;
+		RuntimeHashadd_I(objRedirectLockTbl, (int)ptr, (int)redirectlock);
+	      }
+    	  lockflag = true;
 #ifndef INTERRUPT
-      reside = true;
+	      reside = true;
 #endif
-    } else {
-      // conflicts on lockresults
-      raw_test_done(0xa005);
-    }
-    return true;
+    	} else {
+	      // conflicts on lockresults
+    	  raw_test_done(0xa011);
+    	}
+	    return true;
+	} else {
+		// send lock grant/deny request to the root requiring core
+		// check if there is still some msg on sending
+		int msgsize1 = 4;
+		if((!cache) || (cache && !isMsgSending)) {
+			calCoords(corenum, &self_y, &self_x);
+			calCoords(core, &target_y, &target_x);
+			// Build the message header
+			msgHdr = construct_dyn_hdr(0, msgsize1, 0,             // msgsize word sent.
+					                   self_y, self_x,
+									   target_y, target_x);
+			gdn_send(msgHdr);                     // Send the message header to EAST to handle fab(n - 1).
+#ifdef RAWDEBUG
+			raw_test_pass(0xbbbb);
+			raw_test_pass(0xb000 + core);       // targetcore
+#endif
+			if(deny) {
+				// deny
+				gdn_send(0xa);   // lock deny with redirected info
+#ifdef RAWDEBUG
+				raw_test_pass(0xa);
+#endif
+			} else {
+				// grant
+				gdn_send(9);   // lock grant with redirected info
+#ifdef RAWDEBUG
+				raw_test_pass(9);
+#endif
+			}
+			gdn_send(0);       // read lock
+#ifdef RAWDEBUG
+			raw_test_pass(0);
+#endif
+			gdn_send((int)ptr);  // obj pointer
+#ifdef RAWDEBUG
+			raw_test_pass_reg(ptr);
+#endif
+			gdn_send((int)redirectlock); // redirected lock
+#ifdef RAWDEBUG
+			raw_test_pass_reg((int)redirectlock);
+			raw_test_pass(0xffff);
+#endif
+		} else if(cache && isMsgSending) {
+			isMsgHanging = true;
+			// cache the msg in outmsgdata and send it later
+			// msglength + target core + msg
+			outmsgdata[outmsglast++] = msgsize1;
+			outmsgdata[outmsglast++] = core;
+			if(deny) {
+				outmsgdata[outmsglast++] = 0xa; // deny
+			} else {
+				outmsgdata[outmsglast++] = 9; // grant
+			}
+			outmsgdata[outmsglast++] = 0;
+			outmsgdata[outmsglast++] = (int)ptr;
+			outmsgdata[outmsglast++] = (int)redirectlock;
+		}
+	}
   }
 
-  calCoords(corenum, &self_y, &self_x);
-  calCoords(targetcore, &target_y, &target_x);
-  // Build the message header
-  msgHdr = construct_dyn_hdr(0, msgsize, 0,             // msgsize word sent.
-                             self_y, self_x,
-                             target_y, target_x);
-  gdn_send(msgHdr);                     // Send the message header to EAST to handle fab(n - 1).
+  // check if there is still some msg on sending
+  if((!cache) || (cache && !isMsgSending)) {
+	  calCoords(corenum, &self_y, &self_x);
+	  calCoords(targetcore, &target_y, &target_x);
+	  // Build the message header
+	  msgHdr = construct_dyn_hdr(0, msgsize, 0,             // msgsize word sent.
+    	                         self_y, self_x,
+        	                     target_y, target_x);
+	  gdn_send(msgHdr);                     // Send the message header to EAST to handle fab(n - 1).
 #ifdef RAWDEBUG
-  raw_test_pass(0xbbbb);
-  raw_test_pass(0xb000 + targetcore);       // targetcore
+	  raw_test_pass(0xbbbb);
+	  raw_test_pass(0xb000 + targetcore);       // targetcore
 #endif
-  gdn_send(2);   // lock request
+	  gdn_send(8);   // redirected lock request
 #ifdef RAWDEBUG
-  raw_test_pass(2);
+	  raw_test_pass(8);
 #endif
-  gdn_send(0);       // read lock
+	  gdn_send(0);       // read lock
 #ifdef RAWDEBUG
-  raw_test_pass(0);
+	  raw_test_pass(0);
 #endif
-  gdn_send((int)ptr);
+	  gdn_send((int)ptr);  // obj pointer
 #ifdef RAWDEBUG
-  raw_test_pass_reg(ptr);
+	  raw_test_pass_reg(ptr);
 #endif
-  gdn_send(corenum);
+	  gdn_send(lock2require); // redirected lock
 #ifdef RAWDEBUG
-  raw_test_pass_reg(corenum);
-  raw_test_pass(0xffff);
+	  raw_test_pass_reg(lock2require);
 #endif
+	  gdn_send(core);  // root request core
+#ifdef RAWDEBUG
+	  raw_test_pass_reg(core);
+#endif
+	  gdn_send(corenum);  // request core
+#ifdef RAWDEBUG
+	  raw_test_pass_reg(corenum);
+	  raw_test_pass(0xffff);
+#endif
+  } else if(cache && isMsgSending) {
+	  isMsgHanging = true;
+	  // cache the msg in outmsgdata and send it later
+	  // msglength + target core + msg
+	  outmsgdata[outmsglast++] = msgsize;
+	  outmsgdata[outmsglast++] = targetcore;
+	  outmsgdata[outmsglast++] = 8;
+	  outmsgdata[outmsglast++] = 0;
+	  outmsgdata[outmsglast++] = (int)ptr;
+	  outmsgdata[outmsglast++] = lock2require;
+	  outmsgdata[outmsglast++] = core;
+	  outmsgdata[outmsglast++] = corenum;
+  }
   return true;
-}
-
-void releasereadlock_I(void * ptr) {
-  unsigned msgHdr;
-  int self_y, self_x, target_y, target_x;
-  int targetcore = ((int)ptr >> 5) % TOTALCORE;
-  // for 32 bit machine, the size is always 3 words
-  int msgsize = 3;
-
-  if(targetcore == corenum) {
-    // reside on this core
-    if(!RuntimeHashcontainskey(locktbl, (int)ptr)) {
-      // no locks for this object, something is wrong
-      raw_test_done(0xa006);
-    } else {
-      int rwlock_obj = 0;
-      RuntimeHashget(locktbl, (int)ptr, &rwlock_obj);
-      rwlock_obj--;
-      RuntimeHashremovekey(locktbl, (int)ptr);
-      RuntimeHashadd_I(locktbl, (int)ptr, rwlock_obj);
-    }
-    return;
-  }
-
-  calCoords(corenum, &self_y, &self_x);
-  calCoords(targetcore, &target_y, &target_x);
-  // Build the message header
-  msgHdr = construct_dyn_hdr(0, msgsize, 0,             // msgsize word sent.
-                             self_y, self_x,
-                             target_y, target_x);
-  gdn_send(msgHdr);                     // Send the message header to EAST to handle fab(n - 1).
-#ifdef RAWDEBUG
-  raw_test_pass(0xbbbb);
-  raw_test_pass(0xb000 + targetcore);       // targetcore
-#endif
-  gdn_send(5);   // lock release
-#ifdef RAWDEBUG
-  raw_test_pass(5);
-#endif
-  gdn_send(0);       // read lock
-#ifdef RAWDEBUG
-  raw_test_pass(0);
-#endif
-  gdn_send((int)ptr);
-#ifdef RAWDEBUG
-  raw_test_pass_reg(ptr);
-  raw_test_pass(0xffff);
-#endif
 }
 #endif
 
@@ -2974,31 +3300,29 @@ bool getwritelock(void * ptr) {
 #ifdef RAW
   unsigned msgHdr;
   int self_y, self_x, target_y, target_x;
-  int targetcore = 0;       //((int)ptr >> 5) % TOTALCORE;
-  // for 32 bit machine, the size is always 4 words
-  int msgsize= 4;
-  int tc = TOTALCORE;
-#ifdef INTERRUPT
-  raw_user_interrupts_off();
-#endif
-  targetcore = ((int)ptr >> 5) % tc;
-#ifdef INTERRUPT
-  raw_user_interrupts_on();
-#endif
-
-#ifdef RAWDEBUG
-  raw_test_pass(0xe551);
-  raw_test_pass_reg(ptr);
-  raw_test_pass_reg(targetcore);
-  raw_test_pass_reg(tc);
-#endif
+  int targetcore = 0;
+  // for 32 bit machine, the size is always 5 words
+  int msgsize = 5;
 
   lockobj = (int)ptr;
+  if(((struct ___Object___ *)ptr)->lock == NULL) {
+	lock2require = lockobj;
+  } else {
+	lock2require = (int)(((struct ___Object___ *)ptr)->lock);
+  }
+  targetcore = (lock2require >> 5) % TOTALCORE;
   lockflag = false;
 #ifndef INTERRUPT
   reside = false;
 #endif
   lockresult = 0;
+
+#ifdef RAWDEBUG
+  raw_test_pass(0xe551);
+  raw_test_pass_reg(lockobj);
+  raw_test_pass_reg(lock2require);
+  raw_test_pass_reg(targetcore);
+#endif
 
   if(targetcore == corenum) {
     // reside on this core
@@ -3006,7 +3330,7 @@ bool getwritelock(void * ptr) {
 #ifdef INTERRUPT
     raw_user_interrupts_off();
 #endif
-    if(!RuntimeHashcontainskey(locktbl, (int)ptr)) {
+    if(!RuntimeHashcontainskey(locktbl, lock2require)) {
       // no locks for this object
       // first time to operate on this shared object
       // create a lock for it
@@ -3014,27 +3338,39 @@ bool getwritelock(void * ptr) {
 #ifdef RAWDEBUG
       raw_test_pass(0xe552);
 #endif
-      RuntimeHashadd_I(locktbl, (int)ptr, -1);
+	  struct LockValue * lockvalue = (struct LockValue *)(RUNMALLOC_I(sizeof(struct LockValue)));
+	  lockvalue->redirectlock = 0;
+	  lockvalue->value = -1;
+      RuntimeHashadd_I(locktbl, lock2require, (int)lockvalue);
     } else {
       int rwlock_obj = 0;
+	  struct LockValue* lockvalue;
       RuntimeHashget(locktbl, (int)ptr, &rwlock_obj);
+	  lockvalue = (struct LockValue*)rwlock_obj;
 #ifdef RAWDEBUG
       raw_test_pass(0xe553);
-      raw_test_pass_reg(rwlock_obj);
+      raw_test_pass_reg(lockvalue->value);
 #endif
-      if(0 == rwlock_obj) {
-	rwlock_obj = -1;
-	RuntimeHashremovekey(locktbl, (int)ptr);
-	RuntimeHashadd_I(locktbl, (int)ptr, rwlock_obj);
-      } else {
-	deny = true;
-      }
+	  if(lockvalue->redirectlock != 0) {
+		  // the lock is redirected
+#ifdef  RAWDEBUG
+		  raw_test_pass(0xe554);
+#endif
+		  getwritelock_I_r(ptr, (void *)lockvalue->redirectlock, corenum, false);
+		  return true;
+	  } else {
+	      if(0 == lockvalue->value) {
+			  lockvalue->value = -1;
+		  } else {
+			  deny = true;
+		  }
+	  }
     }
 #ifdef INTERRUPT
     raw_user_interrupts_on();
 #endif
 #ifdef RAWDEBUG
-    raw_test_pass(0xe554);
+    raw_test_pass(0xe555);
     raw_test_pass_reg(lockresult);
 #endif
     if(lockobj == (int)ptr) {
@@ -3055,13 +3391,13 @@ bool getwritelock(void * ptr) {
 #endif
     } else {
       // conflicts on lockresults
-      raw_test_done(0xa007);
+      raw_test_done(0xa012);
     }
     return true;
   }
 
 #ifdef RAWDEBUG
-  raw_test_pass(0xe555);
+  raw_test_pass(0xe556);
 #endif
   calCoords(corenum, &self_y, &self_x);
   calCoords(targetcore, &target_y, &target_x);
@@ -3084,11 +3420,15 @@ bool getwritelock(void * ptr) {
 #ifdef RAWDEBUG
   raw_test_pass(1);
 #endif
-  gdn_send((int)ptr);
+  gdn_send((int)ptr);  // obj pointer
 #ifdef RAWDEBUG
   raw_test_pass_reg(ptr);
 #endif
-  gdn_send(corenum);
+  gdn_send(lock2require); // lock
+#ifdef RAWDEBUG
+  raw_test_pass_reg(lock2require);
+#endif
+  gdn_send(corenum);  // request core
 #ifdef RAWDEBUG
   raw_test_pass_reg(corenum);
   raw_test_pass(0xffff);
@@ -3192,7 +3532,6 @@ bool getwritelock(void * ptr) {
       return true;
     }
   }
-
 #endif
 }
 
@@ -3200,16 +3539,23 @@ void releasewritelock(void * ptr) {
 #ifdef RAW
   unsigned msgHdr;
   int self_y, self_x, target_y, target_x;
-  int targetcore = 0;       //((int)ptr >> 5) % TOTALCORE;
-  // for 32 bit machine, the size is always 3 words
-  int msgsize = 3;
-  int tc = TOTALCORE;
-#ifdef INTERRUPT
-  raw_user_interrupts_off();
-#endif
-  targetcore = ((int)ptr >> 5) % tc;
-#ifdef INTERRUPT
-  raw_user_interrupts_on();
+  int targetcore = 0;
+  // for 32 bit machine, the size is always 4 words
+  int msgsize = 4;
+
+  int reallock = 0;
+  if(((struct ___Object___ *)ptr)->lock == NULL) {
+	reallock = (int)ptr;
+  } else {
+	reallock = (int)(((struct ___Object___ *)ptr)->lock);
+  }
+  targetcore = (reallock >> 5) % TOTALCORE;
+
+#ifdef RAWDEBUG
+  raw_test_pass(0xe661);
+  raw_test_pass_reg((int)ptr);
+  raw_test_pass_reg(reallock);
+  raw_test_pass_reg(targetcore);
 #endif
 
   if(targetcore == corenum) {
@@ -3217,23 +3563,23 @@ void releasewritelock(void * ptr) {
     raw_user_interrupts_off();
 #endif
     // reside on this core
-    if(!RuntimeHashcontainskey(locktbl, (int)ptr)) {
+    if(!RuntimeHashcontainskey(locktbl, reallock)) {
       // no locks for this object, something is wrong
-      raw_test_done(0xa008);
+      raw_test_done(0xa013);
     } else {
       int rwlock_obj = 0;
+	  struct LockValue * lockvalue = NULL;
 #ifdef RAWDEBUG
       raw_test_pass(0xe662);
 #endif
-      RuntimeHashget(locktbl, (int)ptr, &rwlock_obj);
+      RuntimeHashget(locktbl, reallock, &rwlock_obj);
+	  lockvalue = (struct LockValue *)rwlock_obj;
 #ifdef RAWDEBUG
-      raw_test_pass_reg(rwlock_obj);
+      raw_test_pass_reg(lockvalue->value);
 #endif
-      rwlock_obj++;
-      RuntimeHashremovekey(locktbl, (int)ptr);
-      RuntimeHashadd_I(locktbl, (int)ptr, rwlock_obj);
+      lockvalue->value++;
 #ifdef RAWDEBUG
-      raw_test_pass_reg(rwlock_obj);
+      raw_test_pass_reg(lockvalue->value);
 #endif
     }
 #ifdef INTERRUPT
@@ -3266,9 +3612,13 @@ void releasewritelock(void * ptr) {
 #ifdef RAWDEBUG
   raw_test_pass(1);
 #endif
-  gdn_send((int)ptr);
+  gdn_send((int)ptr);  // obj pointer
 #ifdef RAWDEBUG
   raw_test_pass_reg(ptr);
+#endif
+  gdn_send(reallock);  // lock
+#ifdef RAWDEBUG
+  raw_test_pass_reg(reallock);
   raw_test_pass(0xffff);
 #endif
   // end of sending this msg, set sand msg flag false
@@ -3329,6 +3679,617 @@ void releasewritelock(void * ptr) {
   printf("[releasewritelock, %d] release the read lock for locktbl: %d error: \n", numofcore, rc, strerror(rc));
 #endif
 }
+
+void releasewritelock_r(void * lock, void * redirectlock) {
+#ifdef RAW
+  unsigned msgHdr;
+  int self_y, self_x, target_y, target_x;
+  int targetcore = 0;
+  // for 32 bit machine, the size is always 4 words
+  int msgsize = 4;
+
+  int reallock = (int)lock;
+  targetcore = (reallock >> 5) % TOTALCORE;
+
+#ifdef RAWDEBUG
+  raw_test_pass(0xe671);
+  raw_test_pass_reg((int)lock);
+  raw_test_pass_reg(reallock);
+  raw_test_pass_reg(targetcore);
+#endif
+
+  if(targetcore == corenum) {
+#ifdef INTERRUPT
+    raw_user_interrupts_off();
+#endif
+    // reside on this core
+    if(!RuntimeHashcontainskey(locktbl, reallock)) {
+      // no locks for this object, something is wrong
+      raw_test_done(0xa014);
+    } else {
+      int rwlock_obj = 0;
+	  struct LockValue * lockvalue = NULL;
+#ifdef RAWDEBUG
+      raw_test_pass(0xe672);
+#endif
+      RuntimeHashget(locktbl, reallock, &rwlock_obj);
+	  lockvalue = (struct LockValue *)rwlock_obj;
+#ifdef RAWDEBUG
+      raw_test_pass_reg(lockvalue->value);
+#endif
+      lockvalue->value++;
+	  lockvalue->redirectlock = (int)redirectlock;
+#ifdef RAWDEBUG
+      raw_test_pass_reg(lockvalue->value);
+#endif
+    }
+#ifdef INTERRUPT
+    raw_user_interrupts_on();
+#endif
+    return;
+  }
+
+#ifdef RAWDEBUG
+  raw_test_pass(0xe673);
+#endif
+  calCoords(corenum, &self_y, &self_x);
+  calCoords(targetcore, &target_y, &target_x);
+  // Build the message header
+  msgHdr = construct_dyn_hdr(0, msgsize, 0,             // msgsize word sent.
+                             self_y, self_x,
+                             target_y, target_x);
+  // start sending the msg, set send msg flag
+  isMsgSending = true;
+  gdn_send(msgHdr);                     
+#ifdef RAWDEBUG
+  raw_test_pass(0xbbbb);
+  raw_test_pass(0xb000 + targetcore);
+#endif
+  gdn_send(0xb);   // lock release with redirect info
+#ifdef RAWDEBUG
+  raw_test_pass(0xb);
+#endif
+  gdn_send(1);       // write lock
+#ifdef RAWDEBUG
+  raw_test_pass(1);
+#endif
+  gdn_send((int)lock); // lock
+#ifdef RAWDEBUG
+  raw_test_pass_reg(lock);
+#endif
+  gdn_send((int)redirectlock); // redirect lock
+#ifdef RAWDEBUG
+  raw_test_pass_reg(redirectlock);
+  raw_test_pass(0xffff);
+#endif
+  // end of sending this msg, set sand msg flag false
+  isMsgSending = false;
+  // check if there are pending msgs
+  while(isMsgHanging) {
+    // get the msg from outmsgdata[]
+    // length + target + msg
+    outmsgleft = outmsgdata[outmsgindex++];
+    targetcore = outmsgdata[outmsgindex++];
+    calCoords(targetcore, &target_y, &target_x);
+    // Build the message header
+    msgHdr = construct_dyn_hdr(0, outmsgleft, 0,                        // msgsize word sent.
+                               self_y, self_x,
+                               target_y, target_x);
+    isMsgSending = true;
+    gdn_send(msgHdr);                           // Send the message header to EAST to handle fab(n - 1).
+#ifdef RAWDEBUG
+    raw_test_pass(0xbbbb);
+    raw_test_pass(0xb000 + targetcore);             // targetcore
+#endif
+    while(outmsgleft-- > 0) {
+      gdn_send(outmsgdata[outmsgindex++]);
+#ifdef RAWDEBUG
+      raw_test_pass_reg(outmsgdata[outmsgindex - 1]);
+#endif
+    }
+#ifdef RAWDEBUG
+    raw_test_pass(0xffff);
+#endif
+    isMsgSending = false;
+#ifdef INTERRUPT
+    raw_user_interrupts_off();
+#endif
+    // check if there are still msg hanging
+    if(outmsgindex == outmsglast) {
+      // no more msgs
+      outmsgindex = outmsglast = 0;
+      isMsgHanging = false;
+    }
+#ifdef INTERRUPT
+    raw_user_interrupts_on();
+#endif
+  }
+#elif defined THREADSIMULATE
+  // TODO, need modification according to alias lock
+  int numofcore = pthread_getspecific(key);
+  int rc = pthread_rwlock_rdlock(&rwlock_tbl);
+  printf("[releasewritelock, %d] getting the read lock for locktbl: %d error: \n", numofcore, rc, strerror(rc));
+  if(!RuntimeHashcontainskey(locktbl, (int)ptr)) {
+    printf("[releasewritelock, %d] Error: try to release a lock without previously grab it\n", numofcore);
+    exit(-1);
+  }
+  pthread_rwlock_t* rwlock_obj = NULL;
+  RuntimeHashget(locktbl, (int)ptr, (int*)&rwlock_obj);
+  int rc_obj = pthread_rwlock_unlock(rwlock_obj);
+  printf("[releasewritelock, %d] unlocked object %d: %d error:\n", numofcore, (int)ptr, rc_obj, strerror(rc_obj));
+  rc = pthread_rwlock_unlock(&rwlock_tbl);
+  printf("[releasewritelock, %d] release the read lock for locktbl: %d error: \n", numofcore, rc, strerror(rc));
+#endif
+}
+
+#ifdef RAW
+bool getwritelock_I(void * ptr) {
+  unsigned msgHdr;
+  int self_y, self_x, target_y, target_x;
+  int targetcore = 0;
+  // for 32 bit machine, the size is always 5 words
+  int msgsize = 5;
+
+  lockobj = (int)ptr;
+  if(((struct ___Object___ *)ptr)->lock == NULL) {
+	lock2require = lockobj;
+  } else {
+	lock2require = (int)(((struct ___Object___ *)ptr)->lock);
+  }
+  targetcore = (lock2require >> 5) % TOTALCORE;
+  lockflag = false;
+#ifndef INTERRUPT
+  reside = false;
+#endif
+  lockresult = 0;
+
+#ifdef RAWDEBUG
+  raw_test_pass(0xe561);
+  raw_test_pass_reg(lockobj);
+  raw_test_pass_reg(lock2require);
+  raw_test_pass_reg(targetcore);
+#endif
+
+  if(targetcore == corenum) {
+    // reside on this core
+    bool deny = false;
+    if(!RuntimeHashcontainskey(locktbl, lock2require)) {
+      // no locks for this object
+      // first time to operate on this shared object
+      // create a lock for it
+      // the lock is an integer: 0 -- stall, >0 -- read lock, -1 -- write lock
+#ifdef RAWDEBUG
+      raw_test_pass(0xe562);
+#endif
+	  struct LockValue * lockvalue = (struct LockValue *)(RUNMALLOC_I(sizeof(struct LockValue)));
+	  lockvalue->redirectlock = 0;
+	  lockvalue->value = -1;
+      RuntimeHashadd_I(locktbl, lock2require, (int)lockvalue);
+    } else {
+      int rwlock_obj = 0;
+	  struct LockValue* lockvalue;
+      RuntimeHashget(locktbl, (int)ptr, &rwlock_obj);
+	  lockvalue = (struct LockValue*)rwlock_obj;
+#ifdef RAWDEBUG
+      raw_test_pass(0xe563);
+      raw_test_pass_reg(lockvalue->value);
+#endif
+	  if(lockvalue->redirectlock != 0) {
+		  // the lock is redirected
+#ifdef RAWDEBUG
+		  raw_test_pass(0xe564);
+#endif
+		  getwritelock_I_r(ptr, (void *)lockvalue->redirectlock, corenum, false);
+		  return true;
+	  } else {
+	      if(0 == lockvalue->value) {
+			  lockvalue->value = -1;
+		  } else {
+			  deny = true;
+		  }
+	  }
+    }
+#ifdef RAWDEBUG
+    raw_test_pass(0xe565);
+    raw_test_pass_reg(lockresult);
+#endif
+    if(lockobj == (int)ptr) {
+      if(deny) {
+	lockresult = 0;
+#ifdef RAWDEBUG
+	raw_test_pass(0);
+#endif
+      } else {
+	lockresult = 1;
+#ifdef RAWDEBUG
+	raw_test_pass(1);
+#endif
+      }
+      lockflag = true;
+#ifndef INTERRUPT
+      reside = true;
+#endif
+    } else {
+      // conflicts on lockresults
+      raw_test_done(0xa015);
+    }
+    return true;
+  }
+
+#ifdef RAWDEBUG
+  raw_test_pass(0xe566);
+#endif
+  calCoords(corenum, &self_y, &self_x);
+  calCoords(targetcore, &target_y, &target_x);
+  // Build the message header
+  msgHdr = construct_dyn_hdr(0, msgsize, 0,             // msgsize word sent.
+                             self_y, self_x,
+                             target_y, target_x);
+  // start sending the msg, set send msg flag
+  gdn_send(msgHdr);                     // Send the message header to EAST to handle fab(n - 1).
+#ifdef RAWDEBUG
+  raw_test_pass(0xbbbb);
+  raw_test_pass(0xb000 + targetcore);       // targetcore
+#endif
+  gdn_send(2);   // lock request
+#ifdef RAWDEBUG
+  raw_test_pass(2);
+#endif
+  gdn_send(1);       // write lock
+#ifdef RAWDEBUG
+  raw_test_pass(1);
+#endif
+  gdn_send((int)ptr);  // obj pointer
+#ifdef RAWDEBUG
+  raw_test_pass_reg(ptr);
+#endif
+  gdn_send(lock2require); // lock
+#ifdef RAWDEBUG
+  raw_test_pass_reg(lock2require);
+#endif
+  gdn_send(corenum);  // request core
+#ifdef RAWDEBUG
+  raw_test_pass_reg(corenum);
+  raw_test_pass(0xffff);
+#endif
+  return true;
+}
+
+// redirected lock request
+bool getwritelock_I_r(void * ptr, void * redirectlock, int core, bool cache) {
+  unsigned msgHdr;
+  int self_y, self_x, target_y, target_x;
+  int targetcore = 0;
+  // for 32 bit machine, the size is always 6 words
+  int msgsize = 6;
+
+  if(core == corenum) {
+	  lockobj = (int)ptr;
+	  lock2require = (int)redirectlock;
+	  lockflag = false;
+#ifndef INTERRUPT
+	  reside = false;
+#endif
+	  lockresult = 0;
+  }
+  targetcore = ((int)redirectlock >> 5) % TOTALCORE;
+
+#ifdef RAWDEBUG
+  raw_test_pass(0xe571);
+  raw_test_pass_reg((int)ptr);
+  raw_test_pass_reg((int)redirectlock);
+  raw_test_pass_reg(core);
+  raw_test_pass_reg((int)cache);
+  raw_test_pass_reg(targetcore);
+#endif
+
+
+  if(targetcore == corenum) {
+    // reside on this core
+    bool deny = false;
+    if(!RuntimeHashcontainskey(locktbl, (int)redirectlock)) {
+      // no locks for this object
+      // first time to operate on this shared object
+      // create a lock for it
+      // the lock is an integer: 0 -- stall, >0 -- read lock, -1 -- write lock
+	  struct LockValue * lockvalue = (struct LockValue *)(RUNMALLOC_I(sizeof(struct LockValue)));
+	  lockvalue->redirectlock = 0;
+	  lockvalue->value = -1;
+      RuntimeHashadd_I(locktbl, (int)redirectlock, (int)lockvalue);
+    } else {
+      int rwlock_obj = 0;
+	  struct LockValue* lockvalue;
+      RuntimeHashget(locktbl, (int)redirectlock, &rwlock_obj);
+	  lockvalue = (struct LockValue*)rwlock_obj;
+	  if(lockvalue->redirectlock != 0) {
+		  // the lock is redirected
+#ifdef RAWDEBUG
+		  raw_test_pass(0xe572);
+#endif
+		  getwritelock_I_r(ptr, (void *)lockvalue->redirectlock, core, cache);
+		  return true;
+	  } else {
+		  if(0 == lockvalue->value) {
+			  lockvalue->value = -1;
+		  } else {
+			  deny = true;
+		  }
+	  }
+    }
+	if(core == corenum) {
+    	if(lockobj == (int)ptr) {
+	      if(deny) {
+		lockresult = 0;
+	      } else {
+		lockresult = 1;
+		RuntimeHashadd_I(objRedirectLockTbl, (int)ptr, (int)redirectlock);
+	      }
+    	  lockflag = true;
+#ifndef INTERRUPT
+	      reside = true;
+#endif
+    	} else {
+	      // conflicts on lockresults
+    	  raw_test_done(0xa016);
+    	}
+	    return true;
+	} else {
+		// send lock grant/deny request to the root requiring core
+		// check if there is still some msg on sending
+		int msgsize1 = 4;
+		if((!cache) || (cache && !isMsgSending)) {
+			calCoords(corenum, &self_y, &self_x);
+			calCoords(core, &target_y, &target_x);
+			// Build the message header
+			msgHdr = construct_dyn_hdr(0, msgsize1, 0,             // msgsize word sent.
+					                   self_y, self_x,
+									   target_y, target_x);
+			gdn_send(msgHdr);                     // Send the message header to EAST to handle fab(n - 1).
+#ifdef RAWDEBUG
+			raw_test_pass(0xbbbb);
+			raw_test_pass(0xb000 + core);       // targetcore
+#endif
+			if(deny) {
+				// deny
+				gdn_send(0xa);   // lock deny with redirected info
+#ifdef RAWDEBUG
+				raw_test_pass(0xa);
+#endif
+			} else {
+				// grant
+				gdn_send(9);   // lock grant with redirected info
+#ifdef RAWDEBUG
+				raw_test_pass(9);
+#endif
+			}
+			gdn_send(1);       // write lock
+#ifdef RAWDEBUG
+			raw_test_pass(1);
+#endif
+			gdn_send((int)ptr);  // obj pointer
+#ifdef RAWDEBUG
+			raw_test_pass_reg(ptr);
+#endif
+			gdn_send((int)redirectlock); // redirected lock
+#ifdef RAWDEBUG
+			raw_test_pass_reg((int)redirectlock);
+			raw_test_pass(0xffff);
+#endif
+		} else if(cache && isMsgSending) {
+			isMsgHanging = true;
+			// cache the msg in outmsgdata and send it later
+			// msglength + target core + msg
+			outmsgdata[outmsglast++] = msgsize1;
+			outmsgdata[outmsglast++] = core;
+			if(deny) {
+				outmsgdata[outmsglast++] = 0xa; // deny
+			} else {
+				outmsgdata[outmsglast++] = 9; // grant
+			}
+			outmsgdata[outmsglast++] = 1;
+			outmsgdata[outmsglast++] = (int)ptr;
+			outmsgdata[outmsglast++] = (int)redirectlock;
+		}
+	}
+  }
+
+  // check if there is still some msg on sending
+  if((!cache) || (cache && !isMsgSending)) {
+	  calCoords(corenum, &self_y, &self_x);
+	  calCoords(targetcore, &target_y, &target_x);
+	  // Build the message header
+	  msgHdr = construct_dyn_hdr(0, msgsize, 0,             // msgsize word sent.
+    	                         self_y, self_x,
+        	                     target_y, target_x);
+	  gdn_send(msgHdr);                     // Send the message header to EAST to handle fab(n - 1).
+#ifdef RAWDEBUG
+	  raw_test_pass(0xbbbb);
+	  raw_test_pass(0xb000 + targetcore);       // targetcore
+#endif
+	  gdn_send(8);   // redirected lock request
+#ifdef RAWDEBUG
+	  raw_test_pass(8);
+#endif
+	  gdn_send(1);       // write lock
+#ifdef RAWDEBUG
+	  raw_test_pass(1);
+#endif
+	  gdn_send((int)ptr);  // obj pointer
+#ifdef RAWDEBUG
+	  raw_test_pass_reg(ptr);
+#endif
+	  gdn_send((int)redirectlock); // redirected lock
+#ifdef RAWDEBUG
+	  raw_test_pass_reg((int)redirectlock);
+#endif
+	  gdn_send(core);  // root request core
+#ifdef RAWDEBUG
+	  raw_test_pass_reg(core);
+#endif
+	  gdn_send(corenum);  // request core
+#ifdef RAWDEBUG
+	  raw_test_pass_reg(corenum);
+	  raw_test_pass(0xffff);
+#endif
+  } else if(cache && isMsgSending) {
+	  isMsgHanging = true;
+	  // cache the msg in outmsgdata and send it later
+	  // msglength + target core + msg
+	  outmsgdata[outmsglast++] = msgsize;
+	  outmsgdata[outmsglast++] = targetcore;
+	  outmsgdata[outmsglast++] = 8;
+	  outmsgdata[outmsglast++] = 1;
+	  outmsgdata[outmsglast++] = (int)ptr;
+	  outmsgdata[outmsglast++] = (int)redirectlock;
+	  outmsgdata[outmsglast++] = core;
+	  outmsgdata[outmsglast++] = corenum;
+  }
+  return true;
+}
+
+void releasewritelock_I(void * ptr) {
+  unsigned msgHdr;
+  int self_y, self_x, target_y, target_x;
+  int targetcore = 0;
+  // for 32 bit machine, the size is always 4 words
+  int msgsize = 4;
+
+  int reallock = 0;
+  if(((struct ___Object___ *)ptr)->lock == NULL) {
+	reallock = (int)ptr;
+  } else {
+	reallock = (int)(((struct ___Object___ *)ptr)->lock);
+  }
+  targetcore = (reallock >> 5) % TOTALCORE;
+
+#ifdef RAWDEBUG
+  raw_test_pass(0xe681);
+  raw_test_pass_reg((int)ptr);
+  raw_test_pass_reg(reallock);
+  raw_test_pass_reg(targetcore);
+#endif
+
+  if(targetcore == corenum) {
+    // reside on this core
+    if(!RuntimeHashcontainskey(locktbl, reallock)) {
+      // no locks for this object, something is wrong
+      raw_test_done(0xa017);
+    } else {
+      int rwlock_obj = 0;
+	  struct LockValue * lockvalue = NULL;
+      RuntimeHashget(locktbl, reallock, &rwlock_obj);
+	  lockvalue = (struct LockValue *)rwlock_obj;
+      lockvalue->value++;
+    }
+    return;
+  }
+
+  calCoords(corenum, &self_y, &self_x);
+  calCoords(targetcore, &target_y, &target_x);
+  // Build the message header
+  msgHdr = construct_dyn_hdr(0, msgsize, 0,             // msgsize word sent.
+                             self_y, self_x,
+                             target_y, target_x);
+  gdn_send(msgHdr);                     // Send the message header to EAST to handle fab(n - 1).
+#ifdef RAWDEBUG
+  raw_test_pass(0xbbbb);
+  raw_test_pass(0xb000 + targetcore);       // targetcore
+#endif
+  gdn_send(5);   // lock release
+#ifdef RAWDEBUG
+  raw_test_pass(5);
+#endif
+  gdn_send(1);       // write lock
+#ifdef RAWDEBUG
+  raw_test_pass(1);
+#endif
+  gdn_send((int)ptr);  // obj pointer
+#ifdef RAWDEBUG
+  raw_test_pass_reg(ptr);
+#endif
+  gdn_send(reallock);  // lock
+#ifdef RAWDEBUG
+  raw_test_pass_reg(reallock);
+  raw_test_pass(0xffff);
+#endif
+}
+
+void releasewritelock_I_r(void * lock, void * redirectlock) {
+  unsigned msgHdr;
+  int self_y, self_x, target_y, target_x;
+  int targetcore = 0;
+  // for 32 bit machine, the size is always 4 words
+  int msgsize = 4;
+
+  int reallock = (int)lock;
+  targetcore = (reallock >> 5) % TOTALCORE;
+
+#ifdef RAWDEBUG
+  raw_test_pass(0xe691);
+  raw_test_pass_reg((int)lock);
+  raw_test_pass_reg(reallock);
+  raw_test_pass_reg(targetcore);
+#endif
+
+  if(targetcore == corenum) {
+    // reside on this core
+    if(!RuntimeHashcontainskey(locktbl, reallock)) {
+      // no locks for this object, something is wrong
+      raw_test_done(0xa018);
+    } else {
+      int rwlock_obj = 0;
+	  struct LockValue * lockvalue = NULL;
+#ifdef RAWDEBUG
+      raw_test_pass(0xe672);
+#endif
+      RuntimeHashget(locktbl, reallock, &rwlock_obj);
+	  lockvalue = (struct LockValue *)rwlock_obj;
+#ifdef RAWDEBUG
+      raw_test_pass_reg(lockvalue->value);
+#endif
+      lockvalue->value++;
+	  lockvalue->redirectlock = (int)redirectlock;
+#ifdef RAWDEBUG
+      raw_test_pass_reg(lockvalue->value);
+#endif
+    }
+    return;
+  }
+
+#ifdef RAWDEBUG
+  raw_test_pass(0xe673);
+#endif
+	  calCoords(corenum, &self_y, &self_x);
+	  calCoords(targetcore, &target_y, &target_x);
+	  // Build the message header
+	  msgHdr = construct_dyn_hdr(0, msgsize, 0,             // msgsize word sent.
+    	                         self_y, self_x,
+        	                     target_y, target_x);
+	  // start sending the msg, set send msg flag
+	  gdn_send(msgHdr);                     
+#ifdef RAWDEBUG
+	  raw_test_pass(0xbbbb);
+	  raw_test_pass(0xb000 + targetcore);
+#endif
+	  gdn_send(0xb);   // lock release with redirect info
+#ifdef RAWDEBUG
+	  raw_test_pass(0xb);
+#endif
+	  gdn_send(1);       // write lock
+#ifdef RAWDEBUG
+	  raw_test_pass(1);
+#endif
+	  gdn_send((int)lock); // lock
+#ifdef RAWDEBUG
+	  raw_test_pass_reg(lock);
+#endif
+	  gdn_send((int)redirectlock); // redirect lock
+#ifdef RAWDEBUG
+	  raw_test_pass_reg(redirectlock);
+	  raw_test_pass(0xffff);
+#endif
+}
+#endif
 
 int enqueuetasks(struct parameterwrapper *parameter, struct parameterwrapper *prevptr, struct ___Object___ *ptr, int * enterflags, int numenterflags) {
   void * taskpointerarray[MAXTASKPARAMS];
@@ -3537,15 +4498,23 @@ void executetasks() {
   struct parameterwrapper *pw=NULL;
   int j = 0;
   int x = 0;
-  bool lock = true;
+  bool islock = true;
 
 #ifdef RAW
+  struct LockValue * locks[MAXTASKPARAMS];
+  int locklen;
   int grount = 0;
   int andmask=0;
   int checkmask=0;
 #ifdef RAWDEBUG
   raw_test_pass(0xe991);
 #endif
+
+  for(j = 0; j < MAXTASKPARAMS; j++) {
+	  locks[j] = (struct LockValue *)(RUNMALLOC(sizeof(struct LockValue)));
+	  locks[j]->redirectlock = 0;
+	  locks[j]->value = 0;
+  }
 #endif
 
 #ifndef RAW
@@ -3634,130 +4603,152 @@ newtask:
 #ifdef THREADSIMULATE
       int isolateflags[numparams];
 #endif
+
+	 // clear the lockRedirectTbl (TODO, this table should be empty after all locks are released)
+#ifdef RAW
+	  // get all required locks
+	  locklen = 0;
+	  // check which locks are needed
+	  for(i = 0; i < numparams; i++) {
+		  void * param = currtpd->parameterArray[i];
+		  int tmplock = 0;
+		  int j = 0;
+		  bool insert = true;
+		  if(((struct ___Object___ *)param)->type == STARTUPTYPE) {
+			  islock = false;
+			  taskpointerarray[i+OFFSET]=param;
+			  goto execute;
+		  }
+		  if(((struct ___Object___ *)param)->lock == NULL) {
+			  tmplock = (int)param;
+		  } else {
+			  tmplock = (int)(((struct ___Object___ *)param)->lock);
+		  }
+		  // insert into the locks array
+		  for(j = 0; j < locklen; j++) {
+			  if(locks[j]->value == tmplock) {
+				  insert = false;
+				  break;
+			  } else if(locks[j]->value > tmplock) {
+				  break;
+			  }
+		  }
+		  if(insert) {
+			  int h = locklen;
+			  for(; h > j; h--) {
+				  locks[h]->redirectlock = locks[h-1]->redirectlock;
+				  locks[h]->value = locks[h-1]->value;
+			  }
+			  locks[j]->value = tmplock;
+			  locks[j]->redirectlock = (int)param;
+			  locklen++;
+		  }		  
+	  }
+	  // grab these required locks
+	  for(i = 0; i < locklen; i++) {
+		  int * lock = (int *)(locks[i]->redirectlock);
+		  islock = true;
+		  // require locks for this parameter if it is not a startup object
+#ifdef RAWDEBUG
+		  raw_test_pass(0xe993);
+		  raw_test_pass_reg((int)lock);
+		  raw_test_pass_reg((int)(locks[i]->value));
+#endif
+		  getwritelock(lock);
+
+#ifdef INTERRUPT
+		  raw_user_interrupts_off();
+#endif
+#ifdef RAWPROFILE
+		  //isInterrupt = false;
+#endif 
+		  while(!lockflag) { 
+			  receiveObject();
+		  }
+#ifndef INTERRUPT
+		  if(reside) {
+			  while(receiveObject() != -1) {
+			  }
+		  }
+#endif
+		  grount = lockresult;
+
+		  lockresult = 0;
+		  lockobj = 0;
+		  lock2require = 0;
+		  lockflag = false;
+#ifndef INTERRUPT
+		  reside = false;
+#endif
+#ifdef RAWPROFILE
+		  //isInterrupt = true;
+#endif
+#ifdef INTERRUPT
+		  raw_user_interrupts_on();
+#endif
+
+		  if(grount == 0) {
+			  int j = 0;
+#ifdef RAWDEBUG
+			  raw_test_pass(0xe994);
+#endif
+			  // can not get the lock, try later
+			  // releas all grabbed locks for previous parameters
+			  for(j = 0; j < i; ++j) {
+				  lock = (int*)(locks[j]->redirectlock);
+				  releasewritelock(lock);
+			  }
+			  genputtable(activetasks, currtpd, currtpd);
+			  if(hashsize(activetasks) == 1) {
+				  // only one task right now, wait a little while before next try
+				  int halt = 10000;
+				  while(halt--) {
+				  }
+			  }
+#ifdef RAWPROFILE
+			  // fail, set the end of the checkTaskInfo
+			  if(!taskInfoOverflow) {
+				  taskInfoArray[taskInfoIndex]->endTime = raw_get_cycle();
+				  taskInfoIndex++;
+				  if(taskInfoIndex == TASKINFOLENGTH) {
+					  taskInfoOverflow = true;
+				  }
+			  }
+#endif
+			  goto newtask;
+		  }
+	  }
+#elif defined THREADSIMULATE
+	  // TODO: need modification according to added alias locks
+#endif
+
       /* Make sure that the parameters are still in the queues */
       for(i=0; i<numparams; i++) {
 	void * parameter=currtpd->parameterArray[i];
-	int * locks;
-	int numlocks;
 #ifdef RAW
 #ifdef RAWDEBUG
-	raw_test_pass(0xe993);
+	raw_test_pass(0xe995);
 #endif
 
-	if(((struct ___Object___ *)parameter)->type == STARTUPTYPE) {
-	  lock = false;
-	  taskpointerarray[i+OFFSET]=parameter;
-	  goto execute;
-	}
-	lock = true;
-	// require locks for this parameter if it is not a startup object
-	if(((struct ___Object___ *)parameter)->numlocks == 0) {
-	  numlocks = 1;
-	  locks = parameter;
-	} else {
-	  numlocks = ((struct ___Object___ *)parameter)->numlocks;
-	  locks = ((struct ___Object___ *)parameter)->locks;
-	}
-
-	grount = 0;
-	for(; numlocks > 0; numlocks--) {
-	  getwritelock(locks);
-
-#ifdef INTERRUPT
-	  raw_user_interrupts_off();
-#endif
-#ifdef RAWPROFILE
-	  //isInterrupt = false;
-#endif
-	  while(!lockflag) {
-	    receiveObject();
-	  }
-#ifndef INTERRUPT
-	  if(reside) {
-	    while(receiveObject() != -1) {
-	    }
-	  }
-#endif
-	  grount = grount || lockresult;
-
-	  lockresult = 0;
-	  lockobj = 0;
-	  lockflag = false;
-#ifndef INTERRUPT
-	  reside = false;
-#endif
-#ifdef RAWPROFILE
-	  //isInterrupt = true;
-#endif
-#ifdef INTERRUPT
-	  raw_user_interrupts_on();
-#endif
-
-	  if(grount == 0) {
-	    goto grablock_fail;
-	  }
-	  locks = (int *)(*locks);
-	}
-
-	if(grount == 0) {
-grablock_fail:
-#ifdef RAWDEBUG
-	  raw_test_pass(0xe994);
-#endif
-	  // can not get the lock, try later
-	  // first release all grabbed locks for this parameter
-	  numlocks = ((struct ___Object___ *)parameter)->numlocks - numlocks;
-	  locks = ((struct ___Object___ *)parameter)->locks;
-	  for(; numlocks > 0; numlocks--) {
-	    releasewritelock(locks);
-	    locks = (int *)(*locks);
-	  }
-	  // then releas all grabbed locks for previous parameters
-	  for(j = 0; j < i; ++j) {
-	    if(((struct ___Object___ *)taskpointerarray[j+OFFSET])->numlocks == 0) {
-	      locks = taskpointerarray[j+OFFSET];
-	      numlocks = 1;
-	    } else {
-	      locks = ((struct ___Object___ *)taskpointerarray[j+OFFSET])->locks;
-	      numlocks = ((struct ___Object___ *)taskpointerarray[j+OFFSET])->numlocks;
-	    }
-	    for(; numlocks > 0; numlocks--) {
-	      releasewritelock(locks);
-	      locks = (int *)(*locks);
-	    }
-	  }
-	  genputtable(activetasks, currtpd, currtpd);
-	  if(hashsize(activetasks) == 1) {
-	    // only one task right now, wait a little while before next try
-	    int halt = 10000;
-	    while(halt--) {
-	    }
-	  }
-#ifdef RAWPROFILE
-	  // fail, set the end of the checkTaskInfo
-	  if(!taskInfoOverflow) {
-	    taskInfoArray[taskInfoIndex]->endTime = raw_get_cycle();
-	    taskInfoIndex++;
-	    if(taskInfoIndex == TASKINFOLENGTH) {
-	      taskInfoOverflow = true;
-	    }
-	  }
-#endif
-	  goto newtask;
-	}
 	// flush the object
 	{
 	  raw_invalidate_cache_range((int)parameter, classsize[((struct ___Object___ *)parameter)->type]);
 	}
+#ifdef INTERRUPT
+		  raw_user_interrupts_off();
+#endif
+	/*if(RuntimeHashcontainskey(objRedirectLockTbl, (int)parameter)) {
+		int redirectlock_r = 0;
+		RuntimeHashget(objRedirectLockTbl, (int)parameter, &redirectlock_r);
+		((struct ___Object___ *)parameter)->lock = redirectlock_r;
+		RuntimeHashremovekey(objRedirectLockTbl, (int)parameter);
+	}*/
+#ifdef INTERRUPT
+		  raw_user_interrupts_on();
+#endif
 #endif
 	tmpparam = (struct ___Object___ *)parameter;
 #ifdef THREADSIMULATE
-	if(((struct ___Object___ *)parameter)->type == STARTUPTYPE) {
-	  lock = false;
-	  taskpointerarray[i+OFFSET]=parameter;
-	  goto execute;
-	}
-	lock = true;
 	if(0 == tmpparam->isolate) {
 	  isolateflags[i] = 0;
 	  // shared object, need to flush with current value
@@ -3814,33 +4805,16 @@ grablock_fail:
 	{
 	  if (!ObjectHashcontainskey(pw->objectset, (int) parameter)) {
 #ifdef RAWDEBUG
-	    raw_test_pass(0xe995);
+	    raw_test_pass(0xe996);
 #endif
 	    // release grabbed locks
-	    for(j = 0; j < i; ++j) {
-	      if(((struct ___Object___ *)taskpointerarray[j+OFFSET])->numlocks == 0) {
-		numlocks = 1;
-		locks = ((struct ___Object___ *)taskpointerarray[j+OFFSET])->locks;
-	      } else {
-		numlocks = ((struct ___Object___ *)taskpointerarray[j+OFFSET])->numlocks;
-		locks = ((struct ___Object___ *)taskpointerarray[j+OFFSET])->locks;
-	      }
-	      for(; numlocks > 0; numlocks--) {
-		releasewritelock(locks);
-		locks = (int *)(*locks);
-	      }
+#ifdef RAW
+	    for(j = 0; j < locklen; ++j) {
+		int * lock = (int *)(locks[j]->redirectlock);
+		releasewritelock(lock);
 	    }
-	    if(((struct ___Object___ *)parameter)->numlocks == 0) {
-	      numlocks = 1;
-	      locks = parameter;
-	    } else {
-	      numlocks = ((struct ___Object___ *)parameter)->numlocks;
-	      locks = ((struct ___Object___ *)parameter)->locks;
-	    }
-	    for(; numlocks > 0; numlocks--) {
-	      releasewritelock(locks);
-	      locks = (int *)(*locks);
-	    }
+#elif defined THREADSIMULATE
+#endif
 	    RUNFREE(currtpd->parameterArray);
 	    RUNFREE(currtpd);
 	    goto newtask;
@@ -3872,36 +4846,16 @@ grablock_fail:
 	    int UNUSED, UNUSED2;
 	    int * enterflags;
 #ifdef RAWDEBUG
-	    raw_test_pass(0xe996);
+	    raw_test_pass(0xe997);
 #endif
 	    ObjectHashget(pw->objectset, (int) parameter, (int *) &next, (int *) &enterflags, &UNUSED, &UNUSED2);
 	    ObjectHashremove(pw->objectset, (int)parameter);
 	    if (enterflags!=NULL)
 	      free(enterflags);
 	    // release grabbed locks
-	    for(j = 0; j < i; ++j) {
-	      if(((struct ___Object___ *)taskpointerarray[j+OFFSET])->numlocks == 0) {
-		numlocks = 1;
-		locks = taskpointerarray[j+OFFSET];
-	      } else {
-		numlocks = ((struct ___Object___ *)taskpointerarray[j+OFFSET])->numlocks;
-		locks = ((struct ___Object___ *)taskpointerarray[j+OFFSET])->locks;
-	      }
-	      for(; numlocks > 0; numlocks--) {
-		releasewritelock(locks);
-		locks = (int *)(*locks);
-	      }
-	    }
-	    if(((struct ___Object___ *)parameter)->numlocks == 0) {
-	      numlocks = 1;
-	      locks = parameter;
-	    } else {
-	      numlocks = ((struct ___Object___ *)parameter)->numlocks;
-	      locks = ((struct ___Object___ *)parameter)->locks;
-	    }
-	    for(; numlocks > 0; numlocks--) {
-	      releasewritelock(locks);
-	      locks = (int *)(*locks);
+	    for(j = 0; j < locklen; ++j) {
+		 int * lock = (int *)(locks[j]->redirectlock);
+		releasewritelock(lock);
 	    }
 	    RUNFREE(currtpd->parameterArray);
 	    RUNFREE(currtpd);
@@ -3927,7 +4881,7 @@ parameterpresent:
 	  struct ___TagDescriptor___ *tagd=currtpd->parameterArray[slotid];
 	  if (!containstag(parameter, tagd)) {
 #ifdef RAWDEBUG
-	    raw_test_pass(0xe997);
+	    raw_test_pass(0xe998);
 #endif
 	    RUNFREE(currtpd->parameterArray);
 	    RUNFREE(currtpd);
@@ -3986,7 +4940,7 @@ parameterpresent:
 	  raw_test_pass_reg(x);
 #endif
 	  raw_test_pass_reg(x);
-	  raw_test_done(0xa009);
+	  raw_test_done(0xa019);
 #else
 	  exit(-1);
 #endif
@@ -3999,7 +4953,7 @@ parameterpresent:
 	     }*/
 	  /* Actually call task */
 #ifdef PRECISE_GC
-	                                                                          ((int *)taskpointerarray)[0]=currtpd->numParameters;
+	  ((int *)taskpointerarray)[0]=currtpd->numParameters;
 	  taskpointerarray[1]=NULL;
 #endif
 execute:
@@ -4035,6 +4989,9 @@ execute:
 	    printf("EXIT %s count=%d\n",currtpd->task->name, (instaccum-instructioncount));
 #endif
 	  } else {
+#ifdef RAWDEBUG
+		  raw_test_pass(0xe999);
+#endif
 	    ((void(*) (void **))currtpd->task->taskptr)(taskpointerarray);
 	  }
 #ifdef RAWPROFILE
@@ -4058,50 +5015,41 @@ execute:
 	  }
 #endif
 #ifdef RAWDEBUG
-	  raw_test_pass(0xe998);
-	  raw_test_pass_reg(lock);
+	  raw_test_pass(0xe99a);
+	  raw_test_pass_reg(islock);
 #endif
 
-	  if(lock) {
+	  if(islock) {
 #ifdef RAW
-	    for(i = 0; i < numparams; ++i) {
-	      int j = 0;
-	      struct ___Object___ * tmpparam = (struct ___Object___ *)taskpointerarray[i+OFFSET];
-	      int numlocks;
-	      int * locks;
+	    for(i = 0; i < locklen; ++i) {
+		  void * ptr = (void *)(locks[i]->redirectlock);
+	      int * lock = (int *)(locks[i]->value);
 #ifdef RAWDEBUG
-	      raw_test_pass(0xe999);
-	      raw_test_pass(0xdd100000 + tmpparam->flag);
+	      raw_test_pass(0xe99b);
+		  raw_test_pass_reg((int)ptr);
+		  raw_test_pass_reg((int)lock);
 #endif
-	      if(tmpparam->numlocks == 0) {
-		numlocks = 1;
-		locks = (int*)tmpparam;
-	      } else {
-		numlocks = tmpparam->numlocks;
-		locks = tmpparam->locks;
-	      }
-	      for(; numlocks > 0; numlocks--) {
-		releasewritelock(locks);
-		locks = (int *)(*locks);
-	      }
+		  if(RuntimeHashcontainskey(lockRedirectTbl, (int)lock)) {
+			  int redirectlock;
+			  RuntimeHashget(lockRedirectTbl, (int)lock, &redirectlock);
+			  RuntimeHashremovekey(lockRedirectTbl, (int)lock);
+			  releasewritelock_r(lock, (int *)redirectlock);
+		  } else {
+		releasewritelock(ptr);
+		  }
 	    }
 #elif defined THREADSIMULATE
+		// TODO : need modification for alias lock
 	    for(i = 0; i < numparams; ++i) {
-			int numlocks;
-	      int * locks;
+	      int * lock;
 	      if(0 == isolateflags[i]) {
 		struct ___Object___ * tmpparam = (struct ___Object___ *)taskpointerarray[i+OFFSET];
-		if(tmpparam->numlocks == 0) {
-		  numlocks = 1;
-		  locks = (int*)tmpparam;
+		if(tmpparam->lock == NULL) {
+		  lock = (int*)tmpparam;
 		} else {
-		  numlocks = tmpparam->numlocks;
-		  locks = tmpparam->locks;
+		  lock = tmpparam->lock;
 		}
-		for(; numlocks > 0; numlocks--) {
-		  releasewritelock(locks);
-		  locks = (int *)(*locks);
-		}
+		  releasewritelock(lock);
 	      }
 	    }
 #endif
@@ -4135,10 +5083,10 @@ execute:
 #endif
 #endif
 #ifdef RAWDEBUG
-	  raw_test_pass(0xe99a);
+	  raw_test_pass(0xe99c);
 #endif
 #ifdef RAWPATH
-	  raw_test_pass(0xe99a);
+	  raw_test_pass(0xe99c);
 #endif
 
 	}
@@ -4146,7 +5094,7 @@ execute:
     }
   }
 #ifdef RAWDEBUG
-  raw_test_pass(0xe999);
+  raw_test_pass(0xe99d);
 #endif
 }
 

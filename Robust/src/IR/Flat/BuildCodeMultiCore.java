@@ -288,7 +288,6 @@ public class BuildCodeMultiCore extends BuildCode {
       outstructs.println("#define NUMCORES "+this.coreNum);
       /* Record number of core containing startup task */
       outstructs.println("#define STARTUPCORE "+this.startupcorenum);
-      //outstructs.println("#define STARTUPCORESTR \""+this.startupcorenum+"\"");
     }     //else if (state.main!=null) {
           /* Generate main method */
           // outputMainMethod(outmethod);
@@ -642,6 +641,7 @@ public class BuildCodeMultiCore extends BuildCode {
     output.println("#ifdef RAWPATH");
     output.println("raw_test_pass(0xAAAA);");
     output.println("raw_test_pass_reg(tmpsum);");
+	//output.println("raw_test_pass(raw_get_cycle());"); 
     output.println("#endif");
     output.println("#ifdef RAWDEBUG");
     output.println("raw_test_pass(0xAAAA);");
@@ -1273,11 +1273,6 @@ public class BuildCodeMultiCore extends BuildCode {
 
   protected void outputTransCode(PrintWriter output) {
     output.println("while(0 == isEmpty(totransobjqueue)) {");
-    //output.println("   struct QueueItem * totransitem = getTail(totransobjqueue);");
-    //output.println("   transferObject((struct transObjInfo *)(totransitem->objectptr));");
-    //output.println("   RUNFREE(((struct transObjInfo *)(totransitem->objectptr))->queues);");
-    //output.println("   RUNFREE(totransitem->objectptr);");
-    //output.println("   removeItem(totransobjqueue, totransitem);");
     output.println("   struct transObjInfo * totransobj = (struct transObjInfo *)(getItem(totransobjqueue));");
     output.println("   transferObject(totransobj);");
     output.println("   RUNFREE(totransobj->queues);");
@@ -1461,15 +1456,25 @@ public class BuildCodeMultiCore extends BuildCode {
     // create locks
     if(numlock > 0) {
       output.println("int aliaslocks[" + numlock + "];");
-      output.println("int tmpi = 0;");
-      output.println("for(tmpi = 0; tmpi < " + numlock + "; tmpi++) {");
-      output.println("  aliaslocks[tmpi] = (int)(RUNMALLOC(sizeof(int)));");
-      output.println("  *(int *)(aliaslocks[tmpi]) = 0;");
-      output.println("}");
+      output.println("int tmpi = 0;");      
       // associate locks with parameters
       int lockindex = 0;
       for(int i = 0; i < this.m_aliasSets.size(); i++) {
 	Vector<Integer> toadd = this.m_aliasSets.elementAt(i);
+	
+	output.print("int tmplen_" + lockindex + " = 0;");
+	output.println("void * tmpptrs_" + lockindex + "[] = {");
+	for(int j = 0; j < toadd.size(); j++) {
+	    int para = toadd.elementAt(j).intValue();
+	    output.print(super.generateTemp(fm, fm.getParameter(para), lb));
+	    if(j < toadd.size() - 1) {
+		output.print(", ");
+	    } else {
+		output.println("};");
+	    }
+	}
+	output.println("aliaslocks[tmpi++] = getAliasLock(tmpptrs_" + lockindex + ", tmplen_" + lockindex + ", lockRedirectTbl);");
+	
 	for(int j = 0; j < toadd.size(); j++) {
 	  int para = toadd.elementAt(j).intValue();
 	  output.println("addAliasLock("  + super.generateTemp(fm, fm.getParameter(para), lb) + ", aliaslocks[" + i + "]);");
@@ -1491,9 +1496,14 @@ public class BuildCodeMultiCore extends BuildCode {
 	}
 	lockindex++;
       }
+      
       Object[] key = this.m_aliasFNTbl4Para.keySet().toArray();
       for(int i = 0; i < key.length; i++) {
 	int para = ((Integer)key[i]).intValue();
+
+	output.println("void * tmpptrs_" + lockindex + "[] = {" + super.generateTemp(fm, fm.getParameter(para), lb) + "};");
+	output.println("aliaslocks[tmpi++] = getAliasLock(tmpptrs_" + lockindex + ", 1, lockRedirectTbl);");
+	
 	output.println("addAliasLock(" + super.generateTemp(fm, fm.getParameter(para), lb) + ", aliaslocks[" + lockindex + "]);");
 	Vector<FlatNew> tmpv = this.m_aliasFNTbl4Para.get(para);
 	for(int j = 0; j < tmpv.size(); j++) {
@@ -1508,11 +1518,15 @@ public class BuildCodeMultiCore extends BuildCode {
 	}
 	lockindex++;
       }
+      
       // check m_aliasFNTbl for locks associated with FlatNew nodes
       Object[] FNkey = this.m_aliasFNTbl.keySet().toArray();
       for(int i = 0; i < FNkey.length; i++) {
 	FlatNew fn = (FlatNew)FNkey[i];
 	Vector<FlatNew> tmpv = this.m_aliasFNTbl.get(fn);
+	
+	output.println("aliaslocks[tmpi++] = (int)(RUNMALLOC(sizeof(int)));");
+	
 	if(this.m_aliaslocksTbl4FN == null) {
 	  this.m_aliaslocksTbl4FN = new Hashtable<FlatNew, Vector<Integer>>();
 	}
@@ -1540,7 +1554,6 @@ public class BuildCodeMultiCore extends BuildCode {
 	output.println("return "+generateTemp(fm, frn.getReturnTemp(), lb)+";");
     } else {
       if(fm.getTask() != null) {
-	//output.println("flushAll();");
 	output.println("#ifdef RAW");
 	output.println("raw_user_interrupts_off();");
 	output.println("#ifdef RAWDEBUG");
