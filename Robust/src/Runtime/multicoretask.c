@@ -498,14 +498,9 @@ void run(void* arg) {
       if(grount == 1) {
 	int k = 0;
 	// flush the object
+#ifdef RAWCACHEFLUSH
 	raw_invalidate_cache_range((int)obj, classsize[((struct ___Object___ *)obj)->type]);
-	/*if(RuntimeHashcontainskey(objRedirectLockTbl, (int)obj)) {
-		int redirectlock = 0;
-		RuntimeHashget(objRedirectLockTbl, (int)obj, &redirectlock);
-		((struct ___Object___ *)obj)->lock = redirectlock;
-		raw_flush_cache_range((int)obj, classsize[((struct ___Object___ *)obj)->type]);
-		RuntimeHashremovekey(objRedirectLockTbl, (int)obj);
-	}*/
+#endif
 	// enqueue the object
 	for(k = 0; k < objInfo->length; ++k) {
 	  int taskindex = objInfo->queues[2 * k];
@@ -856,7 +851,7 @@ void createstartupobject(int argc, char ** argv) {
   /* Set initialized flag for startup object */
   flagorandinit(startupobject,1,0xFFFFFFFF);
   enqueueObject(startupobject, NULL, 0);
-#ifdef RAW
+#ifdef RAWCACHEFLUSH
   raw_flush_entire_cache();
 #endif
 }
@@ -4731,6 +4726,7 @@ newtask:
 #endif
 
 	// flush the object
+#ifdef RAWCACHEFLUSH
 	{
 	  raw_invalidate_cache_range((int)parameter, classsize[((struct ___Object___ *)parameter)->type]);
 	}
@@ -4745,6 +4741,7 @@ newtask:
 	}*/
 #ifdef INTERRUPT
 		  raw_user_interrupts_on();
+#endif
 #endif
 #endif
 	tmpparam = (struct ___Object___ *)parameter;

@@ -680,7 +680,7 @@ public class BuildCodeMultiCore extends BuildCode {
 	super.generateFlatNode(fm, lb, current_node, output);
 	if (current_node.kind()!=FKind.FlatReturnNode) {
 	  //output.println("   flushAll();");
-	  output.println("#ifdef RAW");
+	  output.println("#ifdef RAWCACHEFLUSH");
 	  output.println("raw_user_interrupts_off();");
 	  output.println("#ifdef RAWDEBUG");
 	  output.println("raw_test_pass(0xec00);");
@@ -1554,7 +1554,7 @@ public class BuildCodeMultiCore extends BuildCode {
 	output.println("return "+generateTemp(fm, frn.getReturnTemp(), lb)+";");
     } else {
       if(fm.getTask() != null) {
-	output.println("#ifdef RAW");
+	output.println("#ifdef RAWCACHEFLUSH");
 	output.println("raw_user_interrupts_off();");
 	output.println("#ifdef RAWDEBUG");
 	output.println("raw_test_pass(0xec00);");
