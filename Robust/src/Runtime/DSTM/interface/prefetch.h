@@ -6,6 +6,9 @@
 #define GET_STRIDE(x) ((x & 0x7000) >> 12)
 #define GET_RANGE(x) (x & 0x0fff)
 #define GET_STRIDEINC(x) ((x & 0x8000) >> 15)
+#define GET_OID(x) ((int *) (x))
+#define GET_NUM_OFFSETS(x) ((short *) (x + sizeof(unsigned int)))
+#define GET_OFFSETS(x) ((short *) (x + sizeof(unsigned int) + sizeof(short)))
 
 /****** Global structure **********/
 typedef struct objOffsetPile {
@@ -35,12 +38,11 @@ proPrefetchQ_t prefetchQ;
 void proPrefetchQDealloc(perMcPrefetchList_t *);
 
 /******** Process Queue Element functions ***********/
-//void rangePrefetch(int, int, unsigned int *, unsigned short *, short *offset);
 void rangePrefetch(unsigned int, short, short *);
 void *transPrefetchNew();
 perMcPrefetchList_t* checkIfLocal(char *ptr);
 int isOidAvail(unsigned int oid);
-int lookForObjs(int*, short *, int *, int *, int *);
+int lookForObjs(int*, short *, int *, int *, int *, int *);
 void insertPrefetch(int, unsigned int, short, short*, perMcPrefetchList_t **);
 void sendRangePrefetchReq(perMcPrefetchList_t *, int sd);
 

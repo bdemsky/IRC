@@ -11,6 +11,7 @@
 #include "addPrefetchEnhance.h"
 #include "gCollect.h"
 #include "dsmlock.h"
+#include "prefetch.h"
 #ifdef COMPILER
 #include "thread.h"
 #endif
@@ -280,9 +281,15 @@ void transInit() {
 
   //Create the primary prefetch thread
   int retval;
+#ifdef RANGEPREFETCH
+  do {
+    retval=pthread_create(&tPrefetch, NULL, transPrefetchNew, NULL);
+  } while(retval!=0);
+#else
   do {
     retval=pthread_create(&tPrefetch, NULL, transPrefetch, NULL);
   } while(retval!=0);
+#endif
   pthread_detach(tPrefetch);
 #endif
 }

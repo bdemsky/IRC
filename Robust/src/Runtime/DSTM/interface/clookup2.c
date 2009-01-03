@@ -45,7 +45,7 @@ void chashInsert(chashtable_t *table, unsigned int key, void *val) {
   }
   index=(key &table->mask)>>1;
   while(1) {
-    node = & table->table[index];
+    node = &table->table[index];
     if (node->ptr==NULL) {
       node->ptr=val;
       node->key=key;
@@ -64,7 +64,7 @@ INLINE void * chashSearch(chashtable_t *table, unsigned int key) {
   struct chashentry *node;
   unsigned int ckey;
   while(1) {
-    node = & table->table[tmp];
+    node = &table->table[tmp];
     ckey=node->key;
     if (ckey==key)
       return node->ptr;
@@ -98,12 +98,12 @@ void chashResize(chashtable_t *table, unsigned int newsize) {
   table->numelements = 0;
 
   for(i = 0; i < oldsize; i++) {                        //Outer loop for each bin in hash table
-    curr=& ptr[i];
+    curr=&ptr[i];
     key=curr->key;
     if (key != 0) {
       bin=(key&mask)>>1;
       while(1) {
-	newnode= & table->table[bin];
+	newnode= &table->table[bin];
 	if (newnode->key==0) {
 	  newnode->key=key;
 	  newnode->ptr=curr->ptr;
