@@ -218,6 +218,9 @@ EXTRAOPTIONS="$EXTRAOPTIONS -DDEBUG"
 elif [[ $1 = '-dsmcaching' ]]
 then
 EXTRAOPTIONS="$EXTRAOPTIONS -DCACHE"
+elif [[ $1 = '-rangeprefetch' ]]
+then
+EXTRAOPTIONS="$EXTRAOPTIONS -DRANGEPREFETCH"
 elif [[ $1 = '-nooptimize' ]]
 then
 EXTRAOPTIONS="$EXTRAOPTIONS -O0"

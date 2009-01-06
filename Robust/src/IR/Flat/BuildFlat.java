@@ -400,7 +400,7 @@ public class BuildFlat {
     FlatNode first=null;
     FlatNode last=null;
     TempDescriptor src_tmp = src_tmp=an.getSrc()==null ? TempDescriptor.tempFactory("srctmp",an.getDest().getType()) : TempDescriptor.tempFactory("srctmp",an.getSrc().getType());
-    
+
     //Get src value
     if (an.getSrc()!=null) {
       NodePair np_src=flattenExpressionNode(an.getSrc(),src_tmp);
@@ -662,7 +662,7 @@ public class BuildFlat {
 	    fon.addNext(fon2);
 	    last=fon2;
 	  }
-      return new NodePair(first, last);
+	  return new NodePair(first, last);
 	} //end of else
       }
     }

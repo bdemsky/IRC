@@ -108,16 +108,22 @@ void CALL00(___System______clearPrefetchCache____) {
   prehashClear();
 }
 
-void CALL12(___System______rangePrefetch____L___Object____S__AR_S, struct ___Object___ * ___o___, short ___numoffset___, struct ArrayObject * ___offsets___) {
+void CALL02(___System______rangePrefetch____L___Object_____AR_S, struct ___Object___ * ___o___, struct ArrayObject * ___offsets___) {
   /* Manual Prefetches to be inserted */
-  unsigned int oid;
-  oid = ((int *) VAR(___o___))[0];
+  //printf("DEBUG-> %s() ___Object___ * ___o___ = %x\n", __func__, VAR(___o___));
+  //printf("DEBUG-> %s() ArrayObject * = %x\n", __func__, VAR(___offsets___));
   int numoffset=VAR(___offsets___)->___length___;
   int i;
   short offArry[numoffset];
   for(i = 0; i<numoffset; i++) {
     offArry[i] = *((short *)(((char *)&VAR(___offsets___)->___length___) + sizeof(int) + i * sizeof(short)));
-    //printf("Testing-> offArry[%d] = %d\n", i, offArry[i]);
+    //printf("DEBUG-> offArry[%d] = %d\n", i, offArry[i]);
+  }
+  unsigned int oid;
+  if(((unsigned int)(VAR(___o___)) & 1) != 0) { //odd
+    oid =  (unsigned int) VAR(___o___); //outside transaction therefore just an oid
+  } else { //even
+    oid = (unsigned int) COMPOID(VAR(___o___)); //inside transaction therefore a pointer to oid
   }
   rangePrefetch(oid, (short)numoffset, offArry);
 }
