@@ -245,17 +245,19 @@ public class Thread extends java.lang.Thread {
     ThreadState threadState = _threadState.get();
     ContentionManager manager = threadState.manager;
     T result = null;
+   // System.out.println(Thread.currentThread() + " astarted the transaction");
     boolean flag = false;
     try {
       while (true) {
         threadState.beginTransaction();
-
+     //   System.out.println(Thread.currentThread() + " offically started the transaction");
        /////For Integrating with IO////////// 
         Wrapper.Initialize(Thread.getTransaction());
+      //  System.out.println(Thread.currentThread() + " even more offically started the transaction");
        ////////////////////////////////////// 
         try {
           result = xaction.call();
-          
+      //     System.out.println(Thread.currentThread() + " aborted in committing");
       //  } catch (AbortedException d) {
           /*  synchronized(benchmark.lock){
                 System.out.println(Thread.currentThread() + " aborted in committing");
@@ -268,19 +270,11 @@ public class Thread extends java.lang.Thread {
       //    e.printStackTrace();
        //   throw new PanicException("Unhandled exception " + e);
        // }
-        threadState.totalMemRefs += threadState.transaction.memRefs;
-        threadState.transaction.attempts++;
-         /*synchronized(benchmark.lock){
-                    System.out.println(Thread.currentThread() + " ghabl az try");
-                }*/
-       // try{
-            
-                
-            //    if (!flag)
-                    Wrapper.prepareIOCommit();
-                /* synchronized(benchmark.lock){
-                    System.out.println(Thread.currentThread() + " to try");
-                }*/
+            threadState.totalMemRefs += threadState.transaction.memRefs;
+            threadState.transaction.attempts++;
+     
+            Wrapper.prepareIOCommit();
+
         ///////////////////////////////
         
                 if (threadState.commitTransaction()) {
@@ -292,16 +286,15 @@ public class Thread extends java.lang.Thread {
         }
         catch(AbortedException ex){
             threadState.depth--;
-         ///   synchronized(benchmark.lock){
-            //    System.out.println(Thread.currentThread() + " aborted in committing");
-            //}
-         
+          //  System.out.println("aborted");
+           // Wrapper.getTransaction().unlockAllLocks();
         }
         catch (Exception e) {
           e.printStackTrace();
           throw new PanicException("Unhandled exception " + e);
         }
         finally{
+            
             
             Wrapper.getTransaction().unlockAllLocks();
             if  (flag == true)
@@ -325,7 +318,9 @@ public class Thread extends java.lang.Thread {
       totalTotal += threadState.total;
       threadState.reset();  // set up for next iteration
     }
-    throw new GracefulException();
+    if (result == null)
+        throw new GracefulException();
+    else return result;
   }
   /**
    * Execute transaction
