@@ -38,7 +38,7 @@ import java.util.logging.Logger;
  */
 public class ExtendedTransaction implements TransactionStatu {
 
-    private native int nativepwrite(byte buff[], long offset, int size, FileDescriptor fd);
+    private static native int nativepwrite(byte buff[], long offset, int size, FileDescriptor fd);
     
 
     {
@@ -73,6 +73,13 @@ public class ExtendedTransaction implements TransactionStatu {
     private ContentionManager contentionmanager;
     private volatile Status status;
     private int id;
+    
+    
+    public ReentrantLock[] toholoffsetlocks;
+    public int offsetcount = 0;
+    
+    public Lock[] toholdblocklocks;
+    public int blockcount = 0;
 
     public ExtendedTransaction() {
         //  super();
@@ -97,7 +104,7 @@ public class ExtendedTransaction implements TransactionStatu {
         this.memorystate = memorystate;
     }
 
-    private int invokeNativepwrite(byte buff[], long offset, int size, RandomAccessFile file) {
+    public static int invokeNativepwrite(byte buff[], long offset, int size, RandomAccessFile file) {
         try {
             return nativepwrite(buff, offset, buff.length, file.getFD());
         } catch (IOException ex) {
@@ -203,24 +210,40 @@ public class ExtendedTransaction implements TransactionStatu {
 
     public boolean lockOffsets() {   /// Locking offsets for File Descriptors
 
-
+      //  toholoffsetlocks = new ReentrantLock[30];
+        
         TreeMap hm = getSortedFileAccessMap(AccessedFiles);
         Iterator iter = hm.keySet().iterator();
-        
+        offsetcount = 0;
         while (iter.hasNext() && (this.getStatus() == Status.ACTIVE)) {
             INode key = (INode) iter.next();
             Vector vec = (Vector) AccessedFiles.get(key);
+            
+       /*     if (vec.size() == 1){
+                TransactionalFile tf = ((TransactionalFile)vec.firstElement());
+                tf.offsetlock.lock();
+             //   toholoffsetlocks[offsetcount] = tf.offsetlock;
+            //   offsetcount++;
+                heldoffsetlocks.add(tf.offsetlock);
+                continue;
+            }*/
+            
             Collections.sort(vec);
             Iterator it = vec.iterator();
-            while (it.hasNext() && this.getStatus() == Status.ACTIVE) {
+            while (it.hasNext() /*&& this.getStatus() == Status.ACTIVE*/) {
                 TransactionalFile value = (TransactionalFile) it.next();
-                value.offsetlock.lock();
+               value.offsetlock.lock();
+             //   toholoffsetlocks[offsetcount] = value.offsetlock;
+            //    offsetcount++;
                 heldoffsetlocks.add(value.offsetlock);
                 break;
             }
         }
 
         if (this.getStatus() != Status.ACTIVE) {
+         //   for (int j=0; j<offsetcount; j++){
+         //       heldoffsetlocks.add(toholoffsetlocks[j]);
+         //   }
             return false;
         }
         return true;
@@ -237,6 +260,8 @@ public class ExtendedTransaction implements TransactionStatu {
         }
         
         lock.lock();
+      //  toholdblocklocks[blockcount] = lock;
+      //  blockcount++;
         heldblocklocks.add(lock);
         return true;
        
@@ -308,10 +333,11 @@ public class ExtendedTransaction implements TransactionStatu {
 
         }
         
+        //toholdblocklocks = new Lock[100];
         
         Iterator it = this.getAccessedBlocks().keySet().iterator();
         BlockDataStructure[] blocks = new BlockDataStructure[100];
-        if (this.getStatus() == Status.ACTIVE)
+        //if (this.getStatus() == Status.ACTIVE)
             while (it.hasNext() /*&& (this.getStatus() == Status.ACTIVE)*/) {
                 INode inode = (INode) it.next();
                 GlobalINodeState inodestate = TransactionalFileWrapperFactory.getTateransactionalFileINodeState(inode);
@@ -327,7 +353,8 @@ public class ExtendedTransaction implements TransactionStatu {
             }
 
         if (this.getStatus() != Status.ACTIVE) {
-
+        //    for (int i=0; i<blockcount; i++)
+        //        heldblocklocks.add(toholdblocklocks[i]); 
             throw new AbortedException();
         }
         abortAllReaders();
@@ -341,7 +368,7 @@ public class ExtendedTransaction implements TransactionStatu {
         Iterator it;
         WriteOperations writeop;
         Vector vec;
-        while (iter.hasNext() && (this.getStatus() == Status.ACTIVE)) {
+        while (iter.hasNext()) {
             INode key = (INode) iter.next();
 
             vec = (Vector) hm.get(key);
@@ -366,6 +393,14 @@ public class ExtendedTransaction implements TransactionStatu {
             TransactionalFile trf = (TransactionalFile) (k.next());
             trf.getCommitedoffset().setOffsetnumber(((TransactionLocalFileAttributes) GlobaltoLocalMappings.get(trf)).getLocaloffset());
         }
+        
+        
+      /*  for (int i =0; i<blockcount; i++){
+            toholdblocklocks[i].unlock();
+        }
+        for (int i =0; i<offsetcount; i++){
+            toholoffsetlocks[i].unlock();
+        }*/
     }
 
     public void unlockAllLocks() {
@@ -376,14 +411,14 @@ public class ExtendedTransaction implements TransactionStatu {
             Lock lock = (Lock) it.next();
             lock.unlock();
         }
-   //     heldblocklocks.clear();
+        heldblocklocks.clear();
 
         it = heldoffsetlocks.iterator();
         while (it.hasNext()) {
             ReentrantLock lock = (ReentrantLock) it.next();
             lock.unlock();
         }
-    //    heldoffsetlocks.clear();
+        heldoffsetlocks.clear();
     }
 
     public void abortAllReaders() {
