@@ -6,6 +6,7 @@
 #include "mlookup.h"
 #include "llookup.h"
 #include "threadnotify.h"
+#include "prefetch.h"
 #ifdef COMPILER
 #include "thread.h"
 #endif
@@ -184,17 +185,31 @@ void *dstmAccept(void *acceptfd) {
       break;
 
     case TRANS_PREFETCH:
+#ifdef RANGEPREFETCH
+      if((val = rangePrefetchReq((int)acceptfd)) != 0) {
+	printf("Error: In rangePrefetchReq() %s, %d\n", __FILE__, __LINE__);
+	break;
+      }
+#else
       if((val = prefetchReq((int)acceptfd)) != 0) {
 	printf("Error: In prefetchReq() %s, %d\n", __FILE__, __LINE__);
 	break;
       }
+#endif
       break;
 
     case TRANS_PREFETCH_RESPONSE:
+#ifdef RANGEPREFETCH
+      if((val = getRangePrefetchResponse((int)acceptfd)) != 0) {
+	printf("Error: In getRangePrefetchRespose() %s, %d\n", __FILE__, __LINE__);
+	break;
+      }
+#else
       if((val = getPrefetchResponse((int) acceptfd)) != 0) {
 	printf("Error: In getPrefetchResponse() %s, %d\n", __FILE__, __LINE__);
 	break;
       }
+#endif
       break;
 
     case START_REMOTE_THREAD:
