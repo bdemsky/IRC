@@ -1,5 +1,5 @@
 #!/bin/bash
-if [ -n $DISABLEAFID ]
+if [ -n ${DISABLEAFID:-""} ]
 then
 javac $@
 else
@@ -9,12 +9,13 @@ if [ -z $OLDPATH ]
 then
 export OLDPATH=$PATH
 export PATH=$PATH:~/.AFID/
-if [ ! -a ~/research/Robust/.afidconfig ]
+if [ ! -e ~/research/Robust/.afidconfig ]
 then
 echo "project=Compiler" > ~/research/Robust/.afidconfig
 echo "user=$USER" >> ~/research/Robust/.afidconfig
 echo "text/visual=visual" >> ~/research/Robust/.afidconfig
 echo "postURL=http://afid.eecs.uci.edu/afid/upload_file.php" >> ~/research/Robust/.afidconfig
+echo "backgroundSVN=false" >> ~/research/Robust/.afidconfig
 ~/.AFID/SaveTestCase --create-exclude-file
 fi
 ~/.AFID/FindSource javac $@
