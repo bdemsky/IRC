@@ -41,13 +41,17 @@ void proPrefetchQDealloc(perMcPrefetchList_t *);
 void rangePrefetch(unsigned int, short, short *);
 void *transPrefetchNew();
 perMcPrefetchList_t* checkIfLocal(char *ptr);
-int isOidAvail(unsigned int oid);
 int lookForObjs(int*, short *, int *, int *, int *, int *);
 void insertPrefetch(int, unsigned int, short, short*, perMcPrefetchList_t **);
 
 /******** Sending and Receiving Prefetches *******/
 void sendRangePrefetchReq(perMcPrefetchList_t *, int sd);
 int rangePrefetchReq(int acceptfd);
+int processOidFound(objheader_t *, short *, int, int, int);
+int processArrayOids(short *, objheader_t *, int *, int);
+int findOidinStride(short *,  struct ArrayObject *, int, int, int, int, int, int);
+int sendOidFound(unsigned int, int);
+int processLinkedListOids(short *, objheader_t *, int *, int);
 int getRangePrefetchResponse(int sd);
 
 /************* Internal functions *******************/

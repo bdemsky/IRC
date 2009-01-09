@@ -296,6 +296,7 @@ void *transPrefetch(void *);
 void *mcqProcess(void *);
 prefetchpile_t *foundLocal(char *); // returns node with prefetch elements(oids, offsets)
 int lookupObject(unsigned int * oid, short offset);
+int checkoid(unsigned int oid);
 int transPrefetchProcess(transrecord_t *, int **, short);
 void sendPrefetchReq(prefetchpile_t*, int);
 void sendPrefetchReqnew(prefetchpile_t*, int);

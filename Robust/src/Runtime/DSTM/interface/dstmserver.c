@@ -825,10 +825,10 @@ int prefetchReq(int acceptfd) {
 	  control = TRANS_PREFETCH_RESPONSE;
 	  sendPrefetchResponse(sd, &control, sendbuffer, &size);
 	}
-      }
+      } //end of for
     }
-  }
-  //Release socket
+  } //end of while
+   //Release socket
   if (mid!=-1)
     freeSockWithLock(transPResponseSocketPool, mid, sd);
 
