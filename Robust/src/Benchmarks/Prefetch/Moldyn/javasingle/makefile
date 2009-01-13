@@ -3,9 +3,11 @@ SRC=${MAINCLASS}.java \
 JGFInstrumentor.java \
 JGFTimer.java \
 JGFMolDynBench.java \
-Barrier.java
+DoubleWrapper.java \
+IntWrapper.java \
+MDWrap.java
 
-FLAGS2= -thread -optimize -mainclass ${MAINCLASS} -o ${MAINCLASS}NP
+FLAGS2= -thread -optimize -mainclass ${MAINCLASS} -o ${MAINCLASS}
 
 default:
 	../../../../buildscript ${FLAGS2} ${SRC}
