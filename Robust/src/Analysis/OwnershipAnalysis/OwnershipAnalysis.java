@@ -392,7 +392,7 @@ public class OwnershipAnalysis {
       // If there is a change detected, add any methods/tasks
       // that depend on this one to the "to visit" set.
 
-      //System.out.println("Analyzing " + mc);
+      System.out.println("Analyzing " + mc);
 
       Descriptor d = mc.getDescriptor();
       FlatMethod fm;
