@@ -52,7 +52,6 @@ public class MatrixMultiply extends Thread{
 	}
 	
 	int[] mid = new int[8];
-	int[] mid = new int[8];
 	mid[0] = (128<<24)|(195<<16)|(136<<8)|162; //dw-10
 	mid[1] = (128<<24)|(195<<16)|(136<<8)|163; //dw-11
 	mid[2] = (128<<24)|(195<<16)|(136<<8)|164; //dw-12
