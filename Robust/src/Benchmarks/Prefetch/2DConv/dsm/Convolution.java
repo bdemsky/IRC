@@ -101,7 +101,7 @@ public class Convolution extends Thread {
       }
       tmp.join();
     }
-    System.printString("Done!");
+    System.printString("2DConv Done!\n");
 
     /*
     atomic{
