@@ -1,7 +1,9 @@
 MAINCLASS=MatrixMultiply
-SRC=${MAINCLASS}.java
+SRC1=${MAINCLASS}N.java
+SRC2=${MAINCLASS}Nrun.java
 default:
-	../../../../buildscript -optimize -thread -debug -mainclass ${MAINCLASS} ${SRC} -o ${MAINCLASS}
+	../../../../buildscript -thread -optimize -mainclass ${MAINCLASS} ${SRC1} -o ${MAINCLASS}
+	../../../../buildscript -thread -optimize -mainclass ${MAINCLASS} ${SRC2} -o ${MAINCLASS}N
 
 clean:
 	rm -rf tmpbuilddirectory
