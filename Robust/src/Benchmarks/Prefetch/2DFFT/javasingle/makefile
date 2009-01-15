@@ -1,7 +1,9 @@
-MAINCLASS=FFT2d
-SRC=${MAINCLASS}.java FFT1d.java
+MAINCLASS=fft2d
+SRC=${MAINCLASS}.java \
+	fft1d.java \
+	Matrix.java
 default:
-	../../../../buildscript -optimize -thread -debug -mainclass ${MAINCLASS} ${SRC} -o ${MAINCLASS}
+	../../../../buildscript -thread -optimize -mainclass ${MAINCLASS} ${SRC} -o ${MAINCLASS}
 
 clean:
 	rm -rf tmpbuilddirectory
