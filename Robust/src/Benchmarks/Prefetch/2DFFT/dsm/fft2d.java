@@ -23,7 +23,7 @@ public class fft2d extends Thread {
   public void run() {
     fft1d fft1, fft2;
     Barrier barr;
-    barr = new Barrier("128.195.175.84");
+    barr = new Barrier("128.195.136.162");
     double tempdataRe[][];
     double tempdataIm[][];
     int rowlength, columnlength;
