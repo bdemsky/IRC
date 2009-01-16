@@ -9,6 +9,7 @@ TOPDIR=`pwd`
 function run {
   i=0;
   DIR=`pwd`
+  HOSTNAME=`hostname`
   while [ $i -lt $1 ]; do
     echo "$DIR" > ~/.tmpdir
     echo "bin=$3" > ~/.tmpvars
@@ -16,7 +17,9 @@ function run {
     MACHINES=''
     for j in $MACHINELIST; do
       if [ $ct -lt $2 ]; then
-         MACHINES='$MACHINES $j'
+        if [ "$j" != "$HOSTNAME" ]; then
+          MACHINES="$MACHINES $j"
+        fi
       fi
       let ct=$ct+1
     done
@@ -49,7 +52,7 @@ function run {
       echo ""
     done
     sleep 2
-    /usr/bin/time -f "%e" ./$3 master $arg 2>> ${LOGDIR}/${3}_${EXTENSION}.txt
+    /usr/bin/time -f "%e" ./$3 master $arg 2>> ${LOGDIR}/${2}Thrd_${3}_${EXTENSION}.txt
     echo "Terminating ... "
     for machine in `echo $MACHINES`
     do
@@ -88,7 +91,7 @@ function localrun {
   i=0;
   while [ $i -lt $1 ]; do
     /usr/bin/time -f "%e" ./${NONPREFETCH_NONCACHE} master $ARGS1 2>> ${LOGDIR}/${NONPREFETCH_NONCACHE}_local_${EXTENSION}.txt
-    sleep 4
+    sleep 2
     i=`expr $i + 1`
   done
 }
@@ -101,7 +104,7 @@ function callrun {
   cd $BMDIR 
 
   echo "---------- Running local $BMDIR non-prefetch on 1 machine ---------- "
-  localrun 10
+  localrun 1
 
   echo "---------- Running single thread remote $BMDIR non-prefetch + non-cache on 2 machines ---------- "
 #  oneremote 1 1 $NONPREFETCH_NONCACHE
@@ -114,12 +117,31 @@ function callrun {
 for count in 2 3 4 5 6 7 8
 do
 echo "------- Running $count threads $BMDIR non-prefetch + non-cache on $count machines -----"
-run 10 $count $NONREFETCH_NONCACHE
+run 1 $count $NONPREFETCH_NONCACHE
 echo "------- Running $count threads $BMDIR prefetch on $count machines -----"
-run 10 $count $PREFETCH
+run 1 $count $PREFETCH
 done
 
 cd $TOPDIR
+}
+
+function callrunjavasingle {
+  JAVASINGLE=${BENCHMARK}.bin
+  cd $BMDIR
+  cd ../javasingle
+
+  echo "-----------Running javasingle for ${BENCHMARK} version ${EXTENSION} on 1 machines ------------"
+  javasinglerun 1
+  cd $TOPDIR
+}
+
+function javasinglerun {
+  i=0;
+  while [ $i -lt $1 ]; do
+    /usr/bin/time -f "%e" ./${BENCHMARK}.bin $ARGS1 2>> ${LOGDIR}/${BENCHMARK}_javasingle_${EXTENSION}.txt
+    sleep 2
+    i=`expr $i + 1`
+  done
 }
 
 function callmicrorun {
@@ -138,13 +160,10 @@ function callmicrorun {
   cd $TOPDIR
 }
 
-#benchmarks='em3dver10000100015'
-#benchmarks='sorverD'
-#benchmarks='10242dconv'
-benchmarks='1152fft2d 1600fft2d 40962dconv 20482dconv mmver600 moldynverA'
+benchmarks='1152fft2d 40962dconv 20482dconv 600mmver moldynverA'
 
 echo "---------- Clean old files ---------- "
-#rm runlog/*
+rm runlog/*
 for b in `echo $benchmarks`
 do
   bm=`grep $b bm.txt`
@@ -165,6 +184,7 @@ do
   callmicrorun
   else
   callrun
+  callrunjavasingle
   fi
 done
 
