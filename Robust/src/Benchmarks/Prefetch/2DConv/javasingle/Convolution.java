@@ -75,7 +75,7 @@ public class Convolution {
 
     //System.printString("img.outputImage[10][20] = " +(int) img.outputImage[10][20] + "\n");
     //System.printString("img.outputImage[256][890] = " +(int) img.outputImage[256][890] + "\n");
-    System.printString("Done!");
+    System.printString("2DConv Done!\n");
   }
 
   //define 5X5 Gaussian kernel
