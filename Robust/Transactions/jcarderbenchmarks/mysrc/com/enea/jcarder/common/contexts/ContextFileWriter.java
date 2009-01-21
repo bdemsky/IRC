@@ -31,7 +31,8 @@ import com.enea.jcarder.common.LockingContext;
 import com.enea.jcarder.transactionalinterfaces.Bool;
 import com.enea.jcarder.transactionalinterfaces.Intif;
 import com.enea.jcarder.transactionalinterfaces.bytebuffer;
-import com.enea.jcarder.transactionalinterfaces.bytebuffer.byteholder;
+import com.enea.jcarder.transactionalinterfaces.jcbuffer;
+import com.enea.jcarder.util.Counter;
 import com.enea.jcarder.util.logging.Logger;
 import dstm2.Init;
 import dstm2.atomic;
@@ -49,50 +50,51 @@ import java.util.logging.Level;
 public final class ContextFileWriter
 implements ContextWriterIfc {
    
-    private final FileChannel mChannel;
-    private int mNextFilePosition = 0;
+//    private final FileChannel mChannel;
+//    private int mNextFilePosition = 0;
     private final Logger mLogger;
-    private ByteBuffer mBuffer;// = ByteBuffer.allocateDirect(8192);
-    private byte[] data;
+//    private ByteBuffer mBuffer = ByteBuffer.allocateDirect(8192);
     RandomAccessFile raFile;
-    
+//    byte[] data;
+   
+    //private jcbuffer mbuff;
+    //byteholder[] bytes;
     
     private bytebuffer mbuff;
-    private Intif filePosition;
     private Intif test;
     private Bool ShutdownHookExecuted; 
     
     TransactionalFile trraFile;
     
     
-    private boolean mShutdownHookExecuted = false;
+ //   private boolean mShutdownHookExecuted = false;
 
     public ContextFileWriter(Logger logger, File file) throws IOException {
-        System.out.println("d");
         mbuff = new bytebuffer();
+   //     mbuff = new jcbuffer();
         mbuff.allocateDirect(8192);
-        filePosition = new Intif();
-        filePosition.init();
+
         test = new Intif();
         test.init();
         ShutdownHookExecuted = new Bool();
         ShutdownHookExecuted.init();
-        data = new byte[8192];
-        mBuffer = ByteBuffer.wrap(data);
+        
+//        data = new byte[8192];
+//        mBuffer = ByteBuffer.wrap(data);
         mLogger = logger;
         mLogger.info("Opening for writing: " + file.getAbsolutePath());
         raFile = new RandomAccessFile(file, "rw");
-       
-        trraFile = new TransactionalFile(file.getAbsolutePath(), "rw");
+        System.out.println(file.getAbsolutePath());
+        trraFile = new TransactionalFile(file.getPath(), "rw");
         trraFile.file.setLength(0);
-//        ShutdownHookExecuted.init();
+        ShutdownHookExecuted.init();
        
         
         raFile.setLength(0);
-        mChannel = raFile.getChannel();
+//        mChannel = raFile.getChannel();
 
         
-      //  writeHeader();
+        writeHeader();
 
         Runtime.getRuntime().addShutdownHook(new Thread() {
             public void run() { shutdownHook(); }
@@ -130,14 +132,12 @@ implements ContextWriterIfc {
     
     private void writeBuffer() throws IOException {
         mbuff.flip();
-        System.out.println(Thread.currentThread());
-        
-     //   System.out.println(mbuff.remaining());
         trraFile.write(mbuff.getBytes());
+        
         while (mbuff.hasRemaining()) {
             Thread.yield();
             trraFile.write(mbuff.getBytes());
-        }
+       }
         mbuff.clear();
     }
 
@@ -150,10 +150,16 @@ implements ContextWriterIfc {
         mBuffer.putInt(ContextFileReader.MAJOR_VERSION);
         mBuffer.putInt(ContextFileReader.MINOR_VERSION);
         mBuffer.rewind();
-        for (int i=0; i<16; i++){
-            mbuff.put(mBuffer.get());
-        }
+       // mybyte[0] =(byte)( foo >> 24 );
+       // mybyte[1] =(byte)( (foo << 8) >> 24 );
+      //  mybyte[2] =(byte)( (foo << 16) >> 24 );
+       // mybyte[3] =(byte)( (foo << 24) >> 24 );
+      //  for (int i=0; i<16; i++){
+      //      mbuff.putar(mBuffer.get());
+      //  }
+        
         //filePosition.get();
+        mbuff.put(mBuffer);
         test.increment(8+4+4);
         //filePosition.increment(8+4+4);
     }
@@ -193,42 +199,30 @@ implements ContextWriterIfc {
         mBuffer.putInt(length);
         mBuffer.put(encodedString);
         mBuffer.rewind();
-        System.out.println("---------------");
-        System.out.println("int: " + length);
-        System.out.println("str: " + encodedString);
-        System.out.println("---------------");
-        //test.increment(8+length);
+        mbuff.put(mBuffer);
         
-        //for (int i=0; i<4+length; i++)
-              //    mbuff.put(mBuffer.get());
-      //  while (mBuffer.hasRemaining())
-      //      mbuff.put(mBuffer.get());
-      //  mbuff.put(mBuffer);
-       // mbuff.put(encodedString);
-        //filePosition.get();
-       // test.increment(4+length);
-       // test.increment(4);
-        //filePosition.increment(4 + length);
+        //for (int j=0; j<4+length; j++){
+        //       mbuff.factory2.create();
+        //}
+        //mbuff.put(mBuffer.get());
+        test.increment(4+length);
+        //
+
     }
 
  
     
     private void writeInteger(int i) throws IOException {
-     //   System.out.println("int");
         assureBufferCapacity(4);
         ByteBuffer mBuffer = ByteBuffer.allocateDirect(4);
         mBuffer.putInt(i);
-        System.out.println("---------------");
-        System.out.println("int: " + i);
-        
-        
-        System.out.println("---------------");
-        for (int j=0; j<4; j++){
-          //      mbuff.put(mBuffer.get());
-        }
-       // filePosition.get();
-        //test.increment(4);
-        //filePosition.increment(4);
+        mBuffer.rewind();
+        mbuff.put(mBuffer);
+        //for (int j=0; j<4; j++){
+           // mbuff.factory2.create();
+               //mbuff.put(mBuffer.get());
+        //}
+        test.increment(4);
     }
 
   
@@ -249,41 +243,31 @@ implements ContextWriterIfc {
 
    
     
-    public int trwriteLock(Vector arg) throws IOException {
+    public int writeLock(Lock lock) throws IOException {
         int startPosition = test.get();
-        //writeString(((Lock)arg.get(0)).getClassName());
-        //writeInteger(((Lock)arg.get(0)).getObjectId());
+        writeString(lock.getClassName());
+        writeInteger(lock.getObjectId());
         
-        ByteBuffer encodedString = ContextFileReader.CHARSET.encode(((Lock)arg.get(0)).getClassName());
-        final int length = encodedString.remaining();
-        ByteBuffer mBuffer = ByteBuffer.allocateDirect(8+ length);
-        mBuffer.putInt(length);
-        mBuffer.put(encodedString);
-        mBuffer.putInt(((Lock)arg.get(0)).getObjectId());
-        mBuffer.rewind();
-      //  assureBufferCapacity(8+length);
-        for (int j=0; j<(8+length); j++){
-            byte value = mBuffer.get();
-            //if (mbuff.mbuffer.getByteHolder().get(mbuff.mbuffer.getPosition()) ==  null)
-            //    mbuff.mbuffer.getByteHolder().set(mbuff.mbuffer.getPosition(), mbuff.factory2.create());
-            AtomicArray<byteholder> ar = mbuff.mbuffer.getByteHolder();
-            byteholder bh = mbuff.factory2.create();
-            bh.setByte(value);
-            mbuff.mbuffer.getByteHolder().set(mbuff.mbuffer.getPosition(),bh);
-            mbuff.mbuffer.setPosition(mbuff.mbuffer.getPosition()+1);
-        }
-         
-        /*System.out.println("---------------");
-        System.out.println("int: " + length);
-        System.out.println("str: " + encodedString);
-        System.out.println("int: " + ((Lock)arg.get(0)).getObjectId());
-        System.out.println("---------------");*/
-        test.increment(8+length);
+     //   ByteBuffer encodedString = ContextFileReader.CHARSET.encode(((Lock)arg.get(0)).getClassName());
+     //   final int length = encodedString.remaining();
+      //  ByteBuffer mBuffer = ByteBuffer.allocateDirect(8+ length);
+     //   mBuffer.putInt(length);
+     //   mBuffer.put(encodedString);
+      //  mBuffer.putInt(((Lock)arg.get(0)).getObjectId());
+       // mBuffer.rewind();
+       // assureBufferCapacity(8+length);
+       // for (int j=0; j<(8+length); j++){
+        //    byte value = mBuffer.get();
+         //   mbuff.put(value);
+       // }
+    //    mbuff.put(mBuffer);
+       // test.increment(8+length);
         flushBufferIfNeeded();
         return startPosition;
+        
     }
     
-    public int writeLock(Lock lock) throws IOException {
+ /*   public int writeLockWrapper(Lock lock) throws IOException {
       //  System.out.println("lock");
             int result = 0;
             try{
@@ -294,7 +278,7 @@ implements ContextWriterIfc {
 		public Integer call() {
           		try {
               //              System.out.println(Thread.currentThread() + " alockborted in committing");
-                            return trwriteLock(arg);
+                            return writeLock(arg);
                           //  System.out.println(Thread.currentThread() + " NO???? alockborted in committing");
 			} catch (IOException ex) {
                             java.util.logging.Logger.getLogger(ContextFileWriter.class.getName()).log(Level.SEVERE, null, ex);
@@ -309,66 +293,52 @@ implements ContextWriterIfc {
             }finally{
                 return result;
             }
-    }
+    }*/
 
   
     
-    public  int trwriteContext(LockingContext context)
+     public int writeContext(LockingContext context)
     throws IOException {
         int startPosition = test.get();
+        writeString(context.getThreadName());
+        writeString(context.getLockReference());
+        writeString(context.getMethodWithClass());
         
-     //   writeString(context.getThreadName());
-     //   writeString(context.getLockReference());
-     //   writeString(context.getMethodWithClass());
+     //   ByteBuffer encodedString = ContextFileReader.CHARSET.encode(context.getThreadName());
+      //  final int length = encodedString.remaining();
+      //  ByteBuffer encodedString2 = ContextFileReader.CHARSET.encode(context.getLockReference());
+      //  final int length2 = encodedString2.remaining();
+     //   ByteBuffer encodedString3 = ContextFileReader.CHARSET.encode(context.getMethodWithClass());
+     //   final int length3 = encodedString3.remaining();
+      //  ByteBuffer mBuffer = ByteBuffer.allocateDirect(12+length+length2+length3);
         
-        ByteBuffer encodedString = ContextFileReader.CHARSET.encode(context.getThreadName());
-        final int length = encodedString.remaining();
-        ByteBuffer encodedString2 = ContextFileReader.CHARSET.encode(context.getLockReference());
-        final int length2 = encodedString2.remaining();
-        ByteBuffer encodedString3 = ContextFileReader.CHARSET.encode(context.getMethodWithClass());
-        final int length3 = encodedString3.remaining();
-        ByteBuffer mBuffer = ByteBuffer.allocateDirect(12+length+length2+length3);
-        
-        mBuffer.putInt(length);
-        mBuffer.put(encodedString);
-        mBuffer.putInt(length2);
-        mBuffer.put(encodedString2);
-        mBuffer.putInt(length3);
-        mBuffer.put(encodedString3);
-        mBuffer.rewind();
-    /*    System.out.println("------");
-        System.out.println("int: " + length);
-        System.out.println("str: " + encodedString);
-        System.out.println("int: " + length2);
-        System.out.println("str: " + encodedString2);
-        System.out.println("int: " + length3);
-        System.out.println("str: " + encodedString3);
-        System.out.println("------");*/
+      //  mBuffer.putInt(length);
+      //  mBuffer.put(encodedString);
+      //  mBuffer.putInt(length2);
+      //  mBuffer.put(encodedString2);
+      //  mBuffer.putInt(length3);
+      //  mBuffer.put(encodedString3);
+      //  mBuffer.rewind();
+
         
         
-      //  assureBufferCapacity(12 + length + length2 + length3);
-        for (int j=0;j<(12+length +length2 +length3);j++){
-       //     mbuff.put(mBuffer.get());
-               byte value = mBuffer.get();
-            //if (mbuff.mbuffer.getByteHolder().get(mbuff.mbuffer.getPosition()) ==  null)
-            //    mbuff.mbuffer.getByteHolder().set(mbuff.mbuffer.getPosition(), mbuff.factory2.create());
-            AtomicArray<byteholder> ar = mbuff.mbuffer.getByteHolder();
-            byteholder bh = mbuff.factory2.create();
-            bh.setByte(value);
-            mbuff.mbuffer.getByteHolder().set(mbuff.mbuffer.getPosition(),bh);
-            mbuff.mbuffer.getByteHolder().get(mbuff.mbuffer.getPosition()).setByte(value);
-            mbuff.mbuffer.setPosition(mbuff.mbuffer.getPosition()+1);
-        }
+       // assureBufferCapacity(12 + length + length2 + length3);
+       //for (int j=0;j<(12+length +length2 +length3);j++){
+       //       byte value = mBuffer.get();
+        //      mbuff.put(value);
+      // }
+     //   mbuff.put(mBuffer);
        
-        test.increment(12+length +length2 +length3);
+        //test.increment(12+length +length2 +length3);
         flushBufferIfNeeded();
         
         return startPosition;
+       // mbuff.put((byte)2);
+       // return -1;
     }
 
-   public int writeContext(LockingContext context)
+/*   public int writeContext(LockingContext context)
     {
-       
        int startPosition = -2;
        try{
         final LockingContext c = context;  
@@ -386,10 +356,22 @@ implements ContextWriterIfc {
            System.out.println(Thread.currentThread() + " context graceful exc");
        }
        finally{
-        //   System.out.println(Thread.currentThread() + " con");
+ //        System.out.println(Thread.currentThread() + " con");
+  //       Throwable t = new Throwable();
+//StackTraceElement[] es = t.getStackTrace();
+//for ( int i=0; i<es.length; i++ )
+   //{
+   //StackTraceElement e = es[i];
+   //System.out.println( " in class:" + e.getClassName()
+          //             + " in source file:" + e.getFileName()
+         //              + " in method:" + e.getMethodName()
+       //                + " at line:" + e.getLineNumber()
+     //                  + " " + ( e.isNativeMethod() ? "native" : "" ) );
+   //}
+         
         return startPosition;
        }
-    }
+    }*/
    
      private void flushBufferIfNeeded() throws IOException {
         if (ShutdownHookExecuted.isTrue()) {
@@ -397,10 +379,53 @@ implements ContextWriterIfc {
             writeBuffer();
         }
     }
+
+    public Bool getShutdownHookExecuted() {
+        return ShutdownHookExecuted;
+    }
+
+    public void setShutdownHookExecuted(Bool ShutdownHookExecuted) {
+        this.ShutdownHookExecuted = ShutdownHookExecuted;
+    }
+
+   
+
+    public bytebuffer getMbuff() {
+        return mbuff;
+    }
+
+    public void setMbuff(bytebuffer mbuff) {
+        this.mbuff = mbuff;
+    }
+
+    public RandomAccessFile getRaFile() {
+        return raFile;
+    }
+
+    public void setRaFile(RandomAccessFile raFile) {
+        this.raFile = raFile;
+    }
+
+    public Intif getTest() {
+        return test;
+    }
+
+    public void setTest(Intif test) {
+        this.test = test;
+    }
+
+    public TransactionalFile getTrraFile() {
+        return trraFile;
+    }
+
+    public void setTrraFile(TransactionalFile trraFile) {
+        this.trraFile = trraFile;
+    }
+     
      
        
-     /* 
-        private void writeString(String s) throws IOException {
+      
+ /*       private void writeString(String s) throws IOException {
  
         ByteBuffer encodedString = ContextFileReader.CHARSET.encode(s);
         final int length = encodedString.remaining();
@@ -408,10 +433,10 @@ implements ContextWriterIfc {
         assureBufferCapacity(4 + length);
         mBuffer.putInt(length);
         mBuffer.put(encodedString);
-        System.out.println("------");
-        System.out.println("int: " + length);
-        System.out.println("str: " + encodedString);
-        System.out.println("------");
+        for (int j =0; j<4+length; j++)
+            mbuff.put(mBuffer.get());
+         //   datastindex++;
+        //}
         
         mNextFilePosition += 4 + length;
     }
@@ -420,6 +445,7 @@ implements ContextWriterIfc {
         System.out.println("shut");
         try {
             if (mChannel.isOpen()) {
+                  System.out.println("shut");
                 writeBuffer();
             }
         } catch (IOException e) {
@@ -438,9 +464,12 @@ implements ContextWriterIfc {
        private void writeInteger(int i) throws IOException {
         assureBufferCapacity(4);
         mBuffer.putInt(i);
-        System.out.println("------");
-        System.out.println("int: " + i);
-        System.out.println("------");
+        System.out.println("ffff");
+        for (int j =0; j<4; j++)
+            mbuff.put(mBuffer.get());
+  //          data[dataendindex+i] = mBuffer.get();
+//            datastindex++;
+    //    }
         mNextFilePosition += 4;
         
     }
@@ -451,6 +480,7 @@ implements ContextWriterIfc {
 
         // Grow buffer if it can't hold the requested size.
         while (mBuffer.capacity() < size) {
+            System.out.println("be ga raftam");
             mBuffer = ByteBuffer.allocateDirect(2 * mBuffer.capacity());
         }
     }
@@ -483,12 +513,16 @@ implements ContextWriterIfc {
       
         private void writeBuffer() throws IOException {
             mBuffer.flip();
-            System.out.println("here " + mBuffer.array().length);
-            System.out.println("Written" + mChannel.write(mBuffer));
-            while (mBuffer.hasRemaining()) {
+            int rem = mBuffer.remaining();
+            int i = 0;
+            //while (mBuffer.hasRemaining()) {
+            while (i< rem) {
                 Thread.yield();
                 raFile.write(data);
-                //mChannel.write(mBuffer);
+               // int written = mChannel.write(mBuffer);
+                i++;
+             //   mBuffer.position(mBuffer.position() + written);
+                        
             }
             mBuffer.clear();
         } 
@@ -497,14 +531,7 @@ implements ContextWriterIfc {
             mBuffer.putInt(ContextFileReader.MAJOR_VERSION);
             mBuffer.putInt(ContextFileReader.MINOR_VERSION);
             mNextFilePosition += 8 + 4 + 4;
-         
-     //   LongBuffer g;
-     //   Long.
-     //   Long.valueOf(ContextFileReader.MAGIC_COOKIE).
-     //   mBuffer.putLong(ContextFileReader.MAGIC_COOKIE);
-     //   mBuffer.putInt(ContextFileReader.MAJOR_VERSION);
-      //  mBuffer.putInt(ContextFileReader.MINOR_VERSION);
-      //  mNextFilePosition += 8 + 4 + 4;
+
     }*/
     }
     

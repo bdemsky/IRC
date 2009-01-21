@@ -15,7 +15,7 @@ package com.enea.jcarder.transactionalinterfaces;
  */
 
 
-import com.enea.jcarder.transactionalinterfaces.bytebuffer.byteholder;
+
 import dstm2.AtomicArray;
 import dstm2.atomic;
 import dstm2.Thread;
@@ -27,11 +27,11 @@ import java.nio.ByteBuffer;
  *
  * @author navid
  */
-public class Bool {
+public class Bool{
     
    
     static Factory<boolif> factory = Thread.makeFactory(boolif.class);
-    boolif boolif;
+    public boolif boolif;
     
     public void init(){
         boolif = factory.create();

@@ -139,14 +139,14 @@ public final class Analyzer {
 
     private void initLogger() {
         Collection<Handler> handlers = new ArrayList<Handler>();
-      //  try {
-        handlers.add(new AppendableHandler(System.out,
-                                                     Logger.Level.CONFIG,
-                                                   "{message}\n"));
-         //   handlers.add(new AppendableHandler(new PrintStream(new File("analyzer.log")), Logger.Level.CONFIG, "{message}\n", new TransactionalFile("analyzer.log", "rw")));
-      ///  } catch (FileNotFoundException ex) {
-      //      java.util.logging.Logger.getLogger(Analyzer.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-       // }
+        try {
+      //  handlers.add(new AppendableHandler(System.out,
+       //                                              Logger.Level.CONFIG,
+        //                                           "{message}\n"));
+            handlers.add(new AppendableHandler(new PrintStream(new File("analyzer.log")), Logger.Level.CONFIG, "{message}\n", new TransactionalFile("analyzer.log", "rw")));
+        } catch (FileNotFoundException ex) {
+            java.util.logging.Logger.getLogger(Analyzer.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
+        }
         mLogger = new Logger(handlers, mLogLevel);
     }
 

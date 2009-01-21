@@ -20,9 +20,15 @@ import java.io.IOException;
 //import net.jcip.annotations.NotThreadSafe;
 
 import com.enea.jcarder.common.Lock;
+import com.enea.jcarder.common.contexts.ContextFileWriter;
 import com.enea.jcarder.common.contexts.ContextWriterIfc;
+//import com.enea.jcarder.transactionalinterfaces.trHashMap;
 import com.enea.jcarder.util.IdentityWeakHashMap;
 import com.enea.jcarder.util.logging.Logger;
+import dstm2.util.IntHashMap;
+import com.enea.jcarder.transactionalinterfaces.Intif;
+//import java.util.HashMap;
+import sun.misc.VM;
 
 /**
  * This class is responsible for generating unique IDs for objects.
@@ -34,17 +40,35 @@ import com.enea.jcarder.util.logging.Logger;
  */
 //@NotThreadSafe
 final class LockIdGenerator {
-    private final IdentityWeakHashMap<Integer> mIdMap;
-    private final ContextWriterIfc mContextWriter;
+    //private final IdentityWeakHashMap<Integer> mIdMap;
+   // private final HashMap<Intif.positionif> mIdMap;
+    private final IntHashMap mIdMap;
+    //private final ContextWriterIfc mContextWriter;
+    private final ContextFileWriter mContextWriter;
     private final Logger mLogger;
 
     /**
      * Create a LockIdGenerator backed by a ContextWriterIfc
      */
-    public LockIdGenerator(Logger logger, ContextWriterIfc writer) {
+    public LockIdGenerator(LockIdGenerator other){
+        this.mIdMap = other.mIdMap;
+       // this.mIdMap.values.setValues(other.mIdMap.values.getValues());
+       // this.mIdMap.position.setPosition(other.mIdMap.position.getPosition());
+       // this.mIdMap.capacity.setPosition(other.mIdMap.capacity.getPosition());
+        //this.mIdMap.keys = other.mIdMap.keys;
+        this.mContextWriter = other.mContextWriter;
+        this.mLogger = other.mLogger;
+        
+        
+    }
+    
+    public LockIdGenerator(Logger logger, /*ContextWriterIfc writer*/ContextFileWriter writer) {
         mLogger = logger;
-        mIdMap = new IdentityWeakHashMap<Integer>();
+       // mIdMap = new IdentityWeakHashMap<Integer>();
+//        mIdMap = new HashMap<Intif.positionif>();
+        mIdMap = new IntHashMap();
         mContextWriter = writer;
+
     }
 
     /**
@@ -56,12 +80,39 @@ final class LockIdGenerator {
      */
     public int acquireLockId(Object o) throws IOException {
         assert o != null;
-        Integer id = mIdMap.get(o);
-        if (id == null) {
-            id = mContextWriter.writeLock(new Lock(o));
-            mIdMap.put(o, id);
-            mLogger.finest("Created new lock ID: " + id);
+        Integer id = (Integer)mIdMap.get(System.identityHashCode(o));
+     //   if (mIdMap.get(HashMap.hash(o)) == null){
+        if (id == null){
+            id = mContextWriter.writeLock(new Lock(o));        
+           // Intif.positionif tmp = Intif.factory.create();
+           // tmp.setPosition(id);
+           // mIdMap.put(HashMap.hash(o), tmp);
+             //mIdMap.put(o, tmp);
+            mIdMap.put(System.identityHashCode(o), id);
+            mLogger.finest("Created new lock ID: " + id);        
         }
+       // else 
+     //       id = mIdMap.get(HashMap.hash(o)).getPosition();
+       
+      /* if (id == null) {
+            id = mContextWriter.writeLock(new Lock(o));
+            tmp.setPosition(id);
+            mIdMap.put(System.identityHashCode(o), tmp);
+            mLogger.finest("Created new lock ID: " + id);
+        }*/
         return id;
     }
+
+    public ContextFileWriter getMContextWriter() {
+        return mContextWriter;
+    }
+
+
+
+    public Logger getMLogger() {
+        return mLogger;
+    }
+    
+    
+    
 }

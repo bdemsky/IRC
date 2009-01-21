@@ -20,12 +20,19 @@ import java.io.IOException;
 import java.lang.ref.Reference;
 import java.lang.ref.ReferenceQueue;
 import java.lang.ref.SoftReference;
-import java.util.HashMap;
+
+
+//import dstm2.util.HashMap;
 //import net.jcip.annotations.NotThreadSafe;
 
 import com.enea.jcarder.common.LockingContext;
+import com.enea.jcarder.common.contexts.ContextFileWriter;
 import com.enea.jcarder.common.contexts.ContextWriterIfc;
+import com.enea.jcarder.transactionalinterfaces.Intif;
+import com.enea.jcarder.transactionalinterfaces.trHashMap;
 import com.enea.jcarder.util.logging.Logger;
+import dstm2.util.IntHashMap;
+//import dstm2.util.HashMap;
 
 /**
  * This class is responsible for mapping LockingContext instances to locking
@@ -48,19 +55,36 @@ import com.enea.jcarder.util.logging.Logger;
  */
 //@NotThreadSafe
 final class LockingContextIdCache {
-    private final HashMap<EqualsComparableKey, Integer> mCache;
-    private final ReferenceQueue<Object> mReferenceQueue;
-    private final ContextWriterIfc mContextWriter;
+    //private final HashMap<EqualsComparableKey, Integer> mCache;
+    //private final HashMap<Intif.positionif> mCache;
+    private final IntHashMap mCache;
+    //private final ReferenceQueue<Object> mReferenceQueue;
+    //private final ContextWriterIfc mContextWriter;
+    private final ContextFileWriter mContextWriter;
     private final Logger mLogger;
+    
 
     /**
      * Create a LockingContextIdCache backed by a ContextWriterIfc.
      */
+    public LockingContextIdCache(LockingContextIdCache other){
+        this.mCache = other.mCache;
+       // this.mCache.values.setValues(other.mCache.values.getValues());
+       //this.mCache.position.setPosition(other.mCache.position.getPosition());
+       //this.mCache.capacity.setPosition(other.mCache.capacity.getPosition());
+       //this.mCache.keys = other.mCache.keys;;
+        this.mContextWriter = other.mContextWriter;
+        this.mLogger = other.mLogger;
+        
+    }
+    
     public LockingContextIdCache(Logger logger, ContextWriterIfc writer) {
         mLogger = logger;
-        mCache = new HashMap<EqualsComparableKey, Integer>();
-        mReferenceQueue = new ReferenceQueue<Object>();
-        mContextWriter = writer;
+        //mCache = new HashMap<EqualsComparableKey, Integer>();
+//       mCache = new HashMap<Intif.positionif>();
+       mCache = new IntHashMap();
+     //   mReferenceQueue = new ReferenceQueue<Object>();
+        mContextWriter = (ContextFileWriter) writer;
     }
 
     /**
@@ -73,17 +97,40 @@ final class LockingContextIdCache {
      */
     public int acquireContextId(LockingContext context) throws IOException {
         assert context != null;
-        removeGarbageCollectedKeys();
-        Integer id = mCache.get(new StrongKey(context));
-        if (id == null) {
+       // removeGarbageCollectedKeys();
+        //Integer id = mCache.get(new StrongKey(context));
+        Integer id = mCache.get(context.hashCode());
+      //  if (mCache.get(HashMap.hash(context)) == null) {
+        if (id == null){
             mLogger.finest("Creating new context ID");
             id = mContextWriter.writeContext(context);
-            mCache.put((new SoftKey(context, mReferenceQueue)), id);
-        }
+           //mCache.put((new SoftKey(context, mReferenceQueue)), id);
+         //   Intif.positionif tmp =  Intif.factory.create();
+           // tmp.setPosition(id);
+            //intval.setPosition(id);
+          //  mCache.put(HashMap.hash(context),tmp);
+            mCache.put(context.hashCode(),id);
+        }   
+        //else 
+          //  id = mCache.get(HashMap.hash(context)).getPosition();
         return id;
     }
 
-    private void removeGarbageCollectedKeys() {
+    public IntHashMap getMCache() {
+        return mCache;
+    }
+
+    public ContextFileWriter getMContextWriter() {
+        return mContextWriter;
+    }
+
+    public Logger getMLogger() {
+        return mLogger;
+    }
+    
+    
+
+ /*   private void removeGarbageCollectedKeys() {
         Reference e;
         while ((e = mReferenceQueue.poll()) != null) {
             mLogger.finest("Removing garbage-collected cached context");
@@ -154,5 +201,5 @@ final class LockingContextIdCache {
         public int hashCode() {
             return mHash;
         }
-    }
+    }*/
 }

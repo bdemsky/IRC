@@ -39,18 +39,29 @@ import dstm2.Thread;
 //@ThreadSafe
 import java.util.Vector;
 public final class EventFileWriter implements LockEventListenerIfc {
-    private final ByteBuffer mBuffer =
-    ByteBuffer.allocateDirect(EVENT_LENGTH * 1024);
-    private final FileChannel mFileChannel;
+//    private final ByteBuffer mBuffer =
+ //   ByteBuffer.allocateDirect(EVENT_LENGTH * 1024);
+ //   private final FileChannel mFileChannel;
     private final Logger mLogger;
-    private final Counter mWrittenLockEvents;
-    private boolean mShutdownHookExecuted = false;
+//    private final Counter mWrittenLockEvents;
+//    private boolean mShutdownHookExecuted = false;
     
     private bytebuffer mbuff;
     private Bool ShutdownHookExecuted; 
-    TransactionalFile traf; 
-    TransactionalCounter trmWrittenLockEvents;
+    private TransactionalFile traf; 
+    private TransactionalCounter trmWrittenLockEvents;
 
+    public EventFileWriter(EventFileWriter other){
+        this.ShutdownHookExecuted = other.ShutdownHookExecuted;
+        this.ShutdownHookExecuted.boolif.setValue(other.ShutdownHookExecuted.boolif.getValue());
+        this.mLogger = other.mLogger;
+        this.mbuff = other.mbuff;
+     //   this.mbuff.mbuffer.setByteHolder(other.mbuff.mbuffer.getByteHolder());
+        this.traf = other.traf;
+        this.trmWrittenLockEvents = other.trmWrittenLockEvents;
+        this.trmWrittenLockEvents.mValue.setPosition(other.trmWrittenLockEvents.mValue.getPosition());
+    }
+    
     public EventFileWriter(Logger logger, File file) throws IOException {
         
         
@@ -59,10 +70,10 @@ public final class EventFileWriter implements LockEventListenerIfc {
         mLogger.info("Opening for writing: " + file.getAbsolutePath());
         RandomAccessFile raFile = new RandomAccessFile(file, "rw");
         raFile.setLength(0);
-        mFileChannel = raFile.getChannel();
-        mWrittenLockEvents = new Counter("Written Lock Events",
-                                         mLogger,
-                                         100000);
+    //    mFileChannel = raFile.getChannel();
+    //    mWrittenLockEvents = new Counter("Written Lock Events",
+       //                                  mLogger,
+        //                                 100000);
         
         mbuff = new bytebuffer();
         mbuff.allocateDirect(8192);
@@ -79,27 +90,29 @@ public final class EventFileWriter implements LockEventListenerIfc {
         });
     }
 
-    private void writeHeader() throws IOException {
+  /*  private void writeHeader() throws IOException {
         mBuffer.putLong(EventFileReader.MAGIC_COOKIE);
         mBuffer.putInt(EventFileReader.MAJOR_VERSION);
         mBuffer.putInt(EventFileReader.MINOR_VERSION);
         writeBuffer();
-    }
+    }*/
     
-    private void trwriteHeader() throws IOException {
+    private void writeHeader() throws IOException {
         ByteBuffer mBuffer = ByteBuffer.allocateDirect(16);
         mBuffer.putLong(EventFileReader.MAGIC_COOKIE);
         mBuffer.putInt(EventFileReader.MAJOR_VERSION);
         mBuffer.putInt(EventFileReader.MINOR_VERSION);
         mBuffer.rewind();
         
-        for (int i=0; i<16; i++){
+        /*for (int i=0; i<16; i++){
             mbuff.put(mBuffer.get());
-        }
+        }*/
+         
+        mbuff.put(mBuffer);
         writeBuffer();
     }
 
-    public synchronized void onLockEvent(int lockId,
+    /*public synchronized void onLockEvent(int lockId,
                                          int lockingContextId,
                                          int lastTakenLockId,
                                          int lastTakenLockingContextId,
@@ -114,7 +127,7 @@ public final class EventFileWriter implements LockEventListenerIfc {
         if (mBuffer.remaining() < EVENT_LENGTH || mShutdownHookExecuted) {
             writeBuffer();
         }
-    }
+    }*/
     
     public void tronLockEvent(Vector arg) throws IOException {
        
@@ -126,9 +139,11 @@ public final class EventFileWriter implements LockEventListenerIfc {
             mBuffer.putLong((Long)arg.get(4));
             mBuffer.rewind();
         
-            for (int i=0; i<24; i++){
-                mbuff.put(mBuffer.get());
-            }
+            //for (int i=0; i<24; i++){
+              //  mbuff.put(mBuffer.get());
+            //}
+            
+            mbuff.put(mBuffer);
         
             trmWrittenLockEvents.increment();
             if (mbuff.remaining() < EVENT_LENGTH || ShutdownHookExecuted.isTrue()) {
@@ -136,7 +151,7 @@ public final class EventFileWriter implements LockEventListenerIfc {
             }
     }
             
-    public void trLockEventWrapper(int lockId,
+    public void onLockEvent(int lockId,
                                          int lockingContextId,
                                          int lastTakenLockId,
                                          int lastTakenLockingContextId,
@@ -160,7 +175,7 @@ public final class EventFileWriter implements LockEventListenerIfc {
         
     }        
 
-    private void writeBuffer() throws IOException {
+   /* private void writeBuffer() throws IOException {
         mBuffer.flip();
         mFileChannel.write(mBuffer);
         while (mBuffer.hasRemaining()) {
@@ -168,10 +183,10 @@ public final class EventFileWriter implements LockEventListenerIfc {
             mFileChannel.write(mBuffer);
         }
         mBuffer.clear();
-    }
+    }*/
     
     
-    private void trwriteBuffer() throws IOException {
+    private void writeBuffer() throws IOException {
         mbuff.flip();
         traf.write(mbuff.getBytes());
         while (mbuff.hasRemaining()) {
@@ -182,13 +197,13 @@ public final class EventFileWriter implements LockEventListenerIfc {
     }
 
 
-    public synchronized void close() throws IOException {
+    /*public synchronized void close() throws IOException {
         
         writeBuffer();
         mFileChannel.close();
-    }
+    }*/
     
-     public void trclose() throws IOException {
+     public void close() throws IOException {
       //  System.out.println("clo");
         try{
             Thread.doIt(new Callable<Boolean>() {
@@ -210,7 +225,7 @@ public final class EventFileWriter implements LockEventListenerIfc {
         }
     }
 
-    private synchronized void shutdownHook() {
+  /*  private synchronized void shutdownHook() {
         try {
             if (mFileChannel.isOpen()) {
                 writeBuffer();
@@ -219,10 +234,10 @@ public final class EventFileWriter implements LockEventListenerIfc {
             e.printStackTrace();
         }
         mShutdownHookExecuted = true;
-    }
+    }*/
     
     
-   private void trshutdownHook() {
+   private void shutdownHook() {
         System.out.println(Thread.currentThread() + " ashut ddddddborted in committing");
         try{ 
         Thread.doIt(new Callable<Boolean>() {
@@ -246,4 +261,38 @@ public final class EventFileWriter implements LockEventListenerIfc {
            System.out.println(Thread.currentThread() + " shut graceful exc");
        }
      }
+
+    public Bool getShutdownHookExecuted() {
+        return ShutdownHookExecuted;
+    }
+
+    public void setShutdownHookExecuted(Bool ShutdownHookExecuted) {
+        this.ShutdownHookExecuted = ShutdownHookExecuted;
+    }
+
+    public bytebuffer getMbuff() {
+        return mbuff;
+    }
+
+    public void setMbuff(bytebuffer mbuff) {
+        this.mbuff = mbuff;
+    }
+
+    public TransactionalFile getTraf() {
+        return traf;
+    }
+
+    public void setTraf(TransactionalFile traf) {
+        this.traf = traf;
+    }
+
+    public TransactionalCounter getTrmWrittenLockEvents() {
+        return trmWrittenLockEvents;
+    }
+
+    public void setTrmWrittenLockEvents(TransactionalCounter trmWrittenLockEvents) {
+        this.trmWrittenLockEvents = trmWrittenLockEvents;
+    }
+   
+   
 }

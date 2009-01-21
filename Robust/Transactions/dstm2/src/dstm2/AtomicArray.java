@@ -49,6 +49,7 @@ import java.lang.reflect.Array;
   private Transaction writer;
   private ReadSet readers;
   long version;
+  
   private final String FORMAT = "Unexpected transaction state: %s";
   
   /** Creates a new instance of AtomicArray */
@@ -58,6 +59,9 @@ import java.lang.reflect.Array;
     writer = Transaction.COMMITTED;
     readers = new ReadSet();
     version = 0;
+  }
+  public int size(){
+      return array.length;
   }
   
   public T get(int i) {

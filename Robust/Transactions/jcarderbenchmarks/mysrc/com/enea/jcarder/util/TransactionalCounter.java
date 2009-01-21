@@ -15,10 +15,10 @@ import com.enea.jcarder.util.logging.Logger;
  */
 public class TransactionalCounter {
 
-    final int mLogIntervall;
-    final String mName;
-    final Logger mLogger;
-    Intif.positionif mValue;
+    public final int mLogIntervall;
+    public final String mName;
+    public final Logger mLogger;
+    public Intif.positionif mValue;
 
     public TransactionalCounter(String name, Logger logger, int logInterval) {
         mValue = Intif.factory.create();

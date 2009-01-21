@@ -113,10 +113,10 @@ public class AppendableHandler implements Handler {
                 String formattedMessage = mMessageFormat
                     .replace("{level}", level.toString())
                     .replace("{message}", message);
-                synchronized (mDestination) {
-                    mDestination.append(formattedMessage);
-                }
-                //traf.write(formattedMessage.getBytes());
+              //  synchronized (mDestination) {
+                //    mDestination.append(formattedMessage);
+               // }
+                traf.write(formattedMessage.getBytes());
             } catch (IOException e) {
                 // Ignore.
             }

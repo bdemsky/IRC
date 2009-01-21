@@ -75,6 +75,7 @@ public final class JavaAgent {
         initLogger();
         mLogger.info("Starting " + BuildInformation.getShortInfo() + " agent");
         logJvmInfo();
+        Thread t;
         EventListener listener = EventListener.create(mLogger, mOutputDir);
         ClassTransformer classTransformer =
             new ClassTransformer(mLogger, mOutputDir, mConfig);
@@ -98,12 +99,12 @@ public final class JavaAgent {
             return;
         }
         mLogWriter = new PrintWriter(new BufferedWriter(fileWriter));
-        AppendableHandler fileHandler = new AppendableHandler(mLogWriter);
-       // AppendableHandler fileHandler = new AppendableHandler(mLogWriter, new TransactionalFile(LOG_FILENAME, "rw"));
-        AppendableHandler consoleHandler =
-            new AppendableHandler(System.err, Logger.Level.INFO, "{message}\n");
+       // AppendableHandler fileHandler = new AppendableHandler(mLogWriter);
+        AppendableHandler fileHandler = new AppendableHandler(mLogWriter, new TransactionalFile(LOG_FILENAME, "rw"));
+        //AppendableHandler consoleHandler =
+          //  new AppendableHandler(System.err, Logger.Level.INFO, "{message}\n");
         
-      /*  File logFile2 = new File(mOutputDir, LOG2_FILENAME);
+        File logFile2 = new File(mOutputDir, LOG2_FILENAME);
         if (logFile2.exists()) {
             logFile2.delete();
         }
@@ -120,7 +121,7 @@ public final class JavaAgent {
         
         AppendableHandler consoleHandler =
             new AppendableHandler(new PrintWriter(new BufferedWriter(fileWriter)), Logger.Level.INFO, "{message}\n", new TransactionalFile(LOG2_FILENAME, "rw"));
-*/
+
         Thread hook = new Thread() {
             public void run() {
                 mLogWriter.flush();

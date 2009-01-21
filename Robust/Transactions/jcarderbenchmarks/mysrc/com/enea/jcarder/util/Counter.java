@@ -27,6 +27,7 @@ public final class Counter {
     final Logger mLogger;
     int mValue = 0;
 
+    
     public Counter(String name, Logger logger, int logInterval) {
         mName = name;
         mLogger = logger;

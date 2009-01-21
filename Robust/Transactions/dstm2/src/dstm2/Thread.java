@@ -72,7 +72,7 @@ import static dstm2.Defaults.*;
  *
  * @see dstm2.ContentionManager
  */
-public class Thread extends java.lang.Thread {
+public class Thread extends java.lang.Thread{
   /**
    * Contention manager class.
    */

@@ -63,6 +63,7 @@ public final class BuildInformation {
         Properties props = new Properties();
         ClassLoader classLoader = ClassLoader.getSystemClassLoader();
         props.load(classLoader.getResourceAsStream("build.properties"));
+       // return null;
         return props;
     }
 }

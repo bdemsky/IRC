@@ -17,8 +17,9 @@
 package com.enea.jcarder.agent;
 
 import com.enea.jcarder.common.LockingContext;
+import dstm2.AtomicSuperClass;
 
-public interface EventListenerIfc {
+public interface EventListenerIfc extends AtomicSuperClass{
 
     void beforeMonitorEnter(Object monitor,
                             LockingContext context) throws Exception;

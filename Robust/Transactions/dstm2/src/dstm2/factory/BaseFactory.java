@@ -148,8 +148,11 @@ public abstract class BaseFactory<T> implements Factory<T> {
   private void parseProperties(Class _class) {
     // Make sure implied field types are scalar or atomic.
     // Enough to check return type of getField() methods.
-    for (java.lang.reflect.Method method : _class.getMethods()) {
-      if (method.getName().substring(0,3).equals("get")) {
+       for (java.lang.reflect.Method method : _class.getMethods()) {
+      if (method.getName().substring(0,3).equals("get") &&
+    	  !method.getDeclaringClass().getCanonicalName().contains("dstm2.util.LinkedList") &&
+          !method.getDeclaringClass().getCanonicalName().contains("dstm2.util.Hashtable") &&
+    	  !method.getDeclaringClass().getCanonicalName().contains("dstm2.util.HashMap")) {
         if (!isAtomicOrScalar(method.getReturnType())) {
           throw new PanicException("Method %s return type %s not scalar or atomic.",
               method.getName(), method.getReturnType().getName());

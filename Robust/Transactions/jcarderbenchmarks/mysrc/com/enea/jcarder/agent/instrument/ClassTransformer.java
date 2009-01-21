@@ -176,7 +176,7 @@ public class ClassTransformer implements ClassFileTransformer {
         if (className.startsWith("java.")
             || className.startsWith("javax.")
             || className.startsWith("sun.") || className.startsWith("TransactionalIO.")
-            || className.startsWith("dstm2")) {
+            || className.startsWith("dstm2") || className.startsWith("org")) {
             return "standard library class";
         }
 
