@@ -60,6 +60,10 @@ import java.lang.reflect.Array;
     version = 0;
   }
   
+  public int length(){
+      return array.length;
+  }
+  
   public Byte get(int i) {
     Transaction me  = Thread.getTransaction();
     Transaction other = null;

@@ -211,6 +211,7 @@ public class TransactionalFile implements Comparable {
             if (!(this.inodestate.commitedfilesize.getLengthReaders().contains(me))) {
                 this.inodestate.commitedfilesize.getLengthReaders().add(me);
             }
+        
            tmp.setLocalsize(this.inodestate.commitedfilesize.getLength());
            tmp.lenght_read = true;
         

@@ -29,12 +29,20 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
  
-package com.solidosystems.tuplesoup.core;
+/*package com.solidosystems.tuplesoup.core;
 
+import TransactionalIO.core.TransactionalFile;
+import dstm2.AtomicSuperClass;
+import dstm2.atomic;
 import java.io.*;
 import java.util.*;
 
-public class TableIndexPageTransactional{
+public class TableIndexPageTransactional implements AtomicSuperClass{
+    TableIndexPageTSInf atomicfields;
+    private final static int BASEOFFSET=4+8+8+4+4;
+    //private RandomAccessFile file=null;
+    private TransactionalFile file = null;
+    
     public @atomic interface TableIndexPageTSInf{
         Long getLocation();
         Integer getSize();
@@ -59,8 +67,7 @@ public class TableIndexPageTransactional{
         void setLocation(Long location);
         void setLower(Long val);
     }
-    private final static int BASEOFFSET=4+8+8+4+4;
-    private RandomAccessFile file=null;
+  
     
     private long location=-1;
     private int size=-1;
@@ -77,7 +84,7 @@ public class TableIndexPageTransactional{
     
     private PagedIndex index=null;
     
-    public TableIndexPageTransactional(PagedIndex index,RandomAccessFile file) throws IOException{
+    public TableIndexPageTransactional(PagedIndex index,TransactionalFile file) throws IOException{
         this.file=file;
         this.index=index;
         first=false;
@@ -281,4 +288,4 @@ public class TableIndexPageTransactional{
         if(id.hashCode()>endhash)endhash=id.hashCode();
         updateMeta();
     }
-}
+}*/
