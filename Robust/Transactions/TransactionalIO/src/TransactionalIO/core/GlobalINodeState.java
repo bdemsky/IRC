@@ -48,7 +48,7 @@ public class GlobalINodeState {
     public HashMap lockmap;
     private ConcurrentHashMap conlockmap = new ConcurrentHashMap();
     
-    public AtomicLong commitedfilesize = new AtomicLong();
+    public GlobalLength commitedfilesize;
     private ExtendedTransaction writer;
     public int seqNum = 0;
     private INode inode;
@@ -63,18 +63,18 @@ public class GlobalINodeState {
         writer = null;
         lockmap = new HashMap();
        
-        commitedfilesize.set(length);
+        commitedfilesize = new GlobalLength(length);
         this.inode = inode;
     }
     
     
 
 
-    public AtomicLong getCommitedfilesize() {
+    public GlobalLength getCommitedfilesize() {
         return commitedfilesize;
     }
 
-    public void setCommitedfilesize(AtomicLong commitedfilesize) {
+    public void setCommitedfilesize(GlobalLength commitedfilesize) {
         this.commitedfilesize = commitedfilesize;
     }
     

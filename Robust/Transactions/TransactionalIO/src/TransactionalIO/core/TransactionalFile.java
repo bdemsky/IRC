@@ -55,6 +55,8 @@ public class TransactionalFile implements Comparable {
     public boolean appendmode = false;
     public ReentrantLock offsetlock;
     private GlobalOffset committedoffset;
+    
+   
     private GlobalINodeState inodestate;
     Lock[] locks;
 
@@ -92,6 +94,7 @@ public class TransactionalFile implements Comparable {
         if (inodestate != null) {
             synchronized (inodestate) {
                 committedoffset = new GlobalOffset(0);
+                
             }
         }
     }
@@ -133,6 +136,7 @@ public class TransactionalFile implements Comparable {
         if (inodestate != null) {
             synchronized (inodestate) {
                 committedoffset = new GlobalOffset(0);
+               
             }
         }
 
@@ -168,11 +172,14 @@ public class TransactionalFile implements Comparable {
     public GlobalOffset getCommitedoffset() {
         return committedoffset;
     }
+    
+   
+
 
     public GlobalINodeState getInodestate() {
         return inodestate;
     }
-
+     
     public INode getInode() {
         return inode;
     }
@@ -184,7 +191,33 @@ public class TransactionalFile implements Comparable {
             Logger.getLogger(TransactionalFile.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
+    
+    
+    public long length(){
+        ExtendedTransaction me = Wrapper.getTransaction();
 
+        if (me == null) {
+            return non_Transactional_getFilePointer();
+        }
+
+        if (!(me.getGlobaltoLocalMappings().containsKey(this))) {
+            me.addFile(this, 0);
+        }
+        
+        TransactionLocalFileAttributes tmp = (TransactionLocalFileAttributes) me.getGlobaltoLocalMappings().get(this);
+        
+        lockLength(me);
+
+            if (!(this.inodestate.commitedfilesize.getLengthReaders().contains(me))) {
+                this.inodestate.commitedfilesize.getLengthReaders().add(me);
+            }
+           tmp.setLocalsize(this.inodestate.commitedfilesize.getLength());
+           tmp.lenght_read = true;
+        
+        this.inodestate.commitedfilesize.lengthlock.unlock();
+
+        return tmp.getLocalsize();
+    }
     public long getFilePointer() {
 
         ExtendedTransaction me = Wrapper.getTransaction();
@@ -260,6 +293,52 @@ public class TransactionalFile implements Comparable {
 
     }
 
+    public final int readInt(){
+        byte[] data = new byte[4];
+        read(data);
+        int result = (data[0] << 24) | (data[1] << 16) + (data[2] << 8) + data[3];
+        return result;
+    }
+    
+    public final long readLong(){
+        byte[] data = new byte[8];
+        read(data);
+        long result = ((long)data[0] << 56) + ((long)data[1] << 48) + ((long)data[2] << 40) + ((long)data[3] << 32) + ((long)data[4] << 24) + ((long)data[5] << 16)+ ((long)data[6] << 8) + data[7];
+        return result;
+    }
+    
+    public final void writeInt(int value){
+        try {
+            byte[] result = new byte[4];
+            result[0] = (byte) (value >> 24);
+            result[1] = (byte) (value >> 16);
+            result[2] = (byte) (value >> 8);
+            result[3] = (byte) (value);
+            write(result);
+        } catch (IOException ex) {
+            Logger.getLogger(TransactionalFile.class.getName()).log(Level.SEVERE, null, ex);
+        }
+
+    }
+    
+     public final void writeLong(long value){
+        try {
+            byte[] result = new byte[4];
+            result[0] = (byte)(value >> 56);
+            result[1] = (byte)(value >> 48);
+            result[2] = (byte)(value >> 40);
+            result[3] = (byte)(value >> 32);
+            result[4] = (byte)(value >> 24);
+            result[5] = (byte)(value >> 16);
+            result[6] = (byte)(value >> 8);
+            result[7] = (byte)(value);
+            write(result);
+        } catch (IOException ex) {
+            Logger.getLogger(TransactionalFile.class.getName()).log(Level.SEVERE, null, ex);
+        }
+
+    }
+    
     public int read(byte[] b) {
 
 
@@ -482,6 +561,9 @@ public class TransactionalFile implements Comparable {
 
 
         tmp.setLocaloffset(tmp.getLocaloffset() + by.length);
+        
+        if (tmp.getLocaloffset() > tmp.getLocalsize())
+            tmp.setLocalsize(tmp.getLocaloffset());
 
         me.merge_for_writes_done.put(inode, Boolean.FALSE);
 
@@ -631,6 +713,23 @@ public class TransactionalFile implements Comparable {
 
     }
 
+     public void lockLength(ExtendedTransaction me) {
+        boolean locked = false;
+        if (me.getStatus() == Status.ACTIVE) {                        //locking the offset
+
+            this.inodestate.commitedfilesize.lengthlock.lock();
+            locked = true;
+        }
+
+        if (me.getStatus() != Status.ACTIVE) {
+            if (locked) {
+                me.getHeldlengthlocks().add(this.inodestate.commitedfilesize.lengthlock);
+            }
+            throw new AbortedException();
+        }
+
+    }
+    
     public void mergeWrittenData(ExtendedTransaction me/*TreeMap target, byte[] data, Range to_be_merged_data_range*/) {
 
         boolean flag = false;

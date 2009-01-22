@@ -16,18 +16,23 @@ public class TransactionLocalFileAttributes {
 
 
     private INode inode;
+    public boolean lenght_read = false;
     public boolean to_be_created = false;
     RandomAccessFile f;
     OffsetDependency offsetdependency;
     private long copylocaloffset;
+    private long initiallocallength;
     private boolean unknown_inital_offset_for_write = true;
     private long localoffset;
     private long localsize;
     
-    public TransactionLocalFileAttributes(long initialoffset/*, long initialsize*/){
+    public TransactionLocalFileAttributes(long initialoffset, long initialsize){
         localoffset = initialoffset;
         copylocaloffset = initialoffset;
+        localsize = initialsize;
+        initiallocallength = initialsize;
         //copylocaloffset = 0;
+        
         unknown_inital_offset_for_write = true; 
         offsetdependency = OffsetDependency.NO_ACCESS;
         //localsize = initialsize;
@@ -35,6 +40,10 @@ public class TransactionLocalFileAttributes {
 
     public long getCopylocaloffset() {
         return copylocaloffset;
+    }
+    
+    public long getInitiallocallength() {
+        return initiallocallength;
     }
     
     public void setCopylocaloffset(long copylocaloffset) {
