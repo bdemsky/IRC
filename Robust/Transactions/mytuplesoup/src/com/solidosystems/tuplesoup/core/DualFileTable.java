@@ -35,6 +35,7 @@ import java.io.*;
 import java.util.*;
 import java.nio.channels.*;
 import com.solidosystems.tuplesoup.filter.*;
+import dstm2.atomic;
 
 /**
  * The table stores a group of rows.
@@ -69,8 +70,34 @@ public class DualFileTable implements Table{
     private int indexcacheusage;
     private Hashtable<String,TableIndexNode> indexcache;
     
+    
+    DualFileTableTSInf atomicfields;
     // Statistic counters
-    long stat_add=0;
+    public @atomic interface DualFileTableTSInf{
+        long getstat_add();
+        long getstat_update();
+        long getstat_delete();
+        long getstat_add_size();
+        long getstat_update_size();
+        long getstat_read_size();
+        long getstat_read();
+        long getstat_cache_hit();
+        long getstat_cache_miss();
+        long getstat_cache_drop();
+        
+        void setstat_add(long val);
+        void setstat_update(long val);
+        void setstat_delete(long val);
+        void setstat_add_size(long val);
+        void setstat_update_size(long val);
+        void setstat_read_size(long val);
+        void setstat_read(long val);
+        void setstat_cache_hit(long val);
+        void setstat_cache_miss(long val);
+        void setstat_cache_drop(long val);
+    }
+  
+    /*long stat_add=0;
     long stat_update=0;
     long stat_delete=0;
     long stat_add_size=0;
@@ -79,7 +106,7 @@ public class DualFileTable implements Table{
     long stat_read=0;
     long stat_cache_hit=0;
     long stat_cache_miss=0;
-    long stat_cache_drop=0;
+    long stat_cache_drop=0;*/
     
     protected String statlock="stat-dummy";
     
@@ -103,26 +130,26 @@ public class DualFileTable implements Table{
     public Hashtable<String,Long> readStatistics(){
         Hashtable<String,Long> hash=new Hashtable<String,Long>();
         synchronized(statlock){
-            hash.put("stat_table_add",stat_add);
-            hash.put("stat_table_update",stat_update);
-            hash.put("stat_table_delete",stat_delete);
-            hash.put("stat_table_add_size",stat_add_size);
-            hash.put("stat_table_update_size",stat_update_size);
-            hash.put("stat_table_read_size",stat_read_size);
-            hash.put("stat_table_read",stat_read);
-            hash.put("stat_table_cache_hit",stat_cache_hit);
-            hash.put("stat_table_cache_miss",stat_cache_miss);
-            hash.put("stat_table_cache_drop",stat_cache_drop);
-            stat_add=0;
-            stat_update=0;
-            stat_delete=0;
-            stat_add_size=0;
-            stat_update_size=0;
-            stat_read_size=0;
-            stat_read=0;
-            stat_cache_hit=0;
-            stat_cache_miss=0;
-            stat_cache_drop=0;
+            hash.put("stat_table_add",atomicfields.getstat_add());
+            hash.put("stat_table_update",atomicfields.getstat_update());
+            hash.put("stat_table_delete",atomicfields.getstat_delete());
+            hash.put("stat_table_add_size",atomicfields.getstat_add_size());
+            hash.put("stat_table_update_size",atomicfields.getstat_update_size());
+            hash.put("stat_table_read_size",atomicfields.getstat_read_size());
+            hash.put("stat_table_read",atomicfields.getstat_read());
+            hash.put("stat_table_cache_hit",atomicfields.getstat_cache_hit());
+            hash.put("stat_table_cache_miss",atomicfields.getstat_cache_miss());
+            hash.put("stat_table_cache_drop",atomicfields.getstat_cache_drop());
+            atomicfields.setstat_add(0);
+            atomicfields.setstat_update(0);
+            atomicfields.setstat_delete(0);
+            atomicfields.setstat_add_size(0);
+            atomicfields.setstat_update_size(0);
+            atomicfields.setstat_read_size(0);
+            atomicfields.setstat_read(0);
+            atomicfields.setstat_cache_hit(0);
+            atomicfields.setstat_cache_miss(0);
+            atomicfields.setstat_cache_drop(0);
             Hashtable<String,Long> ihash=index.readStatistics();
             hash.putAll(ihash);
         }
@@ -252,7 +279,7 @@ public class DualFileTable implements Table{
                  indexcache.remove(node.getData().getId());
                  indexcacheusage--;
                  synchronized(statlock){
-                     stat_cache_drop++;
+                     atomicfields.setstat_cache_drop(atomicfields.getstat_cache_drop()+1);
                  }
                  indexcachefirst=node.getNext();
                  if(indexcachefirst==null){
@@ -281,10 +308,12 @@ public class DualFileTable implements Table{
              row.writeToStream(fileastream);
              int post=fileastream.size();
              fileastream.flush();
+             
              synchronized(statlock){
-                  stat_add++;
-                  stat_add_size+=row.getSize();
-              }
+                  atomicfields.setstat_add(atomicfields.getstat_add()+1);
+                  atomicfields.setstat_add_size(atomicfields.getstat_add_size()+row.getSize());
+             }
+             
              index.addEntry(row.getId(),row.getSize(),FILEA,fileaposition);
              if(INDEXCACHESIZE>0){
                  TableIndexEntry entry=new TableIndexEntry(row.getId(),row.getSize(),FILEA,fileaposition);
@@ -301,8 +330,8 @@ public class DualFileTable implements Table{
              int post=filebstream.size();
              filebstream.flush();
              synchronized(statlock){
-                  stat_add++;
-                  stat_add_size+=row.getSize();
+                  atomicfields.setstat_add(atomicfields.getstat_add()+1);
+                  atomicfields.setstat_add_size(atomicfields.getstat_add_size()+row.getSize());
               }
              index.addEntry(row.getId(),row.getSize(),FILEB,filebposition);
              if(INDEXCACHESIZE>0){
@@ -357,7 +386,7 @@ public class DualFileTable implements Table{
                     }
                     indexcacheusage--;
                     synchronized(statlock){
-                         stat_cache_drop++;
+                         atomicfields.setstat_cache_drop(atomicfields.getstat_cache_drop()+1);
                     }
                 }
           }
@@ -378,13 +407,13 @@ public class DualFileTable implements Table{
                         indexcachelast=node;
                   }
                   synchronized(statlock){
-                       stat_cache_hit++;
+                       atomicfields.setstat_cache_hit(atomicfields.getstat_cache_hit()+1);
                    }
                   return node.getData();
               }
           }
           synchronized(statlock){
-               stat_cache_miss++;
+               atomicfields.setstat_cache_miss(atomicfields.getstat_cache_miss()+1);
            }
           return null;
       }
@@ -454,8 +483,8 @@ public class DualFileTable implements Table{
               rowswitch=!rowswitch;
          }
          synchronized(statlock){
-              stat_update++;
-              stat_update_size+=row.getSize();
+              atomicfields.setstat_update(atomicfields.getstat_update()+1);
+              atomicfields.setstat_update_size(atomicfields.getstat_update_size()+row.getSize());
          }
      }
      
@@ -504,7 +533,7 @@ public class DualFileTable implements Table{
           }
           index.updateEntry(row.getId(),row.getSize(),DELETE,0);
           synchronized(statlock){
-               stat_delete++;
+              atomicfields.setstat_delete(atomicfields.getstat_delete()+1);
           }
      }
      
@@ -572,8 +601,8 @@ public class DualFileTable implements Table{
                   Row row=Row.readFromStream(data);
                   data.close();
                   synchronized(statlock){
-                       stat_read++;
-                       stat_read_size+=row.getSize();
+                       atomicfields.setstat_read(atomicfields.getstat_read()+1);
+                       atomicfields.setstat_read_size(atomicfields.getstat_read_size()+row.getSize());
                   }
                   return row;
               }

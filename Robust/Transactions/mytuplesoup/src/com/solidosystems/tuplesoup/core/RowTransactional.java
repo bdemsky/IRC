@@ -6,13 +6,15 @@
 package com.solidosystems.tuplesoup.core;
 
 import dstm2.atomic;
-import dstm2.util.HashMap;
+import dstm2.util.StringKeyHashMap;
 import java.io.ByteArrayOutputStream;
+import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.util.Date;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Set;
 /**
  *
@@ -20,17 +22,19 @@ import java.util.Set;
  */
 public class RowTransactional {
      private String id;
-     private int size;
-     private HashMap<ValueTransactional> values;
+    // private int size;
+     RowTSInf atomicfields;
+     private StringKeyHashMap<ValueTransactional> values;
      
      public @atomic interface RowTSInf{
-        
+        int getSize();
+        void setSize(int val);
      }
      
      public RowTransactional(String id){
          this.id=id;
-         size=-1;
-         values=new HashMap<ValueTransactional>();
+         atomicfields.setSize(-1);
+         values=new StringKeyHashMap<ValueTransactional>();
      }
      
      /**
@@ -48,8 +52,8 @@ public class RowTransactional {
       * Returns the actual size in bytes this row will take when written to a stream.
       */
      public int getSize(){
-         if(size==-1)recalcSize();
-         return size;
+         if(atomicfields.getSize()==-1)recalcSize();
+         return atomicfields.getSize();
      }
 
      /**
@@ -78,71 +82,71 @@ public class RowTransactional {
       * Stores the given value for the given key.
       */
      public void put(String key,ValueTransactional value){
-         size=-1;
-         values.put(key.hashCode(),value);
+         atomicfields.setSize(-1);
+         values.put(key,value);
      }
      
      /**
       * Stores the given string wrapped in a value object for the given key.
       */
      public void put(String key,String value){
-         size=-1;
-         values.put(key.hashCode(),new ValueTransactional(value));
+         atomicfields.setSize(-1);
+         values.put(key,new ValueTransactional(value));
      }
      
      /**
       * Stores the given int wrapped in a value object for the given key.
       */
      public void put(String key,int value){
-         size=-1;
-         values.put(key.hashCode(),new ValueTransactional(value));
+         atomicfields.setSize(-1);
+         values.put(key,new ValueTransactional(value));
      }
      
      /**
       * Stores the given long wrapped in a value object for the given key.
       */
      public void put(String key,long value){
-         size=-1;
-         values.put(key.hashCode(),new ValueTransactional(value));
+         atomicfields.setSize(-1);
+         values.put(key,new ValueTransactional(value));
      }
      
      /**
       * Stores the given float wrapped in a value object for the given key.
       */
      public void put(String key,float value){
-         size=-1;
-         values.put(key.hashCode(),new ValueTransactional(value));
+         atomicfields.setSize(-1);
+         values.put(key,new ValueTransactional(value));
      }
      
      /**
       * Stores the given double wrapped in a value object for the given key.
       */
      public void put(String key,double value){
-         size=-1;
-         values.put(key.hashCode(),new ValueTransactional(value));
+         atomicfields.setSize(-1);
+         values.put(key,new ValueTransactional(value));
      }
      
      /**
       * Stores the given boolean wrapped in a value object for the given key.
       */
      public void put(String key,boolean value){
-         size=-1;
-         values.put(key.hashCode(),new ValueTransactional(value));
+         atomicfields.setSize(-1);
+         values.put(key,new ValueTransactional(value));
      }
      
      /**
       * Stores the given Date wrapped in a value object for the given key.
       */
      public void put(String key,Date value){
-         size=-1;
-         values.put(key.hashCode(),new ValueTransactional(value));
+         atomicfields.setSize(-1);
+         values.put(key,new ValueTransactional(value));
      }
      
      /**
       * Returns the value stored for the current key, or a null value (not null) if the key does not exist.
       */
      public ValueTransactional get(String key){
-         if(!values.containsKey(key.hashCode()))return new ValueTransactional();
+         if(!values.containsKey(key))return new ValueTransactional();
          return values.get(key.hashCode());
      }
      
@@ -152,7 +156,7 @@ public class RowTransactional {
       * See the documentation for Value to learn how the string value is generated.
       */
      public String getString(String key){
-         if(!values.containsKey(key.hashCode()))return "";
+         if(!values.containsKey(key))return "";
          return values.get(key.hashCode()).getString();
      }
      
@@ -162,7 +166,7 @@ public class RowTransactional {
       * See the documentation for Value to learn how the string value is generated.
       */
      public int getInt(String key){
-         if(!values.containsKey(key.hashCode()))return 0;
+         if(!values.containsKey(key))return 0;
           return values.get(key.hashCode()).getInt();
      }
      
@@ -172,7 +176,7 @@ public class RowTransactional {
       * See the documentation for Value to learn how the string value is generated.
       */
      public long getLong(String key){
-         if(!values.containsKey(key.hashCode()))return 0;
+         if(!values.containsKey(key))return 0;
           return values.get(key.hashCode()).getLong();
      }
      
@@ -182,7 +186,7 @@ public class RowTransactional {
       * See the documentation for Value to learn how the string value is generated.
       */
      public float getFloat(String key){
-         if(!values.containsKey(key.hashCode()))return 0f;
+         if(!values.containsKey(key))return 0f;
           return values.get(key.hashCode()).getFloat();
      }
      
@@ -192,7 +196,7 @@ public class RowTransactional {
       * See the documentation for Value to learn how the string value is generated.
       */
      public double getDouble(String key){
-         if(!values.containsKey(key.hashCode()))return 0d;
+         if(!values.containsKey(key))return 0d;
           return values.get(key.hashCode()).getDouble();
      }
      
@@ -202,7 +206,7 @@ public class RowTransactional {
       * See the documentation for Value to learn how the string value is generated.
       */
      public boolean getBoolean(String key){
-         if(!values.containsKey(key.hashCode()))return false;
+         if(!values.containsKey(key))return false;
           return values.get(key.hashCode()).getBoolean();
      }
      
@@ -212,7 +216,7 @@ public class RowTransactional {
       * See the documentation for Value to learn how the string value is generated.
       */
      public Date getTimestamp(String key){
-         if(!values.containsKey(key.hashCode()))return new Date(0);
+         if(!values.containsKey(key))return new Date(0);
           return values.get(key.hashCode()).getTimestamp();
       }
  
@@ -233,7 +237,7 @@ public class RowTransactional {
              ByteArrayOutputStream bout=new ByteArrayOutputStream();
              DataOutputStream dout=new DataOutputStream(bout);
              writeToStream(dout);
-             size=bout.size();
+             this.atomicfields.setSize(bout.size());
              dout.close();
              bout.close();
          }catch(Exception e){}
@@ -247,19 +251,19 @@ public class RowTransactional {
           
           out.writeUTF(id);
           
-          Set keys=values.keySet();
-          out.writeInt(keys.size());
-          Iterator<String> it=keys.iterator();
+          Set<StringKeyHashMap.TEntry<ValueTransactional>> pairs=values.entrySet(); 
+          out.writeInt(pairs.size());
+          Iterator<StringKeyHashMap.TEntry<ValueTransactional>> it= pairs.iterator();
           while(it.hasNext()){
-             Integer key= (Integer)it.next();
-             ValueTransactional value=values.get(key.hashCode());
+             String key= it.next().getKey();
+             ValueTransactional value= values.get(key);
              out.writeUTF(key);
              value.writeToFile(out);
           }
           long post=out.getFilePointer();
           int size=(int)(post-pre);
-          this.size=size+4;
-          out.writeInt(this.size);
+          this.atomicfields.setSize(size+4);
+          out.writeInt(this.atomicfields.getSize());
       }
  
       /**
@@ -268,35 +272,36 @@ public class RowTransactional {
       public void writeToStream(DataOutputStream out) throws IOException{
          int pre=out.size();
          out.writeUTF(id);
-         Set<String> keys=values.keySet();
-         out.writeInt(keys.size());
-         Iterator<String> it=keys.iterator();
+         Set<StringKeyHashMap.TEntry<ValueTransactional>> pairs=values.entrySet();
+         out.writeInt(pairs.size());
+         
+         Iterator<StringKeyHashMap.TEntry<ValueTransactional>> it=pairs.iterator();
          while(it.hasNext()){
-             String key=it.next();
-             ValueTransactional value=values.get(key.hashCode());
+             String key=it.next().getKey();
+             ValueTransactional value=values.get(key);
              out.writeUTF(key);
              value.writeToStream(out);
          }
          int post=out.size();
          int size=calcSize(pre,post);
-         this.size=size+4;
-         out.writeInt(this.size);
+         this.atomicfields.setSize(size+4);
+         out.writeInt(this.atomicfields.getSize());
      }
  
      /**
       * Reads a full row from the given DataInputStream and returns it.
       */
-     public static Row readFromStream(DataInputStream in) throws IOException{
+     public static RowTransactional readFromStream(DataInputStream in) throws IOException{
          String id=in.readUTF();
-         Row row=new Row(id);
+         RowTransactional row=new RowTransactional(id);
          int size=in.readInt();
          for(int i=0;i<size;i++){
              String key=in.readUTF();
-             Value value=Value.readFromStream(in);
+             ValueTransactional value=ValueTransactional.readFromStream(in);
              row.put(key,value);
          }
          size=in.readInt();
-         row.size=size;
+         row.atomicfields.setSize(size);
          return row;
      }
  
@@ -309,7 +314,7 @@ public class RowTransactional {
      public String toString(){
          StringBuffer buf=new StringBuffer();
          buf.append("("+id+")=>{");
-         Iterator<String> it=values.keySet().iterator();
+         Iterator<StringKeyHashMap.TEntry<ValueTransactional>> it=values.entrySet().iterator();
          boolean first=true;
          while(it.hasNext()){
              if(!first){
@@ -317,11 +322,11 @@ public class RowTransactional {
              }else{
                  first=false;
              }
-              key=it.next();
+             String key=it.next().getKey();
              buf.append("\"");
              buf.append(key);
              buf.append("\":");
-             Value value=values.get(key);
+             ValueTransactional value=values.get(key);
              buf.append(value.getTypeName());
              buf.append(":");
              if(value.getType()==Value.STRING){
@@ -365,10 +370,10 @@ public class RowTransactional {
          StringBuffer buf=new StringBuffer();
          buf.append(indentation);
          buf.append("<row id=\""+id+"\">\n");
-         Iterator it=values.entrySet().iterator();
+         Iterator<StringKeyHashMap.TEntry<ValueTransactional>> it=values.entrySet().iterator();
          while(it.hasNext()){
-             String key=(String)it.next();
-             ValueTransactional value=values.get(key.hashCode());
+             String key=it.next().getKey();
+             ValueTransactional value=values.get(key);
              buf.append(indentation);
              buf.append("   ");
              buf.append(value.toBasicXMLString(key));
