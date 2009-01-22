@@ -31,6 +31,7 @@
  
 package com.solidosystems.tuplesoup.core;
 
+import dstm2.AtomicSuperClass;
 import java.util.*;
 import java.io.*;
 

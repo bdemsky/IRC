@@ -31,6 +31,7 @@
  
 package com.solidosystems.tuplesoup.core;
 
+import dstm2.atomic;
 import java.io.*;
 
 public class TableIndexEntry implements Comparable<TableIndexEntry>{
@@ -39,6 +40,8 @@ public class TableIndexEntry implements Comparable<TableIndexEntry>{
     public long position;
     private int size;
     private int rowsize;
+    
+  
     
     public TableIndexEntry(String id,int rowsize,int location,long position){
         this.id=id;

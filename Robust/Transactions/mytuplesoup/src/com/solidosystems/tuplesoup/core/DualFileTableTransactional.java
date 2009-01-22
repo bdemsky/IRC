@@ -31,16 +31,19 @@
  
 package com.solidosystems.tuplesoup.core;
  
+
 import java.io.*;
 import java.util.*;
 import java.nio.channels.*;
 import com.solidosystems.tuplesoup.filter.*;
+import dstm2.atomic;
+import dstm2.util.StringKeyHashMap;
 
 /**
  * The table stores a group of rows.
  * Every row must have a unique id within a table.
  */
-public class DualFileTable implements Table{
+public class DualFileTableTransactional implements TableTransactional{
 
     
     private int INDEXCACHESIZE=8192;
@@ -54,7 +57,7 @@ public class DualFileTable implements Table{
     private RandomAccessFile filebrandom=null;
     FileChannel fca=null;
     FileChannel fcb=null;
-    private TableIndex index=null;
+    private TableIndexTransactional index=null;
      
     private long fileaposition=0;
     private long filebposition=0;
@@ -64,13 +67,41 @@ public class DualFileTable implements Table{
     private String title;
     private String location;
      
-    private TableIndexNode indexcachefirst;
-    private TableIndexNode indexcachelast;
+    private TableIndexNodeTransactional indexcachefirst;
+    private TableIndexNodeTransactional indexcachelast;
     private int indexcacheusage;
-    private Hashtable<String,TableIndexNode> indexcache;
     
+    private StringKeyHashMap<TableIndexNodeTransactional> indexcache;
+    //private Hashtable<String,TableIndexNode> indexcache;
+    
+    
+    DualFileTableTSInf atomicfields;
     // Statistic counters
-    long stat_add=0;
+    public @atomic interface DualFileTableTSInf{
+        long getstat_add();
+        long getstat_update();
+        long getstat_delete();
+        long getstat_add_size();
+        long getstat_update_size();
+        long getstat_read_size();
+        long getstat_read();
+        long getstat_cache_hit();
+        long getstat_cache_miss();
+        long getstat_cache_drop();
+        
+        void setstat_add(long val);
+        void setstat_update(long val);
+        void setstat_delete(long val);
+        void setstat_add_size(long val);
+        void setstat_update_size(long val);
+        void setstat_read_size(long val);
+        void setstat_read(long val);
+        void setstat_cache_hit(long val);
+        void setstat_cache_miss(long val);
+        void setstat_cache_drop(long val);
+    }
+  
+    /*long stat_add=0;
     long stat_update=0;
     long stat_delete=0;
     long stat_add_size=0;
@@ -79,7 +110,7 @@ public class DualFileTable implements Table{
     long stat_read=0;
     long stat_cache_hit=0;
     long stat_cache_miss=0;
-    long stat_cache_drop=0;
+    long stat_cache_drop=0;*/
     
     protected String statlock="stat-dummy";
     
@@ -103,26 +134,26 @@ public class DualFileTable implements Table{
     public Hashtable<String,Long> readStatistics(){
         Hashtable<String,Long> hash=new Hashtable<String,Long>();
         synchronized(statlock){
-            hash.put("stat_table_add",stat_add);
-            hash.put("stat_table_update",stat_update);
-            hash.put("stat_table_delete",stat_delete);
-            hash.put("stat_table_add_size",stat_add_size);
-            hash.put("stat_table_update_size",stat_update_size);
-            hash.put("stat_table_read_size",stat_read_size);
-            hash.put("stat_table_read",stat_read);
-            hash.put("stat_table_cache_hit",stat_cache_hit);
-            hash.put("stat_table_cache_miss",stat_cache_miss);
-            hash.put("stat_table_cache_drop",stat_cache_drop);
-            stat_add=0;
-            stat_update=0;
-            stat_delete=0;
-            stat_add_size=0;
-            stat_update_size=0;
-            stat_read_size=0;
-            stat_read=0;
-            stat_cache_hit=0;
-            stat_cache_miss=0;
-            stat_cache_drop=0;
+            hash.put("stat_table_add",atomicfields.getstat_add());
+            hash.put("stat_table_update",atomicfields.getstat_update());
+            hash.put("stat_table_delete",atomicfields.getstat_delete());
+            hash.put("stat_table_add_size",atomicfields.getstat_add_size());
+            hash.put("stat_table_update_size",atomicfields.getstat_update_size());
+            hash.put("stat_table_read_size",atomicfields.getstat_read_size());
+            hash.put("stat_table_read",atomicfields.getstat_read());
+            hash.put("stat_table_cache_hit",atomicfields.getstat_cache_hit());
+            hash.put("stat_table_cache_miss",atomicfields.getstat_cache_miss());
+            hash.put("stat_table_cache_drop",atomicfields.getstat_cache_drop());
+            atomicfields.setstat_add(0);
+            atomicfields.setstat_update(0);
+            atomicfields.setstat_delete(0);
+            atomicfields.setstat_add_size(0);
+            atomicfields.setstat_update_size(0);
+            atomicfields.setstat_read_size(0);
+            atomicfields.setstat_read(0);
+            atomicfields.setstat_cache_hit(0);
+            atomicfields.setstat_cache_miss(0);
+            atomicfields.setstat_cache_drop(0);
             Hashtable<String,Long> ihash=index.readStatistics();
             hash.putAll(ihash);
         }
@@ -137,19 +168,19 @@ public class DualFileTable implements Table{
     /**
      * Create a new table object with a specific index model
      */
-    public DualFileTable(String title,String location, int indextype) throws IOException{
+    public DualFileTableTransactional(String title,String location, int indextype) throws IOException{
         this.title=title;
         this.location=location;
         if(!this.location.endsWith(File.separator))this.location+=File.separator;
         switch(indextype){
-             case PAGED  : index=new PagedIndex(getFileName(INDEX));
+             case PAGED  : index=new PagedIndexTransactional(getFileName(INDEX));
                 break;
            
         }
         indexcachefirst=null;
         indexcachelast=null;
         indexcacheusage=0;
-        indexcache=new Hashtable<String,TableIndexNode>();
+        indexcache=new StringKeyHashMap<TableIndexNodeTransactional>();
     }
      
     /**
@@ -234,7 +265,7 @@ public class DualFileTable implements Table{
     /**
      * Adds a row of data to this table.
      */
-    public void addRow(Row row) throws IOException{
+    public void addRow(RowTransactional row) throws IOException{
         // Distribute new rows between the two datafiles by using the rowswitch, but don't spend time synchronizing... this does not need to be acurate!
         if(rowswitch){
             addRowA(row);
@@ -244,15 +275,15 @@ public class DualFileTable implements Table{
         rowswitch=!rowswitch;
     }
      
-     private void addCacheEntry(TableIndexEntry entry){
+     private void addCacheEntry(TableIndexEntryTransactional entry){
          synchronized(indexcache){
              if(indexcacheusage>INDEXCACHESIZE){
                  // remove first entry
-                 TableIndexNode node=indexcachefirst;
+                 TableIndexNodeTransactional node=indexcachefirst;
                  indexcache.remove(node.getData().getId());
                  indexcacheusage--;
                  synchronized(statlock){
-                     stat_cache_drop++;
+                     atomicfields.setstat_cache_drop(atomicfields.getstat_cache_drop()+1);
                  }
                  indexcachefirst=node.getNext();
                  if(indexcachefirst==null){
@@ -261,7 +292,7 @@ public class DualFileTable implements Table{
                     indexcachefirst.setPrevious(null);
                  }
              }
-             TableIndexNode node=new TableIndexNode(indexcachelast,entry);
+             TableIndexNodeTransactional node=new TableIndexNodeTransactional(indexcachelast,entry);
              if(indexcachelast!=null){
                  indexcachelast.setNext(node);
              }
@@ -274,26 +305,28 @@ public class DualFileTable implements Table{
         }
      }
      
-     private void addRowA(Row row) throws IOException{
+     private void addRowA(RowTransactional row) throws IOException{
          synchronized(filealock){
              openFile(FILEA);
              int pre=fileastream.size();
              row.writeToStream(fileastream);
              int post=fileastream.size();
              fileastream.flush();
+             
              synchronized(statlock){
-                  stat_add++;
-                  stat_add_size+=row.getSize();
-              }
+                  atomicfields.setstat_add(atomicfields.getstat_add()+1);
+                  atomicfields.setstat_add_size(atomicfields.getstat_add_size()+row.getSize());
+             }
+             
              index.addEntry(row.getId(),row.getSize(),FILEA,fileaposition);
              if(INDEXCACHESIZE>0){
-                 TableIndexEntry entry=new TableIndexEntry(row.getId(),row.getSize(),FILEA,fileaposition);
+                 TableIndexEntryTransactional entry=new TableIndexEntryTransactional(row.getId(),row.getSize(),FILEA,fileaposition);
                  addCacheEntry(entry);
              }
              fileaposition+=Row.calcSize(pre,post);
          }
      }
-     private void addRowB(Row row) throws IOException{
+     private void addRowB(RowTransactional row) throws IOException{
          synchronized(fileblock){
              openFile(FILEB);
              int pre=filebstream.size();
@@ -301,23 +334,23 @@ public class DualFileTable implements Table{
              int post=filebstream.size();
              filebstream.flush();
              synchronized(statlock){
-                  stat_add++;
-                  stat_add_size+=row.getSize();
+                  atomicfields.setstat_add(atomicfields.getstat_add()+1);
+                  atomicfields.setstat_add_size(atomicfields.getstat_add_size()+row.getSize());
               }
              index.addEntry(row.getId(),row.getSize(),FILEB,filebposition);
              if(INDEXCACHESIZE>0){
-                 TableIndexEntry entry=new TableIndexEntry(row.getId(),row.getSize(),FILEB,filebposition);
+                 TableIndexEntryTransactional entry=new TableIndexEntryTransactional(row.getId(),row.getSize(),FILEB,filebposition);
                  addCacheEntry(entry);
              }
-             filebposition+=Row.calcSize(pre,post);
+             filebposition+=RowTransactional.calcSize(pre,post);
          }
      }
      
 
-     private void updateCacheEntry(TableIndexEntry entry){
+     private void updateCacheEntry(TableIndexEntryTransactional entry){
           synchronized(indexcache){
               if(indexcache.containsKey(entry.getId())){
-                  TableIndexNode node=indexcache.get(entry.getId());
+                  TableIndexNodeTransactional node=indexcache.get(entry.getId());
                   node.setData(entry);
                   if(node!=indexcachelast){
                       if(node==indexcachefirst){
@@ -338,7 +371,7 @@ public class DualFileTable implements Table{
       private void removeCacheEntry(String id){
           synchronized(indexcache){
                 if(indexcache.containsKey(id)){
-                    TableIndexNode node=indexcache.get(id);
+                    TableIndexNodeTransactional node=indexcache.get(id);
                     indexcache.remove(id);
                     if(indexcacheusage==1){
                         indexcachefirst=null;
@@ -357,16 +390,16 @@ public class DualFileTable implements Table{
                     }
                     indexcacheusage--;
                     synchronized(statlock){
-                         stat_cache_drop++;
+                         atomicfields.setstat_cache_drop(atomicfields.getstat_cache_drop()+1);
                     }
                 }
           }
       }
 
-      private TableIndexEntry getCacheEntry(String id){
+      private TableIndexEntryTransactional getCacheEntry(String id){
           synchronized(indexcache){
               if(indexcache.containsKey(id)){
-                  TableIndexNode node=indexcache.get(id);
+                  TableIndexNodeTransactional node=indexcache.get(id);
                   if(node!=indexcachelast){
                       if(node==indexcachefirst){
                             indexcachefirst=node.getNext();
@@ -378,13 +411,13 @@ public class DualFileTable implements Table{
                         indexcachelast=node;
                   }
                   synchronized(statlock){
-                       stat_cache_hit++;
+                       atomicfields.setstat_cache_hit(atomicfields.getstat_cache_hit()+1);
                    }
                   return node.getData();
               }
           }
           synchronized(statlock){
-               stat_cache_miss++;
+               atomicfields.setstat_cache_miss(atomicfields.getstat_cache_miss()+1);
            }
           return null;
       }
@@ -393,8 +426,8 @@ public class DualFileTable implements Table{
       * Adds a row to this table if it doesn't already exist, if it does it updates the row instead.
       * This method is much slower than directly using add or update, so only use it if you don't know wether or not the row already exists.
       */
-     public void addOrUpdateRow(Row row) throws IOException{
-         Row tmprow=getRow(row.getId());
+     public void addOrUpdateRow(RowTransactional row) throws IOException{
+         RowTransactional tmprow=getRow(row.getId());
          if(tmprow==null){
              addRow(row);
          }else{
@@ -405,8 +438,8 @@ public class DualFileTable implements Table{
      /**
       * Updates a row stored in this table.
       */
-     public void updateRow(Row row) throws IOException{
-         TableIndexEntry entry=null;
+     public void updateRow(RowTransactional row) throws IOException{
+         TableIndexEntryTransactional entry=null;
          // Handle index entry caching
          if(INDEXCACHESIZE>0){
              synchronized(indexcache){
@@ -454,12 +487,12 @@ public class DualFileTable implements Table{
               rowswitch=!rowswitch;
          }
          synchronized(statlock){
-              stat_update++;
-              stat_update_size+=row.getSize();
+              atomicfields.setstat_update(atomicfields.getstat_update()+1);
+              atomicfields.setstat_update_size(atomicfields.getstat_update_size()+row.getSize());
          }
      }
      
-     private void updateRowA(Row row) throws IOException{
+     private void updateRowA(RowTransactional row) throws IOException{
          synchronized(filealock){
               openFile(FILEA);
               int pre=fileastream.size();
@@ -470,13 +503,13 @@ public class DualFileTable implements Table{
               
               // Handle index entry caching
               if(INDEXCACHESIZE>0){
-                  updateCacheEntry(new TableIndexEntry(row.getId(),row.getSize(),FILEA,fileaposition));
+                  updateCacheEntry(new TableIndexEntryTransactional(row.getId(),row.getSize(),FILEA,fileaposition));
               }
               fileaposition+=Row.calcSize(pre,post);
           }
      }
 
-     private void updateRowB(Row row) throws IOException{
+     private void updateRowB(RowTransactional row) throws IOException{
          synchronized(fileblock){
               openFile(FILEB);
               int pre=filebstream.size();
@@ -487,7 +520,7 @@ public class DualFileTable implements Table{
               // Handle index entry caching
               // Handle index entry caching
                 if(INDEXCACHESIZE>0){
-                    updateCacheEntry(new TableIndexEntry(row.getId(),row.getSize(),FILEB,filebposition));
+                    updateCacheEntry(new TableIndexEntryTransactional(row.getId(),row.getSize(),FILEB,filebposition));
                 }
                 filebposition+=Row.calcSize(pre,post);
           }
@@ -497,52 +530,52 @@ public class DualFileTable implements Table{
       * Marks a row as deleted in the index.
       * Be aware that the space consumed by the row is not actually reclaimed.
       */
-     public void deleteRow(Row row) throws IOException{
+     public void deleteRow(RowTransactional row) throws IOException{
           // Handle index entry caching
           if(INDEXCACHESIZE>0){
               removeCacheEntry(row.getId());
           }
           index.updateEntry(row.getId(),row.getSize(),DELETE,0);
           synchronized(statlock){
-               stat_delete++;
+              atomicfields.setstat_delete(atomicfields.getstat_delete()+1);
           }
      }
      
      /**
       * Returns a tuplestream containing the given list of rows
       */
-     public TupleStream getRows(List<String> rows) throws IOException{
-         return new IndexedTableReader(this,index.scanIndex(rows));
+     public TupleStreamTransactional getRows(List<String> rows) throws IOException{
+         return new IndexedTableReaderTransactional(this,index.scanIndex(rows));
      }
 
      /**
       * Returns a tuplestream containing the rows matching the given rowmatcher
       */
-     public TupleStream getRows(RowMatcher matcher) throws IOException{
-         return new IndexedTableReader(this,index.scanIndex(),matcher);
+     public TupleStreamTransactional getRows(RowMatcherTransactional matcher) throws IOException{
+         return new IndexedTableReaderTransactional(this,index.scanIndex(),matcher);
      }
      
      /**
       * Returns a tuplestream containing those rows in the given list that matches the given RowMatcher
       */
-     public TupleStream getRows(List<String> rows,RowMatcher matcher) throws IOException{
-          return new IndexedTableReader(this,index.scanIndex(rows),matcher);
+     public TupleStreamTransactional getRows(List<String> rows,RowMatcherTransactional matcher) throws IOException{
+          return new IndexedTableReaderTransactional(this,index.scanIndex(rows),matcher);
       }
 
      /**
       * Returns a tuplestream of all rows in this table.
       */
-     public TupleStream getRows() throws IOException{
+     public TupleStreamTransactional getRows() throws IOException{
          // return new TableReader(this);
-         return new IndexedTableReader(this,index.scanIndex());
+         return new IndexedTableReaderTransactional(this,index.scanIndex());
      }
      
      /**
       * Returns a single row stored in this table.
       * If the row does not exist in the table, null will be returned.
       */
-     public Row getRow(String id) throws IOException{
-         TableIndexEntry entry=null;
+     public RowTransactional getRow(String id) throws IOException{
+         TableIndexEntryTransactional entry=null;
           // Handle index entry caching
           if(INDEXCACHESIZE>0){
               synchronized(indexcache){
@@ -560,20 +593,20 @@ public class DualFileTable implements Table{
           if(entry!=null){
               long dataoffset=0;
               DataInputStream data=null;
-              if(entry.location==Table.FILEA){
+              if(entry.getLocation()==Table.FILEA){
                   data=new DataInputStream(new BufferedInputStream(new FileInputStream(getFileName(Table.FILEA))));
-              }else if(entry.location==Table.FILEB){
+              }else if(entry.getLocation()==Table.FILEB){
                   data=new DataInputStream(new BufferedInputStream(new FileInputStream(getFileName(Table.FILEB))));
               }
               if(data!=null){
-                  while(dataoffset!=entry.position){
-                      dataoffset+=data.skipBytes((int)(entry.position-dataoffset));
+                  while(dataoffset!=entry.getPosition()){
+                      dataoffset+=data.skipBytes((int)(entry.getPosition()-dataoffset));
                   }
-                  Row row=Row.readFromStream(data);
+                  RowTransactional row=RowTransactional.readFromStream(data);
                   data.close();
                   synchronized(statlock){
-                       stat_read++;
-                       stat_read_size+=row.getSize();
+                       atomicfields.setstat_read(atomicfields.getstat_read()+1);
+                       atomicfields.setstat_read_size(atomicfields.getstat_read_size()+row.getSize());
                   }
                   return row;
               }

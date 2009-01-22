@@ -29,7 +29,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
  
-/*package com.solidosystems.tuplesoup.core;
+package com.solidosystems.tuplesoup.core;
 
 import TransactionalIO.core.TransactionalFile;
 import dstm2.AtomicSuperClass;
@@ -38,7 +38,7 @@ import java.io.*;
 import java.util.*;
 
 public class TableIndexPageTransactional implements AtomicSuperClass{
-    TableIndexPageTSInf atomicfields;
+    TableIndexPageTSInf atomicfields = null;
     private final static int BASEOFFSET=4+8+8+4+4;
     //private RandomAccessFile file=null;
     private TransactionalFile file = null;
@@ -52,54 +52,43 @@ public class TableIndexPageTransactional implements AtomicSuperClass{
         Integer getStarthash();
         Integer getEndhash();
         Boolean getFirst();
-        TableIndexPageTSInf getNextpage();
-        TableIndexPageTSInf getLowerpage();
+        TableIndexPageTransactional getNextpage();
+        TableIndexPageTransactional getLowerpage();
+        PagedIndexTransactional getIndex(); 
         
      
-        void setLowerpage(TableIndexPageTSInf lowerpage);   
-        void setNextpage(TableIndexPageTSInf nextpage);
+        void setLowerpage(TableIndexPageTransactional lowerpage);   
+        void setNextpage(TableIndexPageTransactional nextpage);
         void setFirst(Boolean val);
-        void setEndhash();
-        void setStarthash();
+        void setEndhash(int val);
+        void setStarthash(int val);
         void setOffset(Integer offset);
         void setNext(Long next);
         void setSize(Integer size);
         void setLocation(Long location);
         void setLower(Long val);
+        void setIndex(PagedIndexTransactional val);
     }
   
     
-    private long location=-1;
-    private int size=-1;
-    private long next=-1;
-    private long lower=-1;
-    private int offset=0;
     
-    private int starthash=-1;
-    private int endhash=-1;
-    private boolean first=false;
-    
-    private TableIndexPage nextpage=null;
-    private TableIndexPage lowerpage=null;
-    
-    private PagedIndex index=null;
-    
-    public TableIndexPageTransactional(PagedIndex index,TransactionalFile file) throws IOException{
+    public TableIndexPageTransactional(PagedIndexTransactional index,TransactionalFile file) throws IOException{
         this.file=file;
-        this.index=index;
-        first=false;
-        location=file.getFilePointer();
-        size=file.readInt();
-        next=file.readLong();
-        lower=file.readLong();
-        offset=file.readInt();
-        endhash=file.readInt();
-        if(offset>0)starthash=file.readInt();
+        this.atomicfields.setIndex(index);
+        this.atomicfields.setFirst(false);
+        this.atomicfields.setLocation(file.getFilePointer());
+        this.atomicfields.setSize(file.readInt());
+        this.atomicfields.setNext(file.readLong());
+        this.atomicfields.setLower(file.readLong());
+        this.atomicfields.setOffset(file.readInt());
+        this.atomicfields.setEndhash(file.readInt());
+        if(this.atomicfields.getOffset()>0)
+            this.atomicfields.setStarthash(file.readInt());
     }
     
-    public static TableIndexPage createNewPage(PagedIndex index,RandomAccessFile file,int size) throws IOException{
+    public static TableIndexPageTransactional createNewPage(PagedIndexTransactional index,TransactionalFile file,int size) throws IOException{
         long pre=file.length();
-        file.setLength(file.length()+size+BASEOFFSET);
+//        file.setLength(file.length()+size+BASEOFFSET);
         file.seek(pre);
         file.writeInt(size);
         file.writeLong(-1l);
@@ -107,185 +96,185 @@ public class TableIndexPageTransactional implements AtomicSuperClass{
         file.writeInt(0);
         file.writeInt(-1);
         file.seek(pre);
-        index.stat_create_page++;
-        return new TableIndexPage(index,file);
+        index.atomicfields.setStat_create_page(index.atomicfields.getStat_create_page()+1);
+        return new TableIndexPageTransactional(index,file);
     }
     
     public void setFirst(){
-        first=true;
+        this.atomicfields.setFirst(true);
     }
     
     public long getLocation(){
-        return location;
+        return atomicfields.getLocation();
     }
     public long getEndLocation(){
-        return location+size+BASEOFFSET;
+        return this.atomicfields.getLocation()+atomicfields.getSize()+BASEOFFSET;
     }
     
     public String toString(){
         StringBuffer buf=new StringBuffer();
         buf.append("{\n");
-        buf.append("  location  "+location+"\n");
-        buf.append("  size      "+size+"\n");
-        buf.append("  next      "+next+"\n");
-        buf.append("  lower     "+lower+"\n");
-        buf.append("  offset    "+offset+"\n");
-        buf.append("  starthash "+starthash+"\n");
-        buf.append("  endhash "+endhash+"\n");
+        buf.append("  location  "+this.atomicfields.getLocation()+"\n");
+        buf.append("  size      "+this.atomicfields.getSize()+"\n");
+        buf.append("  next      "+this.atomicfields.getNext()+"\n");
+        buf.append("  lower     "+this.atomicfields.getLower()+"\n");
+        buf.append("  offset    "+this.atomicfields.getOffset()+"\n");
+        buf.append("  starthash "+this.atomicfields.getStarthash()+"\n");
+        buf.append("  endhash "+this.atomicfields.getEndhash()+"\n");
         buf.append("}\n");
         return buf.toString();
     }
     
     private void updateMeta() throws IOException{
-        file.seek(location);
-        file.writeInt(size);
-        file.writeLong(next);
-        file.writeLong(lower);
-        file.writeInt(offset);
-        file.writeInt(endhash);
+        file.seek(this.atomicfields.getLocation());
+        file.writeInt(this.atomicfields.getSize());
+        file.writeLong(this.atomicfields.getNext());
+        file.writeLong(this.atomicfields.getLower());
+        file.writeInt(this.atomicfields.getOffset());
+        file.writeInt(this.atomicfields.getEndhash());
     }
     
-    public void addEntriesToList(List<TableIndexEntry> lst) throws IOException{
-        if(lower>-1){
-            if(lowerpage==null){
-                file.seek(lower);
-                lowerpage=new TableIndexPage(index,file);
+    public void addEntriesToList(List<TableIndexEntryTransactional> lst) throws IOException{
+        if(this.atomicfields.getLower()>-1){
+            if(this.atomicfields.getLowerpage()==null){
+                file.seek(this.atomicfields.getLower());
+                this.atomicfields.setLowerpage(new TableIndexPageTransactional(this.atomicfields.getIndex(),file));
             }
-            lowerpage.addEntriesToList(lst);
+            this.atomicfields.getLowerpage().addEntriesToList(lst);
         }
-        if(next>-1){
-            if(nextpage==null){
-                file.seek(next);
-                nextpage=new TableIndexPage(index,file);
+        if(this.atomicfields.getNext()>-1){
+            if(this.atomicfields.getNextpage()==null){
+                file.seek(this.atomicfields.getNext());
+                this.atomicfields.setNextpage(new TableIndexPageTransactional(this.atomicfields.getIndex(),file));
             }
-            nextpage.addEntriesToList(lst);
+            this.atomicfields.getNextpage().addEntriesToList(lst);
         }
-        file.seek(location+BASEOFFSET);
+        file.seek(this.atomicfields.getLocation()+BASEOFFSET);
         long pre=file.getFilePointer();
-        while(file.getFilePointer()<pre+offset){
-            TableIndexEntry entry=TableIndexEntry.readData(file);
+        while(file.getFilePointer()<pre+this.atomicfields.getOffset()){
+            TableIndexEntryTransactional entry=TableIndexEntryTransactional.readData(file);
             if(entry!=null){
                 if(entry.getLocation()!=Table.DELETE)lst.add(entry);
             }
         }
     }
     
-    public TableIndexEntry scanIndex(String id,int hashcode) throws IOException{
-        if(!first){
-            if(hashcode<starthash){
-                if(lower==-1)return null;
-                if(lowerpage==null){
-                    file.seek(lower);
-                    lowerpage=new TableIndexPage(index,file);
+    public TableIndexEntryTransactional scanIndex(String id,int hashcode) throws IOException{
+        if(!atomicfields.getFirst()){
+            if(hashcode<atomicfields.getStarthash()){
+                if(atomicfields.getLower()==-1) return null;
+                if(this.atomicfields.getLowerpage()==null){
+                    file.seek(this.atomicfields.getLower());
+                    this.atomicfields.setLowerpage(new TableIndexPageTransactional(this.atomicfields.getIndex(),file));
                 }
-                index.stat_page_branch++;
-                return lowerpage.scanIndex(id,hashcode);
+                atomicfields.getIndex().atomicfields.setStat_page_branch(atomicfields.getIndex().atomicfields.getStat_page_branch()+1);
+                return this.atomicfields.getLowerpage().scanIndex(id,hashcode);
             }
         }
-        if(hashcode>endhash){
-            if(next==-1)return null;
-            if(nextpage==null){
-                file.seek(next);
-                nextpage=new TableIndexPage(index,file);
+        if(hashcode>this.atomicfields.getEndhash()){
+            if(this.atomicfields.getNext()==-1)return null;
+            if(this.atomicfields.getNextpage()==null){
+                file.seek(this.atomicfields.getNext());
+                this.atomicfields.setNextpage(new TableIndexPageTransactional(this.atomicfields.getIndex(),file));
             }
-            index.stat_page_next++;
-            return nextpage.scanIndex(id,hashcode);
+            atomicfields.getIndex().atomicfields.setStat_page_next(atomicfields.getIndex().atomicfields.getStat_page_next()+1);
+            return this.atomicfields.getNextpage().scanIndex(id,hashcode);
         }
-        file.seek(location+BASEOFFSET);
+        file.seek(this.atomicfields.getLocation()+BASEOFFSET);
         long pre=file.getFilePointer();
-        while(file.getFilePointer()<pre+offset){
-            TableIndexEntry entry=TableIndexEntry.lookForData(id,file);
+        while(file.getFilePointer()<pre+this.atomicfields.getOffset()){
+            TableIndexEntryTransactional entry=TableIndexEntryTransactional.lookForData(id,file);
             if(entry!=null)return entry;
         }
-        if(next==-1)return null;
-        if(nextpage==null){
-            file.seek(next);
-            nextpage=new TableIndexPage(index,file);
+        if(this.atomicfields.getNext()==-1)return null;
+        if(this.atomicfields.getNextpage()==null){
+            file.seek(this.atomicfields.getNext());
+            this.atomicfields.setNextpage(new TableIndexPageTransactional(this.atomicfields.getIndex(),file));
         }
-        index.stat_page_next++;
-        return nextpage.scanIndex(id,hashcode);
+        atomicfields.getIndex().atomicfields.setStat_page_next(atomicfields.getIndex().atomicfields.getStat_page_next()+1);
+        return this.atomicfields.getNextpage().scanIndex(id,hashcode);
     }
     protected long getOffset(String id,int hashcode) throws IOException{
-        if(!first){
-            if(hashcode<starthash){
-                if(lower==-1)return -1;
-                if(lowerpage==null){
-                    file.seek(lower);
-                    lowerpage=new TableIndexPage(index,file);
+        if(!this.atomicfields.getFirst()){
+            if(hashcode<this.atomicfields.getStarthash()){
+                if(this.atomicfields.getLower()==-1)return -1;
+                if(this.atomicfields.getLowerpage()==null){
+                    file.seek(atomicfields.getLower());
+                    this.atomicfields.setLowerpage(new TableIndexPageTransactional(this.atomicfields.getIndex(),file));
                 }
-                index.stat_page_branch++;
-                return lowerpage.getOffset(id,hashcode);
+                atomicfields.getIndex().atomicfields.setStat_page_branch(atomicfields.getIndex().atomicfields.getStat_page_branch()+1);
+                return this.atomicfields.getLowerpage().getOffset(id,hashcode);
             }
         }
-        if(hashcode>endhash){
-            if(next==-1)return -1;
-            if(nextpage==null){
-                file.seek(next);
-                nextpage=new TableIndexPage(index,file);
+        if(hashcode>this.atomicfields.getEndhash()){
+            if(this.atomicfields.getNext()==-1)return -1;
+            if(this.atomicfields.getNextpage()==null){
+                file.seek(this.atomicfields.getNext());
+                this.atomicfields.setNextpage(new TableIndexPageTransactional(this.atomicfields.getIndex(),file));
             }
-            index.stat_page_next++;
-            return nextpage.getOffset(id,hashcode);
+            atomicfields.getIndex().atomicfields.setStat_page_next(atomicfields.getIndex().atomicfields.getStat_page_next()+1);
+            return this.atomicfields.getNextpage().getOffset(id,hashcode);
         }
-        file.seek(location+BASEOFFSET);
+        file.seek(this.atomicfields.getLocation()+BASEOFFSET);
         long pre=file.getFilePointer();
-        while(file.getFilePointer()<pre+offset){
+        while(file.getFilePointer()<pre+this.atomicfields.getOffset()){
             long prescan=file.getFilePointer();
-            TableIndexEntry entry=TableIndexEntry.lookForData(id,file);
+            TableIndexEntryTransactional entry=TableIndexEntryTransactional.lookForData(id,file);
             if(entry!=null)return prescan;
         }
-        if(next==-1)return -1;
-        if(nextpage==null){
-            file.seek(next);
-            nextpage=new TableIndexPage(index,file);
+        if(this.atomicfields.getNext()==-1)return -1;
+        if(this.atomicfields.getNextpage()==null){
+            file.seek(this.atomicfields.getNext());
+            this.atomicfields.setNextpage(new TableIndexPageTransactional(this.atomicfields.getIndex(),file));
         }
-        index.stat_page_next++;
-        return nextpage.getOffset(id,hashcode);
+        atomicfields.getIndex().atomicfields.setStat_page_next(atomicfields.getIndex().atomicfields.getStat_page_next()+1);
+        return this.atomicfields.getNextpage().getOffset(id,hashcode);
     }
     
-    protected TableIndexPage getFirstFreePage(String id,int hashcode) throws IOException{
+    protected TableIndexPageTransactional getFirstFreePage(String id,int hashcode) throws IOException{
         // Is this an empty page?
-        if(offset==0){
+        if(this.atomicfields.getOffset()==0){
             return this;
         }
         // Is this hash lower than the starthash
-        if(!first){
-            if(hashcode<starthash){
-                if(lower==-1){
-                    lower=file.length();
+        if(!this.atomicfields.getFirst()){
+            if(hashcode<this.atomicfields.getStarthash()){
+                if(this.atomicfields.getLower()==-1){
+                    this.atomicfields.setLower(file.length());
                     updateMeta();
-                    return createNewPage(index,file,PagedIndex.PAGESIZE);
+                    return createNewPage(this.atomicfields.getIndex(),file,PagedIndexTransactional.PAGESIZE);
                 }
-                if(lowerpage==null){
-                    file.seek(lower);
-                    lowerpage=new TableIndexPage(index,file);
+                if(this.atomicfields.getLowerpage()==null){
+                    file.seek(this.atomicfields.getLower());
+                    this.atomicfields.setLowerpage(new TableIndexPageTransactional(this.atomicfields.getIndex(),file));
                 }
-                index.stat_page_branch++;
-                return lowerpage.getFirstFreePage(id,hashcode);
+                atomicfields.getIndex().atomicfields.setStat_page_branch(atomicfields.getIndex().atomicfields.getStat_page_branch()+1);
+                return this.atomicfields.getLowerpage().getFirstFreePage(id,hashcode);
             }
         }
         // Do we have space in this page
-        if(size-offset>id.length()*2+4+4+8+1+2)return this;
+        if(this.atomicfields.getSize()-this.atomicfields.getOffset()>id.length()*2+4+4+8+1+2)return this;
         // Check next
-        if(next==-1){
-            next=file.length();
+        if(this.atomicfields.getNext()==-1){
+            this.atomicfields.setNext(file.length());
             updateMeta();
-            return createNewPage(index,file,PagedIndex.PAGESIZE);
+            return createNewPage(this.atomicfields.getIndex(),file,PagedIndexTransactional.PAGESIZE);
         }
-        if(nextpage==null){
-            file.seek(next);
-            nextpage=new TableIndexPage(index,file);
+        if(this.atomicfields.getNextpage()==null){
+            file.seek(this.atomicfields.getNext());
+            this.atomicfields.setNextpage(new TableIndexPageTransactional(this.atomicfields.getIndex(),file));
         }
-        index.stat_page_next++;
-        return nextpage.getFirstFreePage(id,hashcode);
+        atomicfields.getIndex().atomicfields.setStat_page_next(atomicfields.getIndex().atomicfields.getStat_page_next()+1);
+        return this.atomicfields.getNextpage().getFirstFreePage(id,hashcode);
     }
     
     public void addEntry(String id,int rowsize,int location,long position) throws IOException{
-        if(offset==0)starthash=id.hashCode();
-        file.seek(this.location+BASEOFFSET+offset);
-        TableIndexEntry entry=new TableIndexEntry(id,rowsize,location,position);
+        if(atomicfields.getOffset()==0)this.atomicfields.setStarthash(id.hashCode());
+        file.seek(this.atomicfields.getLocation()+BASEOFFSET+this.atomicfields.getOffset());
+        TableIndexEntryTransactional entry=new TableIndexEntryTransactional(id,rowsize,location,position);
         entry.writeData(file);
-        offset+=entry.getSize();
-        if(id.hashCode()>endhash)endhash=id.hashCode();
+        this.atomicfields.setOffset(this.atomicfields.getOffset()+entry.getSize());
+        if(id.hashCode()>this.atomicfields.getEndhash()) this.atomicfields.setEndhash(id.hashCode());
         updateMeta();
     }
-}*/
+}

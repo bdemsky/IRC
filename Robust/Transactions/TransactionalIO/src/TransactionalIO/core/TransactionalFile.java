@@ -293,7 +293,50 @@ public class TransactionalFile implements Comparable {
         tmp.setLocaloffset(offset);
 
     }
+    
+    
+     public int skipBytes(int n) throws IOException {
+        long pos;
+        long len;
+        long newpos;
 
+        if (n <= 0) {
+            return 0;
+        }
+        pos = getFilePointer();
+        len = length();
+        newpos = pos + n;
+        if (newpos > len) {
+            newpos = len;
+        }
+        seek(newpos);
+
+         /* return the actual number of bytes skipped */
+        return (int) (newpos - pos);
+    }
+
+    public final int readByte(){
+        byte[] data = new byte[1];
+        read(data);
+        int result = (byte)(data[0]);
+        return result;
+    }
+    
+    public final int readChar(){
+        byte[] data = new byte[2];
+        read(data);
+        int result = (char)((data[0] << 8) | data[0]);
+        return result;
+    }
+    
+    public final int readShort(){
+        byte[] data = new byte[2];
+        read(data);
+        int result = (short)((data[0] << 8) | data[1]);
+        return result;
+    }
+    
+    
     public final int readInt(){
         byte[] data = new byte[4];
         read(data);
@@ -306,6 +349,43 @@ public class TransactionalFile implements Comparable {
         read(data);
         long result = ((long)data[0] << 56) + ((long)data[1] << 48) + ((long)data[2] << 40) + ((long)data[3] << 32) + ((long)data[4] << 24) + ((long)data[5] << 16)+ ((long)data[6] << 8) + data[7];
         return result;
+    }
+    
+    
+    public final void writeByte(int b){
+        try{
+            byte[] result = new byte[1];
+            result[0] = (byte)b;
+            write(result);
+        }catch(IOException ex){
+            Logger.getLogger(TransactionalFile.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        
+    }
+    
+    public final void writeChar(int value){
+        try{
+            byte[] result = new byte[2];
+            result[0] = (byte)(value >> 8);
+            result[1] = (byte)(value);
+            write(result);
+        }catch(IOException ex){
+            Logger.getLogger(TransactionalFile.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        
+    }
+      
+      
+        public final void writeShort(int value){
+        try{
+            byte[] result = new byte[2];
+            result[0] = (byte)(value >> 8);
+            result[1] = (byte)(value);
+            write(result);
+        }catch(IOException ex){
+            Logger.getLogger(TransactionalFile.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        
     }
     
     public final void writeInt(int value){
@@ -338,6 +418,19 @@ public class TransactionalFile implements Comparable {
             Logger.getLogger(TransactionalFile.class.getName()).log(Level.SEVERE, null, ex);
         }
 
+    }
+     
+     public final void writeChars(String s) throws IOException {
+            int clen = s.length();
+            int blen = 2*clen;
+            byte[] b = new byte[blen];
+            char[] c = new char[clen];
+            s.getChars(0, clen, c, 0);
+            for (int i = 0, j = 0; i < clen; i++) {
+              b[j++] = (byte)(c[i] >>> 8);
+              b[j++] = (byte)(c[i] >>> 0);
+            }
+            write(b);
     }
     
     public int read(byte[] b) {
