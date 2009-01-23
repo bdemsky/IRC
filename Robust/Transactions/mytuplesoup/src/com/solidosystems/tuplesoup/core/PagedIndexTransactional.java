@@ -8,11 +8,14 @@ package com.solidosystems.tuplesoup.core;
 import TransactionalIO.core.TransactionalFile;
 import dstm2.AtomicArray;
 import dstm2.atomic;
+import dstm2.Thread;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.List;
+import java.util.Vector;
+import java.util.concurrent.Callable;
 
 /**
  *
@@ -87,48 +90,87 @@ public class PagedIndexTransactional implements TableIndexTransactional{
         return id.hashCode() & (INITIALPAGEHASH-1);
     }
     
-    private synchronized TableIndexPageTransactional getFirstFreePage(String id) throws IOException{
+    private /*synchronized*/ TableIndexPageTransactional getFirstFreePage(String id) throws IOException{
         return atomicfields.getRoots().get(rootHash(id)).getFirstFreePage(id, id.hashCode());
     }
     
-    private synchronized long getOffset(String id) throws IOException{
+    private /*synchronized*/ long getOffset(String id) throws IOException{
         if(atomicfields.getRoots()==null)return -1;
         return atomicfields.getRoots().get(rootHash(id)).getOffset(id,id.hashCode());
     }
     
-    public synchronized void updateEntry(String id,int rowsize,int location,long position) throws IOException{
+    public /*synchronized*/ void updateEntry(String id,int rowsize,int location,long position) throws IOException{
         long offset=getOffset(id);
         out.seek(offset);
         TableIndexEntryTransactional entry=new TableIndexEntryTransactional(id,rowsize,location,position);
         entry.updateData(out);
         atomicfields.setStat_write(atomicfields.getStat_write()+1);
     }
-    public synchronized void addEntry(String id,int rowsize,int location,long position) throws IOException{
+    
+    public void updateEntryTransactional(String id,int rowsize,int location,long position) throws IOException{
+        final String id2 = id;
+        final int rowsize2 = rowsize;
+        final int location2 = location;
+        final long position2 = position;
+        
+        Thread.doIt(new Callable<Boolean>() {
+           public Boolean call() throws Exception{
+                long offset=getOffset(id2);
+                out.seek(offset);
+                TableIndexEntryTransactional entry=new TableIndexEntryTransactional(id2,rowsize2,location2,position2);
+                entry.updateData(out);
+                atomicfields.setStat_write(atomicfields.getStat_write()+1);
+                return true;
+           }
+        });
+    }
+    
+    public /*synchronized*/ void addEntry(String id,int rowsize,int location,long position) throws IOException{
         TableIndexPageTransactional page=getFirstFreePage(id);
         page.addEntry(id,rowsize,location,position);
         atomicfields.setStat_write(atomicfields.getStat_write()+1);
     }
-    public synchronized TableIndexEntryTransactional scanIndex(String id) throws IOException{
+    public /*synchronized*/ TableIndexEntryTransactional scanIndex(String id) throws IOException{
         if(atomicfields.getRoots()==null)return null;
         return atomicfields.getRoots().get(rootHash(id)).scanIndex(id,id.hashCode());
     }
-    public synchronized List<TableIndexEntryTransactional> scanIndex(List<String> rows) throws IOException{
-        List<TableIndexEntryTransactional> lst=new ArrayList<TableIndexEntryTransactional>();
-        for(int i=0;i<rows.size();i++){
-            String id=rows.get(i);
-            TableIndexEntryTransactional entry=scanIndex(id);
-            if(entry!=null){
-                if(entry.getLocation()!=Table.DELETE)lst.add(entry);
+    
+    public TableIndexEntryTransactional scanIndexTransactional(String id) throws IOException{
+        final String id2 = id;
+        return Thread.doIt(new Callable<TableIndexEntryTransactional>() {
+           public TableIndexEntryTransactional call() throws Exception{
+                if(atomicfields.getRoots()==null)return null;
+                    return atomicfields.getRoots().get(rootHash(id2)).scanIndex(id2,id2.hashCode());
             }
-        }
-        return lst;
+        });
     }
-    public synchronized List<TableIndexEntryTransactional> scanIndex() throws IOException{
-        ArrayList<TableIndexEntryTransactional> lst=new ArrayList<TableIndexEntryTransactional>();
-        for(int i=0;i<INITIALPAGEHASH;i++){
-            atomicfields.getRoots().get(i).addEntriesToList(lst);
-        }
-        return lst;
+    
+    public synchronized List<TableIndexEntryTransactional> scanIndex(List<String> rows) throws IOException{
+        final List<String> rows2 = rows;
+        return Thread.doIt(new Callable<List<TableIndexEntryTransactional>>() {
+           public List<TableIndexEntryTransactional> call() throws Exception{
+                List<TableIndexEntryTransactional> lst=new ArrayList<TableIndexEntryTransactional>();
+                for(int i=0;i<rows2.size();i++){
+                    String id=rows2.get(i);
+                    TableIndexEntryTransactional entry=scanIndex(id);
+                    if(entry!=null){
+                        if(entry.getLocation()!=Table.DELETE)lst.add(entry);
+                    }
+                }
+                return lst;
+           }
+        });
+    }
+    public /*synchronized*/ List<TableIndexEntryTransactional> scanIndex() throws IOException{
+        return Thread.doIt(new Callable<List<TableIndexEntryTransactional>>() {
+           public List<TableIndexEntryTransactional> call() throws Exception{
+                ArrayList<TableIndexEntryTransactional> lst=new ArrayList<TableIndexEntryTransactional>();
+                for(int i=0;i<INITIALPAGEHASH;i++){
+                    atomicfields.getRoots().get(i).addEntriesToList(lst);
+                }
+                return lst;
+           }
+        });
     }
     public void close(){
         try{

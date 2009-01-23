@@ -34,6 +34,8 @@
  import com.solidosystems.tuplesoup.filter.*;
  import java.io.*;
  import java.util.*;
+ import java.util.concurrent.Callable;
+ import dstm2.Thread;
 
 public class IndexedTableReaderTransactional extends TupleStreamTransactional{
     private DataInputStream fileastream=null;
@@ -141,11 +143,20 @@ public class IndexedTableReaderTransactional extends TupleStreamTransactional{
                     while(fileaposition!=nextfilea.getPosition()){
                         fileaposition+=fileastream.skipBytes((int)(nextfilea.getPosition()-fileaposition));
                     }
+                    
                     RowTransactional row=RowTransactional.readFromStream(fileastream);
-                    synchronized(table.statlock){
-                       table.atomicfields.setstat_read_size(table.atomicfields.getstat_read_size()+row.getSize());
-                       table.atomicfields.setstat_read(table.atomicfields.getstat_read()+1);
-                    }
+                    final Vector args = new Vector();
+                    args.add(row);
+                    Thread.doIt(new Callable<Boolean>() {
+                       public Boolean call() throws Exception{
+                    //synchronized(table.statlock){
+                        table.atomicfields.setstat_read_size(table.atomicfields.getstat_read_size()+((RowTransactional)(args.get(0))).getSize());
+                        table.atomicfields.setstat_read(table.atomicfields.getstat_read()+1);
+                        return true;
+                      }
+                      //}
+                    });
+                    
                     fileaposition+=row.getSize();
                     if(row.getId().equals(entry.getId())){
                         next=row;
@@ -183,10 +194,18 @@ public class IndexedTableReaderTransactional extends TupleStreamTransactional{
                         filebposition+=filebstream.skipBytes((int)(nextfileb.getPosition()-filebposition));
                     }
                     RowTransactional row=RowTransactional.readFromStream(filebstream);
-                    synchronized(table.statlock){
-                        table.atomicfields.setstat_read_size(table.atomicfields.getstat_read_size()+row.getSize());
-                        table.atomicfields.setstat_read(table.atomicfields.getstat_read()+1);
-                    }
+                    
+                    final Vector args = new Vector();
+                    args.add(row);
+                    Thread.doIt(new Callable<Boolean>() {
+                       public Boolean call() throws Exception{
+                    //synchronized(table.statlock){
+                            table.atomicfields.setstat_read_size(table.atomicfields.getstat_read_size()+((RowTransactional)(args.get(0))).getSize());
+                            table.atomicfields.setstat_read(table.atomicfields.getstat_read()+1);
+                            return true;
+                        }
+                    });
+                    
                     filebposition+=row.getSize();
                     if(row.getId().equals(entry.getId())){
                         next=row;

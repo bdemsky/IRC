@@ -144,32 +144,37 @@ public class DualFileTableTransactional implements TableTransactional{
      * Furthermore, the index will be asked to deliver separate index specific counters
      */
     public Hashtable<String,Long> readStatistics(){
-        Hashtable<String,Long> hash=new Hashtable<String,Long>();
-        synchronized(statlock){
-            hash.put("stat_table_add",atomicfields.getstat_add());
-            hash.put("stat_table_update",atomicfields.getstat_update());
-            hash.put("stat_table_delete",atomicfields.getstat_delete());
-            hash.put("stat_table_add_size",atomicfields.getstat_add_size());
-            hash.put("stat_table_update_size",atomicfields.getstat_update_size());
-            hash.put("stat_table_read_size",atomicfields.getstat_read_size());
-            hash.put("stat_table_read",atomicfields.getstat_read());
-            hash.put("stat_table_cache_hit",atomicfields.getstat_cache_hit());
-            hash.put("stat_table_cache_miss",atomicfields.getstat_cache_miss());
-            hash.put("stat_table_cache_drop",atomicfields.getstat_cache_drop());
-            atomicfields.setstat_add(0);
-            atomicfields.setstat_update(0);
-            atomicfields.setstat_delete(0);
-            atomicfields.setstat_add_size(0);
-            atomicfields.setstat_update_size(0);
-            atomicfields.setstat_read_size(0);
-            atomicfields.setstat_read(0);
-            atomicfields.setstat_cache_hit(0);
-            atomicfields.setstat_cache_miss(0);
-            atomicfields.setstat_cache_drop(0);
-            Hashtable<String,Long> ihash=index.readStatistics();
-            hash.putAll(ihash);
-        }
-        return hash;
+        
+    //    synchronized(statlock){
+        return Thread.doIt(new Callable<Hashtable<String,Long>>() {
+            public Hashtable<String,Long> call() throws Exception{
+                Hashtable<String,Long> hash=new Hashtable<String,Long>();
+                hash.put("stat_table_add",atomicfields.getstat_add());
+                hash.put("stat_table_update",atomicfields.getstat_update());
+                hash.put("stat_table_delete",atomicfields.getstat_delete());
+                hash.put("stat_table_add_size",atomicfields.getstat_add_size());
+                hash.put("stat_table_update_size",atomicfields.getstat_update_size());
+                hash.put("stat_table_read_size",atomicfields.getstat_read_size());
+                hash.put("stat_table_read",atomicfields.getstat_read());
+                hash.put("stat_table_cache_hit",atomicfields.getstat_cache_hit());
+                hash.put("stat_table_cache_miss",atomicfields.getstat_cache_miss());
+                hash.put("stat_table_cache_drop",atomicfields.getstat_cache_drop());
+                atomicfields.setstat_add(0);
+                atomicfields.setstat_update(0);
+                atomicfields.setstat_delete(0);
+                atomicfields.setstat_add_size(0);
+                atomicfields.setstat_update_size(0);
+                atomicfields.setstat_read_size(0);
+                atomicfields.setstat_read(0);
+                atomicfields.setstat_cache_hit(0);
+                atomicfields.setstat_cache_miss(0);
+                atomicfields.setstat_cache_drop(0);
+                Hashtable<String,Long> ihash=index.readStatistics();
+                hash.putAll(ihash);
+                return hash;
+            }
+        });
+        
     }
     
     /**
@@ -259,7 +264,7 @@ public class DualFileTableTransactional implements TableTransactional{
          }catch(Exception e){}
     }
      
-     private synchronized void openFile(int type) throws IOException{
+     private /*synchronized*/ void openFile(int type) throws IOException{
          switch(type){
              case FILEA  : if(fileastream==null){
                                // fileastream=new DataOutputStream(new BufferedOutputStream(new FileOutputStream(getFileName(FILEA),true)));
@@ -296,15 +301,15 @@ public class DualFileTableTransactional implements TableTransactional{
     }
      
      private void addCacheEntry(TableIndexEntryTransactional entry){
-         synchronized(indexcache){
+      //   synchronized(indexcache){
              if(atomicfields.getIndexcacheusage()>INDEXCACHESIZE){
                  // remove first entry
                  TableIndexNodeTransactional node=indexcachefirst;
                  indexcache.remove(node.getData().getId());
                  atomicfields.setIndexcacheusage(atomicfields.getIndexcacheusage()-1);
-                 synchronized(statlock){
+              //   synchronized(statlock){
                      atomicfields.setstat_cache_drop(atomicfields.getstat_cache_drop()+1);
-                 }
+             //    }
                  indexcachefirst=node.getNext();
                  if(indexcachefirst==null){
                     indexcachelast=null;
@@ -322,7 +327,7 @@ public class DualFileTableTransactional implements TableTransactional{
              indexcachelast=node;
              indexcache.put(entry.getId(),node);
              atomicfields.setIndexcacheusage(atomicfields.getIndexcacheusage()+1);
-        }
+     //   }
      }
      
      private void addRowA(RowTransactional row) throws IOException{
@@ -351,6 +356,7 @@ public class DualFileTableTransactional implements TableTransactional{
                     addCacheEntry(entry);
                 }
                 atomicfields.setFileaposition(atomicfields.getFileaposition()+Row.calcSize(pre,post));
+                return true;
             }
          });
      }
@@ -378,6 +384,7 @@ public class DualFileTableTransactional implements TableTransactional{
                   addCacheEntry(entry);
                 }
                 atomicfields.setFilebposition(atomicfields.getFilebposition()+Row.calcSize(pre,post));
+                return true;
             }
          });
      }
@@ -405,6 +412,7 @@ public class DualFileTableTransactional implements TableTransactional{
               }else{
                   addCacheEntry(((TableIndexEntryTransactional)(args.get(0))));
               }
+              return true;
             }
         });
       }
@@ -529,7 +537,7 @@ public class DualFileTableTransactional implements TableTransactional{
                  }
              }*/
          }else{
-             entry=index.scanIndex(row.getId());
+             entry=index.scanIndexTransactional(row.getId());
          }
          if(entry.getRowSize()>=row.getSize()){
             // Add to the existing location
@@ -605,6 +613,7 @@ public class DualFileTableTransactional implements TableTransactional{
                       updateCacheEntry(new TableIndexEntryTransactional(((RowTransactional)(args.get(0))).getId(),((RowTransactional)(args.get(0))).getSize(),FILEA,atomicfields.getFileaposition()));
                   }
                   atomicfields.setFileaposition(atomicfields.getFilebposition()+RowTransactional.calcSize(pre,post));
+                  return true;
               }
           });
      }
@@ -645,7 +654,7 @@ public class DualFileTableTransactional implements TableTransactional{
           if(INDEXCACHESIZE>0){
               removeCacheEntry(row.getId());
           }
-          index.updateEntry(row.getId(),row.getSize(),DELETE,0);
+          index.updateEntryTransactional(row.getId(),row.getSize(),DELETE,0);
           Thread.doIt(new Callable<Boolean>() {
              public Boolean call() throws Exception{
           //synchronized(statlock){
@@ -693,7 +702,14 @@ public class DualFileTableTransactional implements TableTransactional{
          TableIndexEntryTransactional entry=null;
           // Handle index entry caching
           if(INDEXCACHESIZE>0){
-              synchronized(indexcache){
+              final Vector args = new Vector();
+              args.add(id);
+              args.add(entry);
+              //synchronized(indexcache){
+              Thread.doIt(new Callable<Boolean>() {
+                public Boolean call() throws Exception{
+                  TableIndexEntryTransactional entry = (TableIndexEntryTransactional) (args.get(1));
+                  String id = (String) (args.get(0));  
                   entry=getCacheEntry(id);
                    if(entry==null){
                        entry=index.scanIndex(id);
@@ -701,9 +717,11 @@ public class DualFileTableTransactional implements TableTransactional{
                            addCacheEntry(entry);
                        }
                    }
-              }
+                  return true;
+                }
+              });
           }else{
-              entry=index.scanIndex(id);
+              entry=index.scanIndexTransactional(id);
           }
           if(entry!=null){
               long dataoffset=0;
@@ -726,6 +744,7 @@ public class DualFileTableTransactional implements TableTransactional{
                   //synchronized(statlock){
                           atomicfields.setstat_read(atomicfields.getstat_read()+1);
                           atomicfields.setstat_read_size(atomicfields.getstat_read_size()+((RowTransactional)args.get(0)).getSize());
+                          return true;
                       }
                   });
                   return row;
