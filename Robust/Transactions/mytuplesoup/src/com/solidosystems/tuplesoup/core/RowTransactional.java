@@ -5,6 +5,7 @@
 
 package com.solidosystems.tuplesoup.core;
 
+import TransactionalIO.core.TransactionalFile;
 import dstm2.atomic;
 import dstm2.util.StringKeyHashMap;
 import java.io.ByteArrayOutputStream;
@@ -246,7 +247,7 @@ public class RowTransactional {
      /**
       * Writes the contents of this row to the given RandomAccessFile
       */
-     public void writeToFile(RandomAccessFile out) throws IOException{
+     public void writeToFile(TransactionalFile out) throws IOException{
           long pre=out.getFilePointer();
           
           out.writeUTF(id);
@@ -260,6 +261,7 @@ public class RowTransactional {
              out.writeUTF(key);
              value.writeToFile(out);
           }
+          
           long post=out.getFilePointer();
           int size=(int)(post-pre);
           this.atomicfields.setSize(size+4);

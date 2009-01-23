@@ -195,8 +195,9 @@ public class ExtendedTransaction implements TransactionStatu {
     }
 
     public void addFile(TransactionalFile tf, long offsetnumber/*, TransactionLocalFileAttributes tmp*/) {
-
+        tf.getInodestate().commitedfilesize.lengthlock.lock();
         TransactionLocalFileAttributes tmp = new TransactionLocalFileAttributes(offsetnumber, tf.getInodestate().commitedfilesize.getLength());
+        tf.getInodestate().commitedfilesize.lengthlock.unlock();
         Vector dummy;
 
         if (AccessedFiles.containsKey(tf.getInode())) {

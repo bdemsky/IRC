@@ -5,6 +5,7 @@
 
 package com.solidosystems.tuplesoup.core;
 
+import TransactionalIO.core.TransactionalFile;
 import dstm2.AtomicByteArray;
 import dstm2.AtomicSuperClass;
 import dstm2.atomic;
@@ -487,7 +488,7 @@ public class ValueTransactional implements AtomicSuperClass{
        * 
        * @param out the DataOutputStream the Value should be written to
        */
-      public void writeToFile(DataOutput out) throws IOException{
+      public void writeToFile(TransactionalFile out) throws IOException{
           out.writeByte(atomicfields.getType());
           switch(atomicfields.getType()){
               case STRING :   out.writeInt(atomicfields.getStr_value().length());
@@ -509,7 +510,7 @@ public class ValueTransactional implements AtomicSuperClass{
                           break;
               case BINARY : out.writeInt(atomicfields.getBinary().length());
                             for (int i=0; i<atomicfields.getBinary().length(); i++) 
-                                out.write(atomicfields.getBinary().get(i));
+                                out.writeByte(atomicfields.getBinary().get(i));
                             
           }
       }

@@ -32,6 +32,7 @@
 package com.solidosystems.tuplesoup.core;
  
 
+import TransactionalIO.core.TransactionalFile;
 import java.io.*;
 import java.util.*;
 import java.nio.channels.*;
@@ -51,16 +52,19 @@ public class DualFileTableTransactional implements TableTransactional{
     private String filealock="filea-dummy";
     private String fileblock="fileb-dummy";
 
-    private DataOutputStream fileastream=null;
-    private DataOutputStream filebstream=null;
-    private RandomAccessFile filearandom=null;
-    private RandomAccessFile filebrandom=null;
+//    private DataOutputStream fileastream=null;
+//    private DataOutputStream filebstream=null;
+    private TransactionalFile fileastream=null;
+    private TransactionalFile filebstream=null;
+//    private RandomAccessFile filearandom=null;
+    private TransactionalFile filearandom=null;
+    private TransactionalFile filebrandom=null;
     FileChannel fca=null;
     FileChannel fcb=null;
     private TableIndexTransactional index=null;
      
-    private long fileaposition=0;
-    private long filebposition=0;
+//    private long fileaposition=0;
+ //   private long filebposition=0;
      
     private boolean rowswitch=true;
      
@@ -69,7 +73,7 @@ public class DualFileTableTransactional implements TableTransactional{
      
     private TableIndexNodeTransactional indexcachefirst;
     private TableIndexNodeTransactional indexcachelast;
-    private int indexcacheusage;
+    //private int indexcacheusage;
     
     private StringKeyHashMap<TableIndexNodeTransactional> indexcache;
     //private Hashtable<String,TableIndexNode> indexcache;
@@ -88,6 +92,9 @@ public class DualFileTableTransactional implements TableTransactional{
         long getstat_cache_hit();
         long getstat_cache_miss();
         long getstat_cache_drop();
+        long getFileaposition();
+        long getFilebposition();
+        int getIndexcacheusage();
         
         void setstat_add(long val);
         void setstat_update(long val);
@@ -99,6 +106,9 @@ public class DualFileTableTransactional implements TableTransactional{
         void setstat_cache_hit(long val);
         void setstat_cache_miss(long val);
         void setstat_cache_drop(long val);
+        void setIndexcacheusage(int val);
+        void setFileaposition(long val);
+        void setFilebposition(long val);
     }
   
     /*long stat_add=0;
@@ -179,7 +189,9 @@ public class DualFileTableTransactional implements TableTransactional{
         }
         indexcachefirst=null;
         indexcachelast=null;
-        indexcacheusage=0;
+        atomicfields.setFileaposition(0);
+        atomicfields.setFilebposition(0);
+        atomicfields.setIndexcacheusage(0);
         indexcache=new StringKeyHashMap<TableIndexNodeTransactional>();
     }
      
@@ -248,15 +260,21 @@ public class DualFileTableTransactional implements TableTransactional{
      private synchronized void openFile(int type) throws IOException{
          switch(type){
              case FILEA  : if(fileastream==null){
-                                fileastream=new DataOutputStream(new BufferedOutputStream(new FileOutputStream(getFileName(FILEA),true)));
-                                File ftest=new File(getFileName(FILEA));
-                                fileaposition=ftest.length();
+                               // fileastream=new DataOutputStream(new BufferedOutputStream(new FileOutputStream(getFileName(FILEA),true)));
+                                fileastream=new TransactionalFile(getFileName(FILEA),"rw");
+                                 
+                                //File ftest=new File(getFileName(FILEA));
+                                //atomicfields.setFileaposition(ftest.length());
+                                atomicfields.setFileaposition(fileastream.length());
+                                fileastream.seek(fileastream.length());
                            }
                           break;
              case FILEB  : if(filebstream==null){
-                                filebstream=new DataOutputStream(new BufferedOutputStream(new FileOutputStream(getFileName(FILEB),true)));
-                                File ftest=new File(getFileName(FILEB));
-                                filebposition=ftest.length();
+                                filebstream=new TransactionalFile(getFileName(FILEB),"rw");
+                                //File ftest=new File(getFileName(FILEB));
+                                //atomicfields.setFilebposition(ftest.length());
+                                atomicfields.setFilebposition(filebstream.length());
+                                filebstream.seek(filebstream.length());
                            }
                           break;
          }
@@ -277,11 +295,11 @@ public class DualFileTableTransactional implements TableTransactional{
      
      private void addCacheEntry(TableIndexEntryTransactional entry){
          synchronized(indexcache){
-             if(indexcacheusage>INDEXCACHESIZE){
+             if(atomicfields.getIndexcacheusage()>INDEXCACHESIZE){
                  // remove first entry
                  TableIndexNodeTransactional node=indexcachefirst;
                  indexcache.remove(node.getData().getId());
-                 indexcacheusage--;
+                 atomicfields.setIndexcacheusage(atomicfields.getIndexcacheusage()-1);
                  synchronized(statlock){
                      atomicfields.setstat_cache_drop(atomicfields.getstat_cache_drop()+1);
                  }
@@ -301,48 +319,54 @@ public class DualFileTableTransactional implements TableTransactional{
              }
              indexcachelast=node;
              indexcache.put(entry.getId(),node);
-             indexcacheusage++;
+             atomicfields.setIndexcacheusage(atomicfields.getIndexcacheusage()+1);
         }
      }
      
      private void addRowA(RowTransactional row) throws IOException{
          synchronized(filealock){
-             openFile(FILEA);
-             int pre=fileastream.size();
-             row.writeToStream(fileastream);
-             int post=fileastream.size();
-             fileastream.flush();
+             openFile(FILEA);             
+             //int pre=fileastream.size();
+             int pre= (int)fileastream.getFilePointer();
+             //row.writeToStream(fileastream);
+             row.writeToFile(fileastream);
+             //int post= fileastream.size();
+             int post= (int)fileastream.getFilePointer();
+             //fileastream.flush();
              
              synchronized(statlock){
                   atomicfields.setstat_add(atomicfields.getstat_add()+1);
                   atomicfields.setstat_add_size(atomicfields.getstat_add_size()+row.getSize());
              }
              
-             index.addEntry(row.getId(),row.getSize(),FILEA,fileaposition);
+             index.addEntry(row.getId(),row.getSize(),FILEA,atomicfields.getFilebposition());
              if(INDEXCACHESIZE>0){
-                 TableIndexEntryTransactional entry=new TableIndexEntryTransactional(row.getId(),row.getSize(),FILEA,fileaposition);
+                 TableIndexEntryTransactional entry=new TableIndexEntryTransactional(row.getId(),row.getSize(),FILEA,atomicfields.getFileaposition());
                  addCacheEntry(entry);
              }
-             fileaposition+=Row.calcSize(pre,post);
+             atomicfields.setFileaposition(atomicfields.getFileaposition()+Row.calcSize(pre,post));
          }
      }
      private void addRowB(RowTransactional row) throws IOException{
          synchronized(fileblock){
              openFile(FILEB);
-             int pre=filebstream.size();
-             row.writeToStream(filebstream);
-             int post=filebstream.size();
-             filebstream.flush();
+             //int pre=filebstream.size();
+             int pre= (int)filebstream.getFilePointer();
+             //row.writeToStream(filebstream);
+             row.writeToFile(filebstream);
+             int post=(int)filebstream.getFilePointer();
+             //int post=filebstream.size();
+             //filebstream.flush();
              synchronized(statlock){
                   atomicfields.setstat_add(atomicfields.getstat_add()+1);
                   atomicfields.setstat_add_size(atomicfields.getstat_add_size()+row.getSize());
               }
-             index.addEntry(row.getId(),row.getSize(),FILEB,filebposition);
+             index.addEntry(row.getId(),row.getSize(),FILEB,atomicfields.getFilebposition());
              if(INDEXCACHESIZE>0){
-                 TableIndexEntryTransactional entry=new TableIndexEntryTransactional(row.getId(),row.getSize(),FILEB,filebposition);
+                 TableIndexEntryTransactional entry=new TableIndexEntryTransactional(row.getId(),row.getSize(),FILEB,atomicfields.getFilebposition());
                  addCacheEntry(entry);
              }
-             filebposition+=RowTransactional.calcSize(pre,post);
+             atomicfields.setFilebposition(atomicfields.getFilebposition()+Row.calcSize(pre,post));
          }
      }
      
@@ -373,10 +397,10 @@ public class DualFileTableTransactional implements TableTransactional{
                 if(indexcache.containsKey(id)){
                     TableIndexNodeTransactional node=indexcache.get(id);
                     indexcache.remove(id);
-                    if(indexcacheusage==1){
+                    if(atomicfields.getIndexcacheusage()==1){
                         indexcachefirst=null;
                         indexcachelast=null;
-                        indexcacheusage=0;
+                        atomicfields.setIndexcacheusage(0);
                         return;
                     }
                     if(node==indexcachefirst){
@@ -388,7 +412,7 @@ public class DualFileTableTransactional implements TableTransactional{
                     }else{
                         node.remove();
                     }
-                    indexcacheusage--;
+                    atomicfields.setIndexcacheusage(atomicfields.getIndexcacheusage()-1);
                     synchronized(statlock){
                          atomicfields.setstat_cache_drop(atomicfields.getstat_cache_drop()+1);
                     }
@@ -457,8 +481,8 @@ public class DualFileTableTransactional implements TableTransactional{
             switch(entry.getLocation()){
                 case FILEA  :synchronized(filealock){
                                 if(filearandom==null){
-                                    filearandom=new RandomAccessFile(getFileName(FILEA),"rw");
-                                    fca=filearandom.getChannel();
+                                    filearandom=new TransactionalFile(getFileName(FILEA),"rw");
+                                   // fca=filearandom.getChannel();
                                 }
                                 filearandom.seek(entry.getPosition());
                                 row.writeToFile(filearandom);
@@ -468,8 +492,8 @@ public class DualFileTableTransactional implements TableTransactional{
                             break;
                 case FILEB :synchronized(fileblock){
                                 if(filebrandom==null){
-                                    filebrandom=new RandomAccessFile(getFileName(FILEB),"rw");
-                                    fcb=filebrandom.getChannel();
+                                    filebrandom=new TransactionalFile(getFileName(FILEB),"rw");
+                                  //  fcb=filebrandom.getChannel();
                                 }
                                 filebrandom.seek(entry.getPosition());
                                 row.writeToFile(filebrandom);
@@ -495,34 +519,40 @@ public class DualFileTableTransactional implements TableTransactional{
      private void updateRowA(RowTransactional row) throws IOException{
          synchronized(filealock){
               openFile(FILEA);
-              int pre=fileastream.size();
-              row.writeToStream(fileastream);
-              int post=fileastream.size();
-              fileastream.flush();
-              index.updateEntry(row.getId(),row.getSize(),FILEA,fileaposition);
+              //int pre=filebstream.size();
+              int pre=(int)fileastream.getFilePointer();
+              //row.writeToStream(filebstream);
+              row.writeToFile(fileastream);
+              //int post=filebstream.size();
+              int post=(int)fileastream.getFilePointer();
+              //fileastream.flush();
+              index.updateEntry(row.getId(),row.getSize(),FILEA,atomicfields.getFileaposition());
               
               // Handle index entry caching
               if(INDEXCACHESIZE>0){
-                  updateCacheEntry(new TableIndexEntryTransactional(row.getId(),row.getSize(),FILEA,fileaposition));
+                  updateCacheEntry(new TableIndexEntryTransactional(row.getId(),row.getSize(),FILEA,atomicfields.getFileaposition()));
               }
-              fileaposition+=Row.calcSize(pre,post);
+              atomicfields.setFileaposition(atomicfields.getFilebposition()+RowTransactional.calcSize(pre,post));
           }
      }
 
      private void updateRowB(RowTransactional row) throws IOException{
          synchronized(fileblock){
               openFile(FILEB);
-              int pre=filebstream.size();
-              row.writeToStream(filebstream);
-              int post=filebstream.size();
-              filebstream.flush();
-              index.updateEntry(row.getId(),row.getSize(),FILEB,filebposition);
+              //int pre=filebstream.size();
+              int pre=(int)filebstream.getFilePointer();
+              //row.writeToStream(filebstream);
+              row.writeToFile(filebstream);
+              //int post=filebstream.size();
+              int post=(int)filebstream.getFilePointer();
+              //filebstream.flush();
+              index.updateEntry(row.getId(),row.getSize(),FILEB,atomicfields.getFilebposition());
               // Handle index entry caching
               // Handle index entry caching
                 if(INDEXCACHESIZE>0){
-                    updateCacheEntry(new TableIndexEntryTransactional(row.getId(),row.getSize(),FILEB,filebposition));
+                    updateCacheEntry(new TableIndexEntryTransactional(row.getId(),row.getSize(),FILEB,atomicfields.getFilebposition()));
                 }
-                filebposition+=Row.calcSize(pre,post);
+                atomicfields.setFilebposition(atomicfields.getFilebposition()+RowTransactional.calcSize(pre,post));
           }
      }
 

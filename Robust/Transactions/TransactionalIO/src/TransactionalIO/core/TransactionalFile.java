@@ -12,11 +12,13 @@ import TransactionalIO.core.ExtendedTransaction.Status;
 import TransactionalIO.interfaces.BlockAccessModesEnum;
 import TransactionalIO.interfaces.OffsetDependency;
 import com.sun.org.apache.bcel.internal.generic.IFEQ;
+import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileDescriptor;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.io.UTFDataFormatException;
 import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.Iterator;
@@ -269,6 +271,10 @@ public class TransactionalFile implements Comparable {
         return tmp.getLocaloffset();
     }
 
+    public void force(){
+        
+    }
+    
     public void seek(long offset) {
 
         ExtendedTransaction me = Wrapper.getTransaction();
@@ -402,6 +408,10 @@ public class TransactionalFile implements Comparable {
 
     }
     
+    public final void writeFloat(Float v){
+        writeInt(Float.floatToIntBits(v));
+    }
+    
      public final void writeLong(long value){
         try {
             byte[] result = new byte[4];
@@ -420,6 +430,14 @@ public class TransactionalFile implements Comparable {
 
     }
      
+     public final void writeDouble(Double v) {
+        writeLong(Double.doubleToLongBits(v));
+     }
+     
+     public final void writeBoolean(boolean v){
+          writeByte(v ? 1 : 0);
+     }
+     
      public final void writeChars(String s) throws IOException {
             int clen = s.length();
             int blen = 2*clen;
@@ -431,6 +449,65 @@ public class TransactionalFile implements Comparable {
               b[j++] = (byte)(c[i] >>> 0);
             }
             write(b);
+    }
+     
+    public final int writeUTF(String str) throws UTFDataFormatException{
+        int strlen = str.length();
+        int utflen = 0;
+        int c, count = 0;
+            /* use charAt instead of copying String to char array */
+        for (int i = 0; i < strlen; i++) {
+            c = str.charAt(i);
+            if ((c >= 0x0001) && (c <= 0x007F)) {
+                utflen++;
+            } else if (c > 0x07FF) {
+                utflen += 3;
+            } else {
+                utflen += 2;
+            }
+        }
+
+        if (utflen > 65535)
+              throw new UTFDataFormatException(
+                  "encoded string too long: " + utflen + " bytes");
+
+               byte[] bytearr = null;
+                
+               bytearr = new byte[utflen + 2];
+                
+
+                bytearr[count++] = (byte) ((utflen >>> 8) & 0xFF);
+                bytearr[count++] = (byte) ((utflen >>> 0) & 0xFF);
+
+                int i = 0;
+               for (i = 0; i < strlen; i++) {
+                    c = str.charAt(i);
+                    if (!((c >= 0x0001) && (c <= 0x007F)))
+                       break;
+                    bytearr[count++] = (byte) c;
+                }
+
+                for (; i < strlen; i++) {
+                    c = str.charAt(i);
+                    if ((c >= 0x0001) && (c <= 0x007F)) {
+                        bytearr[count++] = (byte) c;
+
+                    } else if (c > 0x07FF) {
+                        bytearr[count++] = (byte) (0xE0 | ((c >> 12) & 0x0F));
+                        bytearr[count++] = (byte) (0x80 | ((c >> 6) & 0x3F));
+                        bytearr[count++] = (byte) (0x80 | ((c >> 0) & 0x3F));
+                    } else {
+                        bytearr[count++] = (byte) (0xC0 | ((c >> 6) & 0x1F));
+                        bytearr[count++] = (byte) (0x80 | ((c >> 0) & 0x3F));
+                   }
+               }
+        try {
+            write(bytearr);
+        } catch (IOException ex) {
+            Logger.getLogger(TransactionalFile.class.getName()).log(Level.SEVERE, null, ex);
+        }
+               //write(bytearr, 0, utflen + 2);
+               return utflen + 2;
     }
     
     public int read(byte[] b) {

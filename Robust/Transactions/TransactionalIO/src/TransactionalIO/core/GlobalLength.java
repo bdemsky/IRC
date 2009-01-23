@@ -16,7 +16,6 @@ public class GlobalLength {
    private long length;
     //private Vector<ExtendedTransaction> offsetReaders;
     private Vector lengthReaders = new Vector();
-    private ExtendedTransaction offsetOwner;
     public ReentrantLock lengthlock;
 
     public GlobalLength(long length) {
