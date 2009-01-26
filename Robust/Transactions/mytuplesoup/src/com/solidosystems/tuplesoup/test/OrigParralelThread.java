@@ -38,14 +38,14 @@
  import java.io.*;
 
 
-public class ParallelThread implements Runnable{
+public class OrigParralelThread implements Runnable{
     String id;
     int records;
-    ParallelPerformanceTest app;
-    //Table table;
-    TableTransactional table;
+    OrigParralelPerformanceTest app;
+    Table table;
+    //TableTransactional table;
     
-    public ParallelThread(ParallelPerformanceTest app,TableTransactional table/*Table table*/,String id,int records){
+    public OrigParralelThread(OrigParralelPerformanceTest app,Table table,String id,int records){
         this.id=id;
         this.records=records;
         this.app=app;
@@ -54,18 +54,19 @@ public class ParallelThread implements Runnable{
     
     public void run(){
         try{
-          long time=app.benchmarkLargeWrite(table,records,id);
+            //long time;
+            long time=app.benchmarkLargeWrite(table,records,id);
             synchronized(app){
                 app.writetime+=time;
-           }
-             time=app.benchmarkLargeRead(table,records,id);
+            }
+            /*long*/ time=app.benchmarkLargeRead(table,records,id);
             synchronized(app){
                 app.readtime+=time;
-            }
+           }
             time=app.benchmarkLargeRandomRead(table,records,id);
             synchronized(app){
-                app.randomtime+=time;
-          }
+               app.randomtime+=time;
+           }
         }catch(Exception e){
             e.printStackTrace();
         }

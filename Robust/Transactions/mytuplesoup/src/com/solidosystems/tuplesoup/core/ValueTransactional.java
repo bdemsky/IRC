@@ -9,8 +9,10 @@ import TransactionalIO.core.TransactionalFile;
 import dstm2.AtomicByteArray;
 import dstm2.AtomicSuperClass;
 import dstm2.atomic;
+import dstm2.factory.Factory;
 import java.util.*;
- import java.io.*;
+import java.io.*;
+import dstm2.Thread;
 
 /**
  *
@@ -19,18 +21,19 @@ import java.util.*;
 public class ValueTransactional implements AtomicSuperClass{
 
      ValueTSInf atomicfields;
+     static Factory<ValueTSInf> factory = Thread.makeFactory(ValueTSInf.class);
      
      public @atomic interface ValueTSInf{
-         byte getType();
+         Byte getType();
          String getStr_value();
-         long getInt_value();
-         double getFloat_value();
+         Long getInt_value();
+         Double getFloat_value();
          AtomicByteArray getBinary();
          
-         void setType(byte val);
+         void setType(Byte val);
          void setStr_value(String val);
-         void setInt_value(long val);
-         void setFloat_value(double val);
+         void setInt_value(Long val);
+         void setFloat_value(Double val);
          void setBinary(AtomicByteArray bytes);
      }   
      
@@ -84,12 +87,12 @@ public class ValueTransactional implements AtomicSuperClass{
          int hash=0;
          switch(atomicfields.getType()){
              case STRING     : hash+=atomicfields.getStr_value().hashCode();
-             case INT        : hash+=(int)atomicfields.getInt_value();
-             case LONG       : hash+=(int)atomicfields.getInt_value();
-             case FLOAT      : hash+=(int)atomicfields.getFloat_value();
-             case DOUBLE     : hash+=(int)atomicfields.getFloat_value();
-             case BOOLEAN    : hash+=(int)atomicfields.getInt_value();
-             case TIMESTAMP  : hash+=(int)atomicfields.getInt_value();
+             case INT        : hash+=atomicfields.getInt_value();
+             case LONG       : hash+=atomicfields.getInt_value();
+             case FLOAT      : hash+=atomicfields.getFloat_value();
+             case DOUBLE     : hash+=atomicfields.getFloat_value();
+             case BOOLEAN    : hash+=atomicfields.getInt_value();
+             case TIMESTAMP  : hash+=atomicfields.getInt_value();
              case BINARY     : hash+=atomicfields.getBinary().hashCode();
          }
          return hash;
@@ -311,11 +314,11 @@ public class ValueTransactional implements AtomicSuperClass{
          try{
              switch(atomicfields.getType()){
                  case STRING     : return Integer.parseInt(atomicfields.getStr_value());
-                 case INT        : return (int)atomicfields.getInt_value();
-                 case LONG       : return (int)atomicfields.getInt_value();
-                 case FLOAT      : return (int)atomicfields.getFloat_value();
-                 case DOUBLE     : return (int)atomicfields.getFloat_value();
-                 case BOOLEAN    : return (int)atomicfields.getInt_value();
+                 case INT        : return atomicfields.getInt_value().intValue();
+                 case LONG       : return (int)atomicfields.getInt_value().intValue();
+                 case FLOAT      : return (int)atomicfields.getFloat_value().intValue();
+                 case DOUBLE     : return (int)atomicfields.getFloat_value().intValue();
+                 case BOOLEAN    : return (int)atomicfields.getInt_value().intValue();
                  case TIMESTAMP  : return (int)(atomicfields.getInt_value()/1000);
              }
          }catch(Exception e){}
@@ -336,8 +339,8 @@ public class ValueTransactional implements AtomicSuperClass{
                  case STRING     : return Long.parseLong(atomicfields.getStr_value());
                  case INT        : return atomicfields.getInt_value();
                  case LONG       : return atomicfields.getInt_value();
-                 case FLOAT      : return (long)atomicfields.getFloat_value();
-                 case DOUBLE     : return (long)atomicfields.getFloat_value();
+                 case FLOAT      : return (long)atomicfields.getFloat_value().longValue();
+                 case DOUBLE     : return (long)atomicfields.getFloat_value().longValue();
                  case BOOLEAN    : return atomicfields.getInt_value();
                  case TIMESTAMP  : return atomicfields.getInt_value();
              }
@@ -357,11 +360,11 @@ public class ValueTransactional implements AtomicSuperClass{
          try{
              switch(atomicfields.getType()){
                  case STRING     : return Float.parseFloat(atomicfields.getStr_value());
-                 case INT        : return (float)atomicfields.getInt_value();
-                 case LONG       : return (float)atomicfields.getInt_value();
-                 case FLOAT      : return (float)atomicfields.getFloat_value();
-                 case DOUBLE     : return (float)atomicfields.getFloat_value();
-                 case BOOLEAN    : return (float)atomicfields.getInt_value();
+                 case INT        : return (float)atomicfields.getInt_value().floatValue();
+                 case LONG       : return (float)atomicfields.getInt_value().floatValue();
+                 case FLOAT      : return (float)atomicfields.getFloat_value().floatValue();
+                 case DOUBLE     : return (float)atomicfields.getFloat_value().floatValue();
+                 case BOOLEAN    : return (float)atomicfields.getInt_value().floatValue();
                  case TIMESTAMP  : return (float)(atomicfields.getInt_value()/1000);
              }
          }catch(Exception e){}
@@ -433,7 +436,7 @@ public class ValueTransactional implements AtomicSuperClass{
                  case INT        : return new Date(atomicfields.getInt_value()*1000l);
                  case LONG       : return new Date(atomicfields.getInt_value());
                  case FLOAT      : return new Date((long)(atomicfields.getFloat_value()*1000l));
-                 case DOUBLE     : return new Date((long)atomicfields.getFloat_value());
+                 case DOUBLE     : return new Date((long)atomicfields.getFloat_value().longValue());
                  case TIMESTAMP  : return new Date(atomicfields.getInt_value());
              }
          }catch(Exception e){}
@@ -462,11 +465,11 @@ public class ValueTransactional implements AtomicSuperClass{
                                  out.writeChar(atomicfields.getStr_value().charAt(i));
                              }
                          break;
-             case INT    :   out.writeInt((int)atomicfields.getInt_value());
+             case INT    :   out.writeInt((int)atomicfields.getInt_value().intValue());
                          break;
              case LONG   :   out.writeLong(atomicfields.getInt_value());
                          break;
-             case FLOAT  :   out.writeFloat((float)atomicfields.getFloat_value());
+             case FLOAT  :   out.writeFloat((float)atomicfields.getFloat_value().intValue());
                          break;
              case DOUBLE :   out.writeDouble(atomicfields.getFloat_value());
                          break;
@@ -496,11 +499,11 @@ public class ValueTransactional implements AtomicSuperClass{
                                   out.writeChar(atomicfields.getStr_value().charAt(i));
                               }
                           break;
-              case INT    :   out.writeInt((int)atomicfields.getInt_value());
+              case INT    :   out.writeInt((int)atomicfields.getInt_value().intValue());
                           break;
               case LONG   :   out.writeLong(atomicfields.getInt_value());
                           break;
-              case FLOAT  :   out.writeFloat((float)atomicfields.getFloat_value());
+              case FLOAT  :   out.writeFloat((float)atomicfields.getFloat_value().intValue());
                           break;
               case DOUBLE :   out.writeDouble(atomicfields.getFloat_value());
                           break;
@@ -562,6 +565,7 @@ public class ValueTransactional implements AtomicSuperClass{
      
      public ValueTransactional(byte[] val){
          this();
+         atomicfields.setBinary(new AtomicByteArray(Byte.class, val.length));
          for (int i=0; i<val.length; i++) 
                  atomicfields.getBinary().set(i, val[i]);
          
@@ -583,8 +587,9 @@ public class ValueTransactional implements AtomicSuperClass{
       * Initializes this Value as null.
       */
      public ValueTransactional(){
+         atomicfields = factory.create();
          atomicfields.setStr_value(null);
-         atomicfields.setInt_value(0);
+         atomicfields.setInt_value(Long.valueOf(0));
          atomicfields.setFloat_value(0.0);
          atomicfields.setBinary(new AtomicByteArray(Byte.class, NULL));
          atomicfields.setType((byte)NULL);
@@ -597,7 +602,7 @@ public class ValueTransactional implements AtomicSuperClass{
       */
      public ValueTransactional(int val){
          this();
-         atomicfields.setInt_value(val);
+         atomicfields.setInt_value(Long.valueOf(val));
          atomicfields.setType((byte)INT);
      }
 
@@ -619,7 +624,7 @@ public class ValueTransactional implements AtomicSuperClass{
       */
      public ValueTransactional(float val){
          this();
-         atomicfields.setFloat_value(val);
+         atomicfields.setFloat_value(Double.valueOf(val));
          atomicfields.setType((byte)FLOAT);
      }
 
@@ -642,9 +647,9 @@ public class ValueTransactional implements AtomicSuperClass{
      public ValueTransactional(boolean val){
          this();
          if(val){
-             atomicfields.setInt_value(1);
+             atomicfields.setInt_value(Long.valueOf(1));
          }else{
-             atomicfields.setInt_value(0);
+             atomicfields.setInt_value(Long.valueOf(0));
          }
          atomicfields.setType((byte)BOOLEAN);
      }  

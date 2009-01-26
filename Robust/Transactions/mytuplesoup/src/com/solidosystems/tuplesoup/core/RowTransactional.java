@@ -7,6 +7,8 @@ package com.solidosystems.tuplesoup.core;
 
 import TransactionalIO.core.TransactionalFile;
 import dstm2.atomic;
+import dstm2.Thread;
+import dstm2.factory.Factory;
 import dstm2.util.StringKeyHashMap;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
@@ -22,6 +24,8 @@ import java.util.Set;
  * @author navid
  */
 public class RowTransactional {
+     Factory<RowTSInf> factory = Thread.makeFactory(RowTSInf.class);
+     
      private String id;
     // private int size;
      RowTSInf atomicfields;
@@ -33,6 +37,8 @@ public class RowTransactional {
      }
      
      public RowTransactional(String id){
+         atomicfields = factory.create();
+         
          this.id=id;
          atomicfields.setSize(-1);
          values=new StringKeyHashMap<ValueTransactional>();

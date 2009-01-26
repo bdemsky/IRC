@@ -34,14 +34,19 @@ package com.solidosystems.tuplesoup.core;
 import TransactionalIO.core.TransactionalFile;
 import dstm2.AtomicSuperClass;
 import dstm2.atomic;
+import dstm2.Thread;
+import dstm2.factory.Factory;
 import java.io.*;
 import java.util.*;
 
 public class TableIndexPageTransactional implements AtomicSuperClass{
-    TableIndexPageTSInf atomicfields = null;
+    static Factory<TableIndexPageTSInf> factory = Thread.makeFactory(TableIndexPageTSInf.class);
+    
+    /*static*/ TableIndexPageTSInf atomicfields = null;
     private final static int BASEOFFSET=4+8+8+4+4;
     //private RandomAccessFile file=null;
     private TransactionalFile file = null;
+    
     
     public @atomic interface TableIndexPageTSInf{
         Long getLocation();
@@ -60,8 +65,8 @@ public class TableIndexPageTransactional implements AtomicSuperClass{
         void setLowerpage(TableIndexPageTransactional lowerpage);   
         void setNextpage(TableIndexPageTransactional nextpage);
         void setFirst(Boolean val);
-        void setEndhash(int val);
-        void setStarthash(int val);
+        void setEndhash(Integer val);
+        void setStarthash(Integer val);
         void setOffset(Integer offset);
         void setNext(Long next);
         void setSize(Integer size);
@@ -74,28 +79,63 @@ public class TableIndexPageTransactional implements AtomicSuperClass{
     
     public TableIndexPageTransactional(PagedIndexTransactional index,TransactionalFile file) throws IOException{
         this.file=file;
+        atomicfields = factory.create();
         this.atomicfields.setIndex(index);
         this.atomicfields.setFirst(false);
         this.atomicfields.setLocation(file.getFilePointer());
+        System.out.println(file.getFilePointer());
         this.atomicfields.setSize(file.readInt());
+         System.out.println(file.getFilePointer());
         this.atomicfields.setNext(file.readLong());
+         System.out.println(file.getFilePointer());
         this.atomicfields.setLower(file.readLong());
+         System.out.println(file.getFilePointer());
+          System.out.println(file.getFilePointer());
         this.atomicfields.setOffset(file.readInt());
+         System.out.println(file.getFilePointer());
         this.atomicfields.setEndhash(file.readInt());
+             System.out.println("size " + atomicfields.getSize());
+        System.out.println("next "  + atomicfields.getNext());
+        System.out.println("lower " + atomicfields.getLower());
+        System.out.println("offset " + atomicfields.getOffset());
+        System.out.println("endhash " + atomicfields.getEndhash());
         if(this.atomicfields.getOffset()>0)
             this.atomicfields.setStarthash(file.readInt());
+        else 
+            this.atomicfields.setStarthash(-1);
     }
     
     public static TableIndexPageTransactional createNewPage(PagedIndexTransactional index,TransactionalFile file,int size) throws IOException{
+    
         long pre=file.length();
+        System.out.println("pre " + pre);
 //        file.setLength(file.length()+size+BASEOFFSET);
         file.seek(pre);
+        byte[] dummy = new byte[size+BASEOFFSET];
+        file.write(dummy);
+        System.out.println("pointer " + file.getFilePointer());
+        
+        file.seek(pre);
+        System.out.println("pointer2 " + file.getFilePointer());
         file.writeInt(size);
+ 
+         System.out.println("pointer2 " + file.getFilePointer());
         file.writeLong(-1l);
+         System.out.println("pointer2 " + file.getFilePointer());
         file.writeLong(-1l);
+         System.out.println("pointer2 " + file.getFilePointer());
         file.writeInt(0);
+         System.out.println("pointer2 " + file.getFilePointer());
         file.writeInt(-1);
         file.seek(pre);
+        file.readInt();
+        file.readLong();
+        file.readLong();
+        file.readInt();
+        file.readInt();
+        file.seek(pre);
+        
+        //index.atomicfields.setStat_create_page((long)2);
         index.atomicfields.setStat_create_page(index.atomicfields.getStat_create_page()+1);
         return new TableIndexPageTransactional(index,file);
     }
@@ -183,6 +223,7 @@ public class TableIndexPageTransactional implements AtomicSuperClass{
         file.seek(this.atomicfields.getLocation()+BASEOFFSET);
         long pre=file.getFilePointer();
         while(file.getFilePointer()<pre+this.atomicfields.getOffset()){
+            System.out.println("neddddxtex " + atomicfields.getNext());
             TableIndexEntryTransactional entry=TableIndexEntryTransactional.lookForData(id,file);
             if(entry!=null)return entry;
         }

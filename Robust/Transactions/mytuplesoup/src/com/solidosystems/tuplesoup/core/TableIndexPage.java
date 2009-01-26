@@ -54,26 +54,43 @@ public class TableIndexPage{
     private PagedIndex index=null;
     
     public TableIndexPage(PagedIndex index,RandomAccessFile file) throws IOException{
-        this.file=file;
+           this.file=file;
         this.index=index;
         first=false;
         location=file.getFilePointer();
+        System.out.println(location);
         size=file.readInt();
         next=file.readLong();
         lower=file.readLong();
         offset=file.readInt();
         endhash=file.readInt();
+        System.out.println("si " + size);
+        System.out.println("next "  + next);
+        System.out.println("lower " + lower);
+        System.out.println("offset " + offset);
+        System.out.println("endhash " + endhash);
         if(offset>0)starthash=file.readInt();
+        System.out.println("here tav;eindepage");
+        
+        
     }
     
     public static TableIndexPage createNewPage(PagedIndex index,RandomAccessFile file,int size) throws IOException{
         long pre=file.length();
+        System.out.println("pre " + pre);
+           System.out.println("pointer1 " + file.length()+size+BASEOFFSET);
         file.setLength(file.length()+size+BASEOFFSET);
         file.seek(pre);
+     
+        System.out.println("pointer2 " + file.getFilePointer());
         file.writeInt(size);
+         System.out.println("pointer2 " + file.getFilePointer());
         file.writeLong(-1l);
+         System.out.println("pointer2 " + file.getFilePointer());
         file.writeLong(-1l);
+         System.out.println("pointer2 " + file.getFilePointer());
         file.writeInt(0);
+         System.out.println("pointer2 " + file.getFilePointer());
         file.writeInt(-1);
         file.seek(pre);
         index.stat_create_page++;
@@ -140,7 +157,9 @@ public class TableIndexPage{
     }
     
     public TableIndexEntry scanIndex(String id,int hashcode) throws IOException{
+        System.out.println("sacn index");
         if(!first){
+              
             if(hashcode<starthash){
                 if(lower==-1)return null;
                 if(lowerpage==null){
@@ -152,6 +171,7 @@ public class TableIndexPage{
             }
         }
         if(hashcode>endhash){
+            
             if(next==-1)return null;
             if(nextpage==null){
                 file.seek(next);
@@ -163,11 +183,15 @@ public class TableIndexPage{
         file.seek(location+BASEOFFSET);
         long pre=file.getFilePointer();
         while(file.getFilePointer()<pre+offset){
+            System.out.println("neddddxtex " + next);
             TableIndexEntry entry=TableIndexEntry.lookForData(id,file);
             if(entry!=null)return entry;
         }
+        System.out.println("neddddxt " + next);
         if(next==-1)return null;
+      
         if(nextpage==null){
+            System.out.println("next " + next);
             file.seek(next);
             nextpage=new TableIndexPage(index,file);
         }

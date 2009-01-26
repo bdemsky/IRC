@@ -7,6 +7,8 @@ package com.solidosystems.tuplesoup.core;
 
 import dstm2.AtomicSuperClass;
 import dstm2.atomic;
+import dstm2.Thread;
+import dstm2.factory.Factory;
 
 /**
  *
@@ -17,9 +19,10 @@ public class TableIndexNodeTransactional implements AtomicSuperClass{
     //private TableIndexNodeTransactional previous;
     //private TableIndexEntryTransactional data;
     //private TableIndexNodeTransactional next;
-    TableIndexInodeTSinf atomicfields;
+    static Factory<TableIndexInodeTSInf> factory = Thread.makeFactory(TableIndexInodeTSInf.class);
+    TableIndexInodeTSInf atomicfields;
     
-    public @atomic interface TableIndexInodeTSinf{
+    public @atomic interface TableIndexInodeTSInf{
         TableIndexNodeTransactional getPrevious(); 
         TableIndexEntryTransactional getData(); 
         TableIndexNodeTransactional getNext(); 
@@ -30,12 +33,16 @@ public class TableIndexNodeTransactional implements AtomicSuperClass{
     }
     
     public TableIndexNodeTransactional(){
+        atomicfields = factory.create();
+        
         atomicfields.setPrevious(null);
         atomicfields.setData(null);
         atomicfields.setNext(null);
     }
     
     public TableIndexNodeTransactional(TableIndexEntryTransactional entry){
+        atomicfields = factory.create();
+        
         atomicfields.setPrevious(null);
         atomicfields.setData(entry);
         atomicfields.setNext(null);
@@ -43,12 +50,16 @@ public class TableIndexNodeTransactional implements AtomicSuperClass{
     }
     
     public TableIndexNodeTransactional(TableIndexNodeTransactional prev,TableIndexEntryTransactional entry){
+        atomicfields = factory.create();
+        
         atomicfields.setPrevious(prev);
         atomicfields.setData(entry);
         atomicfields.setNext(null);
     }
     
     public TableIndexNodeTransactional(TableIndexNodeTransactional prev,TableIndexEntryTransactional entry,TableIndexNodeTransactional nex){
+        atomicfields = factory.create();
+        
         atomicfields.setPrevious(prev);
         atomicfields.setData(entry);
         atomicfields.setNext(nex);

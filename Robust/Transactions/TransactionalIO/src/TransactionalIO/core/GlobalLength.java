@@ -20,6 +20,8 @@ public class GlobalLength {
 
     public GlobalLength(long length) {
         this.length = length;
+        lengthlock = new ReentrantLock();
+        lengthReaders = new Vector();
     }
     
 

@@ -64,6 +64,7 @@ public class GlobalINodeState {
         lockmap = new HashMap();
        
         commitedfilesize = new GlobalLength(length);
+     //   System.out.println(length);
         this.inode = inode;
     }
     

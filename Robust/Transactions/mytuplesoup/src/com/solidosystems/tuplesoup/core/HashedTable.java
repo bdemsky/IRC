@@ -42,7 +42,7 @@ import com.solidosystems.tuplesoup.filter.*;
  * Every row must have a unique id within a table.
  */
 public class HashedTable implements Table{
-    private int TABLESETSIZE=16;
+    private int TABLESETSIZE=5;
     private List<Table> tableset;
     private String title;
     private String location;

@@ -36,8 +36,11 @@
  import java.util.*;
  import java.util.concurrent.Callable;
  import dstm2.Thread;
+import dstm2.factory.Factory;
 
 public class IndexedTableReaderTransactional extends TupleStreamTransactional{
+
+    
     private DataInputStream fileastream=null;
     private DataInputStream filebstream=null;
     private long fileaposition=0;

@@ -143,6 +143,7 @@ public class DualFileTable implements Table{
         if(!this.location.endsWith(File.separator))this.location+=File.separator;
         switch(indextype){
              case PAGED  : index=new PagedIndex(getFileName(INDEX));
+                
                 break;
            
         }
@@ -217,12 +218,14 @@ public class DualFileTable implements Table{
      private synchronized void openFile(int type) throws IOException{
          switch(type){
              case FILEA  : if(fileastream==null){
+                                System.out.println("file a " + getFileName(FILEA));
                                 fileastream=new DataOutputStream(new BufferedOutputStream(new FileOutputStream(getFileName(FILEA),true)));
                                 File ftest=new File(getFileName(FILEA));
                                 fileaposition=ftest.length();
                            }
                           break;
              case FILEB  : if(filebstream==null){
+                 System.out.println("file b " + getFileName(FILEB));
                                 filebstream=new DataOutputStream(new BufferedOutputStream(new FileOutputStream(getFileName(FILEB),true)));
                                 File ftest=new File(getFileName(FILEB));
                                 filebposition=ftest.length();

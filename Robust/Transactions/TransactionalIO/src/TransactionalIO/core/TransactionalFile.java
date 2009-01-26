@@ -4,6 +4,7 @@
  */
 package TransactionalIO.core;
 
+import TransactionalIO.Utilities.Conversions;
 import TransactionalIO.Utilities.Range;
 import TransactionalIO.exceptions.AbortedException;
 import TransactionalIO.exceptions.PanicException;
@@ -122,10 +123,24 @@ public class TransactionalFile implements Comparable {
             }
 
         }
+   /*     synchronized(this){
+            if (to_be_created){
+                try {
+                    offsetlock = new ReentrantLock();
+                    file = new RandomAccessFile(filename, mode);
+                    try {
+                        System.out.println("ll " + file.length());
+                    } catch (IOException ex) {
+                        Logger.getLogger(TransactionalFile.class.getName()).log(Level.SEVERE, null, ex);
+                    }
+                } catch (FileNotFoundException ex) {
+                    Logger.getLogger(TransactionalFile.class.getName()).log(Level.SEVERE, null, ex);
+                }
+            }
+        }*/
         inode = TransactionalFileWrapperFactory.getINodefromFileName(filename);
         inodestate = TransactionalFileWrapperFactory.createTransactionalFile(inode, filename, mode);
-
-
+        
         sequenceNum = inodestate.seqNum;
         inodestate.seqNum++;
 
@@ -138,7 +153,6 @@ public class TransactionalFile implements Comparable {
         if (inodestate != null) {
             synchronized (inodestate) {
                 committedoffset = new GlobalOffset(0);
-               
             }
         }
 
@@ -147,6 +161,8 @@ public class TransactionalFile implements Comparable {
 
     private int invokeNativepread(byte buff[], long offset, int size) {
         try {
+ 
+                    
             return nativepread(buff, offset, size, file.getFD());
         } catch (IOException ex) {
 
@@ -199,7 +215,12 @@ public class TransactionalFile implements Comparable {
         ExtendedTransaction me = Wrapper.getTransaction();
 
         if (me == null) {
-            return non_Transactional_getFilePointer();
+            long length = -1;
+            inodestate.commitedfilesize.lengthlock.lock();
+            length = inodestate.commitedfilesize.getLength();
+            inodestate.commitedfilesize.lengthlock.unlock();
+
+            return length;
         }
 
         if (!(me.getGlobaltoLocalMappings().containsKey(this))) {
@@ -310,11 +331,11 @@ public class TransactionalFile implements Comparable {
             return 0;
         }
         pos = getFilePointer();
-        len = length();
+       // len = length();
         newpos = pos + n;
-        if (newpos > len) {
-            newpos = len;
-        }
+      //  if (newpos > len) {
+     //       newpos = len;
+      //  }
         seek(newpos);
 
          /* return the actual number of bytes skipped */
@@ -339,21 +360,28 @@ public class TransactionalFile implements Comparable {
         byte[] data = new byte[2];
         read(data);
         int result = (short)((data[0] << 8) | data[1]);
+        System.out.println("res " + result);
         return result;
     }
     
     
     public final int readInt(){
         byte[] data = new byte[4];
-        read(data);
-        int result = (data[0] << 24) | (data[1] << 16) + (data[2] << 8) + data[3];
+        int k = read(data);
+        
+        int result = Conversions.bytes2int(data);
+        //int result = (data[0] << 24) | (data[1] << 16) + (data[2] << 8) + (data[3]<<0);
+        System.out.println("int res " + result);
         return result;
     }
     
     public final long readLong(){
+        //long result = ((long)(readInt()) << 32) + (readInt() & 0xFFFFFFFFL);
         byte[] data = new byte[8];
         read(data);
-        long result = ((long)data[0] << 56) + ((long)data[1] << 48) + ((long)data[2] << 40) + ((long)data[3] << 32) + ((long)data[4] << 24) + ((long)data[5] << 16)+ ((long)data[6] << 8) + data[7];
+        //long result = ((long)data[0] << 56) + ((long)data[1] << 48) + ((long)data[2] << 40) + ((long)data[3] << 32) + ((long)data[4] << 24) + ((long)data[5] << 16)+ ((long)data[6] << 8) + data[7];
+        long result = Conversions.bytes2long(data);
+        System.out.println("long res " + result);
         return result;
     }
     
@@ -397,9 +425,9 @@ public class TransactionalFile implements Comparable {
     public final void writeInt(int value){
         try {
             byte[] result = new byte[4];
-            result[0] = (byte) (value >> 24);
-            result[1] = (byte) (value >> 16);
-            result[2] = (byte) (value >> 8);
+            result[0] = (byte) (value >>> 24 & 0xFF);
+            result[1] = (byte) (value >>> 16 & 0xFF);
+            result[2] = (byte) (value >>> 8 & 0xFF);
             result[3] = (byte) (value);
             write(result);
         } catch (IOException ex) {
@@ -414,14 +442,14 @@ public class TransactionalFile implements Comparable {
     
      public final void writeLong(long value){
         try {
-            byte[] result = new byte[4];
-            result[0] = (byte)(value >> 56);
-            result[1] = (byte)(value >> 48);
-            result[2] = (byte)(value >> 40);
-            result[3] = (byte)(value >> 32);
-            result[4] = (byte)(value >> 24);
-            result[5] = (byte)(value >> 16);
-            result[6] = (byte)(value >> 8);
+            byte[] result = new byte[8];
+            result[0] = (byte)(value >>> 56);
+            result[1] = (byte)(value >>> 48);
+            result[2] = (byte)(value >>> 40);
+            result[3] = (byte)(value >>> 32);
+            result[4] = (byte)(value >>> 24);
+            result[5] = (byte)(value >>> 16);
+            result[6] = (byte)(value >>> 8);
             result[7] = (byte)(value);
             write(result);
         } catch (IOException ex) {
@@ -517,7 +545,6 @@ public class TransactionalFile implements Comparable {
         int size = b.length;
         int result = 0;
         if (me == null) {  // not a transaction, but any I/O operation even though within a non-transaction is considered a single opertion transactiion 
-
             return non_Transactional_Read(b);
         }
 
@@ -870,7 +897,6 @@ public class TransactionalFile implements Comparable {
     public void lockOffset(ExtendedTransaction me) {
         boolean locked = false;
         if (me.getStatus() == Status.ACTIVE) {                        //locking the offset
-
             offsetlock.lock();
             locked = true;
         }

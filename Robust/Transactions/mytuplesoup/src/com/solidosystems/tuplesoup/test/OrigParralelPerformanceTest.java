@@ -39,18 +39,18 @@ import dstm2.Init;
  import java.io.*;
 
 
-public class ParallelPerformanceTest extends BasicTest implements Runnable{
+public class OrigParralelPerformanceTest extends BasicTest implements Runnable{
     
     long writetime;
     long readtime;
     long randomtime;
     
-    public ParallelPerformanceTest(){
+    public OrigParralelPerformanceTest(){
               String path="/home/navid/Volumes/My Book/test/";
         try{
-            //int records=10;
+            //int records=50000;
             int records=5;
-            for(int i=1;i<2;i++){
+            for(int i=1;i<2/*11*/;i++){
                 outbr("Running Parallel DualFileTable Performance test");
                 outbr(1,i+" x "+(records/i)+" Large records");
             
@@ -67,14 +67,14 @@ public class ParallelPerformanceTest extends BasicTest implements Runnable{
                 table.deleteFiles();*/
             
                 outbr(2,"Paged index");
-                //Table table=new DualFileTable("Performance-test",path,Table.PAGED);
-                TableTransactional table=new DualFileTableTransactional("Performance-test",path,TableTransactional.PAGED);
+                Table table=new DualFileTable("Performance-test",path,Table.PAGED);
+                //TableTransactional table=new DualFileTableTransactional("Performance-test",path,TableTransactional.PAGED);
                 benchmark(table,5,(records/i));
                 table.close();
              //   table.deleteFiles();
             
-               // outbr("Running Parallel HashedTable Performance test");
-                //outbr(1,i+" x "+(records/i)+" Large records");
+                outbr("Running Parallel HashedTable Performance test");
+                outbr(1,i+" x "+(records/i)+" Large records");
             
             /*    outbr(2,"Memory index");
                 table=new HashedTable("Performance-test",path,Table.MEMORY);
@@ -88,11 +88,11 @@ public class ParallelPerformanceTest extends BasicTest implements Runnable{
                 table.close();
                 table.deleteFiles();*/
             
-             //   outbr(2,"Paged index");
+            //    outbr(2,"Paged index");
                 //table=new HashedTableTransactional("Performance-test",path,TableTransactional.PAGED);
-             //   table=new HashedTableTransactional("Performance-test",path,TableTransactional.PAGED);
+            //    table=new HashedTable("Performance-test",path,Table.PAGED);
             //    benchmark(table,i,(records/i));
-             //   table.close();
+            //    table.close();
               //  table.deleteFiles();*/
             }
             
@@ -103,16 +103,16 @@ public class ParallelPerformanceTest extends BasicTest implements Runnable{
     }
     public static void main(String[] args){
         Init.init();
-        new ParallelPerformanceTest();
+        new OrigParralelPerformanceTest();
     }
     
-    public void benchmark(TableTransactional table/*Table table*/,int threadcount, int records) throws Exception{
+    public void benchmark(Table table,int threadcount, int records) throws Exception{
         writetime=0;
         readtime=0;
         randomtime=0;
         List<Thread> lst=new ArrayList<Thread>();
         for(int i=0;i<threadcount;i++){
-            Thread thr=new Thread(new ParallelThread(this,table,i+"",records));
+            Thread thr=new Thread(new OrigParralelThread(this,table,i+"",records));
             thr.start();
             lst.add(thr);
         }
@@ -128,36 +128,36 @@ public class ParallelPerformanceTest extends BasicTest implements Runnable{
         
     }
     
-    public long benchmarkLargeWrite(TableTransactional table,int records, String id) throws IOException{
+    public long benchmarkLargeWrite(Table table,int records, String id) throws IOException{
         long pre=System.currentTimeMillis();
         for(int i=0;i<records;i++){
-            RowTransactional row=new RowTransactional(id+i);
-            //Row row=new Row(id+i);
+           // RowTransactional row=new RowTransactional(id+i);
+            Row row=new Row(id+i);
             row.put("key1","foobarbaz");
             row.put("key2",123456);
             row.put("key3",3.141592);
             row.put("key4",true);
-            row.put("key5",new ValueTransactional(new byte[]{1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16}));
+            row.put("key5",new Value(new byte[]{1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16}));
             table.addRow(row);
         }
         long post=System.currentTimeMillis();
         return post-pre;
     }
-    public long benchmarkLargeRead(TableTransactional table,int records, String id) throws IOException{
+    public long benchmarkLargeRead(Table table,int records, String id) throws IOException{
         long pre=System.currentTimeMillis();
-        //TupleStream stream=table.getRows();
-        TupleStreamTransactional stream=table.getRows();
+        TupleStream stream=table.getRows();
+        //TupleStreamTransactional stream=table.getRows();
         while(stream.hasNext()){
             stream.next();
         }
         long post=System.currentTimeMillis();
         return post-pre;
     }
-    public long benchmarkLargeRandomRead(TableTransactional table/*Table table*/,int records, String id) throws IOException{
+    public long benchmarkLargeRandomRead(Table table,int records, String id) throws IOException{
         long pre=System.currentTimeMillis();
         for(int i=0;i<records;i++){
-            //Row row=table.getRow(id+(int)(Math.random()*records));
-            RowTransactional row=table.getRow(id+(int)(Math.random()*records));
+            Row row=table.getRow(id+(int)(Math.random()*records));
+            //RowTransactional row=table.getRow(id+(int)(Math.random()*records));
         }
         long post=System.currentTimeMillis();
         return post-pre;

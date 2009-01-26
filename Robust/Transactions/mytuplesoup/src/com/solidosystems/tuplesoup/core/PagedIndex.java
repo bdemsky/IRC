@@ -59,15 +59,19 @@ protected static final int INITIALPAGEHASH=1024;
         if(!ftest.exists())ftest.createNewFile();
         out=new RandomAccessFile(filename,"rw");
         root=new TableIndexPage[INITIALPAGEHASH];
+        System.out.println(filename);
+        System.out.println(out.length());
         if(out.length()>0){
             for(int i=0;i<INITIALPAGEHASH;i++){
                 root[i]=new TableIndexPage(this,out);
                 root[i].setFirst();
+                System.out.println("In loop " + root[i].getEndLocation());
                 out.seek(root[i].getEndLocation());
             }
         }else{
             for(int i=0;i<INITIALPAGEHASH;i++){
                 root[i]=TableIndexPage.createNewPage(this,out,PAGESIZE);
+                System.out.println("In Othe loop " + root[i].getEndLocation());
                 root[i].setFirst();
             }
         }

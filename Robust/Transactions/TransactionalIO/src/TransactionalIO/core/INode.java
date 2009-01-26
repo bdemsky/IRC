@@ -49,7 +49,7 @@ public class INode implements Comparable{
         else if (this.getNumber() > other.getNumber())
             return 1;
         else{ 
-            System.out.println("Logical Eroor Two Inodes cannot have the same number");
+            System.out.println("Logical Error Two Inodes cannot have the same number" + this.filepath + " " + other.filepath);
             return 0;
         }
        

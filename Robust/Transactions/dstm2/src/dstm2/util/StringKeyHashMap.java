@@ -719,29 +719,30 @@ public class StringKeyHashMap<V extends dstm2.AtomicSuperClass> implements Itera
         }
     }
 
-//    private class EntryIterator extends HashIterator<Map.Entry<K,V>> {
-//        public Map.Entry<K,V> next() {
-//            return nextEntry();
-//        }
-//    }
+    private class EntryIterator extends HashIterator<StringKeyHashMap.TEntry<V>> {
+        public StringKeyHashMap.TEntry<V> next() {
+            return nextEntry();
+        }
+    }
 
     // Subclass overrides these to alter behavior of views' iterator() method
     public Iterator<Integer> newKeyIterator()   {
         return new KeyIterator();
     }
     public Iterator<V> newValueIterator()   {
+        
         return new ValueIterator();
     }
-//    Iterator<Map.Entry<K,V>> newEntryIterator()   {
-//        return new EntryIterator();
-//    }
+    Iterator<StringKeyHashMap.TEntry<V>> newEntryIterator()   {
+        return new EntryIterator();
+    }
 
 
     // Views
 
     private transient Set<StringKeyHashMap.TEntry<V>> entrySet = null;
 
-
+ 
 
     private class KeySet extends AbstractSet<Integer> {
         public Iterator<Integer> iterator() {
@@ -781,10 +782,10 @@ public class StringKeyHashMap<V extends dstm2.AtomicSuperClass> implements Itera
         return (es != null ? es : (entrySet = (Set<StringKeyHashMap.TEntry<V>>) (Set) new EntrySet()));
     }
 
-    private class EntrySet {//extends AbstractSet/*<Map.Entry<K,V>>*/ {
-//        public Iterator/*<Map.Entry<K,V>>*/ iterator() {
-//            return newEntryIterator();
-//        }
+    private class EntrySet extends AbstractSet<StringKeyHashMap.TEntry<V>>{//extends AbstractSet/*<Map.Entry<K,V>>*/ {
+        public Iterator/*<Map.Entry<K,V>>*/ iterator() {
+            return newEntryIterator();
+        }
         public boolean contains(StringKeyHashMap.TEntry<V> o) {
             StringKeyHashMap.TEntry<V> e = (StringKeyHashMap.TEntry<V>) o;
             TEntry<V> candidate = getEntry(e.getHash());

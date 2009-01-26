@@ -432,17 +432,18 @@ public class ExtendedTransaction implements TransactionStatu {
                         heldlengthlocks.remove(trf.getInodestate().commitedfilesize.lengthlock);
                         trf.getInodestate().commitedfilesize.lengthlock.unlock();
                     }
+                    if (((TransactionLocalFileAttributes) GlobaltoLocalMappings.get(trf)).lenght_read){
+                        trf.getInodestate().commitedfilesize.getLengthReaders().remove(this);
+                        //heldlengthlocks.remove(trf.getInodestate().commitedfilesize.lengthlock);
+                        //trf.getInodestate().commitedfilesize.lengthlock.unlock();
+                    }
                     
                 } catch (IOException ex) {
                     Logger.getLogger(ExtendedTransaction.class.getName()).log(Level.SEVERE, null, ex);
                 }
             }
             
-            if (((TransactionLocalFileAttributes) GlobaltoLocalMappings.get(trf)).lenght_read){
-                trf.getInodestate().commitedfilesize.getLengthReaders().remove(this);
-                heldlengthlocks.remove(trf.getInodestate().commitedfilesize.lengthlock);
-                trf.getInodestate().commitedfilesize.lengthlock.unlock();
-            }
+          
         }
         
         

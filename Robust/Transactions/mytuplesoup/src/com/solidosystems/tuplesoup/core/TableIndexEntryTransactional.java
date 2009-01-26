@@ -8,6 +8,8 @@ package com.solidosystems.tuplesoup.core;
 import TransactionalIO.core.TransactionalFile;
 import dstm2.AtomicSuperClass;
 import dstm2.atomic;
+import dstm2.Thread;
+import dstm2.factory.Factory;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -20,24 +22,28 @@ import java.io.RandomAccessFile;
  * @author navid
  */
 public class TableIndexEntryTransactional implements AtomicSuperClass, Comparable<TableIndexEntryTransactional>{
-
+     
+    static Factory<TableIndexEntryTSInf> factory = Thread.makeFactory(TableIndexEntryTSInf.class);
+    
     TableIndexEntryTSInf atomicfields;
     public @atomic interface TableIndexEntryTSInf{
         String getId();
-        int getLocation();
-        long getPosition();
-        int getSize();
-        int getRowsize();
+        Integer getLocation();
+        Long getPosition();
+        Integer getSize();
+        Integer getRowsize();
         
         void setId(String val);
-        void setLocation(int val);
-        void setPosition(long val);
-        void setSize(int val);
-        void setRowsize(int val);
+        void setLocation(Integer val);
+        void setPosition(Long val);
+        void setSize(Integer val);
+        void setRowsize(Integer val);
     }
        
          
     public TableIndexEntryTransactional(String id,int rowsize,int location,long position){
+        atomicfields = factory.create();
+        
         this.atomicfields.setId(id);
         this.atomicfields.setLocation(location);
         this.atomicfields.setPosition(position);
@@ -61,7 +67,7 @@ public class TableIndexEntryTransactional implements AtomicSuperClass, Comparabl
     }
     
     public int getRowSize(){
-        return atomicfields.getRowsize();
+        return atomicfields.getRowsize().intValue();
     }
     
     public int compareTo(TableIndexEntryTransactional obj) throws ClassCastException{
@@ -87,7 +93,7 @@ public class TableIndexEntryTransactional implements AtomicSuperClass, Comparabl
     
     public int getSize(){
         if(atomicfields.getSize()<0) calcSize();
-        return atomicfields.getSize();
+        return atomicfields.getSize().intValue();
     }
     public void setSize(int size){
         this.atomicfields.setSize(size);
@@ -99,7 +105,7 @@ public class TableIndexEntryTransactional implements AtomicSuperClass, Comparabl
             dout.writeInt(atomicfields.getId().hashCode());
             dout.writeShort(atomicfields.getId().length());
             dout.writeChars(atomicfields.getId());
-            dout.writeInt(atomicfields.getRowsize());
+            dout.writeInt(atomicfields.getRowsize().intValue());
             dout.writeByte(atomicfields.getLocation());
             dout.writeLong(atomicfields.getPosition());
             setSize(bout.size());
@@ -115,7 +121,7 @@ public class TableIndexEntryTransactional implements AtomicSuperClass, Comparabl
         out.writeInt(atomicfields.getId().hashCode());
         out.writeShort(atomicfields.getId().length());
         out.writeChars(atomicfields.getId());
-        out.writeInt(atomicfields.getRowsize());
+        out.writeInt(atomicfields.getRowsize().intValue());
         out.writeByte(atomicfields.getLocation());
         out.writeLong(atomicfields.getPosition());
         setSize((int)(out.getFilePointer()-pre));
@@ -123,7 +129,7 @@ public class TableIndexEntryTransactional implements AtomicSuperClass, Comparabl
     protected void updateData(TransactionalFile out) throws IOException{
         long pre=out.getFilePointer();
         out.skipBytes(4+2+atomicfields.getId().length()*2);
-        out.writeInt(atomicfields.getRowsize());
+        out.writeInt(atomicfields.getRowsize().intValue());
         out.writeByte(atomicfields.getLocation());
         out.writeLong(atomicfields.getPosition());
         setSize((int)(out.getFilePointer()-pre));
@@ -132,7 +138,7 @@ public class TableIndexEntryTransactional implements AtomicSuperClass, Comparabl
         out.writeInt(atomicfields.getId().hashCode());
         out.writeShort(atomicfields.getId().length());
         out.writeChars(atomicfields.getId());
-        out.writeInt(atomicfields.getRowsize());
+        out.writeInt(atomicfields.getRowsize().intValue());
         out.writeByte(atomicfields.getLocation());
         out.writeLong(atomicfields.getPosition());
     }
@@ -140,6 +146,7 @@ public class TableIndexEntryTransactional implements AtomicSuperClass, Comparabl
         long pre=in.getFilePointer();
         in.readInt();
         int num=in.readShort();
+        //System.out.println("num= " + num);
         StringBuilder buf=new StringBuilder(num);
         for(int i=0;i<num;i++){
             buf.append(in.readChar());

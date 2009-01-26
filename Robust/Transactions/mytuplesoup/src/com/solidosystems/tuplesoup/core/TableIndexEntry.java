@@ -162,6 +162,7 @@ public class TableIndexEntry implements Comparable<TableIndexEntry>{
     protected static TableIndexEntry readData(DataInputStream in) throws IOException{
         in.readInt();
         int num=in.readShort();
+        System.out.println("num=444444444444444444444444 " + num);
         StringBuilder buf=new StringBuilder(num);
         for(int i=0;i<num;i++){
             buf.append(in.readChar());

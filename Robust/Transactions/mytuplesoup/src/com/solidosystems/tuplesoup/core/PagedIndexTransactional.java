@@ -9,6 +9,7 @@ import TransactionalIO.core.TransactionalFile;
 import dstm2.AtomicArray;
 import dstm2.atomic;
 import dstm2.Thread;
+import dstm2.factory.Factory;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -23,6 +24,8 @@ import java.util.concurrent.Callable;
  */
 public class PagedIndexTransactional implements TableIndexTransactional{
 
+    static Factory<PageIndexTSInf> factory = Thread.makeFactory(PageIndexTSInf.class);
+    
     PageIndexTSInf atomicfields;
    
 
@@ -51,21 +54,32 @@ public class PagedIndexTransactional implements TableIndexTransactional{
     protected static final int PAGESIZE=2048;
     
         public PagedIndexTransactional(String filename) throws IOException{
+        atomicfields = factory.create();
+        
+        atomicfields.setStat_create_page(Long.valueOf(0));
+        atomicfields.setStat_page_branch(Long.valueOf(0));
+        atomicfields.setStat_page_next(Long.valueOf(0));
+        atomicfields.setStat_read(Long.valueOf(0));
+        atomicfields.setStat_write(Long.valueOf(0));
+        
         this.atomicfields.setFilename(filename);
         File ftest=new File(filename);
         if(!ftest.exists())ftest.createNewFile();
         out=new TransactionalFile(filename,"rw");
         atomicfields.setRoots(new AtomicArray<TableIndexPageTransactional>(TableIndexPageTransactional.class, INITIALPAGEHASH));
-    
+        System.out.println(filename);
+        System.out.println(out.length());
         if(out.length()>0){
             for(int i=0;i<INITIALPAGEHASH;i++){
                 atomicfields.getRoots().set(i, new TableIndexPageTransactional(this,out));
                 atomicfields.getRoots().get(i).setFirst();
+                System.out.println("In loop " + atomicfields.getRoots().get(i).getEndLocation());
                 out.seek(atomicfields.getRoots().get(i).getEndLocation());
             }
         }else{
             for(int i=0;i<INITIALPAGEHASH;i++){
                 atomicfields.getRoots().set(i, TableIndexPageTransactional.createNewPage(this,out,PAGESIZE));
+                     System.out.println("In Othe loop " + atomicfields.getRoots().get(i).getEndLocation());
                 atomicfields.getRoots().get(i).setFirst();
             }
         }
