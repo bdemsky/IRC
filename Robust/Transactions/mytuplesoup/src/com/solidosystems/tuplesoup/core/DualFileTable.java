@@ -548,8 +548,10 @@ public class DualFileTable implements Table{
          TableIndexEntry entry=null;
           // Handle index entry caching
           if(INDEXCACHESIZE>0){
+            //  System.out.println("in h");
               synchronized(indexcache){
                   entry=getCacheEntry(id);
+               //   System.out.println(entry);
                    if(entry==null){
                        entry=index.scanIndex(id);
                        if(entry!=null){
@@ -563,6 +565,7 @@ public class DualFileTable implements Table{
           if(entry!=null){
               long dataoffset=0;
               DataInputStream data=null;
+            //  System.out.println(entry);
               if(entry.location==Table.FILEA){
                   data=new DataInputStream(new BufferedInputStream(new FileInputStream(getFileName(Table.FILEA))));
               }else if(entry.location==Table.FILEB){

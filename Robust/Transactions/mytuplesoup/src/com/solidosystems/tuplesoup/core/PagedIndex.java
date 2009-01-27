@@ -39,8 +39,11 @@ import java.nio.channels.*;
 
 public class PagedIndex implements TableIndex{
     
-protected static final int INITIALPAGEHASH=1024;
-    protected static final int PAGESIZE=2048;
+//protected static final int INITIALPAGEHASH=1024;
+  //  protected static final int PAGESIZE=2048;
+    
+    protected static final int INITIALPAGEHASH=32;
+    protected static final int PAGESIZE=64;
     
     private RandomAccessFile out=null;
     private String filename;
@@ -65,13 +68,11 @@ protected static final int INITIALPAGEHASH=1024;
             for(int i=0;i<INITIALPAGEHASH;i++){
                 root[i]=new TableIndexPage(this,out);
                 root[i].setFirst();
-                System.out.println("In loop " + root[i].getEndLocation());
                 out.seek(root[i].getEndLocation());
             }
         }else{
             for(int i=0;i<INITIALPAGEHASH;i++){
                 root[i]=TableIndexPage.createNewPage(this,out,PAGESIZE);
-                System.out.println("In Othe loop " + root[i].getEndLocation());
                 root[i].setFirst();
             }
         }

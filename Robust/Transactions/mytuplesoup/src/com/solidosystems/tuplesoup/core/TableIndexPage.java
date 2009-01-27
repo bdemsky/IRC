@@ -58,39 +58,33 @@ public class TableIndexPage{
         this.index=index;
         first=false;
         location=file.getFilePointer();
-        System.out.println(location);
         size=file.readInt();
         next=file.readLong();
         lower=file.readLong();
         offset=file.readInt();
         endhash=file.readInt();
-        System.out.println("si " + size);
-        System.out.println("next "  + next);
-        System.out.println("lower " + lower);
-        System.out.println("offset " + offset);
-        System.out.println("endhash " + endhash);
+   //     System.out.println("si " + size);
+  //      System.out.println("next "  + next);
+   //     System.out.println("lower " + lower);
+   //     System.out.println("offset " + offset);
+   //     System.out.println("endhash " + endhash);
         if(offset>0)starthash=file.readInt();
-        System.out.println("here tav;eindepage");
+   //     System.out.println("here tav;eindepage");
         
         
     }
     
     public static TableIndexPage createNewPage(PagedIndex index,RandomAccessFile file,int size) throws IOException{
         long pre=file.length();
-        System.out.println("pre " + pre);
-           System.out.println("pointer1 " + file.length()+size+BASEOFFSET);
+
         file.setLength(file.length()+size+BASEOFFSET);
         file.seek(pre);
      
-        System.out.println("pointer2 " + file.getFilePointer());
-        file.writeInt(size);
-         System.out.println("pointer2 " + file.getFilePointer());
+        
+        file.writeInt(size); 
         file.writeLong(-1l);
-         System.out.println("pointer2 " + file.getFilePointer());
         file.writeLong(-1l);
-         System.out.println("pointer2 " + file.getFilePointer());
         file.writeInt(0);
-         System.out.println("pointer2 " + file.getFilePointer());
         file.writeInt(-1);
         file.seek(pre);
         index.stat_create_page++;
@@ -148,6 +142,7 @@ public class TableIndexPage{
         }
         file.seek(location+BASEOFFSET);
         long pre=file.getFilePointer();
+        System.out.println(Thread.currentThread() + " " +offset + " " + pre);
         while(file.getFilePointer()<pre+offset){
             TableIndexEntry entry=TableIndexEntry.readData(file);
             if(entry!=null){

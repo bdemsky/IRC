@@ -525,7 +525,7 @@ public class ValueTransactional implements AtomicSuperClass{
       * @param in the DataInputStream the Value should be read from
       * @return the Value read from the stream
       */
-     public static ValueTransactional readFromStream(DataInputStream in) throws IOException{
+   /*  public static ValueTransactional readFromStream(DataInputStream in) throws IOException{
          byte type=in.readByte();
          switch(type){
              case STRING :   int size=in.readInt();
@@ -545,6 +545,33 @@ public class ValueTransactional implements AtomicSuperClass{
                            int read=0;
                            while(read<length){
                                read+=in.read(abuf,read,length-read);
+                           }
+                           return new ValueTransactional(abuf);
+
+         }
+         return new ValueTransactional();
+     }*/
+     
+        public static ValueTransactional readFromStream(TransactionalFile in) throws IOException{
+         byte type=in.readByte();
+         switch(type){
+             case STRING :   int size=in.readInt();
+                             StringBuffer buf=new StringBuffer();
+                             for(int i=0;i<size;i++){
+                                 buf.append(in.readChar());
+                             }
+                             return new ValueTransactional(buf.toString());
+             case INT    :   return new ValueTransactional(in.readInt());
+             case LONG   :   return new ValueTransactional(in.readLong());
+             case FLOAT  :   return new ValueTransactional(in.readFloat());
+             case DOUBLE :   return new ValueTransactional(in.readDouble());
+             case BOOLEAN:   return new ValueTransactional(in.readBoolean());
+             case TIMESTAMP: return new ValueTransactional(new Date(in.readLong()));
+             case BINARY : int length=in.readInt();
+                           byte[] abuf=new byte[length];
+                           int read=0;
+                           while(read<length){
+                               read+=in.read(abuf);//,read,length-read);
                            }
                            return new ValueTransactional(abuf);
 

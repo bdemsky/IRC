@@ -50,8 +50,12 @@ public class PagedIndexTransactional implements TableIndexTransactional{
     
     
     private TransactionalFile out=null;
-    protected static final int INITIALPAGEHASH=1024;
-    protected static final int PAGESIZE=2048;
+    
+    //protected static final int INITIALPAGEHASH=1024;
+    //protected static final int PAGESIZE=2048;
+    
+    protected static final int INITIALPAGEHASH=32;
+    protected static final int PAGESIZE=64;
     
         public PagedIndexTransactional(String filename) throws IOException{
         atomicfields = factory.create();
@@ -67,19 +71,19 @@ public class PagedIndexTransactional implements TableIndexTransactional{
         if(!ftest.exists())ftest.createNewFile();
         out=new TransactionalFile(filename,"rw");
         atomicfields.setRoots(new AtomicArray<TableIndexPageTransactional>(TableIndexPageTransactional.class, INITIALPAGEHASH));
-        System.out.println(filename);
-        System.out.println(out.length());
+       // System.out.println(filename);
+       // System.out.println(out.length());
         if(out.length()>0){
             for(int i=0;i<INITIALPAGEHASH;i++){
                 atomicfields.getRoots().set(i, new TableIndexPageTransactional(this,out));
                 atomicfields.getRoots().get(i).setFirst();
-                System.out.println("In loop " + atomicfields.getRoots().get(i).getEndLocation());
+               // System.out.println("In loop " + atomicfields.getRoots().get(i).getEndLocation());
                 out.seek(atomicfields.getRoots().get(i).getEndLocation());
             }
         }else{
             for(int i=0;i<INITIALPAGEHASH;i++){
                 atomicfields.getRoots().set(i, TableIndexPageTransactional.createNewPage(this,out,PAGESIZE));
-                     System.out.println("In Othe loop " + atomicfields.getRoots().get(i).getEndLocation());
+                //     System.out.println("In Othe loop " + atomicfields.getRoots().get(i).getEndLocation());
                 atomicfields.getRoots().get(i).setFirst();
             }
         }
@@ -159,7 +163,7 @@ public class PagedIndexTransactional implements TableIndexTransactional{
         });
     }
     
-    public synchronized List<TableIndexEntryTransactional> scanIndex(List<String> rows) throws IOException{
+    public /*synchronized*/ List<TableIndexEntryTransactional> scanIndex(List<String> rows) throws IOException{
         final List<String> rows2 = rows;
         return Thread.doIt(new Callable<List<TableIndexEntryTransactional>>() {
            public List<TableIndexEntryTransactional> call() throws Exception{
@@ -168,7 +172,7 @@ public class PagedIndexTransactional implements TableIndexTransactional{
                     String id=rows2.get(i);
                     TableIndexEntryTransactional entry=scanIndex(id);
                     if(entry!=null){
-                        if(entry.getLocation()!=Table.DELETE)lst.add(entry);
+                        if(entry.getLocation()!=TableTransactional.DELETE)lst.add(entry);
                     }
                 }
                 return lst;
@@ -179,9 +183,11 @@ public class PagedIndexTransactional implements TableIndexTransactional{
         return Thread.doIt(new Callable<List<TableIndexEntryTransactional>>() {
            public List<TableIndexEntryTransactional> call() throws Exception{
                 ArrayList<TableIndexEntryTransactional> lst=new ArrayList<TableIndexEntryTransactional>();
+                System.out.println(Thread.currentThread() + " start");
                 for(int i=0;i<INITIALPAGEHASH;i++){
                     atomicfields.getRoots().get(i).addEntriesToList(lst);
                 }
+                System.out.println(Thread.currentThread() +" done");
                 return lst;
            }
         });

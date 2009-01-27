@@ -299,8 +299,24 @@ public class RowTransactional {
      /**
       * Reads a full row from the given DataInputStream and returns it.
       */
-     public static RowTransactional readFromStream(DataInputStream in) throws IOException{
+     /*public static RowTransactional readFromStream(DataInputStream in) throws IOException{
          String id=in.readUTF();
+         //System.out.println("id " + id);
+         RowTransactional row=new RowTransactional(id);
+         int size=in.readInt();
+         for(int i=0;i<size;i++){
+             String key=in.readUTF();
+             ValueTransactional value=ValueTransactional.readFromStream(in);
+             row.put(key,value);
+         }
+         size=in.readInt();
+         row.atomicfields.setSize(size);
+         return row;
+     }*/
+     
+     public static RowTransactional readFromStream(TransactionalFile in) throws IOException{
+         String id=in.readUTF();
+         //System.out.println("id " + id);
          RowTransactional row=new RowTransactional(id);
          int size=in.readInt();
          for(int i=0;i<size;i++){
@@ -312,6 +328,7 @@ public class RowTransactional {
          row.atomicfields.setSize(size);
          return row;
      }
+ 
  
      /**
       * Returns a string representing this row formatted as the following example:

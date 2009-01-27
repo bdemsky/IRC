@@ -355,7 +355,9 @@ public class DualFileTableTransactional implements TableTransactional{
          args.add(row);
          Thread.doIt(new Callable<Boolean>() {
              public Boolean call() throws Exception{
-                 openFile(FILEA);             
+                      
+                 openFile(FILEA);         
+            
              //int pre=fileastream.size();
                  int pre= (int)fileastream.getFilePointer();
              //row.writeToStream(fileastream);
@@ -374,7 +376,7 @@ public class DualFileTableTransactional implements TableTransactional{
                     TableIndexEntryTransactional entry=new TableIndexEntryTransactional(((RowTransactional)args.get(0)).getId(),((RowTransactional)args.get(0)).getSize(),FILEA,atomicfields.getFileaposition());
                     addCacheEntry(entry);
                 }
-                atomicfields.setFileaposition(atomicfields.getFileaposition()+Row.calcSize(pre,post));
+                atomicfields.setFileaposition(atomicfields.getFileaposition()+RowTransactional.calcSize(pre,post));
                 return true;
             }
          });
@@ -402,7 +404,7 @@ public class DualFileTableTransactional implements TableTransactional{
                   TableIndexEntryTransactional entry=new TableIndexEntryTransactional(((RowTransactional)args.get(0)).getId(),((RowTransactional)args.get(0)).getSize(),FILEB,atomicfields.getFilebposition());
                   addCacheEntry(entry);
                 }
-                atomicfields.setFilebposition(atomicfields.getFilebposition()+Row.calcSize(pre,post));
+                atomicfields.setFilebposition(atomicfields.getFilebposition()+RowTransactional.calcSize(pre,post));
                 return true;
             }
          });
@@ -517,19 +519,19 @@ public class DualFileTableTransactional implements TableTransactional{
          TableIndexEntryTransactional entry=null;
          final Vector args = new Vector();
          args.add(row);
-         args.add(entry);
+         //args.add(entry);
          // Handle index entry caching
          if(INDEXCACHESIZE>0){
-             Thread.doIt(new Callable<Boolean>() {
-                public Boolean call() throws Exception {
-                    TableIndexEntryTransactional entry = (TableIndexEntryTransactional) (args.get(1));
+             entry = Thread.doIt(new Callable<TableIndexEntryTransactional>() {
+                public TableIndexEntryTransactional call() throws Exception {
+                    TableIndexEntryTransactional entry;// = (TableIndexEntryTransactional) (args.get(1));
                     RowTransactional row = (RowTransactional) (args.get(0));
                     entry = getCacheEntry(row.getId());
                     if(entry==null){
                        entry=index.scanIndex(row.getId());
                        addCacheEntry(entry);
                     }
-                    return true;
+                    return entry;
                 }
              });
           /*   synchronized(indexcache){
@@ -598,9 +600,11 @@ public class DualFileTableTransactional implements TableTransactional{
      private void updateRowA(RowTransactional row) throws IOException{
          final Vector args = new Vector();
          args.add(row);
+         System.out.println("b");
          Thread.doIt(new Callable<Boolean>() {
               public Boolean call() throws Exception{ 
          //synchronized(filealock){
+                  System.out.println("add a");
                   openFile(FILEA);
                   //int pre=filebstream.size();
                   int pre=(int)fileastream.getFilePointer();
@@ -623,10 +627,11 @@ public class DualFileTableTransactional implements TableTransactional{
 
      private void updateRowB(RowTransactional row) throws IOException{
          final Vector args = new Vector();
+         System.out.println("b");
          args.add(row);
          Thread.doIt(new Callable<Boolean>() {
              public Boolean call() throws Exception{ 
-         
+             System.out.println("add b");
          //synchronized(fileblock){
                 openFile(FILEB);
               //int pre=filebstream.size();
@@ -703,36 +708,44 @@ public class DualFileTableTransactional implements TableTransactional{
       */
      public RowTransactional getRow(String id) throws IOException{
          TableIndexEntryTransactional entry=null;
+          final Vector args = new Vector();
+              args.add(id);
+             // args.add(entry);
           // Handle index entry caching
           if(INDEXCACHESIZE>0){
-              final Vector args = new Vector();
-              args.add(id);
-              args.add(entry);
+             
               //synchronized(indexcache){
-              Thread.doIt(new Callable<Boolean>() {
-                public Boolean call() throws Exception{
-                  TableIndexEntryTransactional entry = (TableIndexEntryTransactional) (args.get(1));
+              entry = Thread.doIt(new Callable<TableIndexEntryTransactional>() {
+                public TableIndexEntryTransactional call() throws Exception{
+                  TableIndexEntryTransactional entry;// = (TableIndexEntryTransactional) (args.get(1));
                   String id = (String) (args.get(0));  
                   entry=getCacheEntry(id);
+                 //  System.out.println("presalam " + (TableIndexEntryTransactional) (args.get(1)));
                    if(entry==null){
                        entry=index.scanIndex(id);
                        if(entry!=null){
                            addCacheEntry(entry);
                        }
                    }
-                  return true;
+                  return entry;
                 }
               });
           }else{
               entry=index.scanIndexTransactional(id);
           }
+//          entry = (TableIndexEntryTransactional) (args.get(1));
+  //        args.clear();
+          
           if(entry!=null){
               long dataoffset=0;
-              DataInputStream data=null;
-              if(entry.getLocation()==Table.FILEA){
-                  data=new DataInputStream(new BufferedInputStream(new FileInputStream(getFileName(Table.FILEA))));
-              }else if(entry.getLocation()==Table.FILEB){
-                  data=new DataInputStream(new BufferedInputStream(new FileInputStream(getFileName(Table.FILEB))));
+              //DataInputStream data=null;
+              TransactionalFile data=null;
+              if(entry.getLocation()==TableTransactional.FILEA){
+                  //data=new DataInputStream(new BufferedInputStream(new FileInputStream(getFileName(TableTransactional.FILEA))));
+                  data=new TransactionalFile(getFileName(TableTransactional.FILEA), "rw");
+              }else if(entry.getLocation()==TableTransactional.FILEB){
+                  data=new TransactionalFile(getFileName(TableTransactional.FILEB), "rw");
+                  //data=new DataInputStream(new BufferedInputStream(new FileInputStream(getFileName(TableTransactional.FILEB))));
               }
               if(data!=null){
                   while(dataoffset!=entry.getPosition()){
@@ -740,13 +753,13 @@ public class DualFileTableTransactional implements TableTransactional{
                   }
                   RowTransactional row=RowTransactional.readFromStream(data);
                   data.close();
-                  final Vector args = new Vector();
-                  args.add(row);
+                  final Vector args2 = new Vector();
+                  args2.add(row);
                   Thread.doIt(new Callable<Boolean>() {
                       public Boolean call() throws Exception{
                   //synchronized(statlock){
                           atomicfields.setstat_read(atomicfields.getstat_read()+1);
-                          atomicfields.setstat_read_size(atomicfields.getstat_read_size()+((RowTransactional)args.get(0)).getSize());
+                          atomicfields.setstat_read_size(atomicfields.getstat_read_size()+((RowTransactional)args2.get(0)).getSize());
                           return true;
                       }
                   });

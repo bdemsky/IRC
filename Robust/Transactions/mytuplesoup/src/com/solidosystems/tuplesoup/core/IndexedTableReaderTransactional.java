@@ -31,6 +31,7 @@
  
  package com.solidosystems.tuplesoup.core;
  
+import TransactionalIO.core.TransactionalFile;
  import com.solidosystems.tuplesoup.filter.*;
  import java.io.*;
  import java.util.*;
@@ -41,8 +42,11 @@ import dstm2.factory.Factory;
 public class IndexedTableReaderTransactional extends TupleStreamTransactional{
 
     
-    private DataInputStream fileastream=null;
-    private DataInputStream filebstream=null;
+    private TransactionalFile fileastream=null;
+    private TransactionalFile filebstream=null;
+    
+    //private DataInputStream fileastream=null;
+    //private DataInputStream filebstream=null;
     private long fileaposition=0;
     private long filebposition=0;
 
@@ -76,9 +80,9 @@ public class IndexedTableReaderTransactional extends TupleStreamTransactional{
             TableIndexEntryTransactional entry=it.next();
             // TODO: we really shouldn't get nulls here
             if(entry!=null){
-                if(entry.getLocation()==Table.FILEA){
+                if(entry.getLocation()==TableTransactional.FILEA){
                     fileaentries.add(entry);
-                }else if(entry.getLocation()==Table.FILEB){
+                }else if(entry.getLocation()==TableTransactional.FILEB){
                     filebentries.add(entry);
                 }
             }
@@ -109,9 +113,9 @@ public class IndexedTableReaderTransactional extends TupleStreamTransactional{
             TableIndexEntryTransactional entry=it.next();
             // TODO: we really shouldn't get nulls here
             if(entry!=null){
-                if(entry.getLocation()==Table.FILEA){
+                if(entry.getLocation()==TableTransactional.FILEA){
                     fileaentries.add(entry);
-                }else if(entry.getLocation()==Table.FILEB){
+                }else if(entry.getLocation()==TableTransactional.FILEB){
                     filebentries.add(entry);
                 }
             }
@@ -135,7 +139,8 @@ public class IndexedTableReaderTransactional extends TupleStreamTransactional{
             if(fileaentries.size()>0){
                 TableIndexEntryTransactional nextfilea=fileaentries.remove(0);
                 if(fileastream==null){
-                    fileastream=new DataInputStream(new BufferedInputStream(new FileInputStream(table.getFileName(Table.FILEA))));
+                    fileastream=new TransactionalFile(table.getFileName(TableTransactional.FILEA), "rw");
+                  //  fileastream=new DataInputStream(new BufferedInputStream(new FileInputStream(table.getFileName(TableTransactional.FILEA))));
                     fileaposition=0;
                 }
                 if(fileaposition>nextfilea.getPosition()){
@@ -185,7 +190,8 @@ public class IndexedTableReaderTransactional extends TupleStreamTransactional{
             if(filebentries.size()>0){
                 TableIndexEntryTransactional nextfileb=filebentries.remove(0);
                 if(filebstream==null){
-                    filebstream=new DataInputStream(new BufferedInputStream(new FileInputStream(table.getFileName(Table.FILEB))));
+                    fileastream=new TransactionalFile(table.getFileName(TableTransactional.FILEB), "rw");
+                    //filebstream=new DataInputStream(new BufferedInputStream(new FileInputStream(table.getFileName(TableTransactional.FILEB))));
                     filebposition=0;
                 }
                 if(filebposition>nextfileb.getPosition()){
@@ -230,10 +236,10 @@ public class IndexedTableReaderTransactional extends TupleStreamTransactional{
             TableIndexEntryTransactional entry=entries.get(rowpointer++);
             if(entry!=null){
                    switch(entry.getLocation()){
-                    case Table.FILEA    : readNextFromFileA(entry);
+                    case TableTransactional.FILEA    : readNextFromFileA(entry);
                                         // return;
                                         break;
-                    case Table.FILEB : readNextFromFileB(entry);
+                    case TableTransactional.FILEB : readNextFromFileB(entry);
                                         // return;
                                         break;
                 }

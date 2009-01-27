@@ -342,26 +342,137 @@ public class TransactionalFile implements Comparable {
         return (int) (newpos - pos);
     }
 
-    public final int readByte(){
+    public final byte readByte(){
         byte[] data = new byte[1];
         read(data);
-        int result = (byte)(data[0]);
+        byte result = (byte)(data[0]);
         return result;
     }
     
-    public final int readChar(){
+    public final boolean readBoolean(){
+        byte[] data = new byte[1];
+        read(data);
+        if (data[0] == 0 )
+            return false;
+        return true;
+        //return ((boolean)data[0]);// != 0);
+    }
+    
+    public final char readChar(){
         byte[] data = new byte[2];
         read(data);
-        int result = (char)((data[0] << 8) | data[0]);
+        char result = (char)((data[0] << 8) | data[0]);
         return result;
     }
     
-    public final int readShort(){
+    public final short readShort(){
         byte[] data = new byte[2];
         read(data);
-        int result = (short)((data[0] << 8) | data[1]);
-        System.out.println("res " + result);
+        short result = (short)((data[0] << 8) | data[1]);
+     //   System.out.println("res " + result);
         return result;
+    }
+    
+    public final int readUnsignedShort() throws IOException {
+        byte[] data = new byte[2];
+        read(data);
+        return (data[0] << 8) + (data[1] << 0);    
+    }
+    
+    public final String readUTF() throws UTFDataFormatException{
+            int utflen = -1;
+            byte[] bytearr = null;
+            char[] chararr = null;
+        try {
+            utflen = readUnsignedShort();
+        } catch (IOException ex) {
+            Logger.getLogger(TransactionalFile.class.getName()).log(Level.SEVERE, null, ex);
+        }
+            bytearr = new byte[utflen];
+            chararr = new char[utflen];
+            
+
+                int c, char2, char3;
+                int count = 0;
+                int chararr_count = 0;
+
+                read(bytearr);
+
+                while (count < utflen) {
+                    c = (int) bytearr[count] & 0xff;
+                    if (c > 127)
+                        break;
+                    count++;
+                    chararr[chararr_count++] = (char) c;
+                }
+
+                while (count < utflen) {
+                    c = (int) bytearr[count] & 0xff;
+                    switch (c >> 4) {
+                    case 0:
+                    case 1:
+                    case 2:
+                    case 3:
+                    case 4:
+                    case 5:
+                    case 6:
+                    case 7:
+                        /* 0xxxxxxx*/
+                        count++;
+                        chararr[chararr_count++] = (char) c;
+                        break;
+                    case 12:
+                    case 13:
+                        /* 110x xxxx   10xx xxxx*/
+                        count += 2;
+                        if (count > utflen)
+                            throw new UTFDataFormatException(
+                                    "malformed input: partial character at end");
+                        char2 = (int) bytearr[count - 1];
+                        if ((char2 & 0xC0) != 0x80)
+                            throw new UTFDataFormatException(
+                                    "malformed input around byte " + count);
+                        chararr[chararr_count++] = (char) (((c & 0x1F) << 6) | (char2 & 0x3F));
+                        break;
+                    case 14:
+                        /* 1110 xxxx  10xx xxxx  10xx xxxx */
+                        count += 3;
+                        if (count > utflen)
+                            throw new UTFDataFormatException(
+                                    "malformed input: partial character at end");
+                        char2 = (int) bytearr[count - 2];
+                        char3 = (int) bytearr[count - 1];
+                        if (((char2 & 0xC0) != 0x80)
+                                || ((char3 & 0xC0) != 0x80))
+                            throw new UTFDataFormatException(
+                                    "malformed input around byte "
+                                            + (count - 1));
+                        chararr[chararr_count++] = (char) (((c & 0x0F) << 12)
+                                | ((char2 & 0x3F) << 6) | ((char3 & 0x3F) << 0));
+                        break;
+                    default:
+                        /* 10xx xxxx,  1111 xxxx */
+                        throw new UTFDataFormatException(
+                               "malformed input around byte " + count);
+                   }
+              }
+             // The number of chars produced may be less than utflen
+             return new String(chararr, 0, chararr_count);
+        
+    }
+    
+    public final float readFloat(){
+       // byte[] data = new byte[4];
+       // int k = read(data);
+        return Float.intBitsToFloat(readInt());
+       // float result = Conversions.bytes2float(data);
+        //int result = (data[0] << 24) | (data[1] << 16) + (data[2] << 8) + (data[3]<<0);
+      //  System.out.println("int res " + result);
+      //  return result;
+    }
+    
+    public final double readDouble(){
+        return Double.longBitsToDouble(readLong());
     }
     
     
@@ -371,7 +482,7 @@ public class TransactionalFile implements Comparable {
         
         int result = Conversions.bytes2int(data);
         //int result = (data[0] << 24) | (data[1] << 16) + (data[2] << 8) + (data[3]<<0);
-        System.out.println("int res " + result);
+      //  System.out.println("int res " + result);
         return result;
     }
     
@@ -381,7 +492,7 @@ public class TransactionalFile implements Comparable {
         read(data);
         //long result = ((long)data[0] << 56) + ((long)data[1] << 48) + ((long)data[2] << 40) + ((long)data[3] << 32) + ((long)data[4] << 24) + ((long)data[5] << 16)+ ((long)data[6] << 8) + data[7];
         long result = Conversions.bytes2long(data);
-        System.out.println("long res " + result);
+    //    System.out.println("long res " + result);
         return result;
     }
     

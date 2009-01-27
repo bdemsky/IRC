@@ -145,6 +145,7 @@ public class TableIndexEntryTransactional implements AtomicSuperClass, Comparabl
     protected static TableIndexEntryTransactional readData(TransactionalFile in) throws IOException{
         long pre=in.getFilePointer();
         in.readInt();
+        //short num=in.readShort();
         int num=in.readShort();
         //System.out.println("num= " + num);
         StringBuilder buf=new StringBuilder(num);
