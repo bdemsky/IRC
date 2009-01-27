@@ -318,9 +318,10 @@ public class Thread extends java.lang.Thread{
       totalTotal += threadState.total;
       threadState.reset();  // set up for next iteration
     }
-    if (result == null)
+   /* if (result == null)
         throw new GracefulException();
-    else return result;
+    else return result;*/
+    return result;
   }
   /**
    * Execute transaction
