@@ -133,7 +133,10 @@ CFILES=Runtime/*.c \
 
 all: compiler javadoc
 
-compiler: Parse/Sym.class Parse/Parser.class $(CLASSFILES) 
+compiler: Parse/Sym.java Parse/Parser.java cleanclass classfiles
+
+classfiles:
+	./ourjavac -cp ../cup:.:$(CLASSPATH) Main/Main.java
 
 wc:
 	wc Interface/*.java Analysis/*/*.java IR/*.java IR/*/*.java Lex/*.java Util/*.java ClassLibrary/*.java
@@ -168,6 +171,9 @@ javadoc:
 
 clean:
 	rm -f IR/*.class IR/Tree/*.class Main/*.class Lex/*.class Parse/*.class Parse/Sym.java Parse/Parser.java IR/Flat/*.class classdefs.h methodheaders.h methods.c structdefs.h virtualtable.h task.h taskdefs.c taskdefs.h Analysis/*.class Analysis/Flag/*.class Analysis/CallGraph/*.class  Analysis/TaskStateAnalysis/*.class Interface/*.class Util/*.class Analysis/Locality/*.class Analysis/Prefetch/*.class Analysis/FlatIRGraph/*.class Analysis/OwnershipAnalysis/*.class Analysis/Scheduling/*.class
+
+cleanclass:
+	rm -f IR/*.class IR/Tree/*.class Main/*.class IR/Flat/*.class Analysis/*.class Analysis/Flag/*.class Analysis/CallGraph/*.class  Analysis/TaskStateAnalysis/*.class Interface/*.class Util/*.class Analysis/Locality/*.class Analysis/Prefetch/*.class Analysis/FlatIRGraph/*.class Analysis/OwnershipAnalysis/*.class Analysis/Scheduling/*.class
 
 cleandoc:
 	rm -rf javadoc
