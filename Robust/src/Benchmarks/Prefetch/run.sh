@@ -2,8 +2,9 @@
 
 #set -x
 MACHINELIST='dc-1.calit2.uci.edu dc-2.calit2.uci.edu dc-3.calit2.uci.edu dc-4.calit2.uci.edu dc-5.calit2.uci.edu dc-6.calit2.uci.edu dc-7.calit2.uci.edu dc-8.calit2.uci.edu'
+benchmarks='1152fft2d 40962dconv 20482dconv 600mmver moldynverA em3dver40001306'
 
-LOGDIR=/home/adash/research/Robust/src/Benchmarks/Prefetch/runlog
+LOGDIR=~/research/Robust/src/Benchmarks/Prefetch/runlog
 TOPDIR=`pwd`
 
 function run {
@@ -52,7 +53,14 @@ function run {
       echo ""
     done
     sleep 2
-    /usr/bin/time -f "%e" ./$3 master $arg 2>> ${LOGDIR}/${2}Thrd_${3}_${EXTENSION}.txt
+    perl -x${TOPDIR} ${TOPDIR}/switch/fetch_stat.pl clear_stats settings=switch/clearsettings.txt
+    /usr/bin/time -f "%e" ./$3 master $arg 2> ${LOGDIR}/tmp
+    perl -x${TOPDIR} ${TOPDIR}/switch/fetch_stat.pl settings=switch/settings.txt
+    cat ${LOGDIR}/tmp >> ${LOGDIR}/${2}Thrd_${3}_${EXTENSION}.txt
+    if [ $i -eq 0 ];then echo "<h3> Benchmark=${3} Thread=${2} Extension=${EXTENSION}</h3><br>" > ${LOGDIR}/${3}_${EXTENSION}_${2}Thrd_a.html  ;fi
+    cat ${LOGDIR}/tmp >> ${LOGDIR}/${3}_${EXTENSION}_${2}Thrd_a.html
+    echo "<a href=\"${2}Thrd_${3}_${EXTENSION}_${i}.html\">Network Stats</a><br>" >> ${LOGDIR}/${3}_${EXTENSION}_${2}Thrd_a.html
+    mv ${TOPDIR}/html/dell.html ${LOGDIR}/${2}Thrd_${3}_${EXTENSION}_${i}.html
     echo "Terminating ... "
     for machine in `echo $MACHINES`
     do
@@ -90,7 +98,11 @@ function localrun {
 # done
   i=0;
   while [ $i -lt $1 ]; do
-    /usr/bin/time -f "%e" ./${NONPREFETCH_NONCACHE} master $ARGS1 2>> ${LOGDIR}/${NONPREFETCH_NONCACHE}_local_${EXTENSION}.txt
+    /usr/bin/time -f "%e" ./${NONPREFETCH_NONCACHE} master $ARGS1 2> ${LOGDIR}/tmp
+    cat ${LOGDIR}/tmp >> ${LOGDIR}/${NONPREFETCH_NONCACHE}_local_${EXTENSION}.txt
+    if [ $i -eq 0 ];then echo "<h3> Benchmark=${NONPREFETCH_NONCACHE} Thread=1local Extension=${EXTENSION}</h3><br>" > ${LOGDIR}/${NONPREFETCH_NONCACHE}_${EXTENSION}_1local_a.html  ;fi
+    cat ${LOGDIR}/tmp >> ${LOGDIR}/${NONPREFETCH_NONCACHE}_${EXTENSION}_1local_a.html
+    echo "<br>" >> ${LOGDIR}/${NONPREFETCH_NONCACHE}_${EXTENSION}_1local_a.html
     sleep 2
     i=`expr $i + 1`
   done
@@ -114,7 +126,7 @@ function callrun {
 #  oneremote 1 1 $PREFETCH
 
 
-for count in 2 3 4 5 6 7 8
+for count in 2 4 6 8
 do
 echo "------- Running $count threads $BMDIR non-prefetch + non-cache on $count machines -----"
 run 1 $count $NONPREFETCH_NONCACHE
@@ -138,7 +150,11 @@ function callrunjavasingle {
 function javasinglerun {
   i=0;
   while [ $i -lt $1 ]; do
-    /usr/bin/time -f "%e" ./${BENCHMARK}.bin $ARGS1 2>> ${LOGDIR}/${BENCHMARK}_javasingle_${EXTENSION}.txt
+    /usr/bin/time -f "%e" ./${BENCHMARK}.bin $ARGS1 2> ${LOGDIR}/tmp
+    cat ${LOGDIR}/tmp >> ${LOGDIR}/${BENCHMARK}_javasingle_${EXTENSION}.txt
+    if [ $i -eq 0 ];then echo "<h3> Benchmark=${BENCHMARK} Thread=1java Extension=${EXTENSION}</h3><br>" > ${LOGDIR}/${BENCHMARK}_${EXTENSION}_1java_a.html  ;fi
+    cat ${LOGDIR}/tmp >> ${LOGDIR}/${BENCHMARK}_${EXTENSION}_1java_a.html
+    echo "<br>" >> ${LOGDIR}/${BENCHMARK}_${EXTENSION}_1java_a.html
     sleep 2
     i=`expr $i + 1`
   done
@@ -160,7 +176,6 @@ function callmicrorun {
   cd $TOPDIR
 }
 
-benchmarks='1152fft2d 40962dconv 20482dconv 600mmver moldynverA'
 
 echo "---------- Clean old files ---------- "
 rm runlog/*
