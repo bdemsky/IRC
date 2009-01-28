@@ -25,6 +25,7 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.TreeMap;
 import java.util.Vector;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.Lock;
 
 import java.util.concurrent.locks.ReentrantLock;
@@ -58,6 +59,7 @@ public class TransactionalFile implements Comparable {
     public boolean appendmode = false;
     public ReentrantLock offsetlock;
     private GlobalOffset committedoffset;
+    AtomicBoolean open = new AtomicBoolean(true);
     
    
     private GlobalINodeState inodestate;
@@ -97,9 +99,14 @@ public class TransactionalFile implements Comparable {
         if (inodestate != null) {
             synchronized (inodestate) {
                 committedoffset = new GlobalOffset(0);
+                open .set(true);
                 
             }
         }
+    }
+    
+    public boolean isOpen(){
+        return open.get();
     }
     
     public TransactionalFile(String filename, String mode) {
@@ -153,6 +160,7 @@ public class TransactionalFile implements Comparable {
         if (inodestate != null) {
             synchronized (inodestate) {
                 committedoffset = new GlobalOffset(0);
+                open.set(true);
             }
         }
 
@@ -202,16 +210,31 @@ public class TransactionalFile implements Comparable {
         return inode;
     }
 
-    public void close() {
-        try {
+    public void close() throws IOException {
+        ExtendedTransaction me = Wrapper.getTransaction();
+        if (!(open.get()))
+            throw new IOException();
+            
+        if (me == null) {
+            open.set(false);
             file.close();
-        } catch (IOException ex) {
-            Logger.getLogger(TransactionalFile.class.getName()).log(Level.SEVERE, null, ex);
+            return;
         }
+
+        if (!(me.getGlobaltoLocalMappings().containsKey(this))) {
+            me.addFile(this, 0);
+        }
+        
+        TransactionLocalFileAttributes tmp = (TransactionLocalFileAttributes) me.getGlobaltoLocalMappings().get(this);
+        tmp.setOpen(false);
     }
     
     
-    public long length(){
+    
+    
+    public long length() throws IOException{
+        if (!(open.get()))
+            throw new IOException();
         ExtendedTransaction me = Wrapper.getTransaction();
 
         if (me == null) {
@@ -242,8 +265,9 @@ public class TransactionalFile implements Comparable {
 
         return tmp.getLocalsize();
     }
-    public long getFilePointer() {
-
+    public long getFilePointer() throws IOException {
+        if (!(open.get()))
+            throw new IOException();
         ExtendedTransaction me = Wrapper.getTransaction();
 
         if (me == null) {
@@ -296,8 +320,10 @@ public class TransactionalFile implements Comparable {
         
     }
     
-    public void seek(long offset) {
-
+    public void seek(long offset) throws IOException {
+        
+        if (!(open.get()))
+            throw new IOException();
         ExtendedTransaction me = Wrapper.getTransaction();
 
         if (me == null) {
@@ -342,14 +368,14 @@ public class TransactionalFile implements Comparable {
         return (int) (newpos - pos);
     }
 
-    public final byte readByte(){
+    public final byte readByte() throws IOException{
         byte[] data = new byte[1];
         read(data);
         byte result = (byte)(data[0]);
         return result;
     }
     
-    public final boolean readBoolean(){
+    public final boolean readBoolean() throws IOException{
         byte[] data = new byte[1];
         read(data);
         if (data[0] == 0 )
@@ -358,14 +384,14 @@ public class TransactionalFile implements Comparable {
         //return ((boolean)data[0]);// != 0);
     }
     
-    public final char readChar(){
+    public final char readChar() throws IOException{
         byte[] data = new byte[2];
         read(data);
         char result = (char)((data[0] << 8) | data[0]);
         return result;
     }
     
-    public final short readShort(){
+    public final short readShort() throws IOException{
         byte[] data = new byte[2];
         read(data);
         short result = (short)((data[0] << 8) | data[1]);
@@ -379,7 +405,7 @@ public class TransactionalFile implements Comparable {
         return (data[0] << 8) + (data[1] << 0);    
     }
     
-    public final String readUTF() throws UTFDataFormatException{
+    public final String readUTF() throws UTFDataFormatException, IOException{
             int utflen = -1;
             byte[] bytearr = null;
             char[] chararr = null;
@@ -461,7 +487,7 @@ public class TransactionalFile implements Comparable {
         
     }
     
-    public final float readFloat(){
+    public final float readFloat() throws IOException{
        // byte[] data = new byte[4];
        // int k = read(data);
         return Float.intBitsToFloat(readInt());
@@ -471,12 +497,12 @@ public class TransactionalFile implements Comparable {
       //  return result;
     }
     
-    public final double readDouble(){
+    public final double readDouble() throws IOException{
         return Double.longBitsToDouble(readLong());
     }
     
     
-    public final int readInt(){
+    public final int readInt() throws IOException{
         byte[] data = new byte[4];
         int k = read(data);
         
@@ -486,7 +512,7 @@ public class TransactionalFile implements Comparable {
         return result;
     }
     
-    public final long readLong(){
+    public final long readLong() throws IOException{
         //long result = ((long)(readInt()) << 32) + (readInt() & 0xFFFFFFFFL);
         byte[] data = new byte[8];
         read(data);
@@ -649,9 +675,11 @@ public class TransactionalFile implements Comparable {
                return utflen + 2;
     }
     
-    public int read(byte[] b) {
+    public int read(byte[] b) throws IOException {
 
-
+          if (!(open.get()))
+            throw new IOException();
+          
         ExtendedTransaction me = Wrapper.getTransaction();
         int size = b.length;
         int result = 0;
@@ -826,7 +854,8 @@ public class TransactionalFile implements Comparable {
     }
 
     public void write(byte[] data) throws IOException {
-
+      if (!(open.get()))
+            throw new IOException();
         if (!(writemode)) {
             throw new IOException();
 

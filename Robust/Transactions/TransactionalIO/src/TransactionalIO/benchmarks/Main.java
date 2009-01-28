@@ -9,6 +9,7 @@ import TransactionalIO.core.CustomThread;
 import TransactionalIO.core.ExtendedTransaction;
 import TransactionalIO.core.TransactionalFile;
 import java.io.File;
+import java.io.IOException;
 import java.util.Iterator;
 import java.util.TreeMap;
 import java.util.logging.Level;
@@ -137,7 +138,11 @@ public class Main {
             }*/
             int index =97;
             for (int j = 0; j < 26; j++) {
-                ((TransactionalFile)(benchmark.m.get(String.valueOf((char) (index+j))))).close();
+                try {
+                    ((TransactionalFile) (benchmark.m.get(String.valueOf((char) (index+j))))).close();
+                } catch (IOException ex) {
+                    Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
+                }
             }
       //  }
               

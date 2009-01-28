@@ -25,8 +25,10 @@ public class TransactionLocalFileAttributes {
     private boolean unknown_inital_offset_for_write = true;
     private long localoffset;
     private long localsize;
+    private boolean open;
     
     public TransactionLocalFileAttributes(long initialoffset, long initialsize){
+        open = true;
         localoffset = initialoffset;
         copylocaloffset = initialoffset;
         localsize = initialsize;
@@ -38,6 +40,10 @@ public class TransactionLocalFileAttributes {
         //localsize = initialsize;
     }
 
+    public void setOpen(boolean flag){
+        open = flag;
+    }
+    
     public long getCopylocaloffset() {
         return copylocaloffset;
     }
