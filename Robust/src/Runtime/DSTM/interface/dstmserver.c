@@ -464,8 +464,7 @@ char handleTransReq(fixed_data_t *fixed, trans_commit_data_t *transinfo, unsigne
                                &v_matchnolock, &v_matchlock, &v_nomatch, &numBytes, &control, oid, version);
     } else {  //Objs modified
       if(i == fixed->numread) {
-	oidlocked[objlocked] = -1;
-	objlocked++;
+	oidlocked[objlocked++] = -1;
       }
       int tmpsize;
       headptr = (objheader_t *) ptr;
@@ -563,8 +562,7 @@ void getCommitCountForObjMod(unsigned int *oidnotfound, unsigned int *oidlocked,
 	//printf("%s() oid = %d, type = %d\t", __func__, OID(mobj), TYPE((objheader_t *)mobj));
       }
       //Keep track of oid locked
-      oidlocked[*objlocked] = OID(((objheader_t *)mobj));
-      (*objlocked)++;
+      oidlocked[(*objlocked)++] = OID(((objheader_t *)mobj));
     } else {  //we are locked
       if (version == ((objheader_t *)mobj)->version) {     /* Check if versions match */
 	(*v_matchlock)++;
@@ -600,8 +598,7 @@ void getCommitCountForObjRead(unsigned int *oidnotfound, unsigned int *oidlocked
 	(*v_matchnolock)++;
       } else { /* If versions don't match ...HARD ABORT */
 	(*v_nomatch)++;
-	oidvernotmatch[*objvernotmatch] = oid;
-	(*objvernotmatch)++;
+	oidvernotmatch[(*objvernotmatch)++] = oid;
 	int size;
 	GETSIZE(size, mobj);
 	size += sizeof(objheader_t);
@@ -611,8 +608,7 @@ void getCommitCountForObjRead(unsigned int *oidnotfound, unsigned int *oidlocked
 	//printf("%s() oid = %d, type = %d\t", __func__, OID(mobj), TYPE((objheader_t *)mobj));
       }
       //Keep track of oid locked
-      oidlocked[*objlocked] = OID(((objheader_t *)mobj));
-      (*objlocked)++;
+      oidlocked[(*objlocked)++] = OID(((objheader_t *)mobj));
     } else { /* Some other transaction has aquired a write lock on this object */
       if (version == ((objheader_t *)mobj)->version) { /* Check if versions match */
 	(*v_matchlock)++;
@@ -689,7 +685,15 @@ int transCommitProcess(void *modptr, unsigned int *oidmod, unsigned int *oidlock
       return 1;
     }
     GETSIZE(tmpsize,header);
-    memcpy((char*)header + sizeof(objheader_t), ((char *)modptr + sizeof(objheader_t) + offset), tmpsize);
+    
+    {
+      struct ___Object___ *dst=(struct ___Object___*)((char*)header+sizeof(objheader_t));
+      struct ___Object___ *src=(struct ___Object___*)((char*)modptr+sizeof(objheader_t)+offset);
+      dst->type=src->type;
+      dst->___cachedCode___=src->___cachedCode___;
+      dst->___cachedHash___=src->___cachedHash___;
+      memcpy(&dst[1], &src[1], tmpsize-sizeof(struct ___Object___));
+    }
     header->version += 1;
     /* If threads are waiting on this object to be updated, notify them */
     if(header->notifylist != NULL) {

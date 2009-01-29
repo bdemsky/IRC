@@ -354,7 +354,7 @@ INLINE void * chashSearchI(chashtable_t *table, unsigned int key) {
 
 /* This function finds the location of the objects involved in a transaction
  * and returns the pointer to the object if found in a remote location */
-objheader_t *transRead(transrecord_t *record, unsigned int oid) {
+__attribute__((pure)) objheader_t *transRead(transrecord_t *record, unsigned int oid) {
   unsigned int machinenumber;
   objheader_t *tmp, *objheader;
   objheader_t *objcopy;
@@ -818,8 +818,7 @@ void handleLocalReq(trans_req_data_t *tdata, trans_commit_data_t *transinfo, tra
       commitCountForObjRead(getReplyCtrl, oidnotfound, oidlocked, &numoidnotfound, &numoidlocked, &v_nomatch, &v_matchlock, &v_matchnolock, oid, version);
     } else { // Objects Modified
       if(i == tdata->f.numread) {
-	oidlocked[numoidlocked] = -1;
-	numoidlocked++;
+	oidlocked[numoidlocked++] = -1;
       }
       int tmpsize;
       objheader_t *headptr;
@@ -875,6 +874,8 @@ void doLocalProcess(char finalResponse, trans_req_data_t *tdata, trans_commit_da
       fflush(stdout);
       return;
     }
+  } else {
+    printf("ERROR...No Decision\n");
   }
 
   /* Free memory */
@@ -985,16 +986,14 @@ void commitCountForObjMod(char *getReplyCtrl, unsigned int *oidnotfound, unsigne
       if (version == ((objheader_t *)mobj)->version) {      /* match versions */
 	(*v_matchnolock)++;
 	//Keep track of what is locked
-	oidlocked[*numoidlocked] = OID(((objheader_t *)mobj));
-	(*numoidlocked)++;
+	oidlocked[(*numoidlocked)++] = OID(((objheader_t *)mobj));
       } else { /* If versions don't match ...HARD ABORT */
 	(*v_nomatch)++;
 	/* Send TRANS_DISAGREE to Coordinator */
 	*getReplyCtrl = TRANS_DISAGREE;
 
 	//Keep track of what is locked
-	oidlocked[*numoidlocked] = OID(((objheader_t *)mobj));
-	(*numoidlocked)++;
+	oidlocked[(*numoidlocked)++] = OID(((objheader_t *)mobj));
 	//printf("%s() oid = %d, type = %d\t", __func__, OID(mobj), TYPE((objheader_t *)mobj));
 	return;
       }
@@ -1028,15 +1027,13 @@ void commitCountForObjRead(char *getReplyCtrl, unsigned int *oidnotfound, unsign
       if (version == ((objheader_t *)mobj)->version) {      /* If locked then match versions */
 	(*v_matchnolock)++;
 	//Keep track of what is locked
-	oidlocked[*numoidlocked] = OID(((objheader_t *)mobj));
-	(*numoidlocked)++;
+	oidlocked[(*numoidlocked)++] = OID(((objheader_t *)mobj));
       } else { /* If versions don't match ...HARD ABORT */
 	(*v_nomatch)++;
 	/* Send TRANS_DISAGREE to Coordinator */
 	*getReplyCtrl = TRANS_DISAGREE;
 	//Keep track of what is locked
-	oidlocked[*numoidlocked] = OID(((objheader_t *)mobj));
-	(*numoidlocked)++;
+	oidlocked[(*numoidlocked)++] = OID(((objheader_t *)mobj));
 	//printf("%s() oid = %d, type = %d\t", __func__, OID(mobj), TYPE((objheader_t *)mobj));
 	return;
       }
@@ -1110,7 +1107,15 @@ int transComProcess(trans_req_data_t *tdata, trans_commit_data_t *transinfo, tra
     }
     GETSIZE(tmpsize, header);
     char *tmptcptr = (char *) tcptr;
-    memcpy((char*)header+sizeof(objheader_t), (char *)tmptcptr+ sizeof(objheader_t), tmpsize);
+    {
+      struct ___Object___ *dst=(struct ___Object___*)((char*)header+sizeof(objheader_t));
+      struct ___Object___ *src=(struct ___Object___*)((char*)tmptcptr+sizeof(objheader_t));
+      dst->___cachedCode___=src->___cachedCode___;
+      dst->___cachedHash___=src->___cachedHash___;
+
+      memcpy(&dst[1], &src[1], tmpsize-sizeof(struct ___Object___));
+    }
+
     header->version += 1;
     if(header->notifylist != NULL) {
       notifyAll(&header->notifylist, OID(header), header->version);
@@ -1648,29 +1653,21 @@ int reqNotify(unsigned int *oidarry, unsigned short *versionarry, unsigned int n
     *((unsigned int *)(&msg[1])) = numoid;
     /* Send array of oids  */
     size = sizeof(unsigned int);
-    {
-      i = 0;
-      while(i < numoid) {
-	oid = oidarry[i];
-	*((unsigned int *)(&msg[1] + size)) = oid;
-	size += sizeof(unsigned int);
-	i++;
-      }
+
+    for(i = 0;i < numoid; i++) {
+      oid = oidarry[i];
+      *((unsigned int *)(&msg[1] + size)) = oid;
+      size += sizeof(unsigned int);
     }
 
     /* Send array of version  */
-    {
-      i = 0;
-      while(i < numoid) {
-	version = versionarry[i];
-	*((unsigned short *)(&msg[1] + size)) = version;
-	size += sizeof(unsigned short);
-	i++;
-      }
+    for(i = 0;i < numoid; i++) {
+      version = versionarry[i];
+      *((unsigned short *)(&msg[1] + size)) = version;
+      size += sizeof(unsigned short);
     }
 
-    *((unsigned int *)(&msg[1] + size)) = myIpAddr;
-    size += sizeof(unsigned int);
+    *((unsigned int *)(&msg[1] + size)) = myIpAddr; size += sizeof(unsigned int);
     *((unsigned int *)(&msg[1] + size)) = threadid;
     pthread_mutex_lock(&(ndata->threadnotify));
     size = 1 + numoid * (sizeof(unsigned int) + sizeof(unsigned short)) + 3 * sizeof(unsigned int);
@@ -1716,7 +1713,9 @@ void threadNotify(unsigned int oid, unsigned short version, unsigned int tid) {
 	  prehashRemove(oid);
 	}
 #endif
+	pthread_mutex_lock(&(ndata->threadnotify));
 	pthread_cond_signal(&(ndata->threadcond));
+	pthread_mutex_unlock(&(ndata->threadnotify));
       }
     }
   }

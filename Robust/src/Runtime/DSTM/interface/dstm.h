@@ -279,7 +279,7 @@ void mapObjMethod(unsigned short);
 
 void randomdelay();
 transrecord_t *transStart();
-objheader_t *transRead(transrecord_t *, unsigned int);
+__attribute__((pure)) objheader_t *transRead(transrecord_t *, unsigned int);
 objheader_t *transCreateObj(transrecord_t *, unsigned int); //returns oid header
 int transCommit(transrecord_t *record); //return 0 if successful
 void *transRequest(void *);     //the C routine that the thread will execute when TRANS_REQUEST begins
