@@ -4,10 +4,18 @@
 #define RW_LOCK_BIAS             0x01000000
 #define atomic_read(v)          ((v)->counter)
 #define RW_LOCK_UNLOCKED          { RW_LOCK_BIAS }
-#define LOCK_PREFIX ""
+//#define LOCK_PREFIX ""
+#define LOCK_PREFIX \
+                ".section .smp_locks,\"a\"\n"   \
+                "  .align 4\n"                  \
+                "  .long 661f\n" /* address */  \
+                ".previous\n"                   \
+                "661:\n\tlock; "
+
+
 
 typedef struct {
-  int counter;
+  unsigned int counter;
 } atomic_t;
 
 void initdsmlocks(volatile unsigned int *addr);
