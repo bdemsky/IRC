@@ -29,11 +29,13 @@ public class Convolution {
       double tout[] = tempout[i];
       tinput0 = tinput1; tinput1=tinput2; tinput2=tinput3; tinput3=tinput4; tinput4=tempinput[l];
       for(int j=y0;j<y1;++j){
-        tout[j] = 0;
+	  double s=0;
         for(int b=0;b<kernelHeight;++b){
-          tout[j] = tout[j] + (tinput0[j+b] * kernel[0][b] + tinput1[j+b] * kernel[1][b] + tinput2[j+b]*kernel[2][b] +
-              tinput3[j+b]*kernel[3][b] + tinput4[j+b]*kernel[4][b]);
+          s += tinput0[j+b] * kernel[0][b] + tinput1[j+b] * kernel[1][b] + tinput2[j+b]*kernel[2][b] +
+              tinput3[j+b]*kernel[3][b] + tinput4[j+b]*kernel[4][b];
         }
+        tout[j] = s;
+
       }
     }
   }
@@ -79,7 +81,7 @@ public class Convolution {
   }
 
   //define 5X5 Gaussian kernel
-  public void initKernel(double[][] kernel) {
+  public static void initKernel(double[][] kernel) {
     kernel[0][0] = 1/256.0;
     kernel[0][1] = 4/256.0;
     kernel[0][2] = 6/256.0;

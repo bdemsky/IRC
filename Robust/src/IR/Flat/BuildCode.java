@@ -1310,9 +1310,9 @@ public class BuildCode {
 
     if ((state.THREAD||state.DSM)&&GENERATEPRECISEGC) {
       if (state.DSM&&lb.isAtomic())
-	output.println("checkcollect2(&"+localsprefix+",trans);");
+	output.println("if (needtocollect) checkcollect2(&"+localsprefix+",trans);");
       else
-	output.println("checkcollect(&"+localsprefix+");");
+	output.println("if (needtocollect) checkcollect(&"+localsprefix+");");
     }
 
     /* Do the actual code generation */

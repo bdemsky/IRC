@@ -23,7 +23,7 @@ typedef struct chashtable {
 
 /* Prototypes for hash*/
 chashtable_t *chashCreate(unsigned int size, float loadfactor);
-static unsigned int chashFunction(chashtable_t *table, unsigned int key);
+static unsigned int chashFunction(chashtable_t *table, unsigned int key, unsigned int i);
 void chashInsert(chashtable_t *table, unsigned int key, void *val);
 void *chashSearch(chashtable_t *table, unsigned int key); //returns val, NULL if not found
 void chashResize(chashtable_t *table, unsigned int newsize);

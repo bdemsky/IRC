@@ -50,7 +50,8 @@ public class Node {
      * @param nodeTable the list of nodes to choose from.
      **/
     public void makeUniqueNeighbors(EVector[] reversetable,Node[] nodeTable, Random rand, int begin, int end) {
-	int len=toNodes.length;
+	Node [] toN=toNodes;
+	int len=toN.length;
 	for (int filled = 0; filled < len; filled++) {
 	    int k;
 	    Node otherNode;
@@ -70,13 +71,13 @@ public class Node {
 		otherNode = nodeTable[index];
 		
 		for (k = 0; (k < filled) && (isBreak==false); k++) {
-		    if (otherNode == toNodes[k]) 
+		    if (otherNode == toN[k]) 
 			isBreak = true;
 		}
 	    } while (k < filled);
 	    
 	    // other node is definitely unique among "filled" toNodes
-	    toNodes[filled] = otherNode;
+	    toN[filled] = otherNode;
 	    
 	    // update fromCount for the other node
 	    if (reversetable[index]==null)

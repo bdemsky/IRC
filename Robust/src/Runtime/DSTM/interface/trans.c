@@ -334,6 +334,24 @@ transrecord_t *transStart() {
   return tmp;
 }
 
+// Search for an address for a given oid                                                                               
+/*#define INLINE    inline __attribute__((always_inline))
+
+INLINE void * chashSearchI(chashtable_t *table, unsigned int key) {
+  //REMOVE HASH FUNCTION CALL TO MAKE SURE IT IS INLINED HERE                                                          
+  chashlistnode_t *node = &table->table[(key & table->mask)>>1];
+
+  do {
+    if(node->key == key) {
+      return node->val;
+    }
+    node = node->next;
+  } while(node != NULL);
+
+  return NULL;
+  }*/
+
+
 /* This function finds the location of the objects involved in a transaction
  * and returns the pointer to the object if found in a remote location */
 objheader_t *transRead(transrecord_t *record, unsigned int oid) {
@@ -342,22 +360,42 @@ objheader_t *transRead(transrecord_t *record, unsigned int oid) {
   objheader_t *objcopy;
   int size;
   void *buf;
+  chashlistnode_t *node;
+  chashtable_t *table=record->lookupTable;
 
   if(oid == 0) {
     return NULL;
   }
-
-  if((objheader = chashSearch(record->lookupTable, oid)) != NULL) {
+  
+  node= &table->table[(oid & table->mask)>>1];
+  do {
+    if(node->key == oid) {
 #ifdef TRANSSTATS
     nchashSearch++;
 #endif
-    /* Search local transaction cache */
+#ifdef COMPILER
+    return &((objheader_t*)node->val)[1];
+#else
+    return node->val;
+#endif
+    }
+    node = node->next;
+  } while(node != NULL);
+  
+
+  /*  
+  if((objheader = chashSearchI(record->lookupTable, oid)) != NULL) {
+#ifdef TRANSSTATS
+    nchashSearch++;
+#endif
 #ifdef COMPILER
     return &objheader[1];
 #else
     return objheader;
 #endif
-  } else if ((objheader = (objheader_t *) mhashSearch(oid)) != NULL) {
+  } else 
+  */
+  if ((objheader = (objheader_t *) mhashSearch(oid)) != NULL) {
 #ifdef TRANSSTATS
     nmhashSearch++;
 #endif
@@ -434,6 +472,7 @@ objheader_t *transCreateObj(transrecord_t *record, unsigned int size) {
 #endif
 }
 
+#if 1
 /* This function creates machine piles based on all machines involved in a
  * transaction commit request */
 plistnode_t *createPiles(transrecord_t *record) {
@@ -452,11 +491,7 @@ plistnode_t *createPiles(transrecord_t *record) {
       //if the first bin in hash table is empty
       if(curr->key == 0)
 	break;
-
-      if ((headeraddr = (objheader_t *) chashSearch(record->lookupTable, curr->key)) == NULL) {
-	printf("Error: No such oid %s, %d\n", __FILE__, __LINE__);
-	return NULL;
-      }
+      headeraddr=(objheader_t *) curr->val;
 
       //Get machine location for object id (and whether local or not)
       if (STATUS(headeraddr) & NEW || (mhashSearch(curr->key) != NULL)) {
@@ -473,6 +508,40 @@ plistnode_t *createPiles(transrecord_t *record) {
   }
   return pile;
 }
+#else
+/* This function creates machine piles based on all machines involved in a
+ * transaction commit request */
+plistnode_t *createPiles(transrecord_t *record) {
+  int i;
+  plistnode_t *pile = NULL;
+  unsigned int machinenum;
+  objheader_t *headeraddr;
+  struct chashentry * ptr = record->lookupTable->table;
+  /* Represents number of bins in the chash table */
+  unsigned int size = record->lookupTable->size;
+
+  for(i = 0; i < size ; i++) {
+    struct chashentry * curr = & ptr[i];
+    /* Inner loop to traverse the linked list of the cache lookupTable */
+    //if the first bin in hash table is empty
+    if(curr->key == 0)
+      continue;
+    headeraddr=(objheader_t *) curr->ptr;
+
+    //Get machine location for object id (and whether local or not)
+    if (STATUS(headeraddr) & NEW || (mhashSearch(curr->key) != NULL)) {
+      machinenum = myIpAddr;
+    } else if ((machinenum = lhashSearch(curr->key)) == 0) {
+      printf("Error: No such machine %s, %d\n", __FILE__, __LINE__);
+      return NULL;
+    }
+
+    //Make machine groups
+    pile = pInsert(pile, headeraddr, machinenum, record->lookupTable->numelements);
+  }
+  return pile;
+}
+#endif
 
 /* This function initiates the transaction commit process
  * Spawns threads for each of the new connections with Participants

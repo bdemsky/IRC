@@ -1,4 +1,4 @@
-#include "clookup2.h"
+#include "clookup.h"
 #define INLINE    inline __attribute__((always_inline))
 
 chashtable_t *chashCreate(unsigned int size, float loadfactor) {
@@ -28,51 +28,63 @@ chashtable_t *chashCreate(unsigned int size, float loadfactor) {
 }
 
 //Finds the right bin in the hash table
-static INLINE unsigned int chashFunction(chashtable_t *table, unsigned int key) {
-  return ( key & (table->mask))>>1; //throw away low order bit
+static INLINE unsigned int chashFunction(chashtable_t *table, unsigned int key, unsigned int i) {
+  return ((key+i*331) & table->mask)>>1; //throw away low order bit
 }
 
 //Store objects and their pointers into hash
 void chashInsert(chashtable_t *table, unsigned int key, void *val) {
-  unsigned int newsize;
-  unsigned int index;
-  struct chashentry *node;
+  struct chashentry *node = &table->table[(key & table->mask)>>1];
+  unsigned int ne=table->numelements++;
+  unsigned int i;
 
-  if(table->numelements > table->capacity) {
-    //Resize
-    newsize = table->size << 1;
-    chashResize(table,newsize);
+  if (node->key==0) {
+    node->ptr=val;
+    node->key=key;
+    return;
   }
-  index=(key &table->mask)>>1;
-  while(1) {
-    node = &table->table[index];
-    if (node->ptr==NULL) {
+
+  if(ne > table->capacity) {
+    //Resize
+    unsigned int newsize = table->size << 1;
+    chashResize(table,newsize);
+    node = &table->table[(key & table->mask)>>1];
+    if (node->key==0) {
       node->ptr=val;
       node->key=key;
       return;
     }
-    index++;
-    if (index==table->size)
-      index=0;
+  }
+
+
+  for(i=1;1;i++) {
+    node = &table->table[((key+i*331) & table->mask)>>1];
+    if (node->key==0) {
+      node->ptr=val;
+      node->key=key;
+      return;
+    }
   }
 }
 
 // Search for an address for a given oid
 INLINE void * chashSearch(chashtable_t *table, unsigned int key) {
   //REMOVE HASH FUNCTION CALL TO MAKE SURE IT IS INLINED HERE
-  unsigned int tmp=(key &table->mask)>>1;
-  struct chashentry *node;
-  unsigned int ckey;
-  while(1) {
-    node = &table->table[tmp];
+  struct chashentry *node=&table->table[(key & table->mask)>>1];
+  unsigned int i,ckey;
+
+  if (node->key==key)
+    return node->ptr;
+  if (node->key==0)
+    return NULL;
+
+  for(i=1;1;i++) {
+    node = &table->table[((key+i*331) & table->mask)>>1];
     ckey=node->key;
     if (ckey==key)
       return node->ptr;
     if (ckey==0)
       return NULL;
-    tmp++;
-    if (tmp==table->size)
-      tmp=0;
   }
 }
 
@@ -91,29 +103,30 @@ void chashResize(chashtable_t *table, unsigned int newsize) {
     printf("Calloc error %s %d\n", __FILE__, __LINE__);
     return;
   }
-
   table->table = node;          //Update the global hashtable upon resize()
   table->size = newsize;
-  mask=table->mask = (newsize << 1)-1;
-  table->numelements = 0;
+  table->capacity=table->loadfactor*table->size;
+  mask=(table->mask = (newsize << 1)-1);
 
   for(i = 0; i < oldsize; i++) {                        //Outer loop for each bin in hash table
     curr=&ptr[i];
     key=curr->key;
     if (key != 0) {
-      bin=(key&mask)>>1;
-      while(1) {
-	newnode= &table->table[bin];
+      newnode= &table->table[(key&mask)>>1];
+      if (newnode->key==0) {
+	newnode->key=key;
+	newnode->ptr=curr->ptr;
+	continue;
+      }
+
+      for(bin=1;1;bin++) {
+	newnode = &table->table[((key+bin*331) & mask)>>1];
 	if (newnode->key==0) {
 	  newnode->key=key;
 	  newnode->ptr=curr->ptr;
 	  break;
 	}
-	bin++;
-	if (bin==newsize)
-	  bin=0;
       }
-
     }
   }
   free(ptr);            //Free the memory of the old hash table

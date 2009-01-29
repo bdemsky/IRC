@@ -57,6 +57,7 @@ void handleDynPrefetching(int numLocal, int ntuples, int siteid) {
   }
 }
 
+#if 1
 /* This function clears from prefetch cache those
  * entries that caused a transaction abort */
 void cleanPCache(transrecord_t *record) {
@@ -79,6 +80,27 @@ void cleanPCache(transrecord_t *record) {
     }
   }
 }
+#else
+/* This function clears from prefetch cache those
+ * entries that caused a transaction abort */
+void cleanPCache(transrecord_t *record) {
+  transrecord_t *rec = record;
+  unsigned int size = rec->lookupTable->size;
+  struct chashentry *ptr = rec->lookupTable->table;
+  int i;
+  for(i = 0; i < size; i++) {
+    struct chashentry *curr = &ptr[i]; //for each entry in the cache lookupTable
+    if(curr->key == 0)
+      continue;
+    objheader_t *header1, *header2;
+    /* Not found in local machine's object store and found in prefetch cache */
+    if((header1 = mhashSearch(curr->key)) == NULL && ((header2 = prehashSearch(curr->key)) != NULL)) {
+      /* Remove from prefetch cache */
+      prehashRemove(curr->key);
+    }
+  }
+}
+#endif
 
 /* This function updates the prefetch cache with
  * entries from the transaction cache when a

@@ -71,12 +71,13 @@ INLINE void * chashSearch(chashtable_t *table, unsigned int key) {
   //REMOVE HASH FUNCTION CALL TO MAKE SURE IT IS INLINED HERE
   chashlistnode_t *node = &table->table[(key & table->mask)>>1];
 
-  while(node != NULL) {
+  do {
     if(node->key == key) {
       return node->val;
     }
     node = node->next;
-  }
+  } while(node != NULL);
+
   return NULL;
 }
 
