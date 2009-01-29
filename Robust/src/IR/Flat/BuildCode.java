@@ -1431,6 +1431,14 @@ public class BuildCode {
       generateFlatAtomicExitNode(fm, lb, (FlatAtomicExitNode) fn, output);
       return;
 
+    case FKind.FlatSESEEnterNode:
+      generateFlatSESEEnterNode(fm, lb, (FlatSESEEnterNode) fn, output);
+      return;
+
+    case FKind.FlatSESEExitNode:
+      generateFlatSESEExitNode(fm, lb, (FlatSESEExitNode) fn, output);
+      return;
+
     case FKind.FlatGlobalConvNode:
       generateFlatGlobalConvNode(fm, lb, (FlatGlobalConvNode) fn, output);
       return;
@@ -1759,6 +1767,14 @@ public class BuildCode {
     output.println(revertptr+"=tmpptr;");
     output.println("}");
     output.println("}");
+  }
+
+  public void generateFlatSESEEnterNode(FlatMethod fm,  LocalityBinding lb, FlatSESEEnterNode faen, PrintWriter output) {
+    
+  }
+
+  public void generateFlatSESEExitNode(FlatMethod fm,  LocalityBinding lb, FlatSESEExitNode faen, PrintWriter output) {
+    
   }
 
   private void generateFlatCheckNode(FlatMethod fm,  LocalityBinding lb, FlatCheckNode fcn, PrintWriter output) {

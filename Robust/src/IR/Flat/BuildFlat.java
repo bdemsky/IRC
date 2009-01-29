@@ -1009,6 +1009,20 @@ public class BuildFlat {
     return new NodePair(faen, faexn);
   }
 
+  private NodePair flattenSESENode(SESENode sn) {
+    if( sn.isStart() ) {
+      FlatSESEEnterNode fsen=new FlatSESEEnterNode(sn);
+      sn.setFlatEnter(fsen);
+      return new NodePair(fsen, fsen);
+    }
+
+    FlatSESEExitNode fsexn=new FlatSESEExitNode(sn);
+    sn.setFlatExit(fsexn);
+    fsexn.setFlatEnter( sn.getStart().getFlatEnter() );
+    sn.getStart().getFlatEnter().setFlatExit( fsexn );
+    return new NodePair(fsexn, fsexn);
+  }
+
   private NodePair flattenBlockStatementNode(BlockStatementNode bsn) {
     switch(bsn.kind()) {
     case Kind.BlockExpressionNode:
@@ -1038,6 +1052,8 @@ public class BuildFlat {
     case Kind.AtomicNode:
       return flattenAtomicNode((AtomicNode)bsn);
 
+    case Kind.SESENode:
+      return flattenSESENode((SESENode)bsn);
     }
     throw new Error();
   }

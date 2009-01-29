@@ -260,6 +260,10 @@ terminal GETOFFSET;
 non terminal ParseNode atomic_statement;
 non terminal ParseNode getoffset_expression;
 
+//coarse-grain parallelization
+terminal SESE;
+non terminal ParseNode sese_statement;
+
 
 start with goal;
 
@@ -1153,6 +1157,7 @@ statement_without_trailing_substatement ::=
 	|	return_statement:st {: RESULT=st; :}
 	|	task_exitstatement:st {: RESULT=st; :}
 	|	atomic_statement:st {: RESULT=st; :}
+	|	sese_statement:st {: RESULT=st; :}
 //	|	synchronized_statement
 //	|	throw_statement
 //	|	try_statement
@@ -1333,6 +1338,19 @@ return_statement ::=
 atomic_statement ::=
 		ATOMIC block:blk {: 
 	RESULT=(new ParseNode("atomic")).addChild(blk).getRoot();
+	:}
+	;
+sese_statement ::=
+
+//	       SESE variable_declarator_id:id LBRACE statement:st RBRACE {: 
+
+	       SESE block:blk {: 
+	       ParseNode pn = new ParseNode("sese");
+
+//	       pn.addChild("identifier").addChild(id);
+
+	       pn.addChild("body").addChild(blk);
+	       RESULT=pn;
 	:}
 	;
 //try_statement ::=

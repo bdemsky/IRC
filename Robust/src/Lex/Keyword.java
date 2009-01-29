@@ -54,7 +54,7 @@ class Keyword extends Token {
     key_table.put("private", new Integer(Sym.PRIVATE));
     key_table.put("protected", new Integer(Sym.PROTECTED));
     key_table.put("public", new Integer(Sym.PUBLIC));
-    key_table.put("return", new Integer(Sym.RETURN));
+    key_table.put("return", new Integer(Sym.RETURN));    
     key_table.put("short", new Integer(Sym.SHORT));
     key_table.put("static", new Integer(Sym.STATIC));
     key_table.put("strictfp", new Integer(Sym.STRICTFP));
@@ -81,5 +81,7 @@ class Keyword extends Token {
     key_table.put("global", new Integer(Sym.GLOBAL));
     //Keywords for hacking prefetch calls in java
     key_table.put("getoffset", new Integer(Sym.GETOFFSET));
+    //Keywords for coarse-grain parallelization
+    key_table.put("sese", new Integer(Sym.SESE));
   }
 }

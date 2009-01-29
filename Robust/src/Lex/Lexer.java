@@ -262,7 +262,7 @@ public class Lexer {
     "implements", "import", "instanceof", "int", "interface", "isavailable",
     "long",
     "native", "new", "optional", "package", "private", "protected", "public",
-    "return", "short", "static", "strictfp", "super", "switch", "synchronized",
+    "return", "sese", "short", "static", "strictfp", "super", "switch", "synchronized",
     "tag", "task", "taskexit", //keywords for failure aware computation
     "this", "throw", "throws", "transient", "try", "void",
     "volatile", "while"

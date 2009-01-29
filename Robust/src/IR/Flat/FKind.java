@@ -23,4 +23,6 @@ public class FKind {
   public static final int FlatGlobalConvNode=20;
   public static final int FlatPrefetchNode=21;
   public static final int FlatOffsetNode=22;
+  public static final int FlatSESEEnterNode=23;
+  public static final int FlatSESEExitNode=24;
 }

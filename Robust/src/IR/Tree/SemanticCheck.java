@@ -266,7 +266,12 @@ public class SemanticCheck {
     case Kind.AtomicNode:
       checkAtomicNode(md, nametable, (AtomicNode)bsn);
       return;
-    }
+  
+    case Kind.SESENode:
+      // do nothing, no semantic check for SESEs
+      return;
+    }  
+
     throw new Error();
   }
 

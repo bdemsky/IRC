@@ -599,6 +599,15 @@ public class BuildIR {
     return bn;
   }
 
+  public Vector parseSESEBlock(Vector parentbs, ParseNode pn) {
+    ParseNodeVector pnv=pn.getChildren();
+    Vector bv=new Vector();
+    for(int i=0; i<pnv.size(); i++) {
+      bv.addAll(parseBlockStatement(pnv.elementAt(i)));
+    }
+    return bv;
+  }
+
   public Vector parseBlockStatement(ParseNode pn) {
     Vector blockstatements=new Vector();
     if (isNode(pn,"tag_declaration")) {
@@ -685,6 +694,14 @@ public class BuildIR {
       ExpressionNode condition=parseExpression(pn.getChild("condition").getFirstChild());
       BlockNode body=parseSingleBlock(pn.getChild("statement").getFirstChild());
       blockstatements.add(new LoopNode(condition,body,LoopNode.DOWHILELOOP));
+    } else if (isNode(pn,"sese")) {
+      SESENode start=new SESENode();
+      SESENode end  =new SESENode();
+      start.setEnd( end   );
+      end.setStart( start );
+      blockstatements.add(start);
+      blockstatements.addAll(parseSESEBlock(blockstatements,pn.getChild("body").getFirstChild()));
+      blockstatements.add(end);
     } else {
       System.out.println("---------------");
       System.out.println(pn.PPrint(3,true));
