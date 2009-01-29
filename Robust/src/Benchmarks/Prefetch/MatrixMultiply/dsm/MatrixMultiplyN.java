@@ -7,16 +7,46 @@ public class MatrixMultiply extends Thread{
 	this.y0 = y0;
 	this.x1 = x1;
 	this.y1 = y1;
+    //System.printString("x0 = " +x0+" x1= "+x1+" y0= "+y0+" y1= "+y1+"\n");
     }
     
     public void run() {
 	atomic {
+        // Prefetch mmul.a[][] matrix
+        Object o = mmul;
+        short[] offsets = new short[4];
+        offsets[0] = getoffset{MMul, a};
+        offsets[1] = (short) 0;
+        offsets[2] = (short) x0;
+        //offsets[3] = (short) (x1 - x0);
+        offsets[3] = (short) 10;
+        System.rangePrefetch(o, offsets);
+
+        // Prefetch mmul.btranspose[][] matrix
+        Object o1 = mmul;
+        short[] offsets1 = new short[4];
+        offsets1[0] = getoffset{MMul, btranspose};
+        offsets1[1] = (short) 0;
+        offsets1[2] = (short) x0;
+       // offsets1[3] = (short) (x1 - x0);
+        offsets1[3] = (short) 10;
+        System.rangePrefetch(o1, offsets1);
+
+        // Prefetch mmul.c[][] matrix
+        Object o2 = mmul;
+        short[] offsets2 = new short[4];
+        offsets2[0] = getoffset{MMul, c};
+        offsets2[1] = (short) 0;
+        offsets2[2] = (short) x0;
+        //offsets2[3] = (short) (x1 - x0);
+        offsets2[3] = (short) 10;
+        System.rangePrefetch(o2, offsets2);
+
 	    double la[][]=mmul.a;
 	    double lc[][]=mmul.c;
 	    double lb[][]=mmul.btranspose;
 	    int M=mmul.M;
-	    
-	    //Use btranspose for cache performance
+        //Use btranspose for cache performance
 	    for(int i = x0; i< x1; i++){
 		double a[]=la[i];
 		double c[]=lc[i];
@@ -42,14 +72,14 @@ public class MatrixMultiply extends Thread{
 	}
 	
 	int[] mid = new int[8];
-	mid[0] = (128<<24)|(195<<16)|(136<<8)|162; //dw-10
-	mid[1] = (128<<24)|(195<<16)|(136<<8)|163; //dw-11
-	mid[2] = (128<<24)|(195<<16)|(136<<8)|164; //dw-12
-	mid[3] = (128<<24)|(195<<16)|(136<<8)|165; //dw-13
-	mid[4] = (128<<24)|(195<<16)|(136<<8)|166; //dw-14
-	mid[5] = (128<<24)|(195<<16)|(136<<8)|167; //dw-15
-	mid[6] = (128<<24)|(195<<16)|(136<<8)|168; //dw-16
-	mid[7] = (128<<24)|(195<<16)|(136<<8)|169; //dw-17
+	mid[0] = (128<<24)|(195<<16)|(136<<8)|162; //dc-1.calit2
+	mid[1] = (128<<24)|(195<<16)|(136<<8)|163; //dc-2.calit2
+	mid[2] = (128<<24)|(195<<16)|(136<<8)|164; //dc-3.calit2
+	mid[3] = (128<<24)|(195<<16)|(136<<8)|165; //dc-4.calit2
+	mid[4] = (128<<24)|(195<<16)|(136<<8)|166; //dc-5.calit2
+	mid[5] = (128<<24)|(195<<16)|(136<<8)|167; //dc-6.calit2
+	mid[6] = (128<<24)|(195<<16)|(136<<8)|168; //dc-7.calit2
+	mid[7] = (128<<24)|(195<<16)|(136<<8)|169; //dc-8.calit2
  
 	int p, q, r;
 	MatrixMultiply[] mm;
