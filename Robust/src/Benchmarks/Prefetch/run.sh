@@ -129,9 +129,9 @@ function callrun {
 for count in 2 4 6 8
 do
 echo "------- Running $count threads $BMDIR non-prefetch + non-cache on $count machines -----"
-#run 1 $count $NONPREFETCH_NONCACHE
+run 1 $count $NONPREFETCH_NONCACHE
 echo "------- Running $count threads $BMDIR prefetch on $count machines -----"
-#run 1 $count $PREFETCH
+run 1 $count $PREFETCH
 done
 
 cd $TOPDIR
