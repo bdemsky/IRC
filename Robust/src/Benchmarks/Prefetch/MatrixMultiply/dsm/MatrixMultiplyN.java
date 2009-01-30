@@ -12,36 +12,6 @@ public class MatrixMultiply extends Thread{
     
     public void run() {
 	atomic {
-        // Prefetch mmul.a[][] matrix
-        Object o = mmul;
-        short[] offsets = new short[4];
-        offsets[0] = getoffset{MMul, a};
-        offsets[1] = (short) 0;
-        offsets[2] = (short) x0;
-        //offsets[3] = (short) (x1 - x0);
-        offsets[3] = (short) 10;
-        System.rangePrefetch(o, offsets);
-
-        // Prefetch mmul.btranspose[][] matrix
-        Object o1 = mmul;
-        short[] offsets1 = new short[4];
-        offsets1[0] = getoffset{MMul, btranspose};
-        offsets1[1] = (short) 0;
-        offsets1[2] = (short) x0;
-       // offsets1[3] = (short) (x1 - x0);
-        offsets1[3] = (short) 10;
-        System.rangePrefetch(o1, offsets1);
-
-        // Prefetch mmul.c[][] matrix
-        Object o2 = mmul;
-        short[] offsets2 = new short[4];
-        offsets2[0] = getoffset{MMul, c};
-        offsets2[1] = (short) 0;
-        offsets2[2] = (short) x0;
-        //offsets2[3] = (short) (x1 - x0);
-        offsets2[3] = (short) 10;
-        System.rangePrefetch(o2, offsets2);
-
 	    double la[][]=mmul.a;
 	    double lc[][]=mmul.c;
 	    double lb[][]=mmul.btranspose;
