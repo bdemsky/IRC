@@ -2197,7 +2197,10 @@ public class BuildCode {
     }
     if (state.DSM && locality.getAtomic(lb).get(fn).intValue()>0&&!fn.isGlobal()) {
       String revertptr=generateTemp(fm, reverttable.get(lb),lb);
-      output.println("trans->revertlist="+revertptr+";");
+      String dst=generateTemp(fm,fn.getDst(),lb);
+      output.println(dst+"->___localcopy___=1;");
+      output.println(dst+"->"+nextobjstr+"="+revertptr+";");
+      output.println("trans->revertlist=(struct ___Object___ *)"+dst+";");
     }
   }
 
