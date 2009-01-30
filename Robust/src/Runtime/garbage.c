@@ -43,6 +43,7 @@ int listcount=0;
 #endif
 
 //Need to check if pointers are transaction pointers
+//this also catches the special flag value of 1 for local copies
 #ifdef DSTM
 #define ENQUEUE(orig, dst) \
   if ((!(((unsigned int)orig)&0x1))) { \
