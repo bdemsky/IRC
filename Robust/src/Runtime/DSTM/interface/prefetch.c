@@ -18,6 +18,7 @@ void rangePrefetch(unsigned int oid, short numoffset, short *offsets) {
   /* Allocate memory in prefetch queue and push the block there */
   int qnodesize = sizeof(unsigned int) + sizeof(unsigned short) + numoffset * sizeof(short);
   char *node = (char *) getmemory(qnodesize);
+  //printf("DEBUG-> %s() oid = %d, numoffset = %d\n", __func__, oid, numoffset);
 
   if(node == NULL)
     return;
@@ -39,6 +40,7 @@ void *transPrefetchNew() {
 
     /* Check tuples if they are found locally */
     perMcPrefetchList_t* pilehead = checkIfLocal(node);
+   //printf("DEBUG-> %s() pilehead = %x\n", __func__, pilehead);
 
     if (pilehead!=NULL) {
       // Get sock from shared pool
@@ -47,8 +49,8 @@ void *transPrefetchNew() {
       /* Send  Prefetch Request */
       perMcPrefetchList_t *ptr = pilehead;
       while(ptr != NULL) {
-	sendRangePrefetchReq(ptr, sd);
-	ptr = ptr->next;
+        sendRangePrefetchReq(ptr, sd);
+        ptr = ptr->next;
       }
 
       /* Deallocated pilehead */
@@ -68,178 +70,144 @@ int getsize(short *ptr, int n) {
   return sum;
 }
 
-perMcPrefetchList_t*  checkIfLocal(char *ptr) {
+perMcPrefetchList_t *checkIfLocal(char *ptr) {
   unsigned int oid = *(GET_OID(ptr));
   short numoffsets = *(GET_NUM_OFFSETS(ptr));
   short *offsets = GET_OFFSETS(ptr);
-  int i, j, k;
-  int numLocal = 0;
+  unsigned int dfsList[1000];
+  int top = -1;
+  unsigned int index = 0;
 
-  perMcPrefetchList_t * head=NULL;
+  perMcPrefetchList_t *head = NULL;
+  // Insert the oid in DFS L
+  dfsList[0] = oid;
+  ++top;
 
-  // Iterate for the object
-  int noffset = (int) numoffsets;
-  int sizetmpObjSet = noffset >> 1;
-  unsigned short tmpobjset[sizetmpObjSet];
-  int l;
-  for (l = 0; l < sizetmpObjSet; l++) {
-    tmpobjset[l] = GET_RANGE(offsets[2*l+1]);
-  }
-  int maxChldOids = getsize(tmpobjset, sizetmpObjSet)+1;
-  unsigned int chldOffstFrmBase[maxChldOids];
-  chldOffstFrmBase[0] = oid;
-  int tovisit = 0, visited = -1;
-  // Iterate for each element of offsets
-  for (j = 0; j < noffset; j++) {
-    // Iterate over each element to be visited
-    while (visited != tovisit) {
-      if(chldOffstFrmBase[visited+1] == 0) {
-	visited++;
-	continue;
-      }
-      if (!checkoid(chldOffstFrmBase[visited+1])) {
-	// Add to remote requests
-	unsigned int oid = chldOffstFrmBase[visited+1];
-	int machinenum = lhashSearch(oid);
-	//TODO Group a bunch of oids to send in one prefetch request
-	insertPrefetch(machinenum, oid, noffset-j, &offsets[j], &head);
-	goto tuple;
-      } else {
-	// iterate over each offset
-	int retval;
-	retval = lookForObjs(chldOffstFrmBase, offsets, &j,&visited, &tovisit, &noffset);
-	if(retval == -1) {
-	  printf("%s() Error: Object not found %s at line %d\n",
-	         __func__, __FILE__, __LINE__);
-	  return NULL;
-	}
-      }
-      visited++;
+  unsigned int node_oid;
+  // While DFS L is not empty
+  while (top != -1) {
+    if(top >= 1000) {
+      printf("Error: dfsList size is inadequate %s, %d\n", __func__, __LINE__);
+      exit(-1);
     }
-  } // end iterate for each element of offsets
-
-  //Entire prefetch found locally
-  if(j == noffset) {
-    numLocal++;
-    goto tuple;
-  }
-tuple:
-  ;
+    node_oid = dfsList[top];
+    --top;
+    //printf("%s() DEBUG -> DFS traversal: oid = %d\n", __func__, node_oid);
+    // Check if this oid is not local
+    if (!checkoid(node_oid)) {
+      // Not found 
+      int machinenum = lhashSearch(node_oid);
+      insertPrefetch(machinenum, node_oid, numoffsets-index, &offsets[index], &head);
+    } else { //object is local
+      objheader_t *header = searchObj(node_oid);
+      if (header == NULL) {
+        return NULL;
+      }
+      // Check if the object is array type 
+      if (TYPE(header) > NUMCLASSES) {
+        int elementsize = classsize[TYPE(header)];
+        struct ArrayObject *ao = (struct ArrayObject *) (((char *)header) + sizeof(objheader_t));
+        int length = ao->___length___;
+        int startelement, range;
+        if(index < numoffsets) {
+          startelement = offsets[index];
+          range = GET_RANGE(offsets[index+1]);
+        } else {
+          goto check;
+        }
+        if (range > length) {
+          printf("Error: Illegal range= %d when length = %d at %s %d\n", range, length, __func__, __LINE__);
+          return NULL;
+        }
+        if (range > 0) {
+          short stride = GET_STRIDE(offsets[index+1]);
+          stride++; // Note bit pattern 000 => stride = 1 etc...
+          // Check if stride is +ve or -ve
+          int sign;
+          if (GET_STRIDEINC(offsets[index+1])) { // -ve stride
+            sign = -1;
+          } else {
+            sign = 1;
+          }
+          int i;
+          //printf("DEBUG-> %s() stride = %d, sign = %d\n", __func__, stride, sign);
+          for (i = 0; i <= range; i++) {
+            oid = *((unsigned int *)(((char *)ao) + sizeof(struct ArrayObject) + \
+                  (elementsize * (startelement + (sign*stride*i)))));
+            //printf("DEBUG-> %s() Array oid = %d, range = %d\n", __func__, oid, range);
+            ++top;
+            dfsList[top] = oid;
+          }
+        } else if (range == 0) { // for range == 0
+          oid = *((unsigned int *)(((char *)ao) + sizeof(struct ArrayObject) \
+                + (elementsize*startelement)));
+          //printf("DEBUG-> %s() Array oid = %d, range = %d\n", __func__, oid, range);
+          ++top;
+          dfsList[top] = oid;
+        } else {
+          printf("Error: Illegal range -ve %s %d\n", __func__, __LINE__);
+          return NULL;
+        }
+        if(index < numoffsets)
+          index += 2; // Point to the next offset
+      } else { // The object is linked list
+        int startelement, range;
+        if(index < numoffsets) {
+          startelement = offsets[index];
+          range = GET_RANGE(offsets[index+1]);
+        } else {
+          goto check;
+        }
+        oid = *((unsigned int *)(((char *)header) + sizeof(objheader_t) + startelement));
+        //printf("DEBUG-> %s() First element of linked list oid = %d, range = %d, index = %d\n", __func__, oid, range, index);
+        ++top;
+        dfsList[top] = oid;
+        int i;
+        if (range > 0) {
+          for (i = 0; i < range; i++) {
+            if (checkoid(oid)) {
+              header = searchObj(oid);
+              if (header == NULL) {
+                return NULL;
+              }
+              oid = *((unsigned int *)(((char *)header) + sizeof(objheader_t) + startelement));
+              //printf("DEBUG-> %s()linked list oid = %d, range = %d\n", __func__, oid, range);
+              ++top;
+              dfsList[top] = oid;
+            } else { //Send Object not found
+              //Update range
+              offsets[index+1] = (offsets[index+1] & 0x0fff) -1;
+              break;
+            } 
+          }
+        } else if(range == 0) {
+          ;
+        } else {
+          printf("Error: Illegal range -ve %s %d\n", __func__, __LINE__);
+          return NULL;
+        }
+        if(i == range && index < numoffsets)
+          index += 2; // Point to the next offset
+      } // end if check object type
+    }
+check: 
+    //Oid found locally
+    ;
+  }//end of while
   return head;
 }
 
-int lookForObjs(int *chldOffstFrmBase, short *offsets,
-                int *index, int *visited, int *tovisit, int *noffset) {
-  objheader_t *header;
-  unsigned int oid = chldOffstFrmBase[*visited+1];
-  if((header = (objheader_t *)mhashSearch(oid))!= NULL) {
-    //Found on machine
-    ;
-  } else if((header = (objheader_t *)prehashSearch(oid))!=NULL) {
-    //Found in prefetch cache
-    ;
-  } else {
-    printf("%s() Error: THIS SHOULD NOT HAPPEN\n", __func__);
-    return -1;
-  }
+objheader_t *searchObj(unsigned int oid) {
+  objheader_t *header = NULL;
 
-  if(TYPE(header) > NUMCLASSES) {
-    int elementsize = classsize[TYPE(header)];
-    struct ArrayObject *ao = (struct ArrayObject *) (((char *)header) + sizeof(objheader_t));
-    int length = ao->___length___;
-    /* Check if array out of bounds */
-    int startindex = offsets[*index];
-    int range = GET_RANGE(offsets[(*index)+1]);
-    if(range > 0 && range < length) {
-      short stride = GET_STRIDE(offsets[(*index)+1]);
-      stride = stride + 1; //NOTE  bit pattern 000 => stride = 1, 001 => stride = 2
-      int i;
-      //check is stride +ve or negative
-      if(GET_STRIDEINC(offsets[(*index)]+1)) { //-ve stride
-	for(i = startindex; i <= range+1; i = i - stride) {
-	  unsigned int oid = 0;
-	  if((i < 0 || i >= length)) {
-	    //if yes treat the object as found
-	    oid = 0;
-	    continue;
-	  } else {
-	    // compute new object
-	    oid = *((unsigned int *)(((char *)ao) + sizeof(struct ArrayObject) + (elementsize*i)));
-	  }
-	  // add new object
-	  chldOffstFrmBase[*tovisit] = oid;
-	  *tovisit = *tovisit + 1;
-	}
-      } else { //+ve stride
-	for(i = startindex; i <= range; i = i + stride) {
-	  unsigned int oid = 0;
-	  if(i < 0 || i >= length) {
-	    //if yes treat the object as found
-	    oid = 0;
-	    continue;
-	  } else {
-	    // compute new object
-	    oid = *((unsigned int *)(((char *)ao) + sizeof(struct ArrayObject) + (elementsize*i)));
-	  }
-	  // add new object
-	  chldOffstFrmBase[*tovisit] = oid;
-	  *tovisit = *tovisit + 1;
-	}
-      }
-    } else if(range == 0) {
-      if(startindex >=0 || startindex < length) {
-	unsigned int oid = *((unsigned int *)(((char *)ao) + sizeof(struct ArrayObject) + (elementsize*startindex)));
-	// add new object
-	chldOffstFrmBase[*tovisit] = oid;
-	*tovisit = *tovisit + 1;
-      }
-    }
-    *index = *index + 2;
-  } else { //linked list
-    int startindex = offsets[*index];
-    int range = GET_RANGE(offsets[(*index)+1]);
-    unsigned int oid = *((unsigned int *)(((char *)header) + sizeof(objheader_t) + startindex));
-    if (range == 0) {
-      chldOffstFrmBase[*tovisit+1] = oid;
-      if(checkoid(oid)) {
-	*visited = *visited + 1;
-	*tovisit = *tovisit + 1;
-	*index = *index + 2;
-	return 1;
-      } else {
-	*tovisit = *tovisit + 1;
-	return 1;
-      }
-    } else {
-      int i;
-      for(i = 0; i<range; i++) {
-	chldOffstFrmBase[*tovisit+1] = oid;
-	if(checkoid(oid)) {
-	  //get the next object
-	  if((header = (objheader_t *)mhashSearch(oid))!= NULL) {
-	    //Found on machine
-	    ;
-	  } else if((header = (objheader_t *)prehashSearch(oid))!=NULL) {
-	    //Found in prefetch cache
-	    ;
-	  } else {
-	    ;
-	  }
-	  oid = *((unsigned int *)(((char *)header) + sizeof(objheader_t) + startindex));
-	  *tovisit = *tovisit + 1;
-	  *visited = *visited + 1;
-	} else {
-	  //update range
-	  offsets[(*index)+1] = (offsets[(*index)+1] & 0x0fff) - 1; //TODO Check this range updation
-	  *tovisit = *tovisit + 1;
-	  return 1;
-	}
-      }
-      *index = *index + 2;
-      return 1;
-    }
+  if ((header = (objheader_t *)mhashSearch(oid)) != NULL) {
+    return header;
+  } else if ((header = (objheader_t *) prehashSearch(oid)) != NULL) {
+    return header;
+  } else {
+    printf("Error: Cannot find header %s, %d\n", __func__, __LINE__);
   }
-  return 1;
+  return NULL;
 }
 
 /* Delete perMcPrefetchList_t and everything it points to */
@@ -267,6 +235,7 @@ void insertPrefetch(int mid, unsigned int oid, short numoffset, short *offsets, 
   perMcPrefetchList_t *ptr;
   objOffsetPile_t *objnode;
   objOffsetPile_t **tmp;
+  //printf("DEBUG-> %s() oid = %d, numoffset = %d\n", __func__, oid, numoffset);
 
   //Loop through the machines
   for(; 1; head=&((*head)->next)) {
@@ -295,16 +264,16 @@ void insertPrefetch(int mid, unsigned int oid, short numoffset, short *offsets, 
       int matchstatus;
 
       if ((*tmp)==NULL||((toid=(*tmp)->oid)>oid)) {
-	objnode = (objOffsetPile_t *) malloc(sizeof(objOffsetPile_t));
-	objnode->offsets = offsets;
-	objnode->oid = oid;
-	objnode->numoffset = numoffset;
-	objnode->next = *tmp;
-	*tmp = objnode;
-	return;
+        objnode = (objOffsetPile_t *) malloc(sizeof(objOffsetPile_t));
+        objnode->offsets = offsets;
+        objnode->oid = oid;
+        objnode->numoffset = numoffset;
+        objnode->next = *tmp;
+        *tmp = objnode;
+        return;
       }
       if (toid < oid)
-	continue;
+        continue;
 
       /* Fill list DS */
       int i;
@@ -312,24 +281,24 @@ void insertPrefetch(int mid, unsigned int oid, short numoffset, short *offsets, 
       short * ooffset=(*tmp)->offsets;
 
       for(i=0; i<numoffset; i++) {
-	if (i>onumoffset) {
-	  //We've matched, let's just extend the current prefetch
-	  (*tmp)->numoffset=numoffset;
-	  (*tmp)->offsets=offsets;
-	  return;
-	}
-	if (ooffset[i]<offsets[i]) {
-	  goto oidloop;
-	} else if (ooffset[i]>offsets[i]) {
-	  //Place item before the current one
-	  objnode = (objOffsetPile_t *) malloc(sizeof(objOffsetPile_t));
-	  objnode->offsets = offsets;
-	  objnode->oid = oid;
-	  objnode->numoffset = numoffset;
-	  objnode->next = *tmp;
-	  *tmp = objnode;
-	  return;
-	}
+        if (i>onumoffset) {
+          //We've matched, let's just extend the current prefetch
+          (*tmp)->numoffset=numoffset;
+          (*tmp)->offsets=offsets;
+          return;
+        }
+        if (ooffset[i]<offsets[i]) {
+          goto oidloop;
+        } else if (ooffset[i]>offsets[i]) {
+          //Place item before the current one
+          objnode = (objOffsetPile_t *) malloc(sizeof(objOffsetPile_t));
+          objnode->offsets = offsets;
+          objnode->oid = oid;
+          objnode->numoffset = numoffset;
+          objnode->next = *tmp;
+          *tmp = objnode;
+          return;
+        }
       }
       //if we get to the end, we're already covered by this prefetch
       return;
@@ -357,6 +326,7 @@ void sendRangePrefetchReq(perMcPrefetchList_t *mcpilenode, int sd) {
     *((int*)buf) = tmp->numoffset;
     buf+=sizeof(int);
     *((unsigned int *)buf) = tmp->oid;
+    //printf("DEBUG->%s() tmp->oid = %d, tmp->numoffset = %d\n", __func__, tmp->oid, tmp->numoffset);
     buf+=sizeof(unsigned int);
     *((unsigned int *)buf) = myIpAddr;
     buf += sizeof(unsigned int);
@@ -381,12 +351,13 @@ int getRangePrefetchResponse(int sd) {
   unsigned int oid;
   if(control == OBJECT_FOUND) {
     oid = *((unsigned int *)(recvbuffer + sizeof(char)));
+    //printf("DEBUG->%s() Getting oid = %d from remote machine\n", __func__, oid);
     size = size - (sizeof(char) + sizeof(unsigned int));
     pthread_mutex_lock(&prefetchcache_mutex);
     void *ptr;
     if((ptr = prefetchobjstrAlloc(size)) == NULL) {
       printf("%s() Error: objstrAlloc error for copying into prefetch cache in line %d at %s\n",
-             __func__, __LINE__, __FILE__);
+          __func__, __LINE__, __FILE__);
       pthread_mutex_unlock(&prefetchcache_mutex);
       return -1;
     }
@@ -398,8 +369,8 @@ int getRangePrefetchResponse(int sd) {
     void * oldptr;
     if((oldptr = prehashSearch(oid)) != NULL) {
       if(((objheader_t *)oldptr)->version <= ((objheader_t *)ptr)->version) {
-	prehashRemove(oid);
-	prehashInsert(oid, ptr);
+        prehashRemove(oid);
+        prehashInsert(oid, ptr);
       }
     } else {
       prehashInsert(oid, ptr);
@@ -427,9 +398,10 @@ int rangePrefetchReq(int acceptfd) {
       break;
     recv_data(acceptfd, &oidmid, 2*sizeof(unsigned int));
     oid = oidmid.oid;
+    //printf("DEBUG-> %s() starting oid = %d\n", __func__, oid);
     if(mid != oidmid.mid) {
       if(mid!= -1)
-	freeSockWithLock(transPResponseSocketPool, mid, sd);
+        freeSockWithLock(transPResponseSocketPool, mid, sd);
       mid = oidmid.mid;
       sd = getSockWithLock(transPResponseSocketPool, mid);
     }
@@ -450,10 +422,14 @@ int rangePrefetchReq(int acceptfd) {
       break;
     } else { //Obj found
       int retval;
+      if((retval = sendOidFound(oid, sd)) != 0) {
+        printf("%s() Error in sendOidFound() at line %d in %s()\n", __func__, __LINE__, __FILE__);
+        return -1;
+      }
       if((retval = processOidFound(header, offsetsarry, 0, sd, numoffset)) != 0) {
-	printf("%s() Error: in processOidFound() at line %d in %s()\n",
-	       __func__, __LINE__, __FILE__);
-	return -1;
+        printf("%s() Error: in processOidFound() at line %d in %s()\n",
+            __func__, __LINE__, __FILE__);
+        return -1;
       }
     }
   }
@@ -464,92 +440,130 @@ int rangePrefetchReq(int acceptfd) {
 }
 
 int processOidFound(objheader_t *header, short * offsetsarry, int index, int sd, int numoffset) {
-  int objsize;
-  GETSIZE(objsize, header);
-  int size = sizeof(int) + sizeof(char) + sizeof(unsigned int) +
-             sizeof(objheader_t) + objsize;
-  char sendbuffer[size];
-  int incr = 0;
-  *((int *)(sendbuffer + incr)) = size;
-  incr += sizeof(int);
-  *((char *)(sendbuffer + incr)) = OBJECT_FOUND;
-  incr += sizeof(char);
-  *((unsigned int *)(sendbuffer + incr)) = OID(header);
-  incr += sizeof(unsigned int);
-  memcpy(sendbuffer + incr, header, objsize + sizeof(objheader_t));
+  unsigned int dfsList[1000];
+  int top = -1;
+  dfsList[0] = OID(header);
+  ++top;
 
-  char control = TRANS_PREFETCH_RESPONSE;
-  sendPrefetchResponse(sd, &control, sendbuffer, &size);
-
-  /* Calculate the oid corresponding to the offset value */
-  int i;
-  for(i = 0; i<numoffset;) {
-    //check for arrays
-    if(TYPE(header) > NUMCLASSES) {
+  while(top != -1) {
+    if(top >= 1000) {
+      printf("Error: dfssList size is inadequate %s, %d\n", __func__, __LINE__);
+      exit(-1);
+    }
+    int node_oid = dfsList[top];
+    --top;
+    printf("DEBUG-> %s() DFS traversal oid = %d\n", __func__, node_oid);
+    fflush(stdout);
+    //Check if oid is local
+    if(!checkoid(node_oid)) {
       int retval;
-      if((retval = processArrayOids(offsetsarry, header, &i, sd)) != 0) {
-	printf("%s() Error: in processArrayOids() at line %d for %s()\n", __func__, __LINE__, __FILE__);
-	return -1;
+      if((retval = sendOidNotFound(node_oid, sd)) != 0) {
+        printf("%s() Error in sendOidNotFound() at line %d in %s()\n", __func__, __LINE__, __FILE__);
+        return -1;
       }
-    } else { //linked list
+    } else { //Oid is local
+      objheader_t *objhead = searchObj(node_oid);
+      //printf("DEBUG->%s() objhead = %x, oid = %d\n", __func__, objhead, OID(objhead));
+      if(objhead == NULL) {
+        printf("Object header is NULL Should not happen at %s, %d\n", __func__, __LINE__);
+        return -1;
+      }
       int retval;
-      if((retval = processLinkedListOids(offsetsarry, header, &i, sd)) != 0) {
-	printf("%s() Error: in processLinkedListOids() at line %d for %s()\n", __func__, __LINE__, __FILE__);
-	return -1;
+      if((retval = sendOidFound(OID(objhead), sd)) != 0) {
+        printf("%s() Error in sendOidFound() at line %d in %s()\n", __func__, __LINE__, __FILE__);
+        return -1;
       }
-    }
-  }
-  return 0;
-}
-
-int findOidinStride(short * offsets,  struct ArrayObject *ao, int index, int elementsize,
-                    int startindex, int range, int length, int sd) {
-  short stride = GET_STRIDE(offsets[index+1]);
-  stride = stride + 1; //NOTE  bit pattern 000 => stride = 1, 001 => stride = 2
-  int i;
-  //check is stride +ve or negative
-  unsigned int oid;
-  if(GET_STRIDEINC(offsets[index]+1)) { //-ve stride
-    for(i = startindex; i <= range+1; i = i - stride) {
-      if((i < 0 || i >= length)) {
-	//if yes treat the object as found
-	oid = 0;
-	continue;
-      } else {
-	// compute new object
-	oid = *((unsigned int *)(((char *)ao) + sizeof(struct ArrayObject) + (elementsize*i)));
+      //Array type
+      if(TYPE(objhead) > NUMCLASSES) {
+        int elementsize = classsize[TYPE(objhead)];
+        struct ArrayObject *ao = (struct ArrayObject *) (((char *)objhead) + sizeof(objheader_t));
+        int length = ao->___length___;
+        int startelement, range;
+        if(index < numoffset) {
+          startelement = offsetsarry[index];
+          range = GET_RANGE(offsetsarry[index+1]);
+        } else {
+          goto end;
+        }
+        if(range > length) {
+          printf("Error: Illegal range = %d when length = %d at %s %d\n", range, length, __func__, __LINE__);
+          return -1;
+        }
+        if(range > 0) {
+          short stride = GET_STRIDE(offsetsarry[index+1]);
+          stride++; //Note bit pattern 000 => stride = 1 etc
+          //check is stride is +ve or -ve
+          int sign;
+          if(GET_STRIDEINC(offsetsarry[index+1])) {
+            sign = -1;
+          } else {
+            sign = 1;
+          }
+          int i;
+          //printf("DEBUG-> %s() stride = %d, sign = %d\n", __func__, stride, sign);
+          for(i = 0; i<=range; i++) {
+            unsigned int oid = *((unsigned int *)(((char *)ao) + sizeof(struct ArrayObject) \
+                  + (elementsize * (startelement + (sign*stride*i)))));
+            //printf("DEBUG-> %s() Array oid = %d, range = %d\n", __func__, oid, range);
+            ++top;
+            dfsList[top] = oid;
+          }
+        } else if (range == 0) { //for range == 0
+          unsigned int oid = *((unsigned int *)(((char *)ao) + sizeof(struct ArrayObject) \
+                + (elementsize*startelement)));
+          //printf("DEBUG-> %s() Array oid = %d, range = %d\n", __func__, oid, range);
+          ++top;
+          dfsList[top] = oid;
+        } else {
+          printf("Error: Illegal range = %d at %s, %d\n", 
+              range, __func__, __LINE__);
+          return -1;
+        }
+        if(index < numoffset)
+          index += 2;// Point to the next offset
+      } else { //Linked list
+        int startelement, range;
+        if(index < numoffset) {
+          startelement = offsetsarry[index];
+          range = GET_RANGE(offsetsarry[index + 1]);
+        } else {
+          goto end;
+        }
+        unsigned int oid = *((unsigned int *)(((char *)objhead) + sizeof(objheader_t) 
+              + startelement)); 
+        //printf("DEBUG-> %s() First linked list element oid = %d, range = %d\n", __func__, oid, range);
+        ++top;
+        dfsList[top] = oid;
+        int i;
+        if (range > 0) {
+          for(i = 0; i < range; i++) {
+            if(checkoid(oid)) {
+              objheader_t *head = searchObj(oid);
+              if(head == NULL)
+                return -1;
+              oid = *((unsigned int *)(((char *)head) + sizeof(objheader_t) +
+                    startelement));
+              //printf("DEBUG-> %s() linked list oid = %d\n", __func__, oid); 
+              ++top;
+              dfsList[top] = oid;
+            }else {
+              break;
+            }
+          }
+        } else if(range == 0) {
+          ;
+        } else {
+          printf("Error: Illegal range -ve %s %d\n", __func__, __LINE__);
+          return -1;
+        }
+        if(i == range && index < numoffset)
+          index += 2;
       }
-      if(oid == 0)
-	break;
-      if(checkoid(oid)) {
-	int retval;
-	if((retval = sendOidFound(oid, sd)) != 0) {
-	  printf("%s() Error in sendOidFound() at line %d in %s()\n", __func__, __LINE__, __FILE__);
-	  return -1;
-	}
-      }
-    }
-  } else { //+ve stride
-    for(i = startindex; i <= range; i = i + stride) {
-      if(i < 0 || i >= length) {
-	//if yes treat the object as found
-	oid = 0;
-	continue;
-      } else {
-	// compute new object
-	oid = *((unsigned int *)(((char *)ao) + sizeof(struct ArrayObject) + (elementsize*i)));
-      }
-      if(oid == 0)
-	break;
-      if(checkoid(oid)) {
-	int retval;
-	if((retval = sendOidFound(oid, sd)) != 0) {
-	  printf("%s() Error in sendOidFound() at line %d in %s()\n", __func__, __LINE__, __FILE__);
-	  return -1;
-	}
-      }
-    }
-  }
+    } 
+end:
+    //Process next oid in the dfs List
+    ;
+  }//end of while
   return 0;
 }
 
@@ -582,93 +596,14 @@ int sendOidFound(unsigned int oid, int sd) {
   return 0;
 }
 
-int processArrayOids(short *offsetsarry, objheader_t *header, int *index, int sd) {
-  int elementsize = classsize[TYPE(header)];
-  struct ArrayObject *ao = (struct ArrayObject *) (((char *)header) + sizeof(objheader_t));
-  int length = ao->___length___;
-  /* Check if array out of bounds */
-  int startindex = offsetsarry[*index];
-  int range = GET_RANGE(offsetsarry[*index+1]);
-  if(range > 0 && range < length) {
-    int retval;
-    if((retval = findOidinStride(offsetsarry, ao, *index, elementsize, startindex, range, length, sd)) != 0) {
-      printf("%s() Error: in findOidinStride in line %d at file %s\n", __func__, __LINE__, __FILE__);
-      return -1;
-    }
-  } else if(range == 0) {
-    unsigned int oid;
-    if(startindex >=0 || startindex < length) {
-      oid = *((unsigned int *)(((char *)ao) + sizeof(struct ArrayObject) + (elementsize*startindex)));
-    }
-    if(oid == 0)
-      return 0;
-    if(checkoid(oid)) {
-      int retval;
-      if((retval = sendOidFound(oid, sd)) != 0) {
-	printf("%s() Error: in sendOidFound() at line %d in %s()\n", __func__, __LINE__, __FILE__);
-	return -1;
-      }
-    } else {
-      int size = sizeof(int) + sizeof(char) + sizeof(unsigned int);
-      char sendbuffer[size];
-      *((int *) sendbuffer) = size;
-      *((char *)(sendbuffer + sizeof(int))) = OBJECT_NOT_FOUND;
-      *((unsigned int *)(sendbuffer + sizeof(int) + sizeof(char))) = oid;
-      char control = TRANS_PREFETCH_RESPONSE;
-      sendPrefetchResponse(sd, &control, sendbuffer, &size);
-    }
-  }
-  *index = *index + 2;
+int sendOidNotFound(unsigned int oid, int sd) {
+  int size  = sizeof(int) + sizeof(char) + sizeof(unsigned int);
+  char sendbuffer[size];
+  *((int *)sendbuffer) = size;
+  *((char *)(sendbuffer + sizeof(int))) = OBJECT_NOT_FOUND;
+  *((unsigned int *)(sendbuffer + sizeof(int) + sizeof(unsigned int))) = oid;
+  char control = TRANS_PREFETCH_RESPONSE;
+  sendPrefetchResponse(sd, &control, sendbuffer, &size);
   return 0;
 }
 
-int processLinkedListOids(short *offsetsarry, objheader_t *header, int *index, int sd) {
-  int startindex = offsetsarry[*index];
-  int range = GET_RANGE(offsetsarry[(*index)+1]);
-  unsigned int oid = *((unsigned int *)(((char *)header) + sizeof(objheader_t) + startindex));
-  if(oid == 0)
-    return 0;
-  if(range == 0) {
-    if(checkoid(oid)) {
-      int retval;
-      if((retval = sendOidFound(oid, sd)) != 0) {
-	printf("%s() Error: in sendOidFound() at line %d in %s()\n", __func__, __LINE__, __FILE__);
-	return -1;
-      }
-    }
-  } else {
-    int i;
-    for(i = 0; i<range; i++) {
-      if(checkoid(oid)) {
-	int retval;
-	if((retval = sendOidFound(oid, sd)) != 0) {
-	  printf("%s() Error: in sendOidFound() at line %d in %s()\n", __func__, __LINE__, __FILE__);
-	  return -1;
-	}
-	//get the next object
-	if((header = (objheader_t *)mhashSearch(oid))!= NULL) {
-	  //Found on machine
-	  ;
-	} else if((header = (objheader_t *)prehashSearch(oid))!=NULL) {
-	  //Found in prefetch cache
-	  ;
-	} else {
-	  ;
-	}
-	oid = *((unsigned int *)(((char *)header) + sizeof(objheader_t) + startindex));
-      } else {
-	// Object not found
-	int size = sizeof(int) + sizeof(char) + sizeof(unsigned int);
-	char sendbuffer[size];
-	*((int *) sendbuffer) = size;
-	*((char *)(sendbuffer + sizeof(int))) = OBJECT_NOT_FOUND;
-	*((unsigned int *)(sendbuffer + sizeof(int) + sizeof(char))) = oid;
-	char control = TRANS_PREFETCH_RESPONSE;
-	sendPrefetchResponse(sd, &control, sendbuffer, &size);
-	return 0;
-      }
-    }
-  }
-  *index = *index + 2;
-  return 0;
-}

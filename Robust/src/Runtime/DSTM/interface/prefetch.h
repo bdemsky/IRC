@@ -53,6 +53,7 @@ int findOidinStride(short *,  struct ArrayObject *, int, int, int, int, int, int
 int sendOidFound(unsigned int, int);
 int processLinkedListOids(short *, objheader_t *, int *, int);
 int getRangePrefetchResponse(int sd);
+objheader_t *searchObj(unsigned int );
 
 /************* Internal functions *******************/
 int getsize(short *ptr, int n);
