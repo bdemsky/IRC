@@ -4,7 +4,9 @@
 void REVERT_OBJ(struct ___Object___ * obj) {
   int type=((int *)obj)[0];
   struct ___Object___ * copyobj=obj->___localcopy___;
-  if (type<NUMCLASSES) {
+  if(((int)copyobj)==1) {
+    obj->___localcopy___=NULL;
+  } else if (type<NUMCLASSES) {
     /* We have a normal object */
     int size=classsize[type];
     memcpy(obj, copyobj, size);
