@@ -6,6 +6,7 @@ void REVERT_OBJ(struct ___Object___ * obj) {
   struct ___Object___ * copyobj=obj->___localcopy___;
   if(((int)copyobj)==1) {
     obj->___localcopy___=NULL;
+    obj->___nextobject___=NULL;
   } else if (type<NUMCLASSES) {
     /* We have a normal object */
     int size=classsize[type];
