@@ -28,6 +28,7 @@ public class AllocationSite {
   protected Vector<Integer> ithOldest;
   protected Integer summary;
   protected FlatNew flatNew;
+  protected boolean forceAnalyze;
 
   public static final int AGE_notInThisSite = 100;
   public static final int AGE_in_I          = 101;
@@ -40,11 +41,12 @@ public class AllocationSite {
   public static final int SHADOWAGE_summary       = -103;
 
 
-  public AllocationSite(int allocationDepth, FlatNew flatNew) {
+  public AllocationSite(int allocationDepth, FlatNew flatNew, boolean forceAnalyze) {
     assert allocationDepth >= 1;
 
     this.allocationDepth = allocationDepth;
     this.flatNew         = flatNew;
+    this.forceAnalyze    = forceAnalyze;
 
     ithOldest = new Vector<Integer>(allocationDepth);
     id        = generateUniqueAllocationSiteID();
@@ -53,6 +55,11 @@ public class AllocationSite {
   static public Integer generateUniqueAllocationSiteID() {
     ++uniqueIDcount;
     return new Integer(uniqueIDcount);
+  }
+
+
+  public boolean doForceAnalyze() {
+    return forceAnalyze;
   }
 
 

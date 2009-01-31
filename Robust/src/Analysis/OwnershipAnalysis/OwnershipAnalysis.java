@@ -280,14 +280,38 @@ public class OwnershipAnalysis {
       mapMethodContextToNumUpdates = new Hashtable<MethodContext, Integer>();
     }
 
-    // initialize methods to visit as the set of all tasks in the
-    // program and then any method that could be called starting
-    // from those tasks
-    Iterator taskItr = state.getTaskSymbolTable().getDescriptorsIterator();
-    while( taskItr.hasNext() ) {
-      Descriptor d = (Descriptor) taskItr.next();
-      scheduleAllCallees(d);
+
+    if( state.TASK ) {
+      // initialize methods to visit as the set of all tasks in the
+      // program and then any method that could be called starting
+      // from those tasks
+      Iterator taskItr = state.getTaskSymbolTable().getDescriptorsIterator();
+      while( taskItr.hasNext() ) {
+	Descriptor d = (Descriptor) taskItr.next();
+	scheduleAllCallees(d);
+      }
+
+    } else {
+      // we are not in task mode, just normal Java, so start with
+      // the main method
+      
+      // get all classes, get all methods, look for static main, then stop?
+      
+      // YOU CAN DEFINE MORE THAN ONE MAIN!!!!
+
+      Iterator classItr = state.getClassSymbolTable().getDescriptorsIterator();
+      while( classItr.hasNext() ) {
+	ClassDescriptor cd = (ClassDescriptor) classItr.next();
+
+	Iterator methItr = cd.getMethods();
+	while( methItr.hasNext() ) {
+	  Descriptor d = (Descriptor) methItr.next();
+	  scheduleAllCallees(d);
+	}
+      }
+      
     }
+
 
     // before beginning analysis, initialize every scheduled method
     // with an ownership graph that has populated parameter index tables
@@ -796,7 +820,7 @@ public class OwnershipAnalysis {
   private AllocationSite getAllocationSiteFromFlatNewPRIVATE(FlatNew fn) {
 
     if( !mapFlatNewToAllocationSite.containsKey(fn) ) {
-      AllocationSite as = new AllocationSite(allocationDepth, fn);
+      AllocationSite as = new AllocationSite(allocationDepth, fn, fn.isDisjoint());
 
       // the newest nodes are single objects
       for( int i = 0; i < allocationDepth; ++i ) {

@@ -260,6 +260,9 @@ terminal GETOFFSET;
 non terminal ParseNode atomic_statement;
 non terminal ParseNode getoffset_expression;
 
+//disjointness for Java
+terminal DISJOINT;
+
 //coarse-grain parallelization
 terminal SESE;
 non terminal ParseNode sese_statement;
@@ -1419,6 +1422,16 @@ class_instance_creation_expression ::=
 		pn.addChild("global");
 		RESULT=pn;
 	:}
+	// Objects we want to track in disjointness analysis
+	| DISJOINT IDENTIFIER:id NEW class_or_interface_type:type LPAREN argument_list_opt:args RPAREN flag_list_opt:feo {: 
+		ParseNode pn=new ParseNode("createobject");
+		pn.addChild(type);
+		pn.addChild(args);
+		pn.addChild(feo);
+		pn.addChild("disjoint");
+		pn.addChild(id);
+		RESULT=pn;
+	:}
 	| NEW class_or_interface_type:type LPAREN argument_list_opt:args RPAREN LBRACE RBRACE LBRACE tag_list:tl RBRACE {: 
 		ParseNode pn=new ParseNode("createobject");
 		pn.addChild(type);
@@ -1508,6 +1521,15 @@ array_creation_uninit ::=
 		pn.addChild("global");
 		RESULT=pn;
 		:}
+	|	DISJOINT IDENTIFIER:id NEW primitive_type:type dim_exprs:dimexpr dims_opt:dims {: 
+		ParseNode pn=new ParseNode("createarray");
+		pn.addChild(type);
+		pn.addChild(dimexpr);
+		pn.addChild("dims_opt").setLiteral(dims);
+		pn.addChild("disjoint");
+		pn.addChild(id);
+		RESULT=pn;
+		:}
 	|	GLOBAL NEW class_or_interface_type:type dim_exprs:dimexpr dims_opt:dims {: 
 		ParseNode pn=new ParseNode("createarray");
 		pn.addChild(type);
@@ -1515,7 +1537,16 @@ array_creation_uninit ::=
 		pn.addChild("dims_opt").setLiteral(dims);
 		pn.addChild("global");
 		RESULT=pn;
-	:}
+		:}
+	|	DISJOINT IDENTIFIER:id NEW class_or_interface_type:type dim_exprs:dimexpr dims_opt:dims {: 
+		ParseNode pn=new ParseNode("createarray");
+		pn.addChild(type);
+		pn.addChild(dimexpr);
+		pn.addChild("dims_opt").setLiteral(dims);
+		pn.addChild("disjoint");
+		pn.addChild(id);
+		RESULT=pn;
+		:}
 	;
 //array_creation_init ::=
 //		NEW primitive_type dims array_initializer

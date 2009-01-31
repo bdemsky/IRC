@@ -3,7 +3,7 @@ PROGRAM=test
 SOURCE_FILES=$(PROGRAM).java
 
 BUILDSCRIPT=~/research/Robust/src/buildscript
-BSFLAGS= -recover -ownership -ownallocdepth 1 -ownaliasfile aliases.txt -ownwritedots final -enable-assertions -flatirtasks
+BSFLAGS= -ownership -ownallocdepth 1 -ownwritedots final -enable-assertions -flatirtasks #-recover -ownaliasfile aliases.txt
 
 all: $(PROGRAM).bin
 

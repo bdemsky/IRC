@@ -398,7 +398,8 @@ public class BuildIR {
       TypeDescriptor td=parseTypeDescriptor(pn);
       Vector args=parseArgumentList(pn);
       boolean isglobal=pn.getChild("global")!=null;
-      CreateObjectNode con=new CreateObjectNode(td, isglobal);
+      boolean isdisjoint=pn.getChild("disjoint")!=null;
+      CreateObjectNode con=new CreateObjectNode(td, isglobal, isdisjoint);
       for(int i=0; i<args.size(); i++) {
 	con.addArgument((ExpressionNode)args.get(i));
       }
@@ -417,6 +418,7 @@ public class BuildIR {
     } else if (isNode(pn,"createarray")) {
       //System.out.println(pn.PPrint(3,true));
       boolean isglobal=pn.getChild("global")!=null;
+      boolean isdisjoint=pn.getChild("disjoint")!=null;
       TypeDescriptor td=parseTypeDescriptor(pn);
       Vector args=parseDimExprs(pn);
       int num=0;
@@ -424,7 +426,7 @@ public class BuildIR {
 	num=((Integer)pn.getChild("dims_opt").getLiteral()).intValue();
       for(int i=0; i<(args.size()+num); i++)
 	td=td.makeArray(state);
-      CreateObjectNode con=new CreateObjectNode(td, isglobal);
+      CreateObjectNode con=new CreateObjectNode(td, isglobal, isdisjoint);
       for(int i=0; i<args.size(); i++) {
 	con.addArgument((ExpressionNode)args.get(i));
       }

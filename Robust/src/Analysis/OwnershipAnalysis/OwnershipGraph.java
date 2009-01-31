@@ -85,7 +85,7 @@ public class OwnershipGraph {
     }
 
     if( alpha == null ) {
-      if( isFlagged || isParameter ) {
+      if( isFlagged || isParameter || allocSite.doForceAnalyze() ) {
 	alpha = new ReachabilitySet(
 	  new TokenTuple(id,
 	                 !isSingleObject,

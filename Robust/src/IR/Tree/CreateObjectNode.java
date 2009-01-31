@@ -9,15 +9,21 @@ public class CreateObjectNode extends ExpressionNode {
   MethodDescriptor md;
   FlagEffects fe;
   boolean isglobal;
+  boolean isdisjoint;  
 
-  public CreateObjectNode(TypeDescriptor type, boolean isglobal) {
+  public CreateObjectNode(TypeDescriptor type, boolean isglobal, boolean isdisjoint) {
     td=type;
     argumentlist=new Vector();
     this.isglobal=isglobal;
+    this.isdisjoint=isdisjoint;
   }
 
   public boolean isGlobal() {
     return isglobal;
+  }
+
+  public boolean isDisjoint() {
+    return isdisjoint;
   }
 
   public void addFlagEffects(FlagEffects fe) {

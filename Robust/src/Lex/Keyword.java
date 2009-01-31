@@ -81,6 +81,8 @@ class Keyword extends Token {
     key_table.put("global", new Integer(Sym.GLOBAL));
     //Keywords for hacking prefetch calls in java
     key_table.put("getoffset", new Integer(Sym.GETOFFSET));
+    //Keywords for disjointness in Java
+    key_table.put("disjoint", new Integer(Sym.DISJOINT));
     //Keywords for coarse-grain parallelization
     key_table.put("sese", new Integer(Sym.SESE));
   }

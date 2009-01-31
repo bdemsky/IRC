@@ -6,12 +6,22 @@ public class FlatNew extends FlatNode {
   TypeDescriptor type;
   TempDescriptor size;
   boolean isglobal;
+  boolean isdisjoint;
 
   public FlatNew(TypeDescriptor type, TempDescriptor dst, boolean isglobal) {
     this.type=type;
     this.dst=dst;
     this.size=null;
     this.isglobal=isglobal;
+    this.isdisjoint=false;
+  }
+
+  public FlatNew(TypeDescriptor type, TempDescriptor dst, boolean isglobal, boolean isdisjoint) {
+    this.type=type;
+    this.dst=dst;
+    this.size=null;
+    this.isglobal=isglobal;
+    this.isdisjoint=isdisjoint;
   }
 
   public FlatNew(TypeDescriptor type, TempDescriptor dst, TempDescriptor size, boolean isglobal) {
@@ -19,10 +29,23 @@ public class FlatNew extends FlatNode {
     this.dst=dst;
     this.size=size;
     this.isglobal=isglobal;
+    this.isdisjoint=false;
+  }
+
+  public FlatNew(TypeDescriptor type, TempDescriptor dst, TempDescriptor size, boolean isglobal, boolean isdisjoint) {
+    this.type=type;
+    this.dst=dst;
+    this.size=size;
+    this.isglobal=isglobal;
+    this.isdisjoint=isdisjoint;
   }
 
   public boolean isGlobal() {
     return isglobal;
+  }
+
+  public boolean isDisjoint() {
+    return isdisjoint;
   }
 
   public String toString() {
