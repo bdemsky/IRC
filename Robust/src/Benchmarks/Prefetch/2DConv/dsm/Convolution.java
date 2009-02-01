@@ -89,6 +89,10 @@ public class Convolution extends Thread {
     }
     */
 
+	System.printString("Convolution: Size=");
+    System.printInt(SIZE);
+	System.printString("\n");
+
     for(int i = 0; i <NUM_THREADS; i++) {
       atomic {
         tmp = conv[i];
