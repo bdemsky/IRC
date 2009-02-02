@@ -80,12 +80,18 @@ public class OwnershipGraph {
                           ReachabilitySet alpha,
                           String description) {
 
+    boolean markForAnalysis = isFlagged || isParameter;
+
+    if( allocSite != null && allocSite.doForceAnalyze() ) {
+      markForAnalysis = true;
+    }
+
     if( id == null ) {
       id = OwnershipAnalysis.generateUniqueHeapRegionNodeID();
     }
 
     if( alpha == null ) {
-      if( isFlagged || isParameter || allocSite.doForceAnalyze() ) {
+      if( markForAnalysis ) {
 	alpha = new ReachabilitySet(
 	  new TokenTuple(id,
 	                 !isSingleObject,
@@ -101,7 +107,7 @@ public class OwnershipGraph {
 
     HeapRegionNode hrn = new HeapRegionNode(id,
                                             isSingleObject,
-                                            isFlagged,
+                                            markForAnalysis,
 					    isParameter,
                                             isNewSummary,
                                             allocSite,

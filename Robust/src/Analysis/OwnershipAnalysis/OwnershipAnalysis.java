@@ -306,7 +306,10 @@ public class OwnershipAnalysis {
 	Iterator methItr = cd.getMethods();
 	while( methItr.hasNext() ) {
 	  Descriptor d = (Descriptor) methItr.next();
-	  scheduleAllCallees(d);
+
+	  if( d.getSymbol().equals( "main" ) ) {
+	    scheduleAllCallees(d);
+	  }
 	}
       }
       
