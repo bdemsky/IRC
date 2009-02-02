@@ -212,7 +212,7 @@ public class BuildFlat {
   private NodePair flattenCreateObjectNode(CreateObjectNode con,TempDescriptor out_temp) {
     TypeDescriptor td=con.getType();
     if (!td.isArray()) {
-      FlatNew fn=new FlatNew(td, out_temp, con.isGlobal(), con.isDisjoint());
+      FlatNew fn=new FlatNew(td, out_temp, con.isGlobal(), con.getDisjointId());
       TempDescriptor[] temps=new TempDescriptor[con.numArgs()];
       FlatNode last=fn;
       // Build arguments
@@ -271,7 +271,7 @@ public class BuildFlat {
 	                     out_temp :
 	                     TempDescriptor.tempFactory("arg",en.getType());
       }
-      FlatNew fn=new FlatNew(td, out_temp, temps[0], con.isGlobal(), con.isDisjoint());
+      FlatNew fn=new FlatNew(td, out_temp, temps[0], con.isGlobal(), con.getDisjointId());
       last.addNext(fn);
       if (temps.length>1) {
 	NodePair np=generateNewArrayLoop(temps, td.dereference(), out_temp, 0, con.isGlobal());

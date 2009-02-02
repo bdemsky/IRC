@@ -1428,8 +1428,7 @@ class_instance_creation_expression ::=
 		pn.addChild(type);
 		pn.addChild(args);
 		pn.addChild(feo);
-		pn.addChild("disjoint");
-		pn.addChild(id);
+		pn.addChild("disjoint").addChild(id);
 		RESULT=pn;
 	:}
 	| NEW class_or_interface_type:type LPAREN argument_list_opt:args RPAREN LBRACE RBRACE LBRACE tag_list:tl RBRACE {: 
@@ -1526,8 +1525,7 @@ array_creation_uninit ::=
 		pn.addChild(type);
 		pn.addChild(dimexpr);
 		pn.addChild("dims_opt").setLiteral(dims);
-		pn.addChild("disjoint");
-		pn.addChild(id);
+		pn.addChild("disjoint").addChild(id);
 		RESULT=pn;
 		:}
 	|	GLOBAL NEW class_or_interface_type:type dim_exprs:dimexpr dims_opt:dims {: 
@@ -1543,8 +1541,7 @@ array_creation_uninit ::=
 		pn.addChild(type);
 		pn.addChild(dimexpr);
 		pn.addChild("dims_opt").setLiteral(dims);
-		pn.addChild("disjoint");
-		pn.addChild(id);
+		pn.addChild("disjoint").addChild(id);		
 		RESULT=pn;
 		:}
 	;

@@ -82,7 +82,7 @@ public class OwnershipGraph {
 
     boolean markForAnalysis = isFlagged || isParameter;
 
-    if( allocSite != null && allocSite.doForceAnalyze() ) {
+    if( allocSite != null && allocSite.getDisjointId() != null ) {
       markForAnalysis = true;
     }
 
@@ -868,7 +868,7 @@ public class OwnershipGraph {
                                            false,
                                            as,
                                            null,
-                                           as + "\\n" + as.getType() + "\\nsummary");
+                                           as.toStringForDOT() + "\\nsummary");
 
       for( int i = 0; i < as.getAllocationDepth(); ++i ) {
 	Integer idIth = as.getIthOldest(i);
@@ -880,7 +880,7 @@ public class OwnershipGraph {
 	                        false,
 	                        as,
 	                        null,
-	                        as + "\\n" + as.getType() + "\\n" + i + " oldest");
+	                        as.toStringForDOT() + "\\n" + i + " oldest");
       }
     }
 

@@ -6,22 +6,22 @@ public class FlatNew extends FlatNode {
   TypeDescriptor type;
   TempDescriptor size;
   boolean isglobal;
-  boolean isdisjoint;
+  String disjointId;
 
   public FlatNew(TypeDescriptor type, TempDescriptor dst, boolean isglobal) {
     this.type=type;
     this.dst=dst;
     this.size=null;
     this.isglobal=isglobal;
-    this.isdisjoint=false;
+    this.disjointId=null;
   }
 
-  public FlatNew(TypeDescriptor type, TempDescriptor dst, boolean isglobal, boolean isdisjoint) {
+  public FlatNew(TypeDescriptor type, TempDescriptor dst, boolean isglobal, String disjointId) {
     this.type=type;
     this.dst=dst;
     this.size=null;
     this.isglobal=isglobal;
-    this.isdisjoint=isdisjoint;
+    this.disjointId=disjointId;
   }
 
   public FlatNew(TypeDescriptor type, TempDescriptor dst, TempDescriptor size, boolean isglobal) {
@@ -29,23 +29,23 @@ public class FlatNew extends FlatNode {
     this.dst=dst;
     this.size=size;
     this.isglobal=isglobal;
-    this.isdisjoint=false;
+    this.disjointId=null;
   }
 
-  public FlatNew(TypeDescriptor type, TempDescriptor dst, TempDescriptor size, boolean isglobal, boolean isdisjoint) {
+  public FlatNew(TypeDescriptor type, TempDescriptor dst, TempDescriptor size, boolean isglobal, String disjointId) {
     this.type=type;
     this.dst=dst;
     this.size=size;
     this.isglobal=isglobal;
-    this.isdisjoint=isdisjoint;
+    this.disjointId=disjointId;
   }
 
   public boolean isGlobal() {
     return isglobal;
   }
 
-  public boolean isDisjoint() {
-    return isdisjoint;
+  public String getDisjointId() {
+    return disjointId;
   }
 
   public String toString() {

@@ -28,7 +28,7 @@ public class AllocationSite {
   protected Vector<Integer> ithOldest;
   protected Integer summary;
   protected FlatNew flatNew;
-  protected boolean forceAnalyze;
+  protected String disjointId;
 
   public static final int AGE_notInThisSite = 100;
   public static final int AGE_in_I          = 101;
@@ -41,12 +41,12 @@ public class AllocationSite {
   public static final int SHADOWAGE_summary       = -103;
 
 
-  public AllocationSite(int allocationDepth, FlatNew flatNew, boolean forceAnalyze) {
+  public AllocationSite(int allocationDepth, FlatNew flatNew, String disjointId) {
     assert allocationDepth >= 1;
 
     this.allocationDepth = allocationDepth;
     this.flatNew         = flatNew;
-    this.forceAnalyze    = forceAnalyze;
+    this.disjointId      = disjointId;
 
     ithOldest = new Vector<Integer>(allocationDepth);
     id        = generateUniqueAllocationSiteID();
@@ -58,8 +58,8 @@ public class AllocationSite {
   }
 
 
-  public boolean doForceAnalyze() {
-    return forceAnalyze;
+  public String getDisjointId() {
+    return disjointId;
   }
 
 
@@ -181,5 +181,9 @@ public class AllocationSite {
 
   public String toStringVerbose() {
     return "allocSite" + id + " "+flatNew.getType().toPrettyString();
+  }
+
+  public String toStringForDOT() {
+    return "disjoint "+disjointId+"\\n"+toString()+"\\n"+getType();
   }
 }

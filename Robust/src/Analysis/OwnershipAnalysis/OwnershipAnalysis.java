@@ -823,7 +823,7 @@ public class OwnershipAnalysis {
   private AllocationSite getAllocationSiteFromFlatNewPRIVATE(FlatNew fn) {
 
     if( !mapFlatNewToAllocationSite.containsKey(fn) ) {
-      AllocationSite as = new AllocationSite(allocationDepth, fn, fn.isDisjoint());
+      AllocationSite as = new AllocationSite(allocationDepth, fn, fn.getDisjointId());
 
       // the newest nodes are single objects
       for( int i = 0; i < allocationDepth; ++i ) {
