@@ -54,6 +54,13 @@ int listcount=0;
       dst=copy; \
     } \
   }
+#elif defined(FASTCHECK)
+#define ENQUEUE(orig, dst) \
+  if (((unsigned int)orig)!=1) { \
+  void *copy; \
+  if (gc_createcopy(orig,&copy)) \
+    enqueue(orig);\
+  dst=copy; }
 #else
 #define ENQUEUE(orig, dst) \
   void *copy; \
@@ -185,6 +192,10 @@ void collect(struct garbagelist * stackptr) {
     break;
 }
 }
+#endif
+
+#ifdef FASTCHECK
+  ENQUEUE(___fcrevert___, ___fcrevert___);
 #endif
 
 #ifdef TASK

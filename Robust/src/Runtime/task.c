@@ -22,6 +22,11 @@ extern int errors;
 #include "instrument.h"
 #endif
 
+#ifdef FASTCHECK
+struct ___Object___ * ___fcrevert___;
+#include "localobjects.h"
+#endif
+
 struct genhashtable * activetasks;
 struct parameterwrapper * objectqueues[NUMCLASSES];
 struct genhashtable * failedtasks;
@@ -1166,9 +1171,13 @@ parameterpresent:
 
       {
 	/* Checkpoint the state */
+#ifdef FASTCHECK
+	___fcrevert___=NULL;
+#else
 	forward=cCreate(256, 0.4);
 	reverse=cCreate(256, 0.4);
 	void ** checkpoint=makecheckpoint(currtpd->task->numParameters, currtpd->parameterArray, forward, reverse);
+#endif
 	int x;
 	if (x=setjmp(error_handler)) {
 	  int counter;
@@ -1177,7 +1186,11 @@ parameterpresent:
 	  printf("Fatal Error=%d, Recovering!\n",x);
 #endif
 	  genputtable(failedtasks,currtpd,currtpd);
+#ifdef FASTCHECK
+	  REVERT_OBJ(___fcrevert___);
+#else
 	  restorecheckpoint(currtpd->task->numParameters, currtpd->parameterArray, checkpoint, forward, reverse);
+#endif
 
 #ifdef OPTIONAL
 	  for(counter=0; counter<currtpd->task->numParameters; counter++) {
@@ -1189,11 +1202,14 @@ parameterpresent:
 	      RUNFREE(fsesarray[counter]);
 	  }
 #endif
+#ifndef FASTCHECK
 	  cDelete(forward);
 	  cDelete(reverse);
 	  freemalloc();
 	  forward=NULL;
 	  reverse=NULL;
+#endif
+
 	} else {
 	  if (injectfailures) {
 	    if ((((double)random())/RAND_MAX)<failurechance) {
@@ -1229,9 +1245,17 @@ parameterpresent:
 	  }
 #endif
 
+#ifdef FASTCHECK
+	  while(___fcrevert___) {
+	    struct ___Object___ *tmpptr=___fcrevert___->___nextobject___;
+	    COMMIT_OBJ(___fcrevert___);
+	    ___fcrevert___=tmpptr;
+	  }
+#else
 	  cDelete(forward);
 	  cDelete(reverse);
 	  freemalloc();
+#endif
 	  // Free up task parameter descriptor
 	  RUNFREE(currtpd->parameterArray);
 #ifdef OPTIONAL

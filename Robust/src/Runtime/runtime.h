@@ -111,6 +111,10 @@ struct RuntimeHash * lockRedirectTbl;
 #endif
 #endif
 
+#ifdef FASTCHECK
+extern struct ___Object___ * ___fcrevert___;
+#endif
+
 #ifdef MULTICORE
 void flagorand(void * ptr, int ormask, int andmask, struct parameterwrapper ** queues, int length);
 void flagorandinit(void * ptr, int ormask, int andmask);
