@@ -45,6 +45,7 @@ echo -instructionfailures inject code for instructionfailures
 echo -profile build with profile options
 echo "-rawuseio use standard io to output profiling data (should be used together with -raw and -profile), it only works with single core version"
 echo "-enable-assertions execute assert statements during compilation"
+echo -justanalyze exit after compiler analyses complete
 echo -help help
 }
 
@@ -77,6 +78,7 @@ MAINFILE='a'
 JAVAFORWARDOPTS=''
 JAVAOPTS=''
 OPTIONALFLAG=false
+EXITAFTERANALYSIS=false
 
 if [[ -z $1 ]]
 then
@@ -90,6 +92,9 @@ if [[ $1 = '-help' ]]
 then
 printhelp
 exit
+elif [[ $1 = '-justanalyze' ]]
+then
+EXITAFTERANALYSIS=true
 elif [[ $1 = '-robustroot' ]]
 then
 ROBUSTROOT="$2"
@@ -281,6 +286,11 @@ $JAVAOPTS $SRCFILES
 then exit $?
 fi
 fi
+fi
+
+if $EXITAFTERANALYSIS
+then
+exit
 fi
 
 # Build all of the consistency specs
