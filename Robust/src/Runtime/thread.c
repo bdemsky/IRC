@@ -152,7 +152,6 @@ void CALL01(___Thread______join____, struct ___Thread___ * ___this___) {
   transrecord_t *trans;
   objheader_t *ptr;
   /* Add transaction to check if thread finished for join operation */
-  goto transstart;
 transstart:
   trans = transStart();
   ptr = transRead(trans, (unsigned int) VAR(___this___));
