@@ -9,6 +9,7 @@ echo -mac distributed shared memory mac support
 echo -check generate check code
 echo -dmalloc link in dmalloc
 echo -recover compile task code
+echo -fastcheck fast checkpointing for Bristlecone
 echo -specdir directory
 echo -printflat print out flat representation
 echo -selfloop task - this task cannot self loop forever
@@ -68,6 +69,7 @@ INTERRUPTFLAG=false
 THREADSIMULATEFLAG=false;
 USEDMALLOC=false
 THREADFLAG=false
+FASTCHECK=false
 SPECDIR=`pwd`
 SRCFILES=''
 EXTRAOPTIONS=''
@@ -95,6 +97,11 @@ shift
 elif [[ $1 = '-nojava' ]]
 then
 NOJAVA=true
+elif [[ $1 = '-fastcheck' ]]
+then
+EXTRAOPTIONS="$EXTRAOPTIONS -DFASTCHECK"
+JAVAOPTS="$JAVAOPTS -fastcheck"
+FASTCHECK=true
 elif [[ $1 = '-o' ]]
 then
 MAINFILE="$2"
@@ -401,7 +408,12 @@ if $TRANSSTATSFLAG
 then
 EXTRAOPTIONS="$EXTRAOPTIONS -lpthread -DTRANSSTATS -DCOMPILER -DDSTM -I$DSMRUNTIME"
 fi
-FILES="$FILES $DSMRUNTIME/trans.c $DSMRUNTIME/mcpileq.c $DSMRUNTIME/objstr.c $DSMRUNTIME/dstm.c $DSMRUNTIME/mlookup.c $DSMRUNTIME/clookup.c $DSMRUNTIME/llookup.c $DSMRUNTIME/threadnotify.c $DSMRUNTIME/dstmserver.c $DSMRUNTIME/plookup.c $DSMRUNTIME/ip.c $DSMRUNTIME/queue.c $DSMRUNTIME/prelookup.c $DSMRUNTIME/machinepile.c $DSMRUNTIME/localobjects.c $ROBUSTROOT/Runtime/thread.c $DSMRUNTIME/sockpool.c $DSMRUNTIME/addUdpEnhance.c $DSMRUNTIME/signal.c $DSMRUNTIME/gCollect.c $DSMRUNTIME/addPrefetchEnhance.c $DSMRUNTIME/dsmlock.c $DSMRUNTIME/prefetch.c"
+FILES="$FILES $DSMRUNTIME/trans.c $DSMRUNTIME/mcpileq.c $DSMRUNTIME/objstr.c $DSMRUNTIME/dstm.c $DSMRUNTIME/mlookup.c $DSMRUNTIME/clookup.c $DSMRUNTIME/llookup.c $DSMRUNTIME/threadnotify.c $DSMRUNTIME/dstmserver.c $DSMRUNTIME/plookup.c $DSMRUNTIME/ip.c $DSMRUNTIME/queue.c $DSMRUNTIME/prelookup.c $DSMRUNTIME/machinepile.c $ROBUSTROOT/Runtime/localobjects.c $ROBUSTROOT/Runtime/thread.c $DSMRUNTIME/sockpool.c $DSMRUNTIME/addUdpEnhance.c $DSMRUNTIME/signal.c $DSMRUNTIME/gCollect.c $DSMRUNTIME/addPrefetchEnhance.c $DSMRUNTIME/dsmlock.c $DSMRUNTIME/prefetch.c"
+fi
+
+if $FASTCHECK
+then
+FILES="$FILES $ROBUSTROOT/Runtime/localobjects.c"
 fi
 
 if $RECOVERFLAG

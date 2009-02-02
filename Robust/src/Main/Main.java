@@ -60,6 +60,8 @@ public class Main {
 	state.PREFETCH=true;
       else if (option.equals("-dir"))
 	IR.Flat.BuildCode.PREFIX=args[++i]+"/";
+      else if (option.equals("-fastcheck"))
+	state.FASTCHECK=true;
       else if (option.equals("-selfloop"))
 	state.selfloops.add(args[++i]);
       else if (option.equals("-excprefetch"))
@@ -137,6 +139,7 @@ public class Main {
 	System.out.println("-precise -- use precise garbage collection");
 	System.out.println("-conscheck -- turn on consistency checking");
 	System.out.println("-task -- compiler for tasks");
+	System.out.println("-fastcheck -- fastcheckpointing for Bristlecone");
 	System.out.println("-thread -- threads");
 	System.out.println("-trueprob <d> -- probability of true branch");
 	System.out.println("-printflat -- print out flat representation");
@@ -202,7 +205,10 @@ public class Main {
     readSourceFile(state, ClassLibraryPrefix+"Date.java");
 
     if (state.TASK) {
-      readSourceFile(state, ClassLibraryPrefix+"Object.java");
+      if (state.FASTCHECK)
+	readSourceFile(state, ClassLibraryPrefix+"ObjectFC.java");
+      else
+	readSourceFile(state, ClassLibraryPrefix+"Object.java");
       readSourceFile(state, ClassLibraryPrefix+"TagDescriptor.java");
     } else if (state.DSM) {
       readSourceFile(state, ClassLibraryPrefix+"ThreadDSM.java");

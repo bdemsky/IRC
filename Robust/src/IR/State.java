@@ -45,6 +45,7 @@ public class State {
    * program. */
   public boolean WEBINTERFACE=false;
   public boolean TASK=false;
+  public boolean FASTCHECK=false;
   public boolean DSM=false;
   public boolean PREFETCH=false;
   public boolean TASKSTATE=false;

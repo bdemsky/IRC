@@ -29,6 +29,7 @@ public class BuildCode {
   Hashtable flagorder;
   int tag=0;
   String localsprefix="___locals___";
+  String fcrevert="___fcrevert___";
   String paramsprefix="___params___";
   String oidstr="___nextobject___";
   String nextobjstr="___nextobject___";
@@ -327,6 +328,9 @@ public class BuildCode {
     if (state.DSM) {
       outmethod.println("#include \"addPrefetchEnhance.h\"");
       outmethod.println("#include \"localobjects.h\"");
+    }
+    if (state.FASTCHECK) {
+      outmethod.println("#include \"localobjects.h\"");      
     }
     if(state.MULTICORE) {
       outmethod.println("#include \"task.h\"");
@@ -2071,6 +2075,18 @@ public class BuildCode {
 	output.println("}");
       }
     } else {
+      if (state.FASTCHECK) {
+	String dst=generateTemp(fm, fsfn.getDst(),lb);
+	output.println("if(!"+dst+"->"+localcopystr+") {");
+	/* Link object into list */
+	if (GENERATEPRECISEGC)
+	  output.println("COPY_OBJ((struct garbagelist *)&"+localsprefix+",(struct ___Object___ *)"+dst+");");
+	else
+	  output.println("COPY_OBJ("+dst+");");
+	output.println(dst+"->"+nextobjstr+"="+fcrevert+";");
+	output.println(fcrevert+"=(struct ___Object___ *)"+dst+";");
+	output.println("}");
+      }
       output.println(generateTemp(fm, fsfn.getDst(),lb)+"->"+ fsfn.getField().getSafeSymbol()+"="+ generateTemp(fm,fsfn.getSrc(),lb)+";");
     }
   }
@@ -2167,8 +2183,21 @@ public class BuildCode {
       } else {
 	output.println("(("+type +"*)(((char *) &("+ generateTemp(fm,fsen.getDst(),lb)+"->___length___))+sizeof(int)))["+generateTemp(fm, fsen.getIndex(),lb)+"]="+generateTemp(fm,fsen.getSrc(),lb)+";");
       }
-    } else
+    } else {
+      if (state.FASTCHECK) {
+	String dst=generateTemp(fm, fsen.getDst(),lb);
+	output.println("if(!"+dst+"->"+localcopystr+") {");
+	/* Link object into list */
+	if (GENERATEPRECISEGC)
+	  output.println("COPY_OBJ((struct garbagelist *)&"+localsprefix+",(struct ___Object___ *)"+dst+");");
+	else
+	  output.println("COPY_OBJ("+dst+");");
+	output.println(dst+"->"+nextobjstr+"="+fcrevert+";");
+	output.println(fcrevert+"=(struct ___Object___ *)"+dst+";");
+	output.println("}");
+      }
       output.println("(("+type +"*)(((char *) &("+ generateTemp(fm,fsen.getDst(),lb)+"->___length___))+sizeof(int)))["+generateTemp(fm, fsen.getIndex(),lb)+"]="+generateTemp(fm,fsen.getSrc(),lb)+";");
+    }
   }
 
   protected void generateFlatNew(FlatMethod fm, LocalityBinding lb, FlatNew fn, PrintWriter output) {
@@ -2198,9 +2227,15 @@ public class BuildCode {
     if (state.DSM && locality.getAtomic(lb).get(fn).intValue()>0&&!fn.isGlobal()) {
       String revertptr=generateTemp(fm, reverttable.get(lb),lb);
       String dst=generateTemp(fm,fn.getDst(),lb);
-      output.println(dst+"->___localcopy___=1;");
+      output.println(dst+"->___localcopy___=(struct ___Object___*)1;");
       output.println(dst+"->"+nextobjstr+"="+revertptr+";");
       output.println("trans->revertlist=(struct ___Object___ *)"+dst+";");
+    }
+    if (state.FASTCHECK) {
+      String dst=generateTemp(fm,fn.getDst(),lb);
+      output.println(dst+"->___localcopy___=(struct ___Object___*)1;");
+      output.println(dst+"->"+nextobjstr+"="+fcrevert+";");
+      output.println(fcrevert+"=(struct ___Object___ *)"+dst+";");
     }
   }
 
