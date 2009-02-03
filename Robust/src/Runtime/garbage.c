@@ -309,7 +309,7 @@ void collect(struct garbagelist * stackptr) {
     if (pointer==0) {
       /* Array of primitives */
       /* Do nothing */
-#ifdef DSTM
+#if defined(DSTM)||defined(FASTCHECK)
       struct ArrayObject *ao=(struct ArrayObject *) ptr;
       struct ArrayObject *ao_cpy=(struct ArrayObject *) cpy;
       ENQUEUE((void *)ao->___nextobject___, *((void **)&ao_cpy->___nextobject___));
@@ -319,7 +319,7 @@ void collect(struct garbagelist * stackptr) {
       /* Array of pointers */
       struct ArrayObject *ao=(struct ArrayObject *) ptr;
       struct ArrayObject *ao_cpy=(struct ArrayObject *) cpy;
-#ifdef DSTM
+#if (defined(DSTM)||defined(FASTCHECK))
       ENQUEUE((void *)ao->___nextobject___, *((void **)&ao_cpy->___nextobject___));
       ENQUEUE((void *)ao->___localcopy___, *((void **)&ao_cpy->___localcopy___));
 #endif
@@ -350,7 +350,6 @@ void collect(struct garbagelist * stackptr) {
 }
 
 #ifdef TASK
-
 /* Fix up the references from tags.  This can't be done earlier,
    because we don't want tags to keep objects alive */
 void fixtags() {
