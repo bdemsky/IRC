@@ -15,7 +15,6 @@ echo "project=Compiler" > ~/research/Robust/.afidconfig
 echo "user=$USER" >> ~/research/Robust/.afidconfig
 echo "text/visual=visual" >> ~/research/Robust/.afidconfig
 echo "postURL=http://afid.eecs.uci.edu/afid/upload_file.php" >> ~/research/Robust/.afidconfig
-echo "backgroundSVN=false" >> ~/research/Robust/.afidconfig
 ~/.AFID/SaveTestCase --create-exclude-file
 fi
 ~/.AFID/FindSource javac $@
