@@ -55,7 +55,7 @@ vec_gdn_avail:
 #	mtsri PASS, 0xef00
 	uintoff
 
-	addiu   $sp,$sp,-104
+	addiu   $sp,$sp,-112
 	sw      $31,0x64($sp)
 	sw      $30,0x60($sp)
 	sw      $23,0x5c($sp)
@@ -83,9 +83,19 @@ vec_gdn_avail:
 	.set noat
 	sw      $1,0x4($sp)
 	.set at
+	mfhi    $8
+	mflo    $9
+	sw      $8,0x68($sp)
+	sw      $9,0x6c($sp)
+	lw      $8,0x20($sp)
+	lw      $9,0x24($sp)
 
 	jal receiveObject
 
+	lw      $8,0x68($sp)
+	lw      $9,0x6c($sp)
+	mthi    $8
+	mtlo    $9
 	lw      $31,0x64($sp)
 	lw      $30,0x60($sp)
 	lw      $23,0x5c($sp)
@@ -113,7 +123,7 @@ vec_gdn_avail:
 	.set noat
 	lw      $1,0x4($sp)
 	.set at
-	addiu   $sp,$sp,104
+	addiu   $sp,$sp,112
 
 #	mtsri PASS, 0xefff
 	dret
