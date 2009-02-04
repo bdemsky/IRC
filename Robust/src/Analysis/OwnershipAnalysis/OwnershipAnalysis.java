@@ -629,7 +629,7 @@ public class OwnershipAnalysis {
       lhs = ffn.getDst();
       rhs = ffn.getSrc();
       fld = ffn.getField();
-      if( !fld.getType().isImmutable() ) {
+      if( !fld.getType().isImmutable() || fld.getType().isArray() ) {
 	og.assignTempXEqualToTempYFieldF(lhs, rhs, fld);
       }
       break;
@@ -639,7 +639,7 @@ public class OwnershipAnalysis {
       lhs = fsfn.getDst();
       fld = fsfn.getField();
       rhs = fsfn.getSrc();
-      if( !fld.getType().isImmutable() ) {
+      if( !fld.getType().isImmutable() || fld.getType().isArray() ) {
 	og.assignTempXFieldFEqualToTempY(lhs, fld, rhs);
       }
       break;
@@ -648,7 +648,7 @@ public class OwnershipAnalysis {
       FlatElementNode fen = (FlatElementNode) fn;
       lhs = fen.getDst();
       rhs = fen.getSrc();
-      if( !lhs.getType().isImmutable() ) {
+      if( !lhs.getType().isImmutable() || lhs.getType().isArray() ) {
 	og.assignTempXEqualToTempYFieldF(lhs, rhs, fdElement);
       }
       break;
@@ -657,7 +657,7 @@ public class OwnershipAnalysis {
       FlatSetElementNode fsen = (FlatSetElementNode) fn;
       lhs = fsen.getDst();
       rhs = fsen.getSrc();
-      if( !rhs.getType().isImmutable() ) {
+      if( !rhs.getType().isImmutable() || rhs.getType().isArray() ) {
 	og.assignTempXFieldFEqualToTempY(lhs, fdElement, rhs);
       }
       break;
@@ -665,7 +665,7 @@ public class OwnershipAnalysis {
     case FKind.FlatNew:
       FlatNew fnn = (FlatNew) fn;
       lhs = fnn.getDst();
-      if( !lhs.getType().isImmutable() ) {
+      if( !lhs.getType().isImmutable() || lhs.getType().isArray() ) {
 	AllocationSite as = getAllocationSiteFromFlatNewPRIVATE(fnn);
 	og.assignTempEqualToNewAlloc(lhs, as);
       }
