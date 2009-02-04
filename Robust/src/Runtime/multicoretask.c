@@ -186,7 +186,7 @@ int main(int argc, char **argv) {
   bool allStall = true;
   int sumsendobj = 0;
 
-  corenum = raw_get_abs_pos_x() + 4 * raw_get_abs_pos_y();
+  corenum = raw_get_abs_pos_x() + raw_get_array_size_x() * raw_get_abs_pos_y();
 
   // initialize the arrays
   if(STARTUPCORE == corenum) {
