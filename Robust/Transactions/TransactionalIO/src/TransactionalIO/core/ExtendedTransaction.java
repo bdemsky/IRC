@@ -44,6 +44,7 @@ public class ExtendedTransaction implements TransactionStatu {
     {
         System.load("/home/navid/libkooni.so");
     }
+    
     private boolean flag = true;
     public TransactionStatu memorystate;
     private PropertyChangeSupport changes = new PropertyChangeSupport(this);

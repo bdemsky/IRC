@@ -421,7 +421,7 @@ public class TransactionalFile implements Comparable {
                 int c, char2, char3;
                 int count = 0;
                 int chararr_count = 0;
-
+               // System.out.println("size " +bytearr);
                 read(bytearr);
 
                 while (count < utflen) {

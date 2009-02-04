@@ -51,12 +51,12 @@ public class benchmark {
         try {
             byte[] data = new byte[1];
             char[] name = new char[20];
-            /*RandomAccessFile file = new RandomAccessFile("/scratch/TransactionalIO/FinancialTransactionBenchmarkFiles/namelist.text", "rw");
+            RandomAccessFile file = new RandomAccessFile("/scratch/TransactionalIO/FinancialTransactionBenchmarkFiles/namelist.text", "rw");
             RandomAccessFile file2 = new RandomAccessFile("/scratch/TransactionalIO/FinancialTransactionBenchmarkFiles/financialtransaction.text", "rw");
-            RandomAccessFile file3 = new RandomAccessFile("/scratch/TransactionalIO/FinancialTransactionBenchmarkFiles/accountbalance.text", "rw");*/
-            RandomAccessFile file = new RandomAccessFile("/home/navid/namelist.text", "rw");
+            RandomAccessFile file3 = new RandomAccessFile("/scratch/TransactionalIO/FinancialTransactionBenchmarkFiles/accountbalance.text", "rw");
+            /*RandomAccessFile file = new RandomAccessFile("/home/navid/namelist.text", "rw");
             RandomAccessFile file2 = new RandomAccessFile("/home/navid/financialtransaction.text", "rw");
-            RandomAccessFile file3 = new RandomAccessFile("/home/navid/accountbalance.text", "rw");
+            RandomAccessFile file3 = new RandomAccessFile("/home/navid/accountbalance.text", "rw");*/
             
             
            
@@ -199,56 +199,68 @@ public class benchmark {
             preparenamelist();
             count = 0;
             m = Collections.synchronizedMap(TransactionalFiles);
-            TransactionalFile tr = new TransactionalFile("/home/navid/randomwords.text", "rw");
+            //TransactionalFile tr = new TransactionalFile("/home/navid/randomwords.text", "rw");
+            TransactionalFile tr = new TransactionalFile("/scratch/TransactionalIO/PureIOBenchmarkFiles/randomwords.text", "rw");
             m.put(String.valueOf(count), tr);
             count++;
+            //TransactionalFile tr2 = new TransactionalFile("/home/navid/input.text", "rw");
             TransactionalFile tr2 = new TransactionalFile("/home/navid/input.text", "rw");
             m.put(String.valueOf(count), tr2);
             count++;
-            TransactionalFile tr3 = new TransactionalFile("/home/navid/iliad.text", "rw");
+            //TransactionalFile tr3 = new TransactionalFile("/home/navid/iliad.text", "rw");
+            TransactionalFile tr3 = new TransactionalFile("/scratch/TransactionalIO/WordCunterBenchmarkFiles/iliad.text", "rw");
             m.put(String.valueOf(count), tr3);
             count++;
-            TransactionalFile tr4 = new TransactionalFile("/home/navid/counter_benchmark_output.text", "rw");
-            m.put(String.valueOf(count), tr4);
+            //TransactionalFile tr4 = new TransactionalFile("/home/navid/counter_benchmark_output.text", "rw");
+            TransactionalFile tr4 = new TransactionalFile("/scratch/TransactionalIO/WordCunterBenchmarkFiles/counter_benchmark_output.text", "rw");
+            m.put("counteroutput", tr4);
+            //m.put(String.valueOf(count), tr4);
             count++;
 
-            TransactionalFile tr5 = new TransactionalFile("/home/navid/financialtransaction.text", "rw");
+            //TransactionalFile tr5 = new TransactionalFile("/home/navid/financialtransaction.text", "rw");
+            TransactionalFile tr5 = new TransactionalFile("/scratch/TransactionalIO/FinancialTransactionBenchmarkFiles/financialtransaction.text", "rw");
             m.put(String.valueOf(count), tr5);
 
             count++;
 
-            TransactionalFile tr6 = new TransactionalFile("/home/navid/accountbalance.text", "rw");
-            m.put(String.valueOf(count), tr6);
+            //TransactionalFile tr6 = new TransactionalFile("/home/navid/accountbalance.text", "rw");
+            TransactionalFile tr6 = new TransactionalFile("/scratch/TransactionalIO/FinancialTransactionBenchmarkFiles/accountbalance.text", "rw");
+            m.put("accountbalance", tr6);
+            //m.put(String.valueOf(count), tr6);
 
             count++;
 
-            TransactionalFile tr7 = new TransactionalFile("/home/navid/financialtransactionlog.text", "rw");
+            //TransactionalFile tr7 = new TransactionalFile("/home/navid/financialtransactionlog.text", "rw");
+            TransactionalFile tr7 = new TransactionalFile("/scratch/TransactionalIO/FinancialTransactionBenchmarkFiles/financialtransactionlog.text", "rw");
+            m.put("financialtransactionlog", tr7);
             m.put(String.valueOf(count), tr7);
-
             count++;
 
-            RandomAccessFile tr8 = new RandomAccessFile("/home/navid/accountbalance.text", "rw");
-            m.put(String.valueOf(count), tr8);
+            //RandomAccessFile tr8 = new RandomAccessFile("/home/navid/accountbalance.text", "rw");
+            RandomAccessFile tr8 = new RandomAccessFile("/scratch/TransactionalIO/FinancialTransactionBenchmarkFiles/accountbalance.text", "rw");
+            //m.put(String.valueOf(count), tr8);
+            m.put("accountbalancerandom", tr8);
 //
             count++;
 
-            RandomAccessFile tr9 = new RandomAccessFile("/home/navid/financialtransactionlog.text", "rw");
-            m.put(String.valueOf(count), tr9);
-
+            //RandomAccessFile tr9 = new RandomAccessFile("/home/navid/financialtransactionlog.text", "rw");
+            RandomAccessFile tr9 = new RandomAccessFile("/scratch/TransactionalIO/FinancialTransactionBenchmarkFiles/financialtransactionlog.text", "rw");
+            //m.put(String.valueOf(count), tr9);
+            m.put("financialtransactionlograndom", tr9);
             count++;
 
             int index = 97;
             for (int i = 0; i < 26; i++) {
-                     
-                //m.put(String.valueOf((char) (index+i)), new RandomAccessFile("/home/navid/" + String.valueOf((char) (index+i)) + ".text", "rw"));
-           
-                      m.put(String.valueOf((char) (index+i)), new TransactionalFile("/home/navid/" + String.valueOf((char) (index+i)) + ".text", "rw"));
-
-                           count++;
+                      m.put(String.valueOf((char) (index+i))+"random", new RandomAccessFile("/home/navid/" + String.valueOf((char) (index+i)) + ".text", "rw"));
+                      //m.put(String.valueOf((char) (index+i)), new TransactionalFile("/home/navid/" + String.valueOf((char) (index+i)) + ".text", "rw"));
+                      m.put(String.valueOf((char) (index+i)), new TransactionalFile("/scratch/TransactionalIO/PureIOBenchmarkFiles/" + String.valueOf((char) (index+i)) + ".text", "rw"));
+                      count++;
             }
                  
                
-            m.put(100, new RandomAccessFile("/home/navid/counter_benchmark_output.text", "rw"));   
+            //m.put(100, new RandomAccessFile("/home/navid/counter_benchmark_output.text", "rw"));   
+            m.put("counterdstm2output", new RandomAccessFile("/scratch/TransactionalIO/WordCunterBenchmarkFiles/counter_benchmark_output.text", "rw"));   
+            //m.put(100, new RandomAccessFile("/scratch/TransactionalIO/WordCunterBenchmarkFiles/counter_benchmark_output.text", "rw"));   
             /*count = 0;
             m = Collections.synchronizedMap(TransactionalFiles);
             TransactionalFile tr = new TransactionalFile("/scratch/TransactionalIO/PureIOBenchmarkFiles/randomwords.text", "rw");
@@ -322,6 +334,12 @@ public class benchmark {
             m2.put(Integer.valueOf(count), "masterfully");
             count++;
             m2.put(Integer.valueOf(count), "unweariable");
+            count++;
+        //    m2.put(Integer.valueOf(count), "Atreus");
+         //    count++;
+          //  m2.put(Integer.valueOf(count), "Olympus");
+        
+            
         } catch (FileNotFoundException ex) {
             Logger.getLogger(benchmark.class.getName()).log(Level.SEVERE, null, ex);
         }

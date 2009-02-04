@@ -42,6 +42,7 @@ import TransactionalIO.exceptions.PanicException;
 import dstm2.factory.AtomicFactory;
 import dstm2.factory.Factory;
 import TransactionalIO.benchmarks.benchmark;
+import dstm2.SpecialLock;
 import TransactionalIO.core.TransactionalFile;
 import TransactionalIO.core.Wrapper;
 import java.lang.reflect.Constructor;
@@ -286,7 +287,7 @@ public class Thread extends java.lang.Thread{
         }
         catch(AbortedException ex){
             threadState.depth--;
-          //  System.out.println("aborted");
+           // System.out.println(Thread.currentThread() + " aborted");
            // Wrapper.getTransaction().unlockAllLocks();
         }
         catch (Exception e) {
@@ -297,6 +298,8 @@ public class Thread extends java.lang.Thread{
             
             
             Wrapper.getTransaction().unlockAllLocks();
+            if (Thread.getTransaction() == SpecialLock.getSpecialLock().getOwnerTransaction())
+                SpecialLock.getSpecialLock().unlock(Thread.getTransaction());
             if  (flag == true)
                 break;
         }
