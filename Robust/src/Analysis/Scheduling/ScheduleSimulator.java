@@ -1,5 +1,7 @@
 package Analysis.Scheduling;
 
+import java.io.FileOutputStream;
+import java.io.PrintStream;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -54,6 +56,99 @@ public class ScheduleSimulator {
     this.state = state;
     this.taskanalysis = taskanalysis;
     applyScheduling();
+  }
+  
+  public Vector<Integer> simulate(Vector<Vector<Schedule>> schedulings) {
+      // Print stuff to the original output and error streams.
+      // The stuff printed through the 'origOut' and 'origErr' references
+      // should go to the console on most systems while the messages
+      // printed through the 'System.out' and 'System.err' will end up in
+      // the files we created for them.
+      //origOut.println ("\nRedirect:  Round #2");
+      //System.out.println ("Test output via 'SimulatorResult.out'.");
+      //origOut.println ("Test output via 'origOut' reference.");
+      
+      // Save the current standard input, output, and error streams
+      // for later restoration.
+      PrintStream origOut = System.out;
+
+      // Create a new output stream for the standard output.
+      PrintStream stdout  = null;
+      try {
+	  stdout = new PrintStream(new FileOutputStream("/scratch/SimulatorResult.out"));
+      } catch (Exception e) {
+	  // Sigh.  Couldn't open the file.
+	  System.out.println("Redirect:  Unable to open output file!");
+	  System.exit(1);
+      }
+
+      // Print stuff to the original output and error streams.
+      // On most systems all of this will end up on your console when you
+      // run this application.
+      //origOut.println ("\nRedirect:  Round #1");
+      //System.out.println ("Test output via 'System.out'.");
+      //origOut.println ("Test output via 'origOut' reference.");
+
+      // Set the System out and err streams to use our replacements.
+      System.setOut(stdout);
+      
+      Vector<Integer> selectedScheduling = new Vector<Integer>();
+      int processTime = Integer.MAX_VALUE;
+      if(schedulings.size() > 1500) {
+	  int index = 0;
+	  int upperbound = schedulings.size();
+	  long seed = 0;
+	  java.util.Random r = new java.util.Random(seed);
+	  for(int ii = 0; ii < 1500; ii++) {
+	      index = (int)((Math.abs((double)r.nextInt() / (double)Integer.MAX_VALUE)) * upperbound);
+	      System.out.println("Scheduling index:" + index);
+	      //System.err.println("Scheduling index:" + index);
+	      Vector<Schedule> scheduling = schedulings.elementAt(index);
+	      this.setScheduling(scheduling);
+	      int tmpTime = this.process();
+	      if(tmpTime < processTime) {
+		  selectedScheduling.clear();
+		  selectedScheduling.add(index);
+		  processTime = tmpTime;
+	      } else if(tmpTime == processTime) {
+		  selectedScheduling.add(index);
+	      }
+	      scheduling = null;
+	  }
+      } else {
+	  Iterator it_scheduling = schedulings.iterator();
+	  int index = 0;
+	  while(it_scheduling.hasNext()) {
+	      Vector<Schedule> scheduling = (Vector<Schedule>)it_scheduling.next();
+	      this.setScheduling(scheduling);
+	      int tmpTime = this.process();
+	      if(tmpTime < processTime) {
+		  selectedScheduling.clear();
+		  selectedScheduling.add(index);
+		  processTime = tmpTime;
+	      } else if(tmpTime == processTime) {
+		  selectedScheduling.add(index);
+	      }
+	      scheduling = null;
+	      index++;
+	  }
+      }
+
+      System.out.print("Selected schedulings with least exectution time " + processTime + ": \n\t");
+      for(int i = 0; i < selectedScheduling.size(); i++) {
+	  System.out.print((selectedScheduling.elementAt(i) + 1) + ", ");
+      }
+      System.out.println();
+      
+      // Close the streams.
+      try {
+	  stdout.close();
+	  System.setOut(origOut);
+      } catch (Exception e) {
+	  origOut.println("Redirect:  Unable to close files!");
+      }
+      
+      return selectedScheduling;
   }
 
   public Vector<CheckPoint> getCheckpoints() {
