@@ -13,28 +13,35 @@ public class DistributedHashMap {
     this.secondcapacity=secondcapacity;
   }
 
-  private static unsigned int hash1(unsigned int hashcode, int length) {
+  private static int hash1(int hashcode, int length) {
     int value=hashcode%length;
-    return value;
+    if (value<0)
+      return -value;
+    else
+      return value;
   }
 
-  private static unsigned int hash2(unsigned int hashcode, int length1, int length2) {
+  private static int hash2(int hashcode, int length1, int length2) {
     int value=(hashcode*31)%length2;
-    return value;
+    if (value<0)
+      return -value;
+    else
+      return value;
   }
 
   void resize(int index) {
     DHashEntry[] oldtable=table[index].array;
     int newCapacity=oldtable.length*2+1;
-    table[index].array=global new DHashEntry[newCapacity];
+    DHashEntry []newtable=global new DHashEntry[newCapacity];
+    table[index].array=newtable;
 
     for(int i=0; i<oldtable.length; i++) {
       DHashEntry e=oldtable[i];
       while(e!=null) {
-	HashEntry next=e.next;
-	int bin=hash2(e.hashval, newCapacity);
-	e.next=table[bin];
-	table[bin]=e;
+	DHashEntry next=e.next;
+	int bin=hash2(e.hashval, table.length, newCapacity);
+	e.next=newtable[bin];
+	newtable[bin]=e;
 	e=next;
       }
     }
@@ -42,11 +49,11 @@ public class DistributedHashMap {
 
   Object remove(Object key) {
     int hashcode=key.hashCode();
-    int index1=hash1(key, table.length);
+    int index1=hash1(hashcode, table.length);
     DistributedHashEntry dhe=table[index1];
-    if (dhe=null)
+    if (dhe==null)
       return null;
-    int index2=hash2(key, table.length, dhe.array.length);
+    int index2=hash2(hashcode, table.length, dhe.array.length);
     DHashEntry ptr=dhe.array[index2];
 
     if (ptr!=null) {
@@ -70,13 +77,12 @@ public class DistributedHashMap {
 
   Object get(Object key) {
     int hashcode=key.hashCode();
-    int bin=hash(key, table.length);
-    int index1=hash1(key, table.length);
+    int index1=hash1(hashcode, table.length);
     DistributedHashEntry dhe=table[index1];
     if (dhe==null)
       return null;
 
-    int index2=hash2(key, table.length, dhe.array.length);
+    int index2=hash2(hashcode, table.length, dhe.array.length);
     DHashEntry ptr=dhe.array[index2];
 
     while(ptr!=null) {
@@ -91,12 +97,11 @@ public class DistributedHashMap {
 
   boolean containsKey(Object key) {
     int hashcode=key.hashCode();
-    int bin=hash(key, table.length);
-    int index1=hash1(key, table.length);
+    int index1=hash1(hashcode, table.length);
     DistributedHashEntry dhe=table[index1];
     if (dhe==null)
       return false;
-    int index2=hash2(key, table.length, dhe.array.length);
+    int index2=hash2(hashcode, table.length, dhe.array.length);
     DHashEntry ptr=dhe.array[index2];
 
     while(ptr!=null) {
@@ -111,11 +116,10 @@ public class DistributedHashMap {
 
   Object put(Object key, Object value) {
     int hashcode=key.hashCode();
-    int bin=hash(key, table.length);
-    int index1=hash1(key, table.length);
+    int index1=hash1(hashcode, table.length);
     DistributedHashEntry dhe=table[index1];
     if (dhe==null) {
-      dhe=global new DistributedHashEntry(secondlevelcapacity);
+      dhe=global new DistributedHashEntry(secondcapacity);
       table[index1]=dhe;
     }
 
@@ -125,7 +129,7 @@ public class DistributedHashMap {
       resize(index1);
     }
 
-    int index2=hash2(key, table.length, dhe.array.length);
+    int index2=hash2(hashcode, table.length, dhe.array.length);
     DHashEntry ptr=dhe.array[index2];
 
     while(ptr!=null) {
@@ -141,8 +145,8 @@ public class DistributedHashMap {
     he.value=value;
     he.key=key;
     he.hashval=hashcode;
-    he.next=table[index2];
-    table[index2]=he;
+    he.next=dhe.array[index2];
+    dhe.array[index2]=he;
     return null;
   }
 }
