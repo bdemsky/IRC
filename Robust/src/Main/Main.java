@@ -276,310 +276,6 @@ public class Main {
       }
 
       if (state.SCHEDULING) {
-	// Indentify backedges
-	for(Iterator it_classes=state.getClassSymbolTable().getDescriptorsIterator(); it_classes.hasNext();) {
-	  ClassDescriptor cd=(ClassDescriptor) it_classes.next();
-	  if(cd.hasFlags()) {
-	    Set<FlagState> fss = ta.getFlagStates(cd);
-	    SCC scc=GraphNode.DFS.computeSCC(fss);
-	    if (scc.hasCycles()) {
-	      for(int i=0; i<scc.numSCC(); i++) {
-		if (scc.hasCycle(i)) {
-		  Set cycleset = scc.getSCC(i);
-		  Iterator it_fs = cycleset.iterator();
-		  while(it_fs.hasNext()) {
-		    FlagState fs = (FlagState)it_fs.next();
-		    Iterator it_edges = fs.edges();
-		    while(it_edges.hasNext()) {
-		      FEdge edge = (FEdge)it_edges.next();
-		      if(cycleset.contains(edge.getTarget())) {
-			// a backedge
-			edge.setisbackedge(true);
-		      }
-		    }
-		  }
-		}
-	      }
-	    }
-	    fss = null;
-	  }
-	}
-
-	// set up profiling data
-	if(state.USEPROFILE) {
-	  // read in profile data and set
-	  FileInputStream inStream = new FileInputStream("/scratch/profile.rst");
-	  byte[] b = new byte[1024 * 100];
-	  int length = inStream.read(b);
-	  if(length < 0) {
-	    System.out.print("No content in input file: /scratch/profile.rst\n");
-	    System.exit(-1);
-	  }
-	  String profiledata = new String(b, 0, length);
-	  java.util.Hashtable<String, TaskInfo> taskinfos = new java.util.Hashtable<String, TaskInfo>();
-
-	  // profile data format:
-	  //   taskname, numoftaskexits(; exetime, probability, numofnewobjtypes(, newobj type, num of objs)+)+
-	  int inindex = profiledata.indexOf('\n');
-	  while((inindex != -1) ) {
-	    String inline = profiledata.substring(0, inindex);
-	    profiledata = profiledata.substring(inindex + 1);
-	    //System.printString(inline + "\n");
-	    int tmpinindex = inline.indexOf(',');
-	    if(tmpinindex == -1) {
-	      break;
-	    }
-	    String inname = inline.substring(0, tmpinindex);
-	    String inint = inline.substring(tmpinindex + 1);
-	    while(inint.startsWith(" ")) {
-	      inint = inint.substring(1);
-	    }
-	    tmpinindex = inint.indexOf(',');
-	    if(tmpinindex == -1) {
-	      break;
-	    }
-	    int numofexits = Integer.parseInt(inint.substring(0, tmpinindex));
-	    TaskInfo tinfo = new TaskInfo(numofexits);
-	    inint = inint.substring(tmpinindex + 1);
-	    while(inint.startsWith(" ")) {
-	      inint = inint.substring(1);
-	    }
-	    tmpinindex = inint.indexOf(';');
-	    int byObj = Integer.parseInt(inint.substring(0, tmpinindex));
-	    if(byObj != -1) {
-	      tinfo.m_byObj = byObj;
-	    }
-	    inint = inint.substring(tmpinindex + 1);
-	    while(inint.startsWith(" ")) {
-	      inint = inint.substring(1);
-	    }
-	    for(int i = 0; i < numofexits; i++) {
-	      String tmpinfo = null;
-	      if(i < numofexits - 1) {
-		tmpinindex = inint.indexOf(';');
-		tmpinfo = inint.substring(0, tmpinindex);
-		inint = inint.substring(tmpinindex + 1);
-		while(inint.startsWith(" ")) {
-		  inint = inint.substring(1);
-		}
-	      } else {
-		tmpinfo = inint;
-	      }
-
-	      tmpinindex = tmpinfo.indexOf(',');
-	      tinfo.m_exetime[i] = Integer.parseInt(tmpinfo.substring(0, tmpinindex));
-	      tmpinfo = tmpinfo.substring(tmpinindex + 1);
-	      while(tmpinfo.startsWith(" ")) {
-		tmpinfo = tmpinfo.substring(1);
-	      }
-	      tmpinindex = tmpinfo.indexOf(',');
-	      tinfo.m_probability[i] = Double.parseDouble(tmpinfo.substring(0, tmpinindex));
-	      tmpinfo = tmpinfo.substring(tmpinindex + 1);
-	      while(tmpinfo.startsWith(" ")) {
-		tmpinfo = tmpinfo.substring(1);
-	      }
-	      tmpinindex = tmpinfo.indexOf(',');
-	      int numofnobjs = 0;
-	      if(tmpinindex == -1) {
-		numofnobjs = Integer.parseInt(tmpinfo);
-		if(numofnobjs != 0) {
-		  System.err.println("Error profile data format!");
-		  System.exit(-1);
-		}
-	      } else {
-		tinfo.m_newobjinfo.setElementAt(new Hashtable<String,Integer>(), i);
-		numofnobjs = Integer.parseInt(tmpinfo.substring(0, tmpinindex));
-		tmpinfo = tmpinfo.substring(tmpinindex + 1);
-		while(tmpinfo.startsWith(" ")) {
-		  tmpinfo = tmpinfo.substring(1);
-		}
-		for(int j = 0; j < numofnobjs; j++) {
-		  tmpinindex = tmpinfo.indexOf(',');
-		  String nobjtype = tmpinfo.substring(0, tmpinindex);
-		  tmpinfo = tmpinfo.substring(tmpinindex + 1);
-		  while(tmpinfo.startsWith(" ")) {
-		    tmpinfo = tmpinfo.substring(1);
-		  }
-		  int objnum = 0;
-		  if(j < numofnobjs - 1) {
-		    tmpinindex = tmpinfo.indexOf(',');
-		    objnum  = Integer.parseInt(tmpinfo.substring(0, tmpinindex));
-		    tmpinfo = tmpinfo.substring(tmpinindex + 1);
-		    while(tmpinfo.startsWith(" ")) {
-		      tmpinfo = tmpinfo.substring(1);
-		    }
-		  } else {
-		    objnum = Integer.parseInt(tmpinfo);
-		  }
-		  tinfo.m_newobjinfo.elementAt(i).put(nobjtype, objnum);
-		}
-	      }
-	    }
-	    taskinfos.put(inname, tinfo);
-	    inindex = profiledata.indexOf('\n');
-	  }
-
-	  java.util.Random r=new java.util.Random();
-	  int tint = 0;
-	  for(Iterator it_classes=state.getClassSymbolTable().getDescriptorsIterator(); it_classes.hasNext();) {
-	    ClassDescriptor cd=(ClassDescriptor) it_classes.next();
-	    if(cd.hasFlags()) {
-	      Vector rootnodes=ta.getRootNodes(cd);
-	      if(rootnodes!=null) {
-		for(Iterator it_rootnodes=rootnodes.iterator(); it_rootnodes.hasNext();) {
-		  FlagState root=(FlagState)it_rootnodes.next();
-		  Vector allocatingTasks = root.getAllocatingTasks();
-		  if(allocatingTasks != null) {
-		    for(int k = 0; k < allocatingTasks.size(); k++) {
-		      TaskDescriptor td = (TaskDescriptor)allocatingTasks.elementAt(k);
-		      Vector<FEdge> fev = (Vector<FEdge>)ta.getFEdgesFromTD(td);
-		      int numEdges = fev.size();
-		      int total = 100;
-		      for(int j = 0; j < numEdges; j++) {
-			FEdge pfe = fev.elementAt(j);
-			TaskInfo taskinfo = taskinfos.get(td.getSymbol());
-			tint = taskinfo.m_exetime[pfe.getTaskExitIndex()];
-			pfe.setExeTime(tint);
-			double idouble = taskinfo.m_probability[pfe.getTaskExitIndex()];
-			pfe.setProbability(idouble);
-			int newRate = 0;
-			if((taskinfo.m_newobjinfo.elementAt(pfe.getTaskExitIndex()) != null)
-			   && (taskinfo.m_newobjinfo.elementAt(pfe.getTaskExitIndex()).containsKey(cd.getSymbol()))) {
-			  newRate = taskinfo.m_newobjinfo.elementAt(pfe.getTaskExitIndex()).get(cd.getSymbol());
-			}
-			pfe.addNewObjInfo(cd, newRate, idouble);
-			if(taskinfo.m_byObj != -1) {
-			  ((FlagState)pfe.getSource()).setByObj(taskinfo.m_byObj);
-			}
-		      }
-		      fev = null;
-		    }
-		  }
-		}
-	      }
-	      Iterator it_flags = ta.getFlagStates(cd).iterator();
-	      while(it_flags.hasNext()) {
-		FlagState fs = (FlagState)it_flags.next();
-		Iterator it_edges = fs.edges();
-		int total = 100;
-		while(it_edges.hasNext()) {
-		  FEdge edge = (FEdge)it_edges.next();
-		  TaskInfo taskinfo = taskinfos.get(edge.getTask().getSymbol());
-		  tint = taskinfo.m_exetime[edge.getTaskExitIndex()];
-		  edge.setExeTime(tint);
-		  double idouble = taskinfo.m_probability[edge.getTaskExitIndex()];
-		  edge.setProbability(idouble);
-		  if(taskinfo.m_byObj != -1) {
-		    ((FlagState)edge.getSource()).setByObj(taskinfo.m_byObj);
-		  }
-		}
-	      }
-	    }
-	  }
-	  taskinfos = null;
-	} else {
-	  // for test
-	  // Randomly set the newRate and probability of FEdges
-	  java.util.Random r=new java.util.Random();
-	  int tint = 0;
-	  for(Iterator it_classes=state.getClassSymbolTable().getDescriptorsIterator(); it_classes.hasNext();) {
-	    ClassDescriptor cd=(ClassDescriptor) it_classes.next();
-	    if(cd.hasFlags()) {
-	      Vector rootnodes=ta.getRootNodes(cd);
-	      if(rootnodes!=null) {
-		for(Iterator it_rootnodes=rootnodes.iterator(); it_rootnodes.hasNext();) {
-		  FlagState root=(FlagState)it_rootnodes.next();
-		  Vector allocatingTasks = root.getAllocatingTasks();
-		  if(allocatingTasks != null) {
-		    for(int k = 0; k < allocatingTasks.size(); k++) {
-		      TaskDescriptor td = (TaskDescriptor)allocatingTasks.elementAt(k);
-		      Vector<FEdge> fev = (Vector<FEdge>)ta.getFEdgesFromTD(td);
-		      int numEdges = fev.size();
-		      int total = 100;
-		      for(int j = 0; j < numEdges; j++) {
-			FEdge pfe = fev.elementAt(j);
-			if(numEdges - j == 1) {
-			  pfe.setProbability(total);
-			} else {
-			  if((total != 0) && (total != 1)) {
-			    do {
-			      tint = r.nextInt()%total;
-			    } while(tint <= 0);
-			  }
-			  pfe.setProbability(tint);
-			  total -= tint;
-			}
-			//do {
-			//   tint = r.nextInt()%10;
-			//  } while(tint <= 0);
-			//int newRate = tint;
-			//int newRate = (j+1)%2+1;
-			int newRate = 1;
-			String cdname = cd.getSymbol();
-			if((cdname.equals("SeriesRunner")) ||
-			   (cdname.equals("MDRunner")) ||
-			   (cdname.equals("Stage")) ||
-			   (cdname.equals("AppDemoRunner")) ||
-			   (cdname.equals("FilterBankAtom")) ||
-			   (cdname.equals("Grid"))) {
-			  newRate = 16;
-			} else if(cdname.equals("SentenceParser")) {
-			  newRate = 4;
-			}
-			//do {
-			//    tint = r.nextInt()%100;
-			//   } while(tint <= 0);
-			//   int probability = tint;
-			int probability = 100;
-			pfe.addNewObjInfo(cd, newRate, probability);
-		      }
-		      fev = null;
-		    }
-		  }
-		}
-	      }
-
-	      Iterator it_flags = ta.getFlagStates(cd).iterator();
-	      while(it_flags.hasNext()) {
-		FlagState fs = (FlagState)it_flags.next();
-		Iterator it_edges = fs.edges();
-		int total = 100;
-		while(it_edges.hasNext()) {
-		  //do {
-		  //    tint = r.nextInt()%10;
-		  //   } while(tint <= 0);
-		  tint = 3;
-		  FEdge edge = (FEdge)it_edges.next();
-		  edge.setExeTime(tint);
-		  if((fs.getClassDescriptor().getSymbol().equals("MD")) && (edge.getTask().getSymbol().equals("t6"))) {
-		    if(edge.isbackedge()) {
-		      if(edge.getTarget().equals(edge.getSource())) {
-			edge.setProbability(93.75);
-		      } else {
-			edge.setProbability(3.125);
-		      }
-		    } else {
-		      edge.setProbability(3.125);
-		    }
-		    continue;
-		  }
-		  if(!it_edges.hasNext()) {
-		    edge.setProbability(total);
-		  } else {
-		    if((total != 0) && (total != 1)) {
-		      do {
-			tint = r.nextInt()%total;
-		      } while(tint <= 0);
-		    }
-		    edge.setProbability(tint);
-		    total -= tint;
-		  }
-		}
-	      }
-	    }
-	  }
-	}
-
 	// Use ownership analysis to get alias information
 	CallGraph callGraph = new CallGraph(state);
 	OwnershipAnalysis oa = new OwnershipAnalysis(state,
@@ -590,41 +286,11 @@ public class Main {
 	                                             state.OWNERSHIPWRITEALL,
 	                                             state.OWNERSHIPALIASFILE);
 
-	// Save the current standard input, output, and error streams
-	// for later restoration.
-	PrintStream origOut = System.out;
-
-	// Create a new output stream for the standard output.
-	PrintStream stdout  = null;
-	try {
-	  stdout = new PrintStream(new FileOutputStream("/scratch/SimulatorResult.out"));
-	} catch (Exception e) {
-	  // Sigh.  Couldn't open the file.
-	  System.out.println("Redirect:  Unable to open output file!");
-	  System.exit(1);
-	}
-
-	// Print stuff to the original output and error streams.
-	// On most systems all of this will end up on your console when you
-	// run this application.
-	//origOut.println ("\nRedirect:  Round #1");
-	//System.out.println ("Test output via 'System.out'.");
-	//origOut.println ("Test output via 'origOut' reference.");
-
-	// Set the System out and err streams to use our replacements.
-	System.setOut(stdout);
-
-	// Print stuff to the original output and error streams.
-	// The stuff printed through the 'origOut' and 'origErr' references
-	// should go to the console on most systems while the messages
-	// printed through the 'System.out' and 'System.err' will end up in
-	// the files we created for them.
-	//origOut.println ("\nRedirect:  Round #2");
-	//System.out.println ("Test output via 'SimulatorResult.out'.");
-	//origOut.println ("Test output via 'origOut' reference.");
-
 	// generate multiple schedulings
-	ScheduleAnalysis scheduleAnalysis = new ScheduleAnalysis(state, ta);
+	ScheduleAnalysis scheduleAnalysis = new ScheduleAnalysis(state, 
+		                                                 ta);
+	// necessary preparation such as read profile info etc.
+	scheduleAnalysis.preparation();  
 	scheduleAnalysis.preSchedule();
 	scheduleAnalysis.scheduleAnalysis();
 	//scheduleAnalysis.setCoreNum(scheduleAnalysis.getSEdges4Test().size());
@@ -632,69 +298,21 @@ public class Main {
 	scheduleAnalysis.schedule();
 
 	//simulate these schedulings
-	ScheduleSimulator scheduleSimulator = new ScheduleSimulator(scheduleAnalysis.getCoreNum(), state, ta);
+	ScheduleSimulator scheduleSimulator = new ScheduleSimulator(scheduleAnalysis.getCoreNum(), 
+		                                                    state, 
+		                                                    ta);
 	Vector<Vector<Schedule>> schedulings = scheduleAnalysis.getSchedulings();
-	Vector<Integer> selectedScheduling = new Vector<Integer>();
-	int processTime = Integer.MAX_VALUE;
-	if(schedulings.size() > 1500) {
-	  int index = 0;
-	  int upperbound = schedulings.size();
-	  long seed = 0;
-	  java.util.Random r = new java.util.Random(seed);
-	  for(int ii = 0; ii < 1500; ii++) {
-	    index = (int)((Math.abs((double)r.nextInt() / (double)Integer.MAX_VALUE)) * upperbound);
-	    System.out.println("Scheduling index:" + index);
-	    //System.err.println("Scheduling index:" + index);
-	    Vector<Schedule> scheduling = schedulings.elementAt(index);
-	    scheduleSimulator.setScheduling(scheduling);
-	    int tmpTime = scheduleSimulator.process();
-	    if(tmpTime < processTime) {
-	      selectedScheduling.clear();
-	      selectedScheduling.add(index);
-	      processTime = tmpTime;
-	    } else if(tmpTime == processTime) {
-	      selectedScheduling.add(index);
-	    }
-	    scheduling = null;
-	  }
-	} else {
-	  Iterator it_scheduling = scheduleAnalysis.getSchedulingsIter();
-	  int index = 0;
-	  while(it_scheduling.hasNext()) {
-	    Vector<Schedule> scheduling = (Vector<Schedule>)it_scheduling.next();
-	    scheduleSimulator.setScheduling(scheduling);
-	    int tmpTime = scheduleSimulator.process();
-	    if(tmpTime < processTime) {
-	      selectedScheduling.clear();
-	      selectedScheduling.add(index);
-	      processTime = tmpTime;
-	    } else if(tmpTime == processTime) {
-	      selectedScheduling.add(index);
-	    }
-	    scheduling = null;
-	    index++;
-	  }
-	}
-
-	System.out.print("Selected schedulings with least exectution time " + processTime + ": \n\t");
-	for(int i = 0; i < selectedScheduling.size(); i++) {
-	  System.out.print((selectedScheduling.elementAt(i) + 1) + ", ");
-	}
-	System.out.println();
-
-	// Close the streams.
-	try {
-	  stdout.close();
-	  System.setOut(origOut);
-	} catch (Exception e) {
-	  origOut.println("Redirect:  Unable to close files!");
-	}
+	Vector<Integer> selectedScheduling = scheduleSimulator.simulate(schedulings);
 
 	if(state.MULTICORE) {
-	  //it_scheduling = scheduleAnalysis.getSchedulingsIter();
-	  //Vector<Schedule> scheduling = (Vector<Schedule>)it_scheduling.next();
 	  Vector<Schedule> scheduling = scheduleAnalysis.getSchedulings().elementAt(selectedScheduling.firstElement());
-	  BuildCodeMultiCore bcm=new BuildCodeMultiCore(state, bf.getMap(), tu, sa, scheduling, scheduleAnalysis.getCoreNum(), pa);
+	  BuildCodeMultiCore bcm=new BuildCodeMultiCore(state, 
+		                                        bf.getMap(), 
+		                                        tu, 
+		                                        sa, 
+		                                        scheduling, 
+		                                        scheduleAnalysis.getCoreNum(), 
+		                                        pa);
 	  bcm.setOwnershipAnalysis(oa);
 	  bcm.buildCode();
 	  scheduling = null;
@@ -763,25 +381,6 @@ public class Main {
     if (l.numErrors()!=0) {
       System.out.println("Error parsing "+sourcefile);
       System.exit(l.numErrors());
-    }
-  }
-
-  static class TaskInfo {
-    public int m_numofexits;
-    public int[] m_exetime;
-    public double[] m_probability;
-    public Vector<Hashtable<String, Integer>> m_newobjinfo;
-    public int m_byObj;
-
-    public TaskInfo(int numofexits) {
-      this.m_numofexits = numofexits;
-      this.m_exetime = new int[this.m_numofexits];
-      this.m_probability = new double[this.m_numofexits];
-      this.m_newobjinfo = new Vector<Hashtable<String, Integer>>();
-      for(int i = 0; i < this.m_numofexits; i++) {
-	this.m_newobjinfo.add(null);
-      }
-      this.m_byObj = -1;
     }
   }
 }
