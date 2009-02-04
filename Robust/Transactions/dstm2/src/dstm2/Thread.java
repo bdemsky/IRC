@@ -296,10 +296,14 @@ public class Thread extends java.lang.Thread{
         }
         finally{
             
-            
+          //  System.out.println("here " + Thread.currentThread());
             Wrapper.getTransaction().unlockAllLocks();
-            if (Thread.getTransaction() == SpecialLock.getSpecialLock().getOwnerTransaction())
+            if (Thread.getTransaction() == SpecialLock.getSpecialLock().getOwnerTransaction()){
+            //     System.out.println("herein " + Thread.currentThread());
                 SpecialLock.getSpecialLock().unlock(Thread.getTransaction());
+            //    System.out.println("here");
+                        
+            }
             if  (flag == true)
                 break;
         }

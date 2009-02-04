@@ -22,7 +22,7 @@ public class SpecialLock extends ReentrantLock{
     
     public synchronized void lock(Transaction tr){
         super.lock();
-        setOwnerTransaction(ownerTransaction);
+        setOwnerTransaction(tr);
     }
     
     public synchronized void unlock(Transaction tr){

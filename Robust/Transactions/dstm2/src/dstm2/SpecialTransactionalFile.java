@@ -30,12 +30,17 @@ public class SpecialTransactionalFile{
 
     
     private void checkConsisteny(){
+      //    System.out.println(Thread.currentThread());
         Transaction me = Thread.getTransaction();
         if (!me.isActive()) {
+                SpecialLock.getSpecialLock().unlock(me);
                 throw new AbortedException();
         }
-        if (me != SpecialLock.getSpecialLock().getOwnerTransaction())
+        if (me != SpecialLock.getSpecialLock().getOwnerTransaction()){
+          //  System.out.println("trying to lock " + Thread.currentThread());
             SpecialLock.getSpecialLock().lock(me);
+           // System.out.println("locked " + Thread.currentThread());
+        }
         
         if (!me.isActive()) {
                 SpecialLock.getSpecialLock().unlock(me);
