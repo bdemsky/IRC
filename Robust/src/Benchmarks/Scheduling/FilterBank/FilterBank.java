@@ -7,15 +7,20 @@ task t1(StartupObject s{initialstate}) {
 	int N_col=128;
 	int i,j;
 
-	float r[] = new float[N_sim];
+	/*float r[] = new float[N_sim];
 	for (i=0;i<N_sim;i++) {
 		r[i]=i+1;
-	}
+	}*/
 	
 	for(j = 0; j < N_ch; j++) {
-		FilterBankAtom fba = new FilterBankAtom(j, N_ch, N_col, N_sim, N_samp, r/*, H, F*/){tosamp};
+		FilterBankAtom fba = new FilterBankAtom(j, 
+			                                N_ch, 
+			                                N_col, 
+			                                N_sim, 
+			                                N_samp/*, 
+			                                r*/){tosamp};
 	}
-	FilterBank fb = new FilterBank(N_sim, N_ch){!finish};
+	FilterBank fb = new FilterBank(N_sim, N_ch){!finish, !print};
 
 	taskexit(s{!initialstate});
 }
@@ -23,7 +28,7 @@ task t1(StartupObject s{initialstate}) {
 task t2(FilterBankAtom fba{tosamp}) {
 	//System.printString("task t2\n");
 	
-	fba.init();
+	//fba.init();
 	fba.FBCore();
 
 	taskexit(fba{!tosamp, tomerge});
@@ -67,18 +72,20 @@ public class FilterBank {
 	}
 
 	public boolean merge(float[] result) {
-		for(int i = 0; i < this.N_sim; i++) {
-			this.y[i] += result[i];
-		}
-		this.counter--;
+	    float[] ty = this.y;
+	    int Nsim = this.N_sim;
+	    for(int i = 0; i < Nsim; i++) {
+		ty[i] += result[i];
+	    }
+	    this.counter--;
 
-		return this.counter == 0;
+	    return this.counter == 0;
 	}
 
 	public void print() {
-		/*for(int i = 0; i < this.N_sim; i++) {
-			//System.printI((int)this.y[i]);
-		}*/
+		for(int i = 0; i < this.N_sim; i++) {
+			System.printI((int)(this.y[i] * 10000));
+		}
 	}
 }
 
@@ -92,26 +99,31 @@ public class FilterBankAtom {
 	int N_col;
 	int N_sim;
 	int N_samp;
-	float[] r;
-	float[] H;
+	//float[] r;
+	/*float[] H;
 	float[] F;
 	float[] vH;
 	float[] vDn;
-	float[] vUp;
+	float[] vUp;*/
 	public float[] vF;
 
-	public FilterBankAtom(int cindex, int N_ch, int N_col, int N_sim, int N_samp, float[] r/*, float[] H, float[] F*/) {
+	public FilterBankAtom(int cindex, 
+		              int N_ch, 
+		              int N_col, 
+		              int N_sim, 
+		              int N_samp/*, 
+		              float[] r*/) {
 	    this.ch_index = cindex;
 	    this.N_ch = N_ch;
 	    this.N_col = N_col;
 	    this.N_sim = N_sim;
 	    this.N_samp = N_samp;
-	    this.r = r;
+	    /*this.r = r;
 	    //this.H = null;
 	    //this.F = null;
 	    this.vH = new float[this.N_sim];
 	    this.vDn = new float[(int) this.N_sim/this.N_samp];
-	    this.vUp = new float[this.N_sim];
+	    this.vUp = new float[this.N_sim];*/
 	    this.vF = new float[this.N_sim];
 	    /*this.H[] = new float[N_col];
 	    this.F[] = new float[N_col];
@@ -121,7 +133,7 @@ public class FilterBankAtom {
 	    }*/
 	}
 	
-	public void init() {
+	/*public void init() {
 	    int j = this.ch_index;
 	    this.H = new float[this.N_col];
 	    this.F = new float[this.N_col];
@@ -129,37 +141,53 @@ public class FilterBankAtom {
 		this.H[i]=i*this.N_col+j*this.N_ch+j+i+j+1;
 		this.F[i]=i*j+j*j+j+i;
 	    }
-	}
+	}*/
 
 	public void FBCore() {
-		int j,k;
+		int i,j,k;
+		int chindex = this.ch_index;
+		int Ncol = this.N_col;
+		int Nsim = this.N_sim;
+		int Nch = this.N_ch;
+		int Nsamp = this.N_samp;
+		float[] tvF = this.vF;
+		
+		float r[] = new float[Nsim];
+		for (i=0;i<Nsim;i++) {
+			r[i]=i+1;
+		}
+
+		float[] H = new float[Ncol];
+		float[] F = new float[Ncol];
+		for(i = 0; i < Ncol; i++) {
+		    H[i]=i*Ncol+chindex*Nch+chindex+i+chindex+1;
+		    F[i]=i*chindex+chindex*chindex+chindex+i;
+		}
+		float[] vH = new float[Nsim];
+		float[] vDn = new float[(int)(Nsim/Nsamp)];
+		float[] vUp = new float[Nsim];
 
 		//convolving H
-		for (j=0; j< N_sim; j++) {
-			this.vH[j]=0;
-			for (k=0; ((k<this.N_col) && ((j-k)>=0)); k++) {
-				this.vH[j]+=this.H[k]*this.r[j-k];
+		for (j=0; j< Nsim; j++) {
+			for (k=0; ((k<Ncol) && ((j-k)>=0)); k++) {
+				vH[j]+=H[k]*r[j-k];
 			}
 		}
 
 		//Down Samplin
-		for (j=0; j < this.N_sim/this.N_samp; j++) {
-			this.vDn[j]=this.vH[j*this.N_samp];
+		for (j=0; j < Nsim/Nsamp; j++) {
+			vDn[j]=vH[j*Nsamp];
 		}
 
 		//Up Sampling
-		for (j=0; j < this.N_sim; j++) {
-			this.vUp[j]=0;
-		}
-		for (j=0; j < this.N_sim/this.N_samp; j++) {
-			this.vUp[j*this.N_samp]=this.vDn[j];
+		for (j=0; j < Nsim/Nsamp; j++) {
+			vUp[j*Nsamp]=vDn[j];
 		}
 
 		//convolving F
-		for (j=0; j< this.N_sim; j++) {
-			this.vF[j]=0;
-			for (k=0; ((k<this.N_col) && ((j-k)>=0)); k++) {
-				this.vF[j]+=this.F[k]*this.vUp[j-k];
+		for (j=0; j< Nsim; j++) {
+			for (k=0; ((k<Ncol) && ((j-k)>=0)); k++) {
+				tvF[j]+=F[k]*vUp[j-k];
 			}
 		}
 	}
