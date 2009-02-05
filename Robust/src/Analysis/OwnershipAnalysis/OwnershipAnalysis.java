@@ -294,11 +294,10 @@ public class OwnershipAnalysis {
     } else {
       // we are not in task mode, just normal Java, so start with
       // the main method
-      
-      // get all classes, get all methods, look for static main, then stop?
-      
-      // YOU CAN DEFINE MORE THAN ONE MAIN!!!!
+      Descriptor d = tu.getMain();
+      scheduleAllCallees(d);
 
+      /*
       Iterator classItr = state.getClassSymbolTable().getDescriptorsIterator();
       while( classItr.hasNext() ) {
 	ClassDescriptor cd = (ClassDescriptor) classItr.next();
@@ -312,7 +311,7 @@ public class OwnershipAnalysis {
 	  }
 	}
       }
-      
+      */
     }
 
 
