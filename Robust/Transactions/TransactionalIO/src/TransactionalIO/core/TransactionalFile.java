@@ -46,7 +46,7 @@ public class TransactionalFile implements Comparable {
     
 
     {
-        System.load("/home/navid/libkooni.so");
+        System.load("/home/navid/libnav.so");
     }
     public RandomAccessFile file;
     private INode inode;
@@ -871,7 +871,7 @@ public class TransactionalFile implements Comparable {
             non_Transactional_Write(data);
             return;
         }
-
+       // System.out.println("write " + Thread.currentThread());
         if (!(me.getGlobaltoLocalMappings().containsKey(this))) {
             me.addFile(this, 0);
         }

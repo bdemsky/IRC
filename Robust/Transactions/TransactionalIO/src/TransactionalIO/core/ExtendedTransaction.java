@@ -42,7 +42,7 @@ public class ExtendedTransaction implements TransactionStatu {
     
 
     {
-        System.load("/home/navid/libkooni.so");
+        System.load("/home/navid/libnav.so");
     }
     
     private boolean flag = true;
@@ -355,7 +355,6 @@ public class ExtendedTransaction implements TransactionStatu {
         //toholdblocklocks = new Lock[100];
         
         Iterator it = this.getAccessedBlocks().keySet().iterator();
-        BlockDataStructure[] blocks = new BlockDataStructure[100];
         //if (this.getStatus() == Status.ACTIVE)
             while (it.hasNext() /*&& (this.getStatus() == Status.ACTIVE)*/) {
                 INode inode = (INode) it.next();

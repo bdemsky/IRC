@@ -13,11 +13,8 @@ import java.io.RandomAccessFile;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Random;
 import java.util.Vector;
-import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -52,7 +49,6 @@ public class benchmark {
             byte[] data = new byte[1];
             char[] name = new char[20];
             RandomAccessFile file = new RandomAccessFile("/scratch/TransactionalIO/FinancialTransactionBenchmarkFiles/namelist.text", "rw");
-            RandomAccessFile file2 = new RandomAccessFile("/scratch/TransactionalIO/FinancialTransactionBenchmarkFiles/financialtransaction.text", "rw");
             RandomAccessFile file3 = new RandomAccessFile("/scratch/TransactionalIO/FinancialTransactionBenchmarkFiles/accountbalance.text", "rw");
             /*RandomAccessFile file = new RandomAccessFile("/home/navid/namelist.text", "rw");
             RandomAccessFile file2 = new RandomAccessFile("/home/navid/financialtransaction.text", "rw");
@@ -165,10 +161,27 @@ public class benchmark {
         
           
           for (int i=0; i<50; i++){
-              String towrite = (String)m3.get(Integer.valueOf(i)) +"\n";
-              for (int j=0; j<stocks.length; j++)
-                towrite +=  stocks[j] + " Stock Balance: " + ((int)(Math.random()*100+100)) + "             \n";
-              System.out.println(towrite);
+              String towrite = (String)m3.get(Integer.valueOf(i));
+              String tmpst = (String)m3.get(Integer.valueOf(i));
+              int tmp = tmpst.length();
+              while(tmp<10){
+                  towrite += new String(" ");
+                  tmp++;
+              }
+              towrite += "\n";
+              for (int j=0; j<stocks.length; j++){
+                tmpst = stocks[j] + " Stock Balance: " + ((int)(Math.random()*100+100));  
+                towrite +=  stocks[j] + " Stock Balance: " + ((int)(Math.random()*100+100));
+                tmp = tmpst.length();
+                System.out.println(tmp);
+                while(tmp<40){
+                  towrite += new String(" ");
+                  tmp++;
+                }
+                towrite += "\n";
+              }
+             
+            //  System.out.println(towrite);
               file3.write(towrite.getBytes());
               while (file3.getFilePointer()<(i+1)*Defaults.FILEFRAGMENTSIZE)
                   file3.write(new String(" ").getBytes());    
@@ -179,6 +192,13 @@ public class benchmark {
               System.out.println((char)f[i]);*/
           file.close();
 //          file2.close();
+          byte[] b= new byte[41];
+          
+          file3.seek(1024);
+          file3.read(new byte[11]);
+          file3.read(b);
+          System.out.println("h " + (char)b[40]);
+          System.out.println((char)file3.readByte());
           file3.close();
         } catch (IOException ex) {
             Logger.getLogger(benchmark.class.getName()).log(Level.SEVERE, null, ex);
@@ -224,16 +244,16 @@ public class benchmark {
             count++;
 
             //TransactionalFile tr6 = new TransactionalFile("/home/navid/accountbalance.text", "rw");
-            TransactionalFile tr6 = new TransactionalFile("/scratch/TransactionalIO/FinancialTransactionBenchmarkFiles/accountbalance.text", "rw");
-            m.put("accountbalance", tr6);
+          //  TransactionalFile tr6 = new TransactionalFile("/scratch/TransactionalIO/FinancialTransactionBenchmarkFiles/accountbalance.text", "rw");
+            //m.put("accountbalance", tr6);
             //m.put(String.valueOf(count), tr6);
 
             count++;
 
             //TransactionalFile tr7 = new TransactionalFile("/home/navid/financialtransactionlog.text", "rw");
-            TransactionalFile tr7 = new TransactionalFile("/scratch/TransactionalIO/FinancialTransactionBenchmarkFiles/financialtransactionlog.text", "rw");
-            m.put("financialtransactionlog", tr7);
-            m.put(String.valueOf(count), tr7);
+          //  TransactionalFile tr7 = new TransactionalFile("/scratch/TransactionalIO/FinancialTransactionBenchmarkFiles/financialtransactionlog.text", "rw");
+          //  m.put("financialtransactionlog", tr7);
+          //  m.put(String.valueOf(count), tr7);
             count++;
 
             //RandomAccessFile tr8 = new RandomAccessFile("/home/navid/accountbalance.text", "rw");
@@ -252,7 +272,7 @@ public class benchmark {
             int index = 97;
             for (int i = 0; i < 26; i++) {
                       m.put(String.valueOf((char) (index+i))+"random", new RandomAccessFile("/home/navid/" + String.valueOf((char) (index+i)) + ".text", "rw"));
-                      //m.put(String.valueOf((char) (index+i)), new TransactionalFile("/home/navid/" + String.valueOf((char) (index+i)) + ".text", "rw"));
+                      m.put(String.valueOf((char) (index+i)), new TransactionalFile("/home/navid/" + String.valueOf((char) (index+i)) + ".text", "rw"));
                       m.put(String.valueOf((char) (index+i)), new TransactionalFile("/scratch/TransactionalIO/PureIOBenchmarkFiles/" + String.valueOf((char) (index+i)) + ".text", "rw"));
                       count++;
             }
