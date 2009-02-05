@@ -2100,7 +2100,7 @@ public class BuildCode {
     else
       type=elementtype.getSafeSymbol()+" ";
 
-    if (fen.needsBoundsCheck()) {
+    if (this.state.ARRAYBOUNDARYCHECK && fen.needsBoundsCheck()) {
       output.println("if ("+generateTemp(fm, fen.getIndex(),lb)+"< 0 || "+generateTemp(fm, fen.getIndex(),lb)+" >= "+generateTemp(fm,fen.getSrc(),lb) + "->___length___)");
       output.println("failedboundschk();");
     }
@@ -2144,8 +2144,7 @@ public class BuildCode {
     else
       type=elementtype.getSafeSymbol()+" ";
 
-
-    if (fsen.needsBoundsCheck()) {
+    if (this.state.ARRAYBOUNDARYCHECK && fsen.needsBoundsCheck()) {
       output.println("if ("+generateTemp(fm, fsen.getIndex(),lb)+"< 0 || "+generateTemp(fm, fsen.getIndex(),lb)+" >= "+generateTemp(fm,fsen.getDst(),lb) + "->___length___)");
       output.println("failedboundschk();");
     }

@@ -129,6 +129,8 @@ public class Main {
 	state.WEBINTERFACE=true;
       else if (option.equals("-instructionfailures"))
 	state.INSTRUCTIONFAILURE=true;
+      else if (option.equals("-abcclose"))
+	  state.ARRAYBOUNDARYCHECK=false;
       else if (option.equals("-help")) {
 	System.out.println("-classlibrary classlibrarydirectory -- directory where classlibrary is located");
 	System.out.println("-selfloop task -- this task doesn't self loop its parameters forever");
@@ -154,6 +156,7 @@ public class Main {
 	System.out.println("-ownwritedots <all/final> -- write ownership graphs; can be all results or just final results");
 	System.out.println("-ownaliasfile <filename> -- write a text file showing all detected aliases in program tasks");
 	System.out.println("-optional -- enable optional arguments");
+	System.out.println("-abcclose close the array boundary check");
 	System.out.println("-scheduling do task scheduling");
 	System.out.println("-multicore generate multi-core version binary");
 	System.out.println("-numcore set the number of cores (should be used together with -multicore), defaultly set as 1");
@@ -317,6 +320,7 @@ public class Main {
 	  bcm.buildCode();
 	  scheduling = null;
 	}
+	schedulings = null;
 	selectedScheduling = null;
       }
 
