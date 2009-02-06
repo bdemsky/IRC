@@ -82,9 +82,15 @@ INLINE void * chashSearch(chashtable_t *table, unsigned int key) {
 }
 
 unsigned int chashRemove(chashtable_t *table, unsigned int key) {
+  return chashRemove2(table, key)==NULL;
+
+}
+
+void * chashRemove2(chashtable_t *table, unsigned int key) {
   int index;
   chashlistnode_t *curr, *prev;
   chashlistnode_t *ptr, *node;
+  void *value;
 
   ptr = table->table;
   index = chashFunction(table,key);
@@ -95,22 +101,25 @@ unsigned int chashRemove(chashtable_t *table, unsigned int key) {
       table->numelements--;  // Decrement the number of elements in the global hashtable
       if ((curr == &ptr[index]) && (curr->next == NULL)) {  // Delete the first item inside the hashtable with no linked list of chashlistnode_t
 	curr->key = 0;
+	value=curr->val;
 	curr->val = NULL;
       } else if ((curr == &ptr[index]) && (curr->next != NULL)) { //Delete the first item with a linked list of chashlistnode_t  connected
 	curr->key = curr->next->key;
+	value=curr->val;
 	curr->val = curr->next->val;
 	node = curr->next;
 	curr->next = curr->next->next;
 	free(node);
       } else {                                          // Regular delete from linked listed
 	prev->next = curr->next;
+	value=curr->val;
 	free(curr);
       }
-      return 0;
+      return value;
     }
     prev = curr;
   }
-  return 1;
+  return NULL;
 }
 
 unsigned int chashResize(chashtable_t *table, unsigned int newsize) {

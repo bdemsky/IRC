@@ -165,6 +165,10 @@ typedef struct transrecord {
 #ifdef COMPILER
   struct ___Object___ * revertlist;
 #endif
+#ifdef ABORTREADERS
+  int abort;
+  jmp_buf aborttrans;
+#endif
 } transrecord_t;
 
 // Structure is a shared structure that keeps track of responses from the participants

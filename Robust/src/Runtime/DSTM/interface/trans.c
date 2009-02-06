@@ -395,6 +395,15 @@ __attribute__((pure)) objheader_t *transRead(transrecord_t *record, unsigned int
 #endif
   } else 
   */
+
+#ifdef ABORTREADERS
+  if (trans->abort) {
+    //abort this transaction
+    longjmp(trans->aborttrans,1);
+  } else
+    addtransaction(oid,record);
+#endif
+
   if ((objheader = (objheader_t *) mhashSearch(oid)) != NULL) {
 #ifdef TRANSSTATS
     nmhashSearch++;
