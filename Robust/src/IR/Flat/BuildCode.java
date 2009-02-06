@@ -124,9 +124,10 @@ public class BuildCode {
     outmethodheader.println("#include \"structdefs.h\"");
     if (state.DSM)
       outmethodheader.println("#include \"dstm.h\"");
-    if (state.ABORTREADERS)
+    if (state.ABORTREADERS) {
       outmethodheader.println("#include \"abortreaders.h\"");
-
+      outmethodheader.println("#include <setjmp.h>");
+    }
     /* Output Structures */
     outputStructs(outstructs);
 
@@ -1756,7 +1757,7 @@ public class BuildCode {
     
     if (state.ABORTREADERS) {
       output.println("if (setjmp(trans->aborttrans))");
-      output.println("  goto transretry"+faen.getIdentifier()+":");
+      output.println("  goto transretry"+faen.getIdentifier()+";");
     }
   }
 
