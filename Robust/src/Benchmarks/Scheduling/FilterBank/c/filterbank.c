@@ -68,7 +68,7 @@ void begin(void){
 #ifdef RAW
       //print_float(y[i]);
 #else
-      //printf("%f\n", y[i]);
+      printf("%f\n", y[i]);
 #endif
     }
   }
@@ -94,15 +94,24 @@ void FBCore(int N_samp,int N_ch, int N_col,float r[N_sim],float y[N_sim], float 
       float Vect_Up[N_sim]; // output of the up sampler;
       float Vect_F[N_sim];// this is the output of the
 #ifdef RAW
-		raw_test_pass(raw_get_cycle());
+		//raw_test_pass(raw_get_cycle());
 #endif 
-
       //convolving H
       for (j=0; j< N_sim; j++)
 	{
 	  Vect_H[j]=0;
-	  for (k=0; ((k<N_col) & ((j-k)>=0)); k++)
-	    Vect_H[j]+=H[i][k]*r[j-k];
+	  /*for (k=0; ((k<N_col) & ((j-k)>=0)); k++)
+	    Vect_H[j]+=H[i][k]*r[j-k];*/
+	    k = 0;
+	    int stat = 0;
+	    int diff = j;
+	    do {
+	        float tmp = H[i][k]*r[j-k];
+	        k++;
+	        diff--;
+	        stat = (k<N_col) & (diff>=0);
+	        Vect_H[j]+=tmp;
+	    }while(stat);
 	}
 
       //Down Sampling
@@ -110,10 +119,10 @@ void FBCore(int N_samp,int N_ch, int N_col,float r[N_sim],float y[N_sim], float 
 	Vect_Dn[j]=Vect_H[j*N_samp];
 
       //Up Sampling
-      /*for (j=0; j < N_sim;j++)
+      for (j=0; j < N_sim;j++)
 	Vect_Up[j]=0;
       for (j=0; j < N_sim/N_samp;j++)
-	Vect_Up[j*N_samp]=Vect_Dn[j];*/
+	Vect_Up[j*N_samp]=Vect_Dn[j];
 
       //convolving F
       for (j=0; j< N_sim; j++)
@@ -121,6 +130,16 @@ void FBCore(int N_samp,int N_ch, int N_col,float r[N_sim],float y[N_sim], float 
 	  Vect_F[j]=0;
 	  /*for (k=0; ((k<N_col) & ((j-k)>=0)); k++)
 	    Vect_F[j]+=F[i][k]*Vect_Up[j-k];*/
+	    k = 0;
+	    int stat = 0;
+	    int diff = j;
+	    do {
+	        float tmp = F[i][k]*Vect_Up[j-k];
+	        k++;
+	        diff--;
+	        stat = (k<N_col) & (diff>=0);
+	        Vect_F[j]+=tmp;
+	    }while(stat);
 	}
 
       //adding the results to the y matrix
@@ -128,7 +147,7 @@ void FBCore(int N_samp,int N_ch, int N_col,float r[N_sim],float y[N_sim], float 
       for (j=0; j < N_sim; j++)
 	y[j]+=Vect_F[j];
 #ifdef RAW
-		raw_test_pass(raw_get_cycle());
+		//raw_test_pass(raw_get_cycle());
 #endif
     }
 }

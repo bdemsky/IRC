@@ -83,9 +83,9 @@ public class FilterBank {
 	}
 
 	public void print() {
-		for(int i = 0; i < this.N_sim; i++) {
+		/*for(int i = 0; i < this.N_sim; i++) {
 			System.printI((int)(this.y[i] * 10000));
-		}
+		}*/
 	}
 }
 
@@ -169,9 +169,19 @@ public class FilterBankAtom {
 
 		//convolving H
 		for (j=0; j< Nsim; j++) {
-			for (k=0; ((k<Ncol) && ((j-k)>=0)); k++) {
+			/*for (k=0; ((k<Ncol) & ((j-k)>=0)); k++) {
 				vH[j]+=H[k]*r[j-k];
-			}
+			}*/
+		    k = 0;
+		    boolean stat = false;
+		    int diff = j;
+		    do{
+			float tmp = H[k]*r[j-k];
+			k++;
+			diff--;
+			stat = (k<Ncol) & (diff >= 0);
+			vH[j]+=tmp;
+		    }while(stat);
 		}
 
 		//Down Samplin
@@ -186,9 +196,19 @@ public class FilterBankAtom {
 
 		//convolving F
 		for (j=0; j< Nsim; j++) {
-			for (k=0; ((k<Ncol) && ((j-k)>=0)); k++) {
+			/*for (k=0; ((k<Ncol) & ((j-k)>=0)); k++) {
 				tvF[j]+=F[k]*vUp[j-k];
-			}
+			}*/
+		    k = 0;
+		    boolean stat = false;
+		    int diff = j;
+		    do{
+			float tmp = F[k]*vUp[j-k];
+			k++;
+			diff--;
+			stat = (k<Ncol) & (diff >= 0);
+			tvF[j]+=tmp;
+		    }while(stat);
 		}
 	}
 }
