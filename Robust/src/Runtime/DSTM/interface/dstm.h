@@ -83,6 +83,9 @@
 #include <signal.h>
 #include "plookup.h"
 #include "dsmdebug.h"
+#ifdef ABORTREADERS
+#include <setjmp.h>
+#endif
 
 //bit designations for status field of objheader
 #define DIRTY 0x01

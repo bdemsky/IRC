@@ -15,6 +15,9 @@
 #ifdef COMPILER
 #include "thread.h"
 #endif
+#ifdef ABORTREADERS
+#include "abortreaders.h"
+#endif
 
 #define NUM_THREADS 1
 #define PREFETCH_CACHE_SIZE 1048576 //1MB
@@ -193,6 +196,9 @@ int dstmStartup(const char * option) {
 #ifdef TRANSSTATS
   printf("Trans stats is on\n");
   fflush(stdout);
+#endif
+#ifdef ABORTREADERS
+  initreaderlist();
 #endif
 
   //Initialize socket pool
@@ -397,9 +403,9 @@ __attribute__((pure)) objheader_t *transRead(transrecord_t *record, unsigned int
   */
 
 #ifdef ABORTREADERS
-  if (trans->abort) {
+  if (record->abort) {
     //abort this transaction
-    longjmp(trans->aborttrans,1);
+    longjmp(record->aborttrans,1);
   } else
     addtransaction(oid,record);
 #endif
@@ -754,13 +760,13 @@ int transCommit(transrecord_t *record) {
 	  }
 #ifdef ABORTREADERS
 	  removetransaction(tosend[i].oidmod,tosend[i].f.nummod);
-	  removethisreadtransaction(tosend[i].oidmod,tosend[i].f.numread, record);
+	  removethisreadtransaction(tosend[i].objread, tosend[i].f.numread, record);
 #endif
 	}
 #ifdef ABORTREADERS
 	else if (!treplyretry) {
 	  removethistransaction(tosend[i].oidmod,tosend[i].f.nummod,record);
-	  removethisreadtransaction(tosend[i].oidmod,tosend[i].f.numread,record);
+	  removethisreadtransaction(tosend[i].objread,tosend[i].f.numread,record);
 	}
 #endif
 #endif
@@ -771,10 +777,10 @@ int transCommit(transrecord_t *record) {
 #ifdef ABORTREADERS
 	if(finalResponse == TRANS_COMMIT) {
 	  removetransaction(tosend[i].oidmod,tosend[i].f.nummod);
-	  removethisreadtransaction(tosend[i].oidmod,tosend[i].f.numread, record);
+	  removethisreadtransaction(tosend[i].objread,tosend[i].f.numread, record);
 	} else if (!treplyretry) {
 	  removethistransaction(tosend[i].oidmod,tosend[i].f.nummod,record);
-	  removethisreadtransaction(tosend[i].oidmod,tosend[i].f.numread,record);
+	  removethisreadtransaction(tosend[i].objread,tosend[i].f.numread,record);
 	}
 #endif
       }
