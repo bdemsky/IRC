@@ -6,6 +6,9 @@
 #include <netinet/tcp.h>
 #include "addUdpEnhance.h"
 #include "prelookup.h"
+#ifdef ABORTREADERS
+#include "abortreaders.h"
+#endif
 
 /************************
  * Global Variables *
@@ -197,6 +200,9 @@ int invalidateFromPrefetchCache(char *buffer) {
     int numObjsRecv = *((short *)(buffer+offset)) / sizeof(unsigned int);
     offset += sizeof(short);
     int i;
+#ifdef ABORTREADERS
+    removetransaction((unsigned int *)(buffer+offset), numObjsRecv);
+#endif
     for(i = 0; i < numObjsRecv; i++) {
       unsigned int oid;
       oid = *((unsigned int *)(buffer+offset));

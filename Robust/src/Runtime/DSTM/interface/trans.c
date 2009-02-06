@@ -320,7 +320,7 @@ void randomdelay() {
 }
 
 /* This function initializes things required in the transaction start*/
-transrecord_t *transStart() {
+__attribute__((malloc)) transrecord_t *transStart() {
   transrecord_t *tmp;
   if((tmp = calloc(1, sizeof(transrecord_t))) == NULL) {
     printf("%s() Calloc error at line %d, %s\n", __func__, __LINE__, __FILE__);
@@ -328,9 +328,9 @@ transrecord_t *transStart() {
   }
   tmp->cache = objstrCreate(1048576);
   tmp->lookupTable = chashCreate(CHASH_SIZE, CLOADFACTOR);
-#ifdef COMPILER
-  tmp->revertlist=NULL;
-#endif
+  //#ifdef COMPILER
+  //  tmp->revertlist=NULL; //Not necessary...already null
+  //#endif
   return tmp;
 }
 
@@ -741,6 +741,8 @@ int transCommit(transrecord_t *record) {
 	    free(listmid);
 	    return 1;
 	  }
+
+
 	  /* Invalidate objects in other machine cache */
 	  if(tosend[i].f.nummod > 0) {
 	    if((retval = invalidateObj(&(tosend[i]))) != 0) {
@@ -750,12 +752,31 @@ int transCommit(transrecord_t *record) {
 	      return 1;
 	    }
 	  }
+#ifdef ABORTREADERS
+	  removetransaction(tosend[i].oidmod,tosend[i].f.nummod);
+	  removethisreadtransaction(tosend[i].oidmod,tosend[i].f.numread, record);
+#endif
 	}
+#ifdef ABORTREADERS
+	else if (!treplyretry) {
+	  removethistransaction(tosend[i].oidmod,tosend[i].f.nummod,record);
+	  removethisreadtransaction(tosend[i].oidmod,tosend[i].f.numread,record);
+	}
+#endif
 #endif
 	send_data(sd, &finalResponse, sizeof(char));
       } else {
 	/* Complete local processing */
 	doLocalProcess(finalResponse, &(tosend[i]), &transinfo, record);
+#ifdef ABORTREADERS
+	if(finalResponse == TRANS_COMMIT) {
+	  removetransaction(tosend[i].oidmod,tosend[i].f.nummod);
+	  removethisreadtransaction(tosend[i].oidmod,tosend[i].f.numread, record);
+	} else if (!treplyretry) {
+	  removethistransaction(tosend[i].oidmod,tosend[i].f.nummod,record);
+	  removethisreadtransaction(tosend[i].oidmod,tosend[i].f.numread,record);
+	}
+#endif
       }
     }
 
@@ -1779,6 +1800,9 @@ int notifyAll(threadlist_t **head, unsigned int oid, unsigned int version) {
 }
 
 void transAbort(transrecord_t *trans) {
+#ifdef ABORTREADERS
+  removetransactionhash(trans->lookupTable, trans);
+#endif
   objstrDelete(trans->cache);
   chashDelete(trans->lookupTable);
   free(trans);

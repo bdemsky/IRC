@@ -50,6 +50,7 @@ echo -justanalyze exit after compiler analyses complete
 echo -help help
 }
 
+ABORTREADERS=false;
 ROBUSTROOT=~/research/Robust/src
 DSMRUNTIME=$ROBUSTROOT/Runtime/DSTM/interface/
 REPAIRROOT=~/research/Repair/RepairCompiler/
@@ -98,6 +99,7 @@ then
 EXITAFTERANALYSIS=true
 elif [[ $1 = '-abortreaders' ]]
 then
+ABORTREADERS=true
 EXTRAOPTIONS="$EXTRAOPTIONS -DABORTREADERS"
 JAVAOPTS="$JAVAOPTS -abortreaders"
 elif [[ $1 = '-robustroot' ]]
@@ -424,6 +426,11 @@ then
 EXTRAOPTIONS="$EXTRAOPTIONS -lpthread -DTRANSSTATS -DCOMPILER -DDSTM -I$DSMRUNTIME"
 fi
 FILES="$FILES $DSMRUNTIME/trans.c $DSMRUNTIME/mcpileq.c $DSMRUNTIME/objstr.c $DSMRUNTIME/dstm.c $DSMRUNTIME/mlookup.c $DSMRUNTIME/clookup.c $DSMRUNTIME/llookup.c $DSMRUNTIME/threadnotify.c $DSMRUNTIME/dstmserver.c $DSMRUNTIME/plookup.c $DSMRUNTIME/ip.c $DSMRUNTIME/queue.c $DSMRUNTIME/prelookup.c $DSMRUNTIME/machinepile.c $ROBUSTROOT/Runtime/localobjects.c $ROBUSTROOT/Runtime/thread.c $DSMRUNTIME/sockpool.c $DSMRUNTIME/addUdpEnhance.c $DSMRUNTIME/signal.c $DSMRUNTIME/gCollect.c $DSMRUNTIME/addPrefetchEnhance.c $DSMRUNTIME/dsmlock.c $DSMRUNTIME/prefetch.c"
+fi
+
+if $ABORTREADERS
+then
+FILES="$FILES $DSMRUNTIME/abortreaders.c"
 fi
 
 if $FASTCHECK

@@ -282,7 +282,7 @@ void addHost(unsigned int);
 void mapObjMethod(unsigned short);
 
 void randomdelay();
-transrecord_t *transStart();
+__attribute__((malloc)) transrecord_t *transStart();
 __attribute__((pure)) objheader_t *transRead(transrecord_t *, unsigned int);
 objheader_t *transCreateObj(transrecord_t *, unsigned int); //returns oid header
 int transCommit(transrecord_t *record); //return 0 if successful

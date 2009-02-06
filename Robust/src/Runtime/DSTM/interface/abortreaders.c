@@ -73,7 +73,87 @@ void removetransaction(unsigned int oidarray[], unsigned int numoids) {
   pthread_mutex_unlock(&aborttablelock);
 }
 
-void removeaborttransaction(unsigned int oidarray[], unsigned int numoids, struct transrecord * trans) {
+void removethisreadtransaction(unsigned char* oidverread, unsigned int numoids, struct transrecord * trans) {
+  int i,j;
+  pthread_mutex_lock(&aborttablelock);
+  for(i=0;i<numoids;i++) {
+    unsigned int oid=*((unsigned int *)oidverread);
+    struct readerlist * rl=chashSearch(aborttable, oid);
+    struct readerlist *first=rl;
+    oidverread+=(sizeof(unsigned int)+sizeof(unsigned short));
+    while(1) {
+      for(j=0;j<READERSIZE;j++) {
+	if (rl->array[j]==trans) {
+	  rl->array[j]=NULL;
+	  if ((--rl->numreaders)==0) {
+	    if (first==rl) {
+	      chashRemove2(table, oid);
+	      if (rl->next!=NULL) 
+		chashInsert(table, oid, rl->next);
+	      rl->next=freelist;
+	      freelist=rl;
+	    } else {
+	      first->next=rl->next;
+	      rl->next=freelist;
+	      freelist=rl;
+	    }
+	  }
+	  goto nextitem;
+	}
+      }
+      first=rl;
+      rl=rl->next;
+    }
+  nextitem:
+  }
+  pthread_mutex_unlock(&aborttablelock);
+}
+
+void removetransactionhash(chashtable_t *table, struct transrecord *trans) {
+  chashlistnode_t *ptr=table->table;
+  unsigned int size=table->size;
+  int i,j;
+  pthread_mutex_lock(&aborttablelock);
+  for(i=0;i<size;i++) {
+    chashlistnode_t *curr=&ptr[i];
+    do {
+      unsigned int oid=curr->key;
+      if (oid==0)
+	break;
+      struct readerlist * rl=chashSearch(aborttable, oid);
+      struct readerlist *first=rl;
+      while(1) {
+	for(j=0;j<READERSIZE;j++) {
+	  if (rl->array[j]==trans) {
+	    rl->array[j]=NULL;
+	    if ((--rl->numreaders)==0) {
+	      if (first==rl) {
+		chashRemove2(table, oid);
+		if (rl->next!=NULL) 
+		  chashInsert(table, oid, rl->next);
+		rl->next=freelist;
+		freelist=rl;
+	      } else {
+		first->next=rl->next;
+		rl->next=freelist;
+		freelist=rl;
+	      }
+	    }
+	    goto nextitem;
+	  }
+	}
+	first=rl;
+	rl=rl->next;
+      }
+    nextitem:
+      curr=curr->next;
+    } while(curr!=NULL);
+  }
+  pthread_mutex_unlock(&aborttablelock);
+}
+
+
+void removethistransaction(unsigned int oidarray[], unsigned int numoids, struct transrecord * trans) {
   int i,j;
   pthread_mutex_lock(&aborttablelock);
   for(i=0;i<numoids;i++) {

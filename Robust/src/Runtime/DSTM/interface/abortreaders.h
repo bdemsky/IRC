@@ -13,6 +13,7 @@ struct readerlist {
 void initreaderlist();
 void addtransaction(unsigned int oid, struct transrecord * trans);
 void removetransaction(unsigned int oidarray[], unsigned int numoids);
-void removeaborttransaction(unsigned int oidarray[], unsigned int numoids, struct transrecord * trans);
-
+void removethistransaction(unsigned int oidarray[], unsigned int numoids, struct transrecord * trans);
+void removethisreadtransaction(unsigned char* oidverread, unsigned int numoids, struct transrecord * trans);
+void removetransactionhash(chashtable_t *table, struct transrecord *trans);
 #endif
