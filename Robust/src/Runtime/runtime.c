@@ -132,7 +132,7 @@ void CALL02(___System______rangePrefetch____L___Object_____AR_S, struct ___Objec
 /* Object allocation function */
 
 #ifdef DSTM
-void * allocate_newglobal(transrecord_t *trans, int type) {
+__attribute__((malloc)) void * allocate_newglobal(transrecord_t *trans, int type) {
   struct ___Object___ * v=(struct ___Object___ *) transCreateObj(trans, classsize[type]);
   v->type=type;
 #ifdef THREADS
@@ -145,7 +145,7 @@ void * allocate_newglobal(transrecord_t *trans, int type) {
 
 /* Array allocation function */
 
-struct ArrayObject * allocate_newarrayglobal(transrecord_t *trans, int type, int length) {
+__attribute__((malloc)) struct ArrayObject * allocate_newarrayglobal(transrecord_t *trans, int type, int length) {
   struct ArrayObject * v=(struct ArrayObject *)transCreateObj(trans, sizeof(struct ArrayObject)+length*classsize[type]);
   if (length<0) {
     printf("ERROR: negative array\n");
@@ -164,7 +164,7 @@ struct ArrayObject * allocate_newarrayglobal(transrecord_t *trans, int type, int
 
 
 #ifdef PRECISE_GC
-void * allocate_new(void * ptr, int type) {
+__attribute__((malloc)) void * allocate_new(void * ptr, int type) {
   struct ___Object___ * v=(struct ___Object___ *) mygcmalloc((struct garbagelist *) ptr, classsize[type]);
   v->type=type;
 #ifdef THREADS
@@ -180,7 +180,7 @@ void * allocate_new(void * ptr, int type) {
 
 /* Array allocation function */
 
-struct ArrayObject * allocate_newarray(void * ptr, int type, int length) {
+__attribute__((malloc)) struct ArrayObject * allocate_newarray(void * ptr, int type, int length) {
   struct ArrayObject * v=mygcmalloc((struct garbagelist *) ptr, sizeof(struct ArrayObject)+length*classsize[type]);
   v->type=type;
   if (length<0) {
@@ -212,7 +212,7 @@ __attribute__((malloc)) void * allocate_new(int type) {
 /* Array allocation function */
 
 __attribute__((malloc)) struct ArrayObject * allocate_newarray(int type, int length) {
-  struct ArrayObject * v=FREEMALLOC(sizeof(struct ArrayObject)+length*classsize[type]);
+  __attribute__((malloc))  struct ArrayObject * v=FREEMALLOC(sizeof(struct ArrayObject)+length*classsize[type]);
   v->type=type;
   v->___length___=length;
 #ifdef OPTIONAL
@@ -225,7 +225,7 @@ __attribute__((malloc)) struct ArrayObject * allocate_newarray(int type, int len
 
 /* Converts C character arrays into Java strings */
 #ifdef PRECISE_GC
-struct ___String___ * NewString(void * ptr, const char *str,int length) {
+__attribute__((malloc)) struct ___String___ * NewString(void * ptr, const char *str,int length) {
 #else
   __attribute__((malloc)) struct ___String___ * NewString(const char *str,int length) {
 #endif
