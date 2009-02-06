@@ -200,7 +200,7 @@ struct ArrayObject * allocate_newarray(void * ptr, int type, int length) {
 }
 
 #else
-void * allocate_new(int type) {
+__attribute__(malloc) void * allocate_new(int type) {
   struct ___Object___ * v=FREEMALLOC(classsize[type]);
   v->type=type;
 #ifdef OPTIONAL
@@ -211,7 +211,7 @@ void * allocate_new(int type) {
 
 /* Array allocation function */
 
-struct ArrayObject * allocate_newarray(int type, int length) {
+__attribute__(malloc) struct ArrayObject * allocate_newarray(int type, int length) {
   struct ArrayObject * v=FREEMALLOC(sizeof(struct ArrayObject)+length*classsize[type]);
   v->type=type;
   v->___length___=length;
@@ -227,7 +227,7 @@ struct ArrayObject * allocate_newarray(int type, int length) {
 #ifdef PRECISE_GC
 struct ___String___ * NewString(void * ptr, const char *str,int length) {
 #else
-struct ___String___ * NewString(const char *str,int length) {
+  __attribute__(malloc) struct ___String___ * NewString(const char *str,int length) {
 #endif
   int i;
 #ifdef PRECISE_GC

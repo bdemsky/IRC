@@ -38,9 +38,9 @@ struct ArrayObject * allocate_newarray(void *, int type, int length);
 struct ___String___ * NewString(void *, const char *str,int length);
 struct ___TagDescriptor___ * allocate_tag(void *ptr, int index);
 #else
-void * allocate_new(int type);
-struct ArrayObject * allocate_newarray(int type, int length);
-struct ___String___ * NewString(const char *str,int length);
+__attribute__((malloc)) void * allocate_new(int type);
+__attribute__((malloc)) struct ArrayObject * allocate_newarray(int type, int length);
+__attribute__((malloc)) struct ___String___ * NewString(const char *str,int length);
 struct ___TagDescriptor___ * allocate_tag(int index);
 #endif
 
