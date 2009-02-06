@@ -108,15 +108,18 @@ void CALL00(___System______clearPrefetchCache____) {
   prehashClear();
 }
 
+#ifdef RANGEPREFETCH
 void CALL02(___System______rangePrefetch____L___Object_____AR_S, struct ___Object___ * ___o___, struct ArrayObject * ___offsets___) {
   /* Manual Prefetches to be inserted */
   //printf("DEBUG-> %s() ___Object___ * ___o___ = %x\n", __func__, VAR(___o___));
   //printf("DEBUG-> %s() ArrayObject * = %x\n", __func__, VAR(___offsets___));
   int numoffset=VAR(___offsets___)->___length___;
   int i;
-  short offArry[numoffset];
-  for(i = 0; i<numoffset; i++) {
-    offArry[i] = *((short *)(((char *)&VAR(___offsets___)->___length___) + sizeof(int) + i * sizeof(short)));
+  short offArry[numoffset+2];
+  offArry[0] = 0;
+  offArry[1] = 0;
+  for(i = 2; i<(numoffset+2); i++) {
+    offArry[i] = *((short *)(((char *)&VAR(___offsets___)->___length___) + sizeof(int) + (i-2) * sizeof(short)));
     //printf("DEBUG-> offArry[%d] = %d\n", i, offArry[i]);
   }
   unsigned int oid;
@@ -125,8 +128,14 @@ void CALL02(___System______rangePrefetch____L___Object_____AR_S, struct ___Objec
   } else { //even
     oid = (unsigned int) COMPOID(VAR(___o___)); //inside transaction therefore a pointer to oid
   }
-  rangePrefetch(oid, (short)numoffset, offArry);
+  rangePrefetch(oid, (short)(numoffset+2), offArry);
 }
+#else
+void CALL02(___System______rangePrefetch____L___Object_____AR_S, struct ___Object___ * ___o___, struct ArrayObject * ___offsets___) {
+  return;
+}
+#endif
+
 #endif
 
 /* Object allocation function */
@@ -227,7 +236,7 @@ __attribute__((malloc)) struct ArrayObject * allocate_newarray(int type, int len
 #ifdef PRECISE_GC
 __attribute__((malloc)) struct ___String___ * NewString(void * ptr, const char *str,int length) {
 #else
-  __attribute__((malloc)) struct ___String___ * NewString(const char *str,int length) {
+__attribute__((malloc)) struct ___String___ * NewString(const char *str,int length) {
 #endif
   int i;
 #ifdef PRECISE_GC

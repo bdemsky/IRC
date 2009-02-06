@@ -31,6 +31,11 @@ typedef struct proPrefetchQ {
   pthread_cond_t qcond;
 } proPrefetchQ_t;
 
+typedef struct oidAtDepth {
+  int depth;
+  unsigned int oid;
+} oidAtDepth_t;
+
 // Global Prefetch Processing Queue
 proPrefetchQ_t prefetchQ;
 
@@ -50,10 +55,16 @@ int rangePrefetchReq(int acceptfd);
 int processOidFound(objheader_t *, short *, int, int, int);
 int processArrayOids(short *, objheader_t *, int *, int);
 int findOidinStride(short *,  struct ArrayObject *, int, int, int, int, int, int);
-int sendOidFound(unsigned int, int);
 int processLinkedListOids(short *, objheader_t *, int *, int);
 int getRangePrefetchResponse(int sd);
-objheader_t *searchObj(unsigned int );
+objheader_t *searchObj(unsigned int);
+
+/*********** Functions for computation at the participant end **********/
+int getNextOid(short *, unsigned int*, int*, int*, oidAtDepth_t *, unsigned int);
+unsigned int getNextArrayOid(short *, unsigned int *, int *, int*);
+unsigned int getNextPointerOid(short *, unsigned int *, int *, int*);
+int sendOidFound(unsigned int, int);
+int sendOidNotFound(unsigned int oid, int sd);
 
 /************* Internal functions *******************/
 int getsize(short *ptr, int n);
