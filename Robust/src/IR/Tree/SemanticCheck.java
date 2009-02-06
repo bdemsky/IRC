@@ -861,6 +861,9 @@ NextMethod:
 	throw new Error();
       else if (ltd.isLong()||rtd.isLong())
 	lefttype=new TypeDescriptor(TypeDescriptor.LONG);
+      // 090205 hack for boolean
+      else if (ltd.isBoolean()||rtd.isBoolean())
+		lefttype=new TypeDescriptor(TypeDescriptor.BOOLEAN);
       else
 	lefttype=new TypeDescriptor(TypeDescriptor.INT);
       righttype=lefttype;
