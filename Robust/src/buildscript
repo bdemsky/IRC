@@ -279,7 +279,7 @@ fi
 if $MULTICOREFLAG
 then
 if ! ${ROBUSTROOT}/ourjava -Xms50m -Xmx800m $JAVAFORWARDOPTS -classpath $ROBUSTROOT/../cup/:$ROBUSTROOT Main.Main -classlibrary \
-$ROBUSTROOT/ClassLibrary/ -dir $BUILDDIR \
+$ROBUSTROOT/ClassLibrary/ -dir $BUILDDIR -precise \
 $JAVAOPTS $SRCFILES
 then exit $?
 fi
