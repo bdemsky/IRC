@@ -2,7 +2,6 @@
  * To change this template, choose Tools | Templates
  * and open the template in the editor.
  */
-
 package TransactionalIO.benchmarks;
 
 import TransactionalIO.core.Defaults;
@@ -18,16 +17,16 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-
 /**
  *
  * @author navid
  */
 public class benchmark {
+
     static public HashMap TransactionalFiles = new HashMap();
-     static public HashMap hotwords = new HashMap();
-     static public HashMap names = new HashMap();
-     static public HashMap reversenames = new HashMap();
+    static public HashMap hotwords = new HashMap();
+    static public HashMap names = new HashMap();
+    static public HashMap reversenames = new HashMap();
     static int count = 0;
     public static String msg = new String();
     public static ReentrantLock lock = new ReentrantLock();
@@ -38,13 +37,11 @@ public class benchmark {
     public static Map m3;
     public static Map m4;
     public static String[] stocks;
-    
 
     public benchmark() {
-        
     }
-     
-    private static void preparenamelist(){
+
+    private static void preparenamelist() {
         try {
             byte[] data = new byte[1];
             char[] name = new char[20];
@@ -53,71 +50,47 @@ public class benchmark {
             /*RandomAccessFile file = new RandomAccessFile("/home/navid/namelist.text", "rw");
             RandomAccessFile file2 = new RandomAccessFile("/home/navid/financialtransaction.text", "rw");
             RandomAccessFile file3 = new RandomAccessFile("/home/navid/accountbalance.text", "rw");*/
-            
-            
-           
-          stocks  = new String[20];
-          stocks[0] = "Yahoo";
-          stocks[1] = "Google";
-          stocks[2] = "Microsoft";
-          stocks[3] = "Broadcom";
-          stocks[4] = "Sun";
-          stocks[5] = "Qualcom";
-          stocks[6] = "Intel";
-          stocks[7] = "WaMU";
-          stocks[8] = "BoA";
-          stocks[9] = "IMU";
-          stocks[10] = "BMW";
-          stocks[11] = "Nokia";
-          stocks[12] = "Motorolla";
-          stocks[13] = "Samsung";
-          stocks[14] = "TMobile";
-          stocks[15] = "ATT";
-          stocks[16] = "PRops";
-          stocks[17] = "Asia";
-          stocks[18] = "LOLa";
-          stocks[19] = "Brita";
-        /*          boolean hh = false; 
-           boolean found = false;    
-           while (true) {
-     
-                if (found){
-                    System.out.println(file4.getFilePointer()-1);
-                    file4.seek(file4.getFilePointer()-1);
-                    file4.write(' ');
-                    file4.write(stocks[(int)(Math.random()*10)].getBytes());
-                    file4.write('\n');
-                }
-                if (hh)
-                    break;
-                found = false;
-                data[0] = 'a';
-                while (data[0] != '\n') {
-                    int tt =0;
-                    tt = file4.read(data);
-                    found = true;
-                    if (tt == -1) {
-                        hh = true;
-                        break;
-                    } 
-                }
-           }*/
-            
+
+
+
+            stocks = new String[20];
+            stocks[0] = "Yahoo";
+            stocks[1] = "Google";
+            stocks[2] = "Microsoft";
+            stocks[3] = "Broadcom";
+            stocks[4] = "Sun";
+            stocks[5] = "Qualcom";
+            stocks[6] = "Intel";
+            stocks[7] = "WaMU";
+            stocks[8] = "BoA";
+            stocks[9] = "IMU";
+            stocks[10] = "BMW";
+            stocks[11] = "Nokia";
+            stocks[12] = "Motorolla";
+            stocks[13] = "Samsung";
+            stocks[14] = "TMobile";
+            stocks[15] = "ATT";
+            stocks[16] = "PRops";
+            stocks[17] = "Asia";
+            stocks[18] = "LOLa";
+            stocks[19] = "Brita";
+
             boolean flag = false;
             boolean done = false;
             int wordcounter = 0;
-            int counter =0;
-            while(true){
-                if (flag)
+            int counter = 0;
+            while (true) {
+                if (flag) {
                     break;
-                if (done){
-             //       System.out.println("At " + wordcounter + " inserted " +String.copyValueOf(name, 0, counter));
+                }
+                if (done) {
+                    //       System.out.println("At " + wordcounter + " inserted " +String.copyValueOf(name, 0, counter));
                     m3.put(Integer.valueOf(wordcounter), String.copyValueOf(name, 0, counter));
                     m4.put(String.copyValueOf(name, 0, counter), Integer.valueOf(wordcounter));
                     wordcounter++;
                     done = false;
                 }
-                counter = 0;    
+                counter = 0;
                 data[0] = 'a';
                 while (data[0] != '\n') {
                     int res;
@@ -129,85 +102,73 @@ public class benchmark {
                     //System.out.println((char)data[0]);
                     if (!(Character.isLetter((char) data[0]))) {
                         continue;
-                   }
-                   name[counter] = (char)data[0];
-                   done = true;
-                   counter++;
+                    }
+                    name[counter] = (char) data[0];
+                    done = true;
+                    counter++;
                 }
-          }
+            }
+
+
+            /*    counter = 0;  
+            while (counter <30000)  {
+            int index1 = (int)(Math.random()*50);
+            int stocktrade = (int)(Math.random()*100);
+            while (stocktrade == 0)
+            stocktrade = (int)(Math.random()*100);
+            int index2 = (int)(Math.random()*50);
+            while (index2 == index1)
+            index2 = (int)(Math.random()*50);
+            //System.out.println(index);
+            String towrite = (String)m3.get(Integer.valueOf(index1)) + " ";
+            towrite += String.valueOf(stocktrade) + " ";
+            towrite += (String)m3.get(Integer.valueOf(index2)) + " ";
+            towrite += stocks[(int)(Math.random()*20)] + "\n";
             
-            
-      /*    counter = 0;  
-          while (counter <30000)  {
-              int index1 = (int)(Math.random()*50);
-              int stocktrade = (int)(Math.random()*100);
-              while (stocktrade == 0)
-                  stocktrade = (int)(Math.random()*100);
-              int index2 = (int)(Math.random()*50);
-              while (index2 == index1)
-                  index2 = (int)(Math.random()*50);
-              //System.out.println(index);
-              String towrite = (String)m3.get(Integer.valueOf(index1)) + " ";
-              towrite += String.valueOf(stocktrade) + " ";
-              towrite += (String)m3.get(Integer.valueOf(index2)) + " ";
-              towrite += stocks[(int)(Math.random()*20)] + "\n";
-              
-              file2.write(towrite.getBytes());
+            file2.write(towrite.getBytes());
             //  System.out.println(towrite);
-              counter++;
-          }*/
-         // for (int i=0; i<50*Defaults.FILEFRAGMENTSIZE; i++)
-              //file3.write('');
-        
-          
-          for (int i=0; i<50; i++){
-              String towrite = (String)m3.get(Integer.valueOf(i));
-              String tmpst = (String)m3.get(Integer.valueOf(i));
-              int tmp = tmpst.length();
-              while(tmp<10){
-                  towrite += new String(" ");
-                  tmp++;
-              }
-              towrite += "\n";
-              for (int j=0; j<stocks.length; j++){
-                tmpst = stocks[j] + " Stock Balance: " + ((int)(Math.random()*100+100));  
-                towrite +=  stocks[j] + " Stock Balance: " + ((int)(Math.random()*100+100));
-                tmp = tmpst.length();
-                System.out.println(tmp);
-                while(tmp<40){
-                  towrite += new String(" ");
-                  tmp++;
+            counter++;
+            }*/
+            // for (int i=0; i<50*Defaults.FILEFRAGMENTSIZE; i++)
+            //file3.write('');
+
+
+            for (int i = 0; i < 50; i++) {
+                String towrite = (String) m3.get(Integer.valueOf(i));
+                String tmpst = (String) m3.get(Integer.valueOf(i));
+                int tmp = tmpst.length();
+                while (tmp < 10) {
+                    towrite += new String(" ");
+                    tmp++;
                 }
                 towrite += "\n";
-              }
-             
-            //  System.out.println(towrite);
-              file3.write(towrite.getBytes());
-              while (file3.getFilePointer()<(i+1)*Defaults.FILEFRAGMENTSIZE)
-                  file3.write(new String(" ").getBytes());    
-          }
-          
+                for (int j = 0; j < stocks.length; j++) {
+                    tmpst = stocks[j] + " Stock Balance: " + ((int) (Math.random() * 100 + 100));
+                    towrite += stocks[j] + " Stock Balance: " + ((int) (Math.random() * 100 + 100));
+                    tmp = tmpst.length();
+                    while (tmp < 40) {
+                        towrite += new String(" ");
+                        tmp++;
+                    }
+                    towrite += "\n";
+                }
 
-        /*  for (int i=0; i<10; i++)
-              System.out.println((char)f[i]);*/
-          file.close();
-//          file2.close();
-          byte[] b= new byte[41];
-          
-          file3.seek(1024);
-          file3.read(new byte[11]);
-          file3.read(b);
-          System.out.println("h " + (char)b[40]);
-          System.out.println((char)file3.readByte());
-          file3.close();
+                file3.write(towrite.getBytes());
+                while (file3.getFilePointer() < (i + 1) * Defaults.FILEFRAGMENTSIZE) {
+                    file3.write(new String(" ").getBytes());
+                }
+            }
+
+            file.close();
+            file3.close();
         } catch (IOException ex) {
             Logger.getLogger(benchmark.class.getName()).log(Level.SEVERE, null, ex);
-        } 
-       
-    
+        }
+
+
     }
 
-    public static void init(){
+    public static void init() {
         try {
 
             m3 = Collections.synchronizedMap(names);
@@ -217,122 +178,30 @@ public class benchmark {
 
 
             preparenamelist();
-            count = 0;
+            
             m = Collections.synchronizedMap(TransactionalFiles);
-            //TransactionalFile tr = new TransactionalFile("/home/navid/randomwords.text", "rw");
-            TransactionalFile tr = new TransactionalFile("/scratch/TransactionalIO/PureIOBenchmarkFiles/randomwords.text", "rw");
-            m.put(String.valueOf(count), tr);
-            count++;
-            //TransactionalFile tr2 = new TransactionalFile("/home/navid/input.text", "rw");
-            TransactionalFile tr2 = new TransactionalFile("/home/navid/input.text", "rw");
-            m.put(String.valueOf(count), tr2);
-            count++;
-            //TransactionalFile tr3 = new TransactionalFile("/home/navid/iliad.text", "rw");
-            TransactionalFile tr3 = new TransactionalFile("/scratch/TransactionalIO/WordCunterBenchmarkFiles/iliad.text", "rw");
-            m.put(String.valueOf(count), tr3);
-            count++;
-            //TransactionalFile tr4 = new TransactionalFile("/home/navid/counter_benchmark_output.text", "rw");
+            
             TransactionalFile tr4 = new TransactionalFile("/scratch/TransactionalIO/WordCunterBenchmarkFiles/counter_benchmark_output.text", "rw");
             m.put("counteroutput", tr4);
-            //m.put(String.valueOf(count), tr4);
-            count++;
 
-            //TransactionalFile tr5 = new TransactionalFile("/home/navid/financialtransaction.text", "rw");
-            TransactionalFile tr5 = new TransactionalFile("/scratch/TransactionalIO/FinancialTransactionBenchmarkFiles/financialtransaction.text", "rw");
-            m.put(String.valueOf(count), tr5);
-
-            count++;
-
-            //TransactionalFile tr6 = new TransactionalFile("/home/navid/accountbalance.text", "rw");
-          //  TransactionalFile tr6 = new TransactionalFile("/scratch/TransactionalIO/FinancialTransactionBenchmarkFiles/accountbalance.text", "rw");
-            //m.put("accountbalance", tr6);
-            //m.put(String.valueOf(count), tr6);
-
-            count++;
-
-            //TransactionalFile tr7 = new TransactionalFile("/home/navid/financialtransactionlog.text", "rw");
-          //  TransactionalFile tr7 = new TransactionalFile("/scratch/TransactionalIO/FinancialTransactionBenchmarkFiles/financialtransactionlog.text", "rw");
-          //  m.put("financialtransactionlog", tr7);
-          //  m.put(String.valueOf(count), tr7);
-            count++;
-
-            //RandomAccessFile tr8 = new RandomAccessFile("/home/navid/accountbalance.text", "rw");
             RandomAccessFile tr8 = new RandomAccessFile("/scratch/TransactionalIO/FinancialTransactionBenchmarkFiles/accountbalance.text", "rw");
-            //m.put(String.valueOf(count), tr8);
             m.put("accountbalancerandom", tr8);
-//
-            count++;
 
-            //RandomAccessFile tr9 = new RandomAccessFile("/home/navid/financialtransactionlog.text", "rw");
             RandomAccessFile tr9 = new RandomAccessFile("/scratch/TransactionalIO/FinancialTransactionBenchmarkFiles/financialtransactionlog.text", "rw");
-            //m.put(String.valueOf(count), tr9);
             m.put("financialtransactionlograndom", tr9);
-            count++;
+
 
             int index = 97;
             for (int i = 0; i < 26; i++) {
-                      m.put(String.valueOf((char) (index+i))+"random", new RandomAccessFile("/home/navid/" + String.valueOf((char) (index+i)) + ".text", "rw"));
-                      m.put(String.valueOf((char) (index+i)), new TransactionalFile("/home/navid/" + String.valueOf((char) (index+i)) + ".text", "rw"));
-                      m.put(String.valueOf((char) (index+i)), new TransactionalFile("/scratch/TransactionalIO/PureIOBenchmarkFiles/" + String.valueOf((char) (index+i)) + ".text", "rw"));
-                      count++;
-            }
-                 
-               
-            //m.put(100, new RandomAccessFile("/home/navid/counter_benchmark_output.text", "rw"));   
-            m.put("counterdstm2output", new RandomAccessFile("/scratch/TransactionalIO/WordCunterBenchmarkFiles/counter_benchmark_output.text", "rw"));   
-            //m.put(100, new RandomAccessFile("/scratch/TransactionalIO/WordCunterBenchmarkFiles/counter_benchmark_output.text", "rw"));   
-            /*count = 0;
-            m = Collections.synchronizedMap(TransactionalFiles);
-            TransactionalFile tr = new TransactionalFile("/scratch/TransactionalIO/PureIOBenchmarkFiles/randomwords.text", "rw");
-            m.put(String.valueOf(count), tr);
-            count++;
-            TransactionalFile tr2 = new TransactionalFile("/home/navid/input.text", "rw");
-            m.put(String.valueOf(count), tr2);
-            count++;
-            TransactionalFile tr3 = new TransactionalFile("/scratch/TransactionalIO/WordCunterBenchmarkFiles/iliad.text", "rw");
-            m.put(String.valueOf(count), tr3);
-            count++;
-            TransactionalFile tr4 = new TransactionalFile("/scratch/TransactionalIO/WordCunterBenchmarkFiles/counter_benchmark_output.text", "rw");
-            m.put(String.valueOf(count), tr4);
-            count++;
+                m.put(String.valueOf((char) (index + i)) + "random", new RandomAccessFile("/home/navid/" + String.valueOf((char) (index + i)) + ".text", "rw"));
+                m.put(String.valueOf((char) (index + i)), new TransactionalFile("/home/navid/" + String.valueOf((char) (index + i)) + ".text", "rw"));
+                m.put(String.valueOf((char) (index + i)), new TransactionalFile("/scratch/TransactionalIO/PureIOBenchmarkFiles/" + String.valueOf((char) (index + i)) + ".text", "rw"));
+                count++;
+            }   
+            m.put("counterdstm2output", new RandomAccessFile("/scratch/TransactionalIO/WordCunterBenchmarkFiles/counter_benchmark_output.text", "rw"));
+   
 
-            TransactionalFile tr5 = new TransactionalFile("/scratch/TransactionalIO/FinancialTransactionBenchmarkFiles/financialtransaction.text", "rw");
-            m.put(String.valueOf(count), tr5);
 
-            count++;
-
-            TransactionalFile tr6 = new TransactionalFile("/scratch/TransactionalIO/FinancialTransactionBenchmarkFiles/accountbalance.text", "rw");
-            m.put(String.valueOf(count), tr6);
-
-            count++;
-
-            TransactionalFile tr7 = new TransactionalFile("/scratch/TransactionalIO/FinancialTransactionBenchmarkFiles/financialtransactionlog.text", "rw");
-            m.put(String.valueOf(count), tr7);
-
-            count++;
-
-            RandomAccessFile tr8 = new RandomAccessFile("/scratch/TransactionalIO/FinancialTransactionBenchmarkFiles/accountbalance.text", "rw");
-            m.put(String.valueOf(count), tr8);
-//
-            count++;
-
-            RandomAccessFile tr9 = new RandomAccessFile("/scratch/TransactionalIO/FinancialTransactionBenchmarkFiles/financialtransactionlog.text", "rw");
-            m.put(String.valueOf(count), tr9);
-
-            count++;
-
-            int index = 97;
-            for (int i = 0; i < 26; i++) {
-           
-            m.put(String.valueOf((char) (index+i)), new TransactionalFile("/scratch/TransactionalIO/PureIOBenchmarkFiles/"
-+ String.valueOf((char) (index+i)) + ".text", "rw"));
-                //count++;*/
-          /*     m.put(String.valueOf((char) (index+i)), new RandomAccessFile("/scratch/TransactionalIO/PureIOBenchmarkFiles/"
-+ String.valueOf((char) (index+i)) + ".text", "rw"));
-                count++;*/
-            //}
-           
-           
             count = 0;
             m2 = Collections.synchronizedMap(hotwords);
             m2.put(Integer.valueOf(count), "Polydamas");
@@ -356,15 +225,13 @@ public class benchmark {
             m2.put(Integer.valueOf(count), "unweariable");
             count++;
         //    m2.put(Integer.valueOf(count), "Atreus");
-         //    count++;
-          //  m2.put(Integer.valueOf(count), "Olympus");
-        
-            
+        //    count++;
+        //  m2.put(Integer.valueOf(count), "Olympus");
+
+
         } catch (FileNotFoundException ex) {
             Logger.getLogger(benchmark.class.getName()).log(Level.SEVERE, null, ex);
         }
-        
-    }
-    
 
+    }
 }

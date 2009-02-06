@@ -7,20 +7,15 @@ package TransactionalIO.core;
 import TransactionalIO.Utilities.Conversions;
 import TransactionalIO.Utilities.Range;
 import TransactionalIO.exceptions.AbortedException;
-import TransactionalIO.exceptions.PanicException;
-import TransactionalIO.benchmarks.benchmark;
 import TransactionalIO.core.ExtendedTransaction.Status;
 import TransactionalIO.interfaces.BlockAccessModesEnum;
 import TransactionalIO.interfaces.OffsetDependency;
-import com.sun.org.apache.bcel.internal.generic.IFEQ;
-import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileDescriptor;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.io.UTFDataFormatException;
-import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.TreeMap;
@@ -46,7 +41,7 @@ public class TransactionalFile implements Comparable {
     
 
     {
-        System.load("/home/navid/libnav.so");
+        System.load("/scratch/TransactionalIO/libnav.so");
     }
     public RandomAccessFile file;
     private INode inode;
