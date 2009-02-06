@@ -405,7 +405,7 @@ __attribute__((pure)) objheader_t *transRead(transrecord_t *record, unsigned int
 #ifdef ABORTREADERS
   if (record->abort) {
     //abort this transaction
-    longjmp(record->aborttrans,1);
+    _longjmp(record->aborttrans,1);
   } else
     addtransaction(oid,record);
 #endif
