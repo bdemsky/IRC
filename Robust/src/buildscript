@@ -3,6 +3,7 @@
 printhelp() {
 echo -robustroot set up the ROBUSTROOT to directory other than default one
 echo -dsm distributed shared memory
+echo -abortreaders abort readers immediately
 echo -trueprob double - probabiltiy of true branch
 echo -dsmcaching -enable caching in dsm runtime
 echo -mac distributed shared memory mac support
@@ -95,6 +96,10 @@ exit
 elif [[ $1 = '-justanalyze' ]]
 then
 EXITAFTERANALYSIS=true
+elif [[ $1 = '-abortreaders' ]]
+then
+EXTRAOPTIONS="$EXTRAOPTIONS -DABORTREADERS"
+JAVAOPTS="$JAVAOPTS -abortreaders"
 elif [[ $1 = '-robustroot' ]]
 then
 ROBUSTROOT="$2"
@@ -281,7 +286,7 @@ else
 if ! $NOJAVA
 then
 if ! ${ROBUSTROOT}/ourjava -Xms50m -Xmx600m $JAVAFORWARDOPTS -classpath $ROBUSTROOT/../cup/:$ROBUSTROOT Main.Main -classlibrary \
-$ROBUSTROOT/ClassLibrary/ -dir $BUILDDIR -precise \
+$ROBUSTROOT/ClassLibrary/ -dir $BUILDDIR  \
 $JAVAOPTS $SRCFILES
 then exit $?
 fi

@@ -124,6 +124,8 @@ public class BuildCode {
     outmethodheader.println("#include \"structdefs.h\"");
     if (state.DSM)
       outmethodheader.println("#include \"dstm.h\"");
+    if (state.ABORTREADERS)
+      outmethodheader.println("#include \"abortreaders.h\"");
 
     /* Output Structures */
     outputStructs(outstructs);
@@ -1725,6 +1727,7 @@ public class BuildCode {
       TempDescriptor tmp=tmpit.next();
       output.println(generateTemp(fm, backuptable.get(tmp),lb)+"="+generateTemp(fm,tmp,lb)+";");
     }
+    
     output.println("goto transstart"+faen.getIdentifier()+";");
 
     /******* Print code to retry aborted transaction *******/
@@ -1750,6 +1753,11 @@ public class BuildCode {
 
     output.println("transstart"+faen.getIdentifier()+":");
     output.println("trans=transStart();");
+    
+    if (state.ABORTREADERS) {
+      output.println("if (setjmp(trans->aborttrans))");
+      output.println("  goto transretry"+faen.getIdentifier()+":");
+    }
   }
 
   public void generateFlatAtomicExitNode(FlatMethod fm,  LocalityBinding lb, FlatAtomicExitNode faen, PrintWriter output) {

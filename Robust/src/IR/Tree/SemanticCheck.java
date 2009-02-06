@@ -474,7 +474,7 @@ public class SemanticCheck {
 
     if (td!=null)
       if (!typeutil.isSuperorType(td,ln.getType()))
-	throw new Error("Field node returns "+ln.getType()+", but need "+td);
+	throw new Error("Field node returns "+ln.getType()+", but need "+td+" in "+md);
   }
 
   void checkNameNode(Descriptor md, SymbolTable nametable, NameNode nn, TypeDescriptor td) {

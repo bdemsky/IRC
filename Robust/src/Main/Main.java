@@ -87,6 +87,8 @@ public class Main {
 	state.CONSCHECK=true;
       else if (option.equals("-task"))
 	state.TASK=true;
+      else if (option.equals("-abortreaders"))
+	state.ABORTREADERS=true;
       else if (option.equals("-taskstate"))
 	state.TASKSTATE=true;
       else if (option.equals("-tagstate"))
@@ -138,6 +140,7 @@ public class Main {
 	System.out.println("-struct structfile -- output structure declarations for repair tool");
 	System.out.println("-mainclass -- main function to call");
 	System.out.println("-dsm -- distributed shared memory support");
+	System.out.println("-abortreaders -- abort readers");
 	System.out.println("-precise -- use precise garbage collection");
 	System.out.println("-conscheck -- turn on consistency checking");
 	System.out.println("-task -- compiler for tasks");
