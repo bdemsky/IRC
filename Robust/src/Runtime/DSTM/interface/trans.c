@@ -405,6 +405,7 @@ __attribute__((pure)) objheader_t *transRead(transrecord_t *record, unsigned int
 #ifdef ABORTREADERS
   if (record->abort) {
     //abort this transaction
+    printf("ABORTING\n");
     _longjmp(record->aborttrans,1);
   } else
     addtransaction(oid,record);
@@ -461,7 +462,6 @@ __attribute__((pure)) objheader_t *transRead(transrecord_t *record, unsigned int
 #ifdef TRANSSTATS
       nRemoteSend++;
 #endif
-      STATUS(objcopy)=0;
 #ifdef COMPILER
       return &objcopy[1];
 #else
@@ -707,6 +707,7 @@ int transCommit(transrecord_t *record) {
 	    objheader_t * header;
 	    header = (objheader_t *)(((char *)newAddr) + offset);
 	    oidToPrefetch = OID(header);
+	    STATUS(header)=0;
 	    int size = 0;
 	    GETSIZE(size, header);
 	    size += sizeof(objheader_t);
@@ -999,6 +1000,7 @@ void *getRemoteObj(transrecord_t *record, unsigned int mnum, unsigned int oid) {
     recv_data(sd, &size, sizeof(int));
     objcopy = objstrAlloc(record->cache, size);
     recv_data(sd, objcopy, size);
+    STATUS(objcopy)=0;
     /* Insert into cache's lookup table */
     chashInsert(record->lookupTable, oid, objcopy);
   }

@@ -140,7 +140,6 @@ unsigned int chashResize(chashtable_t *table, unsigned int newsize) {
   table->table = node;          //Update the global hashtable upon resize()
   table->size = newsize;
   table->mask = (newsize << 1)-1;
-  table->numelements = 0;
 
   for(i = 0; i < oldsize; i++) {                        //Outer loop for each bin in hash table
     curr = &ptr[i];
