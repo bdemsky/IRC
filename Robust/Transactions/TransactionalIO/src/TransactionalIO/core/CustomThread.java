@@ -8,7 +8,6 @@ package TransactionalIO.core;
 import TransactionalIO.exceptions.AbortedException;
 import TransactionalIO.benchmarks.benchmark;
 import TransactionalIO.interfaces.TransactionalProgram;
-import java.io.IOException;
 import java.util.Vector;
 
 /**
@@ -18,11 +17,10 @@ import java.util.Vector;
 public class CustomThread implements Runnable{
 
     
-    private static ThreadLocal transactioncontainer = new ThreadLocal();
+   
     private static ThreadLocal onAbort = new ThreadLocal();
     private TransactionalProgram ioprogram;
     private static ThreadLocal/*<TransactionalProgram>*/ program = new ThreadLocal();
-    private ExtendedTransaction transaction;
     public Thread runner;
    
     

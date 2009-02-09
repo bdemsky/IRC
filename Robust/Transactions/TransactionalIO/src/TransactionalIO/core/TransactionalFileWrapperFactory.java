@@ -13,7 +13,9 @@ import java.util.HashMap;
  */
 public class TransactionalFileWrapperFactory {
 
-
+    static {
+        System.load("/scratch/TransactionalIO/libnav.so");
+    }
 
     private TransactionalFileWrapperFactory() {
     }

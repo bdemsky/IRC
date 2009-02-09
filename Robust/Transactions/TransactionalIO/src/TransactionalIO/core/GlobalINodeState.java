@@ -49,7 +49,6 @@ public class GlobalINodeState {
     private ConcurrentHashMap conlockmap = new ConcurrentHashMap();
     
     public GlobalLength commitedfilesize;
-    private ExtendedTransaction writer;
     public int seqNum = 0;
     private INode inode;
 
@@ -60,7 +59,6 @@ public class GlobalINodeState {
     
     
     protected GlobalINodeState(INode inode, long length) {
-        writer = null;
         lockmap = new HashMap();
        
         commitedfilesize = new GlobalLength(length);
@@ -79,14 +77,7 @@ public class GlobalINodeState {
         this.commitedfilesize = commitedfilesize;
     }
     
-    public ExtendedTransaction getWriter() {
-        return writer;
-    }
 
-    public void setWriter(ExtendedTransaction writer) {
-        this.writer = writer;
-    }
-    
      public BlockDataStructure getBlockDataStructure(Integer blocknumber) {
      /*       synchronized (lockmap) {
                 if (lockmap.containsKey(blocknumber)) {

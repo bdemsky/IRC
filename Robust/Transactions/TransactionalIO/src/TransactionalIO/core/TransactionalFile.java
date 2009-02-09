@@ -17,13 +17,13 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.io.UTFDataFormatException;
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.TreeMap;
 import java.util.Vector;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.Lock;
 
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock.ReadLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock.WriteLock;
 import java.util.logging.Level;
@@ -38,11 +38,9 @@ public class TransactionalFile implements Comparable {
     private native int nativepread(byte buff[], long offset, int size, FileDescriptor fd);
 
     private native int nativepwrite(byte buff[], long offset, int size, FileDescriptor fd);
-    
-
-    {
-        System.load("/scratch/TransactionalIO/libnav.so");
-    }
+//    {
+//        System.load("/scratch/TransactionalIO/libnav.so");
+//    }
     public RandomAccessFile file;
     private INode inode;
     private int sequenceNum = 0;
@@ -52,16 +50,15 @@ public class TransactionalFile implements Comparable {
     public boolean to_be_created = false;
     public boolean writemode = false;
     public boolean appendmode = false;
-    public ReentrantLock offsetlock;
+    public ReentrantReadWriteLock offsetlock;
+    //public boolean offsetlocked = false;
     private GlobalOffset committedoffset;
     AtomicBoolean open = new AtomicBoolean(true);
-    
-   
     private GlobalINodeState inodestate;
     Lock[] locks;
 
     public TransactionalFile(File f, String mode) {
-        
+
         if ((!(f.exists()))) {
             to_be_created = true;
             file = null;
@@ -70,7 +67,7 @@ public class TransactionalFile implements Comparable {
 
             try {
 
-                offsetlock = new ReentrantLock();
+                offsetlock = new ReentrantReadWriteLock();
                 file = new RandomAccessFile(f, mode);
             } catch (FileNotFoundException ex) {
 
@@ -94,16 +91,16 @@ public class TransactionalFile implements Comparable {
         if (inodestate != null) {
             synchronized (inodestate) {
                 committedoffset = new GlobalOffset(0);
-                open .set(true);
-                
+                open.set(true);
+
             }
         }
     }
-    
-    public boolean isOpen(){
+
+    public boolean isOpen() {
         return open.get();
     }
-    
+
     public TransactionalFile(String filename, String mode) {
 
 
@@ -117,7 +114,7 @@ public class TransactionalFile implements Comparable {
 
             try {
 
-                offsetlock = new ReentrantLock();
+                offsetlock = new ReentrantReadWriteLock();
                 file = new RandomAccessFile(f, mode);
             } catch (FileNotFoundException ex) {
 
@@ -125,24 +122,24 @@ public class TransactionalFile implements Comparable {
             }
 
         }
-   /*     synchronized(this){
-            if (to_be_created){
-                try {
-                    offsetlock = new ReentrantLock();
-                    file = new RandomAccessFile(filename, mode);
-                    try {
-                        System.out.println("ll " + file.length());
-                    } catch (IOException ex) {
-                        Logger.getLogger(TransactionalFile.class.getName()).log(Level.SEVERE, null, ex);
-                    }
-                } catch (FileNotFoundException ex) {
-                    Logger.getLogger(TransactionalFile.class.getName()).log(Level.SEVERE, null, ex);
-                }
-            }
+        /*     synchronized(this){
+        if (to_be_created){
+        try {
+        offsetlock = new ReentrantLock();
+        file = new RandomAccessFile(filename, mode);
+        try {
+        System.out.println("ll " + file.length());
+        } catch (IOException ex) {
+        Logger.getLogger(TransactionalFile.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        } catch (FileNotFoundException ex) {
+        Logger.getLogger(TransactionalFile.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        }
         }*/
         inode = TransactionalFileWrapperFactory.getINodefromFileName(filename);
         inodestate = TransactionalFileWrapperFactory.createTransactionalFile(inode, filename, mode);
-        
+
         sequenceNum = inodestate.seqNum;
         inodestate.seqNum++;
 
@@ -164,8 +161,8 @@ public class TransactionalFile implements Comparable {
 
     private int invokeNativepread(byte buff[], long offset, int size) {
         try {
- 
-                    
+
+
             return nativepread(buff, offset, size, file.getFD());
         } catch (IOException ex) {
 
@@ -193,23 +190,20 @@ public class TransactionalFile implements Comparable {
     public GlobalOffset getCommitedoffset() {
         return committedoffset;
     }
-    
-   
-
 
     public GlobalINodeState getInodestate() {
         return inodestate;
     }
-     
+
     public INode getInode() {
         return inode;
     }
 
     public void close() throws IOException {
         ExtendedTransaction me = Wrapper.getTransaction();
-        if (!(open.get()))
+        if (!(open.get())) {
             throw new IOException();
-            
+        }
         if (me == null) {
             open.set(false);
             file.close();
@@ -219,17 +213,15 @@ public class TransactionalFile implements Comparable {
         if (!(me.getGlobaltoLocalMappings().containsKey(this))) {
             me.addFile(this, 0);
         }
-        
+
         TransactionLocalFileAttributes tmp = (TransactionLocalFileAttributes) me.getGlobaltoLocalMappings().get(this);
         tmp.setOpen(false);
     }
-    
-    
-    
-    
-    public long length() throws IOException{
-        if (!(open.get()))
+
+    public long length() throws IOException {
+        if (!(open.get())) {
             throw new IOException();
+        }
         ExtendedTransaction me = Wrapper.getTransaction();
 
         if (me == null) {
@@ -244,25 +236,27 @@ public class TransactionalFile implements Comparable {
         if (!(me.getGlobaltoLocalMappings().containsKey(this))) {
             me.addFile(this, 0);
         }
-        
+
         TransactionLocalFileAttributes tmp = (TransactionLocalFileAttributes) me.getGlobaltoLocalMappings().get(this);
-        
+
         lockLength(me);
 
-            if (!(this.inodestate.commitedfilesize.getLengthReaders().contains(me))) {
-                this.inodestate.commitedfilesize.getLengthReaders().add(me);
-            }
-        
-           tmp.setLocalsize(this.inodestate.commitedfilesize.getLength());
-           tmp.lenght_read = true;
-        
+        if (!(this.inodestate.commitedfilesize.getLengthReaders().contains(me))) {
+            this.inodestate.commitedfilesize.getLengthReaders().add(me);
+        }
+
+        tmp.setLocalsize(this.inodestate.commitedfilesize.getLength());
+        tmp.lenght_read = true;
+
         this.inodestate.commitedfilesize.lengthlock.unlock();
 
         return tmp.getLocalsize();
     }
+
     public long getFilePointer() throws IOException {
-        if (!(open.get()))
+        if (!(open.get())) {
             throw new IOException();
+        }
         ExtendedTransaction me = Wrapper.getTransaction();
 
         if (me == null) {
@@ -287,15 +281,19 @@ public class TransactionalFile implements Comparable {
             tmp.setLocaloffset(tmp.getLocaloffset() + this.committedoffset.getOffsetnumber() - tmp.getCopylocaloffset());
             target = this.committedoffset.getOffsetnumber() - tmp.getCopylocaloffset();
 
-            offsetlock.unlock();
 
-            Iterator it;
+
+            offsetlock.writeLock().unlock();
+
+            //Iterator it;
 
             if ((me.getWriteBuffer().get(inode)) != null) {
 
-                it = ((Vector) (me.getWriteBuffer().get(inode))).iterator();
-                while (it.hasNext()) {
-                    WriteOperations wrp = (WriteOperations) it.next();
+                //it = ((Vector) (me.getWriteBuffer().get(inode))).iterator();
+                //while (it.hasNext()) {
+                for (int adad = 0; adad < ((Vector) (me.getWriteBuffer().get(inode))).size(); adad++) {
+                    //WriteOperations wrp = (WriteOperations) it.next();
+                    WriteOperations wrp = ((WriteOperations) ((Vector) (me.getWriteBuffer().get(inode))).get(adad));
                     if (wrp.getBelongingto() == tmp && wrp.isUnknownoffset()) {
                         wrp.setUnknownoffset(false);
                     }
@@ -311,14 +309,14 @@ public class TransactionalFile implements Comparable {
         return tmp.getLocaloffset();
     }
 
-    public void force(){
-        
+    public void force() {
     }
-    
+
     public void seek(long offset) throws IOException {
-        
-        if (!(open.get()))
+
+        if (!(open.get())) {
             throw new IOException();
+        }
         ExtendedTransaction me = Wrapper.getTransaction();
 
         if (me == null) {
@@ -341,9 +339,8 @@ public class TransactionalFile implements Comparable {
         tmp.setLocaloffset(offset);
 
     }
-    
-    
-     public int skipBytes(int n) throws IOException {
+
+    public int skipBytes(int n) throws IOException {
         long pos;
         long len;
         long newpos;
@@ -352,209 +349,209 @@ public class TransactionalFile implements Comparable {
             return 0;
         }
         pos = getFilePointer();
-       // len = length();
+        // len = length();
         newpos = pos + n;
-      //  if (newpos > len) {
-     //       newpos = len;
-      //  }
+        //  if (newpos > len) {
+        //       newpos = len;
+        //  }
         seek(newpos);
 
-         /* return the actual number of bytes skipped */
+        /* return the actual number of bytes skipped */
         return (int) (newpos - pos);
     }
 
-    public final byte readByte() throws IOException{
+    public final byte readByte() throws IOException {
         byte[] data = new byte[1];
         read(data);
-        byte result = (byte)(data[0]);
+        byte result = (byte) (data[0]);
         return result;
     }
-    
-    public final boolean readBoolean() throws IOException{
+
+    public final boolean readBoolean() throws IOException {
         byte[] data = new byte[1];
         read(data);
-        if (data[0] == 0 )
+        if (data[0] == 0) {
             return false;
+        }
         return true;
-        //return ((boolean)data[0]);// != 0);
+    //return ((boolean)data[0]);// != 0);
     }
-    
-    public final char readChar() throws IOException{
+
+    public final char readChar() throws IOException {
         byte[] data = new byte[2];
         read(data);
-        char result = (char)((data[0] << 8) | data[0]);
+        char result = (char) ((data[0] << 8) | data[0]);
         return result;
     }
-    
-    public final short readShort() throws IOException{
+
+    public final short readShort() throws IOException {
         byte[] data = new byte[2];
         read(data);
-        short result = (short)((data[0] << 8) | data[1]);
-     //   System.out.println("res " + result);
+        short result = (short) ((data[0] << 8) | data[1]);
+        //   System.out.println("res " + result);
         return result;
     }
-    
+
     public final int readUnsignedShort() throws IOException {
         byte[] data = new byte[2];
         read(data);
-        return (data[0] << 8) + (data[1] << 0);    
+        return (data[0] << 8) + (data[1] << 0);
     }
-    
-    public final String readUTF() throws UTFDataFormatException, IOException{
-            int utflen = -1;
-            byte[] bytearr = null;
-            char[] chararr = null;
+
+    public final String readUTF() throws UTFDataFormatException, IOException {
+        int utflen = -1;
+        byte[] bytearr = null;
+        char[] chararr = null;
         try {
             utflen = readUnsignedShort();
         } catch (IOException ex) {
             Logger.getLogger(TransactionalFile.class.getName()).log(Level.SEVERE, null, ex);
         }
-            bytearr = new byte[utflen];
-            chararr = new char[utflen];
-            
+        bytearr = new byte[utflen];
+        chararr = new char[utflen];
 
-                int c, char2, char3;
-                int count = 0;
-                int chararr_count = 0;
-               // System.out.println("size " +bytearr);
-                read(bytearr);
 
-                while (count < utflen) {
-                    c = (int) bytearr[count] & 0xff;
-                    if (c > 127)
-                        break;
+        int c, char2, char3;
+        int count = 0;
+        int chararr_count = 0;
+        // System.out.println("size " +bytearr);
+        read(bytearr);
+
+        while (count < utflen) {
+            c = (int) bytearr[count] & 0xff;
+            if (c > 127) {
+                break;
+            }
+            count++;
+            chararr[chararr_count++] = (char) c;
+        }
+
+        while (count < utflen) {
+            c = (int) bytearr[count] & 0xff;
+            switch (c >> 4) {
+                case 0:
+                case 1:
+                case 2:
+                case 3:
+                case 4:
+                case 5:
+                case 6:
+                case 7:
+                    /* 0xxxxxxx*/
                     count++;
                     chararr[chararr_count++] = (char) c;
-                }
-
-                while (count < utflen) {
-                    c = (int) bytearr[count] & 0xff;
-                    switch (c >> 4) {
-                    case 0:
-                    case 1:
-                    case 2:
-                    case 3:
-                    case 4:
-                    case 5:
-                    case 6:
-                    case 7:
-                        /* 0xxxxxxx*/
-                        count++;
-                        chararr[chararr_count++] = (char) c;
-                        break;
-                    case 12:
-                    case 13:
-                        /* 110x xxxx   10xx xxxx*/
-                        count += 2;
-                        if (count > utflen)
-                            throw new UTFDataFormatException(
-                                    "malformed input: partial character at end");
-                        char2 = (int) bytearr[count - 1];
-                        if ((char2 & 0xC0) != 0x80)
-                            throw new UTFDataFormatException(
-                                    "malformed input around byte " + count);
-                        chararr[chararr_count++] = (char) (((c & 0x1F) << 6) | (char2 & 0x3F));
-                        break;
-                    case 14:
-                        /* 1110 xxxx  10xx xxxx  10xx xxxx */
-                        count += 3;
-                        if (count > utflen)
-                            throw new UTFDataFormatException(
-                                    "malformed input: partial character at end");
-                        char2 = (int) bytearr[count - 2];
-                        char3 = (int) bytearr[count - 1];
-                        if (((char2 & 0xC0) != 0x80)
-                                || ((char3 & 0xC0) != 0x80))
-                            throw new UTFDataFormatException(
-                                    "malformed input around byte "
-                                            + (count - 1));
-                        chararr[chararr_count++] = (char) (((c & 0x0F) << 12)
-                                | ((char2 & 0x3F) << 6) | ((char3 & 0x3F) << 0));
-                        break;
-                    default:
-                        /* 10xx xxxx,  1111 xxxx */
+                    break;
+                case 12:
+                case 13:
+                    /* 110x xxxx   10xx xxxx*/
+                    count += 2;
+                    if (count > utflen) {
                         throw new UTFDataFormatException(
-                               "malformed input around byte " + count);
-                   }
-              }
-             // The number of chars produced may be less than utflen
-             return new String(chararr, 0, chararr_count);
-        
+                                "malformed input: partial character at end");
+                    }
+                    char2 = (int) bytearr[count - 1];
+                    if ((char2 & 0xC0) != 0x80) {
+                        throw new UTFDataFormatException(
+                                "malformed input around byte " + count);
+                    }
+                    chararr[chararr_count++] = (char) (((c & 0x1F) << 6) | (char2 & 0x3F));
+                    break;
+                case 14:
+                    /* 1110 xxxx  10xx xxxx  10xx xxxx */
+                    count += 3;
+                    if (count > utflen) {
+                        throw new UTFDataFormatException(
+                                "malformed input: partial character at end");
+                    }
+                    char2 = (int) bytearr[count - 2];
+                    char3 = (int) bytearr[count - 1];
+                    if (((char2 & 0xC0) != 0x80) || ((char3 & 0xC0) != 0x80)) {
+                        throw new UTFDataFormatException(
+                                "malformed input around byte " + (count - 1));
+                    }
+                    chararr[chararr_count++] = (char) (((c & 0x0F) << 12) | ((char2 & 0x3F) << 6) | ((char3 & 0x3F) << 0));
+                    break;
+                default:
+                    /* 10xx xxxx,  1111 xxxx */
+                    throw new UTFDataFormatException(
+                            "malformed input around byte " + count);
+            }
+        }
+        // The number of chars produced may be less than utflen
+        return new String(chararr, 0, chararr_count);
+
     }
-    
-    public final float readFloat() throws IOException{
-       // byte[] data = new byte[4];
-       // int k = read(data);
+
+    public final float readFloat() throws IOException {
+        // byte[] data = new byte[4];
+        // int k = read(data);
         return Float.intBitsToFloat(readInt());
-       // float result = Conversions.bytes2float(data);
-        //int result = (data[0] << 24) | (data[1] << 16) + (data[2] << 8) + (data[3]<<0);
-      //  System.out.println("int res " + result);
-      //  return result;
+    // float result = Conversions.bytes2float(data);
+    //int result = (data[0] << 24) | (data[1] << 16) + (data[2] << 8) + (data[3]<<0);
+    //  System.out.println("int res " + result);
+    //  return result;
     }
-    
-    public final double readDouble() throws IOException{
+
+    public final double readDouble() throws IOException {
         return Double.longBitsToDouble(readLong());
     }
-    
-    
-    public final int readInt() throws IOException{
+
+    public final int readInt() throws IOException {
         byte[] data = new byte[4];
         int k = read(data);
-        
+
         int result = Conversions.bytes2int(data);
         //int result = (data[0] << 24) | (data[1] << 16) + (data[2] << 8) + (data[3]<<0);
-      //  System.out.println("int res " + result);
+        //  System.out.println("int res " + result);
         return result;
     }
-    
-    public final long readLong() throws IOException{
+
+    public final long readLong() throws IOException {
         //long result = ((long)(readInt()) << 32) + (readInt() & 0xFFFFFFFFL);
         byte[] data = new byte[8];
         read(data);
         //long result = ((long)data[0] << 56) + ((long)data[1] << 48) + ((long)data[2] << 40) + ((long)data[3] << 32) + ((long)data[4] << 24) + ((long)data[5] << 16)+ ((long)data[6] << 8) + data[7];
         long result = Conversions.bytes2long(data);
-    //    System.out.println("long res " + result);
+        //    System.out.println("long res " + result);
         return result;
     }
-    
-    
-    public final void writeByte(int b){
-        try{
+
+    public final void writeByte(int b) {
+        try {
             byte[] result = new byte[1];
-            result[0] = (byte)b;
+            result[0] = (byte) b;
             write(result);
-        }catch(IOException ex){
+        } catch (IOException ex) {
             Logger.getLogger(TransactionalFile.class.getName()).log(Level.SEVERE, null, ex);
         }
-        
+
     }
-    
-    public final void writeChar(int value){
-        try{
+
+    public final void writeChar(int value) {
+        try {
             byte[] result = new byte[2];
-            result[0] = (byte)(value >> 8);
-            result[1] = (byte)(value);
+            result[0] = (byte) (value >> 8);
+            result[1] = (byte) (value);
             write(result);
-        }catch(IOException ex){
+        } catch (IOException ex) {
             Logger.getLogger(TransactionalFile.class.getName()).log(Level.SEVERE, null, ex);
         }
-        
+
     }
-      
-      
-        public final void writeShort(int value){
-        try{
+
+    public final void writeShort(int value) {
+        try {
             byte[] result = new byte[2];
-            result[0] = (byte)(value >> 8);
-            result[1] = (byte)(value);
+            result[0] = (byte) (value >> 8);
+            result[1] = (byte) (value);
             write(result);
-        }catch(IOException ex){
+        } catch (IOException ex) {
             Logger.getLogger(TransactionalFile.class.getName()).log(Level.SEVERE, null, ex);
         }
-        
+
     }
-    
-    public final void writeInt(int value){
+
+    public final void writeInt(int value) {
         try {
             byte[] result = new byte[4];
             result[0] = (byte) (value >>> 24 & 0xFF);
@@ -567,55 +564,55 @@ public class TransactionalFile implements Comparable {
         }
 
     }
-    
-    public final void writeFloat(Float v){
+
+    public final void writeFloat(Float v) {
         writeInt(Float.floatToIntBits(v));
     }
-    
-     public final void writeLong(long value){
+
+    public final void writeLong(long value) {
         try {
             byte[] result = new byte[8];
-            result[0] = (byte)(value >>> 56);
-            result[1] = (byte)(value >>> 48);
-            result[2] = (byte)(value >>> 40);
-            result[3] = (byte)(value >>> 32);
-            result[4] = (byte)(value >>> 24);
-            result[5] = (byte)(value >>> 16);
-            result[6] = (byte)(value >>> 8);
-            result[7] = (byte)(value);
+            result[0] = (byte) (value >>> 56);
+            result[1] = (byte) (value >>> 48);
+            result[2] = (byte) (value >>> 40);
+            result[3] = (byte) (value >>> 32);
+            result[4] = (byte) (value >>> 24);
+            result[5] = (byte) (value >>> 16);
+            result[6] = (byte) (value >>> 8);
+            result[7] = (byte) (value);
             write(result);
         } catch (IOException ex) {
             Logger.getLogger(TransactionalFile.class.getName()).log(Level.SEVERE, null, ex);
         }
 
     }
-     
-     public final void writeDouble(Double v) {
+
+    public final void writeDouble(Double v) {
         writeLong(Double.doubleToLongBits(v));
-     }
-     
-     public final void writeBoolean(boolean v){
-          writeByte(v ? 1 : 0);
-     }
-     
-     public final void writeChars(String s) throws IOException {
-            int clen = s.length();
-            int blen = 2*clen;
-            byte[] b = new byte[blen];
-            char[] c = new char[clen];
-            s.getChars(0, clen, c, 0);
-            for (int i = 0, j = 0; i < clen; i++) {
-              b[j++] = (byte)(c[i] >>> 8);
-              b[j++] = (byte)(c[i] >>> 0);
-            }
-            write(b);
     }
-     
-    public final int writeUTF(String str) throws UTFDataFormatException{
+
+    public final void writeBoolean(boolean v) {
+        writeByte(v ? 1 : 0);
+    }
+
+    public final void writeChars(String s) throws IOException {
+        int clen = s.length();
+        int blen = 2 * clen;
+        byte[] b = new byte[blen];
+        char[] c = new char[clen];
+        s.getChars(0, clen, c, 0);
+        for (int i = 0, j = 0; i < clen; i++) {
+            b[j++] = (byte) (c[i] >>> 8);
+            b[j++] = (byte) (c[i] >>> 0);
+        }
+        write(b);
+    }
+
+    public final int writeUTF(String str) throws UTFDataFormatException {
         int strlen = str.length();
         int utflen = 0;
         int c, count = 0;
-            /* use charAt instead of copying String to char array */
+        /* use charAt instead of copying String to char array */
         for (int i = 0; i < strlen; i++) {
             c = str.charAt(i);
             if ((c >= 0x0001) && (c <= 0x007F)) {
@@ -627,62 +624,65 @@ public class TransactionalFile implements Comparable {
             }
         }
 
-        if (utflen > 65535)
-              throw new UTFDataFormatException(
-                  "encoded string too long: " + utflen + " bytes");
+        if (utflen > 65535) {
+            throw new UTFDataFormatException(
+                    "encoded string too long: " + utflen + " bytes");
+        }
+        byte[] bytearr = null;
 
-               byte[] bytearr = null;
-                
-               bytearr = new byte[utflen + 2];
-                
+        bytearr = new byte[utflen + 2];
 
-                bytearr[count++] = (byte) ((utflen >>> 8) & 0xFF);
-                bytearr[count++] = (byte) ((utflen >>> 0) & 0xFF);
 
-                int i = 0;
-               for (i = 0; i < strlen; i++) {
-                    c = str.charAt(i);
-                    if (!((c >= 0x0001) && (c <= 0x007F)))
-                       break;
-                    bytearr[count++] = (byte) c;
-                }
+        bytearr[count++] = (byte) ((utflen >>> 8) & 0xFF);
+        bytearr[count++] = (byte) ((utflen >>> 0) & 0xFF);
 
-                for (; i < strlen; i++) {
-                    c = str.charAt(i);
-                    if ((c >= 0x0001) && (c <= 0x007F)) {
-                        bytearr[count++] = (byte) c;
+        int i = 0;
+        for (i = 0; i < strlen; i++) {
+            c = str.charAt(i);
+            if (!((c >= 0x0001) && (c <= 0x007F))) {
+                break;
+            }
+            bytearr[count++] = (byte) c;
+        }
 
-                    } else if (c > 0x07FF) {
-                        bytearr[count++] = (byte) (0xE0 | ((c >> 12) & 0x0F));
-                        bytearr[count++] = (byte) (0x80 | ((c >> 6) & 0x3F));
-                        bytearr[count++] = (byte) (0x80 | ((c >> 0) & 0x3F));
-                    } else {
-                        bytearr[count++] = (byte) (0xC0 | ((c >> 6) & 0x1F));
-                        bytearr[count++] = (byte) (0x80 | ((c >> 0) & 0x3F));
-                   }
-               }
+        for (; i < strlen; i++) {
+            c = str.charAt(i);
+            if ((c >= 0x0001) && (c <= 0x007F)) {
+                bytearr[count++] = (byte) c;
+
+            } else if (c > 0x07FF) {
+                bytearr[count++] = (byte) (0xE0 | ((c >> 12) & 0x0F));
+                bytearr[count++] = (byte) (0x80 | ((c >> 6) & 0x3F));
+                bytearr[count++] = (byte) (0x80 | ((c >> 0) & 0x3F));
+            } else {
+                bytearr[count++] = (byte) (0xC0 | ((c >> 6) & 0x1F));
+                bytearr[count++] = (byte) (0x80 | ((c >> 0) & 0x3F));
+            }
+        }
         try {
             write(bytearr);
         } catch (IOException ex) {
             Logger.getLogger(TransactionalFile.class.getName()).log(Level.SEVERE, null, ex);
         }
-               //write(bytearr, 0, utflen + 2);
-               return utflen + 2;
+        //write(bytearr, 0, utflen + 2);
+        return utflen + 2;
     }
-    
+
     public int read(byte[] b) throws IOException {
 
-          if (!(open.get()))
+        if (!(open.get())) {
             throw new IOException();
-          
+        }
         ExtendedTransaction me = Wrapper.getTransaction();
         int size = b.length;
         int result = 0;
         if (me == null) {  // not a transaction, but any I/O operation even though within a non-transaction is considered a single opertion transactiion 
+
             return non_Transactional_Read(b);
         }
 
         if (!(me.getGlobaltoLocalMappings().containsKey(this))) { // if this is the first time the file is accessed by the transcation
+
             me.addFile(this, 0);
         }
 
@@ -695,6 +695,7 @@ public class TransactionalFile implements Comparable {
                 (dep == OffsetDependency.NO_ACCESS) ||
                 (dep == OffsetDependency.WRITE_DEPENDENCY_2)) {
             tmp.setOffsetdependency(OffsetDependency.READ_DEPENDENCY);
+
             lockOffset(me);
 
             if (dep != OffsetDependency.WRITE_DEPENDENCY_2) {
@@ -705,9 +706,11 @@ public class TransactionalFile implements Comparable {
                 this.committedoffset.getOffsetReaders().add(me);
 
             }
+            offsetlock.writeLock().unlock();
 
-            offsetlock.unlock();
+
         }
+        
 
         if (me.getWriteBuffer().get(inode) != null) {
             makeWritestDependent(me);
@@ -740,10 +743,11 @@ public class TransactionalFile implements Comparable {
         boolean in_local_buffer = false;
 
 
-        Iterator it = writebuffer.iterator();
-        while (it.hasNext()) {
-
-            WriteOperations wrp = (WriteOperations) it.next();
+        //Iterator it = writebuffer.iterator();
+        //while (it.hasNext()) {
+        for (int adad = 0; adad < writebuffer.size(); adad++) {
+            WriteOperations wrp = (WriteOperations) writebuffer.get(adad);
+            //WriteOperations wrp = (WriteOperations) it.next();
             writerange = wrp.getRange();
             if (writerange.includes(readrange)) {
                 markedwriteop[counter] = wrp;
@@ -795,26 +799,36 @@ public class TransactionalFile implements Comparable {
 
                 //  lockOffset(me);
 
-                me.getHeldoffsetlocks().add(offsetlock);
+                /// me.getHeldoffsetlocks().add(offsetlock);
+                /*if (me.toholoffsetlocks[me.offsetcount] == null)
+                me.toholoffsetlocks[me.offsetcount] = new ReentrantLock();
+                me.toholoffsetlocks[me.offsetcount] = offsetlock;
+                me.offsetcount++;*/
                 BlockDataStructure block;
                 int k;
                 for (k = 0; k < occupiedblocks.size() && me.getStatus() == Status.ACTIVE; k++) {   // locking the block locks
-                        block = this.inodestate.getBlockDataStructure((Integer) (occupiedblocks.get(k)));//(BlockDataStructure) tmp.adapter.lockmap.get(Integer.valueOf(k)));
 
-                        block.getLock().readLock().lock();
-                        if (!(block.getReaders().contains(me))) {
-                            block.getReaders().add(me);
+                    block = this.inodestate.getBlockDataStructure((Integer) (occupiedblocks.get(k)));//(BlockDataStructure) tmp.adapter.lockmap.get(Integer.valueOf(k)));
+
+                    block.getLock().readLock().lock();
+                    if (!(block.getReaders().contains(me))) {
+                        block.getReaders().add(me);
+                    }
+
+                }
+                if (k < occupiedblocks.size()) {
+                    for (int i = 0; i < k; i++) {
+                        block = this.inodestate.getBlockDataStructure((Integer) (occupiedblocks.get(k)));
+                        if (me.toholdblocklocks[me.blockcount] == null) {
+                            me.toholdblocklocks[me.blockcount] = new ReentrantReadWriteLock().readLock();
                         }
-
-               }
-               if (k<occupiedblocks.size()){ 
-                    for (int i = 0; i <k; i++) {
-                            block = this.inodestate.getBlockDataStructure((Integer) (occupiedblocks.get(k)));
-                            me.getHeldblocklocks().add(block.getLock().readLock());
-                    }    
+                        me.toholdblocklocks[me.blockcount] = block.getLock().readLock();
+                        me.blockcount++;
+                    //me.getHeldblocklocks().add(block.getLock().readLock());
+                    }
                     throw new AbortedException();
-               }
-                
+                }
+
 
                 for (int i = 0; i < non_intersected_ranges.length; i++) {
 
@@ -831,7 +845,12 @@ public class TransactionalFile implements Comparable {
                 if (me.getStatus() == Status.ABORTED) {
                     for (k = 0; k < occupiedblocks.size(); k++) {
                         block = this.inodestate.getBlockDataStructure((Integer) (occupiedblocks.get(k)));
-                        me.getHeldblocklocks().add(block.getLock().readLock());
+                        if (me.toholdblocklocks[me.blockcount] == null) {
+                            me.toholdblocklocks[me.blockcount] = new ReentrantReadWriteLock().readLock();
+                        }
+                        me.toholdblocklocks[me.blockcount] = block.getLock().readLock();
+                        me.blockcount++;
+                    //me.getHeldblocklocks().add(block.getLock().readLock());
                     }
                     throw new AbortedException();
                 }
@@ -849,8 +868,9 @@ public class TransactionalFile implements Comparable {
     }
 
     public void write(byte[] data) throws IOException {
-      if (!(open.get()))
+        if (!(open.get())) {
             throw new IOException();
+        }
         if (!(writemode)) {
             throw new IOException();
 
@@ -866,7 +886,7 @@ public class TransactionalFile implements Comparable {
             non_Transactional_Write(data);
             return;
         }
-       // System.out.println("write " + Thread.currentThread());
+        // System.out.println("write " + Thread.currentThread());
         if (!(me.getGlobaltoLocalMappings().containsKey(this))) {
             me.addFile(this, 0);
         }
@@ -894,10 +914,10 @@ public class TransactionalFile implements Comparable {
 
 
         tmp.setLocaloffset(tmp.getLocaloffset() + by.length);
-        
-        if (tmp.getLocaloffset() > tmp.getLocalsize())
-            tmp.setLocalsize(tmp.getLocaloffset());
 
+        if (tmp.getLocaloffset() > tmp.getLocalsize()) {
+            tmp.setLocalsize(tmp.getLocaloffset());
+        }
         me.merge_for_writes_done.put(inode, Boolean.FALSE);
 
         if (!(tmp.isUnknown_inital_offset_for_write())) {
@@ -921,12 +941,14 @@ public class TransactionalFile implements Comparable {
             me.getAccessedBlocks().put(this.inode, map);
         }
         int startblock = (int) ((loffset / Defaults.FILEFRAGMENTSIZE));//FileBlockManager.getCurrentFragmentIndexofTheFile(loffset);
+
         int targetblock = (int) (((size + loffset) / Defaults.FILEFRAGMENTSIZE));//FileBlockManager.getTargetFragmentIndexofTheFile(loffset, size);
+
         for (int i = startblock; i <= targetblock; i++) {
             if (map.get(Integer.valueOf(i)) == null) {
-                  map.put(Integer.valueOf(i), mode);
+                map.put(Integer.valueOf(i), mode);
             } else if (map.get(Integer.valueOf(i)) != mode) {
-                  map.put(Integer.valueOf(i), BlockAccessModesEnum.READ_WRITE);
+                map.put(Integer.valueOf(i), BlockAccessModesEnum.READ_WRITE);
             }
         }
     }
@@ -936,20 +958,20 @@ public class TransactionalFile implements Comparable {
 //int st = FileBlockManager.getCurrentFragmentIndexofTheFile(tmp.getLocaloffset());//(int) ((tmp.getLocaloffset() / Defaults.FILEFRAGMENTSIZE));//
 //int end = FileBlockManager.getTargetFragmentIndexofTheFile(tmp.getLocaloffset(), readdata.length);//(int) (((tmp.getLocaloffset() + readdata.length) / Defaults.FILEFRAGMENTSIZE));
         int st = (int) ((tmp.getLocaloffset() / Defaults.FILEFRAGMENTSIZE));
-        int end =(int) (((tmp.getLocaloffset() + readdata.length) / Defaults.FILEFRAGMENTSIZE));
+        int end = (int) (((tmp.getLocaloffset() + readdata.length) / Defaults.FILEFRAGMENTSIZE));
 
         BlockDataStructure block = null;
-        
-        Lock[] locks = new Lock[end -st +1];
-        
+
+        Lock[] locks = new Lock[end - st + 1];
+
         int k;
         //int cou = st;
 
         for (k = st; k <= end /*&& me.getStatus() == Status.ACTIVE*/; k++) {
             block = this.inodestate.getBlockDataStructure(Integer.valueOf(k));
             block.getLock().readLock().lock();
-            
-          //  locks[k-st] = block.getLock().readLock();
+
+            //  locks[k-st] = block.getLock().readLock();
             if (!(block.getReaders().contains(me))) {
                 block.getReaders().add(me);
             }
@@ -957,14 +979,19 @@ public class TransactionalFile implements Comparable {
 
         //Optimization here...not actually needed...may be worth checking
         //whether this improves performance
-        if (k<=end) {
+        if (k <= end) {
             //We aborted here if k is less than or equal to end
-            me.blockcount = k - st;
+            //me.blockcount = k - st;
             for (int i = st; i < k; i++) {
-               // block = this.inodestate.getBlockDataStructure(Integer.valueOf(i));
-               me.getHeldblocklocks().add(block.getLock().readLock());
-                //me.toholdblocklocks[i-st] = this.inodestate.getBlockDataStructure(Integer.valueOf(i)).getLock().readLock();
-               // me.getHeldblocklocks().add(locks[i-st]);
+                if (me.toholdblocklocks[me.blockcount] == null) {
+                    me.toholdblocklocks[me.blockcount] = new ReentrantReadWriteLock().readLock();
+                }
+                me.toholdblocklocks[me.blockcount] = block.getLock().readLock();
+                me.blockcount++;
+            // block = this.inodestate.getBlockDataStructure(Integer.valueOf(i));
+            //me.getHeldblocklocks().add(block.getLock().readLock());
+            //me.toholdblocklocks[i-st] = this.inodestate.getBlockDataStructure(Integer.valueOf(i)).getLock().readLock();
+            // me.getHeldblocklocks().add(locks[i-st]);
             }
             throw new AbortedException();
         }
@@ -973,7 +1000,7 @@ public class TransactionalFile implements Comparable {
         int size = -1;
         size = invokeNativepread(readdata, tmp.getLocaloffset(), readdata.length);
         tmp.setLocaloffset(tmp.getLocaloffset() + size);
-        
+
         //Handle EOF
         if (size == 0) {
             size = -1;
@@ -981,12 +1008,19 @@ public class TransactionalFile implements Comparable {
 
         //Needed to make sure that transaction only sees consistent data
         if (me.getStatus() == Status.ABORTED) {
-            me.blockcount = end - st + 1;
+            //me.blockcount = end - st + 1;
             for (int i = st; i <= end; i++) {
                 block = this.inodestate.getBlockDataStructure(Integer.valueOf(i));
-               // me.toholdblocklocks[i-st] = this.inodestate.getBlockDataStructure(Integer.valueOf(i)).getLock().readLock();
-                me.getHeldblocklocks().add(block.getLock().readLock());
-              //  me.getHeldblocklocks().add(locks[i-st]);
+                // me.toholdblocklocks[i-st] = this.inodestate.getBlockDataStructure(Integer.valueOf(i)).getLock().readLock();
+                if (me.toholdblocklocks[me.blockcount] == null) {
+                    me.toholdblocklocks[me.blockcount] = new ReentrantReadWriteLock().readLock();
+                }
+                me.toholdblocklocks[me.blockcount] = block.getLock().readLock();
+                me.blockcount++;
+            //me.getHeldblocklocks().add(block.getLock().readLock());
+            // me.toholdblocklocks[me.blockcount] = block.getLock().readLock();
+            //me.blockcount++;
+            //  me.getHeldblocklocks().add(locks[i-st]);
             }
             throw new AbortedException();
         }
@@ -995,7 +1029,7 @@ public class TransactionalFile implements Comparable {
         for (k = st; k <= end; k++) {
             block = this.inodestate.getBlockDataStructure(Integer.valueOf(k));
             block.getLock().readLock().unlock();
-            //locks[k-st].unlock();
+        //locks[k-st].unlock();
         }
         return size;
     }
@@ -1030,22 +1064,30 @@ public class TransactionalFile implements Comparable {
     }
 
     public void lockOffset(ExtendedTransaction me) {
+
         boolean locked = false;
         if (me.getStatus() == Status.ACTIVE) {                        //locking the offset
-            offsetlock.lock();
+
+            offsetlock.writeLock().lock();
+            System.out.println("PEEEEEE");
             locked = true;
         }
 
         if (me.getStatus() != Status.ACTIVE) {
             if (locked) {
-                me.getHeldoffsetlocks().add(offsetlock);
+                if (me.toholoffsetlocks[me.offsetcount] == null) {
+                    me.toholoffsetlocks[me.offsetcount] = new ReentrantReadWriteLock();
+                }
+                me.toholoffsetlocks[me.offsetcount] = offsetlock;
+                me.offsetcount++;
+            //me.getHeldoffsetlocks().add(offsetlock);
             }
             throw new AbortedException();
         }
 
     }
 
-     public void lockLength(ExtendedTransaction me) {
+    public void lockLength(ExtendedTransaction me) {
         boolean locked = false;
         if (me.getStatus() == Status.ACTIVE) {                        //locking the offset
 
@@ -1061,27 +1103,33 @@ public class TransactionalFile implements Comparable {
         }
 
     }
-    
+
     public void mergeWrittenData(ExtendedTransaction me/*TreeMap target, byte[] data, Range to_be_merged_data_range*/) {
 
         boolean flag = false;
         Vector vec = (Vector) me.getWriteBuffer().get(this.inode);
         Range intersectedrange = new Range(0, 0);
-        Iterator it1 = vec.iterator();
+
         WriteOperations wrp;
         WriteOperations wrp2;
         Vector toberemoved = new Vector();
-        while (it1.hasNext()) {
-            wrp = (WriteOperations) (it1.next());
+        //Iterator it1 = vec.iterator();
+        //while (it1.hasNext()) {
+        for (int adad = 0; adad < vec.size(); adad++) {
+            //wrp = (WriteOperations) (it1.next());
+            wrp = (WriteOperations) (vec.get(adad));
 
             if (toberemoved.contains(wrp)) {
                 continue;
             }
 
-            Iterator it2 = vec.listIterator();
-            while (it2.hasNext()) {
+            //Iterator it2 = vec.listIterator();
+            //while (it2.hasNext()) {
+            for (int adad2 = 0; adad2 < vec.size(); adad2++) {
+
                 flag = false;
-                wrp2 = (WriteOperations) (it2.next());
+                //wrp2 = (WriteOperations) (it2.next());
+                wrp2 = (WriteOperations) (vec.get(2));
 
                 if ((wrp2 == wrp) || toberemoved.contains(wrp2)) {
                     continue;
@@ -1155,9 +1203,12 @@ public class TransactionalFile implements Comparable {
                 }
             }
         }
-        Iterator it = toberemoved.iterator();
-        while (it.hasNext()) {
-            vec.remove(it.next());
+
+        //Iterator it = toberemoved.iterator();
+        //while (it.hasNext()) {
+        for (int adad = 0; adad < vec.size(); adad++) {
+            //vec.remove(it.next());
+            vec.remove(vec.get(adad));
         }
         toberemoved.clear();
         Collections.sort(vec);
@@ -1168,18 +1219,20 @@ public class TransactionalFile implements Comparable {
     public void non_Transactional_Write(byte[] data) {
 
         Vector heldlocks = new Vector();
-        offsetlock.lock();
+        offsetlock.writeLock().lock();
+
+
         int startblock = FileBlockManager.getCurrentFragmentIndexofTheFile(committedoffset.getOffsetnumber());
         int targetblock = FileBlockManager.getTargetFragmentIndexofTheFile(committedoffset.getOffsetnumber(), data.length);
-        
-        
+
+
         WriteLock[] blocksar;
-        blocksar = new WriteLock[targetblock-startblock+1];
+        blocksar = new WriteLock[targetblock - startblock + 1];
         for (int i = startblock; i <= targetblock; i++) {
             BlockDataStructure block = this.inodestate.getBlockDataStructure(i);
             block.getLock().writeLock().lock();
-            blocksar[i-startblock] = block.getLock().writeLock();
-            //heldlocks.add(block.getLock().writeLock());
+            blocksar[i - startblock] = block.getLock().writeLock();
+        //heldlocks.add(block.getLock().writeLock());
         }
 
         try {
@@ -1189,52 +1242,55 @@ public class TransactionalFile implements Comparable {
             committedoffset.setOffsetnumber(committedoffset.getOffsetnumber() + data.length);
 
         } finally {
-         //   unlockLocks(heldlocks);
+            //   unlockLocks(heldlocks);
             for (int i = startblock; i <= targetblock; i++) {
-                blocksar[i-startblock].unlock();
+                blocksar[i - startblock].unlock();
             }
-            offsetlock.unlock();
+            offsetlock.writeLock().unlock();
         }
+
     }
 
     public int non_Transactional_Read(byte[] b) {
         int size = -1;
 
-        
-        offsetlock.lock();
-        
+
+        offsetlock.writeLock().lock();
+
         int startblock;
         int targetblock;
         startblock = FileBlockManager.getCurrentFragmentIndexofTheFile(committedoffset.getOffsetnumber());
         targetblock = FileBlockManager.getTargetFragmentIndexofTheFile(committedoffset.getOffsetnumber(), size);
 
         ReadLock[] blocksar;
-        blocksar = new ReadLock[targetblock-startblock+1];
-        
+        blocksar = new ReadLock[targetblock - startblock + 1];
+
         for (int i = startblock; i <= targetblock; i++) {
             BlockDataStructure block = this.inodestate.getBlockDataStructure(i);
             block.getLock().readLock().lock();
-            blocksar[i-startblock] = block.getLock().readLock();
+            blocksar[i - startblock] = block.getLock().readLock();
         }
 
         size = invokeNativepread(b, committedoffset.getOffsetnumber(), b.length);
         committedoffset.setOffsetnumber(committedoffset.getOffsetnumber() + size);
         if (!(committedoffset.getOffsetReaders().isEmpty())) {
-            Iterator it2 = committedoffset.getOffsetReaders().iterator(); // for visible readers strategy
 
-            while (it2.hasNext()) {
-                ExtendedTransaction tr = (ExtendedTransaction) it2.next();
+            //Iterator it2 = committedoffset.getOffsetReaders().iterator(); // for visible readers strategy
+            //while (it2.hasNext()) {
+            for (int adad = 0; adad < committedoffset.getOffsetReaders().size(); adad++) {
+                //ExtendedTransaction tr = (ExtendedTransaction) it2.next();
+                ExtendedTransaction tr = (ExtendedTransaction) committedoffset.getOffsetReaders().get(adad);
                 tr.abort();
             }
             committedoffset.getOffsetReaders().clear();
         }
-        
+
         for (int i = startblock; i <= targetblock; i++) {
-            blocksar[i-startblock].unlock();
+            blocksar[i - startblock].unlock();
         }
-        
+
         //unlockLocks(heldlocks);
-        offsetlock.unlock();
+        offsetlock.writeLock().unlock();
         if (size == 0) {
             size = -1;
         }
@@ -1243,17 +1299,17 @@ public class TransactionalFile implements Comparable {
     }
 
     public void non_Transactional_Seek(long offset) {
-        offsetlock.lock();
+        offsetlock.writeLock().lock();
         committedoffset.setOffsetnumber(offset);
-        offsetlock.unlock();
+        offsetlock.writeLock().unlock();
     }
 
     public long non_Transactional_getFilePointer() {
         long offset = -1;
 
-        offsetlock.lock();
+        offsetlock.writeLock().lock();
         offset = committedoffset.getOffsetnumber();
-        offsetlock.unlock();
+        offsetlock.writeLock().unlock();
 
         return offset;
     }
@@ -1277,29 +1333,37 @@ public class TransactionalFile implements Comparable {
 
 
 
-        Iterator it;
-        it = ((Vector) (me.getWriteBuffer().get(inode))).iterator();
-        while (it.hasNext()) {
-
-            WriteOperations wrp = (WriteOperations) it.next();
+        //Iterator it;
+        //it = ((Vector) (me.getWriteBuffer().get(inode))).iterator();
+        //while (it.hasNext()) {
+        for (int adad = 0; adad < ((Vector) (me.getWriteBuffer().get(inode))).size(); adad++) {
+            //WriteOperations wrp = (WriteOperations) it.next();
+            WriteOperations wrp = (WriteOperations) ((Vector) (me.getWriteBuffer().get(inode))).get(adad);
             if (wrp.isUnknownoffset()) {
                 wrp.setUnknownoffset(false);
-                wrp.getOwnertransactionalFile().lockOffset(me);
+                synchronized (wrp.getOwnertransactionalFile()) {
+                    wrp.getOwnertransactionalFile().lockOffset(me);
 
-                wrp.getRange().setStart(wrp.getOwnertransactionalFile().committedoffset.getOffsetnumber() - wrp.getBelongingto().getCopylocaloffset() + wrp.getRange().getStart());
-                wrp.getRange().setEnd(wrp.getOwnertransactionalFile().committedoffset.getOffsetnumber() - wrp.getBelongingto().getCopylocaloffset() + wrp.getRange().getEnd());
-                if ((wrp.getBelongingto().getOffsetdependency() == OffsetDependency.WRITE_DEPENDENCY_1) ||
-                        (wrp.getBelongingto().offsetdependency == OffsetDependency.NO_ACCESS) ||
-                        (wrp.getBelongingto().getOffsetdependency() == OffsetDependency.WRITE_DEPENDENCY_2)) {
-                    wrp.getBelongingto().setOffsetdependency(OffsetDependency.READ_DEPENDENCY);
-                    wrp.getBelongingto().setUnknown_inital_offset_for_write(false);
-                    if (!(wrp.getOwnertransactionalFile().committedoffset.getOffsetReaders().contains(me))) {
-                        wrp.getOwnertransactionalFile().committedoffset.getOffsetReaders().add(me);
+
+
+                    wrp.getRange().setStart(wrp.getOwnertransactionalFile().committedoffset.getOffsetnumber() - wrp.getBelongingto().getCopylocaloffset() + wrp.getRange().getStart());
+                    wrp.getRange().setEnd(wrp.getOwnertransactionalFile().committedoffset.getOffsetnumber() - wrp.getBelongingto().getCopylocaloffset() + wrp.getRange().getEnd());
+                    if ((wrp.getBelongingto().getOffsetdependency() == OffsetDependency.WRITE_DEPENDENCY_1) ||
+                            (wrp.getBelongingto().offsetdependency == OffsetDependency.NO_ACCESS) ||
+                            (wrp.getBelongingto().getOffsetdependency() == OffsetDependency.WRITE_DEPENDENCY_2)) {
+                        wrp.getBelongingto().setOffsetdependency(OffsetDependency.READ_DEPENDENCY);
+                        wrp.getBelongingto().setUnknown_inital_offset_for_write(false);
+                        if (!(wrp.getOwnertransactionalFile().committedoffset.getOffsetReaders().contains(me))) {
+                            wrp.getOwnertransactionalFile().committedoffset.getOffsetReaders().add(me);
+                        }
+                        wrp.getBelongingto().setLocaloffset(wrp.getBelongingto().getLocaloffset() + wrp.getOwnertransactionalFile().committedoffset.getOffsetnumber() - wrp.getBelongingto().getCopylocaloffset());
                     }
-                    wrp.getBelongingto().setLocaloffset(wrp.getBelongingto().getLocaloffset() + wrp.getOwnertransactionalFile().committedoffset.getOffsetnumber() - wrp.getBelongingto().getCopylocaloffset());
+                    wrp.getOwnertransactionalFile().offsetlock.writeLock().unlock();
+
                 }
-                wrp.getOwnertransactionalFile().offsetlock.unlock();
+
                 markAccessedBlocks(me, (int) wrp.getRange().getStart(), (int) (wrp.getRange().getEnd() - wrp.getRange().getStart()), BlockAccessModesEnum.WRITE);
+
 
             }
         }
