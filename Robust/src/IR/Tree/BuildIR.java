@@ -710,6 +710,11 @@ public class BuildIR {
       blockstatements.add(start);
       blockstatements.addAll(parseSESEBlock(blockstatements,pn.getChild("body").getFirstChild()));
       blockstatements.add(end);
+    } else if (isNode(pn,"continue")) {
+	blockstatements.add(new ContinueBreakNode(false));
+    } else if (isNode(pn,"break")) {
+	blockstatements.add(new ContinueBreakNode(true));
+
     } else {
       System.out.println("---------------");
       System.out.println(pn.PPrint(3,true));

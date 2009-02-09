@@ -9,10 +9,15 @@ public class BuildFlat {
   MethodDescriptor currmd;
   TypeUtil typeutil;
 
+    HashSet breakset;
+    HashSet continueset;
+
   public BuildFlat(State st, TypeUtil typeutil) {
     state=st;
     temptovar=new Hashtable();
     this.typeutil=typeutil;
+    this.breakset=new HashSet();
+    this.continueset=new HashSet();
   }
 
   public Hashtable getMap() {
@@ -168,7 +173,10 @@ public class BuildFlat {
 	end=np_end;
       } else {
 	end.addNext(np_begin);
-	end=np_end;
+	if (np_end==null) {
+	    return new NodePair(begin, null);
+	} else
+	    end=np_end;
       }
     }
     if (begin==null) {
@@ -861,8 +869,10 @@ public class BuildFlat {
     cond.getEnd().addNext(fcb);
     fcb.addTrueNext(true_np.getBegin());
     fcb.addFalseNext(false_np.getBegin());
-    true_np.getEnd().addNext(nopend);
-    false_np.getEnd().addNext(nopend);
+    if (true_np.getEnd()!=null)
+	true_np.getEnd().addNext(nopend);
+    if (false_np.getEnd()!=null)
+	false_np.getEnd().addNext(nopend);
     return new NodePair(cond.getBegin(), nopend);
   }
 
@@ -883,12 +893,24 @@ public class BuildFlat {
       FlatNop nop2=new FlatNop();
       initializer.getEnd().addNext(nop2);
       nop2.addNext(condition.getBegin());
-      body.getEnd().addNext(update.getBegin());
+      if (body.getEnd()!=null)
+	  body.getEnd().addNext(update.getBegin());
       update.getEnd().addNext(backedge);
       backedge.addNext(condition.getBegin());
       condition.getEnd().addNext(fcb);
       fcb.addFalseNext(nopend);
       fcb.addTrueNext(body.getBegin());
+      for(Iterator contit=continueset.iterator();contit.hasNext();) {
+	  FlatNode fn=(FlatNode)contit.next();
+	  contit.remove();
+	  fn.addNext(update.getBegin());
+      }
+      for(Iterator breakit=breakset.iterator();breakit.hasNext();) {
+	  FlatNode fn=(FlatNode)breakit.next();
+	  breakit.remove();
+	  fn.addNext(nopend);
+      }
+
       return new NodePair(begin,nopend);
     } else if (ln.getType()==LoopNode.WHILELOOP) {
       TempDescriptor cond_temp=TempDescriptor.tempFactory("condition", new TypeDescriptor(TypeDescriptor.BOOLEAN));
@@ -907,6 +929,17 @@ public class BuildFlat {
       condition.getEnd().addNext(fcb);
       fcb.addFalseNext(nopend);
       fcb.addTrueNext(body.getBegin());
+
+      for(Iterator contit=continueset.iterator();contit.hasNext();) {
+	  FlatNode fn=(FlatNode)contit.next();
+	  contit.remove();
+	  fn.addNext(backedge);
+      }
+      for(Iterator breakit=breakset.iterator();breakit.hasNext();) {
+	  FlatNode fn=(FlatNode)breakit.next();
+	  breakit.remove();
+	  fn.addNext(nopend);
+      }
       return new NodePair(begin,nopend);
     } else if (ln.getType()==LoopNode.DOWHILELOOP) {
       TempDescriptor cond_temp=TempDescriptor.tempFactory("condition", new TypeDescriptor(TypeDescriptor.BOOLEAN));
@@ -924,6 +957,17 @@ public class BuildFlat {
       fcb.addFalseNext(nopend);
       fcb.addTrueNext(backedge);
       backedge.addNext(body.getBegin());
+
+      for(Iterator contit=continueset.iterator();contit.hasNext();) {
+	  FlatNode fn=(FlatNode)contit.next();
+	  contit.remove();
+	  fn.addNext(condition.getBegin());
+      }
+      for(Iterator breakit=breakset.iterator();breakit.hasNext();) {
+	  FlatNode fn=(FlatNode)breakit.next();
+	  breakit.remove();
+	  fn.addNext(nopend);
+      }
       return new NodePair(begin,nopend);
     } else throw new Error();
   }
@@ -1023,6 +1067,15 @@ public class BuildFlat {
     return new NodePair(fsexn, fsexn);
   }
 
+  private NodePair flattenContinueBreakNode(ContinueBreakNode cbn) {
+      FlatNop fn=new FlatNop();
+      if (cbn.isBreak())
+	  breakset.add(fn);
+      else
+	  continueset.add(fn);
+      return new NodePair(fn,null);
+  }
+
   private NodePair flattenBlockStatementNode(BlockStatementNode bsn) {
     switch(bsn.kind()) {
     case Kind.BlockExpressionNode:
@@ -1054,6 +1107,9 @@ public class BuildFlat {
 
     case Kind.SESENode:
       return flattenSESENode((SESENode)bsn);
+
+    case Kind.ContinueBreakNode:
+      return flattenContinueBreakNode((ContinueBreakNode)bsn);
     }
     throw new Error();
   }

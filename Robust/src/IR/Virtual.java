@@ -3,6 +3,7 @@ import java.util.*;
 import Analysis.Locality.LocalityBinding;
 import Analysis.Locality.LocalityAnalysis;
 
+
 public class Virtual {
   State state;
   LocalityAnalysis locality;

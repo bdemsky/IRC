@@ -6,10 +6,13 @@ import IR.*;
 public class SemanticCheck {
   State state;
   TypeUtil typeutil;
+    Stack loopstack;
+
 
   public SemanticCheck(State state, TypeUtil tu) {
     this.state=state;
     this.typeutil=tu;
+    this.loopstack=new Stack();
   }
 
   public void semanticCheck() {
@@ -267,6 +270,10 @@ public class SemanticCheck {
       checkAtomicNode(md, nametable, (AtomicNode)bsn);
       return;
 
+    case Kind.ContinueBreakNode:
+	checkContinueBreakNode(md, nametable, (ContinueBreakNode) bsn);
+	return;
+
     case Kind.SESENode:
       // do nothing, no semantic check for SESEs
       return;
@@ -308,6 +315,13 @@ public class SemanticCheck {
 
   void checkAtomicNode(Descriptor md, SymbolTable nametable, AtomicNode sbn) {
     checkBlockNode(md, nametable, sbn.getBlockNode());
+  }
+
+  void checkContinueBreakNode(Descriptor md, SymbolTable nametable, ContinueBreakNode cbn) {
+      if (loopstack.empty())
+	  throw new Error("continue/break outside of loop");
+      LoopNode ln=(LoopNode)loopstack.peek();
+      cbn.setLoop(ln);
   }
 
   void checkReturnNode(Descriptor d, SymbolTable nametable, ReturnNode rn) {
@@ -580,6 +594,7 @@ public class SemanticCheck {
   }
 
   void checkLoopNode(Descriptor md, SymbolTable nametable, LoopNode ln) {
+      loopstack.push(ln);
     if (ln.getType()==LoopNode.WHILELOOP||ln.getType()==LoopNode.DOWHILELOOP) {
       checkExpressionNode(md, nametable, ln.getCondition(), new TypeDescriptor(TypeDescriptor.BOOLEAN));
       checkBlockNode(md, nametable, ln.getBody());
@@ -597,6 +612,7 @@ public class SemanticCheck {
       checkBlockNode(md, bn.getVarTable(), ln.getBody());
       checkBlockNode(md, bn.getVarTable(), ln.getUpdate());
     }
+    loopstack.pop();
   }
 
 

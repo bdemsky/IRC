@@ -1331,6 +1331,8 @@ public class BuildCode {
       if (current_node==null) {
 	current_node=(FlatNode)tovisit.iterator().next();
 	tovisit.remove(current_node);
+      } else if (tovisit.contains(current_node)){
+	  tovisit.remove(current_node);
       }
       visited.add(current_node);
       if (nodetolabel.containsKey(current_node))
