@@ -407,7 +407,7 @@ __attribute__((pure)) objheader_t *transRead(transrecord_t *record, unsigned int
     //abort this transaction
     printf("ABORTING\n");
     objstrDelete(record->cache);
-    chashDelete(record->longTable);
+    chashDelete(record->lookupTable);
     _longjmp(record->aborttrans,1);
   } else
     addtransaction(oid,record);
@@ -579,7 +579,7 @@ int transCommit(transrecord_t *record) {
     //abort this transaction
     printf("ABORTING TRANSACTION AT COMMIT\n");
     objstrDelete(record->cache);
-    chashDelete(record->longTable);
+    chashDelete(record->lookupTable);
     free(record);
     return 1;
   }
