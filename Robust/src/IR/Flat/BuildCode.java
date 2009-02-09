@@ -1756,8 +1756,9 @@ public class BuildCode {
     output.println("trans=transStart();");
     
     if (state.ABORTREADERS) {
-      output.println("if (_setjmp(trans->aborttrans))");
-      output.println("  goto transretry"+faen.getIdentifier()+";");
+      output.println("if (_setjmp(trans->aborttrans)) {");
+      output.println("  free(trans)");
+      output.println("  goto transretry"+faen.getIdentifier()+"; }");
     }
   }
 
