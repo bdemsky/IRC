@@ -51,9 +51,10 @@ public class JGFMolDynBench {
 
   public void JGFinitialise(){
     interactions = 0;
-    datasizes = new int[2];
+    datasizes = new int[3];
     datasizes[0] = 8;
     datasizes[1] = 13;
+    datasizes[2] = 18;
 
     mm = datasizes[size];
     PARTSIZE = mm*mm*mm*4;

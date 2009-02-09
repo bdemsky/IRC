@@ -26,15 +26,20 @@ public class LookUpService extends Thread {
       }
     }
     for (int i = 0; i < numtrans; i++) {
-      Random rand = new Random(i);
-      int rdwr = rand.nextInt(100);
-      int rwkey = rand.nextInt(nobjs*numthreads);
-      Integer k = new Integer(rwkey);
-      if (rdwr < rdprob) {
-        Integer tmp = mydhmap.get(k);
-      } else {
-        Integer val = global new Integer(i);
-        mydhmap.put(k, val);
+      atomic {
+        Random rand = new Random(i);
+        int rdwr = rand.nextInt(100);
+        int rwkey = rand.nextInt(nobjs*numthreads);
+        Integer key = global new Integer(rwkey);
+        Object o1 = key;
+        if (rdwr < rdprob) {
+          Object o3 = mydhmap.get(key);
+        } else {
+          Integer val = global new Integer(i);
+          Object o2 = val;
+          mydhmap.put(key, val);
+          mydhmap.put(o1, o2);
+        }
       }
     }
   }

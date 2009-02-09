@@ -255,14 +255,14 @@ public class Lexer {
 
   static final String[] keywords = new String[] {
     "abstract", "assert", "atomic", "boolean", "break", "byte", "case", "catch", "char",
-    "class", "const", "continue", 
-    "default", "disjoint", "do", "double", 
+    "class", "const", "continue",
+    "default", "disjoint", "do", "double",
     "else", "enum",
     "extends", "external", "final", "finally",
     "flag", //keyword for failure aware computation
     "float", "for","getoffset", "global", "goto", "if",
     //"implements",
-    "import", "instanceof", "int", 
+    "import", "instanceof", "int",
     //"interface",
     "isavailable",
     "long",

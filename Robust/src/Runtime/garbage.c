@@ -57,10 +57,10 @@ int listcount=0;
 #elif defined(FASTCHECK)
 #define ENQUEUE(orig, dst) \
   if (((unsigned int)orig)!=1) { \
-  void *copy; \
-  if (gc_createcopy(orig,&copy)) \
-    enqueue(orig);\
-  dst=copy; }
+    void *copy; \
+    if (gc_createcopy(orig,&copy)) \
+      enqueue(orig);\
+    dst=copy; }
 #else
 #define ENQUEUE(orig, dst) \
   void *copy; \

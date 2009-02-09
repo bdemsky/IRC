@@ -132,7 +132,7 @@ public class Main {
       else if (option.equals("-instructionfailures"))
 	state.INSTRUCTIONFAILURE=true;
       else if (option.equals("-abcclose"))
-	  state.ARRAYBOUNDARYCHECK=false;
+	state.ARRAYBOUNDARYCHECK=false;
       else if (option.equals("-help")) {
 	System.out.println("-classlibrary classlibrarydirectory -- directory where classlibrary is located");
 	System.out.println("-selfloop task -- this task doesn't self loop its parameters forever");
@@ -293,10 +293,10 @@ public class Main {
 	                                             state.OWNERSHIPALIASFILE);
 
 	// generate multiple schedulings
-	ScheduleAnalysis scheduleAnalysis = new ScheduleAnalysis(state, 
-		                                                 ta);
+	ScheduleAnalysis scheduleAnalysis = new ScheduleAnalysis(state,
+	                                                         ta);
 	// necessary preparation such as read profile info etc.
-	scheduleAnalysis.preparation();  
+	scheduleAnalysis.preparation();
 	scheduleAnalysis.preSchedule();
 	scheduleAnalysis.scheduleAnalysis();
 	//scheduleAnalysis.setCoreNum(scheduleAnalysis.getSEdges4Test().size());
@@ -304,21 +304,21 @@ public class Main {
 	scheduleAnalysis.schedule();
 
 	//simulate these schedulings
-	ScheduleSimulator scheduleSimulator = new ScheduleSimulator(scheduleAnalysis.getCoreNum(), 
-		                                                    state, 
-		                                                    ta);
+	ScheduleSimulator scheduleSimulator = new ScheduleSimulator(scheduleAnalysis.getCoreNum(),
+	                                                            state,
+	                                                            ta);
 	Vector<Vector<Schedule>> schedulings = scheduleAnalysis.getSchedulings();
 	Vector<Integer> selectedScheduling = scheduleSimulator.simulate(schedulings);
 
 	if(state.MULTICORE) {
 	  Vector<Schedule> scheduling = scheduleAnalysis.getSchedulings().elementAt(selectedScheduling.firstElement());
-	  BuildCodeMultiCore bcm=new BuildCodeMultiCore(state, 
-		                                        bf.getMap(), 
-		                                        tu, 
-		                                        sa, 
-		                                        scheduling, 
-		                                        scheduleAnalysis.getCoreNum(), 
-		                                        pa);
+	  BuildCodeMultiCore bcm=new BuildCodeMultiCore(state,
+	                                                bf.getMap(),
+	                                                tu,
+	                                                sa,
+	                                                scheduling,
+	                                                scheduleAnalysis.getCoreNum(),
+	                                                pa);
 	  bcm.setOwnershipAnalysis(oa);
 	  bcm.buildCode();
 	  scheduling = null;

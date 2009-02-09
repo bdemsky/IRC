@@ -1,8 +1,8 @@
 public class Foo {
-    public Foo() {
-	next=null;
-    }
     Foo next;
+    public Foo() {
+      next=null;
+    }
 }
 
 public class Chase extends Thread {
@@ -31,8 +31,18 @@ public class Chase extends Thread {
     public void run() {
         atomic {
 	    Foo b=base;
+        /*
+        //Running small test for manual prefetch
+        //TODO Remove later 
+        Object o = b;
+        short noffsets = (short) 2;
+        short[] offsets = new short[2];
+        offsets[0] = getoffset{Foo, next};
+        offsets[1] = (short)5;
+        System.rangePrefetch(o, offsets);
+        */
 	    while(b!=null)
-		b=b.next;
+          b=b.next;
         }
     }
 }

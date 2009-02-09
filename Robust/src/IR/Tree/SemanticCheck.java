@@ -266,11 +266,11 @@ public class SemanticCheck {
     case Kind.AtomicNode:
       checkAtomicNode(md, nametable, (AtomicNode)bsn);
       return;
-  
+
     case Kind.SESENode:
       // do nothing, no semantic check for SESEs
       return;
-    }  
+    }
 
     throw new Error();
   }
@@ -863,7 +863,7 @@ NextMethod:
 	lefttype=new TypeDescriptor(TypeDescriptor.LONG);
       // 090205 hack for boolean
       else if (ltd.isBoolean()||rtd.isBoolean())
-		lefttype=new TypeDescriptor(TypeDescriptor.BOOLEAN);
+	lefttype=new TypeDescriptor(TypeDescriptor.BOOLEAN);
       else
 	lefttype=new TypeDescriptor(TypeDescriptor.INT);
       righttype=lefttype;

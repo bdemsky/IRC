@@ -12,5 +12,5 @@ default:
 	cp ${MAINCLASS}P.bin ${MAINCLASS}1.bin
 
 clean:
-	rm *.bin
 	rm -rf tmpbuilddirectory
+	rm *.bin

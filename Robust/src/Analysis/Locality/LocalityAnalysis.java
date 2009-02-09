@@ -359,7 +359,6 @@ public class LocalityAnalysis {
       case FKind.FlatMethod:
 
       case FKind.FlatOffsetNode:
-	//System.out.println("In FKind.FlatOffsetNode\n");
 	processOffsetNode((FlatOffsetNode)fn, currtable);
 	break;
 
@@ -428,6 +427,8 @@ public class LocalityAnalysis {
 
       boolean isnative=md.getModifiers().isNative();
       boolean isjoin = md.getClassDesc().getSymbol().equals(TypeUtil.ThreadClass)&&!nodemd.getModifiers().isStatic()&&nodemd.numParameters()==0&&md.getSymbol().equals("join");
+      boolean isObjectgetType = md.getClassDesc().getSymbol().equals("Object") && md.getSymbol().equals("getType");
+      boolean isObjecthashCode = md.getClassDesc().getSymbol().equals("Object") && md.getSymbol().equals("nativehashCode");
 
       LocalityBinding lb=new LocalityBinding(md, isatomic);
       if (isnative&&isatomic) {
@@ -458,7 +459,7 @@ public class LocalityAnalysis {
 	  throw new Error("Using type that can be either local or global in context:\n"+currlb.getExplanation());
 	if(runmethodset==null&&thistype.equals(GLOBAL)&&!isatomic && !isjoin)
 	  throw new Error("Using global object outside of transaction in context:\n"+currlb.getExplanation());
-	if (runmethodset==null&&isnative&&thistype.equals(GLOBAL) && !isjoin)
+	if (runmethodset==null&&isnative&&thistype.equals(GLOBAL) && !isjoin && !isObjectgetType && !isObjecthashCode)
 	  throw new Error("Potential call to native method "+md+" on global objects:\n"+currlb.getExplanation());
 	lb.setGlobalThis(thistype);
       }

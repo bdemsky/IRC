@@ -6,11 +6,11 @@
 #define RW_LOCK_UNLOCKED          { RW_LOCK_BIAS }
 //#define LOCK_PREFIX ""
 #define LOCK_PREFIX \
-                ".section .smp_locks,\"a\"\n"   \
-                "  .align 4\n"                  \
-                "  .long 661f\n" /* address */  \
-                ".previous\n"                   \
-                "661:\n\tlock; "
+  ".section .smp_locks,\"a\"\n"   \
+  "  .align 4\n"                  \
+  "  .long 661f\n"             /* address */\
+  ".previous\n"                   \
+  "661:\n\tlock; "
 
 
 

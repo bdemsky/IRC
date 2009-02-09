@@ -115,7 +115,7 @@ public class Convolution extends Thread {
     kernel[0][10] = 1/256.0;
 
     kernel[1][0] = 4/256.0;
-    kernel[1][1] = 8/256.0;
+    kernel[1][1] = 16/256.0;
     kernel[1][2] = 24/256.0;
     kernel[1][3] = 32/256.0;
     kernel[1][4] = 40/256.0;

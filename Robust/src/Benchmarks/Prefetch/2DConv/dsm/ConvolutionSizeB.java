@@ -93,10 +93,12 @@ public class Convolution extends Thread {
       }
     }
  
+    /*
     atomic{
       System.printString("img.outputImage[10][20] = " +(int) img.outputImage[10][20] + "\n");
       System.printString("img.outputImage[256][890] = " +(int) img.outputImage[256][890] + "\n");
     }
+    */
 
 	System.printString("Convolution: Size=");
     System.printInt(SIZE);
@@ -118,10 +120,12 @@ public class Convolution extends Thread {
 
     System.printString("2DConv Done!\n");
 
+    /*
     atomic{
       System.printString("img.outputImage[10][20] = " +(int) img.outputImage[10][20] + "\n");
       System.printString("img.outputImage[256][890] = " +(int) img.outputImage[256][890] + "\n");
     }
+    */
   }
 
   //define 5X5 Gaussian kernel

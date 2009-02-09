@@ -3,7 +3,7 @@ public class DistributedHashMap {
   float loadFactor;
   int secondcapacity;
 
-  public HashMap(int initialCapacity, int secondcapacity, float loadFactor) {
+  public DistributedHashMap(int initialCapacity, int secondcapacity, float loadFactor) {
     init(initialCapacity, secondcapacity, loadFactor);
   }
 
@@ -32,7 +32,7 @@ public class DistributedHashMap {
   void resize(int index) {
     DHashEntry[] oldtable=table[index].array;
     int newCapacity=oldtable.length*2+1;
-    DHashEntry []newtable=global new DHashEntry[newCapacity];
+    DHashEntry [] newtable=global new DHashEntry[newCapacity];
     table[index].array=newtable;
 
     for(int i=0; i<oldtable.length; i++) {
@@ -87,7 +87,7 @@ public class DistributedHashMap {
 
     while(ptr!=null) {
       if (ptr.hashval==hashcode
-	  &&ptr.key.equals(key)) {
+          &&ptr.key.equals(key)) {
 	return ptr.value;
       }
       ptr=ptr.next;
@@ -106,7 +106,7 @@ public class DistributedHashMap {
 
     while(ptr!=null) {
       if (ptr.hashval==hashcode
-	  &&ptr.key.equals(key)) {
+          &&ptr.key.equals(key)) {
 	return true;
       }
       ptr=ptr.next;

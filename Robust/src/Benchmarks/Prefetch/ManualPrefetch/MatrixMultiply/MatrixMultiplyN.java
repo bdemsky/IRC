@@ -7,7 +7,6 @@ public class MatrixMultiply extends Thread{
 	this.y0 = y0;
 	this.x1 = x1;
 	this.y1 = y1;
-    //System.printString("x0 = " +x0+" x1= "+x1+" y0= "+y0+" y1= "+y1+"\n");
     }
     
     public void run() {
@@ -18,8 +17,7 @@ public class MatrixMultiply extends Thread{
         offsets[0] = getoffset{MMul, a};
         offsets[1] = (short) 0;
         offsets[2] = (short) x0;
-        //offsets[3] = (short) (x1 - x0);
-        offsets[3] = (short) 10;
+        offsets[3] = (short) (x1 - x0 -1);
         System.rangePrefetch(o, offsets);
 
         // Prefetch mmul.btranspose[][] matrix
@@ -28,8 +26,7 @@ public class MatrixMultiply extends Thread{
         offsets1[0] = getoffset{MMul, btranspose};
         offsets1[1] = (short) 0;
         offsets1[2] = (short) x0;
-       // offsets1[3] = (short) (x1 - x0);
-        offsets1[3] = (short) 10;
+        offsets1[3] = (short) (x1 - x0 -1);
         System.rangePrefetch(o1, offsets1);
 
         // Prefetch mmul.c[][] matrix
@@ -38,8 +35,7 @@ public class MatrixMultiply extends Thread{
         offsets2[0] = getoffset{MMul, c};
         offsets2[1] = (short) 0;
         offsets2[2] = (short) x0;
-        //offsets2[3] = (short) (x1 - x0);
-        offsets2[3] = (short) 10;
+        offsets2[3] = (short) (x1 - x0 -1);
         System.rangePrefetch(o2, offsets2);
 
 	    double la[][]=mmul.a;
