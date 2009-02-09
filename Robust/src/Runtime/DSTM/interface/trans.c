@@ -406,6 +406,8 @@ __attribute__((pure)) objheader_t *transRead(transrecord_t *record, unsigned int
   if (record->abort) {
     //abort this transaction
     printf("ABORTING\n");
+    objstrDelete(record->cache);
+    chashDelete(record->longTable);
     _longjmp(record->aborttrans,1);
   } else
     addtransaction(oid,record);
@@ -571,6 +573,18 @@ int transCommit(transrecord_t *record) {
   int firsttime=1;
   trans_commit_data_t transinfo; /* keeps track of objs locked during transaction */
   char finalResponse;
+
+#ifdef ABORTREADERS
+  if (record->abort) {
+    //abort this transaction
+    printf("ABORTING TRANSACTION AT COMMIT\n");
+    objstrDelete(record->cache);
+    chashDelete(record->longTable);
+    free(record);
+    return 1;
+  }
+#endif
+
 
   do {
     trecvcount = 0;
