@@ -25,48 +25,46 @@ public class LookUpService extends Thread {
    **/
   private int rdprob;
 
+  /**
+   * The number of look up operations
+   **/
+  private int nLookUp;
+
   public LookUpService() {
   }
 
-  public LookUpService(DistributedHashMap dmap, int threadid, int numthreads, int nobjs, int numtrans, int rdprob) {
+  public LookUpService(DistributedHashMap dmap, int threadid, int numthreads, int nobjs, int numtrans, int rdprob, int nLookUps) {
     mydhmap = dmap;
     this.threadid = threadid;
     this.numthreads = numthreads;
     this.nobjs = nobjs;
     this.numtrans = numtrans;
     this.rdprob = rdprob;
+    this.nLookUp = nLookUp;
   }
 
   public void run() {
-    Barrier barr;
-    barr = new Barrier("128.195.136.162");
-    //Add to the hash map
     int ntrans;
     atomic {
-      for(int i = 0; i < nobjs; i++) {
-        Integer key = global new Integer(threadid*nobjs+i);
-        Integer val = global new Integer(i);
-        Object o1 = key;
-        Object o2 = val;
-        mydhmap.put(o1, o2);
-      }
       ntrans = numtrans;
     }
-    Barrier.enterBarrier(barr);
+
     // Do read/writes
     for (int i = 0; i < ntrans; i++) {
+      Random rand = new Random(i);
       atomic {
-        Random rand = new Random(i);
-        int rdwr = rand.nextInt(100);
-        int rwkey = rand.nextInt(nobjs*numthreads);
-        Integer key = global new Integer(rwkey);
-        Object o1 = key;
-        if (rdwr < rdprob) {
-          Object o3 = mydhmap.get(o1); //Read
-        } else {
-          Integer val = global new Integer(i);
-          Object o2 = val;
-          mydhmap.put(o1, o2); //Modify 
+        for(int j = 0; j < nLookUp; j++) {
+          int rdwr = rand.nextInt(100);
+          int rwkey = rand.nextInt(nobjs);
+          Integer key = global new Integer(rwkey);
+          Object o1 = key;
+          if (rdwr < rdprob) {
+            Object o3 = mydhmap.get(o1); //Read
+          } else {
+            Integer val = global new Integer(j);
+            Object o2 = val;
+            mydhmap.put(o1, o2); //Modify 
+          }
         }
       }
     }
@@ -75,7 +73,6 @@ public class LookUpService extends Thread {
   public static void main(String[] args) {
     LookUpService ls = new LookUpService();
     LookUpService.parseCmdLine(args,ls);
-    BarrierServer mybarr;
 
     int nthreads = ls.numthreads;
     int[] mid = new int[8];
@@ -90,26 +87,34 @@ public class LookUpService extends Thread {
 
     LookUpService[] lus;
     DistributedHashMap dhmap;
-    atomic {
-      mybarr = global new BarrierServer(nthreads);
-    }
-    
-    mybarr.start(mid[0]);
+
     atomic {
       dhmap = global new DistributedHashMap(100, 100, 0.75f);
+      for(int i = 0; i < ls.nobjs; i++) {
+        Integer key = global new Integer(i);
+        Integer val = global new Integer(i*i);
+        Object o1 = key;
+        Object o2 = val;
+        dhmap.put(o1, o2);
+      }
       lus = global new LookUpService[nthreads];
       for(int i = 0; i<nthreads; i++) {
-        lus[i] = global new LookUpService(dhmap, i, ls.numthreads, ls.nobjs, ls.numtrans, ls.rdprob);
+        lus[i] = global new LookUpService(dhmap, i, ls.numthreads, ls.nobjs, ls.numtrans, ls.rdprob, ls.nLookUp);
       }
     }
 
-    boolean waitfordone=true;
-    while(waitfordone) {
-      atomic {  //Master aborts are from here
-        if (mybarr.done)
-          waitfordone=false;
+    //Add to the hash map
+    /*
+    atomic {
+      for(int i = 0; i < ls.nobjs; i++) {
+        Integer key = global new Integer(i);
+        Integer val = global new Integer(i*i);
+        Object o1 = key;
+        Object o2 = val;
+        dhmap.put(o1, o2);
       }
     }
+    */
 
     LookUpService tmp;
     /* Start threads */
@@ -156,6 +161,10 @@ public class LookUpService extends Thread {
         if(i < args.length) {
           lus.rdprob = new Integer(args[i++]).intValue();
         }
+      } else if(arg.equals("-nLookUp")) {
+        if(i < args.length) {
+          lus.nLookUp = new Integer(args[i++]).intValue();
+        }
       } else if(arg.equals("-h")) {
         lus.usage();
       }
@@ -169,11 +178,12 @@ public class LookUpService extends Thread {
    * The usage routine which describes the program options.
    **/
   public void usage() {
-    System.printString("usage: ./LookUpServiceN.bin master -N <threads> -nEntry <objects in hashmap> -nTrans <number of transactions> -probRead <read probability> \n");
+    System.printString("usage: ./LookUpServiceN.bin master -N <threads> -nEntry <objects in hashmap> -nTrans <number of transactions> -probRead <read probability> -nLookUp <number of lookups>\n");
     System.printString("    -N the number of threads\n");
     System.printString("    -nEntry the number of objects to be inserted into distributed hashmap\n");
     System.printString("    -nTrans the number of transactions to run\n");
     System.printString("    -probRead the probability of read given a transaction\n");
+    System.printString("    -nLookUp the number of lookups per transaction\n");
     System.printString("    -h help with usage\n");
   }
 }
