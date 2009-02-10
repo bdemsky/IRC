@@ -169,11 +169,471 @@ public class Example {
 	    System.printString("(use the --nice command line flag for graphical output)");
 	}
 	System.printString("");
+
+
+
+
+
+
+
+	cl    = disjoint gp5 new GetPot(args, "Get");
+	ifpot = disjoint gp6 new GetPot("expand.pot");
+
+	if( cl.search("--internal-information", "-i") ) {
+	    ifpot.print();
+	    System.exit(0);
+	}
+
+	// (*) help display
+	if( cl.search("--help", "-h", "--hilfe", "--sos") || cl.search("--ok") == false ) {
+	    String msg = "Example how to use GetPot to parse input files.\n\n" +
+		"USAGE:\n" +
+		"--ok\n" +
+		"        run the input file parsing.\n" +
+		"--help, -h, --hilfe, --sos\n" +
+		"        get some help about this program.\n\n" +
+		"--internal-information, -i\n" +
+		"        show contents of database that was created by file parser.\n" +
+		"--infile string\n" +
+		"        input file name (default: example.pot)";
+	    my_print(msg);
+	    System.exit(0);
+	}
+
+	// (*) example usage
+	my_print("[1.1]--------------------------------------------------------------------------");
+	my_print("Information 0: ", ifpot.call("info0", "nobody"));
+
+	ifpot.set_prefix("1.2/");
+	my_print("[1.2]--------------------------------------------------------------------------");
+	my_print("Information 0: ", ifpot.call("info0", "(nothing)"));
+	my_print("Information 1: ", ifpot.call("info1", "(nothing)"));
+    
+	ifpot.set_prefix("1.3/");
+	my_print("[1.3]--------------------------------------------------------------------------");
+	my_print("Information 0: ", ifpot.call("info0", "(nothing)"));
+	my_print("Information 1: ", ifpot.call("info1", "(nothing)"));
+    
+	ifpot.set_prefix("1.4/");
+	my_print("[1.4]--------------------------------------------------------------------------");
+	my_print("Information 0: ", ifpot.call("info0", "(nothing)"));
+	my_print("Information 1: ", ifpot.call("info1", "(nothing)"));
+ 
+	ifpot.set_prefix("2.1/");
+	my_print("[2.1]--------------------------------------------------------------------------");
+	my_print("Information 0: ", ifpot.call("info0", "(nothing)"));
+	my_print("Information 1: ", ifpot.call("info1", "(nothing)"));
+	my_print("Information 2: ", ifpot.call("info2", "(nothing)"));
+
+	ifpot.set_prefix("2.2/");
+	my_print("[2.2]--------------------------------------------------------------------------");
+	my_print("Information 0: ", ifpot.call("info0", "(nothing)"));
+	my_print("Information 1: ", ifpot.call("info1", "(nothing)"));
+
+	ifpot.set_prefix("2.3/");
+	my_print("[2.3]--------------------------------------------------------------------------");
+	my_print("Information 0: ", ifpot.call("info0", "(nothing)"));
+	my_print("Information 1: ", ifpot.call("info1", "(nothing)"));
+	my_print("Information 2: ", ifpot.call("info2", "(nothing)"));
+
+	ifpot.set_prefix("3.1/");
+	my_print("[3]--------------------------------------------------------------------------");
+	my_print("Information 0: ", ifpot.call("info0", "(nothing)"));
+	my_print("Information 1: ", ifpot.call("info1", "(nothing)"));
+	my_print("Information 2: ", ifpot.call("info2", "(nothing)"));
+	my_print("Information 3: ", ifpot.call("info3", "(nothing)"));
+	my_print("Information 4: ", ifpot.call("info4", "(nothing)"));
+	my_print("Information 5: ", ifpot.call("info5", "(nothing)"));
+	my_print("Information 6: ", ifpot.call("info6", "(nothing)"));
+	my_print("Information 7: ", ifpot.call("info7", "(nothing)"));
+
+	ifpot.set_prefix("3.2/");
+	my_print("[3.2]--------------------------------------------------------------------------");
+	my_print("Information 0: ", ifpot.call("info0", "(nothing)"));
+	my_print("Information 1: ", ifpot.call("info1", "(nothing)"));
+
+	ifpot.set_prefix("3.3/");
+	my_print("[3.3]--------------------------------------------------------------------------");
+	my_print("Information 0: ", ifpot.call("info0", "(nothing)"));
+	my_print("Information 1: ", ifpot.call("info1", "(nothing)"));
+	my_print("Information 2: ", ifpot.call("info2", "(nothing)"));
+	my_print("Information 3: ", ifpot.call("info3", "(nothing)"));
+	my_print("Information 4: ", ifpot.call("info4", "(nothing)"));
+	my_print("Information 5: ", ifpot.call("info5", "(nothing)"));
+	my_print("Information 6: ", ifpot.call("info6", "(nothing)"));
+	my_print("Information 7: ", ifpot.call("info7", "(nothing)"));
+
+	ifpot.set_prefix("3.4/");
+	my_print("[3.4]--------------------------------------------------------------------------");
+	my_print("Information 0: ", ifpot.call("info0", "(nothing)"));
+	my_print("Information 1: ", ifpot.call("info1", "(nothing)"));
+	my_print("Information 2: ", ifpot.call("info2", "(nothing)"));
+
+	ifpot.set_prefix("3.5/");
+	my_print("[3.5]--------------------------------------------------------------------------");
+	my_print("Information 0: ", ifpot.call("info0", "(nothing)"));
+	my_print("Information 1: ", ifpot.call("info1", "(nothing)"));
+	my_print("Information 2: ", ifpot.call("info2", "(nothing)"));
+	my_print("Information 3: ", ifpot.call("info3", "(nothing)"));
+	my_print("Information 4: ", ifpot.call("info4", "(nothing)"));
+	my_print("Information 5: ", ifpot.call("info5", "(nothing)"));
+	my_print("Information 6: ", ifpot.call("info6", "(nothing)"));
+	my_print("Information 7: ", ifpot.call("info7", "(nothing)"));
+
+	ifpot.set_prefix("3.6/");
+	my_print("[3.6]--------------------------------------------------------------------------");
+	my_print("Information 0: ", ifpot.call("info0", "(nothing)"));
+	my_print("Information 1: ", ifpot.call("info1", "(nothing)"));
+
+
+
+
+
+
+
+
+	cl = disjoint gp7 new GetPot(args, "Follow");
+	
+	// to function 'cl.search(..)' 
+	if( cl.search("--help", "-h", "--hilfe") )
+	    print_help();
+
+	// read arguments one by one on the command line
+	//  (lazy command line parsing)
+	double Alpha = cl.follow(0.,  "--alpha");   // [rad]
+	int    Beta  = cl.follow(256, "--beta"); // [1/s]
+	cl.init_multiple_occurrence();
+	User  = cl.follow("You", "--user");      
+	int    No    = cl.next(0x42); 
+	User2 = cl.follow("You Two", "--user"); // second user specified ?
+	int    No2   = cl.next(0x43); 
+	cl.enable_loop(); 
+	double XSz   = cl.follow(0., "--size", "--sz", "-s"); // [cm]
+	double YSz   = cl.next(0.);                           // [cm]
+	
+	System.printString("\n");
+	System.printString("Alpha = " + Alpha);
+	System.printString("Beta  = " + Beta );
+	System.printString("Names           = " + User + " and " + User2);
+	System.printString("Special numbers = " + No + " and " + No2);
+	System.printString("x-size, y-size  = " + XSz + ", " + YSz);
+	System.printString("\n");
+
+
+
+
+
+	cl = disjoint gp8 new GetPot(args, "Get");
+
+	// GetPot Java can treat upto 6 strings, then it needs a String[]
+	if( cl.search("--help", "-h", "--hilfe", "--sos", "--about", "--what-is") ) {
+	    System.printString("call " +  cl.getitem(0) + " with four arguments.");
+	    System.exit(0);
+	}
+	String[] someStrings = new String[11];
+	someStrings[0] = "--stop";
+	someStrings[1] = "--quit";
+	someStrings[2] = "--do-nothing";
+	someStrings[3] = "--let-it-be";
+	someStrings[4] = "-q";
+	someStrings[5] = "-s";
+	someStrings[6] = "--never-mind";
+	someStrings[7] = "--achtung-anhalten";
+	someStrings[8] = "--arrete";
+	someStrings[9] = "--fait-rien";
+	someStrings[10] = "--glonde-rien";
+
+	if( cl.search(someStrings) )
+	    System.exit(0);
+
+	int     A = cl.get(4, 256);    // integer version of get()
+	double  B = cl.get(1, 3.14);   // double version of get()
+	String  C = cl.get(2, "You");  // const char* version of get()
+	
+	System.printString("A (argument no 4) = " + A);
+	System.printString("B (argument no 1) = " + B);
+	System.printString("C (argument no 2) = " + C);
+
+
+
+
+
+ 	cl = disjoint gp9 new GetPot(args, "InputFile");
+ 	GetPot   ifile = disjoint gp10 new GetPot("example.pot");
+	
+   	if( cl.size() == 1 || cl.search("--help", "-h") ) 
+  	{ print_help();	System.exit(0); }
+
+  	if( cl.search("--internal-information", "-i") ) 
+  	{ ifile.print(); System.exit(0); }
+
+	// (2) playing with sections
+	System.printString("webpage       = " + ifile.call("webpage", "nothing.somewhere.idn"));
+	System.printString("user          = " + ifile.call("user", "nobody"));
+	System.printString("dos-file      = " + ifile.call("dos-file", "nobody"));
+	System.printString("latex-formula = " + ifile.call("latex-formula", "nobody"));
+	System.printString("no. clicks    = " + ifile.call("clicks", 0));
+	System.printString("acceleration  = " + ifile.call("acceleration", 3.14));
+    
+	System.printString("vehicle/wheel-base = " + ifile.call("vehicle/wheel-base",2.66));
+	System.printString("vehicle/initial-xyz = ");
+        // first element of vector
+	System.printString(ifile.call("vehicle/initial-xyz", 0., 0) + "\t");  
+        // second element of vector 
+	System.printString(ifile.call("vehicle/initial-xyz", 0., 1) + "\t");  
+        // third element of vector
+	System.printString(ifile.call("vehicle/initial-xyz", 0., 2) + "\n");  
+
+	System.printString("vehicle/tires/B = " + ifile.call("vehicle/tires/B",777.7));
+	System.printString("              C = " + ifile.call("vehicle/tires/C", 777.7));
+	System.printString("              E = " + ifile.call("vehicle/tires/E", 777.7));
+	System.printString("              D = " + ifile.call("vehicle/tires/D", 777.7));
+
+	System.printString("vehicle/chassis/Roh = " + ifile.call("vehicle/chassis/Roh",777.7));
+	System.printString("                S   = " + ifile.call("vehicle/chassis/S",  777.7));
+	System.printString("                Cd  = " + ifile.call("vehicle/chassis/Cd", 777.7));
+
+	System.printString("vehicle/chassis/doors/number = " + ifile.call("vehicle/chassis/doors/number",2));
+	System.printString("                      locks  = " + ifile.call("vehicle/chassis/doors/locks","yes"));
+
+        // (3) playing with things we do normally only with command line arguments
+  	boolean n_f = ifile.search("--nonsense", "-n", "--unsinn", "--sans-sense");
+	double XR = ifile.follow(3.14, "vehicle/-x");
+	System.printString("x-ratio    = " + XR);
+	System.printString("sound-mode = " + ifile.next("none"));    
+	String nfl;
+	if( n_f ) { nfl = "activated"; } else { nfl = "disabled"; }
+	System.printString("nonsense-flag = " + nfl);
+
+
+
+
+
+
+
+
+
+	cl = disjoint gp11 new GetPot(args, "Next");
+
+	// all the following pain, only to pass a string array
+	// to function 'cl.search(..)' 
+	if( cl.search("--help", "-h", "--hilfe") ) print_help();
+        // read arguments one by one on the command line
+	//  (lazy command line parsing)
+	cl.reset_cursor();
+	double   dA = cl.next(0.);    // [rad]
+	int      iB = cl.next(256);   // [1/s]
+	User = cl.next("You");
+	int      iNo   = cl.next(0x42); 
+
+	System.printString("\n");
+	System.printString("A = " + dA);
+	System.printString("B = " + iB);
+	System.printString("Name           = " + User);
+	System.printString("Special number = " + iNo);
+	System.printString("\n");
+
+
+	
+
+	cl = disjoint gp12 new GetPot(args, "Nominus");
+
+	// if( cl.size() == 1 || cl.search("--help", "-h") ) print_help();
+
+	// print out all argument that do not start with a minus
+	String  nm = cl.next_nominus();     
+	while( nm != "" ) {
+	    System.printString("[" + nm + "]");
+	    nm = cl.next_nominus();     
+	} 
+    
+	System.printString("\n");
+
+	// now get the whole vector at once
+	String[]   files = cl.nominus_vector();
+	for(int i=0; i<files.length ; i++)
+	    System.printString("<" + files[i] + ">");
+				
+
+
+
+
+	cl = disjoint gp13 new GetPot(args, "Options");
+
+	// (1) search for a single option
+	// -------------------------------
+	//     check if the '--do-nothing' flag is set and exit if yes
+	if( cl.search("--do-nothing") ) System.exit(0);
+
+	// (2) search for multiple options with the same meaning
+	// GetPot Java can treat upto 6 strings, then it needs a String[]
+	if( cl.search("--help", "-h", "--hilfe", "--sos", "--about", "--what-is") )
+	    print_help();
+
+	//     does the user want us to be nice ... ?
+	boolean  be_nice_f = cl.search("--nice");
+	
+
+	if( cl.search("--beep", "--piepse", "--bip", "--senal-acustica", "-b") )
+	    System.printString("(imagine a beep - the '\\a' is a invalid escape character in Java)");
+	
+	System.printString( "Program terminated.");
+	if( be_nice_f == true )
+	    System.printString( "Have a nice day.");
+
+
+
+
+
+
+	
+
+
+
+	cl = disjoint gp14 new GetPot(args, "Ufo");
+	String[]   ufos = new String[1];
+
+	if( cl.search("-h", "--help") ) {
+	  print_help();
+	  System.exit(0);
+	}
+	else if( cl.search("--arguments") ) {
+	  // (*) unidentified flying arguments ---------------------------------------------
+	  String[] ufas = new String[5];
+	  ufas[0] = "--arguments";
+	  ufas[1] = "-h";
+	  ufas[2] = "--help";
+	  ufas[3] = "yes";
+	  ufas[4] = "no";
+	  ufos = cl.unidentified_arguments(ufas);
+	  print("Unidentified Arguments (other than '--arguments', '-h', '--help', 'yes', 'no'):\n");
+	}
+	else if( cl.search("--options") ) {
+	  // (*) unidentified flying options (starting with '-' or '--') -------------------
+	  String[] ufoos = new String[5];
+	  ufoos[0] = "--options";
+	  ufoos[1] = "-h";
+	  ufoos[2] = "--help";
+	  ufoos[3] = "yes(ignored anyway)";
+	  ufoos[4] = "no(ignored anyway)";
+	  ufos = cl.unidentified_options(ufoos);
+	  print("Unidentified Options (different from '--options',  '-h', '--help'):\n");
+	}
+	else if( cl.search("--flags") ) {
+	  // (*) unidentified flying flags -------------------------------------------------
+	  
+	  // -- flags in the first argument
+	  String ufo_s = cl.unidentified_flags("xzfjct", 1);
+	  print("-- Unaccepted flags in argument 1:\n");
+	  for(int i=0; i< ufo_s.length() ; i++)
+	    print("      '" + ufo_s.charAt(i) + "'\n");
+	  
+	  print("\n   Accepted flags: 'x' 'z' 'f' 'j' 'c' 't'\n\n");
+	  
+	  // -- flags in arguments starting with a single '-'
+	  ufo_s = cl.unidentified_flags("ltrm");
+	  print("-- Unaccepted flags in options (argument with one '-'):\n");
+	  for(int k=0; k< ufo_s.length() ; k++)
+	    print("      '" + ufo_s.charAt(k) + "'\n");
+	  
+	  print("\n   Accepted flags in options: 'l' 't' 'r' 'm'\n");
+	}			
+	else if( cl.search("--variables") ) {
+	  // (*) unidentified flying variables ---------------------------------------------
+	  String[] ufvs = new String[5];
+	  ufvs[0] = "x";
+	  ufvs[1] = "y";
+	  ufvs[2] = "z";
+	  ufvs[3] = "length";
+	  ufvs[4] = "height";
+	  ufos = cl.unidentified_variables(ufvs);
+	  
+	  print("Unidentified Variables (other than 'x', 'y', 'z', 'length', 'height'):\n");
+	}
+	else if( cl.search("--sections") ) {
+	  // (*) unidentified flying sections ----------------------------------------------
+	  ifile = disjoint gp15 new GetPot("example.pot");
+	  String[] ufss = new String[8];
+	  ufss[0] = "vehicle/";
+	  ufss[1] = "vehicle/tires/"; 
+	  ufss[2] = "vehicle/chassis/";
+	  ufss[3] = "vehicle/chassis/doors/";
+	  ufss[4] = "group/";
+	  ufss[5] = "other/";
+	  ufss[6] = "user-variables/";
+	  ufss[7] = "pseudo-function-calls/";
+	  ufos = ifile.unidentified_sections(ufss);
+	  
+	  print("Unidentified sections in file 'example.pot':\n");
+	  if( ufos.length == 0 )
+	    print("    (none) add [..] section labels in file 'example.pot'.\n");
+	}
+	else if( cl.search("--nominuses") ) {
+	  // (*) unidentified flying options (starting with '-' or '--') -------------------
+	  String  tmp[] = new String[2];
+	  // -- read two filenames for demonstration purposes
+	  tmp[0] = cl.follow("default-in.znf", "-i");
+	  tmp[1] = cl.follow("default-out.znf", "-o");
+	  
+	  // -- get any other nominuses not used until now
+	  ufos = cl.unidentified_nominuses(tmp);
+	  
+	  print("Unused Nominus Arguments (other than arguments after -i and -o):\n");
+	}
+	else  {
+	  print_help();
+	  System.exit(0);
+	}
+	
+	// (*) print out unidentified flying objects
+	for(int i=0; i < ufos.length ; i++)
+	  print("     " + ufos[i] + "\n");
+
+
+
+
+
+
+
+
+	cl = disjoint gp16 new GetPot(args, "Variables");
+	if( cl.size() == 1 || cl.search("--help", "-h") ) print_help("java Variables");
+
+	if( cl.search("--internal-information", "-i") ) {
+	    cl.print(); System.exit(0);
+	}
+	// (2) some variables of each type
+	double A_Number   = cl.call("float", 0.);
+	double An_Integer = cl.call("integer", 0);
+	String A_String   = cl.call("string", "default");
+
+	double Element1 = cl.call("vector", 0., 0);
+	String Element2 = cl.call("vector", "default", 1);
+	int    Element3 = cl.call("vector", 0, 2);
+
+	System.printString("Specified Parameters:");
+	System.printString("float   = " + A_Number);
+	System.printString("integer = " + An_Integer);
+	System.printString("string  = " + A_String);
+	System.printString("\n");
+	System.printString("Vector elements:");
+	System.printString("Element 0 (double) = " + Element1);
+	System.printString("Element 1 (string) = " + Element2);
+	System.printString("Element 2 (int)    = " + Element3);	
     }
 
 
+    static void print(String Str) {
+	System.printString(Str);
+    }
 
+    static void my_print(String Str) {
+	System.printString(Str);
+    }
 
+    static void my_print(String Str1, String Str2) {
+	System.printString(Str1 + Str2);
+    }    
     
     static void something(String User, String User2, String User3,
 			  double Value, double Value2, double Value3,
