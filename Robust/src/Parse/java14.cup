@@ -1844,8 +1844,14 @@ conditional_or_expression ::=
 conditional_expression ::=
 		conditional_or_expression:condor {: 
 			RESULT=condor; :}
-//	|	conditional_or_expression QUESTION expression 
-//			COLON conditional_expression
+	|	conditional_or_expression:condor QUESTION expression:exptrue
+			COLON conditional_expression:expfalse {: 
+			ParseNode pn=new ParseNode("tert");
+			pn.addChild("cond").addChild(condor);
+			pn.addChild("trueexpr").addChild(exptrue);
+			pn.addChild("falseexpr").addChild(expfalse);
+			RETULT=pn;
+			:}
 	;
 getoffset_expression ::=
         GETOFFSET LBRACE class_or_interface_type:type COMMA IDENTIFIER:id RBRACE {:
