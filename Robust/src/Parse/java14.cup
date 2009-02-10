@@ -1850,7 +1850,7 @@ conditional_expression ::=
 			pn.addChild("cond").addChild(condor);
 			pn.addChild("trueexpr").addChild(exptrue);
 			pn.addChild("falseexpr").addChild(expfalse);
-			RETULT=pn;
+			RESULT=pn;
 			:}
 	;
 getoffset_expression ::=

@@ -782,10 +782,13 @@ public class BuildFlat {
       return flattenNameNode((NameNode)en,out_temp);
 
     case Kind.OpNode:
-      return flattenOpNode((OpNode)en,out_temp);
+      return flattenOpNode((OpNode)en,out_temp);      
 
     case Kind.OffsetNode:
       return flattenOffsetNode((OffsetNode)en,out_temp);
+
+    case Kind.TertiaryNode:
+      return flattenTertiaryNode((TertiaryNode)en,out_temp);
     }
     throw new Error();
   }
@@ -1074,6 +1077,36 @@ public class BuildFlat {
       else
 	  continueset.add(fn);
       return new NodePair(fn,null);
+  }
+
+  private NodePair flattenTertiaryNode(TertiaryNode tn, TempDescriptor out_temp) {
+    TempDescriptor cond_temp=TempDescriptor.tempFactory("tert_cond",new TypeDescriptor(TypeDescriptor.BOOLEAN));
+    TempDescriptor true_temp=TempDescriptor.tempFactory("tert_true",tn.getTrueExpr().getType());
+    TempDescriptor fals_temp=TempDescriptor.tempFactory("tert_fals",tn.getFalseExpr().getType());
+
+    NodePair cond=flattenExpressionNode(tn.getCond(),cond_temp);
+    FlatCondBranch fcb=new FlatCondBranch(cond_temp);
+
+    NodePair trueExpr=flattenExpressionNode(tn.getTrueExpr(),true_temp);
+    FlatOpNode fonT=new FlatOpNode(out_temp, true_temp, null, new Operation(Operation.ASSIGN));
+
+    NodePair falseExpr=flattenExpressionNode(tn.getFalseExpr(),fals_temp);
+    FlatOpNode fonF=new FlatOpNode(out_temp, fals_temp, null, new Operation(Operation.ASSIGN));
+
+    FlatNop nopend=new FlatNop();
+
+    cond.getEnd().addNext(fcb);
+
+    fcb.addTrueNext(trueExpr.getBegin());
+    fcb.addFalseNext(falseExpr.getBegin());
+
+    trueExpr.getEnd().addNext(fonT);
+    fonT.addNext(nopend);
+
+    falseExpr.getEnd().addNext(fonF);
+    fonF.addNext(nopend);
+    
+    return new NodePair(cond.getBegin(), nopend);
   }
 
   private NodePair flattenBlockStatementNode(BlockStatementNode bsn) {

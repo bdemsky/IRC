@@ -395,6 +395,10 @@ public class SemanticCheck {
     case Kind.OffsetNode:
       checkOffsetNode(md, nametable, (OffsetNode)en, new TypeDescriptor(TypeDescriptor.OFFSET));
       return;
+
+    case Kind.TertiaryNode:
+      checkTertiaryNode(md, nametable, (TertiaryNode)en, td);
+      return;
     }
     throw new Error();
   }
@@ -545,6 +549,14 @@ public class SemanticCheck {
       throw new Error("Unknown field "+fieldname + " in "+ofn.printNode(1)+" in "+md);
     ofn.setType(td);
   }
+
+
+  void checkTertiaryNode(Descriptor md, SymbolTable nametable, TertiaryNode tn, TypeDescriptor td) {
+    checkExpressionNode(md, nametable, tn.getCond(), new TypeDescriptor(TypeDescriptor.BOOLEAN));
+    checkExpressionNode(md, nametable, tn.getTrueExpr(), td );
+    checkExpressionNode(md, nametable, tn.getFalseExpr(), td );
+  }
+
 
   void checkAssignmentNode(Descriptor md, SymbolTable nametable, AssignmentNode an, TypeDescriptor td) {
     boolean postinc=true;

@@ -25,4 +25,5 @@ public class Kind {
   public final static int OffsetNode=22;
   public final static int SESENode=23;
   public final static int ContinueBreakNode=24;
+  public final static int TertiaryNode=25;
 }

@@ -480,6 +480,10 @@ public class BuildIR {
       String fieldname = pn.getChild("field").getTerminal();
       //System.out.println("Checking the values of: "+ " td.toString()= " + td.toString()+ "  fieldname= " + fieldname);
       return new OffsetNode(td, fieldname);
+    } else if (isNode(pn, "tert")) {
+      return new TertiaryNode(parseExpression(pn.getChild("cond").getFirstChild()),
+			      parseExpression(pn.getChild("trueexpr").getFirstChild()),
+			      parseExpression(pn.getChild("falseexpr").getFirstChild()) );
     } else {
       System.out.println("---------------------");
       System.out.println(pn.PPrint(3,true));
