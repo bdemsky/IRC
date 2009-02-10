@@ -35,6 +35,9 @@ public class Wrapper{
         getTransaction().commitChanges();
     }
     
+    public static void realseOffsets(){
+        getTransaction().commitOffset();
+    }
     
     
     public static void Initialize(TransactionStatu memory){

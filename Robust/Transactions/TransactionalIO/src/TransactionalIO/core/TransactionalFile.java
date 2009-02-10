@@ -50,7 +50,8 @@ public class TransactionalFile implements Comparable {
     public boolean to_be_created = false;
     public boolean writemode = false;
     public boolean appendmode = false;
-    public ReentrantReadWriteLock offsetlock;
+    //public ReentrantReadWriteLock offsetlock;
+    public MYLock myoffsetlock;
     //public boolean offsetlocked = false;
     private GlobalOffset committedoffset;
     AtomicBoolean open = new AtomicBoolean(true);
@@ -67,7 +68,8 @@ public class TransactionalFile implements Comparable {
 
             try {
 
-                offsetlock = new ReentrantReadWriteLock();
+                //offsetlock = new ReentrantReadWriteLock();
+                myoffsetlock = new MYLock();
                 file = new RandomAccessFile(f, mode);
             } catch (FileNotFoundException ex) {
 
@@ -114,7 +116,8 @@ public class TransactionalFile implements Comparable {
 
             try {
 
-                offsetlock = new ReentrantReadWriteLock();
+                //offsetlock = new ReentrantReadWriteLock();
+                myoffsetlock = new MYLock();
                 file = new RandomAccessFile(f, mode);
             } catch (FileNotFoundException ex) {
 
@@ -272,7 +275,8 @@ public class TransactionalFile implements Comparable {
             tmp.setOffsetdependency(OffsetDependency.READ_DEPENDENCY);
 
             long target;
-            lockOffset(me);
+            myoffsetlock.acquire(me);
+            //lockOffset(me);
 
             if (!(this.committedoffset.getOffsetReaders().contains(me))) {
                 this.committedoffset.getOffsetReaders().add(me);
@@ -282,8 +286,8 @@ public class TransactionalFile implements Comparable {
             target = this.committedoffset.getOffsetnumber() - tmp.getCopylocaloffset();
 
 
-
-            offsetlock.writeLock().unlock();
+            myoffsetlock.release(me);
+            //offsetlock.writeLock().unlock();
 
             //Iterator it;
 
@@ -696,8 +700,8 @@ public class TransactionalFile implements Comparable {
                 (dep == OffsetDependency.WRITE_DEPENDENCY_2)) {
             tmp.setOffsetdependency(OffsetDependency.READ_DEPENDENCY);
 
-            lockOffset(me);
-
+            //lockOffset(me);
+            myoffsetlock.acquire(me);
             if (dep != OffsetDependency.WRITE_DEPENDENCY_2) {
                 tmp.setLocaloffset(tmp.getLocaloffset() + this.committedoffset.getOffsetnumber() - tmp.getCopylocaloffset());
             }
@@ -706,7 +710,8 @@ public class TransactionalFile implements Comparable {
                 this.committedoffset.getOffsetReaders().add(me);
 
             }
-            offsetlock.writeLock().unlock();
+            myoffsetlock.release(me);
+            //offsetlock.writeLock().unlock();
 
 
         }
@@ -1063,13 +1068,12 @@ public class TransactionalFile implements Comparable {
         this.inode = inode;
     }
 
-    public void lockOffset(ExtendedTransaction me) {
+   /* public void lockOffset(ExtendedTransaction me) {
 
         boolean locked = false;
         if (me.getStatus() == Status.ACTIVE) {                        //locking the offset
-
+            
             offsetlock.writeLock().lock();
-            System.out.println("PEEEEEE");
             locked = true;
         }
 
@@ -1085,7 +1089,7 @@ public class TransactionalFile implements Comparable {
             throw new AbortedException();
         }
 
-    }
+    }*/
 
     public void lockLength(ExtendedTransaction me) {
         boolean locked = false;
@@ -1219,7 +1223,8 @@ public class TransactionalFile implements Comparable {
     public void non_Transactional_Write(byte[] data) {
 
         Vector heldlocks = new Vector();
-        offsetlock.writeLock().lock();
+        myoffsetlock.non_Transactional_Acquire();
+        //offsetlock.writeLock().lock();
 
 
         int startblock = FileBlockManager.getCurrentFragmentIndexofTheFile(committedoffset.getOffsetnumber());
@@ -1246,7 +1251,8 @@ public class TransactionalFile implements Comparable {
             for (int i = startblock; i <= targetblock; i++) {
                 blocksar[i - startblock].unlock();
             }
-            offsetlock.writeLock().unlock();
+            myoffsetlock.non_Transactional_Release();
+            //offsetlock.writeLock().unlock();
         }
 
     }
@@ -1255,7 +1261,8 @@ public class TransactionalFile implements Comparable {
         int size = -1;
 
 
-        offsetlock.writeLock().lock();
+        //offsetlock.writeLock().lock();
+        myoffsetlock.non_Transactional_Acquire();
 
         int startblock;
         int targetblock;
@@ -1290,7 +1297,8 @@ public class TransactionalFile implements Comparable {
         }
 
         //unlockLocks(heldlocks);
-        offsetlock.writeLock().unlock();
+        myoffsetlock.non_Transactional_Release();
+        //offsetlock.writeLock().unlock();
         if (size == 0) {
             size = -1;
         }
@@ -1299,17 +1307,21 @@ public class TransactionalFile implements Comparable {
     }
 
     public void non_Transactional_Seek(long offset) {
-        offsetlock.writeLock().lock();
+        //offsetlock.writeLock().lock();
+        myoffsetlock.non_Transactional_Acquire();
         committedoffset.setOffsetnumber(offset);
-        offsetlock.writeLock().unlock();
+        myoffsetlock.non_Transactional_Release();
+        //offsetlock.writeLock().unlock();
     }
 
     public long non_Transactional_getFilePointer() {
         long offset = -1;
 
-        offsetlock.writeLock().lock();
+        //offsetlock.writeLock().lock();
+        myoffsetlock.non_Transactional_Acquire();
         offset = committedoffset.getOffsetnumber();
-        offsetlock.writeLock().unlock();
+        myoffsetlock.non_Transactional_Release();
+        //offsetlock.writeLock().unlock();
 
         return offset;
     }
@@ -1341,11 +1353,9 @@ public class TransactionalFile implements Comparable {
             WriteOperations wrp = (WriteOperations) ((Vector) (me.getWriteBuffer().get(inode))).get(adad);
             if (wrp.isUnknownoffset()) {
                 wrp.setUnknownoffset(false);
-                synchronized (wrp.getOwnertransactionalFile()) {
-                    wrp.getOwnertransactionalFile().lockOffset(me);
-
-
-
+                //synchronized (wrp.getOwnertransactionalFile()) {
+                    //wrp.getOwnertransactionalFile().lockOffset(me);
+                    wrp.getOwnertransactionalFile().myoffsetlock.acquire(me);
                     wrp.getRange().setStart(wrp.getOwnertransactionalFile().committedoffset.getOffsetnumber() - wrp.getBelongingto().getCopylocaloffset() + wrp.getRange().getStart());
                     wrp.getRange().setEnd(wrp.getOwnertransactionalFile().committedoffset.getOffsetnumber() - wrp.getBelongingto().getCopylocaloffset() + wrp.getRange().getEnd());
                     if ((wrp.getBelongingto().getOffsetdependency() == OffsetDependency.WRITE_DEPENDENCY_1) ||
@@ -1358,9 +1368,10 @@ public class TransactionalFile implements Comparable {
                         }
                         wrp.getBelongingto().setLocaloffset(wrp.getBelongingto().getLocaloffset() + wrp.getOwnertransactionalFile().committedoffset.getOffsetnumber() - wrp.getBelongingto().getCopylocaloffset());
                     }
-                    wrp.getOwnertransactionalFile().offsetlock.writeLock().unlock();
+                    wrp.getOwnertransactionalFile().myoffsetlock.release(me);
+                    //wrp.getOwnertransactionalFile().offsetlock.writeLock().unlock();
 
-                }
+//                }
 
                 markAccessedBlocks(me, (int) wrp.getRange().getStart(), (int) (wrp.getRange().getEnd() - wrp.getRange().getStart()), BlockAccessModesEnum.WRITE);
 

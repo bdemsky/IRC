@@ -37,16 +37,13 @@ import java.util.logging.Logger;
 public class ExtendedTransaction implements TransactionStatu {
 
     private static native int nativepwrite(byte buff[], long offset, int size, FileDescriptor fd);
-    
-
-
-
     public TransactionStatu memorystate;
     public int starttime;
     public int endtime;
     public TreeMap msg = new TreeMap();
     public int numberofwrites;
     public int numberofreads;
+    private TreeMap sortedAccesedFiles;
 
     public enum Status {
 
@@ -55,7 +52,7 @@ public class ExtendedTransaction implements TransactionStatu {
     private boolean writesmerged = true;
     private Vector heldlengthlocks;
     //private Vector<ReentrantLock> heldoffsetlocks;    
-   // private Vector heldoffsetlocks;
+    // private Vector heldoffsetlocks;
     //private Vector<ReentrantLock> heldblocklocks;    
     //private Vector heldblocklocks;
     //private HashMap<INode, Vector<TransactionalFile>> AccessedFiles;
@@ -67,7 +64,8 @@ public class ExtendedTransaction implements TransactionStatu {
     public HashMap merge_for_writes_done;
     private HashMap writeBuffer;
     private volatile Status status;
-    public ReentrantReadWriteLock[] toholoffsetlocks;
+    //public ReentrantReadWriteLock[] toholoffsetlocks;
+    public MYLock[] toholoffsetlocks;
     public int offsetcount = 0;
     public Lock[] toholdblocklocks;
     public int blockcount = 0;
@@ -75,13 +73,14 @@ public class ExtendedTransaction implements TransactionStatu {
     public ExtendedTransaction() {
         //  super();
         // id = Integer.valueOf(Thread.currentThread().getName().substring(7));
-        toholoffsetlocks = new ReentrantReadWriteLock[20];
+        //toholoffsetlocks = new ReentrantReadWriteLock[20];
+        toholoffsetlocks = new MYLock[20];
         toholdblocklocks = new Lock[20];
-      //  for (int i=0; i<20; i++)
-      //      toholoffsetlocks[i] = new ReentrantLock();
+        //  for (int i=0; i<20; i++)
+        //      toholoffsetlocks[i] = new ReentrantLock();
         heldlengthlocks = new Vector();
 //        heldblocklocks = new Vector();
-      //  heldoffsetlocks = new Vector();
+        //  heldoffsetlocks = new Vector();
         AccessedFiles = new HashMap();
         GlobaltoLocalMappings = new HashMap/*<TransactionalFile, TransactionLocalFileAttributes >*/();
         writeBuffer = new HashMap();
@@ -111,7 +110,6 @@ public class ExtendedTransaction implements TransactionStatu {
 
     }
 
-
     public void abort() {
         synchronized (this) {
             this.status = Status.ABORTED;
@@ -132,7 +130,6 @@ public class ExtendedTransaction implements TransactionStatu {
     public boolean isAborted() {
         return this.getStatus() == Status.ABORTED;
     }
-
 
     public HashMap getWriteBuffer() {
         return writeBuffer;
@@ -169,14 +166,16 @@ public class ExtendedTransaction implements TransactionStatu {
     public TreeMap getSortedFileAccessMap(HashMap hmap) {
         /*TreeMap sortedMap = new TreeMap(hmap);
         return sortedMap;*/
-        return new TreeMap(hmap);
+        sortedAccesedFiles = new TreeMap(hmap);
+        return sortedAccesedFiles;
+        //return new TreeMap(hmap);
     }
 
-
     public void addFile(TransactionalFile tf, long offsetnumber/*, TransactionLocalFileAttributes tmp*/) {
-        tf.getInodestate().commitedfilesize.lengthlock.lock();
-        TransactionLocalFileAttributes tmp = new TransactionLocalFileAttributes(offsetnumber, tf.getInodestate().commitedfilesize.getLength());
-        tf.getInodestate().commitedfilesize.lengthlock.unlock();
+        //tf.getInodestate().commitedfilesize.lengthlock.lock();
+        //TransactionLocalFileAttributes tmp = new TransactionLocalFileAttributes(offsetnumber, tf.getInodestate().commitedfilesize.getLength());
+        TransactionLocalFileAttributes tmp = new TransactionLocalFileAttributes(offsetnumber, 0);
+        //tf.getInodestate().commitedfilesize.lengthlock.unlock();
         Vector dummy;
 
         if (AccessedFiles.containsKey(tf.getInode())) {
@@ -197,42 +196,47 @@ public class ExtendedTransaction implements TransactionStatu {
         TreeMap hm = getSortedFileAccessMap(AccessedFiles);
         Iterator iter = hm.keySet().iterator();
         offsetcount = 0;
-        
-       // for (int j=0; j< hm.size(); j++){
+
+        // for (int j=0; j< hm.size(); j++){
         while (iter.hasNext()/* && (this.getStatus() == Status.ACTIVE)*/) {
             INode key = (INode) iter.next();
             Vector vec = (Vector) AccessedFiles.get(key);
-            
+
             Collections.sort(vec);
-            for (int i=0; i<vec.size(); i++){
-            //Iterator it = vec.iterator();
-            //while (it.hasNext() /*&& this.getStatus() == Status.ACTIVE*/) {
+            for (int i = 0; i < vec.size(); i++) {
+                //Iterator it = vec.iterator();
+                //while (it.hasNext() /*&& this.getStatus() == Status.ACTIVE*/) {
                 //TransactionalFile value = (TransactionalFile) it.next();
                 TransactionalFile value = (TransactionalFile) vec.get(i);
                 //System.out.println(Thread.currentThread() + " offset " + value);
-                if (toholoffsetlocks[offsetcount] == null)
-                    toholoffsetlocks[offsetcount] = new ReentrantReadWriteLock();
-                toholoffsetlocks[offsetcount] = value.offsetlock;
+               /* if (toholoffsetlocks[offsetcount] == null)
+                toholoffsetlocks[offsetcount] = new ReentrantReadWriteLock();
+                toholoffsetlocks[offsetcount] = value.offsetlock;*/
+                toholoffsetlocks[offsetcount] = value.myoffsetlock;
                 offsetcount++;
-                value.offsetlock.writeLock().lock();
+                
+                value.myoffsetlock.acquire(this);
+                //value.offsetlock.writeLock().lock();
 
                 //heldoffsetlocks.add(value.offsetlock);
 
-                if (((TransactionLocalFileAttributes) GlobaltoLocalMappings.get(value)).lenght_read) {
+                
+                //should be uncommented
+                /*if (((TransactionLocalFileAttributes) GlobaltoLocalMappings.get(value)).lenght_read) {
                     if (!(value.getInodestate().commitedfilesize.lengthlock.isHeldByCurrentThread())) {
                         value.getInodestate().commitedfilesize.lengthlock.lock();
                         heldlengthlocks.add(value.getInodestate().commitedfilesize.lengthlock);
                     }
-                }
-               // break;
+                }*/
+            // break;
             }
         }
 
         if (this.getStatus() != Status.ACTIVE) {
-      //      for (int i=0; i<offsetcount; i++){
-      //          heldoffsetlocks.add(toholoffsetlocks[i]);
-      //      }
-      //      offsetcount = 0;
+            //      for (int i=0; i<offsetcount; i++){
+            //          heldoffsetlocks.add(toholoffsetlocks[i]);
+            //      }
+            //      offsetcount = 0;
             return false;
         }
         return true;
@@ -249,12 +253,12 @@ public class ExtendedTransaction implements TransactionStatu {
 
         lock.lock();
 
-        if (toholdblocklocks[blockcount] == null){
+        if (toholdblocklocks[blockcount] == null) {
             //if (mode == BlockAccessModesEnum.READ) {
             //    toholdblocklocks[blockcount] = new ReentrantReadWriteLock().readLock();
             //}
-           // else 
-                toholdblocklocks[blockcount] = new ReentrantReadWriteLock().writeLock();
+            // else 
+            toholdblocklocks[blockcount] = new ReentrantReadWriteLock().writeLock();
         }
         toholdblocklocks[blockcount] = lock;
         blockcount++;
@@ -290,8 +294,8 @@ public class ExtendedTransaction implements TransactionStatu {
             vec = (Vector) hm.get(key);
             Collections.sort(vec);
             //Iterator it = vec.iterator();
-            for (int j=0; j<vec.size(); j++){
-            //while (it.hasNext()) {
+            for (int j = 0; j < vec.size(); j++) {
+                //while (it.hasNext()) {
                 value = (WriteOperations) vec.get(j);
                 //value = (WriteOperations) it.next();
                 if (value.isUnknownoffset()) {
@@ -332,7 +336,7 @@ public class ExtendedTransaction implements TransactionStatu {
             }
 
         }
-
+       
         //toholdblocklocks = new Lock[100];
 
         Iterator it = this.getAccessedBlocks().keySet().iterator();
@@ -343,21 +347,82 @@ public class ExtendedTransaction implements TransactionStatu {
             Iterator iter2 = vec2.keySet().iterator();
             while (iter2.hasNext()/* && this.getStatus() == Status.ACTIVE*/) {
                 Integer num = (Integer) iter2.next();
-                
+
                 BlockDataStructure blockobj = inodestate.getBlockDataStructure(num);
-                
+
                 this.lockBlock(blockobj, (BlockAccessModesEnum) vec2.get(num));
-                
+
 
             }
         }
+
 
         if (this.getStatus() != Status.ACTIVE) {
             //    for (int i=0; i<blockcount; i++)
             //        heldblocklocks.add(toholdblocklocks[i]); 
             throw new AbortedException();
         }
+        
+        
+
+       
         abortAllReaders();
+
+    }
+
+    public void commitOffset() {
+        Iterator k = GlobaltoLocalMappings.keySet().iterator();
+        while (k.hasNext()) {
+            TransactionalFile trf = (TransactionalFile) (k.next());
+            trf.getCommitedoffset().setOffsetnumber(((TransactionLocalFileAttributes) GlobaltoLocalMappings.get(trf)).getLocaloffset());
+            
+            
+            //should be uncommented
+           /* if (((TransactionLocalFileAttributes) GlobaltoLocalMappings.get(trf)).getInitiallocallength() != ((TransactionLocalFileAttributes) GlobaltoLocalMappings.get(trf)).getLocalsize()) {
+                try {
+                    if (!(trf.getInodestate().commitedfilesize.lengthlock.isHeldByCurrentThread())) {
+                        trf.getInodestate().commitedfilesize.lengthlock.lock();
+                    }
+                    //Iterator it2 = trf.getInodestate().commitedfilesize.getLengthReaders().iterator();
+
+
+                    //  if (((TransactionLocalFileAttributes) getGlobaltoLocalMappings().get(trf)).getInitiallocallength() != ((TransactionLocalFileAttributes) getGlobaltoLocalMappings().get(trf)).getLocalsize()) {
+                    for (int adad = 0; adad < trf.getInodestate().commitedfilesize.getLengthReaders().size(); adad++) {
+                        //    while (it2.hasNext()) {
+                        ExtendedTransaction tr = (ExtendedTransaction) trf.getInodestate().commitedfilesize.getLengthReaders().get(adad);
+                        //ExtendedTransaction tr = (ExtendedTransaction) it2.next();
+                        if (tr != this) {
+                            tr.abort();
+                        }
+                    }
+                    trf.getInodestate().commitedfilesize.getLengthReaders().clear();
+                    // }
+                    trf.getInodestate().commitedfilesize.setLength(trf.file.length());
+
+                    if (trf.getInodestate().commitedfilesize.lengthlock.isHeldByCurrentThread()) {
+                        heldlengthlocks.remove(trf.getInodestate().commitedfilesize.lengthlock);
+                        trf.getInodestate().commitedfilesize.lengthlock.unlock();
+                    }
+                    if (((TransactionLocalFileAttributes) GlobaltoLocalMappings.get(trf)).lenght_read) {
+                        trf.getInodestate().commitedfilesize.getLengthReaders().remove(this);
+                    //heldlengthlocks.remove(trf.getInodestate().commitedfilesize.lengthlock);
+                    //trf.getInodestate().commitedfilesize.lengthlock.unlock();
+                    }
+
+                } catch (IOException ex) {
+                    Logger.getLogger(ExtendedTransaction.class.getName()).log(Level.SEVERE, null, ex);
+                }
+            }*/
+        }
+        for (int i=0; i<offsetcount; i++)
+            toholoffsetlocks[i].release(this);
+        offsetcount =0 ;
+        
+        /*for (int i = 0; i < heldlengthlocks.size(); i++) {
+            ReentrantLock lock = (ReentrantLock) heldlengthlocks.get(i);
+            //ReentrantLock lock = (ReentrantLock) it.next();
+            lock.unlock();
+        }*/
 
     }
 
@@ -372,10 +437,10 @@ public class ExtendedTransaction implements TransactionStatu {
             INode key = (INode) iter.next();
 
             vec = (Vector) hm.get(key);
-            Collections.sort(vec);
-            for (int j=0; j< vec.size(); j++){
-            //it = vec.iterator();
-            //while (it.hasNext()) {
+            //Collections.sort(vec);
+            for (int j = 0; j < vec.size(); j++) {
+                //it = vec.iterator();
+                //while (it.hasNext()) {
                 writeop = (WriteOperations) vec.get(j);
                 //writeop = (WriteOperations) it.next();
                 Byte[] data = new Byte[(int) (writeop.getRange().getEnd() - writeop.getRange().getStart())];
@@ -389,7 +454,7 @@ public class ExtendedTransaction implements TransactionStatu {
             }
         }
 
-        Iterator k = GlobaltoLocalMappings.keySet().iterator();
+  /*      Iterator k = GlobaltoLocalMappings.keySet().iterator();
         while (k.hasNext()) {
             TransactionalFile trf = (TransactionalFile) (k.next());
             trf.getCommitedoffset().setOffsetnumber(((TransactionLocalFileAttributes) GlobaltoLocalMappings.get(trf)).getLocaloffset());
@@ -400,18 +465,18 @@ public class ExtendedTransaction implements TransactionStatu {
                     }
                     //Iterator it2 = trf.getInodestate().commitedfilesize.getLengthReaders().iterator();
 
-                        
-                  //  if (((TransactionLocalFileAttributes) getGlobaltoLocalMappings().get(trf)).getInitiallocallength() != ((TransactionLocalFileAttributes) getGlobaltoLocalMappings().get(trf)).getLocalsize()) {
-                    for(int adad=0; adad<trf.getInodestate().commitedfilesize.getLengthReaders().size(); adad++){ 
-                    //    while (it2.hasNext()) {
-                            ExtendedTransaction tr = (ExtendedTransaction) trf.getInodestate().commitedfilesize.getLengthReaders().get(adad);
-                            //ExtendedTransaction tr = (ExtendedTransaction) it2.next();
-                            if (tr != this) {
-                                tr.abort();
-                            }
+
+                    //  if (((TransactionLocalFileAttributes) getGlobaltoLocalMappings().get(trf)).getInitiallocallength() != ((TransactionLocalFileAttributes) getGlobaltoLocalMappings().get(trf)).getLocalsize()) {
+                    for (int adad = 0; adad < trf.getInodestate().commitedfilesize.getLengthReaders().size(); adad++) {
+                        //    while (it2.hasNext()) {
+                        ExtendedTransaction tr = (ExtendedTransaction) trf.getInodestate().commitedfilesize.getLengthReaders().get(adad);
+                        //ExtendedTransaction tr = (ExtendedTransaction) it2.next();
+                        if (tr != this) {
+                            tr.abort();
                         }
-                        trf.getInodestate().commitedfilesize.getLengthReaders().clear();
-                   // }
+                    }
+                    trf.getInodestate().commitedfilesize.getLengthReaders().clear();
+                    // }
                     trf.getInodestate().commitedfilesize.setLength(trf.file.length());
 
                     if (trf.getInodestate().commitedfilesize.lengthlock.isHeldByCurrentThread()) {
@@ -428,9 +493,7 @@ public class ExtendedTransaction implements TransactionStatu {
                     Logger.getLogger(ExtendedTransaction.class.getName()).log(Level.SEVERE, null, ex);
                 }
             }
-
-
-        }
+        }*/
 
 
     /*  for (int i =0; i<blockcount; i++){
@@ -445,63 +508,68 @@ public class ExtendedTransaction implements TransactionStatu {
         //Iterator it = heldblocklocks.iterator();
 
 //        for (int i=0; i<heldblocklocks.size(); i++){
-            
+
         //while (it.hasNext()) {
 
-            //Lock lock = (Lock) it.next();
-  //          Lock lock = (Lock) heldblocklocks.get(i);
-  //          lock.unlock();
-   //     }
-       // heldblocklocks.clear();
-            for (int i=0; i< blockcount; i++){
-                toholdblocklocks[i].unlock();
-            }
-            blockcount = 0;
+        //Lock lock = (Lock) it.next();
+        //          Lock lock = (Lock) heldblocklocks.get(i);
+        //          lock.unlock();
+        //     }
+        // heldblocklocks.clear();
+        for (int i = 0; i < blockcount; i++) {
+            toholdblocklocks[i].unlock();
+        }
+        blockcount = 0;
+
         
-            for (int i=0; i< offsetcount; i++){
-                toholoffsetlocks[i].writeLock().unlock();
+        if (this.getStatus() == Status.ABORTED){
+            for (int i = 0; i < offsetcount; i++) {
+                //toholoffsetlocks[i].writeLock().unlock();
+                toholoffsetlocks[i].release(this);
             }
             offsetcount = 0;
-        
-        
+
+
         //it = heldoffsetlocks.iterator();
 //        for (int i=0; i<heldoffsetlocks.size(); i++){
         //while (it.hasNext()) {
-  //          ReentrantLock lock = (ReentrantLock) heldoffsetlocks.get(i);
-            //ReentrantLock lock = (ReentrantLock) it.next();
-  //          lock.unlock();
+        //          ReentrantLock lock = (ReentrantLock) heldoffsetlocks.get(i);
+        //ReentrantLock lock = (ReentrantLock) it.next();
+        //          lock.unlock();
 //        }
-      //  heldoffsetlocks.clear();
+        //  heldoffsetlocks.clear();
 
         //it = heldlengthlocks.iterator();
         //while (it.hasNext()) {
-        
-        for (int i=0; i<heldlengthlocks.size(); i++){
-            ReentrantLock lock = (ReentrantLock) heldlengthlocks.get(i);
-            //ReentrantLock lock = (ReentrantLock) it.next();
-            lock.unlock();
+
+           /* for (int i = 0; i < heldlengthlocks.size(); i++) {
+                ReentrantLock lock = (ReentrantLock) heldlengthlocks.get(i);
+                //ReentrantLock lock = (ReentrantLock) it.next();
+                lock.unlock();
+            }*/
         }
-       // heldlengthlocks.clear();
+    // heldlengthlocks.clear();
     }
 
     public void abortAllReaders() {
-        TreeMap hm = getSortedFileAccessMap(AccessedFiles);
+        //TreeMap hm = getSortedFileAccessMap(AccessedFiles);
+        
         //lock phase
-        Iterator iter = hm.keySet().iterator();
+        Iterator iter = sortedAccesedFiles.keySet().iterator();
         TransactionalFile value;
         while (iter.hasNext()) {
             INode key = (INode) iter.next();
             Vector vec = (Vector) AccessedFiles.get(key);
-            for (int i=0; i<vec.size(); i++){
-            //Iterator it = vec.iterator();
-            //while (it.hasNext()) {
+            for (int i = 0; i < vec.size(); i++) {
+                //Iterator it = vec.iterator();
+                //while (it.hasNext()) {
 
                 //value = (TransactionalFile) it.next();
                 value = (TransactionalFile) vec.get(i);
                 //Iterator it2 = value.getCommitedoffset().getOffsetReaders().iterator(); // for visible readers strategy
 
                 //while (it2.hasNext()) {
-                for (int j=0; j< value.getCommitedoffset().getOffsetReaders().size(); j++){
+                for (int j = 0; j < value.getCommitedoffset().getOffsetReaders().size(); j++) {
                     //ExtendedTransaction tr = (ExtendedTransaction) it2.next();
                     ExtendedTransaction tr = (ExtendedTransaction) value.getCommitedoffset().getOffsetReaders().get(j);
                     if (tr != this) {
@@ -531,9 +599,9 @@ public class ExtendedTransaction implements TransactionStatu {
                     BlockDataStructure blockobj = (BlockDataStructure) inodestate.getBlockDataStructure(num);
                     //lockmap.get(num);
                     //Iterator it4 = blockobj.getReaders().iterator(); // from here for visible readers strategy
-                    for (int i=0;i<blockobj.getReaders().size();i++){
-                    
-                    //while (it4.hasNext()) {
+                    for (int i = 0; i < blockobj.getReaders().size(); i++) {
+
+                        //while (it4.hasNext()) {
                         ExtendedTransaction tr = (ExtendedTransaction) blockobj.getReaders().get(i);
                         //ExtendedTransaction tr = (ExtendedTransaction) it4.next();
                         if (this != tr) {
@@ -548,7 +616,6 @@ public class ExtendedTransaction implements TransactionStatu {
         }
     }
 
-
     public TransactionStatu getOtherSystem() {
         return memorystate;
     }
@@ -557,26 +624,24 @@ public class ExtendedTransaction implements TransactionStatu {
         memorystate = othersystem;
     }
 
- //   public Vector getHeldblocklocks() {
- //       return heldblocklocks;
- //   }
+    //   public Vector getHeldblocklocks() {
+    //       return heldblocklocks;
+    //   }
 
- //   public void setHeldblocklocks(Vector heldblocklocks) {
- //       this.heldblocklocks = heldblocklocks;
- //   }
+    //   public void setHeldblocklocks(Vector heldblocklocks) {
+    //       this.heldblocklocks = heldblocklocks;
+    //   }
 
 //    public Vector getHeldoffsetlocks() {
- //       return heldoffsetlocks;
- //   }
-
+    //       return heldoffsetlocks;
+    //   }
     public Vector getHeldlengthlocks() {
         return heldlengthlocks;
     }
 
- //   public void setHeldoffsetlocks(Vector heldoffsetlocks) {
- //       this.heldoffsetlocks = heldoffsetlocks;
- //   }
-
+    //   public void setHeldoffsetlocks(Vector heldoffsetlocks) {
+    //       this.heldoffsetlocks = heldoffsetlocks;
+    //   }
     public void abortThisSystem() {
         abort();
     }
