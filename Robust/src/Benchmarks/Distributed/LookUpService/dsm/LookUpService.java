@@ -33,7 +33,7 @@ public class LookUpService extends Thread {
   public LookUpService() {
   }
 
-  public LookUpService(DistributedHashMap dmap, int threadid, int numthreads, int nobjs, int numtrans, int rdprob, int nLookUps) {
+  public LookUpService(DistributedHashMap dmap, int threadid, int numthreads, int nobjs, int numtrans, int rdprob, int nLookUp) {
     mydhmap = dmap;
     this.threadid = threadid;
     this.numthreads = numthreads;

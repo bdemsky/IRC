@@ -2,7 +2,8 @@
 
 #set -x
 MACHINELIST='dc-1.calit2.uci.edu dc-2.calit2.uci.edu dc-3.calit2.uci.edu dc-4.calit2.uci.edu dc-5.calit2.uci.edu dc-6.calit2.uci.edu dc-7.calit2.uci.edu dc-8.calit2.uci.edu'
-benchmarks='lookup 40962dconv 1200mmver moldynverB'
+#benchmarks='40962dconv 1200mmver moldynverB'
+benchmarks='80lookup'
 
 LOGDIR=~/research/Robust/src/Benchmarks/Prefetch/runlog
 TOPDIR=`pwd`
@@ -110,7 +111,7 @@ function localrun {
 
 function callrun {
   PREFETCH=${BENCHMARK}N.bin
-  NONPREFETCH=${BENCHMARK}NP.bin
+  NONPREFETCH=${BENCHMARK}NPC.bin
   NONPREFETCH_NONCACHE=${BENCHMARK}NPNC.bin
 
   cd $BMDIR 
@@ -130,6 +131,8 @@ for count in 2 4 6 8
 do
 echo "------- Running $count threads $BMDIR non-prefetch + non-cache on $count machines -----"
 run 1 $count $NONPREFETCH_NONCACHE
+echo "------- Running $count threads $BMDIR non-prefetch on $count machines -----"
+run 1 $count $NONPREFETCH
 echo "------- Running $count threads $BMDIR prefetch on $count machines -----"
 run 1 $count $PREFETCH
 done
