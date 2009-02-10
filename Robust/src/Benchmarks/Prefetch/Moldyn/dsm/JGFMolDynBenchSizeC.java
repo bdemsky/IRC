@@ -17,7 +17,7 @@
  *                         All rights reserved.                            *
  *                                                                         *
  **************************************************************************/
-public class JGFMolDynBenchSizeA { 
+public class JGFMolDynBenchSizeC { 
 
     public static void main(String argv[]){
     int nthreads;

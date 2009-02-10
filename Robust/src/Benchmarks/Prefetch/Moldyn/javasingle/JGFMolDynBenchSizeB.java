@@ -17,7 +17,7 @@
  *                         All rights reserved.                            *
  *                                                                         *
  **************************************************************************/
-public class JGFMolDynBenchSizeA { 
+public class JGFMolDynBenchSizeB { 
 
     public static void main(String argv[]){
     int nthreads;
@@ -47,6 +47,7 @@ public class JGFMolDynBenchSizeA {
     JGFMolDynBench.JGFapplication(mold); 
 
     /* Validate data */
+    double[] refval = new double[2];
     refval[0] = 1731.4306625334357;
     refval[1] = 7397.392307839352;
     double dval;

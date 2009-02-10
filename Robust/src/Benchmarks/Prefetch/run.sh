@@ -2,7 +2,7 @@
 
 #set -x
 MACHINELIST='dc-1.calit2.uci.edu dc-2.calit2.uci.edu dc-3.calit2.uci.edu dc-4.calit2.uci.edu dc-5.calit2.uci.edu dc-6.calit2.uci.edu dc-7.calit2.uci.edu dc-8.calit2.uci.edu'
-benchmarks='1152fft2d 40962dconv 20482dconv 800mmver moldynverA em3dver40001306'
+benchmarks='lookup 40962dconv 1200mmver moldynverB'
 
 LOGDIR=~/research/Robust/src/Benchmarks/Prefetch/runlog
 TOPDIR=`pwd`
