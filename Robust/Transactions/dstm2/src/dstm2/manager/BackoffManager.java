@@ -58,6 +58,7 @@ public class BackoffManager extends BaseManager {
     currentAttempt = 0;
   }
   public void resolveConflict(Transaction me, Transaction other) {
+     //
     if (currentAttempt <= MAX_RETRIES) {
       if (!other.isActive()) {
         return;
@@ -78,6 +79,7 @@ public class BackoffManager extends BaseManager {
     }
   }
   public void resolveConflict(Transaction me, Collection<Transaction> others) {
+     
     if (currentAttempt <= MAX_RETRIES) {
       int logBackoff = currentAttempt - 2 + MIN_LOG_BACKOFF;
       if (logBackoff > MAX_LOG_BACKOFF) {

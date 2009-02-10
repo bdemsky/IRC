@@ -205,7 +205,7 @@ public class ExtendedTransaction implements TransactionStatu {
         //while (iter.hasNext()/* && (this.getStatus() == Status.ACTIVE)*/) {
           //  INode key = (INode) iter.next();
             //Vector vec = (Vector) AccessedFiles.get(key);
-            INode key = entry.getKey();
+            //INode key = entry.getKey();
             Vector vec = entry.getValue();
             Collections.sort(vec);
             for (int i = 0; i < vec.size(); i++) {

@@ -48,6 +48,9 @@ public class Transaction implements TransactionStatu{
   
   private TransactionStatu othersystem; 
   private boolean flag = true;
+  private boolean IOTransaction = false;
+
+   
   /**
    * Possible transaction status
    **/
@@ -287,5 +290,13 @@ public class Transaction implements TransactionStatu{
 
     public void abortThisSystem() {
         abort();
+    }
+    
+     public boolean isIOTransaction() {
+        return IOTransaction;
+    }
+
+    public void setIOTransaction(boolean IOTransaction) {
+        this.IOTransaction = IOTransaction;
     }
 }

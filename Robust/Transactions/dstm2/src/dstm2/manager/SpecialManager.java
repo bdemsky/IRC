@@ -2,33 +2,58 @@
  * To change this template, choose Tools | Templates
  * and open the template in the editor.
  */
-
 package dstm2.manager;
 
+import TransactionalIO.core.Wrapper;
 import dstm2.SpecialLock;
 import dstm2.Transaction;
+import java.util.Collection;
 
 /**
  *
  * @author navid
  */
-public class SpecialManager extends PriorityManager{
-    
+public class SpecialManager extends BackoffManager {
+
+    @Override
     public void resolveConflict(Transaction me, Transaction other) {
-        if (me == SpecialLock.getSpecialLock().getOwnerTransaction())
+  
+        if (me == SpecialLock.getSpecialLock().getOwnerTransaction()) {
             other.abort();
-        else if (other == SpecialLock.getSpecialLock().getOwnerTransaction())
+        } else if (other == SpecialLock.getSpecialLock().getOwnerTransaction()) {
             me.abort();
-
-        else 
+        } 
+        else {
             super.resolveConflict(me, other);
-      }
+       }
+    }
 
-      public long getPriority() {
-        throw new UnsupportedOperationException();
-      }
+    @Override
+    public void resolveConflict(Transaction me, Collection<Transaction> others) {
 
-      public void setPriority(long value) {
+        if (me == SpecialLock.getSpecialLock().getOwnerTransaction()) {
+            for (Transaction other : others) {
+                if (other.isActive() && other != me) {
+                    other.abort();
+                }
+            }
+            return;
+        }
+        else  for (Transaction other : others) {
+            if (other == SpecialLock.getSpecialLock().getOwnerTransaction()){
+                me.abort();
+                return;
+            }
+        }
+        
+        super.resolveConflict(me, others);
+    }
+
+    public long getPriority() {
         throw new UnsupportedOperationException();
-      }
+    }
+
+    public void setPriority(long value) {
+        throw new UnsupportedOperationException();
+    }
 }

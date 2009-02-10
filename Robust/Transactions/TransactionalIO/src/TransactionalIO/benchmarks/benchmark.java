@@ -196,6 +196,7 @@ public class benchmark {
                 m.put(String.valueOf((char) (index + i)) + "random", new RandomAccessFile("/home/navid/" + String.valueOf((char) (index + i)) + ".text", "rw"));
                 m.put(String.valueOf((char) (index + i)), new TransactionalFile("/home/navid/" + String.valueOf((char) (index + i)) + ".text", "rw"));
                 m.put(String.valueOf((char) (index + i)), new TransactionalFile("/scratch/TransactionalIO/PureIOBenchmarkFiles/" + String.valueOf((char) (index + i)) + ".text", "rw"));
+                
                 count++;
             }   
             m.put("counterdstm2output", new RandomAccessFile("/scratch/TransactionalIO/WordCunterBenchmarkFiles/counter_benchmark_output.text", "rw"));

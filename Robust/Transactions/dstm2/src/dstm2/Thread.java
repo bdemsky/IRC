@@ -251,13 +251,16 @@ public class Thread extends java.lang.Thread{
     try {
       while (true) {
         threadState.beginTransaction();
+               
      //   System.out.println(Thread.currentThread() + " offically started the transaction");
        /////For Integrating with IO////////// 
         Wrapper.Initialize(Thread.getTransaction());
+        //System.out.println(Thread.currentThread() + " starting");
       //  System.out.println(Thread.currentThread() + " even more offically started the transaction");
        ////////////////////////////////////// 
         try {
           result = xaction.call();
+        //  System.out.println(Thread.currentThread() + " starting2");
       //     System.out.println(Thread.currentThread() + " aborted in committing");
       //  } catch (AbortedException d) {
           /*  synchronized(benchmark.lock){
@@ -281,13 +284,16 @@ public class Thread extends java.lang.Thread{
                 if (threadState.commitTransaction()) {
                     threadState.committedMemRefs += threadState.transaction.memRefs;
                     
+                    
+                    Wrapper.realseOffsets();
+                    
                     Wrapper.commitIO();
                     flag = true;
                }
         }
         catch(AbortedException ex){
             threadState.depth--;
-           // System.out.println(Thread.currentThread() + " aborted");
+            //System.out.println(Thread.currentThread() + " aborted");
            // Wrapper.getTransaction().unlockAllLocks();
         }
         catch (Exception e) {
@@ -298,14 +304,20 @@ public class Thread extends java.lang.Thread{
             
           //  System.out.println("here " + Thread.currentThread());
             Wrapper.getTransaction().unlockAllLocks();
+               
             if (Thread.getTransaction() == SpecialLock.getSpecialLock().getOwnerTransaction()){
-            //     System.out.println("herein " + Thread.currentThread());
+            //if (Thread.getTransaction().isIOTransaction()){
+               
+              //   System.out.println("herein " + Thread.currentThread());
                 SpecialLock.getSpecialLock().unlock(Thread.getTransaction());
+               
             //    System.out.println("here");
-                        
+          ///              
             }
-            if  (flag == true)
+            if  (flag == true){
+               // System.out.println(Thread.currentThread() + " committed");
                 break;
+            }
         }
       
         // transaction aborted

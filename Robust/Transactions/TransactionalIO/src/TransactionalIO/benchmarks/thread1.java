@@ -55,8 +55,8 @@ public class thread1 implements TransactionalProgram{
    
     public void execute() {
         try {
-            //TransactionalFile f1 = (TransactionalFile)benchmark.TransactionalFiles.get("0");
-            TransactionalFile f1;
+            TransactionalFile f1 = (TransactionalFile)benchmark.TransactionalFiles.get("0");
+            //TransactionalFile f1;
             if (tf != null) {
                 f1 = tf;
             } else {
