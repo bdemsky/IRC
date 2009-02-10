@@ -72,6 +72,21 @@ public class Math {
     return r;
   }
 
+  public static double rint(double x) {
+    double y = ceil(x);
+    double d = y - x;
+    if( d == 0.5 ) {
+      if( ((int)y)%2 == 0 ) {
+	return y;
+      } else {
+	return y - 1.0;
+      }
+    } else if( d < 0.5 ) {
+      return y;
+    }
+    return y - 1.0;
+  }
+
   public static native double sin(double a);
   public static native double cos(double a);
   public static native double asin(double a);
@@ -82,6 +97,9 @@ public class Math {
   public static native double sqrt(double a);
   public static native double log(double a);
   public static native double pow(double a, double b);
+
+  public static native double ceil(double a);
+  public static native double floor(double a);
 
   public static native float sinf(float a);
   public static native float cosf(float a);

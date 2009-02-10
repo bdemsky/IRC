@@ -42,6 +42,14 @@ double CALL22(___Math______pow____D_D, double ___a___, double ___b___, double __
   return pow(___a___,___b___);
 }
 
+double CALL11(___Math______ceil____D, double ___a___, double ___a___) {
+  return ceil(___a___);
+}
+
+double CALL11(___Math______floor____D, double ___a___, double ___a___) {
+  return floor(___a___);
+}
+
 float CALL11(___Math______cosf____F, float ___a___, float ___a___) {
   return cosf(___a___);
 }

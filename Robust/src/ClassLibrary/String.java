@@ -306,6 +306,20 @@ public class String {
     return new String(chararray);
   }
 
+  public int compareTo( String s ) {
+    int lenDiff = this.length() - s.length();
+    if( lenDiff != 0 ) {
+      return lenDiff;
+    }    
+    for( int i = 0; i < this.length(); ++i ) {
+      int valDiff = this.charAt(i) - s.charAt(i);
+      if( valDiff != 0 ) {
+	return valDiff;
+      }
+    }
+    return 0;
+  }
+
   public int hashCode() {
     if (cachedHashcode!=0)
       return cachedHashcode;

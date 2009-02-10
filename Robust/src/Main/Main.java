@@ -191,6 +191,7 @@ public class Main {
     readSourceFile(state, ClassLibraryPrefix+"StringBuffer.java");
     //if(!state.RAW) {
     readSourceFile(state, ClassLibraryPrefix+"FileInputStream.java");
+    readSourceFile(state, ClassLibraryPrefix+"PushbackInputStream.java");
     readSourceFile(state, ClassLibraryPrefix+"InputStream.java");
     readSourceFile(state, ClassLibraryPrefix+"OutputStream.java");
     readSourceFile(state, ClassLibraryPrefix+"FileOutputStream.java");
@@ -198,6 +199,7 @@ public class Main {
     readSourceFile(state, ClassLibraryPrefix+"InetAddress.java");
     readSourceFile(state, ClassLibraryPrefix+"SocketInputStream.java");
     readSourceFile(state, ClassLibraryPrefix+"SocketOutputStream.java");
+    readSourceFile(state, ClassLibraryPrefix+"gnu/StringTokenizer.java");
     //}
     readSourceFile(state, ClassLibraryPrefix+"Math.java");
     readSourceFile(state, ClassLibraryPrefix+"gnu/Random.java");

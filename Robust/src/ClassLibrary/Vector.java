@@ -72,6 +72,19 @@ public class Vector {
     array[size++]=obj;
   }
 
+  public void insertElementAt(Object obj, int index) {
+    if (index<0||index>=size)
+      System.printString("Illegal insertElementAt");
+    if (size==array.length) {
+      ensureCapacity(size+1);
+    }
+    size++;
+    for(int i=size-1; i>index; --i) {
+      array[i] = array[i-1];
+    }
+    array[index] = obj;
+  }
+
   public void removeElementAt(int index) {
     if (index<0||index>=size)
       System.printString("Illegal remove");
@@ -79,5 +92,12 @@ public class Vector {
       array[i]=array[i+1];
     }
     size--;
+  }
+
+  public void removeAllElements() {
+    int s = size;
+    for(int i = 0; i<s; ++i ) {
+      removeElementAt(0);
+    }
   }
 }
