@@ -815,7 +815,8 @@ public class TransactionalFile implements Comparable {
 
                     block = this.inodestate.getBlockDataStructure((Integer) (occupiedblocks.get(k)));//(BlockDataStructure) tmp.adapter.lockmap.get(Integer.valueOf(k)));
 
-                    block.getLock().readLock().lock();
+                    //block.getLock().readLock().lock();
+                    block.getLock().readLock();
                     if (!(block.getReaders().contains(me))) {
                         block.getReaders().add(me);
                     }
@@ -825,9 +826,11 @@ public class TransactionalFile implements Comparable {
                     for (int i = 0; i < k; i++) {
                         block = this.inodestate.getBlockDataStructure((Integer) (occupiedblocks.get(k)));
                         if (me.toholdblocklocks[me.blockcount] == null) {
-                            me.toholdblocklocks[me.blockcount] = new ReentrantReadWriteLock().readLock();
+                            //me.toholdblocklocks[me.blockcount] = new ReentrantReadWriteLock().readLock();
+                            me.toholdblocklocks[me.blockcount] = new MYReadWriteLock();
                         }
-                        me.toholdblocklocks[me.blockcount] = block.getLock().readLock();
+                        //me.toholdblocklocks[me.blockcount] = block.getLock().readLock();
+                        me.toholdblocklocks[me.blockcount] = block.getLock();
                         me.blockcount++;
                     //me.getHeldblocklocks().add(block.getLock().readLock());
                     }
@@ -851,9 +854,11 @@ public class TransactionalFile implements Comparable {
                     for (k = 0; k < occupiedblocks.size(); k++) {
                         block = this.inodestate.getBlockDataStructure((Integer) (occupiedblocks.get(k)));
                         if (me.toholdblocklocks[me.blockcount] == null) {
-                            me.toholdblocklocks[me.blockcount] = new ReentrantReadWriteLock().readLock();
+                            me.toholdblocklocks[me.blockcount] = new MYReadWriteLock();
+                            //me.toholdblocklocks[me.blockcount] = new ReentrantReadWriteLock().readLock();
                         }
-                        me.toholdblocklocks[me.blockcount] = block.getLock().readLock();
+                        me.toholdblocklocks[me.blockcount] = block.getLock();
+                        //me.toholdblocklocks[me.blockcount] = block.getLock().readLock();
                         me.blockcount++;
                     //me.getHeldblocklocks().add(block.getLock().readLock());
                     }
@@ -861,7 +866,8 @@ public class TransactionalFile implements Comparable {
                 }
                 for (k = 0; k < occupiedblocks.size(); k++) {
                     block = this.inodestate.getBlockDataStructure((Integer) (occupiedblocks.get(k)));
-                    block.getLock().readLock().unlock();
+                    //block.getLock().readLock().unlock();
+                    block.getLock().unlockRead();
                 }
                 // offsetlock.unlock();
                 tmp.setLocaloffset(tmp.getLocaloffset() + result);
@@ -974,7 +980,8 @@ public class TransactionalFile implements Comparable {
 
         for (k = st; k <= end /*&& me.getStatus() == Status.ACTIVE*/; k++) {
             block = this.inodestate.getBlockDataStructure(Integer.valueOf(k));
-            block.getLock().readLock().lock();
+            //block.getLock().readLock().lock();
+            block.getLock().readLock();
 
             //  locks[k-st] = block.getLock().readLock();
             if (!(block.getReaders().contains(me))) {
@@ -989,9 +996,11 @@ public class TransactionalFile implements Comparable {
             //me.blockcount = k - st;
             for (int i = st; i < k; i++) {
                 if (me.toholdblocklocks[me.blockcount] == null) {
-                    me.toholdblocklocks[me.blockcount] = new ReentrantReadWriteLock().readLock();
+                    //me.toholdblocklocks[me.blockcount] = new ReentrantReadWriteLock().readLock();
+                    me.toholdblocklocks[me.blockcount] = new MYReadWriteLock();
                 }
-                me.toholdblocklocks[me.blockcount] = block.getLock().readLock();
+                //me.toholdblocklocks[me.blockcount] = block.getLock().readLock();
+                me.toholdblocklocks[me.blockcount] = block.getLock();
                 me.blockcount++;
             // block = this.inodestate.getBlockDataStructure(Integer.valueOf(i));
             //me.getHeldblocklocks().add(block.getLock().readLock());
@@ -1018,9 +1027,11 @@ public class TransactionalFile implements Comparable {
                 block = this.inodestate.getBlockDataStructure(Integer.valueOf(i));
                 // me.toholdblocklocks[i-st] = this.inodestate.getBlockDataStructure(Integer.valueOf(i)).getLock().readLock();
                 if (me.toholdblocklocks[me.blockcount] == null) {
-                    me.toholdblocklocks[me.blockcount] = new ReentrantReadWriteLock().readLock();
+                    //me.toholdblocklocks[me.blockcount] = new ReentrantReadWriteLock().readLock();
+                    me.toholdblocklocks[me.blockcount] = new MYReadWriteLock();
                 }
-                me.toholdblocklocks[me.blockcount] = block.getLock().readLock();
+                //me.toholdblocklocks[me.blockcount] = block.getLock().readLock();
+                me.toholdblocklocks[me.blockcount] = block.getLock();
                 me.blockcount++;
             //me.getHeldblocklocks().add(block.getLock().readLock());
             // me.toholdblocklocks[me.blockcount] = block.getLock().readLock();
@@ -1033,7 +1044,8 @@ public class TransactionalFile implements Comparable {
         //unlock the locks
         for (k = st; k <= end; k++) {
             block = this.inodestate.getBlockDataStructure(Integer.valueOf(k));
-            block.getLock().readLock().unlock();
+            //block.getLock().readLock().unlock();
+            block.getLock().unlockRead();
         //locks[k-st].unlock();
         }
         return size;
@@ -1230,13 +1242,16 @@ public class TransactionalFile implements Comparable {
         int startblock = FileBlockManager.getCurrentFragmentIndexofTheFile(committedoffset.getOffsetnumber());
         int targetblock = FileBlockManager.getTargetFragmentIndexofTheFile(committedoffset.getOffsetnumber(), data.length);
 
-
-        WriteLock[] blocksar;
-        blocksar = new WriteLock[targetblock - startblock + 1];
+        //WriteLock[] blocksar;
+        //blocksar = new WriteLock[targetblock - startblock + 1];
+        MYReadWriteLock[] blocksar;
+        blocksar = new MYReadWriteLock[targetblock - startblock + 1];
         for (int i = startblock; i <= targetblock; i++) {
             BlockDataStructure block = this.inodestate.getBlockDataStructure(i);
-            block.getLock().writeLock().lock();
-            blocksar[i - startblock] = block.getLock().writeLock();
+            //block.getLock().writeLock().lock();
+            block.getLock().writeLock();
+            //blocksar[i - startblock] = block.getLock().writeLock();
+            blocksar[i - startblock] = block.getLock();
         //heldlocks.add(block.getLock().writeLock());
         }
 
@@ -1249,7 +1264,8 @@ public class TransactionalFile implements Comparable {
         } finally {
             //   unlockLocks(heldlocks);
             for (int i = startblock; i <= targetblock; i++) {
-                blocksar[i - startblock].unlock();
+                //blocksar[i - startblock].unlock();
+                blocksar[i - startblock].unlockWrite();
             }
             myoffsetlock.non_Transactional_Release();
             //offsetlock.writeLock().unlock();
@@ -1269,13 +1285,18 @@ public class TransactionalFile implements Comparable {
         startblock = FileBlockManager.getCurrentFragmentIndexofTheFile(committedoffset.getOffsetnumber());
         targetblock = FileBlockManager.getTargetFragmentIndexofTheFile(committedoffset.getOffsetnumber(), size);
 
-        ReadLock[] blocksar;
-        blocksar = new ReadLock[targetblock - startblock + 1];
+        //ReadLock[] blocksar;
+        //blocksar = new ReadLock[targetblock - startblock + 1];
+        
+        MYReadWriteLock[] blocksar;
+        blocksar = new MYReadWriteLock[targetblock - startblock + 1];
 
         for (int i = startblock; i <= targetblock; i++) {
             BlockDataStructure block = this.inodestate.getBlockDataStructure(i);
-            block.getLock().readLock().lock();
-            blocksar[i - startblock] = block.getLock().readLock();
+            block.getLock().readLock();
+            blocksar[i - startblock] = block.getLock();
+            //block.getLock().readLock().lock();
+            //blocksar[i - startblock] = block.getLock().readLock();
         }
 
         size = invokeNativepread(b, committedoffset.getOffsetnumber(), b.length);
@@ -1293,7 +1314,8 @@ public class TransactionalFile implements Comparable {
         }
 
         for (int i = startblock; i <= targetblock; i++) {
-            blocksar[i - startblock].unlock();
+            //blocksar[i - startblock].unlock();
+            blocksar[i - startblock].unlockWrite();
         }
 
         //unlockLocks(heldlocks);

@@ -40,7 +40,6 @@ public class ExtendedTransaction implements TransactionStatu {
     public TransactionStatu memorystate;
     public int starttime;
     public int endtime;
-    public TreeMap msg = new TreeMap();
     public int numberofwrites;
     public int numberofreads;
     private TreeMap sortedAccesedFiles;
@@ -50,7 +49,7 @@ public class ExtendedTransaction implements TransactionStatu {
         ABORTED, ACTIVE, COMMITTED
     };
     private boolean writesmerged = true;
-    private Vector heldlengthlocks;
+    //private Vector heldlengthlocks;
     //private Vector<ReentrantLock> heldoffsetlocks;    
     // private Vector heldoffsetlocks;
     //private Vector<ReentrantLock> heldblocklocks;    
@@ -67,7 +66,8 @@ public class ExtendedTransaction implements TransactionStatu {
     //public ReentrantReadWriteLock[] toholoffsetlocks;
     public MYLock[] toholoffsetlocks;
     public int offsetcount = 0;
-    public Lock[] toholdblocklocks;
+    //public Lock[] toholdblocklocks;
+    public MYReadWriteLock[] toholdblocklocks;
     public int blockcount = 0;
 
     public ExtendedTransaction() {
@@ -75,10 +75,10 @@ public class ExtendedTransaction implements TransactionStatu {
         // id = Integer.valueOf(Thread.currentThread().getName().substring(7));
         //toholoffsetlocks = new ReentrantReadWriteLock[20];
         toholoffsetlocks = new MYLock[20];
-        toholdblocklocks = new Lock[20];
+        toholdblocklocks = new MYReadWriteLock[20];
         //  for (int i=0; i<20; i++)
         //      toholoffsetlocks[i] = new ReentrantLock();
-        heldlengthlocks = new Vector();
+//        heldlengthlocks = new Vector();
 //        heldblocklocks = new Vector();
         //  heldoffsetlocks = new Vector();
         AccessedFiles = new HashMap();
@@ -193,15 +193,20 @@ public class ExtendedTransaction implements TransactionStatu {
 
 
 
-        TreeMap hm = getSortedFileAccessMap(AccessedFiles);
+        TreeMap<INode, Vector<TransactionalFile>> hm = getSortedFileAccessMap(AccessedFiles);
+        //for (Map.Entry<INode>Vector<TransactionalFile>> entry : hm.entrySet())  {
+            
+        //}
+    //    entry.getKey().someMethod(entry.getValue());  
         Iterator iter = hm.keySet().iterator();
         offsetcount = 0;
-
+        for (Map.Entry<INode,Vector<TransactionalFile>> entry : hm.entrySet())  {
         // for (int j=0; j< hm.size(); j++){
-        while (iter.hasNext()/* && (this.getStatus() == Status.ACTIVE)*/) {
-            INode key = (INode) iter.next();
-            Vector vec = (Vector) AccessedFiles.get(key);
-
+        //while (iter.hasNext()/* && (this.getStatus() == Status.ACTIVE)*/) {
+          //  INode key = (INode) iter.next();
+            //Vector vec = (Vector) AccessedFiles.get(key);
+            INode key = entry.getKey();
+            Vector vec = entry.getValue();
             Collections.sort(vec);
             for (int i = 0; i < vec.size(); i++) {
                 //Iterator it = vec.iterator();
@@ -244,23 +249,31 @@ public class ExtendedTransaction implements TransactionStatu {
 
     public boolean lockBlock(BlockDataStructure block, BlockAccessModesEnum mode/*, GlobalINodeState adapter, BlockAccessModesEnum mode, int expvalue, INode inode, TransactionLocalFileAttributes tf*/) {
 
-        Lock lock;
+        //Lock lock;
         if (mode == BlockAccessModesEnum.READ) {
-            lock = block.getLock().readLock();
+          
+                //lock =block.getLock().readLock();
+                block.getLock().readLock();
+          
         } else {
-            lock = block.getLock().writeLock();
+         
+                //lock = block.getLock().writeLock();
+                block.getLock().writeLock();
+            
         }
 
-        lock.lock();
+        //lock.lock();
 
         if (toholdblocklocks[blockcount] == null) {
             //if (mode == BlockAccessModesEnum.READ) {
             //    toholdblocklocks[blockcount] = new ReentrantReadWriteLock().readLock();
             //}
             // else 
-            toholdblocklocks[blockcount] = new ReentrantReadWriteLock().writeLock();
+            //toholdblocklocks[blockcount] = new ReentrantReadWriteLock().writeLock();
+            toholdblocklocks[blockcount] = new MYReadWriteLock();
         }
-        toholdblocklocks[blockcount] = lock;
+        //toholdblocklocks[blockcount] = lock;
+        toholdblocklocks[blockcount] = block.getLock();
         blockcount++;
         //heldblocklocks.add(lock);
         return true;
@@ -292,7 +305,8 @@ public class ExtendedTransaction implements TransactionStatu {
         while (iter.hasNext() && (this.getStatus() == Status.ACTIVE)) {
             INode key = (INode) iter.next();
             vec = (Vector) hm.get(key);
-            Collections.sort(vec);
+            //if (!(isWritesmerged()))
+                Collections.sort(vec);
             //Iterator it = vec.iterator();
             for (int j = 0; j < vec.size(); j++) {
                 //while (it.hasNext()) {
@@ -516,6 +530,7 @@ public class ExtendedTransaction implements TransactionStatu {
         //          lock.unlock();
         //     }
         // heldblocklocks.clear();
+        
         for (int i = 0; i < blockcount; i++) {
             toholdblocklocks[i].unlock();
         }
@@ -635,9 +650,9 @@ public class ExtendedTransaction implements TransactionStatu {
 //    public Vector getHeldoffsetlocks() {
     //       return heldoffsetlocks;
     //   }
-    public Vector getHeldlengthlocks() {
-        return heldlengthlocks;
-    }
+  //  public Vector getHeldlengthlocks() {
+   //     return heldlengthlocks;
+   // }
 
     //   public void setHeldoffsetlocks(Vector heldoffsetlocks) {
     //       this.heldoffsetlocks = heldoffsetlocks;

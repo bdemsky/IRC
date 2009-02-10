@@ -15,7 +15,8 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  * @author navid
  */
 public class BlockDataStructure {
-    private ReentrantReadWriteLock lock;
+    //private ReentrantReadWriteLock lock;
+    private MYReadWriteLock lock;
     private ExtendedTransaction owner;
     private INode inode;
     private int blocknumber;
@@ -31,7 +32,8 @@ public class BlockDataStructure {
         version = new AtomicInteger(0);
         //lock = new ReentrantReadWriteLock();
         blockreaders = new Vector();
-        lock = new ReentrantReadWriteLock();
+        //lock = new ReentrantReadWriteLock();
+        lock = new MYReadWriteLock();
         this.inode = inode;
         this.blocknumber = blocknumber;
         referncount = 0;
@@ -46,11 +48,11 @@ public class BlockDataStructure {
         this.blockreaders = readers;
     }
     
-    public ReentrantReadWriteLock getLock() {
+    public MYReadWriteLock getLock() {
         return lock;
     }
 
-    public void setLock(ReentrantReadWriteLock lock) {
+    public void setLock(MYReadWriteLock lock) {
         this.lock = lock;
     }
 
