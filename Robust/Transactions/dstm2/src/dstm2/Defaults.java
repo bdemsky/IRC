@@ -52,7 +52,8 @@ public class Defaults {
   /**
    * fully-qualified contention manager name
    **/
-  public static final String MANAGER = "dstm2.manager.SpecialManager";
+  public static final String MANAGER = "dstm2.manager.AggressiveManager";
+  //public static final String MANAGER = "dstm2.manager.SpecialManager";
   /**
    * fully-qualified factory name
    **/

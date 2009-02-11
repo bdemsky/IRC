@@ -35,6 +35,7 @@ package dstm2.manager;
 import dstm2.util.Random;
 import dstm2.ContentionManager;
 import dstm2.Transaction;
+import java.util.Collection;
 
 /**
  * The Chuck Norris contention manager:  always abort other transaction.
@@ -47,6 +48,13 @@ public class AggressiveManager extends BaseManager {
   public void resolveConflict(Transaction me, Transaction other) {
       other.abort();	
   }
+  
+    @Override
+  public void resolveConflict(Transaction me, Collection<Transaction> others) {
+      for (Transaction other: others)
+        other.abort();	
+  }
+  
   
   public long getPriority() {
     throw new UnsupportedOperationException();

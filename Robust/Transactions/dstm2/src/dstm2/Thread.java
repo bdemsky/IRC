@@ -259,6 +259,7 @@ public class Thread extends java.lang.Thread{
       //  System.out.println(Thread.currentThread() + " even more offically started the transaction");
        ////////////////////////////////////// 
         try {
+            
           result = xaction.call();
         //  System.out.println(Thread.currentThread() + " starting2");
       //     System.out.println(Thread.currentThread() + " aborted in committing");
@@ -274,18 +275,19 @@ public class Thread extends java.lang.Thread{
       //    e.printStackTrace();
        //   throw new PanicException("Unhandled exception " + e);
        // }
+         
             threadState.totalMemRefs += threadState.transaction.memRefs;
             threadState.transaction.attempts++;
-     
+              
             Wrapper.prepareIOCommit();
-
+         
         ///////////////////////////////
         
                 if (threadState.commitTransaction()) {
                     threadState.committedMemRefs += threadState.transaction.memRefs;
                     
                     
-                    Wrapper.realseOffsets();
+                   //Wrapper.realseOffsets();
                     
                     Wrapper.commitIO();
                     flag = true;
@@ -293,7 +295,9 @@ public class Thread extends java.lang.Thread{
         }
         catch(AbortedException ex){
             threadState.depth--;
-            //System.out.println(Thread.currentThread() + " aborted");
+            
+            System.out.println(Thread.currentThread() + " aborted");
+            ex.printStackTrace();
            // Wrapper.getTransaction().unlockAllLocks();
         }
         catch (Exception e) {
@@ -315,7 +319,7 @@ public class Thread extends java.lang.Thread{
           ///              
             }
             if  (flag == true){
-               // System.out.println(Thread.currentThread() + " committed");
+               System.out.println(Thread.currentThread() + " committed");
                 break;
             }
         }

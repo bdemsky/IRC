@@ -12,7 +12,7 @@ package dstm2;
 public class Init {
 
     public static void init(){
-        String managerClassName = Defaults.MANAGER;
+        String managerClassName = "dstm2.manager.AggressiveManager";
         Class managerClass = null;
         String adapterClassName = Defaults.ADAPTER;
     
@@ -22,7 +22,8 @@ public class Init {
     
     // Initialize contention manager.
     try {
-      managerClass = Class.forName(Defaults.MANAGER);
+      managerClass = Class.forName(managerClassName);
+      System.out.println("manage r" + managerClass);
       Thread.setContentionManagerClass(managerClass);
     } catch (ClassNotFoundException ex) {
       
