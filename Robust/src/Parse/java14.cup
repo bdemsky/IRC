@@ -508,7 +508,7 @@ literal ::=	INTEGER_LITERAL:integer_lit
 	|	BOOLEAN_LITERAL:boolean_lit
 	{:
 		ParseNode pn=new ParseNode("literal");
-		pn.addChild("boolean").setLiteral(boolean_lit);
+		pn.addChild("boolean").setLiteral(boolean_lit);
 		RESULT=pn;
 	:}
 	|	CHARACTER_LITERAL:char_lit
