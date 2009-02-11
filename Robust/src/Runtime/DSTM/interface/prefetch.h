@@ -32,7 +32,7 @@ typedef struct proPrefetchQ {
 } proPrefetchQ_t;
 
 typedef struct oidAtDepth {
-  int depth;
+  int depth; //TODO Remove may not need since depth is never read
   unsigned int oid;
 } oidAtDepth_t;
 

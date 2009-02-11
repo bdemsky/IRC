@@ -14,7 +14,6 @@ void rangePrefetch(unsigned int oid, short numoffset, short *offsets) {
   /* Allocate memory in prefetch queue and push the block there */
   int qnodesize = sizeof(unsigned int) + sizeof(unsigned short) + numoffset * sizeof(short);
   char *node = (char *) getmemory(qnodesize);
-  int i;
 
   if(node == NULL)
     return;
@@ -77,7 +76,7 @@ perMcPrefetchList_t *checkIfLocal(char *ptr) {
   /* Initialize */
   perMcPrefetchList_t *head = NULL;
   odep.oid = 0;
-  odep.depth = depth;
+  odep.depth = 0;
   int i;
   for(i = 0; i<numoffset; i++) {
     dfsList[i] = 0;
@@ -95,10 +94,14 @@ perMcPrefetchList_t *checkIfLocal(char *ptr) {
 labelL1:
     ;
     objheader_t *objhead = searchObj(dfsList[top]);
-    if(objhead == NULL) { //null oid or oid not found
-      // Not found
-      int machinenum = lhashSearch(dfsList[top]);
-      insertPrefetch(machinenum, dfsList[top], numoffset-(depth), &offsetarray[depth], &head);
+    if(objhead == NULL) { //oid not found
+      if(dfsList[top] == 0) { //oid is null
+	;
+      } else {
+	// Not found
+	int machinenum = lhashSearch(dfsList[top]);
+	insertPrefetch(machinenum, dfsList[top], numoffset-(depth), &offsetarray[depth], &head);
+      }
       //go up the tree
       while((dfsList[top+1] == *(offsetarray + depth + 1)) && (depth >= 0)) {
 	if(top == depth) {
@@ -378,6 +381,7 @@ int rangePrefetchReq(int acceptfd) {
     }
     short offsetsarry[numoffset];
     recv_data(acceptfd, offsetsarry, numoffset*sizeof(short));
+
     int retval;
     if((retval = dfsOffsetTree(baseoid, offsetsarry, sd, numoffset)) != 0) {
       printf("%s() Error: in dfsOffsetTree() at line %d in %s()\n",
@@ -399,7 +403,7 @@ int dfsOffsetTree(unsigned int baseoid, short * offsetarray, int sd, int numoffs
 
   /* Initialize */
   odep.oid = 0;
-  odep.depth = depth;
+  odep.depth = 0;
   int i;
   for(i = 0; i<numoffset; i++) {
     dfsList[i] = 0;
@@ -455,6 +459,7 @@ labelL1:
 	goto labelL1;
       }
     } else { // increment and go down the tree
+      //Send Object id found
       if((retval = sendOidFound(OID(objhead), sd)) != 0) {
 	printf("%s() Error in sendOidFound() at line %d in %s()\n", __func__, __LINE__, __FILE__);
 	return -1;
@@ -546,17 +551,16 @@ int getNextOid(short * offsetarray, unsigned int *dfsList, int *top, int *depth,
 	int startelement;
 	if(range > 0) { //go to the next offset
 	  startelement = *((int *)(offsetarray + (*depth) + 2));
-	  dep = *depth + 2;
+	  *depth = *depth + 2;
 	} else if(range == 0) {
 	  startelement = *((int *)(offsetarray + (*depth)));
-	  dep = *depth;
 	} else { //range < 0
 	  odep->oid = 0;
 	  odep->depth = 0;
 	  return 0;
 	}
 	odep->oid = *((unsigned int *)(((char *)header) + sizeof(objheader_t) + startelement));
-	odep->depth = dep;
+	odep->depth = *depth;
       }
     }
   }
@@ -566,6 +570,9 @@ int getNextOid(short * offsetarray, unsigned int *dfsList, int *top, int *depth,
 unsigned int getNextArrayOid(short *offsetarray, unsigned int *dfsList, int *top, int* depth) {
   int prev = (*top) - 2;
   unsigned int oid = *(dfsList + prev);
+  if(oid == 0) { //null oid
+    return oid;
+  }
   objheader_t *header = searchObj(oid);
   if(header == NULL) {
     printf("%s() Error: Object not found at %s , %d\n", __func__, __FILE__, __LINE__);
@@ -598,11 +605,15 @@ unsigned int getNextArrayOid(short *offsetarray, unsigned int *dfsList, int *top
 unsigned int getNextPointerOid(short *offsetarray, unsigned int *dfsList, int *top, int* depth) {
   int prev;
   if(*(dfsList + *top + 1) > 1) { //tells which offset to calculate the oid from
+                                  //(if range > 1 then use available oid to compute next oid else go to previous oid)
     prev = *top;
   } else {
     prev = *top - 2;
   }
   unsigned int oid = *(dfsList + prev);
+  if(oid == 0) { //null oid
+    return oid;
+  }
   objheader_t *header = searchObj(oid);
   if(header == NULL) {
     printf("%s() Error: Object not found at %s , %d\n", __func__, __FILE__, __LINE__);
