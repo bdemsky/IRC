@@ -188,7 +188,7 @@ public class OwnershipAnalysis {
   // ownership graph with an object in another
   // graph that logically represents the same
   // heap region
-  // start at 10 and incerement to leave some
+  // start at 10 and increment to leave some
   // reserved IDs for special purposes
   static private int uniqueIDcount = 10;
 

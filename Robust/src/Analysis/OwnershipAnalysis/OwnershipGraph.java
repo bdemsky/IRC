@@ -3129,9 +3129,10 @@ public class OwnershipGraph {
     Iterator i = s.iterator();
     while( i.hasNext() ) {
       Map.Entry me  = (Map.Entry)i.next();
-      HeapRegionNode hrn = (HeapRegionNode) me.getValue();
+      HeapRegionNode hrn = (HeapRegionNode) me.getValue();      
+
       if( !pruneGarbage ||
-          hrn.isFlagged() ||
+          (hrn.isFlagged() && hrn.getID() > 0) ||
           hrn.getDescription().startsWith("param")
           ) {
 

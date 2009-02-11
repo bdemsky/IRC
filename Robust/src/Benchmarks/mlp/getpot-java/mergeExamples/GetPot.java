@@ -138,7 +138,8 @@ public class GetPot {
 	      // 1) separate array for nominus arguments
 	      if( arg.charAt(0) != '-' ) 
 		idx_nominus.addElement(new Integer(i));
-	    
+
+
 	      // 2) variables: does _argv[i] contain a '=' operator ?
 	      int k = arg.indexOf('=');
 	      if( k > 0 ) { 
