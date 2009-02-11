@@ -939,7 +939,12 @@ formal_parameter ::=
 		pn.addChild(name);
 		RESULT=pn;
 	:}
-//	|	FINAL type variable_declarator_id
+	|	FINAL type:type variable_declarator_id:name {:
+		ParseNode pn=new ParseNode("formal_parameter");
+		pn.addChild(type);
+		pn.addChild(name);
+		RESULT=pn;
+	:}
 	;
 //throws_opt ::=	
 //	|	throws
@@ -1130,8 +1135,13 @@ local_variable_declaration ::=
 		pn.addChild(type);
 		pn.addChild(var);
 		RESULT=pn;
-:}
-//	|	FINAL type variable_declarators
+	:}
+	|	FINAL type:type variable_declarators:var {: 
+		ParseNode pn=new ParseNode("local_variable_declaration");
+		pn.addChild(type);
+		pn.addChild(var);
+		RESULT=pn;
+	:}
 	;
 statement ::=	statement_without_trailing_substatement:st {: 
 		RESULT=st;
