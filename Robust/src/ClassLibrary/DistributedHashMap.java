@@ -126,7 +126,7 @@ public class DistributedHashMap {
     DHashEntry ptr=dhe.array[index2];
 
     while(ptr!=null) {
-      if (ptr.hashval!=hashcode&&ptr.key.equals(key)) {
+      if (ptr.hashval==hashcode&&ptr.key.equals(key)) {
 	Object oldvalue=ptr.value;
 	ptr.value=value;
 	return oldvalue;
