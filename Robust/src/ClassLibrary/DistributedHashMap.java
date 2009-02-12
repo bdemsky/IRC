@@ -122,13 +122,6 @@ public class DistributedHashMap {
       dhe=global new DistributedHashEntry(secondcapacity);
       table[index1]=dhe;
     }
-
-    dhe.count++;
-    if (dhe.count>(loadFactor*dhe.array.length)) {
-      //Resize the table
-      resize(index1);
-    }
-
     int index2=hash2(hashcode, table.length, dhe.array.length);
     DHashEntry ptr=dhe.array[index2];
 
@@ -136,17 +129,23 @@ public class DistributedHashMap {
       if (ptr.hashval!=hashcode&&ptr.key.equals(key)) {
 	Object oldvalue=ptr.value;
 	ptr.value=value;
-	dhe.count--;
 	return oldvalue;
       }
       ptr=ptr.next;
     }
+
     DHashEntry he=global new DHashEntry();
     he.value=value;
     he.key=key;
     he.hashval=hashcode;
     he.next=dhe.array[index2];
     dhe.array[index2]=he;
+
+    dhe.count++;
+    if (dhe.count>(loadFactor*dhe.array.length)) {
+      //Resize the table
+      resize(index1);
+    }
     return null;
   }
 }
