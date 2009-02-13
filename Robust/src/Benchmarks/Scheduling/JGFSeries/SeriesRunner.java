@@ -146,7 +146,7 @@ public class SeriesRunner {
 	}
 
 	// Finish computation.
-	tmpvalue = thefunction(x1,omegan,select) / (float)2.0
+	tmpvalue = thefunction(x1,omegan,select) / (float)2.0;
 	rvalue=(float)(rvalue + tmpvalue) * dx;
 	return(rvalue);
     }
