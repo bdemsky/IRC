@@ -789,6 +789,9 @@ public class BuildFlat {
 
     case Kind.TertiaryNode:
       return flattenTertiaryNode((TertiaryNode)en,out_temp);
+
+    case Kind.InstanceOfNode:
+      return flattenInstanceOfNode((InstanceOfNode)en,out_temp);
     }
     throw new Error();
   }
@@ -1077,6 +1080,14 @@ public class BuildFlat {
       else
 	  continueset.add(fn);
       return new NodePair(fn,null);
+  }
+
+  private NodePair flattenInstanceOfNode(InstanceOfNode tn, TempDescriptor out_temp) {
+    TempDescriptor expr_temp=TempDescriptor.tempFactory("expr",tn.getExpr().getType());
+    NodePair cond=flattenExpressionNode(tn.getExpr(), expr_temp);
+    FlatInstanceOfNode fion=new FlatInstanceOfNode(tn.getExprType(), expr_temp, out_temp);
+    cond.getEnd().addNext(fion);
+    return new NodePair(cond.getBegin(),fion);
   }
 
   private NodePair flattenTertiaryNode(TertiaryNode tn, TempDescriptor out_temp) {

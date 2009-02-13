@@ -193,6 +193,7 @@ public class BuildCode {
     outstructs.close();
   }
 
+
   /* This code just generates the main C method for java programs.
    * The main C method packs up the arguments into a string array
    * and passes it to the java main method. */
@@ -348,6 +349,7 @@ public class BuildCode {
     }
     //Store the sizes of classes & array elements
     generateSizeArray(outmethod);
+
 
     //Store table of supertypes
     generateSuperTypeTable(outmethod);
@@ -735,7 +737,6 @@ public class BuildCode {
       }
   }
 
-
   /** Generate array that contains the sizes of class objects.  The
    * object allocation functions in the runtime use this
    * information. */
@@ -788,6 +789,85 @@ public class BuildCode {
 	outclassdefs.print("sizeof(void *)");
       else
 	outclassdefs.print("sizeof("+tdelement.getSafeSymbol()+")");
+      needcomma=true;
+    }
+
+    outclassdefs.println("};");
+
+    ClassDescriptor objectclass=typeutil.getClass(TypeUtil.ObjectClass);    
+    needcomma=false;
+    outclassdefs.print("int typearray[]={");
+    for(int i=0;i<state.numClasses();i++) {
+      ClassDescriptor cd=cdarray[i];
+      ClassDescriptor supercd=cd.getSuperDesc();
+      if (needcomma)
+	outclassdefs.print(", ");
+      if (supercd==null)
+	outclassdefs.print("-1");
+      else
+	outclassdefs.print(supercd.getId());
+      needcomma=true;
+    }
+
+    for(int i=0;i<state.numArrays();i++) {
+      TypeDescriptor arraytd=arraytable[i];
+      ClassDescriptor arraycd=arraytd.getClassDesc();
+      if (arraycd==null) {
+	if (needcomma)
+	  outclassdefs.print(", ");
+	outclassdefs.print(objectclass.getId());
+	needcomma=true;
+	continue;
+      }
+      ClassDescriptor cd=arraycd.getSuperDesc();
+      int type=-1;
+      while(cd!=null) {
+	TypeDescriptor supertd=new TypeDescriptor(cd);
+	supertd.setArrayCount(arraytd.getArrayCount());
+	type=state.getArrayNumber(supertd);
+	if (type!=-1) {
+	  type+=state.numClasses();
+	  break;
+	}
+	cd=cd.getSuperDesc();
+      }
+      if (needcomma)
+	outclassdefs.print(", ");
+      outclassdefs.print(type);
+      needcomma=true;
+    }
+
+    outclassdefs.println("};");    
+
+    needcomma=false;
+
+
+    outclassdefs.print("int typearray2[]={");
+    for(int i=0;i<state.numArrays();i++) {
+      TypeDescriptor arraytd=arraytable[i];
+      ClassDescriptor arraycd=arraytd.getClassDesc();
+      if (arraycd==null) {
+	if (needcomma)
+	  outclassdefs.print(", ");
+	outclassdefs.print("-1");
+	needcomma=true;
+	continue;
+      }
+      ClassDescriptor cd=arraycd.getSuperDesc();
+      int level=arraytd.getArrayCount()-1;
+      int type=-1;
+      for(;level>0;level--) {
+	TypeDescriptor supertd=new TypeDescriptor(objectclass);
+	supertd.setArrayCount(level);
+	type=state.getArrayNumber(supertd);
+	if (type!=-1) {
+	  type+=state.numClasses();
+	  break;
+	}
+      }
+      if (needcomma)
+	outclassdefs.print(", ");
+      outclassdefs.print(type);
       needcomma=true;
     }
 
@@ -1440,6 +1520,10 @@ public class BuildCode {
       generateFlatAtomicExitNode(fm, lb, (FlatAtomicExitNode) fn, output);
       return;
 
+    case FKind.FlatInstanceOfNode:
+      generateFlatInstanceOfNode(fm, lb, (FlatInstanceOfNode)fn, output);
+      return;
+
     case FKind.FlatSESEEnterNode:
       generateFlatSESEEnterNode(fm, lb, (FlatSESEEnterNode) fn, output);
       return;
@@ -1719,6 +1803,20 @@ public class BuildCode {
 	output.println(generateTemp(fm, fgcn.getSrc(),lb)+"=NULL;");
       }
     }
+  }
+
+  public void generateFlatInstanceOfNode(FlatMethod fm,  LocalityBinding lb, FlatInstanceOfNode fion, PrintWriter output) {
+    int type;
+    if (fion.getType().isArray()) {
+      type=state.getArrayNumber(fion.getType())+state.numClasses();
+    } else {
+      type=fion.getType().getClassDesc().getId();
+    }
+    
+    if (fion.getType().getSymbol().equals(TypeUtil.ObjectClass))
+      output.println(generateTemp(fm, fion.getDst(), lb)+"=1;");
+    else
+      output.println(generateTemp(fm, fion.getDst(), lb)+"=instanceof("+generateTemp(fm,fion.getSrc(),lb)+","+type+");");
   }
 
   public void generateFlatAtomicEnterNode(FlatMethod fm,  LocalityBinding lb, FlatAtomicEnterNode faen, PrintWriter output) {

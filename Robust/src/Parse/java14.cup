@@ -1781,7 +1781,12 @@ relational_expression ::=
 		pn.addChild(exp2);
 		RESULT=pn;
 	:}
-//	|	relational_expression INSTANCEOF reference_type
+	|	relational_expression:exp INSTANCEOF reference_type:type {: 
+		ParseNode pn=new ParseNode("instanceof");
+		pn.addChild("exp").addChild(exp);
+		pn.addChild(type);
+		RESULT=pn;
+	:}
 	;
 
 equality_expression ::=

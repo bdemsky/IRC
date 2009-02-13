@@ -484,6 +484,10 @@ public class BuildIR {
       return new TertiaryNode(parseExpression(pn.getChild("cond").getFirstChild()),
 			      parseExpression(pn.getChild("trueexpr").getFirstChild()),
 			      parseExpression(pn.getChild("falseexpr").getFirstChild()) );
+    } else if (isNode(pn, "instanceof")) {
+      ExpressionNode exp=parseExpression(pn.getChild("exp").getFirstChild());
+      TypeDescriptor t=parseTypeDescriptor(pn);
+      return new InstanceOfNode(exp,t);
     } else {
       System.out.println("---------------------");
       System.out.println(pn.PPrint(3,true));

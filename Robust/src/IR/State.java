@@ -121,7 +121,7 @@ public class State {
   public int getArrayNumber(TypeDescriptor td) {
     if (arraytonumber.containsKey(td))
       return ((Integer)arraytonumber.get(td)).intValue();
-    else throw new Error("Could not find array type:" + td.toPrettyString());
+    else return -1;
   }
 
   public int numArrays() {

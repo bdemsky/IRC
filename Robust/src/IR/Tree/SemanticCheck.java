@@ -399,6 +399,10 @@ public class SemanticCheck {
     case Kind.TertiaryNode:
       checkTertiaryNode(md, nametable, (TertiaryNode)en, td);
       return;
+      
+    case Kind.InstanceOfNode:
+      checkInstanceOfNode(md, nametable, (InstanceOfNode) en, td);
+      return;
     }
     throw new Error();
   }
@@ -555,6 +559,14 @@ public class SemanticCheck {
     checkExpressionNode(md, nametable, tn.getCond(), new TypeDescriptor(TypeDescriptor.BOOLEAN));
     checkExpressionNode(md, nametable, tn.getTrueExpr(), td );
     checkExpressionNode(md, nametable, tn.getFalseExpr(), td );
+  }
+
+  void checkInstanceOfNode(Descriptor md, SymbolTable nametable, InstanceOfNode tn, TypeDescriptor td) {
+    if (!td.isBoolean())
+      throw new Error("Expecting type "+td+"for instanceof expression");
+    
+    checkTypeDescriptor(tn.getExprType());
+    checkExpressionNode(md, nametable, tn.getExpr(), null);
   }
 
 

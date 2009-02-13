@@ -74,6 +74,13 @@ public class TypeDescriptor extends Descriptor {
     return arraycount;
   }
 
+  /* Only use this method if you really know what you are doing.  It
+   * doesn't have the effect you might expect. */
+
+  public void setArrayCount(int a) {
+    arraycount=a;
+  }
+
   public TypeDescriptor dereference() {
     TypeDescriptor td=new TypeDescriptor(getSymbol());
     if (arraycount==0)
