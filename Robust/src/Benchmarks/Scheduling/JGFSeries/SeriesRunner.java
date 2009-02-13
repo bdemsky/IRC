@@ -44,7 +44,6 @@ public class SeriesRunner {
     }
 
     public void run() {
-	//System.printI(0xa0);
 	float pair[] = new float[2];
 	// Calculate the fourier series. Begin by calculating A[0].
 	if (id==0) {
@@ -53,7 +52,6 @@ public class SeriesRunner {
 		                         1000,        // # of steps.
 		                         (float)0.0, // No omega*n needed.
 		                         0) / (float)2.0; // 0 = term A[0].
-	    //System.printI(0xa1);
 	    pair[1] = 0;
 	} else {
 	    // Calculate the fundamental frequency.
@@ -70,7 +68,6 @@ public class SeriesRunner {
 		                         1000,
 		                         omega * (float)id, 
 		                         1);                       // 1 = cosine term.
-	    //System.printI(0xa2);
 	    // Calculate the B[i] terms.
 	    pair[1] = TrapezoidIntegrate((float)0.0,
 		                         (float)2.0,
@@ -78,15 +75,9 @@ public class SeriesRunner {
 		                         omega * (float)id,
 		                         2);                       // 2 = sine term.
 	}
-	//System.printI(0xa3);
-	//System.printString("coefficient NO.");
-	//System.printI(id);
-	//System.printI((int)(pair[0]*10000));
-	//System.printI((int)(pair[1]*10000));
 
 	// validate
 	if(id < 4) {
-	    //System.printI(0xa4);
 	    float ref[][] = new float[4][2];
 	    ref[0][0] = (float)2.87290112;
 	    ref[0][1] = (float)0.0;
@@ -96,9 +87,7 @@ public class SeriesRunner {
 	    ref[2][1] = (float)-1.16458096;
 	    ref[3][0] = (float)0.15222694;
 	    ref[3][1] = (float)-0.81435320;
-	    //System.printI(0xa5);
 	    for (int j = 0; j < 2; j++){
-		//System.printI(0xa6);
 		float error = Math.abs(pair[j] - ref[id][j]);
 		if (error > 1.0e-7 ){
 			//System.printI(0xa7);
@@ -110,7 +99,6 @@ public class SeriesRunner {
 		}
 	    }
 	}
-	//System.printI(0xa8);
     }
 
     /*
@@ -133,48 +121,33 @@ public class SeriesRunner {
 	float x;               // Independent variable.
 	float dx;              // Step size.
 	float rvalue;          // Return value.
+	float tmpvalue = (float)0.0;
 
-	//System.printI(0xb0);
 	// Initialize independent variable.
-
 	x = x0;
 
 	// Calculate stepsize.
-
 	dx = (x1 - x0) / (float)nsteps;
-	//System.printI((int)(dx * 1000000));
-	//System.printI(0xb1);
 
 	// Initialize the return value.
-
 	rvalue = thefunction(x0, omegan, select) / (float)2.0;
-	//System.printI((int)(rvalue * 1000000));
-	//System.printI(0xb2);
 
 	// Compute the other terms of the integral.
-
 	if (nsteps != 1)
 	{
-	    //System.printI(0xb3);
 	    --nsteps;               // Already done 1 step.
-	    while (--nsteps > 0)
+	    while (nsteps > 1)
 	    {
-		//System.printI(0xb4);
-		//System.printI(nsteps);
 		x += dx;
-		rvalue += thefunction(x, omegan, select);
-		//System.printI((int)(rvalue * 1000000));
-		//System.printI(0xb5);
+		tmpvalue = thefunction(x, omegan, select);
+		nsteps--;
+		rvalue += tmpvalue;
 	    }
 	}
 
 	// Finish computation.
-
-	//System.printI(0xb6);
-	rvalue=(float)(rvalue + thefunction(x1,omegan,select) / (float)2.0) * dx;
-	//System.printI((int)(rvalue * 1000000));
-	//System.printString("rvalue: " + (int)(rvalue * 10000) + "\n");
-	//System.printI(0xb7);
+	tmpvalue = thefunction(x1,omegan,select) / (float)2.0
+	rvalue=(float)(rvalue + tmpvalue) * dx;
 	return(rvalue);
     }
 
@@ -193,21 +166,20 @@ public class SeriesRunner {
     {
 
 	// Use select to pick which function we call.
-	//System.printI(0xc0);
+	float tmp = x+(float)1.0;
 	float result = (float)0.0;
+	float v1 = (float)0.0;
+	float v2 = (float)1.0;
+	v1 = Math.powf(tmp,x);
 	if(0 == select) {
-	    //System.printI(0xc1);
-	    result = Math.powf(x+(float)1.0,x);
-	    //System.printI((int)(result * 1000000));
+	    return v1;
 	} else if (1 == select) {
-	    //System.printI(0xc2);
-	    return(Math.powf(x+(float)1.0,x) * Math.cosf(omegan*x));
+	    v2 = Math.cosf(omegan*x);
 	} else if (2 == select) {
-	    //System.printI(0xc3);
-	    return(Math.powf(x+(float)1.0,x) * Math.sinf(omegan*x));
+	    v2 = Math.sinf(omegan*x);
 	}
+	result = v1 * v2;
 
-	//System.printI(0xc4);
 	// We should never reach this point, but the following
 	// keeps compilers from issuing a warning message.
 	return result;
