@@ -33,7 +33,7 @@
   * </ol>
   *
   * @author H W Yau
-  * @version $Revision: 1.1 $ $Date: 2008/08/18 22:22:21 $
+  * @version $Revision: 1.2 $ $Date: 2009/02/13 21:37:19 $
   */
 public class ReturnPath extends PathId {
   /**
@@ -56,36 +56,36 @@ public class ReturnPath extends PathId {
   /**
     * An instance variable, for storing the return values.
     */
-  private float[] pathValue;
+  public float[] pathValue;
   /**
     * The number of accepted values in the rate path.
     */
-  private int nPathValue;
+  public int nPathValue;
   /**
     * Integer flag for indicating how the return was calculated.
     */
-  private int returnDefinition;
+  public int returnDefinition;
   /**
     * Value for the expected return rate.
     */
-  private float expectedReturnRate;
+  public float expectedReturnRate;
   /**
     * Value for the volatility, calculated from the return data.
     */
-  private float volatility;
+  public float volatility;
   /**
     * Value for the volatility-squared, a more natural quantity
     * to use for many of the calculations.
     */
-  private float volatility2;
+  public float volatility2;
   /**
     * Value for the mean of this return.
     */
-  private float mean;
+  public float mean;
   /**
     * Value for the variance of this return.
     */
-  private float variance;
+  public float variance;
 
   //------------------------------------------------------------------------
   // Constructors.
@@ -116,7 +116,9 @@ public class ReturnPath extends PathId {
     * @param returnDefinition to tell this class how the return path values
     *                         were computed.
     */
-  public ReturnPath(float[] pathValue, int nPathValue, int returnDefinition) {
+  public ReturnPath(float[] pathValue, 
+	            int nPathValue, 
+	            int returnDefinition) {
     this.pathValue = pathValue;
     this.nPathValue = nPathValue;
     this.returnDefinition = returnDefinition;
@@ -143,9 +145,9 @@ public class ReturnPath extends PathId {
     * @return Value of instance variable <code>pathValue</code>.
     * @exception DemoException thrown if instance variable <code>pathValue</code> is undefined.
     */
-  public float[] get_pathValue(){
+  /*public float[] get_pathValue(){
     return(this.pathValue);
-  }
+  }*/
   /**
     * Set method for private instance variable <code>pathValue</code>.
     *
@@ -160,9 +162,9 @@ public class ReturnPath extends PathId {
     * @return Value of instance variable <code>nPathValue</code>.
     * @exception DemoException thrown if instance variable <code>nPathValue</code> is undefined.
     */
-  public int get_nPathValue() {
+  /*public int get_nPathValue() {
     return(this.nPathValue);
-  }
+  }*/
   /**
     * Set method for private instance variable <code>nPathValue</code>.
     *
@@ -177,9 +179,9 @@ public class ReturnPath extends PathId {
     * @return Value of instance variable <code>returnDefinition</code>.
     * @exception DemoException thrown if instance variable <code>returnDefinition</code> is undefined.
     */
-  public int get_returnDefinition() {
+  /*public int get_returnDefinition() {
     return(this.returnDefinition);
-  }
+  }*/
   /**
     * Set method for private instance variable <code>returnDefinition</code>.
     *
@@ -194,9 +196,9 @@ public class ReturnPath extends PathId {
     * @return Value of instance variable <code>expectedReturnRate</code>.
     * @exception DemoException thrown if instance variable <code>expectedReturnRate</code> is undefined.
     */
-  public float get_expectedReturnRate() {
+  /*public float get_expectedReturnRate() {
     return(this.expectedReturnRate);
-  }
+  }*/
   /**
     * Set method for private instance variable <code>expectedReturnRate</code>.
     *
@@ -211,9 +213,9 @@ public class ReturnPath extends PathId {
     * @return Value of instance variable <code>volatility</code>.
     * @exception DemoException thrown if instance variable <code>volatility</code> is undefined.
     */
-  public float get_volatility() {
+  /*public float get_volatility() {
     return(this.volatility);
-  }
+  }*/
   /**
     * Set method for private instance variable <code>volatility</code>.
     *
@@ -228,9 +230,9 @@ public class ReturnPath extends PathId {
     * @return Value of instance variable <code>volatility2</code>.
     * @exception DemoException thrown if instance variable <code>volatility2</code> is undefined.
     */
-  public float get_volatility2() {
+  /*public float get_volatility2() {
     return(this.volatility2);
-  }
+  }*/
   /**
     * Set method for private instance variable <code>volatility2</code>.
     *
@@ -245,9 +247,9 @@ public class ReturnPath extends PathId {
     * @return Value of instance variable <code>mean</code>.
     * @exception DemoException thrown if instance variable <code>mean</code> is undefined.
     */
-  public float get_mean() {
+  /*public float get_mean() {
     return(this.mean);
-  }
+  }*/
   /**
     * Set method for private instance variable <code>mean</code>.
     *
@@ -262,9 +264,9 @@ public class ReturnPath extends PathId {
     * @return Value of instance variable <code>variance</code>.
     * @exception DemoException thrown if instance variable <code>variance</code> is undefined.
     */
-  public float get_variance() {
+  /*public float get_variance() {
     return(this.variance);
-  }
+  }*/
   /**
     * Set method for private instance variable <code>variance</code>.
     *
@@ -282,7 +284,7 @@ public class ReturnPath extends PathId {
     * @exception DemoException thrown one tries to obtain an undefined variable.
     */
   public void computeExpectedReturnRate() {
-    this.expectedReturnRate = mean/(float)get_dTime() + (float)0.5*volatility2;
+    this.expectedReturnRate = mean/(float)this.dTime + (float)0.5*volatility2;
   }
   /**
     * Method to calculate <code>volatility</code> and <code>volatility2</code>
@@ -294,7 +296,7 @@ public class ReturnPath extends PathId {
     *                          computation are undefined.
     */
   public void computeVolatility() {
-    this.volatility2 = this.variance / (float)get_dTime();
+    this.volatility2 = this.variance / (float)this.dTime;
     this.volatility  = Math.sqrtf(volatility2);
   }
   /**
@@ -305,11 +307,13 @@ public class ReturnPath extends PathId {
     *            undefined.
     */
   public void computeMean() {
-    this.mean = (float)0.0;
-    for( int i=1; i < nPathValue; i++ ) {
-      mean += pathValue[i];
-    }
-    this.mean /= ((float)(nPathValue - (float)1.0));
+      float sum = (float) 0.0;
+      float[] tmpvalue = this.pathValue;
+      int length = this.nPathValue;
+      for( int i=1; i < length; i++ ) {
+	  sum += tmpvalue[i];
+      }
+      this.mean = sum / ((float)(length - (float)1.0));
   }
   /**
     * Method to calculate the variance of the retrun, for use by other
@@ -319,11 +323,14 @@ public class ReturnPath extends PathId {
     *            <code>nPathValue</code> values are undefined.
     */
   public void computeVariance() {
-    this.variance = (float)0.0;    
-    for( int i=1; i < nPathValue; i++ ) {
-      variance += (pathValue[i] - mean)*(pathValue[i] - mean);
+      float sum = (float) 0.0; 
+      int length = this.nPathValue;
+      float[] tmpvalue = this.pathValue;
+      float tmpmean = this.mean;
+    for( int i=1; i < length; i++ ) {
+	sum += (tmpvalue[i] - tmpmean)*(tmpvalue[i] - tmpmean);
     }
-    this.variance /= ((float)(nPathValue - (float)1.0));
+    this.variance = sum / ((float)(length - (float)1.0));
   }
   /**
     * A single method for invoking all the necessary methods which
@@ -334,13 +341,9 @@ public class ReturnPath extends PathId {
     */
   public void estimatePath() {
     computeMean();
-    //System.printI(0xb0);
     computeVariance();
-    //System.printI(0xb1);
     computeExpectedReturnRate();
-    //System.printI(0xb2);
     computeVolatility();
-    //System.printI(0xb3);
   }
   /**
     * Dumps the contents of the fields, to standard-out, for debugging.

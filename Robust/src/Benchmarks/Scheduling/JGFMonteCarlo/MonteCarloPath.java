@@ -30,7 +30,7 @@
  * </ol>
  *
  * @author H W Yau
- * @version $Revision: 1.1 $ $Date: 2008/08/18 22:22:20 $
+ * @version $Revision: 1.2 $ $Date: 2009/02/13 21:37:19 $
  */
 public class MonteCarloPath extends PathId {
 
@@ -41,32 +41,32 @@ public class MonteCarloPath extends PathId {
      * Random fluctuations generated as a series of random numbers with
      * given distribution.
      */
-    private float[] fluctuations;
+    public float[] fluctuations;
     /**
      * The path values from which the random fluctuations are used to update.
      */
-    private float[] pathValue;
+    public float[] pathValue;
     /**
      * Integer flag for determining how the return was calculated, when
      * used to calculate the mean drift and volatility parameters.
      */
-    private int returnDefinition;
+    public int returnDefinition;
     /**
      * Value for the mean drift, for use in the generation of the random path.
      */
-    private float expectedReturnRate;
+    public float expectedReturnRate;
     /**
      * Value for the volatility, for use in the generation of the random path.
      */
-    private float volatility;
+    public float volatility;
     /**
      * Number of time steps for which the simulation should act over.
      */
-    private int nTimeSteps;
+    public int nTimeSteps;
     /**
      * The starting value for of the security.
      */
-    private float pathStartValue;
+    public float pathStartValue;
     //------------------------------------------------------------------------
     // Constructors.
     //------------------------------------------------------------------------
@@ -95,7 +95,8 @@ public class MonteCarloPath extends PathId {
      * @exception DemoException Thrown if there is a problem initialising the
      *                          object's instance variables.
      */
-    public MonteCarloPath(ReturnPath returnPath, int nTimeSteps) {
+    public MonteCarloPath(ReturnPath returnPath, 
+	                  int nTimeSteps) {
 	/**
 	 * These instance variables are members of PathId class.
 	 */
@@ -125,8 +126,11 @@ public class MonteCarloPath extends PathId {
      * @exception DemoException Thrown if there is a problem initialising the
      *                          object's instance variables.
      */
-    public MonteCarloPath(PathId pathId, int returnDefinition, float expectedReturnRate, 
-	    float volatility, int nTimeSteps) {
+    public MonteCarloPath(PathId pathId, 
+	                  int returnDefinition, 
+	                  float expectedReturnRate, 
+	                  float volatility, 
+	                  int nTimeSteps) {
 	/**
 	 * These instance variables are members of PathId class.
 	 * Invoking with this particular signature should point to the
@@ -161,16 +165,21 @@ public class MonteCarloPath extends PathId {
      * @param volatility The measured volatility for which to generate.
      * @param nTimeSteps The number of time steps for which to generate.
      */
-    public MonteCarloPath(String name, int startDate, int endDate, float dTime, 
-	    int returnDefinition, float expectedReturnRate, float volatility, 
-	    int nTimeSteps) {
+    public MonteCarloPath(String name, 
+	                  int startDate, 
+	                  int endDate, 
+	                  float dTime, 
+	                  int returnDefinition, 
+	                  float expectedReturnRate, 
+	                  float volatility, 
+	                  int nTimeSteps) {
 	/**
 	 * These instance variables are members of PathId class.
 	 */
-	set_name(name);
-	set_startDate(startDate);
-	set_endDate(endDate);
-	set_dTime(dTime);
+	this.name = name;
+	this.startDate = startDate;
+	this.endDate = endDate;
+	this.dTime = dTime;
 	this.returnDefinition   = returnDefinition;
 	this.expectedReturnRate = expectedReturnRate;
 	this.volatility         = volatility;
@@ -193,9 +202,9 @@ public class MonteCarloPath extends PathId {
      * @exception DemoException thrown if instance variable <code>fluctuations</code> 
      * is undefined.
      */
-    public float[] get_fluctuations() {
+    /*public float[] get_fluctuations() {
 	return(this.fluctuations);
-    }
+    }*/
     /**
      * Set method for private instance variable <code>fluctuations</code>.
      *
@@ -212,9 +221,9 @@ public class MonteCarloPath extends PathId {
      * @exception DemoException thrown if instance variable <code>pathValue</code> 
      * is undefined.
      */
-    public float[] get_pathValue() {
+    /*public float[] get_pathValue() {
 	return(this.pathValue);
-    }
+    }*/
     /**
      * Set method for private instance variable <code>pathValue</code>.
      *
@@ -230,9 +239,9 @@ public class MonteCarloPath extends PathId {
      * @exception DemoException thrown if instance variable <code>returnDefinition</code> 
      * is undefined.
      */
-    public int get_returnDefinition() {
+    /*public int get_returnDefinition() {
 	return(this.returnDefinition);
-    }
+    }*/
     /**
      * Set method for private instance variable <code>returnDefinition</code>.
      *
@@ -249,9 +258,9 @@ public class MonteCarloPath extends PathId {
      * @exception DemoException thrown if instance variable <code>expectedReturnRate</code> 
      * is undefined.
      */
-    public float get_expectedReturnRate() {
+    /*public float get_expectedReturnRate() {
 	return(this.expectedReturnRate);
-    }
+    }*/
     /**
      * Set method for private instance variable <code>expectedReturnRate</code>.
      *
@@ -268,9 +277,9 @@ public class MonteCarloPath extends PathId {
      * @exception DemoException thrown if instance variable <code>volatility</code> 
      * is undefined.
      */
-    public float get_volatility() {
+    /*public float get_volatility() {
 	return(this.volatility);
-    }
+    }*/
     /**
      * Set method for private instance variable <code>volatility</code>.
      *
@@ -287,9 +296,9 @@ public class MonteCarloPath extends PathId {
      * @exception DemoException thrown if instance variable <code>nTimeSteps</code> 
      * is undefined.
      */
-    public int get_nTimeSteps() {
+    /*public int get_nTimeSteps() {
 	return(this.nTimeSteps);
-    }
+    }*/
     /**
      * Set method for private instance variable <code>nTimeSteps</code>.
      *
@@ -306,9 +315,9 @@ public class MonteCarloPath extends PathId {
      * @exception DemoException thrown if instance variable <code>pathStartValue</code> 
      * is undefined.
      */
-    public float get_pathStartValue() {
+    /*public float get_pathStartValue() {
 	return(this.pathStartValue);
-    }
+    }*/
     /**
      * Set method for private instance variable <code>pathStartValue</code>.
      *
@@ -331,15 +340,15 @@ public class MonteCarloPath extends PathId {
     private void copyInstanceVariables(ReturnPath obj) {
 	//
 	// Instance variables defined in the PathId object.
-	set_name(obj.get_name());
-	set_startDate(obj.get_startDate());
-	set_endDate(obj.get_endDate());
-	set_dTime(obj.get_dTime());
+	this.name = obj.name;
+	this.startDate = obj.startDate;
+	this.endDate = obj.endDate;
+	this.dTime = obj.dTime;
 	//
 	// Instance variables defined in this object.
-	this.returnDefinition   = obj.get_returnDefinition();
-	this.expectedReturnRate = obj.get_expectedReturnRate();
-	this.volatility         = obj.get_volatility();
+	this.returnDefinition   = obj.returnDefinition;
+	this.expectedReturnRate = obj.expectedReturnRate;
+	this.volatility         = obj.volatility;
     }
 
     /**
@@ -367,10 +376,16 @@ public class MonteCarloPath extends PathId {
      *                          the computation.
      */
     public boolean computeFluctuationsGaussian(long randomSeed) {
-	if( nTimeSteps > fluctuations.length ) {
+	int ntimesteps = this.nTimeSteps;
+	int length = this.fluctuations.length;
+	if( ntimesteps > length ) {
 	    return false;
 	}
-	//System.printI(0xc0);
+	float[] flucts = this.fluctuations;
+	float expectedreturnrate = this.expectedReturnRate;
+	float vol = this.volatility;
+	float dtime = this.dTime;
+	
 	//
 	// First, make use of the passed in seed value.
 	MyRandom rnd;
@@ -382,39 +397,31 @@ public class MonteCarloPath extends PathId {
 	} else {
 	    rnd = new MyRandom((int)randomSeed, v1, v2);
 	}
-	//System.printI(0xc1);
+	
 	//
 	// Determine the mean and standard-deviation, from the mean-drift and volatility.
-	float mean = (expectedReturnRate-(float)0.5*volatility*volatility)*get_dTime();
-	//System.printI(0xc2);
-	float sd   = volatility*Math.sqrtf(get_dTime());
-	//System.printI(0xc3);
+	float mean = (expectedreturnrate-(float)0.5*vol*vol)*dtime;
+	float sd   = vol*Math.sqrtf(dtime);
 	float gauss, meanGauss=(float)0.0, variance=(float)0.0;
-	//System.printI(0xc4);
-	for( int i=0; i < nTimeSteps; i += 2 ) {
-	    //System.printI(0xc5);
+	for( int i=0; i < ntimesteps; i += 2 ) {
 	    r  = rnd.seed();
 	    gauss = r*rnd.v1;
-	    //System.printI(0xc6);
 	    meanGauss+= gauss;
-	    variance+= (gauss*gauss);
+	    variance+= gauss*gauss;
 	    //
 	    // Now map this onto a general Gaussian of given mean and variance.
-	    fluctuations[i] = mean + sd*gauss;
+	    flucts[i] = mean + sd*gauss;
 	    //      dbgPrintln("gauss="+gauss+" fluctuations="+fluctuations[i]);
 	    
 	    gauss  = r*rnd.v2;
 	    meanGauss+= gauss;
-	    variance+= (gauss*gauss);
+	    variance+= gauss*gauss;
 	    //
 	    // Now map this onto a general Gaussian of given mean and variance.
-	    fluctuations[i+1] = mean + sd*gauss;
+	    flucts[i+1] = mean + sd*gauss;
 	}
-	//System.printI(0xc7);
-	meanGauss/=(float)nTimeSteps;
-	//System.printI(0xc8);
-	variance /=(float)nTimeSteps;
-	//System.printI(0xc9);
+	meanGauss/=(float)ntimesteps;
+	variance /=(float)ntimesteps;
 	//    dbgPrintln("meanGauss="+meanGauss+" variance="+variance);
     }
     /**
@@ -441,14 +448,15 @@ public class MonteCarloPath extends PathId {
      *                          the computation.
      */
     public void computePathValue(float startValue) {
-	pathValue[0] = startValue;
-	//System.printI(0xca0);
-	if( returnDefinition == 1 || 
+	float[] pathvalue = this.pathValue;
+	float[] flucts = this.fluctuations;
+	int length = this.nTimeSteps;
+	pathvalue[0] = startValue;
+	if( returnDefinition == 1 | 
 		returnDefinition == 2) {
-	    //System.printI(0xca1);
-	    for(int i=1; i < nTimeSteps; i++ ) {
-		//System.printI(0xca2);
-		pathValue[i] = pathValue[i-1] * Math.expf(fluctuations[i]);
+	    for(int i=1; i < length; i++ ) {
+		//System.printI((int)(flucts[i] * 10000));
+		pathvalue[i] = pathvalue[i-1] * Math.expf(flucts[i]);
 	    }
 	}
     }

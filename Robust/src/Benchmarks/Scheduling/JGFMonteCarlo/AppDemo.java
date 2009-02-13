@@ -34,7 +34,7 @@
  * </ol>
  *
  * @author H W Yau
- * @version $Revision: 1.1 $ $Date: 2008/08/18 22:22:20 $
+ * @version $Revision: 1.2 $ $Date: 2009/02/13 21:37:19 $
  */
 public class AppDemo {
     flag merge;
@@ -46,7 +46,7 @@ public class AppDemo {
 
     public float JGFavgExpectedReturnRateMC;
 
-    public int Serial;
+    //public int Serial;
     //------------------------------------------------------------------------
     // Instance variables.
     //------------------------------------------------------------------------
@@ -64,32 +64,38 @@ public class AppDemo {
     /**
      * The default duration between time-steps, in units of a year.
      */
-    private float dTime;
+    public float dTime;
     /**
      * Flag to determine whether initialisation has already taken place.
      */
-    private boolean initialised;
+    public boolean initialised;
     /**
      * Variable to determine which deployment scenario to run.
      */
-    private int runMode;
+    public int runMode;
 
-    public Vector results;
+    //public Vector results;
 
-    PriceStock psMC;
+    //public PriceStock psMC;
     public float pathStartValue;
-    float avgExpectedReturnRateMC;
-    float avgVolatilityMC;
+    public float avgExpectedReturnRateMC;
+    public float avgVolatilityMC;
     
-    int counter;
+    public int counter;
 
-    RatePath avgMCrate;
+    public RatePath avgMCrate;
     
-    public ToInitAllTasks initAllTasks;
+    //public ToInitAllTasks initAllTasks;
+    public String name;
+    public int startDate;
+    public int endDate;
+    public int returnDefinition;
+    public float expectedReturnRate;
+    public float volatility;
 
     public AppDemo(int nTimeStepsMC, int nRunsMC, int group) {
 	this.JGFavgExpectedReturnRateMC = (float)0.0;
-	this.Serial = 1;
+	//this.Serial = 1;
 
 	this.nTimeStepsMC   = nTimeStepsMC;
 	this.nRunsMC        = nRunsMC;
@@ -103,9 +109,13 @@ public class AppDemo {
 	
 	this.counter = 0;
 	
-	this.avgMCrate = new RatePath(this.nTimeStepsMC, "MC", 19990109, 19991231, this.dTime);
+	this.avgMCrate = new RatePath(this.nTimeStepsMC, 
+		                      "MC", 
+		                      19990109, 
+		                      19991231, 
+		                      this.dTime);
 	
-	this.initAllTasks = null;
+	//this.initAllTasks = null;
     }
     /**
      * Single point of contact for running this increasingly bloated
@@ -121,20 +131,24 @@ public class AppDemo {
     public void initSerial() { 
 	//
 	// Measure the requested path rate.
-	//System.printI(0xf0);
 	RatePath rateP = new RatePath();
-	//System.printI(0xf1);
 	//rateP.dbgDumpFields();
 	ReturnPath returnP = rateP.getReturnCompounded();
-	//System.printI(0xf2);
 	returnP.estimatePath();
-	//System.printI(0xf3);
 	//returnP.dbgDumpFields();
-	float expectedReturnRate = returnP.get_expectedReturnRate();
-	float volatility         = returnP.get_volatility();
-	initAllTasks = new ToInitAllTasks(returnP, nTimeStepsMC, pathStartValue);
+	/*initAllTasks = new ToInitAllTasks(returnP, 
+		                          nTimeStepsMC, 
+		                          pathStartValue);*/
+	this.name      = returnP.name;
+	this.startDate = returnP.startDate;
+	this.endDate   = returnP.endDate;
+	//
+	// Instance variables defined in ReturnPath object.
+	this.returnDefinition   = returnP.returnDefinition;
+	this.expectedReturnRate = returnP.expectedReturnRate;
+	this.volatility         = returnP.volatility;
+	
 	this.counter = 0;
-	//System.printI(0xf4);
 	return;
     }
 
@@ -148,22 +162,28 @@ public class AppDemo {
      *            any values.
      */
     boolean processResults(Vector returnMCs) {
+	float sumReturnRateMC = (float) 0.0;
+	float sumVolatilityMC = (float) 0.0;
+	RatePath avgmcrate = this.avgMCrate;
 	for(int i = 0; i < returnMCs.size(); i++) {
 	    ToResult returnMC = (ToResult)returnMCs.elementAt(i);
-	    avgMCrate.inc_pathValue(returnMC.get_pathValue());
-	    avgExpectedReturnRateMC += returnMC.get_expectedReturnRate();
-	    avgVolatilityMC         += returnMC.get_volatility();
+	    avgmcrate.inc_pathValue(returnMC.pathValue);
+	    sumReturnRateMC += returnMC.expectedReturnRate;
+	    sumVolatilityMC         += returnMC.volatility;
 	}
+	avgExpectedReturnRateMC = sumReturnRateMC;
+	avgVolatilityMC = sumVolatilityMC;
 
 	this.counter++;
-	if(this.counter == this.group) {
-	    avgMCrate.inc_pathValue((float)1.0/((float)nRunsMC));
+	boolean isfinish = (this.counter == this.group);
+	if(isfinish) {
+	    avgmcrate.inc_pathValue((float)1.0/((float)nRunsMC));
 	    avgExpectedReturnRateMC /= nRunsMC;
 	    avgVolatilityMC         /= nRunsMC;
 	    JGFavgExpectedReturnRateMC = avgExpectedReturnRateMC;
 	}
 	
-	return (this.counter == this.group);
+	return isfinish;
     }
     //
     //------------------------------------------------------------------------
@@ -175,9 +195,9 @@ public class AppDemo {
      *
      * @return Value of instance variable <code>nTimeStepsMC</code>.
      */
-    public int get_nTimeStepsMC() {
+    /*public int get_nTimeStepsMC() {
 	return(this.nTimeStepsMC);
-    }
+    }*/
     /**
      * Set method for private instance variable <code>nTimeStepsMC</code>.
      *
@@ -191,9 +211,9 @@ public class AppDemo {
      *
      * @return Value of instance variable <code>nRunsMC</code>.
      */
-    public int get_nRunsMC() {
+    /*public int get_nRunsMC() {
 	return(this.nRunsMC);
-    }
+    }*/
     /**
      * Set method for private instance variable <code>nRunsMC</code>.
      *
@@ -207,17 +227,17 @@ public class AppDemo {
      *
      * @return Value of instance variable <code>results</code>.
      */
-    public Vector get_results() {
+    /*public Vector get_results() {
 	return(this.results);
-    }
+    }*/
     /**
      * Set method for private instance variable <code>results</code>.
      *
      * @param results the value to set for the instance variable <code>results</code>.
      */
-    public void set_results(Vector results) {
+    /*public void set_results(Vector results) {
 	this.results = results;
-    }
+    }*/
     //------------------------------------------------------------------------
 }
 

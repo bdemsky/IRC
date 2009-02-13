@@ -29,7 +29,7 @@
  * value.
  *
  * @author H W Yau
- * @version $Revision: 1.1 $ $Date: 2008/08/18 22:22:21 $
+ * @version $Revision: 1.2 $ $Date: 2009/02/13 21:37:19 $
  */
 public class PriceStock{
 
@@ -39,28 +39,28 @@ public class PriceStock{
     /**
      * The Monte Carlo path to be generated.
      */
-    private MonteCarloPath mcPath;
+    public MonteCarloPath mcPath;
     /**
      * String identifier for a given task.
      */
-    private String taskHeader;
+    //private String taskHeader;
     /**
      * Random seed from which the Monte Carlo sequence is started.
      */
-    private long randomSeed;
+    public long randomSeed;
     /**
      * Initial stock price value.
      */
-    private float pathStartValue;
+    public float pathStartValue;
     /**
      * Object which represents the results from a given computation task.
      */
-    private ToResult result;
-    private float expectedReturnRate;
-    private float volatility;
-    private float volatility2;
-    private float finalStockPrice;
-    private float[] pathValue;
+    public ToResult result;
+    public float expectedReturnRate;
+    public float volatility;
+    public float volatility2;
+    public float finalStockPrice;
+    public float[] pathValue;
 
     //------------------------------------------------------------------------
     // Constructors.
@@ -69,7 +69,7 @@ public class PriceStock{
      * Default constructor.
      */
     public PriceStock() {
-	this.taskHeader = "";
+	//this.taskHeader = "";
 	this.randomSeed=-1;
 	this.pathStartValue=(float)0.0;
 	this.expectedReturnRate=(float)0.0;
@@ -92,19 +92,19 @@ public class PriceStock{
      * @param obj Object representing data which are common to all tasks.
      */
     public void setInitAllTasks(AppDemoRunner obj) {
-	mcPath.set_name(obj.name);
-	mcPath.set_startDate(obj.startDate);
-	mcPath.set_endDate(obj.endDate);
-	mcPath.set_dTime(obj.dTime);
-	mcPath.set_returnDefinition(obj.returnDefinition);
-	mcPath.set_expectedReturnRate(obj.expectedReturnRate);
-	mcPath.set_volatility(obj.volatility);
+	mcPath.name = obj.name;
+	mcPath.startDate = obj.startDate;
+	mcPath.endDate = obj.endDate;
+	mcPath.dTime = obj.dTime;
+	mcPath.returnDefinition = obj.returnDefinition;
+	mcPath.expectedReturnRate = obj.expectedReturnRate;
+	mcPath.volatility = obj.volatility;
 	int nTimeSteps = obj.nTimeSteps;
-	mcPath.set_nTimeSteps(nTimeSteps);
+	mcPath.nTimeSteps = nTimeSteps;
 	this.pathStartValue = obj.pathStartValue;
-	mcPath.set_pathStartValue(pathStartValue);
-	mcPath.set_pathValue(new float[nTimeSteps]);
-	mcPath.set_fluctuations(new float[nTimeSteps]);
+	mcPath.pathStartValue = pathStartValue;
+	mcPath.pathValue = new float[nTimeSteps];
+	mcPath.fluctuations = new float[nTimeSteps];
     }
     /**
      * Method which is passed in the data representing each task, which then
@@ -112,8 +112,8 @@ public class PriceStock{
      *
      * @param obj Object representing the data which defines a given task.
      */
-    public void setTask(String header, long randomSeed) {
-	this.taskHeader     = header;
+    public void setTask(/*String header, */long randomSeed) {
+	//this.taskHeader     = header;
 	this.randomSeed     = randomSeed;
     }
     /**
@@ -122,21 +122,15 @@ public class PriceStock{
      */
     public void run() {
 	mcPath.computeFluctuationsGaussian(randomSeed);
-	//System.printI(0xa0);
 	mcPath.computePathValue(pathStartValue);
-	//System.printI(0xa1);
 	RatePath rateP = new RatePath(mcPath);
-	//System.printI(0xa2);
 	ReturnPath returnP = rateP.getReturnCompounded();
-	//System.printI(0xa3);
 	returnP.estimatePath();
-	//System.printI(0xa4);
-	expectedReturnRate = returnP.get_expectedReturnRate();
-	volatility = returnP.get_volatility();
-	volatility2 = returnP.get_volatility2();
-	finalStockPrice = rateP.getEndPathValue();
-	pathValue = mcPath.get_pathValue();
-	//System.printI(0xa5);
+	expectedReturnRate = returnP.expectedReturnRate;
+	volatility = returnP.volatility;
+	volatility2 = returnP.volatility2;
+	finalStockPrice = rateP.getEndPathValue();//pathValue[rateP.pathValue.length-1];
+	pathValue = mcPath.pathValue;
     }
     /*
      * Method which returns the results of a computation back to the caller.
@@ -144,9 +138,13 @@ public class PriceStock{
      * @return An object representing the computed results.
      */
     public ToResult getResult() {
-	String resultHeader = "Result of task with Header="+taskHeader+": randomSeed="+randomSeed+": pathStartValue="+(int)pathStartValue;
-	ToResult res = new ToResult(resultHeader,expectedReturnRate,volatility,
-		volatility2,finalStockPrice,pathValue);
+	//String resultHeader = "Result of task with Header="+taskHeader+": randomSeed="+randomSeed+": pathStartValue="+(int)pathStartValue;
+	ToResult res = new ToResult(/*resultHeader,*/
+		                    expectedReturnRate,
+		                    volatility,
+		                    volatility2,
+		                    finalStockPrice,
+		                    pathValue);
 	return res;
     }
 }

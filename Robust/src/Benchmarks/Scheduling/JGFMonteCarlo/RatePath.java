@@ -30,7 +30,7 @@
  * </ol>
  *
  * @author H W Yau
- * @version $Revision: 1.1 $ $Date: 2008/08/18 22:22:21 $
+ * @version $Revision: 1.2 $ $Date: 2009/02/13 21:37:19 $
  */
 public class RatePath extends PathId {
 
@@ -55,16 +55,16 @@ public class RatePath extends PathId {
     /**
      * An instance variable, for storing the rate's path values itself.
      */
-    private float[] pathValue;
+    public float[] pathValue;
     /**
      * An instance variable, for storing the corresponding date of the datum,
      * in 'YYYYMMDD' format.
      */
-    private int[] pathDate;
+    public int[] pathDate;
     /**
      * The number of accepted values in the rate path.
      */
-    private int nAcceptedPathValue;
+    public int nAcceptedPathValue;
 
     //------------------------------------------------------------------------
     // Constructors.
@@ -82,9 +82,7 @@ public class RatePath extends PathId {
 	this.MINIMUMDATE = 19000101;
 	this.EPSILON= (float)10.0 * (float)(4.9E-324);
 	this.nAcceptedPathValue = 0;
-	//System.printI(0xaa0);
 	readRatesFile();
-	//System.printI(0xaa1);
     }
     /**
      * Constructor, for when the user specifies simply an array of values
@@ -100,14 +98,18 @@ public class RatePath extends PathId {
      * @param dTime the time interval between successive path values, in
      *        fractions of a year.
      */
-    public RatePath(float[] pathValue, String name, int startDate, int endDate, float dTime) {
+    public RatePath(float[] pathValue, 
+	            String name, 
+	            int startDate, 
+	            int endDate, 
+	            float dTime) {
 	this.MINIMUMDATE = 19000101;
 	this.EPSILON= (float)10.0 * (float)(4.9E-324);
 	
-	set_name(name);
-	set_startDate(startDate);
-	set_endDate(endDate);
-	set_dTime(dTime);
+	this.name = name;
+	this.startDate = startDate;
+	this.endDate = endDate;
+	this.dTime = dTime;
 	this.pathValue = pathValue;
 	this.nAcceptedPathValue = pathValue.length;
     }
@@ -126,14 +128,14 @@ public class RatePath extends PathId {
 
 	//
 	// Fields pertaining to the parent PathId object:
-	set_name(mc.get_name());
-	set_startDate(mc.get_startDate());
-	set_endDate(mc.get_endDate());
-	set_dTime(mc.get_dTime());
+	this.name = mc.name;
+	this.startDate = mc.startDate;
+	this.endDate = mc.endDate;
+	this.dTime = mc.dTime;
 	//
 	// Fields pertaining to RatePath object itself.
-	pathValue=mc.get_pathValue();
-	nAcceptedPathValue=mc.get_nTimeSteps();
+	pathValue=mc.pathValue;
+	nAcceptedPathValue=mc.nTimeSteps;
 	//
 	// Note that currently the pathDate is neither declared, defined,
 	// nor used in the MonteCarloPath object.
@@ -153,14 +155,18 @@ public class RatePath extends PathId {
      * @param dTime the time interval between successive path values, in
      *        fractions of a year.
      */
-    public RatePath(int pathValueLength, String name, int startDate, int endDate, float dTime) {
+    public RatePath(int pathValueLength, 
+	            String name, 
+	            int startDate, 
+	            int endDate, 
+	            float dTime) {
 	this.MINIMUMDATE = 19000101;
 	this.EPSILON= (float)10.0 * (float)(4.9E-324);
 	
-	set_name(name);
-	set_startDate(startDate);
-	set_endDate(endDate);
-	set_dTime(dTime);
+	this.name = name;
+	this.startDate = startDate;
+	this.endDate = endDate;
+	this.dTime = dTime;
 	this.pathValue = new float[pathValueLength];
 	this.nAcceptedPathValue = pathValue.length;
     }
@@ -176,11 +182,13 @@ public class RatePath extends PathId {
      *            lengths of the operand and target arrays.
      */
     public boolean inc_pathValue(float[] operandPath) {
-	if( pathValue.length != operandPath.length ) {
+	int length = this.pathValue.length;
+	if( length != operandPath.length ) {
 	    return false;
 	}
-	for(int i=0; i<pathValue.length; i++ ) {
-	    pathValue[i] += operandPath[i];
+	float[] pathvalue = this.pathValue;
+	for(int i=0; i<length; i++ ) {
+	    pathvalue[i] += operandPath[i];
 	}
 	return true;
     }
@@ -193,11 +201,13 @@ public class RatePath extends PathId {
      *            lengths of the operand and target arrays.
      */
     public boolean inc_pathValue(float scale) {
-	if( pathValue==null ) {
+	float[] pathvalue = this.pathValue;
+	if( pathvalue==null ) {
 	    return false;
 	}
-	for(int i=0; i<pathValue.length; i++ ) {
-	    pathValue[i] *= scale;
+	int length = this.pathValue.length;
+	for(int i=0; i<length; i++ ) {
+	    pathvalue[i] *= scale;
 	}
 	return true;
     }
@@ -211,9 +221,9 @@ public class RatePath extends PathId {
      * @return Value of instance variable <code>pathValue</code>.
      * @exception DemoException thrown if instance variable <code>pathValue</code> is undefined.
      */
-    public float[] get_pathValue() {
+    /*public float[] get_pathValue() {
 	return(this.pathValue);
-    }
+    }*/
     /**
      * Set method for private instance variable <code>pathValue</code>.
      *
@@ -228,9 +238,9 @@ public class RatePath extends PathId {
      * @return Value of instance variable <code>pathDate</code>.
      * @exception DemoException thrown if instance variable <code>pathDate</code> is undefined.
      */
-    public int[] get_pathDate() {
+    /*public int[] get_pathDate() {
 	return(this.pathDate);
-    }
+    }*/
     /**
      * Set method for private instance variable <code>pathDate</code>.
      *
@@ -269,16 +279,18 @@ public class RatePath extends PathId {
      *                          calculation.
      */
     public ReturnPath getReturnCompounded() {
-	if( pathValue == null || nAcceptedPathValue == 0 ) {
+	int length = this.nAcceptedPathValue;
+	float[] pathvalue = this.pathValue;
+	if( pathvalue == null || length == 0 ) {
 	    return null;
 	}
-	float[] returnPathValue = new float[nAcceptedPathValue];
+	float[] returnPathValue = new float[length];
 	returnPathValue[0] = (float)0.0;
-	for(int i=1; i< nAcceptedPathValue; i++ ) {
-	    returnPathValue[i] = Math.logf(pathValue[i] / pathValue[i-1]);
+	for(int i=1; i< length; i++ ) {
+	    returnPathValue[i] = Math.logf(pathvalue[i] / pathvalue[i-1]);
 	}
 
-	ReturnPath rPath = new ReturnPath(returnPathValue, nAcceptedPathValue, 1);
+	ReturnPath rPath = new ReturnPath(returnPathValue, length, 1);
 	//
 	// Copy the PathId information to the ReturnPath object.
 	rPath.copyInstanceVariables(this);
@@ -295,16 +307,18 @@ public class RatePath extends PathId {
      *                          calculation.
      */
     public ReturnPath getReturnNonCompounded() {
-	if( pathValue == null || nAcceptedPathValue == 0 ) {
+	int length = this.nAcceptedPathValue;
+	float[] pathvalue = this.pathValue;
+	if( pathvalue == null || length == 0 ) {
 	    return null;
 	}
-	float[] returnPathValue = new float[nAcceptedPathValue];
+	float[] returnPathValue = new float[length];
 	returnPathValue[0] = (float)0.0;
-	for(int i=1; i< nAcceptedPathValue; i++ ) {
-	    returnPathValue[i] = (pathValue[i] - pathValue[i-1])/pathValue[i];
+	for(int i=1; i< length; i++ ) {
+	    returnPathValue[i] = (pathvalue[i] - pathvalue[i-1])/pathvalue[i];
 	}
 	
-	ReturnPath rPath = new ReturnPath(returnPathValue, nAcceptedPathValue, 2);
+	ReturnPath rPath = new ReturnPath(returnPathValue, length, 2);
 	//
 	// Copy the PathId information to the ReturnPath object.
 	rPath.copyInstanceVariables(this);
@@ -349,20 +363,35 @@ public class RatePath extends PathId {
     private void readRatesFile(){
 	//
 	// Now create an array to store the rates data.
+	int minimumdate = MINIMUMDATE;
+	float epsilon = EPSILON;
 	int nLines = 200;
 	int year = 88;
 	int month = 10;
 	int day = 3;
-	//System.printI(0xab0);
 	this.pathValue = new float[nLines];
 	this.pathDate  = new int[nLines];
+	float[] pathvalue = this.pathValue;
+	int[] pathdate = this.pathDate;
 	nAcceptedPathValue=0;
 	int iLine=0;
+	/*char[] date = new char[9];
+	date[0] = '1';
+	date[1] = '9';
+	date[2] = (char)(year/10 + '0');
+	date[3] = (char)(year%10 + '0');
+	date[4] = (char)(month/10 + '0');
+	date[5] = (char)(month%10 + '0');
+	date[6] = (char)(day/10 + '0');
+	date[7] = (char)(day%10 + '0');
+	date[8] = '\0';*/
+	int aDate = 19881003;
+	/*for(int di = 0; di < 9; di++) {
+	    aDate = aDate * 10 + (int)date[di];
+	}*/
 	for(int k = 0; k < 40; k++ ) {
-	    //System.printI(0xab1);
 	    for(int j = 0; j < 5; j++) {
-		//System.printI(0xab2);
-		String date = "19"+String.valueOf(year);
+		/*String date = "19"+String.valueOf(year);
 		if(month < 10) {
 		    date += "0";
 		} 
@@ -370,48 +399,85 @@ public class RatePath extends PathId {
 		if(day < 10) {
 		    date += "0";
 		}
-		date +=  String.valueOf(day);
-		int aDate = Integer.parseInt(date);
+		date +=  String.valueOf(day);*/
+		//int aDate = Integer.parseInt(date);		
 		day++;
+		aDate++;
+		/*if(date[7] == '9') {
+		    date[7] = '0';
+		    date[6] = (char)(date[6] + 1);
+		} else {
+		    date[7] = (char)(date[7] + 1);
+		}*/
 		if(month == 2) {
 		    if(day == 29) {
 			day = 1;
 			month++;
+			/*date[6] = '0';
+			date[7] = '1';
+			date[5] = '3';*/
+			aDate += 72;// - day(29) + 101;
 		    }
 		} else {
 		    if(day == 31) {
 			day = 1;
 			month++;
+			aDate += 70;
+			/*date[6] = '0';
+			date[7] = '1';*/
 			if(month == 13) {
 			    month = 1;
 			    year++;
-			}
+			    aDate += 8800;
+			    /*date[4] = '0';
+			    date[5] = '1';
+			    if(date[3] == '9') {
+				if(date[2] == '9') {
+				    if(date[1] == '9') {
+					date[1] = '0';
+					date[0] = (char)(date[0] + 1);
+				    } else {
+					date[1] = (char)(date[1] + 1);
+				    }
+				    date[2] = '0';
+				} else {
+				    date[2] = (char)(date[2] + 1);
+				}
+				date[3] = '0';
+			    } else {
+				date[3] = (char)(date[3] + 1);
+			    }*/
+			} /*else {
+			    if(date[5] == '9') {
+				date[4] = '1';
+				date[5] = '0';
+			    } else {
+				date[5] = (char)(date[5] + 1);
+			    }
+			}*/
 		    }
 		}
 		//
 		// static float float.parsefloat() method is a feature of JDK1.2!
-		float aPathValue = (float)(121.7500 - k - j);
-		//System.printI(0xab3);
-		if( (aDate <= MINIMUMDATE) || (Math.abs(aPathValue) < EPSILON) ) {
+		int tmp = k + j;
+		float aPathValue = (float)(121.7500 - tmp);
+		if( (aDate <= minimumdate) /*| (Math.abs(aPathValue) < epsilon)*/ ) {
 		    //System.printString("Skipped erroneous data indexed by date="+date+".");
 		} else {
-		    pathDate[iLine] = aDate;
-		    pathValue[iLine] = aPathValue;
+		    pathdate[iLine] = aDate;
+		    pathvalue[iLine] = aPathValue;
 		    iLine++;
 		}
-		//System.printI(0xab4);
 	    }
 	}
-	//System.printI(0xab5);
 	//
 	// Record the actual number of accepted data points.
 	nAcceptedPathValue = iLine;
 	//
 	// Now to fill in the structures from the 'PathId' class.
-	set_name("rate");
-	set_startDate(pathDate[0]);
-	set_endDate(pathDate[nAcceptedPathValue-1]);
-	set_dTime((float)(1.0/365.0));
-	//System.printI(0xab6);
+	this.name = "rate";
+	this.startDate = pathdate[0];
+	this.endDate = pathdate[iLine-1];
+	this.dTime = (float)(1.0/365.0);
     }
 }

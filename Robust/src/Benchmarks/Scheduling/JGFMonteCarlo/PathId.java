@@ -27,7 +27,7 @@
   * Also provides some methods for writing out debug messages.
   *
   * @author H W Yau
-  * @version $Revision: 1.1 $ $Date: 2008/08/18 22:22:21 $
+  * @version $Revision: 1.2 $ $Date: 2009/02/13 21:37:19 $
   */
 public class PathId {
 
@@ -37,20 +37,20 @@ public class PathId {
   /**
     * Simple string name.
     */
-  private String name;
+  public String name;
 
   /**
     * The start date for the path, in YYYYMMDD format.
     */
-  private int startDate;
+  public int startDate;
   /**
     * The end date for the path, in YYYYMMDD format.
     */
-  private int endDate;
+  public int endDate;
   /**
     * The change in time between two successive data values.
     */
-  private float dTime;
+  public float dTime;
 
   //------------------------------------------------------------------------
   // Constructors.
@@ -89,9 +89,9 @@ public class PathId {
     * @return Value of instance variable <code>name</code>.
     * @exception DemoException thrown if instance variable <code>name</code> is undefined.
     */
-  public String get_name() {
+  /*public String get_name() {
     return(this.name);
-  }
+  }*/
   /**
     * Set method for private instance variable <code>name</code>.
     *
@@ -106,9 +106,9 @@ public class PathId {
     * @return Value of instance variable <code>startDate</code>.
     * @exception DemoException thrown if instance variable <code>startDate</code> is undefined.
     */
-  public int get_startDate() {
+  /*public int get_startDate() {
     return(this.startDate);
-  }
+  }*/
   /**
     * Set method for private instance variable <code>startDate</code>.
     *
@@ -123,9 +123,9 @@ public class PathId {
     * @return Value of instance variable <code>endDate</code>.
     * @exception DemoException thrown if instance variable <code>endDate</code> is undefined.
     */
-  public int get_endDate() {
+  /*public int get_endDate() {
     return(this.endDate);
-  }
+  }*/
   /**
     * Set method for private instance variable <code>endDate</code>.
     *
@@ -140,9 +140,9 @@ public class PathId {
     * @return Value of instance variable <code>dTime</code>.
     * @exception DemoException thrown if instance variable <code>dTime</code> is undefined.
     */
-  public float get_dTime() {
+  /*public float get_dTime() {
     return(this.dTime);
-  }
+  }*/
   /**
     * Set method for private instance variable <code>dTime</code>.
     *
@@ -161,10 +161,10 @@ public class PathId {
     *                          any undefined objects.
     */
   public void copyInstanceVariables(PathId obj) {
-    this.name      = obj.get_name();
-    this.startDate = obj.get_startDate();
-    this.endDate   = obj.get_endDate();
-    this.dTime     = obj.get_dTime();
+    this.name      = obj.name;
+    this.startDate = obj.startDate;
+    this.endDate   = obj.endDate;
+    this.dTime     = obj.dTime;
   }
   /**
     * Dumps the contents of the fields, to standard-out, for debugging.

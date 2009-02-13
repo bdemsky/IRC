@@ -32,7 +32,10 @@ task t1(StartupObject s{initialstate}) {
     ad.initSerial();
     
     for(int i = 0; i < group; i++) {
-	AppDemoRunner adr = new AppDemoRunner(i, nruns, group, ad.initAllTasks){run};
+	AppDemoRunner adr = new AppDemoRunner(i, 
+		                              nruns, 
+		                              group, 
+		                              ad){run};
     }
     
     taskexit(s{!initialstate});
