@@ -317,7 +317,8 @@ public class ScheduleAnalysis {
 						(cdname.equals("Stage")) ||
 						(cdname.equals("AppDemoRunner")) ||
 						(cdname.equals("FilterBankAtom")) ||
-						(cdname.equals("Grid"))) {
+						(cdname.equals("Grid")) ||
+						(cdname.equals("Fractal"))) {
 					    newRate = 16;
 					} else if(cdname.equals("SentenceParser")) {
 					    newRate = 4;
