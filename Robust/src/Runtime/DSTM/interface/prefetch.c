@@ -121,8 +121,7 @@ labelL1:
       objheader_t *header;
       header = searchObj(dfsList[prev]);
       if(header == NULL) {
-	printf("%s() Error Object not found at %s , %d\n", __func__, __FILE__, __LINE__);
-	return NULL;
+	dfsList[top] = 0;
       } else {
 	//if Array
 	if(TYPE(header) > NUMCLASSES) {
@@ -130,8 +129,8 @@ labelL1:
 	} else { //linked list
 	  dfsList[top] = getNextPointerOid(offsetarray, dfsList, &top, &depth);
 	}
-	goto labelL1;
       }
+      goto labelL1;
     } else { // increment and go down the tree
       //Increment top
       top += 2;
@@ -157,8 +156,7 @@ labelL1:
 	objheader_t * header;
 	header = searchObj(dfsList[prev]);
 	if(header == NULL) {
-	  printf("%s() Error Object not found at %s , %d\n", __func__, __FILE__, __LINE__);
-	  return NULL;
+	  dfsList[top] = 0;
 	} else {
 	  //if Array
 	  if(TYPE(header) > NUMCLASSES) {
@@ -166,8 +164,8 @@ labelL1:
 	  } else { //linked list
 	    dfsList[top] = getNextPointerOid(offsetarray, dfsList, &top, &depth);
 	  }
-	  goto labelL1;
 	}
+	goto labelL1;
       } else
 	continue;
     }
@@ -183,7 +181,7 @@ objheader_t *searchObj(unsigned int oid) {
   } else if ((header = (objheader_t *) prehashSearch(oid)) != NULL) {
     return header;
   } else {
-    //printf("Error: Cannot find header %s, %d\n", __func__, __LINE__);
+    ;
   }
   return NULL;
 }
@@ -350,12 +348,12 @@ int getRangePrefetchResponse(int sd) {
     } else {
       prehashInsert(oid, ptr);
     }
+    objheader_t *head = prehashSearch(oid);
     pthread_mutex_lock(&pflookup.lock);
     pthread_cond_broadcast(&pflookup.cond);
     pthread_mutex_unlock(&pflookup.lock);
   } else if(control == OBJECT_NOT_FOUND) {
     oid = *((unsigned int *)(recvbuffer + sizeof(char)));
-    //printf("%s() Error: OBJ NOT FOUND.. THIS SHOULD NOT HAPPEN\n", __func__);
   } else {
     printf("%s() Error: in Decoding the control value %d, %s\n", __func__, __LINE__, __FILE__);
   }
@@ -402,6 +400,7 @@ int dfsOffsetTree(unsigned int baseoid, short * offsetarray, int sd, int numoffs
   oidAtDepth_t odep;
 
   /* Initialize */
+  perMcPrefetchList_t *head = NULL;
   odep.oid = 0;
   odep.depth = 0;
   int i;
@@ -427,6 +426,9 @@ labelL1:
 	printf("%s() Error in sendOidNotFound() at line %d in %s()\n", __func__, __LINE__, __FILE__);
 	return -1;
       }
+      //If not found forward request
+      forwardRequest(dfsList, &top, &depth, &numoffset, offsetarray);
+
       //go up the tree
       while((dfsList[top+1] == *(offsetarray + depth + 1)) && (depth >= 0)) {
 	if(top == depth) {
@@ -446,9 +448,7 @@ labelL1:
       objheader_t *header;
       header = searchObj(dfsList[prev]);
       if(header == NULL) {
-	printf("%s() Error Object not found at %s , %d\n", __func__, __FILE__, __LINE__);
-	return -1;
-	//return 0;
+	dfsList[top] = 0;
       } else {
 	//if Array
 	if(TYPE(header) > NUMCLASSES) {
@@ -488,9 +488,7 @@ labelL1:
 	objheader_t * header;
 	header = searchObj(dfsList[prev]);
 	if(header == NULL) {
-	  printf("%s() Error Object not found at %s , %d\n", __func__, __FILE__, __LINE__);
-	  return -1;
-	  //return 0;
+	  dfsList[top] = 0;
 	} else {
 	  //if Array
 	  if(TYPE(header) > NUMCLASSES) {
@@ -498,8 +496,8 @@ labelL1:
 	  } else { //linked list
 	    dfsList[top] = getNextPointerOid(offsetarray, dfsList, &top, &depth);
 	  }
-	  goto labelL1;
 	}
+	goto labelL1;
       } else
 	continue;
     }
@@ -575,7 +573,6 @@ unsigned int getNextArrayOid(short *offsetarray, unsigned int *dfsList, int *top
   }
   objheader_t *header = searchObj(oid);
   if(header == NULL) {
-    printf("%s() Error: Object not found at %s , %d\n", __func__, __FILE__, __LINE__);
     return 0;
   } else {
     short stride = GET_STRIDE(*(offsetarray+(*depth) + 1));
@@ -605,7 +602,7 @@ unsigned int getNextArrayOid(short *offsetarray, unsigned int *dfsList, int *top
 unsigned int getNextPointerOid(short *offsetarray, unsigned int *dfsList, int *top, int* depth) {
   int prev;
   if(*(dfsList + *top + 1) > 1) { //tells which offset to calculate the oid from
-                                  //(if range > 1 then use available oid to compute next oid else go to previous oid)
+    //(if range > 1 then use available oid to compute next oid else go to previous oid)
     prev = *top;
   } else {
     prev = *top - 2;
@@ -616,7 +613,6 @@ unsigned int getNextPointerOid(short *offsetarray, unsigned int *dfsList, int *t
   }
   objheader_t *header = searchObj(oid);
   if(header == NULL) {
-    printf("%s() Error: Object not found at %s , %d\n", __func__, __FILE__, __LINE__);
     return 0;
   } else {
     int startelement = *(offsetarray + *depth);
@@ -633,8 +629,7 @@ int sendOidFound(unsigned int oid, int sd) {
   } else if((header = (objheader_t *) prehashSearch(oid))!=NULL) {
     ;
   } else {
-    printf("%s() Error: THIS SHOULD NOT HAPPEN at line %d in %s()\n", __func__, __LINE__, __FILE__);
-    return -1;
+    return 0;
   }
 
   int incr = 0;
@@ -664,4 +659,20 @@ int sendOidNotFound(unsigned int oid, int sd) {
   char control = TRANS_PREFETCH_RESPONSE;
   sendPrefetchResponse(sd, &control, sendbuffer, &size);
   return 0;
+}
+
+void forwardRequest(unsigned int * dfsList, int *top, int *depth, int *numoffset, short * offsetarray) {
+  perMcPrefetchList_t *head = NULL;
+  unsigned int machinenum = lhashSearch(*(dfsList + *top));
+  insertPrefetch(machinenum, *(dfsList + *top), (*numoffset)-(*depth), &offsetarray[*depth], &head);
+
+  if(head!=NULL) {
+    // Get sock from shared pool
+    int sd = getSock2(transPrefetchSockPool, machinenum);
+    /* Send  Prefetch Request */
+    sendRangePrefetchReq(head, sd);
+    /* Deallocated pilehead */
+    proPrefetchQDealloc(head);
+  }
+  return;
 }

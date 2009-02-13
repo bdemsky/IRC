@@ -7,6 +7,7 @@
 #include "llookup.h"
 #include "threadnotify.h"
 #include "prefetch.h"
+#include <sched.h>
 #ifdef COMPILER
 #include "thread.h"
 #endif
@@ -142,9 +143,11 @@ void *dstmAccept(void *acceptfd) {
     case READ_REQUEST:
       /* Read oid requested and search if available */
       recv_data((int)acceptfd, &oid, sizeof(unsigned int));
-      if((srcObj = mhashSearch(oid)) == NULL) {
-	printf("Error: Object 0x%x is not found in Main Object Store %s, %d\n", oid, __FILE__, __LINE__);
-	break;
+      while((srcObj = mhashSearch(oid)) == NULL) {
+	int ret;
+	if((ret = sched_yield()) != 0) {
+	  printf("%s(): error no %d in thread yield\n", __func__, errno);
+	}
       }
       h = (objheader_t *) srcObj;
       GETSIZE(size, h);
@@ -685,7 +688,7 @@ int transCommitProcess(void *modptr, unsigned int *oidmod, unsigned int *oidlock
       return 1;
     }
     GETSIZE(tmpsize,header);
-    
+
     {
       struct ___Object___ *dst=(struct ___Object___*)((char*)header+sizeof(objheader_t));
       struct ___Object___ *src=(struct ___Object___*)((char*)modptr+sizeof(objheader_t)+offset);
@@ -832,7 +835,7 @@ int prefetchReq(int acceptfd) {
       } //end of for
     }
   } //end of while
-   //Release socket
+    //Release socket
   if (mid!=-1)
     freeSockWithLock(transPResponseSocketPool, mid, sd);
 

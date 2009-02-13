@@ -58,6 +58,7 @@ int findOidinStride(short *,  struct ArrayObject *, int, int, int, int, int, int
 int processLinkedListOids(short *, objheader_t *, int *, int);
 int getRangePrefetchResponse(int sd);
 objheader_t *searchObj(unsigned int);
+void forwardRequest(unsigned int *, int*, int*, int*, short*);
 
 /*********** Functions for computation at the participant end **********/
 int getNextOid(short *, unsigned int*, int*, int*, oidAtDepth_t *, unsigned int);
