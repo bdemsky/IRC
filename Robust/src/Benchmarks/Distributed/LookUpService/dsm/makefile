@@ -1,8 +1,8 @@
 MAINCLASS=LookUpService
 SRC1=${MAINCLASS}.java \
-     ../../../../ClassLibrary/DistributedHashMap.java
-FLAGS1=-dsm -dsmcaching -rangeprefetch -optimize -mainclass ${MAINCLASS} -trueprob 0.90
-FLAGS2=-dsm -dsmcaching -prefetch -optimize -excprefetch String.hashCode -excprefetch DistributedHashMap.resize -excprefetch String.equals -excprefetch LookUpService.main -mainclass ${MAINCLASS} -trueprob 0.90
+     DistributedHashMap.java
+FLAGS1=-dsm -dsmcaching -rangeprefetch -optimize -mainclass ${MAINCLASS} -trueprob 0.95
+FLAGS2=-dsm -dsmcaching -prefetch -optimize -excprefetch String.hashCode -excprefetch DistributedHashMap.resize -excprefetch String.equals -excprefetch LookUpService.main -mainclass ${MAINCLASS} -trueprob 0.95
 FLAGS3=-dsm -optimize -mainclass ${MAINCLASS}
 FLAGS4=-dsm -dsmcaching -optimize -mainclass ${MAINCLASS}
 default:

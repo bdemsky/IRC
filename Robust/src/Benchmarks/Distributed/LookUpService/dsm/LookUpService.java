@@ -57,13 +57,11 @@ public class LookUpService extends Thread {
           int rdwr = rand.nextInt(100);
           int rwkey = rand.nextInt(nobjs);
           Integer key = global new Integer(rwkey);
-          Object o1 = key;
           if (rdwr < rdprob) {
-            Object o3 = mydhmap.get(o1); //Read
+            Object o3 = mydhmap.get(key); //Read
           } else {
             Integer val = global new Integer(j);
-            Object o2 = val;
-            mydhmap.put(o1, o2); //Modify 
+            mydhmap.put(key, val); //Modify 
           }
         }
       }
@@ -90,6 +88,7 @@ public class LookUpService extends Thread {
 
     atomic {
       dhmap = global new DistributedHashMap(100, 100, 0.75f);
+      //Add to the hash map
       for(int i = 0; i < ls.nobjs; i++) {
         Integer key = global new Integer(i);
         Integer val = global new Integer(i*i);
@@ -102,19 +101,6 @@ public class LookUpService extends Thread {
         lus[i] = global new LookUpService(dhmap, i, ls.numthreads, ls.nobjs, ls.numtrans, ls.rdprob, ls.nLookUp);
       }
     }
-
-    //Add to the hash map
-    /*
-    atomic {
-      for(int i = 0; i < ls.nobjs; i++) {
-        Integer key = global new Integer(i);
-        Integer val = global new Integer(i*i);
-        Object o1 = key;
-        Object o2 = val;
-        dhmap.put(o1, o2);
-      }
-    }
-    */
 
     LookUpService tmp;
     /* Start threads */
