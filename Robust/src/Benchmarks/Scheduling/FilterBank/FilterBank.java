@@ -6,19 +6,13 @@ task t1(StartupObject s{initialstate}) {
 	int N_ch=16;
 	int N_col=128;
 	int i,j;
-
-	/*float r[] = new float[N_sim];
-	for (i=0;i<N_sim;i++) {
-		r[i]=i+1;
-	}*/
 	
 	for(j = 0; j < N_ch; j++) {
 		FilterBankAtom fba = new FilterBankAtom(j, 
 			                                N_ch, 
 			                                N_col, 
 			                                N_sim, 
-			                                N_samp/*, 
-			                                r*/){tosamp};
+			                                N_samp){tosamp};
 	}
 	FilterBank fb = new FilterBank(N_sim, N_ch){!finish, !print};
 
@@ -28,7 +22,6 @@ task t1(StartupObject s{initialstate}) {
 task t2(FilterBankAtom fba{tosamp}) {
 	//System.printString("task t2\n");
 	
-	//fba.init();
 	fba.FBCore();
 
 	taskexit(fba{!tosamp, tomerge});
@@ -99,49 +92,20 @@ public class FilterBankAtom {
 	int N_col;
 	int N_sim;
 	int N_samp;
-	//float[] r;
-	/*float[] H;
-	float[] F;
-	float[] vH;
-	float[] vDn;
-	float[] vUp;*/
 	public float[] vF;
 
 	public FilterBankAtom(int cindex, 
 		              int N_ch, 
 		              int N_col, 
 		              int N_sim, 
-		              int N_samp/*, 
-		              float[] r*/) {
+		              int N_samp) {
 	    this.ch_index = cindex;
 	    this.N_ch = N_ch;
 	    this.N_col = N_col;
 	    this.N_sim = N_sim;
 	    this.N_samp = N_samp;
-	    /*this.r = r;
-	    //this.H = null;
-	    //this.F = null;
-	    this.vH = new float[this.N_sim];
-	    this.vDn = new float[(int) this.N_sim/this.N_samp];
-	    this.vUp = new float[this.N_sim];*/
 	    this.vF = new float[this.N_sim];
-	    /*this.H[] = new float[N_col];
-	    this.F[] = new float[N_col];
-	    for(int i = 0; i < N_col; i++) {
-		H[i]=i*N_col+j*N_ch+j+i+j+1;
-		F[i]=i*j+j*j+j+i;
-	    }*/
 	}
-	
-	/*public void init() {
-	    int j = this.ch_index;
-	    this.H = new float[this.N_col];
-	    this.F = new float[this.N_col];
-	    for(int i = 0; i < this.N_col; i++) {
-		this.H[i]=i*this.N_col+j*this.N_ch+j+i+j+1;
-		this.F[i]=i*j+j*j+j+i;
-	    }
-	}*/
 
 	public void FBCore() {
 		int i,j,k;
@@ -169,9 +133,6 @@ public class FilterBankAtom {
 
 		//convolving H
 		for (j=0; j< Nsim; j++) {
-			/*for (k=0; ((k<Ncol) & ((j-k)>=0)); k++) {
-				vH[j]+=H[k]*r[j-k];
-			}*/
 		    k = 0;
 		    boolean stat = false;
 		    int diff = j;
@@ -196,9 +157,6 @@ public class FilterBankAtom {
 
 		//convolving F
 		for (j=0; j< Nsim; j++) {
-			/*for (k=0; ((k<Ncol) & ((j-k)>=0)); k++) {
-				tvF[j]+=F[k]*vUp[j-k];
-			}*/
 		    k = 0;
 		    boolean stat = false;
 		    int diff = j;

@@ -15,7 +15,13 @@ const int N_ch=16;//8;
 const int N_col=128;//32;
 
 void begin(void);
-void FBCore(int N_samp,int N_ch, int N_col,float r[N_sim],float y[N_sim], float H[N_ch][N_col],float F[N_ch][N_col]);
+void FBCore(int N_samp,
+            int N_ch, 
+            int N_col,
+            float* r,
+            float* y, 
+            float** H,
+            float** F);
 
 static int numiters = 1;
 
@@ -40,13 +46,17 @@ int main(int argc, char **argv)
 
 void begin(void){
 
-  float r[N_sim];
-  float y[N_sim];
-  float H[N_ch][N_col];
-  float F[N_ch][N_col];
-
+  float* r = (float*)malloc(sizeof(float) * N_sim);
+  float* y = (float*)malloc(sizeof(float) * N_sim);
+  float** H = (float**)malloc(sizeof(float) * N_ch);
+  float** F = (float**)malloc(sizeof(float) * N_ch);
 		
   int i,j;
+  
+  for(i = 0; i < N_ch; i++) {
+	  H[i] = (float*)malloc(sizeof(float) * N_col);
+	  F[i] = (float*)malloc(sizeof(float) * N_col);
+  }
 
   for (i=0;i<N_sim;i++)
       r[i]=i+1;
@@ -72,6 +82,15 @@ void begin(void){
 #endif
     }
   }
+  
+  free(r);
+  free(y);
+  for(i = 0; i < N_ch; i++) {
+	  free(H[i]);
+	  free(F[i]);
+  }
+  free(H);
+  free(F);
 
 #ifdef RAW
     raw_test_pass(raw_get_cycle());
@@ -81,18 +100,23 @@ void begin(void){
 
 
 // the FB core gets the input vector (r) , the filter responses H and F and generates the output vector(y)
-void FBCore(int N_samp,int N_ch, int N_col,float r[N_sim],float y[N_sim], float H[N_ch][N_col],float F[N_ch][N_col])
-{
+void FBCore(int N_samp,
+            int N_ch, 
+            int N_col,
+            float* r,
+            float* y, 
+            float** H,
+            float** F) {
   int i,j,k;
   for (i=0; i < N_sim;i++)
     y[i]=0;
 
-  for (i=0; i< N_ch; i++)
-    {
-      float Vect_H[N_sim]; //(output of the H)
-      float Vect_Dn[(int) N_sim/N_samp]; //output of the down sampler;
-      float Vect_Up[N_sim]; // output of the up sampler;
-      float Vect_F[N_sim];// this is the output of the
+  for (i=0; i< N_ch; i++) {
+      float* Vect_H = (float *)malloc(sizeof(float) * N_sim); //(output of the H)
+      float* Vect_Dn = (float *)malloc(sizeof(float) * (int)(N_sim/N_samp)); //output of the down sampler;
+      float* Vect_Up = (float *)malloc(sizeof(float) * N_sim); // output of the up sampler;
+      float* Vect_F = (float *)malloc(sizeof(float) * N_sim);// this is the output of the
+
 #ifdef RAW
 		//raw_test_pass(raw_get_cycle());
 #endif 
@@ -146,6 +170,11 @@ void FBCore(int N_samp,int N_ch, int N_col,float r[N_sim],float y[N_sim], float 
 
       for (j=0; j < N_sim; j++)
 	y[j]+=Vect_F[j];
+	
+	  free(Vect_H);
+	  free(Vect_Dn);
+	  free(Vect_Up);
+	  free(Vect_F);
 #ifdef RAW
 		//raw_test_pass(raw_get_cycle());
 #endif
