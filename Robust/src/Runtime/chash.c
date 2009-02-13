@@ -33,12 +33,12 @@ ctable_t *cCreate(unsigned int size, float loadfactor) {
 }
 
 //Store objects and their pointers into hash
-INLINE void cInsert(ctable_t *table, unsigned int key, void *val) {
+INLINE void cInsert(ctable_t *table, void * key, void *val) {
   unsigned int newsize;
   int index;
   cnode_t *ptr, *node;
 
-  ptr = &table->table[(key & table->mask)>>2];
+  ptr = &table->table[(((unsigned int)key) & table->mask)>>2];
   if (ptr->key==0) {
     ptr->key=key;
     ptr->val=val;
@@ -63,9 +63,9 @@ INLINE void cInsert(ctable_t *table, unsigned int key, void *val) {
 }
 
 // Search for an address for a given oid
-INLINE void * cSearch(ctable_t *table, unsigned int key) {
+INLINE void * cSearch(ctable_t *table, void * key) {
   //REMOVE HASH FUNCTION CALL TO MAKE SURE IT IS INLINED HERE
-  cnode_t *node = &table->table[(key & table->mask)>>2];
+  cnode_t *node = &table->table[(((unsigned int)key) & table->mask)>>2];
 
   while(node != NULL) {
     if(node->key == key) {
@@ -76,13 +76,13 @@ INLINE void * cSearch(ctable_t *table, unsigned int key) {
   return NULL;
 }
 
-unsigned int cRemove(ctable_t *table, unsigned int key) {
+unsigned int cRemove(ctable_t *table, void * key) {
   int index;
   cnode_t *curr, *prev;
   cnode_t *ptr, *node;
 
   ptr = table->table;
-  index =(key & table->mask)>>2;
+  index =(((unsigned int)key) & table->mask)>>2;
   curr = &ptr[index];
 
   for (; curr != NULL; curr = curr->next) {
@@ -128,7 +128,7 @@ unsigned int cResize(ctable_t *table, unsigned int newsize) {
       continue;
     while(curr!=NULL) {
       cnode_t * next = curr->next;
-      int index =(curr->key & mask)>>2;
+      int index =(((unsigned int)curr->key) & mask)>>2;
       cnode_t * newnode=&ntable[index];
 
       if(newnode->key==0) {

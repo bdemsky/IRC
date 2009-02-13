@@ -131,12 +131,12 @@ void ** makecheckpoint(int numparams, void ** srcpointer, struct ctable * forwar
   for(i=0; i<numparams; i++) {
     void * objptr=srcpointer[i];
     void *dst;
-    if ((dst=cSearch(forward, (int) objptr))!=NULL)
+    if ((dst=cSearch(forward, objptr))!=NULL)
       newarray[i]=dst;
     else {
       void * copy=createcopy(objptr);
-      cInsert(forward, (int) objptr, copy);
-      cInsert(reverse, (int) copy, objptr);
+      cInsert(forward, objptr, copy);
+      cInsert(reverse, copy, objptr);
       addNewItem(todo, objptr);
       newarray[i]=copy;
     }
@@ -147,7 +147,7 @@ void ** makecheckpoint(int numparams, void ** srcpointer, struct ctable * forwar
     {
       void *cpy;
       unsigned int * pointer=NULL;
-      cpy=cSearch(forward, (unsigned int)ptr);
+      cpy=cSearch(forward, ptr);
 
       pointer=pointerarray[type];
 #ifdef TASK
@@ -155,10 +155,10 @@ void ** makecheckpoint(int numparams, void ** srcpointer, struct ctable * forwar
 	void *objptr=((struct ___TagDescriptor___*)ptr)->flagptr;
 	if (objptr!=NULL) {
 	  void *dst;
-	  if ((dst=cSearch(forward, (unsigned int)objptr))==NULL) {
+	  if ((dst=cSearch(forward, objptr))==NULL) {
 	    void *copy=createcopy(objptr);
-	    cInsert(forward, (int) objptr, copy);
-	    cInsert(reverse, (int) copy,  objptr);
+	    cInsert(forward, objptr, copy);
+	    cInsert(reverse, copy,  objptr);
 	    addNewItem(todo, objptr);
 	    ((struct ___TagDescriptor___*)cpy)->flagptr=copy;
 	  } else {
@@ -181,12 +181,12 @@ void ** makecheckpoint(int numparams, void ** srcpointer, struct ctable * forwar
 	  void *objptr=((void **)(((char *)&ao->___length___)+sizeof(int)))[i];
 	  if (objptr==NULL) {
 	    ((void **)(((char *)&ao_cpy->___length___)+sizeof(int)))[i]=NULL;
-	  } else if ((dst=cSearch(forward, (int)objptr))!=NULL)
+	  } else if ((dst=cSearch(forward,objptr))!=NULL)
 	    ((void **)(((char *)&ao_cpy->___length___)+sizeof(int)))[i]=dst;
 	  else {
 	    void * copy=createcopy(objptr);
-	    cInsert(forward, (int) objptr, copy);
-	    cInsert(reverse, (int) copy, objptr);
+	    cInsert(forward, objptr, copy);
+	    cInsert(reverse, copy, objptr);
 	    addNewItem(todo, objptr);
 	    ((void **)(((char *)&ao_cpy->___length___)+sizeof(int)))[i]=copy;
 	  }
@@ -200,12 +200,12 @@ void ** makecheckpoint(int numparams, void ** srcpointer, struct ctable * forwar
 	  void *dst;
 	  if (objptr==NULL) {
 	    *((void **)(((int)cpy)+offset))=NULL;
-	  } else if ((dst=cSearch(forward, (unsigned int)objptr))!=NULL)
+	  } else if ((dst=cSearch(forward, objptr))!=NULL)
 	    *((void **) &(((char *)cpy)[offset]))=dst;
 	  else {
 	    void * copy=createcopy(objptr);
-	    cInsert(forward, (int) objptr, copy);
-	    cInsert(reverse, (int) copy, objptr);
+	    cInsert(forward, objptr, copy);
+	    cInsert(reverse, copy, objptr);
 	    addNewItem(todo, objptr);
 	    *((void **)(((int)cpy)+offset))=copy;
 	  }
@@ -257,7 +257,7 @@ void restorecheckpoint(int numparams, void ** original, void ** checkpoint, stru
   for(i=0; i<numparams; i++) {
     if (checkpoint[i]!=NULL) {
       addNewItem(todo, checkpoint[i]);
-      cInsert(visited, (unsigned int) checkpoint[i], checkpoint[i]);
+      cInsert(visited, checkpoint[i], checkpoint[i]);
     }
   }
 
@@ -269,7 +269,7 @@ void restorecheckpoint(int numparams, void ** original, void ** checkpoint, stru
       void *cpy;
       unsigned int *pointer;
       int size;
-      cpy=cSearch(reverse, (int) ptr);
+      cpy=cSearch(reverse, ptr);
       pointer=pointerarray[type];
       size=classsize[type];
 #ifdef TASK
@@ -277,11 +277,11 @@ void restorecheckpoint(int numparams, void ** original, void ** checkpoint, stru
 	void *objptr=((struct ___TagDescriptor___*)ptr)->flagptr;
 	memcpy(cpy, ptr, size);
 	if (objptr!=NULL) {
-	  if (cSearch(visited, (unsigned int)objptr)==NULL) {
-	    cInsert(visited, (int) objptr, objptr);
+	  if (cSearch(visited, objptr)==NULL) {
+	    cInsert(visited,  objptr, objptr);
 	    addNewItem(todo, objptr);
 	  }
-	  *((void **) &(((struct ___TagDescriptor___ *)cpy)->flagptr))=cSearch(reverse, (int) objptr);
+	  *((void **) &(((struct ___TagDescriptor___ *)cpy)->flagptr))=cSearch(reverse, objptr);
 	}
       } else
 #endif
@@ -305,11 +305,11 @@ void restorecheckpoint(int numparams, void ** original, void ** checkpoint, stru
 	  if (objptr==NULL)
 	    ((void **)(((char *)&ao_cpy->___length___)+sizeof(int)))[i]=NULL;
 	  else {
-	    if (cSearch(visited, (int) objptr)==NULL) {
-	      cInsert(visited, (int) objptr, objptr);
+	    if (cSearch(visited, objptr)==NULL) {
+	      cInsert(visited,  objptr, objptr);
 	      addNewItem(todo, objptr);
 	    }
-	    *((void **) &((void **)(((char *)&ao_cpy->___length___)+sizeof(int)))[i])=cSearch(reverse, (int) objptr);
+	    *((void **) &((void **)(((char *)&ao_cpy->___length___)+sizeof(int)))[i])=cSearch(reverse, objptr);
 	  }
 	}
       } else {
@@ -330,11 +330,11 @@ void restorecheckpoint(int numparams, void ** original, void ** checkpoint, stru
 	  if (objptr==NULL)
 	    *((void **)(((int)cpy)+offset))=NULL;
 	  else {
-	    if (cSearch(visited, (int)objptr)==NULL) {
-	      cInsert(visited, (int) objptr, objptr);
+	    if (cSearch(visited, objptr)==NULL) {
+	      cInsert(visited, objptr, objptr);
 	      addNewItem(todo, objptr);
 	    }
-	    *((void **) &(((char *)cpy)[offset]))=cSearch(reverse, (int) objptr);
+	    *((void **) &(((char *)cpy)[offset]))=cSearch(reverse, objptr);
 	  }
 	}
 	if (hasflags[type]) {

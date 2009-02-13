@@ -7,7 +7,7 @@
 //#define INLINE
 
 typedef struct cnode {
-  unsigned int key;
+  void * key;
   void *val;       //this can be cast to another type or used to point to a larger structure
   struct cnode *next;
   struct cnode *lnext;
@@ -25,9 +25,9 @@ typedef struct ctable {
 
 /* Prototypes for hash*/
 ctable_t *cCreate(unsigned int size, float loadfactor);
-void cInsert(ctable_t *table, unsigned int key, void * val);
-void * cSearch(ctable_t *table, unsigned int key); //returns val, NULL if not found
-unsigned int cRemove(ctable_t *table, unsigned int key); //returns -1 if not found
+void cInsert(ctable_t *table, void * key, void * val);
+void * cSearch(ctable_t *table, void * key); //returns val, NULL if not found
+unsigned int cRemove(ctable_t *table, void * key); //returns -1 if not found
 unsigned int cResize(ctable_t *table, unsigned int newsize);
 void cDelete(ctable_t *table);
 void crehash(ctable_t *table);
