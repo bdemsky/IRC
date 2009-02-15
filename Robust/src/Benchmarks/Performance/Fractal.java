@@ -5,7 +5,7 @@ task t1(StartupObject s{initialstate}) {
     
     int width = 3200; 
     int height = 3200;
-    int group = 640;
+    int group = 2;
 
     int h = height / group;
     for(int i = 0; i < group; i++) {
@@ -107,12 +107,18 @@ public class Fractal {
 	int scaleda,scaledb;
 	float adelta = (this.alen/appletWidth);
 	float bdelta = (this.blen/appletHeight);
+	float bspan = (this.blen/group);
 	int[] ps = this.pixels;
 	int length = ps.length;
 	int id = this.id;
 	int group = this.group;
-	float startb = bmin + bdelta * id;
-	float endb = bmax - bdelta * (group - id - 1);
+	float startb = bmin + bspan * id;
+	float endb;
+	if ((id+1)==group)
+	    endb=bmax;
+	else
+	    endb=bmin+bspan*(id+1);
+	int count=0;
 	for(a=amin;a<amax;a+=adelta) {
 	    for(b=startb;b<endb;b+=bdelta) {
 		x=(float)0.0;
@@ -133,6 +139,7 @@ public class Fractal {
 		    boolean tmpf = (x2 + y2 <= 4.0);
 		    finish = tmpf & (iteration != times);
 		}
+		count++;
 		if(iteration<=times & iteration>0) {
 		    scaleda=(int)((a - amin)*appletWidth/(amax - amin));
 		    scaledb=(int)((b - bmin)*appletHeight/(bmax - bmin));
@@ -143,6 +150,7 @@ public class Fractal {
 		}
 	    }
 	}
+	System.printString(count+"\n");
     }
 }
 

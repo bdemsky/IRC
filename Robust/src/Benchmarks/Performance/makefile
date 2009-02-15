@@ -1,4 +1,4 @@
-FLAGS=-optimize -recover
+FLAGS=-optimize -recover -fastcheck
 
 default:
 	../../buildscript ${FLAGS} -o FractalBR Fractal.java
