@@ -112,10 +112,9 @@ public class Fractal {
 	int id = this.id;
 	int group = this.group;
 	float startb = bmin + bdelta * id;
-	float endb = bmax - bdelta * (group - id);
-	float bspan = bdelta * group;
+	float endb = bmax - bdelta * (group - id - 1);
 	for(a=amin;a<amax;a+=adelta) {
-	    for(b=startb;b<endb;b+=bspan) {
+	    for(b=startb;b<endb;b+=bdelta) {
 		x=(float)0.0;
 		y=(float)0.0;
 		int iteration=0;
