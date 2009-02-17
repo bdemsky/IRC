@@ -562,7 +562,7 @@ public class SemanticCheck {
   }
 
   void checkInstanceOfNode(Descriptor md, SymbolTable nametable, InstanceOfNode tn, TypeDescriptor td) {
-    if (!td.isBoolean())
+    if (td!=null&&!td.isBoolean())
       throw new Error("Expecting type "+td+"for instanceof expression");
     
     checkTypeDescriptor(tn.getExprType());
