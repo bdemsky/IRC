@@ -8,6 +8,11 @@ public class System {
 
   public static native void printString(String s);
 
+  public static void println(String s) {
+    System.printString(s);
+    System.printString("\n");
+  }
+
   public static void error() {
     System.printString("Error (Use Breakpoint on ___System______error method for more information!)\n");
   }
