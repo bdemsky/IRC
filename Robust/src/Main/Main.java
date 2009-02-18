@@ -178,10 +178,7 @@ public class Main {
 	System.out.println("-help -- print out help");
 	System.exit(0);
       } else {
-	if (args[i].indexOf(".java")!=-1)
-	  sourcefiles.add(args[i].substring(0,args[i].indexOf(".java")));
-	else
-	  sourcefiles.add(args[i]);
+	sourcefiles.add(args[i]);
       }
     }
 
@@ -196,7 +193,7 @@ public class Main {
     SemanticCheck sc=new SemanticCheck(state,tu);
 
     for(int i=0;i<sourcefiles.size();i++)
-      sc.getClass((String)sourcefiles.get(i));
+      loadClass(state, bir,(String)sourcefiles.get(i));
 
     //Stuff the runtime wants to see
     sc.getClass("String");
@@ -335,6 +332,11 @@ public class Main {
     }
 
     System.exit(0);
+  }
+
+  public static void loadClass(State state, BuildIR bir, String sourcefile) {
+    ParseNode pn=readSourceFile(state, sourcefile);
+    bir.buildtree(pn);
   }
 
   /** Reads in a source file and adds the parse tree to the state object. */

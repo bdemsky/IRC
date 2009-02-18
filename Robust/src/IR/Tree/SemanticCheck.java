@@ -21,8 +21,14 @@ public class SemanticCheck {
 
   public ClassDescriptor getClass(String classname) {
     ClassDescriptor cd=typeutil.getClass(classname, toanalyze);
+    checkClass(cd);
+    return cd;
+  }
+
+  private void checkClass(ClassDescriptor cd) {
     if (!completed.contains(cd)) {
       completed.add(cd);
+      
       //System.out.println("Checking class: "+cd);
       //Set superclass link up
       if (cd.getSuper()!=null) {
@@ -46,7 +52,6 @@ public class SemanticCheck {
 	checkMethod(cd,md);
       }
     }
-    return cd;
   }
 
   public void semanticCheck() {
@@ -64,6 +69,7 @@ public class SemanticCheck {
     while(!toanalyze.isEmpty()) {
       ClassDescriptor cd=(ClassDescriptor)toanalyze.iterator().next();
       toanalyze.remove(cd);
+      checkClass(cd);
       for(Iterator method_it=cd.getMethods(); method_it.hasNext();) {
 	MethodDescriptor md=(MethodDescriptor)method_it.next();
 	checkMethodBody(cd,md);

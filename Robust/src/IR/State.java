@@ -8,7 +8,6 @@ import Analysis.TaskStateAnalysis.*;
 public class State {
   public State() {
     this.classes=new SymbolTable();
-    this.discclass=new HashSet();
     this.tasks=new SymbolTable();
     this.treemethodmap=new Hashtable();
     this.flatmethodmap=new Hashtable();
@@ -82,7 +81,6 @@ public class State {
   public HashSet selfloops;
   public HashSet excprefetch;
   public Vector classpath;
-  public HashSet discclass;
   public SymbolTable classes;
   public SymbolTable tasks;
   public Set parsetrees;

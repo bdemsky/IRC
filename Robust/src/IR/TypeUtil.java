@@ -22,8 +22,6 @@ public class TypeUtil {
   }
 
   public void addNewClass(String cl) {
-    if (state.discclass.contains(cl))
-      return;
     for(int i=0;i<state.classpath.size();i++) {
       String path=(String)state.classpath.get(i);
       File f=new File(path, cl+".java");
@@ -31,7 +29,6 @@ public class TypeUtil {
 	try {
 	  ParseNode pn=Main.readSourceFile(state, f.getCanonicalPath());
 	  bir.buildtree(pn);
-	  state.discclass.add(cl);
 	  return;
 	} catch (Exception e) {
 	  throw new Error(e);
