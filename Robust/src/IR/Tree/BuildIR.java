@@ -13,18 +13,18 @@ public class BuildIR {
     this.m_taskexitnum = 0;
   }
 
-  public void buildtree() {
-    for(Iterator it=state.parsetrees.iterator(); it.hasNext();) {
-      ParseNode pn=(ParseNode)it.next();
+  public void buildtree(ParseNode pn) {
       parseFile(pn);
-    }
   }
+
+  Vector singleimports;
+  Vector multiimports;
+  NameDescriptor packages;
 
   /** Parse the classes in this file */
   public void parseFile(ParseNode pn) {
-    NameDescriptor packages;
-    Vector singleimports=new Vector();
-    Vector multiimports=new Vector();
+    singleimports=new Vector();
+    multiimports=new Vector();
 
     ParseNode ipn=pn.getChild("imports").getChild("import_decls_list");
     if (ipn!=null) {
@@ -396,6 +396,7 @@ public class BuildIR {
       return new LiteralNode(literaltype, literal_obj);
     } else if (isNode(pn,"createobject")) {
       TypeDescriptor td=parseTypeDescriptor(pn);
+      
       Vector args=parseArgumentList(pn);
       boolean isglobal=pn.getChild("global")!=null;
       String disjointId=null;

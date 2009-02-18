@@ -17,6 +17,7 @@ public class TagVarDescriptor extends Descriptor {
     this.identifier=identifier;
     this.safename = "___" + name + "___";
     this.uniqueid=count++;
+    throw new Error();
   }
 
   public String getName() {

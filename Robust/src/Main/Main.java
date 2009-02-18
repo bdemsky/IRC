@@ -51,6 +51,8 @@ public class Main {
   public static void main(String args[]) throws Exception {
     String ClassLibraryPrefix="./ClassLibrary/";
     State state=new State();
+    Vector sourcefiles=new Vector();
+    state.classpath.add(".");
 
     for(int i=0; i<args.length; i++) {
       String option=args[i];
@@ -67,7 +69,7 @@ public class Main {
       else if (option.equals("-excprefetch"))
 	state.excprefetch.add(args[++i]);
       else if (option.equals("-classlibrary"))
-	ClassLibraryPrefix=args[++i]+"/";
+	state.classpath.add(args[++i]);
       else if(option.equals("-numcore")) {
 	++i;
 	state.CORENUM = Integer.parseInt(args[i]);
@@ -176,76 +178,36 @@ public class Main {
 	System.out.println("-help -- print out help");
 	System.exit(0);
       } else {
-	readSourceFile(state, args[i]);
+	if (args[i].indexOf(".java")!=-1)
+	  sourcefiles.add(args[i].substring(0,args[i].indexOf(".java")));
+	else
+	  sourcefiles.add(args[i]);
       }
     }
 
-
-    readSourceFile(state, ClassLibraryPrefix+"System.java");
-    readSourceFile(state, ClassLibraryPrefix+"String.java");
-    readSourceFile(state, ClassLibraryPrefix+"HashSet.java");
-    readSourceFile(state, ClassLibraryPrefix+"HashMap.java");
-    readSourceFile(state, ClassLibraryPrefix+"HashMapIterator.java");
-    readSourceFile(state, ClassLibraryPrefix+"HashEntry.java");
-    readSourceFile(state, ClassLibraryPrefix+"Integer.java");
-    readSourceFile(state, ClassLibraryPrefix+"StringBuffer.java");
-    //if(!state.RAW) {
-    readSourceFile(state, ClassLibraryPrefix+"FileInputStream.java");
-    readSourceFile(state, ClassLibraryPrefix+"PushbackInputStream.java");
-    readSourceFile(state, ClassLibraryPrefix+"InputStream.java");
-    readSourceFile(state, ClassLibraryPrefix+"OutputStream.java");
-    readSourceFile(state, ClassLibraryPrefix+"FileOutputStream.java");
-    readSourceFile(state, ClassLibraryPrefix+"File.java");
-    readSourceFile(state, ClassLibraryPrefix+"InetAddress.java");
-    readSourceFile(state, ClassLibraryPrefix+"SocketInputStream.java");
-    readSourceFile(state, ClassLibraryPrefix+"SocketOutputStream.java");
-    readSourceFile(state, ClassLibraryPrefix+"gnu/StringTokenizer.java");
-    //}
-    readSourceFile(state, ClassLibraryPrefix+"Math.java");
-    readSourceFile(state, ClassLibraryPrefix+"gnu/Random.java");
-    readSourceFile(state, ClassLibraryPrefix+"Vector.java");
-    readSourceFile(state, ClassLibraryPrefix+"Enumeration.java");
-    readSourceFile(state, ClassLibraryPrefix+"Dictionary.java");
-    readSourceFile(state, ClassLibraryPrefix+"Writer.java");
-    readSourceFile(state, ClassLibraryPrefix+"BufferedWriter.java");
-    readSourceFile(state, ClassLibraryPrefix+"OutputStreamWriter.java");
-    readSourceFile(state, ClassLibraryPrefix+"FileWriter.java");
-    readSourceFile(state, ClassLibraryPrefix+"Date.java");
-
-    if (state.TASK) {
-      if (state.FASTCHECK)
-	readSourceFile(state, ClassLibraryPrefix+"ObjectFC.java");
-      else
-	readSourceFile(state, ClassLibraryPrefix+"Object.java");
-      readSourceFile(state, ClassLibraryPrefix+"TagDescriptor.java");
-    } else if (state.DSM) {
-      readSourceFile(state, ClassLibraryPrefix+"ThreadDSM.java");
-      readSourceFile(state, ClassLibraryPrefix+"ObjectJavaDSM.java");
-      readSourceFile(state, ClassLibraryPrefix+"Barrier.java");
-    } else {
-      if (state.THREAD) {
-	readSourceFile(state, ClassLibraryPrefix+"Thread.java");
-	readSourceFile(state, ClassLibraryPrefix+"ObjectJava.java");
-      } else
-	readSourceFile(state, ClassLibraryPrefix+"ObjectJavaNT.java");
-    }
-
-    if (state.TASK) {
-      readSourceFile(state, ClassLibraryPrefix+"StartupObject.java");
-      readSourceFile(state, ClassLibraryPrefix+"Socket.java");
-      readSourceFile(state, ClassLibraryPrefix+"ServerSocket.java");
-    } else {
-      readSourceFile(state, ClassLibraryPrefix+"SocketJava.java");
-      readSourceFile(state, ClassLibraryPrefix+"ServerSocketJava.java");
-    }
+    //add default classpath
+    if (state.classpath.size()==1)
+      state.classpath.add(ClassLibraryPrefix);
 
     BuildIR bir=new BuildIR(state);
-    bir.buildtree();
-
-    TypeUtil tu=new TypeUtil(state);
+    TypeUtil tu=new TypeUtil(state, bir);
+    
 
     SemanticCheck sc=new SemanticCheck(state,tu);
+    for(int i=0;i<sourcefiles.size();i++)
+      sc.getClass((String)sourcefiles.get(i));
+
+    //Stuff the runtime wants to see
+    sc.getClass("String");
+    sc.getClass("Math");
+    sc.getClass("File");
+    sc.getClass("Socket");
+    sc.getClass("ServerSocket");
+    sc.getClass("FileInputStream");
+    sc.getClass("FileOutputStream");
+
     sc.semanticCheck();
+
     tu.createFullTable();
 
     BuildFlat bf=new BuildFlat(state,tu);
@@ -256,13 +218,13 @@ public class Main {
     if (state.TAGSTATE) {
       CallGraph callgraph=new CallGraph(state);
       TagAnalysis taganalysis=new TagAnalysis(state, callgraph);
-      TaskTagAnalysis tta=new TaskTagAnalysis(state, taganalysis);
+      TaskTagAnalysis tta=new TaskTagAnalysis(state, taganalysis, tu);
     }
 
     if (state.TASKSTATE) {
       CallGraph callgraph=new CallGraph(state);
       TagAnalysis taganalysis=new TagAnalysis(state, callgraph);
-      TaskAnalysis ta=new TaskAnalysis(state, taganalysis);
+      TaskAnalysis ta=new TaskAnalysis(state, taganalysis, tu);
       ta.taskAnalysis();
       TaskGraph tg=new TaskGraph(state, ta);
       tg.createDOTfiles();
@@ -373,23 +335,29 @@ public class Main {
 
   /** Reads in a source file and adds the parse tree to the state object. */
 
-  private static void readSourceFile(State state, String sourcefile) throws Exception {
-    Reader fr = new BufferedReader(new FileReader(sourcefile));
-    Lex.Lexer l = new Lex.Lexer(fr);
-    java_cup.runtime.lr_parser g;
-    g = new Parse.Parser(l);
-    ParseNode p=null;
+  public static ParseNode readSourceFile(State state, String sourcefile) {
     try {
-      p=(ParseNode) g./*debug_*/ parse().value;
+      Reader fr= new BufferedReader(new FileReader(sourcefile));
+      Lex.Lexer l = new Lex.Lexer(fr);
+      java_cup.runtime.lr_parser g;
+      g = new Parse.Parser(l);
+      ParseNode p=null;
+      try {
+	p=(ParseNode) g./*debug_*/ parse().value;
+      } catch (Exception e) {
+	System.err.println("Error parsing file:"+sourcefile);
+	e.printStackTrace();
+	System.exit(-1);
+      }
+      state.addParseNode(p);
+      if (l.numErrors()!=0) {
+	System.out.println("Error parsing "+sourcefile);
+	System.exit(l.numErrors());
+      }
+      return p;
+
     } catch (Exception e) {
-      System.err.println("Error parsing file:"+sourcefile);
-      e.printStackTrace();
-      System.exit(-1);
-    }
-    state.addParseNode(p);
-    if (l.numErrors()!=0) {
-      System.out.println("Error parsing "+sourcefile);
-      System.exit(l.numErrors());
+      throw new Error(e);
     }
   }
 }

@@ -25,9 +25,9 @@ public class TaskAnalysis {
    * @param state a flattened State object
    * @see State
    */
-  public TaskAnalysis(State state, TagAnalysis taganalysis) {
+  public TaskAnalysis(State state, TagAnalysis taganalysis, TypeUtil typeutil) {
     this.state=state;
-    this.typeutil=new TypeUtil(state);
+    this.typeutil=typeutil;
     this.taganalysis=taganalysis;
   }
 

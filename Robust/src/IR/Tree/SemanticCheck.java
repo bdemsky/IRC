@@ -6,60 +6,70 @@ import IR.*;
 public class SemanticCheck {
   State state;
   TypeUtil typeutil;
-    Stack loopstack;
+  Stack loopstack;
+  HashSet toanalyze;
+  HashSet completed;
 
 
   public SemanticCheck(State state, TypeUtil tu) {
     this.state=state;
     this.typeutil=tu;
     this.loopstack=new Stack();
+    this.toanalyze=new HashSet();
+    this.completed=new HashSet();
   }
 
-  public void semanticCheck() {
-    SymbolTable classtable=state.getClassSymbolTable();
-    Iterator it=classtable.getDescriptorsIterator();
-    // Do descriptors first
-    while(it.hasNext()) {
-      ClassDescriptor cd=(ClassDescriptor)it.next();
+  public ClassDescriptor getClass(String classname) {
+    ClassDescriptor cd=typeutil.getClass(classname, toanalyze);
+    if (!completed.contains(cd)) {
+      completed.add(cd);
       //System.out.println("Checking class: "+cd);
       //Set superclass link up
       if (cd.getSuper()!=null) {
-	cd.setSuper(typeutil.getClass(cd.getSuper()));
+	cd.setSuper(getClass(cd.getSuper()));
 	// Link together Field, Method, and Flag tables so classes
 	// inherit these from their superclasses
 	cd.getFieldTable().setParent(cd.getSuperDesc().getFieldTable());
 	cd.getMethodTable().setParent(cd.getSuperDesc().getMethodTable());
 	cd.getFlagTable().setParent(cd.getSuperDesc().getFlagTable());
       }
-
+      
       /* Check to see that fields are well typed */
       for(Iterator field_it=cd.getFields(); field_it.hasNext();) {
 	FieldDescriptor fd=(FieldDescriptor)field_it.next();
 	//System.out.println("Checking field: "+fd);
 	checkField(cd,fd);
       }
-
+      
       for(Iterator method_it=cd.getMethods(); method_it.hasNext();) {
 	MethodDescriptor md=(MethodDescriptor)method_it.next();
 	checkMethod(cd,md);
       }
     }
+    return cd;
+  }
 
-    it=classtable.getDescriptorsIterator();
-    // Do descriptors first
-    while(it.hasNext()) {
-      ClassDescriptor cd=(ClassDescriptor)it.next();
+  public void semanticCheck() {
+    SymbolTable classtable=state.getClassSymbolTable();
+    toanalyze.addAll(classtable.getValueSet());
+
+    //Start with any tasks
+    for(Iterator task_it=state.getTaskSymbolTable().getDescriptorsIterator(); task_it.hasNext();) {
+      TaskDescriptor td=(TaskDescriptor)task_it.next();
+      checkTask(td);
+
+    }
+    
+    // Do methods next
+    while(!toanalyze.isEmpty()) {
+      ClassDescriptor cd=(ClassDescriptor)toanalyze.iterator().next();
+      toanalyze.remove(cd);
       for(Iterator method_it=cd.getMethods(); method_it.hasNext();) {
 	MethodDescriptor md=(MethodDescriptor)method_it.next();
 	checkMethodBody(cd,md);
       }
     }
 
-    for(Iterator task_it=state.getTaskSymbolTable().getDescriptorsIterator(); task_it.hasNext();) {
-      TaskDescriptor td=(TaskDescriptor)task_it.next();
-      checkTask(td);
-
-    }
   }
 
   public void checkTypeDescriptor(TypeDescriptor td) {
@@ -67,7 +77,7 @@ public class SemanticCheck {
       return;       /* Done */
     else if (td.isClass()) {
       String name=td.toString();
-      ClassDescriptor field_cd=(ClassDescriptor)state.getClassSymbolTable().get(name);
+      ClassDescriptor field_cd=getClass(name);
       if (field_cd==null)
 	throw new Error("Undefined class "+name);
       td.setClassDescriptor(field_cd);
@@ -412,7 +422,7 @@ public class SemanticCheck {
     if (cn.getType()==null) {
       NameDescriptor typenamed=cn.getTypeName().getName();
       String typename=typenamed.toString();
-      TypeDescriptor ntd=new TypeDescriptor(typeutil.getClass(typename));
+      TypeDescriptor ntd=new TypeDescriptor(getClass(typename));
       cn.setType(ntd);
     }
 
@@ -491,7 +501,7 @@ public class SemanticCheck {
     } else if (o instanceof Character) {
       ln.setType(new TypeDescriptor(TypeDescriptor.CHAR));
     } else if (o instanceof String) {
-      ln.setType(new TypeDescriptor(typeutil.getClass(TypeUtil.StringClass)));
+      ln.setType(new TypeDescriptor(getClass(TypeUtil.StringClass)));
     }
 
     if (td!=null)
@@ -599,7 +609,7 @@ public class SemanticCheck {
 
     if (an.getDest().getType().isString()&&an.getOperation().getOp()==AssignOperation.PLUSEQ) {
       //String add
-      ClassDescriptor stringcl=typeutil.getClass(TypeUtil.StringClass);
+      ClassDescriptor stringcl=getClass(TypeUtil.StringClass);
       TypeDescriptor stringtd=new TypeDescriptor(stringcl);
       NameDescriptor nd=new NameDescriptor("String");
       NameDescriptor valuend=new NameDescriptor(nd, "valueOf");
@@ -788,7 +798,7 @@ NextMethod:
 	typetolookin=min.getExpression().getType();
       } else {
 	//we have a type
-	ClassDescriptor cd=typeutil.getClass(min.getBaseName().getSymbol());
+	ClassDescriptor cd=getClass(min.getBaseName().getSymbol());
 	if (cd==null)
 	  throw new Error("md = "+ md.toString()+ "  "+min.getBaseName()+" undefined");
 	typetolookin=new TypeDescriptor(cd);
@@ -976,7 +986,7 @@ NextMethod:
 
     case Operation.ADD:
       if (ltd.isString()||rtd.isString()) {
-	ClassDescriptor stringcl=typeutil.getClass(TypeUtil.StringClass);
+	ClassDescriptor stringcl=getClass(TypeUtil.StringClass);
 	TypeDescriptor stringtd=new TypeDescriptor(stringcl);
 	NameDescriptor nd=new NameDescriptor("String");
 	NameDescriptor valuend=new NameDescriptor(nd, "valueOf");

@@ -274,13 +274,38 @@ then
 JAVAOPTS="$JAVAOPTS -struct structfile"
 fi
 
+# Setup class path
+
+if $RECOVERFLAG
+then
+if $FASTCHECK
+then
+#fast transactions
+JAVAOPTS="$JAVAOPTS -classlibrary $ROBUSTROOT/ClassLibrary/FastCheck"
+fi
+#base bristlecone files
+JAVAOPTS="$JAVAOPTS -classlibrary $ROBUSTROOT/ClassLibrary/Bristlecone"
+else
+if $DSMFLAG
+then
+#dsm stuff
+JAVAOPTS="$JAVAOPTS -classlibrary $ROBUSTROOT/ClassLibrary/JavaDSM"
+elif $THREADFLAG
+then
+#threading java stuff
+JAVAOPTS="$JAVAOPTS -classlibrary $ROBUSTROOT/ClassLibrary/JavaThread"
+fi
+#base java stuff
+JAVAOPTS="$JAVAOPTS -classlibrary $ROBUSTROOT/ClassLibrary/Java"
+fi
+
 # Build bristlecone/java sources
 
 if $MULTICOREFLAG
 then
 if ! ${ROBUSTROOT}/ourjava -Xms50m -Xmx800m $JAVAFORWARDOPTS -classpath $ROBUSTROOT/../cup/:$ROBUSTROOT Main.Main -classlibrary \
-$ROBUSTROOT/ClassLibrary/ -dir $BUILDDIR \
-$JAVAOPTS $SRCFILES
+$ROBUSTROOT/ClassLibrary/ -classlibrary $ROBUSTROOT/ClassLibrary/gnu/ \
+-dir $BUILDDIR $JAVAOPTS $SRCFILES
 then exit $?
 fi
 else
@@ -288,7 +313,7 @@ else
 if ! $NOJAVA
 then
 if ! ${ROBUSTROOT}/ourjava -Xms50m -Xmx600m $JAVAFORWARDOPTS -classpath $ROBUSTROOT/../cup/:$ROBUSTROOT Main.Main -classlibrary \
-$ROBUSTROOT/ClassLibrary/ -dir $BUILDDIR -precise \
+$ROBUSTROOT/ClassLibrary/ -classlibrary $ROBUSTROOT/ClassLibrary/gnu/ -dir $BUILDDIR -precise \
 $JAVAOPTS $SRCFILES
 then exit $?
 fi

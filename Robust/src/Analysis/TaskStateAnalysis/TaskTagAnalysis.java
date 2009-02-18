@@ -23,9 +23,9 @@ public class TaskTagAnalysis {
    * Class Constructor
    *
    */
-  public TaskTagAnalysis(State state, TagAnalysis taganalysis) {
+  public TaskTagAnalysis(State state, TagAnalysis taganalysis, TypeUtil typeutil) {
     this.state=state;
-    this.typeutil=new TypeUtil(state);
+    this.typeutil=typeutil;
     this.taganalysis=taganalysis;
     this.flaginfo=new FlagInfo(state);
     this.toprocess=new HashSet<TagState>();

@@ -1,5 +1,8 @@
 package IR;
 import java.util.*;
+import IR.Tree.*;
+import java.io.File;
+import Main.Main;
 
 public class TypeUtil {
   public static final String StringClass="String";
@@ -10,32 +13,62 @@ public class TypeUtil {
   State state;
   Hashtable supertable;
   Hashtable subclasstable;
+  BuildIR bir;
 
-  public TypeUtil(State state) {
+  public TypeUtil(State state, BuildIR bir) {
     this.state=state;
+    this.bir=bir;
     createTables();
   }
+
+  public void addNewClass(String cl) {
+    if (state.discclass.contains(cl))
+      return;
+    for(int i=0;i<state.classpath.size();i++) {
+      String path=(String)state.classpath.get(i);
+      File f=new File(path, cl+".java");
+      if (f.exists()) {
+	try {
+	  ParseNode pn=Main.readSourceFile(state, f.getCanonicalPath());
+	  bir.buildtree(pn);
+	  state.discclass.add(cl);
+	  return;
+	} catch (Exception e) {
+	  throw new Error(e);
+	}
+      }
+    }
+    throw new Error("Couldn't find class "+cl);
+  }
+
+
 
   public ClassDescriptor getClass(String classname) {
     ClassDescriptor cd=(ClassDescriptor)state.getClassSymbolTable().get(classname);
     return cd;
   }
 
-  private void createTables() {
-    supertable=new Hashtable();
-
-    Iterator classit=state.getClassSymbolTable().getDescriptorsIterator();
-    while(classit.hasNext()) {
-      ClassDescriptor cd=(ClassDescriptor)classit.next();
+  public ClassDescriptor getClass(String classname, HashSet todo) {
+    ClassDescriptor cd=(ClassDescriptor)state.getClassSymbolTable().get(classname);
+    if (cd==null) {
+      //have to find class
+      addNewClass(classname);
+      cd=(ClassDescriptor)state.getClassSymbolTable().get(classname);
+      System.out.println("Build class:"+cd);
+      todo.add(cd);
+    }
+    if (!supertable.containsKey(cd)) {
       String superc=cd.getSuper();
       if (superc!=null) {
-	ClassDescriptor cd_super=getClass(superc);
-	if (cd_super==null) {
-	  throw new Error("Couldn't find class:"+superc);
-	}
+	ClassDescriptor cd_super=getClass(superc, todo);
 	supertable.put(cd,cd_super);
       }
     }
+    return cd;
+  }
+
+  private void createTables() {
+    supertable=new Hashtable();
   }
 
   public ClassDescriptor getMainClass() {
