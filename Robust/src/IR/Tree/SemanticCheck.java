@@ -803,7 +803,11 @@ NextMethod:
 	typetolookin=min.getExpression().getType();
       } else {
 	//we have a type
-	ClassDescriptor cd=getClass(min.getBaseName().getSymbol());
+	ClassDescriptor cd;
+	if (min.getBaseName().getSymbol().equals("System.out"))
+	  cd=getClass("System");
+	else
+	  cd=getClass(min.getBaseName().getSymbol());
 	if (cd==null)
 	  throw new Error("md = "+ md.toString()+ "  "+min.getBaseName()+" undefined");
 	typetolookin=new TypeDescriptor(cd);
