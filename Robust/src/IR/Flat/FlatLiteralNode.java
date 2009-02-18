@@ -42,6 +42,10 @@ public class FlatLiteralNode extends FlatNode {
 	new_st+="\\r";
       else if (x=='"')
 	new_st+="\\\"";
+      else if (x=='\'')
+	new_st+="\\\'";
+      else if (x=='\\')
+	new_st+="\\\\";
       else new_st+=x;
     }
     return new_st;
