@@ -28,17 +28,22 @@ public class Vector {
 
   public Object elementAt(int index) {
     if (index<0 || index >=size) {
-      System.printString("Illegal Vector.elementAt");
+      System.printString("Illegal Vector.elementAt\n");
+      System.exit(-1);
       return null;
     }
     return array[index];
   }
 
   public void setElementAt(Object obj, int index) {
+    if (index>=size)
+      ensureCapacity(index+1);
     if (index>=0 && index <size)
       array[index]=obj;
-    else
-      System.printString("Illegal setElementAt");
+    else {
+      System.printString("Illegal Vector.setElementAt\n");
+      System.exit(-1);
+    }
   }
 
   private ensureCapacity(int minCapacity) {
@@ -62,7 +67,8 @@ public class Vector {
   }
 
   public Enumeration elements() {
-    System.printString("Vector.elements not implemented");
+    System.printString("Vector.elements not implemented\n");
+    System.exit(-1);
   }
 
   public void addElement(Object obj) {
@@ -73,8 +79,11 @@ public class Vector {
   }
 
   public void insertElementAt(Object obj, int index) {
-    if (index<0||index>=size)
-      System.printString("Illegal insertElementAt");
+    if (index<0||index>size) {
+      System.printString("Illegal Vector.insertElementAt\n");
+      System.exit(-1);
+    }
+
     if (size==array.length) {
       ensureCapacity(size+1);
     }
@@ -86,8 +95,10 @@ public class Vector {
   }
 
   public void removeElementAt(int index) {
-    if (index<0||index>=size)
-      System.printString("Illegal remove");
+    if (index<0||index>=size) {
+      System.printString("Illegal Vector.removeElementAt\n");
+      System.exit(-1);
+    }
     for(int i=index; i<(size-1); i++) {
       array[i]=array[i+1];
     }

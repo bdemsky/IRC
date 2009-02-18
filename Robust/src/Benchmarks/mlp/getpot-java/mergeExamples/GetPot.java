@@ -74,6 +74,12 @@ public class GetPot {
 	    __argv.addElement(copied_str);
 	}
 
+       
+	for(int i=0; i < __argv.size(); i++) {
+	  System.printString(__argv.elementAt(i)+"\n");
+	}
+
+
 	argv = new Vector();
 	__argv.insertElementAt(applicationName, 0);
 	__parse_argument_vector(__argv);
@@ -257,12 +263,13 @@ public class GetPot {
       int     tmp0 = 0;
       int     tmp = 0; 
       int     last_letter = 0;
+
       while(1+1 == 2) {
 	last_letter = tmp; tmp0 = istr.read(); tmp = tmp0;
 	if( tmp == -1
 	    || ((tmp == ' ' || tmp == '\t' || tmp == '\n') && last_letter != '\\') ) {
 	  return token;
-	}
+	}	
 	else if( tmp == '\'' && last_letter != '\\' ) {
 	  // QUOTES: un-backslashed quotes => it's a string
 	  token += __get_string(istr);
