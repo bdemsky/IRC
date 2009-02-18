@@ -63,6 +63,7 @@ public class SemanticCheck {
     while(!toanalyze.isEmpty()) {
       Object obj=toanalyze.iterator().next();
       if (obj instanceof TaskDescriptor) {
+	toanalyze.remove(obj);
 	checkTask((TaskDescriptor)obj);
       } else {
 	ClassDescriptor cd=(ClassDescriptor)obj;
