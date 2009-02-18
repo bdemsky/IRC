@@ -194,6 +194,7 @@ public class Main {
     
 
     SemanticCheck sc=new SemanticCheck(state,tu);
+
     for(int i=0;i<sourcefiles.size();i++)
       sc.getClass((String)sourcefiles.get(i));
 
@@ -205,6 +206,9 @@ public class Main {
     sc.getClass("ServerSocket");
     sc.getClass("FileInputStream");
     sc.getClass("FileOutputStream");
+    if (state.TASK) {
+      sc.getClass("TagDescriptor");
+    }
 
     sc.semanticCheck();
 
