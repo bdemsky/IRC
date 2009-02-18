@@ -21,14 +21,14 @@ public class TypeUtil {
     createTables();
   }
 
-  public void addNewClass(String cl) {
+  public void addNewClass(String cl, Set todo) {
     for(int i=0;i<state.classpath.size();i++) {
       String path=(String)state.classpath.get(i);
       File f=new File(path, cl+".java");
       if (f.exists()) {
 	try {
 	  ParseNode pn=Main.readSourceFile(state, f.getCanonicalPath());
-	  bir.buildtree(pn);
+	  bir.buildtree(pn, todo);
 	  return;
 	} catch (Exception e) {
 	  throw new Error(e);
@@ -49,7 +49,7 @@ public class TypeUtil {
     ClassDescriptor cd=(ClassDescriptor)state.getClassSymbolTable().get(classname);
     if (cd==null) {
       //have to find class
-      addNewClass(classname);
+      addNewClass(classname, todo);
       cd=(ClassDescriptor)state.getClassSymbolTable().get(classname);
       System.out.println("Build class:"+cd);
       todo.add(cd);

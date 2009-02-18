@@ -336,7 +336,7 @@ public class Main {
 
   public static void loadClass(State state, BuildIR bir, String sourcefile) {
     ParseNode pn=readSourceFile(state, sourcefile);
-    bir.buildtree(pn);
+    bir.buildtree(pn, null);
   }
 
   /** Reads in a source file and adds the parse tree to the state object. */

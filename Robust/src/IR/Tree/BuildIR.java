@@ -13,8 +13,8 @@ public class BuildIR {
     this.m_taskexitnum = 0;
   }
 
-  public void buildtree(ParseNode pn) {
-      parseFile(pn);
+  public void buildtree(ParseNode pn, Set toanalyze) {
+    parseFile(pn, toanalyze);
   }
 
   Vector singleimports;
@@ -22,7 +22,7 @@ public class BuildIR {
   NameDescriptor packages;
 
   /** Parse the classes in this file */
-  public void parseFile(ParseNode pn) {
+  public void parseFile(ParseNode pn, Set toanalyze) {
     singleimports=new Vector();
     multiimports=new Vector();
 
@@ -51,9 +51,13 @@ public class BuildIR {
 	  continue;
 	if (isNode(type_pn,"class_declaration")) {
 	  ClassDescriptor cn=parseTypeDecl(type_pn);
+	  if (toanalyze!=null)
+	    toanalyze.add(cn);
 	  state.addClass(cn);
 	} else if (isNode(type_pn,"task_declaration")) {
 	  TaskDescriptor td=parseTaskDecl(type_pn);
+	  if (toanalyze!=null)
+	    toanalyze.add(td);
 	  state.addTask(td);
 	} else {
 	  throw new Error(type_pn.getLabel());

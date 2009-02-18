@@ -57,25 +57,23 @@ public class SemanticCheck {
   public void semanticCheck() {
     SymbolTable classtable=state.getClassSymbolTable();
     toanalyze.addAll(classtable.getValueSet());
+    toanalyze.addAll(state.getTaskSymbolTable().getValueSet());
 
-    //Start with any tasks
-    for(Iterator task_it=state.getTaskSymbolTable().getDescriptorsIterator(); task_it.hasNext();) {
-      TaskDescriptor td=(TaskDescriptor)task_it.next();
-      checkTask(td);
-
-    }
-    
     // Do methods next
     while(!toanalyze.isEmpty()) {
-      ClassDescriptor cd=(ClassDescriptor)toanalyze.iterator().next();
-      toanalyze.remove(cd);
-      checkClass(cd);
-      for(Iterator method_it=cd.getMethods(); method_it.hasNext();) {
-	MethodDescriptor md=(MethodDescriptor)method_it.next();
-	checkMethodBody(cd,md);
+      Object obj=toanalyze.iterator().next();
+      if (obj instanceof TaskDescriptor) {
+	checkTask((TaskDescriptor)obj);
+      } else {
+	ClassDescriptor cd=(ClassDescriptor)obj;
+	toanalyze.remove(cd);
+	checkClass(cd);
+	for(Iterator method_it=cd.getMethods(); method_it.hasNext();) {
+	  MethodDescriptor md=(MethodDescriptor)method_it.next();
+	  checkMethodBody(cd,md);
+	}
       }
     }
-
   }
 
   public void checkTypeDescriptor(TypeDescriptor td) {
