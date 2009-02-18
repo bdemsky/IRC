@@ -1,10 +1,10 @@
 task start(StartupObject s {initialstate}) {
-    Foo f=new Foo(){run};
-    
+    Dispatch f=new Dispatch(){run};
+   
     taskexit(s{!initialstate});
 }
 
-task DoOperation(Foo f{run}) {
+task DoOperation(Dispatch f{run}) {
     if (f.count==1000000)
 	taskexit(f{!run});
     else {
@@ -13,9 +13,9 @@ task DoOperation(Foo f{run}) {
     }
 }
 
-public class Foo {
+public class Dispatch {
     flag run;
     int count;
-    public Foo() {
+    public Dispatch() {
     }
 }
