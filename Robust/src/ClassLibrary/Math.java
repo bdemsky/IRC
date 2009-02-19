@@ -5,6 +5,12 @@ public class Math {
     return PI;
   }
 
+  // an alias for setPI()
+  public static double PI() {
+    double PI = 3.14159265358979323846;
+    return PI;
+  }
+
   public static double fabs(double x) {
     if (x < 0) {
       return -x;
@@ -93,6 +99,7 @@ public class Math {
   public static native double acos(double a);
   public static native double tan(double a);
   public static native double atan(double a);
+  public static native double atan2(double a, double b);
   public static native double exp(double a);
   public static native double sqrt(double a);
   public static native double log(double a);

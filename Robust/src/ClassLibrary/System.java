@@ -13,6 +13,10 @@ public class System {
     System.printString("\n");
   }
 
+  public static void print(String s) {
+    System.printString(s);
+  }
+
   public static void error() {
     System.printString("Error (Use Breakpoint on ___System______error method for more information!)\n");
   }

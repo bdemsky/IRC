@@ -26,6 +26,10 @@ double CALL11(___Math______atan____D, double ___a___, double ___a___) {
   return atan(___a___);
 }
 
+double CALL22(___Math______atan2____D_D, double ___a___, double ___b___, double ___a___, double ___b___) {
+  return atan2(___a___,___b___);
+}
+
 double CALL11(___Math______log____D, double ___a___, double ___a___) {
   return log(___a___);
 }

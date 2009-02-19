@@ -58,6 +58,11 @@ public class Integer {
     return String.valueOf(value);
   }
 
+  public static String toString( int i ) {
+    Integer I = new Integer( i );
+    return I.toString();
+  }
+
   public int hashCode() {
     return value;
   }
