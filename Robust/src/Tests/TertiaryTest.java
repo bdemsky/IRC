@@ -1,3 +1,11 @@
+public class Foo {
+  Foo() {}
+  public String toString() {
+    return "aFoo";
+  }
+}
+
+
 public class TertiaryTest {
   static public void main( String[] args ) {
     int x = 3;
@@ -6,5 +14,6 @@ public class TertiaryTest {
     System.out.println( "x should be 3: "+x );
     System.out.print  ( "y should be 6: "+y+"\n" );
     System.out.println( "z should be 8: "+z );
+    System.out.println( new Foo() );
   }
 }

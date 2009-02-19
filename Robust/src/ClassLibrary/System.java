@@ -9,14 +9,21 @@ public class System {
   public static native void printString(String s);
 
   public static void println(String s) {
-    System.printString(s);
-    System.printString("\n");
+    System.printString(s+"\n");
   }
-
+  
+  public static void println(Object o) {
+    System.printString(""+o+"\n");
+  }
+ 
   public static void print(String s) {
     System.printString(s);
   }
 
+  public static void print(Object o) {
+    System.printString(""+o);
+  }
+  
   public static void error() {
     System.printString("Error (Use Breakpoint on ___System______error method for more information!)\n");
   }
