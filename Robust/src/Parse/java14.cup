@@ -161,8 +161,8 @@ non terminal ParseNode explicit_constructor_invocation;
 //non terminal ParseNode interface_member_declaration, constant_declaration;
 //non terminal ParseNode abstract_method_declaration;
 // 19.10) Arrays
-//non terminal ParseNode array_initializer;
-//non terminal ParseNode variable_initializers;
+non terminal ParseNode array_initializer;
+non terminal ParseNode variable_initializers;
 // 19.11) Blocks and Statements
 non terminal ParseNode block;
 non terminal ParseNode block_statements_opt, block_statements, block_statement;
@@ -870,7 +870,7 @@ variable_declarator_id ::=
 	;
 variable_initializer ::=
 		expression:exp {: RESULT=exp; :}
-//	|	array_initializer
+	|	array_initializer {: RESULT=new ParseNode("array_initializer"); :}
 	;
 
 // 19.8.3) Method Declarations
@@ -1070,16 +1070,31 @@ SUPER LPAREN argument_list_opt:alo RPAREN SEMICOLON {:
 
 
 // 19.10) Arrays
-//array_initializer ::=
-//		LBRACE variable_initializers COMMA RBRACE
-//	|	LBRACE variable_initializers RBRACE
-//	|	LBRACE COMMA RBRACE
-//	|	LBRACE RBRACE
-//	;
-//variable_initializers ::=
-//		variable_initializer
-//	|	variable_initializers COMMA variable_initializer
-//	;
+array_initializer ::=
+		LBRACE variable_initializers:var_init_list COMMA RBRACE {:
+		       RESULT=var_init_list;
+		:}
+	|	LBRACE variable_initializers:var_init_list RBRACE {:
+		       RESULT=var_init_list;
+		:}
+	|	LBRACE COMMA RBRACE {:
+		       RESULT=new ParseNode("empty");		       
+		:}
+	|	LBRACE RBRACE {:
+		       RESULT=new ParseNode("empty");
+		:}
+	;
+variable_initializers ::=
+		variable_initializer:var_init {:
+		       ParseNode pn=new ParseNode("var_init_list");
+		       pn.addChild(var_init);
+		       RESULT=pn;
+		:}
+	|	variable_initializers:var_init_list COMMA variable_initializer:var_init {:
+		       var_init_list.addChild(var_init);
+		       RESULT=var_init_list;
+		:}
+	;
 
 // 19.11) Blocks and Statements
 block ::=	LBRACE block_statements_opt:bso RBRACE {: 

@@ -27,4 +27,5 @@ public class Kind {
   public final static int ContinueBreakNode=24;
   public final static int TertiaryNode=25;
   public final static int InstanceOfNode=26;
+  public final static int ArrayInitializerNode=27;
 }

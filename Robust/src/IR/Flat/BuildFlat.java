@@ -792,6 +792,9 @@ public class BuildFlat {
 
     case Kind.InstanceOfNode:
       return flattenInstanceOfNode((InstanceOfNode)en,out_temp);
+
+    case Kind.ArrayInitializerNode:
+      return flattenArrayInitializerNode((ArrayInitializerNode)en,out_temp);
     }
     throw new Error();
   }
@@ -1088,6 +1091,46 @@ public class BuildFlat {
     FlatInstanceOfNode fion=new FlatInstanceOfNode(tn.getExprType(), expr_temp, out_temp);
     cond.getEnd().addNext(fion);
     return new NodePair(cond.getBegin(),fion);
+  }
+
+  private NodePair flattenArrayInitializerNode(ArrayInitializerNode ain, TempDescriptor out_temp) {
+    /*
+    TempDescriptor expr_temp=TempDescriptor.tempFactory("arry_init",ain.getType());
+
+    // create a new array of size equal to the array initializer
+    //FlatNode first=null;
+    //FlatNode last=null;
+    TempDescriptor[] temps=new TempDescriptor[ain.numVarInitializers()];
+
+      for (int i=0; i<con.numArgs(); i++) {
+	ExpressionNode en=con.getArg(i);
+	TempDescriptor tmp=TempDescriptor.tempFactory("arg",en.getType());
+	temps[i]=tmp;
+	NodePair np=flattenExpressionNode(en, tmp);
+	if (first==null)
+	  first=np.getBegin();
+	else
+	  last.addNext(np.getBegin());
+	last=np.getEnd();
+
+	TempDescriptor tmp2=(i==0) ?
+	                     out_temp :
+	                     TempDescriptor.tempFactory("arg",en.getType());
+      }
+      FlatNew fn=new FlatNew(td, out_temp, temps[0], con.isGlobal(), con.getDisjointId());
+      last.addNext(fn);
+
+
+    // assign each element of the new array to the flattened expression
+
+
+    FlatOpNode fonAssignArray=new FlatOpNode(out_temp, newarry_temp, null, new Operation(Operation.ASSIGN));
+    */
+    //return new NodePair( , fonAssignArray );
+    ain.printNode(0);
+    System.out.println( "Array initializers not implemented yet." );
+    System.exit( -1 );
+    return null;
   }
 
   private NodePair flattenTertiaryNode(TertiaryNode tn, TempDescriptor out_temp) {

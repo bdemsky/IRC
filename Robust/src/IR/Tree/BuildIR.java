@@ -493,6 +493,12 @@ public class BuildIR {
       ExpressionNode exp=parseExpression(pn.getChild("exp").getFirstChild());
       TypeDescriptor t=parseTypeDescriptor(pn);
       return new InstanceOfNode(exp,t);
+    } else if (isNode(pn, "array_initializer")) {
+      System.out.println( "Array initializers not implemented yet." );
+      System.exit( -1 );
+      TypeDescriptor td=parseTypeDescriptor(pn);      
+      Vector initializers=parseVariableInitializerList(pn);
+      return new ArrayInitializerNode(td, initializers);
     } else {
       System.out.println("---------------------");
       System.out.println(pn.PPrint(3,true));
@@ -539,6 +545,18 @@ public class BuildIR {
       arglist.add(parseExpression(exp));
     }
     return new Vector[] {varlist, arglist};
+  }
+
+  private Vector parseVariableInitializerList(ParseNode pn) {
+    Vector varInitList=new Vector();
+    ParseNode vin=pn.getChild("variable_init_list");
+    if (vin==null)       /* No argument list */
+      return varInitList;
+    ParseNodeVector vinv=vin.getChildren();
+    for(int i=0; i<vinv.size(); i++) {
+      varInitList.add(parseExpression(vinv.elementAt(i)));
+    }
+    return varInitList;
   }
 
   private ExpressionNode parseAssignmentExpression(ParseNode pn) {

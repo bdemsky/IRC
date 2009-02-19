@@ -418,6 +418,10 @@ public class SemanticCheck {
     case Kind.InstanceOfNode:
       checkInstanceOfNode(md, nametable, (InstanceOfNode) en, td);
       return;
+
+    case Kind.ArrayInitializerNode:
+      checkArrayInitializerNode(md, nametable, (ArrayInitializerNode) en, td);
+      return;
     }
     throw new Error();
   }
@@ -584,6 +588,11 @@ public class SemanticCheck {
     checkExpressionNode(md, nametable, tn.getExpr(), null);
   }
 
+  void checkArrayInitializerNode(Descriptor md, SymbolTable nametable, ArrayInitializerNode ain, TypeDescriptor td) {
+    for( int i = 0; i < ain.numVarInitializers(); ++i ) {
+      checkExpressionNode(md, nametable, ain.getVarInitializer(i), td); 
+    }
+  }
 
   void checkAssignmentNode(Descriptor md, SymbolTable nametable, AssignmentNode an, TypeDescriptor td) {
     boolean postinc=true;
