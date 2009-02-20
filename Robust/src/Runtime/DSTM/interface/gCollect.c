@@ -1,159 +1,135 @@
 #include "gCollect.h"
 #include "prelookup.h"
 
-extern objstr_t *prefetchcache; //Global Prefetch cache
+
 extern pthread_mutex_t prefetchcache_mutex; //Mutex to lock Prefetch Cache
 extern prehashtable_t pflookup; //Global prefetch cache  lookup table
-prefetchNodeInfo_t *pNodeInfo; //Global prefetch holding metadata
+prefetchNodeInfo_t pNodeInfo; //Global prefetch holding metadata
+
+#define OSUSED(x) (((unsigned int)(x)->top)-((unsigned int) (x+1)))
+#define OSFREE(x) ((x)->size-OSUSED(x))
 
 void initializePCache() {
-  pNodeInfo = calloc(1, sizeof(prefetchNodeInfo_t)); //Not freed yet
-  pNodeInfo->oldptr = prefetchcache;
-  pNodeInfo->newptr = NULL;
-  pNodeInfo->num_old_objstr = 1; //for prefetch cache allocated by objstralloc in trans.c file
-  pNodeInfo->maxsize = DEFAULT_OBJ_STORE_SIZE;
+  objstr_t * os=objstrCreate(DEFAULT_OBJ_STORE_SIZE);
+  pNodeInfo.oldptr = os;
+  pNodeInfo.newptr = os;
+  pNodeInfo.os_count = 1; //for prefetch cache allocated by objstralloc in trans.c file
+  pNodeInfo.oldstale=NULL;
+  pNodeInfo.newstale=NULL;
+  pNodeInfo.stale_count=0;
+  pNodeInfo.stall=0;
+}
+
+objstr_t * getObjStr(unsigned int size) {
+  if (pNodeInfo.stall>0)
+    pNodeInfo.stall--;
+  if (size<=DEFAULT_OBJ_STORE_SIZE&&pNodeInfo.stale_count>STALE_MINTHRESHOLD&&pNodeInfo.stall==0) {
+    //recycle
+    objstr_t * tmp=pNodeInfo.oldstale;
+    pNodeInfo.oldstale=pNodeInfo.oldstale->prev;
+    if (pNodeInfo.oldstale==NULL)
+      pNodeInfo.newstale=NULL;
+    pNodeInfo.stale_count--;
+    tmp->top=tmp+1;
+    tmp->prev=NULL;
+    return tmp;
+  } else {
+    int allocsize=(size>DEFAULT_OBJ_STORE_SIZE)?size:DEFAULT_OBJ_STORE_SIZE;
+    return objstrCreate(allocsize);
+  }
 }
 
 void *prefetchobjstrAlloc(unsigned int size) {
-  void * ptr = NULL;
-  if(pNodeInfo->num_old_objstr <= PREFETCH_FLUSH_COUNT_THRESHOLD) {
-    //regular allocation
-    if((ptr = normalPrefetchAlloc(prefetchcache, size)) == NULL) {
-      printf("Error: %s() prefetch cache alloc error %s, %d\n", __func__, __FILE__, __LINE__);
-      return NULL;
-    }
-    return ptr;
-  } else {
-    // Iterate through available blocks to see if size can be allocated
-    if((ptr = lookUpFreeSpace(pNodeInfo->newptr, pNodeInfo->oldptr, size)) != NULL) {
-      return ptr;
-    } else { //allocate new block if size not available
-      if(size >= pNodeInfo->maxsize) {
-	if((ptr = allocateNew(size)) == NULL) {
-	  printf("Error: %s() Calloc error %s %d\n", __func__, __FILE__, __LINE__);
-	  return NULL;
-	}
-	return ptr;
-      } else { //If size less then reclaim old blocks
-	clearNBlocks(pNodeInfo->oldptr, pNodeInfo->newptr);
-	//update oldptr and newptr
-	updatePtrs();
-	//look for free space if available in the free blocks
-	if((ptr = lookUpFreeSpace(pNodeInfo->newptr, pNodeInfo->oldptr, size)) != NULL) {
-	  return ptr;
-	} else {
-	  if((ptr = allocateNew(size)) == NULL) {
-	    printf("Error: %s() Calloc error %s %d\n", __func__, __FILE__, __LINE__);
-	    return NULL;
-	  }
-	  return ptr;
-	}
-      }
-    }
+  //try existing space in first two OS
+  objstr_t *os=pNodeInfo.newptr;
+  if (size<=OSFREE(os)) {
+    void *tmp=os->top;
+    os->top=((char *)os->top)+size;
+    return tmp;
   }
-}
+  if ((os=os->next)!=NULL&&(size<=OSFREE(os))) {
+    void *tmp=os->top;
+    os->top=((char *)os->top)+size;
+    return tmp;
+  }
+  //need to allocate new space
+  objstr_t *tmp=getObjStr(size);;
 
-void *normalPrefetchAlloc(objstr_t *store, unsigned int size) {
-  void *tmp;
-  while (1) {
-    if(((unsigned int)store->top - (((unsigned int)store) + sizeof(objstr_t)) + size) <= store->size) { //store not full
-      tmp = store->top;
-      store->top += size;
-      return tmp;
-    }
-    //store full
-    if(store->next == NULL) {
-      //end of list, all full
-      if(size > DEFAULT_OBJ_STORE_SIZE) {
-	//in case of large objects
-	if((store->next = (objstr_t *) calloc(1,(sizeof(objstr_t) + size))) == NULL) {
-	  printf("%s() Calloc error at line %d, %s\n", __func__, __LINE__, __FILE__);
-	  return NULL;
-	}
-	store = store->next;
-	store->size = size;
-      } else {
-	if((store->next = (objstr_t *) calloc(1, (sizeof(objstr_t) + DEFAULT_OBJ_STORE_SIZE))) == NULL) {
-	  printf("%s() Calloc error at line %d, %s\n", __func__, __LINE__, __FILE__);
-	  return NULL;
-	}
-	store = store->next;
-	store->size = DEFAULT_OBJ_STORE_SIZE;
-      }
-      //Update maxsize of objstr blocks, num of blocks and newptr
-      pNodeInfo->num_old_objstr++;
-      if(pNodeInfo->num_old_objstr <= PREFETCH_FLUSH_COUNT_THRESHOLD/2)
-	pNodeInfo->newptr = store;
-      if(pNodeInfo->maxsize < size)
-	pNodeInfo->maxsize = size;
-      store->top = (void *)(((unsigned int)store) + sizeof(objstr_t) + size);
-      return (void *)(((unsigned int)store) + sizeof(objstr_t));
+  //link new node in
+  tmp->next=pNodeInfo.newptr;
+  pNodeInfo.newptr->prev=tmp;
+  pNodeInfo.newptr=tmp;
+  pNodeInfo.os_count++;
+  
+  if (pNodeInfo.os_count>PREFETCH_FLUSH_THRESHOLD) {
+    //remove oldest from linked list
+    objstr_t *tofree=pNodeInfo.oldptr;
+    pNodeInfo.oldptr=tofree->prev;
+    pNodeInfo.os_count--;
+    //need to flush cache
+    clearBlock(tofree);
+    if (pNodeInfo.stale_count>STALE_MAXTHRESHOLD) {
+      //need to toss store
+      free(tofree);
     } else {
-      store = store->next;
+      if (pNodeInfo.newstale==NULL) {
+	//first store
+	pNodeInfo.newstale=pNodeInfo.oldstale=tofree;
+	tofree->prev=NULL;
+	pNodeInfo.stale_count++;
+      } else {
+	//just add it to the list
+	pNodeInfo.newstale->prev=tofree;
+	pNodeInfo.newstale=tofree;
+	pNodeInfo.stale_count++;
+      }
     }
   }
+
+  void *ptr=tmp->top;
+  tmp->top=((char *)tmp->top)+size;
+  return ptr;
 }
 
-void *lookUpFreeSpace(void *startAddr, void *endAddr, int size) {
-  objstr_t *ptr;
-  void *tmp;
-  ptr = (objstr_t *)(startAddr);
-  while(ptr != NULL && ((unsigned long int)ptr!= (unsigned long int)endAddr)) {
-    if(((unsigned int)ptr->top - (((unsigned int)ptr) + sizeof(objstr_t)) + size) <= ptr->size) { //store not full
-      tmp = ptr->top;
-      ptr->top += size;
-      return tmp;
-    }
-    ptr = ptr->next;
-  }
-  return NULL;
-}
-
-void clearNBlocks(void *oldaddr, void * newaddr) {
-  int count = 0;
-  objstr_t *tmp = (objstr_t *) oldaddr;
+void clearBlock(objstr_t *block) {
+  unsigned long int tmpbegin=(unsigned int)block;
+  unsigned long int tmpend=(unsigned int)block->top;
+  int i, j;
+  prehashlistnode_t *ptr;
   pthread_mutex_lock(&pflookup.lock);
-  while(((unsigned int) tmp != (unsigned int)newaddr) && (tmp != NULL)) {
-    void * begin = (void *)tmp+sizeof(objstr_t);
-    void * end = (void *)tmp+sizeof(objstr_t)+tmp->size;
-    tmp->top = (void *)tmp+sizeof(objstr_t);
-    clearPLookUpTable(begin, end);
-    //TODO only for testing purpose, remove later
-    memset(tmp->top, 0, tmp->size);
-    tmp = tmp->next;
+
+  ptr = pflookup.table;
+  for(i = 0; i<pflookup.size; i++) {
+    prehashlistnode_t *orig=&ptr[i];
+    prehashlistnode_t *curr = orig;
+    prehashlistnode_t *next=curr->next;
+    for(; next != NULL; curr=next, next = next->next) {
+      unsigned int val=(unsigned int)next->val;
+      if ((val>=tmpbegin)&(val<tmpend)) {
+	curr->next=next->next;
+	free(next);
+      }
+    }
+    {
+      unsigned int val=(unsigned int)orig->val;
+      if ((val>=tmpbegin)&(val<tmpend)) {
+	if (orig->next==NULL) {
+	  orig->key=0;
+	  orig->val=NULL;
+	} else {
+	  next=orig->next;
+	  orig->val=next->val;
+	  orig->key=next->key;
+	  orig->next=next->next;
+	  free(next);
+	}
+      }
+    }
   }
   pthread_mutex_unlock(&pflookup.lock);
 }
 
-void clearPLookUpTable(void *begin, void *end) {
-  unsigned long int tmpbegin;
-  unsigned long int tmpend;
-  tmpbegin = (unsigned long int) begin;
-  tmpend = (unsigned long int) end;
-  int i, j;
-  prehashlistnode_t *ptr = pflookup.table;
-  for(i = 0; i<pflookup.size; i++) {
-    prehashlistnode_t *curr = &ptr[i];
-    for(; curr != NULL; curr = curr->next) {
-      if(((unsigned long int)(curr->val) >= tmpbegin) && ((unsigned long int)(curr->val) < tmpend)) {
-	unsigned int oid = curr->key;
-	objheader_t *objheader;
-	if((objheader = prehashSearch(oid)) != NULL) {
-	  prehashRemove(oid);
-	}
-      }
-    }
-  }
-}
-
-void updatePtrs() {
-  void *ptr;
-  ptr = pNodeInfo->oldptr;
-  pNodeInfo->oldptr = pNodeInfo->newptr;
-  pNodeInfo->newptr = ptr;
-}
-
-void *allocateNew(unsigned int size) {
+objstr_t *allocateNew(unsigned int size) {
   objstr_t *tmp;
   if((tmp = (objstr_t *) calloc(1, (sizeof(objstr_t) +size))) == NULL) {
     printf("Error: %s() Calloc error %s %d\n", __func__, __FILE__, __LINE__);
@@ -162,11 +138,6 @@ void *allocateNew(unsigned int size) {
   tmp->size = size;
   tmp->top = (void *)(((unsigned int)tmp) + sizeof(objstr_t) + size);
   //Insert newly allocated block into linked list of prefetch cache
-  tmp->next = ((objstr_t *)(pNodeInfo->newptr))->next;
-  ((objstr_t *)(pNodeInfo->newptr))->next = tmp;
-  pNodeInfo->num_old_objstr++;
   // Update maxsize of prefetch objstr blocks
-  if(pNodeInfo->maxsize < tmp->size)
-    pNodeInfo->maxsize = tmp->size;
-  return (void *)(((unsigned int)tmp) + sizeof(objstr_t));
+  return tmp;
 }

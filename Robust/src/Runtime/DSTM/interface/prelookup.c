@@ -1,6 +1,9 @@
 /* LOCK THE ENTIRE HASH TABLE */
 #include "prelookup.h"
+#include "gCollect.h"
 extern objstr_t *prefetchcache;
+extern pthread_mutex_t prefetchcache_mutex; //Mutex to lock Prefetch Cache
+extern prefetchNodeInfo_t pNodeInfo;
 
 prehashtable_t pflookup; //Global prefetch cache table
 
@@ -13,8 +16,6 @@ unsigned int prehashCreate(unsigned int size, float loadfactor) {
     printf("Calloc error %s %d\n", __FILE__, __LINE__);
     return 1;
   }
-  pflookup.hack=NULL;
-  pflookup.hack2=NULL;
   pflookup.table = nodes;
   pflookup.size = size;
   pflookup.numelements = 0; // Initial number of elements in the hash
@@ -195,9 +196,6 @@ void prehashClear() {
   int i, isFirstBin;
   prehashlistnode_t *ptr, *prev, *curr;
 
-  objstr_t *oldcache=prefetchcache;
-  prefetchcache=objstrCreate(prefetchcache->size);
-
   pthread_mutex_lock(&pflookup.lock);
   ptr = pflookup.table;
   for(i = 0; i < pflookup.size; i++) {
@@ -214,13 +212,30 @@ void prehashClear() {
       prev->next = NULL;
     }
   }
-  pthread_mutex_unlock(&pflookup.lock);
+  {
+    int stale;
+    pthread_mutex_unlock(&pflookup.lock);
+    pthread_mutex_lock(&prefetchcache_mutex);
+    if (pNodeInfo.newstale==NULL) {
+      //transfer the list wholesale;
+      pNodeInfo.oldstale=pNodeInfo.oldptr;
+      pNodeInfo.newstale=pNodeInfo.newptr;
+    } else {
+      //merge the two lists
+      pNodeInfo.newstale->prev=pNodeInfo.oldptr;
+      pNodeInfo.newstale=pNodeInfo.newptr;
+    }
+    stale=STALL_THRESHOLD-pNodeInfo.stale_count;
+    
+    if (stale>0&&stale>pNodeInfo.stall)
+      pNodeInfo.stall=stale;
 
-  if (pflookup.hack2!=NULL) {
-    objstrDelete(pflookup.hack2);
+    pNodeInfo.stale_count+=pNodeInfo.os_count;
+    pNodeInfo.oldptr=getObjStr(DEFAULT_OBJ_STORE_SIZE);
+    pNodeInfo.newptr=pNodeInfo.oldptr;
+    pNodeInfo.os_count=1;
+    pthread_mutex_unlock(&prefetchcache_mutex);
   }
-  pflookup.hack2=pflookup.hack;
-  pflookup.hack=oldcache;
 #endif
 }
 

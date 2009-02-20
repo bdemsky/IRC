@@ -20,7 +20,6 @@
 #endif
 
 #define NUM_THREADS 1
-#define PREFETCH_CACHE_SIZE 1048576 //1MB
 #define CONFIG_FILENAME "dstm.conf"
 
 
@@ -29,7 +28,6 @@ extern int classsize[];
 pfcstats_t *evalPrefetch;
 extern int numprefetchsites; //Global variable containing number of prefetch sites
 extern pthread_mutex_t mainobjstore_mutex; // Mutex to lock main Object store
-objstr_t *prefetchcache; //Global Prefetch cache
 pthread_mutex_t prefetchcache_mutex; // Mutex to lock Prefetch Cache
 pthread_mutexattr_t prefetchcache_mutex_attr; /* Attribute for lock to make it a recursive lock */
 extern prehashtable_t pflookup; //Global Prefetch cache's lookup table
@@ -258,7 +256,6 @@ void *pCacheAlloc(objstr_t *store, unsigned int size) {
 void transInit() {
   //Create and initialize prefetch cache structure
 #ifdef CACHE
-  prefetchcache = objstrCreate(PREFETCH_CACHE_SIZE);
   initializePCache();
   if((evalPrefetch = initPrefetchStats()) == NULL) {
     printf("%s() Error allocating memory at %s, %d\n", __func__, __FILE__, __LINE__);

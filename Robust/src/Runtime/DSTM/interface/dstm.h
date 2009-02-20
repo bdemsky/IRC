@@ -155,6 +155,7 @@ typedef struct objstr {
   unsigned int size;       //this many bytes are allocated after this header
   void *top;
   struct objstr *next;
+  struct objstr *prev;
 } objstr_t;
 
 typedef struct oidmidpair {
