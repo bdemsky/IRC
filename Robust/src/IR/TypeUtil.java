@@ -117,8 +117,12 @@ public class TypeUtil {
       if (!this.isSuperorType(md2.getParamType(i), md1.getParamType(i)))
 	return false;
     }
-    if (!this.isSuperorType(md2.getReturnType(), md1.getReturnType()))
-      return false;
+    if (md1.getReturnType()==null||md2.getReturnType()==null) {
+	if (md1.getReturnType()!=md2.getReturnType())
+	    return false;
+    } else
+	if (!this.isSuperorType(md2.getReturnType(), md1.getReturnType()))
+	    return false;
 
     if (!this.isSuperorType(md2.getClassDesc(), md1.getClassDesc()))
       return false;
