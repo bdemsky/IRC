@@ -1,5 +1,6 @@
 package Lex;
 
+import java.io.IOException;
 import java.io.Reader;
 import java.io.LineNumberReader;
 import Parse.Sym;
@@ -179,7 +180,7 @@ public class Lexer {
 	  line_pos = line.length();
 	  nextLine();
 	  if (line==null)
-	    throw new Error("Unterminated comment at end of file.");
+	    throw new IOException("Unterminated comment at end of file.");
 	} else {
 	  text.append(line.substring(line_pos, star_pos));
 	  line_pos=star_pos;
@@ -194,7 +195,7 @@ public class Lexer {
     }
   }
 
-  Token getToken() {
+  Token getToken() throws java.io.IOException {
     // Tokens are: Identifiers, Keywords, Literals, Separators, Operators.
     switch (line.charAt(line_pos)) {
       // Separators: (period is a special case)
@@ -250,7 +251,7 @@ public class Lexer {
       return getIdentifier();
     if (Character.isDigit(line.charAt(line_pos)))
       return getNumericLiteral();
-    throw new Error("Illegal character on line "+line_num);
+    throw new IOException("Illegal character on line "+line_num);
   }
 
   static final String[] keywords = new String[] {
@@ -272,12 +273,12 @@ public class Lexer {
     "this", "throw", "throws", "transient", "try", "void",
     "volatile", "while"
   };
-  Token getIdentifier() {
+  Token getIdentifier() throws java.io.IOException {
     // Get id string.
     StringBuffer sb = new StringBuffer().append(consume());
 
     if (!Character.isJavaIdentifierStart(sb.charAt(0)))
-      throw new Error("Invalid Java Identifier on line "+line_num);
+      throw new IOException("Invalid Java Identifier on line "+line_num);
     while (Character.isJavaIdentifierPart(line.charAt(line_pos)))
       sb.append(consume());
     String s = sb.toString();
@@ -301,7 +302,7 @@ public class Lexer {
     // not a keyword.
     return new Identifier(s);
   }
-  NumericLiteral getNumericLiteral() {
+  NumericLiteral getNumericLiteral() throws java.io.IOException {
     int i;
     // leading decimal indicates float.
     if (line.charAt(line_pos)=='.')
@@ -333,7 +334,7 @@ public class Lexer {
       return getIntegerLiteral(/*base*/ 10);
     }
   }
-  NumericLiteral getIntegerLiteral(int radix) {
+  NumericLiteral getIntegerLiteral(int radix) throws java.io.IOException {
     long val=0;
     while (Character.digit(line.charAt(line_pos),radix)!=-1)
       val = (val*radix) + Character.digit(consume(),radix);
@@ -346,10 +347,10 @@ public class Lexer {
     // 0xFFFF0000 to get past the test. (unsigned long->signed int)
     if ((val/2) > Integer.MAX_VALUE ||
         val    < Integer.MIN_VALUE)
-      throw new Error("Constant does not fit in integer on line "+line_num);
+      throw new IOException("Constant does not fit in integer on line "+line_num);
     return new IntegerLiteral((int)val);
   }
-  NumericLiteral getFloatingPointLiteral() {
+  NumericLiteral getFloatingPointLiteral() throws java.io.IOException {
     String rep = getDigits();
     if (line.charAt(line_pos)=='.')
       rep+=consume() + getDigits();
@@ -377,7 +378,7 @@ public class Lexer {
 	return new DoubleLiteral(Double.valueOf(rep).doubleValue());
       }
     } catch (NumberFormatException e) {
-      throw new Error("Illegal floating-point on line "+line_num+": "+e);
+      throw new IOException("Illegal floating-point on line "+line_num+": "+e);
     }
   }
   String getDigits() {
@@ -428,7 +429,7 @@ public class Lexer {
     return new Operator(new String(new char[] {first}));
   }
 
-  CharacterLiteral getCharLiteral() {
+  CharacterLiteral getCharLiteral() throws java.io.IOException {
     char firstquote = consume();
     char val;
     switch (line.charAt(line_pos)) {
@@ -437,10 +438,10 @@ public class Lexer {
       break;
 
     case '\'':
-      throw new Error("Invalid character literal on line "+line_num);
+      throw new IOException("Invalid character literal on line "+line_num);
 
     case '\n':
-      throw new Error("Invalid character literal on line "+line_num);
+      throw new IOException("Invalid character literal on line "+line_num);
 
     default:
       val = consume();
@@ -448,10 +449,10 @@ public class Lexer {
     }
     char secondquote = consume();
     if (firstquote != '\'' || secondquote != '\'')
-      throw new Error("Invalid character literal on line "+line_num);
+      throw new IOException("Invalid character literal on line "+line_num);
     return new CharacterLiteral(val);
   }
-  StringLiteral getStringLiteral() {
+  StringLiteral getStringLiteral() throws java.io.IOException {
     char openquote = consume();
     StringBuffer val = new StringBuffer();
     while (line.charAt(line_pos)!='\"') {
@@ -461,7 +462,7 @@ public class Lexer {
 	break;
 
       case '\n':
-	throw new Error("Invalid string literal on line " + line_num);
+	throw new IOException("Invalid string literal on line " + line_num);
 
       default:
 	val.append(consume());
@@ -470,14 +471,14 @@ public class Lexer {
     }
     char closequote = consume();
     if (openquote != '\"' || closequote != '\"')
-      throw new Error("Invalid string literal on line " + line_num);
+      throw new IOException("Invalid string literal on line " + line_num);
 
     return new StringLiteral(val.toString().intern());
   }
 
-  char getEscapeSequence() {
+  char getEscapeSequence() throws java.io.IOException {
     if (consume() != '\\')
-      throw new Error("Invalid escape sequence on line " + line_num);
+      throw new IOException("Invalid escape sequence on line " + line_num);
     switch(line.charAt(line_pos)) {
     case 'b':
       consume(); return '\b';
@@ -516,17 +517,17 @@ public class Lexer {
       return (char) getOctal(2);
 
     default:
-      throw new Error("Invalid escape sequence on line " + line_num);
+      throw new IOException("Invalid escape sequence on line " + line_num);
     }
   }
-  int getOctal(int maxlength) {
+  int getOctal(int maxlength) throws java.io.IOException {
     int i, val=0;
     for (i=0; i<maxlength; i++)
       if (Character.digit(line.charAt(line_pos), 8)!=-1) {
 	val = (8*val) + Character.digit(consume(), 8);
       } else break;
     if ((i==0) || (val>0xFF)) // impossible.
-      throw new Error("Invalid octal escape sequence in line " + line_num);
+      throw new IOException("Invalid octal escape sequence in line " + line_num);
     return val;
   }
 
