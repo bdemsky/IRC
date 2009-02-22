@@ -18,6 +18,7 @@ unsigned int prehashCreate(unsigned int size, float loadfactor) {
   }
   pflookup.table = nodes;
   pflookup.size = size;
+  pflookup.mask = (size << 1) -1;
   pflookup.numelements = 0; // Initial number of elements in the hash
   pflookup.loadfactor = loadfactor;
 
@@ -36,7 +37,7 @@ unsigned int prehashCreate(unsigned int size, float loadfactor) {
 
 //Assign keys to bins inside hash table
 unsigned int prehashFunction(unsigned int key) {
-  return ( key % (pflookup.size));
+  return ( key & pflookup.mask) >> 1;
 }
 
 //Store oids and their pointers into hash
@@ -47,7 +48,7 @@ unsigned int prehashInsert(unsigned int key, void *val) {
 
   if(pflookup.numelements > (pflookup.loadfactor * pflookup.size)) {
     //Resize
-    newsize = 2 * pflookup.size + 1;
+    newsize = pflookup.size << 1;
     pthread_mutex_lock(&pflookup.lock);
     prehashResize(newsize);
     pthread_mutex_unlock(&pflookup.lock);
@@ -82,16 +83,15 @@ void *prehashSearch(unsigned int key) {
   prehashlistnode_t *ptr, *node;
 
   pthread_mutex_lock(&pflookup.lock);
-  ptr = pflookup.table;
-  index = prehashFunction(key);
-  node = &ptr[index];
-  while(node != NULL) {
+  node = & pflookup.table[(key & pflookup.mask)>>1];
+  do {
     if(node->key == key) {
+      void * tmp=node->val;
       pthread_mutex_unlock(&pflookup.lock);
-      return node->val;
+      return tmp;
     }
     node = node->next;
-  }
+  } while (node!=NULL);
   pthread_mutex_unlock(&pflookup.lock);
   return NULL;
 }
@@ -148,6 +148,7 @@ unsigned int prehashResize(unsigned int newsize) {
 
   pflookup.table = node;                //Update the global hashtable upon resize()
   pflookup.size = newsize;
+  pflookup.mask = (newsize << 1) -1;
   pflookup.numelements = 0;
 
   for(i = 0; i < oldsize; i++) {                        //Outer loop for each bin in hash table

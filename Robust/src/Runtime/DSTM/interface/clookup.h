@@ -18,11 +18,12 @@ typedef struct chashtable {
   unsigned int size;
   unsigned int mask;
   unsigned int numelements;
-  float loadfactor;
+  unsigned int threshold;
+  double loadfactor;
 } chashtable_t;
 
 /* Prototypes for hash*/
-chashtable_t *chashCreate(unsigned int size, float loadfactor);
+chashtable_t *chashCreate(unsigned int size, double loadfactor);
 static unsigned int chashFunction(chashtable_t *table, unsigned int key);
 unsigned int chashInsert(chashtable_t *table, unsigned int key, void *val);
 void *chashSearch(chashtable_t *table, unsigned int key); //returns val, NULL if not found

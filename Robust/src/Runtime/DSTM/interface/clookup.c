@@ -1,7 +1,7 @@
 #include "clookup.h"
 #define INLINE    inline __attribute__((always_inline))
 
-chashtable_t *chashCreate(unsigned int size, float loadfactor) {
+chashtable_t *chashCreate(unsigned int size, double loadfactor) {
   chashtable_t *ctable;
   chashlistnode_t *nodes;
   int i;
@@ -19,10 +19,12 @@ chashtable_t *chashCreate(unsigned int size, float loadfactor) {
   }
 
   ctable->table = nodes;
+  ctable->loadfactor = loadfactor;
   ctable->size = size;
+  ctable->threshold=size*loadfactor;
   ctable->mask = (size << 1)-1;
   ctable->numelements = 0; // Initial number of elements in the hash
-  ctable->loadfactor = loadfactor;
+
 
   return ctable;
 }
@@ -38,7 +40,7 @@ unsigned int chashInsert(chashtable_t *table, unsigned int key, void *val) {
   int index;
   chashlistnode_t *ptr, *node;
 
-  if(table->numelements > (table->loadfactor * table->size)) {
+  if(table->numelements > (table->threshold)) {
     //Resize
     newsize = table->size << 1;
     chashResize(table,newsize);
@@ -139,6 +141,7 @@ unsigned int chashResize(chashtable_t *table, unsigned int newsize) {
 
   table->table = node;          //Update the global hashtable upon resize()
   table->size = newsize;
+  table->threshold = newsize * table->loadfactor;
   table->mask = (newsize << 1)-1;
 
   for(i = 0; i < oldsize; i++) {                        //Outer loop for each bin in hash table

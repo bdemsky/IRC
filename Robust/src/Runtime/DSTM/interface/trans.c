@@ -272,7 +272,7 @@ void transInit() {
   pthread_mutex_init(&atomicObjLock, NULL);
 #ifdef CACHE
   //Create prefetch cache lookup table
-  if(prehashCreate(HASH_SIZE, LOADFACTOR)) {
+  if(prehashCreate(PHASH_SIZE, PLOADFACTOR)) {
     printf("ERROR\n");
     return; //Failure
   }
@@ -1309,11 +1309,11 @@ void *transPrefetch(void *t) {
 
     if (pilehead!=NULL) {
       // Get sock from shared pool
-      int sd = getSock2(transPrefetchSockPool, pilehead->mid);
 
       /* Send  Prefetch Request */
       prefetchpile_t *ptr = pilehead;
       while(ptr != NULL) {
+	int sd = getSock2(transPrefetchSockPool, ptr->mid);
 	sendPrefetchReq(ptr, sd);
 	ptr = ptr->next;
       }

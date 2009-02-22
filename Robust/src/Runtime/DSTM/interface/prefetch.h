@@ -10,6 +10,9 @@
 #define GET_NUM_OFFSETS(x) ((short *) (x + sizeof(unsigned int)))
 #define GET_OFFSETS(x) ((short *) (x + sizeof(unsigned int) + sizeof(short)))
 
+#define INLINE    inline __attribute__((always_inline))
+
+
 /****** Global structure **********/
 typedef struct objOffsetPile {
   unsigned int oid;
@@ -45,29 +48,21 @@ void proPrefetchQDealloc(perMcPrefetchList_t *);
 /******** Process Queue Element functions ***********/
 void rangePrefetch(unsigned int, short, short *);
 void *transPrefetchNew();
-perMcPrefetchList_t* checkIfLocal(char *ptr);
-int lookForObjs(int*, short *, int *, int *, int *, int *);
+perMcPrefetchList_t* processLocal(char *ptr);
+perMcPrefetchList_t *processRemote(unsigned int oid, short * offsetarray, int sd, short numoffset);
 void insertPrefetch(int, unsigned int, short, short*, perMcPrefetchList_t **);
 
 /******** Sending and Receiving Prefetches *******/
-void sendRangePrefetchReq(perMcPrefetchList_t *, int sd);
+void sendRangePrefetchReq(perMcPrefetchList_t *, int sd, unsigned int mid);
 int rangePrefetchReq(int acceptfd);
 int processOidFound(objheader_t *, short *, int, int, int);
-int processArrayOids(short *, objheader_t *, int *, int);
-int findOidinStride(short *,  struct ArrayObject *, int, int, int, int, int, int);
-int processLinkedListOids(short *, objheader_t *, int *, int);
 int getRangePrefetchResponse(int sd);
-objheader_t *searchObj(unsigned int);
-void forwardRequest(unsigned int *, int*, int*, int*, short*);
+INLINE objheader_t *searchObj(unsigned int);
+
 
 /*********** Functions for computation at the participant end **********/
-int getNextOid(short *, unsigned int*, int*, int*, oidAtDepth_t *, unsigned int);
-unsigned int getNextArrayOid(short *, unsigned int *, int *, int*);
-unsigned int getNextPointerOid(short *, unsigned int *, int *, int*);
-int sendOidFound(unsigned int, int);
+unsigned int getNextOid(objheader_t * header, short * offsetarray, unsigned int *dfsList, int top);
+int sendOidFound(objheader_t *, unsigned int, int);
 int sendOidNotFound(unsigned int oid, int sd);
-
-/************* Internal functions *******************/
-int getsize(short *ptr, int n);
 
 #endif

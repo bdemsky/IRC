@@ -5,8 +5,8 @@
 #include <stdio.h>
 #include <pthread.h>
 
-#define LOADFACTOR 0.5
-#define HASH_SIZE 100
+#define MLOADFACTOR 0.25
+#define MHASH_SIZE 1024
 
 typedef struct mhashlistnode {
   unsigned int key;
@@ -17,6 +17,7 @@ typedef struct mhashlistnode {
 typedef struct mhashtable {
   mhashlistnode_t *table;       // points to beginning of hash table
   unsigned int size;
+  unsigned int mask;
   unsigned int numelements;
   float loadfactor;
   pthread_mutex_t locktable;

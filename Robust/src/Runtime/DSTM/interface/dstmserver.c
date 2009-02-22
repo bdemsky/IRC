@@ -36,7 +36,7 @@ int dstmInit(void) {
   pthread_mutexattr_settype(&mainobjstore_mutex_attr, PTHREAD_MUTEX_RECURSIVE_NP);
   pthread_mutex_init(&mainobjstore_mutex, &mainobjstore_mutex_attr);
   pthread_mutex_init(&lockObjHeader,NULL);
-  if (mhashCreate(HASH_SIZE, LOADFACTOR))
+  if (mhashCreate(MHASH_SIZE, MLOADFACTOR))
     return 1;             //failure
 
   if (lhashCreate(HASH_SIZE, LOADFACTOR))

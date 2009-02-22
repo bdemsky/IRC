@@ -68,21 +68,23 @@ void *prefetchobjstrAlloc(unsigned int size) {
     pNodeInfo.os_count--;
     //need to flush cache
     clearBlock(tofree);
-    if (pNodeInfo.stale_count>STALE_MAXTHRESHOLD) {
-      //need to toss store
-      free(tofree);
+    if (pNodeInfo.newstale==NULL) {
+      //first store
+      pNodeInfo.newstale=pNodeInfo.oldstale=tofree;
+      tofree->prev=NULL;
+      pNodeInfo.stale_count++;
     } else {
-      if (pNodeInfo.newstale==NULL) {
-	//first store
-	pNodeInfo.newstale=pNodeInfo.oldstale=tofree;
-	tofree->prev=NULL;
-	pNodeInfo.stale_count++;
-      } else {
-	//just add it to the list
-	pNodeInfo.newstale->prev=tofree;
-	pNodeInfo.newstale=tofree;
-	pNodeInfo.stale_count++;
-      }
+      //just add it to the list
+      pNodeInfo.newstale->prev=tofree;
+      pNodeInfo.newstale=tofree;
+      pNodeInfo.stale_count++;
+    }
+    if (pNodeInfo.stale_count>STALE_MAXTHRESHOLD) {
+      //need to toss a store
+      tofree=pNodeInfo.oldstale;
+      pNodeInfo.oldstale=tofree->prev;
+      pNodeInfo.stale_count--;
+      free(tofree);
     }
   }
 
@@ -106,8 +108,12 @@ void clearBlock(objstr_t *block) {
     for(; next != NULL; curr=next, next = next->next) {
       unsigned int val=(unsigned int)next->val;
       if ((val>=tmpbegin)&(val<tmpend)) {
-	curr->next=next->next;
+	prehashlistnode_t *tmp=curr->next=next->next;
 	free(next);
+	next=tmp;
+	//loop condition is broken now...need to check before incrementing
+	if (next==NULL)
+	  break;
       }
     }
     {

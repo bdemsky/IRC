@@ -6,8 +6,8 @@
 #include <pthread.h>
 #include "dstm.h"
 
-#define LOADFACTOR 0.5
-#define HASH_SIZE 100
+#define PLOADFACTOR 0.25
+#define PHASH_SIZE 1024
 
 typedef struct prehashlistnode {
   unsigned int key;
@@ -20,6 +20,7 @@ struct objstr;
 typedef struct prehashtable {
   prehashlistnode_t *table;     // points to beginning of hash table
   unsigned int size;
+  unsigned int mask;
   unsigned int numelements;
   float loadfactor;
   pthread_mutex_t lock;

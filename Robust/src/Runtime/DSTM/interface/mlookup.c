@@ -13,6 +13,7 @@ unsigned int mhashCreate(unsigned int size, float loadfactor) {
 
   mlookup.table = nodes;
   mlookup.size = size;
+  mlookup.mask = (size << 1) -1;
   mlookup.numelements = 0;       // Initial number of elements in the hash
   mlookup.loadfactor = loadfactor;
   //Initialize the pthread_mutex variable
@@ -22,7 +23,7 @@ unsigned int mhashCreate(unsigned int size, float loadfactor) {
 
 // Assign to keys to bins inside hash table
 unsigned int mhashFunction(unsigned int key) {
-  return( key % (mlookup.size));
+  return( key & mlookup.mask) >>1;
 }
 
 // Insert value and key mapping into the hash table
@@ -33,7 +34,7 @@ unsigned int mhashInsert(unsigned int key, void *val) {
 
   if (mlookup.numelements > (mlookup.loadfactor * mlookup.size)) {
     //Resize Table
-    newsize = 2 * mlookup.size + 1;
+    newsize = mlookup.size << 1;
     pthread_mutex_lock(&mlookup.locktable);
     mhashResize(newsize);
     pthread_mutex_unlock(&mlookup.locktable);
@@ -67,19 +68,18 @@ unsigned int mhashInsert(unsigned int key, void *val) {
 // Return val for a given key in the hash table
 void *mhashSearch(unsigned int key) {
   int index;
-  mhashlistnode_t *ptr, *node;
-
+  mhashlistnode_t *node;
   pthread_mutex_lock(&mlookup.locktable);
-  ptr = mlookup.table;          // Address of the beginning of hash table
-  index = mhashFunction(key);
-  node = &ptr[index];
-  while(node != NULL) {
+  node = &mlookup.table[(key & mlookup.mask)>>1];
+  do {
     if(node->key == key) {
+      void * tmp=node->val;
       pthread_mutex_unlock(&mlookup.locktable);
-      return node->val;
+      return tmp;
     }
     node = node->next;
-  }
+  } while (node!=NULL);
+
   pthread_mutex_unlock(&mlookup.locktable);
   return NULL;
 }
@@ -137,6 +137,7 @@ unsigned int mhashResize(unsigned int newsize) {
 
   mlookup.table = node;                 //Update the global hashtable upon resize()
   mlookup.size = newsize;
+  mlookup.mask = (newsize << 1)-1;
   mlookup.numelements = 0;
 
   for(i = 0; i < oldsize; i++) {                        //Outer loop for each bin in hash table
