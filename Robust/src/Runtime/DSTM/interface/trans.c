@@ -417,7 +417,7 @@ __attribute__((pure)) objheader_t *transRead(transrecord_t *record, unsigned int
     /* Look up in machine lookup table  and copy  into cache*/
     GETSIZE(size, objheader);
     size += sizeof(objheader_t);
-    objcopy = (objheader_t *) objstrAlloc(record->cache, size);
+    objcopy = (objheader_t *) objstrAlloc(&record->cache, size);
     memcpy(objcopy, objheader, size);
     /* Insert into cache's lookup table */
     STATUS(objcopy)=0;
@@ -436,7 +436,7 @@ __attribute__((pure)) objheader_t *transRead(transrecord_t *record, unsigned int
       /* Look up in prefetch cache */
       GETSIZE(size, tmp);
       size+=sizeof(objheader_t);
-      objcopy = (objheader_t *) objstrAlloc(record->cache, size);
+      objcopy = (objheader_t *) objstrAlloc(&record->cache, size);
       memcpy(objcopy, tmp, size);
       /* Insert into cache's lookup table */
       chashInsert(record->lookupTable, OID(tmp), objcopy);
@@ -472,7 +472,7 @@ __attribute__((pure)) objheader_t *transRead(transrecord_t *record, unsigned int
 
 /* This function creates objects in the transaction record */
 objheader_t *transCreateObj(transrecord_t *record, unsigned int size) {
-  objheader_t *tmp = (objheader_t *) objstrAlloc(record->cache, (sizeof(objheader_t) + size));
+  objheader_t *tmp = (objheader_t *) objstrAlloc(&record->cache, (sizeof(objheader_t) + size));
   OID(tmp) = getNewOID();
   tmp->version = 1;
   tmp->rcount = 1;
@@ -1009,7 +1009,7 @@ void *getRemoteObj(transrecord_t *record, unsigned int mnum, unsigned int oid) {
   } else {
     /* Read object if found into local cache */
     recv_data(sd, &size, sizeof(int));
-    objcopy = objstrAlloc(record->cache, size);
+    objcopy = objstrAlloc(&record->cache, size);
     recv_data(sd, objcopy, size);
     STATUS(objcopy)=0;
     /* Insert into cache's lookup table */
@@ -1179,7 +1179,7 @@ int transComProcess(trans_req_data_t *tdata, trans_commit_data_t *transinfo, tra
     GETSIZE(tmpsize, header);
     tmpsize += sizeof(objheader_t);
     pthread_mutex_lock(&mainobjstore_mutex);
-    if ((ptrcreate = objstrAlloc(mainobjstore, tmpsize)) == NULL) {
+    if ((ptrcreate = objstrAlloc(&mainobjstore, tmpsize)) == NULL) {
       printf("Error: transComProcess() failed objstrAlloc %s, %d\n", __FILE__, __LINE__);
       pthread_mutex_unlock(&mainobjstore_mutex);
       return 1;

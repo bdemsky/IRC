@@ -255,7 +255,7 @@ unsigned int getNewOID(void);
 /* Prototypes for object store */
 objstr_t *objstrCreate(unsigned int size); //size in bytes
 void objstrDelete(objstr_t *store); //traverse and free entire list
-void *objstrAlloc(objstr_t *store, unsigned int size); //size in bytes
+void *objstrAlloc(objstr_t **store, unsigned int size); //size in bytes
 void clearObjStore(); // TODO:currently only clears the prefetch cache object store
 /* end object store */
 

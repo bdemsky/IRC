@@ -3,7 +3,7 @@
 mhashtable_t mlookup;   //Global hash table
 
 // Creates a machine lookup table with size =" size"
-unsigned int mhashCreate(unsigned int size, float loadfactor) {
+unsigned int mhashCreate(unsigned int size, double loadfactor) {
   mhashlistnode_t *nodes;
   // Allocate space for the hash table
   if((nodes = calloc(size, sizeof(mhashlistnode_t))) == NULL) {
@@ -13,6 +13,7 @@ unsigned int mhashCreate(unsigned int size, float loadfactor) {
 
   mlookup.table = nodes;
   mlookup.size = size;
+  mlookup.threshold=size*loadfactor;
   mlookup.mask = (size << 1) -1;
   mlookup.numelements = 0;       // Initial number of elements in the hash
   mlookup.loadfactor = loadfactor;
@@ -27,42 +28,33 @@ unsigned int mhashFunction(unsigned int key) {
 }
 
 // Insert value and key mapping into the hash table
-unsigned int mhashInsert(unsigned int key, void *val) {
+void mhashInsert(unsigned int key, void *val) {
   unsigned int newsize;
   int index;
   mhashlistnode_t *ptr, *node;
 
-  if (mlookup.numelements > (mlookup.loadfactor * mlookup.size)) {
+  pthread_mutex_lock(&mlookup.locktable);
+  if (mlookup.numelements > mlookup.threshold) {
     //Resize Table
     newsize = mlookup.size << 1;
-    pthread_mutex_lock(&mlookup.locktable);
     mhashResize(newsize);
-    pthread_mutex_unlock(&mlookup.locktable);
   }
-  ptr = mlookup.table;
+  index = (key & mlookup.mask) >>1;
+  ptr = &mlookup.table[index];
   mlookup.numelements++;
 
-#ifdef DEBUG
-  printf("DEBUG -> index = %d, key = %d, val = %x\n", index, key, val);
-#endif
-  pthread_mutex_lock(&mlookup.locktable);
-  index = mhashFunction(key);
-  if(ptr[index].next == NULL && ptr[index].key == 0) {          // Insert at the first position in the hashtable
-    ptr[index].key = key;
-    ptr[index].val = val;
+
+  if(ptr->key ==0) {
+    ptr->key=key;
+    ptr->val=val;
   } else {                              // Insert in the beginning of linked list
-    if ((node = calloc(1, sizeof(mhashlistnode_t))) == NULL) {
-      printf("Calloc error %s, %d\n", __FILE__, __LINE__);
-      pthread_mutex_unlock(&mlookup.locktable);
-      return 1;
-    }
+    node = calloc(1, sizeof(mhashlistnode_t));
     node->key = key;
     node->val = val;
-    node->next = ptr[index].next;
-    ptr[index].next = node;
+    node->next = ptr->next;
+    ptr->next=node;
   }
   pthread_mutex_unlock(&mlookup.locktable);
-  return 0;
 }
 
 // Return val for a given key in the hash table
@@ -119,13 +111,15 @@ unsigned int mhashRemove(unsigned int key) {
   return 1;
 }
 
+
+
 // Resize table
 unsigned int mhashResize(unsigned int newsize) {
-  mhashlistnode_t *node, *ptr, *curr, *next;            // curr and next keep track of the current and the next mhashlistnodes in a linked list
+  mhashlistnode_t *node, *ptr, *curr;            // curr and next keep track of the current and the next mhashlistnodes in a linked list
   unsigned int oldsize;
   int isfirst;          // Keeps track of the first element in the mhashlistnode_t for each bin in hashtable
-  int i,index;
-  mhashlistnode_t *newnode;
+  unsigned int i,index;
+  unsigned int mask;
 
   ptr = mlookup.table;
   oldsize = mlookup.size;
@@ -137,48 +131,42 @@ unsigned int mhashResize(unsigned int newsize) {
 
   mlookup.table = node;                 //Update the global hashtable upon resize()
   mlookup.size = newsize;
-  mlookup.mask = (newsize << 1)-1;
-  mlookup.numelements = 0;
+  mlookup.threshold=newsize*mlookup.loadfactor;
+  mask=mlookup.mask = (newsize << 1)-1;
 
   for(i = 0; i < oldsize; i++) {                        //Outer loop for each bin in hash table
     curr = &ptr[i];
     isfirst = 1;
-    while (curr != NULL) {                              //Inner loop to go through linked lists
-      if (curr->key == 0) {                             //Exit inner loop if there the first element for a given bin/index is NULL
+    do {
+      unsigned int key;
+      mhashlistnode_t *tmp,*next;
+
+      if ((key=curr->key) == 0) {                             //Exit inner loop if there the first element for a given bin/index is NULL
 	break;                                          //key = val =0 for element if not present within the hash table
       }
       next = curr->next;
+      index = (key & mask) >>1;
+      tmp=&mlookup.table[index];
 
-      index = mhashFunction(curr->key);
-#ifdef DEBUG
-      printf("DEBUG(resize) -> index = %d, key = %d, val = %x\n", index, curr->key, curr->val);
-#endif
       // Insert into the new table
-      if(mlookup.table[index].next == NULL && mlookup.table[index].key == 0) {
-	mlookup.table[index].key = curr->key;
-	mlookup.table[index].val = curr->val;
-	mlookup.numelements++;
-      } else {
-	if((newnode = calloc(1, sizeof(mhashlistnode_t))) == NULL) {
-	  printf("Calloc error %s, %d\n", __FILE__, __LINE__);
-	  return 1;
-	}
+      if(tmp->key ==0) {
+	tmp->key=curr->key;
+	tmp->val=curr->val;
+	if (!isfirst)
+	  free(curr);
+      } else if (isfirst) {
+	mhashlistnode_t *newnode = calloc(1, sizeof(mhashlistnode_t));
 	newnode->key = curr->key;
 	newnode->val = curr->val;
-	newnode->next = mlookup.table[index].next;
-	mlookup.table[index].next = newnode;
-	mlookup.numelements++;
+	newnode->next = tmp->next;
+	tmp->next=newnode;
+      } else {
+	curr->next=tmp;
+	tmp->next=curr;
       }
-
-      //free the linked list of mhashlistnode_t if not the first element in the hash table
-      if (isfirst != 1) {
-	free(curr);
-      }
-
       isfirst = 0;
       curr = next;
-
-    }
+    } while(curr!=NULL);
   }
 
   free(ptr);                    //Free the memory of the old hash table

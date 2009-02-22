@@ -22,7 +22,8 @@ typedef struct prehashtable {
   unsigned int size;
   unsigned int mask;
   unsigned int numelements;
-  float loadfactor;
+  unsigned int threshold;
+  double loadfactor;
   pthread_mutex_t lock;
   pthread_mutexattr_t prefetchmutexattr;
   pthread_cond_t cond;
@@ -33,7 +34,7 @@ typedef struct prehashtable {
 /* Prototypes for hash*/
 unsigned int prehashCreate(unsigned int size, float loadfactor);
 unsigned int prehashFunction(unsigned int key);
-unsigned int prehashInsert(unsigned int key, void *val);
+void prehashInsert(unsigned int key, void *val);
 void *prehashSearch(unsigned int key); //returns val, NULL if not found
 unsigned int prehashRemove(unsigned int key); //returns -1 if not found
 unsigned int prehashResize(unsigned int newsize);

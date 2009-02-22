@@ -21,6 +21,7 @@ unsigned int prehashCreate(unsigned int size, float loadfactor) {
   pflookup.mask = (size << 1) -1;
   pflookup.numelements = 0; // Initial number of elements in the hash
   pflookup.loadfactor = loadfactor;
+  pflookup.threshold=loadfactor*size;
 
   //Intiliaze and set prefetch table mutex attribute
   pthread_mutexattr_init(&pflookup.prefetchmutexattr);
@@ -41,40 +42,33 @@ unsigned int prehashFunction(unsigned int key) {
 }
 
 //Store oids and their pointers into hash
-unsigned int prehashInsert(unsigned int key, void *val) {
+void prehashInsert(unsigned int key, void *val) {
   unsigned int newsize;
   int index;
   prehashlistnode_t *ptr, *node;
+  pthread_mutex_lock(&pflookup.lock);
 
-  if(pflookup.numelements > (pflookup.loadfactor * pflookup.size)) {
+  if(pflookup.numelements > (pflookup.threshold)) {
     //Resize
     newsize = pflookup.size << 1;
-    pthread_mutex_lock(&pflookup.lock);
     prehashResize(newsize);
-    pthread_mutex_unlock(&pflookup.lock);
   }
 
-  ptr = pflookup.table;
+  index = (key & pflookup.mask)>>1;
+  ptr = &pflookup.table[index];
   pflookup.numelements++;
 
-  pthread_mutex_lock(&pflookup.lock);
-  index = prehashFunction(key);
-  if(ptr[index].next == NULL && ptr[index].key == 0) {  // Insert at the first position in the hashtable
-    ptr[index].key = key;
-    ptr[index].val = val;
+  if(ptr->key==0) {
+    ptr->key = key;
+    ptr->val = val;
   } else {                      // Insert in the beginning of linked list
-    if ((node = calloc(1, sizeof(prehashlistnode_t))) == NULL) {
-      printf("Calloc error %s, %d\n", __FILE__, __LINE__);
-      pthread_mutex_unlock(&pflookup.lock);
-      return 1;
-    }
+    node = calloc(1, sizeof(prehashlistnode_t));
     node->key = key;
     node->val = val ;
-    node->next = ptr[index].next;
-    ptr[index].next = node;
+    node->next = ptr->next;
+    ptr->next=node;
   }
   pthread_mutex_unlock(&pflookup.lock);
-  return 0;
 }
 
 // Search for an address for a given oid
@@ -132,11 +126,10 @@ unsigned int prehashRemove(unsigned int key) {
 }
 
 unsigned int prehashResize(unsigned int newsize) {
-  prehashlistnode_t *node, *ptr, *curr, *next;  // curr and next keep track of the current and the next chashlistnodes in a linked list
+  prehashlistnode_t *node, *ptr;  // curr and next keep track of the current and the next chashlistnodes in a linked list
   unsigned int oldsize;
-  int isfirst;    // Keeps track of the first element in the prehashlistnode_t for each bin in hashtable
   int i,index;
-  prehashlistnode_t *newnode;
+  unsigned int mask;
 
   ptr = pflookup.table;
   oldsize = pflookup.size;
@@ -148,43 +141,41 @@ unsigned int prehashResize(unsigned int newsize) {
 
   pflookup.table = node;                //Update the global hashtable upon resize()
   pflookup.size = newsize;
-  pflookup.mask = (newsize << 1) -1;
-  pflookup.numelements = 0;
+  pflookup.threshold=newsize*pflookup.loadfactor;
+  mask=pflookup.mask = (newsize << 1) -1;
 
   for(i = 0; i < oldsize; i++) {                        //Outer loop for each bin in hash table
-    curr = &ptr[i];
-    isfirst = 1;
-    while (curr != NULL) {                      //Inner loop to go through linked lists
-      if (curr->key == 0) {             //Exit inner loop if there the first element for a given bin/index is NULL
+    prehashlistnode_t * curr = &ptr[i];
+    prehashlistnode_t *tmp, *next;
+    int isfirst = 1;
+    do {
+      unsigned int key;
+      if ((key=curr->key) == 0) {             //Exit inner loop if there the first element for a given bin/index is NULL
 	break;                  //key = val =0 for element if not present within the hash table
       }
       next = curr->next;
-      index = prehashFunction(curr->key);
+      index = (key & mask)>>1;
+      tmp=&pflookup.table[index];
       // Insert into the new table
-      if(pflookup.table[index].next == NULL && pflookup.table[index].key == 0) {
-	pflookup.table[index].key = curr->key;
-	pflookup.table[index].val = curr->val;
-	pflookup.numelements++;
-      } else {
-	if((newnode = calloc(1, sizeof(prehashlistnode_t))) == NULL) {
-	  printf("Calloc error %s, %d\n", __FILE__, __LINE__);
-	  return 1;
-	}
+      if(tmp->key==0) {
+	tmp->key=curr->key;
+	tmp->val=curr->val;
+	if (!isfirst)
+	  free(curr);
+      } else if (isfirst) {
+	prehashlistnode_t * newnode = calloc(1, sizeof(prehashlistnode_t));
 	newnode->key = curr->key;
 	newnode->val = curr->val;
-	newnode->next = pflookup.table[index].next;
-	pflookup.table[index].next = newnode;
-	pflookup.numelements++;
-      }
-
-      //free the linked list of prehashlistnode_t if not the first element in the hash table
-      if (isfirst != 1) {
-	free(curr);
+	newnode->next = tmp->next;
+	tmp->next=newnode;
+      } else {
+	curr->next=tmp->next;
+	tmp->next=curr;
       }
 
       isfirst = 0;
       curr = next;
-    }
+    } while(curr!=NULL);
   }
 
   free(ptr);            //Free the memory of the old hash table

@@ -19,13 +19,14 @@ typedef struct mhashtable {
   unsigned int size;
   unsigned int mask;
   unsigned int numelements;
-  float loadfactor;
+  unsigned int threshold;
+  double loadfactor;
   pthread_mutex_t locktable;
 } mhashtable_t;
 
-unsigned int mhashCreate(unsigned int size, float loadfactor);
+unsigned int mhashCreate(unsigned int size, double loadfactor);
 unsigned int mhashFunction(unsigned int key);
-unsigned mhashInsert(unsigned int key, void *val);
+void mhashInsert(unsigned int key, void *val);
 void *mhashSearch(unsigned int key); //returns val, NULL if not found
 unsigned int mhashRemove(unsigned int key); //returns -1 if not found
 unsigned int mhashResize(unsigned int newsize);

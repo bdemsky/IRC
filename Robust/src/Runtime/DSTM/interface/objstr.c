@@ -1,5 +1,8 @@
 #include "dstm.h"
 
+#define OSUSED(x) (((unsigned int)(x)->top)-((unsigned int) (x+1)))
+#define OSFREE(x) ((x)->size-OSUSED(x))
+
 objstr_t *objstrCreate(unsigned int size) {
   objstr_t *tmp;
   if((tmp = calloc(1, (sizeof(objstr_t) + size))) == NULL) {
@@ -23,36 +26,28 @@ void objstrDelete(objstr_t *store) {
   return;
 }
 
-void *objstrAlloc(objstr_t *store, unsigned int size) {
+void *objstrAlloc(objstr_t **osptr, unsigned int size) {
   void *tmp;
-  while (1) {
-    if (((unsigned int)store->top - (((unsigned int)store) + sizeof(objstr_t)) + size) <= store->size) { //store not full
-      tmp = store->top;
-      store->top += size;
+  int i=0;
+  objstr_t *store=*osptr;
+  for(;i<3;i++) {
+    if (OSFREE(store)>=size) {
+      tmp=store->top;
+      store->top +=size;
       return tmp;
     }
-    //store full
-    if (store->next == NULL) {
-      //end of list, all full
-      if (size > DEFAULT_OBJ_STORE_SIZE) {
-	//in case of large objects
-	if((store->next = (objstr_t *)calloc(1,(sizeof(objstr_t) + size))) == NULL) {
-	  printf("%s() Calloc error at line %d, %s\n", __func__, __LINE__, __FILE__);
-	  return NULL;
-	}
-	store = store->next;
-	store->size = size;
-      } else {
-	if((store->next = calloc(1,(sizeof(objstr_t) + DEFAULT_OBJ_STORE_SIZE))) == NULL) {
-	  printf("%s() Calloc error at line %d, %s\n", __func__, __LINE__, __FILE__);
-	  return NULL;
-	}
-	store = store->next;
-	store->size = DEFAULT_OBJ_STORE_SIZE;
-      }
-      store->top = (void *)(((unsigned int)store) + sizeof(objstr_t) + size);
-      return (void *)(((unsigned int)store) + sizeof(objstr_t));
-    } else
-      store = store->next;
+    if ((store=store->next)==NULL)
+      break;
+  }
+
+  {
+    unsigned int newsize=size>DEFAULT_OBJ_STORE_SIZE?size:DEFAULT_OBJ_STORE_SIZE;
+    objstr_t *os=(objstr_t *)calloc(1,(sizeof(objstr_t) + newsize));
+    void *ptr=&os[1];
+    os->next=store;
+    (*osptr)=os;
+    os->size=newsize;
+    os->top=((char *)ptr)+size;
+    return ptr;
   }
 }
