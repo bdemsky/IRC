@@ -206,6 +206,9 @@ public class Main {
     if (state.TASK) {
       sc.getClass("TagDescriptor");
     }
+    if (state.THREAD) {
+	sc.getClass("Thread");
+    }
 
     sc.semanticCheck();
 
