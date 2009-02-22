@@ -36,25 +36,22 @@ static INLINE unsigned int chashFunction(chashtable_t *table, unsigned int key) 
 
 //Store objects and their pointers into hash
 void chashInsert(chashtable_t *table, unsigned int key, void *val) {
-  unsigned int newsize;
-  int index;
-  chashlistnode_t *ptr, *node;
+  chashlistnode_t *ptr;
 
   if(table->numelements > (table->threshold)) {
     //Resize
-    newsize = table->size << 1;
+    unsigned int newsize = table->size << 1;
     chashResize(table,newsize);
   }
 
-  index = (key & table->mask) >>1;
-  ptr = &table->table[index];
+  ptr = &table->table[(key&table->mask)>>1];
   table->numelements++;
 
   if(ptr->key==0) {
     ptr->key=key;
     ptr->val=val;
   } else { // Insert in the beginning of linked list
-    node = calloc(1, sizeof(chashlistnode_t));
+    chashlistnode_t * node = calloc(1, sizeof(chashlistnode_t));
     node->key = key;
     node->val = val;
     node->next = ptr->next;
@@ -158,13 +155,17 @@ unsigned int chashResize(chashtable_t *table, unsigned int newsize) {
 	if (!isfirst) {
 	  free(curr);
 	}
-      } else if (isfirst) {
+      }/*
+	 NOTE:  Add this case if you change this...
+	 This case currently never happens because of the way things rehash....
+	 else if (isfirst) {
 	chashlistnode_t *newnode= calloc(1, sizeof(chashlistnode_t));
 	newnode->key = curr->key;
 	newnode->val = curr->val;
 	newnode->next = tmp->next;
 	tmp->next=newnode;
-      } else {
+	} */
+      else {
 	curr->next=tmp->next;
 	tmp->next=curr;
       }

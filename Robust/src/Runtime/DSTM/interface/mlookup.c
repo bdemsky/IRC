@@ -29,18 +29,16 @@ unsigned int mhashFunction(unsigned int key) {
 
 // Insert value and key mapping into the hash table
 void mhashInsert(unsigned int key, void *val) {
-  unsigned int newsize;
-  int index;
   mhashlistnode_t *ptr, *node;
 
   pthread_mutex_lock(&mlookup.locktable);
   if (mlookup.numelements > mlookup.threshold) {
     //Resize Table
-    newsize = mlookup.size << 1;
+    unsigned int newsize = mlookup.size << 1;
     mhashResize(newsize);
   }
-  index = (key & mlookup.mask) >>1;
-  ptr = &mlookup.table[index];
+
+  ptr = &mlookup.table[(key & mlookup.mask) >>1];
   mlookup.numelements++;
 
 
@@ -154,13 +152,18 @@ unsigned int mhashResize(unsigned int newsize) {
 	tmp->val=curr->val;
 	if (!isfirst)
 	  free(curr);
-      } else if (isfirst) {
+      } /*
+
+         NOTE:  Add this case if you change this...                                                        
+         This case currently never happens because of the way things rehash....                            
+else if (isfirst) {
 	mhashlistnode_t *newnode = calloc(1, sizeof(mhashlistnode_t));
 	newnode->key = curr->key;
 	newnode->val = curr->val;
 	newnode->next = tmp->next;
 	tmp->next=newnode;
-      } else {
+	} */
+      else {
 	curr->next=tmp;
 	tmp->next=curr;
       }

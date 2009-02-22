@@ -43,26 +43,24 @@ unsigned int prehashFunction(unsigned int key) {
 
 //Store oids and their pointers into hash
 void prehashInsert(unsigned int key, void *val) {
-  unsigned int newsize;
-  int index;
-  prehashlistnode_t *ptr, *node;
+  prehashlistnode_t *ptr;
   pthread_mutex_lock(&pflookup.lock);
 
   if(pflookup.numelements > (pflookup.threshold)) {
     //Resize
-    newsize = pflookup.size << 1;
+    unsigned int newsize = pflookup.size << 1;
     prehashResize(newsize);
   }
 
-  index = (key & pflookup.mask)>>1;
-  ptr = &pflookup.table[index];
+
+  ptr = &pflookup.table[(key & pflookup.mask)>>1];
   pflookup.numelements++;
 
   if(ptr->key==0) {
     ptr->key = key;
     ptr->val = val;
   } else {                      // Insert in the beginning of linked list
-    node = calloc(1, sizeof(prehashlistnode_t));
+    prehashlistnode_t * node = calloc(1, sizeof(prehashlistnode_t));
     node->key = key;
     node->val = val ;
     node->next = ptr->next;
@@ -162,13 +160,17 @@ unsigned int prehashResize(unsigned int newsize) {
 	tmp->val=curr->val;
 	if (!isfirst)
 	  free(curr);
-      } else if (isfirst) {
+      } /*
+         NOTE:  Add this case if you change this...                                                        
+         This case currently never happens because of the way things rehash....                            
+else if (isfirst) {
 	prehashlistnode_t * newnode = calloc(1, sizeof(prehashlistnode_t));
 	newnode->key = curr->key;
 	newnode->val = curr->val;
 	newnode->next = tmp->next;
 	tmp->next=newnode;
-      } else {
+	} */
+      else {
 	curr->next=tmp->next;
 	tmp->next=curr;
       }
