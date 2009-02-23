@@ -70,7 +70,8 @@ public class TaskSimulator {
     }
   }
 
-  public TaskSimulator(TaskDescriptor td, CoreSimulator cs) {
+  public TaskSimulator(TaskDescriptor td, 
+	               CoreSimulator cs) {
     super();
     this.td = td;
     this.paraQueues = null;
@@ -104,7 +105,10 @@ public class TaskSimulator {
     return this.objVersionTbl.get(os).intValue();
   }
 
-  public void enquePara(ObjectSimulator obj, FlagState fs, int version, boolean inherent) {
+  public void enquePara(ObjectSimulator obj, 
+	                FlagState fs, 
+	                int version, 
+	                boolean inherent) {
     ClassDescriptor cd = obj.getCd();
     int paraNum = td.numParameters();
     for(int i = 0; i < paraNum; i++) {
@@ -142,7 +146,8 @@ public class TaskSimulator {
     }
   }
 
-  public void refreshPara(ObjectSimulator obj, boolean remove) {
+  public void refreshPara(ObjectSimulator obj, 
+	                  boolean remove) {
     ClassDescriptor cd = obj.getCd();
     int paraNum = td.numParameters();
     for(int i = 0; i < paraNum; i++) {
@@ -274,7 +279,8 @@ public class TaskSimulator {
       FlagState tfstate = tpara.getCurrentFS();
       FEdge toexecute = tfstate.process(td);
       finishTime += toexecute.getExeTime();
-      if((toexecute.getNewObjInfoHashtable() != null) && (toexecute.getNewObjInfoHashtable().size() > 0)) {
+      if((toexecute.getNewObjInfoHashtable() != null) 
+	      && (toexecute.getNewObjInfoHashtable().size() > 0)) {
 	// have new objects
 	Iterator it = toexecute.getNewObjInfoHashtable().keySet().iterator();
 	int invokeNum = toexecute.getInvokeNum();

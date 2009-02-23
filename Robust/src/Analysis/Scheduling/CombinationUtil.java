@@ -15,11 +15,13 @@ public class CombinationUtil {
     return cu;
   }
 
-  public static RootsGenerator allocateRootsGenerator(Vector<Vector<ScheduleNode>> snodevecs, int rootNum) {
+  public static RootsGenerator allocateRootsGenerator(Vector<Vector<ScheduleNode>> snodevecs, 
+	                                              int rootNum) {
     return CombinationUtil.allocateCombinationUtil().new RootsGenerator(snodevecs, rootNum);
   }
 
-  public static CombineGenerator allocateCombineGenerator(Vector<Vector<ScheduleNode>> rootnodes, Vector<Vector<ScheduleNode>> node2combine) {
+  public static CombineGenerator allocateCombineGenerator(Vector<Vector<ScheduleNode>> rootnodes, 
+	                                                  Vector<Vector<ScheduleNode>> node2combine) {
     return CombinationUtil.allocateCombinationUtil().new CombineGenerator(rootnodes, node2combine);
   }
 

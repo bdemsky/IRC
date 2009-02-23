@@ -20,6 +20,7 @@ import Analysis.TaskStateAnalysis.FlagState;
 import Analysis.TaskStateAnalysis.FEdge.NewObjInfo;
 import IR.ClassDescriptor;
 import IR.Operation;
+import IR.State;
 import IR.Tree.FlagExpressionNode;
 import IR.Tree.FlagNode;
 import IR.Tree.FlagOpNode;
@@ -28,6 +29,159 @@ import Util.GraphNode;
 import Util.Namer;
 
 public class SchedulingUtil {
+    
+    public static Vector<ScheduleNode> generateScheduleGraph(State state, 
+	                                                     Vector<ScheduleNode> scheduleNodes,
+	                                                     Vector<ScheduleEdge> scheduleEdges,
+	                                                     Vector<Vector<ScheduleNode>> rootnodes, 
+	                                                     Vector<Vector<CombinationUtil.Combine>> combine, 
+	                                                     int gid) {
+	Vector<ScheduleNode> result = new Vector<ScheduleNode>();
+
+	// clone the ScheduleNodes
+	Hashtable<ScheduleNode, Hashtable<ClassNode, ClassNode>> sn2hash = 
+	    new Hashtable<ScheduleNode, Hashtable<ClassNode, ClassNode>>();
+	Hashtable<ScheduleNode, ScheduleNode> sn2sn = 
+	    new Hashtable<ScheduleNode, ScheduleNode>();
+	cloneScheduleGraph(scheduleNodes,
+		           scheduleEdges,
+		           sn2hash,
+		           sn2sn,
+		           result,
+		           gid);
+
+	// combine those nodes in combine with corresponding rootnodes
+	for(int i = 0; i < combine.size(); i++) {
+	    if(combine.elementAt(i) != null) {
+		for(int j = 0; j < combine.elementAt(i).size(); j++) {
+		    CombinationUtil.Combine tmpcombine = combine.elementAt(i).elementAt(j);
+		    ScheduleNode tocombine = sn2sn.get(tmpcombine.node);
+		    ScheduleNode root = sn2sn.get(rootnodes.elementAt(tmpcombine.root).elementAt(tmpcombine.index));
+		    ScheduleEdge se = (ScheduleEdge)tocombine.inedges().next();
+		    try {
+			if(root.equals(((ScheduleNode)se.getSource()))) {
+			    root.mergeSEdge(se);
+			    if(ScheduleEdge.NEWEDGE == se.getType()) {
+				// As se has been changed into an internal edge inside a ScheduleNode,
+				// change the source and target of se from original ScheduleNodes into ClassNodes.
+				se.setTarget(se.getTargetCNode());
+				//se.setSource(se.getSourceCNode());
+				//se.getTargetCNode().addEdge(se);
+				se.getSourceCNode().addEdge(se);
+			    }
+			} else {
+			    root.mergeSNode(tocombine);
+			}
+		    } catch(Exception e) {
+			e.printStackTrace();
+			System.exit(-1);
+		    }
+		    result.removeElement(tocombine);
+		}
+	    }
+	}
+	
+	assignCids(result);
+	
+	sn2hash.clear();
+	sn2hash = null;
+	sn2sn.clear();
+	sn2sn = null;
+
+	if(state.PRINTSCHEDULING) {
+	    String path = "scheduling_" + gid + ".dot";
+	    SchedulingUtil.printScheduleGraph(path, result);
+	}
+
+	return result;
+    }
+    
+    public static void cloneScheduleGraph(Vector<ScheduleNode> scheduleNodes,
+                                          Vector<ScheduleEdge> scheduleEdges,
+                                          Hashtable<ScheduleNode, Hashtable<ClassNode, ClassNode>> sn2hash,
+                                          Hashtable<ScheduleNode, ScheduleNode> sn2sn,
+                                          Vector<ScheduleNode> result,
+                                          int gid) {
+	for(int i = 0; i < scheduleNodes.size(); i++) {
+	    Hashtable<ClassNode, ClassNode> cn2cn = new Hashtable<ClassNode, ClassNode>();
+	    ScheduleNode tocopy = scheduleNodes.elementAt(i);
+	    ScheduleNode temp = (ScheduleNode)tocopy.clone(cn2cn, gid);
+	    result.add(i, temp);
+	    sn2hash.put(temp, cn2cn);
+	    sn2sn.put(tocopy, temp);
+	    cn2cn = null;
+	}
+	// clone the ScheduleEdges
+	for(int i = 0; i < scheduleEdges.size(); i++) {
+	    ScheduleEdge sse = scheduleEdges.elementAt(i);
+	    ScheduleNode csource = sn2sn.get(sse.getSource());
+	    ScheduleNode ctarget = sn2sn.get(sse.getTarget());
+	    Hashtable<ClassNode, ClassNode> sourcecn2cn = sn2hash.get(csource);
+	    Hashtable<ClassNode, ClassNode> targetcn2cn = sn2hash.get(ctarget);
+	    ScheduleEdge se =  null;
+	    switch(sse.getType()) {
+	    case ScheduleEdge.NEWEDGE: {
+		se = new ScheduleEdge(ctarget, "new", sse.getFstate(), sse.getType(), gid);       //new ScheduleEdge(ctarget, "new", sse.getClassDescriptor(), sse.getIsNew(), gid);
+		se.setProbability(sse.getProbability());
+		se.setNewRate(sse.getNewRate());
+		break;
+	    }
+
+	    case ScheduleEdge.TRANSEDGE: {
+		se = new ScheduleEdge(ctarget, "transmit", sse.getFstate(), sse.getType(), gid);       //new ScheduleEdge(ctarget, "transmit", sse.getClassDescriptor(), false, gid);
+		break;
+	    }
+	    }
+	    se.setSourceCNode(sourcecn2cn.get(sse.getSourceCNode()));
+	    se.setTargetCNode(targetcn2cn.get(sse.getTargetCNode()));
+	    se.setFEdge(sse.getFEdge());
+	    se.setTargetFState(sse.getTargetFState());
+	    se.setIsclone(true);
+	    csource.addEdge(se);
+	    sourcecn2cn = null;
+	    targetcn2cn = null;
+	}
+    }
+    
+    public static void assignCids(Vector<ScheduleNode> result) {
+	Hashtable<Integer, Integer> hcid2cid = new Hashtable<Integer, Integer>();
+	int ncid = 0;
+	for(int i = 0; i < result.size(); i++) {
+	    ScheduleNode tmpnode = result.elementAt(i);
+	    tmpnode.computeHashcid();
+	    int hcid = tmpnode.getHashcid();
+	    if(hcid2cid.containsKey(hcid)) {
+		// already have a cid for this node
+		tmpnode.setCid(hcid2cid.get(hcid));
+	    } else {
+		// generate a new cid for such node
+		tmpnode.setCid(ncid);
+		hcid2cid.put(hcid, ncid);
+		ncid++;
+	    }
+	}
+	hcid2cid.clear();
+	hcid2cid = null;
+    }
+    
+    //  Organize the scheduleNodes in order of their cid
+    public static Vector<Vector<ScheduleNode>> rangeScheduleNodes(Vector<ScheduleNode> scheduleNodes) {
+	Vector<Vector<ScheduleNode>> sNodeVecs = new Vector<Vector<ScheduleNode>>();
+	
+	for(int i = 0; i < scheduleNodes.size(); i++) {
+	    ScheduleNode tmpn = scheduleNodes.elementAt(i);
+	    int index = tmpn.getCid();
+	    while(sNodeVecs.size() <= index) {
+		sNodeVecs.add(null);
+	    }
+	    if(sNodeVecs.elementAt(index) == null) {
+		sNodeVecs.setElementAt(new Vector<ScheduleNode>(), index);
+	    }
+	    sNodeVecs.elementAt(index).add(tmpn);
+	}
+	
+	return sNodeVecs;
+    }
 
   /*public static int maxDivisor(int l, int r) {
       int a = l;
@@ -61,7 +215,8 @@ public class SchedulingUtil {
       }
      }*/
 
-  public static boolean isTaskTrigger_flag(FlagExpressionNode fen,FlagState fs) {
+  public static boolean isTaskTrigger_flag(FlagExpressionNode fen,
+	                                   FlagState fs) {
     if (fen==null)
       return true;
     else if (fen instanceof FlagNode)
@@ -82,7 +237,8 @@ public class SchedulingUtil {
       }
   }
 
-  public static void printScheduleGraph(String path, Vector<ScheduleNode> sNodes) {
+  public static void printScheduleGraph(String path, 
+	                                Vector<ScheduleNode> sNodes) {
     try {
       File file=new File(path);
       FileOutputStream dotstream=new FileOutputStream(file,false);
@@ -98,7 +254,8 @@ public class SchedulingUtil {
     }
   }
 
-  private static void traverseSNodes(PrintWriter output, Vector<ScheduleNode> sNodes) {
+  private static void traverseSNodes(PrintWriter output, 
+	                             Vector<ScheduleNode> sNodes) {
     //Draw clusters representing ScheduleNodes
     Iterator it = sNodes.iterator();
     while (it.hasNext()) {
@@ -170,7 +327,8 @@ public class SchedulingUtil {
     }
   }
 
-  private static void traverseCNodes(PrintWriter output, Iterator it) {
+  private static void traverseCNodes(PrintWriter output, 
+	                             Iterator it) {
     //Draw clusters representing ClassNodes
     while (it.hasNext()) {
       ClassNode gn = (ClassNode) it.next();
@@ -186,7 +344,8 @@ public class SchedulingUtil {
     }
   }
 
-  private static void traverseFlagStates(PrintWriter output, Collection nodes) {
+  private static void traverseFlagStates(PrintWriter output, 
+	                                 Collection nodes) {
     Set cycleset=GraphNode.findcycles(nodes);
     Vector namers=new Vector();
     namers.add(new Namer());
@@ -256,7 +415,8 @@ public class SchedulingUtil {
     }
   }
 
-  private static Set nonmerge(GraphNode gn, Collection nodes) {
+  private static Set nonmerge(GraphNode gn, 
+	                      Collection nodes) {
     HashSet newset=new HashSet();
     HashSet toprocess=new HashSet();
     toprocess.add(gn);
@@ -278,7 +438,10 @@ public class SchedulingUtil {
     return newset;
   }
 
-  public static void printSimulationResult(String path, int time, int coreNum, Vector<CheckPoint> checkpoints) {
+  public static void printSimulationResult(String path, 
+	                                   int time, 
+	                                   int coreNum, 
+	                                   Vector<CheckPoint> checkpoints) {
     try {
       File file=new File(path);
       FileOutputStream dotstream=new FileOutputStream(file,false);
@@ -325,11 +488,13 @@ public class SchedulingUtil {
 	for(int i = 0; i < actions.size(); i++) {
 	  Action taction = actions.elementAt(i);
 	  int cNum = taction.getCoreNum();
-	  if(!tmplastTasks.contains(cNum)) {
+	  if(!tmplastTasks.containsKey(cNum)) {
 	    tmplastTasks.put(cNum, lastTasks[cNum]);
 	  }
-	  if(!(tmpisset.contains(cNum)) && (isTaskFinish[cNum]) && !(tmpisTaskFinish.contains(cNum))) {
-	    tmpisTaskFinish.add(cNum);             // records those with task finished the first time visit it
+	  if(!(tmpisset.contains(cNum)) 
+		  && (isTaskFinish[cNum]) 
+		  && !(tmpisTaskFinish.contains(cNum))) {
+	    tmpisTaskFinish.add(cNum);  // records those with task finished the first time visit it
 	  }
 	  String tmpTaskNode = "\"" + tnode + "core" + cNum + "\"";
 	  StringBuffer tmpLabel = null;
@@ -365,7 +530,15 @@ public class SchedulingUtil {
 	    if(!isfirst) {
 	      tmpLabel.append("\\n");
 	    }
-	    tmpLabel.append("<" + taction.getTd().getSymbol() + ">finishes;");
+	    tmpLabel.append("<" + taction.getTd().getSymbol() + "(");
+	    /*Vector<Integer> taskparams = taction.getTaskParams();
+	    for(int ii = 0; ii < taskparams.size(); ii++) {
+		tmpLabel.append(taskparams.elementAt(ii));
+		if(ii < taskparams.size() - 1) {
+		    tmpLabel.append(",");
+		}
+	    }*/
+	    tmpLabel.append(")>finishes;");
 	    if(!(lastTaskNodes[cNum].equals("first"))) {
 	      if(!(lastTaskNodes[cNum].equals(tmpTaskNode))) {
 		output.print("\t");
@@ -389,7 +562,15 @@ public class SchedulingUtil {
 	    if(!isfirst) {
 	      tmpLabel.append("\\n");
 	    }
-	    tmpLabel.append("<" + taction.getTd().getSymbol() + ">finishes; ");
+	    tmpLabel.append("<" + taction.getTd().getSymbol() + "(");
+	    /*Vector<Integer> taskparams = taction.getTaskParams();
+	    for(int ii = 0; ii < taskparams.size(); ii++) {
+		tmpLabel.append(taskparams.elementAt(ii));
+		if(ii < taskparams.size() - 1) {
+		    tmpLabel.append(",");
+		}
+	    }*/
+	    tmpLabel.append(")>finishes;");
 	    Iterator<Entry<ClassDescriptor, Integer>> it_entry = (Iterator<Entry<ClassDescriptor, Integer>>)taction.getNObjs().entrySet().iterator();
 	    while(it_entry.hasNext()) {
 	      Entry<ClassDescriptor, Integer> entry = it_entry.next();
@@ -423,7 +604,15 @@ public class SchedulingUtil {
 	    if(!isfirst) {
 	      tmpLabel.append("\\n");
 	    }
-	    tmpLabel.append("<" + taction.getTd().getSymbol() + ">starts;");
+	    tmpLabel.append("<" + taction.getTd().getSymbol() + "(");
+	    /*Vector<Integer> taskparams = taction.getTaskParams();
+	    for(int ii = 0; ii < taskparams.size(); ii++) {
+		tmpLabel.append(taskparams.elementAt(ii));
+		if(ii < taskparams.size() - 1) {
+		    tmpLabel.append(",");
+		}
+	    }*/
+	    tmpLabel.append(")>starts;");
 	    lastTasks[cNum] = taction.getTd().getSymbol();
 
 	    if (!(lastTaskNodes[cNum].equals(tmpTaskNode))) {
@@ -447,7 +636,15 @@ public class SchedulingUtil {
 	    if(!isfirst) {
 	      tmpLabel.append("\\n");
 	    }
-	    tmpLabel.append("<" + taction.getTd().getSymbol() + ">aborts;");
+	    tmpLabel.append("<" + taction.getTd().getSymbol() + "(");
+	    /*Vector<Integer> taskparams = taction.getTaskParams();
+	    for(int ii = 0; ii < taskparams.size(); ii++) {
+		tmpLabel.append(taskparams.elementAt(ii));
+		if(ii < taskparams.size() - 1) {
+		    tmpLabel.append(",");
+		}
+	    }*/
+	    tmpLabel.append(")>aborts;");
 	    if(!(lastTaskNodes[cNum].equals("first")) &&
 	       (tmplastTasks.get(cNum).equals(taction.getTd().getSymbol()))) {
 	      if(!(lastTaskNodes[cNum].equals(tmpTaskNode))) {
@@ -472,7 +669,15 @@ public class SchedulingUtil {
 	    if(!isfirst) {
 	      tmpLabel.append("\\n");
 	    }
-	    tmpLabel.append("<" + taction.getTd().getSymbol() + ">removes;");
+	    tmpLabel.append("<" + taction.getTd().getSymbol() + "(");
+	    /*Vector<Integer> taskparams = taction.getTaskParams();
+	    for(int ii = 0; ii < taskparams.size(); ii++) {
+		tmpLabel.append(taskparams.elementAt(ii));
+		if(ii < taskparams.size() - 1) {
+		    tmpLabel.append(",");
+		}
+	    }*/
+	    tmpLabel.append(")>removes;");
 	    if(!(lastTaskNodes[cNum].equals("first")) &&
 	       (tmplastTasks.get(cNum).equals(taction.getTd().getSymbol()))) {
 	      if(!(lastTaskNodes[cNum].equals(tmpTaskNode))) {
@@ -571,5 +776,49 @@ public class SchedulingUtil {
       e.printStackTrace();
       System.exit(-1);
     }
+  }
+  
+  public static void printCriticalPath(String path,
+	                               Vector<SimExecutionEdge> criticalPath) {
+      try {
+	  File file=new File(path);
+	  FileOutputStream dotstream=new FileOutputStream(file,false);
+	  PrintWriter output = new java.io.PrintWriter(dotstream, true);
+	  output.println("digraph simulation{");
+	  output.print("\t");
+	  output.println("node [shape=plaintext];");
+	  output.print("\t");
+	  output.println("edge [dir=none];");
+	  output.print("\t");
+	  output.println("ranksep=.05;");
+	  output.println();
+	  output.print("\t");
+	  Vector<SimExecutionNode> nodes = new Vector<SimExecutionNode>();
+	  String label = "";
+	  String dotnodeparams="";
+
+	  for(int i = 0; i < criticalPath.size(); i++) {
+	      SimExecutionEdge seedge = criticalPath.elementAt(i);
+	      SimExecutionNode startnode = (SimExecutionNode)seedge.getSource();
+	      SimExecutionNode endnode = (SimExecutionNode)seedge.getTarget();
+	      if(!nodes.contains(startnode)) {
+		  label = startnode.getCoreNum() + ":" + startnode.getTimepoint();
+		  output.println("\t" + startnode.getLabel() + " [label=\"" 
+			         + label + "\" ];");
+	      }
+	      if(!nodes.contains(endnode)) {
+		  label = endnode.getCoreNum() + ":" + endnode.getTimepoint();
+		  output.println("\t" + endnode.getLabel() + " [label=\"" 
+			         + label + "\" ];");
+	      }
+	      output.println("\t" + startnode.getLabel() + " -> " + endnode.getLabel() 
+		             + " [" + "label=\"" + seedge.getLabel() + "\"];");
+	  }
+	  output.println("}");
+	  output.close();
+      } catch (Exception e) {
+	  e.printStackTrace();
+	  System.exit(-1);
+      }
   }
 }

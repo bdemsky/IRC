@@ -11,7 +11,11 @@ import Util.GraphNode;
 public class ClassNode extends GraphNode implements Cloneable {
 
   private int uid;
+  private int cid;
   private static int nodeID=0;
+  private static int colorID = 1;
+  private static Hashtable<ClassDescriptor, Integer> cd2cid = 
+      new Hashtable<ClassDescriptor, Integer>(); 
 
   private final ClassDescriptor cd;
   private ScheduleNode sn;
@@ -25,11 +29,25 @@ public class ClassNode extends GraphNode implements Cloneable {
    *	@param cd ClassDescriptor
    *  @param fStates
    */
-  public ClassNode(ClassDescriptor cd, Vector<FlagState> fStates) {
+  public ClassNode(ClassDescriptor cd, 
+	           Vector<FlagState> fStates) {
     this.cd=cd;
     this.flagStates = fStates;
     this.sn = null;
     this.uid=ClassNode.nodeID++;
+    // TODO: potential bug here
+    // DO NOT consider splitting a class node here.
+    // need to fix: 1. when a class node is splitted, the pieces should have 
+    //                 different cid
+    //              2. when two pieces merged, it should have right cid as have
+    //                 never been splitted
+    //              3. NOTE: a piece could be splitted further
+    if(this.cd2cid.containsKey(cd)) {
+	this.cid = this.cd2cid.get(cd);
+    } else {
+	this.cid = ClassNode.colorID++;
+	this.cd2cid.put(this.cd, this.cid);
+    }
     this.transTime = 0;
   }
 
@@ -43,6 +61,10 @@ public class ClassNode extends GraphNode implements Cloneable {
 
   public int getuid() {
     return uid;
+  }
+
+  public int getCid() {
+      return cid;
   }
 
   public ScheduleNode getScheduleNode() {
@@ -99,6 +121,8 @@ public class ClassNode extends GraphNode implements Cloneable {
     if (o instanceof ClassNode) {
       ClassNode fs=(ClassNode)o;
       if ((fs.getClassDescriptor()!= cd) ||
+	  (fs.getuid()!= uid) ||
+	  (fs.getCid()!= cid) ||
           (fs.isSorted() != sorted) ||
           (fs.clone != this.clone) ||
           (fs.transTime != this.transTime)) {
@@ -110,8 +134,8 @@ public class ClassNode extends GraphNode implements Cloneable {
   }
 
   public int hashCode() {
-    return cd.hashCode()^Boolean.toString(sorted).hashCode()^Boolean.toString(clone).hashCode()^
-           transTime^flagStates.hashCode();
+    return cd.hashCode()^uid^cid^Boolean.toString(sorted).hashCode()^
+           Boolean.toString(clone).hashCode()^transTime^flagStates.hashCode();
   }
 
   public String getLabel() {
@@ -139,6 +163,7 @@ public class ClassNode extends GraphNode implements Cloneable {
       e.printStackTrace();
     }
     o.uid = ClassNode.nodeID++;
+    o.cid = this.cid;
     o.clone = true;
     return o;
   }

@@ -14,6 +14,7 @@ public class ScheduleAnalysis {
 
     State state;
     TaskAnalysis taskanalysis;
+    
     Vector<ScheduleNode> scheduleNodes;
     Vector<ClassNode> classNodes;
     Vector<ScheduleEdge> scheduleEdges;
@@ -22,25 +23,30 @@ public class ScheduleAnalysis {
 
     int transThreshold;
 
+    int scheduleThreshold;
     int coreNum;
     Vector<Vector<ScheduleNode>> scheduleGraphs;
-    Vector<Vector<Schedule>> schedulings;
 
-    public ScheduleAnalysis(State state, TaskAnalysis taskanalysis) {
+    public ScheduleAnalysis(State state, 
+	                    TaskAnalysis taskanalysis) {
 	this.state = state;
 	this.taskanalysis = taskanalysis;
 	this.scheduleNodes = new Vector<ScheduleNode>();
 	this.classNodes = new Vector<ClassNode>();
 	this.scheduleEdges = new Vector<ScheduleEdge>();
 	this.cd2ClassNode = new Hashtable<ClassDescriptor, ClassNode>();
-	this.transThreshold = 45;
+	this.transThreshold = 45; // defaultly 45
+	this.scheduleThreshold = 1000; // defaultly 1000
 	this.coreNum = -1;
 	this.scheduleGraphs = null;
-	this.schedulings = null;
     }
 
     public void setTransThreshold(int tt) {
 	this.transThreshold = tt;
+    }
+    
+    public void setScheduleThreshold(int stt) {
+	this.scheduleThreshold = stt;
     }
 
     public int getCoreNum() {
@@ -51,26 +57,117 @@ public class ScheduleAnalysis {
 	this.coreNum = coreNum;
     }
 
-    public Iterator getScheduleGraphs() {
-	return this.scheduleGraphs.iterator();
-    }
-
-    public Iterator getSchedulingsIter() {
-	return this.schedulings.iterator();
-    }
-
-    public Vector<Vector<Schedule>> getSchedulings() {
-	return this.schedulings;
+    public Vector<Vector<ScheduleNode>> getScheduleGraphs() {
+	return this.scheduleGraphs;
     }
 
     // for test
     public Vector<ScheduleEdge> getSEdges4Test() {
 	return scheduleEdges;
     }
+    
+    public void schedule() {
+	try {
+	    Vector<ScheduleEdge> toBreakDown = new Vector<ScheduleEdge>();
+	    ScheduleNode startupNode = null;
 
-    public void preparation() {
+	    // necessary preparation such as read profile info etc.
+	    preSchedule();
+	    // build the CFSTG
+	    startupNode = buildCFSTG(toBreakDown);
+	    // do Tree transform
+	    treeTransform(toBreakDown, startupNode);
+	    // do CFSTG transform to explore the potential parallelism as much
+	    // as possible
+	    CFSTGTransform();
+	    // mappint to real multi-core processor
+	    coreMapping();
+	} catch (Exception e) {
+	    e.printStackTrace();
+	    System.exit(-1);
+	}
+    }
+
+    private void preSchedule() {
+	this.checkBackEdge();
+
+	// set up profiling data
+	if(state.USEPROFILE) {
+	    java.util.Hashtable<String, TaskInfo> taskinfos = 
+		new java.util.Hashtable<String, TaskInfo>();
+	    this.readProfileInfo(taskinfos);
+
+	    int tint = 0;
+	    Iterator it_classes =
+		state.getClassSymbolTable().getDescriptorsIterator();
+	    while(it_classes.hasNext()) {
+		ClassDescriptor cd = (ClassDescriptor) it_classes.next();
+		if(cd.hasFlags()) {
+		    Vector rootnodes = this.taskanalysis.getRootNodes(cd);
+		    if(rootnodes!=null) {
+			Iterator it_rootnodes = rootnodes.iterator();
+			while(it_rootnodes.hasNext()) {
+			    FlagState root = (FlagState)it_rootnodes.next();
+			    Vector allocatingTasks = root.getAllocatingTasks();
+			    if(allocatingTasks != null) {
+				for(int k = 0; k < allocatingTasks.size(); k++) {
+				    TaskDescriptor td = 
+					(TaskDescriptor)allocatingTasks.elementAt(k);
+				    Vector<FEdge> fev = 
+					this.taskanalysis.getFEdgesFromTD(td);
+				    int numEdges = fev.size();
+				    for(int j = 0; j < numEdges; j++) {
+					FEdge pfe = fev.elementAt(j);
+					TaskInfo taskinfo = 
+					    taskinfos.get(td.getSymbol());
+					tint = taskinfo.m_exetime[pfe.getTaskExitIndex()];
+					pfe.setExeTime(tint);
+					double idouble = 
+					    taskinfo.m_probability[pfe.getTaskExitIndex()];
+					pfe.setProbability(idouble);
+					int newRate = 0;
+					if((taskinfo.m_newobjinfo.elementAt(pfe.getTaskExitIndex()) != null)
+						&& (taskinfo.m_newobjinfo.elementAt(pfe.getTaskExitIndex()).containsKey(cd.getSymbol()))) {
+					    newRate = taskinfo.m_newobjinfo.elementAt(pfe.getTaskExitIndex()).get(cd.getSymbol());
+					}
+					pfe.addNewObjInfo(cd, newRate, idouble);
+					if(taskinfo.m_byObj != -1) {
+					    ((FlagState)pfe.getSource()).setByObj(taskinfo.m_byObj);
+					}
+				    }
+				    fev = null;
+				}
+			    }
+			}
+		    }
+		    Iterator it_flags = this.taskanalysis.getFlagStates(cd).iterator();
+		    while(it_flags.hasNext()) {
+			FlagState fs = (FlagState)it_flags.next();
+			Iterator it_edges = fs.edges();
+			while(it_edges.hasNext()) {
+			    FEdge edge = (FEdge)it_edges.next();
+			    TaskInfo taskinfo = taskinfos.get(edge.getTask().getSymbol());
+			    tint = taskinfo.m_exetime[edge.getTaskExitIndex()];
+			    edge.setExeTime(tint);
+			    double idouble = taskinfo.m_probability[edge.getTaskExitIndex()];
+			    edge.setProbability(idouble);
+			    if(taskinfo.m_byObj != -1) {
+				((FlagState)edge.getSource()).setByObj(taskinfo.m_byObj);
+			    }
+			}
+		    }
+		}
+	    }
+	    taskinfos = null;
+	} else {
+	    randomProfileSetting();
+	}
+    }
+    
+    private void checkBackEdge() {
 	// Indentify backedges
-	for(Iterator it_classes=state.getClassSymbolTable().getDescriptorsIterator(); it_classes.hasNext();) {
+	Iterator it_classes=state.getClassSymbolTable().getDescriptorsIterator();
+	while(it_classes.hasNext()) {
 	    ClassDescriptor cd=(ClassDescriptor) it_classes.next();
 	    if(cd.hasFlags()) {
 		Set<FlagState> fss = this.taskanalysis.getFlagStates(cd);
@@ -97,280 +194,223 @@ public class ScheduleAnalysis {
 		fss = null;
 	    }
 	}
-
-	// set up profiling data
-	if(state.USEPROFILE) {
-	    try {
-		// read in profile data and set
-		FileInputStream inStream = new FileInputStream("/scratch/profile.rst");
-		byte[] b = new byte[1024 * 100];
-		int length = inStream.read(b);
-		if(length < 0) {
-		    System.out.print("No content in input file: /scratch/profile.rst\n");
-		    System.exit(-1);
+    }
+    
+    private void readProfileInfo(java.util.Hashtable<String, TaskInfo> taskinfos) {
+	try {
+	    // read in profile data and set
+	    FileInputStream inStream = new FileInputStream("/scratch/profile.rst");
+	    byte[] b = new byte[1024 * 100];
+	    int length = inStream.read(b);
+	    if(length < 0) {
+		System.out.print("No content in input file: /scratch/profile.rst\n");
+		System.exit(-1);
+	    }
+	    String profiledata = new String(b, 0, length);
+	    
+	    // profile data format:
+	    //   taskname, numoftaskexits(; exetime, probability, numofnewobjtypes(, newobj type, num of objs)+)+
+	    int inindex = profiledata.indexOf('\n');
+	    while((inindex != -1) ) {
+		String inline = profiledata.substring(0, inindex);
+		profiledata = profiledata.substring(inindex + 1);
+		//System.printString(inline + "\n");
+		int tmpinindex = inline.indexOf(',');
+		if(tmpinindex == -1) {
+		    break;
 		}
-		String profiledata = new String(b, 0, length);
-		java.util.Hashtable<String, TaskInfo> taskinfos = new java.util.Hashtable<String, TaskInfo>();
-
-		// profile data format:
-		//   taskname, numoftaskexits(; exetime, probability, numofnewobjtypes(, newobj type, num of objs)+)+
-		int inindex = profiledata.indexOf('\n');
-		while((inindex != -1) ) {
-		    String inline = profiledata.substring(0, inindex);
-		    profiledata = profiledata.substring(inindex + 1);
-		    //System.printString(inline + "\n");
-		    int tmpinindex = inline.indexOf(',');
-		    if(tmpinindex == -1) {
-			break;
-		    }
-		    String inname = inline.substring(0, tmpinindex);
-		    String inint = inline.substring(tmpinindex + 1);
-		    while(inint.startsWith(" ")) {
-			inint = inint.substring(1);
-		    }
-		    tmpinindex = inint.indexOf(',');
-		    if(tmpinindex == -1) {
-			break;
-		    }
-		    int numofexits = Integer.parseInt(inint.substring(0, tmpinindex));
-		    TaskInfo tinfo = new TaskInfo(numofexits);
-		    inint = inint.substring(tmpinindex + 1);
-		    while(inint.startsWith(" ")) {
-			inint = inint.substring(1);
-		    }
-		    tmpinindex = inint.indexOf(';');
-		    int byObj = Integer.parseInt(inint.substring(0, tmpinindex));
-		    if(byObj != -1) {
-			tinfo.m_byObj = byObj;
-		    }
-		    inint = inint.substring(tmpinindex + 1);
-		    while(inint.startsWith(" ")) {
-			inint = inint.substring(1);
-		    }
-		    for(int i = 0; i < numofexits; i++) {
-			String tmpinfo = null;
-			if(i < numofexits - 1) {
-			    tmpinindex = inint.indexOf(';');
-			    tmpinfo = inint.substring(0, tmpinindex);
-			    inint = inint.substring(tmpinindex + 1);
-			    while(inint.startsWith(" ")) {
-				inint = inint.substring(1);
-			    }
-			} else {
-			    tmpinfo = inint;
+		String inname = inline.substring(0, tmpinindex);
+		String inint = inline.substring(tmpinindex + 1);
+		while(inint.startsWith(" ")) {
+		    inint = inint.substring(1);
+		}
+		tmpinindex = inint.indexOf(',');
+		if(tmpinindex == -1) {
+		    break;
+		}
+		int numofexits = Integer.parseInt(inint.substring(0, tmpinindex));
+		TaskInfo tinfo = new TaskInfo(numofexits);
+		inint = inint.substring(tmpinindex + 1);
+		while(inint.startsWith(" ")) {
+		    inint = inint.substring(1);
+		}
+		tmpinindex = inint.indexOf(';');
+		int byObj = Integer.parseInt(inint.substring(0, tmpinindex));
+		if(byObj != -1) {
+		    tinfo.m_byObj = byObj;
+		}
+		inint = inint.substring(tmpinindex + 1);
+		while(inint.startsWith(" ")) {
+		    inint = inint.substring(1);
+		}
+		for(int i = 0; i < numofexits; i++) {
+		    String tmpinfo = null;
+		    if(i < numofexits - 1) {
+			tmpinindex = inint.indexOf(';');
+			tmpinfo = inint.substring(0, tmpinindex);
+			inint = inint.substring(tmpinindex + 1);
+			while(inint.startsWith(" ")) {
+			    inint = inint.substring(1);
 			}
+		    } else {
+			tmpinfo = inint;
+		    }
 
-			tmpinindex = tmpinfo.indexOf(',');
-			tinfo.m_exetime[i] = Integer.parseInt(tmpinfo.substring(0, tmpinindex));
+		    tmpinindex = tmpinfo.indexOf(',');
+		    tinfo.m_exetime[i] = Integer.parseInt(tmpinfo.substring(0, tmpinindex));
+		    tmpinfo = tmpinfo.substring(tmpinindex + 1);
+		    while(tmpinfo.startsWith(" ")) {
+			tmpinfo = tmpinfo.substring(1);
+		    }
+		    tmpinindex = tmpinfo.indexOf(',');
+		    tinfo.m_probability[i] = Double.parseDouble(tmpinfo.substring(0, tmpinindex));
+		    tmpinfo = tmpinfo.substring(tmpinindex + 1);
+		    while(tmpinfo.startsWith(" ")) {
+			tmpinfo = tmpinfo.substring(1);
+		    }
+		    tmpinindex = tmpinfo.indexOf(',');
+		    int numofnobjs = 0;
+		    if(tmpinindex == -1) {
+			numofnobjs = Integer.parseInt(tmpinfo);
+			if(numofnobjs != 0) {
+			    System.err.println("Error profile data format!");
+			    System.exit(-1);
+			}
+		    } else {
+			tinfo.m_newobjinfo.setElementAt(new Hashtable<String,Integer>(), i);
+			numofnobjs = Integer.parseInt(tmpinfo.substring(0, tmpinindex));
 			tmpinfo = tmpinfo.substring(tmpinindex + 1);
 			while(tmpinfo.startsWith(" ")) {
 			    tmpinfo = tmpinfo.substring(1);
 			}
-			tmpinindex = tmpinfo.indexOf(',');
-			tinfo.m_probability[i] = Double.parseDouble(tmpinfo.substring(0, tmpinindex));
-			tmpinfo = tmpinfo.substring(tmpinindex + 1);
-			while(tmpinfo.startsWith(" ")) {
-			    tmpinfo = tmpinfo.substring(1);
-			}
-			tmpinindex = tmpinfo.indexOf(',');
-			int numofnobjs = 0;
-			if(tmpinindex == -1) {
-			    numofnobjs = Integer.parseInt(tmpinfo);
-			    if(numofnobjs != 0) {
-				System.err.println("Error profile data format!");
-				System.exit(-1);
-			    }
-			} else {
-			    tinfo.m_newobjinfo.setElementAt(new Hashtable<String,Integer>(), i);
-			    numofnobjs = Integer.parseInt(tmpinfo.substring(0, tmpinindex));
+			for(int j = 0; j < numofnobjs; j++) {
+			    tmpinindex = tmpinfo.indexOf(',');
+			    String nobjtype = tmpinfo.substring(0, tmpinindex);
 			    tmpinfo = tmpinfo.substring(tmpinindex + 1);
 			    while(tmpinfo.startsWith(" ")) {
 				tmpinfo = tmpinfo.substring(1);
 			    }
-			    for(int j = 0; j < numofnobjs; j++) {
+			    int objnum = 0;
+			    if(j < numofnobjs - 1) {
 				tmpinindex = tmpinfo.indexOf(',');
-				String nobjtype = tmpinfo.substring(0, tmpinindex);
+				objnum  = Integer.parseInt(tmpinfo.substring(0, tmpinindex));
 				tmpinfo = tmpinfo.substring(tmpinindex + 1);
 				while(tmpinfo.startsWith(" ")) {
 				    tmpinfo = tmpinfo.substring(1);
 				}
-				int objnum = 0;
-				if(j < numofnobjs - 1) {
-				    tmpinindex = tmpinfo.indexOf(',');
-				    objnum  = Integer.parseInt(tmpinfo.substring(0, tmpinindex));
-				    tmpinfo = tmpinfo.substring(tmpinindex + 1);
-				    while(tmpinfo.startsWith(" ")) {
-					tmpinfo = tmpinfo.substring(1);
-				    }
-				} else {
-				    objnum = Integer.parseInt(tmpinfo);
-				}
-				tinfo.m_newobjinfo.elementAt(i).put(nobjtype, objnum);
+			    } else {
+				objnum = Integer.parseInt(tmpinfo);
 			    }
-			}
-		    }
-		    taskinfos.put(inname, tinfo);
-		    inindex = profiledata.indexOf('\n');
-		}
-
-		int tint = 0;
-		for(Iterator it_classes=state.getClassSymbolTable().getDescriptorsIterator(); it_classes.hasNext();) {
-		    ClassDescriptor cd=(ClassDescriptor) it_classes.next();
-		    if(cd.hasFlags()) {
-			Vector rootnodes=this.taskanalysis.getRootNodes(cd);
-			if(rootnodes!=null) {
-			    for(Iterator it_rootnodes=rootnodes.iterator(); it_rootnodes.hasNext();) {
-				FlagState root=(FlagState)it_rootnodes.next();
-				Vector allocatingTasks = root.getAllocatingTasks();
-				if(allocatingTasks != null) {
-				    for(int k = 0; k < allocatingTasks.size(); k++) {
-					TaskDescriptor td = (TaskDescriptor)allocatingTasks.elementAt(k);
-					Vector<FEdge> fev = (Vector<FEdge>)this.taskanalysis.getFEdgesFromTD(td);
-					int numEdges = fev.size();
-					int total = 100;
-					for(int j = 0; j < numEdges; j++) {
-					    FEdge pfe = fev.elementAt(j);
-					    TaskInfo taskinfo = taskinfos.get(td.getSymbol());
-					    tint = taskinfo.m_exetime[pfe.getTaskExitIndex()];
-					    pfe.setExeTime(tint);
-					    double idouble = taskinfo.m_probability[pfe.getTaskExitIndex()];
-					    pfe.setProbability(idouble);
-					    int newRate = 0;
-					    if((taskinfo.m_newobjinfo.elementAt(pfe.getTaskExitIndex()) != null)
-						    && (taskinfo.m_newobjinfo.elementAt(pfe.getTaskExitIndex()).containsKey(cd.getSymbol()))) {
-						newRate = taskinfo.m_newobjinfo.elementAt(pfe.getTaskExitIndex()).get(cd.getSymbol());
-					    }
-					    pfe.addNewObjInfo(cd, newRate, idouble);
-					    if(taskinfo.m_byObj != -1) {
-						((FlagState)pfe.getSource()).setByObj(taskinfo.m_byObj);
-					    }
-					}
-					fev = null;
-				    }
-				}
-			    }
-			}
-			Iterator it_flags = this.taskanalysis.getFlagStates(cd).iterator();
-			while(it_flags.hasNext()) {
-			    FlagState fs = (FlagState)it_flags.next();
-			    Iterator it_edges = fs.edges();
-			    int total = 100;
-			    while(it_edges.hasNext()) {
-				FEdge edge = (FEdge)it_edges.next();
-				TaskInfo taskinfo = taskinfos.get(edge.getTask().getSymbol());
-				tint = taskinfo.m_exetime[edge.getTaskExitIndex()];
-				edge.setExeTime(tint);
-				double idouble = taskinfo.m_probability[edge.getTaskExitIndex()];
-				edge.setProbability(idouble);
-				if(taskinfo.m_byObj != -1) {
-				    ((FlagState)edge.getSource()).setByObj(taskinfo.m_byObj);
-				}
-			    }
+			    tinfo.m_newobjinfo.elementAt(i).put(nobjtype, objnum);
 			}
 		    }
 		}
-		taskinfos = null;
-	    } catch(Exception e) {
-		e.printStackTrace();
+		taskinfos.put(inname, tinfo);
+		inindex = profiledata.indexOf('\n');
 	    }
-	} else {
-	    // for test
-	    // Randomly set the newRate and probability of FEdges
-	    java.util.Random r=new java.util.Random();
-	    int tint = 0;
-	    for(Iterator it_classes=state.getClassSymbolTable().getDescriptorsIterator(); it_classes.hasNext();) {
-		ClassDescriptor cd=(ClassDescriptor) it_classes.next();
-		if(cd.hasFlags()) {
-		    Vector rootnodes=this.taskanalysis.getRootNodes(cd);
-		    if(rootnodes!=null) {
-			for(Iterator it_rootnodes=rootnodes.iterator(); it_rootnodes.hasNext();) {
-			    FlagState root=(FlagState)it_rootnodes.next();
-			    Vector allocatingTasks = root.getAllocatingTasks();
-			    if(allocatingTasks != null) {
-				for(int k = 0; k < allocatingTasks.size(); k++) {
-				    TaskDescriptor td = (TaskDescriptor)allocatingTasks.elementAt(k);
-				    Vector<FEdge> fev = (Vector<FEdge>)this.taskanalysis.getFEdgesFromTD(td);
-				    int numEdges = fev.size();
-				    int total = 100;
-				    for(int j = 0; j < numEdges; j++) {
-					FEdge pfe = fev.elementAt(j);
-					if(numEdges - j == 1) {
-					    pfe.setProbability(total);
-					} else {
-					    if((total != 0) && (total != 1)) {
-						do {
-						    tint = r.nextInt()%total;
-						} while(tint <= 0);
-					    }
-					    pfe.setProbability(tint);
-					    total -= tint;
+	} catch(Exception e) {
+	    e.printStackTrace();
+	}
+    }
+
+    // for test
+    private void randomProfileSetting() {
+	// Randomly set the newRate and probability of FEdges
+	java.util.Random r=new java.util.Random();
+	int tint = 0;
+	for(Iterator it_classes=state.getClassSymbolTable().getDescriptorsIterator(); it_classes.hasNext();) {
+	    ClassDescriptor cd=(ClassDescriptor) it_classes.next();
+	    if(cd.hasFlags()) {
+		Vector rootnodes=this.taskanalysis.getRootNodes(cd);
+		if(rootnodes!=null) {
+		    for(Iterator it_rootnodes=rootnodes.iterator(); it_rootnodes.hasNext();) {
+			FlagState root=(FlagState)it_rootnodes.next();
+			Vector allocatingTasks = root.getAllocatingTasks();
+			if(allocatingTasks != null) {
+			    for(int k = 0; k < allocatingTasks.size(); k++) {
+				TaskDescriptor td = (TaskDescriptor)allocatingTasks.elementAt(k);
+				Vector<FEdge> fev = (Vector<FEdge>)this.taskanalysis.getFEdgesFromTD(td);
+				int numEdges = fev.size();
+				int total = 100;
+				for(int j = 0; j < numEdges; j++) {
+				    FEdge pfe = fev.elementAt(j);
+				    if(numEdges - j == 1) {
+					pfe.setProbability(total);
+				    } else {
+					if((total != 0) && (total != 1)) {
+					    do {
+						tint = r.nextInt()%total;
+					    } while(tint <= 0);
 					}
-					//do {
-					//   tint = r.nextInt()%10;
-					//  } while(tint <= 0);
-					//int newRate = tint;
-					//int newRate = (j+1)%2+1;
-					int newRate = 1;
-					String cdname = cd.getSymbol();
-					if((cdname.equals("SeriesRunner")) ||
-						(cdname.equals("MDRunner")) ||
-						(cdname.equals("Stage")) ||
-						(cdname.equals("AppDemoRunner")) ||
-						(cdname.equals("FilterBankAtom")) ||
-						(cdname.equals("Grid")) ||
-						(cdname.equals("Fractal"))) {
-					    newRate = 16;
-					} else if(cdname.equals("SentenceParser")) {
-					    newRate = 4;
-					}
-					//do {
-					//    tint = r.nextInt()%100;
-					//   } while(tint <= 0);
-					//   int probability = tint;
-					int probability = 100;
-					pfe.addNewObjInfo(cd, newRate, probability);
+					pfe.setProbability(tint);
+					total -= tint;
 				    }
-				    fev = null;
+				    //do {
+					//   tint = r.nextInt()%10;
+				    //  } while(tint <= 0);
+				    //int newRate = tint;
+				    //int newRate = (j+1)%2+1;
+				    int newRate = 1;
+				    String cdname = cd.getSymbol();
+				    if((cdname.equals("SeriesRunner")) ||
+					    (cdname.equals("MDRunner")) ||
+					    (cdname.equals("Stage")) ||
+					    (cdname.equals("AppDemoRunner")) ||
+					    (cdname.equals("FilterBankAtom")) ||
+					    (cdname.equals("Grid")) ||
+					    (cdname.equals("Fractal"))) {
+					newRate = 16;
+				    } else if(cdname.equals("SentenceParser")) {
+					newRate = 4;
+				    }
+				    //do {
+				    //    tint = r.nextInt()%100;
+				    //   } while(tint <= 0);
+				    //   int probability = tint;
+				    int probability = 100;
+				    pfe.addNewObjInfo(cd, newRate, probability);
 				}
+				fev = null;
 			    }
 			}
 		    }
+		}
 
-		    Iterator it_flags = this.taskanalysis.getFlagStates(cd).iterator();
-		    while(it_flags.hasNext()) {
-			FlagState fs = (FlagState)it_flags.next();
-			Iterator it_edges = fs.edges();
-			int total = 100;
-			while(it_edges.hasNext()) {
-			    //do {
-			    //    tint = r.nextInt()%10;
-			    //   } while(tint <= 0);
-			    tint = 3;
-			    FEdge edge = (FEdge)it_edges.next();
-			    edge.setExeTime(tint);
-			    if((fs.getClassDescriptor().getSymbol().equals("MD")) && (edge.getTask().getSymbol().equals("t6"))) {
-				if(edge.isbackedge()) {
-				    if(edge.getTarget().equals(edge.getSource())) {
-					edge.setProbability(93.75);
-				    } else {
-					edge.setProbability(3.125);
-				    }
+		Iterator it_flags = this.taskanalysis.getFlagStates(cd).iterator();
+		while(it_flags.hasNext()) {
+		    FlagState fs = (FlagState)it_flags.next();
+		    Iterator it_edges = fs.edges();
+		    int total = 100;
+		    while(it_edges.hasNext()) {
+			//do {
+			//    tint = r.nextInt()%10;
+			//   } while(tint <= 0);
+			tint = 3;
+			FEdge edge = (FEdge)it_edges.next();
+			edge.setExeTime(tint);
+			if((fs.getClassDescriptor().getSymbol().equals("MD")) 
+				&& (edge.getTask().getSymbol().equals("t6"))) {
+			    if(edge.isbackedge()) {
+				if(edge.getTarget().equals(edge.getSource())) {
+				    edge.setProbability(93.75);
 				} else {
 				    edge.setProbability(3.125);
 				}
-				continue;
-			    }
-			    if(!it_edges.hasNext()) {
-				edge.setProbability(total);
 			    } else {
-				if((total != 0) && (total != 1)) {
-				    do {
-					tint = r.nextInt()%total;
-				    } while(tint <= 0);
-				}
-				edge.setProbability(tint);
-				total -= tint;
+				edge.setProbability(3.125);
 			    }
+			    continue;
+			}
+			if(!it_edges.hasNext()) {
+			    edge.setProbability(total);
+			} else {
+			    if((total != 0) && (total != 1)) {
+				do {
+				    tint = r.nextInt()%total;
+				} while(tint <= 0);
+			    }
+			    edge.setProbability(tint);
+			    total -= tint;
 			}
 		    }
 		}
@@ -378,11 +418,13 @@ public class ScheduleAnalysis {
 	}
     }
 
-    public void preSchedule() {
-	Hashtable<ClassDescriptor, ClassNode> cdToCNodes = new Hashtable<ClassDescriptor, ClassNode>();
+    private ScheduleNode buildCFSTG(Vector<ScheduleEdge> toBreakDown) {
+	Hashtable<ClassDescriptor, ClassNode> cdToCNodes = 
+	    new Hashtable<ClassDescriptor, ClassNode>();
 	// Build the combined flag transition diagram
 	// First, for each class create a ClassNode
-	for(Iterator it_classes = state.getClassSymbolTable().getDescriptorsIterator(); it_classes.hasNext(); ) {
+	Iterator it_classes = state.getClassSymbolTable().getDescriptorsIterator();
+	while(it_classes.hasNext()) {
 	    ClassDescriptor cd = (ClassDescriptor) it_classes.next();
 	    Set<FlagState> fStates = taskanalysis.getFlagStates(cd);
 
@@ -390,7 +432,8 @@ public class ScheduleAnalysis {
 	    Vector<FlagState> sFStates = FlagState.DFS.topology(fStates, null);
 
 	    Vector rootnodes  = taskanalysis.getRootNodes(cd);
-	    if(((rootnodes != null) && (rootnodes.size() > 0)) || (cd.getSymbol().equals(TypeUtil.StartupClass))) {
+	    if(((rootnodes != null) && (rootnodes.size() > 0)) 
+		    || (cd.getSymbol().equals(TypeUtil.StartupClass))) {
 		ClassNode cNode = new ClassNode(cd, sFStates);
 		cNode.setSorted(true);
 		classNodes.add(cNode);
@@ -426,7 +469,7 @@ public class ScheduleAnalysis {
 	}
 
 	// Create 'new' edges between the ScheduleNodes.
-	Vector<ScheduleEdge> toBreakDown = new Vector<ScheduleEdge>();
+	//Vector<ScheduleEdge> toBreakDown = new Vector<ScheduleEdge>();
 	for(i = 0; i < classNodes.size(); i++) {
 	    ClassNode cNode = classNodes.elementAt(i);
 	    ClassDescriptor cd = cNode.getClassDescriptor();
@@ -456,7 +499,11 @@ public class ScheduleAnalysis {
 				ClassDescriptor pcd = pfs.getClassDescriptor();
 				ClassNode pcNode = cdToCNodes.get(pcd);
 
-				ScheduleEdge sEdge = new ScheduleEdge(sNode, "new", root, ScheduleEdge.NEWEDGE, 0);
+				ScheduleEdge sEdge = new ScheduleEdge(sNode, 
+					                              "new", 
+					                              root, 
+					                              ScheduleEdge.NEWEDGE, 
+					                              0);
 				sEdge.setFEdge(pfe);
 				sEdge.setSourceCNode(pcNode);
 				sEdge.setTargetCNode(cNode);
@@ -478,7 +525,14 @@ public class ScheduleAnalysis {
 	    }
 	}
 	cdToCNodes = null;
-
+	
+	return startupNode;
+    }
+    
+    private void treeTransform(Vector<ScheduleEdge> toBreakDown, 
+	                      ScheduleNode startupNode) {
+	int i = 0;
+	
 	// Break down the 'cycle's
 	try {
 	    for(i = 0; i < toBreakDown.size(); i++ ) {
@@ -527,11 +581,12 @@ public class ScheduleAnalysis {
 	toVisit = null;
 
 	if(this.state.PRINTSCHEDULING) {
-	    SchedulingUtil.printScheduleGraph("scheduling_ori.dot", this.scheduleNodes);
+	    SchedulingUtil.printScheduleGraph("scheduling_ori.dot", 
+		                              this.scheduleNodes);
 	}
     }
 
-    public void scheduleAnalysis() {
+    private void CFSTGTransform() {
 	// First iteration
 	int i = 0;
 	//Access the ScheduleEdges in reverse topology order
@@ -693,9 +748,9 @@ public class ScheduleAnalysis {
 		ses = null;
 	    }
 	    keys = null;
-	    fe2ses.clear();
-	    sn2fes.clear();
 	}
+	fe2ses.clear();
+	sn2fes.clear();
 	fe2ses = null;
 	sn2fes = null;
 
@@ -704,7 +759,8 @@ public class ScheduleAnalysis {
 	}
     }
 
-    private void handleScheduleEdge(ScheduleEdge se, boolean merge) {
+    private void handleScheduleEdge(ScheduleEdge se, 
+	                            boolean merge) {
 	try {
 	    int rate = 0;
 	    int repeat = (int)Math.ceil(se.getNewRate() * se.getProbability() / 100);
@@ -744,11 +800,13 @@ public class ScheduleAnalysis {
 		scheduleNodes.remove(se.getTarget());
 		scheduleEdges.remove(se);
 		// As se has been changed into an internal edge inside a ScheduleNode,
-		// change the source and target of se from original ScheduleNodes into ClassNodes.
+		// change the source and target of se from original ScheduleNodes 
+		// into ClassNodes.
 		if(se.getType() == ScheduleEdge.NEWEDGE) {
 		    se.setTarget(se.getTargetCNode());
-		    se.setSource(se.getSourceCNode());
-		    se.getTargetCNode().addEdge(se);
+		    //se.setSource(se.getSourceCNode());
+		    //se.getTargetCNode().addEdge(se);
+		    se.getSourceCNode().addEdge(se);
 		}
 	    } else {
 		// clone the whole ScheduleNode lists starting with se's target
@@ -764,7 +822,8 @@ public class ScheduleAnalysis {
 	}
     }
 
-    private void cloneSNodeList(ScheduleEdge sEdge, boolean copyIE) throws Exception {
+    private void cloneSNodeList(ScheduleEdge sEdge, 
+	                        boolean copyIE) throws Exception {
 	Hashtable<ClassNode, ClassNode> cn2cn = new Hashtable<ClassNode, ClassNode>();     // hashtable from classnode in orignal se's targe to cloned one
 	ScheduleNode csNode = (ScheduleNode)((ScheduleNode)sEdge.getTarget()).clone(cn2cn, 0);
 	scheduleNodes.add(csNode);
@@ -900,7 +959,8 @@ public class ScheduleAnalysis {
 	return exeTime;
     }
 
-    private ScheduleNode splitSNode(ScheduleEdge se, boolean copy) {
+    private ScheduleNode splitSNode(ScheduleEdge se, 
+	                            boolean copy) {
 	assert(ScheduleEdge.NEWEDGE == se.getType());
 
 	FEdge fe = se.getFEdge();
@@ -974,7 +1034,8 @@ public class ScheduleAnalysis {
 	sEdge.setTransTime(cNode.getTransTime());
 	se.getSource().addEdge(sEdge);
 	scheduleEdges.add(sEdge);
-	// remove the ClassNodes and internal ScheduleEdges out of this subtree to the new ScheduleNode
+	// remove the ClassNodes and internal ScheduleEdges out of this subtree 
+	// to the new ScheduleNode
 	ScheduleNode oldSNode = (ScheduleNode)se.getSource();
 	Iterator it_isEdges = oldSNode.getScheduleEdgesIterator();
 	Vector<ScheduleEdge> toremove = new Vector<ScheduleEdge>();
@@ -984,8 +1045,9 @@ public class ScheduleAnalysis {
 	    while(it_isEdges.hasNext()) {
 		ScheduleEdge tse = (ScheduleEdge)it_isEdges.next();
 		if(rCNodes.contains(tse.getSourceCNode())) {
-		    if(sCNode == tse.getSourceCNode()) {
-			if ((tse.getSourceFState() != fs) && (sFStates.contains(tse.getSourceFState()))) {
+		    if(sCNode.equals(tse.getSourceCNode())) {
+			if (!(tse.getSourceFState().equals(fs)) 
+				&& (sFStates.contains(tse.getSourceFState()))) {
 			    tse.setSource(cNode);
 			    tse.setSourceCNode(cNode);
 			} else {
@@ -1006,8 +1068,10 @@ public class ScheduleAnalysis {
 	Iterator it_sEdges = se.getSource().edges();
 	while(it_sEdges.hasNext()) {
 	    ScheduleEdge tse = (ScheduleEdge)it_sEdges.next();
-	    if((tse != se) && (tse != sEdge) && (tse.getSourceCNode() == sCNode)) {
-		if((tse.getSourceFState() != fs) && (sFStates.contains(tse.getSourceFState()))) {
+	    if(!(tse.equals(se)) && !(tse.equals(sEdge)) 
+		    && (tse.getSourceCNode().equals(sCNode))) {
+		if(!(tse.getSourceFState().equals(fs)) 
+			&& (sFStates.contains(tse.getSourceFState()))) {
 		    tse.setSource(sNode);
 		    tse.setSourceCNode(cNode);
 		    sNode.getEdgeVector().addElement(tse);
@@ -1028,11 +1092,13 @@ public class ScheduleAnalysis {
 		scheduleNodes.remove(se.getTarget());
 		scheduleEdges.removeElement(se);
 		// As se has been changed into an internal edge inside a ScheduleNode,
-		// change the source and target of se from original ScheduleNodes into ClassNodes.
+		// change the source and target of se from original ScheduleNodes 
+		// into ClassNodes.
 		if(se.getType() == ScheduleEdge.NEWEDGE) {
 		    se.setTarget(se.getTargetCNode());
-		    se.setSource(se.getSourceCNode());
-		    se.getTargetCNode().addEdge(se);
+		    //se.setSource(se.getSourceCNode());
+		    //se.getTargetCNode().addEdge(se);
+		    se.getSourceCNode().addEdge(se);
 		}
 	    } else {
 		sNode.setCid(ScheduleNode.colorID++);
@@ -1046,7 +1112,9 @@ public class ScheduleAnalysis {
 	return sNode;
     }
 
-    public void schedule() throws Exception {
+    // TODO: restrict the number of generated scheduling according to the setted
+    // scheduleThreshold
+    private void coreMapping() throws Exception {
 	if(this.coreNum == -1) {
 	    throw new Exception("Error: un-initialized coreNum when doing scheduling.");
 	}
@@ -1068,32 +1136,31 @@ public class ScheduleAnalysis {
 		SchedulingUtil.printScheduleGraph(path, this.scheduleNodes);
 	    }
 	} else {
-	    // Go through all the Scheudle Nodes, organize them in order of their cid
-	    Vector<Vector<ScheduleNode>> sNodeVecs = new Vector<Vector<ScheduleNode>>();
-	    for(int i = 0; i < this.scheduleNodes.size(); i++) {
-		ScheduleNode tmpn = this.scheduleNodes.elementAt(i);
-		int index = tmpn.getCid();
-		while(sNodeVecs.size() <= index) {
-		    sNodeVecs.add(null);
-		}
-		if(sNodeVecs.elementAt(index) == null) {
-		    sNodeVecs.setElementAt(new Vector<ScheduleNode>(), index);
-		}
-		sNodeVecs.elementAt(index).add(tmpn);
-	    }
+	    // Go through all the Schedule Nodes, organize them in order of their cid
+	    Vector<Vector<ScheduleNode>> sNodeVecs = 
+		SchedulingUtil.rangeScheduleNodes(this.scheduleNodes);
 
-	    CombinationUtil.RootsGenerator rGen = CombinationUtil.allocateRootsGenerator(sNodeVecs, this.coreNum);
+	    CombinationUtil.RootsGenerator rGen = 
+		CombinationUtil.allocateRootsGenerator(sNodeVecs, 
+			                               this.coreNum);
 
 	    int gid = 1;
-	    while(rGen.nextGen()) {
+	    while((gid <= this.scheduleThreshold) && (rGen.nextGen())) {
 		// first get the chosen rootNodes
 		Vector<Vector<ScheduleNode>> rootNodes = rGen.getRootNodes();
 		Vector<Vector<ScheduleNode>> nodes2combine = rGen.getNode2Combine();
 
-		CombinationUtil.CombineGenerator cGen = CombinationUtil.allocateCombineGenerator(rootNodes, nodes2combine);
-		while (cGen.nextGen()) {
+		CombinationUtil.CombineGenerator cGen = 
+		    CombinationUtil.allocateCombineGenerator(rootNodes, 
+			                                     nodes2combine);
+		while((gid <= this.scheduleThreshold) && cGen.nextGen()) {
 		    Vector<Vector<CombinationUtil.Combine>> combine = cGen.getCombine();
-		    Vector<ScheduleNode> sNodes = generateScheduling(rootNodes, combine, gid++);
+		    Vector<ScheduleNode> sNodes = SchedulingUtil.generateScheduleGraph(this.state,
+			                                                               this.scheduleNodes,
+			                                                               this.scheduleEdges,
+			                                                               rootNodes, 
+			                                                               combine, 
+			                                                               gid++);
 		    this.scheduleGraphs.add(sNodes);
 		    combine = null;
 		    sNodes = null;
@@ -1103,280 +1170,6 @@ public class ScheduleAnalysis {
 	    }
 	    sNodeVecs = null;
 	}
-
-	// Generate schedulings according to result schedule graph
-	if(this.schedulings == null) {
-	    this.schedulings = new Vector<Vector<Schedule>>();
-	}
-
-	Vector<TaskDescriptor> multiparamtds = new Vector<TaskDescriptor>();
-	Iterator it_tasks = state.getTaskSymbolTable().getDescriptorsIterator();
-	while(it_tasks.hasNext()) {
-	    TaskDescriptor td = (TaskDescriptor)it_tasks.next();
-	    if(td.numParameters() > 1) {
-		multiparamtds.addElement(td);
-	    }
-	}
-
-	for(int i = 0; i < this.scheduleGraphs.size(); i++) {
-	    Hashtable<TaskDescriptor, Vector<Schedule>> td2cores = new Hashtable<TaskDescriptor, Vector<Schedule>>();       // multiparam tasks reside on which cores
-	    Vector<ScheduleNode> scheduleGraph = this.scheduleGraphs.elementAt(i);
-	    Vector<Schedule> scheduling = new Vector<Schedule>(scheduleGraph.size());
-	    // for each ScheduleNode create a schedule node representing a core
-	    Hashtable<ScheduleNode, Integer> sn2coreNum = new Hashtable<ScheduleNode, Integer>();
-	    int j = 0;
-	    for(j = 0; j < scheduleGraph.size(); j++) {
-		sn2coreNum.put(scheduleGraph.elementAt(j), j);
-	    }
-	    int startupcore = 0;
-	    boolean setstartupcore = false;
-	    Schedule startup = null;
-	    for(j = 0; j < scheduleGraph.size(); j++) {
-		Schedule tmpSchedule = new Schedule(j);
-		ScheduleNode sn = scheduleGraph.elementAt(j);
-
-		Vector<ClassNode> cNodes = sn.getClassNodes();
-		for(int k = 0; k < cNodes.size(); k++) {
-		    Iterator it_flags = cNodes.elementAt(k).getFlags();
-		    while(it_flags.hasNext()) {
-			FlagState fs = (FlagState)it_flags.next();
-			Iterator it_edges = fs.edges();
-			while(it_edges.hasNext()) {
-			    TaskDescriptor td = ((FEdge)it_edges.next()).getTask();
-			    tmpSchedule.addTask(td);
-			    if(!td2cores.containsKey(td)) {
-				td2cores.put(td, new Vector<Schedule>());
-			    }
-			    Vector<Schedule> tmpcores = td2cores.get(td);
-			    if(!tmpcores.contains(tmpSchedule)) {
-				tmpcores.add(tmpSchedule);
-			    }
-			    tmpcores = null;
-			    // if the FlagState can be fed to some multi-param tasks,
-			    // need to record corresponding ally cores later
-			    if(td.numParameters() > 1) {
-				tmpSchedule.addFState4TD(td, fs);
-			    }
-			    if(td.getParamType(0).getClassDesc().getSymbol().equals(TypeUtil.StartupClass)) {
-				assert(!setstartupcore);
-				startupcore = j;
-				startup = tmpSchedule;
-				setstartupcore = true;
-			    }
-			}
-		    }
-		}
-		cNodes = null;
-
-		// For each of the ScheduleEdge out of this ScheduleNode, add the target ScheduleNode into the queue inside sn
-		Iterator it_edges = sn.edges();
-		while(it_edges.hasNext()) {
-		    ScheduleEdge se = (ScheduleEdge)it_edges.next();
-		    ScheduleNode target = (ScheduleNode)se.getTarget();
-		    Integer targetcore = sn2coreNum.get(target);
-		    switch(se.getType()) {
-		    case ScheduleEdge.NEWEDGE: {
-			for(int k = 0; k < se.getNewRate(); k++) {
-			    tmpSchedule.addTargetCore(se.getFstate(), targetcore);
-			}
-			break;
-		    }
-
-		    case ScheduleEdge.TRANSEDGE: {
-			// 'transmit' edge
-			tmpSchedule.addTargetCore(se.getFstate(), targetcore, se.getTargetFState());
-			// check if missed some FlagState associated with some multi-parameter
-			// task, which has been cloned when splitting a ClassNode
-			FlagState fs = se.getSourceFState();
-			FlagState tfs = se.getTargetFState();
-			Iterator it = tfs.edges();
-			while(it.hasNext()) {
-			    TaskDescriptor td = ((FEdge)it.next()).getTask();
-			    if(td.numParameters() > 1) {
-				if(tmpSchedule.getTasks().contains(td)) {
-				    tmpSchedule.addFState4TD(td, fs);
-				}
-			    }
-			}
-			break;
-		    }
-		    }
-		}
-		it_edges = sn.getScheduleEdgesIterator();
-		while(it_edges.hasNext()) {
-		    ScheduleEdge se = (ScheduleEdge)it_edges.next();
-		    switch(se.getType()) {
-		    case ScheduleEdge.NEWEDGE: {
-			for(int k = 0; k < se.getNewRate(); k++) {
-			    tmpSchedule.addTargetCore(se.getFstate(), j);
-			}
-			break;
-		    }
-
-		    case ScheduleEdge.TRANSEDGE: {
-			// 'transmit' edge
-			tmpSchedule.addTargetCore(se.getFstate(), j, se.getTargetFState());
-			break;
-		    }
-		    }
-		}
-		scheduling.add(tmpSchedule);
-	    }
-
-	    int number = this.coreNum;
-	    if(scheduling.size() < number) {
-		number = scheduling.size();
-	    }
-
-	    // set up all the associate ally cores
-	    if(multiparamtds.size() > 0) {
-		for(j = 0; j < multiparamtds.size(); ++j) {
-		    TaskDescriptor td = multiparamtds.elementAt(j);
-		    Vector<FEdge> fes = (Vector<FEdge>) this.taskanalysis.getFEdgesFromTD(td);
-		    Vector<Schedule> cores = td2cores.get(td);
-		    for(int k = 0; k < cores.size(); ++k) {
-			Schedule tmpSchedule = cores.elementAt(k);
-
-			for(int h = 0; h < fes.size(); ++h) {
-			    FEdge tmpfe = fes.elementAt(h);
-			    FlagState tmpfs = (FlagState)tmpfe.getTarget();
-			    Vector<TaskDescriptor> tmptds = new Vector<TaskDescriptor>();
-			    if((tmpSchedule.getTargetCoreTable() == null) || (!tmpSchedule.getTargetCoreTable().contains(tmpfs))) {
-				// add up all possible cores' info
-				Iterator it_edges = tmpfs.edges();
-				while(it_edges.hasNext()) {
-				    TaskDescriptor tmptd = ((FEdge)it_edges.next()).getTask();
-				    if(!tmptds.contains(tmptd)) {
-					tmptds.add(tmptd);
-					Vector<Schedule> tmpcores = td2cores.get(tmptd);
-					for(int m = 0; m < tmpcores.size(); ++m) {
-					    if(m != tmpSchedule.getCoreNum()) {
-						// if the FlagState can be fed to some multi-param tasks,
-						// need to record corresponding ally cores later
-						if(tmptd.numParameters() > 1) {
-						    tmpSchedule.addAllyCore(tmpfs, tmpcores.elementAt(m).getCoreNum());
-						} else {
-						    tmpSchedule.addTargetCore(tmpfs, tmpcores.elementAt(m).getCoreNum());
-						}
-					    }
-					}
-					tmpcores = null;
-				    }
-				}
-			    }
-			    tmptds = null;
-			}
-
-			if(cores.size() > 1) {
-			    Vector<FlagState> tmpfss = tmpSchedule.getFStates4TD(td);
-			    for(int h = 0; h < tmpfss.size(); ++h) {
-				for(int l = 0; l < cores.size(); ++l) {
-				    if(l != k) {
-					tmpSchedule.addAllyCore(tmpfss.elementAt(h), cores.elementAt(l).getCoreNum());
-				    }
-				}
-			    }
-			    tmpfss = null;
-			}
-		    }
-		    fes = null;
-		    cores = null;
-		}
-	    }
-	    this.schedulings.add(scheduling);
-	    td2cores = null;
-	    scheduleGraph = null;
-	    scheduling = null;
-	    sn2coreNum = null;
-	}
-	multiparamtds = null;
-    }
-
-    public Vector<ScheduleNode> generateScheduling(Vector<Vector<ScheduleNode>> rootnodes, Vector<Vector<CombinationUtil.Combine>> combine, int gid) {
-	Vector<ScheduleNode> result = new Vector<ScheduleNode>();
-
-	// clone the ScheduleNodes
-	Hashtable<ScheduleNode, Hashtable<ClassNode, ClassNode>> sn2hash = new Hashtable<ScheduleNode, Hashtable<ClassNode, ClassNode>>();
-	Hashtable<ScheduleNode, ScheduleNode> sn2sn = new Hashtable<ScheduleNode, ScheduleNode>();
-	for(int i = 0; i < this.scheduleNodes.size(); i++) {
-	    Hashtable<ClassNode, ClassNode> cn2cn = new Hashtable<ClassNode, ClassNode>();
-	    ScheduleNode tocopy = this.scheduleNodes.elementAt(i);
-	    ScheduleNode temp = (ScheduleNode)tocopy.clone(cn2cn, gid);
-	    result.add(i, temp);
-	    sn2hash.put(temp, cn2cn);
-	    sn2sn.put(tocopy, temp);
-	    cn2cn = null;
-	}
-	// clone the ScheduleEdges
-	for(int i = 0; i < this.scheduleEdges.size(); i++) {
-	    ScheduleEdge sse = this.scheduleEdges.elementAt(i);
-	    ScheduleNode csource = sn2sn.get(sse.getSource());
-	    ScheduleNode ctarget = sn2sn.get(sse.getTarget());
-	    Hashtable<ClassNode, ClassNode> sourcecn2cn = sn2hash.get(csource);
-	    Hashtable<ClassNode, ClassNode> targetcn2cn = sn2hash.get(ctarget);
-	    ScheduleEdge se =  null;
-	    switch(sse.getType()) {
-	    case ScheduleEdge.NEWEDGE: {
-		se = new ScheduleEdge(ctarget, "new", sse.getFstate(), sse.getType(), gid);       //new ScheduleEdge(ctarget, "new", sse.getClassDescriptor(), sse.getIsNew(), gid);
-		se.setProbability(sse.getProbability());
-		se.setNewRate(sse.getNewRate());
-		break;
-	    }
-
-	    case ScheduleEdge.TRANSEDGE: {
-		se = new ScheduleEdge(ctarget, "transmit", sse.getFstate(), sse.getType(), gid);       //new ScheduleEdge(ctarget, "transmit", sse.getClassDescriptor(), false, gid);
-		break;
-	    }
-	    }
-	    se.setSourceCNode(sourcecn2cn.get(sse.getSourceCNode()));
-	    se.setTargetCNode(targetcn2cn.get(sse.getTargetCNode()));
-	    se.setFEdge(sse.getFEdge());
-	    se.setTargetFState(sse.getTargetFState());
-	    se.setIsclone(true);
-	    csource.addEdge(se);
-	    sourcecn2cn = null;
-	    targetcn2cn = null;
-	}
-
-	// combine those nodes in combine with corresponding rootnodes
-	for(int i = 0; i < combine.size(); i++) {
-	    if(combine.elementAt(i) != null) {
-		for(int j = 0; j < combine.elementAt(i).size(); j++) {
-		    CombinationUtil.Combine tmpcombine = combine.elementAt(i).elementAt(j);
-		    ScheduleNode tocombine = sn2sn.get(tmpcombine.node);
-		    ScheduleNode root = sn2sn.get(rootnodes.elementAt(tmpcombine.root).elementAt(tmpcombine.index));
-		    ScheduleEdge se = (ScheduleEdge)tocombine.inedges().next();
-		    try {
-			if(root.equals(((ScheduleNode)se.getSource()))) {
-			    root.mergeSEdge(se);
-			    if(ScheduleEdge.NEWEDGE == se.getType()) {
-				// As se has been changed into an internal edge inside a ScheduleNode,
-				// change the source and target of se from original ScheduleNodes into ClassNodes.
-				se.setTarget(se.getTargetCNode());
-				se.setSource(se.getSourceCNode());
-				se.getTargetCNode().addEdge(se);
-			    }
-			} else {
-			    root.mergeSNode(tocombine);
-			}
-		    } catch(Exception e) {
-			e.printStackTrace();
-			System.exit(-1);
-		    }
-		    result.removeElement(tocombine);
-		}
-	    }
-	}
-
-	sn2hash = null;
-	sn2sn = null;
-
-	if(this.state.PRINTSCHEDULING) {
-	    String path = "scheduling_" + gid + ".dot";
-	    SchedulingUtil.printScheduleGraph(path, result);
-	}
-
-	return result;
     }
     
     static class TaskInfo {

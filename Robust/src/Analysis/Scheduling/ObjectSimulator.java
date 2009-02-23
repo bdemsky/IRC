@@ -5,6 +5,9 @@ import Analysis.TaskStateAnalysis.FlagState;
 import IR.ClassDescriptor;
 
 public class ObjectSimulator {
+  static int objid = 0;
+  
+  int oid;
   ClassDescriptor cd;
   FlagState currentFS;
   boolean changed;
@@ -12,8 +15,10 @@ public class ObjectSimulator {
   boolean hold;
   int version;
 
-  public ObjectSimulator(ClassDescriptor cd, FlagState currentFS) {
+  public ObjectSimulator(ClassDescriptor cd, 
+	                 FlagState currentFS) {
     super();
+    this.oid = ObjectSimulator.objid++;
     this.cd = cd;
     this.currentFS = currentFS;
     this.changed = true;
@@ -29,6 +34,10 @@ public class ObjectSimulator {
     } else {
       this.changed = false;
     }
+  }
+
+  public int getOid() {
+    return oid;
   }
 
   public ClassDescriptor getCd() {

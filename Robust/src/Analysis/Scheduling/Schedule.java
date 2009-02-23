@@ -11,6 +11,7 @@ import IR.TaskDescriptor;
 /** This class holds flag transition diagram(s) can be put on one core.
  */
 public class Schedule {
+  private int gid;
   private int coreNum;
   private Vector<TaskDescriptor> tasks;
   private Hashtable<FlagState, Queue<Integer>> targetCores;
@@ -18,14 +19,19 @@ public class Schedule {
   private Hashtable<FlagState, Vector<Integer>> allyCores;
   private Hashtable<TaskDescriptor, Vector<FlagState>> td2fs;
 
-  public Schedule(int coreNum) {
-    super();
+  public Schedule(int coreNum,
+	          int gid) {
+    this.gid = gid;
     this.coreNum = coreNum;
     this.tasks = null;
     this.targetCores = null;
     this.targetFState = null;
     this.allyCores = null;
     this.td2fs = null;
+  }
+
+  public int getGid() {
+      return gid;
   }
 
   public int getCoreNum() {
@@ -76,7 +82,8 @@ public class Schedule {
     return this.td2fs.get(td);
   }
 
-  public void addTargetCore(FlagState fstate, Integer targetCore) {
+  public void addTargetCore(FlagState fstate, 
+	                    Integer targetCore) {
     if(this.targetCores == null) {
       this.targetCores = new Hashtable<FlagState, Queue<Integer>>();
     }
@@ -87,7 +94,9 @@ public class Schedule {
                                                       // which reflects probabilities.
   }
 
-  public void addTargetCore(FlagState fstate, Integer targetCore, FlagState tfstate) {
+  public void addTargetCore(FlagState fstate, 
+	                    Integer targetCore, 
+	                    FlagState tfstate) {
     if(this.targetCores == null) {
       this.targetCores = new Hashtable<FlagState, Queue<Integer>>();
     }
@@ -101,7 +110,8 @@ public class Schedule {
     this.targetFState.put(fstate, tfstate);
   }
 
-  public void addAllyCore(FlagState fstate, Integer targetCore) {
+  public void addAllyCore(FlagState fstate, 
+	                  Integer targetCore) {
     if(this.allyCores == null) {
       this.allyCores = new Hashtable<FlagState, Vector<Integer>>();
     }
@@ -114,7 +124,8 @@ public class Schedule {
     }
   }
 
-  public void addFState4TD(TaskDescriptor td, FlagState fstate) {
+  public void addFState4TD(TaskDescriptor td, 
+	                   FlagState fstate) {
     if(this.td2fs == null) {
       this.td2fs = new Hashtable<TaskDescriptor, Vector<FlagState>>();
     }

@@ -6,7 +6,9 @@ public class TransTaskSimulator extends TaskSimulator {
   private int targetCoreNum;
   private Queue<ObjectInfo> newObjs;
 
-  public TransTaskSimulator(CoreSimulator cs, int targetCoreNum, Queue<ObjectInfo> nobjs) {
+  public TransTaskSimulator(CoreSimulator cs, 
+	                    int targetCoreNum, 
+	                    Queue<ObjectInfo> nobjs) {
     super(null, cs);
     this.targetCoreNum = targetCoreNum;
     this.newObjs = nobjs;
@@ -35,4 +37,9 @@ public class TransTaskSimulator extends TaskSimulator {
   public int getTargetCoreNum() {
     return targetCoreNum;
   }
+
+  public Queue<ObjectInfo> getNewObjs() {
+      return newObjs;
+  }  
+  
 }
