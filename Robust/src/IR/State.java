@@ -73,6 +73,7 @@ public class State {
   public static boolean PRINTFLAT=false;
   public static boolean PRINTSCHEDULING=false;
   public static boolean PRINTSCHEDULESIM=false;
+  public static boolean PRINTCRITICALPATH=false;
   public static boolean ABORTREADERS=false;
   public int CORENUM = 1;
   public String structfile;

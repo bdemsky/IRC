@@ -21,6 +21,7 @@ import IR.ClassDescriptor;
 import IR.State;
 import IR.TaskDescriptor;
 import IR.TypeUtil;
+import Analysis.Scheduling.MCImplSynthesis;
 import Analysis.Scheduling.Schedule;
 import Analysis.Scheduling.ScheduleAnalysis;
 import Analysis.Scheduling.ScheduleSimulator;
@@ -87,6 +88,8 @@ public class Main {
 	State.PRINTSCHEDULING=true;
       else if (option.equals("-printschedulesim"))
 	State.PRINTSCHEDULESIM=true;
+      else if (option.equals("-printcriticalpath"))
+	  State.PRINTCRITICALPATH=true;
       else if (option.equals("-struct"))
 	state.structfile=args[++i];
       else if (option.equals("-conscheck"))
@@ -263,42 +266,28 @@ public class Main {
 	                                             state.OWNERSHIPWRITEDOTS,
 	                                             state.OWNERSHIPWRITEALL,
 	                                             state.OWNERSHIPALIASFILE);
-
-	// generate multiple schedulings
-	ScheduleAnalysis scheduleAnalysis = new ScheduleAnalysis(state,
-	                                                         ta);
-	// necessary preparation such as read profile info etc.
-	scheduleAnalysis.preparation();
-	scheduleAnalysis.preSchedule();
-	scheduleAnalysis.scheduleAnalysis();
-	//scheduleAnalysis.setCoreNum(scheduleAnalysis.getSEdges4Test().size());
-	scheduleAnalysis.setCoreNum(state.CORENUM);
-	scheduleAnalysis.schedule();
-
-	//simulate these schedulings
-	ScheduleSimulator scheduleSimulator = new ScheduleSimulator(scheduleAnalysis.getCoreNum(),
-	                                                            state,
-	                                                            ta);
-	Vector<Vector<Schedule>> schedulings = scheduleAnalysis.getSchedulings();
-	Vector<Integer> selectedScheduling = scheduleSimulator.simulate(schedulings);
-
+	
+	// synthesis a layout according to target multicore processor
+	MCImplSynthesis mcImplSynthesis = new MCImplSynthesis(state,
+		                                              ta,
+		                                              oa);
+	mcImplSynthesis.setScheduleThreshold(50);
+	Vector<Schedule> scheduling = mcImplSynthesis.synthesis();
+	
+	// generate multicore codes
 	if(state.MULTICORE) {
-	  Vector<Schedule> scheduling = scheduleAnalysis.getSchedulings().elementAt(selectedScheduling.firstElement());
 	  BuildCodeMultiCore bcm=new BuildCodeMultiCore(state,
 	                                                bf.getMap(),
 	                                                tu,
 	                                                sa,
 	                                                scheduling,
-	                                                scheduleAnalysis.getCoreNum(),
+	                                                mcImplSynthesis.getCoreNum(),
 	                                                pa);
 	  bcm.setOwnershipAnalysis(oa);
 	  bcm.buildCode();
-	  scheduling = null;
 	}
-	schedulings = null;
-	selectedScheduling = null;
+	scheduling = null;
       }
-
     }
 
     if(!state.MULTICORE) {

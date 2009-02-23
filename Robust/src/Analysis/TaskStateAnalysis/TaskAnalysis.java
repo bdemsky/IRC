@@ -443,8 +443,8 @@ public class TaskAnalysis {
     return (Vector)cdtorootnodes.get(cd);
   }
 
-  public Vector getFEdgesFromTD(TaskDescriptor td) {
-    return (Vector)tdToFEdges.get(td);
+  public Vector<FEdge> getFEdgesFromTD(TaskDescriptor td) {
+    return (Vector<FEdge>)tdToFEdges.get(td);
   }
 }
 
