@@ -9,6 +9,12 @@ public class Vector {
     array=new Object[10];
   }
 
+  public Vector( int size ) {
+    capacityIncrement=0;
+    this.size=0;
+    array=new Object[size];
+  }
+
   public void clear() {
     size=0;
     array=new Object[10];
