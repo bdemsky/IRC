@@ -1935,7 +1935,7 @@ public class BuildCode {
       }
       if (fc.getThis()!=null&&md.getThis()==null) {
 	System.out.println("WARNING!!!!!!!!!!!!");
-	System.out.println("Source code calls static method"+md+"on an object in "+fm.getMethod()+"!");
+	System.out.println("Source code calls static method "+md+" on an object in "+fm.getMethod()+"!");
       }
 
 
