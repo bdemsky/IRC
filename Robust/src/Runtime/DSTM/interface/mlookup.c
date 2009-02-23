@@ -164,7 +164,7 @@ else if (isfirst) {
 	tmp->next=newnode;
 	} */
       else {
-	curr->next=tmp;
+	curr->next=tmp->next;
 	tmp->next=curr;
       }
       isfirst = 0;
