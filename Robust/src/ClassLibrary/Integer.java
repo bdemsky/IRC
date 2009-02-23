@@ -13,6 +13,10 @@ public class Integer {
     return value;
   }
 
+  public double doubleValue() {
+    return (double)value;
+  }
+
   public static int parseInt(String str) {
     return Integer.parseInt(str, 10);
   }
