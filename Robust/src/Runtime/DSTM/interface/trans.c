@@ -402,7 +402,8 @@ __attribute__((pure)) objheader_t *transRead(transrecord_t *record, unsigned int
 #ifdef ABORTREADERS
   if (record->abort) {
     //abort this transaction
-    printf("ABORTING\n");
+    //printf("ABORTING\n");
+    removetransactionhash(record->lookupTable, record);
     objstrDelete(record->cache);
     chashDelete(record->lookupTable);
     _longjmp(record->aborttrans,1);
@@ -575,6 +576,7 @@ int transCommit(transrecord_t *record) {
   if (record->abort) {
     //abort this transaction
     printf("ABORTING TRANSACTION AT COMMIT\n");
+    removetransactionhash(record->lookupTable, record);
     objstrDelete(record->cache);
     chashDelete(record->lookupTable);
     free(record);
