@@ -255,6 +255,10 @@ elif [[ $1 = '-curdir' ]]
 then
 CURDIR=$2
 shift
+elif [[ $1 = '-outputdir' ]]
+then
+JAVAOPTS="$JAVAOPTS -outputdir $2"
+shift
 else
 SRCFILES="$SRCFILES $1"
 fi

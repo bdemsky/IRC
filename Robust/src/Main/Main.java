@@ -54,6 +54,8 @@ public class Main {
     Vector sourcefiles=new Vector();
     state.classpath.add(".");
 
+	String outputdir = null;
+
     for(int i=0; i<args.length; i++) {
       String option=args[i];
       if (option.equals("-precise"))
@@ -66,6 +68,8 @@ public class Main {
 	state.FASTCHECK=true;
       else if (option.equals("-selfloop"))
 	state.selfloops.add(args[++i]);
+	  else if (option.equals("-outputdir"))
+	outputdir = args[++i];
       else if (option.equals("-excprefetch"))
 	state.excprefetch.add(args[++i]);
       else if (option.equals("-classlibrary"))
