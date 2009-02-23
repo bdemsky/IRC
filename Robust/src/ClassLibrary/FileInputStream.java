@@ -28,6 +28,24 @@ public class FileInputStream extends InputStream {
     return nativeRead(fd, b, b.length);
   }
 
+  public String readLine() {
+    String line = "";
+    int c = read();
+    
+    // if we're already at the end of the file
+    // don't even return the empty string
+    if( c == -1 ) { 
+      return null;
+    }
+
+    while( c != '\n' && c != -1 ) {
+      line += (char)c;
+      c = read();      
+    } 
+
+    return line;
+  }
+
   public void close() {
     nativeClose(fd);
   }
