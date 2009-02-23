@@ -64,14 +64,25 @@ public class SemanticCheck {
       Object obj=toanalyze.iterator().next();
       if (obj instanceof TaskDescriptor) {
 	toanalyze.remove(obj);
-	checkTask((TaskDescriptor)obj);
+	TaskDescriptor td=(TaskDescriptor)obj;
+	try {
+	  checkTask(td);
+	} catch( Error e ) {
+	    System.out.println( "Error in "+td );
+	    throw e;
+	}
       } else {
 	ClassDescriptor cd=(ClassDescriptor)obj;
 	toanalyze.remove(cd);
 	checkClass(cd);
 	for(Iterator method_it=cd.getMethods(); method_it.hasNext();) {
 	  MethodDescriptor md=(MethodDescriptor)method_it.next();
-	  checkMethodBody(cd,md);
+	  try {
+	    checkMethodBody(cd,md);
+	  } catch( Error e ) {
+	    System.out.println( "Error in "+md );
+	    throw e;
+	  }
 	}
       }
     }
@@ -600,8 +611,7 @@ public class SemanticCheck {
         (an.getOperation().getBaseOp().getOp()!=Operation.POSTINC&&
          an.getOperation().getBaseOp().getOp()!=Operation.POSTDEC))
       postinc=false;
-
-    if (!postinc)
+    if (!postinc)      
       checkExpressionNode(md, nametable, an.getSrc(),td);
     //TODO: Need check on validity of operation here
     if (!((an.getDest() instanceof FieldAccessNode)||
@@ -800,6 +810,9 @@ NextMethod:
     if (min.getExpression()!=null) {
       checkExpressionNode(md,nametable,min.getExpression(),null);
       typetolookin=min.getExpression().getType();
+      //if (typetolookin==null)
+      //throw new Error(md+" has null return type");
+
     } else if (min.getBaseName()!=null) {
       String rootname=min.getBaseName().getRoot();
       if (rootname.equals("super")) {
