@@ -71,7 +71,9 @@ public class MCImplSynthesis {
 	// Create a new output stream for the standard output.
 	PrintStream stdout  = null;
 	try {
-	    stdout = new PrintStream(new FileOutputStream("/scratch/SimulatorResult.out"));
+	    stdout = new PrintStream(
+		    new FileOutputStream(this.state.outputdir + "SimulatorResult_" 
+			                 + this.coreNum + ".out"));
 	} catch (Exception e) {
 	    // Sigh.  Couldn't open the file.
 	    System.out.println("Redirect:  Unable to open output file!");

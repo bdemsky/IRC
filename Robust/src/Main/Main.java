@@ -70,7 +70,7 @@ public class Main {
       else if (option.equals("-selfloop"))
 	state.selfloops.add(args[++i]);
 	  else if (option.equals("-outputdir"))
-	outputdir = args[++i];
+	state.outputdir = args[++i];
       else if (option.equals("-excprefetch"))
 	state.excprefetch.add(args[++i]);
       else if (option.equals("-classlibrary"))
