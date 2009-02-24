@@ -60,8 +60,8 @@ task t3(AppDemo ad{merge}, AppDemoRunner adr{turnin}) {
     taskexit(adr{!turnin});
 }
 
-task t5(AppDemo ad{validate}) {
-    //System.printString("task t5\n");
+task t4(AppDemo ad{validate}) {
+    //System.printString("task t4\n");
     float refval = (float)(-0.0333976656762814);
     float dev = Math.abs(ad.JGFavgExpectedReturnRateMC - refval);
     if (dev > 1.0e-12 ){
