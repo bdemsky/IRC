@@ -33,10 +33,10 @@ public class TrajectorySynthesizer {
   }
 
   public /*static*/ Trajectory updateTrajectory (double time, Flight flight) {
-    System.out.println("Updating trajectory for "+flight.flightID);
+    //System.out.println("Updating trajectory for "+flight.flightID);
     int i;
     setInitialParameters(flight);
-    System.out.println("Starting position: "+currentPos);
+    //System.out.println("Starting position: "+currentPos);
     if (currentPos.outOfRange()) {
       traject.setNoPoints(1);
       traject.setPoint(0, currentPos);
@@ -47,7 +47,7 @@ public class TrajectorySynthesizer {
       for (i=0 ; (!currentPos.outOfRange()) && (i<limit()) ; i++) {
 	getTrajectoryPoint(flight, time+i*d2.getStatic().iterationStep());
 	if (i==0) {
-	  System.out.println("current position: "+currentPos);
+	  //System.out.println("current position: "+currentPos);
 	  traject.distToDest=horizTotalDist;
 	  traject.nextFixIndex=nextFix;
 	  traject.nextFix=(currentPos.outOfRange())? null : flight.fPlan.r.getFixAt(nextFix);
@@ -58,12 +58,12 @@ public class TrajectorySynthesizer {
 	traject.setPoint(i, (Point4d) currentPos);
       }
       traject.setNoPoints(--i);
-      System.out.println(traject.noPoints);
+      //System.out.println(traject.noPoints);
       traject.timeToDest=(i>0)? traject.getPointAt(i-1).time+timeF:time+timeF;
     }
 
     flight.traject=traject;
-    System.out.println("Finished updating trajectory ...");
+    //System.out.println("Finished updating trajectory ...");
     return traject;
   }
 
@@ -160,7 +160,7 @@ public class TrajectorySynthesizer {
     if ((distance>horizTotalDist)&&(horizTotalDist>0)) {
       timeF=(accel<=0)?(horizTotalDist/hSpeed):
 	(-hSpeed+Math.sqrt(hSpeed*hSpeed+2*accel*horizTotalDist))/accel;
-      System.out.println("TIMEF= "+timeF);
+      //System.out.println("TIMEF= "+timeF);
     }
 
     horizTotalDist-=distance;

@@ -2,7 +2,7 @@
 
 //import java.lang.*;
 
-class Velocity {
+public class Velocity {
 
   public Point4d vector;
   public double speed;

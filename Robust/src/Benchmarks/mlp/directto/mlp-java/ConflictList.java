@@ -4,7 +4,7 @@
 
 //import java.util.*;
 
-/*final*/ class ConflictList 
+public class ConflictList 
 {   
   public int noConflicts; // the number of conflicts
   private Vector conflicts; // the conflicts
@@ -16,7 +16,7 @@
     
   public void clear() {		
     noConflicts=0;
-    conflicts.clear();      
+    conflicts.clear();
   }
 
   public Conflict conflictAt(int index) {

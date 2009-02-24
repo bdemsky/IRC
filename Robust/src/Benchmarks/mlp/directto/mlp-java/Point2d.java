@@ -1,6 +1,6 @@
 // a 2d point - used for fixes
 
-class Point2d {
+public class Point2d {
   public double x,y;
 
   public Point2d () {

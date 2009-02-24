@@ -4,7 +4,7 @@
 
 //import java.util.*;
 
-class FixList {
+public class FixList {
   
   public /*static*/ int noFixes() { return _noFixes; }
   public /*static*/ Vector fixes() { return _fixes; }
@@ -51,11 +51,11 @@ class FixList {
   }
 
   public /*static*/ void printInfo() {
-    System.out.println("\n\nThe number of fixes:"+_noFixes);
-    System.out.println("The fixes are:");
+    //System.out.println("\n\nThe number of fixes:"+_noFixes);
+    //System.out.println("The fixes are:");
     for( int i = 0; i < _fixes.size(); ++i ) {
       Fix bAux=(Fix) _fixes.elementAt( i );
-      System.out.println(bAux);
+      //System.out.println(bAux);
     }
   }
 

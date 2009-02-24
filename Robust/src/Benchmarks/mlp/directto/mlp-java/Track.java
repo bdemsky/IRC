@@ -1,6 +1,6 @@
 // the data about a plane - current position and velocity
 
-class Track {
+public class Track {
   Point4d pos;
   Velocity vel;
 
@@ -18,6 +18,6 @@ class Track {
   }
   
   public void printInfo() {
-    System.out.println("track: "+pos+"||"+vel);
+    //System.out.println("track: "+pos+"||"+vel);
   }
 }

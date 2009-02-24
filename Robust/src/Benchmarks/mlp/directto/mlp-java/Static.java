@@ -1,10 +1,8 @@
-
 // This class memorizes the static data (besides fixes)
-
 
 //import java.util.*;
 
-class Static {
+public class Static {
 
   public /*static*/ double _width, _height; // the dimensions of the given area 
   public /*static*/ double _iterationStep, _noIterations;    
@@ -39,10 +37,10 @@ class Static {
 
   // this is a test procedure
   public /*static*/ void printInfo() {
-    System.out.println("\n\nStatic Data:");
-    System.out.println("Width:"+_width+"        Height:"+_height);
-    System.out.println("Radius of safety/unsafety:"+_radius);
-    System.out.println("Distance of safety/unsafety:"+_distance);
-    System.out.println("Iteration step:"+_iterationStep+"     No. of Iterations:"+_noIterations);			  
+    //System.out.println("\n\nStatic Data:");
+    //System.out.println("Width:"+_width+"        Height:"+_height);
+    //System.out.println("Radius of safety/unsafety:"+_radius);
+    //System.out.println("Distance of safety/unsafety:"+_distance);
+    //System.out.println("Iteration step:"+_iterationStep+"     No. of Iterations:"+_noIterations);			  
   }  
 }

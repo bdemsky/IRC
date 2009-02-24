@@ -1,6 +1,6 @@
 // class that implements types of aircrafts
 
-class Aircraft {    
+public class Aircraft {    
   String type;
   double maxLift, maxThrust;
 

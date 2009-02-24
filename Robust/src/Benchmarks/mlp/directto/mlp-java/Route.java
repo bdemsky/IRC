@@ -3,7 +3,7 @@
 
 //import java.util.*;
 
-class Route {
+public class Route {
 
   D2 d2;
   public int noFixes,current;

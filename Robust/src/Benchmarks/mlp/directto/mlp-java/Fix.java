@@ -1,6 +1,6 @@
 // this class stores the properties of a fix
 
-class Fix {
+public class Fix {
   private String name;
   private Point2d p;
 

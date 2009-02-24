@@ -4,7 +4,7 @@
 //import java.io.*;
 //import java.util.*;
 
-class ReadWrite {
+public class ReadWrite {
   D2 d2;
 
   public ReadWrite( D2 d2 ) {
@@ -12,7 +12,7 @@ class ReadWrite {
   }
 
   public void read() {
-    FileInputStream in = new FileInputStream( "input.txt" );
+    FileInputStream in = new FileInputStream( "input4.txt" );
 
     while(true) {
       String line=in.readLine();
@@ -24,7 +24,7 @@ class ReadWrite {
 	break;
     }
 
-    System.out.println("Input data read.");
+    //System.out.println("Input data read.");
   }   
 
   public void write() {

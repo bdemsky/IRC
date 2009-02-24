@@ -1,6 +1,6 @@
 // this class implements a flight plan
 
-class FlightPlan {
+public class FlightPlan {
   public double cruiseAlt, cruiseSpeed; // cruising altitude and speed
 
   public Route r; // the route (given by fixes)
@@ -25,7 +25,7 @@ class FlightPlan {
 
   public void setCurrentFix(String nameFix) {
     int i=r.getIndexOf(nameFix);
-    System.out.println("name of the fix: "+nameFix+" index:"+i);
+    //System.out.println("name of the fix: "+nameFix+" index:"+i);
     r.setCurrent(i);
   }	
 }

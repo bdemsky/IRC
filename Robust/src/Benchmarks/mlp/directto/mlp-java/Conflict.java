@@ -1,6 +1,6 @@
 // This class memorizes a conflict
 
-class Conflict {
+public class Conflict {
   public Point4d coordinates; // its position
   public Flight flight1, flight2; // the two flights involved in the conflict
 

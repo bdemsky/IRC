@@ -2,7 +2,7 @@
 
 //import java.text.*;
 
-class Point4d extends Point2d {
+public class Point4d extends Point2d {
   public double x,y,z,time;
 
   public static int outOfRangeTime() { return -1; }
