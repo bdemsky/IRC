@@ -8,4 +8,9 @@ public class Iterator {
     System.out.println( "Iterator is an abstract class." );
     System.exit(-1);
   }
+
+  void remove() {
+    System.out.println( "Iterator is an abstract class." );
+    System.exit(-1);
+  }    
 }

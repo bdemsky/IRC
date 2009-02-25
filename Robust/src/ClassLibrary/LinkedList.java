@@ -113,6 +113,8 @@ public class LinkedList {
     head = head.next;
     if( head != null ) {
       head.prev = null;
+    } else {
+      tail = null;
     }
     size--;
   }
@@ -125,6 +127,8 @@ public class LinkedList {
     tail = tail.prev;
     if( tail != null ) {
       tail.next = null;
+    } else {
+      head = null;
     }
     size--;
   }
@@ -168,23 +172,36 @@ public class LinkedList {
 }
 
 public class LinkedListIterator extends Iterator {
+  LinkedList ll;
   LinkedListElement itr;
+  Object removeable;
   
   public LinkedListIterator( LinkedList ll ) {
+    this.ll = ll;
     itr = ll.head;
+    removeable = null;
   }
 
-  boolean hasNext() {
+  public boolean hasNext() {
     return itr != null;
   }
 
-  Object next() {
+  public Object next() {
     if( itr == null ) {
       System.out.println( "LinkedListIterator: illegal next()" );
       System.exit(-1);
     }
-    Object o = itr.element;
+    removeable = itr.element;
     itr = itr.next;
-    return o;
+    return removeable;
+  }
+
+  public void remove() {
+    if( removeable == null ) {
+      System.out.println( "LinkedListIterator: illegal remove()" );
+      System.exit(-1);
+    }
+    ll.remove( removeable );
+    removeable = null;
   }
 }
