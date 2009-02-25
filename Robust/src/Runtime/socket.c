@@ -6,9 +6,9 @@
 #include <arpa/inet.h>
 #include <strings.h>
 #include <netdb.h>
+#include <netinet/tcp.h>
 #endif
 #include <errno.h>
-#include <netinet/tcp.h>
 #include "SimpleHash.h"
 #include "GenericHashtable.h"
 
