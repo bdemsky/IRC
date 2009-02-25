@@ -8,6 +8,7 @@
 #include <netdb.h>
 #endif
 #include <errno.h>
+#include <netinet/tcp.h>
 #include "SimpleHash.h"
 #include "GenericHashtable.h"
 
@@ -295,6 +296,8 @@ int CALL02(___ServerSocket______nativeaccept____L___Socket___,struct ___ServerSo
 #endif
 #endif
   newfd=accept(fd, (struct sockaddr *)&sin, &sinlen);
+  int flag = 1;
+  setsockopt(newfd, IPPROTO_TCP, TCP_NODELAY, (char *) &flag, sizeof(flag));
 #if defined(THREADS)||defined(DSTM)
 #ifdef PRECISE_GC
   restartaftergc(tmp);
