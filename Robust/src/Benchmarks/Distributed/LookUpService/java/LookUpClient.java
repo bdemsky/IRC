@@ -48,7 +48,7 @@ public class LookUpClient {
         } else {
           operation = 2;//update hashmap
         }
-        lc.doLookUp(operation, sock, key);
+        lc.doLookUp(operation, sock, rwkey);
       }
     }
     /** Special character to terminate computation **/
@@ -59,19 +59,32 @@ public class LookUpClient {
   /**
    * Call to do a read/ write on socket
    **/
-  public void doLookUp(int operation, Socket sock, Integer key){
+  public void doLookUp(int operation, Socket sock, int key){
     String op;
     if (operation == 1) {
-      op = new String("r");
-      sock.write(op.getBytes());
-      sock.write(key.intToByteArray());
+      sock.write(fillBytes(operation, key));
       byte b[] = new byte[4];
       int numbytes = sock.read(b);
     } else {
-      op = new String("w");
-      sock.write(op.getBytes());
-      sock.write(key.intToByteArray());
+      sock.write(fillBytes(operation, key));
     }
+  }
+
+  /*
+   * Convert int to a byte array 
+   **/
+  byte[] fillBytes(int operation, int key) {
+    byte[] b = new byte[5];
+    if(operation == 1) {
+      b[0] = (byte)'r';
+    } else { 
+      b[0] = (byte)'w';
+    }
+    for(int i = 1; i < 5; i++){
+      int offset = (3-(i-1)) * 8;
+      b[i] = (byte) ((key >> offset) & 0xFF);
+    }
+    return b;
   }
 
   /**

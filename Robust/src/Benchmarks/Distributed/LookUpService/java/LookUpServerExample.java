@@ -15,7 +15,6 @@ public class LookUpServerExample {
   public LookUpServerExample(int nobjs, int nthreads) {
     this.nobjs = nobjs;
     this.nthreads = nthreads;
-    System.println("nobjs = "+nobjs+" nthreads= "+nthreads);
   }
 
   public static int main(String args[]) {
@@ -39,7 +38,6 @@ public class LookUpServerExample {
 
   public static void acceptConnection(ServerSocket ss, HashMap hmap, int nthreads) {
     LookUpServerThread[] lus = new LookUpServerThread[nthreads];
-    System.println("Here");
     for(int i=0; i<nthreads; i++) {
       Socket s = ss.accept();
       lus[i] = new LookUpServerThread(s, hmap);
@@ -49,8 +47,6 @@ public class LookUpServerExample {
     for(int i=0; i<nthreads; i++) {
       lus[i].join();
     }
-
-    System.println("Finished");
   }
 
   /**

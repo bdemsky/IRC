@@ -19,11 +19,13 @@ public class LookUpServerThread extends Thread {
       } else {
         byte b1[] = new byte[4];
         numbytes = sock.read(b1);
-        int val = b1[3];
+        int val =  getKey(b1);
         Integer keyitem = new Integer(val);
         /* read from hashmap if opcode sent is "r" */
         if(str1.equalsIgnoreCase("r")) {
-          doRead(this, keyitem);
+          Integer tmpval = doRead(this, keyitem);
+          //Write object to socket for client
+          sock.write(tmpval.intToByteArray());
         } else {
         /* update hashmap if opcode sent is "w" */
           doUpdate(this, keyitem);
@@ -36,13 +38,11 @@ public class LookUpServerThread extends Thread {
    * Synchromize threads accessing hashmap to read key
    **/
 
-  synchronized void doRead(LookUpServerThread lusth, Integer key) {
+  synchronized Integer doRead(LookUpServerThread lusth, Integer key) {
     //Read object
     Object value = lusth.hmap.get(key);
     Integer val = (Integer) value;
-    //Write object to socket for client
-    lusth.sock.write(val.intToByteArray());
-    return;
+    return val;
   }
 
   /**
@@ -55,5 +55,15 @@ public class LookUpServerThread extends Thread {
     Integer value = new Integer(val);
     Object oldvalue = lusth.hmap.put(key, value);
     return;
+  }
+
+  /*
+   * Convert byte array into int type
+   **/
+
+  int getKey(byte[] b) {
+    int val;
+    val = ((b[0] & 0xFF) << 24) + ((b[1] & 0xFF) << 16) + ((b[2] & 0xFF) << 8) + (b[3] & 0xFF);
+    return val;
   }
 }
