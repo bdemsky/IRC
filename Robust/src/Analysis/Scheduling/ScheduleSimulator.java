@@ -101,7 +101,7 @@ public class ScheduleSimulator {
 	      this.setScheduling(scheduling);
 	      Vector<SimExecutionEdge> simexegraph = new Vector<SimExecutionEdge>();
 	      Vector<CheckPoint> checkpoints = new Vector<CheckPoint>();
-	      int tmpTime = this.process(checkpoints, simexegraph);
+	      int tmpTime = process(checkpoints, simexegraph);
 	      if(tmpTime < processTime) {
 		  selectedScheduling.clear();
 		  selectedScheduling.add(index);
@@ -425,7 +425,7 @@ public class ScheduleSimulator {
 
     int gid = this.scheduling.elementAt(0).getGid();
     if(this.state.PRINTSCHEDULESIM) {
-	SchedulingUtil.printSimulationResult("SimulatorResult_" + gid + ".dot", 
+	SchedulingUtil.printSimulationResult(this.state.outputdir + "SimulatorResult_" + gid + ".dot", 
 		                             this.processTime,
 		                             this.coreNum, 
 		                             checkpoints);
@@ -716,7 +716,7 @@ public class ScheduleSimulator {
 	  }
       } else if(tttasks.size() > 0) {
 	  SimExecutionNode seNode = new SimExecutionNode(corenum, this.processTime);
-	  seNode.setSpareCores(cp.getSpareCores());
+	  //seNode.setSpareCores(cp.getSpareCores());
 	  // no action associated here
 	  SimExecutionNode lastsenode = lastseNodes[corenum];
 	  // create edges between previous senode on this core to this node

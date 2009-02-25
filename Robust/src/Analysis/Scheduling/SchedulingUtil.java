@@ -89,7 +89,7 @@ public class SchedulingUtil {
 	sn2sn = null;
 
 	if(state.PRINTSCHEDULING) {
-	    String path = "scheduling_" + gid + ".dot";
+	    String path = state.outputdir + "scheduling_" + gid + ".dot";
 	    SchedulingUtil.printScheduleGraph(path, result);
 	}
 
@@ -170,13 +170,31 @@ public class SchedulingUtil {
 	
 	for(int i = 0; i < scheduleNodes.size(); i++) {
 	    ScheduleNode tmpn = scheduleNodes.elementAt(i);
-	    int index = tmpn.getCid();
+	    int tmpcid = tmpn.getCid();
+	    int index = 0;
+	    for(index = 0; index < sNodeVecs.size(); index++) {
+		if(sNodeVecs.elementAt(index).elementAt(0).getCid() > tmpcid) {
+		    // find the place to insert
+		    sNodeVecs.add(sNodeVecs.lastElement());
+		    for(int j = sNodeVecs.size() - 2; j > index; j--) {
+			sNodeVecs.setElementAt(sNodeVecs.elementAt(j - 1), j);
+		    }
+		    sNodeVecs.setElementAt(new Vector<ScheduleNode>(), index);
+		} else if(sNodeVecs.elementAt(index).elementAt(0).getCid() == tmpcid) {
+		    break;
+		}
+	    }
+	    if(index == sNodeVecs.size()) {
+		sNodeVecs.add(new Vector<ScheduleNode>());
+	    }
+	    
+	    /*int index = tmpcid;
 	    while(sNodeVecs.size() <= index) {
 		sNodeVecs.add(null);
 	    }
 	    if(sNodeVecs.elementAt(index) == null) {
 		sNodeVecs.setElementAt(new Vector<ScheduleNode>(), index);
-	    }
+	    }*/
 	    sNodeVecs.elementAt(index).add(tmpn);
 	}
 	

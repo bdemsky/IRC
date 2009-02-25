@@ -272,6 +272,7 @@ public class Main {
 		                                              ta,
 		                                              oa);
 	mcImplSynthesis.setScheduleThreshold(50);
+	mcImplSynthesis.setProbThreshold(0);
 	Vector<Schedule> scheduling = mcImplSynthesis.synthesis();
 	
 	// generate multicore codes

@@ -31,7 +31,8 @@ public class CombinationUtil {
     Vector<Vector<ScheduleNode>> rootNodes;
     int rootNum;
 
-    public RootsGenerator(Vector<Vector<ScheduleNode>> snodevecs, int rootNum) {
+    public RootsGenerator(Vector<Vector<ScheduleNode>> snodevecs, 
+	                  int rootNum) {
       this.sNodeVecs = snodevecs;
       this.rootNum = rootNum;
       this.node2Combine = null;
@@ -79,7 +80,7 @@ public class CombinationUtil {
 	trial = trial(num2choose, next);
       }
       if(trial) {
-	// left nodes are all to be combined
+	// remaining nodes are all to be combined
 	this.node2Combine = new Vector<Vector<ScheduleNode>>();
 	int next = 1;
 	int index = 0;
@@ -125,7 +126,8 @@ public class CombinationUtil {
       return trial;
     }
 
-    private boolean trial(int num2choose, int next) {
+    private boolean trial(int num2choose, 
+	                  int next) {
       int index = 0;
       boolean first = true;
       while(num2choose > 0) {
@@ -185,7 +187,8 @@ public class CombinationUtil {
     int[] lastchoices;
     boolean first4choice;
 
-    public CombineGenerator(Vector<Vector<ScheduleNode>> rootnodes, Vector<Vector<ScheduleNode>> node2combine) {
+    public CombineGenerator(Vector<Vector<ScheduleNode>> rootnodes, 
+	                    Vector<Vector<ScheduleNode>> node2combine) {
       this.rootNodes = rootnodes;
       this.node2Combine = node2combine;
       this.rootNStates = new Vector<Vector<int[]>>();
@@ -282,7 +285,8 @@ public class CombinationUtil {
       return suc;
     }
 
-    private boolean firstexpand(int next, boolean first) {
+    private boolean firstexpand(int next, 
+	                        boolean first) {
       for(int i = next; i < this.node2Combine.size(); i++) {
 	if(this.node2Combine.elementAt(i) != null) {
 	  int choice = this.lastchoices[i];
@@ -308,7 +312,8 @@ public class CombinationUtil {
       return true;
     }
 
-    private boolean innertrial(int next, int layer) {
+    private boolean innertrial(int next, 
+	                       int layer) {
       if((this.combine.elementAt(next) == null) ||
          (this.combine.elementAt(next).size() < 2)) {
 	// skip over empty buckets and bucket with only one obj ( make sure
@@ -463,7 +468,11 @@ public class CombinationUtil {
       }
     }
 
-    private boolean propagateOne(int next, int rooti, int indexi, int ti, Combine tmp) {
+    private boolean propagateOne(int next, 
+	                         int rooti, 
+	                         int indexi, 
+	                         int ti, 
+	                         Combine tmp) {
       int root = rooti;
       int index = indexi;
       int t = ti;

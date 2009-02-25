@@ -4,6 +4,7 @@ import java.io.FileOutputStream;
 import java.io.PrintStream;
 import java.util.Hashtable;
 import java.util.Iterator;
+import java.util.Random;
 import java.util.Vector;
 
 import Analysis.OwnershipAnalysis.OwnershipAnalysis;
@@ -25,6 +26,7 @@ public class MCImplSynthesis {
     
     int coreNum;
     int scheduleThreshold;
+    int probThreshold;
 
     public MCImplSynthesis(State state, 
 	                   TaskAnalysis ta,
@@ -40,6 +42,7 @@ public class MCImplSynthesis {
 		                                       state,
 		                                       ta);
 	this.scheduleThreshold = 1000;
+	this.probThreshold = 0;
     }
 
     public int getCoreNum() {
@@ -52,6 +55,14 @@ public class MCImplSynthesis {
 
     public void setScheduleThreshold(int scheduleThreshold) {
         this.scheduleThreshold = scheduleThreshold;
+    }
+
+    public int getProbThreshold() {
+        return probThreshold;
+    }
+
+    public void setProbThreshold(int probThreshold) {
+        this.probThreshold = probThreshold;
     }
 
     public Vector<Schedule> synthesis() {
@@ -118,6 +129,7 @@ public class MCImplSynthesis {
 
 	int tryindex = 1;
 	int bestexetime = Integer.MAX_VALUE;
+	Random rand = new Random();
 	// simulate the generated schedulings and try to optimize it
 	do {
 	    System.out.print("+++++++++++++++++++++++++++++++++++++++++++++++++++\n");
@@ -144,6 +156,13 @@ public class MCImplSynthesis {
 		System.out.print("end of: #" + tryindex + " (bestexetime: " + bestexetime + ")\n");
 		System.out.print("+++++++++++++++++++++++++++++++++++++++++++++++++++\n");
 		tryindex++;
+	    } else if(tmpexetime == bestexetime) {
+		System.out.print("end of: #" + tryindex + " (bestexetime: " + bestexetime + ")\n");
+		System.out.print("+++++++++++++++++++++++++++++++++++++++++++++++++++\n");
+		tryindex++;
+		if((Math.abs(rand.nextInt()) % 100) < this.probThreshold) {
+		    break;
+		}
 	    } else {
 		break;
 	    }
@@ -163,7 +182,7 @@ public class MCImplSynthesis {
 	selectedSimExeGraphs = null;
 	multiparamtds = null;
 	
-	String path = "scheduling_selected.dot";
+	String path = this.state.outputdir + "scheduling_selected.dot";
 	SchedulingUtil.printScheduleGraph(path, schedulinggraph);
 
 	// Close the streams.
@@ -190,18 +209,12 @@ public class MCImplSynthesis {
 	Vector<Vector<ScheduleNode>> optimizeschedulegraphs = null;
 	int lgid = gid;
 	int left = count;
-	int num2try = (gid - 1) / this.scheduleThreshold;
 
 	for(int i = 0; i < selectedScheduleGraphs.size(); i++) {
 	    Vector<ScheduleNode> schedulegraph = scheduleGraphs.elementAt(
 		    selectedScheduleGraphs.elementAt(i));
 	    Vector<SimExecutionEdge> simexegraph = selectedSimExeGraphs.elementAt(i);
 	    Vector<SimExecutionEdge> criticalPath = analyzeCriticalPath(simexegraph); 
-	    // for test, print out the criticalPath
-	    if(this.state.PRINTCRITICALPATH) {
-		SchedulingUtil.printCriticalPath("criticalpath_" + num2try + ".dot", criticalPath);
-	    }
-	    num2try++;
 	    Vector<Vector<ScheduleNode>> tmposchedulegraphs = optimizeCriticalPath(schedulegraph, 
 		                                                                   criticalPath,
 		                                                                   lgid,
@@ -321,6 +334,12 @@ public class MCImplSynthesis {
 	int lgid = gid;
 	int left = count;
 	
+	// for test, print out the criticalPath
+	if(this.state.PRINTCRITICALPATH) {
+	    SchedulingUtil.printCriticalPath(this.state.outputdir + "criticalpath_" + lgid + ".dot", 
+		                             criticalPath);
+	}
+	
 	// first check all seedges whose real start point is late than predicted
 	// earliest start time and group them
 	int opcheckpoint = Integer.MAX_VALUE;
@@ -338,13 +357,30 @@ public class MCImplSynthesis {
 		seedge.setFixedTime(false);
 		// consider to optimize it only when its predicates can NOT 
 		// be optimized, otherwise first considering optimize its predicates
-		if(seedge.getLastpredicateEdge().isFixedTime()) {
+		SimExecutionEdge lastpredicateedge = seedge.getLastpredicateEdge();
+		if(lastpredicateedge.isFixedTime()) {
 		    if(opcheckpoint >= starttime) {
 			// only consider the tasks with smallest best start time
 			if(opcheckpoint > starttime) {
 			    tooptimize.clear();
 			    opcheckpoint = starttime;
-			    sparecores = seedge.getLastpredicateNode().getSpareCores();
+			    SimExecutionNode lastpredicatenode = seedge.getLastpredicateNode();
+			    int timepoint = lastpredicatenode.getTimepoint();
+			    if(lastpredicateedge.getTd() == null) {
+				// transfer edge
+				timepoint += lastpredicateedge.getWeight();
+			    }
+			    // mapping to critical path
+			    for(int index = 0; index < criticalPath.size(); index++) {
+				SimExecutionEdge tmpseedge = criticalPath.elementAt(index);
+				SimExecutionNode tmpsenode = 
+				    (SimExecutionNode)tmpseedge.getTarget();
+				if(tmpsenode.getTimepoint() > timepoint) {
+				    // get the spare core info
+				    sparecores = tmpsenode.getSpareCores();
+				    break;
+				}
+			    }
 			}
 			int corenum = seedge.getCoreNum();
 			if(!tooptimize.containsKey(corenum)) {
@@ -400,6 +436,7 @@ public class MCImplSynthesis {
 			    tooptimize2.put(corenum, candidatetasks);
 			    Vector<Vector<ScheduleNode>> ops = innerOptimizeCriticalPath(scheduleGraph,
                                                                                          tooptimize2,
+                                                                                         null,
                                                                                          lgid,
                                                                                          left);
 			    if(ops != null) {
@@ -478,6 +515,7 @@ public class MCImplSynthesis {
 		// cores
 		Vector<Vector<ScheduleNode>> ops = innerOptimizeCriticalPath(scheduleGraph,
                                                                              tooptimize,
+                                                                             sparecores,
                                                                              lgid,
                                                                              left);
 		if(ops != null) {
@@ -498,6 +536,7 @@ public class MCImplSynthesis {
     
     private Vector<Vector<ScheduleNode>> innerOptimizeCriticalPath(Vector<ScheduleNode> scheduleGraph,
 	                                                           Hashtable<Integer, Hashtable<TaskDescriptor, Vector<SimExecutionEdge>>> tooptimize,
+	                                                           Vector<Integer> sparecores,
 	                                                           int gid,
 	                                                           int count) {
 	int lgid = gid;
@@ -511,7 +550,9 @@ public class MCImplSynthesis {
 	// these nodes are root nodes
 	Vector<ScheduleNode> roots = new Vector<ScheduleNode>();
 	for(int i = 0; i < newscheduleGraph.size(); i++) {
-	    roots.add(newscheduleGraph.elementAt(i));
+	    if((sparecores == null) || (sparecores.contains(i))) {
+		roots.add(newscheduleGraph.elementAt(i));
+	    }
 	}
 
 	// map the tasks associated to SimExecutionedges to original 

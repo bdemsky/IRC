@@ -581,7 +581,7 @@ public class ScheduleAnalysis {
 	toVisit = null;
 
 	if(this.state.PRINTSCHEDULING) {
-	    SchedulingUtil.printScheduleGraph("scheduling_ori.dot", 
+	    SchedulingUtil.printScheduleGraph(this.state.outputdir + "scheduling_ori.dot", 
 		                              this.scheduleNodes);
 	}
     }
@@ -755,7 +755,8 @@ public class ScheduleAnalysis {
 	sn2fes = null;
 
 	if(this.state.PRINTSCHEDULING) {
-	    SchedulingUtil.printScheduleGraph("scheduling_extend.dot", this.scheduleNodes);
+	    SchedulingUtil.printScheduleGraph(this.state.outputdir + "scheduling_extend.dot", 
+		                              this.scheduleNodes);
 	}
     }
 
@@ -1132,10 +1133,12 @@ public class ScheduleAnalysis {
 	    this.scheduleGraphs.addElement(this.scheduleNodes);
 	    int gid = 1;
 	    if(this.state.PRINTSCHEDULING) {
-		String path = "scheduling_" + gid + ".dot";
+		String path = this.state.outputdir + "scheduling_" + gid + ".dot";
 		SchedulingUtil.printScheduleGraph(path, this.scheduleNodes);
 	    }
 	} else {
+	    SchedulingUtil.assignCids(this.scheduleNodes);
+	    
 	    // Go through all the Schedule Nodes, organize them in order of their cid
 	    Vector<Vector<ScheduleNode>> sNodeVecs = 
 		SchedulingUtil.rangeScheduleNodes(this.scheduleNodes);

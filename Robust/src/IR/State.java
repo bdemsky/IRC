@@ -78,7 +78,7 @@ public class State {
   public int CORENUM = 1;
   public String structfile;
   public String main;
-  public String outputdir = null;
+  public String outputdir = "/scratch/";
 
   public HashSet selfloops;
   public HashSet excprefetch;
