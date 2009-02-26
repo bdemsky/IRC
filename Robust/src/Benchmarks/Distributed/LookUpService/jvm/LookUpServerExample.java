@@ -1,3 +1,6 @@
+import java.net.*;
+import java.util.*;
+
 public class LookUpServerExample {
   /**
    * Number of objects in the hash table 
@@ -17,7 +20,7 @@ public class LookUpServerExample {
     this.nthreads = nthreads;
   }
 
-  public static int main(String args[]) {
+  public static void main(String args[]) {
     LookUpServerExample luse = new LookUpServerExample();
     LookUpServerExample.parseCmdLine(args, luse);
     
@@ -32,22 +35,36 @@ public class LookUpServerExample {
       hmap.put(key,val);
     }
 
-    ServerSocket ss = new ServerSocket(9001);
-    acceptConnection(ss, hmap, luse.nthreads);
+    try {
+      ServerSocket ss = new ServerSocket(9001);
+      acceptConnection(ss, hmap, luse.nthreads);
+    } catch (Exception e) {
+      System.out.println("Server socket create error " + e);
+    }
   }
 
   public static void acceptConnection(ServerSocket ss, HashMap hmap, int nthreads) {
     LookUpServerThread[] lus = new LookUpServerThread[nthreads];
     for(int i=0; i<nthreads; i++) {
-      Socket s = ss.accept();
-      lus[i] = new LookUpServerThread(s, hmap);
-      lus[i].start();
+      Socket s = null;
+      try {
+        s = ss.accept();
+        lus[i] = new LookUpServerThread(s, hmap);
+        lus[i].start();
+      } catch (Exception e) {
+        System.out.println("Server accept error " + e);
+      }
     }
 
     for(int i=0; i<nthreads; i++) {
-      lus[i].join();
+      try {
+        lus[i].join();
+      } catch (InterruptedException e) {
+        e.printStackTrace();
+      }
     }
-    System.println("Finished");
+
+    System.out.println("Finished");
   }
 
   /**
@@ -80,9 +97,9 @@ public class LookUpServerExample {
    * The usage routine which describes the program options.
    **/
   public void usage() {
-    System.printString("usage: ./Server.bin -N <threads> -nObjs <objects in hashmap>\n");
-    System.printString("    -N the number of threads\n");
-    System.printString("    -nObjs the number of objects to be inserted into distributed hashmap\n");
-    System.printString("    -h help with usage\n");
+    System.out.print("usage: ./Server.bin -N <threads> -nObjs <objects in hashmap>\n");
+    System.out.print("    -N the number of threads\n");
+    System.out.print("    -nObjs the number of objects to be inserted into distributed hashmap\n");
+    System.out.print("    -h help with usage\n");
   }
 }

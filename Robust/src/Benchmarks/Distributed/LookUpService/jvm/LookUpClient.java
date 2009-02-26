@@ -1,3 +1,8 @@
+import java.net.*;
+import java.util.*;
+import java.io.*;
+import java.lang.System;
+
 public class LookUpClient {
   /**
    * Total number of transactions
@@ -33,8 +38,19 @@ public class LookUpClient {
   public static void main(String[] args) {
     LookUpClient lc = new LookUpClient();
     LookUpClient.parseCmdLine(args, lc);
-
-    Socket sock = new Socket("dw-8.eecs.uci.edu",9001);
+    Socket sock = null;
+    InputStream in = null;
+    OutputStream out = null;
+    try {
+      sock = new Socket("dw-8.eecs.uci.edu",9001);
+      in = sock.getInputStream();
+      out = sock.getOutputStream(); 
+    } catch (UnknownHostException e) {
+      System.err.println("Don't know about host: dw-8.eecs.uci.edu");
+      System.exit(1);
+    } catch (IOException e) {
+      System.out.println("Read failed " + e);
+    }
 
     for (int i = 0; i < lc.numtrans; i++) {
       Random rand = new Random(i);
@@ -47,25 +63,42 @@ public class LookUpClient {
         } else {
           operation = 2;//update hashmap
         }
-        lc.doLookUp(operation, sock, rwkey);
+        lc.doLookUp(operation, sock, rwkey, in, out);
       }
     }
     /** Special character to terminate computation **/
     String op = new String("t");
-    sock.write(op.getBytes());
+    try{
+      out.write(op.getBytes());
+    } catch (Exception e) {
+      e.printStackTrace();
+    }
   }
 
   /**
    * Call to do a read/ write on socket
    **/
-  public void doLookUp(int operation, Socket sock, int key){
+  public void doLookUp(int operation, Socket sock, int key, InputStream in, OutputStream out){
     String op;
     if (operation == 1) {
-      sock.write(fillBytes(operation, key));
+      try {
+        out.write(fillBytes(operation, key));
+      } catch (Exception e) {
+        e.printStackTrace();
+      }
+      /* Read from server */
       byte b[] = new byte[4];
-      int numbytes = sock.read(b);
+      try {
+        in.read(b);
+      } catch (IOException e) {
+        System.out.println("Read failed " + e);
+      }
     } else {
-      sock.write(fillBytes(operation, key));
+      try {
+        out.write(fillBytes(operation, key));
+      } catch (Exception e) {
+        e.printStackTrace();
+      }
     }
   }
 
@@ -79,9 +112,11 @@ public class LookUpClient {
     } else { 
       b[0] = (byte)'w';
     }
+    int bitmask = 0xFF;
     for(int i = 1; i < 5; i++){
       int offset = (3-(i-1)) * 8;
-      b[i] = (byte) ((key >> offset) & 0xFF);
+      int tmp = ((key>>offset) & bitmask);
+      b[i] = (byte)tmp;
     }
     return b;
   }
@@ -124,11 +159,11 @@ public class LookUpClient {
    * The usage routine which describes the program options.
    **/
   public void usage() {
-    System.printString("usage: ./Client.bin -nObjs <objects in hashmap> -nTrans <number of transactions> -probRead <read probability> -nLookUp <number of lookups>\n");
-    System.printString("    -nObjs the number of objects to be inserted into distributed hashmap\n");
-    System.printString("    -nTrans the number of transactions to run\n");
-    System.printString("    -probRead the probability of read given a transaction\n");
-    System.printString("    -nLookUp the number of lookups per transaction\n");
-    System.printString("    -h help with usage\n");
+    System.out.print("usage: ./Client.bin -nObjs <objects in hashmap> -nTrans <number of transactions> -probRead <read probability> -nLookUp <number of lookups>\n");
+    System.out.print("    -nObjs the number of objects to be inserted into distributed hashmap\n");
+    System.out.print("    -nTrans the number of transactions to run\n");
+    System.out.print("    -probRead the probability of read given a transaction\n");
+    System.out.print("    -nLookUp the number of lookups per transaction\n");
+    System.out.print("    -h help with usage\n");
   }
 }
