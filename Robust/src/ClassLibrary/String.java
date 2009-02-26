@@ -135,6 +135,18 @@ public class String {
     return new String(buffer);
   }
 
+  public String toLowerCase() {
+    char[] buffer=new char[count];
+    for(int i=0; i<count; i++) {
+      char x=charAt(i);
+      if (x>='A'&&x<='Z') {
+	x=(char) ((x-'A')+'a');
+      }
+      buffer[i]=x;
+    }
+    return new String(buffer);
+  }
+
   public int indexOf(int ch) {
     return this.indexOf(ch, 0);
   }

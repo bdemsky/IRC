@@ -14,4 +14,18 @@ public class Character {
     }
     return -1;
   }
+
+  char value;
+  
+  public Character( char c ) {
+    value = c;
+  }
+
+  public Character( Character c ) {
+    value = c.value;
+  }
+
+  public String toString() {
+    return ""+value;
+  }
 }

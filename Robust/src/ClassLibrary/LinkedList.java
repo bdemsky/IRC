@@ -59,6 +59,10 @@ public class LinkedList {
     return size;
   }
 
+  public boolean isEmpty() {
+    return size == 0;
+  }
+
   public Object clone() {
     System.out.println( "LinkedList.clone() not implemented." );
     System.exit(-1);
@@ -105,11 +109,12 @@ public class LinkedList {
     getLast();
   }
 
-  public void removeFirst() {
+  public Object removeFirst() {
     if( head == null ) {
       System.out.println( "LinkedList: illegal removeFirst()" );
       System.exit(-1);
     }
+    Object o = head.element;
     head = head.next;
     if( head != null ) {
       head.prev = null;
@@ -117,13 +122,15 @@ public class LinkedList {
       tail = null;
     }
     size--;
+    return o;
   }
 
-  public void removeLast() {
+  public Object removeLast() {
     if( tail == null ) {
       System.out.println( "LinkedList: illegal removeLast()" );
       System.exit(-1);
     }
+    Object o = tail.element;
     tail = tail.prev;
     if( tail != null ) {
       tail.next = null;
@@ -131,6 +138,7 @@ public class LinkedList {
       head = null;
     }
     size--;
+    return o;
   }
 
   public void remove( Object o ) {

@@ -1,4 +1,4 @@
-class HashMapIterator {
+class HashMapIterator extends Iterator {
   HashMap map;
   int type;
   int bin;
@@ -42,5 +42,10 @@ class HashMapIterator {
 	o=he.value;
       return o;
     } else System.error();
+  }
+
+  public void remove() {
+    System.out.println( "HashMapIterator.remove() not implemented." );
+    System.exit( -1 );
   }
 }

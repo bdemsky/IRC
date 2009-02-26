@@ -9,5 +9,10 @@ class StringTest {
 	System.printString(a.subString(3));
 	System.printString(a.subString(3,6));
 	System.printString("\n");
+
+	String b = "Danger iN cAVErn_coVE";
+	System.out.println( "normal: "+b );
+	System.out.println( "upper:  "+b.toUpperCase() );
+	System.out.println( "lower:  "+b.toLowerCase() );
     }
 }
