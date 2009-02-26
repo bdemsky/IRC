@@ -1,0 +1,29 @@
+@title:A Micromodularity Mechanism
+@author:Daniel Jackson Ilya Shlyakhter and Manu Sridharan<\n> Laboratory for Computer Science<\n> Massachusetts Institute of Technology<\n> Cambridge Massachusetts USA<\n> dnjmit.edu
+@title:A Micromodularity Mechanism for <f""><\#161><f$> <f""><\#177><f$>  floor left big <f""><\#165><f$> .  Daniel Jackson
+@section:B	Introduction
+@noindent:hello there.
+@subsection:B.1	First sub
+@subsection:B.2	First sub
+@noindent:
+@subsection:B.3	First sub
+@section:C	Introduction
+@noindent:hello there.
+@subsection:C.1	First sub
+@subsection:C.2	First sub
+@subsubsection:C.2.a	First subsub
+@subsubsection:C.2.b	First subsub
+@subsubsection:C.2.c	First subsub
+@subsubsection:C.2.d	First subsub
+@subsubsection:C.2.e	First subsub
+@subsubsection:C.2.f	First subsub
+@subsubsection:C.2.g	First subsub
+@noindent:
+@subsection:C.3	First sub
+@author:Daniel Jackson123 Ilya Shlyakhter and Manu Sridharan<\n>
+@section:D	
+@noindent:Laboratory for Computer Science<\n> dnjmit.edu
+@opening:Abstract
+@noindent:Hello <\#133> and here  A simple mechanism. The paper demonstrates the flexibility of the mechanism by application in a variety of common idioms.
+@body:<\#147>I really love this <\#145>quote<\#146> kind of thing <\#150> said Ian<\#48>s mother who always primed x<\#48> in <\#146>69.<\#148> Categories and Subject Descriptors
+@noindent:D.2.1 RequirementsSpecifications<\#151>Languages Assertions Invariants Specification techniques. This is an ellipsis<\#133>And there you go

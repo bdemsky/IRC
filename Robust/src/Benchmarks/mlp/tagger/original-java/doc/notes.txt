@@ -1,0 +1,154 @@
+A. Motivations
+A.1	Independence from layout tool
+A.2	Ability to produce HTML
+A.3	Editable text, email, etc
+A.4	Combine compilation and WYSIWYG
+A.5	Better automation of cross refs than Frame
+A.6	Better typography than TeX
+A.7	Ability to use my own PS fonts
+A.8	Easy layout of code, which TeX handles badly
+
+B. Project Plans
+B.1	Small initial implementation; iterative extension
+B.2 Experiment with JUnit
+B.3	Try documentation lite
+B.4	Look at conformance issues
+
+C. Requirements
+C.1	Input format
+C.1.1	Plain text, platform independent (no Unix/Windows line end problems)
+C.1.2	Minimal syntax
+C.1.3	Text layout respected for all but EOL, unless //
+C.1.4	All keywords introduced by backslash
+C.1.5	Kinds of tag
+		\section	paragraph tag
+		\alpha		special char
+		\date			special
+		\bold			formatting tag	
+		kind of tag is resolved by tables loaded from file
+C.1.6	Special Tokens
+	--, ---, .., ...	dashes and ellipses
+	\\		hard line break
+	non-breaking hyphen, breaking hyphen, etc?
+	en, em space?
+	italic correction?
+	|			separator	
+	{,}		used for grouping
+C.1.6a	Printing Characters Used in Special Tokens
+	\#,\_,\{,\}	will print as #,_,{,}
+	\ is written \backslash
+C.1.7	Groupings (obsolete)
+	\{x} may replace \x when want to avoid extra space
+	eg. \{alpha}_1 to give an alpha with a subscript 1
+	but paragraph tags behave in opposite way: consume whitespace that follows, so use \{para} to include whitespace.
+C.1.7	Groupings
+	abandoned this in favour of simpler scheme with | for separator and {} for logical grouping;
+	para tag consumes only first space token, so "\parastyle | hello" to put space before "hello"
+C.1.8	Cross References
+	\tag{t}	marks paragraph with tag t
+	\name{s}	makes s the citation string for this para
+	\cite{t}	citation of paragraph with tag t
+	for autonumbered paras, number is citation string by default
+C.1.9	Para breaks
+	determined by blank line; mid-line paragraph tag is an error
+C.1.10	Spacing
+	as given explicitly, except; line breaks and their leading spaces, replaced by single space; first whitespace group (including line break) following paragraph tag.
+C.1.11	Italicization
+	between underscores
+	have this indicate a character style instead? allow override at start of file.
+C.1.12	Sub and superscripts (obsolete)
+	text_i, text_{abc}
+	text^i, text^{abc}
+C.1.12	Sub and superscripts
+	abandoned _^ scheme because it's more trouble parsing
+	may reinstate later
+	\sub{...}	puts text between curlies in superscript
+C.1.12a	Formatting Tags
+	generalize to \bold, \roman, etc
+	formatting runs from that point onwards, unless explicit grouping: \bold{abc}def puts abc, but not def in bold.
+C.1.13	Comments
+# in first column makes line a comment
+C.1.14	Quotes
+	"hello"
+	it's
+	'69
+C.2	Style File
+C.2.1	Next
+	specifies default paragraph style order
+C.2.2	Character Styles
+	assume none for now
+C.2.3	Syntax
+	In all property files, use property list syntax:
+		<style:section><next:indent>...
+C.2.4	Autonumbering
+C.2.4.1	Star after style name suppresses numbering
+		\section*
+C.2.4.2	Associate with each style
+	series
+	level
+	separator (comes before extension string for this style's numbering)
+	trailer (between number and para)
+	leader (before number)
+C.2.4.2	Associate a series and a level with each style, eg, <series:A><level:2>
+C.2.4.3	Numbering formats:
+		0	gives 0,1,2
+		1		1,2,3
+		a		a,b,c
+		A		A,B,C
+		i			i,ii,iii,iv,
+		I			I,II,III,IV
+C.2.4.4	Examples
+	example:
+		<style:section><series:section><level:0><numbering:1><trailer:.\tab>
+		<style:subsection><series:section><level:1><numbering:1><separator:.><trailer:\tab>
+		<style:subsubsection><series:section><level:3><numbering:a><trailer:\tab>
+		gives
+		1. First section
+		1.1	First subsection
+		1.1a	First subsubsection
+	example:
+		<style:point><leader:\cdot><trailer:\tab>
+		gives points preceded by a center dot and a tab
+C.2.4.5	Citation
+	Numbering string, excluding leader and trailer, becomes default citation string for its para.
+
+C.3	Stylesheets
+At top of file, \stylesheet{filename} sets name of style file
+
+C.4	Other Features
+C.4.1	Wishlist
+	Reserved word transformations (eg, bolding)
+	Inference rules
+C.5	Character File
+C.5.1	Must be backend independent
+C.5.2	Example
+	<name:alpha><font:MathB><index:155>
+	
+
+D.	Design Issues
+D.1	General Thoughts
+D.1.1	Parsing. Break into tokens consisting of whitespace groups, character (non-whitespace) groups, commands, etc.
+D.1.2	Use simple hand-written recursive descent parser
+D.1.3	Need to read in style file first so that paragraph style names are recognized.
+D.1.4	Build a table and select action by token type
+D.1.5	Incorporate trailing space and EOL into single token
+D.1.6	Issue: stream or tree based? Probably stream, but have parser recognize close of italics, formattings, etc
+D.1.7	For now, don't attempt generic backend. Better to handcraft a backend or two, then generalize.
+D.1.8	For references, write out index file and generate warnings for unresolved refs. This allows a single pass.
+
+D.2	Design
+
+----------------------------------------------------------------------------------------
+Issues
+
+Grammar must handle
+\section*			generates token parastyle section, numbering suppressed
+\sub{...}			generates tokens begin-sub and end-sub?
+quotes?
+
+
+
+must have preamble followed by blank line to generate first para
+need something to mark end of preamble
+how to have action install other actions? will be a comodification.
+

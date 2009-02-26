@@ -1,0 +1,73 @@
+\preamble
+\loadchars{k:\Research\Tagger\maps\standard-charmap.txt}
+\loadchars{k:\Research\Tagger\maps\lucmathsym-charmap.txt}
+\loadchars{k:\Research\Tagger\maps\lucmathit-charmap.txt}
+\loadchars{k:\Research\Tagger\maps\lucmathext-charmap.txt}
+\loadstyles{k:\Research\Tagger\examples\styles.txt}
+
+\title A Micromodularity Mechanism
+
+\author Daniel Jackson, Ilya Shlyakhter and Manu Sridharan\\
+Laboratory for Computer Science\\
+Massachusetts Institute of Technology\\
+Cambridge, Massachusetts, USA\\
+dnj@mit.edu
+
+\title A Micromodularity Mechanism for \Gamma \delta 
+
+floor left big: \floorleftbig . 
+
+Daniel Jackson
+
+\section Introduction
+
+hello there.
+
+\subsection First sub
+
+\subsection First sub
+
+
+\subsection First sub
+
+\section Introduction
+
+hello there.
+
+\subsection First sub
+
+\subsection First sub
+
+\subsubsection First subsub
+
+\subsubsection First subsub
+
+\subsubsection First subsub
+
+\subsubsection First subsub
+
+\subsubsection First subsub
+
+\subsubsection First subsub
+
+\subsubsection First subsub
+
+
+\subsection First sub
+
+\author       Daniel Jackson123, Ilya Shlyakhter and Manu Sridharan\\
+
+# comment here!
+
+Laboratory for Computer Science\\
+dnj@mit.edu
+
+\opening Abstract
+
+Hello ... and here .. 
+A simple mechanism. The paper demonstrates the flexibility of the mechanism by application in a variety of common idioms.
+
+"I really love this 'quote' kind of thing -- said Ian's mother, who always primed x' in '69."
+\subsection* Categories and Subject Descriptors
+
+D.2.1 Requirements/Specifications---Languages; Assertions, Invariants, Specification techniques. This is an ellipsis...And there you go!

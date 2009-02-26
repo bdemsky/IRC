@@ -1,0 +1,10 @@
+\preamble
+\loadchars{k:\Research\Tagger\maps\standard-charmap.txt}
+\loadchars{k:\Research\Tagger\maps\lucmathsym-charmap.txt}
+\loadchars{k:\Research\Tagger\maps\lucmathit-charmap.txt}
+\loadchars{k:\Research\Tagger\maps\lucmathext-charmap.txt}
+\loadstyles{k:\Research\Tagger\examples\styles.txt}
+
+\title A Micromodularity Mechanism
+
+\title A Micromodularity Mechanism

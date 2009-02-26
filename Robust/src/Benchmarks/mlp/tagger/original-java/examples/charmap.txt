@@ -1,0 +1,22 @@
+# basic characters
+<char:linebreak><index:22>
+
+# dots
+<char:period><index:22>
+<char:twodotleader><index:22>
+<char:ellipsis><index:22>
+
+# quotes
+<char:apostrophe><index:22>
+<char:prime><index:22>
+<char:opensinglequote><index:22>
+<char:closesinglequote><index:22>
+<char:opendoublequote><index:22>
+<char:closedoublequote><index:22>
+
+#dashes
+<char:hyphen><index:22>
+<char:endash><index:22>
+<char:emdash><index:22>
+
+# math symbols

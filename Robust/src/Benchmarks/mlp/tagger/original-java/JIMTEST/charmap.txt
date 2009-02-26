@@ -1,0 +1,31 @@
+# basic characters
+<char:linebreak><index:22>
+
+# dots
+<char:cdot><index:22>
+
+# quotes
+<char:quote><index:22>
+<char:quoteleft><index:22>
+<char:quoteright><index:22>
+<char:quotedblleft><index:22>
+<char:quotedblright><index:22>
+
+#dashes
+<char:hyphen><index:22>
+<char:endash><index:22>
+<char:emdash><index:22>
+
+# math symbols
+<char:oplus><index:22>
+<char:langle><index:22>
+<char:rangle><index:22>
+<char:textarrow><index:22>
+<char:hat><index:22>
+<char:fatsemi><index:22>
+<char:forall><index:22>
+<char:fatdot><index:22>
+<char:fatsemi><index:22>
+<char:implies><index:22>
+<char:exists><index:22>
+<char:and><index:22>

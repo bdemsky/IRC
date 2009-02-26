@@ -1,0 +1,11 @@
+<style:title><next:author>
+<style:author><next:section>
+<style:section><next:noindent><counter:1><separator:.><trailer:	>
+<style:opening><next:noindent>
+<style:noindent><next:body>
+<style:body><next:body>
+<style:subsection><next:noindent><parent:section><counter:1><separator:.><trailer:	>
+<style:subsubsection><next:noindent><parent:subsection><counter:a><separator:.><trailer:	>
+<style:geekmath><next:noindent>
+<style:point><next:noindent><counter:A><leader:\alpha >
+<style:ref><next:ref>

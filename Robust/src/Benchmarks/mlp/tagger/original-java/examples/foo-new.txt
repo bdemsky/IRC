@@ -1,0 +1,11 @@
+@title:A Micromodularity Mechanism
+@author:Daniel Jackson Ilya Shlyakhter and Manu Sridharan<\n> Laboratory for Computer Science<\n> Massachusetts Institute of Technology<\n> Cambridge Massachusetts USA<\n> dnjmit.edu
+@opening:Abstract
+@noindent:A simple mechanism for structuring specifications is described. By modelling structures as atoms it  remains entirely first<\#45>order and thus amenable to automatic analysis. And by interpreting fields of structures as relations it allows the same relational operators used in the formula language to be used for dereferencing. An extension feature allows structures to be developed incrementally but requires no textual inclusion nor any notion of subtyping. The paper demonstrates the flexibility of the mechanism by application in a variety of common idioms.
+@subsection:A.1	Categories and Subject Descriptors
+@noindent:D.2.1 RequirementsSpecifications<\#151>Languages D.2.4 SoftwareProgram Verification<\#151>Formal methods Model checking F.3.1 Specifying and Verifying and Reasoning about Programs<\#151>Assertions Invariants Specification techniques.
+@subsection:A.2	General Terms
+@noindent:Design Documentation Languages Verification.
+@subsection:A.3	Keywords
+@noindent:Modeling languages formal specification first<\#45>order logic relational calculus Alloy language Z specification language schema calculus.
+@section:B	Introduction

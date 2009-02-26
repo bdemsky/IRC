@@ -1,0 +1,1057 @@
+\preamble
+\loadchars{charmap.txt}
+\loadchars{standard-charmap.txt}
+\loadchars{lucmathsym-charmap.txt}
+\loadchars{lucmathit-charmap.txt}
+\loadchars{lucmathext-charmap.txt}
+\loadchars{symbol-charmap.txt}
+\loadstyles{styles.txt}
+
+\title A Micromodularity Mechanism
+
+\section Testing
+
+This is gamma: \gamma.\\
+This is Delta: \Delta.\\
+This is oplus: \oplus.
+\scriptA \arrowdblright \scriptA
+
+This is a subscripted variable: A\sub<\bold<hello>\italics<there>>.
+Math mode: $x + 2 = y, and && x\sub<2> = y\sub<3> = x\sub<ijk>$
+
+\author Daniel Jackson, Ilya Shlyakhter and Manu Sridharan\\
+Laboratory for Computer Science\\
+Massachusetts Institute of Technology\\
+Cambridge, Massachusetts, USA\\
+dnj@mit.edu
+
+\opening Abstract
+
+A simple mechanism for structuring specifications is described. By modelling structures as atoms, it  remains entirely first-order and thus amenable to automatic analysis. And by interpreting fields of structures as relations, it allows the same relational operators used in the formula language to be used for dereferencing. An extension feature allows structures to be developed incrementally, but requires no textual inclusion nor any notion of subtyping. The paper demonstrates the flexibility of the mechanism by application in a variety of common idioms.
+
+\subsection* Categories and Subject Descriptors
+
+D.2.1 Requirements/Specifications---Languages; D.2.4 Software/Program Verification---Formal methods, Model checking; F.3.1 Specifying and Verifying and Reasoning about Programs---Assertions, Invariants, Specification techniques.
+
+\subsection* General Terms
+
+Design; Documentation; Languages; Verification.
+
+\subsection* Keywords
+
+Modeling languages; formal specification; first-order logic; relational calculus; Alloy language; Z specification language; schema calculus.
+
+\section* Introduction
+
+\quote I am neither crazy nor a micromaniac.\\
+(A micromaniac is someone obsessed with\\
+reducing things to their smallest possible form.\\
+This word, by the way, is not in the dictionary.)\\
+--_Edouard de Pomiane, French Cooking in Ten Minutes, 1930_
+
+\noindent Most specification languages provide mechanisms that allow larger specifications to be built from smaller ones. These mechanisms are often the most complicated part of the language, and present obstacles to analysis. This paper presents a simple mechanism that seems to be expressive enough for a wide variety of uses, without compromising analyzability.
+
+This work is part of a larger project investigating the design of a "micro modelling language". Our premise is that lightweight application of formal methods [6] demands an unusually small and simple language that is amenable to fully automatic semantic analysis. The Alloy language is the result to date of our efforts to design such a language. Based on our experiences with the language [4] and its analyzer [5], we have recently developed a revision of Alloy that overcomes many of its limitations. This paper describes the key feature of the revised language: the _signature_, a new modularity mechanism.
+
+The mechanism allows our existing analysis scheme [3] to be applied to specifications involving structures. This is not achieved by treating the structuring mechanism as a syntactic sugar, which would limit the power of the notation (ruling out, for example, quantification over structures) and would complicate the analysis tool and make output harder for users to interpret. Because of the mechanism's generality, it has also enabled us to simplify the language as a whole, making it more uniform and eliminating some ad hoc elements.
+
+Our mechanism has a variety of applications. It can express inherent structure in the system being modelled, and can be used to organize a specification in which details are added incrementally. It can be used to construct a library of datatypes, or to describe a system as an instantiation of a more general system. And it can express state invariants, transitions, and sequences, despite the lack of any special syntax for state machines.
+
+In this last respect, the new language differs most markedly from its predecessor [4], which provided built-in notions of state invariants and operations. We now think this was a bad idea, because it made the language cumbersome for problems (such as the analysis of security policies or architectural topology constraints) in which temporal behaviour can be fruitfully ignored, and too inflexible for many problems in which temporal behaviour is important.
+
+#Because the notation as a whole is small, simple and analyzable, and free of bias towards any particular domain of application, it may be suitable as an intermediate language. A tool for architectural design, for example, might translate a more domain-specific notation into our language, allowing analyses that such tools do not currently support (such as automatic generation of sample configurations from style rules, and checking of consistency).
+#
+Our paper begins by explaining our motivations---the requirements our mechanism is designed to meet. The mechanism is then presented first informally in a series of examples, and then slightly more rigorously feature-by-feature. We discuss related work, especially the schema calculus of Z, and close with a summary of the merits and deficiences of our notation as a whole.
+
+\section Requirements
+
+The goal of this work was to find a single structuring mechanism that would support a variety of common specification idioms:
+
+\point \cdot	_States_: description of complex state as a collection of named components; incremental description both by hierarchy, in which a complex state becomes a component of a larger state, and by extension, in which new components are added; declaration of invariants and definitions of derived components;
+
+\point \cdot	_Datatypes_: separate description of a library of polymorphic datatypes, such as lists, sequences, trees and orders, along with their operators;
+
+\point \cdot	_Transitions_: specification of state transitions as operations described implicitly as formulas relating pre- and post-state; composition of operations from previously defined invariants and operations; sequential composition of operations; description of traces as sequences of states;
+
+\point \cdot	_Abstractions_: description of abstraction relations between state spaces;
+
+\point \cdot	_Assertions_: expression of properties intended to be redundant, to be checked by analysis, including: relationships amongst invariants; wellformedness of definitions (eg, that an implicit definition is functional); establishment and preservation of invariants by operations; properties of states reachable along finite traces; and simulation relationships between abstract and concrete versions of an operation.
+
+\noindent We wanted additionally to meet some more general criteria:
+
+\point \cdot	_Simplicity_. The language as a whole should be exceptionally small and simple.
+
+\point \cdot	_Flexibility_. Support for the particular idioms of state-machine specification should not be a straitjacket; the language should not dictate how state machines are expressed, and should not make it hard to describe structures that are not state machines (such as security models and architectural styles).
+
+\point \cdot	_Analyzability_. A fully automatic semantic analysis should be possible. In the present work, this has been achieved by requiring that the modularity mechanism be first order, and expressible in the kernel of the existing language.
+
+\noindent Finally, our language design decisions have been influenced by some principles that we believe contribute to these goals, make the language easier to use, and analysis tools easier to build:
+
+\point \cdot	_Explicitness_. The language should be fully explicit, with as few implicit constraints, coercions, etc, as possible.
+
+\point \cdot	_Minimal mathematics_. The basic theory of sets and relations should suffice; it should not be necessary to introduce domains, fixed points, infinities or special logical values.
+
+\point \cdot	_Minimal syntax_. There should be very few keywords or special symbols, and no need for special typography or layout.
+
+\point \cdot	_Uniformity_. A small and general set of constructs should be applied uniformly, independent of context.
+
+\point \cdot	_Lack of novelty_. Whenever possible, notions and syntax should follow standard usage of conventional mathematics and programming.
+
+\section Informal Description
+
+As a running example, we will specify a simple memory system involving a cache and a main memory. The memory has a fixed set of addresses and associates a data value with each address. The cache, in contrast, associates data values with some subset of addresses that varies over time. The cache is updated by a "write-back scheme", which means that updates need not be reflected to main memory immediately. The cache may therefore hold a more current value for an address than the main memory; the two are brought into alignment when the address is flushed from the cache and its value is written to main memory.
+
+\subsection States
+
+We start by declaring the existence of addresses and data values:
+
+\geekmath sig Addr {}\\
+sig Data {}
+
+Each line declares a _signature_, and introduces a set of atoms: _Addr_ for the set of addresses, and _Data_ for the set of data values. Like 'given types' in Z, these sets are disjoint from one another, and their atoms are unstructured and uninterpreted. Signature names can be used as expressions denoting sets, but they are also treated as types, so the expression _Addr+Data_, for example, is ill-typed, since the union operator (+) requires the types of its operands to match.
+
+The signature declaration
+
+\geekmath sig Memory {\\
+	addrs: set Addr,\\
+	map: addrs ->! Data\\
+	}
+
+likewise declares a set of atoms, _Memory_, corresponding to the set of all possible memories. In addition, it declares two fields: _addrs_ and _map_ which associate with a memory a set of addresses and a mapping from addresses to data values respectively. Thus, given a memory _m_, the expression _m.addrs_ will be a set of addresses, _m.map_ will be a relation from addresses to data values. The memory, addresses and data values should be viewed as distinct atoms in their own right; fields don't decompose an atom, but rather relate one atom to others. The exclamation mark in the declaration of the field _map_ is a 'multiplicity marking': it says that _m.map_ associates exactly one data value with each address in the set _m.addrs_. The use of _addrs_ rather than _Addr_ on the left side of the arrow indicates that _m.map_ does not associate a data value with an address that is not in the set _m.addrs_.
+
+In these expressions, the dot is simply relational image. More precisely, when we say that _m_ is a memory, we mean that the expression _m_ denotes a set consisting of a single atom. The field _addrs_ is a relation from _Memory_ to _Addr_, and _m.addrs_ denotes the image of the singleton set under this relation. So for a set of memories _ms_, the expression _ms.addrs_ will denote the union of the sets of addresses that belong to the individual memories. Given an address _a_, the expression _a.(m.map)_ denotes the set of data values associated with address _a_ in memory _m_, which will either be empty (when the address is not mapped) or a singleton. For convenience, we allow the relational image _s.r_ to be written equivalently as _r_[_s_], where [] binds more loosely than dot, so this expression may be written as _m.map_[_a_] instead.
+
+Like objects of an object-oriented language, two distinct atoms can have fields of the same value. Unlike objects, however, atoms are immutable. Each field is fixed, and cannot map an atom to one value at one time and another value at another time. To describe an operation that changes the state of a memory, therefore, we will use two distinct atoms in the set _Memory_ to represent the memory's state before and after.
+
+\subsection Extension
+
+A signature declaration can introduce a set as a subset of one previously declared, in which case we call it a _subsignature_. In this case, the set does not correspond to a type, but rather its atoms take on the type of the superset. For example, the declaration
+
+\geekmath sig MainMemory extends Memory {}
+
+introduces a set of atoms _MainMemory_ representing main memories, which is constrained to be a subset of the set _Memory_. Likewise
+
+\geekmath sig Cache extends Memory {\\
+	dirty: set addrs\\
+	}
+
+introduces a set of atoms _Cache_ representing those memories that can be regarded as caches. It also introduces a field _dirty_ that associates with a cache the set of addresses that is dirty; later, we will use this to represent those addresses for which a cache and main memory differ. Because _Cache_ is a subset of _Memory_, and _m.addrs_ (for any memory _m_) is a subset of _Addr_, the field denotes a relation whose type is from _Memory_ to _Addr_. Expressions such as _m.dirty_ are therefore type-correct for a memory _m_, whether or not _m_ is a cache. But since declaration of the field _dirty_ within the signature _Cache_ constrains _dirty_ to be a relation that maps only caches, _m.dirty_ will always denote the empty set when _m_ is not a cache.
+
+This approach avoids introducing a notion of subtyping. Subtypes complicate the language, and tend to make it more difficult to use. In OCL [17], which models extension with subtypes rather than subsets, an expression such as _m.dirty_ would be illegal, and would require a coercion of _m_ to the subtype _Cache_. Coercions do not fit smoothly into the relational framework; they interfere with the ability to take the image of a set under a relation, for example.  Moreover, subtypes are generally disjoint, whereas our approach allows the sets denoted by subsignatures to overlap. In this case, we'll add a constraint (in Section 2.4 below) to ensure that _MainMemory_ and _Cache_ are in fact disjoint.
+
+Declaring _Cache_ and _MainMemory_ as subsignatures of _Memory_ serves to factor out their common properties. Extension can be used for a different purpose, in which a single signature is developed by repeated extensions along a chain. In this case, the supersignatures may not correspond to entities in the domain being modelled, but are simply artifacts of specification---fragments developed along the way. Z specifications are typically developed in this style.
+
+\subsection Hierarchy
+
+The signature declaration also supports hierarchical structuring. We can declare a signature for systems each consisting of a cache and a main memory:
+
+\geekmath sig System {\\
+	cache: Cache,\\
+	main: MainMemory\\
+	}
+
+Again, _System_ introduces a set of atoms, and each field represents a relation. The omission of the keyword _set_ indicates that a relation is a total function. So for a system _s_, the expression _s.cache_ denotes one cache---that is, a set consisting of a single cache. This is one of very few instances of implicit constraints in our language, which we introduced in order to make declaration syntax conventional.
+
+Since signatures denote sets of atoms, apparently circular references are allowed. Linked lists, for example, may be modelled like this, exactly as they might be implemented in a language like Java:
+
+\geekmath sig List {}\\
+sig NonEmptyList extends List {elt: Elt, rest: List}
+	
+There is no recursion here; the field _rest_ is simply a homogeneous relation of type _List_ to _List_, with its domain restricted to the subset _NonEmptyList_.
+
+\subsection State Properties
+
+Properties of signature atoms are recorded as logical formulas. To indicate that such a property always holds, we package it as a _fact_. To say that, for any memory system, the addresses in a cache are always addresses within the main memory, we might write:
+
+\geekmath fact {all s: System | s.cache.addrs in s.main.addrs}
+
+or, using a shorthand that allows facts about atoms of a signature to be appended to it:
+
+\geekmath sig System {cache: Cache, main: MainMemory}\\
+	{cache.addrs in main.addrs}
+
+The appended fact is implicitly prefixed by
+
+\geekmath all this: System | with this |
+
+in which the _with_ construct, explained in Sectiom 3.6 below, causes the fields implicitly to be dereferences of the atom _this_.
+
+A fact can constrain atoms of arbitrary signatures; to say that no main memory is a cache we might write:
+
+\geekmath fact {no (MainMemory & Cache)}
+
+where _no e_ means that the expression _e_ has no elements, and & is intersection.
+
+#Again, this is common enough that we provide a shorthand. Declaring a subsignature as _disjoint_ indicates that it shares no atoms with any other subsignatures of the same supersignature. So the fact can be replaced by changing our declaration of _MainMemory_ to:
+#
+#\geekmath disjoint sig MainMemory extends Memory {}
+#
+Most descriptions have more interesting facts. We can express the fact that linked lists are acyclic, for example:
+
+\geekmath fact {no p: List | p in p.\hat @sep rest}
+
+The expression _\hat @sep rest_ denotes the transitive closure of the relation _rest_, so that _p.^rest_ denotes the set of lists reachable from _p_ by following the field _rest_ once or more. This illustrates a benefit of treating a field as a relation---that we can apply standard relational operators to it---and is also an example of an expression hard to write in a language that treats extension as subtyping (since each application of _rest_ would require its own coercion).
+
+Often we want to define a property without imposing it as a permanent constraint. In that case, we declare it as a _function_. Here, for example, is the invariant that the cache lines not marked as dirty are consistent with main memory:
+
+\geekmath fun DirtyInv (s: System) {\\
+	all a !: s.cache.dirty | s.cache.map[a] = s.main.map[a]\\
+	}
+	
+(The exclamation mark negates an operator, so the quantification is over all addresses that are _not_ dirty.) Packaging this as a function that can be applied to a particular system, rather than as a fact for all systems, will allow us to express assertions about preservation of the invariant (Section 2.8).
+
+By default, a function returns a boolean value---the value of the formula in its body. The value of _DirtyInv(s)_ for a system _s_ is therefore true or false. A function may return non-boolean values. We might, for example, define the set of bad addresses to be those for which the cache and main memory differ:
+
+\geekmath fun BadAddrs (s: System): set Addr {\\
+	result = {a: Addr | s.cache.map[a] != s.main.map[a]}\\
+	}
+
+and then write our invariant like this:
+
+\geekmath fun DirtyInv (s: System) {BadAddrs(s) in s.cache.dirty}
+
+In this case, _BadAddrs(s)_ denotes a set of addresses, and is short for the expression on the right-hand side of the equality in the definition of the function _BadAddrs_. The use of the function application as an expression does not in fact depend on the function being defined explicitly. Had we written
+
+\geekmath fun BadAddrs (s: System): set Addr {\\
+	all a: Addr | a in result iff s.cache.map[a] != s.main.map[a]\\
+	}
+	
+the application would still be legal; details are explained in Section 3.7.
+# 
+# \geekmath BadAddrs(s) in s.cache.dirty
+# 
+# would be treated as short for 
+# 
+# \geekmath all result: set Addr |\\
+# 	(all a: Addr | a in result iff  s.cache.map[a] != s.main.map[a])\\
+# 	=> result in s.cache.dirty
+# 
+# This desugaring is explained in more detail in Section 99 below.
+
+\subsection Operations
+
+Following Z, we can specify operations as formulas that constrain pre- and post-states. An operation may be packaged as a single function (or as two functions if we want to separate pre- and post-conditions in the style of VDM or Larch).
+
+The action of writing a data value to an address in memory might be specified like this:
+
+\geekmath fun Write (m,m': Memory, d: Data, a: Addr) {\\
+	m'.map = m.map ++ (a->d)\\
+	}
+
+The formula in the body of the function relates _m_, the value of the memory before, to _m'_, the value after. These identifers are just formal arguments, so the choice of names is not significant. Moreover, the prime mark plays no special role akin to decoration in Z---it's a character like any other. The operator ++ is relational override, and the arrow forms a cross product. As mentioned above, scalars are represented as singleton sets, so there is no distinction between a tuple and a relation. The arrows in the expressions _a->d_ here and _addrs->Data_ in the declaration of the _map_ field of _Memory_ are one and the same. 
+
+The action of reading a data value can likewise be specified as a function, although since it has no side-effect we omit the _m'_ parameter:
+
+\geekmath fun Read (m: Memory, d: Data, a: Addr) {\\
+	d = m.map[a]\\
+	}
+	
+Actions on the system as a whole can be specified using these primitive operations; in Z, this idiom is called 'promotion'. A read on the system is equivalent to reading the cache:
+
+\geekmath fun SystemRead (s: System, d: Data, a: Addr) {\\
+	Read (s.cache, d, a)\\
+	}
+
+The _Read_ operation has an implicit precondition. Since the data parameter _d_ is constrained (implicitly by its declaration) to be scalar---that is, a singleton set---the relation _m.map_ must include a mapping for the address parameter _a_, since otherwise the expression _m.map[a]_ will evaluate to the empty set, and the formula will not be satisfiable. This precondition is inherited by _SystemRead_. If the address _a_ is not in the cache, the operation cannot proceed, and it will be necessary first to load the data from main memory. It is convenient to specify this action as a distinct operation:
+
+\geekmath fun Load (s,s': System, a: Addr) {\\
+	a !in s.cache.addrs\\
+	s'.cache.map = s.cache.map + (a->s.main.map[a])\\
+	s'.main = s.main\\
+	}
+
+The + operator is just set union (in this case, of two binary relations, the second consisting of a single tuple). A write on the system involves a write to the cache, and setting the dirty bit. Again, this can be specified using a primitive memory operation:
+
+\geekmath fun SystemWrite (s,s': System, d: Data, a: Addr) {\\
+	Write (s.cache, s'.cache, d, a)\\
+	s'.cache.dirty = s.cache.dirty + a\\
+	s'.main = s.main\\
+	}
+
+A cache has much smaller capacity than main memory, so it will occasionally be necessary (prior to loading or writing) to flush lines from the cache back to main memory. We specify flushing as a non-deterministic operation that picks some subset of the cache addrs and writes them back to main memory:
+
+\geekmath fun Flush (s,s': System) {\\
+	some x: set s.cache.addrs {\\
+		s'.cache.map = s'.cache.map - (x->Data)\\
+		s'.cache.dirty = s.cache.dirty - x\\
+		s'.main.map = s.main.map ++ \\
+			{a: x, d: Data | d = s.cache.map[a]}\\
+		}
+
+The - operator is set difference; note that it is applied to sets of addresses (in the third line) and to binary relations (in the second). The comprehension expression creates a relation of pairs _a_->_d_ satisfying the condition.
+
+Finally, it is often useful to specify the initial conditions of a system. To say that the cache initially has no addresses, we might write a function imposing this condition on a memory system:
+
+\geekmath fun Init (s: System) {no s.cache.addrs}
+
+\subsection Traces
+
+To support analyses of behaviours consisting of sequences of states, we declare two signatures, for ticks of a clock and traces of states:
+
+\geekmath sig Tick {}\\
+sig SystemTrace {\\
+	ticks: set Tick,\\
+	first, last: ticks,\\
+	next: (ticks - last) !->! (ticks - first)\\
+	state: ticks ->! System}\\
+	{\\
+	first.*next = ticks\\
+	Init (first.state)\\
+	all t: ticks - last | \\
+		some s = t.state, s' = t.next.state |\\
+			Flush (s,s')\\
+			|| (some a: Addr | Load (s,s',a))\\
+			|| (some d: Data, a: Addr | SystemWrite (s,s',d,a))\\
+	}
+
+Each trace consists of a set of _ticks_, a _first_ and _last_ tick, an ordering relation _next_ (whose declaration makes it a bijection from all ticks except the last to all ticks except the first), and a relation _state_ that maps each tick to a system state.
+
+The fact appended to the signature states first a generic property of traces: that the ticks of a trace are those reachable from the first tick. It then imposes the constraints of the operations on the states in the trace. The initial condition is required to hold in the first state. Any subsequent pair of states is constrained to be related by one of the three side-effecting operations. The existential quantifier plays the role of a _let_ binding, allowing _s_ and _s'_ in place of _t.state_ and _t.next.state_, representing the state for tick _t_ and the state for its successor _t.next_. Note that this formulation precludes stuttering; we could admit it simply by adding the disjunct _s_=_s'_ allowing a transition that corresponds to no operation occurring.
+
+Bear in mind that this fact is a constraint on all atoms in the set _SystemTrace_. As a free standing fact, the second line of the fact---the initial condition--- would have been written:
+
+\geekmath fact {all x: SystemTrace | Init ((x.first).(x.state))}
+
+\subsection Abstraction
+
+Abstraction relationships are easily expressed using our function syntax. To show that our memory system refines a simple memory without a cache, we define an abstraction function _Alpha_ saying that a system corresponds to a memory that is like the system's memory, overwritten by the entries of the system's cache:
+
+\geekmath fun Alpha (s: System, m: Memory) {\\
+	m.map = s.main.map ++ s.cache.map\\
+	}
+	
+As another example, if our linked list were to represent a set, we might define the set corresponding to a given list as that containing the elements reachable from the start:
+
+\geekmath fun ListAlpha (p: List, s: set Elt) {\\
+	s = p.*rest.elt\\
+	}
+
+\subsection Assertions
+
+Theorems about a specification are packaged as _assertions_. An assertion is simply a formula that is intended to hold. A tool can check an assertion by searching for a counterexample---that is, a model of the formula's negation.
+
+The simplest kinds of assertion record consequences of state properties. For example,
+
+\geekmath assert {\\
+	all s: System | DirtyInv (s) && no s.cache.dirty\\
+		=> s.cache.map in s.main.map\\
+	}
+
+asserts that if the dirtiness invariant holds,and there are no dirty addresses, then the mapping of addresses to data in the cache is a subset of the mapping in the main memory.
+
+An assertion can express consequences of operations. For example,
+
+\geekmath assert {\\
+	all s: System, d: Data, a: Addr |\\
+		SystemRead (s,d,a) => a in s.cache.addrs\\
+	}
+
+embodies the claim made above that _SystemRead_ has an implicit precondition; it asserts that whenever _SystemRead_ occurs for an address, that address must be in the cache beforehand. An assertion can likewise identify a consequence in the post-state; this assertion
+
+\geekmath assert {\\
+	all s,s': System, d: Data, a: Addr |\\
+		SystemWrite (s,s',d,a) => s'.cache.map[a] = d\\
+	}
+	
+says that after a _SystemWrite_, the data value appears in the cache at the given address. 
+
+Preservation of an invariant by an operation is easily recorded as an assertion. To check that our dirtiness invariant is preserved when writes occur, we would assert
+
+\geekmath assert {\\
+	all s,s': System, d: Data, a: Addr |\\
+		SystemWrite (s,s',d,a) && DirtyInv (s) => DirtyInv (s')\\
+	}
+
+Invariant preservation is not the only consequence of an operation that we would like to check that relates pre- and post-states. We might, for example, want to check that operations on the memory system do not change the set of addresses of the main memory. For the _Flush_ operation, for example, the assertion would be
+
+\geekmath assert {\\
+	all s,s': System | Flush(s,s') => s.main.addrs = s'.main.addrs\\
+	}
+	
+which holds only because the cache addresses are guaranteed to be a subset of the main memory addresses (by the fact associated with the _System_ signature).
+
+The effect of a sequence of operations can be expressed by quantifying appropriately over states. For example, 
+
+\geekmath assert {\\
+	all s, s': System, a: Addr, d,d': Data | \\
+		SystemWrite (s,s',d,a) && SystemRead (s',d',a) => d = d'\\
+	}
+
+says that when a write is followed by a read of the same address, the read returns the data value just written.
+
+To check that a property holds for all reachable states, we can assert that the property is an invariant of every operation, and is established by the initial condition. This strategy can be shown (by induction) to be sound, but it is not complete. A property may hold for all reachable states, but may not be preserved because an operation breaks the property when executed in a state that happens not to be reachable.
+
+Traces overcome this incompleteness. Suppose, for example, that we want to check the (rather contrived) property that, in every reachable state, if the cache contains an address that isn't dirty, then it agrees with the main memory on at least one address:
+
+\geekmath fun DirtyProp (s: System) {\\
+	some (s.cache.addrs - s.cache.dirty)\\
+		=> some a: Addr | s.cache.map[a] = s.main.map[a]\\
+	}
+
+We can assert that this property holds in the last state of every trace:
+
+\geekmath assert {\\
+	all t: SystemTrace | with t | DirtyProp (last.state)\\
+	}
+	
+This assertion is valid, even though _DirtyProp_ is not an invariant. A write invoked in a state in which all clean entries but one had non-matching values can result in a state in which there are still clean entries but none has a matching value.
+
+Finally, refinements are checked by assertions involving abstraction relations. We can assert that a _SystemWrite_ refines a basic _Write_ operation on a simple memory:
+
+\geekmath assert {\\
+	all s,s': System, m,m': Memory, a: Addr, d: Data |\\
+		Alpha (s,m) && Alpha (s',m') && SystemWrite (s,s',a,d)\\
+		=> Write (m,m',a,d)\\
+	}
+
+or that the _Flush_ operation is a no-op when viewed abstractly:
+
+\geekmath assert {\\
+	all s,s': System, m,m': Memory |\\
+		Alpha (s,m) && Alpha (s',m') && Flush (s,s')\\
+		=> m.map = m'.map\\
+	}
+
+Note the form of the equality; _m = m'_ would be wrong, since two distinct memories may have the same mapping, and the abstraction _Alpha_ constrains only the mapping and not the memory atom itself.
+
+Many of the assertions shown here can be made more succinct by the function shorthand explained in Section 3.7 below. For example, the assertion that a read following a write returns the value just written becomes:
+
+\geekmath assert {\\
+	all s: System, a: Addr, d: Data | \\
+		SystemRead (SystemWrite (s,d,a),a) = d\\
+	}
+
+and the assertion that _Flush_ is a no-op becomes:
+
+\geekmath assert {\\
+	all s: System | Alpha (s).map = Alpha (Flush (s)).map\\
+	}
+
+\subsection Polymorphism
+
+Signatures can be parameterized by signature types. Rather than declaring a linked list whose elements belong to a particular type _Elt_, as above, we would prefer to declare a generic list:
+
+\geekmath sig List [T] {}\\
+sig NonEmptyList [T] extends List [T] {elt: T, rest: List [T]}
+
+Functions and facts may be parameterized in the same way, so we can define generic operators, such as:
+
+\geekmath fun first [T] (p: List [T]): T {result = p.elt}\\
+fun last [T] (p: List [T]): T {some q: p.*rest | result = q.elt && no q.rest}\\
+fun elements [T] (p: List [T]): set T {result = p.*rest.elt}
+
+In addition, let's define a generic function that determines whether two elements follow one another in a list:
+
+\geekmath fun follows [T] (p: List[T], a,b: T) {\\
+	some x: p.*rest | x.elt = a && x.next.elt = b\\
+	}
+
+To see how a generic signature and operators are used, consider replacing the traces of Section 2.6 with lists of system states. Define a function that determines whether a list is a trace:
+
+\geekmath fun isTrace (t: List [System]) {\\
+	Init (first(t))\\
+	all s, s': System | follows (t,s,s') => {\\
+		Flush (s,s')\\
+		|| (some a: Addr | Load (s,s',a))\\
+		|| (some d: Data, a: Addr | SystemWrite (s,s',d,a))\\
+		}\\
+	}
+
+Now our assertion that every reachable system state satisfies _DirtyProp_ can now be written:
+
+\geekmath assert {\\
+	all t: List[System] | isTrace(t) => DirtyProp (last(t))\\
+	}
+
+\subsection	Variants
+
+To illustrate the flexibility of our notation, we sketch a different formulation of state machines oriented around transitions rather than states.
+
+Let's introduce a signature representing state transitions of our memory system:
+
+\geekmath sig SystemTrans {pre,post: System}\\
+	{pre.main.addrs = post.main.addrs}
+
+Declaring the transitions as a signature gives us the opportunity to record properties of all transitions---in this case requiring that the set of addresses of the main memory is fixed.
+
+Now we introduce a subsignature for the transitions of each operation. For example, the transitions that correspond to load actions are given by:
+
+\geekmath sig LoadTrans extends SystemTrans {a: Addr}\\
+	{Load (pre, post, a)}
+# 	} {
+# 	a !in pre.cache.addrs\\
+# 	post.cache.map = pre.cache.map ++ (a->pre.main.map[a])\\
+# 	post.main = pre.main\\
+# 	}
+# 
+# The formula here is actually identical to the one declared above, but with _pre_ and _post_ for # _s_ and _s'_ ; we could in fact replace it by the function application _Load(pre,post,a)_.
+
+For each invariant, we define a set of states. For the states satisfying the dirty invariant, we might declare
+
+\geekmath sig DirtyInvStates extends System {}
+
+along with the fact
+
+\geekmath fact {DirtyInvStates = {s: System | DirtyInv(s)}}
+
+To express invariant preservation, it will be handy to declare a function that gives the image of a set of states under a set of transitions:
+
+\geekmath fun postimage (ss: set System, tt: set SystemTrans): set System {\\
+	result = {s: System | some t: tt | t.pre in ss && s = t.post}\\
+	}
+
+so that we can write the assertion like this:
+
+\geekmath assert {postimage (DirtyInvStates, LoadTrans) in DirtyInvStates}
+
+For an even more direct formulation of state machine properties, wemight have defined a  transition relation instead:
+
+\geekmath fun Trans (r: System -> System) {\\
+	all s, s' : System | \\
+		s->s' in r => Flush (s,s') || ...\\
+		}
+
+Then, using transitive closure, we can express the set of states reachable from an initial state, and assert that this set belongs to the set characterized by some property:
+
+\geekmath assert {all r: System -> System, s: System |\\
+	Init (s) && Trans(r) => s.*r in DirtyPropStates\\
+	}
+
+where _DirtyPropStates_ is defined analogously to _DirtyInvStates_.
+
+\subsection	Definitions
+
+Instead of declaring the addresses of a memory along with its mapping, as we did before:
+
+\geekmath sig Memory {\\
+	addrs: set Addr,\\
+	map: addrs ->! Data\\
+	}
+
+we could instead have declared the mapping alone:
+
+\geekmath sig Memory {\\
+	map: Addr ->? Data\\
+	}
+
+and then _defined_ the addresses using a subsignature:
+
+\geekmath sig MemoryWithAddrs extends Memory {\\
+	addrs: set Addr}\\
+	{addrs = {a: Addr | some a.map}}
+	
+Now by making the subsignature subsume all memories:
+
+\geekmath fact {Memory in MemoryWithAddrs}
+
+we have essentially 'retrofitted' the field. Any formula involving memory atoms now implicitly constrains the _addrs_ field. For example, we can assert that _Read_ has an implicit precondition requiring that the argument be a valid address:
+
+\geekmath assert {all m: Memory, a: Addr, d: Data | Read (m,d,a) => a in m.addrs}
+
+even though the specification of _Read_ was written when the field _addrs_ did not even exist.
+
+\section Semantics
+
+For completeness, we give an overview of the semantics of the language. The novelties with respect to the original version of Alloy [4] are (1) the idea of organizing relations around basic types as signatures, (2) the treatment of extension as subsetting, and (3) the packaging of formulas in a more explicit (and conventional) style. The semantic basis has been made cleaner, by generalizing relations to arbitrary arity, eliminating 'indexed relations' and the need for a special treatment of sets.
+
+\subsection Types
+
+We assume a universe of atoms. The standard notion of a mathematical relation gives us our only composite datatype. The value of an expression will always be a relation---that is, a collection of tuples of atoms. Relations are first order: the elements of a tuple are themselves atoms and never relations.
+
+The language is strongly typed. We partition the universe into subsets each associated with a _basic_ type, and write (T_1, T_2, ..., T_n) for the type of a relation whose tuples each consist of _n_ atoms, with types T_1, T_2, etc.
+
+A set is represented semantically as a unary relation, namely a relation whose tuples each contain one atom. A tuple is represented as a singleton relation, namely a relation containing exactly one tuple. A scalar is represented as a unary, singleton relation. We use the terms 'set', 'tuple' and 'scalar' to describe relations with the appropriate properties. Basic types are used only to construct relation types, and every expression that appears in a specification has a relational type. Often we will say informally that an expression has a type _T_ where _T_ is the name of a basic type when more precisely we mean that the expression has the type (_T_).
+
+So, in contrast to traditional mathematical style, we do not make distinctions amongst the atom _a_, the tuple (_a_), the set {_a_} containing just the atom, or the set {(_a_)} containing the tuple, and represent all of these as the last. This simplifies the semantics and gives a more succinct and uniform syntax.
+# Because the language is first order (and has no sets of sets, for example), it requires no coercions, and seems not to cause confusion even for novice specifiers.
+
+\subsection Expression Operators
+
+Expressions can be formed using the standard set operators written as ASCII characters: union (+), intersection (&) and difference (-). Some standard relational operators, such as transpose (~) and transitive closure (^), can be applied to expressions that denote binary relations. Relational override (++) has its standard meaning for binary relations but can applied more broadly.
+#The type rules and semantics are completely standard. For example, if _e_ has the type (S,T), then ~_e_ has the type (T,S) and denotes the collection of pairs obtained by reversing each pair in _e_; if _p_ and _q_ both have the type (T_1, T_2, ..., T_n), then the union _p+q_, intersection _p_&_q_, and difference _p-q_ also have that type, and denote respectively the relations whose tuples are those that appear in either of _p_ and _q_, both of _p_ and _q_, and _p_ but not _q_.
+
+There are two special relational operators, dot and arrow. The dot operator is a generalized relational composition. Given expressions $p$ and $q$, the expression $p.q$ contains the tuple
+$\angleleft\sep  p\sub<1>, ... p\sub<m-1>, q\sub<2>, ..., q\sub<n>\angleright$
+when _p_ contains 
+@math \langle@sep p_1, ..., p_{m}\rangle,
+_q_ contains
+@math \langle@sep q_1, ... q_n\rangle,
+and
+@math p_m = q_1. The last type of _p_ and the first type of _q_ must match, and _m_ + _n_, the sum of the arities of _p_ and _q_, must be three or more so that the result is not degenerate. When _p_ is a set and _q_ is a binary relation, the composition _p.q_ is the standard relational image of _p_ under _q_; when _p_ and _q_ are both binary relations, _p.q_ is standard relational composition. In all of the examples above, the dot operator is used only for relational image.
+
+The arrow operator is cross product: _p \textarrow q_ is the relation containing the tuple
+@math \langle@sep p_1, ..., p_{m}, q_1, ... q_n\rangle
+when _p_ contains 
+@math \langle@sep p_1, ..., p_{m}\rangle,
+and _q_ contains
+@math \langle@sep q_1, ... q_n\rangle.
+In all the examples in this paper, _p_ and _q_ are sets, and _p \textarrow q_ is their standard cross product.
+
+\subsection Formula Operators
+
+Elementary formulas are formed from the subset operator, written _in_. Thus _p in q_ is true when every tuple in _p_ is in _q_. The formula _p : q_ has the same meaning, but when _q_ is a set, adds an implicit constraint that _p_ be scalar (ie, a singleton). This constraint is overridden by writing _p: option q_ (which lets _p_ to be empty or a scalar) or _p: set q_ (which eliminates the constraint entirely). Equality is just standard set equality, and is short for a subset constraint in each direction.
+
+An arrow that appears as the outermost expression operator on the right-hand side of a subset formula can be annotated with _multiplicity markings_: + (one or more), ? (zero or one) and ! (exactly one). The formula
+
+\geekmath r: S m \textarrow n T
+
+where _m_ and _n_ are multiplicity markings constrains the relation _r_ to map each atom of _S_ to _n_ atoms of _T_, and to map _m_ atoms of _S_ to each atom of _T_. _S_ and _T_ may themselves be product expressions, but are usually variables denoting sets. For example,
+
+\geekmath r: S \textarrow ! T\\
+r: S ? \textarrow ! T
+
+make _r_ respectively a total function on _S_ and an injection.
+
+Larger formulas are obtained using the standard logical connectives: && (and), || (or), ! (not), => (implies), _iff_ (bi-implication). The formula _if b then f else g_ is short for _b_ => _f_ && !_b_ => _g_. Within curly braces, consecutive formulas are implicitly conjoined.
+
+Quantifications take their usual form:
+
+\geekmath all x: e | F
+
+is true when the formula _F_ holds under every binding of the variable _x_ to a member of the set _e_.  In addition to the standard quantifiers,  _all_ (universal) and _some_ (existential), we have _no_, _sole_ and _one_ meaning respectively that there are no values, at most one value, and exactly one value satisfying the formula. For a quantifier _Q_ and expression _e_, the formula _Q e_ is short for _Q x: T | e_ (where _T_ is the type of _e_), so _no e_, for example, says that _e_ is empty.
+
+The declaration of a quantified formula is itself a formula---an elementary formula in which the left-hand side is a variable. Thus
+
+\geekmath some x = e | F
+
+is permitted, and is a useful way to express a _let_ binding. Quantifiers may be higher-order; the formula
+
+\geekmath all f: s ->! t | F
+
+is true when _F_ holds for every binding of a total function from _s_ to _t_ to the variable _f_. Our analysis tool cannot currently handle higher-order quantifiers, but many uses of higher-order quantifiers that arise in practice can be eliminated by skolemization.
+
+Finally, we have relational comprehensions; the expression
+
+\geekmath {x_1: e_1, x_2: e_2, ... | F}
+
+constructs a relation of tuples with elements _x_1_, _x_2_, etc., drawn from set expressions _e_1_, _e_2_, etc., whose values satisfy _F_.
+
+# \subsection Choice of Operator Symbols
+# 
+# The choice of symbols, especially the arrow, may seem unconventional, but results in familiar-# looking formulas. The dot operator generalizes the 'navigation expressions' of Syntropy#  [CD94], now adopted by UML's Object Constraint Language [17], and is intended to be fa# miliar to programmers by resembling object dereferencing. Thus, _x.f_ can be viewed as dere# ferencing the object _x_ with field _f_ when _x_ is a scalar and _f_ is a binary relation. The cho# ice of relational composition rather than function application allows such an expression to be wr# itten without concern for whether _f_ is a function. It also gives a simple and workable treatmen# t of partiality. When _x_ is not in the domain of _f_, _x.f_ is the empty set, and _x.f = y_ will be#  false if _y_ is a scalar.
+# 
+# The arrow notation is designed to allow declarations to be written in a familiar way, but to be # given a simple, first-order interpretation. For example, if _S_ and _T_ denote sets,
+# 
+# \geekmath f: S \textarrow T
+# 
+# declares _f_ to be a binary relation from _S_ to _T_. A conventional interpretation would have # the arrow construct a set of relations---a higher-order notion. Instead, we interpret the arrow # as cross product and the colon as subset, with the same result. The choice of arrow is also # convenient for constructing tuples; when _x_ and _y_ are scalars, the formula# 
+# 
+# \geekmath r' = r + (x \textarrow y)
+# 
+# makes _r'_ the relation containing the tuples of _r_, and additionally, a mapping from _x_ to # _y_. # 
+\subsection Signatures
+
+A _signature_ declaration introduces a basic type, along with a collection of relations called _fields_. The declaration
+
+\geekmath sig S {f: E}
+
+declares a basic type _S_, and a relation _f_. If _E_ has the type (T_1, T_2, ..., T_n), the relation _f_ will have the type (S, T_1, T_2, ..., T_n), and if _x_ has the type _S_, the expression _x.f_ will have the same type as _E_. When there are several fields, field names already declared may appear in expressions on the right-hand side of declarations; in this case, a field _f_ is typed as if it were the expression _this.f_, where _this_ denotes an atom of the signature type (see Section 3.6).
+
+The meaning of a specification consisting of a collection of signature declarations is an assignment of values to global constants-- the signatures and the fields. For example, the specification
+
+\geekmath sig Addr {}\\
+sig Data {}\\
+sig Memory {map: Addr -> Data}
+
+has 4 constants---the three signatures and one field---with assignments such as:
+
+\geekmath Addr = {a0, a1}\\
+Data = {d0, d1, d2}\\
+Memory = {m0, m1}\\
+map = {(m0,a0,d0), (m1,a0,d1), (m1,a0,d2)}
+
+corresponding to a world in which there are 2 addresses, 3 data values and 2 memories, with the first memory (_m0_) mapping the first address (_a0_) to the first data value (_d0_), and the second memory (_m1_) mapping the first address (_a0_) both to the second (_d1_) and third (_d2_) data values.
+
+A fact is a formula that constrains the constants of the specification, and therefore tends to reduce the set of assignments denoted by the specification. For example,
+
+\geekmath fact {all m: Memory | all a: Addr | sole m.map[a]}
+
+rules out the above assignment, since it does not permit a memory (such as _m1_) to map an address (such as _a0_) to more than one data value. 
+
+The meaning of a function is a set of assignments, like the meaning of the specification as a whole, but these include bindings to parameters. For example, the function
+
+\geekmath fun Read (m: Memory, d: Data, a: Addr) {\\
+	d = m.map[a]\\
+	}
+
+has assignments such as:
+
+\geekmath Addr = {a0, a1}\\
+Data = {d0, d1, d2}\\
+Memory = {m0, m1}\\
+map = {(m0,a0,d1)}\\
+m = {m0}\\
+d = {d1}\\
+a = {a0}
+
+The assignments of a function representing a state invariant correspond to states satisfying the invariant; the functions of a function representing an operation (such as _Read_) correspond to executions of the operation.
+
+An assertion is a formula that is claimed to be _valid_: that is, true for every assignment that satisfies the facts of the specification. To check an assertion, one can search for a _counterexample_: an assignment that makes the formula false.
+For example, the assertion
+
+\geekmath assert {\\
+	all m,m': Memory, d: Data, a: Addr | Read (m,d,a) => Read (m',d,a)}
+
+which claims, implausibly, that if a read of memory _m_ returns _d_ at _a_, then so does a read at memory _m'_, has the counterexample
+
+\geekmath Addr = {a0}\\
+Data = {d0,d1}\\
+Memory = {m0, m1}\\
+map = {(m0,a0,d0), (m1,a0,d1)}
+
+To find a counterexample, a tool should negate the formula and then skolemize away the bound variables, treating them like the parameters of a function, with values to be determined as part of the assignment. In this case, the assignment might include:
+
+\geekmath m = {m0}\\
+m' = {m1}\\
+d = {d0}\\
+a = {a0}
+
+\subsection Extension
+
+Not every signature declaration introduces a new basic type. A signature declared without an extension clause is a _type signature_, and creates both a basic type and a set constant of the same name. A signature _S_ declared as an extension is a _subsignature_, and creates only a set constant, along with a constraint making it a subset of each _supersignature_ listed in the extension clause. The subsignature takes on the type of the supersignatures, so if there is more than one, they must therefore have the same type, by being direct or indirect subsignatures of the same type signature.
+
+A field declared in a subsignature is as if declared in the corresponding type signature, with the constraint that the domain of the field is the subsignature. For example,
+
+\geekmath sig List {}\\
+sig NonEmptyList extends List {elt: Elt,rest: List}
+
+makes _List_ a type signature, and _NonEmptyList_ a subset of _List_. The fields _elt_ and _rest_ map atoms from the type _List_, but are constrained to have domain _NonEmptyList_. Semantically, it would have been equivalent to declare them as fields of _List_, along with facts constraining their domains:
+
+\geekmath sig List {elt: Elt,rest: List}\\
+sig NonEmptyList extends List {}\\
+fact {elt.Elt in NonEmptyList}\\
+fact {rest.List in NonEmptyList}
+
+(exploiting our dot notation to write the domain of a relation _r_ from _S_ to _T_ as _r.T_).
+
+\subsection Overloading and Implicit Prefixing
+
+Whenever a variable is declared, its type can be easily obtained from its declaration (from the type of the expression on the right-hand side of the declaration), and every variable appearing in an expression is declared in an enclosing scope. The one complication to this rule is the typing of fields.
+
+For modularity, a signature creates a local namespace. Two fields with the name _f_ appearing in different signatures do not denote the same relational constant. Interpreting an expression therefore depends on first resolving any field names that appear in it. 
+#We have devised a simple resolution scheme whose details are beyond the scope of this paper.
+In an expression of the form _e.f_, the signature to which _f_ belongs is determined according to the type of _e_. To keep the scheme simple, we require that sometimes the specifier resolve the overloading explicitly by writing the field _f_ of signature _S_ as _S$f_. (At the end of the previous section, for example, the reference in the fact to _rest_ should actually be to _List$rest_, since the context does not indicate which signature _rest_ belongs to.)
+
+In many formulas, a single expression is dereferenced several times with different fields. A couple of language features are designed to allow these formulas to be written more succinctly, and, if used with care, more comprehensibly.  First, we provide two syntactic variants of the dot operator. Both _p_::_q_ and _q_[_p_] are equivalent to _p.q_, but have different precedence: the double colon binds more tightly than the dot, and the square brackets bind more loosely than the dot. Second, we provide a _with_ construct similar to Pascal's that makes dereferencing implicit.
+
+Consider, for example, the following simplified signature for a trace:
+
+\geekmath sig Trace {\\
+	ticks: set Tick,\\
+	first: Tick,\\
+	next: Tick -> Tick,\\
+	state: Tick -> State\\
+	}
+
+Each trace _t_ has a set of ticks _t.ticks_, a first tick _t.first_, an ordering _t.next_ that maps ticks to ticks, and a relation _t.state_ mapping each tick to a state. For a trace _t_ and tick _k_, the state is _k_.(_t.state_); the square brackets allow this expression to be written instead as _t.state_[_k_]. To constrain _t.ticks_ to be those reachable from _t. first_ we might write:
+
+\geekmath fact {all t: Trace | (t.first).*(t.next ) = t.ticks}
+
+Relying on the tighter binding of the double colon, we can eliminate the parentheses:
+
+\geekmath fact {all t: Trace | t::first.*t::next = t.ticks}
+
+Using _with_, we can make the _t_ prefixes implicit:
+
+\geekmath fact {all t: Trace | with t | first.*next = ticks}
+
+In general, _with e | F_ is like _F_, but with _e_ prefixed wherever appropriate to a field name. Appropriateness is determined by type: _e_ is matched to any field name with which it can be composed using the dot operator.
+#Fields that are prefixed using a double colon operator are not automatically prefixed, so one can use _with_ to prefix some fields of a given signature but not others. There is a corresponding _with_ construct for expressions also, so that _with e | E_ is  like the expression _E_, with _e_ prefixed as appropriate.
+A fact attached to a signature _S_ is implicitly enclosed by _all this: S | with this |_, and the declarations of a signature are interpreted as constraints as if they had been declared within this scope. Consequently, the declaration of _first_ above should be interpreted as if it were the formula:
+
+\geekmath all this: Trace | with this | first: ticks
+
+which is equivalent to
+
+\geekmath all this: Trace | this.first: this.ticks
+
+and should be typed accordingly.
+# 
+# So, in the following fuller version of the above signature:
+# 
+# \geekmath sig Trace {\\
+# 	ticks: set Tick\\
+# 	first: ticks,\\
+# 	next: (ticks - first) ->? ticks\\
+# 	state: ticks ->! State\\
+# 	} {first.*next = ticks}
+# 
+# the declaration of the field _first_, for example, includes the constraint
+# 
+# \geekmath all this: Trace | with this | first: ticks
+# 
+# which is equivalent to
+# 
+# \geekmath all this: Trace | this.first: this.ticks
+
+\subsection Function Applications
+
+A function may be applied by binding its parameters to expressions. The resulting application may be either an expression or a formula, but in both cases the function body is treated as a formula. The formula case is simple: the application is simply short for the body with the formal parameters replaced by the actual expressions (and bound variables renamed where necessary to avoid clashes).
+
+The expression case is more interesting. The application is treated as a syntactic sugar. Suppose we have a function application expression, _e_ say, of the form
+
+\geekmath f(a_1, a_2, ..., a_n)
+
+that appears in an elementary formula _F_. The declaration of the function _f_ must list _n_ + 1 formal arguments, of which the _second_ will be treated as the result. The entire elementary formula is taken to be short for
+
+\geekmath all result: D | f (a_1, result, a_2, ..., a_n) => F [result/e]
+
+where _D_ is the right-hand side of the declaration of the missing argument, and _F_ [_result_/_e_] is _F_ with the fresh variable _result_ substituted for the application expression _e_. The application of _f_ in this elaborated formula is now a formula, and is treated simply as an inlining of the formula of _f_.
+
+#Type checking will thus require that the actual arguments match the formals that are listed first, third, fourth, fifth, etc. (This choice of the second argument, incidentally, is one concession we make to specifying state machines; function applications can be used to model operation invocations in which it is convenient to declare the pre- and post- states as the first and second arguments of the operation.)
+#
+To see how this works, consider the definition of a function _dom_ that gives the domain of a relation over signature _X_:
+
+\geekmath fun dom (r: X -> X, d: set X) {d = r.X}
+
+(We have defined the function monomorphically for a homogeneous relation. In practice, one would define a polymorphic function, but we want to avoid conflating two unrelated issues.) Here is a trivial assertion that applies the function as an expression:
+
+\geekmath assert {all p: X \textarrow X | (dom (p)).p in X}
+
+Desugaring the formula, we get
+
+\geekmath all p: X \textarrow X | all result: set X | dom (p, result) => result.p in X
+
+and then inlining
+
+\geekmath all p: X \textarrow X | all result: set X | result = p.X => result.p in X
+
+This formula can be reduced (by applying a universal form of the One Point Rule) to
+
+\geekmath all p: X \textarrow X | (p.X).p in X
+
+which is exactly what would have been obtained had we just replaced the application expression by the expression on the right-hand side of the equality in the function's definition!
+#
+# If there is more than one application expression in an elementary formula, a fresh quantification is # generated for each. For example,# 
+# 
+# \geekmath assert {all p, q: X \textarrow X | dom (p.q) in dom (p)}
+# 
+# becomes
+# 
+# \geekmath all p,q: X \textarrow X | all result1, result2: set X | \\
+# 		dom (p.q, result1) => dom (p, result2) => result1 in result2
+# 
+# which can again be reduced by inlining and the One Point Rule to 
+# 
+# \geekmath all p,q: X \textarrow X | (p.q).X in p.X
+
+Now let's consider an implicit definition. Suppose we have a signature _X_ with an ordering _lte_, so that _e.lte_ is the set of elements that _e_ is less than or equal to, and a function _min_ that gives the minimum of a set, defined implicitly as the element that is a member of the set, and less than or equal to all members of the set:
+
+\geekmath sig X {lte: set X}\\
+fun min (s: set X, m: option X) {\\
+	m in s && s in m.lte\\
+	}
+
+Because the set may be empty, _min_ is partial. Depending on the properties of _lte_ it may also fail to be deterministic. A formula that applies this function
+
+\geekmath assert {all s: set X | min (s) in s}
+
+can as before be desugared
+
+\geekmath all s: set X | all result: option X | min (s, result) => result in s
+
+and expanded by inlining
+
+\geekmath all s: set X | all result: option X |\\
+	(result in s) && s in result.lte => result in s
+
+but in this case the One Point Rule is not applicable.
+
+As a convenience, our language allows the result argument of a function to be declared anonymously in a special position, and given the name _result_. The domain function, for example, can be defined as:
+
+\geekmath fun dom (r: X -> X): set X {result = r.X}
+
+How the function is defined has no bearing on how it is used; this definition is entirely equivalent to the one above, and can also be applied as a formula with two arguments.
+
+\subsection Polymorphism
+
+Polymorphism is treated as a syntactic shorthand. Lack of space does not permit a full discussion here.
+
+\section Related Work
+
+We have shown how a handful of elements can be assembled into a rather simple but flexible notation. The elements themselves are far from novel---indeed, we hope that their familiarity will make the notation easy to learn and use---but their assembly into a coherent whole results in a language rather different from existing specification languages.
+
+\subsection New Aspects
+
+The more novel aspects of our work are:
+
+\point \cdot	_Objectification of state_. Most specification languages represent states as cartesian products of components; in our approach, a state, like a member of any signature, is an individual---a distinct atom with identity. A similar idea is used in the situation calculus [11], whose 'relational fluents' add a situation variable to each time-varying relation. The general idea of objectifying all values is of course the foundation of object-oriented programming languages, and was present in LISP. Interestingly, object-oriented variants of Z (such as [1]) do not objectify schemas. The idea of representing structures in first-order style as atoms is present also in algebraic specifications such as Larch [2], which treat even sets and relations in this manner.
+
+\point \cdot	_Components as relations_. Interpreting fields of a structure as functions goes back to early work on verification, and is widely used (for example, by Leino and Nelson [10]). We are not aware, however, of specification languages that use this idea, or that flatten fields to relations over atoms.
+
+\point \cdot	_Extension by global axioms_. The 'facts' of our notation allow the properties of a signature to be extended monotonically. The idea of writing axioms that constrain the members of a set constant declared globally is hardly remarkable, but it appears not to have been widely exploited in specification languages.
+
+\point \cdot	_Extension by subset_. Treating the extension of a structure as a refinement modelled by subset results in a simple semantics, and melds well with the use of global axioms. Again, this seems to be an unremarkable idea, but one whose power has not been fully recognized.
+
+\subsection Old Aspects
+
+The aspects of our work that are directly taken from existing languages are:
+
+\point \cdot	_Formulas_. The idea of treating invariants, definitions, operations, etc, uniformly as logical formulas is due to Z [14].
+
+\point \cdot	_Assertions_. Larch [2] provides a variety of constructs for adding intentional redundancy to a specification in order to provide error-detection opportunities. 
+
+\point \cdot	_Parameterized formulas_. The 'functional' style we have adopted, in which all formulas are explicitly parameterized, in contrast to the style of most specification languages, is used also by languages for theorem provers, such as PVS [13]. VDM [8] offers a mechanism called 'operation quotation' in which pre- and post conditions are reused by interpreting them as functions similar to ours.
+
+\point \cdot	_Parametric Polymorphism_. The idea of parameterizing descriptions by types was developed in the programming languages community, most notably in the context of ML [12].
+
+\point \cdot	_Implicit Prefixing_. Our 'with' operator is taken from Pascal [9].
+
+\point \cdot	_Relational operators_. The dot operator, and the treament of scalars as singletons, comes from the earlier version of Alloy [4].
+#
+#\point \cdot	_Function shorthands_. The idea of desugaring function applications by quantifying over the result is present in Beth's extensionality theorem [Beth].
+
+\subsection Z's Schema Calculus
+
+Z has been a strong influence on our work; indeed, this paper may be viewed as an attempt to achieve some of the power and flexibility of Z's schema calculus in a first-order setting. Readers unfamiliar with Z can find an excellent presentation of the schema calculus in [16]. The current definitive reference is [15], although Spivey's manual [14] is more accessible for practioners.
+
+A _schema_ consists of a collection of variable declarations and a formula constraining the variables. Schemas can be anonymous. When a name has been bound to a schema, it can be used in three different ways, distinguished according to context. First, it can be used as a _declaration_, in which case it introduces its variables into the local scope, constraining them with its formula. Second, where the variables are already in scope, it can be used as a _predicate_, in which case the formula applies and no new declarations are added. Both of these uses are syntactic; the schema can be viewed as a macro.
+
+In the third use, the schema is semantic. Its name represents a set of _bindings_, each binding being a finite function from variables names to values. The bindings denoted by the schema name are the models of the schema's formula: those bindings of variable names to values that make the formula true.
+
+How a schema is being applied is not always obvious; in the set comprehension {_S_}, for example, _S_ represents a declaration, so that the expression as a whole denotes the same set of bindings as _S_ itself. Given a binding _b_ for a schema with component variable _x_, the expression _b.x_ denotes the value assigned to _x_ in _b_. Unlike Alloy's dot, this dot is a function application, so for a set of bindings _B_, the expression _B.x_ is not well formed.
+
+Operations in Z are expressed using the convention that primed variables denote components of the post-state. A mechanism known as _decoration_ allows one to write _S'_ for the schema that is like _S_, but whose variable names have been primed. Many idioms, such as promotion, rely on being able to manipulate the values of a schema's variables in aggregate. To support this, Z provides the theta operator: \theta @sep _S_ is an expression that denotes a binding in which each variable _x_ that belongs to _S_ is bound to a variable of the same name _x_ declared in the local scope. Theta and decoration interact subtly: \theta @sep _S'_ is not a binding of _S'_, but rather binds each variable _x_ of _S_ to a variable _x'_ declared locally. So where we would write _s=s'_ to say that pre- and post-states _s_ and _s'_ are the same, a Z specifier would write \theta @sep _S_ = \theta @sep _S'_. This formula equates each component _x_ of _S_ to its matching component _x'_ of _S'_, because _x_ and _x'_ are the respective values bound to _x_ by \theta @sep _S_ and \theta @sep _S'_ respectively.
+
+Our 'fact' construct allows the meaning of a signature name to be constrained subsequent to its declaration. A schema, in contrast, is 'closed': a new schema name must be introduced for each additional constraint. This can produce an undesirable proliferation of names for a system's state, but it does make it easier to track down those formulas that affect a schema's meaning.
+
+The variables of a schema can be renamed, but cannot be replaced by arbitrary expressions (since this would make nonsense of declarations).This requires the introduction of existential quantifiers where in our notation an expression is passed as an actual. On the other hand, when no renaming is needed, it is more succinct.
+
+Z's sequential composition operator is defined by a rather complicated transformation, and relies on adherence to particular conventions. The schema _P_ @sep \fatsemi @sep _Q_ is obtained by collecting primed variables in _P_ that match unprimed variables in _Q_; renaming these in both _P_ and _Q_ with a new set of variable names; and then existentially quantifying the new names away. For example, to say that a read following a write to the same address yields the value written, we would write:
+
+\geekmath
+all m: Memory, a: Addr, d, d': Data | Read (Write(m,a,d),d') => d = d'
+
+which is short for
+
+\geekmath all m: Memory, a: Addr, d, d': Data |\\
+	all m': Memory | Write (m,m',a,d) => Read (m,a,d') => d = d'
+
+In Z, assuming appropriate declarations of a schema _Memory_ and a given type _Data_, the formula would be:
+
+\geekmath
+\forall Memory; Memory'; x!: Data \fatdot Write \fatsemi Read [x!/d!] \implies x! = d!
+
+which is short for
+
+\geekmath
+\forall Memory; Memory'; x!: Data \fatdot \\
+	\exists Memory'' \fatdot \\
+		\exists Memory' \fatdot Write \and \theta @sep Memory' = \theta @sep Memory''\\
+		\exists Memory'; d!: Data \fatdot \\
+			Read \and \theta @sep Memory = \theta @sep Memory'' \and d! = x!\\
+	\implies x! = d!
+
+The key semantic difference between signatures and schemas is this. A signature is a set of atoms; its fields are relational constants declared in global scope. A schema, on the other hand, denotes a higher-order object: a set of functions from field names to values. Our approach was motivated by the desire to remain first order, so that the analysis we have developed [3] can be applied. Not surprisingly, there is a cost in expressiveness. We cannot express higher-order formulas, most notably those involving preconditions. Suppose we want to assert that our write operation has no implicit precondition. In Z, such an assertion is easily written:
+
+\geekmath
+\forall Memory; a?: Addr \fatdot  \exists Memory'; d!: Data \fatdot Write
+
+We might attempt to formulate such an assertion in our notation as follows:
+
+\geekmath assert {\\
+	all m: Memory, a: Addr, d: Data | some m': Memory | Write (m,m',d,a)
+	}
+
+Unfortunately, this has counterexamples such as
+
+\geekmath Addr = {a0}\\
+Data = {d0}\\
+Memory = {m0, m1}\\
+map = {}
+
+in which the _map_ relation lacks an appropriate tuple. Intuitively, the assertion claims that there is no context in which a write cannot proceed; a legitimate counterexample---but one we certainly did not intend---simply gives a context in which a memory with the appropriate address-value mapping is not available.
+
+We have focused in this discussion on schemas. It is worth noting that Z is expressive enough to allow a style of structuring almost identical to ours, simply by declaring signatures as given types, fields and functions as global variables, and by writing facts, and the bodies of functions, as axioms. Field names would have to be globally unique, and the resulting specification would likely be less succinct than if expressed in our notation.
+
+\subsection Phenomenology
+
+Pamela Zave and Michael Jackson have developed an approach to composing descriptions [18] that objectifies states, events and time intervals, and constrains their properties with global axioms. Objectification allows descriptions to be reduced to a common phenomenology, so that descriptions in different languages, and even in different paradigms can be combined. Michael Jackson has argued separately for the importance of objectification as a means of making a more direct connection between a formal description and the informal world: as he puts it, "domain phenomena are facts about individuals" [7]. It is reassuring that the concerns of language design and tractability of analysis that motivated our notation are not in conflict with sound method, and it seems that our notation would be a good choice for expressing descriptions in the form that Zave and Jackson have proposed.
+
+\section	Evaluation
+
+\subsection Merits
+
+The key motivations of the design of our mechanism have been minimality and flexibility. It is worth noting how this has been achived by the _omission_ of certain features:
+
+\point \cdot	There is only one form of semantic structuring; our opinion is that adding extra mechanisms, for example to group operations into classes, does not bring enough benefit to merit the additional complexity, and tends to be inflexible. (Our language does provide some namespace control for signature and paragraph names in the style of Java packages, but this is trivial and does not interact with the basic mechanism).
+
+\point \cdot	There is no subtyping; subsignatures are just subsets of their supersignatures, and have the same type. There are only two types: basic types (for signatures), and relational types (for expressions). Types are not nested.
+
+\point \cdot	There is only one way that formulas are packaged for reuse. The same function syntax is used for observers, operations, refinement relations, etc. The function shorthand syntax unifies the syntax of both declaration and use for explicit and implicit function definitions.
+
+\point \cdot	The values of a signature with fields are just like the values of any basic type; there is nothing like Z's notion of a schema binding.
+
+Our interpretation of a subsignature as a subset of the supersignature appears to be novel as a mechanism for structuring in a specification language. It has three nice consequences:
+
+\point \cdot	_Elimination of type coercions_. If _x_ belongs to a signature _S_ whose extension _S'_ defines a field _f_, the expression _x.f_ will just denote an empty set if _x_ does not belong to _S'_. Contrast this with the treatment of subclasses in the Object Constraint Language [17], for example, which results in pervasive coercions and often prevents the use of set and relation operators (since elements must be coerced one at a time).
+
+\point \cdot	_Ease of extension_. Constraints can be added to the subsignature simply by writing a constraint that is universally quantified over elements of that subset.
+
+\point \cdot	_Definitional extension_. We can declare an extension _S'_ of a signature _S_ with additional fields, relate these fields to the fields declared explicitly for _S_, and then record the fact that _S=S'_ (as illustrated in Section 2.11). The effect is that every atom of _S_ has been extended with appropriately defined fields, which can be accessed whenever an expression denoting such an atom is in scope! We expect to find this idiom especially useful for defining additional fields for visualization purposes.
+
+\subsection	Deficiencies
+
+One might wonder whether, having encoded structures using atoms, and having provided quantifiers over those atoms, one can express arbitrary properties of higher-order structures. Unfortunately, but not surprisingly, this is not possible. The catch is that fields are treated in any formulas as global variables that are existentially quantified. To simulate higher-order logic, it would be necessary to allow quantifications over these variables, and since they have relational type, that would imply higher-order quantification. The practical consequence is that properties requiring higher-order logic cannot be expressed. One cannot assert that the precondition of an operation is no stronger than some predicate; one cannot in general specify operations by minimization; and one cannot express certain forms of refinement check. An example of this problem is given in Section 4.3 above. Whether the problem is fundamental or can be partially overcome remains to be seen.
+
+The treatment of subsignatures as subsets has a nasty consequence. Since a field declared in a subsignature becomes implicitly a field of the supersignature, two subsignatures cannot declare fields of the same name. The extension mechanism is therefore not properly modular, and a specification should use hierarchical structure instead where this matters.
+
+Modelling a set of states as atoms entails a certain loss of abstraction. In this specification
+
+\geekmath sig A {}\\
+sig S {a: A}\\
+fun op (s,s': S) {s.a = s'.a}
+
+the operation _op_ has executions in which the pre- and post-states are equal (that is, the same atom in _S_), and executions in which only their _a_ components are equal. One might object that this distinction is not observable. Moreover, replacing the formula by _s=s'_ would arguably be an overspecification---a 'bias' in VDM terminology [8]. The situation calculus [11] solves this problem by requiring every operation to produce a state change: _s_ and _s'_ are thus regarded as distinct situations by virtue of occurring at different points in the execution. The dual of this solution is to add an axiom requiring that no two distinct atoms of _S_ may have equal _a_ fields. Either of these solutions is easily imposed in our notation.
+
+Our treatment of scalars and sets uniformly as relations has raised the concern that the resulting succinctness comes with a loss of clarity and redundancy. Extensive use of the previous version of our language, mostly by inexperienced specifiers, suggests that this is not a problem. The loss of some static checking is more than compensated by the semantic analysis that our tool performs.
+
+\section Conclusion
+
+Two simple ideas form the basis of our modularity mechanism: (1) that a structure is just a set of atoms, and its fields are global relations that map those atoms to structure components; and (2) that extensions of a structure are just subsets. Our relational semantics, in which all variables and fields are represented as relations, makes the use of structures simple and succinct, and it ensures that the language as a whole remains first order. For a variety of modelling tasks, we believe that our approach provides a useful balance of expressiveness and tractability.
+
+\section* Acknowledgments
+
+The language described here was refined by experience writing specifications, long before an analyzer existed, and by the development of the analyzer tool itself. Mandana Vaziri and Sarfraz Khurshid were our early adopters, and Brian Lin and Joe Cohen helped implement the tool. The paper itself was improved greatly by comments from Mandana and Sarfraz, from Michael Jackson, from Tomi Mannisto, and especially from Pamela Zave, whose suggestions prompted a major rewrite. Jim Woodcock helped us understand Z, and the clarity and simplicity of his own work has been a source of inspiration to us. Our ideas have also been improved by the comments of the members of IFIP working groups 2.3 and 2.9, especially Tony Hoare, Greg Nelson and Rustan Leino. This work was funded in part by ITR grant #0086154 from the National Science Foundation, by a grant from NASA, and by an endowment from Doug and Pat Ross.
+
+\section* References
+
+#\ref [CD94]	Steve Cook and John Daniels. Designing Object Systems: Object-Oriented Modelling with Syntropy. Prentice Hall, 1994.
+#
+\ref [1]	R. Duke, G. Rose and G. Smith. Object-Z: A Specification Language Advocated for the Description of Standards.  SVRC Technical Report 94-45. The Software Verification Research Centre, University of Queensland, Australia.
+
+\ref [2]	John V. Guttag, James J. Horning, and Andres Modet. Report on the Larch Shared Language: Version 2.3. Technical Report 58, Compaq Systems Research Center, Palo Alto, CA, 1990.
+
+#\ref [Hal90]	Anthony Hall. Using Z as a Specification Calculus for Object-Oriented Systems. In D. Bjorner, C.A.R. Hoare, and H. Langmaack, eds., VDM and Z: Formal Methods in Software Development, Lecture Notes in Computer Science, Volume 428, pp. 290381, Springer-Verlag, New York, 1990.
+#
+\ref [3]	Daniel Jackson. Automating first-order relational logic. Proc. ACM SIGSOFT Conf. Foundations of Software Engineering. San Diego, November 2000.
+
+\ref [4]	Daniel Jackson. Alloy: A Lightweight Object Modelling Notation. To appear, ACM Transactions on Software Engineering and Methodology, October 2001.
+
+\ref [5]	Daniel Jackson, Ian Schechter and Ilya Shlyakhter. Alcoa: the Alloy Constraint Analyzer. Proc. International Conference on Software Engineering, Limerick, Ireland, June 2000.
+
+\ref [6]	Daniel Jackson and Jeannette Wing. Lightweight Formal Methods. In: H. Saiedian (ed.), An Invitation to Formal Methods. IEEE Computer, 29(4):16-30, April 1996. 
+
+\ref [7]	Michael Jackson. Software Requirements and Specifications: A Lexicon of Practice, Principles and Prejudices. Addison-Wesley, 1995.
+
+\ref [8]	Cliff Jones. Systematic Software Development Using VDM. Second edition, Prentice Hall, 1990.
+
+\ref [9]	Kathleen Jensen and Nicklaus Wirth. Pascal: User Manual and Report. Springer-# Verlag, 1974.
+
+\ref [10]	K. Rustan M. Leino and Greg Nelson. Data abstraction and information hiding . Research Report 160, Compaq Systems Research Center, November 2000.
+
+\ref [11]	Hector Levesque, Fiora Pirri, and Ray Reiter. Foundations for the Situation Calculus. Linköping Electronic Articles in Computer and Information Science, ISSN 1401-9841, Vol. 3(1998), Nr. 018.
+
+\ref [12]	Robin Milner, Mads Tofte and Robert Harper. The Definition of Standard ML. MIT Press, 1990.
+
+\ref [13]	S. Owre, N. Shankar, J. M. Rushby, and D. W. J. Stringer-Calvert. PVS Language Reference. Computer Science Laboratory, SRI International, Menlo Park, CA, September 1999.
+
+\ref [14]	J. Michael Spivey. The Z Notation: A Reference Manual. Second edition, Prentice Hall, 1992.
+
+\ref [15]	Ian Toyn et al. Formal Specification---Z Notation---Syntax, Type and Semantics. Consensus Working Draft 2.6 of the Z Standards Panel BSI Panel IST/5/-/19/2 (Z Notation). August 24, 2000.
+
+\ref [16]	Jim Woodcock and Jim Davies. Using Z: Specification, Refinement and Proof. Prentice Hall, 1996.
+
+\ref [17]	Jos Warmer and Anneke Kleppe. The Object Constraint Language: Precise Modeling with UML. Addison Wesley, 1999.
+
+\ref [18]	Pamela Zave and Michael Jackson. Conjunction as Composition. ACM Transactions on Software Engineering and Methodology II(4): 379--411, October 1993.
