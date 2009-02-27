@@ -34,7 +34,7 @@ public class LookUpClient {
     LookUpClient lc = new LookUpClient();
     LookUpClient.parseCmdLine(args, lc);
 
-    Socket sock = new Socket("dw-8.eecs.uci.edu",9001);
+    Socket sock = new Socket("dc-1.calit2.uci.edu",9001);
 
     for (int i = 0; i < lc.numtrans; i++) {
       Random rand = new Random(i);

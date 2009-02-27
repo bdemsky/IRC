@@ -42,11 +42,11 @@ public class LookUpClient {
     InputStream in = null;
     OutputStream out = null;
     try {
-      sock = new Socket("dw-8.eecs.uci.edu",9001);
+      sock = new Socket("dc-1.calit2..uci.edu",9001);
       in = sock.getInputStream();
       out = sock.getOutputStream(); 
     } catch (UnknownHostException e) {
-      System.err.println("Don't know about host: dw-8.eecs.uci.edu");
+      System.err.println("Don't know about host: dc-1.calit2.uci.edu");
       System.exit(1);
     } catch (IOException e) {
       System.out.println("Read failed " + e);
