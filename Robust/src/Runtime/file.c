@@ -62,6 +62,18 @@ int CALL23(___FileInputStream______nativeRead____I__AR_B_I, int fd, int numBytes
   return status;
 }
 
+int CALL11(___FileInputStream______nativePeek____I, int fd, int fd) {
+  int status;
+  char string[1];
+  status=read(fd, string, 1);
+
+  if( status <= 0 ) {
+    return status;
+  }
+  lseek(fd, -1, SEEK_CUR);
+  return string[0];
+}
+
 long long CALL01(___File______nativeLength_____AR_B, struct ArrayObject * ___pathname___) {
   int length=VAR(___pathname___)->___length___;
   char* filename= (((char *)&VAR(___pathname___)->___length___)+sizeof(int));
