@@ -7,6 +7,12 @@ public class String {
   private String() {
   }
 
+  public String(char c) {
+    char[] str = new char[1];
+    str[0] = c;
+    String(str);
+  }
+
   public String(char str[]) {
     char charstr[]=new char[str.length];
     for(int i=0; i<str.length; i++)
