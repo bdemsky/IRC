@@ -27,8 +27,8 @@ extern void * curr_heaptop;
 #endif
 
 #ifdef DSTM
-__attribute__((malloc)) void * allocate_newglobal(transrecord_t *, int type);
-__attribute__((malloc)) struct ArrayObject * allocate_newarrayglobal(transrecord_t *, int type, int length);
+__attribute__((malloc)) void * allocate_newglobal(int type);
+__attribute__((malloc)) struct ArrayObject * allocate_newarrayglobal(int type, int length);
 #endif
 
 #ifdef PRECISE_GC

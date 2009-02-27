@@ -163,18 +163,6 @@ typedef struct oidmidpair {
   unsigned int mid;
 } oidmidpair_t;
 
-typedef struct transrecord {
-  objstr_t *cache;
-  chashtable_t *lookupTable;
-#ifdef COMPILER
-  struct ___Object___ * revertlist;
-#endif
-#ifdef ABORTREADERS
-  int abort;
-  jmp_buf aborttrans;
-#endif
-} transrecord_t;
-
 // Structure is a shared structure that keeps track of responses from the participants
 typedef struct thread_response {
   char rcv_status;
@@ -214,33 +202,6 @@ typedef struct trans_commit_data {
 
 
 #define PRINT_TID(PTR) printf("DEBUG -> %x %d\n", PTR->mid, PTR->thread_id);
-/* Structure for passing multiple arguments to a thread
- * spawned to process each transaction on a machine */
-typedef struct thread_data_array {
-  int thread_id;
-  int mid;
-  trans_req_data_t *buffer;     /* Holds trans request information sent to a participant, based on threadid */
-  thread_response_t *recvmsg;   /* Shared datastructure to keep track of the participants response to a trans request */
-  pthread_cond_t *threshold;    /* Condition var to wake up a thread */
-  pthread_mutex_t *lock;        /* Lock for counting participants response */
-  int *count;                   /* Shared variable to count responses from all participants to the TRANS_REQUEST protocol */
-  char *replyctrl;              /* Shared ctrl message that stores the reply to be sent to participants, filled by decideResponse() */
-  char *replyretry;             /* Shared variable that keep track if coordinator needs retry */
-  transrecord_t *rec;           /* Shared variable transaction record send to all thread data */
-} thread_data_array_t;
-
-
-//Structure for passing arguments to the local m/c thread
-typedef struct local_thread_data_array {
-  thread_data_array_t *tdata;           /* Holds all the arguments send to a thread that is spawned when transaction commits */
-  trans_commit_data_t *transinfo;       /* Holds information of objects locked and not found in the participant */
-} local_thread_data_array_t;
-
-//Structure to store mid and socketid information
-typedef struct midSocketInfo {
-  unsigned int mid;                     /* To communicate with mid use sockid in this data structure */
-  int sockid;
-} midSocketInfo_t;
 
 /* Initialize main object store and lookup tables, start server thread. */
 int dstmInit(void);
@@ -286,18 +247,31 @@ void addHost(unsigned int);
 void mapObjMethod(unsigned short);
 
 void randomdelay();
-__attribute__((malloc)) transrecord_t *transStart();
-__attribute__((pure)) objheader_t *transRead(transrecord_t *, unsigned int);
-objheader_t *transCreateObj(transrecord_t *, unsigned int); //returns oid header
-int transCommit(transrecord_t *record); //return 0 if successful
+void transStart();
+#define TRANSREAD(x,y) { \
+  unsigned int inputvalue;\
+if ((inputvalue=(unsigned int)y)==0) x=NULL;\
+else { \
+chashlistnode_t * cnodetmp=&c_table[(inputvalue&c_mask)>>1];	\
+do { \
+  if (cnodetmp->key==inputvalue) {x=(void *)&((objheader_t*)cnodetmp->val)[1];break;} \
+cnodetmp=cnodetmp->next;\
+if (cnodetmp==NULL) {x=(void *)transRead2(inputvalue);break;}	\
+} while(1);\
+}}
+
+__attribute__((pure)) objheader_t *transRead(unsigned int);
+__attribute__((pure)) objheader_t *transRead2(unsigned int);
+objheader_t *transCreateObj(unsigned int); //returns oid header
+int transCommit(); //return 0 if successful
 void *transRequest(void *);     //the C routine that the thread will execute when TRANS_REQUEST begins
-char decideResponse(char *, char *, transrecord_t *, int); // Coordinator decides what response to send to the participant
-void *getRemoteObj(transrecord_t *, unsigned int, unsigned int); // returns object header from main object store after object is copied into it from remote machine
-void handleLocalReq(trans_req_data_t *, trans_commit_data_t *, transrecord_t *, char *);
-int transComProcess(trans_req_data_t *, trans_commit_data_t *, transrecord_t *);
-void doLocalProcess(char, trans_req_data_t *tdata, trans_commit_data_t *, transrecord_t *);
+char decideResponse(char *, char *,  int); // Coordinator decides what response to send to the participant
+void *getRemoteObj(unsigned int, unsigned int); // returns object header from main object store after object is copied into it from remote machine
+void handleLocalReq(trans_req_data_t *, trans_commit_data_t *, char *);
+int transComProcess(trans_req_data_t *, trans_commit_data_t *);
+void doLocalProcess(char, trans_req_data_t *tdata, trans_commit_data_t *);
 int transAbortProcess(trans_commit_data_t *);
-void transAbort(transrecord_t *trans);
+void transAbort();
 void sendPrefetchResponse(int sd, char *control, char *sendbuffer, int *size);
 void prefetch(int, int, unsigned int *, unsigned short *, short*);
 void *transPrefetch(void *);
@@ -305,7 +279,7 @@ void *mcqProcess(void *);
 prefetchpile_t *foundLocal(char *); // returns node with prefetch elements(oids, offsets)
 int lookupObject(unsigned int * oid, short offset);
 int checkoid(unsigned int oid);
-int transPrefetchProcess(transrecord_t *, int **, short);
+int transPrefetchProcess(int **, short);
 void sendPrefetchReq(prefetchpile_t*, int);
 void sendPrefetchReqnew(prefetchpile_t*, int);
 int getPrefetchResponse(int);
@@ -335,4 +309,6 @@ void swap(double *e1, double *e2);
 double avgofthreads(int siteid, int threadid);
 
 /* end transactions */
+
+#include "trans.h"
 #endif

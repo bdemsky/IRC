@@ -18,9 +18,19 @@
 #ifdef ABORTREADERS
 #include "abortreaders.h"
 #endif
+#include "trans.h"
 
 #define NUM_THREADS 1
 #define CONFIG_FILENAME "dstm.conf"
+
+/* Thread transaction variables */
+
+__thread objstr_t *t_cache;
+__thread struct ___Object___ *revertlist;
+#ifdef ABORTREADERS
+__thread int t_abort;
+__thread jmp_buf aborttrans;
+#endif
 
 
 /* Global Variables */
@@ -63,7 +73,7 @@ int bytesSent = 0;
 int bytesRecv = 0;
 
 void printhex(unsigned char *, int);
-plistnode_t *createPiles(transrecord_t *);
+plistnode_t *createPiles();
 plistnode_t *sortPiles(plistnode_t *pileptr);
 
 /*******************************
@@ -323,18 +333,13 @@ void randomdelay() {
 }
 
 /* This function initializes things required in the transaction start*/
-__attribute__((malloc)) transrecord_t *transStart() {
-  transrecord_t *tmp;
-  if((tmp = calloc(1, sizeof(transrecord_t))) == NULL) {
-    printf("%s() Calloc error at line %d, %s\n", __func__, __LINE__, __FILE__);
-    return NULL;
-  }
-  tmp->cache = objstrCreate(1048576);
-  tmp->lookupTable = chashCreate(CHASH_SIZE, CLOADFACTOR);
-  //#ifdef COMPILER
-  //  tmp->revertlist=NULL; //Not necessary...already null
-  //#endif
-  return tmp;
+void transStart() {
+  t_cache = objstrCreate(1048576);
+  t_chashCreate(CHASH_SIZE, CLOADFACTOR);
+  revertlist=NULL;
+#ifdef ABORTREADERS
+  t_abort=0;
+#endif
 }
 
 // Search for an address for a given oid                                                                               
@@ -355,22 +360,24 @@ INLINE void * chashSearchI(chashtable_t *table, unsigned int key) {
   }*/
 
 
+
+
 /* This function finds the location of the objects involved in a transaction
  * and returns the pointer to the object if found in a remote location */
-__attribute__((pure)) objheader_t *transRead(transrecord_t *record, unsigned int oid) {
+__attribute__((pure)) objheader_t *transRead(unsigned int oid) {
   unsigned int machinenumber;
   objheader_t *tmp, *objheader;
   objheader_t *objcopy;
   int size;
   void *buf;
   chashlistnode_t *node;
-  chashtable_t *table=record->lookupTable;
 
   if(oid == 0) {
     return NULL;
   }
   
-  node= &table->table[(oid & table->mask)>>1];
+
+  node= &c_table[(oid & c_mask)>>1];
   do {
     if(node->key == oid) {
 #ifdef TRANSSTATS
@@ -400,15 +407,15 @@ __attribute__((pure)) objheader_t *transRead(transrecord_t *record, unsigned int
   */
 
 #ifdef ABORTREADERS
-  if (record->abort) {
+  if (t_abort) {
     //abort this transaction
     //printf("ABORTING\n");
-    removetransactionhash(record->lookupTable, record);
-    objstrDelete(record->cache);
-    chashDelete(record->lookupTable);
-    _longjmp(record->aborttrans,1);
+    removetransactionhash();
+    objstrDelete(t_cache);
+    t_chashDelete();
+    _longjmp(aborttrans,1);
   } else
-    addtransaction(oid,record);
+    addtransaction(oid);
 #endif
 
   if ((objheader = (objheader_t *) mhashSearch(oid)) != NULL) {
@@ -418,11 +425,11 @@ __attribute__((pure)) objheader_t *transRead(transrecord_t *record, unsigned int
     /* Look up in machine lookup table  and copy  into cache*/
     GETSIZE(size, objheader);
     size += sizeof(objheader_t);
-    objcopy = (objheader_t *) objstrAlloc(&record->cache, size);
+    objcopy = (objheader_t *) objstrAlloc(&t_cache, size);
     memcpy(objcopy, objheader, size);
     /* Insert into cache's lookup table */
     STATUS(objcopy)=0;
-    chashInsert(record->lookupTable, OID(objheader), objcopy);
+    t_chashInsert(OID(objheader), objcopy);
 #ifdef COMPILER
     return &objcopy[1];
 #else
@@ -437,10 +444,10 @@ __attribute__((pure)) objheader_t *transRead(transrecord_t *record, unsigned int
       /* Look up in prefetch cache */
       GETSIZE(size, tmp);
       size+=sizeof(objheader_t);
-      objcopy = (objheader_t *) objstrAlloc(&record->cache, size);
+      objcopy = (objheader_t *) objstrAlloc(&t_cache, size);
       memcpy(objcopy, tmp, size);
       /* Insert into cache's lookup table */
-      chashInsert(record->lookupTable, OID(tmp), objcopy);
+      t_chashInsert(OID(tmp), objcopy);
 #ifdef COMPILER
       return &objcopy[1];
 #else
@@ -453,7 +460,88 @@ __attribute__((pure)) objheader_t *transRead(transrecord_t *record, unsigned int
       printf("Error: %s() No machine found for oid =% %s,%dx\n",__func__, machinenumber, __FILE__, __LINE__);
       return NULL;
     }
-    objcopy = getRemoteObj(record, machinenumber, oid);
+    objcopy = getRemoteObj(machinenumber, oid);
+
+    if(objcopy == NULL) {
+      printf("Error: Object not found in Remote location %s, %d\n", __FILE__, __LINE__);
+      return NULL;
+    } else {
+#ifdef TRANSSTATS
+      nRemoteSend++;
+#endif
+#ifdef COMPILER
+      return &objcopy[1];
+#else
+      return objcopy;
+#endif
+    }
+  }
+}
+
+
+/* This function finds the location of the objects involved in a transaction
+ * and returns the pointer to the object if found in a remote location */
+__attribute__((pure)) objheader_t *transRead2(unsigned int oid) {
+  unsigned int machinenumber;
+  objheader_t *tmp, *objheader;
+  objheader_t *objcopy;
+  int size;
+
+#ifdef ABORTREADERS
+  if (t_abort) {
+    //abort this transaction
+    //printf("ABORTING\n");
+    removetransactionhash();
+    objstrDelete(t_cache);
+    t_chashDelete();
+    _longjmp(aborttrans,1);
+  } else
+    addtransaction(oid);
+#endif
+
+  if ((objheader = (objheader_t *) mhashSearch(oid)) != NULL) {
+#ifdef TRANSSTATS
+    nmhashSearch++;
+#endif
+    /* Look up in machine lookup table  and copy  into cache*/
+    GETSIZE(size, objheader);
+    size += sizeof(objheader_t);
+    objcopy = (objheader_t *) objstrAlloc(&t_cache, size);
+    memcpy(objcopy, objheader, size);
+    /* Insert into cache's lookup table */
+    STATUS(objcopy)=0;
+    t_chashInsert(OID(objheader), objcopy);
+#ifdef COMPILER
+    return &objcopy[1];
+#else
+    return objcopy;
+#endif
+  } else {
+#ifdef CACHE
+    if((tmp = (objheader_t *) prehashSearch(oid)) != NULL) {
+#ifdef TRANSSTATS
+      nprehashSearch++;
+#endif
+      /* Look up in prefetch cache */
+      GETSIZE(size, tmp);
+      size+=sizeof(objheader_t);
+      objcopy = (objheader_t *) objstrAlloc(&t_cache, size);
+      memcpy(objcopy, tmp, size);
+      /* Insert into cache's lookup table */
+      t_chashInsert(OID(tmp), objcopy);
+#ifdef COMPILER
+      return &objcopy[1];
+#else
+      return objcopy;
+#endif
+    }
+#endif
+    /* Get the object from the remote location */
+    if((machinenumber = lhashSearch(oid)) == 0) {
+      printf("Error: %s() No machine found for oid =% %s,%dx\n",__func__, machinenumber, __FILE__, __LINE__);
+      return NULL;
+    }
+    objcopy = getRemoteObj(machinenumber, oid);
 
     if(objcopy == NULL) {
       printf("Error: Object not found in Remote location %s, %d\n", __FILE__, __LINE__);
@@ -472,13 +560,13 @@ __attribute__((pure)) objheader_t *transRead(transrecord_t *record, unsigned int
 }
 
 /* This function creates objects in the transaction record */
-objheader_t *transCreateObj(transrecord_t *record, unsigned int size) {
-  objheader_t *tmp = (objheader_t *) objstrAlloc(&record->cache, (sizeof(objheader_t) + size));
+objheader_t *transCreateObj(unsigned int size) {
+  objheader_t *tmp = (objheader_t *) objstrAlloc(&t_cache, (sizeof(objheader_t) + size));
   OID(tmp) = getNewOID();
   tmp->version = 1;
   tmp->rcount = 1;
   STATUS(tmp) = NEW;
-  chashInsert(record->lookupTable, OID(tmp), tmp);
+  t_chashInsert(OID(tmp), tmp);
 
 #ifdef COMPILER
   return &tmp[1]; //want space after object header
@@ -490,14 +578,14 @@ objheader_t *transCreateObj(transrecord_t *record, unsigned int size) {
 #if 1
 /* This function creates machine piles based on all machines involved in a
  * transaction commit request */
-plistnode_t *createPiles(transrecord_t *record) {
+plistnode_t *createPiles() {
   int i;
   plistnode_t *pile = NULL;
   unsigned int machinenum;
   objheader_t *headeraddr;
-  chashlistnode_t * ptr = record->lookupTable->table;
+  chashlistnode_t * ptr = c_table;
   /* Represents number of bins in the chash table */
-  unsigned int size = record->lookupTable->size;
+  unsigned int size = c_size;
 
   for(i = 0; i < size ; i++) {
     chashlistnode_t * curr = &ptr[i];
@@ -517,7 +605,7 @@ plistnode_t *createPiles(transrecord_t *record) {
       }
 
       //Make machine groups
-      pile = pInsert(pile, headeraddr, machinenum, record->lookupTable->numelements);
+      pile = pInsert(pile, headeraddr, machinenum, c_numelements);
       curr = curr->next;
     }
   }
@@ -526,14 +614,14 @@ plistnode_t *createPiles(transrecord_t *record) {
 #else
 /* This function creates machine piles based on all machines involved in a
  * transaction commit request */
-plistnode_t *createPiles(transrecord_t *record) {
+plistnode_t *createPiles() {
   int i;
   plistnode_t *pile = NULL;
   unsigned int machinenum;
   objheader_t *headeraddr;
-  struct chashentry * ptr = record->lookupTable->table;
+  struct chashentry * ptr = c_table;
   /* Represents number of bins in the chash table */
-  unsigned int size = record->lookupTable->size;
+  unsigned int size = c_size;
 
   for(i = 0; i < size ; i++) {
     struct chashentry * curr = & ptr[i];
@@ -552,7 +640,7 @@ plistnode_t *createPiles(transrecord_t *record) {
     }
 
     //Make machine groups
-    pile = pInsert(pile, headeraddr, machinenum, record->lookupTable->numelements);
+    pile = pInsert(pile, headeraddr, machinenum, c_numelements);
   }
   return pile;
 }
@@ -563,7 +651,7 @@ plistnode_t *createPiles(transrecord_t *record) {
  * and creates new piles by calling the createPiles(),
  * Sends a transrequest() to each remote machines for objects found remotely
  * and calls handleLocalReq() to process objects found locally */
-int transCommit(transrecord_t *record) {
+int transCommit() {
   unsigned int tot_bytes_mod, *listmid;
   plistnode_t *pile, *pile_ptr;
   int trecvcount;
@@ -573,13 +661,12 @@ int transCommit(transrecord_t *record) {
   char finalResponse;
 
 #ifdef ABORTREADERS
-  if (record->abort) {
+  if (t_abort) {
     //abort this transaction
     printf("ABORTING TRANSACTION AT COMMIT\n");
-    removetransactionhash(record->lookupTable, record);
-    objstrDelete(record->cache);
-    chashDelete(record->lookupTable);
-    free(record);
+    removetransactionhash();
+    objstrDelete(t_cache);
+    t_chashDelete();
     return 1;
   }
 #endif
@@ -592,7 +679,7 @@ int transCommit(transrecord_t *record) {
     /* Look through all the objects in the transaction record and make piles
      * for each machine involved in the transaction*/
     if (firsttime) {
-      pile_ptr = pile = createPiles(record);
+      pile_ptr = pile = createPiles();
       pile_ptr = pile = sortPiles(pile);
     } else {
       pile = pile_ptr;
@@ -669,7 +756,7 @@ int transCommit(transrecord_t *record) {
 	for(i = 0; i < tosend[sockindex].f.nummod ; i++) {
 	  int size;
 	  objheader_t *headeraddr;
-	  if((headeraddr = chashSearch(record->lookupTable, tosend[sockindex].oidmod[i])) == NULL) {
+	  if((headeraddr = t_chashSearch(tosend[sockindex].oidmod[i])) == NULL) {
 	    printf("%s() Error: No such oid %s, %d\n", __func__, __FILE__, __LINE__);
 	    free(modptr);
 	    free(listmid);
@@ -684,7 +771,7 @@ int transCommit(transrecord_t *record) {
 	send_data(sd, modptr, tosend[sockindex].f.sum_bytes);
 	free(modptr);
       } else { //handle request locally
-	handleLocalReq(&tosend[sockindex], &transinfo, record, &getReplyCtrl[sockindex]);
+	handleLocalReq(&tosend[sockindex], &transinfo, &getReplyCtrl[sockindex]);
       }
       sockindex++;
       pile = pile->next;
@@ -740,7 +827,7 @@ int transCommit(transrecord_t *record) {
       }
     }
     /* Decide the final response */
-    if((finalResponse = decideResponse(getReplyCtrl, &treplyretry, record, pilecount)) == 0) {
+    if((finalResponse = decideResponse(getReplyCtrl, &treplyretry, pilecount)) == 0) {
       printf("Error: %s() in updating prefetch cache %s, %d\n", __func__, __FILE__, __LINE__);
       free(tosend);
       free(listmid);
@@ -755,7 +842,7 @@ int transCommit(transrecord_t *record) {
 	if(finalResponse == TRANS_COMMIT) {
 	  int retval;
 	  /* Update prefetch cache */
-	  if((retval = updatePrefetchCache(&(tosend[i]), record)) != 0) {
+	  if((retval = updatePrefetchCache(&(tosend[i]))) != 0) {
 	    printf("Error: %s() in updating prefetch cache %s, %d\n", __func__, __FILE__, __LINE__);
 	    free(tosend);
 	    free(listmid);
@@ -774,27 +861,27 @@ int transCommit(transrecord_t *record) {
 	  }
 #ifdef ABORTREADERS
 	  removetransaction(tosend[i].oidmod,tosend[i].f.nummod);
-	  removethisreadtransaction(tosend[i].objread, tosend[i].f.numread, record);
+	  removethisreadtransaction(tosend[i].objread, tosend[i].f.numread);
 #endif
 	}
 #ifdef ABORTREADERS
 	else if (!treplyretry) {
-	  removethistransaction(tosend[i].oidmod,tosend[i].f.nummod,record);
-	  removethisreadtransaction(tosend[i].objread,tosend[i].f.numread,record);
+	  removethistransaction(tosend[i].oidmod,tosend[i].f.nummod);
+	  removethisreadtransaction(tosend[i].objread,tosend[i].f.numread);
 	}
 #endif
 #endif
 	send_data(sd, &finalResponse, sizeof(char));
       } else {
 	/* Complete local processing */
-	doLocalProcess(finalResponse, &(tosend[i]), &transinfo, record);
+	doLocalProcess(finalResponse, &(tosend[i]), &transinfo);
 #ifdef ABORTREADERS
 	if(finalResponse == TRANS_COMMIT) {
 	  removetransaction(tosend[i].oidmod,tosend[i].f.nummod);
-	  removethisreadtransaction(tosend[i].objread,tosend[i].f.numread, record);
+	  removethisreadtransaction(tosend[i].objread,tosend[i].f.numread);
 	} else if (!treplyretry) {
-	  removethistransaction(tosend[i].oidmod,tosend[i].f.nummod,record);
-	  removethisreadtransaction(tosend[i].objread,tosend[i].f.numread,record);
+	  removethistransaction(tosend[i].oidmod,tosend[i].f.nummod);
+	  removethisreadtransaction(tosend[i].objread,tosend[i].f.numread);
 	}
 #endif
       }
@@ -821,18 +908,16 @@ int transCommit(transrecord_t *record) {
     numTransAbort++;
 #endif
     /* Free Resources */
-    objstrDelete(record->cache);
-    chashDelete(record->lookupTable);
-    free(record);
+    objstrDelete(t_cache);
+    t_chashDelete();
     return TRANS_ABORT;
   } else if(finalResponse == TRANS_COMMIT) {
 #ifdef TRANSSTATS
     numTransCommit++;
 #endif
     /* Free Resources */
-    objstrDelete(record->cache);
-    chashDelete(record->lookupTable);
-    free(record);
+    objstrDelete(t_cache);
+    t_chashDelete();
     return 0;
   } else {
     //TODO Add other cases
@@ -845,7 +930,7 @@ int transCommit(transrecord_t *record) {
 /* This function handles the local objects involved in a transaction
  * commiting process.  It also makes a decision if this local machine
  * sends AGREE or DISAGREE or SOFT_ABORT to coordinator */
-void handleLocalReq(trans_req_data_t *tdata, trans_commit_data_t *transinfo, transrecord_t *rec, char *getReplyCtrl) {
+void handleLocalReq(trans_req_data_t *tdata, trans_commit_data_t *transinfo, char *getReplyCtrl) {
   unsigned int *oidnotfound = NULL, *oidlocked = NULL;
   int numoidnotfound = 0, numoidlocked = 0;
   int v_nomatch = 0, v_matchlock = 0, v_matchnolock = 0;
@@ -872,7 +957,7 @@ void handleLocalReq(trans_req_data_t *tdata, trans_commit_data_t *transinfo, tra
       }
       int tmpsize;
       objheader_t *headptr;
-      headptr = (objheader_t *) chashSearch(rec->lookupTable, tdata->oidmod[i-numread]);
+      headptr = (objheader_t *) t_chashSearch(tdata->oidmod[i-numread]);
       if (headptr == NULL) {
 	printf("Error: handleLocalReq() returning NULL, no such oid %s, %d\n", __FILE__, __LINE__);
 	return;
@@ -901,7 +986,7 @@ void handleLocalReq(trans_req_data_t *tdata, trans_commit_data_t *transinfo, tra
   }
 }
 
-void doLocalProcess(char finalResponse, trans_req_data_t *tdata, trans_commit_data_t *transinfo, transrecord_t *record) {
+void doLocalProcess(char finalResponse, trans_req_data_t *tdata, trans_commit_data_t *transinfo) {
   if(finalResponse == TRANS_ABORT) {
     if(transAbortProcess(transinfo) != 0) {
       printf("Error in transAbortProcess() %s,%d\n", __FILE__, __LINE__);
@@ -919,7 +1004,7 @@ void doLocalProcess(char finalResponse, trans_req_data_t *tdata, trans_commit_da
       }
     }
 #endif
-    if(transComProcess(tdata, transinfo, record) != 0) {
+    if(transComProcess(tdata, transinfo) != 0) {
       printf("Error in transComProcess() %s,%d\n", __FILE__, __LINE__);
       fflush(stdout);
       return;
@@ -939,7 +1024,7 @@ void doLocalProcess(char finalResponse, trans_req_data_t *tdata, trans_commit_da
 
 /* This function decides the reponse that needs to be sent to
  * all Participant machines after the TRANS_REQUEST protocol */
-char decideResponse(char *getReplyCtrl, char *treplyretry, transrecord_t *record, int pilecount) {
+char decideResponse(char *getReplyCtrl, char *treplyretry, int pilecount) {
   int i, transagree = 0, transdisagree = 0, transsoftabort = 0; /* Counters to formulate decision of what
 								   message to send */
   for (i = 0 ; i < pilecount; i++) {
@@ -970,7 +1055,7 @@ char decideResponse(char *getReplyCtrl, char *treplyretry, transrecord_t *record
     return TRANS_ABORT;
 #ifdef CACHE
     /* clear objects from prefetch cache */
-    cleanPCache(record);
+    cleanPCache();
 #endif
   } else if(transagree == pilecount) {
     /* Send Commit */
@@ -989,7 +1074,7 @@ char decideResponse(char *getReplyCtrl, char *treplyretry, transrecord_t *record
  * available and copies the object and its header to the local
  * cache. */
 
-void *getRemoteObj(transrecord_t *record, unsigned int mnum, unsigned int oid) {
+void *getRemoteObj(unsigned int mnum, unsigned int oid) {
   int size, val;
   struct sockaddr_in serv_addr;
   char machineip[16];
@@ -1011,11 +1096,11 @@ void *getRemoteObj(transrecord_t *record, unsigned int mnum, unsigned int oid) {
   } else {
     /* Read object if found into local cache */
     recv_data(sd, &size, sizeof(int));
-    objcopy = objstrAlloc(&record->cache, size);
+    objcopy = objstrAlloc(&t_cache, size);
     recv_data(sd, objcopy, size);
     STATUS(objcopy)=0;
     /* Insert into cache's lookup table */
-    chashInsert(record->lookupTable, oid, objcopy);
+    t_chashInsert(oid, objcopy);
   }
 
   return objcopy;
@@ -1133,7 +1218,7 @@ int transAbortProcess(trans_commit_data_t *transinfo) {
 }
 
 /*This function completes the COMMIT process if the transaction is commiting*/
-int transComProcess(trans_req_data_t *tdata, trans_commit_data_t *transinfo, transrecord_t *rec) {
+int transComProcess(trans_req_data_t *tdata, trans_commit_data_t *transinfo) {
   objheader_t *header, *tcptr;
   int i, nummod, tmpsize, numcreated, numlocked;
   unsigned int *oidmod, *oidcreated, *oidlocked;
@@ -1152,7 +1237,7 @@ int transComProcess(trans_req_data_t *tdata, trans_commit_data_t *transinfo, tra
       return 1;
     }
     /* Copy from transaction cache -> main object store */
-    if ((tcptr = ((objheader_t *) chashSearch(rec->lookupTable, oidmod[i]))) == NULL) {
+    if ((tcptr = ((objheader_t *) t_chashSearch(oidmod[i]))) == NULL) {
       printf("Error: transComProcess() chashSearch returned NULL at %s, %d\n", __FILE__, __LINE__);
       return 1;
     }
@@ -1174,7 +1259,7 @@ int transComProcess(trans_req_data_t *tdata, trans_commit_data_t *transinfo, tra
   }
   /* If object is newly created inside transaction then commit it */
   for (i = 0; i < numcreated; i++) {
-    if ((header = ((objheader_t *) chashSearch(rec->lookupTable, oidcreated[i]))) == NULL) {
+    if ((header = ((objheader_t *) t_chashSearch(oidcreated[i]))) == NULL) {
       printf("Error: transComProcess() chashSearch returned NULL for oid = %x at %s, %d\n", oidcreated[i], __FILE__, __LINE__);
       return 1;
     }
@@ -1820,13 +1905,12 @@ int notifyAll(threadlist_t **head, unsigned int oid, unsigned int version) {
   return status;
 }
 
-void transAbort(transrecord_t *trans) {
+void transAbort() {
 #ifdef ABORTREADERS
-  removetransactionhash(trans->lookupTable, trans);
+  removetransactionhash();
 #endif
-  objstrDelete(trans->cache);
-  chashDelete(trans->lookupTable);
-  free(trans);
+  objstrDelete(t_cache);
+  t_chashDelete();
 }
 
 /* This function inserts necessary information into

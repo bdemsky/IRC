@@ -1258,13 +1258,6 @@ public class BuildCode {
       printcomma=true;
     }
 
-    if (state.DSM&&lb.isAtomic()&&!md.getModifiers().isNative()) {
-      if (printcomma)
-	headersout.print(", ");
-      headersout.print("transrecord_t * trans");
-      printcomma=true;
-    }
-
     /*  Output parameter list*/
     for(int i=0; i<objectparams.numPrimitives(); i++) {
       TempDescriptor temp=objectparams.getPrimitive(i);
@@ -1358,9 +1351,6 @@ public class BuildCode {
     ParamsObject objectparams=(ParamsObject)paramstable.get(lb!=null ? lb : md!=null ? md : task);
     generateHeader(fm, lb, md!=null ? md : task,output);
     TempObject objecttemp=(TempObject) tempstable.get(lb!=null ? lb : md!=null ? md : task);
-    if (state.DSM&&lb.getHasAtomic()) {
-      output.println("transrecord_t * trans;");
-    }
 
     if (GENERATEPRECISEGC) {
       if (md!=null&&state.DSM)
@@ -1397,7 +1387,7 @@ public class BuildCode {
 
     if ((state.THREAD||state.DSM)&&GENERATEPRECISEGC) {
       if (state.DSM&&lb.isAtomic())
-	output.println("if (needtocollect) checkcollect2(&"+localsprefix+",trans);");
+	output.println("if (needtocollect) checkcollect2(&"+localsprefix+");");
       else
 	output.println("if (needtocollect) checkcollect(&"+localsprefix+");");
     }
@@ -1587,7 +1577,7 @@ public class BuildCode {
     case FKind.FlatBackEdge:
       if ((state.THREAD||state.DSM)&&GENERATEPRECISEGC) {
 	if(state.DSM&&locality.getAtomic(lb).get(fn).intValue()>0) {
-	  output.println("if (needtocollect) checkcollect2(&"+localsprefix+",trans);");
+	  output.println("if (needtocollect) checkcollect2(&"+localsprefix+");");
 	} else
 	  output.println("if (needtocollect) checkcollect(&"+localsprefix+");");
       } else
@@ -1794,7 +1784,7 @@ public class BuildCode {
       return;
     /* Have to generate flat globalconv */
     if (fgcn.getMakePtr()) {
-      output.println(generateTemp(fm, fgcn.getSrc(),lb)+"=(void *)transRead(trans, (unsigned int) "+generateTemp(fm, fgcn.getSrc(),lb)+");");
+      output.println("TRANSREAD("+generateTemp(fm, fgcn.getSrc(),lb)+", (unsigned int) "+generateTemp(fm, fgcn.getSrc(),lb)+");");
     } else {
       /* Need to convert to OID */
       if (fgcn.doConvert()) {
@@ -1853,11 +1843,10 @@ public class BuildCode {
     /******* Tell the runtime to start the transaction *******/
 
     output.println("transstart"+faen.getIdentifier()+":");
-    output.println("trans=transStart();");
+    output.println("transStart();");
     
     if (state.ABORTREADERS) {
-      output.println("if (_setjmp(trans->aborttrans)) {");
-      output.println("  free(trans);");
+      output.println("if (_setjmp(aborttrans)) {");
       output.println("  goto transretry"+faen.getIdentifier()+"; }");
     }
   }
@@ -1868,8 +1857,8 @@ public class BuildCode {
       return;
     //store the revert list before we lose the transaction object
     String revertptr=generateTemp(fm, reverttable.get(lb),lb);
-    output.println(revertptr+"=trans->revertlist;");
-    output.println("if (transCommit(trans)) {");
+    output.println(revertptr+"=revertlist;");
+    output.println("if (transCommit()) {");
     /* Transaction aborts if it returns true */
     output.println("goto transretry"+faen.getAtomicEnter().getIdentifier()+";");
     output.println("} else {");
@@ -1999,13 +1988,6 @@ public class BuildCode {
 	  output.print(temp.getType().getSafeSymbol());
       }
 
-      if (state.DSM&&locality.getBinding(lb,fc).isAtomic()&&!fc.getMethod().getModifiers().isNative()) {
-	LocalityBinding fclb=locality.getBinding(lb, fc);
-	if (printcomma)
-	  output.print(", ");
-	output.print("transrecord_t *");
-	printcomma=true;
-      }
 
       if (state.DSM) {
 	LocalityBinding fclb=locality.getBinding(lb, fc);
@@ -2018,13 +2000,6 @@ public class BuildCode {
     boolean needcomma=false;
     if (GENERATEPRECISEGC) {
       output.print("&__parameterlist__");
-      needcomma=true;
-    }
-
-    if (state.DSM&&locality.getBinding(lb,fc).isAtomic()&&!fc.getMethod().getModifiers().isNative()) {
-      if (needcomma)
-	output.print(",");
-      output.print("trans");
       needcomma=true;
     }
 
@@ -2098,7 +2073,7 @@ public class BuildCode {
 	  //} else {
 	  output.println(dst+"="+ src +"->"+field+ ";");
 	  //output.println("if ("+dst+"&0x1) {");
-	  output.println(dst+"=(void *) transRead(trans, (unsigned int) "+dst+");");
+	  output.println("TRANSREAD("+dst+", (unsigned int) "+dst+");");
 	  //output.println(src+"->"+field+"="+src+"->"+field+";");
 	  //output.println("}");
 	  //}
@@ -2113,7 +2088,7 @@ public class BuildCode {
 	  String dst=generateTemp(fm, ffn.getDst(),lb);
 	  output.println(dst+"="+ src +"->"+field+ ";");
 	  if (locality.getAtomic(lb).get(ffn).intValue()>0)
-	    output.println(dst+"=(void *) transRead(trans, (unsigned int) "+dst+");");
+	    output.println("TRANSREAD("+dst+", (unsigned int) "+dst+");");
 	} else
 	  output.println(generateTemp(fm, ffn.getDst(),lb)+"="+ generateTemp(fm,ffn.getSrc(),lb)+"->"+ ffn.getField().getSafeSymbol()+";");
       } else if (status==LocalityAnalysis.EITHER) {
@@ -2158,13 +2133,13 @@ public class BuildCode {
 	output.println("if(!"+dst+"->"+localcopystr+") {");
 	/* Link object into list */
 	String revertptr=generateTemp(fm, reverttable.get(lb),lb);
-	output.println(revertptr+"=trans->revertlist;");
+	output.println(revertptr+"=revertlist;");
 	if (GENERATEPRECISEGC)
 	  output.println("COPY_OBJ((struct garbagelist *)&"+localsprefix+",(struct ___Object___ *)"+dst+");");
 	else
 	  output.println("COPY_OBJ("+dst+");");
 	output.println(dst+"->"+nextobjstr+"="+revertptr+";");
-	output.println("trans->revertlist=(struct ___Object___ *)"+dst+";");
+	output.println("revertlist=(struct ___Object___ *)"+dst+";");
 	output.println("}");
 	if (srcglobal)
 	  output.println(dst+"->"+ fsfn.getField().getSafeSymbol()+"=srcoid;");
@@ -2221,7 +2196,7 @@ public class BuildCode {
 
 	if (elementtype.isPtr()) {
 	  output.println(dst +"=(("+ type+"*)(((char *) &("+ generateTemp(fm,fen.getSrc(),lb)+"->___length___))+sizeof(int)))["+generateTemp(fm, fen.getIndex(),lb)+"];");
-	  output.println(dst+"=(void *) transRead(trans, (unsigned int) "+dst+");");
+	  output.println("TRANSREAD("+dst+", "+dst+");");
 	} else {
 	  output.println(dst +"=(("+ type+"*)(((char *) &("+ generateTemp(fm,fen.getSrc(),lb)+"->___length___))+sizeof(int)))["+generateTemp(fm, fen.getIndex(),lb)+"];");
 	}
@@ -2274,13 +2249,13 @@ public class BuildCode {
 	output.println("if(!"+dst+"->"+localcopystr+") {");
 	/* Link object into list */
 	String revertptr=generateTemp(fm, reverttable.get(lb),lb);
-	output.println(revertptr+"=trans->revertlist;");
+	output.println(revertptr+"=revertlist;");
 	if (GENERATEPRECISEGC)
 	  output.println("COPY_OBJ((struct garbagelist *)&"+localsprefix+",(struct ___Object___ *)"+dst+");");
 	else
 	  output.println("COPY_OBJ("+dst+");");
 	output.println(dst+"->"+nextobjstr+"="+revertptr+";");
-	output.println("trans->revertlist=(struct ___Object___ *)"+dst+";");
+	output.println("revertlist=(struct ___Object___ *)"+dst+";");
 	output.println("}");
       } else throw new Error("Unknown array type");
       if (srcglobal) {
@@ -2313,12 +2288,12 @@ public class BuildCode {
     if (state.DSM && locality.getAtomic(lb).get(fn).intValue()>0&&!fn.isGlobal()) {
       //Stash pointer in case of GC
       String revertptr=generateTemp(fm, reverttable.get(lb),lb);
-      output.println(revertptr+"=trans->revertlist;");
+      output.println(revertptr+"=revertlist;");
     }
     if (fn.getType().isArray()) {
       int arrayid=state.getArrayNumber(fn.getType())+state.numClasses();
       if (fn.isGlobal()) {
-	output.println(generateTemp(fm,fn.getDst(),lb)+"=allocate_newarrayglobal(trans, "+arrayid+", "+generateTemp(fm, fn.getSize(),lb)+");");
+	output.println(generateTemp(fm,fn.getDst(),lb)+"=allocate_newarrayglobal("+arrayid+", "+generateTemp(fm, fn.getSize(),lb)+");");
       } else if (GENERATEPRECISEGC) {
 	output.println(generateTemp(fm,fn.getDst(),lb)+"=allocate_newarray(&"+localsprefix+", "+arrayid+", "+generateTemp(fm, fn.getSize(),lb)+");");
       } else {
@@ -2326,7 +2301,7 @@ public class BuildCode {
       }
     } else {
       if (fn.isGlobal()) {
-	output.println(generateTemp(fm,fn.getDst(),lb)+"=allocate_newglobal(trans, "+fn.getType().getClassDesc().getId()+");");
+	output.println(generateTemp(fm,fn.getDst(),lb)+"=allocate_newglobal("+fn.getType().getClassDesc().getId()+");");
       } else if (GENERATEPRECISEGC) {
 	output.println(generateTemp(fm,fn.getDst(),lb)+"=allocate_new(&"+localsprefix+", "+fn.getType().getClassDesc().getId()+");");
       } else {
@@ -2338,7 +2313,7 @@ public class BuildCode {
       String dst=generateTemp(fm,fn.getDst(),lb);
       output.println(dst+"->___localcopy___=(struct ___Object___*)1;");
       output.println(dst+"->"+nextobjstr+"="+revertptr+";");
-      output.println("trans->revertlist=(struct ___Object___ *)"+dst+";");
+      output.println("revertlist=(struct ___Object___ *)"+dst+";");
     }
     if (state.FASTCHECK) {
       String dst=generateTemp(fm,fn.getDst(),lb);
@@ -2410,13 +2385,13 @@ public class BuildCode {
 	if (state.DSM && locality.getAtomic(lb).get(fln).intValue()>0) {
 	  //Stash pointer in case of GC
 	  String revertptr=generateTemp(fm, reverttable.get(lb),lb);
-	  output.println(revertptr+"=trans->revertlist;");
+	  output.println(revertptr+"=revertlist;");
 	}
 	output.println(generateTemp(fm, fln.getDst(),lb)+"=NewString(&"+localsprefix+", \""+FlatLiteralNode.escapeString((String)fln.getValue())+"\","+((String)fln.getValue()).length()+");");
 	if (state.DSM && locality.getAtomic(lb).get(fln).intValue()>0) {
 	  //Stash pointer in case of GC
 	  String revertptr=generateTemp(fm, reverttable.get(lb),lb);
-	  output.println("trans->revertlist="+revertptr+";");
+	  output.println("revertlist="+revertptr+";");
 	}
       } else {
 	output.println(generateTemp(fm, fln.getDst(),lb)+"=NewString(\""+FlatLiteralNode.escapeString((String)fln.getValue())+"\","+((String)fln.getValue()).length()+");");
@@ -2490,13 +2465,6 @@ public class BuildCode {
 	  output.print("struct "+cn.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_params * "+paramsprefix);
       } else
 	output.print("struct "+task.getSafeSymbol()+"_params * "+paramsprefix);
-      printcomma=true;
-    }
-
-    if (state.DSM&&lb.isAtomic()) {
-      if (printcomma)
-	output.print(", ");
-      output.print("transrecord_t * trans");
       printcomma=true;
     }
 

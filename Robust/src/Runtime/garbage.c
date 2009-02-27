@@ -426,13 +426,13 @@ void checkcollect(void * ptr) {
 }
 
 #ifdef DSTM
-void checkcollect2(void * ptr, transrecord_t *trans) {
-  int ptrarray[]={1, (int)ptr, (int) trans->revertlist};
+void checkcollect2(void * ptr) {
+  int ptrarray[]={1, (int)ptr, (int) revertlist};
   struct listitem * tmp=stopforgc((struct garbagelist *)ptrarray);
   pthread_mutex_lock(&gclock); // Wait for GC
   restartaftergc(tmp);
   pthread_mutex_unlock(&gclock);
-  trans->revertlist=(struct ___Object___*)ptrarray[2];
+  revertlist=(struct ___Object___*)ptrarray[2];
 }
 #endif
 

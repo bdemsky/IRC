@@ -161,8 +161,8 @@ void CALL02(___System______rangePrefetch____L___Object_____AR_S, struct ___Objec
 /* Object allocation function */
 
 #ifdef DSTM
-__attribute__((malloc)) void * allocate_newglobal(transrecord_t *trans, int type) {
-  struct ___Object___ * v=(struct ___Object___ *) transCreateObj(trans, classsize[type]);
+__attribute__((malloc)) void * allocate_newglobal(int type) {
+  struct ___Object___ * v=(struct ___Object___ *) transCreateObj(classsize[type]);
   v->type=type;
 #ifdef THREADS
   v->tid=0;
@@ -174,8 +174,8 @@ __attribute__((malloc)) void * allocate_newglobal(transrecord_t *trans, int type
 
 /* Array allocation function */
 
-__attribute__((malloc)) struct ArrayObject * allocate_newarrayglobal(transrecord_t *trans, int type, int length) {
-  struct ArrayObject * v=(struct ArrayObject *)transCreateObj(trans, sizeof(struct ArrayObject)+length*classsize[type]);
+__attribute__((malloc)) struct ArrayObject * allocate_newarrayglobal(int type, int length) {
+  struct ArrayObject * v=(struct ArrayObject *)transCreateObj(sizeof(struct ArrayObject)+length*classsize[type]);
   if (length<0) {
     printf("ERROR: negative array\n");
     return NULL;

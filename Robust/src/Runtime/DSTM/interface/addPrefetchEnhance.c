@@ -60,10 +60,9 @@ void handleDynPrefetching(int numLocal, int ntuples, int siteid) {
 #if 1
 /* This function clears from prefetch cache those
  * entries that caused a transaction abort */
-void cleanPCache(transrecord_t *record) {
-  transrecord_t *rec = record;
-  unsigned int size = rec->lookupTable->size;
-  chashlistnode_t *ptr = rec->lookupTable->table;
+void cleanPCache() {
+  unsigned int size = c_size;
+  chashlistnode_t *ptr = c_table;
   int i;
   for(i = 0; i < size; i++) {
     chashlistnode_t *curr = &ptr[i]; //for each entry in the cache lookupTable
@@ -83,10 +82,9 @@ void cleanPCache(transrecord_t *record) {
 #else
 /* This function clears from prefetch cache those
  * entries that caused a transaction abort */
-void cleanPCache(transrecord_t *record) {
-  transrecord_t *rec = record;
-  unsigned int size = rec->lookupTable->size;
-  struct chashentry *ptr = rec->lookupTable->table;
+void cleanPCache() {
+  unsigned int size = c_size;
+  struct chashentry *ptr = c_table;
   int i;
   for(i = 0; i < size; i++) {
     struct chashentry *curr = &ptr[i]; //for each entry in the cache lookupTable
@@ -106,19 +104,19 @@ void cleanPCache(transrecord_t *record) {
  * entries from the transaction cache when a
  * transaction commits
  * Return -1 on error else returns 0 */
-int updatePrefetchCache(trans_req_data_t *tdata, transrecord_t *rec) {
+int updatePrefetchCache(trans_req_data_t *tdata) {
   int retval;
   char oidType;
   oidType = 'R';
   if(tdata->f.numread > 0) {
-    if((retval = copyToCache(tdata->f.numread, (unsigned int *)(tdata->objread), rec, oidType)) != 0) {
+    if((retval = copyToCache(tdata->f.numread, (unsigned int *)(tdata->objread), oidType)) != 0) {
       printf("%s(): Error in copying objects read at %s, %d\n", __func__, __FILE__, __LINE__);
       return -1;
     }
   }
   if(tdata->f.nummod > 0) {
     oidType = 'M';
-    if((retval = copyToCache(tdata->f.nummod, tdata->oidmod, rec, oidType)) != 0) {
+    if((retval = copyToCache(tdata->f.nummod, tdata->oidmod, oidType)) != 0) {
       printf("%s(): Error in copying objects read at %s, %d\n", __func__, __FILE__, __LINE__);
       return -1;
     }
@@ -126,7 +124,7 @@ int updatePrefetchCache(trans_req_data_t *tdata, transrecord_t *rec) {
   return 0;
 }
 
-int copyToCache(int numoid, unsigned int *oidarray, transrecord_t *rec, char oidType) {
+int copyToCache(int numoid, unsigned int *oidarray, char oidType) {
   int i;
   for (i = 0; i < numoid; i++) {
     unsigned int oid;
@@ -139,7 +137,7 @@ int copyToCache(int numoid, unsigned int *oidarray, transrecord_t *rec, char oid
     }
     pthread_mutex_lock(&prefetchcache_mutex);
     objheader_t * header;
-    if((header = (objheader_t *) chashSearch(rec->lookupTable, oid)) == NULL) {
+    if((header = (objheader_t *) t_chashSearch(oid)) == NULL) {
       printf("%s() obj %x is no longer in transaction cache at %s , %d\n", __func__, oid,__FILE__, __LINE__);
       fflush(stdout);
       return -1;

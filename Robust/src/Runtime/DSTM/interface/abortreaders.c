@@ -11,7 +11,7 @@ void initreaderlist() {
   freelist=NULL;
 }
 
-void addtransaction(unsigned int oid, struct transrecord * trans) {
+void addtransaction(unsigned int oid) {
   struct readerlist * rl;
   int i;
   if (pthread_mutex_trylock(&aborttablelock)!=0)
@@ -38,7 +38,7 @@ void addtransaction(unsigned int oid, struct transrecord * trans) {
   rl->numreaders++;
   for(i=0;i<READERSIZE;i++) {
     if (rl->array[i]==NULL) {
-      rl->array[i]=trans;
+      rl->array[i]=&t_abort;
       pthread_mutex_unlock(&aborttablelock);
       return;
     }
@@ -60,9 +60,9 @@ void removetransaction(unsigned int oidarray[], unsigned int numoids) {
       int count=rl->numreaders;
       int j;
       for(j=0;count;j++) {
-	struct transrecord *trans=rl->array[j];
-	if (trans!=NULL) {
-	  trans->abort=1;//It's okay to set our own abort flag...it is
+	int *t_abort=rl->array[j];
+	if (t_abort!=NULL) {
+	  *t_abort=1;//It's okay to set our own abort flag...it is
 			 //too late to abort us
 	  count--;
 	}
@@ -76,7 +76,7 @@ void removetransaction(unsigned int oidarray[], unsigned int numoids) {
   pthread_mutex_unlock(&aborttablelock);
 }
 
-void removethisreadtransaction(unsigned char* oidverread, unsigned int numoids, struct transrecord * trans) {
+void removethisreadtransaction(unsigned char* oidverread, unsigned int numoids) {
   int i,j;
   pthread_mutex_lock(&aborttablelock);
   for(i=0;i<numoids;i++) {
@@ -86,7 +86,7 @@ void removethisreadtransaction(unsigned char* oidverread, unsigned int numoids, 
     oidverread+=(sizeof(unsigned int)+sizeof(unsigned short));
     while(rl!=NULL) {
       for(j=0;j<READERSIZE;j++) {
-	if (rl->array[j]==trans) {
+	if (rl->array[j]==&t_abort) {
 	  rl->array[j]=NULL;
 	  if ((--rl->numreaders)==0) {
 	    if (first==rl) {
@@ -113,12 +113,11 @@ void removethisreadtransaction(unsigned char* oidverread, unsigned int numoids, 
   pthread_mutex_unlock(&aborttablelock);
 }
 
-void removetransactionhash(chashtable_t *table, struct transrecord *trans) {
-  chashlistnode_t *ptr=table->table;
-  unsigned int size=table->size;
+void removetransactionhash() {
+  chashlistnode_t *ptr=c_table;
   int i,j;
   pthread_mutex_lock(&aborttablelock);
-  for(i=0;i<size;i++) {
+  for(i=0;i<c_size;i++) {
     chashlistnode_t *curr=&ptr[i];
     do {
       unsigned int oid=curr->key;
@@ -128,7 +127,7 @@ void removetransactionhash(chashtable_t *table, struct transrecord *trans) {
       struct readerlist *first=rl;
       while(rl!=NULL) {
 	for(j=0;j<READERSIZE;j++) {
-	  if (rl->array[j]==trans) {
+	  if (rl->array[j]==&t_abort) {
 	    rl->array[j]=NULL;
 	    if ((--rl->numreaders)==0) {
 	      if (first==rl) {
@@ -157,7 +156,7 @@ void removetransactionhash(chashtable_t *table, struct transrecord *trans) {
 }
 
 
-void removethistransaction(unsigned int oidarray[], unsigned int numoids, struct transrecord * trans) {
+void removethistransaction(unsigned int oidarray[], unsigned int numoids) {
   int i,j;
   pthread_mutex_lock(&aborttablelock);
   for(i=0;i<numoids;i++) {
@@ -167,7 +166,7 @@ void removethistransaction(unsigned int oidarray[], unsigned int numoids, struct
     struct readerlist *first=rl;
     while(rl!=NULL) {
       for(j=0;j<READERSIZE;j++) {
-	if (rl->array[j]==trans) {
+	if (rl->array[j]==&t_abort) {
 	  rl->array[j]=NULL;
 	  if ((--rl->numreaders)==0) {
 	    if (first==rl) {

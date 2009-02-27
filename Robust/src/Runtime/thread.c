@@ -29,7 +29,6 @@ pthread_key_t oidval;
 void threadexit() {
   objheader_t* ptr;
   void *value;
-  transrecord_t * trans;
   unsigned int oidvalue;
 
 #ifdef THREADS
@@ -57,12 +56,12 @@ void threadexit() {
   goto transstart;
 transstart:
   {
-    transrecord_t * trans = transStart();
-    ptr = transRead(trans, oidvalue);
+    transStart();
+    ptr = transRead(oidvalue);
     struct ___Thread___ *p = (struct ___Thread___ *) ptr;
     p->___threadDone___ = 1;
     *((unsigned int *)&((struct ___Object___ *) p)->___localcopy___) |=DIRTY;
-    if(transCommit(trans) != 0) {
+    if(transCommit() != 0) {
       goto transstart;
     }
   }
@@ -149,12 +148,11 @@ void CALL00(___Thread______yield____) {
 void CALL01(___Thread______join____, struct ___Thread___ * ___this___) {
   unsigned int *oidarray;
   unsigned short *versionarray, version;
-  transrecord_t *trans;
   objheader_t *ptr;
   /* Add transaction to check if thread finished for join operation */
 transstart:
-  trans = transStart();
-  ptr = transRead(trans, (unsigned int) VAR(___this___));
+  transStart();
+  ptr = transRead((unsigned int) VAR(___this___));
   struct ___Thread___ *p = (struct ___Thread___ *) ptr;
 #ifdef THREADJOINDEBUG
   printf("Start join process for Oid = %x\n", (unsigned int) VAR(___this___));
@@ -163,7 +161,7 @@ transstart:
 #ifdef THREADJOINDEBUG
     printf("Thread oid = %x is done\n", (unsigned int) VAR(___this___));
 #endif
-    transAbort(trans);
+    transAbort();
     return;
   } else {
 
@@ -191,7 +189,7 @@ transstart:
 #endif
     free(oidarray);
     free(versionarray);
-    transAbort(trans);
+    transAbort();
     goto transstart;
   }
   return;
@@ -242,7 +240,6 @@ void globalDestructor(void *value) {
 
 void initDSMthread(int *ptr) {
   objheader_t *tmp;
-  transrecord_t * trans;
   void *threadData;
   int oid=ptr[0];
   int type=ptr[1];
@@ -264,11 +261,11 @@ void initDSMthread(int *ptr) {
   goto transstart;
 transstart:
   {
-    transrecord_t * trans = transStart();
-    tmp  = transRead(trans, (unsigned int) oid);
+    transStart();
+    tmp  = transRead((unsigned int) oid);
     ((struct ___Thread___ *)tmp)->___threadDone___ = 1;
     *((unsigned int *)&((struct ___Object___ *) tmp)->___localcopy___) |=DIRTY;
-    if(transCommit(trans)!= 0) {
+    if(transCommit()!= 0) {
       goto transstart;
     }
   }
