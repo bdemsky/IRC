@@ -33,14 +33,15 @@ public class FileInputStream extends InputStream {
     int c = read();
     
     // if we're already at the end of the file
-    // don't even return the empty string
-    if( c == -1 ) { 
+    // or there is an error, don't even return
+    // the empty string
+    if( c <= 0 ) { 
       return null;
     }
 
-    while( c != '\n' && c != -1 ) {
+    while( c != '\n' && c > 0 ) {
       line += (char)c;
-      c = read();      
+      c = read();
     } 
 
     return line;
