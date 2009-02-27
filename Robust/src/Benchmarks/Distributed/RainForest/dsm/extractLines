@@ -1,0 +1,3 @@
+#!/bin/sh -x
+lines=$(grep -n "#" tmp1RainForest.java | cut -d: -f1 | sed '1q')
+sed '/#/d' tmp1RainForest.java > tmpRainForest.java
