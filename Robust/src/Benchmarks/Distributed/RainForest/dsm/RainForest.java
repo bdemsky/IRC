@@ -20,7 +20,16 @@ public class RainForest extends Thread {
 
   public void run() {
     // For N interations do one move and synchronise
-    return;
+    System.println("Start run\n");
+    Barrier barr;
+    barr = new Barrier("128.196.136.162");
+    for(int i = 0; i<ROUNDS; i++) {
+      atomic {
+        doOneMove(land, gamer);
+      }
+      Barrier.enterBarrier(barr);
+    }
+    System.println("End of run\n");
   }
 
   public static void main(String[] args) {
@@ -123,8 +132,68 @@ public class RainForest extends Thread {
   }
 
   //TODO
-  public void doOneMove() {
+  public void doOneMove(GameMap land, Player mover) {
+    // 1. Get start(x, y) position of the player
+    // 2. Get type of player (lumberjack or planter)
+    // 3. Check if you have a goal(tx,ty)
+    //     a.If yes 
+    //        check retvalue = run A* from my location to goal(tx,ty) 
+    //        if retvalue = empty
+    //          pick new goal
+    //          go to 3
+    //          i.e wait here 
+    //          go to next round
+    //        else {
+    //          if planter
+    //            check if you are at goal
+    //               if yes
+    //                 can you plant tree there? i.e. 40% of block around is not full and there is no tree there
+    //                   if yes
+    //                     plant tree
+    //                     reset start(x, y) to goal(tx, ty) position
+    //                     set goal to empty
+    //                     continue to next round
+    //                   if no
+    //                     reset start(x, y) to goal(tx, ty) position
+    //                     set goal = pick new goal
+    //                     go to 3
+    //               if no
+    //                 move one step i.e. update player position
+    //                 continue to next round
+    //          if lumberjack
+    //            check if you are at goal
+    //              if yes
+    //                can you cut tree(i.e. Tree present at that location)
+    //                  if yes 
+    //                    cut tree
+    //                    set start(x,y) to goal(tx, ty) position
+    //                    set goal to empty
+    //                    continue to next round
+    //                  if no
+    //                    reset start(x,y) to goal coordinates(tx,ty)
+    //                    set goal = pick new goal
+    //                    go to 3
+    //              if no
+    //                move one step i.e, update player position
+    //                continue to next round
+    //        }
+    //      b.If no
+    //         pick new goal
+    //         go to 3
+  }
 
+  public int pickNewGoalX(Player mover) {
+    //Randomly generate goal
+    Random rand = new Random(mover.x);
+    int row = rand.nextInt(ROW-1);
+    //int col = rand.nextInt(COLUMN-1);
+    return row;
+  }
 
+  public int pickNewGoalY(Player mover) {
+    //Randomly generate goal
+    Random rand = new Random(mover.y);
+    int col = rand.nextInt(COLUMN-1);
+    return col;
   }
 }

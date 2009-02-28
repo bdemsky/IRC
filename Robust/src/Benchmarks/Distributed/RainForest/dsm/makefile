@@ -4,7 +4,8 @@ SRC=tmp${MAINCLASS}.java \
 	TreeType.java \
 	GameMap.java \
 	RockType.java \
-	Barrier.java
+	Barrier.java \
+	Goal.java
 
 FLAGS1=-dsm -optimize -mainclass ${MAINCLASS}
 FLAGS2=-dsm -dsmcaching -optimize -mainclass ${MAINCLASS}
