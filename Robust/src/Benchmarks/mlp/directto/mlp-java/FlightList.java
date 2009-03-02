@@ -21,7 +21,7 @@ public class FlightList {
   */
 
   public /*static*/ void addFlightPlan(int time, StringTokenizer st) { 
-    Flight newFlight=new Flight(d2, st.nextToken());
+    Flight newFlight=disjoint flightAdd new Flight(d2, st.nextToken());
     noFlights++;
     f.addElement(newFlight);
     FlightPlan fAux=new FlightPlan();
