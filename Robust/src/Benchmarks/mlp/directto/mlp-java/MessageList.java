@@ -29,7 +29,7 @@ public class MessageList {
     if (line.equals(""))
       return false;
 
-    //System.out.println("I'm reading line "+line);       
+    System.out.println("I'm reading line "+line);       
 
     // treating comments
     if ((line.charAt(0)=='/')&&(line.charAt(1)=='/'))
@@ -47,13 +47,13 @@ public class MessageList {
   }
   
   public void executeAll() {
-    //System.out.println("executeAll: we have "+messages.size()+" messages.");
+    System.out.println("executeAll: we have "+messages.size()+" messages.");
     while(hasNext())
       next().executeMessage();     
     d2.getStatic().printInfo();
     d2.getFixList().printInfo();
     d2.getAircraftList().printInfo();	
     d2.getFlightList().printInfo();
-    //System.out.println("Messages executed\n\n\n\n\n");
+    System.out.println("Messages executed\n\n\n\n\n");
   }
 }

@@ -52,33 +52,33 @@ public class TrialFlight {
     changeToTrialRoute(position, fixIndex);
     trajectoryDiff(position.time);
     conflictsDiff(position.time);
-    //System.out.println("old route:"+oldFlight.fPlan.r);
-    //System.out.println("new route:"+trialFlight.fPlan.r);
+    System.out.println("old route:"+oldFlight.fPlan.r);
+    System.out.println("new route:"+trialFlight.fPlan.r);
     trialFlight.trialStatus=-1;        
   }
 
   public void trajectoryDiff (double time) {
     trialFlight.updateTrajectory(time);
     oldFlight.updateTrajectory(time);        
-    //System.out.println("Flight "+trialFlight.flightID+":");
+    System.out.println("Flight "+trialFlight.flightID+":");
     distDiff=oldFlight.traject.distanceToDestination()-
       trialFlight.traject.distanceToDestination();
     timeDiff=oldFlight.traject.timeToDestination(time)-
       trialFlight.traject.timeToDestination(time);
     if (timeDiff<0) { timeDiff=0; }
-    //System.out.println("Time difference: "+timeDiff);
-    //System.out.println("Distance difference: "+distDiff);
+    System.out.println("Time difference: "+timeDiff);
+    System.out.println("Distance difference: "+distDiff);
   }
     
   public void conflictsDiff(double time) {
     int i, j;
     oldConflicts=d2.getAlgorithm().getConflictsWith(time,oldFlight);
     newConflicts=d2.getAlgorithm().getConflictsWith(time,trialFlight);
-    //System.out.println("Flight "+trialFlight.flightID+":");
-    //System.out.println("Conflicts for the old flight:");
-    //System.out.println(oldConflicts);
-    //System.out.println("Conflicts for the trial flight:");
-    //System.out.println(newConflicts);
+    System.out.println("Flight "+trialFlight.flightID+":");
+    System.out.println("Conflicts for the old flight:");
+    System.out.println(oldConflicts);
+    System.out.println("Conflicts for the trial flight:");
+    System.out.println(newConflicts);
     noNew=0;
     for (i=0 ; i<newConflicts.noConflicts ; i++) {
       Conflict conflict=newConflicts.conflictAt(i);

@@ -18,6 +18,6 @@ public class Track {
   }
   
   public void printInfo() {
-    //System.out.println("track: "+pos+"||"+vel);
+    System.out.println("track: "+pos+"||"+vel);
   }
 }

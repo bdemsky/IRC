@@ -46,7 +46,7 @@ class MessageList
   
   public static void executeAll()
   {
-      System.out.println("executeAll: we have "+messages.size()+" messages.");
+    System.out.println("executeAll: we have "+messages.size()+" messages.");
     while (hasNext())
       next().executeMessage();     
     Static.printInfo();

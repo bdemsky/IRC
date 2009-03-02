@@ -28,6 +28,8 @@ public class D2 {
   }
 
   public static void main(String arg[]) {
+    System.out.println("D2 - Application started");
+
     D2 d2 = new D2();
 
     d2.rw=new ReadWrite( d2 );
@@ -41,10 +43,10 @@ public class D2 {
       
       count++;
       if( count % 10000 == 0 ) {
-	System.out.println( "iteration "+count );
+	//System.out.println( "iteration "+count );
       }
 
-      if( count == 40000 ) {
+      if( count == 1000 ) {
 	break;
       }
     }

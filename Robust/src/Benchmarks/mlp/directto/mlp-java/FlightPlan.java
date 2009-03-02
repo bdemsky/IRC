@@ -25,7 +25,7 @@ public class FlightPlan {
 
   public void setCurrentFix(String nameFix) {
     int i=r.getIndexOf(nameFix);
-    //System.out.println("name of the fix: "+nameFix+" index:"+i);
+    System.out.println("name of the fix: "+nameFix+" index:"+i);
     r.setCurrent(i);
   }	
 }

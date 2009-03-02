@@ -44,7 +44,7 @@ public class Algorithm {
 	Point4d point1=(Point4d) p1.elementAt(pos);
 	Point4d point2=(Point4d) p2.elementAt(pos);
 	if (isConflict(point1,point2)) { 	      
-	  //System.out.println(point1+" "+point2);
+	  System.out.println(point1+" "+point2);
 	  found=true;
 	  conflictPoint=point1;
 	}
@@ -81,8 +81,8 @@ public class Algorithm {
   public /*static*/ void doIteration() {
     time=initialTime+currIteration*d2.getStatic().iterationStep();
     currIteration++;
-    //System.out.println("In doIteration!");
-    //System.out.println("Time:"+time);
+    System.out.println("In doIteration!");
+    System.out.println("Time:"+time);
     
     cList.clear();
     
@@ -95,7 +95,7 @@ public class Algorithm {
       d2.getTrajectorySynthesizer().updateTrajectory(time,aAux);
     }
     
-    //System.out.println("Does it get here? (after the trajectory update)");
+    System.out.println("Does it get here? (after the trajectory update)");
 
     for (i=0;i<n;i++)
       for (j=i+1;j<n;j++) {

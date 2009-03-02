@@ -52,9 +52,9 @@ public class Trajectory {
   }
 
   public void printInfo() {
-    //System.out.println("New trajectory: ");
+    System.out.println("New trajectory: ");
     for (int i=0 ; i<noPoints ; i++) {
-      //System.out.println(getPointAt(i));
+      System.out.println(getPointAt(i));
     }    
   }  
 }

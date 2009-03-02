@@ -39,11 +39,11 @@ public class AircraftList {
   }
 
   public void printInfo() {
-    //System.out.println("\n\nThe number of aircrafts:"+noAircrafts);
-    //System.out.println("The aircrafts are:");
+    System.out.println("\n\nThe number of aircrafts:"+noAircrafts);
+    System.out.println("The aircrafts are:");
     for( int i = 0; i < aircrafts.size(); ++i ) {
       Aircraft aAux=(Aircraft) aircrafts.elementAt(i);
-      //System.out.println(aAux);
+      System.out.println(aAux);
     }
   }
 

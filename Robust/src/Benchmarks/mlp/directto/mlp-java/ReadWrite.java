@@ -24,7 +24,8 @@ public class ReadWrite {
 	break;
     }
 
-    //System.out.println("Input data read.");
+    System.out.println("Input data read.");
+    System.out.println("Data set read");
   }   
 
   public void write() {

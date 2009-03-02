@@ -71,7 +71,7 @@ class Message
 
 	if (type.compareTo("ADD_FLIGHT_PLAN")==0)
 	    {
-		System.out.println("Adding flight plane...");
+		System.out.println("Adding flight plan...");
 		FlightList.addFlightPlan(time,parameters);		
 	    }
 	if (type.compareTo("REMOVE_FLIGHT_PLAN")==0)

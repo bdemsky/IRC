@@ -77,14 +77,14 @@ public class FlightList {
       t=new Track(pos, vel);
       nameFix=st.nextToken();
       fAux=getFlight(id);
-      //System.out.println(id+" Flight id: "+fAux.flightID);
+      System.out.println(id+" Flight id: "+fAux.flightID);
       fAux.setTrack(t);
-      //System.out.println("Setting current fix ...");
+      System.out.println("Setting current fix ...");
       fAux.fPlan.setCurrentFix(nameFix);
-      //System.out.println("Sent flight "+
-      //fAux.flightID+
-      //		 "; position: "+
-      //		 fAux.track.pos);
+      System.out.println("Sent flight "+
+			 fAux.flightID+
+			 "; position: "+
+			 fAux.track.pos);
       d2.getTrajectorySynthesizer().updateTrajectory(time, fAux);
       fAux.traject.printInfo();      
     }
@@ -119,11 +119,11 @@ public class FlightList {
   }
 
   public /*static*/ void printInfo() {
-    //System.out.println("\n\nThe number of flights:"+noFlights);
-    //System.out.println("The flights are:");
+    System.out.println("\n\nThe number of flights:"+noFlights);
+    System.out.println("The flights are:");
     for( int i = 0; i < f.size(); ++i ) {
       Flight fAux=(Flight) f.elementAt(i);
-      //System.out.println(fAux);
+      System.out.println(fAux);
     }
   }
 }
