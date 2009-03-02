@@ -140,7 +140,7 @@ public class StandardEngine extends Engine {
     register_by_type (new CharCommandAction (generator,
 					     char_map),
 		      Token.CHARCOMMAND());
-    
+
     register_by_type (new UnderscoreAction (generator) {},
 		      Token.UNDERSCORE());
     

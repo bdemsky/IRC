@@ -54,6 +54,12 @@ public class Tagger {
     Token token;
     while (p.has_more_tokens ()) {
       token = p.get_token ();
+      String s = token.toString();
+      if( s == null ) {
+	System.out.println( "token: [null]" );
+      } else {
+	System.out.println( "token: ["+s+"]" );
+      }
       engine.consume_token (token);
     }
     // consume end of stream token explicitly

@@ -35,12 +35,17 @@ public class PropertyParser {
   private void consume_char () {
     token += (char) next_char;
     next_char = reader.read ();
+    //while(next_char == 13 || next_char==10) {
+    //  next_char = reader.read ();
+    //}
+    //System.out.println( "next_char: "+(char)next_char );
   }
   
   private void error (String msg) {
     // correct to number from 1, not zero
     //t line_number = reader.getLineNumber() + 1;
     System.out.println (msg);
+    System.exit(-1);
   }
   
   public boolean has_more_properties () {
@@ -70,7 +75,7 @@ public class PropertyParser {
     return result;
   }
   
-  private Property get_property () {
+  private Property get_property () {    
     if (next_char != '<')
       error ("Found " + next_char + " when expecting <");
     consume_char ();

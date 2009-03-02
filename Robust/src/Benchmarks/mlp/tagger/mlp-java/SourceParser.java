@@ -88,7 +88,7 @@ public class SourceParser {
    *	explicitly returns end of stream token.
    */
   public Token get_token () {
-    token = new String ();
+    token = new String ("");
     if (is_eos (next_char))
       return new Token (Token.ENDOFSTREAM(), 0);
     if (at_start_of_line) {
@@ -120,7 +120,7 @@ public class SourceParser {
     }
     if (is_slash (next_char)) {
       consume_char ();
-      token = "";
+      token = new String("");
       if (is_slash (next_char)) {
 	consume_char ();
 	return new Token (Token.LINEBREAK(), 0);

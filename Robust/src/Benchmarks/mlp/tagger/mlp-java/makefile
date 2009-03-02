@@ -9,7 +9,7 @@ BSFLAGS= -debug -nooptimize -mainclass $(MAIN_CLASS) #-justanalyze -ownership -o
 all: run
 
 run: $(PROGRAM).bin
-	$(PROGRAM).bin test.txt
+	$(PROGRAM).bin test
 
 view: PNGs
 	eog *.png &

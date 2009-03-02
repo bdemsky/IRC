@@ -256,8 +256,7 @@ public class LoadCharMapCommandAction extends Action {
   public void perform (Token t) {
     // open file with given name and load char map from it
     String file_name = t.arg;
-    File f = new File (file_name);
-    FileInputStream s = new FileInputStream (f);
+    FileInputStream s = new FileInputStream (file_name);
     PropertyParser p = new PropertyParser (s);
     char_map.incorporate (p);
   }
@@ -279,8 +278,7 @@ public class LoadStyleSheetCommandAction extends Action {
   public void perform (Token t) {
     // open file with given name and load char map from it
     String file_name = t.arg;
-    File f = new File (file_name);
-    FileInputStream s = new FileInputStream (f);
+    FileInputStream s = new FileInputStream (file_name);
     PropertyParser p = new PropertyParser (s);
     style_map.incorporate (p);
     numbering.incorporate ();
