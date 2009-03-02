@@ -4,7 +4,7 @@ PROGRAM=test
 SOURCE_FILES=*.java
 
 BUILDSCRIPT=~/research/Robust/src/buildscript
-BSFLAGS= -mainclass $(MAIN_CLASS) #-justanalyze -ownership -ownallocdepth 1 -ownwritedots final -enable-assertions
+BSFLAGS= -debug -mainclass $(MAIN_CLASS) -justanalyze -ownership -ownallocdepth 1 -ownwritedots -ownaliasfile aliases.txt final -enable-assertions
 
 all: $(PROGRAM).bin
 

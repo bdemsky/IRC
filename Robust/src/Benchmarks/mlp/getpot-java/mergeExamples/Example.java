@@ -5,6 +5,12 @@ public class Example {
 
     public static void main(String args []) {
 
+      String  User;
+      String  User2;
+      String  User3;
+
+
+
       
         String[] args1 = new String[7];
 	args1[0] = "program";
@@ -15,7 +21,10 @@ public class Example {
 	args1[5] = "--ok";
 	args1[6] = "gibberish";
       
-	GetPot   cl = disjoint gp1 new GetPot(args1, "Flags");
+	GetPot   cl = 
+	  //disjoint gp1 
+	  new GetPot(args1, "Flags");
+
 	if( cl.size() == 1 || cl.search("--help", "-h") ) print_help();
 
 	// does first argument contain 'x', 'X', 'c', 'C', 'k', or  'K' ?
@@ -30,6 +39,8 @@ public class Example {
 	System.printString("a, b, or c found = " + abc_f+"\n");
 
 
+
+	/*
         String[] args2 = new String[5];
 	args2[0] = "program";
 	args2[1] = "-V";
@@ -37,7 +48,9 @@ public class Example {
 	args2[3] = "-U";
 	args2[4] = "-Heinz";	
 
-	cl = disjoint gp2 new GetPot(args2, "DirectFollow");
+	cl = 
+	  //disjoint gp2 
+	  new GetPot(args2, "DirectFollow");
 	
 	if( cl.size() == 1 || cl.search("--help", "-h") ) print_help("DirectFollow");
 
@@ -49,9 +62,9 @@ public class Example {
 	cl.disable_loop();
 	
 	// check out 'String' versions
-	String  User  = cl.direct_follow("You",   "-U");  
-	String  User2 = cl.direct_follow("Karl",  "-U"); 
-	String  User3 = cl.direct_follow("Heinz", "-U");
+	User  = cl.direct_follow("You",   "-U");  
+	User2 = cl.direct_follow("Karl",  "-U"); 
+	User3 = cl.direct_follow("Heinz", "-U");
 	
 	// check out 'double' versions
 	cl.reset_cursor(); 
@@ -66,20 +79,25 @@ public class Example {
 	int  Number3 = cl.direct_follow(64, "-NUM");
 	
 	something(User, User2, User3, Value, Value2, Value3, Number, Number2, Number3);
-
+	*/
 
 
 
 
         String[] args3 = new String[5];
 	args3[0] = "program";
-	args3[1] = "-gjhx";
+	args3[1] = "-gjx";
 	args3[2] = "--rudimental";
 	args3[3] = "guy";
 	args3[4] = "dude";	
 
-	cl = disjoint gp3 new GetPot(args3, "Filter");
-	GetPot   ifpot = disjoint gp4 new GetPot("example.pot");
+	cl = 
+	  //disjoint gp3 
+	  new GetPot(args3, "Filter");
+
+	GetPot   ifpot = 
+	  //disjoint gp4 
+	  new GetPot("example.pot");
                
 	// (1) search for multiple options with the same meaning
 	if( cl.search("--help", "-h", "--hilfe", "--sos") ) {
@@ -192,9 +210,14 @@ public class Example {
 
 
 
+	/*
+	cl    = 
+	  //disjoint gp5 
+	  new GetPot(args1, "Get");
 
-	cl    = disjoint gp5 new GetPot(args1, "Get");
-	ifpot = disjoint gp6 new GetPot("expand.pot");
+	ifpot = 
+	  //disjoint gp6
+	  new GetPot("expand.pot");
 
 	if( cl.search("--internal-information", "-i") ) {
 	    ifpot.print();
@@ -301,15 +324,17 @@ public class Example {
 	my_print("[3.6]--------------------------------------------------------------------------");
 	my_print("Information 0: ", ifpot.call("info0", "(nothing)"));
 	my_print("Information 1: ", ifpot.call("info1", "(nothing)"));
+	*/
 
 
 
 
 
 
-
-
-	cl = disjoint gp7 new GetPot(args1, "Follow");
+	
+	cl = 
+	  //disjoint gp7
+	  new GetPot(args1, "Follow");
 	
 	// to function 'cl.search(..)' 
 	if( cl.search("--help", "-h", "--hilfe") )
@@ -339,8 +364,10 @@ public class Example {
 
 
 
-
-	cl = disjoint gp8 new GetPot(args1, "Get");
+	/*
+	cl = 
+	  //disjoint gp8
+	  new GetPot(args1, "Get");
 
 	// GetPot Java can treat upto 6 strings, then it needs a String[]
 	if( cl.search("--help", "-h", "--hilfe", "--sos", "--about", "--what-is") ) {
@@ -370,14 +397,19 @@ public class Example {
 	System.printString("A (argument no 4) = " + A);
 	System.printString("B (argument no 1) = " + B);
 	System.printString("C (argument no 2) = " + C);
+	*/
 
 
 
-	System.exit(-1);
 
-	
- 	cl = disjoint gp9 new GetPot(args1, "InputFile");
- 	GetPot   ifile = disjoint gp10 new GetPot("example.pot");
+	/*
+ 	cl = 
+	  //disjoint gp9
+	  new GetPot(args1, "InputFile");
+
+ 	GetPot   ifile = 
+	  //disjoint gp10
+	  new GetPot("example.pot");
 	
    	if( cl.size() == 1 || cl.search("--help", "-h") ) 
   	{ print_help();	System.exit(0); }
@@ -422,7 +454,7 @@ public class Example {
 	String nfl;
 	if( n_f ) { nfl = "activated"; } else { nfl = "disabled"; }
 	System.printString("nonsense-flag = " + nfl);
-
+	*/
 	
 
 
@@ -430,8 +462,10 @@ public class Example {
 
 
 
-
-	cl = disjoint gp11 new GetPot(args1, "Next");
+	/*
+	cl = 
+	  //disjoint gp11
+	  new GetPot(args1, "Next");
 
 	// all the following pain, only to pass a string array
 	// to function 'cl.search(..)' 
@@ -450,8 +484,11 @@ public class Example {
 	System.printString("Name           = " + User);
 	System.printString("Special number = " + iNo);
 	System.printString("\n");
+	*/
 
 
+	/*
+	System.exit( -1 );
 	
 
 	cl = disjoint gp12 new GetPot(args1, "Nominus");
@@ -471,12 +508,18 @@ public class Example {
 	String[]   files = cl.nominus_vector();
 	for(int i=0; i<files.length ; i++)
 	    System.printString("<" + files[i] + ">");
-				
+	*/
 
 
 
 
-	cl = disjoint gp13 new GetPot(args1, "Options");
+
+
+
+	/*
+	cl = 
+	  //disjoint gp13
+	  new GetPot(args1, "Options");
 
 	// (1) search for a single option
 	// -------------------------------
@@ -498,7 +541,7 @@ public class Example {
 	System.printString( "Program terminated.");
 	if( be_nice_f == true )
 	    System.printString( "Have a nice day.");
-
+	*/
 
 
 
@@ -508,7 +551,10 @@ public class Example {
 
 
 
-	cl = disjoint gp14 new GetPot(args1, "Ufo");
+	cl = 
+	  //disjoint gp14
+	  new GetPot(args1, "Ufo");
+
 	String[]   ufos = new String[1];
 
 	if( cl.search("-h", "--help") ) {
@@ -570,7 +616,7 @@ public class Example {
 	}
 	else if( cl.search("--sections") ) {
 	  // (*) unidentified flying sections ----------------------------------------------
-	  ifile = disjoint gp15 new GetPot("example.pot");
+	  GetPot ifile = disjoint gp15 new GetPot("example.pot");
 	  String[] ufss = new String[8];
 	  ufss[0] = "vehicle/";
 	  ufss[1] = "vehicle/tires/"; 
@@ -613,8 +659,11 @@ public class Example {
 
 
 
+	
+	cl = 
+	  //disjoint gp16
+	  new GetPot(args1, "Variables");
 
-	cl = disjoint gp16 new GetPot(args1, "Variables");
 	if( cl.size() == 1 || cl.search("--help", "-h") ) print_help("java Variables");
 
 	if( cl.search("--internal-information", "-i") ) {
@@ -650,7 +699,7 @@ public class Example {
     }
 
     static void my_print(String Str1, String Str2) {
-	System.printString(Str1 + Str2);
+	System.out.println(Str1 + Str2);
     }    
     
     static void something(String User, String User2, String User3,
