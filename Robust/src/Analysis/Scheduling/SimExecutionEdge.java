@@ -35,7 +35,7 @@ public class SimExecutionEdge extends Edge {
 	this.bestStartPoint = -1;
 	this.lastpredicatenode = null;
 	this.lastpredicateedge = null;
-	this.predicates = new Vector<SimExecutionEdge>();
+	this.predicates = null;
 	this.isFixedTime = true;
     }
     
@@ -77,6 +77,9 @@ public class SimExecutionEdge extends Edge {
     }
     
     public void addPredicate(SimExecutionEdge predicate) {
+	if(this.predicates == null) {
+	    this.predicates = new Vector<SimExecutionEdge>();
+	}
 	if(!this.predicates.contains(predicate)) {
 	    this.predicates.add(predicate);
 	}

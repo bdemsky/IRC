@@ -1,7 +1,9 @@
 package Analysis.Scheduling;
 
+import java.io.File;
 import java.io.FileOutputStream;
 import java.io.PrintStream;
+import java.io.PrintWriter;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.Random;
@@ -27,6 +29,9 @@ public class MCImplSynthesis {
     int coreNum;
     int scheduleThreshold;
     int probThreshold;
+    int generateThreshold;
+    
+    //Random rand;
 
     public MCImplSynthesis(State state, 
 	                   TaskAnalysis ta,
@@ -37,12 +42,14 @@ public class MCImplSynthesis {
 	this.ownershipAnalysis = oa;
 	this.scheduleAnalysis = new ScheduleAnalysis(state,
 		                                     ta);
-	scheduleAnalysis.setCoreNum(this.coreNum);
+	this.scheduleAnalysis.setCoreNum(this.coreNum);
 	this.scheduleSimulator = new ScheduleSimulator(this.coreNum,
 		                                       state,
 		                                       ta);
 	this.scheduleThreshold = 1000;
 	this.probThreshold = 0;
+	this.generateThreshold = 30;
+	//this.rand = new Random();
     }
 
     public int getCoreNum() {
@@ -63,6 +70,14 @@ public class MCImplSynthesis {
 
     public void setProbThreshold(int probThreshold) {
         this.probThreshold = probThreshold;
+    }
+
+    public int getGenerateThreshold() {
+        return generateThreshold;
+    }
+
+    public void setGenerateThreshold(int generateThreshold) {
+        this.generateThreshold = generateThreshold;
     }
 
     public Vector<Schedule> synthesis() {
@@ -107,7 +122,10 @@ public class MCImplSynthesis {
 
 	// generate multiple schedulings
 	this.scheduleAnalysis.setScheduleThreshold(this.scheduleThreshold);
-	this.scheduleAnalysis.schedule();
+	this.scheduleAnalysis.schedule(this.generateThreshold);
+	if(this.generateThreshold > 5) {
+	    this.generateThreshold = 5;
+	}
 
 	Vector<Vector<ScheduleNode>> scheduleGraphs = null;
 	Vector<Vector<ScheduleNode>> newscheduleGraphs = 
@@ -126,6 +144,7 @@ public class MCImplSynthesis {
 		multiparamtds.addElement(td);
 	    }
 	}
+	it_tasks = null;
 
 	int tryindex = 1;
 	int bestexetime = Integer.MAX_VALUE;
@@ -135,6 +154,18 @@ public class MCImplSynthesis {
 	    System.out.print("+++++++++++++++++++++++++++++++++++++++++++++++++++\n");
 	    System.out.print("Simulate and optimize round: #" + tryindex + ": \n");
 	    gid += newscheduleGraphs.size();
+	    if(scheduleGraphs != null) {
+		for(int i = 0; i < scheduleGraphs.size(); i++) {
+		    Vector<ScheduleNode> tmpgraph = scheduleGraphs.elementAt(i);
+		    for(int j = 0; j < tmpgraph.size(); j++) {
+			tmpgraph.elementAt(j).getEdgeVector().clear();
+			tmpgraph.elementAt(j).getInedgeVector().clear();
+		    }
+		    tmpgraph.clear();
+		    tmpgraph = null;
+		}
+		scheduleGraphs.clear();
+	    }
 	    scheduleGraphs = newscheduleGraphs;
 	    schedulings.clear();
 	    // get scheduling layouts from schedule graphs
@@ -143,16 +174,29 @@ public class MCImplSynthesis {
 		Vector<Schedule> tmpscheduling = 
 		    generateScheduling(scheduleGraph, multiparamtds);
 		schedulings.add(tmpscheduling);
+		scheduleGraph = null;
+		tmpscheduling = null;
 	    }
 	    selectedSchedulings.clear();
+	    for(int i = 0; i < selectedSimExeGraphs.size(); i++) {
+		selectedSimExeGraphs.elementAt(i).clear();
+	    }
 	    selectedSimExeGraphs.clear();
 	    int tmpexetime = this.scheduleSimulator.simulate(schedulings, 
 		                                             selectedSchedulings, 
 		                                             selectedSimExeGraphs);
 	    if(tmpexetime < bestexetime) {
 		bestexetime = tmpexetime;
+		if(scheduling != null) {
+		    scheduling.clear();
+		    for(int j = 0; j < schedulinggraph.size(); j++) {
+			schedulinggraph.elementAt(j).getEdgeVector().clear();
+			schedulinggraph.elementAt(j).getInedgeVector().clear();
+		    }
+		    schedulinggraph.clear();
+		}
 		scheduling = schedulings.elementAt(selectedSchedulings.elementAt(0));
-		schedulinggraph = newscheduleGraphs.elementAt(selectedSchedulings.elementAt(0));
+		schedulinggraph = scheduleGraphs.elementAt(selectedSchedulings.elementAt(0));
 		System.out.print("end of: #" + tryindex + " (bestexetime: " + bestexetime + ")\n");
 		System.out.print("+++++++++++++++++++++++++++++++++++++++++++++++++++\n");
 		tryindex++;
@@ -173,27 +217,274 @@ public class MCImplSynthesis {
 		                                   selectedSimExeGraphs,
 		                                   gid,
 		                                   this.scheduleThreshold);
+	    if(tmpexetime < bestexetime) {
+		scheduleGraphs.remove(selectedSchedulings.elementAt(0));
+	    }
 	}while(newscheduleGraphs != null); // TODO: could it possibly lead to endless loop?
 
+	if(scheduleGraphs != null) {
+	    scheduleGraphs.clear();
+	}
 	scheduleGraphs = null;
 	newscheduleGraphs = null;
+	schedulings.clear();
 	schedulings = null;
+	selectedSchedulings.clear();
 	selectedSchedulings = null;
+	for(int i = 0; i < selectedSimExeGraphs.size(); i++) {
+	    selectedSimExeGraphs.elementAt(i).clear();
+	}
+	selectedSimExeGraphs.clear();
 	selectedSimExeGraphs = null;
+	multiparamtds.clear();
 	multiparamtds = null;
-	
+
+	System.out.print("+++++++++++++++++++++++++++++++++++++++++++++++++++\n");
+	System.out.print("selected bestexetime: " + bestexetime + "\n");
 	String path = this.state.outputdir + "scheduling_selected.dot";
 	SchedulingUtil.printScheduleGraph(path, schedulinggraph);
 
 	// Close the streams.
 	try {
 	    stdout.close();
+	    stdout = null;
+	    System.setOut(origOut);
+	} catch (Exception e) {
+	    origOut.println("Redirect:  Unable to close files!");
+	}
+	
+	schedulinggraph.clear();
+	schedulinggraph = null;
+
+	return scheduling;
+    }
+    
+    // for test
+    // get the distribution info of new search algorithm
+    public void distribution() {
+	// Print stuff to the original output and error streams.
+	// The stuff printed through the 'origOut' and 'origErr' references
+	// should go to the console on most systems while the messages
+	// printed through the 'System.out' and 'System.err' will end up in
+	// the files we created for them.
+	//origOut.println ("\nRedirect:  Round #2");
+	//System.out.println ("Test output via 'SimulatorResult.out'.");
+	//origOut.println ("Test output via 'origOut' reference.");
+
+	// Save the current standard input, output, and error streams
+	// for later restoration.
+	PrintStream origOut = System.out;
+
+	// Create a new output stream for the standard output.
+	PrintStream stdout  = null;
+	try {
+	    stdout = new PrintStream(
+		    new FileOutputStream(this.state.outputdir + "SimulatorResult_" 
+			                 + this.coreNum + ".out"));
+	} catch (Exception e) {
+	    // Sigh.  Couldn't open the file.
+	    System.out.println("Redirect:  Unable to open output file!");
+	    System.exit(1);
+	}
+
+	// Print stuff to the original output and error streams.
+	// On most systems all of this will end up on your console when you
+	// run this application.
+	//origOut.println ("\nRedirect:  Round #1");
+	//System.out.println ("Test output via 'System.out'.");
+	//origOut.println ("Test output via 'origOut' reference.");
+
+	// Set the System out and err streams to use our replacements.
+	System.setOut(stdout);
+
+	// generate multiple schedulings
+	this.scheduleAnalysis.setScheduleThreshold(1000);
+	this.scheduleAnalysis.schedule(20);
+	this.generateThreshold = 5;
+	this.probThreshold = 0;
+
+	Vector<Vector<ScheduleNode>> scheduleGraphs = null;
+	Vector<Vector<ScheduleNode>> totestscheduleGraphs = 
+	    this.scheduleAnalysis.getScheduleGraphs();
+	Vector<Vector<Schedule>> schedulings = new Vector<Vector<Schedule>>();
+	Vector<Integer> selectedSchedulings = new Vector<Integer>();
+	Vector<Vector<SimExecutionEdge>> selectedSimExeGraphs = 
+	    new Vector<Vector<SimExecutionEdge>>();
+	
+	// check all multi-parameter tasks
+	Vector<TaskDescriptor> multiparamtds = new Vector<TaskDescriptor>();
+	Iterator it_tasks = this.state.getTaskSymbolTable().getDescriptorsIterator();
+	while(it_tasks.hasNext()) {
+	    TaskDescriptor td = (TaskDescriptor)it_tasks.next();
+	    if(td.numParameters() > 1) {
+		multiparamtds.addElement(td);
+	    }
+	}
+	it_tasks = null;
+	
+	File file=new File(this.state.outputdir + "distributeinfo_s_" + this.coreNum + ".out");
+	FileOutputStream dotstream = null; 
+	File file2=new File(this.state.outputdir + "distributeinfo_o_" + this.coreNum + ".out");
+	FileOutputStream dotstream2 = null; 
+	try {
+	    dotstream = new FileOutputStream(file,false);
+	    dotstream2 = new FileOutputStream(file2,false);
+	} catch (Exception e) {
+	    e.printStackTrace();
+	    System.exit(-1);
+	}
+	PrintWriter output = new java.io.PrintWriter(dotstream, true);
+	PrintWriter output2 = new java.io.PrintWriter(dotstream2, true);
+	output.println("start time(1,000,000 cycles): " + totestscheduleGraphs.size());
+	output2.println("optimized time(1,000,000 cycles): " + totestscheduleGraphs.size());
+	for(int ii = 0; ii < 1/*totestscheduleGraphs.size()*/; ii++) {
+	    Vector<Vector<ScheduleNode>> newscheduleGraphs = 
+		new Vector<Vector<ScheduleNode>>();
+	    newscheduleGraphs.add(totestscheduleGraphs.elementAt(ii));
+	    int tryindex = 1;
+	    int bestexetime = Integer.MAX_VALUE;
+	    int gid = 1;
+	    Vector<Schedule> scheduling = null;
+	    Vector<ScheduleNode> schedulinggraph = null;
+	    boolean isfirst = true;
+	    Random rand = new Random();
+	    // simulate the generated schedulings and try to optimize it
+	    System.out.print("=========================================================\n");
+	    System.out.print("# " + ii + ": \n");
+	    do {
+		System.out.print("+++++++++++++++++++++++++++++++++++++++++++++++++++\n");
+		System.out.print("Simulate and optimize round: #" + tryindex + ": \n");    
+		gid += newscheduleGraphs.size();
+		if(scheduleGraphs != null) {
+		    for(int i = 0; i < scheduleGraphs.size(); i++) {
+			Vector<ScheduleNode> tmpgraph = scheduleGraphs.elementAt(i);
+			for(int j = 0; j < tmpgraph.size(); j++) {
+			    ScheduleNode snode = tmpgraph.elementAt(j);
+			    snode.getEdgeVector().clear();
+			    snode.getInedgeVector().clear();
+			    snode.getScheduleEdges().clear();
+			    snode.getClassNodes().clear();
+			}
+			tmpgraph.clear();
+			tmpgraph = null;
+		    }
+		    scheduleGraphs.clear();
+		}
+		scheduleGraphs = newscheduleGraphs;
+		schedulings.clear();
+		// get scheduling layouts from schedule graphs
+		for(int i = 0; i < scheduleGraphs.size(); i++) {
+		    Vector<ScheduleNode> scheduleGraph = scheduleGraphs.elementAt(i);
+		    Vector<Schedule> tmpscheduling = 
+			generateScheduling(scheduleGraph, multiparamtds);
+		    schedulings.add(tmpscheduling);
+		    scheduleGraph = null;
+		    tmpscheduling = null;
+		}
+		selectedSchedulings.clear();
+		for(int i = 0; i < selectedSimExeGraphs.size(); i++) {
+		    selectedSimExeGraphs.elementAt(i).clear();
+		}
+		selectedSimExeGraphs.clear();
+		int tmpexetime = this.scheduleSimulator.simulate(schedulings, 
+			                                         selectedSchedulings, 
+			                                         selectedSimExeGraphs);
+		if(isfirst) {
+		    output.println(((float)tmpexetime/1000000));
+		    isfirst = false;
+		}
+		if(tmpexetime < bestexetime) {
+		    bestexetime = tmpexetime;
+		    if(scheduling != null) {
+			scheduling.clear();
+			for(int j = 0; j < schedulinggraph.size(); j++) {
+			    ScheduleNode snode = schedulinggraph.elementAt(j);
+			    snode.getEdgeVector().clear();
+			    snode.getInedgeVector().clear();
+			    snode.getScheduleEdges().clear();
+			    snode.getClassNodes().clear();
+			}
+			schedulinggraph.clear();
+		    }
+		    scheduling = schedulings.elementAt(selectedSchedulings.elementAt(0));
+		    schedulinggraph = scheduleGraphs.elementAt(selectedSchedulings.elementAt(0));
+		    tryindex++;
+		    System.out.print("end of: #" + tryindex + " (bestexetime: " + bestexetime + ")\n");
+		    System.out.print("+++++++++++++++++++++++++++++++++++++++++++++++++++\n");
+		} else if(tmpexetime == bestexetime) {
+		    System.out.print("end of: #" + tryindex + " (bestexetime: " + bestexetime + ")\n");
+		    System.out.print("+++++++++++++++++++++++++++++++++++++++++++++++++++\n");
+		    tryindex++;
+		    if((Math.abs(rand.nextInt()) % 100) < this.probThreshold) {
+			break;
+		    }
+		} else {
+		    break;
+		}
+
+		// try to optimize theschedulings best one scheduling
+		newscheduleGraphs = optimizeScheduling(scheduleGraphs, 
+			                               selectedSchedulings, 
+			                               selectedSimExeGraphs,
+			                               gid,
+			                               this.scheduleThreshold);
+		if(tmpexetime < bestexetime) {
+		    scheduleGraphs.remove(selectedSchedulings.elementAt(0));
+		}
+	    }while(newscheduleGraphs != null); // TODO: could it possibly lead to endless loop?
+
+	    scheduleGraphs.clear();
+	    scheduleGraphs = null;
+	    scheduling = null;
+	    schedulinggraph = null;
+	    if(newscheduleGraphs != null) {
+		newscheduleGraphs.clear();
+	    }
+	    newscheduleGraphs = null;
+	    totestscheduleGraphs.elementAt(ii).clear();
+	    for(int i = 0; i < schedulings.size(); i++) {
+		schedulings.elementAt(i).clear();
+	    }
+	    schedulings.clear();
+	    selectedSchedulings.clear();
+	    for(int i = 0; i < selectedSimExeGraphs.size(); i++) {
+		selectedSimExeGraphs.elementAt(i).clear();
+	    }
+	    selectedSimExeGraphs.clear();
+	    
+	    output2.println(((float)bestexetime/1000000));
+	    System.out.print("=========================================================\n");
+	}
+
+	if(scheduleGraphs != null) {
+	    scheduleGraphs.clear();
+	}
+	scheduleGraphs = null;
+	totestscheduleGraphs = null;
+	for(int i = 0; i < schedulings.size(); i++) {
+	    schedulings.elementAt(i).clear();
+	}
+	schedulings.clear();
+	schedulings = null;
+	selectedSchedulings.clear();
+	selectedSchedulings = null;
+	selectedSimExeGraphs.clear();
+	selectedSimExeGraphs = null;
+	multiparamtds.clear();
+	multiparamtds = null;
+
+	// Close the streams.
+	try {
+	    output.close();
+	    stdout.close();
+	    output = null;
+	    stdout = null;
 	    System.setOut(origOut);
 	} catch (Exception e) {
 	    origOut.println("Redirect:  Unable to close files!");
 	}
 
-	return scheduling;
+	return;
     }
 
     private Vector<Vector<ScheduleNode>> optimizeScheduling(Vector<Vector<ScheduleNode>> scheduleGraphs,
@@ -258,7 +549,7 @@ public class MCImplSynthesis {
 	for(int i = 0; i < criticalPath.size(); i++) {
 	    SimExecutionEdge seedge = criticalPath.elementAt(i);
 	    Vector<SimExecutionEdge> predicates = seedge.getPredicates();
-	    if(predicates.size() > 0) {
+	    if(predicates != null) {
 		// have predicates
 		int starttime = 0;
 		// check the latest finish time of all the predicates
@@ -486,7 +777,9 @@ public class MCImplSynthesis {
 				    (SimExecutionNode)tmpseedge.getTarget();
 				if(tmpsenode.getTimepoint() > timepoint) {
 				    // update the predicate info
-				    edge.getPredicates().remove(lastpredicateedge);
+				    if(edge.getPredicates() != null) {
+					edge.getPredicates().remove(lastpredicateedge);
+				    }
 				    edge.addPredicate(criticalPath.elementAt(index));
 				    break;
 				}
@@ -615,27 +908,33 @@ public class MCImplSynthesis {
 
 	CombinationUtil.CombineGenerator cGen = 
 	    CombinationUtil.allocateCombineGenerator(rootNodes, nodes2combine);
+	Random rand = new Random();
 	while ((left > 0) && (cGen.nextGen())) {
-	    Vector<Vector<CombinationUtil.Combine>> combine = cGen.getCombine();
-	    Vector<ScheduleNode> sNodes = SchedulingUtil.generateScheduleGraph(this.state,
-		                                                               newscheduleGraph,
-		                                                               scheduleEdges,
-		                                                               rootNodes, 
-		                                                               combine, 
-		                                                               lgid++);
-	    if(optimizeschedulegraphs == null) {
-		optimizeschedulegraphs = new Vector<Vector<ScheduleNode>>();
+	    if(Math.abs(rand.nextInt()) % 100 > this.generateThreshold) {
+		Vector<Vector<CombinationUtil.Combine>> combine = cGen.getCombine();
+		Vector<ScheduleNode> sNodes = SchedulingUtil.generateScheduleGraph(this.state,
+			                                                           newscheduleGraph,
+			                                                           scheduleEdges,
+			                                                           rootNodes, 
+			                                                           combine, 
+			                                                           lgid++);
+		if(optimizeschedulegraphs == null) {
+		    optimizeschedulegraphs = new Vector<Vector<ScheduleNode>>();
+		}
+		optimizeschedulegraphs.add(sNodes);
+		combine = null;
+		sNodes = null;
+		left--;
 	    }
-	    optimizeschedulegraphs.add(sNodes);
-	    combine = null;
-	    sNodes = null;
-	    left--;
 	}
+	cGen.clear();
 	rootNodes = null;
 	nodes2combine = null;
 	newscheduleGraph = null;
 	scheduleEdges.clear();
 	scheduleEdges = null;
+	roots = null;
+	tocombines = null;
 	
 	return optimizeschedulegraphs;
     }
@@ -721,6 +1020,7 @@ public class MCImplSynthesis {
 			    setstartupcore = true;
 			}
 		    }
+		    it_edges = null;
 		}
 		it_flags = null;
 	    }

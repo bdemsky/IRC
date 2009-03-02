@@ -66,7 +66,7 @@ public class ScheduleAnalysis {
 	return scheduleEdges;
     }
     
-    public void schedule() {
+    public void schedule(int generateThreshold) {
 	try {
 	    Vector<ScheduleEdge> toBreakDown = new Vector<ScheduleEdge>();
 	    ScheduleNode startupNode = null;
@@ -81,7 +81,8 @@ public class ScheduleAnalysis {
 	    // as possible
 	    CFSTGTransform();
 	    // mappint to real multi-core processor
-	    coreMapping();
+	    coreMapping(generateThreshold);
+	    toBreakDown = null;
 	} catch (Exception e) {
 	    e.printStackTrace();
 	    System.exit(-1);
@@ -139,6 +140,7 @@ public class ScheduleAnalysis {
 				}
 			    }
 			}
+			it_rootnodes = null;
 		    }
 		    Iterator it_flags = this.taskanalysis.getFlagStates(cd).iterator();
 		    while(it_flags.hasNext()) {
@@ -155,10 +157,13 @@ public class ScheduleAnalysis {
 				((FlagState)edge.getSource()).setByObj(taskinfo.m_byObj);
 			    }
 			}
+			it_edges = null;
 		    }
+		    it_flags = null;
 		}
 	    }
 	    taskinfos = null;
+	    it_classes = null;
 	} else {
 	    randomProfileSetting();
 	}
@@ -187,13 +192,16 @@ public class ScheduleAnalysis {
 					edge.setisbackedge(true);
 				    }
 				}
+				it_edges = null;
 			    }
+			    it_fs = null;
 			}
 		    }
 		}
 		fss = null;
 	    }
 	}
+	it_classes = null;
     }
     
     private void readProfileInfo(java.util.Hashtable<String, TaskInfo> taskinfos) {
@@ -308,6 +316,9 @@ public class ScheduleAnalysis {
 		taskinfos.put(inname, tinfo);
 		inindex = profiledata.indexOf('\n');
 	    }
+	    inStream.close();
+	    inStream = null;
+	    b = null;
 	} catch(Exception e) {
 	    e.printStackTrace();
 	}
@@ -318,12 +329,14 @@ public class ScheduleAnalysis {
 	// Randomly set the newRate and probability of FEdges
 	java.util.Random r=new java.util.Random();
 	int tint = 0;
-	for(Iterator it_classes=state.getClassSymbolTable().getDescriptorsIterator(); it_classes.hasNext();) {
+	Iterator it_classes=state.getClassSymbolTable().getDescriptorsIterator();
+	for(; it_classes.hasNext();) {
 	    ClassDescriptor cd=(ClassDescriptor) it_classes.next();
 	    if(cd.hasFlags()) {
 		Vector rootnodes=this.taskanalysis.getRootNodes(cd);
 		if(rootnodes!=null) {
-		    for(Iterator it_rootnodes=rootnodes.iterator(); it_rootnodes.hasNext();) {
+		    Iterator it_rootnodes=rootnodes.iterator();
+		    for(; it_rootnodes.hasNext();) {
 			FlagState root=(FlagState)it_rootnodes.next();
 			Vector allocatingTasks = root.getAllocatingTasks();
 			if(allocatingTasks != null) {
@@ -374,6 +387,7 @@ public class ScheduleAnalysis {
 			    }
 			}
 		    }
+		    it_rootnodes = null;
 		}
 
 		Iterator it_flags = this.taskanalysis.getFlagStates(cd).iterator();
@@ -413,9 +427,12 @@ public class ScheduleAnalysis {
 			    total -= tint;
 			}
 		    }
+		    it_edges = null;
 		}
+		it_flags = null;
 	    }
 	}
+	it_classes = null;
     }
 
     private ScheduleNode buildCFSTG(Vector<ScheduleEdge> toBreakDown) {
@@ -446,9 +463,11 @@ public class ScheduleAnalysis {
 		    cNode.setTransTime(45);
 		}
 	    }
+	    rootnodes = null;
 	    fStates = null;
 	    sFStates = null;
 	}
+	it_classes = null;
 
 	ScheduleNode startupNode = null;
 	// For each ClassNode create a ScheduleNode containing it
@@ -538,7 +557,6 @@ public class ScheduleAnalysis {
 	    for(i = 0; i < toBreakDown.size(); i++ ) {
 		cloneSNodeList(toBreakDown.elementAt(i), false);
 	    }
-	    toBreakDown = null;
 	} catch (Exception e) {
 	    e.printStackTrace();
 	    System.exit(-1);
@@ -576,6 +594,7 @@ public class ScheduleAnalysis {
 		while(it_edge.hasNext()) {
 		    toVisit.add((ScheduleNode)((ScheduleEdge)it_edge.next()).getTarget());
 		}
+		it_edge = null;
 	    }
 	}
 	toVisit = null;
@@ -748,6 +767,7 @@ public class ScheduleAnalysis {
 		ses = null;
 	    }
 	    keys = null;
+	    it_keys = null;
 	}
 	fe2ses.clear();
 	sn2fes.clear();
@@ -931,6 +951,7 @@ public class ScheduleAnalysis {
 	toClone = null;
 	clone = null;
 	qcn2cn = null;
+	cn2cn.clear();
 	cn2cn = null;
 	origins = null;
 	sn2sn = null;
@@ -988,6 +1009,7 @@ public class ScheduleAnalysis {
 		    sfss.removeElement(temp);
 		}
 	    }
+	    it_edges = null;
 	}
 	sfss = null;
 	Vector<FlagState> sFStates = FlagState.DFS.topology(fStates, null);
@@ -1021,6 +1043,7 @@ public class ScheduleAnalysis {
 		    toiterate.add(temp);
 		}
 	    }
+	    it_inedges = null;
 	}
 	toiterate = null;
 
@@ -1063,6 +1086,7 @@ public class ScheduleAnalysis {
 		}
 	    }
 	}
+	it_isEdges = null;
 	oldSNode.getScheduleEdges().removeAll(toremove);
 	toremove.clear();
 	// redirect ScheudleEdges out of this subtree to the new ScheduleNode
@@ -1080,6 +1104,7 @@ public class ScheduleAnalysis {
 		}
 	    }
 	}
+	it_sEdges = null;
 	se.getSource().getEdgeVector().removeAll(toremove);
 	toremove = null;
 	rCNodes = null;
@@ -1115,7 +1140,7 @@ public class ScheduleAnalysis {
 
     // TODO: restrict the number of generated scheduling according to the setted
     // scheduleThreshold
-    private void coreMapping() throws Exception {
+    private void coreMapping(int generateThreshold) throws Exception {
 	if(this.coreNum == -1) {
 	    throw new Exception("Error: un-initialized coreNum when doing scheduling.");
 	}
@@ -1148,6 +1173,7 @@ public class ScheduleAnalysis {
 			                               this.coreNum);
 
 	    int gid = 1;
+	    Random rand = new Random();
 	    while((gid <= this.scheduleThreshold) && (rGen.nextGen())) {
 		// first get the chosen rootNodes
 		Vector<Vector<ScheduleNode>> rootNodes = rGen.getRootNodes();
@@ -1157,20 +1183,25 @@ public class ScheduleAnalysis {
 		    CombinationUtil.allocateCombineGenerator(rootNodes, 
 			                                     nodes2combine);
 		while((gid <= this.scheduleThreshold) && cGen.nextGen()) {
-		    Vector<Vector<CombinationUtil.Combine>> combine = cGen.getCombine();
-		    Vector<ScheduleNode> sNodes = SchedulingUtil.generateScheduleGraph(this.state,
-			                                                               this.scheduleNodes,
-			                                                               this.scheduleEdges,
-			                                                               rootNodes, 
-			                                                               combine, 
-			                                                               gid++);
-		    this.scheduleGraphs.add(sNodes);
-		    combine = null;
-		    sNodes = null;
+		    if(Math.abs(rand.nextInt()) % 100 > generateThreshold) {
+			Vector<Vector<CombinationUtil.Combine>> combine = cGen.getCombine();
+			Vector<ScheduleNode> sNodes = 
+			    SchedulingUtil.generateScheduleGraph(this.state,
+				                                 this.scheduleNodes,
+				                                 this.scheduleEdges,
+				                                 rootNodes, 
+				                                 combine, 
+				                                 gid++);
+			this.scheduleGraphs.add(sNodes);
+			combine = null;
+			sNodes = null;
+		    }
 		}
+		cGen.clear();
 		rootNodes = null;
 		nodes2combine = null;
 	    }
+	    rGen.clear();
 	    sNodeVecs = null;
 	}
     }

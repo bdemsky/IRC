@@ -134,6 +134,7 @@ public class ScheduleNode extends GraphNode implements Cloneable {
       for(int i = 0; i < mergedcids.size(); i++) {
 	  this.hashcid = this.hashcid * 31 + mergedcids.elementAt(i);
       }
+      mergedcids = null;
   }
 
   public int getExeTime() {
@@ -332,6 +333,7 @@ public class ScheduleNode extends GraphNode implements Cloneable {
 	    toiterate.add(temp);
 	  }
 	}
+	it_inedges = null;
       }
       toiterate = null;
 
@@ -354,6 +356,7 @@ public class ScheduleNode extends GraphNode implements Cloneable {
 	}
 	this.edges.addElement(tse);
       }
+      it_edges = null;
 
       targetSEdges = null;
 
@@ -378,6 +381,7 @@ public class ScheduleNode extends GraphNode implements Cloneable {
 	tse.setSource(this);
 	this.edges.addElement(tse);
       }
+      it_edges = null;
 
       // As all tasks inside one ScheduleNode are executed sequentially,
       // simply add the execution time of all the ClassNodes inside one ScheduleNode.
@@ -424,6 +428,7 @@ public class ScheduleNode extends GraphNode implements Cloneable {
       tse.setTarget(this);
       this.inedges.addElement(tse);
     }
+    it_edges = null;
 
     // As all tasks inside one ScheduleNode are executed sequentially,
     // simply add the execution time of all the ClassNodes inside one ScheduleNode.
@@ -456,6 +461,7 @@ public class ScheduleNode extends GraphNode implements Cloneable {
 	      }
 	  }
       }
+      it_innersEdges = null;
       this.scheduleEdges.removeAll(toremove);
       for(int i = 0; i < toremove.size(); i++) {
 	  ScheduleEdge tse = toremove.elementAt(i);
@@ -479,6 +485,7 @@ public class ScheduleNode extends GraphNode implements Cloneable {
 	      sNode.addEdge(tse);
 	  }
       }
+      it_exsEdges = null;
       // redirect inedges whose target is this Classnode to new ScheduleNode
       Iterator it_insEdges = this.inedges();
       while(it_insEdges.hasNext()) {
@@ -488,6 +495,7 @@ public class ScheduleNode extends GraphNode implements Cloneable {
 	      tse.setTarget(sNode);
 	  }
       }
+      it_insEdges = null;
       this.inedges.removeAll(toremove);
       toremove.clear();
       toremove = null;

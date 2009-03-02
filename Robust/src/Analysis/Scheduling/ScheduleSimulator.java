@@ -113,7 +113,9 @@ public class ScheduleSimulator {
 		  selectedSimExeGraphs.add(simexegraph);
 	      }
 	      scheduling = null;
+	      checkpoints.clear();
 	      checkpoints = null;
+	      simexegraph = null;
 	      index++;
 	  }
 	  it_scheduling = null;
@@ -665,6 +667,7 @@ public class ScheduleSimulator {
 	  tmpentry = null;
 	  nobjs = null;
       }
+      it_entries = null;
       transObjQueues = null;
       
       return totransObjs;
@@ -891,14 +894,16 @@ public class ScheduleSimulator {
 	this.type = type;
 	this.td = ts.getTd();
 	Vector<Queue<ObjectSimulator>> paraQueues = ts.getParaQueues();
-	this.taskparams = new Vector<Integer>();
-	if((this.type != TASKABORT) && (this.type != TASKREMOVE)) {
+	if(this.type == TASKSTART) {
+	    this.taskparams = new Vector<Integer>();
 	    for(int i = 0; i < paraQueues.size(); i++) {
 		ObjectSimulator tpara = paraQueues.elementAt(i).peek();
 		this.taskparams.add(tpara.getOid());
 	    }
-	    paraQueues = null;
+	} else {
+	    this.taskparams = null;
 	}
+	paraQueues = null;
 	if(this.type == TFWITHOBJ) {
 	    this.nObjs = new Hashtable<ClassDescriptor, Integer>();
 	} else {

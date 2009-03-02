@@ -55,7 +55,8 @@ public class Main {
     Vector sourcefiles=new Vector();
     state.classpath.add(".");
 
-	String outputdir = null;
+    String outputdir = null;
+    boolean isDistributeInfo = false;
 
     for(int i=0; i<args.length; i++) {
       String option=args[i];
@@ -130,6 +131,8 @@ public class Main {
 	state.RAW=true;
       else if (option.equals("-scheduling"))
 	state.SCHEDULING=true;
+      else if (option.equals("-distributioninfo"))
+	isDistributeInfo=true;
       else if (option.equals("-useprofile"))
 	state.USEPROFILE=true;
       else if (option.equals("-thread"))
@@ -271,23 +274,29 @@ public class Main {
 	MCImplSynthesis mcImplSynthesis = new MCImplSynthesis(state,
 		                                              ta,
 		                                              oa);
-	mcImplSynthesis.setScheduleThreshold(50);
-	mcImplSynthesis.setProbThreshold(0);
-	Vector<Schedule> scheduling = mcImplSynthesis.synthesis();
-	
-	// generate multicore codes
-	if(state.MULTICORE) {
-	  BuildCodeMultiCore bcm=new BuildCodeMultiCore(state,
-	                                                bf.getMap(),
-	                                                tu,
-	                                                sa,
-	                                                scheduling,
-	                                                mcImplSynthesis.getCoreNum(),
-	                                                pa);
-	  bcm.setOwnershipAnalysis(oa);
-	  bcm.buildCode();
+	if(isDistributeInfo) {
+	    mcImplSynthesis.distribution();
+	} else {
+	    mcImplSynthesis.setScheduleThreshold(50);
+	    mcImplSynthesis.setProbThreshold(0);
+	    mcImplSynthesis.setGenerateThreshold(30);
+	    Vector<Schedule> scheduling = mcImplSynthesis.synthesis();
+
+	    // generate multicore codes
+	    if(state.MULTICORE) {
+		BuildCodeMultiCore bcm=new BuildCodeMultiCore(state,
+			                                      bf.getMap(),
+			                                      tu,
+			                                      sa,
+			                                      scheduling,
+			                                      mcImplSynthesis.getCoreNum(),
+			                                      pa);
+		bcm.setOwnershipAnalysis(oa);
+		bcm.buildCode();
+	    }
+	    scheduling.clear();
+	    scheduling = null;
 	}
-	scheduling = null;
       }
     }
 

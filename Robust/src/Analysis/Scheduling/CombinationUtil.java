@@ -38,6 +38,15 @@ public class CombinationUtil {
       this.node2Combine = null;
       this.rootNodes = null;
     }
+    
+    public void clear() {
+	this.sNodeVecs = null;
+	this.node2Combine.clear();
+	this.node2Combine = null;
+	this.rootNodes.clear();
+	this.rootNodes = null;
+	this.rootNum = 0;
+    }
 
     public boolean nextGen() {
       boolean trial = false;
@@ -214,6 +223,17 @@ public class CombinationUtil {
       }
       this.lastchoices = null;
       this.first4choice = false;
+    }
+    
+    public void clear() {
+	this.rootNodes = null;
+	this.rootNStates.clear();
+	this.rootNStates = null;
+	this.node2Combine = null;
+	this.combine.clear(); 
+	this.combine = null;
+	this.lastchoices = null;
+	this.first4choice = false;
     }
 
     public Vector<Vector<Combine>> getCombine() {

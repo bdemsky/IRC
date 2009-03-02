@@ -283,6 +283,7 @@ public class SchedulingUtil {
       output.println("\t\tlabel=\"" + gn.getTextLabel() + "\";");
       Iterator it_cnodes = gn.getClassNodesIterator();
       traverseCNodes(output, it_cnodes);
+      it_cnodes = null;
       //Draw the internal 'new' edges
       Iterator it_edges =gn.getScheduleEdgesIterator();
       while(it_edges.hasNext()) {
@@ -316,6 +317,7 @@ public class SchedulingUtil {
 	}
       }
       output.println("\t}\n");
+      it_edges = null;
       //Draw 'new' edges of this ScheduleNode
       while(edges.hasNext()) {
 	ScheduleEdge se = (ScheduleEdge)edges.next();
@@ -342,7 +344,9 @@ public class SchedulingUtil {
 	  output.println(se.getTargetFState().getLabel() + " [label=\"" + se.getLabel() + "\", color=red, style=dashed];");
 	}
       }
+      edges = null;
     }
+    it = null;
   }
 
   private static void traverseCNodes(PrintWriter output, 
@@ -399,7 +403,8 @@ public class SchedulingUtil {
 	  Edge edge = (Edge) edges.next();
 	  GraphNode node = edge.getTarget();
 	  if (nodes.contains(node)) {
-	    for(Iterator nodeit=nonmerge(node, nodes).iterator(); nodeit.hasNext();) {
+	      Iterator nodeit=nonmerge(node, nodes).iterator();
+	    for(; nodeit.hasNext();) {
 	      GraphNode node2=(GraphNode)nodeit.next();
 	      String edgelabel = "";
 	      String edgedotnodeparams="";
@@ -425,12 +430,19 @@ public class SchedulingUtil {
 		  NewObjInfo noi = hashtable.get(cd);
 		  edgelabel += ":{ class " + cd.getSymbol() + " | " + noi.getNewRate() + " | (" + noi.getProbability() + "%) }";
 		}
+		keys = null;
+		it_keys = null;
 	      }
 	      output.println("\t" + gn.getLabel() + " -> " + node2.getLabel() + " [" + "label=\"" + edgelabel + "\"" + edgedotnodeparams + "];");
 	    }
+	    nodeit = null;
 	  }
 	}
+      edges = null;
     }
+    cycleset = null;
+    namers = null;
+    it = null;
   }
 
   private static Set nonmerge(GraphNode gn, 
@@ -451,8 +463,10 @@ public class SchedulingUtil {
 	  if (!newset.contains(node)&&nodes.contains(node))
 	    toprocess.add(node);
 	}
+	edges = null;
       }
     }
+    toprocess = null;
     return newset;
   }
 
@@ -598,7 +612,9 @@ public class SchedulingUtil {
 	      } else {
 		tmpLabel.append(";");
 	      }
+	      entry = null;
 	    }
+	    it_entry = null;
 	    if(!(lastTaskNodes[cNum].equals("first"))) {
 	      if (!(lastTaskNodes[cNum].equals(tmpTaskNode))) {
 		output.print("\t");
@@ -834,6 +850,7 @@ public class SchedulingUtil {
 	  }
 	  output.println("}");
 	  output.close();
+	  nodes = null;
       } catch (Exception e) {
 	  e.printStackTrace();
 	  System.exit(-1);
