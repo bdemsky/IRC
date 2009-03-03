@@ -40,7 +40,10 @@ int CALL24(___Socket______nativeConnect____I__AR_B_I, int ___fd___, int ___port_
 #endif
 #endif
 
-
+  {
+  int flag = 1;
+  setsockopt(___fd___, IPPROTO_TCP, TCP_NODELAY, (char *) &flag, sizeof(flag));
+  }
   if (rc<0) goto error;
 
 #ifdef TASK
