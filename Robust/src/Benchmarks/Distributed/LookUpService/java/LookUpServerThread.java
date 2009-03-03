@@ -8,6 +8,7 @@ public class LookUpServerThread extends Thread {
   }
 
   public void run() {
+      Random r=new Random(0);
     while(true) {
       byte b[] = new byte[1];
       int numbytes = sock.read(b);
@@ -28,7 +29,7 @@ public class LookUpServerThread extends Thread {
           sock.write(tmpval.intToByteArray());
         } else {
         /* update hashmap if opcode sent is "w" */
-          doUpdate(this, keyitem);
+	    doUpdate(r, this, keyitem);
         }
       }
     }
@@ -48,9 +49,8 @@ public class LookUpServerThread extends Thread {
   /**
    * Synchromize threads accessing hashmap to update key,value pair
    **/
-  synchronized void doUpdate(LookUpServerThread lusth, Integer key) {
+    synchronized void doUpdate(Random rand, LookUpServerThread lusth, Integer key) {
     //Write into hmap
-    Random rand = new Random(0);
     int val = rand.nextInt(200);
     Integer value = new Integer(val);
     Object oldvalue = lusth.hmap.put(key, value);

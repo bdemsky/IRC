@@ -35,9 +35,10 @@ public class LookUpClient {
     LookUpClient.parseCmdLine(args, lc);
 
     Socket sock = new Socket("dc-1.calit2.uci.edu",9001);
+    Random rand = new Random(0);
+
 
     for (int i = 0; i < lc.numtrans; i++) {
-      Random rand = new Random(i);
       for (int j = 0; j < lc.nLookUp; j++) {
         int rdwr = rand.nextInt(100);
         int rwkey = rand.nextInt(lc.nobjs);
