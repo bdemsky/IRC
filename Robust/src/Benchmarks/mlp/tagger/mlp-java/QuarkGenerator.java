@@ -20,7 +20,7 @@ public class QuarkGenerator extends Generator {
     output_stream = s;
     
     // stack holds strings used to terminate formats
-    format_stack = new LinkedList ();
+    format_stack = /*disjoint llQuarkGen*/ new LinkedList ();
   }
   
   public void suppress_on () {

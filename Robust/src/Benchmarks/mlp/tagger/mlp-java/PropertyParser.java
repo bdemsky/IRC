@@ -67,7 +67,7 @@ public class PropertyParser {
    *	case in which first property is removed (eg, because it's a style name)
    */
   public LinkedList get_property_list () {
-    LinkedList result = new LinkedList ();
+    LinkedList result = /*disjoint llPropList*/ new LinkedList ();
     while (!is_eol (next_char) && !is_eos(next_char))
       result.add (get_property ());
     consume_char ();

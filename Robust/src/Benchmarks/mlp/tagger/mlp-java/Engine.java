@@ -29,8 +29,8 @@ public class Engine {
   public Engine () {
     actions = new LinkedList [Token.MAXTOKEN() + 1];
     for (int i = 0; i < actions.length; i++)
-      actions[i] = new LinkedList ();
-    default_actions = new LinkedList ();
+      actions[i] = disjoint llActions new LinkedList ();
+    default_actions = /*disjoint llDefault*/ new LinkedList ();
   }
 
   public void register_by_type (Action action, int type) {
