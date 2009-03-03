@@ -344,6 +344,7 @@ public class LocalityAnalysis {
 	processElementNode(lb, (FlatElementNode)fn, currtable, isAtomic(atomictable, fn));
 	break;
 
+      case FKind.FlatInstanceOfNode:
       case FKind.FlatCondBranch:
       case FKind.FlatBackEdge:
       case FKind.FlatNop:
@@ -358,7 +359,6 @@ public class LocalityAnalysis {
 
       case FKind.FlatMethod:
 
-      case FKind.FlatInstanceOfNode:
 
       case FKind.FlatOffsetNode:
 	processOffsetNode((FlatOffsetNode)fn, currtable);
