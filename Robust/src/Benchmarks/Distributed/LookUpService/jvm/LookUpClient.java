@@ -42,7 +42,8 @@ public class LookUpClient {
     InputStream in = null;
     OutputStream out = null;
     try {
-      sock = new Socket("dc-1.calit2..uci.edu",9001);
+      sock = new Socket("dc-1.calit2.uci.edu",9001);
+      sock.setTcpNoDelay(true);
       in = sock.getInputStream();
       out = sock.getOutputStream(); 
     } catch (UnknownHostException e) {
@@ -52,8 +53,9 @@ public class LookUpClient {
       System.out.println("Read failed " + e);
     }
 
+    Random rand = new Random(0);
+
     for (int i = 0; i < lc.numtrans; i++) {
-      Random rand = new Random(i);
       for (int j = 0; j < lc.nLookUp; j++) {
         int rdwr = rand.nextInt(100);
         int rwkey = rand.nextInt(lc.nobjs);
