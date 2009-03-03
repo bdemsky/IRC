@@ -112,6 +112,7 @@ public class PrefetchAnalysis {
       case FKind.FlatNew:
       case FKind.FlatCastNode:
       case FKind.FlatTagDeclaration:
+      case FKind.FlatInstanceOfNode:
 	processDefaultCase(curr,child_prefetch_set_copy);
 	break;
 

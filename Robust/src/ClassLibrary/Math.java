@@ -11,6 +11,14 @@ public class Math {
     return PI;
   }
 
+  public static int abs(int x) {
+    if (x < 0) {
+      return -x;
+    } else {
+      return x;
+    }
+  }
+
   public static double fabs(double x) {
     if (x < 0) {
       return -x;
@@ -34,6 +42,16 @@ public class Math {
   }
 
   public static double max(double a, double b) {
+    if(a == b)
+      return a;
+    if(a > b) {
+      return a;
+    } else {
+      return b;
+    }
+  }
+
+  public static int max(int a, int b) {
     if(a == b)
       return a;
     if(a > b) {
