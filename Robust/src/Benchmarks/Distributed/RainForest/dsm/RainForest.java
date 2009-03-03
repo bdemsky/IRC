@@ -1,11 +1,11 @@
-#define ROW                 7     /* columns in the map */
-#define COLUMN              7    /* rows of in the map */
-#define ROUNDS              20   /* Number of moves by each player */
+#define ROW                 100   /* columns in the map */
+#define COLUMN              100   /* rows of in the map */
+#define ROUNDS              256  /* Number of moves by each player */
 #define PLAYERS             20    /* Number of Players when num Players != num of client machines */
 #define RATI0               0.5   /* Number of lumberjacks to number of planters */
 #define BLOCK               3     /* Area around the gamer to consider */
 #define TREE_ZONE           0.4   /* Max percentage of trees in a zone */
-#define AGEUPDATETHRESHOLD  2     /* How frequently/how many rounds to increment age of tree */
+#define AGEUPDATETHRESHOLD  10    /* How frequently/how many rounds to increment age of tree */
 #define MAXAGE              100   /* Max age of a tree */
 
 
@@ -20,11 +20,6 @@ public class RainForest extends Thread {
    * The grid where player is playing
    **/
   GameMap[][] land;
-
-  /**
-   * The gamer per thread: shared array where players do not see each other
-   **/
-  Player gamer;
 
   /**
    ** The shared BarrierServer object updated when trees increment age
@@ -47,29 +42,45 @@ public class RainForest extends Thread {
 
   }
 
-  public RainForest(GameMap[][] land, Player gamer, BarrierServer barrserver, int threadid, int numThreads) {
+  public RainForest(GameMap[][] land, BarrierServer barrserver, int threadid, int numThreads) {
     this.land = land;
-    this.gamer = gamer;
     this.threadid = threadid;
     this.barrserver = barrserver;
     this.numThreads = numThreads;
   }
 
   public void run() {
-    //Do N rounds 
-    //do one move per round and synchronise
+    //Barrier for synchronizing moves
     Barrier barr;
     int id;
     atomic {
       id = threadid;
     }
     barr = new Barrier("128.195.136.162");
+
+    Random rand = new Random(id);
+    // Generate random numbers between 1 and row index/column index
+    int maxValue = ROW - 1;
+    int minValue = 1;
+    int row = (rand.nextInt(Math.abs(maxValue - minValue) + 1)) + minValue;
+    maxValue = COLUMN -1;
+    int col = (rand.nextInt(Math.abs(maxValue - minValue) + 1)) + minValue;
+    int person;
+    if((id&1) == 0) { //same as id%2
+      person = LUMBERJACK;
+    } else {
+      person = PLANTER;
+    }
+    Player gamer = new Player(person, row, col, ROW, COLUMN, BLOCK);
+
+    //Do N rounds 
+    //do one move per round and synchronise
     for(int i = 0; i<ROUNDS; i++) {
       atomic {
         doOneMove(land, gamer);
       }
       Barrier.enterBarrier(barr);
-      if((i%AGEUPDATETHRESHOLD) == 0 && id == 0) {
+      if((i&15) == 0 && id == 0) { //same as i%AGEUPDATETHRESHOLD
         /* Update age of all trees in a Map */
         atomic {
           barrserver.updateAge(land, MAXAGE, ROW, COLUMN);
@@ -119,37 +130,12 @@ public class RainForest extends Thread {
 
     mybarr.start(mid[0]);
 
-    // Create P players
-    // For each thread, init either a lumberjack/planter
-    Player[] players;
-    atomic {
-      players = global new Player[numThreads];
-      for (int i = 0; i < numThreads; i++) {
-        Random rand = new Random(i);
-        /* Generate random numbers between 1 and row index/column index*/
-        int maxValue = ROW - 1;
-        int minValue = 1;
-        int row = (rand.nextInt(Math.abs(maxValue - minValue) + 1)) + minValue;
-        maxValue = COLUMN -1;
-        int col = (rand.nextInt(Math.abs(maxValue - minValue) + 1)) + minValue;
-        int type = rand.nextInt(2);
-        int person;
-        if (type == 0) {
-          person = LUMBERJACK;
-        } else {
-          person = PLANTER;
-        }
-        players[i] = global new Player(person, row, col, i, ROW, COLUMN, BLOCK);
-      }
-    }
-
     /* Set up threads */
     RainForest[] rf;
     atomic {
       rf = global new RainForest[numThreads];
       for(int i=0; i<numThreads; i++) {
-        Random rand = new Random(i);
-        rf[i] = global new RainForest(world, players[i], mybarr, i, numThreads);
+        rf[i] = global new RainForest(world, mybarr, i, numThreads);
       }
     }
 
@@ -186,33 +172,33 @@ public class RainForest extends Thread {
     int currx = gamer.getX();
     int curry = gamer.getY();
 
-    // Only for Debugging
     /* printLand(land, ROW, COLUMN); */
 
     // 2. Get type of player (lumberjack or planter)
     int type = gamer.kind();
 
+    /* gamer.debugPlayer(); */
+    //3. Change states
     if (gamer.getState() == INIT) {
-
       if (gamer.findGoal(land) < 0) {
-        gamer.reset(ROW, COLUMN, BLOCK);
+        gamer.reset(land, ROW, COLUMN, BLOCK);
         return;
       }
       gamer.setState(MOVING);
-      /* gamer.debugPlayer(); Only for debugging */
     } 
 
     if (gamer.getState() == MOVING) {
       Goal nextmove = new Goal();
-
       int maxSearchDistance = 10;
       boolean allowDiagMovement = true;
+      /* Find shortest path using AStar algo from start to goal */
       AStarPathFinder apath =  new  AStarPathFinder(land, maxSearchDistance, allowDiagMovement, ROW, COLUMN);
       Path newpath = apath.findPath(gamer);
 
-      /* Reset state if there in no path from src to destination */
+      /* Reset state if there in no path from start to goal */
       if(newpath == null) {
-        gamer.reset(ROW, COLUMN, BLOCK);
+        /* System.println("Path from ("+currx+","+curry+") to ("+gamer.getGoalX()+","+gamer.getGoalY()+") is null"); */
+        gamer.reset(land, ROW, COLUMN, BLOCK);
         gamer.setState(INIT);
         return;
       }
@@ -227,8 +213,6 @@ public class RainForest extends Thread {
           if (land[currx][curry].hasTree()) {
             land[currx][curry].cutTree();
           } 
-          gamer.setNewPosition(currx, curry, ROW, COLUMN, BLOCK);
-          gamer.setState(INIT);
         } else { // PLANTER
           // If empty, plant tree 
           if (land[currx][curry].hasTree() == false) {
@@ -237,12 +221,13 @@ public class RainForest extends Thread {
               land[currx][curry].putTree(t);
             }
           } 
-          gamer.setNewPosition(currx, curry, ROW, COLUMN, BLOCK);
-          gamer.setState(INIT);
         }
-      } 
+        gamer.setNewPosition(currx, curry, ROW, COLUMN, BLOCK);
+        gamer.setState(INIT);
+      } else if(land[currx][curry].hasTree() && gamer.kind() == LUMBERJACK) { //Cut trees along the way
+        land[currx][curry].cutTree();
+      }
       // Not at destination - do nothing
-      /* Debug -> gamer.debugPlayer(); */
       return;
     }
   }

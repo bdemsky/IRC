@@ -10,7 +10,7 @@ SRC=tmp${MAINCLASS}.java \
 	Node.java \
 	AStarPathFinder.java 
 
-FLAGS1=-dsm -nooptimize -debug -mainclass ${MAINCLASS}
+FLAGS1=-dsm -optimize -transstats -mainclass ${MAINCLASS}
 FLAGS2=-dsm -dsmcaching -optimize -mainclass ${MAINCLASS}
 FLAGS3=-dsm -dsmcaching -prefetch -optimize -mainclass ${MAINCLASS} -trueprob 0.90
 FLAGS4=-dsm -dsmcaching -rangeprefetch -optimize -mainclass ${MAINCLASS} -trueprob 0.90

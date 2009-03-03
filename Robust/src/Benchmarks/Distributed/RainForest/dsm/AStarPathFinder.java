@@ -68,9 +68,18 @@ public class AStarPathFinder {
     int sx = gamer.getX();
     int sy = gamer.getY();
 
+    int type = gamer.kind();
+
     // easy first check, if the destination is blocked, we can't get there
-    if(land[tx][ty].hasTree() || land[tx][ty].hasRock()) {
-      return null;
+
+    if(type == 1) { //1 => PLANTER
+      if(land[tx][ty].hasTree() || land[tx][ty].hasRock()) {
+        return null;
+      }
+    } else { //LUMBERJACK
+      if((!land[tx][ty].hasTree()) || land[tx][ty].hasRock()) {
+        return null;
+      }
     }
 
     // initial state for A*. The closed group is empty. Only the starting
@@ -123,7 +132,7 @@ public class AStarPathFinder {
           int xp = x + current.x;
           int yp = y + current.y;
 
-          if (isValidLocation(sx,sy,xp,yp)) {
+          if (isValidLocation(gamer,sx,sy,xp,yp)) {
             // the cost to get to this node is cost the current plus the movement
             // cost to reach this node. Note that the heursitic value is only used
             // in the sorted open list
@@ -183,6 +192,7 @@ public class AStarPathFinder {
   /**
    ** Check if a given location is valid for the supplied gamer
    ** 
+   ** @param gamer The Player moving in the map
    ** @param sx The starting x coordinate
    ** @param sy The starting y coordinate
    ** @param xp The x coordinate of the location to check
@@ -191,12 +201,18 @@ public class AStarPathFinder {
    **/
 
 
-  public boolean isValidLocation(int sx, int sy, int xp, int yp) {
+  public boolean isValidLocation(Player gamer, int sx, int sy, int xp, int yp) {
     boolean invalid = (xp <= 0) || (yp <= 0) || (xp >= rows-1) || (yp >= columns-1);
 
     if ((!invalid) && ((sx != xp) || (sy != yp))) {
-      if (land[xp][yp].hasTree() || land[xp][yp].hasRock()) {
-        invalid = true;
+      if(gamer.kind() == 1) { //1=> PLANTER
+        if (land[xp][yp].hasTree() || land[xp][yp].hasRock()) {
+          invalid = true;
+        }
+      } else { //LUMBERJACK
+        if (land[xp][yp].hasRock()) {
+          invalid = true;
+        }
       }
     }
     return !invalid;

@@ -1,6 +1,6 @@
 /**
  ** An object representing the entity in the game that
- ** is going to moving along the path. This allows us to pass around entity/state
+ ** is going to move along the path. This allows us to pass around entity/state
  ** information to determine whether a particular tile is blocked, or how much
  ** cost to apply on a particular tile.
  ** 
@@ -14,24 +14,25 @@ public class Player {
   private int type;
   private int x;
   private int y;
-  private int id;
   private int lowx, highx;
   private int lowy, highy;
   private int state;
   private int goalx, goaly;
+  private int rows, cols;
+  private Random rand;
 
   public Player(int type, int x, int y) {
     this.type = type;
     this.x = x;
     this.y = y;
-    id = -1;
   }
 
-  public Player(int type, int x, int y, int id, int rows, int cols, int bounds) {
+  public Player(int type, int x, int y, int rows, int cols, int bounds) {
     this.type = type;
     this.x = x;
     this.y = y;
-    this.id = id;
+    this.rows = rows;
+    this.cols = cols;
     lowx = x - bounds;
     highx = x + bounds;
     lowy = y - bounds;
@@ -45,16 +46,39 @@ public class Player {
       highx = rows-2;
     if (highy >= cols) 
       highy = cols-2;
+    rand = new Random(30); //seed to generate random numbers
   }
 
-  public void reset(int row, int col, int bounds) {
-    int seed = x + y;
-    Random rand = new Random(seed);
-    x = (rand.nextInt(Math.abs(row - 2) + 1)) + 1;
-    y = (rand.nextInt(Math.abs(col - 2) + 1)) + 1;
-    goalx = -1;
-    goaly = -1;
-    setBoundary(bounds, row, col);
+  public void reset(GameMap[][] land, int row, int col, int bounds) {
+    //Teleport to new location
+    if(type == 1) { //PLANTER
+      x = (rand.nextInt(Math.abs(row - 2) + 1)) + 1;
+      y = (rand.nextInt(Math.abs(col - 2) + 1)) + 1;
+      goalx = -1;
+      goaly = -1;
+      setBoundary(bounds, row, col);
+    } 
+
+    if(type == 0) { //LUMBERJACK
+      int trycount = 5; //try a few more times before teleporting 
+      int i = 0;
+      while(i<trycount) {
+        int locx = (rand.nextInt(Math.abs(row - 2) + 1)) + 1;
+        int locy = (rand.nextInt(Math.abs(col - 2) + 1)) + 1;
+        if(!land[locx][locy].hasRock() && land[locx][locy].hasTree()) {
+          goalx = locx;
+          goaly = locy;
+          state = 1; //1=> MOVING state
+          return;
+        }
+        i++;
+      }
+      x = (rand.nextInt(Math.abs(row - 2) + 1)) + 1;
+      y = (rand.nextInt(Math.abs(col - 2) + 1)) + 1;
+      goalx = -1;
+      goaly = -1;
+      setBoundary(bounds, row, col);
+    }
   }
 
   public void setBoundary(int bounds, int rows, int cols) {
@@ -120,13 +144,13 @@ public class Player {
    **/
   public int findGoal(GameMap[][] land) {
     /* Try setting the goal for try count times
-     * if not possible , then select a completely new goal
+     * if not possible, then select a completely new goal
      */
     int trycount = (highx - lowx) + (highy - lowy);
     int i;
 
+    Random rand = new Random(0);
     for (i = 0; i < trycount; i++) {
-      Random rand = new Random(i);
       int row = (rand.nextInt(Math.abs(highx - lowx)) + 1) + lowx;
       int col = (rand.nextInt(Math.abs(highy - lowy)) + 1) + lowy;
       if (type == 1 && (land[row][col].hasTree() == false) && (land[row][col].hasRock() == false)) {
@@ -139,9 +163,6 @@ public class Player {
         goaly = col;
         return 0;
       }
-    }
-    if (i == trycount) {
-      /* System.println("Timeout trying ... \n") Only for Debugging */
     }
     return -1;
   }
@@ -163,7 +184,7 @@ public class Player {
    ** Only for debugging
    **/
   public debugPlayer() {
-    System.println("State= "+ state+ " Curr X=  "+ x + " Curr Y=  " + y + " Goal X=  "+ goalx + " Goal Y= "+ goaly + " Type = " + type + "\n");
+    System.println("State= "+ state+ " Curr X=  "+ x + " Curr Y=  " + y + " Goal X=  "+ goalx + " Goal Y= "+ goaly + " Type = " + type);
   }
 
   /**

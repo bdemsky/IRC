@@ -15,17 +15,20 @@ public class BarrierServer extends Thread {
    ** @param cols The number of columns in the map
    **/
   public void updateAge(GameMap[][] land, int maxage, int rows, int cols) {
+    int countTrees = 0;
     for(int i = 0; i<rows; i++) {
       for(int j = 0; j<cols; j++) {
         if(land[i][j].tree != null) {
           if(land[i][j].tree.getage() > maxage) {
             land[i][j].tree = null;
           } else {
-            land[i][j].tree.incrementFiveYrs();
+            land[i][j].tree.incrementage();
           }
+          countTrees++;
         }
       }
     }
+    /* Debugging-> System.println("Tree count=  "+countTrees); */
   }
 
   public void run() {
