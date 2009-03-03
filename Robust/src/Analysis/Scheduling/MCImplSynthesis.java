@@ -158,8 +158,11 @@ public class MCImplSynthesis {
 		for(int i = 0; i < scheduleGraphs.size(); i++) {
 		    Vector<ScheduleNode> tmpgraph = scheduleGraphs.elementAt(i);
 		    for(int j = 0; j < tmpgraph.size(); j++) {
-			tmpgraph.elementAt(j).getEdgeVector().clear();
-			tmpgraph.elementAt(j).getInedgeVector().clear();
+		        ScheduleNode snode = tmpgraph.elementAt(j);
+			snode.getEdgeVector().clear();
+			snode.getInedgeVector().clear();
+			snode.getScheduleEdges().clear();
+			snode.getClassNodes().clear();
 		    }
 		    tmpgraph.clear();
 		    tmpgraph = null;
@@ -185,13 +188,18 @@ public class MCImplSynthesis {
 	    int tmpexetime = this.scheduleSimulator.simulate(schedulings, 
 		                                             selectedSchedulings, 
 		                                             selectedSimExeGraphs);
+	    boolean remove = false;
 	    if(tmpexetime < bestexetime) {
+		remove = true;
 		bestexetime = tmpexetime;
 		if(scheduling != null) {
 		    scheduling.clear();
 		    for(int j = 0; j < schedulinggraph.size(); j++) {
-			schedulinggraph.elementAt(j).getEdgeVector().clear();
-			schedulinggraph.elementAt(j).getInedgeVector().clear();
+			ScheduleNode snode = schedulinggraph.elementAt(j);
+			snode.getEdgeVector().clear();
+			snode.getInedgeVector().clear();
+			snode.getScheduleEdges().clear();
+			snode.getClassNodes().clear();
 		    }
 		    schedulinggraph.clear();
 		}
@@ -217,8 +225,8 @@ public class MCImplSynthesis {
 		                                   selectedSimExeGraphs,
 		                                   gid,
 		                                   this.scheduleThreshold);
-	    if(tmpexetime < bestexetime) {
-		scheduleGraphs.remove(selectedSchedulings.elementAt(0));
+	    if(remove) {
+		scheduleGraphs.removeElementAt(selectedSchedulings.elementAt(0));
 	    }
 	}while(newscheduleGraphs != null); // TODO: could it possibly lead to endless loop?
 
