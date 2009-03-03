@@ -1,10 +1,31 @@
 public class BarrierServer extends Thread {
   int numthreads;
   boolean done;
+  GameMap land;
 
   public BarrierServer(int n) {
     numthreads=n;
     done=false;
+  }
+
+  /**
+   ** Update the age of all trees in a given map
+   ** @param land The map to be searched
+   ** @param rows The number of rows in the map
+   ** @param cols The number of columns in the map
+   **/
+  public void updateAge(GameMap[][] land, int maxage, int rows, int cols) {
+    for(int i = 0; i<rows; i++) {
+      for(int j = 0; j<cols; j++) {
+        if(land[i][j].tree != null) {
+          if(land[i][j].tree.getage() > maxage) {
+            land[i][j].tree = null;
+          } else {
+            land[i][j].tree.incrementFiveYrs();
+          }
+        }
+      }
+    }
   }
 
   public void run() {

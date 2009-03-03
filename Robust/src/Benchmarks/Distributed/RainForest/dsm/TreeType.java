@@ -1,3 +1,6 @@
+/**
+ ** Tree and its properties
+ **/
 public class TreeType {
   private int age;
 
@@ -9,7 +12,15 @@ public class TreeType {
     return age;
   }
 
-  public void incrementAge() {
+  public void incrementage() {
     age++;
+  }
+
+  public void incrementTenYrs() {
+    age = age + 10;
+  }
+
+  public void incrementFiveYrs() {
+    age = age + 5;
   }
 }

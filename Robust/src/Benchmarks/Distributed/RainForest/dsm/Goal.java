@@ -1,27 +1,31 @@
+/**
+ ** Saves the X and Y coordinates of a single tile in a Map
+ **/
+
 public class Goal {
-  private int LocX;
-  private int LocY;
+  private int locX;
+  private int locY;
 
   public Goal() {
-    LocX = 0;
-    LocY = 0;
+    locX = 0;
+    locY = 0;
   }
 
   public Goal(int x, int y) {
-    LocX = x;
-    LocY = y;
+    locX = x;
+    locY = y;
   }
 
   public void setXY(int x, int y) {
-    LocX = x;
-    LocY = y;
+    locX = x;
+    locY = y;
   }
 
   public int getX() {
-    return LocX;
+    return locX;
   }
 
   public int getY() {
-    return LocY;
+    return locY;
   }
 }
