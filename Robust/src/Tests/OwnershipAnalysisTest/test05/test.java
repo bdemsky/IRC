@@ -1,0 +1,37 @@
+// x=disjoint "X" new X()
+// y=disjoint "Y" new Y()
+// x.f=y
+// z=x
+// a=z.f
+// x.f=g
+//      
+// What is B(a)?
+
+
+public class X extends Y {
+  public Y f;
+  public X() {}
+}
+
+public class Y {
+  public Y() {}
+}
+
+
+public class Test {
+
+  static public void main( String[] args ) {
+    X x;
+    X z;
+    Y y;
+    Y a;
+    Y g = new Y();
+
+    x=disjoint X new X();
+    y=disjoint Y new Y();
+    x.f=y;
+    z=x;
+    a=z.f;
+    x.f=g;
+  }
+}

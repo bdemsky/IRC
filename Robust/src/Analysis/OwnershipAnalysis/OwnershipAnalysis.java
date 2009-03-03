@@ -164,6 +164,47 @@ public class OwnershipAnalysis {
     bw.close();
   }
 
+
+  // this version of writeAllAliases is for Java programs that have no tasks
+  public void writeAllAliasesJava(String outputFile) throws java.io.IOException {
+    assert !state.TASK;    
+
+    BufferedWriter bw = new BufferedWriter(new FileWriter(outputFile) );
+
+    bw.write("Conducting ownership analysis with allocation depth = "+allocationDepth+"\n");
+    boolean foundSomeAlias = false;
+
+    Descriptor d = typeUtil.getMain();
+    HashSet<AllocationSite> allocSites = getFlaggedAllocationSites(d);
+
+    // for each allocation site check for aliases with
+    // other allocation sites in the context of execution
+    // of this task
+    HashSet<AllocationSite> outerChecked = new HashSet<AllocationSite>();
+    Iterator allocItr1 = allocSites.iterator();
+    while( allocItr1.hasNext() ) {
+      AllocationSite as1 = (AllocationSite) allocItr1.next();
+      
+      Iterator allocItr2 = allocSites.iterator();
+      while( allocItr2.hasNext() ) {
+	AllocationSite as2 = (AllocationSite) allocItr2.next();
+	
+	if( !outerChecked.contains(as2) &&
+	    createsPotentialAliases(d, as1, as2) ) {
+	  foundSomeAlias = true;
+	  bw.write("Potential alias between "+as1.getDisjointId()+" and "+as2.getDisjointId()+".\n");
+	}
+      }
+      
+      outerChecked.add(as1);
+    }
+    
+    if( !foundSomeAlias ) {
+      bw.write("No aliases between flagged objects found.\n");
+    }
+
+    bw.close();
+  }
   ///////////////////////////////////////////
   //
   // end public interface
@@ -294,24 +335,8 @@ public class OwnershipAnalysis {
     } else {
       // we are not in task mode, just normal Java, so start with
       // the main method
-      Descriptor d = tu.getMain();
+      Descriptor d = typeUtil.getMain();
       scheduleAllCallees(d);
-
-      /*
-      Iterator classItr = state.getClassSymbolTable().getDescriptorsIterator();
-      while( classItr.hasNext() ) {
-	ClassDescriptor cd = (ClassDescriptor) classItr.next();
-
-	Iterator methItr = cd.getMethods();
-	while( methItr.hasNext() ) {
-	  Descriptor d = (Descriptor) methItr.next();
-
-	  if( d.getSymbol().equals( "main" ) ) {
-	    scheduleAllCallees(d);
-	  }
-	}
-      }
-      */
     }
 
 
@@ -357,7 +382,11 @@ public class OwnershipAnalysis {
     System.out.println( treport );
 
     if( aliasFile != null ) {
-      writeAllAliases(aliasFile);
+      if( state.TASK ) {
+	writeAllAliases(aliasFile);
+      } else {
+	writeAllAliasesJava(aliasFile);
+      }
     }
   }
 
@@ -889,6 +918,23 @@ public class OwnershipAnalysis {
     }
 
     mapDescriptorToAllocationSiteSet.put(d, s);
+  }
+
+
+  private HashSet<AllocationSite> getFlaggedAllocationSites(Descriptor d) {
+    
+    HashSet<AllocationSite> out = new HashSet<AllocationSite>();
+
+    HashSet<AllocationSite> asSet = getAllocationSiteSet(d);
+    Iterator asItr = asSet.iterator();
+    while( asItr.hasNext() ) {
+      AllocationSite as = (AllocationSite) asItr.next();
+      if( as.getDisjointId() != null ) {
+	out.add(as);
+      }
+    }
+    
+    return out;
   }
 
 

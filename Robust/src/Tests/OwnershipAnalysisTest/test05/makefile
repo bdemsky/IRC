@@ -3,7 +3,7 @@ PROGRAM=test
 SOURCE_FILES=$(PROGRAM).java
 
 BUILDSCRIPT=~/research/Robust/src/buildscript
-BSFLAGS= -mainclass TestArrays -justanalyze -ownership -ownallocdepth 1 -ownwritedots final -ownaliasfile aliases.txt -enable-assertions
+BSFLAGS= -mainclass Test -justanalyze -ownership -ownallocdepth 1 -ownwritedots final -ownaliasfile aliases.txt -enable-assertions
 
 all: $(PROGRAM).bin
 

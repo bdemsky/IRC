@@ -176,11 +176,17 @@ public class AllocationSite {
   }
 
   public String toString() {
-    return "allocSite" + id;
+    if( disjointId == null ) {
+      return "allocSite" + id;
+    }
+    return "allocSite "+disjointId+" ("+id+")";
   }
 
   public String toStringVerbose() {
-    return "allocSite" + id + " "+flatNew.getType().toPrettyString();
+    if( disjointId == null ) {
+      return "allocSite" + id + " "+flatNew.getType().toPrettyString();
+    }
+    return "allocSite "+disjointId+" ("+id+") "+flatNew.getType().toPrettyString();
   }
 
   public String toStringForDOT() {

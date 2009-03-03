@@ -2667,6 +2667,114 @@ public class OwnershipGraph {
     return id2paramIndexSet.size() == og.id2paramIndexSet.size();
   }
 
+
+  public boolean hasPotentialAlias( HeapRegionNode hrn1, HeapRegionNode hrn2 ) {
+    assert hrn1 != null;
+    assert hrn2 != null;
+
+    // then get the various tokens for these heap regions
+    TokenTuple h1 = new TokenTuple(hrn1.getID(),
+				   !hrn1.isSingleObject(),
+                                   TokenTuple.ARITY_ONE).makeCanonical();
+
+    TokenTuple h1plus = new TokenTuple(hrn1.getID(),
+                                       !hrn1.isSingleObject(),
+                                       TokenTuple.ARITY_ONEORMORE).makeCanonical();
+
+    TokenTuple h1star = new TokenTuple(hrn1.getID(),
+                                       !hrn1.isSingleObject(),
+                                       TokenTuple.ARITY_ZEROORMORE).makeCanonical();
+
+    TokenTuple h2 = new TokenTuple(hrn2.getID(),
+				   !hrn2.isSingleObject(),
+                                   TokenTuple.ARITY_ONE).makeCanonical();
+
+    TokenTuple h2plus = new TokenTuple(hrn2.getID(),
+                                       !hrn2.isSingleObject(),
+                                       TokenTuple.ARITY_ONEORMORE).makeCanonical();
+
+    TokenTuple h2star = new TokenTuple(hrn2.getID(),
+                                       !hrn2.isSingleObject(),
+                                       TokenTuple.ARITY_ZEROORMORE).makeCanonical();
+
+    // then get the merged beta of all out-going edges from these heap regions
+    ReachabilitySet beta1 = new ReachabilitySet();
+    Iterator<ReferenceEdge> itrEdge = hrn1.iteratorToReferencees();
+    while( itrEdge.hasNext() ) {
+      ReferenceEdge edge = itrEdge.next();
+      beta1 = beta1.union( edge.getBeta() );
+    }
+
+    ReachabilitySet beta2 = new ReachabilitySet();
+    itrEdge = hrn2.iteratorToReferencees();
+    while( itrEdge.hasNext() ) {
+      ReferenceEdge edge = itrEdge.next();
+      beta2 = beta2.union( edge.getBeta() );
+    }
+
+    // only do this one if they are different tokens
+    if( h1 != h2 &&
+        beta1.containsTupleSetWithBoth(h1,     h2) ) {
+      return true;
+    }
+    if( beta1.containsTupleSetWithBoth(h1plus, h2) ) {
+      return true;
+    }
+    if( beta1.containsTupleSetWithBoth(h1star, h2) ) {
+      return true;
+    }
+    if( beta1.containsTupleSetWithBoth(h1,     h2plus) ) {
+      return true;
+    }
+    if( beta1.containsTupleSetWithBoth(h1plus, h2plus) ) {
+      return true;
+    }
+    if( beta1.containsTupleSetWithBoth(h1star, h2plus) ) {
+      return true;
+    }
+    if( beta1.containsTupleSetWithBoth(h1,     h2star) ) {
+      return true;
+    }
+    if( beta1.containsTupleSetWithBoth(h1plus, h2star) ) {
+      return true;
+    }
+    if( beta1.containsTupleSetWithBoth(h1star, h2star) ) {
+      return true;
+    }
+
+    if( h1 != h2 &&
+	beta2.containsTupleSetWithBoth(h1,     h2) ) {
+      return true;
+    }
+    if( beta2.containsTupleSetWithBoth(h1plus, h2) ) {
+      return true;
+    }
+    if( beta2.containsTupleSetWithBoth(h1star, h2) ) {
+      return true;
+    }
+    if( beta2.containsTupleSetWithBoth(h1,     h2plus) ) {
+      return true;
+    }
+    if( beta2.containsTupleSetWithBoth(h1plus, h2plus) ) {
+      return true;
+    }
+    if( beta2.containsTupleSetWithBoth(h1star, h2plus) ) {
+      return true;
+    }
+    if( beta2.containsTupleSetWithBoth(h1,     h2star) ) {
+      return true;
+    }
+    if( beta2.containsTupleSetWithBoth(h1plus, h2star) ) {
+      return true;
+    }
+    if( beta2.containsTupleSetWithBoth(h1star, h2star) ) {
+      return true;
+    }
+
+    return false;    
+  }
+
+
   public boolean hasPotentialAlias(Integer paramIndex1, Integer paramIndex2) {
 
     // get parameter's heap region
@@ -2677,6 +2785,7 @@ public class OwnershipGraph {
     HeapRegionNode hrnParam1 = id2hrn.get(idParam1);
     assert hrnParam1 != null;
 
+    /*
     // get tokens for this parameter
     TokenTuple p1 = new TokenTuple(hrnParam1.getID(),
                                    true,
@@ -2689,7 +2798,7 @@ public class OwnershipGraph {
     TokenTuple pStar1 = new TokenTuple(hrnParam1.getID(),
                                        true,
                                        TokenTuple.ARITY_ZEROORMORE).makeCanonical();
-
+    */
 
     // get tokens for the other parameter
     assert paramIndex2id.containsKey(paramIndex2);
@@ -2698,6 +2807,12 @@ public class OwnershipGraph {
     assert id2hrn.containsKey(idParam2);
     HeapRegionNode hrnParam2 = id2hrn.get(idParam2);
     assert hrnParam2 != null;
+
+
+    return hasPotentialAlias( hrnParam1, hrnParam2 );
+
+
+    /*
 
     TokenTuple p2 = new TokenTuple(hrnParam2.getID(),
                                    true,
@@ -2754,8 +2869,9 @@ public class OwnershipGraph {
     if( beta1.containsTupleSetWithBoth(pStar1, pStar2) ) {
       return true;
     }
-
+    
     return false;
+    */
   }
 
 
@@ -2769,6 +2885,8 @@ public class OwnershipGraph {
     HeapRegionNode hrnParam = id2hrn.get(idParam);
     assert hrnParam != null;
 
+
+    /*
     // get tokens for this parameter
     TokenTuple p = new TokenTuple(hrnParam.getID(),
                                   true,
@@ -2795,7 +2913,7 @@ public class OwnershipGraph {
     // look through this beta set for potential aliases
     ReachabilitySet beta = edgeSpecialQ.getBeta();
     assert beta != null;
-
+    
 
     // get tokens for summary node
     TokenTuple gs = new TokenTuple(as.getSummary(),
@@ -2838,10 +2956,27 @@ public class OwnershipGraph {
     if( beta.containsTupleSetWithBoth(pStar, gsStar) ) {
       return true;
     }
+    */
+
+    assert id2hrn.containsKey( as.getSummary() );
+    HeapRegionNode hrnSummary = id2hrn.get( as.getSummary() );
+    assert hrnSummary != null;
+    if( hasPotentialAlias( hrnParam, hrnSummary ) ) {
+      return true;
+    }
 
     // check for other nodes
     for( int i = 0; i < as.getAllocationDepth(); ++i ) {
 
+      assert id2hrn.containsKey( as.getIthOldest( i ) );
+      HeapRegionNode hrnIthOldest = id2hrn.get( as.getIthOldest( i ) );
+      assert hrnIthOldest != null;
+      if( hasPotentialAlias( hrnParam, hrnIthOldest ) ) {
+	return true;
+      }
+      
+
+      /*
       // the other nodes of an allocation site are single, no plus
       TokenTuple gi = new TokenTuple(as.getIthOldest(i),
                                      false,
@@ -2869,14 +3004,15 @@ public class OwnershipGraph {
       if( beta.containsTupleSetWithBoth(pStar, giStar) ) {
 	return true;
       }
+      */
     }
 
-    return false;
+    return false;    
   }
 
 
   public boolean hasPotentialAlias(AllocationSite as1, AllocationSite as2) {
-
+    /*
     // get tokens for summary nodes
     TokenTuple gs1 = new TokenTuple(as1.getSummary(),
                                     true,
@@ -2889,15 +3025,18 @@ public class OwnershipGraph {
     TokenTuple gsStar1 = new TokenTuple(as1.getSummary(),
                                         true,
                                         TokenTuple.ARITY_ZEROORMORE).makeCanonical();
+    */
 
     // get summary node's alpha
     Integer idSum1 = as1.getSummary();
     assert id2hrn.containsKey(idSum1);
     HeapRegionNode hrnSum1 = id2hrn.get(idSum1);
     assert hrnSum1 != null;
+
+    /*
     ReachabilitySet alphaSum1 = hrnSum1.getAlpha();
     assert alphaSum1 != null;
-
+    
 
     // and for the other one
     TokenTuple gs2 = new TokenTuple(as2.getSummary(),
@@ -2911,14 +3050,22 @@ public class OwnershipGraph {
     TokenTuple gsStar2 = new TokenTuple(as2.getSummary(),
                                         true,
                                         TokenTuple.ARITY_ZEROORMORE).makeCanonical();
+    */
 
     // get summary node's alpha
     Integer idSum2 = as2.getSummary();
     assert id2hrn.containsKey(idSum2);
     HeapRegionNode hrnSum2 = id2hrn.get(idSum2);
     assert hrnSum2 != null;
+
+    if( hasPotentialAlias( hrnSum1, hrnSum2 ) ) {
+      return true;
+    }
+
+    /*
     ReachabilitySet alphaSum2 = hrnSum2.getAlpha();
     assert alphaSum2 != null;
+
 
     // does either one report reachability from the other tokens?
     if( alphaSum1.containsTuple(gsPlus2) ) {
@@ -2943,7 +3090,7 @@ public class OwnershipGraph {
 	return true;
       }
     }
-
+    */
 
     // check sum2 against alloc1 nodes
     for( int i = 0; i < as1.getAllocationDepth(); ++i ) {
@@ -2951,8 +3098,15 @@ public class OwnershipGraph {
       assert id2hrn.containsKey(idI1);
       HeapRegionNode hrnI1 = id2hrn.get(idI1);
       assert hrnI1 != null;
+
+      if( hasPotentialAlias( hrnI1, hrnSum2 ) ) {
+	return true;
+      }
+
+      /*
       ReachabilitySet alphaI1 = hrnI1.getAlpha();
       assert alphaI1 != null;
+
 
       // the other nodes of an allocation site are single, no stars
       TokenTuple gi1 = new TokenTuple(as1.getIthOldest(i),
@@ -2978,6 +3132,7 @@ public class OwnershipGraph {
       if(   alphaI1.containsTuple(gsStar2) ) {
 	return true;
       }
+      */
     }
 
     // check sum1 against alloc2 nodes
@@ -2986,6 +3141,12 @@ public class OwnershipGraph {
       assert id2hrn.containsKey(idI2);
       HeapRegionNode hrnI2 = id2hrn.get(idI2);
       assert hrnI2 != null;
+
+      if( hasPotentialAlias( hrnSum1, hrnI2 ) ) {
+	return true;
+      }
+
+      /*
       ReachabilitySet alphaI2 = hrnI2.getAlpha();
       assert alphaI2 != null;
 
@@ -3012,6 +3173,7 @@ public class OwnershipGraph {
       if(   alphaI2.containsTuple(gsStar1) ) {
 	return true;
       }
+      */
 
       // while we're at it, do an inner loop for alloc2 vs alloc1 nodes
       for( int j = 0; j < as1.getAllocationDepth(); ++j ) {
@@ -3024,6 +3186,12 @@ public class OwnershipGraph {
 	}
 
 	HeapRegionNode hrnI1 = id2hrn.get(idI1);
+
+	if( hasPotentialAlias( hrnI1, hrnI2 ) ) {
+	  return true;
+	}
+
+	/*
 	ReachabilitySet alphaI1 = hrnI1.getAlpha();
 	TokenTuple gi1 = new TokenTuple(as1.getIthOldest(j),
 	                                false,
@@ -3045,6 +3213,7 @@ public class OwnershipGraph {
 	if( alphaI1.containsTuple(giStar2) ) {
 	  return true;
 	}
+	*/
       }
     }
 
