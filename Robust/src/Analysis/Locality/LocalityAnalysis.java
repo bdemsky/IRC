@@ -358,12 +358,14 @@ public class LocalityAnalysis {
 
       case FKind.FlatMethod:
 
+      case FKind.FlatInstanceOfNode:
+
       case FKind.FlatOffsetNode:
 	processOffsetNode((FlatOffsetNode)fn, currtable);
 	break;
 
       default:
-	throw new Error();
+	throw new Error("In finding fn.kind()= " + fn.kind());
       }
       Hashtable<TempDescriptor,Integer> oldtable=temptable.get(fn);
       if (oldtable==null||!oldtable.equals(currtable)) {
