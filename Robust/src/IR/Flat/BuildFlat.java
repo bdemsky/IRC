@@ -886,6 +886,11 @@ public class BuildFlat {
   }
 
   private NodePair flattenLoopNode(LoopNode ln) {
+    HashSet oldbs=breakset;
+    HashSet oldcs=continueset;
+    breakset=new HashSet();
+    continueset=new HashSet();
+    
     if (ln.getType()==LoopNode.FORLOOP) {
       NodePair initializer=flattenBlockNode(ln.getInitializer());
       TempDescriptor cond_temp=TempDescriptor.tempFactory("condition", new TypeDescriptor(TypeDescriptor.BOOLEAN));
@@ -919,7 +924,8 @@ public class BuildFlat {
 	  breakit.remove();
 	  fn.addNext(nopend);
       }
-
+      breakset=oldbs;
+      continueset=oldcs;
       return new NodePair(begin,nopend);
     } else if (ln.getType()==LoopNode.WHILELOOP) {
       TempDescriptor cond_temp=TempDescriptor.tempFactory("condition", new TypeDescriptor(TypeDescriptor.BOOLEAN));
@@ -949,6 +955,8 @@ public class BuildFlat {
 	  breakit.remove();
 	  fn.addNext(nopend);
       }
+      breakset=oldbs;
+      continueset=oldcs;
       return new NodePair(begin,nopend);
     } else if (ln.getType()==LoopNode.DOWHILELOOP) {
       TempDescriptor cond_temp=TempDescriptor.tempFactory("condition", new TypeDescriptor(TypeDescriptor.BOOLEAN));
@@ -977,6 +985,8 @@ public class BuildFlat {
 	  breakit.remove();
 	  fn.addNext(nopend);
       }
+      breakset=oldbs;
+      continueset=oldcs;
       return new NodePair(begin,nopend);
     } else throw new Error();
   }
