@@ -50,8 +50,9 @@ public class LookUpService extends Thread {
     }
 
     // Do read/writes
+    Random rand = new Random(0);
+      
     for (int i = 0; i < ntrans; i++) {
-      Random rand = new Random(i);
       atomic {
         for(int j = 0; j < nLookUp; j++) {
           int rdwr = rand.nextInt(100);
