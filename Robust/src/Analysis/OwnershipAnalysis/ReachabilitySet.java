@@ -158,6 +158,13 @@ public class ReachabilitySet extends Canonical {
     return rsOut.union(this);
   }
 
+  public ReachabilitySet remove(TokenTupleSet tts) {
+    assert tts != null;
+    ReachabilitySet rsOut = new ReachabilitySet(tts);
+    assert rsOut.possibleReachabilities.remove(tts);
+    return rsOut.makeCanonical();
+  }
+
 
   public ChangeTupleSet unionUpArityToChangeSet(ReachabilitySet rsIn) {
     assert rsIn != null;
