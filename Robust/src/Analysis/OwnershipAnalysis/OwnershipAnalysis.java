@@ -260,7 +260,16 @@ public class OwnershipAnalysis {
   // reduced by visiting a descriptor during analysis.  When dependents
   // must be scheduled, only those contained in descriptorsToAnalyze
   // should be re-added to this set
-  private HashSet<MethodContext> methodContextsToVisit;
+  private HashSet   <MethodContext> methodContextsToVisit;
+
+  // used in conjunction with the methodContextsToVisit set, fill with
+  // a topological sort of methodContextsToVisit and then empty that set
+  // algorithm should analyze something in the linked list until it is
+  // empty, and then work on the set as normal.  The sorted linked list
+  // is just another, specially sorted bucket that is part of the
+  // methodContextsToVisit set
+  private LinkedList<MethodContext> sortedMethodContextsToVisit;
+
 
   // a special field descriptor for all array elements
   private static FieldDescriptor fdElement = new FieldDescriptor(new Modifiers(Modifiers.PUBLIC),
@@ -368,18 +377,18 @@ public class OwnershipAnalysis {
       setGraphForMethodContext(mc, og);
     }
 
-    //System.out.println("");
-
     // as mentioned above, analyze methods one-by-one, possibly revisiting
     // a method if the methods that it calls are updated
     analyzeMethods();
-
-    //System.out.println("");
 
     double timeEndAnalysis = (double) System.nanoTime();
     double dt = (timeEndAnalysis - timeStartAnalysis)/(Math.pow( 10.0, 9.0 ) );
     String treport = String.format( "The analysis took %.3f sec.", dt );
     System.out.println( treport );
+
+    if( writeDOTs && !writeAllDOTs ) {
+      writeFinalContextGraphs();      
+    }
 
     if( aliasFile != null ) {
       if( state.TASK ) {
@@ -422,7 +431,9 @@ public class OwnershipAnalysis {
   // they call are updated
   private void analyzeMethods() throws java.io.IOException {
 
-    methodContextsToVisit = new HashSet<MethodContext>();    
+    methodContextsToVisit       = new HashSet   <MethodContext>();    
+    sortedMethodContextsToVisit = new LinkedList<MethodContext>();
+
     Iterator<Descriptor> itrd2a = descriptorsToAnalyze.iterator();
     while( itrd2a.hasNext() ) {
       HashSet<MethodContext> mcs = mapDescriptorToAllMethodContexts.get( itrd2a.next() );
@@ -434,9 +445,20 @@ public class OwnershipAnalysis {
       }
     }
 
-    while( !methodContextsToVisit.isEmpty() ) {
-      MethodContext mc = methodContextsToVisit.iterator().next();
-      methodContextsToVisit.remove(mc);
+    sortedMethodContextsToVisit = topologicalSort( methodContextsToVisit );
+    methodContextsToVisit.clear();
+
+    while( !methodContextsToVisit.isEmpty()       ||
+	   !sortedMethodContextsToVisit.isEmpty()    ) {
+      
+      MethodContext mc = null;
+
+      if( !sortedMethodContextsToVisit.isEmpty() ) {
+	mc = sortedMethodContextsToVisit.removeFirst();
+      } else {
+	mc = methodContextsToVisit.iterator().next();
+	methodContextsToVisit.remove(mc);
+      }
 
 
       // because the task or method descriptor just extracted
@@ -818,11 +840,24 @@ public class OwnershipAnalysis {
   }
 
 
-  private void setGraphForMethodContext(MethodContext mc, OwnershipGraph og)
-  throws IOException {
+  private void setGraphForMethodContext(MethodContext mc, OwnershipGraph og) {
 
     mapMethodContextToCompleteOwnershipGraph.put(mc, og);
 
+    if( writeDOTs && writeAllDOTs ) {
+      if( !mapMethodContextToNumUpdates.containsKey(mc) ) {
+	mapMethodContextToNumUpdates.put(mc, new Integer(0) );
+      }
+      Integer n = mapMethodContextToNumUpdates.get(mc);
+      try {
+	og.writeGraph(mc, n, true, true, true, false, false);
+      } catch( IOException e ) {}
+      mapMethodContextToNumUpdates.put(mc, n + 1);
+    }
+  }
+
+
+  private void writeFinalContextGraphs() {
     // arguments to writeGraph are:
     // boolean writeLabels,
     // boolean labelSelect,
@@ -830,22 +865,19 @@ public class OwnershipAnalysis {
     // boolean writeReferencers
     // boolean writeParamMappings
 
-    if( writeDOTs ) {
+    Set entrySet = mapMethodContextToCompleteOwnershipGraph.entrySet();
+    Iterator itr = entrySet.iterator();
+    while( itr.hasNext() ) {
+      Map.Entry      me = (Map.Entry)      itr.next();
+      MethodContext  mc = (MethodContext)  me.getKey();
+      OwnershipGraph og = (OwnershipGraph) me.getValue();
 
-      if( !writeAllDOTs ) {
+      try {
 	og.writeGraph(mc, true, true, true, false, false);
-
-      } else {
-	if( !mapMethodContextToNumUpdates.containsKey(mc) ) {
-	  mapMethodContextToNumUpdates.put(mc, new Integer(0) );
-	}
-	Integer n = mapMethodContextToNumUpdates.get(mc);
-	og.writeGraph(mc, n, true, true, true, false, false);
-	mapMethodContextToNumUpdates.put(mc, n + 1);
-      }
+      } catch( IOException e ) {}    
     }
   }
-
+  
 
   // return just the allocation site associated with one FlatNew node
   private AllocationSite getAllocationSiteFromFlatNewPRIVATE(FlatNew fn) {
@@ -983,5 +1015,55 @@ public class OwnershipAnalysis {
 
 
     return asSetTotal;
+  }
+
+
+  private LinkedList<MethodContext> topologicalSort( HashSet<MethodContext> set ) {
+    HashSet   <MethodContext> discovered = new HashSet   <MethodContext>();
+    LinkedList<MethodContext> sorted     = new LinkedList<MethodContext>();
+  
+    Iterator<MethodContext> itr = set.iterator();
+    while( itr.hasNext() ) {
+      MethodContext mc = itr.next();
+          
+      if( !discovered.contains( mc ) ) {
+	dfsVisit( set, mc, sorted, discovered );
+      }
+    }
+    
+    return sorted;
+  }
+  
+  private void dfsVisit( HashSet<MethodContext> set,
+			 MethodContext mc,
+			 LinkedList<MethodContext> sorted,
+			 HashSet   <MethodContext> discovered ) {
+    discovered.add( mc );
+    
+    Descriptor d = mc.getDescriptor();
+    if( d instanceof MethodDescriptor ) {
+      MethodDescriptor md = (MethodDescriptor) d;      
+      Iterator itr = callGraph.getCallerSet( md ).iterator();
+      while( itr.hasNext() ) {
+	Descriptor dCaller = (Descriptor) itr.next();
+	
+	// only consider the callers in the original set to analyze
+	Set<MethodContext> callerContexts = mapDescriptorToAllMethodContexts.get( dCaller );
+	if( callerContexts == null )
+	  continue;	
+	
+	// since the analysis hasn't started, there should be exactly one
+	// context if there are any at all
+	assert callerContexts.size() == 1;	
+	MethodContext mcCaller = callerContexts.iterator().next();
+	assert set.contains( mcCaller );
+
+	if( !discovered.contains( mcCaller ) ) {
+	  dfsVisit( set, mcCaller, sorted, discovered );
+	}
+      }
+    }
+
+    sorted.addFirst( mc );
   }
 }
