@@ -37,7 +37,12 @@ public class CallGraph {
   // (MethodDescriptors and/or TaskDescriptors)
   //  that call the given method
   public Set getCallerSet(MethodDescriptor md) {
-    return (Set) mapCallee2CallerSet.get(md);
+    Set s = (Set) mapCallee2CallerSet.get(md);
+    
+    if( s == null ) {
+      return new HashSet();
+    }
+    return s;
   }
 
   // this method returns the set of MethodDescriptors that
@@ -46,7 +51,12 @@ public class CallGraph {
     assert(d instanceof MethodDescriptor) ||
     (d instanceof TaskDescriptor);
 
-    return (Set) mapCaller2CalleeSet.get(d);
+    Set s = (Set) mapCaller2CalleeSet.get(d);
+
+    if( s == null ) {
+      return new HashSet();
+    }
+    return s;
   }
 
   // build a mapping of virtual methods to all
