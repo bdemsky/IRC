@@ -2184,8 +2184,12 @@ public class OwnershipGraph {
       Iterator<ReferenceEdge> itrRes = hrn.iteratorToReferencers();
       while( itrRes.hasNext() ) {
 	ReferenceEdge edge = itrRes.next();
-	if( edge.getBeta().containsWithZeroes( tts ) && 
-	    !edge.getBetaNew().contains( tts ) ) {
+
+	if( (edge.getBeta().containsWithZeroes( tts ) ||
+	     edge.getBeta().containsSuperSet  ( tts )   
+	    ) && 
+	    !edge.getBetaNew().contains( tts )                 ) {
+
 	  // okay, this is a valid propagation, and add to the
 	  // work set to further propagate it
 	  edge.setBetaNew( edge.getBetaNew().union( tts ) );

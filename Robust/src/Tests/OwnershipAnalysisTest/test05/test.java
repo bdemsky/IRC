@@ -25,6 +25,7 @@ public class Test {
     X z;
     Y y;
     Y a;
+    X b = new X();
     Y g = new Y();
 
     x=disjoint X new X();
@@ -32,6 +33,7 @@ public class Test {
     x.f=y;
     z=x;
     a=z.f;
+    b.f=a;
     x.f=g;
   }
 }
