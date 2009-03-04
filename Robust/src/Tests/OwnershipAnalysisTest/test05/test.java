@@ -17,10 +17,16 @@ public class Y {
   public Y() {}
 }
 
+public class Foo {
+  public Foo f;
+  public Foo() {}
+}
+
 
 public class Test {
 
   static public void main( String[] args ) {
+    /*
     X x;
     X z;
     Y y;
@@ -35,5 +41,17 @@ public class Test {
     a=z.f;
     b.f=a;
     x.f=g;
+    */
+    otherThing();
+  }
+
+  static public void otherThing() {
+    Foo a = disjoint a new Foo();
+    Foo b = disjoint b new Foo();
+    Foo c = disjoint c new Foo();
+
+    b.f = c;
+    a.f = c;
+    c = null;
   }
 }

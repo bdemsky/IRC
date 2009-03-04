@@ -231,8 +231,10 @@ public class OwnershipGraph {
 	ChangeTuple c = (ChangeTuple) itrC.next();
 
 	if( n.getAlpha().contains(c.getSetToMatch() ) ) {
-	  ReachabilitySet withChange = n.getAlpha().union(c.getSetToAdd() );
-	  n.setAlphaNew(n.getAlphaNew().union(withChange) );
+	  ReachabilitySet withChange = 
+	    n.getAlpha().remove( c.getSetToMatch() ).union( c.getSetToAdd() );
+	  
+	  n.setAlphaNew( n.getAlphaNew().union(withChange) );
 	  nodesWithNewAlpha.add(n);
 	}
       }
@@ -308,7 +310,9 @@ public class OwnershipGraph {
       while( itrC.hasNext() ) {
 	ChangeTuple c = itrC.next();
 	if( edgeE.getBeta().contains(c.getSetToMatch() ) ) {
-	  ReachabilitySet withChange = edgeE.getBeta().union(c.getSetToAdd() );
+	  ReachabilitySet withChange = 
+	    edgeE.getBeta().remove( c.getSetToMatch() ).union( c.getSetToAdd() );
+
 	  edgeE.setBetaNew(edgeE.getBetaNew().union(withChange) );
 	  edgesWithNewBeta.add(edgeE);
 	  changesToPass = changesToPass.union(c);
@@ -505,7 +509,6 @@ public class OwnershipGraph {
       edgeItr.next().applyBetaNew();
     }
 
-
     // then go back through and add the new edges
     itrXhrn = lnX.iteratorToReferencees();
     while( itrXhrn.hasNext() ) {
@@ -542,12 +545,11 @@ public class OwnershipGraph {
       }
     }
 
-
     // if there was a strong update, make sure to improve
     // reachability with a global sweep
     if( strongUpdate ) {      
       globalSweep();
-    }	
+    }
   }
 
 
@@ -2789,20 +2791,6 @@ public class OwnershipGraph {
     HeapRegionNode hrnParam1 = id2hrn.get(idParam1);
     assert hrnParam1 != null;
 
-    /*
-    // get tokens for this parameter
-    TokenTuple p1 = new TokenTuple(hrnParam1.getID(),
-                                   true,
-                                   TokenTuple.ARITY_ONE).makeCanonical();
-
-    TokenTuple pPlus1 = new TokenTuple(hrnParam1.getID(),
-                                       true,
-                                       TokenTuple.ARITY_ONEORMORE).makeCanonical();
-
-    TokenTuple pStar1 = new TokenTuple(hrnParam1.getID(),
-                                       true,
-                                       TokenTuple.ARITY_ZEROORMORE).makeCanonical();
-    */
 
     // get tokens for the other parameter
     assert paramIndex2id.containsKey(paramIndex2);
@@ -2814,68 +2802,6 @@ public class OwnershipGraph {
 
 
     return hasPotentialAlias( hrnParam1, hrnParam2 );
-
-
-    /*
-
-    TokenTuple p2 = new TokenTuple(hrnParam2.getID(),
-                                   true,
-                                   TokenTuple.ARITY_ONE).makeCanonical();
-
-    TokenTuple pPlus2 = new TokenTuple(hrnParam2.getID(),
-                                       true,
-                                       TokenTuple.ARITY_ONEORMORE).makeCanonical();
-
-    TokenTuple pStar2 = new TokenTuple(hrnParam2.getID(),
-                                       true,
-                                       TokenTuple.ARITY_ZEROORMORE).makeCanonical();
-
-
-    // get special label p_q for first parameter
-    TempDescriptor tdParamQ1 = paramIndex2tdQ.get(paramIndex1);
-    assert tdParamQ1 != null;
-    LabelNode lnParamQ1 = td2ln.get(tdParamQ1);
-    assert lnParamQ1 != null;
-
-    // then get the edge from label q to parameter's hrn
-    ReferenceEdge edgeSpecialQ1 = lnParamQ1.getReferenceTo(hrnParam1, null);
-    assert edgeSpecialQ1 != null;
-
-    // if the beta of this edge has tokens from both parameters in one
-    // token tuple set, then there is a potential alias between them
-    ReachabilitySet beta1 = edgeSpecialQ1.getBeta();
-    assert beta1 != null;
-
-    if( beta1.containsTupleSetWithBoth(p1,     p2) ) {
-      return true;
-    }
-    if( beta1.containsTupleSetWithBoth(pPlus1, p2) ) {
-      return true;
-    }
-    if( beta1.containsTupleSetWithBoth(pStar1, p2) ) {
-      return true;
-    }
-    if( beta1.containsTupleSetWithBoth(p1,     pPlus2) ) {
-      return true;
-    }
-    if( beta1.containsTupleSetWithBoth(pPlus1, pPlus2) ) {
-      return true;
-    }
-    if( beta1.containsTupleSetWithBoth(pStar1, pPlus2) ) {
-      return true;
-    }
-    if( beta1.containsTupleSetWithBoth(p1,     pStar2) ) {
-      return true;
-    }
-    if( beta1.containsTupleSetWithBoth(pPlus1, pStar2) ) {
-      return true;
-    }
-    if( beta1.containsTupleSetWithBoth(pStar1, pStar2) ) {
-      return true;
-    }
-    
-    return false;
-    */
   }
 
 
@@ -2889,82 +2815,11 @@ public class OwnershipGraph {
     HeapRegionNode hrnParam = id2hrn.get(idParam);
     assert hrnParam != null;
 
-
-    /*
-    // get tokens for this parameter
-    TokenTuple p = new TokenTuple(hrnParam.getID(),
-                                  true,
-                                  TokenTuple.ARITY_ONE).makeCanonical();
-
-    TokenTuple pPlus = new TokenTuple(hrnParam.getID(),
-                                      true,
-                                      TokenTuple.ARITY_ONEORMORE).makeCanonical();
-
-    TokenTuple pStar = new TokenTuple(hrnParam.getID(),
-                                      true,
-                                      TokenTuple.ARITY_ZEROORMORE).makeCanonical();
-
-    // get special label p_q
-    TempDescriptor tdParamQ = paramIndex2tdQ.get(paramIndex);
-    assert tdParamQ != null;
-    LabelNode lnParamQ = td2ln.get(tdParamQ);
-    assert lnParamQ != null;
-
-    // then get the edge from label q to parameter's hrn
-    ReferenceEdge edgeSpecialQ = lnParamQ.getReferenceTo(hrnParam, null);
-    assert edgeSpecialQ != null;
-
-    // look through this beta set for potential aliases
-    ReachabilitySet beta = edgeSpecialQ.getBeta();
-    assert beta != null;
-    
-
-    // get tokens for summary node
-    TokenTuple gs = new TokenTuple(as.getSummary(),
-                                   true,
-                                   TokenTuple.ARITY_ONE).makeCanonical();
-
-    TokenTuple gsPlus = new TokenTuple(as.getSummary(),
-                                       true,
-                                       TokenTuple.ARITY_ONEORMORE).makeCanonical();
-
-    TokenTuple gsStar = new TokenTuple(as.getSummary(),
-                                       true,
-                                       TokenTuple.ARITY_ZEROORMORE).makeCanonical();
-
-
-    if( beta.containsTupleSetWithBoth(p,     gs) ) {
-      return true;
-    }
-    if( beta.containsTupleSetWithBoth(pPlus, gs) ) {
-      return true;
-    }
-    if( beta.containsTupleSetWithBoth(pStar, gs) ) {
-      return true;
-    }
-    if( beta.containsTupleSetWithBoth(p,     gsPlus) ) {
-      return true;
-    }
-    if( beta.containsTupleSetWithBoth(pPlus, gsPlus) ) {
-      return true;
-    }
-    if( beta.containsTupleSetWithBoth(pStar, gsPlus) ) {
-      return true;
-    }
-    if( beta.containsTupleSetWithBoth(p,     gsStar) ) {
-      return true;
-    }
-    if( beta.containsTupleSetWithBoth(pPlus, gsStar) ) {
-      return true;
-    }
-    if( beta.containsTupleSetWithBoth(pStar, gsStar) ) {
-      return true;
-    }
-    */
-
+    // get summary node
     assert id2hrn.containsKey( as.getSummary() );
     HeapRegionNode hrnSummary = id2hrn.get( as.getSummary() );
     assert hrnSummary != null;
+
     if( hasPotentialAlias( hrnParam, hrnSummary ) ) {
       return true;
     }
@@ -2975,40 +2830,10 @@ public class OwnershipGraph {
       assert id2hrn.containsKey( as.getIthOldest( i ) );
       HeapRegionNode hrnIthOldest = id2hrn.get( as.getIthOldest( i ) );
       assert hrnIthOldest != null;
+
       if( hasPotentialAlias( hrnParam, hrnIthOldest ) ) {
 	return true;
       }
-      
-
-      /*
-      // the other nodes of an allocation site are single, no plus
-      TokenTuple gi = new TokenTuple(as.getIthOldest(i),
-                                     false,
-                                     TokenTuple.ARITY_ONE).makeCanonical();
-
-      TokenTuple giStar = new TokenTuple(as.getIthOldest(i),
-                                         false,
-                                         TokenTuple.ARITY_ZEROORMORE).makeCanonical();
-
-      if( beta.containsTupleSetWithBoth(p,     gi) ) {
-	return true;
-      }
-      if( beta.containsTupleSetWithBoth(pPlus, gi) ) {
-	return true;
-      }
-      if( beta.containsTupleSetWithBoth(pStar, gi) ) {
-	return true;
-      }
-      if( beta.containsTupleSetWithBoth(p,     giStar) ) {
-	return true;
-      }
-      if( beta.containsTupleSetWithBoth(pPlus, giStar) ) {
-	return true;
-      }
-      if( beta.containsTupleSetWithBoth(pStar, giStar) ) {
-	return true;
-      }
-      */
     }
 
     return false;    
@@ -3016,47 +2841,14 @@ public class OwnershipGraph {
 
 
   public boolean hasPotentialAlias(AllocationSite as1, AllocationSite as2) {
-    /*
-    // get tokens for summary nodes
-    TokenTuple gs1 = new TokenTuple(as1.getSummary(),
-                                    true,
-                                    TokenTuple.ARITY_ONE).makeCanonical();
 
-    TokenTuple gsPlus1 = new TokenTuple(as1.getSummary(),
-                                        true,
-                                        TokenTuple.ARITY_ONEORMORE).makeCanonical();
-
-    TokenTuple gsStar1 = new TokenTuple(as1.getSummary(),
-                                        true,
-                                        TokenTuple.ARITY_ZEROORMORE).makeCanonical();
-    */
-
-    // get summary node's alpha
+    // get summary node 1's alpha
     Integer idSum1 = as1.getSummary();
     assert id2hrn.containsKey(idSum1);
     HeapRegionNode hrnSum1 = id2hrn.get(idSum1);
     assert hrnSum1 != null;
 
-    /*
-    ReachabilitySet alphaSum1 = hrnSum1.getAlpha();
-    assert alphaSum1 != null;
-    
-
-    // and for the other one
-    TokenTuple gs2 = new TokenTuple(as2.getSummary(),
-                                    true,
-                                    TokenTuple.ARITY_ONE).makeCanonical();
-
-    TokenTuple gsPlus2 = new TokenTuple(as2.getSummary(),
-                                        true,
-                                        TokenTuple.ARITY_ONEORMORE).makeCanonical();
-
-    TokenTuple gsStar2 = new TokenTuple(as2.getSummary(),
-                                        true,
-                                        TokenTuple.ARITY_ZEROORMORE).makeCanonical();
-    */
-
-    // get summary node's alpha
+    // get summary node 2's alpha
     Integer idSum2 = as2.getSummary();
     assert id2hrn.containsKey(idSum2);
     HeapRegionNode hrnSum2 = id2hrn.get(idSum2);
@@ -3065,36 +2857,6 @@ public class OwnershipGraph {
     if( hasPotentialAlias( hrnSum1, hrnSum2 ) ) {
       return true;
     }
-
-    /*
-    ReachabilitySet alphaSum2 = hrnSum2.getAlpha();
-    assert alphaSum2 != null;
-
-
-    // does either one report reachability from the other tokens?
-    if( alphaSum1.containsTuple(gsPlus2) ) {
-      return true;
-    }
-    if( alphaSum1.containsTuple(gsStar2) ) {
-      return true;
-    }
-    if( alphaSum2.containsTuple(gsPlus1) ) {
-      return true;
-    }
-    if( alphaSum2.containsTuple(gsStar1) ) {
-      return true;
-    }
-
-    // only check ONE token if they are different sites
-    if( as1 != as2 ) {
-      if( alphaSum1.containsTuple(gs2) ) {
-	return true;
-      }
-      if( alphaSum2.containsTuple(gs1) ) {
-	return true;
-      }
-    }
-    */
 
     // check sum2 against alloc1 nodes
     for( int i = 0; i < as1.getAllocationDepth(); ++i ) {
@@ -3106,37 +2868,6 @@ public class OwnershipGraph {
       if( hasPotentialAlias( hrnI1, hrnSum2 ) ) {
 	return true;
       }
-
-      /*
-      ReachabilitySet alphaI1 = hrnI1.getAlpha();
-      assert alphaI1 != null;
-
-
-      // the other nodes of an allocation site are single, no stars
-      TokenTuple gi1 = new TokenTuple(as1.getIthOldest(i),
-                                      false,
-                                      TokenTuple.ARITY_ONE).makeCanonical();
-
-      TokenTuple giStar1 = new TokenTuple(as1.getIthOldest(i),
-                                          false,
-                                          TokenTuple.ARITY_ZEROORMORE).makeCanonical();
-
-      if( alphaSum2.containsTuple(gi1) ) {
-	return true;
-      }
-      if( alphaSum2.containsTuple(giStar1) ) {
-	return true;
-      }
-      if(   alphaI1.containsTuple(gs2) ) {
-	return true;
-      }
-      if(   alphaI1.containsTuple(gsPlus2) ) {
-	return true;
-      }
-      if(   alphaI1.containsTuple(gsStar2) ) {
-	return true;
-      }
-      */
     }
 
     // check sum1 against alloc2 nodes
@@ -3149,35 +2880,6 @@ public class OwnershipGraph {
       if( hasPotentialAlias( hrnSum1, hrnI2 ) ) {
 	return true;
       }
-
-      /*
-      ReachabilitySet alphaI2 = hrnI2.getAlpha();
-      assert alphaI2 != null;
-
-      TokenTuple gi2 = new TokenTuple(as2.getIthOldest(i),
-                                      false,
-                                      TokenTuple.ARITY_ONE).makeCanonical();
-
-      TokenTuple giStar2 = new TokenTuple(as2.getIthOldest(i),
-                                          false,
-                                          TokenTuple.ARITY_ZEROORMORE).makeCanonical();
-
-      if( alphaSum1.containsTuple(gi2) ) {
-	return true;
-      }
-      if( alphaSum1.containsTuple(giStar2) ) {
-	return true;
-      }
-      if(   alphaI2.containsTuple(gs1) ) {
-	return true;
-      }
-      if(   alphaI2.containsTuple(gsPlus1) ) {
-	return true;
-      }
-      if(   alphaI2.containsTuple(gsStar1) ) {
-	return true;
-      }
-      */
 
       // while we're at it, do an inner loop for alloc2 vs alloc1 nodes
       for( int j = 0; j < as1.getAllocationDepth(); ++j ) {
@@ -3194,30 +2896,6 @@ public class OwnershipGraph {
 	if( hasPotentialAlias( hrnI1, hrnI2 ) ) {
 	  return true;
 	}
-
-	/*
-	ReachabilitySet alphaI1 = hrnI1.getAlpha();
-	TokenTuple gi1 = new TokenTuple(as1.getIthOldest(j),
-	                                false,
-	                                TokenTuple.ARITY_ONE).makeCanonical();
-
-	TokenTuple giStar1 = new TokenTuple(as1.getIthOldest(j),
-	                                    false,
-	                                    TokenTuple.ARITY_ZEROORMORE).makeCanonical();
-
-	if( alphaI2.containsTuple(gi1) ) {
-	  return true;
-	}
-	if( alphaI2.containsTuple(giStar1) ) {
-	  return true;
-	}
-	if( alphaI1.containsTuple(gi2) ) {
-	  return true;
-	}
-	if( alphaI1.containsTuple(giStar2) ) {
-	  return true;
-	}
-	*/
       }
     }
 
