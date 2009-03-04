@@ -445,8 +445,8 @@ public class OwnershipAnalysis {
       }
     }
 
-    sortedMethodContextsToVisit = topologicalSort( methodContextsToVisit );
-    methodContextsToVisit.clear();
+    //sortedMethodContextsToVisit = topologicalSort( methodContextsToVisit );
+    //methodContextsToVisit.clear();
 
     while( !methodContextsToVisit.isEmpty()       ||
 	   !sortedMethodContextsToVisit.isEmpty()    ) {
