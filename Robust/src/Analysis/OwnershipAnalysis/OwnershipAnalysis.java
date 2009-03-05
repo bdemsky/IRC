@@ -388,7 +388,7 @@ public class OwnershipAnalysis {
 
     if( writeDOTs && !writeAllDOTs ) {
       writeFinalContextGraphs();      
-    }
+    }  
 
     if( aliasFile != null ) {
       if( state.TASK ) {
@@ -953,16 +953,40 @@ public class OwnershipAnalysis {
   }
 
 
-  private HashSet<AllocationSite> getFlaggedAllocationSites(Descriptor d) {
+  private HashSet<AllocationSite> getFlaggedAllocationSites(Descriptor dIn) {
     
-    HashSet<AllocationSite> out = new HashSet<AllocationSite>();
+    HashSet<AllocationSite> out     = new HashSet<AllocationSite>();
+    HashSet<Descriptor>     toVisit = new HashSet<Descriptor>();
+    HashSet<Descriptor>     visited = new HashSet<Descriptor>();
 
-    HashSet<AllocationSite> asSet = getAllocationSiteSet(d);
-    Iterator asItr = asSet.iterator();
-    while( asItr.hasNext() ) {
-      AllocationSite as = (AllocationSite) asItr.next();
-      if( as.getDisjointId() != null ) {
-	out.add(as);
+    toVisit.add(dIn);
+
+    while( !toVisit.isEmpty() ) {
+      Descriptor d = toVisit.iterator().next();
+      toVisit.remove(d);
+      visited.add(d);
+
+      HashSet<AllocationSite> asSet = getAllocationSiteSet(d);
+      Iterator asItr = asSet.iterator();
+      while( asItr.hasNext() ) {
+	AllocationSite as = (AllocationSite) asItr.next();
+	if( as.getDisjointId() != null ) {
+	  out.add(as);
+	}
+      }
+
+      // enqueue callees of this method to be searched for
+      // allocation sites also
+      Set callees = callGraph.getCalleeSet(d);
+      if( callees != null ) {
+	Iterator methItr = callees.iterator();
+	while( methItr.hasNext() ) {
+	  MethodDescriptor md = (MethodDescriptor) methItr.next();
+
+	  if( !visited.contains(md) ) {
+	    toVisit.add(md);
+	  }
+	}
       }
     }
     

@@ -232,7 +232,8 @@ public class OwnershipGraph {
 
 	if( n.getAlpha().contains(c.getSetToMatch() ) ) {
 	  ReachabilitySet withChange = 
-	    n.getAlpha().remove( c.getSetToMatch() ).union( c.getSetToAdd() );
+	    //n.getAlpha().remove( c.getSetToMatch() ).union( c.getSetToAdd() );
+	    n.getAlpha().union( c.getSetToAdd() );
 	  
 	  n.setAlphaNew( n.getAlphaNew().union(withChange) );
 	  nodesWithNewAlpha.add(n);
@@ -311,7 +312,8 @@ public class OwnershipGraph {
 	ChangeTuple c = itrC.next();
 	if( edgeE.getBeta().contains(c.getSetToMatch() ) ) {
 	  ReachabilitySet withChange = 
-	    edgeE.getBeta().remove( c.getSetToMatch() ).union( c.getSetToAdd() );
+	    //edgeE.getBeta().remove( c.getSetToMatch() ).union( c.getSetToAdd() );
+	    edgeE.getBeta().union( c.getSetToAdd() );
 
 	  edgeE.setBetaNew(edgeE.getBetaNew().union(withChange) );
 	  edgesWithNewBeta.add(edgeE);
@@ -2188,7 +2190,7 @@ public class OwnershipGraph {
 	ReferenceEdge edge = itrRes.next();
 
 	if( (edge.getBeta().containsWithZeroes( tts ) ||
-	     edge.getBeta().containsSuperSet  ( tts )   
+	     edge.getBeta().containsSuperSet  ( tts )      
 	    ) && 
 	    !edge.getBetaNew().contains( tts )                 ) {
 
@@ -2887,7 +2889,7 @@ public class OwnershipGraph {
 
 	// if these are the same site, don't look for the same token, no alias.
 	// different tokens of the same site could alias together though
-	if( idI1 == idI2 ) {
+	if( idI1.equals( idI2 ) ) {
 	  continue;
 	}
 
