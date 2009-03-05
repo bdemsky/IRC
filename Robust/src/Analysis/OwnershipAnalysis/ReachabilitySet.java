@@ -166,6 +166,37 @@ public class ReachabilitySet extends Canonical {
   }
 
 
+  public ReachabilitySet applyChangeSet(ChangeTupleSet C) {
+    assert C != null;
+
+    ReachabilitySet rsOut = new ReachabilitySet();
+
+    Iterator i = this.iterator();
+    while( i.hasNext() ) {
+      TokenTupleSet tts = (TokenTupleSet) i.next();
+
+      boolean changeFound = false;
+
+      Iterator<ChangeTuple> itrC = C.iterator();
+      while( itrC.hasNext() ) {
+	ChangeTuple c = itrC.next();
+
+	if( tts.equals( c.getSetToMatch() ) ) {
+	  rsOut.possibleReachabilities.add( c.getSetToAdd() );
+	  changeFound = true;
+	  break;
+	}
+      }
+
+      if( !changeFound ) {
+	rsOut.possibleReachabilities.add( tts );
+      }
+    }
+
+    return rsOut.makeCanonical();
+  }
+
+
   public ChangeTupleSet unionUpArityToChangeSet(ReachabilitySet rsIn) {
     assert rsIn != null;
 

@@ -208,37 +208,39 @@ public class OwnershipGraph {
                                           HashSet<ReferenceEdge>  edgesWithNewBeta) {
 
     HashSet<HeapRegionNode> todoNodes
-    = new HashSet<HeapRegionNode>();
+      = new HashSet<HeapRegionNode>();
     todoNodes.add(nPrime);
 
     HashSet<ReferenceEdge> todoEdges
-    = new HashSet<ReferenceEdge>();
+      = new HashSet<ReferenceEdge>();
 
     Hashtable<HeapRegionNode, ChangeTupleSet> nodePlannedChanges
-    = new Hashtable<HeapRegionNode, ChangeTupleSet>();
+      = new Hashtable<HeapRegionNode, ChangeTupleSet>();
     nodePlannedChanges.put(nPrime, c0);
 
     Hashtable<ReferenceEdge, ChangeTupleSet> edgePlannedChanges
-    = new Hashtable<ReferenceEdge, ChangeTupleSet>();
+      = new Hashtable<ReferenceEdge, ChangeTupleSet>();
 
-
+    // first propagate change sets everywhere they can go
     while( !todoNodes.isEmpty() ) {
       HeapRegionNode n = todoNodes.iterator().next();
       ChangeTupleSet C = nodePlannedChanges.get(n);
 
+      /*
       Iterator itrC = C.iterator();
       while( itrC.hasNext() ) {
 	ChangeTuple c = (ChangeTuple) itrC.next();
 
 	if( n.getAlpha().contains(c.getSetToMatch() ) ) {
-	  ReachabilitySet withChange = 
+	  //ReachabilitySet withChange = 
 	    //n.getAlpha().remove( c.getSetToMatch() ).union( c.getSetToAdd() );
-	    n.getAlpha().union( c.getSetToAdd() );
+	    //n.getAlpha().union( c.getSetToAdd() );
 	  
-	  n.setAlphaNew( n.getAlphaNew().union(withChange) );
+	  //n.setAlphaNew( n.getAlphaNew().union(withChange) );
 	  nodesWithNewAlpha.add(n);
 	}
       }
+      */
 
       Iterator<ReferenceEdge> referItr = n.iteratorToReferencers();
       while( referItr.hasNext() ) {
@@ -262,7 +264,7 @@ public class OwnershipGraph {
 	Iterator<ChangeTuple> itrCprime = C.iterator();
 	while( itrCprime.hasNext() ) {
 	  ChangeTuple c = itrCprime.next();
-	  if( edgeF.getBeta().contains(c.getSetToMatch() ) ) {
+	  if( edgeF.getBeta().contains( c.getSetToMatch() ) ) {
 	    changesToPass = changesToPass.union(c);
 	  }
 	}
@@ -285,6 +287,17 @@ public class OwnershipGraph {
       todoNodes.remove(n);
     }
 
+    // then apply all of the changes for each node at once
+    Iterator itrMap = nodePlannedChanges.entrySet().iterator();
+    while( itrMap.hasNext() ) {
+      Map.Entry      me = (Map.Entry)      itrMap.next();
+      HeapRegionNode n  = (HeapRegionNode) me.getKey();
+      ChangeTupleSet C  = (ChangeTupleSet) me.getValue();
+
+      n.setAlphaNew( n.getAlpha().applyChangeSet( C ) );
+      nodesWithNewAlpha.add( n );
+    }
+
     propagateTokensOverEdges(todoEdges, edgePlannedChanges, edgesWithNewBeta);
   }
 
@@ -294,7 +307,7 @@ public class OwnershipGraph {
     Hashtable<ReferenceEdge, ChangeTupleSet> edgePlannedChanges,
     HashSet<ReferenceEdge>                   edgesWithNewBeta) {
 
-
+    // first propagate all change tuples everywhere they can go
     while( !todoEdges.isEmpty() ) {
       ReferenceEdge edgeE = todoEdges.iterator().next();
       todoEdges.remove(edgeE);
@@ -307,16 +320,17 @@ public class OwnershipGraph {
 
       ChangeTupleSet changesToPass = new ChangeTupleSet().makeCanonical();
 
+
       Iterator<ChangeTuple> itrC = C.iterator();
       while( itrC.hasNext() ) {
 	ChangeTuple c = itrC.next();
 	if( edgeE.getBeta().contains(c.getSetToMatch() ) ) {
-	  ReachabilitySet withChange = 
+	  //ReachabilitySet withChange = 
 	    //edgeE.getBeta().remove( c.getSetToMatch() ).union( c.getSetToAdd() );
-	    edgeE.getBeta().union( c.getSetToAdd() );
+	    //edgeE.getBeta().union( c.getSetToAdd() );
 
-	  edgeE.setBetaNew(edgeE.getBetaNew().union(withChange) );
-	  edgesWithNewBeta.add(edgeE);
+	  //edgeE.setBetaNew(edgeE.getBetaNew().union(withChange) );
+	  //edgesWithNewBeta.add(edgeE);
 	  changesToPass = changesToPass.union(c);
 	}
       }
@@ -342,6 +356,17 @@ public class OwnershipGraph {
 	  }
 	}
       }
+    }
+
+    // then apply all of the changes for each edge at once
+    Iterator itrMap = edgePlannedChanges.entrySet().iterator();
+    while( itrMap.hasNext() ) {
+      Map.Entry      me = (Map.Entry)      itrMap.next();
+      ReferenceEdge  e  = (ReferenceEdge)  me.getKey();
+      ChangeTupleSet C  = (ChangeTupleSet) me.getValue();
+
+      e.setBetaNew( e.getBeta().applyChangeSet( C ) );
+      edgesWithNewBeta.add( e );
     }
   }
 
