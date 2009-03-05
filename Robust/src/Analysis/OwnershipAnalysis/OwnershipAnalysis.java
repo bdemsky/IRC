@@ -562,9 +562,11 @@ public class OwnershipAnalysis {
                            returnNodesToCombineForCompleteOwnershipGraph,
                            og);
 
-
-      //debugSnapshot(og,fn);
-
+      /*
+      if( mc.getDescriptor().getSymbol().equals( "addFlightPlan" ) ) {
+	debugSnapshot(og,fn);
+      }
+      */
 
 
       // if the results of the new graph are different from
@@ -801,10 +803,14 @@ public class OwnershipAnalysis {
   // successive captures of the analysis state
   int debugCounter        = 0;
   int numStartCountReport = 0;
-  int freqCountReport     = 1000;
-  int iterStartCapture    = 20000;
-  int numIterToCapture    = 400;
+  int freqCountReport     = 1;
+  int iterStartCapture    = 0;
+  int numIterToCapture    = 500;
   void debugSnapshot(OwnershipGraph og, FlatNode fn) {
+    if( debugCounter > numStartCountReport + numIterToCapture ) {
+      return;
+    }
+
     ++debugCounter;
     if( debugCounter > numStartCountReport &&
         debugCounter % freqCountReport == 0 ) {
@@ -823,10 +829,12 @@ public class OwnershipAnalysis {
 	System.exit(0);
       }
     }
+    /*
     if( debugCounter == iterStartCapture + numIterToCapture ) {
       System.out.println("Stopping analysis after debug captures.");
       System.exit(0);
     }
+    */
   }
 
 
