@@ -407,6 +407,28 @@ public class OwnershipGraph {
   }
 
 
+  public void assignTypedTempXEqualToTempY(TempDescriptor x,
+					   TempDescriptor y,
+					   FieldDescriptor f) {
+
+    LabelNode lnX = getLabelNodeFromTemp(x);
+    LabelNode lnY = getLabelNodeFromTemp(y);
+    
+    clearReferenceEdgesFrom(lnX, null, true);
+
+    Iterator<ReferenceEdge> itrYhrn = lnY.iteratorToReferencees();
+    while( itrYhrn.hasNext() ) {
+      ReferenceEdge edgeY       = itrYhrn.next();
+      HeapRegionNode referencee = edgeY.getDst();
+      ReferenceEdge edgeNew    = edgeY.copy();
+      edgeNew.setSrc(lnX);
+      edgeNew.setFieldDesc(f);
+
+      addReferenceEdge(lnX, referencee, edgeNew);
+    }
+  }
+
+
   public void assignTempXEqualToTempYFieldF(TempDescriptor x,
                                             TempDescriptor y,
                                             FieldDescriptor f) {
@@ -1800,7 +1822,7 @@ public class OwnershipGraph {
     // if the type is not a class don't match because
     // primitives are copied, no memory aliases
     ClassDescriptor cdDst = tdDst.getClassDesc();
-    if( cdDst == null ) {
+    if( cdDst == null && !tdDst.isArray() ) {
       return false;
     }
 

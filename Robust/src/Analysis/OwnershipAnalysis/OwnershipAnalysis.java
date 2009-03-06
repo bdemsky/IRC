@@ -274,6 +274,9 @@ public class OwnershipAnalysis {
   // special field descriptors for array elements
   private Hashtable<TypeDescriptor, FieldDescriptor> mapTypeToArrayField;
 
+  // special field descriptors for variables with type, no field name
+  private Hashtable<TypeDescriptor, FieldDescriptor> mapTypeToVarField;
+
 
   // a special temp descriptor for setting more than one parameter label
   // to the all-aliased-parameters heap region node
@@ -323,6 +326,9 @@ public class OwnershipAnalysis {
       new Hashtable<Descriptor, HashSet<MethodContext> >();
 
     mapTypeToArrayField =
+      new Hashtable<TypeDescriptor, FieldDescriptor>();
+
+    mapTypeToVarField =
       new Hashtable<TypeDescriptor, FieldDescriptor>();
 
     if( writeAllDOTs ) {
@@ -675,6 +681,26 @@ public class OwnershipAnalysis {
       }
       break;
 
+    case FKind.FlatCastNode:
+      FlatCastNode fcn = (FlatCastNode) fn;
+      lhs = fcn.getDst();
+      rhs = fcn.getSrc();
+      TypeDescriptor td = fcn.getType();
+      assert td != null;
+
+      FieldDescriptor fd = mapTypeToVarField.get( td );
+      if( fd == null ) {
+	fd = new FieldDescriptor(new Modifiers(Modifiers.PUBLIC),
+				 td,
+				 "",
+				 null,
+				 false);
+	mapTypeToVarField.put( td, fd );
+      }
+      
+      og.assignTypedTempXEqualToTempY(lhs, rhs, fd);
+      break;
+
     case FKind.FlatFieldNode:
       FlatFieldNode ffn = (FlatFieldNode) fn;
       lhs = ffn.getDst();
@@ -729,10 +755,6 @@ public class OwnershipAnalysis {
 	assert lhs.getType().isArray();
 	
 	TypeDescriptor  tdElement = lhs.getType().dereference();
-
-	System.out.println( "lhs.Type  = "+lhs.getType().toPrettyString() );
-	System.out.println( "tdElement = "+tdElement.toPrettyString() );
-
 	FieldDescriptor fdElement = mapTypeToArrayField.get( tdElement );
 	if( fdElement == null ) {
 	  fdElement = new FieldDescriptor(new Modifiers(Modifiers.PUBLIC),
