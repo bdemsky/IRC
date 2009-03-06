@@ -191,9 +191,9 @@ public class AllocationSite {
 
   public String toStringForDOT() {
     if( disjointId != null ) {
-      return "disjoint "+disjointId+"\\n"+toString()+"\\n"+getType();
+      return "disjoint "+disjointId+"\\n"+toString()+"\\n"+getType().toPrettyString();
     } else {
-      return                              toString()+"\\n"+getType();
+      return                              toString()+"\\n"+getType().toPrettyString();
     }
   }
 }

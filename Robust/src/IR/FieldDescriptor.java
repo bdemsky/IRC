@@ -47,4 +47,8 @@ public class FieldDescriptor extends Descriptor {
   public String toStringBrief() {
     return td.toString()+" "+getSymbol();
   }
+
+  public String toPrettyStringBrief() {
+    return td.toPrettyString()+" "+getSymbol();
+  }
 }

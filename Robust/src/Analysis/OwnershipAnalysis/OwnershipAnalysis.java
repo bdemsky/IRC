@@ -271,12 +271,9 @@ public class OwnershipAnalysis {
   private LinkedList<MethodContext> sortedMethodContextsToVisit;
 
 
-  // a special field descriptor for all array elements
-  private static FieldDescriptor fdElement = new FieldDescriptor(new Modifiers(Modifiers.PUBLIC),
-                                                                 new TypeDescriptor("Array[]"),
-                                                                 "elements",
-                                                                 null,
-                                                                 false);
+  // special field descriptors for array elements
+  private Hashtable<TypeDescriptor, FieldDescriptor> mapTypeToArrayField;
+
 
   // a special temp descriptor for setting more than one parameter label
   // to the all-aliased-parameters heap region node
@@ -325,6 +322,8 @@ public class OwnershipAnalysis {
     mapDescriptorToAllMethodContexts = 
       new Hashtable<Descriptor, HashSet<MethodContext> >();
 
+    mapTypeToArrayField =
+      new Hashtable<TypeDescriptor, FieldDescriptor>();
 
     if( writeAllDOTs ) {
       mapMethodContextToNumUpdates = new Hashtable<MethodContext, Integer>();
@@ -701,6 +700,21 @@ public class OwnershipAnalysis {
       lhs = fen.getDst();
       rhs = fen.getSrc();
       if( !lhs.getType().isImmutable() || lhs.getType().isArray() ) {
+
+	assert rhs.getType() != null;
+	assert rhs.getType().isArray();
+	
+	TypeDescriptor  tdElement = rhs.getType().dereference();
+	FieldDescriptor fdElement = mapTypeToArrayField.get( tdElement );
+	if( fdElement == null ) {
+	  fdElement = new FieldDescriptor(new Modifiers(Modifiers.PUBLIC),
+					  tdElement,
+					  "_element",
+					  null,
+					  false);
+	  mapTypeToArrayField.put( tdElement, fdElement );
+	}
+  
 	og.assignTempXEqualToTempYFieldF(lhs, rhs, fdElement);
       }
       break;
@@ -710,6 +724,25 @@ public class OwnershipAnalysis {
       lhs = fsen.getDst();
       rhs = fsen.getSrc();
       if( !rhs.getType().isImmutable() || rhs.getType().isArray() ) {
+
+	assert lhs.getType() != null;
+	assert lhs.getType().isArray();
+	
+	TypeDescriptor  tdElement = lhs.getType().dereference();
+
+	System.out.println( "lhs.Type  = "+lhs.getType().toPrettyString() );
+	System.out.println( "tdElement = "+tdElement.toPrettyString() );
+
+	FieldDescriptor fdElement = mapTypeToArrayField.get( tdElement );
+	if( fdElement == null ) {
+	  fdElement = new FieldDescriptor(new Modifiers(Modifiers.PUBLIC),
+					  tdElement,
+					  "_element",
+					  null,
+					  false);
+	  mapTypeToArrayField.put( tdElement, fdElement );
+	}
+
 	og.assignTempXFieldFEqualToTempY(lhs, fdElement, rhs);
       }
       break;

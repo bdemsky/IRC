@@ -162,7 +162,7 @@ public class ReferenceEdge {
     String edgeLabel = "";
 
     if( fieldDesc != null ) {
-      edgeLabel += fieldDesc.toStringBrief() + "\\n";
+      edgeLabel += fieldDesc.toPrettyStringBrief() + "\\n";
     }
 
     if( isInitialParamReflexive ) {

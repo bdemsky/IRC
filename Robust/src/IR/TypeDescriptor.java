@@ -278,13 +278,13 @@ public class TypeDescriptor extends Descriptor {
   }
 
   public String toPrettyString() {
-    if (type==CLASS) {
-      String str=name;
-      for(int i=0; i<arraycount; i++)
-	str+="[]";
-      return str;
-    } else
-      return decodeInt(type);
+    String str=name;
+    if (type!=CLASS) {
+      str=decodeInt(type);
+    }
+    for(int i=0; i<arraycount; i++)
+      str+="[]";
+    return str;    
   }
 
   private static String decodeInt(int type) {
