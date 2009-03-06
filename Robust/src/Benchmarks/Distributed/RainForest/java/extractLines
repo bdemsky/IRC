@@ -1,0 +1,7 @@
+#!/bin/sh
+lines=$(grep -n "#" tmp1RainForestClient.java | cut -d: -f1 | sed '1q')
+sed '/^#/d' tmp1RainForestClient.java > tmpRainForestClient.java
+lines=$(grep -n "#" tmp1RainForestServerExample.java | cut -d: -f1 | sed '1q')
+sed '/^#/d' tmp1RainForestServerExample.java > tmpRainForestServerExample.java
+lines=$(grep -n "#" tmp1RainForestServerThread.java | cut -d: -f1 | sed '1q')
+sed '/^#/d' tmp1RainForestServerThread.java > tmpRainForestServerThread.java
