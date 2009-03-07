@@ -6,8 +6,11 @@
 #include "thread.h"
 #include "option.h"
 #include <signal.h>
+
+#ifdef DSTM
 #include <DSTM/interface/dstm.h>
 #include <DSTM/interface/llookup.h>
+#endif
 
 #ifndef RAW
 #include <stdio.h>
