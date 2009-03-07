@@ -11,6 +11,7 @@ public class BarrierServer extends Thread {
   /**
    ** Update the age of all trees in a given map
    ** @param land The map to be searched
+   ** @param maxage The maxage of a tree
    ** @param rows The number of rows in the map
    ** @param cols The number of columns in the map
    **/

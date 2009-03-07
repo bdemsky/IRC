@@ -5,7 +5,7 @@
 #define RATI0               0.5   /* Number of lumberjacks to number of planters */
 #define BLOCK               3     /* Area around the gamer to consider */
 #define TREE_ZONE           0.4   /* Max percentage of trees in a zone */
-#define AGEUPDATETHRESHOLD  10    /* How frequently/how many rounds to increment age of tree */
+#define AGEUPDATETHRESHOLD  16    /* How frequently/how many rounds to increment age of tree */
 #define MAXAGE              100   /* Max age of a tree */
 
 
@@ -66,12 +66,17 @@ public class RainForest extends Thread {
     maxValue = COLUMN -1;
     int col = (rand.nextInt(Math.abs(maxValue - minValue) + 1)) + minValue;
     int person;
-    if((id&1) == 0) { //same as id%2
+    if((id&1) != 0) { //same as id%2
       person = LUMBERJACK;
     } else {
       person = PLANTER;
     }
     Player gamer = new Player(person, row, col, ROW, COLUMN, BLOCK);
+    
+    // 
+    // Debug
+    // System.println("Player= "+ person+ " PosX= "+row+"  PosY= "+col);
+    //
 
     //Do N rounds 
     //do one move per round and synchronise
@@ -79,13 +84,13 @@ public class RainForest extends Thread {
       atomic {
         doOneMove(land, gamer);
       }
-      Barrier.enterBarrier(barr);
       if((i&15) == 0 && id == 0) { //same as i%AGEUPDATETHRESHOLD
         /* Update age of all trees in a Map */
         atomic {
           barrserver.updateAge(land, MAXAGE, ROW, COLUMN);
         }
       }
+      Barrier.enterBarrier(barr);
     }
   }
 
@@ -197,7 +202,11 @@ public class RainForest extends Thread {
 
       /* Reset state if there in no path from start to goal */
       if(newpath == null) {
-        /* System.println("Path from ("+currx+","+curry+") to ("+gamer.getGoalX()+","+gamer.getGoalY()+") is null"); */
+        // 
+        // Debug
+        // System.println("Path from ("+currx+","+curry+") to ("+gamer.getGoalX()+","+gamer.getGoalY()+") is null");
+        //
+
         gamer.reset(land, ROW, COLUMN, BLOCK);
         gamer.setState(INIT);
         return;
@@ -212,6 +221,10 @@ public class RainForest extends Thread {
           //If tree present, cut 
           if (land[currx][curry].hasTree()) {
             land[currx][curry].cutTree();
+            //
+            // Debug
+            // System.println("Cut tree");
+            //
           } 
         } else { // PLANTER
           // If empty, plant tree 
@@ -219,6 +232,10 @@ public class RainForest extends Thread {
             if(hasMoreTrees(land, currx, curry) == false) {
               TreeType t = global new TreeType();
               land[currx][curry].putTree(t);
+              //
+              // Debug
+              // System.println("Put tree");
+              //
             }
           } 
         }
@@ -226,6 +243,10 @@ public class RainForest extends Thread {
         gamer.setState(INIT);
       } else if(land[currx][curry].hasTree() && gamer.kind() == LUMBERJACK) { //Cut trees along the way
         land[currx][curry].cutTree();
+        // 
+        // Debug
+        // System.println("Cut tree while moving");
+        //
       }
       // Not at destination - do nothing
       return;
@@ -302,7 +323,7 @@ public class RainForest extends Thread {
         areaCount++;
       }
     }
-    if(treeCount > (TREE_ZONE * areaCount)) {
+    if(treeCount >= (TREE_ZONE * areaCount)) {
       return true;
     }
     return false;
