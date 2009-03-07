@@ -31,62 +31,51 @@ public class RainForestServerThread extends Thread {
 
     //
     //Debugging
+    //printLand(land, rows, cols); 
     //
-    /* printLand(land, rows, cols); */
 
     byte[] buf = new byte[5];    //1 byte to decide if terminate or continue + 4 bytes for getting the round index
-    int numbytes;
     byte[] buffer = new byte[9]; //1 byte presence of tree/rocks + 8 bytes for their x and y coordinates
 
     while(true) {
-
       /* Check for termination character */
-      while((numbytes = sock.read(buf)) < 5) {
-        //System.println("Looping in 2");
-        ;
-      }
-
-      String str1 = (new String(buf)).subString(0, 1);
+      String readStr = readFromSock(sock, buf, 5); 
+      String str1 = readStr.subString(0, 1);
 
       /* terminate if opcode sent is "t" */
       if(str1.equalsIgnoreCase("T")) {
         break;
       } else if(str1.equalsIgnoreCase("U")) {
+        buf = readStr.getBytes();
         int roundIndex = getX(buf); //Get the index from client
-        System.println("round id = " + roundIndex);
+
+        /* Update age of all trees in a Map */
         if((roundIndex % AGEUPDATETHRESHOLD) == 0 && (id == 0)) { 
-          /* Update age of all trees in a Map */
           updateAge(land, MAXAGE, rows, cols);
         }
 
-        /* Data representing presence/absence of trees */
+        /* Send data representing presence/absence of trees */
         for(int i=0 ; i<rows; i++) {
           for(int j=0; j<cols; j++) {
             sock.write(fillBytes(land, i, j, buffer));
           }
         }
 
-        StringBuffer header = new StringBuffer("sentLand");
-        String temp_str = new String(header);
-        sock.write(temp_str.getBytes());
-        header = null;
-        temp_str = null;
+        /* Send special character "O" to end transfer of land coordinates */ 
+        sock.write(fillBytes(0, 0, buffer));
 
         /* Read client's move */
-        while((numbytes = sock.read(buffer)) < 9) {
-          ;
-        }
-        str1 = (new String(buffer)).subString(0, 1);
+        readStr = readFromSock(sock, buffer, 9);
+        str1 = readStr.subString(0, 1);
+        buffer = readStr.getBytes();
 
         /* Take actions such as cutting or planting or moving */
         if(str1.equalsIgnoreCase("C")) {
           int val;
           if((val = doTreeCutting(land, buffer)) == 0) {
-            System.println("Cutting\n");
-            b[0] = (byte)'S';
+            b[0] = (byte)'S'; //success in move
           } else {
-            System.println("Retrying to cut\n");
-            b[0] = (byte)'F';
+            b[0] = (byte)'F';//failure in move
           }
           sock.write(b);
         }
@@ -94,17 +83,14 @@ public class RainForestServerThread extends Thread {
         if(str1.equalsIgnoreCase("P")) {
           int val;
           if((val = doTreePlanting(land, buffer)) == 0) {
-            System.println("Planting\n");
             b[0] = (byte)'S';
           } else {
-            System.println("Retrying to plant\n");
             b[0] = (byte)'F';
           }
           sock.write(b);
         }
 
         if(str1.equalsIgnoreCase("M")) {
-          System.println("Moving to goal\n");
           b[0] = (byte)'S';
           sock.write(b);
         }
@@ -129,6 +115,20 @@ public class RainForestServerThread extends Thread {
       b[0] = (byte)'R';
     if(!land[x][y].hasRock() && !land[x][y].hasTree())
       b[0] = (byte)'N';
+    for(int i = 1; i<5; i++) {
+      int offset = (3-(i-1)) * 8;
+      b[i] = (byte) ((x >> offset) & 0xFF);
+    }
+    for(int i = 5; i<9; i++) {
+      int offset = (3-(i-5)) * 8;
+      b[i] = (byte) ((y >> offset) & 0xFF);
+    }
+    return b;
+  }
+
+  byte[] fillBytes(int x, int y, byte[] b) {
+    if(x == 0 && y == 0) 
+      b[0] = (byte)'O'; //land object coordinates transfer to client over
     for(int i = 1; i<5; i++) {
       int offset = (3-(i-1)) * 8;
       b[i] = (byte) ((x >> offset) & 0xFF);
@@ -232,5 +232,19 @@ public class RainForestServerThread extends Thread {
     //Debug
     //System.println("Tree count=  "+countTrees); 
     //
+  }
+
+  /**
+   ** Repeated read until you get all bytes
+   **/
+  String readFromSock(Socket sock, byte[] buf, int maxBytes) {
+    int numbytes = 0;
+    String rstr = new String("");
+    while(numbytes < maxBytes) {
+      int nread = sock.read(buf);
+      numbytes += nread;
+      rstr = rstr.concat((new String(buf)).subString(0,nread));
+    }
+    return rstr;
   }
 }

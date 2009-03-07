@@ -1,5 +1,5 @@
-#define ROW                 100  /* columns in the map */
-#define COLUMN              100  /* rows of in the map */
+#define ROW                 200  /* columns in the map */
+#define COLUMN              200  /* rows of in the map */
 
 public class RainForestServerExample {
   private int numThreads;
@@ -70,6 +70,7 @@ public class RainForestServerExample {
     }
 
     System.printString("Finished\n");
+    //System.exit(0);
   }
 
   /**
