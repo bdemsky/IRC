@@ -30,9 +30,11 @@ pthread_cond_t threadnotifycond;
 pthread_key_t oidval;
 
 void threadexit() {
+#ifdef DSTM
   objheader_t* ptr;
-  void *value;
   unsigned int oidvalue;
+#endif
+  void *value;
 
 #ifdef THREADS
   struct ___Object___ *ll=pthread_getspecific(threadlocks);
