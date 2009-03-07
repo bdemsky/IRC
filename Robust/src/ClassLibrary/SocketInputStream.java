@@ -22,7 +22,7 @@ public class SocketInputStream extends InputStream {
 	  return offset;
       int toread=b.length-offset;
       while(toread>0) {
-	  byte t=new byte[toread];
+	  byte[] t=new byte[toread];
 	  int rd=read(t);
 	  if (rd<0)
 	      return rd;
