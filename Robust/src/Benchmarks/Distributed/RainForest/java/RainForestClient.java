@@ -1,5 +1,5 @@
-#define ROW                 200  /* columns in the map */
-#define COLUMN              200  /* rows of in the map */
+#define ROW                 100  /* columns in the map */
+#define COLUMN              100  /* rows of in the map */
 #define ROUNDS              200   /* Number of moves by each player */
 #define PLAYERS             20   /* Number of Players when num Players != num of client machines */
 #define RATI0               0.5  /* Number of lumberjacks to number of planters */
@@ -27,7 +27,7 @@ public class RainForestClient {
 
     Random rand = new Random(seed);
     RainForestClient rfc = new RainForestClient();
-    Socket sock = new Socket("dw-8.eecs.uci.edu",9002);
+    Socket sock = new Socket("dc-1.calit2.uci.edu",9002);
     SocketInputStream si=new SocketInputStream(sock);
 
     /* Read player type from Server */
@@ -44,7 +44,7 @@ public class RainForestClient {
 
     // Barriers for syncronization
     Barrier barr;
-    barr =  new Barrier("128.195.175.79");
+    barr =  new Barrier("128.195.136.162");
 
     //Generate a random x and y coordinate to start with
     int maxValue = ROW - 1;
@@ -55,9 +55,9 @@ public class RainForestClient {
     Player gamer = new Player(person, row, col, ROW, COLUMN, BLOCK);
 
     //
-    //Debug
+    // Debug
+    // System.println("Person= "+person+" LocX= "+row+" LocY= "+col); 
     //
-    /* System.println("Person= "+person+" LocX= "+row+" LocY= "+col); */
 
     GameMap[][] land = new GameMap[ROW][COLUMN];
     for(int i = 0; i<ROW; i++) {
@@ -67,75 +67,108 @@ public class RainForestClient {
     }
     byte buf[] = new byte[9];
     for(int i = 0; i<ROUNDS; i++) {
-      // 
-      // Send the continue to read
-      //
-      sock.write(rfc.fillBytes("U",i));
+      String retval;
+      do {
+        retval = null;
+        // 
+        // Send the continue to read
+        //
+        sock.write(rfc.fillBytes("U",i));
 
-      //
-      //Read information of land object from Server
-      //
-      String rstr;
-      while(true) {
-        rstr = rfc.readFromSock(si, 9);
-        buf = rstr.getBytes();
-        str1 = rstr.subString(0, 1);
+        //
+        //Read information of land object from Server
+        //
+        String rstr;
+        while(true) {
+          rstr = rfc.readFromSock(si, 9);
+          buf = rstr.getBytes();
+          str1 = rstr.subString(0, 1);
 
-        /* terminate if opcode sent is "O" */
-        if(str1.equalsIgnoreCase("O")) {
-          //System.println("Receive termination char O");
-          break;
-        } else {
-          rfc.extractCoordinates(buf, land);
+          /* terminate if opcode sent is "O" */
+          if(str1.equalsIgnoreCase("O")) {
+            break;
+          } else {
+            rfc.extractCoordinates(buf, land);
+          }
         }
-      }
 
-      //Debug 
-      //rfc.printLand(land, ROW, COLUMN);
+        //Debug 
+        //rfc.printLand(land, ROW, COLUMN);
 
-      //
-      //Do rounds 
-      //do one move per round and write to server
-      //
-      rfc.doOneMove(land, gamer, sock);
+        //
+        //Do rounds 
+        //do one move per round and write to server
+        //
+        rfc.doOneMove(land, gamer, sock, rand);
 
-      //Receive ACK from server and do player updates
-      rstr = rfc.readFromSock(si, 1);
-      str1 = rstr.subString(0, 1);
+        //Receive ACK from server and do player updates
+        rstr = rfc.readFromSock(si, 1);
+        retval = rstr.subString(0, 1);
 
-      //
-      //Update player position and player boundaries if success
-      //
-      if(str1.equalsIgnoreCase("S") && ((gamer.action == 'C') || gamer.action == 'P')) {
-        gamer.setNewPosition(ROW, COLUMN, BLOCK);
-        gamer.setState(INIT);
-      }
-      
-      if(str1.equalsIgnoreCase("F")) {
-      //Retry if failure
-        //i--;          
-        gamer.setNewPosition(ROW, COLUMN, BLOCK);
-        gamer.setState(INIT);
-      }
+        //
+        //Update player position and player boundaries if success i.e. cut/plant tree
+        //Continue to the next iteration
+        //
+        if(retval.equalsIgnoreCase("S") && ((gamer.action == 'C') || gamer.action == 'P')) {
+          // 
+          // Debug
+          // if(gamer.action == 'C')
+          //   System.println("Cutting");
+          // if(gamer.action == 'P')
+          //   System.println("Planting");
+          //
+
+          gamer.setNewPosition(ROW, COLUMN, BLOCK);
+          gamer.setState(INIT);
+          break;
+        }
+
+        //
+        // If success and player moving ... continue till goal reached
+        //
+        if(retval.equalsIgnoreCase("S") && gamer.action == 'M') {
+          //System.println("Moving");
+          break;
+        }
+
+        //
+        // If server returns failure then retry 
+        // move with a new goal
+        //
+        if(retval.equalsIgnoreCase("F")) {
+          // 
+          // Debug
+          // System.println("Failure....Retry\n");
+          //
+          gamer.setNewPosition(ROW, COLUMN, BLOCK);
+          gamer.setState(INIT);
+        }
+
+      } while(retval.equalsIgnoreCase("F"));
 
       //
       //Synchronize threads
       //
       Barrier.enterBarrier(barr);
     }
-
     //
     //Special character "T" to terminate computation
     //
     sock.write(rfc.fillBytes("T", 0));
     sock.close();
+
   }
 
+  /**
+   ** Create the land Map at client's end
+   ** @param b bytes read from client
+   ** @param land The map to be filled
+   **/
   public void extractCoordinates(byte[] b, GameMap[][] land) {
     int posX = getX(b); 
     int posY = getY(b);
     if(posX >= ROW && posY >= COLUMN) {
-      System.println("b[0] = "+(char)b[0]+" b[1]= "+(char)b[1]+" b[2]= "+(char)b[2]+" b[3]= "+(char)b[3]+" b[4]= "+(char)b[4]+" b[5]= "+(char)b[5]+" b[6]= "+(char)b[6]+" b[7]= "+(char)b[7]+ " b[8]= " +(char)b[8]);
+      System.println("Error: Trying to access elements out of bounds in the array");
     }
 
     if(b[0] == (byte) 'T') {
@@ -176,7 +209,7 @@ public class RainForestClient {
    ** @param gamer The player making the move
    ** @return 0 is success , -1 otherwise
    **/
-  public int doOneMove(GameMap[][] land, Player gamer, Socket sock) {
+  public int doOneMove(GameMap[][] land, Player gamer, Socket sock, Random rand) {
     // 1. Get start(x, y) position of the player
     int currx = gamer.getX();
     int curry = gamer.getY();
@@ -194,8 +227,8 @@ public class RainForestClient {
 
       //gamer.debugPlayer(); 
 
-      if (gamer.findGoal(land) < 0) {
-        gamer.reset(land, ROW, COLUMN, BLOCK);
+      if (gamer.findGoal(land, rand) < 0) {
+        gamer.reset(land, ROW, COLUMN, BLOCK, rand);
         gamer.action = 'M';
         sock.write(fillBytes(SHIFT, 0, 0));
         return 0;
@@ -222,7 +255,7 @@ public class RainForestClient {
         // System.println("Path from ("+currx+","+curry+") to ("+gamer.getGoalX()+","+gamer.getGoalY()+") is null"); 
         //
 
-        gamer.reset(land, ROW, COLUMN, BLOCK);
+        gamer.reset(land, ROW, COLUMN, BLOCK, rand);
         gamer.setState(INIT);
         gamer.action = 'M';
         sock.write(fillBytes(SHIFT, 0, 0));

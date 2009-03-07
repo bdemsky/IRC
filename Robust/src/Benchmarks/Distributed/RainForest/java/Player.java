@@ -19,7 +19,6 @@ public class Player {
   private int state;
   private int goalx, goaly;
   private int rows, cols;
-  private Random rand;
   private char action;
 
   public Player(int type, int x, int y) {
@@ -50,11 +49,10 @@ public class Player {
     this.state = 0; //0 => INIT state
     this.goalx = 0;
     this.goaly = 0;
-    rand = new Random(30); //seed to generate random numbers
     this.action = 'M'; //initalized to moving
   }
 
-  public void reset(GameMap[][] land, int row, int col, int bounds) {
+  public void reset(GameMap[][] land, int row, int col, int bounds, Random rand) {
     //Teleport to new location
     if(type == 1) { //PLANTER
       x = (rand.nextInt(Math.abs(row - 2) + 1)) + 1;
@@ -118,9 +116,7 @@ public class Player {
     this.y = y;
   }
 
-  //public void setNewPosition(int x, int y, int row, int col, int bounds) {
   public void setNewPosition(int row, int col, int bounds) {
-    //setPosition(x, y);
     setBoundary(bounds, row, col);
     goalx = -1;
     goaly = -1;
@@ -148,14 +144,13 @@ public class Player {
   /** Randomly finds a goal in a given boundary for player
    ** @return 0 on success and -1 when you cannot find any new goal
    **/
-  public int findGoal(GameMap[][] land) {
+  public int findGoal(GameMap[][] land, Random rand) {
     /* Try setting the goal for try count times
      * if not possible, then select a completely new goal
      */
     int trycount = (highx - lowx) + (highy - lowy);
     int i;
 
-    Random rand = new Random(0);
     for (i = 0; i < trycount; i++) {
       int row = (rand.nextInt(Math.abs(highx - lowx)) + 1) + lowx;
       int col = (rand.nextInt(Math.abs(highy - lowy)) + 1) + lowy;
