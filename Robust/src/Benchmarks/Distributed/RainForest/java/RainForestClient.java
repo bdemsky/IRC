@@ -28,10 +28,11 @@ public class RainForestClient {
     Random rand = new Random(seed);
     RainForestClient rfc = new RainForestClient();
     Socket sock = new Socket("dw-8.eecs.uci.edu",9002);
+    SocketInputStream si=new SocketInputStream(sock);
 
     /* Read player type from Server */
     byte b[] = new byte[1]; //read planter or lumber jack
-    String str1 = rfc.readFromSock(sock, b, 1);
+    String str1 = rfc.readFromSock(si, 1);
     String str = str1.subString(0, 1);
     int person;
     if(str.equalsIgnoreCase("L")) {
@@ -76,7 +77,7 @@ public class RainForestClient {
       //
       String rstr;
       while(true) {
-        rstr = rfc.readFromSock(sock, buf, 9);
+        rstr = rfc.readFromSock(si, 9);
         buf = rstr.getBytes();
         str1 = rstr.subString(0, 1);
 
@@ -99,7 +100,7 @@ public class RainForestClient {
       rfc.doOneMove(land, gamer, sock);
 
       //Receive ACK from server and do player updates
-      rstr = rfc.readFromSock(sock, b, 1);
+      rstr = rfc.readFromSock(si, 1);
       str1 = rstr.subString(0, 1);
 
       //
@@ -362,14 +363,14 @@ public class RainForestClient {
     return b;
   }
 
-  String readFromSock(Socket sock, byte[] buf, int maxBytes) {
-    int numbytes = 0;
-    String rstr = new String("");
-    while(numbytes < maxBytes) {
-      int nread = sock.read(buf);
-      numbytes += nread;
-      rstr = rstr.concat((new String(buf)).subString(0,nread));
-    }
-    return rstr;
+
+  /**
+   ** Repeated read until you get all bytes
+   **/
+  String readFromSock(SocketInputStream si, int maxBytes) {
+    byte []b=new byte[maxBytes];
+    if (si.readAll(b)<0)
+        System.out.println("Error\n");
+    return new String(b);
   }
 }

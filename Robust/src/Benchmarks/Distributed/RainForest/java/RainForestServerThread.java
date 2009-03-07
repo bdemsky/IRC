@@ -8,6 +8,7 @@
 public class RainForestServerThread extends Thread {
   GameMap[][] land;
   Socket sock;
+  SocketInputStream si;
   int rows;
   int cols;
   int id;
@@ -18,6 +19,7 @@ public class RainForestServerThread extends Thread {
     this.rows = rows;
     this.cols = cols;
     this.id = id;
+    this.si=new SocketInputStream(sock);
   }
 
   public void run() {
@@ -39,7 +41,7 @@ public class RainForestServerThread extends Thread {
 
     while(true) {
       /* Check for termination character */
-      String readStr = readFromSock(sock, buf, 5); 
+      String readStr = readFromSock(5); 
       String str1 = readStr.subString(0, 1);
 
       /* terminate if opcode sent is "t" */
@@ -65,7 +67,7 @@ public class RainForestServerThread extends Thread {
         sock.write(fillBytes(0, 0, buffer));
 
         /* Read client's move */
-        readStr = readFromSock(sock, buffer, 9);
+        readStr = readFromSock(9);
         str1 = readStr.subString(0, 1);
         buffer = readStr.getBytes();
 
@@ -234,17 +236,16 @@ public class RainForestServerThread extends Thread {
     //
   }
 
+
+
+
   /**
    ** Repeated read until you get all bytes
    **/
-  String readFromSock(Socket sock, byte[] buf, int maxBytes) {
-    int numbytes = 0;
-    String rstr = new String("");
-    while(numbytes < maxBytes) {
-      int nread = sock.read(buf);
-      numbytes += nread;
-      rstr = rstr.concat((new String(buf)).subString(0,nread));
-    }
-    return rstr;
+  String readFromSock(int maxBytes) {
+    byte []b=new byte[maxBytes];
+    if (si.readAll(b)<0)
+	System.out.println("Error\n");
+    return new String(b);
   }
 }
