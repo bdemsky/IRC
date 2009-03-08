@@ -128,6 +128,7 @@ perMcPrefetchList_t *processRemote(unsigned int oid,  short * offsetarray, int s
     //forward prefetch
     int machinenum = lhashSearch(oid);
     insertPrefetch(machinenum, oid, numoffset, offsetarray, &head);
+    return head;
   } else {
     sendOidFound(header, oid, sd);
   }
@@ -401,7 +402,7 @@ unsigned int getNextOid(objheader_t * header, short * offsetarray, unsigned int 
   int startindex= offsetarray[top+2];
   int currcount = dfsList[top+1];
   int range = GET_RANGE(offsetarray[top + 3]);
-  
+
   if(TYPE(header) > NUMCLASSES) {
     //Array case
     struct ArrayObject *ao = (struct ArrayObject *) (((char *)header) + sizeof(objheader_t));
