@@ -184,7 +184,6 @@ public class ReachabilitySet extends Canonical {
 	if( tts.equals( c.getSetToMatch() ) ) {
 	  rsOut.possibleReachabilities.add( c.getSetToAdd() );
 	  changeFound = true;
-	  break;
 	}
       }
 
