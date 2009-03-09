@@ -3,7 +3,8 @@
 #set -x
 MACHINELIST='dc-1.calit2.uci.edu dc-2.calit2.uci.edu dc-3.calit2.uci.edu dc-4.calit2.uci.edu dc-5.calit2.uci.edu dc-6.calit2.uci.edu dc-7.calit2.uci.edu dc-8.calit2.uci.edu'
 #benchmarks='40962dconv 1200mmver moldynverB'
-benchmarks='10lookup'
+#benchmarks='10lookup'
+benchmarks='rainforest'
 
 LOGDIR=~/research/Robust/src/Benchmarks/Prefetch/runlog
 TOPDIR=`pwd`
@@ -26,26 +27,35 @@ function run {
       let ct=$ct+1
     done
 
+    rm dstm.conf
+    DSTMDIR=${HOME}/research/Robust/src
     if [ $2 -eq 2 ]; then 
       arg=$ARGS2
+      ln -s ${DSTMDIR}/dstm_2.conf dstm.conf
     fi
     if [ $2 -eq 3 ]; then 
       arg=$ARGS3
+      ln -s ${DSTMDIR}/dstm_3.conf dstm.conf
     fi
     if [ $2 -eq 4 ]; then 
       arg=$ARGS4
+      ln -s ${DSTMDIR}/dstm_4.conf dstm.conf
     fi
     if [ $2 -eq 5 ]; then 
       arg=$ARGS5
+      ln -s ${DSTMDIR}/dstm_5.conf dstm.conf
     fi
     if [ $2 -eq 6 ]; then 
       arg=$ARGS6
+      ln -s ${DSTMDIR}/dstm_6.conf dstm.conf
     fi
     if [ $2 -eq 7 ]; then 
       arg=$ARGS7
+      ln -s ${DSTMDIR}/dstm_7.conf dstm.conf
     fi
     if [ $2 -eq 8 ]; then 
       arg=$ARGS8
+      ln -s ${DSTMDIR}/dstm_8.conf dstm.conf
     fi
     chmod +x ~/.tmpvars
     for machine in `echo $MACHINES`
@@ -98,6 +108,11 @@ function localrun {
 #   i=`expr $i + 1`
 # done
   i=0;
+
+  DSTMDIR=${HOME}/research/Robust/src
+  rm dstm.conf
+  ln -s ${DSTMDIR}/dstm_1.conf dstm.conf
+
   while [ $i -lt $1 ]; do
     /usr/bin/time -f "%e" ./${NONPREFETCH_NONCACHE} master $ARGS1 2> ${LOGDIR}/tmp
     cat ${LOGDIR}/tmp >> ${LOGDIR}/${NONPREFETCH_NONCACHE}_local_${EXTENSION}.txt
@@ -137,7 +152,7 @@ run 1 $count $NONPREFETCH
 echo "------- Running $count threads $BMDIR prefetch on $count machines -----"
 run 1 $count $PREFETCH
 echo "------- Running $count threads $BMDIR manual prefetch on $count machines -----"
-run 1 $count $MANUAL_PREFETCH
+#run 1 $count $MANUAL_PREFETCH
 done
 
 cd $TOPDIR
@@ -205,7 +220,7 @@ do
   callmicrorun
   else
   callrun
-  callrunjavasingle
+  #callrunjavasingle
   fi
 done
 
