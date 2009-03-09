@@ -203,10 +203,17 @@ transstart:
 
 #ifdef THREADS
 void CALL01(___Thread______nativeJoin____, struct ___Thread___ * ___this___) {
+#ifdef PRECISE_GC
+    struct listitem *tmp=stopforgc((struct garbagelist *)___params___);
+#endif
   pthread_mutex_lock(&joinlock);
   while(!VAR(___this___)->___finished___)
     pthread_cond_wait(&joincond, &joinlock);
   pthread_mutex_unlock(&joinlock);
+#ifdef PRECISE_GC
+    restartaftergc(tmp);
+#endif
+
 }
 
 void CALL01(___Thread______nativeCreate____, struct ___Thread___ * ___this___) {
