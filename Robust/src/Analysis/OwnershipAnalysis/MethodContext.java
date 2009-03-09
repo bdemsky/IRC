@@ -69,11 +69,14 @@ public class MethodContext {
   public String toString() {
     if( descMethodOrTask instanceof TaskDescriptor ) {
       return descMethodOrTask.getSymbol()+
-	descMethodOrTask.getNum()+
-	getAliasString();
+	     descMethodOrTask.getNum()+
+	     getAliasString();
+
     } else {
       MethodDescriptor md = (MethodDescriptor) descMethodOrTask;
-      return md.getClassMethodName();
+      return md.getClassMethodName()+
+	     md.getNum()+
+	     getAliasString();
     }
   }
 }
