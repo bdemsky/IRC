@@ -2,17 +2,18 @@
 #define COLUMN              100  /* rows of in the map */
 
 public class RainForestServerExample {
-  private int numThreads;
+  /**
+   ** Number of threads
+   **/
+  int numThreads;
 
   public RainForestServerExample() {
 
   }
 
   public static int main(String args[]) {
-    int numThreads;
-    if(args.length>0) {
-      numThreads = Integer.parseInt(args[0]);
-    }
+    RainForestServerExample rfe = new RainForestServerExample();
+    RainForestServerExample.parseCmdLine(args, rfe);
 
     /**
      * Create shared Map 
@@ -35,7 +36,7 @@ public class RainForestServerExample {
     }
 
     ServerSocket ss = new ServerSocket(9002);
-    acceptConnection(ss, world, numThreads);
+    acceptConnection(ss, world, rfe.numThreads);
   }
 
   public static void acceptConnection(ServerSocket ss, GameMap[][] world, int numThreads) {

@@ -12,13 +12,13 @@ SRC=tmp${MAINCLASS}.java \
 
 FLAGS1=-dsm -optimize -mainclass ${MAINCLASS}
 FLAGS2=-dsm -dsmcaching -optimize -mainclass ${MAINCLASS}
-FLAGS3=-dsm -dsmcaching -prefetch -optimize -mainclass ${MAINCLASS} -trueprob 0.90
+FLAGS3=-dsm -dsmcaching -prefetch -optimize -mainclass ${MAINCLASS} -excprefetch BarrierServer.updateAge -excprefetch RainForest.main -excprefetch GameMap.hasRock -excprefetch GameMap.hasTree -trueprob 0.90
 
 default:
 	cpp ${MAINCLASS}.java > tmp1${MAINCLASS}.java
 	./extractLines
 	../../../../buildscript ${FLAGS1} -o ${MAINCLASS}NPNC ${SRC}
-	../../../../buildscript ${FLAGS2} -o ${MAINCLASS}NPC ${SRC1}
+	../../../../buildscript ${FLAGS2} -o ${MAINCLASS}NPC ${SRC}
 	../../../../buildscript ${FLAGS3} -o ${MAINCLASS}N ${SRC}
 
 clean:

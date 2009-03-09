@@ -72,7 +72,7 @@ function runjvm {
   done
 }
 
-exec < bm_jargs.txt
+exec < bm_args.txt
 while read line
 do
   BM_NAME=`echo $line | cut -f1 -d":"`

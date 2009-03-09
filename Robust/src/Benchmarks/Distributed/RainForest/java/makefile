@@ -19,8 +19,8 @@ SRC1=tmp${MAINCLASS2}.java \
 	AStarPathFinder.java \
 	BarrierNonDSM.java
 
-FLAGS1= -thread -nooptimize -debug -mainclass ${MAINCLASS1}
-FLAGS2= -thread -nooptimize -debug -mainclass ${MAINCLASS2}
+FLAGS1= -thread -optimize -mainclass ${MAINCLASS1}
+FLAGS2= -thread -optimize -mainclass ${MAINCLASS2}
 
 default:
 	  cpp RainForestServerExample.java > tmp1RainForestServerExample.java

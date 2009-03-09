@@ -20,14 +20,18 @@ public class LookUpClient {
    **/
   private int nLookUp;
 
+
+  private int seed;
+
   public LookUpClient() {
   }
 
-  public LookUpClient(int numtrans, int nobjs, int rdprob, int nLookUp) {
+  public LookUpClient(int numtrans, int nobjs, int rdprob, int nLookUp, int seed) {
     this.numtrans = numtrans;
     this.nobjs = nobjs;
     this.rdprob = rdprob;
     this.nLookUp = nLookUp;
+    this.seed = seed;
   }
 
   public static void main(String[] args) {
@@ -35,8 +39,8 @@ public class LookUpClient {
     LookUpClient.parseCmdLine(args, lc);
 
     Socket sock = new Socket("dc-1.calit2.uci.edu",9001);
-    Random rand = new Random(0);
-
+    Random rand = new Random(lc.seed);
+    SocketInputStream sin = new SocketInputStream(sock);
 
     for (int i = 0; i < lc.numtrans; i++) {
       for (int j = 0; j < lc.nLookUp; j++) {
@@ -48,23 +52,24 @@ public class LookUpClient {
         } else {
           operation = 2;//update hashmap
         }
-        lc.doLookUp(operation, sock, rwkey);
+        lc.doLookUp(operation, sock, rwkey, sin);
       }
     }
     /** Special character to terminate computation **/
     String op = new String("t");
     sock.write(op.getBytes());
+    sock.close();
   }
 
   /**
    * Call to do a read/ write on socket
    **/
-  public void doLookUp(int operation, Socket sock, int key){
+  public void doLookUp(int operation, Socket sock, int key, SocketInputStream sin){
     String op;
     if (operation == 1) {
       sock.write(fillBytes(operation, key));
       byte b[] = new byte[4];
-      int numbytes = sock.read(b);
+      String str1 = readFromSock(sin, 4);
     } else {
       sock.write(fillBytes(operation, key));
     }
@@ -84,6 +89,10 @@ public class LookUpClient {
       int offset = (3-(i-1)) * 8;
       b[i] = (byte) ((key >> offset) & 0xFF);
     }
+    //
+    // Debug
+    // System.println("Sending b[0]= "+ (char) b[0]);
+    //
     return b;
   }
 
@@ -112,12 +121,16 @@ public class LookUpClient {
         if(i < args.length) {
           lc.nLookUp = new Integer(args[i++]).intValue();
         }
+      } else if(arg.equals("-seed")) {
+        if(i < args.length) {
+          lc.seed = new Integer(args[i++]).intValue();
+        }
       } else if(arg.equals("-h")) {
         lc.usage();
       }
     }
 
-    if(lc.nobjs == 0  || lc.numtrans == 0)
+    if(lc.nobjs == 0  || lc.numtrans == 0 || lc.nLookUp == 0)
       lc.usage();
   }
 
@@ -125,11 +138,27 @@ public class LookUpClient {
    * The usage routine which describes the program options.
    **/
   public void usage() {
-    System.printString("usage: ./Client.bin -nObjs <objects in hashmap> -nTrans <number of transactions> -probRead <read probability> -nLookUp <number of lookups>\n");
+    System.printString("usage: ./Client.bin -nObjs <objects in hashmap> -nTrans <number of transactions> -probRead <read probability> -nLookUp <number of lookups> -seed <seed value for Random variable>\n");
     System.printString("    -nObjs the number of objects to be inserted into distributed hashmap\n");
     System.printString("    -nTrans the number of transactions to run\n");
     System.printString("    -probRead the probability of read given a transaction\n");
     System.printString("    -nLookUp the number of lookups per transaction\n");
+    System.printString("    -seed the seed value for Random\n");
     System.printString("    -h help with usage\n");
+  }
+
+  /**
+   ** Repeated read until you get all bytes
+   **/
+  String readFromSock(SocketInputStream si, int maxBytes) {
+    byte []b=new byte[maxBytes];
+    int numbytes;
+    if ((numbytes = si.readAll(b))<0)
+      System.out.println("Error\n");
+    //
+    // Debug
+    // System.println("numbytes received= " +  numbytes);
+    //
+    return new String(b);
   }
 }

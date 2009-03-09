@@ -47,7 +47,10 @@ public class LookUpServerExample {
     for(int i=0; i<nthreads; i++) {
       lus[i].join();
     }
+
+    ss.close();
     System.println("Finished");
+    System.exit(0);
   }
 
   /**

@@ -15,18 +15,24 @@
 
 public class RainForestClient {
 
+  /**
+   ** The random seed
+   **/
+  int seed;
+
+  public RainForestClient(int seed) {
+    this.seed = seed;
+  }
+
   public RainForestClient() {
 
   }
 
   public static void main(String[] args) {
-    int seed;
-    if(args.length>0) {
-      seed = Integer.parseInt(args[0]);
-    }
-
-    Random rand = new Random(seed);
     RainForestClient rfc = new RainForestClient();
+    RainForestClient.parseCmdLine(args, rfc);
+
+    Random rand = new Random(rfc.seed);
     Socket sock = new Socket("dc-1.calit2.uci.edu",9002);
     SocketInputStream si=new SocketInputStream(sock);
 
@@ -405,5 +411,36 @@ public class RainForestClient {
     if (si.readAll(b)<0)
         System.out.println("Error\n");
     return new String(b);
+  }
+
+  /**
+   * Parse the command line options.
+   **/
+  public static void parseCmdLine(String args[], RainForestClient rfc) {
+    int i = 0;
+    String arg;
+    while(i < args.length && args[i].startsWith("-")) {
+      arg = args[i++];
+      //check options
+      if(arg.equals("-seed")) {
+        if(i < args.length) {
+          rfc.seed = new Integer(args[i++]).intValue();
+        }
+      } else if(arg.equals("-h")) {
+        rfc.usage();
+      }
+    }
+
+    if(rfc.seed <= 0)
+      rfc.usage();
+  }
+
+  /**
+   * The usage routine which describes the program options.
+   **/
+  public void usage() {
+    System.printString("usage: ./Client.bin -seed <seed value for Random variable>\n");
+    System.printString("    -seed the seed value for Random\n");
+    System.printString("    -h help with usage\n");
   }
 }

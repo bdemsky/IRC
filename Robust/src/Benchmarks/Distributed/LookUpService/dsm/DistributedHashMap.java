@@ -78,37 +78,13 @@ public class DistributedHashMap {
   Object get(Object key) {
     int hashcode=key.hashCode();
     int index1=hash1(hashcode, table.length);
-    /****** Add Manual Prefetch *****/
-    //table[index1].array
-    Object obj = table;
-    short[] offsets = new short[4];
-    offsets[0] = (short) index1;
-    offsets[1] = (short) 0;
-    offsets[2] = getoffset {DistributedHashEntry, array};
-    offsets[3] = (short) 0;
-    System.rangePrefetch(obj,offsets);
-    /********************************/
-
+    
     DistributedHashEntry dhe=table[index1];
     if (dhe==null)
       return null;
 
     int index2=hash2(hashcode, table.length, dhe.array.length);
-    /****** Add Manual Prefetch *****/
-    //dhe.array[index2].next(5).key
-    Object obj1 = dhe;
-    short[] offsets1 = new short[8];
-    offsets1[0] = getoffset {DistributedHashEntry, array};
-    offsets1[1] = (short) 0;
-    offsets1[2] = (short) index2;
-    offsets1[3] = (short) 0;
-    offsets1[4] = getoffset {DHashEntry, next};
-    offsets1[5] = (short) 5;
-    offsets1[6] = getoffset {DHashEntry, key};
-    offsets1[7] = (short) 0;
-    System.rangePrefetch(obj1, offsets1);
-    /********************************/
-
+    
     DHashEntry ptr=dhe.array[index2];
 
     while(ptr!=null) {
