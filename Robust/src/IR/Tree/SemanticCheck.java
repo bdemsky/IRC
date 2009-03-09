@@ -29,7 +29,6 @@ public class SemanticCheck {
     if (!completed.contains(cd)) {
       completed.add(cd);
       
-      //System.out.println("Checking class: "+cd);
       //Set superclass link up
       if (cd.getSuper()!=null) {
 	cd.setSuper(getClass(cd.getSuper()));
@@ -43,7 +42,6 @@ public class SemanticCheck {
       /* Check to see that fields are well typed */
       for(Iterator field_it=cd.getFields(); field_it.hasNext();) {
 	FieldDescriptor fd=(FieldDescriptor)field_it.next();
-	//System.out.println("Checking field: "+fd);
 	checkField(cd,fd);
       }
       
@@ -74,7 +72,9 @@ public class SemanticCheck {
       } else {
 	ClassDescriptor cd=(ClassDescriptor)obj;
 	toanalyze.remove(cd);
-	checkClass(cd);
+	//need to initialize typeutil object here...only place we can
+	//get class descriptors without first calling getclass
+	getClass(cd.getSymbol());
 	for(Iterator method_it=cd.getMethods(); method_it.hasNext();) {
 	  MethodDescriptor md=(MethodDescriptor)method_it.next();
 	  try {
@@ -558,30 +558,30 @@ public class SemanticCheck {
   }
 
   void checkOffsetNode(Descriptor md, SymbolTable nameTable, OffsetNode ofn, TypeDescriptor td) {
-    TypeDescriptor ltd = ofn.td;
-    //System.out.println("Testing TypeDescriptor ltd = " + ofn.td);
-    String fieldname = ofn.fieldname;
-    //System.out.println("Testing String fieldname = " + ofn.fieldname);
-    Descriptor d = (Descriptor) nameTable.get(fieldname);
-    //System.out.println("Testing Descriptor d = " + d.toString());
-
-    ClassDescriptor cd = null;
+    TypeDescriptor ltd=ofn.td;
     checkTypeDescriptor(ltd);
-    cd = ltd.getClassDesc();
-    ofn.setClassDesc(cd);
-    //System.out.println("Testing for ClassDescriptor cd = " + cd.toString());
-
+    
+    String fieldname = ofn.fieldname;
     FieldDescriptor fd=null;
     if (ltd.isArray()&&fieldname.equals("length")) {
       fd=FieldDescriptor.arrayLength;
     } else {
-      fd=(FieldDescriptor) cd.getFieldTable().get(fieldname);
+      fd=(FieldDescriptor) ltd.getClassDesc().getFieldTable().get(fieldname);
     }
-    //System.out.println("Testing for FieldDescriptor fd = " + fd.toString());
+
     ofn.setField(fd);
+    checkField(ltd.getClassDesc(), fd);
+
     if (fd==null)
       throw new Error("Unknown field "+fieldname + " in "+ofn.printNode(1)+" in "+md);
-    ofn.setType(td);
+
+    if (td!=null) {
+      if (!typeutil.isSuperorType(td, ofn.getType())) {
+	System.out.println(td);
+	System.out.println(ofn.getType());
+	throw new Error("Type of rside not compatible with type of lside"+ofn.printNode(0));
+      }
+    }
   }
 
 
