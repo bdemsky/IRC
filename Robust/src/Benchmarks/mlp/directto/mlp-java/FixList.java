@@ -38,6 +38,7 @@ public class FixList {
     }
     System.out.println("Fix not found - "+name);
     System.exit(-1);
+    return 0;
   }
 
   public /*static*/ Fix getFix(String name) {
@@ -48,6 +49,7 @@ public class FixList {
     }
     System.out.println("Fix not found - "+name);
     System.exit(-1);
+    return null;
   }
 
   public /*static*/ void printInfo() {

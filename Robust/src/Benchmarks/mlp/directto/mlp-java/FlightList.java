@@ -3,13 +3,10 @@
 //import java.util.*;
 
 public class FlightList {
-  private D2 d2;
-
   public /*static*/ int noFlights;
   public /*static*/ Vector f;
 
-  public FlightList( D2 d2 ) {
-    this.d2=d2;
+  public FlightList() {
     noFlights=0;
     f=new Vector(100);
   }
@@ -20,17 +17,17 @@ public class FlightList {
   }
   */
 
-  public /*static*/ void addFlightPlan(int time, StringTokenizer st) { 
-    Flight newFlight=disjoint flightAdd new Flight(d2, st.nextToken());
+    public /*static*/ void addFlightPlan(D2 d2, int time, StringTokenizer st) { 
+    Flight newFlight=disjoint flightAdd new Flight(st.nextToken());
     noFlights++;
     f.addElement(newFlight);
     FlightPlan fAux=new FlightPlan();
     Aircraft aAux=d2.getAircraftList().getAircraft(st.nextToken());      
     newFlight.setAircraftType(aAux);
     newFlight.setFlightType(st.nextToken());
-    Route rAux=new Route(d2, Integer.parseInt(st.nextToken()));
+    Route rAux=new Route(Integer.parseInt(st.nextToken()));
     for (int i=0;i<rAux.noFixes;i++)
-      rAux.addFix(i,st.nextToken());           
+      rAux.addFix(d2,i,st.nextToken());           
     fAux.setRoute(rAux);
     fAux.setCruiseParam(Double.parseDouble(st.nextToken()), Double.parseDouble(st.nextToken()));
     newFlight.setFlightPlan(fAux);
@@ -41,23 +38,23 @@ public class FlightList {
     return fAux.flightID;
   }
 
-  public /*static*/ void amendFlightPlan(int time, StringTokenizer st) {
+  public /*static*/ void amendFlightPlan(D2 d2, int time, StringTokenizer st) {
     Flight fAux=getFlight(st.nextToken());
-    Route rAux=new Route(d2, Integer.parseInt(st.nextToken()));    
+    Route rAux=new Route(Integer.parseInt(st.nextToken()));    
     for (int i=0;i<rAux.noFixes;i++)
-      rAux.addFix(i,st.nextToken());      
+      rAux.addFix(d2,i,st.nextToken());      
     fAux.fPlan.setRoute(rAux);
     fAux.fPlan.setCruiseParam(Double.parseDouble(st.nextToken()), Double.parseDouble(st.nextToken()));
   }
 
-  public /*static*/ void amendFlightInfo(int time, StringTokenizer st) {
+    public /*static*/ void amendFlightInfo(D2 d2, int time, StringTokenizer st) {
     Flight fAux=getFlight(st.nextToken());
     Aircraft aAux=d2.getAircraftList().getAircraft(st.nextToken());      
     fAux.setAircraftType(aAux);
     fAux.setFlightType(st.nextToken());
   }
 
-  public /*static*/ void sendingAircraft(int time, StringTokenizer st) {
+    public /*static*/ void sendingAircraft(D2 d2, int time, StringTokenizer st) {
     int noF=Integer.parseInt(st.nextToken());
     String id;
     Point4d pos;
@@ -85,7 +82,7 @@ public class FlightList {
 			 fAux.flightID+
 			 "; position: "+
 			 fAux.track.pos);
-      d2.getTrajectorySynthesizer().updateTrajectory(time, fAux);
+      d2.getTrajectorySynthesizer().updateTrajectory(d2, time, fAux);
       fAux.traject.printInfo();      
     }
   }  
@@ -105,6 +102,7 @@ public class FlightList {
     }
     System.out.println("Flight not found - "+id);
     System.exit(-1);
+    return null;
   }
 
   public /*static*/ boolean anyPlanesAlive() {

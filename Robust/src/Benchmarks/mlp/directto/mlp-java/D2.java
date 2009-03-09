@@ -20,11 +20,11 @@ public class D2 {
     singletonStatic                = new Static               ();
     singletonAircraftList	   = new AircraftList	      ();
     singletonFixList	       	   = new FixList	      ();
-    singletonAlgorithm	       	   = new Algorithm	      ( this );
-    singletonFlight                = new Flight               ( this, "" );
-    singletonFlightList	       	   = new FlightList	      ( this ); 
-    singletonMessageList	   = new MessageList	      ( this );
-    singletonTrajectorySynthesizer = new TrajectorySynthesizer( this );
+    singletonAlgorithm	       	   = new Algorithm	      ();
+    singletonFlight                = new Flight               ( "" );
+    singletonFlightList	       	   = new FlightList	      (); 
+    singletonMessageList	   = new MessageList	      ();
+    singletonTrajectorySynthesizer = new TrajectorySynthesizer();
   }
 
   public static void main(String arg[]) {
@@ -32,14 +32,14 @@ public class D2 {
 
     D2 d2 = new D2();
 
-    d2.rw=new ReadWrite( d2 );
-    d2.rw.read();
+    d2.rw=new ReadWrite();
+    d2.rw.read(d2);
 
-    d2.getMessageList().executeAll();
+    d2.getMessageList().executeAll(d2);
 	
     int count = 0;
     while( d2.getFlightList().anyPlanesAlive() ) {
-      d2.getAlgorithm().doIteration();
+      d2.getAlgorithm().doIteration(d2);
       
       count++;
       if( count % 10000 == 0 ) {
@@ -51,6 +51,6 @@ public class D2 {
       }
     }
 
-    d2.rw.write();
+    d2.rw.write(d2);
   }
 }

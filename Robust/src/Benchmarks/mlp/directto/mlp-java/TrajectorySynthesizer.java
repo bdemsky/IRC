@@ -8,8 +8,6 @@
 
 public class TrajectorySynthesizer {
   
-  D2 d2;
-
   private /*static*/ double horizTotalDist, currentDist;
   private /*static*/ Velocity currentVelocity;
   private /*static*/ Point4d currentPos;
@@ -22,17 +20,16 @@ public class TrajectorySynthesizer {
   private /*static*/ int limit() { return 200; }
 
 
-  public TrajectorySynthesizer( D2 d2 ) {
-    this.d2 = d2;
+  public TrajectorySynthesizer() {
     timeF=0;
   }
 
-  public /*static*/ Trajectory updateTrajectory (int time, Flight flight) {
+  public /*static*/ Trajectory updateTrajectory (D2 d2, int time, Flight flight) {
     Integer nTime=new Integer(time);
-    return updateTrajectory (nTime.doubleValue(), flight);
+    return updateTrajectory (d2, nTime.doubleValue(), flight);
   }
 
-  public /*static*/ Trajectory updateTrajectory (double time, Flight flight) {
+    public /*static*/ Trajectory updateTrajectory (D2 d2, double time, Flight flight) {
     System.out.println("Updating trajectory for "+flight.flightID);
     int i;
     setInitialParameters(flight);

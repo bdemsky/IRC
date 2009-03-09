@@ -5,13 +5,10 @@
 //import java.util.*;
 
 public class ReadWrite {
-  D2 d2;
 
-  public ReadWrite( D2 d2 ) {
-    this.d2 = d2;
-  }
+  public ReadWrite() {}
 
-  public void read() {
+  public void read(D2 d2) {
     FileInputStream in = new FileInputStream( "input4.txt" );
 
     while(true) {
@@ -28,7 +25,7 @@ public class ReadWrite {
     System.out.println("Data set read");
   }   
 
-  public void write() {
+  public void write(D2 d2) {
     d2.getStatic().printInfo();
     d2.getFixList().printInfo();
     d2.getAircraftList().printInfo();	

@@ -1,8 +1,6 @@
 // the class that describes a flight
 
 public class Flight /*implements Cloneable*/ {
-  
-  private D2 d2;
 
   public String flightID;  // the flight id
   public int trialStatus; // 
@@ -16,8 +14,7 @@ public class Flight /*implements Cloneable*/ {
   public static int realFlightStatus(){ return -1;}
   public static int trialFlightStatus(){ return 1;}  
 
-  public Flight(D2 d2, String id) {
-    this.d2=d2;
+  public Flight(String id) {
     this.flightID=id;
     this.trialStatus=realFlightStatus();
   }
@@ -38,8 +35,8 @@ public class Flight /*implements Cloneable*/ {
     fPlan=fp;
   }
     
-  public void updateTrajectory(double time) {
-    d2.getTrajectorySynthesizer().updateTrajectory(time, this);
+  public void updateTrajectory(D2 d2, double time) {
+    d2.getTrajectorySynthesizer().updateTrajectory(d2, time, this);
   }
 
   public boolean hasID (String id) {
@@ -50,8 +47,8 @@ public class Flight /*implements Cloneable*/ {
     return (flightType.compareTo(flType)==0);
   }
 
-  public static Flight copyOf( D2 d2, Flight f) {
-    Flight fNew       = disjoint flightCopy new Flight(d2, f.flightID);
+  public static Flight copyOf(Flight f) {
+    Flight fNew       = disjoint flightCopy new Flight(f.flightID);
     fNew.trialStatus  = f.trialStatus;
     fNew.aircraftType = f.aircraftType;
     fNew.track        = f.track;

@@ -5,19 +5,16 @@
 
 public class Route {
 
-  D2 d2;
   public int noFixes,current;
   public Vector fixes;
 
-  Route(D2 d2, int no) {
-    this.d2=d2;
+  Route(int no) {
     noFixes=no;
     current=0;
     fixes=new Vector(noFixes);
   }
 
-  Route(D2 d2, int no, int cur) {
-    this.d2=d2;
+  Route(int no, int cur) {
     noFixes=no;
     current=cur;
     fixes=new Vector(noFixes);
@@ -27,7 +24,7 @@ public class Route {
     fixes.insertElementAt(f, pos);
   }
 
-  public void addFix (int pos, String name) {
+  public void addFix (D2 d2, int pos, String name) {
     addFix(pos, (Fix) d2.getFixList().getFix(name) );
   }
 

@@ -2,11 +2,9 @@
 //import java.util.*;
 
 public class MessageList {
-  private D2 d2;
   private Vector messages;
     
-  public MessageList( D2 d2 ) { 
-    this.d2 = d2; 
+  public MessageList() { 
     messages=new Vector();
   }
 
@@ -25,7 +23,7 @@ public class MessageList {
   }
 
   //is true for DO_WORK
-  public boolean setMessage(String line) {	
+    public boolean setMessage(String line) {	
     if (line.equals(""))
       return false;
 
@@ -38,7 +36,7 @@ public class MessageList {
     StringTokenizer st=new StringTokenizer(line);
     int time=Integer.parseInt(st.nextToken());
     String type=st.nextToken();	
-    Message newMessage=disjoint msgs new Message(d2,time,type,st);
+    Message newMessage=disjoint msgs new Message(time,type,st);
     messages.addElement(newMessage);
     if (type.equals("DO_WORK"))
       return true;
@@ -46,10 +44,10 @@ public class MessageList {
     return false;
   }
   
-  public void executeAll() {
+  public void executeAll(D2 d2) {
     System.out.println("executeAll: we have "+messages.size()+" messages.");
     while(hasNext())
-      next().executeMessage();     
+      next().executeMessage(d2);     
     d2.getStatic().printInfo();
     d2.getFixList().printInfo();
     d2.getAircraftList().printInfo();	

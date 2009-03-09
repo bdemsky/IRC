@@ -1,27 +1,23 @@
 //import java.util.*;
 
 public class Message {
-
-  D2 d2;
   int time;
   String type;
   StringTokenizer parameters;
 
-  public Message(D2 d2, int time, String type, StringTokenizer parameters) {
-    this.d2=d2;
+  public Message(int time, String type, StringTokenizer parameters) {
     this.time=time;
     this.type=type;
     this.parameters=parameters;
   }
 
   public Message(Message m) {
-    this.d2=m.d2;
     this.time=m.time;
     this.type=m.type;
     this.parameters=m.parameters;
   }
 
-  public void executeMessage() {
+  public void executeMessage(D2 d2) {
     System.out.println("Executing message of type "+type);
 
     //static messages
@@ -64,7 +60,7 @@ public class Message {
 
     if (type.compareTo("ADD_FLIGHT_PLAN")==0) {
       System.out.println("Adding flight plan...");
-      d2.getFlightList().addFlightPlan(time,parameters);		
+      d2.getFlightList().addFlightPlan(d2,time,parameters);		
     }
     else if (type.compareTo("REMOVE_FLIGHT_PLAN")==0) {
       System.out.println("Removing flight plan...");
@@ -72,15 +68,15 @@ public class Message {
     }
     else if (type.compareTo("AMEND_FLIGHT_INFO")==0) {
       System.out.println("Amending flight info...");
-      d2.getFlightList().amendFlightInfo(time,parameters);
+      d2.getFlightList().amendFlightInfo(d2, time,parameters);
     }		    
     else if (type.compareTo("AMEND_FLIGHT_PLAN")==0) {
       System.out.println("Amending flight plan...");
-      d2.getFlightList().amendFlightPlan(time,parameters);	       
+      d2.getFlightList().amendFlightPlan(d2, time,parameters);	       
     }
     else if (type.compareTo("SENDING_AIRCRAFT")==0) {
       System.out.println("Sending aircraft data...");
-      d2.getFlightList().sendingAircraft(time,parameters);
+      d2.getFlightList().sendingAircraft(d2, time,parameters);
     }
   }
 }

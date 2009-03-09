@@ -1,7 +1,7 @@
-MAIN_CLASS=D2
+MAIN_CLASS=D2 #smalltest
 
 PROGRAM=test
-SOURCE_FILES=*.java
+SOURCE_FILES=D2.java #smalltest.java
 
 BUILDSCRIPT=~/research/Robust/src/buildscript
 BSFLAGS= -debug -nooptimize -mainclass $(MAIN_CLASS) -justanalyze -ownership -ownallocdepth 1 -ownwritedots final -ownaliasfile aliases.txt -enable-assertions

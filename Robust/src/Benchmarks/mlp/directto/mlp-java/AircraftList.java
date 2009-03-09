@@ -25,6 +25,7 @@ public class AircraftList {
 
     System.out.println("Aircraft not found - "+name);
     System.exit(-1);
+    return null;
   }
 
   public int getAircraftIndex(String name) {
@@ -36,6 +37,7 @@ public class AircraftList {
 
     System.out.println("Aircraft not found - "+name);
     System.exit(-1);
+    return 0;
   }
 
   public void printInfo() {
