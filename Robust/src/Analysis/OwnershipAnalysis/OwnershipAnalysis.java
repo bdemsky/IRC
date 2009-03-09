@@ -273,6 +273,7 @@ public class OwnershipAnalysis {
 
   // special field descriptors for array elements
   private Hashtable<TypeDescriptor, FieldDescriptor> mapTypeToArrayField;
+  public static final String arrayElementFieldName = "___element_";
 
   // special field descriptors for variables with type, no field name
   private Hashtable<TypeDescriptor, FieldDescriptor> mapTypeToVarField;
@@ -495,6 +496,7 @@ public class OwnershipAnalysis {
 	if( d instanceof MethodDescriptor ) {
 	  MethodDescriptor md = (MethodDescriptor) d;
 	  Set dependents = callGraph.getCallerSet(md);
+	    
 	  if( dependents != null ) {
 	    Iterator depItr = dependents.iterator();
 	    while( depItr.hasNext() ) {
@@ -506,7 +508,8 @@ public class OwnershipAnalysis {
 		
 		Iterator<MethodContext> itrmc = mcs.iterator();
 		while( itrmc.hasNext() ) {
-		  methodContextsToVisit.add( itrmc.next() );
+		  MethodContext methodcontext=itrmc.next();
+		  methodContextsToVisit.add( methodcontext );
 		}
 	      }
 	    }
@@ -567,8 +570,9 @@ public class OwnershipAnalysis {
                            returnNodesToCombineForCompleteOwnershipGraph,
                            og);
 
+      
       /*
-      if( mc.getDescriptor().getSymbol().equals( "addFlightPlan" ) ) {
+      if( mc.getDescriptor().getSymbol().equals( "main" ) ) {
 	debugSnapshot(og,fn);
       }
       */
@@ -653,8 +657,7 @@ public class OwnershipAnalysis {
 					      paramIndex );	    
 	  } else {
 	    // this parameter is not aliased to others, give it
-	    // a fresh parameter heap region
-	    
+	    // a fresh parameter heap region	    
 	    og.assignTempEqualToParamAlloc(tdParam,
 					   mc.getDescriptor() instanceof TaskDescriptor,
 					   paramIndex );
@@ -685,6 +688,7 @@ public class OwnershipAnalysis {
       FlatCastNode fcn = (FlatCastNode) fn;
       lhs = fcn.getDst();
       rhs = fcn.getSrc();
+
       TypeDescriptor td = fcn.getType();
       assert td != null;
 
@@ -735,7 +739,7 @@ public class OwnershipAnalysis {
 	if( fdElement == null ) {
 	  fdElement = new FieldDescriptor(new Modifiers(Modifiers.PUBLIC),
 					  tdElement,
-					  "_element",
+					  arrayElementFieldName,
 					  null,
 					  false);
 	  mapTypeToArrayField.put( tdElement, fdElement );
@@ -759,7 +763,7 @@ public class OwnershipAnalysis {
 	if( fdElement == null ) {
 	  fdElement = new FieldDescriptor(new Modifiers(Modifiers.PUBLIC),
 					  tdElement,
-					  "_element",
+					  arrayElementFieldName,
 					  null,
 					  false);
 	  mapTypeToArrayField.put( tdElement, fdElement );
@@ -790,7 +794,12 @@ public class OwnershipAnalysis {
 
 	Set<Integer> aliasedParamIndices = 
 	  ogMergeOfAllPossibleCalleeResults.calculateAliasedParamSet(fc, md.isStatic(), flatm);
-	MethodContext mcNew = new MethodContext( md, aliasedParamIndices );      
+
+	MethodContext mcNew = new MethodContext( md, aliasedParamIndices );
+	Set contexts = mapDescriptorToAllMethodContexts.get( md );
+	assert contexts != null;
+	contexts.add( mcNew );
+
 	OwnershipGraph onlyPossibleCallee = mapMethodContextToCompleteOwnershipGraph.get( mcNew );
 
 	if( onlyPossibleCallee == null ) {
@@ -799,7 +808,7 @@ public class OwnershipAnalysis {
 	  methodContextsToVisit.add( mcNew );
 	  
 	} else {
-	  ogMergeOfAllPossibleCalleeResults.resolveMethodCall(fc, md.isStatic(), flatm, onlyPossibleCallee);
+	  ogMergeOfAllPossibleCalleeResults.resolveMethodCall(fc, md.isStatic(), flatm, onlyPossibleCallee, mc);
 	}
 
       } else {
@@ -821,7 +830,12 @@ public class OwnershipAnalysis {
 
 	  Set<Integer> aliasedParamIndices = 
 	    ogCopy.calculateAliasedParamSet(fc, possibleMd.isStatic(), pflatm);
+
 	  MethodContext mcNew = new MethodContext( possibleMd, aliasedParamIndices );
+	  Set contexts = mapDescriptorToAllMethodContexts.get( md );
+	  assert contexts != null;
+	  contexts.add( mcNew );
+
 	  OwnershipGraph ogPotentialCallee = mapMethodContextToCompleteOwnershipGraph.get( mcNew );
 
 	  if( ogPotentialCallee == null ) {
@@ -830,7 +844,7 @@ public class OwnershipAnalysis {
 	    methodContextsToVisit.add( mcNew );
 	    
 	  } else {
-	    ogCopy.resolveMethodCall(fc, possibleMd.isStatic(), pflatm, ogPotentialCallee);
+	    ogCopy.resolveMethodCall(fc, possibleMd.isStatic(), pflatm, ogPotentialCallee, mc);
 	  }
 
 	  ogMergeOfAllPossibleCalleeResults.merge(ogCopy);
