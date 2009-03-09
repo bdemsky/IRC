@@ -205,16 +205,8 @@ public class BuildFlat {
   }
 
   private NodePair flattenOffsetNode(OffsetNode ofn, TempDescriptor out_temp) {
-    FlatLiteralNode fln = new FlatLiteralNode(ofn.getType(), ofn, out_temp);
+    FlatOffsetNode fln = new FlatOffsetNode(ofn.getClassType(), ofn.getField(), out_temp);
     return new NodePair(fln, fln);
-    /* Another possible approach
-       ClassDescriptor cd = ofn.getClassDesc();
-       FieldDescriptor fd = ofn.getField();
-       FlatOffsetNode fon = new FlatOffsetNode(fd, cd, out_temp);
-       TypeDescriptor type=new TypeDescriptor(ofn.getType());
-       System.out.println("TempDescriptor out_temp = " + out_temp.toString() + "Type of out_temp = " + out_temp.getType());
-       return new NodePair(fon, fon);
-     */
   }
 
   private NodePair flattenCreateObjectNode(CreateObjectNode con,TempDescriptor out_temp) {

@@ -292,6 +292,7 @@ NextMethod:
   }
 
   private boolean isSuper(ClassDescriptor possiblesuper, ClassDescriptor cd2) {
+
     while(cd2!=null) {
       cd2=getSuper(cd2);
       if (cd2==possiblesuper)

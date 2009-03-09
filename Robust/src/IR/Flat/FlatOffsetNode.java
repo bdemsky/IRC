@@ -1,28 +1,28 @@
 package IR.Flat;
-import IR.ClassDescriptor;
+import IR.TypeDescriptor;
 import IR.FieldDescriptor;
 
 public class FlatOffsetNode extends FlatNode {
-  TempDescriptor dest;
-  ClassDescriptor cd;
+  TempDescriptor dst;
   FieldDescriptor field;
+  TypeDescriptor baseclass;
 
-  public FlatOffsetNode(FieldDescriptor field, ClassDescriptor cd, TempDescriptor dest) {
-    this.cd = cd;
+  public FlatOffsetNode(TypeDescriptor classtype, FieldDescriptor field, TempDescriptor dst) {
+    this.baseclass=classtype;
     this.field = field;
-    this.dest = dest;
+    this.dst = dst;
+  }
+
+  public TypeDescriptor getClassType() {
+    return baseclass;
   }
 
   public FieldDescriptor getField() {
     return field;
   }
 
-  public ClassDescriptor getClassDesc() {
-    return cd;
-  }
-
   public String toString() {
-    return "FlatOffsetNode_"+ dest.toString()+"="+"{ "+ cd.toString()+", "+field.getSymbol()+" }";
+    return "FlatOffsetNode_"+ dst.toString()+"="+"{ "+ field.getSymbol()+" }";
   }
 
   public int kind() {
@@ -30,6 +30,10 @@ public class FlatOffsetNode extends FlatNode {
   }
 
   public TempDescriptor getDst() {
-    return dest;
+    return dst;
+  }
+
+  public TempDescriptor [] writesTemps() {
+    return new TempDescriptor[] {dst};
   }
 }

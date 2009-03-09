@@ -419,7 +419,7 @@ public class SemanticCheck {
       return;
 
     case Kind.OffsetNode:
-      checkOffsetNode(md, nametable, (OffsetNode)en, new TypeDescriptor(TypeDescriptor.OFFSET));
+      checkOffsetNode(md, nametable, (OffsetNode)en, td);
       return;
 
     case Kind.TertiaryNode:

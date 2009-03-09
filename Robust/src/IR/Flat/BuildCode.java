@@ -1605,11 +1605,9 @@ public class BuildCode {
 
   public void generateFlatOffsetNode(FlatMethod fm, LocalityBinding lb, FlatOffsetNode fofn, PrintWriter output) {
     output.println("/* FlatOffsetNode */");
-    ClassDescriptor cn = fofn.getClassDesc();
-    FieldDescriptor fd = fofn.getField();
-    System.out.println("ClassDescriptor cn =" + cn.toString() + " FieldDescriptor fd =" + fd.toString());
-    System.out.println("TempDescriptor td =" + fofn.getDst().toString() + "Type of TempDescriptor =" + fofn.getDst().getType());
-    output.println("((struct "+cn.getSafeSymbol() +" *)0)->"+ fd.getSafeSymbol()+";");
+    FieldDescriptor fd=fofn.getField();
+    output.println(generateTemp(fm, fofn.getDst(),lb)+ " = (short) (&((struct "+fofn.getClassType().getSafeSymbol() +" *)0)->"+ fd.getSafeSymbol()+");");
+    output.println("/* offset */");
   }
 
   public void generateFlatPrefetchNode(FlatMethod fm, LocalityBinding lb, FlatPrefetchNode fpn, PrintWriter output) {
@@ -2368,16 +2366,6 @@ public class BuildCode {
   }
 
   private void generateFlatLiteralNode(FlatMethod fm, LocalityBinding lb, FlatLiteralNode fln, PrintWriter output) {
-    if (fln.getType().isOffset()) {
-      if (fln.getValue() instanceof OffsetNode) {
-	OffsetNode ofn = (OffsetNode) fln.getValue();
-	output.println(generateTemp(fm, fln.getDst(),lb)+
-	               " = (short) (&((struct "+ofn.getClassDesc().getSafeSymbol() +" *)0)->"+
-	               ofn.getField().getSafeSymbol()+");");
-      }
-      output.println("/* offset */");
-      return;
-    }
     if (fln.getValue()==null)
       output.println(generateTemp(fm, fln.getDst(),lb)+"=0;");
     else if (fln.getType().getSymbol().equals(TypeUtil.StringClass)) {

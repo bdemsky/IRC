@@ -26,8 +26,8 @@ public class OffsetNode extends ExpressionNode {
     return fd;
   }
 
-  public ClassDescriptor getClassDesc() {
-    return td.getClassDesc();
+  public TypeDescriptor getClassType() {
+    return td;
   }
 
   public TypeDescriptor getType() {
