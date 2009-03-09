@@ -324,7 +324,7 @@ public class OwnershipGraph {
       Iterator<ChangeTuple> itrC = C.iterator();
       while( itrC.hasNext() ) {
 	ChangeTuple c = itrC.next();
-	if( edgeE.getBeta().contains(c.getSetToMatch() ) ) {
+	if( edgeE.getBeta().contains( c.getSetToMatch() ) ) {
 	  //ReachabilitySet withChange = 
 	    //edgeE.getBeta().remove( c.getSetToMatch() ).union( c.getSetToAdd() );
 	    //edgeE.getBeta().union( c.getSetToAdd() );
@@ -1170,7 +1170,9 @@ public class OwnershipGraph {
   public void resolveMethodCall(FlatCall fc,
                                 boolean isStatic,
                                 FlatMethod fm,
-                                OwnershipGraph ogCallee) {
+                                OwnershipGraph ogCallee,
+				MethodContext mc // this is only included for identifying caller while debugging
+				) {
 
     // define rewrite rules and other structures to organize
     // data by parameter/argument index
@@ -1788,6 +1790,23 @@ public class OwnershipGraph {
 
     TypeDescriptor tdSrc = asSrc.getType();
     assert tdSrc != null;
+
+    if( tdSrc.isArray() ) {
+      FieldDescriptor fd = edge.getFieldDesc();
+      assert fd != null;
+
+      TypeDescriptor td = fd.getType();
+      assert td != null;
+
+      TypeDescriptor tdSrcDeref = tdSrc.dereference();
+      assert tdSrcDeref != null;
+
+      if( !typeUtil.isSuperorType( tdSrcDeref, td ) ) {
+	return false;
+      }
+
+      return fd.getSymbol().equals( OwnershipAnalysis.arrayElementFieldName );
+    }
 
     // if it's not a class, it doesn't have any fields to match
     if( !tdSrc.isClass() ) {
@@ -2891,6 +2910,7 @@ public class OwnershipGraph {
 
   public boolean hasPotentialAlias(AllocationSite as1, AllocationSite as2) {
 
+
     // get summary node 1's alpha
     Integer idSum1 = as1.getSummary();
     assert id2hrn.containsKey(idSum1);
@@ -3149,6 +3169,7 @@ public class OwnershipGraph {
 
 
     // useful for debugging
+    /*
     if( writeReferencers ) {
       OwnershipNode onRef  = null;
       Iterator refItr = hrn.iteratorToReferencers();
@@ -3164,6 +3185,7 @@ public class OwnershipGraph {
 	}
       }
     }
+    */
 
     Iterator<ReferenceEdge> childRegionsItr = hrn.iteratorToReferencees();
     while( childRegionsItr.hasNext() ) {
