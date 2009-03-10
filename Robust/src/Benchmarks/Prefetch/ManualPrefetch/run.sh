@@ -63,14 +63,15 @@ function run {
       echo ""
     done
     sleep 2
+    echo ${3}
 #   perl -x${TOPDIR} ${TOPDIR}/switch/fetch_stat.pl clear_stats settings=switch/clearsettings.txt
-    /usr/bin/time -f "%e" ./$3 master $arg 2> ${LOGDIR}/tmp
+    /usr/bin/time -f "%e" ./${3} master $arg 2> ${LOGDIR}/tmp
 #   perl -x${TOPDIR} ${TOPDIR}/switch/fetch_stat.pl settings=switch/settings.txt
-    cat ${LOGDIR}/tmp >> ${LOGDIR}/${2}Thrd_${3}_${EXTENSION}.txt
+    cat ${LOGDIR}/tmp >> ${LOGDIR}/${3}_${2}Thrd_${EXTENSION}.txt
     if [ $i -eq 0 ];then echo "<h3> Benchmark=${3} Thread=${2} Extension=${EXTENSION}</h3><br>" > ${LOGDIR}/${3}_${EXTENSION}_${2}Thrd_a.html  ;fi
     cat ${LOGDIR}/tmp >> ${LOGDIR}/${3}_${EXTENSION}_${2}Thrd_a.html
-#    echo "<a href=\"${2}Thrd_${3}_${EXTENSION}_${i}.html\">Network Stats</a><br>" >> ${LOGDIR}/${3}_${EXTENSION}_${2}Thrd_a.html
-#    mv ${TOPDIR}/html/dell.html ${LOGDIR}/${2}Thrd_${3}_${EXTENSION}_${i}.html
+#    echo "<a href=\"${3}_${2}Thrd_${EXTENSION}_${i}.html\">Network Stats</a><br>" >> ${LOGDIR}/${3}_${EXTENSION}_${2}Thrd_a.html
+#    mv ${TOPDIR}/html/dell.html ${LOGDIR}/${3}_${2}Thrd_${EXTENSION}_${i}.html
     echo "Terminating ... "
     for machine in `echo $MACHINES`
     do
@@ -121,19 +122,20 @@ function callrun {
   cd $BMDIR 
 
   echo "---------- Running local $BMDIR non-prefetch on 1 machine ---------- "
-  localrun 1
+  # localrun 1
 
 for count in 2 4 6 8
 do
 echo "------- Running $count threads $BMDIR manual prefetch on $count machines -----"
-run 1 $count $MANUAL_PREFETCH
+run 1 $count ${MANUAL_PREFETCH}
 done
 
 cd $TOPDIR
 }
 
 
-benchmarks='rainforest'
+#benchmarks='rainforest'
+benchmarks='moldynverB'
 echo "---------- Clean old files ---------- "
 rm runlog/*
 for b in `echo $benchmarks`
