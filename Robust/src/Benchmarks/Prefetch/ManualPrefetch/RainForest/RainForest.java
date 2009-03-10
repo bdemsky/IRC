@@ -66,7 +66,7 @@ public class RainForest extends Thread {
     maxValue = COLUMN -1;
     int col = (rand.nextInt(Math.abs(maxValue - minValue) + 1)) + minValue;
     //
-    //Add Manual Prefetches
+    //Add Manual Prefetches for this.land[lowx][lowy] to this.land[highx][highy]
     //
     // Quickly determine the boundaries for given row and column
     int lowx = row - BLOCK;
@@ -236,7 +236,7 @@ public class RainForest extends Thread {
           if (highy >= COLUMN-1) 
             highy = COLUMN-2;
           //
-          // Add Manual Prefetch
+          // Add Manual Prefetch for land[lowx][lowy] to land[highx][highy]
           //
           Object o1 = land;
           short[] offsets1 = new short[6];

@@ -12,6 +12,14 @@ public class Convolution extends Thread {
 
   public void run() {
 
+    int tempx0, tempy0, tempx1, tempy1;
+    atomic {
+      tempx0 = x0;
+      tempy0 = y0;
+      tempx1 = x1;
+      tempy1 = y1;  
+    }
+
     //
     //Prefetch this.img.inputImage[] the first 32 objects
     // Generates compiler error ???
@@ -21,7 +29,7 @@ public class Convolution extends Thread {
     offsets[1] = (short) 0;
     offsets[2] = getoffset{Image, inputImage};
     offsets[3] = (short) 0;
-    offsets[4] = (short) x0;
+    offsets[4] = (short) tempx0;
     offsets[5] = (short) 32;
     System.rangePrefetch(o, offsets);
 
@@ -33,7 +41,7 @@ public class Convolution extends Thread {
     offsets1[1] = (short) 0;
     offsets1[2] = getoffset{Image, outputImage};
     offsets1[3] = (short) 0;
-    offsets1[4] = (short) x0;
+    offsets1[4] = (short) tempx0;
     offsets1[5] = (short) 32;
     System.rangePrefetch(o1, offsets1);
 
