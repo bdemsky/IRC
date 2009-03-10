@@ -322,7 +322,7 @@ public class ReachabilitySet extends Canonical {
 
     int numDimensions = this.possibleReachabilities.size();
 
-    if( numDimensions > 1 ) {
+    if( numDimensions > 3 ) {
       // for problems that are too big, punt and use less
       // precise arity for reachability information
       TokenTupleSet ttsImprecise = new TokenTupleSet().makeCanonical();
