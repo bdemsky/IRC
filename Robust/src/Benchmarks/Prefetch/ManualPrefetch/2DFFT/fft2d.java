@@ -65,7 +65,7 @@ public class fft2d extends Thread {
 	//input of FFT
         if ((l&127)==0) {
 	    offsets2[0] = (short) l+x0; 
-	    if ((x1-l-x0)<128) {
+	    if ((l+x0+128)>= x1) {
 		int t=x1-l-x0-1;
 		if (t>0) {
 		    offsets2[1] = (short) t;
@@ -109,20 +109,32 @@ public class fft2d extends Thread {
       Object o1 = data2.dataRe;
       short[] offsets1 = new short[2];
       offsets1[0] = (short) start;
-      offsets1[1] = (short) (start - end - 1);
+      offsets1[1] = (short) 127;
       System.rangePrefetch(o1, offsets1);
 
-      // prefetch data2.dataIm[start -> end]
-      
       o1 = data2.dataIm;
-      offsets1[0] = (short) start; 
-      offsets1[1] = (short) (start - end - 1);
       System.rangePrefetch(o1, offsets1);
       /////////////////////
 
       transtempRe = data2.dataRe;
       transtempIm = data2.dataIm;
-      for (int j = start; j < end; j++) {
+      int l=64;
+      for (int j = start; j < end; j++,l++) {
+	  if ((l&127)==0) {
+	      offsets1[0]=(short) (l+start);
+	      if ((start+l+128)>=end) {
+		  int t=end-start-l-1;
+		  if (t>0) {
+		      offsets1[1]=(short)t;
+		      System.rangePrefetch(transtempRe, offsets1);
+		      System.rangePrefetch(transtempIm, offsets1);
+		  }
+	      } else {
+		  offsets1[1]=(short) 127;
+		  System.rangePrefetch(transtempRe, offsets1);
+		  System.rangePrefetch(transtempIm, offsets1);
+	      }
+	  }
 	//input of FFT
 	double inputRe[] = transtempRe[j]; //local array
 	double inputIm[] = transtempIm[j];
