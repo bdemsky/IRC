@@ -28,7 +28,7 @@ public class OwnershipAnalysis {
   }
 
 
-  public boolean createsPotentialAliases(Descriptor taskOrMethod,
+  public Set<HeapRegionNode> createsPotentialAliases(Descriptor taskOrMethod,
                                          int paramIndex1,
                                          int paramIndex2) {
 
@@ -37,7 +37,7 @@ public class OwnershipAnalysis {
     return og.hasPotentialAlias(paramIndex1, paramIndex2);
   }
 
-  public boolean createsPotentialAliases(Descriptor taskOrMethod,
+  public Set<HeapRegionNode> createsPotentialAliases(Descriptor taskOrMethod,
                                          int paramIndex,
                                          AllocationSite alloc) {
 
@@ -46,7 +46,7 @@ public class OwnershipAnalysis {
     return og.hasPotentialAlias(paramIndex, alloc);
   }
 
-  public boolean createsPotentialAliases(Descriptor taskOrMethod,
+  public Set<HeapRegionNode> createsPotentialAliases(Descriptor taskOrMethod,
                                          AllocationSite alloc,
                                          int paramIndex) {
 
@@ -55,7 +55,7 @@ public class OwnershipAnalysis {
     return og.hasPotentialAlias(paramIndex, alloc);
   }
 
-  public boolean createsPotentialAliases(Descriptor taskOrMethod,
+  public Set<HeapRegionNode> createsPotentialAliases(Descriptor taskOrMethod,
                                          AllocationSite alloc1,
                                          AllocationSite alloc2) {
 
@@ -86,6 +86,26 @@ public class OwnershipAnalysis {
   }
 
 
+  public String prettyPrintNodeSet( Set<HeapRegionNode> s ) {
+    String out = "{\n";
+
+    Iterator<HeapRegionNode> i = s.iterator();
+    while( i.hasNext() ) {
+      HeapRegionNode n = i.next();
+
+      AllocationSite as = n.getAllocationSite();
+      if( as == null ) {
+	out += "  "+n.toString()+",\n";
+      } else {
+	out += "  "+n.toString()+"-"+as.toStringVerbose()+",\n";
+      }
+    }
+
+    out += "}";
+    return out;
+  }
+
+
   // use the methods given above to check every possible alias
   // between task parameters and flagged allocation sites reachable
   // from the task
@@ -104,6 +124,8 @@ public class OwnershipAnalysis {
 
       HashSet<AllocationSite> allocSites = getFlaggedAllocationSitesReachableFromTask(td);
 
+      Set<HeapRegionNode> common;
+
       // for each task parameter, check for aliases with
       // other task parameters and every allocation site
       // reachable from this task
@@ -115,9 +137,11 @@ public class OwnershipAnalysis {
 	// for the ith parameter check for aliases to all
 	// higher numbered parameters
 	for( int j = i + 1; j < fm.numParameters(); ++j ) {
-	  if( createsPotentialAliases(td, i, j) ) {
+	  common = createsPotentialAliases(td, i, j);
+	  if( !common.isEmpty() ) {
 	    foundSomeAlias = true;
 	    bw.write("Potential alias between parameters "+i+" and "+j+".\n");
+	    bw.write(prettyPrintNodeSet( common )+"\n" );
 	  }
 	}
 
@@ -127,9 +151,11 @@ public class OwnershipAnalysis {
 	Iterator allocItr = allocSites.iterator();
 	while( allocItr.hasNext() ) {
 	  AllocationSite as = (AllocationSite) allocItr.next();
-	  if( createsPotentialAliases(td, i, as) ) {
+	  common = createsPotentialAliases(td, i, as);
+	  if( !common.isEmpty() ) {
 	    foundSomeAlias = true;
 	    bw.write("Potential alias between parameter "+i+" and "+as.getFlatNew()+".\n");
+	    bw.write(prettyPrintNodeSet( common )+"\n" );
 	  }
 	}
       }
@@ -145,11 +171,15 @@ public class OwnershipAnalysis {
 	Iterator allocItr2 = allocSites.iterator();
 	while( allocItr2.hasNext() ) {
 	  AllocationSite as2 = (AllocationSite) allocItr2.next();
+	  
+	  if( !outerChecked.contains(as2) ) {
+	    common = createsPotentialAliases(td, as1, as2);
 
-	  if( !outerChecked.contains(as2) &&
-	      createsPotentialAliases(td, as1, as2) ) {
-	    foundSomeAlias = true;
-	    bw.write("Potential alias between "+as1.getFlatNew()+" and "+as2.getFlatNew()+".\n");
+	    if( !common.isEmpty() ) {
+	      foundSomeAlias = true;
+	      bw.write("Potential alias between "+as1.getFlatNew()+" and "+as2.getFlatNew()+".\n");
+	      bw.write(prettyPrintNodeSet( common )+"\n" );
+	    }
 	  }
 	}
 
@@ -189,10 +219,14 @@ public class OwnershipAnalysis {
       while( allocItr2.hasNext() ) {
 	AllocationSite as2 = (AllocationSite) allocItr2.next();
 	
-	if( !outerChecked.contains(as2) &&
-	    createsPotentialAliases(d, as1, as2) ) {
-	  foundSomeAlias = true;
-	  bw.write("Potential alias between "+as1.getDisjointId()+" and "+as2.getDisjointId()+".\n");
+	if( !outerChecked.contains(as2) ) {	  
+	  Set<HeapRegionNode> common = createsPotentialAliases(d, as1, as2);
+
+	  if( !common.isEmpty() ) {
+	    foundSomeAlias = true;
+	    bw.write("Potential alias between "+as1.getDisjointId()+" and "+as2.getDisjointId()+".\n");
+	    bw.write( prettyPrintNodeSet( common )+"\n" );
+	  }
 	}
       }
       

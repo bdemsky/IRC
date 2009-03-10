@@ -17,6 +17,7 @@ import Analysis.TaskStateAnalysis.FlagState;
 import Analysis.TaskStateAnalysis.SafetyAnalysis;
 import Analysis.OwnershipAnalysis.AllocationSite;
 import Analysis.OwnershipAnalysis.OwnershipAnalysis;
+import Analysis.OwnershipAnalysis.HeapRegionNode;
 import Analysis.Prefetch.*;
 import IR.ClassDescriptor;
 import IR.Descriptor;
@@ -1328,12 +1329,14 @@ public class BuildCodeMultiCore extends BuildCode {
     Vector<Vector<FlatNew>> aliasFNSets = new Vector<Vector<FlatNew>>();
     Hashtable<Integer, Vector<FlatNew>> aliasFNTbl4Para = new Hashtable<Integer, Vector<FlatNew>>();
     Hashtable<FlatNew, Vector<FlatNew>> aliasFNTbl = new Hashtable<FlatNew, Vector<FlatNew>>();
+    Set<HeapRegionNode> common;
     for( int i = 0; i < fm.numParameters(); ++i ) {
       // for the ith parameter check for aliases to all
       // higher numbered parameters
       aliasSets.add(null);
       for( int j = i + 1; j < fm.numParameters(); ++j ) {
-	if(this.m_oa.createsPotentialAliases(td, i, j)) {
+	common = this.m_oa.createsPotentialAliases(td, i, j);
+	if(!common.isEmpty()) {
 	  // ith parameter and jth parameter has alias, create lock to protect them
 	  if(aliasSets.elementAt(i) == null) {
 	    aliasSets.setElementAt(new Vector<Integer>(), i);
@@ -1348,7 +1351,8 @@ public class BuildCodeMultiCore extends BuildCode {
       aliasFNSets.add(null);
       for(int j = 0; j < allocSites.length; j++) {
 	AllocationSite as = (AllocationSite)allocSites[j];
-	if( this.m_oa.createsPotentialAliases(td, i, as) ) {
+	common = this.m_oa.createsPotentialAliases(td, i, as);
+	if( !common.isEmpty() ) {
 	  // ith parameter and allocationsite as has alias
 	  if(aliasFNSets.elementAt(i) == null) {
 	    aliasFNSets.setElementAt(new Vector<FlatNew>(), i);
@@ -1366,7 +1370,8 @@ public class BuildCodeMultiCore extends BuildCode {
       for(int j = i + 1; j < allocSites.length; j++) {
 	AllocationSite as2 = (AllocationSite)allocSites[j];
 
-	if( this.m_oa.createsPotentialAliases(td, as1, as2) ) {
+	common = this.m_oa.createsPotentialAliases(td, as1, as2);
+	if( !common.isEmpty() ) {
 	  // as1 and as2 has alias
 	  if(!aliasFNTbl.containsKey(as1.getFlatNew())) {
 	    aliasFNTbl.put(as1.getFlatNew(), new Vector<FlatNew>());

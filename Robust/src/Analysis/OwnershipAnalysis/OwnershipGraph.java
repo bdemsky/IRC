@@ -2742,7 +2742,7 @@ public class OwnershipGraph {
   }
 
 
-  public boolean hasPotentialAlias( HeapRegionNode hrn1, HeapRegionNode hrn2 ) {
+  public Set<HeapRegionNode> hasPotentialAlias( HeapRegionNode hrn1, HeapRegionNode hrn2 ) {
     assert hrn1 != null;
     assert hrn2 != null;
 
@@ -2786,70 +2786,78 @@ public class OwnershipGraph {
       beta2 = beta2.union( edge.getBeta() );
     }
 
+    boolean aliasDetected = false;
+
     // only do this one if they are different tokens
     if( h1 != h2 &&
         beta1.containsTupleSetWithBoth(h1,     h2) ) {
-      return true;
+      aliasDetected = true;
     }
     if( beta1.containsTupleSetWithBoth(h1plus, h2) ) {
-      return true;
+      aliasDetected = true;
     }
     if( beta1.containsTupleSetWithBoth(h1star, h2) ) {
-      return true;
+      aliasDetected = true;
     }
     if( beta1.containsTupleSetWithBoth(h1,     h2plus) ) {
-      return true;
+      aliasDetected = true;
     }
     if( beta1.containsTupleSetWithBoth(h1plus, h2plus) ) {
-      return true;
+      aliasDetected = true;
     }
     if( beta1.containsTupleSetWithBoth(h1star, h2plus) ) {
-      return true;
+      aliasDetected = true;
     }
     if( beta1.containsTupleSetWithBoth(h1,     h2star) ) {
-      return true;
+      aliasDetected = true;
     }
     if( beta1.containsTupleSetWithBoth(h1plus, h2star) ) {
-      return true;
+      aliasDetected = true;
     }
     if( beta1.containsTupleSetWithBoth(h1star, h2star) ) {
-      return true;
+      aliasDetected = true;
     }
 
     if( h1 != h2 &&
 	beta2.containsTupleSetWithBoth(h1,     h2) ) {
-      return true;
+      aliasDetected = true;
     }
     if( beta2.containsTupleSetWithBoth(h1plus, h2) ) {
-      return true;
+      aliasDetected = true;
     }
     if( beta2.containsTupleSetWithBoth(h1star, h2) ) {
-      return true;
+      aliasDetected = true;
     }
     if( beta2.containsTupleSetWithBoth(h1,     h2plus) ) {
-      return true;
+      aliasDetected = true;
     }
     if( beta2.containsTupleSetWithBoth(h1plus, h2plus) ) {
-      return true;
+      aliasDetected = true;
     }
     if( beta2.containsTupleSetWithBoth(h1star, h2plus) ) {
-      return true;
+      aliasDetected = true;
     }
     if( beta2.containsTupleSetWithBoth(h1,     h2star) ) {
-      return true;
+      aliasDetected = true;
     }
     if( beta2.containsTupleSetWithBoth(h1plus, h2star) ) {
-      return true;
+      aliasDetected = true;
     }
     if( beta2.containsTupleSetWithBoth(h1star, h2star) ) {
-      return true;
+      aliasDetected = true;
     }
 
-    return false;    
+    Set<HeapRegionNode> common = new HashSet<HeapRegionNode>();
+    if( aliasDetected ) {
+      common = findCommonReachableNodes( hrn1, hrn2 );
+      assert !common.isEmpty();
+    }
+
+    return common;    
   }
 
 
-  public boolean hasPotentialAlias(Integer paramIndex1, Integer paramIndex2) {
+  public Set<HeapRegionNode> hasPotentialAlias(Integer paramIndex1, Integer paramIndex2) {
 
     // get parameter's heap region
     assert paramIndex2id.containsKey(paramIndex1);
@@ -2873,7 +2881,7 @@ public class OwnershipGraph {
   }
 
 
-  public boolean hasPotentialAlias(Integer paramIndex, AllocationSite as) {
+  public Set<HeapRegionNode> hasPotentialAlias(Integer paramIndex, AllocationSite as) {
 
     // get parameter's heap region
     assert paramIndex2id.containsKey(paramIndex);
@@ -2888,8 +2896,9 @@ public class OwnershipGraph {
     HeapRegionNode hrnSummary = id2hrn.get( as.getSummary() );
     assert hrnSummary != null;
 
-    if( hasPotentialAlias( hrnParam, hrnSummary ) ) {
-      return true;
+    Set<HeapRegionNode> common = hasPotentialAlias( hrnParam, hrnSummary );
+    if( !common.isEmpty() ) {
+      return common;
     }
 
     // check for other nodes
@@ -2899,17 +2908,17 @@ public class OwnershipGraph {
       HeapRegionNode hrnIthOldest = id2hrn.get( as.getIthOldest( i ) );
       assert hrnIthOldest != null;
 
-      if( hasPotentialAlias( hrnParam, hrnIthOldest ) ) {
-	return true;
+      common = hasPotentialAlias( hrnParam, hrnIthOldest );
+      if( !common.isEmpty() ) {
+	return common;
       }
     }
 
-    return false;    
+    return new HashSet<HeapRegionNode>();    
   }
 
 
-  public boolean hasPotentialAlias(AllocationSite as1, AllocationSite as2) {
-
+  public Set<HeapRegionNode> hasPotentialAlias(AllocationSite as1, AllocationSite as2) {
 
     // get summary node 1's alpha
     Integer idSum1 = as1.getSummary();
@@ -2923,8 +2932,9 @@ public class OwnershipGraph {
     HeapRegionNode hrnSum2 = id2hrn.get(idSum2);
     assert hrnSum2 != null;
 
-    if( hasPotentialAlias( hrnSum1, hrnSum2 ) ) {
-      return true;
+    Set<HeapRegionNode> common = hasPotentialAlias( hrnSum1, hrnSum2 );
+    if( !common.isEmpty() ) {
+      return common;
     }
 
     // check sum2 against alloc1 nodes
@@ -2934,8 +2944,9 @@ public class OwnershipGraph {
       HeapRegionNode hrnI1 = id2hrn.get(idI1);
       assert hrnI1 != null;
 
-      if( hasPotentialAlias( hrnI1, hrnSum2 ) ) {
-	return true;
+      common = hasPotentialAlias( hrnI1, hrnSum2 );
+      if( !common.isEmpty() ) {
+	return common;
       }
     }
 
@@ -2946,8 +2957,9 @@ public class OwnershipGraph {
       HeapRegionNode hrnI2 = id2hrn.get(idI2);
       assert hrnI2 != null;
 
-      if( hasPotentialAlias( hrnSum1, hrnI2 ) ) {
-	return true;
+      common = hasPotentialAlias( hrnSum1, hrnI2 );
+      if( common.isEmpty() ) {
+	return common;
       }
 
       // while we're at it, do an inner loop for alloc2 vs alloc1 nodes
@@ -2962,13 +2974,66 @@ public class OwnershipGraph {
 
 	HeapRegionNode hrnI1 = id2hrn.get(idI1);
 
-	if( hasPotentialAlias( hrnI1, hrnI2 ) ) {
-	  return true;
+	common = hasPotentialAlias( hrnI1, hrnI2 );
+	if( !common.isEmpty() ) {
+	  return common;
 	}
       }
     }
 
-    return false;
+    return new HashSet<HeapRegionNode>();
+  }
+
+
+  public Set<HeapRegionNode> findCommonReachableNodes( HeapRegionNode hrn1,
+						       HeapRegionNode hrn2 ) {
+
+    Set<HeapRegionNode> reachableNodes1 = new HashSet<HeapRegionNode>();
+    Set<HeapRegionNode> reachableNodes2 = new HashSet<HeapRegionNode>();
+
+    Set<HeapRegionNode> todoNodes1 = new HashSet<HeapRegionNode>();
+    todoNodes1.add( hrn1 );
+
+    Set<HeapRegionNode> todoNodes2 = new HashSet<HeapRegionNode>();   
+    todoNodes2.add( hrn2 );
+
+    // follow links until all reachable nodes have been found
+    while( !todoNodes1.isEmpty() ) {
+      HeapRegionNode hrn = todoNodes1.iterator().next();
+      todoNodes1.remove( hrn );
+      reachableNodes1.add(hrn);
+      
+      Iterator<ReferenceEdge> edgeItr = hrn.iteratorToReferencees();
+      while( edgeItr.hasNext() ) {
+	ReferenceEdge edge = edgeItr.next();
+	
+	if( !reachableNodes1.contains( edge.getDst() ) ) {
+	  todoNodes1.add( edge.getDst() );
+	}
+      }
+    }
+
+    while( !todoNodes2.isEmpty() ) {
+      HeapRegionNode hrn = todoNodes2.iterator().next();
+      todoNodes2.remove( hrn );
+      reachableNodes2.add(hrn);
+      
+      Iterator<ReferenceEdge> edgeItr = hrn.iteratorToReferencees();
+      while( edgeItr.hasNext() ) {
+	ReferenceEdge edge = edgeItr.next();
+	
+	if( !reachableNodes2.contains( edge.getDst() ) ) {
+	  todoNodes2.add( edge.getDst() );
+	}
+      }
+    }
+    
+    Set<HeapRegionNode> intersection = 
+      new HashSet<HeapRegionNode>( reachableNodes1 );
+
+    intersection.retainAll( reachableNodes2 );
+  
+    return intersection;
   }
 
 
