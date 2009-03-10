@@ -30,7 +30,7 @@ public class Convolution extends Thread {
     offsets[2] = getoffset{Image, inputImage};
     offsets[3] = (short) 0;
     offsets[4] = (short) tempx0;
-    offsets[5] = (short) 32;
+    offsets[5] = (short) 31;
     System.rangePrefetch(o, offsets);
 
     //Prefetch this.img.outputImage[] the first 32 objects 
@@ -42,7 +42,7 @@ public class Convolution extends Thread {
     offsets1[2] = getoffset{Image, outputImage};
     offsets1[3] = (short) 0;
     offsets1[4] = (short) tempx0;
-    offsets1[5] = (short) 32;
+    offsets1[5] = (short) 31;
     System.rangePrefetch(o1, offsets1);
 
     int kernelHeight=15;
@@ -70,27 +70,17 @@ public class Convolution extends Thread {
       double tinput13[] = tempinput[x0+12];
       double tinput14[] = tempinput[x0+13];
       double tinput0[] = tinput1;
+      short[] offsets2 = new short[2];
+	  
 
       int l=x0+14;
       for(int i=x0;i<x1;i++,l++){
         if((i&31) == 0) {  //prefetch every 16th iteration
           //Prefetch this.img.inputImage[] 
-          Object o2 = img;
-          short[] offsets2 = new short[4];
-          offsets2[0] = getoffset{Image, inputImage};
-          offsets2[1] = (short) 0;
-          offsets2[2] = (short) (i+32);
-          offsets2[3] = (short) 32;
-          System.rangePrefetch(o2, offsets2);
-
-          //Prefetch this.img.outputImage[] the first 32 objects 
-          Object o3 = img;
-          short[] offsets3 = new short[4];
-          offsets3[0] = getoffset{Image, outputImage};
-          offsets3[1] = (short) 0;
-          offsets3[2] = (short) (i+32);
-          offsets3[3] = (short) 32;
-          System.rangePrefetch(o3, offsets3);
+          offsets2[0] = (short) (i+32);
+          offsets2[1] = (short) 31;
+          System.rangePrefetch(tempinput, offsets2);
+          System.rangePrefetch(tempout, offsets2);
         }
 
         double tout[] = tempout[i];
