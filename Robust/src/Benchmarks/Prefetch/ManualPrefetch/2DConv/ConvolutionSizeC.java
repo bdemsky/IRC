@@ -73,7 +73,7 @@ public class Convolution extends Thread {
 
       int l=x0+14;
       for(int i=x0;i<x1;i++,l++){
-        if(i&31 == 0) {  //prefetch every 16th iteration
+        if((i&31) == 0) {  //prefetch every 16th iteration
           //Prefetch this.img.inputImage[] 
           Object o2 = img;
           short[] offsets2 = new short[4];
