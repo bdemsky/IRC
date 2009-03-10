@@ -31,7 +31,7 @@ public class MatrixMultiply extends Thread{
         offsets[0] = getoffset{MMul, c};
         offsets[1] = (short) 0;
         System.rangePrefetch(mmul, offsets);
-
+	short[] offsets2=new short[2];
 	    double la[][]=mmul.a;
 	    double lc[][]=mmul.c;
 	    double lb[][]=mmul.btranspose;
@@ -42,19 +42,19 @@ public class MatrixMultiply extends Thread{
 		double a[]=la[i];
 		double c[]=lc[i];
 		if ((l&63)==0) {
-		    offsets[0] = getoffset{MMul, a};
-		    offsets[1] = (short) 0;
-		    offsets[2] = (short) x0+l;
-		    if ((x0+l+64)>x1)
-			offsets[3]=x1-x0-l-1;
-		    else
-			offsets[3] = (short) 63;
-		    System.rangePrefetch(mmul, offsets);
-
-		    //Get first part of C
-		    offsets[0] = getoffset{MMul, c};
-		    offsets[1] = (short) 0;
-		    System.rangePrefetch(mmul, offsets);
+		    offsets2[0] = (short) x0+l;
+		    if ((x0+l+64)>x1) {
+			int x=x1-x0-l-1;
+			if (x>0) {
+			    offsets[1]=(short) x;
+			    System.rangePrefetch(la, offsets2);
+			    System.rangePrefetch(lc, offsets2);
+			}
+		    } else {
+			offsets[1] = (short) 63;
+			System.rangePrefetch(la, offsets2);
+			System.rangePrefetch(lc, offsets2);
+		    }
 		}
 		for (int j = y0; j < y1; j++) {
 		    double innerProduct=0;
