@@ -34,25 +34,23 @@ public class fft2d extends Thread {
       //
       // Add manual prefetch for
       // this.data1.dataRe[x0 -> x1]
-      Object o1 = this;
+
       short[] offsets1 = new short[6];
       offsets1[0] = getoffset{fft2d, data1};
       offsets1[1] = (short) 0;
       offsets1[2] = getoffset{Matrix, dataRe};
       offsets1[3] = (short) 0;
       offsets1[4] = (short) x0; 
-      offsets1[5] = (short) (x1-x0-1);
-      System.rangePrefetch(o1, offsets1);
+      offsets1[5] = (short) 127;
+      System.rangePrefetch(this, offsets1);
 
       // prefetch data1.dataIm[x0 -> x1]
-      o1 = data1;
-      short[] offsets2 = new short[4];
-      offsets2[0] = getoffset{Matrix, dataIm};
-      offsets2[1] = (short) 0;
-      offsets2[2] = (short) x0; 
-      offsets2[3] = (short) (x1-x0-1);
-      System.rangePrefetch(o1, offsets2);
+      offsets1[2] = getoffset{Matrix, dataIm};
+      offsets1[3] = (short) 0;
+      System.rangePrefetch(this, offsets1);
      ///////////////////////////// //////////
+
+      short[] offsets2 = new short[2];
 
       rowlength = data1.M;
       columnlength = data1.N;
@@ -62,8 +60,24 @@ public class fft2d extends Thread {
       end = x1;
       fft1 = new fft1d(columnlength);
       fft2 = new fft1d(rowlength);
-      for (int i = x0; i < x1; i++) {
+      int l=64;
+      for (int i = x0; i < x1; i++,l++) {
 	//input of FFT
+        if ((l&127)==0) {
+	    offsets2[0] = (short) l+x0; 
+	    if ((x1-l-x0)<128) {
+		int t=x1-l-x0-1;
+		if (t>0) {
+		    offsets2[1] = (short) t;
+		    System.rangePrefetch(tempdataRe, offsets1);
+		    System.rangePrefetch(tempdataIm, offsets1);
+		}
+	    } else {
+		offsets2[1] = (short) 127;
+		System.rangePrefetch(tempdataRe, offsets1);
+		System.rangePrefetch(tempdataIm, offsets1);
+	    }
+	}
 	double inputRe[] = tempdataRe[i]; //local array
 	double inputIm[] = tempdataIm[i];
 	fft(fft1, inputRe, inputIm);
@@ -76,19 +90,7 @@ public class fft2d extends Thread {
     // Tranpose data.
     if (start == 0) {
       atomic {
-        // 
-        // Add manual prefetch 
-        // prefetch data2.dataRe
-        Object o = data2;
-        short[] offsets = new short[2];
-        offsets[0] = getoffset{Matrix, dataRe};
-        offsets[1] = (short) 0;
-        System.rangePrefetch(o, offsets);
-        // prefetch data2.dataIm
-        offsets[0] = getoffset{Matrix, dataIm};
-        offsets[1] = (short) 0;
-        System.rangePrefetch(o, offsets);
-        /////////////////////
+	  //NO PREFETCH HERE...ALL DATA IS LOCAL
 
         transpose(tempdataRe,tempdataIm, data2.dataRe,data2.dataIm, rowlength, columnlength);
       }
