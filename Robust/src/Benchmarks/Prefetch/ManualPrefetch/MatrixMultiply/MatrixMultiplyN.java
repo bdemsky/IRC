@@ -36,18 +36,17 @@ public class MatrixMultiply extends Thread{
 	    double lc[][]=mmul.c;
 	    double lb[][]=mmul.btranspose;
 	    int M=mmul.M;
-	    int l=0;
+	    int l=32;
         //Use btranspose for cache performance
 	    for(int i = x0; i< x1; i++,l++){
 		double a[]=la[i];
 		double c[]=lc[i];
-		if (((l+32)&63)==0) {
-		    int l2=l+32;
+		if ((l&63)==0) {
 		    offsets[0] = getoffset{MMul, a};
 		    offsets[1] = (short) 0;
-		    offsets[2] = (short) x0+l2;
-		    if ((x0+l2+64)>x1)
-			offsets[3]=x1-x0-l2-1;
+		    offsets[2] = (short) x0+l;
+		    if ((x0+l+64)>x1)
+			offsets[3]=x1-x0-l-1;
 		    else
 			offsets[3] = (short) 63;
 		    System.rangePrefetch(mmul, offsets);
