@@ -139,6 +139,7 @@ perMcPrefetchList_t *processRemote(unsigned int oid,  short * offsetarray, int s
   //Start searching the dfsList
   for(top=0;top>=0;) {
     oid=getNextOid(header, offsetarray, dfsList, top);
+    
     if (oid&1) {
       top+=2;
       dfsList[top]=oid;
@@ -172,7 +173,7 @@ perMcPrefetchList_t *processRemote(unsigned int oid,  short * offsetarray, int s
       header=searchObj(dfsList[top]);
       //header shouldn't be null unless the object moves away, but allow
       //ourselves the option to just continue on if we lose the object
-    } while(header!=NULL);
+    } while(header==NULL);
     //increment
     dfsList[top+1]++;
   }
@@ -207,7 +208,6 @@ void insertPrefetch(int mid, unsigned int oid, short numoffset, short *offsets, 
   perMcPrefetchList_t *ptr;
   objOffsetPile_t *objnode;
   objOffsetPile_t **tmp;
-
   //Loop through the machines
   for(; 1; head=&((*head)->next)) {
     int tmid;
