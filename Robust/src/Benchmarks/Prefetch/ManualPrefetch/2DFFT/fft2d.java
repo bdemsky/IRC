@@ -41,7 +41,7 @@ public class fft2d extends Thread {
       offsets1[2] = getoffset{Matrix, dataRe};
       offsets1[3] = (short) 0;
       offsets1[4] = (short) x0; 
-      offsets1[5] = (short) 127;
+      offsets1[5] = (short) 15;
       System.rangePrefetch(this, offsets1);
 
       // prefetch data1.dataIm[x0 -> x1]
@@ -60,12 +60,12 @@ public class fft2d extends Thread {
       end = x1;
       fft1 = new fft1d(columnlength);
       fft2 = new fft1d(rowlength);
-      int l=64;
+      int l=8;
       for (int i = x0; i < x1; i++,l++) {
 	//input of FFT
-        if ((l&127)==0) {
+        if ((l&15)==0) {
 	    offsets2[0] = (short) l+x0; 
-	    if ((l+x0+128)>= x1) {
+	    if ((l+x0+16)>= x1) {
 		int t=x1-l-x0-1;
 		if (t>0) {
 		    offsets2[1] = (short) t;
@@ -73,7 +73,7 @@ public class fft2d extends Thread {
 		    System.rangePrefetch(tempdataIm, offsets1);
 		}
 	    } else {
-		offsets2[1] = (short) 127;
+		offsets2[1] = (short) 15;
 		System.rangePrefetch(tempdataRe, offsets1);
 		System.rangePrefetch(tempdataIm, offsets1);
 	    }
@@ -109,7 +109,7 @@ public class fft2d extends Thread {
       Object o1 = data2.dataRe;
       short[] offsets1 = new short[2];
       offsets1[0] = (short) start;
-      offsets1[1] = (short) 127;
+      offsets1[1] = (short) 15;
       System.rangePrefetch(o1, offsets1);
 
       o1 = data2.dataIm;
@@ -118,11 +118,11 @@ public class fft2d extends Thread {
 
       transtempRe = data2.dataRe;
       transtempIm = data2.dataIm;
-      int l=64;
+      int l=8;
       for (int j = start; j < end; j++,l++) {
-	  if ((l&127)==0) {
+	  if ((l&15)==0) {
 	      offsets1[0]=(short) (l+start);
-	      if ((start+l+128)>=end) {
+	      if ((start+l+16)>=end) {
 		  int t=end-start-l-1;
 		  if (t>0) {
 		      offsets1[1]=(short)t;
@@ -130,7 +130,7 @@ public class fft2d extends Thread {
 		      System.rangePrefetch(transtempIm, offsets1);
 		  }
 	      } else {
-		  offsets1[1]=(short) 127;
+		  offsets1[1]=(short) 15;
 		  System.rangePrefetch(transtempRe, offsets1);
 		  System.rangePrefetch(transtempIm, offsets1);
 	      }
