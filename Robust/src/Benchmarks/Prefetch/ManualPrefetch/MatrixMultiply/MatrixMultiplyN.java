@@ -24,7 +24,7 @@ public class MatrixMultiply extends Thread{
         offsets[0] = getoffset{MMul, a};
         offsets[1] = (short) 0;
         offsets[2] = (short) x0;
-        offsets[3] = (short) 63;
+        offsets[3] = (short) 15;
         System.rangePrefetch(mmul, offsets);
 
         //Get first part of C
@@ -36,14 +36,14 @@ public class MatrixMultiply extends Thread{
 	    double lc[][]=mmul.c;
 	    double lb[][]=mmul.btranspose;
 	    int M=mmul.M;
-	    int l=32;
+	    int l=8;
         //Use btranspose for cache performance
 	    for(int i = x0; i< x1; i++,l++){
 		double a[]=la[i];
 		double c[]=lc[i];
-		if ((l&63)==0) {
+		if ((l&15)==0) {
 		    offsets2[0] = (short) x0+l;
-		    if ((x0+l+64)>x1) {
+		    if ((x0+l+16)>x1) {
 			int x=x1-x0-l-1;
 			if (x>0) {
 			    offsets[1]=(short) x;
@@ -51,7 +51,7 @@ public class MatrixMultiply extends Thread{
 			    System.rangePrefetch(lc, offsets2);
 			}
 		    } else {
-			offsets[1] = (short) 63;
+			offsets[1] = (short) 15;
 			System.rangePrefetch(la, offsets2);
 			System.rangePrefetch(lc, offsets2);
 		    }
