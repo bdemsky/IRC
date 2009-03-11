@@ -38,7 +38,7 @@ public class RainForestServerThread extends Thread {
 
     byte[] buf = new byte[5];    //1 byte to decide if terminate or continue + 4 bytes for getting the round index
     byte[] buffer = new byte[9]; //1 byte presence of tree/rocks + 8 bytes for their x and y coordinates
-
+    byte[] buffer2 = new byte[900]; //1 byte presence of tree/rocks + 8 bytes for their x and y coordinates
     while(true) {
       /* Check for termination character */
       String readStr = readFromSock(5); 
@@ -58,9 +58,7 @@ public class RainForestServerThread extends Thread {
 
         /* Send data representing presence/absence of trees */
         for(int i=0 ; i<rows; i++) {
-          for(int j=0; j<cols; j++) {
-            sock.write(fillBytes(land, i, j, buffer));
-          }
+            sock.write(fillBytes(land, i, cols, buffer2));
         }
 
         /* Send special character "O" to end transfer of land coordinates */ 
@@ -110,20 +108,23 @@ public class RainForestServerThread extends Thread {
   /**
    ** fill byte array
    **/
-  byte[] fillBytes(GameMap[][] land, int x, int y, byte[] b) {
-    if(land[x][y].hasTree()) 
-      b[0] = (byte)'T';
-    if(land[x][y].hasRock())
-      b[0] = (byte)'R';
-    if(!land[x][y].hasRock() && !land[x][y].hasTree())
-      b[0] = (byte)'N';
-    for(int i = 1; i<5; i++) {
-      int offset = (3-(i-1)) * 8;
-      b[i] = (byte) ((x >> offset) & 0xFF);
-    }
-    for(int i = 5; i<9; i++) {
-      int offset = (3-(i-5)) * 8;
-      b[i] = (byte) ((y >> offset) & 0xFF);
+  byte[] fillBytes(GameMap[][] land, int x, int cols, byte[] b) {
+    for (int y=0;y<cols;y++) {
+      int yoffset=y*9;
+      if(land[x][y].hasTree()) 
+	b[yoffset] = (byte)'T';
+      if(land[x][y].hasRock())
+	b[yoffset] = (byte)'R';
+      if(!land[x][y].hasRock() && !land[x][y].hasTree())
+	b[yoffset] = (byte)'N';
+      for(int i = 1; i<5; i++) {
+	int offset = (3-(i-1)) * 8;
+	b[i+yoffset] = (byte) ((x >> offset) & 0xFF);
+      }
+      for(int i = 5; i<9; i++) {
+	int offset = (3-(i-5)) * 8;
+	b[i+yoffset] = (byte) ((y >> offset) & 0xFF);
+      }
     }
     return b;
   }
