@@ -420,6 +420,9 @@ class mdRunner extends Thread {
     /* MD simulation */
 
     for (int move=0;move<movemx;move++) {
+      //PREFETCH: sh_force[0..2][0..mdsize]
+
+
       atomic {
         /* move the particles and update velocities */
         for (int i=0;i<mdsize;i++) {
@@ -435,13 +438,7 @@ class mdRunner extends Thread {
           //
           // Add manual prefetch for this.sh_force[]
           //
-          Object o = this;
-          short[] offsets = new short[4];
-          offsets[0] = getoffset{mdRunner, sh_force};
-          offsets[1] = (short) 0;
-          offsets[2] = (short) 0;
-          offsets[3] = (short) 2; // loop accesses 3 elements
-          System.rangePrefetch(o, offsets);
+	    //no prefetch for node 0
 
           doinit(mdsize);
         }
@@ -472,50 +469,7 @@ class mdRunner extends Thread {
           //
           // Add manual prefetch for this.sh_force[]
           //
-          Object o = this;
-          short[] offsets = new short[4];
-          offsets[0] = getoffset{mdRunner, sh_force};
-          offsets[1] = (short) 0;
-          offsets[2] = (short) 0;
-          offsets[3] = (short) 2; // loop accesses 3 elements
-          System.rangePrefetch(o, offsets);
-
-          // Add manual prefetch for this.sh_force2[][]
-          short[] offsets1 = new short[6];
-          offsets1[0] = getoffset{mdRunner, sh_force2};
-          offsets1[1] = (short) 0;
-          offsets1[2] = (short) 0;
-          offsets1[3] = (short) 2; //max is 3 elements
-          offsets1[4] = (short) 0;
-          offsets1[5] = (short) (nthreads - 1); //max is nthreads
-          System.rangePrefetch(o, offsets1);
-
-          // Add manual prefetch for this.mymd.epot[]
-          offsets1[0] = getoffset{mdRunner, mymd};
-          offsets1[1] = (short) 0;
-          offsets1[2] = getoffset{JGFMolDynBench, epot};
-          offsets1[3] = (short) 0;
-          offsets1[4] = (short) 0;
-          offsets1[5] = (short) (nthreads-1);
-          System.rangePrefetch(o, offsets1);
-
-          // Add manual prefetch for this.mymd.vir[]
-          offsets1[0] = getoffset{mdRunner, mymd};
-          offsets1[1] = (short) 0;
-          offsets1[2] = getoffset{JGFMolDynBench, vir};
-          offsets1[3] = (short) 0;
-          offsets1[4] = (short) 0;
-          offsets1[5] = (short) (nthreads-1);
-          System.rangePrefetch(o, offsets1);
-
-          // Add manual prefetch for this.mymd.interacts[]
-          offsets1[0] = getoffset{mdRunner, mymd};
-          offsets1[1] = (short) 0;
-          offsets1[2] = getoffset{JGFMolDynBench, interacts};
-          offsets1[3] = (short) 0;
-          offsets1[4] = (short) 0;
-          offsets1[5] = (short) (nthreads-1);
-          System.rangePrefetch(o, offsets1);
+	    //no prefetch for id=0
           ////////////////////////////
           doinit2(mdsize);
         }
@@ -524,6 +478,7 @@ class mdRunner extends Thread {
       /* Barrier */
       Barrier.enterBarrier(barr);
 
+      //PREFETCH: sh_force[0..2][0..mdsize]
       atomic {
         /*scale forces, update velocities */
         sum = 0.0;
