@@ -97,11 +97,11 @@ public class OwnershipAnalysis {
       if( as == null ) {
 	out += "  "+n.toString()+",\n";
       } else {
-	out += "  "+n.toString()+"-"+as.toStringVerbose()+",\n";
+	out += "  "+n.toString()+": "+as.toStringVerbose()+",\n";
       }
     }
 
-    out += "}";
+    out += "}\n";
     return out;
   }
 
@@ -109,11 +109,12 @@ public class OwnershipAnalysis {
   // use the methods given above to check every possible alias
   // between task parameters and flagged allocation sites reachable
   // from the task
-  public void writeAllAliases(String outputFile) throws java.io.IOException {
+  public void writeAllAliases(String outputFile, String timeReport) throws java.io.IOException {
 
     BufferedWriter bw = new BufferedWriter(new FileWriter(outputFile) );
 
-    bw.write("Conducting ownership analysis with allocation depth = "+allocationDepth);
+    bw.write("Conducting ownership analysis with allocation depth = "+allocationDepth+"\n");
+    bw.write(timeReport+"\n");
 
     // look through every task for potential aliases
     Iterator taskItr = state.getTaskSymbolTable().getDescriptorsIterator();
@@ -196,12 +197,14 @@ public class OwnershipAnalysis {
 
 
   // this version of writeAllAliases is for Java programs that have no tasks
-  public void writeAllAliasesJava(String outputFile) throws java.io.IOException {
+  public void writeAllAliasesJava(String outputFile, String timeReport) throws java.io.IOException {
     assert !state.TASK;    
 
     BufferedWriter bw = new BufferedWriter(new FileWriter(outputFile) );
 
     bw.write("Conducting ownership analysis with allocation depth = "+allocationDepth+"\n");
+    bw.write(timeReport+"\n\n");
+
     boolean foundSomeAlias = false;
 
     Descriptor d = typeUtil.getMain();
@@ -411,8 +414,6 @@ public class OwnershipAnalysis {
       s.add( mc );
       mapDescriptorToAllMethodContexts.put( d, s );
 
-      //System.out.println("Previsiting " + mc);
-
       og = analyzeFlatNode(mc, fm, null, og);
       setGraphForMethodContext(mc, og);
     }
@@ -432,9 +433,9 @@ public class OwnershipAnalysis {
 
     if( aliasFile != null ) {
       if( state.TASK ) {
-	writeAllAliases(aliasFile);
+	writeAllAliases(aliasFile, treport);
       } else {
-	writeAllAliasesJava(aliasFile);
+	writeAllAliasesJava(aliasFile, treport);
       }
     }
   }
@@ -605,11 +606,13 @@ public class OwnershipAnalysis {
                            og);
 
       
-      /*
-      if( mc.getDescriptor().getSymbol().equals( "main" ) ) {
+
+     
+      if( takeDebugSnapshots && 
+	  mc.getDescriptor().getSymbol().equals( mcDescSymbolDebug ) ) {
 	debugSnapshot(og,fn);
       }
-      */
+     
 
 
       // if the results of the new graph are different from
@@ -902,46 +905,6 @@ public class OwnershipAnalysis {
   }
 
 
-  // insert a call to debugSnapshot() somewhere in the analysis to get
-  // successive captures of the analysis state
-  int debugCounter        = 0;
-  int numStartCountReport = 0;
-  int freqCountReport     = 1;
-  int iterStartCapture    = 0;
-  int numIterToCapture    = 500;
-  void debugSnapshot(OwnershipGraph og, FlatNode fn) {
-    if( debugCounter > numStartCountReport + numIterToCapture ) {
-      return;
-    }
-
-    ++debugCounter;
-    if( debugCounter > numStartCountReport &&
-        debugCounter % freqCountReport == 0 ) {
-      System.out.println("    @@@ debug counter = "+debugCounter);
-    }
-    if( debugCounter > iterStartCapture ) {
-      System.out.println("    @@@ capturing debug "+(debugCounter-iterStartCapture)+" @@@");
-      String graphName = String.format("snap%04d",debugCounter-iterStartCapture);
-      if( fn != null ) {
-	graphName = graphName+fn;
-      }
-      try {
-	og.writeGraph(graphName, true, true, false, false, false);
-      } catch( Exception e ) {
-	System.out.println("Error writing debug capture.");
-	System.exit(0);
-      }
-    }
-    /*
-    if( debugCounter == iterStartCapture + numIterToCapture ) {
-      System.out.println("Stopping analysis after debug captures.");
-      System.exit(0);
-    }
-    */
-  }
-
-
-
   // this method should generate integers strictly greater than zero!
   // special "shadow" regions are made from a heap region by negating
   // the ID
@@ -1200,5 +1163,62 @@ public class OwnershipAnalysis {
     }
 
     sorted.addFirst( mc );
+  }
+
+
+
+
+  // insert a call to debugSnapshot() somewhere in the analysis 
+  // to get successive captures of the analysis state
+  boolean takeDebugSnapshots = false;
+  String mcDescSymbolDebug = "main";
+  
+  // increments every visit to debugSnapshot, don't fiddle with it
+  int debugCounter = 0;
+
+  // the value of debugCounter to start reporting the debugCounter
+  // to the screen to let user know what debug iteration we're at
+  int numStartCountReport = 0;
+
+  // the frequency of debugCounter values to print out, 0 no report
+  int freqCountReport = 0;
+
+  // the debugCounter value at which to start taking snapshots
+  int iterStartCapture = 0;
+
+  // the number of snapshots to take
+  int numIterToCapture = 50;
+
+  boolean stopAfterCapture = true;
+
+  void debugSnapshot(OwnershipGraph og, FlatNode fn) {
+    if( debugCounter > iterStartCapture + numIterToCapture ) {
+      return;
+    }
+
+    ++debugCounter;
+    if( debugCounter > numStartCountReport &&
+	freqCountReport > 0 &&
+        debugCounter % freqCountReport == 0 ) {
+      System.out.println("    @@@ debug counter = "+debugCounter);
+    }
+    if( debugCounter > iterStartCapture ) {
+      System.out.println("    @@@ capturing debug "+(debugCounter-iterStartCapture)+" @@@");
+      String graphName = String.format("snap%04d",debugCounter-iterStartCapture);
+      if( fn != null ) {
+	graphName = graphName+fn;
+      }
+      try {
+	og.writeGraph(graphName, true, true, true, false, false);
+      } catch( Exception e ) {
+	System.out.println("Error writing debug capture.");
+	System.exit(0);
+      }
+    }
+
+    if( debugCounter == iterStartCapture + numIterToCapture && stopAfterCapture ) {
+      System.out.println("Stopping analysis after debug captures.");
+      System.exit(0);
+    }
   }
 }
