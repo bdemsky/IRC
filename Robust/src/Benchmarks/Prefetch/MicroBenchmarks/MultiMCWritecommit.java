@@ -15,7 +15,7 @@ public class WriteArrayObj extends Thread {
 
   public void run() {
     Barrier barr;
-    barr = new Barrier("128.195.175.84");
+    barr = new Barrier("128.195.136.162");
     //Create array objects locally
     atomic { //Remote machine aborts come from here
       for(int i=lower; i<nthreads*nthreads; i=i+nthreads) {
@@ -47,14 +47,15 @@ public class WriteArrayObj extends Thread {
     }
 
     int[] mid = new int[8];
-    mid[0] = (128<<24)|(195<<16)|(175<<8)|84;//dw-10
-    mid[1] = (128<<24)|(195<<16)|(175<<8)|85;//dw-11
-    mid[2] = (128<<24)|(195<<16)|(175<<8)|86;//dw-12
-    mid[3] = (128<<24)|(195<<16)|(175<<8)|87;//dw-13
-    mid[4] = (128<<24)|(195<<16)|(175<<8)|88;//dw-14
-    mid[5] = (128<<24)|(195<<16)|(175<<8)|89;//dw-15
-    mid[6] = (128<<24)|(195<<16)|(175<<8)|90;//dw-16
-    mid[7] = (128<<24)|(195<<16)|(175<<8)|91;//dw-17
+    mid[0] = (128<<24)|(195<<16)|(136<<8)|162; //dc-1.calit2
+	mid[1] = (128<<24)|(195<<16)|(136<<8)|163; //dc-2.calit2
+	mid[2] = (128<<24)|(195<<16)|(136<<8)|164; //dc-3.calit2
+	mid[3] = (128<<24)|(195<<16)|(136<<8)|165; //dc-4.calit2
+	mid[4] = (128<<24)|(195<<16)|(136<<8)|166; //dc-5.calit2
+	mid[5] = (128<<24)|(195<<16)|(136<<8)|167; //dc-6.calit2
+	mid[6] = (128<<24)|(195<<16)|(136<<8)|168; //dc-7.calit2
+	mid[7] = (128<<24)|(195<<16)|(136<<8)|169; //dc-8.calit2
+ 
 
     WriteArrayObj[] wao;
     atomic {

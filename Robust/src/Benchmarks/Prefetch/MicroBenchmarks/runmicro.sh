@@ -1,13 +1,13 @@
 #!/bin/sh 
 
 #set -x
-MACHINES2='dw-11.eecs.uci.edu'
-MACHINES3='dw-11.eecs.uci.edu dw-12.eecs.uci.edu'
-MACHINES4='dw-11.eecs.uci.edu dw-12.eecs.uci.edu dw-13.eecs.uci.edu'
-MACHINES5='dw-11.eecs.uci.edu dw-12.eecs.uci.edu dw-13.eecs.uci.edu dw-14.eecs.uci.edu'
-MACHINES6='dw-11.eecs.uci.edu dw-12.eecs.uci.edu dw-13.eecs.uci.edu dw-14.eecs.uci.edu dw-15.eecs.uci.edu'
-MACHINES7='dw-11.eecs.uci.edu dw-12.eecs.uci.edu dw-13.eecs.uci.edu dw-14.eecs.uci.edu dw-15.eecs.uci.edu dw-16.eecs.uci.edu'
-MACHINES8='dw-11.eecs.uci.edu dw-12.eecs.uci.edu dw-13.eecs.uci.edu dw-14.eecs.uci.edu dw-15.eecs.uci.edu dw-16.eecs.uci.edu dw-17.eecs.uci.edu'
+MACHINES2='dc-2.calit2.uci.edu'
+MACHINES3='dc-2.calit2.uci.edu dc-3.calit2.uci.edu'
+MACHINES4='dc-2.calit2.uci.edu dc-3.calit2.uci.edu dc-4.calit2.uci.edu'
+MACHINES5='dc-2.calit2.uci.edu dc-3.calit2.uci.edu dc-4.calit2.uci.edu dc-5.calit2.uci.edu'
+MACHINES6='dc-2.calit2.uci.edu dc-3.calit2.uci.edu dc-4.calit2.uci.edu dc-5.calit2.uci.edu dc-6.calit2.uci.edu'
+MACHINES7='dc-2.calit2.uci.edu dc-3.calit2.uci.edu dc-4.calit2.uci.edu dc-5.calit2.uci.edu dc-6.calit2.uci.edu dc-7.calit2.uci.edu'
+MACHINES8='dc-2.calit2.uci.edu dc-3.calit2.uci.edu dc-4.calit2.uci.edu dc-5.calit2.uci.edu dc-6.calit2.uci.edu dc-7.calit2.uci.edu dc-8.calit2.uci.edu'
 LOGDIR=/home/adash/research/Robust/src/Benchmarks/Prefetch/runlog
 TOPDIR=`pwd`
 
