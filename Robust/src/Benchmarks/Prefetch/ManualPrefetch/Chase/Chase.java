@@ -13,7 +13,7 @@ public class Chase extends Thread {
     
     public static void main(String [] argv) {
 	Chase c;
-    int numTraverse = 40000;
+	int numTraverse = 10000;
 	atomic {
 	    Foo fold=global new Foo();
 	    
@@ -36,18 +36,18 @@ public class Chase extends Thread {
       offsets[0] = getoffset{Chase, base};
       offsets[1] = (short) 0;
       offsets[2] = getoffset{Foo, next};
-      offsets[3] = (short) 3000;
+      offsets[3] = (short) 4000;
       System.rangePrefetch(this, offsets);
       atomic {
         Foo b=base;
-        int i = 50;
+        int i = 0;
         while(b!=null) {
           b=b.next;
           i++;
-          if((i&3000) == 0) {
-	      i=50;
+          if(i == 4001) {
+	      i=0;
             offsets1[0] = getoffset{Foo, next};
-            offsets1[1] = (short) 3000;
+            offsets1[1] = (short) 4000;
             System.rangePrefetch(b, offsets1);
           }
         }

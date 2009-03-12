@@ -1,6 +1,6 @@
 MAINCLASS=Chase
 SRC1=${MAINCLASS}.java
-FLAGS1=-dsm -rangeprefetch -dsmcaching -optimize -mainclass ${MAINCLASS} -trueprob 0.99
+FLAGS1=-dsm -rangeprefetch -dsmcaching -optimize -mainclass ${MAINCLASS} -trueprob 0.99 -transstats
 #for testing no java option
 #FLAGS=-dsm -prefetch -optimize -debug -excprefetch Chase.main -excprefetch Chase.Chase -mainclass ${MAINCLASS} -trueprob 0.99 -nojava
 default:
