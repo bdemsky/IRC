@@ -13,8 +13,9 @@ public class Chase extends Thread {
     
     public static void main(String [] argv) {
 	Chase c;
-    int numTraverse = 40000;
+    int numTraverse = 10000;
 	atomic {
+      System.println("Starting transaction\n");
 	    Foo fold=global new Foo();
 	    
 	    for(int i=0;i<numTraverse;i++) {
@@ -31,15 +32,32 @@ public class Chase extends Thread {
     }
     
     public void run() {
+<<<<<<< Chase.java
+	for (int j=0;j<10;j++) {
       atomic {
         Foo b=base;
         int i = 0;
         while(b!=null) {
+=======
+      atomic {
+        Foo b=base;
+        int i = 0;
+        while(b!=null) {
+>>>>>>> 1.6
           b=b.next;
+<<<<<<< Chase.java
+          i++;
+=======
           i++;
           if((i&127) == 0)
             ;
+>>>>>>> 1.6
         }
+<<<<<<< Chase.java
       }
+	}
+=======
+      }
+>>>>>>> 1.6
     }
 }
