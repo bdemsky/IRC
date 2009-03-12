@@ -166,7 +166,7 @@ public class ReachabilitySet extends Canonical {
   }
 
 
-  public ReachabilitySet applyChangeSet(ChangeTupleSet C) {
+  public ReachabilitySet applyChangeSet(ChangeTupleSet C, boolean keepSourceState) {
     assert C != null;
 
     ReachabilitySet rsOut = new ReachabilitySet();
@@ -187,11 +187,11 @@ public class ReachabilitySet extends Canonical {
 	}
       }
 
-      if( !changeFound ) {
+      if( keepSourceState || !changeFound ) {
 	rsOut.possibleReachabilities.add( tts );
       }
     }
-
+    
     return rsOut.makeCanonical();
   }
 
