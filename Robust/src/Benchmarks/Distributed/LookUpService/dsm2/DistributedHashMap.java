@@ -54,17 +54,6 @@ public class DistributedHashMap {
     if (dhe==null)
       return null;
 
-    /****** Add Manual Prefetch *****/
-    //dhe.array.next(5).key
-    Object obj1 = dhe.array;
-    short[] offsets1 = new short[4];
-    offsets1[0] = getoffset {DHashEntry, next};
-    offsets1[1] = (short) 5;
-    offsets1[2] = getoffset {DHashEntry, key};
-    offsets1[3] = (short) 0;
-    System.rangePrefetch(obj1, offsets1);
-    /********************************/
-
     DHashEntry ptr=dhe.array;
 
     while(ptr!=null) {

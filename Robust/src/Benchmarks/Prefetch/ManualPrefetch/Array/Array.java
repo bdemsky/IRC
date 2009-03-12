@@ -26,7 +26,13 @@ public class Array extends Thread {
     offsets[0] = getoffset{Array, array};
     offsets[1] = (short) 0;
     offsets[2] = (short) 0;
-    offsets[3] = (short) 100;
+    offsets[3] = (short) 4000;
+    System.rangePrefetch(this, offsets);
+    offsets[2] = (short) 4001;
+    offsets[3] = (short) 4000;
+    System.rangePrefetch(this, offsets);
+    offsets[2] = (short) 8002;
+    offsets[3] = (short) 1997;
     System.rangePrefetch(this, offsets);
     atomic {
       int xlength=array.length;
