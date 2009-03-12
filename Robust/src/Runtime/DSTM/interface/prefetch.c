@@ -73,10 +73,10 @@ perMcPrefetchList_t *processLocal(char *ptr) {
   }
   dfsList[0]=oid;
   dfsList[1]=0;
-  
-  
+
+
   //Start searching the dfsList
-  for(top=0;top>=0;) {
+  for(top=0; top>=0;) {
     oid=getNextOid(header, offsetarray, dfsList, top);
     if (oid&1) {
       top+=2;
@@ -104,7 +104,7 @@ perMcPrefetchList_t *processLocal(char *ptr) {
 	if (top<0)
 	  return head;
       } while(dfsList[top+1] == GET_RANGE(offsetarray[top + 3]));
-      
+
       header=searchObj(dfsList[top]);
       //header shouldn't be null unless the object moves away, but allow
       //ourselves the option to just continue on if we lose the object
@@ -132,14 +132,14 @@ perMcPrefetchList_t *processRemote(unsigned int oid,  short * offsetarray, int s
   } else {
     sendOidFound(header, oid, sd);
   }
-  
+
   dfsList[0]=oid;
   dfsList[1]=0;
-  
+
   //Start searching the dfsList
-  for(top=0;top>=0;) {
+  for(top=0; top>=0;) {
     oid=getNextOid(header, offsetarray, dfsList, top);
-    
+
     if (oid&1) {
       top+=2;
       dfsList[top]=oid;
@@ -169,7 +169,7 @@ perMcPrefetchList_t *processRemote(unsigned int oid,  short * offsetarray, int s
 	if (top<0)
 	  return head;
       } while(dfsList[top+1] == GET_RANGE(offsetarray[top + 3]));
-      
+
       header=searchObj(dfsList[top]);
       //header shouldn't be null unless the object moves away, but allow
       //ourselves the option to just continue on if we lose the object
@@ -185,7 +185,7 @@ INLINE objheader_t *searchObj(unsigned int oid) {
   objheader_t *header;
   if ((header = (objheader_t *)mhashSearch(oid)) != NULL) {
     return header;
-  } else 
+  } else
     return prehashSearch(oid);
 }
 
@@ -208,6 +208,9 @@ void insertPrefetch(int mid, unsigned int oid, short numoffset, short *offsets, 
   perMcPrefetchList_t *ptr;
   objOffsetPile_t *objnode;
   objOffsetPile_t **tmp;
+
+  char ptr1[50];
+  midtoIP(mid, ptr1);
   //Loop through the machines
   for(; 1; head=&((*head)->next)) {
     int tmid;
@@ -432,13 +435,13 @@ unsigned int getNextOid(objheader_t * header, short * offsetarray, unsigned int 
     }
 
     int elementsize = classsize[TYPE(header)];
-    return *((unsigned int *)(((char *)ao) + sizeof(struct ArrayObject)	+ elementsize*currindex));
-  } else { 
+    return *((unsigned int *)(((char *)ao) + sizeof(struct ArrayObject) + elementsize*currindex));
+  } else {
     //handle fields
 
-    if(currcount!=0 & range != 0) { 
+    if(currcount!=0 & range != 0) {
       //go to the next offset
-      header=searchObj(dfsList[top]);
+      header=searchObj(dfsList[top+2]);
       if (header==NULL)
 	return 2;
     }
