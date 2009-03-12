@@ -21,9 +21,7 @@ public class Convolution extends Thread {
     }
 
     //
-    //Prefetch this.img.inputImage[] the first 32 objects
-    // Generates compiler error ???
-    Object o = this;
+    //Add manual prefetch this.img.inputImage[] the first 32 objects
     short[] offsets = new short[6];
     offsets[0] = getoffset{Convolution, img};
     offsets[1] = (short) 0;
@@ -31,19 +29,12 @@ public class Convolution extends Thread {
     offsets[3] = (short) 0;
     offsets[4] = (short) tempx0;
     offsets[5] = (short) 31;
-    System.rangePrefetch(o, offsets);
+    System.rangePrefetch(this, offsets);
 
     //Prefetch this.img.outputImage[] the first 32 objects 
-    // Generates compiler error ???
-    Object o1 = this;
-    short[] offsets1 = new short[6];
-    offsets1[0] = getoffset{Convolution, img};
-    offsets1[1] = (short) 0;
-    offsets1[2] = getoffset{Image, outputImage};
-    offsets1[3] = (short) 0;
-    offsets1[4] = (short) tempx0;
-    offsets1[5] = (short) 31;
-    System.rangePrefetch(o1, offsets1);
+    offsets[2] = getoffset{Image, outputImage};
+    offsets[3] = (short) 0;
+    System.rangePrefetch(this, offsets);
 
     int kernelHeight=15;
     int kernelWidth=15;

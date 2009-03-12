@@ -5,7 +5,16 @@ DSTM_CONFDIR=${HOME}/research/Robust/src
 JAVA_DIR=java
 JVM_DIR=jvm
 DSM_DIR=dsm
-ITERATIONS=1
+ITERATIONS=2
+TOPDIR=${HOME}/research/Robust/src/Prefetch
+
+function killclients {
+  i=1;
+  while [ $i -le $1 ]; do
+    ssh dc-${i}.calit2.uci.edu 'killall Client.bin;'
+    i=`expr $i + 1`
+  done
+}
 
 function runjava {
   # Run java version
@@ -22,6 +31,7 @@ function runjava {
    # Start the clients
    k=1;
    echo ${BASEDIR}/${BM_DIR} > ~/.tmpdir
+   perl -x${TOPDIR} ${TOPDIR}/switch/fetch_stat.pl clear_stats settings=switch/clearsettings.txt
    while [ $k -le $1 ]; do
      echo "SSH into dc-${k}"
      SEED=`expr $k \* 100`
@@ -34,7 +44,15 @@ function runjava {
      fi
      k=`expr $k + 1`
    done
-   sleep 20;
+   killclients $k
+   sleep 10;
+   perl -x${TOPDIR} ${TOPDIR}/switch/fetch_stat.pl settings=switch/settings.txt
+   cat ${LOGDIR}/tmp >> ${LOGDIR}/${BM_NAME}_${1}Thrd.txt
+   if [ $i -eq 0 ];then echo "<h3> Benchmark=${BM_NAME} Thread=${1}</h3><br>" > ${LOGDIR}/${BM_NAME}_${1}Thrd_a.html  ;fi
+   cat ${LOGDIR}/tmp >> ${LOGDIR}/${BM_NAME}_${1}Thrd_a.html
+   echo "<a href=\"${BM_NAME}_${1}Thrd_${j}.html\">Network Stats</a><br>" >> ${LOGDIR}/${BM_NAME}_${1}Thrd_a.html
+   mv ${TOPDIR}/html/dell.html ${LOGDIR}/${BM_NAME}_${1}Thrd_${j}.html
+
    j=`expr $j + 1`
    cd -
   done
@@ -72,6 +90,14 @@ function runjvm {
   done
 }
 
+function calcavg {
+  for file in `ls ${LOGDIR}/*.out`
+  do
+    echo -n $file
+    cat $file | awk '{sum += $1} END {print " "sum/NR}'
+  done
+}
+
 exec < bm_args.txt
 while read line
 do
@@ -95,3 +121,6 @@ do
   rm ~/.bmargs
   rm ~/.tmpdir
 done
+
+echo "------- Calculating Averages -------- "
+calcavg 

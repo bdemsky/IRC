@@ -3,7 +3,7 @@
 #set -x
 MACHINELIST='dc-1.calit2.uci.edu dc-2.calit2.uci.edu dc-3.calit2.uci.edu dc-4.calit2.uci.edu dc-5.calit2.uci.edu dc-6.calit2.uci.edu dc-7.calit2.uci.edu dc-8.calit2.uci.edu'
 #benchmarks='40962dconv 1200mmver moldynverB'
-#benchmarks='10lookup'
+benchmarks='1152fft2d 40962dconv 10lookup 1200mmver moldynverB rainforest'
 
 LOGDIR=~/research/Robust/src/Benchmarks/Prefetch/ManualPrefetch/runlog
 TOPDIR=`pwd`
@@ -82,60 +82,21 @@ function run {
   done
 }
 
-function oneremote {
-  i=0;
-  DIR=`pwd` 
-  while [ $i -lt $1 ]; do
-    echo "$DIR" > ~/.tmpdir
-    echo "bin=$3" > ~/.tmpvars
-    echo "arg='$ARGS1'" > ~/.tmpargs
-    echo "logd=$LOGDIR" > ~/.tmplogdir
-    echo "ext=$EXTENSION" > ~/.tmpext
-    ./$3 &
-    ssh $MACHINES2 'cd `cat ~/.tmpdir`; source ~/.tmpvars; source ~/.tmpargs; source ~/.tmplogdir; source ~/.tmpext; /usr/bin/time -f "%e" ./$bin master $arg 2>> ${logd}/${bin}_remote_${ext}.txt'
-    echo "Terminating ... "
-    killall $3
-    sleep 2
-    i=`expr $i + 1`
-  done
-}
-
-function localrun {
-  rm dstm.conf
-  DSTMDIR=${HOME}/research/Robust/src/Benchmarks/Prefetch/config
-  ln -s ${DSTMDIR}/dstm_1.conf dstm.conf
-  i=0;
-  while [ $i -lt $1 ]; do
-    /usr/bin/time -f "%e" ./${MANUAL_PREFETCH} master $ARGS1 2> ${LOGDIR}/tmp
-    cat ${LOGDIR}/tmp >> ${LOGDIR}/${MANUAL_PREFETCH}_local_${EXTENSION}.txt
-#   if [ $i -eq 0 ];then echo "<h3> Benchmark=${NONPREFETCH_NONCACHE} Thread=1local Extension=${EXTENSION}</h3><br>" > ${LOGDIR}/${NONPREFETCH_NONCACHE}_${EXTENSION}_1local_a.html  ;fi
-#    cat ${LOGDIR}/tmp >> ${LOGDIR}/${NONPREFETCH_NONCACHE}_${EXTENSION}_1local_a.html
-#    echo "<br>" >> ${LOGDIR}/${NONPREFETCH_NONCACHE}_${EXTENSION}_1local_a.html
-    sleep 2
-    i=`expr $i + 1`
-  done
-}
-
 function callrun {
   MANUAL_PREFETCH=${BENCHMARK}RangeN.bin
   
   cd $BMDIR 
 
-  echo "---------- Running local $BMDIR non-prefetch on 1 machine ---------- "
-  # localrun 1
+  for count in 2 4 6 8
+  do
+    echo "------- Running $count threads $BMDIR manual prefetch on $count machines -----"
+    run 1 $count ${MANUAL_PREFETCH}
+  done
 
-for count in 2 4 6 8
-do
-echo "------- Running $count threads $BMDIR manual prefetch on $count machines -----"
-run 1 $count ${MANUAL_PREFETCH}
-done
-
-cd $TOPDIR
+  cd $TOPDIR
 }
 
 
-#benchmarks='rainforest'
-benchmarks='moldynverB'
 echo "---------- Clean old files ---------- "
 rm runlog/*
 for b in `echo $benchmarks`

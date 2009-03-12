@@ -29,7 +29,11 @@ public class LookUpServerThread extends Thread {
         if(str1.equalsIgnoreCase("r")) {
           Integer tmpval = doRead(this, keyitem);
           //Write object to socket for client
-          sock.write(tmpval.intToByteArray());
+          if(tmpval == null) { //If Object not found in hash map
+            sock.write(fillBytes(0));
+          } else {
+            sock.write(tmpval.intToByteArray());
+          }
         } else {
           /* update hashmap if opcode sent is "w" */
           doUpdate(r, this, keyitem);
@@ -58,6 +62,15 @@ public class LookUpServerThread extends Thread {
     Integer value = new Integer(val);
     Object oldvalue = lusth.hmap.put(key, value);
     return;
+  }
+
+  byte[] fillBytes(int val) {
+    byte[] b = new byte[4];
+    for(int i = 0; i<4; i++) {
+      int offset = (3 - i) * 8;
+      b[i] = (byte) ((val >> offset) & 0xFF);
+    }
+    return b;
   }
 
   /*

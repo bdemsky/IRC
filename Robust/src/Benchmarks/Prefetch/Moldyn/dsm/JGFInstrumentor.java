@@ -183,6 +183,8 @@ public class JGFInstrumentor{
         header = base + "3 - Size A";
       else if (size == 1)
         header = base + "3 - Size B";
+      else if (size == 2)
+        header = base + "3 - Size C";
     }
 
     System.printString(header + "\n"); 

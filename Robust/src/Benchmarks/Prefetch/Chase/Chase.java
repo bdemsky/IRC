@@ -24,7 +24,7 @@ public class Chase extends Thread {
 	    
 	    c=global new Chase(fold);
 	}
-	c.start((128<<24)|(195<<16)|(175<<8)|79);
+	c.start((128<<24)|(195<<16)|(136<<8)|162);
 	c.join();
     }
     

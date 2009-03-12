@@ -5,7 +5,10 @@ MACHINELIST='dc-1.calit2.uci.edu dc-2.calit2.uci.edu dc-3.calit2.uci.edu dc-4.ca
 #benchmarks='40962dconv 1200mmver moldynverB 1600fft2d 1152fft2d 10lookup rainforest'
 #benchmarks='40962dconv'
 #benchmarks='10lookup'
-benchmarks='rainforest'
+#benchmarks='rainforest'
+#benchmarks='1152fft2d'
+benchmarks='moldynverC'
+#benchmarks='40962dconv 1200mmver 1152fft2d moldynverA 10lookup rainforest'
 
 LOGDIR=~/research/Robust/src/Benchmarks/Prefetch/runlog
 TOPDIR=`pwd`
@@ -212,7 +215,7 @@ function callrun {
   cd $BMDIR 
 
   echo "---------- Running local $BMDIR non-prefetch on 1 machine ---------- "
-#  localrun 1
+  localrun 1
 
 #  echo "---------- Running single thread remote $BMDIR non-prefetch + non-cache on 2 machines ---------- "
 #  oneremote 1 1 $NONPREFETCH_NONCACHE
@@ -222,26 +225,26 @@ function callrun {
 #  oneremote 1 1 $PREFETCH
 
 
-for count in 8
+for count in 2 4 6 8
 do
-#echo "------- Running $count threads $BMDIR non-prefetch + non-cache on $count machines -----"
-#run 1 $count $NONPREFETCH_NONCACHE
-#echo "------- Running $count threads $BMDIR non-prefetch on $count machines -----"
-#run 1 $count $NONPREFETCH
+echo "------- Running $count threads $BMDIR non-prefetch + non-cache on $count machines -----"
+run 1 $count $NONPREFETCH_NONCACHE
+echo "------- Running $count threads $BMDIR non-prefetch on $count machines -----"
+run 1 $count $NONPREFETCH
 #echo "------- Running $count threads $BMDIR normal prefetch on $count machines -----"
 #run 1 $count $PREFETCH
-#echo "------- Running $count threads $BMDIR manual prefetch on $count machines -----"
-#run 1 $count $MANUAL_PREFETCH
+echo "------- Running $count threads $BMDIR manual prefetch on $count machines -----"
+run 1 $count $MANUAL_PREFETCH
 
 ###########
-echo "------- Running $count threads $BMDIR non-prefetch + non-cache on $count machines -----"
-runallstats 1 $count $NONPREFETCH_NONCACHE
-echo "------- Running $count threads $BMDIR non-prefetch on $count machines -----"
-runallstats 1 $count $NONPREFETCH
-echo "------- Running $count threads $BMDIR normal prefetch on $count machines -----"
-runallstats 1 $count $PREFETCH
-echo "------- Running $count threads $BMDIR manual prefetch on $count machines -----"
-runallstats 1 $count $MANUAL_PREFETCH
+#echo "------- Running $count threads $BMDIR non-prefetch + non-cache on $count machines -----"
+#runallstats 1 $count $NONPREFETCH_NONCACHE
+#echo "------- Running $count threads $BMDIR non-prefetch on $count machines -----"
+#runallstats 1 $count $NONPREFETCH
+#echo "------- Running $count threads $BMDIR normal prefetch on $count machines -----"
+#runallstats 1 $count $PREFETCH
+#echo "------- Running $count threads $BMDIR manual prefetch on $count machines -----"
+#runallstats 1 $count $MANUAL_PREFETCH
 #############
 
 done
@@ -311,7 +314,7 @@ do
   callmicrorun
   else
   callrun
-  #callrunjavasingle
+  callrunjavasingle
   fi
 done
 

@@ -54,7 +54,7 @@ public class JGFMolDynBench {
     datasizes = global new int[3];
     datasizes[0] = 8;
     datasizes[1] = 13;
-    datasizes[2] = 18;
+    datasizes[2] = 11;
 
     mm = datasizes[size];
     PARTSIZE = mm*mm*mm*4;

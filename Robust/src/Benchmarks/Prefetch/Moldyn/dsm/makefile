@@ -1,4 +1,4 @@
-MAINCLASS=JGFMolDynBenchSizeB
+MAINCLASS=JGFMolDynBenchSizeC
 SRC=${MAINCLASS}.java \
 	JGFInstrumentor.java \
 	JGFTimer.java \
@@ -14,7 +14,7 @@ FLAGS1=-dsm -dsmcaching -optimize -mainclass ${MAINCLASS} -trueprob 0.75
 default:
 	../../../../buildscript ${FLAGS2} -o ${MAINCLASS}NPNC ${SRC}
 	../../../../buildscript ${FLAGS1} -o ${MAINCLASS}NPC ${SRC}
-	../../../../buildscript ${FLAGS} -o ${MAINCLASS}N  ${SRC}
+#	../../../../buildscript ${FLAGS} -o ${MAINCLASS}N  ${SRC}
 
 clean:
 	rm -rf tmpbuilddirectory/

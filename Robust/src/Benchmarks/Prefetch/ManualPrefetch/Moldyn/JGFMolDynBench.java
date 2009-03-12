@@ -54,7 +54,7 @@ public class JGFMolDynBench {
     datasizes = global new int[3];
     datasizes[0] = 8;
     datasizes[1] = 13;
-    datasizes[2] = 18;
+    datasizes[2] = 11;
 
     mm = datasizes[size];
     PARTSIZE = mm*mm*mm*4;
@@ -421,9 +421,17 @@ class mdRunner extends Thread {
 
     for (int move=0;move<movemx;move++) {
       //PREFETCH: sh_force[0..2][0..mdsize]
-
-
       atomic {
+        /*
+        short[] offsets1 = new short[6];
+        offsets1[0] = getoffset{mdRunner, sh_force};
+        offsets1[1] = (short) 0;
+        offsets1[2] = (short) 0;
+        offsets1[3] = (short) 2;
+        offsets1[4] = (short) 0;
+        offsets1[5] = (short) (mdsize -1);
+        System.rangePrefetch(this, offsets1);
+        */
         /* move the particles and update velocities */
         for (int i=0;i<mdsize;i++) {
           one[i].domove(side,i);       
@@ -480,6 +488,16 @@ class mdRunner extends Thread {
 
       //PREFETCH: sh_force[0..2][0..mdsize]
       atomic {
+        /*
+        Object o = this.sh_force;
+        short[] offsets1 = new short[4];
+        offsets1[0] = (short) 0;
+        offsets1[1] = (short) 2;
+        offsets1[2] = (short) 0;
+        offsets1[3] = (short) (mdsize -1);
+        System.rangePrefetch(o, offsets1);
+        */
+
         /*scale forces, update velocities */
         sum = 0.0;
         for (int i=0;i<mdsize;i++) {

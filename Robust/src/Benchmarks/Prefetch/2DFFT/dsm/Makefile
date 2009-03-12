@@ -10,7 +10,7 @@ FLAGS2=-dsm -optimize -dsmcaching -mainclass ${MAINCLASS}
 default:
 	../../../../buildscript ${FLAGS1} ${SRC} -o ${MAINCLASS}NPNC
 	../../../../buildscript ${FLAGS2} ${SRC} -o ${MAINCLASS}NPC
-	../../../../buildscript ${FLAGS} ${SRC} -o ${MAINCLASS}N
+#	../../../../buildscript ${FLAGS} ${SRC} -o ${MAINCLASS}N
 
 clean:
 	rm -rf tmpbuilddirectory

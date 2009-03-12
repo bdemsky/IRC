@@ -42,16 +42,16 @@ public class MatrixMultiply extends Thread{
 		double a[]=la[i];
 		double c[]=lc[i];
 		if ((l&15)==0) {
-		    offsets2[0] = (short) x0+l;
+		    offsets2[0] = (short) (x0+l);
 		    if ((x0+l+16)>x1) {
 			int x=x1-x0-l-1;
 			if (x>0) {
-			    offsets[1]=(short) x;
+			    offsets2[1]=(short) x;
 			    System.rangePrefetch(la, offsets2);
 			    System.rangePrefetch(lc, offsets2);
 			}
 		    } else {
-			offsets[1] = (short) 15;
+			offsets2[1] = (short) 15;
 			System.rangePrefetch(la, offsets2);
 			System.rangePrefetch(lc, offsets2);
 		    }
