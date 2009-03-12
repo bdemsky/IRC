@@ -286,9 +286,10 @@ if $FASTCHECK
 then
 #fast transactions
 JAVAOPTS="$JAVAOPTS -classlibrary $ROBUSTROOT/ClassLibrary/FastCheck"
-fi
+else
 #base bristlecone files
 JAVAOPTS="$JAVAOPTS -classlibrary $ROBUSTROOT/ClassLibrary/Bristlecone"
+fi
 else
 if $DSMFLAG
 then
