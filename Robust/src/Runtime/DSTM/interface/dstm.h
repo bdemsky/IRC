@@ -256,7 +256,7 @@ chashlistnode_t * cnodetmp=&c_table[(inputvalue&c_mask)>>1];	\
 do { \
   if (cnodetmp->key==inputvalue) {x=(void *)&((objheader_t*)cnodetmp->val)[1];break;} \
 cnodetmp=cnodetmp->next;\
- if (cnodetmp==NULL) {x=(void *)transRead2(inputvalue); if (c_mask==4) {c_mask=0;c_table=0;/* Fixes a GCC bug... */};break;} \
+ if (cnodetmp==NULL) {x=(void *)transRead2(inputvalue); asm volatile("":"=m"(c_table),"=m"(c_mask));break;} \
 } while(1);\
 }}
 
