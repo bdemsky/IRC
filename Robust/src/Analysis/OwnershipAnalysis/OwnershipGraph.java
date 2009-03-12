@@ -226,22 +226,6 @@ public class OwnershipGraph {
       HeapRegionNode n = todoNodes.iterator().next();
       ChangeTupleSet C = nodePlannedChanges.get(n);
 
-      /*
-      Iterator itrC = C.iterator();
-      while( itrC.hasNext() ) {
-	ChangeTuple c = (ChangeTuple) itrC.next();
-
-	if( n.getAlpha().contains(c.getSetToMatch() ) ) {
-	  //ReachabilitySet withChange = 
-	    //n.getAlpha().remove( c.getSetToMatch() ).union( c.getSetToAdd() );
-	    //n.getAlpha().union( c.getSetToAdd() );
-	  
-	  //n.setAlphaNew( n.getAlphaNew().union(withChange) );
-	  nodesWithNewAlpha.add(n);
-	}
-      }
-      */
-
       Iterator<ReferenceEdge> referItr = n.iteratorToReferencers();
       while( referItr.hasNext() ) {
 	ReferenceEdge edge = referItr.next();
@@ -294,7 +278,7 @@ public class OwnershipGraph {
       HeapRegionNode n  = (HeapRegionNode) me.getKey();
       ChangeTupleSet C  = (ChangeTupleSet) me.getValue();
 
-      n.setAlphaNew( n.getAlpha().applyChangeSet( C ) );
+      n.setAlphaNew( n.getAlpha().applyChangeSet( C, false ) );
       nodesWithNewAlpha.add( n );
     }
 
@@ -325,12 +309,6 @@ public class OwnershipGraph {
       while( itrC.hasNext() ) {
 	ChangeTuple c = itrC.next();
 	if( edgeE.getBeta().contains( c.getSetToMatch() ) ) {
-	  //ReachabilitySet withChange = 
-	    //edgeE.getBeta().remove( c.getSetToMatch() ).union( c.getSetToAdd() );
-	    //edgeE.getBeta().union( c.getSetToAdd() );
-
-	  //edgeE.setBetaNew(edgeE.getBetaNew().union(withChange) );
-	  //edgesWithNewBeta.add(edgeE);
 	  changesToPass = changesToPass.union(c);
 	}
       }
@@ -365,7 +343,15 @@ public class OwnershipGraph {
       ReferenceEdge  e  = (ReferenceEdge)  me.getKey();
       ChangeTupleSet C  = (ChangeTupleSet) me.getValue();
 
-      e.setBetaNew( e.getBeta().applyChangeSet( C ) );
+      /*
+      System.out.println( "%%%%%%%%%%%%%%%%%%%%%%%%%%%" );
+      System.out.println( "beta="+e.getBeta() );
+      System.out.println( "changeSet="+C );
+      System.out.println( "betaApplied="+e.getBeta().applyChangeSet( C, true ) );
+      System.out.println( "%%%%%%%%%%%%%%%%%%%%%%%%%%%" );
+      */
+
+      e.setBetaNew( e.getBeta().applyChangeSet( C, true ) );
       edgesWithNewBeta.add( e );
     }
   }
@@ -500,7 +486,6 @@ public class OwnershipGraph {
 	}
       }
     }
-
     
     // then do all token propagation
     itrXhrn = lnX.iteratorToReferencees();
@@ -694,11 +679,11 @@ public class OwnershipGraph {
   public void assignTempEqualToAliasedParam(TempDescriptor tdParam,
 					    TempDescriptor tdAliased,
 					    Integer paramIndex ) {
-
     assert tdParam   != null;
     assert tdAliased != null;
 
     LabelNode lnParam   = getLabelNodeFromTemp(tdParam);
+    
     LabelNode lnAliased = getLabelNodeFromTemp(tdAliased);
 
     // this is a non-program-accessible label that picks up beta
@@ -1174,6 +1159,48 @@ public class OwnershipGraph {
 				MethodContext mc // this is only included for identifying caller while debugging
 				) {
 
+    String debugCaller = "foo";
+    String debugCallee = "bar";
+    //String debugCaller = "main";
+    //String debugCallee = "carolina";
+    //String debugCaller = "executeMessage";
+    //String debugCallee = "addAircraft";
+    //String debugCaller = "addFlightPlan";
+    //String debugCallee = "setAircraftType";
+
+
+    if( mc.getDescriptor().getSymbol().equals( debugCaller ) &&
+	fm.getMethod().getSymbol().equals( debugCallee ) ) {
+
+      try {
+	writeGraph( "debug1Before", true, true, true, false, false );
+	ogCallee.writeGraph( "debug0Callee", true, true, true, false, false );
+      } catch( IOException e ) {}
+
+      /*
+      HeapRegionNode hrn1 = id2hrn.get( new Integer( 201 ) );
+      HeapRegionNode hrn2 = id2hrn.get( new Integer( 193 ) );
+      if( hrn1 != null && hrn2 != null ) {
+
+	//System.out.println( "  Looking for edge 201->193" );
+	
+	Iterator<ReferenceEdge> i = hrn1.iteratorToReferencees();
+	while( i.hasNext() ) {
+	  ReferenceEdge edge = i.next();
+	  if( edge.getDst() == hrn2 ) {
+	    System.out.println( "    "+edge+" is empty? "+(edge.getBeta().isEmpty()) );
+	  }
+	}
+      }      
+      */
+
+      System.out.println( "  "+mc+" is calling "+fm );
+    }
+
+
+
+
+
     // define rewrite rules and other structures to organize
     // data by parameter/argument index
     Hashtable<Integer, ReachabilitySet> paramIndex2rewriteH =
@@ -1307,6 +1334,17 @@ public class OwnershipGraph {
 
       ReachabilitySet D_i = d_i.exhaustiveArityCombinations();
       paramIndex2rewriteD.put(paramIndex, D_i);
+
+
+
+      if( mc.getDescriptor().getSymbol().equals( debugCaller ) &&
+	  fm.getMethod().getSymbol().equals( debugCallee ) ) {
+	
+	//System.out.println( "%%%% "+argLabel_i+" in caller's beta merged together becomes d_"+paramIndex+" =\n"+d_i+"\n%%%%%%%%%" );
+      }
+
+
+
     }
 
 
@@ -1588,6 +1626,19 @@ public class OwnershipGraph {
 	  edgeNewInCallerTemplate.applyBetaNew();
 
 
+
+	  /*
+	  if( mc.getDescriptor().getSymbol().equals( debugCaller ) &&
+	      fm.getMethod().getSymbol().equals( debugCallee ) &&
+	      ((HeapRegionNode)edgeCallee.getSrc()).getID().equals( new Integer( 201 ) ) &&
+	      edgeCallee.getDst().getID().equals( new Integer( 224 ) ) 
+	      ) {
+	    System.out.println( "*** Mapping 201->224 into caller with beta="+edgeNewInCallerTemplate.getBeta() );
+	  }
+	  */
+
+
+
 	  // So now make a set of possible source heaps in the caller graph
 	  // and a set of destination heaps in the caller graph, and make
 	  // a reference edge in the caller for every possible (src,dst) pair
@@ -1626,11 +1677,48 @@ public class OwnershipGraph {
 	      edgeNewInCaller.setSrc(src);
 	      edgeNewInCaller.setDst(dst);
 
+
+	      /*
+	      if( mc.getDescriptor().getSymbol().equals( debugCaller ) &&
+		  fm.getMethod().getSymbol().equals( debugCallee ) &&
+		  ((HeapRegionNode)edgeCallee.getSrc()).getID().equals( new Integer( 201 ) ) &&
+		  edgeCallee.getDst().getID().equals( new Integer( 224 ) ) 
+		  ) {
+		System.out.println( "  newEdge is "+edgeNewInCaller+" with beta="+edgeNewInCaller.getBeta() );
+	      }
+	      */
+	      
+
 	      ReferenceEdge edgeExisting = src.getReferenceTo(dst, edgeNewInCaller.getFieldDesc() );
 	      if( edgeExisting == null ) {
 		// if this edge doesn't exist in the caller, create it
 		addReferenceEdge(src, dst, edgeNewInCaller);
+
+
+		/*
+		if( mc.getDescriptor().getSymbol().equals( debugCaller ) &&
+		    fm.getMethod().getSymbol().equals( debugCallee ) &&
+		    ((HeapRegionNode)edgeCallee.getSrc()).getID().equals( new Integer( 201 ) ) &&
+		    edgeCallee.getDst().getID().equals( new Integer( 224 ) ) 
+		    ) {
+		  System.out.println( "    The edge is new to the caller" );
+		}
+		*/
+
 	      } else {
+
+
+		/*
+		if( mc.getDescriptor().getSymbol().equals( debugCaller ) &&
+		    fm.getMethod().getSymbol().equals( debugCallee ) &&
+		    ((HeapRegionNode)edgeCallee.getSrc()).getID().equals( new Integer( 201 ) ) &&
+		    edgeCallee.getDst().getID().equals( new Integer( 224 ) ) 
+		    ) {
+		  System.out.println( "    The edge is being merged into caller beta: "+edgeExisting.getBeta() );
+		}
+		*/
+
+
 		// if it already exists, merge with it
 		edgeExisting.setBeta(edgeExisting.getBeta().union(edgeNewInCaller.getBeta() ) );
 	      }
@@ -1775,8 +1863,64 @@ public class OwnershipGraph {
       }
     }
 
+
+
+    if( mc.getDescriptor().getSymbol().equals( debugCaller ) &&
+	fm.getMethod().getSymbol().equals( debugCallee ) ) {
+
+      try {
+	writeGraph( "debug2JustBeforeSweep", true, true, true, false, false );
+      } catch( IOException e ) {}
+
+      /*
+      HeapRegionNode hrn1 = id2hrn.get( new Integer( 201 ) );
+      HeapRegionNode hrn2 = id2hrn.get( new Integer( 193 ) );
+      if( hrn1 != null && hrn2 != null ) {
+	Iterator<ReferenceEdge> i = hrn1.iteratorToReferencees();
+	while( i.hasNext() ) {
+	  ReferenceEdge edge = i.next();
+	  if( edge.getDst() == hrn2 ) {
+	    System.out.println( "    "+edge+" is empty? "+(edge.getBeta().isEmpty()) );
+	  }
+	}
+      }
+      */
+    }
+
+
+
     // improve reachability as much as possible
     globalSweep();
+
+
+
+    if( mc.getDescriptor().getSymbol().equals( debugCaller ) &&
+	fm.getMethod().getSymbol().equals( debugCallee ) ) {
+
+      try {
+	writeGraph( "debug3After", true, true, true, false, false );
+      } catch( IOException e ) {}
+
+      System.out.println( "  "+mc+" done calling "+fm );
+
+      /*
+      HeapRegionNode hrn1 = id2hrn.get( new Integer( 201 ) );
+      HeapRegionNode hrn2 = id2hrn.get( new Integer( 193 ) );
+      if( hrn1 != null && hrn2 != null ) {
+	Iterator<ReferenceEdge> i = hrn1.iteratorToReferencees();
+	while( i.hasNext() ) {
+	  ReferenceEdge edge = i.next();
+	  if( edge.getDst() == hrn2 ) {
+	    System.out.println( "    "+edge+" is empty? "+(edge.getBeta().isEmpty()) );
+	  }
+	}
+      }
+      */
+
+      System.exit( -1 );
+    }
+
+
   }
 
 
@@ -2105,181 +2249,204 @@ public class OwnershipGraph {
   ////////////////////////////////////////////////////
   protected void globalSweep() {
 
-    // a work set for performing the sweep
-    Hashtable<HeapRegionNode, HashSet<TokenTupleSet> > workSet = 
-      new Hashtable<HeapRegionNode, HashSet<TokenTupleSet> >();
+    /*
+    try {
+      writeGraph( "debug0initial", true, true, true, false, false );
+    } catch( IOException e ) {}
+    */
 
-    // first initialize every alphaNew for a flagged region
-    // (or parameter region) to a set with just that token
+    // boldB is part of the phase 1 sweep
+    Hashtable< Integer, Hashtable<ReferenceEdge, ReachabilitySet> > boldB =
+      new Hashtable< Integer, Hashtable<ReferenceEdge, ReachabilitySet> >();    
+
+    // visit every heap region to initialize alphaNew and calculate boldB
     Set hrns = id2hrn.entrySet();
     Iterator itrHrns = hrns.iterator();
     while( itrHrns.hasNext() ) {
       Map.Entry me = (Map.Entry)itrHrns.next();
       Integer token = (Integer) me.getKey();
       HeapRegionNode hrn = (HeapRegionNode) me.getValue();
-
+    
       // assert that this node and incoming edges have clean alphaNew
       // and betaNew sets, respectively
       ReachabilitySet rsEmpty = new ReachabilitySet().makeCanonical();
       assert rsEmpty.equals( hrn.getAlphaNew() );
 
-      Iterator<ReferenceEdge> itrRes = hrn.iteratorToReferencers();
-      while( itrRes.hasNext() ) {
-	ReferenceEdge edge = itrRes.next();
+      Iterator<ReferenceEdge> itrRers = hrn.iteratorToReferencers();
+      while( itrRers.hasNext() ) {
+	ReferenceEdge edge = itrRers.next();
 	assert rsEmpty.equals( edge.getBetaNew() );
       }      
-      
-      TokenTuple tt     = new TokenTuple( token, !hrn.isSingleObject(), TokenTuple.ARITY_ONE        ).makeCanonical();
-      TokenTuple ttPlus = new TokenTuple( token, !hrn.isSingleObject(), TokenTuple.ARITY_ONEORMORE  ).makeCanonical();
-      TokenTuple ttStar = new TokenTuple( token, !hrn.isSingleObject(), TokenTuple.ARITY_ZEROORMORE ).makeCanonical();
 
-      TokenTupleSet tts      = new TokenTupleSet( tt     ).makeCanonical();
-      TokenTupleSet ttsPlus  = new TokenTupleSet( ttPlus ).makeCanonical();
-      TokenTupleSet ttsStar  = new TokenTupleSet( ttStar ).makeCanonical();
-      TokenTupleSet ttsEmpty = new TokenTupleSet(        ).makeCanonical();
+      TokenTuple tt = new TokenTuple( token, !hrn.isSingleObject(), TokenTuple.ARITY_ONE ).makeCanonical();
 
-      if( hrn.isFlagged() || hrn.isParameter() ) {
-	HashSet<TokenTupleSet> subWorkSet = new HashSet<TokenTupleSet>();
-	subWorkSet.add( tts     );
-	subWorkSet.add( ttsPlus );
-	subWorkSet.add( ttsStar );
-	workSet.put( hrn, subWorkSet );
-	
-	hrn.setAlphaNew( new ReachabilitySet( tts ).makeCanonical() );
-      } else {
+      TokenTupleSet tts      = new TokenTupleSet( tt ).makeCanonical();
+      TokenTupleSet ttsEmpty = new TokenTupleSet(    ).makeCanonical();
+
+      // initialize alphaNew and at flagged regions calculate boldB
+      if( !hrn.isFlagged() && !hrn.isParameter() ) {	
 	hrn.setAlphaNew( new ReachabilitySet( ttsEmpty ).makeCanonical() );
-      }
-    }
 
-    // then propagate tokens forward one step at a time
-    while( !workSet.isEmpty() ) {
-      HeapRegionNode hrn = workSet.keySet().iterator().next();
+      } else {
+	hrn.setAlphaNew( new ReachabilitySet( tts ).makeCanonical() );
+	
+	// calculating boldB for this flagged node
+	Hashtable<ReferenceEdge, ReachabilitySet> boldB_f =
+	  new Hashtable<ReferenceEdge, ReachabilitySet>();
+	
+	Set<ReferenceEdge> workSetEdges = new HashSet<ReferenceEdge>();
 
-      HashSet<TokenTupleSet> subWorkSet = workSet.get( hrn );
-      assert subWorkSet != null;
-      
-      if( subWorkSet.isEmpty() ) {
-	// we're currently done with sub work at this heap region, although
-	// more work may get queued up later, but remove it for now and continue
-	workSet.remove( hrn );
-	continue;
-      }
-      
-      TokenTupleSet tts = subWorkSet.iterator().next();
-      subWorkSet.remove( tts );
+	// initial boldB_f constraints
+	Iterator<ReferenceEdge> itrRees = hrn.iteratorToReferencees();
+	while( itrRees.hasNext() ) {
+	  ReferenceEdge edge = itrRees.next();
 
-      // try to push this TokenTupleSet over all outgoing edges
-      Iterator<ReferenceEdge> itrRes = hrn.iteratorToReferencees();
-      while( itrRes.hasNext() ) {
-	ReferenceEdge edge = itrRes.next();
+	  assert !boldB.containsKey( edge );
+	  boldB_f.put( edge, edge.getBeta() );
 
-	if( edge.getBeta().containsSuperSet( tts ) ) {
-	  HeapRegionNode dst = edge.getDst();
+	  assert !workSetEdges.contains( edge );
+	  workSetEdges.add( edge );
+	}      	
 
-	  // make a set of possible contributions this token
-	  // might have on the alpha set here
-	  HashSet<TokenTupleSet> ttsNewSet = new HashSet<TokenTupleSet>();
+	// enforce the boldB_f constraint at edges until we reach a fixed point
+	while( !workSetEdges.isEmpty() ) {
+	  ReferenceEdge edge = workSetEdges.iterator().next();
+	  workSetEdges.remove( edge );	 
+	  
+	  Iterator<ReferenceEdge> itrPrime = edge.getDst().iteratorToReferencees();
+	  while( itrPrime.hasNext() ) {
+	    ReferenceEdge edgePrime = itrPrime.next();	    
 
-	  Iterator<TokenTupleSet> itrDstAlphaNew = dst.getAlphaNew().iterator();
-	  while( itrDstAlphaNew.hasNext() ) {
-	    TokenTupleSet ttsDstAlphaNew = itrDstAlphaNew.next();
-	    ttsNewSet.add( tts.unionUpArity( ttsDstAlphaNew ) );
-	  }
+	    ReachabilitySet prevResult   = boldB_f.get( edgePrime );
+	    ReachabilitySet intersection = boldB_f.get( edge ).intersection( edgePrime.getBeta() );	    
+	    	    
+	    if( prevResult == null || 
+		prevResult.union( intersection ).size() > prevResult.size() ) {
 
-	  // only add this to the dst alpha new if it is in the beta of
-	  // the edge we crossed to get here, and then only continue the
-	  // propagation if it isn't already in the dst alpha new
-	  Iterator<TokenTupleSet> itrNewSet = ttsNewSet.iterator();
-	  while( itrNewSet.hasNext() ) {
-	    TokenTupleSet ttsNew = itrNewSet.next();
-
-	    if( edge.getBeta().containsSuperSet( ttsNew ) &&
-		!dst.getAlphaNew().contains( ttsNew ) ) {
-	      
-	      // okay, this is a valid propagation, and add to the
-	      // work set to further propagate it
-	      dst.setAlphaNew( dst.getAlphaNew().union( ttsNew ) );
-	      	      
-	      HashSet<TokenTupleSet> subWorkSetDst = workSet.get( dst );
-	      if( subWorkSetDst == null ) {
-		subWorkSetDst = new HashSet<TokenTupleSet>();	      
+	      if( prevResult == null ) {
+		boldB_f.put( edgePrime, intersection );
+	      } else {
+		boldB_f.put( edgePrime, prevResult.union( intersection ) );
 	      }
-
-	      subWorkSetDst.add( ttsNew );
-	      workSet.put( dst, subWorkSetDst );
+	      workSetEdges.add( edgePrime );	
 	    }
 	  }
 	}
-      }
+	
+       	boldB.put( token, boldB_f );
+      }      
     }
 
-    // now prepare work sets to propagate token sets backwards
-    // from heap regions across all edges
-    assert workSet.isEmpty();
+    // use boldB to prune tokens from alpha states that are impossible
+    // and propagate the differences backwards across edges
+    HashSet<ReferenceEdge> edgesForPropagation = new HashSet<ReferenceEdge>();
+
+    Hashtable<ReferenceEdge, ChangeTupleSet> edgePlannedChanges =
+      new Hashtable<ReferenceEdge, ChangeTupleSet>();
+
     hrns = id2hrn.entrySet();
     itrHrns = hrns.iterator();
     while( itrHrns.hasNext() ) {
       Map.Entry me = (Map.Entry)itrHrns.next();
+      Integer token = (Integer) me.getKey();
       HeapRegionNode hrn = (HeapRegionNode) me.getValue();
 
-      HashSet<TokenTupleSet> subWorkSet = new HashSet<TokenTupleSet>();
+      // never remove the identity token from a flagged region
+      // because it is trivially satisfied
+      TokenTuple ttException = new TokenTuple( token, !hrn.isSingleObject(), TokenTuple.ARITY_ONE ).makeCanonical();
 
-      Iterator<TokenTupleSet> itrAlphaNewSets = hrn.getAlphaNew().iterator();
-      while( itrAlphaNewSets.hasNext() ) {
-	TokenTupleSet tts = itrAlphaNewSets.next();
-	subWorkSet.add( tts );
-      }
+      ChangeTupleSet cts = new ChangeTupleSet().makeCanonical();
 
-      workSet.put( hrn, subWorkSet );
-    }
+      // mark tokens for removal
+      Iterator<TokenTupleSet> stateItr = hrn.getAlpha().iterator();
+      while( stateItr.hasNext() ) {
+	TokenTupleSet ttsOld = stateItr.next();
 
-    // propagate token sets backwards across edges one step at a time
-    while( !workSet.isEmpty() ) {
-      HeapRegionNode hrn = workSet.keySet().iterator().next();
+	TokenTupleSet markedTokens = new TokenTupleSet().makeCanonical();
 
-      HashSet<TokenTupleSet> subWorkSet = workSet.get( hrn );
-      assert subWorkSet != null;
-      
-      if( subWorkSet.isEmpty() ) {
-	// we're currently done with sub work at this heap region, although
-	// more work may get queued up later, but remove it for now and continue
-	workSet.remove( hrn );
-	continue;
-      }
-      
-      TokenTupleSet tts = subWorkSet.iterator().next();
-      subWorkSet.remove( tts );
+	Iterator<TokenTuple> ttItr = ttsOld.iterator();
+	while( ttItr.hasNext() ) {
+	  TokenTuple ttOld = ttItr.next();
 
-      // try to push this TokenTupleSet back up incoming edges
-      Iterator<ReferenceEdge> itrRes = hrn.iteratorToReferencers();
-      while( itrRes.hasNext() ) {
-	ReferenceEdge edge = itrRes.next();
-
-	if( (edge.getBeta().containsWithZeroes( tts ) ||
-	     edge.getBeta().containsSuperSet  ( tts )      
-	    ) && 
-	    !edge.getBetaNew().contains( tts )                 ) {
-
-	  // okay, this is a valid propagation, and add to the
-	  // work set to further propagate it
-	  edge.setBetaNew( edge.getBetaNew().union( tts ) );
-	      	      
-	  OwnershipNode src = edge.getSrc();
-	  if( src instanceof HeapRegionNode ) {
-
-	    HashSet<TokenTupleSet> subWorkSetSrc = workSet.get( (HeapRegionNode) src );
-	    if( subWorkSetSrc == null ) {
-	      subWorkSetSrc = new HashSet<TokenTupleSet>();	      
+	  // never remove the identity token from a flagged region
+	  // because it is trivially satisfied
+	  if( hrn.isFlagged() || hrn.isParameter() ) {	
+	    if( ttOld == ttException ) {
+	      continue;
 	    }
-	    
-	    subWorkSetSrc.add( tts );
-	    workSet.put( (HeapRegionNode) src, subWorkSetSrc );
-	  }	  
-	}	  
-      }
-    }    
+	  }
 
-    // apply alphaNew and betaNew to all nodes and edges
+	  // does boldB_ttOld allow this token?
+	  Iterator<ReferenceEdge> incidentEdgeItr = hrn.iteratorToReferencers();
+	  while( incidentEdgeItr.hasNext() ) {
+	    ReferenceEdge incidentEdge = incidentEdgeItr.next();
+
+	    // if it isn't allowed, mark for removal
+	    ReachabilitySet boldB_ttOld_incident = boldB.get( ttOld.getToken() ).get( incidentEdge );	    
+	    if( boldB_ttOld_incident == null ||
+		!boldB_ttOld_incident.contains( ttsOld ) ) {
+	      markedTokens = markedTokens.add( ttOld );
+	    }
+	  }
+	}
+
+	// if there is nothing marked, just move on
+	if( markedTokens.isEmpty() ) {
+	  hrn.setAlphaNew( hrn.getAlphaNew().union( ttsOld ) );
+	  continue;
+	}
+
+	// remove all marked tokens and establish a change set that should
+	// propagate backwards over edges from this node
+	TokenTupleSet ttsPruned = new TokenTupleSet().makeCanonical();
+	ttItr = ttsOld.iterator();
+	while( ttItr.hasNext() ) {
+	  TokenTuple ttOld = ttItr.next();
+
+	  if( !markedTokens.containsTuple( ttOld ) ) {
+	    ttsPruned = ttsPruned.union( ttOld );
+	  }
+	}
+	assert !ttsOld.equals( ttsPruned );
+
+	hrn.setAlphaNew( hrn.getAlphaNew().union( ttsPruned ) );
+	ChangeTuple ct = new ChangeTuple( ttsOld, ttsPruned ).makeCanonical();
+	cts = cts.union( ct );
+      }
+
+      // throw change tuple set on all incident edges
+      if( !cts.isEmpty() ) {
+	Iterator<ReferenceEdge> incidentEdgeItr = hrn.iteratorToReferencers();
+	while( incidentEdgeItr.hasNext() ) {
+	  ReferenceEdge incidentEdge = incidentEdgeItr.next();
+	  	  
+	  edgesForPropagation.add( incidentEdge );
+
+	  if( edgePlannedChanges.get( incidentEdge ) == null ) {
+	    edgePlannedChanges.put( incidentEdge, cts );
+	  } else {	    
+	    edgePlannedChanges.put( 
+	      incidentEdge, 
+	      edgePlannedChanges.get( incidentEdge ).union( cts ) 
+				  );
+	  }
+	}
+      }
+    }
+    
+    HashSet<ReferenceEdge> edgesUpdated = new HashSet<ReferenceEdge>();
+
+    propagateTokensOverEdges( edgesForPropagation,
+			      edgePlannedChanges,
+			      edgesUpdated );
+
+    // at the end of the 1st phase reference edges have
+    // beta, betaNew that correspond to beta and betaR
+    //
+    // commit beta<-betaNew, so beta=betaR and betaNew
+    // will represent the beta' calculation in 2nd phase
+    //
+    // commit alpha<-alphaNew because it won't change
     HashSet<ReferenceEdge> res = new HashSet<ReferenceEdge>();
 
     Iterator<HeapRegionNode> nodeItr = id2hrn.values().iterator();
@@ -2292,10 +2459,71 @@ public class OwnershipGraph {
       }
     }
 
+    /*
+    try {
+      writeGraph( "debug1alphaPruned", true, true, true, false, false );
+    } catch( IOException e ) {}
+    */
+
+    // 2nd phase    
     Iterator<ReferenceEdge> edgeItr = res.iterator();
     while( edgeItr.hasNext() ) {
-      edgeItr.next().applyBetaNew();
+      ReferenceEdge edge = edgeItr.next();
+      HeapRegionNode hrn = edge.getDst();
+
+      // commit results of last phase
+      if( edgesUpdated.contains( edge ) ) {
+	edge.applyBetaNew();
+      }
+
+      // compute intial condition of 2nd phase
+      edge.setBetaNew( edge.getBeta().intersection( hrn.getAlpha() ) );      
     }
+
+    /*
+    try {
+      writeGraph( "debug2edgesWchangesets", true, true, true, false, false );
+    } catch( IOException e ) {}
+    */
+        
+    // every edge in the graph is the initial workset
+    Set<ReferenceEdge> edgeWorkSet = (Set) res.clone();
+    while( !edgeWorkSet.isEmpty() ) {
+      ReferenceEdge edgePrime = edgeWorkSet.iterator().next();
+      edgeWorkSet.remove( edgePrime );
+
+      OwnershipNode on = edgePrime.getSrc();
+      if( !(on instanceof HeapRegionNode) ) {
+	continue;
+      }
+      HeapRegionNode hrn = (HeapRegionNode) on;
+
+      Iterator<ReferenceEdge> itrEdge = hrn.iteratorToReferencers();
+      while( itrEdge.hasNext() ) {
+	ReferenceEdge edge = itrEdge.next();	    
+
+	ReachabilitySet prevResult   = edge.getBetaNew();
+	ReachabilitySet intersection = edge.getBeta().intersection( edgePrime.getBetaNew() );
+		    
+	if( prevResult == null || 
+	    prevResult.union( intersection ).size() > prevResult.size() ) {
+	  edge.setBetaNew( prevResult.union( intersection ) );
+	  edgeWorkSet.add( edge );
+	}	
+      }      
+    }
+
+    // commit beta' (beta<-betaNew)
+    edgeItr = res.iterator();
+    while( edgeItr.hasNext() ) {
+      edgeItr.next().applyBetaNew();
+    } 
+
+    /*
+    try {
+      writeGraph( "debug9final", true, true, true, false, false );
+    } catch( IOException e ) {}
+    */
   }  
 
 
@@ -2987,6 +3215,7 @@ public class OwnershipGraph {
 
   public Set<HeapRegionNode> findCommonReachableNodes( HeapRegionNode hrn1,
 						       HeapRegionNode hrn2 ) {
+    //assert hrn1 != hrn2;
 
     Set<HeapRegionNode> reachableNodes1 = new HashSet<HeapRegionNode>();
     Set<HeapRegionNode> reachableNodes2 = new HashSet<HeapRegionNode>();
@@ -3082,6 +3311,8 @@ public class OwnershipGraph {
                          boolean writeReferencers,
                          boolean writeParamMappings
                          ) throws java.io.IOException {
+
+
 
     writeGraph(mc+"COMPLETE"+String.format("%05d", numUpdate),
                writeLabels,
