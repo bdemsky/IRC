@@ -13,7 +13,7 @@ public class Chase extends Thread {
     
     public static void main(String [] argv) {
 	Chase c;
-    int numTraverse = 10000;
+    int numTraverse = 40000;
 	atomic {
 	    Foo fold=global new Foo();
 	    
