@@ -1,6 +1,7 @@
 #include "dstm.h"
 #include "addPrefetchEnhance.h"
 #include <signal.h>
+#include <fcntl.h>
 
 extern int numTransAbort;
 extern int numTransCommit;
@@ -18,16 +19,24 @@ extern pfcstats_t *evalPrefetch;
 
 void transStatsHandler(int sig, siginfo_t* info, void *context) {
 #ifdef TRANSSTATS
-  printf("******  Transaction Stats   ******\n");
-  printf("numTransAbort = %d\n", numTransAbort);
-  printf("numTransCommit = %d\n", numTransCommit);
-  printf("nchashSearch = %d\n", nchashSearch);
-  printf("nmhashSearch = %d\n", nmhashSearch);
-  printf("nprehashSearch = %d\n", nprehashSearch);
-  printf("nRemoteReadSend = %d\n", nRemoteSend);
-  printf("nSoftAbort = %d\n", nSoftAbort);
-  printf("bytesSent = %d\n", bytesSent);
-  printf("bytesRecv = %d\n", bytesRecv);
+  FILE *fp;
+  if ((fp = fopen("/tmp/client_stats.txt", "a+")) == NULL) {
+    exit(-1);
+  }
+  fprintf(fp, "******  Transaction Stats   ******\n");
+  fprintf(fp, "myIpAddr = %x\n", myIpAddr);
+  fprintf(fp, "numTransAbort = %d\n", numTransAbort);
+  fprintf(fp, "numTransCommit = %d\n", numTransCommit);
+  fprintf(fp, "nchashSearch = %d\n", nchashSearch);
+  fprintf(fp, "nmhashSearch = %d\n", nmhashSearch);
+  fprintf(fp, "nprehashSearch = %d\n", nprehashSearch);
+  fprintf(fp, "nRemoteReadSend = %d\n", nRemoteSend);
+  fprintf(fp, "nSoftAbort = %d\n", nSoftAbort);
+  fprintf(fp, "bytesSent = %d\n", bytesSent);
+  fprintf(fp, "bytesRecv = %d\n", bytesRecv);
+  fprintf(fp, "**********************************\n");
+  fflush(fp);
+  fclose(fp);
   exit(0);
 #endif
 }
