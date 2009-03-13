@@ -10,6 +10,7 @@ public class MethodContext {
   private Descriptor descMethodOrTask;
   private Set aliasedParameterIndices;
 
+
   public MethodContext( Descriptor d ) {
     descMethodOrTask = d;
     aliasedParameterIndices = new HashSet();
@@ -19,7 +20,17 @@ public class MethodContext {
     descMethodOrTask = d;
     aliasedParameterIndices = a;
   }
-  
+
+
+  public Descriptor getDescriptor() {
+    return descMethodOrTask;
+  }
+
+  public Set getAliasedParamIndices() {
+    return aliasedParameterIndices;
+  }  
+
+
   public boolean equals(Object o) {
     if( o == null ) {
       return false;
@@ -38,14 +49,6 @@ public class MethodContext {
   public int hashCode() {
     return descMethodOrTask.hashCode() ^ 
       aliasedParameterIndices.hashCode();
-  }
-
-  public Descriptor getDescriptor() {
-    return descMethodOrTask;
-  }
-
-  public Set getAliasedParamIndices() {
-    return aliasedParameterIndices;
   }
 
 

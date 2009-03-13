@@ -281,6 +281,7 @@ public class OwnershipAnalysis {
   private Hashtable<Descriptor,    HashSet<AllocationSite> > mapDescriptorToAllocationSiteSet;
   private Hashtable<MethodContext, Integer>                  mapMethodContextToNumUpdates;
   private Hashtable<Descriptor,    HashSet<MethodContext> >  mapDescriptorToAllMethodContexts;
+  private Hashtable<MethodContext, HashSet<MethodContext> >  mapMethodContextToDependentContexts;
 
   // Use these data structures to track progress of one pass of
   // processing the FlatNodes of a particular method
@@ -296,16 +297,10 @@ public class OwnershipAnalysis {
   // descriptorsToVisit is initialized to descriptorsToAnalyze and is
   // reduced by visiting a descriptor during analysis.  When dependents
   // must be scheduled, only those contained in descriptorsToAnalyze
-  // should be re-added to this set
-  private HashSet   <MethodContext> methodContextsToVisit;
-
-  // used in conjunction with the methodContextsToVisit set, fill with
-  // a topological sort of methodContextsToVisit and then empty that set
-  // algorithm should analyze something in the linked list until it is
-  // empty, and then work on the set as normal.  The sorted linked list
-  // is just another, specially sorted bucket that is part of the
-  // methodContextsToVisit set
-  private LinkedList<MethodContext> sortedMethodContextsToVisit;
+  // should be re-added to this queue
+  private PriorityQueue<MethodContextQWrapper> methodContextsToVisitQ;
+  private Set          <MethodContext>         methodContextsToVisitSet;
+  private Hashtable<Descriptor, Integer> mapDescriptorToPriority;
 
 
   // special field descriptors for array elements
@@ -368,6 +363,13 @@ public class OwnershipAnalysis {
 
     mapTypeToVarField =
       new Hashtable<TypeDescriptor, FieldDescriptor>();
+
+    mapMethodContextToDependentContexts =
+      new Hashtable<MethodContext, HashSet<MethodContext> >();
+
+    mapDescriptorToPriority = 
+      new Hashtable<Descriptor, Integer>();
+
 
     if( writeAllDOTs ) {
       mapMethodContextToNumUpdates = new Hashtable<MethodContext, Integer>();
@@ -470,11 +472,10 @@ public class OwnershipAnalysis {
   // manage the set of tasks and methods to be analyzed
   // and be sure to reschedule tasks/methods when the methods
   // they call are updated
-  private void analyzeMethods() throws java.io.IOException {
+  private void analyzeMethods() throws java.io.IOException {  
 
-    methodContextsToVisit       = new HashSet   <MethodContext>();    
-    sortedMethodContextsToVisit = new LinkedList<MethodContext>();
-
+    // first gather all of the method contexts to analyze
+    HashSet<MethodContext> allContexts = new HashSet<MethodContext>();
     Iterator<Descriptor> itrd2a = descriptorsToAnalyze.iterator();
     while( itrd2a.hasNext() ) {
       HashSet<MethodContext> mcs = mapDescriptorToAllMethodContexts.get( itrd2a.next() );
@@ -482,25 +483,32 @@ public class OwnershipAnalysis {
 
       Iterator<MethodContext> itrmc = mcs.iterator();
       while( itrmc.hasNext() ) {
-	methodContextsToVisit.add( itrmc.next() );
+	allContexts.add( itrmc.next() );
       }
     }
 
-    sortedMethodContextsToVisit = topologicalSort( methodContextsToVisit );
-    methodContextsToVisit.clear();
+    // topologically sort them according to the caller graph so leaf calls are
+    // ordered first; use that ordering to give method contexts priorities
+    LinkedList<MethodContext> sortedMethodContexts = topologicalSort( allContexts );   
 
-    while( !methodContextsToVisit.isEmpty()       ||
-	   !sortedMethodContextsToVisit.isEmpty()    ) {
-      
-      MethodContext mc = null;
+    methodContextsToVisitQ   = new PriorityQueue<MethodContextQWrapper>();
+    methodContextsToVisitSet = new HashSet<MethodContext>();
 
-      if( !sortedMethodContextsToVisit.isEmpty() ) {
-	mc = sortedMethodContextsToVisit.removeFirst();
-      } else {
-	mc = methodContextsToVisit.iterator().next();
-	methodContextsToVisit.remove(mc);
-      }
+    int p = 0;
+    Iterator<MethodContext> mcItr = sortedMethodContexts.iterator();
+    while( mcItr.hasNext() ) {
+      MethodContext mc = mcItr.next();
+      mapDescriptorToPriority.put( mc.getDescriptor(), new Integer( p ) );
+      methodContextsToVisitQ.add( new MethodContextQWrapper( p, mc ) );
+      methodContextsToVisitSet.add( mc );
+      ++p;
+    }
 
+    // analyze methods from the priority queue until it is empty
+    while( !methodContextsToVisitQ.isEmpty() ) {
+      MethodContext mc = methodContextsToVisitQ.poll().getMethodContext();
+      assert methodContextsToVisitSet.contains( mc );
+      methodContextsToVisitSet.remove( mc );
 
       // because the task or method descriptor just extracted
       // was in the "to visit" set it either hasn't been analyzed
@@ -526,28 +534,15 @@ public class OwnershipAnalysis {
       if( !og.equals(ogPrev) ) {
 	setGraphForMethodContext(mc, og);
 
-	// only methods have dependents, tasks cannot
-	// be invoked by any user program calls
-	if( d instanceof MethodDescriptor ) {
-	  MethodDescriptor md = (MethodDescriptor) d;
-	  Set dependents = callGraph.getCallerSet(md);
-	    
-	  if( dependents != null ) {
-	    Iterator depItr = dependents.iterator();
-	    while( depItr.hasNext() ) {
-	      Descriptor dependent = (Descriptor) depItr.next();
-	      if( descriptorsToAnalyze.contains(dependent) ) {
-		
-		HashSet<MethodContext> mcs = mapDescriptorToAllMethodContexts.get( dependent );
-		assert mcs != null;
-		
-		Iterator<MethodContext> itrmc = mcs.iterator();
-		while( itrmc.hasNext() ) {
-		  MethodContext methodcontext=itrmc.next();
-		  methodContextsToVisit.add( methodcontext );
-		}
-	      }
-	    }
+	Iterator<MethodContext> depsItr = iteratorDependents( mc );
+	while( depsItr.hasNext() ) {
+	  MethodContext mcNext = depsItr.next();
+
+	  if( !methodContextsToVisitSet.contains( mcNext ) ) {
+	    //System.out.println( "  queuing "+mcNext );
+	    methodContextsToVisitQ.add( new MethodContextQWrapper( mapDescriptorToPriority.get( mcNext.getDescriptor() ), 
+								   mcNext ) );
+	    methodContextsToVisitSet.add( mcNext );
 	  }
 	}
       }
@@ -837,12 +832,18 @@ public class OwnershipAnalysis {
 	assert contexts != null;
 	contexts.add( mcNew );
 
+	addDependent( mc, mcNew );
+
 	OwnershipGraph onlyPossibleCallee = mapMethodContextToCompleteOwnershipGraph.get( mcNew );
 
 	if( onlyPossibleCallee == null ) {
 	  // if this method context has never been analyzed just schedule it for analysis
 	  // and skip over this call site for now
-	  methodContextsToVisit.add( mcNew );
+	  if( !methodContextsToVisitSet.contains( mcNew ) ) {
+	    methodContextsToVisitQ.add( new MethodContextQWrapper( mapDescriptorToPriority.get( md ), 
+								   mcNew ) );
+	    methodContextsToVisitSet.add( mcNew );
+	  }
 	  
 	} else {
 	  ogMergeOfAllPossibleCalleeResults.resolveMethodCall(fc, md.isStatic(), flatm, onlyPossibleCallee, mc);
@@ -873,12 +874,18 @@ public class OwnershipAnalysis {
 	  assert contexts != null;
 	  contexts.add( mcNew );
 
+	  addDependent( mc, mcNew );
+
 	  OwnershipGraph ogPotentialCallee = mapMethodContextToCompleteOwnershipGraph.get( mcNew );
 
 	  if( ogPotentialCallee == null ) {
 	    // if this method context has never been analyzed just schedule it for analysis
 	    // and skip over this call site for now
-	    methodContextsToVisit.add( mcNew );
+	    if( !methodContextsToVisitSet.contains( mcNew ) ) {
+	      methodContextsToVisitQ.add( new MethodContextQWrapper( mapDescriptorToPriority.get( md ), 
+								     mcNew ) );
+	      methodContextsToVisitSet.add( mcNew );
+	    }
 	    
 	  } else {
 	    ogCopy.resolveMethodCall(fc, possibleMd.isStatic(), pflatm, ogPotentialCallee, mc);
@@ -928,6 +935,25 @@ public class OwnershipAnalysis {
       } catch( IOException e ) {}
       mapMethodContextToNumUpdates.put(mc, n + 1);
     }
+  }
+
+
+  private void addDependent( MethodContext caller, MethodContext callee ) {
+    HashSet<MethodContext> deps = mapMethodContextToDependentContexts.get( callee );
+    if( deps == null ) {
+      deps = new HashSet<MethodContext>();
+    }
+    deps.add( caller );
+    mapMethodContextToDependentContexts.put( callee, deps );
+  }
+
+  private Iterator<MethodContext> iteratorDependents( MethodContext callee ) {
+    HashSet<MethodContext> deps = mapMethodContextToDependentContexts.get( callee );
+    if( deps == null ) {
+      deps = new HashSet<MethodContext>();
+      mapMethodContextToDependentContexts.put( callee, deps );
+    }
+    return deps.iterator();
   }
 
 
