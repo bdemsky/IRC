@@ -14,6 +14,9 @@ public class Chase extends Thread {
     public static void main(String [] argv) {
 	Chase c;
 	int numTraverse = 10000;
+	if (argv.length>0)
+	    numTraverse=Integer.parseInt(argv[0]);
+
 	atomic {
 	    Foo fold=global new Foo();
 	    
@@ -25,6 +28,7 @@ public class Chase extends Thread {
 	    
 	    c=global new Chase(fold);
 	}
+	System.out.println("Starting");
 	c.start((128<<24)|(195<<16)|(136<<8)|162);
 	c.join();
     }
