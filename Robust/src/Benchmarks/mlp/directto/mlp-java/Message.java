@@ -60,7 +60,7 @@ public class Message {
 
     if (type.compareTo("ADD_FLIGHT_PLAN")==0) {
       System.out.println("Adding flight plan...");
-      d2.getFlightList().addFlightPlan(d2,time,parameters);		
+      d2.getFlightList().addFlightPlan(d2,time,parameters);
     }
     else if (type.compareTo("REMOVE_FLIGHT_PLAN")==0) {
       System.out.println("Removing flight plan...");

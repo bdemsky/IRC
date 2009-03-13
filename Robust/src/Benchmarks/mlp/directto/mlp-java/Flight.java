@@ -22,7 +22,7 @@ public class Flight /*implements Cloneable*/ {
   public void setAircraftType (Aircraft ac) {
     this.aircraftType=ac;
   }
-  
+
   public void setFlightType(String flightType) { 
     this.flightType=flightType;
   }
@@ -34,7 +34,7 @@ public class Flight /*implements Cloneable*/ {
   public void setFlightPlan(FlightPlan fp) {
     fPlan=fp;
   }
-    
+
   public void updateTrajectory(D2 d2, double time) {
     d2.getTrajectorySynthesizer().updateTrajectory(d2, time, this);
   }

@@ -23,7 +23,7 @@ public class MessageList {
   }
 
   //is true for DO_WORK
-    public boolean setMessage(String line) {	
+  public boolean setMessage(String line) {	
     if (line.equals(""))
       return false;
 
@@ -48,6 +48,7 @@ public class MessageList {
     System.out.println("executeAll: we have "+messages.size()+" messages.");
     while(hasNext())
       next().executeMessage(d2);     
+
     d2.getStatic().printInfo();
     d2.getFixList().printInfo();
     d2.getAircraftList().printInfo();	

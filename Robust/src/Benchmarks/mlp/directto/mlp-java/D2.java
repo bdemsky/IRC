@@ -32,11 +32,13 @@ public class D2 {
 
     D2 d2 = new D2();
 
+    
     d2.rw=new ReadWrite();
     d2.rw.read(d2);
+    
 
     d2.getMessageList().executeAll(d2);
-	
+    
     int count = 0;
     while( d2.getFlightList().anyPlanesAlive() ) {
       d2.getAlgorithm().doIteration(d2);

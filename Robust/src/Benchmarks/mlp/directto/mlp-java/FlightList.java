@@ -3,8 +3,8 @@
 //import java.util.*;
 
 public class FlightList {
-  public /*static*/ int noFlights;
-  public /*static*/ Vector f;
+  public  int noFlights;
+  public  Vector f;
 
   public FlightList() {
     noFlights=0;
@@ -17,13 +17,15 @@ public class FlightList {
   }
   */
 
-    public /*static*/ void addFlightPlan(D2 d2, int time, StringTokenizer st) { 
+  public  void addFlightPlan(D2 d2, int time, StringTokenizer st) { 
     Flight newFlight=disjoint flightAdd new Flight(st.nextToken());
     noFlights++;
     f.addElement(newFlight);
+
     FlightPlan fAux=new FlightPlan();
     Aircraft aAux=d2.getAircraftList().getAircraft(st.nextToken());      
     newFlight.setAircraftType(aAux);
+  
     newFlight.setFlightType(st.nextToken());
     Route rAux=new Route(Integer.parseInt(st.nextToken()));
     for (int i=0;i<rAux.noFixes;i++)
@@ -33,12 +35,12 @@ public class FlightList {
     newFlight.setFlightPlan(fAux);
   }
 
-  public /*static*/ String getFlightName(int index) {
+  public  String getFlightName(int index) {
     Flight fAux=(Flight) f.elementAt(index);
     return fAux.flightID;
   }
 
-  public /*static*/ void amendFlightPlan(D2 d2, int time, StringTokenizer st) {
+  public  void amendFlightPlan(D2 d2, int time, StringTokenizer st) {
     Flight fAux=getFlight(st.nextToken());
     Route rAux=new Route(Integer.parseInt(st.nextToken()));    
     for (int i=0;i<rAux.noFixes;i++)
@@ -47,14 +49,14 @@ public class FlightList {
     fAux.fPlan.setCruiseParam(Double.parseDouble(st.nextToken()), Double.parseDouble(st.nextToken()));
   }
 
-    public /*static*/ void amendFlightInfo(D2 d2, int time, StringTokenizer st) {
+    public  void amendFlightInfo(D2 d2, int time, StringTokenizer st) {
     Flight fAux=getFlight(st.nextToken());
     Aircraft aAux=d2.getAircraftList().getAircraft(st.nextToken());      
     fAux.setAircraftType(aAux);
     fAux.setFlightType(st.nextToken());
   }
 
-    public /*static*/ void sendingAircraft(D2 d2, int time, StringTokenizer st) {
+    public  void sendingAircraft(D2 d2, int time, StringTokenizer st) {
     int noF=Integer.parseInt(st.nextToken());
     String id;
     Point4d pos;
@@ -87,14 +89,14 @@ public class FlightList {
     }
   }  
 
-  public /*static*/ void removeFlightPlan(int time, StringTokenizer st) {
+  public  void removeFlightPlan(int time, StringTokenizer st) {
     String id=st.nextToken();
     int i=0;
     while ((i<noFlights) && (((Flight) f.elementAt(i)).hasID(id))) i++;
     if (i<noFlights) f.removeElementAt(i);
   }
 
-  public /*static*/ Flight getFlight(String id) {
+  public  Flight getFlight(String id) {
     for( int i = 0; i < f.size(); ++i ) {
       Flight fAux=(Flight) f.elementAt(i);
       if (fAux.hasID(id))
@@ -105,7 +107,7 @@ public class FlightList {
     return null;
   }
 
-  public /*static*/ boolean anyPlanesAlive() {
+  public  boolean anyPlanesAlive() {
     for( int i = 0; i < f.size(); ++i ) {
       Flight aAux=(Flight) f.elementAt(i);
       Vector p1=aAux.traject.p;
@@ -116,7 +118,7 @@ public class FlightList {
     return false;
   }
 
-  public /*static*/ void printInfo() {
+  public  void printInfo() {
     System.out.println("\n\nThe number of flights:"+noFlights);
     System.out.println("The flights are:");
     for( int i = 0; i < f.size(); ++i ) {
