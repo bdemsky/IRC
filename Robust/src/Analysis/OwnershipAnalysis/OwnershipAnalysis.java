@@ -1172,24 +1172,23 @@ public class OwnershipAnalysis {
   // to get successive captures of the analysis state
   boolean takeDebugSnapshots = false;
   String mcDescSymbolDebug = "main";
-  
+  boolean stopAfterCapture = true;
+
   // increments every visit to debugSnapshot, don't fiddle with it
   int debugCounter = 0;
 
   // the value of debugCounter to start reporting the debugCounter
   // to the screen to let user know what debug iteration we're at
-  int numStartCountReport = 0;
+  int numStartCountReport = 100;
 
   // the frequency of debugCounter values to print out, 0 no report
   int freqCountReport = 0;
 
   // the debugCounter value at which to start taking snapshots
-  int iterStartCapture = 0;
+  int iterStartCapture = 134;
 
   // the number of snapshots to take
   int numIterToCapture = 50;
-
-  boolean stopAfterCapture = true;
 
   void debugSnapshot(OwnershipGraph og, FlatNode fn) {
     if( debugCounter > iterStartCapture + numIterToCapture ) {

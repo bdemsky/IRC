@@ -343,14 +343,6 @@ public class OwnershipGraph {
       ReferenceEdge  e  = (ReferenceEdge)  me.getKey();
       ChangeTupleSet C  = (ChangeTupleSet) me.getValue();
 
-      /*
-      System.out.println( "%%%%%%%%%%%%%%%%%%%%%%%%%%%" );
-      System.out.println( "beta="+e.getBeta() );
-      System.out.println( "changeSet="+C );
-      System.out.println( "betaApplied="+e.getBeta().applyChangeSet( C, true ) );
-      System.out.println( "%%%%%%%%%%%%%%%%%%%%%%%%%%%" );
-      */
-
       e.setBetaNew( e.getBeta().applyChangeSet( C, true ) );
       edgesWithNewBeta.add( e );
     }
@@ -1161,13 +1153,6 @@ public class OwnershipGraph {
 
     String debugCaller = "foo";
     String debugCallee = "bar";
-    //String debugCaller = "main";
-    //String debugCallee = "carolina";
-    //String debugCaller = "executeMessage";
-    //String debugCallee = "addAircraft";
-    //String debugCaller = "addFlightPlan";
-    //String debugCallee = "setAircraftType";
-
 
     if( mc.getDescriptor().getSymbol().equals( debugCaller ) &&
 	fm.getMethod().getSymbol().equals( debugCallee ) ) {
@@ -1177,28 +1162,8 @@ public class OwnershipGraph {
 	ogCallee.writeGraph( "debug0Callee", true, true, true, false, false );
       } catch( IOException e ) {}
 
-      /*
-      HeapRegionNode hrn1 = id2hrn.get( new Integer( 201 ) );
-      HeapRegionNode hrn2 = id2hrn.get( new Integer( 193 ) );
-      if( hrn1 != null && hrn2 != null ) {
-
-	//System.out.println( "  Looking for edge 201->193" );
-	
-	Iterator<ReferenceEdge> i = hrn1.iteratorToReferencees();
-	while( i.hasNext() ) {
-	  ReferenceEdge edge = i.next();
-	  if( edge.getDst() == hrn2 ) {
-	    System.out.println( "    "+edge+" is empty? "+(edge.getBeta().isEmpty()) );
-	  }
-	}
-      }      
-      */
-
       System.out.println( "  "+mc+" is calling "+fm );
     }
-
-
-
 
 
     // define rewrite rules and other structures to organize
@@ -1231,6 +1196,12 @@ public class OwnershipGraph {
     Hashtable<Integer, TokenTuple> paramIndex2paramTokenPlus =
       new Hashtable<Integer, TokenTuple>();
 
+    Hashtable<TokenTuple, Integer> paramTokenStar2paramIndex =
+      new Hashtable<TokenTuple, Integer>();
+
+    Hashtable<Integer, TokenTuple> paramIndex2paramTokenStar =
+      new Hashtable<Integer, TokenTuple>();
+
     Hashtable<Integer, LabelNode> paramIndex2ln =
       new Hashtable<Integer, LabelNode>();
 
@@ -1244,6 +1215,7 @@ public class OwnershipGraph {
     Integer bogusIndex = new Integer(bogusParamIndexInt);
     TokenTuple bogusToken = new TokenTuple(bogusID, true, TokenTuple.ARITY_ONE).makeCanonical();
     TokenTuple bogusTokenPlus = new TokenTuple(bogusID, true, TokenTuple.ARITY_ONEORMORE).makeCanonical();
+    TokenTuple bogusTokenStar = new TokenTuple(bogusID, true, TokenTuple.ARITY_ZEROORMORE).makeCanonical();
     ReachabilitySet rsIdentity =
       new ReachabilitySet(
         new TokenTupleSet(bogusToken).makeCanonical()
@@ -1255,7 +1227,8 @@ public class OwnershipGraph {
     paramIndex2paramToken.put(bogusIndex, bogusToken);
     paramTokenPlus2paramIndex.put(bogusTokenPlus, bogusIndex);
     paramIndex2paramTokenPlus.put(bogusIndex, bogusTokenPlus);
-
+    paramTokenStar2paramIndex.put(bogusTokenStar, bogusIndex);
+    paramIndex2paramTokenStar.put(bogusIndex, bogusTokenStar);
 
     for( int i = 0; i < fm.numParameters(); ++i ) {
       Integer paramIndex = new Integer(i);
@@ -1267,7 +1240,6 @@ public class OwnershipGraph {
       HeapRegionNode hrnParam = ogCallee.id2hrn.get(idParam);
       assert hrnParam != null;
       paramIndex2rewriteH.put(paramIndex,
-
                               toShadowTokens(ogCallee, hrnParam.getAlpha() )
                               );
 
@@ -1298,6 +1270,12 @@ public class OwnershipGraph {
                                            TokenTuple.ARITY_ONEORMORE).makeCanonical();
       paramTokenPlus2paramIndex.put(p_i_plus, paramIndex);
       paramIndex2paramTokenPlus.put(paramIndex, p_i_plus);
+
+      TokenTuple p_i_star = new TokenTuple(hrnParam.getID(),
+                                           true,
+                                           TokenTuple.ARITY_ZEROORMORE).makeCanonical();
+      paramTokenStar2paramIndex.put(p_i_star, paramIndex);
+      paramIndex2paramTokenStar.put(paramIndex, p_i_star);
 
       // now depending on whether the callee is static or not
       // we need to account for a "this" argument in order to
@@ -1334,17 +1312,6 @@ public class OwnershipGraph {
 
       ReachabilitySet D_i = d_i.exhaustiveArityCombinations();
       paramIndex2rewriteD.put(paramIndex, D_i);
-
-
-
-      if( mc.getDescriptor().getSymbol().equals( debugCaller ) &&
-	  fm.getMethod().getSymbol().equals( debugCallee ) ) {
-	
-	//System.out.println( "%%%% "+argLabel_i+" in caller's beta merged together becomes d_"+paramIndex+" =\n"+d_i+"\n%%%%%%%%%" );
-      }
-
-
-
     }
 
 
@@ -1356,8 +1323,8 @@ public class OwnershipGraph {
 
     Iterator lnArgItr = paramIndex2ln.entrySet().iterator();
     while( lnArgItr.hasNext() ) {
-      Map.Entry me      = (Map.Entry)lnArgItr.next();
-      Integer index   = (Integer)   me.getKey();
+      Map.Entry me      = (Map.Entry) lnArgItr.next();
+      Integer index     = (Integer)   me.getKey();
       LabelNode lnArg_i = (LabelNode) me.getValue();
 
       // rewrite alpha for the nodes reachable from argument label i
@@ -1394,7 +1361,7 @@ public class OwnershipGraph {
       // classify edges found as "argument reachable" or "upstream"
       Iterator<HeapRegionNode> hrnItr = reachableNodes.iterator();
       while( hrnItr.hasNext() ) {
-	HeapRegionNode hrn = hrnItr.next();
+	HeapRegionNode hrn = hrnItr.next();	
 
 	rewriteCallerReachability(index,
 	                          hrn,
@@ -1405,6 +1372,7 @@ public class OwnershipGraph {
 	                          paramIndex2paramToken.get(index),
 	                          paramToken2paramIndex,
 	                          paramTokenPlus2paramIndex,
+	                          paramTokenStar2paramIndex,
 	                          false,
 	                          null);
 
@@ -1454,6 +1422,7 @@ public class OwnershipGraph {
 	                          paramIndex2paramToken.get(index),
 	                          paramToken2paramIndex,
 	                          paramTokenPlus2paramIndex,
+	                          paramTokenStar2paramIndex,
 	                          false,
 	                          null);
 
@@ -1477,6 +1446,7 @@ public class OwnershipGraph {
 	                          paramIndex2paramToken.get(index),
 	                          paramToken2paramIndex,
 	                          paramTokenPlus2paramIndex,
+	                          paramTokenStar2paramIndex,
 	                          true,
 	                          edgeUpstreamPlannedChanges);
 
@@ -1537,6 +1507,7 @@ public class OwnershipGraph {
                                 bogusToken,
                                 paramToken2paramIndex,
                                 paramTokenPlus2paramIndex,
+				paramTokenStar2paramIndex,
                                 false,
                                 null);
 
@@ -1567,6 +1538,7 @@ public class OwnershipGraph {
 	                          bogusToken,
 	                          paramToken2paramIndex,
 	                          paramTokenPlus2paramIndex,
+	                          paramTokenStar2paramIndex,
 	                          false,
 	                          null);
 
@@ -1620,23 +1592,11 @@ public class OwnershipGraph {
 	                            bogusToken,
 	                            paramToken2paramIndex,
 	                            paramTokenPlus2paramIndex,
+				    paramTokenStar2paramIndex,
 	                            false,
 	                            null);
 
 	  edgeNewInCallerTemplate.applyBetaNew();
-
-
-
-	  /*
-	  if( mc.getDescriptor().getSymbol().equals( debugCaller ) &&
-	      fm.getMethod().getSymbol().equals( debugCallee ) &&
-	      ((HeapRegionNode)edgeCallee.getSrc()).getID().equals( new Integer( 201 ) ) &&
-	      edgeCallee.getDst().getID().equals( new Integer( 224 ) ) 
-	      ) {
-	    System.out.println( "*** Mapping 201->224 into caller with beta="+edgeNewInCallerTemplate.getBeta() );
-	  }
-	  */
-
 
 
 	  // So now make a set of possible source heaps in the caller graph
@@ -1675,50 +1635,14 @@ public class OwnershipGraph {
 	      // otherwise the caller src and dst pair can match the edge, so make it
 	      ReferenceEdge edgeNewInCaller = edgeNewInCallerTemplate.copy();
 	      edgeNewInCaller.setSrc(src);
-	      edgeNewInCaller.setDst(dst);
-
-
-	      /*
-	      if( mc.getDescriptor().getSymbol().equals( debugCaller ) &&
-		  fm.getMethod().getSymbol().equals( debugCallee ) &&
-		  ((HeapRegionNode)edgeCallee.getSrc()).getID().equals( new Integer( 201 ) ) &&
-		  edgeCallee.getDst().getID().equals( new Integer( 224 ) ) 
-		  ) {
-		System.out.println( "  newEdge is "+edgeNewInCaller+" with beta="+edgeNewInCaller.getBeta() );
-	      }
-	      */
-	      
+	      edgeNewInCaller.setDst(dst);	      
 
 	      ReferenceEdge edgeExisting = src.getReferenceTo(dst, edgeNewInCaller.getFieldDesc() );
 	      if( edgeExisting == null ) {
 		// if this edge doesn't exist in the caller, create it
 		addReferenceEdge(src, dst, edgeNewInCaller);
 
-
-		/*
-		if( mc.getDescriptor().getSymbol().equals( debugCaller ) &&
-		    fm.getMethod().getSymbol().equals( debugCallee ) &&
-		    ((HeapRegionNode)edgeCallee.getSrc()).getID().equals( new Integer( 201 ) ) &&
-		    edgeCallee.getDst().getID().equals( new Integer( 224 ) ) 
-		    ) {
-		  System.out.println( "    The edge is new to the caller" );
-		}
-		*/
-
 	      } else {
-
-
-		/*
-		if( mc.getDescriptor().getSymbol().equals( debugCaller ) &&
-		    fm.getMethod().getSymbol().equals( debugCallee ) &&
-		    ((HeapRegionNode)edgeCallee.getSrc()).getID().equals( new Integer( 201 ) ) &&
-		    edgeCallee.getDst().getID().equals( new Integer( 224 ) ) 
-		    ) {
-		  System.out.println( "    The edge is being merged into caller beta: "+edgeExisting.getBeta() );
-		}
-		*/
-
-
 		// if it already exists, merge with it
 		edgeExisting.setBeta(edgeExisting.getBeta().union(edgeNewInCaller.getBeta() ) );
 	      }
@@ -1757,6 +1681,7 @@ public class OwnershipGraph {
 	                          bogusToken,
 	                          paramToken2paramIndex,
 	                          paramTokenPlus2paramIndex,
+	                          paramTokenStar2paramIndex,
 	                          false,
 	                          null);
 
@@ -1864,63 +1789,25 @@ public class OwnershipGraph {
     }
 
 
-
     if( mc.getDescriptor().getSymbol().equals( debugCaller ) &&
 	fm.getMethod().getSymbol().equals( debugCallee ) ) {
-
       try {
 	writeGraph( "debug2JustBeforeSweep", true, true, true, false, false );
       } catch( IOException e ) {}
-
-      /*
-      HeapRegionNode hrn1 = id2hrn.get( new Integer( 201 ) );
-      HeapRegionNode hrn2 = id2hrn.get( new Integer( 193 ) );
-      if( hrn1 != null && hrn2 != null ) {
-	Iterator<ReferenceEdge> i = hrn1.iteratorToReferencees();
-	while( i.hasNext() ) {
-	  ReferenceEdge edge = i.next();
-	  if( edge.getDst() == hrn2 ) {
-	    System.out.println( "    "+edge+" is empty? "+(edge.getBeta().isEmpty()) );
-	  }
-	}
-      }
-      */
     }
-
 
 
     // improve reachability as much as possible
     globalSweep();
 
 
-
     if( mc.getDescriptor().getSymbol().equals( debugCaller ) &&
 	fm.getMethod().getSymbol().equals( debugCallee ) ) {
-
       try {
-	writeGraph( "debug3After", true, true, true, false, false );
+	writeGraph( "debug9endResolveCall", true, true, true, false, false );
       } catch( IOException e ) {}
-
       System.out.println( "  "+mc+" done calling "+fm );
-
-      /*
-      HeapRegionNode hrn1 = id2hrn.get( new Integer( 201 ) );
-      HeapRegionNode hrn2 = id2hrn.get( new Integer( 193 ) );
-      if( hrn1 != null && hrn2 != null ) {
-	Iterator<ReferenceEdge> i = hrn1.iteratorToReferencees();
-	while( i.hasNext() ) {
-	  ReferenceEdge edge = i.next();
-	  if( edge.getDst() == hrn2 ) {
-	    System.out.println( "    "+edge+" is empty? "+(edge.getBeta().isEmpty()) );
-	  }
-	}
-      }
-      */
-
-      System.exit( -1 );
     }
-
-
   }
 
 
@@ -2036,13 +1923,14 @@ public class OwnershipGraph {
                                          TokenTuple p_i,
                                          Hashtable<TokenTuple, Integer> paramToken2paramIndex,
                                          Hashtable<TokenTuple, Integer> paramTokenPlus2paramIndex,
+                                         Hashtable<TokenTuple, Integer> paramTokenStar2paramIndex,
                                          boolean makeChangeSet,
                                          Hashtable<ReferenceEdge, ChangeTupleSet> edgePlannedChanges) {
     assert(hrn == null && edge != null) ||
-    (hrn != null && edge == null);
+          (hrn != null && edge == null);
 
     assert rules != null;
-    assert p_i != null;
+    assert p_i   != null;
 
     ReachabilitySet callerReachabilityCurrent;
     if( hrn == null ) {
@@ -2050,7 +1938,7 @@ public class OwnershipGraph {
     } else {
       callerReachabilityCurrent = hrn.getAlpha();
     }
-
+  
     ReachabilitySet callerReachabilityNew = new ReachabilitySet().makeCanonical();
 
     // for initializing structures in this method
@@ -2094,6 +1982,13 @@ public class OwnershipGraph {
 	} else if( paramTokenPlus2paramIndex.containsKey(ttCallee) ) {
 	  // worse, use big D
 	  Integer paramIndex_j = paramTokenPlus2paramIndex.get(ttCallee);
+	  assert paramIndex_j != null;
+	  ttCalleeRewrites = paramIndex2rewriteD.get(paramIndex_j);
+	  assert ttCalleeRewrites != null;
+
+	} else if( paramTokenStar2paramIndex.containsKey(ttCallee) ) {
+	  // worse, use big D
+	  Integer paramIndex_j = paramTokenStar2paramIndex.get(ttCallee);
 	  assert paramIndex_j != null;
 	  ttCalleeRewrites = paramIndex2rewriteD.get(paramIndex_j);
 	  assert ttCalleeRewrites != null;
@@ -2249,12 +2144,6 @@ public class OwnershipGraph {
   ////////////////////////////////////////////////////
   protected void globalSweep() {
 
-    /*
-    try {
-      writeGraph( "debug0initial", true, true, true, false, false );
-    } catch( IOException e ) {}
-    */
-
     // boldB is part of the phase 1 sweep
     Hashtable< Integer, Hashtable<ReferenceEdge, ReachabilitySet> > boldB =
       new Hashtable< Integer, Hashtable<ReferenceEdge, ReachabilitySet> >();    
@@ -2278,19 +2167,9 @@ public class OwnershipGraph {
 	assert rsEmpty.equals( edge.getBetaNew() );
       }      
 
-      TokenTuple tt = new TokenTuple( token, !hrn.isSingleObject(), TokenTuple.ARITY_ONE ).makeCanonical();
-
-      TokenTupleSet tts      = new TokenTupleSet( tt ).makeCanonical();
-      TokenTupleSet ttsEmpty = new TokenTupleSet(    ).makeCanonical();
-
-      // initialize alphaNew and at flagged regions calculate boldB
-      if( !hrn.isFlagged() && !hrn.isParameter() ) {	
-	hrn.setAlphaNew( new ReachabilitySet( ttsEmpty ).makeCanonical() );
-
-      } else {
-	hrn.setAlphaNew( new ReachabilitySet( tts ).makeCanonical() );
+      // calculate boldB for this flagged node
+      if( hrn.isFlagged() || hrn.isParameter() ) {
 	
-	// calculating boldB for this flagged node
 	Hashtable<ReferenceEdge, ReachabilitySet> boldB_f =
 	  new Hashtable<ReferenceEdge, ReachabilitySet>();
 	
@@ -2322,9 +2201,9 @@ public class OwnershipGraph {
 	    	    
 	    if( prevResult == null || 
 		prevResult.union( intersection ).size() > prevResult.size() ) {
-
+	      
 	      if( prevResult == null ) {
-		boldB_f.put( edgePrime, intersection );
+		boldB_f.put( edgePrime, edgePrime.getBeta().union( intersection ) );
 	      } else {
 		boldB_f.put( edgePrime, prevResult.union( intersection ) );
 	      }
@@ -2336,6 +2215,7 @@ public class OwnershipGraph {
        	boldB.put( token, boldB_f );
       }      
     }
+
 
     // use boldB to prune tokens from alpha states that are impossible
     // and propagate the differences backwards across edges
@@ -2377,16 +2257,21 @@ public class OwnershipGraph {
 	  }
 
 	  // does boldB_ttOld allow this token?
+	  boolean foundState = false;
 	  Iterator<ReferenceEdge> incidentEdgeItr = hrn.iteratorToReferencers();
 	  while( incidentEdgeItr.hasNext() ) {
 	    ReferenceEdge incidentEdge = incidentEdgeItr.next();
 
 	    // if it isn't allowed, mark for removal
 	    ReachabilitySet boldB_ttOld_incident = boldB.get( ttOld.getToken() ).get( incidentEdge );	    
-	    if( boldB_ttOld_incident == null ||
-		!boldB_ttOld_incident.contains( ttsOld ) ) {
-	      markedTokens = markedTokens.add( ttOld );
+	    if( boldB_ttOld_incident != null &&
+		boldB_ttOld_incident.contains( ttsOld ) ) {
+	      foundState = true;
 	    }
+	  }
+
+	  if( !foundState ) {
+	    markedTokens = markedTokens.add( ttOld );	  
 	  }
 	}
 
@@ -2459,11 +2344,6 @@ public class OwnershipGraph {
       }
     }
 
-    /*
-    try {
-      writeGraph( "debug1alphaPruned", true, true, true, false, false );
-    } catch( IOException e ) {}
-    */
 
     // 2nd phase    
     Iterator<ReferenceEdge> edgeItr = res.iterator();
@@ -2479,12 +2359,6 @@ public class OwnershipGraph {
       // compute intial condition of 2nd phase
       edge.setBetaNew( edge.getBeta().intersection( hrn.getAlpha() ) );      
     }
-
-    /*
-    try {
-      writeGraph( "debug2edgesWchangesets", true, true, true, false, false );
-    } catch( IOException e ) {}
-    */
         
     // every edge in the graph is the initial workset
     Set<ReferenceEdge> edgeWorkSet = (Set) res.clone();
@@ -2502,11 +2376,12 @@ public class OwnershipGraph {
       while( itrEdge.hasNext() ) {
 	ReferenceEdge edge = itrEdge.next();	    
 
-	ReachabilitySet prevResult   = edge.getBetaNew();
+	ReachabilitySet prevResult = edge.getBetaNew();
+	assert prevResult != null;
+
 	ReachabilitySet intersection = edge.getBeta().intersection( edgePrime.getBetaNew() );
 		    
-	if( prevResult == null || 
-	    prevResult.union( intersection ).size() > prevResult.size() ) {
+	if( prevResult.union( intersection ).size() > prevResult.size() ) {	  
 	  edge.setBetaNew( prevResult.union( intersection ) );
 	  edgeWorkSet.add( edge );
 	}	
@@ -2518,12 +2393,6 @@ public class OwnershipGraph {
     while( edgeItr.hasNext() ) {
       edgeItr.next().applyBetaNew();
     } 
-
-    /*
-    try {
-      writeGraph( "debug9final", true, true, true, false, false );
-    } catch( IOException e ) {}
-    */
   }  
 
 
