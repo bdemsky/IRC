@@ -62,7 +62,8 @@ INLINE objheader_t *searchObj(unsigned int);
 
 /*********** Functions for computation at the participant end **********/
 unsigned int getNextOid(objheader_t * header, short * offsetarray, unsigned int *dfsList, int top);
-int sendOidFound(objheader_t *, unsigned int, int);
+int sendOidFound(objheader_t *, unsigned int, int, char *buffer, int *bufoffset);
 int sendOidNotFound(unsigned int oid, int sd);
+void flushResponses(int sd, char * buffer, int * bufoffset);
 
 #endif

@@ -1366,7 +1366,7 @@ int lookupObject(unsigned int * oid, short offset) {
     return 0;
   }
 
-  if(TYPE(header) > NUMCLASSES) {
+  if(TYPE(header) >= NUMCLASSES) {
     int elementsize = classsize[TYPE(header)];
     struct ArrayObject *ao = (struct ArrayObject *) (((char *)header) + sizeof(objheader_t));
     int length = ao->___length___;

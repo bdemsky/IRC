@@ -49,7 +49,6 @@
 
 //Max number of objects
 #define MAX_OBJECTS  20
-#define DEFAULT_OBJ_STORE_SIZE 1048510 //1MB
 //Transaction id per machine
 #define TID_LEN 20
 #define LISTEN_PORT 2156

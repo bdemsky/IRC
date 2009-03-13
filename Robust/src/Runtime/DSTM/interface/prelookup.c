@@ -128,7 +128,6 @@ unsigned int prehashResize(unsigned int newsize) {
   unsigned int oldsize;
   int i,index;
   unsigned int mask;
-
   ptr = pflookup.table;
   oldsize = pflookup.size;
 

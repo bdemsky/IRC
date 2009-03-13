@@ -11,6 +11,7 @@
 #ifdef COMPILER
 #include "thread.h"
 #endif
+#include "gCollect.h"
 
 #define BACKLOG 10 //max pending connections
 #define RECEIVE_BUFFER_SIZE 2048
@@ -789,7 +790,7 @@ int prefetchReq(int acceptfd) {
       /* Calculate the oid corresponding to the offset value */
       for(i = 0 ; i< numoffset ; i++) {
 	/* Check for arrays  */
-	if(TYPE(header) > NUMCLASSES) {
+	if(TYPE(header) >= NUMCLASSES) {
 	  int elementsize = classsize[TYPE(header)];
 	  struct ArrayObject *ao = (struct ArrayObject *) (((char *)header) + sizeof(objheader_t));
 	  unsigned short length = ao->___length___;

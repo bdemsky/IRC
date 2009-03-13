@@ -1,4 +1,5 @@
 #include "dstm.h"
+#include "gCollect.h"
 
 #define OSUSED(x) (((unsigned int)(x)->top)-((unsigned int) (x+1)))
 #define OSFREE(x) ((x)->size-OSUSED(x))
