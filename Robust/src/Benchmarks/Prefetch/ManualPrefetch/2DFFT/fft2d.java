@@ -68,13 +68,13 @@ public class fft2d extends Thread {
 		int t=x1-l-x0-1;
 		if (t>0) {
 		    offsets2[1] = (short) t;
-		    System.rangePrefetch(tempdataRe, offsets1);
-		    System.rangePrefetch(tempdataIm, offsets1);
+		    System.rangePrefetch(tempdataRe, offsets2);
+		    System.rangePrefetch(tempdataIm, offsets2);
 		}
 	    } else {
 		offsets2[1] = (short) 15;
-		System.rangePrefetch(tempdataRe, offsets1);
-		System.rangePrefetch(tempdataIm, offsets1);
+		System.rangePrefetch(tempdataRe, offsets2);
+		System.rangePrefetch(tempdataIm, offsets2);
 	    }
 	}
 	double inputRe[] = tempdataRe[i]; //local array
