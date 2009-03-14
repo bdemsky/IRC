@@ -64,11 +64,11 @@ public class Convolution extends Thread {
       short[] offsets2 = new short[2];
 	  
 
-      int l=x0+14;
+      int l=14;
       for(int i=x0;i<x1;i++,l++){
         if((l&31) == 0) {  //prefetch every 16th iteration
           //Prefetch this.img.inputImage[] 
-          offsets2[0] = (short) l;
+          offsets2[0] = (short) (l+x0);
           offsets2[1] = (short) 31;
           System.rangePrefetch(tempinput, offsets2);
           System.rangePrefetch(tempout, offsets2);
