@@ -411,8 +411,8 @@ void fixtags() {
 
 void * tomalloc(int size) {
   void * ptr=to_heapptr;
-  if ((size%4)!=0)
-    size+=(4-(size%4));
+  if ((size&7)!=0)
+    size+=(8-(size%8));
   to_heapptr+=size;
   return ptr;
 }
@@ -480,8 +480,8 @@ void * mygcmalloc(struct garbagelist * stackptr, int size) {
   }
 #endif
   ptr=curr_heapptr;
-  if ((size%4)!=0)
-    size+=(4-(size%4));
+  if ((size&7)!=0)
+    size+=(8-(size%8));
   curr_heapptr+=size;
   if (curr_heapptr>curr_heapgcpoint) {
     if (curr_heapbase==0) {
@@ -509,8 +509,8 @@ void * mygcmalloc(struct garbagelist * stackptr, int size) {
       int last_heapsize=0;
       if (lastgcsize>0) {
 	last_heapsize=HEAPSIZE(lastgcsize, size);
-	if ((last_heapsize%4)!=0)
-	  last_heapsize+=(4-(last_heapsize%4));
+	if ((last_heapsize&7)!=0)
+	  last_heapsize+=(8-(last_heapsize%8));
       }
       if (curr_heapsize>last_heapsize)
 	last_heapsize=curr_heapsize;
