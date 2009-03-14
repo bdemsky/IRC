@@ -31,6 +31,10 @@ void *objstrAlloc(objstr_t **osptr, unsigned int size) {
   void *tmp;
   int i=0;
   objstr_t *store=*osptr;
+  if ((size&7)!=0) {
+    size+=(8-(size&7));
+  }
+
   for(;i<3;i++) {
     if (OSFREE(store)>=size) {
       tmp=store->top;

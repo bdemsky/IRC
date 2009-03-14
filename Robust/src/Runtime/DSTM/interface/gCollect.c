@@ -42,6 +42,8 @@ objstr_t * getObjStr(unsigned int size) {
 void *prefetchobjstrAlloc(unsigned int size) {
   //try existing space in first two OS
   objstr_t *os=pNodeInfo.newptr;
+  if ((size&7)!=0)
+    size+=(8-(size&7));
   if (size<=OSFREE(os)) {
     void *tmp=os->top;
     os->top=((char *)os->top)+size;
