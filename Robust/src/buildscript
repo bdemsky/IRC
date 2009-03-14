@@ -29,6 +29,7 @@ echo "-useprofile use profiling data for scheduling (should be used together wit
 echo -threadsimulate generate multi-thread simulate version binary
 echo -printscheduling print out scheduling graphs
 echo -printschedulesim print out scheduling simulator result graphs
+echo -abcclose close the array boundary check
 echo -optional enable optional
 echo -debug generate debug symbols
 echo -prefetch do prefetch analysis
@@ -191,6 +192,9 @@ INTERRUPTFLAG=true
 elif [[ $1 = '-threadsimulate' ]]
 then
 THREADSIMULATEFLAG=true
+elif [[ $1 = '-abcclose' ]]
+then
+JAVAOPTS="$JAVAOPTS -abcclose"
 elif [[ $1 = '-optional' ]]
 then
 JAVAOPTS="$JAVAOPTS -optional"
