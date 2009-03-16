@@ -9,13 +9,12 @@ public class fft2d extends Thread {
   //
   // Code borrowed from :Java Digital Signal Processing book by Lyon and Rao
 
-  public Matrix data1, data2;
+  public Matrix data1;
   public int x0, x1;
 
   // Constructor: 2-d FFT of Complex data.
-  public fft2d(Matrix data1, Matrix data2, int x0, int x1) {
+  public fft2d(Matrix data1, int x0, int x1) {
     this.data1 = data1;
-    this.data2 = data2;
     this.x0 = x0;
     this.x1 = x1;
   }
@@ -39,9 +38,10 @@ public class fft2d extends Thread {
       end = x1;
       fft1 = new fft1d(columnlength);
       fft2 = new fft1d(rowlength);
-      for (int i = x0; i < x1; i++) {
+      int l=8;
+      for (int i = x0; i < x1; i++,l++) {
 	//input of FFT
-	double inputRe[] = tempdataRe[i]; //local array
+  	double inputRe[] = tempdataRe[i]; //local array
 	double inputIm[] = tempdataIm[i];
 	fft(fft1, inputRe, inputIm);
       } //end of for
@@ -53,7 +53,7 @@ public class fft2d extends Thread {
     // Tranpose data.
     if (start == 0) {
       atomic {
-	transpose(tempdataRe,tempdataIm, data2.dataRe,data2.dataIm, rowlength, columnlength);
+        transpose(tempdataRe, tempdataIm, rowlength, columnlength);
       }
     }
 
@@ -64,9 +64,10 @@ public class fft2d extends Thread {
     double transtempRe[][];
     double transtempIm[][];
     atomic {
-      transtempRe = data2.dataRe;
-      transtempIm = data2.dataIm;
-      for (int j = start; j < end; j++) {
+      transtempRe = data1.dataRe;
+      transtempIm = data1.dataIm;
+      int l=8;
+      for (int j = start; j < end; j++,l++) {
 	//input of FFT
 	double inputRe[] = transtempRe[j]; //local array
 	double inputIm[] = transtempIm[j];
@@ -75,14 +76,19 @@ public class fft2d extends Thread {
     }
   } //end of run
 
-  public void transpose(double[][] tempdataRe, double[][] tempdataIm, double[][] outputRe,
-                        double[][] outputIm, int rowlength, int columnlength) {
+  public void transpose(double[][] tempdataRe, double[][] tempdataIm, int rowlength, int columnlength) {
     for(int i = 0; i<rowlength; i++) {
       double tRe[] = tempdataRe[i];
       double tIm[] = tempdataIm[i];
-      for(int j = 0; j<columnlength; j++) {
-	outputRe[j][i] = tRe[j];
-	outputIm[j][i] = tIm[j];
+      double a;
+
+      for(int j = 0; j<i; j++) {
+	a=tempdataRe[j][i];
+	tempdataRe[j][i] = tRe[j];
+        tRe[j]=a;
+	a=tempdataIm[j][i];
+	tempdataIm[j][i] = tIm[j];
+        tIm[j]=a;
       }
     }
   }
@@ -118,24 +124,21 @@ public class fft2d extends Thread {
     mybarr.start(mid[0]);
 
     Matrix data1;
-    Matrix data2;
 
     // Create threads to do FFT
     fft2d[] myfft2d;
     atomic {
       // Set up data for FFT transform
       data1 = global new Matrix(SIZE, SIZE);
-      data2 = global new Matrix(SIZE, SIZE);
       data1.setValues(); //Input Matrix
-      data2.setZeros(); //Transpose Matrix
       myfft2d = global new fft2d[NUM_THREADS];
       int increment = SIZE/NUM_THREADS;
       int base = 0;
       for(int i =0 ; i<NUM_THREADS; i++) {
 	if((i+1)==NUM_THREADS)
-	  myfft2d[i] = global new fft2d(data1, data2, base, SIZE);
+	  myfft2d[i] = global new fft2d(data1, base, SIZE);
 	else
-	  myfft2d[i] = global new fft2d(data1, data2, base, base+increment);
+	  myfft2d[i] = global new fft2d(data1, base, base+increment);
 	base+=increment;
       }
     }

@@ -384,6 +384,17 @@ class mdRunner extends Thread {
       offsets1[3] = (short)  0;
       System.rangePrefetch(o1, offsets1);
 
+      /*
+      offsets1[0] = getoffset{mdRunner, sh_force};
+      offsets1[1] = (short) 0;
+      offsets1[2] = (short) 0;
+      offsets1[3] = (short) 2;
+      System.rangePrefetch(this, offsets1);
+
+      offsets1[0] = getoffset{mdRunner, sh_force2};
+      offsets1[1] = (short) 0;
+      System.rangePrefetch(this, offsets1);
+      */
       /////////////////////
 
       mdsize = mymd.PARTSIZE;
@@ -423,13 +434,11 @@ class mdRunner extends Thread {
       //PREFETCH: sh_force[0..2][0..mdsize]
       atomic {
         /*
-        short[] offsets1 = new short[6];
+        short[] offsets1 = new short[4];
         offsets1[0] = getoffset{mdRunner, sh_force};
         offsets1[1] = (short) 0;
         offsets1[2] = (short) 0;
         offsets1[3] = (short) 2;
-        offsets1[4] = (short) 0;
-        offsets1[5] = (short) (mdsize -1);
         System.rangePrefetch(this, offsets1);
         */
         /* move the particles and update velocities */
@@ -490,11 +499,9 @@ class mdRunner extends Thread {
       atomic {
         /*
         Object o = this.sh_force;
-        short[] offsets1 = new short[4];
+        short[] offsets1 = new short[2];
         offsets1[0] = (short) 0;
         offsets1[1] = (short) 2;
-        offsets1[2] = (short) 0;
-        offsets1[3] = (short) (mdsize -1);
         System.rangePrefetch(o, offsets1);
         */
 
