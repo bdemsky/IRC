@@ -192,6 +192,7 @@ public class OwnershipAnalysis {
       }
     }
 
+    bw.write( "\n"+computeAliasContextHistogram() );
     bw.close();
   }
 
@@ -240,6 +241,7 @@ public class OwnershipAnalysis {
       bw.write("No aliases between flagged objects found.\n");
     }
 
+    bw.write( "\n"+computeAliasContextHistogram() );
     bw.close();
   }
   ///////////////////////////////////////////
@@ -1191,6 +1193,41 @@ public class OwnershipAnalysis {
     sorted.addFirst( mc );
   }
 
+
+
+  private String computeAliasContextHistogram() {
+    
+    Hashtable<Integer, Integer> mapNumContexts2NumDesc = 
+      new Hashtable<Integer, Integer>();
+  
+    Iterator itr = mapDescriptorToAllMethodContexts.entrySet().iterator();
+    while( itr.hasNext() ) {
+      Map.Entry me = (Map.Entry) itr.next();
+      HashSet<MethodContext> s = (HashSet<MethodContext>) me.getValue();
+      
+      Integer i = mapNumContexts2NumDesc.get( s.size() );
+      if( i == null ) {
+	i = new Integer( 0 );
+      }
+      mapNumContexts2NumDesc.put( s.size(), i + 1 );
+    }   
+
+    String s = "";
+    int total = 0;
+
+    itr = mapNumContexts2NumDesc.entrySet().iterator();
+    while( itr.hasNext() ) {
+      Map.Entry me = (Map.Entry) itr.next();
+      Integer c0 = (Integer) me.getKey();
+      Integer d0 = (Integer) me.getValue();
+      total += d0;
+      s += String.format( "%4d methods had %4d unique alias contexts.\n", d0, c0 );
+    }
+
+    s += String.format( "\n%4d total methods analayzed.\n", total );
+
+    return s;
+  }
 
 
 

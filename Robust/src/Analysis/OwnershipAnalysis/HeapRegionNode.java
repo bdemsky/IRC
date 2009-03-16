@@ -15,6 +15,8 @@ public class HeapRegionNode extends OwnershipNode {
 
   protected HashSet<ReferenceEdge> referencers;
 
+  protected TypeDescriptor type;
+
   protected AllocationSite allocSite;
 
   protected ReachabilitySet alpha;
@@ -29,6 +31,7 @@ public class HeapRegionNode extends OwnershipNode {
                         boolean isFlagged,
 			boolean isParameter,
                         boolean isNewSummary,
+			TypeDescriptor type,
                         AllocationSite allocSite,
                         ReachabilitySet alpha,
                         String description) {
@@ -37,6 +40,7 @@ public class HeapRegionNode extends OwnershipNode {
     this.isFlagged      = isFlagged;
     this.isParameter    = isParameter;
     this.isNewSummary   = isNewSummary;
+    this.type           = type;
     this.allocSite      = allocSite;
     this.alpha          = alpha;
     this.description    = description;
@@ -51,6 +55,7 @@ public class HeapRegionNode extends OwnershipNode {
                               isFlagged,
 			      isParameter,
                               isNewSummary,
+			      type,
                               allocSite,
                               alpha,
                               description);
@@ -142,14 +147,16 @@ public class HeapRegionNode extends OwnershipNode {
   }
 
   public ReferenceEdge getReferenceFrom(OwnershipNode on,
-                                        FieldDescriptor fd) {
+                                        TypeDescriptor type,
+					String field) {
     assert on != null;
 
     Iterator<ReferenceEdge> itrEdge = referencers.iterator();
     while( itrEdge.hasNext() ) {
       ReferenceEdge edge = itrEdge.next();
       if( edge.getSrc().equals(on) &&
-          edge.getFieldDesc() == fd     ) {
+	  edge.typeEquals(type) &&
+          edge.fieldEquals(field) ) {
 	return edge;
       }
     }
@@ -157,6 +164,10 @@ public class HeapRegionNode extends OwnershipNode {
     return null;
   }
 
+
+  public TypeDescriptor getType() {
+    return type;
+  }  
 
   public AllocationSite getAllocationSite() {
     return allocSite;

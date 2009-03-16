@@ -76,11 +76,19 @@ public class OwnershipGraph {
                           boolean isFlagged,
                           boolean isNewSummary,
                           boolean isParameter,
+			  TypeDescriptor type,
                           AllocationSite allocSite,
                           ReachabilitySet alpha,
                           String description) {
 
     boolean markForAnalysis = isFlagged || isParameter;
+
+    TypeDescriptor typeToUse = null;
+    if( allocSite != null ) {
+      typeToUse = allocSite.getType();
+    } else {
+      typeToUse = type;
+    }
 
     if( allocSite != null && allocSite.getDisjointId() != null ) {
       markForAnalysis = true;
@@ -110,6 +118,7 @@ public class OwnershipGraph {
                                             markForAnalysis,
 					    isParameter,
                                             isNewSummary,
+					    typeToUse,
                                             allocSite,
                                             alpha,
                                             description);
@@ -144,22 +153,26 @@ public class OwnershipGraph {
 
   protected void removeReferenceEdge(OwnershipNode referencer,
                                      HeapRegionNode referencee,
-                                     FieldDescriptor fieldDesc) {
+                                     TypeDescriptor type,
+				     String field) {
     assert referencer != null;
     assert referencee != null;
-
+    
     ReferenceEdge edge = referencer.getReferenceTo(referencee,
-                                                   fieldDesc);
+                                                   type,
+						   field);
     assert edge != null;
     assert edge == referencee.getReferenceFrom(referencer,
-                                               fieldDesc);
+                                               type,
+					       field);
 
     referencer.removeReferencee(edge);
     referencee.removeReferencer(edge);
   }
 
   protected void clearReferenceEdgesFrom(OwnershipNode referencer,
-                                         FieldDescriptor fieldDesc,
+                                         TypeDescriptor type,
+					 String field,
                                          boolean removeAll) {
     assert referencer != null;
 
@@ -170,18 +183,24 @@ public class OwnershipGraph {
     while( i.hasNext() ) {
       ReferenceEdge edge = i.next();
 
-      if( removeAll || edge.getFieldDesc() == fieldDesc ) {
-	HeapRegionNode referencee = edge.getDst();
+      if( removeAll                                          || 
+	  (type  != null && edge.getType() .equals( type  )) ||
+	  (field != null && edge.getField().equals( field ))   
+        ){
 
+	HeapRegionNode referencee = edge.getDst();
+	
 	removeReferenceEdge(referencer,
 	                    referencee,
-	                    edge.getFieldDesc() );
+	                    edge.getType(),
+			    edge.getField() );
       }
     }
   }
 
   protected void clearReferenceEdgesTo(HeapRegionNode referencee,
-                                       FieldDescriptor fieldDesc,
+				       TypeDescriptor type,
+				       String field,
                                        boolean removeAll) {
     assert referencee != null;
 
@@ -192,11 +211,17 @@ public class OwnershipGraph {
     while( i.hasNext() ) {
       ReferenceEdge edge = i.next();
 
-      if( removeAll || edge.getFieldDesc() == fieldDesc ) {
+      if( removeAll                                          || 
+	  (type  != null && edge.getType() .equals( type  )) ||
+	  (field != null && edge.getField().equals( field ))   
+        ){
+
 	OwnershipNode referencer = edge.getSrc();
+
 	removeReferenceEdge(referencer,
 	                    referencee,
-	                    edge.getFieldDesc() );
+	                    edge.getType(),
+			    edge.getField() );
       }
     }
   }
@@ -371,13 +396,13 @@ public class OwnershipGraph {
     LabelNode lnX = getLabelNodeFromTemp(x);
     LabelNode lnY = getLabelNodeFromTemp(y);
 
-    clearReferenceEdgesFrom(lnX, null, true);
+    clearReferenceEdgesFrom(lnX, null, null, true);
 
     Iterator<ReferenceEdge> itrYhrn = lnY.iteratorToReferencees();
     while( itrYhrn.hasNext() ) {
-      ReferenceEdge edgeY       = itrYhrn.next();
+      ReferenceEdge  edgeY      = itrYhrn.next();
       HeapRegionNode referencee = edgeY.getDst();
-      ReferenceEdge edgeNew    = edgeY.copy();
+      ReferenceEdge  edgeNew    = edgeY.copy();
       edgeNew.setSrc(lnX);
 
       addReferenceEdge(lnX, referencee, edgeNew);
@@ -392,15 +417,16 @@ public class OwnershipGraph {
     LabelNode lnX = getLabelNodeFromTemp(x);
     LabelNode lnY = getLabelNodeFromTemp(y);
     
-    clearReferenceEdgesFrom(lnX, null, true);
+    clearReferenceEdgesFrom(lnX, null, null, true);
 
     Iterator<ReferenceEdge> itrYhrn = lnY.iteratorToReferencees();
     while( itrYhrn.hasNext() ) {
-      ReferenceEdge edgeY       = itrYhrn.next();
+      ReferenceEdge  edgeY      = itrYhrn.next();
       HeapRegionNode referencee = edgeY.getDst();
-      ReferenceEdge edgeNew    = edgeY.copy();
-      edgeNew.setSrc(lnX);
-      edgeNew.setFieldDesc(f);
+      ReferenceEdge  edgeNew    = edgeY.copy();
+      edgeNew.setSrc( lnX );
+      edgeNew.setType( f.getType() );
+      edgeNew.setField( f.getSymbol() );
 
       addReferenceEdge(lnX, referencee, edgeNew);
     }
@@ -413,7 +439,7 @@ public class OwnershipGraph {
     LabelNode lnX = getLabelNodeFromTemp(x);
     LabelNode lnY = getLabelNodeFromTemp(y);
 
-    clearReferenceEdgesFrom(lnX, null, true);
+    clearReferenceEdgesFrom(lnX, null, null, true);
 
     Iterator<ReferenceEdge> itrYhrn = lnY.iteratorToReferencees();
     while( itrYhrn.hasNext() ) {
@@ -427,12 +453,13 @@ public class OwnershipGraph {
 	HeapRegionNode hrnHrn  = edgeHrn.getDst();
 	ReachabilitySet betaHrn = edgeHrn.getBeta();
 
-	if( edgeHrn.getFieldDesc() == null ||
-	    edgeHrn.getFieldDesc() == f ) {
+	if( edgeHrn.getType() == null ||
+	    edgeHrn.getType().equals( f.getType() ) ) {
 
 	  ReferenceEdge edgeNew = new ReferenceEdge(lnX,
 	                                            hrnHrn,
-	                                            f,
+	                                            f.getType(),
+						    f.getSymbol(),
 	                                            false,
 	                                            betaY.intersection(betaHrn) );
 
@@ -469,12 +496,12 @@ public class OwnershipGraph {
 	// we can do a strong update here if one of two cases holds	
 	if( f != null &&
 	    hrnX.isSingleObject() &&
-	    (   (hrnX.getNumReferencers() == 1)                           ||
+	    (   (hrnX.getNumReferencers() == 1) ||
 		( lnX.getNumReferencees() == 1)
 	    )
 	  ) {
 	  strongUpdate = true;
-	  clearReferenceEdgesFrom( hrnX, f, false );
+	  clearReferenceEdgesFrom( hrnX, f.getType(), f.getSymbol(), false );
 	}
       }
     }
@@ -549,14 +576,17 @@ public class OwnershipGraph {
 	// prepare the new reference edge hrnX.f -> hrnY
 	ReferenceEdge edgeNew = new ReferenceEdge(hrnX,
 	                                          hrnY,
-	                                          f,
+	                                          f.getType(),
+						  f.getSymbol(),
 	                                          false,
 	                                          edgeY.getBeta().pruneBy( hrnX.getAlpha() )
 	                                          );
 
 	// look to see if an edge with same field exists
 	// and merge with it, otherwise just add the edge
-	ReferenceEdge edgeExisting = hrnX.getReferenceTo( hrnY, f );
+	ReferenceEdge edgeExisting = hrnX.getReferenceTo( hrnY, 
+							  f.getType(),
+							  f.getSymbol() );
 	
 	if( edgeExisting != null ) {
 	  edgeExisting.setBeta(
@@ -590,6 +620,7 @@ public class OwnershipGraph {
                                                  isTask,
                                                  false,
                                                  true,
+						 null,
                                                  null,
                                                  null,
                                                  "param" + paramIndex);
@@ -621,13 +652,13 @@ public class OwnershipGraph {
     // the worst here.
 
     ReferenceEdge edgeFromLabel =
-      new ReferenceEdge(lnParam, hrn, null, false, beta);
+      new ReferenceEdge(lnParam, hrn, null, null, false, beta);
 
     ReferenceEdge edgeFromLabelQ =
-      new ReferenceEdge(lnParamQ, hrn, null, false, beta);
+      new ReferenceEdge(lnParamQ, hrn, null, null, false, beta);
 
     ReferenceEdge edgeReflexive =
-      new ReferenceEdge(hrn,     hrn, null, true,  beta);
+      new ReferenceEdge(hrn,     hrn, null, null, true,  beta);
 
     addReferenceEdge(lnParam,  hrn, edgeFromLabel);
     addReferenceEdge(lnParamQ, hrn, edgeFromLabelQ);
@@ -643,6 +674,7 @@ public class OwnershipGraph {
                                                  false,
                                                  false,
                                                  true,
+						 null,
                                                  null,
                                                  null,
                                                  "aliasedParams");
@@ -659,10 +691,10 @@ public class OwnershipGraph {
     // the worst here.
 
     ReferenceEdge edgeFromLabel =
-      new ReferenceEdge(lnParam, hrn, null, false, beta);
+      new ReferenceEdge(lnParam, hrn, null, null, false, beta);
 
     ReferenceEdge edgeReflexive =
-      new ReferenceEdge(hrn,     hrn, null, true,  beta);
+      new ReferenceEdge(hrn,     hrn, null, null, true,  beta);
 
     addReferenceEdge(lnParam, hrn, edgeFromLabel);
     addReferenceEdge(hrn,     hrn, edgeReflexive);
@@ -712,10 +744,10 @@ public class OwnershipGraph {
     // the worst here.
 
     ReferenceEdge edgeFromLabel =
-      new ReferenceEdge(lnParam, hrnAliasBlob, null, false, beta);
+      new ReferenceEdge(lnParam, hrnAliasBlob, null, null, false, beta);
 
     ReferenceEdge edgeFromLabelQ =
-      new ReferenceEdge(lnParamQ, hrnAliasBlob, null, false, beta);
+      new ReferenceEdge(lnParamQ, hrnAliasBlob, null, null, false, beta);
 
     addReferenceEdge(lnParam,  hrnAliasBlob, edgeFromLabel);
     addReferenceEdge(lnParamQ, hrnAliasBlob, edgeFromLabelQ);
@@ -728,7 +760,7 @@ public class OwnershipGraph {
     LabelNode lnR = getLabelNodeFromTemp(tdReturn);
     LabelNode lnX = getLabelNodeFromTemp(x);
 
-    clearReferenceEdgesFrom(lnR, null, true);
+    clearReferenceEdgesFrom(lnR, null, null, true);
 
     Iterator<ReferenceEdge> itrXhrn = lnX.iteratorToReferencees();
     while( itrXhrn.hasNext() ) {
@@ -760,10 +792,10 @@ public class OwnershipGraph {
     assert hrnNewest != null;
 
     LabelNode lnX = getLabelNodeFromTemp(x);
-    clearReferenceEdgesFrom(lnX, null, true);
+    clearReferenceEdgesFrom(lnX, null, null, true);
 
     ReferenceEdge edgeNew =
-      new ReferenceEdge(lnX, hrnNewest, null, false, hrnNewest.getAlpha() );
+      new ReferenceEdge(lnX, hrnNewest, null, null, false, hrnNewest.getAlpha() );
 
     addReferenceEdge(lnX, hrnNewest, edgeNew);
   }
@@ -823,8 +855,8 @@ public class OwnershipGraph {
     assert hrn0 != null;
 
     // clear all references in and out of newest node
-    clearReferenceEdgesFrom(hrn0, null, true);
-    clearReferenceEdgesTo(hrn0, null, true);
+    clearReferenceEdgesFrom(hrn0, null, null, true);
+    clearReferenceEdgesTo(hrn0, null, null, true);
 
 
     // now tokens in reachability sets need to "age" also
@@ -894,6 +926,7 @@ public class OwnershipGraph {
                                            hasFlags,
                                            true,
                                            false,
+					   null,
                                            as,
                                            null,
                                            as.toStringForDOT() + "\\nsummary");
@@ -906,6 +939,7 @@ public class OwnershipGraph {
 	                        hasFlags,
 	                        false,
 	                        false,
+				null,
 	                        as,
 	                        null,
 	                        as.toStringForDOT() + "\\n" + i + " oldest");
@@ -933,6 +967,7 @@ public class OwnershipGraph {
                                                  hasFlags,
                                                  true,
                                                  false,
+						 null,
                                                  as,
                                                  null,
                                                  as + "\\n" + as.getType() + "\\nshadowSum");
@@ -945,6 +980,7 @@ public class OwnershipGraph {
 	                        hasFlags,
 	                        false,
 	                        false,
+				null,
 	                        as,
 	                        null,
 	                        as + "\\n" + as.getType() + "\\n" + i + " shadow");
@@ -966,7 +1002,9 @@ public class OwnershipGraph {
       edgeMerged.setSrc(hrnSummary);
 
       HeapRegionNode hrnReferencee = edge.getDst();
-      ReferenceEdge edgeSummary   = hrnSummary.getReferenceTo(hrnReferencee, edge.getFieldDesc() );
+      ReferenceEdge edgeSummary   = hrnSummary.getReferenceTo(hrnReferencee, 
+							      edge.getType(),
+							      edge.getField() );
 
       if( edgeSummary == null ) {
 	// the merge is trivial, nothing to be done
@@ -987,7 +1025,9 @@ public class OwnershipGraph {
       edgeMerged.setDst(hrnSummary);
 
       OwnershipNode onReferencer = edge.getSrc();
-      ReferenceEdge edgeSummary  = onReferencer.getReferenceTo(hrnSummary, edge.getFieldDesc() );
+      ReferenceEdge edgeSummary  = onReferencer.getReferenceTo(hrnSummary, 
+							       edge.getType(),
+							       edge.getField() );
 
       if( edgeSummary == null ) {
 	// the merge is trivial, nothing to be done
@@ -1008,8 +1048,8 @@ public class OwnershipGraph {
   protected void transferOnto(HeapRegionNode hrnA, HeapRegionNode hrnB) {
 
     // clear references in and out of node b
-    clearReferenceEdgesFrom(hrnB, null, true);
-    clearReferenceEdgesTo(hrnB, null, true);
+    clearReferenceEdgesFrom(hrnB, null, null, true);
+    clearReferenceEdgesTo(hrnB, null, null, true);
 
     // copy each edge in and out of A to B
     Iterator<ReferenceEdge> itrReferencee = hrnA.iteratorToReferencees();
@@ -1243,7 +1283,7 @@ public class OwnershipGraph {
                               toShadowTokens(ogCallee, hrnParam.getAlpha() )
                               );
 
-      ReferenceEdge edgeReflexive_i = hrnParam.getReferenceTo(hrnParam, null);
+      ReferenceEdge edgeReflexive_i = hrnParam.getReferenceTo(hrnParam, null, null);
       assert edgeReflexive_i != null;
       paramIndex2rewriteJ.put(paramIndex,
                               toShadowTokens(ogCallee, edgeReflexive_i.getBeta() )
@@ -1253,7 +1293,7 @@ public class OwnershipGraph {
       assert tdParamQ != null;
       LabelNode lnParamQ = ogCallee.td2ln.get(tdParamQ);
       assert lnParamQ != null;
-      ReferenceEdge edgeSpecialQ_i = lnParamQ.getReferenceTo(hrnParam, null);
+      ReferenceEdge edgeSpecialQ_i = lnParamQ.getReferenceTo(hrnParam, null, null);
       assert edgeSpecialQ_i != null;
       paramIndex2rewriteK.put(paramIndex,
                               toShadowTokens(ogCallee, edgeSpecialQ_i.getBeta() )
@@ -1578,7 +1618,8 @@ public class OwnershipGraph {
 	  // calculated once, then copy it for each new edge in caller
 	  ReferenceEdge edgeNewInCallerTemplate = new ReferenceEdge(null,
 	                                                            null,
-	                                                            edgeCallee.getFieldDesc(),
+	                                                            edgeCallee.getType(),
+	                                                            edgeCallee.getField(),
 	                                                            false,
 	                                                            toShadowTokens(ogCallee,
 	                                                                           edgeCallee.getBeta() )
@@ -1637,7 +1678,9 @@ public class OwnershipGraph {
 	      edgeNewInCaller.setSrc(src);
 	      edgeNewInCaller.setDst(dst);	      
 
-	      ReferenceEdge edgeExisting = src.getReferenceTo(dst, edgeNewInCaller.getFieldDesc() );
+	      ReferenceEdge edgeExisting = src.getReferenceTo(dst, 
+							      edgeNewInCaller.getType(),
+							      edgeNewInCaller.getField() );
 	      if( edgeExisting == null ) {
 		// if this edge doesn't exist in the caller, create it
 		addReferenceEdge(src, dst, edgeNewInCaller);
@@ -1658,7 +1701,7 @@ public class OwnershipGraph {
     if( returnTemp != null && !returnTemp.getType().isImmutable() ) {
 
       LabelNode lnLhsCaller = getLabelNodeFromTemp(returnTemp);
-      clearReferenceEdgesFrom(lnLhsCaller, null, true);
+      clearReferenceEdgesFrom(lnLhsCaller, null, null, true);
 
       LabelNode lnReturnCallee = ogCallee.getLabelNodeFromTemp(tdReturn);
       Iterator<ReferenceEdge> edgeCalleeItr = lnReturnCallee.iteratorToReferencees();
@@ -1667,7 +1710,8 @@ public class OwnershipGraph {
 
 	ReferenceEdge edgeNewInCallerTemplate = new ReferenceEdge(null,
 	                                                          null,
-	                                                          edgeCallee.getFieldDesc(),
+	                                                          edgeCallee.getType(),
+	                                                          edgeCallee.getField(),
 	                                                          false,
 	                                                          toShadowTokens(ogCallee,
 	                                                                         edgeCallee.getBeta() )
@@ -1707,7 +1751,9 @@ public class OwnershipGraph {
 	  edgeNewInCaller.setSrc(lnLhsCaller);
 	  edgeNewInCaller.setDst(hrnCaller);
 
-	  ReferenceEdge edgeExisting = lnLhsCaller.getReferenceTo(hrnCaller, edgeNewInCaller.getFieldDesc() );
+	  ReferenceEdge edgeExisting = lnLhsCaller.getReferenceTo(hrnCaller, 
+								  edgeNewInCaller.getType(),
+								  edgeNewInCaller.getField() );
 	  if( edgeExisting == null ) {
 
 	    // if this edge doesn't exist in the caller, create it
@@ -1741,8 +1787,8 @@ public class OwnershipGraph {
       mergeIntoSummary(hrnSummaryShadow, hrnSummary);
 
       // then clear off after merge
-      clearReferenceEdgesFrom(hrnSummaryShadow, null, true);
-      clearReferenceEdgesTo(hrnSummaryShadow, null, true);
+      clearReferenceEdgesFrom(hrnSummaryShadow, null, null, true);
+      clearReferenceEdgesTo(hrnSummaryShadow, null, null, true);
       hrnSummaryShadow.setAlpha(new ReachabilitySet().makeCanonical() );
 
       // then transplant shadow nodes onto the now clean normal nodes
@@ -1757,8 +1803,8 @@ public class OwnershipGraph {
 	transferOnto(hrnIthShadow, hrnIth);
 
 	// clear off shadow nodes after transfer
-	clearReferenceEdgesFrom(hrnIthShadow, null, true);
-	clearReferenceEdgesTo(hrnIthShadow, null, true);
+	clearReferenceEdgesFrom(hrnIthShadow, null, null, true);
+	clearReferenceEdgesTo(hrnIthShadow, null, null, true);
 	hrnIthShadow.setAlpha(new ReachabilitySet().makeCanonical() );
       }
 
@@ -1813,20 +1859,14 @@ public class OwnershipGraph {
 
   protected boolean hasMatchingField(HeapRegionNode src, ReferenceEdge edge) {
 
-    // if no allocation site, then it's a match-everything region
-    AllocationSite asSrc = src.getAllocationSite();
-    if( asSrc == null ) {
+    // if no type, then it's a match-everything region
+    TypeDescriptor tdSrc = src.getType();    
+    if( tdSrc == null ) {
       return true;
     }
 
-    TypeDescriptor tdSrc = asSrc.getType();
-    assert tdSrc != null;
-
     if( tdSrc.isArray() ) {
-      FieldDescriptor fd = edge.getFieldDesc();
-      assert fd != null;
-
-      TypeDescriptor td = fd.getType();
+      TypeDescriptor td = edge.getType();
       assert td != null;
 
       TypeDescriptor tdSrcDeref = tdSrc.dereference();
@@ -1836,7 +1876,7 @@ public class OwnershipGraph {
 	return false;
       }
 
-      return fd.getSymbol().equals( OwnershipAnalysis.arrayElementFieldName );
+      return edge.getField().equals( OwnershipAnalysis.arrayElementFieldName );
     }
 
     // if it's not a class, it doesn't have any fields to match
@@ -1847,7 +1887,8 @@ public class OwnershipGraph {
     Iterator fieldsSrcItr = tdSrc.getClassDesc().getFields();
     while( fieldsSrcItr.hasNext() ) {
       FieldDescriptor fd = (FieldDescriptor) fieldsSrcItr.next();
-      if( fd == edge.getFieldDesc() ) {
+      if( fd.getType().equals( edge.getType() ) &&
+	  fd.getSymbol().equals( edge.getField() ) ) {
 	return true;
       }
     }
@@ -1859,32 +1900,27 @@ public class OwnershipGraph {
 
 
   protected boolean hasMatchingType(ReferenceEdge edge, HeapRegionNode dst) {
-
+   
     // if the region has no type, matches everything
-    AllocationSite asDst = dst.getAllocationSite();
-    if( asDst == null ) {
+    TypeDescriptor tdDst = dst.getType();
+    if( tdDst == null ) {
       return true;
     }
 
-    TypeDescriptor tdDst = asDst.getType();
-    assert tdDst != null;
-
-    // if the type is not a class don't match because
-    // primitives are copied, no memory aliases
+    // if the type is not a class or an array, don't
+    // match because primitives are copied, no aliases
     ClassDescriptor cdDst = tdDst.getClassDesc();
     if( cdDst == null && !tdDst.isArray() ) {
       return false;
     }
 
-    // if the field is null, it matches everything
-    FieldDescriptor fd = edge.getFieldDesc();
-    if( fd == null ) {
+    // if the edge type is null, it matches everything
+    TypeDescriptor tdEdge = edge.getType();
+    if( tdEdge == null ) {
       return true;
     }
-    TypeDescriptor tdFd = fd.getType();
-    assert tdFd != null;
 
-    return typeUtil.isSuperorType(tdFd, tdDst);
+    return typeUtil.isSuperorType(tdEdge, tdDst);
   }
 
 
@@ -2487,8 +2523,9 @@ public class OwnershipGraph {
 
 	  // don't use the ReferenceEdge.equals() here because
 	  // we're talking about existence between graphs
-	  if( idChildB.equals(idChildA) &&
-	      edgeB.getFieldDesc() == edgeA.getFieldDesc() ) {
+	  if( idChildB.equals( idChildA ) &&
+	      edgeB.typeAndFieldEquals( edgeA ) ) {
+
 	    edgeToMerge = edgeB;
 	  }
 	}
@@ -2538,24 +2575,19 @@ public class OwnershipGraph {
 	LabelNode lnB         = td2ln.get(tdA);
 	ReferenceEdge edgeToMerge = null;
 
-	// labels never have edges with a field
-	//assert edgeA.getFieldDesc() == null;
-
 	Iterator<ReferenceEdge> heapRegionsItrB = lnB.iteratorToReferencees();
 	while( heapRegionsItrB.hasNext() &&
 	       edgeToMerge == null          ) {
 
-	  ReferenceEdge edgeB     = heapRegionsItrB.next();
+	  ReferenceEdge  edgeB     = heapRegionsItrB.next();
 	  HeapRegionNode hrnChildB = edgeB.getDst();
-	  Integer idChildB  = hrnChildB.getID();
-
-	  // labels never have edges with a field
-	  //assert edgeB.getFieldDesc() == null;
+	  Integer        idChildB  = hrnChildB.getID();
 
 	  // don't use the ReferenceEdge.equals() here because
 	  // we're talking about existence between graphs
-	  if( idChildB.equals(idChildA) &&
-	      edgeB.getFieldDesc() == edgeA.getFieldDesc() ) {
+	  if( idChildB.equals( idChildA ) &&
+	      edgeB.typeAndFieldEquals( edgeA ) ) {
+
 	    edgeToMerge = edgeB;
 	  }
 	}
@@ -2811,16 +2843,13 @@ public class OwnershipGraph {
 	HeapRegionNode hrnChildB = edgeB.getDst();
 	Integer idChildB  = hrnChildB.getID();
 
-	if( idChildA.equals(idChildB) &&
-	    edgeA.getFieldDesc() == edgeB.getFieldDesc() ) {
+	if( idChildA.equals( idChildB ) &&
+	    edgeA.typeAndFieldEquals( edgeB ) ) {
 
 	  // there is an edge in the right place with the right field,
 	  // but do they have the same attributes?
 	  if( edgeA.getBeta().equals(edgeB.getBeta() ) ) {
-
 	    edgeFound = true;
-	    //} else {
-	    //return false;
 	  }
 	}
       }
@@ -3334,6 +3363,7 @@ public class OwnershipGraph {
 
 
     // useful for debugging
+    // UNMAINTAINED
     /*
     if( writeReferencers ) {
       OwnershipNode onRef  = null;

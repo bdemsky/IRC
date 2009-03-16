@@ -40,14 +40,16 @@ public abstract class OwnershipNode {
   }
 
   public ReferenceEdge getReferenceTo(HeapRegionNode hrn,
-                                      FieldDescriptor fd) {
+                                      TypeDescriptor type,
+				      String field) {
     assert hrn != null;
 
     Iterator<ReferenceEdge> itrEdge = referencees.iterator();
     while( itrEdge.hasNext() ) {
       ReferenceEdge edge = itrEdge.next();
       if( edge.getDst().equals(hrn) &&
-          edge.getFieldDesc() == fd     ) {
+	  edge.typeEquals( type ) &&
+          edge.fieldEquals( field ) ) {
 	return edge;
       }
     }

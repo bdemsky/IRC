@@ -6,9 +6,9 @@ import IR.Flat.*;
 
 public class ReferenceEdge {
 
-
-  // a null field descriptor means "any field"
-  protected FieldDescriptor fieldDesc;
+  // null descriptors mean "any field"
+  protected TypeDescriptor type;
+  protected String field;
 
   protected boolean isInitialParamReflexive;
 
@@ -21,13 +21,15 @@ public class ReferenceEdge {
 
   public ReferenceEdge(OwnershipNode src,
                        HeapRegionNode dst,
-                       FieldDescriptor fieldDesc,
+		       TypeDescriptor type,
+		       String field,
                        boolean isInitialParamReflexive,
                        ReachabilitySet beta) {
 
     this.src                     = src;
     this.dst                     = dst;
-    this.fieldDesc               = fieldDesc;
+    this.type                    = type;
+    this.field                   = field;
     this.isInitialParamReflexive = isInitialParamReflexive;
 
     if( beta != null ) {
@@ -45,7 +47,8 @@ public class ReferenceEdge {
   public ReferenceEdge copy() {
     return new ReferenceEdge(src,
                              dst,
-                             fieldDesc,
+			     type,
+			     field,
                              isInitialParamReflexive,
                              beta);
   }
@@ -62,7 +65,11 @@ public class ReferenceEdge {
 
     ReferenceEdge edge = (ReferenceEdge) o;
 
-    if( fieldDesc != edge.fieldDesc ) {
+    if( !typeEquals( edge.type ) ) {
+      return false;
+    }
+
+    if( !fieldEquals( edge.field ) ) {
       return false;
     }
 
@@ -85,8 +92,12 @@ public class ReferenceEdge {
   public int hashCode() {
     int hash = 0;
 
-    if( fieldDesc != null ) {
-      hash += fieldDesc.hashCode();
+    if( type != null ) {
+      hash += type.hashCode();
+    }
+
+    if( field != null ) {
+      hash += field.hashCode()*7;
     }
 
     hash += src.hashCode()*11;
@@ -115,18 +126,53 @@ public class ReferenceEdge {
   }
 
 
-  public FieldDescriptor getFieldDesc() {
-    return fieldDesc;
+  public TypeDescriptor getType() {
+    return type;
   }
 
-  public void setFieldDesc(FieldDescriptor fieldDesc) {
-    this.fieldDesc = fieldDesc;
+  public void setType( TypeDescriptor td ) {
+    type = td;
+  }
+
+  public String getField() {
+    return field;
+  }
+
+  public void setField( String s ) {
+    field = s;
+  }
+
+
+  public boolean typeEquals( TypeDescriptor td ) {
+    if( type == null && td == null ) {
+      return true;
+    }
+    if( type == null ) {
+      return false;
+    }
+    return type.equals( td );
+  }
+
+  public boolean fieldEquals( String s ) {
+    if( field == null && s == null ) {
+      return true;
+    }
+    if( field == null ) {
+      return false;
+    }
+    return field.equals( s );
+  }
+
+  public boolean typeAndFieldEquals( ReferenceEdge e ) {
+    return typeEquals ( e.getType()  ) &&
+           fieldEquals( e.getField() );
   }
 
 
   public boolean isInitialParamReflexive() {
     return isInitialParamReflexive;
   }
+
   public void setIsInitialParamReflexive(boolean isInitialParamReflexive) {
     this.isInitialParamReflexive = isInitialParamReflexive;
   }
@@ -161,12 +207,12 @@ public class ReferenceEdge {
   public String toGraphEdgeString() {
     String edgeLabel = "";
 
-    if( fieldDesc != null ) {
-      edgeLabel += fieldDesc.toPrettyStringBrief() + "\\n";
+    if( type != null && field != null ) {
+      edgeLabel += type+" "+field+"\\n";
     }
 
     if( isInitialParamReflexive ) {
-      edgeLabel += "Rflx\\n";
+      edgeLabel += "init-param\\n";
     }
 
     edgeLabel += beta.toStringEscapeNewline();
@@ -175,6 +221,6 @@ public class ReferenceEdge {
   }
 
   public String toString() {
-    return new String("("+src+" "+fieldDesc+" "+dst+")");
+    return new String("("+src+"->"+type+" "+field+"->"+dst+")");
   }
 }
