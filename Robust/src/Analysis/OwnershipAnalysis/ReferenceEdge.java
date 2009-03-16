@@ -207,12 +207,16 @@ public class ReferenceEdge {
   public String toGraphEdgeString() {
     String edgeLabel = "";
 
-    if( type != null && field != null ) {
-      edgeLabel += type+" "+field+"\\n";
+    if( type != null ) {
+      edgeLabel += type+"\\n";
+    }
+
+    if( field != null ) {
+      edgeLabel += field+"\\n";
     }
 
     if( isInitialParamReflexive ) {
-      edgeLabel += "init-param\\n";
+      edgeLabel += "*init*\\n";
     }
 
     edgeLabel += beta.toStringEscapeNewline();

@@ -1,50 +1,47 @@
-
+// an example of a class that should exhibit
+// every part of the new parameter model
 public class Foo {
+  public Foo() {}
+
   public Foo f;
   public Foo g;
-  public Foo() {}
+  public String s;
+}
+
+// this class should have everything except
+// a primary reflexive edge
+public class Bar {
+  public Bar() {}
+
+  public Foo f;
+  public int x;
+}
+
+// this class doesn't have a secondary region at all!
+public class Zow {
+  public Zow() {}
+
+  public int x;
+  public String s;
 }
 
 
 public class Test {
 
   static public void main( String[] args ) {
-    Foo a = disjoint A new Foo();
-    Foo b = new Foo();
-    Foo c = new Foo();
-    Foo d = new Foo();
-
-    carolina( a, b, c, d );
+    think( new Foo(),
+	   new Bar(),
+	   new Zow(),
+	   new int[10],
+	   new Object[10],
+	   6 );
   }
 
-  static public void carolina( Foo p1, Foo p2, Foo p3, Foo p4 ) {
-    Foo z = disjoint Z new Foo();
-
-    p1.f = z;
-
-    vermont( p1, p2, p3, p4 );
-
-    texas( p1, p2, p3, p4 );
-  }
-
-  static public void texas( Foo p1, Foo p2, Foo p3, Foo p4 ) {
-    if( false ) {
-      carolina( p3, p4, p1, p2 );
-    }
-  }
-
-
-  static public void vermont( Foo p1, Foo p2, Foo p3, Foo p4 ) {
-    Foo y = new Foo();
-    p3.f = y;
-    p4.g = y;
-
-    utah( p1.f, p2, p3, p4 );
-  }
-
-  static public void utah( Foo p1, Foo p2, Foo p3, Foo p4 ) {
-    Foo x = new Foo();
-    p1.f = x;
-    p2.f = x;
+  static public void think( Foo p0,
+			    Bar p1,
+			    Zow p2,
+			    int[] p3,
+			    Object[] p4,
+			    int p5x ) {    
   }
 }

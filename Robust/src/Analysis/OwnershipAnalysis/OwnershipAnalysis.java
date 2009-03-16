@@ -306,11 +306,9 @@ public class OwnershipAnalysis {
 
 
   // special field descriptors for array elements
-  private Hashtable<TypeDescriptor, FieldDescriptor> mapTypeToArrayField;
   public static final String arrayElementFieldName = "___element_";
-
-  // special field descriptors for variables with type, no field name
-  private Hashtable<TypeDescriptor, FieldDescriptor> mapTypeToVarField;
+  private static Hashtable<TypeDescriptor, FieldDescriptor> mapTypeToArrayField =
+    new Hashtable<TypeDescriptor, FieldDescriptor>();
 
 
   // a special temp descriptor for setting more than one parameter label
@@ -359,12 +357,6 @@ public class OwnershipAnalysis {
 
     mapDescriptorToAllMethodContexts = 
       new Hashtable<Descriptor, HashSet<MethodContext> >();
-
-    mapTypeToArrayField =
-      new Hashtable<TypeDescriptor, FieldDescriptor>();
-
-    mapTypeToVarField =
-      new Hashtable<TypeDescriptor, FieldDescriptor>();
 
     mapMethodContextToDependentContexts =
       new Hashtable<MethodContext, HashSet<MethodContext> >();
@@ -681,8 +673,15 @@ public class OwnershipAnalysis {
 
 	// set up each parameter
 	for( int i = 0; i < fm.numParameters(); ++i ) {
-	  TempDescriptor tdParam = fm.getParameter( i );
+	  TempDescriptor tdParam    = fm.getParameter( i );
+	  TypeDescriptor typeParam  = tdParam.getType();
 	  Integer        paramIndex = new Integer( i );
+
+	  if( typeParam.isImmutable() && !typeParam.isArray() ) {
+	    // don't bother with this primitive parameter, it
+	    // cannot affect reachability
+	    continue;
+	  }
 
 	  if( aliasedParamIndices.contains( paramIndex ) ) {
 	    // just point this one to the alias blob
@@ -692,12 +691,15 @@ public class OwnershipAnalysis {
 	  } else {
 	    // this parameter is not aliased to others, give it
 	    // a fresh parameter heap region	    
-	    og.assignTempEqualToParamAlloc(tdParam,
-					   mc.getDescriptor() instanceof TaskDescriptor,
-					   paramIndex );
+	    og.assignTempEqualToParamAlloc( tdParam,
+					    mc.getDescriptor() instanceof TaskDescriptor,
+					    paramIndex );
 	  }
 	}
 	
+	// clean up reachability on initial parameter shapes
+	og.globalSweep();
+
 	// cache the graph
 	OwnershipGraph ogResult = new OwnershipGraph(allocationDepth, typeUtil);
 	ogResult.merge(og);
@@ -725,18 +727,8 @@ public class OwnershipAnalysis {
 
       TypeDescriptor td = fcn.getType();
       assert td != null;
-
-      FieldDescriptor fd = mapTypeToVarField.get( td );
-      if( fd == null ) {
-	fd = new FieldDescriptor(new Modifiers(Modifiers.PUBLIC),
-				 td,
-				 "",
-				 null,
-				 false);
-	mapTypeToVarField.put( td, fd );
-      }
       
-      og.assignTypedTempXEqualToTempY(lhs, rhs, fd);
+      og.assignTypedTempXEqualToTempY(lhs, rhs, td);
       break;
 
     case FKind.FlatFieldNode:
@@ -769,15 +761,7 @@ public class OwnershipAnalysis {
 	assert rhs.getType().isArray();
 	
 	TypeDescriptor  tdElement = rhs.getType().dereference();
-	FieldDescriptor fdElement = mapTypeToArrayField.get( tdElement );
-	if( fdElement == null ) {
-	  fdElement = new FieldDescriptor(new Modifiers(Modifiers.PUBLIC),
-					  tdElement,
-					  arrayElementFieldName,
-					  null,
-					  false);
-	  mapTypeToArrayField.put( tdElement, fdElement );
-	}
+	FieldDescriptor fdElement = getArrayField( tdElement );
   
 	og.assignTempXEqualToTempYFieldF(lhs, rhs, fdElement);
       }
@@ -793,15 +777,7 @@ public class OwnershipAnalysis {
 	assert lhs.getType().isArray();
 	
 	TypeDescriptor  tdElement = lhs.getType().dereference();
-	FieldDescriptor fdElement = mapTypeToArrayField.get( tdElement );
-	if( fdElement == null ) {
-	  fdElement = new FieldDescriptor(new Modifiers(Modifiers.PUBLIC),
-					  tdElement,
-					  arrayElementFieldName,
-					  null,
-					  false);
-	  mapTypeToArrayField.put( tdElement, fdElement );
-	}
+	FieldDescriptor fdElement = getArrayField( tdElement );
 
 	og.assignTempXFieldFEqualToTempY(lhs, fdElement, rhs);
       }
@@ -920,6 +896,20 @@ public class OwnershipAnalysis {
   static public Integer generateUniqueHeapRegionNodeID() {
     ++uniqueIDcount;
     return new Integer(uniqueIDcount);
+  }
+
+
+  static public FieldDescriptor getArrayField( TypeDescriptor tdElement ) {
+    FieldDescriptor fdElement = mapTypeToArrayField.get( tdElement );
+    if( fdElement == null ) {
+      fdElement = new FieldDescriptor(new Modifiers(Modifiers.PUBLIC),
+				      tdElement,
+				      arrayElementFieldName,
+				      null,
+				      false);
+      mapTypeToArrayField.put( tdElement, fdElement );
+    }
+    return fdElement;
   }
 
 
