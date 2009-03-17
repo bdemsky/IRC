@@ -667,8 +667,37 @@ public class OwnershipAnalysis {
 	// there is a blob region for all those param labels to
 	// reference
 	Set<Integer> aliasedParamIndices = mc.getAliasedParamIndices();
+	boolean aliasedPiIsSuperOfPj = false;
 	if( !aliasedParamIndices.isEmpty() ) {
 	  og.makeAliasedParamHeapRegionNode( tdAliasedParams );
+
+	  // if one parameter type is a super class of any other
+	  // then we cannot separate the primary parameter objects
+	  // from the alias blob, so look for it
+	  boolean keepLooking = true;
+
+	  Iterator<Integer> apItrI = aliasedParamIndices.iterator();
+	  while( apItrI.hasNext() && keepLooking ) {
+	    Integer i = apItrI.next();
+
+	    Iterator<Integer> apItrJ = aliasedParamIndices.iterator();
+	    while( apItrJ.hasNext() ) {
+	      Integer j = apItrJ.next();
+
+	      if( !i.equals( j ) ) {
+		TypeDescriptor typeI = fm.getParameter( i ).getType();
+		TypeDescriptor typeJ = fm.getParameter( j ).getType();
+
+		if( typeUtil.isSuperorType( typeI, typeJ ) ||
+		    typeUtil.isSuperorType( typeJ, typeI )    ) {
+
+		  aliasedPiIsSuperOfPj = true;
+		  keepLooking = false;
+		  break;
+		}
+	      }
+	    }
+	  }
 	}
 
 	// set up each parameter
@@ -684,10 +713,13 @@ public class OwnershipAnalysis {
 	  }
 
 	  if( aliasedParamIndices.contains( paramIndex ) ) {
-	    // just point this one to the alias blob
+	    // use the alias blob but give parameters their
+	    // own primary obj region if they are not super
+	    // classes of one another
 	    og.assignTempEqualToAliasedParam( tdParam,
 					      tdAliasedParams,
-					      paramIndex );	    
+					      paramIndex,
+					      aliasedPiIsSuperOfPj );	    
 	  } else {
 	    // this parameter is not aliased to others, give it
 	    // a fresh parameter heap region	    

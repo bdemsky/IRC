@@ -24,11 +24,10 @@ public class OwnershipGraph {
 
   public Hashtable<Integer,        HeapRegionNode> id2hrn;
   public Hashtable<TempDescriptor, LabelNode     > td2ln;
-  public Hashtable<Integer,        Integer       > idPrimary2paramIndex;
-  public Hashtable<Integer,        Integer       > idSecondary2paramIndex;
+  public Hashtable<Integer,        Set<Integer>  > idPrimary2paramIndexSet;
   public Hashtable<Integer,        Integer       > paramIndex2idPrimary;  
+  public Hashtable<Integer,        Set<Integer>  > idSecondary2paramIndexSet;
   public Hashtable<Integer,        Integer       > paramIndex2idSecondary;
-  public Hashtable<Integer,        Set<Integer>  > id2aliasedParamIndexSet;
   public Hashtable<Integer,        TempDescriptor> paramIndex2tdQ;
 
   public HashSet<AllocationSite> allocationSites;
@@ -40,14 +39,13 @@ public class OwnershipGraph {
     this.allocationDepth = allocationDepth;
     this.typeUtil        = typeUtil;
 
-    id2hrn                  = new Hashtable<Integer,        HeapRegionNode>();
-    td2ln                   = new Hashtable<TempDescriptor, LabelNode     >();
-    idPrimary2paramIndex    = new Hashtable<Integer,        Integer       >();
-    idSecondary2paramIndex  = new Hashtable<Integer,        Integer       >();    
-    paramIndex2idPrimary    = new Hashtable<Integer,        Integer       >();
-    paramIndex2idSecondary  = new Hashtable<Integer,        Integer       >();
-    id2aliasedParamIndexSet = new Hashtable<Integer,        Set<Integer>  >();
-    paramIndex2tdQ          = new Hashtable<Integer,        TempDescriptor>();
+    id2hrn                    = new Hashtable<Integer,        HeapRegionNode>();
+    td2ln                     = new Hashtable<TempDescriptor, LabelNode     >();
+    idPrimary2paramIndexSet   = new Hashtable<Integer,        Set<Integer>  >();
+    paramIndex2idPrimary      = new Hashtable<Integer,        Integer       >();
+    idSecondary2paramIndexSet = new Hashtable<Integer,        Set<Integer>  >();    
+    paramIndex2idSecondary    = new Hashtable<Integer,        Integer       >();
+    paramIndex2tdQ            = new Hashtable<Integer,        TempDescriptor>();
 
     allocationSites = new HashSet <AllocationSite>();
   }
@@ -79,15 +77,15 @@ public class OwnershipGraph {
   protected HeapRegionNode
   createNewHeapRegionNode(Integer id,
                           boolean isSingleObject,
-                          boolean isTaskParameter,
                           boolean isNewSummary,
+			  boolean isFlagged,
                           boolean isParameter,
 			  TypeDescriptor type,
                           AllocationSite allocSite,
                           ReachabilitySet alpha,
                           String description) {
 
-    boolean markForAnalysis = isTaskParameter || isParameter;
+    boolean markForAnalysis = isFlagged || isParameter;
 
     TypeDescriptor typeToUse = null;
     if( allocSite != null ) {
@@ -525,14 +523,14 @@ public class OwnershipGraph {
 
     // now build everything we need
     LabelNode lnParam = getLabelNodeFromTemp( td );
-    HeapRegionNode hrnPrimary = createNewHeapRegionNode( null,
-							 true,
-							 isTask,
-							 false,
-							 true,
-							 typeParam,
-							 null,
-							 null,
+    HeapRegionNode hrnPrimary = createNewHeapRegionNode( null,       // id or null to generate a new one 
+							 true,	     // single object?			 	
+							 false,      // summary?			 
+							 false,      // flagged?			 
+							 true,       // is a parameter?			 
+							 typeParam,  // type				 
+							 null,       // allocation site			 
+							 null,       // reachability set                 
 							 "param"+paramIndex+" obj" );
 
     // this is a non-program-accessible label that picks up beta
@@ -544,30 +542,30 @@ public class OwnershipGraph {
     // parameter labels, the index of the parameter they
     // are for is important when resolving method calls
     Integer newPrimaryID = hrnPrimary.getID();
-    assert !idPrimary2paramIndex.containsKey( newPrimaryID );
-    idPrimary2paramIndex.put( newPrimaryID, paramIndex );
-    
+    //assert !idPrimary2paramIndex.containsKey( newPrimaryID );
+    //idPrimary2paramIndex.put( newPrimaryID, paramIndex );
+
     TokenTuple ttPrimary = new TokenTuple( newPrimaryID,
 					   false, // multi-object
 					   TokenTuple.ARITY_ONE ).makeCanonical();
-    
+        
     HeapRegionNode hrnSecondary = null;
     Integer newSecondaryID = null;
     TokenTuple ttSecondary = null;    
     if( createSecondaryRegion ) {
-      hrnSecondary = createNewHeapRegionNode( null,
-					      false,
-					      isTask,
-					      false,
-					      true,
-					      null,
-					      null,
-					      null,
+      hrnSecondary = createNewHeapRegionNode( null,  // id or null to generate a new one  
+					      false, // single object?			 
+					      false, // summary?			 
+					      false, // flagged?			 
+					      true,  // is a parameter?			 
+					      null,  // type				 
+					      null,  // allocation site			 
+					      null,  // reachability set                 
 					      "param"+paramIndex+" reachable" );
 
       newSecondaryID = hrnSecondary.getID();
-      assert !idSecondary2paramIndex.containsKey( newSecondaryID );
-      idSecondary2paramIndex.put( newSecondaryID, paramIndex );
+      //assert !idSecondary2paramIndex.containsKey( newSecondaryID );
+      //idSecondary2paramIndex.put( newSecondaryID, paramIndex );
             
       ttSecondary = new TokenTuple( newSecondaryID,
 				    true, // multi-object
@@ -577,7 +575,7 @@ public class OwnershipGraph {
     // use a beta that has everything and put it all over the
     // parameter model, then use a global sweep later to fix
     // it up, since parameters can have different shapes
-    TokenTupleSet tts0 = new TokenTupleSet( ttPrimary   ).makeCanonical();
+    TokenTupleSet tts0 = new TokenTupleSet( ttPrimary ).makeCanonical();
     ReachabilitySet betaSoup;
     if( createSecondaryRegion ) {
       TokenTupleSet tts1 = new TokenTupleSet( ttSecondary ).makeCanonical();
@@ -658,96 +656,210 @@ public class OwnershipGraph {
     }
   }
 
-  public void makeAliasedParamHeapRegionNode(TempDescriptor td) {
-    /*
+  public void makeAliasedParamHeapRegionNode( TempDescriptor td ) {
     assert td != null;
 
-    LabelNode lnParam = getLabelNodeFromTemp(td);
-    HeapRegionNode hrn = createNewHeapRegionNode(null,
-                                                 false,
-                                                 false,
-                                                 false,
-                                                 true,
-						 null,
-                                                 null,
-                                                 null,
-                                                 "aliasedParams");
+    LabelNode lnParam = getLabelNodeFromTemp( td );
+    HeapRegionNode hrn = createNewHeapRegionNode( null,  // id or null to generate a new one 
+						  false, // single object?			 
+						  false, // summary?			 
+						  false, // flagged?			 
+						  true,	 // is a parameter?			 
+						  null,	 // type				 
+						  null,	 // allocation site			 
+						  null,	 // reachability set                 
+						  "aliasedParams" );
 
-
-    ReachabilitySet beta = new ReachabilitySet(new TokenTuple(hrn.getID(),
-                                                              true,
-                                                              TokenTuple.ARITY_ONE).makeCanonical()
-                                               ).makeCanonical();
-
-    // heap regions for parameters are always multiple object (see above)
-    // and have a reference to themselves, because we can't know the
-    // structure of memory that is passed into the method.  We're assuming
-    // the worst here.
-
+    ReachabilitySet beta = new ReachabilitySet( new TokenTuple( hrn.getID(),
+								true,
+								TokenTuple.ARITY_ONE).makeCanonical()
+						).makeCanonical();
+    
     ReferenceEdge edgeFromLabel =
-      new ReferenceEdge(lnParam, hrn, null, null, false, beta);
+      new ReferenceEdge( lnParam, hrn, null, null, false, beta );
 
     ReferenceEdge edgeReflexive =
-      new ReferenceEdge(hrn,     hrn, null, null, true,  beta);
+      new ReferenceEdge( hrn,     hrn, null, null, true,  beta );
 
-    addReferenceEdge(lnParam, hrn, edgeFromLabel);
-    addReferenceEdge(hrn,     hrn, edgeReflexive);
-    */
+    addReferenceEdge( lnParam, hrn, edgeFromLabel );
+    addReferenceEdge( hrn,     hrn, edgeReflexive );
   }
 
   public void assignTempEqualToAliasedParam(TempDescriptor tdParam,
 					    TempDescriptor tdAliased,
-					    Integer paramIndex ) {
-    /*
+					    Integer        paramIndex,
+					    boolean        aliasedPiIsSuperOfPj ) {
     assert tdParam   != null;
     assert tdAliased != null;
 
-    LabelNode lnParam   = getLabelNodeFromTemp(tdParam);
-    
+    TypeDescriptor typeParam = tdParam.getType();
+    assert typeParam != null;
+
+    LabelNode lnParam   = getLabelNodeFromTemp(tdParam);    
     LabelNode lnAliased = getLabelNodeFromTemp(tdAliased);
 
     // this is a non-program-accessible label that picks up beta
     // info to be used for fixing a caller of this method
-    TempDescriptor tdParamQ = new TempDescriptor(tdParam+"specialQ");
-    LabelNode lnParamQ = getLabelNodeFromTemp(tdParamQ);
+    TempDescriptor tdParamQ = new TempDescriptor( tdParam+"specialQ" );
+    LabelNode lnParamQ = getLabelNodeFromTemp( tdParamQ );
 
     // the lnAliased should always only reference one node, and that
     // heap region node is the aliased param blob
     assert lnAliased.getNumReferencees() == 1;
     HeapRegionNode hrnAliasBlob = lnAliased.iteratorToReferencees().next().getDst();
-
-    // keep track of heap regions that were created for
-    // parameter labels, the index of the parameter they
-    // are for is important when resolving method calls
     Integer idAliased = hrnAliasBlob.getID();
-    Set s = id2paramIndexSet.get( idAliased );
-    if( s == null ) {
-      s = new HashSet<Integer>();
+
+    TokenTuple ttAliased = new TokenTuple( idAliased,
+					   false, // multi-object
+					   TokenTuple.ARITY_ONE ).makeCanonical();
+
+    if( aliasedPiIsSuperOfPj ) {
+      // we point parameter labels directly at the alias blob
+      // and just have to live with bad precision
+
+      /*
+	Set s = id2paramIndexSet.get( idAliased );
+	if( s == null ) {
+	s = new HashSet<Integer>();
+	}
+	s.add( paramIndex );
+	id2paramIndexSet.put(idAliased, s);
+	paramIndex2id.put(paramIndex, idAliased);
+	paramIndex2tdQ.put(paramIndex, tdParamQ);
+      */    
+
+      ReachabilitySet beta = new ReachabilitySet( ttAliased ).makeCanonical();
+
+      ReferenceEdge edgeFromLabel =
+	new ReferenceEdge( lnParam,  hrnAliasBlob, typeParam, null, false, beta );
+
+      ReferenceEdge edgeFromLabelQ =
+	new ReferenceEdge( lnParamQ, hrnAliasBlob, typeParam, null, false, beta );
+
+      addReferenceEdge( lnParam,  hrnAliasBlob, edgeFromLabel  );
+      addReferenceEdge( lnParamQ, hrnAliasBlob, edgeFromLabelQ );
+      
+      return;
     }
-    s.add( paramIndex );
-    id2paramIndexSet.put(idAliased, s);
-    paramIndex2id.put(paramIndex, idAliased);
-    paramIndex2tdQ.put(paramIndex, tdParamQ);
+     
+    // otherwise there is no problem with bringing out each 
+    // parameter's primary object with the necessary edges
+    Set<FieldDescriptor> primary2primaryFields   = new HashSet<FieldDescriptor>();
+    Set<FieldDescriptor> primary2secondaryFields = new HashSet<FieldDescriptor>();
 
-    ReachabilitySet beta = new ReachabilitySet(new TokenTuple(idAliased,
-                                                              true,
-                                                              TokenTuple.ARITY_ONE).makeCanonical()
-                                               ).makeCanonical();
+    // there might be an element reference for array types
+    if( typeParam.isArray() ) {
+      // only bother with this if the dereferenced type can
+      // affect reachability
+      TypeDescriptor typeDeref = typeParam.dereference();
+      
+      // for this parameter to be aliased the following must be true
+      assert !typeDeref.isImmutable() || typeDeref.isArray();
 
-    // heap regions for parameters are always multiple object (see above)
-    // and have a reference to themselves, because we can't know the
-    // structure of memory that is passed into the method.  We're assuming
-    // the worst here.
+      primary2secondaryFields.add( 
+	OwnershipAnalysis.getArrayField( typeDeref )
+				 );
+    }
+
+    // there might be member references for class types
+    if( typeParam.isClass() ) {
+      ClassDescriptor cd = typeParam.getClassDesc();
+      Iterator fieldItr = cd.getFields();
+      while( fieldItr.hasNext() ) {
+	FieldDescriptor fd = (FieldDescriptor) fieldItr.next();
+	TypeDescriptor typeField = fd.getType();
+	assert typeField != null;	
+
+	if( !typeField.isImmutable() || typeField.isArray() ) {
+	  primary2secondaryFields.add( fd );
+	}
+
+	if( typeUtil.isSuperorType( typeField, typeParam ) ) {
+	  primary2primaryFields.add( fd );
+	}	
+      }
+    }
+
+    // for aliased parameters with separate primary objects,
+    // there must be at least one edge into the blob
+    assert primary2secondaryFields.size() > 0;
+
+    HeapRegionNode hrnPrimary = createNewHeapRegionNode( null,      // id or null to generate a new one 
+							 true,	    // single object?			 
+							 false,	    // summary?			 
+							 false,     // flagged?			  
+							 true,	    // is a parameter?			 
+							 typeParam, // type				 
+							 null,	    // allocation site			 
+							 null,	    // reachability set                 
+							 "param"+paramIndex+" obj" );
+
+    Integer newPrimaryID = hrnPrimary.getID();
+
+    TokenTuple ttPrimary = new TokenTuple( newPrimaryID,
+					   false, // multi-object
+					   TokenTuple.ARITY_ONE ).makeCanonical();
+    
+    TokenTupleSet tts0 = new TokenTupleSet( ttPrimary ).makeCanonical();
+    TokenTupleSet tts1 = new TokenTupleSet( ttAliased ).makeCanonical();
+    TokenTupleSet tts2 = new TokenTupleSet( ttPrimary ).union( ttAliased );   
+    ReachabilitySet betaSoup = new ReachabilitySet().union( tts0 ).union( tts1 ).union( tts2 );
+
 
     ReferenceEdge edgeFromLabel =
-      new ReferenceEdge(lnParam, hrnAliasBlob, null, null, false, beta);
+      new ReferenceEdge( lnParam,            // src
+			 hrnPrimary,         // dst
+			 typeParam,          // type
+			 null,               // field
+			 false,              // special param initial (not needed on label->node)
+			 betaSoup );         // reachability
+    addReferenceEdge( lnParam, hrnPrimary, edgeFromLabel );
 
     ReferenceEdge edgeFromLabelQ =
-      new ReferenceEdge(lnParamQ, hrnAliasBlob, null, null, false, beta);
+      new ReferenceEdge( lnParamQ,           // src
+			 hrnPrimary,         // dst
+			 typeParam,          // type
+			 null,               // field
+			 false,              // special param initial (not needed on label->node)
+			 betaSoup );         // reachability
+    addReferenceEdge( lnParamQ, hrnPrimary, edgeFromLabelQ );
+    
+    ReferenceEdge edgeAliased2Primary =
+      new ReferenceEdge( hrnAliasBlob,    // src
+			 hrnPrimary,      // dst
+			 null,            // match all types
+			 null,            // match all fields
+			 true,            // special param initial
+			 betaSoup );      // reachability
+    addReferenceEdge( hrnAliasBlob, hrnPrimary, edgeAliased2Primary );
+    
+    Iterator<FieldDescriptor> fieldItr = primary2primaryFields.iterator();
+    while( fieldItr.hasNext() ) {
+      FieldDescriptor fd = fieldItr.next();
 
-    addReferenceEdge(lnParam,  hrnAliasBlob, edgeFromLabel);
-    addReferenceEdge(lnParamQ, hrnAliasBlob, edgeFromLabelQ);
-    */
+      ReferenceEdge edgePrimaryReflexive =
+	new ReferenceEdge( hrnPrimary,     // src
+			   hrnPrimary,     // dst
+			   fd.getType(),   // type
+			   fd.getSymbol(), // field
+			   true,           // special param initial
+			   betaSoup );     // reachability      
+      addReferenceEdge( hrnPrimary, hrnPrimary, edgePrimaryReflexive );
+    }
+
+    fieldItr = primary2secondaryFields.iterator();
+    while( fieldItr.hasNext() ) {
+      FieldDescriptor fd = fieldItr.next();
+
+      ReferenceEdge edgePrimary2Secondary =
+	new ReferenceEdge( hrnPrimary,     // src
+			   hrnAliasBlob,   // dst
+			   fd.getType(),   // type
+			   fd.getSymbol(), // field
+			   true,           // special param initial
+			   betaSoup );     // reachability      
+      addReferenceEdge( hrnPrimary, hrnAliasBlob, edgePrimary2Secondary );
+    }    
   }
 
 
@@ -918,27 +1030,27 @@ public class OwnershipGraph {
 	hasFlags = as.getType().getClassDesc().hasFlags();
       }
 
-      hrnSummary = createNewHeapRegionNode(idSummary,
-                                           false,
-                                           hasFlags,
-                                           true,
-                                           false,
-					   null,
-                                           as,
-                                           null,
+      hrnSummary = createNewHeapRegionNode(idSummary,    // id or null to generate a new one 
+                                           false,	 // single object?			 
+                                           true,	 // summary?			 
+                                           hasFlags,	 // flagged?			 
+                                           false,	 // is a parameter?			 
+					   as.getType(), // type				 
+                                           as,		 // allocation site			 
+                                           null,	 // reachability set                 
                                            as.toStringForDOT() + "\\nsummary");
 
       for( int i = 0; i < as.getAllocationDepth(); ++i ) {
 	Integer idIth = as.getIthOldest(i);
 	assert !id2hrn.containsKey(idIth);
-	createNewHeapRegionNode(idIth,
-	                        true,
-	                        hasFlags,
-	                        false,
-	                        false,
-				null,
-	                        as,
-	                        null,
+	createNewHeapRegionNode(idIth,        // id or null to generate a new one 
+	                        true,	      // single object?			 
+				false,	      // summary?			 
+	                        hasFlags,     // flagged?			 
+	                        false,	      // is a parameter?			 
+				as.getType(), // type				 
+	                        as,	      // allocation site			 
+	                        null,	      // reachability set                 
 	                        as.toStringForDOT() + "\\n" + i + " oldest");
       }
     }
@@ -959,27 +1071,27 @@ public class OwnershipGraph {
 	hasFlags = as.getType().getClassDesc().hasFlags();
       }
 
-      hrnShadowSummary = createNewHeapRegionNode(idShadowSummary,
-                                                 false,
-                                                 hasFlags,
-                                                 true,
-                                                 false,
-						 null,
-                                                 as,
-                                                 null,
+      hrnShadowSummary = createNewHeapRegionNode(idShadowSummary, // id or null to generate a new one 
+                                                 false,        	  // single object?			 
+						 true,		  // summary?			 
+                                                 hasFlags,        // flagged?			                                     
+                                                 false,		  // is a parameter?			 
+						 as.getType(),	  // type				 
+                                                 as,		  // allocation site			 
+                                                 null,		  // reachability set                 
                                                  as + "\\n" + as.getType() + "\\nshadowSum");
 
       for( int i = 0; i < as.getAllocationDepth(); ++i ) {
 	Integer idShadowIth = as.getIthOldestShadow(i);
 	assert !id2hrn.containsKey(idShadowIth);
-	createNewHeapRegionNode(idShadowIth,
-	                        true,
-	                        hasFlags,
-	                        false,
-	                        false,
-				null,
-	                        as,
-	                        null,
+	createNewHeapRegionNode(idShadowIth,  // id or null to generate a new one 
+	                        true,	      // single object?			 
+				false,	      // summary?			 
+	                        hasFlags,     // flagged?			 
+	                        false,	      // is a parameter?			 
+				as.getType(), // type				 
+	                        as,	      // allocation site			 
+	                        null,	      // reachability set                 
 	                        as + "\\n" + as.getType() + "\\n" + i + " shadow");
       }
     }
@@ -1234,7 +1346,7 @@ public class OwnershipGraph {
   public Set<Integer> calculateAliasedParamSet(FlatCall fc,
 					       boolean isStatic,
 					       FlatMethod fm) {
-    /*
+
     Hashtable<Integer, LabelNode> paramIndex2ln =
       new Hashtable<Integer, LabelNode>();
 
@@ -1326,8 +1438,6 @@ public class OwnershipGraph {
     }
 
     return aliasedIndices;
-    */
-    return new HashSet<Integer>();
   }
 
 
