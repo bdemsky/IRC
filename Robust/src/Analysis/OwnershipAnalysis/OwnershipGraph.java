@@ -33,8 +33,6 @@ public class OwnershipGraph {
   public HashSet<AllocationSite> allocationSites;
 
 
-
-
   public OwnershipGraph(int allocationDepth, TypeUtil typeUtil) {
     this.allocationDepth = allocationDepth;
     this.typeUtil        = typeUtil;
@@ -542,8 +540,11 @@ public class OwnershipGraph {
     // parameter labels, the index of the parameter they
     // are for is important when resolving method calls
     Integer newPrimaryID = hrnPrimary.getID();
-    //assert !idPrimary2paramIndex.containsKey( newPrimaryID );
-    //idPrimary2paramIndex.put( newPrimaryID, paramIndex );
+    assert !idPrimary2paramIndexSet.containsKey( newPrimaryID );
+    Set<Integer> s = new HashSet<Integer>();
+    s.add( paramIndex );
+    idPrimary2paramIndexSet.put( newPrimaryID, s );
+    paramIndex2idPrimary.put( paramIndex, newPrimaryID );
 
     TokenTuple ttPrimary = new TokenTuple( newPrimaryID,
 					   false, // multi-object
@@ -564,8 +565,11 @@ public class OwnershipGraph {
 					      "param"+paramIndex+" reachable" );
 
       newSecondaryID = hrnSecondary.getID();
-      //assert !idSecondary2paramIndex.containsKey( newSecondaryID );
-      //idSecondary2paramIndex.put( newSecondaryID, paramIndex );
+      assert !idSecondary2paramIndexSet.containsKey( newSecondaryID );
+      Set<Integer> s2 = new HashSet<Integer>();
+      s2.add( paramIndex );
+      idSecondary2paramIndexSet.put( newSecondaryID, s2 );
+      paramIndex2idSecondary.put( paramIndex, newSecondaryID );
             
       ttSecondary = new TokenTuple( newSecondaryID,
 				    true, // multi-object
@@ -701,6 +705,8 @@ public class OwnershipGraph {
     // this is a non-program-accessible label that picks up beta
     // info to be used for fixing a caller of this method
     TempDescriptor tdParamQ = new TempDescriptor( tdParam+"specialQ" );
+    paramIndex2tdQ.put( paramIndex, tdParamQ );
+
     LabelNode lnParamQ = getLabelNodeFromTemp( tdParamQ );
 
     // the lnAliased should always only reference one node, and that
@@ -710,24 +716,20 @@ public class OwnershipGraph {
     Integer idAliased = hrnAliasBlob.getID();
 
     TokenTuple ttAliased = new TokenTuple( idAliased,
-					   false, // multi-object
+					   true, // multi-object
 					   TokenTuple.ARITY_ONE ).makeCanonical();
 
     if( aliasedPiIsSuperOfPj ) {
       // we point parameter labels directly at the alias blob
-      // and just have to live with bad precision
-
-      /*
-	Set s = id2paramIndexSet.get( idAliased );
-	if( s == null ) {
+      // and just have to live with bad precision      
+      Set<Integer> s = idPrimary2paramIndexSet.get( idAliased );
+      if( s == null ) {
 	s = new HashSet<Integer>();
-	}
-	s.add( paramIndex );
-	id2paramIndexSet.put(idAliased, s);
-	paramIndex2id.put(paramIndex, idAliased);
-	paramIndex2tdQ.put(paramIndex, tdParamQ);
-      */    
-
+      }
+      s.add( paramIndex );
+      idPrimary2paramIndexSet.put( idAliased, s );
+      paramIndex2idPrimary.put( paramIndex, idAliased );
+   
       ReachabilitySet beta = new ReachabilitySet( ttAliased ).makeCanonical();
 
       ReferenceEdge edgeFromLabel =
@@ -795,6 +797,20 @@ public class OwnershipGraph {
 							 "param"+paramIndex+" obj" );
 
     Integer newPrimaryID = hrnPrimary.getID();
+    assert !idPrimary2paramIndexSet.containsKey( newPrimaryID );
+    Set<Integer> s1 = new HashSet<Integer>();
+    s1.add( paramIndex );
+    idPrimary2paramIndexSet.put( newPrimaryID, s1 );
+    paramIndex2idPrimary.put( paramIndex, newPrimaryID );
+
+    Set<Integer> s2 = idSecondary2paramIndexSet.get( idAliased );
+    if( s2 == null ) {
+      s2 = new HashSet<Integer>();
+    }
+    s2.add( paramIndex );
+    idSecondary2paramIndexSet.put( idAliased, s2 );
+    paramIndex2idSecondary.put( paramIndex, idAliased );
+    
 
     TokenTuple ttPrimary = new TokenTuple( newPrimaryID,
 					   false, // multi-object
@@ -2220,7 +2236,7 @@ public class OwnershipGraph {
                                          Hashtable<TokenTuple, Integer> paramTokenStar2paramIndex,
                                          boolean makeChangeSet,
                                          Hashtable<ReferenceEdge, ChangeTupleSet> edgePlannedChanges) {
-    /*
+
     assert(hrn == null && edge != null) ||
           (hrn != null && edge == null);
 
@@ -2372,7 +2388,6 @@ public class OwnershipGraph {
     } else {
       hrn.setAlphaNew(hrn.getAlphaNew().union(callerReachabilityNew) );
     }
-    */
   }
 
 
@@ -2427,7 +2442,7 @@ public class OwnershipGraph {
 
     return possibleCallerHRNs;
     */
-    return null;
+    return new HashSet<HeapRegionNode>();
   }
 
 
@@ -2711,7 +2726,7 @@ public class OwnershipGraph {
 
     mergeOwnershipNodes(og);
     mergeReferenceEdges(og);
-    mergeId2paramIndex(og);
+    mergeParamIndexMappings(og);
     mergeAllocationSites(og);
   }
 
@@ -2882,21 +2897,25 @@ public class OwnershipGraph {
   // you should only merge ownership graphs that have the
   // same number of parameters, or if one or both parameter
   // index tables are empty
-  protected void mergeId2paramIndex(OwnershipGraph og) {
-    /*
-    if( id2paramIndexSet.size() == 0 ) {
-      id2paramIndexSet = og.id2paramIndexSet;
-      paramIndex2id    = og.paramIndex2id;
+  protected void mergeParamIndexMappings(OwnershipGraph og) {
+    
+    if( idPrimary2paramIndexSet.size() == 0 ) {
+      idPrimary2paramIndexSet = og.idPrimary2paramIndexSet;
+      paramIndex2idPrimary    = og.paramIndex2idPrimary;
+
+      idSecondary2paramIndexSet = og.idSecondary2paramIndexSet;
+      paramIndex2idSecondary    = og.paramIndex2idSecondary;
+
       paramIndex2tdQ   = og.paramIndex2tdQ;
       return;
     }
 
-    if( og.id2paramIndexSet.size() == 0 ) {
+    if( og.idPrimary2paramIndexSet.size() == 0 ) {
       return;
     }
 
-    assert id2paramIndexSet.size() == og.id2paramIndexSet.size();
-    */
+    assert idPrimary2paramIndexSet.size() == og.idPrimary2paramIndexSet.size();
+    assert idSecondary2paramIndexSet.size() == og.idSecondary2paramIndexSet.size();
   }
 
   protected void mergeAllocationSites(OwnershipGraph og) {
@@ -2933,7 +2952,7 @@ public class OwnershipGraph {
       return false;
     }
 
-    if( !areId2paramIndexEqual(og) ) {
+    if( !areParamIndexMappingsEqual(og) ) {
       return false;
     }
 
@@ -3127,8 +3146,16 @@ public class OwnershipGraph {
   }
 
 
-  protected boolean areId2paramIndexEqual(OwnershipGraph og) {
-    //return id2paramIndexSet.size() == og.id2paramIndexSet.size();
+  protected boolean areParamIndexMappingsEqual(OwnershipGraph og) {
+
+    if( idPrimary2paramIndexSet.size() != og.idPrimary2paramIndexSet.size() ) {
+      return false;
+    }
+
+    if( idSecondary2paramIndexSet.size() != og.idSecondary2paramIndexSet.size() ) {
+      return false;
+    }
+
     return true;
   }
 
