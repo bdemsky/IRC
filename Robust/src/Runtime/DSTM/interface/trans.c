@@ -71,6 +71,7 @@ int nRemoteSend = 0;
 int nSoftAbort = 0;
 int bytesSent = 0;
 int bytesRecv = 0;
+int totalObjSize = 0;
 
 void printhex(unsigned char *, int);
 plistnode_t *createPiles();
@@ -663,7 +664,9 @@ int transCommit() {
 #ifdef ABORTREADERS
   if (t_abort) {
     //abort this transaction
-    printf("ABORTING TRANSACTION AT COMMIT\n");
+    /* Debug
+     * printf("ABORTING TRANSACTION AT COMMIT\n");
+     */
     removetransactionhash();
     objstrDelete(t_cache);
     t_chashDelete();
@@ -1101,6 +1104,9 @@ void *getRemoteObj(unsigned int mnum, unsigned int oid) {
     STATUS(objcopy)=0;
     /* Insert into cache's lookup table */
     t_chashInsert(oid, objcopy);
+#ifdef TRANSSTATS
+    totalObjSize += size;
+#endif
   }
 
   return objcopy;

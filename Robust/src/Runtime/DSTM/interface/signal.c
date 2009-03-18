@@ -12,6 +12,7 @@ extern int nRemoteSend;
 extern int nSoftAbort;
 extern int bytesSent;
 extern int bytesRecv;
+extern int totalObjSize;
 extern unsigned int myIpAddr;
 
 void handle();
@@ -34,6 +35,7 @@ void transStatsHandler(int sig, siginfo_t* info, void *context) {
   fprintf(fp, "nSoftAbort = %d\n", nSoftAbort);
   fprintf(fp, "bytesSent = %d\n", bytesSent);
   fprintf(fp, "bytesRecv = %d\n", bytesRecv);
+  fprintf(fp, "totalObjSize= %d\n", totalObjSize);
   fprintf(fp, "**********************************\n");
   fflush(fp);
   fclose(fp);

@@ -11,7 +11,7 @@ SRC=tmp${MAINCLASS}.java \
 	AStarPathFinder.java 
 
 FLAGS1=-dsm -optimize -mainclass ${MAINCLASS}
-FLAGS2=-dsm -dsmcaching -optimize -mainclass ${MAINCLASS}
+FLAGS2=-dsm -dsmcaching -abortreaders -optimize -mainclass ${MAINCLASS}
 FLAGS3=-dsm -dsmcaching -prefetch -optimize -mainclass ${MAINCLASS} -excprefetch BarrierServer.updateAge -excprefetch RainForest.main -excprefetch GameMap.hasRock -excprefetch GameMap.hasTree -trueprob 0.90
 
 default:

@@ -121,6 +121,7 @@ perMcPrefetchList_t *processLocal(char *ptr) {
 }
 
 #define PBUFFERSIZE 16384
+//#define PBUFFERSIZE 8192 //Used only for Moldyn benchmark
 
 
 perMcPrefetchList_t *processRemote(unsigned int oid,  short * offsetarray, int sd, short numoffset) {
