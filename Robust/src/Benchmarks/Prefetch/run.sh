@@ -2,13 +2,7 @@
 
 #set -x
 MACHINELIST='dc-1.calit2.uci.edu dc-2.calit2.uci.edu dc-3.calit2.uci.edu dc-4.calit2.uci.edu dc-5.calit2.uci.edu dc-6.calit2.uci.edu dc-7.calit2.uci.edu dc-8.calit2.uci.edu'
-#benchmarks='40962dconv 1200mmver moldynverB 1600fft2d 1152fft2d 10lookup rainforest'
-#benchmarks='40962dconv'
-#benchmarks='10lookup'
-#benchmarks='rainforest'
-#benchmarks='1152fft2d'
-benchmarks='moldynverC'
-#benchmarks='40962dconv 1200mmver 1152fft2d moldynverA 10lookup rainforest'
+benchmarks='array chase 40962dconv 2048mmver moldynverC 2500fft2d 10lookup rainforest'
 
 LOGDIR=~/research/Robust/src/Benchmarks/Prefetch/runlog
 TOPDIR=`pwd`
@@ -137,7 +131,7 @@ function runallstats {
     chmod +x ~/.tmpvars
     for machine in `echo $MACHINES`
     do
-      ssh ${machine} 'cd `cat ~/.tmpdir`; source ~/.tmpvars; ./$bin' &
+      ssh ${machine} 'cd `cat ~/.tmpdir`; source ~/.tmpvars; /usr/bin/time -f "%e" ./$bin 2>> ./clienttime_`hostname | cut -f1 -d"."`.txt' &
       echo ""
     done
     sleep 2
@@ -150,13 +144,12 @@ function runallstats {
     echo "<a href=\"${3}_${2}Thrd_${EXTENSION}_${i}.html\">Network Stats</a><br>" >> ${LOGDIR}/${3}_${EXTENSION}_${2}Thrd_a.html
     mv ${TOPDIR}/html/dell.html ${LOGDIR}/${3}_${2}Thrd_${EXTENSION}_${i}.html
     echo "Terminating ... "
-    pwd
-    rm client_stats.log
     HOSTNAME=`hostname`
     for machine in `echo $MACHINES`
     do
       if [ "$machine" != "$HOSTNAME" ]; then
-        ssh ${machine} 'source ~/.tmpvars; binpid=`ps aux | grep $bin | grep -v grep | cut -f2`; kill -USR1 $binpid'
+        ssh ${machine} '~/research/Robust/src/Benchmarks/Prefetch/killallclients.sh'
+        #ssh ${machine} 'source ~/.tmpvars; binpid=`ps aux | grep $bin | grep time | sed 's/[     ]./:/g' | sed 's/::/:/g' | cut -f2 -d":"`;kill -USR1 $binpid'
       fi 
     done
     sleep 2
@@ -167,6 +160,11 @@ function runallstats {
 function oneremote {
   i=0;
   DIR=`pwd` 
+
+  DSTMDIR=${HOME}/research/Robust/src/Benchmarks/Prefetch/config
+  rm dstm.conf
+  ln -s ${DSTMDIR}/dstm_2.conf dstm.conf
+
   while [ $i -lt $1 ]; do
     echo "$DIR" > ~/.tmpdir
     echo "bin=$3" > ~/.tmpvars
@@ -174,7 +172,7 @@ function oneremote {
     echo "logd=$LOGDIR" > ~/.tmplogdir
     echo "ext=$EXTENSION" > ~/.tmpext
     ./$3 &
-    ssh $MACHINES2 'cd `cat ~/.tmpdir`; source ~/.tmpvars; source ~/.tmpargs; source ~/.tmplogdir; source ~/.tmpext; /usr/bin/time -f "%e" ./$bin master $arg 2>> ${logd}/${bin}_remote_${ext}.txt'
+    ssh dc-2.calit2.uci.edu 'cd `cat ~/.tmpdir`; source ~/.tmpvars; source ~/.tmpargs; source ~/.tmplogdir; source ~/.tmpext; /usr/bin/time -f "%e" ./$bin master $arg 2>> ${logd}/${bin}_remote_${ext}.txt'
     echo "Terminating ... "
     killall $3
     sleep 2
@@ -183,12 +181,6 @@ function oneremote {
 }
 
 function localrun {
-  i=0;
-#while [ $i -lt $1 ]; do
-#    /usr/bin/time -f "%e" ./${NONPREFETCH} master $ARGS1 2>> ${LOGDIR}/${NONPREFETCH}_local_${EXTENSION}.txt
-#   sleep 4
-#   i=`expr $i + 1`
-# done
   i=0;
 
   DSTMDIR=${HOME}/research/Robust/src/Benchmarks/Prefetch/config
@@ -215,7 +207,7 @@ function callrun {
   cd $BMDIR 
 
   echo "---------- Running local $BMDIR non-prefetch on 1 machine ---------- "
-  localrun 1
+  localrun 10
 
 #  echo "---------- Running single thread remote $BMDIR non-prefetch + non-cache on 2 machines ---------- "
 #  oneremote 1 1 $NONPREFETCH_NONCACHE
@@ -225,16 +217,16 @@ function callrun {
 #  oneremote 1 1 $PREFETCH
 
 
-for count in 2 4 6 8
+for count in 2 4 8
 do
 echo "------- Running $count threads $BMDIR non-prefetch + non-cache on $count machines -----"
-run 1 $count $NONPREFETCH_NONCACHE
+run 10 $count $NONPREFETCH_NONCACHE
 echo "------- Running $count threads $BMDIR non-prefetch on $count machines -----"
-run 1 $count $NONPREFETCH
+run 10 $count $NONPREFETCH
 #echo "------- Running $count threads $BMDIR normal prefetch on $count machines -----"
 #run 1 $count $PREFETCH
 echo "------- Running $count threads $BMDIR manual prefetch on $count machines -----"
-run 1 $count $MANUAL_PREFETCH
+run 10 $count $MANUAL_PREFETCH
 
 ###########
 #echo "------- Running $count threads $BMDIR non-prefetch + non-cache on $count machines -----"
@@ -258,7 +250,7 @@ function callrunjavasingle {
   cd ../javasingle
 
   echo "-----------Running javasingle for ${BENCHMARK} version ${EXTENSION} on 1 machines ------------"
-  javasinglerun 1
+  javasinglerun 10
   cd $TOPDIR
 }
 
@@ -276,18 +268,22 @@ function javasinglerun {
 }
 
 function callmicrorun {
-  PREFETCH=${BENCHMARK}1.bin
-  NONPREFETCH=${BENCHMARK}1NP.bin
-  NONPREFETCH_NONCACHE=${BENCHMARK}1NPNC.bin
+  PREFETCH=${BENCHMARK}N.bin
+  NONPREFETCH=${BENCHMARK}NPC.bin
+  NONPREFETCH_NONCACHE=${BENCHMARK}NPNC.bin
+  MANUAL_PREFETCH=${BENCHMARK}RangeN.bin
+
   cd $BMDIR 
   echo "---------- Running local $BMDIR non-prefetch on 1 machine ---------- "
-#  localrun 10
+  localrun 1
   echo "---------- Running single thread remote $BMDIR non-prefetch + non-cache on 2 machines ---------- "
   oneremote 10 1 $NONPREFETCH_NONCACHE
   echo "---------- Running single thread remote $BMDIR non-prefetch on 2 machines ---------- "
   oneremote 10 1 $NONPREFETCH
-  echo "---------- Running single thread remote $BMDIR prefetch on 2 machines ---------- "
-  oneremote 10 1 $PREFETCH
+# echo "---------- Running single thread remote $BMDIR prefetch on 2 machines ---------- "
+# oneremote 10 1 $PREFETCH
+  echo "------- Running $count threads $BMDIR manual prefetch on $count machines -----"
+  oneremote 1 1 $MANUAL_PREFETCH
   cd $TOPDIR
 }
 
