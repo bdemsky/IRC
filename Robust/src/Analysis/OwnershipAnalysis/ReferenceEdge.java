@@ -10,7 +10,7 @@ public class ReferenceEdge {
   protected TypeDescriptor type;
   protected String field;
 
-  protected boolean isInitialParamReflexive;
+  protected boolean isInitialParam;
 
   protected ReachabilitySet beta;
   protected ReachabilitySet betaNew;
@@ -23,14 +23,14 @@ public class ReferenceEdge {
                        HeapRegionNode dst,
 		       TypeDescriptor type,
 		       String field,
-                       boolean isInitialParamReflexive,
+                       boolean isInitialParam,
                        ReachabilitySet beta) {
 
     this.src                     = src;
     this.dst                     = dst;
     this.type                    = type;
     this.field                   = field;
-    this.isInitialParamReflexive = isInitialParamReflexive;
+    this.isInitialParam = isInitialParam;
 
     if( beta != null ) {
       this.beta = beta;
@@ -49,7 +49,7 @@ public class ReferenceEdge {
                              dst,
 			     type,
 			     field,
-                             isInitialParamReflexive,
+                             isInitialParam,
                              beta);
   }
 
@@ -169,12 +169,12 @@ public class ReferenceEdge {
   }
 
 
-  public boolean isInitialParamReflexive() {
-    return isInitialParamReflexive;
+  public boolean isInitialParam() {
+    return isInitialParam;
   }
 
-  public void setIsInitialParamReflexive(boolean isInitialParamReflexive) {
-    this.isInitialParamReflexive = isInitialParamReflexive;
+  public void setIsInitialParam(boolean isInitialParam) {
+    this.isInitialParam = isInitialParam;
   }
 
 
@@ -215,7 +215,7 @@ public class ReferenceEdge {
       edgeLabel += field+"\\n";
     }
 
-    if( isInitialParamReflexive ) {
+    if( isInitialParam ) {
       edgeLabel += "*init*\\n";
     }
 

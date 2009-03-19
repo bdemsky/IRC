@@ -8,6 +8,11 @@ public class Foo {
   public String s;
 }
 
+// a more specific Foo
+public class FooManchu extends Foo {
+  public FooManchu() {}
+}
+
 // this class should have everything except
 // a primary reflexive edge
 public class Bar {
@@ -63,16 +68,16 @@ public class Test {
     goodAliases( c1, c2, c3, c4, z1 );
 
     Foo f1 = new Foo();
-    Foo f2 = new Foo();
+    FooManchu f2 = new FooManchu();
+    Foo f3 = new Foo();
     Bar b1 = new Bar();
     Bar b2 = new Bar();
     Bar b3 = new Bar();
-    Bar b4 = new Bar();
     b1.f = new Foo();
     b2.f = b1.f;
-    b3.f = b1.f;
     f1.f = b1.f;
-    badAliases( f1, f2, b1, b2, b3, b4, z1 );
+    f2.f = b1.f;
+    badAliases( f1, f2, f3 ); //, b1, b2, b3, z1 );
   }
 
 
@@ -94,11 +99,13 @@ public class Test {
 
   // expect p0-p2-p3-p4 aliased in a yucky blob
   static public void badAliases( Foo p0,
-				 Foo p1,
+				 FooManchu p1,
+				 Foo p2 ) {
+    /*
 				 Bar p2,
 				 Bar p3,
 				 Bar p4,
 				 Bar p5,
-				 Zow p6 ) {
+				 Zow p6 ) {*/
   }
 }

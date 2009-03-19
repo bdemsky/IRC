@@ -311,11 +311,6 @@ public class OwnershipAnalysis {
     new Hashtable<TypeDescriptor, FieldDescriptor>();
 
 
-  // a special temp descriptor for setting more than one parameter label
-  // to the all-aliased-parameters heap region node
-  protected static TempDescriptor tdAliasedParams = new TempDescriptor("_AllAliasedParams___");
-
-
   // for controlling DOT file output
   private boolean writeDOTs;
   private boolean writeAllDOTs;
@@ -533,7 +528,6 @@ public class OwnershipAnalysis {
 	  MethodContext mcNext = depsItr.next();
 
 	  if( !methodContextsToVisitSet.contains( mcNext ) ) {
-	    //System.out.println( "  queuing "+mcNext );
 	    methodContextsToVisitQ.add( new MethodContextQWrapper( mapDescriptorToPriority.get( mcNext.getDescriptor() ), 
 								   mcNext ) );
 	    methodContextsToVisitSet.add( mcNext );
@@ -664,40 +658,11 @@ public class OwnershipAnalysis {
       if( ogInitParamAlloc == null ) {
 
 	// if the method context has aliased parameters, make sure
-	// there is a blob region for all those param labels to
-	// reference
+	// there is a blob region for all those param to reference
 	Set<Integer> aliasedParamIndices = mc.getAliasedParamIndices();
-	boolean aliasedPiIsSuperOfPj = false;
+
 	if( !aliasedParamIndices.isEmpty() ) {
-	  og.makeAliasedParamHeapRegionNode( tdAliasedParams );
-
-	  // if one parameter type is a super class of any other
-	  // then we cannot separate the primary parameter objects
-	  // from the alias blob, so look for it
-	  boolean keepLooking = true;
-
-	  Iterator<Integer> apItrI = aliasedParamIndices.iterator();
-	  while( apItrI.hasNext() && keepLooking ) {
-	    Integer i = apItrI.next();
-
-	    Iterator<Integer> apItrJ = aliasedParamIndices.iterator();
-	    while( apItrJ.hasNext() ) {
-	      Integer j = apItrJ.next();
-
-	      if( !i.equals( j ) ) {
-		TypeDescriptor typeI = fm.getParameter( i ).getType();
-		TypeDescriptor typeJ = fm.getParameter( j ).getType();
-
-		if( typeUtil.isSuperorType( typeI, typeJ ) ||
-		    typeUtil.isSuperorType( typeJ, typeI )    ) {
-
-		  aliasedPiIsSuperOfPj = true;
-		  keepLooking = false;
-		  break;
-		}
-	      }
-	    }
-	  }
+	  og.makeAliasedParamHeapRegionNode();
 	}
 
 	// set up each parameter
@@ -714,23 +679,29 @@ public class OwnershipAnalysis {
 
 	  if( aliasedParamIndices.contains( paramIndex ) ) {
 	    // use the alias blob but give parameters their
-	    // own primary obj region if they are not super
-	    // classes of one another
+	    // own primary obj region
 	    og.assignTempEqualToAliasedParam( tdParam,
-					      tdAliasedParams,
-					      paramIndex,
-					      aliasedPiIsSuperOfPj );	    
+					      paramIndex );	    
 	  } else {
 	    // this parameter is not aliased to others, give it
-	    // a fresh parameter heap region	    
+	    // a fresh primary obj and secondary object
 	    og.assignTempEqualToParamAlloc( tdParam,
 					    mc.getDescriptor() instanceof TaskDescriptor,
 					    paramIndex );
 	  }
 	}
 	
+	// add additional edges for aliased regions if necessary
+	if( !aliasedParamIndices.isEmpty() ) {
+	  og.addParam2ParamAliasEdges( fm, aliasedParamIndices );
+	}
+	
 	// clean up reachability on initial parameter shapes
 	og.globalSweep();
+
+	// this maps tokens to parameter indices and vice versa
+	// for when this method is a callee
+	og.prepareParamTokenMaps( fm );
 
 	// cache the graph
 	OwnershipGraph ogResult = new OwnershipGraph(allocationDepth, typeUtil);
