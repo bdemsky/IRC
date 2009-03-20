@@ -14,12 +14,12 @@ public class Test {
     Foo x = disjoint foo new Foo();
     Bar y = disjoint bar new Bar();
 
-    x.b = y;
+    //x.b = y;
     
     virginia( x, y );
   }
 
   static public void virginia( Foo x, Bar y ) {
-    //x.b = y;
+    x.b = y;
   }
 }

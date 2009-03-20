@@ -17,12 +17,16 @@ public class OwnershipGraph {
   // actions to take during the traversal
   protected static final int VISIT_HRN_WRITE_FULL = 0;
 
-  protected static String qString    = new String( "Q_spec_" );
-  protected static String rString    = new String( "R_spec_" );
-  protected static String blobString = new String( "_AliasBlob___" );
-
-  protected static TempDescriptor tdReturn    = new TempDescriptor( "_Return___" );
-  protected static TempDescriptor tdAliasBlob = new TempDescriptor( blobString );
+  protected static final String qString    = new String( "Q_spec_" );
+  protected static final String rString    = new String( "R_spec_" );
+  protected static final String blobString = new String( "_AliasBlob___" );
+		   
+  protected static final TempDescriptor tdReturn    = new TempDescriptor( "_Return___" );
+  protected static final TempDescriptor tdAliasBlob = new TempDescriptor( blobString );
+		   
+  protected static final TokenTupleSet   ttsEmpty    = new TokenTupleSet().makeCanonical();
+  protected static final ReachabilitySet rsEmpty     = new ReachabilitySet().makeCanonical();
+  protected static final ReachabilitySet rsWttsEmpty = new ReachabilitySet( ttsEmpty ).makeCanonical();
 
   // add a bogus entry with the identity rule for easy rewrite
   // of new callee nodes and edges, doesn't belong to any parameter
@@ -1681,6 +1685,62 @@ public class OwnershipGraph {
     return i+","+field;
   }
 
+  // these hashtables are used during the mapping procedure to say that
+  // with respect to some argument i there is an edge placed into some
+  // category for mapping with respect to another argument index j
+  // so the key into the hashtable is i, the value is a two-element vector
+  // that contains in 0 the edge and in 1 the Integer index j
+  private void ensureEmptyEdgeIndexPair( Hashtable< Integer, Set<Vector> > edge_index_pairs,
+					 Integer indexI ) {
+
+    Set<Vector> ei = edge_index_pairs.get( indexI );
+    if( ei == null ) { 
+      ei = new HashSet<Vector>(); 
+    }
+    edge_index_pairs.put( indexI, ei );
+  }
+
+  private void addEdgeIndexPair( Hashtable< Integer, Set<Vector> > edge_index_pairs,
+				 Integer indexI,
+				 ReferenceEdge edge,
+				 Integer indexJ ) {
+    
+    Vector v = new Vector(); v.setSize( 2 );
+    v.set( 0 , edge  );
+    v.set( 1 , indexJ );
+    Set<Vector> ei = edge_index_pairs.get( indexI );
+    if( ei == null ) { 
+      ei = new HashSet<Vector>(); 
+    }
+    ei.add( v );
+    edge_index_pairs.put( indexI, ei );
+  }
+
+  private ReachabilitySet funcScriptR( ReachabilitySet rsIn, 
+				       OwnershipGraph  ogCallee,
+				       MethodContext   mc ) {
+
+    ReachabilitySet rsOut = new ReachabilitySet( rsIn );
+
+    Iterator itr = ogCallee.paramIndex2paramTokenPrimary.entrySet().iterator();
+    while( itr.hasNext() ) {
+      Map.Entry  me  = (Map.Entry)  itr.next();
+      Integer    i   = (Integer)    me.getKey();
+      TokenTuple p_i = (TokenTuple) me.getValue();
+      TokenTuple s_i = ogCallee.paramIndex2paramTokenSecondary.get( i );
+
+      // skip this if there is no secondary token or the parameter
+      // is part of the aliasing context
+      if( s_i == null || mc.getAliasedParamIndices().contains( i ) ) {
+	continue;
+      }
+
+      rsOut = rsOut.removeTokenAIfTokenB( p_i, s_i );
+    }
+
+    return rsOut;
+  }
+
   public void resolveMethodCall(FlatCall fc,
                                 boolean isStatic,
                                 FlatMethod fm,
@@ -1688,8 +1748,6 @@ public class OwnershipGraph {
 				MethodContext mc
 				) {
 
-    //String debugCaller = "foo";
-    //String debugCallee = "bar";
     String debugCaller = "foo";
     String debugCallee = "bar";
 
@@ -1714,8 +1772,9 @@ public class OwnershipGraph {
     Hashtable<Integer, ReachabilitySet> paramIndex2rewriteJ_s2p = new Hashtable<Integer, ReachabilitySet>();
     Hashtable<Integer, ReachabilitySet> paramIndex2rewriteJ_s2s = new Hashtable<Integer, ReachabilitySet>();
 
-    Hashtable<Integer, ReachabilitySet> paramIndex2rewriteK_p = new Hashtable<Integer, ReachabilitySet>();
-    Hashtable<Integer, ReachabilitySet> paramIndex2rewriteK_s = new Hashtable<Integer, ReachabilitySet>();
+    Hashtable<Integer, ReachabilitySet> paramIndex2rewriteK_p  = new Hashtable<Integer, ReachabilitySet>();
+    Hashtable<Integer, ReachabilitySet> paramIndex2rewriteK_p2 = new Hashtable<Integer, ReachabilitySet>();
+    Hashtable<Integer, ReachabilitySet> paramIndex2rewriteK_s  = new Hashtable<Integer, ReachabilitySet>();
 
     Hashtable<Integer, ReachabilitySet> paramIndex2rewrite_d_p = new Hashtable<Integer, ReachabilitySet>();
     Hashtable<Integer, ReachabilitySet> paramIndex2rewrite_d_s = new Hashtable<Integer, ReachabilitySet>();
@@ -1782,8 +1841,29 @@ public class OwnershipGraph {
       assert lnParamQ != null;
       ReferenceEdge edgeSpecialQ_i = lnParamQ.getReferenceTo( hrnPrimary, null, null );
       assert edgeSpecialQ_i != null;
-      paramIndex2rewriteK_p.put( paramIndex,
-				 toShadowTokens( ogCallee, edgeSpecialQ_i.getBeta() ) );
+      ReachabilitySet qBeta = toShadowTokens( ogCallee, edgeSpecialQ_i.getBeta() );
+
+      TokenTuple p_i = ogCallee.paramIndex2paramTokenPrimary  .get( paramIndex );
+      TokenTuple s_i = ogCallee.paramIndex2paramTokenSecondary.get( paramIndex );
+
+      ReachabilitySet K_p  = new ReachabilitySet().makeCanonical();
+      ReachabilitySet K_p2 = new ReachabilitySet().makeCanonical();
+      if( s_i == null ) {
+	K_p = qBeta;
+      } else {
+	// sort qBeta into K_p1 and K_p2	
+	Iterator<TokenTupleSet> ttsItr = qBeta.iterator();
+	while( ttsItr.hasNext() ) {
+	  TokenTupleSet tts = ttsItr.next();
+	  if( s_i != null && tts.containsBoth( p_i, s_i ) ) {
+	    K_p2 = K_p2.union( tts );
+	  } else {
+	    K_p = K_p.union( tts );
+	  }
+	}
+      }
+      paramIndex2rewriteK_p .put( paramIndex, K_p  );
+      paramIndex2rewriteK_p2.put( paramIndex, K_p2 );
 
 
       // if there is a secondary node, compute the rest of the rewrite rules
@@ -1886,8 +1966,6 @@ public class OwnershipGraph {
       new Hashtable<Integer, Set<HeapRegionNode> >();
 
     Set<HeapRegionNode> defParamObj = new HashSet<HeapRegionNode>();
-    //Set<HeapRegionNode> drAny       = new HashSet<HeapRegionNode>();
-    //Set<HeapRegionNode> rAny        = new HashSet<HeapRegionNode>();       
 
     Iterator lnArgItr = paramIndex2ln.entrySet().iterator();
     while( lnArgItr.hasNext() ) {
@@ -1906,7 +1984,6 @@ public class OwnershipGraph {
 	HeapRegionNode hrn = edge.getDst();
 
 	dr.add( hrn );
-	//drAny.add( hrn );
 
 	if( lnArg_i.getNumReferencees() == 1 && hrn.isSingleObject() ) {
 	  defParamObj.add( hrn );
@@ -1924,7 +2001,6 @@ public class OwnershipGraph {
 	  todo.remove( hrnr );
 	  
 	  r.add( hrnr );
-	  //rAny.add( hrnr );
 	  
 	  Iterator<ReferenceEdge> edgeItr = hrnr.iteratorToReferencees();
 	  while( edgeItr.hasNext() ) {
@@ -1947,21 +2023,16 @@ public class OwnershipGraph {
     assert defParamObj.size() <= fm.numParameters();
 
 
-
-    System.out.println( "\n\n"+mc+" is calling "+fm+" *****" );
-
-
-
     // now iterate over reachable nodes to rewrite their alpha, and
     // classify edges found for beta rewrite    
     Hashtable<TokenTuple, ReachabilitySet> tokens2states = new Hashtable<TokenTuple, ReachabilitySet>();
 
-    Hashtable< Integer, Set<Vector> > edges_p2p = new Hashtable< Integer, Set<Vector> >();
-    Hashtable< Integer, Set<Vector> > edges_p2s = new Hashtable< Integer, Set<Vector> >();
-    Hashtable< Integer, Set<Vector> > edges_s2p = new Hashtable< Integer, Set<Vector> >();
-    Hashtable< Integer, Set<Vector> > edges_s2s = new Hashtable< Integer, Set<Vector> >();
-    //HashSet<ReferenceEdge>  edgesUpstreamDirectlyReachable = new HashSet<ReferenceEdge>();
-    //HashSet<ReferenceEdge>  edgesUpstreamReachable         = new HashSet<ReferenceEdge>();
+    Hashtable< Integer, Set<Vector> > edges_p2p   = new Hashtable< Integer, Set<Vector> >();
+    Hashtable< Integer, Set<Vector> > edges_p2s   = new Hashtable< Integer, Set<Vector> >();
+    Hashtable< Integer, Set<Vector> > edges_s2p   = new Hashtable< Integer, Set<Vector> >();
+    Hashtable< Integer, Set<Vector> > edges_s2s   = new Hashtable< Integer, Set<Vector> >();
+    Hashtable< Integer, Set<Vector> > edges_up_dr = new Hashtable< Integer, Set<Vector> >();
+    Hashtable< Integer, Set<Vector> > edges_up_r  = new Hashtable< Integer, Set<Vector> >();
 
 
     // so again, with respect to some arg i...
@@ -1973,29 +2044,14 @@ public class OwnershipGraph {
 
       TokenTuple p_i = ogCallee.paramIndex2paramTokenPrimary.get( index );
       TokenTuple s_i = ogCallee.paramIndex2paramTokenSecondary.get( index );
-      assert p_i != null;
+      assert p_i != null;      
 
-      
-      Set<Vector> ei = edges_p2p.get( index );
-      if( ei == null ) { ei = new HashSet<Vector>(); }
-      edges_p2p.put( index, ei );
-
-      ei = edges_p2s.get( index );
-      if( ei == null ) { ei = new HashSet<Vector>(); }
-      edges_p2s.put( index, ei );
-
-      ei = edges_s2p.get( index );
-      if( ei == null ) { ei = new HashSet<Vector>(); }
-      edges_s2p.put( index, ei );
-
-      ei = edges_s2s.get( index );
-      if( ei == null ) { ei = new HashSet<Vector>(); }
-      edges_s2s.put( index, ei );
-
-
-      System.out.println( "with respect to arg "+index );
-
-
+      ensureEmptyEdgeIndexPair( edges_p2p,   index );
+      ensureEmptyEdgeIndexPair( edges_p2s,   index );
+      ensureEmptyEdgeIndexPair( edges_s2p,   index );
+      ensureEmptyEdgeIndexPair( edges_s2s,   index );
+      ensureEmptyEdgeIndexPair( edges_up_dr, index );
+      ensureEmptyEdgeIndexPair( edges_up_r,  index );
 
       Set<HeapRegionNode> dr = pi2dr.get( index );
       Iterator<HeapRegionNode> hrnItr = dr.iterator();
@@ -2026,7 +2082,7 @@ public class OwnershipGraph {
 	  ReferenceEdge edge = edgeItr.next();
 	  OwnershipNode on   = edge.getSrc();
 
-	  //edgesUpstreamDirectlyReachable.add( edge );
+	  boolean edge_classified = false;
 
 	  if( on instanceof HeapRegionNode ) {
 	    // hrn0 may be "a_j" and/or "r_j" or even neither
@@ -2039,15 +2095,8 @@ public class OwnershipGraph {
 	      Set<HeapRegionNode> dr_i = (Set<HeapRegionNode>) mo.getValue();
 
 	      if( dr_i.contains( hrn0 ) ) {		
-		Vector v = new Vector(); v.setSize( 2 );
-		v.set( 0 , edge  );
-		v.set( 1 , index );
-		Set<Vector> e = edges_p2p.get( pi );
-		if( e == null ) { e = new HashSet<Vector>(); }
-		e.add( v );
-		edges_p2p.put( pi, e );
-
-		//System.out.println( "  sorting "+edge+" with "+pi+"->"+index );
+		addEdgeIndexPair( edges_p2p, pi, edge, index );
+		edge_classified = true;
 	      }			      
 	    }
 
@@ -2058,15 +2107,15 @@ public class OwnershipGraph {
 	      Set<HeapRegionNode> r_i = (Set<HeapRegionNode>) mo.getValue();
 
 	      if( r_i.contains( hrn0 ) ) {
-		Vector v = new Vector(); v.setSize( 2 );
-		v.set( 0, edge  );
-		v.set( 1, index );
-		Set<Vector> e = edges_s2p.get( pi );
-		if( e == null ) { e = new HashSet<Vector>(); }
-		e.add( v );
-		edges_s2p.put( pi, e );
+		addEdgeIndexPair( edges_s2p, pi, edge, index );
+		edge_classified = true;
 	      }			      
 	    }
+	  }
+
+	  // all of these edges are upstream of directly reachable objects
+	  if( !edge_classified ) {
+	    addEdgeIndexPair( edges_up_dr, index, edge, index );
 	  }
 	}
       }
@@ -2105,7 +2154,7 @@ public class OwnershipGraph {
 	  ReferenceEdge edge = edgeItr.next();
 	  OwnershipNode on   = edge.getSrc();
 
-	  //edgesUpstreamReachable.add( edge );
+	  boolean edge_classified = false;
 
 	  if( on instanceof HeapRegionNode ) {
 	    // hrn0 may be "a_j" and/or "r_j" or even neither
@@ -2118,13 +2167,8 @@ public class OwnershipGraph {
 	      Set<HeapRegionNode> dr_i = (Set<HeapRegionNode>) mo.getValue();
 
 	      if( dr_i.contains( hrn0 ) ) {
-		Vector v = new Vector(); v.setSize( 2 );
-		v.set( 0, edge  );
-		v.set( 1, index );
-		Set<Vector> e = edges_p2s.get( pi );
-		if( e == null ) { e = new HashSet<Vector>(); }
-		e.add( v );
-		edges_p2s.put( pi, e );
+		addEdgeIndexPair( edges_p2s, pi, edge, index );
+		edge_classified = true;
 	      }			      
 	    }
 
@@ -2135,15 +2179,15 @@ public class OwnershipGraph {
 	      Set<HeapRegionNode> r_i = (Set<HeapRegionNode>) mo.getValue();
 
 	      if( r_i.contains( hrn0 ) ) {
-		Vector v = new Vector(); v.setSize( 2 );
-		v.set( 0, edge  );
-		v.set( 1, index );
-		Set<Vector> e = edges_s2s.get( pi );
-		if( e == null ) { e = new HashSet<Vector>(); }
-		e.add( v );
-		edges_s2s.put( pi, e );
+		addEdgeIndexPair( edges_s2s, pi, edge, index );
+		edge_classified = true;
 	      }			      
 	    }
+	  }
+
+	  // these edges are all upstream of some reachable node
+	  if( !edge_classified ) {
+	    addEdgeIndexPair( edges_up_r, index, edge, index );
 	  }
 	}
       }
@@ -2167,14 +2211,7 @@ public class OwnershipGraph {
 		
 	TokenTuple p_j = ogCallee.paramIndex2paramTokenPrimary.get( indexJ );
 	assert p_j != null;
-
-	
-	System.out.println( "Classified "+edge+" as p2p, p_j="+p_j );
-	System.out.println( " and callee index2tok="+ogCallee.paramIndex2paramTokenPrimary );
-	System.out.println( " and callee tok2index="+ogCallee.paramTokenPrimary2paramIndex );
-	System.out.println( " paramIndex2rewriteJ_p2p="+paramIndex2rewriteJ_p2p );
-	System.out.println( " key is: "+makeMapKey( index, indexJ, edge.getField() ) );
-
+       
 	tokens2states.clear();
 	tokens2states.put( p_j, edge.getBeta() );
 
@@ -2279,47 +2316,98 @@ public class OwnershipGraph {
 
 	edgesWithNewBeta.add( edge );
       }
-      
 
-      /*
+
       // update directly upstream edges
       Hashtable<ReferenceEdge, ChangeTupleSet> edgeUpstreamPlannedChanges =
         new Hashtable<ReferenceEdge, ChangeTupleSet>();
+      
+      HashSet<ReferenceEdge> edgesDirectlyUpstream =
+	new HashSet<ReferenceEdge>();
 
-      edgeItr = edgesUpstreamDirectlyReachable.iterator();
+      edgeItr = edges_up_dr.get( index ).iterator();
       while( edgeItr.hasNext() ) {
-	ReferenceEdge edge = edgeItr.next();
+	Vector        mo     = (Vector)        edgeItr.next();
+	ReferenceEdge edge   = (ReferenceEdge) mo.get( 0 );
+	Integer       indexJ = (Integer)       mo.get( 1 );
+
+	edgesDirectlyUpstream.add( edge );
+
+	TokenTuple p_j = ogCallee.paramIndex2paramTokenPrimary.get( indexJ );
+	assert p_j != null;
+
+	// start with K_p2 and p_j
+	tokens2states.clear();
+	tokens2states.put( p_j, edge.getBeta() );
+
+	rewriteCallerReachability( index,
+				   null,
+				   edge,
+				   paramIndex2rewriteK_p2.get( index ),
+				   tokens2states,
+				   paramIndex2rewrite_d_p,
+				   paramIndex2rewrite_d_s,
+				   paramIndex2rewriteD,
+				   ogCallee,
+				   true,
+				   edgeUpstreamPlannedChanges );
+
+	// and add in s_j, if required, and do K_p
+	TokenTuple s_j = ogCallee.paramIndex2paramTokenSecondary.get( indexJ );
+	if( s_j != null ) {
+	  tokens2states.put( s_j, edge.getBeta() );
+	}
 
 	rewriteCallerReachability( index,
 				   null,
 				   edge,
 				   paramIndex2rewriteK_p.get( index ),
+				   tokens2states,
 				   paramIndex2rewrite_d_p,
 				   paramIndex2rewrite_d_s,
 				   paramIndex2rewriteD,
 				   ogCallee,
 				   true,
-				   edgeUpstreamPlannedChanges );
+				   edgeUpstreamPlannedChanges );	
 
 	edgesWithNewBeta.add( edge );
       }
 
-      propagateTokensOverEdges( edgesUpstream,
+      propagateTokensOverEdges( edgesDirectlyUpstream,
 				edgeUpstreamPlannedChanges,
 				edgesWithNewBeta );
+      
 
       // update upstream edges
       edgeUpstreamPlannedChanges =
         new Hashtable<ReferenceEdge, ChangeTupleSet>();
 
-      edgeItr = edgesUpstreamReachable.iterator();
+      HashSet<ReferenceEdge> edgesUpstream =
+	new HashSet<ReferenceEdge>();
+
+      edgeItr = edges_up_r.get( index ).iterator();
       while( edgeItr.hasNext() ) {
-	ReferenceEdge edge = edgeItr.next();
+	Vector        mo     = (Vector)        edgeItr.next();
+	ReferenceEdge edge   = (ReferenceEdge) mo.get( 0 );
+	Integer       indexJ = (Integer)       mo.get( 1 );
+
+	edgesUpstream.add( edge );
+
+	TokenTuple p_j = ogCallee.paramIndex2paramTokenPrimary.get( indexJ );
+	assert p_j != null;
+
+	TokenTuple s_j = ogCallee.paramIndex2paramTokenSecondary.get( indexJ );
+	assert s_j != null;
+
+	tokens2states.clear();
+	tokens2states.put( p_j, rsWttsEmpty );
+	tokens2states.put( s_j, edge.getBeta() );
 
 	rewriteCallerReachability( index,
 				   null,
 				   edge,
 				   paramIndex2rewriteK_s.get( index ),
+				   tokens2states,
 				   paramIndex2rewrite_d_p,
 				   paramIndex2rewrite_d_s,
 				   paramIndex2rewriteD,
@@ -2333,9 +2421,9 @@ public class OwnershipGraph {
       propagateTokensOverEdges( edgesUpstream,
 				edgeUpstreamPlannedChanges,
 				edgesWithNewBeta );
-      */
 
     } // end effects per argument/parameter map
+
 
     // commit changes to alpha and beta
     Iterator<HeapRegionNode> nodeItr = nodesWithNewAlpha.iterator();
@@ -2348,47 +2436,47 @@ public class OwnershipGraph {
       edgeItr.next().applyBetaNew();
     }
 
-
-    /*
+    
     // verify the existence of allocation sites and their
     // shadows from the callee in the context of this caller graph
     // then map allocated nodes of callee onto the caller shadows
     // of them
+    Hashtable<TokenTuple, ReachabilitySet> tokens2statesEmpty = new Hashtable<TokenTuple, ReachabilitySet>();
+
     Iterator<AllocationSite> asItr = ogCallee.allocationSites.iterator();
     while( asItr.hasNext() ) {
       AllocationSite allocSite  = asItr.next();
 
       // grab the summary in the caller just to make sure
       // the allocation site has nodes in the caller
-      HeapRegionNode hrnSummary = getSummaryNode(allocSite);
+      HeapRegionNode hrnSummary = getSummaryNode( allocSite );
 
       // assert that the shadow nodes have no reference edges
       // because they're brand new to the graph, or last time
       // they were used they should have been cleared of edges
-      HeapRegionNode hrnShadowSummary = getShadowSummaryNode(allocSite);
+      HeapRegionNode hrnShadowSummary = getShadowSummaryNode( allocSite );
       assert hrnShadowSummary.getNumReferencers() == 0;
       assert hrnShadowSummary.getNumReferencees() == 0;
 
       // then bring g_ij onto g'_ij and rewrite
-      HeapRegionNode hrnSummaryCallee = ogCallee.getSummaryNode(allocSite);
-      hrnShadowSummary.setAlpha(toShadowTokens(ogCallee, hrnSummaryCallee.getAlpha() ) );
+      HeapRegionNode hrnSummaryCallee = ogCallee.getSummaryNode( allocSite );
+      hrnShadowSummary.setAlpha( toShadowTokens( ogCallee, hrnSummaryCallee.getAlpha() ) );
 
       // shadow nodes only are touched by a rewrite one time,
       // so rewrite and immediately commit--and they don't belong
       // to a particular parameter, so use a bogus param index
       // that pulls a self-rewrite out of H
-      rewriteCallerReachability(bogusIndex,
-                                hrnShadowSummary,
-                                null,
-                                hrnShadowSummary.getAlpha(),
-                                paramIndex2rewrite_d,
-                                paramIndex2rewriteD,
-                                bogusToken,
-                                paramToken2paramIndex,
-                                paramTokenPlus2paramIndex,
-				paramTokenStar2paramIndex,
-                                false,
-                                null);
+      rewriteCallerReachability( bogusIndex,
+				 hrnShadowSummary,
+				 null,
+				 funcScriptR( hrnShadowSummary.getAlpha(), ogCallee, mc ),
+				 tokens2statesEmpty,
+				 paramIndex2rewrite_d_p,
+				 paramIndex2rewrite_d_s,
+				 paramIndex2rewriteD,
+				 ogCallee,
+				 false,
+				 null );
 
       hrnShadowSummary.applyAlphaNew();
 
@@ -2408,18 +2496,17 @@ public class OwnershipGraph {
 	HeapRegionNode hrnIthCallee = ogCallee.id2hrn.get(idIth);
 	hrnIthShadow.setAlpha(toShadowTokens(ogCallee, hrnIthCallee.getAlpha() ) );
 
-	rewriteCallerReachability(bogusIndex,
-	                          hrnIthShadow,
-	                          null,
-	                          hrnIthShadow.getAlpha(),
-	                          paramIndex2rewrite_d,
-	                          paramIndex2rewriteD,
-	                          bogusToken,
-	                          paramToken2paramIndex,
-	                          paramTokenPlus2paramIndex,
-	                          paramTokenStar2paramIndex,
-	                          false,
-	                          null);
+	rewriteCallerReachability( bogusIndex,
+				   hrnIthShadow,
+				   null,
+				   funcScriptR( hrnIthShadow.getAlpha(), ogCallee, mc ),
+				   tokens2statesEmpty,
+				   paramIndex2rewrite_d_p,
+				   paramIndex2rewrite_d_s,
+				   paramIndex2rewriteD,
+				   ogCallee,
+				   false,
+				   null );
 
 	hrnIthShadow.applyAlphaNew();
       }
@@ -2429,20 +2516,20 @@ public class OwnershipGraph {
     // for every heap region->heap region edge in the
     // callee graph, create the matching edge or edges
     // in the caller graph
-    Set sCallee = ogCallee.id2hrn.entrySet();
+    Set      sCallee = ogCallee.id2hrn.entrySet();
     Iterator iCallee = sCallee.iterator();
     while( iCallee.hasNext() ) {
-      Map.Entry meCallee  = (Map.Entry)iCallee.next();
-      Integer idCallee  = (Integer)        meCallee.getKey();
+      Map.Entry      meCallee  = (Map.Entry)      iCallee.next();
+      Integer        idCallee  = (Integer)        meCallee.getKey();
       HeapRegionNode hrnCallee = (HeapRegionNode) meCallee.getValue();
 
       Iterator<ReferenceEdge> heapRegionsItrCallee = hrnCallee.iteratorToReferencees();
       while( heapRegionsItrCallee.hasNext() ) {
-	ReferenceEdge edgeCallee      =  heapRegionsItrCallee.next();
+	ReferenceEdge  edgeCallee     = heapRegionsItrCallee.next();
 	HeapRegionNode hrnChildCallee = edgeCallee.getDst();
-	Integer idChildCallee         = hrnChildCallee.getID();
+	Integer        idChildCallee  = hrnChildCallee.getID();
 
-	// only address this edge if it is not a special reflexive edge
+	// only address this edge if it is not a special initial edge
 	if( !edgeCallee.isInitialParam() ) {
 
 	  // now we know that in the callee method's ownership graph
@@ -2455,26 +2542,28 @@ public class OwnershipGraph {
 
 	  // make the edge with src and dst so beta info is
 	  // calculated once, then copy it for each new edge in caller
-	  ReferenceEdge edgeNewInCallerTemplate = new ReferenceEdge(null,
-	                                                            null,
-	                                                            edgeCallee.getType(),
-	                                                            edgeCallee.getField(),
-	                                                            false,
-	                                                            toShadowTokens(ogCallee,
-	                                                                           edgeCallee.getBeta() )
-	                                                            );
-	  rewriteCallerReachability(bogusIndex,
-	                            null,
-	                            edgeNewInCallerTemplate,
-	                            edgeNewInCallerTemplate.getBeta(),
-	                            paramIndex2rewrite_d,
-	                            paramIndex2rewriteD,
-	                            bogusToken,
-	                            paramToken2paramIndex,
-	                            paramTokenPlus2paramIndex,
-				    paramTokenStar2paramIndex,
-	                            false,
-	                            null);
+	  ReferenceEdge edgeNewInCallerTemplate = new ReferenceEdge( null,
+								     null,
+								     edgeCallee.getType(),
+								     edgeCallee.getField(),
+								     false,
+								     funcScriptR( toShadowTokens( ogCallee,
+												  edgeCallee.getBeta()
+												  ),
+										  ogCallee,
+										  mc )
+								     );
+	  rewriteCallerReachability( bogusIndex,
+				     null,
+				     edgeNewInCallerTemplate,
+				     edgeNewInCallerTemplate.getBeta(),
+				     tokens2statesEmpty,
+				     paramIndex2rewrite_d_p,
+				     paramIndex2rewrite_d_s,
+				     paramIndex2rewriteD,
+				     ogCallee,
+				     false,
+				     null );
 
 	  edgeNewInCallerTemplate.applyBetaNew();
 
@@ -2483,22 +2572,23 @@ public class OwnershipGraph {
 	  // and a set of destination heaps in the caller graph, and make
 	  // a reference edge in the caller for every possible (src,dst) pair
 	  HashSet<HeapRegionNode> possibleCallerSrcs =
-	    getHRNSetThatPossiblyMapToCalleeHRN(ogCallee,
-	                                        (HeapRegionNode) edgeCallee.getSrc(),
-	                                        pi2r);
+	    getHRNSetThatPossiblyMapToCalleeHRN( ogCallee,
+						 (HeapRegionNode) edgeCallee.getSrc(),
+						 pi2dr,
+						 pi2r );
 
 	  HashSet<HeapRegionNode> possibleCallerDsts =
-	    getHRNSetThatPossiblyMapToCalleeHRN(ogCallee,
-	                                        edgeCallee.getDst(),
-	                                        pi2r);
-
+	    getHRNSetThatPossiblyMapToCalleeHRN( ogCallee,
+						 edgeCallee.getDst(),
+						 pi2dr,
+						 pi2r );
 
 	  // make every possible pair of {srcSet} -> {dstSet} edges in the caller
 	  Iterator srcItr = possibleCallerSrcs.iterator();
 	  while( srcItr.hasNext() ) {
 	    HeapRegionNode src = (HeapRegionNode) srcItr.next();
 
-	    if( !hasMatchingField(src, edgeCallee) ) {
+	    if( !hasMatchingField( src, edgeCallee ) ) {
 	      // prune this source node possibility
 	      continue;
 	    }
@@ -2507,26 +2597,26 @@ public class OwnershipGraph {
 	    while( dstItr.hasNext() ) {
 	      HeapRegionNode dst = (HeapRegionNode) dstItr.next();
 
-	      if( !hasMatchingType(edgeCallee, dst) ) {
+	      if( !hasMatchingType( edgeCallee, dst ) ) {
 		// prune
 		continue;
 	      }
 
 	      // otherwise the caller src and dst pair can match the edge, so make it
 	      ReferenceEdge edgeNewInCaller = edgeNewInCallerTemplate.copy();
-	      edgeNewInCaller.setSrc(src);
-	      edgeNewInCaller.setDst(dst);	      
+	      edgeNewInCaller.setSrc( src );
+	      edgeNewInCaller.setDst( dst );	      
 
-	      ReferenceEdge edgeExisting = src.getReferenceTo(dst, 
-							      edgeNewInCaller.getType(),
-							      edgeNewInCaller.getField() );
+	      ReferenceEdge edgeExisting = src.getReferenceTo( dst, 
+							       edgeNewInCaller.getType(),
+							       edgeNewInCaller.getField() );
 	      if( edgeExisting == null ) {
 		// if this edge doesn't exist in the caller, create it
-		addReferenceEdge(src, dst, edgeNewInCaller);
+		addReferenceEdge( src, dst, edgeNewInCaller );
 
 	      } else {
 		// if it already exists, merge with it
-		edgeExisting.setBeta(edgeExisting.getBeta().union(edgeNewInCaller.getBeta() ) );
+		edgeExisting.setBeta( edgeExisting.getBeta().union( edgeNewInCaller.getBeta() ) );
 	      }
 	    }
 	  }
@@ -2539,67 +2629,69 @@ public class OwnershipGraph {
     TempDescriptor returnTemp = fc.getReturnTemp();
     if( returnTemp != null && !returnTemp.getType().isImmutable() ) {
 
-      LabelNode lnLhsCaller = getLabelNodeFromTemp(returnTemp);
-      clearReferenceEdgesFrom(lnLhsCaller, null, null, true);
+      LabelNode lnLhsCaller = getLabelNodeFromTemp( returnTemp );
+      clearReferenceEdgesFrom( lnLhsCaller, null, null, true );
 
-      LabelNode lnReturnCallee = ogCallee.getLabelNodeFromTemp(tdReturn);
+      LabelNode lnReturnCallee = ogCallee.getLabelNodeFromTemp( tdReturn );
       Iterator<ReferenceEdge> edgeCalleeItr = lnReturnCallee.iteratorToReferencees();
       while( edgeCalleeItr.hasNext() ) {
 	ReferenceEdge edgeCallee = edgeCalleeItr.next();
 
-	ReferenceEdge edgeNewInCallerTemplate = new ReferenceEdge(null,
-	                                                          null,
-	                                                          edgeCallee.getType(),
-	                                                          edgeCallee.getField(),
-	                                                          false,
-	                                                          toShadowTokens(ogCallee,
-	                                                                         edgeCallee.getBeta() )
-	                                                          );
-	rewriteCallerReachability(bogusIndex,
-	                          null,
-	                          edgeNewInCallerTemplate,
-	                          edgeNewInCallerTemplate.getBeta(),
-	                          paramIndex2rewrite_d,
-	                          paramIndex2rewriteD,
-	                          bogusToken,
-	                          paramToken2paramIndex,
-	                          paramTokenPlus2paramIndex,
-	                          paramTokenStar2paramIndex,
-	                          false,
-	                          null);
+	ReferenceEdge edgeNewInCallerTemplate = new ReferenceEdge( null,
+								   null,
+								   edgeCallee.getType(),
+								   edgeCallee.getField(),
+								   false,
+								   funcScriptR( toShadowTokens(ogCallee,
+											       edgeCallee.getBeta() ),
+										ogCallee,
+										mc )
+								   );
+	rewriteCallerReachability( bogusIndex,
+				   null,
+				   edgeNewInCallerTemplate,
+				   edgeNewInCallerTemplate.getBeta(),
+				   tokens2statesEmpty,
+				   paramIndex2rewrite_d_p,
+				   paramIndex2rewrite_d_s,
+				   paramIndex2rewriteD,
+				   ogCallee,
+				   false,
+				   null );
 
 	edgeNewInCallerTemplate.applyBetaNew();
 
 
 	HashSet<HeapRegionNode> assignCallerRhs =
-	  getHRNSetThatPossiblyMapToCalleeHRN(ogCallee,
-	                                      edgeCallee.getDst(),
-	                                      pi2r);
+	  getHRNSetThatPossiblyMapToCalleeHRN( ogCallee,
+					       edgeCallee.getDst(),
+					       pi2dr,
+					       pi2r );
 
 	Iterator<HeapRegionNode> itrHrn = assignCallerRhs.iterator();
 	while( itrHrn.hasNext() ) {
 	  HeapRegionNode hrnCaller = itrHrn.next();
 
-	  if( !hasMatchingType(edgeCallee, hrnCaller) ) {
+	  if( !hasMatchingType( edgeCallee, hrnCaller ) ) {
 	    // prune
 	    continue;
 	  }
 
 	  // otherwise caller node can match callee edge, so make it
 	  ReferenceEdge edgeNewInCaller = edgeNewInCallerTemplate.copy();
-	  edgeNewInCaller.setSrc(lnLhsCaller);
-	  edgeNewInCaller.setDst(hrnCaller);
+	  edgeNewInCaller.setSrc( lnLhsCaller );
+	  edgeNewInCaller.setDst( hrnCaller );
 
-	  ReferenceEdge edgeExisting = lnLhsCaller.getReferenceTo(hrnCaller, 
-								  edgeNewInCaller.getType(),
-								  edgeNewInCaller.getField() );
+	  ReferenceEdge edgeExisting = lnLhsCaller.getReferenceTo( hrnCaller, 
+								   edgeNewInCaller.getType(),
+								   edgeNewInCaller.getField() );
 	  if( edgeExisting == null ) {
 
 	    // if this edge doesn't exist in the caller, create it
-	    addReferenceEdge(lnLhsCaller, hrnCaller, edgeNewInCaller);
+	    addReferenceEdge( lnLhsCaller, hrnCaller, edgeNewInCaller );
 	  } else {
 	    // if it already exists, merge with it
-	    edgeExisting.setBeta(edgeExisting.getBeta().union(edgeNewInCaller.getBeta() ) );
+	    edgeExisting.setBeta( edgeExisting.getBeta().union( edgeNewInCaller.getBeta() ) );
 	  }
 	}
       }
@@ -2613,62 +2705,61 @@ public class OwnershipGraph {
 
       // first age each allocation site enough times to make room for the shadow nodes
       for( int i = 0; i < as.getAllocationDepth(); ++i ) {
-	age(as);
+	age( as );
       }
 
       // then merge the shadow summary into the normal summary
-      HeapRegionNode hrnSummary = getSummaryNode(as);
+      HeapRegionNode hrnSummary = getSummaryNode( as );
       assert hrnSummary != null;
 
-      HeapRegionNode hrnSummaryShadow = getShadowSummaryNode(as);
+      HeapRegionNode hrnSummaryShadow = getShadowSummaryNode( as );
       assert hrnSummaryShadow != null;
 
-      mergeIntoSummary(hrnSummaryShadow, hrnSummary);
+      mergeIntoSummary( hrnSummaryShadow, hrnSummary );
 
       // then clear off after merge
-      clearReferenceEdgesFrom(hrnSummaryShadow, null, null, true);
-      clearReferenceEdgesTo(hrnSummaryShadow, null, null, true);
-      hrnSummaryShadow.setAlpha(new ReachabilitySet().makeCanonical() );
+      clearReferenceEdgesFrom( hrnSummaryShadow, null, null, true );
+      clearReferenceEdgesTo  ( hrnSummaryShadow, null, null, true );
+      hrnSummaryShadow.setAlpha( new ReachabilitySet().makeCanonical() );
 
       // then transplant shadow nodes onto the now clean normal nodes
       for( int i = 0; i < as.getAllocationDepth(); ++i ) {
 
-	Integer idIth = as.getIthOldest(i);
-	HeapRegionNode hrnIth = id2hrn.get(idIth);
+	Integer        idIth        = as.getIthOldest( i );
+	HeapRegionNode hrnIth       = id2hrn.get( idIth );
+	Integer        idIthShadow  = as.getIthOldestShadow( i );
+	HeapRegionNode hrnIthShadow = id2hrn.get( idIthShadow );
 
-	Integer idIthShadow = as.getIthOldestShadow(i);
-	HeapRegionNode hrnIthShadow = id2hrn.get(idIthShadow);
-
-	transferOnto(hrnIthShadow, hrnIth);
+	transferOnto( hrnIthShadow, hrnIth );
 
 	// clear off shadow nodes after transfer
-	clearReferenceEdgesFrom(hrnIthShadow, null, null, true);
-	clearReferenceEdgesTo(hrnIthShadow, null, null, true);
-	hrnIthShadow.setAlpha(new ReachabilitySet().makeCanonical() );
+	clearReferenceEdgesFrom( hrnIthShadow, null, null, true );
+	clearReferenceEdgesTo  ( hrnIthShadow, null, null, true );
+	hrnIthShadow.setAlpha( new ReachabilitySet().makeCanonical() );
       }
 
       // finally, globally change shadow tokens into normal tokens
       Iterator itrAllLabelNodes = td2ln.entrySet().iterator();
       while( itrAllLabelNodes.hasNext() ) {
-	Map.Entry me = (Map.Entry)itrAllLabelNodes.next();
+	Map.Entry me = (Map.Entry) itrAllLabelNodes.next();
 	LabelNode ln = (LabelNode) me.getValue();
 
 	Iterator<ReferenceEdge> itrEdges = ln.iteratorToReferencees();
 	while( itrEdges.hasNext() ) {
-	  unshadowTokens(as, itrEdges.next() );
+	  unshadowTokens( as, itrEdges.next() );
 	}
       }
 
       Iterator itrAllHRNodes = id2hrn.entrySet().iterator();
       while( itrAllHRNodes.hasNext() ) {
-	Map.Entry me       = (Map.Entry)itrAllHRNodes.next();
+	Map.Entry      me       = (Map.Entry)      itrAllHRNodes.next();
 	HeapRegionNode hrnToAge = (HeapRegionNode) me.getValue();
 
-	unshadowTokens(as, hrnToAge);
+	unshadowTokens( as, hrnToAge );
 
 	Iterator<ReferenceEdge> itrEdges = hrnToAge.iteratorToReferencees();
 	while( itrEdges.hasNext() ) {
-	  unshadowTokens(as, itrEdges.next() );
+	  unshadowTokens( as, itrEdges.next() );
 	}
       }
     }
@@ -2685,7 +2776,7 @@ public class OwnershipGraph {
     // improve reachability as much as possible
     globalSweep();
 
-    */
+
 
     if( mc.getDescriptor().getSymbol().equals( debugCaller ) &&
 	fm.getMethod().getSymbol().equals( debugCallee ) ) {
@@ -2808,21 +2899,6 @@ public class OwnershipGraph {
     assert rules         != null;
     assert tokens2states != null;
 
-    /*
-    ReachabilitySet callerReachabilityCurrent;
-    if( hrn == null ) {
-      callerReachabilityCurrent = edge.getBeta();
-    } else {
-      callerReachabilityCurrent = hrn.getAlpha();
-    }
-    */
-
-    //System.out.println( "  -------------------------" );
-    //System.out.println( "  rewriting "+hrn+" with reach: "+hrn.getAlpha() );
-    //System.out.println( "  and token2states = "+tokens2states );
-    //System.out.println( "  paramTokenPrimary2paramIndex = "+paramTokenPrimary2paramIndex );
-    //System.out.println( "  d_p = "+paramIndex2rewrite_d_p );
-
     ReachabilitySet callerReachabilityNew = new ReachabilitySet().makeCanonical();
 
     // for initializing structures in this method
@@ -2840,8 +2916,6 @@ public class OwnershipGraph {
     while(rulesItr.hasNext()) {
       TokenTupleSet rule = rulesItr.next();
 
-      //System.out.println( "  rule is "+rule );
-
       ReachabilitySet rewrittenRule = new ReachabilitySet(ttsEmpty).makeCanonical();
 
       Iterator<TokenTuple> ruleItr = rule.iterator();
@@ -2852,19 +2926,13 @@ public class OwnershipGraph {
 	ReachabilitySet ttCalleeRewrites = null;
 	boolean         callerSourceUsed = false;
 
-	if( tokens2states.containsKey( ttCallee ) ) {
-	  // there are states for this token passed in
-	  //ttCalleeRewrites = callerReachabilityCurrent;
-	  //System.out.print( "    using token2states, " );
-
+	if( tokens2states.containsKey( ttCallee ) ) {	  
 	  callerSourceUsed = true;
 	  ttCalleeRewrites = tokens2states.get( ttCallee );
 	  assert ttCalleeRewrites != null;
 
 	} else if( ogCallee.paramTokenPrimary2paramIndex.containsKey( ttCallee ) ) {
 	  // use little d_p
-	  //System.out.print( "    using d_p, " );
-
 	  Integer paramIndex_j = ogCallee.paramTokenPrimary2paramIndex.get( ttCallee );
 	  assert  paramIndex_j != null;
 	  ttCalleeRewrites = paramIndex2rewrite_d_p.get( paramIndex_j );
@@ -2872,8 +2940,6 @@ public class OwnershipGraph {
 
 	} else if( ogCallee.paramTokenSecondary2paramIndex.containsKey( ttCallee ) ) {
 	  // use little d_s
-	  //System.out.print( "    using d_s, " );
-
 	  Integer paramIndex_j = ogCallee.paramTokenSecondary2paramIndex.get( ttCallee );
 	  assert  paramIndex_j != null;
 	  ttCalleeRewrites = paramIndex2rewrite_d_s.get( paramIndex_j );
@@ -2895,12 +2961,9 @@ public class OwnershipGraph {
 
 	} else {
 	  // otherwise there's no need for a rewrite, just pass this one on
-	  //System.out.print( "    just pass, " );
 	  TokenTupleSet ttsCaller = new TokenTupleSet( ttCallee ).makeCanonical();
 	  ttCalleeRewrites = new ReachabilitySet( ttsCaller ).makeCanonical();
 	}
-
-	//System.out.println( "    "+ttCallee+" to "+ttCalleeRewrites );
 
 	// branch every version of the working rewritten rule with
 	// the possibilities for rewriting the current callee token
@@ -2980,63 +3043,82 @@ public class OwnershipGraph {
     } else {
       hrn.setAlphaNew( hrn.getAlphaNew().union( callerReachabilityNew ) );
     }
-
-    //System.out.println( "  -------------------------" );
   }
 
 
 
   private HashSet<HeapRegionNode>
-  getHRNSetThatPossiblyMapToCalleeHRN(OwnershipGraph ogCallee,
-                                      HeapRegionNode hrnCallee,
-                                      Hashtable<Integer, HashSet<HeapRegionNode> > paramIndex2reachableCallerNodes
-                                      ) {
-    /*
+    getHRNSetThatPossiblyMapToCalleeHRN( OwnershipGraph ogCallee,
+					 HeapRegionNode hrnCallee,
+					 Hashtable<Integer, Set<HeapRegionNode> > pi2dr,
+					 Hashtable<Integer, Set<HeapRegionNode> > pi2r
+					 ) {
+    
     HashSet<HeapRegionNode> possibleCallerHRNs = new HashSet<HeapRegionNode>();
 
-    Set<Integer> paramIndicesCallee = ogCallee.id2paramIndexSet.get( hrnCallee.getID() );
+    Set<Integer> paramIndicesCallee_p = ogCallee.idPrimary2paramIndexSet  .get( hrnCallee.getID() );
+    Set<Integer> paramIndicesCallee_s = ogCallee.idSecondary2paramIndexSet.get( hrnCallee.getID() );
 
-    if( paramIndicesCallee == null ) {
-      // this is a node allocated in the callee then and it has
+    if( paramIndicesCallee_p == null &&
+	paramIndicesCallee_s == null ) {
+      // this is a node allocated in the callee and it has
       // exactly one shadow node in the caller to map to
       AllocationSite as = hrnCallee.getAllocationSite();
       assert as != null;
 
-      int age = as.getAgeCategory(hrnCallee.getID() );
+      int age = as.getAgeCategory( hrnCallee.getID() );
       assert age != AllocationSite.AGE_notInThisSite;
 
       Integer idCaller;
       if( age == AllocationSite.AGE_summary ) {
 	idCaller = as.getSummaryShadow();
+
       } else if( age == AllocationSite.AGE_oldest ) {
 	idCaller = as.getOldestShadow();
+
       } else {
 	assert age == AllocationSite.AGE_in_I;
 
-	Integer I = as.getAge(hrnCallee.getID() );
+	Integer I = as.getAge( hrnCallee.getID() );
 	assert I != null;
 
-	idCaller = as.getIthOldestShadow(I);
+	idCaller = as.getIthOldestShadow( I );
       }
 
-      assert id2hrn.containsKey(idCaller);
-      HeapRegionNode hrnCaller = id2hrn.get(idCaller);
-      possibleCallerHRNs.add(hrnCaller);
+      assert id2hrn.containsKey( idCaller );
+      possibleCallerHRNs.add( id2hrn.get( idCaller ) );
 
-    } else {
+      return possibleCallerHRNs;
+    }
+
+    // find out what primary objects this might be
+    if( paramIndicesCallee_p != null ) {
       // this is a node that was created to represent a parameter
-      // so it maps to a whole mess of heap regions
-      Iterator<Integer> itrIndex = paramIndicesCallee.iterator();
+      // so it maps to some regions directly reachable from the arg labels
+      Iterator<Integer> itrIndex = paramIndicesCallee_p.iterator();
       while( itrIndex.hasNext() ) {
 	Integer paramIndexCallee = itrIndex.next();
-	assert paramIndex2reachableCallerNodes.containsKey(paramIndexCallee);
-	possibleCallerHRNs.addAll( paramIndex2reachableCallerNodes.get(paramIndexCallee) );
+	assert pi2dr.containsKey( paramIndexCallee );
+	possibleCallerHRNs.addAll( pi2dr.get( paramIndexCallee ) );
       }
     }
 
+    // find out what secondary objects this might be
+    if( paramIndicesCallee_s != null ) {
+      // this is a node that was created to represent objs reachable from
+      // some parameter, so it maps to regions reachable from the arg labels
+      Iterator<Integer> itrIndex = paramIndicesCallee_s.iterator();
+      while( itrIndex.hasNext() ) {
+	Integer paramIndexCallee = itrIndex.next();
+	assert pi2r.containsKey( paramIndexCallee );
+	possibleCallerHRNs.addAll( pi2r.get( paramIndexCallee ) );
+      }
+    }
+
+    // one of the two cases above should have put something in here
+    assert !possibleCallerHRNs.isEmpty();
+
     return possibleCallerHRNs;
-    */
-    return new HashSet<HeapRegionNode>();
   }
 
 
@@ -3065,7 +3147,6 @@ public class OwnershipGraph {
     
       // assert that this node and incoming edges have clean alphaNew
       // and betaNew sets, respectively
-      ReachabilitySet rsEmpty = new ReachabilitySet().makeCanonical();
       assert rsEmpty.equals( hrn.getAlphaNew() );
 
       Iterator<ReferenceEdge> itrRers = hrn.iteratorToReferencers();

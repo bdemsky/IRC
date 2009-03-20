@@ -50,6 +50,10 @@ public class TokenTupleSet extends Canonical {
     return tokenTuples.contains(tt);
   }
 
+  public boolean containsBoth(TokenTuple tt1, TokenTuple tt2) {
+    return containsTuple(tt1) && containsTuple(tt2);
+  }
+
   public boolean containsWithZeroes(TokenTupleSet tts) {
     assert tts != null;
 
@@ -131,6 +135,14 @@ public class TokenTupleSet extends Canonical {
     assert tt != null;
     TokenTupleSet ttsOut = new TokenTupleSet(tt);
     return ttsOut.union(this);
+  }
+
+
+  public TokenTupleSet remove(TokenTuple tt) {
+    assert tt != null;
+    TokenTupleSet ttsOut = new TokenTupleSet(this);
+    ttsOut.tokenTuples.remove(tt);
+    return ttsOut.makeCanonical();
   }
 
 

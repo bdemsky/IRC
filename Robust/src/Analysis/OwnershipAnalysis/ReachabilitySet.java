@@ -160,9 +160,29 @@ public class ReachabilitySet extends Canonical {
 
   public ReachabilitySet remove(TokenTupleSet tts) {
     assert tts != null;
-    ReachabilitySet rsOut = new ReachabilitySet(tts);
+    ReachabilitySet rsOut = new ReachabilitySet(this);
     assert rsOut.possibleReachabilities.remove(tts);
     return rsOut.makeCanonical();
+  }
+
+  public ReachabilitySet removeTokenAIfTokenB(TokenTuple ttA,
+					      TokenTuple ttB) {
+    assert ttA != null;
+    assert ttB != null;
+
+    ReachabilitySet rsOut = new ReachabilitySet();
+
+    Iterator i = this.iterator();
+    while( i.hasNext() ) {
+      TokenTupleSet tts = (TokenTupleSet) i.next();
+      if( tts.containsTuple( ttB ) ) {
+	rsOut.possibleReachabilities.add( tts.remove(ttA) );
+      } else {
+	rsOut.possibleReachabilities.add( tts );
+      }
+    }    
+
+    return rsOut.makeCanonical();    
   }
 
 
