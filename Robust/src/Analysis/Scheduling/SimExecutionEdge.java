@@ -134,4 +134,24 @@ public class SimExecutionEdge extends Edge {
 	                       + "(" + this.weight + " | " + this.bestStartPoint + ")";
 	return completeLabel;
     }
+    
+    public void destroy() {
+	this.td = null;
+	if(this.taskparams != null) {
+	    this.taskparams.clear();
+	    this.taskparams = null;
+	}
+	this.lastpredicatenode = null;
+	this.lastpredicateedge = null;
+	if(this.predicates != null) {
+	    this.predicates.clear();
+	    this.predicates = null;
+	}
+	this.source.getEdgeVector().clear();
+	this.source.getInedgeVector().clear();
+	this.source = null;
+	this.target.getEdgeVector().clear();
+	this.target.getInedgeVector().clear();
+	this.target = null;
+    }
 }

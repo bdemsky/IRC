@@ -109,8 +109,10 @@ public class ScheduleSimulator {
 		  selectedSimExeGraphs.add(simexegraph);
 		  processTime = tmpTime;
 	      } else if(tmpTime == processTime) {
-		  selectedScheduling.add(index);
-		  selectedSimExeGraphs.add(simexegraph);
+		  if(!selectedScheduling.contains(index)) {
+		      selectedScheduling.add(index);
+		      selectedSimExeGraphs.add(simexegraph);
+		  }
 	      }
 	      scheduling = null;
 	      checkpoints.clear();

@@ -255,6 +255,9 @@ then
 JAVAOPTS="$JAVAOPTS -thread"
 EXTRAOPTIONS="$EXTRAOPTIONS -DTHREADS -lpthread"
 THREADFLAG=true
+elif [[ $1 = '-distributioninfo' ]]
+then
+JAVAOPTS="$JAVAOPTS -distributioninfo"
 elif [[ $1 = '-curdir' ]]
 then
 CURDIR=$2
