@@ -3869,7 +3869,6 @@ public class OwnershipGraph {
 
 
   public Set<HeapRegionNode> hasPotentialAlias( HeapRegionNode hrn1, HeapRegionNode hrn2 ) {
-    /*
     assert hrn1 != null;
     assert hrn2 != null;
 
@@ -3981,54 +3980,93 @@ public class OwnershipGraph {
     }
 
     return common;    
-    */
-    return new HashSet<HeapRegionNode>();
   }
 
 
   public Set<HeapRegionNode> hasPotentialAlias(Integer paramIndex1, Integer paramIndex2) {
-    /*
-    // get parameter's heap region
-    assert paramIndex2id.containsKey(paramIndex1);
-    Integer idParam1 = paramIndex2id.get(paramIndex1);
 
-    assert id2hrn.containsKey(idParam1);
-    HeapRegionNode hrnParam1 = id2hrn.get(idParam1);
-    assert hrnParam1 != null;
+    // get parameter 1's heap regions
+    assert paramIndex2idPrimary.containsKey(paramIndex1);
+    Integer idParamPri1 = paramIndex2idPrimary.get(paramIndex1);
+
+    assert id2hrn.containsKey(idParamPri1);
+    HeapRegionNode hrnParamPri1 = id2hrn.get(idParamPri1);
+    assert hrnParamPri1 != null;
+
+    HeapRegionNode hrnParamSec1 = null;
+    if( paramIndex2idSecondary.containsKey(paramIndex1) ) {
+      Integer idParamSec1 = paramIndex2idSecondary.get(paramIndex1);
+
+      assert id2hrn.containsKey(idParamSec1);
+      hrnParamSec1 = id2hrn.get(idParamSec1);
+      assert hrnParamSec1 != null;
+    }
 
 
-    // get tokens for the other parameter
-    assert paramIndex2id.containsKey(paramIndex2);
-    Integer idParam2 = paramIndex2id.get(paramIndex2);
+    // get the other parameter
+    assert paramIndex2idPrimary.containsKey(paramIndex2);
+    Integer idParamPri2 = paramIndex2idPrimary.get(paramIndex2);
 
-    assert id2hrn.containsKey(idParam2);
-    HeapRegionNode hrnParam2 = id2hrn.get(idParam2);
-    assert hrnParam2 != null;
+    assert id2hrn.containsKey(idParamPri2);
+    HeapRegionNode hrnParamPri2 = id2hrn.get(idParamPri2);
+    assert hrnParamPri2 != null;
 
-    return hasPotentialAlias( hrnParam1, hrnParam2 );
-    */
-    return new HashSet<HeapRegionNode>();
+    HeapRegionNode hrnParamSec2 = null;
+    if( paramIndex2idSecondary.containsKey(paramIndex2) ) {
+      Integer idParamSec2 = paramIndex2idSecondary.get(paramIndex2);
+
+      assert id2hrn.containsKey(idParamSec2);
+      hrnParamSec2 = id2hrn.get(idParamSec2);
+      assert hrnParamSec2 != null;
+    }
+
+    Set<HeapRegionNode> common = new HashSet<HeapRegionNode>();
+    common.addAll( hasPotentialAlias( hrnParamPri1, hrnParamPri2 ) );
+
+    if( hrnParamSec1 != null ) {
+	common.addAll( hasPotentialAlias( hrnParamSec1, hrnParamPri2 ) );
+    }
+
+    if( hrnParamSec2 != null ) {
+	common.addAll( hasPotentialAlias( hrnParamSec2, hrnParamPri1 ) );
+    }
+
+    if( hrnParamSec1 != null && hrnParamSec2 != null ) {
+	common.addAll( hasPotentialAlias( hrnParamSec1, hrnParamSec2 ) );
+    }
+
+    return common;
   }
 
 
   public Set<HeapRegionNode> hasPotentialAlias(Integer paramIndex, AllocationSite as) {
-    /*
-    // get parameter's heap region
-    assert paramIndex2id.containsKey(paramIndex);
-    Integer idParam = paramIndex2id.get(paramIndex);
 
-    assert id2hrn.containsKey(idParam);
-    HeapRegionNode hrnParam = id2hrn.get(idParam);
-    assert hrnParam != null;
+    // get parameter's heap regions
+    assert paramIndex2idPrimary.containsKey(paramIndex);
+    Integer idParamPri = paramIndex2idPrimary.get(paramIndex);
+
+    assert id2hrn.containsKey(idParamPri);
+    HeapRegionNode hrnParamPri = id2hrn.get(idParamPri);
+    assert hrnParamPri != null;
+
+    HeapRegionNode hrnParamSec = null;
+    if( paramIndex2idSecondary.containsKey(paramIndex) ) {
+      Integer idParamSec = paramIndex2idSecondary.get(paramIndex);
+
+      assert id2hrn.containsKey(idParamSec);
+      hrnParamSec = id2hrn.get(idParamSec);
+      assert hrnParamSec != null;
+    }
 
     // get summary node
     assert id2hrn.containsKey( as.getSummary() );
     HeapRegionNode hrnSummary = id2hrn.get( as.getSummary() );
     assert hrnSummary != null;
 
-    Set<HeapRegionNode> common = hasPotentialAlias( hrnParam, hrnSummary );
-    if( !common.isEmpty() ) {
-      return common;
+    Set<HeapRegionNode> common = hasPotentialAlias( hrnParamPri, hrnSummary );
+    
+    if( hrnParamSec != null ) {
+	common.addAll( hasPotentialAlias( hrnParamSec, hrnSummary ) );
     }
 
     // check for other nodes
@@ -4038,18 +4076,19 @@ public class OwnershipGraph {
       HeapRegionNode hrnIthOldest = id2hrn.get( as.getIthOldest( i ) );
       assert hrnIthOldest != null;
 
-      common = hasPotentialAlias( hrnParam, hrnIthOldest );
-      if( !common.isEmpty() ) {
-	return common;
+      common = hasPotentialAlias( hrnParamPri, hrnIthOldest );
+    
+      if( hrnParamSec != null ) {
+	  common.addAll( hasPotentialAlias( hrnParamSec, hrnIthOldest ) );
       }
     }
-    */
-    return new HashSet<HeapRegionNode>();    
+    
+    return common;
   }
 
 
-  public Set<HeapRegionNode> hasPotentialAlias(AllocationSite as1, AllocationSite as2) {
-    /*
+  public Set<HeapRegionNode> hasPotentialAlias(AllocationSite as1, AllocationSite as2) {     
+
     // get summary node 1's alpha
     Integer idSum1 = as1.getSummary();
     assert id2hrn.containsKey(idSum1);
@@ -4063,9 +4102,6 @@ public class OwnershipGraph {
     assert hrnSum2 != null;
 
     Set<HeapRegionNode> common = hasPotentialAlias( hrnSum1, hrnSum2 );
-    if( !common.isEmpty() ) {
-      return common;
-    }
 
     // check sum2 against alloc1 nodes
     for( int i = 0; i < as1.getAllocationDepth(); ++i ) {
@@ -4074,10 +4110,7 @@ public class OwnershipGraph {
       HeapRegionNode hrnI1 = id2hrn.get(idI1);
       assert hrnI1 != null;
 
-      common = hasPotentialAlias( hrnI1, hrnSum2 );
-      if( !common.isEmpty() ) {
-	return common;
-      }
+      common.addAll( hasPotentialAlias( hrnI1, hrnSum2 ) );
     }
 
     // check sum1 against alloc2 nodes
@@ -4087,10 +4120,7 @@ public class OwnershipGraph {
       HeapRegionNode hrnI2 = id2hrn.get(idI2);
       assert hrnI2 != null;
 
-      common = hasPotentialAlias( hrnSum1, hrnI2 );
-      if( common.isEmpty() ) {
-	return common;
-      }
+      common.addAll( hasPotentialAlias( hrnSum1, hrnI2 ) );
 
       // while we're at it, do an inner loop for alloc2 vs alloc1 nodes
       for( int j = 0; j < as1.getAllocationDepth(); ++j ) {
@@ -4104,14 +4134,11 @@ public class OwnershipGraph {
 
 	HeapRegionNode hrnI1 = id2hrn.get(idI1);
 
-	common = hasPotentialAlias( hrnI1, hrnI2 );
-	if( !common.isEmpty() ) {
-	  return common;
-	}
+	common.addAll( hasPotentialAlias( hrnI1, hrnI2 ) );
       }
     }
-    */
-    return new HashSet<HeapRegionNode>();
+
+    return common;
   }
 
 
