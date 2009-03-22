@@ -405,6 +405,8 @@ public class OwnershipAnalysis {
       s.add( mc );
       mapDescriptorToAllMethodContexts.put( d, s );
 
+      //System.out.println("Previsiting " + mc);
+
       og = analyzeFlatNode(mc, fm, null, og);
       setGraphForMethodContext(mc, og);
     }
