@@ -885,6 +885,15 @@ public class OwnershipGraph {
       Integer idPrimaryI = paramIndex2idPrimary.get( i );
       assert idPrimaryI != null;
       HeapRegionNode primaryI = id2hrn.get( idPrimaryI );
+
+
+      System.out.println( "  **idPrimaryI="+idPrimaryI );
+      try {
+	  writeGraph( "paramProblem", true, true, true, false, false );
+      } catch( IOException e ) {}
+
+
+
       assert primaryI != null;           
 
       TokenTuple ttPrimaryI = new TokenTuple( idPrimaryI,
@@ -1748,6 +1757,8 @@ public class OwnershipGraph {
 				MethodContext mc
 				) {
 
+      System.out.println( "  In mapping proc" );
+
     String debugCaller = "foo";
     String debugCallee = "bar";
 
@@ -2127,26 +2138,29 @@ public class OwnershipGraph {
 	// this heap region is definitely an "r_i" or secondary by virtue of being in r
 	HeapRegionNode hrn = hrnItr.next();
 
-	assert s_i != null;
-	assert paramIndex2rewriteH_s.get( index ) != null;
+	//assert s_i != null;
+	//assert paramIndex2rewriteH_s.get( index ) != null;
 
-	tokens2states.clear();
-	tokens2states.put( p_i, new ReachabilitySet().makeCanonical() );
-	tokens2states.put( s_i, hrn.getAlpha() );
+	if( paramIndex2rewriteH_s.contains( index ) ) {
 
-	rewriteCallerReachability( index,
-				   hrn,
-				   null,
-				   paramIndex2rewriteH_s.get( index ),
-				   tokens2states,
-				   paramIndex2rewrite_d_p,
-				   paramIndex2rewrite_d_s,
-				   paramIndex2rewriteD,
-				   ogCallee,
-				   false,
-				   null );
+	  tokens2states.clear();
+	  tokens2states.put( p_i, new ReachabilitySet().makeCanonical() );
+	  tokens2states.put( s_i, hrn.getAlpha() );
+
+	  rewriteCallerReachability( index,
+				     hrn,
+				     null,
+				     paramIndex2rewriteH_s.get( index ),
+				     tokens2states,
+				     paramIndex2rewrite_d_p,
+				     paramIndex2rewrite_d_s,
+				     paramIndex2rewriteD,
+				     ogCallee,
+				     false,
+				     null );
 	
-	nodesWithNewAlpha.add( hrn );	
+	  nodesWithNewAlpha.add( hrn );	
+	}
 
 	// sort edges
 	Iterator<ReferenceEdge> edgeItr = hrn.iteratorToReferencers();
@@ -2209,6 +2223,12 @@ public class OwnershipGraph {
 	ReferenceEdge edge   = (ReferenceEdge) mo.get( 0 );
 	Integer       indexJ = (Integer)       mo.get( 1 );
 		
+	if( !paramIndex2rewriteJ_p2p.contains( makeMapKey( index, 
+							   indexJ,
+ 							   edge.getField() ) ) ) {
+	  continue;
+	}
+
 	TokenTuple p_j = ogCallee.paramIndex2paramTokenPrimary.get( indexJ );
 	assert p_j != null;
        
@@ -2239,6 +2259,11 @@ public class OwnershipGraph {
 	ReferenceEdge edge   = (ReferenceEdge) mo.get( 0 );
 	Integer       indexJ = (Integer)       mo.get( 1 );
 
+	if( !paramIndex2rewriteJ_p2s.contains( makeMapKey( index, 
+							   edge.getField() ) ) ) {
+	  continue;
+	}
+
 	TokenTuple s_j = ogCallee.paramIndex2paramTokenSecondary.get( indexJ );
 	assert s_j != null;
 
@@ -2268,6 +2293,10 @@ public class OwnershipGraph {
 	ReferenceEdge edge   = (ReferenceEdge) mo.get( 0 );
 	Integer       indexJ = (Integer)       mo.get( 1 );
 
+	if( !paramIndex2rewriteJ_s2p.contains( index ) ) {
+	  continue;
+	}
+
 	TokenTuple p_j = ogCallee.paramIndex2paramTokenPrimary.get( indexJ );
 	assert p_j != null;
 
@@ -2295,6 +2324,10 @@ public class OwnershipGraph {
 	Vector        mo     = (Vector)        edgeItr.next();
 	ReferenceEdge edge   = (ReferenceEdge) mo.get( 0 );
 	Integer       indexJ = (Integer)       mo.get( 1 );
+
+	if( !paramIndex2rewriteJ_s2s.contains( index ) ) {
+	  continue;
+	}
 
 	TokenTuple s_j = ogCallee.paramIndex2paramTokenSecondary.get( indexJ );
 	assert s_j != null;
@@ -2390,6 +2423,10 @@ public class OwnershipGraph {
 	Vector        mo     = (Vector)        edgeItr.next();
 	ReferenceEdge edge   = (ReferenceEdge) mo.get( 0 );
 	Integer       indexJ = (Integer)       mo.get( 1 );
+
+	if( !paramIndex2rewriteK_s.contains( index ) ) {
+	  continue;
+	}
 
 	edgesUpstream.add( edge );
 
@@ -2785,6 +2822,8 @@ public class OwnershipGraph {
       } catch( IOException e ) {}
       System.out.println( "  "+mc+" done calling "+fm );
     }
+
+    System.out.println( "  End mapping proc" );
   }
 
 
@@ -3115,8 +3154,9 @@ public class OwnershipGraph {
       }
     }
 
+    // TODO: is this true?
     // one of the two cases above should have put something in here
-    assert !possibleCallerHRNs.isEmpty();
+    //assert !possibleCallerHRNs.isEmpty();
 
     return possibleCallerHRNs;
   }
@@ -3131,7 +3171,12 @@ public class OwnershipGraph {
   //  invoked after strong updates or method calls.
   //
   ////////////////////////////////////////////////////
+
+    static int x = 0;
+
   public void globalSweep() {
+
+            System.out.println( "    In global sweep" );
 
     // boldB is part of the phase 1 sweep
     Hashtable< Integer, Hashtable<ReferenceEdge, ReachabilitySet> > boldB =
@@ -3221,7 +3266,9 @@ public class OwnershipGraph {
 
       // never remove the identity token from a flagged region
       // because it is trivially satisfied
-      TokenTuple ttException = new TokenTuple( token, !hrn.isSingleObject(), TokenTuple.ARITY_ONE ).makeCanonical();
+      TokenTuple ttException = new TokenTuple( token, 
+					       !hrn.isSingleObject(), 
+					       TokenTuple.ARITY_ONE ).makeCanonical();
 
       ChangeTupleSet cts = new ChangeTupleSet().makeCanonical();
 
@@ -3251,7 +3298,18 @@ public class OwnershipGraph {
 	    ReferenceEdge incidentEdge = incidentEdgeItr.next();
 
 	    // if it isn't allowed, mark for removal
-	    ReachabilitySet boldB_ttOld_incident = boldB.get( ttOld.getToken() ).get( incidentEdge );	    
+
+	    
+	    x++;
+	    if( x % 1000 == 0 && x > 4000000 ) {
+		System.out.println( "x="+x );
+		//System.out.println( boldB.get( ttOld.getToken() ) );
+	    }
+	    
+
+	    Integer idOld = ttOld.getToken();
+	    Hashtable<ReferenceEdge, ReachabilitySet> B = boldB.get( idOld );	    
+	    ReachabilitySet boldB_ttOld_incident = B.get( incidentEdge );// B is NULL!	    
 	    if( boldB_ttOld_incident != null &&
 		boldB_ttOld_incident.contains( ttsOld ) ) {
 	      foundState = true;
@@ -3381,6 +3439,8 @@ public class OwnershipGraph {
     while( edgeItr.hasNext() ) {
       edgeItr.next().applyBetaNew();
     } 
+
+            System.out.println( "    End global sweep" );
   }  
 
 
