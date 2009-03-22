@@ -208,7 +208,7 @@ public class ReferenceEdge {
     String edgeLabel = "";
 
     if( type != null ) {
-      edgeLabel += type+"\\n";
+      edgeLabel += type.toPrettyString()+"\\n";
     }
 
     if( field != null ) {
@@ -225,6 +225,10 @@ public class ReferenceEdge {
   }
 
   public String toString() {
+    if( type != null ) {
+      return new String("("+src+"->"+type.toPrettyString()+" "+field+"->"+dst+")");
+    }
+
     return new String("("+src+"->"+type+" "+field+"->"+dst+")");
   }
 }
