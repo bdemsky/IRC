@@ -1,0 +1,5 @@
+10 ADD_PLANE Boeing 747
+20 ADD_PLANE AirBus 300
+30 AMEND_ROUTE Boeing 0 0 0     1  1 0   1 B   B   1   0
+30 AMEND_ROUTE AirBus 10 10 0  -1 -1 0   1 A   A   1   0
+30 DO_WORK
