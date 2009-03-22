@@ -540,6 +540,16 @@ public class OwnershipGraph {
 	  OwnershipAnalysis.getArrayField( typeDeref )
 				   );
 	createSecondaryRegion = true;
+
+	// also handle a special case where an array of objects
+	// can point back to the array, which is an object!
+	if( typeParam.toPrettyString().equals( "Object[]" ) &&
+	    typeDeref.toPrettyString().equals( "Object" ) ) {
+
+	  primary2primaryFields.add( 
+	    OwnershipAnalysis.getArrayField( typeDeref )
+				   );
+	}
       }
     }
 
@@ -562,7 +572,7 @@ public class OwnershipGraph {
 	  
 	  if( typeUtil.isSuperorType( typeField, typeParam ) ) {
 	    primary2primaryFields.add( fd );
-	  }	
+	  }
 	}
 
 	cd = cd.getSuperDesc();
@@ -924,6 +934,15 @@ public class OwnershipGraph {
 	primary2secondaryFields.add( 
 	  OwnershipAnalysis.getArrayField( typeDeref )
 				   );
+
+	// also handle a special case where an array of objects
+	// can point back to the array, which is an object!
+	if( typeI    .toPrettyString().equals( "Object[]" ) &&
+	    typeDeref.toPrettyString().equals( "Object" ) ) {
+	  primary2primaryFields.add( 
+	    OwnershipAnalysis.getArrayField( typeDeref )
+				   );
+	}
       }
       
       // there might be member references for class types
@@ -2106,6 +2125,9 @@ public class OwnershipGraph {
 	      Set<HeapRegionNode> dr_i = (Set<HeapRegionNode>) mo.getValue();
 
 	      if( dr_i.contains( hrn0 ) ) {		
+
+		//System.out.println( "  "+edge+" is classified p2p from arg "+lnArg_i );
+
 		addEdgeIndexPair( edges_p2p, pi, edge, index );
 		edge_classified = true;
 	      }			      
@@ -2141,6 +2163,13 @@ public class OwnershipGraph {
 	//assert s_i != null;
 	//assert paramIndex2rewriteH_s.get( index ) != null;
 
+	// TODO decide which of these things to do--if the caller node doesn't
+	// have something in the callee to model it, we ought to skip it--but
+	// should we skip the edge classification stuff that comes afterward, too?
+	//if( s_i == null ) { continue; }
+	// OR
+	//if( s_i != null && paramIndex2rewriteH_s.get( index ) != null ) {
+	// OR
 	if( paramIndex2rewriteH_s.contains( index ) ) {
 
 	  tokens2states.clear();
@@ -2160,7 +2189,7 @@ public class OwnershipGraph {
 				     null );
 	
 	  nodesWithNewAlpha.add( hrn );	
-	}
+	}       
 
 	// sort edges
 	Iterator<ReferenceEdge> edgeItr = hrn.iteratorToReferencers();
@@ -2235,21 +2264,45 @@ public class OwnershipGraph {
 	tokens2states.clear();
 	tokens2states.put( p_j, edge.getBeta() );
 
-	rewriteCallerReachability( index,
-				   null,
-				   edge,
-				   paramIndex2rewriteJ_p2p.get( makeMapKey( index, 
-									    indexJ, 
-									    edge.getField() ) ),
-				   tokens2states,
-				   paramIndex2rewrite_d_p,
-				   paramIndex2rewrite_d_s,
-				   paramIndex2rewriteD,
-				   ogCallee,
-				   false,
-				   null );
+	/*
+	try {
+	           writeGraph( "debugCaller"+mc, true, true, true, false, false );
+	  ogCallee.writeGraph( "debugCallee"+fm, true, true, true, false, false );
+	} catch( IOException e ) {}
+	System.out.println( "  looking for "+edge+" and key["+makeMapKey( index, 
+							   indexJ, 
+							   edge.getField() )+"] in "+paramIndex2rewriteJ_p2p );
+	*/
+	
 
-	edgesWithNewBeta.add( edge );
+	// it's possible that you won't find this rule, if a multiple-object
+	// heap region in the caller maps to both the primary and secondary
+	// nodes in the callee, so p2s and sp2 rules will take care of it
+	// TODO
+	if( !paramIndex2rewriteJ_p2p.containsKey( makeMapKey( index, 
+							      indexJ, 
+							      edge.getField() ) ) ) {
+	  //HeapRegionNode hrnSrc = (HeapRegionNode) edge.getSrc();
+	  //System.out.println( "  ASSERT "+hrnSrc+" is multi" );
+	  //assert !hrnSrc.isSingleObject();
+
+	} else {
+	  rewriteCallerReachability( index,
+				     null,
+				     edge,
+				     paramIndex2rewriteJ_p2p.get( makeMapKey( index, 
+									      indexJ, 
+									      edge.getField() ) ),
+				     tokens2states,
+				     paramIndex2rewrite_d_p,
+				     paramIndex2rewrite_d_s,
+				     paramIndex2rewriteD,
+				     ogCallee,
+				     false,
+				     null );
+
+	  edgesWithNewBeta.add( edge );
+	}
       }
 
 
@@ -2270,20 +2323,31 @@ public class OwnershipGraph {
 	tokens2states.clear();
 	tokens2states.put( s_j, edge.getBeta() );
 
-	rewriteCallerReachability( index,
-				   null,
-				   edge,
-				   paramIndex2rewriteJ_p2s.get( makeMapKey( index,
-									    edge.getField() ) ),
-				   tokens2states,
-				   paramIndex2rewrite_d_p,
-				   paramIndex2rewrite_d_s,
-				   paramIndex2rewriteD,
-				   ogCallee,
-				   false,
-				   null );
+	// it's possible that you won't find this rule, if a multiple-object
+	// heap region in the caller maps to both the primary and secondary
+	// nodes in the callee, so other rules will take care of it
+	// TODO
+	if( !paramIndex2rewriteJ_p2s.containsKey( makeMapKey( index,
+							      edge.getField() ) ) ) {
+	  //HeapRegionNode hrnSrc = (HeapRegionNode) edge.getSrc();
+	  //assert !hrnSrc.isSingleObject();
 
-	edgesWithNewBeta.add( edge );
+	} else {
+	  rewriteCallerReachability( index,
+				     null,
+				     edge,
+				     paramIndex2rewriteJ_p2s.get( makeMapKey( index,
+									      edge.getField() ) ),
+				     tokens2states,
+				     paramIndex2rewrite_d_p,
+				     paramIndex2rewrite_d_s,
+				     paramIndex2rewriteD,
+				     ogCallee,
+				     false,
+				     null );
+	  
+	  edgesWithNewBeta.add( edge );
+	}
       }
 
 
@@ -2303,6 +2367,9 @@ public class OwnershipGraph {
 	tokens2states.clear();
 	tokens2states.put( p_j, edge.getBeta() );
 
+	// TODO
+	if( paramIndex2rewriteJ_s2p.containsKey( index ) ) {
+
 	rewriteCallerReachability( index,
 				   null,
 				   edge,
@@ -2314,6 +2381,10 @@ public class OwnershipGraph {
 				   ogCallee,
 				   false,
 				   null );
+
+	// TODO
+	}
+
 
 	edgesWithNewBeta.add( edge );
       }
@@ -2335,6 +2406,9 @@ public class OwnershipGraph {
 	tokens2states.clear();
 	tokens2states.put( s_j, edge.getBeta() );
 
+	// TODO
+	if( paramIndex2rewriteJ_s2s.containsKey( index ) ) {
+
 	rewriteCallerReachability( index,
 				   null,
 				   edge,
@@ -2346,6 +2420,9 @@ public class OwnershipGraph {
 				   ogCallee,
 				   false,
 				   null );
+
+	// TODO
+	}
 
 	edgesWithNewBeta.add( edge );
       }
@@ -4451,7 +4528,7 @@ public class OwnershipGraph {
                     "\\n";
 
       if( hrn.getType() != null ) {
-        attributes += hrn.getType() + "\\n";
+        attributes += hrn.getType().toPrettyString() + "\\n";
       }
        
       attributes += hrn.getDescription() +
