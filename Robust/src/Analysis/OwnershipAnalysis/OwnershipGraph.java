@@ -395,6 +395,7 @@ public class OwnershipGraph {
 
 	// we can do a strong update here if one of two cases holds	
 	if( f != null &&
+	    f != OwnershipAnalysis.getArrayField( f.getType() ) &&
 	    hrnX.isSingleObject() &&
 	    (   (hrnX.getNumReferencers() == 1) ||
 		( lnX.getNumReferencees() == 1)
@@ -2650,6 +2651,7 @@ public class OwnershipGraph {
 										  ogCallee,
 										  mc )
 								     );
+
 	  rewriteCallerReachability( bogusIndex,
 				     null,
 				     edgeNewInCallerTemplate,
@@ -4273,7 +4275,6 @@ public class OwnershipGraph {
 
   public Set<HeapRegionNode> findCommonReachableNodes( HeapRegionNode hrn1,
 						       HeapRegionNode hrn2 ) {
-    //assert hrn1 != hrn2;
 
     Set<HeapRegionNode> reachableNodes1 = new HashSet<HeapRegionNode>();
     Set<HeapRegionNode> reachableNodes2 = new HashSet<HeapRegionNode>();

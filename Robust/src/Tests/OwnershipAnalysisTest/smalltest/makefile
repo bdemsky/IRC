@@ -1,7 +1,7 @@
 MAIN_CLASS=small #smalltest
 
 PROGRAM=test
-SOURCE_FILES=small.java #smalltest.java
+SOURCE_FILES=smaller.java #smalltest.java
 
 BUILDSCRIPT=~/research/Robust/src/buildscript
 BSFLAGS= -debug -nooptimize -mainclass $(MAIN_CLASS) -justanalyze -ownership -ownallocdepth 1 -ownwritedots final -ownaliasfile aliases.txt -enable-assertions
