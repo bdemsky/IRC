@@ -28,6 +28,7 @@ public class TokenTuple extends Canonical {
     token         = hrn.getID();
     isMultiObject = !hrn.isSingleObject();
     arity         = ARITY_ONE;
+    fixStuff();
   }
 
   public TokenTuple(Integer token,
@@ -38,6 +39,13 @@ public class TokenTuple extends Canonical {
     this.token         = token;
     this.isMultiObject = isMultiObject;
     this.arity         = arity;
+    fixStuff();
+  }
+
+  private void fixStuff() {
+    if (!isMultiObject) {
+	arity=ARITY_ONE;
+    }
   }
 
 
