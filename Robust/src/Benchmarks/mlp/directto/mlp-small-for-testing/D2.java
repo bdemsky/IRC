@@ -41,7 +41,7 @@ public class D2 {
     
     int count = 0;
     while( d2.getFlightList().anyPlanesAlive() ) {
-      d2.getAlgorithm().doIteration(d2);
+	//      d2.getAlgorithm().doIteration(d2);
       
       count++;
       if( count % 10000 == 0 ) {

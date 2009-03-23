@@ -49,7 +49,7 @@ public class Message {
     else*/ if (type.compareTo("ADD_AIRCRAFT")==0) {
       System.out.println("Adding an aircraft...");
       d2.getAircraftList().addAircraft(parameters);
-    }
+    } else
     /*
     else if (type.compareTo("REMOVE_AIRCRAFT")==0) {
       System.out.println("Removing an aircraft...");

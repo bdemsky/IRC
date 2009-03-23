@@ -30,7 +30,8 @@ public class TrajectorySynthesizer {
   }
 
     public /*static*/ Trajectory updateTrajectory (D2 d2, double time, Flight flight) {
-    System.out.println("Updating trajectory for "+flight.flightID);
+	return null;
+	/*    System.out.println("Updating trajectory for "+flight.flightID);
     int i;
     setInitialParameters(flight);
     System.out.println("Starting position: "+currentPos);
@@ -61,7 +62,7 @@ public class TrajectorySynthesizer {
 
     flight.traject=traject;
     System.out.println("Finished updating trajectory ...");
-    return traject;
+    return traject;*/
   }
 
   private /*static*/ void setInitialParameters(Flight flight) {
