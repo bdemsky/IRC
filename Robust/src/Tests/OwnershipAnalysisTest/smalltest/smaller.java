@@ -40,5 +40,6 @@ public class foo {
     tiny t1;
     public foo() {
 
+
     }
 }

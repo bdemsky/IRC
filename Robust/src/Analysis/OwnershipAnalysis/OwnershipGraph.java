@@ -1821,9 +1821,14 @@ public class OwnershipGraph {
     }
     */
 
+    //System.out.println( "  mapping "+fm+" into "+mc );
+
+
 
     String debugCaller = "foo";
     String debugCallee = "bar";
+    //String debugCaller = "process";
+    //String debugCallee = "createfoo";
 
     if( mc.getDescriptor().getSymbol().equals( debugCaller ) &&
 	fm.getMethod().getSymbol().equals( debugCallee ) ) {
@@ -1941,6 +1946,15 @@ public class OwnershipGraph {
 
 
       // if there is a secondary node, compute the rest of the rewrite rules
+
+
+      if( mc.getDescriptor().getSymbol().equals( debugCaller ) &&
+	  fm.getMethod().getSymbol().equals( debugCallee ) ) {
+	System.out.println( "*** does param "+paramIndex+ " have a gamma region? "+
+			    ogCallee.paramIndex2idSecondary.containsKey( paramIndex ) );
+      }
+
+
       if( ogCallee.paramIndex2idSecondary.containsKey( paramIndex ) ) {
 
 	// setup H (secondary)
@@ -1949,6 +1963,17 @@ public class OwnershipGraph {
 	HeapRegionNode hrnSecondary = ogCallee.id2hrn.get( idSecondary );
 	assert hrnSecondary != null;
 	paramIndex2rewriteH_s.put( paramIndex, toShadowTokens( ogCallee, hrnSecondary.getAlpha() ) );
+
+
+
+	if( mc.getDescriptor().getSymbol().equals( debugCaller ) &&
+	    fm.getMethod().getSymbol().equals( debugCallee ) ) {
+	  System.out.println( "H_s["+paramIndex+"] gets "+toShadowTokens( ogCallee, hrnSecondary.getAlpha() ) );
+	  System.out.println( "***  H_s="+paramIndex2rewriteH_s );
+	}
+
+
+
 
 	// setup J (secondary->X)
 	Iterator<ReferenceEdge> s2xItr = hrnSecondary.iteratorToReferencees();
@@ -2201,8 +2226,17 @@ public class OwnershipGraph {
 	// this heap region is definitely an "r_i" or secondary by virtue of being in r
 	HeapRegionNode hrn = hrnItr.next();
 
+
+	
+	if( mc.getDescriptor().getSymbol().equals( debugCaller ) &&
+	    fm.getMethod().getSymbol().equals( debugCallee ) ) {
+	  System.out.println( "*** H_s has rules for rewriting "+hrn+" with respect to param "+index+"? "+
+			      paramIndex2rewriteH_s.contains( index )+"***" );
+	  System.out.println( "***  H_s="+paramIndex2rewriteH_s );
+	}
+	
       
-	if( paramIndex2rewriteH_s.contains( index ) ) {
+	if( paramIndex2rewriteH_s.containsKey( index ) ) {
 
 	  tokens2states.clear();
 	  tokens2states.put( p_i, new ReachabilitySet().makeCanonical() );
@@ -2284,7 +2318,7 @@ public class OwnershipGraph {
 	ReferenceEdge edge   = (ReferenceEdge) mo.get( 0 );
 	Integer       indexJ = (Integer)       mo.get( 1 );
 
-	if( !paramIndex2rewriteJ_p2p.contains( makeMapKey( index, 
+	if( !paramIndex2rewriteJ_p2p.containsKey( makeMapKey( index, 
 							   indexJ,
  							   edge.getField() ) ) ) {
 	  continue;
@@ -2320,8 +2354,8 @@ public class OwnershipGraph {
 	ReferenceEdge edge   = (ReferenceEdge) mo.get( 0 );
 	Integer       indexJ = (Integer)       mo.get( 1 );
 
-	if( !paramIndex2rewriteJ_p2s.contains( makeMapKey( index, 
-							   edge.getField() ) ) ) {
+	if( !paramIndex2rewriteJ_p2s.containsKey( makeMapKey( index, 
+							      edge.getField() ) ) ) {
 	  continue;
 	}
 
@@ -2354,7 +2388,7 @@ public class OwnershipGraph {
 	ReferenceEdge edge   = (ReferenceEdge) mo.get( 0 );
 	Integer       indexJ = (Integer)       mo.get( 1 );
 
-	if( !paramIndex2rewriteJ_s2p.contains( index ) ) {
+	if( !paramIndex2rewriteJ_s2p.containsKey( index ) ) {
 	  continue;
 	}
 
@@ -2386,7 +2420,7 @@ public class OwnershipGraph {
 	ReferenceEdge edge   = (ReferenceEdge) mo.get( 0 );
 	Integer       indexJ = (Integer)       mo.get( 1 );
 
-	if( !paramIndex2rewriteJ_s2s.contains( index ) ) {
+	if( !paramIndex2rewriteJ_s2s.containsKey( index ) ) {
 	  continue;
 	}
 
@@ -2485,7 +2519,7 @@ public class OwnershipGraph {
 	ReferenceEdge edge   = (ReferenceEdge) mo.get( 0 );
 	Integer       indexJ = (Integer)       mo.get( 1 );
 
-	if( !paramIndex2rewriteK_s.contains( index ) ) {
+	if( !paramIndex2rewriteK_s.containsKey( index ) ) {
 	  continue;
 	}
 
@@ -2640,6 +2674,7 @@ public class OwnershipGraph {
 
 	  // make the edge with src and dst so beta info is
 	  // calculated once, then copy it for each new edge in caller
+
 	  ReferenceEdge edgeNewInCallerTemplate = new ReferenceEdge( null,
 								     null,
 								     edgeCallee.getType(),
@@ -2883,6 +2918,7 @@ public class OwnershipGraph {
 	writeGraph( "debug9endResolveCall", true, true, true, false, false );
       } catch( IOException e ) {}
       System.out.println( "  "+mc+" done calling "+fm );
+      System.exit( -1 );
     }
 
 
@@ -2891,6 +2927,7 @@ public class OwnershipGraph {
       System.out.println( "  End mapping proc" );
     }
     */
+    //System.out.println( "  End mapping proc" );
   }
 
 
