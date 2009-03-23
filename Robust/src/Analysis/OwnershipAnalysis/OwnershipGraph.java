@@ -380,6 +380,7 @@ public class OwnershipGraph {
     HashSet<ReferenceEdge>  edgesWithNewBeta  = new HashSet<ReferenceEdge>();
 
 
+
     // first look for possible strong updates and remove those edges
     boolean strongUpdate = false;
 
@@ -392,6 +393,17 @@ public class OwnershipGraph {
       while( itrYhrn.hasNext() ) {
 	ReferenceEdge edgeY = itrYhrn.next();
 	HeapRegionNode hrnY = edgeY.getDst();
+
+
+	/*
+	if( hrnX.getID().equals( 258 ) && hrnY.getID().equals( 259 ) ) {
+	  System.out.println( "  About to create "+hrnX+" to "+hrnY );
+	  printDebug = true;
+	  try {
+	    writeGraph( "testing0before", true, true, true, false, false );
+	  } catch( IOException e) {}
+	}
+	*/
 
 	// we can do a strong update here if one of two cases holds	
 	if( f != null &&
@@ -431,8 +443,6 @@ public class OwnershipGraph {
 
 	// then propagate back just up the edges from hrn
 	ChangeTupleSet Cx = R.unionUpArityToChangeSet(O);
-
-
   	HashSet<ReferenceEdge> todoEdges = new HashSet<ReferenceEdge>();
 
 	Hashtable<ReferenceEdge, ChangeTupleSet> edgePlannedChanges =
@@ -462,6 +472,15 @@ public class OwnershipGraph {
     while( edgeItr.hasNext() ) {
       edgeItr.next().applyBetaNew();
     }
+
+    /*
+	if( printDebug ) {
+	  try {
+	    writeGraph( "testing1tokenpropagation", true, true, true, false, false );
+	  } catch( IOException e) {}
+	}
+    */
+
 
     // then go back through and add the new edges
     itrXhrn = lnX.iteratorToReferencees();
@@ -502,12 +521,35 @@ public class OwnershipGraph {
       }
     }
 
+    /*
+	if( printDebug ) {
+	  try {
+	    writeGraph( "testing2newedgesadded", true, true, true, false, false );
+	  } catch( IOException e) {}
+	}
+    */
+
+
+
     // if there was a strong update, make sure to improve
     // reachability with a global sweep
     if( strongUpdate ) {      
       globalSweep();
     }
+
+
+    /*
+	if( printDebug ) {
+	  try {
+	    writeGraph( "testing3globalsweep", true, true, true, false, false );
+	  } catch( IOException e) {}
+	  printDebug = false;
+	}
+    */
+
   }
+
+
 
 
   // the parameter model is to use a single-object heap region
@@ -1500,10 +1542,26 @@ public class OwnershipGraph {
     Hashtable<ReferenceEdge, ChangeTupleSet> edgePlannedChanges
       = new Hashtable<ReferenceEdge, ChangeTupleSet>();
 
+
+
+    if( printDebug ) {
+      System.out.println( "  propagating down over nodes" );
+    }
+
+
+
     // first propagate change sets everywhere they can go
     while( !todoNodes.isEmpty() ) {
       HeapRegionNode n = todoNodes.iterator().next();
       ChangeTupleSet C = nodePlannedChanges.get(n);
+
+
+
+      if( printDebug ) {
+	System.out.println( "    at "+n+" with change set "+C );
+      }
+
+
 
       Iterator<ReferenceEdge> referItr = n.iteratorToReferencers();
       while( referItr.hasNext() ) {
@@ -1561,6 +1619,13 @@ public class OwnershipGraph {
       nodesWithNewAlpha.add( n );
     }
 
+
+
+    if( printDebug ) {
+      System.out.println( "  done propagating down over nodes" );
+    }
+
+
     propagateTokensOverEdges(todoEdges, edgePlannedChanges, edgesWithNewBeta);
   }
 
@@ -1569,6 +1634,14 @@ public class OwnershipGraph {
     HashSet<ReferenceEdge>                   todoEdges,
     Hashtable<ReferenceEdge, ChangeTupleSet> edgePlannedChanges,
     HashSet<ReferenceEdge>                   edgesWithNewBeta) {
+
+
+
+      if( printDebug ) {
+	System.out.println( "  propagating back up over edges" );
+      }
+
+
 
     // first propagate all change tuples everywhere they can go
     while( !todoEdges.isEmpty() ) {
@@ -1582,6 +1655,13 @@ public class OwnershipGraph {
       ChangeTupleSet C = edgePlannedChanges.get(edgeE);
 
       ChangeTupleSet changesToPass = new ChangeTupleSet().makeCanonical();
+
+
+
+      if( printDebug ) {
+	System.out.println( "    at "+edgeE+" with change set "+C );
+      }
+
 
 
       Iterator<ChangeTuple> itrC = C.iterator();
@@ -1622,9 +1702,15 @@ public class OwnershipGraph {
       ReferenceEdge  e  = (ReferenceEdge)  me.getKey();
       ChangeTupleSet C  = (ChangeTupleSet) me.getValue();
 
-      e.setBetaNew( e.getBeta().applyChangeSet( C, true ) );
+      e.setBetaNew( e.getBetaNew().union( e.getBeta().applyChangeSet( C, true ) ) );
       edgesWithNewBeta.add( e );
     }
+
+
+      if( printDebug ) {
+	System.out.println( "  done edge propagation" );
+      }
+
   }
 
 
@@ -1827,8 +1913,11 @@ public class OwnershipGraph {
 
     String debugCaller = "foo";
     String debugCallee = "bar";
-    //String debugCaller = "process";
-    //String debugCallee = "createfoo";
+    //String debugCaller = "executeAll";
+    //String debugCallee = "executeMessage";
+    //String debugCaller = "addFlightPlan";
+    //String debugCallee = "setFlightPlan";
+
 
     if( mc.getDescriptor().getSymbol().equals( debugCaller ) &&
 	fm.getMethod().getSymbol().equals( debugCallee ) ) {
@@ -1946,15 +2035,6 @@ public class OwnershipGraph {
 
 
       // if there is a secondary node, compute the rest of the rewrite rules
-
-
-      if( mc.getDescriptor().getSymbol().equals( debugCaller ) &&
-	  fm.getMethod().getSymbol().equals( debugCallee ) ) {
-	System.out.println( "*** does param "+paramIndex+ " have a gamma region? "+
-			    ogCallee.paramIndex2idSecondary.containsKey( paramIndex ) );
-      }
-
-
       if( ogCallee.paramIndex2idSecondary.containsKey( paramIndex ) ) {
 
 	// setup H (secondary)
@@ -1963,16 +2043,6 @@ public class OwnershipGraph {
 	HeapRegionNode hrnSecondary = ogCallee.id2hrn.get( idSecondary );
 	assert hrnSecondary != null;
 	paramIndex2rewriteH_s.put( paramIndex, toShadowTokens( ogCallee, hrnSecondary.getAlpha() ) );
-
-
-
-	if( mc.getDescriptor().getSymbol().equals( debugCaller ) &&
-	    fm.getMethod().getSymbol().equals( debugCallee ) ) {
-	  System.out.println( "H_s["+paramIndex+"] gets "+toShadowTokens( ogCallee, hrnSecondary.getAlpha() ) );
-	  System.out.println( "***  H_s="+paramIndex2rewriteH_s );
-	}
-
-
 
 
 	// setup J (secondary->X)
@@ -2183,9 +2253,20 @@ public class OwnershipGraph {
 
 	  boolean edge_classified = false;
 
+
 	  if( on instanceof HeapRegionNode ) {
 	    // hrn0 may be "a_j" and/or "r_j" or even neither
 	    HeapRegionNode hrn0 = (HeapRegionNode) on;
+
+	    /*
+	    if( mc.getDescriptor().getSymbol().equals( debugCaller ) &&
+		fm.getMethod().getSymbol().equals( debugCallee ) ) {
+	      if( hrn.getID().equals( 136 ) && hrn0.getID().equals( 214 ) ) {
+		System.out.println( "    Looking at "+edge );
+	      }
+	    }
+	    */
+
 
 	    Iterator itr = pi2dr.entrySet().iterator();
 	    while( itr.hasNext() ) {
@@ -2196,6 +2277,16 @@ public class OwnershipGraph {
 	      if( dr_i.contains( hrn0 ) ) {		
 		addEdgeIndexPair( edges_p2p, pi, edge, index );
 		edge_classified = true;
+
+		/*
+		if( mc.getDescriptor().getSymbol().equals( debugCaller ) &&
+		    fm.getMethod().getSymbol().equals( debugCallee ) ) {
+		  if( hrn.getID().equals( 136 ) && hrn0.getID().equals( 214 ) ) {
+		    System.out.println( "     Classified p2p" );
+		  }
+		}
+		*/
+
 	      }			      
 	    }
 
@@ -2208,6 +2299,16 @@ public class OwnershipGraph {
 	      if( r_i.contains( hrn0 ) ) {
 		addEdgeIndexPair( edges_s2p, pi, edge, index );
 		edge_classified = true;
+
+		/*
+		if( mc.getDescriptor().getSymbol().equals( debugCaller ) &&
+		    fm.getMethod().getSymbol().equals( debugCallee ) ) {
+		  if( hrn.getID().equals( 136 ) && hrn0.getID().equals( 214 ) ) {
+		    System.out.println( "     Classified s2p" );
+		  }
+		}
+		*/
+
 	      }			      
 	    }
 	  }
@@ -2225,16 +2326,6 @@ public class OwnershipGraph {
       while( hrnItr.hasNext() ) {
 	// this heap region is definitely an "r_i" or secondary by virtue of being in r
 	HeapRegionNode hrn = hrnItr.next();
-
-
-	
-	if( mc.getDescriptor().getSymbol().equals( debugCaller ) &&
-	    fm.getMethod().getSymbol().equals( debugCallee ) ) {
-	  System.out.println( "*** H_s has rules for rewriting "+hrn+" with respect to param "+index+"? "+
-			      paramIndex2rewriteH_s.contains( index )+"***" );
-	  System.out.println( "***  H_s="+paramIndex2rewriteH_s );
-	}
-	
       
 	if( paramIndex2rewriteH_s.containsKey( index ) ) {
 
@@ -2269,6 +2360,16 @@ public class OwnershipGraph {
 	    // hrn0 may be "a_j" and/or "r_j" or even neither
 	    HeapRegionNode hrn0 = (HeapRegionNode) on;
 
+	    /*
+	    if( mc.getDescriptor().getSymbol().equals( debugCaller ) &&
+		fm.getMethod().getSymbol().equals( debugCallee ) ) {
+	      if( hrn.getID().equals( 136 ) && hrn0.getID().equals( 214 ) ) {
+		System.out.println( "    Looking at "+edge );
+	      }
+	    }
+	    */
+
+
 	    Iterator itr = pi2dr.entrySet().iterator();
 	    while( itr.hasNext() ) {
 	      Map.Entry           mo   = (Map.Entry)           itr.next();
@@ -2278,6 +2379,16 @@ public class OwnershipGraph {
 	      if( dr_i.contains( hrn0 ) ) {
 		addEdgeIndexPair( edges_p2s, pi, edge, index );
 		edge_classified = true;
+
+		/*
+		if( mc.getDescriptor().getSymbol().equals( debugCaller ) &&
+		    fm.getMethod().getSymbol().equals( debugCallee ) ) {
+		  if( hrn.getID().equals( 136 ) && hrn0.getID().equals( 214 ) ) {
+		    System.out.println( "     Classified p2s" );
+		  }
+		}
+		*/
+
 	      }			      
 	    }
 
@@ -2290,6 +2401,17 @@ public class OwnershipGraph {
 	      if( r_i.contains( hrn0 ) ) {
 		addEdgeIndexPair( edges_s2s, pi, edge, index );
 		edge_classified = true;
+
+
+		/*
+		if( mc.getDescriptor().getSymbol().equals( debugCaller ) &&
+		    fm.getMethod().getSymbol().equals( debugCallee ) ) {
+		  if( hrn.getID().equals( 136 ) && hrn0.getID().equals( 214 ) ) {
+		    System.out.println( "     Classified s2s" );
+		  }
+		}
+		*/
+
 	      }			      
 	    }
 	  }
@@ -2321,8 +2443,32 @@ public class OwnershipGraph {
 	if( !paramIndex2rewriteJ_p2p.containsKey( makeMapKey( index, 
 							   indexJ,
  							   edge.getField() ) ) ) {
+
+	  /*
+	  if( mc.getDescriptor().getSymbol().equals( debugCaller ) &&
+	      fm.getMethod().getSymbol().equals( debugCallee ) ) {	 
+	    HeapRegionNode hrn = (HeapRegionNode) edge.getSrc();
+	    HeapRegionNode hrn0 = (HeapRegionNode) edge.getDst();
+	    if( hrn.getID().equals( 136 ) && hrn0.getID().equals( 214 ) ) {
+	      System.out.println( "   skipping rewrite as p2p" );
+	    }
+	  }
+	  */
+
 	  continue;
 	}
+
+	/*
+	  if( mc.getDescriptor().getSymbol().equals( debugCaller ) &&
+	      fm.getMethod().getSymbol().equals( debugCallee ) ) {
+	    HeapRegionNode hrn = (HeapRegionNode) edge.getSrc();
+	    HeapRegionNode hrn0 = (HeapRegionNode) edge.getDst();
+	    if( hrn.getID().equals( 136 ) && hrn0.getID().equals( 214 ) ) {
+	      System.out.println( "   rewriting as p2p" );
+	    }
+	  }
+	*/
+
 
 	TokenTuple p_j = ogCallee.paramIndex2paramTokenPrimary.get( indexJ );
 	assert p_j != null;
@@ -2356,8 +2502,35 @@ public class OwnershipGraph {
 
 	if( !paramIndex2rewriteJ_p2s.containsKey( makeMapKey( index, 
 							      edge.getField() ) ) ) {
+
+	  /*
+	  if( mc.getDescriptor().getSymbol().equals( debugCaller ) &&
+	      fm.getMethod().getSymbol().equals( debugCallee ) ) {
+
+	    HeapRegionNode hrn = (HeapRegionNode) edge.getSrc();
+	    HeapRegionNode hrn0 = (HeapRegionNode) edge.getDst();
+	    if( hrn.getID().equals( 136 ) && hrn0.getID().equals( 214 ) ) {
+	      System.out.println( "   skipping rewrite as p2s" );
+	    }
+	  }
+	  */
+
+
 	  continue;
 	}
+
+
+	/*
+	  if( mc.getDescriptor().getSymbol().equals( debugCaller ) &&
+	      fm.getMethod().getSymbol().equals( debugCallee ) ) {
+	    HeapRegionNode hrn = (HeapRegionNode) edge.getSrc();
+	    HeapRegionNode hrn0 = (HeapRegionNode) edge.getDst();
+	    if( hrn.getID().equals( 136 ) && hrn0.getID().equals( 214 ) ) {
+	      System.out.println( "   rewriting as p2s" );
+	    }
+	  }
+	*/
+
 
 	TokenTuple s_j = ogCallee.paramIndex2paramTokenSecondary.get( indexJ );
 	assert s_j != null;
@@ -2389,8 +2562,33 @@ public class OwnershipGraph {
 	Integer       indexJ = (Integer)       mo.get( 1 );
 
 	if( !paramIndex2rewriteJ_s2p.containsKey( index ) ) {
+
+	  /*
+	  if( mc.getDescriptor().getSymbol().equals( debugCaller ) &&
+	      fm.getMethod().getSymbol().equals( debugCallee ) ) {
+	    HeapRegionNode hrn = (HeapRegionNode) edge.getSrc();
+	    HeapRegionNode hrn0 = (HeapRegionNode) edge.getDst();
+	    if( hrn.getID().equals( 136 ) && hrn0.getID().equals( 214 ) ) {
+	      System.out.println( "   skipping rewrite as s2p" );
+	    }
+	  }
+	  */
+
 	  continue;
 	}
+
+	
+	/*
+	  if( mc.getDescriptor().getSymbol().equals( debugCaller ) &&
+	      fm.getMethod().getSymbol().equals( debugCallee ) ) {
+	    HeapRegionNode hrn = (HeapRegionNode) edge.getSrc();
+	    HeapRegionNode hrn0 = (HeapRegionNode) edge.getDst();
+	    if( hrn.getID().equals( 136 ) && hrn0.getID().equals( 214 ) ) {
+	      System.out.println( "   rewriting as s2p" );
+	    }
+	  }
+	*/
+
 
 	TokenTuple p_j = ogCallee.paramIndex2paramTokenPrimary.get( indexJ );
 	assert p_j != null;
@@ -2421,8 +2619,31 @@ public class OwnershipGraph {
 	Integer       indexJ = (Integer)       mo.get( 1 );
 
 	if( !paramIndex2rewriteJ_s2s.containsKey( index ) ) {
+
+	  /*
+	  if( mc.getDescriptor().getSymbol().equals( debugCaller ) &&
+	      fm.getMethod().getSymbol().equals( debugCallee ) ) {
+	    HeapRegionNode hrn = (HeapRegionNode) edge.getSrc();
+	    HeapRegionNode hrn0 = (HeapRegionNode) edge.getDst();
+	    if( hrn.getID().equals( 136 ) && hrn0.getID().equals( 214 ) ) {
+	      System.out.println( "   skipping rewrite as s2s" );
+	    }
+	  }
+	  */
+
 	  continue;
 	}
+
+	/*
+	  if( mc.getDescriptor().getSymbol().equals( debugCaller ) &&
+	      fm.getMethod().getSymbol().equals( debugCallee ) ) {
+	    HeapRegionNode hrn = (HeapRegionNode) edge.getSrc();
+	    HeapRegionNode hrn0 = (HeapRegionNode) edge.getDst();
+	    if( hrn.getID().equals( 136 ) && hrn0.getID().equals( 214 ) ) {
+	      System.out.println( "   rewriting as s2s" );
+	    }
+	  }
+	*/
 
 	TokenTuple s_j = ogCallee.paramIndex2paramTokenSecondary.get( indexJ );
 	assert s_j != null;
@@ -2918,16 +3139,12 @@ public class OwnershipGraph {
 	writeGraph( "debug9endResolveCall", true, true, true, false, false );
       } catch( IOException e ) {}
       System.out.println( "  "+mc+" done calling "+fm );
-      System.exit( -1 );
-    }
 
-
-    /*
-    if( printDebug ) {
-      System.out.println( "  End mapping proc" );
+      ++x;
+      if( x > 2 ) {
+	System.exit( -1 );
+      }
     }
-    */
-    //System.out.println( "  End mapping proc" );
   }
 
 

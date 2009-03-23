@@ -408,6 +408,13 @@ public class OwnershipAnalysis {
       //System.out.println("Previsiting " + mc);
 
       og = analyzeFlatNode(mc, fm, null, og);
+
+      /*
+      try {
+	og.writeGraph( "previsit"+mc, true, true, true, false, false );
+      } catch( Exception e ) {}
+      */
+
       setGraphForMethodContext(mc, og);
     }
 
@@ -1229,8 +1236,8 @@ public class OwnershipAnalysis {
   // insert a call to debugSnapshot() somewhere in the analysis 
   // to get successive captures of the analysis state
   boolean takeDebugSnapshots = false;
-  String mcDescSymbolDebug = "updateTrajectory";
-  boolean stopAfterCapture = false;
+  String mcDescSymbolDebug = "setFlightPlan";
+  boolean stopAfterCapture = true;
 
   // increments every visit to debugSnapshot, don't fiddle with it
   int debugCounter = 0;
@@ -1240,13 +1247,13 @@ public class OwnershipAnalysis {
   int numStartCountReport = 0;
 
   // the frequency of debugCounter values to print out, 0 no report
-  int freqCountReport = 100;
+  int freqCountReport = 0;
 
   // the debugCounter value at which to start taking snapshots
-  int iterStartCapture = 1400;
+  int iterStartCapture = 0;
 
   // the number of snapshots to take
-  int numIterToCapture = 100;
+  int numIterToCapture = 10;
 
   void debugSnapshot(OwnershipGraph og, FlatNode fn) {
     if( debugCounter > iterStartCapture + numIterToCapture ) {
