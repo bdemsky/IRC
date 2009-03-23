@@ -897,11 +897,12 @@ public class OwnershipGraph {
       HeapRegionNode primaryI = id2hrn.get( idPrimaryI );
 
 
+      /*
       System.out.println( "  **idPrimaryI="+idPrimaryI );
       try {
 	  writeGraph( "paramProblem", true, true, true, false, false );
       } catch( IOException e ) {}
-
+      */
 
 
       assert primaryI != null;           
@@ -1776,7 +1777,7 @@ public class OwnershipGraph {
 				MethodContext mc
 				) {
 
-      System.out.println( "  In mapping proc" );
+      //System.out.println( "  In mapping proc" );
 
     String debugCaller = "foo";
     String debugCallee = "bar";
@@ -2900,7 +2901,7 @@ public class OwnershipGraph {
       System.out.println( "  "+mc+" done calling "+fm );
     }
 
-    System.out.println( "  End mapping proc" );
+    //System.out.println( "  End mapping proc" );
   }
 
 
@@ -3253,7 +3254,7 @@ public class OwnershipGraph {
 
   public void globalSweep() {
 
-            System.out.println( "    In global sweep" );
+      //System.out.println( "    In global sweep" );
 
     // boldB is part of the phase 1 sweep
     Hashtable< Integer, Hashtable<ReferenceEdge, ReachabilitySet> > boldB =
@@ -3307,7 +3308,7 @@ public class OwnershipGraph {
 	    ReferenceEdge edgePrime = itrPrime.next();	    
 
 	    ReachabilitySet prevResult   = boldB_f.get( edgePrime );
-	    ReachabilitySet intersection = boldB_f.get( edge ).intersection( edgePrime.getBeta() );	    
+	    ReachabilitySet intersection = boldB_f.get( edge ).intersection( edgePrime.getBeta() );
 	    	    
 	    if( prevResult == null || 
 		prevResult.union( intersection ).size() > prevResult.size() ) {
@@ -3315,7 +3316,7 @@ public class OwnershipGraph {
 	      if( prevResult == null ) {
 		boldB_f.put( edgePrime, edgePrime.getBeta().union( intersection ) );
 	      } else {
-		boldB_f.put( edgePrime, prevResult.union( intersection ) );
+		boldB_f.put( edgePrime, prevResult         .union( intersection ) );
 	      }
 	      workSetEdges.add( edgePrime );	
 	    }
@@ -3377,11 +3378,11 @@ public class OwnershipGraph {
 	    // if it isn't allowed, mark for removal
 
 	    
-	    x++;
-	    if( x % 1000 == 0 && x > 4000000 ) {
-		System.out.println( "x="+x );
+	    //x++;
+	    //if( x % 1000 == 0 && x > 4000000 ) {
+	    //System.out.println( "x="+x );
 		//System.out.println( boldB.get( ttOld.getToken() ) );
-	    }
+	    //}
 	    
 
 	    Integer idOld = ttOld.getToken();
@@ -3517,7 +3518,7 @@ public class OwnershipGraph {
       edgeItr.next().applyBetaNew();
     } 
 
-            System.out.println( "    End global sweep" );
+    //System.out.println( "    End global sweep" );
   }  
 
 
