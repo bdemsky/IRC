@@ -1,27 +1,56 @@
-public class Foo {
-  public Foo() {}
+public class Engine {
+  LinkedList[] actions;
 
-  public Bar b;
+  public Engine() {
+    actions = new LinkedList[10];
+    for( int i = 0; i < 10; ++i ) {
+      actions[i] = disjoint blah new LinkedList();
+    }
+  }
+
+  public add( Action a, int list, Action c ) {
+    actions[list].addFirst( a );
+  }
 }
 
-public class Bar {
-  public Bar() {}  
+public class StandardEngine extends Engine {
+  public StandardEngine( Gen gen ) {
+    Engine();
+
+    Action c = new Action( gen );
+
+    Action a = new AntherAction( gen );
+    add( a, 0, c );
+    //add( a, 1, c  );
+
+    
+    Action b = new AntherAction( gen );    
+    add( b, 0, c );    
+    
+  }
+}
+
+public class Action {
+  Gen gen;
+  public Action( Gen g ) {
+    gen = g;
+  }
+}
+
+public class AntherAction extends Action {
+  public AntherAction( Gen g ) {
+    Action( g );
+  }
+}
+
+public class Gen {
+  public Gen() {}
 }
 
 public class Test {
 
   static public void main( String[] args ) {
-    Foo x = disjoint foo new Foo();
-    Bar y = disjoint bar new Bar();
-
-    x.b = y;
-    
-    virginia( x, y );
-  }
-
-  static public void virginia( Foo x, Bar y ) {
-    //x.b = y;
-    //x.b = new Bar();
-    x.b = null;
+    Gen gen = new Gen();
+    StandardEngine se = new StandardEngine( gen );
   }
 }

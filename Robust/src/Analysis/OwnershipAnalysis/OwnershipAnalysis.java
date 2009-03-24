@@ -1229,7 +1229,7 @@ public class OwnershipAnalysis {
   // insert a call to debugSnapshot() somewhere in the analysis 
   // to get successive captures of the analysis state
   boolean takeDebugSnapshots = false;
-  String mcDescSymbolDebug = "StandardEngine";
+  String mcDescSymbolDebug = "addFirst";
   boolean stopAfterCapture = true;
 
   // increments every visit to debugSnapshot, don't fiddle with it
@@ -1246,7 +1246,7 @@ public class OwnershipAnalysis {
   int iterStartCapture = 0;
 
   // the number of snapshots to take
-  int numIterToCapture = 100;
+  int numIterToCapture = 40;
 
   void debugSnapshot(OwnershipGraph og, FlatNode fn) {
     if( debugCounter > iterStartCapture + numIterToCapture ) {
@@ -1266,6 +1266,14 @@ public class OwnershipAnalysis {
 	graphName = graphName+fn;
       }
       try {
+	// arguments to writeGraph are:
+	// boolean writeLabels,
+	// boolean labelSelect,
+	// boolean pruneGarbage,
+	// boolean writeReferencers
+	// boolean writeParamMappings
+
+	//og.writeGraph(graphName, true, true, true, false, false);
 	og.writeGraph(graphName, true, true, true, false, false);
       } catch( Exception e ) {
 	System.out.println("Error writing debug capture.");

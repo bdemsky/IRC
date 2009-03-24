@@ -231,8 +231,9 @@ public class OwnershipGraph {
       ReferenceEdge edge = i.next();
 
       if( removeAll                                          || 
-	  (type  != null && edge.getType() .equals( type  )) ||
-	  (field != null && edge.getField().equals( field ))   
+	  (edge.typeEquals( type ) && edge.fieldEquals( field ))
+	  //(type  != null && edge.getType() .equals( type  )) ||
+	  //(field != null && edge.getField().equals( field ))   
         ){
 
 	HeapRegionNode referencee = edge.getDst();
@@ -259,8 +260,9 @@ public class OwnershipGraph {
       ReferenceEdge edge = i.next();
 
       if( removeAll                                          || 
-	  (type  != null && edge.getType() .equals( type  )) ||
-	  (field != null && edge.getField().equals( field ))   
+	  (edge.typeEquals( type ) && edge.fieldEquals( field ))
+	  //(type  != null && edge.getType() .equals( type  )) ||
+	  //(field != null && edge.getField().equals( field ))   
         ){
 
 	OwnershipNode referencer = edge.getSrc();
@@ -378,6 +380,11 @@ public class OwnershipGraph {
 
     HashSet<HeapRegionNode> nodesWithNewAlpha = new HashSet<HeapRegionNode>();
     HashSet<ReferenceEdge>  edgesWithNewBeta  = new HashSet<ReferenceEdge>();
+
+
+    
+    //boolean printDebug = f.getType()    
+
 
     // first look for possible strong updates and remove those edges
     boolean strongUpdate = false;
@@ -1540,7 +1547,7 @@ public class OwnershipGraph {
       HeapRegionNode n  = (HeapRegionNode) me.getKey();
       ChangeTupleSet C  = (ChangeTupleSet) me.getValue();
 
-      n.setAlphaNew( n.getAlpha().applyChangeSet( C, false ) );
+      n.setAlphaNew( n.getAlpha().applyChangeSet( C, true ) );
       nodesWithNewAlpha.add( n );
     }
 
@@ -1840,12 +1847,17 @@ public class OwnershipGraph {
 
     String debugCaller = "foo";
     String debugCallee = "bar";
+    //String debugCaller = "StandardEngine";
+    //String debugCaller = "register_by_type";
+    //String debugCaller = "register_by_type_front";
+    //String debugCaller = "addFirst";
+    //String debugCallee = "LinkedListElement";
 
     if( mc.getDescriptor().getSymbol().equals( debugCaller ) &&
 	fm.getMethod().getSymbol().equals( debugCallee ) ) {
 
       try {
-	writeGraph( "debug1Before", true, true, true, false, false );
+	writeGraph( "debug1BeforeCall", true, true, true, false, false );
 	ogCallee.writeGraph( "debug0Callee", true, true, true, false, false );
       } catch( IOException e ) {}
 
@@ -2833,6 +2845,15 @@ public class OwnershipGraph {
     }
 
 
+    if( mc.getDescriptor().getSymbol().equals( debugCaller ) &&
+	fm.getMethod().getSymbol().equals( debugCallee ) ) {
+      try {
+	writeGraph( "debug7JustBeforeMergeToKCapacity", true, true, true, false, false );
+      } catch( IOException e ) {}
+    }
+
+
+
     // merge the shadow nodes of allocation sites back down to normal capacity
     Iterator<AllocationSite> allocItr = ogCallee.allocationSites.iterator();
     while( allocItr.hasNext() ) {
@@ -2903,7 +2924,7 @@ public class OwnershipGraph {
     if( mc.getDescriptor().getSymbol().equals( debugCaller ) &&
 	fm.getMethod().getSymbol().equals( debugCallee ) ) {
       try {
-	writeGraph( "debug2JustBeforeSweep", true, true, true, false, false );
+	writeGraph( "debug8JustBeforeSweep", true, true, true, false, false );
       } catch( IOException e ) {}
     }
 
@@ -2919,9 +2940,14 @@ public class OwnershipGraph {
 	writeGraph( "debug9endResolveCall", true, true, true, false, false );
       } catch( IOException e ) {}
       System.out.println( "  "+mc+" done calling "+fm );      
-      System.exit( -1 );   
+      ++x;
+      if( x > 2 ) {
+	System.exit( -1 );   
+      }
     }
   }
+
+  static int x = 0;
 
 
   protected boolean hasMatchingField(HeapRegionNode src, ReferenceEdge edge) {
