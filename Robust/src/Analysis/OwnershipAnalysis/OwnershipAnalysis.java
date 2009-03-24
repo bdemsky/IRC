@@ -1229,7 +1229,7 @@ public class OwnershipAnalysis {
   // insert a call to debugSnapshot() somewhere in the analysis 
   // to get successive captures of the analysis state
   boolean takeDebugSnapshots = false;
-  String mcDescSymbolDebug = "setFlightPlan";
+  String mcDescSymbolDebug = "StandardEngine";
   boolean stopAfterCapture = true;
 
   // increments every visit to debugSnapshot, don't fiddle with it
@@ -1246,7 +1246,7 @@ public class OwnershipAnalysis {
   int iterStartCapture = 0;
 
   // the number of snapshots to take
-  int numIterToCapture = 10;
+  int numIterToCapture = 100;
 
   void debugSnapshot(OwnershipGraph og, FlatNode fn) {
     if( debugCounter > iterStartCapture + numIterToCapture ) {

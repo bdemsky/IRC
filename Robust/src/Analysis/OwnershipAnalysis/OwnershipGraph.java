@@ -1841,7 +1841,6 @@ public class OwnershipGraph {
     String debugCaller = "foo";
     String debugCallee = "bar";
 
-
     if( mc.getDescriptor().getSymbol().equals( debugCaller ) &&
 	fm.getMethod().getSymbol().equals( debugCallee ) ) {
 
@@ -2952,15 +2951,22 @@ public class OwnershipGraph {
       return false;
     }
 
-    Iterator fieldsSrcItr = tdSrc.getClassDesc().getFields();
-    while( fieldsSrcItr.hasNext() ) {
-      FieldDescriptor fd = (FieldDescriptor) fieldsSrcItr.next();
-      if( fd.getType().equals( edge.getType() ) &&
-	  fd.getSymbol().equals( edge.getField() ) ) {
-	return true;
-      }
-    }
+    ClassDescriptor cd = tdSrc.getClassDesc();
+    while( cd != null ) {      
+      Iterator fieldItr = cd.getFields();
 
+      while( fieldItr.hasNext() ) {	
+	FieldDescriptor fd = (FieldDescriptor) fieldItr.next();
+
+	if( fd.getType().equals( edge.getType() ) &&
+	    fd.getSymbol().equals( edge.getField() ) ) {
+	  return true;
+	}
+      }
+      
+      cd = cd.getSuperDesc();
+    }
+    
     // otherwise it is a class with fields
     // but we didn't find a match
     return false;
