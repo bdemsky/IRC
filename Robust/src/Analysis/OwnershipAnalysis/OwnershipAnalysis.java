@@ -408,13 +408,6 @@ public class OwnershipAnalysis {
       //System.out.println("Previsiting " + mc);
 
       og = analyzeFlatNode(mc, fm, null, og);
-
-      /*
-      try {
-	og.writeGraph( "previsit"+mc, true, true, true, false, false );
-      } catch( Exception e ) {}
-      */
-
       setGraphForMethodContext(mc, og);
     }
 
