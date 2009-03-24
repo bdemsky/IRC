@@ -6,6 +6,8 @@ import java.util.*;
 import Analysis.TaskStateAnalysis.*;
 
 public class State {
+
+    public int lines;
   public State() {
     this.classes=new SymbolTable();
     this.tasks=new SymbolTable();
@@ -18,6 +20,7 @@ public class State {
     this.selfloops=new HashSet();
     this.excprefetch=new HashSet();
     this.classpath=new Vector();
+    this.lines=0;
   }
 
   public void addParseNode(ParseNode parsetree) {

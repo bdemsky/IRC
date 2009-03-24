@@ -337,6 +337,8 @@ public class Main {
                                                    state.OWNERSHIPALIASFILE);
     }
 
+
+    System.out.println("Lines="+state.lines);
     System.exit(0);
   }
 
@@ -366,6 +368,7 @@ public class Main {
 	System.out.println("Error parsing "+sourcefile);
 	System.exit(l.numErrors());
       }
+      state.lines+=l.line_num;
       return p;
 
     } catch (Exception e) {

@@ -18,7 +18,7 @@ public class Lexer {
   boolean isJava15;
   String line = null;
   int line_pos = 1;
-  int line_num = 0;
+    public int line_num = 0;
   LineList lineL = new LineList(-line_pos, null); // sentinel for line #0
 
   public Lexer(Reader reader) {
