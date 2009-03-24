@@ -651,10 +651,10 @@ public class OwnershipGraph {
     ReachabilitySet betaSoup;
     if( createSecondaryRegion ) {
       TokenTupleSet tts1 = new TokenTupleSet( ttSecondary ).makeCanonical();
-      TokenTupleSet tts2 = new TokenTupleSet( ttPrimary   ).union( ttSecondary );   
-      betaSoup = new ReachabilitySet().union( tts0 ).union( tts1 ).union( tts2 );
+      TokenTupleSet tts2 = new TokenTupleSet( ttPrimary   ).makeCanonical().union( ttSecondary );   
+      betaSoup = ReachabilitySet.factory( tts0 ).union( tts1 ).union( tts2 );
     } else {
-      betaSoup = new ReachabilitySet().union( tts0 );
+      betaSoup = ReachabilitySet.factory( tts0 );
     }
 
     ReferenceEdge edgeFromLabel =
@@ -838,8 +838,8 @@ public class OwnershipGraph {
     
     TokenTupleSet tts0 = new TokenTupleSet( ttPrimary ).makeCanonical();
     TokenTupleSet tts1 = new TokenTupleSet( ttAliased ).makeCanonical();
-    TokenTupleSet tts2 = new TokenTupleSet( ttPrimary ).union( ttAliased );   
-    ReachabilitySet betaSoup = new ReachabilitySet().union( tts0 ).union( tts1 ).union( tts2 );
+    TokenTupleSet tts2 = new TokenTupleSet( ttPrimary ).makeCanonical().union( ttAliased );   
+    ReachabilitySet betaSoup = ReachabilitySet.factory( tts0 ).union( tts1 ).union( tts2 );
 
 
     ReferenceEdge edgeFromLabel =
@@ -916,8 +916,8 @@ public class OwnershipGraph {
       
       TokenTupleSet ttsI  = new TokenTupleSet( ttPrimaryI ).makeCanonical();
       TokenTupleSet ttsA  = new TokenTupleSet( ttAliased  ).makeCanonical();
-      TokenTupleSet ttsIA = new TokenTupleSet( ttPrimaryI ).union( ttAliased );   
-      ReachabilitySet betaSoup = new ReachabilitySet().union( ttsI ).union( ttsA ).union( ttsIA );
+      TokenTupleSet ttsIA = new TokenTupleSet( ttPrimaryI ).makeCanonical().union( ttAliased );   
+      ReachabilitySet betaSoup = ReachabilitySet.factory( ttsI ).union( ttsA ).union( ttsIA );
 
 
       // calculate whether fields of this aliased parameter are able to
@@ -1026,7 +1026,7 @@ public class OwnershipGraph {
 	    TokenTupleSet ttsIJ  = ttsI.union( ttsJ );
 	    TokenTupleSet ttsAJ  = ttsA.union( ttsJ );
 	    TokenTupleSet ttsIAJ = ttsIA.union( ttsJ );
-	    ReachabilitySet betaSoupWJ = new ReachabilitySet().union( ttsJ ).union( ttsIJ ).union( ttsAJ ).union( ttsIAJ );
+	    ReachabilitySet betaSoupWJ = ReachabilitySet.factory( ttsJ ).union( ttsIJ ).union( ttsAJ ).union( ttsIAJ );
 
 	    ReferenceEdge edgePrimaryI2PrimaryJ =
 	      new ReferenceEdge( primaryI,       // src
@@ -4047,14 +4047,14 @@ public class OwnershipGraph {
                                        TokenTuple.ARITY_ZEROORMORE).makeCanonical();
 
     // then get the merged beta of all out-going edges from these heap regions
-    ReachabilitySet beta1 = new ReachabilitySet();
+    ReachabilitySet beta1 = new ReachabilitySet().makeCanonical();
     Iterator<ReferenceEdge> itrEdge = hrn1.iteratorToReferencees();
     while( itrEdge.hasNext() ) {
       ReferenceEdge edge = itrEdge.next();
       beta1 = beta1.union( edge.getBeta() );
     }
 
-    ReachabilitySet beta2 = new ReachabilitySet();
+    ReachabilitySet beta2 = new ReachabilitySet().makeCanonical();
     itrEdge = hrn2.iteratorToReferencees();
     while( itrEdge.hasNext() ) {
       ReferenceEdge edge = itrEdge.next();

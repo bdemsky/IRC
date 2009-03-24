@@ -119,14 +119,28 @@ public class ReachabilitySet extends Canonical {
     return false;
   }
 
-    private static Hashtable<ReachOperation, ReachOperation> unionhash=new Hashtable<ReachOperation, ReachOperation>();
-    private static Hashtable<ReachOperation, ReachOperation> interhash=new Hashtable<ReachOperation, ReachOperation>();
+    public static ReachabilitySet factory(TokenTupleSet tts) {
+      CanonicalWrapper cw=new CanonicalWrapper(tts);
+      if (lookuphash.containsKey(cw))
+	  return (ReachabilitySet)lookuphash.get(cw).b;
+      ReachabilitySet rs=new ReachabilitySet(tts);
+      rs=rs.makeCanonical();
+      cw.b=rs;
+      lookuphash.put(cw,cw);
+      return rs;
+  }
 
     public ReachabilitySet union(TokenTupleSet ttsIn) {
-	assert ttsIn != null;
-	ReachabilitySet rsOut = new ReachabilitySet(this);
-	rsOut.possibleReachabilities.add(ttsIn);
-	return rsOut.makeCanonical();
+	ReachOperation ro=new ReachOperation(this, ttsIn);
+	if (unionhash.containsKey(ro)) {
+	    return (ReachabilitySet) unionhash.get(ro).c;
+	} else {
+	    ReachabilitySet rsOut = new ReachabilitySet(this);
+	    rsOut.possibleReachabilities.add(ttsIn);
+	    ro.c=rsOut=rsOut.makeCanonical();
+	    unionhash.put(ro,ro);
+	    return rsOut;
+	}
     }
 
 
@@ -138,13 +152,13 @@ public class ReachabilitySet extends Canonical {
 
     ReachOperation ro=new ReachOperation(this, rsIn);
     if (unionhash.containsKey(ro))
-	return unionhash.get(ro).c;
+	return (ReachabilitySet) unionhash.get(ro).c;
     else {
 	ReachabilitySet rsOut = new ReachabilitySet(this);
 	rsOut.possibleReachabilities.addAll(rsIn.possibleReachabilities);
-	ro.c=rsOut.makeCanonical();
+	ro.c=rsOut=rsOut.makeCanonical();
 	unionhash.put(ro, ro);
-	return ro.c;
+	return rsOut;
     }
   }
 
@@ -156,7 +170,7 @@ public class ReachabilitySet extends Canonical {
 
     ReachOperation ro=new ReachOperation(this, rsIn);
     if (interhash.containsKey(ro))
-	return interhash.get(ro).c;
+	return (ReachabilitySet) interhash.get(ro).c;
     else {
 	ReachabilitySet rsOut = new ReachabilitySet();
 	Iterator i = this.iterator();
@@ -166,9 +180,9 @@ public class ReachabilitySet extends Canonical {
 		rsOut.possibleReachabilities.add(tts);
 	    }
 	}
-	ro.c=rsOut.makeCanonical();
+	ro.c=rsOut=rsOut.makeCanonical();
 	interhash.put(ro,ro);
-	return ro.c;
+	return rsOut;
     }
   }
 
@@ -257,9 +271,9 @@ public class ReachabilitySet extends Canonical {
 	  TokenTuple ttO = o.containsToken(ttR.getToken() );
 
 	  if( ttO != null ) {
-	    theUnion = theUnion.union(new TokenTupleSet(ttR.unionArity(ttO) ) ).makeCanonical();
+	      theUnion = theUnion.union((new TokenTupleSet(ttR.unionArity(ttO)).makeCanonical() ) );
 	  } else {
-	    theUnion = theUnion.union(new TokenTupleSet(ttR) ).makeCanonical();
+	      theUnion = theUnion.union((new TokenTupleSet(ttR)).makeCanonical() );
 	  }
 	}
 
@@ -269,12 +283,12 @@ public class ReachabilitySet extends Canonical {
 	  TokenTuple ttR = theUnion.containsToken(ttO.getToken() );
 
 	  if( ttR == null ) {
-	    theUnion = theUnion.union(new TokenTupleSet(ttO) ).makeCanonical();
+	      theUnion = theUnion.union(new TokenTupleSet(ttO).makeCanonical() );
 	  }
 	}
 
 	if( !theUnion.isEmpty() ) {
-	  ctsOut = ctsOut.union(new ChangeTupleSet(new ChangeTuple(o, theUnion) ) );
+	    ctsOut = ctsOut.union((new ChangeTupleSet(new ChangeTuple(o, theUnion) )).makeCanonical() );
 	}
       }
     }
@@ -358,7 +372,7 @@ public class ReachabilitySet extends Canonical {
 
 
   public ReachabilitySet exhaustiveArityCombinations() {
-    ReachabilitySet rsOut = new ReachabilitySet();
+      ReachabilitySet rsOut = (new ReachabilitySet()).makeCanonical();
 
     int numDimensions = this.possibleReachabilities.size();
 
@@ -472,22 +486,6 @@ public class ReachabilitySet extends Canonical {
     return s;
   }
 
-    private static Hashtable <Canonical, Canonical> can=new Hashtable<Canonical, Canonical>();
-
-    private static int canonicalcount=0;
-
-    int canonicalvalue;
-
-  public static Canonical makeCanonical(Canonical c) {
-      if (can.containsKey(c)) {
-	  return can.get(c);
-      } else {
-	  ((ReachabilitySet)c).canonicalvalue=canonicalcount++;
-	  can.put(c,c);
-	  return c;
-      }
-  }
-
   public String toString() {
     String s = "[";
 
@@ -502,24 +500,4 @@ public class ReachabilitySet extends Canonical {
     s += "]";
     return s;
   }
-}
-
-
-class ReachOperation {
-    ReachabilitySet a;
-    ReachabilitySet b;
-    ReachabilitySet c;
-
-    ReachOperation(ReachabilitySet a, ReachabilitySet b) {
-	this.a=a;
-	this.b=b;
-    }
-    public int hashCode() {
-	return a.canonicalvalue^(b.canonicalvalue<<1);
-    }
-    public boolean equals(Object o) {
-	ReachOperation ro=(ReachOperation)o;
-	return ro.a.canonicalvalue==a.canonicalvalue&&
-	    ro.b.canonicalvalue==b.canonicalvalue;
-    }
 }

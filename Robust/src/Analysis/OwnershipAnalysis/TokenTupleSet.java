@@ -88,16 +88,30 @@ public class TokenTupleSet extends Canonical {
 
   public TokenTupleSet union(TokenTuple ttIn) {
     assert ttIn != null;
-    TokenTupleSet ttsOut = new TokenTupleSet(this);
-    ttsOut.tokenTuples.add(ttIn);
-    return ttsOut.makeCanonical();
+    ReachOperation ro=new ReachOperation(this, ttIn);
+    if (unionhash.containsKey(ro))
+	return (TokenTupleSet) unionhash.get(ro).c;
+    else {
+	TokenTupleSet ttsOut = new TokenTupleSet(this);
+	ttsOut.tokenTuples.add(ttIn);
+	ro.c=ttsOut=ttsOut.makeCanonical();
+	unionhash.put(ro,ro);
+	return ttsOut;
+    }
   }
 
   public TokenTupleSet union(TokenTupleSet ttsIn) {
     assert ttsIn != null;
-    TokenTupleSet ttsOut = new TokenTupleSet(this);
-    ttsOut.tokenTuples.addAll(ttsIn.tokenTuples);
-    return ttsOut.makeCanonical();
+    ReachOperation ro=new ReachOperation(this, ttsIn);
+    if (unionhash.containsKey(ro)) {
+	return (TokenTupleSet) unionhash.get(ro).c;
+    } else {
+	TokenTupleSet ttsOut = new TokenTupleSet(this);
+	ttsOut.tokenTuples.addAll(ttsIn.tokenTuples);
+	ro.c=ttsOut=ttsOut.makeCanonical();
+	unionhash.put(ro,ro);
+	return ttsOut;
+    }
   }
 
 
@@ -133,8 +147,7 @@ public class TokenTupleSet extends Canonical {
 
   public TokenTupleSet add(TokenTuple tt) {
     assert tt != null;
-    TokenTupleSet ttsOut = new TokenTupleSet(tt);
-    return ttsOut.union(this);
+    return this.union(tt);
   }
 
 
