@@ -159,25 +159,17 @@ public class TokenTupleSet extends Canonical {
     return tokenTuples.equals(tts.tokenTuples);
   }
 
+    boolean hashcodecomputed;
+    int ourhashcode;
 
 
-  private boolean oldHashSet = false;
-  private int oldHash    = 0;
   public int hashCode() {
-    int currentHash = tokenTuples.hashCode();
-
-    if( oldHashSet == false ) {
-      oldHash = currentHash;
-      oldHashSet = true;
-    } else {
-      if( oldHash != currentHash ) {
-	System.out.println("IF YOU SEE THIS A CANONICAL TokenTupleSet CHANGED");
-	Integer x = null;
-	x.toString();
+      if (hashcodecomputed)
+	  return ourhashcode;
+      else {
+	  ourhashcode=tokenTuples.hashCode();
+	  return ourhashcode;
       }
-    }
-
-    return currentHash;
   }
 
 

@@ -43,9 +43,13 @@ public class TokenTuple extends Canonical {
   }
 
   private void fixStuff() {
-    if (!isMultiObject) {
-	arity=ARITY_ONE;
-    }
+      //This is an evil hack...we should fix this stuff elsewhere...
+      if (!isMultiObject) {
+	  arity=ARITY_ONE;
+      } else {
+	  if (arity==ARITY_ONEORMORE)
+	      arity=ARITY_ZEROORMORE;
+      }
   }
 
 
@@ -117,23 +121,8 @@ public class TokenTuple extends Canonical {
            arity ==     tt.getArity();
   }
 
-  private boolean oldHashSet = false;
-  private int oldHash    = 0;
   public int hashCode() {
-    int currentHash = token.intValue()*31 + arity;
-
-    if( oldHashSet == false ) {
-      oldHash = currentHash;
-      oldHashSet = true;
-    } else {
-      if( oldHash != currentHash ) {
-	System.out.println("IF YOU SEE THIS A CANONICAL TokenTuple CHANGED");
-	Integer x = null;
-	x.toString();
-      }
-    }
-
-    return currentHash;
+      return (token.intValue() << 2) ^ arity;
   }
 
 
