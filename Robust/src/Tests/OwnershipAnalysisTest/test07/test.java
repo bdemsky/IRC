@@ -8,7 +8,7 @@ public class Engine {
     }
   }
 
-  public add( Action a, int list, Action c ) {
+  public add( Action a, int list ) {
     actions[list].addFirst( a );
   }
 }
@@ -17,16 +17,12 @@ public class StandardEngine extends Engine {
   public StandardEngine( Gen gen ) {
     Engine();
 
-    Action c = new Action( gen );
-
     Action a = new AntherAction( gen );
-    add( a, 0, c );
-    //add( a, 1, c  );
-
-    
+    add( a, 0 );
+    //add( a, 1 );
+   
     Action b = new AntherAction( gen );    
-    add( b, 0, c );    
-    
+    add( b, 0 );    
   }
 }
 
