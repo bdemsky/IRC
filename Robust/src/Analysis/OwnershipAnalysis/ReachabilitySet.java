@@ -39,7 +39,7 @@ public class ReachabilitySet extends Canonical {
 
 
   public ReachabilitySet makeCanonical() {
-    return (ReachabilitySet) Canonical.makeCanonical(this);
+    return (ReachabilitySet) ReachabilitySet.makeCanonical(this);
   }
 
   public Iterator<TokenTupleSet> iterator() {
@@ -119,43 +119,63 @@ public class ReachabilitySet extends Canonical {
     return false;
   }
 
+    private static Hashtable<ReachOperation, ReachOperation> unionhash=new Hashtable<ReachOperation, ReachOperation>();
+    private static Hashtable<ReachOperation, ReachOperation> interhash=new Hashtable<ReachOperation, ReachOperation>();
+
+    public ReachabilitySet union(TokenTupleSet ttsIn) {
+	assert ttsIn != null;
+	ReachabilitySet rsOut = new ReachabilitySet(this);
+	rsOut.possibleReachabilities.add(ttsIn);
+	return rsOut.makeCanonical();
+    }
+
+
   public ReachabilitySet union(ReachabilitySet rsIn) {
-    assert rsIn != null;
+      //    assert rsIn != null;
+    
+      //    assert can.containsKey(this);
+      //    assert can.containsKey(rsIn);
 
-    ReachabilitySet rsOut = new ReachabilitySet(this);
-    rsOut.possibleReachabilities.addAll(rsIn.possibleReachabilities);
-    return rsOut.makeCanonical();
-  }
-
-  public ReachabilitySet union(TokenTupleSet ttsIn) {
-    assert ttsIn != null;
-
-    ReachabilitySet rsOut = new ReachabilitySet(this);
-    rsOut.possibleReachabilities.add(ttsIn);
-    return rsOut.makeCanonical();
+    ReachOperation ro=new ReachOperation(this, rsIn);
+    if (unionhash.containsKey(ro))
+	return unionhash.get(ro).c;
+    else {
+	ReachabilitySet rsOut = new ReachabilitySet(this);
+	rsOut.possibleReachabilities.addAll(rsIn.possibleReachabilities);
+	ro.c=rsOut.makeCanonical();
+	unionhash.put(ro, ro);
+	return ro.c;
+    }
   }
 
   public ReachabilitySet intersection(ReachabilitySet rsIn) {
-    assert rsIn != null;
+      //    assert rsIn != null;
 
-    ReachabilitySet rsOut = new ReachabilitySet();
+    //    assert can.containsKey(this);
+    //    assert can.containsKey(rsIn);
 
-    Iterator i = this.iterator();
-    while( i.hasNext() ) {
-      TokenTupleSet tts = (TokenTupleSet) i.next();
-      if( rsIn.possibleReachabilities.contains(tts) ) {
-	rsOut.possibleReachabilities.add(tts);
-      }
+    ReachOperation ro=new ReachOperation(this, rsIn);
+    if (interhash.containsKey(ro))
+	return interhash.get(ro).c;
+    else {
+	ReachabilitySet rsOut = new ReachabilitySet();
+	Iterator i = this.iterator();
+	while( i.hasNext() ) {
+	    TokenTupleSet tts = (TokenTupleSet) i.next();
+	    if( rsIn.possibleReachabilities.contains(tts) ) {
+		rsOut.possibleReachabilities.add(tts);
+	    }
+	}
+	ro.c=rsOut.makeCanonical();
+	interhash.put(ro,ro);
+	return ro.c;
     }
-
-    return rsOut.makeCanonical();
   }
 
 
   public ReachabilitySet add(TokenTupleSet tts) {
     assert tts != null;
-    ReachabilitySet rsOut = new ReachabilitySet(tts);
-    return rsOut.union(this);
+    return union(tts);
   }
 
   public ReachabilitySet remove(TokenTupleSet tts) {
@@ -452,6 +472,22 @@ public class ReachabilitySet extends Canonical {
     return s;
   }
 
+    private static Hashtable <Canonical, Canonical> can=new Hashtable<Canonical, Canonical>();
+
+    private static int canonicalcount=0;
+
+    int canonicalvalue;
+
+  public static Canonical makeCanonical(Canonical c) {
+      if (can.containsKey(c)) {
+	  return can.get(c);
+      } else {
+	  ((ReachabilitySet)c).canonicalvalue=canonicalcount++;
+	  can.put(c,c);
+	  return c;
+      }
+  }
+
   public String toString() {
     String s = "[";
 
@@ -466,4 +502,24 @@ public class ReachabilitySet extends Canonical {
     s += "]";
     return s;
   }
+}
+
+
+class ReachOperation {
+    ReachabilitySet a;
+    ReachabilitySet b;
+    ReachabilitySet c;
+
+    ReachOperation(ReachabilitySet a, ReachabilitySet b) {
+	this.a=a;
+	this.b=b;
+    }
+    public int hashCode() {
+	return a.canonicalvalue^(b.canonicalvalue<<1);
+    }
+    public boolean equals(Object o) {
+	ReachOperation ro=(ReachOperation)o;
+	return ro.a.canonicalvalue==a.canonicalvalue&&
+	    ro.b.canonicalvalue==b.canonicalvalue;
+    }
 }

@@ -159,8 +159,8 @@ public class TokenTupleSet extends Canonical {
     return tokenTuples.equals(tts.tokenTuples);
   }
 
-    boolean hashcodecomputed;
-    int ourhashcode;
+    boolean hashcodecomputed=false;
+    int ourhashcode=0;
 
 
   public int hashCode() {
@@ -168,6 +168,7 @@ public class TokenTupleSet extends Canonical {
 	  return ourhashcode;
       else {
 	  ourhashcode=tokenTuples.hashCode();
+	  hashcodecomputed=true;
 	  return ourhashcode;
       }
   }
