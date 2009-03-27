@@ -15,7 +15,7 @@ import java.util.Iterator;
  * <code>LoopFinder</code> implements Dominator Tree Loop detection.
  * 
  * @author  Brian Demsky <bdemsky@mit.edu>
- * @version $Id: LoopFinder.java,v 1.1 2009/03/27 00:59:36 bdemsky Exp $
+ * @version $Id: LoopFinder.java,v 1.2 2009/03/27 09:02:25 bdemsky Exp $
  */
 
 public class LoopFinder implements Loops {
@@ -34,7 +34,7 @@ public class LoopFinder implements Loops {
   
   public LoopFinder(FlatMethod hc) {
 	this.hc=hc;
-	this.dominator=new DomTree(hc);
+	this.dominator=new DomTree(hc,false);
 	analyze();
 	this.ptr=root;    
     }
@@ -71,7 +71,7 @@ public class LoopFinder implements Loops {
   public Set loopEntrances() {
     HashSet entries=new HashSet();
     analyze();
-    entries.push(ptr.header);
+    entries.add(ptr.header);
     return entries;
   }
   
@@ -91,13 +91,14 @@ public class LoopFinder implements Loops {
   public Set loopExcElements() {
     analyze();
     HashSet A=new HashSet(ptr.entries);
-    HashSet todo=new WorkSet();
+    HashSet todo=new HashSet();
     //Get the children
     todo.addAll(ptr.children);
 
     //Go down the tree
     while(!todo.isEmpty()) {
-      Loop currptr=(Loop)todo.pop();
+      Loop currptr=(Loop)todo.iterator().next();
+      todo.remove(currptr);
       todo.addAll(currptr.children);
       A.removeAll(currptr.entries);
     }
@@ -111,7 +112,7 @@ public class LoopFinder implements Loops {
     HashSet L=new HashSet();
     Iterator iterate=ptr.children.iterator();
     while (iterate.hasNext())
-      L.add(new LoopFinder(hc,grapher,dominator,root,(Loop) iterate.next()));
+      L.add(new LoopFinder(hc,dominator,root,(Loop) iterate.next()));
     return L;
   }
     
@@ -121,7 +122,7 @@ public class LoopFinder implements Loops {
   public Loops parentLoop() {
     analyze();
     if (ptr.parent!=null)
-      return new LoopFinder(hc,grapher,dominator,root,ptr.parent);
+      return new LoopFinder(hc,dominator,root,ptr.parent);
     else return null;
   }
   
@@ -204,7 +205,7 @@ public class LoopFinder implements Loops {
 		
 		if (stored==0) {
 		    //We get a new child...
-		    treenode.children.push(A);
+		    treenode.children.add(A);
 		    temp=A;
 		}
 		
@@ -231,7 +232,7 @@ public class LoopFinder implements Loops {
 			    //give the child up to it...
 			    
 			    if (temp.entries.contains(temp2.header)) {
-				temp.children.push(temp2);
+				temp.children.add(temp2);
 				iterate2.remove();
 			    }
 		    }
@@ -242,7 +243,9 @@ public class LoopFinder implements Loops {
 	    } else {
 		//need to combine loops
 		while (!A.entries.isEmpty()) {
-		    treenode.entries.push(A.entries.removeLast());
+		  FlatNode node=(FlatNode)A.entries.iterator().next();
+		  A.entries.remove(node);
+		  treenode.entries.add(node);
 		}
 		//let the previous caller know that they have stuff todo
 		return 2;
@@ -260,7 +263,7 @@ public class LoopFinder implements Loops {
 	    visit(current_node);
 	    
 	    //add it to the all inclusive root loop
-	    root.entries.push(current_node);
+	    root.entries.add(current_node);
 	    
 	    //See if those we dominate are backedges
 	    stk.addAll(dominator.children(current_node));
@@ -274,7 +277,7 @@ public class LoopFinder implements Loops {
     //Loop through all of our outgoing edges
     for (int i=0;i<q.numNext();i++) {
       FlatNode temp=q;
-      FlatNode temp_to=q.next(i);
+      FlatNode temp_to=q.getNext(i);
 
       //Go up the dominator tree until
       //we hit the root element or we
@@ -290,27 +293,28 @@ public class LoopFinder implements Loops {
       if (temp_to==temp) {
 	
 	//found a loop
-	A.entries.push(temp); //Push the header
+	A.entries.add(temp); //Push the header
 	A.header=temp;
-	B.push(q); //Put the backedge in the todo list
+	B.add(q); //Put the backedge in the todo list
 	
 	//Starting with the backedge, work on the incoming edges
 	//until we get back to the loop header...
 	//Then we have the entire natural loop
 	
 	while(!B.isEmpty()) {
-	  FlatNode newnode=(FlatNode)B.removeLast();
+	  FlatNode newnode=(FlatNode)B.iterator().next();
+	  B.remove(newnode);
 	  
 	  //Add all of the new incoming edges that we haven't already
 	  //visited
-	  for (int j=0;j<newnode.numPrev;j++) {
-	    FlatNode from=newnode.prev(j);
+	  for (int j=0;j<newnode.numPrev();j++) {
+	    FlatNode from=newnode.getPrev(j);
 	    if (!A.entries.contains(from))
-	      B.push(from);
+	      B.add(from);
 	  }
 	  
 	  //push the new node on our list of nodes in the loop
-	  A.entries.push(newnode);
+	  A.entries.add(newnode);
 	}
 	
 	//save our new loop

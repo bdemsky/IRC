@@ -3,13 +3,28 @@ package Analysis.Loops;
 import IR.Flat.*;
 import java.util.HashSet;
 import java.util.Hashtable;
+import java.util.Set;
+import java.util.Iterator;
 
 public class UseDef{
   Hashtable<TempFlatPair, Set<FlatNode>> defs;
   Hashtable<TempFlatPair, Set<FlatNode>> uses;
 
+  public UseDef() {
+  }
+
   public UseDef(FlatMethod fm) {
     analyze(fm);
+  }
+
+  /* Return FlatNodes that define Temp */
+  public Set<FlatNode> defMap(FlatNode fn, TempDescriptor t) {
+    return defs.get(new TempFlatPair(t,fn));
+  }
+
+  /* Return FlatNodes that use Temp */
+  public Set<FlatNode> useMap(FlatNode fn, TempDescriptor t) {
+    return uses.get(new TempFlatPair(t,fn));
   }
 
   public void analyze(FlatMethod fm) {
@@ -24,7 +39,7 @@ public class UseDef{
       HashSet<TempFlatPair> s=new HashSet<TempFlatPair>();
       for(int i=0;i<fn.numPrev();i++) {
 	FlatNode prev=fn.getPrev(i);
-	HashSet<TempFlatPair> prevs=tmp.get(prev);
+	Set<TempFlatPair> prevs=tmp.get(prev);
 	nexttfp:
 	for(Iterator<TempFlatPair> tfit=prevs.iterator();tfit.hasNext();) {
 	  TempFlatPair tfp=tfit.next();
@@ -43,7 +58,7 @@ public class UseDef{
 	  !tmp.get(fn).equals(s)) {
 	tmp.put(fn,s);
 	for(int i=0;i<fn.numNext();i++)
-	  toanalyze.put(fn.getNext(i));
+	  toanalyze.add(fn.getNext(i));
       }
     }
     Set<FlatNode> fset=fm.getNodeSet();
