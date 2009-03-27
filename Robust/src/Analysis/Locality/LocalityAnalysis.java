@@ -576,11 +576,6 @@ public class LocalityAnalysis {
     currtable.put(fon.getDest(), srcvalue);
   }
 
-  void processOffsetNode(FlatOffsetNode fon, Hashtable<TempDescriptor, Integer> currtable) {
-    /* Just propagate value */
-    currtable.put(fon.getDst(), LOCAL);
-  }
-
   void processCastNode(FlatCastNode fcn, Hashtable<TempDescriptor, Integer> currtable) {
     currtable.put(fcn.getDst(), currtable.get(fcn.getSrc()));
   }
@@ -591,6 +586,10 @@ public class LocalityAnalysis {
       currtable.put(fln.getDst(), EITHER);
     else
       currtable.put(fln.getDst(), LOCAL);
+  }
+
+  void processOffsetNode(FlatOffsetNode fln, Hashtable<TempDescriptor, Integer> currtable) {
+    currtable.put(fln.getDst(), LOCAL);
   }
 
   void processReturnNode(LocalityBinding lb, FlatReturnNode frn, Hashtable<TempDescriptor, Integer> currtable) {
