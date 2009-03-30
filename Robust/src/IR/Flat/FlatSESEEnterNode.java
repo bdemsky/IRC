@@ -22,7 +22,7 @@ public class FlatSESEEnterNode extends FlatNode {
   }
 
   public String toString() {
-    return "sese enter";
+    return "sese "+id+" enter";
   }
 
   public void setFlatExit( FlatSESEExitNode fsexn ) {

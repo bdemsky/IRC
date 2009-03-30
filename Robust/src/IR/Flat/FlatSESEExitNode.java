@@ -23,7 +23,8 @@ public class FlatSESEExitNode extends FlatNode {
   }
 
   public String toString() {
-    return "seseexit";
+    assert enter != null;
+    return "sese "+enter.getIdentifier()+" exit";
   }
 
   public int kind() {
