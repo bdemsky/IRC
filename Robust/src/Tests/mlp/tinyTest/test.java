@@ -4,8 +4,9 @@ public class Test {
 
     int n = 10;
 
-    sese {
-
+    sese s0 {
+      
+      /*
       int[] a = new int[n];
       int[] b = new int[n];
       int[] c = new int[n];
@@ -31,6 +32,9 @@ public class Test {
       }
 
       System.out.println( "total is "+total );
+      */
+
+      int x = n;
     }
 
   }

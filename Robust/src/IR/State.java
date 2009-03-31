@@ -72,6 +72,7 @@ public class State {
   public boolean THREAD=false;
   public boolean CONSCHECK=false;
   public boolean INSTRUCTIONFAILURE=false;
+  public boolean MLP=false;
   public static double TRUEPROB=0.8;
   public static boolean PRINTFLAT=false;
   public static boolean PRINTSCHEDULING=false;

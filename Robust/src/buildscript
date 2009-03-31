@@ -60,6 +60,7 @@ DSMFLAG=false
 NOJAVA=false
 CHECKFLAG=false
 RECOVERFLAG=false
+MLPFLAG=false
 MULTICOREFLAG=false
 TRANSSTATSFLAG=false
 RAWFLAG=false
@@ -215,6 +216,9 @@ JAVAOPTS="$JAVAOPTS -webinterface"
 elif [[ $1 = '-instructionfailures' ]]
 then
 JAVAOPTS="$JAVAOPTS -instructionfailures"
+elif [[ $1 = '-mlp' ]]
+then
+JAVAOPTS="$JAVAOPTS -mlp"
 elif [[ $1 = '-check' ]]
 then
 CHECKFLAG=true
@@ -473,6 +477,11 @@ fi
 if $FASTCHECK
 then
 FILES="$FILES $ROBUSTROOT/Runtime/localobjects.c"
+fi
+
+if $MLP
+then
+FILES="$FILES $ROBUSTROOT/Runtime/mlp_runtime.c"
 fi
 
 if $RECOVERFLAG

@@ -1369,15 +1369,15 @@ atomic_statement ::=
 	:}
 	;
 sese_statement ::=
-
-//	       SESE variable_declarator_id:id LBRACE statement:st RBRACE {: 
-
 	       SESE block:blk {: 
 	       ParseNode pn = new ParseNode("sese");
-
-//	       pn.addChild("identifier").addChild(id);
-
 	       pn.addChild("body").addChild(blk);
+	       RESULT=pn;
+	:}
+	|      SESE variable_declarator_id:id block:blk {: 
+	       ParseNode pn = new ParseNode("sese");
+	       pn.addChild("body").addChild(blk);
+	       pn.addChild("identifier").addChild(id);
 	       RESULT=pn;
 	:}
 	;

@@ -734,8 +734,11 @@ public class BuildIR {
       BlockNode body=parseSingleBlock(pn.getChild("statement").getFirstChild());
       blockstatements.add(new LoopNode(condition,body,LoopNode.DOWHILELOOP));
     } else if (isNode(pn,"sese")) {
-      SESENode start=new SESENode();
-      SESENode end  =new SESENode();
+      ParseNode pnID=pn.getChild("identifier");
+      String stID=null;
+      if( pnID != null ) { stID=pnID.getFirstChild().getTerminal(); }
+      SESENode start=new SESENode(stID);
+      SESENode end  =new SESENode(stID);
       start.setEnd( end   );
       end.setStart( start );
       blockstatements.add(start);

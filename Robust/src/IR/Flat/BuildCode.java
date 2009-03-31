@@ -38,6 +38,7 @@ public class BuildCode {
   public static String PREFIX="";
   public static String arraytype="ArrayObject";
   public static int flagcount = 0;
+  public boolean MLP=false;
   Virtual virtualcalls;
   TypeUtil typeutil;
   protected int maxtaskparams=0;
@@ -74,6 +75,8 @@ public class BuildCode {
       this.backuptable=new Hashtable<TempDescriptor, TempDescriptor>();
       this.reverttable=new Hashtable<LocalityBinding, TempDescriptor>();
     }
+
+    this.MLP=st.MLP;
   }
 
   /** The buildCode method outputs C code for all the methods.  The Flat
@@ -128,6 +131,7 @@ public class BuildCode {
       outmethodheader.println("#include \"abortreaders.h\"");
       outmethodheader.println("#include <setjmp.h>");
     }
+
     /* Output Structures */
     outputStructs(outstructs);
 
@@ -347,9 +351,12 @@ public class BuildCode {
     if (state.CONSCHECK) {
       outmethod.println("#include \"checkers.h\"");
     }
+    if (state.MLP) {
+      outmethod.println("#include \"mlp_runtime.h\"");
+    }
+
     //Store the sizes of classes & array elements
     generateSizeArray(outmethod);
-
 
     //Store table of supertypes
     generateSuperTypeTable(outmethod);
@@ -1515,11 +1522,11 @@ public class BuildCode {
       return;
 
     case FKind.FlatSESEEnterNode:
-      generateFlatSESEEnterNode(fm, lb, (FlatSESEEnterNode) fn, output);
+      if( MLP ) generateFlatSESEEnterNode(fm, lb, (FlatSESEEnterNode) fn, output);
       return;
 
     case FKind.FlatSESEExitNode:
-      generateFlatSESEExitNode(fm, lb, (FlatSESEExitNode) fn, output);
+      if( MLP ) generateFlatSESEExitNode(fm, lb, (FlatSESEExitNode) fn, output);
       return;
 
     case FKind.FlatGlobalConvNode:
@@ -1871,11 +1878,11 @@ public class BuildCode {
   }
 
   public void generateFlatSESEEnterNode(FlatMethod fm,  LocalityBinding lb, FlatSESEEnterNode faen, PrintWriter output) {
-    
+    output.println("mlpEnqueue( (struct SESE*)0 );");
   }
 
   public void generateFlatSESEExitNode(FlatMethod fm,  LocalityBinding lb, FlatSESEExitNode faen, PrintWriter output) {
-    
+    output.println("mlpNotifyExit( (struct SESE*)0 );");
   }
 
   private void generateFlatCheckNode(FlatMethod fm,  LocalityBinding lb, FlatCheckNode fcn, PrintWriter output) {

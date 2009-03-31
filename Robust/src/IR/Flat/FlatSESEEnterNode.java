@@ -10,7 +10,7 @@ public class FlatSESEEnterNode extends FlatNode {
 
   public FlatSESEEnterNode( SESENode sn ) {
     this.id=identifier++;
-    treeNode = sn;
+    treeNode = sn;    
   }
 
   public SESENode getTreeNode() {
@@ -21,8 +21,15 @@ public class FlatSESEEnterNode extends FlatNode {
     return id;
   }
 
+  public String getPrettyIdentifier() {    
+    if( treeNode.getID() != null ) {
+      return treeNode.getID();
+    }     
+    return ""+id;
+  }
+
   public String toString() {
-    return "sese "+id+" enter";
+    return "sese "+getPrettyIdentifier()+" enter";
   }
 
   public void setFlatExit( FlatSESEExitNode fsexn ) {

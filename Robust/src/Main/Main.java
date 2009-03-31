@@ -145,6 +145,8 @@ public class Main {
 	state.INSTRUCTIONFAILURE=true;
       else if (option.equals("-abcclose"))
 	state.ARRAYBOUNDARYCHECK=false;
+      else if (option.equals("-mlp"))
+	state.MLP=true;
       else if (option.equals("-help")) {
 	System.out.println("-classlibrary classlibrarydirectory -- directory where classlibrary is located");
 	System.out.println("-selfloop task -- this task doesn't self loop its parameters forever");
@@ -173,6 +175,7 @@ public class Main {
 	System.out.println("-optional -- enable optional arguments");
 	System.out.println("-abcclose close the array boundary check");
 	System.out.println("-scheduling do task scheduling");
+	System.out.println("-mlp build mlp code");
 	System.out.println("-multicore generate multi-core version binary");
 	System.out.println("-numcore set the number of cores (should be used together with -multicore), defaultly set as 1");
 	System.out.println("-raw generate raw version binary (should be used together with -multicore)");

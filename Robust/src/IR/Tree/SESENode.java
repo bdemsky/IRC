@@ -4,6 +4,8 @@ import IR.Flat.FlatSESEExitNode;
 
 public class SESENode extends BlockStatementNode {
 
+  protected String id;
+
   protected SESENode start;
   protected SESENode end;
 
@@ -11,13 +13,17 @@ public class SESENode extends BlockStatementNode {
   protected FlatSESEExitNode  exit;
 
 
-  public SESENode() {
+  public SESENode( String id ) {
+    this.id = id;
     start = null;
     end   = null;
     enter = null;
     exit  = null;
   }
 
+  public String getID() {
+    return id;
+  }
 
   public void setStart( SESENode n ) {
     start = n;

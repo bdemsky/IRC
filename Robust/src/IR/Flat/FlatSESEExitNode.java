@@ -24,7 +24,7 @@ public class FlatSESEExitNode extends FlatNode {
 
   public String toString() {
     assert enter != null;
-    return "sese "+enter.getIdentifier()+" exit";
+    return "sese "+enter.getPrettyIdentifier()+" exit";
   }
 
   public int kind() {
