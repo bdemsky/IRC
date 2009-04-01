@@ -139,6 +139,8 @@ public class Main {
 	state.THREAD=true;
       else if (option.equals("-dsm"))
 	state.DSM=true;
+      else if (option.equals("-singleTM"))
+	state.SINGLETM=true;
       else if (option.equals("-webinterface"))
 	state.WEBINTERFACE=true;
       else if (option.equals("-instructionfailures"))
@@ -154,6 +156,7 @@ public class Main {
 	System.out.println("-struct structfile -- output structure declarations for repair tool");
 	System.out.println("-mainclass -- main function to call");
 	System.out.println("-dsm -- distributed shared memory support");
+	System.out.println("-singleTM -- single machine committing transactions");
 	System.out.println("-abortreaders -- abort readers");
 	System.out.println("-precise -- use precise garbage collection");
 	System.out.println("-conscheck -- turn on consistency checking");

@@ -3,6 +3,7 @@
 printhelp() {
 echo -robustroot set up the ROBUSTROOT to directory other than default one
 echo -dsm distributed shared memory
+echo -singleTM single machine committing transactions
 echo -abortreaders abort readers immediately
 echo -trueprob double - probabiltiy of true branch
 echo -dsmcaching -enable caching in dsm runtime
@@ -57,6 +58,7 @@ DSMRUNTIME=$ROBUSTROOT/Runtime/DSTM/interface/
 REPAIRROOT=~/research/Repair/RepairCompiler/
 CURDIR=`pwd`
 DSMFLAG=false
+SINGLETM=false
 NOJAVA=false
 CHECKFLAG=false
 RECOVERFLAG=false
@@ -136,6 +138,10 @@ elif [[ $1 = '-dsm' ]]
 then
 JAVAOPTS="$JAVAOPTS -dsm"
 DSMFLAG=true
+elif [[ $1 = '-singleTM' ]]
+then
+JAVAOPTS="$JAVAOPTS -singleTM"
+SINGLETM=true
 elif [[ $1 = '-prefetch' ]]
 then
 JAVAOPTS="$JAVAOPTS -prefetch"
@@ -467,6 +473,12 @@ then
 EXTRAOPTIONS="$EXTRAOPTIONS -lpthread -DTRANSSTATS -DCOMPILER -DDSTM -I$DSMRUNTIME"
 fi
 FILES="$FILES $DSMRUNTIME/trans.c $DSMRUNTIME/mcpileq.c $DSMRUNTIME/objstr.c $DSMRUNTIME/dstm.c $DSMRUNTIME/mlookup.c $DSMRUNTIME/clookup.c $DSMRUNTIME/llookup.c $DSMRUNTIME/threadnotify.c $DSMRUNTIME/dstmserver.c $DSMRUNTIME/plookup.c $DSMRUNTIME/ip.c $DSMRUNTIME/queue.c $DSMRUNTIME/prelookup.c $DSMRUNTIME/machinepile.c $ROBUSTROOT/Runtime/localobjects.c $ROBUSTROOT/Runtime/thread.c $DSMRUNTIME/sockpool.c $DSMRUNTIME/addUdpEnhance.c $DSMRUNTIME/signal.c $DSMRUNTIME/gCollect.c $DSMRUNTIME/addPrefetchEnhance.c $DSMRUNTIME/dsmlock.c $DSMRUNTIME/prefetch.c"
+fi
+
+if $SINGLETM
+then
+EXTRAOPTIONS="$EXTRAOPTIONS -lpthread -DCOMPILER -I$DSMRUNTIME"
+FILES="$FILES $DSMRUNTIME/singleTMCommit.c $DSMRUNTIME/objstr.c $DSMRUNTIME/clookup.c $DSMRUNTIME/threadnotify.c"
 fi
 
 if $ABORTREADERS
