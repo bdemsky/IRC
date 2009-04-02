@@ -1,6 +1,15 @@
 package Analysis.Loops;
 
 import IR.Flat.*;
+import IR.FieldDescriptor;
+import IR.TypeDescriptor;
+import IR.TypeUtil;
+import IR.Operation;
+import java.util.Iterator;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.Vector;
+import java.util.Hashtable;
 
 public class LoopInvariant {
   public LoopInvariant(TypeUtil typeutil) {
@@ -8,18 +17,20 @@ public class LoopInvariant {
   }
   LoopFinder loops;
   DomTree posttree;
-  Hashtable<Loops, Set<FlatNode>> table;
+  Hashtable<Loops, Vector<FlatNode>> table;
   Set<FlatNode> hoisted;
   UseDef usedef;
   TypeUtil typeutil;
+  Set tounroll;
 
   public void analyze(FlatMethod fm) {
     loops=new LoopFinder(fm);
-    Loops root=loops.getRootLoop(fm);
-    table=new Hashtable<Loops, Set<FlatNode>>();
+    Loops root=loops.getRootloop(fm);
+    table=new Hashtable<Loops, Vector<FlatNode>>();
     hoisted=new HashSet<FlatNode>();
     usedef=new UseDef(fm);
     posttree=new DomTree(fm,true);
+    tounroll=new HashSet();
     recurse(root);
   }
 
@@ -40,18 +51,18 @@ public class LoopInvariant {
 
     HashSet<FieldDescriptor> fields=new HashSet<FieldDescriptor>();
     HashSet<TypeDescriptor> types=new HashSet<TypeDescriptor>();
-
+    
     if (!isLeaf) {
       unsafe=true; 
     } else {
       /* Check whether it is safe to reuse values. */
       for(Iterator elit=elements.iterator();elit.hasNext();) {
-	FlatNode fn=elit.next();
+	FlatNode fn=(FlatNode)elit.next();
 	if (fn.kind()==FKind.FlatAtomicEnterNode||
 	    fn.kind()==FKind.FlatAtomicExitNode||
-	    fn.kind()==FKind.Call) {
+	    fn.kind()==FKind.FlatCall) {
 	  unsafe=true;
-qq	  break;
+	  break;
 	} else if (fn.kind()==FKind.FlatSetFieldNode) {
 	  FlatSetFieldNode fsfn=(FlatSetFieldNode)fn;
 	  fields.add(fsfn.getField());
@@ -62,10 +73,10 @@ qq	  break;
       }   
     }
     
-    HashSet dominatorset=computeAlways(l);
+    HashSet dominatorset=unsafe?null:computeAlways(l);
 
     /* Compute loop invariants */
-    table.put(l, new HashSet<FlatNode>());
+    table.put(l, new Vector<FlatNode>());
     while(changed) {
       changed=false;
       nextfn:
@@ -73,8 +84,8 @@ qq	  break;
 	FlatNode fn=(FlatNode)tpit.next();
 	switch(fn.kind()) {
 	case FKind.FlatOpNode:
-	  int op=((FlatOpNode)fn).getOperation();
-	  if (op==Operation.DIV||op==Operation.MID||
+	  int op=((FlatOpNode)fn).getOp().getOp();
+	  if (op==Operation.DIV||op==Operation.MOD||
 	      checkNode(fn,elements)) {
 	    continue nextfn;
 	  }
@@ -91,13 +102,15 @@ qq	  break;
 	      checkNode(fn,elements))
 	    continue nextfn;
 	  TypeDescriptor td=((FlatElementNode)fn).getSrc().getType();
-	  for(Iterator<TypeDescriptor> tpit=types.iterator();tpit.hasNext();) {
-	    TypeDescriptor td2=tpit.next();
+	  for(Iterator<TypeDescriptor> tdit=types.iterator();tdit.hasNext();) {
+	    TypeDescriptor td2=tdit.next();
 	    if (typeutil.isSuperorType(td,td2)||
 		typeutil.isSuperorType(td2,td)) {
 	      continue nextfn;
 	    }
 	  }
+	  if (isLeaf)
+	    tounroll.add(l);
 	  break;
 
 	case FKind.FlatFieldNode:
@@ -106,6 +119,8 @@ qq	  break;
 	      checkNode(fn,elements)) {
 	    continue nextfn;
 	  }
+	  if (isLeaf)
+	    tounroll.add(l);
 	  break;
 
 	default:
@@ -121,22 +136,21 @@ qq	  break;
   public HashSet computeAlways(Loops l) {
     /* Compute nodes that are always executed in loop */
     HashSet dominatorset=null;
-    if (!unsafe) {
-      /* Compute nodes that definitely get executed in a loop */
-      Set entrances=l.loopEntraces();
-      assert entrances.size()==1;
-      FlatNode entrance=(FlatNode)entrances.iterator().next();
-      boolean first=true;
-      for (int i=0;i<entrances.numPrev();i++) {
-	FlatNode incoming=entrence.getPrev(i);
-	if (elements.contains(incoming)) {
-	  HashSet domset=new HashSet();
-	  domset.add(incoming);
-	  FlatNode tmp=incoming;
-	  while(tmp!=entrance) {
-	    tmp=domtree.idom(tmp);
-	    domset.add(tmp);
-	  }
+    /* Compute nodes that definitely get executed in a loop */
+    Set elements=l.loopIncElements();
+    Set entrances=l.loopEntrances();
+    assert entrances.size()==1;
+    FlatNode entrance=(FlatNode)entrances.iterator().next();
+    boolean first=true;
+    for (int i=0;i<entrance.numPrev();i++) {
+      FlatNode incoming=entrance.getPrev(i);
+      if (elements.contains(incoming)) {
+	HashSet domset=new HashSet();
+	domset.add(incoming);
+	FlatNode tmp=incoming;
+	while(tmp!=entrance) {
+	  tmp=posttree.idom(tmp);
+	  domset.add(tmp);
 	}
 	if (first) {
 	  dominatorset=domset;
@@ -144,7 +158,7 @@ qq	  break;
 	} else {
 	  for(Iterator it=dominatorset.iterator();it.hasNext();) {
 	    FlatNode fn=(FlatNode)it.next();
-	    if (!domset.containsKey(fn))
+	    if (!domset.contains(fn))
 	      it.remove();
 	  }
 	}

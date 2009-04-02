@@ -19,12 +19,20 @@ public class UseDef{
 
   /* Return FlatNodes that define Temp */
   public Set<FlatNode> defMap(FlatNode fn, TempDescriptor t) {
-    return defs.get(new TempFlatPair(t,fn));
+    Set<FlatNode> s=defs.get(new TempFlatPair(t,fn));
+    if (s==null)
+      return new HashSet<FlatNode>();
+    else
+      return s;
   }
 
   /* Return FlatNodes that use Temp */
   public Set<FlatNode> useMap(FlatNode fn, TempDescriptor t) {
-    return uses.get(new TempFlatPair(t,fn));
+    Set<FlatNode> s=uses.get(new TempFlatPair(t,fn));
+    if (s==null)
+      return new HashSet<FlatNode>();
+    else
+      return s;
   }
 
   public void analyze(FlatMethod fm) {
@@ -40,14 +48,16 @@ public class UseDef{
       for(int i=0;i<fn.numPrev();i++) {
 	FlatNode prev=fn.getPrev(i);
 	Set<TempFlatPair> prevs=tmp.get(prev);
-	nexttfp:
-	for(Iterator<TempFlatPair> tfit=prevs.iterator();tfit.hasNext();) {
-	  TempFlatPair tfp=tfit.next();
-	  for(int j=0;j<fnwrites.length;j++) {
-	    if (tfp.t==fnwrites[j])
-	      continue nexttfp;
+	if (prevs!=null) {
+	  nexttfp:
+	  for(Iterator<TempFlatPair> tfit=prevs.iterator();tfit.hasNext();) {
+	    TempFlatPair tfp=tfit.next();
+	    for(int j=0;j<fnwrites.length;j++) {
+	      if (tfp.t==fnwrites[j])
+		continue nexttfp;
+	    }
+	    s.add(tfp);
 	  }
-	  s.add(tfp);
 	}
 	for(int j=0;j<fnwrites.length;j++) {
 	  TempFlatPair tfp=new TempFlatPair(fnwrites[j], fn);
