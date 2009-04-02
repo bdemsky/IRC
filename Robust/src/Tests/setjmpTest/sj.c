@@ -62,7 +62,7 @@ void mlpBlock( int id ) {
   }						
 
 
-#define mlpNotifyExit( id )					\
+#define mlpNotifyExit()						\
   while( !isEmpty( current->childQ ) ) {			\
     current->child = getItem( current->childQ );		\
     current = (SESE*) current->child;				\
@@ -75,6 +75,23 @@ void mlpBlock( int id ) {
     current = (SESE*) current->parent;				\
     longjmp( current->buf, 1 );					\
   }
+
+
+
+void foo() {
+  mlpLog( "f" );
+
+  mlpEnqueue( 20 );
+  if( mlpRet ) {
+    mlpLog( "fc" );
+    mlpNotifyExit();
+
+  } else {
+    mlpLog( "fp" );
+    mlpNotifyExit();
+  }  
+}
+
 
 
 int main() {
@@ -98,19 +115,24 @@ int main() {
 	
 	sprintf( lname, "Ls%d", 10 + i );
 	mlpLog( lname );
-	mlpNotifyExit( 10 + i );
+	mlpNotifyExit();
 
       } else {
-	mlpLog( "i" );
+	sprintf( lname, "%d", i );
+	mlpLog( lname );
       }
     }
 
     mlpLog( "x" );
-    mlpNotifyExit( 1 );
+    mlpNotifyExit();
 
   } else {
     mlpLog( "W" );
-    mlpNotifyExit( 0 );
+
+    //foo();
+
+    mlpLog( "X" );
+    mlpNotifyExit();
   }
 
   printf( "End test.\n" );
