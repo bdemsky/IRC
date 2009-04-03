@@ -141,6 +141,7 @@ DSMFLAG=true
 elif [[ $1 = '-singleTM' ]]
 then
 JAVAOPTS="$JAVAOPTS -singleTM"
+EXTRAOPTIONS="$EXTRAOPTIONS -DSTM"
 SINGLETM=true
 elif [[ $1 = '-prefetch' ]]
 then
@@ -477,8 +478,8 @@ fi
 
 if $SINGLETM
 then
-EXTRAOPTIONS="$EXTRAOPTIONS -lpthread -DCOMPILER -I$DSMRUNTIME"
-FILES="$FILES $DSMRUNTIME/singleTMCommit.c $DSMRUNTIME/objstr.c $DSMRUNTIME/clookup.c $DSMRUNTIME/threadnotify.c"
+EXTRAOPTIONS="$EXTRAOPTIONS -lpthread -DCOMPILER"
+FILES="$FILES $DSMRUNTIME/dsmlock.c $DSMRUNTIME/singleTMCommit.c $DSMRUNTIME/clookup.c"
 fi
 
 if $ABORTREADERS
