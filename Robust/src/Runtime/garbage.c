@@ -6,7 +6,7 @@
 #include "chash.h"
 #include "GenericHashtable.h"
 #include <string.h>
-#if defined(THREADS) || defined(DSTM)
+#if defined(THREADS) || defined(DSTM) || defined(STM)
 #include "thread.h"
 #endif
 
@@ -15,6 +15,9 @@
 #endif
 #ifdef DSTM
 #include "dstm.h"
+#endif
+#ifdef STM
+#include "tm.h"
 #endif
 
 #define NUMPTRS 100
@@ -472,7 +475,7 @@ void restartaftergc(struct listitem * litem) {
 
 void * mygcmalloc(struct garbagelist * stackptr, int size) {
   void *ptr;
-#if defined(THREADS)||defined(DSTM)
+#if defined(THREADS)||defined(DSTM)||defined(STM)
   if (pthread_mutex_trylock(&gclock)!=0) {
     struct listitem *tmp=stopforgc(stackptr);
     pthread_mutex_lock(&gclock);
@@ -496,7 +499,7 @@ void * mygcmalloc(struct garbagelist * stackptr, int size) {
       to_heaptop=to_heapbase+INITIALHEAPSIZE;
       to_heapptr=to_heapbase;
       ptr=curr_heapbase;
-#if defined(THREADS)||defined(DSTM)
+#if defined(THREADS)||defined(DSTM)||defined(STM)
       pthread_mutex_unlock(&gclock);
 #endif
       return ptr;
@@ -549,20 +552,20 @@ void * mygcmalloc(struct garbagelist * stackptr, int size) {
 
       /* Not enough room :(, redo gc */
       if (curr_heapptr>curr_heapgcpoint) {
-#if defined(THREADS)||defined(DSTM)
+#if defined(THREADS)||defined(DSTM)||defined(STM)
 	pthread_mutex_unlock(&gclock);
 #endif
 	return mygcmalloc(stackptr, size);
       }
 
       bzero(tmp, curr_heaptop-tmp);
-#if defined(THREADS)||defined(DSTM)
+#if defined(THREADS)||defined(DSTM)||defined(STM)
       pthread_mutex_unlock(&gclock);
 #endif
       return tmp;
     }
   } else {
-#if defined(THREADS)||defined(DSTM)
+#if defined(THREADS)||defined(DSTM)||defined(STM)
     pthread_mutex_unlock(&gclock);
 #endif
     return ptr;
