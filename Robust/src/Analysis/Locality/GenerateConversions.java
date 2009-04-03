@@ -111,7 +111,7 @@ public class GenerateConversions {
 	   * locality. */
 	  for(Iterator<TempDescriptor> writeit=writes.iterator(); writeit.hasNext();) {
 	    TempDescriptor wrtmp=writeit.next();
-	    if (nodetemptab.get(wrtmp)==LocalityAnalysis.GLOBAL) {
+	    if (nodetemptab.get(wrtmp)==LocalityAnalysis.GLOBAL||state.SINGLETM) {
 	      TempNodePair tnp=new TempNodePair(wrtmp);
 	      tempset.add(tnp);
 	    }
@@ -188,7 +188,7 @@ public class GenerateConversions {
 	TempDescriptor [] readtemps=fn.readsTemps();
 	for(int i=0; i<readtemps.length; i++) {
 	  TempDescriptor tmp=readtemps[i];
-	  if (pretemptab.get(tmp).intValue()==LocalityAnalysis.GLOBAL) {
+	  if (pretemptab.get(tmp).intValue()==LocalityAnalysis.GLOBAL||state.SINGLETM) {
 	    transtemps.add(tmp);
 	  }
 	}

@@ -165,7 +165,10 @@ public class LocalityAnalysis {
   }
 
   private void doAnalysis() {
-    computeLocalityBindings();
+    if (state.SINGLETM)
+      computeLocalityBindingsSTM();
+    else
+      computeLocalityBindings();
     computeTempstoSave();
     cleanSets();
   }
@@ -194,6 +197,194 @@ public class LocalityAnalysis {
 	classtolb.get(lb.getMethod().getClassDesc()).remove(lb);
 	methodtolb.get(lb.getMethod()).remove(lb);
       }
+    }
+  }
+
+  private void computeLocalityBindingsSTM() {
+    lbmain=new LocalityBinding(typeutil.getMain(), false);
+    lbtovisit.add(lbmain);
+    discovered.put(lbmain, lbmain);
+    if (!classtolb.containsKey(lbmain.getMethod().getClassDesc()))
+      classtolb.put(lbmain.getMethod().getClassDesc(), new HashSet<LocalityBinding>());
+    classtolb.get(lbmain.getMethod().getClassDesc()).add(lbmain);
+
+    if (!methodtolb.containsKey(lbmain.getMethod()))
+      methodtolb.put(lbmain.getMethod(), new HashSet<LocalityBinding>());
+    methodtolb.get(lbmain.getMethod()).add(lbmain);
+
+    //Do this to force a virtual table number for the run method
+    lbrun=new LocalityBinding(typeutil.getRun(), false);
+    lbtovisit.add(lbrun);
+
+    discovered.put(lbrun, lbrun);
+    if (!classtolb.containsKey(lbrun.getMethod().getClassDesc()))
+      classtolb.put(lbrun.getMethod().getClassDesc(), new HashSet<LocalityBinding>());
+    classtolb.get(lbrun.getMethod().getClassDesc()).add(lbrun);
+
+    if (!methodtolb.containsKey(lbrun.getMethod()))
+      methodtolb.put(lbrun.getMethod(), new HashSet<LocalityBinding>());
+    methodtolb.get(lbrun.getMethod()).add(lbrun);
+
+    while(!lbtovisit.empty()) {
+      LocalityBinding lb=(LocalityBinding) lbtovisit.pop();
+      Integer returnglobal=lb.getGlobalReturn();
+      MethodDescriptor md=lb.getMethod();
+      Hashtable<FlatNode, Integer> atomictable=new Hashtable<FlatNode, Integer>();
+      calldep.remove(lb);
+      try {
+	computeCallsFlagsSTM(md, lb, atomictable);
+      } catch (Error e) {
+	System.out.println("Error in "+md+" context "+lb);
+	e.printStackTrace();
+	System.exit(-1);
+      }
+      atomictab.put(lb, atomictable);
+    }
+  }
+
+  public void computeCallsFlagsSTM(MethodDescriptor md, LocalityBinding lb, Hashtable<FlatNode, Integer> atomictable) {
+    FlatMethod fm=state.getMethodFlat(md);
+    HashSet<FlatNode> tovisit=new HashSet<FlatNode>();
+    tovisit.add(fm.getNext(0));
+    {
+      // Build table for initial node
+      Hashtable<TempDescriptor,Integer> table=new Hashtable<TempDescriptor,Integer>();
+      atomictable.put(fm, lb.isAtomic() ? 1 : 0);
+      int offset=md.isStatic() ? 0 : 1;
+      if (!md.isStatic()) {
+	table.put(fm.getParameter(0), lb.getGlobalThis());
+      }
+      for(int i=offset; i<fm.numParameters(); i++) {
+	TempDescriptor temp=fm.getParameter(i);
+	Integer b=lb.isGlobal(i-offset);
+	table.put(temp,b);
+      }
+    }
+
+    while(!tovisit.isEmpty()) {
+      FlatNode fn=tovisit.iterator().next();
+      tovisit.remove(fn);
+      Hashtable<TempDescriptor, Integer> currtable=new Hashtable<TempDescriptor, Integer>();
+      int atomicstate=0;
+      for(int i=0; i<fn.numPrev(); i++) {
+	FlatNode prevnode=fn.getPrev(i);
+	if (atomictable.containsKey(prevnode)) {
+	  atomicstate=atomictable.get(prevnode).intValue();
+	}
+      }
+      atomictable.put(fn, atomicstate);
+      // Process this node
+      switch(fn.kind()) {
+      case FKind.FlatAtomicEnterNode:
+	processAtomicEnterNode((FlatAtomicEnterNode)fn, atomictable);
+	if (!lb.isAtomic())
+	  lb.setHasAtomic();
+	break;
+
+      case FKind.FlatAtomicExitNode:
+	processAtomicExitNode((FlatAtomicExitNode)fn, atomictable);
+	break;
+
+      case FKind.FlatCall:
+	processCallNodeSTM(lb, (FlatCall)fn, isAtomic(atomictable, fn));
+	break;
+
+      case FKind.FlatMethod:
+      case FKind.FlatOffsetNode:
+      case FKind.FlatFieldNode:
+      case FKind.FlatSetFieldNode:
+      case FKind.FlatNew:
+      case FKind.FlatOpNode:
+      case FKind.FlatCastNode:
+      case FKind.FlatLiteralNode:
+      case FKind.FlatReturnNode:
+      case FKind.FlatSetElementNode:
+      case FKind.FlatElementNode:
+      case FKind.FlatInstanceOfNode:
+      case FKind.FlatCondBranch:
+      case FKind.FlatBackEdge:
+      case FKind.FlatNop:
+      case FKind.FlatPrefetchNode:
+	//No action needed for these
+	break;
+
+      case FKind.FlatFlagActionNode:
+      case FKind.FlatCheckNode:
+      case FKind.FlatTagDeclaration:
+	throw new Error("Incompatible with tasks!");
+
+      default:
+	throw new Error("In finding fn.kind()= " + fn.kind());
+      }
+    }
+  }
+
+  void processCallNodeSTM(LocalityBinding currlb, FlatCall fc, boolean isatomic) {
+    MethodDescriptor nodemd=fc.getMethod();
+    Set methodset=null;
+    Set runmethodset=null;
+
+    if (nodemd.isStatic()||nodemd.getReturnType()==null) {
+      methodset=new HashSet();
+      methodset.add(nodemd);
+    } else {
+      methodset=callgraph.getMethods(nodemd, fc.getThis().getType());
+      // Build start -> run link
+      if (nodemd.getClassDesc().getSymbol().equals(TypeUtil.ThreadClass)&&
+          nodemd.getSymbol().equals("start")&&!nodemd.getModifiers().isStatic()&&
+          nodemd.numParameters()==1&&nodemd.getParamType(0).isInt()) {
+	assert(nodemd.getModifiers().isNative());
+
+	MethodDescriptor runmd=null;
+	for(Iterator methodit=nodemd.getClassDesc().getMethodTable().getSet("run").iterator(); methodit.hasNext();) {
+	  MethodDescriptor md=(MethodDescriptor) methodit.next();
+	  if (md.numParameters()!=0||md.getModifiers().isStatic())
+	    continue;
+	  runmd=md;
+	  break;
+	}
+	if (runmd!=null) {
+	  runmethodset=callgraph.getMethods(runmd,fc.getThis().getType());
+	  methodset.addAll(runmethodset);
+	} else throw new Error("Can't find run method");
+      }
+    }
+
+    Integer currreturnval=EITHER;     //Start off with the either value
+    for(Iterator methodit=methodset.iterator(); methodit.hasNext();) {
+      MethodDescriptor md=(MethodDescriptor) methodit.next();
+
+      boolean isnative=md.getModifiers().isNative();
+      boolean isjoin = md.getClassDesc().getSymbol().equals(TypeUtil.ThreadClass)&&!nodemd.getModifiers().isStatic()&&nodemd.numParameters()==0&&md.getSymbol().equals("join");
+      boolean isObjectgetType = md.getClassDesc().getSymbol().equals("Object") && md.getSymbol().equals("getType");
+      boolean isObjecthashCode = md.getClassDesc().getSymbol().equals("Object") && md.getSymbol().equals("nativehashCode");
+
+      LocalityBinding lb=new LocalityBinding(md, isatomic);
+      if (isnative&&isatomic) {
+	System.out.println("Don't call native methods in atomic blocks!"+currlb.getMethod());
+      }
+
+      //lb is built
+      if (!discovered.containsKey(lb)) {
+	lb.setParent(currlb);
+	lbtovisit.add(lb);
+	discovered.put(lb, lb);
+	if (!classtolb.containsKey(lb.getMethod().getClassDesc()))
+	  classtolb.put(lb.getMethod().getClassDesc(), new HashSet<LocalityBinding>());
+	classtolb.get(lb.getMethod().getClassDesc()).add(lb);
+	if (!methodtolb.containsKey(lb.getMethod()))
+	  methodtolb.put(lb.getMethod(), new HashSet<LocalityBinding>());
+	methodtolb.get(lb.getMethod()).add(lb);
+      } else
+	lb=discovered.get(lb);
+
+      if (!dependence.containsKey(lb))
+	dependence.put(lb, new HashSet<LocalityBinding>());
+      dependence.get(lb).add(currlb);
+
+      if (!calldep.containsKey(currlb))
+	calldep.put(currlb, new HashSet<LocalityBinding>());
+      calldep.get(currlb).add(lb);
     }
   }
 
@@ -249,6 +440,9 @@ public class LocalityAnalysis {
       }
     }
   }
+
+
+
 
   public void computeCallsFlags(MethodDescriptor md, LocalityBinding lb, Hashtable<FlatNode, Hashtable<TempDescriptor, Integer>> temptable, Hashtable<FlatNode, Integer> atomictable) {
     FlatMethod fm=state.getMethodFlat(md);
