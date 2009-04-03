@@ -197,8 +197,10 @@ public class localCSE {
   public void kill(Hashtable<LocalExpression, Group> tab, TempDescriptor t) {
     LocalExpression e=new LocalExpression(t);
     Group g=tab.get(e);
-    tab.remove(e);
-    g.set.remove(e);
+    if (g!=null) {
+      tab.remove(e);
+      g.set.remove(e);
+    }
   }
 }
 
@@ -220,7 +222,7 @@ class Group {
 
 class LocalExpression {
   Operation op;
-  Object o;
+  Object obj;
   Group a;
   Group b;
   TempDescriptor t;
@@ -230,7 +232,7 @@ class LocalExpression {
     this.t=t;
   }
   LocalExpression(Object o) {
-    this.o=o;
+    this.obj=o;
   }
   LocalExpression(Group a, Group b, Operation op) {
     this.a=a;
@@ -254,30 +256,32 @@ class LocalExpression {
       h^=t.hashCode();
     if (a!=null)
       h^=a.hashCode();
-    if (o!=null)
-      h^=o.hashCode();
     if (op!=null)
       h^=op.getOp();
     if (b!=null)
       h^=b.hashCode();
     if (f!=null)
       h^=f.hashCode();
+    if (obj!=null)
+      h^=obj.hashCode();
     return h;
   }
+  public static boolean equiv(Object a, Object b) {
+    if (a!=null)
+      return a.equals(b);
+    else
+      return b==null;
+  }
+
   public boolean equals(Object o) {
     LocalExpression e=(LocalExpression)o;
-    if (a!=e.a||f!=e.f||b!=e.b)
+    if (!(equiv(a,e.a)&&equiv(f,e.f)&&equiv(b,e.b)&&
+	  equiv(td,e.td)&&equiv(this.obj,e.obj)))
       return false;
-    if (td!=null) {
-      if (!td.equals(e.td))
-	return false;
-    }
-    if (o!=null) {
-      if (e.o==null)
-	return false;
-      return o.equals(e.o);
-    } else if (op!=null)
+    if (op!=null)
       return op.getOp()==e.op.getOp();
+    else if (e.op!=null)
+      return false;
     return true;
   }
 }

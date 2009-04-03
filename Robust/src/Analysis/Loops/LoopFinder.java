@@ -15,7 +15,7 @@ import java.util.Iterator;
  * <code>LoopFinder</code> implements Dominator Tree Loop detection.
  * 
  * @author  Brian Demsky <bdemsky@mit.edu>
- * @version $Id: LoopFinder.java,v 1.2 2009/03/27 09:02:25 bdemsky Exp $
+ * @version $Id: LoopFinder.java,v 1.3 2009/04/03 09:06:12 bdemsky Exp $
  */
 
 public class LoopFinder implements Loops {
@@ -154,6 +154,7 @@ public class LoopFinder implements Loops {
       //nested loop tree
       setofloops=new HashSet();
 
+
       //Find loops
       findloopheaders(hc);
       
@@ -266,7 +267,15 @@ public class LoopFinder implements Loops {
 	    root.entries.add(current_node);
 	    
 	    //See if those we dominate are backedges
-	    stk.addAll(dominator.children(current_node));
+	    Set<FlatNode> children=dominator.children(current_node);
+
+	    if (children!=null) {
+	      for(Iterator<FlatNode> it=children.iterator();it.hasNext();) {
+		FlatNode fn=it.next();
+		if (fn!=current_node)
+		  stk.push(fn);
+	      }
+	    }
 	}
     }
 

@@ -28,13 +28,15 @@ public class DomTree {
 
   public void analyze(FlatMethod fm, boolean postdominator) {
     domtable=new Hashtable<FlatNode, FlatNode>();
+    childtree=new Hashtable<FlatNode, Set<FlatNode>>();
     if (postdominator) {
       Set<FlatNode> fnodes=fm.getNodeSet();
       Vector<FlatNode> v=new Vector<FlatNode>();
       for(Iterator<FlatNode> fit=fnodes.iterator();fit.hasNext();) {
 	FlatNode fn=fit.next();
-	if (fn.numNext()==0)
+	if (fn.numNext()==0) {
 	  v.add(fn);
+	}
       }
       FlatNode[] fnarray=new FlatNode[v.size()];
       for(int i=0;i<v.size();i++) {
@@ -60,8 +62,14 @@ public class DomTree {
 	FlatNode fn=vec.elementAt(i);
 	FlatNode dom=null;
 	for(int j=0;j<(postdominator?fn.numNext():fn.numPrev());j++) {
-	  FlatNode ndom=domtable.get(postdominator?fn.getNext(i):fn.getPrev(i));
-	  dom=intersect(dom,ndom);
+	  FlatNode np=postdominator?fn.getNext(j):fn.getPrev(j);
+	  FlatNode ndom=domtable.get(np);
+	  if (ndom!=null) {
+	    if (dom==null)
+	      dom=np;
+	    else
+	      dom=intersect(dom,np);
+	  }
 	}
 	if (!domtable.containsKey(fn)||
 	    !domtable.get(fn).equals(dom)) {

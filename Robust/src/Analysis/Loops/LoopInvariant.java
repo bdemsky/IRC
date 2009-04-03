@@ -17,16 +17,17 @@ public class LoopInvariant {
   }
   LoopFinder loops;
   DomTree posttree;
-  Hashtable<Loops, Vector<FlatNode>> table;
+  Hashtable<FlatNode, Vector<FlatNode>> table;
   Set<FlatNode> hoisted;
   UseDef usedef;
   TypeUtil typeutil;
   Set tounroll;
+  Loops root;
 
   public void analyze(FlatMethod fm) {
     loops=new LoopFinder(fm);
-    Loops root=loops.getRootloop(fm);
-    table=new Hashtable<Loops, Vector<FlatNode>>();
+    root=loops.getRootloop(fm);
+    table=new Hashtable<FlatNode, Vector<FlatNode>>();
     hoisted=new HashSet<FlatNode>();
     usedef=new UseDef(fm);
     posttree=new DomTree(fm,true);
@@ -35,9 +36,9 @@ public class LoopInvariant {
   }
 
   public void recurse(Loops parent) {
-    processLoop(parent, parent.nestedLoops().size()==0);
     for(Iterator lpit=parent.nestedLoops().iterator();lpit.hasNext();) {
       Loops child=(Loops)lpit.next();
+      processLoop(child, child.nestedLoops().size()==0);
       recurse(child);
     }
   }
@@ -48,6 +49,9 @@ public class LoopInvariant {
     Set elements=l.loopIncElements();
     Set toprocess=l.loopIncElements();
     toprocess.removeAll(hoisted);
+    Set entrances=l.loopEntrances();
+    assert entrances.size()==1;
+    FlatNode entrance=(FlatNode)entrances.iterator().next();
 
     HashSet<FieldDescriptor> fields=new HashSet<FieldDescriptor>();
     HashSet<TypeDescriptor> types=new HashSet<TypeDescriptor>();
@@ -76,7 +80,7 @@ public class LoopInvariant {
     HashSet dominatorset=unsafe?null:computeAlways(l);
 
     /* Compute loop invariants */
-    table.put(l, new Vector<FlatNode>());
+    table.put(entrance, new Vector<FlatNode>());
     while(changed) {
       changed=false;
       nextfn:
@@ -98,7 +102,8 @@ public class LoopInvariant {
 	  break;
 
 	case FKind.FlatElementNode:
-	  if (unsafe||!dominatorset.contains(fn)||
+	  if (unsafe||dominatorset==null||
+	      !dominatorset.contains(fn)||
 	      checkNode(fn,elements))
 	    continue nextfn;
 	  TypeDescriptor td=((FlatElementNode)fn).getSrc().getType();
@@ -114,7 +119,8 @@ public class LoopInvariant {
 	  break;
 
 	case FKind.FlatFieldNode:
-	  if (unsafe||!dominatorset.contains(fn)||
+	  if (unsafe||dominatorset==null||
+	      !dominatorset.contains(fn)||
 	      fields.contains(((FlatFieldNode)fn).getField())||
 	      checkNode(fn,elements)) {
 	    continue nextfn;
@@ -128,7 +134,7 @@ public class LoopInvariant {
 	}
 	//mark to hoist
 	hoisted.add(fn);
-	table.get(l).add(fn);
+	table.get(entrance).add(fn);
       }
     }
   }

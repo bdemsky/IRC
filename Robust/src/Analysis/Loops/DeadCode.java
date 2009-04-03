@@ -29,6 +29,7 @@ public class DeadCode {
 	case FKind.FlatFlagActionNode:
 	case FKind.FlatCheckNode:
 	case FKind.FlatBackEdge:
+	case FKind.FlatExit:
 	case FKind.FlatTagDeclaration:
 	case FKind.FlatMethod:
 	case FKind.FlatAtomicEnterNode:
@@ -74,8 +75,10 @@ public class DeadCode {
       if (!useful.contains(fn)) {
 	//We have a useless node
 	FlatNode fnnext=fn.getNext(0);
+
 	for(int i=0;i<fn.numPrev();i++) {
 	  FlatNode nprev=fn.getPrev(i);
+	      
 	  for(int j=0;j<nprev.numNext();j++) {
 	    if (nprev.getNext(j)==fn) {
 	      nprev.setnext(j, fnnext);

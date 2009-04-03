@@ -18,13 +18,13 @@ public class LoopOptimize {
     dooptimize(fm);
   } 
   private void dooptimize(FlatMethod fm) {
-    Loops root=loopinv.loops.getRootloop(fm);
+    Loops root=loopinv.root;
     recurse(root);
   }
   private void recurse(Loops parent) {
-    processLoop(parent);
     for(Iterator lpit=parent.nestedLoops().iterator();lpit.hasNext();) {
       Loops child=(Loops)lpit.next();
+      processLoop(child);
       recurse(child);
     }
   }
@@ -36,21 +36,33 @@ public class LoopOptimize {
     }
   }
   public void hoistOps(Loops l) {
-    Vector<FlatNode> tohoist=loopinv.table.get(l);
+    Set entrances=l.loopEntrances();
+    assert entrances.size()==1;
+    FlatNode entrance=(FlatNode)entrances.iterator().next();
+    Vector<FlatNode> tohoist=loopinv.table.get(entrance);
     Set lelements=l.loopIncElements();
     TempMap t=new TempMap();
+    TempMap tnone=new TempMap();
     FlatNode first=null;
     FlatNode last=null;
+    if (tohoist.size()==0)
+      return;
+
     for(int i=0;i<tohoist.size();i++) {
       FlatNode fn=tohoist.elementAt(i);
       TempDescriptor[] writes=fn.writesTemps();
+      FlatNode fnnew=fn.clone(tnone);
+
+      fnnew.rewriteUse(t);
+
       for(int j=0;j<writes.length;j++) {
-	if (writes[j]!=null&&!t.maps(writes[j])) {
+	if (writes[j]!=null) {
 	  TempDescriptor cp=writes[j].createNew();
 	  t.addPair(writes[j],cp);
 	}
       }
-      FlatNode fnnew=fn.clone(t);
+      fnnew.rewriteDef(t);
+
       if (first==null)
 	first=fnnew;
       else
@@ -58,18 +70,23 @@ public class LoopOptimize {
       last=fnnew;
       /* Splice out old node */
       if (writes.length==1) {
-	FlatOpNode fon=new FlatOpNode(t.tempMap(writes[0]),writes[0], null, new Operation(Operation.ASSIGN));
+	FlatOpNode fon=new FlatOpNode(writes[0], t.tempMap(writes[0]), null, new Operation(Operation.ASSIGN));
 	fn.replace(fon);
+	if (fn==entrance)
+	  entrance=fon;
       } else if (writes.length>1) {
 	throw new Error();
       }
     }
     /* The chain is built at this point. */
     
-    assert l.loopEntrances().size()==1;
-    FlatNode entrance=(FlatNode)l.loopEntrances().iterator().next();
+    FlatNode[] prevarray=new FlatNode[entrance.numPrev()];
     for(int i=0;i<entrance.numPrev();i++) {
-      FlatNode prev=entrance.getPrev(i);
+      prevarray[i]=entrance.getPrev(i);
+    }
+    for(int i=0;i<prevarray.length;i++) {
+      FlatNode prev=prevarray[i];
+
       if (!lelements.contains(prev)) {
 	//need to fix this edge
 	for(int j=0;j<prev.numNext();j++) {
