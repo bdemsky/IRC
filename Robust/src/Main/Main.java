@@ -40,6 +40,9 @@ import Analysis.Locality.GenerateConversions;
 import Analysis.Prefetch.PrefetchAnalysis;
 import Analysis.FlatIRGraph.FlatIRGraph;
 import Analysis.OwnershipAnalysis.OwnershipAnalysis;
+import Analysis.Loops.*;
+import IR.MethodDescriptor;
+import IR.Flat.FlatMethod;
 import Interface.*;
 import Util.GraphNode;
 import Util.GraphNode.DFS;
@@ -127,6 +130,8 @@ public class Main {
 	state.OWNERSHIPALIASFILE=args[++i];
       else if (option.equals("-optional"))
 	state.OPTIONAL=true;
+      else if (option.equals("-optimize"))
+	state.OPTIMIZE=true;
       else if (option.equals("-raw"))
 	state.RAW=true;
       else if (option.equals("-scheduling"))
@@ -175,6 +180,7 @@ public class Main {
 	System.out.println("-ownallocdepth <d> -- set allocation depth for ownership analysis");
 	System.out.println("-ownwritedots <all/final> -- write ownership graphs; can be all results or just final results");
 	System.out.println("-ownaliasfile <filename> -- write a text file showing all detected aliases in program tasks");
+	System.out.println("-optimize -- enable optimizations");
 	System.out.println("-optional -- enable optional arguments");
 	System.out.println("-abcclose close the array boundary check");
 	System.out.println("-scheduling do task scheduling");
@@ -234,6 +240,35 @@ public class Main {
     bf.buildFlat();
     SafetyAnalysis sa=null;
     PrefetchAnalysis pa=null;
+
+    if (state.OPTIMIZE) {
+      CallGraph callgraph=new CallGraph(state);
+      CopyPropagation cp=new CopyPropagation();
+      DeadCode dc=new DeadCode();
+      GlobalFieldType gft=new GlobalFieldType(callgraph, state, tu.getMain());
+      CSE cse=new CSE(gft, tu);
+      localCSE lcse=new localCSE(gft, tu);
+      LoopOptimize lo=new LoopOptimize(tu);
+      Iterator classit=state.getClassSymbolTable().getDescriptorsIterator();
+      while(classit.hasNext()) {
+        ClassDescriptor cn=(ClassDescriptor)classit.next();
+        Iterator methodit=cn.getMethods();
+        while(methodit.hasNext()) {
+          /* Classify parameters */
+          MethodDescriptor md=(MethodDescriptor)methodit.next();
+          FlatMethod fm=state.getMethodFlat(md);
+	  cp.optimize(fm);
+	  dc.optimize(fm);
+	  lo.optimize(fm);
+	  cp.optimize(fm);
+	  dc.optimize(fm);
+	  lcse.doAnalysis(fm);
+	  cse.doAnalysis(fm);
+        }
+      }
+    }
+    
+
 
     if (state.TAGSTATE) {
       CallGraph callgraph=new CallGraph(state);
@@ -363,7 +398,7 @@ public class Main {
       g = new Parse.Parser(l);
       ParseNode p=null;
       try {
-	p=(ParseNode) g./*debug_*/ parse().value;
+	p=(ParseNode) g./*debug_*/parse().value;
       } catch (Exception e) {
 	System.err.println("Error parsing file:"+sourcefile);
 	e.printStackTrace();
