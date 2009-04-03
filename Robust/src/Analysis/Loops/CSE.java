@@ -37,27 +37,8 @@ public class CSE {
 	  discovered.add(nnext);
 	}
       }
-      Hashtable<Expression, TempDescriptor> tab=new Hashtable<Expression, TempDescriptor>();
-      boolean first=true;
-      
-      //compute intersection
-      for(int i=0;i<fn.numPrev();i++) {
-	FlatNode prev=fn.getPrev(i);
-	if (first) {
-	  if (availexpr.containsKey(prev))
-	    tab.putAll(availexpr.get(prev));
-	  first=false;
-	} else {
-	  if (availexpr.containsKey(prev)) {
-	    Hashtable<Expression, TempDescriptor> table=availexpr.get(prev);
-	    for(Iterator mapit=tab.entrySet().iterator();mapit.hasNext();) {
-	      Object entry=mapit.next();
-	      if (!table.contains(entry))
-		mapit.remove();
-	    }
-	  }
-	}
-      }
+      Hashtable<Expression, TempDescriptor> tab=computeIntersection(fn, availexpr);
+
       //Do kills of expression/variable mappings
       TempDescriptor[] write=fn.writesTemps();
       for(int i=0;i<write.length;i++) {
@@ -133,6 +114,75 @@ public class CSE {
 	}
       }
     }
+    doOptimize(fm, availexpr);
+  }
+    
+  public void doOptimize(FlatMethod fm, Hashtable<FlatNode,Hashtable<Expression, TempDescriptor>> availexpr) {
+      for(Iterator<FlatNode> it=fm.getNodeSet().iterator();it.hasNext();) {
+	  FlatNode fn=it.next();
+	  Hashtable<Expression, TempDescriptor> tab=computeIntersection(fn, availexpr);
+	  switch(fn.kind()) {
+	  case FKind.FlatOpNode:
+	      {
+		  FlatOpNode fon=(FlatOpNode) fn;
+		  Expression e=new Expression(fon.getLeft(), fon.getRight(),fon.getOp());
+		  if (tab.containsKey(e)) {
+		      TempDescriptor t=tab.get(e);
+		      FlatOpNode newfon=new FlatOpNode(fon.getDest(),t,null,new Operation(Operation.ASSIGN));
+		      fon.replace(newfon);
+		  }
+		  break;
+	      }
+	  case FKind.FlatFieldNode:
+	      {
+		  FlatFieldNode ffn=(FlatFieldNode)fn;
+		  Expression e=new Expression(ffn.getSrc(), ffn.getField());
+		  if (tab.containsKey(e)) {
+		      TempDescriptor t=tab.get(e);
+		      FlatOpNode newfon=new FlatOpNode(ffn.getDst(),t,null,new Operation(Operation.ASSIGN));
+		      ffn.replace(newfon);
+		  }
+		  break;
+	      }
+	  case FKind.FlatElementNode:
+	      {
+		  FlatElementNode fen=(FlatElementNode)fn;
+		  Expression e=new Expression(fen.getSrc(),fen.getIndex());
+		  if (tab.containsKey(e)) {
+		      TempDescriptor t=tab.get(e);
+		      FlatOpNode newfon=new FlatOpNode(fen.getDst(),t,null,new Operation(Operation.ASSIGN));
+		      fen.replace(newfon);
+		  }
+		  break;
+	      }
+	  default: 
+	  }
+      }
+  }
+
+  public Hashtable<Expression, TempDescriptor> computeIntersection(FlatNode fn, Hashtable<FlatNode,Hashtable<Expression, TempDescriptor>> availexpr) {
+    Hashtable<Expression, TempDescriptor> tab=new Hashtable<Expression, TempDescriptor>();
+    boolean first=true;
+    
+    //compute intersection
+    for(int i=0;i<fn.numPrev();i++) {
+      FlatNode prev=fn.getPrev(i);
+      if (first) {
+	if (availexpr.containsKey(prev))
+	  tab.putAll(availexpr.get(prev));
+	first=false;
+      } else {
+	if (availexpr.containsKey(prev)) {
+	  Hashtable<Expression, TempDescriptor> table=availexpr.get(prev);
+	  for(Iterator mapit=tab.entrySet().iterator();mapit.hasNext();) {
+	    Object entry=mapit.next();
+	    if (!table.contains(entry))
+	      mapit.remove();
+	  }
+	}
+      }
+    }
+    return tab;
   }
 
   public void killexpressions(Hashtable<Expression, TempDescriptor> tab, Set<FieldDescriptor> fields, Set<TypeDescriptor> arrays) {
