@@ -6,9 +6,12 @@ public class FlatAtomicExitNode extends FlatNode {
   public FlatAtomicExitNode(FlatAtomicEnterNode faen) {
     this.faen=faen;
   }
-
   public FlatAtomicEnterNode getAtomicEnter() {
     return faen;
+  }
+  public void rewriteUse() {
+  }
+  public void rewriteDef() {
   }
 
   public String toString() {

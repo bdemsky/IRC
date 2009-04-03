@@ -141,10 +141,18 @@ public class FlatMethod extends FlatNode {
       if (current_node==null) {
 	current_node=(FlatNode)tovisit.iterator().next();
 	tovisit.remove(current_node);
+      } else {
+	if (tovisit.contains(current_node))
+	  tovisit.remove(current_node);
       }
       visited.add(current_node);
-      if (nodetolabel.containsKey(current_node))
+      if (nodetolabel.containsKey(current_node)) {
 	st+="L"+nodetolabel.get(current_node)+":\n";
+	for(int i=0;i<current_node.numPrev();i++) {
+	  st+="i="+i+" "+current_node.getPrev(i);
+	}
+	st+="\n";
+      }
       if (current_node.numNext()==0) {
 	if (map==null)
 	  st+="   "+current_node.toString()+"\n";

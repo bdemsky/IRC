@@ -26,4 +26,5 @@ public class FKind {
   public static final int FlatSESEEnterNode=23;
   public static final int FlatSESEExitNode=24;
   public static final int FlatInstanceOfNode=25;
+  public static final int FlatExit=26;
 }

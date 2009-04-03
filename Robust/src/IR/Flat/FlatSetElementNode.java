@@ -12,6 +12,16 @@ public class FlatSetElementNode extends FlatNode {
     this.dst=dst;
   }
 
+  public FlatNode clone(TempMap t) {
+    return new FlatSetElementNode(t.tempMap(dst), t.tempMap(index), t.tempMap(src));
+  }
+  public void rewriteUse(TempMap t) {
+    src=t.tempMap(src);
+    dst=t.tempMap(dst);
+    index=t.tempMap(index);
+  }
+  public void rewriteDef(TempMap t) {
+  }
   public boolean needsBoundsCheck() {
     return true;
   }

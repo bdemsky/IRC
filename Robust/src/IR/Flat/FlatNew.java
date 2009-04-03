@@ -16,6 +16,17 @@ public class FlatNew extends FlatNode {
     this.disjointId=null;
   }
 
+  public void rewriteUse(TempMap t) {
+    size=t.tempMap(size);
+  }
+  public void rewriteDef(TempMap t) {
+    dst=t.tempMap(dst);
+  }
+
+  public FlatNode clone(TempMap t) {
+    return new FlatNew(type, t.tempMap(dst), t.tempMap(size), isglobal, disjointId);
+  }
+
   public FlatNew(TypeDescriptor type, TempDescriptor dst, boolean isglobal, String disjointId) {
     this.type=type;
     this.dst=dst;

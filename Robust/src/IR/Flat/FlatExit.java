@@ -1,20 +1,22 @@
 package IR.Flat;
 import java.util.Vector;
 
-public class FlatNop extends FlatNode {
-  public FlatNop() {
+public class FlatExit extends FlatNode {
+  public FlatExit() {
   }
 
   public String toString() {
-    return "nop";
+    return "exit";
   }
 
   public int kind() {
-    return FKind.FlatNop;
+    return FKind.FlatExit;
   }
   public FlatNode clone() {
-    return new FlatNop();
+    return new FlatExit();
   }
   public void rewriteUse(TempMap t) {
+  }
+  public void rewriteDst(TempMap t) {
   }
 }

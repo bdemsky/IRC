@@ -7,6 +7,14 @@ public class FlatReturnNode extends FlatNode {
     this.tempdesc=td;
   }
 
+  public FlatNode clone(TempMap t) {
+    return new FlatReturnNode(t.tempMap(tempdesc));
+  }
+  public void rewriteUse(TempMap t) {
+    tempdesc=t.tempMap(tempdesc);
+  }
+  public void rewriteDef(TempMap t) {
+  }
   public String toString() {
     return "FlatReturnNode_return "+tempdesc;
   }

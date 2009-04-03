@@ -12,6 +12,15 @@ public class FlatSetFieldNode extends FlatNode {
     this.dst=dst;
   }
 
+  public FlatNode clone(TempMap t) {
+    return new FlatSetFieldNode(t.tempMap(dst), field, t.tempMap(src));
+  }
+  public void rewriteUse(TempMap t) {
+    dst=t.tempMap(dst);
+    src=t.tempMap(src);
+  }
+  public void rewriteDef(TempMap t) {
+  }
   public TempDescriptor getSrc() {
     return src;
   }

@@ -9,8 +9,9 @@ public class BuildFlat {
   MethodDescriptor currmd;
   TypeUtil typeutil;
 
-    HashSet breakset;
-    HashSet continueset;
+  HashSet breakset;
+  HashSet continueset;
+  FlatExit fe;
 
   public BuildFlat(State st, TypeUtil typeutil) {
     state=st;
@@ -42,9 +43,11 @@ public class BuildFlat {
     BlockNode bn=state.getMethodBody(td);
     NodePair np=flattenBlockNode(bn);
     FlatNode fn=np.getBegin();
+    fe=new FlatExit();
     if (np.getEnd().kind()!=FKind.FlatReturnNode) {
       FlatReturnNode rnflat=new FlatReturnNode(null);
       np.getEnd().addNext(rnflat);
+      rnflat.addNext(fe);
     }
 
     FlatFlagActionNode ffan=new FlatFlagActionNode(FlatFlagActionNode.PRE);
@@ -112,6 +115,7 @@ public class BuildFlat {
   private void flattenClass(ClassDescriptor cn) {
     Iterator methodit=cn.getMethods();
     while(methodit.hasNext()) {
+      fe=new FlatExit();
       currmd=(MethodDescriptor)methodit.next();
       BlockNode bn=state.getMethodBody(currmd);
 
@@ -133,6 +137,7 @@ public class BuildFlat {
 	  np.getEnd().addNext(fcunlock);
 	  FlatReturnNode rnflat=new FlatReturnNode(null);
 	  fcunlock.addNext(rnflat);
+	  rnflat.addNext(fe);
 	}
       } else if (state.DSM&&currmd.getModifiers().isAtomic()) {
 	curran.addNext(fn);
@@ -142,10 +147,12 @@ public class BuildFlat {
 	  np.getEnd().addNext(aen);
 	  FlatReturnNode rnflat=new FlatReturnNode(null);
 	  aen.addNext(rnflat);
+	  rnflat.addNext(fe);
 	}
-      } else if (np.getEnd().kind()!=FKind.FlatReturnNode) {
+      } else if (np.getEnd()!=null&&np.getEnd().kind()!=FKind.FlatReturnNode) {
 	FlatReturnNode rnflat=new FlatReturnNode(null);
 	np.getEnd().addNext(rnflat);
+	rnflat.addNext(fe);
       }
 
       FlatMethod fm=new FlatMethod(currmd);
@@ -961,7 +968,8 @@ public class BuildFlat {
       FlatNop nopend=new FlatNop();
       FlatBackEdge backedge=new FlatBackEdge();
 
-      body.getEnd().addNext(condition.getBegin());
+      if (body.getEnd()!=null)
+	body.getEnd().addNext(condition.getBegin());
       condition.getEnd().addNext(fcb);
       fcb.addFalseNext(nopend);
       fcb.addTrueNext(backedge);
@@ -992,6 +1000,7 @@ public class BuildFlat {
     }
 
     FlatReturnNode rnflat=new FlatReturnNode(retval);
+    rnflat.addNext(fe);
     FlatNode ln=rnflat;
     if (state.THREAD&&currmd.getModifiers().isSynchronized()) {
       MethodDescriptor memd=(MethodDescriptor)typeutil.getClass("Object").getMethodTable().get("MonitorExit");
@@ -1008,9 +1017,9 @@ public class BuildFlat {
 
     if (cond!=null) {
       cond.getEnd().addNext(ln);
-      return new NodePair(cond.getBegin(),rnflat);
+      return new NodePair(cond.getBegin(),null);
     } else
-      return new NodePair(ln,rnflat);
+      return new NodePair(ln,null);
   }
 
   private NodePair flattenTaskExitNode(TaskExitNode ten) {
@@ -1020,8 +1029,9 @@ public class BuildFlat {
     NodePair fcn=flattenConstraintCheck(ten.getChecks());
     ffan.addNext(fcn.getBegin());
     FlatReturnNode rnflat=new FlatReturnNode(null);
+    rnflat.addNext(fe);
     fcn.getEnd().addNext(rnflat);
-    return new NodePair(ffan, rnflat);
+    return new NodePair(ffan, null);
   }
 
   private NodePair flattenConstraintCheck(Vector ccs) {

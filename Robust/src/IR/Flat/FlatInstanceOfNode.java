@@ -12,6 +12,15 @@ public class FlatInstanceOfNode extends FlatNode {
     this.dst=dst;
   }
 
+  public FlatNode clone(TempMap m) {
+    return new FlatInstanceOfNode(t, m.tempMap(src), m.tempMap(dst));
+  }
+  public void rewriteUse(TempMap t) {
+    src=t.tempMap(src);
+  }
+  public void rewriteDef(TempMap t) {
+    dst=t.tempMap(dst);
+  }
   public TypeDescriptor getType() {
     return t;
   }

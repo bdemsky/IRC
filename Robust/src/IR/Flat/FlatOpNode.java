@@ -15,6 +15,17 @@ public class FlatOpNode extends FlatNode {
     this.op=op;
   }
 
+  public FlatNode clone(TempMap t) {
+    return new FlatOpNode(t.tempMap(dest), t.tempMap(left), t.tempMap(right), op);
+  }
+  public void rewriteDef(TempMap t) {
+    dest=t.tempMap(dest);
+  }
+  public void rewriteUse(TempMap t) {
+    left=t.tempMap(left);
+    right=t.tempMap(right);
+  }
+
   public TempDescriptor getDest() {
     return dest;
   }

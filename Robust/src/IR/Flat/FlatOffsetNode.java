@@ -13,6 +13,14 @@ public class FlatOffsetNode extends FlatNode {
     this.dst = dst;
   }
 
+  public FlatNode clone(TempMap t) {
+    return new FlatOffsetNode(baseclass, field, t.tempMap(dst));
+  }
+  public void rewriteUse(TempMap t) {
+  }
+  public void rewriteDef(TempMap t) {
+    dst=t.tempMap(dst);
+  }
   public TypeDescriptor getClassType() {
     return baseclass;
   }

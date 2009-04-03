@@ -12,6 +12,14 @@ public class FlatLiteralNode extends FlatNode {
     this.dst=dst;
   }
 
+  public FlatNode clone(TempMap t) {
+    return new FlatLiteralNode(type, value, t.tempMap(dst));
+  }
+  public void rewriteUse(TempMap t) {
+  }
+  public void rewriteDst(TempMap t) {
+    dst=t.tempMap(dst);
+  }
   public TypeDescriptor getType() {
     return type;
   }

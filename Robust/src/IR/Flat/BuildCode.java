@@ -1581,6 +1581,10 @@ public class BuildCode {
       output.println("/* nop */");
       return;
 
+    case FKind.FlatExit:
+      output.println("/* exit */");
+      return;
+
     case FKind.FlatBackEdge:
       if ((state.THREAD||state.DSM)&&GENERATEPRECISEGC) {
 	if(state.DSM&&locality.getAtomic(lb).get(fn).intValue()>0) {

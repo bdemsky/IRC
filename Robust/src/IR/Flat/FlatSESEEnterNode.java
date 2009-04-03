@@ -12,7 +12,10 @@ public class FlatSESEEnterNode extends FlatNode {
     this.id=identifier++;
     treeNode = sn;    
   }
-
+  public void rewriteUse() {
+  }
+  public void rewriteDef() {
+  }
   public SESENode getTreeNode() {
     return treeNode;
   }

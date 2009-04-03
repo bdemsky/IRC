@@ -12,6 +12,16 @@ public class FlatCastNode extends FlatNode {
     this.dst=dst;
   }
 
+  public FlatNode clone(TempMap t) {
+    return new FlatCastNode(type, t.tempMap(src), t.tempMap(dst));
+  }
+  public void rewriteUse(TempMap t) {
+    src=t.tempMap(src);
+  }
+  public void rewriteDef(TempMap t) {
+    dst=t.tempMap(dst);
+  }
+
   public String toString() {
     return "FlatCastNode_"+dst.toString()+"=("+type.toString()+")"+src.toString();
   }

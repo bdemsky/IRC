@@ -9,7 +9,10 @@ public class FlatSESEExitNode extends FlatNode {
   public FlatSESEExitNode( SESENode sn ) {
     treeNode = sn;
   }
-
+  public void rewriteUse() {
+  }
+  public void rewriteDef() {
+  }
   public SESENode getTreeNode() {
     return treeNode;
   }

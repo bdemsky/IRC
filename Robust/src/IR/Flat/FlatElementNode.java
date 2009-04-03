@@ -16,6 +16,17 @@ public class FlatElementNode extends FlatNode {
     return true;
   }
 
+  public FlatNode clone(TempMap t) {
+    return new FlatElementNode(t.tempMap(src), t.tempMap(index), t.tempMap(dst));
+  }
+  public void rewriteDef(TempMap t) {
+    dst=t.tempMap(dst);
+  }
+  public void rewriteUse(TempMap t) {
+    index=t.tempMap(index);
+    src=t.tempMap(src);
+  }
+
   public TempDescriptor getIndex() {
     return index;
   }

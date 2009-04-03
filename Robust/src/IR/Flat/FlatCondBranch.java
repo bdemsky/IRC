@@ -9,6 +9,18 @@ public class FlatCondBranch extends FlatNode {
   public FlatCondBranch(TempDescriptor td) {
     test_cond=td;
   }
+  public void rewriteDef(TempMap t) {
+  }
+  public void rewriteUse(TempMap t) {
+    test_cond=t.tempMap(test_cond);
+  }
+
+  public FlatNode clone(TempMap t) {
+    FlatCondBranch fcb=new FlatCondBranch(t.tempMap(test_cond));
+    fcb.trueprob=trueprob;
+    fcb.loop=loop;
+    return fcb;
+  }
 
   public void setLoop() {
     loop=true;

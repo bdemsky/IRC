@@ -26,12 +26,13 @@ public class FlatNode {
   public FlatNode getPrev(int i) {
     return (FlatNode) prev.get(i);
   }
-
   public void addNext(FlatNode n) {
     next.add(n);
     n.addPrev(this);
   }
-
+  public void removePrev(FlatNode n) {
+    prev.remove(n);
+  }
   /** This function modifies the graph */
   public void setNext(int i, FlatNode n) {
     FlatNode old=getNext(i);
@@ -39,19 +40,60 @@ public class FlatNode {
     old.prev.remove(this);
     n.addPrev(this);
   }
-
-  protected void addPrev(FlatNode p) {
+  /** This function modifies the graph */
+  public void setprev(int i, FlatNode n) {
+    prev.set(i, n);
+  }
+  /** This function modifies the graph */
+  public void setnext(int i, FlatNode n) {
+    next.set(i, n);
+  }
+  public void addPrev(FlatNode p) {
     prev.add(p);
   }
   public int kind() {
     throw new Error();
   }
-
   public TempDescriptor [] readsTemps() {
     return new TempDescriptor[0];
   }
-
   public TempDescriptor [] writesTemps() {
     return new TempDescriptor[0];
+  }
+  public FlatNode clone(TempMap t) {
+    throw new Error();
+  }
+
+  public void rewriteUse(TempMap t) {
+    System.out.println(toString());
+    throw new Error();
+  }
+
+  public void rewriteDef(TempMap t) {
+    System.out.println(toString());
+    throw new Error();
+  }
+
+  public void replace(FlatNode fnnew) {
+    fnnew.prev.setSize(prev.size());
+    fnnew.next.setSize(next.size());
+    for(int i=0;i<prev.size();i++) {
+      FlatNode nprev=(FlatNode)prev.get(i);
+      fnnew.prev.set(i,nprev);
+      for(int j=0;j<nprev.numNext();j++) {
+	FlatNode n=nprev.getNext(j);
+	if (n==this)
+	  nprev.next.set(j, fnnew);
+      }
+    }
+    for(int i=0;i<next.size();i++) {
+      FlatNode nnext=(FlatNode)next.get(i);
+      fnnew.next.set(i,nnext);;
+      for(int j=0;j<nnext.numPrev();j++) {
+	FlatNode n=nnext.getPrev(j);
+	if (n==this)
+	  nnext.prev.set(j, fnnew);
+      }
+    }
   }
 }

@@ -13,6 +13,22 @@ public class FlatCall extends FlatNode {
     this.this_temp=this_temp;
     this.args=args;
   }
+  public void rewriteUse(TempMap t) {
+    for(int i=0;i<args.length;i++)
+      args[i]=t.tempMap(args[i]);
+    this_temp=t.tempMap(this_temp);
+  }
+  public void rewriteDef(TempMap t) {
+    dst=t.tempMap(dst);
+  }
+  public FlatNode clone(TempMap t) {
+    TempDescriptor ndst=t.tempMap(dst);
+    TempDescriptor nthis=t.tempMap(this_temp);
+    TempDescriptor[] nargs=new TempDescriptor[args.length];
+    for(int i=0;i<nargs.length;i++)
+      nargs[i]=t.tempMap(args[i]);
+    return new FlatCall(method, ndst, nthis, nargs);
+  }
 
   public MethodDescriptor getMethod() {
     return method;

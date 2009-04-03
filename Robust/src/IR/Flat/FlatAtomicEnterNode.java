@@ -10,6 +10,11 @@ public class FlatAtomicEnterNode extends FlatNode {
     this.id=identifier++;
   }
 
+  public void rewriteUse() {
+  }
+  public void rewriteDef() {
+  }
+
   /* Returns an unique identifier for this atomic enter node */
 
   public int getIdentifier() {

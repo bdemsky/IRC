@@ -4,7 +4,10 @@ import java.util.Vector;
 public class FlatBackEdge extends FlatNode {
   public FlatBackEdge() {
   }
-
+  public void rewriteUse() {
+  }
+  public void rewriteDst() {
+  }
   public String toString() {
     return "backedge";
   }
