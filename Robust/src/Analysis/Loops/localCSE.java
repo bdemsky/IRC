@@ -71,7 +71,7 @@ public class localCSE {
 	    Group g=getGroup(table,e);
 	    TempDescriptor td=getTemp(g);
 	    if (td!=null) {
-	      FlatOpNode nfon=new FlatOpNode(fon.getDest(),td,null,new Operation(Operation.ASSIGN));
+	      FlatNode nfon=new FlatOpNode(fon.getDest(),td,null,new Operation(Operation.ASSIGN));
 	      fn.replace(nfon);
 	    }
 	    g.set.add(dst);
@@ -132,7 +132,7 @@ public class localCSE {
 	  dstf.set.add(src);
 	  HashSet<FieldDescriptor> fields=new HashSet<FieldDescriptor>();
 	  fields.add(fsfn.getField());
-	  kill(table, fields, null);
+	  kill(table, fields, null, false);
 	  table.put(src, dstf);
 	  break;
 	}
@@ -146,7 +146,7 @@ public class localCSE {
 	  dstf.set.add(src);
 	  HashSet<TypeDescriptor> arrays=new HashSet<TypeDescriptor>();
 	  arrays.add(fsen.getDst().getType());
-	  kill(table, null, arrays);
+	  kill(table, null, arrays, false);
 	  table.put(src, dstf);
 	  break;
 	}
@@ -156,7 +156,7 @@ public class localCSE {
 	  MethodDescriptor md=fc.getMethod();
 	  Set<FieldDescriptor> fields=gft.getFields(md);
 	  Set<TypeDescriptor> arrays=gft.getArrays(md);
-	  kill(table, fields, arrays);
+	  kill(table, fields, arrays, gft.containsAtomic(md));
 	}
 	default: {
 	  TempDescriptor[] writes=fn.writesTemps();
@@ -168,11 +168,15 @@ public class localCSE {
       } while(fn.numPrev()==1);
     }
   }
-  public void kill(Hashtable<LocalExpression, Group> tab, Set<FieldDescriptor> fields, Set<TypeDescriptor> arrays) {
+  public void kill(Hashtable<LocalExpression, Group> tab, Set<FieldDescriptor> fields, Set<TypeDescriptor> arrays, boolean isAtomic) {
     Set<LocalExpression> eset=tab.keySet();
     for(Iterator<LocalExpression> it=eset.iterator();it.hasNext();) {
       LocalExpression e=it.next();
-      if (e.td!=null) {
+      if (isAtomic&&(e.td!=null||e.f!=null)) {
+	Group g=tab.get(e);
+	g.set.remove(e);
+	it.remove();
+      } else if (e.td!=null) {
 	//have array
 	TypeDescriptor artd=e.td;
 	for(Iterator<TypeDescriptor> arit=arrays.iterator();arit.hasNext();) {

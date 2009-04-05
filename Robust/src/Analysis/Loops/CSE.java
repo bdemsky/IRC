@@ -22,7 +22,6 @@ public class CSE {
 
   public void doAnalysis(FlatMethod fm) {
     Hashtable<FlatNode,Hashtable<Expression, TempDescriptor>> availexpr=new Hashtable<FlatNode,Hashtable<Expression, TempDescriptor>>();
-
     HashSet toprocess=new HashSet();
     HashSet discovered=new HashSet();
     toprocess.add(fm);
@@ -47,19 +46,23 @@ public class CSE {
       }
       
       switch(fn.kind()) {
+      case FKind.FlatAtomicEnterNode:
+	{
+	  killexpressions(tab, null, null, true);
+	}
       case FKind.FlatCall:
 	{
 	  FlatCall fc=(FlatCall) fn;
 	  MethodDescriptor md=fc.getMethod();
 	  Set<FieldDescriptor> fields=gft.getFields(md);
 	  Set<TypeDescriptor> arrays=gft.getArrays(md);
-	  killexpressions(tab, fields, arrays);
+	  killexpressions(tab, fields, arrays, gft.containsAtomic(md));
 	  break;
 	}
       case FKind.FlatOpNode:
 	{
 	  FlatOpNode fon=(FlatOpNode) fn;
-	  Expression e=new Expression(fon.getLeft(), fon.getRight(),fon.getOp());
+	  Expression e=new Expression(fon.getLeft(), fon.getRight(), fon.getOp());
 	  tab.put(e, fon.getDest());
 	  break;
 	}
@@ -68,7 +71,7 @@ public class CSE {
 	  FlatSetFieldNode fsfn=(FlatSetFieldNode)fn;
 	  Set<FieldDescriptor> fields=new HashSet<FieldDescriptor>();
 	  fields.add(fsfn.getField());
-	  killexpressions(tab, fields, null);
+	  killexpressions(tab, fields, null, false);
 	  Expression e=new Expression(fsfn.getDst(), fsfn.getField());
 	  tab.put(e, fsfn.getSrc());
 	  break;
@@ -114,52 +117,59 @@ public class CSE {
 	}
       }
     }
+
     doOptimize(fm, availexpr);
   }
     
   public void doOptimize(FlatMethod fm, Hashtable<FlatNode,Hashtable<Expression, TempDescriptor>> availexpr) {
-      for(Iterator<FlatNode> it=fm.getNodeSet().iterator();it.hasNext();) {
-	  FlatNode fn=it.next();
-	  Hashtable<Expression, TempDescriptor> tab=computeIntersection(fn, availexpr);
-	  switch(fn.kind()) {
-	  case FKind.FlatOpNode:
-	      {
-		  FlatOpNode fon=(FlatOpNode) fn;
-		  Expression e=new Expression(fon.getLeft(), fon.getRight(),fon.getOp());
-		  if (tab.containsKey(e)) {
-		      TempDescriptor t=tab.get(e);
-		      FlatOpNode newfon=new FlatOpNode(fon.getDest(),t,null,new Operation(Operation.ASSIGN));
-		      fon.replace(newfon);
-		  }
-		  break;
-	      }
-	  case FKind.FlatFieldNode:
-	      {
-		  FlatFieldNode ffn=(FlatFieldNode)fn;
-		  Expression e=new Expression(ffn.getSrc(), ffn.getField());
-		  if (tab.containsKey(e)) {
-		      TempDescriptor t=tab.get(e);
-		      FlatOpNode newfon=new FlatOpNode(ffn.getDst(),t,null,new Operation(Operation.ASSIGN));
-		      ffn.replace(newfon);
-		  }
-		  break;
-	      }
-	  case FKind.FlatElementNode:
-	      {
-		  FlatElementNode fen=(FlatElementNode)fn;
-		  Expression e=new Expression(fen.getSrc(),fen.getIndex());
-		  if (tab.containsKey(e)) {
-		      TempDescriptor t=tab.get(e);
-		      FlatOpNode newfon=new FlatOpNode(fen.getDst(),t,null,new Operation(Operation.ASSIGN));
-		      fen.replace(newfon);
-		  }
-		  break;
-	      }
-	  default: 
+    Hashtable<FlatNode, FlatNode> replacetable=new Hashtable<FlatNode, FlatNode>();
+    for(Iterator<FlatNode> it=fm.getNodeSet().iterator();it.hasNext();) {
+      FlatNode fn=it.next();
+      Hashtable<Expression, TempDescriptor> tab=computeIntersection(fn, availexpr);
+      switch(fn.kind()) {
+      case FKind.FlatOpNode:
+	{
+	  FlatOpNode fon=(FlatOpNode) fn;
+	  Expression e=new Expression(fon.getLeft(), fon.getRight(),fon.getOp());
+	  if (tab.containsKey(e)) {
+	    TempDescriptor t=tab.get(e);
+	    FlatNode newfon=new FlatOpNode(fon.getDest(),t,null,new Operation(Operation.ASSIGN));
+	    replacetable.put(fon,newfon);
 	  }
+	  break;
+	}
+      case FKind.FlatFieldNode:
+	{
+	  FlatFieldNode ffn=(FlatFieldNode)fn;
+	  Expression e=new Expression(ffn.getSrc(), ffn.getField());
+	  if (tab.containsKey(e)) {
+	    TempDescriptor t=tab.get(e);
+	    FlatNode newfon=new FlatOpNode(ffn.getDst(),t,null,new Operation(Operation.ASSIGN));
+	    replacetable.put(ffn,newfon);
+	  }
+	  break;
+	}
+      case FKind.FlatElementNode:
+	{
+	  FlatElementNode fen=(FlatElementNode)fn;
+	  Expression e=new Expression(fen.getSrc(),fen.getIndex());
+	  if (tab.containsKey(e)) {
+	    TempDescriptor t=tab.get(e);
+	    FlatNode newfon=new FlatOpNode(fen.getDst(),t,null,new Operation(Operation.ASSIGN));
+	    replacetable.put(fen,newfon);
+	  }
+	  break;
+	}
+      default: 
       }
+    }
+    for(Iterator<FlatNode> it=replacetable.keySet().iterator();it.hasNext();) {
+      FlatNode fn=it.next();
+      FlatNode newfn=replacetable.get(fn);
+      fn.replace(newfn);
+    }
   }
-
+  
   public Hashtable<Expression, TempDescriptor> computeIntersection(FlatNode fn, Hashtable<FlatNode,Hashtable<Expression, TempDescriptor>> availexpr) {
     Hashtable<Expression, TempDescriptor> tab=new Hashtable<Expression, TempDescriptor>();
     boolean first=true;
@@ -168,9 +178,10 @@ public class CSE {
     for(int i=0;i<fn.numPrev();i++) {
       FlatNode prev=fn.getPrev(i);
       if (first) {
-	if (availexpr.containsKey(prev))
+	if (availexpr.containsKey(prev)) {
 	  tab.putAll(availexpr.get(prev));
-	first=false;
+	  first=false;
+	}
       } else {
 	if (availexpr.containsKey(prev)) {
 	  Hashtable<Expression, TempDescriptor> table=availexpr.get(prev);
@@ -185,11 +196,13 @@ public class CSE {
     return tab;
   }
 
-  public void killexpressions(Hashtable<Expression, TempDescriptor> tab, Set<FieldDescriptor> fields, Set<TypeDescriptor> arrays) {
+  public void killexpressions(Hashtable<Expression, TempDescriptor> tab, Set<FieldDescriptor> fields, Set<TypeDescriptor> arrays, boolean killall) {
     for(Iterator it=tab.entrySet().iterator();it.hasNext();) {
       Map.Entry m=(Map.Entry)it.next();
       Expression e=(Expression)m.getKey();
-      if (e.f!=null&&fields!=null&&fields.contains(e.f)) 
+      if (killall&&(e.f!=null||e.a!=null))
+	it.remove();
+      else if (e.f!=null&&fields!=null&&fields.contains(e.f)) 
 	it.remove();
       else if ((e.a!=null)&&(arrays!=null)) {
 	for(Iterator<TypeDescriptor> arit=arrays.iterator();arit.hasNext();) {

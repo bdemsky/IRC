@@ -72,10 +72,9 @@ public class DeadCode {
     //get rid of useless nodes
     for(Iterator<FlatNode> it=fm.getNodeSet().iterator();it.hasNext();) {
       FlatNode fn=it.next();
-      if (!useful.contains(fn)) {
+      if (!useful.contains(fn)||isuseless(fn)) {
 	//We have a useless node
 	FlatNode fnnext=fn.getNext(0);
-
 	for(int i=0;i<fn.numPrev();i++) {
 	  FlatNode nprev=fn.getPrev(i);
 	      
@@ -91,4 +90,13 @@ public class DeadCode {
       }
     }
   }
+  public boolean isuseless(FlatNode fn) {
+    if (fn.kind()==FKind.FlatOpNode) {
+      FlatOpNode fon=(FlatOpNode)fn;
+      if (fon.getOp().getOp()==Operation.ASSIGN&&fon.getLeft()==fon.getDest())
+	return true;
+    }
+    return false;
+  }
+
 }

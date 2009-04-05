@@ -17,6 +17,7 @@ public class GlobalFieldType {
   MethodDescriptor root;
   Hashtable<MethodDescriptor, Set<FieldDescriptor>> fields;
   Hashtable<MethodDescriptor, Set<TypeDescriptor>> arrays;
+  HashSet<MethodDescriptor> containsAtomic;
   
   public GlobalFieldType(CallGraph cg, State st, MethodDescriptor root) {
     this.cg=cg;
@@ -24,6 +25,7 @@ public class GlobalFieldType {
     this.root=root;
     this.fields=new Hashtable<MethodDescriptor, Set<FieldDescriptor>>();
     this.arrays=new Hashtable<MethodDescriptor, Set<TypeDescriptor>>();
+    this.containsAtomic=new HashSet<MethodDescriptor>();
     doAnalysis();
   }
   private void doAnalysis() {
@@ -56,9 +58,17 @@ public class GlobalFieldType {
 	    changed=true;
 	  if (arrays.get(md).addAll(arrays.get(md2)))
 	    changed=true;
+	  if (containsAtomic.contains(md2)) {
+	    if (containsAtomic.add(md))
+	      changed=true;
+	  }
 	}
       }
     }
+  }
+
+  public boolean containsAtomic(MethodDescriptor md) {
+    return containsAtomic.contains(md);
   }
 
   public Set<FieldDescriptor> getFields(MethodDescriptor md) {
@@ -82,6 +92,8 @@ public class GlobalFieldType {
       } else if (fn.kind()==FKind.FlatSetFieldNode) {
 	FlatSetFieldNode fsfn=(FlatSetFieldNode)fn;
 	fields.get(md).add(fsfn.getField());
+      } else if (fn.kind()==FKind.FlatAtomicEnterNode) {
+	containsAtomic.add(md);
       }
     }
   }
