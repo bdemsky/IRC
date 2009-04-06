@@ -87,6 +87,7 @@ Analysis/OwnershipAnalysis/ChangeTuple.class                            \
 Analysis/OwnershipAnalysis/ChangeTupleSet.class                         \
 Analysis/OwnershipAnalysis/Canonical.class                              \
 Analysis/OwnershipAnalysis/MethodContext.class                          \
+Analysis/MLP/MLPAnalysis.class 						\
 Util/GraphNode.class Util/Namer.class Util/Relation.class		\
 Interface/HTTPHeader.class Interface/HTTPResponse.class			\
 Interface/HTTPServices.class Interface/HashStrings.class		\
@@ -118,6 +119,7 @@ JAVAFILES=IR/*.java \
 	Analysis/Loops/*.java \
 	Analysis/Locality/*.java \
 	Analysis/OwnershipAnalysis/*.java \
+	Analysis/MLP/*.java \
 	Analysis/Prefetch/*.java \
 	Analysis/Scheduling/*.java \
 	Analysis/TaskStateAnalysis/*.java \
@@ -168,13 +170,13 @@ mytabbing:
 
 javadoc:
 	mkdir javadoc
-	javadoc -classpath ../cup:.:$(CLASSPATH) -sourcepath . -private -d javadoc Lex Util IR IR.Tree IR.Flat Analysis Analysis.CallGraph Analysis.Flag Analysis.TaskStateAnalysis Analysis.Locality Analysis.Prefetch Main Analysis.OwnershipAnalysis Analysis.Scheduling
+	javadoc -classpath ../cup:.:$(CLASSPATH) -sourcepath . -private -d javadoc Lex Util IR IR.Tree IR.Flat Analysis Analysis.CallGraph Analysis.Flag Analysis.TaskStateAnalysis Analysis.Locality Analysis.Prefetch Main Analysis.OwnershipAnalysis Analysis.MLP Analysis.Scheduling
 
 clean:
-	rm -f IR/*.class IR/Tree/*.class Main/*.class Lex/*.class Parse/*.class Parse/Sym.java Parse/Parser.java IR/Flat/*.class classdefs.h methodheaders.h methods.c structdefs.h virtualtable.h task.h taskdefs.c taskdefs.h Analysis/*.class Analysis/Flag/*.class Analysis/CallGraph/*.class  Analysis/TaskStateAnalysis/*.class Interface/*.class Util/*.class Analysis/Locality/*.class Analysis/Prefetch/*.class Analysis/FlatIRGraph/*.class Analysis/OwnershipAnalysis/*.class Analysis/Scheduling/*.class Analysis/Loops/*.class
+	rm -f IR/*.class IR/Tree/*.class Main/*.class Lex/*.class Parse/*.class Parse/Sym.java Parse/Parser.java IR/Flat/*.class classdefs.h methodheaders.h methods.c structdefs.h virtualtable.h task.h taskdefs.c taskdefs.h Analysis/*.class Analysis/Flag/*.class Analysis/CallGraph/*.class  Analysis/TaskStateAnalysis/*.class Interface/*.class Util/*.class Analysis/Locality/*.class Analysis/Prefetch/*.class Analysis/FlatIRGraph/*.class Analysis/OwnershipAnalysis/*.class Analysis/MLP/*.class Analysis/Scheduling/*.class Analysis/Loops/*.class
 
 cleanclass:
-	rm -f IR/*.class IR/Tree/*.class Main/*.class IR/Flat/*.class Analysis/*.class Analysis/Flag/*.class Analysis/CallGraph/*.class  Analysis/TaskStateAnalysis/*.class Interface/*.class Util/*.class Analysis/Locality/*.class Analysis/Prefetch/*.class Analysis/FlatIRGraph/*.class Analysis/OwnershipAnalysis/*.class Analysis/Scheduling/*.class Analysis/Loops/*.class
+	rm -f IR/*.class IR/Tree/*.class Main/*.class IR/Flat/*.class Analysis/*.class Analysis/Flag/*.class Analysis/CallGraph/*.class  Analysis/TaskStateAnalysis/*.class Interface/*.class Util/*.class Analysis/Locality/*.class Analysis/Prefetch/*.class Analysis/FlatIRGraph/*.class Analysis/OwnershipAnalysis/*.class Analysis/MLP/*.class Analysis/Scheduling/*.class Analysis/Loops/*.class
 
 cleandoc:
 	rm -rf javadoc

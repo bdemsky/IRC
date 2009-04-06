@@ -38,7 +38,6 @@ public class BuildCode {
   public static String PREFIX="";
   public static String arraytype="ArrayObject";
   public static int flagcount = 0;
-  public boolean MLP=false;
   Virtual virtualcalls;
   TypeUtil typeutil;
   protected int maxtaskparams=0;
@@ -79,8 +78,6 @@ public class BuildCode {
       this.backuptable=new Hashtable<LocalityBinding, Hashtable<TempDescriptor, TempDescriptor>>();
       this.wb=new WriteBarrier(locality, st);
     }
-
-    this.MLP=st.MLP;
   }
 
   /** The buildCode method outputs C code for all the methods.  The Flat
@@ -1441,6 +1438,9 @@ public class BuildCode {
       } else if(current_node.numNext()==1) {
 	output.print("   ");
 	generateFlatNode(fm, lb, current_node, output);
+	if (state.MLP && current_node.kind()==FKind.FlatSESEEnterNode) {
+	  current_node=((FlatSESEEnterNode)current_node).getFlatExit();
+	}
 	FlatNode nextnode=current_node.getNext(0);
 	if (visited.contains(nextnode)) {
 	  output.println("goto L"+nodetolabel.get(nextnode)+";");
@@ -1532,11 +1532,11 @@ public class BuildCode {
       return;
 
     case FKind.FlatSESEEnterNode:
-      if( MLP ) generateFlatSESEEnterNode(fm, lb, (FlatSESEEnterNode) fn, output);
+      if( state.MLP ) generateFlatSESEEnterNode(fm, lb, (FlatSESEEnterNode) fn, output);
       return;
 
     case FKind.FlatSESEExitNode:
-      if( MLP ) generateFlatSESEExitNode(fm, lb, (FlatSESEExitNode) fn, output);
+      if( state.MLP ) generateFlatSESEExitNode(fm, lb, (FlatSESEExitNode) fn, output);
       return;
 
     case FKind.FlatGlobalConvNode:
@@ -1897,12 +1897,34 @@ public class BuildCode {
     output.println("}");
   }
 
+
+  public void generateSESE(FlatMethod fm, LocalityBinding lb, FlatSESEEnterNode faen, PrintWriter output) {
+    
+  }
+
+
   public void generateFlatSESEEnterNode(FlatMethod fm,  LocalityBinding lb, FlatSESEEnterNode faen, PrintWriter output) {
-    output.println("mlpEnqueue( (struct SESE*)0 );");
+    /*
+    output.println("struct sese"+faen.getPrettyIdentifier()+"in {");
+    Iterator<TempDescriptor> itr = faen.getInVarSet().iterator();
+    while( itr.hasNext() ) {
+      TempDescriptor td = itr.next();
+      output.println("  "+td+";");
+    }
+    output.println("}");
+
+    output.println("struct sese"+faen.getPrettyIdentifier()+"out {");
+    itr = faen.getOutVarSet().iterator();
+    while( itr.hasNext() ) {
+      TempDescriptor td = itr.next();
+      output.println("  "+td+";");
+    }
+    output.println("}");
+    */
   }
 
   public void generateFlatSESEExitNode(FlatMethod fm,  LocalityBinding lb, FlatSESEExitNode faen, PrintWriter output) {
-    output.println("mlpNotifyExit( (struct SESE*)0 );");
+    //output.println("mlpNotifyExit( (struct SESE*)0 );");
   }
 
   private void generateFlatCheckNode(FlatMethod fm,  LocalityBinding lb, FlatCheckNode fcn, PrintWriter output) {

@@ -40,6 +40,7 @@ import Analysis.Locality.GenerateConversions;
 import Analysis.Prefetch.PrefetchAnalysis;
 import Analysis.FlatIRGraph.FlatIRGraph;
 import Analysis.OwnershipAnalysis.OwnershipAnalysis;
+import Analysis.MLP.MLPAnalysis;
 import Analysis.Loops.*;
 import IR.MethodDescriptor;
 import IR.Flat.FlatMethod;
@@ -229,7 +230,7 @@ public class Main {
       sc.getClass("TagDescriptor");
     }
     if (state.THREAD||state.DSM||state.SINGLETM) {
-	sc.getClass("Thread");
+      sc.getClass("Thread");
     }
 
     sc.semanticCheck();
@@ -268,7 +269,41 @@ public class Main {
       }
     }
     
+    if (state.FLATIRGRAPH) {
+      FlatIRGraph firg = new FlatIRGraph(state,
+                                         state.FLATIRGRAPHTASKS,
+                                         state.FLATIRGRAPHUSERMETHODS,
+                                         state.FLATIRGRAPHLIBMETHODS);
+    }
 
+    if (state.OWNERSHIP && !state.MLP) {
+      CallGraph callGraph = new CallGraph(state);
+      OwnershipAnalysis oa = new OwnershipAnalysis(state,
+                                                   tu,
+                                                   callGraph,
+                                                   state.OWNERSHIPALLOCDEPTH,
+                                                   state.OWNERSHIPWRITEDOTS,
+                                                   state.OWNERSHIPWRITEALL,
+                                                   state.OWNERSHIPALIASFILE);
+    }
+
+    if (state.MLP) {
+      // gotta run this to have mlp turned on
+      assert state.OWNERSHIP;
+
+      CallGraph callGraph = new CallGraph(state);
+      OwnershipAnalysis oa = new OwnershipAnalysis(state,
+                                                   tu,
+                                                   callGraph,
+						   state.OWNERSHIPALLOCDEPTH,
+                                                   state.OWNERSHIPWRITEDOTS,
+                                                   state.OWNERSHIPWRITEALL,
+                                                   state.OWNERSHIPALIASFILE);
+      MLPAnalysis mlpa = new MLPAnalysis(state,
+					 tu,
+					 callGraph,
+					 oa);
+    }    
 
     if (state.TAGSTATE) {
       CallGraph callgraph=new CallGraph(state);
@@ -357,25 +392,6 @@ public class Main {
 	bc.buildCode();
       }
     }
-
-    if (state.FLATIRGRAPH) {
-      FlatIRGraph firg = new FlatIRGraph(state,
-                                         state.FLATIRGRAPHTASKS,
-                                         state.FLATIRGRAPHUSERMETHODS,
-                                         state.FLATIRGRAPHLIBMETHODS);
-    }
-
-    if (state.OWNERSHIP) {
-      CallGraph callGraph = new CallGraph(state);
-      OwnershipAnalysis oa = new OwnershipAnalysis(state,
-                                                   tu,
-                                                   callGraph,
-                                                   state.OWNERSHIPALLOCDEPTH,
-                                                   state.OWNERSHIPWRITEDOTS,
-                                                   state.OWNERSHIPWRITEALL,
-                                                   state.OWNERSHIPALIASFILE);
-    }
-
 
     System.out.println("Lines="+state.lines);
     System.exit(0);

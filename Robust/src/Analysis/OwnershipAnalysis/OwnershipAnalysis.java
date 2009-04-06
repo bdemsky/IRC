@@ -417,7 +417,7 @@ public class OwnershipAnalysis {
 
     double timeEndAnalysis = (double) System.nanoTime();
     double dt = (timeEndAnalysis - timeStartAnalysis)/(Math.pow( 10.0, 9.0 ) );
-    String treport = String.format( "The analysis took %.3f sec.", dt );
+    String treport = String.format( "The reachability analysis took %.3f sec.", dt );
     System.out.println( treport );
 
     if( writeDOTs && !writeAllDOTs ) {
