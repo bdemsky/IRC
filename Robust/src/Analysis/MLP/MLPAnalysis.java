@@ -56,7 +56,24 @@ public class MLPAnalysis {
     */
 
     /*
+    if( sn.isStart() ) {
+      FlatSESEEnterNode fsen=new FlatSESEEnterNode(sn);
+      sn.setFlatEnter(fsen);
+      seseStack.push(fsen);
+      return new NodePair(fsen, fsen);
+    }
 
-     */
+    FlatSESEExitNode fsexn=new FlatSESEExitNode(sn);
+    sn.setFlatExit(fsexn);
+    FlatSESEEnterNode fsen=sn.getStart().getFlatEnter();
+    fsexn.setFlatEnter(fsen);    
+    sn.getStart().getFlatEnter().setFlatExit( fsexn );
+    assert !seseStack.empty();
+    assert fsen == seseStack.pop();
+    if( !seseStack.empty() ) {
+      seseStack.peek().addInVarSet ( fsen.getInVarSet()  );
+      seseStack.peek().addOutVarSet( fsen.getOutVarSet() );
+    }
+    */
   }
 }
