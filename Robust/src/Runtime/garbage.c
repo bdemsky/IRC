@@ -39,7 +39,7 @@ extern struct ctable *reverse;
 extern struct RuntimeHash *fdtoobject;
 #endif
 
-#if defined(THREADS) || defined(DSTM)
+#if defined(THREADS) || defined(DSTM) || defined(SINGLETM)
 int needtocollect=0;
 struct listitem * list=NULL;
 int listcount=0;
