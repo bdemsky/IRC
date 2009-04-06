@@ -7,7 +7,7 @@ shift
 dir=`pwd`
 
 echo Doing Test $ARG1
-../buildscript -joptimize -robustroot ${dir}/../ -mainclass $ARG1 $ARG2 -o $ARG1
+../buildscript -debug -joptimize -robustroot ${dir}/../ -mainclass $ARG1 $ARG2 -o $ARG1
 $ARG1.bin $@ &> output/$ARG1.output
 diff output/$ARG1.output output/$ARG1.output.goal
 rm $ARG1.bin

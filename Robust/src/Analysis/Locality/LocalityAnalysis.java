@@ -55,18 +55,20 @@ public class LocalityAnalysis {
 
   public LocalityBinding getBinding(LocalityBinding currlb, FlatCall fc) {
     boolean isatomic=getAtomic(currlb).get(fc).intValue()>0;
-    Hashtable<TempDescriptor, Integer> currtable=getNodePreTempInfo(currlb,fc);
+    Hashtable<TempDescriptor, Integer> currtable=state.DSM?getNodePreTempInfo(currlb,fc):null;
     MethodDescriptor md=fc.getMethod();
 
     boolean isnative=md.getModifiers().isNative();
 
     LocalityBinding lb=new LocalityBinding(md, isatomic);
 
-    for(int i=0; i<fc.numArgs(); i++) {
-      TempDescriptor arg=fc.getArg(i);
-      lb.setGlobal(i,currtable.get(arg));
+    if (state.DSM) {
+      for(int i=0; i<fc.numArgs(); i++) {
+	TempDescriptor arg=fc.getArg(i);
+	lb.setGlobal(i,currtable.get(arg));
+      }
     }
-    if (fc.getThis()!=null) {
+    if (state.DSM&&fc.getThis()!=null) {
       Integer thistype=currtable.get(fc.getThis());
       if (thistype==null)
 	thistype=EITHER;
@@ -246,25 +248,11 @@ public class LocalityAnalysis {
     FlatMethod fm=state.getMethodFlat(md);
     HashSet<FlatNode> tovisit=new HashSet<FlatNode>();
     tovisit.add(fm.getNext(0));
-    {
-      // Build table for initial node
-      Hashtable<TempDescriptor,Integer> table=new Hashtable<TempDescriptor,Integer>();
-      atomictable.put(fm, lb.isAtomic() ? 1 : 0);
-      int offset=md.isStatic() ? 0 : 1;
-      if (!md.isStatic()) {
-	table.put(fm.getParameter(0), lb.getGlobalThis());
-      }
-      for(int i=offset; i<fm.numParameters(); i++) {
-	TempDescriptor temp=fm.getParameter(i);
-	Integer b=lb.isGlobal(i-offset);
-	table.put(temp,b);
-      }
-    }
+    atomictable.put(fm, lb.isAtomic() ? 1 : 0);
 
     while(!tovisit.isEmpty()) {
       FlatNode fn=tovisit.iterator().next();
       tovisit.remove(fn);
-      Hashtable<TempDescriptor, Integer> currtable=new Hashtable<TempDescriptor, Integer>();
       int atomicstate=0;
       for(int i=0; i<fn.numPrev(); i++) {
 	FlatNode prevnode=fn.getPrev(i);
@@ -272,7 +260,14 @@ public class LocalityAnalysis {
 	  atomicstate=atomictable.get(prevnode).intValue();
 	}
       }
-      atomictable.put(fn, atomicstate);
+      Integer oldatomic=atomictable.get(fn);
+      if (oldatomic==null||!oldatomic.equals(atomicstate)) {
+	//add in the next node
+	for(int i=0;i<fn.numNext();i++) {
+	  tovisit.add(fn.getNext(i));
+	}
+	atomictable.put(fn, atomicstate);
+      }
       // Process this node
       switch(fn.kind()) {
       case FKind.FlatAtomicEnterNode:
@@ -305,6 +300,7 @@ public class LocalityAnalysis {
       case FKind.FlatBackEdge:
       case FKind.FlatNop:
       case FKind.FlatPrefetchNode:
+      case FKind.FlatExit:
 	//No action needed for these
 	break;
 
@@ -332,7 +328,7 @@ public class LocalityAnalysis {
       // Build start -> run link
       if (nodemd.getClassDesc().getSymbol().equals(TypeUtil.ThreadClass)&&
           nodemd.getSymbol().equals("start")&&!nodemd.getModifiers().isStatic()&&
-          nodemd.numParameters()==1&&nodemd.getParamType(0).isInt()) {
+          nodemd.numParameters()==0) {
 	assert(nodemd.getModifiers().isNative());
 
 	MethodDescriptor runmd=null;
@@ -350,7 +346,6 @@ public class LocalityAnalysis {
       }
     }
 
-    Integer currreturnval=EITHER;     //Start off with the either value
     for(Iterator methodit=methodset.iterator(); methodit.hasNext();) {
       MethodDescriptor md=(MethodDescriptor) methodit.next();
 
@@ -542,6 +537,7 @@ public class LocalityAnalysis {
       case FKind.FlatCondBranch:
       case FKind.FlatBackEdge:
       case FKind.FlatNop:
+      case FKind.FlatExit:
       case FKind.FlatPrefetchNode:
 	//No action needed for these
 	break;
@@ -929,8 +925,14 @@ public class LocalityAnalysis {
 	  TempDescriptor tmp=tempit.next();
 	  if (writes.contains(tmp)) {
 	    nodetosavetemps.get(atomicnode).add(tmp);
-	  } else if (reads.contains(tmp)&&temptab.get(fn).get(tmp)==GLOBAL) {
-	    nodetosavetemps.get(atomicnode).add(tmp);
+	  } else if (state.DSM) {
+	    if (reads.contains(tmp)&&temptab.get(fn).get(tmp)==GLOBAL) {
+	      nodetosavetemps.get(atomicnode).add(tmp);
+	    } 
+	  } else {
+	    if (reads.contains(tmp)&&tmp.getType().isPtr()) {
+	      nodetosavetemps.get(atomicnode).add(tmp);
+	    } 
 	  }
 	}
       }

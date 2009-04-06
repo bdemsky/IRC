@@ -49,6 +49,7 @@ public class CSE {
       case FKind.FlatAtomicEnterNode:
 	{
 	  killexpressions(tab, null, null, true);
+	  break;
 	}
       case FKind.FlatCall:
 	{

@@ -223,6 +223,9 @@ JAVAOPTS="$JAVAOPTS -webinterface"
 elif [[ $1 = '-instructionfailures' ]]
 then
 JAVAOPTS="$JAVAOPTS -instructionfailures"
+elif [[ $1 = '-joptimize' ]]
+then
+JAVAOPTS="$JAVAOPTS -optimize"
 elif [[ $1 = '-mlp' ]]
 then
 JAVAOPTS="$JAVAOPTS -mlp"
@@ -313,6 +316,9 @@ if $DSMFLAG
 then
 #dsm stuff
 JAVAOPTS="$JAVAOPTS -classlibrary $ROBUSTROOT/ClassLibrary/JavaDSM"
+elif $SINGLETM
+then
+JAVAOPTS="$JAVAOPTS -classlibrary $ROBUSTROOT/ClassLibrary/JavaSTM"
 elif $THREADFLAG
 then
 #threading java stuff
@@ -478,7 +484,7 @@ fi
 
 if $SINGLETM
 then
-EXTRAOPTIONS="$EXTRAOPTIONS -lpthread -DCOMPILER"
+EXTRAOPTIONS="$EXTRAOPTIONS -lpthread -DCOMPILER -I$DSMRUNTIME"
 FILES="$FILES $DSMRUNTIME/dsmlock.c $DSMRUNTIME/singleTMCommit.c $DSMRUNTIME/clookup.c"
 fi
 

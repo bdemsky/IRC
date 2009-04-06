@@ -1,6 +1,7 @@
 package Analysis.Loops;
 
 import IR.Flat.*;
+import IR.MethodDescriptor;
 import IR.FieldDescriptor;
 import IR.TypeDescriptor;
 import IR.TypeUtil;
@@ -12,9 +13,11 @@ import java.util.Vector;
 import java.util.Hashtable;
 
 public class LoopInvariant {
-  public LoopInvariant(TypeUtil typeutil) {
+  public LoopInvariant(TypeUtil typeutil, GlobalFieldType gft) {
     this.typeutil=typeutil;
+    this.gft=gft;
   }
+  GlobalFieldType gft;
   LoopFinder loops;
   DomTree posttree;
   Hashtable<FlatNode, Vector<FlatNode>> table;
@@ -63,10 +66,20 @@ public class LoopInvariant {
       for(Iterator elit=elements.iterator();elit.hasNext();) {
 	FlatNode fn=(FlatNode)elit.next();
 	if (fn.kind()==FKind.FlatAtomicEnterNode||
-	    fn.kind()==FKind.FlatAtomicExitNode||
-	    fn.kind()==FKind.FlatCall) {
+	    fn.kind()==FKind.FlatAtomicExitNode) {
 	  unsafe=true;
 	  break;
+	} else if (fn.kind()==FKind.FlatCall) {
+	  FlatCall fcall=(FlatCall)fn;
+	  MethodDescriptor md=fcall.getMethod();
+	  Set<FieldDescriptor> f=gft.getFields(md);
+	  Set<TypeDescriptor> t=gft.getArrays(md);
+	  if (f!=null)
+	    fields.addAll(f);
+	  if (t!=null)
+	    types.addAll(t);
+	  if (gft.containsAtomic(md))
+	    unsafe=true;
 	} else if (fn.kind()==FKind.FlatSetFieldNode) {
 	  FlatSetFieldNode fsfn=(FlatSetFieldNode)fn;
 	  fields.add(fsfn.getField());

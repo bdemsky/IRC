@@ -2,6 +2,7 @@ package Analysis.Loops;
 
 import IR.Flat.*;
 import IR.TypeUtil;
+import IR.MethodDescriptor;
 import IR.Operation;
 import java.util.Set;
 import java.util.Vector;
@@ -10,8 +11,8 @@ import java.util.Hashtable;
 
 public class LoopOptimize {
   LoopInvariant loopinv;
-  public LoopOptimize(TypeUtil typeutil) {
-    loopinv=new LoopInvariant(typeutil);
+  public LoopOptimize(GlobalFieldType gft, TypeUtil typeutil) {
+    loopinv=new LoopInvariant(typeutil,gft);
   }
   public void optimize(FlatMethod fm) {
     loopinv.analyze(fm);

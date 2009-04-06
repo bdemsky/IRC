@@ -27,7 +27,7 @@ public class Virtual {
     this.state=state;
     this.locality=locality;
     classmethodcount=new Hashtable<ClassDescriptor, Integer>();
-    if (state.DSM)
+    if (state.DSM||state.SINGLETM)
       localitynumber=new Hashtable<LocalityBinding, Integer>();
     else
       methodnumber=new Hashtable<MethodDescriptor, Integer>();
@@ -38,7 +38,7 @@ public class Virtual {
     Iterator classit=state.getClassSymbolTable().getDescriptorsIterator();
     while(classit.hasNext()) {
       ClassDescriptor cd=(ClassDescriptor)classit.next();
-      if (state.DSM)
+      if (state.DSM||state.SINGLETM)
 	numberLocality(cd);
       else
 	numberMethods(cd);

@@ -18,7 +18,7 @@ import Analysis.TaskStateAnalysis.TaskIndex;
 import Analysis.Locality.LocalityAnalysis;
 import Analysis.Locality.LocalityBinding;
 import Analysis.Prefetch.*;
-
+import Analysis.Loops.WriteBarrier;
 
 public class BuildCode {
   State state;
@@ -46,10 +46,11 @@ public class BuildCode {
   ClassDescriptor[] cdarray;
   TypeDescriptor[] arraytable;
   LocalityAnalysis locality;
-  Hashtable<TempDescriptor, TempDescriptor> backuptable;
   Hashtable<LocalityBinding, TempDescriptor> reverttable;
+  Hashtable<LocalityBinding, Hashtable<TempDescriptor, TempDescriptor>> backuptable;
   SafetyAnalysis sa;
   PrefetchAnalysis pa;
+  WriteBarrier wb;
 
   public BuildCode(State st, Hashtable temptovar, TypeUtil typeutil, SafetyAnalysis sa, PrefetchAnalysis pa) {
     this(st, temptovar, typeutil, null, sa, pa);
@@ -72,8 +73,9 @@ public class BuildCode {
     virtualcalls=new Virtual(state,locality);
     if (locality!=null) {
       this.locality=locality;
-      this.backuptable=new Hashtable<TempDescriptor, TempDescriptor>();
       this.reverttable=new Hashtable<LocalityBinding, TempDescriptor>();
+      this.backuptable=new Hashtable<LocalityBinding, Hashtable<TempDescriptor, TempDescriptor>>();
+      this.wb=new WriteBarrier(locality, st);
     }
 
     this.MLP=st.MLP;
@@ -127,6 +129,8 @@ public class BuildCode {
     outmethodheader.println("#include \"structdefs.h\"");
     if (state.DSM)
       outmethodheader.println("#include \"dstm.h\"");
+    if (state.SINGLETM)
+      outmethodheader.println("#include \"tm.h\"");
     if (state.ABORTREADERS) {
       outmethodheader.println("#include \"abortreaders.h\"");
       outmethodheader.println("#include <setjmp.h>");
@@ -208,7 +212,7 @@ public class BuildCode {
     outmethod.println("#ifdef TRANSSTATS \n");
     outmethod.println("handle();\n");
     outmethod.println("#endif\n");
-    if (state.THREAD||state.DSM) {
+    if (state.THREAD||state.DSM||state.SINGLETM) {
       outmethod.println("initializethreads();");
     }
     if (state.DSM) {
@@ -247,17 +251,17 @@ public class BuildCode {
 
     outmethod.println("   {");
     if (GENERATEPRECISEGC) {
-      if (state.DSM) {
+      if (state.DSM||state.SINGLETM) {
 	outmethod.print("       struct "+cd.getSafeSymbol()+locality.getMain().getSignature()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_params __parameterlist__={");
       } else
 	outmethod.print("       struct "+cd.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_params __parameterlist__={");
       outmethod.println("1, NULL,"+"stringarray};");
-      if (state.DSM)
+      if (state.DSM||state.SINGLETM)
 	outmethod.println("     "+cd.getSafeSymbol()+locality.getMain().getSignature()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"(& __parameterlist__);");
       else
 	outmethod.println("     "+cd.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"(& __parameterlist__);");
     } else {
-      if (state.DSM)
+      if (state.DSM||state.SINGLETM)
 	outmethod.println("     "+cd.getSafeSymbol()+locality.getMain().getSignature()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"(stringarray);");
       else
 	outmethod.println("     "+cd.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"(stringarray);");
@@ -268,27 +272,29 @@ public class BuildCode {
       outmethod.println("}");
     }
 
-    if (state.THREAD||state.DSM) {
+    if (state.THREAD||state.DSM||state.SINGLETM) {
       outmethod.println("pthread_mutex_lock(&gclistlock);");
       outmethod.println("threadcount--;");
       outmethod.println("pthread_cond_signal(&gccond);");
       outmethod.println("pthread_mutex_unlock(&gclistlock);");
-      if (state.THREAD)
+      if (state.THREAD||state.SINGLETM)
 	outmethod.println("pthread_exit(NULL);");
     }
 
-    outmethod.println("#ifdef TRANSSTATS \n");
-    outmethod.println("printf(\"******  Transaction Stats   ******\\n\");");
-    outmethod.println("printf(\"numTransAbort= %d\\n\", numTransAbort);");
-    outmethod.println("printf(\"numTransCommit= %d\\n\", numTransCommit);");
-    outmethod.println("printf(\"nchashSearch= %d\\n\", nchashSearch);");
-    outmethod.println("printf(\"nmhashSearch= %d\\n\", nmhashSearch);");
-    outmethod.println("printf(\"nprehashSearch= %d\\n\", nprehashSearch);");
-    outmethod.println("printf(\"nRemoteReadSend= %d\\n\", nRemoteSend);");
-    outmethod.println("printf(\"nSoftAbort= %d\\n\", nSoftAbort);");
-    outmethod.println("printf(\"bytesSent= %d\\n\", bytesSent);");
-    outmethod.println("printf(\"bytesRecv= %d\\n\", bytesRecv);");
-    outmethod.println("#endif\n");
+    if (state.DSM||state.SINGLETM) {
+      outmethod.println("#ifdef TRANSSTATS \n");
+      outmethod.println("printf(\"******  Transaction Stats   ******\\n\");");
+      outmethod.println("printf(\"numTransAbort= %d\\n\", numTransAbort);");
+      outmethod.println("printf(\"numTransCommit= %d\\n\", numTransCommit);");
+      outmethod.println("printf(\"nchashSearch= %d\\n\", nchashSearch);");
+      outmethod.println("printf(\"nmhashSearch= %d\\n\", nmhashSearch);");
+      outmethod.println("printf(\"nprehashSearch= %d\\n\", nprehashSearch);");
+      outmethod.println("printf(\"nRemoteReadSend= %d\\n\", nRemoteSend);");
+      outmethod.println("printf(\"nSoftAbort= %d\\n\", nSoftAbort);");
+      outmethod.println("printf(\"bytesSent= %d\\n\", bytesSent);");
+      outmethod.println("printf(\"bytesRecv= %d\\n\", bytesRecv);");
+      outmethod.println("#endif\n");
+    }
     outmethod.println("}");
 
   }
@@ -343,7 +349,7 @@ public class BuildCode {
     if(state.MULTICORE) {
       outmethod.println("#include \"task.h\"");
     }
-    if (state.THREAD||state.DSM)
+    if (state.THREAD||state.DSM||state.SINGLETM)
       outmethod.println("#include <thread.h>");
     if (state.main!=null) {
       outmethod.println("#include <string.h>");
@@ -365,11 +371,12 @@ public class BuildCode {
     generateLayoutStructs(outmethod);
 
     /* Generate code for methods */
-    if (state.DSM) {
+    if (state.DSM||state.SINGLETM) {
       for(Iterator<LocalityBinding> lbit=locality.getLocalityBindings().iterator(); lbit.hasNext();) {
 	LocalityBinding lb=lbit.next();
 	MethodDescriptor md=lb.getMethod();
 	FlatMethod fm=state.getMethodFlat(md);
+	wb.analyze(lb);
 	if (!md.getModifiers().isNative()) {
 	  generateFlatMethod(fm, lb, outmethod);
 	}
@@ -399,9 +406,10 @@ public class BuildCode {
     /* Output #defines that the runtime uses to determine type
      * numbers for various objects it needs */
     outstructs.println("#define MAXCOUNT "+maxcount);
-    if (state.DSM) {
+    if (state.DSM||state.SINGLETM) {
       LocalityBinding lb=new LocalityBinding(typeutil.getRun(), false);
-      lb.setGlobalThis(LocalityAnalysis.GLOBAL);
+      if (state.DSM)
+	lb.setGlobalThis(LocalityAnalysis.GLOBAL);
       outstructs.println("#define RUNMETHOD "+virtualcalls.getLocalityNumber(lb));
     }
 
@@ -434,7 +442,7 @@ public class BuildCode {
   }
 
   protected void outputClassDeclarations(PrintWriter outclassdefs) {
-    if (state.THREAD||state.DSM)
+    if (state.THREAD||state.DSM||state.SINGLETM)
       outclassdefs.println("#include <pthread.h>");
     if(state.OPTIONAL)
       outclassdefs.println("#include \"optionalstruct.h\"");
@@ -663,7 +671,7 @@ public class BuildCode {
     }
     MethodDescriptor[][] virtualtable=null;
     LocalityBinding[][] lbvirtualtable=null;
-    if (state.DSM)
+    if (state.DSM||state.SINGLETM)
       lbvirtualtable=new LocalityBinding[state.numClasses()+state.numArrays()][maxcount];
     else
       virtualtable=new MethodDescriptor[state.numClasses()+state.numArrays()][maxcount];
@@ -672,7 +680,7 @@ public class BuildCode {
     classit=state.getClassSymbolTable().getDescriptorsIterator();
     while(classit.hasNext()) {
       ClassDescriptor cd=(ClassDescriptor)classit.next();
-      if (state.DSM)
+      if (state.DSM||state.SINGLETM)
 	fillinRow(cd, lbvirtualtable, cd.getId());
       else
 	fillinRow(cd, virtualtable, cd.getId());
@@ -683,7 +691,7 @@ public class BuildCode {
     while(arrayit.hasNext()) {
       TypeDescriptor td=(TypeDescriptor)arrayit.next();
       int id=state.getArrayNumber(td);
-      if (state.DSM)
+      if (state.DSM||state.SINGLETM)
 	fillinRow(objectcd, lbvirtualtable, id+state.numClasses());
       else
 	fillinRow(objectcd, virtualtable, id+state.numClasses());
@@ -695,11 +703,11 @@ public class BuildCode {
       for(int j=0; j<maxcount; j++) {
 	if (needcomma)
 	  outvirtual.print(", ");
-	if (state.DSM&&lbvirtualtable[i][j]!=null) {
+	if ((state.DSM||state.SINGLETM)&&lbvirtualtable[i][j]!=null) {
 	  LocalityBinding lb=lbvirtualtable[i][j];
 	  MethodDescriptor md=lb.getMethod();
 	  outvirtual.print("& "+md.getClassDesc().getSafeSymbol()+lb.getSignature()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor());
-	} else if (!state.DSM&&virtualtable[i][j]!=null) {
+	} else if (!(state.DSM||state.SINGLETM)&&virtualtable[i][j]!=null) {
 	  MethodDescriptor md=virtualtable[i][j];
 	  outvirtual.print("& "+md.getClassDesc().getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor());
 	} else {
@@ -890,9 +898,10 @@ public class BuildCode {
     TaskDescriptor task=fm.getTask();
     Set<TempDescriptor> saveset=lb!=null ? locality.getTempSet(lb) : null;
     ParamsObject objectparams=md!=null ? new ParamsObject(md,tag++) : new ParamsObject(task, tag++);
-
-    if (lb!=null)
+    if (lb!=null) {
       paramstable.put(lb, objectparams);
+      backuptable.put(lb, new Hashtable<TempDescriptor, TempDescriptor>());
+    }
     else if (md!=null)
       paramstable.put(md, objectparams);
     else
@@ -906,7 +915,7 @@ public class BuildCode {
       else
 	objectparams.addPrim(temp);
       if(lb!=null&&saveset.contains(temp)) {
-	backuptable.put(temp, temp.createNew());
+	backuptable.get(lb).put(temp, temp.createNew());
       }
     }
 
@@ -937,14 +946,14 @@ public class BuildCode {
 	else
 	  objecttemps.addPrim(temp);
 	if(lb!=null&&saveset.contains(temp)&&
-	   !backuptable.containsKey(temp))
-	  backuptable.put(temp, temp.createNew());
+	   !backuptable.get(lb).containsKey(temp))
+	  backuptable.get(lb).put(temp, temp.createNew());
       }
     }
 
     /* Create backup temps */
     if (lb!=null) {
-      for(Iterator<TempDescriptor> tmpit=backuptable.values().iterator(); tmpit.hasNext();) {
+      for(Iterator<TempDescriptor> tmpit=backuptable.get(lb).values().iterator(); tmpit.hasNext();) {
 	TempDescriptor tmp=tmpit.next();
 	TypeDescriptor type=tmp.getType();
 	if (type.isPtr()&&GENERATEPRECISEGC)
@@ -953,7 +962,7 @@ public class BuildCode {
 	  objecttemps.addPrim(tmp);
       }
       /* Create temp to hold revert table */
-      if (lb.getHasAtomic()||lb.isAtomic()) {
+      if (state.DSM&&(lb.getHasAtomic()||lb.isAtomic())) {
 	TempDescriptor reverttmp=new TempDescriptor("revertlist", typeutil.getClass(TypeUtil.ObjectClass));
 	if (GENERATEPRECISEGC)
 	  objecttemps.addPtr(reverttmp);
@@ -1155,7 +1164,7 @@ public class BuildCode {
     printClassStruct(cn, classdefout);
     classdefout.println("};\n");
 
-    if (state.DSM) {
+    if (state.DSM||state.SINGLETM) {
       /* Cycle through LocalityBindings */
       HashSet<MethodDescriptor> nativemethods=new HashSet<MethodDescriptor>();
       Set<LocalityBinding> lbset=locality.getClassBindings(cn);
@@ -1196,7 +1205,7 @@ public class BuildCode {
     /* Output parameter structure */
     if (GENERATEPRECISEGC) {
       ParamsObject objectparams=(ParamsObject) paramstable.get(lb!=null ? lb : md);
-      if (state.DSM&&lb!=null)
+      if ((state.DSM||state.SINGLETM)&&lb!=null)
 	output.println("struct "+cn.getSafeSymbol()+lb.getSignature()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_params {");
       else
 	output.println("struct "+cn.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_params {");
@@ -1222,7 +1231,7 @@ public class BuildCode {
 
     /* Output temp structure */
     if (GENERATEPRECISEGC) {
-      if (state.DSM)
+      if (state.DSM||state.SINGLETM)
 	output.println("struct "+cn.getSafeSymbol()+lb.getSignature()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_locals {");
       else
 	output.println("struct "+cn.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_locals {");
@@ -1251,14 +1260,14 @@ public class BuildCode {
       headersout.print("void ");
 
     /* Next the method name */
-    if (state.DSM) {
+    if (state.DSM||state.SINGLETM) {
       headersout.print(cn.getSafeSymbol()+lb.getSignature()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"(");
     } else
       headersout.print(cn.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"(");
 
     boolean printcomma=false;
     if (GENERATEPRECISEGC) {
-      if (state.DSM) {
+      if (state.DSM||state.SINGLETM) {
 	headersout.print("struct "+cn.getSafeSymbol()+lb.getSignature()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_params * "+paramsprefix);
       } else
 	headersout.print("struct "+cn.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_params * "+paramsprefix);
@@ -1360,9 +1369,9 @@ public class BuildCode {
     TempObject objecttemp=(TempObject) tempstable.get(lb!=null ? lb : md!=null ? md : task);
 
     if (GENERATEPRECISEGC) {
-      if (md!=null&&state.DSM)
+      if (md!=null&&(state.DSM||state.SINGLETM))
 	output.print("   struct "+cn.getSafeSymbol()+lb.getSignature()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_locals "+localsprefix+"={");
-      else if (md!=null&&!state.DSM)
+      else if (md!=null&&!(state.DSM||state.SINGLETM))
 	output.print("   struct "+cn.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_locals "+localsprefix+"={");
       else
 	output.print("   struct "+task.getSafeSymbol()+"_locals "+localsprefix+"={");
@@ -1392,7 +1401,7 @@ public class BuildCode {
     /* Check to see if we need to do a GC if this is a
      * multi-threaded program...*/
 
-    if ((state.THREAD||state.DSM)&&GENERATEPRECISEGC) {
+    if ((state.THREAD||state.DSM||state.SINGLETM)&&GENERATEPRECISEGC) {
       if (state.DSM&&lb.isAtomic())
 	output.println("if (needtocollect) checkcollect2(&"+localsprefix+");");
       else
@@ -1415,7 +1424,7 @@ public class BuildCode {
       if (nodetolabel.containsKey(current_node))
 	output.println("L"+nodetolabel.get(current_node)+":");
       if (state.INSTRUCTIONFAILURE) {
-	if (state.THREAD||state.DSM) {
+	if (state.THREAD||state.DSM||state.SINGLETM) {
 	  output.println("if ((++instructioncount)>failurecount) {instructioncount=0;injectinstructionfailure();}");
 	} else
 	  output.println("if ((--instructioncount)==0) injectinstructionfailure();");
@@ -1491,7 +1500,6 @@ public class BuildCode {
     MethodDescriptor md=fm.getMethod();
     TaskDescriptor task=fm.getTask();
     TempObject objecttemps=(TempObject) tempstable.get(lb!=null ? lb : md!=null ? md : task);
-
     if (objecttemps.isLocalPrim(td)||objecttemps.isParamPrim(td)) {
       //System.out.println("generateTemp returns " + td.getSafeSymbol());
       return td.getSafeSymbol();
@@ -1586,7 +1594,7 @@ public class BuildCode {
       return;
 
     case FKind.FlatBackEdge:
-      if ((state.THREAD||state.DSM)&&GENERATEPRECISEGC) {
+      if ((state.THREAD||state.DSM||state.SINGLETM)&&GENERATEPRECISEGC) {
 	if(state.DSM&&locality.getAtomic(lb).get(fn).intValue()>0) {
 	  output.println("if (needtocollect) checkcollect2(&"+localsprefix+");");
 	} else
@@ -1825,7 +1833,7 @@ public class BuildCode {
     /* Backup the temps. */
     for(Iterator<TempDescriptor> tmpit=locality.getTemps(lb).get(faen).iterator(); tmpit.hasNext();) {
       TempDescriptor tmp=tmpit.next();
-      output.println(generateTemp(fm, backuptable.get(tmp),lb)+"="+generateTemp(fm,tmp,lb)+";");
+      output.println(generateTemp(fm, backuptable.get(lb).get(tmp),lb)+"="+generateTemp(fm,tmp,lb)+";");
     }
     
     output.println("goto transstart"+faen.getIdentifier()+";");
@@ -1836,19 +1844,20 @@ public class BuildCode {
     /* Restore temps */
     for(Iterator<TempDescriptor> tmpit=locality.getTemps(lb).get(faen).iterator(); tmpit.hasNext();) {
       TempDescriptor tmp=tmpit.next();
-      output.println(generateTemp(fm, tmp,lb)+"="+generateTemp(fm,backuptable.get(tmp),lb)+";");
+      output.println(generateTemp(fm, tmp,lb)+"="+generateTemp(fm,backuptable.get(lb).get(tmp),lb)+";");
     }
 
-    /********* Need to revert local object store ********/
-    String revertptr=generateTemp(fm, reverttable.get(lb),lb);
-
-    output.println("while ("+revertptr+") {");
-    output.println("struct ___Object___ * tmpptr;");
-    output.println("tmpptr="+revertptr+"->"+nextobjstr+";");
-    output.println("REVERT_OBJ("+revertptr+");");
-    output.println(revertptr+"=tmpptr;");
-    output.println("}");
-
+    if (state.DSM) {
+      /********* Need to revert local object store ********/
+      String revertptr=generateTemp(fm, reverttable.get(lb),lb);
+      
+      output.println("while ("+revertptr+") {");
+      output.println("struct ___Object___ * tmpptr;");
+      output.println("tmpptr="+revertptr+"->"+nextobjstr+";");
+      output.println("REVERT_OBJ("+revertptr+");");
+      output.println(revertptr+"=tmpptr;");
+      output.println("}");
+    }
     /******* Tell the runtime to start the transaction *******/
 
     output.println("transstart"+faen.getIdentifier()+":");
@@ -1865,19 +1874,24 @@ public class BuildCode {
     if (locality.getAtomic(lb).get(faen).intValue()>0)
       return;
     //store the revert list before we lose the transaction object
-    String revertptr=generateTemp(fm, reverttable.get(lb),lb);
-    output.println(revertptr+"=revertlist;");
+    String revertptr=null;
+    if (state.DSM) {
+      revertptr=generateTemp(fm, reverttable.get(lb),lb);
+      output.println(revertptr+"=revertlist;");
+    }
     output.println("if (transCommit()) {");
     /* Transaction aborts if it returns true */
     output.println("goto transretry"+faen.getAtomicEnter().getIdentifier()+";");
-    output.println("} else {");
+    if (state.DSM) {
+      output.println("} else {");
     /* Need to commit local object store */
-    output.println("while ("+revertptr+") {");
-    output.println("struct ___Object___ * tmpptr;");
-    output.println("tmpptr="+revertptr+"->"+nextobjstr+";");
-    output.println("COMMIT_OBJ("+revertptr+");");
-    output.println(revertptr+"=tmpptr;");
-    output.println("}");
+      output.println("while ("+revertptr+") {");
+      output.println("struct ___Object___ * tmpptr;");
+      output.println("tmpptr="+revertptr+"->"+nextobjstr+";");
+      output.println("COMMIT_OBJ("+revertptr+");");
+      output.println(revertptr+"=tmpptr;");
+      output.println("}");
+    }
     output.println("}");
   }
 
@@ -1915,11 +1929,11 @@ public class BuildCode {
 
   private void generateFlatCall(FlatMethod fm, LocalityBinding lb, FlatCall fc, PrintWriter output) {
     MethodDescriptor md=fc.getMethod();
-    ParamsObject objectparams=(ParamsObject)paramstable.get(state.DSM ? locality.getBinding(lb, fc) : md);
+    ParamsObject objectparams=(ParamsObject)paramstable.get(state.DSM||state.SINGLETM ? locality.getBinding(lb, fc) : md);
     ClassDescriptor cn=md.getClassDesc();
     output.println("{");
     if (GENERATEPRECISEGC) {
-      if (state.DSM) {
+      if (state.DSM||state.SINGLETM) {
 	LocalityBinding fclb=locality.getBinding(lb, fc);
 	output.print("       struct "+cn.getSafeSymbol()+fclb.getSignature()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_params __parameterlist__={");
       } else
@@ -1961,7 +1975,7 @@ public class BuildCode {
     /* Do we need to do virtual dispatch? */
     if (md.isStatic()||md.getReturnType()==null||singleCall(fc.getThis().getType().getClassDesc(),md)) {
       //no
-      if (state.DSM) {
+      if (state.DSM||state.SINGLETM) {
 	LocalityBinding fclb=locality.getBinding(lb, fc);
 	output.print(cn.getSafeSymbol()+fclb.getSignature()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor());
       } else {
@@ -1978,7 +1992,7 @@ public class BuildCode {
 
       boolean printcomma=false;
       if (GENERATEPRECISEGC) {
-	if (state.DSM) {
+	if (state.DSM||state.SINGLETM) {
 	  LocalityBinding fclb=locality.getBinding(lb, fc);
 	  output.print("struct "+cn.getSafeSymbol()+fclb.getSignature()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_params * ");
 	} else
@@ -1998,7 +2012,7 @@ public class BuildCode {
       }
 
 
-      if (state.DSM) {
+      if (state.DSM||state.SINGLETM) {
 	LocalityBinding fclb=locality.getBinding(lb, fc);
 	output.print("))virtualtable["+generateTemp(fm,fc.getThis(),lb)+"->type*"+maxcount+"+"+virtualcalls.getLocalityNumber(fclb)+"])");
       } else
@@ -2060,7 +2074,17 @@ public class BuildCode {
   }
 
   private void generateFlatFieldNode(FlatMethod fm, LocalityBinding lb, FlatFieldNode ffn, PrintWriter output) {
-    if (state.DSM) {
+    if (state.SINGLETM) {
+      //single machine transactional memory case
+      String field=ffn.getField().getSafeSymbol();
+      String src=generateTemp(fm, ffn.getSrc(),lb);
+      String dst=generateTemp(fm, ffn.getDst(),lb);
+
+      output.println(dst+"="+ src +"->"+field+ ";");
+      if (ffn.getField().getType().isPtr()) {
+	output.println("TRANSREAD("+dst+", (unsigned int) "+dst+");");
+      }
+    } else if (state.DSM) {
       Integer status=locality.getNodePreTempInfo(lb,ffn).get(ffn.getSrc());
       if (status==LocalityAnalysis.GLOBAL) {
 	String field=ffn.getField().getSafeSymbol();
@@ -2118,7 +2142,24 @@ public class BuildCode {
   private void generateFlatSetFieldNode(FlatMethod fm, LocalityBinding lb, FlatSetFieldNode fsfn, PrintWriter output) {
     if (fsfn.getField().getSymbol().equals("length")&&fsfn.getDst().getType().isArray())
       throw new Error("Can't set array length");
-    if (state.DSM && locality.getAtomic(lb).get(fsfn).intValue()>0) {
+    if (state.SINGLETM && locality.getAtomic(lb).get(fsfn).intValue()>0) {
+      //Single Machine Transaction Case
+      boolean srcptr=fsfn.getSrc().getType().isPtr();
+      String src=generateTemp(fm,fsfn.getSrc(),lb);
+      String dst=generateTemp(fm,fsfn.getDst(),lb);
+      if (srcptr) {
+	output.println("{");
+	output.println("int srcoid=("+src+"!=NULL?((int)"+src+"->"+oidstr+"):0);");
+      }
+      if (wb.needBarrier(fsfn))
+	output.println("*((unsigned int *)&("+dst+"->___localcopy___))|=DIRTY;");
+      if (srcptr) {
+	output.println("*((unsigned int *)&("+dst+"->"+ fsfn.getField().getSafeSymbol()+"))=srcoid;");
+	output.println("}");
+      } else {
+	output.println(dst+"->"+ fsfn.getField().getSafeSymbol()+"="+ src+";");
+      }
+    } else if (state.DSM && locality.getAtomic(lb).get(fsfn).intValue()>0) {
       Integer statussrc=locality.getNodePreTempInfo(lb,fsfn).get(fsfn.getSrc());
       Integer statusdst=locality.getNodeTempInfo(lb).get(fsfn).get(fsfn.getDst());
       boolean srcglobal=statussrc==LocalityAnalysis.GLOBAL;
@@ -2132,7 +2173,8 @@ public class BuildCode {
       if (statusdst.equals(LocalityAnalysis.GLOBAL)) {
 	String glbdst=dst;
 	//mark it dirty
-	output.println("*((unsigned int *)&("+dst+"->___localcopy___))|=DIRTY;");
+	if (wb.needBarrier(fsfn))
+	  output.println("*((unsigned int *)&("+dst+"->___localcopy___))|=DIRTY;");
 	if (srcglobal) {
 	  output.println("*((unsigned int *)&("+glbdst+"->"+ fsfn.getField().getSafeSymbol()+"))=srcoid;");
 	} else
@@ -2157,9 +2199,7 @@ public class BuildCode {
       } else if (statusdst.equals(LocalityAnalysis.EITHER)) {
 	//writing to a null...bad
 	output.println("if ("+dst+") {");
-	output.println("#ifndef RAW");
 	output.println("printf(\"BIG ERROR 2\\n\");exit(-1);}");
-	output.println("#endif");
 	if (srcglobal)
 	  output.println(dst+"->"+ fsfn.getField().getSafeSymbol()+"=srcoid;");
 	else
@@ -2198,7 +2238,17 @@ public class BuildCode {
       output.println("if ("+generateTemp(fm, fen.getIndex(),lb)+"< 0 || "+generateTemp(fm, fen.getIndex(),lb)+" >= "+generateTemp(fm,fen.getSrc(),lb) + "->___length___)");
       output.println("failedboundschk();");
     }
-    if (state.DSM) {
+    if (state.SINGLETM) {
+      //Single machine transaction case
+      String dst=generateTemp(fm, fen.getDst(),lb);
+      
+      if (elementtype.isPtr()) {
+	output.println(dst +"=(("+ type+"*)(((char *) &("+ generateTemp(fm,fen.getSrc(),lb)+"->___length___))+sizeof(int)))["+generateTemp(fm, fen.getIndex(),lb)+"];");
+	output.println("TRANSREAD("+dst+", "+dst+");");
+      } else {
+	output.println(dst +"=(("+ type+"*)(((char *) &("+ generateTemp(fm,fen.getSrc(),lb)+"->___length___))+sizeof(int)))["+generateTemp(fm, fen.getIndex(),lb)+"];");
+      }
+    } else if (state.DSM) {
       Integer status=locality.getNodePreTempInfo(lb,fen).get(fen.getSrc());
       if (status==LocalityAnalysis.GLOBAL) {
 	String dst=generateTemp(fm, fen.getDst(),lb);
@@ -2243,7 +2293,20 @@ public class BuildCode {
       output.println("failedboundschk();");
     }
 
-    if (state.DSM && locality.getAtomic(lb).get(fsen).intValue()>0) {
+    if (state.SINGLETM && locality.getAtomic(lb).get(fsen).intValue()>0) {
+      //Transaction set element case
+      if (wb.needBarrier(fsen))
+	output.println("*((unsigned int *)&("+generateTemp(fm,fsen.getDst(),lb)+"->___localcopy___))|=DIRTY;");
+      if (fsen.getSrc().getType().isPtr()) {
+	output.println("{");
+	String src=generateTemp(fm, fsen.getSrc(), lb);
+	output.println("int srcoid=("+src+"!=NULL?((int)"+src+"->"+oidstr+"):0);");
+	output.println("((int*)(((char *) &("+ generateTemp(fm,fsen.getDst(),lb)+"->___length___))+sizeof(int)))["+generateTemp(fm, fsen.getIndex(),lb)+"]=srcoid;");
+	output.println("}");
+      } else {
+	output.println("(("+type +"*)(((char *) &("+ generateTemp(fm,fsen.getDst(),lb)+"->___length___))+sizeof(int)))["+generateTemp(fm, fsen.getIndex(),lb)+"]="+generateTemp(fm,fsen.getSrc(),lb)+";");
+      }
+    } else if (state.DSM && locality.getAtomic(lb).get(fsen).intValue()>0) {
       Integer statussrc=locality.getNodePreTempInfo(lb,fsen).get(fsen.getSrc());
       Integer statusdst=locality.getNodePreTempInfo(lb,fsen).get(fsen.getDst());
       boolean srcglobal=statussrc==LocalityAnalysis.GLOBAL;
@@ -2251,7 +2314,8 @@ public class BuildCode {
       boolean dstlocal=statusdst==LocalityAnalysis.LOCAL;
 
       if (dstglobal) {
-	output.println("*((unsigned int *)&("+generateTemp(fm,fsen.getDst(),lb)+"->___localcopy___))|=DIRTY;");
+	if (wb.needBarrier(fsen))
+	  output.println("*((unsigned int *)&("+generateTemp(fm,fsen.getDst(),lb)+"->___localcopy___))|=DIRTY;");
       } else if (dstlocal) {
 	/** Check if we need to copy */
 	String dst=generateTemp(fm, fsen.getDst(),lb);
@@ -2299,7 +2363,26 @@ public class BuildCode {
       String revertptr=generateTemp(fm, reverttable.get(lb),lb);
       output.println(revertptr+"=revertlist;");
     }
-    if (fn.getType().isArray()) {
+    if (state.SINGLETM) {
+      if (fn.getType().isArray()) {
+	int arrayid=state.getArrayNumber(fn.getType())+state.numClasses();
+	if (locality.getAtomic(lb).get(fn).intValue()>0) {
+	  //inside transaction
+	  output.println(generateTemp(fm,fn.getDst(),lb)+"=allocate_newarraytrans(&"+localsprefix+", "+arrayid+", "+generateTemp(fm, fn.getSize(),lb)+");");
+	} else {
+	  //outside transaction
+	  output.println(generateTemp(fm,fn.getDst(),lb)+"=allocate_newarray(&"+localsprefix+", "+arrayid+", "+generateTemp(fm, fn.getSize(),lb)+");");
+	}
+      } else {
+	if (locality.getAtomic(lb).get(fn).intValue()>0) {
+	  //inside transaction
+	  output.println(generateTemp(fm,fn.getDst(),lb)+"=allocate_newtrans(&"+localsprefix+", "+fn.getType().getClassDesc().getId()+");");
+	} else {
+	  //outside transaction
+	  output.println(generateTemp(fm,fn.getDst(),lb)+"=allocate_new(&"+localsprefix+", "+fn.getType().getClassDesc().getId()+");");
+	}
+      }
+    } else if (fn.getType().isArray()) {
       int arrayid=state.getArrayNumber(fn.getType())+state.numClasses();
       if (fn.isGlobal()) {
 	output.println(generateTemp(fm,fn.getDst(),lb)+"=allocate_newarrayglobal("+arrayid+", "+generateTemp(fm, fn.getSize(),lb)+");");
@@ -2448,7 +2531,7 @@ public class BuildCode {
       //catch the constructor case
       output.print("void ");
     if (md!=null) {
-      if (state.DSM) {
+      if (state.DSM||state.SINGLETM) {
 	output.print(cn.getSafeSymbol()+lb.getSignature()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"(");
       } else
 	output.print(cn.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"(");
@@ -2458,7 +2541,7 @@ public class BuildCode {
     boolean printcomma=false;
     if (GENERATEPRECISEGC) {
       if (md!=null) {
-	if (state.DSM) {
+	if (state.DSM||state.SINGLETM) {
 	  output.print("struct "+cn.getSafeSymbol()+lb.getSignature()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_params * "+paramsprefix);
 	} else
 	  output.print("struct "+cn.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_params * "+paramsprefix);

@@ -115,6 +115,7 @@ JAVAFILES=IR/*.java \
 	Main/*.java \
 	Analysis/CallGraph/*.java \
 	Analysis/FlatIRGraph/*.java \
+	Analysis/Loops/*.java \
 	Analysis/Locality/*.java \
 	Analysis/OwnershipAnalysis/*.java \
 	Analysis/Prefetch/*.java \
@@ -142,7 +143,7 @@ wc:
 	wc Interface/*.java Analysis/*/*.java IR/*.java IR/*/*.java Lex/*.java Util/*.java ClassLibrary/*.java
 
 wcrun:
-	wc Runtime/*.[c,h]
+	wc Runtime/*.[c,h] Runtime/DSTM/interface/*.[c,h]
 
 Parse/Parser.java Parse/Sym.java: Parse/java14.cup
 	cd Parse && \

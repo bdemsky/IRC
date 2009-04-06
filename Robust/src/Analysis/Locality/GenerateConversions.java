@@ -49,7 +49,7 @@ public class GenerateConversions {
       toprocess.remove(fn);
       boolean isatomic=atomictab.get(fn).intValue()>0;
 
-      Hashtable<TempDescriptor, Integer> nodetemptab=temptab.get(fn);
+      Hashtable<TempDescriptor, Integer> nodetemptab=state.DSM?temptab.get(fn):null;
 
       List<TempDescriptor> reads=Arrays.asList(fn.readsTemps());
       List<TempDescriptor> writes=Arrays.asList(fn.writesTemps());
@@ -111,7 +111,12 @@ public class GenerateConversions {
 	   * locality. */
 	  for(Iterator<TempDescriptor> writeit=writes.iterator(); writeit.hasNext();) {
 	    TempDescriptor wrtmp=writeit.next();
-	    if (nodetemptab.get(wrtmp)==LocalityAnalysis.GLOBAL||state.SINGLETM) {
+	    if (state.SINGLETM) {
+	      if (wrtmp.getType().isPtr()) {
+		TempNodePair tnp=new TempNodePair(wrtmp);
+		tempset.add(tnp);
+	      }
+	    } else if (nodetemptab.get(wrtmp)==LocalityAnalysis.GLOBAL) {
 	      TempNodePair tnp=new TempNodePair(wrtmp);
 	      tempset.add(tnp);
 	    }
@@ -140,7 +145,8 @@ public class GenerateConversions {
 	  TempDescriptor tmpd=tempit.next();
 	  FlatGlobalConvNode fgcn=new FlatGlobalConvNode(tmpd, lb, false, nodetoconvs.get(fn).contains(tmpd));
 	  atomictab.put(fgcn, atomictab.get(fn));
-	  temptab.put(fgcn, (Hashtable<TempDescriptor, Integer>)temptab.get(fn).clone());
+	  if (state.DSM)
+	    temptab.put(fgcn, (Hashtable<TempDescriptor, Integer>)temptab.get(fn).clone());
 
 	  for(int i=0; i<fn.numPrev(); i++) {
 	    FlatNode fnprev=fn.getPrev(i);
@@ -184,12 +190,22 @@ public class GenerateConversions {
 	//subtract out the ones we write to
 	transtemps.removeAll(Arrays.asList(fn.writesTemps()));
 	//add in the globals we read from
-	Hashtable<TempDescriptor, Integer> pretemptab=locality.getNodePreTempInfo(lb, fn);
-	TempDescriptor [] readtemps=fn.readsTemps();
-	for(int i=0; i<readtemps.length; i++) {
-	  TempDescriptor tmp=readtemps[i];
-	  if (pretemptab.get(tmp).intValue()==LocalityAnalysis.GLOBAL||state.SINGLETM) {
-	    transtemps.add(tmp);
+	if (state.SINGLETM) {
+	  TempDescriptor [] readtemps=fn.readsTemps();
+	  for(int i=0; i<readtemps.length; i++) {
+	    TempDescriptor tmp=readtemps[i];
+	    if (tmp.getType().isPtr()) {
+	      transtemps.add(tmp);
+	    }
+	  }
+	} else {
+	  Hashtable<TempDescriptor, Integer> pretemptab=locality.getNodePreTempInfo(lb, fn);
+	  TempDescriptor [] readtemps=fn.readsTemps();
+	  for(int i=0; i<readtemps.length; i++) {
+	    TempDescriptor tmp=readtemps[i];
+	    if (pretemptab.get(tmp).intValue()==LocalityAnalysis.GLOBAL) {
+	      transtemps.add(tmp);
+	    }
 	  }
 	}
 	if (!nodetotranstemps.containsKey(fn)||!nodetotranstemps.get(fn).equals(transtemps)) {
@@ -212,7 +228,9 @@ public class GenerateConversions {
 	for(Iterator<TempDescriptor> tempit=tempset.iterator(); tempit.hasNext();) {
 	  FlatGlobalConvNode fgcn=new FlatGlobalConvNode(tempit.next(), lb, true);
 	  atomictab.put(fgcn, atomictab.get(fn));
-	  temptab.put(fgcn, (Hashtable<TempDescriptor, Integer>)temptab.get(fn).clone());
+	  if (state.DSM) {
+	    temptab.put(fgcn, (Hashtable<TempDescriptor, Integer>)temptab.get(fn).clone());
+	  }
 	  fgcn.addNext(fn.getNext(0));
 	  fn.setNext(0, fgcn);
 	}

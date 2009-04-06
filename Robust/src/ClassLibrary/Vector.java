@@ -32,6 +32,16 @@ public class Vector {
     return -1;
   }
 
+  public boolean contains(Object e) {
+    return indexOf(e)!=-1;
+  }
+
+  public void remove(Object o) {
+    int in=indexOf(o);
+    if (in!=-1)
+      removeElementAt(in);
+  }
+
   public Object elementAt(int index) {
     if (index<0 || index >=size) {
       System.printString("Illegal Vector.elementAt\n");

@@ -1,0 +1,8 @@
+TODO List/Ideas for Software Transactional Memory Project:
+
+1) Do reads/writes to new objects in place
+
+2) Compute types of objects that are only read by a transaction. Do
+reads of these objects in place.
+
+3) Don't lock object on TransRead

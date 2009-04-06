@@ -44,8 +44,8 @@ public class WriteBarrier {
     HashSet toprocess=new HashSet();
     HashSet discovered=new HashSet();
     needbarrier=new Hashtable<FlatNode,HashSet<TempDescriptor>>();
-    toprocess.add(fm);
-    discovered.add(fm);
+    toprocess.add(fm.getNext(0));
+    discovered.add(fm.getNext(0));
     Hashtable<FlatNode, Integer> atomic=la.getAtomic(lb);
     
     while(!toprocess.isEmpty()) {

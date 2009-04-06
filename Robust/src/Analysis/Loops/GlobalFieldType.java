@@ -2,6 +2,7 @@ package Analysis.Loops;
 
 import IR.Flat.*;
 import IR.State;
+import IR.TypeUtil;
 import IR.MethodDescriptor;
 import IR.FieldDescriptor;
 import IR.TypeDescriptor;
@@ -44,6 +45,29 @@ public class GlobalFieldType {
 	  discovered.add(md2);
 	  toprocess.add(md2);
 	}
+      }
+      if (md.getClassDesc().getSymbol().equals(TypeUtil.ThreadClass)&&
+          md.getSymbol().equals("start")&&!md.getModifiers().isStatic()&&
+          md.numParameters()==0) {
+	//start -> run link	
+	MethodDescriptor runmd=null;
+	for(Iterator methodit=md.getClassDesc().getMethodTable().getSet("run").iterator(); methodit.hasNext();) {
+	  MethodDescriptor mdrun=(MethodDescriptor) methodit.next();
+	  if (mdrun.numParameters()!=0||mdrun.getModifiers().isStatic())
+	    continue;
+	  runmd=mdrun;
+	  break;
+	}
+	if (runmd!=null) {
+	  Set runmethodset=cg.getMethods(runmd);
+	  for(Iterator it=runmethodset.iterator();it.hasNext();) {
+	    MethodDescriptor md2=(MethodDescriptor)it.next();
+	    if (!discovered.contains(md2)) {
+	      discovered.add(md2);
+	      toprocess.add(md2);
+	    }
+	  }
+	} else throw new Error("Can't find run method");
       }
     }
     boolean changed=true;

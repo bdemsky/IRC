@@ -25,7 +25,9 @@ public class LocalityBinding {
   }
 
   private static String globalToString(Integer g) {
-    if (g==LocalityAnalysis.GLOBAL)
+    if (g==null)
+      return "";
+    else if (g==LocalityAnalysis.GLOBAL)
       return "G";
     else if (g==LocalityAnalysis.LOCAL)
       return "L";
@@ -141,6 +143,15 @@ public class LocalityBinding {
     return (isatomic==lb.isatomic);
   }
 
+  public static boolean equiv(Integer a, Integer b) {
+    if (a==null) {
+      return b==null;
+    } else if (b==null) {
+      //a is not null
+      return false;
+    } else return a.equals(b);
+  }
+
   public boolean equals(Object o) {
     if (o instanceof LocalityBinding) {
       LocalityBinding lb=(LocalityBinding)o;
@@ -148,14 +159,10 @@ public class LocalityBinding {
 	return false;
 
       for(int i=0; i<isglobal.length; i++)
-	if (!isglobal[i].equals(lb.isglobal[i]))
+	if (!equiv(isglobal[i], lb.isglobal[i]))
 	  return false;
 
-      if (isglobalthis==null) {
-	if (lb.isglobalthis!=null)
-	  return false;
-      } else
-      if (!isglobalthis.equals(lb.isglobalthis))
+      if (!equiv(isglobalthis, lb.isglobalthis))
 	return false;
       return (isatomic==lb.isatomic);
     }
@@ -165,7 +172,8 @@ public class LocalityBinding {
   public int hashCode() {
     int hashcode=md.hashCode();
     for(int i=0; i<isglobal.length; i++) {
-      hashcode=hashcode*31+(isglobal[i].intValue());
+      if (isglobal[i]!=null)
+	hashcode=hashcode*31+(isglobal[i].intValue());
     }
     hashcode=hashcode*31+(isatomic ? 1 : 0);
     return hashcode;

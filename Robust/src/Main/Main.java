@@ -228,7 +228,7 @@ public class Main {
     if (state.TASK) {
       sc.getClass("TagDescriptor");
     }
-    if (state.THREAD||state.DSM) {
+    if (state.THREAD||state.DSM||state.SINGLETM) {
 	sc.getClass("Thread");
     }
 
@@ -248,7 +248,7 @@ public class Main {
       GlobalFieldType gft=new GlobalFieldType(callgraph, state, tu.getMain());
       CSE cse=new CSE(gft, tu);
       localCSE lcse=new localCSE(gft, tu);
-      LoopOptimize lo=new LoopOptimize(tu);
+      LoopOptimize lo=new LoopOptimize(gft, tu);
       Iterator classit=state.getClassSymbolTable().getDescriptorsIterator();
       while(classit.hasNext()) {
         ClassDescriptor cn=(ClassDescriptor)classit.next();
@@ -260,10 +260,10 @@ public class Main {
 	  cp.optimize(fm);
 	  dc.optimize(fm);
 	  lo.optimize(fm);
-	  cp.optimize(fm);
-	  dc.optimize(fm);
 	  lcse.doAnalysis(fm);
 	  cse.doAnalysis(fm);
+	  cp.optimize(fm);
+	  dc.optimize(fm);
         }
       }
     }
@@ -340,16 +340,14 @@ public class Main {
 	}
       }
     }
-
     if(!state.MULTICORE) {
-      if (state.DSM) {
+      if (state.DSM||state.SINGLETM) {
 	CallGraph callgraph=new CallGraph(state);
 	if (state.PREFETCH) {
 	  //speed up prefetch generation using locality analysis results
 	  LocalityAnalysis la=new LocalityAnalysis(state, callgraph, tu);
 	  pa=new PrefetchAnalysis(state, callgraph, tu, la);
 	}
-
 	LocalityAnalysis la=new LocalityAnalysis(state, callgraph, tu);
 	GenerateConversions gc=new GenerateConversions(la, state);
 	BuildCode bc=new BuildCode(state, bf.getMap(), tu, la, pa);
