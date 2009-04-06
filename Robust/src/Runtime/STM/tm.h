@@ -119,6 +119,7 @@ typedef struct newObjCreated {
  * ================================
  */
 int stmStartup();
+void objstrDelete(objstr_t *store);
 objstr_t *objstrCreate(unsigned int size);
 void transStart();
 objheader_t *transCreateObj(unsigned int size);

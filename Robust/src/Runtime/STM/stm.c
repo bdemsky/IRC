@@ -41,6 +41,17 @@ objstr_t *objstrCreate(unsigned int size) {
   return tmp;
 }
 
+//free entire list, starting at store
+void objstrDelete(objstr_t *store) {
+  objstr_t *tmp;
+  while (store != NULL) {
+    tmp = store->next;
+    free(store);
+    store = tmp;
+  }
+  return;
+}
+
 /* =================================================
  * transStart
  * This function initializes things required in the 
@@ -352,7 +363,7 @@ int transAbortProcess(unsigned int *oidrdlocked, int *numoidrdlocked, unsigned i
  *
  * =================================
  */
-int transCommmitProcess(unsigned int *oidcreated, int *numoidcreated, unsigned int *oidrdlocked, int *numoidrdlocked,
+int transCommitProcess(unsigned int *oidcreated, int *numoidcreated, unsigned int *oidrdlocked, int *numoidrdlocked,
                     unsigned int *oidwrlocked, int *numoidwrlocked) {
   objheader_t *header, *tcptr;
   void *ptrcreate;
@@ -402,9 +413,6 @@ int transCommmitProcess(unsigned int *oidcreated, int *numoidcreated, unsigned i
     }
 
     header->version += 1;
-    if(header->notifylist != NULL) {
-      notifyAll(&header->notifylist, OID(header), header->version);
-    }
   }
   
   /* Release read locks */

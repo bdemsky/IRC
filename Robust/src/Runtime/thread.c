@@ -111,7 +111,11 @@ void initializethreads() {
 void initthread(struct ___Thread___ * ___this___) {
 #ifdef PRECISE_GC
   int p[]={1, (int) NULL, (int) ___this___};
+#ifdef THREADS
   ___Thread______staticStart____L___Thread___((struct ___Thread______staticStart____L___Thread____params *)p);
+#else
+ ___Thread____NN____staticStart____L___Thread___((struct ___Thread____NN____staticStart____L___Thread____params *)p);
+#endif
   ___this___=(struct ___Thread___ *) p[2];
 #else
   ___Thread______staticStart____L___Thread___(___this___);

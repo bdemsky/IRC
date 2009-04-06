@@ -485,7 +485,7 @@ fi
 if $SINGLETM
 then
 EXTRAOPTIONS="$EXTRAOPTIONS -lpthread -DCOMPILER -I$DSMRUNTIME"
-FILES="$FILES $DSMRUNTIME/dsmlock.c $DSMRUNTIME/singleTMCommit.c $DSMRUNTIME/clookup.c"
+FILES="$FILES $DSMRUNTIME/dsmlock.c $DSMRUNTIME/singleTMCommit.c $DSMRUNTIME/clookup.c $ROBUSTROOT/Runtime/thread.c"
 fi
 
 if $ABORTREADERS

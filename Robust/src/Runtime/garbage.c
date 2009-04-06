@@ -420,7 +420,7 @@ void * tomalloc(int size) {
   return ptr;
 }
 
-#if defined(THREADS)||defined(DSTM)
+#if defined(THREADS)||defined(DSTM)||defined(STM)
 void checkcollect(void * ptr) {
   struct listitem * tmp=stopforgc((struct garbagelist *)ptr);
   pthread_mutex_lock(&gclock); // Wait for GC

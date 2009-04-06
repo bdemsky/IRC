@@ -10,7 +10,7 @@ extern pthread_cond_t gccond;
 extern pthread_mutex_t objlock;
 extern pthread_cond_t objcond;
 extern pthread_key_t threadlocks;
-#ifdef THREADS
+#if defined(THREADS)||defined(STM)
 void initthread(struct ___Thread___ * ___this___);
 #endif
 #ifdef DSTM

@@ -332,9 +332,9 @@ public class LocalityAnalysis {
 	assert(nodemd.getModifiers().isNative());
 
 	MethodDescriptor runmd=null;
-	for(Iterator methodit=nodemd.getClassDesc().getMethodTable().getSet("run").iterator(); methodit.hasNext();) {
+	for(Iterator methodit=nodemd.getClassDesc().getMethodTable().getSet("staticStart").iterator(); methodit.hasNext();) {
 	  MethodDescriptor md=(MethodDescriptor) methodit.next();
-	  if (md.numParameters()!=0||md.getModifiers().isStatic())
+	  if (md.numParameters()!=1||!md.getModifiers().isStatic()||!md.getParamType(0).getSymbol().equals(TypeUtil.ThreadClass))
 	    continue;
 	  runmd=md;
 	  break;
