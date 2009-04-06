@@ -31,7 +31,7 @@ public class BuildCode {
   String localsprefix="___locals___";
   String fcrevert="___fcrevert___";
   String paramsprefix="___params___";
-  String oidstr=state.DSM?"___nextobject___":"___objlocation___";
+  String oidstr="___nextobject___";
   String nextobjstr="___nextobject___";
   String localcopystr="___localcopy___";
   public static boolean GENERATEPRECISEGC=false;
@@ -64,6 +64,8 @@ public class BuildCode {
     this.sa=sa;
     this.pa=pa;
     state=st;
+    if (state.SINGLETM)
+	oidstr="___objlocation___";
     this.temptovar=temptovar;
     paramstable=new Hashtable();
     tempstable=new Hashtable();
