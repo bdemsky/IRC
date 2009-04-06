@@ -31,7 +31,7 @@ public class BuildCode {
   String localsprefix="___locals___";
   String fcrevert="___fcrevert___";
   String paramsprefix="___params___";
-  String oidstr="___nextobject___";
+  String oidstr=state.DSM?"___nextobject___":"___objlocation___";
   String nextobjstr="___nextobject___";
   String localcopystr="___localcopy___";
   public static boolean GENERATEPRECISEGC=false;
@@ -2152,7 +2152,7 @@ public class BuildCode {
 	output.println("int srcoid=("+src+"!=NULL?((int)"+src+"->"+oidstr+"):0);");
       }
       if (wb.needBarrier(fsfn))
-	output.println("*((unsigned int *)&("+dst+"->___localcopy___))|=DIRTY;");
+	output.println("*((unsigned int *)&("+dst+"->___objstatus___))|=DIRTY;");
       if (srcptr) {
 	output.println("*((unsigned int *)&("+dst+"->"+ fsfn.getField().getSafeSymbol()+"))=srcoid;");
 	output.println("}");
@@ -2296,7 +2296,7 @@ public class BuildCode {
     if (state.SINGLETM && locality.getAtomic(lb).get(fsen).intValue()>0) {
       //Transaction set element case
       if (wb.needBarrier(fsen))
-	output.println("*((unsigned int *)&("+generateTemp(fm,fsen.getDst(),lb)+"->___localcopy___))|=DIRTY;");
+	output.println("*((unsigned int *)&("+generateTemp(fm,fsen.getDst(),lb)+"->___objstatus___))|=DIRTY;");
       if (fsen.getSrc().getType().isPtr()) {
 	output.println("{");
 	String src=generateTemp(fm, fsen.getSrc(), lb);

@@ -38,6 +38,46 @@
 #define NEW   0x02
 #define LOCK  0x04
 
+#ifdef COMPILER
+#include "structdefs.h"
+typedef struct objheader {
+  threadlist_t *notifylist;
+  unsigned int version;
+} objheader_t;
+
+#define OID(x) \
+  (*((unsigned int *)&((struct ___Object___ *)((unsigned int) x + sizeof(objheader_t)))->___objlocation___))
+
+#define COMPOID(x) \
+  ((void*)((((void *) x )!=NULL) ? (*((unsigned int *)&((struct ___Object___ *) x)->___objlocation___)) : 0))
+
+#define STATUS(x) \
+  *((unsigned int *) &(((struct ___Object___ *)((unsigned int) x + sizeof(objheader_t)))->___objstatus___))
+
+#define STATUSPTR(x) \
+  ((unsigned int *) &(((struct ___Object___ *)((unsigned int) x + sizeof(objheader_t)))->___objstatus___))
+
+#define TYPE(x) \
+  ((struct ___Object___ *)((unsigned int) x + sizeof(objheader_t)))->type
+
+#define GETSIZE(size, x) { \
+    int type=TYPE(x); \
+    if (type<NUMCLASSES) { \
+      size=classsize[type]; \
+    } else { \
+      size=classsize[type]*((struct ArrayObject *)&((objheader_t *)x)[1])->___length___+sizeof(struct ArrayObject); \
+    } \
+}
+
+#else
+#define OID(x) x->oid
+#define TYPE(x) x->type
+#define STATUS(x) x->status
+#define STATUSPTR(x) &x->status
+#define GETSIZE(size, x) size=classsize[TYPE(x)]
+#endif
+
+
 /* ================================
  * Constants
  * ================================
@@ -73,44 +113,6 @@ typedef struct newObjCreated {
   unsigned int *oidcreated;
 } newObjCreated_t;
 
-#ifdef COMPILER
-typedef struct objheader {
-  threadlist_t *notifylist;
-  unsigned short version;
-  unsigned short rcount;
-} objheader_t;
-
-#define OID(x) \
-  (*((unsigned int *)&((struct ___Object___ *)((unsigned int) x + sizeof(objheader_t)))->___nextobject___))
-
-#define COMPOID(x) \
-  ((void*)((((void *) x )!=NULL) ? (*((unsigned int *)&((struct ___Object___ *) x)->___nextobject___)) : 0))
-
-#define STATUS(x) \
-  *((unsigned int *) &(((struct ___Object___ *)((unsigned int) x + sizeof(objheader_t)))->___localcopy___))
-
-#define STATUSPTR(x) \
-  ((unsigned int *) &(((struct ___Object___ *)((unsigned int) x + sizeof(objheader_t)))->___localcopy___))
-
-#define TYPE(x) \
-  ((struct ___Object___ *)((unsigned int) x + sizeof(objheader_t)))->type
-
-#define GETSIZE(size, x) { \
-    int type=TYPE(x); \
-    if (type<NUMCLASSES) { \
-      size=classsize[type]; \
-    } else { \
-      size=classsize[type]*((struct ArrayObject *)&((objheader_t *)x)[1])->___length___+sizeof(struct ArrayObject); \
-    } \
-}
-
-#else
-#define OID(x) x->oid
-#define TYPE(x) x->type
-#define STATUS(x) x->status
-#define STATUSPTR(x) &x->status
-#define GETSIZE(size, x) size=classsize[TYPE(x)]
-#endif
 
 /* ================================
  * Functions used

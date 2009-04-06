@@ -61,7 +61,6 @@ objheader_t *transCreateObj(unsigned int size) {
   objheader_t *tmp = (objheader_t *) objstrAlloc(&t_cache, (sizeof(objheader_t) + size));
   OID(tmp) = getNewOID();
   tmp->version = 1;
-  tmp->rcount = 1;
   STATUS(tmp) = NEW;
   t_chashInsert(OID(tmp), tmp);
 
