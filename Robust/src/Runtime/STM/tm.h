@@ -38,9 +38,6 @@
 #define NEW   0x02
 #define LOCK  0x04
 
-//TODO Remove later
-#define NUMCLASSES 22
-
 /* ================================
  * Constants
  * ================================
@@ -48,6 +45,17 @@
 #define DEFAULT_OBJ_STORE_SIZE 1048510 //1MB
 #define OSUSED(x) (((unsigned int)(x)->top)-((unsigned int) (x+1)))
 #define OSFREE(x) ((x)->size-OSUSED(x))
+#define TRANSREAD(x,y) { \
+  unsigned int inputvalue;\
+if ((inputvalue=(unsigned int)y)==0) x=NULL;\
+else { \
+chashlistnode_t * cnodetmp=&c_table[(inputvalue&c_mask)>>1];	\
+do { \
+  if (cnodetmp->key==inputvalue) {x=(void *)&((objheader_t*)cnodetmp->val)[1];break;} \
+cnodetmp=cnodetmp->next;\
+ if (cnodetmp==NULL) {x=(void *)transRead(inputvalue); asm volatile("":"=m"(c_table),"=m"(c_mask));break;} \
+} while(1);\
+}}
 
 /* =================================
  * Data structures 
@@ -97,6 +105,11 @@ typedef struct objheader {
 }
 
 #else
+#define OID(x) x->oid
+#define TYPE(x) x->type
+#define STATUS(x) x->status
+#define STATUSPTR(x) &x->status
+#define GETSIZE(size, x) size=classsize[TYPE(x)]
 #endif
 
 /* ================================

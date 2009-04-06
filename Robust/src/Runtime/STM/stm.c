@@ -11,27 +11,16 @@
  */
 
 #include "tm.h"
-
-/* =======================
- * Global variables
- * ======================
- */
-unsigned int oidMin;
-unsigned int oidMax;
-extern int classsize[];
 /* Thread transaction variables */
 __thread objstr_t *t_cache;
 
 
 /* ==================================================
- * dstmStartup
+ * stmStartup
  * This function starts up the transaction runtime. 
  * ==================================================
  */
 int stmStartup() {
-  oidMax = 0xFFFFFFFF;
-  oidMin = 0;
-
   return 0;
 }
 
@@ -81,16 +70,6 @@ objheader_t *transCreateObj(unsigned int size) {
 #else
   return tmp;
 #endif
-}
-
-//TODO: when reusing oids, make sure they are not already in use!
-static unsigned int id = 0xFFFFFFFF;
-unsigned int getNewOID(void) {
-  id += 2;
-  if (id > oidMax || id < oidMin) {
-    id = (oidMin | 1);
-  }
-  return id;
 }
 
 /* This functions inserts randowm wait delays in the order of msec
@@ -143,31 +122,15 @@ void *objstrAlloc(objstr_t **osptr, unsigned int size) {
 
 /* =============================================================
  * transRead
- * -finds the objects either in transaction cache or main heap
+ * -finds the objects either in main heap
  * -copies the object into the transaction cache
  * =============================================================
  */
 __attribute__((pure)) objheader_t *transRead(unsigned int oid) {
-  int size;
+  unsigned int machinenumber;
+  objheader_t *tmp, *objheader;
   objheader_t *objcopy;
-  chashlistnode_t *node;
-
-  if(oid == 0) {
-    return NULL;
-  }
-  
-  /* Read from the transaction cache */
-  node= &c_table[(oid & c_mask)>>1];
-  do {
-    if(node->key == oid) {
-#ifdef COMPILER
-    return &((objheader_t*)node->val)[1];
-#else
-    return node->val;
-#endif
-    }
-    node = node->next;
-  } while(node != NULL);
+  int size;
 
   /* Read from the main heap */
   objheader_t *header = (objheader_t *)(((char *)(&oid)) - sizeof(objheader_t)); 
