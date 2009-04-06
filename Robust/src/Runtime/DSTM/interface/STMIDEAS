@@ -6,3 +6,7 @@ TODO List/Ideas for Software Transactional Memory Project:
 reads of these objects in place.
 
 3) Don't lock object on TransRead
+
+4) Immutable object optimizations...For immutable objects such as
+Strings/Integers/Doubles/Float objects, don't even copy, just elide
+TRANSREAD call.
