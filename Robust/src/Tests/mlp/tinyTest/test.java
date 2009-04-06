@@ -4,7 +4,7 @@ public class Test {
 
     int n = 10;
 
-    sese s0 {
+    sese top {
       
       /*
       int[] a = new int[n];
