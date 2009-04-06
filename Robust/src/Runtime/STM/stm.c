@@ -11,6 +11,7 @@
  */
 
 #include "tm.h"
+#include "garbage.h"
 /* Thread transaction variables */
 __thread objstr_t *t_cache;
 
@@ -68,18 +69,13 @@ void transStart() {
  * This function creates objects in the transaction record 
  * =======================================================
  */
-objheader_t *transCreateObj(unsigned int size) {
-  objheader_t *tmp = (objheader_t *) objstrAlloc(&t_cache, (sizeof(objheader_t) + size));
-  OID(tmp) = getNewOID();
+objheader_t *transCreateObj(void * ptr, unsigned int size) {
+  objheader_t *tmp = mygcmalloc(ptr, (sizeof(objheader_t) + size));
+  objheader_t *retval=&tmp[1];
   tmp->version = 1;
-  STATUS(tmp) = NEW;
-  t_chashInsert(OID(tmp), tmp);
+  t_chashInsert((unsigned int) retval, retval);
 
-#ifdef COMPILER
-  return &tmp[1]; //want space after object header
-#else
-  return tmp;
-#endif
+  return retval; //want space after object header
 }
 
 /* This functions inserts randowm wait delays in the order of msec
@@ -143,7 +139,7 @@ __attribute__((pure)) objheader_t *transRead(unsigned int oid) {
   int size;
 
   /* Read from the main heap */
-  objheader_t *header = (objheader_t *)(((char *)(&oid)) - sizeof(objheader_t)); 
+  objheader_t *header = (objheader_t *)(((char *)oid) - sizeof(objheader_t)); 
   if(read_trylock(STATUSPTR(header))) { //Can further acquire read locks
     GETSIZE(size, header);
     size += sizeof(objheader_t);
@@ -152,11 +148,7 @@ __attribute__((pure)) objheader_t *transRead(unsigned int oid) {
     /* Insert into cache's lookup table */
     STATUS(objcopy)=0;
     t_chashInsert(OID(header), objcopy);
-#ifdef COMPILER
     return &objcopy[1];
-#else
-    return objcopy;
-#endif
   }
   read_unlock(STATUSPTR(header));
 }
@@ -169,7 +161,7 @@ __attribute__((pure)) objheader_t *transRead(unsigned int oid) {
  * ================================================================
  */
 int transCommit() {
-  char finalResponse;
+  int finalResponse;
   char treplyretry; /* keeps track of the common response that needs to be sent */
 
   do {
@@ -186,7 +178,7 @@ int transCommit() {
     if(treplyretry && (finalResponse == TRANS_SOFT_ABORT)) {
       randomdelay();
     }
-    if(finalResponse != TRANS_ABORT || finalResponse != TRANS_COMMIT || finalResponse != TRANS_SOFT_ABORT) {
+    if(finalResponse != TRANS_ABORT && finalResponse != TRANS_COMMIT && finalResponse != TRANS_SOFT_ABORT) {
       printf("Error: in %s() Unknown outcome", __func__);
       exit(-1);
     }
@@ -217,7 +209,7 @@ int transCommit() {
  * - decides if a transaction should commit or abort
  * ==================================================
  */
-char traverseCache(char *treplyretry) {
+int traverseCache(char *treplyretry) {
   /* Create info for newly creately objects */
   int numcreated=0;
   unsigned int oidcreated[c_numelements];
@@ -232,7 +224,7 @@ char traverseCache(char *treplyretry) {
   int vnomatch;
   int numoidread;
   int numoidmod;
-  char response;
+  int response;
 
   int i;
   chashlistnode_t *ptr = c_table;
@@ -276,7 +268,7 @@ char traverseCache(char *treplyretry) {
  * - updates the oids locked and oids newly created 
  * ===========================================================================
  */
-char decideResponse(objheader_t *headeraddr, unsigned int *oidcreated, int *numcreated, unsigned int* oidrdlocked, int *numoidrdlocked,
+int decideResponse(objheader_t *headeraddr, unsigned int *oidcreated, int *numcreated, unsigned int* oidrdlocked, int *numoidrdlocked,
     unsigned int*oidwrlocked, int *numoidwrlocked, int *vmatch_lock, int *vmatch_nolock, int *vnomatch, int *numoidmod, int *numoidread) {
   unsigned short version = headeraddr->version;
   unsigned int oid = OID(headeraddr);

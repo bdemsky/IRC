@@ -11,6 +11,9 @@
 #include "prelookup.h"
 #include "prefetch.h"
 #endif
+#ifdef STM
+#include "tm.h"
+#endif
 
 extern int classsize[];
 extern int typearray[];
@@ -192,7 +195,54 @@ __attribute__((malloc)) struct ArrayObject * allocate_newarrayglobal(int type, i
 #endif
 
 
-#ifdef PRECISE_GC
+#ifdef STM
+// STM Versions of allocation functions
+
+/* Object allocation function */
+__attribute__((malloc)) void * allocate_newtrans(void * ptr, int type) {
+  struct ___Object___ * v=(struct ___Object___ *) transCreateObj(ptr, classsize[type]);
+  v->type=type;
+  return v;
+}
+
+/* Array allocation function */
+
+__attribute__((malloc)) struct ArrayObject * allocate_newarraytrans(void * ptr, int type, int length) {
+  struct ArrayObject * v=(struct ArrayObject *)transCreateObj(ptr, sizeof(struct ArrayObject)+length*classsize[type]);
+  if (length<0) {
+    printf("ERROR: negative array\n");
+    return NULL;
+  }
+  v->type=type;
+  v->___length___=length;
+  return v;
+}
+__attribute__((malloc)) void * allocate_new(void * ptr, int type) {
+  objheader_t *tmp=mygcmalloc((struct garbagelist *) ptr, classsize[type]+sizeof(objheader_t));
+  struct ___Object___ * v=(struct ___Object___ *) &tmp[1];
+  tmp->version = 1;
+  v->type = type;
+  return v;
+}
+
+/* Array allocation function */
+
+__attribute__((malloc)) struct ArrayObject * allocate_newarray(void * ptr, int type, int length) {
+  objheader_t *tmp=mygcmalloc((struct garbagelist *) ptr, sizeof(struct ArrayObject)+length*classsize[type]+sizeof(objheader_t));
+  struct ArrayObject * v=(struct ArrayObject *) &tmp[1];
+  tmp->version=1;
+  v->type=type;
+  if (length<0) {
+    printf("ERROR: negative array\n");
+    return NULL;
+  }
+  v->___length___=length;
+  return v;
+}
+#endif
+
+#ifndef STM
+#if defined(PRECISE_GC)
 __attribute__((malloc)) void * allocate_new(void * ptr, int type) {
   struct ___Object___ * v=(struct ___Object___ *) mygcmalloc((struct garbagelist *) ptr, classsize[type]);
   v->type=type;
@@ -249,6 +299,7 @@ __attribute__((malloc)) struct ArrayObject * allocate_newarray(int type, int len
 #endif
   return v;
 }
+#endif
 #endif
 
 

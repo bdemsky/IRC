@@ -31,6 +31,11 @@ __attribute__((malloc)) void * allocate_newglobal(int type);
 __attribute__((malloc)) struct ArrayObject * allocate_newarrayglobal(int type, int length);
 #endif
 
+#ifdef STM
+__attribute__((malloc)) void * allocate_newtrans(void * ptr, int type);
+__attribute__((malloc)) struct ArrayObject * allocate_newarraytrans(void * ptr, int type, int length);
+#endif
+
 #ifdef PRECISE_GC
 #include "garbage.h"
 __attribute__((malloc)) void * allocate_new(void *, int type);

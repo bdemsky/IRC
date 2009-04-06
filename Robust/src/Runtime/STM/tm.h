@@ -122,7 +122,7 @@ int stmStartup();
 void objstrDelete(objstr_t *store);
 objstr_t *objstrCreate(unsigned int size);
 void transStart();
-objheader_t *transCreateObj(unsigned int size);
+objheader_t *transCreateObj(void * ptr, unsigned int size);
 unsigned int getNewOID(void);
 void *objstrAlloc(objstr_t **osptr, unsigned int size);
 __attribute__((pure)) objheader_t *transRead(unsigned int oid);
