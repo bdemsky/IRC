@@ -107,7 +107,7 @@ void initializethreads() {
   signal(SIGPIPE, SIG_IGN);
 }
 
-#if defined(THREADS)||defined(SINGLETM)
+#if defined(THREADS)||defined(STM)
 void initthread(struct ___Thread___ * ___this___) {
 #ifdef PRECISE_GC
   int p[]={1, (int) NULL, (int) ___this___};
@@ -129,20 +129,20 @@ void initthread(struct ___Thread___ * ___this___) {
 #endif
 
 void CALL11(___Thread______sleep____J, long long ___millis___, long long ___millis___) {
-#if defined(THREADS)||defined(SINGLETM)
+#if defined(THREADS)||defined(STM)
 #ifdef PRECISE_GC
   struct listitem *tmp=stopforgc((struct garbagelist *)___params___);
 #endif
 #endif
   usleep(___millis___);
-#if defined(THREADS)||defined(SINGLETM)
+#if defined(THREADS)||defined(STM)
 #ifdef PRECISE_GC
   restartaftergc(tmp);
 #endif
 #endif
 }
 
-#if defined(DSTM)|| defined(THREADS)||defined(SINGLETM)
+#if defined(DSTM)|| defined(THREADS)||defined(STM)
 void CALL00(___Thread______yield____) {
   pthread_yield();
 }
@@ -201,7 +201,7 @@ transstart:
 }
 #endif
 
-#if defined(THREADS)||defined(SINGLETM)
+#if defined(THREADS)||defined(STM)
 void CALL01(___Thread______nativeJoin____, struct ___Thread___ * ___this___) {
 #ifdef PRECISE_GC
     struct listitem *tmp=stopforgc((struct garbagelist *)___params___);
