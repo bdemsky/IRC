@@ -232,6 +232,10 @@ NextMethod:
           &&(possiblesuper.getArrayCount()<cd2.getArrayCount()))
 	return true;
 
+      //Allow arraytype=null statements
+      if (possiblesuper.isArray()&&cd2.isNull())
+	return true;
+
       return false;
     }
 
