@@ -57,6 +57,16 @@ int listcount=0;
       dst=copy; \
     } \
   }
+#elif STM
+#define ENQUEUE(orig, dst) \
+  if ((!(((unsigned int)orig)&0x1))) { \
+    if (orig>=curr_heapbase&&orig<curr_heaptop) { \
+      void *copy; \
+      if (gc_createcopy(orig,&copy)) \
+	enqueue(orig);\
+      dst=copy; \
+    } \
+  }
 #elif defined(FASTCHECK)
 #define ENQUEUE(orig, dst) \
   if (((unsigned int)orig)!=1) { \
@@ -144,7 +154,7 @@ void enqueuetag(struct ___TagDescriptor___ *ptr) {
 
 
 void collect(struct garbagelist * stackptr) {
-#if defined(THREADS)||defined(DSTM)
+#if defined(THREADS)||defined(DSTM)||defined(STM)
   needtocollect=1;
   pthread_mutex_lock(&gclistlock);
   while(1) {
@@ -170,7 +180,7 @@ void collect(struct garbagelist * stackptr) {
 #endif
 
   /* Check current stack */
-#if defined(THREADS)||defined(DSTM)
+#if defined(THREADS)||defined(DSTM)||defined(STM)
   {
     struct listitem *listptr=list;
     while(1) {
@@ -184,7 +194,7 @@ void collect(struct garbagelist * stackptr) {
     }
     stackptr=stackptr->next;
   }
-#if defined(THREADS)||defined(DSTM)
+#if defined(THREADS)||defined(DSTM)||defined(STM)
   /* Go to next thread */
   if (listptr!=NULL) {
     void * orig=listptr->locklist;
@@ -206,8 +216,7 @@ void collect(struct garbagelist * stackptr) {
     /* Update objectsets */
     int i;
     for(i=0; i<NUMCLASSES; i++) {
-#ifdef MULTICORE
-#else
+#if !defined(MULTICORE)
       struct parameterwrapper * p=objectqueues[i];
       while(p!=NULL) {
 	struct ObjectHash * set=p->objectset;
@@ -443,7 +452,14 @@ void checkcollect2(void * ptr) {
 struct listitem * stopforgc(struct garbagelist * ptr) {
   struct listitem * litem=malloc(sizeof(struct listitem));
   litem->stackptr=ptr;
+#ifdef THREADS
   litem->locklist=pthread_getspecific(threadlocks);
+#endif
+#ifdef STM
+  litem->tc_size=c_size;
+  litem->tc_mask=c_mask;
+  litem->tc_table=&c_table;
+#endif
   litem->prev=NULL;
   pthread_mutex_lock(&gclistlock);
   litem->next=list;
