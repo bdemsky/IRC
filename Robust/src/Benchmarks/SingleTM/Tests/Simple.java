@@ -5,7 +5,7 @@ public class Simple extends Thread {
   }
 
   public void run() {
-    for(int i = 0;  i < 10; i++) {
+    for(int i = 0;  i < 100; i++) {
       atomic {
         mycount.increment();
       }
@@ -15,25 +15,25 @@ public class Simple extends Thread {
   public static void main(String[] args) {
     Simple[] s;
     Counting c;
-    int numthreads = 2;
+    int numthreads = 32;
 
     atomic {
       c = new Counting();
       s = new Simple[numthreads];
-      for(int i = 0; i < 2; i++) {
+      for(int i = 0; i < numthreads; i++) {
         s[i] = new Simple(c);
       }
     }
 
     Simple tmp;
-    for(int i = 0; i <  2; i++) {
+    for(int i = 0; i <  numthreads; i++) {
       atomic {
         tmp = s[i];
       }
       tmp.start();
     }
 
-    for(int i = 0; i < 2; i++) {
+    for(int i = 0; i < numthreads; i++) {
       atomic {
         tmp = s[i];
       }
