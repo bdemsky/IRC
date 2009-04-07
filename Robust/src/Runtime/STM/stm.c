@@ -74,6 +74,7 @@ objheader_t *transCreateObj(void * ptr, unsigned int size) {
   objheader_t *retval=&tmp[1];
   initdsmlocks(&tmp->lock);
   tmp->version = 1;
+  STATUS(tmp)=NEW;
   t_chashInsert((unsigned int) retval, retval);
   return retval; //want space after object header
 }
@@ -209,14 +210,51 @@ int traverseCache() {
       if(curr->key == 0)
         break;
       objheader_t * headeraddr=&((objheader_t *) curr->val)[-1];
-      int response = decideResponse(headeraddr, oidrdlocked, &numoidrdlocked, oidwrlocked, &numoidwrlocked);
-
-      if(response == TRANS_ABORT) {
-        transAbortProcess(oidrdlocked, &numoidrdlocked, oidwrlocked, &numoidwrlocked);
-        return TRANS_ABORT;
-      } else if (response == TRANS_SOFT_ABORT) {
-	softabort=1;
+      
+      unsigned int version = headeraddr->version;
+      objheader_t *header=(objheader_t *) (((char *)curr->key)-sizeof(objheader_t));
+      
+      if(STATUS(headeraddr) & NEW) {
+	STATUS(headeraddr)=0;
+      } else if(STATUS(headeraddr) & DIRTY) {
+	/* Read from the main heap  and compare versions */
+	if(write_trylock(&header->lock)) { //can aquire write lock
+	  if (version == header->version) {/* versions match */
+	    /* Keep track of objects locked */
+	    oidwrlocked[numoidwrlocked++] = OID(header);
+	  } else { 
+	    oidwrlocked[numoidwrlocked++] = OID(header);
+	    transAbortProcess(oidrdlocked, &numoidrdlocked, oidwrlocked, &numoidwrlocked);
+	    return TRANS_ABORT;
+	  }
+	} else { /* cannot aquire lock */
+	  if(version == header->version) /* versions match */
+	    softabort=1;
+	  else {
+	    transAbortProcess(oidrdlocked, &numoidrdlocked, oidwrlocked, &numoidwrlocked);
+	    return TRANS_ABORT;
+	  }
+	}
+      } else {
+	/* Read from the main heap  and compare versions */
+	if(read_trylock(&header->lock)) { //can further aquire read locks
+	  if(version == header->version) {/* versions match */
+	    oidrdlocked[numoidrdlocked++] = OID(header);
+	  } else {
+	    oidrdlocked[numoidrdlocked++] = OID(header);
+	    transAbortProcess(oidrdlocked, &numoidrdlocked, oidwrlocked, &numoidwrlocked);
+	    return TRANS_ABORT;
+	  }
+	} else { /* cannot aquire lock */
+	  if(version == header->version)
+	    softabort=1;
+	  else {
+	    transAbortProcess(oidrdlocked, &numoidrdlocked, oidwrlocked, &numoidwrlocked);
+	    return TRANS_ABORT;
+	  }
+	}
       }
+    
       curr = curr->next;
     }
   } //end of for
@@ -236,53 +274,7 @@ int traverseCache() {
  * - updates the oids locked and oids newly created 
  * ===========================================================================
  */
-int decideResponse(objheader_t *headeraddr, unsigned int* oidrdlocked, int *numoidrdlocked, unsigned int*oidwrlocked, int *numoidwrlocked) {
-  unsigned int version = headeraddr->version;
-  unsigned int oid = OID(headeraddr);
-  int nolock = 0;
-  
-  if(STATUS(headeraddr) & NEW) {
-  } else if(STATUS(headeraddr) & DIRTY) {
-    /* Read from the main heap  and compare versions */
-    objheader_t *header = (objheader_t *)(((char *)(oid)) - sizeof(objheader_t)); 
-    if(write_trylock(&header->lock)) { //can aquire write lock
-      if (version == header->version) {/* versions match */
-        /* Keep track of objects locked */
-        oidwrlocked[(*numoidwrlocked)++] = OID(header);
-      } else { 
-        oidwrlocked[(*numoidwrlocked)++] = OID(header);
-        return TRANS_ABORT;
-      }
-    } else { /* cannot aquire lock */
-      if(version == header->version) /* versions match */
-	nolock=1;
-      else {
-        return TRANS_ABORT;
-      }
-    }
-  } else {
-    /* Read from the main heap  and compare versions */
-    objheader_t *header = (objheader_t *)(((char *)(oid)) - sizeof(objheader_t)); 
-    if(read_trylock(&header->lock)) { //can further aquire read locks
-      if(version == header->version) {/* versions match */
-        oidrdlocked[(*numoidrdlocked)++] = OID(header);
-      } else {
-        oidrdlocked[(*numoidrdlocked)++] = OID(header);
-        return TRANS_ABORT;
-      }
-    } else { /* cannot aquire lock */
-      if(version == header->version)
-	nolock=1;
-      else {
-        return TRANS_ABORT;
-      }
-    }
-  }
-  if (nolock)
-    return TRANS_SOFT_ABORT;
-  else
-    return TRANS_COMMIT;
-}
+
 
 /* ==================================
  * transAbortProcess
