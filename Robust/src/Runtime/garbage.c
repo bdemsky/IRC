@@ -197,8 +197,10 @@ void collect(struct garbagelist * stackptr) {
 #if defined(THREADS)||defined(DSTM)||defined(STM)
   /* Go to next thread */
   if (listptr!=NULL) {
+#ifdef THREADS
     void * orig=listptr->locklist;
     ENQUEUE(orig, listptr->locklist);
+#endif
     stackptr=listptr->stackptr;
     listptr=listptr->next;
   } else
@@ -474,7 +476,9 @@ struct listitem * stopforgc(struct garbagelist * ptr) {
 
 void restartaftergc(struct listitem * litem) {
   pthread_mutex_lock(&gclistlock);
+#ifdef THREADS
   pthread_setspecific(threadlocks, litem->locklist);
+#endif
   if (litem->prev==NULL) {
     list=litem->next;
   } else {

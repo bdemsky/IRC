@@ -1,5 +1,8 @@
 #ifndef GARBAGE_H
 #define GARBAGE_H
+#ifdef STM
+#include "clookup.h"
+#endif
 struct garbagelist {
   int size;
   struct garbagelist *next;
