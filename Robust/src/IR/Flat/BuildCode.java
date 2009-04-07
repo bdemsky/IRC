@@ -49,7 +49,10 @@ public class BuildCode {
   Hashtable<LocalityBinding, Hashtable<TempDescriptor, TempDescriptor>> backuptable;
   SafetyAnalysis sa;
   PrefetchAnalysis pa;
+  HashSet<FlatSESEEnterNode> setSESEtoGen;
+  boolean nonSESEpass=true;
   WriteBarrier wb;
+
 
   public BuildCode(State st, Hashtable temptovar, TypeUtil typeutil, SafetyAnalysis sa, PrefetchAnalysis pa) {
     this(st, temptovar, typeutil, null, sa, pa);
@@ -78,6 +81,8 @@ public class BuildCode {
       this.backuptable=new Hashtable<LocalityBinding, Hashtable<TempDescriptor, TempDescriptor>>();
       this.wb=new WriteBarrier(locality, st);
     }
+
+    setSESEtoGen = new HashSet<FlatSESEEnterNode>();
   }
 
   /** The buildCode method outputs C code for all the methods.  The Flat
@@ -168,6 +173,17 @@ public class BuildCode {
 
     /* Build the actual methods */
     outputMethods(outmethod);
+
+    if( state.MLP ) {
+      nonSESEpass = false;
+      while( !setSESEtoGen.isEmpty() ) {
+	FlatSESEEnterNode fsen = setSESEtoGen.iterator().next();
+	setSESEtoGen.remove( fsen );
+	generateMethodSESE( fsen, fsen.getEnclosingFlatMeth(), null, outmethod );
+      }
+    } else {
+      assert setSESEtoGen.isEmpty();
+    }
 
     if (state.TASK) {
       /* Output code for tasks */
@@ -1393,10 +1409,6 @@ public class BuildCode {
 	output.println("   "+type.getSafeSymbol()+" "+td.getSafeSymbol()+";");
     }
 
-    /* Assign labels to FlatNode's if necessary.*/
-
-    Hashtable<FlatNode, Integer> nodetolabel=assignLabels(fm);
-
     /* Check to see if we need to do a GC if this is a
      * multi-threaded program...*/
 
@@ -1407,11 +1419,57 @@ public class BuildCode {
 	output.println("if (needtocollect) checkcollect(&"+localsprefix+");");
     }
 
+    generateCode( fm.getNext(0), fm, lb, null, output );
+
+    output.println("}\n\n");
+  }
+
+
+  protected void generateMethodSESE( FlatSESEEnterNode fsen,
+				     FlatMethod fm, 
+				     LocalityBinding lb,
+				     PrintWriter output ) {
+
+    //output.println( "void _SESE"+fsen.getPrettyIdentifier()+
+      //" {\n" );
+    //generateCode( fsen.getNext(0), fm, lb, fsen.getFlatExit(), output );
+    //output.println( "}\n\n" );
+
+    /*
+    output.println("struct sese"+faen.getPrettyIdentifier()+"in {");
+    Iterator<TempDescriptor> itr = faen.getInVarSet().iterator();
+    while( itr.hasNext() ) {
+      TempDescriptor td = itr.next();
+      output.println("  "+td+";");
+    }
+    output.println("}");
+
+    output.println("struct sese"+faen.getPrettyIdentifier()+"out {");
+    itr = faen.getOutVarSet().iterator();
+    while( itr.hasNext() ) {
+      TempDescriptor td = itr.next();
+      output.println("  "+td+";");
+    }
+    output.println("}");
+    */
+
+  }
+
+
+  protected void generateCode( FlatNode first,
+			       FlatMethod fm, 
+			       LocalityBinding lb,
+			       FlatSESEExitNode stop,
+			       PrintWriter output ) {
+
+    /* Assign labels to FlatNode's if necessary.*/
+    Hashtable<FlatNode, Integer> nodetolabel=assignLabels(first);
+
     /* Do the actual code generation */
     FlatNode current_node=null;
     HashSet tovisit=new HashSet();
     HashSet visited=new HashSet();
-    tovisit.add(fm.getNext(0));
+    tovisit.add(first);
     while(current_node!=null||!tovisit.isEmpty()) {
       if (current_node==null) {
 	current_node=(FlatNode)tovisit.iterator().next();
@@ -1419,6 +1477,7 @@ public class BuildCode {
       } else if (tovisit.contains(current_node)){
 	  tovisit.remove(current_node);
       }
+      if(current_node==stop) { return; }
       visited.add(current_node);
       if (nodetolabel.containsKey(current_node))
 	output.println("L"+nodetolabel.get(current_node)+":");
@@ -1436,12 +1495,19 @@ public class BuildCode {
 	}
 	current_node=null;
       } else if(current_node.numNext()==1) {
-	output.print("   ");
-	generateFlatNode(fm, lb, current_node, output);
+	FlatNode nextnode;
 	if (state.MLP && current_node.kind()==FKind.FlatSESEEnterNode) {
-	  current_node=((FlatSESEEnterNode)current_node).getFlatExit();
+	  FlatSESEEnterNode fsen = (FlatSESEEnterNode)current_node;
+	  if( nonSESEpass ) {
+	    setSESEtoGen.add(fsen);
+	    fsen.setEnclosingFlatMeth(fm);
+	  }
+	  nextnode=fsen.getFlatExit().getNext(0);
+	} else {
+	  output.print("   ");
+	  generateFlatNode(fm, lb, current_node, output);	
+	  nextnode=current_node.getNext(0);
 	}
-	FlatNode nextnode=current_node.getNext(0);
 	if (visited.contains(nextnode)) {
 	  output.println("goto L"+nodetolabel.get(nextnode)+";");
 	  current_node=null;
@@ -1460,17 +1526,17 @@ public class BuildCode {
 	  current_node=current_node.getNext(0);
       } else throw new Error();
     }
-    output.println("}\n\n");
   }
+
 
   /** This method assigns labels to FlatNodes */
 
-  protected Hashtable<FlatNode, Integer> assignLabels(FlatMethod fm) {
+  protected Hashtable<FlatNode, Integer> assignLabels(FlatNode first) {
     HashSet tovisit=new HashSet();
     HashSet visited=new HashSet();
     int labelindex=0;
     Hashtable<FlatNode, Integer> nodetolabel=new Hashtable<FlatNode, Integer>();
-    tovisit.add(fm.getNext(0));
+    tovisit.add(first);
 
     /*Assign labels first.  A node needs a label if the previous
      * node has two exits or this node is a join point. */
@@ -1532,11 +1598,11 @@ public class BuildCode {
       return;
 
     case FKind.FlatSESEEnterNode:
-      if( state.MLP ) generateFlatSESEEnterNode(fm, lb, (FlatSESEEnterNode) fn, output);
+      assert !state.MLP;
       return;
 
     case FKind.FlatSESEExitNode:
-      if( state.MLP ) generateFlatSESEExitNode(fm, lb, (FlatSESEExitNode) fn, output);
+      assert !state.MLP;
       return;
 
     case FKind.FlatGlobalConvNode:
@@ -1908,23 +1974,6 @@ public class BuildCode {
 
 
   public void generateFlatSESEEnterNode(FlatMethod fm,  LocalityBinding lb, FlatSESEEnterNode faen, PrintWriter output) {
-    /*
-    output.println("struct sese"+faen.getPrettyIdentifier()+"in {");
-    Iterator<TempDescriptor> itr = faen.getInVarSet().iterator();
-    while( itr.hasNext() ) {
-      TempDescriptor td = itr.next();
-      output.println("  "+td+";");
-    }
-    output.println("}");
-
-    output.println("struct sese"+faen.getPrettyIdentifier()+"out {");
-    itr = faen.getOutVarSet().iterator();
-    while( itr.hasNext() ) {
-      TempDescriptor td = itr.next();
-      output.println("  "+td+";");
-    }
-    output.println("}");
-    */
   }
 
   public void generateFlatSESEExitNode(FlatMethod fm,  LocalityBinding lb, FlatSESEExitNode faen, PrintWriter output) {

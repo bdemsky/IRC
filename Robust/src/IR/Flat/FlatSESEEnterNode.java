@@ -9,6 +9,7 @@ public class FlatSESEEnterNode extends FlatNode {
   protected SESENode treeNode;
   protected HashSet<TempDescriptor> inVars;
   protected HashSet<TempDescriptor> outVars;
+  protected FlatMethod enclosing;
 
   public FlatSESEEnterNode( SESENode sn ) {
     this.id  = identifier++;
@@ -45,6 +46,14 @@ public class FlatSESEEnterNode extends FlatNode {
 
   public HashSet<TempDescriptor> getOutVarSet() {
     return outVars;
+  }
+
+  public void setEnclosingFlatMeth( FlatMethod fm ) {
+    enclosing = fm;
+  }
+
+  public FlatMethod getEnclosingFlatMeth() {
+    return enclosing;
   }
 
   public SESENode getTreeNode() {
