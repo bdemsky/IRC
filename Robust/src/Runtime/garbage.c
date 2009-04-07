@@ -57,15 +57,20 @@ int listcount=0;
       dst=copy; \
     } \
   }
-#elif STM
+#elif defined(STM)
 #define ENQUEUE(orig, dst) \
-  if ((!(((unsigned int)orig)&0x1))) { \
-    if (orig>=curr_heapbase&&orig<curr_heaptop) { \
-      void *copy; \
-      if (gc_createcopy(orig,&copy)) \
-	enqueue(orig);\
-      dst=copy; \
-    } \
+  if (orig>=curr_heapbase&&orig<curr_heaptop) { \
+    void *copy; \
+    if (gc_createcopy(orig,&copy)) \
+      enqueue(orig);\
+    dst=copy; \
+  }
+#define SENQUEUE(orig, dst) \
+  { \
+    void *copy; \
+    if (gc_createcopy(orig,&copy)) \
+      enqueue(orig);\
+    dst=copy; \
   }
 #elif defined(FASTCHECK)
 #define ENQUEUE(orig, dst) \
@@ -130,6 +135,80 @@ void * dequeue() {
   }
   return tail->ptrs[tailindex++];
 }
+
+#ifdef STM
+void fixtable(chashlistnode_t ** tc_table, unsigned int tc_size) {
+  unsigned int mask=(tc_size<<1)-1;
+  chashlistnode_t *node=calloc(tc_size, sizeof(chashlistnode_t));
+  chashlistnode_t *ptr=*tc_table;
+  chashlistnode_t *curr;
+  unsigned int i;
+  unsigned int index;
+  int isfirst;
+  for(i=0;i<tc_size;i++) {
+    curr=&ptr[i];
+    isfirst=1;
+    do {                      //Inner loop to go through linked lists
+      void * key;
+      chashlistnode_t *tmp,*next;
+      
+      if ((key=(void *)curr->key) == 0) {             //Exit inner loop if there the first element is 0
+	break;                  //key = val =0 for element if not present within the hash table
+      }
+      SENQUEUE(key, key);
+      if (key>=curr_heapbase&&key<curr_heaptop) {
+	SENQUEUE(curr->val, curr->val);
+      } else {
+	//rewrite transaction cache entry
+	void *ptr=curr->val;
+	int type=((int *)ptr)[0];
+	unsigned int *pointer=pointerarray[type];
+	if (pointer==0) {
+	  //array of primitives - do nothing
+	} else if (((int)pointer)==1) {
+	  //array of pointers
+	  struct ArrayObject *ao=(struct ArrayObject *) ptr;
+	  int length=ao->___length___;
+	  int i;
+	  for(i=0; i<length; i++) {
+	    void *objptr=((void **)(((char *)&ao->___length___)+sizeof(int)))[i];
+	    ENQUEUE(objptr, ((void **)(((char *)&ao->___length___)+sizeof(int)))[i]);
+	  }
+	} else {
+	  int size=pointer[0];
+	  int i;
+	  for(i=1; i<=size; i++) {
+	    unsigned int offset=pointer[i];
+	    void * objptr=*((void **)(((int)ptr)+offset));
+	    ENQUEUE(objptr, *((void **)(((int)ptr)+offset)));
+	  }
+	}
+      }      
+
+      next = curr->next;
+      index = (((unsigned int)key) & mask) >>1;
+
+      curr->key=(unsigned int)key;
+      tmp=&node[index];
+      // Insert into the new table
+      if(tmp->key == 0) {
+	tmp->key = curr->key;
+	tmp->val = curr->val;
+	if (!isfirst) {
+	  free(curr);
+	}
+      } else {
+	curr->next=tmp->next;
+	tmp->next=curr;
+      }
+      isfirst = 0;
+      curr = next;
+    } while(curr!=NULL);
+  }
+  free(ptr);
+  *tc_table=node;
+}
+#endif
 
 int moreItems() {
   if ((head==tail)&&(tailindex==headindex))
@@ -200,6 +279,9 @@ void collect(struct garbagelist * stackptr) {
 #ifdef THREADS
     void * orig=listptr->locklist;
     ENQUEUE(orig, listptr->locklist);
+#endif
+#ifdef STM
+    fixtable(listptr->tc_table, listptr->tc_size);
 #endif
     stackptr=listptr->stackptr;
     listptr=listptr->next;
@@ -459,7 +541,6 @@ struct listitem * stopforgc(struct garbagelist * ptr) {
 #endif
 #ifdef STM
   litem->tc_size=c_size;
-  litem->tc_mask=c_mask;
   litem->tc_table=&c_table;
 #endif
   litem->prev=NULL;

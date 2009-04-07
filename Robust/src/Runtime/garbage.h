@@ -18,7 +18,6 @@ struct listitem {
 #endif
 #ifdef STM
   unsigned int tc_size;
-  unsigned int tc_mask;
   chashlistnode_t **tc_table;
 #endif
 };
@@ -37,4 +36,7 @@ void * tomalloc(int size);
 void collect(struct garbagelist *stackptr);
 int gc_createcopy(void * orig, void **);
 void * mygcmalloc(struct garbagelist * ptr, int size);
+#endif
+#ifdef STM
+void fixtable(chashlistnode_t **, unsigned int);
 #endif
