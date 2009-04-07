@@ -202,17 +202,18 @@ __attribute__((malloc)) struct ArrayObject * allocate_newarrayglobal(int type, i
 __attribute__((malloc)) void * allocate_newtrans(void * ptr, int type) {
   struct ___Object___ * v=(struct ___Object___ *) transCreateObj(ptr, classsize[type]);
   v->type=type;
+  v->___objlocation___=v;
   return v;
 }
 
 /* Array allocation function */
-
 __attribute__((malloc)) struct ArrayObject * allocate_newarraytrans(void * ptr, int type, int length) {
   struct ArrayObject * v=(struct ArrayObject *)transCreateObj(ptr, sizeof(struct ArrayObject)+length*classsize[type]);
   if (length<0) {
     printf("ERROR: negative array\n");
     return NULL;
   }
+  v->___objlocation___=(struct ___Object___*)v;
   v->type=type;
   v->___length___=length;
   return v;
@@ -220,7 +221,9 @@ __attribute__((malloc)) struct ArrayObject * allocate_newarraytrans(void * ptr, 
 __attribute__((malloc)) void * allocate_new(void * ptr, int type) {
   objheader_t *tmp=mygcmalloc((struct garbagelist *) ptr, classsize[type]+sizeof(objheader_t));
   struct ___Object___ * v=(struct ___Object___ *) &tmp[1];
+  initdsmlocks(&tmp->lock);
   tmp->version = 1;
+  v->___objlocation___=v;
   v->type = type;
   return v;
 }
@@ -230,12 +233,14 @@ __attribute__((malloc)) void * allocate_new(void * ptr, int type) {
 __attribute__((malloc)) struct ArrayObject * allocate_newarray(void * ptr, int type, int length) {
   objheader_t *tmp=mygcmalloc((struct garbagelist *) ptr, sizeof(struct ArrayObject)+length*classsize[type]+sizeof(objheader_t));
   struct ArrayObject * v=(struct ArrayObject *) &tmp[1];
+  initdsmlocks(&tmp->lock);
   tmp->version=1;
   v->type=type;
   if (length<0) {
     printf("ERROR: negative array\n");
     return NULL;
   }
+  v->___objlocation___=(struct ___Object___ *)v;
   v->___length___=length;
   return v;
 }

@@ -1803,7 +1803,11 @@ public class BuildCode {
       return;
     /* Have to generate flat globalconv */
     if (fgcn.getMakePtr()) {
-      output.println("TRANSREAD("+generateTemp(fm, fgcn.getSrc(),lb)+", (unsigned int) "+generateTemp(fm, fgcn.getSrc(),lb)+");");
+	if (state.DSM) {
+	    output.println("TRANSREAD("+generateTemp(fm, fgcn.getSrc(),lb)+", (unsigned int) "+generateTemp(fm, fgcn.getSrc(),lb)+");");
+	} else {
+	    output.println("TRANSREAD("+generateTemp(fm, fgcn.getSrc(),lb)+", "+generateTemp(fm, fgcn.getSrc(),lb)+");");
+	}
     } else {
       /* Need to convert to OID */
       if (fgcn.doConvert()) {
@@ -2105,8 +2109,8 @@ public class BuildCode {
       String dst=generateTemp(fm, ffn.getDst(),lb);
 
       output.println(dst+"="+ src +"->"+field+ ";");
-      if (ffn.getField().getType().isPtr()) {
-	output.println("TRANSREAD("+dst+", (unsigned int) "+dst+");");
+      if (ffn.getField().getType().isPtr()&&locality.getAtomic(lb).get(ffn).intValue()>0) {
+	output.println("TRANSREAD("+dst+", "+dst+");");
       }
     } else if (state.DSM) {
       Integer status=locality.getNodePreTempInfo(lb,ffn).get(ffn.getSrc());
@@ -2265,12 +2269,10 @@ public class BuildCode {
     if (state.SINGLETM) {
       //Single machine transaction case
       String dst=generateTemp(fm, fen.getDst(),lb);
-      
-      if (elementtype.isPtr()) {
-	output.println(dst +"=(("+ type+"*)(((char *) &("+ generateTemp(fm,fen.getSrc(),lb)+"->___length___))+sizeof(int)))["+generateTemp(fm, fen.getIndex(),lb)+"];");
+      output.println(dst +"=(("+ type+"*)(((char *) &("+ generateTemp(fm,fen.getSrc(),lb)+"->___length___))+sizeof(int)))["+generateTemp(fm, fen.getIndex(),lb)+"];");
+
+      if (elementtype.isPtr()&&locality.getAtomic(lb).get(fen).intValue()>0) {
 	output.println("TRANSREAD("+dst+", "+dst+");");
-      } else {
-	output.println(dst +"=(("+ type+"*)(((char *) &("+ generateTemp(fm,fen.getSrc(),lb)+"->___length___))+sizeof(int)))["+generateTemp(fm, fen.getIndex(),lb)+"];");
       }
     } else if (state.DSM) {
       Integer status=locality.getNodePreTempInfo(lb,fen).get(fen.getSrc());

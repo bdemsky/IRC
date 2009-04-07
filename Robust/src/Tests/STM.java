@@ -17,9 +17,11 @@ public class STM extends Thread {
   
   public void run() {
     int i;
-    atomic {
-      i=x.a++;
-    }
+    //    for(int j=0;j<10;j++) {
+	atomic {
+	    i=x.a++;
+	}
+	//    }
     System.out.println("Initial value:"+i);
   }
 }

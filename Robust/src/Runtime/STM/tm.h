@@ -41,8 +41,8 @@
 #ifdef COMPILER
 #include "structdefs.h"
 typedef struct objheader {
-  threadlist_t *notifylist;
   unsigned int version;
+  unsigned int lock;
 } objheader_t;
 
 #define OID(x) \
@@ -91,9 +91,9 @@ if ((inputvalue=(unsigned int)y)==0) x=NULL;\
 else { \
 chashlistnode_t * cnodetmp=&c_table[(inputvalue&c_mask)>>1];	\
 do { \
-  if (cnodetmp->key==inputvalue) {x=(void *)&((objheader_t*)cnodetmp->val)[1];break;} \
+  if (cnodetmp->key==inputvalue) {x=(void *)cnodetmp->val;break;} \
 cnodetmp=cnodetmp->next;\
- if (cnodetmp==NULL) {x=(void *)transRead(inputvalue); asm volatile("":"=m"(c_table),"=m"(c_mask));break;} \
+ if (cnodetmp==NULL) {x=transRead((void *)inputvalue); asm volatile("":"=m"(c_table),"=m"(c_mask));break;} \
 } while(1);\
 }}
 
@@ -125,13 +125,12 @@ void transStart();
 objheader_t *transCreateObj(void * ptr, unsigned int size);
 unsigned int getNewOID(void);
 void *objstrAlloc(objstr_t **osptr, unsigned int size);
-__attribute__((pure)) objheader_t *transRead(unsigned int oid);
+__attribute__((pure)) void *transRead(void * oid);
 int transCommit();
-char traverseCache(char *treplyretry);
-char decideResponse(objheader_t *, unsigned int *, int *, unsigned int *, int *, unsigned int*, int *, 
-    int *, int *, int *, int*, int*);
+int traverseCache();
+int decideResponse(objheader_t *, unsigned int *, int *, unsigned int*, int *);
 int transAbortProcess(unsigned int *, int *, unsigned int *, int *);
-int transCommmitProcess(unsigned int *, int *, unsigned int *, int *, unsigned int *, int *);
+int transCommmitProcess(unsigned int *, int *, unsigned int *, int *);
 void randomdelay();
 
 #endif
