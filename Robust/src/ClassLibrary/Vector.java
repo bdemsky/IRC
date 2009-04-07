@@ -15,6 +15,10 @@ public class Vector {
     array=new Object[size];
   }
 
+  public boolean isEmpty() {
+    return size==0;
+  }
+
   public void clear() {
     size=0;
     array=new Object[10];

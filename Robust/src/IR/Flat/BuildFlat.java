@@ -937,7 +937,8 @@ public class BuildFlat {
       FlatNop nopend=new FlatNop();
       FlatBackEdge backedge=new FlatBackEdge();
 
-      body.getEnd().addNext(backedge);
+      if (body.getEnd()!=null)
+	body.getEnd().addNext(backedge);
       backedge.addNext(condition.getBegin());
 
       condition.getEnd().addNext(fcb);
