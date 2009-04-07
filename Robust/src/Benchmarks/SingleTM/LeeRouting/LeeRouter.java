@@ -43,13 +43,7 @@
 
 //Simple Lee's Routing Algorithm
 public class LeeRouter {
-  int cyan;
   long MAX_SAMPLE_THRESHOLD;
-  int magenta;
-  int yellow;
-  int green;
-  int red;
-  int blue;
   int GRID_SIZE;
   int EMPTY;
   int TEMP_EMPTY;
@@ -78,15 +72,9 @@ public class LeeRouter {
   boolean DEBUG;
   boolean XML_REPORT;
 
-  //Constructor initializing
-  public LeeRouter() {
-    cyan = 0x00FFFF;
+  public LeeRouter(String file, boolean test, boolean debug, boolean rel) {
+    //Constructor initializing
     MAX_SAMPLE_THRESHOLD = 60000;
-    magenta = 0xFF00FF;
-    yellow = 0xFFFF00;
-    green = 0x00FF00;
-    red = 0xFF0000;
-    blue = 0x0000FF;
     EMPTY  = 0;
     TEMP_EMPTY = 10000;
     OCC = 5120;
@@ -97,6 +85,7 @@ public class LeeRouter {
     MAX_WEIGHT = 1;
     netNo = 0;
     // note these very useful arrays
+    int dx[][] = new int[2][4];
     dx[0][0] = -1;
     dx[0][1] = 1;
     dx[0][2] = 0;
@@ -106,6 +95,7 @@ public class LeeRouter {
     dx[1][2] = -1;
     dx[1][3] = 1;
     // to help look NSEW.
+    int dy[][] = new int[2][4];
     dy[0][0] = 0;
     dy[0][1] = 0;
     dy[0][2] = -1;
@@ -119,18 +109,14 @@ public class LeeRouter {
     num_vias = 0;
     forced_vias = 0;
     linepos = 0;
-    TEST = true;
-    DEBUG = false;
     XML_REPORT = true;
-  }
 
-
-  public LeeRouter(String file, boolean test, boolean debug, boolean rel) {
     TEST = test;
     DEBUG = debug;
     if (TEST) GRID_SIZE = 10;
     else GRID_SIZE = 600;
     if(DEBUG) System.out.println("Creating grid...");
+    //grid = new Grid(GRID_SIZE, GRID_SIZE, 2, rel, DEBUG, OCC, EMPTY, MAX_WEIGHT); //the Lee 3D Grid;
     grid = new Grid(GRID_SIZE, GRID_SIZE, 2, rel, this); //the Lee 3D Grid;
     if(DEBUG) System.out.println("Done creating grid");
     work = new WorkQueue(); // empty
@@ -642,7 +628,11 @@ public class LeeRouter {
     String filename = args[1];
     //LeeRouter lr = new LeeRouter(filename, false, false, false);
     //TODO remove after debugging
+    //Large Grid size
+    System.out.println("Starting main.......\n");
     LeeRouter lr = new LeeRouter(filename, false, true, false);
+    //Small grid size
+    //LeeRouter lr = new LeeRouter(filename, true, true, false);
 
     int numMillis = 600000;
 
