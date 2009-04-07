@@ -35,6 +35,7 @@ echo -optional enable optional
 echo -debug generate debug symbols
 echo -prefetch do prefetch analysis
 echo -transstats generates transaction stats on commits and aborts
+echo -garbagestats Print garbage collection statistics
 echo -webinterface enable web interface
 echo -runtimedebug printout runtime debug messages
 echo "-thread use support for multiple threads"
@@ -113,6 +114,9 @@ shift
 elif [[ $1 = '-nojava' ]]
 then
 NOJAVA=true
+elif [[ $1 = '-garbagestats' ]]
+then
+EXTRAOPTIONS="$EXTRAOPTIONS -DGARBAGESTATS"
 elif [[ $1 = '-fastcheck' ]]
 then
 EXTRAOPTIONS="$EXTRAOPTIONS -DFASTCHECK"
