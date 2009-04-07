@@ -439,7 +439,7 @@ void collect(struct garbagelist * stackptr) {
   fixtags();
 #endif
 
-#if defined(THREADS)||defined(DSTM)
+#if defined(THREADS)||defined(DSTM)||defined(STM)
   needtocollect=0;
   pthread_mutex_unlock(&gclistlock);
 #endif
