@@ -100,6 +100,11 @@ void injectinstructionfailure() {
 }
 
 void CALL11(___System______exit____I,int ___status___, int ___status___) {
+#ifdef TRANSSTATS
+  printf("numTransCommit = %d\n", numTransCommit);
+  printf("numTransAbort = %d\n", numTransAbort);
+  printf("nSoftAbort = %d\n", nSoftAbort);
+#endif
   exit(___status___);
 }
 

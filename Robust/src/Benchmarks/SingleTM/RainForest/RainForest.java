@@ -175,6 +175,7 @@ public class RainForest extends Thread {
       tmp.join();
     }
     System.printString("Finished\n");
+    System.exit(0);
   }
 
   public void doOneMove(GameMap[][] land, Player gamer) {

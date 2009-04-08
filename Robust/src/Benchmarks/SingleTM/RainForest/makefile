@@ -10,7 +10,7 @@ SRC=tmp${MAINCLASS}.java \
 	Node.java \
 	AStarPathFinder.java 
 
-FLAGS=-singleTM -nooptimize -mainclass ${MAINCLASS} -debug
+FLAGS=-singleTM -nooptimize -mainclass ${MAINCLASS} -debug -transstats
 
 default:
 	cpp ${MAINCLASS}.java > tmp1${MAINCLASS}.java

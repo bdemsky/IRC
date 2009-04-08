@@ -156,31 +156,34 @@ void fixtable(chashlistnode_t ** tc_table, unsigned int tc_size) {
 	break;                  //key = val =0 for element if not present within the hash table
       }
       SENQUEUE(key, key);
-      if (key>=curr_heapbase&&key<curr_heaptop) {
+      if (curr->val>=curr_heapbase&&curr->val<curr_heaptop) {
 	SENQUEUE(curr->val, curr->val);
       } else {
 	//rewrite transaction cache entry
-	void *ptr=curr->val;
-	int type=((int *)ptr)[0];
+	void *vptr=curr->val;
+	int type=((int *)vptr)[0];
 	unsigned int *pointer=pointerarray[type];
 	if (pointer==0) {
 	  //array of primitives - do nothing
+	  struct ArrayObject *ao=(struct ArrayObject *) vptr;
+	  SENQUEUE((void *)ao->___objlocation___, *((void **)&ao->___objlocation___));
 	} else if (((int)pointer)==1) {
 	  //array of pointers
-	  struct ArrayObject *ao=(struct ArrayObject *) ptr;
+	  struct ArrayObject *ao=(struct ArrayObject *) vptr;
 	  int length=ao->___length___;
 	  int i;
+	  SENQUEUE((void *)ao->___objlocation___, *((void **)&ao->___objlocation___));
 	  for(i=0; i<length; i++) {
 	    void *objptr=((void **)(((char *)&ao->___length___)+sizeof(int)))[i];
-	    ENQUEUE(objptr, ((void **)(((char *)&ao->___length___)+sizeof(int)))[i]);
+	    SENQUEUE(objptr, ((void **)(((char *)&ao->___length___)+sizeof(int)))[i]);
 	  }
 	} else {
 	  int size=pointer[0];
 	  int i;
 	  for(i=1; i<=size; i++) {
 	    unsigned int offset=pointer[i];
-	    void * objptr=*((void **)(((int)ptr)+offset));
-	    ENQUEUE(objptr, *((void **)(((int)ptr)+offset)));
+	    void * objptr=*((void **)(((int)vptr)+offset));
+	    SENQUEUE(objptr, *((void **)(((int)vptr)+offset)));
 	  }
 	}
       }
@@ -197,6 +200,12 @@ void fixtable(chashlistnode_t ** tc_table, unsigned int tc_size) {
 	if (!isfirst) {
 	  free(curr);
 	}
+      } else if (isfirst) {
+	chashlistnode_t *newnode= calloc(1, sizeof(chashlistnode_t));
+	newnode->key = curr->key;
+	newnode->val = curr->val;
+	newnode->next = tmp->next;
+	tmp->next=newnode;
       } else {
 	curr->next=tmp->next;
 	tmp->next=curr;
@@ -206,7 +215,7 @@ void fixtable(chashlistnode_t ** tc_table, unsigned int tc_size) {
     } while(curr!=NULL);
   }
   free(ptr);
-  *tc_table=node;
+  (*tc_table)=node;
 }
 #endif
 
@@ -256,6 +265,11 @@ void collect(struct garbagelist * stackptr) {
     taghead=malloc(sizeof(struct pointerblock));
     taghead->next=NULL;
   }
+#endif
+
+#ifdef STM
+    if (c_table!=NULL)
+      fixtable(&c_table, c_size);
 #endif
 
   /* Check current stack */
@@ -412,6 +426,11 @@ void collect(struct garbagelist * stackptr) {
       ENQUEUE((void *)ao->___nextobject___, *((void **)&ao_cpy->___nextobject___));
       ENQUEUE((void *)ao->___localcopy___, *((void **)&ao_cpy->___localcopy___));
 #endif
+#if defined(STM)
+      struct ArrayObject *ao=(struct ArrayObject *) ptr;
+      struct ArrayObject *ao_cpy=(struct ArrayObject *) cpy;
+      SENQUEUE((void *)ao->___objlocation___, *((void **)&ao_cpy->___objlocation___));
+#endif
     } else if (((int)pointer)==1) {
       /* Array of pointers */
       struct ArrayObject *ao=(struct ArrayObject *) ptr;
@@ -419,6 +438,9 @@ void collect(struct garbagelist * stackptr) {
 #if (defined(DSTM)||defined(FASTCHECK))
       ENQUEUE((void *)ao->___nextobject___, *((void **)&ao_cpy->___nextobject___));
       ENQUEUE((void *)ao->___localcopy___, *((void **)&ao_cpy->___localcopy___));
+#endif
+#if defined(STM)
+      SENQUEUE((void *)ao->___objlocation___, *((void **)&ao_cpy->___objlocation___));
 #endif
       int length=ao->___length___;
       int i;
@@ -692,9 +714,16 @@ int gc_createcopy(void * orig, void ** copy_ptr) {
     }
     if (type<NUMCLASSES) {
       /* We have a normal object */
+#ifdef STM
+      int size=classsize[type]+sizeof(objheader_t);
+      void *newobj=tomalloc(size);
+      memcpy(newobj,((char *) orig)-sizeof(objheader_t), size);
+      newobj=((char *)newobj)+sizeof(objheader_t);
+#else
       int size=classsize[type];
       void *newobj=tomalloc(size);
       memcpy(newobj, orig, size);
+#endif
       ((int *)orig)[0]=-1;
       ((void **)orig)[1]=newobj;
       *copy_ptr=newobj;
@@ -704,9 +733,17 @@ int gc_createcopy(void * orig, void ** copy_ptr) {
       struct ArrayObject *ao=(struct ArrayObject *)orig;
       int elementsize=classsize[type];
       int length=ao->___length___;
+#ifdef STM
+      int size=sizeof(struct ArrayObject)+length*elementsize+sizeof(objheader_t);
+      void *newobj=tomalloc(size);
+      memcpy(newobj, ((char*)orig)-sizeof(objheader_t), size);
+      newobj=((char *)newobj)+sizeof(objheader_t);
+#else
       int size=sizeof(struct ArrayObject)+length*elementsize;
       void *newobj=tomalloc(size);
       memcpy(newobj, orig, size);
+#endif
+
       ((int *)orig)[0]=-1;
       ((void **)orig)[1]=newobj;
       *copy_ptr=newobj;

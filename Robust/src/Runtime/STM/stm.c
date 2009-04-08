@@ -276,6 +276,7 @@ int traverseCache() {
   
   /* Decide the final response */
   if (softabort) {
+    transAbortProcess(oidrdlocked, &numoidrdlocked, oidwrlocked, &numoidwrlocked);
     return TRANS_SOFT_ABORT;
   } else {
     transCommitProcess(oidrdlocked, &numoidrdlocked, oidwrlocked, &numoidwrlocked);
