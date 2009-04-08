@@ -20,6 +20,7 @@ struct listitem {
   unsigned int tc_size;
   chashlistnode_t **tc_table;
   struct objlist * objlist;
+  char **base;
 #endif
 };
 

@@ -250,6 +250,11 @@ void enqueuetag(struct ___TagDescriptor___ *ptr) {
 }
 #endif
 
+#ifdef STM
+__thread char * memorybase=NULL;
+__thread char * memorytop=NULL;
+#endif
+
 
 void collect(struct garbagelist * stackptr) {
 #if defined(THREADS)||defined(DSTM)||defined(STM)
@@ -281,6 +286,7 @@ void collect(struct garbagelist * stackptr) {
   if (c_table!=NULL) {
       fixtable(&c_table, c_size);
       fixobjlist(newobjs);
+      memorybase=NULL;
   }
 #endif
 
@@ -310,6 +316,7 @@ void collect(struct garbagelist * stackptr) {
     if ((*listptr->tc_table)!=NULL) {
       fixtable(listptr->tc_table, listptr->tc_size);
       fixobjlist(listptr->objlist);
+      (*listptr->base)=NULL;
     }
 #endif
     stackptr=listptr->stackptr;
@@ -569,7 +576,6 @@ void checkcollect2(void * ptr) {
 }
 #endif
 
-
 struct listitem * stopforgc(struct garbagelist * ptr) {
   struct listitem * litem=malloc(sizeof(struct listitem));
   litem->stackptr=ptr;
@@ -580,6 +586,7 @@ struct listitem * stopforgc(struct garbagelist * ptr) {
   litem->tc_size=c_size;
   litem->tc_table=&c_table;
   litem->objlist=newobjs;
+  litem->base=&memorybase;
 #endif
   litem->prev=NULL;
   pthread_mutex_lock(&gclistlock);
@@ -612,7 +619,26 @@ void restartaftergc(struct listitem * litem) {
 }
 #endif
 
+#ifdef STM
+#define MEMORYBLOCK 65536
+void * helper(struct garbagelist *, int);
 void * mygcmalloc(struct garbagelist * stackptr, int size) {
+  if ((size&7)!=0)
+    size=(size&~7)+8;
+  if (memorybase==NULL||(memorybase+size)>memorytop) {
+    int toallocate=(size>MEMORYBLOCK)?size:MEMORYBLOCK;
+    memorybase=helper(stackptr, toallocate);
+    memorytop=memorybase+toallocate;
+  }
+  char *retvalue=memorybase;
+  memorybase+=size;
+  return retvalue;
+}
+
+void * helper(struct garbagelist * stackptr, int size) {
+#else
+void * mygcmalloc(struct garbagelist * stackptr, int size) {
+#endif
   void *ptr;
 #if defined(THREADS)||defined(DSTM)||defined(STM)
   if (pthread_mutex_trylock(&gclock)!=0) {

@@ -103,7 +103,7 @@ void randomdelay() {
 
   t = time(NULL);
   req.tv_sec = 0;
-  req.tv_nsec = (long)(t%100); //1-11 microsec
+  req.tv_nsec = (long)(t%4); //1-11 microsec
   nanosleep(&req, NULL);
   return;
 }
@@ -160,18 +160,16 @@ __attribute__((pure)) void *transRead(void * oid) {
     return oid;
 
   /* Read from the main heap */
+  //No lock for now
   objheader_t *header = (objheader_t *)(((char *)oid) - sizeof(objheader_t)); 
-  if(read_trylock(&header->lock)) { //Can further acquire read locks
-    GETSIZE(size, header);
-    size += sizeof(objheader_t);
-    objcopy = (objheader_t *) objstrAlloc(&t_cache, size);
-    memcpy(objcopy, header, size);
-    /* Insert into cache's lookup table */
-    STATUS(objcopy)=0;
-    t_chashInsert((unsigned int)oid, &objcopy[1]);
-    read_unlock(&header->lock);
-    return &objcopy[1];
-  }
+  GETSIZE(size, header);
+  size += sizeof(objheader_t);
+  objcopy = (objheader_t *) objstrAlloc(&t_cache, size);
+  memcpy(objcopy, header, size);
+  /* Insert into cache's lookup table */
+  STATUS(objcopy)=0;
+  t_chashInsert((unsigned int)oid, &objcopy[1]);
+  return &objcopy[1];
 }
 
 void freenewobjs() {
