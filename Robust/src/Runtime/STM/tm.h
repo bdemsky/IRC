@@ -26,7 +26,7 @@
 #include <sys/time.h>
 #include <errno.h>
 #include "threadnotify.h"
-#include "clookup.h"
+#include "stmlookup.h"
 #include "dsmlock.h"
 
 /* ==================================
@@ -52,10 +52,10 @@ typedef struct objheader {
   ((void*)((((void *) x )!=NULL) ? (*((unsigned int *)&((struct ___Object___ *) x)->___objlocation___)) : 0))
 
 #define STATUS(x) \
-  *((unsigned int *) &(((struct ___Object___ *)((unsigned int) x + sizeof(objheader_t)))->___objstatus___))
+  *((unsigned int *) &(((struct ___Object___ *)(((char *) x) + sizeof(objheader_t)))->___objstatus___))
 
 #define STATUSPTR(x) \
-  ((unsigned int *) &(((struct ___Object___ *)((unsigned int) x + sizeof(objheader_t)))->___objstatus___))
+  ((unsigned int *) &(((struct ___Object___ *)(((char *) x) + sizeof(objheader_t)))->___objstatus___))
 
 #define TYPE(x) \
   ((struct ___Object___ *)((unsigned int) x + sizeof(objheader_t)))->type
@@ -89,7 +89,7 @@ typedef struct objheader {
   unsigned int inputvalue;\
 if ((inputvalue=(unsigned int)y)==0) x=NULL;\
 else { \
-chashlistnode_t * cnodetmp=&c_table[(inputvalue&c_mask)>>1];	\
+chashlistnode_t * cnodetmp=&c_table[(inputvalue&c_mask)>>3];	\
 do { \
   if (cnodetmp->key==inputvalue) {x=(void *)cnodetmp->val;break;} \
 cnodetmp=cnodetmp->next;\
@@ -107,6 +107,15 @@ typedef struct objstr {
   struct objstr *next;
   struct objstr *prev;
 } objstr_t;
+
+#define MAXOBJLIST 512
+struct objlist {
+  int offset;
+  void * objs[MAXOBJLIST];
+  struct objlist * next;
+};
+
+extern __thread struct objlist * newobjs;
 
 typedef struct newObjCreated {
   unsigned int numcreated;

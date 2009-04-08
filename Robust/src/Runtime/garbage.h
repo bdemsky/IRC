@@ -19,6 +19,7 @@ struct listitem {
 #ifdef STM
   unsigned int tc_size;
   chashlistnode_t **tc_table;
+  struct objlist * objlist;
 #endif
 };
 

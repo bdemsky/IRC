@@ -53,9 +53,7 @@ public class RainForest extends Thread {
     //Barrier for synchronizing moves
     Barrier barr;
     int id;
-    atomic {
-      id = threadid;
-    }
+    id = threadid;
     barr = new Barrier("127.0.0.1");
 
     Random rand = new Random(id);
@@ -123,43 +121,37 @@ public class RainForest extends Thread {
 
     // Init land and place rocks in boundaries
     GameMap[][] world;
-    atomic {
-      mybarr = new BarrierServer(numThreads);
-      world = new GameMap[ROW][COLUMN];
-      int i, j;
-      for (i = 0; i < ROW; i++) {
-        for (j = 0; j < COLUMN; j++) {
-          world[i][j] = new GameMap();
-          if (j == 0 || j == COLUMN-1) {
-            RockType r = new RockType();
-            world[i][j].putRock(r);
-          }
-          if (i == 0 || i == ROW-1) {
-            RockType r = new RockType();
-            world[i][j].putRock(r);
-          }
+    mybarr = new BarrierServer(numThreads);
+    world = new GameMap[ROW][COLUMN];
+    
+    for (int i = 0; i < ROW; i++) {
+        for (int j = 0; j < COLUMN; j++) {
+	    world[i][j] = new GameMap();
+	    if (j == 0 || j == COLUMN-1) {
+		RockType r = new RockType();
+		world[i][j].putRock(r);
+	    }
+	    if (i == 0 || i == ROW-1) {
+		RockType r = new RockType();
+		world[i][j].putRock(r);
+	    }
         }
-      }
     }
 
     mybarr.start();
 
     /* Set up threads */
     RainForest[] rf;
-    atomic {
-      rf = new RainForest[numThreads];
-      for(int i=0; i<numThreads; i++) {
+    rf = new RainForest[numThreads];
+    for(int i=0; i<numThreads; i++) {
         rf[i] = new RainForest(world, mybarr, i, numThreads);
-      }
     }
 
     /* Barrier Server waits for messages */
     boolean waitforthreaddone = true;
     while(waitforthreaddone) {
-      atomic {
         if(mybarr.done)
-          waitforthreaddone = false;
-      }
+	    waitforthreaddone = false;
     }
 
     /* Start threads */

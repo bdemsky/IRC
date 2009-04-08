@@ -14,6 +14,7 @@
 #include "garbage.h"
 /* Thread transaction variables */
 __thread objstr_t *t_cache;
+__thread struct objlist * newobjs;
 
 #ifdef TRANSSTATS
 int numTransCommit = 0;
@@ -78,10 +79,19 @@ void transStart() {
 objheader_t *transCreateObj(void * ptr, unsigned int size) {
   objheader_t *tmp = mygcmalloc(ptr, (sizeof(objheader_t) + size));
   objheader_t *retval=&tmp[1];
-  initdsmlocks(&tmp->lock);
+  tmp->lock=RW_LOCK_BIAS;
   tmp->version = 1;
   STATUS(tmp)=NEW;
-  t_chashInsert((unsigned int) retval, retval);
+  // don't insert into table
+  if (newobjs->offset<MAXOBJLIST) {
+    newobjs->objs[newobjs->offset++]=retval;
+  } else {
+    struct objlist *tmp=malloc(sizeof(struct objlist));
+    tmp->next=newobjs;
+    tmp->objs[0]=retval;
+    tmp->offset=1;
+    newobjs=tmp;
+  }
   return retval; //want space after object header
 }
 
@@ -145,6 +155,10 @@ __attribute__((pure)) void *transRead(void * oid) {
   objheader_t *objcopy;
   int size;
 
+  //quick case for new objects
+  if (((struct ___Object___ *)oid)->___objstatus___ & NEW)
+    return oid;
+
   /* Read from the main heap */
   objheader_t *header = (objheader_t *)(((char *)oid) - sizeof(objheader_t)); 
   if(read_trylock(&header->lock)) { //Can further acquire read locks
@@ -158,6 +172,17 @@ __attribute__((pure)) void *transRead(void * oid) {
     read_unlock(&header->lock);
     return &objcopy[1];
   }
+}
+
+void freenewobjs() {
+  struct objlist *ptr=newobjs;
+  while(ptr->next!=NULL) {
+    struct objlist *tmp=ptr->next;
+    free(ptr);
+    ptr=tmp;
+  }
+  ptr->offset=0;
+  newobjs=ptr;
 }
 
 /* ================================================================
@@ -175,6 +200,7 @@ int transCommit() {
 #ifdef TRANSSTATS
       numTransAbort++;
 #endif
+      freenewobjs();
       objstrDelete(t_cache);
       t_chashDelete();
       return TRANS_ABORT;
@@ -183,6 +209,7 @@ int transCommit() {
 #ifdef TRANSSTATS
       numTransCommit++;
 #endif
+      freenewobjs();
       objstrDelete(t_cache);
       t_chashDelete();
       return 0;
@@ -229,9 +256,7 @@ int traverseCache() {
       unsigned int version = headeraddr->version;
       objheader_t *header=(objheader_t *) (((char *)curr->key)-sizeof(objheader_t));
       
-      if(STATUS(headeraddr) & NEW) {
-	STATUS(headeraddr)=0;
-      } else if(STATUS(headeraddr) & DIRTY) {
+      if(STATUS(headeraddr) & DIRTY) {
 	/* Read from the main heap  and compare versions */
 	if(write_trylock(&header->lock)) { //can aquire write lock
 	  if (version == header->version) {/* versions match */
@@ -325,7 +350,16 @@ int transCommitProcess(unsigned int *oidrdlocked, int *numoidrdlocked,
   objheader_t *header;
   void *ptrcreate;
   int i;
-
+  struct objlist *ptr=newobjs;
+  while(ptr!=NULL) {
+    int max=ptr->offset;
+    for(i=0;i<max;i++) {
+      //clear the new flag
+      ((struct ___Object___ *)ptr->objs[i])->___objstatus___=0;
+    }
+    ptr=ptr->next;
+  }
+  
   /* Copy from transaction cache -> main object store */
   for (i = 0; i < *numoidwrlocked; i++) {
     /* Read from the main heap */ 

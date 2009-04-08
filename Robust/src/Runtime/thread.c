@@ -114,7 +114,9 @@ void initthread(struct ___Thread___ * ___this___) {
 #ifdef THREADS
   ___Thread______staticStart____L___Thread___((struct ___Thread______staticStart____L___Thread____params *)p);
 #else
+  newobjs=calloc(1, sizeof(struct objlist));
  ___Thread____NN____staticStart____L___Thread___((struct ___Thread____NN____staticStart____L___Thread____params *)p);
+  free(newobjs);
 #endif
   ___this___=(struct ___Thread___ *) p[2];
 #else

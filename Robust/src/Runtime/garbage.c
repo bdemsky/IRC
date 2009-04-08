@@ -137,8 +137,18 @@ void * dequeue() {
 }
 
 #ifdef STM
+void fixobjlist(struct objlist * ptr) {
+  while(ptr!=NULL) {
+    int i;
+    for(i=0;i<ptr->offset;i++) {
+      SENQUEUE(ptr->objs[i], ptr->objs[i]);
+    }
+    ptr=ptr->next;
+  }
+}
+
 void fixtable(chashlistnode_t ** tc_table, unsigned int tc_size) {
-  unsigned int mask=(tc_size<<1)-1;
+  unsigned int mask=(tc_size<<3)-1;
   chashlistnode_t *node=calloc(tc_size, sizeof(chashlistnode_t));
   chashlistnode_t *ptr=*tc_table;
   chashlistnode_t *curr;
@@ -189,7 +199,7 @@ void fixtable(chashlistnode_t ** tc_table, unsigned int tc_size) {
       }
 
       next = curr->next;
-      index = (((unsigned int)key) & mask) >>1;
+      index = (((unsigned int)key) & mask) >>3;
 
       curr->key=(unsigned int)key;
       tmp=&node[index];
@@ -268,8 +278,10 @@ void collect(struct garbagelist * stackptr) {
 #endif
 
 #ifdef STM
-    if (c_table!=NULL)
+  if (c_table!=NULL) {
       fixtable(&c_table, c_size);
+      fixobjlist(newobjs);
+  }
 #endif
 
   /* Check current stack */
@@ -295,8 +307,10 @@ void collect(struct garbagelist * stackptr) {
     ENQUEUE(orig, listptr->locklist);
 #endif
 #ifdef STM
-    if ((*listptr->tc_table)!=NULL)
+    if ((*listptr->tc_table)!=NULL) {
       fixtable(listptr->tc_table, listptr->tc_size);
+      fixobjlist(listptr->objlist);
+    }
 #endif
     stackptr=listptr->stackptr;
     listptr=listptr->next;
@@ -565,6 +579,7 @@ struct listitem * stopforgc(struct garbagelist * ptr) {
 #ifdef STM
   litem->tc_size=c_size;
   litem->tc_table=&c_table;
+  litem->objlist=newobjs;
 #endif
   litem->prev=NULL;
   pthread_mutex_lock(&gclistlock);
@@ -608,7 +623,7 @@ void * mygcmalloc(struct garbagelist * stackptr, int size) {
 #endif
   ptr=curr_heapptr;
   if ((size&7)!=0)
-    size+=(8-(size%8));
+    size=(size&~7)+8;
   curr_heapptr+=size;
   if (curr_heapptr>curr_heapgcpoint) {
     if (curr_heapbase==0) {
