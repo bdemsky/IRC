@@ -114,6 +114,15 @@ typedef struct newObjCreated {
 } newObjCreated_t;
 
 
+#ifdef TRANSSTATS
+/***********************************
+ * Global Variables for statistics
+ **********************************/
+extern int numTransCommit;
+extern int numTransAbort;
+extern int nSoftAbort;
+#endif
+
 /* ================================
  * Functions used
  * ================================

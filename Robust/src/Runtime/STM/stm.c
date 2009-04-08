@@ -15,6 +15,12 @@
 /* Thread transaction variables */
 __thread objstr_t *t_cache;
 
+#ifdef TRANSSTATS
+int numTransCommit = 0;
+int numTransAbort = 0;
+int nSoftAbort = 0;
+#endif
+
 
 /* ==================================================
  * stmStartup
@@ -166,17 +172,26 @@ int transCommit() {
     /* Look through all the objects in the transaction hash table */
     int finalResponse = traverseCache();
     if(finalResponse == TRANS_ABORT) {
+#ifdef TRANSSTATS
+      numTransAbort++;
+#endif
       objstrDelete(t_cache);
       t_chashDelete();
       return TRANS_ABORT;
     }
     if(finalResponse == TRANS_COMMIT) {
+#ifdef TRANSSTATS
+      numTransCommit++;
+#endif
       objstrDelete(t_cache);
       t_chashDelete();
       return 0;
     }
     /* wait a random amount of time before retrying to commit transaction*/
     if(finalResponse == TRANS_SOFT_ABORT) {
+#ifdef TRANSSTATS
+      nSoftAbort++;
+#endif
       randomdelay();
     } else {
       printf("Error: in %s() Unknown outcome", __func__);

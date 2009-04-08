@@ -65,7 +65,6 @@ CHECKFLAG=false
 RECOVERFLAG=false
 MLPFLAG=false
 MULTICOREFLAG=false
-TRANSSTATSFLAG=false
 RAWFLAG=false
 RAWCACHEFLUSHFLAG=false
 RAWCONFIG=''
@@ -152,7 +151,7 @@ then
 JAVAOPTS="$JAVAOPTS -prefetch"
 elif [[ $1 = '-transstats' ]]
 then
-TRANSSTATSFLAG=true
+EXTRAOPTIONS="$EXTRAOPTIONS -DTRANSSTATS"
 elif [[ $1 = '-printflat' ]]
 then
 JAVAOPTS="$JAVAOPTS -printflat"
@@ -479,10 +478,6 @@ $ROBUSTROOT/Runtime/GenericHashtable.c $ROBUSTROOT/Runtime/object.c"
 if $DSMFLAG
 then
 EXTRAOPTIONS="$EXTRAOPTIONS -lpthread -DCOMPILER -DDSTM -I$DSMRUNTIME"
-if $TRANSSTATSFLAG
-then
-EXTRAOPTIONS="$EXTRAOPTIONS -lpthread -DTRANSSTATS -DCOMPILER -DDSTM -I$DSMRUNTIME"
-fi
 FILES="$FILES $DSMRUNTIME/trans.c $DSMRUNTIME/mcpileq.c $DSMRUNTIME/objstr.c $DSMRUNTIME/dstm.c $DSMRUNTIME/mlookup.c $DSMRUNTIME/clookup.c $DSMRUNTIME/llookup.c $DSMRUNTIME/threadnotify.c $DSMRUNTIME/dstmserver.c $DSMRUNTIME/plookup.c $DSMRUNTIME/ip.c $DSMRUNTIME/queue.c $DSMRUNTIME/prelookup.c $DSMRUNTIME/machinepile.c $ROBUSTROOT/Runtime/localobjects.c $ROBUSTROOT/Runtime/thread.c $DSMRUNTIME/sockpool.c $DSMRUNTIME/addUdpEnhance.c $DSMRUNTIME/signal.c $DSMRUNTIME/gCollect.c $DSMRUNTIME/addPrefetchEnhance.c $DSMRUNTIME/dsmlock.c $DSMRUNTIME/prefetch.c"
 fi
 

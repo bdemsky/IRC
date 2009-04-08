@@ -72,9 +72,7 @@ public class Grid {
       instantiateGrid(debugGrid);
       resetGrid(debugGrid);
     } else {
-      //debugGrid = new GridCell[width][height][depth];
-      //FIXME compiler error:Type of rside (null) not compatible with type of lside (GridCell)debugGrid = null
-      debugGrid = null;
+      debugGrid = new GridCell[width][height][depth];
     }
   }
 

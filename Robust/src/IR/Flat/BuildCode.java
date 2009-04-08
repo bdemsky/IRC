@@ -224,9 +224,11 @@ public class BuildCode {
   private void outputMainMethod(PrintWriter outmethod) {
     outmethod.println("int main(int argc, const char *argv[]) {");
     outmethod.println("  int i;");
-    outmethod.println("#ifdef TRANSSTATS \n");
-    outmethod.println("handle();\n");
-    outmethod.println("#endif\n");
+    if (state.DSM) {
+	outmethod.println("#ifdef TRANSSTATS \n");
+	outmethod.println("handle();\n");
+	outmethod.println("#endif\n");
+    }
     if (state.THREAD||state.DSM||state.SINGLETM) {
       outmethod.println("initializethreads();");
     }
@@ -292,8 +294,6 @@ public class BuildCode {
       outmethod.println("threadcount--;");
       outmethod.println("pthread_cond_signal(&gccond);");
       outmethod.println("pthread_mutex_unlock(&gclistlock);");
-      if (state.THREAD||state.SINGLETM)
-	outmethod.println("pthread_exit(NULL);");
     }
 
     if (state.DSM||state.SINGLETM) {
@@ -301,15 +301,21 @@ public class BuildCode {
       outmethod.println("printf(\"******  Transaction Stats   ******\\n\");");
       outmethod.println("printf(\"numTransAbort= %d\\n\", numTransAbort);");
       outmethod.println("printf(\"numTransCommit= %d\\n\", numTransCommit);");
-      outmethod.println("printf(\"nchashSearch= %d\\n\", nchashSearch);");
-      outmethod.println("printf(\"nmhashSearch= %d\\n\", nmhashSearch);");
-      outmethod.println("printf(\"nprehashSearch= %d\\n\", nprehashSearch);");
-      outmethod.println("printf(\"nRemoteReadSend= %d\\n\", nRemoteSend);");
       outmethod.println("printf(\"nSoftAbort= %d\\n\", nSoftAbort);");
-      outmethod.println("printf(\"bytesSent= %d\\n\", bytesSent);");
-      outmethod.println("printf(\"bytesRecv= %d\\n\", bytesRecv);");
+      if (state.DSM) {
+	  outmethod.println("printf(\"nchashSearch= %d\\n\", nchashSearch);");
+	  outmethod.println("printf(\"nmhashSearch= %d\\n\", nmhashSearch);");
+	  outmethod.println("printf(\"nprehashSearch= %d\\n\", nprehashSearch);");
+	  outmethod.println("printf(\"nRemoteReadSend= %d\\n\", nRemoteSend);");
+	  outmethod.println("printf(\"bytesSent= %d\\n\", bytesSent);");
+	  outmethod.println("printf(\"bytesRecv= %d\\n\", bytesRecv);");
+      }
       outmethod.println("#endif\n");
     }
+
+    if (state.THREAD||state.SINGLETM)
+	outmethod.println("pthread_exit(NULL);");
+
     outmethod.println("}");
 
   }
@@ -776,14 +782,16 @@ public class BuildCode {
     outclassdefs.print("#ifdef TRANSSTATS \n");
     outclassdefs.print("extern int numTransAbort;\n");
     outclassdefs.print("extern int numTransCommit;\n");
-    outclassdefs.print("extern int nchashSearch;\n");
-    outclassdefs.print("extern int nmhashSearch;\n");
-    outclassdefs.print("extern int nprehashSearch;\n");
-    outclassdefs.print("extern int nRemoteSend;\n");
     outclassdefs.print("extern int nSoftAbort;\n");
-    outclassdefs.print("extern int bytesSent;\n");
-    outclassdefs.print("extern int bytesRecv;\n");
-    outclassdefs.print("extern void handle();\n");
+    if (state.DSM) {
+	outclassdefs.print("extern int nchashSearch;\n");
+	outclassdefs.print("extern int nmhashSearch;\n");
+	outclassdefs.print("extern int nprehashSearch;\n");
+	outclassdefs.print("extern int nRemoteSend;\n");
+	outclassdefs.print("extern int bytesSent;\n");
+	outclassdefs.print("extern int bytesRecv;\n");
+	outclassdefs.print("extern void handle();\n");
+    }
     outclassdefs.print("#endif\n");
     outclassdefs.print("int numprefetchsites = " + pa.prefetchsiteid + ";\n");
 

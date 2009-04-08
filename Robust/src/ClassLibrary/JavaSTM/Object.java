@@ -1,9 +1,9 @@
 public class Object {
   public int cachedCode;   //first field has to be a primitive
   public boolean cachedHash;
-  public Object objlocation;  
-  public int objstatus;
   public native int nativehashCode();
+  private int objstatus;
+  private Object objlocation;
 
   public int hashCode() {
     if (!cachedHash) {
