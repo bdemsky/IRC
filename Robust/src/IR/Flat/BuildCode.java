@@ -2232,13 +2232,13 @@ public class BuildCode {
       boolean srcptr=fsfn.getSrc().getType().isPtr();
       String src=generateTemp(fm,fsfn.getSrc(),lb);
       String dst=generateTemp(fm,fsfn.getDst(),lb);
-      if (srcptr) {
+      if (srcptr&&!fsfn.getSrc().getType().isNull()) {
 	output.println("{");
 	output.println("int srcoid=("+src+"!=NULL?((int)"+src+"->"+oidstr+"):0);");
       }
       if (wb.needBarrier(fsfn))
 	output.println("*((unsigned int *)&("+dst+"->___objstatus___))|=DIRTY;");
-      if (srcptr) {
+      if (srcptr&!fsfn.getSrc().getType().isNull()) {
 	output.println("*((unsigned int *)&("+dst+"->"+ fsfn.getField().getSafeSymbol()+"))=srcoid;");
 	output.println("}");
       } else {
@@ -2380,7 +2380,7 @@ public class BuildCode {
       //Transaction set element case
       if (wb.needBarrier(fsen))
 	output.println("*((unsigned int *)&("+generateTemp(fm,fsen.getDst(),lb)+"->___objstatus___))|=DIRTY;");
-      if (fsen.getSrc().getType().isPtr()) {
+      if (fsen.getSrc().getType().isPtr()&&!fsen.getSrc().getType().isNull()) {
 	output.println("{");
 	String src=generateTemp(fm, fsen.getSrc(), lb);
 	output.println("int srcoid=("+src+"!=NULL?((int)"+src+"->"+oidstr+"):0);");

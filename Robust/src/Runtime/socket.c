@@ -26,7 +26,7 @@ int CALL24(___Socket______nativeConnect____I__AR_B_I, int ___fd___, int ___port_
   sin.sin_family= AF_INET;
   sin.sin_port=htons(___port___);
   sin.sin_addr.s_addr=htonl(*(int *)(((char *)&VAR(___address___)->___length___)+sizeof(int)));
-#if defined(THREADS)||defined(DSTM)
+#if defined(THREADS)||defined(DSTM)||defined(STM)
 #ifdef PRECISE_GC
   struct listitem *tmp=stopforgc((struct garbagelist *)___params___);
 #endif
@@ -34,7 +34,7 @@ int CALL24(___Socket______nativeConnect____I__AR_B_I, int ___fd___, int ___port_
   do {
     rc = connect(___fd___, (struct sockaddr *) &sin, sizeof(sin));
   } while (rc<0 && errno==EINTR); /* repeat if interrupted */
-#if defined(THREADS)||defined(DSTM)
+#if defined(THREADS)||defined(DSTM)||defined(STM)
 #ifdef PRECISE_GC
   restartaftergc(tmp);
 #endif
@@ -293,7 +293,7 @@ int CALL02(___ServerSocket______nativeaccept____L___Socket___,struct ___ServerSo
   unsigned int sinlen=sizeof(sin);
   int fd=VAR(___this___)->___fd___;
   int newfd;
-#if defined(THREADS)||defined(DSTM)
+#if defined(THREADS)||defined(DSTM)||defined(STM)
 #ifdef PRECISE_GC
   struct listitem *tmp=stopforgc((struct garbagelist *)___params___);
 #endif
@@ -301,7 +301,7 @@ int CALL02(___ServerSocket______nativeaccept____L___Socket___,struct ___ServerSo
   newfd=accept(fd, (struct sockaddr *)&sin, &sinlen);
   int flag = 1;
   setsockopt(newfd, IPPROTO_TCP, TCP_NODELAY, (char *) &flag, sizeof(flag));
-#if defined(THREADS)||defined(DSTM)
+#if defined(THREADS)||defined(DSTM)||defined(STM)
 #ifdef PRECISE_GC
   restartaftergc(tmp);
 #endif
@@ -369,7 +369,7 @@ int CALL02(___Socket______nativeRead_____AR_B, struct ___Socket___ * ___this___,
 
   char * charstr=malloc(length);
 
-#if defined(THREADS)||defined(DSTM)
+#if defined(THREADS)||defined(DSTM)||defined(STM)
 #ifdef PRECISE_GC
   struct listitem *tmp=stopforgc((struct garbagelist *)___params___);
 #endif
@@ -380,7 +380,7 @@ int CALL02(___Socket______nativeRead_____AR_B, struct ___Socket___ * ___this___,
   do {
     byteread=read(fd, charstr, length);
   } while(byteread==-1&&errno==EINTR);
-#if defined(THREADS)||defined(DSTM)
+#if defined(THREADS)||defined(DSTM)||defined(STM)
 #ifdef PRECISE_GC
   restartaftergc(tmp);
 #endif

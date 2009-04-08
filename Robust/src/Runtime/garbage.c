@@ -183,7 +183,7 @@ void fixtable(chashlistnode_t ** tc_table, unsigned int tc_size) {
 	    ENQUEUE(objptr, *((void **)(((int)ptr)+offset)));
 	  }
 	}
-      }      
+      }
 
       next = curr->next;
       index = (((unsigned int)key) & mask) >>1;
@@ -281,7 +281,8 @@ void collect(struct garbagelist * stackptr) {
     ENQUEUE(orig, listptr->locklist);
 #endif
 #ifdef STM
-    fixtable(listptr->tc_table, listptr->tc_size);
+    if ((*listptr->tc_table)!=NULL)
+      fixtable(listptr->tc_table, listptr->tc_size);
 #endif
     stackptr=listptr->stackptr;
     listptr=listptr->next;

@@ -131,14 +131,10 @@ public class LocalityBinding {
     if (isglobal.length!=lb.isglobal.length)
       return false;
     for(int i=0; i<isglobal.length; i++)
-      if (!isglobal[i].equals(lb.isglobal[i]))
+      if (!equiv(isglobal[i],lb.isglobal[i]))
 	return false;
 
-    if (isglobalthis==null) {
-      if (lb.isglobalthis!=null)
-	return false;
-    } else
-    if (!isglobalthis.equals(lb.isglobalthis))
+    if (!equiv(isglobalthis, lb.isglobalthis))
       return false;
     return (isatomic==lb.isatomic);
   }

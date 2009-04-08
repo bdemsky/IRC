@@ -338,4 +338,5 @@ void t_chashDelete() {
     }
   }
   free(ptr);
+  c_table=NULL;
 }
