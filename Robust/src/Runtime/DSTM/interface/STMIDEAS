@@ -10,3 +10,10 @@ reads of these objects in place.
 4) Immutable object optimizations...For immutable objects such as
 Strings/Integers/Doubles/Float objects, don't even copy, just elide
 TRANSREAD call.
+
+5) Eliminate read locks in the transaction commit process.  The idea
+is to first acquire all the write locks, then go through the read
+array.  For each object in the read array we check: (1) that the
+version numbers match and (2) that it hasn't been write locked.  The
+serialization point for a transaction is when all write locks have
+been acquired but before any reads have been checked.
