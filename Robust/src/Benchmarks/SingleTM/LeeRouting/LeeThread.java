@@ -51,16 +51,6 @@ public class LeeThread extends Thread {
   boolean done;
   int[][][] tempg;
 
-  public LeeThread() {
-    stop = false;
-    finished = false;
-    sampleNow = false;
-    doneSample = true;
-    totalLaidTracks=0;
-    myLaidTracks=0;
-    done = true;
-  }
-
   /*
   protected static ThreadLocal<ThreadState> _threadState = new ThreadLocal<ThreadState>() {
     protected synchronized ThreadState initialValue() {
@@ -74,8 +64,15 @@ public class LeeThread extends Thread {
   };
   */
 
-
   LeeThread(LeeRouter lt) {
+    stop = false;
+    finished = false;
+    sampleNow = false;
+    doneSample = true;
+    totalLaidTracks=0;
+    myLaidTracks=0;
+    done = true;
+
     this.lt = lt;
     tempg = new int[lt.GRID_SIZE][lt.GRID_SIZE][2]; // Lee 2D Grid copy
   }
@@ -87,8 +84,8 @@ public class LeeThread extends Thread {
         doneSample = true;
         sampleNow = false;
       }
-      atomic {
-        if(done) {
+      if(done) {
+        atomic {
           t = lt.getNextTrack();
           done = false;
         }

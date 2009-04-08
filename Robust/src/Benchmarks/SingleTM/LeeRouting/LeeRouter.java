@@ -116,7 +116,6 @@ public class LeeRouter {
     if (TEST) GRID_SIZE = 10;
     else GRID_SIZE = 600;
     if(DEBUG) System.out.println("Creating grid...");
-    //grid = new Grid(GRID_SIZE, GRID_SIZE, 2, rel, DEBUG, OCC, EMPTY, MAX_WEIGHT); //the Lee 3D Grid;
     grid = new Grid(GRID_SIZE, GRID_SIZE, 2, rel, this); //the Lee 3D Grid;
     if(DEBUG) System.out.println("Done creating grid");
     work = new WorkQueue(); // empty
@@ -211,7 +210,6 @@ public class LeeRouter {
 
   }
 
-  //FIXME
   public WorkQueue getNextTrack() {
     //synchronized(queueLock) {
       if(work.next != null) {
@@ -221,7 +219,6 @@ public class LeeRouter {
     return null;
   }
 
-  //FIXME
   public boolean layNextTrack(WorkQueue q, int [][][]tempg) {
     // start transaction
     boolean done = false;
@@ -616,7 +613,6 @@ public class LeeRouter {
       }
       System.out.println("DEBUG: found "+found+" missing "+missing);
     }
-
   }
 
   public static void main(String [] args) {
