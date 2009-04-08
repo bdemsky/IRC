@@ -148,12 +148,16 @@ public class GenerateConversions {
 	  if (state.DSM)
 	    temptab.put(fgcn, (Hashtable<TempDescriptor, Integer>)temptab.get(fn).clone());
 
+	  FlatNode[] prevarray=new FlatNode[fn.numPrev()];
 	  for(int i=0; i<fn.numPrev(); i++) {
 	    FlatNode fnprev=fn.getPrev(i);
-	    for(int j=0; j<fnprev.numNext(); j++) {
-	      if (fnprev.getNext(j)==fn) {
+	    prevarray[i]=fnprev;
+	  }
+	  for(int i=0; i<prevarray.length; i++) {
+	    for(int j=0; j<prevarray[i].numNext(); j++) {
+	      if (prevarray[i].getNext(j)==fn) {
 		//found index, change node
-		fnprev.setNext(j, fgcn);
+		prevarray[i].setNext(j, fgcn);
 		break;
 	      }
 	    }
