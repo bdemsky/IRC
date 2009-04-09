@@ -6,6 +6,7 @@ BUILDSCRIPT=~/research/Robust/src/buildscript
 #BSFLAGS= -mlpdebug -mainclass Test -ownership -ownallocdepth 1 -ownwritedots final -enable-assertions -flatirusermethods -ownaliasfile aliases.txt #-justanalyze -recover 
 BSFLAGS= -mainclass Test -ownership -ownallocdepth 1 -ownwritedots final -enable-assertions -flatirusermethods -ownaliasfile aliases.txt #-justanalyze -recover 
 
+
 all: $(PROGRAM).bin
 
 view: PNGs
