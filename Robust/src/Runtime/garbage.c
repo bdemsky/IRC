@@ -22,7 +22,7 @@
 
 #define NUMPTRS 100
 
-#define INITIALHEAPSIZE 128*1024*1024
+#define INITIALHEAPSIZE 16*1024*1024
 #define GCPOINT(x) ((int)((x)*0.95))
 /* This define takes in how full the heap is initially and returns a new heap size to use */
 #define HEAPSIZE(x,y) ((int)(x+y))*2
@@ -286,8 +286,8 @@ void collect(struct garbagelist * stackptr) {
   if (c_table!=NULL) {
       fixtable(&c_table, c_size);
       fixobjlist(newobjs);
-      memorybase=NULL;
   }
+  memorybase=NULL;
 #endif
 
   /* Check current stack */
@@ -316,8 +316,8 @@ void collect(struct garbagelist * stackptr) {
     if ((*listptr->tc_table)!=NULL) {
       fixtable(listptr->tc_table, listptr->tc_size);
       fixobjlist(listptr->objlist);
-      (*listptr->base)=NULL;
     }
+    *(listptr->base)=NULL;
 #endif
     stackptr=listptr->stackptr;
     listptr=listptr->next;

@@ -130,6 +130,8 @@ typedef struct newObjCreated {
 extern int numTransCommit;
 extern int numTransAbort;
 extern int nSoftAbort;
+extern int nSoftAbortAbort;
+extern int nSoftAbortCommit;
 #endif
 
 /* ================================

@@ -20,6 +20,8 @@ __thread struct objlist * newobjs;
 int numTransCommit = 0;
 int numTransAbort = 0;
 int nSoftAbort = 0;
+int nSoftAbortCommit = 0;
+int nSoftAbortAbort = 0;
 #endif
 
 
@@ -191,12 +193,18 @@ void freenewobjs() {
  * ================================================================
  */
 int transCommit() {
+#ifdef TRANSSTATS
+  int softaborted=0;
+#endif
   do {
     /* Look through all the objects in the transaction hash table */
     int finalResponse = traverseCache();
     if(finalResponse == TRANS_ABORT) {
 #ifdef TRANSSTATS
       numTransAbort++;
+      if (softaborted) {
+	nSoftAbortAbort++;
+      }
 #endif
       freenewobjs();
       objstrDelete(t_cache);
@@ -206,6 +214,9 @@ int transCommit() {
     if(finalResponse == TRANS_COMMIT) {
 #ifdef TRANSSTATS
       numTransCommit++;
+      if (softaborted) {
+	nSoftAbortCommit++;
+      }
 #endif
       freenewobjs();
       objstrDelete(t_cache);
@@ -216,6 +227,7 @@ int transCommit() {
     if(finalResponse == TRANS_SOFT_ABORT) {
 #ifdef TRANSSTATS
       nSoftAbort++;
+      softaborted=1;
 #endif
       randomdelay();
     } else {

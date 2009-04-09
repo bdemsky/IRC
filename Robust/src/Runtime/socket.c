@@ -376,7 +376,6 @@ int CALL02(___Socket______nativeRead_____AR_B, struct ___Socket___ * ___this___,
 #endif
   int byteread=-1;
 
-  //  printf("Doing read on %d\n",fd);
   do {
     byteread=read(fd, charstr, length);
   } while(byteread==-1&&errno==EINTR);

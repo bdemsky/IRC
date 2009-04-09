@@ -104,6 +104,10 @@ void CALL11(___System______exit____I,int ___status___, int ___status___) {
   printf("numTransCommit = %d\n", numTransCommit);
   printf("numTransAbort = %d\n", numTransAbort);
   printf("nSoftAbort = %d\n", nSoftAbort);
+#ifdef STM
+  printf("nSoftAbortCommit = %d\n", nSoftAbortCommit);
+  printf("nSoftAbortAbort = %d\n", nSoftAbortAbort);
+#endif
 #endif
   exit(___status___);
 }
