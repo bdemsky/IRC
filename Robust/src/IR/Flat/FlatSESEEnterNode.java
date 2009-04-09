@@ -1,21 +1,24 @@
 package IR.Flat;
+import Analysis.MLP.VariableSourceToken;
 import IR.Tree.SESENode;
-import java.util.HashSet;
+import java.util.*;
 
 public class FlatSESEEnterNode extends FlatNode {
   private static int identifier=0;
   private int id;
   protected FlatSESEExitNode exit;
   protected SESENode treeNode;
-  protected HashSet<TempDescriptor> inVars;
-  protected HashSet<TempDescriptor> outVars;
+  protected Set<FlatSESEEnterNode> children;
+  protected Set<VariableSourceToken> inVars;
+  protected Set<VariableSourceToken> outVars;
   protected FlatMethod enclosing;
 
   public FlatSESEEnterNode( SESENode sn ) {
     this.id  = identifier++;
     treeNode = sn;
-    inVars   = new HashSet<TempDescriptor>();
-    outVars  = new HashSet<TempDescriptor>();
+    children = new HashSet<FlatSESEEnterNode>();
+    inVars   = new HashSet<VariableSourceToken>();
+    outVars  = new HashSet<VariableSourceToken>();
   }
 
   public void rewriteUse() {
@@ -24,27 +27,35 @@ public class FlatSESEEnterNode extends FlatNode {
   public void rewriteDef() {
   }
 
-  public void addInVar( TempDescriptor td ) {
-    inVars.add( td );
+  public void addChild( FlatSESEEnterNode child ) {
+    children.add( child );
   }
 
-  public void addOutVar( TempDescriptor td ) {
-    outVars.add( td );
+  public Set<FlatSESEEnterNode> getChildren() {
+    return children;
   }
 
-  public void addInVarSet( HashSet<TempDescriptor> s ) {
+  public void addInVar( VariableSourceToken vst ) {
+    inVars.add( vst );
+  }
+
+  public void addOutVar( VariableSourceToken vst ) {
+    outVars.add( vst );
+  }
+
+  public void addInVarSet( Set<VariableSourceToken> s ) {
     inVars.addAll( s );
   }
 
-  public void addOutVarSet( HashSet<TempDescriptor> s ) {
+  public void addOutVarSet( Set<VariableSourceToken> s ) {
     outVars.addAll( s );
   }
 
-  public HashSet<TempDescriptor> getInVarSet() {
+  public Set<VariableSourceToken> getInVarSet() {
     return inVars;
   }
 
-  public HashSet<TempDescriptor> getOutVarSet() {
+  public Set<VariableSourceToken> getOutVarSet() {
     return outVars;
   }
 

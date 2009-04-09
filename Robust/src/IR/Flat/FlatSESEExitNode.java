@@ -21,7 +21,7 @@ public class FlatSESEExitNode extends FlatNode {
     enter = fsen;
   }
 
-  public FlatSESEEnterNode getSESEEnter() {
+  public FlatSESEEnterNode getFlatEnter() {
     return enter;
   }
 

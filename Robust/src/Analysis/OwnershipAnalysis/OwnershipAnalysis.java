@@ -294,7 +294,7 @@ public class OwnershipAnalysis {
   // descriptorsToAnalyze identifies the set of tasks and methods
   // that are reachable from the program tasks, this set is initialized
   // and then remains static
-  private HashSet<Descriptor> descriptorsToAnalyze;
+  public HashSet<Descriptor> descriptorsToAnalyze;
 
   // descriptorsToVisit is initialized to descriptorsToAnalyze and is
   // reduced by visiting a descriptor during analysis.  When dependents
