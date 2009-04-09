@@ -49,7 +49,7 @@ void *objstrAlloc(objstr_t **osptr, unsigned int size) {
     unsigned int newsize=size>DEFAULT_OBJ_STORE_SIZE?size:DEFAULT_OBJ_STORE_SIZE;
     objstr_t *os=(objstr_t *)calloc(1,(sizeof(objstr_t) + newsize));
     void *ptr=&os[1];
-    os->next=store;
+    os->next=*osptr;
     (*osptr)=os;
     os->size=newsize;
     os->top=((char *)ptr)+size;
