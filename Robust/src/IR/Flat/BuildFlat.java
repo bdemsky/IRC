@@ -45,14 +45,11 @@ public class BuildFlat {
     FlatNode fn=np.getBegin();
     fe=new FlatExit();
     FlatNode fn2=np.getEnd();
-    if ( fn2 == null || fn2.kind()!=FKind.FlatReturnNode) {
+
+    if (fn2!=null&& fn2.kind()!=FKind.FlatReturnNode) {
       FlatReturnNode rnflat=new FlatReturnNode(null);
       rnflat.addNext(fe);
-      if( fn2 == null ) {
-	np.end = rnflat;
-      } else {
-	fn2.addNext(rnflat);
-      }
+      fn2.addNext(rnflat);
     }
 
     FlatFlagActionNode ffan=new FlatFlagActionNode(FlatFlagActionNode.PRE);
@@ -136,7 +133,7 @@ public class BuildFlat {
 	FlatCall fc=new FlatCall(memd, null, thistd, new TempDescriptor[0]);
 	fc.addNext(fn);
 	fn=fc;
-	if (np.getEnd().kind()!=FKind.FlatReturnNode) {
+	if (np.getEnd()!=null&&np.getEnd().kind()!=FKind.FlatReturnNode) {
 	  MethodDescriptor memdex=(MethodDescriptor)typeutil.getClass("Object").getMethodTable().get("MonitorExit");
 	  FlatCall fcunlock=new FlatCall(memdex, null, thistd, new TempDescriptor[0]);
 	  np.getEnd().addNext(fcunlock);
@@ -147,7 +144,7 @@ public class BuildFlat {
       } else if (state.DSM&&currmd.getModifiers().isAtomic()) {
 	curran.addNext(fn);
 	fn=curran;
-	if (np.getEnd().kind()!=FKind.FlatReturnNode) {
+	if (np.getEnd()!=null&&np.getEnd().kind()!=FKind.FlatReturnNode) {
 	  FlatAtomicExitNode aen=new FlatAtomicExitNode(curran);
 	  np.getEnd().addNext(aen);
 	  FlatReturnNode rnflat=new FlatReturnNode(null);
