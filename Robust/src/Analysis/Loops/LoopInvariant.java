@@ -19,7 +19,7 @@ public class LoopInvariant {
   }
   GlobalFieldType gft;
   LoopFinder loops;
-  DomTree posttree;
+  DomTree domtree;
   Hashtable<FlatNode, Vector<FlatNode>> table;
   Set<FlatNode> hoisted;
   UseDef usedef;
@@ -33,7 +33,7 @@ public class LoopInvariant {
     table=new Hashtable<FlatNode, Vector<FlatNode>>();
     hoisted=new HashSet<FlatNode>();
     usedef=new UseDef(fm);
-    posttree=new DomTree(fm,true);
+    domtree=new DomTree(fm,false);
     tounroll=new HashSet();
     recurse(root);
   }
@@ -78,8 +78,9 @@ public class LoopInvariant {
 	    fields.addAll(f);
 	  if (t!=null)
 	    types.addAll(t);
-	  if (gft.containsAtomic(md))
+	  if (gft.containsAtomic(md)) {
 	    unsafe=true;
+	  }
 	} else if (fn.kind()==FKind.FlatSetFieldNode) {
 	  FlatSetFieldNode fsfn=(FlatSetFieldNode)fn;
 	  fields.add(fsfn.getField());
@@ -128,7 +129,7 @@ public class LoopInvariant {
 	    }
 	  }
 	  if (isLeaf)
-	    tounroll.add(l);
+	    tounroll.add(entrance);
 	  break;
 
 	case FKind.FlatFieldNode:
@@ -139,7 +140,7 @@ public class LoopInvariant {
 	    continue nextfn;
 	  }
 	  if (isLeaf)
-	    tounroll.add(l);
+	    tounroll.add(entrance);
 	  break;
 
 	default:
@@ -168,7 +169,7 @@ public class LoopInvariant {
 	domset.add(incoming);
 	FlatNode tmp=incoming;
 	while(tmp!=entrance) {
-	  tmp=posttree.idom(tmp);
+	  tmp=domtree.idom(tmp);
 	  domset.add(tmp);
 	}
 	if (first) {

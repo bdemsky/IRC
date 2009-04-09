@@ -41,6 +41,13 @@ public class FlatNode {
     n.addPrev(this);
   }
   /** This function modifies the graph */
+  public void setNewNext(int i, FlatNode n) {
+    if (next.size()<=i)
+	next.setSize(i+1);
+    next.set(i, n);
+    n.addPrev(this);
+  }
+  /** This function modifies the graph */
   public void setprev(int i, FlatNode n) {
     prev.set(i, n);
   }
@@ -61,7 +68,7 @@ public class FlatNode {
     return new TempDescriptor[0];
   }
   public FlatNode clone(TempMap t) {
-    throw new Error();
+    throw new Error("no clone method for"+this);
   }
 
   public void rewriteUse(TempMap t) {

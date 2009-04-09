@@ -150,8 +150,10 @@ public class RainForest extends Thread {
     /* Barrier Server waits for messages */
     boolean waitforthreaddone = true;
     while(waitforthreaddone) {
-        if(mybarr.done)
-	    waitforthreaddone = false;
+	atomic {
+	    if(mybarr.done)
+		waitforthreaddone = false;
+	}
     }
 
     /* Start threads */

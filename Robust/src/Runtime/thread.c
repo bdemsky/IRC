@@ -105,6 +105,9 @@ void initializethreads() {
   sigaction(SIGSEGV,&sig,0);
   sigaction(SIGFPE,&sig,0);
   signal(SIGPIPE, SIG_IGN);
+#ifdef STM
+  newobjs=calloc(1, sizeof(struct objlist));
+#endif
 }
 
 #if defined(THREADS)||defined(STM)

@@ -30,7 +30,10 @@ public class LoopOptimize {
     }
   }
   public void processLoop(Loops l) {
-    if (loopinv.tounroll.contains(l)) {
+    Set entrances=l.loopEntrances();
+    assert entrances.size()==1;
+    FlatNode entrance=(FlatNode)entrances.iterator().next();
+    if (loopinv.tounroll.contains(entrance)) {
       unrollLoop(l);
     } else {
       hoistOps(l);
@@ -124,6 +127,25 @@ public class LoopOptimize {
       copytable.put(fn, copy);
       copyendtable.put(fn, copyend);
     }
+    /* Splice header in */
+
+    FlatNode[] prevarray=new FlatNode[entrance.numPrev()];
+    FlatNode first=copytable.get(entrance);
+    for(int i=0;i<entrance.numPrev();i++) {
+      prevarray[i]=entrance.getPrev(i);
+    }
+    for(int i=0;i<prevarray.length;i++) {
+      FlatNode prev=prevarray[i];
+
+      if (!lelements.contains(prev)) {
+	//need to fix this edge
+	for(int j=0;j<prev.numNext();j++) {
+	  if (prev.getNext(j)==entrance)
+	    prev.setNext(j, first);
+	}
+      }
+    }
+
     /* Copy the edges */
     for(Iterator it=lelements.iterator();it.hasNext();) {
       FlatNode fn=(FlatNode)it.next();
@@ -132,24 +154,25 @@ public class LoopOptimize {
 	FlatNode nnext=fn.getNext(i);
 	if (nnext==entrance) {
 	  /* Back to loop header...point to old graph */
-	  copyend.addNext(nnext);
+	  copyend.setNewNext(i,nnext);
 	} else if (lelements.contains(nnext)) {
 	  /* In graph...point to first graph */
-	  copyend.addNext(copytable.get(nnext));
+	  copyend.setNewNext(i,copytable.get(nnext));
 	} else {
 	  /* Outside loop */
 	  /* Just goto same place as before */
-	  copyend.addNext(nnext);
+	  copyend.setNewNext(i,nnext);
 	}
       }
     }
+
     /* Splice out loop invariant stuff */
     for(Iterator it=lelements.iterator();it.hasNext();) {
       FlatNode fn=(FlatNode)it.next();
       if (tohoist.contains(fn)) {
 	TempDescriptor[] writes=fn.writesTemps();
 	TempDescriptor tmp=writes[0];
-	FlatOpNode fon=new FlatOpNode(temptable.get(fn),tmp, null, new Operation(Operation.ASSIGN));
+	FlatOpNode fon=new FlatOpNode(tmp, temptable.get(fn), null, new Operation(Operation.ASSIGN));
 	fn.replace(fon);
       }
     }

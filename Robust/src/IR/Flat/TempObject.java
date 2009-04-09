@@ -64,6 +64,8 @@ public class TempObject {
   public boolean isLocalPrim(TempDescriptor t) {
     if (!params.containsTemp(t)) {
       Position p=(Position)temptostore.get(t);
+      if (p==null)
+	  System.out.println(t);
       return !p.inStruct;
     }
     return false;

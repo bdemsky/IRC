@@ -84,7 +84,9 @@ public class LocalityBinding {
 	st+="[conflict] ";
     }
     for(int i=0; i<isglobal.length; i++)
-      if (isglobal[i].equals(LocalityAnalysis.LOCAL))
+      if (isglobal[i]==null)
+	st+="NULL";
+      else if (isglobal[i].equals(LocalityAnalysis.LOCAL))
 	st+="local ";
       else if (isglobal[i].equals(LocalityAnalysis.GLOBAL))
 	st+="global ";

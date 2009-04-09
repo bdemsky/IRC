@@ -309,6 +309,9 @@ public class BuildCode {
 	  outmethod.println("printf(\"nRemoteReadSend= %d\\n\", nRemoteSend);");
 	  outmethod.println("printf(\"bytesSent= %d\\n\", bytesSent);");
 	  outmethod.println("printf(\"bytesRecv= %d\\n\", bytesRecv);");
+      } else if (state.SINGLETM) {
+	  outmethod.println("printf(\"nSoftAbortAbort= %d\\n\", nSoftAbortAbort);");
+	  outmethod.println("printf(\"nSoftAbortCommit= %d\\n\", nSoftAbortCommit);");
       }
       outmethod.println("#endif\n");
     }
@@ -791,6 +794,9 @@ public class BuildCode {
 	outclassdefs.print("extern int bytesSent;\n");
 	outclassdefs.print("extern int bytesRecv;\n");
 	outclassdefs.print("extern void handle();\n");
+    } else if (state.SINGLETM) {
+	outclassdefs.println("extern int nSoftAbortAbort;");
+	outclassdefs.println("extern int nSoftAbortCommit;");
     }
     outclassdefs.print("#endif\n");
     outclassdefs.print("int numprefetchsites = " + pa.prefetchsiteid + ";\n");
