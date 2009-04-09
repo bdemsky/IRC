@@ -44,10 +44,15 @@ public class BuildFlat {
     NodePair np=flattenBlockNode(bn);
     FlatNode fn=np.getBegin();
     fe=new FlatExit();
-    if (np.getEnd().kind()!=FKind.FlatReturnNode) {
+    FlatNode fn2=np.getEnd();
+    if ( fn2 == null || fn2.kind()!=FKind.FlatReturnNode) {
       FlatReturnNode rnflat=new FlatReturnNode(null);
-      np.getEnd().addNext(rnflat);
       rnflat.addNext(fe);
+      if( fn2 == null ) {
+	np.end = rnflat;
+      } else {
+	fn2.addNext(rnflat);
+      }
     }
 
     FlatFlagActionNode ffan=new FlatFlagActionNode(FlatFlagActionNode.PRE);
