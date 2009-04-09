@@ -85,7 +85,7 @@ public class LeeRouter {
     MAX_WEIGHT = 1;
     netNo = 0;
     // note these very useful arrays
-    int dx[][] = new int[2][4];
+    dx = new int[2][4];
     dx[0][0] = -1;
     dx[0][1] = 1;
     dx[0][2] = 0;
@@ -95,7 +95,7 @@ public class LeeRouter {
     dx[1][2] = -1;
     dx[1][3] = 1;
     // to help look NSEW.
-    int dy[][] = new int[2][4];
+    dy = new int[2][4];
     dy[0][0] = 0;
     dy[0][1] = 0;
     dy[0][2] = -1;
