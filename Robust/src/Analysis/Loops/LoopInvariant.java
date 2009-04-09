@@ -147,7 +147,8 @@ public class LoopInvariant {
 	  continue nextfn;
 	}
 	//mark to hoist
-	hoisted.add(fn);
+	if (hoisted.add(fn))
+	    changed=true;
 	table.get(entrance).add(fn);
       }
     }
