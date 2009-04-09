@@ -43,16 +43,17 @@ public class VariableSourceToken {
 
     VariableSourceToken vst = (VariableSourceToken) o;
 
-    return var.equals( vst.var ) &&
-           age.equals( vst.age );
+    return sese.equals( vst.sese ) &&
+            var.equals( vst.var  ) &&
+            age.equals( vst.age  );
   }
 
   public int hashCode() {
-    return (var.hashCode() << 2) ^ age.intValue();
+    return (sese.hashCode() << 3) * (var.hashCode() << 2) ^ age.intValue();
   }
 
 
   public String toString() {
-    return "["+var+", "+age+"]";
+    return "["+sese+", "+var+", "+age+"]";
   }
 }

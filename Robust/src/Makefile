@@ -88,6 +88,9 @@ Analysis/OwnershipAnalysis/ChangeTupleSet.class                         \
 Analysis/OwnershipAnalysis/Canonical.class                              \
 Analysis/OwnershipAnalysis/MethodContext.class                          \
 Analysis/MLP/MLPAnalysis.class 						\
+Analysis/MLP/VariableSourceToken.class 					\
+Analysis/MLP/SVKey.class 						\
+Analysis/MLP/VarSrcTokTable.class					\
 Util/GraphNode.class Util/Namer.class Util/Relation.class		\
 Interface/HTTPHeader.class Interface/HTTPResponse.class			\
 Interface/HTTPServices.class Interface/HashStrings.class		\

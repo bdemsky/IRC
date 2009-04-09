@@ -153,9 +153,14 @@ public class Main {
 	state.INSTRUCTIONFAILURE=true;
       else if (option.equals("-abcclose"))
 	state.ARRAYBOUNDARYCHECK=false;
-      else if (option.equals("-mlp"))
+      else if (option.equals("-mlp")) {
 	state.MLP=true;
-      else if (option.equals("-help")) {
+	state.OWNERSHIP=true;
+      } else if (option.equals("-mlpdebug")) {
+	state.MLP=true;
+	state.MLPDEBUG=true;
+	state.OWNERSHIP=true;
+      } else if (option.equals("-help")) {
 	System.out.println("-classlibrary classlibrarydirectory -- directory where classlibrary is located");
 	System.out.println("-selfloop task -- this task doesn't self loop its parameters forever");
 	System.out.println("-dir outputdirectory -- output code in outputdirectory");
@@ -186,6 +191,7 @@ public class Main {
 	System.out.println("-abcclose close the array boundary check");
 	System.out.println("-scheduling do task scheduling");
 	System.out.println("-mlp build mlp code");
+	System.out.println("-mlp build mlp code, report progress and interim results");
 	System.out.println("-multicore generate multi-core version binary");
 	System.out.println("-numcore set the number of cores (should be used together with -multicore), defaultly set as 1");
 	System.out.println("-raw generate raw version binary (should be used together with -multicore)");
@@ -288,9 +294,6 @@ public class Main {
     }
 
     if (state.MLP) {
-      // gotta run this to have mlp turned on
-      assert state.OWNERSHIP;
-
       CallGraph callGraph = new CallGraph(state);
       OwnershipAnalysis oa = new OwnershipAnalysis(state,
                                                    tu,
