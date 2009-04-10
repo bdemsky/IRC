@@ -70,11 +70,21 @@ public class LinkedList {
 
   public boolean contains( Object o ) {
     LinkedListElement e = head;
-    while( e != null ) {
-      if( e.element == o ) {
-	return true;
+    if (o==null) {
+      while(e!=null) {
+	if (e.element==null) {
+	  return true;
+        }
+        e=e.next;
       }
-      e = e.next;
+      return false;
+    } else {
+      while( e != null ) {
+        if (o.equals(e.element)) {
+          return true;
+        }
+        e = e.next;
+      }
     }
     return false;
   }

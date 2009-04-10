@@ -14,6 +14,7 @@
 #ifdef STM
 #include "tm.h"
 #endif
+#include <string.h>
 
 extern int classsize[];
 extern int typearray[];
@@ -111,6 +112,13 @@ void CALL11(___System______exit____I,int ___status___, int ___status___) {
 #endif
   exit(___status___);
 }
+
+void CALL12(___Vector______removeElement_____AR_L___Object____I, int ___index___, struct ArrayObject * ___array___, int ___index___) {
+  int length=VAR(___array___)->___length___;
+  char* offset=((char *)(&VAR(___array___)->___length___))+sizeof(unsigned int)+sizeof(void *)*___index___;
+  memmove(offset, offset+sizeof(void *),(length-___index___-1)*sizeof(void *));
+}
+
 
 void CALL11(___System______printI____I,int ___status___, int ___status___) {
   printf("%d\n",___status___);

@@ -56,9 +56,7 @@ public class Vector {
   }
 
   public void setElementAt(Object obj, int index) {
-    if (index>=size)
-      ensureCapacity(index+1);
-    if (index>=0 && index <size)
+    if (index <size)
       array[index]=obj;
     else {
       System.printString("Illegal Vector.setElementAt\n");
@@ -119,11 +117,12 @@ public class Vector {
       System.printString("Illegal Vector.removeElementAt\n");
       System.exit(-1);
     }
-    for(int i=index; i<(size-1); i++) {
-      array[i]=array[i+1];
-    }
+    removeElement(array, index);
     size--;
+    array[size]=null;
   }
+
+  public static native void removeElement(Object[] array, int index);
 
   public void removeAllElements() {
     int s = size;
