@@ -248,10 +248,20 @@ int traverseCache() {
   /* Create info to keep track of objects that can be locked */
   int numoidrdlocked=0;
   int numoidwrlocked=0;
-  void * oidrdlocked[c_numelements];
-  void * oidwrlocked[c_numelements];
+  void * rdlocked[200];
+  void * wrlocked[200];
   int softabort=0;
   int i;
+  void ** oidrdlocked;
+  void ** oidwrlocked;
+  if (c_numelements<200) {
+    oidrdlocked=rdlocked;
+    oidwrlocked=wrlocked;
+  } else {
+    int size=c_numelements*sizeof(void*);
+    oidrdlocked=malloc(size);
+    oidwrlocked=malloc(size);
+  }
   chashlistnode_t *ptr = c_table;
   /* Represents number of bins in the chash table */
   unsigned int size = c_size;
@@ -342,6 +352,10 @@ int transAbortProcess(void **oidrdlocked, int *numoidrdlocked, void **oidwrlocke
     header = (objheader_t *)(((char *)(oidwrlocked[i])) - sizeof(objheader_t));
     write_unlock(&header->lock);
   }
+  if (c_numelements>=200) {
+    free(oidrdlocked);
+    free(oidwrlocked);
+  }
 }
 
 /* ==================================
@@ -390,7 +404,10 @@ int transCommitProcess(void ** oidrdlocked, int *numoidrdlocked,
     header = (objheader_t *)(((char *)(oidwrlocked[i])) - sizeof(objheader_t)); 
     write_unlock(&header->lock);
   }
-
+  if (c_numelements>=200) {
+    free(oidrdlocked);
+    free(oidwrlocked);
+  }
   return 0;
 }
 
