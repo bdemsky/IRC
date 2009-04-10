@@ -8,6 +8,14 @@ extern int failurecount;
 #include "dstm.h"
 #endif
 
+#ifndef INTPTR
+#ifdef BIT64
+#define INTPTR long
+#else
+#define INTPTR int
+#endif
+#endif
+
 extern void * curr_heapbase;
 extern void * curr_heaptop;
 

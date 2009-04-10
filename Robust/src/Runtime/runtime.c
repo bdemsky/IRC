@@ -326,7 +326,7 @@ __attribute__((malloc)) struct ___String___ * NewString(const char *str,int leng
   int i;
 #ifdef PRECISE_GC
   struct ArrayObject * chararray=allocate_newarray((struct garbagelist *)ptr, CHARARRAYTYPE, length);
-  int ptrarray[]={1, (int) ptr, (int) chararray};
+  INTPTR ptrarray[]={1, (INTPTR) ptr, (INTPTR) chararray};
   struct ___String___ * strobj=allocate_new((struct garbagelist *) &ptrarray, STRINGTYPE);
   chararray=(struct ArrayObject *) ptrarray[2];
 #else

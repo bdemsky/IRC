@@ -113,7 +113,7 @@ void initializethreads() {
 #if defined(THREADS)||defined(STM)
 void initthread(struct ___Thread___ * ___this___) {
 #ifdef PRECISE_GC
-  int p[]={1, (int) NULL, (int) ___this___};
+  INTPTR p[]={1, (INTPTR) NULL, (INTPTR) ___this___};
 #ifdef THREADS
   ___Thread______staticStart____L___Thread___((struct ___Thread______staticStart____L___Thread____params *)p);
 #else

@@ -160,7 +160,7 @@ struct ArrayObject * CALL01(___InetAddress______getHostByName_____AR_B, struct A
     struct ArrayObject *bytearray;
 #ifdef PRECISE_GC
     {
-      int ptrarray[]={1, (int) ___params___, (int)arraybytearray};
+      INTPTR ptrarray[]={1, (INTPTR) ___params___, (INTPTR)arraybytearray};
       bytearray=allocate_newarray(&ptrarray,BYTEARRAYTYPE,h->h_length);
       arraybytearray=(struct ArrayObject *) ptrarray[2];
     }

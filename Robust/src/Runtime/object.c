@@ -11,7 +11,7 @@
 #endif
 
 int CALL01(___Object______nativehashCode____, struct ___Object___ * ___this___) {
-  return (int) VAR(___this___);
+  return (int)((INTPTR) VAR(___this___));
 }
 
 int CALL01(___Object______getType____, struct ___Object___ * ___this___) {

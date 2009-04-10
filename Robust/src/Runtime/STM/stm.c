@@ -152,7 +152,6 @@ void *objstrAlloc(objstr_t **osptr, unsigned int size) {
  * =============================================================
  */
 __attribute__((pure)) void *transRead(void * oid) {
-  unsigned int machinenumber;
   objheader_t *tmp, *objheader;
   objheader_t *objcopy;
   int size;
@@ -170,7 +169,7 @@ __attribute__((pure)) void *transRead(void * oid) {
   memcpy(objcopy, header, size);
   /* Insert into cache's lookup table */
   STATUS(objcopy)=0;
-  t_chashInsert((unsigned int)oid, &objcopy[1]);
+  t_chashInsert(oid, &objcopy[1]);
   return &objcopy[1];
 }
 
@@ -249,8 +248,8 @@ int traverseCache() {
   /* Create info to keep track of objects that can be locked */
   int numoidrdlocked=0;
   int numoidwrlocked=0;
-  unsigned int oidrdlocked[c_numelements];
-  unsigned int oidwrlocked[c_numelements];
+  void * oidrdlocked[c_numelements];
+  void * oidwrlocked[c_numelements];
   int softabort=0;
   int i;
   chashlistnode_t *ptr = c_table;
@@ -261,7 +260,7 @@ int traverseCache() {
     /* Inner loop to traverse the linked list of the cache lookupTable */
     while(curr != NULL) {
       //if the first bin in hash table is empty
-      if(curr->key == 0)
+      if(curr->key == NULL)
         break;
       objheader_t * headeraddr=&((objheader_t *) curr->val)[-1];
       
@@ -321,20 +320,13 @@ int traverseCache() {
   }
 }
 
-/* ===========================================================================
- * decideResponse
- * - increments counters that keep track of objects read, modified or locked
- * - updates the oids locked and oids newly created 
- * ===========================================================================
- */
-
 
 /* ==================================
  * transAbortProcess
  *
  * =================================
  */
-int transAbortProcess(unsigned int *oidrdlocked, int *numoidrdlocked, unsigned int *oidwrlocked, int *numoidwrlocked) {
+int transAbortProcess(void **oidrdlocked, int *numoidrdlocked, void **oidwrlocked, int *numoidwrlocked) {
   int i;
   objheader_t *header;
   /* Release read locks */
@@ -357,8 +349,8 @@ int transAbortProcess(unsigned int *oidrdlocked, int *numoidrdlocked, unsigned i
  *
  * =================================
  */
-int transCommitProcess(unsigned int *oidrdlocked, int *numoidrdlocked,
-                    unsigned int *oidwrlocked, int *numoidwrlocked) {
+int transCommitProcess(void ** oidrdlocked, int *numoidrdlocked,
+                    void ** oidwrlocked, int *numoidwrlocked) {
   objheader_t *header;
   void *ptrcreate;
   int i;

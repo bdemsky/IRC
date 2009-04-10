@@ -2,7 +2,7 @@
 
 __thread chashlistnode_t *c_table;
 __thread unsigned int c_size;
-__thread unsigned int c_mask;
+__thread unsigned INTPTR c_mask;
 __thread unsigned int c_numelements;
 __thread unsigned int c_threshold;
 __thread double c_loadfactor;
@@ -52,12 +52,12 @@ chashtable_t *chashCreate(unsigned int size, double loadfactor) {
 }
 
 //Finds the right bin in the hash table
-static INLINE unsigned int chashFunction(chashtable_t *table, unsigned int key) {
-  return ( key & (table->mask))>>3; //throw away low order bit
+static INLINE unsigned int chashFunction(chashtable_t *table, void * key) {
+  return (((unsigned INTPTR) key) & (table->mask))>>3; //throw away low order bit
 }
 
 //Store objects and their pointers into hash
-void chashInsert(chashtable_t *table, unsigned int key, void *val) {
+void chashInsert(chashtable_t *table, void * key, void *val) {
   chashlistnode_t *ptr;
 
   if(table->numelements > (table->threshold)) {
@@ -66,7 +66,7 @@ void chashInsert(chashtable_t *table, unsigned int key, void *val) {
     chashResize(table,newsize);
   }
 
-  ptr = &table->table[(key&table->mask)>>3];
+  ptr = &table->table[(((unsigned INTPTR)key)&table->mask)>>3];
   table->numelements++;
 
   if(ptr->key==0) {
@@ -82,9 +82,9 @@ void chashInsert(chashtable_t *table, unsigned int key, void *val) {
 }
 
 // Search for an address for a given oid
-INLINE void * chashSearch(chashtable_t *table, unsigned int key) {
+INLINE void * chashSearch(chashtable_t *table, void * key) {
   //REMOVE HASH FUNCTION CALL TO MAKE SURE IT IS INLINED HERE
-  chashlistnode_t *node = &table->table[(key & table->mask)>>3];
+  chashlistnode_t *node = &table->table[(((unsigned INTPTR)key) & table->mask)>>3];
 
   do {
     if(node->key == key) {
@@ -97,7 +97,7 @@ INLINE void * chashSearch(chashtable_t *table, unsigned int key) {
 }
 
 //Store objects and their pointers into hash
-void t_chashInsert(unsigned int key, void *val) {
+void t_chashInsert(void * key, void *val) {
   chashlistnode_t *ptr;
 
 
@@ -107,7 +107,7 @@ void t_chashInsert(unsigned int key, void *val) {
     t_chashResize(newsize);
   }
 
-  ptr = &c_table[(key&c_mask)>>3];
+  ptr = &c_table[(((unsigned INTPTR)key)&c_mask)>>3];
   c_numelements++;
 
   if(ptr->key==0) {
@@ -123,9 +123,9 @@ void t_chashInsert(unsigned int key, void *val) {
 }
 
 // Search for an address for a given oid
-INLINE void * t_chashSearch(unsigned int key) {
+INLINE void * t_chashSearch(void * key) {
   //REMOVE HASH FUNCTION CALL TO MAKE SURE IT IS INLINED HERE
-  chashlistnode_t *node = &c_table[(key & c_mask)>>3];
+  chashlistnode_t *node = &c_table[(((unsigned INTPTR)key) & c_mask)>>3];
 
   do {
     if(node->key == key) {
@@ -137,12 +137,12 @@ INLINE void * t_chashSearch(unsigned int key) {
   return NULL;
 }
 
-unsigned int chashRemove(chashtable_t *table, unsigned int key) {
+unsigned int chashRemove(chashtable_t *table, void * key) {
   return chashRemove2(table, key)==NULL;
 
 }
 
-void * chashRemove2(chashtable_t *table, unsigned int key) {
+void * chashRemove2(chashtable_t *table, void * key) {
   int index;
   chashlistnode_t *curr, *prev;
   chashlistnode_t *ptr, *node;
@@ -202,14 +202,14 @@ unsigned int chashResize(chashtable_t *table, unsigned int newsize) {
     curr = &ptr[i];
     isfirst = 1;
     do {                      //Inner loop to go through linked lists
-      unsigned int key;
+      void * key;
       chashlistnode_t *tmp,*next;
       
       if ((key=curr->key) == 0) {             //Exit inner loop if there the first element is 0
 	break;                  //key = val =0 for element if not present within the hash table
       }
       next = curr->next;
-      index = (key & mask) >>3;
+      index = (((unsigned INTPTR)key) & mask) >>3;
       tmp=&node[index];
       // Insert into the new table
       if(tmp->key == 0) {
@@ -266,14 +266,14 @@ unsigned int t_chashResize(unsigned int newsize) {
     curr = &ptr[i];
     isfirst = 1;
     do {                      //Inner loop to go through linked lists
-      unsigned int key;
+      void * key;
       chashlistnode_t *tmp,*next;
       
       if ((key=curr->key) == 0) {             //Exit inner loop if there the first element is 0
 	break;                  //key = val =0 for element if not present within the hash table
       }
       next = curr->next;
-      index = (key & mask) >>3;
+      index = (((unsigned INTPTR)key) & mask) >>3;
       tmp=&node[index];
       // Insert into the new table
       if(tmp->key == 0) {

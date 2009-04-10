@@ -4,6 +4,14 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+#ifndef INTPTR
+#ifdef BIT64
+#define INTPTR long
+#else
+#define INTPTR int
+#endif
+#endif
+
 #define CLOADFACTOR 0.25
 #define CHASH_SIZE 1024
 
@@ -11,8 +19,8 @@
 
 
 typedef struct chashlistnode {
-  unsigned int key;
-  void *val;       //this can be cast to another type or used to point to a larger structure
+  void * key;
+  void * val;     //this can be cast to another type or used to point to a larger structure
   struct chashlistnode *next;
 } chashlistnode_t;
 
@@ -27,25 +35,24 @@ typedef struct chashtable {
 
 
 void t_chashCreate(unsigned int size, double loadfactor);
-void t_chashInsert(unsigned int key, void *val);
-void * t_chashSearch(unsigned int key);
+void t_chashInsert(void * key, void *val);
+void * t_chashSearch(void * key);
 unsigned int t_chashResize(unsigned int newsize);
 void t_chashDelete();
 
 /* Prototypes for hash*/
 chashtable_t *chashCreate(unsigned int size, double loadfactor);
-static unsigned int chashFunction(chashtable_t *table, unsigned int key);
-void chashInsert(chashtable_t *table, unsigned int key, void *val);
-void *chashSearch(chashtable_t *table, unsigned int key); //returns val, NULL if not found
-unsigned int chashRemove(chashtable_t *table, unsigned int key); //returns -1 if not found
-void * chashRemove2(chashtable_t *table, unsigned int key); //returns -1 if not found
+void chashInsert(chashtable_t *table, void * key, void *val);
+void *chashSearch(chashtable_t *table, void * key); //returns val, NULL if not found
+unsigned int chashRemove(chashtable_t *table, void * key); //returns -1 if not found
+void * chashRemove2(chashtable_t *table, void * key); //returns -1 if not found
 unsigned int chashResize(chashtable_t *table, unsigned int newsize);
 void chashDelete(chashtable_t *table);
 /* end hash */
 
 extern __thread chashlistnode_t *c_table;
 extern __thread unsigned int c_size;
-extern __thread unsigned int c_mask;
+extern __thread unsigned INTPTR c_mask;
 extern __thread unsigned int c_numelements;
 extern __thread unsigned int c_threshold;
 extern __thread double c_loadfactor;

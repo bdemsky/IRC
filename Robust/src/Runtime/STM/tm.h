@@ -1,6 +1,6 @@
 #ifndef _TM_H_
 #define _TM_H_
-
+#include "runtime.h"
 /* ==================
  * Control Messages
  * ==================
@@ -46,10 +46,10 @@ typedef struct objheader {
 } objheader_t;
 
 #define OID(x) \
-  (*((unsigned int *)&((struct ___Object___ *)((unsigned int) x + sizeof(objheader_t)))->___objlocation___))
+  (*((void **)&((struct ___Object___ *)(((char *) x) + sizeof(objheader_t)))->___objlocation___))
 
 #define COMPOID(x) \
-  ((void*)((((void *) x )!=NULL) ? (*((unsigned int *)&((struct ___Object___ *) x)->___objlocation___)) : 0))
+  ((((void *) x )!=NULL) ? (*((void **)&((struct ___Object___ *) x)->___objlocation___)) : NULL)
 
 #define STATUS(x) \
   *((unsigned int *) &(((struct ___Object___ *)(((char *) x) + sizeof(objheader_t)))->___objstatus___))
@@ -58,7 +58,7 @@ typedef struct objheader {
   ((unsigned int *) &(((struct ___Object___ *)(((char *) x) + sizeof(objheader_t)))->___objstatus___))
 
 #define TYPE(x) \
-  ((struct ___Object___ *)((unsigned int) x + sizeof(objheader_t)))->type
+  ((struct ___Object___ *)((char *) x + sizeof(objheader_t)))->type
 
 #define GETSIZE(size, x) { \
     int type=TYPE(x); \
@@ -83,17 +83,17 @@ typedef struct objheader {
  * ================================
  */
 #define DEFAULT_OBJ_STORE_SIZE 1048510 //1MB
-#define OSUSED(x) (((unsigned int)(x)->top)-((unsigned int) (x+1)))
+#define OSUSED(x) (((unsigned INTPTR)(x)->top)-((unsigned INTPTR) (x+1)))
 #define OSFREE(x) ((x)->size-OSUSED(x))
 #define TRANSREAD(x,y) { \
-  unsigned int inputvalue;\
-if ((inputvalue=(unsigned int)y)==0) x=NULL;\
+  void * inputvalue;\
+if ((inputvalue=y)==NULL) x=NULL;\
 else { \
-chashlistnode_t * cnodetmp=&c_table[(inputvalue&c_mask)>>3];	\
+chashlistnode_t * cnodetmp=&c_table[(((unsigned INTPTR)inputvalue)&c_mask)>>3];	\
 do { \
-  if (cnodetmp->key==inputvalue) {x=(void *)cnodetmp->val;break;} \
+  if (cnodetmp->key==inputvalue) {x=cnodetmp->val;break;} \
 cnodetmp=cnodetmp->next;\
- if (cnodetmp==NULL) {x=transRead((void *)inputvalue); asm volatile("":"=m"(c_table),"=m"(c_mask));break;} \
+ if (cnodetmp==NULL) {x=transRead(inputvalue); asm volatile("":"=m"(c_table),"=m"(c_mask));break;} \
 } while(1);\
 }}
 
@@ -116,12 +116,6 @@ struct objlist {
 };
 
 extern __thread struct objlist * newobjs;
-
-typedef struct newObjCreated {
-  unsigned int numcreated;
-  unsigned int *oidcreated;
-} newObjCreated_t;
-
 
 #ifdef TRANSSTATS
 /***********************************
@@ -148,9 +142,8 @@ void *objstrAlloc(objstr_t **osptr, unsigned int size);
 __attribute__((pure)) void *transRead(void * oid);
 int transCommit();
 int traverseCache();
-int decideResponse(objheader_t *, unsigned int *, int *, unsigned int*, int *);
-int transAbortProcess(unsigned int *, int *, unsigned int *, int *);
-int transCommmitProcess(unsigned int *, int *, unsigned int *, int *);
+int transAbortProcess(void **, int *, void **, int *);
+int transCommmitProcess(void **, int *, void **, int *);
 void randomdelay();
 
 #endif

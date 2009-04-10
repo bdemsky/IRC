@@ -172,12 +172,12 @@ void fixtable(chashlistnode_t ** tc_table, unsigned int tc_size) {
 	//rewrite transaction cache entry
 	void *vptr=curr->val;
 	int type=((int *)vptr)[0];
-	unsigned int *pointer=pointerarray[type];
+	unsigned INTPTR *pointer=pointerarray[type];
 	if (pointer==0) {
 	  //array of primitives - do nothing
 	  struct ArrayObject *ao=(struct ArrayObject *) vptr;
 	  SENQUEUE((void *)ao->___objlocation___, *((void **)&ao->___objlocation___));
-	} else if (((int)pointer)==1) {
+	} else if (((INTPTR)pointer)==1) {
 	  //array of pointers
 	  struct ArrayObject *ao=(struct ArrayObject *) vptr;
 	  int length=ao->___length___;
@@ -188,20 +188,20 @@ void fixtable(chashlistnode_t ** tc_table, unsigned int tc_size) {
 	    SENQUEUE(objptr, ((void **)(((char *)&ao->___length___)+sizeof(int)))[i]);
 	  }
 	} else {
-	  int size=pointer[0];
+	  INTPTR size=pointer[0];
 	  int i;
 	  for(i=1; i<=size; i++) {
 	    unsigned int offset=pointer[i];
-	    void * objptr=*((void **)(((int)vptr)+offset));
-	    SENQUEUE(objptr, *((void **)(((int)vptr)+offset)));
+	    void * objptr=*((void **)(((char *)vptr)+offset));
+	    SENQUEUE(objptr, *((void **)(((char *)vptr)+offset)));
 	  }
 	}
       }
 
       next = curr->next;
-      index = (((unsigned int)key) & mask) >>3;
+      index = (((unsigned INTPTR)key) & mask) >>3;
 
-      curr->key=(unsigned int)key;
+      curr->key=key;
       tmp=&node[index];
       // Insert into the new table
       if(tmp->key == 0) {
@@ -428,7 +428,7 @@ void collect(struct garbagelist * stackptr) {
     void * ptr=dequeue();
     void *cpy=((void **)ptr)[1];
     int type=((int *)cpy)[0];
-    unsigned int * pointer;
+    unsigned INTPTR * pointer;
 #ifdef TASK
     if(type==TAGTYPE) {
       /* Enqueue Tag */
@@ -452,7 +452,7 @@ void collect(struct garbagelist * stackptr) {
       struct ArrayObject *ao_cpy=(struct ArrayObject *) cpy;
       SENQUEUE((void *)ao->___objlocation___, *((void **)&ao_cpy->___objlocation___));
 #endif
-    } else if (((int)pointer)==1) {
+    } else if (((INTPTR)pointer)==1) {
       /* Array of pointers */
       struct ArrayObject *ao=(struct ArrayObject *) ptr;
       struct ArrayObject *ao_cpy=(struct ArrayObject *) cpy;
@@ -470,12 +470,12 @@ void collect(struct garbagelist * stackptr) {
 	ENQUEUE(objptr, ((void **)(((char *)&ao_cpy->___length___)+sizeof(int)))[i]);
       }
     } else {
-      int size=pointer[0];
+      INTPTR size=pointer[0];
       int i;
       for(i=1; i<=size; i++) {
 	unsigned int offset=pointer[i];
-	void * objptr=*((void **)(((int)ptr)+offset));
-	ENQUEUE(objptr, *((void **)(((int)cpy)+offset)));
+	void * objptr=*((void **)(((char *)ptr)+offset));
+	ENQUEUE(objptr, *((void **)(((char *)cpy)+offset)));
       }
     }
   }

@@ -10,6 +10,7 @@ echo -dsmcaching -enable caching in dsm runtime
 echo -mac distributed shared memory mac support
 echo -check generate check code
 echo -dmalloc link in dmalloc
+echo -64bit compile for 64 bit machine
 echo -recover compile task code
 echo -fastcheck fast checkpointing for Bristlecone
 echo -specdir directory
@@ -117,6 +118,9 @@ NOJAVA=true
 elif [[ $1 = '-garbagestats' ]]
 then
 EXTRAOPTIONS="$EXTRAOPTIONS -DGARBAGESTATS"
+elif [[ $1 = '-64bit' ]]
+then
+EXTRAOPTIONS="$EXTRAOPTIONS -DBIT64"
 elif [[ $1 = '-fastcheck' ]]
 then
 EXTRAOPTIONS="$EXTRAOPTIONS -DFASTCHECK"

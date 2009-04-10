@@ -426,6 +426,13 @@ public class BuildCode {
     outstructs.println("#ifndef STRUCTDEFS_H");
     outstructs.println("#define STRUCTDEFS_H");
     outstructs.println("#include \"classdefs.h\"");
+    outstructs.println("#ifndef INTPTR");
+    outstructs.println("#ifdef BIT64");
+    outstructs.println("#define INTPTR long");
+    outstructs.println("#else");
+    outstructs.println("#define INTPTR int");
+    outstructs.println("#endif");
+    outstructs.println("#endif");
 
     /* Output #defines that the runtime uses to determine type
      * numbers for various objects it needs */
@@ -468,6 +475,13 @@ public class BuildCode {
   protected void outputClassDeclarations(PrintWriter outclassdefs) {
     if (state.THREAD||state.DSM||state.SINGLETM)
       outclassdefs.println("#include <pthread.h>");
+    outclassdefs.println("#ifndef INTPTR");
+    outclassdefs.println("#ifdef BIT64");
+    outclassdefs.println("#define INTPTR long");
+    outclassdefs.println("#else");
+    outclassdefs.println("#define INTPTR int");
+    outclassdefs.println("#endif");
+    outclassdefs.println("#endif");
     if(state.OPTIONAL)
       outclassdefs.println("#include \"optionalstruct.h\"");
     outclassdefs.println("struct "+arraytype+";");
@@ -508,7 +522,7 @@ public class BuildCode {
     outclassdefs.println("};\n");
     outclassdefs.println("extern int classsize[];");
     outclassdefs.println("extern int hasflags[];");
-    outclassdefs.println("extern unsigned int * pointerarray[];");
+    outclassdefs.println("extern unsigned INTPTR * pointerarray[];");
     outclassdefs.println("extern int supertypes[];");
   }
 
@@ -1013,7 +1027,7 @@ public class BuildCode {
     Iterator it=state.getClassSymbolTable().getDescriptorsIterator();
     while(it.hasNext()) {
       ClassDescriptor cn=(ClassDescriptor)it.next();
-      output.println("unsigned int "+cn.getSafeSymbol()+"_pointers[]={");
+      output.println("unsigned INTPTR "+cn.getSafeSymbol()+"_pointers[]={");
       Iterator allit=cn.getFieldTable().getAllDescriptorsIterator();
       int count=0;
       while(allit.hasNext()) {
@@ -1033,12 +1047,12 @@ public class BuildCode {
 	  continue;
 	if (type.isPtr()) {
 	  output.println(",");
-	  output.print("((unsigned int)&(((struct "+cn.getSafeSymbol() +" *)0)->"+fd.getSafeSymbol()+"))");
+	  output.print("((unsigned INTPTR)&(((struct "+cn.getSafeSymbol() +" *)0)->"+fd.getSafeSymbol()+"))");
 	}
       }
       output.println("};");
     }
-    output.println("unsigned int * pointerarray[]={");
+    output.println("unsigned INTPTR * pointerarray[]={");
     boolean needcomma=false;
     for(int i=0; i<state.numClasses(); i++) {
       ClassDescriptor cn=cdarray[i];
@@ -1053,7 +1067,7 @@ public class BuildCode {
 	output.println(", ");
       TypeDescriptor tdelement=arraytable[i].dereference();
       if (tdelement.isArray()||tdelement.isClass())
-	output.print("((unsigned int *)1)");
+	output.print("((unsigned INTPTR *)1)");
       else
 	output.print("0");
       needcomma=true;
@@ -1238,7 +1252,7 @@ public class BuildCode {
 	output.println("struct "+cn.getSafeSymbol()+lb.getSignature()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_params {");
       else
 	output.println("struct "+cn.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_params {");
-      output.println("  int size;");
+      output.println("  INTPTR size;");
       output.println("  void * next;");
       for(int i=0; i<objectparams.numPointers(); i++) {
 	TempDescriptor temp=objectparams.getPointer(i);
@@ -1264,7 +1278,7 @@ public class BuildCode {
 	output.println("struct "+cn.getSafeSymbol()+lb.getSignature()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_locals {");
       else
 	output.println("struct "+cn.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_locals {");
-      output.println("  int size;");
+      output.println("  INTPTR size;");
       output.println("  void * next;");
       for(int i=0; i<objecttemps.numPointers(); i++) {
 	TempDescriptor temp=objecttemps.getPointer(i);
@@ -1339,7 +1353,7 @@ public class BuildCode {
       if (GENERATEPRECISEGC) {
 	output.println("struct "+task.getSafeSymbol()+"_params {");
 
-	output.println("  int size;");
+	output.println("  INTPTR size;");
 	output.println("  void * next;");
 	for(int i=0; i<objectparams.numPointers(); i++) {
 	  TempDescriptor temp=objectparams.getPointer(i);
@@ -1355,7 +1369,7 @@ public class BuildCode {
       /* Output temp structure */
       if (GENERATEPRECISEGC) {
 	output.println("struct "+task.getSafeSymbol()+"_locals {");
-	output.println("  int size;");
+	output.println("  INTPTR size;");
 	output.println("  void * next;");
 	for(int i=0; i<objecttemps.numPointers(); i++) {
 	  TempDescriptor temp=objecttemps.getPointer(i);
@@ -1707,7 +1721,7 @@ public class BuildCode {
   public void generateFlatOffsetNode(FlatMethod fm, LocalityBinding lb, FlatOffsetNode fofn, PrintWriter output) {
     output.println("/* FlatOffsetNode */");
     FieldDescriptor fd=fofn.getField();
-    output.println(generateTemp(fm, fofn.getDst(),lb)+ " = (short) (&((struct "+fofn.getClassType().getSafeSymbol() +" *)0)->"+ fd.getSafeSymbol()+");");
+    output.println(generateTemp(fm, fofn.getDst(),lb)+ " = (short)(int) (&((struct "+fofn.getClassType().getSafeSymbol() +" *)0)->"+ fd.getSafeSymbol()+");");
     output.println("/* offset */");
   }
 
@@ -2240,12 +2254,12 @@ public class BuildCode {
       String dst=generateTemp(fm,fsfn.getDst(),lb);
       if (srcptr&&!fsfn.getSrc().getType().isNull()) {
 	output.println("{");
-	output.println("int srcoid=("+src+"!=NULL?((int)"+src+"->"+oidstr+"):0);");
+	output.println("INTPTR srcoid=("+src+"!=NULL?((INTPTR)"+src+"->"+oidstr+"):0);");
       }
       if (wb.needBarrier(fsfn))
 	output.println("*((unsigned int *)&("+dst+"->___objstatus___))|=DIRTY;");
       if (srcptr&!fsfn.getSrc().getType().isNull()) {
-	output.println("*((unsigned int *)&("+dst+"->"+ fsfn.getField().getSafeSymbol()+"))=srcoid;");
+	output.println("*((unsigned INTPTR *)&("+dst+"->"+ fsfn.getField().getSafeSymbol()+"))=srcoid;");
 	output.println("}");
       } else {
 	output.println(dst+"->"+ fsfn.getField().getSafeSymbol()+"="+ src+";");
@@ -2259,7 +2273,7 @@ public class BuildCode {
       String dst=generateTemp(fm,fsfn.getDst(),lb);
       if (srcglobal) {
 	output.println("{");
-	output.println("int srcoid=("+src+"!=NULL?((int)"+src+"->"+oidstr+"):0);");
+	output.println("INTPTR srcoid=("+src+"!=NULL?((INTPTR)"+src+"->"+oidstr+"):0);");
       }
       if (statusdst.equals(LocalityAnalysis.GLOBAL)) {
 	String glbdst=dst;
@@ -2267,7 +2281,7 @@ public class BuildCode {
 	if (wb.needBarrier(fsfn))
 	  output.println("*((unsigned int *)&("+dst+"->___localcopy___))|=DIRTY;");
 	if (srcglobal) {
-	  output.println("*((unsigned int *)&("+glbdst+"->"+ fsfn.getField().getSafeSymbol()+"))=srcoid;");
+	  output.println("*((unsigned INTPTR *)&("+glbdst+"->"+ fsfn.getField().getSafeSymbol()+"))=srcoid;");
 	} else
 	  output.println(glbdst+"->"+ fsfn.getField().getSafeSymbol()+"="+ src+";");
       } else if (statusdst.equals(LocalityAnalysis.LOCAL)) {
@@ -2284,7 +2298,7 @@ public class BuildCode {
 	output.println("revertlist=(struct ___Object___ *)"+dst+";");
 	output.println("}");
 	if (srcglobal)
-	  output.println(dst+"->"+ fsfn.getField().getSafeSymbol()+"=srcoid;");
+	  output.println(dst+"->"+ fsfn.getField().getSafeSymbol()+"=(void *) srcoid;");
 	else
 	  output.println(dst+"->"+ fsfn.getField().getSafeSymbol()+"="+ src+";");
       } else if (statusdst.equals(LocalityAnalysis.EITHER)) {
@@ -2292,7 +2306,7 @@ public class BuildCode {
 	output.println("if ("+dst+") {");
 	output.println("printf(\"BIG ERROR 2\\n\");exit(-1);}");
 	if (srcglobal)
-	  output.println(dst+"->"+ fsfn.getField().getSafeSymbol()+"=srcoid;");
+	  output.println(dst+"->"+ fsfn.getField().getSafeSymbol()+"=(void *) srcoid;");
 	else
 	  output.println(dst+"->"+ fsfn.getField().getSafeSymbol()+"="+ src+";");
       }
@@ -2389,8 +2403,8 @@ public class BuildCode {
       if (fsen.getSrc().getType().isPtr()&&!fsen.getSrc().getType().isNull()) {
 	output.println("{");
 	String src=generateTemp(fm, fsen.getSrc(), lb);
-	output.println("int srcoid=("+src+"!=NULL?((int)"+src+"->"+oidstr+"):0);");
-	output.println("((int*)(((char *) &("+ generateTemp(fm,fsen.getDst(),lb)+"->___length___))+sizeof(int)))["+generateTemp(fm, fsen.getIndex(),lb)+"]=srcoid;");
+	output.println("INTPTR srcoid=("+src+"!=NULL?((INTPTR)"+src+"->"+oidstr+"):0);");
+	output.println("((INTPTR*)(((char *) &("+ generateTemp(fm,fsen.getDst(),lb)+"->___length___))+sizeof(int)))["+generateTemp(fm, fsen.getIndex(),lb)+"]=srcoid;");
 	output.println("}");
       } else {
 	output.println("(("+type +"*)(((char *) &("+ generateTemp(fm,fsen.getDst(),lb)+"->___length___))+sizeof(int)))["+generateTemp(fm, fsen.getIndex(),lb)+"]="+generateTemp(fm,fsen.getSrc(),lb)+";");
@@ -2423,8 +2437,8 @@ public class BuildCode {
       if (srcglobal) {
 	output.println("{");
 	String src=generateTemp(fm, fsen.getSrc(), lb);
-	output.println("int srcoid=("+src+"!=NULL?((int)"+src+"->"+oidstr+"):0);");
-	output.println("((int*)(((char *) &("+ generateTemp(fm,fsen.getDst(),lb)+"->___length___))+sizeof(int)))["+generateTemp(fm, fsen.getIndex(),lb)+"]=srcoid;");
+	output.println("INTPTR srcoid=("+src+"!=NULL?((INTPTR)"+src+"->"+oidstr+"):0);");
+	output.println("((INTPTR*)(((char *) &("+ generateTemp(fm,fsen.getDst(),lb)+"->___length___))+sizeof(int)))["+generateTemp(fm, fsen.getIndex(),lb)+"]=srcoid;");
 	output.println("}");
       } else {
 	output.println("(("+type +"*)(((char *) &("+ generateTemp(fm,fsen.getDst(),lb)+"->___length___))+sizeof(int)))["+generateTemp(fm, fsen.getIndex(),lb)+"]="+generateTemp(fm,fsen.getSrc(),lb)+";");

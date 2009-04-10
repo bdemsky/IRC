@@ -1,4 +1,4 @@
-MAINCLASS=JGFMolDynBenchSizeC
+MAINCLASS=JGFMolDynBenchSizeB
 SRC=${MAINCLASS}.java \
 	JGFInstrumentor.java \
 	JGFTimer.java \
