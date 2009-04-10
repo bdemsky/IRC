@@ -3,8 +3,8 @@ PROGRAM=test
 SOURCE_FILES=$(PROGRAM).java
 
 BUILDSCRIPT=~/research/Robust/src/buildscript
-#BSFLAGS= -mlpdebug -mainclass Test -ownership -ownallocdepth 1 -ownwritedots final -enable-assertions -flatirusermethods -ownaliasfile aliases.txt #-justanalyze -recover 
-BSFLAGS= -mainclass Test -ownership -ownallocdepth 1 -ownwritedots final -enable-assertions -flatirusermethods -ownaliasfile aliases.txt #-justanalyze -recover 
+BSFLAGS= -mlpdebug -mainclass Test -ownership -ownallocdepth 1 -ownwritedots final -enable-assertions -flatirusermethods -ownaliasfile aliases.txt #-justanalyze -recover 
+#BSFLAGS= -mainclass Test -ownership -ownallocdepth 1 -ownwritedots final -enable-assertions -flatirusermethods -ownaliasfile aliases.txt #-justanalyze -recover 
 
 
 all: $(PROGRAM).bin

@@ -16,9 +16,9 @@ public class MLPAnalysis {
   private CallGraph callGraph;
   private OwnershipAnalysis ownAnalysis;
 
-
-  private Stack<FlatSESEEnterNode> seseStack;
   private Set<FlatSESEEnterNode>   seseRoots;
+
+  private Hashtable< FlatNode, Stack<FlatSESEEnterNode> > seseStacks;
 
   private Hashtable< FlatNode, Set<VariableSourceToken> > pointResults;
 
@@ -37,9 +37,8 @@ public class MLPAnalysis {
     this.ownAnalysis = ownAnalysis;
 
     // initialize analysis data structures
-    seseStack = new Stack  <FlatSESEEnterNode>();
-    seseRoots = new HashSet<FlatSESEEnterNode>();
-
+    seseRoots    = new HashSet<FlatSESEEnterNode>();
+    seseStacks   = new Hashtable< FlatNode, Stack<FlatSESEEnterNode> >();
     pointResults = new Hashtable< FlatNode, Set<VariableSourceToken> >();
 
 
@@ -88,14 +87,21 @@ public class MLPAnalysis {
     Set<FlatNode> flatNodesToVisit = new HashSet<FlatNode>();
     flatNodesToVisit.add( fm );
 
-    Set<FlatNode> visited = new HashSet<FlatNode>();
+    Set<FlatNode> visited = new HashSet<FlatNode>();    
+
+    Stack<FlatSESEEnterNode> seseStackFirst = new Stack<FlatSESEEnterNode>();
+    seseStacks.put( fm, seseStackFirst );
 
     while( !flatNodesToVisit.isEmpty() ) {
       Iterator<FlatNode> fnItr = flatNodesToVisit.iterator();
       FlatNode fn = fnItr.next();
 
-      System.out.println( "  considering "+fn );
+      Stack<FlatSESEEnterNode> seseStack = seseStacks.get( fn );
+      assert seseStack != null;      
 
+      //System.out.println( "  considering "+fn );
+
+      /*
       // only analyze sese exit nodes when all the nodes between
       // it and its matching enter have been analyzed
       if( !seseStack.empty() &&
@@ -104,13 +110,14 @@ public class MLPAnalysis {
 	// not ready for this exit node yet, just grab another
 	fn = fnItr.next();
       }
+      */
 
       flatNodesToVisit.remove( fn );
       visited.add( fn );      
 
-      System.out.println( "    visiting "+fn );
+      //System.out.println( "    visiting "+fn );
 
-      analyzeFlatNode( fn, true, null, null );
+      analyzeFlatNodeForward( fn, seseStack );
 
       // initialize for backward computation in next step
       pointResults.put( fn, new HashSet<VariableSourceToken>() );
@@ -120,6 +127,8 @@ public class MLPAnalysis {
 
 	if( !visited.contains( nn ) ) {
 	  flatNodesToVisit.add( nn );
+
+	  seseStacks.put( nn, (Stack<FlatSESEEnterNode>)seseStack.clone() );
 	}
       }
     }      
@@ -148,16 +157,16 @@ public class MLPAnalysis {
 	merge = mergeVSTsets( merge, pointResults.get( nn ) );
       }
 
-      Set<VariableSourceToken> curr = analyzeFlatNode( fn, false, merge, fsen );
+      Set<VariableSourceToken> curr = analyzeFlatNodeBackward( fn, merge, fsen );
 
       // if a new result, schedule backward nodes for analysis
       if( !prev.equals( curr ) ) {
 
-	System.out.println( "  "+fn+":" );
-	System.out.println( "    prev ="+prev  );
-	System.out.println( "    merge="+merge );
-	System.out.println( "    curr ="+curr  );
-	System.out.println( "" );
+	//System.out.println( "  "+fn+":" );
+	//System.out.println( "    prev ="+prev  );
+	//System.out.println( "    merge="+merge );
+	//System.out.println( "    curr ="+curr  );
+	//System.out.println( "" );
 
 	pointResults.put( fn, curr );
 
@@ -181,37 +190,52 @@ public class MLPAnalysis {
   }
 
 
-  private Set<VariableSourceToken> analyzeFlatNode( FlatNode fn, 
-						    boolean buildForest,
-						    Set<VariableSourceToken> vstSet,
-						    FlatSESEEnterNode currentSESE ) {
-
-    // use node type to decide what alterations to make
-    // to the ownership graph
+  private void analyzeFlatNodeForward( FlatNode fn, 							   
+				       Stack<FlatSESEEnterNode> seseStack ) {
     switch( fn.kind() ) {
 
     case FKind.FlatSESEEnterNode: {
       FlatSESEEnterNode fsen = (FlatSESEEnterNode) fn;
 
-      if( buildForest ) {
-	if( seseStack.empty() ) {
-	  seseRoots.add( fsen );
-	} else {
-	  seseStack.peek().addChild( fsen );
-	}
-	seseStack.push( fsen );
-	System.out.println( "  pushed "+fsen );
+      if( seseStack.empty() ) {
+	seseRoots.add( fsen );
+      } else {
+	seseStack.peek().addChild( fsen );
       }
+      seseStack.push( fsen );
+      //System.out.println( "  pushed "+fsen );
     } break;
 
     case FKind.FlatSESEExitNode: {
       FlatSESEExitNode fsexn = (FlatSESEExitNode) fn;
 
-      if( buildForest ) {
-	assert !seseStack.empty();
-	FlatSESEEnterNode fsen = seseStack.pop();
-	System.out.println( "  popped "+fsen );
+      assert !seseStack.empty();
+      FlatSESEEnterNode fsen = seseStack.pop();
+      //System.out.println( "  popped "+fsen );
+    } break;
+
+    case FKind.FlatReturnNode: {
+      FlatReturnNode frn = (FlatReturnNode) fn;
+      if( !seseStack.empty() ) {
+	throw new Error( "Error: return statement enclosed within "+seseStack.peek() );
       }
+    } break;
+      
+    }
+  }
+
+
+  private Set<VariableSourceToken> analyzeFlatNodeBackward( FlatNode fn, 
+							    Set<VariableSourceToken> vstSet,
+							    FlatSESEEnterNode currentSESE ) {
+    switch( fn.kind() ) {
+
+    case FKind.FlatSESEEnterNode: {
+      FlatSESEEnterNode fsen = (FlatSESEEnterNode) fn;
+    } break;
+
+    case FKind.FlatSESEExitNode: {
+      FlatSESEExitNode fsexn = (FlatSESEExitNode) fn;
 	
       //FlatSESEEnterNode fsen  = fsexn.getFlatEnter();
       //assert fsen == seseStack.pop();
@@ -231,21 +255,20 @@ public class MLPAnalysis {
     case FKind.FlatSetFieldNode: 
     case FKind.FlatElementNode:
     case FKind.FlatSetElementNode: {
-      if( !buildForest ) {
-	// handle effects of statement in reverse, writes then reads
-	TempDescriptor [] writeTemps = fn.writesTemps();
-	for( int i = 0; i < writeTemps.length; ++i ) {
-	  vstSet = killTemp( vstSet, writeTemps[i] );
-	}
 
-	TempDescriptor [] readTemps = fn.readsTemps();
-	for( int i = 0; i < readTemps.length; ++i ) {
-	  Set<VariableSourceToken> vstNew = new HashSet<VariableSourceToken>();
-	  vstNew.add( new VariableSourceToken( currentSESE, 
-					       readTemps[i],
-					       new Integer( 0 ) ) );
-	  vstSet = mergeVSTsets( vstSet, vstNew );
-	}
+      // handle effects of statement in reverse, writes then reads
+      TempDescriptor [] writeTemps = fn.writesTemps();
+      for( int i = 0; i < writeTemps.length; ++i ) {
+	vstSet = killTemp( vstSet, writeTemps[i] );
+      }
+
+      TempDescriptor [] readTemps = fn.readsTemps();
+      for( int i = 0; i < readTemps.length; ++i ) {
+	Set<VariableSourceToken> vstNew = new HashSet<VariableSourceToken>();
+	vstNew.add( new VariableSourceToken( currentSESE, 
+					     readTemps[i],
+					     new Integer( 0 ) ) );
+	vstSet = mergeVSTsets( vstSet, vstNew );
       }
     } break;
 
@@ -285,13 +308,6 @@ public class MLPAnalysis {
 
     } break;
     */
-
-    case FKind.FlatReturnNode: {
-      FlatReturnNode frn = (FlatReturnNode) fn;
-      if( buildForest && !seseStack.empty() ) {
-	throw new Error( "Error: return statement enclosed within "+seseStack.peek() );
-      }
-    } break;
 
     } // end switch
 
