@@ -19,8 +19,7 @@ public class MLPAnalysis {
   private Set<FlatSESEEnterNode>   seseRoots;
 
   private Hashtable< FlatNode, Stack<FlatSESEEnterNode> > seseStacks;
-
-  private Hashtable< FlatNode, Set<VariableSourceToken> > pointResults;
+  private Hashtable< FlatNode, VarSrcTokTable           > pointResults;
 
 
   public MLPAnalysis( State state,
@@ -39,7 +38,7 @@ public class MLPAnalysis {
     // initialize analysis data structures
     seseRoots    = new HashSet<FlatSESEEnterNode>();
     seseStacks   = new Hashtable< FlatNode, Stack<FlatSESEEnterNode> >();
-    pointResults = new Hashtable< FlatNode, Set<VariableSourceToken> >();
+    pointResults = new Hashtable< FlatNode, VarSrcTokTable           >();
 
 
     // run analysis on each method that is actually called
@@ -120,7 +119,7 @@ public class MLPAnalysis {
       analyzeFlatNodeForward( fn, seseStack );
 
       // initialize for backward computation in next step
-      pointResults.put( fn, new HashSet<VariableSourceToken>() );
+      pointResults.put( fn, new VarSrcTokTable() );
 
       for( int i = 0; i < fn.numNext(); i++ ) {
 	FlatNode nn = fn.getNext( i );
@@ -148,16 +147,16 @@ public class MLPAnalysis {
       FlatNode fn = (FlatNode) flatNodesToVisit.iterator().next();
       flatNodesToVisit.remove( fn );      
 
-      Set<VariableSourceToken> prev = pointResults.get( fn );
+      VarSrcTokTable prev = pointResults.get( fn );
 
       // merge sets from control flow joins
-      Set<VariableSourceToken> merge = new HashSet<VariableSourceToken>();
+      VarSrcTokTable inUnion = new VarSrcTokTable();
       for( int i = 0; i < fn.numNext(); i++ ) {
-	FlatNode nn = fn.getNext( i );	 
-	merge = mergeVSTsets( merge, pointResults.get( nn ) );
+	FlatNode nn = fn.getNext( i );
+	inUnion.merge( pointResults.get( nn ) );
       }
 
-      Set<VariableSourceToken> curr = analyzeFlatNodeBackward( fn, merge, fsen );
+      VarSrcTokTable curr = analyzeFlatNodeBackward( fn, inUnion, fsen );
 
       // if a new result, schedule backward nodes for analysis
       if( !prev.equals( curr ) ) {
@@ -225,9 +224,9 @@ public class MLPAnalysis {
   }
 
 
-  private Set<VariableSourceToken> analyzeFlatNodeBackward( FlatNode fn, 
-							    Set<VariableSourceToken> vstSet,
-							    FlatSESEEnterNode currentSESE ) {
+  private VarSrcTokTable analyzeFlatNodeBackward( FlatNode fn, 
+						  VarSrcTokTable vstTable,
+						  FlatSESEEnterNode currentSESE ) {
     switch( fn.kind() ) {
 
     case FKind.FlatSESEEnterNode: {
@@ -259,16 +258,14 @@ public class MLPAnalysis {
       // handle effects of statement in reverse, writes then reads
       TempDescriptor [] writeTemps = fn.writesTemps();
       for( int i = 0; i < writeTemps.length; ++i ) {
-	vstSet = killTemp( vstSet, writeTemps[i] );
+	vstTable.remove( writeTemps[i] );
       }
 
       TempDescriptor [] readTemps = fn.readsTemps();
       for( int i = 0; i < readTemps.length; ++i ) {
-	Set<VariableSourceToken> vstNew = new HashSet<VariableSourceToken>();
-	vstNew.add( new VariableSourceToken( currentSESE, 
-					     readTemps[i],
-					     new Integer( 0 ) ) );
-	vstSet = mergeVSTsets( vstSet, vstNew );
+	vstTable.add( new VariableSourceToken( currentSESE, 
+					       readTemps[i],
+					       new Integer( 0 ) ) );
       }
     } break;
 
@@ -312,88 +309,6 @@ public class MLPAnalysis {
     } // end switch
 
 
-    return vstSet;
-  }
-
-
-  private Set<VariableSourceToken> killTemp( Set<VariableSourceToken> s,
-					     TempDescriptor t ) {
-    Set<VariableSourceToken> out = new HashSet<VariableSourceToken>();
-
-    Iterator<VariableSourceToken> vstitr = s.iterator();
-    while( vstitr.hasNext() ) {
-      VariableSourceToken vst = vstitr.next();    
-
-      if( !vst.getVar().equals( t ) ) {
-	out.add( vst );
-      }
-    }
-
-    return out;
-  }
-
-
-  private Set<VariableSourceToken> mergeVSTsets( Set<VariableSourceToken> s1,
-						 Set<VariableSourceToken> s2 ) {
-    
-    Set<VariableSourceToken> out = new HashSet<VariableSourceToken>();
-
-    Iterator<VariableSourceToken> vst1itr = s1.iterator();
-    while( vst1itr.hasNext() ) {
-      VariableSourceToken vst1 = vst1itr.next();
-
-      int changeAge = -1;
-      
-      Iterator<VariableSourceToken> vst2itr = s2.iterator();
-      while( vst2itr.hasNext() ) {
-	VariableSourceToken vst2 = vst2itr.next();
-
-	if( vst1.getSESE().equals( vst2.getSESE() ) &&
-	    vst1.getVar() .equals( vst2.getVar()  )    ) {
-	  changeAge = vst1.getAge();
-	  int a = vst2.getAge();
-	  if( a < changeAge ) {
-	    changeAge = a;
-	  }
-	  break;
-	}
-      }
-
-      if( changeAge < 0 ) {
-	out.add( vst1 );
-      } else {
-	out.add( new VariableSourceToken( vst1.getSESE(),
-					  vst1.getVar(),
-					  new Integer( changeAge ) ) );
-      }
-    }
-
-
-    Iterator<VariableSourceToken> vst2itr = s2.iterator();
-    while( vst2itr.hasNext() ) {
-      VariableSourceToken vst2 = vst2itr.next();           
-
-      boolean matchSESEandVar = false;
-
-      vst1itr = s1.iterator();
-      while( vst1itr.hasNext() ) {
-	VariableSourceToken vst1 = vst1itr.next();
-
-	if( vst1.getSESE().equals( vst2.getSESE() ) &&
-	    vst1.getVar() .equals( vst2.getVar()  )    ) {
-	  matchSESEandVar = true;
-	  break;
-	}
-      }
-
-      if( !matchSESEandVar ) {
-	out.add( vst2 );
-      }
-    }
-    
-
-    return out;
+    return vstTable;
   }
 }
-
-

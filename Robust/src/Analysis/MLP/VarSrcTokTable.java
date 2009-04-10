@@ -92,10 +92,10 @@ public class VarSrcTokTable {
   public void merge( VarSrcTokTable table ) {
     trueSet.addAll( table.trueSet );
 
-    Iterator i; 
+    Iterator itr; 
     Set s;
 
-    itr = sese2vst.getEntrySet().iterator();
+    itr = sese2vst.entrySet().iterator();
     while( itr.hasNext() ) {
       Map.Entry                me   = (Map.Entry)                itr.next();
       FlatSESEEnterNode        sese = (FlatSESEEnterNode)        me.getKey();
@@ -108,11 +108,11 @@ public class VarSrcTokTable {
 	s1.addAll( s2 );
       }           
     }
-    s = table.sese2vst.getEntrySet();
-    s.retainAll( sese2vst.getEntrySet() );
+    s = table.sese2vst.entrySet();
+    s.retainAll( sese2vst.entrySet() );
     sese2vst.putAll( table.sese2vst );
 
-    itr = var2vst.getEntrySet().iterator();
+    itr = var2vst.entrySet().iterator();
     while( itr.hasNext() ) {
       Map.Entry                me  = (Map.Entry)                itr.next();
       TempDescriptor           var = (TempDescriptor)           me.getKey();
@@ -125,11 +125,11 @@ public class VarSrcTokTable {
 	s1.addAll( s2 );
       }           
     }
-    s = table.var2vst.getEntrySet();
-    s.retainAll( var2vst.getEntrySet() );
+    s = table.var2vst.entrySet();
+    s.retainAll( var2vst.entrySet() );
     var2vst.putAll( table.var2vst );
 
-    itr = sv2vst.getEntrySet().iterator();
+    itr = sv2vst.entrySet().iterator();
     while( itr.hasNext() ) {
       Map.Entry                me  = (Map.Entry)                itr.next();
       SVKey                    key = (SVKey)                    me.getKey();
@@ -142,8 +142,8 @@ public class VarSrcTokTable {
 	s1.addAll( s2 );
       }           
     }
-    s = table.sv2vst.getEntrySet();
-    s.retainAll( sv2vst.getEntrySet() );
+    s = table.sv2vst.entrySet();
+    s.retainAll( sv2vst.entrySet() );
     sv2vst.putAll( table.sv2vst );
   }
 
@@ -178,9 +178,11 @@ public class VarSrcTokTable {
     }
     
     trueSet.removeAll( s );
-    sese2vst.remove( sese );
-    var2vst .remove( var  );
     sv2vst  .remove( key  );
+  }
+
+  public void remove( VariableSourceToken vst ) {
+    trueSet.remove( vst );
   }
 
   public boolean equals( Object o ) {
@@ -198,6 +200,10 @@ public class VarSrcTokTable {
 
   public int hashCode() {
     return trueSet.hashCode();
+  }
+
+  public Iterator<VariableSourceToken> iterator() {
+    return trueSet.iterator();
   }
 
   public String toString() {

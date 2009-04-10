@@ -35,8 +35,8 @@ public class SVKey {
 
     SVKey k = (SVKey) o;
 
-    return var.equals( vst.var  ) &&
-          sese.equals( vst.sese );
+    return var.equals( k.var  ) &&
+          sese.equals( k.sese );
   }
 
   public int hashCode() {
