@@ -114,19 +114,6 @@ public class Vector {
     array[index] = obj;
   }
 
-  public void remove(Object o) {
-    int getIndex;
-    for(int i=0; i<size; i++) {
-      if (o.equals(array[i]))
-        getIndex = i;
-    }
-    for(int i=getIndex; i<(size-1); i++) {
-      array[i]=array[i+1];
-    }
-    size--;
-  }
-
-
   public void removeElementAt(int index) {
     if (index<0||index>=size) {
       System.printString("Illegal Vector.removeElementAt\n");
@@ -143,13 +130,5 @@ public class Vector {
     for(int i = 0; i<s; ++i ) {
       removeElementAt(0);
     }
-  }
-
-  public boolean contains(Object o) {
-    for(int i = 0; i < size; i++) {
-      if(o.equals(array[i]))
-        return true;
-    }
-    return false;
   }
 }
