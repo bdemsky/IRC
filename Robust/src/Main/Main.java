@@ -341,13 +341,13 @@ public class Main {
       if (state.SCHEDULING) {
 	// Use ownership analysis to get alias information
 	CallGraph callGraph = new CallGraph(state);
-	OwnershipAnalysis oa = null;/*new OwnershipAnalysis(state,
+	OwnershipAnalysis oa = new OwnershipAnalysis(state,
 	                                             tu,
 	                                             callGraph,
 	                                             state.OWNERSHIPALLOCDEPTH,
 	                                             state.OWNERSHIPWRITEDOTS,
 	                                             state.OWNERSHIPWRITEALL,
-	                                             state.OWNERSHIPALIASFILE);*/
+	                                             state.OWNERSHIPALIASFILE);
 	
 	// synthesis a layout according to target multicore processor
 	MCImplSynthesis mcImplSynthesis = new MCImplSynthesis(state,
@@ -356,10 +356,15 @@ public class Main {
 	if(isDistributeInfo) {
 	    mcImplSynthesis.distribution();
 	} else {
+	    //double timeStartAnalysis = (double) System.nanoTime();
 	    mcImplSynthesis.setScheduleThreshold(20);
 	    mcImplSynthesis.setProbThreshold(0);
 	    mcImplSynthesis.setGenerateThreshold(30);
 	    Vector<Schedule> scheduling = mcImplSynthesis.synthesis();
+	    
+	    //double timeEndAnalysis = (double) System.nanoTime();
+	    //double dt = (timeEndAnalysis - timeStartAnalysis)/(Math.pow( 10.0, 9.0 ) );
+	    //System.err.println("The analysis took" + dt +  "sec.");
 
 	    // generate multicore codes
 	    if(state.MULTICORE) {
