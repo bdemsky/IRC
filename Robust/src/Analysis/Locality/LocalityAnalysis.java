@@ -844,8 +844,8 @@ public class LocalityAnalysis {
     int atomic=atomictable.get(fen).intValue();
     atomictable.put(fen, new Integer(atomic-1));
   }
-
-  private Hashtable<FlatNode, Set<TempDescriptor>> computeLiveTemps(FlatMethod fm) {
+    
+  Hashtable<FlatNode, Set<TempDescriptor>> computeLiveTemps(FlatMethod fm) {
     Hashtable<FlatNode, Set<TempDescriptor>> nodetotemps=new Hashtable<FlatNode, Set<TempDescriptor>>();
 
     Set<FlatNode> toprocess=fm.getNodeSet();
