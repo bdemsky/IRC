@@ -100,6 +100,7 @@ public class State {
   private int numtasks=0;
   private int arraycount=0;
   public boolean OPTIMIZE=false;
+  public boolean DCOPTS=false;
 
 
   private Hashtable<ClassDescriptor, Hashtable<OptionalTaskDescriptor, OptionalTaskDescriptor>> optionaltaskdescriptors;

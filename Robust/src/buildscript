@@ -11,6 +11,8 @@ echo -mac distributed shared memory mac support
 echo -check generate check code
 echo -dmalloc link in dmalloc
 echo -64bit compile for 64 bit machine
+echo -joptimize java compiler optimizations
+echo -dcopts conflict optimizations for transactional memory
 echo -recover compile task code
 echo -fastcheck fast checkpointing for Bristlecone
 echo -specdir directory
@@ -234,15 +236,15 @@ JAVAOPTS="$JAVAOPTS -instructionfailures"
 elif [[ $1 = '-joptimize' ]]
 then
 JAVAOPTS="$JAVAOPTS -optimize"
-
+elif [[ $1 = '-dcopts' ]]
+then
+JAVAOPTS="$JAVAOPTS -dcopts"
 elif [[ $1 = '-mlp' ]]
 then
 JAVAOPTS="$JAVAOPTS -mlp"
-
 elif [[ $1 = '-mlpdebug' ]]
 then
 JAVAOPTS="$JAVAOPTS -mlpdebug"
-
 elif [[ $1 = '-check' ]]
 then
 CHECKFLAG=true

@@ -83,7 +83,7 @@ public class BuildCode {
       this.backuptable=new Hashtable<LocalityBinding, Hashtable<TempDescriptor, TempDescriptor>>();
       this.wb=new WriteBarrier(locality, st);
     }
-    if (state.SINGLETM) {
+    if (state.SINGLETM&&state.DCOPTS) {
       this.dc=new DiscoverConflicts(locality, st);
       dc.doAnalysis();
     }

@@ -133,6 +133,8 @@ public class Main {
 	state.OPTIONAL=true;
       else if (option.equals("-optimize"))
 	state.OPTIMIZE=true;
+      else if (option.equals("-dcopts"))
+	state.DCOPTS=true;
       else if (option.equals("-raw"))
 	state.RAW=true;
       else if (option.equals("-scheduling"))
