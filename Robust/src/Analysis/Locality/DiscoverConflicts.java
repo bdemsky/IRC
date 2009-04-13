@@ -13,70 +13,81 @@ import IR.MethodDescriptor;
 import IR.FieldDescriptor;
 
 public class DiscoverConflicts {
-    Set<FieldDescriptor> fields;
-    Set<TypeDescriptor> arrays;
-    LocalityAnalysis locality;
-    State state;
-
-    public DiscoverConflicts(LocalityAnalysis locality, State state) {
-	this.locality=locality;
-	this.fields=new HashSet<FieldDescriptor>();
-	this.arrays=new HashSet<TypeDescriptor>();
-	this.state=state;
-	transreadmap=new Hashtable<LocalityBinding, Set<TempFlatPair>>();
-	srcmap=new Hashtable<LocalityBinding, Set<FlatNode>>();
-    }
+  Set<FieldDescriptor> fields;
+  Set<TypeDescriptor> arrays;
+  LocalityAnalysis locality;
+  State state;
+  Hashtable<LocalityBinding, Set<FlatNode>> treadmap;
+  Hashtable<LocalityBinding, Set<TempFlatPair>> transreadmap;
+  Hashtable<LocalityBinding, Set<FlatNode>> srcmap;
     
-    public void doAnalysis() {
-	//Compute fields and arrays for all transactions
-	Set<LocalityBinding> localityset=locality.getLocalityBindings();
-	for(Iterator<LocalityBinding> lb=localityset.iterator();lb.hasNext();) {
-	    computeModified(lb.next());
+  public DiscoverConflicts(LocalityAnalysis locality, State state) {
+    this.locality=locality;
+    this.fields=new HashSet<FieldDescriptor>();
+    this.arrays=new HashSet<TypeDescriptor>();
+    this.state=state;
+    transreadmap=new Hashtable<LocalityBinding, Set<TempFlatPair>>();
+    treadmap=new Hashtable<LocalityBinding, Set<FlatNode>>();
+    srcmap=new Hashtable<LocalityBinding, Set<FlatNode>>();
+  }
+  
+  public void doAnalysis() {
+    //Compute fields and arrays for all transactions
+    Set<LocalityBinding> localityset=locality.getLocalityBindings();
+    for(Iterator<LocalityBinding> lb=localityset.iterator();lb.hasNext();) {
+      computeModified(lb.next());
+    }
+    expandTypes();
+    //Compute set of nodes that need transread
+    for(Iterator<LocalityBinding> lb=localityset.iterator();lb.hasNext();) {
+      LocalityBinding l=lb.next();
+      analyzeLocality(l);
+      setNeedReadTrans(l);
+    }
+  }
+
+  public void setNeedReadTrans(LocalityBinding lb) {
+    HashSet<FlatNode> set=new HashSet<FlatNode>();
+    for(Iterator<TempFlatPair> it=transreadmap.get(lb).iterator();it.hasNext();) {
+      TempFlatPair tfp=it.next();
+      set.add(tfp.f);
+    }
+    treadmap.put(lb, set);
+  }
+
+  public void expandTypes() {
+    //FIX ARRAY...compute super/sub sets of each so we can do simple membership test
+  }
+
+  Hashtable<TempDescriptor, Set<TempFlatPair>> doMerge(FlatNode fn, Hashtable<FlatNode, Hashtable<TempDescriptor, Set<TempFlatPair>>> tmptofnset) {
+    Hashtable<TempDescriptor, Set<TempFlatPair>> table=new Hashtable<TempDescriptor, Set<TempFlatPair>>();
+    for(int i=0;i<fn.numPrev();i++) {
+      FlatNode fprev=fn.getPrev(i);
+      Hashtable<TempDescriptor, Set<TempFlatPair>> tabset=tmptofnset.get(fprev);
+      if (tabset!=null) {
+	for(Iterator<TempDescriptor> tmpit=tabset.keySet().iterator();tmpit.hasNext();) {
+	  TempDescriptor td=tmpit.next();
+	  Set<TempFlatPair> fnset=tabset.get(td);
+	  if (!table.containsKey(td))
+	    table.put(td, new HashSet<TempFlatPair>());
+	  table.get(td).addAll(fnset);
 	}
-	expandTypes();
-	//Compute set of nodes that need transread
-	for(Iterator<LocalityBinding> lb=localityset.iterator();lb.hasNext();) {
-	    analyzeLocality(lb.next());
-	}
-    }
-    public void expandTypes() {
-      //FIX ARRAY...compute super/sub sets of each so we can do simple membership test
-    }
-
-    Hashtable<TempDescriptor, Set<TempFlatPair>> doMerge(FlatNode fn, Hashtable<FlatNode, Hashtable<TempDescriptor, Set<TempFlatPair>>> tmptofnset) {
-	Hashtable<TempDescriptor, Set<TempFlatPair>> table=new Hashtable<TempDescriptor, Set<TempFlatPair>>();
-	for(int i=0;i<fn.numPrev();i++) {
-	    FlatNode fprev=fn.getPrev(i);
-	    Hashtable<TempDescriptor, Set<TempFlatPair>> tabset=tmptofnset.get(fprev);
-	    if (tabset!=null) {
-		for(Iterator<TempDescriptor> tmpit=tabset.keySet().iterator();tmpit.hasNext();) {
-		    TempDescriptor td=tmpit.next();
-		    Set<TempFlatPair> fnset=tabset.get(td);
-		    if (!table.containsKey(td))
-			table.put(td, new HashSet<TempFlatPair>());
-		    table.get(td).addAll(fnset);
-		}
-	    }
-	}
-	return table;
-    }
-
-    Hashtable<LocalityBinding, Set<TempFlatPair>> transreadmap;
-    Hashtable<LocalityBinding, Set<FlatNode>> srcmap;
-
-    public Set<FlatNode> getNeedSrcTrans(LocalityBinding lb) {
-      return srcmap.get(lb);
-    }
-
-    public Set<FlatNode> getNeedReadTrans(LocalityBinding lb) {
-      HashSet<FlatNode> set=new HashSet<FlatNode>();
-      for(Iterator<TempFlatPair> it=transreadmap.get(lb).iterator();it.hasNext();) {
-	TempFlatPair tfp=it.next();
-	set.add(tfp.f);
       }
-      return set;
     }
+    return table;
+  }
+  
+  public Set<FlatNode> getNeedSrcTrans(LocalityBinding lb) {
+    return srcmap.get(lb);
+  }
 
+  public boolean getNeedSrcTrans(LocalityBinding lb, FlatNode fn) {
+    return srcmap.get(lb).contains(fn);
+  }
+
+  public boolean getNeedTrans(LocalityBinding lb, FlatNode fn) {
+    return treadmap.get(lb).contains(fn);
+  }
 
   private void analyzeLocality(LocalityBinding lb) {
     MethodDescriptor md=lb.getMethod();
@@ -96,12 +107,16 @@ public class DiscoverConflicts {
 	case FKind.FlatSetFieldNode: { 
 	  //definitely need to translate these
 	  FlatSetFieldNode fsfn=(FlatSetFieldNode)fn;
+	  if (!fsfn.getField().getType().isPtr())
+	    break;
 	  Set<TempFlatPair> tfpset=tmap.get(fsfn.getSrc());
-	  for(Iterator<TempFlatPair> tfpit=tfpset.iterator();tfpit.hasNext();) {
-	    TempFlatPair tfp=tfpit.next();
-	    if (tfset.contains(tfp)) {
-	      srctrans.add(fsfn);
-	      break;
+	  if (tfpset!=null) {
+	    for(Iterator<TempFlatPair> tfpit=tfpset.iterator();tfpit.hasNext();) {
+	      TempFlatPair tfp=tfpit.next();
+	      if (tfset.contains(tfp)) {
+		srctrans.add(fsfn);
+		break;
+	      }
 	    }
 	  }
 	  break;
@@ -109,12 +124,16 @@ public class DiscoverConflicts {
 	case FKind.FlatSetElementNode: { 
 	  //definitely need to translate these
 	  FlatSetElementNode fsen=(FlatSetElementNode)fn;
+	  if (!fsen.getSrc().getType().isPtr())
+	    break;
 	  Set<TempFlatPair> tfpset=tmap.get(fsen.getSrc());
-	  for(Iterator<TempFlatPair> tfpit=tfpset.iterator();tfpit.hasNext();) {
-	    TempFlatPair tfp=tfpit.next();
-	    if (tfset.contains(tfp)) {
-	      srctrans.add(fsen);
-	      break;
+	  if (tfpset!=null) {
+	    for(Iterator<TempFlatPair> tfpit=tfpset.iterator();tfpit.hasNext();) {
+	      TempFlatPair tfp=tfpit.next();
+	      if (tfset.contains(tfp)) {
+		srctrans.add(fsen);
+		break;
+	      }
 	    }
 	  }
 	  break;
@@ -139,7 +158,8 @@ public class DiscoverConflicts {
 	  if (arrays.contains(fen.getSrc().getType())) {
 	    //this could cause conflict...figure out conflict set
 	    Set<TempFlatPair> tfpset=tmap.get(fen.getSrc());
-	    tfset.addAll(tfpset);
+	    if (tfpset!=null)
+	      tfset.addAll(tfpset);
 	  }
 	  break;
 	}
@@ -148,7 +168,8 @@ public class DiscoverConflicts {
 	  if (fields.contains(ffn.getField())) {
 	    //this could cause conflict...figure out conflict set
 	    Set<TempFlatPair> tfpset=tmap.get(ffn.getSrc());
-	    tfset.addAll(tfpset);
+	    if (tfpset!=null)
+	      tfset.addAll(tfpset);
 	  }
 	  break;
 	}
@@ -156,14 +177,16 @@ public class DiscoverConflicts {
 	  //definitely need to translate these
 	  FlatSetFieldNode fsfn=(FlatSetFieldNode)fn;
 	  Set<TempFlatPair> tfpset=tmap.get(fsfn.getDst());
-	  tfset.addAll(tfpset);
+	  if (tfpset!=null)
+	    tfset.addAll(tfpset);
 	  break;
 	}
 	case FKind.FlatSetElementNode: { 
 	  //definitely need to translate these
 	  FlatSetElementNode fsen=(FlatSetElementNode)fn;
 	  Set<TempFlatPair> tfpset=tmap.get(fsen.getDst());
-	  tfset.addAll(tfpset);
+	  if (tfpset!=null)
+	    tfset.addAll(tfpset);
 	  break;
 	}
 	case FKind.FlatCall: //assume pessimistically that calls do bad things
@@ -172,7 +195,8 @@ public class DiscoverConflicts {
 	  for(int i=0;i<readarray.length;i++) {
 	    TempDescriptor rtmp=readarray[i];
 	    Set<TempFlatPair> tfpset=tmap.get(rtmp);
-	    tfset.addAll(tfpset);
+	    if (tfpset!=null)
+	      tfset.addAll(tfpset);
 	  }
 	  break;
 	}
@@ -233,9 +257,21 @@ public class DiscoverConflicts {
 	    }
 	    break;
 	  }
+	  case FKind.FlatCall:
+	  case FKind.FlatMethod: {
+	    TempDescriptor[] writes=fn.writesTemps();
+	    for(int i=0;i<writes.length;i++) {
+	      TempDescriptor wtmp=writes[i];
+	      HashSet<TempFlatPair> set=new HashSet<TempFlatPair>();
+	      set.add(new TempFlatPair(wtmp, fn));
+	      ttofn.put(wtmp, set);
+	    }
+	    break;
+	  }
 	  case FKind.FlatOpNode: {
 	    FlatOpNode fon=(FlatOpNode)fn;
-	    if (fon.getOp().getOp()==Operation.ASSIGN&&fon.getDest().getType().isPtr()) {
+	    if (fon.getOp().getOp()==Operation.ASSIGN&&fon.getDest().getType().isPtr()&&
+		ttofn.containsKey(fon.getLeft())) {
 	      ttofn.put(fon.getDest(), new HashSet<TempFlatPair>(ttofn.get(fon.getLeft())));
 	      break;
 	    }

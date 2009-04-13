@@ -33,6 +33,16 @@ public class FlatMethod extends FlatNode {
     } else {
       ret += task.toString();
     }
+    ret+="(";
+    boolean first=true;
+    for(int i=0;i<numParameters();i++) {
+      if (first) {
+	first=false;
+      } else
+	ret+=", ";
+      ret+=getParameter(i);
+    }
+    ret+=")";
     return ret;
   }
 

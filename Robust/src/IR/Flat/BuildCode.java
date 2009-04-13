@@ -17,6 +17,7 @@ import Analysis.TaskStateAnalysis.SafetyAnalysis;
 import Analysis.TaskStateAnalysis.TaskIndex;
 import Analysis.Locality.LocalityAnalysis;
 import Analysis.Locality.LocalityBinding;
+import Analysis.Locality.DiscoverConflicts;
 import Analysis.Prefetch.*;
 import Analysis.Loops.WriteBarrier;
 
@@ -52,6 +53,7 @@ public class BuildCode {
   HashSet<FlatSESEEnterNode> setSESEtoGen;
   boolean nonSESEpass=true;
   WriteBarrier wb;
+  DiscoverConflicts dc;
 
 
   public BuildCode(State st, Hashtable temptovar, TypeUtil typeutil, SafetyAnalysis sa, PrefetchAnalysis pa) {
@@ -80,6 +82,10 @@ public class BuildCode {
       this.reverttable=new Hashtable<LocalityBinding, TempDescriptor>();
       this.backuptable=new Hashtable<LocalityBinding, Hashtable<TempDescriptor, TempDescriptor>>();
       this.wb=new WriteBarrier(locality, st);
+    }
+    if (state.SINGLETM) {
+      this.dc=new DiscoverConflicts(locality, st);
+      dc.doAnalysis();
     }
 
     setSESEtoGen = new HashSet<FlatSESEEnterNode>();
@@ -2186,7 +2192,8 @@ public class BuildCode {
       String dst=generateTemp(fm, ffn.getDst(),lb);
 
       output.println(dst+"="+ src +"->"+field+ ";");
-      if (ffn.getField().getType().isPtr()&&locality.getAtomic(lb).get(ffn).intValue()>0) {
+      if (ffn.getField().getType().isPtr()&&locality.getAtomic(lb).get(ffn).intValue()>0&&
+	  dc.getNeedTrans(lb, ffn)) {
 	output.println("TRANSREAD("+dst+", "+dst+");");
       }
     } else if (state.DSM) {
@@ -2254,7 +2261,11 @@ public class BuildCode {
       String dst=generateTemp(fm,fsfn.getDst(),lb);
       if (srcptr&&!fsfn.getSrc().getType().isNull()) {
 	output.println("{");
-	output.println("INTPTR srcoid=("+src+"!=NULL?((INTPTR)"+src+"->"+oidstr+"):0);");
+	if (dc.getNeedSrcTrans(lb, fsfn)) {
+	  output.println("INTPTR srcoid=("+src+"!=NULL?((INTPTR)"+src+"->"+oidstr+"):0);");
+	} else {
+	  output.println("INTPTR srcoid=(INTPTR)"+src+"->"+oidstr+";");
+	}
       }
       if (wb.needBarrier(fsfn))
 	output.println("*((unsigned int *)&("+dst+"->___objstatus___))|=DIRTY;");
@@ -2348,7 +2359,8 @@ public class BuildCode {
       String dst=generateTemp(fm, fen.getDst(),lb);
       output.println(dst +"=(("+ type+"*)(((char *) &("+ generateTemp(fm,fen.getSrc(),lb)+"->___length___))+sizeof(int)))["+generateTemp(fm, fen.getIndex(),lb)+"];");
 
-      if (elementtype.isPtr()&&locality.getAtomic(lb).get(fen).intValue()>0) {
+      if (elementtype.isPtr()&&locality.getAtomic(lb).get(fen).intValue()>0&&
+	  dc.getNeedTrans(lb, fen)) {
 	output.println("TRANSREAD("+dst+", "+dst+");");
       }
     } else if (state.DSM) {
@@ -2403,7 +2415,11 @@ public class BuildCode {
       if (fsen.getSrc().getType().isPtr()&&!fsen.getSrc().getType().isNull()) {
 	output.println("{");
 	String src=generateTemp(fm, fsen.getSrc(), lb);
-	output.println("INTPTR srcoid=("+src+"!=NULL?((INTPTR)"+src+"->"+oidstr+"):0);");
+	if (dc.getNeedSrcTrans(lb, fsen)) {
+	  output.println("INTPTR srcoid=("+src+"!=NULL?((INTPTR)"+src+"->"+oidstr+"):0);");
+	} else {
+	  output.println("INTPTR srcoid=(INTPTR)"+src+"->"+oidstr+";");
+	}
 	output.println("((INTPTR*)(((char *) &("+ generateTemp(fm,fsen.getDst(),lb)+"->___length___))+sizeof(int)))["+generateTemp(fm, fsen.getIndex(),lb)+"]=srcoid;");
 	output.println("}");
       } else {

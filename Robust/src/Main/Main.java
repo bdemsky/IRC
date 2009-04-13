@@ -11,7 +11,6 @@ import java.util.Iterator;
 import java.util.Set;
 import java.util.Vector;
 
-import Analysis.Locality.DiscoverConflicts;
 import IR.Tree.ParseNode;
 import IR.Tree.BuildIR;
 import IR.Tree.SemanticCheck;
@@ -393,7 +392,6 @@ public class Main {
 	  pa=new PrefetchAnalysis(state, callgraph, tu, la);
 	}
 	LocalityAnalysis la=new LocalityAnalysis(state, callgraph, tu);
-	DiscoverConflicts dc=new DiscoverConflicts(la, state);
 	GenerateConversions gc=new GenerateConversions(la, state);
 	BuildCode bc=new BuildCode(state, bf.getMap(), tu, la, pa);
 	bc.buildCode();
