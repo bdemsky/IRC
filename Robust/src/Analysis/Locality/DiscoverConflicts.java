@@ -113,7 +113,7 @@ public class DiscoverConflicts {
 	  if (tfpset!=null) {
 	    for(Iterator<TempFlatPair> tfpit=tfpset.iterator();tfpit.hasNext();) {
 	      TempFlatPair tfp=tfpit.next();
-	      if (tfset.contains(tfp)) {
+	      if (tfset.contains(tfp)||ok(tfp)) {
 		srctrans.add(fsfn);
 		break;
 	      }
@@ -130,7 +130,7 @@ public class DiscoverConflicts {
 	  if (tfpset!=null) {
 	    for(Iterator<TempFlatPair> tfpit=tfpset.iterator();tfpit.hasNext();) {
 	      TempFlatPair tfp=tfpit.next();
-	      if (tfset.contains(tfp)) {
+	      if (tfset.contains(tfp)||ok(tfp)) {
 		srctrans.add(fsen);
 		break;
 	      }
@@ -142,6 +142,11 @@ public class DiscoverConflicts {
 	}
       }
     }
+  }
+
+  public boolean ok(TempFlatPair tfp) {
+    FlatNode fn=tfp.f;
+    return fn.kind()==FKind.FlatCall;
   }
 
   HashSet<TempFlatPair> computeTranslationSet(LocalityBinding lb, FlatMethod fm, Hashtable<FlatNode, Hashtable<TempDescriptor, Set<TempFlatPair>>> fnmap) {
