@@ -58,6 +58,10 @@ public class VarSrcTokTable {
   }
 
 
+  public Set<VariableSourceToken> get() {
+    return trueSet;
+  }
+
   public Set<VariableSourceToken> get( FlatSESEEnterNode sese ) {
     Set<VariableSourceToken> s = sese2vst.get( sese );
     if( s == null ) {
@@ -90,6 +94,11 @@ public class VarSrcTokTable {
 
 
   public void merge( VarSrcTokTable table ) {
+
+    if( table == null ) {
+      return;
+    }
+
     trueSet.addAll( table.trueSet );
 
     Iterator itr; 
@@ -109,7 +118,7 @@ public class VarSrcTokTable {
       }           
     }
     s = table.sese2vst.entrySet();
-    s.retainAll( sese2vst.entrySet() );
+    s.removeAll( sese2vst.entrySet() );
     sese2vst.putAll( table.sese2vst );
 
     itr = var2vst.entrySet().iterator();
@@ -126,7 +135,7 @@ public class VarSrcTokTable {
       }           
     }
     s = table.var2vst.entrySet();
-    s.retainAll( var2vst.entrySet() );
+    s.removeAll( var2vst.entrySet() );
     var2vst.putAll( table.var2vst );
 
     itr = sv2vst.entrySet().iterator();
@@ -143,7 +152,7 @@ public class VarSrcTokTable {
       }           
     }
     s = table.sv2vst.entrySet();
-    s.retainAll( sv2vst.entrySet() );
+    s.removeAll( sv2vst.entrySet() );
     sv2vst.putAll( table.sv2vst );
   }
 
@@ -207,6 +216,9 @@ public class VarSrcTokTable {
   }
 
   public String toString() {
-    return trueSet.toString();
+    return "trueSet ="+trueSet.toString()+"\n"+
+           "sese2vst="+sese2vst.toString()+"\n"+
+           "var2vst ="+var2vst.toString()+"\n"+
+           "sv2vst  ="+sv2vst.toString();
   }
 }
