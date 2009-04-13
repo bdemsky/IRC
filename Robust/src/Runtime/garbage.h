@@ -19,6 +19,7 @@ struct listitem {
 #ifdef STM
   unsigned int tc_size;
   chashlistnode_t **tc_table;
+  chashlistnode_t **tc_list;
   struct objlist * objlist;
   char **base;
 #endif
@@ -40,5 +41,5 @@ int gc_createcopy(void * orig, void **);
 void * mygcmalloc(struct garbagelist * ptr, int size);
 #endif
 #ifdef STM
-void fixtable(chashlistnode_t **, unsigned int);
+void fixtable(chashlistnode_t **, chashlistnode_t **, unsigned int);
 #endif

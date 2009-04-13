@@ -145,6 +145,7 @@ void *objstrAlloc(unsigned int size);
 __attribute__((pure)) void *transRead(void * oid);
 int transCommit();
 int traverseCache();
+int alttraverseCache();
 int transAbortProcess(void **, int *, void **, int *);
 int transCommmitProcess(void **, int *, void **, int *);
 void randomdelay();

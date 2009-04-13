@@ -220,7 +220,11 @@ int transCommit() {
 #endif
   do {
     /* Look through all the objects in the transaction hash table */
-    int finalResponse = traverseCache();
+    int finalResponse;
+    if (c_numelements<(c_size>>3))
+      finalResponse= alttraverseCache();
+    else
+      finalResponse= traverseCache();
     if(finalResponse == TRANS_ABORT) {
 #ifdef TRANSSTATS
       numTransAbort++;
@@ -340,6 +344,91 @@ int traverseCache() {
       curr = curr->next;
     }
   } //end of for
+  
+  /* Decide the final response */
+  if (softabort) {
+    transAbortProcess(oidrdlocked, &numoidrdlocked, oidwrlocked, &numoidwrlocked);
+    return TRANS_SOFT_ABORT;
+  } else {
+    transCommitProcess(oidrdlocked, &numoidrdlocked, oidwrlocked, &numoidwrlocked);
+    return TRANS_COMMIT;
+  }
+}
+
+/* ==================================================
+ * traverseCache
+ * - goes through the transaction cache and
+ * - decides if a transaction should commit or abort
+ * ==================================================
+ */
+int alttraverseCache() {
+  /* Create info to keep track of objects that can be locked */
+  int numoidrdlocked=0;
+  int numoidwrlocked=0;
+  void * rdlocked[200];
+  void * wrlocked[200];
+  int softabort=0;
+  int i;
+  void ** oidrdlocked;
+  void ** oidwrlocked;
+  if (c_numelements<200) {
+    oidrdlocked=rdlocked;
+    oidwrlocked=wrlocked;
+  } else {
+    int size=c_numelements*sizeof(void*);
+    oidrdlocked=malloc(size);
+    oidwrlocked=malloc(size);
+  }
+  chashlistnode_t *curr = c_list;
+  /* Inner loop to traverse the linked list of the cache lookupTable */
+  while(curr != NULL) {
+    //if the first bin in hash table is empty
+    objheader_t * headeraddr=&((objheader_t *) curr->val)[-1];
+    
+    unsigned int version = headeraddr->version;
+    objheader_t *header=(objheader_t *) (((char *)curr->key)-sizeof(objheader_t));
+    
+    if(STATUS(headeraddr) & DIRTY) {
+      /* Read from the main heap  and compare versions */
+      if(write_trylock(&header->lock)) { //can aquire write lock
+	if (version == header->version) {/* versions match */
+	  /* Keep track of objects locked */
+	  oidwrlocked[numoidwrlocked++] = OID(header);
+	} else { 
+	  oidwrlocked[numoidwrlocked++] = OID(header);
+	  transAbortProcess(oidrdlocked, &numoidrdlocked, oidwrlocked, &numoidwrlocked);
+	  return TRANS_ABORT;
+	}
+      } else { /* cannot aquire lock */
+	if(version == header->version) /* versions match */
+	  softabort=1;
+	else {
+	  transAbortProcess(oidrdlocked, &numoidrdlocked, oidwrlocked, &numoidwrlocked);
+	  return TRANS_ABORT;
+	}
+      }
+    } else {
+      /* Read from the main heap  and compare versions */
+      if(read_trylock(&header->lock)) { //can further aquire read locks
+	if(version == header->version) {/* versions match */
+	  oidrdlocked[numoidrdlocked++] = OID(header);
+	} else {
+	  oidrdlocked[numoidrdlocked++] = OID(header);
+	  transAbortProcess(oidrdlocked, &numoidrdlocked, oidwrlocked, &numoidwrlocked);
+	  return TRANS_ABORT;
+	}
+      } else { /* cannot aquire lock */
+	if(version == header->version)
+	  softabort=1;
+	else {
+	  transAbortProcess(oidrdlocked, &numoidrdlocked, oidwrlocked, &numoidwrlocked);
+	  return TRANS_ABORT;
+	}
+      }
+    }
+    
+    curr = curr->lnext;
+  }
   
   /* Decide the final response */
   if (softabort) {

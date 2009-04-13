@@ -147,7 +147,7 @@ void fixobjlist(struct objlist * ptr) {
   }
 }
 
-void fixtable(chashlistnode_t ** tc_table, unsigned int tc_size) {
+void fixtable(chashlistnode_t ** tc_table, chashlistnode_t **tc_list, unsigned int tc_size) {
   unsigned int mask=(tc_size<<3)-1;
   chashlistnode_t *node=calloc(tc_size, sizeof(chashlistnode_t));
   chashlistnode_t *ptr=*tc_table;
@@ -155,6 +155,7 @@ void fixtable(chashlistnode_t ** tc_table, unsigned int tc_size) {
   unsigned int i;
   unsigned int index;
   int isfirst;
+  chashlistnode_t *newlist=NULL;
   for(i=0;i<tc_size;i++) {
     curr=&ptr[i];
     isfirst=1;
@@ -207,6 +208,8 @@ void fixtable(chashlistnode_t ** tc_table, unsigned int tc_size) {
       if(tmp->key == 0) {
 	tmp->key = curr->key;
 	tmp->val = curr->val;
+	tmp->lnext=newlist;
+	newlist=tmp;
 	if (!isfirst) {
 	  free(curr);
 	}
@@ -215,8 +218,12 @@ void fixtable(chashlistnode_t ** tc_table, unsigned int tc_size) {
 	newnode->key = curr->key;
 	newnode->val = curr->val;
 	newnode->next = tmp->next;
+	newnode->lnext=newlist;
+	newlist=newnode;
 	tmp->next=newnode;
       } else {
+	curr->lnext=newlist;
+	newlist=curr;
 	curr->next=tmp->next;
 	tmp->next=curr;
       }
@@ -226,6 +233,7 @@ void fixtable(chashlistnode_t ** tc_table, unsigned int tc_size) {
   }
   free(ptr);
   (*tc_table)=node;
+  (*tc_list)=newlist;
 }
 #endif
 
@@ -284,8 +292,8 @@ void collect(struct garbagelist * stackptr) {
 
 #ifdef STM
   if (c_table!=NULL) {
-      fixtable(&c_table, c_size);
-      fixobjlist(newobjs);
+    fixtable(&c_table, &c_list, c_size);
+    fixobjlist(newobjs);
   }
   memorybase=NULL;
 #endif
@@ -314,7 +322,7 @@ void collect(struct garbagelist * stackptr) {
 #endif
 #ifdef STM
     if ((*listptr->tc_table)!=NULL) {
-      fixtable(listptr->tc_table, listptr->tc_size);
+      fixtable(listptr->tc_table, listptr->tc_list, listptr->tc_size);
       fixobjlist(listptr->objlist);
     }
     *(listptr->base)=NULL;
@@ -585,6 +593,7 @@ struct listitem * stopforgc(struct garbagelist * ptr) {
 #ifdef STM
   litem->tc_size=c_size;
   litem->tc_table=&c_table;
+  litem->tc_list=&c_list;
   litem->objlist=newobjs;
   litem->base=&memorybase;
 #endif

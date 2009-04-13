@@ -22,6 +22,7 @@ typedef struct chashlistnode {
   void * key;
   void * val;     //this can be cast to another type or used to point to a larger structure
   struct chashlistnode *next;
+  struct chashlistnode *lnext;
 } chashlistnode_t;
 
 typedef struct chashtable {
@@ -41,17 +42,9 @@ unsigned int t_chashResize(unsigned int newsize);
 void t_chashDelete();
 void t_chashreset();
 
-/* Prototypes for hash*/
-chashtable_t *chashCreate(unsigned int size, double loadfactor);
-void chashInsert(chashtable_t *table, void * key, void *val);
-void *chashSearch(chashtable_t *table, void * key); //returns val, NULL if not found
-unsigned int chashRemove(chashtable_t *table, void * key); //returns -1 if not found
-void * chashRemove2(chashtable_t *table, void * key); //returns -1 if not found
-unsigned int chashResize(chashtable_t *table, unsigned int newsize);
-void chashDelete(chashtable_t *table);
-/* end hash */
 
 extern __thread chashlistnode_t *c_table;
+extern __thread chashlistnode_t *c_list;
 extern __thread unsigned int c_size;
 extern __thread unsigned INTPTR c_mask;
 extern __thread unsigned int c_numelements;
