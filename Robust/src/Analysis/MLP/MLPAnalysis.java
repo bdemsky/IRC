@@ -98,28 +98,13 @@ public class MLPAnalysis {
       Stack<FlatSESEEnterNode> seseStack = seseStacks.get( fn );
       assert seseStack != null;      
 
-      //System.out.println( "  considering "+fn );
-
-      /*
-      // only analyze sese exit nodes when all the nodes between
-      // it and its matching enter have been analyzed
-      if( !seseStack.empty() &&
-	  fn.equals( seseStack.peek().getFlatExit() ) &&
-	  flatNodesToVisit.size() != 1 ) {
-	// not ready for this exit node yet, just grab another
-	fn = fnItr.next();
-      }
-      */
-
       flatNodesToVisit.remove( fn );
       visited.add( fn );      
-
-      //System.out.println( "    visiting "+fn );
 
       analyzeFlatNodeForward( fn, seseStack );
 
       // initialize for backward computation in next step
-      pointResults.put( fn, new VarSrcTokTable() );
+      //pointResults.put( fn, new VarSrcTokTable() );
 
       for( int i = 0; i < fn.numNext(); i++ ) {
 	FlatNode nn = fn.getNext( i );
@@ -127,6 +112,7 @@ public class MLPAnalysis {
 	if( !visited.contains( nn ) ) {
 	  flatNodesToVisit.add( nn );
 
+	  // clone stack and send along each analysis path
 	  seseStacks.put( nn, (Stack<FlatSESEEnterNode>)seseStack.clone() );
 	}
       }
@@ -135,6 +121,14 @@ public class MLPAnalysis {
 
 
   private void computeReadAndWriteSetBackward( FlatSESEEnterNode fsen ) {
+
+    // post-order traversal, so do children first
+    Iterator<FlatSESEEnterNode> childItr = fsen.getChildren().iterator();
+    while( childItr.hasNext() ) {
+      FlatSESEEnterNode fsenChild = childItr.next();
+      computeReadAndWriteSetBackward( fsenChild );
+    }
+    
 
     // start from an SESE exit, visit nodes in reverse up to
     // SESE enter in a fixed-point scheme, where children SESEs
@@ -159,13 +153,7 @@ public class MLPAnalysis {
       VarSrcTokTable curr = analyzeFlatNodeBackward( fn, inUnion, fsen );
 
       // if a new result, schedule backward nodes for analysis
-      if( !prev.equals( curr ) ) {
-
-	//System.out.println( "  "+fn+":" );
-	//System.out.println( "    prev ="+prev  );
-	//System.out.println( "    merge="+merge );
-	//System.out.println( "    curr ="+curr  );
-	//System.out.println( "" );
+      if( !curr.equals( prev ) ) {
 
 	pointResults.put( fn, curr );
 
@@ -178,13 +166,21 @@ public class MLPAnalysis {
 	}
       }
     }
+    
+    fsen.addInVarSet( pointResults.get( fsen ).get() );
 
-    if( state.MLPDEBUG ) {
+    if( state.MLPDEBUG ) { 
       System.out.println( "SESE "+fsen.getPrettyIdentifier()+" has in-set:" );
-      Iterator<VariableSourceToken> tItr = pointResults.get( fsen ).iterator();
+      Iterator<VariableSourceToken> tItr = fsen.getInVarSet().iterator();
       while( tItr.hasNext() ) {
 	System.out.println( "  "+tItr.next() );
       }
+      System.out.println( "and out-set:" );
+      tItr = fsen.getOutVarSet().iterator();
+      while( tItr.hasNext() ) {
+	System.out.println( "  "+tItr.next() );
+      }
+      System.out.println( "" );
     }
   }
 
@@ -202,7 +198,6 @@ public class MLPAnalysis {
 	seseStack.peek().addChild( fsen );
       }
       seseStack.push( fsen );
-      //System.out.println( "  pushed "+fsen );
     } break;
 
     case FKind.FlatSESEExitNode: {
@@ -210,7 +205,6 @@ public class MLPAnalysis {
 
       assert !seseStack.empty();
       FlatSESEEnterNode fsen = seseStack.pop();
-      //System.out.println( "  popped "+fsen );
     } break;
 
     case FKind.FlatReturnNode: {
@@ -230,7 +224,7 @@ public class MLPAnalysis {
     switch( fn.kind() ) {
 
     case FKind.FlatSESEEnterNode: {
-      FlatSESEEnterNode fsen = (FlatSESEEnterNode) fn;
+      FlatSESEEnterNode fsen = (FlatSESEEnterNode) fn;      
     } break;
 
     case FKind.FlatSESEExitNode: {
@@ -248,17 +242,24 @@ public class MLPAnalysis {
     } break;
     */
 
+      /*
     case FKind.FlatOpNode: 
     case FKind.FlatCastNode:
     case FKind.FlatFieldNode:
     case FKind.FlatSetFieldNode: 
     case FKind.FlatElementNode:
-    case FKind.FlatSetElementNode: {
+    case FKind.FlatSetElementNode:
+      */
+
+    default: {
 
       // handle effects of statement in reverse, writes then reads
       TempDescriptor [] writeTemps = fn.writesTemps();
       for( int i = 0; i < writeTemps.length; ++i ) {
 	vstTable.remove( writeTemps[i] );
+	currentSESE.addOutVar( new VariableSourceToken( currentSESE, 
+							writeTemps[i],
+							new Integer( 0 ) ) );
       }
 
       TempDescriptor [] readTemps = fn.readsTemps();

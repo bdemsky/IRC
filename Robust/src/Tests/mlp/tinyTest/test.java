@@ -5,15 +5,15 @@ public class Test {
     int n = 10;
 
     sese top {     
-      int x = n;
-
+      int x = 0;
+      
       for( int i = 0; i < 3; ++i ) {
-	sese loop {
+	sese iter {
 	  x = x + i;
 	}
-      }
-    }
+      }      
 
-    int j = x;    
+      int j = x + n;
+    }
   }
 }
