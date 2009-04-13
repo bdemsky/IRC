@@ -105,7 +105,6 @@ typedef struct objstr {
   unsigned int size;       //this many bytes are allocated after this header
   void *top;
   struct objstr *next;
-  struct objstr *prev;
 } objstr_t;
 
 #define MAXOBJLIST 512
@@ -116,6 +115,9 @@ struct objlist {
 };
 
 extern __thread struct objlist * newobjs;
+extern __thread objstr_t *t_cache;
+extern __thread objstr_t *t_reserve;
+
 
 #ifdef TRANSSTATS
 /***********************************
@@ -133,12 +135,13 @@ extern int nSoftAbortCommit;
  * ================================
  */
 int stmStartup();
+void objstrReset();
 void objstrDelete(objstr_t *store);
 objstr_t *objstrCreate(unsigned int size);
 void transStart();
 objheader_t *transCreateObj(void * ptr, unsigned int size);
 unsigned int getNewOID(void);
-void *objstrAlloc(objstr_t **osptr, unsigned int size);
+void *objstrAlloc(unsigned int size);
 __attribute__((pure)) void *transRead(void * oid);
 int transCommit();
 int traverseCache();

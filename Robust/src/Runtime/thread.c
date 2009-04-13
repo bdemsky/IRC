@@ -15,6 +15,10 @@
 #ifndef RAW
 #include <stdio.h>
 #endif
+#ifdef STM
+#include "tm.h"
+#endif
+
 int threadcount;
 pthread_mutex_t gclock;
 pthread_mutex_t gclistlock;
@@ -118,8 +122,14 @@ void initthread(struct ___Thread___ * ___this___) {
   ___Thread______staticStart____L___Thread___((struct ___Thread______staticStart____L___Thread____params *)p);
 #else
   newobjs=calloc(1, sizeof(struct objlist));
+  t_cache = objstrCreate(1048576);
+  t_reserve=NULL;
+  t_chashCreate(CHASH_SIZE, CLOADFACTOR);
  ___Thread____NN____staticStart____L___Thread___((struct ___Thread____NN____staticStart____L___Thread____params *)p);
-  free(newobjs);
+ objstrDelete(t_cache);
+ objstrDelete(t_reserve);
+ t_chashDelete();
+ free(newobjs);
 #endif
   ___this___=(struct ___Thread___ *) p[2];
 #else

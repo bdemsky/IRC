@@ -14,6 +14,7 @@
 #include "garbage.h"
 /* Thread transaction variables */
 __thread objstr_t *t_cache;
+__thread objstr_t *t_reserve;
 __thread struct objlist * newobjs;
 
 #ifdef TRANSSTATS
@@ -51,6 +52,16 @@ objstr_t *objstrCreate(unsigned int size) {
   return tmp;
 }
 
+void objstrReset() {
+  while(t_cache->next!=NULL) {
+    objstr_t *next=t_cache->next;
+    t_cache->next=t_reserve;
+    t_reserve=t_cache;
+    t_cache=next;
+  }
+  t_cache->top=t_cache+1;
+}
+
 //free entire list, starting at store
 void objstrDelete(objstr_t *store) {
   objstr_t *tmp;
@@ -69,8 +80,7 @@ void objstrDelete(objstr_t *store) {
  * =================================================
  */
 void transStart() {
-  t_cache = objstrCreate(1048576);
-  t_chashCreate(CHASH_SIZE, CLOADFACTOR);
+  //Transaction start is currently free...commit and aborting is not
 }
 
 /* =======================================================
@@ -115,15 +125,15 @@ void randomdelay() {
  * - allocate space in an object store
  * ==============================================
  */
-void *objstrAlloc(objstr_t **osptr, unsigned int size) {
+void *objstrAlloc(unsigned int size) {
   void *tmp;
   int i=0;
-  objstr_t *store=*osptr;
+  objstr_t *store=t_cache;
   if ((size&7)!=0) {
     size+=(8-(size&7));
   }
 
-  for(;i<3;i++) {
+  for(;i<2;i++) {
     if (OSFREE(store)>=size) {
       tmp=store->top;
       store->top +=size;
@@ -135,13 +145,26 @@ void *objstrAlloc(objstr_t **osptr, unsigned int size) {
 
   {
     unsigned int newsize=size>DEFAULT_OBJ_STORE_SIZE?size:DEFAULT_OBJ_STORE_SIZE;
+    objstr_t **otmp=&t_reserve;
+    objstr_t *ptr;
+    while((ptr=*otmp)!=NULL) {
+      if (ptr->size>=newsize) {
+	//remove from list
+	*otmp=ptr->next;
+	ptr->next=t_cache;
+	t_cache=ptr;
+	ptr->top=((char *)(&ptr[1]))+size;
+	return &ptr[1];
+      }
+    }
+    
     objstr_t *os=(objstr_t *)calloc(1,(sizeof(objstr_t) + newsize));
-    void *ptr=&os[1];
-    os->next=*osptr;
-    (*osptr)=os;
+    void *nptr=&os[1];
+    os->next=t_cache;
+    t_cache=os;
     os->size=newsize;
-    os->top=((char *)ptr)+size;
-    return ptr;
+    os->top=((char *)nptr)+size;
+    return nptr;
   }
 }
 
@@ -165,7 +188,7 @@ __attribute__((pure)) void *transRead(void * oid) {
   objheader_t *header = (objheader_t *)(((char *)oid) - sizeof(objheader_t)); 
   GETSIZE(size, header);
   size += sizeof(objheader_t);
-  objcopy = (objheader_t *) objstrAlloc(&t_cache, size);
+  objcopy = (objheader_t *) objstrAlloc(size);
   memcpy(objcopy, header, size);
   /* Insert into cache's lookup table */
   STATUS(objcopy)=0;
@@ -206,9 +229,8 @@ int transCommit() {
       }
 #endif
       freenewobjs();
-      objstrDelete(t_cache);
-      t_cache=NULL;
-      t_chashDelete();
+      objstrReset();
+      t_chashreset();
       return TRANS_ABORT;
     }
     if(finalResponse == TRANS_COMMIT) {
@@ -219,9 +241,8 @@ int transCommit() {
       }
 #endif
       freenewobjs();
-      objstrDelete(t_cache);
-      t_cache=NULL;
-      t_chashDelete();
+      objstrReset();
+      t_chashreset();
       return 0;
     }
     /* wait a random amount of time before retrying to commit transaction*/

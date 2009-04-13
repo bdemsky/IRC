@@ -1,4 +1,5 @@
 #include "stmlookup.h"
+#include "strings.h"
 
 __thread chashlistnode_t *c_table;
 __thread unsigned int c_size;
@@ -21,6 +22,21 @@ void t_chashCreate(unsigned int size, double loadfactor) {
   c_threshold=size*loadfactor;
   c_mask = (size << 3)-1;
   c_numelements = 0; // Initial number of elements in the hash
+}
+
+void t_chashreset() {
+  chashlistnode_t *ptr = c_table;
+  int i;
+  for(i=0 ; i<c_size ; i++) {
+    chashlistnode_t * curr = ptr[i].next;
+    while(curr!=NULL) {
+      chashlistnode_t * next = curr->next;
+      free(curr);
+      curr=next;
+    }
+  }
+  c_numelements = 0;
+  bzero(c_table, sizeof(chashlistnode_t)*c_size);
 }
 
 chashtable_t *chashCreate(unsigned int size, double loadfactor) {

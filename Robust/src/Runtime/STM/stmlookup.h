@@ -39,6 +39,7 @@ void t_chashInsert(void * key, void *val);
 void * t_chashSearch(void * key);
 unsigned int t_chashResize(unsigned int newsize);
 void t_chashDelete();
+void t_chashreset();
 
 /* Prototypes for hash*/
 chashtable_t *chashCreate(unsigned int size, double loadfactor);
