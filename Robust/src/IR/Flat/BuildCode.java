@@ -2264,7 +2264,7 @@ public class BuildCode {
 	if (dc.getNeedSrcTrans(lb, fsfn)) {
 	  output.println("INTPTR srcoid=("+src+"!=NULL?((INTPTR)"+src+"->"+oidstr+"):0);");
 	} else {
-	  output.println("INTPTR srcoid=(INTPTR)"+src+"->"+oidstr+";");
+	  output.println("INTPTR srcoid=(INTPTR)"+src+";");
 	}
       }
       if (wb.needBarrier(fsfn))
@@ -2418,7 +2418,7 @@ public class BuildCode {
 	if (dc.getNeedSrcTrans(lb, fsen)) {
 	  output.println("INTPTR srcoid=("+src+"!=NULL?((INTPTR)"+src+"->"+oidstr+"):0);");
 	} else {
-	  output.println("INTPTR srcoid=(INTPTR)"+src+"->"+oidstr+";");
+	  output.println("INTPTR srcoid=(INTPTR)"+src+";");
 	}
 	output.println("((INTPTR*)(((char *) &("+ generateTemp(fm,fsen.getDst(),lb)+"->___length___))+sizeof(int)))["+generateTemp(fm, fsen.getIndex(),lb)+"]=srcoid;");
 	output.println("}");
