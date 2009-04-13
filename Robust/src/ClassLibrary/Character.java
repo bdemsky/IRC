@@ -28,4 +28,22 @@ public class Character {
   public String toString() {
     return ""+value;
   }
+
+  public static boolean isWhitespace(char character) {
+    boolean returnValue;
+    if ( (character == '\t') ||
+        (character == '\n') || 
+        (character == ' ') || 
+        (character == '\u000C') || 
+        (character == '\u001C') || 
+        (character == '\u001D') || 
+        (character == '\u001E') || 
+        (character == '\u001F')) 
+    {
+      returnValue = true;     
+    } else {
+      returnValue = false;
+    }
+    return returnValue;
+  }
 }
