@@ -2193,7 +2193,7 @@ public class BuildCode {
 
       output.println(dst+"="+ src +"->"+field+ ";");
       if (ffn.getField().getType().isPtr()&&locality.getAtomic(lb).get(ffn).intValue()>0&&
-	  dc.getNeedTrans(lb, ffn)) {
+	  ((dc==null)||dc.getNeedTrans(lb, ffn))) {
 	output.println("TRANSREAD("+dst+", "+dst+");");
       }
     } else if (state.DSM) {
@@ -2261,7 +2261,7 @@ public class BuildCode {
       String dst=generateTemp(fm,fsfn.getDst(),lb);
       if (srcptr&&!fsfn.getSrc().getType().isNull()) {
 	output.println("{");
-	if (dc.getNeedSrcTrans(lb, fsfn)) {
+	if ((dc==null)||dc.getNeedSrcTrans(lb, fsfn)) {
 	  output.println("INTPTR srcoid=("+src+"!=NULL?((INTPTR)"+src+"->"+oidstr+"):0);");
 	} else {
 	  output.println("INTPTR srcoid=(INTPTR)"+src+";");
@@ -2360,7 +2360,7 @@ public class BuildCode {
       output.println(dst +"=(("+ type+"*)(((char *) &("+ generateTemp(fm,fen.getSrc(),lb)+"->___length___))+sizeof(int)))["+generateTemp(fm, fen.getIndex(),lb)+"];");
 
       if (elementtype.isPtr()&&locality.getAtomic(lb).get(fen).intValue()>0&&
-	  dc.getNeedTrans(lb, fen)) {
+	  ((dc==null)||dc.getNeedTrans(lb, fen))) {
 	output.println("TRANSREAD("+dst+", "+dst+");");
       }
     } else if (state.DSM) {
@@ -2415,7 +2415,7 @@ public class BuildCode {
       if (fsen.getSrc().getType().isPtr()&&!fsen.getSrc().getType().isNull()) {
 	output.println("{");
 	String src=generateTemp(fm, fsen.getSrc(), lb);
-	if (dc.getNeedSrcTrans(lb, fsen)) {
+	if ((dc==null)||dc.getNeedSrcTrans(lb, fsen)) {
 	  output.println("INTPTR srcoid=("+src+"!=NULL?((INTPTR)"+src+"->"+oidstr+"):0);");
 	} else {
 	  output.println("INTPTR srcoid=(INTPTR)"+src+";");
