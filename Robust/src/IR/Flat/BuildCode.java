@@ -447,6 +447,8 @@ public class BuildCode {
       LocalityBinding lb=new LocalityBinding(typeutil.getRun(), false);
       if (state.DSM)
 	lb.setGlobalThis(LocalityAnalysis.GLOBAL);
+      else if (state.SINGLETM)
+	lb.setGlobalThis(LocalityAnalysis.NORMAL);
       outstructs.println("#define RUNMETHOD "+virtualcalls.getLocalityNumber(lb));
     }
 

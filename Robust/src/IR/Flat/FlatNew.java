@@ -55,6 +55,10 @@ public class FlatNew extends FlatNode {
     return isglobal;
   }
 
+  public boolean isScratch() {
+    return isglobal;
+  }
+
   public String getDisjointId() {
     return disjointId;
   }

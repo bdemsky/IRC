@@ -30,6 +30,11 @@ public class LocalityAnalysis {
   public static final Integer EITHER=new Integer(2);
   public static final Integer CONFLICT=new Integer(3);
 
+  public static final Integer STMEITHER=new Integer(0);
+  public static final Integer SCRATCH=new Integer(4);
+  public static final Integer NORMAL=new Integer(8);
+  public static final Integer STMCONFLICT=new Integer(12);
+
   public LocalityAnalysis(State state, CallGraph callgraph, TypeUtil typeutil) {
     this.typeutil=typeutil;
     this.state=state;
@@ -55,25 +60,30 @@ public class LocalityAnalysis {
 
   public LocalityBinding getBinding(LocalityBinding currlb, FlatCall fc) {
     boolean isatomic=getAtomic(currlb).get(fc).intValue()>0;
-    Hashtable<TempDescriptor, Integer> currtable=state.DSM?getNodePreTempInfo(currlb,fc):null;
+    Hashtable<TempDescriptor, Integer> currtable=getNodePreTempInfo(currlb,fc);
     MethodDescriptor md=fc.getMethod();
 
     boolean isnative=md.getModifiers().isNative();
 
     LocalityBinding lb=new LocalityBinding(md, isatomic);
 
-    if (state.DSM) {
-      for(int i=0; i<fc.numArgs(); i++) {
-	TempDescriptor arg=fc.getArg(i);
-	lb.setGlobal(i,currtable.get(arg));
-      }
+    for(int i=0; i<fc.numArgs(); i++) {
+      TempDescriptor arg=fc.getArg(i);
+      lb.setGlobal(i,currtable.get(arg));
     }
+
     if (state.DSM&&fc.getThis()!=null) {
       Integer thistype=currtable.get(fc.getThis());
       if (thistype==null)
 	thistype=EITHER;
       lb.setGlobalThis(thistype);
-    }    // else
+    } else if (state.SINGLETM&&fc.getThis()!=null) {
+      Integer thistype=currtable.get(fc.getThis());
+      if (thistype==null)
+	thistype=STMEITHER;
+      lb.setGlobalThis(thistype);
+    }
+    // else
          // lb.setGlobalThis(EITHER);//default value
     if (discovered.containsKey(lb))
       lb=discovered.get(lb);
@@ -128,8 +138,8 @@ public class LocalityAnalysis {
       for(Iterator<TempDescriptor> tempit=prevtable.keySet().iterator(); tempit.hasNext();) {
 	TempDescriptor temp=tempit.next();
 	Integer tmpint=prevtable.get(temp);
-	Integer oldint=currtable.containsKey(temp) ? currtable.get(temp) : EITHER;
-	Integer newint=merge(tmpint, oldint);
+	Integer oldint=currtable.containsKey(temp) ? currtable.get(temp) : (state.DSM?EITHER:STMEITHER);
+	Integer newint=state.DSM?merge(tmpint, oldint):mergestm(tmpint, oldint);
 	currtable.put(temp, newint);
       }
     }
@@ -202,8 +212,23 @@ public class LocalityAnalysis {
     }
   }
 
+  public MethodDescriptor getStart() {
+    ClassDescriptor cd=typeutil.getClass(TypeUtil.ThreadClass);
+    for(Iterator methodit=cd.getMethodTable().getSet("staticStart").iterator(); methodit
+.hasNext();) {
+      MethodDescriptor md=(MethodDescriptor) methodit.next();
+      if (md.numParameters()!=1||!md.getModifiers().isStatic()||!md.getParamType(0).getSymbol().equals(TypeUtil.ThreadClass))
+        continue;
+      return md;
+    }
+    throw new Error("Can't find Thread.run");
+  }
+  
+  
   private void computeLocalityBindingsSTM() {
     lbmain=new LocalityBinding(typeutil.getMain(), false);
+    lbmain.setGlobalReturn(STMEITHER);
+    lbmain.setGlobal(0, NORMAL);
     lbtovisit.add(lbmain);
     discovered.put(lbmain, lbmain);
     if (!classtolb.containsKey(lbmain.getMethod().getClassDesc()))
@@ -215,9 +240,10 @@ public class LocalityAnalysis {
     methodtolb.get(lbmain.getMethod()).add(lbmain);
 
     //Do this to force a virtual table number for the run method
-    lbrun=new LocalityBinding(typeutil.getRun(), false);
+    lbrun=new LocalityBinding(getStart(), false);
+    lbrun.setGlobalReturn(STMEITHER);
+    lbrun.setGlobal(0,NORMAL);
     lbtovisit.add(lbrun);
-
     discovered.put(lbrun, lbrun);
     if (!classtolb.containsKey(lbrun.getMethod().getClassDesc()))
       classtolb.put(lbrun.getMethod().getClassDesc(), new HashSet<LocalityBinding>());
@@ -231,43 +257,80 @@ public class LocalityAnalysis {
       LocalityBinding lb=(LocalityBinding) lbtovisit.pop();
       Integer returnglobal=lb.getGlobalReturn();
       MethodDescriptor md=lb.getMethod();
+      Hashtable<FlatNode,Hashtable<TempDescriptor, Integer>> temptable=new Hashtable<FlatNode,Hashtable<TempDescriptor, Integer>>();
       Hashtable<FlatNode, Integer> atomictable=new Hashtable<FlatNode, Integer>();
       calldep.remove(lb);
       try {
-	computeCallsFlagsSTM(md, lb, atomictable);
+	computeCallsFlagsSTM(md, lb, temptable, atomictable);
       } catch (Error e) {
 	System.out.println("Error in "+md+" context "+lb);
 	e.printStackTrace();
 	System.exit(-1);
       }
+      temptab.put(lb, temptable);
       atomictab.put(lb, atomictable);
+
+      if (md.getReturnType()!=null&&!returnglobal.equals(lb.getGlobalReturn())) {
+	//return type is more precise now
+	//rerun everything that call us
+	lbtovisit.addAll(dependence.get(lb));
+      }
     }
   }
 
-  public void computeCallsFlagsSTM(MethodDescriptor md, LocalityBinding lb, Hashtable<FlatNode, Integer> atomictable) {
+  private static Integer mergestm(Integer a, Integer b) {
+    if (a==null||a.equals(STMEITHER))
+      return b;
+    if (b==null||b.equals(STMEITHER))
+      return a;
+    if (a.equals(b))
+      return a;
+    return STMCONFLICT;
+  }
+
+  public void computeCallsFlagsSTM(MethodDescriptor md, LocalityBinding lb,  Hashtable<FlatNode, Hashtable<TempDescriptor, Integer>> temptable, Hashtable<FlatNode, Integer> atomictable) {
     FlatMethod fm=state.getMethodFlat(md);
     HashSet<FlatNode> tovisit=new HashSet<FlatNode>();
     tovisit.add(fm.getNext(0));
-    atomictable.put(fm, lb.isAtomic() ? 1 : 0);
+    {
+      // Build table for initial node
+      Hashtable<TempDescriptor,Integer> table=new Hashtable<TempDescriptor,Integer>();
+      temptable.put(fm, table);
+      atomictable.put(fm, lb.isAtomic() ? 1 : 0);
+      int offset=md.isStatic() ? 0 : 1;
+      if (!md.isStatic()) {
+	table.put(fm.getParameter(0), lb.getGlobalThis());
+      }
+      for(int i=offset; i<fm.numParameters(); i++) {
+	TempDescriptor temp=fm.getParameter(i);
+	Integer b=lb.isGlobal(i-offset);
+	table.put(temp,b);
+      }
+    }
 
     while(!tovisit.isEmpty()) {
       FlatNode fn=tovisit.iterator().next();
       tovisit.remove(fn);
+      Hashtable<TempDescriptor, Integer> currtable=new Hashtable<TempDescriptor, Integer>();
       int atomicstate=0;
       for(int i=0; i<fn.numPrev(); i++) {
 	FlatNode prevnode=fn.getPrev(i);
 	if (atomictable.containsKey(prevnode)) {
 	  atomicstate=atomictable.get(prevnode).intValue();
 	}
-      }
-      Integer oldatomic=atomictable.get(fn);
-      if (oldatomic==null||!oldatomic.equals(atomicstate)) {
-	//add in the next node
-	for(int i=0;i<fn.numNext();i++) {
-	  tovisit.add(fn.getNext(i));
+	if (!temptable.containsKey(prevnode))
+	  continue;
+	Hashtable<TempDescriptor, Integer> prevtable=temptable.get(prevnode);
+	for(Iterator<TempDescriptor> tempit=prevtable.keySet().iterator(); tempit.hasNext();) {
+	  TempDescriptor temp=tempit.next();
+	  Integer tmpint=prevtable.get(temp);
+	  Integer oldint=currtable.containsKey(temp) ? currtable.get(temp) : STMEITHER;
+	  Integer newint=mergestm(tmpint, oldint);
+	  currtable.put(temp, newint);
 	}
-	atomictable.put(fn, atomicstate);
       }
+      atomictable.put(fn, atomicstate);
+
       // Process this node
       switch(fn.kind()) {
       case FKind.FlatAtomicEnterNode:
@@ -281,20 +344,47 @@ public class LocalityAnalysis {
 	break;
 
       case FKind.FlatCall:
-	processCallNodeSTM(lb, (FlatCall)fn, isAtomic(atomictable, fn));
+	processCallNodeSTM(lb, (FlatCall)fn, isAtomic(atomictable, fn), currtable);
+	break;
+
+      case FKind.FlatNew:
+	processNewSTM(lb, (FlatNew) fn, currtable);
+	break;
+
+      case FKind.FlatFieldNode:
+	processFieldNodeSTM(lb, (FlatFieldNode) fn, currtable);
+	break;
+
+      case FKind.FlatSetFieldNode:
+	processSetFieldNodeSTM(lb, (FlatSetFieldNode) fn, currtable);
+	break;
+
+      case FKind.FlatSetElementNode:
+	processSetElementNodeSTM(lb, (FlatSetElementNode) fn, currtable);
+	break;
+
+      case FKind.FlatElementNode:
+	processElementNodeSTM(lb, (FlatElementNode) fn, currtable);
+	break;
+
+      case FKind.FlatOpNode:
+	processOpNodeSTM((FlatOpNode)fn, currtable);
+	break;
+
+      case FKind.FlatCastNode:
+	processCastNodeSTM((FlatCastNode)fn, currtable);
+	break;
+
+      case FKind.FlatReturnNode:
+	processReturnNodeSTM(lb, (FlatReturnNode)fn, currtable);
+	break;
+
+      case FKind.FlatLiteralNode:
+	processLiteralNodeSTM((FlatLiteralNode)fn, currtable);
 	break;
 
       case FKind.FlatMethod:
       case FKind.FlatOffsetNode:
-      case FKind.FlatFieldNode:
-      case FKind.FlatSetFieldNode:
-      case FKind.FlatNew:
-      case FKind.FlatOpNode:
-      case FKind.FlatCastNode:
-      case FKind.FlatLiteralNode:
-      case FKind.FlatReturnNode:
-      case FKind.FlatSetElementNode:
-      case FKind.FlatElementNode:
       case FKind.FlatInstanceOfNode:
       case FKind.FlatCondBranch:
       case FKind.FlatBackEdge:
@@ -312,10 +402,25 @@ public class LocalityAnalysis {
       default:
 	throw new Error("In finding fn.kind()= " + fn.kind());
       }
+      Hashtable<TempDescriptor,Integer> oldtable=temptable.get(fn);
+      if (oldtable==null||!oldtable.equals(currtable)) {
+	// Update table for this node
+	temptable.put(fn, currtable);
+	for(int i=0; i<fn.numNext(); i++) {
+	  tovisit.add(fn.getNext(i));
+	}
+      }
     }
   }
 
-  void processCallNodeSTM(LocalityBinding currlb, FlatCall fc, boolean isatomic) {
+  void processNewSTM(LocalityBinding lb, FlatNew fn, Hashtable<TempDescriptor, Integer> currtable) {
+    if (fn.isScratch())
+      currtable.put(fn.getDst(), SCRATCH);
+    else
+      currtable.put(fn.getDst(), NORMAL);
+  }
+
+  void processCallNodeSTM(LocalityBinding currlb, FlatCall fc, boolean isatomic, Hashtable<TempDescriptor, Integer> currtable) {
     MethodDescriptor nodemd=fc.getMethod();
     Set methodset=null;
     Set runmethodset=null;
@@ -346,6 +451,7 @@ public class LocalityAnalysis {
       }
     }
 
+    Integer currreturnval=STMEITHER;     //Start off with the either value
     for(Iterator methodit=methodset.iterator(); methodit.hasNext();) {
       MethodDescriptor md=(MethodDescriptor) methodit.next();
 
@@ -359,8 +465,37 @@ public class LocalityAnalysis {
 	System.out.println("Don't call native methods in atomic blocks!"+currlb.getMethod());
       }
 
+      if (runmethodset==null||!runmethodset.contains(md)) {
+	for(int i=0; i<fc.numArgs(); i++) {
+	  TempDescriptor arg=fc.getArg(i);
+	  lb.setGlobal(i,currtable.get(arg));
+	}
+	if (fc.getThis()!=null) {
+	  Integer thistype=currtable.get(fc.getThis());
+	  if (thistype==null)
+	    thistype=STMEITHER;
+	  
+	  if(thistype.equals(STMCONFLICT))
+	    throw new Error("Using type that can be either normal or scratch in context:\n"+currlb.getExplanation());
+	  lb.setGlobalThis(thistype);
+	}
+      } else {
+	Integer thistype=currtable.get(fc.getThis());
+	if (!thistype.equals(NORMAL)) {
+	  throw new Error("Called start on possible scratch object");
+	}
+	lb.setGlobal(0,currtable.get(fc.getThis()));
+      }
       //lb is built
       if (!discovered.containsKey(lb)) {
+	if (isnative) {
+	  if (nodemd.getReturnType()==null||!nodemd.getReturnType().isPtr())
+	    lb.setGlobalReturn(SCRATCH);
+	  else
+	    lb.setGlobalReturn(NORMAL);
+	} else
+	  lb.setGlobalReturn(STMEITHER);
+
 	lb.setParent(currlb);
 	lbtovisit.add(lb);
 	discovered.put(lb, lb);
@@ -372,7 +507,8 @@ public class LocalityAnalysis {
 	methodtolb.get(lb.getMethod()).add(lb);
       } else
 	lb=discovered.get(lb);
-
+      Integer returnval=lb.getGlobalReturn();
+      currreturnval=mergestm(returnval, currreturnval);
       if (!dependence.containsKey(lb))
 	dependence.put(lb, new HashSet<LocalityBinding>());
       dependence.get(lb).add(currlb);
@@ -380,6 +516,129 @@ public class LocalityAnalysis {
       if (!calldep.containsKey(currlb))
 	calldep.put(currlb, new HashSet<LocalityBinding>());
       calldep.get(currlb).add(lb);
+    }
+    if (fc.getReturnTemp()!=null) {
+      currtable.put(fc.getReturnTemp(), currreturnval);
+    }
+  }
+
+  void processFieldNodeSTM(LocalityBinding lb, FlatFieldNode ffn, Hashtable<TempDescriptor, Integer> currtable) {
+    Integer type=currtable.get(ffn.getSrc());
+    TempDescriptor dst=ffn.getDst();
+    if (type.equals(SCRATCH)) {
+      currtable.put(dst,SCRATCH);
+    } else if (type.equals(NORMAL)) {
+      if (ffn.getField().getType().isPrimitive()&&!ffn.getField().getType().isArray())
+	currtable.put(dst, SCRATCH);         // primitives are local
+      else
+	currtable.put(dst, NORMAL);
+    } else if (type.equals(STMEITHER)) {
+      if (ffn.getField().getType().isPrimitive()&&!ffn.getField().getType().isArray())
+	currtable.put(dst, SCRATCH);         // primitives are local
+      else
+	currtable.put(dst, STMEITHER);
+    } else if (type.equals(STMCONFLICT)) {
+      throw new Error("Access to object that could be either normal or scratch in context:\n"+ffn+"  "+lb.getExplanation());
+    }
+  }
+
+  //need to handle primitives
+  void processSetFieldNodeSTM(LocalityBinding lb, FlatSetFieldNode fsfn, Hashtable<TempDescriptor, Integer> currtable) {
+    Integer srctype=currtable.get(fsfn.getSrc());
+    Integer dsttype=currtable.get(fsfn.getDst());
+
+    if (dsttype.equals(SCRATCH)) {
+      if (srctype.equals(SCRATCH) && fsfn.getField().getType().isPrimitive() && !fsfn.getField().getType().isArray())
+	return;
+      if (!(srctype.equals(SCRATCH)||srctype.equals(STMEITHER)))
+	throw new Error("Writing possible normal reference to scratch object in context: \n"+lb.getExplanation());
+    } else if (dsttype.equals(NORMAL)) {
+      //okay to store primitives in global object
+      if (srctype.equals(SCRATCH) && fsfn.getField().getType().isPrimitive() && !fsfn.getField().getType().isArray())
+	return;
+      if (!(srctype.equals(NORMAL)||srctype.equals(STMEITHER)))
+	throw new Error("Writing possible scratch reference to normal object in context:\n"+lb.getExplanation()+" for FlatFieldNode "+fsfn);
+    } else if (dsttype.equals(STMEITHER)) {
+      if (srctype.equals(STMCONFLICT))
+	throw new Error("Using reference that could be scratch or normal in context:\n"+lb.getExplanation());
+    } else if (dsttype.equals(STMCONFLICT)) {
+      throw new Error("Access to object that could be either scratch or normal in context:\n"+lb.getExplanation());
+    }
+  }
+
+  void processSetElementNodeSTM(LocalityBinding lb, FlatSetElementNode fsen, Hashtable<TempDescriptor, Integer> currtable) {
+    Integer srctype=currtable.get(fsen.getSrc());
+    Integer dsttype=currtable.get(fsen.getDst());
+    
+    if (dsttype.equals(SCRATCH)) {
+      if (!(srctype.equals(SCRATCH)||srctype.equals(STMEITHER)))
+	throw new Error("Writing possible normal reference to scratch object in context:\n"+lb.getExplanation()+fsen);
+    } else if (dsttype.equals(NORMAL)) {
+      if (srctype.equals(SCRATCH) && fsen.getDst().getType().dereference().isPrimitive() && !fsen.getDst().getType().dereference().isArray())
+	return;
+      if (!(srctype.equals(NORMAL)||srctype.equals(STMEITHER)))
+	throw new Error("Writing possible scratch reference to normal object in context:\n"+lb.getExplanation());
+    } else if (dsttype.equals(STMEITHER)) {
+      if (srctype.equals(STMCONFLICT))
+	throw new Error("Using reference that could be scratch or normal in context:\n"+lb.getExplanation());
+    } else if (dsttype.equals(STMCONFLICT)) {
+      throw new Error("Access to object that could be either normal or scratch in context:\n"+lb.getExplanation());
+    }
+  }
+
+  void processOpNodeSTM(FlatOpNode fon, Hashtable<TempDescriptor, Integer> currtable) {
+    /* Just propagate value */
+    Integer srcvalue=currtable.get(fon.getLeft());
+    
+    if (srcvalue==null) {
+      if (!fon.getLeft().getType().isPtr()) {
+	srcvalue=SCRATCH;
+      } else
+	throw new Error(fon.getLeft()+" is undefined!");
+    }
+    currtable.put(fon.getDest(), srcvalue);
+  }
+  
+   void processCastNodeSTM(FlatCastNode fcn, Hashtable<TempDescriptor, Integer> currtable) {
+    currtable.put(fcn.getDst(), currtable.get(fcn.getSrc()));
+  }
+
+  void processReturnNodeSTM(LocalityBinding lb, FlatReturnNode frn, Hashtable<TempDescriptor, Integer> currtable) {
+    if(frn.getReturnTemp()!=null) {
+      Integer returntype=currtable.get(frn.getReturnTemp());
+      lb.setGlobalReturn(mergestm(returntype, lb.getGlobalReturn()));
+    }
+  }
+  
+   void processLiteralNodeSTM(FlatLiteralNode fln, Hashtable<TempDescriptor, Integer> currtable) {
+    //null is either
+     if (fln.getType().isNull())
+       currtable.put(fln.getDst(), STMEITHER);
+     else if (fln.getType().isPtr())
+       currtable.put(fln.getDst(), NORMAL);
+     else
+       currtable.put(fln.getDst(), SCRATCH);
+  }
+
+  void processElementNodeSTM(LocalityBinding lb, FlatElementNode fen, Hashtable<TempDescriptor, Integer> currtable) {
+    Integer type=currtable.get(fen.getSrc());
+    TempDescriptor dst=fen.getDst();
+    if (type.equals(SCRATCH)) {
+      currtable.put(dst,SCRATCH);
+    } else if (type.equals(NORMAL)) {
+      if(fen.getSrc().getType().dereference().isPrimitive()&&
+         !fen.getSrc().getType().dereference().isArray())
+	currtable.put(dst, SCRATCH);
+      else
+	currtable.put(dst, NORMAL);
+    } else if (type.equals(STMEITHER)) {
+      if(fen.getSrc().getType().dereference().isPrimitive()&&
+         !fen.getSrc().getType().dereference().isArray())
+	currtable.put(dst, SCRATCH);
+      else
+	currtable.put(dst, STMEITHER);
+    } else if (type.equals(STMCONFLICT)) {
+      throw new Error("Access to object that could be either global or local in context:\n"+lb.getExplanation());
     }
   }
 
@@ -425,8 +684,8 @@ public class LocalityAnalysis {
 	e.printStackTrace();
 	System.exit(-1);
       }
-      atomictab.put(lb, atomictable);
       temptab.put(lb, temptable);
+      atomictab.put(lb, atomictable);
 
       if (md.getReturnType()!=null&&!returnglobal.equals(lb.getGlobalReturn())) {
 	//return type is more precise now
@@ -548,7 +807,7 @@ public class LocalityAnalysis {
 	throw new Error("Incompatible with tasks!");
 
       case FKind.FlatMethod:
-
+	break;
 
       case FKind.FlatOffsetNode:
 	processOffsetNode((FlatOffsetNode)fn, currtable);
@@ -929,8 +1188,8 @@ public class LocalityAnalysis {
 	    if (reads.contains(tmp)&&temptab.get(fn).get(tmp)==GLOBAL) {
 	      nodetosavetemps.get(atomicnode).add(tmp);
 	    } 
-	  } else {
-	    if (reads.contains(tmp)&&tmp.getType().isPtr()) {
+	  } else if (state.SINGLETM) {
+	    if (reads.contains(tmp)&&tmp.getType().isPtr()&&temptab.get(fn).get(tmp)==NORMAL) {
 	      nodetosavetemps.get(atomicnode).add(tmp);
 	    } 
 	  }

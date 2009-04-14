@@ -35,7 +35,15 @@ public class LocalityBinding {
       return "E";
     else if (g==LocalityAnalysis.CONFLICT)
       return "C";
-    else throw new Error();
+    else if (g==LocalityAnalysis.SCRATCH)
+      return "S";
+    else if (g==LocalityAnalysis.NORMAL)
+      return "R";
+    else if (g==(LocalityAnalysis.STMCONFLICT))
+      return "C";
+    else if (g==(LocalityAnalysis.STMEITHER))
+      return "E";
+    else throw new Error("unknown value"+g);
   }
 
   public String getSignature() {
@@ -82,6 +90,8 @@ public class LocalityBinding {
 	st+="[either] ";
       else if (isglobalthis.equals(LocalityAnalysis.CONFLICT))
 	st+="[conflict] ";
+      else 
+	st+="[this="+isglobalthis+"]";
     }
     for(int i=0; i<isglobal.length; i++)
       if (isglobal[i]==null)
@@ -94,6 +104,8 @@ public class LocalityBinding {
 	st+="either ";
       else if (isglobal[i].equals(LocalityAnalysis.CONFLICT))
 	st+="conflict ";
+      else
+	st+="["+isglobalthis+"]";
     return st;
   }
 
