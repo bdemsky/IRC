@@ -89,7 +89,7 @@ typedef struct objheader {
   void * inputvalue;\
 if ((inputvalue=y)==NULL) x=NULL;\
 else { \
-chashlistnode_t * cnodetmp=&c_table[(((unsigned INTPTR)inputvalue)&c_mask)>>3];	\
+chashlistnode_t * cnodetmp=&c_table[(((unsigned INTPTR)inputvalue)&c_mask)>>4];	\
 do { \
   if (cnodetmp->key==inputvalue) {x=cnodetmp->val;break;} \
 cnodetmp=cnodetmp->next;\

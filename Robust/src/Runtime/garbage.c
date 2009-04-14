@@ -148,7 +148,7 @@ void fixobjlist(struct objlist * ptr) {
 }
 
 void fixtable(chashlistnode_t ** tc_table, chashlistnode_t **tc_list, unsigned int tc_size) {
-  unsigned int mask=(tc_size<<3)-1;
+  unsigned int mask=(tc_size<<4)-1;
   chashlistnode_t *node=calloc(tc_size, sizeof(chashlistnode_t));
   chashlistnode_t *ptr=*tc_table;
   chashlistnode_t *curr;
@@ -200,7 +200,7 @@ void fixtable(chashlistnode_t ** tc_table, chashlistnode_t **tc_list, unsigned i
       }
 
       next = curr->next;
-      index = (((unsigned INTPTR)key) & mask) >>3;
+      index = (((unsigned INTPTR)key) & mask) >>4;
 
       curr->key=key;
       tmp=&node[index];
@@ -210,11 +210,19 @@ void fixtable(chashlistnode_t ** tc_table, chashlistnode_t **tc_list, unsigned i
 	tmp->val = curr->val;
 	tmp->lnext=newlist;
 	newlist=tmp;
-	if (!isfirst) {
-	  free(curr);
-	}
       } else if (isfirst) {
-	chashlistnode_t *newnode= calloc(1, sizeof(chashlistnode_t));
+	chashlistnode_t *newnode;
+	if (c_structs->num<NUMCLIST) {
+	  newnode=&c_structs->array[c_structs->num];
+	  c_structs->num++;
+	} else {
+	  //get new list
+	  cliststruct_t *tcl=calloc(1,sizeof(cliststruct_t));
+	  tcl->next=c_structs;
+	  c_structs=tcl;
+	  newnode=&tcl->array[0];
+	  tcl->num=1;
+	}
 	newnode->key = curr->key;
 	newnode->val = curr->val;
 	newnode->next = tmp->next;

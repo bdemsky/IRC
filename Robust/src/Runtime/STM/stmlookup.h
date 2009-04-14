@@ -34,6 +34,13 @@ typedef struct chashtable {
   double loadfactor;
 } chashtable_t;
 
+#define NUMCLIST 250
+typedef struct clist {
+  struct chashlistnode array[NUMCLIST];
+  int num;
+  struct clist *next;
+} cliststruct_t;
+
 
 void t_chashCreate(unsigned int size, double loadfactor);
 void t_chashInsert(void * key, void *val);
@@ -50,5 +57,6 @@ extern __thread unsigned INTPTR c_mask;
 extern __thread unsigned int c_numelements;
 extern __thread unsigned int c_threshold;
 extern __thread double c_loadfactor;
+extern __thread cliststruct_t *c_structs;
 
 #endif
