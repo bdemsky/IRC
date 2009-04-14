@@ -5,7 +5,7 @@ SRC=${MAINCLASS}.java \
 	GridCell.java \
 	LeeThread.java \
 	WorkQueue.java 
-FLAGS=-singleTM -optimize -mainclass ${MAINCLASS} -joptimize -debug -garbagestats -transstats
+FLAGS=-mainclass ${MAINCLASS} -joptimize -debug -singleTM -optimize -dcopts -abcclose -transstats -profile
 default:
 	../../../buildscript ${FLAGS} -o ${MAINCLASS} ${SRC}
 

@@ -256,6 +256,7 @@ non terminal ParseNode tag_change;
 //distributed transaction keywords
 terminal ATOMIC;
 terminal GLOBAL;
+terminal SCRATCH;
 terminal GETOFFSET;
 non terminal ParseNode atomic_statement;
 non terminal ParseNode getoffset_expression;
@@ -987,7 +988,8 @@ constructor_declaration ::=
 		pn.addChild("body").addChild(body);
 		RESULT=pn;
 	:}
-	;
+;
+
 constructor_declarator ::=
 		simple_name:name LPAREN formal_parameter_list_opt:fplo RPAREN {: 
 		ParseNode pn=new ParseNode("constructor_declarator");
@@ -1447,6 +1449,14 @@ class_instance_creation_expression ::=
 		pn.addChild("global");
 		RESULT=pn;
 	:}
+	| SCRATCH NEW class_or_interface_type:type LPAREN argument_list_opt:args RPAREN flag_list_opt:feo {: 
+		ParseNode pn=new ParseNode("createobject");
+		pn.addChild(type);
+		pn.addChild(args);
+		pn.addChild(feo);
+		pn.addChild("scratch");
+		RESULT=pn;
+	:}
 	// Objects we want to track in disjointness analysis
 	| DISJOINT IDENTIFIER:id NEW class_or_interface_type:type LPAREN argument_list_opt:args RPAREN flag_list_opt:feo {: 
 		ParseNode pn=new ParseNode("createobject");
@@ -1545,6 +1555,14 @@ array_creation_uninit ::=
 		pn.addChild("global");
 		RESULT=pn;
 		:}
+	|	SCRATCH NEW primitive_type:type dim_exprs:dimexpr dims_opt:dims {: 
+		ParseNode pn=new ParseNode("createarray");
+		pn.addChild(type);
+		pn.addChild(dimexpr);
+		pn.addChild("dims_opt").setLiteral(dims);
+		pn.addChild("scratch");
+		RESULT=pn;
+		:}
 	|	DISJOINT IDENTIFIER:id NEW primitive_type:type dim_exprs:dimexpr dims_opt:dims {: 
 		ParseNode pn=new ParseNode("createarray");
 		pn.addChild(type);
@@ -1559,6 +1577,14 @@ array_creation_uninit ::=
 		pn.addChild(dimexpr);
 		pn.addChild("dims_opt").setLiteral(dims);
 		pn.addChild("global");
+		RESULT=pn;
+		:}
+	|	SCRATCH NEW class_or_interface_type:type dim_exprs:dimexpr dims_opt:dims {: 
+		ParseNode pn=new ParseNode("createarray");
+		pn.addChild(type);
+		pn.addChild(dimexpr);
+		pn.addChild("dims_opt").setLiteral(dims);
+		pn.addChild("scratch");
 		RESULT=pn;
 		:}
 	|	DISJOINT IDENTIFIER:id NEW class_or_interface_type:type dim_exprs:dimexpr dims_opt:dims {: 

@@ -268,7 +268,7 @@ public class Lexer {
     "isavailable",
     "long",
     "native", "new", "optional", "package", "private", "protected", "public",
-    "return", "sese", "short", "static", "strictfp", "super", "switch", "synchronized",
+    "return", "scratch", "sese", "short", "static", "strictfp", "super", "switch", "synchronized",
     "tag", "task", "taskexit", //keywords for failure aware computation
     "this", "throw", "throws", "transient", "try", "void",
     "volatile", "while"

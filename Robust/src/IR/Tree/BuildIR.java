@@ -402,7 +402,8 @@ public class BuildIR {
       TypeDescriptor td=parseTypeDescriptor(pn);
       
       Vector args=parseArgumentList(pn);
-      boolean isglobal=pn.getChild("global")!=null;
+      boolean isglobal=pn.getChild("global")!=null||
+	pn.getChild("scratch")!=null;
       String disjointId=null;
       if( pn.getChild("disjoint") != null) {
 	disjointId = pn.getChild("disjoint").getTerminal();
@@ -425,7 +426,8 @@ public class BuildIR {
       return con;
     } else if (isNode(pn,"createarray")) {
       //System.out.println(pn.PPrint(3,true));
-      boolean isglobal=pn.getChild("global")!=null;
+      boolean isglobal=pn.getChild("global")!=null||
+	pn.getChild("scratch")!=null;
       String disjointId=null;
       if( pn.getChild("disjoint") != null) {
 	disjointId = pn.getChild("disjoint").getTerminal();

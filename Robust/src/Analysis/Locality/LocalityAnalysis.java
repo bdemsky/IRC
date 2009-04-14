@@ -344,7 +344,7 @@ public class LocalityAnalysis {
 	break;
 
       case FKind.FlatCall:
-	processCallNodeSTM(lb, (FlatCall)fn, isAtomic(atomictable, fn), currtable);
+	processCallNodeSTM(lb, (FlatCall)fn, isAtomic(atomictable, fn), currtable, temptable.get(fn));
 	break;
 
       case FKind.FlatNew:
@@ -402,6 +402,7 @@ public class LocalityAnalysis {
       default:
 	throw new Error("In finding fn.kind()= " + fn.kind());
       }
+      
       Hashtable<TempDescriptor,Integer> oldtable=temptable.get(fn);
       if (oldtable==null||!oldtable.equals(currtable)) {
 	// Update table for this node
@@ -420,7 +421,7 @@ public class LocalityAnalysis {
       currtable.put(fn.getDst(), NORMAL);
   }
 
-  void processCallNodeSTM(LocalityBinding currlb, FlatCall fc, boolean isatomic, Hashtable<TempDescriptor, Integer> currtable) {
+  void processCallNodeSTM(LocalityBinding currlb, FlatCall fc, boolean isatomic, Hashtable<TempDescriptor, Integer> currtable, Hashtable<TempDescriptor, Integer> oldtable) {
     MethodDescriptor nodemd=fc.getMethod();
     Set methodset=null;
     Set runmethodset=null;
@@ -452,6 +453,12 @@ public class LocalityAnalysis {
     }
 
     Integer currreturnval=STMEITHER;     //Start off with the either value
+    if (oldtable!=null&&fc.getReturnTemp()!=null&&
+	oldtable.get(fc.getReturnTemp())!=null) {
+      //ensure termination
+      currreturnval=mergestm(currreturnval, oldtable.get(fc.getReturnTemp()));
+    }
+
     for(Iterator methodit=methodset.iterator(); methodit.hasNext();) {
       MethodDescriptor md=(MethodDescriptor) methodit.next();
 

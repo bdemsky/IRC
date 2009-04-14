@@ -2195,7 +2195,8 @@ public class BuildCode {
 
       output.println(dst+"="+ src +"->"+field+ ";");
       if (ffn.getField().getType().isPtr()&&locality.getAtomic(lb).get(ffn).intValue()>0&&
-	  ((dc==null)||dc.getNeedTrans(lb, ffn))) {
+	  ((dc==null)||dc.getNeedTrans(lb, ffn))&&
+	  locality.getNodePreTempInfo(lb, ffn).get(ffn.getSrc())!=LocalityAnalysis.SCRATCH) {
 	output.println("TRANSREAD("+dst+", "+dst+");");
       }
     } else if (state.DSM) {
@@ -2263,14 +2264,17 @@ public class BuildCode {
       String dst=generateTemp(fm,fsfn.getDst(),lb);
       if (srcptr&&!fsfn.getSrc().getType().isNull()) {
 	output.println("{");
-	if ((dc==null)||dc.getNeedSrcTrans(lb, fsfn)) {
+	if ((dc==null)||dc.getNeedSrcTrans(lb, fsfn)&&
+	  locality.getNodePreTempInfo(lb, fsfn).get(fsfn.getSrc())!=LocalityAnalysis.SCRATCH) {
 	  output.println("INTPTR srcoid=("+src+"!=NULL?((INTPTR)"+src+"->"+oidstr+"):0);");
 	} else {
 	  output.println("INTPTR srcoid=(INTPTR)"+src+";");
 	}
       }
-      if (wb.needBarrier(fsfn))
+      if (wb.needBarrier(fsfn)&&
+	  locality.getNodePreTempInfo(lb, fsfn).get(fsfn.getDst())!=LocalityAnalysis.SCRATCH) {
 	output.println("*((unsigned int *)&("+dst+"->___objstatus___))|=DIRTY;");
+      }
       if (srcptr&!fsfn.getSrc().getType().isNull()) {
 	output.println("*((unsigned INTPTR *)&("+dst+"->"+ fsfn.getField().getSafeSymbol()+"))=srcoid;");
 	output.println("}");
@@ -2362,7 +2366,8 @@ public class BuildCode {
       output.println(dst +"=(("+ type+"*)(((char *) &("+ generateTemp(fm,fen.getSrc(),lb)+"->___length___))+sizeof(int)))["+generateTemp(fm, fen.getIndex(),lb)+"];");
 
       if (elementtype.isPtr()&&locality.getAtomic(lb).get(fen).intValue()>0&&
-	  ((dc==null)||dc.getNeedTrans(lb, fen))) {
+	  ((dc==null)||dc.getNeedTrans(lb, fen))&&
+	  locality.getNodePreTempInfo(lb, fen).get(fen.getSrc())!=LocalityAnalysis.SCRATCH) {
 	output.println("TRANSREAD("+dst+", "+dst+");");
       }
     } else if (state.DSM) {
@@ -2412,12 +2417,15 @@ public class BuildCode {
 
     if (state.SINGLETM && locality.getAtomic(lb).get(fsen).intValue()>0) {
       //Transaction set element case
-      if (wb.needBarrier(fsen))
+      if (wb.needBarrier(fsen)&&
+	    locality.getNodePreTempInfo(lb, fsen).get(fsen.getDst())!=LocalityAnalysis.SCRATCH) {
 	output.println("*((unsigned int *)&("+generateTemp(fm,fsen.getDst(),lb)+"->___objstatus___))|=DIRTY;");
+      }
       if (fsen.getSrc().getType().isPtr()&&!fsen.getSrc().getType().isNull()) {
 	output.println("{");
 	String src=generateTemp(fm, fsen.getSrc(), lb);
-	if ((dc==null)||dc.getNeedSrcTrans(lb, fsen)) {
+	if ((dc==null)||dc.getNeedSrcTrans(lb, fsen)&&
+	    locality.getNodePreTempInfo(lb, fsen).get(fsen.getSrc())!=LocalityAnalysis.SCRATCH) {
 	  output.println("INTPTR srcoid=("+src+"!=NULL?((INTPTR)"+src+"->"+oidstr+"):0);");
 	} else {
 	  output.println("INTPTR srcoid=(INTPTR)"+src+";");

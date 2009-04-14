@@ -223,7 +223,7 @@ public class LeeRouter {
     // start transaction
     boolean done = false;
     //synchronized(gridLock) {
-      done = connect(q.x1, q.y1, q.x2, q.y2, q.nn, tempg, grid);
+    done = connect(q.x1, q.y1, q.x2, q.y2, q.nn, tempg, grid);
       if(DEBUG && done) {
         debugQueue.next = debugQueue.enQueue(q);
       }
@@ -557,6 +557,7 @@ public class LeeRouter {
     // Taking the copy is not really a computational(time) overhead because
     // it avoids the grid 'reset' phase
     // needed if we do the expansion in place.
+      //int [][][]tempg=new int[GRID_SIZE][GRID_SIZE][2];
     for (int x = 0; x < GRID_SIZE; x++) {
       for (int y = 0; y < GRID_SIZE; y++) {
         for (int z = 0; z < 2; z++)
@@ -626,7 +627,7 @@ public class LeeRouter {
     //TODO remove after debugging
     //Large Grid size
     System.out.println("Starting main.......\n");
-    LeeRouter lr = new LeeRouter(filename, false, true, false);
+    LeeRouter lr = new LeeRouter(filename, false, false, false);
     //Small grid size
     //LeeRouter lr = new LeeRouter(filename, true, true, false);
 

@@ -79,6 +79,7 @@ class Keyword extends Token {
     //Keywords for transactions
     key_table.put("atomic", new Integer(Sym.ATOMIC));
     key_table.put("global", new Integer(Sym.GLOBAL));
+    key_table.put("scratch", new Integer(Sym.SCRATCH));
     //Keywords for hacking prefetch calls in java
     key_table.put("getoffset", new Integer(Sym.GETOFFSET));
     //Keywords for disjointness in Java

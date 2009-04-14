@@ -49,7 +49,7 @@ public class LeeThread extends Thread {
   LeeRouter lt;
   WorkQueue t;
   boolean done;
-  int[][][] tempg;
+  //  int[][][] tempg;
 
   /*
   protected static ThreadLocal<ThreadState> _threadState = new ThreadLocal<ThreadState>() {
@@ -72,12 +72,12 @@ public class LeeThread extends Thread {
     totalLaidTracks=0;
     myLaidTracks=0;
     done = true;
-
     this.lt = lt;
-    tempg = new int[lt.GRID_SIZE][lt.GRID_SIZE][2]; // Lee 2D Grid copy
   }
 
   public void run() {
+    int [][][] tempg = scratch new int[lt.GRID_SIZE][lt.GRID_SIZE][2]; // Lee 2D Grid copy
+
     while (!finished && !stop) {
       if(sampleNow) {
         //collectMyStatistics();
@@ -85,7 +85,7 @@ public class LeeThread extends Thread {
         sampleNow = false;
       }
       if(done) {
-        atomic {
+	atomic {
           t = lt.getNextTrack();
           done = false;
         }
@@ -97,9 +97,9 @@ public class LeeThread extends Thread {
         //collectStatistics(_threadState.get());
         break;
       } else {
-        atomic {
+	  atomic {
           //System.out.println("Laying track "+t.nn);
-          lt.layNextTrack(t, tempg);
+	      lt.layNextTrack(t, tempg);
           done = true;
         }
         //updateStatistics();

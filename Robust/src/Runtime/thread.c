@@ -125,7 +125,7 @@ void initthread(struct ___Thread___ * ___this___) {
   t_cache = objstrCreate(1048576);
   t_reserve=NULL;
   t_chashCreate(CHASH_SIZE, CLOADFACTOR);
- ___Thread____NN____staticStart____L___Thread___((struct ___Thread____NN____staticStart____L___Thread____params *)p);
+ ___Thread____NNR____staticStart____L___Thread___((struct ___Thread____NNR____staticStart____L___Thread____params *)p);
  objstrDelete(t_cache);
  objstrDelete(t_reserve);
  t_chashDelete();
