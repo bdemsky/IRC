@@ -402,6 +402,8 @@ public class LocalityAnalysis {
       default:
 	throw new Error("In finding fn.kind()= " + fn.kind());
       }
+
+
       
       Hashtable<TempDescriptor,Integer> oldtable=temptable.get(fn);
       if (oldtable==null||!oldtable.equals(currtable)) {
@@ -576,7 +578,7 @@ public class LocalityAnalysis {
   void processSetElementNodeSTM(LocalityBinding lb, FlatSetElementNode fsen, Hashtable<TempDescriptor, Integer> currtable) {
     Integer srctype=currtable.get(fsen.getSrc());
     Integer dsttype=currtable.get(fsen.getDst());
-    
+
     if (dsttype.equals(SCRATCH)) {
       if (!(srctype.equals(SCRATCH)||srctype.equals(STMEITHER)))
 	throw new Error("Writing possible normal reference to scratch object in context:\n"+lb.getExplanation()+fsen);
@@ -630,7 +632,11 @@ public class LocalityAnalysis {
   void processElementNodeSTM(LocalityBinding lb, FlatElementNode fen, Hashtable<TempDescriptor, Integer> currtable) {
     Integer type=currtable.get(fen.getSrc());
     TempDescriptor dst=fen.getDst();
-    if (type.equals(SCRATCH)) {
+
+    if (type==null) {
+      System.out.println(fen +" in "+lb+" may access undefined variable");
+      System.exit(-1);
+    } else if (type.equals(SCRATCH)) {
       currtable.put(dst,SCRATCH);
     } else if (type.equals(NORMAL)) {
       if(fen.getSrc().getType().dereference().isPrimitive()&&
