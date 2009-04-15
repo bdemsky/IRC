@@ -57,6 +57,13 @@ public class VarSrcTokTable {
     sv2vst.put( key, s );
   }
 
+  public void addAll( Set<VariableSourceToken> s ) {
+    Iterator<VariableSourceToken> itr = s.iterator();
+    while( itr.hasNext() ) {
+      add( itr.next() );
+    }
+  }
+
 
   public Set<VariableSourceToken> get() {
     return trueSet;
@@ -187,7 +194,7 @@ public class VarSrcTokTable {
     }
     
     trueSet.removeAll( s );
-    sv2vst  .remove( key  );
+    sv2vst.remove( key );
   }
 
   public void remove( VariableSourceToken vst ) {

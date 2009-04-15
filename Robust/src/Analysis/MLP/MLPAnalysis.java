@@ -103,9 +103,6 @@ public class MLPAnalysis {
 
       analyzeFlatNodeForward( fn, seseStack );
 
-      // initialize for backward computation in next step
-      //pointResults.put( fn, new VarSrcTokTable() );
-
       for( int i = 0; i < fn.numNext(); i++ ) {
 	FlatNode nn = fn.getNext( i );
 
@@ -129,17 +126,28 @@ public class MLPAnalysis {
       computeReadAndWriteSetBackward( fsenChild );
     }
     
+    System.out.println( "backwards on "+fsen );
 
     // start from an SESE exit, visit nodes in reverse up to
     // SESE enter in a fixed-point scheme, where children SESEs
     // should already be analyzed and therefore can be skipped 
     // because child SESE enter node has all necessary info
     Set<FlatNode> flatNodesToVisit = new HashSet<FlatNode>();
-    flatNodesToVisit.add( fsen.getFlatExit() );
+    flatNodesToVisit.add( fsen );
+
+    FlatSESEExitNode fsexn = fsen.getFlatExit();
+    for( int i = 0; i < fsexn.numPrev(); i++ ) {
+      FlatNode nn = fsexn.getPrev( i );	 
+      flatNodesToVisit.add( nn );	 
+    }
 
     while( !flatNodesToVisit.isEmpty() ) {
       FlatNode fn = (FlatNode) flatNodesToVisit.iterator().next();
       flatNodesToVisit.remove( fn );      
+
+      if( fn.kind() == FKind.FlatSESEExitNode ) {
+	fn = ((FlatSESEExitNode)fn).getFlatEnter();
+      }
 
       VarSrcTokTable prev = pointResults.get( fn );
 
@@ -151,6 +159,10 @@ public class MLPAnalysis {
       }
 
       VarSrcTokTable curr = analyzeFlatNodeBackward( fn, inUnion, fsen );
+
+      
+      //System.out.println( "\nConsidering "+fn+" and\n  prev="+prev+"\n  curr="+curr );
+
 
       // if a new result, schedule backward nodes for analysis
       if( !curr.equals( prev ) ) {
@@ -167,6 +179,8 @@ public class MLPAnalysis {
       }
     }
     
+    if( pointResults.get( fsen ) == null ) { System.out.println( "UGH" ); }
+
     fsen.addInVarSet( pointResults.get( fsen ).get() );
 
     if( state.MLPDEBUG ) { 
@@ -224,12 +238,14 @@ public class MLPAnalysis {
     switch( fn.kind() ) {
 
     case FKind.FlatSESEEnterNode: {
-      FlatSESEEnterNode fsen = (FlatSESEEnterNode) fn;      
+      FlatSESEEnterNode fsen = (FlatSESEEnterNode) fn;
+      vstTable.addAll( fsen.getInVarSet() );
     } break;
 
     case FKind.FlatSESEExitNode: {
       FlatSESEExitNode fsexn = (FlatSESEExitNode) fn;
-	
+
+      
       //FlatSESEEnterNode fsen  = fsexn.getFlatEnter();
       //assert fsen == seseStack.pop();
       //seseStack.peek().addInVarSet ( fsen.getInVarSet()  );
