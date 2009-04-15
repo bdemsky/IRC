@@ -24,11 +24,7 @@ Compiling and Running
 
 To build the application, simply run:
 
-    make -f <makefile>
-
-in the source directory. For example, for the sequential flavor, run:
-
-    make -f Makefile.seq
+    make 
 
 By default, this produces an executable named "kmeans", which can then be
 run in the following manner:
@@ -37,7 +33,7 @@ run in the following manner:
              -n <min_clusters> \
              -t <threshold> \
              -i <input_file_name> \
-             -p <number of threads>
+             -nthreads <number of threads>
 
 To produce the data in [1], the following values were used:
 
