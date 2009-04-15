@@ -6,7 +6,7 @@ SRC=${MAINCLASS}.java \
     Common.java \
     GlobalArgs.java \
     ../../../ClassLibrary/JavaSTM/Barrier.java
-FLAGS=-singleTM -nooptimize -mainclass ${MAINCLASS} -debug
+FLAGS=-mainclass ${MAINCLASS} -singleTM -nooptimize -debug -dcopts -abcclose -transstats -profile -joptimize
 default:
 	../../../buildscript ${FLAGS} -o ${MAINCLASS} ${SRC}
 
