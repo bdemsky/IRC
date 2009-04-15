@@ -125,15 +125,13 @@ public class MLPAnalysis {
       FlatSESEEnterNode fsenChild = childItr.next();
       computeReadAndWriteSetBackward( fsenChild );
     }
-    
-    System.out.println( "backwards on "+fsen );
 
     // start from an SESE exit, visit nodes in reverse up to
     // SESE enter in a fixed-point scheme, where children SESEs
     // should already be analyzed and therefore can be skipped 
     // because child SESE enter node has all necessary info
     Set<FlatNode> flatNodesToVisit = new HashSet<FlatNode>();
-    flatNodesToVisit.add( fsen );
+    //flatNodesToVisit.add( fsen );
 
     FlatSESEExitNode fsexn = fsen.getFlatExit();
     for( int i = 0; i < fsexn.numPrev(); i++ ) {
@@ -160,10 +158,6 @@ public class MLPAnalysis {
 
       VarSrcTokTable curr = analyzeFlatNodeBackward( fn, inUnion, fsen );
 
-      
-      //System.out.println( "\nConsidering "+fn+" and\n  prev="+prev+"\n  curr="+curr );
-
-
       // if a new result, schedule backward nodes for analysis
       if( !curr.equals( prev ) ) {
 
@@ -179,8 +173,6 @@ public class MLPAnalysis {
       }
     }
     
-    if( pointResults.get( fsen ) == null ) { System.out.println( "UGH" ); }
-
     fsen.addInVarSet( pointResults.get( fsen ).get() );
 
     if( state.MLPDEBUG ) { 
@@ -239,36 +231,17 @@ public class MLPAnalysis {
 
     case FKind.FlatSESEEnterNode: {
       FlatSESEEnterNode fsen = (FlatSESEEnterNode) fn;
-      vstTable.addAll( fsen.getInVarSet() );
+      //vstTable.addAll( fsen.getInVarSet() );
+      vstTable = vstTable.age( currentSESE );
     } break;
 
     case FKind.FlatSESEExitNode: {
       FlatSESEExitNode fsexn = (FlatSESEExitNode) fn;
-
       
       //FlatSESEEnterNode fsen  = fsexn.getFlatEnter();
-      //assert fsen == seseStack.pop();
-      //seseStack.peek().addInVarSet ( fsen.getInVarSet()  );
-      //seseStack.peek().addOutVarSet( fsen.getOutVarSet() );
     } break;
-
-    /*  
-    case FKind.FlatMethod: {
-      FlatMethod fm = (FlatMethod) fn;
-    } break;
-    */
-
-      /*
-    case FKind.FlatOpNode: 
-    case FKind.FlatCastNode:
-    case FKind.FlatFieldNode:
-    case FKind.FlatSetFieldNode: 
-    case FKind.FlatElementNode:
-    case FKind.FlatSetElementNode:
-      */
 
     default: {
-
       // handle effects of statement in reverse, writes then reads
       TempDescriptor [] writeTemps = fn.writesTemps();
       for( int i = 0; i < writeTemps.length; ++i ) {
@@ -286,45 +259,7 @@ public class MLPAnalysis {
       }
     } break;
 
-    /*
-    case FKind.FlatNew: {
-      FlatNew fnn = (FlatNew) fn;
-      lhs = fnn.getDst();
-      if( !lhs.getType().isImmutable() || lhs.getType().isArray() ) {
-	//AllocationSite as = getAllocationSiteFromFlatNewPRIVATE( fnn );
-      }
-    } break;
-    */
-
-    /*
-    case FKind.FlatCall: {
-      FlatCall fc = (FlatCall) fn;
-      MethodDescriptor md = fc.getMethod();
-      FlatMethod flatm = state.getMethodFlat( md );
-
-
-      if( md.isStatic() ) {
-
-      } else {
-	// if the method descriptor is virtual, then there could be a
-	// set of possible methods that will actually be invoked, so
-	// find all of them and merge all of their results together
-	TypeDescriptor typeDesc = fc.getThis().getType();
-	Set possibleCallees = callGraph.getMethods( md, typeDesc );
-
-	Iterator i = possibleCallees.iterator();
-	while( i.hasNext() ) {
-	  MethodDescriptor possibleMd = (MethodDescriptor) i.next();
-	  FlatMethod pflatm = state.getMethodFlat( possibleMd );
-
-	}
-      }
-
-    } break;
-    */
-
     } // end switch
-
 
     return vstTable;
   }

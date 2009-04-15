@@ -5,7 +5,7 @@ public class Test {
     // in the main method
     sese root {
       int n = 10;
-
+      
       sese top {     
 	int x = 0;
       

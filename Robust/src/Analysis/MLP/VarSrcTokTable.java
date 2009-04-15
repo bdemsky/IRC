@@ -201,6 +201,33 @@ public class VarSrcTokTable {
     trueSet.remove( vst );
   }
 
+
+  // return a new table based on this one and
+  // age tokens with respect to SESE curr, where
+  // any child becomes curr with age 0, and any
+  // curr tokens increase age by 1
+  public VarSrcTokTable age( FlatSESEEnterNode curr ) {
+    VarSrcTokTable out = new VarSrcTokTable();
+
+    Iterator<VariableSourceToken> itr = trueSet.iterator();
+    while( itr.hasNext() ) {
+      VariableSourceToken vst = itr.next();
+      if( vst.getSESE().equals( curr ) ) {
+        out.add( new VariableSourceToken( curr, 
+                                          vst.getVar(), 
+                                          vst.getAge()+1 ) );
+      } else {
+        assert curr.getChildren().contains( vst.getSESE() );
+        out.add( new VariableSourceToken( curr, 
+                                          vst.getVar(), 
+                                          new Integer( 0 ) ) );
+      }
+    }
+
+    return out;
+  }
+
+
   public boolean equals( Object o ) {
     if( o == null ) {
       return false;

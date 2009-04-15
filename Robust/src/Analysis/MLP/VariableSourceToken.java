@@ -54,6 +54,6 @@ public class VariableSourceToken {
 
 
   public String toString() {
-    return "["+sese+", "+var+", "+age+"]";
+    return "["+sese.getPrettyIdentifier()+", "+var+", "+age+"]";
   }
 }
