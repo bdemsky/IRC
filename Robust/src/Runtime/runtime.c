@@ -6,6 +6,7 @@
 #include <errno.h>
 #include <stdio.h>
 #include "option.h"
+#include "methodheaders.h"
 #ifdef DSTM
 #include "dstm.h"
 #include "prelookup.h"
