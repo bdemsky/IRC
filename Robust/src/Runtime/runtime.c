@@ -126,7 +126,7 @@ void CALL11(___System______printI____I,int ___status___, int ___status___) {
   printf("%d\n",___status___);
 }
 
-long CALL00(___System______currentTimeMillis____) {
+long long CALL00(___System______currentTimeMillis____) {
   struct timeval tv; long long retval;
   gettimeofday(&tv, NULL);
   retval = tv.tv_sec; /* seconds */

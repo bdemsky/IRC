@@ -1940,7 +1940,7 @@ public class BuildCode {
 
   public void generateFlatAtomicEnterNode(FlatMethod fm,  LocalityBinding lb, FlatAtomicEnterNode faen, PrintWriter output) {
     /* Check to see if we need to generate code for this atomic */
-    if (locality.getAtomic(lb).get(faen.getPrev(0)).intValue()>0)
+    if (locality==null||locality.getAtomic(lb).get(faen.getPrev(0)).intValue()>0)
       return;
     /* Backup the temps. */
     for(Iterator<TempDescriptor> tmpit=locality.getTemps(lb).get(faen).iterator(); tmpit.hasNext();) {
@@ -1983,7 +1983,7 @@ public class BuildCode {
 
   public void generateFlatAtomicExitNode(FlatMethod fm,  LocalityBinding lb, FlatAtomicExitNode faen, PrintWriter output) {
     /* Check to see if we need to generate code for this atomic */
-    if (locality.getAtomic(lb).get(faen).intValue()>0)
+    if (locality==null||locality.getAtomic(lb).get(faen).intValue()>0)
       return;
     //store the revert list before we lose the transaction object
     String revertptr=null;
@@ -2517,7 +2517,7 @@ public class BuildCode {
       }
     } else if (fn.getType().isArray()) {
       int arrayid=state.getArrayNumber(fn.getType())+state.numClasses();
-      if (fn.isGlobal()) {
+      if (fn.isGlobal()&&(state.DSM||state.SINGLETM)) {
 	output.println(generateTemp(fm,fn.getDst(),lb)+"=allocate_newarrayglobal("+arrayid+", "+generateTemp(fm, fn.getSize(),lb)+");");
       } else if (GENERATEPRECISEGC) {
 	output.println(generateTemp(fm,fn.getDst(),lb)+"=allocate_newarray(&"+localsprefix+", "+arrayid+", "+generateTemp(fm, fn.getSize(),lb)+");");
