@@ -92,6 +92,15 @@ public class KMeans extends Thread {
   /* Global arguments for threads */
   GlobalArgs g_args;
 
+  /**
+   * Output:  Number of best clusters
+   **/
+  int best_nclusters;
+
+  /**
+   * Output: Cluster centers
+   **/
+  double[][] cluster_centres;
 
   public KMeans() {
     max_nclusters = 13;
@@ -99,6 +108,7 @@ public class KMeans extends Thread {
     isBinaryFile = 0;
     use_zscore_transform = 1;
     threshold = 0.001;
+    best_nclusters = 0;
   }
 
   public KMeans(int threadid, GlobalArgs g_args) {
@@ -123,10 +133,7 @@ public class KMeans extends Thread {
    * =============================================================================
    */
   public static void main(String[] args) {
-    String filename;
     int nthreads;
-    int numAttributes = 0;
-    int numObjects = 0;
 
     /**
      * Read options fron the command prompt 
@@ -142,42 +149,44 @@ public class KMeans extends Thread {
     
     double[][] buf;
     double[][] attributes;
-    int best_nclusters = 0;
+    int numAttributes = 0;
+    int numObjects = 0;
 
     /*
      * From the input file, get the numAttributes and numObjects
      */
     if (kms.isBinaryFile == 1) {
       System.out.println("TODO: Unimplemented Binary file option\n");
-    } else {
-      FileInputStream inputFile = new FileInputStream(kms.filename);
-      String line = null;
-      while((line = inputFile.readLine()) != null) {
-        numObjects++;
-      }
-      inputFile = new FileInputStream(kms.filename);
-      if((line = inputFile.readLine()) != null) {
-        int index = 0;
-        boolean prevWhiteSpace = true;
-        while(index < line.length()) {
-          char c = line.charAt(index++);
-          boolean currWhiteSpace = Character.isWhitespace(c);
-          if(prevWhiteSpace && !currWhiteSpace){
-            numAttributes++;
-          }   
-          prevWhiteSpace = currWhiteSpace;
-        }   
-      }   
-
-      /* Ignore the id (first attribute): numAttributes = 1; */
-      numAttributes = numAttributes - 1; //
-      System.out.println("numObjects= " + numObjects + "numAttributes= " + numAttributes);
-
-      /* Allocate new shared objects and read attributes of all objects */
-      buf = new double[numObjects][numAttributes];
-      attributes = new double[numObjects][numAttributes];
-      KMeans.readFromFile(inputFile, kms.filename, buf);
+      System.exit(0);
     }
+    System.out.println("filename= " + kms.filename);
+    FileInputStream inputFile = new FileInputStream(kms.filename);
+    String line = null;
+    while((line = inputFile.readLine()) != null) {
+      numObjects++;
+    }
+    inputFile = new FileInputStream(kms.filename);
+    if((line = inputFile.readLine()) != null) {
+      int index = 0;
+      boolean prevWhiteSpace = true;
+      while(index < line.length()) {
+        char c = line.charAt(index++);
+        boolean currWhiteSpace = Character.isWhitespace(c);
+        if(prevWhiteSpace && !currWhiteSpace){
+          numAttributes++;
+        }   
+        prevWhiteSpace = currWhiteSpace;
+      }   
+    }   
+
+    /* Ignore the id (first attribute): numAttributes = 1; */
+    numAttributes = numAttributes - 1; //
+    System.out.println("numObjects= " + numObjects + "numAttributes= " + numAttributes);
+
+    /* Allocate new shared objects and read attributes of all objects */
+    buf = new double[numObjects][numAttributes];
+    attributes = new double[numObjects][numAttributes];
+    KMeans.readFromFile(inputFile, kms.filename, buf);
 
     /*
      * The core of the clustering
@@ -202,7 +211,6 @@ public class KMeans extends Thread {
       km[i].start();
     }
 
-    double[][] cluster_centres;
     for (int i = 0; i < nloops; i++) {
       /*
        * Since zscore transform may perform in cluster() which modifies the
@@ -215,35 +223,33 @@ public class KMeans extends Thread {
         }
       }
 
-      cluster_centres = null;
       Cluster clus = new Cluster();
       clus.cluster_exec(nthreads,
           numObjects,
           numAttributes,
-          attributes,           // [numObjects][numAttributes] 
+          attributes,             // [numObjects][numAttributes] 
           kms.use_zscore_transform, // 0 or 1 
-          kms.min_nclusters,        // pre-define range from min to max 
+          kms.min_nclusters,      // pre-define range from min to max 
           kms.max_nclusters,
           kms.threshold,
-          best_nclusters,      // return: number between min and max
-          cluster_centres,     // return: [best_nclusters][numAttributes]
-          cluster_assign, g_args);     // return: [numObjects] cluster id for each object
+          kms.best_nclusters,     // return: number between min and max
+          kms.cluster_centres,    // return: [best_nclusters][numAttributes]
+          cluster_assign,         // return: [numObjects] cluster id for each object
+          g_args);                // Global arguments common to all threads
     }
 
     /* Output: the coordinates of the cluster centres */
     {
-      for (int i = 0; i < best_nclusters; i++) {
+      for (int i = 0; i < kms.best_nclusters; i++) {
         System.out.println(i);
         for (int j = 0; j < numAttributes; j++) {
-          System.out.println(cluster_centres[i][j]);
+          System.out.println(kms.cluster_centres[i][j]);
         }
         System.out.println("\n");
       }
     }
 
     System.exit(0);
-    //thread_shutdown();
-    //MAIN_RETURN(0);
   }
 
   public static void parseCmdLine(String args[], KMeans km) {
@@ -326,9 +332,9 @@ public class KMeans extends Thread {
             continue;
           }
           //System.out.println("buffer.toString()= " + buffer.toString());
-          double f = StringToFloat(buffer.toString());
+          double f = KMeans.StringToFloat(buffer.toString());
           buf[i][j] = f;
-          //System.out.println("f= " + f);
+          System.out.println("f= " + f);
           buffer = new StringBuffer();
           j++;
         }
@@ -340,7 +346,6 @@ public class KMeans extends Thread {
   /**
    * Convert a string into float
    **/
-
   public static double StringToFloat (String str) {
     double total = 0; // the total to return
     int length = str.length(); // the length of the string
