@@ -4,6 +4,7 @@ printhelp() {
 echo -robustroot set up the ROBUSTROOT to directory other than default one
 echo -dsm distributed shared memory
 echo -singleTM single machine committing transactions
+echo -stmdebug STM debug
 echo -abortreaders abort readers immediately
 echo -trueprob double - probabiltiy of true branch
 echo -dsmcaching -enable caching in dsm runtime
@@ -153,6 +154,9 @@ then
 JAVAOPTS="$JAVAOPTS -singleTM"
 EXTRAOPTIONS="$EXTRAOPTIONS -DSTM"
 SINGLETM=true
+elif [[ $1 = '-stmdebug' ]]
+then
+EXTRAOPTIONS="$EXTRAOPTIONS -DSTMDEBUG"
 elif [[ $1 = '-prefetch' ]]
 then
 JAVAOPTS="$JAVAOPTS -prefetch"

@@ -25,6 +25,12 @@ int nSoftAbortCommit = 0;
 int nSoftAbortAbort = 0;
 #endif
 
+#ifdef STMDEBUG
+#define DEBUGSTM(x...) printf(x);
+#else
+#define DEBUGSTM(x...)
+#endif
+
 
 /* ==================================================
  * stmStartup
@@ -319,6 +325,7 @@ int traverseCache() {
 	  } else { 
 	    oidwrlocked[numoidwrlocked++] = OID(header);
 	    transAbortProcess(oidrdlocked, &numoidrdlocked, oidwrlocked, &numoidwrlocked);
+	    DEBUGSTM("WR Abort: rd: %u wr: %u tot: %u type: %u ver: %u\n", numoidrdlocked, numoidwrlocked, c_numelements, TYPE(header), header->version);
 	    return TRANS_ABORT;
 	  }
 	} else { /* cannot aquire lock */
@@ -327,6 +334,7 @@ int traverseCache() {
 	    softabort=1;
 	  } else {
 	    transAbortProcess(oidrdlocked, &numoidrdlocked, oidwrlocked, &numoidwrlocked);
+	    DEBUGSTM("WR Abort: rd: %u wr: %u tot: %u type: %u ver: %u\n", numoidrdlocked, numoidwrlocked, c_numelements, TYPE(header), header->version);
 	    return TRANS_ABORT;
 	  }
 	}
@@ -338,6 +346,7 @@ int traverseCache() {
 	  } else {
 	    oidrdlocked[numoidrdlocked++] = OID(header);
 	    transAbortProcess(oidrdlocked, &numoidrdlocked, oidwrlocked, &numoidwrlocked);
+	    DEBUGSTM("RD Abort: rd: %u wr: %u tot: %u type: %u ver: %u\n", numoidrdlocked, numoidwrlocked, c_numelements, TYPE(header), header->version);
 	    return TRANS_ABORT;
 	  }
 	} else { /* cannot aquire lock */
@@ -345,6 +354,7 @@ int traverseCache() {
 	    softabort=1;
 	  } else {
 	    transAbortProcess(oidrdlocked, &numoidrdlocked, oidwrlocked, &numoidwrlocked);
+	    DEBUGSTM("RD Abort: rd: %u wr: %u tot: %u type: %u ver: %u\n", numoidrdlocked, numoidwrlocked, c_numelements, TYPE(header), header->version);
 	    return TRANS_ABORT;
 	  }
 	}
@@ -357,9 +367,11 @@ int traverseCache() {
   /* Decide the final response */
   if (softabort) {
     transAbortProcess(oidrdlocked, &numoidrdlocked, oidwrlocked, &numoidwrlocked);
+    DEBUGSTM("Softabort\n");
     return TRANS_SOFT_ABORT;
   } else {
     transCommitProcess(oidrdlocked, &numoidrdlocked, oidwrlocked, &numoidwrlocked);
+    DEBUGSTM("Commit\n");
     return TRANS_COMMIT;
   }
 }
@@ -406,6 +418,7 @@ int alttraverseCache() {
 	} else { 
 	  oidwrlocked[numoidwrlocked++] = OID(header);
 	  transAbortProcess(oidrdlocked, &numoidrdlocked, oidwrlocked, &numoidwrlocked);
+	  DEBUGSTM("WR Abort: rd: %u wr: %u tot: %u type: %u ver: %u\n", numoidrdlocked, numoidwrlocked, c_numelements, TYPE(header), header->version);
 	  return TRANS_ABORT;
 	}
       } else { /* cannot aquire lock */
@@ -414,6 +427,7 @@ int alttraverseCache() {
 	  softabort=1;
 	} else {
 	  transAbortProcess(oidrdlocked, &numoidrdlocked, oidwrlocked, &numoidwrlocked);
+	  DEBUGSTM("WR Abort: rd: %u wr: %u tot: %u type: %u ver: %u\n", numoidrdlocked, numoidwrlocked, c_numelements, TYPE(header), header->version);
 	  return TRANS_ABORT;
 	}
       }
@@ -425,6 +439,7 @@ int alttraverseCache() {
 	} else {
 	  oidrdlocked[numoidrdlocked++] = OID(header);
 	  transAbortProcess(oidrdlocked, &numoidrdlocked, oidwrlocked, &numoidwrlocked);
+	  DEBUGSTM("RD Abort: rd: %u wr: %u tot: %u type: %u ver: %u\n", numoidrdlocked, numoidwrlocked, c_numelements, TYPE(header), header->version);
 	  return TRANS_ABORT;
 	}
       } else { /* cannot aquire lock */
@@ -432,6 +447,7 @@ int alttraverseCache() {
 	  softabort=1;
 	} else {
 	  transAbortProcess(oidrdlocked, &numoidrdlocked, oidwrlocked, &numoidwrlocked);
+	  DEBUGSTM("RD Abort: rd: %u wr: %u tot: %u type: %u ver: %u\n", numoidrdlocked, numoidwrlocked, c_numelements, TYPE(header), header->version);
 	  return TRANS_ABORT;
 	}
       }
@@ -443,9 +459,11 @@ int alttraverseCache() {
   /* Decide the final response */
   if (softabort) {
     transAbortProcess(oidrdlocked, &numoidrdlocked, oidwrlocked, &numoidwrlocked);
+    DEBUGSTM("Softabort\n");
     return TRANS_SOFT_ABORT;
   } else {
     transCommitProcess(oidrdlocked, &numoidrdlocked, oidwrlocked, &numoidwrlocked);
+    DEBUGSTM("Commit\n");
     return TRANS_COMMIT;
   }
 }
