@@ -77,7 +77,6 @@ public class LeeThread extends Thread {
 
   public void run() {
     int [][][] tempg = scratch new int[lt.GRID_SIZE][lt.GRID_SIZE][2]; // Lee 2D Grid copy
-
     while (!finished && !stop) {
       if(sampleNow) {
         //collectMyStatistics();

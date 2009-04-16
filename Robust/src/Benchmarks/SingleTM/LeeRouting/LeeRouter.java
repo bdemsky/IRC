@@ -508,9 +508,10 @@ public class LeeRouter {
         tempg[tempX][tempY][tempZ] = viat;
         grid.setPoint(tempX,tempY,tempZ,viat);
         if(DEBUG)grid.setDebugPoint(tempX,tempY,tempZ,trackNo);
-        num_vias++;
-        if (!advanced)
-          forced_vias++;
+	//XXXXXXX- changes to make transactional
+	//        num_vias++;
+        //if (!advanced)
+	// forced_vias++;
         if (advanced)
           if(DEBUG)
             System.out.println("Via " + distsofar + " "
@@ -574,6 +575,7 @@ public class LeeRouter {
     else {
       if(DEBUG) System.out.println("Failed to route " + xs + " " + ys + " to " + xg
           + "  " + yg);
+      System.out.println("Failure");
       failures++;
     }
     return found;
