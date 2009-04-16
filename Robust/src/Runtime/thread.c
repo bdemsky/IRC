@@ -111,6 +111,9 @@ void initializethreads() {
   signal(SIGPIPE, SIG_IGN);
 #ifdef STM
   newobjs=calloc(1, sizeof(struct objlist));
+  t_cache = objstrCreate(1048576);
+  t_reserve=NULL;
+  t_chashCreate(CHASH_SIZE, CLOADFACTOR);
 #endif
 }
 
