@@ -71,6 +71,15 @@ public class MLPAnalysis {
       computeReadAndWriteSetBackward( fsen );
     }
 
+    seseItr = seseRoots.iterator();
+    while( seseItr.hasNext() ) {
+      FlatSESEEnterNode fsen = seseItr.next();
+
+      // starting from roots do a forward, fixed-point
+      // variable analysis for refinement and stalls
+      variableAnalysisForward( fsen );
+    }
+
     double timeEndAnalysis = (double) System.nanoTime();
     double dt = (timeEndAnalysis - timeStartAnalysis)/(Math.pow( 10.0, 9.0 ) );
     String treport = String.format( "The mlp analysis took %.3f sec.", dt );
@@ -131,7 +140,6 @@ public class MLPAnalysis {
     // should already be analyzed and therefore can be skipped 
     // because child SESE enter node has all necessary info
     Set<FlatNode> flatNodesToVisit = new HashSet<FlatNode>();
-    //flatNodesToVisit.add( fsen );
 
     FlatSESEExitNode fsexn = fsen.getFlatExit();
     for( int i = 0; i < fsexn.numPrev(); i++ ) {
@@ -188,6 +196,65 @@ public class MLPAnalysis {
       }
       System.out.println( "" );
     }
+  }
+
+
+  private void variableAnalysisForward( FlatSESEEnterNode fsen ) {
+
+    Set<FlatNode> flatNodesToVisit = new HashSet<FlatNode>();
+    flatNodesToVisit.add( fsen );	 
+
+    /*
+    while( !flatNodesToVisit.isEmpty() ) {
+      FlatNode fn = (FlatNode) flatNodesToVisit.iterator().next();
+      flatNodesToVisit.remove( fn );      
+
+      if( fn.kind() == FKind.FlatSESEExitNode ) {
+	fn = ((FlatSESEExitNode)fn).getFlatEnter();
+      }
+
+      VarSrcTokTable prev = pointResults.get( fn );
+
+      // merge sets from control flow joins
+      VarSrcTokTable inUnion = new VarSrcTokTable();
+      for( int i = 0; i < fn.numNext(); i++ ) {
+	FlatNode nn = fn.getNext( i );
+	inUnion.merge( pointResults.get( nn ) );
+      }
+
+      VarSrcTokTable curr = analyzeFlatNodeBackward( fn, inUnion, fsen );
+
+      // if a new result, schedule backward nodes for analysis
+      if( !curr.equals( prev ) ) {
+
+	pointResults.put( fn, curr );
+
+	// don't flow backwards past SESE enter
+	if( !fn.equals( fsen ) ) {	
+	  for( int i = 0; i < fn.numPrev(); i++ ) {
+	    FlatNode nn = fn.getPrev( i );	 
+	    flatNodesToVisit.add( nn );	 
+	  }
+	}
+      }
+    }
+    
+    fsen.addInVarSet( pointResults.get( fsen ).get() );
+
+    if( state.MLPDEBUG ) { 
+      System.out.println( "SESE "+fsen.getPrettyIdentifier()+" has in-set:" );
+      Iterator<VariableSourceToken> tItr = fsen.getInVarSet().iterator();
+      while( tItr.hasNext() ) {
+	System.out.println( "  "+tItr.next() );
+      }
+      System.out.println( "and out-set:" );
+      tItr = fsen.getOutVarSet().iterator();
+      while( tItr.hasNext() ) {
+	System.out.println( "  "+tItr.next() );
+      }
+      System.out.println( "" );
+    }
+    */
   }
 
 
