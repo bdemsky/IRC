@@ -222,9 +222,7 @@ void freenewobjs() {
  * ================================================================
  */
 int transCommit() {
-#ifdef TRANSSTATS
   int softaborted=0;
-#endif
   do {
     /* Look through all the objects in the transaction hash table */
     int finalResponse;
@@ -260,8 +258,8 @@ int transCommit() {
     if(finalResponse == TRANS_SOFT_ABORT) {
 #ifdef TRANSSTATS
       nSoftAbort++;
-      softaborted++;
 #endif
+      softaborted++;
       if (softaborted>4) {
 	//retry if to many soft aborts
 	freenewobjs();
@@ -367,11 +365,11 @@ int traverseCache() {
   /* Decide the final response */
   if (softabort) {
     transAbortProcess(oidrdlocked, &numoidrdlocked, oidwrlocked, &numoidwrlocked);
-    DEBUGSTM("Softabort\n");
+    DEBUGSTM("Soft Abort: rd: %u wr: %u tot: %u\n", numoidrdlocked, numoidwrlocked, c_numelements);
     return TRANS_SOFT_ABORT;
   } else {
     transCommitProcess(oidrdlocked, &numoidrdlocked, oidwrlocked, &numoidwrlocked);
-    DEBUGSTM("Commit\n");
+    DEBUGSTM("Commit: rd: %u wr: %u tot: %u\n", numoidrdlocked, numoidwrlocked, c_numelements);
     return TRANS_COMMIT;
   }
 }
@@ -459,11 +457,11 @@ int alttraverseCache() {
   /* Decide the final response */
   if (softabort) {
     transAbortProcess(oidrdlocked, &numoidrdlocked, oidwrlocked, &numoidwrlocked);
-    DEBUGSTM("Softabort\n");
+    DEBUGSTM("Soft Abort: rd: %u wr: %u tot: %u\n", numoidrdlocked, numoidwrlocked, c_numelements);
     return TRANS_SOFT_ABORT;
   } else {
     transCommitProcess(oidrdlocked, &numoidrdlocked, oidwrlocked, &numoidwrlocked);
-    DEBUGSTM("Commit\n");
+    DEBUGSTM("Commit: rd: %u wr: %u tot: %u\n", numoidrdlocked, numoidwrlocked, c_numelements);
     return TRANS_COMMIT;
   }
 }

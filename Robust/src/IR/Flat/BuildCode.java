@@ -1299,7 +1299,11 @@ public class BuildCode {
     }
 
     /********* Output method declaration ***********/
-
+    if (state.DSM||state.SINGLETM) {
+      headersout.println("#define D"+cn.getSafeSymbol()+lb.getSignature()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+" 1");
+    } else {
+      headersout.println("#define D"+cn.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+" 1");
+    }
     /* First the return type */
     if (md.getReturnType()!=null) {
       if (md.getReturnType().isClass()||md.getReturnType().isArray())
@@ -1313,9 +1317,9 @@ public class BuildCode {
     /* Next the method name */
     if (state.DSM||state.SINGLETM) {
       headersout.print(cn.getSafeSymbol()+lb.getSignature()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"(");
-    } else
+    } else {
       headersout.print(cn.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"(");
-
+    }
     boolean printcomma=false;
     if (GENERATEPRECISEGC) {
       if (state.DSM||state.SINGLETM) {
@@ -1452,7 +1456,7 @@ public class BuildCode {
       if (state.DSM&&lb.isAtomic())
 	output.println("if (needtocollect) checkcollect2(&"+localsprefix+");");
       else
-	output.println("if (needtocollect) checkcollect(&"+localsprefix+");");
+      output.println("if (needtocollect) checkcollect(&"+localsprefix+");");
     }
 
     generateCode( fm.getNext(0), fm, lb, null, output );
@@ -1702,7 +1706,7 @@ public class BuildCode {
 	if(state.DSM&&locality.getAtomic(lb).get(fn).intValue()>0) {
 	  output.println("if (needtocollect) checkcollect2(&"+localsprefix+");");
 	} else
-	  output.println("if (needtocollect) checkcollect(&"+localsprefix+");");
+	output.println("if (needtocollect) checkcollect(&"+localsprefix+");");
       } else
 	output.println("/* nop */");
       return;
