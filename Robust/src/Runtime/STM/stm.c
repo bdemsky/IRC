@@ -109,13 +109,14 @@ objheader_t *transCreateObj(void * ptr, unsigned int size) {
 
 /* This functions inserts randowm wait delays in the order of msec
  * Mostly used when transaction commits retry*/
-void randomdelay() {
+void randomdelay(int softaborted) {
   struct timespec req;
-  time_t t;
+  struct timeval t;
 
-  t = time(NULL);
+  gettimeofday(&t,NULL);
+
   req.tv_sec = 0;
-  req.tv_nsec = (long)(t%4); //1-11 microsec
+  req.tv_nsec = (long)((t.tv_usec)%(1<<softaborted))<<1; //1-11 microsec
   nanosleep(&req, NULL);
   return;
 }
@@ -253,9 +254,16 @@ int transCommit() {
     if(finalResponse == TRANS_SOFT_ABORT) {
 #ifdef TRANSSTATS
       nSoftAbort++;
-      softaborted=1;
+      softaborted++;
 #endif
-      randomdelay();
+      if (softaborted>4) {
+	//retry if to many soft aborts
+	freenewobjs();
+	objstrReset();
+	t_chashreset();
+	return TRANS_ABORT;
+      }
+      randomdelay(softaborted);
     } else {
       printf("Error: in %s() Unknown outcome", __func__);
       exit(-1);
@@ -314,16 +322,17 @@ int traverseCache() {
 	    return TRANS_ABORT;
 	  }
 	} else { /* cannot aquire lock */
-	  if(version == header->version) /* versions match */
+	  if(version == header->version) {
+	    /* versions match */
 	    softabort=1;
-	  else {
+	  } else {
 	    transAbortProcess(oidrdlocked, &numoidrdlocked, oidwrlocked, &numoidwrlocked);
 	    return TRANS_ABORT;
 	  }
 	}
       } else {
 	/* Read from the main heap  and compare versions */
-	if(read_trylock(&header->lock)) { //can further aquire read locks
+	if(read_trylock(&header->lock)) { //can further acquire read locks
 	  if(version == header->version) {/* versions match */
 	    oidrdlocked[numoidrdlocked++] = OID(header);
 	  } else {
@@ -332,9 +341,9 @@ int traverseCache() {
 	    return TRANS_ABORT;
 	  }
 	} else { /* cannot aquire lock */
-	  if(version == header->version)
+	  if(version == header->version) {
 	    softabort=1;
-	  else {
+	  } else {
 	    transAbortProcess(oidrdlocked, &numoidrdlocked, oidwrlocked, &numoidwrlocked);
 	    return TRANS_ABORT;
 	  }
@@ -400,9 +409,10 @@ int alttraverseCache() {
 	  return TRANS_ABORT;
 	}
       } else { /* cannot aquire lock */
-	if(version == header->version) /* versions match */
+	if(version == header->version) {
+	  /* versions match */
 	  softabort=1;
-	else {
+	} else {
 	  transAbortProcess(oidrdlocked, &numoidrdlocked, oidwrlocked, &numoidwrlocked);
 	  return TRANS_ABORT;
 	}
@@ -418,9 +428,9 @@ int alttraverseCache() {
 	  return TRANS_ABORT;
 	}
       } else { /* cannot aquire lock */
-	if(version == header->version)
+	if(version == header->version) {
 	  softabort=1;
-	else {
+	} else {
 	  transAbortProcess(oidrdlocked, &numoidrdlocked, oidwrlocked, &numoidwrlocked);
 	  return TRANS_ABORT;
 	}

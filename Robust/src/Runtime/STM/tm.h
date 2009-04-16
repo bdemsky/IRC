@@ -148,6 +148,6 @@ int traverseCache();
 int alttraverseCache();
 int transAbortProcess(void **, int *, void **, int *);
 int transCommmitProcess(void **, int *, void **, int *);
-void randomdelay();
+void randomdelay(int);
 
 #endif

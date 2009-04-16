@@ -147,7 +147,7 @@ void fixobjlist(struct objlist * ptr) {
   }
 }
 
-void fixtable(chashlistnode_t ** tc_table, chashlistnode_t **tc_list, unsigned int tc_size) {
+void fixtable(chashlistnode_t ** tc_table, chashlistnode_t **tc_list, cliststruct_t **cstr, unsigned int tc_size) {
   unsigned int mask=(tc_size<<4)-1;
   chashlistnode_t *node=calloc(tc_size, sizeof(chashlistnode_t));
   chashlistnode_t *ptr=*tc_table;
@@ -212,14 +212,14 @@ void fixtable(chashlistnode_t ** tc_table, chashlistnode_t **tc_list, unsigned i
 	newlist=tmp;
       } else if (isfirst) {
 	chashlistnode_t *newnode;
-	if (c_structs->num<NUMCLIST) {
-	  newnode=&c_structs->array[c_structs->num];
-	  c_structs->num++;
+	if ((*cstr)->num<NUMCLIST) {
+	  newnode=&(*cstr)->array[(*cstr)->num];
+	  (*cstr)->num++;
 	} else {
 	  //get new list
 	  cliststruct_t *tcl=calloc(1,sizeof(cliststruct_t));
-	  tcl->next=c_structs;
-	  c_structs=tcl;
+	  tcl->next=*cstr;
+	  *cstr=tcl;
 	  newnode=&tcl->array[0];
 	  tcl->num=1;
 	}
@@ -300,7 +300,7 @@ void collect(struct garbagelist * stackptr) {
 
 #ifdef STM
   if (c_table!=NULL) {
-    fixtable(&c_table, &c_list, c_size);
+    fixtable(&c_table, &c_list, &c_structs, c_size);
     fixobjlist(newobjs);
   }
   memorybase=NULL;
@@ -330,7 +330,7 @@ void collect(struct garbagelist * stackptr) {
 #endif
 #ifdef STM
     if ((*listptr->tc_table)!=NULL) {
-      fixtable(listptr->tc_table, listptr->tc_list, listptr->tc_size);
+      fixtable(listptr->tc_table, listptr->tc_list, listptr->tc_structs, listptr->tc_size);
       fixobjlist(listptr->objlist);
     }
     *(listptr->base)=NULL;
@@ -602,6 +602,7 @@ struct listitem * stopforgc(struct garbagelist * ptr) {
   litem->tc_size=c_size;
   litem->tc_table=&c_table;
   litem->tc_list=&c_list;
+  litem->tc_structs=&c_structs;
   litem->objlist=newobjs;
   litem->base=&memorybase;
 #endif
