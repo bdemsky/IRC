@@ -47,7 +47,7 @@ public class Vector {
   }
 
   public Object elementAt(int index) {
-    if (index<0 || index >=size) {
+    if (index<0 | index >=size) {
       System.printString("Illegal Vector.elementAt\n");
       System.exit(-1);
       return null;
