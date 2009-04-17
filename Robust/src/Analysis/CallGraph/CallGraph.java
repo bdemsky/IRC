@@ -136,13 +136,34 @@ public class CallGraph {
       for(Iterator it=s.iterator(); it.hasNext();) {
 	MethodDescriptor md=(MethodDescriptor)it.next();
 	if( !found.contains(md) ) {
-	  found.contains(md);
 	  ns.addAll(getMoreMethodCalls(found, md));
 	}
       }
     return ns;
   }
 
+  /** Returns all methods transitively callable from d */
+
+  public Set getAllMethods(Descriptor d) {
+    HashSet tovisit=new HashSet();
+    tovisit.add(d);
+    HashSet callable=new HashSet();
+    while(!tovisit.isEmpty()) {
+      Descriptor md=(Descriptor)tovisit.iterator().next();
+      tovisit.remove(md);
+      Set s=(Set)mapCaller2CalleeSet.get(md);
+      if (s!=null) {
+	for(Iterator it=s.iterator(); it.hasNext();) {
+	  MethodDescriptor md2=(MethodDescriptor)it.next();
+	  if( !callable.contains(md2) ) {
+	    callable.add(md2);
+	    tovisit.add(md2);
+	  }
+	}
+      }
+    }
+    return callable;
+  }
 
   private void buildGraph() {
     Iterator it=state.getClassSymbolTable().getDescriptorsIterator();
