@@ -147,8 +147,8 @@ __attribute__((pure)) void *transRead(void * oid);
 int transCommit();
 int traverseCache();
 int alttraverseCache();
-int transAbortProcess(void **, int *, void **, int *);
-int transCommmitProcess(void **, int *, void **, int *);
+int transAbortProcess(void **, int);
+int transCommmitProcess(void **, int);
 void randomdelay(int);
 
 #endif
