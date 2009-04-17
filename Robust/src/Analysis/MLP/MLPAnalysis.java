@@ -90,7 +90,6 @@ public class MLPAnalysis {
       livenessAnalysisBackward( fsen );
     }
 
-    /*
     seseItr = seseRoots.iterator();
     while( seseItr.hasNext() ) {
       FlatSESEEnterNode fsen = seseItr.next();
@@ -99,7 +98,6 @@ public class MLPAnalysis {
       // variable analysis for refinement and stalls
       variableAnalysisForward( fsen );
     }
-    */
 
     double timeEndAnalysis = (double) System.nanoTime();
     double dt = (timeEndAnalysis - timeStartAnalysis)/(Math.pow( 10.0, 9.0 ) );
@@ -222,22 +220,10 @@ public class MLPAnalysis {
     Set<FlatNode> flatNodesToVisit = new HashSet<FlatNode>();
     FlatSESEExitNode fsexn = fsen.getFlatExit();
     flatNodesToVisit.add( fsexn );
-    /*
-    for( int i = 0; i < fsexn.numPrev(); i++ ) {
-      FlatNode nn = fsexn.getPrev( i );	 
-      flatNodesToVisit.add( nn );	 
-    }
-    */
 
     while( !flatNodesToVisit.isEmpty() ) {
       FlatNode fn = (FlatNode) flatNodesToVisit.iterator().next();
       flatNodesToVisit.remove( fn );      
-
-      /*
-      if( fn.kind() == FKind.FlatSESEExitNode ) {
-	fn = ((FlatSESEExitNode)fn).getFlatEnter();
-      }
-      */
       
       Set<TempDescriptor> prev = livenessResults.get( fn );
 
@@ -279,13 +265,6 @@ public class MLPAnalysis {
       while( tItr.hasNext() ) {
 	System.out.println( "  "+tItr.next() );
       }
-      /*
-      System.out.println( "and out-set:" );
-      tItr = fsen.getOutVarSet().iterator();
-      while( tItr.hasNext() ) {
-	System.out.println( "  "+tItr.next() );
-      }
-      */
       System.out.println( "" );
     }
   }

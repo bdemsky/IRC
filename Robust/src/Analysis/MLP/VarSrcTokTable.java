@@ -15,8 +15,8 @@ public class VarSrcTokTable {
   // true set.  Note that a particular triple from the quick
   // look up must be checked against the true set--remove ops
   // can cause the hashtables to be inconsistent to each other
-  private Hashtable< FlatSESEEnterNode, Set<VariableSourceToken> > sese2vst;
   private Hashtable< TempDescriptor,    Set<VariableSourceToken> >  var2vst;
+  private Hashtable< FlatSESEEnterNode, Set<VariableSourceToken> > sese2vst;
   private Hashtable< SVKey,             Set<VariableSourceToken> >   sv2vst;
 
   // maximum age from aging operation
@@ -44,14 +44,14 @@ public class VarSrcTokTable {
     s.add( vst );
     sese2vst.put( vst.getSESE(), s );
 
-    s = var2vst.get( vst.getVar() );
+    s = var2vst.get( vst.getVarLive() );
     if( s == null ) {
       s = new HashSet<VariableSourceToken>();
     }
     s.add( vst );
-    var2vst.put( vst.getVar(), s );
+    var2vst.put( vst.getVarLive(), s );
 
-    SVKey key = new SVKey( vst.getSESE(), vst.getVar() );
+    SVKey key = new SVKey( vst.getSESE(), vst.getVarLive() );
     s = sv2vst.get( key );
     if( s == null ) {
       s = new HashSet<VariableSourceToken>();
@@ -210,8 +210,9 @@ public class VarSrcTokTable {
   // any child becomes curr with age 0, and any
   // curr tokens increase age by 1
   public VarSrcTokTable age( FlatSESEEnterNode curr ) {
-    VarSrcTokTable out = new VarSrcTokTable();
 
+    VarSrcTokTable out = new VarSrcTokTable();
+    /*
     Iterator<VariableSourceToken> itr = trueSet.iterator();
     while( itr.hasNext() ) {
       VariableSourceToken vst = itr.next();
@@ -221,16 +222,16 @@ public class VarSrcTokTable {
 	  newAge = MAX_AGE;
 	}
         out.add( new VariableSourceToken( curr, 
-                                          vst.getVar(), 
+                                          vst.getVarLive(), 
 					  newAge ) );
       } else {
         assert curr.getChildren().contains( vst.getSESE() );
         out.add( new VariableSourceToken( curr, 
-                                          vst.getVar(), 
+                                          vst.getVarLive(), 
                                           new Integer( 1 ) ) );
       }
     }
-
+    */
     return out;
   }
 

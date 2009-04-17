@@ -7,30 +7,37 @@ import java.io.*;
 
 public class VariableSourceToken {
 
-  private FlatSESEEnterNode sese;
-  private TempDescriptor    var;
-  private Integer           age;
+  private TempDescriptor    varLive;
+  private FlatSESEEnterNode seseSrc;
+  private Integer           seseAge;
+  private TempDescriptor    varSrc; 
 
-  public VariableSourceToken( FlatSESEEnterNode sese,
-			      TempDescriptor    var, 
-			      Integer           age ) {
-    this.sese = sese;
-    this.var  = var;
-    this.age  = age;
+  public VariableSourceToken( TempDescriptor    varLive, 
+                              FlatSESEEnterNode seseSrc,			      
+			      Integer           seseAge, 
+                              TempDescriptor    varSrc 
+                              ) {
+    this.varLive = varLive;
+    this.seseSrc = seseSrc;
+    this.seseAge = seseAge;
+    this.varSrc  = varSrc; 
+  }
+
+  public TempDescriptor getVarLive() {
+    return varLive;
   }
 
   public FlatSESEEnterNode getSESE() {
-    return sese;
-  }
-
-  public TempDescriptor getVar() {
-    return var;
+    return seseSrc;
   }
 
   public Integer getAge() {
-    return age;
+    return seseAge;
   }
 
+  public TempDescriptor getVarSrc() {
+    return varSrc;
+  }
 
   public boolean equals( Object o ) {
     if( o == null ) {
@@ -43,17 +50,18 @@ public class VariableSourceToken {
 
     VariableSourceToken vst = (VariableSourceToken) o;
 
-    return sese.equals( vst.sese ) &&
-            var.equals( vst.var  ) &&
-            age.equals( vst.age  );
+    return seseSrc.equals( vst.seseSrc ) &&
+            varSrc.equals( vst.varSrc  ) &&
+           seseAge.equals( vst.seseAge ) &&
+           varLive.equals( vst.varLive );
   }
 
   public int hashCode() {
-    return (sese.hashCode() << 3) * (var.hashCode() << 2) ^ age.intValue();
+    return (seseSrc.hashCode() << 3) + (varSrc.hashCode() << 4) * (varLive.hashCode() << 2) ^ seseAge.intValue();
   }
 
 
   public String toString() {
-    return "["+sese.getPrettyIdentifier()+", "+var+", "+age+"]";
+    return "["+varLive+" -> "+seseSrc.getPrettyIdentifier()+", "+seseAge+", "+varSrc+"]";
   }
 }
