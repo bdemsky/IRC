@@ -266,7 +266,7 @@ void enqueuetag(struct ___TagDescriptor___ *ptr) {
 }
 #endif
 
-#ifdef STM
+#if defined(STM)||defined(THREADS)
 __thread char * memorybase=NULL;
 __thread char * memorytop=NULL;
 #endif
@@ -637,7 +637,7 @@ void restartaftergc(struct listitem * litem) {
 }
 #endif
 
-#ifdef STM
+#if defined(STM)||defined(THREADS)
 #define MEMORYBLOCK 65536
 void * helper(struct garbagelist *, int);
 void * mygcmalloc(struct garbagelist * stackptr, int size) {

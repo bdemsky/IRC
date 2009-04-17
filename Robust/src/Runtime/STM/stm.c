@@ -186,10 +186,6 @@ __attribute__((pure)) void *transRead(void * oid) {
   objheader_t *objcopy;
   int size;
 
-  //quick case for new objects
-  if (((struct ___Object___ *)oid)->___objstatus___ & NEW)
-    return oid;
-
   /* Read from the main heap */
   //No lock for now
   objheader_t *header = (objheader_t *)(((char *)oid) - sizeof(objheader_t)); 

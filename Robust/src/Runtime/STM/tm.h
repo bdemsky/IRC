@@ -93,7 +93,8 @@ chashlistnode_t * cnodetmp=&c_table[(((unsigned INTPTR)inputvalue)&c_mask)>>4];	
 do { \
   if (cnodetmp->key==inputvalue) {x=cnodetmp->val;break;} \
 cnodetmp=cnodetmp->next;\
- if (cnodetmp==NULL) {x=transRead(inputvalue); asm volatile("":"=m"(c_table),"=m"(c_mask));break;} \
+ if (cnodetmp==NULL) {if (((struct ___Object___*)inputvalue)->___objstatus___&NEW) {x=inputvalue;break;} else \
+{x=transRead(inputvalue); asm volatile("":"=m"(c_table),"=m"(c_mask));break;}} \
 } while(1);\
 }}
 
