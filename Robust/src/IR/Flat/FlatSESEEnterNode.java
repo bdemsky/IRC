@@ -9,7 +9,7 @@ public class FlatSESEEnterNode extends FlatNode {
   protected FlatSESEExitNode exit;
   protected SESENode treeNode;
   protected Set<FlatSESEEnterNode> children;
-  protected Set<VariableSourceToken> inVars;
+  protected Set<TempDescriptor> inVars;
   protected Set<VariableSourceToken> outVars;
   protected FlatMethod enclosing;
 
@@ -17,7 +17,7 @@ public class FlatSESEEnterNode extends FlatNode {
     this.id  = identifier++;
     treeNode = sn;
     children = new HashSet<FlatSESEEnterNode>();
-    inVars   = new HashSet<VariableSourceToken>();
+    inVars   = new HashSet<TempDescriptor>();
     outVars  = new HashSet<VariableSourceToken>();
   }
 
@@ -35,15 +35,15 @@ public class FlatSESEEnterNode extends FlatNode {
     return children;
   }
 
-  public void addInVar( VariableSourceToken vst ) {
-    inVars.add( vst );
+  public void addInVar( TempDescriptor td ) {
+    inVars.add( td );
   }
 
   public void addOutVar( VariableSourceToken vst ) {
     outVars.add( vst );
   }
 
-  public void addInVarSet( Set<VariableSourceToken> s ) {
+  public void addInVarSet( Set<TempDescriptor> s ) {
     inVars.addAll( s );
   }
 
@@ -51,7 +51,7 @@ public class FlatSESEEnterNode extends FlatNode {
     outVars.addAll( s );
   }
 
-  public Set<VariableSourceToken> getInVarSet() {
+  public Set<TempDescriptor> getInVarSet() {
     return inVars;
   }
 

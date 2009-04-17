@@ -9,14 +9,12 @@ public class Test {
       
       sese top {     
 	int x = 0;
-      
-	
-	//for( int i = 0; i < 3; ++i ) {
+      	
+	for( int i = 0; i < 3; ++i ) {
 	  sese iter {
-	    x = x; // + i;
+	    x = x + i;
 	  }
-	  //}      
-	
+        }      	
 
 	int j = x + n;
       }

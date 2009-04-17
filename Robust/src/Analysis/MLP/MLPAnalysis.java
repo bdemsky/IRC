@@ -23,7 +23,7 @@ public class MLPAnalysis {
   private FlatSESEExitNode  rootExit;
 
   private Hashtable< FlatNode, Stack<FlatSESEEnterNode> > seseStacks;
-  private Hashtable< FlatNode, VarSrcTokTable           > livenessResults;
+  private Hashtable< FlatNode, Set<TempDescriptor>      > livenessResults;
   private Hashtable< FlatNode, VarSrcTokTable           > variableResults;
 
 
@@ -43,8 +43,8 @@ public class MLPAnalysis {
     // initialize analysis data structures
     seseRoots       = new HashSet<FlatSESEEnterNode>();
     seseStacks      = new Hashtable< FlatNode, Stack<FlatSESEEnterNode> >();
-    livenessResults = new Hashtable< FlatNode,          VarSrcTokTable  >();
-    variableResults = new Hashtable< FlatNode,          VarSrcTokTable  >();
+    livenessResults = new Hashtable< FlatNode, Set<TempDescriptor>      >();
+    variableResults = new Hashtable< FlatNode, VarSrcTokTable           >();
 
     // build an implicit root SESE to wrap contents of main method
     /*
@@ -239,16 +239,19 @@ public class MLPAnalysis {
       }
       */
       
-      VarSrcTokTable prev = livenessResults.get( fn );
+      Set<TempDescriptor> prev = livenessResults.get( fn );
 
       // merge sets from control flow joins
-      VarSrcTokTable inUnion = new VarSrcTokTable();
+      Set<TempDescriptor> u = new HashSet<TempDescriptor>();
       for( int i = 0; i < fn.numNext(); i++ ) {
 	FlatNode nn = fn.getNext( i );
-	inUnion.merge( livenessResults.get( nn ) );
+        Set<TempDescriptor> s = livenessResults.get( nn );
+        if( s != null ) {
+          u.addAll( s );
+        }
       }
 
-      VarSrcTokTable curr = liveness_nodeActions( fn, inUnion, fsen );
+      Set<TempDescriptor> curr = liveness_nodeActions( fn, u, fsen );
 
       // if a new result, schedule backward nodes for analysis
       if( !curr.equals( prev ) ) {
@@ -265,11 +268,14 @@ public class MLPAnalysis {
       }
     }
     
-    fsen.addInVarSet( livenessResults.get( fsen ).get() );
+    Set<TempDescriptor> s = livenessResults.get( fsen );
+    if( s != null ) {
+      fsen.addInVarSet( s );
+    }
     
     if( state.MLPDEBUG ) { 
       System.out.println( "SESE "+fsen.getPrettyIdentifier()+" has in-set:" );
-      Iterator<VariableSourceToken> tItr = fsen.getInVarSet().iterator();
+      Iterator<TempDescriptor> tItr = fsen.getInVarSet().iterator();
       while( tItr.hasNext() ) {
 	System.out.println( "  "+tItr.next() );
       }
@@ -284,46 +290,32 @@ public class MLPAnalysis {
     }
   }
 
-  private VarSrcTokTable liveness_nodeActions( FlatNode fn, 
-					       VarSrcTokTable vstTable,
-					       FlatSESEEnterNode currentSESE ) {
+  private Set<TempDescriptor> liveness_nodeActions( FlatNode fn, 
+                                                    Set<TempDescriptor> liveIn,
+                                                    FlatSESEEnterNode currentSESE ) {
     switch( fn.kind() ) {
-
-    case FKind.FlatSESEEnterNode: {
-      FlatSESEEnterNode fsen = (FlatSESEEnterNode) fn;
-
-      // only age if this is a child SESE, not the current     
-      if( !fsen.equals( currentSESE ) ) {
-	vstTable = vstTable.age( currentSESE );
-      }
-    } break;
-
+      
     default: {
       // handle effects of statement in reverse, writes then reads
       TempDescriptor [] writeTemps = fn.writesTemps();
       for( int i = 0; i < writeTemps.length; ++i ) {
-	vstTable.remove( writeTemps[i] );
-	currentSESE.addOutVar( new VariableSourceToken( currentSESE, 
-							writeTemps[i],
-							new Integer( 0 ) ) );
+	liveIn.remove( writeTemps[i] );
       }
 
       TempDescriptor [] readTemps = fn.readsTemps();
       for( int i = 0; i < readTemps.length; ++i ) {
-	vstTable.add( new VariableSourceToken( currentSESE, 
-					       readTemps[i],
-					       new Integer( 0 ) ) );
+	liveIn.add( readTemps[i] );
       }
     } break;
 
     } // end switch
 
-    return vstTable;
+    return liveIn;
   }
 
 
   private void variableAnalysisForward( FlatSESEEnterNode fsen ) {
-    
+    /*
     Set<FlatNode> flatNodesToVisit = new HashSet<FlatNode>();
     flatNodesToVisit.add( fsen );	 
 
@@ -372,6 +364,7 @@ public class MLPAnalysis {
       }
       System.out.println( "" );
     }
+    */
   }
 
   private VarSrcTokTable variable_nodeActions( FlatNode fn, 
