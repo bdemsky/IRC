@@ -19,6 +19,9 @@ public class VarSrcTokTable {
   private Hashtable< TempDescriptor,    Set<VariableSourceToken> >  var2vst;
   private Hashtable< SVKey,             Set<VariableSourceToken> >   sv2vst;
 
+  // maximum age from aging operation
+  private Integer MAX_AGE = new Integer( 2 );
+
 
   public VarSrcTokTable() {
     trueSet = new HashSet<VariableSourceToken>();
@@ -213,14 +216,18 @@ public class VarSrcTokTable {
     while( itr.hasNext() ) {
       VariableSourceToken vst = itr.next();
       if( vst.getSESE().equals( curr ) ) {
+	Integer newAge = vst.getAge()+1;
+	if( newAge > MAX_AGE ) {
+	  newAge = MAX_AGE;
+	}
         out.add( new VariableSourceToken( curr, 
                                           vst.getVar(), 
-                                          vst.getAge()+1 ) );
+					  newAge ) );
       } else {
         assert curr.getChildren().contains( vst.getSESE() );
         out.add( new VariableSourceToken( curr, 
                                           vst.getVar(), 
-                                          new Integer( 0 ) ) );
+                                          new Integer( 1 ) ) );
       }
     }
 
