@@ -18,6 +18,7 @@ import Analysis.TaskStateAnalysis.TaskIndex;
 import Analysis.Locality.LocalityAnalysis;
 import Analysis.Locality.LocalityBinding;
 import Analysis.Locality.DiscoverConflicts;
+import Analysis.CallGraph.CallGraph;
 import Analysis.Prefetch.*;
 import Analysis.Loops.WriteBarrier;
 
@@ -54,7 +55,7 @@ public class BuildCode {
   boolean nonSESEpass=true;
   WriteBarrier wb;
   DiscoverConflicts dc;
-
+  CallGraph callgraph;
 
   public BuildCode(State st, Hashtable temptovar, TypeUtil typeutil, SafetyAnalysis sa, PrefetchAnalysis pa) {
     this(st, temptovar, typeutil, null, sa, pa);
@@ -68,6 +69,7 @@ public class BuildCode {
     this.sa=sa;
     this.pa=pa;
     state=st;
+    callgraph=new CallGraph(state);
     if (state.SINGLETM)
 	oidstr="___objlocation___";
     this.temptovar=temptovar;
@@ -1453,10 +1455,13 @@ public class BuildCode {
      * multi-threaded program...*/
 
     if ((state.THREAD||state.DSM||state.SINGLETM)&&GENERATEPRECISEGC) {
-      if (state.DSM&&lb.isAtomic())
-	output.println("if (needtocollect) checkcollect2(&"+localsprefix+");");
-      else
-      output.println("if (needtocollect) checkcollect(&"+localsprefix+");");
+      //Don't bother if we aren't in recursive methods...The loops case will catch it
+      if (callgraph.getAllMethods(md).contains(md)) {
+	if (state.DSM&&lb.isAtomic())
+	  output.println("if (needtocollect) checkcollect2(&"+localsprefix+");");
+	else
+	  output.println("if (needtocollect) checkcollect(&"+localsprefix+");");
+      }
     }
 
     generateCode( fm.getNext(0), fm, lb, null, output );
