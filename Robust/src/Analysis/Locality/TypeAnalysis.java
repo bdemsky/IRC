@@ -92,6 +92,10 @@ public class TypeAnalysis {
     return namemap.get(td);
   }
 
+  public boolean couldAlias(TypeDescriptor td1, TypeDescriptor td2) {
+    return namemap.get(td1).contains(td2);
+  }
+
   public void addMapping(TypeDescriptor src, TypeDescriptor dst) {
     if (!map.containsKey(src))
       map.put(src, new HashSet<TypeDescriptor>());
@@ -145,9 +149,9 @@ public class TypeAnalysis {
 	if (fc.getReturnTemp()!=null) {
 	  addMapping(fc.getMethod().getReturnType(), fc.getReturnTemp().getType());
 	}
+	MethodDescriptor callmd=fc.getMethod();
 	if (fc.getThis()!=null) {
 	  //complicated...need to deal with virtual dispatch here
-	  MethodDescriptor callmd=fc.getMethod();
 	  Set methods=cg.getMethods(callmd);
 	  for(Iterator mdit=methods.iterator();mdit.hasNext();) {
 	    MethodDescriptor md2=(MethodDescriptor)mdit.next();
@@ -162,7 +166,7 @@ public class TypeAnalysis {
 	}
 	for(int i=0;i<fc.numArgs();i++) {
 	  TempDescriptor arg=fc.getArg(i);
-	  TypeDescriptor ptype=md.getParamType(i);
+	  TypeDescriptor ptype=callmd.getParamType(i);
 	  addMapping(arg.getType(), ptype);
 	}
 	break;

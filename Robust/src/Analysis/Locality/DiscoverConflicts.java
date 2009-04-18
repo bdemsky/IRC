@@ -20,12 +20,14 @@ public class DiscoverConflicts {
   Hashtable<LocalityBinding, Set<FlatNode>> treadmap;
   Hashtable<LocalityBinding, Set<TempFlatPair>> transreadmap;
   Hashtable<LocalityBinding, Set<FlatNode>> srcmap;
-    
-  public DiscoverConflicts(LocalityAnalysis locality, State state) {
+  TypeAnalysis typeanalysis;
+  
+  public DiscoverConflicts(LocalityAnalysis locality, State state, TypeAnalysis typeanalysis) {
     this.locality=locality;
     this.fields=new HashSet<FieldDescriptor>();
     this.arrays=new HashSet<TypeDescriptor>();
     this.state=state;
+    this.typeanalysis=typeanalysis;
     transreadmap=new Hashtable<LocalityBinding, Set<TempFlatPair>>();
     treadmap=new Hashtable<LocalityBinding, Set<FlatNode>>();
     srcmap=new Hashtable<LocalityBinding, Set<FlatNode>>();
@@ -56,7 +58,12 @@ public class DiscoverConflicts {
   }
 
   public void expandTypes() {
-    //FIX ARRAY...compute super/sub sets of each so we can do simple membership test
+    Set<TypeDescriptor> expandedarrays=new HashSet<TypeDescriptor>();
+    for(Iterator<TypeDescriptor> it=arrays.iterator();it.hasNext();) {
+      TypeDescriptor td=it.next();
+      expandedarrays.addAll(typeanalysis.expand(td));
+    }
+    arrays=expandedarrays;
   }
 
   Hashtable<TempDescriptor, Set<TempFlatPair>> doMerge(FlatNode fn, Hashtable<FlatNode, Hashtable<TempDescriptor, Set<TempFlatPair>>> tmptofnset) {

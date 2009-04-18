@@ -21,6 +21,7 @@ import Analysis.Locality.DiscoverConflicts;
 import Analysis.CallGraph.CallGraph;
 import Analysis.Prefetch.*;
 import Analysis.Loops.WriteBarrier;
+import Analysis.Locality.TypeAnalysis;
 
 public class BuildCode {
   State state;
@@ -86,7 +87,8 @@ public class BuildCode {
       this.wb=new WriteBarrier(locality, st);
     }
     if (state.SINGLETM&&state.DCOPTS) {
-      this.dc=new DiscoverConflicts(locality, st);
+      TypeAnalysis typeanalysis=new TypeAnalysis(locality, st, typeutil,callgraph);
+      this.dc=new DiscoverConflicts(locality, st, typeanalysis);
       dc.doAnalysis();
     }
 
