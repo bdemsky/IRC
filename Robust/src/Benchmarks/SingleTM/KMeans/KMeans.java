@@ -214,7 +214,6 @@ public class KMeans extends Thread {
        * Since zscore transform may perform in cluster() which modifies the
        * contents of attributes[][], we need to re-store the originals
        */
-      //memcpy(attributes[0], buf, (numObjects * numAttributes * sizeof(double)));
       for(int x = 0; x < numObjects; x++) {
         for(int y = 0; y < numAttributes; y++) {
           attributes[x][y] = buf[x][y];
