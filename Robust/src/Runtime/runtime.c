@@ -14,6 +14,10 @@
 #endif
 #ifdef STM
 #include "tm.h"
+#include <pthread.h>
+/* Global barrier for STM */
+pthread_barrier_t barrier; 
+pthread_barrierattr_t attr;
 #endif
 #include <string.h>
 
@@ -178,6 +182,36 @@ void CALL02(___System______rangePrefetch____L___Object_____AR_S, struct ___Objec
 }
 #endif
 
+#endif
+
+#ifdef STM
+/* STM Barrier constructs */
+void CALL11(___Barrier______setBarrier____I, int nthreads, int nthreads) {
+#ifdef PRECISE_GC
+  struct listitem *tmp=stopforgc((struct garbagelist *)___params___);
+#endif
+  // Barrier initialization
+  int ret; 
+  if((ret = pthread_barrier_init(&barrier, NULL, nthreads)) != 0) {
+    printf("%s() Could not create a barrier: error %d\n", __func__, errno);
+    perror("");
+    exit(-1);
+  }
+#ifdef PRECISE_GC
+  restartaftergc(tmp);
+#endif
+} 
+
+void CALL00(___Barrier______enterBarrier____) {
+  // Synchronization point
+  int ret;
+  ret = pthread_barrier_wait(&barrier);
+  if(ret != 0) {
+    printf("%s() Could not wait on barrier: error %d\n", __func__, errno);
+    perror("");
+    exit(-1);
+  }
+}
 #endif
 
 /* Object allocation function */
