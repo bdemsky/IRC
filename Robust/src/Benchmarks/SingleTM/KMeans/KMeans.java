@@ -117,14 +117,10 @@ public class KMeans extends Thread {
   }
 
   public void run() {
-    Barrier barr;
-    barr = new Barrier("128.195.136.162");
     while(true) {
-      Barrier.enterBarrier(barr);
-
+      Barrier.enterBarrier();
       Normal.work(threadid, g_args);
-
-      Barrier.enterBarrier(barr);
+      Barrier.enterBarrier();
     }
   }
 
@@ -141,6 +137,8 @@ public class KMeans extends Thread {
     KMeans kms = new KMeans();
     KMeans.parseCmdLine(args, kms);
     nthreads = kms.nthreads;
+    /* Initiate Barriers */
+    Barrier.setBarrier(nthreads);
 
     if (kms.max_nclusters < kms.min_nclusters) {
       System.out.println("Error: max_clusters must be >= min_clusters\n");
@@ -159,7 +157,6 @@ public class KMeans extends Thread {
       System.out.println("TODO: Unimplemented Binary file option\n");
       System.exit(0);
     }
-    System.out.println("filename= " + kms.filename);
     FileInputStream inputFile = new FileInputStream(kms.filename);
     String line = null;
     while((line = inputFile.readLine()) != null) {
@@ -181,12 +178,13 @@ public class KMeans extends Thread {
 
     /* Ignore the id (first attribute): numAttributes = 1; */
     numAttributes = numAttributes - 1; //
-    System.out.println("numObjects= " + numObjects + "numAttributes= " + numAttributes);
+    System.out.println("numObjects= " + numObjects + " numAttributes= " + numAttributes);
 
     /* Allocate new shared objects and read attributes of all objects */
     buf = new double[numObjects][numAttributes];
     attributes = new double[numObjects][numAttributes];
     KMeans.readFromFile(inputFile, kms.filename, buf);
+    System.out.println("Finished Reading from file ......");
 
     /*
      * The core of the clustering
@@ -199,8 +197,6 @@ public class KMeans extends Thread {
     KMeans[] km = new KMeans[nthreads];
     GlobalArgs g_args = new GlobalArgs();
     g_args.nthreads = nthreads;
-    //args.nfeatures = numAttributes;
-    //args.npoints = numObjects;
 
     /* Create and Start Threads */
     for(int i = 1; i<nthreads; i++) {
@@ -210,6 +206,8 @@ public class KMeans extends Thread {
     for(int i = 1; i<nthreads; i++) {
       km[i].start();
     }
+
+    System.out.println("Finished starting threads......");
 
     for (int i = 0; i < nloops; i++) {
       /*
@@ -238,6 +236,7 @@ public class KMeans extends Thread {
           g_args);                // Global arguments common to all threads
     }
 
+    System.out.println("Start printing output......\n");
     /* Output: the coordinates of the cluster centres */
     {
       for (int i = 0; i < kms.best_nclusters; i++) {
@@ -249,6 +248,7 @@ public class KMeans extends Thread {
       }
     }
 
+    System.out.println("Finished......");
     System.exit(0);
   }
 
@@ -270,23 +270,23 @@ public class KMeans extends Thread {
         if(i < args.length) {
           km.threshold = new Integer(args[i++]).intValue();
         }
-      } else if(args.equals("-i")) {
+      } else if(arg.equals("-i")) {
         if(i < args.length) {
-          km.filename = new String(args[i++]);
+          km.filename = args[i++];
         }
-      } else if(args.equals("-b")) {
+      } else if(arg.equals("-b")) {
         if(i < args.length) {
           km.isBinaryFile = new Integer(args[i++]).intValue();
         }
-      } else if(args.equals("-z")) {
+      } else if(arg.equals("-z")) {
         if(i < args.length) {
 
         }
-      } else if(args.equals("-nthreads")) {
+      } else if(arg.equals("-nthreads")) {
         if(i < args.length) {
           km.nthreads = new Integer(args[i++]).intValue();
         }
-      } else if(args.equals("-h")) {
+      } else if(arg.equals("-h")) {
         km.usage();
       }
     }
@@ -316,7 +316,6 @@ public class KMeans extends Thread {
     int j;
     String line = null;
     while((line = inputFile.readLine()) != null) {
-      System.out.println("line= " + line);
       int index=0;
       StringBuffer buffer = new StringBuffer();
       j = 0;
@@ -331,10 +330,8 @@ public class KMeans extends Thread {
             buffer = new StringBuffer();
             continue;
           }
-          //System.out.println("buffer.toString()= " + buffer.toString());
           double f = KMeans.StringToFloat(buffer.toString());
           buf[i][j] = f;
-          System.out.println("f= " + f);
           buffer = new StringBuffer();
           j++;
         }
@@ -344,10 +341,10 @@ public class KMeans extends Thread {
   } 
 
   /**
-   * Convert a string into float
+   * Convert a string into double
    **/
   public static double StringToFloat (String str) {
-    double total = 0; // the total to return
+    double total = 0.0d; // the total to return
     int length = str.length(); // the length of the string
     int prefixLength=0; // the length of the number BEFORE the decimal
     int suffixLength=0; // the length of the number AFTER the decimal
@@ -365,12 +362,10 @@ public class KMeans extends Thread {
         suffixLength++;
     }
 
-    //System.out.println("str.length()= " + str.length() + " prefixLength= " + prefixLength + " suffixLength= " + suffixLength);
-    long x = 1; // our multiplier, used for thousands, hundreds, tens, units, etc
+    long x = 1L; // our multiplier, used for thousands, hundreds, tens, units, etc
     for (int i = 1; i < prefixLength; i++)
       x *= 10;
 
-    //System.out.println("x= " + x);
 
     for (int i = 0; i < prefixLength; i++)
     { // get the integer value
@@ -380,26 +375,21 @@ public class KMeans extends Thread {
       x /= 10; // divide to decide which is the next unit
     }
 
-    double decimal=0; // our value of the decimal only (we'll add it to total later)
+    double decimal=0.0d; // our value of the decimal only (we'll add it to total later)
     x = 1; // again, but this time we'll go the other way to make it all below 0
     for (int i = 1; i < suffixLength; i++) {
       x *= 10;
-      //System.out.println("x= " + x);
     }
 
-    //System.out.println("str.length()= " + str.length() + " prefixLength= " + prefixLength + " suffixLength= " + suffixLength);
     for (int i = 0; i < suffixLength; i++)
     { // same again, but this time it's for the decimal value
-      //decimal += (static_cast <int> (str[i+suffixLength+1]) - 48) * x;
-      //decimal += ((int)(str.charAt(i+suffixLength+1)) - 48) * x;
       decimal += ((int)(str.charAt(i+prefixLength+1)) - 48) * x;
-      //System.out.println("i+prefixLength+1= " + (i+prefixLength+1) + " char= " + str.charAt(i+prefixLength+1));
       x /= 10;
-      //System.out.println("x= " + x);
     }
 
-    for (int i = 0; i < suffixLength; i++)
-      decimal /= 10; // make the decimal so that it is 0.whatever
+    for (int i = 0; i < suffixLength; i++) {
+      decimal /= 10.0d; // make the decimal so that it is 0.whatever
+    }
 
     total += decimal; // add them together
     return total;

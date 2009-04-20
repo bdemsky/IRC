@@ -150,8 +150,6 @@ public class Cluster {
     {
       int itime;
       int nclusters;
-      //random_t* randomPtr;
-      //Random randomPtr = null;
 
       double[][] tmp_cluster_centres = null;
       int[] membership = new int[numObjects];
@@ -169,6 +167,7 @@ public class Cluster {
        * From min_nclusters to max_nclusters, find best_nclusters
        */
       for (nclusters = min_nclusters; nclusters <= max_nclusters; nclusters++) {
+        //System.out.println("ncluster= " + nclusters);
 
         randomPtr.random_seed(randomPtr, 7);
         args.nclusters = nclusters;

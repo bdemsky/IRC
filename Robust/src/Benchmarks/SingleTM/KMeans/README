@@ -37,8 +37,8 @@ run in the following manner:
 
 To produce the data in [1], the following values were used:
 
-    low contention:  -m40 -n40 -t0.05 -i inputs/random2048-d16-c16.txt
-    high contention: -m15 -n15 -t0.05 -i inputs/random2048-d16-c16.txt
+    low contention:  -m40 -n40 -t0.05 -i inputs/random-n2048-d16-c16.txt
+    high contention: -m15 -n15 -t0.05 -i inputs/random-n2048-d16-c16.txt
 
 For runs without a simulator, a larger input file, (more info below) can be used
 instead:

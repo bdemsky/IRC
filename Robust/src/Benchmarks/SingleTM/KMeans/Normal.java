@@ -87,32 +87,16 @@
 
 public class Normal {
   int CHUNK;
-  //double global_delta;
-  //long global_i; /* index into task queue */
 
   public Normal() {
     CHUNK = 3;
   }
-
-  /*
-     typedef struct args {
-     double** feature;
-     int     nfeatures;
-     int     npoints;
-     int     nclusters;
-     int*    membership;
-     double** clusters;
-     int**   new_centers_len;
-     double** new_centers;
-     } args_t;
-   */
 
   /* =============================================================================
    * work
    * =============================================================================
    */
   public void work(int myId, GlobalArgs args) {
-    //int CHUNK = 3;
     double[][] feature = args.feature;
     int nfeatures = args.nfeatures;
     int npoints = args.npoints;
@@ -185,7 +169,6 @@ public class Normal {
       Random     randomPtr,  /* out: [npoints] */
       GlobalArgs args)
   {
-    //int CHUNK = 3;
     double delta;
     double[][] clusters;      /* out: [nclusters][nfeatures] */
 
@@ -211,12 +194,9 @@ public class Normal {
     int[] new_centers_len  = new int[nclusters];
     double[][] new_centers = new double[nclusters][nfeatures];
 
-    Barrier barr;
-    barr = new Barrier("128.195.136.162");
-
     int loop = 0;
     do {
-      delta = 0.0;
+      delta = 0.0d;
 
       args.feature         = feature;
       args.nfeatures       = nfeatures;
@@ -257,11 +237,9 @@ public class Normal {
    * Work done by primary thread in parallel with other threads
    **/
   thread_work(GlobalArgs args) {
-   Barrier barr;
-   barr = new Barrier("128.195.136.162");
-   Barrier.enterBarrier(barr);
+   Barrier.enterBarrier();
    work(0, args); //threadId = 0 because primary thread
-   Barrier.enterBarrier(barr);
+   Barrier.enterBarrier();
   }
 }
 
