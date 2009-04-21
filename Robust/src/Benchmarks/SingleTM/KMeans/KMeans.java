@@ -289,6 +289,9 @@ public class KMeans extends Thread {
         km.usage();
       }
     }
+    if(km.nthreads == 0 || km.filename == null) {
+      km.usage();
+    }
   }
 
   /**

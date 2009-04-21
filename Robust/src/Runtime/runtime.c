@@ -193,8 +193,7 @@ void CALL11(___Barrier______setBarrier____I, int nthreads, int nthreads) {
   // Barrier initialization
   int ret; 
   if((ret = pthread_barrier_init(&barrier, NULL, nthreads)) != 0) {
-    printf("%s() Could not create a barrier: error %d\n", __func__, errno);
-    perror("");
+    printf("%s() Could not create a barrier: numthreads = 0 in %s\n", __func__, __FILE__);
     exit(-1);
   }
 #ifdef PRECISE_GC
@@ -207,8 +206,7 @@ void CALL00(___Barrier______enterBarrier____) {
   int ret;
   ret = pthread_barrier_wait(&barrier);
   if(ret != 0 && ret != PTHREAD_BARRIER_SERIAL_THREAD) {
-    printf("%s() Could not wait on barrier: error %d\n", __func__, errno);
-    perror("");
+    printf("%s() Could not wait on barrier: error %d in %s\n", __func__, errno, __FILE__);
     exit(-1);
   }
 }
