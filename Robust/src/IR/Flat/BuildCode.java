@@ -1866,7 +1866,7 @@ public class BuildCode {
 	for(int j=0; j<id.tddesc.size(); j++) {
 	  indexcheck+=generateTemp(fm, id.getTempDescAt(j), lb)+"+";
 	}
-	indexcheck+=id.offset+")>=0)&&(tmpindex<((struct ArrayObject *)prefptr)->___length___)";
+	indexcheck+=id.offset+")>=0)&(tmpindex<((struct ArrayObject *)prefptr)->___length___)";
 
 	if (!teststr.equals(""))
 	  teststr+="&&";
@@ -2368,7 +2368,7 @@ public class BuildCode {
       type=elementtype.getSafeSymbol()+" ";
 
     if (this.state.ARRAYBOUNDARYCHECK && fen.needsBoundsCheck()) {
-      output.println("if ("+generateTemp(fm, fen.getIndex(),lb)+"< 0 || "+generateTemp(fm, fen.getIndex(),lb)+" >= "+generateTemp(fm,fen.getSrc(),lb) + "->___length___)");
+      output.println("if ("+generateTemp(fm, fen.getIndex(),lb)+"< 0 | "+generateTemp(fm, fen.getIndex(),lb)+" >= "+generateTemp(fm,fen.getSrc(),lb) + "->___length___)");
       output.println("failedboundschk();");
     }
     if (state.SINGLETM) {
@@ -2422,7 +2422,7 @@ public class BuildCode {
       type=elementtype.getSafeSymbol()+" ";
 
     if (this.state.ARRAYBOUNDARYCHECK && fsen.needsBoundsCheck()) {
-      output.println("if ("+generateTemp(fm, fsen.getIndex(),lb)+"< 0 || "+generateTemp(fm, fsen.getIndex(),lb)+" >= "+generateTemp(fm,fsen.getDst(),lb) + "->___length___)");
+      output.println("if ("+generateTemp(fm, fsen.getIndex(),lb)+"< 0 | "+generateTemp(fm, fsen.getIndex(),lb)+" >= "+generateTemp(fm,fsen.getDst(),lb) + "->___length___)");
       output.println("failedboundschk();");
     }
 
