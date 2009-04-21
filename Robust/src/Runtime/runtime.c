@@ -206,7 +206,7 @@ void CALL00(___Barrier______enterBarrier____) {
   // Synchronization point
   int ret;
   ret = pthread_barrier_wait(&barrier);
-  if(ret != 0) {
+  if(ret != 0 && ret != PTHREAD_BARRIER_SERIAL_THREAD) {
     printf("%s() Could not wait on barrier: error %d\n", __func__, errno);
     perror("");
     exit(-1);
