@@ -96,7 +96,8 @@ public class Normal {
    * work
    * =============================================================================
    */
-  public void work(int myId, GlobalArgs args) {
+  public static void work(int myId, GlobalArgs args) {
+    int CHUNK=3;
     double[][] feature = args.feature;
     int nfeatures = args.nfeatures;
     int npoints = args.npoints;
