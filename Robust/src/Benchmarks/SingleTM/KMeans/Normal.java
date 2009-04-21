@@ -111,6 +111,7 @@ public class Normal {
 
     start = myId * CHUNK;
 
+    //System.out.println("myId= " + myId + " start= " + start + " npoints= " + npoints);
     while (start < npoints) {
       stop = (((start + CHUNK) < npoints) ? (start + CHUNK) : npoints);
       for (int i = start; i < stop; i++) {
@@ -211,7 +212,7 @@ public class Normal {
       args.global_i = nthreads * CHUNK;
       args.global_delta = delta;
 
-      //Sequential thread doing work in parallel with other threads
+      //Work in parallel with other threads
       thread_work(args);
 
       delta = args.global_delta;
@@ -229,6 +230,8 @@ public class Normal {
 
       delta /= npoints;
 
+      //System.out.println("delta= " + delta + " loop= " + loop + " threshold= " + threshold);
+
     } while ((delta > threshold) && (loop++ < 500));
 
     return clusters;
@@ -239,7 +242,7 @@ public class Normal {
    **/
   thread_work(GlobalArgs args) {
    Barrier.enterBarrier();
-   work(0, args); //threadId = 0 because primary thread
+   Normal.work(0, args); //threadId = 0 because primary thread
    Barrier.enterBarrier();
   }
 }

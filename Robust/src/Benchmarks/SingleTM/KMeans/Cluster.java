@@ -138,14 +138,8 @@ public class Cluster {
         int      numObjects,             /* number of input objects */
         int      numAttributes,          /* size of attribute of each object */
         double[][]  attributes,           /* [numObjects][numAttributes] */
-        int      use_zscore_transform,
-        int      min_nclusters,          /* testing k range from min to max */
-        int      max_nclusters,
-        double    threshold,              /* in:   */
-        int     best_nclusters,          /* out: number between min and max */
-        double[][] cluster_centres,       /* out: [best_nclusters][numAttributes] */
-        int[]     cluster_assign,        /* out: [numObjects] */
-        GlobalArgs args                 /* Thread arguments */
+        KMeans kms,                       /* KMeans class hold the inputs and outputs */
+        GlobalArgs args                 /* Global thread arguments */
         )
     {
       int itime;
@@ -157,7 +151,7 @@ public class Cluster {
       Random randomPtr = new Random();
       randomPtr = randomPtr.random_alloc(randomPtr);
 
-      if (use_zscore_transform == 1) {
+      if (kms.use_zscore_transform == 1) {
         zscoreTransform(attributes, numObjects, numAttributes);
       }
 
@@ -166,8 +160,7 @@ public class Cluster {
       /*
        * From min_nclusters to max_nclusters, find best_nclusters
        */
-      for (nclusters = min_nclusters; nclusters <= max_nclusters; nclusters++) {
-        //System.out.println("ncluster= " + nclusters);
+      for (nclusters = kms.min_nclusters; nclusters <= kms.max_nclusters; nclusters++) {
 
         randomPtr.random_seed(randomPtr, 7);
         args.nclusters = nclusters;
@@ -179,14 +172,14 @@ public class Cluster {
             numAttributes,
             numObjects,
             nclusters,
-            threshold,
+            kms.threshold,
             membership,
             randomPtr,
             args);
 
         {
-          cluster_centres = tmp_cluster_centres;
-          best_nclusters = nclusters;
+          kms.cluster_centres = tmp_cluster_centres;
+          kms.best_nclusters = nclusters;
         }
 
         itime++;
@@ -195,7 +188,6 @@ public class Cluster {
       randomPtr = null;
     }
 }
-
 
 /* =============================================================================
  *

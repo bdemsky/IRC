@@ -184,7 +184,6 @@ public class KMeans extends Thread {
     buf = new double[numObjects][numAttributes];
     attributes = new double[numObjects][numAttributes];
     KMeans.readFromFile(inputFile, kms.filename, buf);
-    System.out.println("Finished Reading from file ......");
 
     /*
      * The core of the clustering
@@ -207,7 +206,7 @@ public class KMeans extends Thread {
       km[i].start();
     }
 
-    System.out.println("Finished starting threads......");
+    System.out.println("Finished Starting threads......");
 
     for (int i = 0; i < nloops; i++) {
       /*
@@ -225,23 +224,19 @@ public class KMeans extends Thread {
           numObjects,
           numAttributes,
           attributes,             // [numObjects][numAttributes] 
-          kms.use_zscore_transform, // 0 or 1 
-          kms.min_nclusters,      // pre-define range from min to max 
-          kms.max_nclusters,
-          kms.threshold,
-          kms.best_nclusters,     // return: number between min and max
-          kms.cluster_centres,    // return: [best_nclusters][numAttributes]
-          cluster_assign,         // return: [numObjects] cluster id for each object
+          kms,                    //main class that holds users inputs from command prompt and output arrays that need to be filled
           g_args);                // Global arguments common to all threads
     }
 
-    System.out.println("Start printing output......\n");
+    System.out.println("Printing output......");
+    System.out.println("Best_nclusters= " + kms.best_nclusters);
+
     /* Output: the coordinates of the cluster centres */
     {
       for (int i = 0; i < kms.best_nclusters; i++) {
-        System.out.println(i);
+        System.out.print(i + " ");
         for (int j = 0; j < numAttributes; j++) {
-          System.out.println(kms.cluster_centres[i][j]);
+          System.out.print(kms.cluster_centres[i][j] + " ");
         }
         System.out.println("\n");
       }
