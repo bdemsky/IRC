@@ -304,8 +304,6 @@ public class MLPAnalysis {
 	inUnion.merge( variableResults.get( nn ) );
       }
 
-      System.out.println( fn+":"+seseStack );
-
       VarSrcTokTable curr = variable_nodeActions( fn, inUnion, seseStack.peek() );
 
       // if a new result, schedule forward nodes for analysis
@@ -313,14 +311,14 @@ public class MLPAnalysis {
 	
 	variableResults.put( fn, curr );
 
-	for( int i = 0; i < fn.numPrev(); i++ ) {
-	  FlatNode nn = fn.getPrev( i );	 
+	for( int i = 0; i < fn.numNext(); i++ ) {
+	  FlatNode nn = fn.getNext( i );	 
 	  flatNodesToVisit.add( nn );	 
 	}
       }
     }    
 
-    if( state.MLPDEBUG ) { 
+    if( state.MLPDEBUG ) {
     }
   }
 
@@ -331,22 +329,16 @@ public class MLPAnalysis {
 
     case FKind.FlatSESEEnterNode: {
       FlatSESEEnterNode fsen = (FlatSESEEnterNode) fn;
-      /*
-      if( seseStack.empty() ) {
-	seseRoots.add( fsen );
-      } else {
-	seseStack.peek().addChild( fsen );
+
+      if( fsen.equals( currentSESE ) ) {
+	vstTable.age( currentSESE );
       }
-      seseStack.push( fsen );
-      */
     } break;
 
     case FKind.FlatSESEExitNode: {
       FlatSESEExitNode fsexn = (FlatSESEExitNode) fn;
-      /*
-      assert !seseStack.empty();
-      FlatSESEEnterNode fsen = seseStack.pop();
-      */
+
+      vstTable.removeChildToks( currentSESE );
     } break;
 
     case FKind.FlatOpNode: {
