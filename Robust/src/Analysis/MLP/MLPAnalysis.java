@@ -17,7 +17,6 @@ public class MLPAnalysis {
   private CallGraph callGraph;
   private OwnershipAnalysis ownAnalysis;
 
-  private Set<FlatSESEEnterNode> seseRoots;
   private SESENode          rootTree;
   private FlatSESEEnterNode rootSESE;
   private FlatSESEExitNode  rootExit;
@@ -41,21 +40,19 @@ public class MLPAnalysis {
     this.ownAnalysis = ownAnalysis;
 
     // initialize analysis data structures
-    seseRoots       = new HashSet<FlatSESEEnterNode>();
     seseStacks      = new Hashtable< FlatNode, Stack<FlatSESEEnterNode> >();
     livenessResults = new Hashtable< FlatNode, Set<TempDescriptor>      >();
     variableResults = new Hashtable< FlatNode, VarSrcTokTable           >();
 
     // build an implicit root SESE to wrap contents of main method
-    /*
     rootTree = new SESENode( "root" );
     rootSESE = new FlatSESEEnterNode( rootTree );
     rootExit = new FlatSESEExitNode ( rootTree );
     rootSESE.setFlatExit ( rootExit );
     rootExit.setFlatEnter( rootSESE );
-    seseRoots.add( rootSESE );
-    */
 
+
+    // 1st pass
     // run analysis on each method that is actually called
     // reachability analysis already computed this so reuse
     Iterator<Descriptor> methItr = ownAnalysis.descriptorsToAnalyze.iterator();
@@ -79,25 +76,29 @@ public class MLPAnalysis {
       }
     }
 
-    Iterator<FlatSESEEnterNode> seseItr = seseRoots.iterator();
-    while( seseItr.hasNext() ) {
-      FlatSESEEnterNode fsen = seseItr.next();
 
-      // do a post-order traversal of the forest so that
-      // a child is analyzed before a parent.  Start from
-      // SESE's exit and do a backward data-flow analysis
-      // for the source of variables
-      livenessAnalysisBackward( fsen );
-    }
+    // 2nd pass
+    livenessAnalysisBackward( rootSESE );
 
-    seseItr = seseRoots.iterator();
-    while( seseItr.hasNext() ) {
-      FlatSESEEnterNode fsen = seseItr.next();
+
+    // 3rd pass
+    methItr = ownAnalysis.descriptorsToAnalyze.iterator();
+    while( methItr.hasNext() ) {
+      Descriptor d = methItr.next();
+      
+      FlatMethod fm;
+      if( d instanceof MethodDescriptor ) {
+	fm = state.getMethodFlat( (MethodDescriptor) d);
+      } else {
+	assert d instanceof TaskDescriptor;
+	fm = state.getMethodFlat( (TaskDescriptor) d);
+      }
 
       // starting from roots do a forward, fixed-point
       // variable analysis for refinement and stalls
-      variableAnalysisForward( fsen );
+      variableAnalysisForward( fm );
     }
+
 
     double timeEndAnalysis = (double) System.nanoTime();
     double dt = (timeEndAnalysis - timeStartAnalysis)/(Math.pow( 10.0, 9.0 ) );
@@ -116,7 +117,7 @@ public class MLPAnalysis {
     Set<FlatNode> visited = new HashSet<FlatNode>();    
 
     Stack<FlatSESEEnterNode> seseStackFirst = new Stack<FlatSESEEnterNode>();
-    //seseStackFirst.push( rootSESE );
+    seseStackFirst.push( rootSESE );
     seseStacks.put( fm, seseStackFirst );
 
     while( !flatNodesToVisit.isEmpty() ) {
@@ -149,26 +150,22 @@ public class MLPAnalysis {
     switch( fn.kind() ) {
 
     case FKind.FlatSESEEnterNode: {
-      FlatSESEEnterNode fsen = (FlatSESEEnterNode) fn;
-
-      if( seseStack.empty() ) {
-	seseRoots.add( fsen );
-      } else {
-	seseStack.peek().addChild( fsen );
-      }
+      FlatSESEEnterNode fsen = (FlatSESEEnterNode) fn;      
+      assert !seseStack.empty();
+      seseStack.peek().addChild( fsen );
       seseStack.push( fsen );
     } break;
 
     case FKind.FlatSESEExitNode: {
       FlatSESEExitNode fsexn = (FlatSESEExitNode) fn;
-
       assert !seseStack.empty();
       FlatSESEEnterNode fsen = seseStack.pop();
     } break;
 
     case FKind.FlatReturnNode: {
       FlatReturnNode frn = (FlatReturnNode) fn;
-      if( !seseStack.empty() ) {
+      if( !seseStack.empty() && 
+	  !seseStack.peek().equals( rootSESE ) ) {
 	throw new Error( "Error: return statement enclosed within "+seseStack.peek() );
       }
     } break;
@@ -177,17 +174,10 @@ public class MLPAnalysis {
   }
 
   private void printSESEForest() {
-    // we are assuming an implicit root SESE in the main method
-    // so assert that our forest is actually a tree
-    assert seseRoots.size() == 1;
-
-    System.out.println( "SESE Forest:" );      
-    Iterator<FlatSESEEnterNode> seseItr = seseRoots.iterator();
-    while( seseItr.hasNext() ) {
-      FlatSESEEnterNode fsen = seseItr.next();
-      printSESETree( fsen, 0 );
-      System.out.println( "" );
-    }
+    // our forest is actually a tree now that
+    // there is an implicit root SESE
+    printSESETree( rootSESE, 0 );
+    System.out.println( "" );
   }
 
   private void printSESETree( FlatSESEEnterNode fsen, int depth ) {
@@ -293,14 +283,17 @@ public class MLPAnalysis {
   }
 
 
-  private void variableAnalysisForward( FlatSESEEnterNode fsen ) {
-    /*
+  private void variableAnalysisForward( FlatMethod fm ) {
+
     Set<FlatNode> flatNodesToVisit = new HashSet<FlatNode>();
-    flatNodesToVisit.add( fsen );	 
+    flatNodesToVisit.add( fm );	 
 
     while( !flatNodesToVisit.isEmpty() ) {
       FlatNode fn = (FlatNode) flatNodesToVisit.iterator().next();
       flatNodesToVisit.remove( fn );      
+
+      Stack<FlatSESEEnterNode> seseStack = seseStacks.get( fn );
+      assert seseStack != null;      
 
       VarSrcTokTable prev = variableResults.get( fn );
 
@@ -311,39 +304,24 @@ public class MLPAnalysis {
 	inUnion.merge( variableResults.get( nn ) );
       }
 
-      VarSrcTokTable curr = variable_nodeActions( fn, inUnion, fsen );
+      System.out.println( fn+":"+seseStack );
 
-      // if a new result, schedule backward nodes for analysis
+      VarSrcTokTable curr = variable_nodeActions( fn, inUnion, seseStack.peek() );
+
+      // if a new result, schedule forward nodes for analysis
       if( !curr.equals( prev ) ) {
-
+	
 	variableResults.put( fn, curr );
 
-	// don't flow backwards past SESE enter
-	if( !fn.equals( fsen ) ) {	
-	  for( int i = 0; i < fn.numPrev(); i++ ) {
-	    FlatNode nn = fn.getPrev( i );	 
-	    flatNodesToVisit.add( nn );	 
-	  }
+	for( int i = 0; i < fn.numPrev(); i++ ) {
+	  FlatNode nn = fn.getPrev( i );	 
+	  flatNodesToVisit.add( nn );	 
 	}
       }
-    }
-    
-    fsen.addInVarSet( variableResults.get( fsen ).get() );
+    }    
 
     if( state.MLPDEBUG ) { 
-      System.out.println( "SESE "+fsen.getPrettyIdentifier()+" has in-set:" );
-      Iterator<VariableSourceToken> tItr = fsen.getInVarSet().iterator();
-      while( tItr.hasNext() ) {
-	System.out.println( "  "+tItr.next() );
-      }
-      System.out.println( "and out-set:" );
-      tItr = fsen.getOutVarSet().iterator();
-      while( tItr.hasNext() ) {
-	System.out.println( "  "+tItr.next() );
-      }
-      System.out.println( "" );
     }
-    */
   }
 
   private VarSrcTokTable variable_nodeActions( FlatNode fn, 
@@ -351,8 +329,69 @@ public class MLPAnalysis {
 					       FlatSESEEnterNode currentSESE ) {
     switch( fn.kind() ) {
 
+    case FKind.FlatSESEEnterNode: {
+      FlatSESEEnterNode fsen = (FlatSESEEnterNode) fn;
+      /*
+      if( seseStack.empty() ) {
+	seseRoots.add( fsen );
+      } else {
+	seseStack.peek().addChild( fsen );
+      }
+      seseStack.push( fsen );
+      */
+    } break;
 
+    case FKind.FlatSESEExitNode: {
+      FlatSESEExitNode fsexn = (FlatSESEExitNode) fn;
+      /*
+      assert !seseStack.empty();
+      FlatSESEEnterNode fsen = seseStack.pop();
+      */
+    } break;
+
+    case FKind.FlatOpNode: {
+      FlatOpNode fon = (FlatOpNode) fn;
+
+      if( fon.getOp().getOp() == Operation.ASSIGN ) {
+	TempDescriptor lhs = fon.getDest();
+	TempDescriptor rhs = fon.getLeft();
+
+	vstTable.remove( lhs );
+
+	Iterator<VariableSourceToken> itr = vstTable.get( rhs ).iterator();
+	while( itr.hasNext() ) {
+	  VariableSourceToken vst = itr.next();
+	  
+	  vstTable.add( new VariableSourceToken( lhs,
+						 vst.getSESE(),
+						 vst.getAge(),
+						 vst.getVarSrc()
+					       )
+			);
+	}
+
+	// only break if this is an ASSIGN op node,
+	// otherwise fall through to default case
+	break;
+      }
+    }
+
+    // note that FlatOpNode's that aren't ASSIGN
+    // fall through to this default case
     default: {
+      TempDescriptor [] writeTemps = fn.writesTemps();
+      if( writeTemps.length > 0 ) {
+	assert writeTemps.length == 1;
+
+	vstTable.remove( writeTemps[0] );
+
+	vstTable.add( new VariableSourceToken( writeTemps[0],
+					       currentSESE,
+					       new Integer( 0 ),
+					       writeTemps[0]
+					     )
+		      );
+      }      
     } break;
 
     } // end switch
