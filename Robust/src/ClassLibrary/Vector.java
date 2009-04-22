@@ -117,12 +117,12 @@ public class Vector {
       System.printString("Illegal Vector.removeElementAt\n");
       System.exit(-1);
     }
-    removeElement(array, index);
+    removeElement(array, index, size);
     size--;
     array[size]=null;
   }
 
-  public static native void removeElement(Object[] array, int index);
+  public static native void removeElement(Object[] array, int index, int size);
 
   public void removeAllElements() {
     int s = size;

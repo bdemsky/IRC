@@ -118,11 +118,10 @@ void CALL11(___System______exit____I,int ___status___, int ___status___) {
   exit(___status___);
 }
 
-#ifdef D___Vector______removeElement_____AR_L___Object____I
-void CALL12(___Vector______removeElement_____AR_L___Object____I, int ___index___, struct ArrayObject * ___array___, int ___index___) {
-  int length=VAR(___array___)->___length___;
+#ifdef D___Vector______removeElement_____AR_L___Object____II
+void CALL23(___Vector______removeElement_____AR_L___Object____II, int ___index___, int ___size___, struct ArrayObject * ___array___, int ___index___, int ___size___) {
   char* offset=((char *)(&VAR(___array___)->___length___))+sizeof(unsigned int)+sizeof(void *)*___index___;
-  memmove(offset, offset+sizeof(void *),(length-___index___-1)*sizeof(void *));
+  memmove(offset, offset+sizeof(void *),(___size___-___index___-1)*sizeof(void *));
 }
 #endif
 
