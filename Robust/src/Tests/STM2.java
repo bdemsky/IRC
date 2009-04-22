@@ -1,4 +1,4 @@
-/* This test case tests the thread joining for a threadDSM library */ 
+/* This test case tests the thread joining for a JavaSTM library */ 
 public class STM2 extends Thread {
   public People[] team;
   public STM2() {
