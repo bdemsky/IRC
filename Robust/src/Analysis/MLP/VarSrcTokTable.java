@@ -300,6 +300,20 @@ public class VarSrcTokTable {
   }   
 
 
+  public Set<VariableSourceToken> getStallSet( FlatSESEEnterNode curr ) {
+
+    Set<VariableSourceToken> out = new HashSet<VariableSourceToken>();
+
+    Iterator<FlatSESEEnterNode> cItr = curr.getChildren().iterator();
+    while( cItr.hasNext() ) {
+      FlatSESEEnterNode child = cItr.next();
+      out.addAll( get( child ) );
+    }
+
+    return out;
+  }
+
+
   public boolean equals( Object o ) {
     if( o == null ) {
       return false;

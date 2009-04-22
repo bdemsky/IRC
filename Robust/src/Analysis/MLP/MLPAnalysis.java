@@ -100,6 +100,17 @@ public class MLPAnalysis {
     }
 
 
+    // 4th pass
+    methItr = ownAnalysis.descriptorsToAnalyze.iterator();
+    while( methItr.hasNext() ) {
+      Descriptor d = methItr.next();
+      
+      FlatMethod fm = state.getMethodFlat( d );
+
+      computeStallsForward( fm );
+    }
+
+
     double timeEndAnalysis = (double) System.nanoTime();
     double dt = (timeEndAnalysis - timeStartAnalysis)/(Math.pow( 10.0, 9.0 ) );
     String treport = String.format( "The mlp analysis took %.3f sec.", dt );
@@ -389,5 +400,62 @@ public class MLPAnalysis {
     } // end switch
 
     return vstTable;
+  }
+
+
+  private void computeStallsForward( FlatMethod fm ) {
+    
+    // start from flat method top, visit every node in
+    // method exactly once
+    Set<FlatNode> flatNodesToVisit = new HashSet<FlatNode>();
+    flatNodesToVisit.add( fm );
+
+    Set<FlatNode> visited = new HashSet<FlatNode>();    
+
+    while( !flatNodesToVisit.isEmpty() ) {
+      Iterator<FlatNode> fnItr = flatNodesToVisit.iterator();
+      FlatNode fn = fnItr.next();
+
+      flatNodesToVisit.remove( fn );
+      visited.add( fn );      
+
+      Stack<FlatSESEEnterNode> seseStack = seseStacks.get( fn );
+      assert seseStack != null;      
+
+      VarSrcTokTable vstTable = variableResults.get( fn );
+
+      computeStalls_nodeActions( fn, vstTable, seseStack.peek() );
+
+      for( int i = 0; i < fn.numNext(); i++ ) {
+	FlatNode nn = fn.getNext( i );
+
+	if( !visited.contains( nn ) ) {
+	  flatNodesToVisit.add( nn );
+	}
+      }
+    }      
+  }
+
+  private void computeStalls_nodeActions( FlatNode fn,
+                                          VarSrcTokTable vstTable,
+                                          FlatSESEEnterNode currentSESE ) {
+    switch( fn.kind() ) {
+
+    case FKind.FlatSESEEnterNode: {
+      FlatSESEEnterNode fsen = (FlatSESEEnterNode) fn;      
+    } break;
+
+    case FKind.FlatSESEExitNode: {
+      FlatSESEExitNode fsexn = (FlatSESEExitNode) fn;
+    } break;
+
+    default: {
+      Set<VariableSourceToken> stallSet = 
+        vstTable.getStallSet( currentSESE );
+
+      System.out.println( fn+" should stall on\n  "+stallSet+"\n" );
+    } break;
+
+    } // end switch
   }
 }
