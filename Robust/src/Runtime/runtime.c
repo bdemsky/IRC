@@ -118,8 +118,8 @@ void CALL11(___System______exit____I,int ___status___, int ___status___) {
   exit(___status___);
 }
 
-#ifdef D___Vector______removeElement_____AR_L___Object____II
-void CALL23(___Vector______removeElement_____AR_L___Object____II, int ___index___, int ___size___, struct ArrayObject * ___array___, int ___index___, int ___size___) {
+#ifdef D___Vector______removeElement_____AR_L___Object____I_I
+void CALL23(___Vector______removeElement_____AR_L___Object____I_I, int ___index___, int ___size___, struct ArrayObject * ___array___, int ___index___, int ___size___) {
   char* offset=((char *)(&VAR(___array___)->___length___))+sizeof(unsigned int)+sizeof(void *)*___index___;
   memmove(offset, offset+sizeof(void *),(___size___-___index___-1)*sizeof(void *));
 }
@@ -185,6 +185,7 @@ void CALL02(___System______rangePrefetch____L___Object_____AR_S, struct ___Objec
 
 #ifdef STM
 /* STM Barrier constructs */
+#ifdef D___Barrier______setBarrier____I
 void CALL11(___Barrier______setBarrier____I, int nthreads, int nthreads) {
 #ifdef PRECISE_GC
   struct listitem *tmp=stopforgc((struct garbagelist *)___params___);
@@ -199,7 +200,9 @@ void CALL11(___Barrier______setBarrier____I, int nthreads, int nthreads) {
   restartaftergc(tmp);
 #endif
 } 
+#endif
 
+#ifdef D___Barrier______enterBarrier____
 void CALL00(___Barrier______enterBarrier____) {
   // Synchronization point
   int ret;
@@ -209,6 +212,7 @@ void CALL00(___Barrier______enterBarrier____) {
     exit(-1);
   }
 }
+#endif
 #endif
 
 /* Object allocation function */
@@ -287,7 +291,7 @@ __attribute__((malloc)) struct ArrayObject * allocate_newarray(void * ptr, int t
   tmp->version=1;
   v->type=type;
   if (length<0) {
-    printf("ERROR: negative array\n");
+    printf("ERROR: negative array %d\n", length);
     return NULL;
   }
   v->___objlocation___=(struct ___Object___ *)v;
