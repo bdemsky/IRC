@@ -19,7 +19,7 @@ void * getItem(struct Queue * queue);
 void freeQueue(struct Queue * q);
 struct Queue * createQueue();
 struct QueueItem * addNewItem(struct Queue * queue, void * ptr);
-#ifdef RAW
+#ifdef MULTICORE
 struct QueueItem * addNewItem_I(struct Queue * queue, void * ptr);
 #endif
 struct QueueItem * findItem(struct Queue * queue, void * ptr);

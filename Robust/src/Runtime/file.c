@@ -1,9 +1,6 @@
 #include <fcntl.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-//#ifndef RAW
-//#include <sys/uio.h>
-//#endif
 #include <unistd.h>
 #include "structdefs.h"
 #include "mem.h"

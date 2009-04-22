@@ -16,7 +16,13 @@
 #define RUNMALLOC(x) calloc(1,x)
 #define RUNFREE(x) free(x)
 #else
-#ifdef RAW
+#ifdef MULTICORE
+#ifdef THREADSIMULATE
+#define FREEMALLOC(x) calloc(1,x)
+#define RUNMALLOC(x) calloc(1,x)
+#define RUNFREE(x) free(x)
+//#define PTR(x) (x)
+#else
 void * mycalloc(int m, int size);
 void * mycalloc_i(int m, int size);
 void myfree(void * ptr);
@@ -25,12 +31,8 @@ void myfree(void * ptr);
 #define RUNMALLOC_I(x) mycalloc_i(1,x) // with interruption blocked beforehand
 #define RUNFREE(x) myfree(x);
 //#define PTR(x) (32+(x-1)&~31)
-#else
-#define FREEMALLOC(x) calloc(1,x)
-#define RUNMALLOC(x) calloc(1,x)
-#define RUNFREE(x) free(x)
-//#define PTR(x) (x)
-#endif
-#endif
-#endif
-#endif
+#endif  // #ifdef THREADSIMULATE
+#endif  // #ifdef MULTICORE
+#endif  // #ifdef PRECISE_GC
+#endif  // #ifdef BOEHM_GC
+#endif  // #ifdef MEMH

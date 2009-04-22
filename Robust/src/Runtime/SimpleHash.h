@@ -24,7 +24,7 @@ void freeRuntimeHash(struct RuntimeHash *);
 
 void RuntimeHashrehash(struct RuntimeHash * thisvar);
 int RuntimeHashadd(struct RuntimeHash *, int key, int data);
-#ifdef RAW
+#ifdef MULTICORE
 int RuntimeHashadd_I(struct RuntimeHash *, int key, int data);
 #endif
 int RuntimeHashremovekey(struct RuntimeHash *,int key);

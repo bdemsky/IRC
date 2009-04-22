@@ -471,9 +471,10 @@ public class BuildCodeMultiCore extends BuildCode {
     outtask.println("#include \"structdefs.h\"");
     outtask.println("#include \"Queue.h\"");
     outtask.println("#include <string.h>");
-    outtask.println("#ifdef RAW");
-    outtask.println("#include <raw.h>");
-    outtask.println("#endif");
+	outtask.println("#include \"runtime_arch.h\"");
+    //outtask.println("#ifdef RAW");
+    //outtask.println("#include <raw.h>");
+    //outtask.println("#endif");
     outtask.println();
     outtask.println("struct tagobjectiterator {");
     outtask.println("  int istag; /* 0 if object iterator, 1 if tag iterator */");
@@ -643,7 +644,7 @@ public class BuildCodeMultiCore extends BuildCode {
     outputAliasLockCode(fm, lb, output);
 
     /* generate print information for RAW version */
-    output.println("#ifdef RAW");
+    output.println("#ifdef MULTICORE");
     output.println("{");
     output.println("int tmpsum = 0;");
     output.println("char * taskname = \"" + task.getSymbol() + "\";");
@@ -653,13 +654,13 @@ public class BuildCodeMultiCore extends BuildCode {
     output.println("   tmpsum = tmpsum * 10 + *(taskname + tmpindex) - '0';");
     output.println("}");
     output.println("#ifdef RAWPATH");
-    output.println("raw_test_pass(0xAAAA);");
-    output.println("raw_test_pass_reg(tmpsum);");
-	//output.println("raw_test_pass(raw_get_cycle());"); 
+	output.println("BAMBOO_DEBUGPRINT(0xAAAA);");
+    output.println("BAMBOO_DEBUGPRINT_REG(tmpsum);");
+	output.println("BAMBOO_DEBUGPRINT(BAMBOO_GET_EXE_TIME());"); 
     output.println("#endif");
-    output.println("#ifdef RAWDEBUG");
-    output.println("raw_test_pass(0xAAAA);");
-    output.println("raw_test_pass_reg(tmpsum);");
+    output.println("#ifdef DEBUG");
+    output.println("BAMBOO_DEBUGPRINT(0xAAAA);");
+    output.println("BAMBOO_DEBUGPRINT_REG(tmpsum);");
     output.println("#endif");
     output.println("}");
     output.println("#endif");
@@ -694,16 +695,16 @@ public class BuildCodeMultiCore extends BuildCode {
 	super.generateFlatNode(fm, lb, current_node, output);
 	if (current_node.kind()!=FKind.FlatReturnNode) {
 	  //output.println("   flushAll();");
-	  output.println("#ifdef RAWCACHEFLUSH");
-	  output.println("raw_user_interrupts_off();");
-	  output.println("#ifdef RAWDEBUG");
-	  output.println("raw_test_pass(0xec00);");
+	  output.println("#ifdef CACHEFLUSH");
+	  output.println("BAMBOO_START_CRITICAL_SECTION();");
+	  output.println("#ifdef DEBUG");
+	  output.println("BAMBOO_DEBUGPRINT(0xec00);");
 	  output.println("#endif");
-	  output.println("raw_flush_entire_cache();");
-	  output.println("#ifdef RAWDEBUG");
-	  output.println("raw_test_pass(0xecff);");
+	  output.println("BAMBOO_CACHE_FLUSH_ALL();");
+	  output.println("#ifdef DEBUG");
+	  output.println("BAMBOO_DEBUGPRINT(0xecff);");
 	  output.println("#endif");
-	  output.println("raw_user_interrupts_on();");
+	  output.println("BAMBOO_CLOSE_CRITICAL_SECTION();");
 	  output.println("#endif");
 	  outputTransCode(output);
 	  output.println("   return;");
@@ -939,7 +940,7 @@ public class BuildCodeMultiCore extends BuildCode {
       }
       if(ffan.getTaskType()==FlatFlagActionNode.TASKEXIT) {
 	  // generate codes for profiling, recording which task exit it is
-	  output.println("#ifdef RAWPROFILE");
+	  output.println("#ifdef PROFILE");
 	  output.println("setTaskExitIndex(" + ffan.getTaskExitIndex() + ");");
 	  output.println("#endif");
       }
@@ -1599,16 +1600,16 @@ public class BuildCodeMultiCore extends BuildCode {
 	output.println("return "+generateTemp(fm, frn.getReturnTemp(), lb)+";");
     } else {
       if(fm.getTask() != null) {
-	output.println("#ifdef RAWCACHEFLUSH");
-	output.println("raw_user_interrupts_off();");
-	output.println("#ifdef RAWDEBUG");
-	output.println("raw_test_pass(0xec00);");
+	output.println("#ifdef CACHEFLUSH");
+	output.println("BAMBOO_START_CRITICAL_SECTION();");
+	output.println("#ifdef DEBUG");
+	output.println("BAMBOO_DEBUGPRINT(0xec00);");
 	output.println("#endif");
-	output.println("raw_flush_entire_cache();");
-	output.println("#ifdef RAWDEBUG");
-	output.println("raw_test_pass(0xecff);");
+	output.println("BAMBOO_CACHE_FLUSH_ALL();");
+	output.println("#ifdef DEBUG");
+	output.println("BAMBOO_DEBUGPRINT(0xecff);");
 	output.println("#endif");
-	output.println("raw_user_interrupts_on();");
+	output.println("BAMBOO_CLOSE_CRITICAL_SECTION();");
 	output.println("#endif");
 	outputTransCode(output);
       }
@@ -1674,7 +1675,7 @@ public class BuildCodeMultiCore extends BuildCode {
     if(!fn.getType().isArray() && 
 	    (fn.getType().getClassDesc() != null) 
 	    && (fn.getType().getClassDesc().hasFlags())) {
-	output.println("#ifdef RAWPROFILE");
+	output.println("#ifdef PROFILE");
 	output.println("addNewObjInfo(\"" + fn.getType().getClassDesc().getSymbol() + "\");");
 	output.println("#endif");
     }

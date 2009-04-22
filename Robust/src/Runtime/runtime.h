@@ -119,9 +119,7 @@ struct transObjInfo {
   int * queues;
   int length;
 };
-#ifdef RAW
 struct RuntimeHash * lockRedirectTbl;
-#endif
 #endif
 
 #ifdef FASTCHECK
@@ -129,15 +127,13 @@ extern struct ___Object___ * ___fcrevert___;
 #endif
 
 #ifdef MULTICORE
+inline int receiveObject(void);
 void flagorand(void * ptr, int ormask, int andmask, struct parameterwrapper ** queues, int length);
 void flagorandinit(void * ptr, int ormask, int andmask);
 void enqueueObject(void * ptr, struct parameterwrapper ** queues, int length);
-#ifdef RAW
-void enqueueObject_I(void * ptr, struct parameterwrapper ** queues, int length);
-#ifdef RAWPROFILE
+#ifdef PROFILE
 inline void setTaskExitIndex(int index);
 inline void addNewObjInfo(void * nobj);
-#endif
 #endif
 int * getAliasLock(void ** ptrs, int length, struct RuntimeHash * tbl);
 void addAliasLock(void * ptr, int lock);
@@ -148,10 +144,6 @@ void enqueueObject(void * ptr);
 #endif
 void executetasks();
 void processtasks();
-
-#ifdef MULTICORE
-void transferObject(struct transObjInfo * transObj);
-#endif
 
 #ifndef MULTICORE
 struct tagobjectiterator {
@@ -203,9 +195,6 @@ void processobject(struct parameterwrapper *parameter, int index, struct paramet
 void processtags(struct parameterdescriptor *pd, int index, struct parameterwrapper *parameter, int * iteratorcount, int *statusarray, int numparams);
 void builditerators(struct taskdescriptor * task, int index, struct parameterwrapper * parameter);
 int enqueuetasks(struct parameterwrapper *parameter, struct parameterwrapper *prevptr, struct ___Object___ *ptr, int * enterflags, int numenterflags);
-#ifdef RAW
-int enqueuetasks_I(struct parameterwrapper *parameter, struct parameterwrapper *prevptr, struct ___Object___ *ptr, int * enterflags, int numenterflags);
-#endif
 
 #endif
 

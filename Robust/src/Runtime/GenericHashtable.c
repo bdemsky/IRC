@@ -1,8 +1,4 @@
-#ifdef RAW
-#include <raw.h>
-#else
 #include <stdio.h>
-#endif
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -66,7 +62,7 @@ int genputtable(struct genhashtable *ht, void * key, void * object) {
   return 1;
 }
 
-#ifdef RAW
+#ifdef MULTICORE
 int genputtable_I(struct genhashtable *ht, void * key, void * object) {
   unsigned int bin=genhashfunction(ht,key);
   struct genpointerlist * newptrlist=(struct genpointerlist *) RUNMALLOC_I(sizeof(struct genpointerlist));
@@ -232,24 +228,11 @@ struct genhashtable * genallocatehashtable(unsigned int (*hash_function)(void *)
   struct genpointerlist **gpl;
   int i;
 
-#ifdef RAWDEBUG
-  raw_test_pass(0xf000);
-#endif
-
   gpl=(struct genpointerlist **) RUNMALLOC(sizeof(struct genpointerlist *)*geninitialnumbins);
-#ifdef RAWDEBUG
-  raw_test_pass(0xf001);
-#endif
   for(i=0; i<geninitialnumbins; i++) {
     gpl[i]=NULL;
   }
-#ifdef RAWDEBUG
-  raw_test_pass(0xf002);
-#endif
   ght=(struct genhashtable *) RUNMALLOC(sizeof(struct genhashtable));
-#ifdef RAWDEBUG
-  raw_test_pass(0xf003);
-#endif
   ght->hash_function=hash_function;
   ght->comp_function=comp_function;
   ght->currentsize=geninitialnumbins;
@@ -257,9 +240,6 @@ struct genhashtable * genallocatehashtable(unsigned int (*hash_function)(void *)
   ght->counter=0;
   ght->list=NULL;
   ght->last=NULL;
-#ifdef RAWDEBUG
-  raw_test_pass(0xf004);
-#endif
   return ght;
 }
 

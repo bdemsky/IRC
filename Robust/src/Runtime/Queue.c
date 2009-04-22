@@ -30,7 +30,7 @@ struct QueueItem * addNewItem(struct Queue * queue, void * ptr) {
   return item;
 }
 
-#ifdef RAW
+#ifdef MULTICORE
 struct QueueItem * addNewItem_I(struct Queue * queue, void * ptr) {
   struct QueueItem * item=RUNMALLOC_I(sizeof(struct QueueItem));
   item->objectptr=ptr;

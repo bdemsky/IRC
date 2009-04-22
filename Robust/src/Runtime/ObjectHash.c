@@ -1,6 +1,6 @@
 #include "ObjectHash.h"
-#ifdef RAW
-#include <raw.h>
+#ifdef MULTICORE
+#include "runtime_arch.h"
 #else
 #include <stdio.h>
 #endif
@@ -24,8 +24,8 @@ struct ObjectHash * noargallocateObjectHash() {
 struct ObjectHash * allocateObjectHash(int size) {
   struct ObjectHash *thisvar;  //=(struct ObjectHash *)RUNMALLOC(sizeof(struct ObjectHash));
   if (size <= 0) {
-#ifdef RAW
-    raw_test_done(0xc001);
+#ifdef MULTICORE
+    BAMBOO_EXIT(0xc001);
 #else
     printf("Negative Hashtable size Exception\n");
     exit(-1);
@@ -166,7 +166,7 @@ int ObjectHashadd(struct ObjectHash * thisvar,int key, int data, int data2, int 
   return 1;
 }
 
-#ifdef RAW
+#ifdef MULTICORE
 int ObjectHashadd_I(struct ObjectHash * thisvar,int key, int data, int data2, int data3, int data4) {
   /* Rehash code */
   unsigned int hashkey;

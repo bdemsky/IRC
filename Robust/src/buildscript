@@ -26,7 +26,7 @@ echo -scheduling do task scheduling
 echo -multicore generate multi-core version binary
 echo "-numcore set the number of cores (should be used together with -multicore), defaultly set as 1"
 echo "-raw generate raw version binary (should be used together with -multicore)"
-echo "-rawcacheflush enable cache flush in raw version binary (should be used togethere with -raw)"
+echo "-cacheflush enable cache flush in raw version binary (should be used togethere with -raw)"
 echo "-interrupt generate raw version binary with interruption (should be used togethere with -raw)"
 echo "-rawconfig config raw simulator as 4xn (should be used together with -raw)"
 echo "-rawpath print out execute path information for raw version (should be used together with -raw)"
@@ -51,7 +51,7 @@ echo -o binary
 echo -nojava do not run bristlecone compiler
 echo -instructionfailures inject code for instructionfailures
 echo -profile build with profile options
-echo "-rawuseio use standard io to output profiling data (should be used together with -raw and -profile), it only works with single core version"
+echo "-useio use standard io to output profiling data (should be used together with -raw and -profile), it only works with single core version"
 echo "-enable-assertions execute assert statements during compilation"
 echo -justanalyze exit after compiler analyses complete
 echo -help help
@@ -71,12 +71,12 @@ MLPFLAG=false
 MLPDEBUG=false
 MULTICOREFLAG=false
 RAWFLAG=false
-RAWCACHEFLUSHFLAG=false
+CACHEFLUSHFLAG=false
 RAWCONFIG=''
-RAWDEBUGFLAG=false
+DEBUGFLAG=false
 RAWPATHFLAG=false
-RAWPROFILEFLAG=false
-RAWUSEIOFLAG=false
+PROFILEFLAG=false
+USEIOFLAG=false
 INTERRUPTFLAG=false
 THREADSIMULATEFLAG=false;
 USEDMALLOC=false
@@ -175,11 +175,11 @@ then
 EXTRAOPTIONS="$EXTRAOPTIONS -DMAC"
 elif [[ $1 = '-profile' ]]
 then
-RAWPROFILEFLAG=true
+PROFILEFLAG=true
 EXTRAOPTIONS="$EXTRAOPTIONS -pg"
-elif [[ $1 = '-rawuseio' ]]
+elif [[ $1 = '-useio' ]]
 then
-RAWUSEIOFLAG=true
+USEIOFLAG=true
 elif [[ $1 = '-taskstate' ]]
 then
 JAVAOPTS="$JAVAOPTS -taskstate"
@@ -201,9 +201,9 @@ elif [[ $1 = '-raw' ]]
 then
 RAWFLAG=true
 JAVAOPTS="$JAVAOPTS -raw"
-elif [[ $1 = '-rawcacheflush' ]]
+elif [[ $1 = '-cacheflush' ]]
 then
-RAWCACHEFLUSHFLAG=true
+CACHEFLUSHFLAG=true
 elif [[ $1 = '-rawconfig' ]]
 then
 RAWCONFIG="$2"
@@ -264,7 +264,7 @@ cd $CURDIR
 shift
 elif [[ $1 = '-debug' ]]
 then
-RAWDEBUGFLAG=true
+DEBUGFLAG=true
 EXTRAOPTIONS="$EXTRAOPTIONS -g"
 elif [[ $1 = '-rawpath' ]]
 then
@@ -415,7 +415,7 @@ fi # CHECKFLAG
 if $RAWFLAG
 then # RAWFLAG
 RAWDIR="$CURDIR/raw"
-MAKEFILE="../Makefile.raw"
+MAKEFILE="Makefile.raw"
 mkdir $RAWDIR
 cd $RAWDIR
 make clean
@@ -423,9 +423,9 @@ rm ./*
 
 export RAWRGCCFLAGS="-DTASK -DMULTICORE -DRAW"
 
-if $RAWCACHEFLUSHFLAG
+if $CACHEFLUSHFLAG
 then # print path
-RAWRGCCFLAGS="${RAWRGCCFLAGS} -DRAWCACHEFLUSH"
+RAWRGCCFLAGS="${RAWRGCCFLAGS} -DCACHEFLUSH"
 fi
 
 if $RAWPATHFLAG
@@ -433,19 +433,19 @@ then # print path
 RAWRGCCFLAGS="${RAWRGCCFLAGS} -DRAWPATH"
 fi
 
-if $RAWDEBUGFLAG
+if $DEBUGFLAG
 then #debug version
-RAWRGCCFLAGS="${RAWRGCCFLAGS} -DRAWDEBUG"
+RAWRGCCFLAGS="${RAWRGCCFLAGS} -DDEBUG"
 fi
 
-if $RAWPROFILEFLAG
+if $PROFILEFLAG
 then # profile version
-RAWRGCCFLAGS="${RAWRGCCFLAGS} -DRAWPROFILE"
+RAWRGCCFLAGS="${RAWRGCCFLAGS} -DPROFILE"
 fi
 
-if $RAWUSEIOFLAG
+if $USEIOFLAG
 then # useio version
-RAWRGCCFLAGS="${RAWRGCCFLAGS} -DRAWUSEIO"
+RAWRGCCFLAGS="${RAWRGCCFLAGS} -DUSEIO"
 fi
 
 if $INTERRUPTFLAG
@@ -453,7 +453,7 @@ then #INTERRUPT version
 RAWRGCCFLAGS="${RAWRGCCFLAGS} -DINTERRUPT"
 fi #INTERRUPT version
 
-if $RAWUSEIOFLAG
+if $USEIOFLAG
 then # useio version
 MAKEFILE="$MAKEFILE.io"
 echo "+++++++++++use Makefile.raw.io++++++++++++++++"
@@ -461,11 +461,15 @@ else
 MAKEFILE="$MAKEFILE.$RAWCONFIG"
 fi #useio version
 
-cp $MAKEFILE ./Makefile
+cp $ROBUSTROOT/Runtime/RAW/$MAKEFILE ./Makefile
 cp ../Runtime/*.c ./
 cp ../Runtime/*.h ./
 cp ../Runtime/*.S ./
 cp ../Runtime/*.s ./
+cp ../Runtime/RAW/*.c ./
+cp ../Runtime/RAW/*.h ./
+cp ../Runtime/RAW/*.S ./
+cp ../Runtime/RAW/*.s ./
 cp ../tmpbuilddirectory/*.c ./
 cp ../tmpbuilddirectory/*.h ./
 

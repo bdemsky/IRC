@@ -1,6 +1,6 @@
 #include "SimpleHash.h"
-#ifdef RAW
-#include <raw.h>
+#ifdef MULTICORE
+#include "runtime_arch.h"
 #else
 #include <stdio.h>
 #endif
@@ -24,8 +24,8 @@ struct RuntimeHash * noargallocateRuntimeHash() {
 struct RuntimeHash * allocateRuntimeHash(int size) {
   struct RuntimeHash *thisvar;  //=(struct RuntimeHash *)RUNMALLOC(sizeof(struct RuntimeHash));
   if (size <= 0) {
-#ifdef RAW
-    raw_test_done(0xb001);
+#ifdef MULTICORE
+    BAMBOO_EXIT(0xb001);
 #else
     printf("Negative Hashtable size Exception\n");
     exit(-1);
@@ -205,7 +205,7 @@ int RuntimeHashadd(struct RuntimeHash * thisvar,int key, int data) {
   return 1;
 }
 
-#ifdef RAW
+#ifdef MULTICORE 
 int RuntimeHashadd_I(struct RuntimeHash * thisvar,int key, int data) {
   /* Rehash code */
   unsigned int hashkey;

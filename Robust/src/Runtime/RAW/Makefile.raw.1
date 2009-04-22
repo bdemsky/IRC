@@ -10,11 +10,11 @@ SIM-CYCLES = 10000
 
 ATTRIBUTES += HWIC
 
-TILE_PATTERN = 4x4
+TILE_PATTERN = 4x1
 
 OBJECT_FILES_COMMON = multicoretask.o multicoreruntime.o Queue.o file.o math.o object.o \
-					  GenericHashtable.o SimpleHash.o ObjectHash.o socket.o\
-					  taskdefs.o methods.o mem.o raw_dataCache.o raw_interrupt4.o
+					  GenericHashtable.o SimpleHash.o ObjectHash.o socket.o taskdefs.o \
+					  methods.o mem.o task_arch.o raw_dataCache.o raw_interrupt.o
 					  
 # this is for a multi-tile test
 include $(COMMONDIR)/Makefile.all

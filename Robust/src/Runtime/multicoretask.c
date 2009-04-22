@@ -1,36 +1,7 @@
 #ifdef TASK
 #include "runtime.h"
-#ifndef RAW
-#include "structdefs.h"
-#include "mem.h"
-#include "checkpoint.h"
-#include "Queue.h"
-#include "SimpleHash.h"
-#include "GenericHashtable.h"
-#include <sys/select.h>
-#include <sys/types.h>
-#include <sys/mman.h>
-#include <string.h>
-#include <signal.h>
-#include <assert.h>
-#include <errno.h>
-#endif
-#ifdef RAW
-#ifdef RAWPROFILE
-#ifdef RAWUSEIO
-#include "stdio.h"
-#include "string.h"
-#endif
-#endif
-#include <raw.h>
-#include <raw_compiler_defs.h>
-#elif defined THREADSIMULATE
-// use POSIX message queue
-// for each core, its message queue named as
-// /msgqueue_corenum
-#include <mqueue.h>
-#include <sys/stat.h>
-#endif
+#include "multicoreruntime.h"
+#include "runtime_arch.h"
 /*
    extern int injectfailures;
    extern float failurechance;
@@ -38,142 +9,45 @@
 extern int debugtask;
 extern int instaccum;
 
-#ifdef RAW
-#define TOTALCORE raw_get_num_tiles()
-#endif
+void * curr_heapbase=0;
+void * curr_heaptop=0;
 
+#if 0
 #ifdef CONSCHECK
 #include "instrument.h"
 #endif
+#endif  // if 0: for recovery
 
+//  data structures for task invocation
 struct genhashtable * activetasks;
 struct genhashtable * failedtasks;
 struct taskparamdescriptor * currtpd;
-#ifndef RAW
+#if 0
 struct RuntimeHash * forward;
 struct RuntimeHash * reverse;
-#endif
+#endif // if 0: for recovery
 
-int corestatus[NUMCORES]; // records status of each core
-                          // 1: running tasks
-                          // 0: stall
-int numsendobjs[NUMCORES]; // records how many objects a core has sent out
-int numreceiveobjs[NUMCORES]; // records how many objects a core has received
-int numconfirm;
-bool waitconfirm;
-bool busystatus;
-#ifdef RAW
-struct RuntimeHash locktable;
-static struct RuntimeHash* locktbl = &locktable;
-struct LockValue {
-	int redirectlock;
-	int value;
-};
-struct RuntimeHash * objRedirectLockTbl;
-void * curr_heapbase=0;
-void * curr_heaptop=0;
-int self_numsendobjs;
-int self_numreceiveobjs;
-int lockobj;
-int lock2require;
-int lockresult;
-bool lockflag;
-#ifndef INTERRUPT
-bool reside;
-#endif
-struct Queue objqueue;
-int msgdata[30];
-int msgtype;
-int msgdataindex;
-int msglength;
-int outmsgdata[30];
-int outmsgindex;
-int outmsglast;
-int outmsgleft;
-bool isMsgHanging;
-volatile bool isMsgSending;
-void calCoords(int core_num, int* coordY, int* coordX);
-#elif defined THREADSIMULATE
-static struct RuntimeHash* locktbl;
-struct thread_data {
-  int corenum;
-  int argc;
-  char** argv;
-  int numsendobjs;
-  int numreceiveobjs;
-};
-struct thread_data thread_data_array[NUMCORES];
-mqd_t mqd[NUMCORES];
-static pthread_key_t key;
-static pthread_rwlock_t rwlock_tbl;
-static pthread_rwlock_t rwlock_init;
-
-void run(void * arg);
-#endif
-
-bool transStallMsg(int targetcore);
-void transStatusConfirmMsg(int targetcore);
-int receiveObject();
-bool getreadlock(void* ptr);
-void releasereadlock(void* ptr);
-#ifdef RAW
-bool getreadlock_I_r(void * ptr, void * redirectlock, int core, bool cache);
-#endif
-bool getwritelock(void* ptr);
-void releasewritelock(void* ptr);
-void releasewritelock_r(void * lock, void * redirectlock);
-#ifdef RAW
-bool getwritelock_I(void* ptr);
-bool getwritelock_I_r(void* lock, void* redirectlock, int core, bool cache);
-void releasewritelock_I(void * ptr);
-#endif
-
-// profiling mode of RAW version
-#ifdef RAWPROFILE
-
-#define TASKINFOLENGTH 10000
-//#define INTERRUPTINFOLENGTH 500
-
-bool stall;
-//bool isInterrupt;
-int totalexetime;
-
-typedef struct task_info {
-  char* taskName;
-  int startTime;
-  int endTime;
-  int exitIndex;
-  struct Queue * newObjs; 
-} TaskInfo;
-
-/*typedef struct interrupt_info {
-   int startTime;
-   int endTime;
-   } InterruptInfo;*/
-
-TaskInfo * taskInfoArray[TASKINFOLENGTH];
-int taskInfoIndex;
-bool taskInfoOverflow;
-/*InterruptInfo * interruptInfoArray[INTERRUPTINFOLENGTH];
-   int interruptInfoIndex;
-   bool interruptInfoOverflow;*/
-int profilestatus[NUMCORES]; // records status of each core
-                             // 1: running tasks
-                             // 0: stall
-bool transProfileRequestMsg(int targetcore);
+#ifdef PROFILE
 void outputProfileData();
 #endif
 
-#ifdef RAW
-#ifdef RAWUSEIO
-int main(void) {
-#else
-void begin() {
-#endif
-#else
-int main(int argc, char **argv) {
-#endif
-#ifdef RAW
+bool getreadlock(void* ptr);
+void releasereadlock(void* ptr);
+bool getwritelock(void* ptr);
+void releasewritelock(void* ptr);
+void releasewritelock_r(void * lock, void * redirectlock);
+inline void run(void * arg);
+
+// specific functions used inside critical sections
+void enqueueObject_I(void * ptr, struct parameterwrapper ** queues, int length);
+int enqueuetasks_I(struct parameterwrapper *parameter, struct parameterwrapper *prevptr, struct ___Object___ *ptr, int * enterflags, int numenterflags);
+bool getreadlock_I_r(void * ptr, void * redirectlock, int core, bool cache);
+bool getwritelock_I(void* ptr);
+bool getwritelock_I_r(void* lock, void* redirectlock, int core, bool cache);
+void releasewritelock_I(void * ptr);
+
+// main function for each core
+inline void run(void * arg) {
   int i = 0;
   int argc = 1;
   char ** argv = NULL;
@@ -186,34 +60,40 @@ int main(int argc, char **argv) {
   bool allStall = true;
   int sumsendobj = 0;
 
-  corenum = raw_get_abs_pos_x() + raw_get_array_size_x() * raw_get_abs_pos_y();
+  corenum = BAMBOO_GET_NUM_OF_CORE();
+#ifdef DEBUG
+  BAMBOO_DEBUGPRINT(0xeeee);
+  BAMBOO_DEBUGPRINT_REG(corenum);
+  BAMBOO_DEBUGPRINT(STARTUPCORE);
+#endif
 
   // initialize the arrays
   if(STARTUPCORE == corenum) {
     // startup core to initialize corestatus[]
     for(i = 0; i < NUMCORES; ++i) {
       corestatus[i] = 1;
-      numsendobjs[i] = 0;                   // assume all variables in RAW are local variables! MAY BE WRONG!!!
+      numsendobjs[i] = 0;                   // assume all variables are local variables! MAY BE WRONG!!!
       numreceiveobjs[i] = 0;
     }
 	numconfirm = 0;
-	waitconfirm = false;
-#ifdef RAWPROFILE
+	waitconfirm = false; 
+#ifdef PROFILE
+    // initialize the profile data arrays
     for(i = 0; i < NUMCORES; ++i) {
       profilestatus[i] = 1;
-    }
+    }  
 #endif
   }
   busystatus = true;
   self_numsendobjs = 0;
   self_numreceiveobjs = 0;
+
   for(i = 0; i < 30; ++i) {
     msgdata[i] = -1;
   }
   msgtype = -1;
   msgdataindex = 0;
   msglength = 30;
-
   for(i = 0; i < 30; ++i) {
     outmsgdata[i] = -1;
   }
@@ -237,593 +117,366 @@ int main(int argc, char **argv) {
   lockflag = false;
 #ifndef INTERRUPT
   reside = false;
-#endif
+#endif  
   objqueue.head = NULL;
   objqueue.tail = NULL;
   lockRedirectTbl = allocateRuntimeHash(20);
   objRedirectLockTbl = allocateRuntimeHash(20);
 
-#ifdef RAWPROFILE
+#ifdef PROFILE
   stall = false;
   //isInterrupt = true;
   totalexetime = -1;
   taskInfoIndex = 0;
   /*interruptInfoIndex = 0;
-     taskInfoOverflow = false;
-     interruptInfoOverflow = false;*/
+  taskInfoOverflow = false;
+  interruptInfoOverflow = false;*/
 #endif
 
-#ifdef INTERRUPT
-  if (corenum < NUMCORES) {
-    // set up interrupts
-    setup_ints();
-    raw_user_interrupts_on();
-  }
-#endif
+  // other architecture related initialization
+  initialization();
 
-#elif defined THREADSIMULATE
-  errno = 0;
-  int tids[NUMCORES];
-  int rc[NUMCORES];
-  pthread_t threads[NUMCORES];
-  int i = 0;
+  initCommunication();
 
-  // initialize three arrays and msg queue array
-  char * pathhead = "/msgqueue_";
-  int targetlen = strlen(pathhead);
-  for(i = 0; i < NUMCORES; ++i) {
-    corestatus[i] = 1;
-    numsendobjs[i] = 0;
-    numreceiveobjs[i] = 0;
-
-    char corenumstr[3];
-    int sourcelen = 0;
-    if(i < 10) {
-      corenumstr[0] = i + '0';
-      corenumstr[1] = '\0';
-      sourcelen = 1;
-    } else if(i < 100) {
-      corenumstr[1] = i %10 + '0';
-      corenumstr[0] = (i / 10) + '0';
-      corenumstr[2] = '\0';
-      sourcelen = 2;
-    } else {
-      printf("Error: i >= 100\n");
-      fflush(stdout);
-      exit(-1);
-    }
-    char path[targetlen + sourcelen + 1];
-    strcpy(path, pathhead);
-    strncat(path, corenumstr, sourcelen);
-    int oflags = O_RDONLY|O_CREAT|O_NONBLOCK;
-    int omodes = S_IRWXU|S_IRWXG|S_IRWXO;
-    mq_unlink(path);
-    mqd[i]= mq_open(path, oflags, omodes, NULL);
-    if(mqd[i] == -1) {
-      printf("[Main] mq_open %s fails: %d, error: %s\n", path, mqd[i], strerror(errno));
-      exit(-1);
-    } else {
-      printf("[Main] mq_open %s returns: %d\n", path, mqd[i]);
-    }
-  }
-
-  // create the key
-  pthread_key_create(&key, NULL);
-
-  // create the lock table and initialize its mutex
-  locktbl = allocateRuntimeHash(20);
-  int rc_locktbl = pthread_rwlock_init(&rwlock_tbl, NULL);
-  printf("[Main] initialize the rwlock for lock table: %d error: \n", rc_locktbl, strerror(rc_locktbl));
-
-  for(i = 0; i < NUMCORES; ++i) {
-    thread_data_array[i].corenum = i;
-    thread_data_array[i].argc = argc;
-    thread_data_array[i].argv = argv;
-    thread_data_array[i].numsendobjs = 0;
-    thread_data_array[i].numreceiveobjs = 0;
-    printf("[main] creating thread %d\n", i);
-    rc[i] = pthread_create(&threads[i], NULL, run, (void *)&thread_data_array[i]);
-    if (rc[i]) {
-      printf("[main] ERROR; return code from pthread_create() is %d\n", rc[i]);
-      fflush(stdout);
-      exit(-1);
-    }
-  }
-
-  while(true) {
-  }
-}
-
-void run(void* arg) {
-  struct thread_data * my_tdata = (struct thread_data *)arg;
-  pthread_setspecific(key, (void *)my_tdata->corenum);
-  int argc = my_tdata->argc;
-  char** argv = my_tdata->argv;
-  printf("[run, %d] Thread %d runs: %x\n", my_tdata->corenum, my_tdata->corenum, (int)pthread_self());
-  fflush(stdout);
-
-#endif
-
+#if 0
 #ifdef BOEHM_GC
   GC_init(); // Initialize the garbage collector
 #endif
 #ifdef CONSCHECK
   initializemmap();
 #endif
-#ifndef RAW
   processOptions();
-#endif
+#endif // #if 0: for recovery and garbage collection
   initializeexithandler();
-  /* Create table for failed tasks */
-#ifdef RAW
+
+  // main process of the execution module
   if(corenum > NUMCORES - 1) {
+	// non-executing cores, only processing communications
     failedtasks = NULL;
     activetasks = NULL;
-/*#ifdef RAWPROFILE
-        raw_test_pass(0xee01);
-        raw_test_pass_reg(taskInfoIndex);
-        raw_test_pass_reg(taskInfoOverflow);
-        if(!taskInfoOverflow) {
-        TaskInfo* taskInfo = RUNMALLOC(sizeof(struct task_info));
-        taskInfoArray[taskInfoIndex] = taskInfo;
-        taskInfo->taskName = "msg handling";
-        taskInfo->startTime = raw_get_cycle();
-        taskInfo->endTime = -1;
+/*#ifdef PROFILE
+        BAMBOO_DEBUGPRINT(0xee01);
+        BAMBOO_DEBUGPRINT_REG(taskInfoIndex);
+        BAMBOO_DEBUGPRINT_REG(taskInfoOverflow);
+		profileTaskStart("msg handling");
         }
  #endif*/
-#ifdef RAWPROFILE
+#ifdef PROFILE
     //isInterrupt = false;
 #endif
-    while(true) {
-      receiveObject();
-    }
+	fakeExecution();
   } else {
+	  /* Create table for failed tasks */
+#if 0
+	  failedtasks=genallocatehashtable((unsigned int (*)(void *)) &hashCodetpd,
+                                       (int (*)(void *,void *)) &comparetpd);
+#endif // #if 0: for recovery
+	  failedtasks = NULL;
+	  /* Create queue of active tasks */
+	  activetasks=genallocatehashtable((unsigned int(*) (void *)) &hashCodetpd,
+                                       (int(*) (void *,void *)) &comparetpd);
+	  
+	  /* Process task information */
+	  processtasks();
+	  
+	  if(STARTUPCORE == corenum) {
+		  /* Create startup object */
+		  createstartupobject(argc, argv);
+	  }
+
+#ifdef DEBUG
+	  BAMBOO_DEBUGPRINT(0xee00);
 #endif
-  /*failedtasks=genallocatehashtable((unsigned int (*)(void *)) &hashCodetpd,
-                                   (int (*)(void *,void *)) &comparetpd);*/
-  failedtasks = NULL;
-  /* Create queue of active tasks */
-  activetasks=genallocatehashtable((unsigned int(*) (void *)) &hashCodetpd,
-                                   (int(*) (void *,void *)) &comparetpd);
 
-  /* Process task information */
-  processtasks();
-
-  if(STARTUPCORE == corenum) {
-    /* Create startup object */
-    createstartupobject(argc, argv);
-  }
-
-#ifdef RAW
-#ifdef RAWDEBUG
-  raw_test_pass(0xee00);
-#endif
-
-  while(true) {
-    // check if there are new active tasks can be executed
-    executetasks();
+	  while(true) {
+		  // check if there are new active tasks can be executed
+		  executetasks();
 
 #ifndef INTERRUPT
-    while(receiveObject() != -1) {
-    }
-#endif
-
-#ifdef RAWDEBUG
-    raw_test_pass(0xee01);
-#endif
-
-    // check if there are some pending objects, if yes, enqueue them and executetasks again
-    tocontinue = false;
-#ifdef RAWPROFILE
-    {
-      bool isChecking = false;
-      if(!isEmpty(&objqueue)) {
-	if(!taskInfoOverflow) {
-	  TaskInfo* taskInfo = RUNMALLOC(sizeof(struct task_info));
-	  taskInfoArray[taskInfoIndex] = taskInfo;
-	  taskInfo->taskName = "objqueue checking";
-	  taskInfo->startTime = raw_get_cycle();
-	  taskInfo->endTime = -1;
-	  taskInfo->exitIndex = -1;
-	  taskInfo->newObjs = NULL;
-	}
-	isChecking = true;
-      }
-#endif
-    while(!isEmpty(&objqueue)) {
-      void * obj = NULL;
-#ifdef INTERRUPT
-      raw_user_interrupts_off();
-#endif
-#ifdef RAWPROFILE
-      //isInterrupt = false;
-#endif
-#ifdef RAWDEBUG
-      raw_test_pass(0xeee1);
-#endif
-      sendStall = false;
-      tocontinue = true;
-      objitem = getTail(&objqueue);
-      objInfo = (struct transObjInfo *)objitem->objectptr;
-      obj = objInfo->objptr;
-#ifdef RAWDEBUG
-      raw_test_pass_reg((int)obj);
-#endif
-      // grab lock and flush the obj
-      grount = 0;
-	getwritelock_I(obj);
-	while(!lockflag) {
-	  receiveObject();
-	}
-	grount = lockresult;
-#ifdef RAWDEBUG
-	raw_test_pass_reg(grount);
-#endif
-
-	lockresult = 0;
-	lockobj = 0;
-	lock2require = 0;
-	lockflag = false;
-#ifndef INTERRUPT
-	reside = false;
-#endif
-
-      if(grount == 1) {
-	int k = 0;
-	// flush the object
-#ifdef RAWCACHEFLUSH
-	raw_invalidate_cache_range((int)obj, classsize[((struct ___Object___ *)obj)->type]);
-#endif
-	// enqueue the object
-	for(k = 0; k < objInfo->length; ++k) {
-	  int taskindex = objInfo->queues[2 * k];
-	  int paramindex = objInfo->queues[2 * k + 1];
-	  struct parameterwrapper ** queues = &(paramqueues[corenum][taskindex][paramindex]);
-#ifdef RAWDEBUG
-	  raw_test_pass_reg(taskindex);
-	  raw_test_pass_reg(paramindex);
-#endif
-	  enqueueObject_I(obj, queues, 1);
-	}
-	removeItem(&objqueue, objitem);
-	  releasewritelock_I(obj);
-	RUNFREE(objInfo->queues);
-	RUNFREE(objInfo);
-      } else {
-	// can not get lock
-	// put it at the end of the queue
-	// and try to execute active tasks already enqueued first
-	removeItem(&objqueue, objitem);
-	addNewItem_I(&objqueue, objInfo);
-#ifdef RAWPROFILE
-	//isInterrupt = true;
-#endif
-#ifdef INTERRUPT
-	raw_user_interrupts_on();
-#endif
-	break;
-      }
-#ifdef INTERRUPT
-      raw_user_interrupts_on();
-#endif
-    }
-#ifdef RAWPROFILE
-    if(isChecking && (!taskInfoOverflow)) {
-      taskInfoArray[taskInfoIndex]->endTime = raw_get_cycle();
-      taskInfoIndex++;
-      if(taskInfoIndex == TASKINFOLENGTH) {
-	taskInfoOverflow = true;
-      }
-    }
-  }
-#endif
-#ifdef RAWDEBUG
-    raw_test_pass(0xee02);
-#endif
-
-    if(!tocontinue) {
-      // check if stop
-      if(STARTUPCORE == corenum) {
-	if(isfirst) {
-#ifdef RAWDEBUG
-	  raw_test_pass(0xee03);
-#endif
-	  isfirst = false;
-	}
-	if((!waitconfirm) || 
-			(waitconfirm && (numconfirm == 0))) {
-#ifdef RAWDEBUG
-	  raw_test_pass(0xee04);
-#endif
-#ifdef INTERRUPT
-		raw_user_interrupts_off();
-#endif
-		corestatus[corenum] = 0;
-		numsendobjs[corenum] = self_numsendobjs;
-		numreceiveobjs[corenum] = self_numreceiveobjs;
-		// check the status of all cores
-		allStall = true;
-#ifdef RAWDEBUG
-		raw_test_pass_reg(NUMCORES);
-#endif
-		for(i = 0; i < NUMCORES; ++i) {
-#ifdef RAWDEBUG
-		  raw_test_pass(0xe000 + corestatus[i]);
-#endif
-		  if(corestatus[i] != 0) {
-	    	allStall = false;
-		    break;
+		  while(receiveObject() != -1) {
 		  }
-		}
-		if(allStall) {
-			if(!waitconfirm) {
-				// the first time found all cores stall
-				// send out status confirm msg to all other cores
-				// reset the corestatus array too
-#ifdef RAWDEBUG
-	  raw_test_pass(0xee05);
-#endif
-				corestatus[corenum] = 1;
-				for(i = 1; i < NUMCORES; ++i) {
-					corestatus[i] = 1;
-					transStatusConfirmMsg(i);
-				}
-				waitconfirm = true;
-				numconfirm = NUMCORES - 1;
-			} else {
-				// all the core status info are the latest
-		   	  // check if the sum of send objs and receive obj are the same
-			  // yes->terminate; for profiling mode, yes->send request to all
-			  // other cores to pour out profiling data
-			  // no->go on executing
-#ifdef RAWDEBUG
-	  raw_test_pass(0xee06);
-#endif
-			  sumsendobj = 0;
-			  for(i = 0; i < NUMCORES; ++i) {
-		    	sumsendobj += numsendobjs[i];
-#ifdef RAWDEBUG
-	    		raw_test_pass(0xf000 + numsendobjs[i]);
-#endif
-	 	  	  }
-			  for(i = 0; i < NUMCORES; ++i) {
-		    	sumsendobj -= numreceiveobjs[i];
-#ifdef RAWDEBUG
-		    	raw_test_pass(0xf000 + numreceiveobjs[i]);
-#endif
+#endif  
+
+#ifdef DEBUG
+		  BAMBOO_DEBUGPRINT(0xee01);
+#endif  
+		  
+		  // check if there are some pending objects, if yes, enqueue them and executetasks again
+		  tocontinue = false;
+#ifdef PROFILE
+		  {
+			  bool isChecking = false;
+			  if(!isEmpty(&objqueue)) {
+				  profileTaskStart("objqueue checking");
+				  isChecking = true;
 			  }
-			  if(0 == sumsendobj) {
-		    	// terminate
-#ifdef RAWDEBUG
-	    		raw_test_pass(0xee07);
 #endif
-#ifdef RAWUSEIO
-	    		totalexetime = raw_get_cycle();
-#else
-		    	raw_test_pass(0xbbbbbbbb);
-		    	raw_test_pass(raw_get_cycle());
+		  while(!isEmpty(&objqueue)) {
+			  void * obj = NULL;
+			  BAMBOO_START_CRITICAL_SECTION_OBJ_QUEUE();
+#ifdef PROFILE
+			  //isInterrupt = false;
+#endif  
+#ifdef DEBUG
+			  BAMBOO_DEBUGPRINT(0xeee1);
 #endif
-	    		// profile mode, send msgs to other cores to request pouring
-			    // out progiling data
-#ifdef RAWPROFILE
-#ifdef INTERRUPT
-			    // reopen gdn_avail interrupts
-	    		raw_user_interrupts_on();
+			  sendStall = false;
+			  tocontinue = true;
+			  objitem = getTail(&objqueue);
+			  objInfo = (struct transObjInfo *)objitem->objectptr;
+			  obj = objInfo->objptr;
+#ifdef DEBUG
+			  BAMBOO_DEBUGPRINT_REG((int)obj);
 #endif
-		    	for(i = 1; i < NUMCORES; ++i) {
-			      transProfileRequestMsg(i);
-		    	}
-			    // pour profiling data on startup core
-		    	outputProfileData();
-		    	while(true) {
-#ifdef INTERRUPT
-			      raw_user_interrupts_off();
+			  // grab lock and flush the obj
+			  grount = 0;
+			  getwritelock_I(obj);
+			  while(!lockflag) {
+				  BAMBOO_WAITING_FOR_LOCK();
+			  }
+			  grount = lockresult;
+#ifdef DEBUG
+			  BAMBOO_DEBUGPRINT_REG(grount);
 #endif
-			      profilestatus[corenum] = 0;
-	    		  // check the status of all cores
-			      allStall = true;
-#ifdef RAWDEBUG
-			      raw_test_pass_reg(NUMCORES);
-#endif	
-	    		  for(i = 0; i < NUMCORES; ++i) {
-#ifdef RAWDEBUG
-					raw_test_pass(0xe000 + profilestatus[i]);
+
+			  lockresult = 0;
+			  lockobj = 0;
+			  lock2require = 0;
+			  lockflag = false;
+#ifndef INTERRUPT
+			  reside = false;
 #endif
-					if(profilestatus[i] != 0) {
-					  allStall = false;
-					  break;
-					}
+			  if(grount == 1) {
+				  int k = 0;
+				  // flush the object
+#ifdef CACHEFLUSH
+				  BAMBOO_CACHE_FLUSH_RANGE((int)obj, classsize[((struct ___Object___ *)obj)->type]);
+#endif
+				  // enqueue the object
+				  for(k = 0; k < objInfo->length; ++k) {
+					  int taskindex = objInfo->queues[2 * k];
+					  int paramindex = objInfo->queues[2 * k + 1];
+					  struct parameterwrapper ** queues = &(paramqueues[corenum][taskindex][paramindex]);
+#ifdef DEBUG
+					  BAMBOO_DEBUGPRINT_REG(taskindex);
+					  BAMBOO_DEBUGPRINT_REG(paramindex);
+#endif
+					  enqueueObject_I(obj, queues, 1);
 				  }
-				  if(!allStall) {
-					int halt = 100;
-#ifdef INTERRUPT
-					raw_user_interrupts_on();
-#endif
-					while(halt--) {
-					}
-				  } else {
-					  break;
-				  }
-				}
-#endif
-			    raw_test_done(1);                                   // All done.
+				  removeItem(&objqueue, objitem);
+				  releasewritelock_I(obj);
+				  RUNFREE(objInfo->queues);
+				  RUNFREE(objInfo);
 			  } else {
-				  // still some objects on the fly on the network
-				  // reset the waitconfirm and numconfirm
-				  waitconfirm = false;
-				  numconfirm = 0;
+				  // can not get lock
+				  // put it at the end of the queue
+				  // and try to execute active tasks already enqueued first
+				  removeItem(&objqueue, objitem);
+				  addNewItem_I(&objqueue, objInfo);
+#ifdef PROFILE
+				  //isInterrupt = true;
+#endif
+				  BAMBOO_CLOSE_CRITICAL_SECTION_OBJ_QUEUE();
+				  break;
 			  }
-			}
-		}
-#ifdef INTERRUPT
-		raw_user_interrupts_on();
+			  BAMBOO_CLOSE_CRITICAL_SECTION_OBJ_QUEUE();
+		  }
+#ifdef PROFILE
+		      if(isChecking) {
+				  profileTaskEnd();
+			  }
+		  }
 #endif
+#ifdef DEBUG
+		  BAMBOO_DEBUGPRINT(0xee02);
+#endif
+
+		  if(!tocontinue) {
+			  // check if stop
+			  if(STARTUPCORE == corenum) {
+				  if(isfirst) {
+#ifdef DEBUG
+					  BAMBOO_DEBUGPRINT(0xee03);
+#endif
+					  isfirst = false;
+				  }
+				  if((!waitconfirm) || 
+						  (waitconfirm && (numconfirm == 0))) {
+#ifdef DEBUG
+					  BAMBOO_DEBUGPRINT(0xee04);
+#endif
+					  BAMBOO_START_CRITICAL_SECTION_STATUS();
+					  corestatus[corenum] = 0;
+					  numsendobjs[corenum] = self_numsendobjs;
+					  numreceiveobjs[corenum] = self_numreceiveobjs;
+					  // check the status of all cores
+					  allStall = true;
+#ifdef DEBUG
+					  BAMBOO_DEBUGPRINT_REG(NUMCORES);
+#endif
+					  for(i = 0; i < NUMCORES; ++i) {
+#ifdef DEBUG
+						  BAMBOO_DEBUGPRINT(0xe000 + corestatus[i]);
+#endif
+						  if(corestatus[i] != 0) {
+							  allStall = false;
+							  break;
+						  }
+					  }
+					  if(allStall) {
+						  // check if the sum of send objs and receive obj are the same
+						  // yes->check if the info is the latest; no->go on executing
+						  sumsendobj = 0;
+						  for(i = 0; i < NUMCORES; ++i) {
+							  sumsendobj += numsendobjs[i];
+#ifdef DEBUG
+							  BAMBOO_DEBUGPRINT(0xf000 + numsendobjs[i]);
+#endif
+						  }		
+						  for(i = 0; i < NUMCORES; ++i) {
+							  sumsendobj -= numreceiveobjs[i];
+#ifdef DEBUG
+							  BAMBOO_DEBUGPRINT(0xf000 + numreceiveobjs[i]);
+#endif
+						  }
+						  if(0 == sumsendobj) {
+							  if(!waitconfirm) {
+								  // the first time found all cores stall
+								  // send out status confirm msg to all other cores
+								  // reset the corestatus array too
+#ifdef DEBUG
+								  BAMBOO_DEBUGPRINT(0xee05);
+#endif
+								  corestatus[corenum] = 1;
+								  for(i = 1; i < NUMCORES; ++i) {	
+									  corestatus[i] = 1;
+									  // send status confirm msg to core i
+									  send_msg_1(i, 0xc);
+								  }
+								  waitconfirm = true;
+								  numconfirm = NUMCORES - 1;
+							  } else {
+								  // all the core status info are the latest
+								  // terminate; for profiling mode, send request to all
+								  // other cores to pour out profiling data
+#ifdef DEBUG
+								  BAMBOO_DEBUGPRINT(0xee06);
+#endif						  
+							 
+#ifdef USEIO
+								  totalexetime = BAMBOO_GET_EXE_TIME();
+#else
+								  BAMBOO_DEBUGPRINT(0xbbbbbbbb);
+								  BAMBOO_DEBUGPRINT(BAMBOO_GET_EXE_TIME());
+#endif
+								  // profile mode, send msgs to other cores to request pouring
+								  // out progiling data
+#ifdef PROFILE
+								  BAMBOO_CLOSE_CRITICAL_SECTION_STATUS();
+								  for(i = 1; i < NUMCORES; ++i) {
+									  // send profile request msg to core i
+									  send_msg_2(i, 6, totalexetime);
+								  }
+								  // pour profiling data on startup core
+								  outputProfileData();
+								  while(true) {
+									  BAMBOO_START_CRITICAL_SECTION_STATUS();
+									  profilestatus[corenum] = 0;
+									  // check the status of all cores
+									  allStall = true;
+#ifdef DEBUG
+									  BAMBOO_DEBUGPRINT_REG(NUMCORES);
+#endif	
+									  for(i = 0; i < NUMCORES; ++i) {
+#ifdef DEBUG
+										  BAMBOO_DEBUGPRINT(0xe000 + profilestatus[i]);
+#endif
+										  if(profilestatus[i] != 0) {
+											  allStall = false;
+											  break;
+										  }
+									  }
+									  if(!allStall) {
+										  int halt = 100;
+										  BAMBOO_CLOSE_CRITICAL_SECTION_STATUS();
+										  while(halt--) {
+										  }
+									  } else {
+										  break;
+									  }
+								  }
+#endif
+								  terminate(); // All done.
+							  }
+						  } else {
+							  // still some objects on the fly on the network
+							  // reset the waitconfirm and numconfirm
+#ifdef DEBUG
+								  BAMBOO_DEBUGPRINT(0xee07);
+#endif
+							  waitconfirm = false;
+							  numconfirm = 0;
+						  }
+					  } else {
+						  // not all cores are stall, keep on waiting
+#ifdef DEBUG
+						  BAMBOO_DEBUGPRINT(0xee08);
+#endif
+						  waitconfirm = false;
+						  numconfirm = 0;
+					  }
+					  BAMBOO_CLOSE_CRITICAL_SECTION_STATUS();
+				  }
+			  } else {
+				  if(!sendStall) {
+#ifdef DEBUG
+					  BAMBOO_DEBUGPRINT(0xee09);
+#endif
+#ifdef PROFILE
+					  if(!stall) {
+#endif
+						  if(isfirst) {
+							  // wait for some time
+							  int halt = 10000;
+#ifdef DEBUG
+							  BAMBOO_DEBUGPRINT(0xee0a);
+#endif
+							  while(halt--) {
+							  }
+							  isfirst = false;
+						  } else {
+							  // send StallMsg to startup core
+#ifdef DEBUG
+							  BAMBOO_DEBUGPRINT(0xee0b);
+#endif
+							  // send stall msg
+							  send_msg_4(STARTUPCORE, 1, corenum, self_numsendobjs, self_numreceiveobjs);
+							  sendStall = true;
+							  isfirst = true;
+							  busystatus = false;
+						  }
+#ifdef PROFILE
+					  }
+#endif
+				  } else {
+					  isfirst = true;
+					  busystatus = false;
+#ifdef DEBUG
+					  BAMBOO_DEBUGPRINT(0xee0c);
+#endif
+				  }
+			  }
+		  }
 	  }
-   } else {
-	if(!sendStall) {
-#ifdef RAWDEBUG
-	  raw_test_pass(0xee08);
-#endif
-#ifdef RAWPROFILE
-	  if(!stall) {
-#endif
-	  if(isfirst) {
-	    // wait for some time
-	    int halt = 10000;
-#ifdef RAWDEBUG
-	    raw_test_pass(0xee09);
-#endif
-	    while(halt--) {
-	    }
-	    isfirst = false;
-	  } else {
-	    // send StallMsg to startup core
-#ifdef RAWDEBUG
-	    raw_test_pass(0xee0a);
-#endif
-	    sendStall = transStallMsg(STARTUPCORE);
-	    isfirst = true;
-		busystatus = false;
-	  }
-#ifdef RAWPROFILE
-	}
-#endif
-	} else {
-	  isfirst = true;
-	  busystatus = false;
-#ifdef RAWDEBUG
-	  raw_test_pass(0xee0b);
-#endif
-	}
-      }
-    }
-  }
-  } // right-bracket for if-else of line 380
-#elif defined THREADSIMULATE
-  /* Start executing the tasks */
-  executetasks();
+  } // right-bracket for if-else of line 220
 
-  int i = 0;
-  // check if there are new objects coming
-  bool sendStall = false;
-
-  int numofcore = pthread_getspecific(key);
-  while(true) {
-    switch(receiveObject()) {
-    case 0: {
-      //printf("[run, %d] receive an object\n", numofcore);
-      sendStall = false;
-      // received an object
-      // check if there are new active tasks can be executed
-      executetasks();
-      break;
-    }
-
-    case 1: {
-      //printf("[run, %d] no msg\n", numofcore);
-      // no msg received
-      if(STARTUPCORE == numofcore) {
-	corestatus[numofcore] = 0;
-	// check the status of all cores
-	bool allStall = true;
-	for(i = 0; i < NUMCORES; ++i) {
-	  if(corestatus[i] != 0) {
-	    allStall = false;
-	    break;
-	  }
-	}
-	if(allStall) {
-	  // check if the sum of send objs and receive obj are the same
-	  // yes->terminate
-	  // no->go on executing
-	  int sumsendobj = 0;
-	  for(i = 0; i < NUMCORES; ++i) {
-	    sumsendobj += numsendobjs[i];
-	  }
-	  for(i = 0; i < NUMCORES; ++i) {
-	    sumsendobj -= numreceiveobjs[i];
-	  }
-	  if(0 == sumsendobj) {
-	    // terminate
-
-	    // release all locks
-	    int rc_tbl = pthread_rwlock_wrlock(&rwlock_tbl);
-	    printf("[run, %d] getting the write lock for locktbl: %d error: \n", numofcore, rc_tbl, strerror(rc_tbl));
-	    struct RuntimeIterator* it_lock = RuntimeHashcreateiterator(locktbl);
-	    while(0 != RunhasNext(it_lock)) {
-	      int key = Runkey(it_lock);
-	      pthread_rwlock_t* rwlock_obj = (pthread_rwlock_t*)Runnext(it_lock);
-	      int rc_des = pthread_rwlock_destroy(rwlock_obj);
-	      printf("[run, %d] destroy the rwlock for object: %d error: \n", numofcore, key, strerror(rc_des));
-	      RUNFREE(rwlock_obj);
-	    }
-	    freeRuntimeHash(locktbl);
-	    locktbl = NULL;
-	    RUNFREE(it_lock);
-
-	    // destroy all message queues
-	    char * pathhead = "/msgqueue_";
-	    int targetlen = strlen(pathhead);
-	    for(i = 0; i < NUMCORES; ++i) {
-	      char corenumstr[3];
-	      int sourcelen = 0;
-	      if(i < 10) {
-		corenumstr[0] = i + '0';
-		corenumstr[1] = '\0';
-		sourcelen = 1;
-	      } else if(i < 100) {
-		corenumstr[1] = i %10 + '0';
-		corenumstr[0] = (i / 10) + '0';
-		corenumstr[2] = '\0';
-		sourcelen = 2;
-	      } else {
-		printf("Error: i >= 100\n");
-		fflush(stdout);
-		exit(-1);
-	      }
-	      char path[targetlen + sourcelen + 1];
-	      strcpy(path, pathhead);
-	      strncat(path, corenumstr, sourcelen);
-	      mq_unlink(path);
-	    }
-
-	    printf("[run, %d] terminate!\n", numofcore);
-	    fflush(stdout);
-	    exit(0);
-	  }
-	}
-      } else {
-	if(!sendStall) {
-	  // send StallMsg to startup core
-	  sendStall = transStallMsg(STARTUPCORE);
-	}
-      }
-      break;
-    }
-
-    case 2: {
-      printf("[run, %d] receive a stall msg\n", numofcore);
-      // receive a Stall Msg, do nothing
-      assert(STARTUPCORE == numofcore);                                     // only startup core can receive such msg
-      sendStall = false;
-      break;
-    }
-
-    default: {
-      printf("[run, %d] Error: invalid message type.\n", numofcore);
-      fflush(stdout);
-      exit(-1);
-      break;
-    }
-    }
-  }
-#endif
-}
+} // run()
 
 void createstartupobject(int argc, char ** argv) {
   int i;
 
   /* Allocate startup object     */
+#if 0
 #ifdef PRECISE_GC
   struct ___StartupObject___ *startupobject=(struct ___StartupObject___*) allocate_new(NULL, STARTUPTYPE);
   struct ArrayObject * stringarray=allocate_newarray(NULL, STRINGARRAYTYPE, argc-1);
@@ -831,15 +484,21 @@ void createstartupobject(int argc, char ** argv) {
   struct ___StartupObject___ *startupobject=(struct ___StartupObject___*) allocate_new(STARTUPTYPE);
   struct ArrayObject * stringarray=allocate_newarray(STRINGARRAYTYPE, argc-1);
 #endif
+#endif // #if 0: for garbage collection
+  struct ___StartupObject___ *startupobject=(struct ___StartupObject___*) allocate_new(STARTUPTYPE);
+  struct ArrayObject * stringarray=allocate_newarray(STRINGARRAYTYPE, argc-1);
   /* Build array of strings */
   startupobject->___parameters___=stringarray;
   for(i=1; i<argc; i++) {
     int length=strlen(argv[i]);
+#if 0
 #ifdef PRECISE_GC
     struct ___String___ *newstring=NewString(NULL, argv[i],length);
 #else
     struct ___String___ *newstring=NewString(argv[i],length);
 #endif
+#endif // #if 0: for garbage collection
+	struct ___String___ *newstring=NewString(argv[i],length);
     ((void **)(((char *)&stringarray->___length___)+sizeof(int)))[i-1]=newstring;
   }
 
@@ -850,8 +509,8 @@ void createstartupobject(int argc, char ** argv) {
   /* Set initialized flag for startup object */
   flagorandinit(startupobject,1,0xFFFFFFFF);
   enqueueObject(startupobject, NULL, 0);
-#ifdef RAWCACHEFLUSH
-  raw_flush_entire_cache();
+#ifdef CACHEFLUSH
+  BAMBOO_CACHE_FLUSH_ALL();
 #endif
 }
 
@@ -875,11 +534,14 @@ int comparetpd(struct taskparamdescriptor *ftd1, struct taskparamdescriptor *ftd
 }
 
 /* This function sets a tag. */
+#if 0
 #ifdef PRECISE_GC
 void tagset(void *ptr, struct ___Object___ * obj, struct ___TagDescriptor___ * tagd) {
 #else
 void tagset(struct ___Object___ * obj, struct ___TagDescriptor___ * tagd) {
 #endif
+#endif // #if 0: for garbage collection
+void tagset(struct ___Object___ * obj, struct ___TagDescriptor___ * tagd) {
   struct ArrayObject * ao=NULL;
   struct ___Object___ * tagptr=obj->___tags___;
   if (tagptr==NULL) {
@@ -891,6 +553,7 @@ void tagset(struct ___Object___ * obj, struct ___TagDescriptor___ * tagd) {
       if (td==tagd) {
 	return;
       }
+#if 0
 #ifdef PRECISE_GC
       int ptrarray[]={2, (int) ptr, (int) obj, (int)tagd};
       struct ArrayObject * ao=allocate_newarray(&ptrarray,TAGARRAYTYPE,TAGARRAYINTERVAL);
@@ -900,6 +563,9 @@ void tagset(struct ___Object___ * obj, struct ___TagDescriptor___ * tagd) {
 #else
       ao=allocate_newarray(TAGARRAYTYPE,TAGARRAYINTERVAL);
 #endif
+#endif // #if 0: for garbage collection
+	  ao=allocate_newarray(TAGARRAYTYPE,TAGARRAYINTERVAL);
+
       ARRAYSET(ao, struct ___TagDescriptor___ *, 0, td);
       ARRAYSET(ao, struct ___TagDescriptor___ *, 1, tagd);
       obj->___tags___=(struct ___Object___ *) ao;
@@ -918,6 +584,7 @@ void tagset(struct ___Object___ * obj, struct ___TagDescriptor___ * tagd) {
 	ARRAYSET(ao, struct ___TagDescriptor___ *, ao->___cachedCode___, tagd);
 	ao->___cachedCode___++;
       } else {
+#if 0
 #ifdef PRECISE_GC
 	int ptrarray[]={2,(int) ptr, (int) obj, (int) tagd};
 	struct ArrayObject * aonew=allocate_newarray(&ptrarray,TAGARRAYTYPE,TAGARRAYINTERVAL+ao->___length___);
@@ -927,6 +594,9 @@ void tagset(struct ___Object___ * obj, struct ___TagDescriptor___ * tagd) {
 #else
 	struct ArrayObject * aonew=allocate_newarray(TAGARRAYTYPE,TAGARRAYINTERVAL+ao->___length___);
 #endif
+#endif // #if 0: for garbage collection
+	struct ArrayObject * aonew=allocate_newarray(TAGARRAYTYPE,TAGARRAYINTERVAL+ao->___length___);
+
 	aonew->___cachedCode___=ao->___length___+1;
 	for(i=0; i<ao->___length___; i++) {
 	  ARRAYSET(aonew, struct ___TagDescriptor___*, i, ARRAYGET(ao, struct ___TagDescriptor___*, i));
@@ -941,6 +611,7 @@ void tagset(struct ___Object___ * obj, struct ___TagDescriptor___ * tagd) {
     if(tagset==NULL) {
       tagd->flagptr=obj;
     } else if (tagset->type!=OBJECTARRAYTYPE) {
+#if 0
 #ifdef PRECISE_GC
       int ptrarray[]={2, (int) ptr, (int) obj, (int)tagd};
       struct ArrayObject * ao=allocate_newarray(&ptrarray,OBJECTARRAYTYPE,OBJECTARRAYINTERVAL);
@@ -949,6 +620,8 @@ void tagset(struct ___Object___ * obj, struct ___TagDescriptor___ * tagd) {
 #else
       struct ArrayObject * ao=allocate_newarray(OBJECTARRAYTYPE,OBJECTARRAYINTERVAL);
 #endif
+#endif // #if 0: for garbage collection
+	  struct ArrayObject * ao=allocate_newarray(OBJECTARRAYTYPE,OBJECTARRAYINTERVAL);
       ARRAYSET(ao, struct ___Object___ *, 0, tagd->flagptr);
       ARRAYSET(ao, struct ___Object___ *, 1, obj);
       ao->___cachedCode___=2;
@@ -959,6 +632,7 @@ void tagset(struct ___Object___ * obj, struct ___TagDescriptor___ * tagd) {
 	ARRAYSET(ao, struct ___Object___*, ao->___cachedCode___++, obj);
       } else {
 	int i;
+#if 0
 #ifdef PRECISE_GC
 	int ptrarray[]={2, (int) ptr, (int) obj, (int)tagd};
 	struct ArrayObject * aonew=allocate_newarray(&ptrarray,OBJECTARRAYTYPE,OBJECTARRAYINTERVAL+ao->___length___);
@@ -968,6 +642,8 @@ void tagset(struct ___Object___ * obj, struct ___TagDescriptor___ * tagd) {
 #else
 	struct ArrayObject * aonew=allocate_newarray(OBJECTARRAYTYPE,OBJECTARRAYINTERVAL);
 #endif
+#endif // #if 0: for garbage collection
+	struct ArrayObject * aonew=allocate_newarray(OBJECTARRAYTYPE,OBJECTARRAYINTERVAL);
 	aonew->___cachedCode___=ao->___cachedCode___+1;
 	for(i=0; i<ao->___length___; i++) {
 	  ARRAYSET(aonew, struct ___Object___*, i, ARRAYGET(ao, struct ___Object___*, i));
@@ -980,11 +656,14 @@ void tagset(struct ___Object___ * obj, struct ___TagDescriptor___ * tagd) {
 }
 
 /* This function clears a tag. */
+#if 0
 #ifdef PRECISE_GC
 void tagclear(void *ptr, struct ___Object___ * obj, struct ___TagDescriptor___ * tagd) {
 #else
 void tagclear(struct ___Object___ * obj, struct ___TagDescriptor___ * tagd) {
 #endif
+#endif // #if 0: for garbage collection
+void tagclear(struct ___Object___ * obj, struct ___TagDescriptor___ * tagd) {
   /* We'll assume that tag is alway there.
      Need to statically check for this of course. */
   struct ___Object___ * tagptr=obj->___tags___;
@@ -995,8 +674,9 @@ void tagclear(struct ___Object___ * obj, struct ___TagDescriptor___ * tagd) {
     else
 #ifndef RAW
       printf("ERROR 1 in tagclear\n");
+#else
+	  ;
 #endif
-      ;
   } else {
     struct ArrayObject *ao=(struct ArrayObject *) tagptr;
     int i;
@@ -1015,7 +695,6 @@ void tagclear(struct ___Object___ * obj, struct ___TagDescriptor___ * tagd) {
 #ifndef RAW
     printf("ERROR 2 in tagclear\n");
 #endif
-    ;
   }
 PROCESSCLEAR:
   {
@@ -1026,8 +705,9 @@ PROCESSCLEAR:
       else
 #ifndef RAW
 	printf("ERROR 3 in tagclear\n");
+#else
+	  ;
 #endif
-	;
     } else {
       struct ArrayObject *ao=(struct ArrayObject *) tagset;
       int i;
@@ -1052,6 +732,7 @@ ENDCLEAR:
   return;
 }
 
+#if 0
 /* This function allocates a new tag. */
 #ifdef PRECISE_GC
 struct ___TagDescriptor___ * allocate_tag(void *ptr, int index) {
@@ -1060,6 +741,9 @@ struct ___TagDescriptor___ * allocate_tag(void *ptr, int index) {
 struct ___TagDescriptor___ * allocate_tag(int index) {
   struct ___TagDescriptor___ * v=FREEMALLOC(classsize[TAGTYPE]);
 #endif
+#endif // #if 0: for garbage collection
+struct ___TagDescriptor___ * allocate_tag(int index) {
+  struct ___TagDescriptor___ * v=FREEMALLOC(classsize[TAGTYPE]);
   v->type=TAGTYPE;
   v->flag=index;
   return v;
@@ -1115,22 +799,12 @@ void flagbody(struct ___Object___ *ptr, int flag, struct parameterwrapper ** vqu
   int UNUSED, UNUSED2;
   int * enterflags = NULL;
   if((!isnew) && (queues == NULL)) {
-#ifdef THREADSIMULATE
-    int numofcore = pthread_getspecific(key);
-    queues = objectqueues[numofcore][ptr->type];
-    length = numqueues[numofcore][ptr->type];
-#else
-#ifdef RAW
     if(corenum < NUMCORES) {
-#endif
-    queues = objectqueues[corenum][ptr->type];
-    length = numqueues[corenum][ptr->type];
-#ifdef RAW
-  } else {
-    return;
-  }
-#endif
-#endif
+		queues = objectqueues[BAMBOO_NUM_OF_CORE][ptr->type];
+		length = numqueues[BAMBOO_NUM_OF_CORE][ptr->type];
+	} else {
+		return;
+	}
   }
   ptr->flag=flag;
 
@@ -1145,170 +819,145 @@ void flagbody(struct ___Object___ *ptr, int flag, struct parameterwrapper ** vqu
 }
 
 void enqueueObject(void * vptr, struct parameterwrapper ** vqueues, int vlength) {
-  struct ___Object___ *ptr = (struct ___Object___ *)vptr;
+	struct ___Object___ *ptr = (struct ___Object___ *)vptr;
+	
+	{
+		struct QueueItem *tmpptr;
+		struct parameterwrapper * parameter=NULL;
+		int j;
+		int i;
+		struct parameterwrapper * prevptr=NULL;
+		struct ___Object___ *tagptr=NULL;
+		struct parameterwrapper ** queues = vqueues;
+		int length = vlength;
+		if(corenum > NUMCORES - 1) {
+			return;
+		}
+		if(queues == NULL) {
+			queues = objectqueues[BAMBOO_NUM_OF_CORE][ptr->type];
+			length = numqueues[BAMBOO_NUM_OF_CORE][ptr->type];
+		}
+		tagptr=ptr->___tags___;
 
-  {
-    struct QueueItem *tmpptr;
-    struct parameterwrapper * parameter=NULL;
-    int j;
-    int i;
-    struct parameterwrapper * prevptr=NULL;
-    struct ___Object___ *tagptr=NULL;
-    struct parameterwrapper ** queues = vqueues;
-    int length = vlength;
-#ifdef RAW
-    if(corenum > NUMCORES - 1) {
-      return;
-    }
-#endif
-    if(queues == NULL) {
-#ifdef THREADSIMULATE
-      int numofcore = pthread_getspecific(key);
-      queues = objectqueues[numofcore][ptr->type];
-      length = numqueues[numofcore][ptr->type];
-#else
-      queues = objectqueues[corenum][ptr->type];
-      length = numqueues[corenum][ptr->type];
-#endif
-    }
-    tagptr=ptr->___tags___;
-
-    /* Outer loop iterates through all parameter queues an object of
-       this type could be in.  */
-    for(j = 0; j < length; ++j) {
-      parameter = queues[j];
-      /* Check tags */
-      if (parameter->numbertags>0) {
-	if (tagptr==NULL)
-	  goto nextloop; //that means the object has no tag but that param needs tag
-	else if(tagptr->type==TAGTYPE) { //one tag
-	  struct ___TagDescriptor___ * tag=(struct ___TagDescriptor___*) tagptr;
-	  for(i=0; i<parameter->numbertags; i++) {
-	    //slotid is parameter->tagarray[2*i];
-	    int tagid=parameter->tagarray[2*i+1];
-	    if (tagid!=tagptr->flag)
-	      goto nextloop; /*We don't have this tag */
-	  }
-	} else { //multiple tags
-	  struct ArrayObject * ao=(struct ArrayObject *) tagptr;
-	  for(i=0; i<parameter->numbertags; i++) {
-	    //slotid is parameter->tagarray[2*i];
-	    int tagid=parameter->tagarray[2*i+1];
-	    int j;
-	    for(j=0; j<ao->___cachedCode___; j++) {
-	      if (tagid==ARRAYGET(ao, struct ___TagDescriptor___*, j)->flag)
-		goto foundtag;
-	    }
-	    goto nextloop;
+		/* Outer loop iterates through all parameter queues an object of
+		   this type could be in.  */
+		for(j = 0; j < length; ++j) {
+			parameter = queues[j];     
+			/* Check tags */
+			if (parameter->numbertags>0) {
+				if (tagptr==NULL)
+					goto nextloop; //that means the object has no tag but that param needs tag
+				else if(tagptr->type==TAGTYPE) { //one tag
+					struct ___TagDescriptor___ * tag=(struct ___TagDescriptor___*) tagptr;	 
+					for(i=0; i<parameter->numbertags; i++) {
+						//slotid is parameter->tagarray[2*i];
+						int tagid=parameter->tagarray[2*i+1];
+						if (tagid!=tagptr->flag)
+							goto nextloop; /*We don't have this tag */
+					}
+				} else { //multiple tags
+					struct ArrayObject * ao=(struct ArrayObject *) tagptr;
+					for(i=0; i<parameter->numbertags; i++) {
+						//slotid is parameter->tagarray[2*i];
+						int tagid=parameter->tagarray[2*i+1];
+						int j;
+						for(j=0; j<ao->___cachedCode___; j++) {
+							if (tagid==ARRAYGET(ao, struct ___TagDescriptor___*, j)->flag)
+								goto foundtag;
+						}
+						goto nextloop;
 foundtag:
-	    ;
-	  }
-	}
-      }
-
-      /* Check flags */
-      for(i=0; i<parameter->numberofterms; i++) {
-	int andmask=parameter->intarray[i*2];
-	int checkmask=parameter->intarray[i*2+1];
-	if ((ptr->flag&andmask)==checkmask) {
-	  enqueuetasks(parameter, prevptr, ptr, NULL, 0);
-	  prevptr=parameter;
-	  break;
-	}
-      }
+						;
+					}
+				}
+			}
+	
+			/* Check flags */
+			for(i=0; i<parameter->numberofterms; i++) {
+				int andmask=parameter->intarray[i*2];
+				int checkmask=parameter->intarray[i*2+1];
+				if ((ptr->flag&andmask)==checkmask) {
+					enqueuetasks(parameter, prevptr, ptr, NULL, 0);
+					prevptr=parameter;
+					break;
+				}
+			}
 nextloop:
-      ;
-    }
-  }
+			;
+		}
+	}
 }
 
-#ifdef RAW
 void enqueueObject_I(void * vptr, struct parameterwrapper ** vqueues, int vlength) {
-  struct ___Object___ *ptr = (struct ___Object___ *)vptr;
+	struct ___Object___ *ptr = (struct ___Object___ *)vptr;
+	
+	{
+		struct QueueItem *tmpptr;
+		struct parameterwrapper * parameter=NULL;
+		int j;
+		int i;
+		struct parameterwrapper * prevptr=NULL;
+		struct ___Object___ *tagptr=NULL;
+		struct parameterwrapper ** queues = vqueues;
+		int length = vlength;
+		if(corenum > NUMCORES - 1) {
+			return;
+		}
+		if(queues == NULL) {
+			queues = objectqueues[BAMBOO_NUM_OF_CORE][ptr->type];
+			length = numqueues[BAMBOO_NUM_OF_CORE][ptr->type];
+		}
+		tagptr=ptr->___tags___;
 
-  {
-    struct QueueItem *tmpptr;
-    struct parameterwrapper * parameter=NULL;
-    int j;
-    int i;
-    struct parameterwrapper * prevptr=NULL;
-    struct ___Object___ *tagptr=NULL;
-    struct parameterwrapper ** queues = vqueues;
-    int length = vlength;
-#ifdef RAW
-    if(corenum > NUMCORES - 1) {
-      return;
-    }
-#endif
-    if(queues == NULL) {
-#ifdef THREADSIMULATE
-      int numofcore = pthread_getspecific(key);
-      queues = objectqueues[numofcore][ptr->type];
-      length = numqueues[numofcore][ptr->type];
-#else
-      queues = objectqueues[corenum][ptr->type];
-      length = numqueues[corenum][ptr->type];
-#endif
-    }
-    tagptr=ptr->___tags___;
-
-    /* Outer loop iterates through all parameter queues an object of
-       this type could be in.  */
-    for(j = 0; j < length; ++j) {
-      parameter = queues[j];
-      /* Check tags */
-      if (parameter->numbertags>0) {
-	if (tagptr==NULL)
-	  goto nextloop; //that means the object has no tag but that param needs tag
-	else if(tagptr->type==TAGTYPE) { //one tag
-	  struct ___TagDescriptor___ * tag=(struct ___TagDescriptor___*) tagptr;
-	  for(i=0; i<parameter->numbertags; i++) {
-	    //slotid is parameter->tagarray[2*i];
-	    int tagid=parameter->tagarray[2*i+1];
-	    if (tagid!=tagptr->flag) {
-	      goto nextloop; /*We don't have this tag */
-	    }
-	  }
-	} else { //multiple tags
-	  struct ArrayObject * ao=(struct ArrayObject *) tagptr;
-	  for(i=0; i<parameter->numbertags; i++) {
-	    //slotid is parameter->tagarray[2*i];
-	    int tagid=parameter->tagarray[2*i+1];
-	    int j;
-	    for(j=0; j<ao->___cachedCode___; j++) {
-	      if (tagid==ARRAYGET(ao, struct ___TagDescriptor___*, j)->flag) {
-		goto foundtag;
-	      }
-	    }
-	    goto nextloop;
+		/* Outer loop iterates through all parameter queues an object of
+		   this type could be in.  */
+		for(j = 0; j < length; ++j) {
+			parameter = queues[j];     
+			/* Check tags */
+			if (parameter->numbertags>0) {
+				if (tagptr==NULL)
+					goto nextloop; //that means the object has no tag but that param needs tag
+				else if(tagptr->type==TAGTYPE) { //one tag
+					struct ___TagDescriptor___ * tag=(struct ___TagDescriptor___*) tagptr;	 
+					for(i=0; i<parameter->numbertags; i++) {
+						//slotid is parameter->tagarray[2*i];
+						int tagid=parameter->tagarray[2*i+1];
+						if (tagid!=tagptr->flag)
+							goto nextloop; /*We don't have this tag */
+					}
+				} else { //multiple tags
+					struct ArrayObject * ao=(struct ArrayObject *) tagptr;
+					for(i=0; i<parameter->numbertags; i++) {
+						//slotid is parameter->tagarray[2*i];
+						int tagid=parameter->tagarray[2*i+1];
+						int j;
+						for(j=0; j<ao->___cachedCode___; j++) {
+							if (tagid==ARRAYGET(ao, struct ___TagDescriptor___*, j)->flag)
+								goto foundtag;
+						}
+						goto nextloop;
 foundtag:
-	    ;
-	  }
-	}
-      }
-
-      /* Check flags */
-      for(i=0; i<parameter->numberofterms; i++) {
-	int andmask=parameter->intarray[i*2];
-	int checkmask=parameter->intarray[i*2+1];
-	if ((ptr->flag&andmask)==checkmask) {
-	  enqueuetasks_I(parameter, prevptr, ptr, NULL, 0);
-	  prevptr=parameter;
-	  break;
-	}
-      }
+						;
+					}
+				}
+			}
+	
+			/* Check flags */
+			for(i=0; i<parameter->numberofterms; i++) {
+				int andmask=parameter->intarray[i*2];
+				int checkmask=parameter->intarray[i*2+1];
+				if ((ptr->flag&andmask)==checkmask) {
+					enqueuetasks_I(parameter, prevptr, ptr, NULL, 0);
+					prevptr=parameter;
+					break;
+				}
+			}
 nextloop:
-      ;
-    }
-  }
+			;
+		}
+	}
 }
 
-// helper function to compute the coordinates of a core from the core number
-void calCoords(int core_num, int* coordY, int* coordX) {
-  *coordX = core_num % raw_get_array_size_x();
-  *coordY = core_num / raw_get_array_size_x();
-}
-#endif
 
 int * getAliasLock(void ** ptrs, int length, struct RuntimeHash * tbl) {
 	if(length == 0) {
@@ -1380,7 +1029,7 @@ void addAliasLock(void * ptr, int lock) {
   }
 }
 
-/* Message format for RAW version:
+/* Message format:
  *      type + Msgbody
  * type: 0 -- transfer object
  *       1 -- transfer stall msg
@@ -1414,464 +1063,10 @@ void addAliasLock(void * ptr, int lock) {
  *            status: 0 -- stall; 1 -- busy
  */
 
-// transfer an object to targetcore
-// format: object
-void transferObject(struct transObjInfo * transObj) {
-  void * obj = transObj->objptr;
-  int type=((int *)obj)[0];
-  int size=classsize[type];
-  int targetcore = transObj->targetcore;
-
-#ifdef RAW
-  unsigned msgHdr;
-  int self_y, self_x, target_y, target_x;
-  // for 32 bit machine, the size of fixed part is always 3 words
-  int msgsize = 3 + transObj->length * 2;
-  int i = 0;
-
-  struct ___Object___ * newobj = (struct ___Object___ *)obj;
-
-  calCoords(corenum, &self_y, &self_x);
-  calCoords(targetcore, &target_y, &target_x);
-  isMsgSending = true;
-  // Build the message header
-  msgHdr = construct_dyn_hdr(0, msgsize, 0,             // msgsize word sent.
-                             self_y, self_x,
-                             target_y, target_x);
-  // start sending msg, set sand msg flag
-  //isMsgSending = true;
-  gdn_send(msgHdr);                     // Send the message header to EAST to handle fab(n - 1).
-#ifdef RAWDEBUG
-  raw_test_pass(0xbbbb);
-  raw_test_pass(0xb000 + targetcore);       // targetcore
-#endif
-  gdn_send(0);
-#ifdef RAWDEBUG
-  raw_test_pass(0);
-#endif
-  gdn_send(msgsize);
-#ifdef RAWDEBUG
-  raw_test_pass_reg(msgsize);
-#endif
-  gdn_send((int)obj);
-#ifdef RAWDEBUG
-  raw_test_pass_reg(obj);
-#endif
-  for(i = 0; i < transObj->length; ++i) {
-    int taskindex = transObj->queues[2*i];
-    int paramindex = transObj->queues[2*i+1];
-    gdn_send(taskindex);
-#ifdef RAWDEBUG
-    raw_test_pass_reg(taskindex);
-#endif
-    gdn_send(paramindex);
-#ifdef RAWDEBUG
-    raw_test_pass_reg(paramindex);
-#endif
-  }
-#ifdef RAWDEBUG
-  raw_test_pass(0xffff);
-#endif
-  ++(self_numsendobjs);
-  // end of sending this msg, set sand msg flag false
-  isMsgSending = false;
-  // check if there are pending msgs
-  while(isMsgHanging) {
-    // get the msg from outmsgdata[]
-    // length + target + msg
-    outmsgleft = outmsgdata[outmsgindex++];
-    targetcore = outmsgdata[outmsgindex++];
-    calCoords(targetcore, &target_y, &target_x);
-	isMsgSending = true;
-    // Build the message header
-    msgHdr = construct_dyn_hdr(0, outmsgleft, 0,                        // msgsize word sent.
-                               self_y, self_x,
-                               target_y, target_x);
-    //isMsgSending = true;
-    gdn_send(msgHdr);                           
-#ifdef RAWDEBUG
-    raw_test_pass(0xbbbb);
-    raw_test_pass(0xb000 + targetcore);             // targetcore
-#endif
-    while(outmsgleft-- > 0) {
-      gdn_send(outmsgdata[outmsgindex++]);
-#ifdef RAWDEBUG
-      raw_test_pass_reg(outmsgdata[outmsgindex - 1]);
-#endif
-    }
-#ifdef RAWDEBUG
-    raw_test_pass(0xffff);
-#endif
-    isMsgSending = false;
-#ifdef INTERRUPT
-    raw_user_interrupts_off();
-#endif
-    // check if there are still msg hanging
-    if(outmsgindex == outmsglast) {
-      // no more msgs
-      outmsgindex = outmsglast = 0;
-      isMsgHanging = false;
-    }
-#ifdef INTERRUPT
-    raw_user_interrupts_on();
-#endif
-  }
-#elif defined THREADSIMULATE
-  int numofcore = pthread_getspecific(key);
-
-  // use POSIX message queue to transfer objects between cores
-  mqd_t mqdnum;
-  char corenumstr[3];
-  int sourcelen = 0;
-  if(targetcore < 10) {
-    corenumstr[0] = targetcore + '0';
-    corenumstr[1] = '\0';
-    sourcelen = 1;
-  } else if(targetcore < 100) {
-    corenumstr[1] = targetcore % 10 + '0';
-    corenumstr[0] = (targetcore / 10) + '0';
-    corenumstr[2] = '\0';
-    sourcelen = 2;
-  } else {
-    printf("Error: targetcore >= 100\n");
-    fflush(stdout);
-    exit(-1);
-  }
-  char * pathhead = "/msgqueue_";
-  int targetlen = strlen(pathhead);
-  char path[targetlen + sourcelen + 1];
-  strcpy(path, pathhead);
-  strncat(path, corenumstr, sourcelen);
-  int oflags = O_WRONLY|O_NONBLOCK;
-  int omodes = S_IRWXU|S_IRWXG|S_IRWXO;
-  mqdnum = mq_open(path, oflags, omodes, NULL);
-  if(mqdnum==-1) {
-    printf("[transferObject, %d] mq_open %s fail: %d, error: %s\n", numofcore, path, mqdnum, strerror(errno));
-    fflush(stdout);
-    exit(-1);
-  }
-  struct transObjInfo * tmptransObj = RUNMALLOC(sizeof(struct transObjInfo));
-  memcpy(tmptransObj, transObj, sizeof(struct transObjInfo));
-  int * tmpqueue = RUNMALLOC(sizeof(int)*2*tmptransObj->length);
-  memcpy(tmpqueue, tmptransObj->queues, sizeof(int)*2*tmptransObj->length);
-  tmptransObj->queues = tmpqueue;
-  struct ___Object___ * newobj = RUNMALLOC(sizeof(struct ___Object___));
-  newobj->type = ((struct ___Object___ *)obj)->type;
-  newobj->original = (struct ___Object___ *)tmptransObj;
-  int ret;
-  do {
-    ret=mq_send(mqdnum, (void *)newobj, sizeof(struct ___Object___), 0);             // send the object into the queue
-    if(ret != 0) {
-      printf("[transferObject, %d] mq_send to %s returned: %d, error: %s\n", numofcore, path, ret, strerror(errno));
-    }
-  } while(ret!=0);
-  RUNFREE(newobj);
-  if(numofcore == STARTUPCORE) {
-    ++numsendobjs[numofcore];
-  } else {
-    ++(thread_data_array[numofcore].numsendobjs);
-  }
-  printf("[transferObject, %d] mq_send to %s returned: $%x\n", numofcore, path, ret);
-#endif
-}
-
-// send terminate message to targetcore
-// format: -1
-bool transStallMsg(int targetcore) {
-#ifdef RAW
-  unsigned msgHdr;
-  int self_y, self_x, target_y, target_x;
-  // for 32 bit machine, the size is always 4 words
-  //int msgsize = sizeof(int) * 4;
-  int msgsize = 4;
-
-  calCoords(corenum, &self_y, &self_x);
-  calCoords(targetcore, &target_y, &target_x);
-  isMsgSending = true;
-  // Build the message header
-  msgHdr = construct_dyn_hdr(0, msgsize, 0,             // msgsize word sent.
-                             self_y, self_x,
-                             target_y, target_x);
-  // start sending msgs, set msg sending flag
-  //isMsgSending = true;
-  gdn_send(msgHdr);                     // Send the message header to EAST to handle fab(n - 1).
-#ifdef RAWDEBUG
-  raw_test_pass(0xbbbb);
-  raw_test_pass(0xb000 + targetcore);       // targetcore
-#endif
-  gdn_send(1);
-#ifdef RAWDEBUG
-  raw_test_pass(1);
-#endif
-  gdn_send(corenum);
-#ifdef RAWDEBUG
-  raw_test_pass_reg(corenum);
-#endif
-  gdn_send(self_numsendobjs);
-#ifdef RAWDEBUG
-  raw_test_pass_reg(self_numsendobjs);
-#endif
-  gdn_send(self_numreceiveobjs);
-#ifdef RAWDEBUG
-  raw_test_pass_reg(self_numreceiveobjs);
-  raw_test_pass(0xffff);
-#endif
-  // end of sending this msg, set sand msg flag false
-  isMsgSending = false;
-  // check if there are pending msgs
-  while(isMsgHanging) {
-    // get the msg from outmsgdata[]
-    // length + target + msg
-    outmsgleft = outmsgdata[outmsgindex++];
-    targetcore = outmsgdata[outmsgindex++];
-    calCoords(targetcore, &target_y, &target_x);
-	isMsgSending = true;
-    // Build the message header
-    msgHdr = construct_dyn_hdr(0, outmsgleft, 0,                        // msgsize word sent.
-                               self_y, self_x,
-                               target_y, target_x);
-	//isMsgSending = true;
-    gdn_send(msgHdr);                           // Send the message header to EAST to handle fab(n - 1).
-#ifdef RAWDEBUG
-    raw_test_pass(0xbbbb);
-    raw_test_pass(0xb000 + targetcore);             // targetcore
-#endif
-    while(outmsgleft-- > 0) {
-      gdn_send(outmsgdata[outmsgindex++]);
-#ifdef RAWDEBUG
-      raw_test_pass_reg(outmsgdata[outmsgindex - 1]);
-#endif
-    }
-#ifdef RAWDEBUG
-    raw_test_pass(0xffff);
-#endif
-    isMsgSending = false;
-#ifdef INTERRUPT
-    raw_user_interrupts_off();
-#endif
-    // check if there are still msg hanging
-    if(outmsgindex == outmsglast) {
-      // no more msgs
-      outmsgindex = outmsglast = 0;
-      isMsgHanging = false;
-    }
-#ifdef INTERRUPT
-    raw_user_interrupts_on();
-#endif
-  }
-  return true;
-#elif defined THREADSIMULATE
-  struct ___Object___ *newobj = RUNMALLOC(sizeof(struct ___Object___));
-  // use the first four int field to hold msgtype/corenum/sendobj/receiveobj
-  newobj->type = -1;
-  int numofcore = pthread_getspecific(key);
-  newobj->flag = numofcore;
-  newobj->___cachedHash___ = thread_data_array[numofcore].numsendobjs;
-  newobj->___cachedCode___ = thread_data_array[numofcore].numreceiveobjs;
-
-  // use POSIX message queue to send stall msg to startup core
-  assert(targetcore == STARTUPCORE);
-  mqd_t mqdnum;
-  char corenumstr[3];
-  int sourcelen = 0;
-  if(targetcore < 10) {
-    corenumstr[0] = targetcore + '0';
-    corenumstr[1] = '\0';
-    sourcelen = 1;
-  } else if(targetcore < 100) {
-    corenumstr[1] = targetcore % 10 + '0';
-    corenumstr[0] = (targetcore / 10) + '0';
-    corenumstr[2] = '\0';
-    sourcelen = 2;
-  } else {
-    printf("Error: targetcore >= 100\n");
-    fflush(stdout);
-    exit(-1);
-  }
-  char * pathhead = "/msgqueue_";
-  int targetlen = strlen(pathhead);
-  char path[targetlen + sourcelen + 1];
-  strcpy(path, pathhead);
-  strncat(path, corenumstr, sourcelen);
-  int oflags = O_WRONLY|O_NONBLOCK;
-  int omodes = S_IRWXU|S_IRWXG|S_IRWXO;
-  mqdnum = mq_open(path, oflags, omodes, NULL);
-  if(mqdnum==-1) {
-    printf("[transStallMsg, %d] mq_open %s fail: %d, error: %s\n", numofcore, path, mqdnum, strerror(errno));
-    fflush(stdout);
-    exit(-1);
-  }
-  int ret;
-  ret=mq_send(mqdnum, (void *)newobj, sizeof(struct ___Object___), 0);       // send the object into the queue
-  if(ret != 0) {
-    printf("[transStallMsg, %d] mq_send to %s returned: %d, error: %s\n", numofcore, path, ret, strerror(errno));
-    RUNFREE(newobj);
-    return false;
-  } else {
-    printf("[transStallMsg, %d] mq_send to %s returned: $%x\n", numofcore, path, ret);
-    printf("<transStallMsg> to %s index: %d, sendobjs: %d, receiveobjs: %d\n", path, newobj->flag, newobj->___cachedHash___, newobj->___cachedCode___);
-    RUNFREE(newobj);
-    return true;
-  }
-#endif
-}
-
-void transStatusConfirmMsg(int targetcore) {
-#ifdef RAW
-  unsigned msgHdr;
-  int self_y, self_x, target_y, target_x;
-  // for 32 bit machine, the size is always 1 words
-  //int msgsize = sizeof(int) * 1;
-  int msgsize = 1;
-
-  calCoords(corenum, &self_y, &self_x);
-  calCoords(targetcore, &target_y, &target_x);
-  isMsgSending = true;
-  // Build the message header
-  msgHdr = construct_dyn_hdr(0, msgsize, 0,             // msgsize word sent.
-                             self_y, self_x,
-                             target_y, target_x);
-  // start sending msgs, set msg sending flag
-  //isMsgSending = true;
-  gdn_send(msgHdr);                     // Send the message header to EAST to handle fab(n - 1).
-#ifdef RAWDEBUG
-  raw_test_pass(0xbbbb);
-  raw_test_pass(0xb000 + targetcore);       // targetcore
-#endif
-  gdn_send(0xc);
-#ifdef RAWDEBUG
-  raw_test_pass(0xc);
-  raw_test_pass(0xffff);
-#endif
-  // end of sending this msg, set sand msg flag false
-  isMsgSending = false;
-  // check if there are pending msgs
-  while(isMsgHanging) {
-    // get the msg from outmsgdata[]
-    // length + target + msg
-    outmsgleft = outmsgdata[outmsgindex++];
-    targetcore = outmsgdata[outmsgindex++];
-    calCoords(targetcore, &target_y, &target_x);
-	isMsgSending = true;
-    // Build the message header
-    msgHdr = construct_dyn_hdr(0, outmsgleft, 0,                        // msgsize word sent.
-                               self_y, self_x,
-                               target_y, target_x);
-	//isMsgSending = true;
-    gdn_send(msgHdr);                           // Send the message header to EAST to handle fab(n - 1).
-#ifdef RAWDEBUG
-    raw_test_pass(0xbbbb);
-    raw_test_pass(0xb000 + targetcore);             // targetcore
-#endif
-    while(outmsgleft-- > 0) {
-      gdn_send(outmsgdata[outmsgindex++]);
-#ifdef RAWDEBUG
-      raw_test_pass_reg(outmsgdata[outmsgindex - 1]);
-#endif
-    }
-#ifdef RAWDEBUG
-    raw_test_pass(0xffff);
-#endif
-    isMsgSending = false;
-#ifdef INTERRUPT
-    raw_user_interrupts_off();
-#endif
-    // check if there are still msg hanging
-    if(outmsgindex == outmsglast) {
-      // no more msgs
-      outmsgindex = outmsglast = 0;
-      isMsgHanging = false;
-    }
-#ifdef INTERRUPT
-    raw_user_interrupts_on();
-#endif
-  }
-#elif defined THREADSIMULATE
-// TODO
-#endif
-}
-
-#ifdef RAWPROFILE
-// send profile request message to targetcore
-// format: 6
-bool transProfileRequestMsg(int targetcore) {
-  unsigned msgHdr;
-  int self_y, self_x, target_y, target_x;
-  // for 32 bit machine, the size is always 4 words
-  int msgsize = 2;
-
-  calCoords(corenum, &self_y, &self_x);
-  calCoords(targetcore, &target_y, &target_x);
-  isMsgSending = true;
-  // Build the message header
-  msgHdr = construct_dyn_hdr(0, msgsize, 0,             // msgsize word sent.
-                             self_y, self_x,
-                             target_y, target_x);
-  // start sending msgs, set msg sending flag
-  //isMsgSending = true;
-  gdn_send(msgHdr);                     // Send the message header to EAST to handle fab(n - 1).
-#ifdef RAWDEBUG
-  raw_test_pass(0xbbbb);
-  raw_test_pass(0xb000 + targetcore);       // targetcore
-#endif
-  gdn_send(6);
-#ifdef RAWDEBUG
-  raw_test_pass(6);
-#endif
-  gdn_send(totalexetime);
-#ifdef RAWDEBUG
-  raw_test_pass_reg(totalexetime);
-  raw_test_pass(0xffff);
-#endif
-  // end of sending this msg, set sand msg flag false
-  isMsgSending = false;
-  // check if there are pending msgs
-  while(isMsgHanging) {
-    // get the msg from outmsgdata[]
-    // length + target + msg
-    outmsgleft = outmsgdata[outmsgindex++];
-    targetcore = outmsgdata[outmsgindex++];
-    calCoords(targetcore, &target_y, &target_x);
-	isMsgSending = true;
-    // Build the message header
-    msgHdr = construct_dyn_hdr(0, outmsgleft, 0,                        // msgsize word sent.
-                               self_y, self_x,
-                               target_y, target_x);
-	//isMsgSending = true;
-    gdn_send(msgHdr);
-#ifdef RAWDEBUG
-    raw_test_pass(0xbbbb);
-    raw_test_pass(0xb000 + targetcore);             // targetcore
-#endif
-    while(outmsgleft-- > 0) {
-      gdn_send(outmsgdata[outmsgindex++]);
-#ifdef RAWDEBUG
-      raw_test_pass_reg(outmsgdata[outmsgindex - 1]);
-#endif
-    }
-#ifdef RAWDEBUG
-    raw_test_pass(0xffff);
-#endif
-    isMsgSending = false;
-#ifdef INTERRUPT
-    raw_user_interrupts_off();
-#endif
-    // check if there are still msg hanging
-    if(outmsgindex == outmsglast) {
-      // no more msgs
-      outmsgindex = outmsglast = 0;
-      isMsgHanging = false;
-    }
-#ifdef INTERRUPT
-    raw_user_interrupts_on();
-#endif
-  }
-  return true;
-}
-
+#ifdef PROFILE
 // output the profiling data
 void outputProfileData() {
-#ifdef RAWUSEIO
+#ifdef USEIO
   FILE * fp;
   char fn[50];
   int self_y, self_x;
@@ -1971,20 +1166,20 @@ void outputProfileData() {
   int i = 0;
   int j = 0;
 
-  raw_test_pass(0xdddd);
+  BAMBOO_DEBUGPRINT(0xdddd);
   // output task related info
   for(i= 0; i < taskInfoIndex; i++) {
     TaskInfo* tmpTInfo = taskInfoArray[i];
     char* tmpName = tmpTInfo->taskName;
     int nameLen = strlen(tmpName);
-    raw_test_pass(0xddda);
+    BAMBOO_DEBUGPRINT(0xddda);
     for(j = 0; j < nameLen; j++) {
-      raw_test_pass_reg(tmpName[j]);
+      BAMBOO_DEBUGPRINT_REG(tmpName[j]);
     }
-    raw_test_pass(0xdddb);
-    raw_test_pass_reg(tmpTInfo->startTime);
-    raw_test_pass_reg(tmpTInfo->endTime);
-	raw_test_pass_reg(tmpTInfo->exitIndex);
+    BAMBOO_DEBUGPRINT(0xdddb);
+    BAMBOO_DEBUGPRINT_REG(tmpTInfo->startTime);
+    BAMBOO_DEBUGPRINT_REG(tmpTInfo->endTime);
+	BAMBOO_DEBUGPRINT_REG(tmpTInfo->exitIndex);
 	if(tmpTInfo->newObjs != NULL) {
 		struct RuntimeHash * nobjtbl = allocateRuntimeHash(5);
 		struct RuntimeIterator * iter = NULL;
@@ -2007,35 +1202,35 @@ void outputProfileData() {
 			char * objtype = (char *)Runkey(iter);
 			int num = Runnext(iter);
 			int nameLen = strlen(objtype);
-			raw_test_pass(0xddda);
+			BAMBOO_DEBUGPRINT(0xddda);
 			for(j = 0; j < nameLen; j++) {
-				raw_test_pass_reg(objtype[j]);
+				BAMBOO_DEBUGPRINT_REG(objtype[j]);
 			}
-			raw_test_pass(0xdddb);
-			raw_test_pass_reg(num);
+			BAMBOO_DEBUGPRINT(0xdddb);
+			BAMBOO_DEBUGPRINT_REG(num);
 		}
 	}
-    raw_test_pass(0xdddc);
+    BAMBOO_DEBUGPRINT(0xdddc);
   }
 
   if(taskInfoOverflow) {
-    raw_test_pass(0xefee);
+    BAMBOO_DEBUGPRINT(0xefee);
   }
 
   // output interrupt related info
   /*for(i = 0; i < interruptInfoIndex; i++) {
        InterruptInfo* tmpIInfo = interruptInfoArray[i];
-       raw_test_pass(0xddde);
-       raw_test_pass_reg(tmpIInfo->startTime);
-       raw_test_pass_reg(tmpIInfo->endTime);
-       raw_test_pass(0xdddf);
+       BAMBOO_DEBUGPRINT(0xddde);
+       BAMBOO_DEBUGPRINT_REG(tmpIInfo->startTime);
+       BAMBOO_DEBUGPRINT_REG(tmpIInfo->endTime);
+       BAMBOO_DEBUGPRINT(0xdddf);
      }
 
      if(interruptInfoOverflow) {
-       raw_test_pass(0xefef);
+       BAMBOO_DEBUGPRINT(0xefef);
      }*/
 
-  raw_test_pass(0xeeee);
+  BAMBOO_DEBUGPRINT(0xeeee);
 #endif
 }
 
@@ -2051,8 +1246,16 @@ inline void addNewObjInfo(void * nobj) {
 }
 #endif
 
+/* this function is to process lock requests. 
+ * can only be invoked in receiveObject() */
+// if return -1: the lock request is redirected
+//            0: the lock request is approved
+//            1: the lock request is denied
+int processlockrequest(int locktype, int lock, int obj, int requestcore, int rootrequestcore, bool cache);
+
 // receive object transferred from other cores
 // or the terminate message from other cores
+// Should be invoked in critical sections!!
 // NOTICE: following format is for threadsimulate version only
 //         RAW version please see previous description
 // format: type + object
@@ -2065,62 +1268,14 @@ inline void addNewObjInfo(void * nobj) {
 //               RAW version: -1 -- received nothing
 //                            otherwise -- received msg type
 int receiveObject() {
-#ifdef RAW
-  bool deny = false;
-  unsigned msgHdr;
-  int self_y, self_x, target_y, target_x;
+  int deny = 0;
   int targetcore = 0;
-  if(gdn_input_avail() == 0) {
-#ifdef RAWDEBUG
-    if(corenum < NUMCORES) {
-      raw_test_pass(0xd001);
-    }
-#endif
-    return -1;
-  }
-#ifdef RAWPROFILE
-  /*if(isInterrupt && (!interruptInfoOverflow)) {
-     // raw_test_pass(0xffff);
-     interruptInfoArray[interruptInfoIndex] = RUNMALLOC_I(sizeof(struct interrupt_info));
-     interruptInfoArray[interruptInfoIndex]->startTime = raw_get_cycle();
-     interruptInfoArray[interruptInfoIndex]->endTime = -1;
-     }*/
-#endif
+  
 msg:
-#ifdef RAWDEBUG
-  raw_test_pass(0xcccc);
-#endif
-  while((gdn_input_avail() != 0) && (msgdataindex < msglength)) {
-    msgdata[msgdataindex] = gdn_receive();
-    if(msgdataindex == 0) {
-		if(msgdata[0] > 0xc) {
-			msglength = 3;
-		} else if (msgdata[0] == 0xc) {
-			msglength = 1;
-		} else if(msgdata[0] > 8) {
-			msglength = 4;
-		} else if(msgdata[0] == 8) {
-			msglength = 6;
-		} else if(msgdata[0] > 5) {
-			msglength = 2;
-		} else if (msgdata[0] > 2) {
-			msglength = 4;
-		} else if (msgdata[0] == 2) {
-			msglength = 5;
-		} else if (msgdata[0] > 0) {
-			msglength = 4;
-		}
-    } else if((msgdataindex == 1) && (msgdata[0] == 0)) {
-      msglength = msgdata[msgdataindex];
-    }
-#ifdef RAWDEBUG
-    raw_test_pass_reg(msgdata[msgdataindex]);
-#endif
-    msgdataindex++;
+  if(receiveMsg() == -1) {
+	  return -1;
   }
-#ifdef RAWDEBUG
-  raw_test_pass(0xffff);
-#endif
+
   if(msgdataindex == msglength) {
     // received a whole msg
     int type, data1;             // will receive at least 2 words including type
@@ -2131,50 +1286,50 @@ msg:
       // receive a object transfer msg
       struct transObjInfo * transObj = RUNMALLOC_I(sizeof(struct transObjInfo));
       int k = 0;
-#ifdef RAWDEBUG
-	  raw_test_pass(0xe880);
+#ifdef DEBUG
+	  BAMBOO_DEBUGPRINT(0xe880);
 #endif
       if(corenum > NUMCORES - 1) {
-		  raw_test_pass_reg(msgdata[2]);
-	raw_test_done(0xa001);
-      } else if((corenum == STARTUPCORE) && waitconfirm) {
+		  BAMBOO_DEBUGPRINT_REG(msgdata[2]);
+		  BAMBOO_EXIT(0xa005);
+      } /*else if((corenum == STARTUPCORE) && waitconfirm) {
 		  waitconfirm = false;
 		  numconfirm = 0;
-	  }
+	  }*/
       // store the object and its corresponding queue info, enqueue it later
       transObj->objptr = (void *)msgdata[2];                                           // data1 is now size of the msg
       transObj->length = (msglength - 3) / 2;
       transObj->queues = RUNMALLOC_I(sizeof(int)*(msglength - 3));
       for(k = 0; k < transObj->length; ++k) {
-	transObj->queues[2*k] = msgdata[3+2*k];
-#ifdef RAWDEBUG
-	raw_test_pass_reg(transObj->queues[2*k]);
+		  transObj->queues[2*k] = msgdata[3+2*k];
+#ifdef DEBUG
+		  BAMBOO_DEBUGPRINT_REG(transObj->queues[2*k]);
 #endif
-	transObj->queues[2*k+1] = msgdata[3+2*k+1];
-#ifdef RAWDEBUG
-	raw_test_pass_reg(transObj->queues[2*k+1]);
+		  transObj->queues[2*k+1] = msgdata[3+2*k+1];
+#ifdef DEBUG
+		  BAMBOO_DEBUGPRINT_REG(transObj->queues[2*k+1]);
 #endif
       }
       // check if there is an existing duplicate item
       {
-	struct QueueItem * qitem = getTail(&objqueue);
-	struct QueueItem * prev = NULL;
-	while(qitem != NULL) {
-	  struct transObjInfo * tmpinfo = (struct transObjInfo *)(qitem->objectptr);
-	  if(tmpinfo->objptr == transObj->objptr) {
-	    // the same object, remove outdate one
-	    removeItem(&objqueue, qitem);
-	  } else {
-	    prev = qitem;
+		  struct QueueItem * qitem = getTail(&objqueue);
+		  struct QueueItem * prev = NULL;
+		  while(qitem != NULL) {
+			  struct transObjInfo * tmpinfo = (struct transObjInfo *)(qitem->objectptr);
+			  if(tmpinfo->objptr == transObj->objptr) {
+				  // the same object, remove outdate one
+				  removeItem(&objqueue, qitem);
+			  } else {
+				  prev = qitem;
+			  }
+			  if(prev == NULL) {
+				  qitem = getTail(&objqueue);
+			  } else {
+				  qitem = getNextQueueItem(prev);
+			  }
+		  }
+		  addNewItem_I(&objqueue, (void *)transObj);
 	  }
-	  if(prev == NULL) {
-	    qitem = getTail(&objqueue);
-	  } else {
-	    qitem = getNextQueueItem(prev);
-	  }
-	}
-	addNewItem_I(&objqueue, (void *)transObj);
-      }
       ++(self_numreceiveobjs);
       break;
     }
@@ -2182,192 +1337,71 @@ msg:
     case 1: {
       // receive a stall msg
       if(corenum != STARTUPCORE) {
-	// non startup core can not receive stall msg
-	// return -1
-	raw_test_pass_reg(data1);
-	raw_test_done(0xa002);
-      } else if(waitconfirm) {
+		  // non startup core can not receive stall msg
+		  // return -1
+		  BAMBOO_DEBUGPRINT_REG(data1);
+		  BAMBOO_EXIT(0xa006);
+      } /*else if(waitconfirm) {
 		  waitconfirm = false;
 		  numconfirm = 0;
-	  }
+	  }*/
       if(data1 < NUMCORES) {
-#ifdef RAWDEBUG
-	raw_test_pass(0xe881);
+#ifdef DEBUG
+		  BAMBOO_DEBUGPRINT(0xe881);
 #endif
-	corestatus[data1] = 0;
-	numsendobjs[data1] = msgdata[2];
-	numreceiveobjs[data1] = msgdata[3];
+		  corestatus[data1] = 0;
+		  numsendobjs[data1] = msgdata[2];
+		  numreceiveobjs[data1] = msgdata[3];
       }
       break;
     }
 
     case 2: {
-      // receive lock request msg
-      // for 32 bit machine, the size is always 4 words
-      //int msgsize = sizeof(int) * 4;
-      int msgsize = 4;
-      // lock request msg, handle it right now
+      // receive lock request msg, handle it right now
       // check to see if there is a lock exist in locktbl for the required obj
 	  // data1 -> lock type
 	  int data2 = msgdata[2]; // obj pointer
       int data3 = msgdata[3]; // lock
 	  int data4 = msgdata[4]; // request core
-      deny = false;
-	  if( ((data3 >> 5) % TOTALCORE) != corenum ) {
-		  // the lock should not be on this core
-		  raw_test_pass_reg(data4);
-		  raw_test_done(0xa003);
+      deny = processlockrequest(data1, data3, data2, data4, data4, true);  // -1: redirected, 0: approved, 1: denied
+	  if(deny == -1) {
+		  // this lock request is redirected
+		  break;
+	  } else {
+		  // send response msg
+		  // for 32 bit machine, the size is always 4 words
+		  int tmp = deny==1?4:3;
+		  if(isMsgSending) {
+			  cache_msg_4(data4, tmp, data1, data2, data3);
+		  } else {
+			  send_msg_4(data4, tmp, data1, data2, data3);
+		  }
 	  }
-	  if((corenum == STARTUPCORE) && waitconfirm) {
-		  waitconfirm = false;
-		  numconfirm = 0;
-	  }
-      if(!RuntimeHashcontainskey(locktbl, data3)) {
-	// no locks for this object
-	// first time to operate on this shared object
-	// create a lock for it
-	// the lock is an integer: 0 -- stall, >0 -- read lock, -1 -- write lock
-	struct LockValue * lockvalue = (struct LockValue *)(RUNMALLOC_I(sizeof(struct LockValue)));
-	lockvalue->redirectlock = 0;
-#ifdef RAWDEBUG
-	raw_test_pass(0xe882);
-#endif
-	if(data1 == 0) {
-		lockvalue->value = 1;
-	} else {
-		lockvalue->value = -1;
-	}
-	RuntimeHashadd_I(locktbl, data3, (int)lockvalue);
-      } else {
-	int rwlock_obj = 0;
-	struct LockValue * lockvalue = NULL;
-#ifdef RAWDEBUG
-	raw_test_pass(0xe883);
-#endif
-	RuntimeHashget(locktbl, data3, &rwlock_obj);
-	lockvalue = (struct LockValue *)(rwlock_obj);
-#ifdef RAWDEBUG
-	raw_test_pass_reg(lockvalue->redirectlock);
-#endif
-	if(lockvalue->redirectlock != 0) {
-		// this lock is redirected
-#ifdef RAWDEBUG
-		raw_test_pass(0xe884);
-#endif
-		if(data1 == 0) {
-			getreadlock_I_r((void *)data2, (void *)lockvalue->redirectlock, data4, true);
-		} else {
-			getwritelock_I_r((void *)data2, (void *)lockvalue->redirectlock, data4, true);
-		}
-		break;
-	} else {
-#ifdef RAWDEBUG
-		raw_test_pass_reg(lockvalue->value);
-#endif
-		if(0 == lockvalue->value) {
-			if(data1 == 0) {
-				lockvalue->value = 1;
-			} else {
-				lockvalue->value = -1;
-			}
-		} else if((lockvalue->value > 0) && (data1 == 0)) {
-		  // read lock request and there are only read locks
-		  lockvalue->value++;
-		} else {
-		  deny = true;
-		}
-#ifdef RAWDEBUG
-		raw_test_pass_reg(lockvalue->value);
-#endif
-	}
-	  }
-      	targetcore = data4;
-      	// check if there is still some msg on sending
-     	if(isMsgSending) {
-#ifdef RAWDEBUG
-			raw_test_pass(0xe885);
-#endif
-			isMsgHanging = true;
-			// cache the msg in outmsgdata and send it later
-			// msglength + target core + msg
-			outmsgdata[outmsglast++] = msgsize;
-			outmsgdata[outmsglast++] = targetcore;
-			if(deny == true) {
-				outmsgdata[outmsglast++] = 4;
-			} else {
-				outmsgdata[outmsglast++] = 3;
-			}
-			outmsgdata[outmsglast++] = data1;
-			outmsgdata[outmsglast++] = data2;
-			outmsgdata[outmsglast++] = data3;
-		} else {
-#ifdef RAWDEBUG
-			raw_test_pass(0xe886);
-#endif
-			// no msg on sending, send it out
-			calCoords(corenum, &self_y, &self_x);
-			calCoords(targetcore, &target_y, &target_x);
-			// Build the message header
-			msgHdr = construct_dyn_hdr(0, msgsize, 0,                                                               // msgsize word sent.
-			                           self_y, self_x,
-	    		                       target_y, target_x);
-			gdn_send(msgHdr);                                                               // Send the message header to EAST to handle fab(n - 1).
-#ifdef RAWDEBUG
-			raw_test_pass(0xbbbb);
-			raw_test_pass(0xb000 + targetcore);                                                 // targetcore
-#endif
-			if(deny == true) {
-			  // deny the lock request
-			  gdn_send(4);                                                       // lock request
-#ifdef RAWDEBUG
-			  raw_test_pass(4);
-#endif
-			} else {
-			  // grount the lock request
-			  gdn_send(3);                                                       // lock request
-#ifdef RAWDEBUG
-			  raw_test_pass(3);
-#endif
-			}
-			gdn_send(data1);                                                 // lock type
-#ifdef RAWDEBUG
-			raw_test_pass_reg(data1);
-#endif
-			gdn_send(data2);                                                 // obj pointer
-#ifdef RAWDEBUG
-			raw_test_pass_reg(data2);
-#endif
-			gdn_send(data3);                                                 // lock
-#ifdef RAWDEBUG
-			raw_test_pass_reg(data3);
-			raw_test_pass(0xffff);
-#endif
-		}
       break;
     }
 
     case 3: {
       // receive lock grount msg
       if(corenum > NUMCORES - 1) {
-		  raw_test_pass_reg(msgdata[2]);
-	raw_test_done(0xa004);
-      } else if((corenum == STARTUPCORE) && waitconfirm) {
+		  BAMBOO_DEBUGPRINT_REG(msgdata[2]);
+		  BAMBOO_EXIT(0xa007);
+      } /*else if((corenum == STARTUPCORE) && waitconfirm) {
 		  waitconfirm = false;
 		  numconfirm = 0;
-	  }
+	  }*/
       if((lockobj == msgdata[2]) && (lock2require == msgdata[3])) {
-#ifdef RAWDEBUG
-		  raw_test_pass(0xe887);
+#ifdef DEBUG
+		  BAMBOO_DEBUGPRINT(0xe882);
 #endif
-	lockresult = 1;
-	lockflag = true;
+		  lockresult = 1;
+		  lockflag = true;
 #ifndef INTERRUPT
-	reside = false;
+		  reside = false;
 #endif
-      } else {
-	// conflicts on lockresults
-	raw_test_pass_reg(msgdata[2]);
-	raw_test_done(0xa005);
+	  } else {
+		  // conflicts on lockresults
+		  BAMBOO_DEBUGPRINT_REG(msgdata[2]);
+		  BAMBOO_EXIT(0xa008);
       }
       break;
     }
@@ -2375,121 +1409,90 @@ msg:
     case 4: {
       // receive lock grount/deny msg
       if(corenum > NUMCORES - 1) {
-		  raw_test_pass_reg(msgdata[2]);
-	raw_test_done(0xa006);
-      } else if((corenum == STARTUPCORE) && waitconfirm) {
+		  BAMBOO_DEBUGPRINT_REG(msgdata[2]);
+		  BAMBOO_EXIT(0xa009);
+      } /*else if((corenum == STARTUPCORE) && waitconfirm) {
 		  waitconfirm = false;
 		  numconfirm = 0;
-	  }
+	  }*/
       if((lockobj == msgdata[2]) && (lock2require == msgdata[3])) {
-#ifdef RAWDEBUG
-		  raw_test_pass(0xe888);
+#ifdef DEBUG
+		  BAMBOO_DEBUGPRINT(0xe883);
 #endif
-	lockresult = 0;
-	lockflag = true;
+		  lockresult = 0;
+		  lockflag = true;
 #ifndef INTERRUPT
-	reside = false;
+		  reside = false;
 #endif
       } else {
-	// conflicts on lockresults
-	raw_test_pass_reg(msgdata[2]);
-	raw_test_done(0xa007);
+		  // conflicts on lockresults
+		  BAMBOO_DEBUGPRINT_REG(msgdata[2]);
+		  BAMBOO_EXIT(0xa00a);
       }
       break;
     }
 
     case 5: {
       // receive lock release msg
-	  if((corenum == STARTUPCORE) && waitconfirm) {
+	  /*if((corenum == STARTUPCORE) && waitconfirm) {
 		  waitconfirm = false;
 		  numconfirm = 0;
-	  }
+	  }*/
       if(!RuntimeHashcontainskey(locktbl, msgdata[3])) {
-	// no locks for this object, something is wrong
-	raw_test_pass_reg(msgdata[3]);
-	raw_test_done(0xa008);
+		  // no locks for this object, something is wrong
+		  BAMBOO_DEBUGPRINT_REG(msgdata[3]);
+		  BAMBOO_EXIT(0xa00b);
       } else {
-	int rwlock_obj = 0;
-	struct LockValue * lockvalue = NULL;
-	RuntimeHashget(locktbl, msgdata[3], &rwlock_obj);
-	lockvalue = (struct LockValue*)(rwlock_obj);
-#ifdef RAWDEBUG
-	raw_test_pass(0xe889);
-	raw_test_pass_reg(lockvalue->value);
+		  int rwlock_obj = 0;
+		  struct LockValue * lockvalue = NULL;
+		  RuntimeHashget(locktbl, msgdata[3], &rwlock_obj);
+		  lockvalue = (struct LockValue*)(rwlock_obj);
+#ifdef DEBUG
+		  BAMBOO_DEBUGPRINT(0xe884);
+		  BAMBOO_DEBUGPRINT_REG(lockvalue->value);
 #endif
-	if(data1 == 0) {
-	  lockvalue->value--;
-	} else {
-	  lockvalue->value++;
-	}
-#ifdef RAWDEBUG
-	raw_test_pass_reg(lockvalue->value);
+		  if(data1 == 0) {
+			  lockvalue->value--;
+		  } else {
+			  lockvalue->value++;
+		  }
+#ifdef DEBUG
+		  BAMBOO_DEBUGPRINT_REG(lockvalue->value);
 #endif
       }
       break;
     }
 
-#ifdef RAWPROFILE
+#ifdef PROFILE
     case 6: {
-      // receive an output request msg
+      // receive an output profile data request msg
       if(corenum == STARTUPCORE) {
-	// startup core can not receive profile output finish msg
-	raw_test_done(0xa009);
+		  // startup core can not receive profile output finish msg
+		  BAMBOO_EXIT(0xa00c);
       }
-#ifdef RAWDEBUG
-	  raw_test_pass(0xe88a);
+#ifdef DEBUG
+	  BAMBOO_DEBUGPRINT(0xe885);
 #endif
-      {
-	int msgsize = 2;
-	stall = true;
-	totalexetime = data1;
-	outputProfileData();
-	/*if(data1 >= NUMCORES) {
-	   raw_test_pass_reg(taskInfoIndex);
-	   raw_test_pass_reg(taskInfoOverflow);
-	        if(!taskInfoOverflow) {
-	                taskInfoArray[taskInfoIndex]->endTime = raw_get_cycle();
-	                taskInfoIndex++;
-	                if(taskInfoIndex == TASKINFOLENGTH) {
-	                        taskInfoOverflow = true;
-	                }
-	        }
-	   }*/
-	// no msg on sending, send it out
-	targetcore = STARTUPCORE;
-	calCoords(corenum, &self_y, &self_x);
-	calCoords(targetcore, &target_y, &target_x);
-	// Build the message header
-	msgHdr = construct_dyn_hdr(0, msgsize, 0,                                                               // msgsize word sent.
-	                           self_y, self_x,
-	                           target_y, target_x);
-	gdn_send(msgHdr);
-#ifdef RAWDEBUG
-	raw_test_pass(0xbbbb);
-	raw_test_pass(0xb000 + targetcore);                                                 // targetcore
-#endif
-	gdn_send(7);
-#ifdef RAWDEBUG
-	raw_test_pass(7);
-#endif
-	gdn_send(corenum);
-#ifdef RAWDEBUG
-	raw_test_pass_reg(corenum);
-	raw_test_pass(0xffff);
-#endif
-      }
+	  stall = true;
+	  totalexetime = data1;
+	  outputProfileData();
+	  if(isMsgSending) {
+		  cache_msg_2(STARTUPCORE, 7, corenum);
+	  } else {
+		  send_msg_2(STARTUPCORE, 7, corenum);
+	  }
       break;
     }
 
     case 7: {
       // receive a profile output finish msg
       if(corenum != STARTUPCORE) {
-	// non startup core can not receive profile output finish msg
-	raw_test_pass_reg(data1);
-	raw_test_done(0xa00a);
+		  // non startup core can not receive profile output finish msg
+		  BAMBOO_DEBUGPRINT_REG(data1);
+		  BAMBOO_EXIT(0xa00d);
       }
-#ifdef RAWDEBUG
-	  raw_test_pass(0xe88b);
+#ifdef DEBUG
+	  BAMBOO_DEBUGPRINT(0xe886);
 #endif
       profilestatus[data1] = 0;
       break;
@@ -2497,323 +1500,150 @@ msg:
 #endif
 
 	case 8: {
-		// receive a redirect lock request msg
-		// for 32 bit machine, the size is always 4 words
-      //int msgsize = sizeof(int) * 4;
-      int msgsize = 4;
-      // lock request msg, handle it right now
+	  // receive a redirect lock request msg, handle it right now
       // check to see if there is a lock exist in locktbl for the required obj
 	  // data1 -> lock type
 	  int data2 = msgdata[2]; // obj pointer
       int data3 = msgdata[3]; // redirect lock
 	  int data4 = msgdata[4]; // root request core
 	  int data5 = msgdata[5]; // request core
-	  if( ((data3 >> 5) % TOTALCORE) != corenum ) {
-		  // the lock should not be on this core
-		  raw_test_pass_reg(data5);
-		  raw_test_done(0xa00b);
-	  } if((corenum == STARTUPCORE) && waitconfirm) {
-		  waitconfirm = false;
-		  numconfirm = 0;
+	  deny = processlockrequest(data1, data3, data2, data5, data4, true);
+	  if(deny == -1) {
+		  // this lock request is redirected
+		  break;
+	  } else {
+		  // send response msg
+		  // for 32 bit machine, the size is always 4 words
+		  if(isMsgSending) {
+			  cache_msg_4(data4, deny==1?0xa:9, data1, data2, data3);
+		  } else {
+			  send_msg_4(data4, deny==1?0xa:9, data1, data2, data3);
+		  }
 	  }
-      deny = false;
-      if(!RuntimeHashcontainskey(locktbl, data3)) {
-	// no locks for this object
-	// first time to operate on this shared object
-	// create a lock for it
-	// the lock is an integer: 0 -- stall, >0 -- read lock, -1 -- write lock
-	struct LockValue * lockvalue = (struct LockValue *)(RUNMALLOC_I(sizeof(struct LockValue)));
-	lockvalue->redirectlock = 0;
-#ifdef RAWDEBUG
-	raw_test_pass(0xe88c);
-#endif
-	if(data1 == 0) {
-		lockvalue->value = 1;
-	} else {
-		lockvalue->value = -1;
-	}
-	RuntimeHashadd_I(locktbl, data3, (int)lockvalue);
-      } else {
-	int rwlock_obj = 0;
-	struct LockValue * lockvalue = NULL;
-#ifdef RAWDEBUG
-	raw_test_pass(0xe88d);
-#endif
-	RuntimeHashget(locktbl, data3, &rwlock_obj);
-	lockvalue = (struct LockValue *)(rwlock_obj);
-#ifdef RAWDEBUG
-	raw_test_pass_reg(lockvalue->redirectlock);
-#endif
-	if(lockvalue->redirectlock != 0) {
-		// this lock is redirected
-#ifdef RAWDEBUG
-		raw_test_pass(0xe88e);
-#endif
-		if(data1 == 0) {
-			getreadlock_I_r((void *)data2, (void *)lockvalue->redirectlock, data4, true);
-		} else {
-			getwritelock_I_r((void *)data2, (void *)lockvalue->redirectlock, data4, true);
-		}
-		break;
-	} else {
-#ifdef RAWDEBUG
-		raw_test_pass_reg(lockvalue->value);
-#endif
-		if(0 == lockvalue->value) {
-			if(data1 == 0) {
-				lockvalue->value = 1;
-			} else {
-				lockvalue->value = -1;
-			}
-		} else if((lockvalue->value > 0) && (data1 == 0)) {
-		  // read lock request and there are only read locks
-		  lockvalue->value++;
-		} else {
-		  deny = true;
-		}
-#ifdef RAWDEBUG
-		raw_test_pass_reg(lockvalue->value);
-#endif
-	}
-	  }
-      	targetcore = data4;
-      	// check if there is still some msg on sending
-     	if(isMsgSending) {
-#ifdef RAWDEBUG
-			raw_test_pass(0xe88f);
-#endif
-			isMsgHanging = true;
-			// cache the msg in outmsgdata and send it later
-			// msglength + target core + msg
-			outmsgdata[outmsglast++] = msgsize;
-			outmsgdata[outmsglast++] = targetcore;
-			if(deny == true) {
-				outmsgdata[outmsglast++] = 0xa;
-			} else {
-				outmsgdata[outmsglast++] = 9;
-			}
-			outmsgdata[outmsglast++] = data1;
-			outmsgdata[outmsglast++] = data2;
-			outmsgdata[outmsglast++] = data3; 
-		} else {
-#ifdef RAWDEBUG
-			raw_test_pass(0xe890);
-#endif
-			// no msg on sending, send it out
-			calCoords(corenum, &self_y, &self_x);
-			calCoords(targetcore, &target_y, &target_x);
-			// Build the message header
-			msgHdr = construct_dyn_hdr(0, msgsize, 0,                                                               // msgsize word sent.
-			                           self_y, self_x,
-	    		                       target_y, target_x);
-			gdn_send(msgHdr);                                                               // Send the message header to EAST to handle fab(n - 1).
-#ifdef RAWDEBUG
-			raw_test_pass(0xbbbb);
-			raw_test_pass(0xb000 + targetcore);                                                 // targetcore
-#endif
-			if(deny == true) {
-			  // deny the lock request
-			  gdn_send(0xa);                                                       // lock request
-#ifdef RAWDEBUG
-			  raw_test_pass(0xa);
-#endif
-			} else {
-			  // grount the lock request
-			  gdn_send(9);                                                       // lock request
-#ifdef RAWDEBUG
-			  raw_test_pass(9);
-#endif
-			}
-			gdn_send(data1);                                                 // lock type
-#ifdef RAWDEBUG
-			raw_test_pass_reg(data1);
-#endif
-			gdn_send(data2);                                                 // obj pointer
-#ifdef RAWDEBUG
-			raw_test_pass_reg(data2);
-#endif
-			gdn_send(data3);                                                 // lock
-#ifdef RAWDEBUG
-			raw_test_pass_reg(data3);
-			raw_test_pass(0xffff);
-#endif
-		}
-		break;
+	  break;
 	}
 
 	case 9: {
 		// receive a lock grant msg with redirect info
 		if(corenum > NUMCORES - 1) {
-	raw_test_pass_reg(msgdata[2]);
-	raw_test_done(0xa00c);
-      } if((corenum == STARTUPCORE) && waitconfirm) {
+			BAMBOO_DEBUGPRINT_REG(msgdata[2]);
+			BAMBOO_EXIT(0xa00e);
+		}/* else if((corenum == STARTUPCORE) && waitconfirm) {
 		  waitconfirm = false;
 		  numconfirm = 0;
-	  }
+	  }*/
       if(lockobj == msgdata[2]) {
-#ifdef RAWDEBUG
-		  raw_test_pass(0xe891);
+#ifdef DEBUG
+		  BAMBOO_DEBUGPRINT(0xe891);
 #endif
-	lockresult = 1;
-	lockflag = true;
-	RuntimeHashadd_I(objRedirectLockTbl, lockobj, msgdata[3]);
+		  lockresult = 1;
+		  lockflag = true;
+		  RuntimeHashadd_I(objRedirectLockTbl, lockobj, msgdata[3]);
 #ifndef INTERRUPT
-	reside = false;
+		  reside = false;
 #endif
       } else {
-	// conflicts on lockresults
-	raw_test_pass_reg(msgdata[2]);
-	raw_test_done(0xa00d);
+		  // conflicts on lockresults
+		  BAMBOO_DEBUGPRINT_REG(msgdata[2]);
+		  BAMBOO_EXIT(0xa00f);
       }
 		break;
 	}
 	
 	case 0xa: {
-		// receive a lock deny msg with redirect info
-		if(corenum > NUMCORES - 1) {
-			raw_test_pass_reg(msgdata[2]);
-	raw_test_done(0xa00e);
-      } if((corenum == STARTUPCORE) && waitconfirm) {
+	  // receive a lock deny msg with redirect info
+	  if(corenum > NUMCORES - 1) {
+		  BAMBOO_DEBUGPRINT_REG(msgdata[2]);
+		  BAMBOO_EXIT(0xa010);
+	  }/* else if((corenum == STARTUPCORE) && waitconfirm) {
 		  waitconfirm = false;
 		  numconfirm = 0;
-	  }
+	  }*/
       if(lockobj == msgdata[2]) {
-#ifdef RAWDEBUG
-		  raw_test_pass(0xe892);
+#ifdef DEBUG
+		  BAMBOO_DEBUGPRINT(0xe892);
 #endif
-	lockresult = 0;
-	lockflag = true;
-	//RuntimeHashadd_I(objRedirectLockTbl, lockobj, msgdata[3]);
+		  lockresult = 0;
+		  lockflag = true;
+		  //RuntimeHashadd_I(objRedirectLockTbl, lockobj, msgdata[3]);
 #ifndef INTERRUPT
-	reside = false;
+		  reside = false;
 #endif
       } else {
-	// conflicts on lockresults
-	raw_test_pass_reg(msgdata[2]);
-	raw_test_done(0xa00f);
+		  // conflicts on lockresults
+		  BAMBOO_DEBUGPRINT_REG(msgdata[2]);
+		  BAMBOO_EXIT(0xa011);
       }
 		break;
 	}
 
 	case 0xb: {
-		// receive a lock release msg with redirect info
-		if((corenum == STARTUPCORE) && waitconfirm) {
+	  // receive a lock release msg with redirect info
+	  /*if((corenum == STARTUPCORE) && waitconfirm) {
 		  waitconfirm = false;
 		  numconfirm = 0;
-	  }
-		if(!RuntimeHashcontainskey(locktbl, msgdata[2])) {
-	// no locks for this object, something is wrong
-	raw_test_pass_reg(msgdata[2]);
-	raw_test_done(0xa010);
+	  }*/
+	  if(!RuntimeHashcontainskey(locktbl, msgdata[2])) {
+		  // no locks for this object, something is wrong
+		  BAMBOO_DEBUGPRINT_REG(msgdata[2]);
+		  BAMBOO_EXIT(0xa012);
       } else {
-	int rwlock_obj = 0;
-	struct LockValue * lockvalue = NULL;
-	RuntimeHashget(locktbl, msgdata[2], &rwlock_obj);
-	lockvalue = (struct LockValue*)(rwlock_obj);
-#ifdef RAWDEBUG
-	raw_test_pass(0xe893);
-	raw_test_pass_reg(lockvalue->value);
+		  int rwlock_obj = 0;
+		  struct LockValue * lockvalue = NULL;
+		  RuntimeHashget(locktbl, msgdata[2], &rwlock_obj);
+		  lockvalue = (struct LockValue*)(rwlock_obj);
+#ifdef DEBUG
+		  BAMBOO_DEBUGPRINT(0xe893);
+		  BAMBOO_DEBUGPRINT_REG(lockvalue->value);
 #endif
-	if(data1 == 0) {
-	  lockvalue->value--;
-	} else {
-	  lockvalue->value++;
-	}
-#ifdef RAWDEBUG
-	raw_test_pass_reg(lockvalue->value);
+		  if(data1 == 0) {
+			  lockvalue->value--;
+		  } else {
+			  lockvalue->value++;
+		  }
+#ifdef DEBUG
+		  BAMBOO_DEBUGPRINT_REG(lockvalue->value);
 #endif
-	lockvalue->redirectlock = msgdata[3];
-      }
-		break;
+		  lockvalue->redirectlock = msgdata[3];
+	  }
+	  break;
 	}
 	
 	case 0xc: {
-		// receive a status confirm info
-		if((corenum == STARTUPCORE) || (corenum > NUMCORES - 1)) {
-	// wrong core to receive such msg
-	raw_test_done(0xa011);
+      // receive a status confirm info
+	  if((corenum == STARTUPCORE) || (corenum > NUMCORES - 1)) {
+		  // wrong core to receive such msg
+		  BAMBOO_EXIT(0xa013);
       } else {
-		  int msgsize = 3;
-		  int targetcore = STARTUPCORE;
-#ifdef RAWDEBUG
-	  raw_test_pass(0xe888);
+		  // send response msg
+#ifdef DEBUG
+		  BAMBOO_DEBUGPRINT(0xe887);
 #endif
-		  // check if there is still some msg on sending
-     	if(isMsgSending) {
-#ifdef RAWDEBUG
-	  raw_test_pass(0xe888);
-#endif
-			isMsgHanging = true;
-			// cache the msg in outmsgdata and send it later
-			// msglength + target core + msg
-			outmsgdata[outmsglast++] = msgsize;
-			outmsgdata[outmsglast++] = targetcore;
-			outmsgdata[outmsglast++] = 0xd;
-			if(busystatus) {
-				outmsgdata[outmsglast++] = 1;
-			} else {
-				outmsgdata[outmsglast++] = 0;
-			}
-			outmsgdata[outmsglast++] = corenum;
-		} else {
-#ifdef RAWDEBUG
-	  raw_test_pass(0xe888);
-#endif
-			// no msg on sending, send it out
-			calCoords(corenum, &self_y, &self_x);
-			calCoords(targetcore, &target_y, &target_x);
-			// Build the message header
-			msgHdr = construct_dyn_hdr(0, msgsize, 0,                                                               // msgsize word sent.
-			                           self_y, self_x,
-	    		                       target_y, target_x);
-			gdn_send(msgHdr);   
-#ifdef RAWDEBUG
-			raw_test_pass(0xbbbb);
-			raw_test_pass(0xb000 + targetcore);                                            
-#endif
-			gdn_send(0xd);                                                       // status report
-#ifdef RAWDEBUG
-			raw_test_pass(0xd);
-#endif
-			if(busystatus == true) {
-			  // busy
-			  gdn_send(1);   
-#ifdef RAWDEBUG
-			  raw_test_pass(1);
-#endif
-			} else {
-			  // stall
-			  gdn_send(0);
-#ifdef RAWDEBUG
-			  raw_test_pass(0);
-#endif
-			}
-			gdn_send(corenum);                                                 // corenum
-#ifdef RAWDEBUG
-			raw_test_pass_reg(corenum);
-			raw_test_pass(0xffff);
-#endif
-		}
+		  if(isMsgSending) {
+			  cache_msg_3(STARTUPCORE, 0xd, busystatus?1:0, corenum);
+		  } else {
+			  send_msg_3(STARTUPCORE, 0xd, busystatus?1:0, corenum);
+		  }
       }
-		break;
+	  break;
 	}
 
 	case 0xd: {
-		// receive a status confirm info
-		if(corenum != STARTUPCORE) {
-	// wrong core to receive such msg
-	raw_test_pass_reg(msgdata[2]);
-	raw_test_done(0xa012);
+	  // receive a status confirm info
+	  if(corenum != STARTUPCORE) {
+		  // wrong core to receive such msg
+		  BAMBOO_DEBUGPRINT_REG(msgdata[2]);
+		  BAMBOO_EXIT(0xa014);
       } else {
-#ifdef RAWDEBUG
-	  raw_test_pass(0xe888);
+#ifdef DEBUG
+		  BAMBOO_DEBUGPRINT(0xe888);
 #endif
 		  if(waitconfirm) {
 			  numconfirm--;
 		  }
 		  corestatus[msgdata[2]] = msgdata[1];
       }
-		break;
+	  break;
 	}
 	
     default:
@@ -2824,110 +1654,120 @@ msg:
     }
     msgtype = -1;
     msglength = 30;
-#ifdef RAWDEBUG
-    raw_test_pass(0xe894);
+#ifdef DEBUG
+    BAMBOO_DEBUGPRINT(0xe889);
 #endif
-    if(gdn_input_avail() != 0) {
+
+    if(BAMBOO_MSG_AVAIL() != 0) {
       goto msg;
     }
-#ifdef RAWPROFILE
-/*    if(isInterrupt && (!interruptInfoOverflow)) {
-      interruptInfoArray[interruptInfoIndex]->endTime = raw_get_cycle();
-      interruptInfoIndex++;
-      if(interruptInfoIndex == INTERRUPTINFOLENGTH) {
-        interruptInfoOverflow = true;
-      }
+#ifdef PROFILE
+	/*if(isInterrupt) {
+	    profileTaskEnd();
     }*/
 #endif
     return type;
   } else {
     // not a whole msg
-#ifdef RAWDEBUG
-    raw_test_pass(0xe895);
+#ifdef DEBUG
+    BAMBOO_DEBUGPRINT(0xe895);
 #endif
-#ifdef RAWPROFILE
-/*    if(isInterrupt && (!interruptInfoOverflow)) {
-      interruptInfoArray[interruptInfoIndex]->endTime = raw_get_cycle();
-      interruptInfoIndex++;
-      if(interruptInfoIndex == INTERRUPTINFOLENGTH) {
-        interruptInfoOverflow = true;
-      }
-    }*/
+#ifdef PROFILE
+/*    if(isInterrupt) {
+          profileTaskEnd();
+      }*/
 #endif
     return -2;
   }
-#elif defined THREADSIMULATE
-  int numofcore = pthread_getspecific(key);
-  // use POSIX message queue to transfer object
-  int msglen = 0;
-  struct mq_attr mqattr;
-  mq_getattr(mqd[numofcore], &mqattr);
-  void * msgptr =RUNMALLOC(mqattr.mq_msgsize);
-  msglen=mq_receive(mqd[numofcore], msgptr, mqattr.mq_msgsize, NULL);       // receive the object into the queue
-  if(-1 == msglen) {
-    // no msg
-    free(msgptr);
-    return 1;
+}
+
+/* this function is to process lock requests. 
+ * can only be invoked in receiveObject() */
+// if return -1: the lock request is redirected
+//            0: the lock request is approved
+//            1: the lock request is denied
+int processlockrequest(int locktype, int lock, int obj, int requestcore, int rootrequestcore, bool cache) {
+  int deny = 0;
+  if( ((lock >> 5) % BAMBOO_TOTALCORE) != corenum ) {
+	  // the lock should not be on this core
+	  BAMBOO_DEBUGPRINT_REG(requestcore);
+	  BAMBOO_EXIT(0xa015);
   }
-  //printf("msg: %s\n",msgptr);
-  if(((int*)msgptr)[0] == -1) {
-    // StallMsg
-    struct ___Object___ * tmpptr = (struct ___Object___ *)msgptr;
-    int index = tmpptr->flag;
-    corestatus[index] = 0;
-    numsendobjs[index] = tmpptr->___cachedHash___;
-    numreceiveobjs[index] = tmpptr->___cachedCode___;
-    printf("<receiveObject> index: %d, sendobjs: %d, reveiveobjs: %d\n", index, numsendobjs[index], numreceiveobjs[index]);
-    free(msgptr);
-    return 2;
-  } else {
-    // an object
-    if(numofcore == STARTUPCORE) {
-      ++(numreceiveobjs[numofcore]);
-    } else {
-      ++(thread_data_array[numofcore].numreceiveobjs);
-    }
-    struct ___Object___ * tmpptr = (struct ___Object___ *)msgptr;
-    struct transObjInfo * transObj = (struct transObjInfo *)tmpptr->original;
-    tmpptr = (struct ___Object___ *)(transObj->objptr);
-    int type = tmpptr->type;
-    int size=classsize[type];
-    struct ___Object___ * newobj=RUNMALLOC(size);
-    memcpy(newobj, tmpptr, size);
-    if(0 == newobj->isolate) {
-      newobj->original=tmpptr;
-    }
-    RUNFREE(msgptr);
-    tmpptr = NULL;
-    int k = 0;
-    for(k = 0; k < transObj->length; ++k) {
-      int taskindex = transObj->queues[2 * k];
-      int paramindex = transObj->queues[2 * k + 1];
-      struct parameterwrapper ** queues = &(paramqueues[numofcore][taskindex][paramindex]);
-      enqueueObject(newobj, queues, 1);
-    }
-    RUNFREE(transObj->queues);
-    RUNFREE(transObj);
-    return 0;
-  }
+  /*if((corenum == STARTUPCORE) && waitconfirm) {
+	  waitconfirm = false;
+	  numconfirm = 0;
+  }*/
+  if(!RuntimeHashcontainskey(locktbl, lock)) {
+	  // no locks for this object
+	  // first time to operate on this shared object
+	  // create a lock for it
+	  // the lock is an integer: 0 -- stall, >0 -- read lock, -1 -- write lock
+	  struct LockValue * lockvalue = (struct LockValue *)(RUNMALLOC_I(sizeof(struct LockValue)));
+	  lockvalue->redirectlock = 0;
+#ifdef DEBUG
+	  BAMBOO_DEBUGPRINT(0xe110);
 #endif
+	  if(locktype == 0) {
+		  lockvalue->value = 1;
+	  } else {
+		  lockvalue->value = -1;
+	  }
+	  RuntimeHashadd_I(locktbl, lock, (int)lockvalue);
+  } else {
+	  int rwlock_obj = 0;
+	  struct LockValue * lockvalue = NULL;
+#ifdef DEBUG
+	  BAMBOO_DEBUGPRINT(0xe111);
+#endif
+	  RuntimeHashget(locktbl, lock, &rwlock_obj);
+	  lockvalue = (struct LockValue *)(rwlock_obj);
+#ifdef DEBUG
+	  BAMBOO_DEBUGPRINT_REG(lockvalue->redirectlock);
+#endif
+	  if(lockvalue->redirectlock != 0) {
+		  // this lock is redirected
+#ifdef DEBUG
+		  BAMBOO_DEBUGPRINT(0xe112);
+#endif
+		  if(locktype == 0) {
+			  getreadlock_I_r((void *)obj, (void *)lockvalue->redirectlock, rootrequestcore, cache);
+		  } else {
+			  getwritelock_I_r((void *)obj, (void *)lockvalue->redirectlock, rootrequestcore, cache);
+		  }
+		  return -1;  // redirected
+	  } else {
+#ifdef DEBUG
+		  BAMBOO_DEBUGPRINT_REG(lockvalue->value);
+#endif
+		  if(0 == lockvalue->value) {
+			  if(locktype == 0) {
+				  lockvalue->value = 1;
+			  } else {
+				  lockvalue->value = -1;
+			  }
+		  } else if((lockvalue->value > 0) && (locktype == 0)) {
+			  // read lock request and there are only read locks
+			  lockvalue->value++;
+		  } else {
+			  deny = 1;
+		  }
+#ifdef DEBUG
+		  BAMBOO_DEBUGPRINT_REG(lockvalue->value);
+#endif
+	  }
+  }
+  return deny;
 }
 
 bool getreadlock(void * ptr) {
-#ifdef RAW
-  unsigned msgHdr;
-  int self_y, self_x, target_y, target_x;
   int targetcore = 0;
-  // for 32 bit machine, the size is always 5 words
-  int msgsize = 5;
-
   lockobj = (int)ptr;
   if(((struct ___Object___ *)ptr)->lock == NULL) {
 	lock2require = lockobj;
   } else {
 	lock2require = (int)(((struct ___Object___ *)ptr)->lock);
   }
-  targetcore = (lock2require >> 5) % TOTALCORE;
+  targetcore = (lock2require >> 5) % BAMBOO_TOTALCORE;
   lockflag = false;
 #ifndef INTERRUPT
   reside = false;
@@ -2936,217 +1776,54 @@ bool getreadlock(void * ptr) {
 
   if(targetcore == corenum) {
     // reside on this core
-    bool deny = false;
-#ifdef INTERRUPT
-    raw_user_interrupts_off();
-#endif
-    if(!RuntimeHashcontainskey(locktbl, lock2require)) {
-      // no locks for this object
-      // first time to operate on this shared object
-      // create a lock for it
-      // the lock is an integer: 0 -- stall, >0 -- read lock, -1 -- write lock
-	  struct LockValue * lockvalue = (struct LockValue *)(RUNMALLOC_I(sizeof(struct LockValue)));
-	  lockvalue->redirectlock = 0;
-	  lockvalue->value = 1;
-      RuntimeHashadd_I(locktbl, lock2require, (int)lockvalue);
-    } else {
-      int rwlock_obj = 0;
-	  struct LockValue* lockvalue;
-      RuntimeHashget(locktbl, lock2require, &rwlock_obj);
-	  lockvalue = (struct LockValue*)rwlock_obj;
-	  if(lockvalue->redirectlock != 0) {
-		  // the lock is redirected
-		  getreadlock_I_r(ptr, (void *)lockvalue->redirectlock, corenum, false);
-		  return true;
-	  } else {
-	      if(-1 != lockvalue->value) {
-			  lockvalue->value++;
-		  } else {
-			  deny = true;
-		  }
-	  }
-    }
-#ifdef INTERRUPT
-    raw_user_interrupts_on();
-#endif
-    if(lockobj == (int)ptr) {
-      if(deny) {
-	lockresult = 0;
-      } else {
-	lockresult = 1;
-      }
-      lockflag = true;
+    int deny = 0;
+	BAMBOO_START_CRITICAL_SECTION_LOCK();
+	deny = processlockrequest(0, lock2require, (int)ptr, corenum, corenum, false);
+	BAMBOO_CLOSE_CRITICAL_SECTION_LOCK();
+    if(deny == -1) {
+		// redirected
+		return true;
+	} else {
+		if(lockobj == (int)ptr) {
+			if(deny) {
+				lockresult = 0;
+			} else {
+				lockresult = 1;
+			}
+			lockflag = true;
 #ifndef INTERRUPT
-      reside = true;
+			reside = true;
 #endif
-    } else {
-      // conflicts on lockresults
-      raw_test_done(0xa013);
-    }
+		} else {
+			// conflicts on lockresults
+			BAMBOO_EXIT(0xa016);
+		}
+	}
     return true;
-  }
-
-  calCoords(corenum, &self_y, &self_x);
-  calCoords(targetcore, &target_y, &target_x);
-  isMsgSending = true;
-  // Build the message header
-  msgHdr = construct_dyn_hdr(0, msgsize, 0,             // msgsize word sent.
-                             self_y, self_x,
-                             target_y, target_x);
-  // start sending the msg, set send msg flag
-  //isMsgSending = true;
-  gdn_send(msgHdr);                     // Send the message header to EAST to handle fab(n - 1).
-#ifdef RAWDEBUG
-  raw_test_pass(0xbbbb);
-  raw_test_pass(0xb000 + targetcore);       // targetcore
-#endif
-  gdn_send(2);   // lock request
-#ifdef RAWDEBUG
-  raw_test_pass(2);
-#endif
-  gdn_send(0);       // read lock
-#ifdef RAWDEBUG
-  raw_test_pass(0);
-#endif
-  gdn_send((int)ptr);  // obj pointer
-#ifdef RAWDEBUG
-  raw_test_pass_reg(ptr);
-#endif
-  gdn_send(lock2require); // lock
-#ifdef RAWDEBUG
-  raw_test_pass_reg(lock2require);
-#endif
-  gdn_send(corenum);  // request core
-#ifdef RAWDEBUG
-  raw_test_pass_reg(corenum);
-  raw_test_pass(0xffff);
-#endif
-  // end of sending this msg, set sand msg flag false
-  isMsgSending = false;
-  // check if there are pending msgs
-  while(isMsgHanging) {
-    // get the msg from outmsgdata[]
-    // length + target + msg
-    outmsgleft = outmsgdata[outmsgindex++];
-    targetcore = outmsgdata[outmsgindex++];
-    calCoords(targetcore, &target_y, &target_x);
-	isMsgSending = true;
-    // Build the message header
-    msgHdr = construct_dyn_hdr(0, outmsgleft, 0,                        // msgsize word sent.
-                               self_y, self_x,
-                               target_y, target_x);
-	//isMsgSending = true;
-    gdn_send(msgHdr);                           // Send the message header to EAST to handle fab(n - 1).
-#ifdef RAWDEBUG
-    raw_test_pass(0xbbbb);
-    raw_test_pass(0xb000 + targetcore);             // targetcore
-#endif
-    while(outmsgleft-- > 0) {
-      gdn_send(outmsgdata[outmsgindex++]);
-#ifdef RAWDEBUG
-      raw_test_pass_reg(outmsgdata[outmsgindex - 1]);
-#endif
-    }
-#ifdef RAWDEBUG
-    raw_test_pass(0xffff);
-#endif
-    isMsgSending = false;
-#ifdef INTERRUPT
-    raw_user_interrupts_off();
-#endif
-    // check if there are still msg hanging
-    if(outmsgindex == outmsglast) {
-      // no more msgs
-      outmsgindex = outmsglast = 0;
-      isMsgHanging = false;
-    }
-#ifdef INTERRUPT
-    raw_user_interrupts_on();
-#endif
+  } else {
+	  // send lock request msg
+	  // for 32 bit machine, the size is always 5 words
+	  send_msg_5(targetcore, 2, 0, (int)ptr, lock2require, corenum);
   }
   return true;
-#elif defined THREADSIMULATE
-  // TODO : need modification for alias lock
-  int numofcore = pthread_getspecific(key);
-
-  int rc = pthread_rwlock_tryrdlock(&rwlock_tbl);
-  printf("[getreadlock, %d] getting the read lock for locktbl: %d error: \n", numofcore, rc, strerror(rc));
-  if(0 != rc) {
-    return false;
-  }
-  if(!RuntimeHashcontainskey(locktbl, (int)ptr)) {
-    // no locks for this object
-    // first time to operate on this shared object
-    // create a lock for it
-    rc = pthread_rwlock_unlock(&rwlock_tbl);
-    printf("[getreadlock, %d] release the read lock for locktbl: %d error: \n", numofcore, rc, strerror(rc));
-    pthread_rwlock_t* rwlock = (pthread_rwlock_t *)RUNMALLOC(sizeof(pthread_rwlock_t));
-    memcpy(rwlock, &rwlock_init, sizeof(pthread_rwlock_t));
-    rc = pthread_rwlock_init(rwlock, NULL);
-    printf("[getreadlock, %d] initialize the rwlock for object %d: %d error: \n", numofcore, (int)ptr, rc, strerror(rc));
-    rc = pthread_rwlock_trywrlock(&rwlock_tbl);
-    printf("[getreadlock, %d] getting the write lock for locktbl: %d error: \n", numofcore, rc, strerror(rc));
-    if(0 != rc) {
-      RUNFREE(rwlock);
-      return false;
-    } else {
-      if(!RuntimeHashcontainskey(locktbl, (int)ptr)) {
-	// check again
-	RuntimeHashadd(locktbl, (int)ptr, (int)rwlock);
-      } else {
-	RUNFREE(rwlock);
-	RuntimeHashget(locktbl, (int)ptr, (int*)&rwlock);
-      }
-      rc = pthread_rwlock_unlock(&rwlock_tbl);
-      printf("[getreadlock, %d] release the write lock for locktbl: %d error: \n", numofcore, rc, strerror(rc));
-    }
-    rc = pthread_rwlock_tryrdlock(rwlock);
-    printf("[getreadlock, %d] getting read lock for object %d: %d error: \n", numofcore, (int)ptr, rc, strerror(rc));
-    if(0 != rc) {
-      return false;
-    } else {
-      return true;
-    }
-  } else {
-    pthread_rwlock_t* rwlock_obj = NULL;
-    RuntimeHashget(locktbl, (int)ptr, (int*)&rwlock_obj);
-    rc = pthread_rwlock_unlock(&rwlock_tbl);
-    printf("[getreadlock, %d] release the read lock for locktbl: %d error: \n", numofcore, rc, strerror(rc));
-    int rc_obj = pthread_rwlock_tryrdlock(rwlock_obj);
-    printf("[getreadlock, %d] getting read lock for object %d: %d error: \n", numofcore, (int)ptr, rc_obj, strerror(rc_obj));
-    if(0 != rc_obj) {
-      return false;
-    } else {
-      return true;
-    }
-  }
-#endif
 }
 
 void releasereadlock(void * ptr) {
-#ifdef RAW
-  unsigned msgHdr;
-  int self_y, self_x, target_y, target_x;
   int targetcore = 0;
-  // for 32 bit machine, the size is always 4 words
-  int msgsize = 4;
-
   int reallock = 0;
   if(((struct ___Object___ *)ptr)->lock == NULL) {
 	reallock = (int)ptr;
   } else {
 	reallock = (int)(((struct ___Object___ *)ptr)->lock);
   }
-  targetcore = (reallock >> 5) % TOTALCORE;
+  targetcore = (reallock >> 5) % BAMBOO_TOTALCORE;
 
   if(targetcore == corenum) {
-#ifdef INTERRUPT
-    raw_user_interrupts_off();
-#endif
+	BAMBOO_START_CRITICAL_SECTION_LOCK();
     // reside on this core
     if(!RuntimeHashcontainskey(locktbl, reallock)) {
       // no locks for this object, something is wrong
-      raw_test_done(0xa014);
+      BAMBOO_EXIT(0xa017);
     } else {
       int rwlock_obj = 0;
 	  struct LockValue * lockvalue = NULL;
@@ -3154,112 +1831,19 @@ void releasereadlock(void * ptr) {
 	  lockvalue = (struct LockValue *)rwlock_obj;
       lockvalue->value--;
     }
-#ifdef INTERRUPT
-    raw_user_interrupts_on();
-#endif
+	BAMBOO_CLOSE_CRITICAL_SECTION_LOCK();
     return;
+  } else {
+	// send lock release msg
+	// for 32 bit machine, the size is always 4 words
+	send_msg_4(targetcore, 5, 0, (int)ptr, reallock);
   }
-
-  calCoords(corenum, &self_y, &self_x);
-  calCoords(targetcore, &target_y, &target_x);
-  isMsgSending = true;
-  // Build the message header
-  msgHdr = construct_dyn_hdr(0, msgsize, 0,             // msgsize word sent.
-                             self_y, self_x,
-                             target_y, target_x);
-  // start sending the msg, set send msg flag
-  //isMsgSending = true;
-  gdn_send(msgHdr);                     // Send the message header to EAST to handle fab(n - 1).
-#ifdef RAWDEBUG
-  raw_test_pass(0xbbbb);
-  raw_test_pass(0xb000 + targetcore);       // targetcore
-#endif
-  gdn_send(5);   // lock release
-#ifdef RAWDEBUG
-  raw_test_pass(5);
-#endif
-  gdn_send(0);       // read lock
-#ifdef RAWDEBUG
-  raw_test_pass(0);
-#endif
-  gdn_send((int)ptr);       // obj pointer
-#ifdef RAWDEBUG
-  raw_test_pass_reg(ptr);
-#endif
-  gdn_send(reallock);  // lock
-#ifdef RAWDEBUG
-  raw_test_pass_reg(reallock);
-  raw_test_pass(0xffff);
-#endif
-  // end of sending this msg, set sand msg flag false
-  isMsgSending = false;
-  // check if there are pending msgs
-  while(isMsgHanging) {
-    // get the msg from outmsgdata[]
-    // length + target + msg
-    outmsgleft = outmsgdata[outmsgindex++];
-    targetcore = outmsgdata[outmsgindex++];
-    calCoords(targetcore, &target_y, &target_x);
-	isMsgSending = true;
-    // Build the message header
-    msgHdr = construct_dyn_hdr(0, outmsgleft, 0,                        // msgsize word sent.
-                               self_y, self_x,
-                               target_y, target_x);
-	//isMsgSending = true;
-    gdn_send(msgHdr);                           // Send the message header to EAST to handle fab(n - 1).
-#ifdef RAWDEBUG
-    raw_test_pass(0xbbbb);
-    raw_test_pass(0xb000 + targetcore);             // targetcore
-#endif
-    while(outmsgleft-- > 0) {
-      gdn_send(outmsgdata[outmsgindex++]);
-#ifdef RAWDEBUG
-      raw_test_pass_reg(outmsgdata[outmsgindex - 1]);
-#endif
-    }
-#ifdef RAWDEBUG
-    raw_test_pass(0xffff);
-#endif
-    isMsgSending = false;
-#ifdef INTERRUPT
-    raw_user_interrupts_off();
-#endif
-    // check if there are still msg hanging
-    if(outmsgindex == outmsglast) {
-      // no more msgs
-      outmsgindex = outmsglast = 0;
-      isMsgHanging = false;
-    }
-#ifdef INTERRUPT
-    raw_user_interrupts_on();
-#endif
-  }
-#elif defined THREADSIMULATE
-  int numofcore = pthread_getspecific(key);
-  int rc = pthread_rwlock_rdlock(&rwlock_tbl);
-  printf("[releasereadlock, %d] getting the read lock for locktbl: %d error: \n", numofcore, rc, strerror(rc));
-  if(!RuntimeHashcontainskey(locktbl, (int)ptr)) {
-    printf("[releasereadlock, %d] Error: try to release a lock without previously grab it\n", numofcore);
-    exit(-1);
-  }
-  pthread_rwlock_t* rwlock_obj = NULL;
-  RuntimeHashget(locktbl, (int)ptr, (int*)&rwlock_obj);
-  int rc_obj = pthread_rwlock_unlock(rwlock_obj);
-  printf("[releasereadlock, %d] unlocked object %d: %d error: \n", numofcore, (int)ptr, rc_obj, strerror(rc_obj));
-  rc = pthread_rwlock_unlock(&rwlock_tbl);
-  printf("[releasereadlock, %d] release the read lock for locktbl: %d error: \n", numofcore, rc, strerror(rc));
-#endif
 }
 
-#ifdef RAW
 // redirected lock request
 bool getreadlock_I_r(void * ptr, void * redirectlock, int core, bool cache) {
-  unsigned msgHdr;
-  int self_y, self_x, target_y, target_x;
   int targetcore = 0;
-  // for 32 bit machine, the size is always 6 words
-  int msgsize = 6;
-
+  
   if(core == corenum) {
 	  lockobj = (int)ptr;
 	  lock2require = (int)redirectlock;
@@ -3269,175 +1853,58 @@ bool getreadlock_I_r(void * ptr, void * redirectlock, int core, bool cache) {
 #endif
 	  lockresult = 0;
   }  
-  targetcore = ((int)redirectlock >> 5) % TOTALCORE;
+  targetcore = ((int)redirectlock >> 5) % BAMBOO_TOTALCORE;
   
   if(targetcore == corenum) {
     // reside on this core
-    bool deny = false;
-    if(!RuntimeHashcontainskey(locktbl, (int)redirectlock)) {
-      // no locks for this object
-      // first time to operate on this shared object
-      // create a lock for it
-      // the lock is an integer: 0 -- stall, >0 -- read lock, -1 -- write lock
-	  struct LockValue * lockvalue = (struct LockValue *)(RUNMALLOC_I(sizeof(struct LockValue)));
-	  lockvalue->redirectlock = 0;
-	  lockvalue->value = 1;
-      RuntimeHashadd_I(locktbl, (int)redirectlock, (int)lockvalue);
-    } else {
-      int rwlock_obj = 0;
-	  struct LockValue* lockvalue;
-      RuntimeHashget(locktbl, (int)redirectlock, &rwlock_obj);
-	  lockvalue = (struct LockValue*)rwlock_obj;
-	  if(lockvalue->redirectlock != 0) {
-		  // the lock is redirected
-		  getreadlock_I_r(ptr, (void *)lockvalue->redirectlock, core, cache);
-		  return true;
-	  } else {
-		  if(-1 != lockvalue->value) {
-			  lockvalue->value++;
-		  } else {
-			  deny = true;
-		  }
-	  }
-    }
-	if(core == corenum) {
-    	if(lockobj == (int)ptr) {
-	      if(deny) {
-		lockresult = 0;
-	      } else {
-		lockresult = 1;
-		RuntimeHashadd_I(objRedirectLockTbl, (int)ptr, (int)redirectlock);
-	      }
-    	  lockflag = true;
-#ifndef INTERRUPT
-	      reside = true;
-#endif
-    	} else {
-	      // conflicts on lockresults
-    	  raw_test_done(0xa015);
-    	}
-	    return true;
+    int deny = processlockrequest(0, (int)redirectlock, (int)ptr, corenum, core, cache);
+	if(deny == -1) {
+		// redirected
+		return true;
 	} else {
-		// send lock grant/deny request to the root requiring core
-		// check if there is still some msg on sending
-		int msgsize1 = 4;
-		if((!cache) || (cache && !isMsgSending)) {
-			calCoords(corenum, &self_y, &self_x);
-			calCoords(core, &target_y, &target_x);
-			// Build the message header
-			msgHdr = construct_dyn_hdr(0, msgsize1, 0,             // msgsize word sent.
-					                   self_y, self_x,
-									   target_y, target_x);
-			gdn_send(msgHdr);                     // Send the message header to EAST to handle fab(n - 1).
-#ifdef RAWDEBUG
-			raw_test_pass(0xbbbb);
-			raw_test_pass(0xb000 + core);       // targetcore
-#endif
-			if(deny) {
-				// deny
-				gdn_send(0xa);   // lock deny with redirected info
-#ifdef RAWDEBUG
-				raw_test_pass(0xa);
+		if(core == corenum) {
+			if(lockobj == (int)ptr) {
+				if(deny) {
+					lockresult = 0;
+				} else {
+					lockresult = 1;
+					RuntimeHashadd_I(objRedirectLockTbl, (int)ptr, (int)redirectlock);
+				}
+				lockflag = true;
+#ifndef INTERRUPT
+				reside = true;
 #endif
 			} else {
-				// grant
-				gdn_send(9);   // lock grant with redirected info
-#ifdef RAWDEBUG
-				raw_test_pass(9);
-#endif
+				// conflicts on lockresults
+				BAMBOO_EXIT(0xa018);
 			}
-			gdn_send(0);       // read lock
-#ifdef RAWDEBUG
-			raw_test_pass(0);
-#endif
-			gdn_send((int)ptr);  // obj pointer
-#ifdef RAWDEBUG
-			raw_test_pass_reg(ptr);
-#endif
-			gdn_send((int)redirectlock); // redirected lock
-#ifdef RAWDEBUG
-			raw_test_pass_reg((int)redirectlock);
-			raw_test_pass(0xffff);
-#endif
-		} else if(cache && isMsgSending) {
-			isMsgHanging = true;
-			// cache the msg in outmsgdata and send it later
-			// msglength + target core + msg
-			outmsgdata[outmsglast++] = msgsize1;
-			outmsgdata[outmsglast++] = core;
-			if(deny) {
-				outmsgdata[outmsglast++] = 0xa; // deny
+			return true;
+		} else {
+			// send lock grant/deny request to the root requiring core
+			// check if there is still some msg on sending
+			if((!cache) || (cache && !isMsgSending)) {
+				send_msg_4(core, deny==1?0xa:9, 0, (int)ptr, (int)redirectlock);
 			} else {
-				outmsgdata[outmsglast++] = 9; // grant
+				cache_msg_4(core, deny==1?0xa:9, 0, (int)ptr, (int)redirectlock);
 			}
-			outmsgdata[outmsglast++] = 0;
-			outmsgdata[outmsglast++] = (int)ptr;
-			outmsgdata[outmsglast++] = (int)redirectlock;
 		}
 	}
-  }
-
-  // check if there is still some msg on sending
-  if((!cache) || (cache && !isMsgSending)) {
-	  calCoords(corenum, &self_y, &self_x);
-	  calCoords(targetcore, &target_y, &target_x);
-	  // Build the message header
-	  msgHdr = construct_dyn_hdr(0, msgsize, 0,             // msgsize word sent.
-    	                         self_y, self_x,
-        	                     target_y, target_x);
-	  gdn_send(msgHdr);                     // Send the message header to EAST to handle fab(n - 1).
-#ifdef RAWDEBUG
-	  raw_test_pass(0xbbbb);
-	  raw_test_pass(0xb000 + targetcore);       // targetcore
-#endif
-	  gdn_send(8);   // redirected lock request
-#ifdef RAWDEBUG
-	  raw_test_pass(8);
-#endif
-	  gdn_send(0);       // read lock
-#ifdef RAWDEBUG
-	  raw_test_pass(0);
-#endif
-	  gdn_send((int)ptr);  // obj pointer
-#ifdef RAWDEBUG
-	  raw_test_pass_reg(ptr);
-#endif
-	  gdn_send(lock2require); // redirected lock
-#ifdef RAWDEBUG
-	  raw_test_pass_reg(lock2require);
-#endif
-	  gdn_send(core);  // root request core
-#ifdef RAWDEBUG
-	  raw_test_pass_reg(core);
-#endif
-	  gdn_send(corenum);  // request core
-#ifdef RAWDEBUG
-	  raw_test_pass_reg(corenum);
-	  raw_test_pass(0xffff);
-#endif
-  } else if(cache && isMsgSending) {
-	  isMsgHanging = true;
-	  // cache the msg in outmsgdata and send it later
-	  // msglength + target core + msg
-	  outmsgdata[outmsglast++] = msgsize;
-	  outmsgdata[outmsglast++] = targetcore;
-	  outmsgdata[outmsglast++] = 8;
-	  outmsgdata[outmsglast++] = 0;
-	  outmsgdata[outmsglast++] = (int)ptr;
-	  outmsgdata[outmsglast++] = lock2require;
-	  outmsgdata[outmsglast++] = core;
-	  outmsgdata[outmsglast++] = corenum;
+  } else {
+	// redirect the lock request
+	// for 32 bit machine, the size is always 6 words
+	if((!cache) || (cache && !isMsgSending)) {
+		send_msg_6(targetcore, 8, 0, (int)ptr, lock2require, core, corenum);
+	} else {
+		cache_msg_6(targetcore, 8, 0, (int)ptr, lock2require, core, corenum);
+	}
   }
   return true;
 }
-#endif
 
 // not reentrant
 bool getwritelock(void * ptr) {
-#ifdef RAW
-  unsigned msgHdr;
-  int self_y, self_x, target_y, target_x;
   int targetcore = 0;
+
   // for 32 bit machine, the size is always 5 words
   int msgsize = 5;
 
@@ -3447,671 +1914,203 @@ bool getwritelock(void * ptr) {
   } else {
 	lock2require = (int)(((struct ___Object___ *)ptr)->lock);
   }
-  targetcore = (lock2require >> 5) % TOTALCORE;
+  targetcore = (lock2require >> 5) % BAMBOO_TOTALCORE;
   lockflag = false;
 #ifndef INTERRUPT
   reside = false;
 #endif
   lockresult = 0;
 
-#ifdef RAWDEBUG
-  raw_test_pass(0xe551);
-  raw_test_pass_reg(lockobj);
-  raw_test_pass_reg(lock2require);
-  raw_test_pass_reg(targetcore);
+#ifdef DEBUG
+  BAMBOO_DEBUGPRINT(0xe551);
+  BAMBOO_DEBUGPRINT_REG(lockobj);
+  BAMBOO_DEBUGPRINT_REG(lock2require);
+  BAMBOO_DEBUGPRINT_REG(targetcore);
 #endif
 
   if(targetcore == corenum) {
     // reside on this core
-    bool deny = false;
-#ifdef INTERRUPT
-    raw_user_interrupts_off();
+    int deny = 0;
+	BAMBOO_START_CRITICAL_SECTION_LOCK();
+	deny = processlockrequest(1, lock2require, (int)ptr, corenum, corenum, false);
+	BAMBOO_CLOSE_CRITICAL_SECTION_LOCK();
+#ifdef DEBUG
+    BAMBOO_DEBUGPRINT(0xe555);
+    BAMBOO_DEBUGPRINT_REG(lockresult);
 #endif
-    if(!RuntimeHashcontainskey(locktbl, lock2require)) {
-      // no locks for this object
-      // first time to operate on this shared object
-      // create a lock for it
-      // the lock is an integer: 0 -- stall, >0 -- read lock, -1 -- write lock
-#ifdef RAWDEBUG
-      raw_test_pass(0xe552);
-#endif
-	  struct LockValue * lockvalue = (struct LockValue *)(RUNMALLOC_I(sizeof(struct LockValue)));
-	  lockvalue->redirectlock = 0;
-	  lockvalue->value = -1;
-      RuntimeHashadd_I(locktbl, lock2require, (int)lockvalue);
-    } else {
-      int rwlock_obj = 0;
-	  struct LockValue* lockvalue;
-      RuntimeHashget(locktbl, (int)ptr, &rwlock_obj);
-	  lockvalue = (struct LockValue*)rwlock_obj;
-#ifdef RAWDEBUG
-      raw_test_pass(0xe553);
-      raw_test_pass_reg(lockvalue->value);
-#endif
-	  if(lockvalue->redirectlock != 0) {
-		  // the lock is redirected
-#ifdef  RAWDEBUG
-		  raw_test_pass(0xe554);
-#endif
-		  getwritelock_I_r(ptr, (void *)lockvalue->redirectlock, corenum, false);
-		  return true;
-	  } else {
-	      if(0 == lockvalue->value) {
-			  lockvalue->value = -1;
-		  } else {
-			  deny = true;
-		  }
-	  }
-    }
-#ifdef INTERRUPT
-    raw_user_interrupts_on();
-#endif
-#ifdef RAWDEBUG
-    raw_test_pass(0xe555);
-    raw_test_pass_reg(lockresult);
-#endif
-    if(lockobj == (int)ptr) {
-      if(deny) {
-	lockresult = 0;
-#ifdef RAWDEBUG
-	raw_test_pass(0);
-#endif
-      } else {
-	lockresult = 1;
-#ifdef RAWDEBUG
-	raw_test_pass(1);
-#endif
-      }
-      lockflag = true;
+    if(deny == -1) {
+		// redirected
+		return true;
+	} else {
+		if(lockobj == (int)ptr) {
+			if(deny) {
+				lockresult = 0;
+			} else {
+				lockresult = 1;
+			}
+			lockflag = true;
 #ifndef INTERRUPT
-      reside = true;
+			reside = true;
 #endif
-    } else {
-      // conflicts on lockresults
-      raw_test_done(0xa016);
-    }
+		} else {
+			// conflicts on lockresults
+			BAMBOO_EXIT(0xa019);
+		}
+	}
     return true;
-  }
-
-#ifdef RAWDEBUG
-  raw_test_pass(0xe556);
-#endif
-  calCoords(corenum, &self_y, &self_x);
-  calCoords(targetcore, &target_y, &target_x);
-#ifdef RAWDEBUG
-  raw_test_pass_reg(self_y);
-  raw_test_pass_reg(self_x);
-  raw_test_pass_reg(target_y);
-  raw_test_pass_reg(target_x);
-#endif
-  isMsgSending = true;
-  // Build the message header
-  msgHdr = construct_dyn_hdr(0, msgsize, 0,             // msgsize word sent.
-                             self_y, self_x,
-                             target_y, target_x);
-  // start sending the msg, set send msg flag
-  //isMsgSending = true;
-  gdn_send(msgHdr);                     // Send the message header to EAST to handle fab(n - 1).
-#ifdef RAWDEBUG
-  raw_test_pass(0xbbbb);
-  raw_test_pass(0xb000 + targetcore);       // targetcore
-#endif
-  gdn_send(2);   // lock request
-#ifdef RAWDEBUG
-  raw_test_pass(2);
-#endif
-  gdn_send(1);       // write lock
-#ifdef RAWDEBUG
-  raw_test_pass(1);
-#endif
-  gdn_send((int)ptr);  // obj pointer
-#ifdef RAWDEBUG
-  raw_test_pass_reg(ptr);
-#endif
-  gdn_send(lock2require); // lock
-#ifdef RAWDEBUG
-  raw_test_pass_reg(lock2require);
-#endif
-  gdn_send(corenum);  // request core
-#ifdef RAWDEBUG
-  raw_test_pass_reg(corenum);
-  raw_test_pass(0xffff);
-#endif
-  // end of sending this msg, set sand msg flag false
-  isMsgSending = false;
-  // check if there are pending msgs
-  while(isMsgHanging) {
-    // get the msg from outmsgdata[]
-    // length + target + msg
-    outmsgleft = outmsgdata[outmsgindex++];
-    targetcore = outmsgdata[outmsgindex++];
-    calCoords(targetcore, &target_y, &target_x);
-	isMsgSending = true;
-    // Build the message header
-    msgHdr = construct_dyn_hdr(0, outmsgleft, 0,                        // msgsize word sent.
-                               self_y, self_x,
-                               target_y, target_x);
-	//isMsgSending = true;
-    gdn_send(msgHdr);                           // Send the message header to EAST to handle fab(n - 1).
-#ifdef RAWDEBUG
-	raw_test_pass(0xe557);
-    raw_test_pass(0xbbbb);
-    raw_test_pass(0xb000 + targetcore);             // targetcore
-#endif
-    while(outmsgleft-- > 0) {
-      gdn_send(outmsgdata[outmsgindex++]);
-#ifdef RAWDEBUG
-      raw_test_pass_reg(outmsgdata[outmsgindex - 1]);
-#endif
-    }
-#ifdef RAWDEBUG
-    raw_test_pass(0xffff);
-#endif
-    isMsgSending = false;
-#ifdef INTERRUPT
-    raw_user_interrupts_off();
-#endif
-    // check if there are still msg hanging
-    if(outmsgindex == outmsglast) {
-      // no more msgs
-      outmsgindex = outmsglast = 0;
-      isMsgHanging = false;
-    }
-#ifdef INTERRUPT
-    raw_user_interrupts_on();
-#endif
+  } else {
+	  // send lock request msg
+	  // for 32 bit machine, the size is always 5 words
+	  send_msg_5(targetcore, 2, 1, (int)ptr, lock2require, corenum);
   }
   return true;
-#elif defined THREADSIMULATE
-  int numofcore = pthread_getspecific(key);
-
-  int rc = pthread_rwlock_tryrdlock(&rwlock_tbl);
-  printf("[getwritelock, %d] getting the read lock for locktbl: %d error: \n", numofcore, rc, strerror(rc));
-  if(0 != rc) {
-    return false;
-  }
-  if(!RuntimeHashcontainskey(locktbl, (int)ptr)) {
-    // no locks for this object
-    // first time to operate on this shared object
-    // create a lock for it
-    rc = pthread_rwlock_unlock(&rwlock_tbl);
-    printf("[getwritelock, %d] release the read lock for locktbl: %d error: \n", numofcore, rc, strerror(rc));
-    pthread_rwlock_t* rwlock = (pthread_rwlock_t *)RUNMALLOC(sizeof(pthread_rwlock_t));
-    memcpy(rwlock, &rwlock_init, sizeof(pthread_rwlock_t));
-    rc = pthread_rwlock_init(rwlock, NULL);
-    printf("[getwritelock, %d] initialize the rwlock for object %d: %d error: \n", numofcore, (int)ptr, rc, strerror(rc));
-    rc = pthread_rwlock_trywrlock(&rwlock_tbl);
-    printf("[getwritelock, %d] getting the write lock for locktbl: %d error: \n", numofcore, rc, strerror(rc));
-    if(0 != rc) {
-      pthread_rwlock_destroy(rwlock);
-      RUNFREE(rwlock);
-      return false;
-    } else {
-      if(!RuntimeHashcontainskey(locktbl, (int)ptr)) {
-	// check again
-	RuntimeHashadd(locktbl, (int)ptr, (int)rwlock);
-      } else {
-	pthread_rwlock_destroy(rwlock);
-	RUNFREE(rwlock);
-	RuntimeHashget(locktbl, (int)ptr, (int*)&rwlock);
-      }
-      rc = pthread_rwlock_unlock(&rwlock_tbl);
-      printf("[getwritelock, %d] release the write lock for locktbl: %d error: \n", numofcore, rc, strerror(rc));
-    }
-    rc = pthread_rwlock_trywrlock(rwlock);
-    printf("[getwritelock, %d] getting write lock for object %d: %d error: \n", numofcore, (int)ptr, rc, strerror(rc));
-    if(0 != rc) {
-      return false;
-    } else {
-      return true;
-    }
-  } else {
-    pthread_rwlock_t* rwlock_obj = NULL;
-    RuntimeHashget(locktbl, (int)ptr, (int*)&rwlock_obj);
-    rc = pthread_rwlock_unlock(&rwlock_tbl);
-    printf("[getwritelock, %d] release the read lock for locktbl: %d error: \n", numofcore, rc, strerror(rc));
-    int rc_obj = pthread_rwlock_trywrlock(rwlock_obj);
-    printf("[getwritelock, %d] getting write lock for object %d: %d error: \n", numofcore, (int)ptr, rc_obj, strerror(rc_obj));
-    if(0 != rc_obj) {
-      return false;
-    } else {
-      return true;
-    }
-  }
-#endif
 }
 
 void releasewritelock(void * ptr) {
-#ifdef RAW
-  unsigned msgHdr;
-  int self_y, self_x, target_y, target_x;
   int targetcore = 0;
-  // for 32 bit machine, the size is always 4 words
-  int msgsize = 4;
-
   int reallock = 0;
   if(((struct ___Object___ *)ptr)->lock == NULL) {
 	reallock = (int)ptr;
   } else {
 	reallock = (int)(((struct ___Object___ *)ptr)->lock);
   }
-  targetcore = (reallock >> 5) % TOTALCORE;
+  targetcore = (reallock >> 5) % BAMBOO_TOTALCORE;
 
-#ifdef RAWDEBUG
-  raw_test_pass(0xe661);
-  raw_test_pass_reg((int)ptr);
-  raw_test_pass_reg(reallock);
-  raw_test_pass_reg(targetcore);
+#ifdef DEBUG
+  BAMBOO_DEBUGPRINT(0xe661);
+  BAMBOO_DEBUGPRINT_REG((int)ptr);
+  BAMBOO_DEBUGPRINT_REG(reallock);
+  BAMBOO_DEBUGPRINT_REG(targetcore);
 #endif
 
   if(targetcore == corenum) {
-#ifdef INTERRUPT
-    raw_user_interrupts_off();
-#endif
+	BAMBOO_START_CRITICAL_SECTION_LOCK();
     // reside on this core
     if(!RuntimeHashcontainskey(locktbl, reallock)) {
       // no locks for this object, something is wrong
-      raw_test_done(0xa017);
+      BAMBOO_EXIT(0xa01a);
     } else {
       int rwlock_obj = 0;
 	  struct LockValue * lockvalue = NULL;
-#ifdef RAWDEBUG
-      raw_test_pass(0xe662);
-#endif
       RuntimeHashget(locktbl, reallock, &rwlock_obj);
 	  lockvalue = (struct LockValue *)rwlock_obj;
-#ifdef RAWDEBUG
-      raw_test_pass_reg(lockvalue->value);
-#endif
       lockvalue->value++;
-#ifdef RAWDEBUG
-      raw_test_pass_reg(lockvalue->value);
-#endif
     }
-#ifdef INTERRUPT
-    raw_user_interrupts_on();
-#endif
+	BAMBOO_CLOSE_CRITICAL_SECTION_LOCK();
     return;
+  } else {
+	// send lock release msg
+	// for 32 bit machine, the size is always 4 words
+	send_msg_4(targetcore, 5, 1, (int)ptr, reallock);
   }
-
-#ifdef RAWDEBUG
-  raw_test_pass(0xe663);
-#endif
-  calCoords(corenum, &self_y, &self_x);
-  calCoords(targetcore, &target_y, &target_x);
-  isMsgSending = true;
-  // Build the message header
-  msgHdr = construct_dyn_hdr(0, msgsize, 0,             // msgsize word sent.
-                             self_y, self_x,
-                             target_y, target_x);
-  // start sending the msg, set send msg flag
-  //isMsgSending = true;
-  gdn_send(msgHdr);                     // Send the message header to EAST to handle fab(n - 1).
-#ifdef RAWDEBUG
-  raw_test_pass(0xbbbb);
-  raw_test_pass(0xb000 + targetcore);
-#endif
-  gdn_send(5);   // lock release
- #ifdef RAWDEBUG
-  raw_test_pass(5);
-#endif
-  gdn_send(1);       // write lock
-#ifdef RAWDEBUG
-  raw_test_pass(1);
-#endif
-  gdn_send((int)ptr);  // obj pointer
-#ifdef RAWDEBUG
-  raw_test_pass_reg(ptr);
-#endif
-  gdn_send(reallock);  // lock
-#ifdef RAWDEBUG
-  raw_test_pass_reg(reallock);
-  raw_test_pass(0xffff);
-#endif
-  // end of sending this msg, set sand msg flag false
-  isMsgSending = false;
-  // check if there are pending msgs
-  while(isMsgHanging) {
-    // get the msg from outmsgdata[]
-    // length + target + msg
-    outmsgleft = outmsgdata[outmsgindex++];
-    targetcore = outmsgdata[outmsgindex++];
-    calCoords(targetcore, &target_y, &target_x);
-	isMsgSending = true;
-    // Build the message header
-    msgHdr = construct_dyn_hdr(0, outmsgleft, 0,                        // msgsize word sent.
-                               self_y, self_x,
-                               target_y, target_x);
-	//isMsgSending = true;
-    gdn_send(msgHdr);                           // Send the message header to EAST to handle fab(n - 1).
-#ifdef RAWDEBUG
-    raw_test_pass(0xbbbb);
-    raw_test_pass(0xb000 + targetcore);             // targetcore
-#endif
-    while(outmsgleft-- > 0) {
-      gdn_send(outmsgdata[outmsgindex++]);
-#ifdef RAWDEBUG
-      raw_test_pass_reg(outmsgdata[outmsgindex - 1]);
-#endif
-    }
-#ifdef RAWDEBUG
-    raw_test_pass(0xffff);
-#endif
-    isMsgSending = false;
-#ifdef INTERRUPT
-    raw_user_interrupts_off();
-#endif
-    // check if there are still msg hanging
-    if(outmsgindex == outmsglast) {
-      // no more msgs
-      outmsgindex = outmsglast = 0;
-      isMsgHanging = false;
-    }
-#ifdef INTERRUPT
-    raw_user_interrupts_on();
-#endif
-  }
-#elif defined THREADSIMULATE
-  int numofcore = pthread_getspecific(key);
-  int rc = pthread_rwlock_rdlock(&rwlock_tbl);
-  printf("[releasewritelock, %d] getting the read lock for locktbl: %d error: \n", numofcore, rc, strerror(rc));
-  if(!RuntimeHashcontainskey(locktbl, (int)ptr)) {
-    printf("[releasewritelock, %d] Error: try to release a lock without previously grab it\n", numofcore);
-    exit(-1);
-  }
-  pthread_rwlock_t* rwlock_obj = NULL;
-  RuntimeHashget(locktbl, (int)ptr, (int*)&rwlock_obj);
-  int rc_obj = pthread_rwlock_unlock(rwlock_obj);
-  printf("[releasewritelock, %d] unlocked object %d: %d error:\n", numofcore, (int)ptr, rc_obj, strerror(rc_obj));
-  rc = pthread_rwlock_unlock(&rwlock_tbl);
-  printf("[releasewritelock, %d] release the read lock for locktbl: %d error: \n", numofcore, rc, strerror(rc));
-#endif
 }
 
 void releasewritelock_r(void * lock, void * redirectlock) {
-#ifdef RAW
-  unsigned msgHdr;
-  int self_y, self_x, target_y, target_x;
   int targetcore = 0;
-  // for 32 bit machine, the size is always 4 words
-  int msgsize = 4;
-
   int reallock = (int)lock;
-  targetcore = (reallock >> 5) % TOTALCORE;
+  targetcore = (reallock >> 5) % BAMBOO_TOTALCORE;
 
-#ifdef RAWDEBUG
-  raw_test_pass(0xe671);
-  raw_test_pass_reg((int)lock);
-  raw_test_pass_reg(reallock);
-  raw_test_pass_reg(targetcore);
+#ifdef DEBUG
+  BAMBOO_DEBUGPRINT(0xe671);
+  BAMBOO_DEBUGPRINT_REG((int)lock);
+  BAMBOO_DEBUGPRINT_REG(reallock);
+  BAMBOO_DEBUGPRINT_REG(targetcore);
 #endif
 
   if(targetcore == corenum) {
-#ifdef INTERRUPT
-    raw_user_interrupts_off();
-#endif
+	BAMBOO_START_CRITICAL_SECTION_LOCK();
     // reside on this core
     if(!RuntimeHashcontainskey(locktbl, reallock)) {
       // no locks for this object, something is wrong
-      raw_test_done(0xa018);
+      BAMBOO_EXIT(0xa01b);
     } else {
       int rwlock_obj = 0;
 	  struct LockValue * lockvalue = NULL;
-#ifdef RAWDEBUG
-      raw_test_pass(0xe672);
+#ifdef DEBUG
+      BAMBOO_DEBUGPRINT(0xe672);
 #endif
       RuntimeHashget(locktbl, reallock, &rwlock_obj);
 	  lockvalue = (struct LockValue *)rwlock_obj;
-#ifdef RAWDEBUG
-      raw_test_pass_reg(lockvalue->value);
+#ifdef DEBUG
+      BAMBOO_DEBUGPRINT_REG(lockvalue->value);
 #endif
       lockvalue->value++;
 	  lockvalue->redirectlock = (int)redirectlock;
-#ifdef RAWDEBUG
-      raw_test_pass_reg(lockvalue->value);
+#ifdef DEBUG
+      BAMBOO_DEBUGPRINT_REG(lockvalue->value);
 #endif
     }
-#ifdef INTERRUPT
-    raw_user_interrupts_on();
-#endif
+	BAMBOO_CLOSE_CRITICAL_SECTION_LOCK();
     return;
+  } else {
+	  // send lock release with redirect info msg
+	  // for 32 bit machine, the size is always 4 words
+	  send_msg_4(targetcore, 0xb, 1, (int)lock, (int)redirectlock);
   }
-
-#ifdef RAWDEBUG
-  raw_test_pass(0xe673);
-#endif
-  calCoords(corenum, &self_y, &self_x);
-  calCoords(targetcore, &target_y, &target_x);
-  isMsgSending = true;
-  // Build the message header
-  msgHdr = construct_dyn_hdr(0, msgsize, 0,             // msgsize word sent.
-                             self_y, self_x,
-                             target_y, target_x);
-  // start sending the msg, set send msg flag
-  //isMsgSending = true;
-  gdn_send(msgHdr);                     
-#ifdef RAWDEBUG
-  raw_test_pass(0xbbbb);
-  raw_test_pass(0xb000 + targetcore);
-#endif
-  gdn_send(0xb);   // lock release with redirect info
-#ifdef RAWDEBUG
-  raw_test_pass(0xb);
-#endif
-  gdn_send(1);       // write lock
-#ifdef RAWDEBUG
-  raw_test_pass(1);
-#endif
-  gdn_send((int)lock); // lock
-#ifdef RAWDEBUG
-  raw_test_pass_reg(lock);
-#endif
-  gdn_send((int)redirectlock); // redirect lock
-#ifdef RAWDEBUG
-  raw_test_pass_reg(redirectlock);
-  raw_test_pass(0xffff);
-#endif
-  // end of sending this msg, set sand msg flag false
-  isMsgSending = false;
-  // check if there are pending msgs
-  while(isMsgHanging) {
-    // get the msg from outmsgdata[]
-    // length + target + msg
-    outmsgleft = outmsgdata[outmsgindex++];
-    targetcore = outmsgdata[outmsgindex++];
-    calCoords(targetcore, &target_y, &target_x);
-	isMsgSending = true;
-    // Build the message header
-    msgHdr = construct_dyn_hdr(0, outmsgleft, 0,                        // msgsize word sent.
-                               self_y, self_x,
-                               target_y, target_x);
-	//isMsgSending = true;
-    gdn_send(msgHdr);                           // Send the message header to EAST to handle fab(n - 1).
-#ifdef RAWDEBUG
-    raw_test_pass(0xbbbb);
-    raw_test_pass(0xb000 + targetcore);             // targetcore
-#endif
-    while(outmsgleft-- > 0) {
-      gdn_send(outmsgdata[outmsgindex++]);
-#ifdef RAWDEBUG
-      raw_test_pass_reg(outmsgdata[outmsgindex - 1]);
-#endif
-    }
-#ifdef RAWDEBUG
-    raw_test_pass(0xffff);
-#endif
-    isMsgSending = false;
-#ifdef INTERRUPT
-    raw_user_interrupts_off();
-#endif
-    // check if there are still msg hanging
-    if(outmsgindex == outmsglast) {
-      // no more msgs
-      outmsgindex = outmsglast = 0;
-      isMsgHanging = false;
-    }
-#ifdef INTERRUPT
-    raw_user_interrupts_on();
-#endif
-  }
-#elif defined THREADSIMULATE
-  // TODO, need modification according to alias lock
-  int numofcore = pthread_getspecific(key);
-  int rc = pthread_rwlock_rdlock(&rwlock_tbl);
-  printf("[releasewritelock, %d] getting the read lock for locktbl: %d error: \n", numofcore, rc, strerror(rc));
-  if(!RuntimeHashcontainskey(locktbl, (int)ptr)) {
-    printf("[releasewritelock, %d] Error: try to release a lock without previously grab it\n", numofcore);
-    exit(-1);
-  }
-  pthread_rwlock_t* rwlock_obj = NULL;
-  RuntimeHashget(locktbl, (int)ptr, (int*)&rwlock_obj);
-  int rc_obj = pthread_rwlock_unlock(rwlock_obj);
-  printf("[releasewritelock, %d] unlocked object %d: %d error:\n", numofcore, (int)ptr, rc_obj, strerror(rc_obj));
-  rc = pthread_rwlock_unlock(&rwlock_tbl);
-  printf("[releasewritelock, %d] release the read lock for locktbl: %d error: \n", numofcore, rc, strerror(rc));
-#endif
 }
 
-#ifdef RAW
 bool getwritelock_I(void * ptr) {
-  unsigned msgHdr;
-  int self_y, self_x, target_y, target_x;
   int targetcore = 0;
-  // for 32 bit machine, the size is always 5 words
-  int msgsize = 5;
-
   lockobj = (int)ptr;
   if(((struct ___Object___ *)ptr)->lock == NULL) {
 	lock2require = lockobj;
   } else {
 	lock2require = (int)(((struct ___Object___ *)ptr)->lock);
   }
-  targetcore = (lock2require >> 5) % TOTALCORE;
+  targetcore = (lock2require >> 5) % BAMBOO_TOTALCORE;
   lockflag = false;
 #ifndef INTERRUPT
   reside = false;
 #endif
   lockresult = 0;
 
-#ifdef RAWDEBUG
-  raw_test_pass(0xe561);
-  raw_test_pass_reg(lockobj);
-  raw_test_pass_reg(lock2require);
-  raw_test_pass_reg(targetcore);
+#ifdef DEBUG
+  BAMBOO_DEBUGPRINT(0xe561);
+  BAMBOO_DEBUGPRINT_REG(lockobj);
+  BAMBOO_DEBUGPRINT_REG(lock2require);
+  BAMBOO_DEBUGPRINT_REG(targetcore);
 #endif
 
   if(targetcore == corenum) {
     // reside on this core
-    bool deny = false;
-    if(!RuntimeHashcontainskey(locktbl, lock2require)) {
-      // no locks for this object
-      // first time to operate on this shared object
-      // create a lock for it
-      // the lock is an integer: 0 -- stall, >0 -- read lock, -1 -- write lock
-#ifdef RAWDEBUG
-      raw_test_pass(0xe562);
+	int deny = processlockrequest(1, (int)lock2require, (int)ptr, corenum, corenum, false);
+	if(deny == -1) {
+		// redirected
+		return true;
+	} else {
+		if(lockobj == (int)ptr) {
+			if(deny) {
+				lockresult = 0;
+#ifdef DEBUG
+				BAMBOO_DEBUGPRINT(0);
 #endif
-	  struct LockValue * lockvalue = (struct LockValue *)(RUNMALLOC_I(sizeof(struct LockValue)));
-	  lockvalue->redirectlock = 0;
-	  lockvalue->value = -1;
-      RuntimeHashadd_I(locktbl, lock2require, (int)lockvalue);
-    } else {
-      int rwlock_obj = 0;
-	  struct LockValue* lockvalue;
-      RuntimeHashget(locktbl, (int)ptr, &rwlock_obj);
-	  lockvalue = (struct LockValue*)rwlock_obj;
-#ifdef RAWDEBUG
-      raw_test_pass(0xe563);
-      raw_test_pass_reg(lockvalue->value);
+			} else {
+				lockresult = 1;
+#ifdef DEBUG
+				BAMBOO_DEBUGPRINT(1);
 #endif
-	  if(lockvalue->redirectlock != 0) {
-		  // the lock is redirected
-#ifdef RAWDEBUG
-		  raw_test_pass(0xe564);
-#endif
-		  getwritelock_I_r(ptr, (void *)lockvalue->redirectlock, corenum, false);
-		  return true;
-	  } else {
-	      if(0 == lockvalue->value) {
-			  lockvalue->value = -1;
-		  } else {
-			  deny = true;
-		  }
-	  }
-    }
-#ifdef RAWDEBUG
-    raw_test_pass(0xe565);
-    raw_test_pass_reg(lockresult);
-#endif
-    if(lockobj == (int)ptr) {
-      if(deny) {
-	lockresult = 0;
-#ifdef RAWDEBUG
-	raw_test_pass(0);
-#endif
-      } else {
-	lockresult = 1;
-#ifdef RAWDEBUG
-	raw_test_pass(1);
-#endif
-      }
-      lockflag = true;
+			}
+			lockflag = true;
 #ifndef INTERRUPT
-      reside = true;
+			reside = true;
 #endif
-    } else {
-      // conflicts on lockresults
-      raw_test_done(0xa019);
-    }
-    return true;
+		} else {
+			// conflicts on lockresults
+			BAMBOO_EXIT(0xa01c);
+		}
+		return true;
+	}
+  } else {
+	  // send lock request msg
+	  // for 32 bit machine, the size is always 5 words
+	  send_msg_5(targetcore, 2, 1, (int)ptr, lock2require, corenum);
   }
-
-#ifdef RAWDEBUG
-  raw_test_pass(0xe566);
-#endif
-  calCoords(corenum, &self_y, &self_x);
-  calCoords(targetcore, &target_y, &target_x);
-  // Build the message header
-  msgHdr = construct_dyn_hdr(0, msgsize, 0,             // msgsize word sent.
-                             self_y, self_x,
-                             target_y, target_x);
-  // start sending the msg, set send msg flag
-  gdn_send(msgHdr);                     // Send the message header to EAST to handle fab(n - 1).
-#ifdef RAWDEBUG
-  raw_test_pass(0xbbbb);
-  raw_test_pass(0xb000 + targetcore);       // targetcore
-#endif
-  gdn_send(2);   // lock request
-#ifdef RAWDEBUG
-  raw_test_pass(2);
-#endif
-  gdn_send(1);       // write lock
-#ifdef RAWDEBUG
-  raw_test_pass(1);
-#endif
-  gdn_send((int)ptr);  // obj pointer
-#ifdef RAWDEBUG
-  raw_test_pass_reg(ptr);
-#endif
-  gdn_send(lock2require); // lock
-#ifdef RAWDEBUG
-  raw_test_pass_reg(lock2require);
-#endif
-  gdn_send(corenum);  // request core
-#ifdef RAWDEBUG
-  raw_test_pass_reg(corenum);
-  raw_test_pass(0xffff);
-#endif
   return true;
 }
 
 // redirected lock request
 bool getwritelock_I_r(void * ptr, void * redirectlock, int core, bool cache) {
-  unsigned msgHdr;
-  int self_y, self_x, target_y, target_x;
   int targetcore = 0;
-  // for 32 bit machine, the size is always 6 words
-  int msgsize = 6;
 
   if(core == corenum) {
 	  lockobj = (int)ptr;
@@ -4122,208 +2121,86 @@ bool getwritelock_I_r(void * ptr, void * redirectlock, int core, bool cache) {
 #endif
 	  lockresult = 0;
   }
-  targetcore = ((int)redirectlock >> 5) % TOTALCORE;
+  targetcore = ((int)redirectlock >> 5) % BAMBOO_TOTALCORE;
 
-#ifdef RAWDEBUG
-  raw_test_pass(0xe571);
-  raw_test_pass_reg((int)ptr);
-  raw_test_pass_reg((int)redirectlock);
-  raw_test_pass_reg(core);
-  raw_test_pass_reg((int)cache);
-  raw_test_pass_reg(targetcore);
+#ifdef DEBUG
+  BAMBOO_DEBUGPRINT(0xe571);
+  BAMBOO_DEBUGPRINT_REG((int)ptr);
+  BAMBOO_DEBUGPRINT_REG((int)redirectlock);
+  BAMBOO_DEBUGPRINT_REG(core);
+  BAMBOO_DEBUGPRINT_REG((int)cache);
+  BAMBOO_DEBUGPRINT_REG(targetcore);
 #endif
 
 
   if(targetcore == corenum) {
     // reside on this core
-    bool deny = false;
-    if(!RuntimeHashcontainskey(locktbl, (int)redirectlock)) {
-      // no locks for this object
-      // first time to operate on this shared object
-      // create a lock for it
-      // the lock is an integer: 0 -- stall, >0 -- read lock, -1 -- write lock
-	  struct LockValue * lockvalue = (struct LockValue *)(RUNMALLOC_I(sizeof(struct LockValue)));
-	  lockvalue->redirectlock = 0;
-	  lockvalue->value = -1;
-      RuntimeHashadd_I(locktbl, (int)redirectlock, (int)lockvalue);
-    } else {
-      int rwlock_obj = 0;
-	  struct LockValue* lockvalue;
-      RuntimeHashget(locktbl, (int)redirectlock, &rwlock_obj);
-	  lockvalue = (struct LockValue*)rwlock_obj;
-	  if(lockvalue->redirectlock != 0) {
-		  // the lock is redirected
-#ifdef RAWDEBUG
-		  raw_test_pass(0xe572);
-#endif
-		  getwritelock_I_r(ptr, (void *)lockvalue->redirectlock, core, cache);
-		  return true;
-	  } else {
-		  if(0 == lockvalue->value) {
-			  lockvalue->value = -1;
-		  } else {
-			  deny = true;
-		  }
-	  }
-    }
-	if(core == corenum) {
-    	if(lockobj == (int)ptr) {
-	      if(deny) {
-		lockresult = 0;
-	      } else {
-		lockresult = 1;
-		RuntimeHashadd_I(objRedirectLockTbl, (int)ptr, (int)redirectlock);
-	      }
-    	  lockflag = true;
-#ifndef INTERRUPT
-	      reside = true;
-#endif
-    	} else {
-	      // conflicts on lockresults
-    	  raw_test_done(0xa01a);
-    	}
-	    return true;
+	int deny = processlockrequest(1, (int)redirectlock, (int)ptr, corenum, core, cache);
+	if(deny == -1) {
+		// redirected
+		return true;
 	} else {
-		// send lock grant/deny request to the root requiring core
-		// check if there is still some msg on sending
-		int msgsize1 = 4;
-		if((!cache) || (cache && !isMsgSending)) {
-			calCoords(corenum, &self_y, &self_x);
-			calCoords(core, &target_y, &target_x);
-			// Build the message header
-			msgHdr = construct_dyn_hdr(0, msgsize1, 0,             // msgsize word sent.
-					                   self_y, self_x,
-									   target_y, target_x);
-			gdn_send(msgHdr);                     // Send the message header to EAST to handle fab(n - 1).
-#ifdef RAWDEBUG
-			raw_test_pass(0xbbbb);
-			raw_test_pass(0xb000 + core);       // targetcore
-#endif
-			if(deny) {
-				// deny
-				gdn_send(0xa);   // lock deny with redirected info
-#ifdef RAWDEBUG
-				raw_test_pass(0xa);
+		if(core == corenum) {
+			if(lockobj == (int)ptr) {
+				if(deny) {
+					lockresult = 0;
+				} else {
+					lockresult = 1;
+					RuntimeHashadd_I(objRedirectLockTbl, (int)ptr, (int)redirectlock);
+				}
+				lockflag = true;
+#ifndef INTERRUPT
+				reside = true;
 #endif
 			} else {
-				// grant
-				gdn_send(9);   // lock grant with redirected info
-#ifdef RAWDEBUG
-				raw_test_pass(9);
-#endif
+				// conflicts on lockresults
+				BAMBOO_EXIT(0xa01d);
 			}
-			gdn_send(1);       // write lock
-#ifdef RAWDEBUG
-			raw_test_pass(1);
-#endif
-			gdn_send((int)ptr);  // obj pointer
-#ifdef RAWDEBUG
-			raw_test_pass_reg(ptr);
-#endif
-			gdn_send((int)redirectlock); // redirected lock
-#ifdef RAWDEBUG
-			raw_test_pass_reg((int)redirectlock);
-			raw_test_pass(0xffff);
-#endif
-		} else if(cache && isMsgSending) {
-			isMsgHanging = true;
-			// cache the msg in outmsgdata and send it later
-			// msglength + target core + msg
-			outmsgdata[outmsglast++] = msgsize1;
-			outmsgdata[outmsglast++] = core;
-			if(deny) {
-				outmsgdata[outmsglast++] = 0xa; // deny
+			return true;
+		} else {
+			// send lock grant/deny request to the root requiring core
+			// check if there is still some msg on sending
+			if((!cache) || (cache && !isMsgSending)) {
+				send_msg_4(core, deny==1?0xa:9, 1, (int)ptr, (int)redirectlock);
 			} else {
-				outmsgdata[outmsglast++] = 9; // grant
+				cache_msg_4(core, deny==1?0xa:9, 1, (int)ptr, (int)redirectlock);
 			}
-			outmsgdata[outmsglast++] = 1;
-			outmsgdata[outmsglast++] = (int)ptr;
-			outmsgdata[outmsglast++] = (int)redirectlock;
 		}
 	}
-  }
-
-  // check if there is still some msg on sending
-  if((!cache) || (cache && !isMsgSending)) {
-	  calCoords(corenum, &self_y, &self_x);
-	  calCoords(targetcore, &target_y, &target_x);
-	  // Build the message header
-	  msgHdr = construct_dyn_hdr(0, msgsize, 0,             // msgsize word sent.
-    	                         self_y, self_x,
-        	                     target_y, target_x);
-	  gdn_send(msgHdr);                     // Send the message header to EAST to handle fab(n - 1).
-#ifdef RAWDEBUG
-	  raw_test_pass(0xbbbb);
-	  raw_test_pass(0xb000 + targetcore);       // targetcore
-#endif
-	  gdn_send(8);   // redirected lock request
-#ifdef RAWDEBUG
-	  raw_test_pass(8);
-#endif
-	  gdn_send(1);       // write lock
-#ifdef RAWDEBUG
-	  raw_test_pass(1);
-#endif
-	  gdn_send((int)ptr);  // obj pointer
-#ifdef RAWDEBUG
-	  raw_test_pass_reg(ptr);
-#endif
-	  gdn_send((int)redirectlock); // redirected lock
-#ifdef RAWDEBUG
-	  raw_test_pass_reg((int)redirectlock);
-#endif
-	  gdn_send(core);  // root request core
-#ifdef RAWDEBUG
-	  raw_test_pass_reg(core);
-#endif
-	  gdn_send(corenum);  // request core
-#ifdef RAWDEBUG
-	  raw_test_pass_reg(corenum);
-	  raw_test_pass(0xffff);
-#endif
-  } else if(cache && isMsgSending) {
-	  isMsgHanging = true;
-	  // cache the msg in outmsgdata and send it later
-	  // msglength + target core + msg
-	  outmsgdata[outmsglast++] = msgsize;
-	  outmsgdata[outmsglast++] = targetcore;
-	  outmsgdata[outmsglast++] = 8;
-	  outmsgdata[outmsglast++] = 1;
-	  outmsgdata[outmsglast++] = (int)ptr;
-	  outmsgdata[outmsglast++] = (int)redirectlock;
-	  outmsgdata[outmsglast++] = core;
-	  outmsgdata[outmsglast++] = corenum;
+  } else {
+	// redirect the lock request
+	// for 32 bit machine, the size is always 6 words
+	if((!cache) || (cache && !isMsgSending)) {
+		send_msg_6(targetcore, 8, 1, (int)ptr, (int)redirectlock, core, corenum);
+	} else {
+		cache_msg_6(targetcore, 8, 1, (int)ptr, (int)redirectlock, core, corenum);
+	}
   }
   return true;
 }
 
 void releasewritelock_I(void * ptr) {
-  unsigned msgHdr;
-  int self_y, self_x, target_y, target_x;
   int targetcore = 0;
-  // for 32 bit machine, the size is always 4 words
-  int msgsize = 4;
-
   int reallock = 0;
   if(((struct ___Object___ *)ptr)->lock == NULL) {
 	reallock = (int)ptr;
   } else {
 	reallock = (int)(((struct ___Object___ *)ptr)->lock);
   }
-  targetcore = (reallock >> 5) % TOTALCORE;
+  targetcore = (reallock >> 5) % BAMBOO_TOTALCORE;
 
-#ifdef RAWDEBUG
-  raw_test_pass(0xe681);
-  raw_test_pass_reg((int)ptr);
-  raw_test_pass_reg(reallock);
-  raw_test_pass_reg(targetcore);
+#ifdef DEBUG
+  BAMBOO_DEBUGPRINT(0xe681);
+  BAMBOO_DEBUGPRINT_REG((int)ptr);
+  BAMBOO_DEBUGPRINT_REG(reallock);
+  BAMBOO_DEBUGPRINT_REG(targetcore);
 #endif
 
   if(targetcore == corenum) {
     // reside on this core
     if(!RuntimeHashcontainskey(locktbl, reallock)) {
       // no locks for this object, something is wrong
-      raw_test_done(0xa01b);
+      BAMBOO_EXIT(0xa01e);
     } else {
       int rwlock_obj = 0;
 	  struct LockValue * lockvalue = NULL;
@@ -4332,114 +2209,54 @@ void releasewritelock_I(void * ptr) {
       lockvalue->value++;
     }
     return;
+  } else {
+	// send lock release msg
+	// for 32 bit machine, the size is always 4 words
+	send_msg_4(targetcore, 5, 1, (int)ptr, reallock);
   }
-
-  calCoords(corenum, &self_y, &self_x);
-  calCoords(targetcore, &target_y, &target_x);
-  // Build the message header
-  msgHdr = construct_dyn_hdr(0, msgsize, 0,             // msgsize word sent.
-                             self_y, self_x,
-                             target_y, target_x);
-  gdn_send(msgHdr);                     // Send the message header to EAST to handle fab(n - 1).
-#ifdef RAWDEBUG
-  raw_test_pass(0xbbbb);
-  raw_test_pass(0xb000 + targetcore);       // targetcore
-#endif
-  gdn_send(5);   // lock release
-#ifdef RAWDEBUG
-  raw_test_pass(5);
-#endif
-  gdn_send(1);       // write lock
-#ifdef RAWDEBUG
-  raw_test_pass(1);
-#endif
-  gdn_send((int)ptr);  // obj pointer
-#ifdef RAWDEBUG
-  raw_test_pass_reg(ptr);
-#endif
-  gdn_send(reallock);  // lock
-#ifdef RAWDEBUG
-  raw_test_pass_reg(reallock);
-  raw_test_pass(0xffff);
-#endif
 }
 
 void releasewritelock_I_r(void * lock, void * redirectlock) {
-  unsigned msgHdr;
-  int self_y, self_x, target_y, target_x;
   int targetcore = 0;
-  // for 32 bit machine, the size is always 4 words
-  int msgsize = 4;
-
   int reallock = (int)lock;
-  targetcore = (reallock >> 5) % TOTALCORE;
+  targetcore = (reallock >> 5) % BAMBOO_TOTALCORE;
 
-#ifdef RAWDEBUG
-  raw_test_pass(0xe691);
-  raw_test_pass_reg((int)lock);
-  raw_test_pass_reg(reallock);
-  raw_test_pass_reg(targetcore);
+#ifdef DEBUG
+  BAMBOO_DEBUGPRINT(0xe691);
+  BAMBOO_DEBUGPRINT_REG((int)lock);
+  BAMBOO_DEBUGPRINT_REG(reallock);
+  BAMBOO_DEBUGPRINT_REG(targetcore);
 #endif
 
   if(targetcore == corenum) {
     // reside on this core
     if(!RuntimeHashcontainskey(locktbl, reallock)) {
       // no locks for this object, something is wrong
-      raw_test_done(0xa01c);
+      BAMBOO_EXIT(0xa01f);
     } else {
       int rwlock_obj = 0;
 	  struct LockValue * lockvalue = NULL;
-#ifdef RAWDEBUG
-      raw_test_pass(0xe692);
+#ifdef DEBUG
+      BAMBOO_DEBUGPRINT(0xe692);
 #endif
       RuntimeHashget(locktbl, reallock, &rwlock_obj);
 	  lockvalue = (struct LockValue *)rwlock_obj;
-#ifdef RAWDEBUG
-      raw_test_pass_reg(lockvalue->value);
+#ifdef DEBUG
+      BAMBOO_DEBUGPRINT_REG(lockvalue->value);
 #endif
       lockvalue->value++;
 	  lockvalue->redirectlock = (int)redirectlock;
-#ifdef RAWDEBUG
-      raw_test_pass_reg(lockvalue->value);
+#ifdef DEBUG
+      BAMBOO_DEBUGPRINT_REG(lockvalue->value);
 #endif
     }
     return;
+  } else {
+	// send lock release msg
+	// for 32 bit machine, the size is always 4 words
+	send_msg_4(targetcore, 0xb, 1, (int)lock, (int)redirectlock);
   }
-
-#ifdef RAWDEBUG
-  raw_test_pass(0xe693);
-#endif
-	  calCoords(corenum, &self_y, &self_x);
-	  calCoords(targetcore, &target_y, &target_x);
-	  // Build the message header
-	  msgHdr = construct_dyn_hdr(0, msgsize, 0,             // msgsize word sent.
-    	                         self_y, self_x,
-        	                     target_y, target_x);
-	  // start sending the msg, set send msg flag
-	  gdn_send(msgHdr);                     
-#ifdef RAWDEBUG
-	  raw_test_pass(0xbbbb);
-	  raw_test_pass(0xb000 + targetcore);
-#endif
-	  gdn_send(0xb);   // lock release with redirect info
-#ifdef RAWDEBUG
-	  raw_test_pass(0xb);
-#endif
-	  gdn_send(1);       // write lock
-#ifdef RAWDEBUG
-	  raw_test_pass(1);
-#endif
-	  gdn_send((int)lock); // lock
-#ifdef RAWDEBUG
-	  raw_test_pass_reg(lock);
-#endif
-	  gdn_send((int)redirectlock); // redirect lock
-#ifdef RAWDEBUG
-	  raw_test_pass_reg(redirectlock);
-	  raw_test_pass(0xffff);
-#endif
 }
-#endif
 
 int enqueuetasks(struct parameterwrapper *parameter, struct parameterwrapper *prevptr, struct ___Object___ *ptr, int * enterflags, int numenterflags) {
   void * taskpointerarray[MAXTASKPARAMS];
@@ -4452,7 +2269,8 @@ int enqueuetasks(struct parameterwrapper *parameter, struct parameterwrapper *pr
 
   struct taskdescriptor * task=parameter->task;
 
-  ObjectHashadd(parameter->objectset, (int) ptr, 0, (int) enterflags, numenterflags, enterflags==NULL);      //this add the object to parameterwrapper
+   //this add the object to parameterwrapper
+   ObjectHashadd(parameter->objectset, (int) ptr, 0, (int) enterflags, numenterflags, enterflags==NULL);
 
   /* Add enqueued object to parameter vector */
   taskpointerarray[parameter->slot]=ptr;
@@ -4478,7 +2296,6 @@ backtrackinit:
     }
   }
 
-
   while(1) {
     /* Enqueue current state */
     int launch = 0;
@@ -4486,12 +2303,13 @@ backtrackinit:
     tpd->task=task;
     tpd->numParameters=numiterators+1;
     tpd->parameterArray=RUNMALLOC(sizeof(void *)*(numiterators+1));
+
     for(j=0; j<=numiterators; j++) {
       tpd->parameterArray[j]=taskpointerarray[j]; //store the actual parameters
     }
     /* Enqueue task */
     if ((/*!gencontains(failedtasks, tpd)&&*/ !gencontains(activetasks,tpd))) {
-      genputtable(activetasks, tpd, tpd);
+		genputtable(activetasks, tpd, tpd);
     } else {
       RUNFREE(tpd->parameterArray);
       RUNFREE(tpd);
@@ -4519,7 +2337,6 @@ backtrackinc:
   return retval;
 }
 
-#ifdef RAW
 int enqueuetasks_I(struct parameterwrapper *parameter, struct parameterwrapper *prevptr, struct ___Object___ *ptr, int * enterflags, int numenterflags) {
   void * taskpointerarray[MAXTASKPARAMS];
   int j;
@@ -4531,7 +2348,8 @@ int enqueuetasks_I(struct parameterwrapper *parameter, struct parameterwrapper *
 
   struct taskdescriptor * task=parameter->task;
 
-  ObjectHashadd_I(parameter->objectset, (int) ptr, 0, (int) enterflags, numenterflags, enterflags==NULL);      //this add the object to parameterwrapper
+   //this add the object to parameterwrapper
+   ObjectHashadd_I(parameter->objectset, (int) ptr, 0, (int) enterflags, numenterflags, enterflags==NULL);  
 
   /* Add enqueued object to parameter vector */
   taskpointerarray[parameter->slot]=ptr;
@@ -4564,12 +2382,13 @@ backtrackinit:
     tpd->task=task;
     tpd->numParameters=numiterators+1;
     tpd->parameterArray=RUNMALLOC_I(sizeof(void *)*(numiterators+1));
+
     for(j=0; j<=numiterators; j++) {
       tpd->parameterArray[j]=taskpointerarray[j]; //store the actual parameters
     }
     /* Enqueue task */
     if ((/*!gencontains(failedtasks, tpd)&&*/ !gencontains(activetasks,tpd))) {
-      genputtable_I(activetasks, tpd, tpd);
+		genputtable_I(activetasks, tpd, tpd);
     } else {
       RUNFREE(tpd->parameterArray);
       RUNFREE(tpd);
@@ -4596,11 +2415,10 @@ backtrackinc:
   }
   return retval;
 }
-#endif
 
 /* Handler for signals. The signals catch null pointer errors and
    arithmatic errors. */
-#ifndef RAW
+#ifndef MULTICORE
 void myhandler(int sig, siginfo_t *info, void *uap) {
   sigset_t toclear;
 #ifdef DEBUG
@@ -4650,7 +2468,6 @@ void executetasks() {
   int x = 0;
   bool islock = true;
 
-#ifdef RAW
   struct LockValue * locks[MAXTASKPARAMS];
   int locklen;
   int grount = 0;
@@ -4662,9 +2479,8 @@ void executetasks() {
 	  locks[j]->redirectlock = 0;
 	  locks[j]->value = 0;
   }
-#endif
 
-#ifndef RAW
+#if 0
   /* Set up signal handlers */
   struct sigaction sig;
   sig.sa_sigaction=&myhandler;
@@ -4676,18 +2492,18 @@ void executetasks() {
   sigaction(SIGSEGV,&sig,0);
   sigaction(SIGFPE,&sig,0);
   sigaction(SIGPIPE,&sig,0);
-#endif
+#endif  // #if 0: non-multicore
 
-#ifndef RAW
+#if 0
   /* Zero fd set */
   FD_ZERO(&readfds);
 #endif
   maxreadfd=0;
-#ifndef RAW
+#if 0
   fdtoobject=allocateRuntimeHash(100);
 #endif
 
-#ifndef RAW
+#if 0
   /* Map first block of memory to protected, anonymous page */
   mmap(0, 0x1000, 0, MAP_SHARED|MAP_FIXED|MAP_ANON, -1, 0);
 #endif
@@ -4695,11 +2511,10 @@ void executetasks() {
 newtask:
   while((hashsize(activetasks)>0)||(maxreadfd>0)) {
 
-#ifdef RAW
-#ifdef RAWDEBUG
-    raw_test_pass(0xe990);
+#ifdef DEBUG
+    BAMBOO_DEBUGPRINT(0xe990);
 #endif
-#else
+#if 0
     /* Check if any filedescriptors have IO pending */
     if (maxreadfd>0) {
       int i;
@@ -4730,16 +2545,8 @@ newtask:
     /* See if there are any active tasks */
     if (hashsize(activetasks)>0) {
       int i;
-#ifdef RAWPROFILE
-      if(!taskInfoOverflow) {
-	TaskInfo* checkTaskInfo = RUNMALLOC(sizeof(struct task_info));
-	taskInfoArray[taskInfoIndex] = checkTaskInfo;
-	checkTaskInfo->taskName = "tpd checking";
-	checkTaskInfo->startTime = raw_get_cycle();
-	checkTaskInfo->endTime = -1;
-	checkTaskInfo->exitIndex = -1;
-	checkTaskInfo->newObjs = NULL;
-      }
+#ifdef PROFILE
+	  profileTaskStart("tpd checking");
 #endif
 	  busystatus = true;
       currtpd=(struct taskparamdescriptor *) getfirstkey(activetasks);
@@ -4748,12 +2555,7 @@ newtask:
       numparams=currtpd->task->numParameters;
       numtotal=currtpd->task->numTotal;
 
-#ifdef THREADSIMULATE
-      int isolateflags[numparams];
-#endif
-
 	 // clear the lockRedirectTbl (TODO, this table should be empty after all locks are released)
-#ifdef RAW
 	  // get all required locks
 	  locklen = 0;
 	  // check which locks are needed
@@ -4793,31 +2595,28 @@ newtask:
 		  }		  
 	  }
 	  // grab these required locks
-#ifdef RAWDEBUG
-	  raw_test_pass(0xe991);
+#ifdef DEBUG
+	  BAMBOO_DEBUGPRINT(0xe991);
 #endif
 	  for(i = 0; i < locklen; i++) {
 		  int * lock = (int *)(locks[i]->redirectlock);
 		  islock = true;
 		  // require locks for this parameter if it is not a startup object
-#ifdef RAWDEBUG
-		  raw_test_pass_reg((int)lock);
-		  raw_test_pass_reg((int)(locks[i]->value));
+#ifdef DEBUG
+		  BAMBOO_DEBUGPRINT_REG((int)lock);
+		  BAMBOO_DEBUGPRINT_REG((int)(locks[i]->value));
 #endif
 		  getwritelock(lock);
-
-#ifdef INTERRUPT
-		  raw_user_interrupts_off();
-#endif
-#ifdef RAWPROFILE
+		  BAMBOO_START_CRITICAL_SECTION();
+#ifdef PROFILE
 		  //isInterrupt = false;
 #endif 
 		  while(!lockflag) { 
-			  receiveObject();
+			  BAMBOO_WAITING_FOR_LOCK();
 		  }
 #ifndef INTERRUPT
 		  if(reside) {
-			  while(receiveObject() != -1) {
+			  while(BAMBOO_WAITING_FOR_LOCK() != -1) {
 			  }
 		  }
 #endif
@@ -4830,17 +2629,15 @@ newtask:
 #ifndef INTERRUPT
 		  reside = false;
 #endif
-#ifdef RAWPROFILE
+#ifdef PROFILE
 		  //isInterrupt = true;
 #endif
-#ifdef INTERRUPT
-		  raw_user_interrupts_on();
-#endif
+		  BAMBOO_CLOSE_CRITICAL_SECTION();
 
 		  if(grount == 0) {
 			  int j = 0;
-#ifdef RAWDEBUG
-			  raw_test_pass(0xe992);
+#ifdef DEBUG
+			  BAMBOO_DEBUGPRINT(0xe992);
 #endif
 			  // can not get the lock, try later
 			  // releas all grabbed locks for previous parameters
@@ -4855,124 +2652,54 @@ newtask:
 				  while(halt--) {
 				  }
 			  }
-#ifdef RAWPROFILE
+#ifdef PROFILE
 			  // fail, set the end of the checkTaskInfo
-			  if(!taskInfoOverflow) {
-				  taskInfoArray[taskInfoIndex]->endTime = raw_get_cycle();
-				  taskInfoIndex++;
-				  if(taskInfoIndex == TASKINFOLENGTH) {
-					  taskInfoOverflow = true;
-				  }
-			  }
+			  profileTaskEnd();
 #endif
 			  goto newtask;
 		  }
 	  }
-#elif defined THREADSIMULATE
-	  // TODO: need modification according to added alias locks
-#endif
 
-#ifdef RAWDEBUG
-	raw_test_pass(0xe993);
+#ifdef DEBUG
+	BAMBOO_DEBUGPRINT(0xe993);
 #endif
       /* Make sure that the parameters are still in the queues */
       for(i=0; i<numparams; i++) {
 	void * parameter=currtpd->parameterArray[i];
-#ifdef RAW
 
 	// flush the object
-#ifdef RAWCACHEFLUSH
-	{
-	  raw_invalidate_cache_range((int)parameter, classsize[((struct ___Object___ *)parameter)->type]);
-	}
-#ifdef INTERRUPT
-		  raw_user_interrupts_off();
-#endif
-	/*if(RuntimeHashcontainskey(objRedirectLockTbl, (int)parameter)) {
+#ifdef CACHEFLUSH
+	BAMBOO_CACHE_FLUSH_RANGE((int)parameter, classsize[((struct ___Object___ *)parameter)->type]);
+	/*
+	BAMBOO_START_CRITICAL_SECTION_LOCK();
+	if(RuntimeHashcontainskey(objRedirectLockTbl, (int)parameter)) {
 		int redirectlock_r = 0;
 		RuntimeHashget(objRedirectLockTbl, (int)parameter, &redirectlock_r);
 		((struct ___Object___ *)parameter)->lock = redirectlock_r;
 		RuntimeHashremovekey(objRedirectLockTbl, (int)parameter);
-	}*/
-#ifdef INTERRUPT
-		  raw_user_interrupts_on();
-#endif
-#endif
+	}
+	BAMBOO_CLOSE_CRITICAL_SECTION_LOCK();
+*/
 #endif
 	tmpparam = (struct ___Object___ *)parameter;
-#ifdef THREADSIMULATE
-	if(0 == tmpparam->isolate) {
-	  isolateflags[i] = 0;
-	  // shared object, need to flush with current value
-	  // TODO: need modification according to added alias locks
-	  if(!getwritelock(tmpparam->original)) {
-	    // fail to get write lock, release all obtained locks and try this task later
-	    int j = 0;
-	    for(j = 0; j < i; ++j) {
-	      if(0 == isolateflags[j]) {
-		releasewritelock(((struct ___Object___ *)taskpointerarray[j+OFFSET])->original);
-	      }
-	    }
-	    genputtable(activetasks, currtpd, currtpd);
-	    goto newtask;
-	  }
-	  if(tmpparam->version != tmpparam->original->version) {
-	    // release all obtained locks
-	    int j = 0;
-	    for(j = 0; j < i; ++j) {
-	      if(0 == isolateflags[j]) {
-		releasewritelock(((struct ___Object___ *)taskpointerarray[j+OFFSET])->original);
-	      }
-	    }
-	    releasewritelock(tmpparam->original);
-
-	    // dequeue this object
-	    int numofcore = pthread_getspecific(key);
-	    struct parameterwrapper ** queues = objectqueues[numofcore][tmpparam->type];
-	    int length = numqueues[numofcore][tmpparam->type];
-	    for(j = 0; j < length; ++j) {
-	      struct parameterwrapper * pw = queues[j];
-	      if(ObjectHashcontainskey(pw->objectset, (int)tmpparam)) {
-		int next;
-		int UNUSED, UNUSED2;
-		int * enterflags;
-		ObjectHashget(pw->objectset, (int) tmpparam, (int *) &next, (int *) &enterflags, &UNUSED, &UNUSED2);
-		ObjectHashremove(pw->objectset, (int)tmpparam);
-		if (enterflags!=NULL)
-		  free(enterflags);
-	      }
-	    }
-	    // Free up task parameter descriptor
-	    RUNFREE(currtpd->parameterArray);
-	    RUNFREE(currtpd);
-	    goto newtask;
-	  }
-	} else {
-	  isolateflags[i] = 1;
-	}
-#endif
 	pd=currtpd->task->descriptorarray[i];
 	pw=(struct parameterwrapper *) pd->queue;
 	/* Check that object is still in queue */
 	{
 	  if (!ObjectHashcontainskey(pw->objectset, (int) parameter)) {
-#ifdef RAWDEBUG
-	    raw_test_pass(0xe994);
+#ifdef DEBUG
+	    BAMBOO_DEBUGPRINT(0xe994);
 #endif
 	    // release grabbed locks
-#ifdef RAW
 	    for(j = 0; j < locklen; ++j) {
 		int * lock = (int *)(locks[j]->redirectlock);
 		releasewritelock(lock);
 	    }
-#elif defined THREADSIMULATE
-#endif
 	    RUNFREE(currtpd->parameterArray);
 	    RUNFREE(currtpd);
 	    goto newtask;
 	  }
 	}
-#ifdef RAW
 	/* Check if the object's flags still meets requirements */
 	{
 	  int tmpi = 0;
@@ -4991,8 +2718,8 @@ newtask:
 	    int next;
 	    int UNUSED, UNUSED2;
 	    int * enterflags;
-#ifdef RAWDEBUG
-	    raw_test_pass(0xe995);
+#ifdef DEBUG
+	    BAMBOO_DEBUGPRINT(0xe995);
 #endif
 	    ObjectHashget(pw->objectset, (int) parameter, (int *) &next, (int *) &enterflags, &UNUSED, &UNUSED2);
 	    ObjectHashremove(pw->objectset, (int)parameter);
@@ -5005,20 +2732,13 @@ newtask:
 	    }
 	    RUNFREE(currtpd->parameterArray);
 	    RUNFREE(currtpd);
-#ifdef RAWPROFILE
+#ifdef PROFILE
 	    // fail, set the end of the checkTaskInfo
-	    if(!taskInfoOverflow) {
-	      taskInfoArray[taskInfoIndex]->endTime = raw_get_cycle();
-	      taskInfoIndex++;
-	      if(taskInfoIndex == TASKINFOLENGTH) {
-		taskInfoOverflow = true;
-	      }
-	    }
+		profileTaskEnd();
 #endif
 	    goto newtask;
 	  }
 	}
-#endif
 parameterpresent:
 	;
 	/* Check that object still has necessary tags */
@@ -5026,8 +2746,8 @@ parameterpresent:
 	  int slotid=pd->tagarray[2*j]+numparams;
 	  struct ___TagDescriptor___ *tagd=currtpd->parameterArray[slotid];
 	  if (!containstag(parameter, tagd)) {
-#ifdef RAWDEBUG
-	    raw_test_pass(0xe996);
+#ifdef DEBUG
+	    BAMBOO_DEBUGPRINT(0xe996);
 #endif
 		{
 		// release grabbed locks
@@ -5050,17 +2770,6 @@ parameterpresent:
 	taskpointerarray[i+OFFSET]=currtpd->parameterArray[i];
       }
 
-#ifdef THREADSIMULATE
-      for(i = 0; i < numparams; ++i) {
-	if(0 == isolateflags[i]) {
-	  struct ___Object___ * tmpparam = (struct ___Object___ *)taskpointerarray[i+OFFSET];
-	  if(tmpparam != tmpparam->original) {
-	    taskpointerarray[i+OFFSET] = tmpparam->original;
-	  }
-	}
-      }
-#endif
-
       {
 #if 0
 #ifndef RAW
@@ -5069,16 +2778,16 @@ parameterpresent:
 	reverse=allocateRuntimeHash(100);
 	//void ** checkpoint=makecheckpoint(currtpd->task->numParameters, currtpd->parameterArray, forward, reverse);
 #endif
-#endif
+#endif  // #if 0: for recovery
 	if (x=setjmp(error_handler)) {
 	  int counter;
 	  /* Recover */
-#ifndef RAW
 #ifdef DEBUG
+#ifndef RAW
 	  printf("Fatal Error=%d, Recovering!\n",x);
 #endif
 #endif
-	  /*
+#if 0
 	     genputtable(failedtasks,currtpd,currtpd);
 	     //restorecheckpoint(currtpd->task->numParameters, currtpd->parameterArray, checkpoint, forward, reverse);
 
@@ -5087,100 +2796,67 @@ parameterpresent:
 	     freemalloc();
 	     forward=NULL;
 	     reverse=NULL;
-	   */
-	  //fflush(stdout);
-#ifdef RAW
-	  raw_test_pass_reg(x);
-	  raw_test_done(0xa01d);
-#else
-	  exit(-1);
-#endif
+#endif  // #if 0: for recovery
+	  BAMBOO_DEBUGPRINT_REG(x);
+	  BAMBOO_EXIT(0xa020);
 	} else {
-	  /*if (injectfailures) {
+#if 0 
+		if (injectfailures) {
 	     if ((((double)random())/RAND_MAX)<failurechance) {
 	      printf("\nINJECTING TASK FAILURE to %s\n", currtpd->task->name);
 	      longjmp(error_handler,10);
 	     }
-	     }*/
+	     }
+#endif  // #if 0: for recovery
 	  /* Actually call task */
+#if 0
 #ifdef PRECISE_GC
 	  ((int *)taskpointerarray)[0]=currtpd->numParameters;
 	  taskpointerarray[1]=NULL;
 #endif
+#endif  // #if 0: for garbage collection
 execute:
-#ifdef RAWPROFILE
-	  {
-	    // check finish, set the end of the checkTaskInfo
-	    if(!taskInfoOverflow) {
-	      taskInfoArray[taskInfoIndex]->endTime = raw_get_cycle();
-	      taskInfoIndex++;
-	      if(taskInfoIndex == TASKINFOLENGTH) {
-		taskInfoOverflow = true;
-	      }
-	    }
-	  }
-	  if(!taskInfoOverflow) {
-	    // new a taskInfo for the task execution
-	    TaskInfo* taskInfo = RUNMALLOC(sizeof(struct task_info));
-	    taskInfoArray[taskInfoIndex] = taskInfo;
-	    taskInfo->taskName = currtpd->task->name;
-	    taskInfo->startTime = raw_get_cycle();
-	    taskInfo->endTime = -1;
-		taskInfo->exitIndex = -1;
-		taskInfo->newObjs = NULL;
-	  }
+#ifdef PROFILE
+	  // check finish, set the end of the checkTaskInfo
+	  profileTaskEnd();
+	  profileTaskStart(currtpd->task->name);
 #endif
 
 	  if(debugtask) {
 #ifndef RAW
-	    printf("ENTER %s count=%d\n",currtpd->task->name, (instaccum-instructioncount));
+		printf("ENTER %s count=%d\n",currtpd->task->name, (instaccum-instructioncount));
 #endif
 	    ((void(*) (void **))currtpd->task->taskptr)(taskpointerarray);
 #ifndef RAW
 	    printf("EXIT %s count=%d\n",currtpd->task->name, (instaccum-instructioncount));
 #endif
 	  } else {
-#ifdef RAWDEBUG
-		  raw_test_pass(0xe997);
+#ifdef DEBUG
+		  BAMBOO_DEBUGPRINT(0xe997);
 #endif
 	    ((void(*) (void **))currtpd->task->taskptr)(taskpointerarray);
 	  }
-#ifdef RAWPROFILE
+#ifdef PROFILE
 	  // task finish, set the end of the checkTaskInfo
-	  if(!taskInfoOverflow) {
-	    taskInfoArray[taskInfoIndex]->endTime = raw_get_cycle();
-	    taskInfoIndex++;
-	    if(taskInfoIndex == TASKINFOLENGTH) {
-	      taskInfoOverflow = true;
-	    }
-	  }
+	  profileTaskEnd();
 	  // new a PostTaskInfo for the post-task execution
-	  if(!taskInfoOverflow) {
-	    TaskInfo* postTaskInfo = RUNMALLOC(sizeof(struct task_info));
-	    taskInfoArray[taskInfoIndex] = postTaskInfo;
-	    postTaskInfo->taskName = "post task execution";
-	    postTaskInfo->startTime = raw_get_cycle();
-	    postTaskInfo->endTime = -1;
-		postTaskInfo->exitIndex = -1;
-		postTaskInfo->newObjs = NULL;
-	  }
+	  profileTaskStart("post task execution");
 #endif
-#ifdef RAWDEBUG
-	  raw_test_pass(0xe998);
-	  raw_test_pass_reg(islock);
+#ifdef DEBUG
+	  BAMBOO_DEBUGPRINT(0xe998);
+	  BAMBOO_DEBUGPRINT_REG(islock);
 #endif
 
 	  if(islock) {
-#ifdef RAW
-#ifdef RAWDEBUG
-		  raw_test_pass(0xe999);
+#ifdef DEBUG
+		  BAMBOO_DEBUGPRINT(0xe999);
 #endif
 	    for(i = 0; i < locklen; ++i) {
 		  void * ptr = (void *)(locks[i]->redirectlock);
 	      int * lock = (int *)(locks[i]->value);
-#ifdef RAWDEBUG
-		  raw_test_pass_reg((int)ptr);
-		  raw_test_pass_reg((int)lock);
+#ifdef DEBUG
+		  BAMBOO_DEBUGPRINT_REG((int)ptr);
+		  BAMBOO_DEBUGPRINT_REG((int)lock);
 #endif
 		  if(RuntimeHashcontainskey(lockRedirectTbl, (int)lock)) {
 			  int redirectlock;
@@ -5191,59 +2867,34 @@ execute:
 		releasewritelock(ptr);
 		  }
 	    }
-#elif defined THREADSIMULATE
-		// TODO : need modification for alias lock
-	    for(i = 0; i < numparams; ++i) {
-	      int * lock;
-	      if(0 == isolateflags[i]) {
-		struct ___Object___ * tmpparam = (struct ___Object___ *)taskpointerarray[i+OFFSET];
-		if(tmpparam->lock == NULL) {
-		  lock = (int*)tmpparam;
-		} else {
-		  lock = tmpparam->lock;
-		}
-		  releasewritelock(lock);
-	      }
-	    }
-#endif
 	  }
 
-#ifdef RAWPROFILE
+#ifdef PROFILE
 	  // post task execution finish, set the end of the postTaskInfo
-	  if(!taskInfoOverflow) {
-	    taskInfoArray[taskInfoIndex]->endTime = raw_get_cycle();
-	    taskInfoIndex++;
-	    if(taskInfoIndex == TASKINFOLENGTH) {
-	      taskInfoOverflow = true;
-	    }
-	  }
+	  profileTaskEnd();
 #endif
 
 #if 0
-#ifndef RAW
 	  freeRuntimeHash(forward);
 	  freeRuntimeHash(reverse);
 	  freemalloc();
-#endif
 #endif
 	  // Free up task parameter descriptor
 	  RUNFREE(currtpd->parameterArray);
 	  RUNFREE(currtpd);
 #if 0
-#ifndef RAW
 	  forward=NULL;
 	  reverse=NULL;
 #endif
-#endif
-#ifdef RAWDEBUG
-	  raw_test_pass(0xe99a);
+#ifdef DEBUG
+	  BAMBOO_DEBUGPRINT(0xe99a);
 #endif
 	}
       }
     }
   }
-#ifdef RAWDEBUG
-  raw_test_pass(0xe99b);
+#ifdef DEBUG
+  BAMBOO_DEBUGPRINT(0xe99b);
 #endif
 }
 
@@ -5355,21 +3006,13 @@ loopstart:
 void printdebug() {
   int i;
   int j;
-#ifdef THREADSIMULATE
-  int numofcore = pthread_getspecific(key);
-  for(i=0; i<numtasks[numofcore]; i++) {
-    struct taskdescriptor * task=taskarray[numofcore][i];
-#else
-#ifdef RAW
   if(corenum > NUMCORES - 1) {
     return;
   }
-#endif
   for(i=0; i<numtasks[corenum]; i++) {
-    struct taskdescriptor * task=taskarray[corenum][i];
-#endif
+    struct taskdescriptor * task=taskarray[BAMBOO_NUM_OF_CORE][i];
 #ifndef RAW
-    printf("%s\n", task->name);
+	printf("%s\n", task->name);
 #endif
     for(j=0; j<task->numParameters; j++) {
       struct parameterdescriptor *param=task->descriptorarray[j];
@@ -5377,7 +3020,7 @@ void printdebug() {
       struct ObjectHash * set=parameter->objectset;
       struct ObjectIterator objit;
 #ifndef RAW
-      printf("  Parameter %d\n", j);
+	  printf("  Parameter %d\n", j);
 #endif
       ObjectHashiterator(set, &objit);
       while(ObjhasNext(&objit)) {
@@ -5395,14 +3038,17 @@ void printdebug() {
 	} else if (tagptr->type==TAGTYPE) {
 #ifndef RAW
 	  printf("      tag=%lx\n",tagptr);
-#endif
+#else
 	  ;
+#endif
 	} else {
 	  int tagindex=0;
 	  struct ArrayObject *ao=(struct ArrayObject *)tagptr;
 	  for(; tagindex<ao->___cachedCode___; tagindex++) {
 #ifndef RAW
-	    printf("      tag=%lx\n",ARRAYGET(ao, struct ___TagDescriptor___*, tagindex));
+		  printf("      tag=%lx\n",ARRAYGET(ao, struct ___TagDescriptor___*, tagindex));
+#else
+		  ;
 #endif
 	  }
 	}
@@ -5417,19 +3063,11 @@ void printdebug() {
 
 void processtasks() {
   int i;
-#ifdef RAW
   if(corenum > NUMCORES - 1) {
     return;
   }
-#endif
-#ifdef THREADSIMULATE
-  int numofcore = pthread_getspecific(key);
-  for(i=0; i<numtasks[numofcore]; i++) {
-    struct taskdescriptor *task=taskarray[numofcore][i];
-#else
   for(i=0; i<numtasks[corenum]; i++) {
-    struct taskdescriptor * task=taskarray[corenum][i];
-#endif
+    struct taskdescriptor * task=taskarray[BAMBOO_NUM_OF_CORE][i];
     int j;
 
     /* Build objectsets */
