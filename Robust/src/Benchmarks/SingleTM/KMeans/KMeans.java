@@ -80,16 +80,50 @@
  */
 
 public class KMeans extends Thread {
+  /**
+   * User input for max clusters
+   **/
   int max_nclusters;
-  int min_nclusters;
-  int isBinaryFile;
-  int use_zscore_transform;
-  String filename;
-  int nthreads;
-  double threshold;
-  int threadid; /* my thread id */
 
-  /* Global arguments for threads */
+  /**
+   * User input for min clusters
+   **/
+  int min_nclusters;
+
+  /**
+   * Check for Binary file
+   **/
+  int isBinaryFile;
+
+  /**
+   * Using zscore transformation for cluster center 
+   * deviating from distribution's mean
+   **/
+  int use_zscore_transform;
+
+  /**
+   * Input file name used for clustering
+   **/
+  String filename;
+
+  /**
+   * Total number of threads
+   **/
+  int nthreads;
+
+  /**
+   * threshold until which kmeans cluster continues
+   **/
+  double threshold;
+
+  /**
+   * thread id
+   **/
+  int threadid;
+
+  /**
+   * Global arguments for threads 
+   **/
   GlobalArgs g_args;
 
   /**
@@ -130,6 +164,7 @@ public class KMeans extends Thread {
    */
   public static void main(String[] args) {
     int nthreads;
+    int MAX_LINE_LENGTH = 1000000; /* max input is 400000 one digit input + spaces */
 
     /**
      * Read options fron the command prompt 
@@ -137,6 +172,7 @@ public class KMeans extends Thread {
     KMeans kms = new KMeans();
     KMeans.parseCmdLine(args, kms);
     nthreads = kms.nthreads;
+
     /* Initiate Barriers */
     Barrier.setBarrier(nthreads);
 
@@ -151,18 +187,25 @@ public class KMeans extends Thread {
     int numObjects = 0;
 
     /*
-     * From the input file, get the numAttributes and numObjects
+     * From the input file, get the numAttributes (columns in txt file) and numObjects (rows in txt file)
      */
     if (kms.isBinaryFile == 1) {
       System.out.println("TODO: Unimplemented Binary file option\n");
       System.exit(0);
     }
+
     FileInputStream inputFile = new FileInputStream(kms.filename);
-    String line = null;
-    while((line = inputFile.readLine()) != null) {
-      numObjects++;
+    byte b[] = new byte[MAX_LINE_LENGTH];
+    int n;
+    while ((n = inputFile.read(b)) != 0) {
+      for (int i = 0; i < n; i++) {
+        if (b[i] == '\n')
+          numObjects++;
+      }
     }
+    inputFile.close();
     inputFile = new FileInputStream(kms.filename);
+    String line = null;
     if((line = inputFile.readLine()) != null) {
       int index = 0;
       boolean prevWhiteSpace = true;
@@ -175,15 +218,17 @@ public class KMeans extends Thread {
         prevWhiteSpace = currWhiteSpace;
       }   
     }   
+    inputFile.close();
 
-    /* Ignore the id (first attribute): numAttributes = 1; */
-    numAttributes = numAttributes - 1; //
+    /* Ignore the first attribute: numAttributes = 1; */
+    numAttributes = numAttributes - 1; 
     System.out.println("numObjects= " + numObjects + " numAttributes= " + numAttributes);
 
     /* Allocate new shared objects and read attributes of all objects */
     buf = new double[numObjects][numAttributes];
     attributes = new double[numObjects][numAttributes];
-    KMeans.readFromFile(inputFile, kms.filename, buf);
+    KMeans.readFromFile(inputFile, kms.filename, buf, MAX_LINE_LENGTH);
+    System.out.println("Finished Reading from file ......");
 
     /*
      * The core of the clustering
@@ -305,22 +350,29 @@ public class KMeans extends Thread {
 
   /**
    * readFromFile()
-   * Read attributes into an array
+   * Read attributes from the input file into an array
    **/
-  public static void readFromFile(FileInputStream inputFile, String filename, double[][] buf) {
+  public static void readFromFile(FileInputStream inputFile, String filename, double[][] buf, int MAX_LINE_LENGTH) {
     inputFile = new FileInputStream(filename);
-    int i = 0;
     int j;
-    String line = null;
-    while((line = inputFile.readLine()) != null) {
-      int index=0;
-      StringBuffer buffer = new StringBuffer();
+    int i = 0;
+
+    byte b[] = new byte[MAX_LINE_LENGTH];
+    int n;
+    while ((n = inputFile.read(b)) != 0) {
       j = 0;
       boolean skipFirstVar = true;
-      while(index < line.length()) {
-        char c = line.charAt(index++);
-        if(c != ' ') {
-          buffer.append(c);
+      StringBuffer buffer = new StringBuffer();
+      for (int x = 0; x < n; x++) {
+        if (b[x] == '\n') {
+          i++;
+          j = 0;
+          buffer = new StringBuffer();
+          skipFirstVar = true;
+          continue;
+        }
+        if (b[x] != ' ') {
+          buffer.append((char)b[x]);
         } else {
           if(skipFirstVar) {
             skipFirstVar = false;
@@ -333,9 +385,9 @@ public class KMeans extends Thread {
           j++;
         }
       }
-      i++;
     }
-  } 
+    inputFile.close();
+  }
 
   /**
    * Convert a string into double
