@@ -188,6 +188,19 @@ public class State {
     return (FlatMethod)flatmethodmap.get(td);
   }
 
+  // The descriptor is either a method or task desc
+  // and should call one of the above methods
+  public FlatMethod getMethodFlat(Descriptor d) {
+    FlatMethod fm;
+    if( d instanceof MethodDescriptor ) {
+      fm = getMethodFlat( (MethodDescriptor) d);
+    } else {
+      assert d instanceof TaskDescriptor;
+      fm = getMethodFlat( (TaskDescriptor) d);
+    }
+    return fm;
+  }
+
   public void addTreeCode(MethodDescriptor md, BlockNode bn) {
     treemethodmap.put(md,bn);
   }
