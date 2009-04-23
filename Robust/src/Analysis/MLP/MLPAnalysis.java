@@ -153,6 +153,7 @@ public class MLPAnalysis {
       FlatSESEEnterNode fsen = (FlatSESEEnterNode) fn;      
       assert !seseStack.empty();
       seseStack.peek().addChild( fsen );
+      fsen.setParent( seseStack.peek() );
       seseStack.push( fsen );
     } break;
 
@@ -326,16 +327,15 @@ public class MLPAnalysis {
 
     case FKind.FlatSESEEnterNode: {
       FlatSESEEnterNode fsen = (FlatSESEEnterNode) fn;
-
-      if( fsen.equals( currentSESE ) ) {
-	vstTable.age( currentSESE );
-      }
+      assert fsen.equals( currentSESE );
+      vstTable.age( currentSESE );
     } break;
 
     case FKind.FlatSESEExitNode: {
       FlatSESEExitNode fsexn = (FlatSESEExitNode) fn;
-
-      vstTable.removeChildToks( currentSESE );
+      assert currentSESE.getChildren().contains( fsexn.getFlatEnter() );
+      vstTable = vstTable.remapChildTokens( currentSESE );
+      vstTable = vstTable.removeParentAndSiblingTokens( currentSESE );
     } break;
 
     case FKind.FlatOpNode: {
@@ -350,13 +350,26 @@ public class MLPAnalysis {
 	Iterator<VariableSourceToken> itr = vstTable.get( rhs ).iterator();
 	while( itr.hasNext() ) {
 	  VariableSourceToken vst = itr.next();
-	  
-	  vstTable.add( new VariableSourceToken( lhs,
-						 vst.getSESE(),
-						 vst.getAge(),
-						 vst.getVarSrc()
-					       )
-			);
+
+          // if this is from a child, keep the source information
+          if( currentSESE.getChildren().contains( vst.getSESE() ) ) {	  
+            vstTable.add( new VariableSourceToken( lhs,
+                                                   vst.getSESE(),
+                                                   vst.getAge(),
+                                                   vst.getVarSrc()
+                                                   )
+                          );
+
+          // otherwise, it's our or an ancestor's token so we
+          // can assume we have everything we need
+          } else {
+            vstTable.add( new VariableSourceToken( lhs,
+                                                   currentSESE,
+                                                   new Integer( 0 ),
+                                                   lhs
+                                                   )
+                          );
+          }
 	}
 
 	// only break if this is an ASSIGN op node,
@@ -422,7 +435,7 @@ public class MLPAnalysis {
     }      
 
     if( state.MLPDEBUG ) { 
-      fm.printMethod( codePlan );
+      System.out.println( fm.printMethod( codePlan ) );
     }
   }
 
@@ -450,7 +463,7 @@ public class MLPAnalysis {
 	Iterator<VariableSourceToken> itr = stallSet.iterator();
 	while( itr.hasNext() ) {
 	  VariableSourceToken vst = itr.next();
-	  s += "  "+vst;
+	  s += "  "+vst.getVarLive();
 	}	
       }      
 

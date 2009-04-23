@@ -8,6 +8,7 @@ public class FlatSESEEnterNode extends FlatNode {
   private int id;
   protected FlatSESEExitNode exit;
   protected SESENode treeNode;
+  protected FlatSESEEnterNode parent;
   protected Set<FlatSESEEnterNode> children;
   protected Set<TempDescriptor> inVars;
   protected Set<VariableSourceToken> outVars;
@@ -25,6 +26,14 @@ public class FlatSESEEnterNode extends FlatNode {
   }
 
   public void rewriteDef() {
+  }
+
+  public void setParent( FlatSESEEnterNode parent ) {
+    this.parent = parent;
+  }
+
+  public FlatSESEEnterNode getParent() {
+    return parent;
   }
 
   public void addChild( FlatSESEEnterNode child ) {

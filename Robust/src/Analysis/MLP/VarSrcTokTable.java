@@ -274,30 +274,72 @@ public class VarSrcTokTable {
   }
 
   
-  // for the given SESE, remove tokens for the same live
-  // variable if it comes from a child SESE
-  public VarSrcTokTable removeChildToks( FlatSESEEnterNode curr ) {
+  // for the given SESE, change child tokens into this parent
+  public VarSrcTokTable remapChildTokens( FlatSESEEnterNode curr ) {
 
     // create a table to modify as a copy of this
     VarSrcTokTable out = new VarSrcTokTable( this );
 
-    // iterate over this table, modify out table
-    Iterator<VariableSourceToken> itr = get( curr ).iterator();
-    while( itr.hasNext() ) {
-      VariableSourceToken vst = itr.next();
+    Iterator<FlatSESEEnterNode> childItr = curr.getChildren().iterator();
+    if( childItr.hasNext() ) {
+      FlatSESEEnterNode child = childItr.next();
 
-      Iterator<VariableSourceToken> itr2 = get( vst.getVarLive() ).iterator();
-      while( itr2.hasNext() ) {
-	VariableSourceToken vst2 = itr2.next();
-
-	if( curr.getChildren().contains( vst2.getSESE() ) ) {
-	  out.remove( vst2 );
-	}	
+      Iterator<VariableSourceToken> vstItr = get( child ).iterator();
+      while( vstItr.hasNext() ) {
+        VariableSourceToken vst = vstItr.next();
+        out.remove( vst );
+        out.add( new VariableSourceToken( vst.getVarLive(),
+                                          curr,
+                                          new Integer( 0 ),
+                                          vst.getVarLive() ) );
       }
     }
 
     return out;    
   }   
+
+
+  // if we can get a value from the current SESE and the parent
+  // or a sibling, just getting from the current SESE suffices now
+  public VarSrcTokTable removeParentAndSiblingTokens( FlatSESEEnterNode curr ) {
+
+    // create a table to modify as a copy of this
+    VarSrcTokTable out = new VarSrcTokTable( this );
+
+    FlatSESEEnterNode parent = curr.getParent();
+    if( parent == null ) {
+      // have no parent or siblings
+      return out;
+    }      
+
+    out.remove_A_if_B( parent, curr );
+
+    Iterator<FlatSESEEnterNode> childItr = parent.getChildren().iterator();
+    if( childItr.hasNext() ) {
+      FlatSESEEnterNode child = childItr.next();
+
+      if( !child.equals( curr ) ) {
+        out.remove_A_if_B( child, curr );
+      }
+    }
+
+    return out;    
+  }
+
+  // if B is also a source for some variable, remove all entries
+  // of A as a source for that variable
+  protected void remove_A_if_B( FlatSESEEnterNode a, FlatSESEEnterNode b ) {
+
+    Iterator<VariableSourceToken> vstItr = get( a ).iterator();
+    while( vstItr.hasNext() ) {
+      VariableSourceToken vst = vstItr.next();
+
+      Set<VariableSourceToken> bSet = get( new SVKey( b, vst.getVarLive() ) );
+      if( !bSet.isEmpty() ) {
+        remove( vst );
+      }
+    }
+  }
 
 
   public Set<VariableSourceToken> getStallSet( FlatSESEEnterNode curr ) {
