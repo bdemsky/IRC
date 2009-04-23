@@ -24,6 +24,7 @@ public class MLPAnalysis {
   private Hashtable< FlatNode, Stack<FlatSESEEnterNode> > seseStacks;
   private Hashtable< FlatNode, Set<TempDescriptor>      > livenessResults;
   private Hashtable< FlatNode, VarSrcTokTable           > variableResults;
+  private Hashtable< FlatNode, String                   > codePlan;
 
 
   public MLPAnalysis( State             state,
@@ -43,6 +44,8 @@ public class MLPAnalysis {
     seseStacks      = new Hashtable< FlatNode, Stack<FlatSESEEnterNode> >();
     livenessResults = new Hashtable< FlatNode, Set<TempDescriptor>      >();
     variableResults = new Hashtable< FlatNode, VarSrcTokTable           >();
+    codePlan        = new Hashtable< FlatNode, String                   >();
+
 
     // build an implicit root SESE to wrap contents of main method
     rootTree = new SESENode( "root" );
@@ -57,23 +60,12 @@ public class MLPAnalysis {
     // reachability analysis already computed this so reuse
     Iterator<Descriptor> methItr = ownAnalysis.descriptorsToAnalyze.iterator();
     while( methItr.hasNext() ) {
-      Descriptor d = methItr.next();
-      
-      FlatMethod fm;
-      if( d instanceof MethodDescriptor ) {
-	fm = state.getMethodFlat( (MethodDescriptor) d);
-      } else {
-	assert d instanceof TaskDescriptor;
-	fm = state.getMethodFlat( (TaskDescriptor) d);
-      }
+      Descriptor d  = methItr.next();      
+      FlatMethod fm = state.getMethodFlat( d );
 
       // find every SESE from methods that may be called
       // and organize them into roots and children
       buildForestForward( fm );
-
-      if( state.MLPDEBUG ) { 
-	printSESEForest();
-      }
     }
 
 
@@ -84,15 +76,8 @@ public class MLPAnalysis {
     // 3rd pass
     methItr = ownAnalysis.descriptorsToAnalyze.iterator();
     while( methItr.hasNext() ) {
-      Descriptor d = methItr.next();
-      
-      FlatMethod fm;
-      if( d instanceof MethodDescriptor ) {
-	fm = state.getMethodFlat( (MethodDescriptor) d);
-      } else {
-	assert d instanceof TaskDescriptor;
-	fm = state.getMethodFlat( (TaskDescriptor) d);
-      }
+      Descriptor d  = methItr.next();      
+      FlatMethod fm = state.getMethodFlat( d );
 
       // starting from roots do a forward, fixed-point
       // variable analysis for refinement and stalls
@@ -103,8 +88,7 @@ public class MLPAnalysis {
     // 4th pass
     methItr = ownAnalysis.descriptorsToAnalyze.iterator();
     while( methItr.hasNext() ) {
-      Descriptor d = methItr.next();
-      
+      Descriptor d  = methItr.next();      
       FlatMethod fm = state.getMethodFlat( d );
 
       computeStallsForward( fm );
@@ -116,6 +100,7 @@ public class MLPAnalysis {
     String treport = String.format( "The mlp analysis took %.3f sec.", dt );
     System.out.println( treport );
   }
+
 
   private void buildForestForward( FlatMethod fm ) {
     
@@ -154,6 +139,10 @@ public class MLPAnalysis {
 	}
       }
     }      
+
+    if( state.MLPDEBUG ) { 
+      printSESEForest();
+    }
   }
 
   private void buildForest_nodeActions( FlatNode fn, 							   
@@ -327,9 +316,6 @@ public class MLPAnalysis {
 	  flatNodesToVisit.add( nn );	 
 	}
       }
-    }    
-
-    if( state.MLPDEBUG ) {
     }
   }
 
@@ -434,6 +420,10 @@ public class MLPAnalysis {
 	}
       }
     }      
+
+    if( state.MLPDEBUG ) { 
+      fm.printMethod( codePlan );
+    }
   }
 
   private void computeStalls_nodeActions( FlatNode fn,
@@ -450,10 +440,21 @@ public class MLPAnalysis {
     } break;
 
     default: {
-      Set<VariableSourceToken> stallSet = 
-        vstTable.getStallSet( currentSESE );
+      String s = "no op";
+      
+      Set<VariableSourceToken> stallSet = vstTable.getStallSet( currentSESE );
+      if( !stallSet.isEmpty() ) {
 
-      System.out.println( fn+" should stall on\n  "+stallSet+"\n" );
+	s = "stall for:";
+
+	Iterator<VariableSourceToken> itr = stallSet.iterator();
+	while( itr.hasNext() ) {
+	  VariableSourceToken vst = itr.next();
+	  s += "  "+vst;
+	}	
+      }      
+
+      codePlan.put( fn, s );
     } break;
 
     } // end switch
