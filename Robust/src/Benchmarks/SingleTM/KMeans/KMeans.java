@@ -153,7 +153,6 @@ public class KMeans extends Thread {
   public void run() {
     while(true) {
       Barrier.enterBarrier();
-      System.out.println(threadid);
       Normal.work(threadid, g_args);
       Barrier.enterBarrier();
     }
