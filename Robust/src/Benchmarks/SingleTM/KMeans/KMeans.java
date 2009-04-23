@@ -153,6 +153,7 @@ public class KMeans extends Thread {
   public void run() {
     while(true) {
       Barrier.enterBarrier();
+      System.out.println(threadid);
       Normal.work(threadid, g_args);
       Barrier.enterBarrier();
     }
@@ -359,31 +360,56 @@ public class KMeans extends Thread {
 
     byte b[] = new byte[MAX_LINE_LENGTH];
     int n;
+    byte oldbytes[]=null;
+
+
     while ((n = inputFile.read(b)) != 0) {
-      j = 0;
-      boolean skipFirstVar = true;
-      StringBuffer buffer = new StringBuffer();
-      for (int x = 0; x < n; x++) {
-        if (b[x] == '\n') {
-          i++;
-          j = 0;
-          buffer = new StringBuffer();
-          skipFirstVar = true;
-          continue;
-        }
-        if (b[x] != ' ') {
-          buffer.append((char)b[x]);
-        } else {
-          if(skipFirstVar) {
-            skipFirstVar = false;
-            buffer = new StringBuffer();
-            continue;
-          }
-          double f = KMeans.StringToFloat(buffer.toString());
-          buf[i][j] = f;
-          buffer = new StringBuffer();
-          j++;
-        }
+      j = -1;
+      int x=0;
+
+      if (oldbytes!=null) {
+	//find space
+	for (;x < n; x++) {
+	  if (b[x] == ' ')
+	    break;
+	}
+	byte newbytes[]=new byte[x+oldbytes.length];
+	for(int ii=0;ii<oldbytes.length;ii++)
+	  newbytes[ii]=oldbytes[ii];
+	for(int ii=0;ii<x;ii++)
+	  newbytes[ii+oldbytes.length]=b[ii];
+	x++; //skip past space
+	if (j>=0)
+	  buf[i][j]=ByteToFloat(newbytes, 0, newbytes.length);
+	j++;
+	oldbytes=null;
+      }
+
+      while (x < n) {
+	int y=x;
+	for(y=x;y<n;y++) {
+	  if (b[y]==' ')
+	    break;
+	  if (b[y]=='\n') {
+	    i++;
+	    j = -1;
+	    x=y;//push end to current character
+	  }
+	}
+	if (y==n) {
+	  //need to continue for another read
+	  oldbytes=new byte[y-x];
+	  for(int ii=0;ii<(y-x);ii++)
+	    oldbytes[ii]=b[ii+x];
+	  break;
+	}
+	
+	//otherwise x is beginning of character string, y is end
+	if (j>=0)
+	  buf[i][j]= ByteToFloat(b, x, y-x);
+	x=y;//skip to end of number
+	x++;//skip past space
+	j++;
       }
     }
     inputFile.close();
@@ -392,56 +418,22 @@ public class KMeans extends Thread {
   /**
    * Convert a string into double
    **/
-  public static double StringToFloat (String str) {
-    double total = 0.0d; // the total to return
-    int length = str.length(); // the length of the string
-    int prefixLength=0; // the length of the number BEFORE the decimal
-    int suffixLength=0; // the length of the number AFTER the decimal
-    boolean decimalFound = false; // use this to decide whether to increment prefix or suffix
-    for (int i = 0; i < str.length(); i++)
-    { // loop through the string
-      if (str.charAt(i) == '.')
-      { // if we found the '.' then we are now counting how long the decimal place is
-        length --; // subtract one from the length (. isn't an integer!)
-        decimalFound = true; // we found the decimal!
-      }
-      else if (!decimalFound)
-        prefixLength++;// if the decimal still hasn't been found, we should count the main number
-      else if (decimalFound) // otherwise, we should count how long the decimal is!
-        suffixLength++;
+  public static double ByteToFloat (byte[] str, int offset, int length) {
+    double left=0.0d;
+    double right=0.0d;
+    int i;
+    for(i=0;i<length;i++) {
+      if (str[i+offset]=='.')
+	break;
+      left=left*10+(str[i+offset]-'0');
     }
-
-    long x = 1L; // our multiplier, used for thousands, hundreds, tens, units, etc
-    for (int i = 1; i < prefixLength; i++)
-      x *= 10;
-
-
-    for (int i = 0; i < prefixLength; i++)
-    { // get the integer value
-      // 48 is the base value (ASCII)
-      // multiply it by x for tens, units, etc
-      total += ((int)(str.charAt(i)) - 48) * x;
-      x /= 10; // divide to decide which is the next unit
+    i++; //skip past decimal point
+    double multiplier=0.1d;
+    for(;i<length;i++) {
+      right+=multiplier*(str[i+offset]-'0');
+      multiplier*=0.1d;
     }
-
-    double decimal=0.0d; // our value of the decimal only (we'll add it to total later)
-    x = 1; // again, but this time we'll go the other way to make it all below 0
-    for (int i = 1; i < suffixLength; i++) {
-      x *= 10;
-    }
-
-    for (int i = 0; i < suffixLength; i++)
-    { // same again, but this time it's for the decimal value
-      decimal += ((int)(str.charAt(i+prefixLength+1)) - 48) * x;
-      x /= 10;
-    }
-
-    for (int i = 0; i < suffixLength; i++) {
-      decimal /= 10.0d; // make the decimal so that it is 0.whatever
-    }
-
-    total += decimal; // add them together
-    return total;
+    return left+right;
   }
 }
 
