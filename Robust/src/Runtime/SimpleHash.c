@@ -66,7 +66,6 @@ int RuntimeHashremovekey(struct RuntimeHash *thisvar, int key) {
   unsigned int hashkey = (unsigned int)key % thisvar->size;
 
   struct RuntimeNode **ptr = &thisvar->bucket[hashkey];
-  int i;
 
   while (*ptr) {
     if ((*ptr)->key == key) {
@@ -98,7 +97,6 @@ int RuntimeHashremove(struct RuntimeHash *thisvar, int key, int data) {
   unsigned int hashkey = (unsigned int)key % thisvar->size;
 
   struct RuntimeNode **ptr = &thisvar->bucket[hashkey];
-  int i;
 
   while (*ptr) {
     if ((*ptr)->key == key && (*ptr)->data == data) {

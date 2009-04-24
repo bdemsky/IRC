@@ -1,7 +1,7 @@
 #include "runtime.h"
 #include "structdefs.h"
 #include <fcntl.h>
-#ifndef RAW
+#ifndef MULTICORE
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <strings.h>
@@ -15,8 +15,8 @@
 struct RuntimeHash *fdtoobject;
 
 int CALL24(___Socket______nativeConnect____I__AR_B_I, int ___fd___, int ___port___, struct ___Socket___ * ___this___, int ___fd___, struct ArrayObject * ___address___,int ___port___) {
-#ifdef RAW
-  // not supported in RAW version
+#ifdef MULTICORE
+  // not supported in MULTICORE version
   return -1;
 #else
   struct sockaddr_in sin;
@@ -64,17 +64,21 @@ error:
 
 #ifdef TASK
 int CALL12(___Socket______nativeBindFD____I, int ___fd___, struct ___Socket___ * ___this___, int ___fd___) {
+#ifdef MULTICORE
+#else
   if (RuntimeHashcontainskey(fdtoobject, ___fd___))
     RuntimeHashremovekey(fdtoobject, ___fd___);
   RuntimeHashadd(fdtoobject, ___fd___, (int) VAR(___this___));
   addreadfd(___fd___);
+#endif
+  return 0;
 }
 #endif
 
 
 int CALL12(___Socket______nativeBind_____AR_B_I, int ___port___,  struct ArrayObject * ___address___, int ___port___) {
-#ifdef RAW
-  // not supported in RAW version
+#ifdef MULTICORE
+  // not supported in MULTICORE version
   return -1;
 #else
   int fd;
@@ -131,8 +135,8 @@ error:
 }
 
 struct ArrayObject * CALL01(___InetAddress______getHostByName_____AR_B, struct ArrayObject * ___hostname___) {
-#ifdef RAW
-  // not supported in RAW version
+#ifdef MULTICORE
+  // not supported in MULTICORE version
   return NULL;
 #else
 //struct ArrayObject * CALL01(___InetAddress______getHostByName_____AR_B, struct ___ArrayObject___ * ___hostname___) {
@@ -180,8 +184,8 @@ struct ArrayObject * CALL01(___InetAddress______getHostByName_____AR_B, struct A
 
 
 int CALL12(___ServerSocket______createSocket____I, int port, struct ___ServerSocket___ * ___this___, int port) {
-#ifdef RAW
-  // not supported in RAW version
+#ifdef MULTICORE
+  // not supported in MULTICORE version
   return -1;
 #else
   int fd;
@@ -285,8 +289,8 @@ int CALL12(___ServerSocket______createSocket____I, int port, struct ___ServerSoc
 }
 
 int CALL02(___ServerSocket______nativeaccept____L___Socket___,struct ___ServerSocket___ * ___this___, struct ___Socket___ * ___s___) {
-#ifdef RAW
-  // not supported in RAW version
+#ifdef MULTICORE
+  // not supported in MULTICORE version
   return -1;
 #else
   struct sockaddr_in sin;
@@ -328,8 +332,6 @@ int CALL02(___ServerSocket______nativeaccept____L___Socket___,struct ___ServerSo
 #ifdef MULTICORE
   flagorand(VAR(___this___),0,0xFFFFFFFE,NULL,0);
   enqueueObject(VAR(___this___), NULL, 0);
-  //flagorand(VAR(___this___),0,0xFFFFFFFE,objq4socketobj[corenum],numqueues4socketobj[corenum]);
-  //enqueueObject(VAR(___this___), objq4socketobj[corenum], numqueues4socketobj[corenum]);
 #else
   flagorand(VAR(___this___),0,0xFFFFFFFE);
   enqueueObject(VAR(___this___));
@@ -354,7 +356,7 @@ void CALL24(___Socket______nativeWrite_____AR_B_I_I, int offset, int length, str
     }
 
     if (length!=0) {
-#ifndef RAW
+#ifndef MULTICORE
       perror("ERROR IN NATIVEWRITE");
       printf("error=%d remaining bytes %d\n",errno, length);
 #endif
@@ -395,7 +397,7 @@ int CALL02(___Socket______nativeRead_____AR_B, struct ___Socket___ * ___this___,
 
 
   if (byteread<0) {
-#ifndef RAW
+#ifndef MULTICORE
     printf("ERROR IN NATIVEREAD\n");
     perror("");
 #endif
@@ -404,8 +406,6 @@ int CALL02(___Socket______nativeRead_____AR_B, struct ___Socket___ * ___this___,
 #ifdef MULTICORE
   flagorand(VAR(___this___),0,0xFFFFFFFE,NULL,0);
   enqueueObject(VAR(___this___), NULL, 0);
-  //flagorand(VAR(___this___),0,0xFFFFFFFE,objq4socketobj[corenum],numqueues4socketobj[corenum]);
-  //enqueueObject(VAR(___this___),objq4socketobj[corenum],numqueues4socketobj[corenum]);
 #else
   flagorand(VAR(___this___),0,0xFFFFFFFE);
   enqueueObject(VAR(___this___));
@@ -415,21 +415,17 @@ int CALL02(___Socket______nativeRead_____AR_B, struct ___Socket___ * ___this___,
 }
 
 void CALL01(___Socket______nativeClose____, struct ___Socket___ * ___this___) {
+#ifdef MULTICORE
+#else
   int fd=VAR(___this___)->___fd___;
   int data;
 #ifdef TASK
   RuntimeHashget(fdtoobject, fd, &data);
   RuntimeHashremove(fdtoobject, fd, data);
   removereadfd(fd);
-#ifdef MULTICORE
-  flagorand(VAR(___this___),0,0xFFFFFFFE,NULL,0);
-  enqueueObject(VAR(___this___), NULL, 0);
-  //flagorand(VAR(___this___),0,0xFFFFFFFE,objq4socketobj[corenum],numqueues4socketobj[corenum]);
-  //enqueueObject(VAR(___this___),objq4socketobj[corenum],numqueues4socketobj[corenum]);
-#else
   flagorand(VAR(___this___),0,0xFFFFFFFE);
   enqueueObject(VAR(___this___));
 #endif
-#endif
   close(fd);
+#endif
 }

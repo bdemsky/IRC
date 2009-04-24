@@ -25,16 +25,17 @@ echo -tagstate do tag state analysis
 echo -scheduling do task scheduling
 echo -multicore generate multi-core version binary
 echo "-numcore set the number of cores (should be used together with -multicore), defaultly set as 1"
-echo "-raw generate raw version binary (should be used together with -multicore)"
 echo "-cacheflush enable cache flush in raw version binary (should be used togethere with -raw)"
 echo "-interrupt generate raw version binary with interruption (should be used togethere with -raw)"
-echo "-rawconfig config raw simulator as 4xn (should be used together with -raw)"
 echo "-rawpath print out execute path information for raw version (should be used together with -raw)"
 echo "-useprofile use profiling data for scheduling (should be used together with -raw)"
-echo -threadsimulate generate multi-thread simulate version binary
 echo -printscheduling print out scheduling graphs
 echo -printschedulesim print out scheduling simulator result graphs
 echo -abcclose close the array boundary check
+echo "-tilera generate tilera version binary (should be used together with -multicore"
+echo "-raw generate raw version binary (should be used together with -multicore)"
+echo "-rawconfig config raw simulator as 4xn (should be used together with -raw)"
+echo -threadsimulate generate multi-thread simulate version binary
 echo -optional enable optional
 echo -debug generate debug symbols
 echo -prefetch do prefetch analysis
@@ -71,6 +72,7 @@ MLPFLAG=false
 MLPDEBUG=false
 MULTICOREFLAG=false
 RAWFLAG=false
+TILERAFLAG=false
 CACHEFLUSHFLAG=false
 RAWCONFIG=''
 DEBUGFLAG=false
@@ -200,7 +202,9 @@ shift
 elif [[ $1 = '-raw' ]]
 then
 RAWFLAG=true
-JAVAOPTS="$JAVAOPTS -raw"
+elif [[ $1 = '-tilera' ]]
+then
+TILERAFLAG=true
 elif [[ $1 = '-cacheflush' ]]
 then
 CACHEFLUSHFLAG=true
@@ -475,7 +479,75 @@ cp ../tmpbuilddirectory/*.h ./
 
 make
 
-else #!RAWFLAG
+elif $TILERAFLAG
+then # TILERAFLAG
+TILERADIR="$CURDIR/tilera"
+MAKEFILE="Makefile.tilera"
+mkdir $TILERADIR
+cd $TILERADIR
+make clean
+rm ./*
+
+export TILERACFLAGS="-DTASK -DMULTICORE"
+
+if $CACHEFLUSHFLAG
+then # print path
+TILERACFLAGS="${TILERACFLAGS} -DCACHEFLUSH"
+fi
+
+if $RAWPATHFLAG
+then # print path
+TILERACFLAGS="${TILERACFLAGS} -DRAWPATH"
+fi
+
+if $DEBUGFLAG
+then #debug version
+TILERACFLAGS="${TILERACFLAGS} -DDEBUG"
+fi
+
+if $PROFILEFLAG
+then # profile version
+TILERACFLAGS="${TILERACFLAGS} -DPROFILE"
+fi
+
+if $USEIOFLAG
+then # useio version
+TILERACFLAGS="${TILERACFLAGS} -DUSEIO"
+fi
+
+if $INTERRUPTFLAG
+then #INTERRUPT version
+TILERACFLAGS="${TILERACFLAGS} -DINTERRUPT"
+fi #INTERRUPT version
+
+cp $ROBUSTROOT/Runtime/Tilera/$MAKEFILE ./Makefile
+cp ../Runtime/multicoretask.c ./
+cp ../Runtime/multicoreruntime.c ./
+cp ../Runtime/Queue.c ./
+cp ../Runtime/file.c ./
+cp ../Runtime/math.c ./
+cp ../Runtime/object.c ./
+cp ../Runtime/GenericHashtable.c ./
+cp ../Runtime/SimpleHash.c ./
+cp ../Runtime/ObjectHash.c ./
+cp ../Runtime/socket.c ./
+cp ../Runtime/taskdefs.c ./
+cp ../Runtime/methods.c ./
+cp ../Runtime/mem.c ./
+cp ../Runtime/GenericHashtable.h ./
+cp ../Runtime/mem.h ./
+cp ../Runtime/multicoreruntime.h ./
+cp ../Runtime/object.h ./
+cp ../Runtime/ObjectHash.h ./
+cp ../Runtime/Queue.h ./
+cp ../Runtime/runtime.h ./
+cp ../Runtime/SimpleHash.h ./
+cp ../Runtime/Tilera/*.c ./
+cp ../Runtime/Tilera/*.h ./
+cp ../tmpbuilddirectory/*.c ./
+cp ../tmpbuilddirectory/*.h ./
+
+else #!RAWFLAG && !TILERAFLAG
 cd $CURDIR 
 
 INCLUDES="$INCLUDES -I$ROBUSTROOT/Runtime -I. -IRuntime/include \

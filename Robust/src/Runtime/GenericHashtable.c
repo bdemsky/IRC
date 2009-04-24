@@ -115,7 +115,7 @@ int hashsize(struct genhashtable *ht) {
 void genrehash(struct genhashtable * ht) {
   struct genpointerlist **newbins=(struct genpointerlist **) RUNMALLOC(sizeof (struct genpointerlist *)*ht->currentsize);
   struct genpointerlist **oldbins=ht->bins;
-  long j,i;
+  long i;
 
   for(i=0; i<ht->currentsize; i++) {
     struct genpointerlist * tmpptr=oldbins[i];

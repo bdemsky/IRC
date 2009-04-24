@@ -3,10 +3,10 @@
 #include "multicoreruntime.h"
 #include "runtime_arch.h"
 
-inline void initialization() {
+__attribute__((always_inline)) inline void initialization() {
 } // initialization()
 
-inline void initCommunication() {
+__attribute__((always_inline)) inline void initCommunication() {
 #ifdef INTERRUPT
   if (corenum < NUMCORES) {
     // set up interrupts
@@ -16,7 +16,7 @@ inline void initCommunication() {
 #endif
 }
 
-inline void fakeExecution() {
+__attribute__((always_inline)) inline void fakeExecution()  {
   // handle communications
   while(true) {
 	  receiveObject();
@@ -31,7 +31,7 @@ void begin() {
   run(NULL);
 }
 
-inline void terminate() {
+__attribute__((always_inline)) inline void terminate()  {
 	raw_test_done(1);
 }
 
@@ -42,7 +42,7 @@ inline void terminate() {
 
 // transfer an object to targetcore
 // format: object
-void transferObject(struct transObjInfo * transObj) {
+inline void transferObject(struct transObjInfo * transObj) {//  __attribute__((always_inline)){
   void * obj = transObj->objptr;
   int type=((int *)obj)[0];
   int targetcore = transObj->targetcore;  
@@ -138,7 +138,7 @@ void transferObject(struct transObjInfo * transObj) {
   }
 }
 
-inline void send_msg_1 (int targetcore, int n0) {
+__attribute__((always_inline)) inline void send_msg_1 (int targetcore, int n0) {
   // send this msg
   unsigned msgHdr;
   int self_y, self_x, target_y, target_x;
@@ -206,7 +206,7 @@ inline void send_msg_1 (int targetcore, int n0) {
   }
 }
 
-inline void send_msg_2 (int targetcore, int n0, int n1) {
+__attribute__((always_inline)) inline void send_msg_2 (int targetcore, int n0, int n1) {
   // send this msg
   unsigned msgHdr;
   int self_y, self_x, target_y, target_x;
@@ -278,7 +278,7 @@ inline void send_msg_2 (int targetcore, int n0, int n1) {
   }
 }
 
-inline void send_msg_3 (int targetcore, int n0, int n1, int n2) {
+__attribute__((always_inline)) inline void send_msg_3 (int targetcore, int n0, int n1, int n2) {
   // send this msg
   unsigned msgHdr;
   int self_y, self_x, target_y, target_x;
@@ -354,7 +354,7 @@ inline void send_msg_3 (int targetcore, int n0, int n1, int n2) {
   }
 }
 
-inline void send_msg_4 (int targetcore, int n0, int n1, int n2, int n3) {
+__attribute__((always_inline)) inline void send_msg_4 (int targetcore, int n0, int n1, int n2, int n3) {
   // send this msg
   unsigned msgHdr;
   int self_y, self_x, target_y, target_x;
@@ -434,7 +434,7 @@ inline void send_msg_4 (int targetcore, int n0, int n1, int n2, int n3) {
   }
 }
 
-inline void send_msg_5 (int targetcore, int n0, int n1, int n2, int n3, int n4) {
+__attribute__((always_inline)) inline void send_msg_5 (int targetcore, int n0, int n1, int n2, int n3, int n4) {
   // send this msg
   unsigned msgHdr;
   int self_y, self_x, target_y, target_x;
@@ -518,7 +518,7 @@ inline void send_msg_5 (int targetcore, int n0, int n1, int n2, int n3, int n4) 
   }
 }
 
-inline void send_msg_6 (int targetcore, int n0, int n1, int n2, int n3, int n4, int n5) {
+__attribute__((always_inline)) inline void send_msg_6 (int targetcore, int n0, int n1, int n2, int n3, int n4, int n5) {
   // send this msg
   unsigned msgHdr;
   int self_y, self_x, target_y, target_x;
@@ -606,7 +606,7 @@ inline void send_msg_6 (int targetcore, int n0, int n1, int n2, int n3, int n4, 
   }
 }
 
-inline void cache_msg_2 (int targetcore, int n0, int n1) {
+__attribute__((always_inline)) inline void cache_msg_2 (int targetcore, int n0, int n1) {
   // cache this msg
 #ifdef DEBUG
   BAMBOO_DEBUGPRINT(0xdede);
@@ -620,7 +620,7 @@ inline void cache_msg_2 (int targetcore, int n0, int n1) {
   outmsgdata[outmsglast++] = n1;
 }
 
-inline void cache_msg_3 (int targetcore, int n0, int n1, int n2) {
+__attribute__((always_inline)) inline void cache_msg_3 (int targetcore, int n0, int n1, int n2) {
   // cache this msg
 #ifdef DEBUG
   BAMBOO_DEBUGPRINT(0xdede);
@@ -635,7 +635,7 @@ inline void cache_msg_3 (int targetcore, int n0, int n1, int n2) {
   outmsgdata[outmsglast++] = n2;
 }
 
-inline void cache_msg_4 (int targetcore, int n0, int n1, int n2, int n3) {
+__attribute__((always_inline)) inline void cache_msg_4 (int targetcore, int n0, int n1, int n2, int n3) {
   // cache this msg
 #ifdef DEBUG
   BAMBOO_DEBUGPRINT(0xdede);
@@ -651,7 +651,7 @@ inline void cache_msg_4 (int targetcore, int n0, int n1, int n2, int n3) {
   outmsgdata[outmsglast++] = n3;
 }
 
-inline void cache_msg_6 (int targetcore, int n0, int n1, int n2, int n3, int n4, int n5) {
+__attribute__((always_inline)) inline void cache_msg_6 (int targetcore, int n0, int n1, int n2, int n3, int n4, int n5) {
   // cache this msg
 #ifdef DEBUG
   BAMBOO_DEBUGPRINT(0xdede);
@@ -669,7 +669,7 @@ inline void cache_msg_6 (int targetcore, int n0, int n1, int n2, int n3, int n4,
   outmsgdata[outmsglast++] = n5;
 }
 
-inline int receiveMsg() {
+__attribute__((always_inline)) inline int receiveMsg() {
   if(gdn_input_avail() == 0) {
 #ifdef DEBUG
     if(corenum < NUMCORES) {
@@ -724,7 +724,7 @@ inline int receiveMsg() {
 }
 
 #ifdef PROFILE
-inline void profileTaskStart(char * taskname) {
+__attribute__((always_inline)) inline void profileTaskStart(char * taskname) {
   if(!taskInfoOverflow) {
 	  TaskInfo* taskInfo = RUNMALLOC(sizeof(struct task_info));
 	  taskInfoArray[taskInfoIndex] = taskInfo;
@@ -736,7 +736,7 @@ inline void profileTaskStart(char * taskname) {
   }
 }
 
-inline void profileTaskEnd() {
+__attribute__((always_inline)) inline void profileTaskEnd() {
   if(!taskInfoOverflow) {
 	  taskInfoArray[taskInfoIndex]->endTime = raw_get_cycle();
 	  taskInfoIndex++;

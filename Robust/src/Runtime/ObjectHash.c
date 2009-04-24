@@ -66,7 +66,6 @@ int ObjectHashremove(struct ObjectHash *thisvar, int key) {
   unsigned int hashkey = (unsigned int)key % thisvar->size;
 
   struct ObjectNode **ptr = &thisvar->bucket[hashkey];
-  int i;
 
   while (*ptr) {
     if ((*ptr)->key == key) {

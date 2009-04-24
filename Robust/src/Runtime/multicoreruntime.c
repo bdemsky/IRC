@@ -8,6 +8,9 @@
 #ifndef RAW
 #include <stdio.h>
 #endif
+#ifdef MULTICORE
+#include "runtime_arch.h"
+#endif
 //#include "option.h"
 
 extern int classsize[];
@@ -28,7 +31,7 @@ int instaccum=0;
 #include "dmalloc.h"
 #endif
 
-#ifdef RAW
+#ifdef MULTICORE
 void initializeexithandler() {
 }
 #else
@@ -51,8 +54,8 @@ void initializeexithandler() {
 /* This function inject failures */
 
 void injectinstructionfailure() {
-#ifdef RAW
-  // not supported in RAW version
+#ifdef MULTICORE
+  // not supported in MULTICORE version
   return;
 #else
 #ifdef TASK
@@ -87,31 +90,31 @@ void injectinstructionfailure() {
 }
 
 void CALL11(___System______exit____I,int ___status___, int ___status___) {
+#ifdef MULTICORE
+  BAMBOO_EXIT(___status___);
+#else
 #ifdef DEBUG
   printf("exit in CALL11\n");
 #endif
-#ifdef RAW
-  raw_test_done(___status___);
-#else
   exit(___status___);
 #endif
 }
 
 void CALL11(___System______printI____I,int ___status___, int ___status___) {
+#ifdef MULTICORE
+  BAMBOO_DEBUGPRINT(0x1111);
+  BAMBOO_DEBUGPRINT_REG(___status___);
+#else
 #ifdef DEBUG
   printf("printI in CALL11\n");
 #endif
-#ifdef RAW
-  raw_test_pass(0x1111);
-  raw_test_pass_reg(___status___);
-#else
   printf("%d\n", ___status___);
 #endif
 }
 
 long CALL00(___System______currentTimeMillis____) {
-#ifdef RAW
-  // not supported in RAW version
+#ifdef MULTICORE
+  // not supported in MULTICORE version
   return -1;
 #else
   struct timeval tv; long long retval;
@@ -124,7 +127,7 @@ long CALL00(___System______currentTimeMillis____) {
 }
 
 void CALL01(___System______printString____L___String___,struct ___String___ * ___s___) {
-#ifdef RAW
+#ifdef MULTICORE
 #else
   struct ArrayObject * chararray=VAR(___s___)->___value___;
   int i;

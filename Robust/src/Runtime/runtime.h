@@ -92,8 +92,8 @@ void createstartupobject();
 
 #ifdef TASK
 #include "SimpleHash.h"
-#include "chash.h"
 #ifndef MULTICORE
+#include "chash.h"
 #include "ObjectHash.h"
 #include "structdefs.h"
 #endif
@@ -127,7 +127,8 @@ extern struct ___Object___ * ___fcrevert___;
 #endif
 
 #ifdef MULTICORE
-inline int receiveObject(void);
+inline void run(void * arg);
+int receiveObject(void);
 void flagorand(void * ptr, int ormask, int andmask, struct parameterwrapper ** queues, int length);
 void flagorandinit(void * ptr, int ormask, int andmask);
 void enqueueObject(void * ptr, struct parameterwrapper ** queues, int length);

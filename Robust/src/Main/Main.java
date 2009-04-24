@@ -135,8 +135,6 @@ public class Main {
 	state.OPTIMIZE=true;
       else if (option.equals("-dcopts"))
 	state.DCOPTS=true;
-      else if (option.equals("-raw"))
-	state.RAW=true;
       else if (option.equals("-scheduling"))
 	state.SCHEDULING=true;
       else if (option.equals("-distributioninfo"))
@@ -196,7 +194,6 @@ public class Main {
 	System.out.println("-mlp build mlp code, report progress and interim results");
 	System.out.println("-multicore generate multi-core version binary");
 	System.out.println("-numcore set the number of cores (should be used together with -multicore), defaultly set as 1");
-	System.out.println("-raw generate raw version binary (should be used together with -multicore)");
 	System.out.println("-interrupt generate raw version binary with interruption (should be used togethere with -raw)");
 	System.out.println("-rawconfig config raw simulator as 4xn (should be used together with -raw)");
 	System.out.println("-rawpath print out execute path information for raw version (should be used together with -raw)");

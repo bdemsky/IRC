@@ -2,6 +2,7 @@
 #include "runtime.h"
 #include "multicoreruntime.h"
 #include "runtime_arch.h"
+#include "GenericHashtable.h"
 /*
    extern int injectfailures;
    extern float failurechance;
@@ -36,7 +37,6 @@ void releasereadlock(void* ptr);
 bool getwritelock(void* ptr);
 void releasewritelock(void* ptr);
 void releasewritelock_r(void * lock, void * redirectlock);
-inline void run(void * arg);
 
 // specific functions used inside critical sections
 void enqueueObject_I(void * ptr, struct parameterwrapper ** queues, int length);
@@ -367,7 +367,7 @@ inline void run(void * arg) {
 								  totalexetime = BAMBOO_GET_EXE_TIME();
 #else
 								  BAMBOO_DEBUGPRINT(0xbbbbbbbb);
-								  BAMBOO_DEBUGPRINT(BAMBOO_GET_EXE_TIME());
+								  BAMBOO_DEBUGPRINT((int)BAMBOO_GET_EXE_TIME());
 #endif
 								  // profile mode, send msgs to other cores to request pouring
 								  // out progiling data
@@ -822,7 +822,7 @@ void enqueueObject(void * vptr, struct parameterwrapper ** vqueues, int vlength)
 	struct ___Object___ *ptr = (struct ___Object___ *)vptr;
 	
 	{
-		struct QueueItem *tmpptr;
+		//struct QueueItem *tmpptr;
 		struct parameterwrapper * parameter=NULL;
 		int j;
 		int i;
@@ -848,7 +848,7 @@ void enqueueObject(void * vptr, struct parameterwrapper ** vqueues, int vlength)
 				if (tagptr==NULL)
 					goto nextloop; //that means the object has no tag but that param needs tag
 				else if(tagptr->type==TAGTYPE) { //one tag
-					struct ___TagDescriptor___ * tag=(struct ___TagDescriptor___*) tagptr;	 
+					//struct ___TagDescriptor___ * tag=(struct ___TagDescriptor___*) tagptr;	 
 					for(i=0; i<parameter->numbertags; i++) {
 						//slotid is parameter->tagarray[2*i];
 						int tagid=parameter->tagarray[2*i+1];
@@ -892,7 +892,7 @@ void enqueueObject_I(void * vptr, struct parameterwrapper ** vqueues, int vlengt
 	struct ___Object___ *ptr = (struct ___Object___ *)vptr;
 	
 	{
-		struct QueueItem *tmpptr;
+		//struct QueueItem *tmpptr;
 		struct parameterwrapper * parameter=NULL;
 		int j;
 		int i;
@@ -918,7 +918,7 @@ void enqueueObject_I(void * vptr, struct parameterwrapper ** vqueues, int vlengt
 				if (tagptr==NULL)
 					goto nextloop; //that means the object has no tag but that param needs tag
 				else if(tagptr->type==TAGTYPE) { //one tag
-					struct ___TagDescriptor___ * tag=(struct ___TagDescriptor___*) tagptr;	 
+					//struct ___TagDescriptor___ * tag=(struct ___TagDescriptor___*) tagptr;	 
 					for(i=0; i<parameter->numbertags; i++) {
 						//slotid is parameter->tagarray[2*i];
 						int tagid=parameter->tagarray[2*i+1];
@@ -1269,7 +1269,7 @@ int processlockrequest(int locktype, int lock, int obj, int requestcore, int roo
 //                            otherwise -- received msg type
 int receiveObject() {
   int deny = 0;
-  int targetcore = 0;
+  //int targetcore = 0;
   
 msg:
   if(receiveMsg() == -1) {
@@ -1906,7 +1906,7 @@ bool getwritelock(void * ptr) {
   int targetcore = 0;
 
   // for 32 bit machine, the size is always 5 words
-  int msgsize = 5;
+  //int msgsize = 5;
 
   lockobj = (int)ptr;
   if(((struct ___Object___ *)ptr)->lock == NULL) {
@@ -2261,11 +2261,11 @@ void releasewritelock_I_r(void * lock, void * redirectlock) {
 int enqueuetasks(struct parameterwrapper *parameter, struct parameterwrapper *prevptr, struct ___Object___ *ptr, int * enterflags, int numenterflags) {
   void * taskpointerarray[MAXTASKPARAMS];
   int j;
-  int numparams=parameter->task->numParameters;
+  //int numparams=parameter->task->numParameters;
   int numiterators=parameter->task->numTotal-1;
   int retval=1;
-  int addnormal=1;
-  int adderror=1;
+  //int addnormal=1;
+  //int adderror=1;
 
   struct taskdescriptor * task=parameter->task;
 
@@ -2298,7 +2298,7 @@ backtrackinit:
 
   while(1) {
     /* Enqueue current state */
-    int launch = 0;
+    //int launch = 0;
     struct taskparamdescriptor *tpd=RUNMALLOC(sizeof(struct taskparamdescriptor));
     tpd->task=task;
     tpd->numParameters=numiterators+1;
@@ -2340,11 +2340,11 @@ backtrackinc:
 int enqueuetasks_I(struct parameterwrapper *parameter, struct parameterwrapper *prevptr, struct ___Object___ *ptr, int * enterflags, int numenterflags) {
   void * taskpointerarray[MAXTASKPARAMS];
   int j;
-  int numparams=parameter->task->numParameters;
+  //int numparams=parameter->task->numParameters;
   int numiterators=parameter->task->numTotal-1;
   int retval=1;
-  int addnormal=1;
-  int adderror=1;
+  //int addnormal=1;
+  //int adderror=1;
 
   struct taskdescriptor * task=parameter->task;
 
@@ -2377,7 +2377,7 @@ backtrackinit:
 
   while(1) {
     /* Enqueue current state */
-    int launch = 0;
+    //int launch = 0;
     struct taskparamdescriptor *tpd=RUNMALLOC_I(sizeof(struct taskparamdescriptor));
     tpd->task=task;
     tpd->numParameters=numiterators+1;
@@ -2456,6 +2456,8 @@ void removereadfd(int fd) {
 #else
 #define OFFSET 0
 #endif
+
+int containstag(struct ___Object___ *ptr, struct ___TagDescriptor___ *tag);
 
 void executetasks() {
   void * taskpointerarray[MAXTASKPARAMS+OFFSET];
@@ -2780,7 +2782,7 @@ parameterpresent:
 #endif
 #endif  // #if 0: for recovery
 	if (x=setjmp(error_handler)) {
-	  int counter;
+	  //int counter;
 	  /* Recover */
 #ifdef DEBUG
 #ifndef RAW
@@ -2930,7 +2932,7 @@ void processobject(struct parameterwrapper *parameter, int index, struct paramet
 
   for(i=0; i<pd->numbertags; i++) {
     int slotid=pd->tagarray[2*i];
-    int tagid=pd->tagarray[2*i+1];
+    //int tagid=pd->tagarray[2*i+1];
     if (statusarray[slotid+numparams]!=0) {
       /* This tag has already been enqueued, use it to narrow search */
       parameter->iterators[*iteratorcount].tagbindings[tagcount]=slotid+numparams;

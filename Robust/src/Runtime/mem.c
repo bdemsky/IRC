@@ -15,18 +15,18 @@
 
 void * mycalloc(int m, int size) {
   void * p = NULL;
-  int isize = 2*kCacheLineSize-4+(size-1)&(~kCacheLineMask);
+  int isize = 2*BAMBOO_CACHE_LINE_SIZE-4+(size-1)&(~BAMBOO_CACHE_LINE_MASK);
   BAMBOO_START_CRITICAL_SECTION_MEM();
   p = BAMBOO_SHARE_MEM_CALLOC(m, isize); // calloc(m, isize);
   BAMBOO_CLOSE_CRITICAL_SECTION_MEM();
-  return (void *)(kCacheLineSize+((int)p-1)&(~kCacheLineMask));
+  return (void *)(BAMBOO_CACHE_LINE_SIZE+((int)p-1)&(~BAMBOO_CACHE_LINE_MASK));
 }
 
 void * mycalloc_i(int m, int size) {
   void * p = NULL;
-  int isize = 2*kCacheLineSize-4+(size-1)&(~kCacheLineMask);
+  int isize = 2*BAMBOO_CACHE_LINE_SIZE-4+(size-1)&(~BAMBOO_CACHE_LINE_MASK);
   p = BAMBOO_SHARE_MEM_CALLOC(m, isize); // calloc(m, isize);
-  return (void *)(kCacheLineSize+((int)p-1)&(~kCacheLineMask));
+  return (void *)(BAMBOO_CACHE_LINE_SIZE+((int)p-1)&(~BAMBOO_CACHE_LINE_MASK));
 }
 
 void myfree(void * ptr) {

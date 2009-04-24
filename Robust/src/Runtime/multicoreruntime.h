@@ -106,7 +106,7 @@ inline void cache_msg_3(int targetcore, int n0, int n1, int n2) __attribute__((a
 inline void cache_msg_4(int targetcore, int n0, int n1, int n2, int n3) __attribute__((always_inline));
 inline void cache_msg_6(int targetcore, int n0, int n1, int n2, int n3, int n4, int n5) __attribute__((always_inline));
 inline void transferObject(struct transObjInfo * transObj);
-inline int receiveMsg(void) __attribute__((always_inline)) __attribute__((always_inline));
+inline int receiveMsg(void) __attribute__((always_inline));
 
 #ifdef PROFILE
 inline void profileTaskStart(char * taskname) __attribute__((always_inline));
@@ -142,6 +142,8 @@ inline void profileTaskEnd(void) __attribute__((always_inline));
 //  BAMBOO_CLOSE_CRITICAL_SECTION(): locks for all global data structures          //
 //  BAMBOO_WAITING_FOR_LOCK(): routine executed while waiting for lock request     //
 //                             response                                            //
+//  BAMBOO_CACHE_LINE_SIZE: the cache line size                                    //
+//  BAMBOO_CACHE_LINE_MASK: mask for a cache line                                  //
 //  BAMBOO_CACHE_FLUSH_RANGE(x, y): flush cache lines started at x with length y   //
 //  BAMBOO_CACHE_FLUSH_ALL(): flush the whole cache of a core if necessary         //
 //  BAMBOO_EXIT(x): exit routine                                                   //
