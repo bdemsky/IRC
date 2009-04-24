@@ -1,7 +1,7 @@
 public class Test {
 
   public static void main( String args[] ) {
-
+    /*
     int n = 10;
       
     sese top {     
@@ -17,5 +17,12 @@ public class Test {
     }
     
     int z = n + j;
+    */
+
+    sese fi {
+      int x = 2;
+    }
+
+    x = x + 1;
   }
 }

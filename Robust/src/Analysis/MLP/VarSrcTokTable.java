@@ -337,18 +337,22 @@ public class VarSrcTokTable {
       Set<VariableSourceToken> bSet = get( new SVKey( b, vst.getVarLive() ) );
       if( !bSet.isEmpty() ) {
         remove( vst );
+
+        // mark this variable as a virtual read as well
       }
     }
   }
 
 
-  public Set<VariableSourceToken> getStallSet( FlatSESEEnterNode curr ) {
+  public Set<VariableSourceToken> getStallSet( FlatSESEEnterNode curr/*,
+                                                                       TempDescriptor varLive*/ ) {
 
     Set<VariableSourceToken> out = new HashSet<VariableSourceToken>();
 
     Iterator<FlatSESEEnterNode> cItr = curr.getChildren().iterator();
     while( cItr.hasNext() ) {
       FlatSESEEnterNode child = cItr.next();
+      //out.addAll( get( new SVKey( child, varLive ) ) );
       out.addAll( get( child ) );
     }
 

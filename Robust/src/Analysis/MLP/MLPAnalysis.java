@@ -421,9 +421,15 @@ public class MLPAnalysis {
       Stack<FlatSESEEnterNode> seseStack = seseStacks.get( fn );
       assert seseStack != null;      
 
-      VarSrcTokTable vstTable = variableResults.get( fn );
+      // use incoming results as "dot statement" or just
+      // before the current statement
+      VarSrcTokTable dotST = new VarSrcTokTable();
+      for( int i = 0; i < fn.numPrev(); i++ ) {
+	FlatNode nn = fn.getPrev( i );
+	dotST.merge( variableResults.get( nn ) );
+      }
 
-      computeStalls_nodeActions( fn, vstTable, seseStack.peek() );
+      computeStalls_nodeActions( fn, dotST, seseStack.peek() );
 
       for( int i = 0; i < fn.numNext(); i++ ) {
 	FlatNode nn = fn.getNext( i );
@@ -442,6 +448,8 @@ public class MLPAnalysis {
   private void computeStalls_nodeActions( FlatNode fn,
                                           VarSrcTokTable vstTable,
                                           FlatSESEEnterNode currentSESE ) {
+    String s = "no op";
+
     switch( fn.kind() ) {
 
     case FKind.FlatSESEEnterNode: {
@@ -453,12 +461,10 @@ public class MLPAnalysis {
     } break;
 
     default: {
-      String s = "no op";
-      
       Set<VariableSourceToken> stallSet = vstTable.getStallSet( currentSESE );
       if( !stallSet.isEmpty() ) {
 
-	s = "stall for:";
+	s = "STALL for:";
 
 	Iterator<VariableSourceToken> itr = stallSet.iterator();
 	while( itr.hasNext() ) {
@@ -466,10 +472,10 @@ public class MLPAnalysis {
 	  s += "  "+vst.getVarLive();
 	}	
       }      
-
-      codePlan.put( fn, s );
     } break;
 
     } // end switch
+
+    codePlan.put( fn, s );
   }
 }
