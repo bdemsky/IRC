@@ -113,6 +113,10 @@ void CALL11(___System______exit____I,int ___status___, int ___status___) {
 #ifdef STM
   printf("nSoftAbortCommit = %d\n", nSoftAbortCommit);
   printf("nSoftAbortAbort = %d\n", nSoftAbortAbort);
+  int i;
+  for(i=0; i<TOTALNUMCLASSANDARRAY; i++) {
+    printf("typesCausingAbort[%d]= %d\n", i, typesCausingAbort[i]);
+  }
 #endif
 #endif
   exit(___status___);

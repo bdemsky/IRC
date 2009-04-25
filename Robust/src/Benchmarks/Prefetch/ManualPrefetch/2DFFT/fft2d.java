@@ -117,7 +117,7 @@ public class fft2d extends Thread {
       transtempIm = data1.dataIm;
       int l=8;
       for (int j = start; j < end; j++,l++) {
-	  if ((l&15)==0) {
+	  if ((l&15)==0) {  //prefetch every 16th iteration
 	      offsets1[0]=(short) (l+start);
 	      if ((start+l+16)>=end) {
 		  int t=end-start-l-1;

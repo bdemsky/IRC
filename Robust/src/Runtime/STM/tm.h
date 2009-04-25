@@ -43,6 +43,8 @@
 typedef struct objheader {
   unsigned int version;
   unsigned int lock;
+  int abortCount;
+  int accessCount;
 } objheader_t;
 
 #define OID(x) \
@@ -129,6 +131,7 @@ extern int numTransAbort;
 extern int nSoftAbort;
 extern int nSoftAbortAbort;
 extern int nSoftAbortCommit;
+extern int typesCausingAbort[];
 #endif
 
 /* ================================

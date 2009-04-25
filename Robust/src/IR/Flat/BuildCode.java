@@ -241,6 +241,11 @@ public class BuildCode {
     }
     if (state.THREAD||state.DSM||state.SINGLETM) {
       outmethod.println("initializethreads();");
+      outmethod.println("#ifdef STMSTATS \n");
+      outmethod.println(" for(i=0; i<TOTALNUMCLASSANDARRAY; i++) {\n");
+      outmethod.println("   typesCausingAbort[i] = 0;\n");
+      outmethod.println(" }\n");
+      outmethod.println("#endif\n");
     }
     if (state.DSM) {
       outmethod.println("if (dstmStartup(argv[1])) {");
@@ -322,6 +327,10 @@ public class BuildCode {
       } else if (state.SINGLETM) {
 	  outmethod.println("printf(\"nSoftAbortAbort= %d\\n\", nSoftAbortAbort);");
 	  outmethod.println("printf(\"nSoftAbortCommit= %d\\n\", nSoftAbortCommit);");
+      outmethod.println("for(i=0; i<TOTALNUMCLASSANDARRAY; i++) {\n");
+      outmethod.println("  printf(\"typesCausingAbort[%d]= %d\\n\", i, typesCausingAbort[i]);\n");
+      outmethod.println("}\n");
+      outmethod.println("fflush(stdout);");
       }
       outmethod.println("#endif\n");
     }
@@ -476,6 +485,8 @@ public class BuildCode {
                        (state.getArrayNumber((new TypeDescriptor(TypeDescriptor.BYTE)).makeArray(state).makeArray(state))+state.numClasses()));
 
     outstructs.println("#define NUMCLASSES "+state.numClasses());
+    int totalClassSize = state.numClasses() + state.numArrays();
+    outstructs.println("#define TOTALNUMCLASSANDARRAY "+ totalClassSize);
     if (state.TASK) {
       outstructs.println("#define STARTUPTYPE "+typeutil.getClass(TypeUtil.StartupClass).getId());
       outstructs.println("#define TAGTYPE "+typeutil.getClass(TypeUtil.TagClass).getId());
@@ -823,6 +834,7 @@ public class BuildCode {
     } else if (state.SINGLETM) {
 	outclassdefs.println("extern int nSoftAbortAbort;");
 	outclassdefs.println("extern int nSoftAbortCommit;");
+	outclassdefs.println("extern int typesCausingAbort[];");
     }
     outclassdefs.print("#endif\n");
     outclassdefs.print("int numprefetchsites = " + pa.prefetchsiteid + ";\n");
@@ -841,6 +853,7 @@ public class BuildCode {
       outclassdefs.print("sizeof(struct "+cdarray[i].getSafeSymbol()+")");
       needcomma=true;
     }
+    
 
     arraytable=new TypeDescriptor[state.numArrays()];
 
