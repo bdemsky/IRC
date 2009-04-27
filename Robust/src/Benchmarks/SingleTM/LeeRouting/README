@@ -1,0 +1,46 @@
+Introduction
+------------
+
+  Lee's routing algorithm is one of the first algorithms used in 
+  automatic circuit routing. Lee's routing algorithm is interesting 
+  for TM because: it is an example of a real-world application, it 
+  contains an abundance of potential parallelism due to the number 
+  of routings that need to be performed in a typical realistic circuit, 
+  and this abundance of parallelism is difficult to exploit efficiently 
+  using locks. For example, routes are sorted by increasing length and 
+  each grid point is assigned a weight to attempt to keep routes away 
+  from pins. The layout contains over 3000 connections points and 
+  1506 interconnections, and the data is available in the file mainboard.txt. 
+
+Compiling and Running
+---------------------
+
+To build the application, simply run:
+
+    make 
+
+By default, this produces an executable named "LeeRouter.bin", which can then be
+run in the following manner:
+    ./LeeRouter.bin <number of threads> <input-filename>
+
+    low contention: ./LeeRouter.bin 1 sparseshort.txt 
+    high contention: ./LeeRouter.bin 8 sparseshort.txt
+
+For runs with a larger input file, (more info below) can be used
+instead:
+
+    low contention: ./LeeRouter.bin 1 mainboard.txt
+    high contention: ./LeeRouter.bin 8 mainboard.txt
+
+References
+----------
+
+[1] Ian Watson, Chris Kirkham and Mikel LujÃ¡n.
+A Study of a Transactional Parallel Routing Algorithm.
+In Proceedings of the 16th International Conference on Parallel Architectures 
+and Compilation Techniques (PACT 2007), Brasov, Romania, Sept. 2007, pp 388-398.
+
+[2] Mohammad Ansari, Christos Kotselidis, Kim Jarvis, Mikel LujÃ¡n, Chris Kirkham, and Ian Watson.
+Lee-TM: A Non-trivial Benchmark for Transactional Memory.
+In Proceedings of the 8th International Conference on Algorithms and Architectures 
+for Parallel Processing (ICA3PP 2008), Aiya Napa, Cyprus, June 2008.

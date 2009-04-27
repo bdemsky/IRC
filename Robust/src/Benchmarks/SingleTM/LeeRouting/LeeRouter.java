@@ -72,6 +72,7 @@ public class LeeRouter {
   boolean DEBUG;
   boolean XML_REPORT;
 
+
   public LeeRouter(String file, boolean test, boolean debug, boolean rel) {
     //Constructor initializing
     MAX_SAMPLE_THRESHOLD = 60000;
@@ -645,7 +646,7 @@ public class LeeRouter {
     boolean exitByTimeout = false;
     int sampleInterval = 10000;
 
-    System.out.println("Threads: " + numThreads);
+    System.out.println("Numthreads: " + numThreads);
 
     LeeThread[] thread = new LeeThread[numThreads];
 
@@ -657,12 +658,11 @@ public class LeeRouter {
       thread[i].start();
     //currentTime = System.currentTimeMillis();
 
-    //LeeThread.stop = true; // notify threads to stop
     for (int i = 0; i < numThreads; i++) {
       thread[i].join();
     }
     //long elapsedTime = startTime - currentTime;
-    System.out.println("Numthreads: " + numThreads);
+    //System.out.println("Numthreads: " + numThreads);
     //System.out.println("Throughput:  " + throughput);
     //System.out.println("ElapsedTime: " + elapsedTime);
     lr.sanityCheck();
