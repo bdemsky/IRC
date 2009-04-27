@@ -305,7 +305,20 @@ public class MLPAnalysis {
 	inUnion.merge( variableResults.get( nn ) );
       }
 
+      // check merge results before sending
+      if( state.MLPDEBUG ) { 
+	inUnion.assertConsistency();
+      }
+
       VarSrcTokTable curr = variable_nodeActions( fn, inUnion, seseStack.peek() );
+      
+      // a sanity check after table operations before we proceed
+      if( state.MLPDEBUG ) { 
+	if( prev != null ) {
+	  prev.assertConsistency();
+	}
+	curr.assertConsistency();
+      }
 
       // if a new result, schedule forward nodes for analysis
       if( !curr.equals( prev ) ) {
@@ -332,10 +345,11 @@ public class MLPAnalysis {
     } break;
 
     case FKind.FlatSESEExitNode: {
-      FlatSESEExitNode fsexn = (FlatSESEExitNode) fn;
-      assert currentSESE.getChildren().contains( fsexn.getFlatEnter() );
-      vstTable = vstTable.remapChildTokens( currentSESE );
-      vstTable = vstTable.removeParentAndSiblingTokens( currentSESE );
+      FlatSESEExitNode  fsexn = (FlatSESEExitNode)  fn;
+      FlatSESEEnterNode fsen  = fsexn.getFlatEnter();
+      assert currentSESE.getChildren().contains( fsen );
+      vstTable = vstTable.remapChildTokens( fsen );
+      vstTable = vstTable.removeParentAndSiblingTokens( fsen );
     } break;
 
     case FKind.FlatOpNode: {
@@ -460,7 +474,7 @@ public class MLPAnalysis {
       FlatSESEExitNode fsexn = (FlatSESEExitNode) fn;
     } break;
 
-    default: {
+    default: {          
       Set<VariableSourceToken> stallSet = vstTable.getStallSet( currentSESE );
       if( !stallSet.isEmpty() ) {
 
@@ -471,7 +485,9 @@ public class MLPAnalysis {
 	  VariableSourceToken vst = itr.next();
 	  s += "  "+vst.getVarLive();
 	}	
-      }      
+      } 
+      
+
     } break;
 
     } // end switch
