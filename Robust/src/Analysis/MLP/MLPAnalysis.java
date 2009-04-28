@@ -504,18 +504,26 @@ public class MLPAnalysis {
 
     default: {          
       Set<VariableSourceToken> stallSet = vstTable.getStallSet( currentSESE );
+     
+      /*
+      Set<TempDescriptor>      liveIn   = livenessResults.get( fn );
+
+      if( liveIn != null ) {
+	stallSet.retainAll( liveIn );
+      } else {
+	// there is nothing live, clear all
+	stallSet.clear();
+      }
+      */
+
       if( !stallSet.isEmpty() ) {
-
 	s = "STALL for:";
-
 	Iterator<VariableSourceToken> itr = stallSet.iterator();
 	while( itr.hasNext() ) {
 	  VariableSourceToken vst = itr.next();
 	  s += "  "+vst.getVarLive();
 	}	
-      } 
-      
-
+      }      
     } break;
 
     } // end switch

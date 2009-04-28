@@ -424,15 +424,13 @@ public class VarSrcTokTable {
   }
 
 
-  public Set<VariableSourceToken> getStallSet( FlatSESEEnterNode curr/*,                                                                       TempDescriptor varLive*/ ) {
-
+  public Set<VariableSourceToken> getStallSet( FlatSESEEnterNode curr ) {
 
     Set<VariableSourceToken> out = new HashSet<VariableSourceToken>();
 
     Iterator<FlatSESEEnterNode> cItr = curr.getChildren().iterator();
     while( cItr.hasNext() ) {
       FlatSESEEnterNode child = cItr.next();
-      //out.addAll( get( new SVKey( child, varLive ) ) );
       out.addAll( get( child ) );
     }
 

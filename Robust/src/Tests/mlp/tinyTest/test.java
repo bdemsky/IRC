@@ -22,9 +22,9 @@ public class Test {
     int x = 1;
 
     sese fi {
-      if( true ) {
-	x = 2;
-      }
+      //if( true ) {
+      x = 2;
+      //}
     }
 
     x = x + 1;
