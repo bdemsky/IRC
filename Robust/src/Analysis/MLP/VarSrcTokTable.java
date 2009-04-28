@@ -151,61 +151,89 @@ public class VarSrcTokTable {
     // make a copy for modification to use in the merge
     VarSrcTokTable table = new VarSrcTokTable( tableIn );
 
+
     trueSet.addAll( table.trueSet );
 
-    Iterator itr; 
-    Set s;
 
-    itr = sese2vst.entrySet().iterator();
+    Iterator itr; 
+
+    // merge sese2vst mappings
+    itr = this.sese2vst.entrySet().iterator();
     while( itr.hasNext() ) {
       Map.Entry                me   = (Map.Entry)                itr.next();
       FlatSESEEnterNode        sese = (FlatSESEEnterNode)        me.getKey();
       Set<VariableSourceToken> s1   = (Set<VariableSourceToken>) me.getValue();
-      Set<VariableSourceToken> s2   = table.sese2vst.get( sese );
-      
+      Set<VariableSourceToken> s2   = table.sese2vst.get( sese );     
       assert s1 != null;
 
       if( s2 != null ) {
 	s1.addAll( s2 );
       }
     }
-    s = table.sese2vst.entrySet();
-    s.removeAll( sese2vst.entrySet() );
-    sese2vst.putAll( table.sese2vst );
+    itr = table.sese2vst.entrySet().iterator();
+    while( itr.hasNext() ) {
+      Map.Entry                me   = (Map.Entry)                itr.next();
+      FlatSESEEnterNode        sese = (FlatSESEEnterNode)        me.getKey();
+      Set<VariableSourceToken> s2   = (Set<VariableSourceToken>) me.getValue();
+      Set<VariableSourceToken> s1   = this.sese2vst.get( sese );
+      assert s2 != null;
 
-    itr = var2vst.entrySet().iterator();
+      if( s1 == null ) {
+	this.sese2vst.put( sese, s2 );
+      }      
+    }
+
+    // merge var2vst mappings
+    itr = this.var2vst.entrySet().iterator();
     while( itr.hasNext() ) {
       Map.Entry                me  = (Map.Entry)                itr.next();
       TempDescriptor           var = (TempDescriptor)           me.getKey();
       Set<VariableSourceToken> s1  = (Set<VariableSourceToken>) me.getValue();
-      Set<VariableSourceToken> s2  = table.var2vst.get( var );
-      
+      Set<VariableSourceToken> s2  = table.var2vst.get( var );      
       assert s1 != null;
 
       if( s2 != null ) {
 	s1.addAll( s2 );
       }           
     }
-    s = table.var2vst.entrySet();
-    s.removeAll( var2vst.entrySet() );
-    var2vst.putAll( table.var2vst );
+    itr = table.var2vst.entrySet().iterator();
+    while( itr.hasNext() ) {
+      Map.Entry                me   = (Map.Entry)                itr.next();
+      TempDescriptor           var  = (TempDescriptor)           me.getKey();
+      Set<VariableSourceToken> s2   = (Set<VariableSourceToken>) me.getValue();
+      Set<VariableSourceToken> s1   = this.var2vst.get( var );
+      assert s2 != null;
 
-    itr = sv2vst.entrySet().iterator();
+      if( s1 == null ) {
+	this.var2vst.put( var, s2 );
+      }      
+    }
+
+    // merge sv2vst mappings
+    itr = this.sv2vst.entrySet().iterator();
     while( itr.hasNext() ) {
       Map.Entry                me  = (Map.Entry)                itr.next();
       SVKey                    key = (SVKey)                    me.getKey();
       Set<VariableSourceToken> s1  = (Set<VariableSourceToken>) me.getValue();
-      Set<VariableSourceToken> s2  = table.sv2vst.get( key );
-      
+      Set<VariableSourceToken> s2  = table.sv2vst.get( key );      
       assert s1 != null;
 
       if( s2 != null ) {
 	s1.addAll( s2 );
       }           
     }
-    s = table.sv2vst.entrySet();
-    s.removeAll( sv2vst.entrySet() );
-    sv2vst.putAll( table.sv2vst );
+    itr = table.sv2vst.entrySet().iterator();
+    while( itr.hasNext() ) {
+      Map.Entry                me   = (Map.Entry)                itr.next();
+      SVKey                    key  = (SVKey)                    me.getKey();
+      Set<VariableSourceToken> s2   = (Set<VariableSourceToken>) me.getValue();
+      Set<VariableSourceToken> s1   = this.sv2vst.get( key );
+      assert s2 != null;
+
+      if( s1 == null ) {
+	this.sv2vst.put( key, s2 );
+      }      
+    }
   }
 
 
@@ -314,10 +342,7 @@ public class VarSrcTokTable {
 
   
   // for the given SESE, change child tokens into this parent
-  public VarSrcTokTable remapChildTokens( FlatSESEEnterNode curr ) {
-
-    // create a table to modify as a copy of this
-    VarSrcTokTable out = new VarSrcTokTable( this );
+  public void remapChildTokens( FlatSESEEnterNode curr ) {
 
     Iterator<FlatSESEEnterNode> childItr = curr.getChildren().iterator();
     if( childItr.hasNext() ) {
@@ -327,60 +352,74 @@ public class VarSrcTokTable {
       while( vstItr.hasNext() ) {
         VariableSourceToken vst = vstItr.next();
 
-        out.remove( vst );
+        remove( vst );
 
-        out.add( new VariableSourceToken( vst.getVarLive(),
-                                          curr,
-                                          new Integer( 0 ),
-                                          vst.getVarLive() ) );
+        add( new VariableSourceToken( vst.getVarLive(),
+				      curr,
+				      new Integer( 0 ),
+				      vst.getVarLive() ) );
       }
     }
-    
-    return out;    
   }   
 
 
   // if we can get a value from the current SESE and the parent
   // or a sibling, just getting from the current SESE suffices now
-  public VarSrcTokTable removeParentAndSiblingTokens( FlatSESEEnterNode curr ) {
+  // return a set of temps that are virtually read
+  public Set<TempDescriptor> removeParentAndSiblingTokens( FlatSESEEnterNode curr,
+							   Set<TempDescriptor> liveIn ) {
 
-    // create a table to modify as a copy of this
-    VarSrcTokTable out = new VarSrcTokTable( this );
+    HashSet<TempDescriptor> virtualLiveIn = new HashSet<TempDescriptor>();
 
     FlatSESEEnterNode parent = curr.getParent();
     if( parent == null ) {
       // have no parent or siblings
-      return out;
+      return virtualLiveIn;
     }      
 
-    out.remove_A_if_B( parent, curr );
+    remove_A_if_B( parent, curr, liveIn, virtualLiveIn );
 
     Iterator<FlatSESEEnterNode> childItr = parent.getChildren().iterator();
     if( childItr.hasNext() ) {
       FlatSESEEnterNode child = childItr.next();
 
       if( !child.equals( curr ) ) {
-        out.remove_A_if_B( child, curr );
+        remove_A_if_B( child, curr, liveIn, virtualLiveIn );
       }
     }
     
-    return out;    
+    return virtualLiveIn;
   }
   
   // if B is also a source for some variable, remove all entries
-  // of A as a source for that variable
-  protected void remove_A_if_B( FlatSESEEnterNode a, FlatSESEEnterNode b ) {
+  // of A as a source for that variable: s is virtual reads
+  protected void remove_A_if_B( FlatSESEEnterNode a, 
+				FlatSESEEnterNode b,
+				Set<TempDescriptor> liveIn,
+				Set<TempDescriptor> virtualLiveIn ) {
+
+    Set<VariableSourceToken> forRemoval = new HashSet<VariableSourceToken>();
 
     Iterator<VariableSourceToken> vstItr = get( a ).iterator();
     while( vstItr.hasNext() ) {
-      VariableSourceToken vst = vstItr.next();
-
-      Set<VariableSourceToken> bSet = get( new SVKey( b, vst.getVarLive() ) );
+      VariableSourceToken      vst     = vstItr.next();
+      TempDescriptor           varLive = vst.getVarLive();
+      Set<VariableSourceToken> bSet    = get( new SVKey( b, varLive ) );
+      
       if( !bSet.isEmpty() ) {
-        remove( vst );
+        forRemoval.add( vst );
 
         // mark this variable as a virtual read as well
+	if( liveIn.contains( varLive ) ) {
+	  virtualLiveIn.add( varLive );
+	}
       }
+    }
+
+    vstItr = forRemoval.iterator();
+    while( vstItr.hasNext() ) {
+      VariableSourceToken vst = vstItr.next();
+      remove( vst );
     }
   }
 
@@ -421,7 +460,7 @@ public class VarSrcTokTable {
       // the trueSet should have all entries in s1
       assert trueSet.containsAll( s1 );
 
-      // s1 should not have anything that doesn't appear in truese
+      // s1 should not have anything that doesn't appear in trueset
       Set<VariableSourceToken> sInt = (Set<VariableSourceToken>) s1.clone();
       sInt.removeAll( trueSet );
 
@@ -466,5 +505,71 @@ public class VarSrcTokTable {
            "sese2vst="+sese2vst.toString()+"\n"+
            "var2vst ="+var2vst.toString()+"\n"+
            "sv2vst  ="+sv2vst.toString();
+  }
+
+  public String toStringPretty() {
+    String tokHighlighter = "o";
+
+    String str = "VarSrcTokTable\n";
+
+    Set s;
+    Iterator itr; 
+    Iterator<VariableSourceToken> vstItr;
+
+    str += "  trueSet\n";
+    vstItr = trueSet.iterator();    
+    while( vstItr.hasNext() ) {
+      str += "     "+tokHighlighter+" "+vstItr.next()+"\n";
+    }
+
+    str += "  sese2vst\n";
+    itr = sese2vst.entrySet().iterator();
+    while( itr.hasNext() ) {
+      Map.Entry                    me   = (Map.Entry)                    itr.next();
+      FlatSESEEnterNode            sese = (FlatSESEEnterNode)            me.getKey();
+      HashSet<VariableSourceToken> s1   = (HashSet<VariableSourceToken>) me.getValue();      
+      assert s1 != null;
+
+      str += "    "+sese.getPrettyIdentifier()+" -> \n";
+
+      vstItr = s1.iterator();
+      while( vstItr.hasNext() ) {
+	str += "       "+tokHighlighter+" "+vstItr.next()+"\n";
+      }
+    }
+
+    str += "  var2vst\n";
+    itr = var2vst.entrySet().iterator();
+    while( itr.hasNext() ) {
+      Map.Entry                me  = (Map.Entry)                itr.next();
+      TempDescriptor           var = (TempDescriptor)           me.getKey();
+      Set<VariableSourceToken> s1  = (Set<VariableSourceToken>) me.getValue();
+      assert s1 != null;
+
+      str += "    "+var+" -> \n";
+
+      vstItr = s1.iterator();
+      while( vstItr.hasNext() ) {
+	str += "       "+tokHighlighter+" "+vstItr.next()+"\n";
+      }
+    }
+
+    str += "  sv2vst\n";
+    itr = sv2vst.entrySet().iterator();
+    while( itr.hasNext() ) {
+      Map.Entry                me  = (Map.Entry)                itr.next();
+      SVKey                    key = (SVKey)                    me.getKey();
+      Set<VariableSourceToken> s1  = (Set<VariableSourceToken>) me.getValue();
+      assert s1 != null;
+
+      str += "    "+key+" -> \n";
+
+      vstItr = s1.iterator();
+      while( vstItr.hasNext() ) {
+	str += "       "+tokHighlighter+" "+vstItr.next()+"\n";
+      }
+    }
+
+    return str;
   }
 }

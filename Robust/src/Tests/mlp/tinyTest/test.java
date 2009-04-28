@@ -19,8 +19,12 @@ public class Test {
     int z = n + j;
     */
 
+    int x = 1;
+
     sese fi {
-      int x = 2;
+      if( true ) {
+	x = 2;
+      }
     }
 
     x = x + 1;

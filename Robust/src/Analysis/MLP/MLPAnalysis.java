@@ -23,6 +23,7 @@ public class MLPAnalysis {
 
   private Hashtable< FlatNode, Stack<FlatSESEEnterNode> > seseStacks;
   private Hashtable< FlatNode, Set<TempDescriptor>      > livenessResults;
+  private Hashtable< FlatNode, Set<TempDescriptor>      > livenessVirtualReads;
   private Hashtable< FlatNode, VarSrcTokTable           > variableResults;
   private Hashtable< FlatNode, String                   > codePlan;
 
@@ -41,10 +42,11 @@ public class MLPAnalysis {
     this.ownAnalysis = ownAnalysis;
 
     // initialize analysis data structures
-    seseStacks      = new Hashtable< FlatNode, Stack<FlatSESEEnterNode> >();
-    livenessResults = new Hashtable< FlatNode, Set<TempDescriptor>      >();
-    variableResults = new Hashtable< FlatNode, VarSrcTokTable           >();
-    codePlan        = new Hashtable< FlatNode, String                   >();
+    seseStacks           = new Hashtable< FlatNode, Stack<FlatSESEEnterNode> >();
+    livenessResults      = new Hashtable< FlatNode, Set<TempDescriptor>      >();
+    livenessVirtualReads = new Hashtable< FlatNode, Set<TempDescriptor>      >();
+    variableResults      = new Hashtable< FlatNode, VarSrcTokTable           >();
+    codePlan             = new Hashtable< FlatNode, String                   >();
 
 
     // build an implicit root SESE to wrap contents of main method
@@ -93,6 +95,11 @@ public class MLPAnalysis {
 
       computeStallsForward( fm );
     }
+
+
+    // 5th pass, compute liveness contribution from
+    // virtual reads discovered in stall pass
+    livenessAnalysisBackward( rootSESE );
 
 
     double timeEndAnalysis = (double) System.nanoTime();
@@ -276,6 +283,14 @@ public class MLPAnalysis {
       for( int i = 0; i < readTemps.length; ++i ) {
 	liveIn.add( readTemps[i] );
       }
+
+      Set<TempDescriptor> virtualReadTemps = livenessVirtualReads.get( fn );
+      if( virtualReadTemps != null ) {
+	Iterator<TempDescriptor> vrItr = virtualReadTemps.iterator();
+	while( vrItr.hasNext() ) {
+	  liveIn.add( vrItr.next() );
+	}
+      }
     } break;
 
     } // end switch
@@ -298,10 +313,18 @@ public class MLPAnalysis {
 
       VarSrcTokTable prev = variableResults.get( fn );
 
+      // to stay sane
+      if( state.MLPDEBUG ) { 
+	if( prev != null ) {
+	  prev.assertConsistency();
+	}
+      }
+
       // merge sets from control flow joins
       VarSrcTokTable inUnion = new VarSrcTokTable();
       for( int i = 0; i < fn.numPrev(); i++ ) {
 	FlatNode nn = fn.getPrev( i );
+	
 	inUnion.merge( variableResults.get( nn ) );
       }
 
@@ -314,9 +337,6 @@ public class MLPAnalysis {
       
       // a sanity check after table operations before we proceed
       if( state.MLPDEBUG ) { 
-	if( prev != null ) {
-	  prev.assertConsistency();
-	}
 	curr.assertConsistency();
       }
 
@@ -348,8 +368,16 @@ public class MLPAnalysis {
       FlatSESEExitNode  fsexn = (FlatSESEExitNode)  fn;
       FlatSESEEnterNode fsen  = fsexn.getFlatEnter();
       assert currentSESE.getChildren().contains( fsen );
-      vstTable = vstTable.remapChildTokens( fsen );
-      vstTable = vstTable.removeParentAndSiblingTokens( fsen );
+      vstTable.remapChildTokens( fsen );
+
+      Set<TempDescriptor> liveIn       = livenessResults.get( fn );
+      Set<TempDescriptor> virLiveIn    = vstTable.removeParentAndSiblingTokens( fsen, liveIn );
+      Set<TempDescriptor> virLiveInNew = livenessVirtualReads.get( fn );
+      if( virLiveInNew == null ) {
+	virLiveInNew = new HashSet<TempDescriptor>();
+      }
+      virLiveInNew.addAll( virLiveIn );
+      livenessVirtualReads.put( fn, virLiveInNew );
     } break;
 
     case FKind.FlatOpNode: {

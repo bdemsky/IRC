@@ -45,6 +45,6 @@ public class SVKey {
 
 
   public String toString() {
-    return "key["+sese+", "+var+"]";
+    return "key["+sese.getPrettyIdentifier()+", "+var+"]";
   }
 }
