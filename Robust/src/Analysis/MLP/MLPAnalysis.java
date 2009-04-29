@@ -99,6 +99,7 @@ public class MLPAnalysis {
 
     // 5th pass, compute liveness contribution from
     // virtual reads discovered in stall pass
+    livenessResults = new Hashtable< FlatNode, Set<TempDescriptor> >();
     livenessAnalysisBackward( rootSESE );
 
 
@@ -505,7 +506,7 @@ public class MLPAnalysis {
     default: {          
       Set<VariableSourceToken> stallSet = vstTable.getStallSet( currentSESE );
      
-      /*
+      
       Set<TempDescriptor>      liveIn   = livenessResults.get( fn );
 
       if( liveIn != null ) {
@@ -514,14 +515,14 @@ public class MLPAnalysis {
 	// there is nothing live, clear all
 	stallSet.clear();
       }
-      */
+      
 
       if( !stallSet.isEmpty() ) {
 	s = "STALL for:";
 	Iterator<VariableSourceToken> itr = stallSet.iterator();
 	while( itr.hasNext() ) {
 	  VariableSourceToken vst = itr.next();
-	  s += "  "+vst.getVarLive();
+	  s += "  "+vst.getVarLive()+",";
 	}	
       }      
     } break;
