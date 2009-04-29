@@ -71,8 +71,10 @@ public class MLPAnalysis {
     }
 
 
-    // 2nd pass
+    // 2nd pass, results are saved in FlatSESEEnterNode, so
+    // intermediate results, for safety, are discarded
     livenessAnalysisBackward( rootSESE );
+    livenessResults = null;
 
 
     // 3rd pass
@@ -90,7 +92,8 @@ public class MLPAnalysis {
     // 4th pass, compute liveness contribution from
     // virtual reads discovered in variable pass
     livenessResults = new Hashtable< FlatNode, Set<TempDescriptor> >();
-    livenessAnalysisBackward( rootSESE );
+    livenessAnalysisBackward( rootSESE );        
+    livenessResults = null;
 
 
     // 5th pass
@@ -265,6 +268,11 @@ public class MLPAnalysis {
       while( tItr.hasNext() ) {
 	System.out.println( "  "+tItr.next() );
       }
+      System.out.println( "and out-set:" );
+      tItr = fsen.getOutVarSet().iterator();
+      while( tItr.hasNext() ) {
+	System.out.println( "  "+tItr.next() );
+      }
       System.out.println( "" );
     }
   }
@@ -275,10 +283,24 @@ public class MLPAnalysis {
     switch( fn.kind() ) {
       
     default: {
+      VarSrcTokTable table = variableResults.get( fn );
+
       // handle effects of statement in reverse, writes then reads
       TempDescriptor [] writeTemps = fn.writesTemps();
       for( int i = 0; i < writeTemps.length; ++i ) {
 	liveIn.remove( writeTemps[i] );
+
+        if( table != null ) {
+          Iterator<VariableSourceToken> vstItr = table.get( writeTemps[i] ).iterator();
+          while( vstItr.hasNext() ) {
+            VariableSourceToken vst = vstItr.next();
+
+            if( !vst.getSESE().equals( currentSESE ) ) {
+              currentSESE.addOutVar( writeTemps[i] );
+              break;
+            }
+          }
+        }
       }
 
       TempDescriptor [] readTemps = fn.readsTemps();
