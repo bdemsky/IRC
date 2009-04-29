@@ -87,20 +87,21 @@ public class MLPAnalysis {
     }
 
 
-    // 4th pass
+    // 4th pass, compute liveness contribution from
+    // virtual reads discovered in variable pass
+    livenessResults = new Hashtable< FlatNode, Set<TempDescriptor> >();
+    livenessAnalysisBackward( rootSESE );
+
+
+    // 5th pass
     methItr = ownAnalysis.descriptorsToAnalyze.iterator();
     while( methItr.hasNext() ) {
       Descriptor d  = methItr.next();      
       FlatMethod fm = state.getMethodFlat( d );
 
+      // compute a plan for code injections
       computeStallsForward( fm );
     }
-
-
-    // 5th pass, compute liveness contribution from
-    // virtual reads discovered in stall pass
-    livenessResults = new Hashtable< FlatNode, Set<TempDescriptor> >();
-    livenessAnalysisBackward( rootSESE );
 
 
     double timeEndAnalysis = (double) System.nanoTime();
@@ -371,14 +372,13 @@ public class MLPAnalysis {
       assert currentSESE.getChildren().contains( fsen );
       vstTable.remapChildTokens( fsen );
 
-      Set<TempDescriptor> liveIn       = livenessResults.get( fn );
+      Set<TempDescriptor> liveIn       = currentSESE.getInVarSet();
       Set<TempDescriptor> virLiveIn    = vstTable.removeParentAndSiblingTokens( fsen, liveIn );
-      Set<TempDescriptor> virLiveInNew = livenessVirtualReads.get( fn );
-      if( virLiveInNew == null ) {
-	virLiveInNew = new HashSet<TempDescriptor>();
+      Set<TempDescriptor> virLiveInOld = livenessVirtualReads.get( fn );
+      if( virLiveInOld != null ) {
+        virLiveIn.addAll( virLiveInOld );
       }
-      virLiveInNew.addAll( virLiveIn );
-      livenessVirtualReads.put( fn, virLiveInNew );
+      livenessVirtualReads.put( fn, virLiveIn );
     } break;
 
     case FKind.FlatOpNode: {
@@ -504,10 +504,8 @@ public class MLPAnalysis {
     } break;
 
     default: {          
-      Set<VariableSourceToken> stallSet = vstTable.getStallSet( currentSESE );
-     
-      
-      Set<TempDescriptor>      liveIn   = livenessResults.get( fn );
+      Set<VariableSourceToken> stallSet = vstTable.getStallSet( currentSESE );           
+      Set<TempDescriptor>      liveIn   = currentSESE.getInVarSet();
 
       if( liveIn != null ) {
 	stallSet.retainAll( liveIn );
@@ -515,7 +513,6 @@ public class MLPAnalysis {
 	// there is nothing live, clear all
 	stallSet.clear();
       }
-      
 
       if( !stallSet.isEmpty() ) {
 	s = "STALL for:";

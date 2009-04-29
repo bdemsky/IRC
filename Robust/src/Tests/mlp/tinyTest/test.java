@@ -20,11 +20,12 @@ public class Test {
     */
 
     int x = 1;
+    int y = 1;
 
     sese fi {
-      //if( true ) {
-      x = 2;
-      //}
+      if( true ) {
+        x = y + 2;      
+      }
     }
 
     x = x + 1;

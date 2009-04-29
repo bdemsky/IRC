@@ -395,7 +395,7 @@ public class VarSrcTokTable {
   // of A as a source for that variable: s is virtual reads
   protected void remove_A_if_B( FlatSESEEnterNode a, 
 				FlatSESEEnterNode b,
-				Set<TempDescriptor> liveIn,
+				Set<TempDescriptor> liveInCurrentSESE,
 				Set<TempDescriptor> virtualLiveIn ) {
 
     Set<VariableSourceToken> forRemoval = new HashSet<VariableSourceToken>();
@@ -410,11 +410,17 @@ public class VarSrcTokTable {
         forRemoval.add( vst );
 
         // mark this variable as a virtual read as well
-	if( liveIn.contains( varLive ) ) {
-	  virtualLiveIn.add( varLive );
-	}
+	//if( liveInCurrentSESE.contains( varLive ) ) { ???????????
+        virtualLiveIn.add( varLive );
+        //}
       }
     }
+
+    /*
+    System.out.println( "remove "+a.getPrettyIdentifier()+" if "+b.getPrettyIdentifier() );
+    System.out.println( "THIS "+toStringPretty() );
+    System.out.println( "for removal="+forRemoval );
+    */
 
     vstItr = forRemoval.iterator();
     while( vstItr.hasNext() ) {
@@ -506,6 +512,17 @@ public class VarSrcTokTable {
   }
 
   public String toStringPretty() {
+    String tokHighlighter = "o";
+
+    String str = "VarSrcTokTable\n";
+    Iterator<VariableSourceToken> vstItr = trueSet.iterator();    
+    while( vstItr.hasNext() ) {
+      str += "   "+tokHighlighter+" "+vstItr.next()+"\n";
+    }
+    return str;
+  }
+
+  public String toStringPrettyVerbose() {
     String tokHighlighter = "o";
 
     String str = "VarSrcTokTable\n";
