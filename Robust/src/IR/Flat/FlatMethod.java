@@ -9,21 +9,24 @@ public class FlatMethod extends FlatNode {
   Vector parameterTemps;
   Vector tagTemps;
   Hashtable tagtointmap;
+  FlatExit flatExit;
 
-  FlatMethod(MethodDescriptor md) {
+  FlatMethod(MethodDescriptor md, FlatExit fe) {
     method=md;
     task=null;
     parameterTemps=new Vector();
     tagTemps=new Vector();
     tagtointmap=new Hashtable();
+    flatExit=fe;
   }
 
-  FlatMethod(TaskDescriptor td) {
+  FlatMethod(TaskDescriptor td, FlatExit fe) {
     task=td;
     method=null;
     parameterTemps=new Vector();
     tagTemps=new Vector();
     tagtointmap=new Hashtable();
+    flatExit=fe;
   }
 
   public String toString() {
@@ -85,6 +88,10 @@ public class FlatMethod extends FlatNode {
 
   public TempDescriptor getParameter(int i) {
     return (TempDescriptor) parameterTemps.get(i);
+  }
+
+  public FlatExit getFlatExit() {
+    return flatExit;
   }
 
   /** This method returns a set of the nodes in this flat representation */

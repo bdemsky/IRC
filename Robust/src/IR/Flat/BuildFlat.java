@@ -55,7 +55,7 @@ public class BuildFlat {
     FlatFlagActionNode ffan=new FlatFlagActionNode(FlatFlagActionNode.PRE);
     ffan.addNext(fn);
 
-    FlatMethod fm=new FlatMethod(td);
+    FlatMethod fm=new FlatMethod(td, fe);
     fm.addNext(ffan);
 
     Hashtable visitedset=new Hashtable();
@@ -157,7 +157,7 @@ public class BuildFlat {
 	rnflat.addNext(fe);
       }
 
-      FlatMethod fm=new FlatMethod(currmd);
+      FlatMethod fm=new FlatMethod(currmd, fe);
       fm.addNext(fn);
       if (!currmd.isStatic())
 	fm.addParameterTemp(getTempforParam(currmd.getThis()));

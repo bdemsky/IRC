@@ -22,7 +22,6 @@ public class MLPAnalysis {
   private FlatSESEExitNode  rootExit;
 
   private Hashtable< FlatNode, Stack<FlatSESEEnterNode> > seseStacks;
-  private Hashtable< FlatNode, Set<TempDescriptor>      > livenessResults;
   private Hashtable< FlatNode, Set<TempDescriptor>      > livenessVirtualReads;
   private Hashtable< FlatNode, VarSrcTokTable           > variableResults;
   private Hashtable< FlatNode, String                   > codePlan;
@@ -43,7 +42,6 @@ public class MLPAnalysis {
 
     // initialize analysis data structures
     seseStacks           = new Hashtable< FlatNode, Stack<FlatSESEEnterNode> >();
-    livenessResults      = new Hashtable< FlatNode, Set<TempDescriptor>      >();
     livenessVirtualReads = new Hashtable< FlatNode, Set<TempDescriptor>      >();
     variableResults      = new Hashtable< FlatNode, VarSrcTokTable           >();
     codePlan             = new Hashtable< FlatNode, String                   >();
@@ -55,6 +53,8 @@ public class MLPAnalysis {
     rootExit = new FlatSESEExitNode ( rootTree );
     rootSESE.setFlatExit ( rootExit );
     rootExit.setFlatEnter( rootSESE );
+
+    FlatMethod fmMain = state.getMethodFlat( tu.getMain() );
 
 
     // 1st pass
@@ -73,8 +73,7 @@ public class MLPAnalysis {
 
     // 2nd pass, results are saved in FlatSESEEnterNode, so
     // intermediate results, for safety, are discarded
-    livenessAnalysisBackward( rootSESE );
-    livenessResults = null;
+    livenessAnalysisBackward( rootSESE, true, null, fmMain.getFlatExit() );
 
 
     // 3rd pass
@@ -91,9 +90,7 @@ public class MLPAnalysis {
 
     // 4th pass, compute liveness contribution from
     // virtual reads discovered in variable pass
-    livenessResults = new Hashtable< FlatNode, Set<TempDescriptor> >();
-    livenessAnalysisBackward( rootSESE );        
-    livenessResults = null;
+    livenessAnalysisBackward( rootSESE, true, null, fmMain.getFlatExit() );        
 
 
     // 5th pass
@@ -207,23 +204,24 @@ public class MLPAnalysis {
   }
 
 
-  private void livenessAnalysisBackward( FlatSESEEnterNode fsen ) {
-    
-    // post-order traversal, so do children first
-    Iterator<FlatSESEEnterNode> childItr = fsen.getChildren().iterator();
-    while( childItr.hasNext() ) {
-      FlatSESEEnterNode fsenChild = childItr.next();
-      livenessAnalysisBackward( fsenChild );
-    }
-
+    private void livenessAnalysisBackward( FlatSESEEnterNode fsen, boolean toplevel, Hashtable<FlatSESEExitNode, Set<TempDescriptor>> liveout, FlatExit fexit) {
     // start from an SESE exit, visit nodes in reverse up to
     // SESE enter in a fixed-point scheme, where children SESEs
     // should already be analyzed and therefore can be skipped 
     // because child SESE enter node has all necessary info
     Set<FlatNode> flatNodesToVisit = new HashSet<FlatNode>();
-    FlatSESEExitNode fsexn = fsen.getFlatExit();
-    flatNodesToVisit.add( fsexn );
 
+    FlatSESEExitNode fsexn = fsen.getFlatExit();
+    if (toplevel) {
+	//handle root SESE
+	flatNodesToVisit.add( fexit );
+    } else
+	flatNodesToVisit.add( fsexn );
+    Hashtable<FlatNode, Set<TempDescriptor>> livenessResults=new Hashtable<FlatNode, Set<TempDescriptor>>();
+
+    if (toplevel==true)
+	liveout=new Hashtable<FlatSESEExitNode, Set<TempDescriptor>>();
+    
     while( !flatNodesToVisit.isEmpty() ) {
       FlatNode fn = (FlatNode) flatNodesToVisit.iterator().next();
       flatNodesToVisit.remove( fn );      
@@ -240,18 +238,17 @@ public class MLPAnalysis {
         }
       }
 
-      Set<TempDescriptor> curr = liveness_nodeActions( fn, u, fsen );
+      Set<TempDescriptor> curr = liveness_nodeActions( fn, u, fsen, toplevel, liveout);
 
       // if a new result, schedule backward nodes for analysis
-      if( !curr.equals( prev ) ) {
-
+      if(!curr.equals(prev)) {
 	livenessResults.put( fn, curr );
 
 	// don't flow backwards past current SESE enter
-	if( !fn.equals( fsen ) ) {	
+	if( !fn.equals( fsen ) ) {
 	  for( int i = 0; i < fn.numPrev(); i++ ) {
-	    FlatNode nn = fn.getPrev( i );	 
-	    flatNodesToVisit.add( nn );	 
+	    FlatNode nn = fn.getPrev( i );
+	    flatNodesToVisit.add( nn );
 	  }
 	}
       }
@@ -275,32 +272,47 @@ public class MLPAnalysis {
       }
       System.out.println( "" );
     }
+    // post-order traversal, so do children first
+    Iterator<FlatSESEEnterNode> childItr = fsen.getChildren().iterator();
+    while( childItr.hasNext() ) {
+      FlatSESEEnterNode fsenChild = childItr.next();
+      livenessAnalysisBackward( fsenChild, false, liveout, null);
+    }
   }
 
   private Set<TempDescriptor> liveness_nodeActions( FlatNode fn, 
                                                     Set<TempDescriptor> liveIn,
-                                                    FlatSESEEnterNode currentSESE ) {
+                                                    FlatSESEEnterNode currentSESE,
+						    boolean toplevel,
+						    Hashtable<FlatSESEExitNode, Set<TempDescriptor>> liveout) {
+
     switch( fn.kind() ) {
+
+    case FKind.FlatSESEExitNode:
+      if (toplevel==true) {
+	  FlatSESEExitNode exitn=(FlatSESEExitNode) fn;
+	//update liveout set for FlatSESEExitNode
+	  if (!liveout.containsKey(exitn))
+	    liveout.put(exitn, new HashSet<TempDescriptor>());
+	  liveout.get(exitn).addAll(liveIn);
+      }
+      // no break, sese exits should also execute default actions
+
       
     default: {
-      VarSrcTokTable table = variableResults.get( fn );
-
       // handle effects of statement in reverse, writes then reads
       TempDescriptor [] writeTemps = fn.writesTemps();
       for( int i = 0; i < writeTemps.length; ++i ) {
 	liveIn.remove( writeTemps[i] );
-
-        if( table != null ) {
-          Iterator<VariableSourceToken> vstItr = table.get( writeTemps[i] ).iterator();
-          while( vstItr.hasNext() ) {
-            VariableSourceToken vst = vstItr.next();
-
-            if( !vst.getSESE().equals( currentSESE ) ) {
-              currentSESE.addOutVar( writeTemps[i] );
-              break;
-            }
-          }
-        }
+	if (!toplevel) {
+	    FlatSESEExitNode exitnode=currentSESE.getFlatExit();
+	    Set<TempDescriptor> livetemps=liveout.get(exitnode);
+	    if (livetemps.contains(writeTemps[i])) {
+	      //write to a live out temp...
+	      //need to put in SESE liveout set
+		currentSESE.addOutVar(writeTemps[i]);
+	    }
+	}
       }
 
       TempDescriptor [] readTemps = fn.readsTemps();
