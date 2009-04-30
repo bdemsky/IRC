@@ -525,7 +525,7 @@ public class MLPAnalysis {
   private void computeStalls_nodeActions( FlatNode fn,
                                           VarSrcTokTable vstTable,
                                           FlatSESEEnterNode currentSESE ) {
-    String s = "no op";
+    String s = null;
 
     switch( fn.kind() ) {
 
@@ -538,27 +538,27 @@ public class MLPAnalysis {
     } break;
 
     default: {          
-      Set<VariableSourceToken> stallSet = vstTable.getStallSet( currentSESE );           
-      Set<TempDescriptor>      liveIn   = currentSESE.getInVarSet();
-
-      if( liveIn != null ) {
-	stallSet.retainAll( liveIn );
-      } else {
-	// there is nothing live, clear all
-	stallSet.clear();
+      Set<VariableSourceToken> stallSet = vstTable.getStallSet( currentSESE );
+      TempDescriptor[] readarray=fn.readsTemps();
+      for(int i=0;i<readarray.length;i++) {
+	  TempDescriptor readtmp=readarray[i];
+	  Set<VariableSourceToken> readSet = vstTable.get(readtmp);
+	  //containsAny
+	  for(Iterator<VariableSourceToken> readit=readSet.iterator();readit.hasNext();) {
+	      VariableSourceToken vst=readit.next();
+	      if (stallSet.contains(vst)) {
+		  if (s==null)
+		      s="STALL for:";
+		  s+="("+vst+" "+readtmp+")";
+	      }
+	  }
+	  
       }
-
-      if( !stallSet.isEmpty() ) {
-	s = "STALL for:";
-	Iterator<VariableSourceToken> itr = stallSet.iterator();
-	while( itr.hasNext() ) {
-	  VariableSourceToken vst = itr.next();
-	  s += "  "+vst.getVarLive()+",";
-	}	
-      }      
     } break;
 
     } // end switch
+    if (s==null)
+	s="no op";
 
     codePlan.put( fn, s );
   }
