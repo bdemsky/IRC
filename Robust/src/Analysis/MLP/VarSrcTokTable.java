@@ -26,11 +26,13 @@ public class VarSrcTokTable {
 
 
   public VarSrcTokTable() {
-    trueSet = new HashSet<VariableSourceToken>();
+    trueSet  = new HashSet<VariableSourceToken>();
 
     sese2vst = new Hashtable< FlatSESEEnterNode, Set<VariableSourceToken> >();
     var2vst  = new Hashtable< TempDescriptor,    Set<VariableSourceToken> >();
     sv2vst   = new Hashtable< SVKey,             Set<VariableSourceToken> >();
+
+    assertConsistency();
   }
 
   
@@ -145,7 +147,7 @@ public class VarSrcTokTable {
   }
 
   public Set<VariableSourceToken> get( FlatSESEEnterNode sese,
-                                       TempDescriptor refVar ) {
+                                       TempDescriptor    refVar ) {
     SVKey key = new SVKey( sese, refVar );
     Set<VariableSourceToken> s = sv2vst.get( key );
     if( s == null ) {
@@ -156,12 +158,15 @@ public class VarSrcTokTable {
   }
 
   public Set<VariableSourceToken> get( FlatSESEEnterNode sese,
-                                       Integer age ) {
-    Set<VariableSourceToken> s = sese2vst.get( sese );
-    if( s == null ) {
-      s = new HashSet<VariableSourceToken>();      
-      sese2vst.put( sese, s );
+                                       Integer           age ) {
+
+    HashSet<VariableSourceToken> s0 = (HashSet<VariableSourceToken>) sese2vst.get( sese );
+    if( s0 == null ) {
+      s0 = new HashSet<VariableSourceToken>();      
+      sese2vst.put( sese, s0 );
     }
+
+    Set<VariableSourceToken> s = (Set<VariableSourceToken>) s0.clone();
     Iterator<VariableSourceToken> sItr = s.iterator();
     while( sItr.hasNext() ) {
       VariableSourceToken vst = sItr.next();
@@ -169,24 +174,27 @@ public class VarSrcTokTable {
         s.remove( vst );
       }
     }
+
     return s;
   }
 
 
-  public void merge( VarSrcTokTable tableIn ) {
+  public void merge( VarSrcTokTable table ) {
 
-    if( tableIn == null ) {
+    if( table == null ) {
       return;
     }
 
-    // make a copy for modification to use in the merge
-    VarSrcTokTable table = new VarSrcTokTable( tableIn );
+
+    System.out.println( "MERGING\n" );
+    System.out.println( "THIS="+this.toStringPrettyVerbose() );
+    System.out.println( "TABLEIN="+table.toStringPrettyVerbose() );
 
 
     trueSet.addAll( table.trueSet );
 
-
     Iterator itr; 
+
 
     // merge sese2vst mappings
     itr = this.sese2vst.entrySet().iterator();
@@ -214,6 +222,7 @@ public class VarSrcTokTable {
       }      
     }
 
+
     // merge var2vst mappings
     itr = this.var2vst.entrySet().iterator();
     while( itr.hasNext() ) {
@@ -240,6 +249,7 @@ public class VarSrcTokTable {
       }      
     }
 
+
     // merge sv2vst mappings
     itr = this.sv2vst.entrySet().iterator();
     while( itr.hasNext() ) {
@@ -265,6 +275,9 @@ public class VarSrcTokTable {
 	this.sv2vst.put( key, s2 );
       }      
     }
+
+    System.out.println( "OUT="+this.toStringPrettyVerbose() );
+
 
     assertConsistency();
   }
@@ -337,7 +350,7 @@ public class VarSrcTokTable {
       remove( vst );
 
       // if there are other references to the token, alter the
-      // token and then readd it to this table, because it has
+      // token and then re-add it to this table, because it has
       // a new hash value now
       Set<TempDescriptor> refVars = vst.getRefVars();
       refVars.remove( refVar );
@@ -346,13 +359,16 @@ public class VarSrcTokTable {
       }
     }
 
-    //var2vst.remove( var );
+    var2vst.remove( refVar );
 
     assertConsistency();
   }
 
   public void remove( FlatSESEEnterNode sese,
 		      TempDescriptor    var  ) {
+
+    // dont' use this yet
+    assert false;
 
     SVKey key = new SVKey( sese, var );
     Set<VariableSourceToken> s = sv2vst.get( key );
@@ -372,14 +388,9 @@ public class VarSrcTokTable {
   }
 
 
-
-  // return a new table based on this one and
   // age tokens with respect to SESE curr, where
   // any curr tokens increase age by 1
-  public VarSrcTokTable age( FlatSESEEnterNode curr ) {
-
-    // create a table to modify as a copy of this
-    VarSrcTokTable out = new VarSrcTokTable( this );
+  public void age( FlatSESEEnterNode curr ) {
 
     Iterator<VariableSourceToken> itr = trueSet.iterator();
     while( itr.hasNext() ) {
@@ -391,20 +402,19 @@ public class VarSrcTokTable {
 	if( newAge > MAX_AGE ) {
 	  newAge = MAX_AGE;
 	}
+	
+	remove( vst );
 
-	out.remove( vst );
-
-        out.add( new VariableSourceToken( vst.getRefVars(), 
-					  curr,                                           
-					  newAge,
-					  vst.getAddrVar()
-					  )
-		 );
+        add( new VariableSourceToken( vst.getRefVars(), 
+				      curr,                                           
+				      newAge,
+				      vst.getAddrVar()
+				      )
+	     );
       }	
     }
-
-    out.assertConsistency();
-    return out;
+    
+    assertConsistency();
   }
 
   
@@ -420,7 +430,7 @@ public class VarSrcTokTable {
         VariableSourceToken vst = vstItr.next();
 
         remove( vst );
-
+	
         add( new VariableSourceToken( vst.getRefVars(),
 				      curr,
 				      new Integer( 0 ),
@@ -432,28 +442,28 @@ public class VarSrcTokTable {
 
     assertConsistency();
   }   
-
+  
 
   // if we can get a value from the current SESE and the parent
   // or a sibling, just getting from the current SESE suffices now
   // return a set of temps that are virtually read
   public Set<TempDescriptor> removeParentAndSiblingTokens( FlatSESEEnterNode curr,
 							   Set<TempDescriptor> liveIn ) {
-
+    
     HashSet<TempDescriptor> virtualLiveIn = new HashSet<TempDescriptor>();
-
+    
     FlatSESEEnterNode parent = curr.getParent();
     if( parent == null ) {
       // have no parent or siblings
       return virtualLiveIn;
     }      
-
+    
     remove_A_if_B( parent, curr, liveIn, virtualLiveIn );
 
     Iterator<FlatSESEEnterNode> childItr = parent.getChildren().iterator();
     if( childItr.hasNext() ) {
       FlatSESEEnterNode child = childItr.next();
-
+      
       if( !child.equals( curr ) ) {
         remove_A_if_B( child, curr, liveIn, virtualLiveIn );
       }
@@ -494,19 +504,22 @@ public class VarSrcTokTable {
       VariableSourceToken vst = vstItr.next();
       remove( vst );
     }
+
+    assertConsistency();
   }
 
-
+  
   public Set<VariableSourceToken> getStallSet( FlatSESEEnterNode curr ) {
-
+    
     Set<VariableSourceToken> out = new HashSet<VariableSourceToken>();
-
+    
     Iterator<FlatSESEEnterNode> cItr = curr.getChildren().iterator();
     while( cItr.hasNext() ) {
       FlatSESEEnterNode child = cItr.next();
       out.addAll( get( child ) );
     }
 
+    assertConsistency();    
     return out;
   }
 

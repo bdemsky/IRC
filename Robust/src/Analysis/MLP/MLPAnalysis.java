@@ -204,7 +204,11 @@ public class MLPAnalysis {
   }
 
 
-    private void livenessAnalysisBackward( FlatSESEEnterNode fsen, boolean toplevel, Hashtable<FlatSESEExitNode, Set<TempDescriptor>> liveout, FlatExit fexit) {
+    private void livenessAnalysisBackward( FlatSESEEnterNode fsen, 
+					   boolean toplevel, 
+					   Hashtable< FlatSESEExitNode, Set<TempDescriptor> > liveout, 
+					   FlatExit fexit ) {
+
     // start from an SESE exit, visit nodes in reverse up to
     // SESE enter in a fixed-point scheme, where children SESEs
     // should already be analyzed and therefore can be skipped 
@@ -284,7 +288,7 @@ public class MLPAnalysis {
                                                     Set<TempDescriptor> liveIn,
                                                     FlatSESEEnterNode currentSESE,
 						    boolean toplevel,
-						    Hashtable<FlatSESEExitNode, Set<TempDescriptor>> liveout) {
+						    Hashtable< FlatSESEExitNode, Set<TempDescriptor> > liveout ) {
 
     switch( fn.kind() ) {
 
@@ -352,16 +356,24 @@ public class MLPAnalysis {
       // merge sets from control flow joins
       VarSrcTokTable inUnion = new VarSrcTokTable();
       for( int i = 0; i < fn.numPrev(); i++ ) {
-	FlatNode nn = fn.getPrev( i );
+	FlatNode nn = fn.getPrev( i );	
 	
-	inUnion.merge( variableResults.get( nn ) );
+	VarSrcTokTable incoming = variableResults.get( nn );
+	if( incoming != null ) {
+	  incoming.assertConsistency();
+	}
+
+	inUnion.merge( incoming );
       }
 
-      VarSrcTokTable curr = variable_nodeActions( fn, inUnion, seseStack.peek() );
-      
+      VarSrcTokTable curr = variable_nodeActions( fn, inUnion, seseStack.peek() );     
+
       // if a new result, schedule forward nodes for analysis
       if( !curr.equals( prev ) ) {
 	
+
+	curr.assertConsistency();
+
 	variableResults.put( fn, curr );
 
 	for( int i = 0; i < fn.numNext(); i++ ) {
@@ -381,6 +393,9 @@ public class MLPAnalysis {
       FlatSESEEnterNode fsen = (FlatSESEEnterNode) fn;
       assert fsen.equals( currentSESE );
       vstTable.age( currentSESE );
+      
+      vstTable.assertConsistency();
+
     } break;
 
     case FKind.FlatSESEExitNode: {
@@ -396,6 +411,9 @@ public class MLPAnalysis {
         virLiveIn.addAll( virLiveInOld );
       }
       livenessVirtualReads.put( fn, virLiveIn );
+
+      vstTable.assertConsistency();
+
     } break;
 
     case FKind.FlatOpNode: {
@@ -437,6 +455,9 @@ public class MLPAnalysis {
 
 	// only break if this is an ASSIGN op node,
 	// otherwise fall through to default case
+
+	vstTable.assertConsistency();
+
 	break;
       }
     }
@@ -460,6 +481,9 @@ public class MLPAnalysis {
 					     )
 		      );
       }      
+
+      vstTable.assertConsistency();
+
     } break;
 
     } // end switch
