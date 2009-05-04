@@ -77,6 +77,10 @@ public class VarSrcTokTable {
 
 
   public void add( VariableSourceToken vst ) {
+
+    // make sure we aren't clobbering anything!
+    assert !trueSet.contains( vst );
+
     trueSet.add( vst );
 
     Set<VariableSourceToken> s;
@@ -476,14 +480,12 @@ public class VarSrcTokTable {
         TempDescriptor           refVar = refVarItr.next();
         Set<VariableSourceToken> bSet   = get( b, refVar );
       
-        if( !bSet.isEmpty() ) {
+	if( !bSet.isEmpty() ) {
           forRemoval.add( vst );
 
-          // mark this variable as a virtual read as well
-          //if( liveInCurrentSESE.contains( varLive ) ) { ???????????
-          virtualLiveIn.add( refVar );
-          //}
-        }
+	  // mark this variable as a virtual read as well
+	  virtualLiveIn.add( refVar );
+	}
       }
     }
 
@@ -587,6 +589,36 @@ public class VarSrcTokTable {
     }
     // make sure trueSet isn't too big
     assert trueSetByAlts.containsAll( trueSet );
+
+
+    // also check that the reference var sets are consistent
+    Hashtable<VariableSourceToken, Set<TempDescriptor> > vst2refVars =
+      new Hashtable<VariableSourceToken, Set<TempDescriptor> >();
+    itr = var2vst.entrySet().iterator();
+    while( itr.hasNext() ) {
+      Map.Entry                     me     = (Map.Entry)                    itr.next();
+      TempDescriptor                refVar = (TempDescriptor)               me.getKey();
+      HashSet<VariableSourceToken>  s1     = (HashSet<VariableSourceToken>) me.getValue();      
+      Iterator<VariableSourceToken> vstItr = s1.iterator();
+      while( vstItr.hasNext() ) {
+	VariableSourceToken vst = vstItr.next();
+	assert vst.getRefVars().contains( refVar );
+
+	Set<TempDescriptor> refVarsPart = vst2refVars.get( vst );
+	if( refVarsPart == null ) {
+	  refVarsPart = new HashSet<TempDescriptor>();
+	}
+	refVarsPart.add( refVar );
+	vst2refVars.put( vst, refVarsPart );
+      }
+    }
+    itr = vst2refVars.entrySet().iterator();
+    while( itr.hasNext() ) {
+      Map.Entry           me  = (Map.Entry)           itr.next();
+      VariableSourceToken vst = (VariableSourceToken) me.getKey();
+      Set<TempDescriptor> s1  = (Set<TempDescriptor>) me.getValue();
+      assert vst.getRefVars().equals( s1 );
+    }    
   }
 
 
