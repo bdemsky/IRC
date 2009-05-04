@@ -71,6 +71,8 @@ public class VarSrcTokTable {
       sv2vst.put( key, 
 		  (HashSet<VariableSourceToken>) (s1.clone()) );
     }
+
+    assertConsistency();
   }
 
 
@@ -86,20 +88,26 @@ public class VarSrcTokTable {
     s.add( vst );
     sese2vst.put( vst.getSESE(), s );
 
-    s = var2vst.get( vst.getVarLive() );
-    if( s == null ) {
-      s = new HashSet<VariableSourceToken>();
-    }
-    s.add( vst );
-    var2vst.put( vst.getVarLive(), s );
+    Iterator<TempDescriptor> refVarItr = vst.getRefVars().iterator();
+    while( refVarItr.hasNext() ) {
+      TempDescriptor refVar = refVarItr.next();
+      s = var2vst.get( refVar );
+      if( s == null ) {
+        s = new HashSet<VariableSourceToken>();
+      }
+      s.add( vst );
+      var2vst.put( refVar, s );
 
-    SVKey key = new SVKey( vst.getSESE(), vst.getVarLive() );
-    s = sv2vst.get( key );
-    if( s == null ) {
-      s = new HashSet<VariableSourceToken>();
+      SVKey key = new SVKey( vst.getSESE(), refVar );
+      s = sv2vst.get( key );
+      if( s == null ) {
+        s = new HashSet<VariableSourceToken>();
+      }
+      s.add( vst );
+      sv2vst.put( key, s );
     }
-    s.add( vst );
-    sv2vst.put( key, s );
+
+    assertConsistency();
   }
 
   public void addAll( Set<VariableSourceToken> s ) {
@@ -132,11 +140,30 @@ public class VarSrcTokTable {
     return s;
   }
 
-  public Set<VariableSourceToken> get( SVKey key ) {
+  public Set<VariableSourceToken> get( FlatSESEEnterNode sese,
+                                       TempDescriptor refVar ) {
+    SVKey key = new SVKey( sese, refVar );
     Set<VariableSourceToken> s = sv2vst.get( key );
     if( s == null ) {
       s = new HashSet<VariableSourceToken>();
       sv2vst.put( key, s );
+    }
+    return s;
+  }
+
+  public Set<VariableSourceToken> get( FlatSESEEnterNode sese,
+                                       Integer age ) {
+    Set<VariableSourceToken> s = sese2vst.get( sese );
+    if( s == null ) {
+      s = new HashSet<VariableSourceToken>();      
+      sese2vst.put( sese, s );
+    }
+    Iterator<VariableSourceToken> sItr = s.iterator();
+    while( sItr.hasNext() ) {
+      VariableSourceToken vst = sItr.next();
+      if( !vst.getAge().equals( age ) ) {
+        s.remove( vst );
+      }
     }
     return s;
   }
@@ -234,6 +261,8 @@ public class VarSrcTokTable {
 	this.sv2vst.put( key, s2 );
       }      
     }
+
+    assertConsistency();
   }
 
 
@@ -247,11 +276,18 @@ public class VarSrcTokTable {
     s = get( vst.getSESE() );
     if( s != null ) { s.remove( vst ); }
 
-    s = get( vst.getVarLive() );
-    if( s != null ) { s.remove( vst ); }
+    Iterator<TempDescriptor> refVarItr = vst.getRefVars().iterator();
+    while( refVarItr.hasNext() ) {
+      TempDescriptor refVar = refVarItr.next();
 
-    s = get( new SVKey( vst.getSESE(), vst.getVarLive() ) );
-    if( s != null ) { s.remove( vst ); }
+      s = get( refVar );
+      if( s != null ) { s.remove( vst ); }
+      
+      s = get( vst.getSESE(), refVar );
+      if( s != null ) { s.remove( vst ); }
+    }
+
+    assertConsistency();
   }
 
   public void remove( FlatSESEEnterNode sese ) {
@@ -259,31 +295,56 @@ public class VarSrcTokTable {
     if( s == null ) {
       return;
     }
-    
-    trueSet.removeAll( s );
-    sese2vst.remove( sese );
 
     Iterator<VariableSourceToken> itr = s.iterator();
     while( itr.hasNext() ) {
       VariableSourceToken vst = itr.next();
       remove( vst );
     }
+
+    sese2vst.remove( sese );
+
+    assertConsistency();
   }
 
-  public void remove( TempDescriptor var ) {
-    Set<VariableSourceToken> s = var2vst.get( var );
+  public void remove( TempDescriptor refVar ) {
+    Set<VariableSourceToken> s = var2vst.get( refVar );
     if( s == null ) {
       return;
     }
     
-    trueSet.removeAll( s );        
-    var2vst.remove( var );
+    Set<VariableSourceToken> forRemoval = new HashSet<VariableSourceToken>();
 
+    // iterate over tokens that this temp can reference, make a set
+    // of tokens that need this temp stripped out of them
     Iterator<VariableSourceToken> itr = s.iterator();
     while( itr.hasNext() ) {
       VariableSourceToken vst = itr.next();
-      remove( vst );
+      Set<TempDescriptor> refVars = vst.getRefVars();
+      assert refVars.contains( refVar );
+      forRemoval.add( vst );
     }
+
+    itr = forRemoval.iterator();
+    while( itr.hasNext() ) {
+      // here's a token marked for removal, take it out as it is
+      // in this state
+      VariableSourceToken vst = itr.next();
+      remove( vst );
+
+      // if there are other references to the token, alter the
+      // token and then readd it to this table, because it has
+      // a new hash value now
+      Set<TempDescriptor> refVars = vst.getRefVars();
+      refVars.remove( refVar );
+      if( refVars.size() > 0 ) {
+        add( vst );
+      }
+    }
+
+    //var2vst.remove( var );
+
+    assertConsistency();
   }
 
   public void remove( FlatSESEEnterNode sese,
@@ -295,14 +356,15 @@ public class VarSrcTokTable {
       return;
     }
     
-    trueSet.removeAll( s );
-    sv2vst.remove( key );
-
     Iterator<VariableSourceToken> itr = s.iterator();
     while( itr.hasNext() ) {
       VariableSourceToken vst = itr.next();
       remove( vst );
     }
+
+    sv2vst.remove( key );
+
+    assertConsistency();
   }
 
 
@@ -328,15 +390,16 @@ public class VarSrcTokTable {
 
 	out.remove( vst );
 
-        out.add( new VariableSourceToken( vst.getVarLive(), 
+        out.add( new VariableSourceToken( vst.getRefVars(), 
 					  curr,                                           
 					  newAge,
-					  vst.getVarSrc() 
+					  vst.getAddrVar()
 					  )
 		 );
       }	
     }
 
+    out.assertConsistency();
     return out;
   }
 
@@ -354,12 +417,16 @@ public class VarSrcTokTable {
 
         remove( vst );
 
-        add( new VariableSourceToken( vst.getVarLive(),
+        add( new VariableSourceToken( vst.getRefVars(),
 				      curr,
 				      new Integer( 0 ),
-				      vst.getVarLive() ) );
+				      vst.getAddrVar()
+                                      )
+             );
       }
     }
+
+    assertConsistency();
   }   
 
 
@@ -388,6 +455,7 @@ public class VarSrcTokTable {
       }
     }
     
+    assertConsistency();
     return virtualLiveIn;
   }
   
@@ -402,25 +470,22 @@ public class VarSrcTokTable {
 
     Iterator<VariableSourceToken> vstItr = get( a ).iterator();
     while( vstItr.hasNext() ) {
-      VariableSourceToken      vst     = vstItr.next();
-      TempDescriptor           varLive = vst.getVarLive();
-      Set<VariableSourceToken> bSet    = get( new SVKey( b, varLive ) );
+      VariableSourceToken      vst       = vstItr.next();
+      Iterator<TempDescriptor> refVarItr = vst.getRefVars().iterator();
+      while( refVarItr.hasNext() ) {
+        TempDescriptor           refVar = refVarItr.next();
+        Set<VariableSourceToken> bSet   = get( b, refVar );
       
-      if( !bSet.isEmpty() ) {
-        forRemoval.add( vst );
+        if( !bSet.isEmpty() ) {
+          forRemoval.add( vst );
 
-        // mark this variable as a virtual read as well
-	//if( liveInCurrentSESE.contains( varLive ) ) { ???????????
-        virtualLiveIn.add( varLive );
-        //}
+          // mark this variable as a virtual read as well
+          //if( liveInCurrentSESE.contains( varLive ) ) { ???????????
+          virtualLiveIn.add( refVar );
+          //}
+        }
       }
     }
-
-    /*
-    System.out.println( "remove "+a.getPrettyIdentifier()+" if "+b.getPrettyIdentifier() );
-    System.out.println( "THIS "+toStringPretty() );
-    System.out.println( "for removal="+forRemoval );
-    */
 
     vstItr = forRemoval.iterator();
     while( vstItr.hasNext() ) {
@@ -453,7 +518,6 @@ public class VarSrcTokTable {
     Set s;
 
     Set<VariableSourceToken> trueSetByAlts = new HashSet<VariableSourceToken>();
-
     itr = sese2vst.entrySet().iterator();
     while( itr.hasNext() ) {
       Map.Entry                    me   = (Map.Entry)                    itr.next();
@@ -473,7 +537,54 @@ public class VarSrcTokTable {
       // add s1 to a running union--at the end check if trueSet has extra
       trueSetByAlts.addAll( s1 );
     }
+    // make sure trueSet isn't too big
+    assert trueSetByAlts.containsAll( trueSet );
 
+
+    trueSetByAlts = new HashSet<VariableSourceToken>();
+    itr = var2vst.entrySet().iterator();
+    while( itr.hasNext() ) {
+      Map.Entry                    me   = (Map.Entry)                    itr.next();
+      TempDescriptor               var  = (TempDescriptor)               me.getKey();
+      HashSet<VariableSourceToken> s1   = (HashSet<VariableSourceToken>) me.getValue();      
+      assert s1 != null;
+      
+      // the trueSet should have all entries in s1
+      assert trueSet.containsAll( s1 );
+
+      // s1 should not have anything that doesn't appear in trueset
+      Set<VariableSourceToken> sInt = (Set<VariableSourceToken>) s1.clone();
+      sInt.removeAll( trueSet );
+
+      assert sInt.isEmpty();
+
+      // add s1 to a running union--at the end check if trueSet has extra
+      trueSetByAlts.addAll( s1 );
+    }
+    // make sure trueSet isn't too big
+    assert trueSetByAlts.containsAll( trueSet );
+
+
+    trueSetByAlts = new HashSet<VariableSourceToken>();
+    itr = sv2vst.entrySet().iterator();
+    while( itr.hasNext() ) {
+      Map.Entry                    me   = (Map.Entry)                    itr.next();
+      SVKey                        key  = (SVKey)                        me.getKey();
+      HashSet<VariableSourceToken> s1   = (HashSet<VariableSourceToken>) me.getValue();      
+      assert s1 != null;
+      
+      // the trueSet should have all entries in s1
+      assert trueSet.containsAll( s1 );
+
+      // s1 should not have anything that doesn't appear in trueset
+      Set<VariableSourceToken> sInt = (Set<VariableSourceToken>) s1.clone();
+      sInt.removeAll( trueSet );
+
+      assert sInt.isEmpty();
+
+      // add s1 to a running union--at the end check if trueSet has extra
+      trueSetByAlts.addAll( s1 );
+    }
     // make sure trueSet isn't too big
     assert trueSetByAlts.containsAll( trueSet );
   }

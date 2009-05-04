@@ -7,36 +7,36 @@ import java.io.*;
 
 public class VariableSourceToken {
 
-  private TempDescriptor    varLive;
-  private FlatSESEEnterNode seseSrc;
-  private Integer           seseAge;
-  private TempDescriptor    varSrc; 
+  private Set<TempDescriptor> refVars;
+  private FlatSESEEnterNode   sese;
+  private Integer             seseAge;
+  private TempDescriptor      addrVar; 
 
-  public VariableSourceToken( TempDescriptor    varLive, 
-                              FlatSESEEnterNode seseSrc,			      
-			      Integer           seseAge, 
-                              TempDescriptor    varSrc 
+  public VariableSourceToken( Set<TempDescriptor> refVars, 
+                              FlatSESEEnterNode   sese,			      
+			      Integer             seseAge, 
+                              TempDescriptor      addrVar 
                               ) {
-    this.varLive = varLive;
-    this.seseSrc = seseSrc;
+    this.refVars = refVars;
+    this.sese    = sese;
     this.seseAge = seseAge;
-    this.varSrc  = varSrc; 
+    this.addrVar = addrVar; 
   }
 
-  public TempDescriptor getVarLive() {
-    return varLive;
+  public Set<TempDescriptor> getRefVars() {
+    return refVars;
   }
 
   public FlatSESEEnterNode getSESE() {
-    return seseSrc;
+    return sese;
   }
 
   public Integer getAge() {
     return seseAge;
   }
 
-  public TempDescriptor getVarSrc() {
-    return varSrc;
+  public TempDescriptor getAddrVar() {
+    return addrVar;
   }
 
   public boolean equals( Object o ) {
@@ -50,18 +50,19 @@ public class VariableSourceToken {
 
     VariableSourceToken vst = (VariableSourceToken) o;
 
-    return seseSrc.equals( vst.seseSrc ) &&
-            varSrc.equals( vst.varSrc  ) &&
-           seseAge.equals( vst.seseAge ) &&
-           varLive.equals( vst.varLive );
+    // the reference vars have no bearing on equality
+    return    sese.equals( vst.sese    ) &&
+           addrVar.equals( vst.addrVar ) &&
+           seseAge.equals( vst.seseAge );
   }
 
   public int hashCode() {
-    return (seseSrc.hashCode() << 3) + (varSrc.hashCode() << 4) * (varLive.hashCode() << 2) ^ seseAge.intValue();
+    // the reference vars have no bearing on hashCode
+    return (sese.hashCode() << 3) * (addrVar.hashCode() << 4) ^ seseAge.intValue();
   }
 
 
   public String toString() {
-    return varLive+" from "+varSrc+" in "+seseSrc.getPrettyIdentifier()+"("+seseAge+")";
+    return refVars+" ref "+addrVar+"@"+sese.getPrettyIdentifier()+"("+seseAge+")";
   }
 }

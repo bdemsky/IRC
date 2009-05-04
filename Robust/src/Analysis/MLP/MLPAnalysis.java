@@ -297,21 +297,21 @@ public class MLPAnalysis {
 	  liveout.get(exitn).addAll(liveIn);
       }
       // no break, sese exits should also execute default actions
-
       
     default: {
       // handle effects of statement in reverse, writes then reads
       TempDescriptor [] writeTemps = fn.writesTemps();
       for( int i = 0; i < writeTemps.length; ++i ) {
 	liveIn.remove( writeTemps[i] );
+
 	if (!toplevel) {
-	    FlatSESEExitNode exitnode=currentSESE.getFlatExit();
-	    Set<TempDescriptor> livetemps=liveout.get(exitnode);
-	    if (livetemps.contains(writeTemps[i])) {
-	      //write to a live out temp...
-	      //need to put in SESE liveout set
-		currentSESE.addOutVar(writeTemps[i]);
-	    }
+          FlatSESEExitNode exitnode=currentSESE.getFlatExit();
+          Set<TempDescriptor> livetemps=liveout.get(exitnode);
+          if (livetemps.contains(writeTemps[i])) {
+            //write to a live out temp...
+            //need to put in SESE liveout set
+            currentSESE.addOutVar(writeTemps[i]);
+          }
 	}
       }
 
@@ -349,13 +349,6 @@ public class MLPAnalysis {
 
       VarSrcTokTable prev = variableResults.get( fn );
 
-      // to stay sane
-      if( state.MLPDEBUG ) { 
-	if( prev != null ) {
-	  prev.assertConsistency();
-	}
-      }
-
       // merge sets from control flow joins
       VarSrcTokTable inUnion = new VarSrcTokTable();
       for( int i = 0; i < fn.numPrev(); i++ ) {
@@ -364,18 +357,8 @@ public class MLPAnalysis {
 	inUnion.merge( variableResults.get( nn ) );
       }
 
-      // check merge results before sending
-      if( state.MLPDEBUG ) { 
-	inUnion.assertConsistency();
-      }
-
       VarSrcTokTable curr = variable_nodeActions( fn, inUnion, seseStack.peek() );
       
-      // a sanity check after table operations before we proceed
-      if( state.MLPDEBUG ) { 
-	curr.assertConsistency();
-      }
-
       // if a new result, schedule forward nodes for analysis
       if( !curr.equals( prev ) ) {
 	
@@ -428,19 +411,22 @@ public class MLPAnalysis {
 	while( itr.hasNext() ) {
 	  VariableSourceToken vst = itr.next();
 
+          HashSet<TempDescriptor> ts = new HashSet<TempDescriptor>();
+          ts.add( lhs );
+
           // if this is from a child, keep the source information
           if( currentSESE.getChildren().contains( vst.getSESE() ) ) {	  
-            vstTable.add( new VariableSourceToken( lhs,
+            vstTable.add( new VariableSourceToken( ts,
                                                    vst.getSESE(),
                                                    vst.getAge(),
-                                                   vst.getVarSrc()
+                                                   vst.getAddrVar()
                                                    )
                           );
 
           // otherwise, it's our or an ancestor's token so we
           // can assume we have everything we need
           } else {
-            vstTable.add( new VariableSourceToken( lhs,
+            vstTable.add( new VariableSourceToken( ts,
                                                    currentSESE,
                                                    new Integer( 0 ),
                                                    lhs
@@ -464,7 +450,10 @@ public class MLPAnalysis {
 
 	vstTable.remove( writeTemps[0] );
 
-	vstTable.add( new VariableSourceToken( writeTemps[0],
+        HashSet<TempDescriptor> ts = new HashSet<TempDescriptor>();
+        ts.add( writeTemps[0] );
+
+	vstTable.add( new VariableSourceToken( ts,
 					       currentSESE,
 					       new Integer( 0 ),
 					       writeTemps[0]
