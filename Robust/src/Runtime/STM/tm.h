@@ -5,14 +5,9 @@
  * Control Messages
  * ==================
  */
-#define TRANS_AGREE         10
-#define TRANS_DISAGREE      11
 #define TRANS_SOFT_ABORT    12
 #define TRANS_ABORT         13
 #define TRANS_COMMIT        14
-#define READ_OBJ            15
-#define THREAD_NOTIFY       16
-#define THREAD_RESPONSE     17
 
 
 /* ========================
@@ -25,13 +20,13 @@
 #include <pthread.h>
 #include <sys/time.h>
 #include <errno.h>
-#include "threadnotify.h"
+//#include "threadnotify.h"
 #include "stmlookup.h"
 #include "dsmlock.h"
 
 /* ==================================
  * Bit designation for status field
- * of object header 
+ * of object header
  * ==================================
  */
 #define DIRTY 0x01
@@ -88,20 +83,20 @@ typedef struct objheader {
 #define OSUSED(x) (((unsigned INTPTR)(x)->top)-((unsigned INTPTR) (x+1)))
 #define OSFREE(x) ((x)->size-OSUSED(x))
 #define TRANSREAD(x,y) { \
-  void * inputvalue;\
-if ((inputvalue=y)==NULL) x=NULL;\
-else { \
-chashlistnode_t * cnodetmp=&c_table[(((unsigned INTPTR)inputvalue)&c_mask)>>4];	\
-do { \
-  if (cnodetmp->key==inputvalue) {x=cnodetmp->val;break;} \
-cnodetmp=cnodetmp->next;\
- if (cnodetmp==NULL) {if (((struct ___Object___*)inputvalue)->___objstatus___&NEW) {x=inputvalue;break;} else \
-{x=transRead(inputvalue); asm volatile("":"=m"(c_table),"=m"(c_mask));break;}} \
-} while(1);\
-}}
+    void * inputvalue; \
+    if ((inputvalue=y)==NULL) x=NULL;\
+         else { \
+           chashlistnode_t * cnodetmp=&c_table[(((unsigned INTPTR)inputvalue)&c_mask)>>4]; \
+           do { \
+             if (cnodetmp->key==inputvalue) {x=cnodetmp->val; break;} \
+             cnodetmp=cnodetmp->next; \
+             if (cnodetmp==NULL) {if (((struct ___Object___*)inputvalue)->___objstatus___&NEW) {x=inputvalue; break;} else \
+                                  {x=transRead(inputvalue); asm volatile ("" : "=m" (c_table),"=m" (c_mask)); break;}} \
+	   } while(1); \
+	 }}
 
 /* =================================
- * Data structures 
+ * Data structures
  * =================================
  */
 typedef struct objstr {
@@ -122,17 +117,21 @@ extern __thread objstr_t *t_cache;
 extern __thread objstr_t *t_reserve;
 
 
-#ifdef TRANSSTATS
 /***********************************
  * Global Variables for statistics
  **********************************/
+#ifdef TRANSSTATS
 extern int numTransCommit;
 extern int numTransAbort;
 extern int nSoftAbort;
 extern int nSoftAbortAbort;
 extern int nSoftAbortCommit;
+#endif
+
+#ifdef STMSTATS
 extern int typesCausingAbort[];
 #endif
+
 
 /* ================================
  * Functions used
@@ -153,5 +152,6 @@ int alttraverseCache();
 int transAbortProcess(void **, int);
 int transCommmitProcess(void **, int);
 void randomdelay(int);
+void getTotalAbortCount(int, int, void *, void *, char);
 
 #endif

@@ -297,7 +297,7 @@ public class String {
     for(i = 0; decimal != nodecimal; i++) {
       long basePower = 1;
       for(int x=0; x<i; x++) {
-        basePower*= 10;
+	basePower*= 10;
       }
       nodecimal = (long) (val*basePower);
       decimal = val*basePower;
@@ -308,7 +308,7 @@ public class String {
     for(j = 0; decimal >= 0; j++) {
       long basePower = 1;
       for(int x=0; x<j; x++) {
-        basePower*= 10;
+	basePower*= 10;
       }
       nodecimal = (long) (valueA - basePower);
       decimal = (double) nodecimal;
@@ -319,13 +319,13 @@ public class String {
     decimal = 0;
 
     for(k = j; k > 0; k--) {
-      if(k == i) //if a decimal point was previously found
-      {      //insert it where its meant to be
-        output.append((char)46);
+      if(k == i) { //if a decimal point was previously found
+	//insert it where its meant to be
+	output.append((char)46);
       }
       long basePower = 1;
       for(int x=0; x<(k-1); x++) {
-        basePower*= 10;
+	basePower*= 10;
       }
       nodecimal = ((long) (valueA - decimal) / basePower);
       decimal += nodecimal*basePower;
@@ -375,11 +375,11 @@ public class String {
     return new String(chararray);
   }
 
-  public int compareTo( String s ) {
+  public int compareTo(String s) {
     int lenDiff = this.length() - s.length();
     if( lenDiff != 0 ) {
       return lenDiff;
-    }    
+    }
     for( int i = 0; i < this.length(); ++i ) {
       int valDiff = this.charAt(i) - s.charAt(i);
       if( valDiff != 0 ) {

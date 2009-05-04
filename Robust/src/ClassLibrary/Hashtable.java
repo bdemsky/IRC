@@ -1,7 +1,7 @@
 public class Hashtable extends HashMap
 {
   public Hashtable() {
-    HashMap(16, 0.75f);    
+    HashMap(16, 0.75f);
   }
 
   public Hashtable(int initialCapacity) {

@@ -16,12 +16,12 @@ public class Character {
   }
 
   char value;
-  
-  public Character( char c ) {
+
+  public Character(char c) {
     value = c;
   }
 
-  public Character( Character c ) {
+  public Character(Character c) {
     value = c.value;
   }
 
@@ -32,15 +32,14 @@ public class Character {
   public static boolean isWhitespace(char character) {
     boolean returnValue;
     if ( (character == '\t') ||
-        (character == '\n') || 
-        (character == ' ') || 
-        (character == '\u000C') || 
-        (character == '\u001C') || 
-        (character == '\u001D') || 
-        (character == '\u001E') || 
-        (character == '\u001F')) 
-    {
-      returnValue = true;     
+         (character == '\n') ||
+         (character == ' ') ||
+         (character == '\u000C') ||
+         (character == '\u001C') ||
+         (character == '\u001D') ||
+         (character == '\u001E') ||
+         (character == '\u001F')) {
+      returnValue = true;
     } else {
       returnValue = false;
     }

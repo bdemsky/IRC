@@ -11,7 +11,7 @@ public class System {
   public static void println(String s) {
     System.printString(s+"\n");
   }
-  
+
   public static void println(Object o) {
     System.printString(""+o+"\n");
   }
@@ -23,7 +23,7 @@ public class System {
   public static void println(double o) {
     System.printString(""+o+"\n");
   }
- 
+
   public static void print(String s) {
     System.printString(s);
   }
@@ -39,7 +39,7 @@ public class System {
   public static void print(double o) {
     System.printString(""+o);
   }
-  
+
   public static void error() {
     System.printString("Error (Use Breakpoint on ___System______error method for more information!)\n");
   }

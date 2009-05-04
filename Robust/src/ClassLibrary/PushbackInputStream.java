@@ -19,7 +19,7 @@ public class PushbackInputStream {
   private int bottom;
   private int[] stack;
 
-  
+
   public PushbackInputStream(FileInputStream fis) {
     in = fis;
     max = 1000;
@@ -32,7 +32,7 @@ public class PushbackInputStream {
     stack = new int[max];
   }
 
-  
+
   public int read() {
     int v;
 
@@ -47,11 +47,11 @@ public class PushbackInputStream {
 
     // put whatever it is in the ring buffer
     ring[index] = v;
-    
+
     // keep ring buffer index
-    ++index; 
-    if( index == max ) { 
-      index = 0; 
+    ++index;
+    if( index == max ) {
+      index = 0;
     }
 
     // user gets what they want
@@ -64,11 +64,11 @@ public class PushbackInputStream {
 
     // the unread stack can only get so high
     if( top == max ) {
-      System.printString( "PushbackInputStream: max reached" );
-      System.exit( -1 );
+      System.printString("PushbackInputStream: max reached");
+      System.exit(-1);
     }
 
     // put it on the unread stack
     stack[top] = ring[index];
-  }    
+  }
 }

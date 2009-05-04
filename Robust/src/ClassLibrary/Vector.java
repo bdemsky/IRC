@@ -9,7 +9,7 @@ public class Vector {
     array=new Object[10];
   }
 
-  public Vector( int size ) {
+  public Vector(int size) {
     capacityIncrement=0;
     this.size=0;
     array=new Object[size];

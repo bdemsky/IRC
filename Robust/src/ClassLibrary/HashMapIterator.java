@@ -45,7 +45,7 @@ class HashMapIterator extends Iterator {
   }
 
   public void remove() {
-    System.out.println( "HashMapIterator.remove() not implemented." );
-    System.exit( -1 );
+    System.out.println("HashMapIterator.remove() not implemented.");
+    System.exit(-1);
   }
 }

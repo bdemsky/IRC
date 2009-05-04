@@ -3,9 +3,9 @@ public class LinkedListElement {
   public LinkedListElement prev;
   public Object element;
 
-  public LinkedListElement( Object e,
-			    LinkedListElement n,
-			    LinkedListElement p ) {
+  public LinkedListElement(Object e,
+                           LinkedListElement n,
+                           LinkedListElement p) {
     element = e;
     next = n;
     prev = p;
@@ -21,32 +21,32 @@ public class LinkedList {
     clear();
   }
 
-  public add( Object o ) {
+  public add(Object o) {
     if( tail == null ) {
-      head = new LinkedListElement( o, null, null );
+      head = new LinkedListElement(o, null, null);
       tail = head;
 
     } else {
-      tail.next = new LinkedListElement( o, null, tail );
+      tail.next = new LinkedListElement(o, null, tail);
       tail = tail.next;
     }
     size++;
   }
 
-  public addFirst( Object o ) {
+  public addFirst(Object o) {
     if( head == null ) {
-      head = new LinkedListElement( o, null, null );
+      head = new LinkedListElement(o, null, null);
       tail = head;
 
     } else {
-      head.prev = new LinkedListElement( o, head, null );
+      head.prev = new LinkedListElement(o, head, null);
       head = head.prev;
     }
     size++;
   }
 
-  public addLast( Object o ) {
-    add( o );
+  public addLast(Object o) {
+    add(o);
   }
 
   public clear() {
@@ -64,26 +64,26 @@ public class LinkedList {
   }
 
   public Object clone() {
-    System.out.println( "LinkedList.clone() not implemented." );
+    System.out.println("LinkedList.clone() not implemented.");
     System.exit(-1);
   }
 
-  public boolean contains( Object o ) {
+  public boolean contains(Object o) {
     LinkedListElement e = head;
     if (o==null) {
       while(e!=null) {
 	if (e.element==null) {
 	  return true;
-        }
-        e=e.next;
+	}
+	e=e.next;
       }
       return false;
     } else {
       while( e != null ) {
-        if (o.equals(e.element)) {
-          return true;
-        }
-        e = e.next;
+	if (o.equals(e.element)) {
+	  return true;
+	}
+	e = e.next;
       }
     }
     return false;
@@ -100,7 +100,7 @@ public class LinkedList {
     if( tail == null ) {
       return null;
     }
-    return tail.element;    
+    return tail.element;
   }
 
   public Object element() {
@@ -121,7 +121,7 @@ public class LinkedList {
 
   public Object removeFirst() {
     if( head == null ) {
-      System.out.println( "LinkedList: illegal removeFirst()" );
+      System.out.println("LinkedList: illegal removeFirst()");
       System.exit(-1);
     }
     Object o = head.element;
@@ -137,7 +137,7 @@ public class LinkedList {
 
   public Object removeLast() {
     if( tail == null ) {
-      System.out.println( "LinkedList: illegal removeLast()" );
+      System.out.println("LinkedList: illegal removeLast()");
       System.exit(-1);
     }
     Object o = tail.element;
@@ -151,9 +151,9 @@ public class LinkedList {
     return o;
   }
 
-  public void remove( Object o ) {
+  public void remove(Object o) {
     if( head == null ) {
-      System.out.println( "LinkedList: illegal remove( Object o )" );
+      System.out.println("LinkedList: illegal remove( Object o )");
       System.exit(-1);
     }
     LinkedListElement e = head;
@@ -170,8 +170,8 @@ public class LinkedList {
       }
       e = e.next;
     }
-    System.out.println( "LinkedList: illegal remove( Object o ), "+o+" not found" );
-    System.exit(-1);    
+    System.out.println("LinkedList: illegal remove( Object o ), "+o+" not found");
+    System.exit(-1);
   }
 
   public Object pop() {
@@ -180,12 +180,12 @@ public class LinkedList {
     return o;
   }
 
-  public void push( Object o ) {
-    addFirst( o );
+  public void push(Object o) {
+    addFirst(o);
   }
 
   public Iterator iterator() {
-    return new LinkedListIterator( this );
+    return new LinkedListIterator(this);
   }
 }
 
@@ -193,8 +193,8 @@ public class LinkedListIterator extends Iterator {
   LinkedList ll;
   LinkedListElement itr;
   Object removeable;
-  
-  public LinkedListIterator( LinkedList ll ) {
+
+  public LinkedListIterator(LinkedList ll) {
     this.ll = ll;
     itr = ll.head;
     removeable = null;
@@ -206,7 +206,7 @@ public class LinkedListIterator extends Iterator {
 
   public Object next() {
     if( itr == null ) {
-      System.out.println( "LinkedListIterator: illegal next()" );
+      System.out.println("LinkedListIterator: illegal next()");
       System.exit(-1);
     }
     removeable = itr.element;
@@ -216,10 +216,10 @@ public class LinkedListIterator extends Iterator {
 
   public void remove() {
     if( removeable == null ) {
-      System.out.println( "LinkedListIterator: illegal remove()" );
+      System.out.println("LinkedListIterator: illegal remove()");
       System.exit(-1);
     }
-    ll.remove( removeable );
+    ll.remove(removeable);
     removeable = null;
   }
 }

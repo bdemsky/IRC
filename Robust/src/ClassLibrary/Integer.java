@@ -77,8 +77,8 @@ public class Integer {
     return String.valueOf(value);
   }
 
-  public static String toString( int i ) {
-    Integer I = new Integer( i );
+  public static String toString(int i) {
+    Integer I = new Integer(i);
     return I.toString();
   }
 

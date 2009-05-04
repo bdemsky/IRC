@@ -16,7 +16,7 @@
 #include "tm.h"
 #include <pthread.h>
 /* Global barrier for STM */
-pthread_barrier_t barrier; 
+pthread_barrier_t barrier;
 pthread_barrierattr_t attr;
 #endif
 #include <string.h>
@@ -113,10 +113,12 @@ void CALL11(___System______exit____I,int ___status___, int ___status___) {
 #ifdef STM
   printf("nSoftAbortCommit = %d\n", nSoftAbortCommit);
   printf("nSoftAbortAbort = %d\n", nSoftAbortAbort);
+#ifdef STMSTATS
   int i;
   for(i=0; i<TOTALNUMCLASSANDARRAY; i++) {
     printf("typesCausingAbort[%d]= %d\n", i, typesCausingAbort[i]);
   }
+#endif
 #endif
 #endif
   exit(___status___);
@@ -195,7 +197,7 @@ void CALL11(___Barrier______setBarrier____I, int nthreads, int nthreads) {
   struct listitem *tmp=stopforgc((struct garbagelist *)___params___);
 #endif
   // Barrier initialization
-  int ret; 
+  int ret;
   if((ret = pthread_barrier_init(&barrier, NULL, nthreads)) != 0) {
     printf("%s() Could not create a barrier: numthreads = 0 in %s\n", __func__, __FILE__);
     exit(-1);
@@ -203,7 +205,7 @@ void CALL11(___Barrier______setBarrier____I, int nthreads, int nthreads) {
 #ifdef PRECISE_GC
   restartaftergc(tmp);
 #endif
-} 
+}
 #endif
 
 #ifdef D___Barrier______enterBarrier____

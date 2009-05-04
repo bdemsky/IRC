@@ -72,7 +72,7 @@ public class BuildCode {
     state=st;
     callgraph=new CallGraph(state);
     if (state.SINGLETM)
-	oidstr="___objlocation___";
+      oidstr="___objlocation___";
     this.temptovar=temptovar;
     paramstable=new Hashtable();
     tempstable=new Hashtable();
@@ -188,8 +188,8 @@ public class BuildCode {
       nonSESEpass = false;
       while( !setSESEtoGen.isEmpty() ) {
 	FlatSESEEnterNode fsen = setSESEtoGen.iterator().next();
-	setSESEtoGen.remove( fsen );
-	generateMethodSESE( fsen, fsen.getEnclosingFlatMeth(), null, outmethod );
+	setSESEtoGen.remove(fsen);
+	generateMethodSESE(fsen, fsen.getEnclosingFlatMeth(), null, outmethod);
       }
     } else {
       assert setSESEtoGen.isEmpty();
@@ -235,16 +235,16 @@ public class BuildCode {
     outmethod.println("int main(int argc, const char *argv[]) {");
     outmethod.println("  int i;");
     if (state.DSM) {
-	outmethod.println("#ifdef TRANSSTATS \n");
-	outmethod.println("handle();\n");
-	outmethod.println("#endif\n");
+      outmethod.println("#ifdef TRANSSTATS \n");
+      outmethod.println("handle();\n");
+      outmethod.println("#endif\n");
     }
     if (state.THREAD||state.DSM||state.SINGLETM) {
       outmethod.println("initializethreads();");
-      outmethod.println("#ifdef STMSTATS \n");
-      outmethod.println(" for(i=0; i<TOTALNUMCLASSANDARRAY; i++) {\n");
-      outmethod.println("   typesCausingAbort[i] = 0;\n");
-      outmethod.println(" }\n");
+      outmethod.println("#ifdef STMSTATS\n");
+      outmethod.println(" for(i=0; i<TOTALNUMCLASSANDARRAY; i++) {");
+      outmethod.println("   typesCausingAbort[i] = 0;");
+      outmethod.println(" }");
       outmethod.println("#endif\n");
     }
     if (state.DSM) {
@@ -318,25 +318,27 @@ public class BuildCode {
       outmethod.println("printf(\"numTransCommit= %d\\n\", numTransCommit);");
       outmethod.println("printf(\"nSoftAbort= %d\\n\", nSoftAbort);");
       if (state.DSM) {
-	  outmethod.println("printf(\"nchashSearch= %d\\n\", nchashSearch);");
-	  outmethod.println("printf(\"nmhashSearch= %d\\n\", nmhashSearch);");
-	  outmethod.println("printf(\"nprehashSearch= %d\\n\", nprehashSearch);");
-	  outmethod.println("printf(\"nRemoteReadSend= %d\\n\", nRemoteSend);");
-	  outmethod.println("printf(\"bytesSent= %d\\n\", bytesSent);");
-	  outmethod.println("printf(\"bytesRecv= %d\\n\", bytesRecv);");
+	outmethod.println("printf(\"nchashSearch= %d\\n\", nchashSearch);");
+	outmethod.println("printf(\"nmhashSearch= %d\\n\", nmhashSearch);");
+	outmethod.println("printf(\"nprehashSearch= %d\\n\", nprehashSearch);");
+	outmethod.println("printf(\"nRemoteReadSend= %d\\n\", nRemoteSend);");
+	outmethod.println("printf(\"bytesSent= %d\\n\", bytesSent);");
+	outmethod.println("printf(\"bytesRecv= %d\\n\", bytesRecv);");
       } else if (state.SINGLETM) {
-	  outmethod.println("printf(\"nSoftAbortAbort= %d\\n\", nSoftAbortAbort);");
-	  outmethod.println("printf(\"nSoftAbortCommit= %d\\n\", nSoftAbortCommit);");
-      outmethod.println("for(i=0; i<TOTALNUMCLASSANDARRAY; i++) {\n");
-      outmethod.println("  printf(\"typesCausingAbort[%d]= %d\\n\", i, typesCausingAbort[i]);\n");
-      outmethod.println("}\n");
-      outmethod.println("fflush(stdout);");
+	outmethod.println("printf(\"nSoftAbortAbort= %d\\n\", nSoftAbortAbort);");
+	outmethod.println("printf(\"nSoftAbortCommit= %d\\n\", nSoftAbortCommit);");
+	outmethod.println("#ifdef STMSTATS\n");
+	outmethod.println("for(i=0; i<TOTALNUMCLASSANDARRAY; i++) {\n");
+	outmethod.println("  printf(\"typesCausingAbort[%d]= %d\\n\", i, typesCausingAbort[i]);\n");
+	outmethod.println("}\n");
+	outmethod.println("#endif\n");
+	outmethod.println("fflush(stdout);");
       }
       outmethod.println("#endif\n");
     }
 
     if (state.THREAD||state.SINGLETM)
-	outmethod.println("pthread_exit(NULL);");
+      outmethod.println("pthread_exit(NULL);");
 
     outmethod.println("}");
 
@@ -387,7 +389,7 @@ public class BuildCode {
       outmethod.println("#include \"localobjects.h\"");
     }
     if (state.FASTCHECK) {
-      outmethod.println("#include \"localobjects.h\"");      
+      outmethod.println("#include \"localobjects.h\"");
     }
     if(state.MULTICORE) {
       outmethod.println("#include \"task.h\"");
@@ -824,17 +826,19 @@ public class BuildCode {
     outclassdefs.print("extern int numTransCommit;\n");
     outclassdefs.print("extern int nSoftAbort;\n");
     if (state.DSM) {
-	outclassdefs.print("extern int nchashSearch;\n");
-	outclassdefs.print("extern int nmhashSearch;\n");
-	outclassdefs.print("extern int nprehashSearch;\n");
-	outclassdefs.print("extern int nRemoteSend;\n");
-	outclassdefs.print("extern int bytesSent;\n");
-	outclassdefs.print("extern int bytesRecv;\n");
-	outclassdefs.print("extern void handle();\n");
+      outclassdefs.print("extern int nchashSearch;\n");
+      outclassdefs.print("extern int nmhashSearch;\n");
+      outclassdefs.print("extern int nprehashSearch;\n");
+      outclassdefs.print("extern int nRemoteSend;\n");
+      outclassdefs.print("extern int bytesSent;\n");
+      outclassdefs.print("extern int bytesRecv;\n");
+      outclassdefs.print("extern void handle();\n");
     } else if (state.SINGLETM) {
-	outclassdefs.println("extern int nSoftAbortAbort;");
-	outclassdefs.println("extern int nSoftAbortCommit;");
-	outclassdefs.println("extern int typesCausingAbort[];");
+      outclassdefs.println("extern int nSoftAbortAbort;");
+      outclassdefs.println("extern int nSoftAbortCommit;");
+      outclassdefs.println("#ifdef STMSTATS\n");
+      outclassdefs.println("extern int typesCausingAbort[];");
+      outclassdefs.println("#endif\n");
     }
     outclassdefs.print("#endif\n");
     outclassdefs.print("int numprefetchsites = " + pa.prefetchsiteid + ";\n");
@@ -853,7 +857,7 @@ public class BuildCode {
       outclassdefs.print("sizeof(struct "+cdarray[i].getSafeSymbol()+")");
       needcomma=true;
     }
-    
+
 
     arraytable=new TypeDescriptor[state.numArrays()];
 
@@ -877,10 +881,10 @@ public class BuildCode {
 
     outclassdefs.println("};");
 
-    ClassDescriptor objectclass=typeutil.getClass(TypeUtil.ObjectClass);    
+    ClassDescriptor objectclass=typeutil.getClass(TypeUtil.ObjectClass);
     needcomma=false;
     outclassdefs.print("int typearray[]={");
-    for(int i=0;i<state.numClasses();i++) {
+    for(int i=0; i<state.numClasses(); i++) {
       ClassDescriptor cd=cdarray[i];
       ClassDescriptor supercd=cd.getSuperDesc();
       if (needcomma)
@@ -892,7 +896,7 @@ public class BuildCode {
       needcomma=true;
     }
 
-    for(int i=0;i<state.numArrays();i++) {
+    for(int i=0; i<state.numArrays(); i++) {
       TypeDescriptor arraytd=arraytable[i];
       ClassDescriptor arraycd=arraytd.getClassDesc();
       if (arraycd==null) {
@@ -920,13 +924,13 @@ public class BuildCode {
       needcomma=true;
     }
 
-    outclassdefs.println("};");    
+    outclassdefs.println("};");
 
     needcomma=false;
 
 
     outclassdefs.print("int typearray2[]={");
-    for(int i=0;i<state.numArrays();i++) {
+    for(int i=0; i<state.numArrays(); i++) {
       TypeDescriptor arraytd=arraytable[i];
       ClassDescriptor arraycd=arraytd.getClassDesc();
       if (arraycd==null) {
@@ -939,7 +943,7 @@ public class BuildCode {
       ClassDescriptor cd=arraycd.getSuperDesc();
       int level=arraytd.getArrayCount()-1;
       int type=-1;
-      for(;level>0;level--) {
+      for(; level>0; level--) {
 	TypeDescriptor supertd=new TypeDescriptor(objectclass);
 	supertd.setArrayCount(level);
 	type=state.getArrayNumber(supertd);
@@ -969,8 +973,7 @@ public class BuildCode {
     if (lb!=null) {
       paramstable.put(lb, objectparams);
       backuptable.put(lb, new Hashtable<TempDescriptor, TempDescriptor>());
-    }
-    else if (md!=null)
+    } else if (md!=null)
       paramstable.put(md, objectparams);
     else
       paramstable.put(task, objectparams);
@@ -1479,48 +1482,48 @@ public class BuildCode {
       }
     }
 
-    generateCode( fm.getNext(0), fm, lb, null, output );
+    generateCode(fm.getNext(0), fm, lb, null, output);
 
     output.println("}\n\n");
   }
 
 
-  protected void generateMethodSESE( FlatSESEEnterNode fsen,
-				     FlatMethod fm, 
-				     LocalityBinding lb,
-				     PrintWriter output ) {
+  protected void generateMethodSESE(FlatSESEEnterNode fsen,
+                                    FlatMethod fm,
+                                    LocalityBinding lb,
+                                    PrintWriter output) {
 
     //output.println( "void _SESE"+fsen.getPrettyIdentifier()+
-      //" {\n" );
+    //" {\n" );
     //generateCode( fsen.getNext(0), fm, lb, fsen.getFlatExit(), output );
     //output.println( "}\n\n" );
 
     /*
-    output.println("struct sese"+faen.getPrettyIdentifier()+"in {");
-    Iterator<TempDescriptor> itr = faen.getInVarSet().iterator();
-    while( itr.hasNext() ) {
-      TempDescriptor td = itr.next();
-      output.println("  "+td+";");
-    }
-    output.println("}");
+       output.println("struct sese"+faen.getPrettyIdentifier()+"in {");
+       Iterator<TempDescriptor> itr = faen.getInVarSet().iterator();
+       while( itr.hasNext() ) {
+       TempDescriptor td = itr.next();
+       output.println("  "+td+";");
+       }
+       output.println("}");
 
-    output.println("struct sese"+faen.getPrettyIdentifier()+"out {");
-    itr = faen.getOutVarSet().iterator();
-    while( itr.hasNext() ) {
-      TempDescriptor td = itr.next();
-      output.println("  "+td+";");
-    }
-    output.println("}");
-    */
+       output.println("struct sese"+faen.getPrettyIdentifier()+"out {");
+       itr = faen.getOutVarSet().iterator();
+       while( itr.hasNext() ) {
+       TempDescriptor td = itr.next();
+       output.println("  "+td+";");
+       }
+       output.println("}");
+     */
 
   }
 
 
-  protected void generateCode( FlatNode first,
-			       FlatMethod fm, 
-			       LocalityBinding lb,
-			       FlatSESEExitNode stop,
-			       PrintWriter output ) {
+  protected void generateCode(FlatNode first,
+                              FlatMethod fm,
+                              LocalityBinding lb,
+                              FlatSESEExitNode stop,
+                              PrintWriter output) {
 
     /* Assign labels to FlatNode's if necessary.*/
     Hashtable<FlatNode, Integer> nodetolabel=assignLabels(first);
@@ -1534,10 +1537,12 @@ public class BuildCode {
       if (current_node==null) {
 	current_node=(FlatNode)tovisit.iterator().next();
 	tovisit.remove(current_node);
-      } else if (tovisit.contains(current_node)){
-	  tovisit.remove(current_node);
+      } else if (tovisit.contains(current_node)) {
+	tovisit.remove(current_node);
       }
-      if(current_node==stop) { return; }
+      if(current_node==stop) {
+	return;
+      }
       visited.add(current_node);
       if (nodetolabel.containsKey(current_node))
 	output.println("L"+nodetolabel.get(current_node)+":");
@@ -1565,7 +1570,7 @@ public class BuildCode {
 	  nextnode=fsen.getFlatExit().getNext(0);
 	} else {
 	  output.print("   ");
-	  generateFlatNode(fm, lb, current_node, output);	
+	  generateFlatNode(fm, lb, current_node, output);
 	  nextnode=current_node.getNext(0);
 	}
 	if (visited.contains(nextnode)) {
@@ -1726,7 +1731,7 @@ public class BuildCode {
 	if(state.DSM&&locality.getAtomic(lb).get(fn).intValue()>0) {
 	  output.println("if (needtocollect) checkcollect2(&"+localsprefix+");");
 	} else
-	output.println("if (needtocollect) checkcollect(&"+localsprefix+");");
+	  output.println("if (needtocollect) checkcollect(&"+localsprefix+");");
       } else
 	output.println("/* nop */");
       return;
@@ -1929,11 +1934,11 @@ public class BuildCode {
       return;
     /* Have to generate flat globalconv */
     if (fgcn.getMakePtr()) {
-	if (state.DSM) {
-	    output.println("TRANSREAD("+generateTemp(fm, fgcn.getSrc(),lb)+", (unsigned int) "+generateTemp(fm, fgcn.getSrc(),lb)+");");
-	} else {
-	    output.println("TRANSREAD("+generateTemp(fm, fgcn.getSrc(),lb)+", "+generateTemp(fm, fgcn.getSrc(),lb)+");");
-	}
+      if (state.DSM) {
+	output.println("TRANSREAD("+generateTemp(fm, fgcn.getSrc(),lb)+", (unsigned int) "+generateTemp(fm, fgcn.getSrc(),lb)+");");
+      } else {
+	output.println("TRANSREAD("+generateTemp(fm, fgcn.getSrc(),lb)+", "+generateTemp(fm, fgcn.getSrc(),lb)+");");
+      }
     } else {
       /* Need to convert to OID */
       if (fgcn.doConvert()) {
@@ -1951,7 +1956,7 @@ public class BuildCode {
     } else {
       type=fion.getType().getClassDesc().getId();
     }
-    
+
     if (fion.getType().getSymbol().equals(TypeUtil.ObjectClass))
       output.println(generateTemp(fm, fion.getDst(), lb)+"=1;");
     else
@@ -1967,7 +1972,7 @@ public class BuildCode {
       TempDescriptor tmp=tmpit.next();
       output.println(generateTemp(fm, backuptable.get(lb).get(tmp),lb)+"="+generateTemp(fm,tmp,lb)+";");
     }
-    
+
     output.println("goto transstart"+faen.getIdentifier()+";");
 
     /******* Print code to retry aborted transaction *******/
@@ -1982,7 +1987,7 @@ public class BuildCode {
     if (state.DSM) {
       /********* Need to revert local object store ********/
       String revertptr=generateTemp(fm, reverttable.get(lb),lb);
-      
+
       output.println("while ("+revertptr+") {");
       output.println("struct ___Object___ * tmpptr;");
       output.println("tmpptr="+revertptr+"->"+nextobjstr+";");
@@ -1994,7 +1999,7 @@ public class BuildCode {
 
     output.println("transstart"+faen.getIdentifier()+":");
     output.println("transStart();");
-    
+
     if (state.ABORTREADERS) {
       output.println("if (_setjmp(aborttrans)) {");
       output.println("  goto transretry"+faen.getIdentifier()+"; }");
@@ -2016,7 +2021,7 @@ public class BuildCode {
     output.println("goto transretry"+faen.getAtomicEnter().getIdentifier()+";");
     if (state.DSM) {
       output.println("} else {");
-    /* Need to commit local object store */
+      /* Need to commit local object store */
       output.println("while ("+revertptr+") {");
       output.println("struct ___Object___ * tmpptr;");
       output.println("tmpptr="+revertptr+"->"+nextobjstr+";");
@@ -2029,7 +2034,7 @@ public class BuildCode {
 
 
   public void generateSESE(FlatMethod fm, LocalityBinding lb, FlatSESEEnterNode faen, PrintWriter output) {
-    
+
   }
 
 
@@ -2219,8 +2224,8 @@ public class BuildCode {
 
       output.println(dst+"="+ src +"->"+field+ ";");
       if (ffn.getField().getType().isPtr()&&locality.getAtomic(lb).get(ffn).intValue()>0&&
-	  ((dc==null)||dc.getNeedTrans(lb, ffn))&&
-	  locality.getNodePreTempInfo(lb, ffn).get(ffn.getSrc())!=LocalityAnalysis.SCRATCH) {
+          ((dc==null)||dc.getNeedTrans(lb, ffn))&&
+          locality.getNodePreTempInfo(lb, ffn).get(ffn.getSrc())!=LocalityAnalysis.SCRATCH) {
 	output.println("TRANSREAD("+dst+", "+dst+");");
       }
     } else if (state.DSM) {
@@ -2289,14 +2294,14 @@ public class BuildCode {
       if (srcptr&&!fsfn.getSrc().getType().isNull()) {
 	output.println("{");
 	if ((dc==null)||dc.getNeedSrcTrans(lb, fsfn)&&
-	  locality.getNodePreTempInfo(lb, fsfn).get(fsfn.getSrc())!=LocalityAnalysis.SCRATCH) {
+	    locality.getNodePreTempInfo(lb, fsfn).get(fsfn.getSrc())!=LocalityAnalysis.SCRATCH) {
 	  output.println("INTPTR srcoid=("+src+"!=NULL?((INTPTR)"+src+"->"+oidstr+"):0);");
 	} else {
 	  output.println("INTPTR srcoid=(INTPTR)"+src+";");
 	}
       }
       if (wb.needBarrier(fsfn)&&
-	  locality.getNodePreTempInfo(lb, fsfn).get(fsfn.getDst())!=LocalityAnalysis.SCRATCH) {
+          locality.getNodePreTempInfo(lb, fsfn).get(fsfn.getDst())!=LocalityAnalysis.SCRATCH) {
 	output.println("*((unsigned int *)&("+dst+"->___objstatus___))|=DIRTY;");
       }
       if (srcptr&!fsfn.getSrc().getType().isNull()) {
@@ -2390,8 +2395,8 @@ public class BuildCode {
       output.println(dst +"=(("+ type+"*)(((char *) &("+ generateTemp(fm,fen.getSrc(),lb)+"->___length___))+sizeof(int)))["+generateTemp(fm, fen.getIndex(),lb)+"];");
 
       if (elementtype.isPtr()&&locality.getAtomic(lb).get(fen).intValue()>0&&
-	  ((dc==null)||dc.getNeedTrans(lb, fen))&&
-	  locality.getNodePreTempInfo(lb, fen).get(fen.getSrc())!=LocalityAnalysis.SCRATCH) {
+          ((dc==null)||dc.getNeedTrans(lb, fen))&&
+          locality.getNodePreTempInfo(lb, fen).get(fen.getSrc())!=LocalityAnalysis.SCRATCH) {
 	output.println("TRANSREAD("+dst+", "+dst+");");
       }
     } else if (state.DSM) {
@@ -2442,7 +2447,7 @@ public class BuildCode {
     if (state.SINGLETM && locality.getAtomic(lb).get(fsen).intValue()>0) {
       //Transaction set element case
       if (wb.needBarrier(fsen)&&
-	    locality.getNodePreTempInfo(lb, fsen).get(fsen.getDst())!=LocalityAnalysis.SCRATCH) {
+          locality.getNodePreTempInfo(lb, fsen).get(fsen.getDst())!=LocalityAnalysis.SCRATCH) {
 	output.println("*((unsigned int *)&("+generateTemp(fm,fsen.getDst(),lb)+"->___objstatus___))|=DIRTY;");
       }
       if (fsen.getSrc().getType().isPtr()&&!fsen.getSrc().getType().isNull()) {

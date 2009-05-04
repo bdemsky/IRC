@@ -43,11 +43,11 @@ public class FileInputStream extends InputStream {
   public String readLine() {
     String line = "";
     int c = read();
-    
+
     // if we're already at the end of the file
     // or there is an error, don't even return
     // the empty string
-    if( c <= 0 ) { 
+    if( c <= 0 ) {
       return null;
     }
 
@@ -57,7 +57,7 @@ public class FileInputStream extends InputStream {
       c = read();
     }
 
-    // peek and consume characters that are carriage 
+    // peek and consume characters that are carriage
     // returns or line feeds so the whole line is read
     // and returned, and none of the line-ending chars
     c = peek();

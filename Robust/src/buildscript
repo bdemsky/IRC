@@ -5,6 +5,7 @@ echo -robustroot set up the ROBUSTROOT to directory other than default one
 echo -dsm distributed shared memory
 echo -singleTM single machine committing transactions
 echo -stmdebug STM debug
+echo "-stmstats prints single machine commit (stm) statistics for the benchmark"
 echo -abortreaders abort readers immediately
 echo -trueprob double - probabiltiy of true branch
 echo -dsmcaching -enable caching in dsm runtime
