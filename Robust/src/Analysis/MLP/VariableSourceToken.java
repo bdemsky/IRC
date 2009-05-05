@@ -39,6 +39,20 @@ public class VariableSourceToken {
     return addrVar;
   }
 
+  public VariableSourceToken copy() {
+    Set<TempDescriptor> refVarsCopy = new HashSet<TempDescriptor>();
+
+    Iterator<TempDescriptor> rvItr = refVars.iterator();
+    while( rvItr.hasNext() ) {
+      refVarsCopy.add( rvItr.next() );
+    }
+
+    return new VariableSourceToken( refVarsCopy,
+                                    sese,
+                                    new Integer( seseAge ),
+                                    addrVar );
+  }
+
   public boolean equals( Object o ) {
     if( o == null ) {
       return false;

@@ -393,9 +393,7 @@ public class MLPAnalysis {
       FlatSESEEnterNode fsen = (FlatSESEEnterNode) fn;
       assert fsen.equals( currentSESE );
       vstTable.age( currentSESE );
-      
       vstTable.assertConsistency();
-
     } break;
 
     case FKind.FlatSESEExitNode: {
@@ -411,9 +409,7 @@ public class MLPAnalysis {
         virLiveIn.addAll( virLiveInOld );
       }
       livenessVirtualReads.put( fn, virLiveIn );
-
       vstTable.assertConsistency();
-
     } break;
 
     case FKind.FlatOpNode: {
@@ -455,9 +451,7 @@ public class MLPAnalysis {
 
 	// only break if this is an ASSIGN op node,
 	// otherwise fall through to default case
-
 	vstTable.assertConsistency();
-
 	break;
       }
     }
@@ -483,7 +477,6 @@ public class MLPAnalysis {
       }      
 
       vstTable.assertConsistency();
-
     } break;
 
     } // end switch

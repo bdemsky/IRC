@@ -11,6 +11,12 @@ import java.io.*;
 // elements will be consistent after EVERY operation.  Also,
 // a consistent assert method allows a debugger to ask whether
 // an operation has produced an inconsistent VarSrcTokTable.
+
+// in an effort to make sure operations keep the table consistent,
+// all public methods that are also used by other methods for
+// intermediate results (add and remove are used in other methods)
+// there should be a public version that calls the private version
+// so consistency is checked after public ops, but not private ops
 public class VarSrcTokTable {
 
   // a set of every token in the table
@@ -35,53 +41,45 @@ public class VarSrcTokTable {
     assertConsistency();
   }
 
-  
+
+  // make a deep copy of the in table
   public VarSrcTokTable( VarSrcTokTable in ) {
-    trueSet = (HashSet<VariableSourceToken>) in.trueSet.clone();
-
-    Iterator itr; Set s;
-
-    sese2vst = new Hashtable< FlatSESEEnterNode, Set<VariableSourceToken> >();
-    itr = in.sese2vst.entrySet().iterator();
-    while( itr.hasNext() ) {
-      Map.Entry                    me   = (Map.Entry)                    itr.next();
-      FlatSESEEnterNode            sese = (FlatSESEEnterNode)            me.getKey();
-      HashSet<VariableSourceToken> s1   = (HashSet<VariableSourceToken>) me.getValue();      
-      assert s1 != null;
-      sese2vst.put( sese, 
-		    (HashSet<VariableSourceToken>) (s1.clone()) );
-    }
-
-    var2vst = new Hashtable< TempDescriptor, Set<VariableSourceToken> >();
-    itr = in.var2vst.entrySet().iterator();
-    while( itr.hasNext() ) {
-      Map.Entry                    me  = (Map.Entry)                    itr.next();
-      TempDescriptor               var = (TempDescriptor)               me.getKey();
-      HashSet<VariableSourceToken> s1  = (HashSet<VariableSourceToken>) me.getValue();      
-      assert s1 != null;
-      var2vst.put( var, 
-		   (HashSet<VariableSourceToken>) (s1.clone()) );
-    }
-
-    sv2vst = new Hashtable< SVKey, Set<VariableSourceToken> >();
-    itr = in.sv2vst.entrySet().iterator();
-    while( itr.hasNext() ) {
-      Map.Entry                    me  = (Map.Entry)                    itr.next();
-      SVKey                        key = (SVKey)                        me.getKey();
-      HashSet<VariableSourceToken> s1  = (HashSet<VariableSourceToken>) me.getValue();      
-      assert s1 != null;
-      sv2vst.put( key, 
-		  (HashSet<VariableSourceToken>) (s1.clone()) );
-    }
-
+    this();
+    merge( in );
     assertConsistency();
   }
 
 
   public void add( VariableSourceToken vst ) {
+    addPrivate( vst );
+    assertConsistency();
+  }
+
+  private void addPrivate( VariableSourceToken vst ) {
 
     // make sure we aren't clobbering anything!
-    assert !trueSet.contains( vst );
+    if( trueSet.contains( vst ) ) {
+      // if something with the same hashcode is in the true set, they might
+      // have different reference variable sets because that set is not considered
+      // in a token's equality, so make sure we smooth that out right here
+      Iterator<VariableSourceToken> vstItr = trueSet.iterator();
+      while( vstItr.hasNext() ) {
+        VariableSourceToken vstAlready = vstItr.next();
+
+        if( vstAlready.equals( vst ) ) {    
+
+          // take out the one that is in (we dont' want collisions in
+          // any of the other hash map sets either)
+          removePrivate( vstAlready );
+
+          // combine reference variable sets
+          vst.getRefVars().addAll( vstAlready.getRefVars() );
+
+          // now jump back as we are adding in a brand new token
+          break;
+        }
+      }
+    }
 
     trueSet.add( vst );
 
@@ -112,15 +110,14 @@ public class VarSrcTokTable {
       s.add( vst );
       sv2vst.put( key, s );
     }
-
-    assertConsistency();
   }
 
   public void addAll( Set<VariableSourceToken> s ) {
     Iterator<VariableSourceToken> itr = s.iterator();
     while( itr.hasNext() ) {
-      add( itr.next() );
+      addPrivate( itr.next() );
     }
+    assertConsistency();
   }
 
 
@@ -179,113 +176,33 @@ public class VarSrcTokTable {
   }
 
 
-  public void merge( VarSrcTokTable table ) {
+  // merge now makes a deep copy of incoming stuff because tokens may
+  // be modified (reference var sets) by later ops that change more
+  // than one table, causing inconsistency
+  public void merge( VarSrcTokTable in ) {
 
-    if( table == null ) {
+    if( in == null ) {
       return;
     }
 
-
-    System.out.println( "MERGING\n" );
-    System.out.println( "THIS="+this.toStringPrettyVerbose() );
-    System.out.println( "TABLEIN="+table.toStringPrettyVerbose() );
-
-
-    trueSet.addAll( table.trueSet );
-
-    Iterator itr; 
-
-
-    // merge sese2vst mappings
-    itr = this.sese2vst.entrySet().iterator();
-    while( itr.hasNext() ) {
-      Map.Entry                me   = (Map.Entry)                itr.next();
-      FlatSESEEnterNode        sese = (FlatSESEEnterNode)        me.getKey();
-      Set<VariableSourceToken> s1   = (Set<VariableSourceToken>) me.getValue();
-      Set<VariableSourceToken> s2   = table.sese2vst.get( sese );     
-      assert s1 != null;
-
-      if( s2 != null ) {
-	s1.addAll( s2 );
-      }
+    Iterator<VariableSourceToken> vstItr = in.trueSet.iterator();
+    while( vstItr.hasNext() ) {
+      VariableSourceToken vst = vstItr.next();
+      this.addPrivate( vst.copy() );
     }
-    itr = table.sese2vst.entrySet().iterator();
-    while( itr.hasNext() ) {
-      Map.Entry                me   = (Map.Entry)                itr.next();
-      FlatSESEEnterNode        sese = (FlatSESEEnterNode)        me.getKey();
-      Set<VariableSourceToken> s2   = (Set<VariableSourceToken>) me.getValue();
-      Set<VariableSourceToken> s1   = this.sese2vst.get( sese );
-      assert s2 != null;
-
-      if( s1 == null ) {
-	this.sese2vst.put( sese, s2 );
-      }      
-    }
-
-
-    // merge var2vst mappings
-    itr = this.var2vst.entrySet().iterator();
-    while( itr.hasNext() ) {
-      Map.Entry                me  = (Map.Entry)                itr.next();
-      TempDescriptor           var = (TempDescriptor)           me.getKey();
-      Set<VariableSourceToken> s1  = (Set<VariableSourceToken>) me.getValue();
-      Set<VariableSourceToken> s2  = table.var2vst.get( var );      
-      assert s1 != null;
-
-      if( s2 != null ) {
-	s1.addAll( s2 );
-      }           
-    }
-    itr = table.var2vst.entrySet().iterator();
-    while( itr.hasNext() ) {
-      Map.Entry                me   = (Map.Entry)                itr.next();
-      TempDescriptor           var  = (TempDescriptor)           me.getKey();
-      Set<VariableSourceToken> s2   = (Set<VariableSourceToken>) me.getValue();
-      Set<VariableSourceToken> s1   = this.var2vst.get( var );
-      assert s2 != null;
-
-      if( s1 == null ) {
-	this.var2vst.put( var, s2 );
-      }      
-    }
-
-
-    // merge sv2vst mappings
-    itr = this.sv2vst.entrySet().iterator();
-    while( itr.hasNext() ) {
-      Map.Entry                me  = (Map.Entry)                itr.next();
-      SVKey                    key = (SVKey)                    me.getKey();
-      Set<VariableSourceToken> s1  = (Set<VariableSourceToken>) me.getValue();
-      Set<VariableSourceToken> s2  = table.sv2vst.get( key );      
-      assert s1 != null;
-
-      if( s2 != null ) {
-	s1.addAll( s2 );
-      }           
-    }
-    itr = table.sv2vst.entrySet().iterator();
-    while( itr.hasNext() ) {
-      Map.Entry                me   = (Map.Entry)                itr.next();
-      SVKey                    key  = (SVKey)                    me.getKey();
-      Set<VariableSourceToken> s2   = (Set<VariableSourceToken>) me.getValue();
-      Set<VariableSourceToken> s1   = this.sv2vst.get( key );
-      assert s2 != null;
-
-      if( s1 == null ) {
-	this.sv2vst.put( key, s2 );
-      }      
-    }
-
-    System.out.println( "OUT="+this.toStringPrettyVerbose() );
-
 
     assertConsistency();
   }
 
 
   // remove operations must leave the trueSet 
-  // and the hash maps consistent!
+  // and the hash maps consistent
   public void remove( VariableSourceToken vst ) {
+    removePrivate( vst );
+    assertConsistency();
+  }
+
+  private void removePrivate( VariableSourceToken vst ) {
     trueSet.remove( vst );
     
     Set<VariableSourceToken> s;
@@ -303,11 +220,15 @@ public class VarSrcTokTable {
       s = get( vst.getSESE(), refVar );
       if( s != null ) { s.remove( vst ); }
     }
+  }
 
+
+  public void remove( FlatSESEEnterNode sese ) {
+    removePrivate( sese );
     assertConsistency();
   }
 
-  public void remove( FlatSESEEnterNode sese ) {
+  public void removePrivate( FlatSESEEnterNode sese ) {
     Set<VariableSourceToken> s = sese2vst.get( sese );
     if( s == null ) {
       return;
@@ -316,15 +237,19 @@ public class VarSrcTokTable {
     Iterator<VariableSourceToken> itr = s.iterator();
     while( itr.hasNext() ) {
       VariableSourceToken vst = itr.next();
-      remove( vst );
+      removePrivate( vst );
     }
 
     sese2vst.remove( sese );
+  }
 
+
+  public void remove( TempDescriptor refVar ) {
+    removePrivate( refVar );
     assertConsistency();
   }
 
-  public void remove( TempDescriptor refVar ) {
+  private void removePrivate( TempDescriptor refVar ) {
     Set<VariableSourceToken> s = var2vst.get( refVar );
     if( s == null ) {
       return;
@@ -344,47 +269,31 @@ public class VarSrcTokTable {
 
     itr = forRemoval.iterator();
     while( itr.hasNext() ) {
-      // here's a token marked for removal, take it out as it is
-      // in this state
-      VariableSourceToken vst = itr.next();
-      remove( vst );
 
-      // if there are other references to the token, alter the
-      // token and then re-add it to this table, because it has
-      // a new hash value now
+      // here's a token marked for removal
+      VariableSourceToken vst = itr.next();
       Set<TempDescriptor> refVars = vst.getRefVars();
-      refVars.remove( refVar );
-      if( refVars.size() > 0 ) {
-        add( vst );
+
+      // if there was only one one variable
+      // referencing this token, just take it
+      // out of the table all together
+      if( refVars.size() == 1 ) {
+        removePrivate( vst );
       }
+
+      refVars.remove( refVar );
     }
 
     var2vst.remove( refVar );
-
-    assertConsistency();
   }
+
 
   public void remove( FlatSESEEnterNode sese,
 		      TempDescriptor    var  ) {
 
-    // dont' use this yet
+    // don't seem to need this, don't bother maintaining
+    // until its clear we need it
     assert false;
-
-    SVKey key = new SVKey( sese, var );
-    Set<VariableSourceToken> s = sv2vst.get( key );
-    if( s == null ) {
-      return;
-    }
-    
-    Iterator<VariableSourceToken> itr = s.iterator();
-    while( itr.hasNext() ) {
-      VariableSourceToken vst = itr.next();
-      remove( vst );
-    }
-
-    sv2vst.remove( key );
-
-    assertConsistency();
   }
 
 
@@ -630,6 +539,7 @@ public class VarSrcTokTable {
       Map.Entry           me  = (Map.Entry)           itr.next();
       VariableSourceToken vst = (VariableSourceToken) me.getKey();
       Set<TempDescriptor> s1  = (Set<TempDescriptor>) me.getValue();
+
       assert vst.getRefVars().equals( s1 );
     }    
   }
