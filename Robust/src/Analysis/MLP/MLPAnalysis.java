@@ -24,7 +24,7 @@ public class MLPAnalysis {
   private Hashtable< FlatNode, Stack<FlatSESEEnterNode> > seseStacks;
   private Hashtable< FlatNode, Set<TempDescriptor>      > livenessVirtualReads;
   private Hashtable< FlatNode, VarSrcTokTable           > variableResults;
-  private Hashtable< FlatNode, String                   > codePlan;
+  private Hashtable< FlatNode, CodePlan                 > codePlans;
 
 
   public MLPAnalysis( State             state,
@@ -44,7 +44,7 @@ public class MLPAnalysis {
     seseStacks           = new Hashtable< FlatNode, Stack<FlatSESEEnterNode> >();
     livenessVirtualReads = new Hashtable< FlatNode, Set<TempDescriptor>      >();
     variableResults      = new Hashtable< FlatNode, VarSrcTokTable           >();
-    codePlan             = new Hashtable< FlatNode, String                   >();
+    codePlans            = new Hashtable< FlatNode, CodePlan                 >();
 
 
     // build an implicit root SESE to wrap contents of main method
@@ -524,14 +524,15 @@ public class MLPAnalysis {
     }      
 
     if( state.MLPDEBUG ) { 
-      System.out.println( fm.printMethod( codePlan ) );
+      System.out.println( fm.printMethod( codePlans ) );
     }
   }
 
   private void computeStalls_nodeActions( FlatNode fn,
                                           VarSrcTokTable vstTable,
                                           FlatSESEEnterNode currentSESE ) {
-    String s = null;
+    String before = null;
+    String after  = null;
 
     switch( fn.kind() ) {
 
@@ -545,27 +546,33 @@ public class MLPAnalysis {
 
     default: {          
       Set<VariableSourceToken> stallSet = vstTable.getStallSet( currentSESE );
-      TempDescriptor[] readarray=fn.readsTemps();
-      for(int i=0;i<readarray.length;i++) {
-	  TempDescriptor readtmp=readarray[i];
-	  Set<VariableSourceToken> readSet = vstTable.get(readtmp);
-	  //containsAny
-	  for(Iterator<VariableSourceToken> readit=readSet.iterator();readit.hasNext();) {
-	      VariableSourceToken vst=readit.next();
-	      if (stallSet.contains(vst)) {
-		  if (s==null)
-		      s="STALL for:";
-		  s+="("+vst+" "+readtmp+")";
-	      }
-	  }
-	  
+      TempDescriptor[] readarray = fn.readsTemps();
+      for( int i = 0; i < readarray.length; i++ ) {
+        TempDescriptor readtmp = readarray[i];
+        Set<VariableSourceToken> readSet = vstTable.get( readtmp );
+        //containsAny
+        for( Iterator<VariableSourceToken> readit = readSet.iterator(); 
+             readit.hasNext(); ) {
+          VariableSourceToken vst = readit.next();
+          if( stallSet.contains( vst ) ) {
+            if( before == null ) {
+              before = "**STALL for:";
+            }
+            before += "("+vst+" "+readtmp+")";
+          }
+        }	  
       }
     } break;
 
     } // end switch
-    if (s==null)
-	s="no op";
+    if( before == null ) {
+      before = "";
+    }
 
-    codePlan.put( fn, s );
+    if( after == null ) {
+      after = "";
+    }
+
+    codePlans.put( fn, new CodePlan( before, after ) );
   }
 }
