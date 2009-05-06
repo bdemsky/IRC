@@ -22,8 +22,10 @@ public class MLPAnalysis {
   private FlatSESEExitNode  rootExit;
 
   private Hashtable< FlatNode, Stack<FlatSESEEnterNode> > seseStacks;
+  private Hashtable< FlatNode, Set<TempDescriptor>      > livenessRootView;
   private Hashtable< FlatNode, Set<TempDescriptor>      > livenessVirtualReads;
   private Hashtable< FlatNode, VarSrcTokTable           > variableResults;
+  private Hashtable< FlatNode, Set<TempDescriptor>      > isAvailableResults;
   private Hashtable< FlatNode, CodePlan                 > codePlans;
 
 
@@ -44,7 +46,9 @@ public class MLPAnalysis {
     seseStacks           = new Hashtable< FlatNode, Stack<FlatSESEEnterNode> >();
     livenessVirtualReads = new Hashtable< FlatNode, Set<TempDescriptor>      >();
     variableResults      = new Hashtable< FlatNode, VarSrcTokTable           >();
+    isAvailableResults   = new Hashtable< FlatNode, Set<TempDescriptor>      >();
     codePlans            = new Hashtable< FlatNode, CodePlan                 >();
+
 
 
     // build an implicit root SESE to wrap contents of main method
@@ -91,6 +95,18 @@ public class MLPAnalysis {
     // 4th pass, compute liveness contribution from
     // virtual reads discovered in variable pass
     livenessAnalysisBackward( rootSESE, true, null, fmMain.getFlatExit() );        
+
+
+    // 5th pass
+    methItr = ownAnalysis.descriptorsToAnalyze.iterator();
+    while( methItr.hasNext() ) {
+      Descriptor d  = methItr.next();      
+      FlatMethod fm = state.getMethodFlat( d );
+
+      // compute is available for every live variable at
+      // every program point, in a forward fixed-point pass
+      isAvailableForward( fm );
+    }
 
 
     // 5th pass
@@ -276,6 +292,13 @@ public class MLPAnalysis {
       }
       System.out.println( "" );
     }
+
+    // remember liveness per node from the root view as the
+    // global liveness of variables for later passes to use
+    if( toplevel == true ) {
+      livenessRootView = livenessResults;
+    }
+
     // post-order traversal, so do children first
     Iterator<FlatSESEEnterNode> childItr = fsen.getChildren().iterator();
     while( childItr.hasNext() ) {
@@ -482,6 +505,72 @@ public class MLPAnalysis {
     } // end switch
 
     return vstTable;
+  }
+
+
+  private void isAvailableForward( FlatMethod fm ) {
+
+    Set<FlatNode> flatNodesToVisit = new HashSet<FlatNode>();
+    flatNodesToVisit.add( fm );	 
+
+    while( !flatNodesToVisit.isEmpty() ) {
+      FlatNode fn = (FlatNode) flatNodesToVisit.iterator().next();
+      flatNodesToVisit.remove( fn );      
+
+      Stack<FlatSESEEnterNode> seseStack = seseStacks.get( fn );
+      assert seseStack != null;      
+
+      Set<TempDescriptor> prev = isAvailableResults.get( fn );
+
+      // merge control flow joins where something is available
+      // into this node only if it is available on every incoming
+      // node, so do intersect of all incoming nodes with live in
+      HashSet<TempDescriptor> rootLiveSet = (HashSet<TempDescriptor>) livenessRootView.get( fn );
+      Set<TempDescriptor>     inIntersect = (Set<TempDescriptor>)     rootLiveSet.clone();
+      
+      for( int i = 0; i < fn.numPrev(); i++ ) {
+	FlatNode nn = fn.getPrev( i );       
+	Set<TempDescriptor> availIn = isAvailableResults.get( nn );
+	inIntersect.retainAll( availIn );
+      }
+
+      Set<TempDescriptor> curr = isAvailable_nodeActions( fn, inIntersect, seseStack.peek() );     
+
+      // if a new result, schedule forward nodes for analysis
+      if( !curr.equals( prev ) ) {
+	isAvailableResults.put( fn, curr );
+
+	for( int i = 0; i < fn.numNext(); i++ ) {
+	  FlatNode nn = fn.getNext( i );	 
+	  flatNodesToVisit.add( nn );	 
+	}
+      }
+    }
+  }
+
+  private Set<TempDescriptor> isAvailable_nodeActions( FlatNode fn, 
+						       Set<TempDescriptor> isAvailSet,
+						       FlatSESEEnterNode currentSESE ) {
+    switch( fn.kind() ) {
+
+    case FKind.FlatSESEEnterNode: {
+      FlatSESEEnterNode fsen = (FlatSESEEnterNode) fn;
+      assert fsen.equals( currentSESE );
+    } break;
+
+    case FKind.FlatSESEExitNode: {
+      FlatSESEExitNode  fsexn = (FlatSESEExitNode)  fn;
+      FlatSESEEnterNode fsen  = fsexn.getFlatEnter();
+      assert currentSESE.getChildren().contains( fsen );
+    } break;
+
+    default: {
+      TempDescriptor [] writeTemps = fn.writesTemps();
+    } break;
+
+    } // end switch
+
+    return isAvailSet;
   }
 
 
