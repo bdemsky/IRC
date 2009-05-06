@@ -22,6 +22,9 @@ struct listitem {
   chashlistnode_t **tc_table;
   chashlistnode_t **tc_list;
   struct objlist * objlist;
+#ifdef STMSTATS
+  struct objlist * lockedlist;
+#endif
   char **base;
 #endif
 };

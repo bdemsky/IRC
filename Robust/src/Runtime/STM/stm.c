@@ -26,12 +26,18 @@ int nSoftAbortAbort = 0;
 #endif
 
 #ifdef STMSTATS
+/* Thread variable for locking/unlocking */
+__thread threadrec_t trec;
+__thread struct objlist * lockedobjs;
 int typesCausingAbort[TOTALNUMCLASSANDARRAY];
 /******Keep track of objects and types causing aborts******/
+/*TODO
 #define DEBUGSTMSTAT(args...) { \
-    printf(args); \
-    fflush(stdout); \
+  printf(args); \
+  fflush(stdout); \
 }
+*/
+#define DEBUGSTMSTAT(args...)
 #else
 #define DEBUGSTMSTAT(args...)
 #endif
@@ -110,6 +116,12 @@ objheader_t *transCreateObj(void * ptr, unsigned int size) {
   objheader_t *retval=&tmp[1];
   tmp->lock=RW_LOCK_BIAS;
   tmp->version = 1;
+  tmp->abortCount = 0;
+  tmp->accessCount = 0;
+  tmp->riskyflag = 0;
+  tmp->trec = NULL;
+  //initialize obj lock
+  pthread_mutex_init(&tmp->objlock, NULL);
   STATUS(tmp)=NEW;
   // don't insert into table
   if (newobjs->offset<MAXOBJLIST) {
@@ -206,6 +218,17 @@ __attribute__((pure)) void *transRead(void * oid) {
   memcpy(objcopy, header, size);
 #ifdef STMSTATS
   header->accessCount++;
+  //FIXME riskratio fix
+  //float riskratio = ((header->abortCount)/(header->accessCount));
+  //DEBUGSTMSTAT("type: %d, header->abortCount: %d, header->accessCount: %d, riskratio: %f\n", TYPE(header), header->abortCount, header->accessCount, riskratio);
+  //DEBUGSTMSTAT("type: %d, header->abortCount: %d, header->accessCount: %d\n", TYPE(header), header->abortCount, header->accessCount);
+  //if(header->abortCount > MAXABORTS &&  riskratio > NEED_LOCK_THRESHOLD) {
+  if(header->abortCount > MAXABORTS) {
+    /* Set risky flag */
+    header->riskyflag = 1;
+    /* Need locking */
+    needLock(header);
+  }
 #endif
   /* Insert into cache's lookup table */
   STATUS(objcopy)=0;
@@ -223,6 +246,19 @@ void freenewobjs() {
   ptr->offset=0;
   newobjs=ptr;
 }
+
+#ifdef STMSTATS
+void freelockedobjs() {
+  struct objlist *ptr=lockedobjs;
+  while(ptr->next!=NULL) {
+    struct objlist *tmp=ptr->next;
+    free(ptr);
+    ptr=tmp;
+  }
+  ptr->offset=0;
+  lockedobjs=ptr;
+}
+#endif
 
 /* ================================================================
  * transCommit
@@ -248,6 +284,9 @@ int transCommit() {
       }
 #endif
       freenewobjs();
+#ifdef STMSTATS
+      freelockedobjs();
+#endif
       objstrReset();
       t_chashreset();
       return TRANS_ABORT;
@@ -260,6 +299,9 @@ int transCommit() {
       }
 #endif
       freenewobjs();
+#ifdef STMSTATS
+      freelockedobjs();
+#endif
       objstrReset();
       t_chashreset();
       return 0;
@@ -273,6 +315,9 @@ int transCommit() {
       if (softaborted>4) {
 	//retry if too many soft aborts
 	freenewobjs();
+#ifdef STMSTATS
+    freelockedobjs();
+#endif
 	objstrReset();
 	t_chashreset();
 	return TRANS_ABORT;
@@ -617,6 +662,20 @@ int transAbortProcess(void **oidwrlocked, int numoidwrlocked) {
     header = (objheader_t *)(((char *)(oidwrlocked[i])) - sizeof(objheader_t));
     write_unlock(&header->lock);
   }
+
+#ifdef STMSTATS
+  /* clear trec and then release objects locked */
+  struct objlist *ptr=lockedobjs;
+  while(ptr!=NULL) {
+    int max=ptr->offset;
+    for(i=0; i<max; i++) {
+      header = (objheader_t *)((char *)(ptr->objs[i]) - sizeof(objheader_t));
+      header->trec = NULL;
+      pthread_mutex_unlock(&(header->objlock));
+    }
+    ptr=ptr->next;
+  }
+#endif
 }
 
 /* ==================================
@@ -657,6 +716,21 @@ int transCommitProcess(void ** oidwrlocked, int numoidwrlocked) {
     header = (objheader_t *)(((char *)(oidwrlocked[i])) - sizeof(objheader_t));
     write_unlock(&header->lock);
   }
+
+#ifdef STMSTATS
+  /* clear trec and then release objects locked */
+  ptr=lockedobjs;
+  while(ptr!=NULL) {
+    int max=ptr->offset;
+    for(i=0; i<max; i++) {
+      header = (objheader_t *)(((char *)(ptr->objs[i])) - sizeof(objheader_t));
+      header->trec = NULL;
+      pthread_mutex_unlock(&(header->objlock));
+      //TODO printf("%s() Unlock type= %d\n", __func__, TYPE(header));
+    }
+    ptr=ptr->next;
+  }
+#endif
   return 0;
 }
 
@@ -670,7 +744,6 @@ int transCommitProcess(void ** oidwrlocked, int numoidwrlocked) {
  **/
 #ifdef STMSTATS
 void getTotalAbortCount(int start, int stop, void *startptr, void *checkptr, char type) {
-  printf("Inside %s()\n", __func__);
   int i;
   if(type == 'w') {
     int isFirstTime = 0;
@@ -707,8 +780,44 @@ void getTotalAbortCount(int start, int stop, void *startptr, void *checkptr, cha
     }
   }
 }
-#else
-void getTotalAbortCount(int start, int stop, void *startptr, void *checkptr, char type) {
-  return;
+
+/**
+ * needLock
+ * params: Object header
+ * Locks an object that causes aborts
+ **/
+void needLock(objheader_t *header) {
+  if(pthread_mutex_trylock(&(header->objlock))) { //busy and failed to get locked
+    trec.blocked = 1; //set blocked flag
+    while(header->trec == NULL) { //retry
+      ;
+    }
+    if(header->trec->blocked == 1) { //ignore locking
+      return;
+    } else { //lock that blocks
+      pthread_mutex_lock(&(header->objlock));
+      //TODO printf("%s() Got lock on type= %d in second try\n", __func__, TYPE(header));
+      /* Reset blocked field */
+      trec.blocked = 0;
+      /* Set trec */
+      header->trec = &trec;
+    }
+  } else { //acquired lock
+    //TODO printf("%s() Got lock on type= %d in first try\n", __func__, TYPE(header));
+    /* Reset blocked field */
+    trec.blocked = 0;
+    /* Set trec */
+    header->trec = &trec;
+  }
+  /* Save the locked object */
+  if (lockedobjs->offset<MAXOBJLIST) {
+    lockedobjs->objs[lockedobjs->offset++]=OID(header);
+  } else {
+    struct objlist *tmp=malloc(sizeof(struct objlist));
+    tmp->next=lockedobjs;
+    tmp->objs[0]=OID(header);
+    tmp->offset=1;
+    lockedobjs=tmp;
+  }
 }
 #endif

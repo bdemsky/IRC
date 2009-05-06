@@ -302,6 +302,9 @@ void collect(struct garbagelist * stackptr) {
   if (c_table!=NULL) {
     fixtable(&c_table, &c_list, &c_structs, c_size);
     fixobjlist(newobjs);
+#ifdef STMSTATS
+    fixobjlist(lockedobjs);
+#endif
   }
   memorybase=NULL;
 #endif
@@ -332,6 +335,9 @@ void collect(struct garbagelist * stackptr) {
     if ((*listptr->tc_table)!=NULL) {
       fixtable(listptr->tc_table, listptr->tc_list, listptr->tc_structs, listptr->tc_size);
       fixobjlist(listptr->objlist);
+#ifdef STMSTATS
+      fixobjlist(listptr->lockedlist);
+#endif
     }
     *(listptr->base)=NULL;
 #endif
@@ -604,6 +610,9 @@ struct listitem * stopforgc(struct garbagelist * ptr) {
   litem->tc_list=&c_list;
   litem->tc_structs=&c_structs;
   litem->objlist=newobjs;
+#ifdef STMSTATS
+  litem->lockedlist=lockedobjs;
+#endif
   litem->base=&memorybase;
 #endif
   litem->prev=NULL;

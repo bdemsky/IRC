@@ -114,6 +114,10 @@ void initializethreads() {
   t_cache = objstrCreate(1048576);
   t_reserve=NULL;
   t_chashCreate(CHASH_SIZE, CLOADFACTOR);
+#ifdef STMSTATS
+  trec.blocked = 0;
+  lockedobjs=calloc(1, sizeof(struct objlist));
+#endif
 #endif
 }
 
@@ -125,6 +129,10 @@ void initthread(struct ___Thread___ * ___this___) {
   ___Thread______staticStart____L___Thread___((struct ___Thread______staticStart____L___Thread____params *)p);
 #else
   newobjs=calloc(1, sizeof(struct objlist));
+#ifdef STMSTATS
+  trec.blocked = 0;
+  lockedobjs=calloc(1, sizeof(struct objlist));
+#endif
   t_cache = objstrCreate(1048576);
   t_reserve=NULL;
   t_chashCreate(CHASH_SIZE, CLOADFACTOR);
@@ -133,6 +141,9 @@ void initthread(struct ___Thread___ * ___this___) {
  objstrDelete(t_reserve);
  t_chashDelete();
  free(newobjs);
+#ifdef STMSTATS
+ free(lockedobjs);
+#endif
 #endif
   ___this___=(struct ___Thread___ *) p[2];
 #else

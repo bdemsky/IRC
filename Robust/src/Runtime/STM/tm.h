@@ -35,11 +35,19 @@
 
 #ifdef COMPILER
 #include "structdefs.h"
+
+typedef struct threadrec {
+  int blocked;
+} threadrec_t;
+
 typedef struct objheader {
   unsigned int version;
-  unsigned int lock;
-  int abortCount;
-  int accessCount;
+  unsigned int lock;          /* reader and writer lock for object header */
+  int abortCount;             /* track how many times does this object cause abort */
+  int accessCount;            /* track how many times is this object accessed */
+  threadrec_t *trec;           /* some thread that locked this object */
+  int riskyflag;              /* track how risky is the object */
+  pthread_mutex_t objlock;    /* lock this object */
 } objheader_t;
 
 #define OID(x) \
@@ -80,6 +88,8 @@ typedef struct objheader {
  * ================================
  */
 #define DEFAULT_OBJ_STORE_SIZE 1048510 //1MB
+#define MAXABORTS 2
+#define NEED_LOCK_THRESHOLD 0.020000
 #define OSUSED(x) (((unsigned INTPTR)(x)->top)-((unsigned INTPTR) (x+1)))
 #define OSFREE(x) ((x)->size-OSUSED(x))
 #define TRANSREAD(x,y) { \
@@ -115,6 +125,10 @@ struct objlist {
 extern __thread struct objlist * newobjs;
 extern __thread objstr_t *t_cache;
 extern __thread objstr_t *t_reserve;
+#ifdef STMSTATS
+extern __thread threadrec_t trec;
+extern __thread struct objlist * lockedobjs;
+#endif
 
 
 /***********************************
@@ -152,6 +166,8 @@ int alttraverseCache();
 int transAbortProcess(void **, int);
 int transCommmitProcess(void **, int);
 void randomdelay(int);
+#ifdef STMSTATS
 void getTotalAbortCount(int, int, void *, void *, char);
-
+void needLock(objheader_t *);
+#endif
 #endif
