@@ -7,7 +7,8 @@
 #include "math.h"
 #endif
 #include "structdefs.h"
-#if 0
+
+#ifndef MULTICORE
 double CALL11(___Math______cos____D, double ___a___, double ___a___) {
 #ifdef MULTICORE
   return 1;
