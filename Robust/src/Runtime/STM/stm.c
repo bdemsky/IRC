@@ -226,7 +226,10 @@ __attribute__((pure)) void *transRead(void * oid) {
   //DEBUGSTMSTAT("type: %d, header->abortCount: %d, header->accessCount: %d, riskratio: %f\n", TYPE(header), header->abortCount, header->accessCount, riskratio);
   //DEBUGSTMSTAT("type: %d, header->abortCount: %d, header->accessCount: %d\n", TYPE(header), header->abortCount, header->accessCount);
   //if(header->abortCount > MAXABORTS &&  riskratio > NEED_LOCK_THRESHOLD) {
-  if(header->abortCount > MAXABORTS) {
+  if (header->riskyflag) {
+    //makes riskflag sticky
+    needLock(header);
+  } else if(header->abortCount > MAXABORTS) {
     /* Set risky flag */
     header->riskyflag = 1;
     /* Need locking */
@@ -795,22 +798,29 @@ void needLock(objheader_t *header) {
       && ((ptr = header->trec) == NULL)) { //retry
     ;
   }
-  if(lockstatus != EBUSY) { //acquired lock
-    /* Reset blocked field */
-    trec->blocked = 0;
+  if(lockstatus==0) { //acquired lock
     /* Set trec */
     header->trec = trec;
   } else { //failed to get lock
-    if(ptr->blocked == 1) { //ignore locking
+    trec->blocked=1;
+    //memory barrier
+    __asm__ __volatile__("":::"memory");
+    //see if other thread is blocked
+    if(ptr->blocked == 1) {
+      //it might be block, so ignore lock and clear our blocked flag
+      trec->blocked=0;
       return;
-    } else { //lock that blocks
+    } else { 
+      //grab lock and wait our turn
       pthread_mutex_lock(&(header->objlock));
-      /* Reset blocked field */
+      /* we have lock, so we are not blocked anymore */
       trec->blocked = 0;
-      /* Set trec */
+      /* Set our trec */
       header->trec = trec;
     }
   }
+  //trec->blocked is zero now
+
   /* Save the locked object */
   if (lockedobjs->offset<MAXOBJLIST) {
     lockedobjs->objs[lockedobjs->offset++]=OID(header);
