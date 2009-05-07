@@ -351,7 +351,8 @@ public class MLPAnalysis {
       if( virtualReadTemps != null ) {
 	Iterator<TempDescriptor> vrItr = virtualReadTemps.iterator();
 	while( vrItr.hasNext() ) {
-	  liveIn.add( vrItr.next() );
+          TempDescriptor vrt = vrItr.next();
+	  liveIn.add( vrt );
 	}
       }
     } break;
@@ -531,7 +532,9 @@ public class MLPAnalysis {
       for( int i = 0; i < fn.numPrev(); i++ ) {
 	FlatNode nn = fn.getPrev( i );       
 	Set<TempDescriptor> availIn = isAvailableResults.get( nn );
-	inIntersect.retainAll( availIn );
+        if( availIn != null ) {
+          inIntersect.retainAll( availIn );
+        }
       }
 
       Set<TempDescriptor> curr = isAvailable_nodeActions( fn, inIntersect, seseStack.peek() );     
@@ -551,6 +554,10 @@ public class MLPAnalysis {
   private Set<TempDescriptor> isAvailable_nodeActions( FlatNode fn, 
 						       Set<TempDescriptor> isAvailSet,
 						       FlatSESEEnterNode currentSESE ) {
+    // any temps that get added to the available set
+    // at this node should be marked in this node's
+    // code plan as temps to be grabbed at runtime!
+
     switch( fn.kind() ) {
 
     case FKind.FlatSESEEnterNode: {
@@ -562,10 +569,15 @@ public class MLPAnalysis {
       FlatSESEExitNode  fsexn = (FlatSESEExitNode)  fn;
       FlatSESEEnterNode fsen  = fsexn.getFlatEnter();
       assert currentSESE.getChildren().contains( fsen );
+      isAvailSet.addAll( fsen.getOutVarSet() );
     } break;
 
     default: {
-      TempDescriptor [] writeTemps = fn.writesTemps();
+      TempDescriptor [] readTemps = fn.readsTemps();
+      for( int i = 0; i < readTemps.length; i++ ) {
+        TempDescriptor rTemp = readTemps[i];
+        isAvailSet.add( rTemp );
+      }
     } break;
 
     } // end switch
@@ -610,10 +622,12 @@ public class MLPAnalysis {
 	  flatNodesToVisit.add( nn );
 	}
       }
-    }      
+    }
 
     if( state.MLPDEBUG ) { 
-      System.out.println( fm.printMethod( codePlans ) );
+      System.out.println( fm.printMethod( livenessRootView ) );
+      //System.out.println( fm.printMethod( isAvailableResults ) );
+      //System.out.println( fm.printMethod( codePlans ) );
     }
   }
 
@@ -637,6 +651,7 @@ public class MLPAnalysis {
       Set<VariableSourceToken> stallSet = vstTable.getStallSet( currentSESE );
       TempDescriptor[] readarray = fn.readsTemps();
       for( int i = 0; i < readarray.length; i++ ) {
+        Set<VariableSourceToken> forRemoval = new HashSet<VariableSourceToken>();
         TempDescriptor readtmp = readarray[i];
         Set<VariableSourceToken> readSet = vstTable.get( readtmp );
         //containsAny
@@ -648,8 +663,22 @@ public class MLPAnalysis {
               before = "**STALL for:";
             }
             before += "("+vst+" "+readtmp+")";
+
+            // mark any other variables from the static SESE for
+            // removal, because after this stall we'll have them
+            // all for later statements
+            forRemoval.addAll( vstTable.get( vst.getSESE(), 
+                                             vst.getAge() 
+                                           ) 
+                             );
           }
-        }	  
+        }
+
+        Iterator<VariableSourceToken> vstItr = forRemoval.iterator();
+        while( vstItr.hasNext() ) {
+          VariableSourceToken vst = vstItr.next();
+          vstTable.remove( vst );
+        }
       }
     } break;
 

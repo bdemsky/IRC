@@ -18,17 +18,18 @@ public class Test {
     
     int z = n + j;
     */
-
+    
     int x = 1;
     int y = 1;
 
     sese fi {
       if( true ) {
-        x = y + 2;      
+        x = y + 2;
+        y = 3;
       }
     }
 
     x = x + 1;
-    y = x + 1;
+    y = y + 1;
   }
 }
