@@ -729,7 +729,6 @@ int transCommitProcess(void ** oidwrlocked, int numoidwrlocked) {
       header = (objheader_t *)(((char *)(ptr->objs[i])) - sizeof(objheader_t));
       header->trec = NULL;
       pthread_mutex_unlock(&(header->objlock));
-      //TODO printf("%s() Unlock type= %d\n", __func__, TYPE(header));
     }
     ptr=ptr->next;
   }
@@ -796,8 +795,7 @@ void needLock(objheader_t *header) {
       && ((ptr = header->trec) == NULL)) { //retry
     ;
   }
-  if(!lockstatus) { //acquired lock
-    //TODO printf("%s() Got lock on type= %d in first try\n", __func__, TYPE(header));
+  if(lockstatus != EBUSY) { //acquired lock
     /* Reset blocked field */
     trec->blocked = 0;
     /* Set trec */
@@ -807,40 +805,12 @@ void needLock(objheader_t *header) {
       return;
     } else { //lock that blocks
       pthread_mutex_lock(&(header->objlock));
-      //TODO printf("%s() Got lock on type= %d in second try\n", __func__, TYPE(header));
       /* Reset blocked field */
       trec->blocked = 0;
       /* Set trec */
       header->trec = trec;
     }
   }
-
-
-#if 0
-  if(pthread_mutex_trylock(&(header->objlock))) { //busy and failed to get locked
-    trec->blocked = 1; //set blocked flag
-    while(
-    while(header->trec == NULL) { //retry
-      ;
-    }
-    if(header->trec->blocked == 1) { //ignore locking
-      return;
-    } else { //lock that blocks
-      pthread_mutex_lock(&(header->objlock));
-      //TODO printf("%s() Got lock on type= %d in second try\n", __func__, TYPE(header));
-      /* Reset blocked field */
-      trec->blocked = 0;
-      /* Set trec */
-      header->trec = trec;
-    }
-  } else { //acquired lock
-    //TODO printf("%s() Got lock on type= %d in first try\n", __func__, TYPE(header));
-    /* Reset blocked field */
-    trec->blocked = 0;
-    /* Set trec */
-    header->trec = trec;
-  }
-#endif
   /* Save the locked object */
   if (lockedobjs->offset<MAXOBJLIST) {
     lockedobjs->objs[lockedobjs->offset++]=OID(header);
