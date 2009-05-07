@@ -432,6 +432,11 @@ public class BuildCode {
       Iterator classit=state.getClassSymbolTable().getDescriptorsIterator();
       while(classit.hasNext()) {
 	ClassDescriptor cn=(ClassDescriptor)classit.next();
+	if(state.MULTICORE) {
+		if(cn.getSymbol().equals("Math")) {
+			continue;
+		}
+	}
 	Iterator methodit=cn.getMethods();
 	while(methodit.hasNext()) {
 	  /* Classify parameters */

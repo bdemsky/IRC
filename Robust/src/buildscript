@@ -533,7 +533,7 @@ TILERACFLAGS="${TILERACFLAGS} -DINTERRUPT"
 fi #INTERRUPT version
 
 cp $ROBUSTROOT/Runtime/Tilera/$MAKEFILE ./Makefile
-cp $ROBUSTROOT/Runtime/Tilera/$SIMHVS ./sim.hvc
+cp $ROBUSTROOT/Runtime/Tilera/$SIMHVC ./sim.hvc
 cp ../Runtime/multicoretask.c ./
 cp ../Runtime/multicoreruntime.c ./
 cp ../Runtime/Queue.c ./
