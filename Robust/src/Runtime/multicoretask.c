@@ -672,7 +672,7 @@ void tagclear(struct ___Object___ * obj, struct ___TagDescriptor___ * tagd) {
     if ((struct ___TagDescriptor___ *)tagptr==tagd)
       obj->___tags___=NULL;
     else
-#ifndef RAW
+#ifndef MULTICORE
       printf("ERROR 1 in tagclear\n");
 #else
 	  ;
@@ -692,7 +692,7 @@ void tagclear(struct ___Object___ * obj, struct ___TagDescriptor___ * tagd) {
 	goto PROCESSCLEAR;
       }
     }
-#ifndef RAW
+#ifndef MULTICORE
     printf("ERROR 2 in tagclear\n");
 #endif
   }
@@ -703,7 +703,7 @@ PROCESSCLEAR:
       if (tagset==obj)
 	tagd->flagptr=NULL;
       else
-#ifndef RAW
+#ifndef MULTICORE
 	printf("ERROR 3 in tagclear\n");
 #else
 	  ;
@@ -723,7 +723,7 @@ PROCESSCLEAR:
 	  goto ENDCLEAR;
 	}
       }
-#ifndef RAW
+#ifndef MULTICORE
       printf("ERROR 4 in tagclear\n");
 #endif
     }
@@ -2432,6 +2432,7 @@ void myhandler(int sig, siginfo_t *info, void *uap) {
 }
 #endif
 
+#ifndef MULTICORE
 fd_set readfds;
 int maxreadfd;
 struct RuntimeHash *fdtoobject;
@@ -2450,6 +2451,7 @@ void removereadfd(int fd) {
       maxreadfd--;
   }
 }
+#endif
 
 #ifdef PRECISE_GC
 #define OFFSET 2
@@ -2500,7 +2502,9 @@ void executetasks() {
   /* Zero fd set */
   FD_ZERO(&readfds);
 #endif
+#ifndef MULTICORE
   maxreadfd=0;
+#endif
 #if 0
   fdtoobject=allocateRuntimeHash(100);
 #endif
@@ -2511,7 +2515,11 @@ void executetasks() {
 #endif
 
 newtask:
+#ifdef MULTICORE
+  while(hashsize(activetasks)>0) {
+#else
   while((hashsize(activetasks)>0)||(maxreadfd>0)) {
+#endif
 
 #ifdef DEBUG
     BAMBOO_DEBUGPRINT(0xe990);
@@ -2726,7 +2734,7 @@ newtask:
 	    ObjectHashget(pw->objectset, (int) parameter, (int *) &next, (int *) &enterflags, &UNUSED, &UNUSED2);
 	    ObjectHashremove(pw->objectset, (int)parameter);
 	    if (enterflags!=NULL)
-	      free(enterflags);
+	      RUNFREE(enterflags);
 	    // release grabbed locks
 	    for(j = 0; j < locklen; ++j) {
 		 int * lock = (int *)(locks[j]->redirectlock);
@@ -2781,11 +2789,12 @@ parameterpresent:
 	//void ** checkpoint=makecheckpoint(currtpd->task->numParameters, currtpd->parameterArray, forward, reverse);
 #endif
 #endif  // #if 0: for recovery
+#ifndef MULTICORE
 	if (x=setjmp(error_handler)) {
 	  //int counter;
 	  /* Recover */
 #ifdef DEBUG
-#ifndef RAW
+#ifndef MULTICORE
 	  printf("Fatal Error=%d, Recovering!\n",x);
 #endif
 #endif
@@ -2802,6 +2811,7 @@ parameterpresent:
 	  BAMBOO_DEBUGPRINT_REG(x);
 	  BAMBOO_EXIT(0xa020);
 	} else {
+#endif
 #if 0 
 		if (injectfailures) {
 	     if ((((double)random())/RAND_MAX)<failurechance) {
@@ -2825,11 +2835,11 @@ execute:
 #endif
 
 	  if(debugtask) {
-#ifndef RAW
-		printf("ENTER %s count=%d\n",currtpd->task->name, (instaccum-instructioncount));
+#ifndef MULTICORE
+        printf("ENTER %s count=%d\n",currtpd->task->name, (instaccum-instructioncount));
 #endif
 	    ((void(*) (void **))currtpd->task->taskptr)(taskpointerarray);
-#ifndef RAW
+#ifndef MULTICORE
 	    printf("EXIT %s count=%d\n",currtpd->task->name, (instaccum-instructioncount));
 #endif
 	  } else {
@@ -2894,7 +2904,9 @@ execute:
 	}
       }
     }
+#ifndef MULTICORE
   }
+#endif
 #ifdef DEBUG
   BAMBOO_DEBUGPRINT(0xe99b);
 #endif
@@ -3013,7 +3025,7 @@ void printdebug() {
   }
   for(i=0; i<numtasks[corenum]; i++) {
     struct taskdescriptor * task=taskarray[BAMBOO_NUM_OF_CORE][i];
-#ifndef RAW
+#ifndef MULTICORE
 	printf("%s\n", task->name);
 #endif
     for(j=0; j<task->numParameters; j++) {
@@ -3021,7 +3033,7 @@ void printdebug() {
       struct parameterwrapper *parameter=param->queue;
       struct ObjectHash * set=parameter->objectset;
       struct ObjectIterator objit;
-#ifndef RAW
+#ifndef MULTICORE
 	  printf("  Parameter %d\n", j);
 #endif
       ObjectHashiterator(set, &objit);
@@ -3032,13 +3044,13 @@ void printdebug() {
 	int numflags=Objdata3(&objit);
 	int flags=Objdata2(&objit);
 	Objnext(&objit);
-#ifndef RAW
+#ifndef MULTICORE
 	printf("    Contains %lx\n", obj);
 	printf("      flag=%d\n", obj->flag);
 #endif
 	if (tagptr==NULL) {
 	} else if (tagptr->type==TAGTYPE) {
-#ifndef RAW
+#ifndef MULTICORE
 	  printf("      tag=%lx\n",tagptr);
 #else
 	  ;
@@ -3047,7 +3059,7 @@ void printdebug() {
 	  int tagindex=0;
 	  struct ArrayObject *ao=(struct ArrayObject *)tagptr;
 	  for(; tagindex<ao->___cachedCode___; tagindex++) {
-#ifndef RAW
+#ifndef MULTICORE
 		  printf("      tag=%lx\n",ARRAYGET(ao, struct ___TagDescriptor___*, tagindex));
 #else
 		  ;

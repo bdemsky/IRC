@@ -1,7 +1,9 @@
 #include <stdio.h>
 #include <sys/types.h>
+#ifndef MULTICORE
 #include <sys/stat.h>
 #include <fcntl.h>
+#endif
 #include <stdlib.h>
 #include <limits.h>
 
@@ -138,7 +140,7 @@ void * gengettable(struct genhashtable *ht, void * key) {
       return ptr->object;
     ptr=ptr->next;
   }
-#ifndef RAW
+#ifndef MULTICORE
   printf("XXXXXXXXX: COULDN'T FIND ENTRY FOR KEY %p\n",key);
 #endif
   return NULL;
@@ -154,7 +156,7 @@ void * getnext(struct genhashtable *ht, void * key) {
 	return NULL;
     ptr=ptr->next;
   }
-#ifndef RAW
+#ifndef MULTICORE
   printf("XXXXXXXXX: COULDN'T FIND ENTRY FOR KEY %p...\n Likely concurrent removal--bad user!!!\n",key);
 #endif
   return NULL;
@@ -211,7 +213,7 @@ void genfreekey(struct genhashtable *ht, void * key) {
     }
     ptr=ptr->next;
   }
-#ifndef RAW
+#ifndef MULTICORE
   printf("XXXXXXXXX: COULDN'T FIND ENTRY FOR KEY %p\n",key);
 #endif
 }

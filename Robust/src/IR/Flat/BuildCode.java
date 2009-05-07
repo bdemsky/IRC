@@ -393,6 +393,8 @@ public class BuildCode {
     }
     if(state.MULTICORE) {
       outmethod.println("#include \"task.h\"");
+	  outmethod.println("#include \"multicoreruntime.h\"");
+	  outmethod.println("#include \"runtime_arch.h\"");
     }
     if (state.THREAD||state.DSM||state.SINGLETM)
       outmethod.println("#include <thread.h>");

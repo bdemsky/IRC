@@ -1,14 +1,14 @@
 #include "runtime.h"
 #include "structdefs.h"
-#include <fcntl.h>
 #ifndef MULTICORE
+#include <fcntl.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <strings.h>
 #include <netdb.h>
 #include <netinet/tcp.h>
-#endif
 #include <errno.h>
+#endif
 #include "SimpleHash.h"
 #include "GenericHashtable.h"
 
@@ -342,6 +342,8 @@ int CALL02(___ServerSocket______nativeaccept____L___Socket___,struct ___ServerSo
 }
 
 void CALL24(___Socket______nativeWrite_____AR_B_I_I, int offset, int length, struct ___Socket___ * ___this___, struct ArrayObject * ___b___, int offset, int length) {
+#ifdef MULTICORE
+#else
   int fd=VAR(___this___)->___fd___;
   char * charstr=((char *)&VAR(___b___)->___length___)+sizeof(int)+offset;
   while(1) {
@@ -356,16 +358,18 @@ void CALL24(___Socket______nativeWrite_____AR_B_I_I, int offset, int length, str
     }
 
     if (length!=0) {
-#ifndef MULTICORE
       perror("ERROR IN NATIVEWRITE");
       printf("error=%d remaining bytes %d\n",errno, length);
-#endif
     }
     break;
   }
+#endif
 }
 
 int CALL02(___Socket______nativeRead_____AR_B, struct ___Socket___ * ___this___, struct ArrayObject * ___b___) {
+#ifdef MULTICORE
+  return -1;
+#else
   int fd=VAR(___this___)->___fd___;
   int length=VAR(___b___)->___length___;
 
@@ -412,6 +416,7 @@ int CALL02(___Socket______nativeRead_____AR_B, struct ___Socket___ * ___this___,
 #endif
 #endif
   return byteread;
+#endif
 }
 
 void CALL01(___Socket______nativeClose____, struct ___Socket___ * ___this___) {

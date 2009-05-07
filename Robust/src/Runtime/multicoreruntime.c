@@ -1,10 +1,11 @@
 #include "runtime.h"
 #include "structdefs.h"
-#include <signal.h>
 #include "mem.h"
+#ifndef MULTICORE
 #include <fcntl.h>
 #include <errno.h>
 #include <signal.h>
+#endif
 #ifndef RAW
 #include <stdio.h>
 #endif
@@ -14,13 +15,13 @@
 //#include "option.h"
 
 extern int classsize[];
+#ifndef MULTICORE
 jmp_buf error_handler;
 int instructioncount;
 
 char *options;
 int injectfailures=0;
 float failurechance=0;
-int debugtask=0;
 int errors=0;
 int injectinstructionfailures;
 int failurecount;
@@ -30,6 +31,9 @@ int instaccum=0;
 #ifdef DMALLOC
 #include "dmalloc.h"
 #endif
+#endif
+
+int debugtask=0;
 
 #ifdef MULTICORE
 void initializeexithandler() {
@@ -167,7 +171,7 @@ struct ArrayObject * allocate_newarray(void * ptr, int type, int length) {
   //v->numlocks = 0;
   v->lock = NULL;
   if (length<0) {
-#ifndef RAW
+#ifndef MULTICORE
     printf("ERROR: negative array\n");
 #endif
     return NULL;
@@ -244,14 +248,20 @@ void failedboundschk() {
   exit(-1);
 #endif
 #else
+#ifndef MULTICORE
+  printf("Array out of bounds\n");
   longjmp(error_handler,2);
+#endif
 #endif
 }
 
 /* Abort task call */
 void abort_task() {
 #ifdef TASK
+#ifndef MULTICORE
+  printf("Aborting\n");
   longjmp(error_handler,4);
+#endif
 #else
   printf("Aborting\n");
   exit(-1);

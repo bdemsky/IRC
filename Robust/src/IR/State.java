@@ -66,6 +66,7 @@ public class State {
   public String OWNERSHIPALIASFILE=null;
   public boolean OPTIONAL=false;
   public boolean ARRAYBOUNDARYCHECK=true;
+  public boolean RAW=false;
   public boolean SCHEDULING=false;
   public boolean USEPROFILE=false;
   public boolean THREAD=false;

@@ -1,9 +1,11 @@
 #ifndef RUNTIME
 #define RUNTIME
+#ifndef MULTICORE
 #include <setjmp.h>
 extern jmp_buf error_handler;
 extern int instructioncount;
 extern int failurecount;
+#endif
 #ifdef DSTM
 #include "dstm.h"
 #endif

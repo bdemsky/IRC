@@ -645,25 +645,37 @@ public class BuildCodeMultiCore extends BuildCode {
 
     /* generate print information for RAW version */
     output.println("#ifdef MULTICORE");
-    output.println("{");
-    output.println("int tmpsum = 0;");
-    output.println("char * taskname = \"" + task.getSymbol() + "\";");
-    output.println("int tmplen = " + task.getSymbol().length() + ";");
-    output.println("int tmpindex = 1;");
-    output.println("for(;tmpindex < tmplen; tmpindex++) {");
-    output.println("   tmpsum = tmpsum * 10 + *(taskname + tmpindex) - '0';");
-    output.println("}");
+	if(this.state.RAW) {
+		output.println("{");
+		output.println("int tmpsum = 0;");
+		output.println("char * taskname = \"" + task.getSymbol() + "\";");
+		output.println("int tmplen = " + task.getSymbol().length() + ";");
+		output.println("int tmpindex = 1;");
+		output.println("for(;tmpindex < tmplen; tmpindex++) {");
+		output.println("   tmpsum = tmpsum * 10 + *(taskname + tmpindex) - '0';");
+		output.println("}");
+	}
     output.println("#ifdef RAWPATH");
-	output.println("BAMBOO_DEBUGPRINT(0xAAAA);");
-    output.println("BAMBOO_DEBUGPRINT_REG(tmpsum);");
-	output.println("BAMBOO_DEBUGPRINT(BAMBOO_GET_EXE_TIME());"); 
+	if(this.state.RAW) {
+		output.println("BAMBOO_DEBUGPRINT(0xAAAA);");
+		output.println("BAMBOO_DEBUGPRINT_REG(tmpsum);"); 
+	} else {
+		output.println("tprintf(\"Process %x(%d): task %s\\n\", corenum, corenum, \"" + task.getSymbol() + "\");");
+	}
+	output.println("BAMBOO_DEBUGPRINT((int)BAMBOO_GET_EXE_TIME());");
     output.println("#endif");
     output.println("#ifdef DEBUG");
-    output.println("BAMBOO_DEBUGPRINT(0xAAAA);");
-    output.println("BAMBOO_DEBUGPRINT_REG(tmpsum);");
+	if(this.state.RAW) {
+		output.println("BAMBOO_DEBUGPRINT(0xAAAA);");
+		output.println("BAMBOO_DEBUGPRINT_REG(tmpsum);");
+	} else {
+		output.println("tprintf(\"Process %x(%d): task %s\\n\", corenum, corenum, \"" + task.getSymbol() + "\");");
+	}
     output.println("#endif");
-    output.println("}");
-    output.println("#endif");
+	if(this.state.RAW) {
+		output.println("}");
+	}
+	output.println("#endif");
 
     for(int i = 0; i < fm.numParameters(); ++i) {
       TempDescriptor temp = fm.getParameter(i);
