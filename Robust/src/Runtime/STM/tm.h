@@ -20,7 +20,6 @@
 #include <pthread.h>
 #include <sys/time.h>
 #include <errno.h>
-//#include "threadnotify.h"
 #include "stmlookup.h"
 #include "dsmlock.h"
 
@@ -126,7 +125,7 @@ extern __thread struct objlist * newobjs;
 extern __thread objstr_t *t_cache;
 extern __thread objstr_t *t_reserve;
 #ifdef STMSTATS
-extern __thread threadrec_t trec;
+extern __thread threadrec_t *trec;
 extern __thread struct objlist * lockedobjs;
 #endif
 

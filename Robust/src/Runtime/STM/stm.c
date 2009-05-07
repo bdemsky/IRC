@@ -12,6 +12,8 @@
 
 #include "tm.h"
 #include "garbage.h"
+
+/*** Globals *****/
 /* Thread transaction variables */
 __thread objstr_t *t_cache;
 __thread objstr_t *t_reserve;
@@ -27,8 +29,9 @@ int nSoftAbortAbort = 0;
 
 #ifdef STMSTATS
 /* Thread variable for locking/unlocking */
-__thread threadrec_t trec;
+__thread threadrec_t *trec;
 __thread struct objlist * lockedobjs;
+/** Global lock **/
 int typesCausingAbort[TOTALNUMCLASSANDARRAY];
 /******Keep track of objects and types causing aborts******/
 /*TODO
@@ -787,8 +790,36 @@ void getTotalAbortCount(int start, int stop, void *startptr, void *checkptr, cha
  * Locks an object that causes aborts
  **/
 void needLock(objheader_t *header) {
+  int lockstatus;
+  threadrec_t *ptr;
+  while((lockstatus = pthread_mutex_trylock(&(header->objlock))) 
+      && ((ptr = header->trec) == NULL)) { //retry
+    ;
+  }
+  if(!lockstatus) { //acquired lock
+    //TODO printf("%s() Got lock on type= %d in first try\n", __func__, TYPE(header));
+    /* Reset blocked field */
+    trec->blocked = 0;
+    /* Set trec */
+    header->trec = trec;
+  } else { //failed to get lock
+    if(ptr->blocked == 1) { //ignore locking
+      return;
+    } else { //lock that blocks
+      pthread_mutex_lock(&(header->objlock));
+      //TODO printf("%s() Got lock on type= %d in second try\n", __func__, TYPE(header));
+      /* Reset blocked field */
+      trec->blocked = 0;
+      /* Set trec */
+      header->trec = trec;
+    }
+  }
+
+
+#if 0
   if(pthread_mutex_trylock(&(header->objlock))) { //busy and failed to get locked
-    trec.blocked = 1; //set blocked flag
+    trec->blocked = 1; //set blocked flag
+    while(
     while(header->trec == NULL) { //retry
       ;
     }
@@ -798,17 +829,18 @@ void needLock(objheader_t *header) {
       pthread_mutex_lock(&(header->objlock));
       //TODO printf("%s() Got lock on type= %d in second try\n", __func__, TYPE(header));
       /* Reset blocked field */
-      trec.blocked = 0;
+      trec->blocked = 0;
       /* Set trec */
-      header->trec = &trec;
+      header->trec = trec;
     }
   } else { //acquired lock
     //TODO printf("%s() Got lock on type= %d in first try\n", __func__, TYPE(header));
     /* Reset blocked field */
-    trec.blocked = 0;
+    trec->blocked = 0;
     /* Set trec */
-    header->trec = &trec;
+    header->trec = trec;
   }
+#endif
   /* Save the locked object */
   if (lockedobjs->offset<MAXOBJLIST) {
     lockedobjs->objs[lockedobjs->offset++]=OID(header);
