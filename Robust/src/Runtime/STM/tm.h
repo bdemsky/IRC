@@ -166,7 +166,7 @@ int transAbortProcess(void **, int);
 int transCommmitProcess(void **, int);
 void randomdelay(int);
 #ifdef STMSTATS
-void getTotalAbortCount(int, int, void *, void *, char);
+void getTotalAbortCount(int, int, void *, void *, int);
 void needLock(objheader_t *);
 #endif
 #endif
