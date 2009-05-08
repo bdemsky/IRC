@@ -25,7 +25,7 @@ public class MLPAnalysis {
   private Hashtable< FlatNode, Set<TempDescriptor>      > livenessRootView;
   private Hashtable< FlatNode, Set<TempDescriptor>      > livenessVirtualReads;
   private Hashtable< FlatNode, VarSrcTokTable           > variableResults;
-  private Hashtable< FlatNode, Set<TempDescriptor>      > isAvailableResults;
+  private Hashtable< FlatNode, Set<TempDescriptor>      > notAvailableResults;
   private Hashtable< FlatNode, CodePlan                 > codePlans;
 
 
@@ -46,7 +46,7 @@ public class MLPAnalysis {
     seseStacks           = new Hashtable< FlatNode, Stack<FlatSESEEnterNode> >();
     livenessVirtualReads = new Hashtable< FlatNode, Set<TempDescriptor>      >();
     variableResults      = new Hashtable< FlatNode, VarSrcTokTable           >();
-    isAvailableResults   = new Hashtable< FlatNode, Set<TempDescriptor>      >();
+    notAvailableResults  = new Hashtable< FlatNode, Set<TempDescriptor>      >();
     codePlans            = new Hashtable< FlatNode, CodePlan                 >();
 
 
@@ -103,9 +103,9 @@ public class MLPAnalysis {
       Descriptor d  = methItr.next();      
       FlatMethod fm = state.getMethodFlat( d );
 
-      // compute is available for every live variable at
-      // every program point, in a forward fixed-point pass
-      isAvailableForward( fm );
+      // compute what is not available at every program
+      // point, in a forward fixed-point pass
+      notAvailableForward( fm );
     }
 
 
@@ -504,7 +504,7 @@ public class MLPAnalysis {
   }
 
 
-  private void isAvailableForward( FlatMethod fm ) {
+  private void notAvailableForward( FlatMethod fm ) {
 
     Set<FlatNode> flatNodesToVisit = new HashSet<FlatNode>();
     flatNodesToVisit.add( fm );	 
@@ -516,27 +516,22 @@ public class MLPAnalysis {
       Stack<FlatSESEEnterNode> seseStack = seseStacks.get( fn );
       assert seseStack != null;      
 
-      Set<TempDescriptor> prev = isAvailableResults.get( fn );
+      Set<TempDescriptor> prev = notAvailableResults.get( fn );
 
-      // merge control flow joins where something is available
-      // into this node only if it is available on every incoming
-      // node, so do intersect of all incoming nodes with live in
-      HashSet<TempDescriptor> rootLiveSet = (HashSet<TempDescriptor>) livenessRootView.get( fn );
-      Set<TempDescriptor>     inIntersect = (Set<TempDescriptor>)     rootLiveSet.clone();
-      
+      Set<TempDescriptor> inUnion = new HashSet<TempDescriptor>();      
       for( int i = 0; i < fn.numPrev(); i++ ) {
 	FlatNode nn = fn.getPrev( i );       
-	Set<TempDescriptor> availIn = isAvailableResults.get( nn );
-        if( availIn != null ) {
-          inIntersect.retainAll( availIn );
+	Set<TempDescriptor> notAvailIn = notAvailableResults.get( nn );
+        if( notAvailIn != null ) {
+          inUnion.addAll( notAvailIn );
         }
       }
 
-      Set<TempDescriptor> curr = isAvailable_nodeActions( fn, inIntersect, seseStack.peek() );     
+      Set<TempDescriptor> curr = notAvailable_nodeActions( fn, inUnion, seseStack.peek() );     
 
       // if a new result, schedule forward nodes for analysis
       if( !curr.equals( prev ) ) {
-	isAvailableResults.put( fn, curr );
+	notAvailableResults.put( fn, curr );
 
 	for( int i = 0; i < fn.numNext(); i++ ) {
 	  FlatNode nn = fn.getNext( i );	 
@@ -546,38 +541,94 @@ public class MLPAnalysis {
     }
   }
 
-  private Set<TempDescriptor> isAvailable_nodeActions( FlatNode fn, 
-						       Set<TempDescriptor> isAvailSet,
-						       FlatSESEEnterNode currentSESE ) {
-    // any temps that get added to the available set
-    // at this node should be marked in this node's
-    // code plan as temps to be grabbed at runtime!
+  private Set<TempDescriptor> notAvailable_nodeActions( FlatNode fn, 
+							Set<TempDescriptor> notAvailSet,
+							FlatSESEEnterNode currentSESE ) {
+
+    // any temps that are removed from the not available set
+    // at this node should be marked in this node's code plan
+    // as temps to be grabbed at runtime!
 
     switch( fn.kind() ) {
 
     case FKind.FlatSESEEnterNode: {
       FlatSESEEnterNode fsen = (FlatSESEEnterNode) fn;
       assert fsen.equals( currentSESE );
+      notAvailSet.clear();
     } break;
 
     case FKind.FlatSESEExitNode: {
       FlatSESEExitNode  fsexn = (FlatSESEExitNode)  fn;
       FlatSESEEnterNode fsen  = fsexn.getFlatEnter();
       assert currentSESE.getChildren().contains( fsen );
-      isAvailSet.addAll( fsen.getOutVarSet() );
+
+      Set<TempDescriptor> liveTemps = livenessRootView.get( fn );
+      assert liveTemps != null;
+
+      VarSrcTokTable vstTable = variableResults.get( fn );
+      assert vstTable != null;
+
+      Set<TempDescriptor> notAvailAtEnter = notAvailableResults.get( fsen );
+      assert notAvailAtEnter != null;
+
+      Iterator<TempDescriptor> tdItr = liveTemps.iterator();
+      while( tdItr.hasNext() ) {
+	TempDescriptor td = tdItr.next();
+
+	if( vstTable.get( fsen, td ).size() > 0 ) {
+	  // there is at least one child token for this variable
+	  notAvailSet.add( td );
+	  continue;
+	}
+
+	if( notAvailAtEnter.contains( td ) ) {
+	  // wasn't available at enter, not available now
+	  notAvailSet.add( td );
+	  continue;
+	}
+      }
     } break;
 
+    case FKind.FlatOpNode: {
+      FlatOpNode fon = (FlatOpNode) fn;
+
+      if( fon.getOp().getOp() == Operation.ASSIGN ) {
+	TempDescriptor lhs = fon.getDest();
+	TempDescriptor rhs = fon.getLeft();
+
+	// copy makes lhs same availability as rhs
+	if( notAvailSet.contains( rhs ) ) {
+	  notAvailSet.add( lhs );
+	} else {
+	  notAvailSet.remove( lhs );
+	}
+
+	// only break if this is an ASSIGN op node,
+	// otherwise fall through to default case
+	break;
+      }
+    }
+
+    // note that FlatOpNode's that aren't ASSIGN
+    // fall through to this default case
     default: {
+      TempDescriptor [] writeTemps = fn.writesTemps();
+      for( int i = 0; i < writeTemps.length; i++ ) {
+        TempDescriptor wTemp = writeTemps[i];
+        notAvailSet.remove( wTemp );
+      }
       TempDescriptor [] readTemps = fn.readsTemps();
       for( int i = 0; i < readTemps.length; i++ ) {
         TempDescriptor rTemp = readTemps[i];
-        isAvailSet.add( rTemp );
+        notAvailSet.remove( rTemp );
+	//// THESE VARIABLES MIGHT COME FROM SESE'S
+	//// THAT WE CAN GRAB MORE DATA FROM!
       }
     } break;
 
     } // end switch
 
-    return isAvailSet;
+    return notAvailSet;
   }
 
 
@@ -622,7 +673,7 @@ public class MLPAnalysis {
     if( state.MLPDEBUG ) { 
       //System.out.println( fm.printMethod( livenessRootView ) );
       //System.out.println( fm.printMethod( variableResults ) );
-      //System.out.println( fm.printMethod( isAvailableResults ) );
+      //System.out.println( fm.printMethod( notAvailableResults ) );
       System.out.println( fm.printMethod( codePlans ) );
     }
   }
@@ -644,13 +695,20 @@ public class MLPAnalysis {
     } break;
 
     default: {          
-      // decide if we must stall for variables 
-      // dereferenced at this node
-      Set<VariableSourceToken> stallSet = vstTable.getStallSet( currentSESE );
+      // decide if we must stall for variables dereferenced at this node
+      Set<TempDescriptor>      notAvailSet = notAvailableResults.get( fn );
+      Set<VariableSourceToken> stallSet    = vstTable.getStallSet( currentSESE );
+
       TempDescriptor[] readarray = fn.readsTemps();
       for( int i = 0; i < readarray.length; i++ ) {
-        Set<VariableSourceToken> forRemoval = new HashSet<VariableSourceToken>();
         TempDescriptor readtmp = readarray[i];
+
+	// ignore temps that are definitely available 
+	// when considering to stall on it
+	if( !notAvailSet.contains( readtmp ) ) {
+	  continue;
+	}
+
         Set<VariableSourceToken> readSet = vstTable.get( readtmp );
         //containsAny
         for( Iterator<VariableSourceToken> readit = readSet.iterator(); 
@@ -660,22 +718,8 @@ public class MLPAnalysis {
             if( before == null ) {
               before = "**STALL for:";
             }
-            before += "("+vst+" "+readtmp+")";
-
-            // mark any other variables from the static SESE for
-            // removal, because after this stall we'll have them
-            // all for later statements
-            forRemoval.addAll( vstTable.get( vst.getSESE(), 
-                                             vst.getAge() 
-                                           ) 
-                             );
+            before += "("+vst+" "+readtmp+")";	    
           }
-        }
-
-        Iterator<VariableSourceToken> vstItr = forRemoval.iterator();
-        while( vstItr.hasNext() ) {
-          VariableSourceToken vst = vstItr.next();
-          vstTable.remove( vst );
         }
       }
 
