@@ -428,7 +428,34 @@ public class VarSrcTokTable {
       out.addAll( get( child ) );
     }
 
-    assertConsistency();    
+    return out;
+  }
+
+
+  // given a table from a subsequent program point, decide
+  // which variables are going from a static source to a
+  // dynamic source and return them
+  public Set<VariableSourceToken> getStatic2DynamicSet( VarSrcTokTable next ) {
+    
+    Set<VariableSourceToken> out = new HashSet<VariableSourceToken>();
+    
+    Iterator itr = var2vst.entrySet().iterator();
+    while( itr.hasNext() ) {
+      Map.Entry                    me  = (Map.Entry)                    itr.next();
+      TempDescriptor               var = (TempDescriptor)               me.getKey();
+      HashSet<VariableSourceToken> s1  = (HashSet<VariableSourceToken>) me.getValue();      
+    
+      if( s1.size() == 1 ) {
+        // this is a variable with a static source
+        Set<VariableSourceToken> s2 = next.get( var );
+        
+        if( s2.size() > 1 ) {
+          // and in the next table, it is dynamic
+          out.addAll( s1 );
+        }
+      }
+    }
+
     return out;
   }
 
@@ -567,7 +594,8 @@ public class VarSrcTokTable {
   }
 
   public String toString() {
-    return "trueSet ="+trueSet.toString();
+    //return "trueSet ="+trueSet.toString();
+    return toStringPretty();
   }
 
   public String toStringVerbose() {

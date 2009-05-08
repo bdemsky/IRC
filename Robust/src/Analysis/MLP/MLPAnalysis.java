@@ -380,24 +380,15 @@ public class MLPAnalysis {
       // merge sets from control flow joins
       VarSrcTokTable inUnion = new VarSrcTokTable();
       for( int i = 0; i < fn.numPrev(); i++ ) {
-	FlatNode nn = fn.getPrev( i );	
-	
+	FlatNode nn = fn.getPrev( i );		
 	VarSrcTokTable incoming = variableResults.get( nn );
-	if( incoming != null ) {
-	  incoming.assertConsistency();
-	}
-
 	inUnion.merge( incoming );
       }
 
       VarSrcTokTable curr = variable_nodeActions( fn, inUnion, seseStack.peek() );     
 
       // if a new result, schedule forward nodes for analysis
-      if( !curr.equals( prev ) ) {
-	
-
-	curr.assertConsistency();
-
+      if( !curr.equals( prev ) ) {       
 	variableResults.put( fn, curr );
 
 	for( int i = 0; i < fn.numNext(); i++ ) {
@@ -445,6 +436,8 @@ public class MLPAnalysis {
 
 	vstTable.remove( lhs );
 
+        Set<VariableSourceToken> forAddition = new HashSet<VariableSourceToken>();
+
 	Iterator<VariableSourceToken> itr = vstTable.get( rhs ).iterator();
 	while( itr.hasNext() ) {
 	  VariableSourceToken vst = itr.next();
@@ -454,24 +447,26 @@ public class MLPAnalysis {
 
           // if this is from a child, keep the source information
           if( currentSESE.getChildren().contains( vst.getSESE() ) ) {	  
-            vstTable.add( new VariableSourceToken( ts,
-                                                   vst.getSESE(),
-                                                   vst.getAge(),
-                                                   vst.getAddrVar()
-                                                   )
-                          );
+            forAddition.add( new VariableSourceToken( ts,
+                                                      vst.getSESE(),
+                                                      vst.getAge(),
+                                                      vst.getAddrVar()
+                                                      )
+                             );
 
           // otherwise, it's our or an ancestor's token so we
           // can assume we have everything we need
           } else {
-            vstTable.add( new VariableSourceToken( ts,
-                                                   currentSESE,
-                                                   new Integer( 0 ),
-                                                   lhs
-                                                   )
-                          );
+            forAddition.add( new VariableSourceToken( ts,
+                                                      currentSESE,
+                                                      new Integer( 0 ),
+                                                      lhs
+                                                      )
+                             );
           }
 	}
+
+        vstTable.addAll( forAddition );
 
 	// only break if this is an ASSIGN op node,
 	// otherwise fall through to default case
@@ -625,9 +620,10 @@ public class MLPAnalysis {
     }
 
     if( state.MLPDEBUG ) { 
-      System.out.println( fm.printMethod( livenessRootView ) );
+      //System.out.println( fm.printMethod( livenessRootView ) );
+      //System.out.println( fm.printMethod( variableResults ) );
       //System.out.println( fm.printMethod( isAvailableResults ) );
-      //System.out.println( fm.printMethod( codePlans ) );
+      System.out.println( fm.printMethod( codePlans ) );
     }
   }
 
@@ -648,6 +644,8 @@ public class MLPAnalysis {
     } break;
 
     default: {          
+      // decide if we must stall for variables 
+      // dereferenced at this node
       Set<VariableSourceToken> stallSet = vstTable.getStallSet( currentSESE );
       TempDescriptor[] readarray = fn.readsTemps();
       for( int i = 0; i < readarray.length; i++ ) {
@@ -680,6 +678,25 @@ public class MLPAnalysis {
           vstTable.remove( vst );
         }
       }
+
+      // if any variable at this node has a static source (exactly one sese)
+      // but goes to a dynamic source at a next node, write its dynamic addr      
+      Set<VariableSourceToken> static2dynamicSet = new HashSet<VariableSourceToken>();
+      for( int i = 0; i < fn.numNext(); i++ ) {
+	FlatNode nn = fn.getNext( i );
+        VarSrcTokTable nextVstTable = variableResults.get( nn );
+        assert nextVstTable != null;
+        static2dynamicSet.addAll( vstTable.getStatic2DynamicSet( nextVstTable ) );
+      }
+      Iterator<VariableSourceToken> vstItr = static2dynamicSet.iterator();
+      while( vstItr.hasNext() ) {
+        VariableSourceToken vst = vstItr.next();
+        if( after == null ) {
+          after = "** Write dynamic: ";
+        }
+        after += "("+vst+")";
+      }
+      
     } break;
 
     } // end switch
