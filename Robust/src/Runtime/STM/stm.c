@@ -13,8 +13,7 @@
 #include "tm.h"
 #include "garbage.h"
 
-/*** Globals *****/
-/* Thread transaction variables */
+/* Per thread transaction variables */
 __thread objstr_t *t_cache;
 __thread objstr_t *t_reserve;
 __thread struct objlist * newobjs;
@@ -34,7 +33,7 @@ __thread struct objlist * lockedobjs;
 /** Global lock **/
 int typesCausingAbort[TOTALNUMCLASSANDARRAY];
 /******Keep track of objects and types causing aborts******/
-/*TODO
+/* TODO uncomment for later use
 #define DEBUGSTMSTAT(args...) { \
   printf(args); \
   fflush(stdout); \
@@ -51,10 +50,36 @@ int typesCausingAbort[TOTALNUMCLASSANDARRAY];
 #define DEBUGSTM(x...)
 #endif
 
-#define ABORTCOUNT(x) x->abortCount++;   \
-  if (x->abortCount > MAXABORTS) {	 \
-    x->riskyflag = 1;			 \
+#ifdef STMSTATS
+/*** Global variables *****/
+objlockstate_t *objlockscope;
+/**
+ * ABORTCOUNT
+ * params: object header
+ * Increments the abort count for each object
+ **/
+void ABORTCOUNT(objheader_t * x) {
+  x->abortCount++;  
+  if (x->abortCount > MAXABORTS && (x->riskyflag != 1)) {	 
+    //makes riskflag sticky
+    x->riskyflag = 1;			 
+    pthread_mutex_lock(&lockedobjstore); 
+    if (objlockscope->offset<MAXOBJLIST) { 
+      x->objlock=&(objlockscope->lock[objlockscope->offset++]);
+    } else { 
+      objlockstate_t *tmp=malloc(sizeof(objlockstate_t)); 
+      int i; 
+      for(i=0; i<MAXOBJLIST; i++) 
+        pthread_mutex_init(&(tmp->lock[i]), NULL); 
+      tmp->next=objlockscope; 
+      x->objlock=&(tmp->lock[0]); 
+      tmp->offset=1; 
+      objlockscope=tmp; 
+    } 
+    pthread_mutex_unlock(&lockedobjstore); 
   }
+}
+#endif
 
 /* ==================================================
  * stmStartup
@@ -127,8 +152,8 @@ objheader_t *transCreateObj(void * ptr, unsigned int size) {
   tmp->accessCount = 0;
   tmp->riskyflag = 0;
   tmp->trec = NULL;
-  //initialize obj lock
-  pthread_mutex_init(&tmp->objlock, NULL);
+  //initialize obj lock to the header
+  tmp->objlock = NULL;
   STATUS(tmp)=NEW;
   // don't insert into table
   if (newobjs->offset<MAXOBJLIST) {
@@ -211,7 +236,7 @@ void *objstrAlloc(unsigned int size) {
  * -copies the object into the transaction cache
  * =============================================================
  */
-__attribute__((pure)) void *transRead(void * oid) {
+__attribute__((pure)) void *transRead(void * oid, void *gl) {
   objheader_t *tmp, *objheader;
   objheader_t *objcopy;
   int size;
@@ -230,9 +255,8 @@ __attribute__((pure)) void *transRead(void * oid) {
   //DEBUGSTMSTAT("type: %d, header->abortCount: %d, header->accessCount: %d, riskratio: %f\n", TYPE(header), header->abortCount, header->accessCount, riskratio);
   //DEBUGSTMSTAT("type: %d, header->abortCount: %d, header->accessCount: %d\n", TYPE(header), header->abortCount, header->accessCount);
   //if(header->abortCount > MAXABORTS &&  riskratio > NEED_LOCK_THRESHOLD) {
-  if (header->riskyflag) {
-    //makes riskflag sticky
-    needLock(header);
+  if(header->riskyflag) {
+    needLock(header,gl);
   }
 #endif
   /* Insert into cache's lookup table */
@@ -676,7 +700,7 @@ int transAbortProcess(void **oidwrlocked, int numoidwrlocked) {
     for(i=0; i<max; i++) {
       header = (objheader_t *)((char *)(ptr->objs[i]) - sizeof(objheader_t));
       header->trec = NULL;
-      pthread_mutex_unlock(&(header->objlock));
+      pthread_mutex_unlock(header->objlock);
     }
     ptr=ptr->next;
   }
@@ -730,7 +754,7 @@ int transCommitProcess(void ** oidwrlocked, int numoidwrlocked) {
     for(i=0; i<max; i++) {
       header = (objheader_t *)(((char *)(ptr->objs[i])) - sizeof(objheader_t));
       header->trec = NULL;
-      pthread_mutex_unlock(&(header->objlock));
+      pthread_mutex_unlock(header->objlock);
     }
     ptr=ptr->next;
   }
@@ -790,10 +814,10 @@ void getTotalAbortCount(int start, int stop, void *startptr, void *checkptr, int
  * params: Object header
  * Locks an object that causes aborts
  **/
-void needLock(objheader_t *header) {
+void needLock(objheader_t *header, void *gl) {
   int lockstatus;
   threadrec_t *ptr;
-  while((lockstatus = pthread_mutex_trylock(&(header->objlock))) 
+  while((lockstatus = pthread_mutex_trylock(header->objlock)) 
       && ((ptr = header->trec) == NULL)) { //retry
     ;
   }
@@ -810,8 +834,14 @@ void needLock(objheader_t *header) {
       trec->blocked=0;
       return;
     } else { 
+#ifdef PRECISE_GC
+      struct listitem *tmp=stopforgc((struct garbagelist *)gl);
+#endif
       //grab lock and wait our turn
-      pthread_mutex_lock(&(header->objlock));
+      pthread_mutex_lock(header->objlock);
+#ifdef PRECISE_GC
+  restartaftergc(tmp);
+#endif
       /* we have lock, so we are not blocked anymore */
       trec->blocked = 0;
       /* Set our trec */

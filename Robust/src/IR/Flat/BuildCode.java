@@ -242,9 +242,14 @@ public class BuildCode {
     if (state.THREAD||state.DSM||state.SINGLETM) {
       outmethod.println("initializethreads();");
       outmethod.println("#ifdef STMSTATS\n");
-      outmethod.println(" for(i=0; i<TOTALNUMCLASSANDARRAY; i++) {");
-      outmethod.println("   typesCausingAbort[i] = 0;");
-      outmethod.println(" }");
+      outmethod.println("objlockscope = calloc(1, sizeof(objlockstate_t));");
+      outmethod.println("pthread_mutex_init(&lockedobjstore, NULL);");
+      outmethod.println("for(i=0; i<MAXOBJLIST; i++) {");
+      outmethod.println("  pthread_mutex_init(&(objlockscope->lock[i]), NULL);");
+      outmethod.println("}");
+      outmethod.println("for(i=0; i<TOTALNUMCLASSANDARRAY; i++) {");
+      outmethod.println("  typesCausingAbort[i] = 0;");
+      outmethod.println("}");
       outmethod.println("#endif\n");
     }
     if (state.DSM) {
@@ -1944,7 +1949,7 @@ public class BuildCode {
       if (state.DSM) {
 	output.println("TRANSREAD("+generateTemp(fm, fgcn.getSrc(),lb)+", (unsigned int) "+generateTemp(fm, fgcn.getSrc(),lb)+");");
       } else {
-	output.println("TRANSREAD("+generateTemp(fm, fgcn.getSrc(),lb)+", "+generateTemp(fm, fgcn.getSrc(),lb)+");");
+	output.println("TRANSREAD("+generateTemp(fm, fgcn.getSrc(),lb)+", "+generateTemp(fm, fgcn.getSrc(),lb)+", (void *)&("+localsprefix+"));");
       }
     } else {
       /* Need to convert to OID */
@@ -2233,7 +2238,7 @@ public class BuildCode {
       if (ffn.getField().getType().isPtr()&&locality.getAtomic(lb).get(ffn).intValue()>0&&
           ((dc==null)||dc.getNeedTrans(lb, ffn))&&
           locality.getNodePreTempInfo(lb, ffn).get(ffn.getSrc())!=LocalityAnalysis.SCRATCH) {
-	output.println("TRANSREAD("+dst+", "+dst+");");
+	output.println("TRANSREAD("+dst+", "+dst+", (void *) &(" + localsprefix + "));");
       }
     } else if (state.DSM) {
       Integer status=locality.getNodePreTempInfo(lb,ffn).get(ffn.getSrc());
@@ -2404,7 +2409,7 @@ public class BuildCode {
       if (elementtype.isPtr()&&locality.getAtomic(lb).get(fen).intValue()>0&&
           ((dc==null)||dc.getNeedTrans(lb, fen))&&
           locality.getNodePreTempInfo(lb, fen).get(fen.getSrc())!=LocalityAnalysis.SCRATCH) {
-	output.println("TRANSREAD("+dst+", "+dst+");");
+	output.println("TRANSREAD("+dst+", "+dst+", (void *)&(" + localsprefix+"));");
       }
     } else if (state.DSM) {
       Integer status=locality.getNodePreTempInfo(lb,fen).get(fen.getSrc());

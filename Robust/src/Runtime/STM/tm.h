@@ -46,7 +46,7 @@ typedef struct objheader {
   int accessCount;            /* track how many times is this object accessed */
   threadrec_t *trec;           /* some thread that locked this object */
   int riskyflag;              /* track how risky is the object */
-  pthread_mutex_t objlock;    /* lock this object */
+  pthread_mutex_t *objlock;    /* lock this object */
 } objheader_t;
 
 #define OID(x) \
@@ -91,7 +91,7 @@ typedef struct objheader {
 #define NEED_LOCK_THRESHOLD 0.020000
 #define OSUSED(x) (((unsigned INTPTR)(x)->top)-((unsigned INTPTR) (x+1)))
 #define OSFREE(x) ((x)->size-OSUSED(x))
-#define TRANSREAD(x,y) { \
+#define TRANSREAD(x,y,z) { \
     void * inputvalue; \
     if ((inputvalue=y)==NULL) x=NULL;\
          else { \
@@ -100,7 +100,7 @@ typedef struct objheader {
              if (cnodetmp->key==inputvalue) {x=cnodetmp->val; break;} \
              cnodetmp=cnodetmp->next; \
              if (cnodetmp==NULL) {if (((struct ___Object___*)inputvalue)->___objstatus___&NEW) {x=inputvalue; break;} else \
-                                  {x=transRead(inputvalue); asm volatile ("" : "=m" (c_table),"=m" (c_mask)); break;}} \
+                                  {x=transRead(inputvalue,z); asm volatile ("" : "=m" (c_table),"=m" (c_mask)); break;}} \
 	   } while(1); \
 	 }}
 
@@ -125,8 +125,15 @@ extern __thread struct objlist * newobjs;
 extern __thread objstr_t *t_cache;
 extern __thread objstr_t *t_reserve;
 #ifdef STMSTATS
+typedef struct objlockstate {
+  int offset;
+  pthread_mutex_t lock[MAXOBJLIST];
+  struct objlockstate *next;
+} objlockstate_t;
 extern __thread threadrec_t *trec;
 extern __thread struct objlist * lockedobjs;
+extern objlockstate_t *objlockscope;
+pthread_mutex_t lockedobjstore;
 #endif
 
 
@@ -158,7 +165,7 @@ void transStart();
 objheader_t *transCreateObj(void * ptr, unsigned int size);
 unsigned int getNewOID(void);
 void *objstrAlloc(unsigned int size);
-__attribute__((pure)) void *transRead(void * oid);
+__attribute__((pure)) void *transRead(void *, void *);
 int transCommit();
 int traverseCache();
 int alttraverseCache();
@@ -167,6 +174,6 @@ int transCommmitProcess(void **, int);
 void randomdelay(int);
 #ifdef STMSTATS
 void getTotalAbortCount(int, int, void *, void *, int);
-void needLock(objheader_t *);
+void needLock(objheader_t *, void *);
 #endif
 #endif
