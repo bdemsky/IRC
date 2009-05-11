@@ -626,6 +626,7 @@ public class MLPAnalysis {
 	// else from that source as available as well
 	VarSrcTokTable table = variableResults.get( fn );
 	Set<VariableSourceToken> srcs = table.get( rTemp );
+
 	if( srcs.size() == 1 ) {
 	  VariableSourceToken vst = srcs.iterator().next();
 	  
@@ -667,13 +668,23 @@ public class MLPAnalysis {
 
       // use incoming results as "dot statement" or just
       // before the current statement
-      VarSrcTokTable dotST = new VarSrcTokTable();
+      VarSrcTokTable dotSTtable = new VarSrcTokTable();
       for( int i = 0; i < fn.numPrev(); i++ ) {
 	FlatNode nn = fn.getPrev( i );
-	dotST.merge( variableResults.get( nn ) );
+	dotSTtable.merge( variableResults.get( nn ) );
       }
 
-      computeStalls_nodeActions( fn, dotST, seseStack.peek() );
+      // find dt-st notAvailableSet also
+      Set<TempDescriptor> dotSTnotAvailSet = new HashSet<TempDescriptor>();      
+      for( int i = 0; i < fn.numPrev(); i++ ) {
+	FlatNode nn = fn.getPrev( i );       
+	Set<TempDescriptor> notAvailIn = notAvailableResults.get( nn );
+        if( notAvailIn != null ) {
+	  dotSTnotAvailSet.addAll( notAvailIn );
+        }
+      }
+
+      computeStalls_nodeActions( fn, dotSTtable, dotSTnotAvailSet, seseStack.peek() );
 
       for( int i = 0; i < fn.numNext(); i++ ) {
 	FlatNode nn = fn.getNext( i );
@@ -694,6 +705,7 @@ public class MLPAnalysis {
 
   private void computeStalls_nodeActions( FlatNode fn,
                                           VarSrcTokTable vstTable,
+					  Set<TempDescriptor> notAvailSet,
                                           FlatSESEEnterNode currentSESE ) {
     String before = null;
     String after  = null;
@@ -708,10 +720,24 @@ public class MLPAnalysis {
       FlatSESEExitNode fsexn = (FlatSESEExitNode) fn;
     } break;
 
+    case FKind.FlatOpNode: {
+      FlatOpNode fon = (FlatOpNode) fn;
+
+      if( fon.getOp().getOp() == Operation.ASSIGN ) {
+	// if this is an op node, don't stall, copy
+	// source and delay until we need to use value
+
+	// only break if this is an ASSIGN op node,
+	// otherwise fall through to default case
+	break;
+      }
+    }
+
+    // note that FlatOpNode's that aren't ASSIGN
+    // fall through to this default case
     default: {          
       // decide if we must stall for variables dereferenced at this node
-      Set<TempDescriptor>      notAvailSet = notAvailableResults.get( fn );
-      Set<VariableSourceToken> stallSet    = vstTable.getStallSet( currentSESE );
+      Set<VariableSourceToken> stallSet = vstTable.getStallSet( currentSESE );
 
       TempDescriptor[] readarray = fn.readsTemps();
       for( int i = 0; i < readarray.length; i++ ) {
@@ -724,7 +750,44 @@ public class MLPAnalysis {
 	}
 
         Set<VariableSourceToken> readSet = vstTable.get( readtmp );
-        //containsAny
+
+	//Two cases:
+
+	//1) Multiple token/age pairs or unknown age: Stall for
+	//dynamic name only.
+	
+
+
+	//2) Single token/age pair: Stall for token/age pair, and copy
+	//all live variables with same token/age pair at the same
+	//time.  This is the same stuff that the notavaialable analysis 
+	//marks as now available.
+
+	//VarSrcTokTable table = variableResults.get( fn );
+	//Set<VariableSourceToken> srcs = table.get( rTemp );
+
+	//XXXXXXXXXX: Note: We have to generate code to do these
+	//copies in the codeplan.  Note we should only copy the
+	//variables that are live!
+
+	/*
+	if( srcs.size() == 1 ) {
+	  VariableSourceToken vst = srcs.iterator().next();
+	  
+	  Iterator<VariableSourceToken> availItr = table.get( vst.getSESE(), 
+							      vst.getAge()
+							    ).iterator();
+	  while( availItr.hasNext() ) {
+	    VariableSourceToken vstAlsoAvail = availItr.next();
+	    notAvailSet.removeAll( vstAlsoAvail.getRefVars() );
+	  }
+	}
+	*/
+
+
+	// assert notAvailSet.containsAll( writeSet );
+
+
         for( Iterator<VariableSourceToken> readit = readSet.iterator(); 
              readit.hasNext(); ) {
           VariableSourceToken vst = readit.next();
@@ -735,29 +798,31 @@ public class MLPAnalysis {
             before += "("+vst+" "+readtmp+")";	    
           }
         }
-      }
-
-      // if any variable at this node has a static source (exactly one sese)
-      // but goes to a dynamic source at a next node, write its dynamic addr      
-      Set<VariableSourceToken> static2dynamicSet = new HashSet<VariableSourceToken>();
-      for( int i = 0; i < fn.numNext(); i++ ) {
-	FlatNode nn = fn.getNext( i );
-        VarSrcTokTable nextVstTable = variableResults.get( nn );
-        assert nextVstTable != null;
-        static2dynamicSet.addAll( vstTable.getStatic2DynamicSet( nextVstTable ) );
-      }
-      Iterator<VariableSourceToken> vstItr = static2dynamicSet.iterator();
-      while( vstItr.hasNext() ) {
-        VariableSourceToken vst = vstItr.next();
-        if( after == null ) {
-          after = "** Write dynamic: ";
-        }
-        after += "("+vst+")";
-      }
-      
+      }      
     } break;
 
     } // end switch
+
+
+    // if any variable at this node has a static source (exactly one sese)
+    // but goes to a dynamic source at a next node, write its dynamic addr      
+    Set<VariableSourceToken> static2dynamicSet = new HashSet<VariableSourceToken>();
+    for( int i = 0; i < fn.numNext(); i++ ) {
+      FlatNode nn = fn.getNext( i );
+      VarSrcTokTable nextVstTable = variableResults.get( nn );
+      assert nextVstTable != null;
+      static2dynamicSet.addAll( vstTable.getStatic2DynamicSet( nextVstTable ) );
+    }
+    Iterator<VariableSourceToken> vstItr = static2dynamicSet.iterator();
+    while( vstItr.hasNext() ) {
+      VariableSourceToken vst = vstItr.next();
+      if( after == null ) {
+	after = "** Write dynamic: ";
+      }
+      after += "("+vst+")";
+    }
+    
+
     if( before == null ) {
       before = "";
     }

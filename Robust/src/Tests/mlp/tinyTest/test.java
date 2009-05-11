@@ -25,12 +25,20 @@ public class Test {
     sese fi {
       if( true ) {
         x = y + 2;
-        y = 3;
+        y = 3;	
       }
+      
     }
 
+    // shouldn't cause a stall
+    int z = x;
+
+    // stall and get values for y and z
     x = x + 1;
+
+    // all of these should proceed without stall
     y = y + 1;
     x = x + 1;
+    z = z + 1;
   }
 }
