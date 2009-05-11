@@ -621,8 +621,22 @@ public class MLPAnalysis {
       for( int i = 0; i < readTemps.length; i++ ) {
         TempDescriptor rTemp = readTemps[i];
         notAvailSet.remove( rTemp );
-	//// THESE VARIABLES MIGHT COME FROM SESE'S
-	//// THAT WE CAN GRAB MORE DATA FROM!
+
+	// if this variable has exactly one source, mark everything
+	// else from that source as available as well
+	VarSrcTokTable table = variableResults.get( fn );
+	Set<VariableSourceToken> srcs = table.get( rTemp );
+	if( srcs.size() == 1 ) {
+	  VariableSourceToken vst = srcs.iterator().next();
+	  
+	  Iterator<VariableSourceToken> availItr = table.get( vst.getSESE(), 
+							      vst.getAge()
+							    ).iterator();
+	  while( availItr.hasNext() ) {
+	    VariableSourceToken vstAlsoAvail = availItr.next();
+	    notAvailSet.removeAll( vstAlsoAvail.getRefVars() );
+	  }
+	}
       }
     } break;
 
