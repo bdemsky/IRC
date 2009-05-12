@@ -50,6 +50,12 @@ int typesCausingAbort[TOTALNUMCLASSANDARRAY];
 #define DEBUGSTM(x...)
 #endif
 
+#ifdef FASTMEMCPY
+void * A_memcpy (void * dest, const void * src, size_t count);
+#else
+#define A_memcpy memcpy
+#endif
+
 #ifdef STMSTATS
 /*** Global variables *****/
 objlockstate_t *objlockscope;
@@ -252,7 +258,7 @@ __attribute__((pure)) void *transRead(void * oid, void *gl) {
     needLock(header,gl);
   }
 #endif
-  memcpy(objcopy, header, size);
+  A_memcpy(objcopy, header, size);
   /* Insert into cache's lookup table */
   STATUS(objcopy)=0;
   t_chashInsert(oid, &objcopy[1]);
@@ -730,7 +736,7 @@ int transCommitProcess(void ** oidwrlocked, int numoidwrlocked) {
     struct ___Object___ *src=t_chashSearch(oidwrlocked[i]);
     dst->___cachedCode___=src->___cachedCode___;
     dst->___cachedHash___=src->___cachedHash___;
-    memcpy(&dst[1], &src[1], tmpsize-sizeof(struct ___Object___));
+    A_memcpy(&dst[1], &src[1], tmpsize-sizeof(struct ___Object___));
     __asm__ __volatile__("": : :"memory");
     header->version++;
   }

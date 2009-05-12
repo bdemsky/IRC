@@ -6,6 +6,7 @@ echo -dsm distributed shared memory
 echo -singleTM single machine committing transactions
 echo -stmdebug STM debug
 echo "-stmstats prints single machine commit (stm) statistics for the benchmark"
+echo -fastmemcpy use fast memcpy
 echo -abortreaders abort readers immediately
 echo -trueprob double - probabiltiy of true branch
 echo -dsmcaching -enable caching in dsm runtime
@@ -66,6 +67,7 @@ DSMRUNTIME=$ROBUSTROOT/Runtime/DSTM/interface/
 REPAIRROOT=~/research/Repair/RepairCompiler/
 CURDIR=`pwd`
 DSMFLAG=false
+FASTMEMCPY=false
 SINGLETM=false
 NOJAVA=false
 CHECKFLAG=false
@@ -154,6 +156,10 @@ elif [[ $1 = '-dsm' ]]
 then
 JAVAOPTS="$JAVAOPTS -dsm"
 DSMFLAG=true
+elif [[ $1 = '-fastmemcpy' ]]
+then
+FASTMEMCPY=true
+EXTRAOPTIONS="$EXTRAOPTIONS -DFASTMEMCPY"
 elif [[ $1 = '-singleTM' ]]
 then
 JAVAOPTS="$JAVAOPTS -singleTM"
@@ -578,6 +584,11 @@ $ROBUSTROOT/Runtime/ObjectHash.c \
 $ROBUSTROOT/Runtime/garbage.c $ROBUSTROOT/Runtime/socket.c \
 $ROBUSTROOT/Runtime/math.c \
 $ROBUSTROOT/Runtime/GenericHashtable.c $ROBUSTROOT/Runtime/object.c"
+
+if $FASTMEMCPY
+then
+FILES="$FILES $ROBUSTROOT/Runtime/memcpy32.o $ROBUSTROOT/Runtime/instrset32.o"
+fi
 
 if $DSMFLAG
 then

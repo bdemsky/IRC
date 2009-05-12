@@ -15,10 +15,14 @@
 #ifdef STM
 #include "tm.h"
 #include <pthread.h>
+#endif
+
+#if defined(THREADS)||defined(STM)
 /* Global barrier for STM */
 pthread_barrier_t barrier;
 pthread_barrierattr_t attr;
 #endif
+
 #include <string.h>
 
 extern int classsize[];
@@ -189,22 +193,15 @@ void CALL02(___System______rangePrefetch____L___Object_____AR_S, struct ___Objec
 
 #endif
 
-#ifdef STM
 /* STM Barrier constructs */
 #ifdef D___Barrier______setBarrier____I
 void CALL11(___Barrier______setBarrier____I, int nthreads, int nthreads) {
-#ifdef PRECISE_GC
-  struct listitem *tmp=stopforgc((struct garbagelist *)___params___);
-#endif
   // Barrier initialization
   int ret;
   if((ret = pthread_barrier_init(&barrier, NULL, nthreads)) != 0) {
     printf("%s() Could not create a barrier: numthreads = 0 in %s\n", __func__, __FILE__);
     exit(-1);
   }
-#ifdef PRECISE_GC
-  restartaftergc(tmp);
-#endif
 }
 #endif
 
@@ -212,13 +209,18 @@ void CALL11(___Barrier______setBarrier____I, int nthreads, int nthreads) {
 void CALL00(___Barrier______enterBarrier____) {
   // Synchronization point
   int ret;
+#ifdef PRECISE_GC
+  struct listitem *tmp=stopforgc((struct garbagelist *)___params___);
+#endif
   ret = pthread_barrier_wait(&barrier);
+#ifdef PRECISE_GC
+  restartaftergc(tmp);
+#endif
   if(ret != 0 && ret != PTHREAD_BARRIER_SERIAL_THREAD) {
     printf("%s() Could not wait on barrier: error %d in %s\n", __func__, errno, __FILE__);
     exit(-1);
   }
 }
-#endif
 #endif
 
 /* Object allocation function */
