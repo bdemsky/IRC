@@ -62,21 +62,20 @@ void ABORTCOUNT(objheader_t * x) {
   x->abortCount++;  
   if (x->abortCount > MAXABORTS && (x->riskyflag != 1)) {	 
     //makes riskflag sticky
-    x->riskyflag = 1;			 
     pthread_mutex_lock(&lockedobjstore); 
     if (objlockscope->offset<MAXOBJLIST) { 
       x->objlock=&(objlockscope->lock[objlockscope->offset++]);
     } else { 
       objlockstate_t *tmp=malloc(sizeof(objlockstate_t)); 
-      int i; 
-      for(i=0; i<MAXOBJLIST; i++) 
-        pthread_mutex_init(&(tmp->lock[i]), NULL); 
       tmp->next=objlockscope; 
-      x->objlock=&(tmp->lock[0]); 
       tmp->offset=1; 
-      objlockscope=tmp; 
+      x->objlock=&(tmp->lock[0]); 
+      objlockscope=tmp;
     } 
     pthread_mutex_unlock(&lockedobjstore); 
+    pthread_mutex_init(x->objlock, NULL);
+    //should put a memory barrier here
+    x->riskyflag = 1;			 
   }
 }
 #endif
@@ -148,12 +147,7 @@ objheader_t *transCreateObj(void * ptr, unsigned int size) {
   objheader_t *retval=&tmp[1];
   tmp->lock=RW_LOCK_BIAS;
   tmp->version = 1;
-  tmp->abortCount = 0;
-  tmp->accessCount = 0;
-  tmp->riskyflag = 0;
-  tmp->trec = NULL;
   //initialize obj lock to the header
-  tmp->objlock = NULL;
   STATUS(tmp)=NEW;
   // don't insert into table
   if (newobjs->offset<MAXOBJLIST) {
@@ -737,8 +731,10 @@ int transCommitProcess(void ** oidwrlocked, int numoidwrlocked) {
     dst->___cachedCode___=src->___cachedCode___;
     dst->___cachedHash___=src->___cachedHash___;
     memcpy(&dst[1], &src[1], tmpsize-sizeof(struct ___Object___));
-    header->version += 1;
+    __asm__ __volatile__("": : :"memory");
+    header->version++;
   }
+  __asm__ __volatile__("": : :"memory");
 
   /* Release write locks */
   for(i=0; i< numoidwrlocked; i++) {
@@ -759,6 +755,7 @@ int transCommitProcess(void ** oidwrlocked, int numoidwrlocked) {
     ptr=ptr->next;
   }
 #endif
+
   return 0;
 }
 

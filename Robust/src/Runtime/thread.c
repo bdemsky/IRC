@@ -118,6 +118,14 @@ void initializethreads() {
   trec=calloc(1, sizeof(threadrec_t));
   trec->blocked = 0;
   lockedobjs=calloc(1, sizeof(struct objlist));
+  objlockscope = calloc(1, sizeof(objlockstate_t));
+  pthread_mutex_init(&lockedobjstore, NULL);
+  { 
+    int i;
+    for(i=0; i<TOTALNUMCLASSANDARRAY; i++) {
+      typesCausingAbort[i] = 0;
+    }
+  }
 #endif
 #endif
 }

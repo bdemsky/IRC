@@ -241,16 +241,6 @@ public class BuildCode {
     }
     if (state.THREAD||state.DSM||state.SINGLETM) {
       outmethod.println("initializethreads();");
-      outmethod.println("#ifdef STMSTATS\n");
-      outmethod.println("objlockscope = calloc(1, sizeof(objlockstate_t));");
-      outmethod.println("pthread_mutex_init(&lockedobjstore, NULL);");
-      outmethod.println("for(i=0; i<MAXOBJLIST; i++) {");
-      outmethod.println("  pthread_mutex_init(&(objlockscope->lock[i]), NULL);");
-      outmethod.println("}");
-      outmethod.println("for(i=0; i<TOTALNUMCLASSANDARRAY; i++) {");
-      outmethod.println("  typesCausingAbort[i] = 0;");
-      outmethod.println("}");
-      outmethod.println("#endif\n");
     }
     if (state.DSM) {
       outmethod.println("if (dstmStartup(argv[1])) {");

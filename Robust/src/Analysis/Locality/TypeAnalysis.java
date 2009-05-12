@@ -92,6 +92,15 @@ public class TypeAnalysis {
     return namemap.get(td);
   }
 
+  public Set<TypeDescriptor> expandSet(Set<TypeDescriptor> tdset) {
+    HashSet<TypeDescriptor> expandedSet=new HashSet<TypeDescriptor>();
+    for(Iterator<TypeDescriptor> it=tdset.iterator();it.hasNext();) {
+      TypeDescriptor td=it.next();
+      expandedSet.addAll(expand(td));
+    }
+    return expandedSet;
+  }
+
   public boolean couldAlias(TypeDescriptor td1, TypeDescriptor td2) {
     return namemap.get(td1).contains(td2);
   }
