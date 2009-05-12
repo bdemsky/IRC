@@ -247,7 +247,6 @@ __attribute__((pure)) void *transRead(void * oid, void *gl) {
   GETSIZE(size, header);
   size += sizeof(objheader_t);
   objcopy = (objheader_t *) objstrAlloc(size);
-  memcpy(objcopy, header, size);
 #ifdef STMSTATS
   header->accessCount++;
   //FIXME riskratio fix
@@ -259,6 +258,7 @@ __attribute__((pure)) void *transRead(void * oid, void *gl) {
     needLock(header,gl);
   }
 #endif
+  memcpy(objcopy, header, size);
   /* Insert into cache's lookup table */
   STATUS(objcopy)=0;
   t_chashInsert(oid, &objcopy[1]);
