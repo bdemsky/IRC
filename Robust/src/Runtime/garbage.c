@@ -329,6 +329,20 @@ void collect(struct garbagelist * stackptr) {
   }
 #if defined(THREADS)||defined(DSTM)||defined(STM)
   /* Go to next thread */
+#ifndef MAC
+  //skip over us
+  if (listptr==&litem) {
+    listptr=listptr->next;
+  }
+#else
+ {
+  struct listitem *litem=pthread_getspecific(litemkey);
+  if (listptr==litem) {
+    listptr=listptr->next;
+  }
+ }
+#endif
+
   if (listptr!=NULL) {
 #ifdef THREADS
     void * orig=listptr->locklist;
@@ -628,7 +642,10 @@ void stopforgc(struct garbagelist * ptr) {
 #endif
   pthread_mutex_lock(&gclistlock);
   listcount++;
-  pthread_cond_signal(&gccond);
+  if ((listcount+1)==threadcount) {
+    //only do wakeup if we are ready to GC
+    pthread_cond_signal(&gccond);
+  }
   pthread_mutex_unlock(&gclistlock);
 }
 

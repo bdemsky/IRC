@@ -165,6 +165,22 @@ void initializethreads() {
   }
 #endif
 #endif
+#ifdef MAC
+  struct listitem *litem=malloc(sizeof(struct listitem));
+  pthread_setspecific(litemkey, litem);
+  litem->prev=NULL;
+  litem->next=list;
+  if(list!=NULL)
+    list->prev=litem;
+  list=litem;
+#else
+  //Add our litem to list of threads
+  litem.prev=NULL;
+  litem.next=list;
+  if(list!=NULL)
+    list->prev=&litem;
+  list=&litem;
+#endif
 }
 
 #if defined(THREADS)||defined(STM)
@@ -307,17 +323,17 @@ transstart:
 
 #if defined(THREADS)||defined(STM)
 void CALL01(___Thread______nativeJoin____, struct ___Thread___ * ___this___) {
+  pthread_mutex_lock(&joinlock);
+  while(!VAR(___this___)->___finished___) {
 #ifdef PRECISE_GC
   stopforgc((struct garbagelist *)___params___);
 #endif
-  pthread_mutex_lock(&joinlock);
-  while(!VAR(___this___)->___finished___)
     pthread_cond_wait(&joincond, &joinlock);
-  pthread_mutex_unlock(&joinlock);
 #ifdef PRECISE_GC
     restartaftergc();
 #endif
-
+  }
+  pthread_mutex_unlock(&joinlock);
 }
 
 void CALL01(___Thread______nativeCreate____, struct ___Thread___ * ___this___) {
