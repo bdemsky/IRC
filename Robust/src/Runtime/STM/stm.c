@@ -838,12 +838,12 @@ void needLock(objheader_t *header, void *gl) {
       return;
     } else { 
 #ifdef PRECISE_GC
-      struct listitem *tmp=stopforgc((struct garbagelist *)gl);
+      stopforgc((struct garbagelist *)gl);
 #endif
       //grab lock and wait our turn
       pthread_mutex_lock(header->objlock);
 #ifdef PRECISE_GC
-  restartaftergc(tmp);
+      restartaftergc();
 #endif
       /* we have lock, so we are not blocked anymore */
       trec->blocked = 0;

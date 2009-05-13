@@ -39,6 +39,7 @@ extern __thread struct listitem litem;
 #else
 pthread_key_t litemkey;
 #endif
+extern struct listitem * list;
 #endif
 
 void threadexit() {
