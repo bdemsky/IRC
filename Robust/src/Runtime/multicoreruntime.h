@@ -95,16 +95,16 @@ inline void initCommunication(void) __attribute__((always_inline));
 inline void fakeExecution(void) __attribute__((always_inline));
 inline void terminate(void) __attribute__((always_inline));
 
-inline void send_msg_1(int targetcore, int n0) __attribute__((always_inline));
-inline void send_msg_2(int targetcore, int n0, int n1) __attribute__((always_inline));
-inline void send_msg_3(int targetcore, int n0, int n1, int n2) __attribute__((always_inline));
-inline void send_msg_4(int targetcore, int n0, int n1, int n2, int n3) __attribute__((always_inline));
-inline void send_msg_5(int targetcore, int n0, int n1, int n2, int n3, int n4) __attribute__((always_inline));
-inline void send_msg_6(int targetcore, int n0, int n1, int n2, int n3, int n4, int n5) __attribute__((always_inline));
-inline void cache_msg_2(int targetcore, int n0, int n1) __attribute__((always_inline));
-inline void cache_msg_3(int targetcore, int n0, int n1, int n2) __attribute__((always_inline));
-inline void cache_msg_4(int targetcore, int n0, int n1, int n2, int n3) __attribute__((always_inline));
-inline void cache_msg_6(int targetcore, int n0, int n1, int n2, int n3, int n4, int n5) __attribute__((always_inline));
+inline void send_msg_1(int targetcore, unsigned long n0) __attribute__((always_inline));
+inline void send_msg_2(int targetcore, unsigned long n0, unsigned long n1) __attribute__((always_inline));
+inline void send_msg_3(int targetcore, unsigned long n0, unsigned long n1, unsigned long n2) __attribute__((always_inline));
+inline void send_msg_4(int targetcore, unsigned long n0, unsigned long n1, unsigned long n2, unsigned long n3) __attribute__((always_inline));
+inline void send_msg_5(int targetcore, unsigned long n0, unsigned long n1, unsigned long n2, unsigned long n3, unsigned long n4) __attribute__((always_inline));
+inline void send_msg_6(int targetcore, unsigned long n0, unsigned long n1, unsigned long n2, unsigned long n3, unsigned long n4, unsigned long n5) __attribute__((always_inline));
+inline void cache_msg_2(int targetcore, unsigned long n0, unsigned long n1) __attribute__((always_inline));
+inline void cache_msg_3(int targetcore, unsigned long n0, unsigned long n1, unsigned long n2) __attribute__((always_inline));
+inline void cache_msg_4(int targetcore, unsigned long n0, unsigned long n1, unsigned long n2, unsigned long n3) __attribute__((always_inline));
+inline void cache_msg_6(int targetcore, unsigned long n0, unsigned long n1, unsigned long n2, unsigned long n3, unsigned long n4, unsigned long n5) __attribute__((always_inline));
 inline void transferObject(struct transObjInfo * transObj);
 inline int receiveMsg(void) __attribute__((always_inline));
 
@@ -122,6 +122,8 @@ inline void profileTaskEnd(void) __attribute__((always_inline));
 //  BAMBOO_GET_NUM_OF_CORE(): compute the # of current residing core               //
 //  BAMBOO_DEBUGPRINT(x): print out integer x                                      //
 //  BAMBOO_DEBUGPRINT_REG(x): print out value of variable x                        //
+//  BAMBOO_LOCAL_MEM_CALLOC(x, y): allocate an array of x elements each of whose   //
+//                                 size in bytes is y on local memory              //
 //  BAMBOO_SHARE_MEM_CALLOC(x, y): allocate an array of x elements each of whose   //
 //                                 size in bytes is y on shared memory             //
 //  BAMBOO_START_CRITICAL_SECTION_OBJ_QUEUE()                                      //

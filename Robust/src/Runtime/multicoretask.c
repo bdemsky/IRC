@@ -214,9 +214,12 @@ inline void run(void * arg) {
 		  while(!isEmpty(&objqueue)) {
 			  void * obj = NULL;
 			  BAMBOO_START_CRITICAL_SECTION_OBJ_QUEUE();
+#ifdef DEBUG
+			  BAMBOO_DEBUGPRINT(0xf001);
+#endif
 #ifdef PROFILE
 			  //isInterrupt = false;
-#endif  
+#endif 
 #ifdef DEBUG
 			  BAMBOO_DEBUGPRINT(0xeee1);
 #endif
@@ -260,8 +263,14 @@ inline void run(void * arg) {
 #ifdef DEBUG
 					  BAMBOO_DEBUGPRINT_REG(taskindex);
 					  BAMBOO_DEBUGPRINT_REG(paramindex);
+					  struct ___Object___ * tmpptr = (struct ___Object___ *)obj;
+	  tprintf("Process %x(%d): receive obj %x(%lld), ptrflag %x\n", corenum, corenum, (int)obj, (long)obj, tmpptr->flag);
 #endif
+
 					  enqueueObject_I(obj, queues, 1);
+#ifdef DEBUG
+	  BAMBOO_DEBUGPRINT_REG(hashsize(activetasks));
+#endif
 				  }
 				  removeItem(&objqueue, objitem);
 				  releasewritelock_I(obj);
@@ -277,9 +286,15 @@ inline void run(void * arg) {
 				  //isInterrupt = true;
 #endif
 				  BAMBOO_CLOSE_CRITICAL_SECTION_OBJ_QUEUE();
+#ifdef DEBUG
+				  BAMBOO_DEBUGPRINT(0xf000);
+#endif
 				  break;
 			  }
 			  BAMBOO_CLOSE_CRITICAL_SECTION_OBJ_QUEUE();
+#ifdef DEBUG
+			  BAMBOO_DEBUGPRINT(0xf000);
+#endif
 		  }
 #ifdef PROFILE
 		      if(isChecking) {
@@ -304,8 +319,12 @@ inline void run(void * arg) {
 						  (waitconfirm && (numconfirm == 0))) {
 #ifdef DEBUG
 					  BAMBOO_DEBUGPRINT(0xee04);
+					  BAMBOO_DEBUGPRINT_REG(waitconfirm);
 #endif
 					  BAMBOO_START_CRITICAL_SECTION_STATUS();
+#ifdef DEBUG
+					  BAMBOO_DEBUGPRINT(0xf001);
+#endif
 					  corestatus[corenum] = 0;
 					  numsendobjs[corenum] = self_numsendobjs;
 					  numreceiveobjs[corenum] = self_numreceiveobjs;
@@ -373,6 +392,9 @@ inline void run(void * arg) {
 								  // out progiling data
 #ifdef PROFILE
 								  BAMBOO_CLOSE_CRITICAL_SECTION_STATUS();
+#ifdef DEBUG
+								  BAMBOO_DEBUGPRINT(0xf000);
+#endif
 								  for(i = 1; i < NUMCORES; ++i) {
 									  // send profile request msg to core i
 									  send_msg_2(i, 6, totalexetime);
@@ -381,6 +403,9 @@ inline void run(void * arg) {
 								  outputProfileData();
 								  while(true) {
 									  BAMBOO_START_CRITICAL_SECTION_STATUS();
+#ifdef DEBUG
+									  BAMBOO_DEBUGPRINT(0xf001);
+#endif
 									  profilestatus[corenum] = 0;
 									  // check the status of all cores
 									  allStall = true;
@@ -399,6 +424,9 @@ inline void run(void * arg) {
 									  if(!allStall) {
 										  int halt = 100;
 										  BAMBOO_CLOSE_CRITICAL_SECTION_STATUS();
+#ifdef DEBUG
+										  BAMBOO_DEBUGPRINT(0xf000);
+#endif
 										  while(halt--) {
 										  }
 									  } else {
@@ -426,6 +454,9 @@ inline void run(void * arg) {
 						  numconfirm = 0;
 					  }
 					  BAMBOO_CLOSE_CRITICAL_SECTION_STATUS();
+#ifdef DEBUG
+					  BAMBOO_DEBUGPRINT(0xf000);
+#endif
 				  }
 			  } else {
 				  if(!sendStall) {
@@ -941,7 +972,7 @@ foundtag:
 					}
 				}
 			}
-	
+
 			/* Check flags */
 			for(i=0; i<parameter->numberofterms; i++) {
 				int andmask=parameter->intarray[i*2];
@@ -1778,8 +1809,14 @@ bool getreadlock(void * ptr) {
     // reside on this core
     int deny = 0;
 	BAMBOO_START_CRITICAL_SECTION_LOCK();
+#ifdef DEBUG
+	BAMBOO_DEBUGPRINT(0xf001);
+#endif
 	deny = processlockrequest(0, lock2require, (int)ptr, corenum, corenum, false);
 	BAMBOO_CLOSE_CRITICAL_SECTION_LOCK();
+#ifdef DEBUG
+	BAMBOO_DEBUGPRINT(0xf000);
+#endif
     if(deny == -1) {
 		// redirected
 		return true;
@@ -1820,6 +1857,9 @@ void releasereadlock(void * ptr) {
 
   if(targetcore == corenum) {
 	BAMBOO_START_CRITICAL_SECTION_LOCK();
+#ifdef DEBUG
+	BAMBOO_DEBUGPRINT(0xf001);
+#endif
     // reside on this core
     if(!RuntimeHashcontainskey(locktbl, reallock)) {
       // no locks for this object, something is wrong
@@ -1832,6 +1872,9 @@ void releasereadlock(void * ptr) {
       lockvalue->value--;
     }
 	BAMBOO_CLOSE_CRITICAL_SECTION_LOCK();
+#ifdef DEBUG
+	BAMBOO_DEBUGPRINT(0xf000);
+#endif
     return;
   } else {
 	// send lock release msg
@@ -1932,8 +1975,14 @@ bool getwritelock(void * ptr) {
     // reside on this core
     int deny = 0;
 	BAMBOO_START_CRITICAL_SECTION_LOCK();
+#ifdef DEBUG
+	BAMBOO_DEBUGPRINT(0xf001);
+#endif
 	deny = processlockrequest(1, lock2require, (int)ptr, corenum, corenum, false);
 	BAMBOO_CLOSE_CRITICAL_SECTION_LOCK();
+#ifdef DEBUG
+	BAMBOO_DEBUGPRINT(0xf000);
+#endif
 #ifdef DEBUG
     BAMBOO_DEBUGPRINT(0xe555);
     BAMBOO_DEBUGPRINT_REG(lockresult);
@@ -1985,6 +2034,9 @@ void releasewritelock(void * ptr) {
 
   if(targetcore == corenum) {
 	BAMBOO_START_CRITICAL_SECTION_LOCK();
+#ifdef DEBUG
+	BAMBOO_DEBUGPRINT(0xf001);
+#endif
     // reside on this core
     if(!RuntimeHashcontainskey(locktbl, reallock)) {
       // no locks for this object, something is wrong
@@ -1997,6 +2049,9 @@ void releasewritelock(void * ptr) {
       lockvalue->value++;
     }
 	BAMBOO_CLOSE_CRITICAL_SECTION_LOCK();
+#ifdef DEBUG
+	BAMBOO_DEBUGPRINT(0xf000);
+#endif
     return;
   } else {
 	// send lock release msg
@@ -2019,6 +2074,9 @@ void releasewritelock_r(void * lock, void * redirectlock) {
 
   if(targetcore == corenum) {
 	BAMBOO_START_CRITICAL_SECTION_LOCK();
+#ifdef DEBUG
+	BAMBOO_DEBUGPRINT(0xf001);
+#endif
     // reside on this core
     if(!RuntimeHashcontainskey(locktbl, reallock)) {
       // no locks for this object, something is wrong
@@ -2041,6 +2099,9 @@ void releasewritelock_r(void * lock, void * redirectlock) {
 #endif
     }
 	BAMBOO_CLOSE_CRITICAL_SECTION_LOCK();
+#ifdef DEBUG
+	BAMBOO_DEBUGPRINT(0xf000);
+#endif
     return;
   } else {
 	  // send lock release with redirect info msg
@@ -2618,6 +2679,9 @@ newtask:
 #endif
 		  getwritelock(lock);
 		  BAMBOO_START_CRITICAL_SECTION();
+#ifdef DEBUG
+		  BAMBOO_DEBUGPRINT(0xf001);
+#endif
 #ifdef PROFILE
 		  //isInterrupt = false;
 #endif 
@@ -2643,6 +2707,9 @@ newtask:
 		  //isInterrupt = true;
 #endif
 		  BAMBOO_CLOSE_CRITICAL_SECTION();
+#ifdef DEBUG
+		  BAMBOO_DEBUGPRINT(0xf000);
+#endif
 
 		  if(grount == 0) {
 			  int j = 0;
@@ -2682,6 +2749,9 @@ newtask:
 	BAMBOO_CACHE_FLUSH_RANGE((int)parameter, classsize[((struct ___Object___ *)parameter)->type]);
 	/*
 	BAMBOO_START_CRITICAL_SECTION_LOCK();
+#ifdef DEBUG
+    BAMBOO_DEBUGPRINT(0xf001);
+#endif
 	if(RuntimeHashcontainskey(objRedirectLockTbl, (int)parameter)) {
 		int redirectlock_r = 0;
 		RuntimeHashget(objRedirectLockTbl, (int)parameter, &redirectlock_r);
@@ -2689,6 +2759,9 @@ newtask:
 		RuntimeHashremovekey(objRedirectLockTbl, (int)parameter);
 	}
 	BAMBOO_CLOSE_CRITICAL_SECTION_LOCK();
+#ifdef DEBUG
+    BAMBOO_DEBUGPRINT(0xf000);
+#endif
 */
 #endif
 	tmpparam = (struct ___Object___ *)parameter;

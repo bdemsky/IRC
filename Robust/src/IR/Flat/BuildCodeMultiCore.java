@@ -1048,7 +1048,7 @@ public class BuildCodeMultiCore extends BuildCode {
 	  output.println("}");
 	}
 
-	Vector<TranObjInfo> sendto = new Vector<TranObjInfo>();
+	//Vector<TranObjInfo> sendto = new Vector<TranObjInfo>();
 	Queue<Integer> queue = null;
 	if(targetCoreTbl != null) {
 	  queue = targetCoreTbl.get(tmpFState);
@@ -1106,7 +1106,9 @@ public class BuildCodeMultiCore extends BuildCode {
 		} else {
 		  tmpinfo.fs = tmpFState;
 		}
-		if(!contains(sendto, tmpinfo)) {
+		// fixed 05/12/09, it's very likely to repeatedly send an object to the same core
+		// as sheduled
+		//if(!contains(sendto, tmpinfo)) {
 		  qinfo = outputtransqueues(tmpinfo.fs, targetcore, output);
 		  output.println("tmpObjInfo = RUNMALLOC(sizeof(struct transObjInfo));");
 		  output.println("tmpObjInfo->objptr = (void *)" + tmpinfo.name + ";");
@@ -1114,8 +1116,8 @@ public class BuildCodeMultiCore extends BuildCode {
 		  output.println("tmpObjInfo->queues = " + qinfo.qname + ";");
 		  output.println("tmpObjInfo->length = " + qinfo.length + ";");
 		  output.println("addNewItem(totransobjqueue, (void*)tmpObjInfo);");
-		  sendto.add(tmpinfo);
-		}
+		  //sendto.add(tmpinfo);
+		//}
 		output.println("}");
 	      }
 	      output.println("break;");
@@ -1142,7 +1144,9 @@ public class BuildCodeMultiCore extends BuildCode {
 	    } else {
 	      tmpinfo.fs = tmpFState;
 	    }
-	    if(!contains(sendto, tmpinfo)) {
+		// fixed 05/12/09, it's very likely to repeatedly send an object to the same core
+		// as sheduled
+	    //if(!contains(sendto, tmpinfo)) {
 	      qinfo = outputtransqueues(tmpinfo.fs, targetcore, output);
 	      output.println("tmpObjInfo = RUNMALLOC(sizeof(struct transObjInfo));");
 	      output.println("tmpObjInfo->objptr = (void *)" + tmpinfo.name + ";");
@@ -1150,8 +1154,8 @@ public class BuildCodeMultiCore extends BuildCode {
 	      output.println("tmpObjInfo->queues = " + qinfo.qname + ";");
 	      output.println("tmpObjInfo->length = " + qinfo.length + ";");
 	      output.println("addNewItem(totransobjqueue, (void*)tmpObjInfo);");
-	      sendto.add(tmpinfo);
-	    }
+	      //sendto.add(tmpinfo);
+	    //}
 	    output.println("}");
 	  }
 	  output.println("/* increase index*/");
@@ -1196,7 +1200,9 @@ public class BuildCodeMultiCore extends BuildCode {
 	    } else {
 	      tmpinfo.fs = tmpFState;
 	    }
-	    if(!contains(sendto, tmpinfo)) {
+		// fixed 05/12/09, it's very likely to repeatedly send an object to the same core
+		// as sheduled
+	    //if(!contains(sendto, tmpinfo)) {
 	      qinfo = outputtransqueues(tmpinfo.fs, targetcores.elementAt(i), output);
 	      output.println("tmpObjInfo = RUNMALLOC(sizeof(struct transObjInfo));");
 	      output.println("tmpObjInfo->objptr = (void *)" + tmpinfo.name + ";");
@@ -1204,8 +1210,8 @@ public class BuildCodeMultiCore extends BuildCode {
 	      output.println("tmpObjInfo->queues = " + qinfo.qname + ";");
 	      output.println("tmpObjInfo->length = " + qinfo.length + ";");
 	      output.println("addNewItem(totransobjqueue, (void*)tmpObjInfo);");
-	      sendto.add(tmpinfo);
-	    }
+	      //sendto.add(tmpinfo);
+	    //}
 	    output.println("}");
 	    //}
 	  }
