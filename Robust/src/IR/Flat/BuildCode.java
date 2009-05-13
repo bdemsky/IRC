@@ -1939,7 +1939,10 @@ public class BuildCode {
       if (state.DSM) {
 	output.println("TRANSREAD("+generateTemp(fm, fgcn.getSrc(),lb)+", (unsigned int) "+generateTemp(fm, fgcn.getSrc(),lb)+");");
       } else {
-	output.println("TRANSREAD("+generateTemp(fm, fgcn.getSrc(),lb)+", "+generateTemp(fm, fgcn.getSrc(),lb)+", (void *)&("+localsprefix+"));");
+	if ((dc==null)||dc.getNeedTrans(lb, fgcn)) {
+	  //need to do translation
+	  output.println("TRANSREAD("+generateTemp(fm, fgcn.getSrc(),lb)+", "+generateTemp(fm, fgcn.getSrc(),lb)+", (void *)&("+localsprefix+"));");
+	}
       }
     } else {
       /* Need to convert to OID */
