@@ -255,7 +255,7 @@ __attribute__((pure)) void *transRead(void * oid, void *gl) {
   //DEBUGSTMSTAT("type: %d, header->abortCount: %d, header->accessCount: %d\n", TYPE(header), header->abortCount, header->accessCount);
   //if(header->abortCount > MAXABORTS &&  riskratio > NEED_LOCK_THRESHOLD) {
   if(header->riskyflag) {
-    needLock(header,gl);
+    header=needLock(header,gl);
   }
 #endif
   A_memcpy(objcopy, header, size);
@@ -817,7 +817,7 @@ void getTotalAbortCount(int start, int stop, void *startptr, void *checkptr, int
  * params: Object header
  * Locks an object that causes aborts
  **/
-void needLock(objheader_t *header, void *gl) {
+objheader_t * needLock(objheader_t *header, void *gl) {
   int lockstatus;
   threadrec_t *ptr;
   while((lockstatus = pthread_mutex_trylock(header->objlock)) 
@@ -838,12 +838,15 @@ void needLock(objheader_t *header, void *gl) {
       return;
     } else { 
 #ifdef PRECISE_GC
-      stopforgc((struct garbagelist *)gl);
-#endif
+      INTPTR ptrarray[]={1, (INTPTR)gl, (INTPTR) header};
+      void *lockptr=header->objlock;
+      stopforgc((struct garbagelist *)ptrarray);
       //grab lock and wait our turn
-      pthread_mutex_lock(header->objlock);
-#ifdef PRECISE_GC
+      pthread_mutex_lock(lockptr);
       restartaftergc();
+      header=(objheader_t *) ptrarray[2];
+#else
+      pthread_mutex_lock(header->objptr);
 #endif
       /* we have lock, so we are not blocked anymore */
       trec->blocked = 0;
@@ -863,5 +866,6 @@ void needLock(objheader_t *header, void *gl) {
     tmp->offset=1;
     lockedobjs=tmp;
   }
+  return header;
 }
 #endif

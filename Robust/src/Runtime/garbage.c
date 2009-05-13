@@ -599,18 +599,14 @@ void * tomalloc(int size) {
 #if defined(THREADS)||defined(DSTM)||defined(STM)
 void checkcollect(void * ptr) {
   stopforgc((struct garbagelist *)ptr);
-  pthread_mutex_lock(&gclock); // Wait for GC
   restartaftergc();
-  pthread_mutex_unlock(&gclock);
 }
 
 #ifdef DSTM
 void checkcollect2(void * ptr) {
   int ptrarray[]={1, (int)ptr, (int) revertlist};
   stopforgc((struct garbagelist *)ptrarray);
-  pthread_mutex_lock(&gclock); // Wait for GC
   restartaftergc();
-  pthread_mutex_unlock(&gclock);
   revertlist=(struct ___Object___*)ptrarray[2];
 }
 #endif
@@ -650,6 +646,10 @@ void stopforgc(struct garbagelist * ptr) {
 }
 
 void restartaftergc() {
+  if (needtocollect) {
+    pthread_mutex_lock(&gclock); // Wait for GC
+    pthread_mutex_unlock(&gclock);
+  }
   pthread_mutex_lock(&gclistlock);
   listcount--;
   pthread_mutex_unlock(&gclistlock);
@@ -678,9 +678,8 @@ void * mygcmalloc(struct garbagelist * stackptr, int size) {
 #endif
   void *ptr;
 #if defined(THREADS)||defined(DSTM)||defined(STM)
-  if (pthread_mutex_trylock(&gclock)!=0) {
+  while (pthread_mutex_trylock(&gclock)!=0) {
     stopforgc(stackptr);
-    pthread_mutex_lock(&gclock);
     restartaftergc();
   }
 #endif
