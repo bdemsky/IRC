@@ -114,6 +114,7 @@ public class Normal {
     //System.out.println("myId= " + myId + " start= " + start + " npoints= " + npoints);
     while (start < npoints) {
       stop = (((start + CHUNK) < npoints) ? (start + CHUNK) : npoints);
+
       for (int i = start; i < stop; i++) {
         index = Common.common_findNearestPoint(feature[i],
             nfeatures,
@@ -132,17 +133,17 @@ public class Normal {
         membership[i] = index;
 
         /* Update new cluster centers : sum of objects located within */
-        atomic {
+	atomic {
           new_centers_len[index] = new_centers_len[index] + 1;
           for (int j = 0; j < nfeatures; j++) {
             new_centers[index][j] = new_centers[index][j] + feature[i][j];
           }
-        }
+	}
       }
 
       /* Update task queue */
       if (start + CHUNK < npoints) {
-        atomic {
+	atomic {
           start = (int) args.global_i;
           args.global_i = start + CHUNK;
         }

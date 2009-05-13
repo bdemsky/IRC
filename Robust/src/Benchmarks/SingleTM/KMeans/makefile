@@ -6,7 +6,7 @@ SRC=${MAINCLASS}.java \
     Common.java \
     GlobalArgs.java \
     ../../../ClassLibrary/JavaSTM/Barrier.java
-FLAGS=-mainclass ${MAINCLASS} -singleTM -optimize -debug -dcopts -transstats -joptimize
+FLAGS=-mainclass ${MAINCLASS} -singleTM -optimize -debug -dcopts -joptimize -fastmemcpy -garbagestats
 FLAGS2=-mainclass ${MAINCLASS} -optimize -debug -joptimize -thread
 
 

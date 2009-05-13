@@ -26,6 +26,8 @@ pthread_cond_t gccond;
 pthread_mutex_t objlock;
 pthread_cond_t objcond;
 
+pthread_mutex_t atomiclock;
+
 pthread_mutex_t joinlock;
 pthread_cond_t joincond;
 pthread_key_t threadlocks;
@@ -65,7 +67,7 @@ void threadexit() {
 #endif
   pthread_mutex_lock(&gclistlock);
 #ifdef THREADS
-  pthread_setspecific(threadlocks, litem->locklist);
+  pthread_setspecific(threadlocks, litem.locklist);
 #endif
 #ifndef MAC
   if (litem.prev==NULL) {
@@ -123,6 +125,9 @@ void threadhandler(int sig, siginfo_t *info, void *uap) {
 void initializethreads() {
   struct sigaction sig;
   threadcount=1;
+#ifdef THREADS
+  pthread_mutex_init(&atomiclock, NULL);
+#endif
   pthread_mutex_init(&gclock, NULL);
   pthread_mutex_init(&gclistlock, NULL);
   pthread_cond_init(&gccond, NULL);
@@ -232,7 +237,7 @@ void initthread(struct ___Thread___ * ___this___) {
 
   pthread_mutex_lock(&gclistlock);
 #ifdef THREADS
-  pthread_setspecific(threadlocks, litem->locklist);
+  pthread_setspecific(threadlocks, litem.locklist);
 #endif
   if (litem.prev==NULL) {
     list=litem.next;
@@ -402,7 +407,7 @@ void initDSMthread(int *ptr) {
   pthread_mutex_lock(&gclistlock);
 
 #ifdef THREADS
-  pthread_setspecific(threadlocks, litem->locklist);
+  pthread_setspecific(threadlocks, litem.locklist);
 #endif
   if (litem.prev==NULL) {
     list=litem.next;

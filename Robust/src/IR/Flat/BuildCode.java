@@ -1970,7 +1970,12 @@ public class BuildCode {
 
   public void generateFlatAtomicEnterNode(FlatMethod fm,  LocalityBinding lb, FlatAtomicEnterNode faen, PrintWriter output) {
     /* Check to see if we need to generate code for this atomic */
-    if (locality==null||locality.getAtomic(lb).get(faen.getPrev(0)).intValue()>0)
+    if (locality==null) {
+      output.println("pthread_mutex_lock(&atomiclock);");
+      return;
+    }
+
+    if (locality.getAtomic(lb).get(faen.getPrev(0)).intValue()>0)
       return;
     /* Backup the temps. */
     for(Iterator<TempDescriptor> tmpit=locality.getTemps(lb).get(faen).iterator(); tmpit.hasNext();) {
@@ -2013,7 +2018,11 @@ public class BuildCode {
 
   public void generateFlatAtomicExitNode(FlatMethod fm,  LocalityBinding lb, FlatAtomicExitNode faen, PrintWriter output) {
     /* Check to see if we need to generate code for this atomic */
-    if (locality==null||locality.getAtomic(lb).get(faen).intValue()>0)
+    if (locality==null) {
+      output.println("pthread_mutex_unlock(&atomiclock);");
+      return;
+    }
+    if (locality.getAtomic(lb).get(faen).intValue()>0)
       return;
     //store the revert list before we lose the transaction object
     String revertptr=null;
