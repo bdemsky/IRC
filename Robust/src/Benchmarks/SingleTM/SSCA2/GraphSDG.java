@@ -8,7 +8,7 @@ public class GraphSDG {
    * the intWeights in Kernel 2. Hence the long long
    */
   public char[] strWeight;
-  public long numEdgesPlaced;
+  public int numEdgesPlaced;
 
   public GraphSDG() {
 

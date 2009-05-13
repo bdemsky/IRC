@@ -85,8 +85,7 @@ public class GetUserParameters {
   static void
     displayUsage ()
     {
-      System.out.println("Usage: SSCA [options]\n");
-      puts("\nOptions:                                       (defaults)\n");
+      System.out.println("Usage: ./SSCA.bin [options]\n");
       System.out.println("    i <double>    Probability [i]nter-clique      (%f)\n",  PROB_INTERCL_EDGES);
       System.out.println("    k <int>   [k]ind: 0=array 1=list 2=vector (%li)\n", K3_DS);
       System.out.println("    l <int>   Max path [l]ength               (%li)\n", SUBGR_EDGE_LENGTH);
