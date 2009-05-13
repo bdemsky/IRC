@@ -28,7 +28,7 @@ int CALL24(___Socket______nativeConnect____I__AR_B_I, int ___fd___, int ___port_
   sin.sin_addr.s_addr=htonl(*(int *)(((char *)&VAR(___address___)->___length___)+sizeof(int)));
 #if defined(THREADS)||defined(DSTM)||defined(STM)
 #ifdef PRECISE_GC
-  struct listitem *tmp=stopforgc((struct garbagelist *)___params___);
+  stopforgc((struct garbagelist *)___params___);
 #endif
 #endif
   do {
@@ -36,7 +36,7 @@ int CALL24(___Socket______nativeConnect____I__AR_B_I, int ___fd___, int ___port_
   } while (rc<0 && errno==EINTR); /* repeat if interrupted */
 #if defined(THREADS)||defined(DSTM)||defined(STM)
 #ifdef PRECISE_GC
-  restartaftergc(tmp);
+  restartaftergc();
 #endif
 #endif
 
@@ -299,7 +299,7 @@ int CALL02(___ServerSocket______nativeaccept____L___Socket___,struct ___ServerSo
   int newfd;
 #if defined(THREADS)||defined(DSTM)||defined(STM)
 #ifdef PRECISE_GC
-  struct listitem *tmp=stopforgc((struct garbagelist *)___params___);
+  stopforgc((struct garbagelist *)___params___);
 #endif
 #endif
   newfd=accept(fd, (struct sockaddr *)&sin, &sinlen);
@@ -307,7 +307,7 @@ int CALL02(___ServerSocket______nativeaccept____L___Socket___,struct ___ServerSo
   setsockopt(newfd, IPPROTO_TCP, TCP_NODELAY, (char *) &flag, sizeof(flag));
 #if defined(THREADS)||defined(DSTM)||defined(STM)
 #ifdef PRECISE_GC
-  restartaftergc(tmp);
+  restartaftergc();
 #endif
 #endif
   if (newfd<0) {
@@ -377,7 +377,7 @@ int CALL02(___Socket______nativeRead_____AR_B, struct ___Socket___ * ___this___,
 
 #if defined(THREADS)||defined(DSTM)||defined(STM)
 #ifdef PRECISE_GC
-  struct listitem *tmp=stopforgc((struct garbagelist *)___params___);
+  stopforgc((struct garbagelist *)___params___);
 #endif
 #endif
   int byteread=-1;
@@ -387,7 +387,7 @@ int CALL02(___Socket______nativeRead_____AR_B, struct ___Socket___ * ___this___,
   } while(byteread==-1&&errno==EINTR);
 #if defined(THREADS)||defined(DSTM)||defined(STM)
 #ifdef PRECISE_GC
-  restartaftergc(tmp);
+  restartaftergc();
 #endif
 #endif
 

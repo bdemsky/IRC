@@ -36,8 +36,8 @@ void fixtags();
 #if defined(THREADS)||defined(DSTM)||defined(STM)
 extern int needtocollect;
 void checkcollect(void * ptr);
-struct listitem * stopforgc(struct garbagelist * ptr);
-void restartaftergc(struct listitem * litem);
+void stopforgc(struct garbagelist * ptr);
+void restartaftergc();
 #endif
 void * tomalloc(int size);
 void collect(struct garbagelist *stackptr);

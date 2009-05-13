@@ -43,6 +43,9 @@ extern struct RuntimeHash *fdtoobject;
 int needtocollect=0;
 struct listitem * list=NULL;
 int listcount=0;
+#ifndef MAC
+__thread struct listitem litem;
+#endif
 #endif
 
 //Need to check if pointers are transaction pointers
@@ -581,68 +584,58 @@ void * tomalloc(int size) {
 
 #if defined(THREADS)||defined(DSTM)||defined(STM)
 void checkcollect(void * ptr) {
-  struct listitem * tmp=stopforgc((struct garbagelist *)ptr);
+  stopforgc((struct garbagelist *)ptr);
   pthread_mutex_lock(&gclock); // Wait for GC
-  restartaftergc(tmp);
+  restartaftergc();
   pthread_mutex_unlock(&gclock);
 }
 
 #ifdef DSTM
 void checkcollect2(void * ptr) {
   int ptrarray[]={1, (int)ptr, (int) revertlist};
-  struct listitem * tmp=stopforgc((struct garbagelist *)ptrarray);
+  stopforgc((struct garbagelist *)ptrarray);
   pthread_mutex_lock(&gclock); // Wait for GC
-  restartaftergc(tmp);
+  restartaftergc();
   pthread_mutex_unlock(&gclock);
   revertlist=(struct ___Object___*)ptrarray[2];
 }
 #endif
 
-struct listitem * stopforgc(struct garbagelist * ptr) {
-  struct listitem * litem=malloc(sizeof(struct listitem));
+void stopforgc(struct garbagelist * ptr) {
+#ifndef MAC
+  litem.stackptr=ptr;
+#ifdef THREADS
+  litem.locklist=pthread_getspecific(threadlocks);
+#endif
+#ifdef STM
+  litem.tc_size=c_size;
+  litem.tc_table=&c_table;
+  litem.tc_list=&c_list;
+  litem.tc_structs=&c_structs;
+  litem.objlist=newobjs;
+#ifdef STMSTATS
+  litem.lockedlist=lockedobjs;
+#endif
+  litem.base=&memorybase;
+#endif
+#else
+  //handle MAC
+  struct listitem *litem=pthread_getspecific(litemkey);
   litem->stackptr=ptr;
 #ifdef THREADS
   litem->locklist=pthread_getspecific(threadlocks);
 #endif
-#ifdef STM
-  litem->tc_size=c_size;
-  litem->tc_table=&c_table;
-  litem->tc_list=&c_list;
-  litem->tc_structs=&c_structs;
-  litem->objlist=newobjs;
-#ifdef STMSTATS
-  litem->lockedlist=lockedobjs;
 #endif
-  litem->base=&memorybase;
-#endif
-  litem->prev=NULL;
   pthread_mutex_lock(&gclistlock);
-  litem->next=list;
-  if(list!=NULL)
-    list->prev=litem;
-  list=litem;
   listcount++;
   pthread_cond_signal(&gccond);
   pthread_mutex_unlock(&gclistlock);
-  return litem;
 }
 
-void restartaftergc(struct listitem * litem) {
+void restartaftergc() {
   pthread_mutex_lock(&gclistlock);
-#ifdef THREADS
-  pthread_setspecific(threadlocks, litem->locklist);
-#endif
-  if (litem->prev==NULL) {
-    list=litem->next;
-  } else {
-    litem->prev->next=litem->next;
-  }
-  if (litem->next!=NULL) {
-    litem->next->prev=litem->prev;
-  }
   listcount--;
   pthread_mutex_unlock(&gclistlock);
-  free(litem);
 }
 #endif
 
@@ -669,9 +662,9 @@ void * mygcmalloc(struct garbagelist * stackptr, int size) {
   void *ptr;
 #if defined(THREADS)||defined(DSTM)||defined(STM)
   if (pthread_mutex_trylock(&gclock)!=0) {
-    struct listitem *tmp=stopforgc(stackptr);
+    stopforgc(stackptr);
     pthread_mutex_lock(&gclock);
-    restartaftergc(tmp);
+    restartaftergc();
   }
 #endif
   ptr=curr_heapptr;

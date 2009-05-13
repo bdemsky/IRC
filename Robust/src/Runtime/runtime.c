@@ -210,11 +210,11 @@ void CALL00(___Barrier______enterBarrier____) {
   // Synchronization point
   int ret;
 #ifdef PRECISE_GC
-  struct listitem *tmp=stopforgc((struct garbagelist *)___params___);
+  stopforgc((struct garbagelist *)___params___);
 #endif
   ret = pthread_barrier_wait(&barrier);
 #ifdef PRECISE_GC
-  restartaftergc(tmp);
+  restartaftergc();
 #endif
   if(ret != 0 && ret != PTHREAD_BARRIER_SERIAL_THREAD) {
     printf("%s() Could not wait on barrier: error %d in %s\n", __func__, errno, __FILE__);

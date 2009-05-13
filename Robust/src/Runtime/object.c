@@ -25,11 +25,11 @@ int CALL01(___Object______MonitorEnter____, struct ___Object___ * ___this___) {
     VAR(___this___)->lockcount++;
   } else {
 #ifdef PRECISE_GC
-    struct listitem *tmp=stopforgc((struct garbagelist *)___params___);
+    stopforgc((struct garbagelist *)___params___);
 #endif
     pthread_mutex_lock(&objlock);
 #ifdef PRECISE_GC
-    restartaftergc(tmp);
+    restartaftergc();
 #endif
     while(1) {
       if (VAR(___this___)->tid==0) {
@@ -45,11 +45,11 @@ int CALL01(___Object______MonitorEnter____, struct ___Object___ * ___this___) {
       }
       {
 #ifdef PRECISE_GC
-	struct listitem *tmp=stopforgc((struct garbagelist *)___params___);
+	stopforgc((struct garbagelist *)___params___);
 #endif
 	pthread_cond_wait(&objcond, &objlock);
 #ifdef PRECISE_GC
-	restartaftergc(tmp);
+	restartaftergc();
 #endif
       }
     }

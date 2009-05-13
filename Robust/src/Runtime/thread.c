@@ -33,6 +33,14 @@ pthread_mutex_t threadnotifylock;
 pthread_cond_t threadnotifycond;
 pthread_key_t oidval;
 
+#if defined(THREADS) || defined(DSTM) || defined(STM)
+#ifndef MAC
+extern __thread struct listitem litem;
+#else
+pthread_key_t litemkey;
+#endif
+#endif
+
 void threadexit() {
 #ifdef DSTM
   objheader_t* ptr;
@@ -55,6 +63,31 @@ void threadexit() {
   pthread_mutex_unlock(&objlock);
 #endif
   pthread_mutex_lock(&gclistlock);
+#ifdef THREADS
+  pthread_setspecific(threadlocks, litem->locklist);
+#endif
+#ifndef MAC
+  if (litem.prev==NULL) {
+    list=litem.next;
+  } else {
+    litem.prev->next=litem.next;
+  }
+  if (litem.next!=NULL) {
+    litem.next->prev=litem.prev;
+  }
+#else
+  {
+    struct listitem *litem=pthread_getspecific(litemkey);
+    if (litem->prev==NULL) {
+      list=litem->next;
+    } else {
+      litem->prev->next=litem->next;
+    }
+    if (litem->next!=NULL) {
+      litem->next->prev=litem->prev;
+    }
+  }
+#endif
   threadcount--;
   pthread_cond_signal(&gccond);
   pthread_mutex_unlock(&gclistlock);
@@ -97,6 +130,9 @@ void initializethreads() {
   pthread_mutex_init(&joinlock,NULL);
   pthread_cond_init(&joincond,NULL);
   pthread_key_create(&threadlocks, NULL);
+#ifdef MAC
+  pthread_key_create(&litem, NULL);
+#endif
   processOptions();
   initializeexithandler();
 
@@ -134,6 +170,19 @@ void initializethreads() {
 void initthread(struct ___Thread___ * ___this___) {
 #ifdef PRECISE_GC
   INTPTR p[]={1, (INTPTR) NULL, (INTPTR) ___this___};
+  //Add our litem to list of threads
+#ifdef MAC
+  struct listitem litem;
+  pthread_setspecific(litemkey, &litem);
+#endif
+  litem.prev=NULL;
+  pthread_mutex_lock(&gclistlock);
+  litem.next=list;
+  if(list!=NULL)
+    list->prev=&litem;
+  list=&litem;
+  pthread_mutex_unlock(&gclistlock);
+  
 #ifdef THREADS
   ___Thread______staticStart____L___Thread___((struct ___Thread______staticStart____L___Thread____params *)p);
 #else
@@ -165,6 +214,17 @@ void initthread(struct ___Thread___ * ___this___) {
   pthread_mutex_unlock(&joinlock);
 
   pthread_mutex_lock(&gclistlock);
+#ifdef THREADS
+  pthread_setspecific(threadlocks, litem->locklist);
+#endif
+  if (litem.prev==NULL) {
+    list=litem.next;
+  } else {
+    litem.prev->next=litem.next;
+  }
+  if (litem.next!=NULL) {
+    litem.next->prev=litem.prev;
+  }
   threadcount--;
   pthread_cond_signal(&gccond);
   pthread_mutex_unlock(&gclistlock);
@@ -174,13 +234,13 @@ void initthread(struct ___Thread___ * ___this___) {
 void CALL11(___Thread______sleep____J, long long ___millis___, long long ___millis___) {
 #if defined(THREADS)||defined(STM)
 #ifdef PRECISE_GC
-  struct listitem *tmp=stopforgc((struct garbagelist *)___params___);
+  stopforgc((struct garbagelist *)___params___);
 #endif
 #endif
   usleep(___millis___);
 #if defined(THREADS)||defined(STM)
 #ifdef PRECISE_GC
-  restartaftergc(tmp);
+  restartaftergc();
 #endif
 #endif
 }
@@ -229,11 +289,11 @@ transstart:
     versionarray[0] = version;
     /* Request Notification */
 #ifdef PRECISE_GC
-    struct listitem *tmp=stopforgc((struct garbagelist *)___params___);
+    stopforgc((struct garbagelist *)___params___);
 #endif
     reqNotify(oidarray, versionarray, 1);
 #ifdef PRECISE_GC
-    restartaftergc(tmp);
+    restartaftergc();
 #endif
     free(oidarray);
     free(versionarray);
@@ -247,14 +307,14 @@ transstart:
 #if defined(THREADS)||defined(STM)
 void CALL01(___Thread______nativeJoin____, struct ___Thread___ * ___this___) {
 #ifdef PRECISE_GC
-    struct listitem *tmp=stopforgc((struct garbagelist *)___params___);
+  stopforgc((struct garbagelist *)___params___);
 #endif
   pthread_mutex_lock(&joinlock);
   while(!VAR(___this___)->___finished___)
     pthread_cond_wait(&joincond, &joinlock);
   pthread_mutex_unlock(&joinlock);
 #ifdef PRECISE_GC
-    restartaftergc(tmp);
+    restartaftergc();
 #endif
 
 }
@@ -301,6 +361,20 @@ void initDSMthread(int *ptr) {
   free(ptr);
 #ifdef PRECISE_GC
   int p[]={1, 0 /* NULL */, oid};
+#ifdef MAC
+  struct listitem litem;
+  pthread_setspecific(litemkey, &litem);
+#endif
+
+  //Add our litem to list of threads
+  litem.prev=NULL;
+  pthread_mutex_lock(&gclistlock);
+  litem.next=list;
+  if(list!=NULL)
+    list->prev=&litem;
+  list=&litem;
+  pthread_mutex_unlock(&gclistlock);
+
   ((void(*) (void *))virtualtable[type*MAXCOUNT+RUNMETHOD])(p);
 #else
   ((void(*) (void *))virtualtable[type*MAXCOUNT+RUNMETHOD])(oid);
@@ -309,6 +383,18 @@ void initDSMthread(int *ptr) {
   *((unsigned int *) threadData) = oid;
   pthread_setspecific(oidval, threadData);
   pthread_mutex_lock(&gclistlock);
+
+#ifdef THREADS
+  pthread_setspecific(threadlocks, litem->locklist);
+#endif
+  if (litem.prev==NULL) {
+    list=litem.next;
+  } else {
+    litem.prev->next=litem.next;
+  }
+  if (litem.next!=NULL) {
+    litem.next->prev=litem.prev;
+  }
   threadcount--;
   pthread_cond_signal(&gccond);
   pthread_mutex_unlock(&gclistlock);
