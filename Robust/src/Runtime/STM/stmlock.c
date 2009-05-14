@@ -1,6 +1,7 @@
 #include "stmlock.h"
 #include <stdio.h>
 
+
 inline void initdsmlocks(volatile unsigned int *addr) {
   (*addr) = RW_LOCK_BIAS;
 }

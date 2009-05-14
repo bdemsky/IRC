@@ -169,6 +169,7 @@ __attribute__((pure)) void *transRead(void *, void *);
 int transCommit();
 int traverseCache();
 int alttraverseCache();
+int altalttraverseCache();
 void transAbortProcess(void **, int);
 void transCommitProcess(void **, int);
 void randomdelay(int);
