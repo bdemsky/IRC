@@ -1,4 +1,5 @@
 package IR.Flat;
+import IR.Tree.Modifiers;
 import IR.Tree.FlagExpressionNode;
 import IR.Tree.DNFFlag;
 import IR.Tree.DNFFlagAtom;
@@ -54,6 +55,7 @@ public class BuildCode {
   SafetyAnalysis sa;
   PrefetchAnalysis pa;
   MLPAnalysis mlpa;
+  Hashtable<FlatSESEEnterNode, FlatMethod> sese2bogusFlatMeth;
   boolean nonSESEpass=true;
   WriteBarrier wb;
   DiscoverConflicts dc;
@@ -96,6 +98,9 @@ public class BuildCode {
       TypeAnalysis typeanalysis=new TypeAnalysis(locality, st, typeutil,callgraph);
       this.dc=new DiscoverConflicts(locality, st, typeanalysis);
       dc.doAnalysis();
+    }
+    if(state.MLP) {
+      sese2bogusFlatMeth = new Hashtable<FlatSESEEnterNode, FlatMethod>();
     }
   }
 
@@ -1554,17 +1559,21 @@ public class BuildCode {
                                     PrintWriter outputMethods
                                     ) {
 
-    /*
+
     FlatMethod       fm = fsen.getEnclosingFlatMeth();
     MethodDescriptor md = fm.getMethod();
     ClassDescriptor  cn = md.getClassDesc();
     
-    
+        
     //Creates bogus method descriptor to index into tables
     Modifiers bogusmod=new Modifiers();
-    MethodDescriptor bogusmd=new MethodDescriptor(bogusmod, new TypeDescriptor(TypeDescriptor.VOID), fsen.getIdentifier());
+    MethodDescriptor bogusmd=new MethodDescriptor(bogusmod, 
+                                                  new TypeDescriptor(TypeDescriptor.VOID), 
+                                                  fsen.getPrettyIdentifier()+fsen.getIdentifier());
     FlatMethod bogusfm=new FlatMethod(bogusmd, null);
-    
+    sese2bogusFlatMeth.put(fsen, bogusfm);
+
+
     //Build paramsobj for bogus method descriptor
     ParamsObject objectparams=new ParamsObject(bogusmd, tag++);
     paramstable.put(bogusmd, objectparams);
@@ -1572,14 +1581,15 @@ public class BuildCode {
     for(int i=0; i<fsen.numParameters(); i++) {
       TempDescriptor temp=fsen.getParameter(i);
       TypeDescriptor type=temp.getType();
-      if (type.isPtr()&&GENERATEPRECISEGC)
+      if (type.isPtr()&&GENERATEPRECISEGC) {
 	objectparams.addPtr(temp);
-      else
+      } else {
 	objectparams.addPrim(temp);
+      }
     }
     
-    //Build normal temp object for bogus method descriptor
     
+    //Build normal temp object for bogus method descriptor
     TempObject objecttemps=new TempObject(objectparams,bogusmd,tag++);
     tempstable.put(bogusmd, objecttemps);
     
@@ -1596,8 +1606,8 @@ public class BuildCode {
       }
     }
     
+    
     //Generate code for parameters structure
-
     generateMethodParam(cn, bogusmd, null, outputStructs); 
 
     //Generate code for locals structure
@@ -1613,32 +1623,31 @@ public class BuildCode {
     }
     outputStructs.println("};\n");
     
-    //Ready to build code at this point
 
-    headersout.print("void ");
-
-    // Next the method name
-    headersout.print(cn.getSafeSymbol()+bogusmd.getSafeSymbol()+"_"+bogusmd.getSafeMethodDescriptor()+"(");
-
+    // write method declaration to header file
+    outputMethHead.print("void ");
+    outputMethHead.print(cn.getSafeSymbol()+bogusmd.getSafeSymbol()+"_"+bogusmd.getSafeMethodDescriptor()+"(");
     boolean printcomma=false;
     if (GENERATEPRECISEGC) {
-      headersout.print("struct "+cn.getSafeSymbol()+bogusmd.getSafeSymbol()+"_"+bogusmd.getSafeMethodDescriptor()+"_params * "+paramsprefix);
+      outputMethHead.print("struct "+cn.getSafeSymbol()+
+                           bogusmd.getSafeSymbol()+"_"+
+                           bogusmd.getSafeMethodDescriptor()+"_params * "+paramsprefix);
       printcomma=true;
     }
-
     //  Output parameter list
     for(int i=0; i<objectparams.numPrimitives(); i++) {
       TempDescriptor temp=objectparams.getPrimitive(i);
       if (printcomma)
-	headersout.print(", ");
+	outputMethHead.print(", ");
       printcomma=true;
       if (temp.getType().isClass()||temp.getType().isArray())
-	headersout.print("struct " + temp.getType().getSafeSymbol()+" * "+temp.getSafeSymbol());
+	outputMethHead.print("struct " + temp.getType().getSafeSymbol()+" * "+temp.getSafeSymbol());
       else
-	headersout.print(temp.getType().getSafeSymbol()+" "+temp.getSafeSymbol());
+	outputMethHead.print(temp.getType().getSafeSymbol()+" "+temp.getSafeSymbol());
     }
-    headersout.println(");\n");
+    outputMethHead.println(");\n");
 
+    /*
     generateFlatMethodSESE(bogusfm, cn, fsen, fsen.getFlatExit(), output?????????);
     */
   }
