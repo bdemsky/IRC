@@ -1,9 +1,14 @@
 public class LocalStartStop {
-  int start;
-  int stop;
+  int i_start;
+  int i_stop;
 
   public LocalStartStop() {
-    start = 0;
-    stop = 0;
+    i_start = 0;
+    i_stop = 0;
+  }
+
+  public static void init() {
+    i_start = 0;
+    i_stop = 0;
   }
 }

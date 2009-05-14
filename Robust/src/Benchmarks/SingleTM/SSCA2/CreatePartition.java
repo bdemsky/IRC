@@ -51,7 +51,7 @@ public class CreatePartition {
    * createPartition
    * =============================================================================
    */
-  static void
+  public static void
     createPartition (int min, int max, int id, int n, LocalStartStop lss)
     {
       int range = max - min;

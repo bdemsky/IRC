@@ -3,30 +3,9 @@
  * globals.java
  *
  * =============================================================================
- *
- * For the license of bayes/sort.h and bayes/sort.c, please see the header
- * of the files.
- * 
- * ------------------------------------------------------------------------
- * 
- * For the license of kmeans, please see kmeans/LICENSE.kmeans
- * 
- * ------------------------------------------------------------------------
- * 
  * For the license of ssca2, please see ssca2/COPYRIGHT
  * 
  * ------------------------------------------------------------------------
- * 
- * For the license of lib/mt19937ar.c and lib/mt19937ar.h, please see the
- * header of the files.
- * 
- * ------------------------------------------------------------------------
- * 
- * For the license of lib/rbtree.h and lib/rbtree.c, please see
- * lib/LEGALNOTICE.rbtree and lib/LICENSE.rbtree
- * 
- * ------------------------------------------------------------------------
- * 
  * Unless otherwise noted, the following license applies to STAMP files:
  * 
  * Copyright (c) 2007, Stanford University
@@ -74,7 +53,7 @@ public class Globals {
   public int MAX_CLIQUE_SIZE;
   public int MAX_PARAL_EDGES;
   public int MAX_INT_WEIGHT;
-  public int SOUGHT_STRING;
+  public char[] SOUGHT_STRING;
   public int MAX_STRLEN;
   public double PERC_INT_WEIGHTS;
   public double PROB_UNIDIRECTIONAL;
