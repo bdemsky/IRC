@@ -599,7 +599,7 @@ fi
 if $SINGLETM
 then
 EXTRAOPTIONS="$EXTRAOPTIONS -lpthread -DCOMPILER -I$DSMRUNTIME"
-FILES="$FILES $DSMRUNTIME/dsmlock.c $DSMRUNTIME/singleTMCommit.c $DSMRUNTIME/stmlookup.c $ROBUSTROOT/Runtime/thread.c"
+FILES="$FILES $DSMRUNTIME/stmlock.c $DSMRUNTIME/singleTMCommit.c $DSMRUNTIME/stmlookup.c $ROBUSTROOT/Runtime/thread.c"
 fi
 
 if $ABORTREADERS

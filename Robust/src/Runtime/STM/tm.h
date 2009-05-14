@@ -21,7 +21,7 @@
 #include <sys/time.h>
 #include <errno.h>
 #include "stmlookup.h"
-#include "dsmlock.h"
+#include "stmlock.h"
 
 /* ==================================
  * Bit designation for status field

@@ -341,7 +341,8 @@ int transCommit() {
       nSoftAbort++;
 #endif
       softaborted++;
-      if (softaborted>4) {
+      if (1) {
+	//if (softaborted>1) {
 	//retry if too many soft aborts
 	freenewobjs();
 #ifdef STMSTATS
@@ -351,7 +352,7 @@ int transCommit() {
 	t_chashreset();
 	return TRANS_ABORT;
       }
-      randomdelay(softaborted);
+      //randomdelay(softaborted);
     } else {
       printf("Error: in %s() Unknown outcome", __func__);
       exit(-1);
