@@ -553,7 +553,7 @@ int alttraverseCache() {
   }
   chashlistnode_t *curr = c_list;
   /* Inner loop to traverse the linked list of the cache lookupTable */
-  while(curr != NULL) {
+  while(likely(curr != NULL)) {
     //if the first bin in hash table is empty
     objheader_t * headeraddr=&((objheader_t *) curr->val)[-1];
     objheader_t *header=(objheader_t *)(((char *)curr->key)-sizeof(objheader_t));
@@ -616,8 +616,8 @@ int alttraverseCache() {
     curr = curr->lnext;
   }
   //THIS IS THE SERIALIZATION POINT *****
-  for(i=0; i<numoidrdlocked; i++) {
-    objheader_t * header = oidrdlocked[i];
+  for(i=numoidrdlocked-1; i>=0; i--) {
+    objheader_t * header=oidrdlocked[i];
     unsigned int version=oidrdversion[i];
     if(header->lock>=0) {
       if(version != header->version) {
