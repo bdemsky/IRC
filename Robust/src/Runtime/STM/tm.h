@@ -169,11 +169,13 @@ __attribute__((pure)) void *transRead(void *, void *);
 int transCommit();
 int traverseCache();
 int alttraverseCache();
-int transAbortProcess(void **, int);
-int transCommmitProcess(void **, int);
+void transAbortProcess(void **, int);
+void transCommitProcess(void **, int);
 void randomdelay(int);
+#if defined(STMSTATS)||defined(SOFTABORT)
+int getTotalAbortCount(int, int, void *, void *, int);
+#endif
 #ifdef STMSTATS
-void getTotalAbortCount(int, int, void *, void *, int);
 objheader_t * needLock(objheader_t *, void *);
 #endif
 #endif

@@ -12,7 +12,7 @@
 
 #include "tm.h"
 #include "garbage.h"
-
+#define likely(x) x
 /* Per thread transaction variables */
 __thread objstr_t *t_cache;
 __thread objstr_t *t_reserve;
@@ -336,8 +336,11 @@ int transCommit() {
       nSoftAbort++;
 #endif
       softaborted++;
+#ifdef SOFTABORT
+      if (softaborted>1) {
+#else
       if (1) {
-	//if (softaborted>1) {
+#endif
 	//retry if too many soft aborts
 	freenewobjs();
 #ifdef STMSTATS
@@ -418,6 +421,9 @@ int traverseCache() {
 	      free(oidrdversion);
 	      free(oidwrlocked);
 	    }
+	    if (softabort)
+	    return TRANS_SOFT_ABORT;
+	      else
 	    return TRANS_ABORT;
 	  }
 	} else { /* cannot aquire lock */
@@ -429,7 +435,10 @@ int traverseCache() {
 #ifdef STMSTATS
 	  ABORTCOUNT(header);
 	  (typesCausingAbort[TYPE(header)])++;
-	  getTotalAbortCount(i+1, size, (void *)(curr->next), NULL, 1);
+#endif
+#if defined(STMSTATS)||defined(SOFTABORT)
+	  if (getTotalAbortCount(i+1, size, (void *)(curr->next), NULL, 1))
+	    softabort=0;
 #endif
 	  DEBUGSTM("WR Abort: rd: %u wr: %u tot: %u type: %u ver: %u\n", numoidrdlocked, numoidwrlocked, c_numelements, TYPE(header), header->version);
 	  DEBUGSTMSTAT("WR Abort: Access Count: %u AbortCount: %u type: %u ver: %u \n", header->accessCount, header->abortCount, TYPE(header), header->version);
@@ -438,7 +447,10 @@ int traverseCache() {
 	    free(oidrdversion);
 	    free(oidwrlocked);
 	  }
-	  return TRANS_ABORT;
+	  if (softabort)
+	    return TRANS_SOFT_ABORT;
+	  else
+	    return TRANS_ABORT;
 	}
       } else {
 	oidrdversion[numoidrdlocked]=version;
@@ -481,7 +493,10 @@ int traverseCache() {
 #ifdef STMSTATS
       ABORTCOUNT(header);
       (typesCausingAbort[TYPE(header)])++;
-      getTotalAbortCount(i+1, numoidrdlocked, oidrdlocked, (void *) oidrdversion, 0);
+#endif
+#if defined(STMSTATS)||defined(SOFTABORT)
+      if (getTotalAbortCount(i+1, numoidrdlocked, oidrdlocked, (void *) oidrdversion, 0))
+	softabort=0;
 #endif
       DEBUGSTM("RD Abort: rd: %u wr: %u tot: %u type: %u ver: %u\n", numoidrdlocked, numoidwrlocked, c_numelements, TYPE(header), header->version);
       DEBUGSTMSTAT("RD Abort: Access Count: %u AbortCount: %u type: %u ver: %u \n", header->accessCount, header->abortCount, TYPE(header), header->version);
@@ -490,7 +505,10 @@ int traverseCache() {
 	free(oidrdversion);
 	free(oidwrlocked);
       }
-      return TRANS_ABORT;
+      if (softabort)
+	return TRANS_SOFT_ABORT;
+      else
+	return TRANS_ABORT;
     }
   }
   
@@ -573,7 +591,10 @@ int alttraverseCache() {
 #ifdef STMSTATS
 	ABORTCOUNT(header);
 	(typesCausingAbort[TYPE(header)])++;
-	getTotalAbortCount(0, 1, (void *) curr->next, NULL, 1);
+#endif
+#if defined(STMSTATS)||defined(SOFTABORT)
+	if (getTotalAbortCount(0, 1, (void *) curr->next, NULL, 1))
+	  softabort=0;
 #endif
 	DEBUGSTM("WR Abort: rd: %u wr: %u tot: %u type: %u ver: %u\n", numoidrdlocked, numoidwrlocked, c_numelements, TYPE(header), header->version);
 	DEBUGSTMSTAT("WR Abort: Access Count: %u AbortCount: %u type: %u ver: %u \n", header->accessCount, header->abortCount, TYPE(header), header->version);
@@ -582,7 +603,10 @@ int alttraverseCache() {
 	  free(oidrdversion);
 	  free(oidwrlocked);
 	}
-	return TRANS_ABORT;
+	if (softabort)
+	  return TRANS_SOFT_ABORT;
+	else
+	  return TRANS_ABORT;
       }
     } else {
       /* Read from the main heap  and compare versions */
@@ -620,7 +644,10 @@ int alttraverseCache() {
 #ifdef STMSTATS
       ABORTCOUNT(header);
       (typesCausingAbort[TYPE(header)])++;
-      getTotalAbortCount(i+1, numoidrdlocked, oidrdlocked, (void *)oidrdversion, 0);
+#endif
+#if defined(STMSTATS)||defined(SOFTABORT)
+      if (getTotalAbortCount(i+1, numoidrdlocked, oidrdlocked, (void *)oidrdversion, 0))
+	softabort=0;
 #endif
       DEBUGSTM("RD Abort: rd: %u wr: %u tot: %u type: %u ver: %u\n", numoidrdlocked, numoidwrlocked, c_numelements, TYPE(header), header->version);
       DEBUGSTMSTAT("RD Abort: Access Count: %u AbortCount: %u type: %u ver: %u \n", header->accessCount, header->abortCount, TYPE(header), header->version);
@@ -629,7 +656,10 @@ int alttraverseCache() {
 	free(oidrdversion);
 	free(oidwrlocked);
       }
-      return TRANS_ABORT;
+      if (softabort)
+	return TRANS_SOFT_ABORT;
+      else
+	return TRANS_ABORT;
     }
   }
 
@@ -682,7 +712,7 @@ void transAbortProcess(void **oidwrlocked, int numoidwrlocked) {
  *
  * =================================
  */
-int transCommitProcess(void ** oidwrlocked, int numoidwrlocked) {
+void transCommitProcess(void ** oidwrlocked, int numoidwrlocked) {
   objheader_t *header;
   void *ptrcreate;
   int i;
@@ -731,8 +761,6 @@ int transCommitProcess(void ** oidwrlocked, int numoidwrlocked) {
     ptr=ptr->next;
   }
 #endif
-
-  return 0;
 }
 
 /** ========================================================================================
@@ -743,9 +771,10 @@ int transCommitProcess(void ** oidwrlocked, int numoidwrlocked) {
  *          0='r'/1='w' if found when visiting objects read/ objects modified
  * =========================================================================================
  **/
-#ifdef STMSTATS
-void getTotalAbortCount(int start, int stop, void *startptr, void *checkptr, int type) {
+#if defined(STMSTATS)||defined(SOFTABORT)
+int getTotalAbortCount(int start, int stop, void *startptr, void *checkptr, int type) {
   int i;
+  int hardabort=0;
   if(type) {
     int isFirstTime = 0;
     chashlistnode_t *curr = (chashlistnode_t *) startptr;
@@ -762,8 +791,11 @@ void getTotalAbortCount(int start, int stop, void *startptr, void *checkptr, int
 	unsigned int version = headeraddr->version;
 	/* versions do not match */
 	if(version != header->version) {
+#ifdef STMSTATS
 	  ABORTCOUNT(header);
 	  (typesCausingAbort[TYPE(header)])++;
+#endif
+	  hardabort=1;
 	}
 	curr = curr->next;
       }
@@ -775,11 +807,15 @@ void getTotalAbortCount(int start, int stop, void *startptr, void *checkptr, int
       objheader_t *header = ((void **)startptr)[i];
       unsigned int version = ((int *)checkptr)[i];
       if(version != header->version) { /* versions do not match */
+#ifdef STMSTATS
 	ABORTCOUNT(header);
 	(typesCausingAbort[TYPE(header)])++;
+#endif
+	hardabort=1;
       }
     }
   }
+  return hardabort;
 }
 
 /**
