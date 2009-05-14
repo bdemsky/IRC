@@ -21,12 +21,26 @@ public class MLPAnalysis {
   private FlatSESEEnterNode rootSESE;
   private FlatSESEExitNode  rootExit;
 
+  private Set<FlatSESEEnterNode> allSESEs;
+
   private Hashtable< FlatNode, Stack<FlatSESEEnterNode> > seseStacks;
   private Hashtable< FlatNode, Set<TempDescriptor>      > livenessRootView;
   private Hashtable< FlatNode, Set<TempDescriptor>      > livenessVirtualReads;
   private Hashtable< FlatNode, VarSrcTokTable           > variableResults;
   private Hashtable< FlatNode, Set<TempDescriptor>      > notAvailableResults;
   private Hashtable< FlatNode, CodePlan                 > codePlans;
+
+
+  // use these methods in BuildCode to have access to analysis results
+  public Set<FlatSESEEnterNode> getAllSESEs() {
+    return allSESEs;
+  }
+
+  public CodePlan getCodePlan( FlatNode fn ) {
+    CodePlan cp = codePlans.get( fn );
+    assert cp != null;
+    return cp;
+  }
 
 
   public MLPAnalysis( State             state,
@@ -43,12 +57,13 @@ public class MLPAnalysis {
     this.ownAnalysis = ownAnalysis;
 
     // initialize analysis data structures
+    allSESEs = new HashSet<FlatSESEEnterNode>();
+
     seseStacks           = new Hashtable< FlatNode, Stack<FlatSESEEnterNode> >();
     livenessVirtualReads = new Hashtable< FlatNode, Set<TempDescriptor>      >();
     variableResults      = new Hashtable< FlatNode, VarSrcTokTable           >();
     notAvailableResults  = new Hashtable< FlatNode, Set<TempDescriptor>      >();
     codePlans            = new Hashtable< FlatNode, CodePlan                 >();
-
 
 
     // build an implicit root SESE to wrap contents of main method
@@ -151,7 +166,7 @@ public class MLPAnalysis {
       flatNodesToVisit.remove( fn );
       visited.add( fn );      
 
-      buildForest_nodeActions( fn, seseStack );
+      buildForest_nodeActions( fn, seseStack, fm );
 
       for( int i = 0; i < fn.numNext(); i++ ) {
 	FlatNode nn = fn.getNext( i );
@@ -171,11 +186,16 @@ public class MLPAnalysis {
   }
 
   private void buildForest_nodeActions( FlatNode fn, 							   
-					Stack<FlatSESEEnterNode> seseStack ) {
+					Stack<FlatSESEEnterNode> seseStack,
+					FlatMethod fm ) {
     switch( fn.kind() ) {
 
     case FKind.FlatSESEEnterNode: {
-      FlatSESEEnterNode fsen = (FlatSESEEnterNode) fn;      
+      FlatSESEEnterNode fsen = (FlatSESEEnterNode) fn;
+
+      allSESEs.add( fsen );
+      fsen.setEnclosingFlatMeth( fm );
+
       assert !seseStack.empty();
       seseStack.peek().addChild( fsen );
       fsen.setParent( seseStack.peek() );

@@ -22,6 +22,7 @@ import Analysis.CallGraph.CallGraph;
 import Analysis.Prefetch.*;
 import Analysis.Loops.WriteBarrier;
 import Analysis.Locality.TypeAnalysis;
+import Analysis.MLP.MLPAnalysis;
 
 public class BuildCode {
   State state;
@@ -52,23 +53,28 @@ public class BuildCode {
   Hashtable<LocalityBinding, Hashtable<TempDescriptor, TempDescriptor>> backuptable;
   SafetyAnalysis sa;
   PrefetchAnalysis pa;
-  HashSet<FlatSESEEnterNode> setSESEtoGen;
+  MLPAnalysis mlpa;
   boolean nonSESEpass=true;
   WriteBarrier wb;
   DiscoverConflicts dc;
   CallGraph callgraph;
 
   public BuildCode(State st, Hashtable temptovar, TypeUtil typeutil, SafetyAnalysis sa, PrefetchAnalysis pa) {
-    this(st, temptovar, typeutil, null, sa, pa);
+    this(st, temptovar, typeutil, null, sa, pa, null);
   }
 
-  public BuildCode(State st, Hashtable temptovar, TypeUtil typeutil, LocalityAnalysis locality, PrefetchAnalysis pa) {
-    this(st, temptovar, typeutil, locality, null, pa);
+  public BuildCode(State st, Hashtable temptovar, TypeUtil typeutil, SafetyAnalysis sa, PrefetchAnalysis pa, MLPAnalysis mlpa) {
+    this(st, temptovar, typeutil, null, sa, pa, mlpa);
   }
 
-  public BuildCode(State st, Hashtable temptovar, TypeUtil typeutil, LocalityAnalysis locality, SafetyAnalysis sa, PrefetchAnalysis pa) {
+  public BuildCode(State st, Hashtable temptovar, TypeUtil typeutil, LocalityAnalysis locality, PrefetchAnalysis pa, MLPAnalysis mlpa) {
+    this(st, temptovar, typeutil, locality, null, pa, mlpa);
+  }
+
+  public BuildCode(State st, Hashtable temptovar, TypeUtil typeutil, LocalityAnalysis locality, SafetyAnalysis sa, PrefetchAnalysis pa, MLPAnalysis mlpa) {
     this.sa=sa;
     this.pa=pa;
+    this.mlpa=mlpa;
     state=st;
     callgraph=new CallGraph(state);
     if (state.SINGLETM)
@@ -91,8 +97,6 @@ public class BuildCode {
       this.dc=new DiscoverConflicts(locality, st, typeanalysis);
       dc.doAnalysis();
     }
-
-    setSESEtoGen = new HashSet<FlatSESEEnterNode>();
   }
 
   /** The buildCode method outputs C code for all the methods.  The Flat
@@ -184,15 +188,13 @@ public class BuildCode {
     /* Build the actual methods */
     outputMethods(outmethod);
 
+    // Output function prototypes and structures for SESE's and code
     if( state.MLP ) {
       nonSESEpass = false;
-      while( !setSESEtoGen.isEmpty() ) {
-	FlatSESEEnterNode fsen = setSESEtoGen.iterator().next();
-	setSESEtoGen.remove(fsen);
-	generateMethodSESE(fsen, fsen.getEnclosingFlatMeth(), null, outmethod);
+      for(Iterator<FlatSESEEnterNode> seseit=mlpa.getAllSESEs().iterator();seseit.hasNext();) {
+	FlatSESEEnterNode fsen = seseit.next();
+	generateMethodSESE(fsen, null, outstructs, outmethodheader, outmethod);
       }
-    } else {
-      assert setSESEtoGen.isEmpty();
     }
 
     if (state.TASK) {
@@ -1489,35 +1491,156 @@ public class BuildCode {
     output.println("}\n\n");
   }
 
+  /***** Generate code for FlatMethod fm. *****/
 
-  protected void generateMethodSESE(FlatSESEEnterNode fsen,
-                                    FlatMethod fm,
-                                    LocalityBinding lb,
-                                    PrintWriter output) {
-
-    //output.println( "void _SESE"+fsen.getPrettyIdentifier()+
-    //" {\n" );
-    //generateCode( fsen.getNext(0), fm, lb, fsen.getFlatExit(), output );
-    //output.println( "}\n\n" );
+  private void generateFlatMethodSESE(FlatMethod fm, 
+                                      ClassDescriptor cn, 
+                                      FlatSESEEnterNode seseEnter, 
+                                      FlatSESEExitNode  seseExit, 
+                                      PrintWriter output
+                                      ) {
+    /*
+    MethodDescriptor md=fm.getMethod();
+    ParamsObject objectparams=(ParamsObject)paramstable.get(md);
+    //generateHeader(fm, lb, md);
+    TempObject objecttemp=(TempObject) tempstable.get(md);
+    */
 
     /*
-       output.println("struct sese"+faen.getPrettyIdentifier()+"in {");
-       Iterator<TempDescriptor> itr = faen.getInVarSet().iterator();
-       while( itr.hasNext() ) {
-       TempDescriptor td = itr.next();
-       output.println("  "+td+";");
-       }
-       output.println("}");
+    if (GENERATEPRECISEGC) {
+      output.print("   struct "+cn.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_locals "+localsprefix+"={");
+      output.print(objecttemp.numPointers()+",");
+      output.print(paramsprefix);
+      for(int j=0; j<objecttemp.numPointers(); j++)
+	output.print(", NULL");
+      output.println("};");
+    }
+    */
 
-       output.println("struct sese"+faen.getPrettyIdentifier()+"out {");
-       itr = faen.getOutVarSet().iterator();
-       while( itr.hasNext() ) {
-       TempDescriptor td = itr.next();
-       output.println("  "+td+";");
-       }
-       output.println("}");
-     */
+    /*
+    for(int i=0; i<objecttemp.numPrimitives(); i++) {
+      TempDescriptor td=objecttemp.getPrimitive(i);
+      TypeDescriptor type=td.getType();
+      if (type.isNull())
+	output.println("   void * "+td.getSafeSymbol()+";");
+      else if (type.isClass()||type.isArray())
+	output.println("   struct "+type.getSafeSymbol()+" * "+td.getSafeSymbol()+";");
+      else
+	output.println("   "+type.getSafeSymbol()+" "+td.getSafeSymbol()+";");
+    }
+    */
 
+    /* Check to see if we need to do a GC if this is a
+     * multi-threaded program...*/
+
+    /*
+    if (GENERATEPRECISEGC) {
+      //Don't bother if we aren't in recursive methods...The loops case will catch it
+      if (callgraph.getAllMethods(md).contains(md)) {
+        output.println("if (needtocollect) checkcollect(&"+localsprefix+");");
+      }
+    }
+    */
+
+    //generateCode(seseEnter, getNext(0), fm, null, seseExit, output);
+
+    //output.println("}\n\n");
+  }
+
+  protected void generateMethodSESE(FlatSESEEnterNode fsen,
+                                    LocalityBinding lb,
+                                    PrintWriter outputStructs,
+                                    PrintWriter outputMethHead,
+                                    PrintWriter outputMethods
+                                    ) {
+
+    /*
+    FlatMethod       fm = fsen.getEnclosingFlatMeth();
+    MethodDescriptor md = fm.getMethod();
+    ClassDescriptor  cn = md.getClassDesc();
+    
+    
+    //Creates bogus method descriptor to index into tables
+    Modifiers bogusmod=new Modifiers();
+    MethodDescriptor bogusmd=new MethodDescriptor(bogusmod, new TypeDescriptor(TypeDescriptor.VOID), fsen.getIdentifier());
+    FlatMethod bogusfm=new FlatMethod(bogusmd, null);
+    
+    //Build paramsobj for bogus method descriptor
+    ParamsObject objectparams=new ParamsObject(bogusmd, tag++);
+    paramstable.put(bogusmd, objectparams);
+    
+    for(int i=0; i<fsen.numParameters(); i++) {
+      TempDescriptor temp=fsen.getParameter(i);
+      TypeDescriptor type=temp.getType();
+      if (type.isPtr()&&GENERATEPRECISEGC)
+	objectparams.addPtr(temp);
+      else
+	objectparams.addPrim(temp);
+    }
+    
+    //Build normal temp object for bogus method descriptor
+    
+    TempObject objecttemps=new TempObject(objectparams,bogusmd,tag++);
+    tempstable.put(bogusmd, objecttemps);
+    
+    for(Iterator nodeit=fsen.getNodeSet().iterator(); nodeit.hasNext();) {
+      FlatNode fn=(FlatNode)nodeit.next();
+      TempDescriptor[] writes=fn.writesTemps();
+      for(int i=0; i<writes.length; i++) {
+	TempDescriptor temp=writes[i];
+	TypeDescriptor type=temp.getType();
+	if (type.isPtr()&&GENERATEPRECISEGC)
+	  objecttemps.addPtr(temp);
+	else
+	  objecttemps.addPrim(temp);
+      }
+    }
+    
+    //Generate code for parameters structure
+
+    generateMethodParam(cn, bogusmd, null, outputStructs); 
+
+    //Generate code for locals structure
+    outputStructs.println("struct "+cn.getSafeSymbol()+bogusmd.getSafeSymbol()+"_"+bogusmd.getSafeMethodDescriptor()+"_locals {");
+    outputStructs.println("  INTPTR size;");
+    outputStructs.println("  void * next;");
+    for(int i=0; i<objecttemps.numPointers(); i++) {
+      TempDescriptor temp=objecttemps.getPointer(i);
+      if (temp.getType().isNull())
+        outputStructs.println("  void * "+temp.getSafeSymbol()+";");
+      else
+        outputStructs.println("  struct "+temp.getType().getSafeSymbol()+" * "+temp.getSafeSymbol()+";");
+    }
+    outputStructs.println("};\n");
+    
+    //Ready to build code at this point
+
+    headersout.print("void ");
+
+    // Next the method name
+    headersout.print(cn.getSafeSymbol()+bogusmd.getSafeSymbol()+"_"+bogusmd.getSafeMethodDescriptor()+"(");
+
+    boolean printcomma=false;
+    if (GENERATEPRECISEGC) {
+      headersout.print("struct "+cn.getSafeSymbol()+bogusmd.getSafeSymbol()+"_"+bogusmd.getSafeMethodDescriptor()+"_params * "+paramsprefix);
+      printcomma=true;
+    }
+
+    //  Output parameter list
+    for(int i=0; i<objectparams.numPrimitives(); i++) {
+      TempDescriptor temp=objectparams.getPrimitive(i);
+      if (printcomma)
+	headersout.print(", ");
+      printcomma=true;
+      if (temp.getType().isClass()||temp.getType().isArray())
+	headersout.print("struct " + temp.getType().getSafeSymbol()+" * "+temp.getSafeSymbol());
+      else
+	headersout.print(temp.getType().getSafeSymbol()+" "+temp.getSafeSymbol());
+    }
+    headersout.println(");\n");
+
+    generateFlatMethodSESE(bogusfm, cn, fsen, fsen.getFlatExit(), output?????????);
+    */
   }
 
 
@@ -1565,10 +1688,6 @@ public class BuildCode {
 	FlatNode nextnode;
 	if (state.MLP && current_node.kind()==FKind.FlatSESEEnterNode) {
 	  FlatSESEEnterNode fsen = (FlatSESEEnterNode)current_node;
-	  if( nonSESEpass ) {
-	    setSESEtoGen.add(fsen);
-	    fsen.setEnclosingFlatMeth(fm);
-	  }
 	  nextnode=fsen.getFlatExit().getNext(0);
 	} else {
 	  output.print("   ");
@@ -1635,6 +1754,7 @@ public class BuildCode {
     MethodDescriptor md=fm.getMethod();
     TaskDescriptor task=fm.getTask();
     TempObject objecttemps=(TempObject) tempstable.get(lb!=null ? lb : md!=null ? md : task);
+
     if (objecttemps.isLocalPrim(td)||objecttemps.isParamPrim(td)) {
       //System.out.println("generateTemp returns " + td.getSafeSymbol());
       return td.getSafeSymbol();
@@ -1647,6 +1767,7 @@ public class BuildCode {
     if (objecttemps.isParamPtr(td)) {
       return paramsprefix+"->"+td.getSafeSymbol();
     }
+
     throw new Error();
   }
 

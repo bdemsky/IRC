@@ -40,5 +40,12 @@ public class Test {
     y = y + 1;
     x = x + 1;
     z = z + 1;
+
+    //Integer i;
+    //afunc( i );
+  }
+
+  public static void afunc( Integer i ) {
+    i = null;
   }
 }

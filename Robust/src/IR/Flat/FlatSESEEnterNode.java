@@ -64,6 +64,49 @@ public class FlatSESEEnterNode extends FlatNode {
     return inVars;
   }
 
+  Vector<TempDescriptor> vecinVars;
+  void buildvarVec() {
+    HashSet<TempDescriptor> paramset=new HashSet<TempDescriptor>();
+    paramset.addAll(inVars);
+    paramset.addAll(outVars);
+    vecinVars=new Vector<TempDescriptor>();
+    vecinVars.addAll(paramset);
+  }
+
+  public TempDescriptor getParameter(int i) {
+    if (vecinVars==null) {
+      buildvarVec();
+    }
+    return vecinVars.get(i);
+  }
+
+  public int numParameters() {
+    if (vecinVars==null) {
+      buildvarVec();
+    }
+    return vecinVars.size();
+  }
+
+  public Set<FlatNode> getNodeSet() {
+    HashSet<FlatNode> tovisit=new HashSet<FlatNode>();
+    HashSet<FlatNode> visited=new HashSet<FlatNode>();
+    tovisit.add(this);
+    while(!tovisit.isEmpty()) {
+      FlatNode fn=tovisit.iterator().next();
+      tovisit.remove(fn);
+      visited.add(fn);
+      
+      if (fn!=exit) {
+	for(int i=0; i<fn.numNext(); i++) {
+	  FlatNode nn=fn.getNext(i);
+	  if (!visited.contains(nn))
+	    tovisit.add(nn);
+	}
+      }
+    }
+    return visited;
+  }
+
   public Set<TempDescriptor> getOutVarSet() {
     return outVars;
   }

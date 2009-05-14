@@ -248,6 +248,7 @@ public class Main {
     bf.buildFlat();
     SafetyAnalysis sa=null;
     PrefetchAnalysis pa=null;
+    MLPAnalysis mlpa=null;
 
     if (state.OPTIMIZE) {
       CallGraph callgraph=new CallGraph(state);
@@ -303,10 +304,10 @@ public class Main {
                                                    state.OWNERSHIPWRITEDOTS,
                                                    state.OWNERSHIPWRITEALL,
                                                    state.OWNERSHIPALIASFILE);
-      MLPAnalysis mlpa = new MLPAnalysis(state,
-					 tu,
-					 callGraph,
-					 oa);
+      mlpa = new MLPAnalysis(state,
+                             tu,
+                             callGraph,
+                             oa);
     }    
 
     if (state.TAGSTATE) {
@@ -394,10 +395,10 @@ public class Main {
 	}
 	LocalityAnalysis la=new LocalityAnalysis(state, callgraph, tu);
 	GenerateConversions gc=new GenerateConversions(la, state);
-	BuildCode bc=new BuildCode(state, bf.getMap(), tu, la, pa);
+	BuildCode bc=new BuildCode(state, bf.getMap(), tu, la, pa, mlpa);
 	bc.buildCode();
       } else {
-	BuildCode bc=new BuildCode(state, bf.getMap(), tu, sa, pa);
+	BuildCode bc=new BuildCode(state, bf.getMap(), tu, sa, pa, mlpa);
 	bc.buildCode();
       }
     }
