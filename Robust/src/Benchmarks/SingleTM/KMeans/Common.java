@@ -74,11 +74,11 @@ public class Common {
    * -- multi-dimensional spatial Euclid distance square
    * =============================================================================
    */
-   public static double
-    common_euclidDist2 (double[] pt1, double[] pt2, int numdims)
+   public static float
+    common_euclidDist2 (float[] pt1, float[] pt2, int numdims)
     {
       int i;
-      double ans = 0.0;
+      float ans = 0.0;
 
       for (i = 0; i < numdims; i++) {
         ans += (pt1[i] - pt2[i]) * (pt1[i] - pt2[i]);
@@ -93,16 +93,16 @@ public class Common {
    * =============================================================================
    */
   public static int
-    common_findNearestPoint (double[]  pt,        /* [nfeatures] */
+    common_findNearestPoint (float[]  pt,        /* [nfeatures] */
         int     nfeatures,
-        double[][] pts,       /* [npts][nfeatures] */
+        float[][] pts,       /* [npts][nfeatures] */
         int     npts)
     {
       int index = -1;
       int i;
       //double max_dist = FLT_MAX;
-      double max_dist = 3.40282347e+38;
-      double limit = 0.99999;
+      float max_dist = 3.40282347e+38;
+      float limit = 0.99999;
 
       /* Find the cluster center id with min distance to pt */
       for (i = 0; i < npts; i++) {
