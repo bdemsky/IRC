@@ -1496,22 +1496,19 @@ public class BuildCode {
     output.println("}\n\n");
   }
 
-  /***** Generate code for FlatMethod fm. *****/
-
   private void generateFlatMethodSESE(FlatMethod fm, 
                                       ClassDescriptor cn, 
                                       FlatSESEEnterNode seseEnter, 
                                       FlatSESEExitNode  seseExit, 
                                       PrintWriter output
                                       ) {
-    /*
+
     MethodDescriptor md=fm.getMethod();
     ParamsObject objectparams=(ParamsObject)paramstable.get(md);
-    //generateHeader(fm, lb, md);
+    generateHeader(fm, null, md, output);
     TempObject objecttemp=(TempObject) tempstable.get(md);
-    */
 
-    /*
+
     if (GENERATEPRECISEGC) {
       output.print("   struct "+cn.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_locals "+localsprefix+"={");
       output.print(objecttemp.numPointers()+",");
@@ -1520,9 +1517,7 @@ public class BuildCode {
 	output.print(", NULL");
       output.println("};");
     }
-    */
 
-    /*
     for(int i=0; i<objecttemp.numPrimitives(); i++) {
       TempDescriptor td=objecttemp.getPrimitive(i);
       TypeDescriptor type=td.getType();
@@ -1533,23 +1528,22 @@ public class BuildCode {
       else
 	output.println("   "+type.getSafeSymbol()+" "+td.getSafeSymbol()+";");
     }
-    */
 
-    /* Check to see if we need to do a GC if this is a
-     * multi-threaded program...*/
-
-    /*
+    
+    // Check to see if we need to do a GC if this is a
+    // multi-threaded program...    
     if (GENERATEPRECISEGC) {
       //Don't bother if we aren't in recursive methods...The loops case will catch it
       if (callgraph.getAllMethods(md).contains(md)) {
         output.println("if (needtocollect) checkcollect(&"+localsprefix+");");
       }
-    }
-    */
+    }    
 
-    //generateCode(seseEnter, getNext(0), fm, null, seseExit, output);
 
-    //output.println("}\n\n");
+    generateCode(seseEnter.getNext(0), fm, null, seseExit, output);
+
+    
+    output.println("}\n\n");
   }
 
   protected void generateMethodSESE(FlatSESEEnterNode fsen,
@@ -1569,7 +1563,8 @@ public class BuildCode {
     Modifiers bogusmod=new Modifiers();
     MethodDescriptor bogusmd=new MethodDescriptor(bogusmod, 
                                                   new TypeDescriptor(TypeDescriptor.VOID), 
-                                                  fsen.getPrettyIdentifier()+fsen.getIdentifier());
+                                                  "sese_"+fsen.getPrettyIdentifier()+fsen.getIdentifier());
+    bogusmd.setClassDesc(cn);
     FlatMethod bogusfm=new FlatMethod(bogusmd, null);
     sese2bogusFlatMeth.put(fsen, bogusfm);
 
@@ -1647,9 +1642,8 @@ public class BuildCode {
     }
     outputMethHead.println(");\n");
 
-    /*
-    generateFlatMethodSESE(bogusfm, cn, fsen, fsen.getFlatExit(), output?????????);
-    */
+
+    generateFlatMethodSESE(bogusfm, cn, fsen, fsen.getFlatExit(), outputMethods);
   }
 
 
