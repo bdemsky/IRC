@@ -18,6 +18,8 @@
 #ifdef STM
 #include "tm.h"
 #endif
+#include <execinfo.h>
+
 
 int threadcount;
 pthread_mutex_t gclock;
@@ -114,13 +116,25 @@ transstart:
   pthread_exit(NULL);
 }
 
-void threadhandler(int sig, siginfo_t *info, void *uap) {
+void threadhandler(int sig, struct sigcontext ctx) {
+  void *buffer[100];
+  char **strings;
+  int nptrs,j;
+
   printf("We just took sig=%d\n",sig);
   printf("signal\n");
   printf("To get stack trace, set breakpoint in threadhandler in gdb\n");
-#ifndef MAC
-  backtrace();
-#endif
+  nptrs = backtrace(buffer, 100);
+  buffer[1]=(void *)ctx.eip;
+  strings = backtrace_symbols(buffer, nptrs);
+  if (strings == NULL) {
+    perror("backtrace_symbols");
+    exit(EXIT_FAILURE);
+  }
+  
+  for (j = 0; j < nptrs; j++)
+    printf("%s\n", strings[j]);
+  
   threadexit();
 }
 
@@ -144,8 +158,9 @@ void initializethreads() {
   processOptions();
   initializeexithandler();
 
-  sig.sa_sigaction=&threadhandler;
-  sig.sa_flags=SA_SIGINFO;
+  //deprecated use of sighandler, but apparently still works
+  sig.sa_handler=(void *)threadhandler;
+  sig.sa_flags=SA_RESTART;
   sigemptyset(&sig.sa_mask);
 
   /* Catch bus errors, segmentation faults, and floating point exceptions*/
