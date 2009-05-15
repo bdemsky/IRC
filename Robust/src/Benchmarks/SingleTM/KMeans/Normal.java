@@ -98,15 +98,15 @@ public class Normal {
    */
   public static void work(int myId, GlobalArgs args) {
     int CHUNK=3;
-    double[][] feature = args.feature;
+    float[][] feature = args.feature;
     int nfeatures = args.nfeatures;
     int npoints = args.npoints;
     int nclusters = args.nclusters;
     int[] membership = args.membership;
-    double[][] clusters = args.clusters;
+    float[][] clusters = args.clusters;
     intwrapper[] new_centers_len = args.new_centers_len;
-    double[][] new_centers = args.new_centers;
-    double delta = 0.0;
+    float[][] new_centers = args.new_centers;
+    float delta = 0.0;
     int index, start, stop;
 
     start = myId * CHUNK;
@@ -161,22 +161,22 @@ public class Normal {
    * normal_exec
    * =============================================================================
    */
-  public double[][] normal_exec (
+  public float[][] normal_exec (
       int       nthreads,
-      double[][]   feature,    /* in: [npoints][nfeatures] */
+      float[][]   feature,    /* in: [npoints][nfeatures] */
       int       nfeatures,
       int       npoints,
       int       nclusters,
-      double     threshold,
+      float     threshold,
       int[]      membership,
       Random     randomPtr,  /* out: [npoints] */
       GlobalArgs args)
   {
-    double delta;
-    double[][] clusters;      /* out: [nclusters][nfeatures] */
+    float delta;
+    float[][] clusters;      /* out: [nclusters][nfeatures] */
 
     /* Allocate space for returning variable clusters[] */
-    clusters = new double[nclusters][nfeatures];
+    clusters = new float[nclusters][nfeatures];
 
     /* Randomly pick cluster centers */
     for (int i = 0; i < nclusters; i++) {
@@ -196,7 +196,7 @@ public class Normal {
      */
     intwrapper[] new_centers_len  = new intwrapper[nclusters];
 
-    double[][] new_centers = new double[nclusters][nfeatures];
+    float[][] new_centers = new float[nclusters][nfeatures];
 
     int loop = 0;
     do {

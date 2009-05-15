@@ -83,10 +83,10 @@ public class Cluster {
    * extractMoments
    * =============================================================================
    */
-  public double[]
-    extractMoments (double []data, int num_elts, int num_moments)
+  public float[]
+    extractMoments (float []data, int num_elts, int num_moments)
     {
-      double[] moments = new double[num_moments];
+      float[] moments = new float[num_moments];
 
       for (int i = 0; i < num_elts; i++) {
         moments[0] += data[i];
@@ -109,18 +109,18 @@ public class Cluster {
    * =============================================================================
    */
   public void
-    zscoreTransform (double[][] data, /* in & out: [numObjects][numAttributes] */
+    zscoreTransform (float[][] data, /* in & out: [numObjects][numAttributes] */
         int     numObjects,
         int     numAttributes)
     {
-      double[] moments;
-      double[] single_variable = new double[numObjects];
+      float[] moments;
+      float[] single_variable = new float[numObjects];
       for (int i = 0; i < numAttributes; i++) {
         for (int j = 0; j < numObjects; j++) {
           single_variable[j] = data[j][i];
         }
         moments = extractMoments(single_variable, numObjects, 2);
-        moments[1] = Math.sqrt((double)moments[1]);
+        moments[1] = (float) Math.sqrt((double)moments[1]);
         for (int j = 0; j < numObjects; j++) {
           data[j][i] = (data[j][i]-moments[0])/moments[1];
         }
@@ -137,7 +137,7 @@ public class Cluster {
         int      nthreads,               /* in: number of threads*/
         int      numObjects,             /* number of input objects */
         int      numAttributes,          /* size of attribute of each object */
-        double[][]  attributes,           /* [numObjects][numAttributes] */
+        float[][]  attributes,           /* [numObjects][numAttributes] */
         KMeans kms,                       /* KMeans class hold the inputs and outputs */
         GlobalArgs args                 /* Global thread arguments */
         )
@@ -145,7 +145,7 @@ public class Cluster {
       int itime;
       int nclusters;
 
-      double[][] tmp_cluster_centres = null;
+      float[][] tmp_cluster_centres = null;
       int[] membership = new int[numObjects];
 
       Random randomPtr = new Random();

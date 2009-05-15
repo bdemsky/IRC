@@ -106,8 +106,7 @@ public class Common {
 
       /* Find the cluster center id with min distance to pt */
       for (i = 0; i < npts; i++) {
-        double dist;
-        dist = common_euclidDist2(pt, pts[i], nfeatures);  /* no need square root */
+        float dist = common_euclidDist2(pt, pts[i], nfeatures);  /* no need square root */
         if ((dist / max_dist) < limit) {
           max_dist = dist;
           index = i;

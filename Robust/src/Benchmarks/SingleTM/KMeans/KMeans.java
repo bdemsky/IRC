@@ -114,7 +114,7 @@ public class KMeans extends Thread {
   /**
    * threshold until which kmeans cluster continues
    **/
-  double threshold;
+  float threshold;
 
   /**
    * thread id
@@ -134,7 +134,7 @@ public class KMeans extends Thread {
   /**
    * Output: Cluster centers
    **/
-  double[][] cluster_centres;
+  float[][] cluster_centres;
 
   public KMeans() {
     max_nclusters = 13;
@@ -181,8 +181,8 @@ public class KMeans extends Thread {
       System.exit(0);
     }
     
-    double[][] buf;
-    double[][] attributes;
+    float[][] buf;
+    float[][] attributes;
     int numAttributes = 0;
     int numObjects = 0;
 
@@ -225,8 +225,8 @@ public class KMeans extends Thread {
     System.out.println("numObjects= " + numObjects + " numAttributes= " + numAttributes);
 
     /* Allocate new shared objects and read attributes of all objects */
-    buf = new double[numObjects][numAttributes];
-    attributes = new double[numObjects][numAttributes];
+    buf = new float[numObjects][numAttributes];
+    attributes = new float[numObjects][numAttributes];
     KMeans.readFromFile(inputFile, kms.filename, buf, MAX_LINE_LENGTH);
     System.out.println("Finished Reading from file ......");
 
@@ -352,7 +352,7 @@ public class KMeans extends Thread {
    * readFromFile()
    * Read attributes from the input file into an array
    **/
-  public static void readFromFile(FileInputStream inputFile, String filename, double[][] buf, int MAX_LINE_LENGTH) {
+  public static void readFromFile(FileInputStream inputFile, String filename, float[][] buf, int MAX_LINE_LENGTH) {
     inputFile = new FileInputStream(filename);
     int j;
     int i = 0;
@@ -415,11 +415,11 @@ public class KMeans extends Thread {
   }
 
   /**
-   * Convert a string into double
+   * Convert a string into float
    **/
-  public static double ByteToFloat (byte[] str, int offset, int length) {
-    double left=0.0d;
-    double right=0.0d;
+  public static float ByteToFloat (byte[] str, int offset, int length) {
+    float left=0.0d;
+    float right=0.0d;
     int i;
     for(i=0;i<length;i++) {
       if (str[i+offset]=='.')
@@ -427,7 +427,7 @@ public class KMeans extends Thread {
       left=left*10+(str[i+offset]-'0');
     }
     i++; //skip past decimal point
-    double multiplier=0.1d;
+    float multiplier=0.1d;
     for(;i<length;i++) {
       right+=multiplier*(str[i+offset]-'0');
       multiplier*=0.1d;

@@ -28,7 +28,7 @@ public class GlobalArgs {
   /**
    * List of attributes
    **/
-  public double[][] feature;
+  public float[][] feature;
 
   /**
    * Number of attributes per Object
@@ -55,7 +55,7 @@ public class GlobalArgs {
   /**
    *
    **/
-  public double[][] clusters;
+  public float[][] clusters;
 
 
   /**
@@ -66,13 +66,13 @@ public class GlobalArgs {
   /**
    * New centers of the clusters [nclusters][nfeatures]
    **/
-  public double[][] new_centers;
+  public float[][] new_centers;
 
   /**
     *
   **/
   public long global_i;
 
-  public double global_delta;
+  public float global_delta;
 
 }
