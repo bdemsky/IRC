@@ -555,7 +555,8 @@ public class LocalityAnalysis {
   void processSetFieldNodeSTM(LocalityBinding lb, FlatSetFieldNode fsfn, Hashtable<TempDescriptor, Integer> currtable) {
     Integer srctype=currtable.get(fsfn.getSrc());
     Integer dsttype=currtable.get(fsfn.getDst());
-
+    if (dsttype==null)
+      System.out.println(fsfn);
     if (dsttype.equals(SCRATCH)) {
       if (srctype.equals(SCRATCH) && fsfn.getField().getType().isPrimitive() && !fsfn.getField().getType().isArray())
 	return;

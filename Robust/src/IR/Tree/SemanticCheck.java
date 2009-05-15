@@ -490,16 +490,17 @@ public class SemanticCheck {
       fan2.setField(fd);
       fan.left=fan2;
       fan.fieldname="value";
+
       ExpressionNode leftwr=fan.getExpression();
-      checkExpressionNode(md,nametable,leftwr,null);
       TypeDescriptor ltdwr=leftwr.getType();
       String fieldnamewr=fan.getFieldName();
       FieldDescriptor fdwr=(FieldDescriptor) ltdwr.getClassDesc().getFieldTable().get(fieldnamewr);
+      fan.setField(fdwr);
       if (fdwr==null)
 	  throw new Error("Unknown field "+fieldnamewr + " in "+fan.printNode(0)+" in "+md);
+    } else {
+      fan.setField(fd);
     }
-    fan.setField(fd);
-
     if (td!=null) {
       if (!typeutil.isSuperorType(td,fan.getType()))
 	throw new Error("Field node returns "+fan.getType()+", but need "+td);
@@ -573,8 +574,9 @@ public class SemanticCheck {
 	  n.setField(fd);
 	  n.setVar((VarDescriptor)nametable.get("this"));        /* Need a pointer to this */
 	  FieldAccessNode fan=new FieldAccessNode(n,"value");
+	  FieldDescriptor fdval=(FieldDescriptor) fd.getType().getClassDesc().getFieldTable().get("value");
+	  fan.setField(fdval);
 	  nn.setExpression(fan);
-	  checkExpressionNode(md,nametable,fan,td);
 	} else {
 	  nn.setField(fd);
 	  nn.setVar((VarDescriptor)nametable.get("this"));        /* Need a pointer to this */

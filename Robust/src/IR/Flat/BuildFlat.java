@@ -221,9 +221,24 @@ public class BuildFlat {
   private NodePair flattenCreateObjectNode(CreateObjectNode con,TempDescriptor out_temp) {
     TypeDescriptor td=con.getType();
     if (!td.isArray()) {
-      FlatNew fn=new FlatNew(td, out_temp, con.isGlobal(), con.getDisjointId());
-      TempDescriptor[] temps=new TempDescriptor[con.numArgs()];
+      FlatNode fn=new FlatNew(td, out_temp, con.isGlobal(), con.getDisjointId());
       FlatNode last=fn;
+      //handle wrapper fields
+      ClassDescriptor cd=td.getClassDesc();
+      for(Iterator fieldit=cd.getFields();fieldit.hasNext();) {
+	FieldDescriptor fd=(FieldDescriptor)fieldit.next();
+	if (fd.getType().iswrapper()) {
+	  TempDescriptor wrap_tmp=TempDescriptor.tempFactory("wrapper_obj",fd.getType());
+	  FlatNode fnwrapper=new FlatNew(fd.getType(), wrap_tmp, con.isGlobal());
+	  FlatSetFieldNode fsfn=new FlatSetFieldNode(out_temp, fd, wrap_tmp);
+	  last.addNext(fnwrapper);
+	  fnwrapper.addNext(fsfn);
+	  last=fsfn;
+	}
+      }
+
+      TempDescriptor[] temps=new TempDescriptor[con.numArgs()];
+
       // Build arguments
       for(int i=0; i<con.numArgs(); i++) {
 	ExpressionNode en=con.getArg(i);
