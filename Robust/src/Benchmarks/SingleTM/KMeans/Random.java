@@ -14,74 +14,71 @@ public class Random {
     N = 624;
     M = 397;
     mt = new long[N];
-    mti = 0;
+    mti = N;
     MATRIX_A = 0x9908b0dfL;   /* constant vector a */
     UPPER_MASK = 0x80000000L; /* most significant w-r bits */
     LOWER_MASK = 0x7fffffffL; /* least significant r bits */
   }
 
-  public Random random_alloc(Random rand) {
-    init_genrand(rand, rand.RANDOM_DEFAULT_SEED);
-    return rand;
+  public void random_alloc() {
+    init_genrand(this.RANDOM_DEFAULT_SEED);
   }
 
   /* initializes mt[N] with a seed */
-  public void init_genrand(Random rand, long s) {
+  public void init_genrand(long s) {
     int mti;
-
-    rand.mt[0]= s & 0xFFFFFFFFL;
-    for (mti=1; mti<rand.N; mti++) {
-     rand.mt[mti] = (1812433253L * (rand.mt[mti-1] ^ (rand.mt[mti-1] >> 30)) + mti);
+    mt[0]= s & 0xFFFFFFFFL;
+    for (mti=1; mti<N; mti++) {
+     mt[mti] = (1812433253L * (mt[mti-1] ^ (mt[mti-1] >> 30)) + mti);
       /* See Knuth TAOCP Vol2. 3rd Ed. P.106 for multiplier. */
       /* In the previous versions, MSBs of the seed affect   */
       /* only MSBs of the array mt[].                        */
       /* 2002/01/09 modified by Makoto Matsumoto             */
-      rand.mt[mti] &= 0xFFFFFFFFL;
+      mt[mti] &= 0xFFFFFFFFL;
       /* for >32 bit machines */
     }
-  
-    rand.mti = mti;
+    this.mti=mti;
   }
 
-  public void random_seed(Random rand, long seed) {
-    init_genrand(rand, seed);
+  public void random_seed(long seed) {
+    init_genrand(seed);
   }
 
-  public long random_generate(Random rand) {
-    return genrand_int32(rand);
+  public long random_generate() {
+    return genrand_int32();
   }
 
   //public static long genrand_int32(long[] mt, long mtiPtr) {
-  public long genrand_int32(Random rand) {
+  public long genrand_int32() {
     long y;
     long[] mag01= new long[2];
     mag01[0] = 0x0L;
-    mag01[1] = rand.MATRIX_A;
-    int mti = rand.mti;
+    mag01[1] = MATRIX_A;
+    int mti = this.mti;
 
     /* mag01[x] = x * MATRIX_A  for x=0,1 */
 
-    if (mti >= rand.N) { /* generate N words at one time */
+    if (mti >= N) { /* generate N words at one time */
       int kk;
 
-      if (mti == rand.N+1)   /* if init_genrand() has not been called, */
-        init_genrand(rand, 5489L); /* a default initial seed is used */
+      if (mti == N+1)   /* if init_genrand() has not been called, */
+        init_genrand(5489L); /* a default initial seed is used */
 
-      for (kk=0;kk<rand.N-rand.M;kk++) {
-        y = (rand.mt[kk]&rand.UPPER_MASK)|(rand.mt[kk+1]&LOWER_MASK);
-        rand.mt[kk] = rand.mt[kk+M] ^ (y >> 1) ^ mag01[(int)(y & 0x1L)];
+      for (kk=0;kk<N-M;kk++) {
+        y = (mt[kk]&UPPER_MASK)|(mt[kk+1]&LOWER_MASK);
+        mt[kk] = mt[kk+M] ^ (y >> 1) ^ mag01[(int)(y & 0x1L)];
       }
-      for (;kk<rand.N-1;kk++) {
-        y = (rand.mt[kk]&rand.UPPER_MASK)|(rand.mt[kk+1]&LOWER_MASK);
-        rand.mt[kk] = rand.mt[kk+(M-N)] ^ (y >> 1) ^ mag01[(int)(y & 0x1L)];
+      for (;kk<N-1;kk++) {
+        y = (mt[kk]&UPPER_MASK)|(mt[kk+1]&LOWER_MASK);
+        mt[kk] = mt[kk+(M-N)] ^ (y >> 1) ^ mag01[(int)(y & 0x1L)];
       }
-      y = (rand.mt[N-1]&rand.UPPER_MASK)|(rand.mt[0]&LOWER_MASK);
-      rand.mt[N-1] = rand.mt[M-1] ^ (y >> 1) ^ mag01[(int)(y & 0x1L)];
+      y = (mt[N-1]&UPPER_MASK)|(mt[0]&LOWER_MASK);
+      mt[N-1] = mt[M-1] ^ (y >> 1) ^ mag01[(int)(y & 0x1L)];
 
       mti = 0;
     }
 
-    y = rand.mt[mti++];
+    y = mt[mti++];
 
     /* Tempering */
     y ^= (y >> 11);
@@ -89,7 +86,7 @@ public class Random {
     y ^= (y << 15) & 0xefc60000L;
     y ^= (y >> 18);
 
-    rand.mti = mti;
+    this.mti = mti;
 
     return y;
   }

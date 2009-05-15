@@ -141,7 +141,7 @@ public class KMeans extends Thread {
     min_nclusters = 4;
     isBinaryFile = 0;
     use_zscore_transform = 1;
-    threshold = 0.001;
+    threshold = (float) 0.001;
     best_nclusters = 0;
   }
 
@@ -264,8 +264,7 @@ public class KMeans extends Thread {
         }
       }
 
-      Cluster clus = new Cluster();
-      clus.cluster_exec(nthreads,
+      Cluster.cluster_exec(nthreads,
           numObjects,
           numAttributes,
           attributes,             // [numObjects][numAttributes] 
@@ -378,8 +377,9 @@ public class KMeans extends Thread {
 	for(int ii=0;ii<x;ii++)
 	  newbytes[ii+oldbytes.length]=b[ii];
 	x++; //skip past space
-	if (j>=0)
-	  buf[i][j]=ByteToFloat(newbytes, 0, newbytes.length);
+	if (j>=0) {
+	  buf[i][j]=(float)Double.parseDouble(new String(newbytes, 0, newbytes.length));
+	}
 	j++;
 	oldbytes=null;
       }
@@ -404,35 +404,16 @@ public class KMeans extends Thread {
 	}
 	
 	//otherwise x is beginning of character string, y is end
-	if (j>=0)
-	  buf[i][j]= ByteToFloat(b, x, y-x);
+	if (j>=0) {
+
+	  buf[i][j]=(float)Double.parseDouble(new String(b,x,y-x));
+	}
 	x=y;//skip to end of number
 	x++;//skip past space
 	j++;
       }
     }
     inputFile.close();
-  }
-
-  /**
-   * Convert a string into float
-   **/
-  public static float ByteToFloat (byte[] str, int offset, int length) {
-    float left=0.0d;
-    float right=0.0d;
-    int i;
-    for(i=0;i<length;i++) {
-      if (str[i+offset]=='.')
-	break;
-      left=left*10+(str[i+offset]-'0');
-    }
-    i++; //skip past decimal point
-    float multiplier=0.1d;
-    for(;i<length;i++) {
-      right+=multiplier*(str[i+offset]-'0');
-      multiplier*=0.1d;
-    }
-    return left+right;
   }
 }
 

@@ -106,7 +106,7 @@ public class Normal {
     float[][] clusters = args.clusters;
     intwrapper[] new_centers_len = args.new_centers_len;
     float[][] new_centers = args.new_centers;
-    float delta = 0.0;
+    float delta = 0.0f;
     int index, start, stop;
 
     start = myId * CHUNK;
@@ -125,7 +125,7 @@ public class Normal {
          * membership[i] cannot be changed by other threads
          */
         if (membership[i] != index) {
-          delta += 1.0;
+          delta += 1.0f;
         }
 
         /* Assign the membership to object i */
@@ -180,7 +180,7 @@ public class Normal {
 
     /* Randomly pick cluster centers */
     for (int i = 0; i < nclusters; i++) {
-      int n = (int)(randomPtr.random_generate(randomPtr) % npoints);
+      int n = (int)(randomPtr.random_generate() % npoints);
       for (int j = 0; j < nfeatures; j++) {
         clusters[i][j] = feature[n][j];
       }
@@ -200,7 +200,7 @@ public class Normal {
 
     int loop = 0;
     do {
-      delta = 0.0d;
+      delta = (float) 0.0;
 
       args.feature         = feature;
       args.nfeatures       = nfeatures;
@@ -225,7 +225,7 @@ public class Normal {
           if (new_centers_len[i] > 0) {
             clusters[i][j] = new_centers[i][j] / new_centers_len[i];
           }
-          new_centers[i][j] = 0.0;   /* set back to 0 */
+          new_centers[i][j] = (float)0.0;   /* set back to 0 */
         }
         new_centers_len[i] = 0;   /* set back to 0 */
       }
@@ -242,7 +242,7 @@ public class Normal {
   /**
    * Work done by primary thread in parallel with other threads
    **/
-  thread_work(GlobalArgs args) {
+  void thread_work(GlobalArgs args) {
    Barrier.enterBarrier();
    Normal.work(0, args); //threadId = 0 because primary thread
    Barrier.enterBarrier();

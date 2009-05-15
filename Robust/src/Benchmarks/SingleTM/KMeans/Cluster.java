@@ -83,20 +83,21 @@ public class Cluster {
    * extractMoments
    * =============================================================================
    */
-  public float[]
+  public static float[]
     extractMoments (float []data, int num_elts, int num_moments)
     {
       float[] moments = new float[num_moments];
 
+      float mzero=0.0f;
       for (int i = 0; i < num_elts; i++) {
-        moments[0] += data[i];
+        mzero += data[i];
       }
 
-      moments[0] = moments[0] / num_elts;
+      moments[0] = mzero / num_elts;
       for (int j = 1; j < num_moments; j++) {
         moments[j] = 0;
         for (int i = 0; i < num_elts; i++) {
-          moments[j] += Math.pow((data[i]-moments[0]), j+1);
+          moments[j] += (float) Math.pow((data[i]-moments[0]), j+1);
         }
         moments[j] = moments[j] / num_elts;
       }
@@ -108,7 +109,7 @@ public class Cluster {
    * zscoreTransform
    * =============================================================================
    */
-  public void
+  public static void
     zscoreTransform (float[][] data, /* in & out: [numObjects][numAttributes] */
         int     numObjects,
         int     numAttributes)
@@ -132,7 +133,7 @@ public class Cluster {
    * cluster_exec
    * =============================================================================
    */
-  public void
+  public static void
     cluster_exec (
         int      nthreads,               /* in: number of threads*/
         int      numObjects,             /* number of input objects */
@@ -145,11 +146,11 @@ public class Cluster {
       int itime;
       int nclusters;
 
-      float[][] tmp_cluster_centres = null;
+      float[][] tmp_cluster_centres;
       int[] membership = new int[numObjects];
 
       Random randomPtr = new Random();
-      randomPtr = randomPtr.random_alloc(randomPtr);
+      randomPtr.random_alloc();
 
       if (kms.use_zscore_transform == 1) {
         zscoreTransform(attributes, numObjects, numAttributes);
@@ -162,7 +163,7 @@ public class Cluster {
        */
       for (nclusters = kms.min_nclusters; nclusters <= kms.max_nclusters; nclusters++) {
 
-        randomPtr.random_seed(randomPtr, 7);
+        randomPtr.random_seed(7);
         args.nclusters = nclusters;
 
         Normal norm = new Normal();
@@ -184,8 +185,6 @@ public class Cluster {
 
         itime++;
       } /* nclusters */
-
-      randomPtr = null;
     }
 }
 

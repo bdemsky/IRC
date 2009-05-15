@@ -109,6 +109,38 @@ void injectinstructionfailure() {
 #endif
 }
 
+#ifdef D___Double______nativeparsedouble____L___String___
+double CALL01(___Double______nativeparsedouble____L___String___,struct ___String___ * ___str___) {
+  int length=VAR(___str___)->___count___;
+  int maxlength=(length>60)?60:length;
+  char str[maxlength+1];
+  struct ArrayObject * chararray=VAR(___str___)->___value___;
+  int i;
+  int offset=VAR(___str___)->___offset___;
+  for(i=0; i<maxlength; i++) {
+    str[i]=((short *)(((char *)&chararray->___length___)+sizeof(int)))[i+offset];
+  }
+  str[i]=0;
+  double d=atof(str);
+  return d;
+}
+#endif
+
+#ifdef D___String______convertdoubletochar____D__AR_C
+int CALL12(___String______convertdoubletochar____D__AR_C, double ___val___, double ___val___, struct ArrayObject ___chararray___) {
+  int length=VAR(___chararray___)->___length___;
+  char str[length];
+  int i;
+  int num=snprintf(str, length, "%f",___val___);
+  if (num>=length)
+    num=length-1;
+  for(i=0; i<length; i++) {
+    ((short *)(((char *)&VAR(___chararray___)->___length___)+sizeof(int)))[i]=(short)str[i];
+  }
+  return num;
+}
+#endif
+
 void CALL11(___System______exit____I,int ___status___, int ___status___) {
 #ifdef TRANSSTATS
   printf("numTransCommit = %d\n", numTransCommit);
@@ -368,7 +400,6 @@ __attribute__((malloc)) struct ArrayObject * allocate_newarray(int type, int len
 }
 #endif
 #endif
-
 
 /* Converts C character arrays into Java strings */
 #ifdef PRECISE_GC

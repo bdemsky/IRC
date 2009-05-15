@@ -289,59 +289,15 @@ public class String {
   }
 
   public static String valueOf(double val) {
-    int i = 0, j = 0, k = 0;
-    long nodecimal = 0;
-    double decimal = 1.0d, valueA = 0.0d;
-    StringBuffer output = new StringBuffer();
-
-    for(i = 0; decimal != nodecimal; i++) {
-      long basePower = 1;
-      for(int x=0; x<i; x++) {
-	basePower*= 10;
-      }
-      nodecimal = (long) (val*basePower);
-      decimal = val*basePower;
-    } //i = place counted from right that decimal point appears
-
-    valueA = nodecimal; //valueA = val with no decimal point (val*10^i)
-
-    for(j = 0; decimal >= 0; j++) {
-      long basePower = 1;
-      for(int x=0; x<j; x++) {
-	basePower*= 10;
-      }
-      nodecimal = (long) (valueA - basePower);
-      decimal = (double) nodecimal;
-    } //j-1 = number of digits
-
-    i--;
-    j--;
-    decimal = 0;
-
-    for(k = j; k > 0; k--) {
-      if(k == i) { //if a decimal point was previously found
-	//insert it where its meant to be
-	output.append((char)46);
-      }
-      long basePower = 1;
-      for(int x=0; x<(k-1); x++) {
-	basePower*= 10;
-      }
-      nodecimal = ((long) (valueA - decimal) / basePower);
-      decimal += nodecimal*basePower;
-      output.append((char)(48 + nodecimal));
-    }
-
-    return output.toString();
+    char[] chararray=new char[10];
+    String s=new String();
+    s.offset=0;
+    s.count=convertdoubletochar(val, chararray);
+    s.value=chararray;
+    return s;
   }
-
-  public static long basePower(int x, int y) {
-    long t = 1;
-    for(int i=0; i<y; i++) {
-      t *= x;
-    }
-    return t;
-  }
+  
+  public static native int convertdoubletochar(double val, char [] chararray);
 
   public static String valueOf(long x) {
     int length=0;
