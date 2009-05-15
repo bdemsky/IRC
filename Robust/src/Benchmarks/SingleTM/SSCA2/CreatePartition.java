@@ -68,12 +68,12 @@ public class CreatePartition {
       lss.stop = stop;
     }
 
-  int MAX(int a, int b) {
+  public static int MAX(int a, int b) {
     int val = (a > b) ? (a) : (b);
     return val;
   }
 
-  int MIN(int a, int b) {
+  public static int MIN(int a, int b) {
     int val = (a < b) ? (a) : (b); 
     return val;
   }
