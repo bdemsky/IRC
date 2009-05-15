@@ -1,11 +1,11 @@
 public class Sequencer {
 
-      public char* sequence;
+      public String sequence;
 
       public Segments segmentsPtr;
 
       /* For removing duplicate segments */
-      Hashmap uniqueSegmentsPtr;
+      HashMap uniqueSegmentsPtr;
 
       /* For matching segments */
       endInfoEntry endInfoEntries[];
@@ -25,18 +25,18 @@ public class Sequencer {
    * =============================================================================
    */
   Sequencer (long myGeneLength, long mySegmentLength, Segments mySegmentsPtr) { 
-  
-    long maxNumUniqueSegment = myGeneLength - mySegmentLength + 1;
-    long i;
 
-    uniqueSegmentsPtr = new Hashmap(myGeneLength);
+    long maxNumUniqueSegment = myGeneLength - mySegmentLength + 1;
+    int i;
+
+    uniqueSegmentsPtr = new HashMap((int)myGeneLength);
 
     /* For finding a matching entry */
     endInfoEntries = new endInfoEntry[maxNumUniqueSegment];
     for (i = 0; i < maxNumUniqueSegment; i++) {
-      endInfoEntries[i].isEnd = TRUE;
-        endInfoEntries[i].jumpToNext = 1;
+      endInfoEntries[i] = new endInfoEntry(true, 1);
     }
+
     startHashToConstructEntryTables = new Table[mySegmentLength];
     for (i = 1; i < mySegmentLength; i++) { /* 0 is dummy entry */
         startHashToConstructEntryTables[i] = new Table(myGeneLength);
@@ -44,22 +44,15 @@ public class Sequencer {
     segmentLength = mySegmentLength;
 
     /* For constructing sequence */
-    constructEntries = new ContructEntry[maxNumUniqueSegment];
+    constructEntries = new constructEntry[maxNumUniqueSegment];
     
     for (i= 0; i < maxNumUniqueSegment; i++) {
-        constructEntries[i].isStart = TRUE;
-        constructEntries[i].segment = NULL;
-        constructEntries[i].endHash = 0;
-        constructEntries[i].startPtr = constructEntries[i];
-        constructEntries[i].nextPtr = NULL;
-        constructEntries[i].endPtr = constructEntries[i];
-        constructEntries[i].overlap = 0;
-        constructEntries[i].length = segmentLength;
+        constructEntries[i] = new constructEntry(null, true, 0, constructEntries[i], null, constructEntries[i], 0, segmentLength);
     }
-    hashToConstructEntryTable = new Table(geneLength);
+    hashToConstructEntryTable = new Table(myGeneLength);
 
     segmentsPtr = mySegmentsPtr;  
-  }
+   }
 
 
   /* =============================================================================
@@ -67,19 +60,23 @@ public class Sequencer {
    * =============================================================================
    */
 
-  void run () {
+  public static void run (long threadNum, long numOfThreads, Random randomPtr, Sequencer sequencerPtr) {
 
     //TM_THREAD_ENTER();
 
-    long threadId = thread_getId();
+//    long threadId = thread_getId();
+
+    long threadId = threadNum;
+
+    Segments segmentsPtr = sequencerPtr.segmentsPtr;
 
     //Sequencer sequencerPtr = (sequencer_t*)argPtr;
 
-    Hashmap         uniqueSegmentsPtr;
-    endInfoEntry    endInfoEntries[];
-    Hashmap         startHashToConstructEntryTables[];
-    constructEntry  constructEntries[];
-    Hashmap         hashToConstructEntryTable;
+    HashMap         uniqueSegmentsPtr = sequencerPtr.uniqueSegmentsPtr;
+    endInfoEntry    endInfoEntries[] = sequencerPtr.endInfoEntries;
+    Table         startHashToConstructEntryTables[] = sequencerPtr.startHashToConstructEntryTables;
+    constructEntry  constructEntries[] = sequencerPtr.constructEntries;
+    Table         hashToConstructEntryTable = sequencerPtr.hashToConstructEntryTable;
 
     Vector      segmentsContentsPtr = segmentsPtr.contentsPtr;
     long        numSegment          = segmentsContentsPtr.size();
@@ -92,12 +89,14 @@ public class Sequencer {
     long numUniqueSegment;
     long substringLength;
     long entryIndex;
+    
+    int CHUNK_STEP1 = 12;
 
     /*
      * Step 1: Remove duplicate segments
      */
-#if defined(HTM) || defined(STM)
-    long numThread = thread_getNumThread();
+//#if defined(HTM) || defined(STM)
+    long numThread = numOfThreads;
     {
         /* Choose disjoint segments [i_start,i_stop) for each thread */
         long partitionSize = (numSegment + numThread/2) / numThread; /* with rounding */
@@ -108,27 +107,35 @@ public class Sequencer {
             i_stop = i_start + partitionSize;
         }
     }
-#else /* !(HTM || STM) */
-    i_start = 0;
-    i_stop = numSegment;
-#endif /* !(HTM || STM) */
+//#else /* !(HTM || STM) */
+//    i_start = 0;
+//    i_stop = numSegment;
+//#endif /* !(HTM || STM) */
     for (i = i_start; i < i_stop; i+=CHUNK_STEP1) {
-        TM_BEGIN();
-        {
+//        TM_BEGIN();
+        atomic {
             long ii;
-            long ii_stop = MIN(i_stop, (i+CHUNK_STEP1));
+            long ii_stop = Math.imin((int)i_stop, (int)(i+CHUNK_STEP1));
             for (ii = i; ii < ii_stop; ii++) {
-                void* segment = vector_at(segmentsContentsPtr, ii);
-                TMHASHTABLE_INSERT(uniqueSegmentsPtr,
-                                   segment,
-                                   segment);
+                String segment = (String)segmentsContentsPtr.elementAt((int)ii);
+//                TMHASHTABLE_INSERT(uniqueSegmentsPtr, segment, segment);
+                System.out.print("Placing: " + segment + " into uniqueSegmentsPtr...");
+                if(uniqueSegmentsPtr.put(segment, segment) == null) {
+                  System.out.println("success!");
+                } else {
+                  System.out.println("fail, double entry.");
+                }
             } /* ii */
         }
-        TM_END();
+//        TM_END();
     }
 
-    thread_barrier_wait();
-
+//    thread_barrier_wait();
+    Barrier.enterBarrier();
+    
+    
+    
+    
     /*
      * Step 2a: Iterate over unique segments and compute hashes.
      *
@@ -150,13 +157,14 @@ public class Sequencer {
      */
 
     /* uniqueSegmentsPtr is constant now */
-    numUniqueSegment = hashtable_getSize(uniqueSegmentsPtr);
+    numUniqueSegment = uniqueSegmentsPtr.size();
     entryIndex = 0;
 
-#if defined(HTM) || defined(STM)
+//#if defined(HTM) || defined(STM)
     {
         /* Choose disjoint segments [i_start,i_stop) for each thread */
-        long num = uniqueSegmentsPtr->numBucket;
+        long num = uniqueSegmentsPtr.size();
+        System.out.println("num: " + num);
         long partitionSize = (num + numThread/2) / numThread; /* with rounding */
         i_start = threadId * partitionSize;
         if (threadId == (numThread - 1)) {
@@ -165,97 +173,147 @@ public class Sequencer {
             i_stop = i_start + partitionSize;
         }
     }
+   
     {
         /* Approximate disjoint segments of element allocation in constructEntries */
         long partitionSize = (numUniqueSegment + numThread/2) / numThread; /* with rounding */
         entryIndex = threadId * partitionSize;
     }
-#else /* !(HTM || STM) */
-    i_start = 0;
-    i_stop = uniqueSegmentsPtr->numBucket;
-    entryIndex = 0;
-#endif /* !(HTM || STM) */
+//#else /* !(HTM || STM) */
+//    i_start = 0;
+//    i_stop = uniqueSegmentsPtr.size();
+//    entryIndex = 0;
+//#endif /* !(HTM || STM) */
 
-    for (i = i_start; i < i_stop; i++) {
-
-        list_t* chainPtr = uniqueSegmentsPtr->buckets[i];
-        list_iter_t it;
-        list_iter_reset(&it, chainPtr);
-
-        while (list_iter_hasNext(&it, chainPtr)) {
-
-            char* segment =
-                (char*)((pair_t*)list_iter_next(&it, chainPtr))->firstPtr;
-            constructEntry_t* constructEntryPtr;
-            long j;
-            ulong_t startHash;
-            bool_t status;
-
-            /* Find an empty constructEntries entry */
-            TM_BEGIN();
-            while (((void*)TM_SHARED_READ_P(constructEntries[entryIndex].segment)) != NULL) {
-                entryIndex = (entryIndex + 1) % numUniqueSegment; /* look for empty */
-            }
-            constructEntryPtr = &constructEntries[entryIndex];
-            TM_SHARED_WRITE_P(constructEntryPtr->segment, segment);
-            TM_END();
-            entryIndex = (entryIndex + 1) % numUniqueSegment;
-
-            /*
-             * Save hashes (sdbm algorithm) of segment substrings
-             *
-             * endHashes will be computed for shorter substrings after matches
-             * have been made (in the next phase of the code). This will reduce
-             * the number of substrings for which hashes need to be computed.
-             *
-             * Since we can compute startHashes incrementally, we go ahead
-             * and compute all of them here.
-             */
-            /* constructEntryPtr is local now */
-            constructEntryPtr->endHash = (ulong_t)hashString(&segment[1]);
-
-            startHash = 0;
-            for (j = 1; j < segmentLength; j++) {
-                startHash = (ulong_t)segment[j-1] +
-                            (startHash << 6) + (startHash << 16) - startHash;
-                TM_BEGIN();
-                status = TMTABLE_INSERT(startHashToConstructEntryTables[j],
-                                        (ulong_t)startHash,
-                                        (void*)constructEntryPtr );
-                TM_END();
-                assert(status);
-            }
-
-            /*
-             * For looking up construct entries quickly
-             */
-            startHash = (ulong_t)segment[j-1] +
-                        (startHash << 6) + (startHash << 16) - startHash;
-            TM_BEGIN();
-            status = TMTABLE_INSERT(hashToConstructEntryTable,
-                                    (ulong_t)startHash,
-                                    (void*)constructEntryPtr);
-            TM_END();
-            assert(status);
-        }
+    String uniqueArray[] = new String[uniqueSegmentsPtr.size()];
+    int ind = 0;
+    HashMapIterator iterarian = uniqueSegmentsPtr.iterator(1);
+    String roar;
+    System.out.println("uniqueSegmentsPtr contents: ");
+    while(iterarian.hasNext()) {
+      roar = (String)iterarian.next();
+      uniqueArray[ind++] = roar;
+      System.out.println(" " + roar);
     }
 
-    thread_barrier_wait();
+    i_stop = Math.imin(ind, (int)i_stop);
 
+    for (i = i_start; i < i_stop; i++) {
+      String segment = uniqueArray[(int)i];
+      System.out.println("segment[" + i + "]: " + segment);
+    //        list_iter_t it;
+    //        list_iter_reset(&it, chainPtr);
+
+    //        while (list_iter_hasNext(&it, chainPtr)) {
+
+    //            char* segment = (char*)((pair_t*)list_iter_next(&it, chainPtr))->firstPtr;
+
+      long newj;
+      long startHash;
+      boolean status;
+
+      /* Find an empty constructEntries entry */
+      atomic {
+//            TM_BEGIN();
+//            while (((void*)TM_SHARED_READ_P(constructEntries[entryIndex].segment)) != NULL) {
+        while(constructEntries[(int)entryIndex].segment != null) { 
+          entryIndex = (entryIndex + 1) % numUniqueSegment; /* look for empty */
+        }
+//            constructEntryPtr = &constructEntries[entryIndex];
+//            TM_SHARED_WRITE_P(constructEntryPtr->segment, segment);
+        constructEntries[(int)entryIndex].segment = segment;
+        System.out.println("constructEntries[" + entryIndex + "]: " + constructEntries[(int)entryIndex].segment);
+//            TM_END();
+      }
+      
+      constructEntry constructEntryPtr = constructEntries[(int)entryIndex];
+
+      entryIndex = (entryIndex + 1) % numUniqueSegment;
+
+
+
+      /*
+       * Save hashes (sdbm algorithm) of segment substrings
+       *
+       * endHashes will be computed for shorter substrings after matches
+       * have been made (in the next phase of the code). This will reduce
+       * the number of substrings for which hashes need to be computed.
+       *
+       * Since we can compute startHashes incrementally, we go ahead
+       * and compute all of them here.
+       */
+      /* constructEntryPtr is local now */
+      constructEntryPtr.endHash = hashString(segment.substring(1));
+
+      System.out.println("constructEntryPtr.segment: " + constructEntryPtr.segment);
+      System.out.println("constructentryPtr.hash: " + constructEntryPtr.endHash);
+
+      startHash = 0;
+      for (newj = 1; newj < segmentLength; newj++) {
+          startHash = segment.charAt((int)newj-1) + (startHash << 6) + (startHash << 16) - startHash;
+          atomic {
+//                TM_BEGIN();
+//                status = TMTABLE_INSERT(startHashToConstructEntryTables[j], (ulong_t)startHash, (void*)constructEntryPtr );
+      System.out.println("BEFORE INSERTION INTO TABLE");
+      System.out.println("constructEntryPtr.segment: " + constructEntryPtr.segment);
+      System.out.println("constructentryPtr.hash: " + constructEntryPtr.endHash);
+
+            boolean check = startHashToConstructEntryTables[(int)newj].table_insert(startHash, constructEntryPtr);
+            System.out.println("check: " + check);
+//                TM_END();
+          }
+//                assert(status);
+      }
+
+      System.out.println("AFTER INSERTION INTO TABLE");
+      System.out.println("constructEntryPtr.segment: " + constructEntryPtr.segment);
+      System.out.println("constructentryPtr.hash: " + constructEntryPtr.endHash);
+
+
+      int tempi;
+      for(tempi = 0; tempi < 4; tempi++) {
+        System.out.println("centries[" + tempi + "]: " + constructEntries[tempi].segment);
+      }
+
+      /*
+       * For looking up construct entries quickly
+       */
+      startHash = segment.charAt((int)newj-1) + (startHash << 6) + (startHash << 16) - startHash;
+        atomic {
+//            TM_BEGIN();
+//            status = TMTABLE_INSERT(hashToConstructEntryTable, (ulong_t)startHash, (void*)constructEntryPtr);
+          hashToConstructEntryTable.table_insert(startHash, constructEntryPtr);
+//            TM_END();
+        }
+//            assert(status);
+        
+    }
+    
+    int tempi;
+    for(tempi = 0; tempi < 4; tempi++) {
+      System.out.println("centries[" + tempi + "]: " + constructEntries[tempi].segment);
+    }
+    
+    System.out.println("out of for");
+
+//    thread_barrier_wait();
+    Barrier.enterBarrier();
+    
     /*
      * Step 2b: Match ends to starts by using hash-based string comparison.
      */
     for (substringLength = segmentLength-1; substringLength > 0; substringLength--) {
 
-        table_t* startHashToConstructEntryTablePtr =
-            startHashToConstructEntryTables[substringLength];
-        list_t** buckets = startHashToConstructEntryTablePtr->buckets;
-        long numBucket = startHashToConstructEntryTablePtr->numBucket;
+        Table startHashToConstructEntryTablePtr = startHashToConstructEntryTables[(int)substringLength];
+        LinkedList buckets[] = startHashToConstructEntryTablePtr.buckets;
+        long numBucket = startHashToConstructEntryTablePtr.numBucket;
+        
+        System.out.println("Retrieved the buckets.");
 
         long index_start;
         long index_stop;
 
-#if defined(HTM) || defined(STM)
+//#if defined(HTM) || defined(STM)
         {
             /* Choose disjoint segments [index_start,index_stop) for each thread */
             long partitionSize = (numUniqueSegment + numThread/2) / numThread; /* with rounding */
@@ -266,88 +324,109 @@ public class Sequencer {
                 index_stop = index_start + partitionSize;
             }
         }
-#else /* !(HTM || STM) */
-        index_start = 0;
-        index_stop = numUniqueSegment;
-#endif /* !(HTM || STM) */
+//#else /* !(HTM || STM) */
+//        index_start = 0;
+//        index_stop = numUniqueSegment;
+//#endif /* !(HTM || STM) */
+
+        index_stop = Math.imin(ind, (int)index_stop);
+
+        System.out.println("index_start: " + index_start);
+        System.out.println("index_stop: " + index_stop);
+
+        System.out.println("endSegment: " + constructEntries[(int)index_start].segment);
 
         /* Iterating over disjoint itervals in the range [0, numUniqueSegment) */
         for (entryIndex = index_start;
              entryIndex < index_stop;
-             entryIndex += endInfoEntries[entryIndex].jumpToNext)
+             entryIndex += endInfoEntries[(int)entryIndex].jumpToNext)
         {
-            if (!endInfoEntries[entryIndex].isEnd) {
+            if (!endInfoEntries[(int)entryIndex].isEnd) {
                 continue;
             }
 
             /*  ConstructEntries[entryIndex] is local data */
-            constructEntry_t* endConstructEntryPtr =
-                &constructEntries[entryIndex];
-            char* endSegment = endConstructEntryPtr->segment;
-            ulong_t endHash = endConstructEntryPtr->endHash;
+            constructEntry endConstructEntryPtr = constructEntries[(int)entryIndex];
+            System.out.println("Retrieved constructEntry[" + entryIndex + "].");
+            String endSegment = endConstructEntryPtr.segment;
+            System.out.println("pyah.");
+            System.out.println("endSegment: " + constructEntries[(int)entryIndex].segment);
+            long endHash = endConstructEntryPtr.endHash;
+            System.out.println("endHash: " + endHash);
 
-            list_t* chainPtr = buckets[endHash % numBucket]; /* buckets: constant data */
-            list_iter_t it;
-            list_iter_reset(&it, chainPtr);
+            LinkedList chainPtr = buckets[(int)(endHash % numBucket)]; /* buckets: constant data */
+            LinkedListIterator it = (LinkedListIterator)chainPtr.iterator();
+//            list_iter_reset(&it, chainPtr);
 
             /* Linked list at chainPtr is constant */
-            while (list_iter_hasNext(&it, chainPtr)) {
+            while (it.hasNext()) {
 
-                constructEntry_t* startConstructEntryPtr =
-                    (constructEntry_t*)list_iter_next(&it, chainPtr);
-                char* startSegment = startConstructEntryPtr->segment;
+                constructEntry startConstructEntryPtr = (constructEntry)it.next();
+                String startSegment = startConstructEntryPtr.segment;
                 long newLength = 0;
 
                 /* endConstructEntryPtr is local except for properties startPtr/endPtr/length */
-                TM_BEGIN();
+                atomic {
+//                TM_BEGIN();
 
                 /* Check if matches */
-                if (TM_SHARED_READ(startConstructEntryPtr->isStart) &&
-                    (TM_SHARED_READ_P(endConstructEntryPtr->startPtr) != startConstructEntryPtr) &&
-                    (strncmp(startSegment,
-                             &endSegment[segmentLength - substringLength],
-                             substringLength) == 0))
-                {
-                    TM_SHARED_WRITE(startConstructEntryPtr->isStart, FALSE);
+//                if (TM_SHARED_READ(startConstructEntryPtr->isStart) &&
+//                    (TM_SHARED_READ_P(endConstructEntryPtr->startPtr) != startConstructEntryPtr) &&
+//                    (strncmp(startSegment,
+//                             &endSegment[segmentLength - substringLength],
+//                             substringLength) == 0))
+                  if(startConstructEntryPtr.isStart &&
+                      (endConstructEntryPtr.startPtr != startConstructEntryPtr) &&
+                      (startSegment != endSegment.substring((int)(segmentLength-substringLength), (int)substringLength)))
+                  {
+//                    TM_SHARED_WRITE(startConstructEntryPtr->isStart, FALSE);
+                    startConstructEntryPtr.isStart = false;
 
-                    constructEntry_t* startConstructEntry_endPtr;
-                    constructEntry_t* endConstructEntry_startPtr;
+                    constructEntry startConstructEntry_endPtr;
+                    constructEntry endConstructEntry_startPtr;
 
                     /* Update endInfo (appended something so no longer end) */
-                    TM_LOCAL_WRITE(endInfoEntries[entryIndex].isEnd, FALSE);
+//                    TM_LOCAL_WRITE(endInfoEntries[entryIndex].isEnd, FALSE);
+                    endInfoEntries[(int)entryIndex].isEnd = false;
 
                     /* Update segment chain construct info */
-                    startConstructEntry_endPtr =
-                        (constructEntry_t*)TM_SHARED_READ_P(startConstructEntryPtr->endPtr);
-                    endConstructEntry_startPtr =
-                        (constructEntry_t*)TM_SHARED_READ_P(endConstructEntryPtr->startPtr);
+//                    startConstructEntry_endPtr = (constructEntry_t*)TM_SHARED_READ_P(startConstructEntryPtr->endPtr);
+                    startConstructEntry_endPtr = startConstructEntryPtr.endPtr;
+//                    endConstructEntry_startPtr = (constructEntry_t*)TM_SHARED_READ_P(endConstructEntryPtr->startPtr);
+                    endConstructEntry_startPtr = endConstructEntryPtr.startPtr;
+                    
+//                    assert(startConstructEntry_endPtr);
+//                    assert(endConstructEntry_startPtr);
 
-                    assert(startConstructEntry_endPtr);
-                    assert(endConstructEntry_startPtr);
-                    TM_SHARED_WRITE_P(startConstructEntry_endPtr->startPtr,
-                                      endConstructEntry_startPtr);
-                    TM_LOCAL_WRITE_P(endConstructEntryPtr->nextPtr,
-                                     startConstructEntryPtr);
-                    TM_SHARED_WRITE_P(endConstructEntry_startPtr->endPtr,
-                                      startConstructEntry_endPtr);
-                    TM_SHARED_WRITE(endConstructEntryPtr->overlap, substringLength);
-                    newLength = (long)TM_SHARED_READ(endConstructEntry_startPtr->length) +
-                                (long)TM_SHARED_READ(startConstructEntryPtr->length) -
-                                substringLength;
-                    TM_SHARED_WRITE(endConstructEntry_startPtr->length, newLength);
-                } /* if (matched) */
 
-                TM_END();
+//                    TM_SHARED_WRITE_P(startConstructEntry_endPtr->startPtr, endConstructEntry_startPtr);
+                    startConstructEntry_endPtr.startPtr = endConstructEntry_startPtr;
+//                    TM_LOCAL_WRITE_P(endConstructEntryPtr->nextPtr, startConstructEntryPtr);
+                    endConstructEntryPtr.nextPtr = startConstructEntryPtr;
+//                    TM_SHARED_WRITE_P(endConstructEntry_startPtr->endPtr, startConstructEntry_endPtr);
+                    endConstructEntry_startPtr.endPtr = startConstructEntry_endPtr;
+//                    TM_SHARED_WRITE(endConstructEntryPtr->overlap, substringLength);
+                    endConstructEntryPtr.overlap = substringLength;
+                    newLength = endConstructEntry_startPtr.length + startConstructEntryPtr.length - substringLength;
+//                    TM_SHARED_WRITE(endConstructEntry_startPtr->length, newLength);
+                    endConstructEntry_startPtr.length = newLength;
+                  } /* if (matched) */
 
-                if (!endInfoEntries[entryIndex].isEnd) { /* if there was a match */
+//                TM_END();
+                }
+
+                if (!endInfoEntries[(int)entryIndex].isEnd) { /* if there was a match */
                     break;
                 }
             } /* iterate over chain */
 
         } /* for (endIndex < numUniqueSegment) */
+        
+        System.out.println("out of for2");
 
-        thread_barrier_wait();
-
+//        thread_barrier_wait();
+        Barrier.enterBarrier();
+        
         /*
          * Step 2c: Update jump values and hashes
          *
@@ -361,36 +440,36 @@ public class Sequencer {
             if (substringLength > 1) {
                 long index = segmentLength - substringLength + 1;
                 /* initialization if j and i: with i being the next end after j=0 */
-                for (i = 1; !endInfoEntries[i].isEnd; i+=endInfoEntries[i].jumpToNext) {
+                for (i = 1; !endInfoEntries[(int)i].isEnd; i+=endInfoEntries[(int)i].jumpToNext) {
                     /* find first non-null */
                 }
                 /* entry 0 is handled seperately from the loop below */
                 endInfoEntries[0].jumpToNext = i;
                 if (endInfoEntries[0].isEnd) {
-                    constructEntry_t* constructEntryPtr = &constructEntries[0];
-                    char* segment = constructEntryPtr->segment;
-                    constructEntryPtr->endHash = (ulong_t)hashString(&segment[index]);
+                    String segment = constructEntries[0].segment;
+                    constructEntries[0].endHash = hashString(segment.substring((int)index));
                 }
                 /* Continue scanning (do not reset i) */
-                for (j = 0; i < numUniqueSegment; i+=endInfoEntries[i].jumpToNext) {
-                    if (endInfoEntries[i].isEnd) {
-                        constructEntry_t* constructEntryPtr = &constructEntries[i];
-                        char* segment = constructEntryPtr->segment;
-                        constructEntryPtr->endHash = (ulong_t)hashString(&segment[index]);
-                        endInfoEntries[j].jumpToNext = MAX(1, (i - j));
+                for (j = 0; i < numUniqueSegment; i+=endInfoEntries[(int)i].jumpToNext) {
+                    if (endInfoEntries[(int)i].isEnd) {
+                        String segment = constructEntries[(int)i].segment;
+                        constructEntries[(int)i].endHash = hashString(segment.substring((int)index));
+                        endInfoEntries[(int)j].jumpToNext = Math.imax((int)1, (int)(i - j));
                         j = i;
                     }
                 }
-                endInfoEntries[j].jumpToNext = i - j;
+                endInfoEntries[(int)j].jumpToNext = i - j;
             }
         }
 
-        thread_barrier_wait();
+//        thread_barrier_wait();
+        Barrier.enterBarrier();
 
     } /* for (substringLength > 0) */
 
 
-    thread_barrier_wait();
+//    thread_barrier_wait();
+    Barrier.enterBarrier();
 
     /*
      * Step 3: Build sequence string
@@ -400,73 +479,45 @@ public class Sequencer {
         long totalLength = 0;
 
         for (i = 0; i < numUniqueSegment; i++) {
-            constructEntry_t* constructEntryPtr = &constructEntries[i];
-            if (constructEntryPtr->isStart) {
-              totalLength += constructEntryPtr->length;
+            if (constructEntries[(int)i].isStart) {
+              totalLength += constructEntries[(int)i].length;
             }
         }
 
-        sequencerPtr->sequence = (char*)P_MALLOC((totalLength+1) * sizeof(char));
-        char* sequence = sequencerPtr->sequence;
-        assert(sequence);
+        String sequence = sequencerPtr.sequence;
 
-        char* copyPtr = sequence;
+        String copyPtr = sequence;
         long sequenceLength = 0;
 
         for (i = 0; i < numUniqueSegment; i++) {
-            constructEntry_t* constructEntryPtr = &constructEntries[i];
             /* If there are several start segments, we append in arbitrary order  */
-            if (constructEntryPtr->isStart) {
-                long newSequenceLength = sequenceLength + constructEntryPtr->length;
-                assert( newSequenceLength <= totalLength );
+            constructEntry constructEntryPtr = constructEntries[(int)i];
+            if (constructEntryPtr.isStart) {
+                long newSequenceLength = sequenceLength + constructEntries[(int)i].length;
+//                assert( newSequenceLength <= totalLength );
                 copyPtr = sequence + sequenceLength;
                 sequenceLength = newSequenceLength;
                 do {
-                    long numChar = segmentLength - constructEntryPtr->overlap;
-                    if ((copyPtr + numChar) > (sequence + newSequenceLength)) {
-                        TM_PRINT0("ERROR: sequence length != actual length\n");
-                        break;
-                    }
-                    memcpy(copyPtr,
-                           constructEntryPtr->segment,
-                           (numChar * sizeof(char)));
+                    long numChar = segmentLength - constructEntries[(int)i].overlap;
+//                    if ((copyPtr + numChar) > (sequence + newSequenceLength)) {
+//                        System.out.print("ERROR: sequence length != actual length\n");
+//                        break;
+//                    }
+                    copyPtr = constructEntries[(int)i].segment;
                     copyPtr += numChar;
-                } while ((constructEntryPtr = constructEntryPtr->nextPtr) != NULL);
-                assert(copyPtr <= (sequence + sequenceLength));
+                    constructEntryPtr = constructEntryPtr.nextPtr;
+                } while (constructEntryPtr != null);
+//                assert(copyPtr <= (sequence + sequenceLength));
             }
         }
 
-        assert(sequence != NULL);
-        sequence[sequenceLength] = '\0';
+//        assert(sequence != NULL);
     }
 
-    TM_THREAD_EXIT();
+//    TM_THREAD_EXIT();
 
   }
 
-
-  private class endInfoEntry {
-      boolean isEnd;
-      long jumpToNext;
-  }
-
-  private class constructEntry {
-      boolean isStart;
-      String segment;
-      long endHash;
-      constructEntry startPtr;
-      constructEntry nextPtr;
-      constructEntry endPtr;
-      long overlap;
-      long length;
-  }
-
-  private class sequencer_run_arg {
-      Sequencer sequencerPtr;
-      Segments segmentsPtr;
-      long preAllocLength;
-      String returnSequence; /* variable stores return value */
-  } 
   /* =============================================================================
    * hashString
    * -- uses sdbm hash function
@@ -475,36 +526,23 @@ public class Sequencer {
   static long hashString (String str)
   {
       long hash = 0;
-      long c;
 
+      int index = 0;
       /* Note: Do not change this hashing scheme */
-      while ((c = str++) != '\0') {
-          hash = c + (hash << 6) + (hash << 16) - hash;
+      for(index = 0; index < str.length(); index++) {
+        char c = str.charAt(index);
+        hash = c + (hash << 6) + (hash << 16) - hash;
       }
 
-      return (long)hash;
+      return hash;
   }
 
 
-  /* =============================================================================
-   * hashSegment
-   * -- For hashtable
-   * =============================================================================
-   */
-  static long hashSegment (string keyPtr)
-  {
-      return (long)hash_sdbm(keyPtr); /* can be any "good" hash function */
-  }
 
 
   /* =============================================================================
    * compareSegment
    * -- For hashtable
    * =============================================================================
-   */
-  static long compareSegment (pair_t* a, pair_t* b)
-  {
-      return strcmp((char*)(a->firstPtr), (char*)(b->firstPtr));
-  }
-   
+   */   
 }

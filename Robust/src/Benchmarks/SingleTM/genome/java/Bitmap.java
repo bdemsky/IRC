@@ -3,8 +3,8 @@ public class Bitmap {
   public long numWord;
   public long bits[];
   
-  private static NUM_BIT_PER_BYTE = 8;
-  private static NUM_BIT_PER_WORD = (8) * NUM_BIT_PER_BYTE)
+  public int NUM_BIT_PER_BYTE;
+  public int NUM_BIT_PER_WORD;
 
   
   /* =============================================================================
@@ -13,6 +13,9 @@ public class Bitmap {
    * =============================================================================
    */
   Bitmap(long myNumBit) {
+
+    NUM_BIT_PER_BYTE = 8;
+    NUM_BIT_PER_WORD = ((8) * NUM_BIT_PER_BYTE);
 
     numBit = myNumBit;
     numWord = DIVIDE_AND_ROUND_UP(numBit, NUM_BIT_PER_WORD);
@@ -26,6 +29,10 @@ public class Bitmap {
   }
 
   Bitmap(Bitmap myBitMap) {
+    NUM_BIT_PER_BYTE = 8;
+    NUM_BIT_PER_WORD = ((8) * NUM_BIT_PER_BYTE);
+
+
     numBit = myBitMap.numBit;
     numWord = myBitMap.numWord;
     bits = new long[numWord];
@@ -65,12 +72,12 @@ public class Bitmap {
    */
   boolean set (long i) {
     if ((i < 0) || (i >= numBit)) {
-      return FALSE;
+      return false;
     }
 
-    bits[i/NUM_BIT_PER_WORD] |= (1 << (i % NUM_BIT_PER_WORD));
+    bits[((int)i)/NUM_BIT_PER_WORD] |= (1 << (i % NUM_BIT_PER_WORD));
 
-    return TRUE;
+    return true;
   }
 
 
@@ -82,12 +89,12 @@ public class Bitmap {
    */
   boolean clear (long i) {
       if ((i < 0) || (i >= numBit)) {
-      return FALSE;
+      return false;
     }
 
-    bits[i/NUM_BIT_PER_WORD] &= ~(1 << (i % NUM_BIT_PER_WORD));
+    bits[((int)i)/NUM_BIT_PER_WORD] &= ~(1 << (i % NUM_BIT_PER_WORD));
 
-    return TRUE;
+    return true;
   }
 
 
@@ -109,13 +116,16 @@ public class Bitmap {
    * -- Returns TRUE if ith bit is set, else FALSE
    * =============================================================================
    */
-  boolean isSet (long i) {
-    if ((i >= 0) && (i < numBit) &&
-        (bits[i/NUM_BIT_PER_WORD] & (1 << (i % NUM_BIT_PER_WORD)))) {
-        return TRUE;
+  boolean isSet (int i) {
+    int tempB = (int)bits[((int)i)/NUM_BIT_PER_WORD];
+    int tempC = (1 << (((int)i) % NUM_BIT_PER_WORD));
+    boolean tempbool = ((tempB & tempC) > 0) ? true:false;
+    //tempB /*bits[((int)i)/NUM_BIT_PER_WORD]*/ & tempC /*(1 << (i % NUM_BIT_PER_WORD))*/ 
+    if ((i >= 0) && (i < (int)numBit) && tempbool) {
+        return true;
     }
 
-    return FALSE;
+    return false;
   }
 
 
@@ -128,9 +138,9 @@ public class Bitmap {
    */
   long findClear (long startIndex) {
     long i;
-
+    boolean tempbool = ((bits[((int)i)/NUM_BIT_PER_WORD] & (1 << (i % NUM_BIT_PER_WORD))) > 0) ? true:false;
     for (i = MAX(startIndex, 0); i < numBit; i++) {
-        if (!(bits[i/NUM_BIT_PER_WORD] & (1 << (i % NUM_BIT_PER_WORD)))) {
+        if (!tempbool) {
             return i;
         }
     }
@@ -149,7 +159,8 @@ public class Bitmap {
     long i;
 
     for (i = MAX(startIndex, 0); i < numBit; i++) {
-        if (bits[i/NUM_BIT_PER_WORD] & (1 << (i % NUM_BIT_PER_WORD))) {
+      boolean tempbool = ((int)bits[((int)i)/NUM_BIT_PER_WORD] & (1 << ((int)i % NUM_BIT_PER_WORD)) > 0) ? true:false;
+        if (tempbool) {
             return i;
         }
     }
@@ -174,9 +185,9 @@ public class Bitmap {
   long getNumSet () {
     long i;
     long count = 0;
-
     for (i = 0; i < numBit; i++) {
-        if (bits[i/NUM_BIT_PER_WORD] & (1 << (i % NUM_BIT_PER_WORD))) {
+        boolean tempbool = ((int)bits[((int)i)/NUM_BIT_PER_WORD] & (1 << ((int)i % NUM_BIT_PER_WORD)) > 0) ? true:false;
+        if (tempbool) {
             count++;
         }
     }
@@ -198,7 +209,7 @@ public class Bitmap {
   void toggleAll () {
     long w;
     for (w = 0; w < numWord; w++) {
-        bits[w] ^= -1L;
+        bits[(int)w] ^= -1L;
     }
   }
   

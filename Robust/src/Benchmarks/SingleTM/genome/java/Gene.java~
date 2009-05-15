@@ -6,7 +6,7 @@ public class Gene {
   Gene(long myLength) {
     length = myLength;
     contents = "";
-    startBitmapPtr = new BitMap(length);
+    startBitmapPtr = new Bitmap(length);
   }
 
 
@@ -16,17 +16,27 @@ public class Gene {
  * =============================================================================
  */
   void create (Random randomObj) {
-    long i;
-    char nucleotides[] = {
-        NUCLEOTIDE_ADENINE,
-        NUCLEOTIDE_CYTOSINE,
-        NUCLEOTIDE_GUANINE,
-        NUCLEOTIDE_THYMINE,
-    };
+    int i;
+    char[] nucleotides = new char[4];
+    char[] arrayContents = new char[length];
+    nucleotides[0] = 'a';
+    nucleotides[1] = 'c';
+    nucleotides[2] = 'g';
+    nucleotides[3] = 't';
+
+    System.out.println("length: " + length);
 
     for (i = 0; i < length; i++) {
-        contents[i] =
-            nucleotides[(random_generate(randomObj)% NUCLEOTIDE_NUM_TYPE)];
+      int legitimateNumber = (int)randomObj.random_generate(randomObj); 
+      if(legitimateNumber < 0) {
+        legitimateNumber *= -1;
+      }
+//      System.out.println("legitNum: " + legitimateNumber + ":" + (legitimateNumber % 4));
+      arrayContents[i] = nucleotides[legitimateNumber % 4];
+      System.out.println("arrayContents[" + i + "]: " + arrayContents[i]);
     }
+    
+    contents = new String(arrayContents);
+    System.out.println("contents: " + contents);
   }  
 }

@@ -11,9 +11,12 @@ public class Table {
      */
     Table (long myNumBucket) {
     
-      long i;
+      int i;
 
       buckets = new LinkedList[myNumBucket];
+      for(i = 0; i < myNumBucket; i++) {
+        buckets[i] = new LinkedList();      
+      }
 
       numBucket = myNumBucket;
       
@@ -25,16 +28,15 @@ public class Table {
      * -- Returns TRUE if successful, else FALSE
      * =============================================================================
      */
-    boolean table_insert (long hash, void* dataPtr) {
-      long i = hash % numBucket;
-
-      if(buckets[i].indexOf(dataPtr) != -1) {
-        return FALSE;
+    boolean table_insert (long hash, Object dataPtr) {
+      System.out.println("Inside insert- hash: " + hash);
+      System.out.println("Inside insert- dataPtr: " + dataPtr);
+      int i = (int)(hash % numBucket);
+      if(buckets[i].contains(dataPtr)) {
+        return false;
       }
-
       buckets[i].add(dataPtr);
-
-      return TRUE;
+      return true;
     }
 
     /* =============================================================================
@@ -42,15 +44,16 @@ public class Table {
      * -- Returns TRUE if successful, else FALSE
      * =============================================================================
      */
-    boolean table_remove (long hash, void* dataPtr) {
+    boolean table_remove (long hash, Object dataPtr) {
     
-      long i = hash % numBucket;
-
-      if (!list_remove(tablePtr->buckets[i], dataPtr)) {
-          return FALSE;
+      int i = (int)(hash % numBucket);
+      boolean tempbool = buckets[i].contains(dataPtr);
+      if (tempbool) {
+          buckets[i].remove(dataPtr);
+          return true;
       }
 
-      return TRUE;
+      return false;
     
     }
 
