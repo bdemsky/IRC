@@ -115,9 +115,11 @@ transstart:
 }
 
 void threadhandler(int sig, siginfo_t *info, void *uap) {
-#ifdef DEBUG
-  printf("sig=%d\n",sig);
+  printf("We just took sig=%d\n",sig);
   printf("signal\n");
+  printf("To get stack trace, set breakpoint in threadhandler in gdb\n");
+#ifndef MAC
+  backtrace();
 #endif
   threadexit();
 }
