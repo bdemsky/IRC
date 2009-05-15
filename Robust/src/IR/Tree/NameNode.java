@@ -54,9 +54,9 @@ public class NameNode extends ExpressionNode {
   public TypeDescriptor getType() {
     if (en!=null)
       return en.getType();
-    else if (fd!=null)
+    else if (fd!=null) {
       return fd.getType();
-    else if (isTag())
+    } else if (isTag())
       return new TypeDescriptor(TypeDescriptor.TAG);
     else
       return ((VarDescriptor)vd).getType();

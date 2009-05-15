@@ -5,6 +5,7 @@ import IR.TypeDescriptor;
 public class ArrayAccessNode extends ExpressionNode {
   ExpressionNode left;
   ExpressionNode index;
+  TypeDescriptor wrappertype;
 
   public ArrayAccessNode(ExpressionNode l, ExpressionNode index) {
     this.index=index;
@@ -27,7 +28,14 @@ public class ArrayAccessNode extends ExpressionNode {
     return Kind.ArrayAccessNode;
   }
 
+  public boolean iswrapper() {
+    return wrappertype!=null;
+  }
+
   public TypeDescriptor getType() {
-    return left.getType().dereference();
+    if (wrappertype!=null)
+      return wrappertype;
+    else
+      return left.getType().dereference();
   }
 }

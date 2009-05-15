@@ -42,11 +42,14 @@ typedef struct threadrec {
 typedef struct objheader {
   unsigned int version;
   unsigned int lock;          /* reader and writer lock for object header */
+#ifdef STMSTATS
   int abortCount;             /* track how many times does this object cause abort */
   int accessCount;            /* track how many times is this object accessed */
   threadrec_t *trec;           /* some thread that locked this object */
   int riskyflag;              /* track how risky is the object */
   pthread_mutex_t *objlock;    /* lock this object */
+  int padding;
+#endif
 } objheader_t;
 
 #define OID(x) \

@@ -485,10 +485,25 @@ public class SemanticCheck {
       fd=(FieldDescriptor) ltd.getClassDesc().getFieldTable().get(fieldname);
     if (fd==null)
       throw new Error("Unknown field "+fieldname + " in "+fan.printNode(0)+" in "+md);
+    if (fd.getType().iswrapper()) {
+      FieldAccessNode fan2=new FieldAccessNode(left, fieldname);
+      fan2.setField(fd);
+      fan.left=fan2;
+      fan.fieldname="value";
+      ExpressionNode leftwr=fan.getExpression();
+      checkExpressionNode(md,nametable,leftwr,null);
+      TypeDescriptor ltdwr=leftwr.getType();
+      String fieldnamewr=fan.getFieldName();
+      FieldDescriptor fdwr=(FieldDescriptor) ltdwr.getClassDesc().getFieldTable().get(fieldnamewr);
+      if (fdwr==null)
+	  throw new Error("Unknown field "+fieldnamewr + " in "+fan.printNode(0)+" in "+md);
+    }
     fan.setField(fd);
-    if (td!=null)
+
+    if (td!=null) {
       if (!typeutil.isSuperorType(td,fan.getType()))
 	throw new Error("Field node returns "+fan.getType()+", but need "+td);
+    }
   }
 
   void checkArrayAccessNode(Descriptor md, SymbolTable nametable, ArrayAccessNode aan, TypeDescriptor td) {
@@ -497,6 +512,10 @@ public class SemanticCheck {
 
     checkExpressionNode(md,nametable,aan.getIndex(),new TypeDescriptor(TypeDescriptor.INT));
     TypeDescriptor ltd=left.getType();
+
+    if (ltd.dereference().iswrapper()) {
+      aan.wrappertype=((FieldDescriptor)ltd.dereference().getClassDesc().getFieldTable().get("value")).getType();
+    }
 
     if (td!=null)
       if (!typeutil.isSuperorType(td,aan.getType()))
@@ -546,8 +565,20 @@ public class SemanticCheck {
       if (d instanceof VarDescriptor) {
 	nn.setVar(d);
       } else if (d instanceof FieldDescriptor) {
-	nn.setField((FieldDescriptor)d);
-	nn.setVar((VarDescriptor)nametable.get("this"));        /* Need a pointer to this */
+	FieldDescriptor fd=(FieldDescriptor)d;
+	if (fd.getType().iswrapper()) {
+	  String id=nd.getIdentifier();
+	  NameDescriptor base=nd.getBase();
+	  NameNode n=new NameNode(nn.getName());
+	  n.setField(fd);
+	  n.setVar((VarDescriptor)nametable.get("this"));        /* Need a pointer to this */
+	  FieldAccessNode fan=new FieldAccessNode(n,"value");
+	  nn.setExpression(fan);
+	  checkExpressionNode(md,nametable,fan,td);
+	} else {
+	  nn.setField(fd);
+	  nn.setVar((VarDescriptor)nametable.get("this"));        /* Need a pointer to this */
+	}
       } else if (d instanceof TagVarDescriptor) {
 	nn.setVar(d);
       } else throw new Error("Wrong type of descriptor");

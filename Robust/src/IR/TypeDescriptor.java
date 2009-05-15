@@ -57,6 +57,20 @@ public class TypeDescriptor extends Descriptor {
     return hashcode;
   }
 
+  public boolean iswrapper() {
+    if (arraycount!=0||!isClass())
+      return false;
+    return (name.equals("bytewrapper")||
+	    name.equals("booleanwrapper")||
+	    name.equals("shortwrapper")||
+	    name.equals("intwrapper")||
+	    name.equals("longwrapper")||
+	    name.equals("charwrapper")||
+	    name.equals("floatwrapper")||
+	    name.equals("doublewrapper")||
+	    name.equals("objectwrapper"));
+  }
+
   public TypeDescriptor makeArray(State state) {
     TypeDescriptor td=new TypeDescriptor(getSymbol());
     td.arraycount=arraycount+1;

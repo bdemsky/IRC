@@ -460,7 +460,7 @@ int traverseCache() {
     }
   } //end of for
 
-  //THIS IS THE SERIALIZATION POINT *****
+  //THIS IS THE SERIALIZATION END POINT (START POINT IS END OF EXECUTION)*****
 
   for(i=0; i<numoidrdlocked; i++) {
     /* Read from the main heap  and compare versions */
@@ -615,8 +615,11 @@ int alttraverseCache() {
     }
     curr = curr->lnext;
   }
-  //THIS IS THE SERIALIZATION POINT *****
-  for(i=numoidrdlocked-1; i>=0; i--) {
+
+
+  //THIS IS THE SERIALIZATION END POINT (START POINT IS END OF EXECUTION)*****
+
+  for(i=0; i<numoidrdlocked; i++) {
     objheader_t * header=oidrdlocked[i];
     unsigned int version=oidrdversion[i];
     if(header->lock>=0) {

@@ -61,7 +61,7 @@ public class GlobalArgs {
   /**
    * Number of points in each cluster [nclusters]
    **/
-  public int[] new_centers_len;
+  public intwrapper[] new_centers_len;
 
   /**
    * New centers of the clusters [nclusters][nfeatures]

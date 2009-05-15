@@ -286,6 +286,10 @@ public class BuildFlat {
 	NodePair np=generateNewArrayLoop(temps, td.dereference(), out_temp, 0, con.isGlobal());
 	fn.addNext(np.getBegin());
 	return new NodePair(first,np.getEnd());
+      } else if (td.isArray()&&td.dereference().iswrapper()) {
+	NodePair np=generateNewArrayLoop(temps, td.dereference(), out_temp, 0, con.isGlobal());
+	fn.addNext(np.getBegin());
+	return new NodePair(first,np.getEnd());
       } else
 	return new NodePair(first, fn);
     }
@@ -309,7 +313,7 @@ public class BuildFlat {
     fcb.setLoop();
     //is index<temp[i]
     TempDescriptor new_tmp=TempDescriptor.tempFactory("tmp",td);
-    FlatNew fn=new FlatNew(td, new_tmp, temparray[i+1], isglobal);
+    FlatNew fn=td.iswrapper()?new FlatNew(td, new_tmp, isglobal):new FlatNew(td, new_tmp, temparray[i+1], isglobal);
     FlatSetElementNode fsen=new FlatSetElementNode(tmp,index,new_tmp);
     // index=index+1
     FlatOpNode fon=new FlatOpNode(index,index,tmpone,new Operation(Operation.ADD));
@@ -325,6 +329,10 @@ public class BuildFlat {
       NodePair np2=generateNewArrayLoop(temparray, td.dereference(), new_tmp, i+1, isglobal);
       fsen.addNext(np2.getBegin());
       np2.getEnd().addNext(fon);
+    } else if (td.isArray()&&td.dereference().iswrapper()) {
+      NodePair np2=generateNewArrayLoop(temparray, td.dereference(), new_tmp, i+1, isglobal);
+      fsen.addNext(np2.getBegin());
+      np2.getEnd().addNext(fon);      
     } else {
       fsen.addNext(fon);
     }
@@ -387,9 +395,19 @@ public class BuildFlat {
     TempDescriptor tmpindex=TempDescriptor.tempFactory("temp",aan.getIndex().getType());
     NodePair npe=flattenExpressionNode(aan.getExpression(),tmp);
     NodePair npi=flattenExpressionNode(aan.getIndex(),tmpindex);
-    FlatElementNode fn=new FlatElementNode(tmp,tmpindex,out_temp);
+    TempDescriptor arraytmp=out_temp;
+    if (aan.iswrapper()) {
+      //have wrapper
+      arraytmp=TempDescriptor.tempFactory("temp", aan.getExpression().getType().dereference());
+    }
+    FlatNode fn=new FlatElementNode(tmp,tmpindex,arraytmp);
     npe.getEnd().addNext(npi.getBegin());
     npi.getEnd().addNext(fn);
+    if (aan.iswrapper()) {
+      FlatFieldNode ffn=new FlatFieldNode((FieldDescriptor)aan.getExpression().getType().dereference().getClassDesc().getFieldTable().get("value") ,arraytmp,out_temp);
+      fn.addNext(ffn);
+      fn=ffn;
+    }
     return new NodePair(npe.getBegin(),fn);
   }
 
@@ -470,7 +488,6 @@ public class BuildFlat {
     } else if (an.getDest().kind()==Kind.ArrayAccessNode) {
       //We are assigning an array element
 
-
       ArrayAccessNode aan=(ArrayAccessNode)an.getDest();
       ExpressionNode en=aan.getExpression();
       ExpressionNode enindex=aan.getIndex();
@@ -491,10 +508,19 @@ public class BuildFlat {
 	TempDescriptor src_tmp2=pre ? TempDescriptor.tempFactory("src",an.getDest().getType()) : out_temp;
 	TempDescriptor tmp=TempDescriptor.tempFactory("srctmp3_",an.getDest().getType());
 
-	FlatElementNode fen=new FlatElementNode(dst_tmp, index_tmp, src_tmp2);
-	last.addNext(fen);
-	last=fen;
-
+	if (aan.iswrapper()) {
+	  TypeDescriptor arrayeltype=aan.getExpression().getType().dereference();
+	  TempDescriptor src_tmp3=TempDescriptor.tempFactory("src3",arrayeltype);
+	  FlatElementNode fen=new FlatElementNode(dst_tmp, index_tmp, src_tmp3);
+	  FlatFieldNode ffn=new FlatFieldNode((FieldDescriptor)arrayeltype.getClassDesc().getFieldTable().get("value"),src_tmp3,src_tmp2);
+	  last.addNext(fen);
+	  fen.addNext(ffn);
+	  last=ffn;
+	} else {
+	  FlatElementNode fen=new FlatElementNode(dst_tmp, index_tmp, src_tmp2);
+	  last.addNext(fen);
+	  last=fen;
+	}
 	if (base.getOp()==Operation.ADD&&an.getDest().getType().isString()) {
 	  ClassDescriptor stringcd=typeutil.getClass(TypeUtil.StringClass);
 	  MethodDescriptor concatmd=typeutil.getMethod(stringcd, "concat2", new TypeDescriptor[] {new TypeDescriptor(stringcd), new TypeDescriptor(stringcd)});
@@ -503,8 +529,6 @@ public class BuildFlat {
 	  last.addNext(fc);
 	  last=fc;
 	} else {
-
-
 	  FlatOpNode fon=new FlatOpNode(tmp, src_tmp2, src_tmp, base);
 	  src_tmp=tmp;
 	  last.addNext(fon);
@@ -512,13 +536,22 @@ public class BuildFlat {
 	}
       }
 
-
-      FlatSetElementNode fsen=new FlatSetElementNode(dst_tmp, index_tmp, src_tmp);
-      last.addNext(fsen);
-      last=fsen;
+      if (aan.iswrapper()) { 
+	TypeDescriptor arrayeltype=aan.getExpression().getType().dereference();
+	TempDescriptor src_tmp3=TempDescriptor.tempFactory("src3",arrayeltype);
+	FlatElementNode fen=new FlatElementNode(dst_tmp, index_tmp, src_tmp3);
+	FlatSetFieldNode fsfn=new FlatSetFieldNode(src_tmp3,(FieldDescriptor)arrayeltype.getClassDesc().getFieldTable().get("value"),src_tmp);
+	last.addNext(fen);
+	fen.addNext(fsfn);
+	last=fsfn;
+      } else { 
+	FlatSetElementNode fsen=new FlatSetElementNode(dst_tmp, index_tmp, src_tmp);
+	last.addNext(fsen);
+	last=fsen;
+      }
       if (pre) {
 	FlatOpNode fon2=new FlatOpNode(out_temp, src_tmp, null, new Operation(Operation.ASSIGN));
-	fsen.addNext(fon2);
+	last.addNext(fon2);
 	last=fon2;
       }
       return new NodePair(first, last);

@@ -104,7 +104,7 @@ public class Normal {
     int nclusters = args.nclusters;
     int[] membership = args.membership;
     double[][] clusters = args.clusters;
-    int[] new_centers_len = args.new_centers_len;
+    intwrapper[] new_centers_len = args.new_centers_len;
     double[][] new_centers = args.new_centers;
     double delta = 0.0;
     int index, start, stop;
@@ -194,7 +194,8 @@ public class Normal {
      * Need to initialize new_centers_len and new_centers[0] to all 0.
      * Allocate clusters on different cache lines to reduce false sharing.
      */
-    int[] new_centers_len  = new int[nclusters];
+    intwrapper[] new_centers_len  = new intwrapper[nclusters];
+
     double[][] new_centers = new double[nclusters][nfeatures];
 
     int loop = 0;
