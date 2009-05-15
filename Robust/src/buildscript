@@ -286,7 +286,7 @@ shift
 elif [[ $1 = '-debug' ]]
 then
 DEBUGFLAG=true
-EXTRAOPTIONS="$EXTRAOPTIONS -g"
+EXTRAOPTIONS="$EXTRAOPTIONS -g -rdynamic"
 elif [[ $1 = '-rawpath' ]]
 then
 RAWPATHFLAG=true
