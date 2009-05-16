@@ -501,6 +501,7 @@ then # TILERAFLAG
 TILERADIR="$CURDIR/tilera"
 MAKEFILE="Makefile.tilera.$TILERACONFIG"
 SIMHVC="sim.hvc.$TILERACONFIG"
+PCIHVC="pci.hvc.$TILERACONFIG"
 mkdir $TILERADIR
 cd $TILERADIR
 make clean
@@ -540,6 +541,7 @@ fi #INTERRUPT version
 
 cp $ROBUSTROOT/Runtime/Tilera/$MAKEFILE ./Makefile
 cp $ROBUSTROOT/Runtime/Tilera/$SIMHVC ./sim.hvc
+cp $ROBUSTROOT/Runtime/Tilera/$PCIHVC ./pci.hvc
 cp ../Runtime/multicoretask.c ./
 cp ../Runtime/multicoreruntime.c ./
 cp ../Runtime/Queue.c ./

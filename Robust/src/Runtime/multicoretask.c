@@ -1078,6 +1078,7 @@ void addAliasLock(void * ptr, int lock) {
  *       b -- lock release with redirect info
  *       c -- status confirm request
  *       d -- status report msg
+ *       e -- terminate
  *
  * ObjMsg: 0 + size of msg + obj's address + (task index + param index)+
  * StallMsg: 1 + corenum + sendobjs + receiveobjs (size is always 4 * sizeof(int))
@@ -1092,6 +1093,7 @@ void addAliasLock(void * ptr, int lock) {
  * StatusMsg: c (size is always 1 * sizeof(int))
  *            d + status + corenum (size is always 3 * sizeof(int))
  *            status: 0 -- stall; 1 -- busy
+ * TerminateMsg: e (size is always 1 * sizeof(int)
  */
 
 #ifdef PROFILE
@@ -1676,6 +1678,15 @@ msg:
       }
 	  break;
 	}
+
+	case 0xe: {
+	  // receive a terminate msg
+#ifdef DEBUG
+				  BAMBOO_DEBUGPRINT(0xe889);
+#endif
+				  BAMBOO_EXIT(0);
+	  break;
+	}
 	
     default:
       break;
@@ -1686,7 +1697,7 @@ msg:
     msgtype = -1;
     msglength = 30;
 #ifdef DEBUG
-    BAMBOO_DEBUGPRINT(0xe889);
+    BAMBOO_DEBUGPRINT(0xe88a);
 #endif
 
     if(BAMBOO_MSG_AVAIL() != 0) {
@@ -1701,7 +1712,7 @@ msg:
   } else {
     // not a whole msg
 #ifdef DEBUG
-    BAMBOO_DEBUGPRINT(0xe895);
+    BAMBOO_DEBUGPRINT(0xe88b);
 #endif
 #ifdef PROFILE
 /*    if(isInterrupt) {
