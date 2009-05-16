@@ -539,9 +539,9 @@ then #INTERRUPT version
 TILERACFLAGS="${TILERACFLAGS} -DINTERRUPT"
 fi #INTERRUPT version
 
-cp $ROBUSTROOT/Runtime/Tilera/$MAKEFILE ./Makefile
-cp $ROBUSTROOT/Runtime/Tilera/$SIMHVC ./sim.hvc
-cp $ROBUSTROOT/Runtime/Tilera/$PCIHVC ./pci.hvc
+cp $ROBUSTROOT/Tilera/Runtime/$MAKEFILE ./Makefile
+cp $ROBUSTROOT/Tilera/Runtime/$SIMHVC ./sim.hvc
+cp $ROBUSTROOT/Tilera/Runtime/$PCIHVC ./pci.hvc
 cp ../Runtime/multicoretask.c ./
 cp ../Runtime/multicoreruntime.c ./
 cp ../Runtime/Queue.c ./
@@ -561,8 +561,8 @@ cp ../Runtime/ObjectHash.h ./
 cp ../Runtime/Queue.h ./
 cp ../Runtime/runtime.h ./
 cp ../Runtime/SimpleHash.h ./
-cp ../Runtime/Tilera/*.c ./
-cp ../Runtime/Tilera/*.h ./
+cp ../Tilera/Runtime/*.c ./
+cp ../Tilera/Runtime/*.h ./
 cp ../tmpbuilddirectory/*.c ./
 cp ../tmpbuilddirectory/*.h ./
 
