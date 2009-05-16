@@ -55,9 +55,9 @@ public class Globals {
   public int MAX_INT_WEIGHT;
   public char[] SOUGHT_STRING;
   public int MAX_STRLEN;
-  public double PERC_INT_WEIGHTS;
-  public double PROB_UNIDIRECTIONAL;
-  public double PROB_INTERCL_EDGES;
+  public float PERC_INT_WEIGHTS;
+  public float PROB_UNIDIRECTIONAL;
+  public float PROB_INTERCL_EDGES;
   public int SUBGR_EDGE_LENGTH;
   public int MAX_CLUSTER_SIZE;
   public int MAX_STRLEN;

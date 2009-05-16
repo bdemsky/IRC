@@ -1,7 +1,7 @@
 public class Edge {
-  public long startVertex;
-  public long endVertex;
-  public long edgeNum;
+  public int startVertex;
+  public int endVertex;
+  public int edgeNum;
 
   public Edge() {
   }

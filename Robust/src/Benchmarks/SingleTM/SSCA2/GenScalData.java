@@ -46,18 +46,18 @@
 
 public class GenScalData {
 
-  public long[] global_permV;
-  public long[] global_cliqueSizes;
+  public int[] global_permV;
+  public int[] global_cliqueSizes;
   public int global_totCliques;
-  public long[] global_firstVsInCliques;
-  public long[] global_lastVsInCliques;
-  public long[] global_i_edgeStartCounter;
-  public long[] global_i_edgeEndCounter;
-  public long global_edgeNum;
-  public long global_numStrWtEdges;
-  public long[] global_startVertex;
-  public long[] global_endVertex;
-  public long[] global_tempIndex;
+  public int[] global_firstVsInCliques;
+  public int[] global_lastVsInCliques;
+  public int[] global_i_edgeStartCounter;
+  public int[] global_i_edgeEndCounter;
+  public int global_edgeNum;
+  public int global_numStrWtEdges;
+  public int[] global_startVertex;
+  public int[] global_endVertex;
+  public int[] global_tempIndex;
 
   /**
    * Constructor
@@ -70,8 +70,8 @@ public class GenScalData {
     global_lastVsInCliques    = null;
     global_i_edgeStartCounter = null;
     global_i_edgeEndCounter   = null;
-    global_edgeNum            = 0L;
-    global_numStrWtEdges      = 0L;
+    global_edgeNum            = 0;
+    global_numStrWtEdges      = 0;
     global_startVertex        = null;
     global_endVertex          = null;
     global_tempIndex          = null;
@@ -84,7 +84,7 @@ public class GenScalData {
    * =============================================================================
    **/
   void
-    genScalData_seq (graphSDG* SDGdataPtr)
+    genScalData_seq (GraphSDG SDGdataPtr)
     {
       System.out.println("Call to genScalData_seq(), Unimplemented: TODO\n");
       System.exit(0);
@@ -105,13 +105,13 @@ public class GenScalData {
        */
 
       Random randomPtr = new Random();
-      randomPtr = randomPtr.random_alloc(randomPtr);
-      randomPtr.random_seed(randomPtr, myId);
+      randomPtr = randomPtr.random_alloc();
+      randomPtr.random_seed(myId);
 
-      long[] permV;
+      int[] permV;
 
       if (myId == 0) {
-        permV = new long[glb.TOT_VERTICES];
+        permV = new int[glb.TOT_VERTICES];
         global_permV = permV;
       }
 
@@ -131,11 +131,11 @@ public class GenScalData {
       Barrier.enterBarrier();
 
       for (int i = i_start; i < i_stop; i++) {
-        int t1 = (int) (randomPtr.random_generate(randomPtr));
+        int t1 = randomPtr.random_generate();
         int t = i + t1 % (glb.TOT_VERTICES - i);
         if (t != i) {
           atomic {
-            long t2 = permV[t];
+            int t2 = permV[t];
             permV[t] = permV[i];
             permV[i] = t2;
           }
@@ -146,7 +146,7 @@ public class GenScalData {
        * STEP 1: Create Cliques
        */
 
-      long[] cliqueSizes;
+      int[] cliqueSizes;
 
       int estTotCliques = (int)(Math.ceil(1.5d * glb.TOT_VERTICES / ((1+glb.MAX_CLIQUE_SIZE)/2)));
 
@@ -155,7 +155,7 @@ public class GenScalData {
        * Estimate number of clique required and pad by 50%
        */
       if (myId == 0) {
-        cliqueSizes = new long[estTotCliques];
+        cliqueSizes = new int[estTotCliques];
         global_cliqueSizes = cliqueSizes;
       }
 
@@ -167,7 +167,7 @@ public class GenScalData {
 
       /* Generate random clique sizes. */
       for (int i = lss.i_start; i < lss.i_stop; i++) {
-        cliqueSizes[i] = 1 + (randomPtr.random_generate(randomPtr) % MAX_CLIQUE_SIZE);
+        cliqueSizes[i] = 1 + (randomPtr.random_generate() % glb.MAX_CLIQUE_SIZE);
       }
 
       Barrier.enterBarrier();
@@ -178,13 +178,13 @@ public class GenScalData {
        * Allocate memory for cliqueList
        */
 
-      long[] firstVsInCliques;
-      long[] firstVsInCliques;
+      int[] firstVsInCliques;
+      int[] firstVsInCliques;
 
       if (myId == 0) {
-        lastVsInCliques = new long[estTotCliques];
+        lastVsInCliques = new int[estTotCliques];
         global_lastVsInCliques = lastVsInCliques;
-        firstVsInCliques = new long[estTotCliques];
+        firstVsInCliques = new int[estTotCliques];
         global_firstVsInCliques = firstVsInCliques;
 
         /*
@@ -192,7 +192,8 @@ public class GenScalData {
          */
 
         lastVsInCliques[0] = cliqueSizes[0] - 1;
-        for (int i = 1; i < estTotCliques; i++) {
+        int i;
+        for (i = 1; i < estTotCliques; i++) {
           lastVsInCliques[i] = cliqueSizes[i] + lastVsInCliques[i-1];
           if (lastVsInCliques[i] >= glb.TOT_VERTICES-1) {
             break;
@@ -205,8 +206,8 @@ public class GenScalData {
         /*
          * Fix the size of the last clique
          */
-        cliqueSizes[totCliques-1] =
-          glb.TOT_VERTICES - lastVsInCliques[totCliques-2] - 1;
+        cliqueSizes[(totCliques-1)] =
+          glb.TOT_VERTICES - lastVsInCliques[(totCliques-2)] - 1;
         lastVsInCliques[totCliques-1] = glb.TOT_VERTICES - 1;
 
         firstVsInCliques[0] = 0;
@@ -220,8 +221,8 @@ public class GenScalData {
       totCliques = global_totCliques;
 
       /* Compute start Vertices in cliques. */
-      createPartition(1, totCliques, myId, numThread, lss);
-      for (i = i_start; i < i_stop; i++) {
+      cp.createPartition(1, totCliques, myId, numThread, lss);
+      for (int i = i_start; i < i_stop; i++) {
         firstVsInCliques[i] = lastVsInCliques[i-1] + 1;
       }
 
@@ -233,14 +234,14 @@ Barrier.enterBarrier();
       // Write the generated cliques to file for comparison with Kernel 4 
       if (myId == 0) {
       FILE* outfp = fopen("cliques.txt", "w");
-      fprintf(outfp, "No. of cliques - %lu\n", totCliques);
+      fSystem.out.println(outfp, "No. of cliques - %lu\n", totCliques);
       for (i = 0; i < totCliques; i++) {
-      fprintf(outfp, "Clq %lu - ", i);
-      long j;
+      fSystem.out.println(outfp, "Clq %lu - ", i);
+      int j;
       for (j = firstVsInCliques[i]; j <= lastVsInCliques[i]; j++) {
-      fprintf(outfp, "%lu ", permV[j]);
+      fSystem.out.println(outfp, "%lu ", permV[j]);
       }
-      fprintf(outfp, "\n");
+      fSystem.out.println(outfp, "\n");
       }
       fclose(outfp);
       }
@@ -256,11 +257,11 @@ Barrier.enterBarrier();
       /*
        * Estimate number of edges - using an empirical measure
        */
-      long estTotEdges;
+      int estTotEdges;
       if (glb.SCALE >= 12) {
-        estTotEdges = (long) (Math.ceil(1.0d *((glb.MAX_CLIQUE_SIZE-1) * glb.TOT_VERTICES)));
+        estTotEdges = (int) (Math.ceil(1.0d *((glb.MAX_CLIQUE_SIZE-1) * glb.TOT_VERTICES)));
       } else {
-        estTotEdges = (long) (Math.ceil(1.2d * (((glb.MAX_CLIQUE_SIZE-1)*glb.TOT_VERTICES)
+        estTotEdges = (int) (Math.ceil(1.2d * (((glb.MAX_CLIQUE_SIZE-1)*glb.TOT_VERTICES)
                 * ((1 + glb.MAX_PARAL_EDGES)/2) + glb.TOT_VERTICES*2)));
       }
 
@@ -268,54 +269,52 @@ Barrier.enterBarrier();
        * Initialize edge counter
        */
       int i_edgePtr = 0;
+      float p = glb.PROB_UNIDIRECTIONAL;
 
       /*
        * Partial edgeLists
        */
 
-      long[] startV;
-      long[] endV;
+      int[] startV;
+      int[] endV;
 
       if (numThread > 3) {
         int numByte = 1.5 * (estTotEdges/numThread);
-        startV = new long[numByte];
-        endV = new long[numByte];
+        startV = new int[numByte];
+        endV = new int[numByte];
       } else  {
         int numByte = (estTotEdges/numThread);
-        startV = new long[numByte];
-        endV = new long[numByte];
+        startV = new int[numByte];
+        endV = new int[numByte];
       }
 
       /*
        * Tmp array to keep track of the no. of parallel edges in each direction
        */
-      long[][] tmpEdgeCounter = new long[glb.MAX_CLIQUE_SIZE][glb.MAX_CLIQUE_SIZE];
+      int[][] tmpEdgeCounter = new int[glb.MAX_CLIQUE_SIZE][glb.MAX_CLIQUE_SIZE];
 
       /*
        * Create edges in parallel
        */
-      int i_clique;
+      //int i_clique;
       cp.createPartition(0, totCliques, myId, numThread, lss);
 
-      double p = glb.PROB_UNIDIRECTIONAL;
-      for (i_clique = lss.i_start; i_clique < lss.i_stop; i_clique++) {
+      for (int i_clique = lss.i_start; i_clique < lss.i_stop; i_clique++) {
 
         /*
          * Get current clique parameters
          */
 
-        long i_cliqueSize = cliqueSizes[i_clique];
-        long i_firstVsInClique = firstVsInCliques[i_clique];
+        int i_cliqueSize = cliqueSizes[i_clique];
+        int i_firstVsInClique = firstVsInCliques[i_clique];
 
         /*
          * First create at least one edge between two vetices in a clique
          */
 
-        int i;
-        int j;
-        for (i = 0; i < (int) i_cliqueSize; i++) {
-          for (j = 0; j < i; j++) {
-            double r = (double)(randomPtr.random_generate(randomPtr) % 1000) / (double)1000;
+        for (int i = 0; i < i_cliqueSize; i++) {
+          for (int j = 0; j < i; j++) {
+            float r = (float)(randomPtr.random_generate() % 1000) / (float)1000;
             if (r >= p) {
 
               startV[i_edgePtr] = i + i_firstVsInClique;
@@ -350,14 +349,13 @@ Barrier.enterBarrier();
         } /* for i */
 
         if (i_cliqueSize != 1) {
-          long randNumEdges = (long)(randomPtr.random_generate(randomPtr)
-              % (2*i_cliqueSize*glb.MAX_PARAL_EDGES));
-          int i_paralEdge;
-          for (i_paralEdge = 0; i_paralEdge < (int) randNumEdges; i_paralEdge++) {
-            i = (int) (randomPtr.random_generate(randomPtr) % i_cliqueSize);
-            int j = (int) (randomPtr.random_generate(randomPtr) % i_cliqueSize);
+          int randNumEdges = randomPtr.random_generate() % (2*i_cliqueSize*glb.MAX_PARAL_EDGES);
+          //int i_paralEdge;
+          for (int i_paralEdge = 0; i_paralEdge < randNumEdges; i_paralEdge++) {
+            int i = (int) (randomPtr.random_generate() % i_cliqueSize);
+            int j = (int) (randomPtr.random_generate() % i_cliqueSize);
             if ((i != j) && (tmpEdgeCounter[i][j] < glb.MAX_PARAL_EDGES)) {
-              double r = (double)(randomPtr.random_generate(randomPtr) % 1000) / (double)1000;
+              float r = (float)(randomPtr.random_generate() % 1000) / (float)1000;
               if (r >= p) {
                 /* Copy to edge structure. */
                 startV[i_edgePtr] = i + i_firstVsInClique;
@@ -371,17 +369,19 @@ Barrier.enterBarrier();
 
       } /* for i_clique */
 
+      tmpEdgeCounter = null;
+
       /*
        * Merge partial edge lists
        */
 
-      long[] i_edgeStartCounter;
-      long[] i_edgeEndCounter;
+      int[] i_edgeStartCounter;
+      int[] i_edgeEndCounter;
 
       if (myId == 0) {
-        i_edgeStartCounter = new long[numThread];
+        i_edgeStartCounter = new int[ numThread];
         global_i_edgeStartCounter = i_edgeStartCounter;
-        i_edgeEndCounter = new long[numThread];
+        i_edgeEndCounter = new int[numThread];
         global_i_edgeEndCounter = i_edgeEndCounter;
       }
 
@@ -396,36 +396,36 @@ Barrier.enterBarrier();
       Barrier.enterBarrier();
 
       if (myId == 0) {
-        for (i = 1; i < numThread; i++) {
+        for (int i = 1; i < numThread; i++) {
           i_edgeEndCounter[i] = i_edgeEndCounter[i-1] + i_edgeEndCounter[i];
           i_edgeStartCounter[i] = i_edgeEndCounter[i-1];
         }
       }
 
       atomic {
-        global_edgeNum = (long) (global_edgeNum + i_edgePtr);
+        global_edgeNum = global_edgeNum + i_edgePtr;
       }
 
       Barrier.enterBarrier();
 
-      long edgeNum = global_edgeNum;
+      int edgeNum = global_edgeNum;
 
       /*
        * Initialize edge list arrays
        */
 
-      long[] startVertex;
-      long[] endVertex;
+      int[] startVertex;
+      int[] endVertex;
 
       if (myId == 0) {
         if (glb.SCALE < 10) {
           int numByte = 2 * edgeNum;
-          startVertex = new long[numByte];
-          endVertex = new long[numByte];
+          startVertex = new int[numByte];
+          endVertex = new int[numByte];
         } else {
           int numByte = (edgeNum + glb.MAX_PARAL_EDGES * glb.TOT_VERTICES);
-          startVertex = new long[numByte];
-          endVertex = new long[numByte];
+          startVertex = new int[numByte];
+          endVertex = new int[numByte];
         }
         global_startVertex = startVertex;
         global_endVertex = endVertex;
@@ -436,7 +436,7 @@ Barrier.enterBarrier();
       startVertex = global_startVertex;
       endVertex = global_endVertex;
 
-      for (int i = (int) i_edgeStartCounter[myId]; i < (int) i_edgeEndCounter[myId]; i++) {
+      for (int i =  i_edgeStartCounter[myId]; i <  i_edgeEndCounter[myId]; i++) {
         startVertex[i] = startV[i-i_edgeStartCounter[myId]];
         endVertex[i] = endV[i-i_edgeStartCounter[myId]];
       }
@@ -459,12 +459,12 @@ Barrier.enterBarrier();
       cp.createPartition(0, glb.TOT_VERTICES, myId, numThread, lss);
 
       for (int i = lss.i_start; i < lss.i_stop; i++) {
-        long tempVertex1 = (long) i;
-        long h = totCliques;
-        long l = 0;
-        long t = -1;
+        int tempVertex1 = i;
+        int h = totCliques;
+        int l = 0;
+        int t = -1;
         while (h - l > 1) {
-          int m = (int) ((h + l) / 2);
+          int m =  ((h + l) / 2);
           if (tempVertex1 >= firstVsInCliques[m]) {
             l = m;
           } else {
@@ -489,22 +489,22 @@ Barrier.enterBarrier();
           t = m-1;
         }
 
-        long t1 = firstVsInCliques[t];
+        int t1 = firstVsInCliques[t];
 
-        int d;
-        for (d = 1, p = glb.PROB_INTERCL_EDGES; d < glb.TOT_VERTICES; d *= 2, p /= 2) {
+        //int d;
+        for (int d = 1, p = glb.PROB_INTERCL_EDGES; d < glb.TOT_VERTICES; d *= 2, p /= 2) {
 
-          double r = (double)(randomPtr.random_generate(randomPtr) % 1000) / (double)1000;
+          float r = (float)(randomPtr.random_generate() % 1000) / (float)1000;
 
           if (r <= p) {
 
-            long tempVertex2 = (long) ((i+d) % glb.TOT_VERTICES);
+            int tempVertex2 =  ((i+d) % glb.TOT_VERTICES);
 
             h = totCliques;
             l = 0;
             t = -1;
             while (h - l > 1) {
-              int m = (int) ((h + l) / 2);
+              int m = (((h + l) / 2);
               if (tempVertex2 >= firstVsInCliques[m]) {
                 l = m;
               } else {
@@ -520,7 +520,7 @@ Barrier.enterBarrier();
             }
 
             if (t == -1) {
-              //long m;
+              //int m;
               int m;
               for (m = (l + 1); m < h; m++) {
                 if (tempVertex2 < firstVsInCliques[m]) {
@@ -530,13 +530,13 @@ Barrier.enterBarrier();
               t = m - 1;
             }
 
-            long t2 = firstVsInCliques[t];
+            int t2 = firstVsInCliques[t];
 
             if (t1 != t2) {
-              long randNumEdges =
-                randomPtr.random_generate(randomPtr) % glb.MAX_PARAL_EDGES + 1;
-              int j;
-              for (j = 0; j < randNumEdges; j++) {
+              int randNumEdges =
+                randomPtr.random_generate() % glb.MAX_PARAL_EDGES + 1;
+              //int j;
+              for (int j = 0; j < randNumEdges; j++) {
                 startV[i_edgePtr] = tempVertex1;
                 endV[i_edgePtr] = tempVertex2;
                 i_edgePtr++;
@@ -545,16 +545,16 @@ Barrier.enterBarrier();
 
           } /* r <= p */
 
-          double r0 = (double)(randomPtr.random_generate(randomPtr) % 1000) / (double)1000;
+          float r0 = (float)(randomPtr.random_generate() % 1000) / (float)1000;
 
           if ((r0 <= p) && (i-d>=0)) {
-            long tempVertex2 = (i - d) % glb.TOT_VERTICES;
+            int tempVertex2 = (i - d) % glb.TOT_VERTICES;
 
             h = totCliques;
             l = 0;
             t = -1;
             while (h - l > 1) {
-              int m = (int)((h + l) / 2);
+              int m = ((h + l) / 2);
               if (tempVertex2 >= firstVsInCliques[m]) {
                 l = m;
               } else {
@@ -571,7 +571,7 @@ Barrier.enterBarrier();
 
             if (t == -1) {
               int m;
-              for (m = (int) (l + 1); m < (int) h; m++) {
+              for (m =  (l + 1); m <  h; m++) {
                 if (tempVertex2 < firstVsInCliques[m]) {
                   break;
                 }
@@ -579,13 +579,12 @@ Barrier.enterBarrier();
               t = m - 1;
             }
 
-            long t2 = firstVsInCliques[t];
+            int t2 = firstVsInCliques[t];
 
             if (t1 != t2) {
-              long randNumEdges =
-                randomPtr.random_generate(randomPtr) % glb.MAX_PARAL_EDGES + 1;
-              int j;
-              for (j = 0; j < (int) randNumEdges; j++) {
+              int randNumEdges =
+                randomPtr.random_generate() % glb.MAX_PARAL_EDGES + 1;
+              for (int j = 0; j <  randNumEdges; j++) {
                 startV[i_edgePtr] = tempVertex1;
                 endV[i_edgePtr] = tempVertex2;
                 i_edgePtr++;
@@ -609,7 +608,7 @@ Barrier.enterBarrier();
       Barrier.enterBarrier();
 
       if (myId == 0) {
-        for (int i = 1; i < numThread; i++) {
+        for (int i = 1; i <  numThread; i++) {
           i_edgeEndCounter[i] = i_edgeEndCounter[i-1] + i_edgeEndCounter[i];
           i_edgeStartCounter[i] = i_edgeEndCounter[i-1];
         }
@@ -622,25 +621,24 @@ Barrier.enterBarrier();
       Barrier.enterBarrier();
 
       edgeNum = global_edgeNum;
-      long numEdgesPlacedOutside = global_edgeNum;
+      int numEdgesPlacedOutside = global_edgeNum;
 
-      for (int i = (int) i_edgeStartCounter[myId]; i < (int) i_edgeEndCounter[myId]; i++) {
+      for (int i = (i_edgeStartCounter[myId]; i <  i_edgeEndCounter[myId]; i++) {
         startVertex[i+numEdgesPlacedInCliques] = startV[i-i_edgeStartCounter[myId]];
         endVertex[i+numEdgesPlacedInCliques] = endV[i-i_edgeStartCounter[myId]];
       }
 
       Barrier.enterBarrier();
 
-      long numEdgesPlaced = numEdgesPlacedInCliques + numEdgesPlacedOutside;
+      int numEdgesPlaced = numEdgesPlacedInCliques + numEdgesPlacedOutside;
 
       if (myId == 0) {
+        SDGdataPtr.numEdgesPlaced =  numEdgesPlaced;
 
-        SDGdataPtr.numEdgesPlaced = (int) numEdgesPlaced;
-
-        printf("Finished generating edges\n");
-        printf("No. of intra-clique edges - %lu\n", numEdgesPlacedInCliques);
-        printf("No. of inter-clique edges - %lu\n", numEdgesPlacedOutside);
-        printf("Total no. of edges        - %lu\n", numEdgesPlaced);
+        System.out.println("Finished generating edges");
+        System.out.println("No. of intra-clique edges - " + numEdgesPlacedInCliques);
+        System.out.println("No. of inter-clique edges - " + numEdgesPlacedOutside);
+        System.out.println("Total no. of edges        - " + numEdgesPlaced);
       }
 
       Barrier.enterBarrier();
@@ -650,21 +648,21 @@ Barrier.enterBarrier();
        */
 
       if (myId == 0) {
-        SDGdataPtr.intWeight = new long[(int) numEdgesPlaced];
+        SDGdataPtr.intWeight = new int[numEdgesPlaced];
       }
 
       Barrier.enterBarrier();
 
       p = glb.PERC_INT_WEIGHTS;
-      long numStrWtEdges  = 0;
+      int numStrWtEdges  = 0;
 
-      cp.createPartition(0, (int) numEdgesPlaced, myId, numThread, lss);
+      cp.createPartition(0, numEdgesPlaced, myId, numThread, lss);
 
       for (int i = lss.i_start; i < lss.i_stop; i++) {
-        double r = (double)(randomPtr.random_generate(randomPtr) % 1000) / (double)1000;
+        float r = (float)(randomPtr.random_generate() % 1000) / (float)1000;
         if (r <= p) {
           SDGdataPtr.intWeight[i] =
-            1 + (randomPtr.random_generate(randomPtr) % (MAX_INT_WEIGHT-1));
+            1 + (randomPtr.random_generate() % (MAX_INT_WEIGHT-1));
         } else {
           SDGdataPtr.intWeight[i] = -1;
           numStrWtEdges++;
@@ -675,7 +673,7 @@ Barrier.enterBarrier();
 
       if (myId == 0) {
         int t = 0;
-        for (int i = 0; i < (int) numEdgesPlaced; i++) {
+        for (int i = 0; i < numEdgesPlaced; i++) {
           if (SDGdataPtr.intWeight[i] < 0) {
             SDGdataPtr.intWeight[i] = -t;
             t++;
@@ -697,15 +695,15 @@ Barrier.enterBarrier();
 
       Barrier.enterBarrier();
 
-      cp.createPartition(0, (int) numEdgesPlaced, myId, numThread, lss);
+      cp.createPartition(0, numEdgesPlaced, myId, numThread, lss);
 
       for (int i = lss.i_start; i < lss.i_stop; i++) {
         if (SDGdataPtr.intWeight[i] <= 0) {
           for (int j = 0; j < glb.MAX_STRLEN; j++) {
-            SDGdataPtr.strWeight[(-(int) SDGdataPtr.intWeight[i])*glb.MAX_STRLEN+j] =
+            SDGdataPtr.strWeight[(-SDGdataPtr.intWeight[i])*glb.MAX_STRLEN+j] =
               //     (char) (1 + PRANDOM_GENERATE(stream) % 127);
               //FIXME
-              (char) (1 + (randomPtr.random_generate(randomPtr) % 127));
+              (char) (1 + (randomPtr.random_generate() % 127));
           }
         }
       }
@@ -720,11 +718,11 @@ Barrier.enterBarrier();
           glb.SOUGHT_STRING = new char[MAX_STRLEN];
         }
 
-        long t = randomPtr.random_generate(randomPtr) % numStrWtEdges;
+        int t = randomPtr.random_generate() % numStrWtEdges;
         for (int j = 0; j < glb.MAX_STRLEN; j++) {
           //FIXME
           SOUGHT_STRING[j] =
-            (char) ((long) SDGdataPtr.strWeight[(int) (t*glb.MAX_STRLEN+j)]);
+            (char) (SDGdataPtr.strWeight[(t*glb.MAX_STRLEN+j)]);
         }
 
       }
@@ -751,9 +749,9 @@ Barrier.enterBarrier();
        */
 
       if (myId == 0) {
-        int numByte = (int) numEdgesPlaced;
-        SDGdataPtr.startVertex = new long[numByte];
-        SDGdataPtr.endVertex = new long[numByte];
+        int numByte = numEdgesPlaced;
+        SDGdataPtr.startVertex = new int[numByte];
+        SDGdataPtr.endVertex = new int[numByte];
       }
 
       Barrier.enterBarrier();
@@ -778,9 +776,9 @@ Barrier.enterBarrier();
           int i1 = 0;
           int i = 0;
 
-          while (i < (int) numEdgesPlaced) {
+          while (i < numEdgesPlaced) {
 
-            for (i = i0; i < (int) numEdgesPlaced; i++) {
+            for (i = i0; i < numEdgesPlaced; i++) {
               if (SDGdataPtr.startVertex[i] !=
                   SDGdataPtr.startVertex[i1])
               {
@@ -789,31 +787,31 @@ Barrier.enterBarrier();
               }
             }
 
-            int j;
-            for (j = i0; j < i1; j++) {
-              int k;
-              for (k = j+1; k < i1; k++) {
+            //int j;
+            for (int j = i0; j < i1; j++) {
+              //int k;
+              for (int k = j+1; k < i1; k++) {
                 if (SDGdataPtr.endVertex[k] <
                     SDGdataPtr.endVertex[j])
                 {
-                  long t = SDGdataPtr.endVertex[j];
+                  int t = SDGdataPtr.endVertex[j];
                   SDGdataPtr.endVertex[j] = SDGdataPtr.endVertex[k];
                   SDGdataPtr.endVertex[k] = t;
                 }
               }
             }
 
-            if (SDGdataPtr.startVertex[i0] != (long) glb.TOT_VERTICES-1) {
+            if (SDGdataPtr.startVertex[i0] != glb.TOT_VERTICES-1) {
               i0 = i1;
             } else {
-              int j;
-              for (j=i0; j<(int)numEdgesPlaced; j++) {
-                int k;
-                for (k=j+1; k<(int)numEdgesPlaced; k++) {
+              //int j;
+              for (int j=i0; j<numEdgesPlaced; j++) {
+                //int k;
+                for (int k=j+1; k<numEdgesPlaced; k++) {
                   if (SDGdataPtr.endVertex[k] <
                       SDGdataPtr.endVertex[j])
                   {
-                    long t = SDGdataPtr.endVertex[j];
+                    int t = SDGdataPtr.endVertex[j];
                     SDGdataPtr.endVertex[j] = SDGdataPtr.endVertex[k];
                     SDGdataPtr.endVertex[k] = t;
                   }
@@ -827,11 +825,11 @@ Barrier.enterBarrier();
 
       } else {
 
-        long[] tempIndex;
+        int[] tempIndex;
 
         if (myId == 0) {
 
-          tempIndex = new long[glb.TOT_VERTICES + 1];
+          tempIndex = new int[glb.TOT_VERTICES + 1];
           global_tempIndex = tempIndex;
 
           /*
@@ -844,8 +842,8 @@ Barrier.enterBarrier();
 
           for (int i=0; i < glb.TOT_VERTICES; i++) {
             tempIndex[i+1] = tempIndex[i];
-            int j;
-            for (j = i0; j < (int) numEdgesPlaced; j++) {
+            //int j;
+            for (int j = i0; j <  numEdgesPlaced; j++) {
               if (SDGdataPtr.startVertex[j] !=
                   SDGdataPtr.startVertex[i0])
               {
@@ -870,12 +868,12 @@ Barrier.enterBarrier();
 
         if (myId == 0) {
           for (int i = 0; i < glb.TOT_VERTICES; i++) {
-            for (int j = (int) tempIndex[i]; j < (int) tempIndex[i+1]; j++) {
+            for (int j =  tempIndex[i]; j <  tempIndex[i+1]; j++) {
               for (int k = (j + 1); k < tempIndex[i+1]; k++) {
                 if (SDGdataPtr.endVertex[k] <
                     SDGdataPtr.endVertex[j])
                 {
-                  long t = SDGdataPtr.endVertex[j];
+                  int t = SDGdataPtr.endVertex[j];
                   SDGdataPtr.endVertex[j] = SDGdataPtr.endVertex[k];
                   SDGdataPtr.endVertex[k] = t;
                 }

@@ -1,4 +1,4 @@
-/*the graph data structure*/
+/* Graph data structure*/
 public class Graph {
   public int numVertices;
   public int numEdges;
@@ -9,16 +9,16 @@ public class Graph {
   public int numIntEdges;
   public int numStrEdges;
 
-  public long[] outDegree;
-  public long[] outVertexIndex;
-  public long[] outVertexList;
-  public long[] paralEdgeIndex;
+  public int[] outDegree;
+  public int[] outVertexIndex;
+  public int[] outVertexList;
+  public int[] paralEdgeIndex;
 
-  public long inDegree;
-  public long inVertexIndex;
-  public long inVertexList;
+  public int inDegree;
+  public int inVertexIndex;
+  public int inVertexList;
 
-  public long[]  intWeight;
+  public int[]  intWeight;
   public char[] strWeight;
 
   public Graph() {
