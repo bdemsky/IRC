@@ -1653,8 +1653,10 @@ public class BuildCode {
                               FlatSESEExitNode stop,
                               PrintWriter output) {
 
+    System.out.println( "generating code, stop="+stop );
+
     /* Assign labels to FlatNode's if necessary.*/
-    Hashtable<FlatNode, Integer> nodetolabel=assignLabels(first);
+    Hashtable<FlatNode, Integer> nodetolabel=assignLabels(first, stop);
 
     /* Do the actual code generation */
     FlatNode current_node=null;
@@ -1668,19 +1670,20 @@ public class BuildCode {
       } else if (tovisit.contains(current_node)) {
 	tovisit.remove(current_node);
       }
-      if(current_node==stop) {
-	return;
-      }
       visited.add(current_node);
-      if (nodetolabel.containsKey(current_node))
+      if (nodetolabel.containsKey(current_node)) {
+
+	System.out.println( "  *"+current_node+" preceeded with label "+nodetolabel.get(current_node) );
+
 	output.println("L"+nodetolabel.get(current_node)+":");
+      }
       if (state.INSTRUCTIONFAILURE) {
 	if (state.THREAD||state.DSM||state.SINGLETM) {
 	  output.println("if ((++instructioncount)>failurecount) {instructioncount=0;injectinstructionfailure();}");
 	} else
 	  output.println("if ((--instructioncount)==0) injectinstructionfailure();");
       }
-      if (current_node.numNext()==0) {
+      if (current_node.numNext()==0||current_node==stop) {
 	output.print("   ");
 	generateFlatNode(fm, lb, current_node, output);
 	if (current_node.kind()!=FKind.FlatReturnNode) {
@@ -1700,18 +1703,18 @@ public class BuildCode {
 	if (visited.contains(nextnode)) {
 	  output.println("goto L"+nodetolabel.get(nextnode)+";");
 	  current_node=null;
-	} else
+	} else 
 	  current_node=nextnode;
       } else if (current_node.numNext()==2) {
 	/* Branch */
-	output.print("   ");
+	output.print("   ");  
 	generateFlatCondBranch(fm, lb, (FlatCondBranch)current_node, "L"+nodetolabel.get(current_node.getNext(1)), output);
 	if (!visited.contains(current_node.getNext(1)))
 	  tovisit.add(current_node.getNext(1));
 	if (visited.contains(current_node.getNext(0))) {
 	  output.println("goto L"+nodetolabel.get(current_node.getNext(0))+";");
 	  current_node=null;
-	} else
+	} else 
 	  current_node=current_node.getNext(0);
       } else throw new Error();
     }
@@ -1719,8 +1722,10 @@ public class BuildCode {
 
 
   /** This method assigns labels to FlatNodes */
-
   protected Hashtable<FlatNode, Integer> assignLabels(FlatNode first) {
+    return assignLabels(first, null);
+  }
+  protected Hashtable<FlatNode, Integer> assignLabels(FlatNode first, FlatSESEExitNode last) {
     HashSet tovisit=new HashSet();
     HashSet visited=new HashSet();
     int labelindex=0;
@@ -1734,8 +1739,17 @@ public class BuildCode {
       FlatNode fn=(FlatNode)tovisit.iterator().next();
       tovisit.remove(fn);
       visited.add(fn);
+
+
+      if( fn.equals(last) ) {
+	// if last is not null and matches, don't go 
+	// any further for assigning labels
+	continue;
+      }
+
       for(int i=0; i<fn.numNext(); i++) {
 	FlatNode nn=fn.getNext(i);
+
 	if(i>0) {
 	  //1) Edge >1 of node
 	  nodetolabel.put(nn,new Integer(labelindex++));
@@ -1746,6 +1760,12 @@ public class BuildCode {
 	  //2) Join point
 	  nodetolabel.put(nn,new Integer(labelindex++));
 	}
+
+
+	if( nodetolabel.get(nn) != null ) {
+	  System.out.println( "  "+nn+" has label "+nodetolabel.get(nn) );
+	}
+
       }
     }
     return nodetolabel;
@@ -1789,11 +1809,9 @@ public class BuildCode {
       return;
 
     case FKind.FlatSESEEnterNode:
-      assert !state.MLP;
       return;
 
     case FKind.FlatSESEExitNode:
-      assert !state.MLP;
       return;
 
     case FKind.FlatGlobalConvNode:
@@ -2170,17 +2188,10 @@ public class BuildCode {
     output.println("}");
   }
 
-
-  public void generateSESE(FlatMethod fm, LocalityBinding lb, FlatSESEEnterNode faen, PrintWriter output) {
-
-  }
-
-
   public void generateFlatSESEEnterNode(FlatMethod fm,  LocalityBinding lb, FlatSESEEnterNode faen, PrintWriter output) {
   }
 
   public void generateFlatSESEExitNode(FlatMethod fm,  LocalityBinding lb, FlatSESEExitNode faen, PrintWriter output) {
-    //output.println("mlpNotifyExit( (struct SESE*)0 );");
   }
 
   private void generateFlatCheckNode(FlatMethod fm,  LocalityBinding lb, FlatCheckNode fcn, PrintWriter output) {
