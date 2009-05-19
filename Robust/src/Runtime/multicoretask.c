@@ -435,7 +435,7 @@ inline void run(void * arg) {
 								  }
 #endif
 								  terminate(); // All done.
-							  }
+							  } // if-else of line 364: if(!waitconfirm)
 						  } else {
 							  // still some objects on the fly on the network
 							  // reset the waitconfirm and numconfirm
@@ -444,7 +444,7 @@ inline void run(void * arg) {
 #endif
 							  waitconfirm = false;
 							  numconfirm = 0;
-						  }
+						  } // if-else of line 363: if(0 == sumsendobj)
 					  } else {
 						  // not all cores are stall, keep on waiting
 #ifdef DEBUG
@@ -452,12 +452,12 @@ inline void run(void * arg) {
 #endif
 						  waitconfirm = false;
 						  numconfirm = 0;
-					  }
+					  } // if-else of line 347: if(allStall)
 					  BAMBOO_CLOSE_CRITICAL_SECTION_STATUS();
 #ifdef DEBUG
 					  BAMBOO_DEBUGPRINT(0xf000);
 #endif
-				  }
+				  } // if-else of line 320: if((!waitconfirm) || 
 			  } else {
 				  if(!sendStall) {
 #ifdef DEBUG
@@ -495,11 +495,11 @@ inline void run(void * arg) {
 #ifdef DEBUG
 					  BAMBOO_DEBUGPRINT(0xee0c);
 #endif
-				  }
-			  }
-		  }
-	  }
-  } // right-bracket for if-else of line 220
+				  } // if-else of line 464: if(!sendStall)
+			  } // if-else of line 313: if(STARTUPCORE == corenum) 
+		  } // if-else of line 311: if(!tocontinue)
+	  } // line 193:  while(true) 
+  } // right-bracket for if-else of line 153: if(corenum > NUMCORES - 1)
 
 } // run()
 
@@ -1320,10 +1320,14 @@ msg:
       struct transObjInfo * transObj = RUNMALLOC_I(sizeof(struct transObjInfo));
       int k = 0;
 #ifdef DEBUG
+#ifndef TILERA
 	  BAMBOO_DEBUGPRINT(0xe880);
 #endif
+#endif
       if(corenum > NUMCORES - 1) {
+#ifndef TILERA
 		  BAMBOO_DEBUGPRINT_REG(msgdata[2]);
+#endif
 		  BAMBOO_EXIT(0xa005);
       } /*else if((corenum == STARTUPCORE) && waitconfirm) {
 		  waitconfirm = false;
@@ -1336,11 +1340,15 @@ msg:
       for(k = 0; k < transObj->length; ++k) {
 		  transObj->queues[2*k] = msgdata[3+2*k];
 #ifdef DEBUG
+#ifndef TILERA
 		  BAMBOO_DEBUGPRINT_REG(transObj->queues[2*k]);
+#endif
 #endif
 		  transObj->queues[2*k+1] = msgdata[3+2*k+1];
 #ifdef DEBUG
+#ifndef TILERA
 		  BAMBOO_DEBUGPRINT_REG(transObj->queues[2*k+1]);
+#endif
 #endif
       }
       // check if there is an existing duplicate item
@@ -1372,7 +1380,9 @@ msg:
       if(corenum != STARTUPCORE) {
 		  // non startup core can not receive stall msg
 		  // return -1
+#ifndef TILERA
 		  BAMBOO_DEBUGPRINT_REG(data1);
+#endif
 		  BAMBOO_EXIT(0xa006);
       } /*else if(waitconfirm) {
 		  waitconfirm = false;
@@ -1380,7 +1390,9 @@ msg:
 	  }*/
       if(data1 < NUMCORES) {
 #ifdef DEBUG
+#ifndef TILERA
 		  BAMBOO_DEBUGPRINT(0xe881);
+#endif
 #endif
 		  corestatus[data1] = 0;
 		  numsendobjs[data1] = msgdata[2];
@@ -1416,7 +1428,9 @@ msg:
     case 3: {
       // receive lock grount msg
       if(corenum > NUMCORES - 1) {
+#ifndef TILERA
 		  BAMBOO_DEBUGPRINT_REG(msgdata[2]);
+#endif
 		  BAMBOO_EXIT(0xa007);
       } /*else if((corenum == STARTUPCORE) && waitconfirm) {
 		  waitconfirm = false;
@@ -1424,7 +1438,9 @@ msg:
 	  }*/
       if((lockobj == msgdata[2]) && (lock2require == msgdata[3])) {
 #ifdef DEBUG
+#ifndef TILERA
 		  BAMBOO_DEBUGPRINT(0xe882);
+#endif
 #endif
 		  lockresult = 1;
 		  lockflag = true;
@@ -1433,7 +1449,9 @@ msg:
 #endif
 	  } else {
 		  // conflicts on lockresults
+#ifndef TILERA
 		  BAMBOO_DEBUGPRINT_REG(msgdata[2]);
+#endif
 		  BAMBOO_EXIT(0xa008);
       }
       break;
@@ -1442,7 +1460,9 @@ msg:
     case 4: {
       // receive lock grount/deny msg
       if(corenum > NUMCORES - 1) {
+#ifndef TILERA
 		  BAMBOO_DEBUGPRINT_REG(msgdata[2]);
+#endif
 		  BAMBOO_EXIT(0xa009);
       } /*else if((corenum == STARTUPCORE) && waitconfirm) {
 		  waitconfirm = false;
@@ -1450,7 +1470,9 @@ msg:
 	  }*/
       if((lockobj == msgdata[2]) && (lock2require == msgdata[3])) {
 #ifdef DEBUG
+#ifndef TILERA
 		  BAMBOO_DEBUGPRINT(0xe883);
+#endif
 #endif
 		  lockresult = 0;
 		  lockflag = true;
@@ -1459,7 +1481,9 @@ msg:
 #endif
       } else {
 		  // conflicts on lockresults
+#ifndef TILERA
 		  BAMBOO_DEBUGPRINT_REG(msgdata[2]);
+#endif
 		  BAMBOO_EXIT(0xa00a);
       }
       break;
@@ -1473,7 +1497,9 @@ msg:
 	  }*/
       if(!RuntimeHashcontainskey(locktbl, msgdata[3])) {
 		  // no locks for this object, something is wrong
+#ifndef TILERA
 		  BAMBOO_DEBUGPRINT_REG(msgdata[3]);
+#endif
 		  BAMBOO_EXIT(0xa00b);
       } else {
 		  int rwlock_obj = 0;
@@ -1481,8 +1507,10 @@ msg:
 		  RuntimeHashget(locktbl, msgdata[3], &rwlock_obj);
 		  lockvalue = (struct LockValue*)(rwlock_obj);
 #ifdef DEBUG
+#ifndef TILERA
 		  BAMBOO_DEBUGPRINT(0xe884);
 		  BAMBOO_DEBUGPRINT_REG(lockvalue->value);
+#endif
 #endif
 		  if(data1 == 0) {
 			  lockvalue->value--;
@@ -1490,7 +1518,9 @@ msg:
 			  lockvalue->value++;
 		  }
 #ifdef DEBUG
+#ifndef TILERA
 		  BAMBOO_DEBUGPRINT_REG(lockvalue->value);
+#endif
 #endif
       }
       break;
@@ -1504,7 +1534,9 @@ msg:
 		  BAMBOO_EXIT(0xa00c);
       }
 #ifdef DEBUG
+#ifndef TILEAR
 	  BAMBOO_DEBUGPRINT(0xe885);
+#endif
 #endif
 	  stall = true;
 	  totalexetime = data1;
@@ -1521,11 +1553,15 @@ msg:
       // receive a profile output finish msg
       if(corenum != STARTUPCORE) {
 		  // non startup core can not receive profile output finish msg
+#ifndef TILERA
 		  BAMBOO_DEBUGPRINT_REG(data1);
+#endif
 		  BAMBOO_EXIT(0xa00d);
       }
 #ifdef DEBUG
+#ifndef TILERA
 	  BAMBOO_DEBUGPRINT(0xe886);
+#endif
 #endif
       profilestatus[data1] = 0;
       break;
@@ -1559,7 +1595,9 @@ msg:
 	case 9: {
 		// receive a lock grant msg with redirect info
 		if(corenum > NUMCORES - 1) {
+#ifndef TILERA
 			BAMBOO_DEBUGPRINT_REG(msgdata[2]);
+#endif
 			BAMBOO_EXIT(0xa00e);
 		}/* else if((corenum == STARTUPCORE) && waitconfirm) {
 		  waitconfirm = false;
@@ -1567,7 +1605,9 @@ msg:
 	  }*/
       if(lockobj == msgdata[2]) {
 #ifdef DEBUG
+#ifndef TILERA
 		  BAMBOO_DEBUGPRINT(0xe891);
+#endif
 #endif
 		  lockresult = 1;
 		  lockflag = true;
@@ -1577,7 +1617,9 @@ msg:
 #endif
       } else {
 		  // conflicts on lockresults
+#ifndef TILERA
 		  BAMBOO_DEBUGPRINT_REG(msgdata[2]);
+#endif
 		  BAMBOO_EXIT(0xa00f);
       }
 		break;
@@ -1586,7 +1628,9 @@ msg:
 	case 0xa: {
 	  // receive a lock deny msg with redirect info
 	  if(corenum > NUMCORES - 1) {
+#ifndef TILERA
 		  BAMBOO_DEBUGPRINT_REG(msgdata[2]);
+#endif
 		  BAMBOO_EXIT(0xa010);
 	  }/* else if((corenum == STARTUPCORE) && waitconfirm) {
 		  waitconfirm = false;
@@ -1594,7 +1638,9 @@ msg:
 	  }*/
       if(lockobj == msgdata[2]) {
 #ifdef DEBUG
+#ifndef TILERA
 		  BAMBOO_DEBUGPRINT(0xe892);
+#endif
 #endif
 		  lockresult = 0;
 		  lockflag = true;
@@ -1604,7 +1650,9 @@ msg:
 #endif
       } else {
 		  // conflicts on lockresults
+#ifndef TILERA
 		  BAMBOO_DEBUGPRINT_REG(msgdata[2]);
+#endif
 		  BAMBOO_EXIT(0xa011);
       }
 		break;
@@ -1618,7 +1666,9 @@ msg:
 	  }*/
 	  if(!RuntimeHashcontainskey(locktbl, msgdata[2])) {
 		  // no locks for this object, something is wrong
+#ifndef TILERA
 		  BAMBOO_DEBUGPRINT_REG(msgdata[2]);
+#endif
 		  BAMBOO_EXIT(0xa012);
       } else {
 		  int rwlock_obj = 0;
@@ -1626,8 +1676,10 @@ msg:
 		  RuntimeHashget(locktbl, msgdata[2], &rwlock_obj);
 		  lockvalue = (struct LockValue*)(rwlock_obj);
 #ifdef DEBUG
+#ifndef TILERA
 		  BAMBOO_DEBUGPRINT(0xe893);
 		  BAMBOO_DEBUGPRINT_REG(lockvalue->value);
+#endif
 #endif
 		  if(data1 == 0) {
 			  lockvalue->value--;
@@ -1635,7 +1687,9 @@ msg:
 			  lockvalue->value++;
 		  }
 #ifdef DEBUG
+#ifndef TILERA
 		  BAMBOO_DEBUGPRINT_REG(lockvalue->value);
+#endif
 #endif
 		  lockvalue->redirectlock = msgdata[3];
 	  }
@@ -1650,7 +1704,9 @@ msg:
       } else {
 		  // send response msg
 #ifdef DEBUG
+#ifndef TILERA
 		  BAMBOO_DEBUGPRINT(0xe887);
+#endif
 #endif
 		  if(isMsgSending) {
 			  cache_msg_3(STARTUPCORE, 0xd, busystatus?1:0, corenum);
@@ -1665,11 +1721,15 @@ msg:
 	  // receive a status confirm info
 	  if(corenum != STARTUPCORE) {
 		  // wrong core to receive such msg
+#ifndef TILERA
 		  BAMBOO_DEBUGPRINT_REG(msgdata[2]);
+#endif
 		  BAMBOO_EXIT(0xa014);
       } else {
 #ifdef DEBUG
+#ifndef TILERA
 		  BAMBOO_DEBUGPRINT(0xe888);
+#endif
 #endif
 		  if(waitconfirm) {
 			  numconfirm--;
@@ -1682,7 +1742,9 @@ msg:
 	case 0xe: {
 	  // receive a terminate msg
 #ifdef DEBUG
+#ifndef TILERA
 				  BAMBOO_DEBUGPRINT(0xe889);
+#endif
 #endif
 				  BAMBOO_EXIT(0);
 	  break;
@@ -1697,7 +1759,9 @@ msg:
     msgtype = -1;
     msglength = 30;
 #ifdef DEBUG
+#ifndef TILERA
     BAMBOO_DEBUGPRINT(0xe88a);
+#endif
 #endif
 
     if(BAMBOO_MSG_AVAIL() != 0) {
@@ -1712,7 +1776,9 @@ msg:
   } else {
     // not a whole msg
 #ifdef DEBUG
+#ifndef TILERA
     BAMBOO_DEBUGPRINT(0xe88b);
+#endif
 #endif
 #ifdef PROFILE
 /*    if(isInterrupt) {
@@ -1732,7 +1798,11 @@ int processlockrequest(int locktype, int lock, int obj, int requestcore, int roo
   int deny = 0;
   if( ((lock >> 5) % BAMBOO_TOTALCORE) != corenum ) {
 	  // the lock should not be on this core
+//#ifndef TILERA
 	  BAMBOO_DEBUGPRINT_REG(requestcore);
+	  BAMBOO_DEBUGPRINT_REG(lock);
+	  BAMBOO_DEBUGPRINT_REG(corenum);
+//#endif
 	  BAMBOO_EXIT(0xa015);
   }
   /*if((corenum == STARTUPCORE) && waitconfirm) {
@@ -1747,7 +1817,9 @@ int processlockrequest(int locktype, int lock, int obj, int requestcore, int roo
 	  struct LockValue * lockvalue = (struct LockValue *)(RUNMALLOC_I(sizeof(struct LockValue)));
 	  lockvalue->redirectlock = 0;
 #ifdef DEBUG
+#ifndef TILERA
 	  BAMBOO_DEBUGPRINT(0xe110);
+#endif
 #endif
 	  if(locktype == 0) {
 		  lockvalue->value = 1;
@@ -1759,17 +1831,23 @@ int processlockrequest(int locktype, int lock, int obj, int requestcore, int roo
 	  int rwlock_obj = 0;
 	  struct LockValue * lockvalue = NULL;
 #ifdef DEBUG
+#ifndef TILERA
 	  BAMBOO_DEBUGPRINT(0xe111);
+#endif
 #endif
 	  RuntimeHashget(locktbl, lock, &rwlock_obj);
 	  lockvalue = (struct LockValue *)(rwlock_obj);
 #ifdef DEBUG
+#ifndef TILERA
 	  BAMBOO_DEBUGPRINT_REG(lockvalue->redirectlock);
+#endif
 #endif
 	  if(lockvalue->redirectlock != 0) {
 		  // this lock is redirected
 #ifdef DEBUG
+#ifndef TILERA
 		  BAMBOO_DEBUGPRINT(0xe112);
+#endif
 #endif
 		  if(locktype == 0) {
 			  getreadlock_I_r((void *)obj, (void *)lockvalue->redirectlock, rootrequestcore, cache);
@@ -1779,7 +1857,9 @@ int processlockrequest(int locktype, int lock, int obj, int requestcore, int roo
 		  return -1;  // redirected
 	  } else {
 #ifdef DEBUG
+#ifndef TILERA
 		  BAMBOO_DEBUGPRINT_REG(lockvalue->value);
+#endif
 #endif
 		  if(0 == lockvalue->value) {
 			  if(locktype == 0) {
@@ -1794,7 +1874,9 @@ int processlockrequest(int locktype, int lock, int obj, int requestcore, int roo
 			  deny = 1;
 		  }
 #ifdef DEBUG
+#ifndef TILERA
 		  BAMBOO_DEBUGPRINT_REG(lockvalue->value);
+#endif
 #endif
 	  }
   }
@@ -2544,17 +2626,11 @@ void executetasks() {
   int x = 0;
   bool islock = true;
 
-  struct LockValue * locks[MAXTASKPARAMS];
-  int locklen;
+  struct LockValue locks[MAXTASKPARAMS];
+  int locklen = 0;
   int grount = 0;
   int andmask=0;
   int checkmask=0;
-
-  for(j = 0; j < MAXTASKPARAMS; j++) {
-	  locks[j] = (struct LockValue *)(RUNMALLOC(sizeof(struct LockValue)));
-	  locks[j]->redirectlock = 0;
-	  locks[j]->value = 0;
-  }
 
 #if 0
   /* Set up signal handlers */
@@ -2592,7 +2668,6 @@ newtask:
 #else
   while((hashsize(activetasks)>0)||(maxreadfd>0)) {
 #endif
-
 #ifdef DEBUG
     BAMBOO_DEBUGPRINT(0xe990);
 #endif
@@ -2637,7 +2712,12 @@ newtask:
       numparams=currtpd->task->numParameters;
       numtotal=currtpd->task->numTotal;
 
-	 // clear the lockRedirectTbl (TODO, this table should be empty after all locks are released)
+	  // clear the lockRedirectTbl (TODO, this table should be empty after all locks are released)
+	  // reset all locks
+	  for(j = 0; j < MAXTASKPARAMS; j++) {
+		  locks[j].redirectlock = 0;
+		  locks[j].value = 0;
+	  }
 	  // get all required locks
 	  locklen = 0;
 	  // check which locks are needed
@@ -2658,35 +2738,35 @@ newtask:
 		  }
 		  // insert into the locks array
 		  for(j = 0; j < locklen; j++) {
-			  if(locks[j]->value == tmplock) {
+			  if(locks[j].value == tmplock) {
 				  insert = false;
 				  break;
-			  } else if(locks[j]->value > tmplock) {
+			  } else if(locks[j].value > tmplock) {
 				  break;
 			  }
 		  }
 		  if(insert) {
 			  int h = locklen;
 			  for(; h > j; h--) {
-				  locks[h]->redirectlock = locks[h-1]->redirectlock;
-				  locks[h]->value = locks[h-1]->value;
+				  locks[h].redirectlock = locks[h-1].redirectlock;
+				  locks[h].value = locks[h-1].value;
 			  }
-			  locks[j]->value = tmplock;
-			  locks[j]->redirectlock = (int)param;
+			  locks[j].value = tmplock;
+			  locks[j].redirectlock = (int)param;
 			  locklen++;
 		  }		  
-	  }
+	  } // line 2713: for(i = 0; i < numparams; i++) 
 	  // grab these required locks
 #ifdef DEBUG
 	  BAMBOO_DEBUGPRINT(0xe991);
 #endif
 	  for(i = 0; i < locklen; i++) {
-		  int * lock = (int *)(locks[i]->redirectlock);
+		  int * lock = (int *)(locks[i].redirectlock);
 		  islock = true;
 		  // require locks for this parameter if it is not a startup object
 #ifdef DEBUG
 		  BAMBOO_DEBUGPRINT_REG((int)lock);
-		  BAMBOO_DEBUGPRINT_REG((int)(locks[i]->value));
+		  BAMBOO_DEBUGPRINT_REG((int)(locks[i].value));
 #endif
 		  getwritelock(lock);
 		  BAMBOO_START_CRITICAL_SECTION();
@@ -2730,7 +2810,7 @@ newtask:
 			  // can not get the lock, try later
 			  // releas all grabbed locks for previous parameters
 			  for(j = 0; j < i; ++j) {
-				  lock = (int*)(locks[j]->redirectlock);
+				  lock = (int*)(locks[j].redirectlock);
 				  releasewritelock(lock);
 			  }
 			  genputtable(activetasks, currtpd, currtpd);
@@ -2745,8 +2825,8 @@ newtask:
 			  profileTaskEnd();
 #endif
 			  goto newtask;
-		  }
-	  }
+		  } // line 2794: if(grount == 0)
+	  } // line 2752:  for(i = 0; i < locklen; i++)
 
 #ifdef DEBUG
 	BAMBOO_DEBUGPRINT(0xe993);
@@ -2786,14 +2866,14 @@ newtask:
 #endif
 	    // release grabbed locks
 	    for(j = 0; j < locklen; ++j) {
-		int * lock = (int *)(locks[j]->redirectlock);
+		int * lock = (int *)(locks[j].redirectlock);
 		releasewritelock(lock);
 	    }
 	    RUNFREE(currtpd->parameterArray);
 	    RUNFREE(currtpd);
 	    goto newtask;
 	  }
-	}
+	} // line2865
 	/* Check if the object's flags still meets requirements */
 	{
 	  int tmpi = 0;
@@ -2821,7 +2901,7 @@ newtask:
 	      RUNFREE(enterflags);
 	    // release grabbed locks
 	    for(j = 0; j < locklen; ++j) {
-		 int * lock = (int *)(locks[j]->redirectlock);
+		 int * lock = (int *)(locks[j].redirectlock);
 		releasewritelock(lock);
 	    }
 	    RUNFREE(currtpd->parameterArray);
@@ -2831,8 +2911,8 @@ newtask:
 		profileTaskEnd();
 #endif
 	    goto newtask;
-	  }
-	}
+	  } // line 2878: if (!ismet)
+	} // line 2867
 parameterpresent:
 	;
 	/* Check that object still has necessary tags */
@@ -2847,18 +2927,18 @@ parameterpresent:
 		// release grabbed locks
 		int tmpj = 0;
 	    for(tmpj = 0; tmpj < locklen; ++tmpj) {
-		 int * lock = (int *)(locks[tmpj]->redirectlock);
+		 int * lock = (int *)(locks[tmpj].redirectlock);
 		releasewritelock(lock);
 	    }
 		}
 	    RUNFREE(currtpd->parameterArray);
 	    RUNFREE(currtpd);
 	    goto newtask;
-	  }
-	}
+	  } // line2911: if (!containstag(parameter, tagd))
+	} // line 2808: for(j=0; j<pd->numbertags; j++)
 
 	taskpointerarray[i+OFFSET]=parameter;
-      }
+      } // line 2824: for(i=0; i<numparams; i++)
       /* Copy the tags */
       for(; i<numtotal; i++) {
 	taskpointerarray[i+OFFSET]=currtpd->parameterArray[i];
@@ -2895,7 +2975,7 @@ parameterpresent:
 	  BAMBOO_DEBUGPRINT_REG(x);
 	  BAMBOO_EXIT(0xa020);
 	} else {
-#endif
+#endif // #ifndef MULTICORE
 #if 0 
 		if (injectfailures) {
 	     if ((((double)random())/RAND_MAX)<failurechance) {
@@ -2931,7 +3011,7 @@ execute:
 		  BAMBOO_DEBUGPRINT(0xe997);
 #endif
 	    ((void(*) (void **))currtpd->task->taskptr)(taskpointerarray);
-	  }
+	  } // line 2990: if(debugtask)
 #ifdef PROFILE
 	  // task finish, set the end of the checkTaskInfo
 	  profileTaskEnd();
@@ -2948,8 +3028,8 @@ execute:
 		  BAMBOO_DEBUGPRINT(0xe999);
 #endif
 	    for(i = 0; i < locklen; ++i) {
-		  void * ptr = (void *)(locks[i]->redirectlock);
-	      int * lock = (int *)(locks[i]->value);
+		  void * ptr = (void *)(locks[i].redirectlock);
+	      int * lock = (int *)(locks[i].value);
 #ifdef DEBUG
 		  BAMBOO_DEBUGPRINT_REG((int)ptr);
 		  BAMBOO_DEBUGPRINT_REG((int)lock);
@@ -2963,7 +3043,7 @@ execute:
 		releasewritelock(ptr);
 		  }
 	    }
-	  }
+	  } // line 3015: if(islock)
 
 #ifdef PROFILE
 	  // post task execution finish, set the end of the postTaskInfo
@@ -2985,12 +3065,12 @@ execute:
 #ifdef DEBUG
 	  BAMBOO_DEBUGPRINT(0xe99a);
 #endif
-	}
-      }
-    }
 #ifndef MULTICORE
-  }
+	} // line 2946: if (x=setjmp(error_handler))
 #endif
+      } // line2936: 
+    } // line 2697: if (hashsize(activetasks)>0)  
+  } // line 2659: while(hashsize(activetasks)>0)
 #ifdef DEBUG
   BAMBOO_DEBUGPRINT(0xe99b);
 #endif
