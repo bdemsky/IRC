@@ -32,7 +32,7 @@ public class Segments {
         startBitmapPtr = genePtr.startBitmapPtr;
         numStart = geneLength - length + 1;
         
-        System.out.println("minNum: " + minNum);
+//        System.out.println("minNum: " + minNum);
         /* Pick some random segments to start */
         for (i = 0; i < minNum; i++) {
             int j = (int)(randomPtr.random_generate(randomPtr) % numStart);
@@ -70,11 +70,11 @@ public class Segments {
             }
         }
         
-        System.out.println("gene: " + geneString);
-        for(i = 0; i < contentsPtr.size(); i++) {
-          System.out.print(" " + contentsPtr.array[i]);
-        }
-        System.out.println("");
+//        System.out.println("gene: " + geneString);
+//        for(i = 0; i < contentsPtr.size(); i++) {
+//          System.out.print(" " + contentsPtr.array[i]);
+//        }
+//        System.out.println("");
         
     }
 }

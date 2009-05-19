@@ -47,7 +47,7 @@ public class Sequencer {
     constructEntries = new constructEntry[maxNumUniqueSegment];
     
     for (i= 0; i < maxNumUniqueSegment; i++) {
-        constructEntries[i] = new constructEntry(null, true, 0, constructEntries[i], null, constructEntries[i], 0, segmentLength);
+        constructEntries[i] = new constructEntry(null, true, 0, null, null, null, 0, segmentLength);
     }
     hashToConstructEntryTable = new Table(myGeneLength);
 
@@ -67,6 +67,7 @@ public class Sequencer {
 //    long threadId = thread_getId();
 
     long threadId = threadNum;
+//    System.out.println("threadNum: " + threadId);
 
     Segments segmentsPtr = sequencerPtr.segmentsPtr;
 
@@ -119,11 +120,11 @@ public class Sequencer {
             for (ii = i; ii < ii_stop; ii++) {
                 String segment = (String)segmentsContentsPtr.elementAt((int)ii);
 //                TMHASHTABLE_INSERT(uniqueSegmentsPtr, segment, segment);
-                System.out.print("Placing: " + segment + " into uniqueSegmentsPtr...");
+//                System.out.print("Placing: " + segment + " into uniqueSegmentsPtr...");
                 if(uniqueSegmentsPtr.put(segment, segment) == null) {
-                  System.out.println("success!");
+//                  System.out.println("success!");
                 } else {
-                  System.out.println("fail, double entry.");
+//                  System.out.println("fail, double entry.");
                 }
             } /* ii */
         }
@@ -164,7 +165,7 @@ public class Sequencer {
     {
         /* Choose disjoint segments [i_start,i_stop) for each thread */
         long num = uniqueSegmentsPtr.size();
-        System.out.println("num: " + num);
+//        System.out.println("num: " + num);
         long partitionSize = (num + numThread/2) / numThread; /* with rounding */
         i_start = threadId * partitionSize;
         if (threadId == (numThread - 1)) {
@@ -189,7 +190,7 @@ public class Sequencer {
     int ind = 0;
     HashMapIterator iterarian = uniqueSegmentsPtr.iterator(1);
     String roar;
-    System.out.println("uniqueSegmentsPtr contents: ");
+//    System.out.println("uniqueSegmentsPtr contents: ");
     while(iterarian.hasNext()) {
       roar = (String)iterarian.next();
       uniqueArray[ind++] = roar;
@@ -200,7 +201,7 @@ public class Sequencer {
 
     for (i = i_start; i < i_stop; i++) {
       String segment = uniqueArray[(int)i];
-      System.out.println("segment[" + i + "]: " + segment);
+//      System.out.println("segment[" + i + "]: " + segment);
     //        list_iter_t it;
     //        list_iter_reset(&it, chainPtr);
 
@@ -222,7 +223,6 @@ public class Sequencer {
 //            constructEntryPtr = &constructEntries[entryIndex];
 //            TM_SHARED_WRITE_P(constructEntryPtr->segment, segment);
         constructEntries[(int)entryIndex].segment = segment;
-        System.out.println("constructEntries[" + entryIndex + "]: " + constructEntries[(int)entryIndex].segment);
 //            TM_END();
       }
       
@@ -245,35 +245,19 @@ public class Sequencer {
       /* constructEntryPtr is local now */
       constructEntryPtr.endHash = hashString(segment.substring(1));
 
-      System.out.println("constructEntryPtr.segment: " + constructEntryPtr.segment);
-      System.out.println("constructentryPtr.hash: " + constructEntryPtr.endHash);
-
       startHash = 0;
       for (newj = 1; newj < segmentLength; newj++) {
           startHash = segment.charAt((int)newj-1) + (startHash << 6) + (startHash << 16) - startHash;
           atomic {
 //                TM_BEGIN();
 //                status = TMTABLE_INSERT(startHashToConstructEntryTables[j], (ulong_t)startHash, (void*)constructEntryPtr );
-      System.out.println("BEFORE INSERTION INTO TABLE");
-      System.out.println("constructEntryPtr.segment: " + constructEntryPtr.segment);
-      System.out.println("constructentryPtr.hash: " + constructEntryPtr.endHash);
-
             boolean check = startHashToConstructEntryTables[(int)newj].table_insert(startHash, constructEntryPtr);
-            System.out.println("check: " + check);
 //                TM_END();
           }
 //                assert(status);
+
       }
 
-      System.out.println("AFTER INSERTION INTO TABLE");
-      System.out.println("constructEntryPtr.segment: " + constructEntryPtr.segment);
-      System.out.println("constructentryPtr.hash: " + constructEntryPtr.endHash);
-
-
-      int tempi;
-      for(tempi = 0; tempi < 4; tempi++) {
-        System.out.println("centries[" + tempi + "]: " + constructEntries[tempi].segment);
-      }
 
       /*
        * For looking up construct entries quickly
@@ -291,11 +275,9 @@ public class Sequencer {
     
     int tempi;
     for(tempi = 0; tempi < 4; tempi++) {
-      System.out.println("centries[" + tempi + "]: " + constructEntries[tempi].segment);
+//      System.out.println("constructEntries[" + tempi + "]: " + constructEntries[tempi].segment);
     }
     
-    System.out.println("out of for");
-
 //    thread_barrier_wait();
     Barrier.enterBarrier();
     
@@ -308,7 +290,7 @@ public class Sequencer {
         LinkedList buckets[] = startHashToConstructEntryTablePtr.buckets;
         long numBucket = startHashToConstructEntryTablePtr.numBucket;
         
-        System.out.println("Retrieved the buckets.");
+//        System.out.println("Retrieved the buckets.");
 
         long index_start;
         long index_stop;
@@ -331,10 +313,8 @@ public class Sequencer {
 
         index_stop = Math.imin(ind, (int)index_stop);
 
-        System.out.println("index_start: " + index_start);
-        System.out.println("index_stop: " + index_stop);
-
-        System.out.println("endSegment: " + constructEntries[(int)index_start].segment);
+//        System.out.println("index_start: " + index_start);
+//        System.out.println("index_stop: " + index_stop);
 
         /* Iterating over disjoint itervals in the range [0, numUniqueSegment) */
         for (entryIndex = index_start;
@@ -347,22 +327,15 @@ public class Sequencer {
 
             /*  ConstructEntries[entryIndex] is local data */
             constructEntry endConstructEntryPtr = constructEntries[(int)entryIndex];
-            System.out.println("Retrieved constructEntry[" + entryIndex + "].");
             String endSegment = endConstructEntryPtr.segment;
-            System.out.println("pyah.");
-            System.out.println("endSegment: " + constructEntries[(int)entryIndex].segment);
             long endHash = endConstructEntryPtr.endHash;
-            System.out.println("endHash: " + endHash);
 
             LinkedList chainPtr = buckets[(int)(endHash % numBucket)]; /* buckets: constant data */
             LinkedListIterator it = (LinkedListIterator)chainPtr.iterator();
-//            list_iter_reset(&it, chainPtr);
-
-            /* Linked list at chainPtr is constant */
             while (it.hasNext()) {
-
                 constructEntry startConstructEntryPtr = (constructEntry)it.next();
                 String startSegment = startConstructEntryPtr.segment;
+//                System.out.println("startSegment: " + startSegment);
                 long newLength = 0;
 
                 /* endConstructEntryPtr is local except for properties startPtr/endPtr/length */
@@ -375,54 +348,74 @@ public class Sequencer {
 //                    (strncmp(startSegment,
 //                             &endSegment[segmentLength - substringLength],
 //                             substringLength) == 0))
+//                  System.out.println("end = " + endSegment);
+//                  System.out.println("strt= " + startSegment);
+//                  System.out.println("at " + (segmentLength-substringLength) + " size " + substringLength);
+
+//                  System.out.println(startSegment.substring(0, (int)substringLength) + ".compareTo(" + endSegment.substring((int)(segmentLength-substringLength)) + ") == 0: " + (startSegment.substring(0, (int)substringLength).compareTo(endSegment.substring((int)(segmentLength-substringLength))) == 0));
+                  
+//                  System.out.println("startConstructEntryPtr.isStart: " + startConstructEntryPtr.isStart);
+//                  System.out.println("endConstructEntryPtr.startPtr != startConstructEntryPtr: " + (endConstructEntryPtr.startPtr != startConstructEntryPtr));
+                  
                   if(startConstructEntryPtr.isStart &&
                       (endConstructEntryPtr.startPtr != startConstructEntryPtr) &&
-                      (startSegment != endSegment.substring((int)(segmentLength-substringLength), (int)substringLength)))
+                      (startSegment.substring(0, (int)substringLength).compareTo(endSegment.substring((int)(segmentLength-substringLength))) == 0))
                   {
+//                    System.out.println("Match!");
 //                    TM_SHARED_WRITE(startConstructEntryPtr->isStart, FALSE);
                     startConstructEntryPtr.isStart = false;
-
+//                    System.out.println("A");
                     constructEntry startConstructEntry_endPtr;
                     constructEntry endConstructEntry_startPtr;
 
                     /* Update endInfo (appended something so no longer end) */
 //                    TM_LOCAL_WRITE(endInfoEntries[entryIndex].isEnd, FALSE);
                     endInfoEntries[(int)entryIndex].isEnd = false;
-
+//                    System.out.println("B");
                     /* Update segment chain construct info */
 //                    startConstructEntry_endPtr = (constructEntry_t*)TM_SHARED_READ_P(startConstructEntryPtr->endPtr);
                     startConstructEntry_endPtr = startConstructEntryPtr.endPtr;
+//                    System.out.println("C");
 //                    endConstructEntry_startPtr = (constructEntry_t*)TM_SHARED_READ_P(endConstructEntryPtr->startPtr);
                     endConstructEntry_startPtr = endConstructEntryPtr.startPtr;
-                    
+//                    System.out.println("D");                    
 //                    assert(startConstructEntry_endPtr);
 //                    assert(endConstructEntry_startPtr);
 
 
 //                    TM_SHARED_WRITE_P(startConstructEntry_endPtr->startPtr, endConstructEntry_startPtr);
+//                    if(startConstructEntry_endPtr == null) System.out.println("pwnted");
                     startConstructEntry_endPtr.startPtr = endConstructEntry_startPtr;
+//                    System.out.println("E");
 //                    TM_LOCAL_WRITE_P(endConstructEntryPtr->nextPtr, startConstructEntryPtr);
                     endConstructEntryPtr.nextPtr = startConstructEntryPtr;
+//                    System.out.println("F");                    
 //                    TM_SHARED_WRITE_P(endConstructEntry_startPtr->endPtr, startConstructEntry_endPtr);
                     endConstructEntry_startPtr.endPtr = startConstructEntry_endPtr;
+//                    System.out.println("G");                    
 //                    TM_SHARED_WRITE(endConstructEntryPtr->overlap, substringLength);
                     endConstructEntryPtr.overlap = substringLength;
+//                    System.out.println("H");                    
                     newLength = endConstructEntry_startPtr.length + startConstructEntryPtr.length - substringLength;
 //                    TM_SHARED_WRITE(endConstructEntry_startPtr->length, newLength);
+//                    System.out.println("I");
                     endConstructEntry_startPtr.length = newLength;
-                  } /* if (matched) */
-
+//                    System.out.println("J");
+                  } else {/* if (matched) */
+//                    System.out.println("Non match.");
+                  }
 //                TM_END();
                 }
 
                 if (!endInfoEntries[(int)entryIndex].isEnd) { /* if there was a match */
+//                    System.out.println("match means break");
                     break;
                 }
             } /* iterate over chain */
 
         } /* for (endIndex < numUniqueSegment) */
         
-        System.out.println("out of for2");
+//        System.out.println("out of for2");
 
 //        thread_barrier_wait();
         Barrier.enterBarrier();
@@ -436,37 +429,57 @@ public class Sequencer {
          * because parallelization did not perform better.
 .        */
 
+//        System.out.println("Length: " + constructEntries.length);
+
+//        int ellemeno;
+//        for(ellemeno = 0; ellemeno < constructEntries.length; ellemeno++) {
+//          System.out.println("construct[" + ellemeno + "]: " + constructEntries[ellemeno].segment + " isStart: " + constructEntries[ellemeno].isStart + " length: " + constructEntries[ellemeno].length + " overlap: " + constructEntries[ellemeno].overlap);
+//        }
+
+
+        // BUGGINZ
+
         if (threadId == 0) {
             if (substringLength > 1) {
+              //System.out.println("inside bugginz");
                 long index = segmentLength - substringLength + 1;
                 /* initialization if j and i: with i being the next end after j=0 */
                 for (i = 1; !endInfoEntries[(int)i].isEnd; i+=endInfoEntries[(int)i].jumpToNext) {
                     /* find first non-null */
                 }
+                //System.out.println("post inner for");
                 /* entry 0 is handled seperately from the loop below */
                 endInfoEntries[0].jumpToNext = i;
                 if (endInfoEntries[0].isEnd) {
                     String segment = constructEntries[0].segment;
                     constructEntries[0].endHash = hashString(segment.substring((int)index));
                 }
+                //System.out.println("post inner if");                
                 /* Continue scanning (do not reset i) */
-                for (j = 0; i < numUniqueSegment; i+=endInfoEntries[(int)i].jumpToNext) {
+                for (j = 0; i < ind; i+=endInfoEntries[(int)i].jumpToNext) {
+                    //System.out.print("i: " + i + " ");
+                    //System.out.print("j: " + j + " ");
+                    
                     if (endInfoEntries[(int)i].isEnd) {
+                    //System.out.println("isEnd");
                         String segment = constructEntries[(int)i].segment;
+                        //System.out.println("segment[" + i + "]: " + segment);
                         constructEntries[(int)i].endHash = hashString(segment.substring((int)index));
                         endInfoEntries[(int)j].jumpToNext = Math.imax((int)1, (int)(i - j));
                         j = i;
                     }
+                    //System.out.println("done end");
                 }
                 endInfoEntries[(int)j].jumpToNext = i - j;
             }
         }
+        //System.out.println("past threadId0");
 
 //        thread_barrier_wait();
         Barrier.enterBarrier();
 
     } /* for (substringLength > 0) */
-
+    //System.out.println("Out of for3");
 
 //    thread_barrier_wait();
     Barrier.enterBarrier();
@@ -478,33 +491,53 @@ public class Sequencer {
 
         long totalLength = 0;
 
-        for (i = 0; i < numUniqueSegment; i++) {
+//        System.out.println("numUS: " + numUniqueSegment);
+//        System.out.println("ind: " + ind);
+        //numUniqueSegment
+        for (i = 0; i < ind; i++) {
             if (constructEntries[(int)i].isStart) {
               totalLength += constructEntries[(int)i].length;
             }
         }
+
+        //System.out.println("totalLength: " + totalLength);
 
         String sequence = sequencerPtr.sequence;
 
         String copyPtr = sequence;
         long sequenceLength = 0;
 
-        for (i = 0; i < numUniqueSegment; i++) {
+        for (i = 0; i < ind; i++) {
             /* If there are several start segments, we append in arbitrary order  */
             constructEntry constructEntryPtr = constructEntries[(int)i];
+//            System.out.println("segment[" + i + "]: " + constructEntryPtr.segment);
             if (constructEntryPtr.isStart) {
-                long newSequenceLength = sequenceLength + constructEntries[(int)i].length;
+//            System.out.println("Start new chain...");
+                long newSequenceLength = sequenceLength + constructEntryPtr.length;
+                long prevOverlap = 0;
 //                assert( newSequenceLength <= totalLength );
-                copyPtr = sequence + sequenceLength;
-                sequenceLength = newSequenceLength;
+//                copyPtr = sequence + sequenceLength;
+//                sequenceLength = newSequenceLength;
                 do {
-                    long numChar = segmentLength - constructEntries[(int)i].overlap;
+                    long numChar = segmentLength - constructEntryPtr.overlap;
 //                    if ((copyPtr + numChar) > (sequence + newSequenceLength)) {
 //                        System.out.print("ERROR: sequence length != actual length\n");
 //                        break;
 //                    }
-                    copyPtr = constructEntries[(int)i].segment;
-                    copyPtr += numChar;
+                    copyPtr = constructEntryPtr.segment;
+//                    System.out.println("copyPtr:  " + constructEntryPtr.segment);
+//                    System.out.println("overlap: " + prevOverlap);  // OVERLAP MAKESS NOOOO SEEEENNSEEEE
+//                    System.out.println("length:  " + constructEntryPtr.length);
+//                    System.out.println("numChar: " + numChar);
+                    if(sequencerPtr.sequence == null) {
+//                      System.out.println("nulled");
+                      sequencerPtr.sequence = copyPtr;
+                    } else {
+//                      System.out.println("not null, concat");
+                      sequencerPtr.sequence = sequencerPtr.sequence.concat(copyPtr.substring((int)(prevOverlap)));
+                    }
+//                    System.out.println("sequence: " + sequencerPtr.sequence);
+                    prevOverlap = constructEntryPtr.overlap;
                     constructEntryPtr = constructEntryPtr.nextPtr;
                 } while (constructEntryPtr != null);
 //                assert(copyPtr <= (sequence + sequenceLength));
@@ -513,6 +546,8 @@ public class Sequencer {
 
 //        assert(sequence != NULL);
     }
+    
+//    System.out.println("Natural run finish.");
 
 //    TM_THREAD_EXIT();
 
@@ -533,6 +568,8 @@ public class Sequencer {
         char c = str.charAt(index);
         hash = c + (hash << 6) + (hash << 16) - hash;
       }
+  
+      if(hash < 0) hash *= -1;
 
       return hash;
   }

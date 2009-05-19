@@ -74,7 +74,7 @@ public class Segments {
         for(i = 0; i < contentsPtr.size(); i++) {
           System.out.print(" " + contentsPtr.array[i]);
         }
-        System.out.println();
+        System.out.println("");
         
     }
 }

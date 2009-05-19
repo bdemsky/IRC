@@ -29,8 +29,6 @@ public class Table {
      * =============================================================================
      */
     boolean table_insert (long hash, Object dataPtr) {
-      System.out.println("Inside insert- hash: " + hash);
-      System.out.println("Inside insert- dataPtr: " + dataPtr);
       int i = (int)(hash % numBucket);
       if(buckets[i].contains(dataPtr)) {
         return false;
