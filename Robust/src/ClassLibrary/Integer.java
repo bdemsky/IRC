@@ -17,6 +17,10 @@ public class Integer {
     return (double)value;
   }
 
+  public float floatValue() {
+    return (float)value;
+  }
+
   public byte[] intToByteArray() {
     byte[] b = new byte[4];
     for (int i = 0; i < 4; i++) {

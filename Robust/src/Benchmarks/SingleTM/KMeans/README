@@ -26,10 +26,10 @@ To build the application, simply run:
 
     make 
 
-By default, this produces an executable named "kmeans", which can then be
+By default, this produces an executable named "KMeans.bin", which can then be
 run in the following manner:
 
-    ./kmeans -m <max_clusters> \
+    ./KMeans.bin -m <max_clusters> \
              -n <min_clusters> \
              -t <threshold> \
              -i <input_file_name> \

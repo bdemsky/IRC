@@ -50,20 +50,16 @@
  */
 public class GetUserParameters {
 
-  Globals glb;
-
   public GetUserParameters(Globals glb) {
-    this.glb = glb;
-
     /*
      * Scalable Data Generator parameters - defaults
      */
     glb.THREADS             = 1;
     glb.SCALE               = 20;              /* binary scaling heuristic */
     glb.MAX_PARAL_EDGES     = 3;               /* between vertices. */
-    glb.PERC_INT_WEIGHTS    = 0.6;             /* % int (vs. string) edge weights */
-    glb.PROB_UNIDIRECTIONAL = 0.1;
-    glb.PROB_INTERCL_EDGES  = 0.5;             /* Init probability link between cliques */
+    glb.PERC_INT_WEIGHTS    = (float) 0.6f;             /* % int (vs. string) edge weights */
+    glb.PROB_UNIDIRECTIONAL = (float) 0.1f;
+    glb.PROB_INTERCL_EDGES  = (float) 0.5f;             /* Init probability link between cliques */
 
     glb.SUBGR_EDGE_LENGTH   = 3;               /* Kernel 3: max. path length,       */
                                                /* measured by num edges in subgraph */
@@ -76,24 +72,24 @@ public class GetUserParameters {
     glb.K3_DS               = 2;               /* 0 - Array         */
                                                /* 1 - Linked List   */
                                                /* 2 - Dynamic Array */
-
   }
+
   /* =============================================================================
    * displayUsage
    * =============================================================================
    */
-  static void
+  public static void
     displayUsage ()
     {
-      System.out.println("Usage: ./SSCA.bin [options]\n");
-      System.out.println("    i <double>    Probability [i]nter-clique      (%f)\n",  PROB_INTERCL_EDGES);
-      System.out.println("    k <int>   [k]ind: 0=array 1=list 2=vector (%li)\n", K3_DS);
-      System.out.println("    l <int>   Max path [l]ength               (%li)\n", SUBGR_EDGE_LENGTH);
-      System.out.println("    p <int>   Max [p]arallel edges            (%li)\n", MAX_PARAL_EDGES);
-      System.out.println("    s <int>   Problem [s]cale                 (%li)\n", SCALE);
-      System.out.println("    t <int>   Number of [t]hreads             (%li)\n", THREADS);
-      System.out.println("    u <double>    Probability [u]nidirectional    (%f)\n",  PROB_UNIDIRECTIONAL);
-      System.out.println("    w <double>    Fraction integer [w]eights      (%f)\n",  PERC_INT_WEIGHTS);
+      System.out.println("Usage: ./SSCA.bin [options]");
+      System.out.println("    i <float>    Probability [i]nter-clique      ");
+      System.out.println("    k <int>   [k]ind: 0=array 1=list 2=vector ");
+      System.out.println("    l <int>   Max path [l]ength               ");
+      System.out.println("    p <int>   Max [p]arallel edges            ");
+      System.out.println("    s <int>   Problem [s]cale                 ");
+      System.out.println("    t <int>   Number of [t]hreads             ");
+      System.out.println("    u <float>    Probability [u]nidirectional    ");
+      System.out.println("    w <float>    Fraction integer [w]eights      ");
       System.exit(-1);
     }
 
@@ -102,8 +98,8 @@ public class GetUserParameters {
    * parseArgs
    * =============================================================================
    */
-  public static void
-    parseArgs(String[] args)
+  public void
+    parseArgs(String[] args, Globals glb)
     {
       int i = 0;
       String arg;
@@ -112,13 +108,13 @@ public class GetUserParameters {
         //check options
         if(arg.equals("-i")) {
           if(i < args.length) {
-            glb.PROB_INTERCL_EDGES = new Integer(args[i++]).doubleValue();
+            glb.PROB_INTERCL_EDGES = new Integer(args[i++]).floatValue();
           }
         } else if(arg.equals("-k")) {
           if(i < args.length) {
             glb.K3_DS = new Integer(args[i++]).intValue();
           }
-          if(!(glb.K3_DS >=0 && K3_DS <=2))
+          if(!(glb.K3_DS >=0 && glb.K3_DS <=2))
             System.out.println("Input a valid number for -k option between >=0 and <= 2");
         } else if(arg.equals("-l")) {
           if(i < args.length) {
@@ -138,11 +134,11 @@ public class GetUserParameters {
           }
         } else if(arg.equals("-u")) {
           if(i < args.length) {
-            glb.PROB_UNIDIRECTIONAL = new Integer(args[i++]).doubleValue();
+            glb.PROB_UNIDIRECTIONAL = new Integer(args[i++]).floatValue();
           }
         } else if(arg.equals("-w")) {
           if(i < args.length) {
-            glb.PERC_INT_WEIGHTS = new Integer(args[i++]).doubleValue();
+            glb.PERC_INT_WEIGHTS = new Integer(args[i++]).floatValue();
           }
         } else if(arg.equals("-h")) {
           displayUsage();
@@ -157,8 +153,8 @@ public class GetUserParameters {
    * getUserParameters
    * =============================================================================
    */
-  static void
-    getUserParameters (String[] argv)
+  public void
+    getUserParameters (String[] argv, Globals glb)
     {
       /*
        * Scalable Data Generator parameters - defaults
@@ -167,9 +163,9 @@ public class GetUserParameters {
       glb.THREADS             = 1;
       glb.SCALE               = 20;              /* binary scaling heuristic */
       glb.MAX_PARAL_EDGES     = 3;               /* between vertices. */
-      glb.PERC_INT_WEIGHTS    = 0.6;             /* % int (vs. string) edge weights */
-      glb.PROB_UNIDIRECTIONAL = 0.1;
-      glb.PROB_INTERCL_EDGES  = 0.5;             /* Init probability link between cliques */
+      glb.PERC_INT_WEIGHTS    = (float)0.6;             /* % int (vs. string) edge weights */
+      glb.PROB_UNIDIRECTIONAL = (float)0.1;
+      glb.PROB_INTERCL_EDGES  = (float)0.5;             /* Init probability link between cliques */
 
       glb.SUBGR_EDGE_LENGTH   = 3;               /* Kernel 3: max. path length,       */
       /* measured by num edges in subgraph */
@@ -184,7 +180,7 @@ public class GetUserParameters {
       /* 1 - Linked List   */
       /* 2 - Dynamic Array */
 
-      parseArgs(argv); /* overrides default values set above */
+      parseArgs(argv, glb); /* overrides default values set above */
 
 
       glb.TOT_VERTICES        = (1<<glb.SCALE);
@@ -192,7 +188,7 @@ public class GetUserParameters {
       glb.MAX_INT_WEIGHT      = (1<<glb.SCALE);      /* Max int value in edge weight */
       glb.MAX_STRLEN          = glb.SCALE;
 
-      glb.SOUGHT_STRING       = "";              /* Kernel 2: Character string sought:  */
+      glb.SOUGHT_STRING       = new char[1];              /* Kernel 2: Character string sought:  */
       /* specify here, else it is picked     */
       /* picked from randomly selected entry */
       /* in genScalData.c                    */

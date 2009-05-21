@@ -60,7 +60,6 @@ public class Globals {
   public float PROB_INTERCL_EDGES;
   public int SUBGR_EDGE_LENGTH;
   public int MAX_CLUSTER_SIZE;
-  public int MAX_STRLEN;
   public int K3_DS;
   public int THREADS;
 }

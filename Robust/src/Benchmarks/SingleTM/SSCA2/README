@@ -25,16 +25,12 @@ Compiling and Running
 
 To build the application, simply run:
 
-    make -f <makefile>
+    make
 
-in the source directory. For example, for the sequential flavor, run:
-
-    make -f Makefile.seq
-
-By default, this produces an executable named "yada", which can then be
+By default, this produces an executable named "SSCA2.bin", which can then be
 run in the following manner:
 
-    ./ssca2 -i <probability_of_inter_clique> \
+    ./SSCA2.bin -i <probability_of_inter_clique> \
             -k <data_structure_kind> \
             -l <max_path_length> \
             -p <max_number_of_parallel_edges> \
@@ -45,11 +41,11 @@ run in the following manner:
 
 The following arguments are recommended for simulated runs:
 
-    -s13 -i1.0 -u1.0 -l3 -p3
+    -s 13 -i 1.0 -u 1.0 -l 3 -p 3 -t 1
 
 For non-simulator runs, a larger input can be used:
 
-    -s20 -i1.0 -u1.0 -l3 -p3
+    -s 20 -i 1.0 -u 1.0 -l 3 -p 3 -t 1
 
 
 References

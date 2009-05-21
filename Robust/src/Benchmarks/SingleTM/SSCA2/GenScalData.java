@@ -63,7 +63,7 @@ public class GenScalData {
    * Constructor
    **/
   public GenScalData() {
-    global_permV;              = null;
+    global_permV              = null;
     global_cliqueSizes        = null;
     global_totCliques         = 0;
     global_firstVsInCliques   = null;
@@ -98,30 +98,30 @@ public class GenScalData {
    */
 
   public static void
-    genScalData (int myId, int numThread, Globals glb, GraphSDG SDGdataPtr)
+    genScalData (int myId, int numThread, Globals glb, GraphSDG SDGdataPtr, GenScalData gsd, Alg_Radix_Smp radixsort)
     {
       /*
        * STEP 0: Create the permutations required to randomize the vertices
        */
 
       Random randomPtr = new Random();
-      randomPtr = randomPtr.random_alloc();
+      randomPtr.random_alloc();
       randomPtr.random_seed(myId);
 
       int[] permV;
 
       if (myId == 0) {
         permV = new int[glb.TOT_VERTICES];
-        global_permV = permV;
+        gsd.global_permV = permV;
       }
 
       Barrier.enterBarrier();
 
-      permV = global_permV;
+      permV = gsd.global_permV;
 
       LocalStartStop lss = new LocalStartStop();
-      CreatePartition cp = new CreatePartition();
-      cp.createPartition(0, glb.TOT_VERTICES, myId, numThread, lss);
+      //CreatePartition cp = new CreatePartition();
+      CreatePartition.createPartition(0, glb.TOT_VERTICES, myId, numThread, lss);
 
       /* Initialize the array */
       for (int i = lss.i_start; i < lss.i_stop; i++) {
@@ -130,8 +130,10 @@ public class GenScalData {
 
       Barrier.enterBarrier();
 
-      for (int i = i_start; i < i_stop; i++) {
-        int t1 = randomPtr.random_generate();
+      for (int i = lss.i_start; i < lss.i_stop; i++) {
+        int t1 = (int) (randomPtr.random_generate());
+        if(t1 < 0) 
+          t1*=(-1);
         int t = i + t1 % (glb.TOT_VERTICES - i);
         if (t != i) {
           atomic {
@@ -148,7 +150,7 @@ public class GenScalData {
 
       int[] cliqueSizes;
 
-      int estTotCliques = (int)(Math.ceil(1.5d * glb.TOT_VERTICES / ((1+glb.MAX_CLIQUE_SIZE)/2)));
+      int estTotCliques = (int)(Math.ceil(1.5 * glb.TOT_VERTICES / ((1+glb.MAX_CLIQUE_SIZE)/2)));
 
       /*
        * Allocate mem for Clique array
@@ -156,18 +158,20 @@ public class GenScalData {
        */
       if (myId == 0) {
         cliqueSizes = new int[estTotCliques];
-        global_cliqueSizes = cliqueSizes;
+        gsd.global_cliqueSizes = cliqueSizes;
       }
 
       Barrier.enterBarrier();
 
-      cliqueSizes = global_cliqueSizes;
+      cliqueSizes = gsd.global_cliqueSizes;
 
-      cp.createPartition(0, estTotCliques, myId, numThread, lss);
+      CreatePartition.createPartition(0, estTotCliques, myId, numThread, lss);
 
       /* Generate random clique sizes. */
       for (int i = lss.i_start; i < lss.i_stop; i++) {
-        cliqueSizes[i] = 1 + (randomPtr.random_generate() % glb.MAX_CLIQUE_SIZE);
+        cliqueSizes[i] = (int) ( 1 + (randomPtr.random_generate() % glb.MAX_CLIQUE_SIZE));
+        if(cliqueSizes[i] < 0) 
+          cliqueSizes[i] *= -1; //TODO fix the long->int casting error that creates negative numbers for randomPtr
       }
 
       Barrier.enterBarrier();
@@ -178,14 +182,14 @@ public class GenScalData {
        * Allocate memory for cliqueList
        */
 
-      int[] firstVsInCliques;
+      int[] lastVsInCliques;
       int[] firstVsInCliques;
 
       if (myId == 0) {
         lastVsInCliques = new int[estTotCliques];
-        global_lastVsInCliques = lastVsInCliques;
+        gsd.global_lastVsInCliques = lastVsInCliques;
         firstVsInCliques = new int[estTotCliques];
-        global_firstVsInCliques = firstVsInCliques;
+        gsd.global_firstVsInCliques = firstVsInCliques;
 
         /*
          * Sum up vertices in each clique to determine the lastVsInCliques array
@@ -201,7 +205,7 @@ public class GenScalData {
         }
         totCliques = i + 1;
 
-        global_totCliques = totCliques;
+        gsd.global_totCliques = totCliques;
 
         /*
          * Fix the size of the last clique
@@ -216,13 +220,13 @@ public class GenScalData {
 
       Barrier.enterBarrier();
 
-      lastVsInCliques  = global_lastVsInCliques;
-      firstVsInCliques = global_firstVsInCliques;
-      totCliques = global_totCliques;
+      lastVsInCliques  = gsd.global_lastVsInCliques;
+      firstVsInCliques = gsd.global_firstVsInCliques;
+      totCliques = gsd.global_totCliques;
 
       /* Compute start Vertices in cliques. */
-      cp.createPartition(1, totCliques, myId, numThread, lss);
-      for (int i = i_start; i < i_stop; i++) {
+      CreatePartition.createPartition(1, totCliques, myId, numThread, lss);
+      for (int i = lss.i_start; i < lss.i_stop; i++) {
         firstVsInCliques[i] = lastVsInCliques[i-1] + 1;
       }
 
@@ -279,7 +283,7 @@ Barrier.enterBarrier();
       int[] endV;
 
       if (numThread > 3) {
-        int numByte = 1.5 * (estTotEdges/numThread);
+        int numByte = (int) (1.5 * (estTotEdges/numThread));
         startV = new int[numByte];
         endV = new int[numByte];
       } else  {
@@ -297,10 +301,10 @@ Barrier.enterBarrier();
        * Create edges in parallel
        */
       //int i_clique;
-      cp.createPartition(0, totCliques, myId, numThread, lss);
+      CreatePartition.createPartition(0, totCliques, myId, numThread, lss);
 
       for (int i_clique = lss.i_start; i_clique < lss.i_stop; i_clique++) {
-
+        
         /*
          * Get current clique parameters
          */
@@ -349,11 +353,17 @@ Barrier.enterBarrier();
         } /* for i */
 
         if (i_cliqueSize != 1) {
-          int randNumEdges = randomPtr.random_generate() % (2*i_cliqueSize*glb.MAX_PARAL_EDGES);
+          int randNumEdges = (int) (randomPtr.random_generate() % (2*i_cliqueSize*glb.MAX_PARAL_EDGES));
+          if(randNumEdges < 0)
+            randNumEdges *= -1; //TODO fix the long->int casting error that creates negative numbers for randomPtr
           //int i_paralEdge;
           for (int i_paralEdge = 0; i_paralEdge < randNumEdges; i_paralEdge++) {
             int i = (int) (randomPtr.random_generate() % i_cliqueSize);
+            if(i < 0)
+              i *= -1; //TODO fix the long->int casting error that creates negative numbers for randomPtr
             int j = (int) (randomPtr.random_generate() % i_cliqueSize);
+            if(j < 0)
+              j *= -1; //TODO fix the long->int casting error that creates negative numbers for randomPtr
             if ((i != j) && (tmpEdgeCounter[i][j] < glb.MAX_PARAL_EDGES)) {
               float r = (float)(randomPtr.random_generate() % 1000) / (float)1000;
               if (r >= p) {
@@ -379,16 +389,16 @@ Barrier.enterBarrier();
       int[] i_edgeEndCounter;
 
       if (myId == 0) {
-        i_edgeStartCounter = new int[ numThread];
-        global_i_edgeStartCounter = i_edgeStartCounter;
+        i_edgeStartCounter = new int[numThread];
+        gsd.global_i_edgeStartCounter = i_edgeStartCounter;
         i_edgeEndCounter = new int[numThread];
-        global_i_edgeEndCounter = i_edgeEndCounter;
+        gsd.global_i_edgeEndCounter = i_edgeEndCounter;
       }
 
       Barrier.enterBarrier();
 
-      i_edgeStartCounter = global_i_edgeStartCounter;
-      i_edgeEndCounter   = global_i_edgeEndCounter;
+      i_edgeStartCounter = gsd.global_i_edgeStartCounter;
+      i_edgeEndCounter   = gsd.global_i_edgeEndCounter;
 
       i_edgeEndCounter[myId] = i_edgePtr;
       i_edgeStartCounter[myId] = 0;
@@ -403,12 +413,12 @@ Barrier.enterBarrier();
       }
 
       atomic {
-        global_edgeNum = global_edgeNum + i_edgePtr;
+        gsd.global_edgeNum = gsd.global_edgeNum + i_edgePtr;
       }
 
       Barrier.enterBarrier();
 
-      int edgeNum = global_edgeNum;
+      int edgeNum = gsd.global_edgeNum;
 
       /*
        * Initialize edge list arrays
@@ -427,14 +437,14 @@ Barrier.enterBarrier();
           startVertex = new int[numByte];
           endVertex = new int[numByte];
         }
-        global_startVertex = startVertex;
-        global_endVertex = endVertex;
+        gsd.global_startVertex = startVertex;
+        gsd.global_endVertex = endVertex;
       }
 
       Barrier.enterBarrier();
 
-      startVertex = global_startVertex;
-      endVertex = global_endVertex;
+      startVertex = gsd.global_startVertex;
+      endVertex = gsd.global_endVertex;
 
       for (int i =  i_edgeStartCounter[myId]; i <  i_edgeEndCounter[myId]; i++) {
         startVertex[i] = startV[i-i_edgeStartCounter[myId]];
@@ -450,13 +460,13 @@ Barrier.enterBarrier();
        */
 
       i_edgePtr = 0;
-      p = PROB_INTERCL_EDGES;
+      p = glb.PROB_INTERCL_EDGES;
 
       /*
        * Generating inter-clique edges as given in the specs
        */
 
-      cp.createPartition(0, glb.TOT_VERTICES, myId, numThread, lss);
+      CreatePartition.createPartition(0, glb.TOT_VERTICES, myId, numThread, lss);
 
       for (int i = lss.i_start; i < lss.i_stop; i++) {
         int tempVertex1 = i;
@@ -492,7 +502,8 @@ Barrier.enterBarrier();
         int t1 = firstVsInCliques[t];
 
         //int d;
-        for (int d = 1, p = glb.PROB_INTERCL_EDGES; d < glb.TOT_VERTICES; d *= 2, p /= 2) {
+        p = glb.PROB_INTERCL_EDGES;
+        for (int d = 1; d < glb.TOT_VERTICES; d *= 2, p /= 2) {
 
           float r = (float)(randomPtr.random_generate() % 1000) / (float)1000;
 
@@ -504,7 +515,7 @@ Barrier.enterBarrier();
             l = 0;
             t = -1;
             while (h - l > 1) {
-              int m = (((h + l) / 2);
+              int m = (h + l) / 2;
               if (tempVertex2 >= firstVsInCliques[m]) {
                 l = m;
               } else {
@@ -534,7 +545,9 @@ Barrier.enterBarrier();
 
             if (t1 != t2) {
               int randNumEdges =
-                randomPtr.random_generate() % glb.MAX_PARAL_EDGES + 1;
+                (int) (randomPtr.random_generate() % glb.MAX_PARAL_EDGES + 1);
+              if(randNumEdges < 0)
+                randNumEdges *= -1; //TODO fix the long->int casting error that creates negative numbers for randomPtr
               //int j;
               for (int j = 0; j < randNumEdges; j++) {
                 startV[i_edgePtr] = tempVertex1;
@@ -583,7 +596,9 @@ Barrier.enterBarrier();
 
             if (t1 != t2) {
               int randNumEdges =
-                randomPtr.random_generate() % glb.MAX_PARAL_EDGES + 1;
+                (int) (randomPtr.random_generate() % glb.MAX_PARAL_EDGES + 1);
+              if(randNumEdges < 0) 
+                randNumEdges *= -1; //TODO fix the long->int casting error that creates negative numbers for randomPtr
               for (int j = 0; j <  randNumEdges; j++) {
                 startV[i_edgePtr] = tempVertex1;
                 endV[i_edgePtr] = tempVertex2;
@@ -602,7 +617,7 @@ Barrier.enterBarrier();
       i_edgeStartCounter[myId] = 0;
 
       if (myId == 0) {
-        global_edgeNum = 0;
+        gsd.global_edgeNum = 0;
       }
 
       Barrier.enterBarrier();
@@ -615,15 +630,15 @@ Barrier.enterBarrier();
       }
 
       atomic {
-        global_edgeNum = global_edgeNum + i_edgePtr;
+        gsd.global_edgeNum = gsd.global_edgeNum + i_edgePtr;
       }
 
       Barrier.enterBarrier();
 
-      edgeNum = global_edgeNum;
-      int numEdgesPlacedOutside = global_edgeNum;
+      edgeNum = gsd.global_edgeNum;
+      int numEdgesPlacedOutside = gsd.global_edgeNum;
 
-      for (int i = (i_edgeStartCounter[myId]; i <  i_edgeEndCounter[myId]; i++) {
+      for (int i = i_edgeStartCounter[myId]; i <  i_edgeEndCounter[myId]; i++) {
         startVertex[i+numEdgesPlacedInCliques] = startV[i-i_edgeStartCounter[myId]];
         endVertex[i+numEdgesPlacedInCliques] = endV[i-i_edgeStartCounter[myId]];
       }
@@ -656,13 +671,15 @@ Barrier.enterBarrier();
       p = glb.PERC_INT_WEIGHTS;
       int numStrWtEdges  = 0;
 
-      cp.createPartition(0, numEdgesPlaced, myId, numThread, lss);
+      CreatePartition.createPartition(0, numEdgesPlaced, myId, numThread, lss);
 
       for (int i = lss.i_start; i < lss.i_stop; i++) {
         float r = (float)(randomPtr.random_generate() % 1000) / (float)1000;
         if (r <= p) {
           SDGdataPtr.intWeight[i] =
-            1 + (randomPtr.random_generate() % (MAX_INT_WEIGHT-1));
+            (int) (1 + (randomPtr.random_generate() % (glb.MAX_INT_WEIGHT-1)));
+          if(SDGdataPtr.intWeight[i] < 0)
+            SDGdataPtr.intWeight[i] *= -1; //TODO fix the long->int casting error that creates negative numbers for randomPtr
         } else {
           SDGdataPtr.intWeight[i] = -1;
           numStrWtEdges++;
@@ -682,12 +699,12 @@ Barrier.enterBarrier();
       }
 
       atomic {
-        global_numStrWtEdges = global_numStrWtEdges + numStrWtEdges;
+        gsd.global_numStrWtEdges = gsd.global_numStrWtEdges + numStrWtEdges;
       }
 
       Barrier.enterBarrier();
 
-      numStrWtEdges = global_numStrWtEdges;
+      numStrWtEdges = gsd.global_numStrWtEdges;
 
       if (myId == 0) {
         SDGdataPtr.strWeight = new char[numStrWtEdges * glb.MAX_STRLEN];
@@ -695,7 +712,7 @@ Barrier.enterBarrier();
 
       Barrier.enterBarrier();
 
-      cp.createPartition(0, numEdgesPlaced, myId, numThread, lss);
+      CreatePartition.createPartition(0, numEdgesPlaced, myId, numThread, lss);
 
       for (int i = lss.i_start; i < lss.i_stop; i++) {
         if (SDGdataPtr.intWeight[i] <= 0) {
@@ -714,15 +731,18 @@ Barrier.enterBarrier();
 
       if (myId == 0) {
 
-        if (SOUGHT_STRING.length != glb.MAX_STRLEN) {
-          glb.SOUGHT_STRING = new char[MAX_STRLEN];
+        if (glb.SOUGHT_STRING.length != glb.MAX_STRLEN) {
+          glb.SOUGHT_STRING = new char[glb.MAX_STRLEN];
+          //glb.SOUGHT_STRING = new String(MAX_STRLEN);
         }
 
-        int t = randomPtr.random_generate() % numStrWtEdges;
+        int t = (int) (randomPtr.random_generate() % numStrWtEdges);
+        if (t < 0) 
+          t *= -1; //TODO fix the long->int casting error that creates negative numbers for randomPtr
         for (int j = 0; j < glb.MAX_STRLEN; j++) {
           //FIXME
-          SOUGHT_STRING[j] =
-            (char) (SDGdataPtr.strWeight[(t*glb.MAX_STRLEN+j)]);
+          glb.SOUGHT_STRING[j] =
+             SDGdataPtr.strWeight[(t*glb.MAX_STRLEN+j)];
         }
 
       }
@@ -734,8 +754,8 @@ Barrier.enterBarrier();
        */
 
       for (int i = lss.i_start; i < lss.i_stop; i++) {
-        startVertex[i] = permV[(startVertex[i])];
-        endVertex[i] = permV[(endVertex[i])];
+        startVertex[i] = permV[startVertex[i]];
+        endVertex[i] = permV[endVertex[i]];
       }
 
       Barrier.enterBarrier();
@@ -756,11 +776,16 @@ Barrier.enterBarrier();
 
       Barrier.enterBarrier();
 
-      Alg_Radix_Smp.all_radixsort_node_aux_s3(numEdgesPlaced,
+      //Alg_Radix_Smp radixsort = new Alg_Radix_Smp(myId, numThread);
+      //radixsort.all_radixsort_node_aux_s3(numEdgesPlaced,
+      Alg_Radix_Smp.all_radixsort_node_aux_s3(myId,
+          numThread,
+          numEdgesPlaced,
           startVertex,
           SDGdataPtr.startVertex,
           endVertex,
-          SDGdataPtr.endVertex);
+          SDGdataPtr.endVertex,
+          radixsort);
 
       Barrier.enterBarrier();
 
@@ -830,7 +855,7 @@ Barrier.enterBarrier();
         if (myId == 0) {
 
           tempIndex = new int[glb.TOT_VERTICES + 1];
-          global_tempIndex = tempIndex;
+          gsd.global_tempIndex = tempIndex;
 
           /*
            * Update degree of each vertex
@@ -859,7 +884,7 @@ Barrier.enterBarrier();
 
         Barrier.enterBarrier();
 
-        tempIndex = global_tempIndex;
+        tempIndex = gsd.global_tempIndex;
 
         /*
          * Insertion sort for now, replace with something better later on

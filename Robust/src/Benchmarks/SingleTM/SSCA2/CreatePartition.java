@@ -54,6 +54,7 @@ public class CreatePartition {
   public static void
     createPartition (int min, int max, int id, int n, LocalStartStop lss)
     {
+      //System.out.println("Inside createPartition() \n");
       int range = max - min;
       int chunk = MAX(1, ((range + n/2) / n)); /* rounded */
       int start = min + chunk * id;
@@ -64,8 +65,8 @@ public class CreatePartition {
         stop = MIN(max, (start + chunk));
       }
 
-      lss.start = start;
-      lss.stop = stop;
+      lss.i_start = start;
+      lss.i_stop = stop;
     }
 
   public static int MAX(int a, int b) {

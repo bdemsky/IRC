@@ -1653,7 +1653,7 @@ public class BuildCode {
                               FlatSESEExitNode stop,
                               PrintWriter output) {
 
-    System.out.println( "generating code, stop="+stop );
+    //System.out.println( "generating code, stop="+stop );
 
     /* Assign labels to FlatNode's if necessary.*/
     Hashtable<FlatNode, Integer> nodetolabel=assignLabels(first, stop);
@@ -1673,7 +1673,7 @@ public class BuildCode {
       visited.add(current_node);
       if (nodetolabel.containsKey(current_node)) {
 
-	System.out.println( "  *"+current_node+" preceeded with label "+nodetolabel.get(current_node) );
+	//System.out.println( "  *"+current_node+" preceeded with label "+nodetolabel.get(current_node) );
 
 	output.println("L"+nodetolabel.get(current_node)+":");
       }
@@ -1762,9 +1762,11 @@ public class BuildCode {
 	}
 
 
+    /*
 	if( nodetolabel.get(nn) != null ) {
 	  System.out.println( "  "+nn+" has label "+nodetolabel.get(nn) );
 	}
+    */
 
       }
     }

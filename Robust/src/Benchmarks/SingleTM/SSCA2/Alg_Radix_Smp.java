@@ -45,23 +45,19 @@
  */
 
 public class Alg_Radix_Smp {
-  int[] global_myHisto;
-  int[] global_psHisto;
-  int[] global_lTemp;
-  int[] global_lTemp2;
-  int myId;
-  int numThread;
+  public int[] global_myHisto;
+  public int[] global_psHisto;
+  public int[] global_lTemp;
+  public int[] global_lTemp2;
 
-  public class Alg_Radix_Smp(int myId, int numThread) {
+  public Alg_Radix_Smp() {
     global_myHisto = null;
     global_psHisto = null;
     global_lTemp   = null;
     global_lTemp2  = null;
-    this.myId = myId;
-    this.numThread = numThread;
   }
 
-  public int BITS(x, k, j) {
+  public int BITS(int x, int k, int j) {
     int retval = ((x>>k) & ~(~0<<j));
     return retval;
   }
@@ -73,14 +69,15 @@ public class Alg_Radix_Smp {
    * q (elems/proc) must be a multiple of NODES
    * =============================================================================
    */
-  void
-    all_countsort_node (int q,
+  /*
+  public void
+    all_countsort_node (
+        int q,
         int[] lKey,
         int[] lSorted,
         int R,
         int bitOff,
-        int m,
-        )
+        int m)
     {
       int[] myHisto = null;
       int[] psHisto = null;
@@ -106,7 +103,7 @@ public class Alg_Radix_Smp {
       LocalStartStop lss = new LocalStartStop();
       CreatePartition.createPartition(0, q, myId, numThread, lss);
 
-      for (int k = lss.i_start; k < i_stop; k++) {
+      for (int k = lss.i_start; k < lss.i_stop; k++) {
         myHisto[(myId * R) + BITS(lKey[k],bitOff,m)]++;
       }
 
@@ -127,7 +124,7 @@ public class Alg_Radix_Smp {
 
       int offset = 0;
 
-      for (k = 0; k < R; k++) {
+      for (int k = 0; k < R; k++) {
         myHisto[(myId * R) + k] = (psHisto[(myId * R) + k] - myHisto[(myId * R) + k]) + offset;
         offset += psHisto[((numThread - 1) * R) + k];
       }
@@ -149,6 +146,7 @@ public class Alg_Radix_Smp {
         myHisto = null;
       }
     }
+*/
 
 
   /* =============================================================================
@@ -158,7 +156,8 @@ public class Alg_Radix_Smp {
    * q (elems/proc) must be a multiple of NODES
    * =============================================================================
    */
-  void
+  /*
+  public void
     all_countsort_node_aux_seq (int q,
         int[] lKey,
         int[] lSorted,
@@ -197,16 +196,17 @@ public class Alg_Radix_Smp {
         auxSorted[myHisto[j]] = lKey[k];
         myHisto[j]++;
 
-        /*
-        lSorted[mhp[j]] = lKey[k];
-        auxSorted[mhp[j]] = auxKey[k];
-        mhp[j]++;
-        */
+        //
+        //lSorted[mhp[j]] = lKey[k];
+        //auxSorted[mhp[j]] = auxKey[k];
+        //mhp[j]++;
+        
       }
 
       psHisto = null;
       myHisto = null;
     }
+*/
 
 
   /* =============================================================================
@@ -216,30 +216,33 @@ public class Alg_Radix_Smp {
    * q (elems/proc) must be a multiple of NODES
    * =============================================================================
    */
-  void
-    all_countsort_node_aux (int q,
+  public void
+    all_countsort_node_aux (int myId,
+        int numThread,
+        int q,
         int[] lKey,
         int[] lSorted,
         int[] auxKey,
         int[] auxSorted,
         int R,
         int bitOff,
-        int m)
+        int m,
+        Alg_Radix_Smp rdxsort)
     {
       int[] myHisto = null;
       int[] psHisto = null;
 
       if (myId == 0) {
         myHisto = new int[numThread * R];
-        global_myHisto = myHisto;
+        rdxsort.global_myHisto = myHisto;
         psHisto = new int[numThread * R];
-        global_psHisto = psHisto;
+        rdxsort.global_psHisto = psHisto;
       }
 
       Barrier.enterBarrier();
 
-      myHisto = global_myHisto;
-      psHisto = global_psHisto;
+      myHisto = rdxsort.global_myHisto;
+      psHisto = rdxsort.global_psHisto;
 
       for (int k = 0; k <  R; k++) {
         myHisto[((myId*R) + k)] = 0;
@@ -270,7 +273,7 @@ public class Alg_Radix_Smp {
       int offset = 0;
 
       for (int k = 0; k < R; k++) {
-        myHisto[(myId*R) +k] = (psHisto[ ((myId*R) + k)] - myHisto[ ((myId*R) +k])) + offset;
+        myHisto[(myId*R)+k] = (psHisto[(myId*R) + k] - myHisto[(myId*R) +k]) + offset;
         offset += psHisto[((numThread -1) * R) + k];
       }
 
@@ -300,7 +303,8 @@ public class Alg_Radix_Smp {
    * q (elems/proc) must be a multiple of NODES
    * =============================================================================
    */
-  void
+  /*
+  public void
     all_radixsort_node_s3 (int q,
         int[] lKeys,
         int[] lSorted)
@@ -324,9 +328,10 @@ public class Alg_Radix_Smp {
       Barrier.enterBarrier();
 
       if (myId == 0) {
-        lTemp = null
+        lTemp = null;
       }
     }
+    */
 
 
   /* =============================================================================
@@ -335,7 +340,8 @@ public class Alg_Radix_Smp {
    * q (elems/proc) must be a multiple of NODES
    * =============================================================================
    */
-  void
+  /*
+  public void
     all_radixsort_node_s2 (int q,
         int[] lKeys,
         int[] lSorted)
@@ -361,6 +367,7 @@ public class Alg_Radix_Smp {
         lTemp = null;
       }
     }
+    */
 
 
   /* =============================================================================
@@ -369,7 +376,8 @@ public class Alg_Radix_Smp {
    * q (elems/proc) must be a multiple of NODES
    * =============================================================================
    */
-  void
+  /*
+  public void
     all_radixsort_node_aux_s3_seq (int q,
         int[] lKeys,
         int[] lSorted,
@@ -389,6 +397,7 @@ public class Alg_Radix_Smp {
       lTemp = null;
       lTemp2 = null;
     }
+    */
 
 
   /* =============================================================================
@@ -398,34 +407,37 @@ public class Alg_Radix_Smp {
    * =============================================================================
    */
   public static void
-    all_radixsort_node_aux_s3 (int q,
+    all_radixsort_node_aux_s3 (int myId,
+        int numThread,
+        int q,
         int[] lKeys,
         int[] lSorted,
         int[] auxKey,
-        int[] auxSorted)
+        int[] auxSorted,
+        Alg_Radix_Smp rdxsort)
     {
       int[] lTemp  = null;
       int[] lTemp2 = null;
 
       if (myId == 0) {
         lTemp = new int[ q];
-        global_lTemp = lTemp;
+        rdxsort.global_lTemp = lTemp;
         lTemp2 = new int[ q];
-        global_lTemp2 = lTemp2;
+        rdxsort.global_lTemp2 = lTemp2;
       }
 
       Barrier.enterBarrier();
 
-      lTemp  = global_lTemp;
-      lTemp2 = global_lTemp2;
+      lTemp  = rdxsort.global_lTemp;
+      lTemp2 = rdxsort.global_lTemp2;
 
-      all_countsort_node_aux(q, lKeys, lSorted, auxKey, auxSorted, (1<<11),  0, 11);
-      all_countsort_node_aux(q, lSorted, lTemp, auxSorted, lTemp2, (1<<11), 11, 11);
-      all_countsort_node_aux(q, lTemp, lSorted, lTemp2, auxSorted, (1<<10), 22, 10);
+      rdxsort.all_countsort_node_aux(myId, numThread, q, lKeys, lSorted, auxKey, auxSorted, (1<<11),  0, 11, rdxsort);
+      rdxsort.all_countsort_node_aux(myId, numThread, q, lSorted, lTemp, auxSorted, lTemp2, (1<<11), 11, 11, rdxsort);
+      rdxsort.all_countsort_node_aux(myId, numThread, q, lTemp, lSorted, lTemp2, auxSorted, (1<<10), 22, 10, rdxsort);
 
       Barrier.enterBarrier();
 
-      if(myId = 0) {
+      if(myId == 0) {
         lTemp = null;
         lTemp2 = null;
       }
