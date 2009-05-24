@@ -10,22 +10,22 @@ import java.io.*;
 // for injecting code before and/or after a flat node
 public class CodePlan {
 
-  private String before;
-  private String after;
+  private FlatSESEEnterNode seseToIssue;
 
-  public CodePlan( String before,
-                   String after ) {
-    this.before = before;
-    this.after  = after;
+
+  public CodePlan() {
+    seseToIssue = null;
   }
 
-  public String getBefore() {
-    return before;
+
+  public void setSESEtoIssue( FlatSESEEnterNode sese ) {
+    seseToIssue = sese;
   }
 
-  public String getAfter() {
-    return after;
+  public FlatSESEEnterNode getSESEtoIssue() {
+    return seseToIssue;
   }
+
 
   public boolean equals( Object o ) {
     if( o == null ) {
@@ -38,38 +38,32 @@ public class CodePlan {
 
     CodePlan cp = (CodePlan) o;
 
-    boolean beforeEq;
-    if( before == null ) {
-      beforeEq = (cp.before == null);
+    boolean issueEq;
+    if( seseToIssue == null ) {
+      issueEq = (cp.seseToIssue == null);
     } else {
-      beforeEq = (before.equals( cp.before ));
-    }
-
-    boolean afterEq;
-    if( after == null ) {
-      afterEq = (cp.after == null);
-    } else {
-      afterEq = (after.equals( cp.after ));
+      issueEq = (seseToIssue.equals( cp.seseToIssue ));
     }
         
-    return beforeEq && afterEq;
+    return issueEq;
   }
 
   public int hashCode() {
-    int beforeHC = 1;
-    if( before != null  ) {
-      beforeHC = before.hashCode();
+    int issueHC = 1;
+    if( seseToIssue != null  ) {
+      issueHC = seseToIssue.hashCode();
     }
 
-    int afterHC = 7;
-    if( after != null  ) {
-      afterHC = after.hashCode();
-    }
-
-    return beforeHC ^ afterHC;
+    return issueHC;
   }
 
   public String toString() {
-    return "plan { b="+before+" a="+after+" }";
+    String s = "";
+
+    if( seseToIssue != null ) {
+      s += "[ISSUE "+seseToIssue.getPrettyIdentifier()+"]";
+    }
+
+    return s;
   }
 }

@@ -18,6 +18,15 @@ public class Test {
     
     int z = n + j;
     */
+
+
+
+
+
+
+
+
+
     
     int x = 1;
     int y = 1;
@@ -26,10 +35,10 @@ public class Test {
       if( true ) {
         x = y + 2;
         y = 3;	
-      }
-      
+      }      
     }
 
+    /*
     // shouldn't cause a stall
     int z = x;
 
@@ -40,6 +49,14 @@ public class Test {
     y = y + 1;
     x = x + 1;
     z = z + 1;
+    */
+
+    // expecting x=3, y=3
+    System.out.println( "x="+x+", y="+y );
+
+
+
+
 
     //Integer i;
     //afunc( i );

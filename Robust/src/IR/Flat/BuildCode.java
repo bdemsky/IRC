@@ -158,6 +158,11 @@ public class BuildCode {
       outmethodheader.println("#include \"abortreaders.h\"");
       outmethodheader.println("#include <setjmp.h>");
     }
+    if (state.MLP) {
+      outmethodheader.println("#include <stdlib.h>");
+      outmethodheader.println("#include <stdio.h>");
+      outmethodheader.println("#include \"mlp_runtime.h\"");
+    }
 
     /* Output Structures */
     outputStructs(outstructs);
@@ -196,10 +201,16 @@ public class BuildCode {
     // Output function prototypes and structures for SESE's and code
     if( state.MLP ) {
       nonSESEpass = false;
+
+      // first generate code for each sese's internals
       for(Iterator<FlatSESEEnterNode> seseit=mlpa.getAllSESEs().iterator();seseit.hasNext();) {
 	FlatSESEEnterNode fsen = seseit.next();
 	generateMethodSESE(fsen, null, outstructs, outmethodheader, outmethod);
       }
+
+      // then write the invokeSESE switch to decouple scheduler
+      // from having to do unique details of sese invocation
+      generateSESEinvocationMethod(outmethodheader, outmethod);
     }
 
     if (state.TASK) {
@@ -1496,6 +1507,65 @@ public class BuildCode {
     output.println("}\n\n");
   }
 
+  private void generateSESEinvocationMethod(PrintWriter outmethodheader,
+                                            PrintWriter outmethod
+                                            ) {
+
+    outmethodheader.println("void invokeSESEmethod( int classID, struct SESErecord* record );");
+    outmethod.println(      "void invokeSESEmethod( int classID, struct SESErecord* record ) {");
+    outmethod.println(      "  switch( classID ) {");
+    outmethod.println(      "    ");
+    for(Iterator<FlatSESEEnterNode> seseit=mlpa.getAllSESEs().iterator();seseit.hasNext();) {
+      FlatSESEEnterNode fsen = seseit.next();
+      outmethod.println(    "    /* "+fsen.getPrettyIdentifier()+" */");
+      outmethod.println(    "    case "+fsen.getIdentifier()+":");
+      generateSESEinvocation(fsen, outmethod);
+      outmethod.println(    "      break;");
+      outmethod.println(    "");
+    }
+    outmethod.println(      "    default:");
+    outmethod.println(      "      printf(\"Error: unknown SESE class ID in invoke method.\\n\");");
+    outmethod.println(      "      exit(-30);");
+    outmethod.println(      "      break;");
+    outmethod.println(      "  }");
+    outmethod.println(      "}\n\n");
+  }
+
+  private void generateSESEinvocation(FlatSESEEnterNode fsen,
+                                      PrintWriter output
+                                      ) {
+
+    FlatMethod       fm = fsen.getEnclosingFlatMeth();
+    MethodDescriptor md = fm.getMethod();
+    ClassDescriptor  cn = md.getClassDesc();
+
+    FlatMethod       bogusfm  = sese2bogusFlatMeth.get(fsen);
+    MethodDescriptor bogusmd  = bogusfm.getMethod();
+    ParamsObject objectparams = (ParamsObject)paramstable.get(bogusmd);
+
+    // first copy SESE record into param structure
+    
+
+    // then invoke the sese's method
+    output.print("      "+cn.getSafeSymbol()+bogusmd.getSafeSymbol()+"_"+bogusmd.getSafeMethodDescriptor());
+    output.print("(");
+
+    // why doesn't this work?
+    //output.print("("+cn.getSafeSymbol()+bogusmd.getSafeSymbol()+"_"+bogusmd.getSafeMethodDescriptor()+paramsprefix+")");
+    output.print("(struct "+cn.getSafeSymbol()+bogusmd.getSafeSymbol()+"__params*)");
+
+    output.print("&(record->paramStruct)");
+
+    for(int i=0; i<objectparams.numPrimitives(); i++) {
+      TempDescriptor td=objectparams.getPrimitive(i);
+      TypeDescriptor type=td.getType();
+      assert type.isPrimitive();
+      output.print(", record->vars["+i+"].sesetype_"+type.toString());
+    }
+    
+    output.println(");");
+  }
+
   private void generateFlatMethodSESE(FlatMethod fm, 
                                       ClassDescriptor cn, 
                                       FlatSESEEnterNode seseEnter, 
@@ -1653,8 +1723,6 @@ public class BuildCode {
                               FlatSESEExitNode stop,
                               PrintWriter output) {
 
-    //System.out.println( "generating code, stop="+stop );
-
     /* Assign labels to FlatNode's if necessary.*/
     Hashtable<FlatNode, Integer> nodetolabel=assignLabels(first, stop);
 
@@ -1672,9 +1740,6 @@ public class BuildCode {
       }
       visited.add(current_node);
       if (nodetolabel.containsKey(current_node)) {
-
-	//System.out.println( "  *"+current_node+" preceeded with label "+nodetolabel.get(current_node) );
-
 	output.println("L"+nodetolabel.get(current_node)+":");
       }
       if (state.INSTRUCTIONFAILURE) {
@@ -1760,14 +1825,6 @@ public class BuildCode {
 	  //2) Join point
 	  nodetolabel.put(nn,new Integer(labelindex++));
 	}
-
-
-    /*
-	if( nodetolabel.get(nn) != null ) {
-	  System.out.println( "  "+nn+" has label "+nodetolabel.get(nn) );
-	}
-    */
-
       }
     }
     return nodetolabel;

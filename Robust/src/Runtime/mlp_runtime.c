@@ -1,31 +1,30 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include "mlp_runtime.h"
+#include "Queue.h"
 
 
-struct SESE* root;
+struct Queue* issued;
 
 
-void mlpIssue();
-
-
-struct SESE* mlpInit() {
-  return root;
+void mlpInit() {
+  issued = createQueue();
 }
 
 
-void mlpEnqueue( struct SESE* sese ) {
-  printf( "mlp enqueue\n" );
+void mlpIssue( struct SESErecord* sese ) {
+  addNewItem( issued, (void*) sese );
 }
 
-void mlpBlock( struct SESE* sese ) {
-
+void mlpStall( struct SESErecord* sese ) {
+  
 }
 
-void mlpNotifyExit( struct SESE* sese ) {
-  printf( "mlp notify exit\n" );
+void mlpNotifyExit( struct SESErecord* sese ) {
+  
 }
 
-void mlpIssue() {
-
-}
+/*
+isEmpty(queue)
+void* getItem(queue)
+*/

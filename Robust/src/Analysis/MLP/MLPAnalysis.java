@@ -135,6 +135,17 @@ public class MLPAnalysis {
     }
 
 
+    if( state.MLPDEBUG ) {      
+      System.out.println( "" );
+      //printSESEHierarchy();
+      //printSESELiveness();
+      //System.out.println( fmMain.printMethod( livenessRootView ) );
+      //System.out.println( fmMain.printMethod( variableResults ) );
+      //System.out.println( fmMain.printMethod( notAvailableResults ) );
+      System.out.println( "CODE PLANS\n"+fmMain.printMethod( codePlans ) );
+    }
+
+
     double timeEndAnalysis = (double) System.nanoTime();
     double dt = (timeEndAnalysis - timeStartAnalysis)/(Math.pow( 10.0, 9.0 ) );
     String treport = String.format( "The mlp analysis took %.3f sec.", dt );
@@ -179,10 +190,6 @@ public class MLPAnalysis {
 	}
       }
     }      
-
-    if( state.MLPDEBUG ) { 
-      printSESEForest();
-    }
   }
 
   private void buildForest_nodeActions( FlatNode fn, 							   
@@ -219,14 +226,14 @@ public class MLPAnalysis {
     }
   }
 
-  private void printSESEForest() {
+  private void printSESEHierarchy() {
     // our forest is actually a tree now that
     // there is an implicit root SESE
-    printSESETree( rootSESE, 0 );
+    printSESEHierarchyTree( rootSESE, 0 );
     System.out.println( "" );
   }
 
-  private void printSESETree( FlatSESEEnterNode fsen, int depth ) {
+  private void printSESEHierarchyTree( FlatSESEEnterNode fsen, int depth ) {
     for( int i = 0; i < depth; ++i ) {
       System.out.print( "  " );
     }
@@ -235,15 +242,15 @@ public class MLPAnalysis {
     Iterator<FlatSESEEnterNode> childItr = fsen.getChildren().iterator();
     while( childItr.hasNext() ) {
       FlatSESEEnterNode fsenChild = childItr.next();
-      printSESETree( fsenChild, depth + 1 );
+      printSESEHierarchyTree( fsenChild, depth + 1 );
     }
   }
 
 
-    private void livenessAnalysisBackward( FlatSESEEnterNode fsen, 
-					   boolean toplevel, 
-					   Hashtable< FlatSESEExitNode, Set<TempDescriptor> > liveout, 
-					   FlatExit fexit ) {
+  private void livenessAnalysisBackward( FlatSESEEnterNode fsen, 
+                                         boolean toplevel, 
+                                         Hashtable< FlatSESEExitNode, Set<TempDescriptor> > liveout, 
+                                         FlatExit fexit ) {
 
     // start from an SESE exit, visit nodes in reverse up to
     // SESE enter in a fixed-point scheme, where children SESEs
@@ -299,20 +306,6 @@ public class MLPAnalysis {
       fsen.addInVarSet( s );
     }
     
-    if( state.MLPDEBUG ) { 
-      System.out.println( "SESE "+fsen.getPrettyIdentifier()+" has in-set:" );
-      Iterator<TempDescriptor> tItr = fsen.getInVarSet().iterator();
-      while( tItr.hasNext() ) {
-	System.out.println( "  "+tItr.next() );
-      }
-      System.out.println( "and out-set:" );
-      tItr = fsen.getOutVarSet().iterator();
-      while( tItr.hasNext() ) {
-	System.out.println( "  "+tItr.next() );
-      }
-      System.out.println( "" );
-    }
-
     // remember liveness per node from the root view as the
     // global liveness of variables for later passes to use
     if( toplevel == true ) {
@@ -380,6 +373,35 @@ public class MLPAnalysis {
     } // end switch
 
     return liveIn;
+  }
+
+  private void printSESELiveness() {
+    // our forest is actually a tree now that
+    // there is an implicit root SESE
+    printSESELivenessTree( rootSESE );
+    System.out.println( "" );
+  }
+
+  private void printSESELivenessTree( FlatSESEEnterNode fsen ) {
+
+    System.out.println( "SESE "+fsen.getPrettyIdentifier()+" has in-set:" );
+    Iterator<TempDescriptor> tItr = fsen.getInVarSet().iterator();
+    while( tItr.hasNext() ) {
+      System.out.println( "  "+tItr.next() );
+    }
+    System.out.println( "and out-set:" );
+    tItr = fsen.getOutVarSet().iterator();
+    while( tItr.hasNext() ) {
+      System.out.println( "  "+tItr.next() );
+    }
+    System.out.println( "" );
+
+
+    Iterator<FlatSESEEnterNode> childItr = fsen.getChildren().iterator();
+    while( childItr.hasNext() ) {
+      FlatSESEEnterNode fsenChild = childItr.next();
+      printSESELivenessTree( fsenChild );
+    }
   }
 
 
@@ -500,7 +522,18 @@ public class MLPAnalysis {
     default: {
       TempDescriptor [] writeTemps = fn.writesTemps();
       if( writeTemps.length > 0 ) {
-	assert writeTemps.length == 1;
+
+
+        // for now, when writeTemps > 1, make sure
+        // its a call node, programmer enforce only
+        // doing stuff like calling a print routine
+	//assert writeTemps.length == 1;
+        if( writeTemps.length > 1 ) {
+          assert fn.kind() == FKind.FlatCall ||
+                 fn.kind() == FKind.FlatMethod;
+          break;
+        }
+
 
 	vstTable.remove( writeTemps[0] );
 
@@ -714,26 +747,20 @@ public class MLPAnalysis {
 	}
       }
     }
-
-    if( state.MLPDEBUG ) { 
-      //System.out.println( fm.printMethod( livenessRootView ) );
-      //System.out.println( fm.printMethod( variableResults ) );
-      //System.out.println( fm.printMethod( notAvailableResults ) );
-      //System.out.println( fm.printMethod( codePlans ) );
-    }
   }
 
   private void computeStalls_nodeActions( FlatNode fn,
                                           VarSrcTokTable vstTable,
 					  Set<TempDescriptor> notAvailSet,
                                           FlatSESEEnterNode currentSESE ) {
-    String before = null;
-    String after  = null;
+    CodePlan plan = new CodePlan();
+
 
     switch( fn.kind() ) {
 
     case FKind.FlatSESEEnterNode: {
-      FlatSESEEnterNode fsen = (FlatSESEEnterNode) fn;      
+      FlatSESEEnterNode fsen = (FlatSESEEnterNode) fn;
+      plan.setSESEtoIssue( fsen );
     } break;
 
     case FKind.FlatSESEExitNode: {
@@ -807,7 +834,7 @@ public class MLPAnalysis {
 
 	// assert notAvailSet.containsAll( writeSet );
 
-
+        /*
         for( Iterator<VariableSourceToken> readit = readSet.iterator(); 
              readit.hasNext(); ) {
           VariableSourceToken vst = readit.next();
@@ -818,6 +845,7 @@ public class MLPAnalysis {
             before += "("+vst+" "+readtmp+")";	    
           }
         }
+        */
       }      
     } break;
 
@@ -833,6 +861,7 @@ public class MLPAnalysis {
       assert nextVstTable != null;
       static2dynamicSet.addAll( vstTable.getStatic2DynamicSet( nextVstTable ) );
     }
+    /*
     Iterator<VariableSourceToken> vstItr = static2dynamicSet.iterator();
     while( vstItr.hasNext() ) {
       VariableSourceToken vst = vstItr.next();
@@ -841,16 +870,8 @@ public class MLPAnalysis {
       }
       after += "("+vst+")";
     }
-    
+    */
 
-    if( before == null ) {
-      before = "";
-    }
-
-    if( after == null ) {
-      after = "";
-    }
-
-    codePlans.put( fn, new CodePlan( before, after ) );
+    codePlans.put( fn, plan );
   }
 }
