@@ -372,7 +372,7 @@ public class ScheduleAnalysis {
 					    (cdname.equals("FilterBankAtom")) ||
 					    (cdname.equals("Grid")) ||
 					    (cdname.equals("Fractal"))) {
-					newRate = 16;
+					newRate = this.coreNum;
 				    } else if(cdname.equals("SentenceParser")) {
 					newRate = 4;
 				    }

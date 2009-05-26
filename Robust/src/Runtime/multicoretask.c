@@ -1798,11 +1798,11 @@ int processlockrequest(int locktype, int lock, int obj, int requestcore, int roo
   int deny = 0;
   if( ((lock >> 5) % BAMBOO_TOTALCORE) != corenum ) {
 	  // the lock should not be on this core
-//#ifndef TILERA
+#ifndef TILERA
 	  BAMBOO_DEBUGPRINT_REG(requestcore);
 	  BAMBOO_DEBUGPRINT_REG(lock);
 	  BAMBOO_DEBUGPRINT_REG(corenum);
-//#endif
+#endif
 	  BAMBOO_EXIT(0xa015);
   }
   /*if((corenum == STARTUPCORE) && waitconfirm) {
