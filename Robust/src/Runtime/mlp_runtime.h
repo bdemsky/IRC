@@ -39,6 +39,9 @@ struct SESEvar {
   
   // a statically or dynamically known SESE
   // to gather the variable's value from
+  // if source==NULL it indicates the root
+  // SESE, which has no record, just normal
+  // temp names
   struct SESErecord* source;
   unsigned int index;
 };
@@ -66,6 +69,8 @@ struct SESErecord {
 
 
 void mlpInit();
+
+struct SESErecord* mlpGetCurrent();
 
 void mlpIssue     ( struct SESErecord* sese );
 void mlpStall     ( struct SESErecord* sese );

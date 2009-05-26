@@ -4,11 +4,21 @@
 #include "Queue.h"
 
 
-struct Queue* issued;
+static struct Queue* issued;
+
+
+// each core should have a current SESE
+static struct SESErecord* current;
 
 
 void mlpInit() {
-  issued = createQueue();
+  issued  = createQueue();
+  current = NULL;
+}
+
+
+struct SESErecord* mlpGetCurrent() {
+  return current;
 }
 
 

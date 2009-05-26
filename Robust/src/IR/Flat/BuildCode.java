@@ -290,6 +290,9 @@ public class BuildCode {
       outmethod.println("    ((void **)(((char *)& stringarray->___length___)+sizeof(int)))[i-1]=newstring;");
     outmethod.println("  }");
 
+    if (state.MLP) {
+      outmethod.println("  mlpInit();");
+    }
 
     MethodDescriptor md=typeutil.getMain();
     ClassDescriptor cd=typeutil.getMainClass();
@@ -354,7 +357,6 @@ public class BuildCode {
       outmethod.println("pthread_exit(NULL);");
 
     outmethod.println("}");
-
   }
 
   /* This method outputs code for each task. */
@@ -1511,8 +1513,15 @@ public class BuildCode {
                                             PrintWriter outmethod
                                             ) {
 
-    outmethodheader.println("void invokeSESEmethod( int classID, struct SESErecord* record );");
-    outmethod.println(      "void invokeSESEmethod( int classID, struct SESErecord* record ) {");
+    outmethodheader.println("void invokeSESEmethod( int classID, struct SESErecord* invokee, struct SESErecord* parent );");
+    outmethod.println(      "void invokeSESEmethod( int classID, struct SESErecord* invokee, struct SESErecord* parent ) {");
+
+    // use this info in the invocation cases to decide whether
+    // to gather SESE variables from a parent SESE record, or
+    // if parent is root, from noraml temps
+    outmethod.println(      "  char parentIsRoot = (parent == NULL);");
+
+    // generate a case for each SESE class that can be invoked
     outmethod.println(      "  switch( classID ) {");
     outmethod.println(      "    ");
     for(Iterator<FlatSESEEnterNode> seseit=mlpa.getAllSESEs().iterator();seseit.hasNext();) {
@@ -1523,6 +1532,8 @@ public class BuildCode {
       outmethod.println(    "      break;");
       outmethod.println(    "");
     }
+
+    // default case should never be taken, error out
     outmethod.println(      "    default:");
     outmethod.println(      "      printf(\"Error: unknown SESE class ID in invoke method.\\n\");");
     outmethod.println(      "      exit(-30);");
@@ -1544,7 +1555,12 @@ public class BuildCode {
     ParamsObject objectparams = (ParamsObject)paramstable.get(bogusmd);
 
     // first copy SESE record into param structure
-    
+    output.println("      if( parentIsRoot ) {");
+    output.println("        ");
+    output.println("        ");
+    output.println("      } else {");
+    output.println("        ");
+    output.println("      }");
 
     // then invoke the sese's method
     output.print("      "+cn.getSafeSymbol()+bogusmd.getSafeSymbol()+"_"+bogusmd.getSafeMethodDescriptor());
@@ -1552,15 +1568,17 @@ public class BuildCode {
 
     // why doesn't this work?
     //output.print("("+cn.getSafeSymbol()+bogusmd.getSafeSymbol()+"_"+bogusmd.getSafeMethodDescriptor()+paramsprefix+")");
+
+    // first argument is parameter structure
     output.print("(struct "+cn.getSafeSymbol()+bogusmd.getSafeSymbol()+"__params*)");
+    output.print("&(invokee->paramStruct)");
 
-    output.print("&(record->paramStruct)");
-
+    // other arguments are primitive parameters
     for(int i=0; i<objectparams.numPrimitives(); i++) {
       TempDescriptor td=objectparams.getPrimitive(i);
       TypeDescriptor type=td.getType();
       assert type.isPrimitive();
-      output.print(", record->vars["+i+"].sesetype_"+type.toString());
+      output.print(", invokee->vars["+i+"].sesetype_"+type.toString());
     }
     
     output.println(");");

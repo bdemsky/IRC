@@ -142,7 +142,7 @@ public class MLPAnalysis {
       //System.out.println( fmMain.printMethod( livenessRootView ) );
       //System.out.println( fmMain.printMethod( variableResults ) );
       //System.out.println( fmMain.printMethod( notAvailableResults ) );
-      System.out.println( "CODE PLANS\n"+fmMain.printMethod( codePlans ) );
+      //System.out.println( "CODE PLANS\n"+fmMain.printMethod( codePlans ) );
     }
 
 
