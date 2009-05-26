@@ -120,7 +120,6 @@ public class GenScalData {
       permV = gsd.global_permV;
 
       LocalStartStop lss = new LocalStartStop();
-      //CreatePartition cp = new CreatePartition();
       CreatePartition.createPartition(0, glb.TOT_VERTICES, myId, numThread, lss);
 
       /* Initialize the array */

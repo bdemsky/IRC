@@ -222,6 +222,12 @@ public class SSCA2 extends Thread {
      * -------------------------------------------------------------------------
      */
 
+    getStartListsArg.GPtr                = G;
+    getStartListsArg.maxIntWtListPtr     = null;
+    getStartListsArg.maxIntWtListSize    = 0;
+    getStartListsArg.soughtStrWtListPtr  = null;
+    getStartListsArg.soughtStrWtListSize = 0;
+
     System.out.println("\nKernel 2 - getStartLists() beginning execution...\n");
     parallel_work_getStartLists(nthreads, glb, getStartListsArg);
     System.out.println("\n\tgetStartLists() completed execution.\n");
@@ -247,6 +253,7 @@ public class SSCA2 extends Thread {
     System.out.println("\nKernel 3 - FindSubGraphs() beginning execution...\n");
 
     if (glb.K3_DS == 0) {
+      /* TODO Add files for KERNEL 3
       intWtVList = new VList[G.numVertices * getStartListsArg.maxIntWtListSize];
       strWtVList = new VList[G.numVertices * getStartListsArg.soughtStrWtListSize];
 
@@ -260,9 +267,11 @@ public class SSCA2 extends Thread {
       findSubGraphs0Arg.soughtStrWtListSize = getStartListsArg.soughtStrWtListSize;
 
       parallel_work_FindSubGraphs0(findSubGraphs0Arg);
+      */
 
-    } else if (K3_DS == 1) {
+    } else if (glb.K3_DS == 1) {
 
+      /* TODO Add files for KERNEL 3
       intWtVList = new VL[getStartListsArg.maxIntWtListSize];
       strWtVList = new VL[getStartListsArg.soughtStrWtListSize];
 
@@ -276,9 +285,11 @@ public class SSCA2 extends Thread {
       findSubGraphs1Arg.soughtStrWtListSize = soughtStrWtListSize;
 
       parallel_work_FindSubGraphs1(findSubGraphs1Arg);
+      */
 
-    } else if (K3_DS == 2) {
+    } else if (glb.K3_DS == 2) {
 
+      /* TODO Add files for KERNEL 3
       intWtVList = new VL[getStartListsArg.maxIntWtListSize];
       strWtVList = new VL[getStartListsArg.soughtStrWtListSize];
 
@@ -292,13 +303,13 @@ public class SSCA2 extends Thread {
       findSubGraphs2Arg.soughtStrWtListSize = soughtStrWtListSize;
 
       parallel_work_FindSubGraphs2(findSubGraphs2Arg);
+      */
 
     } else {
       ;
     }
 
     System.out.println("\n\tFindSubGraphs() completed execution.\n");
-    System.out.println("\nTime taken for kernel 3 is %9.6f sec.\n\n", time);
 
 #endif /* ENABLE_KERNEL3 */
 
@@ -349,6 +360,7 @@ public class SSCA2 extends Thread {
 
 #ifdef ENABLE_KERNEL3
 
+  /*TODO add files for KERNEL 3
   public static void parallel_work_FindSubGraphs0(FindSubGraphs0_arg_t findSubGraphs0Arg) {
     Barrier.enterBarrier();
     Barrier.enterBarrier();
@@ -363,6 +375,7 @@ public class SSCA2 extends Thread {
     Barrier.enterBarrier();
     Barrier.enterBarrier();
   }
+  */
 
 #endif
 
