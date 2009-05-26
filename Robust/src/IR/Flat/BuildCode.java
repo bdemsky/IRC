@@ -1777,6 +1777,7 @@ public class BuildCode {
 	FlatNode nextnode;
 	if (state.MLP && current_node.kind()==FKind.FlatSESEEnterNode) {
 	  FlatSESEEnterNode fsen = (FlatSESEEnterNode)current_node;
+	  generateFlatNode(fm, lb, current_node, output);
 	  nextnode=fsen.getFlatExit().getNext(0);
 	} else {
 	  output.print("   ");
@@ -1886,9 +1887,11 @@ public class BuildCode {
       return;
 
     case FKind.FlatSESEEnterNode:
+      generateFlatSESEEnterNode(fm, lb, (FlatSESEEnterNode)fn, output);
       return;
 
     case FKind.FlatSESEExitNode:
+      generateFlatSESEExitNode(fm, lb, (FlatSESEExitNode)fn, output);
       return;
 
     case FKind.FlatGlobalConvNode:
@@ -2265,10 +2268,25 @@ public class BuildCode {
     output.println("}");
   }
 
-  public void generateFlatSESEEnterNode(FlatMethod fm,  LocalityBinding lb, FlatSESEEnterNode faen, PrintWriter output) {
+  public void generateFlatSESEEnterNode(FlatMethod fm,  LocalityBinding lb, FlatSESEEnterNode fsen, PrintWriter output) {
+    if( !state.MLP ) {
+      // SESE nodes can be parsed for normal compilation, just skip over them
+      return;
+    }
+    
+    output.println("  invokeSESEmethod("+
+                   fsen.getIdentifier()+", "+
+                   "malloc( sizeof( struct SESErecord ) ), "+
+                   "NULL"+
+                   ");"
+                   );
   }
 
-  public void generateFlatSESEExitNode(FlatMethod fm,  LocalityBinding lb, FlatSESEExitNode faen, PrintWriter output) {
+  public void generateFlatSESEExitNode(FlatMethod fm,  LocalityBinding lb, FlatSESEExitNode fsen, PrintWriter output) {
+    if( !state.MLP ) {
+      // SESE nodes can be parsed for normal compilation, just skip over them
+      return;
+    }
   }
 
   private void generateFlatCheckNode(FlatMethod fm,  LocalityBinding lb, FlatCheckNode fcn, PrintWriter output) {
