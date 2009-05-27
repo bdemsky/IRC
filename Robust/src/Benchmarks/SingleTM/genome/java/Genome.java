@@ -17,7 +17,6 @@ public class Genome extends Thread {
   long minNumSegment;
   long numThread;
   
-  GlobalArgs g_args;
   int threadid;
   
   // add segments, random, etc to member variables

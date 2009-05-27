@@ -7,8 +7,9 @@ SRC=${MAINCLASS}.java \
   endInfoEntry.java \
   constructEntry.java \
   ../../../../ClassLibrary/JavaSTM/Barrier.java \
-  Sequencer.java
-FLAGS=-mainclass ${MAINCLASS} -singleTM -nooptimize -debug -dcopts -joptimize
+  Sequencer.java \
+  Table.java
+FLAGS=-mainclass ${MAINCLASS} -thread -nooptimize -debug -dcopts -joptimize
 
 default:
 	../../../../buildscript ${FLAGS} -o ${MAINCLASS} ${SRC}
