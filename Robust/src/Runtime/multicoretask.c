@@ -386,7 +386,7 @@ inline void run(void * arg) {
 								  totalexetime = BAMBOO_GET_EXE_TIME();
 #else
 								  BAMBOO_DEBUGPRINT(0xbbbbbbbb);
-								  BAMBOO_DEBUGPRINT((int)BAMBOO_GET_EXE_TIME());
+								  BAMBOO_DEBUGPRINT(BAMBOO_GET_EXE_TIME());
 #endif
 								  // profile mode, send msgs to other cores to request pouring
 								  // out progiling data

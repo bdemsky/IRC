@@ -662,7 +662,7 @@ public class BuildCodeMultiCore extends BuildCode {
 	} else {
 		output.println("tprintf(\"Process %x(%d): task %s\\n\", corenum, corenum, \"" + task.getSymbol() + "\");");
 	}
-	output.println("BAMBOO_DEBUGPRINT((int)BAMBOO_GET_EXE_TIME());");
+	output.println("BAMBOO_DEBUGPRINT(BAMBOO_GET_EXE_TIME());");
     output.println("#endif");
     output.println("#ifdef DEBUG");
 	if(this.state.RAW) {

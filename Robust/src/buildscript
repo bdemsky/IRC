@@ -563,6 +563,7 @@ cp ../Runtime/runtime.h ./
 cp ../Runtime/SimpleHash.h ./
 cp ../Tilera/Runtime/*.c ./
 cp ../Tilera/Runtime/*.h ./
+cp ../Tilera/lib/* ./
 cp ../tmpbuilddirectory/*.c ./
 cp ../tmpbuilddirectory/*.h ./
 
