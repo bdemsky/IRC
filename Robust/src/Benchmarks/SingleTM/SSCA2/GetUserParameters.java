@@ -114,8 +114,10 @@ public class GetUserParameters {
           if(i < args.length) {
             glb.K3_DS = new Integer(args[i++]).intValue();
           }
-          if(!(glb.K3_DS >=0 && glb.K3_DS <=2))
+          if(!(glb.K3_DS >=0 && glb.K3_DS <=2)) {
             System.out.println("Input a valid number for -k option between >=0 and <= 2");
+            System.exit(0);
+          }
         } else if(arg.equals("-l")) {
           if(i < args.length) {
             glb.SUBGR_EDGE_LENGTH = new Integer(args[i++]).intValue();
@@ -145,8 +147,15 @@ public class GetUserParameters {
         }
       }
 
-      if(glb.THREADS == 0)
+      if(glb.THREADS == 0) {
+        System.out.println("Num processors cannot be Zero\n");
         displayUsage();
+      }
+
+      if((glb.THREADS  & (glb.THREADS -1)) != 0) {
+        System.out.println("Number of [t]hreads must be power of 2\n");
+        displayUsage();
+      }
     }
 
   /* =============================================================================

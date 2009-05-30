@@ -156,7 +156,6 @@ public class Alg_Radix_Smp {
    * q (elems/proc) must be a multiple of NODES
    * =============================================================================
    */
-  /*
   public void
     all_countsort_node_aux_seq (int q,
         int[] lKey,
@@ -206,7 +205,6 @@ public class Alg_Radix_Smp {
       psHisto = null;
       myHisto = null;
     }
-*/
 
 
   /* =============================================================================
@@ -376,7 +374,6 @@ public class Alg_Radix_Smp {
    * q (elems/proc) must be a multiple of NODES
    * =============================================================================
    */
-  /*
   public void
     all_radixsort_node_aux_s3_seq (int q,
         int[] lKeys,
@@ -397,7 +394,6 @@ public class Alg_Radix_Smp {
       lTemp = null;
       lTemp2 = null;
     }
-    */
 
 
   /* =============================================================================

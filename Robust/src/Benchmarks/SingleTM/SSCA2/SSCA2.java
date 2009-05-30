@@ -100,13 +100,14 @@ public class SSCA2 extends Thread {
   }
 
   public void run() {
-
-#ifdef ENABLE_KERNEL1
+#ifdef USE_PARALLEL_DATA_GENERATION
     /* Generate Scaldata */
     Barrier.enterBarrier();
     GenScalData.genScalData(threadid, numThread, glb, SDGdata, gsd, radixsort);
     Barrier.enterBarrier();
+#endif
 
+#ifdef ENABLE_KERNEL1
     /* Kernel 1 */
     Barrier.enterBarrier();
     ComputeGraph.computeGraph(threadid, numThread, glb, computeGraphArgs);
@@ -192,15 +193,22 @@ public class SSCA2 extends Thread {
       ssca[i].start();
     }
 
-
-#ifdef ENABLE_KERNEL1
+    System.out.println("\nScalable Data Generator - genScalData() beginning execution...\n");
+#ifdef USE_PARALLEL_DATA_GENERATION
 
     /*
      * Scalable Data Generator
      */
-    System.out.println("\nScalable Data Generator - genScalData() beginning execution...\n");
     parallel_work_genScalData(nthreads, glb, SDGdata, gsd, radixsort);
+
+#else
+
+    GenScalData.genScalData_seq(glb, SDGdata, gsd, radixsort);
+
+#endif
     System.out.println("\n\tgenScalData() completed execution.");
+
+#ifdef ENABLE_KERNEL1
 
     /* -------------------------------------------------------------------------
      * Kernel 1 - Graph Construction
@@ -213,7 +221,6 @@ public class SSCA2 extends Thread {
     System.out.println("\n\tcomputeGraph() completed execution.\n");
 
 #endif
-
 
 #ifdef ENABLE_KERNEL2
 
@@ -332,13 +339,18 @@ public class SSCA2 extends Thread {
   /**
    * Work done by primary thread in parallel with other threads
    **/
-#ifdef ENABLE_KERNEL1
+
+#ifdef USE_PARALLEL_DATA_GENERATION
 
   public static void parallel_work_genScalData(int numThread, Globals glb, GraphSDG SDGdata, GenScalData gsd, Alg_Radix_Smp radixsort) {
     Barrier.enterBarrier();
     GenScalData.genScalData(0, numThread, glb, SDGdata, gsd, radixsort); // threadId = 0 because primary thread
     Barrier.enterBarrier();
   }
+
+#endif
+
+#ifdef ENABLE_KERNEL1
 
   public static void parallel_work_computeGraph(int numThread, Globals glb, ComputeGraph computeGraphArgs) {
     Barrier.enterBarrier();

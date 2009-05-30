@@ -83,11 +83,628 @@ public class GenScalData {
    *      genScalData_seq
    * =============================================================================
    **/
-  void
-    genScalData_seq (GraphSDG SDGdataPtr)
+  public static void
+    genScalData_seq (Globals glb, GraphSDG SDGdataPtr, GenScalData gsd, Alg_Radix_Smp radixsort)
     {
-      System.out.println("Call to genScalData_seq(), Unimplemented: TODO\n");
-      System.exit(0);
+      /*
+       * STEP 0: Create the permutations required to randomize the vertices
+       */
+      Random randomPtr = new Random();
+      randomPtr.random_alloc();
+      randomPtr.random_seed(0);
+
+      int[] permV; /* the vars associated with the graph tuple */
+      permV = new int[glb.TOT_VERTICES];
+
+      /* Initialize the array */
+      for (int i = 0; i < glb.TOT_VERTICES; i++) {
+        permV[i] = i;
+      }
+
+      for (int i = 0; i < glb.TOT_VERTICES; i++) {
+        int t1 = (int) (randomPtr.random_generate());
+        if(t1 < 0) 
+          t1*=(-1);
+        int t = i + t1 % (glb.TOT_VERTICES - i);
+        if (t != i) {
+          int t2 = permV[t];
+          permV[t] = permV[i];
+          permV[i] = t2;
+        }
+      }
+
+      /*
+       * STEP 1: Create Cliques
+       */
+
+      int[] cliqueSizes;
+
+      int estTotCliques = (int)(Math.ceil(1.5 * glb.TOT_VERTICES / ((1+glb.MAX_CLIQUE_SIZE)/2)));
+
+      /*
+       * Allocate mem for Clique array
+       * Estimate number of clique required and pad by 50%
+       */
+      cliqueSizes = new int[estTotCliques];
+
+      /* Generate random clique sizes. */
+      for (int i = 0; i < estTotCliques; i++) {
+        cliqueSizes[i] = (int) (1 + (randomPtr.random_generate() % glb.MAX_CLIQUE_SIZE));
+        if(cliqueSizes[i] < 0) 
+          cliqueSizes[i] *= -1; //TODO fix the long->int casting error that creates negative numbers for randomPtr
+      }
+
+      int totCliques = 0;
+
+      /*
+       * Allocate memory for cliqueList
+       */
+
+      int[] lastVsInCliques;
+      int[] firstVsInCliques;
+
+      lastVsInCliques = new int[estTotCliques];
+      firstVsInCliques = new int[estTotCliques];
+
+      /*
+       * Sum up vertices in each clique to determine the lastVsInCliques array
+       */
+
+      lastVsInCliques[0] = cliqueSizes[0] - 1;
+      {
+        int i;
+        for (i = 1; i < estTotCliques; i++) {
+          lastVsInCliques[i] = cliqueSizes[i] + lastVsInCliques[i-1];
+          if (lastVsInCliques[i] >= glb.TOT_VERTICES-1) {
+            break;
+          }
+        }
+        totCliques = i + 1;
+      }
+
+      /*
+       * Fix the size of the last clique
+       */
+      cliqueSizes[totCliques-1] =
+        glb.TOT_VERTICES - lastVsInCliques[totCliques-2] - 1;
+      lastVsInCliques[totCliques-1] = glb.TOT_VERTICES - 1;
+
+      firstVsInCliques[0] = 0;
+
+
+      /*
+       * Compute start Vertices in cliques.
+       */
+      for (int i = 1; i < totCliques; i++) {
+        firstVsInCliques[i] = lastVsInCliques[i-1] + 1;
+      }
+
+      /* TODO: if required
+#ifdef WRITE_RESULT_FILES
+      // Write the generated cliques to file for comparison with Kernel 4 
+      FILE* outfp = fopen("cliques.txt", "w");
+      fSystem.out.println(outfp, "No. of cliques - %lu\n", totCliques);
+      for (i = 0; i < totCliques; i++) {
+        fSystem.out.println(outfp, "Clq %lu - ", i);
+        long j;
+        for (j = firstVsInCliques[i]; j <= lastVsInCliques[i]; j++) {
+          fSystem.out.println(outfp, "%lu ", permV[j]);
+        }
+        fSystem.out.println(outfp, "\n");
+      }
+      fclose(outfp);
+#endif
+*/
+
+      /*
+       * STEP 2: Create the edges within the cliques
+       */
+
+      /*
+       * Estimate number of edges - using an empirical measure
+       */
+      int estTotEdges;
+      if (glb.SCALE >= 12) {
+        estTotEdges = (int) (Math.ceil(((glb.MAX_CLIQUE_SIZE-1) * glb.TOT_VERTICES)));
+      } else {
+        estTotEdges = (int) (Math.ceil(1.2 * (((glb.MAX_CLIQUE_SIZE-1)*glb.TOT_VERTICES)
+              * ((1 + glb.MAX_PARAL_EDGES)/2) + glb.TOT_VERTICES*2)));
+      }
+
+      /*
+       * Initialize edge counter
+       */
+      int i_edgePtr = 0;
+      float p = glb.PROB_UNIDIRECTIONAL;
+
+      /*
+       * Partial edgeLists
+       */
+
+      int[] startV;
+      int[] endV;
+      int numByte = estTotEdges;
+      startV = new int[numByte];
+      endV = new int[numByte];
+
+      /*
+       * Tmp array to keep track of the no. of parallel edges in each direction
+       */
+      int[][] tmpEdgeCounter = new int [glb.MAX_CLIQUE_SIZE][glb.MAX_CLIQUE_SIZE];
+
+      /*
+       * Create edges
+       */
+      for (int i_clique = 0; i_clique < totCliques; i_clique++) {
+
+        /*
+         * Get current clique parameters
+         */
+
+        int i_cliqueSize = cliqueSizes[i_clique];
+        int i_firstVsInClique = firstVsInCliques[i_clique];
+
+        /*
+         * First create at least one edge between two vetices in a clique
+         */
+
+        for (int i = 0; i < i_cliqueSize; i++) {
+          for (int j = 0; j < i; j++) {
+
+            float r = (float)( randomPtr.random_generate() % 1000) / (float)1000;
+            if (r >= p) {
+
+              startV[i_edgePtr] = i + i_firstVsInClique;
+              endV[i_edgePtr] = j + i_firstVsInClique;
+              i_edgePtr++;
+              tmpEdgeCounter[i][j] = 1;
+
+              startV[i_edgePtr] = j + i_firstVsInClique;
+              endV[i_edgePtr] = i + i_firstVsInClique;
+              i_edgePtr++;
+              tmpEdgeCounter[j][i] = 1;
+
+            } else  if (r >= 0.5) {
+
+              startV[i_edgePtr] = i + i_firstVsInClique;
+              endV[i_edgePtr] = j + i_firstVsInClique;
+              i_edgePtr++;
+              tmpEdgeCounter[i][j] = 1;
+              tmpEdgeCounter[j][i] = 0;
+
+            } else {
+
+              startV[i_edgePtr] = j + i_firstVsInClique;
+              endV[i_edgePtr] = i + i_firstVsInClique;
+              i_edgePtr++;
+              tmpEdgeCounter[j][i] = 1;
+              tmpEdgeCounter[i][j] = 0;
+
+            }
+
+          } /* for j */
+        } /* for i */
+
+        if (i_cliqueSize != 1) {
+          int randNumEdges = (int)(randomPtr.random_generate()
+              % (2*i_cliqueSize*glb.MAX_PARAL_EDGES));
+          if(randNumEdges < 0)
+            randNumEdges *= -1; //TODO fix the long->int casting error that creates negative numbers for randomPtr
+
+          for (int i_paralEdge = 0; i_paralEdge < randNumEdges; i_paralEdge++) {
+            int i = (int) (randomPtr.random_generate() % i_cliqueSize);
+            if(i < 0)
+              i *= -1; //TODO fix the long->int casting error that creates negative numbers for randomPtr
+            int j = (int) (randomPtr.random_generate() % i_cliqueSize);
+            if(j < 0)
+              j *= -1; //TODO fix the long->int casting error that creates negative numbers for randomPtr
+            if ((i != j) && (tmpEdgeCounter[i][j] < glb.MAX_PARAL_EDGES)) {
+              float r = (float)(randomPtr.random_generate() % 1000) / (float)1000;
+              if (r >= p) {
+                /* Copy to edge structure. */
+                startV[i_edgePtr] = i + i_firstVsInClique;
+                endV[i_edgePtr] = j + i_firstVsInClique;
+                i_edgePtr++;
+                tmpEdgeCounter[i][j]++;
+              }
+            }
+          }
+        }
+
+      } /* for i_clique */
+
+      /*
+       * Merge partial edge lists
+       */
+
+      int i_edgeStartCounter = 0;
+      int i_edgeEndCounter = i_edgePtr;
+      int edgeNum = i_edgePtr;
+
+      /*
+       * Initialize edge list arrays
+       */
+
+      int[] startVertex;
+      int[] endVertex;
+
+      if (glb.SCALE < 10) {
+        numByte = 2 * edgeNum;
+        startVertex = new int[numByte];
+        endVertex = new int[numByte];
+      } else {
+        numByte = (edgeNum + glb.MAX_PARAL_EDGES * glb.TOT_VERTICES);
+        startVertex = new int[numByte];
+        endVertex = new int[numByte];
+      }
+
+      for (int i = i_edgeStartCounter; i < i_edgeEndCounter; i++) {
+        startVertex[i] = startV[i-i_edgeStartCounter];
+        endVertex[i] = endV[i-i_edgeStartCounter];
+      }
+
+      int numEdgesPlacedInCliques = edgeNum;
+
+      /*
+       * STEP 3: Connect the cliques
+       */
+
+      i_edgePtr = 0;
+      p = glb.PROB_INTERCL_EDGES;
+
+      /*
+       * Generating inter-clique edges as given in the specs
+       */
+
+      for (int i = 0; i < glb.TOT_VERTICES; i++) {
+
+        int tempVertex1 = i;
+        int h = totCliques;
+        int l = 0;
+        int t = -1;
+        while (h - l > 1) {
+          int m = (h + l) / 2;
+          if (tempVertex1 >= firstVsInCliques[m]) {
+            l = m;
+          } else {
+            if ((tempVertex1 < firstVsInCliques[m]) && (m > 0)) {
+              if (tempVertex1 >= firstVsInCliques[m-1]) {
+                t = m - 1;
+                break;
+              } else {
+                h = m;
+              }
+            }
+          }
+        }
+
+        if (t == -1) {
+          int m;
+          for (m = (l + 1); m < h; m++) {
+            if (tempVertex1<firstVsInCliques[m]) {
+              break;
+            }
+          }
+          t = m-1;
+        }
+
+        int t1 = firstVsInCliques[t];
+
+        p = glb.PROB_INTERCL_EDGES;
+        for (int d = 1; d < glb.TOT_VERTICES; d *= 2, p /= 2) {
+
+          float r = (float)(randomPtr.random_generate() % 1000) / (float)1000;
+
+          if (r <= p) {
+
+            int tempVertex2 = (i+d) % glb.TOT_VERTICES;
+
+            h = totCliques;
+            l = 0;
+            t = -1;
+            while (h - l > 1) {
+              int m = (h + l) / 2;
+              if (tempVertex2 >= firstVsInCliques[m]) {
+                l = m;
+              } else {
+                if ((tempVertex2 < firstVsInCliques[m]) && (m > 0)) {
+                  if (firstVsInCliques[m-1] <= tempVertex2) {
+                    t = m - 1;
+                    break;
+                  } else {
+                    h = m;
+                  }
+                }
+              }
+            }
+
+            if (t == -1) {
+              int m;
+              for (m = (l + 1); m < h; m++) {
+                if (tempVertex2 < firstVsInCliques[m]) {
+                  break;
+                }
+              }
+              t = m - 1;
+            }
+
+            int t2 = firstVsInCliques[t];
+
+            if (t1 != t2) {
+              int randNumEdges =
+                (int) (randomPtr.random_generate() % glb.MAX_PARAL_EDGES + 1);
+              if(randNumEdges < 0)
+                randNumEdges *= -1; //TODO fix the long->int casting error that creates negative numbers for randomPtr
+
+              for (int j = 0; j < randNumEdges; j++) {
+                startV[i_edgePtr] = tempVertex1;
+                endV[i_edgePtr] = tempVertex2;
+                i_edgePtr++;
+              }
+            }
+
+          } /* r <= p */
+
+          float r0 = (float)(randomPtr.random_generate() % 1000) / (float)1000;
+
+          if ((r0 <= p) && (i-d>=0)) {
+
+            int tempVertex2 = (i-d) % glb.TOT_VERTICES;
+
+            h = totCliques;
+            l = 0;
+            t = -1;
+            while (h - l > 1) {
+              int m = (h + l) / 2;
+              if (tempVertex2 >= firstVsInCliques[m]) {
+                l = m;
+              } else {
+                if ((tempVertex2 < firstVsInCliques[m]) && (m > 0)) {
+                  if (firstVsInCliques[m-1] <= tempVertex2) {
+                    t = m - 1;
+                    break;
+                  } else {
+                    h = m;
+                  }
+                }
+              }
+            }
+
+            if (t == -1) {
+              int m;
+              for (m = (l + 1); m < h; m++) {
+                if (tempVertex2 < firstVsInCliques[m]) {
+                  break;
+                }
+              }
+              t = m - 1;
+            }
+
+            int t2 = firstVsInCliques[t];
+
+            if (t1 != t2) {
+              int randNumEdges = (int) (randomPtr.random_generate() % glb.MAX_PARAL_EDGES + 1);
+              if(randNumEdges < 0)
+                randNumEdges *= -1; //TODO fix the long->int casting error that creates negative numbers for randomPtr
+
+              int j;
+              for (j = 0; j < randNumEdges; j++) {
+                startV[i_edgePtr] = tempVertex1;
+                endV[i_edgePtr] = tempVertex2;
+                i_edgePtr++;
+              }
+            }
+
+          } /* r0 <= p && (i-d) > 0 */
+
+        } /* for d, p */
+
+      } /* for i */
+
+
+      i_edgeEndCounter = i_edgePtr;
+      i_edgeStartCounter = 0;
+
+
+      edgeNum = i_edgePtr;
+      int numEdgesPlacedOutside = edgeNum;
+
+      for (int i = i_edgeStartCounter; i < i_edgeEndCounter; i++) {
+        startVertex[i+numEdgesPlacedInCliques] = startV[i-i_edgeStartCounter];
+        int a = i+numEdgesPlacedInCliques;
+        endVertex[i+numEdgesPlacedInCliques] = endV[i-i_edgeStartCounter];
+      }
+
+      int numEdgesPlaced = numEdgesPlacedInCliques + numEdgesPlacedOutside;
+
+      SDGdataPtr.numEdgesPlaced = numEdgesPlaced;
+
+      System.out.println("Finished generating edges");
+      System.out.println("No. of intra-clique edges - " + numEdgesPlacedInCliques);
+      System.out.println("No. of inter-clique edges - " + numEdgesPlacedOutside);
+      System.out.println("Total no. of edges        - " + numEdgesPlaced);
+
+      /*
+       * STEP 4: Generate edge weights
+       */
+
+      SDGdataPtr.intWeight = new int[numEdgesPlaced];
+
+      p = glb.PERC_INT_WEIGHTS;
+      int numStrWtEdges  = 0;
+
+      for (int i = 0; i < numEdgesPlaced; i++) {
+        float r = (float)(randomPtr.random_generate() % 1000) / (float)1000;
+        if (r <= p) {
+          SDGdataPtr.intWeight[i] =
+            (int) (1 + (randomPtr.random_generate() % (glb.MAX_INT_WEIGHT-1)));
+          if(SDGdataPtr.intWeight[i] < 0)
+            SDGdataPtr.intWeight[i] *= -1; //TODO fix the long->int casting error that creates negative numbers for randomPtr
+        } else {
+          SDGdataPtr.intWeight[i] = -1;
+          numStrWtEdges++;
+        }
+      }
+
+      {
+        int t = 0;
+        for (int i = 0; i < numEdgesPlaced; i++) {
+          if (SDGdataPtr.intWeight[i] < 0) {
+            SDGdataPtr.intWeight[i] = -t;
+            t++;
+          }
+        }
+      }
+
+      SDGdataPtr.strWeight = new char[numStrWtEdges * glb.MAX_STRLEN];
+
+      for (int i = 0; i < numEdgesPlaced; i++) {
+        if (SDGdataPtr.intWeight[i] <= 0) {
+          for (int j = 0; j < glb.MAX_STRLEN; j++) {
+            SDGdataPtr.strWeight[(-SDGdataPtr.intWeight[i])*glb.MAX_STRLEN+j] =
+              (char) (1 + randomPtr.random_generate() % 127);
+          }
+        }
+      }
+
+      /*
+       * Choose SOUGHT STRING randomly if not assigned
+       */
+
+      if (glb.SOUGHT_STRING.length != glb.MAX_STRLEN) {
+        glb.SOUGHT_STRING = new char[glb.MAX_STRLEN];
+      }
+
+      {
+        int t = (int) (randomPtr.random_generate() % numStrWtEdges);
+        for (int j = 0; j < glb.MAX_STRLEN; j++) {
+          glb.SOUGHT_STRING[j] =
+            SDGdataPtr.strWeight[(t*glb.MAX_STRLEN+j)];
+        }
+      }
+
+      /*
+       * STEP 5: Permute Vertices
+       */
+
+      for (int i = 0; i < numEdgesPlaced; i++) {
+        startVertex[i] = permV[(startVertex[i])];
+        endVertex[i] = permV[(endVertex[i])];
+      }
+
+      /*
+       * STEP 6: Sort Vertices
+       */
+
+      /*
+       * Radix sort with StartVertex as primary key
+       */
+
+      numByte = numEdgesPlaced;
+      SDGdataPtr.startVertex = new int[numByte];
+      SDGdataPtr.endVertex = new int[numByte];
+
+      radixsort.all_radixsort_node_aux_s3_seq(numEdgesPlaced,
+          startVertex,
+          SDGdataPtr.startVertex,
+          endVertex,
+          SDGdataPtr.endVertex);
+
+      if (glb.SCALE < 12) {
+
+        /*
+         * Sort with endVertex as secondary key
+         */
+
+        int i0 = 0;
+        int i1 = 0;
+        int i = 0;
+
+        while (i < numEdgesPlaced) {
+
+          for (i = i0; i < numEdgesPlaced; i++) {
+            if (SDGdataPtr.startVertex[i] !=
+                SDGdataPtr.startVertex[i1])
+            {
+              i1 = i;
+              break;
+            }
+          }
+
+          for (int j = i0; j < i1; j++) {
+            for (int k = j+1; k < i1; k++) {
+              if (SDGdataPtr.endVertex[k] <
+                  SDGdataPtr.endVertex[j])
+              {
+                int t = SDGdataPtr.endVertex[j];
+                SDGdataPtr.endVertex[j] = SDGdataPtr.endVertex[k];
+                SDGdataPtr.endVertex[k] = t;
+              }
+            }
+          }
+
+          if (SDGdataPtr.startVertex[i0] != glb.TOT_VERTICES-1) {
+            i0 = i1;
+          } else {
+            for (int j=i0; j<numEdgesPlaced; j++) {
+              for (int k=j+1; k<numEdgesPlaced; k++) {
+                if (SDGdataPtr.endVertex[k] <
+                    SDGdataPtr.endVertex[j])
+                {
+                  int t = SDGdataPtr.endVertex[j];
+                  SDGdataPtr.endVertex[j] = SDGdataPtr.endVertex[k];
+                  SDGdataPtr.endVertex[k] = t;
+                }
+              }
+            }
+          }
+
+        } /* while i < numEdgesPlaced */
+
+      } else {
+
+        int[] tempIndex = new int[glb.TOT_VERTICES + 1];
+
+        /*
+         * Update degree of each vertex
+         */
+
+        tempIndex[0] = 0;
+        tempIndex[glb.TOT_VERTICES] = numEdgesPlaced;
+        int i0 = 0;
+
+        for (int i=0; i < glb.TOT_VERTICES; i++) {
+          tempIndex[i+1] = tempIndex[i];
+          for (int j = i0; j < numEdgesPlaced; j++) {
+            if (SDGdataPtr.startVertex[j] !=
+                SDGdataPtr.startVertex[i0])
+            {
+              if (SDGdataPtr.startVertex[i0] == i) {
+                tempIndex[i+1] = j;
+                i0 = j;
+                break;
+              }
+            }
+          }
+        }
+
+        /*
+         * Insertion sort for now, replace with something better later on
+         */
+        for (int i = 0; i < glb.TOT_VERTICES; i++) {
+          for (int j = tempIndex[i]; j < tempIndex[i+1]; j++) {
+            for (int k = (j + 1); k < tempIndex[i+1]; k++) {
+              if (SDGdataPtr.endVertex[k] <
+                  SDGdataPtr.endVertex[j])
+              {
+                int t = SDGdataPtr.endVertex[j];
+                SDGdataPtr.endVertex[j] = SDGdataPtr.endVertex[k];
+                SDGdataPtr.endVertex[k] = t;
+              }
+            }
+          }
+        }
+      } /* SCALE >= 12 */
     }
 
 
@@ -303,7 +920,7 @@ Barrier.enterBarrier();
       CreatePartition.createPartition(0, totCliques, myId, numThread, lss);
 
       for (int i_clique = lss.i_start; i_clique < lss.i_stop; i_clique++) {
-        
+
         /*
          * Get current clique parameters
          */
@@ -355,7 +972,7 @@ Barrier.enterBarrier();
           int randNumEdges = (int) (randomPtr.random_generate() % (2*i_cliqueSize*glb.MAX_PARAL_EDGES));
           if(randNumEdges < 0)
             randNumEdges *= -1; //TODO fix the long->int casting error that creates negative numbers for randomPtr
-          //int i_paralEdge;
+
           for (int i_paralEdge = 0; i_paralEdge < randNumEdges; i_paralEdge++) {
             int i = (int) (randomPtr.random_generate() % i_cliqueSize);
             if(i < 0)
@@ -530,7 +1147,6 @@ Barrier.enterBarrier();
             }
 
             if (t == -1) {
-              //int m;
               int m;
               for (m = (l + 1); m < h; m++) {
                 if (tempVertex2 < firstVsInCliques[m]) {
@@ -547,7 +1163,6 @@ Barrier.enterBarrier();
                 (int) (randomPtr.random_generate() % glb.MAX_PARAL_EDGES + 1);
               if(randNumEdges < 0)
                 randNumEdges *= -1; //TODO fix the long->int casting error that creates negative numbers for randomPtr
-              //int j;
               for (int j = 0; j < randNumEdges; j++) {
                 startV[i_edgePtr] = tempVertex1;
                 endV[i_edgePtr] = tempVertex2;
@@ -717,8 +1332,7 @@ Barrier.enterBarrier();
         if (SDGdataPtr.intWeight[i] <= 0) {
           for (int j = 0; j < glb.MAX_STRLEN; j++) {
             SDGdataPtr.strWeight[(-SDGdataPtr.intWeight[i])*glb.MAX_STRLEN+j] =
-              //     (char) (1 + PRANDOM_GENERATE(stream) % 127);
-              //FIXME
+              //FIXME if needed
               (char) (1 + (randomPtr.random_generate() % 127));
           }
         }
@@ -732,16 +1346,14 @@ Barrier.enterBarrier();
 
         if (glb.SOUGHT_STRING.length != glb.MAX_STRLEN) {
           glb.SOUGHT_STRING = new char[glb.MAX_STRLEN];
-          //glb.SOUGHT_STRING = new String(MAX_STRLEN);
         }
 
         int t = (int) (randomPtr.random_generate() % numStrWtEdges);
         if (t < 0) 
           t *= -1; //TODO fix the long->int casting error that creates negative numbers for randomPtr
         for (int j = 0; j < glb.MAX_STRLEN; j++) {
-          //FIXME
           glb.SOUGHT_STRING[j] =
-             SDGdataPtr.strWeight[(t*glb.MAX_STRLEN+j)];
+            SDGdataPtr.strWeight[(t*glb.MAX_STRLEN+j)];
         }
 
       }
@@ -775,8 +1387,6 @@ Barrier.enterBarrier();
 
       Barrier.enterBarrier();
 
-      //Alg_Radix_Smp radixsort = new Alg_Radix_Smp(myId, numThread);
-      //radixsort.all_radixsort_node_aux_s3(numEdgesPlaced,
       Alg_Radix_Smp.all_radixsort_node_aux_s3(myId,
           numThread,
           numEdgesPlaced,
@@ -811,9 +1421,7 @@ Barrier.enterBarrier();
               }
             }
 
-            //int j;
             for (int j = i0; j < i1; j++) {
-              //int k;
               for (int k = j+1; k < i1; k++) {
                 if (SDGdataPtr.endVertex[k] <
                     SDGdataPtr.endVertex[j])
@@ -828,9 +1436,7 @@ Barrier.enterBarrier();
             if (SDGdataPtr.startVertex[i0] != glb.TOT_VERTICES-1) {
               i0 = i1;
             } else {
-              //int j;
               for (int j=i0; j<numEdgesPlaced; j++) {
-                //int k;
                 for (int k=j+1; k<numEdgesPlaced; k++) {
                   if (SDGdataPtr.endVertex[k] <
                       SDGdataPtr.endVertex[j])
@@ -866,7 +1472,6 @@ Barrier.enterBarrier();
 
           for (int i=0; i < glb.TOT_VERTICES; i++) {
             tempIndex[i+1] = tempIndex[i];
-            //int j;
             for (int j = i0; j <  numEdgesPlaced; j++) {
               if (SDGdataPtr.startVertex[j] !=
                   SDGdataPtr.startVertex[i0])

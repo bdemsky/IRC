@@ -124,7 +124,6 @@ public class ComputeGraph {
       }
     }
 
-
   /* =============================================================================
    * computeGraph
    * =============================================================================
@@ -133,12 +132,7 @@ public class ComputeGraph {
     computeGraph (int myId, int numThread, Globals glb, ComputeGraph computeGraphArgs) 
 
     {
-      Barrier.enterBarrier();
 
-      //Graph GPtr = computeGraphArgs.GPtr;
-      //GraphSDG SDGdataPtr = computeGraphArgs.SDGdata;
-
-      //int j;
       int maxNumVertices = 0;
       int numEdgesPlaced = computeGraphArgs.SDGdataPtr.numEdgesPlaced;
 
@@ -154,10 +148,10 @@ public class ComputeGraph {
           maxNumVertices = computeGraphArgs.SDGdataPtr.startVertex[i];
         }
       }
-
+      
       atomic {
         int tmp_maxNumVertices = computeGraphArgs.global_maxNumVertices;
-        int new_maxNumVertices = CreatePartition.MAX( tmp_maxNumVertices, maxNumVertices) + 1;
+        int new_maxNumVertices = ((CreatePartition.MAX(tmp_maxNumVertices, maxNumVertices)) + 1);
         computeGraphArgs.global_maxNumVertices = new_maxNumVertices;
       }
 
@@ -166,7 +160,12 @@ public class ComputeGraph {
       maxNumVertices = computeGraphArgs.global_maxNumVertices;
 
       if (myId == 0) {
-
+        //FIXME temp fix for array sizes equal to pow(2, glb.SCALE)
+        {
+        int realMaxNumVertices = (int) (Math.pow(2, glb.SCALE));
+        if(maxNumVertices == realMaxNumVertices);
+          maxNumVertices++;
+        }
         computeGraphArgs.GPtr.numVertices = maxNumVertices;
         computeGraphArgs.GPtr.numEdges    = numEdgesPlaced;
         computeGraphArgs.GPtr.intWeight   = computeGraphArgs.SDGdataPtr.intWeight;
@@ -181,7 +180,6 @@ public class ComputeGraph {
         }
 
         computeGraphArgs.GPtr.outDegree = new int[computeGraphArgs.GPtr.numVertices];
-
         computeGraphArgs.GPtr.outVertexIndex = new int[computeGraphArgs.GPtr.numVertices];
       }
 
@@ -270,7 +268,9 @@ public class ComputeGraph {
 
       Barrier.enterBarrier();
 
+
       outVertexListSize = computeGraphArgs.global_outVertexListSize;
+
 
       if (myId == 0) {
         computeGraphArgs.GPtr.numDirectedEdges = outVertexListSize;
@@ -314,7 +314,7 @@ public class ComputeGraph {
                 int ii =  (computeGraphArgs.GPtr.outVertexIndex[i]);
                 int r = 0;
                 computeGraphArgs.GPtr.paralEdgeIndex[ii] = i0;
-                computeGraphArgs.GPtr.outVertexList[ii] = computeGraphArgs.SDGdataPtr.endVertex[ i0];
+                computeGraphArgs.GPtr.outVertexList[ii] = computeGraphArgs.SDGdataPtr.endVertex[i0];
                 r++;
                 for (int t =  (i0+1); t < j; t++) {
                   if (computeGraphArgs.SDGdataPtr.endVertex[t] !=
@@ -433,7 +433,7 @@ public class ComputeGraph {
               } else {
                 /* Use auxiliary array to store the implied edge */
                 /* Create an array if it's not present already */
-                int[] a = null;
+                int[] a;
                 if ((inDegree % glb.MAX_CLUSTER_SIZE) == 0) {
                   a = new int[glb.MAX_CLUSTER_SIZE];
                   auxArr[v] = a;
@@ -446,6 +446,7 @@ public class ComputeGraph {
           }
         }
       } /* for i */
+
 
       Barrier.enterBarrier();
 
