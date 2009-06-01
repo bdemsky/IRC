@@ -1718,11 +1718,16 @@ unary_expression_not_plus_minus ::=
 	|	cast_expression:exp {: RESULT=exp; :}
 	;
 cast_expression ::=
-		LPAREN primitive_type:type
-	//dims_opt 
+		LPAREN primitive_type:type dims_opt:dims
 		RPAREN unary_expression:exp {: 
 		ParseNode pn=new ParseNode("cast1");
+if (dims.intValue()==0)
 		pn.addChild("type").addChild(type);
+else {
+		ParseNode arrayt=pn.addChild("type").addChild("array");
+		pn.addChild("basetype").addChild(type);
+		pn.addChild("dims").setLiteral(dims);
+}
 		pn.addChild("exp").addChild(exp);
 		RESULT=pn;
 	:}
