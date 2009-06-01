@@ -4,7 +4,11 @@ import IR.Tree.SESENode;
 import java.util.*;
 
 public class FlatSESEEnterNode extends FlatNode {
+  
+  // SESE class identifiers should be numbered
+  // sequentially from 0 to 1-(total # SESE's)
   private static int identifier=0;
+
   private int id;
   protected FlatSESEExitNode exit;
   protected SESENode treeNode;

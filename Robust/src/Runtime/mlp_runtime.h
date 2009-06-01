@@ -2,6 +2,10 @@
 #define __MLP_RUNTIME__
 
 
+#include <pthread.h>
+#include "Queue.h"
+
+
 // value mode means the variable's value
 // is present in the SESEvar struct
 #define SESEvar_MODE_VALUE   3001
@@ -27,14 +31,15 @@ struct SESEvar {
   // in this location, which can be accessed
   // as a variety of types
   union {
-    char   sesetype_byte;
-    char   sesetype_boolean;
-    short  sesetype_short;
-    int    sesetype_int;
-    long   sesetype_long;
-    char   sesetype_char;
-    float  sesetype_float;
-    double sesetype_double;
+    char      sesetype_byte;
+    int       sesetype_boolean;
+    short     sesetype_short;
+    int       sesetype_int;
+    long long sesetype_long;
+    short     sesetype_char;
+    float     sesetype_float;
+    double    sesetype_double;
+    void*     sesetype_object;
   };
   
   // a statically or dynamically known SESE
@@ -65,16 +70,26 @@ struct SESErecord {
   // the primitives will be passed out of the
   // above var array at the call site
   void* paramStruct;
+
+  // use a list of SESErecords and a lock to let
+  // consumers tell this SESE who wants values
+  // forwarded to it
+  pthread_mutex_t forwardListLock;// = PTHREAD_MUTUX_INITIALIZER;
+  struct Queue* forwardList;
 };
 
 
 void mlpInit();
 
 struct SESErecord* mlpGetCurrent();
+struct SESErecord* mlpSchedule();
 
 void mlpIssue     ( struct SESErecord* sese );
 void mlpStall     ( struct SESErecord* sese );
 void mlpNotifyExit( struct SESErecord* sese );
+
+
+extern struct SESErecord* rootsese;
 
 
 #endif /* __MLP_RUNTIME__ */

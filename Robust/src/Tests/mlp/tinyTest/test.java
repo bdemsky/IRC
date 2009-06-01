@@ -1,32 +1,6 @@
 public class Test {
 
   public static void main( String args[] ) {
-    /*
-    int n = 10;
-      
-    sese top {     
-      int x = 0;
-      
-      for( int i = 0; i < 3; ++i ) {
-	sese iter {
-	  x = x + i;
-	}
-      }      	
-      
-      int j = x + n;
-    }
-    
-    int z = n + j;
-    */
-
-
-
-
-
-
-
-
-
     
     int x = 1;
     int y = 1;
@@ -38,7 +12,7 @@ public class Test {
       }      
     }
 
-    /*
+    /*  ADD BACK IN LATER, TO TEST STALLS
     // shouldn't cause a stall
     int z = x;
 
@@ -51,8 +25,12 @@ public class Test {
     z = z + 1;
     */
 
-    // expecting x=3, y=3
-    System.out.println( "x="+x+", y="+y );
+    // see that values from sese fi are
+    // forwarded to this sibling
+    sese fo {
+      // expecting x=3, y=3
+      System.out.println( "x="+x+", y="+y );
+    }
 
 
 
@@ -62,7 +40,9 @@ public class Test {
     //afunc( i );
   }
 
+  /*
   public static void afunc( Integer i ) {
     i = null;
   }
+  */
 }

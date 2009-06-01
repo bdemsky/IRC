@@ -196,6 +196,11 @@ public class BuildCode {
     }
 
     /* Build the actual methods */
+    if( state.MLP ) {
+      outmethod.println("/* GET RID OF THIS LATER */");
+      outmethod.println("struct SESErecord* tempSESE;");
+      outmethod.println("struct SESErecord* tempParentSESE;");
+    }
     outputMethods(outmethod);
 
     // Output function prototypes and structures for SESE's and code
@@ -292,6 +297,10 @@ public class BuildCode {
 
     if (state.MLP) {
       outmethod.println("  mlpInit();");
+
+      FlatSESEEnterNode rootSESE = mlpa.getRootSESE();
+      
+      outmethod.println("  ");
     }
 
     MethodDescriptor md=typeutil.getMain();
@@ -1550,10 +1559,7 @@ public class BuildCode {
     ParamsObject objectparams = (ParamsObject)paramstable.get(bogusmd);
 
     // first copy SESE record into param structure
-    output.println("      if( parentIsRoot ) {");
-    output.println("        ");
-    output.println("        ");
-    output.println("      } else {");
+    output.println("      if( parentIsRoot ) {");    
     output.println("        ");
     output.println("      }");
 
@@ -2269,12 +2275,26 @@ public class BuildCode {
       return;
     }
     
+    output.println("  tempSESE       = (struct SESErecord*) malloc( sizeof( struct SESErecord ) );");
+    output.println("  tempSESE->vars = (struct SESEvar*)    malloc( sizeof( struct SESEvar    ) * "+
+                   +fsen.numParameters()+
+                   ");");
+
+    for( int i = 0; i < fsen.numParameters(); ++i ) {
+      TempDescriptor td   = fsen.getParameter( i );
+      TypeDescriptor type = td.getType();
+      output.println("  tempSESE->vars["+i+"].sesetype_"+type.toString()+" = "+td+";");
+    }
+
+    output.println("  mlpIssue( tempSESE );");
+    output.println("  tempSESE       = mlpSchedule();");
+    output.println("  tempParentSESE = mlpGetCurrent();");
     output.println("  invokeSESEmethod("+
                    fsen.getIdentifier()+", "+
-                   "malloc( sizeof( struct SESErecord ) ), "+
-                   "NULL"+
+                   "tempSESE, "+
+                   "tempParentSESE"+
                    ");"
-                   );
+                   );    
   }
 
   public void generateFlatSESEExitNode(FlatMethod fm,  LocalityBinding lb, FlatSESEExitNode fsen, PrintWriter output) {

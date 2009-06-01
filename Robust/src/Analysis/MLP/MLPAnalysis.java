@@ -30,10 +30,19 @@ public class MLPAnalysis {
   private Hashtable< FlatNode, Set<TempDescriptor>      > notAvailableResults;
   private Hashtable< FlatNode, CodePlan                 > codePlans;
 
+  private static final int maxSESEage = 2;
 
   // use these methods in BuildCode to have access to analysis results
   public Set<FlatSESEEnterNode> getAllSESEs() {
     return allSESEs;
+  }
+
+  public FlatSESEEnterNode getRootSESE() {
+    return rootSESE;
+  }
+
+  public int getMaxSESEage() {
+    return maxSESEage;
   }
 
   public CodePlan getCodePlan( FlatNode fn ) {

@@ -267,9 +267,11 @@ JAVAOPTS="$JAVAOPTS -dcopts"
 elif [[ $1 = '-mlp' ]]
 then
 JAVAOPTS="$JAVAOPTS -mlp"
+EXTRAOPTIONS="$EXTRAOPTIONS -lpthread"
 elif [[ $1 = '-mlpdebug' ]]
 then
 JAVAOPTS="$JAVAOPTS -mlpdebug"
+EXTRAOPTIONS="$EXTRAOPTIONS -lpthread"
 elif [[ $1 = '-check' ]]
 then
 CHECKFLAG=true
