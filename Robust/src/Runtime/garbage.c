@@ -39,6 +39,11 @@ extern struct ctable *reverse;
 extern struct RuntimeHash *fdtoobject;
 #endif
 
+#ifdef GARBAGESTATS
+#define MAXSTATS 500
+long garbagearray[MAXSTATS];
+#endif
+
 #if defined(THREADS) || defined(DSTM) || defined(STM)
 int needtocollect=0;
 struct listitem * list=NULL;
@@ -284,6 +289,14 @@ void collect(struct garbagelist * stackptr) {
       break; /* Have all other threads stopped */
     }
     pthread_cond_wait(&gccond, &gclistlock);
+  }
+#endif
+
+#ifdef GARBAGESTATS
+  {
+    int i;
+    for(i=0;i<MAXSTATS;i++)
+      garbagearray[i]=0;
   }
 #endif
 
@@ -748,6 +761,13 @@ void * mygcmalloc(struct garbagelist * stackptr, int size) {
     printf("Garbage collected: Old bytes: %u\n", curr_heapptr-curr_heapbase);
     printf("New space: %u\n", to_heapptr-to_heapbase);
     printf("Total space: %u\n", to_heaptop-to_heapbase);
+    {
+      int i;
+      for(i=0;i<MAXSTATS;i++) {
+	if (garbagearray[i]!=0)
+	  printf("Type=%d Size=%u\n", i, garbagearray[i]);
+      }
+    }
 #endif
     /* Flip to/curr heaps */
     {
@@ -809,6 +829,9 @@ int gc_createcopy(void * orig, void ** copy_ptr) {
       void *newobj=tomalloc(size);
       memcpy(newobj, orig, size);
 #endif
+#ifdef GARBAGESTATS
+      garbagearray[type]+=size;
+#endif
       ((int *)orig)[0]=-1;
       ((void **)orig)[1]=newobj;
       *copy_ptr=newobj;
@@ -828,7 +851,9 @@ int gc_createcopy(void * orig, void ** copy_ptr) {
       void *newobj=tomalloc(size);
       memcpy(newobj, orig, size);
 #endif
-
+#ifdef GARBAGESTATS
+      garbagearray[type]+=size;
+#endif
       ((int *)orig)[0]=-1;
       ((void **)orig)[1]=newobj;
       *copy_ptr=newobj;
