@@ -19,6 +19,7 @@ public class GlobalFieldType {
   Hashtable<MethodDescriptor, Set<FieldDescriptor>> fields;
   Hashtable<MethodDescriptor, Set<TypeDescriptor>> arrays;
   HashSet<MethodDescriptor> containsAtomic;
+  HashSet<MethodDescriptor> containsBarrier;
   
   public GlobalFieldType(CallGraph cg, State st, MethodDescriptor root) {
     this.cg=cg;
@@ -27,6 +28,7 @@ public class GlobalFieldType {
     this.fields=new Hashtable<MethodDescriptor, Set<FieldDescriptor>>();
     this.arrays=new Hashtable<MethodDescriptor, Set<TypeDescriptor>>();
     this.containsAtomic=new HashSet<MethodDescriptor>();
+    this.containsBarrier=new HashSet<MethodDescriptor>();
     doAnalysis();
   }
   private void doAnalysis() {
@@ -86,6 +88,10 @@ public class GlobalFieldType {
 	    if (containsAtomic.add(md))
 	      changed=true;
 	  }
+	  if (containsBarrier.contains(md2)) {
+	    if (containsBarrier.add(md))
+	      changed=true;
+	  }
 	}
       }
     }
@@ -93,6 +99,10 @@ public class GlobalFieldType {
 
   public boolean containsAtomic(MethodDescriptor md) {
     return containsAtomic.contains(md);
+  }
+
+  public boolean containsBarrier(MethodDescriptor md) {
+    return containsBarrier.contains(md);
   }
 
   public Set<FieldDescriptor> getFields(MethodDescriptor md) {
@@ -118,6 +128,11 @@ public class GlobalFieldType {
 	fields.get(md).add(fsfn.getField());
       } else if (fn.kind()==FKind.FlatAtomicEnterNode) {
 	containsAtomic.add(md);
+      } else if (fn.kind()==FKind.FlatCall) {
+	MethodDescriptor mdcall=((FlatCall)fn).getMethod();
+	if (mdcall.getSymbol().equals("enterBarrier")&&
+	    mdcall.getClassDesc().getSymbol().equals("Barrier"))
+	  containsBarrier.add(md);
       }
     }
   }

@@ -78,7 +78,7 @@ public class LoopInvariant {
 	    fields.addAll(f);
 	  if (t!=null)
 	    types.addAll(t);
-	  if (gft.containsAtomic(md)) {
+	  if (gft.containsAtomic(md)||gft.containsBarrier(md)) {
 	    unsafe=true;
 	  }
 	} else if (fn.kind()==FKind.FlatSetFieldNode) {

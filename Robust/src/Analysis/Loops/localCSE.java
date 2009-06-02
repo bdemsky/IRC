@@ -132,7 +132,7 @@ public class localCSE {
 	  dstf.set.add(src);
 	  HashSet<FieldDescriptor> fields=new HashSet<FieldDescriptor>();
 	  fields.add(fsfn.getField());
-	  kill(table, fields, null, false);
+	  kill(table, fields, null, false, false);
 	  table.put(src, dstf);
 	  break;
 	}
@@ -146,7 +146,7 @@ public class localCSE {
 	  dstf.set.add(src);
 	  HashSet<TypeDescriptor> arrays=new HashSet<TypeDescriptor>();
 	  arrays.add(fsen.getDst().getType());
-	  kill(table, null, arrays, false);
+	  kill(table, null, arrays, false, false);
 	  table.put(src, dstf);
 	  break;
 	}
@@ -156,7 +156,7 @@ public class localCSE {
 	  MethodDescriptor md=fc.getMethod();
 	  Set<FieldDescriptor> fields=gft.getFields(md);
 	  Set<TypeDescriptor> arrays=gft.getArrays(md);
-	  kill(table, fields, arrays, gft.containsAtomic(md));
+	  kill(table, fields, arrays, gft.containsAtomic(md), gft.containsBarrier(md));
 	}
 	default: {
 	  TempDescriptor[] writes=fn.writesTemps();
@@ -168,11 +168,14 @@ public class localCSE {
       } while(fn.numPrev()==1);
     }
   }
-  public void kill(Hashtable<LocalExpression, Group> tab, Set<FieldDescriptor> fields, Set<TypeDescriptor> arrays, boolean isAtomic) {
+  public void kill(Hashtable<LocalExpression, Group> tab, Set<FieldDescriptor> fields, Set<TypeDescriptor> arrays, boolean isAtomic, boolean isBarrier) {
     Set<LocalExpression> eset=tab.keySet();
     for(Iterator<LocalExpression> it=eset.iterator();it.hasNext();) {
       LocalExpression e=it.next();
-      if (isAtomic&&(e.td!=null||e.f!=null)) {
+      if (isBarrier) {
+	//make Barriers kill everything
+	it.remove();
+      } else if (isAtomic&&(e.td!=null||e.f!=null)) {
 	Group g=tab.get(e);
 	g.set.remove(e);
 	it.remove();

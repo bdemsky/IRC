@@ -57,7 +57,7 @@ public class CSE {
 	  MethodDescriptor md=fc.getMethod();
 	  Set<FieldDescriptor> fields=gft.getFields(md);
 	  Set<TypeDescriptor> arrays=gft.getArrays(md);
-	  killexpressions(tab, fields, arrays, gft.containsAtomic(md));
+	  killexpressions(tab, fields, arrays, gft.containsAtomic(md)||gft.containsBarrier(md));
 	  break;
 	}
       case FKind.FlatOpNode:
