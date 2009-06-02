@@ -20,6 +20,12 @@ public class constructEntry {
     }
     
     boolean equals(constructEntry copy) {
-      return ((segment == copy.segment) && (isStart == copy.isStart) && (endHash == copy.endHash) && (startPtr == copy.startPtr) && (nextPtr == copy.nextPtr) && (endPtr == copy.endPtr) && (overlap == copy.overlap) && (length == copy.length));
+/*      int i = 0;
+      for(i = 0; i < length; i++) {
+        if(segment[i] != copy.segment[i]) {
+          return false;
+        }
+      }*/
+      return ((segment.compareTo(copy.segment) == 0) && (isStart == copy.isStart) && (endHash == copy.endHash) && (startPtr == copy.startPtr) && (nextPtr == copy.nextPtr) && (endPtr == copy.endPtr) && (overlap == copy.overlap) && (length == copy.length));
     }
 }

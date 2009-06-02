@@ -37,7 +37,7 @@ public class Segments {
         for (i = 0; i < minNum; i++) {
             int j = (int)(randomPtr.random_generate(randomPtr) % numStart);
             boolean status = startBitmapPtr.set(j);
-            strings[i] = geneString.substring((int)j, (int)(j+length));
+            strings[i] = geneString.substring((int)j, (int)(j+length)); // WRITE SUBSTRING FUNCTION
             contentsPtr.addElement(strings[i]);
         }
         
@@ -47,7 +47,7 @@ public class Segments {
         i = 0;
         if (!startBitmapPtr.isSet(i)) {
             String string;
-            string = geneString.subString((int)i, (int)(i+length));
+            string = geneString.subString((int)i, (int)(i+length)); // USE BYTE SUBSTRING FUNCTION
             contentsPtr.addElement(string);
             startBitmapPtr.set(i);
         }
@@ -64,7 +64,7 @@ public class Segments {
             if (i == i_stop) {
                 /* Found big enough hole */
                 i = i - 1;
-                String string = geneString.subString((int)i, (int)(i+length));
+                String string = geneString.subString((int)i, (int)(i+length)); // USE BYTE SUBSTRING FUNCTION
                 contentsPtr.addElement(string);
                 startBitmapPtr.set(i);
             }
@@ -77,4 +77,14 @@ public class Segments {
 //        System.out.println("");
         
     }
+    
+/*    static byte[] byteSubstring(byte a[], int start, int length) {
+      byte substring[] = new byte[length];
+      int i = start;
+      for(i = start; i < start+length; i++) {
+        substring[i] = a[start+i];
+      }
+      return substring;
+    }    
+    */
 }

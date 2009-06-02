@@ -176,6 +176,7 @@ public class Genome extends Thread {
     /* Check result */
     {
         String sequence = g.sequencerPtr.sequence;
+//        System.out.println("sequence: " + sequence);
         boolean result = (gene.compareTo(sequence) == 0) ? true:false;
         System.out.println("Sequence matches gene: " + (result ? "yes" : "no"));
         if (result) {
@@ -197,6 +198,19 @@ public class Genome extends Thread {
 //    MAIN_RETURN(0);
   }
   
-
-
+/*  static int byteCompareTo(byte a[], byte b[]) {
+    int i = 0;
+    while(a[i] != null) {
+      if(b[i] == null) {
+        return 1;
+      } else if(a[i] < b[i]) {
+        return -1;
+      } else {
+        return 1;
+      }
+    }
+      
+    return 0;
+  }
+*/
 }

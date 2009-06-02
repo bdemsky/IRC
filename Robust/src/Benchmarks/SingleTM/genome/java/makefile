@@ -9,7 +9,7 @@ SRC=${MAINCLASS}.java \
   ../../../../ClassLibrary/JavaSTM/Barrier.java \
   Sequencer.java \
   Table.java
-FLAGS=-mainclass ${MAINCLASS} -thread -nooptimize -debug -dcopts -joptimize
+FLAGS=-mainclass ${MAINCLASS} -thread -nooptimize -debug -dcopts -joptimize -profile -abcclose
 
 default:
 	../../../../buildscript ${FLAGS} -o ${MAINCLASS} ${SRC}
