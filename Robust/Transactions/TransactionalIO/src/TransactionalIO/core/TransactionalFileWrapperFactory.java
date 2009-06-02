@@ -19,15 +19,10 @@ public class TransactionalFileWrapperFactory {
 
     private TransactionalFileWrapperFactory() {
     }
-  //  private static HashMap<INode, Adapter> filemappings;
+  //  private static HashMap<INode, GlobalInodeState> filemappings;
     public static HashMap filemappings = new HashMap();
     
     private static native long getINodeNative(String filename);
-    
-   // static{
-        //System.load("/home/navid/libnav.so");
-       // System.load("/home/navid/libkooni.so");
-  //  }
     
     static INode getINodefromFileName(String filename) {
         return new INode(getINodeNative(filename), filename);
@@ -37,6 +32,7 @@ public class TransactionalFileWrapperFactory {
     
     public synchronized static GlobalINodeState getTateransactionalFileINodeState(INode inode) {
             
+        
         return (GlobalINodeState)filemappings.get(inode.getNumber());
             
     }
@@ -46,7 +42,6 @@ public class TransactionalFileWrapperFactory {
         if (inodenumber != -1)
             
             if (filemappings.containsKey(inode.getNumber())) {
-             //   System.out.println("here");
                 return (GlobalINodeState)filemappings.get(inode.getNumber());
 
             } else {

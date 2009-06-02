@@ -99,13 +99,13 @@ public class Conversions {
 
     public static byte[] long2bytes( long value ){
         byte[] result = new byte[8];
-        result[0] = (byte)(value >> 56);
-        result[1] = (byte)(value >> 48);
-        result[2] = (byte)(value >> 40);
-        result[3] = (byte)(value >> 32);
-        result[4] = (byte)(value >> 24);
-        result[5] = (byte)(value >> 16);
-        result[6] = (byte)(value >> 8);
+        result[0] = (byte)(value >>> 56);
+        result[1] = (byte)(value >>> 48);
+        result[2] = (byte)(value >>> 40);
+        result[3] = (byte)(value >>> 32);
+        result[4] = (byte)(value >>> 24);
+        result[5] = (byte)(value >>> 16);
+        result[6] = (byte)(value >>> 8);
         result[7] = (byte)(value);
         return result;
     }
@@ -118,10 +118,10 @@ public class Conversions {
 
 	public static byte[] int2bytes( int value ){
 		byte[] result = new byte[4];
-		result[0] = (byte)(value >> 24);
-		result[1] = (byte)(value >> 16);
-		result[2] = (byte)(value >> 8);
-		result[3] = (byte)(value);
+		result[0] = (byte)(value >>> 24);
+		result[1] = (byte)(value >>> 16);
+		result[2] = (byte)(value >>> 8);
+		result[3] = (byte)(value >>> 0);
 		return result;
 	}
 

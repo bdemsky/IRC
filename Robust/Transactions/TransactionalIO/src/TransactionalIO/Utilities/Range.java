@@ -11,8 +11,8 @@ package TransactionalIO.Utilities;
  */
 public class Range implements Comparable {
 
-    private long start;
-    private long end;
+    public long start;
+    public long end;
 
     public Range() {
     }
@@ -22,22 +22,8 @@ public class Range implements Comparable {
         this.end = end;
     }
 
-    public long getEnd() {
-        return end;
-    }
-
-    public void setEnd(long end) {
-        this.end = end;
-    }
-
-    public long getStart() {
-        return start;
-    }
-
-    public void setStart(long start) {
-        this.start = start;
-    }
-
+  
+  
     public Range intersection(Range secondrange) {
         if ((secondrange.start <= this.start) && (this.start <= secondrange.end)) {
             return new Range(this.start, Math.min(this.end, secondrange.end));
@@ -65,6 +51,14 @@ public class Range implements Comparable {
 
     public boolean includes(Range secondrange) {
         if (this.start <= secondrange.start && secondrange.end <= this.end) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+    
+    public boolean includes(long secondrangestart, long secondrangeend) {
+        if (this.start <= secondrangestart && secondrangeend <= this.end) {
             return true;
         } else {
             return false;

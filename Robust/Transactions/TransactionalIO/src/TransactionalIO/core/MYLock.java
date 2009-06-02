@@ -31,22 +31,10 @@ public class MYLock {
                 offsetlocked = true;
             }
 
-            /*if (me.getStatus() == Status.ACTIVE) {                        //locking the offset
-            offsetlock.writeLock().lock();
-            locked = true;
-            }*/
 
             if (me.getStatus() != Status.ACTIVE) {
-                /* if (locked) {
-                if (me.toholoffsetlocks[me.offsetcount] == null) {
-                me.toholoffsetlocks[me.offsetcount] = new ReentrantReadWriteLock();
-                }
-                me.toholoffsetlocks[me.offsetcount] = offsetlock;
-                me.offsetcount++;
-                //me.getHeldoffsetlocks().add(offsetlock);
-                }*/
-
                 offsetlocked = false;
+		notifyAll();
                 throw new AbortedException();
             }
         } catch (InterruptedException ex) {

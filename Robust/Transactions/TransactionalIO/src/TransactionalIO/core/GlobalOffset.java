@@ -6,6 +6,7 @@
 package TransactionalIO.core;
 
 import java.util.Vector;
+import java.util.ArrayList;
 
 /**
  *
@@ -14,8 +15,7 @@ import java.util.Vector;
 public class GlobalOffset {
     private long offsetnumber;
     //private Vector<ExtendedTransaction> offsetReaders;
-    private Vector offsetReaders = new Vector();
-    private ExtendedTransaction offsetOwner;
+    private ArrayList offsetReaders = new ArrayList();
 
     public GlobalOffset(long offsetnumber) {
         this.offsetnumber = offsetnumber;
@@ -26,23 +26,17 @@ public class GlobalOffset {
         return offsetnumber;
     }
 
-    public ExtendedTransaction getOffsetOwner(){
-        return offsetOwner;
-    }
-    
-    public void setOffsetOwner(ExtendedTransaction ex){
-        offsetOwner = ex;
-    }
+  
     
     public void setOffsetnumber(long offsetnumber) {
         this.offsetnumber = offsetnumber;
     }
 
-    public Vector getOffsetReaders() {
+    public ArrayList getOffsetReaders() {
         return offsetReaders;
     }
 
-    public void setOffsetReaders(Vector offsetReaders) {
+    public void setOffsetReaders(ArrayList offsetReaders) {
         this.offsetReaders = offsetReaders;
     }
     

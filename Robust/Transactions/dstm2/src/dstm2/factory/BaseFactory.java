@@ -153,8 +153,8 @@ public abstract class BaseFactory<T> implements Factory<T> {
     	  !method.getDeclaringClass().getCanonicalName().contains("dstm2.util.LinkedList") &&
           !method.getDeclaringClass().getCanonicalName().contains("dstm2.util.Hashtable") &&
     	  !method.getDeclaringClass().getCanonicalName().contains("dstm2.util.HashMap") &&
-          !method.getDeclaringClass().getCanonicalName().contains("com.solidosystems.tuplesoup.core.TableIndexPageTransactional") &&
-          !method.getDeclaringClass().getCanonicalName().contains("com.solidosystems.tuplesoup.core.TableIndexNodeTransactional") &&
+          !method.getDeclaringClass().getCanonicalName().contains("tuplesoup.core.TableIndexPage") &&
+          !method.getDeclaringClass().getCanonicalName().contains("tuplesoup.core.TableIndexNode") &&
           !method.getDeclaringClass().getCanonicalName().contains("dstm2.util.StringKeyHashMap")){
         if (!isAtomicOrScalar(method.getReturnType())) {
           throw new PanicException("Method %s return type %s not scalar or atomic.",

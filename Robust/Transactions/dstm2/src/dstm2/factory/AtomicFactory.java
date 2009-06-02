@@ -74,7 +74,6 @@ public class AtomicFactory<T> extends dstm2.factory.BaseFactory<T> {
   public AtomicFactory(Class<T> _class, Class<? extends dstm2.factory.Adapter> adapterClass) {
     super(_class);
     synchronized (lock) {                 // BCEL is not thread-safe!
-        
       interfaceName = _class.getName();
       this.adapterClass = adapterClass;
       className = _class.getName() + "$";

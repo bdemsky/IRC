@@ -40,7 +40,11 @@ public class Defaults {
   /**
    * how many threads
    **/
-  public static final int THREADS = 5;
+  public static int THREADS = 1;
+/**
+*INEVITABLE mode or not
+**/
+  public static boolean INEVITABLE = false;
   /**
    * benchmark duration in milliseconds
    **/
@@ -52,15 +56,14 @@ public class Defaults {
   /**
    * fully-qualified contention manager name
    **/
-  public static final String MANAGER = "dstm2.manager.AggressiveManager";
-  //public static final String MANAGER = "dstm2.manager.SpecialManager";
+  public static String MANAGER = "dstm2.manager.AggressiveManager";
   /**
    * fully-qualified factory name
    **/
-  public static final String FACTORY = "dstm2.factory.shadow.Factory";
+  public static String FACTORY = "dstm2.factory.shadow.Factory";
   /**
    * fully-qualified adapter name
    **/
-  public static final String ADAPTER = "dstm2.factory.shadow.Adapter";;
+  public static String ADAPTER = "dstm2.factory.shadow.Adapter";;
   
 }

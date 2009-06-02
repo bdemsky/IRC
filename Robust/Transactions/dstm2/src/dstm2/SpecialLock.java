@@ -25,27 +25,21 @@ public class SpecialLock{
     
     public synchronized void lock(Transaction tr){
         try {
-            //System.out.println("trying to lock " + Thread.currentThread());
-            //super.lock();
             while (locked)
                 wait();
             locked = true;
             setOwnerTransaction(tr);
             Thread.getTransaction().setIOTransaction(true);
-           // System.out.println(Thread.currentThread() + " locked the lock");
         } catch (InterruptedException ex) {
             Logger.getLogger(SpecialLock.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
     
     public synchronized void unlock(Transaction tr){
-     //   System.out.println(Thread.currentThread() + " unlocking the lock");
-        //super.unlock();
         locked = false;
         setOwnerTransaction(null);
         Thread.getTransaction().setIOTransaction(false);
         notifyAll();
-       // System.out.println(Thread.currentThread() + " unlocked the lock");
     }
     
     public synchronized void setOwnerTransaction(Transaction tr){
@@ -58,12 +52,10 @@ public class SpecialLock{
     
     public synchronized  static SpecialLock getSpecialLock(){
         if (instance == null){ 
-           // System.out.println(Thread.currentThread() + " lock");
             instance = new SpecialLock();
             return instance;
         }
         else{
-           // System.out.println(Thread.currentThread() + " lock-ret");
             return instance;    
         }
         

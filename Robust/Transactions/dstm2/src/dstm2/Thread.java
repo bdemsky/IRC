@@ -41,7 +41,6 @@ import TransactionalIO.exceptions.PanicException;
 
 import dstm2.factory.AtomicFactory;
 import dstm2.factory.Factory;
-import TransactionalIO.benchmarks.benchmark;
 import dstm2.SpecialLock;
 import TransactionalIO.core.TransactionalFile;
 import TransactionalIO.core.Wrapper;
@@ -74,6 +73,7 @@ import static dstm2.Defaults.*;
  * @see dstm2.ContentionManager
  */
 public class Thread extends java.lang.Thread{
+   public static long threadtimes[] = new long[8];
   /**
    * Contention manager class.
    */
@@ -92,6 +92,7 @@ public class Thread extends java.lang.Thread{
    * number of committed transactions for all threads
    */
   public static long totalCommitted = 0;
+
   /**
    * total number of transactions for all threads
    */
@@ -104,6 +105,10 @@ public class Thread extends java.lang.Thread{
    * total number of memory references for all threads
    */
   public static long totalTotalMemRefs = 0;
+  public static double totalTime = 0;
+  public static long starttime = 0;
+  public static long stoptime = 0;
+  public static int active = 0;
   
   static ThreadLocal<ThreadState> _threadState = new ThreadLocal<ThreadState>() {
     protected synchronized ThreadState initialValue() {
@@ -135,12 +140,12 @@ public class Thread extends java.lang.Thread{
         threadState.reset();
         target.run();
         // collect statistics
-        synchronized (lock){
+     //   synchronized (lock){
           totalCommitted += threadState.committed;
           totalTotal += threadState.total;
           totalCommittedMemRefs += threadState.committedMemRefs;
           totalTotalMemRefs += threadState.totalMemRefs;
-        }
+     //   }
       }
     });
   }
@@ -243,62 +248,44 @@ public class Thread extends java.lang.Thread{
    * @return result of <CODE>call()</CODE> method
    */
   public static <T> T doIt(Callable<T> xaction) {
+  /*  synchronized(lock){
+            if (active == 0){
+		    starttime = System.currentTimeMillis();
+	//	    System.out.println("start " + starttime);
+	    }
+	    active++;
+    }*/
+    long st = System.currentTimeMillis();
     ThreadState threadState = _threadState.get();
-    ContentionManager manager = threadState.manager;
+    //ContentionManager manager = threadState.manager;
     T result = null;
-   // System.out.println(Thread.currentThread() + " astarted the transaction");
     boolean flag = false;
     try {
       while (true) {
         threadState.beginTransaction();
+                
+        
                
-     //   System.out.println(Thread.currentThread() + " offically started the transaction");
        /////For Integrating with IO////////// 
-        Wrapper.Initialize(Thread.getTransaction());
-        //System.out.println(Thread.currentThread() + " starting");
-      //  System.out.println(Thread.currentThread() + " even more offically started the transaction");
+            Wrapper.Initialize(Thread.getTransaction());
        ////////////////////////////////////// 
         try {
             
           result = xaction.call();
-        //  System.out.println(Thread.currentThread() + " starting2");
-      //     System.out.println(Thread.currentThread() + " aborted in committing");
-      //  } catch (AbortedException d) {
-          /*  synchronized(benchmark.lock){
-                System.out.println(Thread.currentThread() + " aborted in committing");
-            }*/
-
-       // } //catch (SnapshotException s) {
-          //threadState.abortTransaction();
-      //} 
-       // catch (Exception e) {
-      //    e.printStackTrace();
-       //   throw new PanicException("Unhandled exception " + e);
-       // }
+          
          
             threadState.totalMemRefs += threadState.transaction.memRefs;
             threadState.transaction.attempts++;
-              
+   
             Wrapper.prepareIOCommit();
-         
-        ///////////////////////////////
-        
-                if (threadState.commitTransaction()) {
-                    threadState.committedMemRefs += threadState.transaction.memRefs;
-                    
-                    
-                   //Wrapper.realseOffsets();
-                    
-                    Wrapper.commitIO();
-                    flag = true;
-               }
+            if (threadState.commitTransaction()) {
+                 threadState.committedMemRefs += threadState.transaction.memRefs;
+                 Wrapper.commitIO();
+                flag = true;
+            }
         }
         catch(AbortedException ex){
             threadState.depth--;
-            
-            System.out.println(Thread.currentThread() + " aborted");
-            ex.printStackTrace();
-           // Wrapper.getTransaction().unlockAllLocks();
         }
         catch (Exception e) {
           e.printStackTrace();
@@ -306,20 +293,31 @@ public class Thread extends java.lang.Thread{
         }
         finally{
             
-          //  System.out.println("here " + Thread.currentThread());
+      
             Wrapper.getTransaction().unlockAllLocks();
-               
-            if (Thread.getTransaction() == SpecialLock.getSpecialLock().getOwnerTransaction()){
-            //if (Thread.getTransaction().isIOTransaction()){
-               
-              //   System.out.println("herein " + Thread.currentThread());
-                SpecialLock.getSpecialLock().unlock(Thread.getTransaction());
-               
-            //    System.out.println("here");
-          ///              
-            }
+            if (Defaults.INEVITABLE)   
+	            if (Thread.getTransaction() == SpecialLock.getSpecialLock().getOwnerTransaction()){
+        	       SpecialLock.getSpecialLock().unlock(Thread.getTransaction());
+           	      }
+           /* synchronized(lock){
+		    if (flag){
+	            	    active--;
+	        	    if (active == 0){
+	        	   	 stoptime = System.currentTimeMillis();
+                            
+		    	    	//System.out.println("stop " + stoptime);
+		            	totalTime += (double)(stoptime-starttime);
+		   	    }
+		    }
+	    }*/
             if  (flag == true){
-               System.out.println(Thread.currentThread() + " committed");
+		long sp = System.currentTimeMillis();
+		long val = sp -st;
+		try{
+    			threadtimes[Integer.valueOf(Thread.currentThread().getName().substring(7))]+= val;
+		}catch(StringIndexOutOfBoundsException e){
+			//System.out.println("Caution");
+		}
                 break;
             }
         }
@@ -333,17 +331,14 @@ public class Thread extends java.lang.Thread{
       threadState.transaction = null;
       Wrapper.setTransaction(null);
     }
-    // collect statistics
-    synchronized (lock){
-      totalTotalMemRefs = threadState.totalMemRefs;
+//     collect statistics
+//    synchronized (lock){
+     totalTotalMemRefs = threadState.totalMemRefs;
       totalCommittedMemRefs = threadState.committedMemRefs;
       totalCommitted += threadState.committed;
       totalTotal += threadState.total;
       threadState.reset();  // set up for next iteration
-    }
-   /* if (result == null)
-        throw new GracefulException();
-    else return result;*/
+  //  }
     return result;
   }
   /**

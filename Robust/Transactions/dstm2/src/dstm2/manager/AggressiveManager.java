@@ -35,6 +35,7 @@ package dstm2.manager;
 import dstm2.util.Random;
 import dstm2.ContentionManager;
 import dstm2.Transaction;
+import dstm2.Thread;
 import java.util.Collection;
 
 /**
@@ -45,14 +46,21 @@ public class AggressiveManager extends BaseManager {
   
   public AggressiveManager() {
   }
+  
   public void resolveConflict(Transaction me, Transaction other) {
-      other.abort();	
+      if (other.isActive() && other != me) {
+      		other.abort();	
+	}
   }
   
     @Override
   public void resolveConflict(Transaction me, Collection<Transaction> others) {
-      for (Transaction other: others)
-        other.abort();	
+      for (Transaction other: others){
+          if (other.isActive() && other != me) 
+                other.abort();
+      }
+      
+              
   }
   
   

@@ -43,19 +43,15 @@ public class INode implements Comparable{
     }
 
     public int compareTo(Object arg0) {
-        INode other = (INode) arg0;
-        if (this.getNumber() < other.getNumber())
+	long nus=this.number;
+	long nother=((INode)arg0).number;
+        if (nus < nother)
             return -1;
-        else if (this.getNumber() > other.getNumber())
+        else if (nus > nother)
             return 1;
-        else{ 
-            System.out.println("Logical Error Two Inodes cannot have the same number" + this.filepath + " " + other.filepath);
+        else { 
+            System.out.println("Logical Error Two Inodes cannot have the same number" + this.filepath + " " + ((INode)arg0).filepath);
             return 0;
         }
-       
     }
-    
-    
-    
-
 }

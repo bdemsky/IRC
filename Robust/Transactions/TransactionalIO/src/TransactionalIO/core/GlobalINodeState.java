@@ -37,20 +37,16 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
-/**
- * Obstruction-free atomic object implementation. Visible reads.
- * Support snapshots and early release.
- * @author Navid Farri
+ /* @author Navid Farri
  */
 public class GlobalINodeState {
 
-   // public HashMap<Integer,BlockLock> lockmap;  
-    public HashMap lockmap;
-    private ConcurrentHashMap conlockmap = new ConcurrentHashMap();
+
+    private ConcurrentHashMap conlockmap = new ConcurrentHashMap(16);
     
-    public GlobalLength commitedfilesize;
-    public int seqNum = 0;
-    private INode inode;
+    protected GlobalLength commitedfilesize;
+    protected int seqNum = 0;
+    protected INode inode;
 
     public GlobalINodeState() {
     }
@@ -59,36 +55,18 @@ public class GlobalINodeState {
     
     
     protected GlobalINodeState(INode inode, long length) {
-        lockmap = new HashMap();
        
         commitedfilesize = new GlobalLength(length);
-     //   System.out.println(length);
         this.inode = inode;
     }
     
     
 
 
-    public GlobalLength getCommitedfilesize() {
-        return commitedfilesize;
-    }
-
-    public void setCommitedfilesize(GlobalLength commitedfilesize) {
-        this.commitedfilesize = commitedfilesize;
-    }
+   
     
 
      public BlockDataStructure getBlockDataStructure(Integer blocknumber) {
-     /*       synchronized (lockmap) {
-                if (lockmap.containsKey(blocknumber)) {
-                    return ((BlockDataStructure) (lockmap.get(blocknumber)));
-                } else {
-                    BlockDataStructure tmp = new BlockDataStructure(inode, blocknumber);
-                    lockmap.put(blocknumber, tmp);
-                    return tmp;
-               }    
-           }
-     }*/   
     BlockDataStructure rec = (BlockDataStructure)conlockmap.get(blocknumber);
     if (rec == null) {
         // record does not yet exist

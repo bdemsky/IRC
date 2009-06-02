@@ -33,7 +33,6 @@
 package dstm2;
 
 import TransactionalIO.exceptions.PanicException;
-import TransactionalIO.benchmarks.benchmark;
 import TransactionalIO.interfaces.TransactionStatu;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -202,18 +201,11 @@ public class Transaction implements TransactionStatu{
       while (this.getStatus() == Status.ACTIVE) {
         if (statusUpdater.compareAndSet(this, Status.ACTIVE, Status.ABORTED)) {
             flag = true;
-     //       System.out.println(Thread.currentThread() +" tamam " + this.getStatus());
         }
       }
       if (flag)
         if (getOtherSystem() != null && !(getOtherSystem().isAborted())){
-       /*     synchronized(benchmark.lock){
-                    System.out.println(Thread.currentThread() +" beeeeee gade sag raftim 1");
-             } */
              getOtherSystem().abortThisSystem();
-         /*    synchronized(benchmark.lock){
-                    System.out.println(Thread.currentThread() +" beeeeeeeee gade sag raftim 2");
-             } */
         }
       
       

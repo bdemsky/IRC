@@ -37,7 +37,6 @@ import TransactionalIO.exceptions.GracefulException;
 import TransactionalIO.exceptions.PanicException;
 import dstm2.Thread;
 
-import TransactionalIO.benchmarks.benchmark;
 import TransactionalIO.core.TransactionalFile;
 import dstm2.util.Random;
 import java.io.IOException;
@@ -169,7 +168,6 @@ public abstract class IntSetBenchmark implements Benchmark, Iterable<Integer> {
     int myDelta = 0;        // net change
     public int percent = 0; // percent inserts
     char sample;
-    AVLTree tree;
     
     TestThread(IntSetBenchmark intSet, int percent, char sample) {
       this.intSet = intSet;
@@ -184,7 +182,7 @@ public abstract class IntSetBenchmark implements Benchmark, Iterable<Integer> {
       random.setSeed(System.currentTimeMillis()); // comment out for determinstic
       
       boolean toggle = true;
-      final TransactionalFile f1 = (TransactionalFile)benchmark.TransactionalFiles.get("0");
+      
       try {
         while (true) {
           boolean result = true;

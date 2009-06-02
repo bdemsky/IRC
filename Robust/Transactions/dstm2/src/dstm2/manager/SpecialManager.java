@@ -13,12 +13,12 @@ import java.util.Collection;
  *
  * @author navid
  */
-public class SpecialManager extends BackoffManager {
+public class SpecialManager extends AggressiveManager {
 
     @Override
     public void resolveConflict(Transaction me, Transaction other) {
   
-        if (me == SpecialLock.getSpecialLock().getOwnerTransaction()) {
+        if (me == SpecialLock.getSpecialLock().getOwnerTransaction() && other.isActive()) {
             other.abort();
         } else if (other == SpecialLock.getSpecialLock().getOwnerTransaction()) {
             me.abort();

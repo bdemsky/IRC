@@ -6,6 +6,7 @@ package dstm2;
 
 
 import TransactionalIO.exceptions.AbortedException;
+import TransactionalIO.interfaces.IOOperations;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -15,7 +16,7 @@ import java.io.RandomAccessFile;
  *
  * @author navid
  */
-public class SpecialTransactionalFile {
+public class SpecialTransactionalFile implements IOOperations{
 
     public RandomAccessFile raFile;
 
@@ -30,16 +31,15 @@ public class SpecialTransactionalFile {
     private void checkConsisteny() {
         
         Transaction me = Thread.getTransaction();
-        if (me ==  null)
+        if (me ==  null){
             return;
+        }
         
         if (!me.isActive()) {
-
             throw new AbortedException();
         }
         
         if (me != SpecialLock.getSpecialLock().getOwnerTransaction()) {
-        //if (!(me.isIOTransaction())){
             SpecialLock.getSpecialLock().lock(me);
         }
 
@@ -68,6 +68,11 @@ public class SpecialTransactionalFile {
         checkConsisteny();
         return raFile.read();
     }
+
+    public String readLine() throws IOException {
+        checkConsisteny();
+        return raFile.readLine();
+   }
 
     public int read(byte[] arg0, int arg1, int arg2) throws IOException {
         checkConsisteny();
@@ -139,7 +144,7 @@ public class SpecialTransactionalFile {
         return raFile.readUTF();
     }
 
-    public final void writeShort(short val) throws IOException {
+    public final void writeShort(int val) throws IOException {
         checkConsisteny();
         raFile.writeShort(val);
     }
@@ -149,7 +154,7 @@ public class SpecialTransactionalFile {
         return raFile.readShort();
     }
 
-    public final void writeByte(byte arg0) throws IOException {
+    public final void writeByte(int arg0) throws IOException {
         checkConsisteny();
         raFile.writeByte(arg0);
     }
@@ -162,6 +167,11 @@ public class SpecialTransactionalFile {
     public final void writeChar(int val) throws IOException {
         checkConsisteny();
         raFile.writeChar(val);
+    }
+    
+     public final void writeChars(String val) throws IOException {
+        checkConsisteny();
+        raFile.writeChars(val);
     }
 
     public final char readChar() throws IOException {
@@ -176,6 +186,7 @@ public class SpecialTransactionalFile {
 
     public final void writeLong(long val) throws IOException {
         checkConsisteny();
+     //   System.out.println(val);
         raFile.writeLong(val);
     }
 

@@ -120,6 +120,7 @@ public class Adapter<T> implements dstm2.factory.Adapter<T>, Releasable {
   public <V> Adapter.Getter<V> makeGetter(String methodName, Class<V> _class)  {
     try {
       final Method method = version.getClass().getMethod(methodName);
+     // System.out.println("getter " + method);
       return new Adapter.Getter<V>() {
         public V call() {
           try {
@@ -192,6 +193,7 @@ public class Adapter<T> implements dstm2.factory.Adapter<T>, Releasable {
         throw new PanicException(FORMAT, writer.getStatus());
     }
     writer = Transaction.COMMITTED;
+ //   System.out.println(me + " added readre for " + version + " " + Thread.currentThread());
     readers.add(me);
     manager.openSucceeded();
     return null;

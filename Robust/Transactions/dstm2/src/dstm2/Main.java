@@ -43,7 +43,7 @@ public class Main {
    * usage: dstm.benchmark.Main  -b <benchmarkclass> [-m <managerclass>] [-t <#threads>] [-n <#time-in-ms>] [-e <experiment#>] [-f <factory>"
    */
   public static void main(String args[]) {
-    int numThreads = 20;//THREADS;
+    int numThreads = 2;//THREADS;
     int numMillis  = TIME;
     int experiment = EXPERIMENT;
     String managerClassName = MANAGER;
@@ -121,7 +121,6 @@ public class Main {
     System.out.println("Mix: " + experiment + "% updates");
     
     
-        TransactionalIO.benchmarks.benchmark.init();
     
     System.out.println((char)97);
     int j = 97;

@@ -6,7 +6,7 @@
 package TransactionalIO.core;
 
 
-import java.util.Vector;
+import java.util.ArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
@@ -16,52 +16,41 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  */
 public class BlockDataStructure {
     //private ReentrantReadWriteLock lock;
-    private MYReadWriteLock lock;
+    private ReentrantReadWriteLock lock;
     private ExtendedTransaction owner;
     private INode inode;
     private int blocknumber;
     private AtomicInteger version;
     private int referncount;
-    //private Vector<ExtendedTransaction> readers;
-    private Vector blockreaders;
+    private ArrayList blockreaders;
 
     public static enum MODE {READ, WRITE, READ_WRITE};
     private MODE accessmode;
     
     protected BlockDataStructure(INode inode, int blocknumber) {
         version = new AtomicInteger(0);
-        //lock = new ReentrantReadWriteLock();
-        blockreaders = new Vector();
-        //lock = new ReentrantReadWriteLock();
-        lock = new MYReadWriteLock();
+        blockreaders = new ArrayList();
+        lock = new ReentrantReadWriteLock();
         this.inode = inode;
         this.blocknumber = blocknumber;
         referncount = 0;
         owner = null;
     }
 
-    public Vector getReaders() {
+    public ArrayList getReaders() {
         return blockreaders;
     }
 
-    public void setReaders(Vector readers) {
+    public void setReaders(ArrayList readers) {
         this.blockreaders = readers;
     }
     
-    public MYReadWriteLock getLock() {
+    public ReentrantReadWriteLock getLock() {
         return lock;
     }
 
-    public void setLock(MYReadWriteLock lock) {
+    public void setLock(ReentrantReadWriteLock lock) {
         this.lock = lock;
-    }
-
-    public synchronized ExtendedTransaction getOwner() {
-        return owner;
-    }
-    
-    public synchronized void setOwner(ExtendedTransaction owner) {
-        this.owner = owner;
     }
 
     public INode getInode() {
@@ -95,15 +84,5 @@ public class BlockDataStructure {
     public void setAccessmode(MODE accessmode) {
         this.accessmode = accessmode;
     }
-
-    public synchronized int getReferncount() {
-        return referncount;
-    }
-
-    public synchronized void setReferncount(int referncount) {
-        this.referncount = referncount;
-    }
-    
-    
 
 }
