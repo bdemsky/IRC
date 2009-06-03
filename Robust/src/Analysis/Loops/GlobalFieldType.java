@@ -131,8 +131,10 @@ public class GlobalFieldType {
       } else if (fn.kind()==FKind.FlatCall) {
 	MethodDescriptor mdcall=((FlatCall)fn).getMethod();
 	if (mdcall.getSymbol().equals("enterBarrier")&&
-	    mdcall.getClassDesc().getSymbol().equals("Barrier"))
+	    mdcall.getClassDesc().getSymbol().equals("Barrier")) {
 	  containsBarrier.add(md);
+	  containsBarrier.add(mdcall);
+	}
       }
     }
   }
