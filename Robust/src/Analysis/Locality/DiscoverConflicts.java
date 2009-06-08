@@ -157,7 +157,7 @@ public class DiscoverConflicts {
 
   public boolean ok(TempFlatPair tfp) {
     FlatNode fn=tfp.f;
-    return fn.kind()==FKind.FlatCall;
+    return fn.kind()==FKind.FlatCall||fn.kind()==FKind.FlatMethod;
   }
 
   //compute set of nodes that need transread on their output
