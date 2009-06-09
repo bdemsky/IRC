@@ -196,11 +196,6 @@ public class BuildCode {
     }
 
     /* Build the actual methods */
-    if( state.MLP ) {
-      outmethod.println("/* GET RID OF THIS LATER */");
-      outmethod.println("struct SESErecord* tempSESE;");
-      outmethod.println("struct SESErecord* tempParentSESE;");
-    }
     outputMethods(outmethod);
 
     // Output function prototypes and structures for SESE's and code
@@ -296,10 +291,13 @@ public class BuildCode {
     outmethod.println("  }");
 
     if (state.MLP) {
+      FlatSESEEnterNode rootSESE = mlpa.getRootSESE();
       outmethod.println("  mlpInit();");
 
-      FlatSESEEnterNode rootSESE = mlpa.getRootSESE();
-      
+      outmethod.print("  rootsese = mlpCreateSESErecord(");
+      outmethod.print(rootSESE.getIdentifier()+", 0, NULL, 0, NULL");
+      outmethod.println(");");
+
       outmethod.println("  ");
     }
 
@@ -430,6 +428,10 @@ public class BuildCode {
     }
     if (state.MLP) {
       outmethod.println("#include \"mlp_runtime.h\"");
+      outmethod.println("/* GET RID OF THIS LATER */");
+      outmethod.println("SESErecord*     tempSESE;");
+      outmethod.println("SESErecord*     tempParentSESE;");    
+      outmethod.println("invokeSESEargs* tempSESEargs;");
     }
 
     //Store the sizes of classes & array elements
@@ -1517,16 +1519,17 @@ public class BuildCode {
                                             PrintWriter outmethod
                                             ) {
 
-    outmethodheader.println("void invokeSESEmethod( int classID, struct SESErecord* invokee, struct SESErecord* parent );");
-    outmethod.println(      "void invokeSESEmethod( int classID, struct SESErecord* invokee, struct SESErecord* parent ) {");
+    outmethodheader.println("void* invokeSESEmethod( void* vargs );");
+    outmethod.println(      "void* invokeSESEmethod( void* vargs ) {");
+    outmethod.println(      "  invokeSESEargs* args = (invokeSESEargs*) vargs;");
 
     // use this info in the invocation cases to decide whether
     // to gather SESE variables from a parent SESE record, or
     // if parent is root, from noraml temps
-    outmethod.println(      "  char parentIsRoot = (parent == NULL);");
+    outmethod.println(      "  char parentIsRoot = (args->parent == NULL);");
 
     // generate a case for each SESE class that can be invoked
-    outmethod.println(      "  switch( classID ) {");
+    outmethod.println(      "  switch( args->classID ) {");
     outmethod.println(      "    ");
     for(Iterator<FlatSESEEnterNode> seseit=mlpa.getAllSESEs().iterator();seseit.hasNext();) {
       FlatSESEEnterNode fsen = seseit.next();
@@ -1572,14 +1575,14 @@ public class BuildCode {
 
     // first argument is parameter structure
     output.print("(struct "+cn.getSafeSymbol()+bogusmd.getSafeSymbol()+"__params*)");
-    output.print("&(invokee->paramStruct)");
+    output.print("&(args->invokee->paramStruct)");
 
     // other arguments are primitive parameters
     for(int i=0; i<objectparams.numPrimitives(); i++) {
       TempDescriptor td=objectparams.getPrimitive(i);
       TypeDescriptor type=td.getType();
       assert type.isPrimitive();
-      output.print(", invokee->vars["+i+"].sesetype_"+type.toString());
+      output.print(", args->invokee->vars["+i+"].sesetype_"+type.toString());
     }
     
     output.println(");");
@@ -2275,8 +2278,8 @@ public class BuildCode {
       return;
     }
     
-    output.println("  tempSESE       = (struct SESErecord*) malloc( sizeof( struct SESErecord ) );");
-    output.println("  tempSESE->vars = (struct SESEvar*)    malloc( sizeof( struct SESEvar    ) * "+
+    output.println("  tempSESE       = (SESErecord*) malloc( sizeof( SESErecord ) );");
+    output.println("  tempSESE->vars = (SESEvar*)    malloc( sizeof( SESEvar    ) * "+
                    +fsen.numParameters()+
                    ");");
 
@@ -2289,12 +2292,15 @@ public class BuildCode {
     output.println("  mlpIssue( tempSESE );");
     output.println("  tempSESE       = mlpSchedule();");
     output.println("  tempParentSESE = mlpGetCurrent();");
-    output.println("  invokeSESEmethod("+
-                   fsen.getIdentifier()+", "+
-                   "tempSESE, "+
-                   "tempParentSESE"+
-                   ");"
-                   );    
+
+    // do a pthread_create wit invokeSESE as the argument
+    // and pack all args into a single void*
+    output.println("  tempSESEargs = (invokeSESEargs*) malloc( sizeof( invokeSESEargs ) );");
+    output.println("  tempSESEargs->classID = "+fsen.getIdentifier()+";");
+    output.println("  tempSESEargs->invokee = tempSESE;");
+    output.println("  tempSESEargs->parent  = tempParentSESE;");
+
+    output.println("  invokeSESEmethod( (void*) tempSESEargs );");    
   }
 
   public void generateFlatSESEExitNode(FlatMethod fm,  LocalityBinding lb, FlatSESEExitNode fsen, PrintWriter output) {

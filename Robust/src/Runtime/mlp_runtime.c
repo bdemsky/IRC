@@ -5,9 +5,13 @@
 #include "Queue.h"
 
 
+#define FALSE 0
+#define TRUE  1
+
+
 // the root sese is accessible globally so
 // buildcode can generate references to it
-struct SESErecord* rootsese;
+SESErecord* rootsese;
 
 
 // the issuedQ, in this simple version, spits
@@ -17,48 +21,96 @@ static struct Queue* issuedQ;
 
 // the class_age2instance maps an SESE class id and
 // age value to a particular SESErecord instance
-static struct SESErecord** class_age2instance;
+static SESErecord** class_age2instance;
 
 
-// each core should have a current SESE
-static struct SESErecord* current;
+// each core/pthread should have a current SESE
+static SESErecord* current;
+
+
+SESErecord* mlpCreateSESErecord( int         classID,
+                                 int         instanceID,
+                                 SESErecord* parent,
+                                 int         numVars,
+                                 void*       paramStruct
+                               ) {
+
+  SESErecord* newrec = malloc( sizeof( SESErecord ) );
+
+  newrec->classID          = classID;
+  newrec->instanceID       = instanceID;
+  newrec->childInstanceIDs = 0;
+  newrec->parent           = parent;
+  newrec->childrenList     = createQueue();
+  newrec->vars             = (SESEvar*) malloc( sizeof( SESEvar ) *
+                                                numVars
+                                              );
+  newrec->paramStruct      = paramStruct;
+  newrec->forwardList      = createQueue();
+  newrec->doneExecuting    = FALSE;
+
+  newrec->startCondVar     = (pthread_cond_t*)  malloc( sizeof( pthread_cond_t  ) );
+  newrec->startCondVarLock = (pthread_mutex_t*) malloc( sizeof( pthread_mutex_t ) );
+  newrec->forwardListLock  = (pthread_mutex_t*) malloc( sizeof( pthread_mutex_t ) );
+
+  pthread_cond_init ( newrec->startCondVar,     NULL );
+  pthread_mutex_init( newrec->startCondVarLock, NULL );
+  pthread_mutex_init( newrec->forwardListLock,  NULL );
+
+  return newrec;
+}
+
+
+void mlpDestroySESErecord( SESErecord* sese ) {
+
+  pthread_cond_destroy ( sese->startCondVar     );
+  pthread_mutex_destroy( sese->startCondVarLock );
+  pthread_mutex_destroy( sese->forwardListLock  );
+
+  free     ( sese->startCondVar     );
+  free     ( sese->startCondVarLock );
+  free     ( sese->forwardListLock  );
+
+  freeQueue( sese->forwardList      );
+  freeQueue( sese->childrenList     );
+  free     ( sese->vars             );
+  free     ( sese                   );
+}
 
 
 void mlpInit( int totalNumSESEs, int maxSESEage ) {  
-  rootsese = (struct SESErecord*) malloc( sizeof( struct SESErecord ) );
 
   issuedQ = createQueue();
 
-  class_age2instance = (struct SESErecord**) malloc( sizeof( struct SESErecord* ) *
-                                                     maxSESEage *
+  class_age2instance = (SESErecord**) malloc( sizeof( SESErecord* ) *
+                                                     maxSESEage                   *
                                                      totalNumSESEs
                                                    );
-   
   current = rootsese;
 }
 
 
-struct SESErecord* mlpGetCurrent() {
+SESErecord* mlpGetCurrent() {
   return current;
 }
 
 
-void mlpIssue( struct SESErecord* sese ) {
+void mlpIssue( SESErecord* sese ) {
   addNewItem( issuedQ, (void*) sese );
 }
 
 
-struct SESErecord* mlpSchedule() {
+SESErecord* mlpSchedule() {
   assert( !isEmpty( issuedQ ) );
-  return (struct SESErecord*) getItem( issuedQ );  
+  return (SESErecord*) getItem( issuedQ );  
 }
 
 
-void mlpStall( struct SESErecord* sese ) {
+void mlpStall( SESErecord* sese ) {
   
 }
 
 
-void mlpNotifyExit( struct SESErecord* sese ) {
+void mlpNotifyExit( SESErecord* sese ) {
   
 }

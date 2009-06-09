@@ -77,6 +77,6 @@ public class VariableSourceToken {
 
 
   public String toString() {
-    return refVars+" ref "+addrVar+"@"+sese.getPrettyIdentifier()+"("+seseAge+")";
+    return refVars+"\tref "+addrVar+"\t@"+sese.getPrettyIdentifier()+"("+seseAge+")";
   }
 }

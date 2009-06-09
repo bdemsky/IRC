@@ -146,12 +146,12 @@ public class MLPAnalysis {
 
     if( state.MLPDEBUG ) {      
       System.out.println( "" );
-      //printSESEHierarchy();
-      //printSESELiveness();
-      //System.out.println( fmMain.printMethod( livenessRootView ) );
-      //System.out.println( fmMain.printMethod( variableResults ) );
-      //System.out.println( fmMain.printMethod( notAvailableResults ) );
-      //System.out.println( "CODE PLANS\n"+fmMain.printMethod( codePlans ) );
+      //System.out.println( "\nSESE Hierarchy\n--------------\n" ); printSESEHierarchy();
+      //System.out.println( "\nSESE Liveness\n-------------\n" ); printSESELiveness();
+      //System.out.println( "\nLiveness Root View\n------------------\n"+fmMain.printMethod( livenessRootView ) );
+      //System.out.println( "\nVariable Results\n----------------\n"+fmMain.printMethod( variableResults ) );
+      //System.out.println( "\nNot Available Results\n---------------------\n"+fmMain.printMethod( notAvailableResults ) );
+      //System.out.println( "\nCode Plans\n----------\n"+fmMain.printMethod( codePlans ) );
     }
 
 
@@ -246,7 +246,7 @@ public class MLPAnalysis {
     for( int i = 0; i < depth; ++i ) {
       System.out.print( "  " );
     }
-    System.out.println( fsen.getPrettyIdentifier() );
+    System.out.println( "- "+fsen.getPrettyIdentifier() );
 
     Iterator<FlatSESEEnterNode> childItr = fsen.getChildren().iterator();
     while( childItr.hasNext() ) {
