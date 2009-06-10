@@ -1,11 +1,12 @@
 public class Gene {
   public long length;
-  public String contents;
+  public ByteArray contents;
   public Bitmap startBitmapPtr; /* used for creating segments */
   
   Gene(long myLength) {
     length = myLength;
-    contents = "";
+    byte array[] = new byte[length];
+    contents = new ByteArray(array);
     startBitmapPtr = new Bitmap(length);
   }
 
@@ -17,12 +18,12 @@ public class Gene {
  */
   void create (Random randomObj) {
     int i;
-    char[] nucleotides = new char[4];
-    char[] arrayContents = new char[length];
-    nucleotides[0] = 'a';
-    nucleotides[1] = 'c';
-    nucleotides[2] = 'g';
-    nucleotides[3] = 't';
+    byte[] nucleotides = new byte[4];
+    byte[] arrayContents = new byte[length];
+    nucleotides[0] = (byte)'a';
+    nucleotides[1] = (byte)'c';
+    nucleotides[2] = (byte)'g';
+    nucleotides[3] = (byte)'t';
 
 //    System.out.println("length: " + length);
 
@@ -33,10 +34,9 @@ public class Gene {
       }
 //      System.out.println("legitNum: " + legitimateNumber + ":" + (legitimateNumber % 4));
       arrayContents[i] = nucleotides[legitimateNumber % 4];
-//      System.out.println("arrayContents[" + i + "]: " + arrayContents[i]);
+//      System.out.println("arrayContents[" + i + "]: " + (char)arrayContents[i]);
     }
     
-    contents = new String(arrayContents);
-//    System.out.println("contents: " + contents);
+    contents = new ByteArray(arrayContents);
   }  
 }

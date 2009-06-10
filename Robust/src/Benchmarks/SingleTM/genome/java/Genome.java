@@ -124,7 +124,7 @@ public class Genome extends Thread {
 
 /* Create and Start Threads */
 
-    String gene = g.genePtr.contents;
+    ByteArray gene = g.genePtr.contents;
 
     Genome[] gn = new Genome[g.numThread];
 
@@ -175,8 +175,8 @@ public class Genome extends Thread {
 
     /* Check result */
     {
-        String sequence = g.sequencerPtr.sequence;
-//        System.out.println("sequence: " + sequence);
+        ByteArray sequence = g.sequencerPtr.sequence;
+//        System.out.print("sequence: ");sequence.print();
         boolean result = (gene.compareTo(sequence) == 0) ? true:false;
         System.out.println("Sequence matches gene: " + (result ? "yes" : "no"));
         if (result) {

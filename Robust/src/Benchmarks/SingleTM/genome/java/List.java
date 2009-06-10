@@ -76,8 +76,8 @@ public class List {
     }
 */
     long compareSegment (Pair a, Pair b) { // RE WRITE THIS FOR BYTE ARRAYS
-      String aString = (String)a.firstPtr;
-      String bString = (String)b.firstPtr;
+      ByteArray aString = (ByteArray)a.firstPtr;
+      ByteArray bString = (ByteArray)b.firstPtr;
       return aString.compareTo(bString);
     }
  

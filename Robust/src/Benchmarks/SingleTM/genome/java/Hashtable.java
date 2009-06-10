@@ -18,7 +18,7 @@ public class Hashtable {
       growthFactor = ((growthFactor < 0) ? 3 : growthFactor);
     }
     
-    boolean TMhashtable_insert (String keyPtr, String dataPtr) {
+    boolean TMhashtable_insert (ByteArray keyPtr, ByteArray dataPtr) {
       long i = hashSegment(keyPtr) % numBucket;
 
       Pair findPair = new Pair();
@@ -51,13 +51,13 @@ public class Hashtable {
       }
     }
     
-    long hashSegment (String str) {
+    long hashSegment (ByteArray str) {
       long hash = 0;
 
       int index = 0;
       /* Note: Do not change this hashing scheme */
-      for(index = 0; index < str.length(); index++) {
-        char c = str.charAt(index);
+      for(index = 0; index < str.array.length; index++) {
+        char c = (char)(str.array[str.offset+index]);
         hash = c + (hash << 6) + (hash << 16) - hash;
       }
   

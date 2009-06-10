@@ -1,6 +1,6 @@
 public class constructEntry {
     boolean isStart;
-    String segment;
+    ByteArray segment;
     long endHash;
     constructEntry startPtr;
     constructEntry nextPtr;
@@ -8,7 +8,7 @@ public class constructEntry {
     long overlap;
     long length;
       
-    constructEntry(String mySegment, boolean myStart, long myEndHash, constructEntry myStartPtr, constructEntry myNextPtr, constructEntry myEndPtr, long myOverlap, long myLength) {
+    constructEntry(ByteArray mySegment, boolean myStart, long myEndHash, constructEntry myStartPtr, constructEntry myNextPtr, constructEntry myEndPtr, long myOverlap, long myLength) {
       segment = mySegment;
       isStart = myStart;
       endHash = myEndHash;

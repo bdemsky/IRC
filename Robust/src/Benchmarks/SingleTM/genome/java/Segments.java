@@ -3,13 +3,12 @@ public class Segments {
     public long minNum;
     Vector contentsPtr;
 /* private: */
-    String strings[];
+    ByteArray strings[];
     
     Segments (long myLength, long myMinNum) {
       minNum = myMinNum;
       length = myLength;
-      
-      strings = new String[(int)minNum];
+      strings = new ByteArray[minNum];
       contentsPtr = new Vector((int)minNum);
     }
 
@@ -20,7 +19,7 @@ public class Segments {
      * =============================================================================
      */
     void create (Gene genePtr, Random randomPtr) {
-        String geneString;
+        ByteArray geneString;
         long geneLength;
         Bitmap startBitmapPtr;
         long numStart;
@@ -31,23 +30,27 @@ public class Segments {
         geneLength = genePtr.length;
         startBitmapPtr = genePtr.startBitmapPtr;
         numStart = geneLength - length + 1;
-        
+//        String str = new String(geneString.array);
+//        System.out.println("str: " + str);
 //        System.out.println("minNum: " + minNum);
         /* Pick some random segments to start */
+//        System.out.println("minNum: " + minNum);
         for (i = 0; i < minNum; i++) {
             int j = (int)(randomPtr.random_generate(randomPtr) % numStart);
             boolean status = startBitmapPtr.set(j);
             strings[i] = geneString.substring((int)j, (int)(j+length)); // WRITE SUBSTRING FUNCTION
+//            System.out.print("seg: ");
+//            strings[i].print();
             contentsPtr.addElement(strings[i]);
         }
         
-
+///        System.out.println("post random segments selection");
         
         /* Make sure segment covers start */
         i = 0;
         if (!startBitmapPtr.isSet(i)) {
-            String string;
-            string = geneString.subString((int)i, (int)(i+length)); // USE BYTE SUBSTRING FUNCTION
+            ByteArray string;
+            string = geneString.substring((int)i, (int)(i+length)); // USE BYTE SUBSTRING FUNCTION
             contentsPtr.addElement(string);
             startBitmapPtr.set(i);
         }
@@ -64,7 +67,7 @@ public class Segments {
             if (i == i_stop) {
                 /* Found big enough hole */
                 i = i - 1;
-                String string = geneString.subString((int)i, (int)(i+length)); // USE BYTE SUBSTRING FUNCTION
+                ByteArray string = geneString.substring((int)i, (int)(i+length)); // USE BYTE SUBSTRING FUNCTION
                 contentsPtr.addElement(string);
                 startBitmapPtr.set(i);
             }
