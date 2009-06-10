@@ -48,6 +48,7 @@ SESErecord* mlpCreateSESErecord( int         classID,
   newrec->paramStruct      = paramStruct;
   newrec->forwardList      = createQueue();
   newrec->doneExecuting    = FALSE;
+  newrec->startedExecuting = FALSE;
 
   newrec->startCondVar     = (pthread_cond_t*)  malloc( sizeof( pthread_cond_t  ) );
   newrec->startCondVarLock = (pthread_mutex_t*) malloc( sizeof( pthread_mutex_t ) );
@@ -83,9 +84,9 @@ void mlpInit( int totalNumSESEs, int maxSESEage ) {
   issuedQ = createQueue();
 
   class_age2instance = (SESErecord**) malloc( sizeof( SESErecord* ) *
-                                                     maxSESEage                   *
-                                                     totalNumSESEs
-                                                   );
+                                              maxSESEage            *
+                                              totalNumSESEs
+                                            );
   current = rootsese;
 }
 

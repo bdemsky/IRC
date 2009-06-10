@@ -55,6 +55,9 @@ public class BuildCode {
   SafetyAnalysis sa;
   PrefetchAnalysis pa;
   MLPAnalysis mlpa;
+  String mlperrstr = "if(status != 0) { "+
+    "sprintf(errmsg, \"MLP error at %s:%d\", __FILE__, __LINE__); "+
+    "perror(errmsg); exit(-1); }";
   Hashtable<FlatSESEEnterNode, FlatMethod> sese2bogusFlatMeth;
   boolean nonSESEpass=true;
   WriteBarrier wb;
@@ -427,6 +430,8 @@ public class BuildCode {
       outmethod.println("#include \"checkers.h\"");
     }
     if (state.MLP) {
+      outmethod.println("#include <stdlib.h>");
+      outmethod.println("#include <stdio.h>");
       outmethod.println("#include \"mlp_runtime.h\"");
       outmethod.println("/* GET RID OF THIS LATER */");
       outmethod.println("SESErecord*     tempSESE;");
@@ -1515,18 +1520,30 @@ public class BuildCode {
     output.println("}\n\n");
   }
 
+  // when a new mlp thread is created for an issued SESE, it is started
+  // by running this method which blocks on a cond variable until
+  // it is allowed to transition to execute.  Then a case statement
+  // allows it to invoke the method with the proper SESE body, and after
+  // exiting the SESE method, executes proper SESE exit code before the
+  // thread can be destroyed
   private void generateSESEinvocationMethod(PrintWriter outmethodheader,
                                             PrintWriter outmethod
                                             ) {
 
     outmethodheader.println("void* invokeSESEmethod( void* vargs );");
     outmethod.println(      "void* invokeSESEmethod( void* vargs ) {");
+    outmethod.println(      "  int status;");
+    outmethod.println(      "  char errmsg[128];");
     outmethod.println(      "  invokeSESEargs* args = (invokeSESEargs*) vargs;");
 
-    // use this info in the invocation cases to decide whether
-    // to gather SESE variables from a parent SESE record, or
-    // if parent is root, from noraml temps
-    outmethod.println(      "  char parentIsRoot = (args->parent == NULL);");
+    // wait on a condition variable that dispatcher will signal
+    // then this SESE instance's dependencies are resolved
+    outmethod.println(      "  status = pthread_mutex_lock( args->invokee->startCondVarLock );");
+    outmethod.println(      "  "+mlperrstr);
+    outmethod.println(      "  while( !(args->invokee->startedExecuting) ){");
+    outmethod.println(      "    status = pthread_cond_wait( args->invokee->startCondVar, args->invokee->startCondVarLock );");
+    outmethod.println(      "    "+mlperrstr);
+    outmethod.println(      "  }");
 
     // generate a case for each SESE class that can be invoked
     outmethod.println(      "  switch( args->classID ) {");
@@ -1562,9 +1579,7 @@ public class BuildCode {
     ParamsObject objectparams = (ParamsObject)paramstable.get(bogusmd);
 
     // first copy SESE record into param structure
-    output.println("      if( parentIsRoot ) {");    
-    output.println("        ");
-    output.println("      }");
+
 
     // then invoke the sese's method
     output.print("      "+cn.getSafeSymbol()+bogusmd.getSafeSymbol()+"_"+bogusmd.getSafeMethodDescriptor());
@@ -2278,29 +2293,33 @@ public class BuildCode {
       return;
     }
     
-    output.println("  tempSESE       = (SESErecord*) malloc( sizeof( SESErecord ) );");
-    output.println("  tempSESE->vars = (SESEvar*)    malloc( sizeof( SESEvar    ) * "+
-                   +fsen.numParameters()+
-                   ");");
+    output.println("\n   /* SESE "+fsen.getPrettyIdentifier()+" issue */");
+    output.println("   tempSESE = mlpCreateSESErecord( "+
+                   fsen.getIdentifier()+", "+
+                   "0, "+
+                   "mlpGetCurrent(), "+
+                   fsen.numParameters()+", "+
+                   "NULL );");
 
     for( int i = 0; i < fsen.numParameters(); ++i ) {
       TempDescriptor td   = fsen.getParameter( i );
       TypeDescriptor type = td.getType();
-      output.println("  tempSESE->vars["+i+"].sesetype_"+type.toString()+" = "+td+";");
+      output.println("   tempSESE->vars["+i+"].sesetype_"+type.toString()+" = "+td+";");
     }
 
-    output.println("  mlpIssue( tempSESE );");
-    output.println("  tempSESE       = mlpSchedule();");
-    output.println("  tempParentSESE = mlpGetCurrent();");
+    output.println("   mlpIssue( tempSESE );");
+    output.println("   tempSESE       = mlpSchedule();");
+    output.println("   tempParentSESE = mlpGetCurrent();");
 
     // do a pthread_create wit invokeSESE as the argument
     // and pack all args into a single void*
-    output.println("  tempSESEargs = (invokeSESEargs*) malloc( sizeof( invokeSESEargs ) );");
-    output.println("  tempSESEargs->classID = "+fsen.getIdentifier()+";");
-    output.println("  tempSESEargs->invokee = tempSESE;");
-    output.println("  tempSESEargs->parent  = tempParentSESE;");
+    output.println("   tempSESEargs = (invokeSESEargs*) malloc( sizeof( invokeSESEargs ) );");
+    output.println("   tempSESEargs->classID = "+fsen.getIdentifier()+";");
+    output.println("   tempSESEargs->invokee = tempSESE;");
+    output.println("   tempSESEargs->parent  = tempParentSESE;");
 
-    output.println("  invokeSESEmethod( (void*) tempSESEargs );");    
+    output.println("   invokeSESEmethod( (void*) tempSESEargs );");   
+    output.println("\n");
   }
 
   public void generateFlatSESEExitNode(FlatMethod fm,  LocalityBinding lb, FlatSESEExitNode fsen, PrintWriter output) {

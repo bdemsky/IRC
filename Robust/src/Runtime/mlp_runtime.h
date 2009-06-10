@@ -65,10 +65,11 @@ typedef struct SESErecord_t {
   // above var array at the call site
   void* paramStruct;
 
-
+  // for signaling transition from issue 
+  // to execute
   pthread_cond_t*  startCondVar;
   pthread_mutex_t* startCondVarLock;
-
+  int startedExecuting;
 
   // use a list of SESErecords and a lock to let
   // consumers tell this SESE who wants values
@@ -76,6 +77,7 @@ typedef struct SESErecord_t {
   pthread_mutex_t* forwardListLock;
   struct Queue*    forwardList;
   int doneExecuting;
+
 } SESErecord;
 
 
