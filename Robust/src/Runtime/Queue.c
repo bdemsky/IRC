@@ -1,5 +1,10 @@
+#ifdef DEBUG_QUEUE
+#include <stdio.h>
+#endif
+
 #include "mem.h"
 #include "Queue.h"
+
 #ifdef DMALLOC
 #include "dmalloc.h"
 #endif
@@ -22,10 +27,31 @@ struct QueueItem * addNewItem(struct Queue * queue, void * ptr) {
   if (queue->head==NULL) {
     queue->head=item;
     queue->tail=item;
+    item->next=NULL;
+    item->prev=NULL;
   } else {
     item->next=queue->head;
+    item->prev=NULL;
     queue->head->prev=item;
     queue->head=item;
+  }
+  return item;
+}
+
+struct QueueItem * addNewItemBack(struct Queue * queue, void * ptr) {
+  struct QueueItem * item=RUNMALLOC(sizeof(struct QueueItem));
+  item->objectptr=ptr;
+  item->queue=queue;
+  if (queue->tail==NULL) {
+    queue->head=item;
+    queue->tail=item;
+    item->next=NULL;
+    item->prev=NULL;
+  } else {
+    item->prev=queue->tail;
+    item->next=NULL;
+    queue->tail->next=item;
+    queue->tail=item;
   }
   return item;
 }
@@ -82,7 +108,117 @@ struct QueueItem * getNextQueueItem(struct QueueItem * qi) {
 void * getItem(struct Queue * queue) {
   struct QueueItem * q=queue->head;
   void * ptr=q->objectptr;
+  if(queue->tail==queue->head) {
+    queue->tail=NULL;
+  } else {
+    q->next->prev=NULL;
+  }
   queue->head=q->next;
   RUNFREE(q);
   return ptr;
 }
+
+void * getItemBack(struct Queue * queue) {
+  struct QueueItem * q=queue->tail;
+  void * ptr=q->objectptr;
+  if(queue->head==queue->tail) {
+    queue->head=NULL;
+  } else {
+    q->prev->next=NULL;
+  }
+  queue->tail=q->prev;
+  RUNFREE(q);
+  return ptr;
+}
+
+#ifdef DEBUG_QUEUE
+int assertQueue(struct Queue * queue) {
+
+  struct QueueItem* i = queue->head;
+
+  if( i == NULL && queue->tail != NULL ) {
+    return 0;
+  }
+
+  while( i != NULL ) {
+
+    if( queue->head == i && i->prev != NULL ) {
+      return 0;
+    }
+
+    if( i->prev == NULL ) {
+      if( queue->head != i ) {
+        return 0;
+      }
+
+    // i->prev != NULL
+    } else {
+      if( i->prev->next == NULL ) {
+        return 0;
+      } else if( i->prev->next != i ) {
+        return 0;
+      }
+    }
+
+    if( i->next == NULL ) {
+      if( queue->tail != i ) {
+        return 0;
+      }
+
+    // i->next != NULL
+    } else {
+      if( i->next->prev == NULL ) {
+        return 0;
+      } else if( i->next->prev != i ) {
+        return 0;
+      }
+    }
+
+    if( queue->tail == i && i->next != NULL ) {
+      return 0;
+    }
+
+    i = getNextQueueItem(i);
+  }
+
+  return 1;
+}
+
+void printQueue(struct Queue * queue) {
+  struct QueueItem* i;
+
+  printf("Queue empty? %d\n", isEmpty(queue));
+  
+  printf("head        ");  
+  i = queue->head;
+  while( i != NULL ) {
+    printf("item        ");
+    i = getNextQueueItem(i);
+  }
+  printf("tail\n");
+
+  printf("[%08x]  ", (int)queue->head);
+  i = queue->head;
+  while( i != NULL ) {
+    printf("[%08x]  ", (int)i);
+    i = getNextQueueItem(i);
+  }
+  printf("[%08x]\n", (int)queue->tail);
+
+  printf("   (next)   ");
+  i = queue->head;
+  while( i != NULL ) {
+    printf("[%08x]  ", (int)(i->next));
+    i = getNextQueueItem(i);
+  }
+  printf("\n");
+
+  printf("   (prev)   ");
+  i = queue->head;
+  while( i != NULL ) {
+    printf("[%08x]  ", (int)(i->prev));
+    i = getNextQueueItem(i);
+  }
+  printf("\n");
+}
+#endif
