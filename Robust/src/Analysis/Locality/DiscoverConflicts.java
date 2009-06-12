@@ -20,6 +20,8 @@ public class DiscoverConflicts {
   Hashtable<LocalityBinding, Set<FlatNode>> treadmap;
   Hashtable<LocalityBinding, Set<TempFlatPair>> transreadmap;
   Hashtable<LocalityBinding, Set<FlatNode>> srcmap;
+  Hashtable<LocalityBinding, Set<FlatNode>> leftsrcmap;
+  Hashtable<LocalityBinding, Set<FlatNode>> rightsrcmap;
   TypeAnalysis typeanalysis;
   
   public DiscoverConflicts(LocalityAnalysis locality, State state, TypeAnalysis typeanalysis) {
@@ -31,6 +33,8 @@ public class DiscoverConflicts {
     transreadmap=new Hashtable<LocalityBinding, Set<TempFlatPair>>();
     treadmap=new Hashtable<LocalityBinding, Set<FlatNode>>();
     srcmap=new Hashtable<LocalityBinding, Set<FlatNode>>();
+    leftsrcmap=new Hashtable<LocalityBinding, Set<FlatNode>>();
+    rightsrcmap=new Hashtable<LocalityBinding, Set<FlatNode>>();
   }
   
   public void doAnalysis() {
@@ -94,6 +98,14 @@ public class DiscoverConflicts {
     return srcmap.get(lb).contains(fn);
   }
 
+  public boolean getNeedLeftSrcTrans(LocalityBinding lb, FlatNode fn) {
+    return leftsrcmap.get(lb).contains(fn);
+  }
+
+  public boolean getNeedRightSrcTrans(LocalityBinding lb, FlatNode fn) {
+    return rightsrcmap.get(lb).contains(fn);
+  }
+
   public boolean getNeedTrans(LocalityBinding lb, FlatNode fn) {
     return treadmap.get(lb).contains(fn);
   }
@@ -104,8 +116,12 @@ public class DiscoverConflicts {
     Hashtable<FlatNode, Hashtable<TempDescriptor, Set<TempFlatPair>>> fnmap=computeTempSets(lb);
     HashSet<TempFlatPair> tfset=computeTranslationSet(lb, fm, fnmap);
     HashSet<FlatNode> srctrans=new HashSet<FlatNode>();
+    HashSet<FlatNode> leftsrctrans=new HashSet<FlatNode>();
+    HashSet<FlatNode> rightsrctrans=new HashSet<FlatNode>();
     transreadmap.put(lb, tfset);
     srcmap.put(lb,srctrans);
+    leftsrcmap.put(lb,leftsrctrans);
+    rightsrcmap.put(lb,rightsrctrans);
 
     //compute writes that need translation on source
 
@@ -115,6 +131,37 @@ public class DiscoverConflicts {
       if (atomictable.get(fn).intValue()>0) {
 	Hashtable<TempDescriptor, Set<TempFlatPair>> tmap=fnmap.get(fn);
 	switch(fn.kind()) {
+	case FKind.FlatOpNode: { 
+	  FlatOpNode fon=(FlatOpNode)fn;
+	  if (fon.getOp().getOp()==Operation.EQUAL||
+	      fon.getOp().getOp()==Operation.NOTEQUAL) {
+	    if (!fon.getLeft().getType().isPtr())
+	      break;
+	    Set<TempFlatPair> lefttfpset=tmap.get(fon.getLeft());
+	    Set<TempFlatPair> righttfpset=tmap.get(fon.getRight());
+	    //handle left operand
+	    if (lefttfpset!=null) {
+	      for(Iterator<TempFlatPair> tfpit=lefttfpset.iterator();tfpit.hasNext();) {
+		TempFlatPair tfp=tfpit.next();
+		if (tfset.contains(tfp)||ok(tfp)) {
+		  leftsrctrans.add(fon);
+		  break;
+		}
+	      }
+	    }
+	    //handle right operand
+	    if (righttfpset!=null) {
+	      for(Iterator<TempFlatPair> tfpit=righttfpset.iterator();tfpit.hasNext();) {
+		TempFlatPair tfp=tfpit.next();
+		if (tfset.contains(tfp)||ok(tfp)) {
+		  rightsrctrans.add(fon);
+		  break;
+		}
+	      }
+	    }
+	  }
+	  break;
+	}
 	case FKind.FlatSetFieldNode: { 
 	  //definitely need to translate these
 	  FlatSetFieldNode fsfn=(FlatSetFieldNode)fn;

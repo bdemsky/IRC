@@ -439,6 +439,7 @@ public class BuildCode {
       outmethod.println("invokeSESEargs* tempSESEargs;");
     }
 
+
     //Store the sizes of classes & array elements
     generateSizeArray(outmethod);
 
@@ -876,21 +877,12 @@ public class BuildCode {
     outclassdefs.print("#endif\n");
     outclassdefs.print("int numprefetchsites = " + pa.prefetchsiteid + ";\n");
 
-    outclassdefs.print("int classsize[]={");
     Iterator it=state.getClassSymbolTable().getDescriptorsIterator();
     cdarray=new ClassDescriptor[state.numClasses()];
     while(it.hasNext()) {
       ClassDescriptor cd=(ClassDescriptor)it.next();
       cdarray[cd.getId()]=cd;
     }
-    boolean needcomma=false;
-    for(int i=0; i<state.numClasses(); i++) {
-      if (needcomma)
-	outclassdefs.print(", ");
-      outclassdefs.print("sizeof(struct "+cdarray[i].getSafeSymbol()+")");
-      needcomma=true;
-    }
-
 
     arraytable=new TypeDescriptor[state.numArrays()];
 
@@ -900,6 +892,34 @@ public class BuildCode {
       int id=state.getArrayNumber(td);
       arraytable[id]=td;
     }
+
+
+
+    /* Print out types */
+    outclassdefs.println("/* ");
+    for(int i=0; i<state.numClasses(); i++) {
+      ClassDescriptor cd=cdarray[i];
+      outclassdefs.println(cd +"  "+i);
+    }
+
+    for(int i=0; i<state.numArrays(); i++) {
+      TypeDescriptor arraytd=arraytable[i];
+      outclassdefs.println(arraytd.toPrettyString() +"  "+(i+state.numClasses()));
+    }
+
+    outclassdefs.println("*/");
+
+
+    outclassdefs.print("int classsize[]={");
+
+    boolean needcomma=false;
+    for(int i=0; i<state.numClasses(); i++) {
+      if (needcomma)
+	outclassdefs.print(", ");
+      outclassdefs.print("sizeof(struct "+cdarray[i].getSafeSymbol()+")");
+      needcomma=true;
+    }
+
 
     for(int i=0; i<state.numArrays(); i++) {
       if (needcomma)
@@ -2873,6 +2893,17 @@ public class BuildCode {
 	else
 	  output.println(generateTemp(fm, fon.getDest(),lb)+" = ((unsigned int)"+generateTemp(fm, fon.getLeft(),lb)+")>>"+generateTemp(fm,fon.getRight(),lb)+";");
 
+      } else if (dc!=null) {
+	output.print(generateTemp(fm, fon.getDest(),lb)+" = ");
+	if (dc.getNeedLeftSrcTrans(lb, fon))
+	  output.print("("+generateTemp(fm, fon.getLeft(),lb)+"!=NULL?"+generateTemp(fm, fon.getLeft(),lb)+"->"+oidstr+":NULL)");
+	else
+	  output.print(generateTemp(fm, fon.getLeft(),lb));
+	output.print(fon.getOp().toString());
+	if (dc.getNeedRightSrcTrans(lb, fon))
+	  output.println("("+generateTemp(fm, fon.getRight(),lb)+"!=NULL?"+generateTemp(fm, fon.getRight(),lb)+"->"+oidstr+":NULL);");
+	else
+	  output.println(generateTemp(fm,fon.getRight(),lb)+";");
       } else
 	output.println(generateTemp(fm, fon.getDest(),lb)+" = "+generateTemp(fm, fon.getLeft(),lb)+fon.getOp().toString()+generateTemp(fm,fon.getRight(),lb)+";");
     } else if (fon.getOp().getOp()==Operation.ASSIGN)
