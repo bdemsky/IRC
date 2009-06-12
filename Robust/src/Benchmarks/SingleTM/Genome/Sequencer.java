@@ -228,112 +228,113 @@ public class Sequencer {
       int numBucket = startHashToConstructEntryTablePtr.numBucket;
 
       int index_start;
-        int index_stop;
+      int index_stop;
 
-        {
-          /* Choose disjoint segments [index_start,index_stop) for each thread */
-          int partitionSize = (numUniqueSegment + numThread/2) / numThread; /* with rounding */
-          index_start = threadId * partitionSize;
-          if (threadId == (numThread - 1)) {
-            index_stop = numUniqueSegment;
-          } else {
-            index_stop = index_start + partitionSize;
-          }
+      {
+        /* Choose disjoint segments [index_start,index_stop) for each thread */
+        int partitionSize = (numUniqueSegment + numThread/2) / numThread; /* with rounding */
+        index_start = threadId * partitionSize;
+        if (threadId == (numThread - 1)) {
+          index_stop = numUniqueSegment;
+        } else {
+          index_stop = index_start + partitionSize;
+        }
+      }
+
+      /* Iterating over disjoint itervals in the range [0, numUniqueSegment) */
+      for (entryIndex = index_start;
+          entryIndex < index_stop;
+          entryIndex += endInfoEntries[entryIndex].jumpToNext)
+      {
+        if (!endInfoEntries[entryIndex].isEnd) {
+          continue;
         }
 
-        /* Iterating over disjoint itervals in the range [0, numUniqueSegment) */
-        for (entryIndex = index_start;
-            entryIndex < index_stop;
-            entryIndex += endInfoEntries[entryIndex].jumpToNext)
-        {
-          if (!endInfoEntries[entryIndex].isEnd) {
-            continue;
+        /*  ConstructEntries[entryIndex] is local data */
+        constructEntry endConstructEntryPtr = constructEntries[entryIndex];
+        String endSegment = endConstructEntryPtr.segment;
+        int endHash = endConstructEntryPtr.endHash;
+
+        LinkedList chainPtr = buckets[(endHash % numBucket)]; /* buckets: constant data */
+        LinkedListIterator it = (LinkedListIterator)chainPtr.iterator();
+        while (it.hasNext()) {
+          constructEntry startConstructEntryPtr = (constructEntry)it.next();
+          String startSegment = startConstructEntryPtr.segment;
+          int newLength = 0;
+
+          /* endConstructEntryPtr is local except for properties startPtr/endPtr/length */
+          atomic {
+            if(startConstructEntryPtr.isStart &&
+                (endConstructEntryPtr.startPtr != startConstructEntryPtr) &&
+                (startSegment.substring(0, (int)substringLength).compareTo(endSegment.substring((int)(segmentLength-substringLength))) == 0))
+            {
+              startConstructEntryPtr.isStart = false;
+              constructEntry startConstructEntry_endPtr;
+              constructEntry endConstructEntry_startPtr;
+
+              /* Update endInfo (appended something so no inter end) */
+              endInfoEntries[entryIndex].isEnd = false;
+              /* Update segment chain construct info */
+              startConstructEntry_endPtr = startConstructEntryPtr.endPtr;
+              endConstructEntry_startPtr = endConstructEntryPtr.startPtr;
+              startConstructEntry_endPtr.startPtr = endConstructEntry_startPtr;
+              endConstructEntryPtr.nextPtr = startConstructEntryPtr;
+              endConstructEntry_startPtr.endPtr = startConstructEntry_endPtr;
+              endConstructEntryPtr.overlap = substringLength;
+              newLength = endConstructEntry_startPtr.length + startConstructEntryPtr.length - substringLength;
+              endConstructEntry_startPtr.length = newLength;
+            } else {/* if (matched) */
+            }
           }
 
-          /*  ConstructEntries[entryIndex] is local data */
-          constructEntry endConstructEntryPtr = constructEntries[entryIndex];
-          String endSegment = endConstructEntryPtr.segment;
-          int endHash = endConstructEntryPtr.endHash;
-
-          LinkedList chainPtr = buckets[(endHash % numBucket)]; /* buckets: constant data */
-          LinkedListIterator it = (LinkedListIterator)chainPtr.iterator();
-          while (it.hasNext()) {
-            constructEntry startConstructEntryPtr = (constructEntry)it.next();
-            String startSegment = startConstructEntryPtr.segment;
-            int newLength = 0;
-
-            /* endConstructEntryPtr is local except for properties startPtr/endPtr/length */
-            atomic {
-              if(startConstructEntryPtr.isStart &&
-                  (endConstructEntryPtr.startPtr != startConstructEntryPtr) &&
-                  (startSegment.substring(0, (int)substringLength).compareTo(endSegment.substring((int)(segmentLength-substringLength))) == 0))
-              {
-                startConstructEntryPtr.isStart = false;
-                constructEntry startConstructEntry_endPtr;
-                constructEntry endConstructEntry_startPtr;
-
-                /* Update endInfo (appended something so no inter end) */
-                endInfoEntries[entryIndex].isEnd = false;
-                /* Update segment chain construct info */
-                startConstructEntry_endPtr = startConstructEntryPtr.endPtr;
-                endConstructEntry_startPtr = endConstructEntryPtr.startPtr;
-                startConstructEntry_endPtr.startPtr = endConstructEntry_startPtr;
-                endConstructEntryPtr.nextPtr = startConstructEntryPtr;
-                endConstructEntry_startPtr.endPtr = startConstructEntry_endPtr;
-                endConstructEntryPtr.overlap = substringLength;
-                newLength = endConstructEntry_startPtr.length + startConstructEntryPtr.length - substringLength;
-                endConstructEntry_startPtr.length = newLength;
-              } else {/* if (matched) */
-              }
-            }
-
-            if (!endInfoEntries[entryIndex].isEnd) { /* if there was a match */
-              break;
-            }
-          } /* iterate over chain */
-
-        } /* for (endIndex < numUniqueSegment) */
-
-        Barrier.enterBarrier();
-
-        /*
-         * Step 2c: Update jump values and hashes
-         *
-         * endHash entries of all remaining ends are updated to the next
-         * substringLength. Additionally jumpToNext entries are updated such
-         * that they allow to skip non-end entries. Currently this is sequential
-         * because parallelization did not perform better.
-         */
-
-        if (threadId == 0) {
-          if (substringLength > 1) {
-            int index = segmentLength - substringLength + 1;
-            /* initialization if j and i: with i being the next end after j=0 */
-            for (i = 1; !endInfoEntries[i].isEnd; i+=endInfoEntries[i].jumpToNext) {
-              /* find first non-null */
-              ;
-            }
-            /* entry 0 is handled seperately from the loop below */
-            endInfoEntries[0].jumpToNext = i;
-            if (endInfoEntries[0].isEnd) {
-              String segment = constructEntries[0].segment;
-              constructEntries[0].endHash = hashString(segment.subString((int)index)); // USE BYTE SUBSTRING FUNCTION
-            }
-            /* Continue scanning (do not reset i) */
-            for (j = 0; i < numUniqueSegment; i+=endInfoEntries[i].jumpToNext) {
-
-              if (endInfoEntries[i].isEnd) {
-                String segment = constructEntries[i].segment;
-                constructEntries[i].endHash = hashString(segment.substring((int)index)); // USE BYTE SUBSTRING FUNCTION
-                endInfoEntries[j].jumpToNext = Math.imax((int)1, (int)(i - j));
-                j = i;
-              }
-            }
-            endInfoEntries[j].jumpToNext = i - j;
+          if (!endInfoEntries[entryIndex].isEnd) { /* if there was a match */
+            break;
           }
+        } /* iterate over chain */
+
+      } /* for (endIndex < numUniqueSegment) */
+
+      Barrier.enterBarrier();
+
+      /*
+       * Step 2c: Update jump values and hashes
+       *
+       * endHash entries of all remaining ends are updated to the next
+       * substringLength. Additionally jumpToNext entries are updated such
+       * that they allow to skip non-end entries. Currently this is sequential
+       * because parallelization did not perform better.
+       */
+
+      if (threadId == 0) {
+        if (substringLength > 1) {
+          int index = segmentLength - substringLength + 1;
+          /* initialization if j and i: with i being the next end after j=0 */
+          for (i = 1; !endInfoEntries[i].isEnd; i+=endInfoEntries[i].jumpToNext) {
+            /* find first non-null */
+            ;
+          }
+          /* entry 0 is handled seperately from the loop below */
+          endInfoEntries[0].jumpToNext = i;
+          if (endInfoEntries[0].isEnd) {
+            String segment = constructEntries[0].segment;
+            constructEntries[0].endHash = hashString(segment.subString((int)index)); // USE BYTE SUBSTRING FUNCTION
+          }
+          /* Continue scanning (do not reset i) */
+          for (j = 0; i < numUniqueSegment; i+=endInfoEntries[i].jumpToNext) {
+
+            if (endInfoEntries[i].isEnd) {
+              String segment = constructEntries[i].segment;
+              constructEntries[i].endHash = hashString(segment.substring((int)index)); // USE BYTE SUBSTRING FUNCTION
+              endInfoEntries[j].jumpToNext = Math.imax((int)1, (int)(i - j));
+              j = i;
+            }
+          }
+          endInfoEntries[j].jumpToNext = i - j;
         }
+      }
 
-        Barrier.enterBarrier();
+
+      Barrier.enterBarrier();
 
     } /* for (substringLength > 0) */
 
@@ -382,7 +383,7 @@ public class Sequencer {
    * -- uses sdbm hash function
    * =============================================================================
    */
-   static int hashString (String str)
+  static int hashString (String str)
   {
     int hash = 0;
 

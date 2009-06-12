@@ -117,41 +117,39 @@ public class BitMap {
   /* =============================================================================
    * bitmap_set
    * -- Sets ith bit to 1
-   * -- Returns TRUE on success, else FALSE
+   * -- Returns true on success, else false
    * =============================================================================
    */
-  /*
-  bool_t
-    bitmap_set (bitmap_t* bitmapPtr, int i)
+  public boolean
+    bitmap_set (int i)
     {
-      if ((i < 0) || (i >= bitmapPtr.numBit)) {
-        return FALSE;
+      if ((i < 0) || (i >= numBit)) {
+        return false;
       }
 
-      bitmapPtr.bits[i/NUM_BIT_PER_WORD] |= (1UL << (i % NUM_BIT_PER_WORD));
+      bits[i/NUM_BIT_PER_WORD] |= (1 << (i % NUM_BIT_PER_WORD));
 
-      return TRUE;
+      return true;
     }
-    */
 
 
   /* =============================================================================
    * bitmap_clear
    * -- Clears ith bit to 0
-   * -- Returns TRUE on success, else FALSE
+   * -- Returns true on success, else false
    * =============================================================================
    */
   /*
-  bool_t
+  boolean
     bitmap_clear (bitmap_t* bitmapPtr, int i)
     {
       if ((i < 0) || (i >= bitmapPtr.numBit)) {
-        return FALSE;
+        return false;
       }
 
       bitmapPtr.bits[i/NUM_BIT_PER_WORD] &= ~(1UL << (i % NUM_BIT_PER_WORD));
 
-      return TRUE;
+      return true;
     }
     */
 
@@ -161,51 +159,49 @@ public class BitMap {
    * -- Clears all bit to 0
    * =============================================================================
    */
-  /*
-  void
-    bitmap_clearAll (bitmap_t* bitmapPtr)
+  public void
+    bitmap_clearAll ()
     {
-      memset(bitmapPtr.bits, 0, (bitmapPtr.numWord * sizeof(uint_t)));
+      for(int i = 0; i<numWord; i++)
+        bits[i] = 0;
+      //memset(bitmapPtr.bits, 0, (bitmapPtr.numWord * sizeof(uint_t)));
     }
-    */
 
 
   /* =============================================================================
    * bitmap_isClear
-   * -- Returns TRUE if ith bit is clear, else FALSE
+   * -- Returns true if ith bit is clear, else false
    * =============================================================================
    */
   /*
-  bool_t
+  boolean
     bitmap_isClear (bitmap_t* bitmapPtr, int i)
     {
       if ((i >= 0) && (i < bitmapPtr.numBit) &&
           !(bitmapPtr.bits[i/NUM_BIT_PER_WORD] & (1UL << (i % NUM_BIT_PER_WORD)))) {
-        return TRUE;
+        return true;
       }
 
-      return FALSE;
+      return false;
     }
     */
 
 
   /* =============================================================================
    * bitmap_isSet
-   * -- Returns TRUE if ith bit is set, else FALSE
+   * -- Returns true if ith bit is set, else false
    * =============================================================================
    */
-  /*
-  bool_t
-    bitmap_isSet (bitmap_t* bitmapPtr, int i)
+  public boolean
+    bitmap_isSet (int i)
     {
-      if ((i >= 0) && (i < bitmapPtr.numBit) &&
-          (bitmapPtr.bits[i/NUM_BIT_PER_WORD] & (1UL << (i % NUM_BIT_PER_WORD)))) {
-        return TRUE;
+      if ((i >= 0) && (i < numBit) &&
+          (bits[i/NUM_BIT_PER_WORD] & (1 << (i % NUM_BIT_PER_WORD)))) {
+        return true;
       }
 
-      return FALSE;
+      return false;
     }
-    */
 
 
   /* =============================================================================
@@ -215,23 +211,21 @@ public class BitMap {
    * -- If all bits are set, returns -1
    * =============================================================================
    */
-  /*
-  int
-    bitmap_findClear (bitmap_t* bitmapPtr, int startIndex)
+  public int
+    bitmap_findClear (int startIndex)
     {
-      int i;
-      int numBit = bitmapPtr.numBit;
-      uint_t* bits = bitmapPtr.bits;
+      int tmp_numBit = numBit;
+      int[] tmp_bits = bits;
+      //uint_t* bits = bitmapPtr.bits;
 
-      for (i = MAX(startIndex, 0); i < numBit; i++) {
-        if (!(bits[i/NUM_BIT_PER_WORD] & (1UL << (i % NUM_BIT_PER_WORD)))) {
+      for (int i = MAX(startIndex, 0); i < tmp_numBit; i++) {
+        if (!(tmp_bits[i/NUM_BIT_PER_WORD] & (1 << (i % NUM_BIT_PER_WORD)))) {
           return i;
         }
       }
 
       return -1;
     }
-    */
 
 
   /* =============================================================================
@@ -328,6 +322,15 @@ public class BitMap {
       }
     }
     */
+
+  /**
+   * ======================================
+   * MAX(a.b)
+   * ======================================
+   **/
+  public int MAX(int a, int b) {
+    return (a > b) ? a : b; 
+  }  
 }
 
 /* =============================================================================

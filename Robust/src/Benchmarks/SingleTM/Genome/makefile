@@ -10,7 +10,7 @@ SRC=${MAINCLASS}.java \
 	Sequencer.java \
 	Table.java \
 	Hashtable.java
-FLAGS=-mainclass ${MAINCLASS} -singleTM -optimize -dcopts -abcclose -fastmemcpy -joptimize
+FLAGS=-mainclass ${MAINCLASS} -singleTM -optimize -debug -fastmemcpy -abcclose -dcopts -joptimize
 
 default:
 	../../../buildscript ${FLAGS} -o ${MAINCLASS} ${SRC}

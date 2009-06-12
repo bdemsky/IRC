@@ -14,7 +14,7 @@ SRC=tmp${MAINCLASS}.java \
 	VList.java \
 	../common/Random.java \
     ../../../ClassLibrary/JavaSTM/Barrier.java
-FLAGS=-mainclass ${MAINCLASS} -singleTM -optimize -debug -dcopts -stmstats -fastmemcpy -transstats -joptimize
+FLAGS=-mainclass ${MAINCLASS} -singleTM -optimize -debug -dcopts -stmstats -fastmemcpy -transstats -joptimize -abcclose
 # -joptimize
 
 default:

@@ -13,7 +13,7 @@ public class Vector_t {
    * =============================================================================
    */
   public static Vector_t vector_alloc (int initCapacity) {
-    int capacity = Math.max(initCapacity, 1);
+    int capacity = Math.imax(initCapacity, 1);
     Vector_t vectorPtr = new Vector();
     if(vectorPtr != null) {
       vectorPtr.size = 0;
@@ -40,12 +40,12 @@ public class Vector_t {
    * -- Returns null if failed
    * =============================================================================
    */
-  public static Object vector_at (Vector_t vectorPtr, int i) {
-    if ((i < 0) || (i >= vectorPtr.size)) {
+  public Object vector_at (int i) {
+    if ((i < 0) || (i >= size)) {
       System.out.println("Illegal Vector.element\n");
       return null;
     }
-    return (vectorPtr.elements[i]);
+    return (elements[i]);
   }
 
 
