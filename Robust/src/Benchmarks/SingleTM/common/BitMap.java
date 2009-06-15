@@ -7,8 +7,8 @@
  * Copyright (C) Stanford University, 2006.  All Rights Reserved.
  * Author: Chi Cao Minh
  *
- * Ported to Java:
- * Author:Alokika dash
+ * Ported to Java June 2009 Alokika Dash
+ * adash@uci.edu
  * University of California, Irvine
  *
  * =============================================================================
@@ -105,10 +105,9 @@ public class BitMap {
    * =============================================================================
    */
   public void
-    bitmap_free (BitMap bitmapPtr)
+    bitmap_free ()
     {
-      bitmapPtr.bits = null;
-      bitmapPtr = null;
+      bits = null;
       //free(bitmapPtr.bits);
       //free(bitmapPtr);
     }
@@ -195,8 +194,9 @@ public class BitMap {
   public boolean
     bitmap_isSet (int i)
     {
+      int val = bits[i/NUM_BIT_PER_WORD] & (1 << (i % NUM_BIT_PER_WORD));
       if ((i >= 0) && (i < numBit) &&
-          (bits[i/NUM_BIT_PER_WORD] & (1 << (i % NUM_BIT_PER_WORD)))) {
+          (val != 0)) {
         return true;
       }
 
@@ -218,8 +218,9 @@ public class BitMap {
       int[] tmp_bits = bits;
       //uint_t* bits = bitmapPtr.bits;
 
-      for (int i = MAX(startIndex, 0); i < tmp_numBit; i++) {
-        if (!(tmp_bits[i/NUM_BIT_PER_WORD] & (1 << (i % NUM_BIT_PER_WORD)))) {
+      for (int i = Math.imax(startIndex, 0); i < tmp_numBit; i++) {
+        int val = tmp_bits[i/NUM_BIT_PER_WORD] & (1 << (i % NUM_BIT_PER_WORD)); 
+        if(val == 0) {
           return i;
         }
       }
@@ -243,7 +244,7 @@ public class BitMap {
       int numBit = bitmapPtr.numBit;
       uint_t* bits = bitmapPtr.bits;
 
-      for (i = MAX(startIndex, 0); i < numBit; i++) {
+      for (i = Math.imax(startIndex, 0); i < numBit; i++) {
         if (bits[i/NUM_BIT_PER_WORD] & (1UL << (i % NUM_BIT_PER_WORD))) {
           return i;
         }
@@ -322,15 +323,6 @@ public class BitMap {
       }
     }
     */
-
-  /**
-   * ======================================
-   * MAX(a.b)
-   * ======================================
-   **/
-  public int MAX(int a, int b) {
-    return (a > b) ? a : b; 
-  }  
 }
 
 /* =============================================================================

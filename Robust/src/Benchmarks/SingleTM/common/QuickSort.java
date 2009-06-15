@@ -4,7 +4,7 @@ public class QuickSort {
 
   }
 
-  public static void swap (int A[], int x, int y)
+  public void swap (int A[], int x, int y)
   {
     int temp = A[x];
     A[x] = A[y];
@@ -13,7 +13,7 @@ public class QuickSort {
 
   // Reorganizes the given list so all elements less than the first are 
   // before it and all greater elements are after it.   
-  public static int partition(int A[], int left, int right)
+  public int partition(int a[], int left, int right)
   {
     int i = left - 1;
     int j = right;
@@ -29,11 +29,15 @@ public class QuickSort {
     return i;
   }
 
-  public static void Quicksort(int A[], int f, int l)
+  public void sort(int A[], int f, int l)
   {
     if (f >= l) return;
     int pivot_index = partition(A, f, l);
-    Quicksort(A, f, pivot_index);
-    Quicksort(A, pivot_index+1, l);
+    sort(A, f, pivot_index);
+    sort(A, pivot_index+1, l);
+  }
+
+  boolean less(int x, int y) {
+    return(x<y);
   }
 }

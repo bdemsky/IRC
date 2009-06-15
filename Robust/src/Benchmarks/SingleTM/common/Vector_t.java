@@ -2,9 +2,10 @@ public class Vector_t {
   int size;
   int capacity;
   Object[] elements;
+  QuickSort qsort;
 
   public Vector_t() {
-
+    qsort = new QuickSort();
   }
 
   /* =============================================================================
@@ -14,7 +15,7 @@ public class Vector_t {
    */
   public static Vector_t vector_alloc (int initCapacity) {
     int capacity = Math.imax(initCapacity, 1);
-    Vector_t vectorPtr = new Vector();
+    Vector_t vectorPtr = new Vector_t();
     if(vectorPtr != null) {
       vectorPtr.size = 0;
       vectorPtr.capacity = capacity;
@@ -118,7 +119,7 @@ public class Vector_t {
   public void
     vector_sort ()
     {
-      QuickSort.Quicksort(elements, 0, elements.length - 1);
+      //qsort.sort(elements, 0, (elements.length - 1));
       //qsort(elements, size, 4, compare);
     }
 

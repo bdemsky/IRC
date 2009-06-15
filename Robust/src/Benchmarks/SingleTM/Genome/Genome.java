@@ -91,7 +91,7 @@ public class Genome extends Thread {
     System.out.println("Number threads  = " + g.numThread);
 
 
-    Barrier.setBarrier((int)g.numThread);
+    Barrier.setBarrier(g.numThread);
 
     /* Create and Start Threads */
 
