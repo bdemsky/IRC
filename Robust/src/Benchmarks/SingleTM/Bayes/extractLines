@@ -1,0 +1,17 @@
+#!/bin/sh
+lines=$(grep -n "#" tmp1Bayes.java | cut -d: -f1 | sed '1q')
+sed '/^#/d' tmp1Bayes.java > tmpBayes.java
+lines=$(grep -n "#" tmp1Data.java | cut -d: -f1 | sed '1q')
+sed '/^#/d' tmp1Data.java > tmpData.java
+lines=$(grep -n "#" tmp1Net.java | cut -d: -f1 | sed '1q')
+sed '/^#/d' tmp1Net.java > tmpNet.java
+lines=$(grep -n "#" tmp1Sort.java | cut -d: -f1 | sed '1q')
+sed '/^#/d' tmp1Sort.java > tmpSort.java
+lines=$(grep -n "#" tmp1BitMap.java | cut -d: -f1 | sed '1q')
+sed '/^#/d' tmp1BitMap.java > tmpBitMap.java
+lines=$(grep -n "#" tmp1Queue.java | cut -d: -f1 | sed '1q')
+sed '/^#/d' tmp1Queue.java > tmpQueue.java
+lines=$(grep -n "#" tmp1Learner.java | cut -d: -f1 | sed '1q')
+sed '/^#/d' tmp1Learner.java > tmpLearner.java
+lines=$(grep -n "#" tmp1IntList.java | cut -d: -f1 | sed '1q')
+sed '/^#/d' tmp1IntList.java > tmpIntList.java
