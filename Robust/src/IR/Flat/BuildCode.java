@@ -19,9 +19,11 @@ import Analysis.TaskStateAnalysis.TaskIndex;
 import Analysis.Locality.LocalityAnalysis;
 import Analysis.Locality.LocalityBinding;
 import Analysis.Locality.DiscoverConflicts;
+import Analysis.Locality.DelayComputation;
 import Analysis.CallGraph.CallGraph;
 import Analysis.Prefetch.*;
 import Analysis.Loops.WriteBarrier;
+import Analysis.Loops.GlobalFieldType;
 import Analysis.Locality.TypeAnalysis;
 import Analysis.MLP.MLPAnalysis;
 
@@ -62,6 +64,7 @@ public class BuildCode {
   boolean nonSESEpass=true;
   WriteBarrier wb;
   DiscoverConflicts dc;
+  DelayComputation delaycomp;
   CallGraph callgraph;
 
   public BuildCode(State st, Hashtable temptovar, TypeUtil typeutil, SafetyAnalysis sa, PrefetchAnalysis pa) {
@@ -102,6 +105,14 @@ public class BuildCode {
       this.dc=new DiscoverConflicts(locality, st, typeanalysis);
       dc.doAnalysis();
     }
+    if (state.SINGLETM&&state.DELAYCOMP) {
+      TypeAnalysis typeanalysis=new TypeAnalysis(locality, st, typeutil,callgraph);
+      GlobalFieldType gft=new GlobalFieldType(callgraph, st, typeutil.getMain());
+      delaycomp=new DelayComputation(locality, st, typeanalysis, gft);
+      delaycomp.doAnalysis();
+    }
+
+
     if(state.MLP) {
       sese2bogusFlatMeth = new Hashtable<FlatSESEEnterNode, FlatMethod>();
     }

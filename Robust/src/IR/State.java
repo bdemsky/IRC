@@ -101,6 +101,7 @@ public class State {
   private int arraycount=0;
   public boolean OPTIMIZE=false;
   public boolean DCOPTS=false;
+  public boolean DELAYCOMP=false;
 
 
   private Hashtable<ClassDescriptor, Hashtable<OptionalTaskDescriptor, OptionalTaskDescriptor>> optionaltaskdescriptors;

@@ -58,7 +58,7 @@ public class TypeDescriptor extends Descriptor {
   }
 
   public boolean iswrapper() {
-    if (arraycount!=0||isClass())
+    if (arraycount!=0||!isClass())
       return false;
     return (name.equals("bytewrapper")||
 	    name.equals("booleanwrapper")||

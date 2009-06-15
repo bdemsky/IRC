@@ -135,7 +135,9 @@ public class Main {
 	state.OPTIMIZE=true;
       else if (option.equals("-dcopts"))
 	state.DCOPTS=true;
-	  else if (option.equals("-raw"))
+      else if (option.equals("-delaycomp"))
+	state.DELAYCOMP=true;
+      else if (option.equals("-raw"))
 	state.RAW=true;
       else if (option.equals("-scheduling"))
 	state.SCHEDULING=true;

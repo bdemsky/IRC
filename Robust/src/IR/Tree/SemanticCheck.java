@@ -524,7 +524,6 @@ public class SemanticCheck {
 
     checkExpressionNode(md,nametable,aan.getIndex(),new TypeDescriptor(TypeDescriptor.INT));
     TypeDescriptor ltd=left.getType();
-
     if (ltd.dereference().iswrapper()) {
       aan.wrappertype=((FieldDescriptor)ltd.dereference().getClassDesc().getFieldTable().get("value")).getType();
     }
@@ -1042,8 +1041,12 @@ NextMethod:
     case Operation.GTE:
       // 5.6.2 Binary Numeric Promotion
       //TODO unboxing of reference objects
-      if (!ltd.isNumber()||!rtd.isNumber())
-	throw new Error();
+      if (!ltd.isNumber()||!rtd.isNumber()) {
+	if (!ltd.isNumber())
+	  throw new Error("Leftside is not number"+on.printNode(0)+"type="+ltd.toPrettyString());
+	if (!rtd.isNumber())
+	  throw new Error("Rightside is not number"+on.printNode(0));
+      }
 
       if (ltd.isDouble()||rtd.isDouble())
 	lefttype=new TypeDescriptor(TypeDescriptor.DOUBLE);
