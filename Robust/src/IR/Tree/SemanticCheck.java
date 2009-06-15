@@ -296,6 +296,10 @@ public class SemanticCheck {
       checkAtomicNode(md, nametable, (AtomicNode)bsn);
       return;
 
+    case Kind.SynchronizedNode:
+      checkSynchronizedNode(md, nametable, (SynchronizedNode)bsn);
+      return;
+
     case Kind.ContinueBreakNode:
 	checkContinueBreakNode(md, nametable, (ContinueBreakNode) bsn);
 	return;
@@ -341,6 +345,12 @@ public class SemanticCheck {
 
   void checkAtomicNode(Descriptor md, SymbolTable nametable, AtomicNode sbn) {
     checkBlockNode(md, nametable, sbn.getBlockNode());
+  }
+
+  void checkSynchronizedNode(Descriptor md, SymbolTable nametable, SynchronizedNode sbn) {
+    checkBlockNode(md, nametable, sbn.getBlockNode());
+    //todo this could be Object
+    checkExpressionNode(md, nametable, sbn.getExpr(), null);
   }
 
   void checkContinueBreakNode(Descriptor md, SymbolTable nametable, ContinueBreakNode cbn) {
@@ -485,6 +495,7 @@ public class SemanticCheck {
       fd=(FieldDescriptor) ltd.getClassDesc().getFieldTable().get(fieldname);
     if (fd==null)
       throw new Error("Unknown field "+fieldname + " in "+fan.printNode(0)+" in "+md);
+
     if (fd.getType().iswrapper()) {
       FieldAccessNode fan2=new FieldAccessNode(left, fieldname);
       fan2.setField(fd);

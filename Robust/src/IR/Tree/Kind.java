@@ -28,4 +28,5 @@ public class Kind {
   public final static int TertiaryNode=25;
   public final static int InstanceOfNode=26;
   public final static int ArrayInitializerNode=27;
+  public final static int SynchronizedNode=28;
 }

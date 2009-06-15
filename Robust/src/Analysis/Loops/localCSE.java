@@ -154,9 +154,9 @@ public class localCSE {
 	  //do side effects
 	  FlatCall fc=(FlatCall)fn;
 	  MethodDescriptor md=fc.getMethod();
-	  Set<FieldDescriptor> fields=gft.getFields(md);
-	  Set<TypeDescriptor> arrays=gft.getArrays(md);
-	  kill(table, fields, arrays, gft.containsAtomic(md), gft.containsBarrier(md));
+	  Set<FieldDescriptor> fields=gft.getFieldsAll(md);
+	  Set<TypeDescriptor> arrays=gft.getArraysAll(md);
+	  kill(table, fields, arrays, gft.containsAtomicAll(md), gft.containsBarrierAll(md));
 	}
 	default: {
 	  TempDescriptor[] writes=fn.writesTemps();

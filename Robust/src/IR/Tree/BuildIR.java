@@ -701,6 +701,10 @@ public class BuildIR {
     } else if (isNode(pn,"atomic")) {
       BlockNode bn=parseBlockHelper(pn);
       blockstatements.add(new AtomicNode(bn));
+    } else if (isNode(pn,"synchronized")) {
+      BlockNode bn=parseBlockHelper(pn.getChild("block"));
+      ExpressionNode en=parseExpression(pn.getChild("expr").getFirstChild());
+      blockstatements.add(new SynchronizedNode(en, bn));
     } else if (isNode(pn,"return")) {
       if (isEmpty(pn.getTerminal()))
 	blockstatements.add(new ReturnNode());

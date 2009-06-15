@@ -1136,6 +1136,23 @@ public class BuildFlat {
     return flattenBlockNode(sbn.getBlockNode());
   }
 
+  private NodePair flattenSynchronizedNode(SynchronizedNode sbn) {
+    TempDescriptor montmp=TempDescriptor.tempFactory("monitor",sbn.getExpr().getType());
+    NodePair npexp=flattenExpressionNode(sbn.getExpr(), montmp);
+    NodePair npblock=flattenBlockNode(sbn.getBlockNode());
+
+    MethodDescriptor menmd=(MethodDescriptor)typeutil.getClass("Object").getMethodTable().get("MonitorEnter");
+    FlatCall fcen=new FlatCall(menmd, null, montmp, new TempDescriptor[0]);
+
+    MethodDescriptor mexmd=(MethodDescriptor)typeutil.getClass("Object").getMethodTable().get("MonitorExit");
+    FlatCall fcex=new FlatCall(mexmd, null, montmp, new TempDescriptor[0]);
+
+    npexp.getEnd().addNext(fcen);
+    fcen.addNext(npblock.getBegin());
+    npblock.getEnd().addNext(fcex);
+    return new NodePair(npexp.getBegin(), fcex);
+  }
+
   private NodePair flattenAtomicNode(AtomicNode sbn) {
     NodePair np=flattenBlockNode(sbn.getBlockNode());
     FlatAtomicEnterNode faen=new FlatAtomicEnterNode();
@@ -1275,6 +1292,9 @@ public class BuildFlat {
 
     case Kind.AtomicNode:
       return flattenAtomicNode((AtomicNode)bsn);
+
+    case Kind.SynchronizedNode:
+      return flattenSynchronizedNode((SynchronizedNode)bsn);
 
     case Kind.SESENode:
       return flattenSESENode((SESENode)bsn);

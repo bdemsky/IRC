@@ -72,13 +72,13 @@ public class LoopInvariant {
 	} else if (fn.kind()==FKind.FlatCall) {
 	  FlatCall fcall=(FlatCall)fn;
 	  MethodDescriptor md=fcall.getMethod();
-	  Set<FieldDescriptor> f=gft.getFields(md);
-	  Set<TypeDescriptor> t=gft.getArrays(md);
+	  Set<FieldDescriptor> f=gft.getFieldsAll(md);
+	  Set<TypeDescriptor> t=gft.getArraysAll(md);
 	  if (f!=null)
 	    fields.addAll(f);
 	  if (t!=null)
 	    types.addAll(t);
-	  if (gft.containsAtomic(md)||gft.containsBarrier(md)) {
+	  if (gft.containsAtomicAll(md)||gft.containsBarrierAll(md)) {
 	    unsafe=true;
 	  }
 	} else if (fn.kind()==FKind.FlatSetFieldNode) {

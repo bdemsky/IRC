@@ -188,7 +188,8 @@ non terminal ParseNode statement_expression_list;
 non terminal ParseNode break_statement, continue_statement;
 non terminal ParseNode return_statement;
 //non terminal ParseNode throw_statement;
-//non terminal ParseNode synchronized_statement, try_statement;
+non terminal ParseNode synchronized_statement;
+//non terminal ParseNode try_statement;
 //non terminal ParseNode catches_opt;
 //non terminal ParseNode catches, catch_clause;
 //non terminal ParseNode finally;
@@ -1188,7 +1189,7 @@ statement_without_trailing_substatement ::=
 	|	task_exitstatement:st {: RESULT=st; :}
 	|	atomic_statement:st {: RESULT=st; :}
 	|	sese_statement:st {: RESULT=st; :}
-//	|	synchronized_statement
+	|	synchronized_statement:st {: RESULT=st; :}
 //	|	throw_statement
 //	|	try_statement
 //	|	assert_statement
@@ -1362,9 +1363,14 @@ return_statement ::=
 //throw_statement ::=
 //		THROW expression SEMICOLON
 //	;
-//synchronized_statement ::=
-//		SYNCHRONIZED LPAREN expression RPAREN block
-//	;
+synchronized_statement ::=
+		SYNCHRONIZED LPAREN expression:e RPAREN block:b {: 
+		ParseNode pn=new ParseNode("synchronized");
+		pn.addChild("expr").addChild(e);
+		pn.addChild("block").addChild(b);
+		RESULT=pn;
+		:}
+	;
 atomic_statement ::=
 		ATOMIC block:blk {: 
 	RESULT=(new ParseNode("atomic")).addChild(blk).getRoot();

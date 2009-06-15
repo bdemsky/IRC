@@ -38,7 +38,9 @@ public class DiscoverConflicts {
   }
   
   public void doAnalysis() {
-    //Compute fields and arrays for all transactions
+    //Compute fields and arrays for all transactions.  Note that we
+    //only look at changes to old objects
+
     Set<LocalityBinding> localityset=locality.getLocalityBindings();
     for(Iterator<LocalityBinding> lb=localityset.iterator();lb.hasNext();) {
       computeModified(lb.next());
@@ -383,7 +385,8 @@ public class DiscoverConflicts {
     return tmptofnset;
   }
   
-  /* See what fields and arrays transactions might modify. */
+  /* See what fields and arrays transactions might modify.  We only
+   * look at changes to old objects. */
 
   public void computeModified(LocalityBinding lb) {
     MethodDescriptor md=lb.getMethod();
@@ -408,6 +411,11 @@ public class DiscoverConflicts {
     }
   }
     
+
+  //Returns a table that maps a flatnode to a set of temporaries
+  //This set of temporaries is old (meaning they may point to object
+  //allocated before the beginning of the current transaction
+
   Hashtable<FlatNode, Set<TempDescriptor>> computeOldTemps(LocalityBinding lb) {
     Hashtable<FlatNode, Set<TempDescriptor>> fntooldtmp=new Hashtable<FlatNode, Set<TempDescriptor>>();
     HashSet<FlatNode> discovered=new HashSet<FlatNode>();
