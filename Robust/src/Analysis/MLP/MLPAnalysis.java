@@ -12,15 +12,12 @@ import java.io.*;
 public class MLPAnalysis {
 
   // data from the compiler
-  private State state;
-  private TypeUtil typeUtil;
-  private CallGraph callGraph;
+  private State             state;
+  private TypeUtil          typeUtil;
+  private CallGraph         callGraph;
   private OwnershipAnalysis ownAnalysis;
 
-  private SESENode          rootTree;
-  private FlatSESEEnterNode rootSESE;
-  private FlatSESEExitNode  rootExit;
-
+  private FlatSESEEnterNode      rootSESE;  
   private Set<FlatSESEEnterNode> allSESEs;
 
   private Hashtable< FlatNode, Stack<FlatSESEEnterNode> > seseStacks;
@@ -32,13 +29,14 @@ public class MLPAnalysis {
 
   private static final int maxSESEage = 2;
 
-  // use these methods in BuildCode to have access to analysis results
-  public Set<FlatSESEEnterNode> getAllSESEs() {
-    return allSESEs;
-  }
 
+  // use these methods in BuildCode to have access to analysis results
   public FlatSESEEnterNode getRootSESE() {
     return rootSESE;
+  }
+
+  public Set<FlatSESEEnterNode> getAllSESEs() {
+    return allSESEs;
   }
 
   public int getMaxSESEage() {
@@ -74,15 +72,9 @@ public class MLPAnalysis {
     notAvailableResults  = new Hashtable< FlatNode, Set<TempDescriptor>      >();
     codePlans            = new Hashtable< FlatNode, CodePlan                 >();
 
-
-    // build an implicit root SESE to wrap contents of main method
-    rootTree = new SESENode( "root" );
-    rootSESE = new FlatSESEEnterNode( rootTree );
-    rootExit = new FlatSESEExitNode ( rootTree );
-    rootSESE.setFlatExit ( rootExit );
-    rootExit.setFlatEnter( rootSESE );
-
     FlatMethod fmMain = state.getMethodFlat( tu.getMain() );
+
+    rootSESE = (FlatSESEEnterNode) fmMain.getNext(0);
 
 
     // 1st pass
@@ -173,7 +165,6 @@ public class MLPAnalysis {
     Set<FlatNode> visited = new HashSet<FlatNode>();    
 
     Stack<FlatSESEEnterNode> seseStackFirst = new Stack<FlatSESEEnterNode>();
-    seseStackFirst.push( rootSESE );
     seseStacks.put( fm, seseStackFirst );
 
     while( !flatNodesToVisit.isEmpty() ) {
@@ -212,9 +203,11 @@ public class MLPAnalysis {
       allSESEs.add( fsen );
       fsen.setEnclosingFlatMeth( fm );
 
-      assert !seseStack.empty();
-      seseStack.peek().addChild( fsen );
-      fsen.setParent( seseStack.peek() );
+      if( !seseStack.empty() ) {
+	seseStack.peek().addChild( fsen );
+	fsen.setParent( seseStack.peek() );
+      }
+
       seseStack.push( fsen );
     } break;
 
@@ -226,9 +219,9 @@ public class MLPAnalysis {
 
     case FKind.FlatReturnNode: {
       FlatReturnNode frn = (FlatReturnNode) fn;
-      if( !seseStack.empty() && 
-	  !seseStack.peek().equals( rootSESE ) ) {
-	throw new Error( "Error: return statement enclosed within "+seseStack.peek() );
+      if( !seseStack.empty() ) {
+	throw new Error( "Error: return statement enclosed within SESE "+
+			 seseStack.peek().getPrettyIdentifier() );
       }
     } break;
       
@@ -436,10 +429,13 @@ public class MLPAnalysis {
 	inUnion.merge( incoming );
       }
 
-      VarSrcTokTable curr = variable_nodeActions( fn, inUnion, seseStack.peek() );     
+      VarSrcTokTable curr = null;
+      if( !seseStack.empty() ) {
+	curr = variable_nodeActions( fn, inUnion, seseStack.peek() );
+      }
 
       // if a new result, schedule forward nodes for analysis
-      if( !curr.equals( prev ) ) {       
+      if( curr != null && !curr.equals( prev ) ) {       
 	variableResults.put( fn, curr );
 
 	for( int i = 0; i < fn.numNext(); i++ ) {
@@ -589,10 +585,13 @@ public class MLPAnalysis {
         }
       }
 
-      Set<TempDescriptor> curr = notAvailable_nodeActions( fn, inUnion, seseStack.peek() );     
+      Set<TempDescriptor> curr = null;
+      if( !seseStack.empty() ) {
+	curr = notAvailable_nodeActions( fn, inUnion, seseStack.peek() );     
+      }
 
       // if a new result, schedule forward nodes for analysis
-      if( !curr.equals( prev ) ) {
+      if( curr != null && !curr.equals( prev ) ) {
 	notAvailableResults.put( fn, curr );
 
 	for( int i = 0; i < fn.numNext(); i++ ) {
@@ -746,7 +745,9 @@ public class MLPAnalysis {
         }
       }
 
-      computeStalls_nodeActions( fn, dotSTtable, dotSTnotAvailSet, seseStack.peek() );
+      if( !seseStack.empty() ) {
+	computeStalls_nodeActions( fn, dotSTtable, dotSTnotAvailSet, seseStack.peek() );
+      }
 
       for( int i = 0; i < fn.numNext(); i++ ) {
 	FlatNode nn = fn.getNext( i );
@@ -867,8 +868,11 @@ public class MLPAnalysis {
     for( int i = 0; i < fn.numNext(); i++ ) {
       FlatNode nn = fn.getNext( i );
       VarSrcTokTable nextVstTable = variableResults.get( nn );
-      assert nextVstTable != null;
-      static2dynamicSet.addAll( vstTable.getStatic2DynamicSet( nextVstTable ) );
+      // the table can be null if it is one of the few IR nodes
+      // completely outside of the root SESE scope
+      if( nextVstTable != null ) {
+	static2dynamicSet.addAll( vstTable.getStatic2DynamicSet( nextVstTable ) );
+      }
     }
     /*
     Iterator<VariableSourceToken> vstItr = static2dynamicSet.iterator();

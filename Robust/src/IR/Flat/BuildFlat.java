@@ -116,9 +116,21 @@ public class BuildFlat {
 
   private void flattenClass(ClassDescriptor cn) {
     Iterator methodit=cn.getMethods();
-    while(methodit.hasNext()) {
-      fe=new FlatExit();
+    while(methodit.hasNext()) {     
       currmd=(MethodDescriptor)methodit.next();
+
+      FlatSESEEnterNode rootSESE = null;
+      FlatSESEExitNode  rootExit = null;
+      if (state.MLP && currmd.equals(typeutil.getMain())) {
+	SESENode rootTree = new SESENode( "root" );
+	rootSESE = new FlatSESEEnterNode( rootTree );
+	rootExit = new FlatSESEExitNode ( rootTree );
+	rootSESE.setFlatExit ( rootExit );
+	rootExit.setFlatEnter( rootSESE );
+      }
+
+      fe=new FlatExit();
+
       BlockNode bn=state.getMethodBody(currmd);
 
       if (state.DSM&&currmd.getModifiers().isAtomic()) {
@@ -151,6 +163,14 @@ public class BuildFlat {
 	  aen.addNext(rnflat);
 	  rnflat.addNext(fe);
 	}
+      } else if (state.MLP && rootSESE != null) {
+	rootSESE.addNext(fn);
+	fn=rootSESE;
+	FlatReturnNode rnflat=new FlatReturnNode(null);
+	np.getEnd().addNext(rootExit);
+	rootExit.addNext(rnflat);
+	rnflat.addNext(fe);
+
       } else if (np.getEnd()!=null&&np.getEnd().kind()!=FKind.FlatReturnNode) {
 	FlatReturnNode rnflat=new FlatReturnNode(null);
 	np.getEnd().addNext(rnflat);

@@ -12,6 +12,17 @@ public class Test {
       }      
     }
 
+
+    // just for testing root's ability to
+    // realize a single exit after all returns
+    // DOESN'T WORK!
+    /*
+    if( false ) {
+      return;
+    }
+    */
+
+
     /*  ADD BACK IN LATER, TO TEST STALLS
     // shouldn't cause a stall
     int z = x;
