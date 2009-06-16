@@ -167,10 +167,6 @@ public class Queue {
   public boolean
     queue_isEmpty ()
     {
-      //int pop      = queuePtr.pop;
-      //int push     = queuePtr.push;
-      //int capacity = queuePtr.capacity;
-
       return (((pop + 1) % capacity == push) ? true : false);
     }
 
@@ -274,7 +270,6 @@ public class Queue {
           }
         }
 
-        //elements = null;
         elements = newElements;
         pop      = newCapacity - 1;
         capacity = newCapacity;
@@ -412,20 +407,13 @@ public class Queue {
    * =============================================================================
    */
   public int
-    //queue_pop (Queue queuePtr)
     queue_pop ()
     {
-      //int pop      = queuePtr.pop;
-      //int push     = queuePtr.push;
-      //int capacity = queuePtr.capacity;
-
       int newPop = (pop + 1) % capacity;
       if (newPop == push) {
         return 0;
       }
 
-      //int dataPtr = queuePtr.elements[newPop];
-      //queuePtr.pop = newPop;
       int dataPtr = elements[newPop];
       pop = newPop;
 
