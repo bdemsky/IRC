@@ -1,3 +1,11 @@
+/**
+ * Author: Alokika Dash
+ * University of California, Irvine
+ * adash@uci.edu
+ *
+ * - Helper class of Adtree.java
+ **/
+
 public class AdtreeVary {
   int index;
   int mostCommonValue;
@@ -16,9 +24,7 @@ public class AdtreeVary {
     allocVary (int index)
     {
       AdtreeVary varyPtr= new AdtreeVary();
-      //adtree_vary_t* varyPtr;
 
-      //varyPtr = (adtree_vary_t*)malloc(sizeof(adtree_vary_t));
       if (varyPtr != null) {
         varyPtr.index = index;
         varyPtr.mostCommonValue = -1;

@@ -6,8 +6,8 @@
  *
  * Copyright (C) Stanford University, 2006.  All Rights Reserved.
  * Author: Chi Cao Minh
- * Ported to Java
- * Author: Alokika Dash
+ * Ported to Java June 2009 Alokika Dash
+ * University of California, Irvine
  *
  * =============================================================================
  *
@@ -210,8 +210,6 @@ public class Bayes extends Thread {
 
       Learner learnerPtr = Learner.learner_alloc(dataPtr, adtreePtr, 1);
 
-      //learner_t* learnerPtr = learner_alloc(dataPtr, adtreePtr, 1);
-
       Net tmpNetPtr = learnerPtr.netPtr;
       learnerPtr.netPtr = netPtr;
 
@@ -256,71 +254,47 @@ public class Bayes extends Thread {
     int percentParent = b.global_params[PARAM_PERCENT];
     b.global_insertPenalty = b.global_params[PARAM_INSERT];
     b.global_maxNumEdgeLearned = b.global_params[PARAM_EDGE];
-    //SIM_GET_NUM_CPU(numThread);
-    //TM_STARTUP(numThread);
-    //P_MEMORY_STARTUP(numThread);
 
     /* Initiate Barriers */
-    //Barrier.setBarrier(numThread);
+    Barrier.setBarrier(numThread);
 
     Bayes[] binit = new Bayes[numThread];
 
-    System.out.println("Random seed                \n" + randomSeed);
-    System.out.println("Number of vars             \n" + numVar);
-    System.out.println("Number of records          \n" + numRecord);
-    System.out.println("Max num parents            \n" + maxNumParent);
-    System.out.println("%% chance of parent        \n" + percentParent);
-    System.out.println("Insert penalty             \n" + b.global_insertPenalty);
-    System.out.println("Max num edge learned / var \n" + b.global_maxNumEdgeLearned);
-    System.out.println("Operation quality factor   \n" + b.global_operationQualityFactor);
+    System.out.println("Random seed                " + randomSeed);
+    System.out.println("Number of vars             " + numVar);
+    System.out.println("Number of records          " + numRecord);
+    System.out.println("Max num parents            " + maxNumParent);
+    System.out.println("%% chance of parent        " + percentParent);
+    System.out.println("Insert penalty             " + b.global_insertPenalty);
+    System.out.println("Max num edge learned / var " + b.global_maxNumEdgeLearned);
+    System.out.println("Operation quality factor   " + b.global_operationQualityFactor);
 
     /*
      * Generate data
      */
 
-    System.out.println("Generating data... ");
+    System.out.print("Generating data... ");
 
     Random randomPtr = new Random();
     randomPtr.random_alloc();
     randomPtr.random_seed(randomSeed);
-    //random_t* randomPtr = random_alloc();
-    //assert(randomPtr);
-    //random_seed(randomPtr, randomSeed);
 
     Data dataPtr = Data.data_alloc(numVar, numRecord, randomPtr); 
 
-    //Data* dataPtr = data_alloc(numVar, numRecord, randomPtr);
-    //assert(dataPtr);
     Net netPtr = dataPtr.data_generate(-1, maxNumParent, percentParent);
-    //Net* netPtr = data_generate(dataPtr, -1, maxNumParent, percentParent);
     System.out.println("done.");
-    //puts("done.");
-    //fflush(stdout);
 
     /*
      * Generate adtree
      */
 
     Adtree adtreePtr = Adtree.adtree_alloc();
-    //adtree_t* adtreePtr = adtree_alloc();
-    //assert(adtreePtr);
 
-    System.out.println("Generating adtree... ");
-    //fflush(stdout);
-
-    //TIMER_T adtreeStartTime;
-    //TIMER_READ(adtreeStartTime);
+    System.out.print("Generating adtree... ");
 
     adtreePtr.adtree_make(dataPtr);
 
-    //TIMER_T adtreeStopTime;
-    //TIMER_READ(adtreeStopTime);
-
     System.out.println("done.");
-    //fflush(stdout);
-    //System.out.println("Adtree time = %f\n",
-    //    TIMER_DIFF_SECONDS(adtreeStartTime, adtreeStopTime));
-    //fflush(stdout);
 
     /*
      * Score original network
@@ -333,14 +307,11 @@ public class Bayes extends Thread {
      * Learn structure of Bayesian network
      */
 
-    //START FROM HERE
     Learner learnerPtr = Learner.learner_alloc(dataPtr, adtreePtr, numThread);
-    //learner_t* learnerPtr = learner_alloc(dataPtr, adtreePtr, numThread);
-    //assert(learnerPtr);
+
     dataPtr.data_free(); /* save memory */
 
-    System.out.println("Learning structure...");
-    //fflush(stdout);
+    System.out.print("Learning structure...");
 
     /* Create and Start Threads */
     for(int i = 1; i<numThread; i++) {
@@ -352,25 +323,13 @@ public class Bayes extends Thread {
     }
 
 
-    //TIMER_T learnStartTime;
-    //TIMER_READ(learnStartTime);
-    //GOTO_SIM();
-
     /*
     Barrier.enterBarrier();
     Learner.learner_run(0, numThread, learnerPtr);
     Barrier.enterBarrier();
     */
 
-    //GOTO_REAL();
-    //TIMER_T learnStopTime;
-    //TIMER_READ(learnStopTime);
-
     System.out.println("done.");
-    //fflush(stdout);
-    //System.out.println("Learn time = %f\n",
-    //    TIMER_DIFF_SECONDS(learnStartTime, learnStopTime));
-    //fflush(stdout);
 
     /*
      * Check solution
@@ -381,7 +340,6 @@ public class Bayes extends Thread {
       System.out.println("System has an incorrect result");
       System.exit(0);
     }
-    //assert(!status);
 
 #ifndef SIMULATOR
     float learnScore = learnerPtr.learner_score();
@@ -393,7 +351,6 @@ public class Bayes extends Thread {
      * Clean up
      */
 
-    //fflush(stdout);
 #ifndef SIMULATOR
     adtreePtr.adtree_free();
 #  if 0    
@@ -401,14 +358,6 @@ public class Bayes extends Thread {
 #  endif    
 #endif
 
-    //TM_SHUTDOWN();
-    //P_MEMORY_SHUTDOWN();
-
-    //GOTO_SIM();
-
-    //thread_shutdown();
-
-    //MAIN_RETURN(0);
   }
 }
 /* =============================================================================

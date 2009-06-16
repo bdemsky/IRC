@@ -6,6 +6,8 @@
  *
  * Copyright (C) Stanford University, 2006.  All Rights Reserved.
  * Author: Chi Cao Minh
+ * Ported to Java June 2009 Alokika Dash
+ * University of California, Irvine
  *
  * =============================================================================
  *
@@ -75,15 +77,6 @@
  *
  * =============================================================================
  */
- /*
-#include <assert.h>
-#include <stdlib.h>
-#include "adtree.h"
-#include "data.h"
-#include "query.h"
-#include "utility.h"
-#include "vector.h"
-*/
 
 public class Adtree {
   int numVar;
@@ -103,7 +96,6 @@ public class Adtree {
     {
       nodePtr.varyVectorPtr.vector_free();
       nodePtr = null;
-      //free(nodePtr);
     }
 
 
@@ -116,7 +108,6 @@ public class Adtree {
     freeVary (AdtreeVary varyPtr)
     {
       varyPtr = null;
-      //free(varyPtr);
     }
 
 
@@ -127,8 +118,6 @@ public class Adtree {
   public static Adtree adtree_alloc ()
     {
       Adtree adtreePtr = new Adtree();
-      //adtree_t* adtreePtr;
-      //adtreePtr = (adtree_t*)malloc(sizeof(adtree_t));
       if (adtreePtr != null) {
         adtreePtr.numVar = -1;
         adtreePtr.numRecord = -1;
@@ -148,12 +137,9 @@ public class Adtree {
     {
       if (nodePtr != null) {
         Vector_t varyVectorPtr = nodePtr.varyVectorPtr;
-        //vector_t* varyVectorPtr = nodePtr.varyVectorPtr;
-        //int v;
         int numVary = varyVectorPtr.vector_getSize();
         for (int v = 0; v < numVary; v++) {
           AdtreeVary varyPtr = (AdtreeVary)(varyVectorPtr.vector_at(v));
-          //adtree_vary_t* varyPtr = (adtree_vary_t*)vector_at(varyVectorPtr, v);
           freeNodes(varyPtr.zeroNodePtr);
           freeNodes(varyPtr.oneNodePtr);
           freeVary(varyPtr);
@@ -171,27 +157,7 @@ public class Adtree {
     adtree_free ()
     {
       freeNodes(rootNodePtr);
-      this = null;
-      //free(adtreePtr);
     }
-
-
-  /*
-  static adtree_vary_t*
-    makeVary (int parentIndex,
-        int index,
-        int start,
-        int numRecord,
-        Data* dataPtr);
-
-  static adtree_node_t*
-    makeNode (int parentIndex,
-        int index,
-        int start,
-        int numRecord,
-        Data* dataPtr);
-        */
-
 
   /* =============================================================================
    * makeVary
@@ -205,7 +171,6 @@ public class Adtree {
         Data dataPtr)
     {
       AdtreeVary varyPtr = AdtreeVary.allocVary(index);
-      //assert(varyPtr);
 
       if ((parentIndex + 1 != index) && (numRecord > 1)) {
         dataPtr.data_sort(start, numRecord, index);
@@ -249,28 +214,20 @@ public class Adtree {
         Data dataPtr)
     {
       AdtreeNode nodePtr = AdtreeNode.allocNode(index);
-      //adtree_node_t* nodePtr = allocNode(index);
-      //assert(nodePtr);
 
       nodePtr.count = numRecord;
 
       Vector_t varyVectorPtr = nodePtr.varyVectorPtr;
 
-      //vector_t* varyVectorPtr = nodePtr.varyVectorPtr;
-
-      //int v;
       int numVar = dataPtr.numVar;
       for (int v = (index + 1); v < numVar; v++) {
         AdtreeVary varyPtr =
-        //adtree_vary_t* varyPtr =
           makeVary(parentIndex, v, start, numRecord, dataPtr);
-        //assert(varyPtr);
         boolean status;
         if((status = varyVectorPtr.vector_pushBack(varyPtr)) != true) {
           System.out.println("varyVectorPtr.vector_pushBack != true");
           System.exit(0);
         }
-        //assert(status);
       }
 
       return nodePtr;
@@ -317,7 +274,6 @@ public class Adtree {
 
       Query queryPtr = (Query)(queryVectorPtr.vector_at(q));
 
-      //query_t* queryPtr = (query_t*)vector_at(queryVectorPtr, q);
       if (queryPtr != null) {
         return nodePtr.count;
       }
@@ -326,14 +282,9 @@ public class Adtree {
         System.out.println("Assert failed");
         System.exit(0);
       }
-      //assert(queryIndex <= lastQueryIndex);
+
       Vector_t varyVectorPtr = nodePtr.varyVectorPtr;
-      //vector_t* varyVectorPtr = nodePtr.varyVectorPtr;
       AdtreeVary varyPtr = (AdtreeVary)(varyVectorPtr.vector_at((queryIndex - nodeIndex - 1)));
-      //adtree_vary_t* varyPtr =
-      //  (adtree_vary_t*)vector_at(varyVectorPtr,
-      //      (queryIndex - nodeIndex - 1));
-      //assert(varyPtr);
 
       int queryValue = queryPtr.value;
 
@@ -347,21 +298,16 @@ public class Adtree {
          */
         int numQuery = queryVectorPtr.vector_getSize();
         Vector_t superQueryVectorPtr = Vector_t.vector_alloc(numQuery - 1);
-        //vector_t* superQueryVectorPtr = PVECTOR_ALLOC(numQuery - 1); //MEMORY ALLOACATED FROM THREAD POOL
-        //assert(superQueryVectorPtr);
 
-        //int qq;
         for (int qq = 0; qq < numQuery; qq++) {
           if (qq != q) {
             boolean status = superQueryVectorPtr.vector_pushBack(
                 queryVectorPtr.vector_at(qq));
-            //assert(status);
           }
         }
         int superCount = adtree_getCount(superQueryVectorPtr);
 
         superQueryVectorPtr.vector_free();
-        //PVECTOR_FREE(superQueryVectorPtr);
 
         int invertCount;
         if (queryValue == 0) {
@@ -398,23 +344,8 @@ public class Adtree {
               queryVectorPtr,
               lastQueryIndex);
         } else { /* QUERY_VALUE_WILDCARD */
-          /*
-#if 0
-          count += getCount(varyPtr.zeroNodePtr,
-              (i + 1),
-              (q + 1),
-              queryVectorPtr,
-              lastQueryIndex);
-          count += getCount(varyPtr.oneNodePtr,
-              (i + 1),
-              (q + 1),
-              queryVectorPtr,
-              lastQueryIndex,
-              adtreePtr);
-#else
-          assert(0); // catch bugs in learner 
-#endif
-          */
+          System.out.println("Program shouldn't get here"); // catch bugs in learner
+          System.exit(0);
         }
 
       }
@@ -431,7 +362,6 @@ public class Adtree {
   public int
     adtree_getCount (Vector_t queryVectorPtr)
     {
-      //AdtreeNode rootNodePtr = adtreePtr.rootNodePtr;
       if (rootNodePtr == null) {
         return 0;
       }
@@ -440,7 +370,6 @@ public class Adtree {
       int numQuery = queryVectorPtr.vector_getSize();
       if (numQuery > 0) {
         Query lastQueryPtr = (Query)(queryVectorPtr.vector_at(numQuery - 1));
-        //query_t* lastQueryPtr = (query_t*)vector_at(queryVectorPtr, (numQuery - 1));
         lastQueryIndex = lastQueryPtr.index;
       }
 
@@ -450,251 +379,10 @@ public class Adtree {
           queryVectorPtr,
           lastQueryIndex);
     }
-
-
-  /* #############################################################################
-   * TEST_ADTREE
-   * #############################################################################
-   */
-  /*
-#ifdef TEST_ADTREE
-
-#include <stdio.h>
-#include "timer.h"
-
-  static void printNode (adtree_node_t* nodePtr);
-  static void printVary (adtree_vary_t* varyPtr);
-
-  boolean global_doPrint = FALSE;
-
-
-  static void
-    printData (Data* dataPtr)
-    {
-      int numVar = dataPtr.numVar;
-      int numRecord = dataPtr.numRecord;
-
-      int r;
-      for (r = 0; r < numRecord; r++) {
-        printf("%4li: ", r);
-        char* record = data_getRecord(dataPtr, r);
-        assert(record);
-        int v;
-        for (v = 0; v < numVar; v++) {
-          printf("%li", (int)record[v]);
-        }
-        puts("");
-      }
-    }
-
-
-  static void
-    printNode (adtree_node_t* nodePtr)
-    {
-      if (nodePtr) {
-        printf("[node] index=%li value=%li count=%li\n",
-            nodePtr.index, nodePtr.value, nodePtr.count);
-        vector_t* varyVectorPtr = nodePtr.varyVectorPtr;
-        int v;
-        int numVary = vector_getSize(varyVectorPtr);
-        for (v = 0; v < numVary; v++) {
-          adtree_vary_t* varyPtr = (adtree_vary_t*)vector_at(varyVectorPtr, v);
-          printVary(varyPtr);
-        }
-      }
-      puts("[up]");
-    }
-
-
-  static void
-    printVary (adtree_vary_t* varyPtr)
-    {
-      if (varyPtr) {
-        printf("[vary] index=%li\n", varyPtr.index);
-        printNode(varyPtr.zeroNodePtr);
-        printNode(varyPtr.oneNodePtr);
-      }
-      puts("[up]");
-    }
-
-
-  static void
-    printAdtree (adtree_t* adtreePtr)
-    {
-      printNode(adtreePtr.rootNodePtr);
-    }
-
-
-  static void
-    printQuery (vector_t* queryVectorPtr)
-    {
-      printf("[");
-      int q;
-      int numQuery = vector_getSize(queryVectorPtr);
-      for (q = 0; q < numQuery; q++) {
-        query_t* queryPtr = (query_t*)vector_at(queryVectorPtr, q);
-        printf("%li:%li ", queryPtr.index, queryPtr.value);
-      }
-      printf("]");
-    }
-
-
-  static int
-    countData (Data* dataPtr, vector_t* queryVectorPtr)
-    {
-      int count = 0;
-      int numQuery = vector_getSize(queryVectorPtr);
-
-      int r;
-      int numRecord = dataPtr.numRecord;
-      for (r = 0; r < numRecord; r++) {
-        char* record = data_getRecord(dataPtr, r);
-        boolean isMatch = TRUE;
-        int q;
-        for (q = 0; q < numQuery; q++) {
-          query_t* queryPtr = (query_t*)vector_at(queryVectorPtr, q);
-          int queryValue = queryPtr.value;
-          if ((queryValue != QUERY_VALUE_WILDCARD) &&
-              ((char)queryValue) != record[queryPtr.index])
-          {
-            isMatch = FALSE;
-            break;
-          }
-        }
-        if (isMatch) {
-          count++;
-        }
-      }
-
-      return count;
-    }
-
-
-  static void
-    testCount (adtree_t* adtreePtr,
-        Data* dataPtr,
-        vector_t* queryVectorPtr,
-        int index,
-        int numVar)
-    {
-      if (index >= numVar) {
-        return;
-      }
-
-      int count1 = adtree_getCount(adtreePtr, queryVectorPtr);
-      int count2 = countData(dataPtr, queryVectorPtr);
-      if (global_doPrint) {
-        printQuery(queryVectorPtr);
-        printf(" count1=%li count2=%li\n", count1, count2);
-        fflush(stdout);
-      }
-      assert(count1 == count2);
-
-      query_t query;
-
-      int i;
-      for (i = 1; i < numVar; i++) {
-        query.index = index + i;
-        boolean status = vector_pushBack(queryVectorPtr, (void*)&query);
-        assert(status);
-
-        query.value = 0;
-        testCount(adtreePtr, dataPtr, queryVectorPtr, query.index, numVar);
-
-        query.value = 1;
-        testCount(adtreePtr, dataPtr, queryVectorPtr, query.index, numVar);
-
-        vector_popBack(queryVectorPtr);
-      }
-    }
-
-
-  static void
-    testCounts (adtree_t* adtreePtr, Data* dataPtr)
-    {
-      int numVar = dataPtr.numVar;
-      vector_t* queryVectorPtr = vector_alloc(numVar);
-      int v;
-      for (v = -1; v < numVar; v++) {
-        testCount(adtreePtr, dataPtr, queryVectorPtr, v, dataPtr.numVar);
-      }
-      vector_free(queryVectorPtr);
-    }
-
-
-  static void
-    test (int numVar, int numRecord)
-    {
-      random_t* randomPtr = random_alloc();
-      Data* dataPtr = data_alloc(numVar, numRecord, randomPtr);
-      assert(dataPtr);
-      data_generate(dataPtr, 0, 10, 10);
-      if (global_doPrint) {
-        printData(dataPtr);
-      }
-
-      Data* copyDataPtr = data_alloc(numVar, numRecord, randomPtr);
-      assert(copyDataPtr);
-      data_copy(copyDataPtr, dataPtr);
-
-      adtree_t* adtreePtr = adtree_alloc();
-      assert(adtreePtr);
-
-      TIMER_T start;
-      TIMER_READ(start);
-
-      adtree_make(adtreePtr, copyDataPtr);
-
-      TIMER_T stop;
-      TIMER_READ(stop);
-
-      printf("%lf\n", TIMER_DIFF_SECONDS(start, stop));
-
-      if (global_doPrint) {
-        printAdtree(adtreePtr);
-      }
-
-      testCounts(adtreePtr, dataPtr);
-
-      adtree_free(adtreePtr);
-      random_free(randomPtr);
-      data_free(dataPtr);
-    }
-
-
-  int
-    main ()
-    {
-      puts("Starting...");
-
-      puts("Test 1:");
-      test(3, 8);
-
-      puts("Test 2:");
-      test(4, 64);
-
-      puts("Test 3:");
-      test(8, 256);
-
-      puts("Test 4:");
-      test(12, 256);
-
-      puts("Test 5:");
-      test(48, 1024);
-
-      puts("All tests passed.");
-
-      return 0;
-    }
-
-
-#endif // TEST_ADTREE
-  */
-
 }
 /* =============================================================================
  *
- * End of adtree.c
+ * End of adtree.java
  *
  * =============================================================================
  */

@@ -7,6 +7,9 @@
  *
  * Copyright (C) Stanford University, 2006.  All Rights Reserved.
  * Author: Chi Cao Minh
+ * Ported to Java June 2009 Alokika Dash
+ * University of California, Irvine
+ *
  *
  * =============================================================================
  *
@@ -194,18 +197,12 @@ public class Learner {
    * =============================================================================
    */
   public void
-    //learner_free (learner_t* learnerPtr)
     learner_free ()
     {
       taskListPtr.list_free();
       tasks = null;
       localBaseLogLikelihoods = null;
       netPtr.net_free();
-      //free(learnerPtr.tasks);
-      //free(learnerPtr.localBaseLogLikelihoods);
-      //net_free(learnerPtr.netPtr);
-      this = null;
-      //free(learnerPtr);
     }
 
 
@@ -231,9 +228,6 @@ public class Learner {
         System.out.println("Assert failed for computeSpecificLocalLogLikelihood()");
         System.exit(0);
       }
-
-      //assert(parentCount >= count);
-      //assert(parentCount > 0);
 
       float fval = (float)(probability * (Math.log((double)count/ (double)parentCount)));
       return fval;
@@ -553,11 +547,17 @@ public class Learner {
 
       boolean status;
       status = Vector_t.vector_copy(queryVectorPtr, parentQueryVectorPtr);
-      //TODO CHECK ASSERT
-      //assert(status);
+      if(status == false ) {
+        System.out.println("Assert failed: whille vector copy in populateQueryVectors()");
+        System.exit(0);
+      }
+      
       status = queryVectorPtr.vector_pushBack(queries[id]);
-      //TODO CHECK ASSERT
-      //assert(status);
+      if(status == false ) {
+        System.out.println("Assert failed: whille vector pushBack in populateQueryVectors()");
+        System.exit(0);
+      }
+
       queryVectorPtr.vector_sort();
     }
 
@@ -608,7 +608,6 @@ public class Learner {
 
       float localLogLikelihood = 0.0f;
 
-      //query_t* parentQueryPtr = vector_at(parentQueryVectorPtr, i);
       Query parentQueryPtr = (Query) (parentQueryVectorPtr.vector_at(i));
       int parentIndex = parentQueryPtr.index;
 
@@ -1519,20 +1518,13 @@ public class Learner {
   public float
     learner_score ()
     {
-      //adtree_t* adtreePtr = learnerPtr.adtreePtr;
-      //net_t* netPtr = learnerPtr.netPtr;
 
       Vector_t queryVectorPtr = Vector_t.vector_alloc(1);
-      //assert(queryVectorPtr);
       Vector_t parentQueryVectorPtr = Vector_t.vector_alloc(1);
-      //vector_t* parentQueryVectorPtr = vector_alloc(1);
-      //assert(parentQueryVectorPtr);
 
       int numVar = adtreePtr.numVar;
       Query[] queries = new Query[numVar];
-      //query_t* queries = (query_t*)malloc(numVar * sizeof(query_t));
-      //assert(queries);
-      //int v;
+
       for (int v = 0; v < numVar; v++) {
         queries[v] = new Query();
         queries[v].index = v;
@@ -1545,7 +1537,6 @@ public class Learner {
       for (int v = 0; v < numVar; v++) {
 
         IntList parentIdListPtr = netPtr.net_getParentIdListPtr(v);
-        //list_t* parentIdListPtr = net_getParentIdListPtr(netPtr, v);
         numTotalParent += parentIdListPtr.list_getSize();
 
 
@@ -1566,9 +1557,7 @@ public class Learner {
       queryVectorPtr.vector_free();
       parentQueryVectorPtr.vector_free();
       queries = null;
-      //vector_free(queryVectorPtr);
-      //vector_free(parentQueryVectorPtr);
-      //free(queries);
+
 
       int numRecord = adtreePtr.numRecord;
       float penalty = (float)(-0.5f * (double)numTotalParent * Math.log((double)numRecord));
@@ -1576,86 +1565,6 @@ public class Learner {
 
       return score;
     }
-
-
-  /* #############################################################################
-   * TEST_LEARNER
-   * #############################################################################
-   */
-  /*
-#ifdef TEST_LEARNER
-
-#include <stdio.h>
-
-
-static void
-testPartition (int min, int max, int n)
-{
-int start;
-int stop;
-
-printf("min=%li max=%li, n=%li\n", min, max, n);
-
-int i;
-for (i = 0; i < n; i++) {
-createPartition(min, max, i, n, &start, &stop);
-printf("%li: %li . %li\n", i, start, stop);
-}
-puts("");
-}
-
-
-int
-main (int argc, char* argv[])
-{
-thread_startup(1);
-
-puts("Starting...");
-
-testPartition(0, 4, 8);
-testPartition(0, 15, 8);
-testPartition(3, 103, 7);
-
-int numVar = 56;
-int numRecord = 256;
-
-random_t* randomPtr = random_alloc();
-data_t* dataPtr = data_alloc(numVar, numRecord, randomPtr);
-assert(dataPtr);
-data_generate(dataPtr, 0, 10, 10);
-
-adtree_t* adtreePtr = adtree_alloc();
-assert(adtreePtr);
-adtree_make(adtreePtr, dataPtr);
-
-
-learner_t* learnerPtr = learner_alloc(dataPtr, adtreePtr, 1);
-assert(learnerPtr);
-
-data_free(dataPtr);
-
-learner_run(learnerPtr);
-
-assert(!net_isCycle(learnerPtr.netPtr));
-
-float score = learner_score(learnerPtr);
-printf("score = %lf\n", score);
-
-learner_free(learnerPtr);
-
-puts("Done.");
-
-adtree_free(adtreePtr);
-random_free(randomPtr);
-
-thread_shutdown();
-
-return 0;
-}
-
-#endif // TEST_LEARNER
-*/
-
 }
 
 /* =============================================================================

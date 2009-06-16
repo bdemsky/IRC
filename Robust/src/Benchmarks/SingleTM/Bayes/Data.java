@@ -6,6 +6,8 @@
  *
  * Copyright (C) Stanford University, 2006.  All Rights Reserved.
  * Author: Chi Cao Minh
+ * Ported to Java June 2009 Alokika Dash
+ * University of California, Irvine
  *
  * =============================================================================
  *
@@ -68,25 +70,18 @@ public class Data {
    */
   public static Data data_alloc (int numVar, int numRecord, Random randomPtr)
   {
-    //data_t* dataPtr;
     Data dataPtr = new Data();
 
-    //dataPtr = (data_t*)malloc(sizeof(data_t));
-    //if (dataPtr) {
-    int numDatum = numVar * numRecord;
-    dataPtr.records = new char[numDatum];
-    for(int i = 0; i<numDatum; i++)
-      dataPtr.records[i] = (char)DATA_INIT;
+    if (dataPtr != null) {
+      int numDatum = numVar * numRecord;
+      dataPtr.records = new char[numDatum];
+      for(int i = 0; i<numDatum; i++)
+        dataPtr.records[i] = (char)DATA_INIT;
 
-    dataPtr.numVar = numVar;
-    dataPtr.numRecord = numRecord;
-    dataPtr.randomPtr = randomPtr;
-
-    //memset(dataPtr.records, DATA_INIT, (numDatum * sizeof(char)));
-    //dataPtr.numVar = numVar;
-    //dataPtr.numRecord = numRecord;
-    //dataPtr.randomPtr = randomPtr;
-    //}
+      dataPtr.numVar = numVar;
+      dataPtr.numRecord = numRecord;
+      dataPtr.randomPtr = randomPtr;
+    }
 
     return dataPtr;
   }
@@ -111,7 +106,6 @@ public class Data {
    */
   public Net data_generate (int seed, int maxNumParent, int percentParent)
   {
-    //Random randomPtr = dataPtr.randomPtr;
     if (seed >= 0) {
       randomPtr.random_seed(seed);
     }
@@ -120,9 +114,7 @@ public class Data {
      * Generate random Bayesian network
      */
 
-    //int numVar = dataPtr.numVar;
     Net netPtr = Net.net_alloc(numVar);
-    //assert(netPtr);
     netPtr.net_generateRandomEdges(maxNumParent, percentParent, randomPtr);
 
     /*
@@ -130,20 +122,12 @@ public class Data {
      * value instances
      */
 
-    //int** thresholdsTable = (int**)malloc(numVar * sizeof(int*));
-    //int[][] thresholdsTable = new int[numVar][numThreshold];
-    int[][] thresholdsTable = new int[numVar][];
-    //assert(thresholdsTable);
+    int[][] thresholdsTable = new int[numVar][]; //TODO check if this is alright
     int v;
     for (v = 0; v < numVar; v++) {
-      //list_t* parentIdListPtr = Net.net_getParentIdListPtr(netPtr, v);
       IntList parentIdListPtr = netPtr.net_getParentIdListPtr(v);
       int numThreshold = 1 << parentIdListPtr.list_getSize();
-      //int numThreshold = 1 << list_getSize(parentIdListPtr);
       int[] thresholds = new int[numThreshold];
-      //int* thresholds = (int*)malloc(numThreshold * sizeof(int));
-      //assert(thresholds);
-      //int t;
       for (int t = 0; t < numThreshold; t++) {
         int threshold = randomPtr.random_generate() % (DATA_PRECISION + 1);
         thresholds[t] = threshold;
@@ -156,33 +140,21 @@ public class Data {
      */
 
     int[] order = new int[numVar];
-    //int* order = (int*)malloc(numVar * sizeof(int));
-    //assert(order);
     int numOrder = 0;
 
     Queue workQueuePtr = Queue.queue_alloc(-1);
-    //queue_t* workQueuePtr = queue_alloc(-1);
-    //assert(workQueuePtr);
 
     IntVector dependencyVectorPtr = IntVector.vector_alloc(1);
-    //vector_t* dependencyVectorPtr = vector_alloc(1);
-    //assert(dependencyVectorPtr);
 
     BitMap orderedBitmapPtr = BitMap.bitmap_alloc(numVar);
-    //bitmap_t* orderedBitmapPtr = bitmap_alloc(numVar);
-    //assert(orderedBitmapPtr);
     orderedBitmapPtr.bitmap_clearAll();
 
     BitMap doneBitmapPtr = BitMap.bitmap_alloc(numVar);
-    //bitmap_t* doneBitmapPtr = bitmap_alloc(numVar);
-    //assert(doneBitmapPtr);
     doneBitmapPtr.bitmap_clearAll();
-    //bitmap_clearAle(doneBitmapPtr);
+
     v = -1;
-    //while ((v = bitmap_findClear(doneBitmapPtr, (v + 1))) >= 0) 
     while ((v = doneBitmapPtr.bitmap_findClear(v + 1)) >= 0) {
       IntList childIdListPtr = netPtr.net_getChildIdListPtr(v);
-      //list_t* childIdListPtr = net_getChildIdListPtr(netPtr, v);
       int numChild = childIdListPtr.list_getSize();
       if (numChild == 0) {
 
@@ -197,36 +169,30 @@ public class Data {
           System.out.println("status= "+ status + "should be true");
           System.exit(0);
         }
-        //assert(status);
+
         while (!(workQueuePtr.queue_isEmpty())) {
           int id = workQueuePtr.queue_pop();
           if((status = doneBitmapPtr.bitmap_set(id)) != true) {
             System.out.println("status= "+ status + "should be true");
             System.exit(0);
           }
-          //assert(status);
-          //CHECK THIS
-          if((status = dependencyVectorPtr.vector_pushBack(id)) != true) {
+
+          if((status = dependencyVectorPtr.vector_pushBack(id)) == false) {
             System.out.println("status= "+ status + "should be true");
             System.exit(0);
           }
-          //assert(status);
-          //list_t* parentIdListPtr = net_getParentIdListPtr(netPtr, id);
-          //list_iter_t it;
-          //list_iter_reset(&it, parentIdListPtr);
+
           IntList parentIdListPtr = netPtr.net_getParentIdListPtr(id);
           IntListNode it = parentIdListPtr.head;
           parentIdListPtr.list_iter_reset(it);
-          //while (list_iter_hasNext(&it, parentIdListPtr)) 
+
           while (parentIdListPtr.list_iter_hasNext(it)) {
             it = it.nextPtr;
-            //int parentId = (int)list_iter_next(&it, parentIdListPtr);
             int parentId = parentIdListPtr.list_iter_next(it);
-            if((status = workQueuePtr.queue_push(parentId)) != true) {
+            if((status = workQueuePtr.queue_push(parentId)) == false) {
               System.out.println("status= "+ status + "should be true");
               System.exit(0);
             }
-            //assert(status);
           }
         }
 
@@ -234,7 +200,6 @@ public class Data {
          * Create ordering
          */
 
-        //int i;
         int n = dependencyVectorPtr.vector_getSize();
         for (int i = 0; i < n; i++) {
           int id = dependencyVectorPtr.vector_popBack();
@@ -250,31 +215,23 @@ public class Data {
       System.out.println("numVar should be equal to numOrder");
       System.exit(0);
     }
-    //assert(numOrder == numVar);
 
     /*
      * Create records
      */
 
-    char[] tmprecord = records;
     int startindex = 0;
-    //int r;
-    //int numRecord = dataPtr.numRecord;
     for (int r = 0; r < numRecord; r++) {
-      //int o;
       for (int o = 0; o < numOrder; o++) {
         v = order[o];
         IntList parentIdListPtr = netPtr.net_getParentIdListPtr(v);
-        //list_t* parentIdListPtr = net_getParentIdListPtr(netPtr, v);
         int index = 0;
-        //list_iter_t it;
-        //list_iter_reset(&it, parentIdListPtr);
         IntListNode it = parentIdListPtr.head;
         parentIdListPtr.list_iter_reset(it);
         while (parentIdListPtr.list_iter_hasNext(it)) {
           it = it.nextPtr;
           int parentId = parentIdListPtr.list_iter_next(it);
-          int value = tmprecord[parentId];
+          int value = records[startindex + parentId];
           if(value == DATA_INIT) {
             System.out.println("value should be != DATA_INIT");
             System.exit(0);
@@ -284,15 +241,13 @@ public class Data {
         }
         int rnd = randomPtr.random_generate() % DATA_PRECISION;
         int threshold = thresholdsTable[v][index];
-        tmprecord[v] = (char) ((rnd < threshold) ? 1 : 0);
+        records[startindex + v] = (char) ((rnd < threshold) ? 1 : 0);
       }
-      //record += numVar;
       startindex += numVar;
       if(startindex > numRecord * numVar) {
         System.out.println("value should be != DATA_INIT in data_generate()");
         System.exit(0);
       }
-      //assert(record <= (dataPtr.records + numRecord * numVar));
     }
 
     /*
@@ -304,38 +259,15 @@ public class Data {
     dependencyVectorPtr.vector_free();
     workQueuePtr.queue_free();
     order = null;
-    //bitmap_free(doneBitmapPtr);
-    //bitmap_free(orderedBitmapPtr);
-    //vector_free(dependencyVectorPtr);
-    //queue_free(workQueuePtr);
-    //free(order);
+
     for (v = 0; v < numVar; v++) {
       thresholdsTable[v] = null;
-      //free(thresholdsTable[v]);
     }
+
     thresholdsTable = null;
-    //free(thresholdsTable);
 
     return netPtr;
   }
-
-
-  /* =============================================================================
-   * data_getRecord
-   * -- Returns null if invalid index
-   * =============================================================================
-   */
-  /*
-  char*
-    data_getRecord (data_t* dataPtr, int index)
-    {
-      if (index < 0 || index >= (dataPtr.numRecord)) {
-        return null;
-      }
-
-      return &dataPtr.records[index * dataPtr.numVar];
-    }
-    */
 
 
   /* =============================================================================
@@ -350,9 +282,7 @@ public class Data {
       int numSrcDatum = srcPtr.numVar * srcPtr.numRecord;
       if (numDstDatum != numSrcDatum) {
         dstPtr.records = null;
-        //free(dstPtr.records);
         dstPtr.records = new char[numSrcDatum];
-        //dstPtr.records = (char*)calloc(numSrcDatum, sizeof(char));
         if (dstPtr.records == null) {
           return false;
         }
@@ -362,36 +292,9 @@ public class Data {
       dstPtr.numRecord = srcPtr.numRecord;
       for(int i=0; i<numSrcDatum; i++)
         dstPtr.records[i] = srcPtr.records[i];
-      //memcpy(dstPtr.records, srcPtr.records, (numSrcDatum * sizeof(char)));
 
       return true;
     }
-
-
-  /* =============================================================================
-   * compareRecord
-   * =============================================================================
-   */
-  /*
-  public static int
-    compareRecord (const void* p1, const void* p2, int n, int offset)
-    {
-      int i = n - offset;
-      const char* s1 = (const char*)p1 + offset;
-      const char* s2 = (const char*)p2 + offset;
-
-      while (i-- > 0) {
-        unsigned char u1 = (unsigned char)*s1++;
-        unsigned char u2 = (unsigned char)*s2++;
-        if (u1 != u2) {
-          return (u1 - u2);
-        }
-      }
-
-      return 0;
-    }
-    */
-
 
   /* =============================================================================
    * data_sort
@@ -410,14 +313,7 @@ public class Data {
       if((start + num < 0) || (start + num > numRecord))
         System.out.println("start + num: Assert failed in data_sort");
 
-      //assert(start >= 0 && start <= dataPtr.numRecord);
-      //assert(num >= 0 && num <= dataPtr.numRecord);
-      //assert(start + num >= 0 && start + num <= dataPtr.numRecord);
-
-      //int numVar = dataPtr.numVar;
-
       //FIXME
-      //Sort.sort((dataPtr.records + (start * numVar)),
       Sort.sort(records, 
           start * numVar,
           num,
@@ -438,9 +334,6 @@ public class Data {
     {
       int low = start;
       int high = start + num - 1;
-
-      //int numVar = dataPtr.numVar;
-      //char* records = dataPtr.records;
 
       while (low <= high) {
         int mid = (low + high) / 2;

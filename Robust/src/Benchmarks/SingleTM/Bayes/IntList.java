@@ -9,7 +9,7 @@
  * Copyright (C) Stanford University, 2006.  All Rights Reserved.
  * Author: Chi Cao Minh
  *
- * Ported to Java June 2006, Alokika Dash
+ * Ported to Java June 2009, Alokika Dash
  * adash@uci.edu
  * University of California, Irvine
  *
@@ -90,7 +90,6 @@ public class IntList {
   public int
     list_iter_next (IntListNode itPtr)
     {
-      //itPtr = itPtr.nextPtr;
       return itPtr.dataPtr;
     }
 
@@ -144,7 +143,6 @@ public class IntList {
     freeNode (IntListNode nodePtr)
     {
       nodePtr = null;
-      //free(nodePtr);
     }
 
 

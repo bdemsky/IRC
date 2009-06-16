@@ -21,7 +21,8 @@ SRC=tmp${MAINCLASS}.java \
 	../common/ListNode.java \
 	../common/List.java \
 	../common/QuickSort.java \
-	IntVector.java
+	IntVector.java \
+    ../../../ClassLibrary/JavaSTM/Barrier.java
 
 FLAGS=-mainclass ${MAINCLASS} -thread -nooptimize -debug
 

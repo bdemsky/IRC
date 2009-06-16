@@ -45,24 +45,6 @@
  * 
  * ------------------------------------------------------------------------
  * 
- * For the license of kmeans, please see kmeans/LICENSE.kmeans
- * 
- * ------------------------------------------------------------------------
- * 
- * For the license of ssca2, please see ssca2/COPYRIGHT
- * 
- * ------------------------------------------------------------------------
- * 
- * For the license of lib/mt19937ar.c and lib/mt19937ar.h, please see the
- * header of the files.
- * 
- * ------------------------------------------------------------------------
- * 
- * For the license of lib/rbtree.h and lib/rbtree.c, please see
- * lib/LEGALNOTICE.rbtree and lib/LICENSE.rbtree
- * 
- * ------------------------------------------------------------------------
- * 
  * Unless otherwise noted, the following license applies to STAMP files:
  * 
  * Copyright (c) 2007, Stanford University
@@ -98,8 +80,6 @@
  *
  * =============================================================================
  */
-
-//#include "sort.h"
 
 #define CUTOFF 8
 
@@ -167,23 +147,41 @@ public class Sort {
         return;
       }
 
-      int lo = start;
-      int hi = start + (width * (num - 1));
-
-      //System.out.println("start= " + start + " base.length= " + base.length + " hi= " + hi);
-
-      recurse(base, lo, hi, width, n, offset);
-
-    }
-
-  public void recurse(char[] base, int lo, int hi, int width, int n, int offset) 
-  {
+      /**
+       * Pointers that keep track of
+       * where to start looking in 
+       * the base array
+       **/
       char[] lostk= new char[30];
       char[] histk= new char[30];
 
       int stkptr = 0;
-      int size;
-      //recurse:
+
+      int lo = start;
+      int hi = start + (width * (num - 1));
+
+      int size = 0;
+
+      /**
+       * debug
+       **/
+      //System.out.println("start= " + start + " base.length= " + base.length + " hi= " + hi);
+
+      recurse(base, lo, hi, width, n, offset, lostk, histk, stkptr, size);
+
+    }
+
+  public void recurse(char[] base,
+      int lo,
+      int hi,
+      int width,
+      int n,
+      int offset,
+      char[] lostk, 
+      char[] histk, 
+      int stkptr, 
+      int size) 
+  {
 
       size = (hi - lo) / width + 1;
 
@@ -224,7 +222,7 @@ public class Sort {
 
           if (loguy < hi) {
             lo = loguy;
-            recurse(base, lo, hi, width, n, offset);
+            recurse(base, lo, hi, width, n, offset, lostk, histk, stkptr, size);
           }
         } else {
           if (loguy < hi) {
@@ -234,7 +232,7 @@ public class Sort {
           }
           if (lo + width < higuy) {
             hi = higuy - width;
-            recurse(base, lo, hi, width, n, offset);
+            recurse(base, lo, hi, width, n, offset, lostk, histk, stkptr, size);
           }
         }
       }
@@ -243,7 +241,7 @@ public class Sort {
       if (stkptr >= 0) {
         base[lo] = lostk[stkptr];
         base[hi] = histk[stkptr];
-        recurse(base, lo, hi, width, n, offset);
+        recurse(base, lo, hi, width, n, offset, lostk, histk, stkptr, size);
       }
     }
 
@@ -258,22 +256,18 @@ public class Sort {
       int s1 = p1 + offset;
       int s2 = p2 + offset;
 
-      //const char* s1 = (const char*)p1 + offset;
-      //const char* s2 = (const char*)p2 + offset;
-
       while (i-- > 0) {
         char u1 = base[s1];
         char u2 = base[s2];
-        //unsigned char u1 = (unsigned char)*s1++;
-        //unsigned char u2 = (unsigned char)*s2++;
         if (u1 != u2) {
-          return (u1 - u2); //CAN YOU DO THIS
+          return (u1 - u2); //TODO check this in java
         }
       }
 
       return 0;
     }
 }
+
 /* =============================================================================
  *
  * End of sort.java

@@ -1,3 +1,11 @@
+/**
+ * Author: Alokika Dash
+ * University of California, Irvine
+ * adash@uci.edu
+ *
+ * - Helper class for Net.java
+ **/
+
 public class NetNode {
   int id;
   int mark;

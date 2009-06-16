@@ -1,3 +1,11 @@
+/**
+ * Author: Alokika Dash
+ * University of California, Irvine
+ * adash@uci.edu
+ *
+ * - Vector class for "ints" elements 
+ **/
+
 public class IntVector {
   int size;
   int capacity;
@@ -60,7 +68,6 @@ public class IntVector {
       int newCapacity = capacity * 2;
       int[] newElements = new int[newCapacity];
 
-      //void** newElements = (void**)malloc(newCapacity * sizeof(void*));
       if (newElements == null) {
         return false;
       }
@@ -119,8 +126,7 @@ public class IntVector {
   public void
     vector_sort ()
     {
-      //qsort.sort(elements, 0, (elements.length - 1));
-      //qsort(elements, size, 4, compare);
+      qsort.sort(elements, 0, (elements.length - 1));
     }
 
   /* =============================================================================
