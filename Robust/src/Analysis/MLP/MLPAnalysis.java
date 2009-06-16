@@ -43,9 +43,9 @@ public class MLPAnalysis {
     return maxSESEage;
   }
 
+  // may be null
   public CodePlan getCodePlan( FlatNode fn ) {
     CodePlan cp = codePlans.get( fn );
-    assert cp != null;
     return cp;
   }
 
@@ -143,7 +143,7 @@ public class MLPAnalysis {
       //System.out.println( "\nLiveness Root View\n------------------\n"+fmMain.printMethod( livenessRootView ) );
       //System.out.println( "\nVariable Results\n----------------\n"+fmMain.printMethod( variableResults ) );
       //System.out.println( "\nNot Available Results\n---------------------\n"+fmMain.printMethod( notAvailableResults ) );
-      //System.out.println( "\nCode Plans\n----------\n"+fmMain.printMethod( codePlans ) );
+      System.out.println( "\nCode Plans\n----------\n"+fmMain.printMethod( codePlans ) );
     }
 
 
@@ -286,11 +286,11 @@ public class MLPAnalysis {
           u.addAll( s );
         }
       }
-
+      
       Set<TempDescriptor> curr = liveness_nodeActions( fn, u, fsen, toplevel, liveout);
 
       // if a new result, schedule backward nodes for analysis
-      if(!curr.equals(prev)) {
+      if( !curr.equals( prev ) ) {
 	livenessResults.put( fn, curr );
 
 	// don't flow backwards past current SESE enter
@@ -318,7 +318,7 @@ public class MLPAnalysis {
     Iterator<FlatSESEEnterNode> childItr = fsen.getChildren().iterator();
     while( childItr.hasNext() ) {
       FlatSESEEnterNode fsenChild = childItr.next();
-      livenessAnalysisBackward( fsenChild, false, liveout, null);
+      livenessAnalysisBackward( fsenChild, false, liveout, null );
     }
   }
 
@@ -422,20 +422,19 @@ public class MLPAnalysis {
       VarSrcTokTable prev = variableResults.get( fn );
 
       // merge sets from control flow joins
-      VarSrcTokTable inUnion = new VarSrcTokTable();
+      VarSrcTokTable curr = new VarSrcTokTable();
       for( int i = 0; i < fn.numPrev(); i++ ) {
 	FlatNode nn = fn.getPrev( i );		
 	VarSrcTokTable incoming = variableResults.get( nn );
-	inUnion.merge( incoming );
+	curr.merge( incoming );
       }
 
-      VarSrcTokTable curr = null;
       if( !seseStack.empty() ) {
-	curr = variable_nodeActions( fn, inUnion, seseStack.peek() );
+	variable_nodeActions( fn, curr, seseStack.peek() );
       }
 
       // if a new result, schedule forward nodes for analysis
-      if( curr != null && !curr.equals( prev ) ) {       
+      if( !curr.equals( prev ) ) {       
 	variableResults.put( fn, curr );
 
 	for( int i = 0; i < fn.numNext(); i++ ) {
@@ -446,9 +445,9 @@ public class MLPAnalysis {
     }
   }
 
-  private VarSrcTokTable variable_nodeActions( FlatNode fn, 
-					       VarSrcTokTable vstTable,
-					       FlatSESEEnterNode currentSESE ) {
+  private void variable_nodeActions( FlatNode fn, 
+				     VarSrcTokTable vstTable,
+				     FlatSESEEnterNode currentSESE ) {
     switch( fn.kind() ) {
 
     case FKind.FlatSESEEnterNode: {
@@ -557,8 +556,6 @@ public class MLPAnalysis {
     } break;
 
     } // end switch
-
-    return vstTable;
   }
 
 
@@ -576,22 +573,21 @@ public class MLPAnalysis {
 
       Set<TempDescriptor> prev = notAvailableResults.get( fn );
 
-      Set<TempDescriptor> inUnion = new HashSet<TempDescriptor>();      
+      Set<TempDescriptor> curr = new HashSet<TempDescriptor>();      
       for( int i = 0; i < fn.numPrev(); i++ ) {
 	FlatNode nn = fn.getPrev( i );       
 	Set<TempDescriptor> notAvailIn = notAvailableResults.get( nn );
         if( notAvailIn != null ) {
-          inUnion.addAll( notAvailIn );
+          curr.addAll( notAvailIn );
         }
       }
 
-      Set<TempDescriptor> curr = null;
       if( !seseStack.empty() ) {
-	curr = notAvailable_nodeActions( fn, inUnion, seseStack.peek() );     
+	notAvailable_nodeActions( fn, curr, seseStack.peek() );     
       }
 
       // if a new result, schedule forward nodes for analysis
-      if( curr != null && !curr.equals( prev ) ) {
+      if( !curr.equals( prev ) ) {
 	notAvailableResults.put( fn, curr );
 
 	for( int i = 0; i < fn.numNext(); i++ ) {
@@ -602,9 +598,9 @@ public class MLPAnalysis {
     }
   }
 
-  private Set<TempDescriptor> notAvailable_nodeActions( FlatNode fn, 
-							Set<TempDescriptor> notAvailSet,
-							FlatSESEEnterNode currentSESE ) {
+  private void notAvailable_nodeActions( FlatNode fn, 
+					 Set<TempDescriptor> notAvailSet,
+					 FlatSESEEnterNode currentSESE ) {
 
     // any temps that are removed from the not available set
     // at this node should be marked in this node's code plan
@@ -703,8 +699,6 @@ public class MLPAnalysis {
     } break;
 
     } // end switch
-
-    return notAvailSet;
   }
 
 
@@ -770,7 +764,6 @@ public class MLPAnalysis {
 
     case FKind.FlatSESEEnterNode: {
       FlatSESEEnterNode fsen = (FlatSESEEnterNode) fn;
-      plan.setSESEtoIssue( fsen );
     } break;
 
     case FKind.FlatSESEExitNode: {
@@ -874,16 +867,10 @@ public class MLPAnalysis {
 	static2dynamicSet.addAll( vstTable.getStatic2DynamicSet( nextVstTable ) );
       }
     }
-    /*
-    Iterator<VariableSourceToken> vstItr = static2dynamicSet.iterator();
-    while( vstItr.hasNext() ) {
-      VariableSourceToken vst = vstItr.next();
-      if( after == null ) {
-	after = "** Write dynamic: ";
-      }
-      after += "("+vst+")";
+
+    if( !static2dynamicSet.isEmpty() ) {
+      plan.setWriteToDynamicSrc( static2dynamicSet );
     }
-    */
 
     codePlans.put( fn, plan );
   }
