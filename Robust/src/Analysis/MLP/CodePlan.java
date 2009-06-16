@@ -10,22 +10,21 @@ import java.io.*;
 // for injecting code before and/or after a flat node
 public class CodePlan {
 
-  private FlatSESEEnterNode seseToIssue;
-
-
+  private Set<VariableSourceToken> writeToDynamicSrc;
+  
   public CodePlan() {
-    seseToIssue = null;
+    writeToDynamicSrc = null;
   }
 
-
-  public void setSESEtoIssue( FlatSESEEnterNode sese ) {
-    seseToIssue = sese;
+  public void setWriteToDynamicSrc( 
+		Set<VariableSourceToken> writeToDynamicSrc 
+				  ) {
+    this.writeToDynamicSrc = writeToDynamicSrc;
   }
 
-  public FlatSESEEnterNode getSESEtoIssue() {
-    return seseToIssue;
+  public Set<VariableSourceToken> getWriteToDynamicSrc() {
+    return writeToDynamicSrc;
   }
-
 
   public boolean equals( Object o ) {
     if( o == null ) {
@@ -38,30 +37,38 @@ public class CodePlan {
 
     CodePlan cp = (CodePlan) o;
 
-    boolean issueEq;
-    if( seseToIssue == null ) {
-      issueEq = (cp.seseToIssue == null);
+    boolean dynamicSetEq;
+    if( writeToDynamicSrc == null ) {
+      dynamicSetEq = (cp.writeToDynamicSrc == null);
     } else {
-      issueEq = (seseToIssue.equals( cp.seseToIssue ));
+      dynamicSetEq = (writeToDynamicSrc.equals( cp.writeToDynamicSrc ));
     }
         
-    return issueEq;
+    return dynamicSetEq;
   }
 
   public int hashCode() {
-    int issueHC = 1;
-    if( seseToIssue != null  ) {
-      issueHC = seseToIssue.hashCode();
+    int dynamicSetHC = 1;
+    if( writeToDynamicSrc != null  ) {
+      dynamicSetHC = writeToDynamicSrc.hashCode();
     }
 
-    return issueHC;
+    return dynamicSetHC;
   }
 
   public String toString() {
     String s = "";
 
-    if( seseToIssue != null ) {
-      s += "[ISSUE "+seseToIssue.getPrettyIdentifier()+"]";
+    if( writeToDynamicSrc != null ) {
+      s += "[WRITE DYN";
+
+      Iterator<VariableSourceToken> vstItr = writeToDynamicSrc.iterator();
+      while( vstItr.hasNext() ) {
+	VariableSourceToken vst = vstItr.next();
+	s += ", "+vst;
+      }
+
+      s += "]";
     }
 
     return s;

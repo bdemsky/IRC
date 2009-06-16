@@ -6,8 +6,9 @@
 #include "Queue.h"
 
 
-// a forward delcaration for SESEvar
+// forward delcarations
 struct SESErecord_t;
+struct invokeSESEargs_t;
 
 
 typedef struct SESEvar_t {
@@ -43,6 +44,8 @@ typedef struct SESErecord_t {
   // are instances of one particular static code block
   int classID;
 
+
+  /* JUST USE POINTER TO SESErecord AS INSTANCE ID
   // not globally unqiue, but each parent ensures that
   // its children have unique identifiers, including to
   // the parent itself
@@ -50,6 +53,7 @@ typedef struct SESErecord_t {
 
   // used to give out IDs to children
   int childInstanceIDs;
+  */
 
   // pointers to SESEs directly above or below
   // in the heirarchy

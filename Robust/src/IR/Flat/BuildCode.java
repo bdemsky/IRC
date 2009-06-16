@@ -26,6 +26,8 @@ import Analysis.Loops.WriteBarrier;
 import Analysis.Loops.GlobalFieldType;
 import Analysis.Locality.TypeAnalysis;
 import Analysis.MLP.MLPAnalysis;
+import Analysis.MLP.VariableSourceToken;
+import Analysis.MLP.CodePlan;
 
 public class BuildCode {
   State state;
@@ -304,17 +306,6 @@ public class BuildCode {
       outmethod.println("    ((void **)(((char *)& stringarray->___length___)+sizeof(int)))[i-1]=newstring;");
     outmethod.println("  }");
 
-    if (state.MLP) {
-      FlatSESEEnterNode rootSESE = mlpa.getRootSESE();
-      outmethod.println("  mlpInit();");
-
-      outmethod.print("  rootsese = mlpCreateSESErecord(");
-      outmethod.print(rootSESE.getIdentifier()+", 0, NULL, 0, NULL");
-      outmethod.println(");");
-
-      outmethod.println("  ");
-    }
-
     MethodDescriptor md=typeutil.getMain();
     ClassDescriptor cd=typeutil.getMainClass();
 
@@ -444,10 +435,6 @@ public class BuildCode {
       outmethod.println("#include <stdlib.h>");
       outmethod.println("#include <stdio.h>");
       outmethod.println("#include \"mlp_runtime.h\"");
-      outmethod.println("/* GET RID OF THIS LATER */");
-      outmethod.println("SESErecord*     tempSESE;");
-      outmethod.println("SESErecord*     tempParentSESE;");    
-      outmethod.println("invokeSESEargs* tempSESEargs;");
     }
 
 
@@ -1791,6 +1778,18 @@ public class BuildCode {
                               FlatSESEExitNode stop,
                               PrintWriter output) {
 
+    // for any method, allocate temps to use when
+    // issuing a new SESE sometime during the execution
+    // of that method, whether it be a user-defined method
+    // or a method representing the body of an SESE
+    // TODO: only do this if we know the method actually
+    // contains an SESE issue, not currently an annotation
+    if( state.MLP ) {
+      output.println("   SESErecord*     tempSESE;");
+      output.println("   SESErecord*     tempParentSESE;");    
+      output.println("   invokeSESEargs* tempSESEargs;");
+    }
+
     /* Assign labels to FlatNode's if necessary.*/
     Hashtable<FlatNode, Integer> nodetolabel=assignLabels(first, stop);
 
@@ -1923,82 +1922,84 @@ public class BuildCode {
   }
 
   protected void generateFlatNode(FlatMethod fm, LocalityBinding lb, FlatNode fn, PrintWriter output) {
+
     switch(fn.kind()) {
+
     case FKind.FlatAtomicEnterNode:
       generateFlatAtomicEnterNode(fm, lb, (FlatAtomicEnterNode) fn, output);
-      return;
+      break;
 
     case FKind.FlatAtomicExitNode:
       generateFlatAtomicExitNode(fm, lb, (FlatAtomicExitNode) fn, output);
-      return;
+      break;
 
     case FKind.FlatInstanceOfNode:
       generateFlatInstanceOfNode(fm, lb, (FlatInstanceOfNode)fn, output);
-      return;
+      break;
 
     case FKind.FlatSESEEnterNode:
       generateFlatSESEEnterNode(fm, lb, (FlatSESEEnterNode)fn, output);
-      return;
+      break;
 
     case FKind.FlatSESEExitNode:
       generateFlatSESEExitNode(fm, lb, (FlatSESEExitNode)fn, output);
-      return;
+      break;
 
     case FKind.FlatGlobalConvNode:
       generateFlatGlobalConvNode(fm, lb, (FlatGlobalConvNode) fn, output);
-      return;
+      break;
 
     case FKind.FlatTagDeclaration:
       generateFlatTagDeclaration(fm, lb, (FlatTagDeclaration) fn,output);
-      return;
+      break;
 
     case FKind.FlatCall:
       generateFlatCall(fm, lb, (FlatCall) fn,output);
-      return;
+      break;
 
     case FKind.FlatFieldNode:
       generateFlatFieldNode(fm, lb, (FlatFieldNode) fn,output);
-      return;
+      break;
 
     case FKind.FlatElementNode:
       generateFlatElementNode(fm, lb, (FlatElementNode) fn,output);
-      return;
+      break;
 
     case FKind.FlatSetElementNode:
       generateFlatSetElementNode(fm, lb, (FlatSetElementNode) fn,output);
-      return;
+      break;
 
     case FKind.FlatSetFieldNode:
       generateFlatSetFieldNode(fm, lb, (FlatSetFieldNode) fn,output);
-      return;
+      break;
 
     case FKind.FlatNew:
       generateFlatNew(fm, lb, (FlatNew) fn,output);
-      return;
+      break;
 
     case FKind.FlatOpNode:
       generateFlatOpNode(fm, lb, (FlatOpNode) fn,output);
-      return;
+      break;
 
     case FKind.FlatCastNode:
       generateFlatCastNode(fm, lb, (FlatCastNode) fn,output);
-      return;
+      break;
 
     case FKind.FlatLiteralNode:
       generateFlatLiteralNode(fm, lb, (FlatLiteralNode) fn,output);
-      return;
+      break;
 
     case FKind.FlatReturnNode:
       generateFlatReturnNode(fm, lb, (FlatReturnNode) fn,output);
-      return;
+      break;
 
     case FKind.FlatNop:
       output.println("/* nop */");
-      return;
+      break;
 
     case FKind.FlatExit:
       output.println("/* exit */");
-      return;
+      break;
 
     case FKind.FlatBackEdge:
       if ((state.THREAD||state.DSM||state.SINGLETM)&&GENERATEPRECISEGC) {
@@ -2008,25 +2009,39 @@ public class BuildCode {
 	  output.println("if (needtocollect) checkcollect(&"+localsprefix+");");
       } else
 	output.println("/* nop */");
-      return;
+      break;
 
     case FKind.FlatCheckNode:
       generateFlatCheckNode(fm, lb, (FlatCheckNode) fn, output);
-      return;
+      break;
 
     case FKind.FlatFlagActionNode:
       generateFlatFlagActionNode(fm, lb, (FlatFlagActionNode) fn, output);
-      return;
+      break;
 
     case FKind.FlatPrefetchNode:
       generateFlatPrefetchNode(fm,lb, (FlatPrefetchNode) fn, output);
-      return;
+      break;
 
     case FKind.FlatOffsetNode:
       generateFlatOffsetNode(fm, lb, (FlatOffsetNode)fn, output);
-      return;
+      break;
+
+    default:
+      throw new Error();
     }
-    throw new Error();
+
+    if( state.MLP ) {
+
+      CodePlan cp = mlpa.getCodePlan( fn );
+      if( cp != null ) {     
+
+	Set<VariableSourceToken> writeDynamic = cp.getWriteToDynamicSrc();      
+	if( writeDynamic != null ) {
+	  
+	}
+      }
+    }
   }
 
   public void generateFlatOffsetNode(FlatMethod fm, LocalityBinding lb, FlatOffsetNode fofn, PrintWriter output) {

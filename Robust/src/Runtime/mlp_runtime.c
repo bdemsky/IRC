@@ -38,8 +38,8 @@ SESErecord* mlpCreateSESErecord( int         classID,
   SESErecord* newrec = malloc( sizeof( SESErecord ) );
 
   newrec->classID          = classID;
-  newrec->instanceID       = instanceID;
-  newrec->childInstanceIDs = 0;
+  //newrec->instanceID       = instanceID;
+  //newrec->childInstanceIDs = 0;
   newrec->parent           = parent;
   newrec->childrenList     = createQueue();
   newrec->vars             = (SESEvar*) malloc( sizeof( SESEvar ) *
@@ -87,7 +87,8 @@ void mlpInit( int totalNumSESEs, int maxSESEage ) {
                                               maxSESEage            *
                                               totalNumSESEs
                                             );
-  current = rootsese;
+  //current = rootsese;
+  current = NULL;
 }
 
 
