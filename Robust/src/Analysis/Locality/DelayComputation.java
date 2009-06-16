@@ -15,12 +15,14 @@ public class DelayComputation {
   LocalityAnalysis locality;
   TypeAnalysis typeanalysis;
   GlobalFieldType gft;
+  DiscoverConflicts dcopts;
 
-  public DelayComputation(LocalityAnalysis locality, State state, TypeAnalysis typeanalysis, GlobalFieldType gft) {
+  public DelayComputation(LocalityAnalysis locality, State state, TypeAnalysis typeanalysis, GlobalFieldType gft, DiscoverConflicts dcopts) {
     this.locality=locality;
     this.state=state;
     this.typeanalysis=typeanalysis;
     this.gft=gft;
+    this.dcopts=dcopts;
   }
 
   public void doAnalysis() {
@@ -33,6 +35,7 @@ public class DelayComputation {
   public void analyzeMethod(LocalityBinding lb) {
     MethodDescriptor md=lb.getMethod();
     FlatMethod fm=state.getMethodFlat(md);
+    System.out.println("Analyzing "+md);
     HashSet<FlatNode> cannotdelay=new HashSet<FlatNode>();
     Hashtable<FlatNode, Integer> atomictable=locality.getAtomic(lb);
     if (lb.isAtomic()) {
@@ -179,7 +182,31 @@ public class DelayComputation {
 	/* Do we read from arrays */
 	if (fn.kind()==FKind.FlatElementNode) {
 	  //have to do expansion
-	  nodelayarrayrdset.addAll(typeanalysis.expand(((FlatSetElementNode)fn).getSrc().getType()));	  
+	  nodelayarrayrdset.addAll(typeanalysis.expand(((FlatElementNode)fn).getSrc().getType()));	  
+	}
+      } else {
+	//Need to know which objects to lock on
+	switch(fn.kind()) {
+	case FKind.FlatSetFieldNode: {
+	  FlatSetFieldNode fsfn=(FlatSetFieldNode)fn;
+	  nodelaytempset.add(fsfn.getDst());
+	  break;
+	}
+	case FKind.FlatSetElementNode: {
+	  FlatSetElementNode fsen=(FlatSetElementNode)fn;
+	  nodelaytempset.add(fsen.getDst());
+	  break;
+	}
+	case FKind.FlatFieldNode: {
+	  FlatFieldNode ffn=(FlatFieldNode)fn;
+	  nodelaytempset.add(ffn.getSrc());
+	  break;
+	}
+	case FKind.FlatElementNode: {
+	  FlatElementNode fen=(FlatElementNode)fn;
+	  nodelaytempset.add(fen.getSrc());
+	  break;
+	}
 	}
       }
       
@@ -222,7 +249,106 @@ public class DelayComputation {
       if (changed)
 	for(int i=0;i<fn.numPrev();i++)
 	  toanalyze.add(fn.getPrev(i));
-    } //end of while loop
+    }//end of while loop
+    HashSet<FlatNode> notreadyset=computeNotReadySet(lb, cannotdelay);
+    HashSet<FlatNode> atomicset=new HashSet<FlatNode>();
+    for(Iterator<FlatNode> fnit=fm.getNodeSet().iterator();fnit.hasNext();) {
+      FlatNode fn=fnit.next();
+      boolean isatomic=atomictable.get(fn).intValue()>0;
+      if (isatomic)
+	atomicset.add(fn);
+    }
+    atomicset.removeAll(notreadyset);
+    atomicset.removeAll(cannotdelay);
+    System.out.println("-----------------------------------------------------");
+    System.out.println(md);
+    System.out.println("Cannot delay set:"+cannotdelay);
+    System.out.println("Not ready set:"+notreadyset);
+    System.out.println("Other:"+atomicset);
+    
 
+    //We now have:
+    //(1) Cannot delay set -- stuff that must be done before commit
+    //(2) Not ready set -- stuff that must wait until commit
+    //(3) everything else -- stuff that should be done before commit
   } //end of method
+
+  public HashSet<FlatNode> computeNotReadySet(LocalityBinding lb, HashSet<FlatNode> cannotdelay) {
+    //You are in not ready set if:
+    //I. You read a not ready temp
+
+    //II. You read a field or element and both (A) you are not in the
+    //cannot delay set and (B) you do a transactional access to object
+    MethodDescriptor md=lb.getMethod();
+    FlatMethod fm=state.getMethodFlat(md);
+    Hashtable<FlatNode, Integer> atomictable=locality.getAtomic(lb);
+
+    HashSet<FlatNode> notreadynodes=new HashSet<FlatNode>();
+    HashSet<FlatNode> toanalyze=new HashSet<FlatNode>();
+    toanalyze.addAll(fm.getNodeSet());
+    Hashtable<FlatNode, HashSet<TempDescriptor>> notreadymap=new Hashtable<FlatNode, HashSet<TempDescriptor>>();
+    
+    while(!toanalyze.isEmpty()) {
+      FlatNode fn=toanalyze.iterator().next();
+      toanalyze.remove(fn);
+      boolean isatomic=atomictable.get(fn).intValue()>0;
+
+      if (!isatomic)
+	continue;
+
+      //Compute initial notready set
+      HashSet<TempDescriptor> notreadyset=new HashSet<TempDescriptor>();
+      for(int i=0;i<fn.numPrev();i++) {
+	if (notreadymap.containsKey(fn.getPrev(i)))
+	  notreadyset.addAll(notreadymap.get(fn.getPrev(i)));
+      }
+      
+      //Are we ready
+      boolean notready=false;
+
+      //Test our read set first
+      TempDescriptor readset[]=fn.readsTemps();
+      for(int i=0;i<readset.length;i++) {
+	TempDescriptor tmp=readset[i];
+	if (notreadyset.contains(tmp)) {
+	  notready=true;
+	  break;
+	}
+      }
+
+      if (!notready&&!cannotdelay.contains(fn)&&
+	  (fn.kind()==FKind.FlatFieldNode||fn.kind()==FKind.FlatElementNode)&&
+	  dcopts.getNeedTrans(lb, fn)) {
+	notready=true;
+      }
+
+      //Fix up things based on our status
+      if (notready) {
+	//add us to the list
+	notreadynodes.add(fn);
+	//Add our writes
+	TempDescriptor writeset[]=fn.writesTemps();
+	for(int i=0;i<writeset.length;i++) {
+	  TempDescriptor tmp=writeset[i];
+	  notreadyset.add(tmp);
+	}
+      } else {
+	//Kill our writes
+	TempDescriptor writeset[]=fn.writesTemps();
+	for(int i=0;i<writeset.length;i++) {
+	  TempDescriptor tmp=writeset[i];
+	  notreadyset.remove(tmp);
+	}
+      }
+      
+      //See if we need to propagate changes
+      if (!notreadymap.containsKey(fn)||
+	  !notreadymap.get(fn).equals(notreadyset)) {
+	notreadymap.put(fn, notreadyset);
+	for(int i=0;i<fn.numNext();i++)
+	  toanalyze.add(fn.getNext(i));
+      }
+    } //end of while
+    return notreadynodes;
+  } //end of computeNotReadySet
 } //end of class
