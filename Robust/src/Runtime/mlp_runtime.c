@@ -1,6 +1,9 @@
+#include "runtime.h"
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <assert.h>
+
 #include "mlp_runtime.h"
 #include "Queue.h"
 

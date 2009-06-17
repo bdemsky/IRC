@@ -6,10 +6,10 @@ public class Test {
     int y = 1;
 
     sese fi {
-      if( true ) {
+      //if( true ) {
         x = y + 2;
         y = 3;	
-      }      
+	//}      
     }
 
 
@@ -23,9 +23,10 @@ public class Test {
     */
 
 
+    /*
     //  ADD BACK IN LATER, TO TEST STALLS
     // shouldn't cause a stall
-    //int z = x;
+    int z = x;
 
     // stall and get values for y and z
     x = x + 1;
@@ -33,15 +34,15 @@ public class Test {
     // all of these should proceed without stall
     y = y + 1;
     x = x + 1;
-    //z = z + 1;
-    
+    z = z + 1;
+    */
 
     // see that values from sese fi are
     // forwarded to this sibling
     //sese fo {
     // expecting x=5, y=4
     System.out.println( "x="+x+", y="+y );
-      //}
+    //}
 
 
 

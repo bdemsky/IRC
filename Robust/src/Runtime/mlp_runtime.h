@@ -12,8 +12,6 @@ struct invokeSESEargs_t;
 
 
 typedef struct SESEvar_t {
-  //unsigned char mode;
-
   // the value when it is known will be placed
   // in this location, which can be accessed
   // as a variety of types
@@ -27,15 +25,7 @@ typedef struct SESEvar_t {
     float     sesetype_float;
     double    sesetype_double;
     void*     sesetype_object;
-  };
-  
-  // a statically or dynamically known SESE
-  // to gather the variable's value from
-  // if source==NULL it indicates the root
-  // SESE, which has no record, just normal
-  // temp names
-  //struct SESErecord_t* source;
-  //unsigned int         index;
+  };  
 } SESEvar;
 
 
@@ -44,21 +34,14 @@ typedef struct SESErecord_t {
   // are instances of one particular static code block
   int classID;
 
-
-  /* JUST USE POINTER TO SESErecord AS INSTANCE ID
-  // not globally unqiue, but each parent ensures that
-  // its children have unique identifiers, including to
-  // the parent itself
-  int instanceID;
-
-  // used to give out IDs to children
-  int childInstanceIDs;
-  */
-
   // pointers to SESEs directly above or below
   // in the heirarchy
-  struct SESErecord_t* parent;
-  struct Queue*        childrenList;
+  //struct SESErecord_t* parent;
+  //struct Queue*        childrenList;
+  // IMPLEMENT THIS LIKE STALLS--EVERY PARENTS EXIT MUST
+  // "STALL" on COMPLETETION OF ALL ISSUED CHILDREN, SO
+  // ALWAYS GIVE A CHILD A SEMAPHORE THAT IS ON YOUR LIST
+  // OF THINGS TO BLOCK ON AT EXIT
 
   // for state of vars after issue
   SESEvar* vars;
