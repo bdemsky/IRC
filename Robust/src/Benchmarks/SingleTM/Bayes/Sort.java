@@ -88,6 +88,7 @@ public class Sort {
   public Sort() {
 
   }
+
   /* =============================================================================
    * swap
    * =============================================================================
@@ -95,7 +96,7 @@ public class Sort {
   public static void
     swap (char[] base, int a, int b, int width)
     {
-      if (a != b) {
+      if (a != b ) {
         while (width--) {
           char tmp = base[a];
           base[a++] = base[b];
@@ -109,27 +110,25 @@ public class Sort {
    * shortsort
    * =============================================================================
    */
-  public static void
-    shortsort (char[] base,
-        int lo,
-        int hi,
-        int width,
-        int n,
-        int offset)
-    {
-      while (hi > lo) {
-        int max = lo;
-        int p;
-        for (p = (lo + width); p <= hi; p += width) {
-          if (cmp(base, p, max, n, offset) > 0) {
-            max = p;
-          }
-        }
-        swap(base, max, hi, width);
-        hi -= width;
-      }
-    }
 
+  public static void shortsort(char[] base,
+      int lo,
+      int hi,
+      int width,
+      int n,
+      int offset)
+  {
+    while(hi > lo) {
+      int max = lo;
+      for(int p = (lo + width); p <= hi; p += width) {
+        if(cmp(base, p, max, n, offset) > 0) {
+          max = p;
+        }
+      }
+      swap(base, max, hi, width);
+      hi -= width;
+    }
+  }
 
   /* =============================================================================
    * sort
@@ -143,6 +142,13 @@ public class Sort {
         int n,
         int offset)
     {
+      /**
+       * debug
+       **/
+      /*
+      for(int o = 0; o< (width * (num - 1)); o++)
+        System.out.println("base["+ o +"]=" + (int)base[o]);
+      */
       if (num < 2 || width == 0) {
         return;
       }
@@ -152,96 +158,95 @@ public class Sort {
        * where to start looking in 
        * the base array
        **/
-      char[] lostk= new char[30];
-      char[] histk= new char[30];
+      int[] lostk= new int[30];
+      int[] histk= new int[30];
 
       int stkptr = 0;
 
+      start = 0;
       int lo = start;
       int hi = start + (width * (num - 1));
 
       int size = 0;
 
-      /**
-       * debug
-       **/
-      //System.out.println("start= " + start + " base.length= " + base.length + " hi= " + hi);
+      boolean cont = true;
 
-      recurse(base, lo, hi, width, n, offset, lostk, histk, stkptr, size);
+      ptrVal pv = new ptrVal();
+      pv.lo = lo;
+      pv.hi = hi;
+      pv.width = width;
+      pv.n = n;
+      pv.offset = offset;
 
-    }
+      int typeflag;
 
-  public void recurse(char[] base,
-      int lo,
-      int hi,
-      int width,
-      int n,
-      int offset,
-      char[] lostk, 
-      char[] histk, 
-      int stkptr, 
-      int size) 
-  {
+      while(cont) {
 
-      size = (hi - lo) / width + 1;
+        size = (pv.hi - pv.lo) / pv.width + 1;
+ 
+        /**
+         * debug
+         **/
+        //System.out.println("DEBUG: lo= "+ pv.lo + " hi= " + pv.hi + " width= " + pv.width+ " offset= " + pv.offset + " n= " + pv.n + " size= " + size);
 
-      if (size <= CUTOFF) {
+        if (size <= CUTOFF) {
 
-        shortsort(base, lo, hi, width, n, offset);
+          shortsort(base, pv.lo, pv.hi, pv.width, pv.n, pv.offset);
 
-      } else {
-
-        int mid = lo + (size / 2) * width;
-        swap(base, mid, lo, width);
-
-        int loguy = lo;
-        int higuy = hi + width;
-
-        boolean status = true;
-        while(true) {
-          do {
-            loguy += width;
-          } while (loguy <= hi && cmp(base, loguy, lo, n, offset) <= 0);
-          do {
-            higuy -= width;
-          } while (higuy > lo && cmp(base, higuy, lo, n, offset) >= 0);
-          if (higuy < loguy) {
-            break;
-          }
-          swap(base, loguy, higuy, width);
-        }
-
-        swap(base, lo, higuy, width);
-
-        if ((higuy - 1 - lo) >= (hi - loguy)) {
-          if (lo + width < higuy) {
-            lostk[stkptr] = base[lo];
-            histk[stkptr] = base[higuy - width];
-            ++stkptr;
-          }
-
-          if (loguy < hi) {
-            lo = loguy;
-            recurse(base, lo, hi, width, n, offset, lostk, histk, stkptr, size);
-          }
         } else {
-          if (loguy < hi) {
-            lostk[stkptr] = base[loguy];
-            histk[stkptr] = base[hi];
-            ++stkptr;
+
+          pv.mid = pv.lo + (size / 2) * pv.width;
+          swap(base, pv.mid, pv.lo, pv.width);
+
+          pv.loguy = pv.lo;
+          pv.higuy = pv.hi + pv.width;
+
+          while(true) {
+            do {
+              pv.loguy += pv.width;
+            } while (pv.loguy <= pv.hi && cmp(base, pv.loguy, pv.lo, pv.n, pv.offset) <= 0);
+            do {
+              pv.higuy -= pv.width;
+            } while (pv.higuy > pv.lo && cmp(base, pv.higuy, pv.lo, pv.n, pv.offset) >= 0);
+            if (pv.higuy < pv.loguy) {
+              break;
+            }
+            swap(base, pv.loguy, pv.higuy, pv.width);
           }
-          if (lo + width < higuy) {
-            hi = higuy - width;
-            recurse(base, lo, hi, width, n, offset, lostk, histk, stkptr, size);
+
+          swap(base, pv.lo, pv.higuy, pv.width);
+
+          if ((pv.higuy - 1 - pv.lo) >= (pv.hi - pv.loguy)) {
+            if (pv.lo + pv.width < pv.higuy) {
+              lostk[stkptr] = pv.lo;
+              histk[stkptr] = pv.higuy - pv.width;
+              ++stkptr;
+            }
+
+            if (pv.loguy < pv.hi) {
+              pv.lo = pv.loguy;
+              continue;
+            }
+          } else {
+            if (pv.loguy < pv.hi) {
+              lostk[stkptr] = pv.loguy;
+              histk[stkptr] = pv.hi;
+              ++stkptr;
+            }
+            if (pv.lo + pv.width < pv.higuy) {
+              pv.hi = pv.higuy - pv.width;
+              continue;
+            }
           }
         }
-      }
 
-      --stkptr;
-      if (stkptr >= 0) {
-        base[lo] = lostk[stkptr];
-        base[hi] = histk[stkptr];
-        recurse(base, lo, hi, width, n, offset, lostk, histk, stkptr, size);
+        --stkptr;
+        if (stkptr >= 0) {
+          pv.lo = lostk[stkptr];
+          pv.hi = histk[stkptr];
+          continue;
+        }
+        cont = false;
       }
     }
 
@@ -249,6 +254,7 @@ public class Sort {
    * compareRecord
    * =============================================================================
    */
+
   public static int
     cmp(char[] base, int p1, int  p2, int n, int offset)
     {
@@ -260,12 +266,39 @@ public class Sort {
         char u1 = base[s1];
         char u2 = base[s2];
         if (u1 != u2) {
-          return (u1 - u2); //TODO check this in java
+          return (u1 - u2); 
         }
+        s1++;
+        s2++;
       }
-
       return 0;
     }
+}
+
+public class ptrVal {
+  int lo;
+  int hi;
+  int width;
+  int n;
+  int offset;
+  int loguy;
+  int higuy;
+  int max;
+  int p;
+  int mid;
+
+  public ptrVal() {
+    lo = 0;
+    hi = 0;
+    width = 0;
+    n = 0;
+    offset = 0;
+    loguy = 0;
+    higuy = 0;
+    max = 0;
+    p = 0;
+    mid = 0;
+  }
 }
 
 /* =============================================================================

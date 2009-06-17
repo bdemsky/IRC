@@ -129,7 +129,7 @@ public class Data {
       int numThreshold = 1 << parentIdListPtr.list_getSize();
       int[] thresholds = new int[numThreshold];
       for (int t = 0; t < numThreshold; t++) {
-        int threshold = randomPtr.random_generate() % (DATA_PRECISION + 1);
+        int threshold = (int) (randomPtr.random_generate() % (DATA_PRECISION + 1));
         thresholds[t] = threshold;
       }
       thresholdsTable[v] = thresholds;
@@ -156,6 +156,7 @@ public class Data {
     while ((v = doneBitmapPtr.bitmap_findClear(v + 1)) >= 0) {
       IntList childIdListPtr = netPtr.net_getChildIdListPtr(v);
       int numChild = childIdListPtr.list_getSize();
+
       if (numChild == 0) {
 
         boolean status;
@@ -166,19 +167,19 @@ public class Data {
 
         workQueuePtr.queue_clear();
         if((status = workQueuePtr.queue_push(v)) != true) {
-          System.out.println("status= "+ status + "should be true");
+          System.out.println("Assert failed: status= "+ status + "should be true");
           System.exit(0);
         }
 
         while (!(workQueuePtr.queue_isEmpty())) {
           int id = workQueuePtr.queue_pop();
           if((status = doneBitmapPtr.bitmap_set(id)) != true) {
-            System.out.println("status= "+ status + "should be true");
+            System.out.println("Assert failed: status= "+ status + "should be true");
             System.exit(0);
           }
 
           if((status = dependencyVectorPtr.vector_pushBack(id)) == false) {
-            System.out.println("status= "+ status + "should be true");
+            System.out.println("Assert failed: status= "+ status + "should be true");
             System.exit(0);
           }
 
@@ -190,7 +191,7 @@ public class Data {
             it = it.nextPtr;
             int parentId = parentIdListPtr.list_iter_next(it);
             if((status = workQueuePtr.queue_push(parentId)) == false) {
-              System.out.println("status= "+ status + "should be true");
+              System.out.println("Assert failed: status= "+ status + "should be true");
               System.exit(0);
             }
           }
@@ -212,7 +213,7 @@ public class Data {
     }
 
     if(numOrder != numVar) {
-      System.out.println("numVar should be equal to numOrder");
+      System.out.println("Assert failed: numVar should be equal to numOrder");
       System.exit(0);
     }
 
@@ -228,24 +229,25 @@ public class Data {
         int index = 0;
         IntListNode it = parentIdListPtr.head;
         parentIdListPtr.list_iter_reset(it);
+
         while (parentIdListPtr.list_iter_hasNext(it)) {
           it = it.nextPtr;
           int parentId = parentIdListPtr.list_iter_next(it);
           int value = records[startindex + parentId];
           if(value == DATA_INIT) {
-            System.out.println("value should be != DATA_INIT");
+            System.out.println("Assert failed value should be != DATA_INIT");
             System.exit(0);
           }
-          //assert(value != DATA_INIT);
+
           index = (index << 1) + value;
         }
-        int rnd = randomPtr.random_generate() % DATA_PRECISION;
+        int rnd = (int) (randomPtr.random_generate() % DATA_PRECISION);
         int threshold = thresholdsTable[v][index];
         records[startindex + v] = (char) ((rnd < threshold) ? 1 : 0);
       }
       startindex += numVar;
       if(startindex > numRecord * numVar) {
-        System.out.println("value should be != DATA_INIT in data_generate()");
+        System.out.println("Assert failed: value should be != DATA_INIT in data_generate()");
         System.exit(0);
       }
     }
@@ -306,14 +308,19 @@ public class Data {
         int num,
         int offset)
     {
-      if((start < 0) || (start > numRecord))
+      if((start < 0) || (start > numRecord)) {
         System.out.println("start: Assert failed in data_sort");
-      if((num < 0) || (num > numRecord))
+        System.exit(0);
+      }
+      if((num < 0) || (num > numRecord)) {
         System.out.println("num: Assert failed in data_sort");
-      if((start + num < 0) || (start + num > numRecord))
+        System.exit(0);
+      }
+      if((start + num < 0) || (start + num > numRecord)) {
         System.out.println("start + num: Assert failed in data_sort");
+        System.exit(0);
+      }
 
-      //FIXME
       Sort.sort(records, 
           start * numVar,
           num,

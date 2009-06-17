@@ -220,8 +220,8 @@ public class Queue {
       int i;
       int base = pop + 1;
       for (i = 0; i < numElement; i++) {
-        int r1 = randomPtr.random_generate() % numElement;
-        int r2 = randomPtr.random_generate() % numElement;
+        int r1 = (int) (randomPtr.random_generate() % numElement);
+        int r2 = (int) (randomPtr.random_generate() % numElement);
         int i1 = (base + r1) % capacity;
         int i2 = (base + r2) % capacity;
         int tmp = elements[i1];

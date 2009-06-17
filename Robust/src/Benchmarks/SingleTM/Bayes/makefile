@@ -16,7 +16,7 @@ SRC=tmp${MAINCLASS}.java \
 	tmpIntList.java \
 	IntListNode.java \
 	tmpQueue.java \
-	../common/Random.java \
+	Random.java \
 	../common/Vector_t.java \
 	../common/ListNode.java \
 	../common/List.java \

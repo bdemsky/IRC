@@ -881,9 +881,9 @@ public class Net {
 
       for (int n = 0; n < numNode; n++) {
         for (int p = 0; p < maxNumParent; p++) {
-          int value = randomPtr.random_generate() % 100;
+          int value = (int) (randomPtr.random_generate() % 100);
           if (value < percentParent) {
-            int parent = randomPtr.random_generate() % numNode;
+            int parent = (int) (randomPtr.random_generate() % numNode);
             if ((parent != n) &&
                 !net_hasEdge(parent, n) &&
                 !net_isPath(n, parent, visitedBitmapPtr, workQueuePtr))
