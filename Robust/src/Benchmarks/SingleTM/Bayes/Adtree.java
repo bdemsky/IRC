@@ -261,12 +261,15 @@ public class Adtree {
         Vector_t queryVectorPtr,
         int lastQueryIndex)
     {
+      System.out.println("DEBUG: Starting getCount()");
       if (nodePtr == null) {
+        System.out.println("DEBUG: exiting  getCount() at point 1, count= 0");
         return 0;
       }
 
       int nodeIndex = nodePtr.index;
       if (nodeIndex >= lastQueryIndex) {
+        System.out.println("DEBUG: exiting  getCount() at point 2, count= "+ nodePtr.count);
         return nodePtr.count;
       }
 
@@ -274,7 +277,8 @@ public class Adtree {
 
       Query queryPtr = (Query)(queryVectorPtr.vector_at(q));
 
-      if (queryPtr != null) {
+      if (queryPtr == null) {
+        System.out.println("DEBUG: exiting  getCount() at point 3, count= "+ nodePtr.count);
         return nodePtr.count;
       }
       int queryIndex = queryPtr.index;
@@ -305,6 +309,7 @@ public class Adtree {
                 queryVectorPtr.vector_at(qq));
           }
         }
+        System.out.println("DEBUG: Calling adtree_getCount, HERE1");
         int superCount = adtree_getCount(superQueryVectorPtr);
 
         superQueryVectorPtr.vector_free();
@@ -312,6 +317,7 @@ public class Adtree {
         int invertCount;
         if (queryValue == 0) {
           queryPtr.value = 1;
+          System.out.println("DEBUG: Calling adtree_getCount, HERE2");
           invertCount = getCount(nodePtr,
               i,
               q,
@@ -320,6 +326,7 @@ public class Adtree {
           queryPtr.value = 0;
         } else {
           queryPtr.value = 0;
+          System.out.println("DEBUG: Calling adtree_getCount, HERE3");
           invertCount = getCount(nodePtr,
               i,
               q,
@@ -332,12 +339,14 @@ public class Adtree {
       } else {
 
         if (queryValue == 0) {
+          System.out.println("DEBUG: Calling adtree_getCount, HERE4");
           count += getCount(varyPtr.zeroNodePtr,
               (i + 1),
               (q + 1),
               queryVectorPtr,
               lastQueryIndex);
         } else if (queryValue == 1) {
+          System.out.println("DEBUG: Calling adtree_getCount, HERE5");
           count += getCount(varyPtr.oneNodePtr,
               (i + 1),
               (q + 1),
@@ -350,6 +359,7 @@ public class Adtree {
 
       }
 
+      System.out.println("DEBUG: exiting  getCount() at point 4, count= "+ count);
       return count;
     }
 
