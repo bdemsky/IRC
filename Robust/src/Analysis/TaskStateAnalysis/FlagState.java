@@ -30,7 +30,7 @@ public class FlagState extends GraphNode implements Cloneable {
 
   // jzhou
   // for static scheduling
-  private int executeTime;
+  private long executeTime;
   private int visited4time;
   private int invokeNum;
   private int byObj;
@@ -340,7 +340,7 @@ public class FlagState extends GraphNode implements Cloneable {
     return tags.keys();
   }
 
-  public int getExeTime() {
+  public long getExeTime() {
     try {
       if(this.executeTime == -1) {
 	if(this.visited4time == -1) {
@@ -360,7 +360,7 @@ public class FlagState extends GraphNode implements Cloneable {
     return this.executeTime;
   }
 
-  public void setExeTime(int exeTime) {
+  public void setExeTime(long exeTime) {
     this.executeTime = exeTime;
   }
 
@@ -404,7 +404,7 @@ public class FlagState extends GraphNode implements Cloneable {
     }
     while(it.hasNext()) {
       FEdge fe = (FEdge)it.next();
-      int temp = fe.getExeTime() + ((FlagState)fe.getTarget()).getExeTime();
+      long temp = fe.getExeTime() + ((FlagState)fe.getTarget()).getExeTime();
       if(temp < this.executeTime) {
 	this.executeTime = temp;
       }

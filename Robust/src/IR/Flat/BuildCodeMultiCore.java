@@ -660,16 +660,20 @@ public class BuildCodeMultiCore extends BuildCode {
 		output.println("BAMBOO_DEBUGPRINT(0xAAAA);");
 		output.println("BAMBOO_DEBUGPRINT_REG(tmpsum);"); 
 	} else {
+		output.println("BAMBOO_START_CRITICAL_SECTION();");
 		output.println("tprintf(\"Process %x(%d): task %s\\n\", corenum, corenum, \"" + task.getSymbol() + "\");");
+		output.println("BAMBOO_CLOSE_CRITICAL_SECTION();");
 	}
-	output.println("BAMBOO_DEBUGPRINT(BAMBOO_GET_EXE_TIME());");
+	//output.println("BAMBOO_DEBUGPRINT(BAMBOO_GET_EXE_TIME());");
     output.println("#endif");
     output.println("#ifdef DEBUG");
 	if(this.state.RAW) {
 		output.println("BAMBOO_DEBUGPRINT(0xAAAA);");
 		output.println("BAMBOO_DEBUGPRINT_REG(tmpsum);");
 	} else {
+		output.println("BAMBOO_START_CRITICAL_SECTION();");
 		output.println("tprintf(\"Process %x(%d): task %s\\n\", corenum, corenum, \"" + task.getSymbol() + "\");");
+		output.println("BAMBOO_CLOSE_CRITICAL_SECTION();");
 	}
     output.println("#endif");
 	if(this.state.RAW) {

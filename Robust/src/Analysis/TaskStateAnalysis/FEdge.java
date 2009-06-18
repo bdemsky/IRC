@@ -12,7 +12,7 @@ public class FEdge extends Edge {
   private int parameterindex;
 
   // jzhou
-  private int executeTime;
+  private long executeTime;
   private Hashtable<ClassDescriptor, NewObjInfo> newObjInfos;
   private double probability;
   private int invokeNum;
@@ -130,7 +130,7 @@ public class FEdge extends Edge {
   }
 
   public int hashCode() {
-    int hashcode = label.hashCode()^target.hashCode()^source.hashCode()^parameterindex^executeTime;
+    int hashcode = label.hashCode()^target.hashCode()^source.hashCode()^parameterindex^(int)executeTime;
     if (td!=null)
       hashcode^=td.hashCode();
     if(newObjInfos != null) {
@@ -169,11 +169,11 @@ public class FEdge extends Edge {
     return false;
   }
 
-  public int getExeTime() {
+  public long getExeTime() {
     return this.executeTime;
   }
 
-  public void setExeTime(int eTime) {
+  public void setExeTime(long eTime) {
     this.executeTime = eTime;
   }
 

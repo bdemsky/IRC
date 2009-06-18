@@ -101,6 +101,10 @@ struct QueueItem * getTail(struct Queue * queue) {
   return queue->tail;
 }
 
+struct QueueItem * getHead(struct Queue * queue) {
+  return queue->head;
+}
+
 struct QueueItem * getNextQueueItem(struct QueueItem * qi) {
   return qi->next;
 }
@@ -114,6 +118,9 @@ void * getItem(struct Queue * queue) {
     q->next->prev=NULL;
   }
   queue->head=q->next;
+  if(queue->tail == q) {
+	  queue->tail = NULL;
+  }
   RUNFREE(q);
   return ptr;
 }

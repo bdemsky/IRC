@@ -98,7 +98,7 @@ public class ScheduleAnalysis {
 		new java.util.Hashtable<String, TaskInfo>();
 	    this.readProfileInfo(taskinfos);
 
-	    int tint = 0;
+	    long tint = 0;
 	    Iterator it_classes =
 		state.getClassSymbolTable().getDescriptorsIterator();
 	    while(it_classes.hasNext()) {
@@ -265,7 +265,7 @@ public class ScheduleAnalysis {
 		    }
 
 		    tmpinindex = tmpinfo.indexOf(',');
-		    tinfo.m_exetime[i] = Integer.parseInt(tmpinfo.substring(0, tmpinindex));
+		    tinfo.m_exetime[i] = Long.parseLong(tmpinfo.substring(0, tmpinindex));
 		    tmpinfo = tmpinfo.substring(tmpinindex + 1);
 		    while(tmpinfo.startsWith(" ")) {
 			tmpinfo = tmpinfo.substring(1);
@@ -660,10 +660,10 @@ public class ScheduleAnalysis {
 				    FEdge tempfe = fes.elementAt(j);
 				    Vector<ScheduleEdge> ses = fe2ses.get(tempfe);
 				    ScheduleEdge tempse = ses.elementAt(0);
-				    int temptime = tempse.getListExeTime();
+				    long temptime = tempse.getListExeTime();
 				    // find out the ScheduleEdge with least exeTime
 				    for(int k = 1; k < ses.size(); k++) {
-					int ttemp = ses.elementAt(k).getListExeTime();
+					long ttemp = ses.elementAt(k).getListExeTime();
 					if(ttemp < temptime) {
 					    tempse = ses.elementAt(k);
 					    temptime = ttemp;
@@ -708,10 +708,10 @@ public class ScheduleAnalysis {
 				FEdge tempfe = fes.elementAt(j);
 				Vector<ScheduleEdge> ses = fe2ses.get(tempfe);
 				ScheduleEdge tempse = ses.elementAt(0);
-				int temptime = tempse.getListExeTime();
+				long temptime = tempse.getListExeTime();
 				// find out the ScheduleEdge with least exeTime
 				for(int k = 1; k < ses.size(); k++) {
-				    int ttemp = ses.elementAt(k).getListExeTime();
+				    long ttemp = ses.elementAt(k).getListExeTime();
 				    if(ttemp < temptime) {
 					tempse = ses.elementAt(k);
 					temptime = ttemp;
@@ -748,10 +748,10 @@ public class ScheduleAnalysis {
 		FEdge tempfe = (FEdge)it_keys.next();
 		Vector<ScheduleEdge> ses = fe2ses.get(tempfe);
 		ScheduleEdge tempse = ses.elementAt(0);
-		int temptime = tempse.getListExeTime();
+		long temptime = tempse.getListExeTime();
 		// find out the ScheduleEdge with least exeTime
 		for(int k = 1; k < ses.size(); k++) {
-		    int ttemp = ses.elementAt(k).getListExeTime();
+		    long ttemp = ses.elementAt(k).getListExeTime();
 		    if(ttemp < temptime) {
 			tempse = ses.elementAt(k);
 			temptime = ttemp;
@@ -957,8 +957,8 @@ public class ScheduleAnalysis {
 	sn2sn = null;
     }
 
-    private int calInExeTime(FlagState fs) throws Exception {
-	int exeTime = 0;
+    private long calInExeTime(FlagState fs) throws Exception {
+	long exeTime = 0;
 	ClassDescriptor cd = fs.getClassDescriptor();
 	ClassNode cNode = cd2ClassNode.get(cd);
 	exeTime = cNode.getFlagStates().elementAt(0).getExeTime() - fs.getExeTime();
@@ -1032,12 +1032,12 @@ public class ScheduleAnalysis {
 	toiterate.add(fs);
 	while(!toiterate.isEmpty()) {
 	    FlagState tfs = toiterate.poll();
-	    int ttime = tfs.getExeTime();
+	    long ttime = tfs.getExeTime();
 	    Iterator it_inedges = tfs.inedges();
 	    while(it_inedges.hasNext()) {
 		FEdge fEdge = (FEdge)it_inedges.next();
 		FlagState temp = (FlagState)fEdge.getSource();
-		int time = fEdge.getExeTime() + ttime;
+		long time = fEdge.getExeTime() + ttime;
 		if(temp.getExeTime() > time) {
 		    temp.setExeTime(time);
 		    toiterate.add(temp);
@@ -1208,14 +1208,14 @@ public class ScheduleAnalysis {
     
     static class TaskInfo {
 	public int m_numofexits;
-	public int[] m_exetime;
+	public long[] m_exetime;
 	public double[] m_probability;
 	public Vector<Hashtable<String, Integer>> m_newobjinfo;
 	public int m_byObj;
 
 	public TaskInfo(int numofexits) {
 	    this.m_numofexits = numofexits;
-	    this.m_exetime = new int[this.m_numofexits];
+	    this.m_exetime = new long[this.m_numofexits];
 	    this.m_probability = new double[this.m_numofexits];
 	    this.m_newobjinfo = new Vector<Hashtable<String, Integer>>();
 	    for(int i = 0; i < this.m_numofexits; i++) {

@@ -19,7 +19,7 @@ public class ScheduleNode extends GraphNode implements Cloneable {
   private Vector<ClassNode> classNodes;
   private Vector<ScheduleEdge> scheduleEdges;
 
-  private int executionTime;
+  private long executionTime;
   
   private int hashcid;
 
@@ -137,7 +137,7 @@ public class ScheduleNode extends GraphNode implements Cloneable {
       mergedcids = null;
   }
 
-  public int getExeTime() {
+  public long getExeTime() {
     if(this.executionTime == -1) {
       try {
 	calExeTime();
@@ -189,7 +189,7 @@ public class ScheduleNode extends GraphNode implements Cloneable {
   }
 
   public int hashCode() {
-    int hashcode = gid^uid^cid^executionTime;
+    int hashcode = gid^uid^cid^(int)executionTime;
     if(this.classNodes != null) {
       hashcode ^= classNodes.hashCode();
     }
@@ -322,12 +322,12 @@ public class ScheduleNode extends GraphNode implements Cloneable {
       toiterate.add(sfs);
       while(!toiterate.isEmpty()) {
 	FlagState tmpfs = toiterate.poll();
-	int ttime = tmpfs.getExeTime();
+	long ttime = tmpfs.getExeTime();
 	Iterator it_inedges = tmpfs.inedges();
 	while(it_inedges.hasNext()) {
 	  FEdge fEdge = (FEdge)it_inedges.next();
 	  FlagState temp = (FlagState)fEdge.getSource();
-	  int time = fEdge.getExeTime() + ttime;
+	  long time = fEdge.getExeTime() + ttime;
 	  if(temp.getExeTime() > time) {
 	    temp.setExeTime(time);
 	    toiterate.add(temp);

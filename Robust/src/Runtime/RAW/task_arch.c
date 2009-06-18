@@ -745,6 +745,176 @@ __attribute__((always_inline)) inline void profileTaskEnd() {
 	  }
   }
 }
+
+// output the profiling data
+void outputProfileData() {
+#ifdef USEIO
+  FILE * fp;
+  char fn[50];
+  int self_y, self_x;
+  char c_y, c_x;
+  int i;
+  int totaltasktime = 0;
+  int preprocessingtime = 0;
+  int objqueuecheckingtime = 0;
+  int postprocessingtime = 0;
+  //int interruptiontime = 0;
+  int other = 0;
+  int averagetasktime = 0;
+  int tasknum = 0;
+
+  for(i = 0; i < 50; i++) {
+    fn[i] = 0;
+  }
+
+  calCoords(corenum, &self_y, &self_x);
+  c_y = (char)self_y + '0';
+  c_x = (char)self_x + '0';
+  strcat(fn, "profile_");
+  strcat(fn, &c_x);
+  strcat(fn, "_");
+  strcat(fn, &c_y);
+  strcat(fn, ".rst");
+
+  if((fp = fopen(fn, "w+")) == NULL) {
+    fprintf(stderr, "fopen error\n");
+    return;
+  }
+
+  fprintf(fp, "Task Name, Start Time, End Time, Duration, Exit Index(, NewObj Name, Num)+\n");
+  // output task related info
+  for(i = 0; i < taskInfoIndex; i++) {
+    TaskInfo* tmpTInfo = taskInfoArray[i];
+    int duration = tmpTInfo->endTime - tmpTInfo->startTime;
+    fprintf(fp, "%s, %d, %d, %d, %d", tmpTInfo->taskName, tmpTInfo->startTime, tmpTInfo->endTime, duration, tmpTInfo->exitIndex);
+	// summarize new obj info
+	if(tmpTInfo->newObjs != NULL) {
+		struct RuntimeHash * nobjtbl = allocateRuntimeHash(5);
+		struct RuntimeIterator * iter = NULL;
+		while(0 == isEmpty(tmpTInfo->newObjs)) {
+			char * objtype = (char *)(getItem(tmpTInfo->newObjs));
+			if(RuntimeHashcontainskey(nobjtbl, (int)(objtype))) {
+				int num = 0;
+				RuntimeHashget(nobjtbl, (int)objtype, &num);
+				RuntimeHashremovekey(nobjtbl, (int)objtype);
+				num++;
+				RuntimeHashadd(nobjtbl, (int)objtype, num);
+			} else {
+				RuntimeHashadd(nobjtbl, (int)objtype, 1);
+			}
+			//fprintf(stderr, "new obj!\n");
+		}
+
+		// output all new obj info
+		iter = RuntimeHashcreateiterator(nobjtbl);
+		while(RunhasNext(iter)) {
+			char * objtype = (char *)Runkey(iter);
+			int num = Runnext(iter);
+			fprintf(fp, ", %s, %d", objtype, num);
+		}
+	}
+	fprintf(fp, "\n");
+    if(strcmp(tmpTInfo->taskName, "tpd checking") == 0) {
+      preprocessingtime += duration;
+    } else if(strcmp(tmpTInfo->taskName, "post task execution") == 0) {
+      postprocessingtime += duration;
+    } else if(strcmp(tmpTInfo->taskName, "objqueue checking") == 0) {
+      objqueuecheckingtime += duration;
+    } else {
+      totaltasktime += duration;
+      averagetasktime += duration;
+      tasknum++;
+    }
+  }
+
+  if(taskInfoOverflow) {
+    fprintf(stderr, "Caution: task info overflow!\n");
+  }
+
+  other = totalexetime - totaltasktime - preprocessingtime - postprocessingtime;
+  averagetasktime /= tasknum;
+
+  fprintf(fp, "\nTotal time: %d\n", totalexetime);
+  fprintf(fp, "Total task execution time: %d (%f%%)\n", totaltasktime, ((double)totaltasktime/(double)totalexetime)*100);
+  fprintf(fp, "Total objqueue checking time: %d (%f%%)\n", objqueuecheckingtime, ((double)objqueuecheckingtime/(double)totalexetime)*100);
+  fprintf(fp, "Total pre-processing time: %d (%f%%)\n", preprocessingtime, ((double)preprocessingtime/(double)totalexetime)*100);
+  fprintf(fp, "Total post-processing time: %d (%f%%)\n", postprocessingtime, ((double)postprocessingtime/(double)totalexetime)*100);
+  fprintf(fp, "Other time: %d (%f%%)\n", other, ((double)other/(double)totalexetime)*100);
+
+  fprintf(fp, "\nAverage task execution time: %d\n", averagetasktime);
+
+  fclose(fp);
+#else
+  int i = 0;
+  int j = 0;
+
+  BAMBOO_DEBUGPRINT(0xdddd);
+  // output task related info
+  for(i= 0; i < taskInfoIndex; i++) {
+    TaskInfo* tmpTInfo = taskInfoArray[i];
+    char* tmpName = tmpTInfo->taskName;
+    int nameLen = strlen(tmpName);
+    BAMBOO_DEBUGPRINT(0xddda);
+    for(j = 0; j < nameLen; j++) {
+      BAMBOO_DEBUGPRINT_REG(tmpName[j]);
+    }
+    BAMBOO_DEBUGPRINT(0xdddb);
+    BAMBOO_DEBUGPRINT_REG(tmpTInfo->startTime);
+    BAMBOO_DEBUGPRINT_REG(tmpTInfo->endTime);
+	BAMBOO_DEBUGPRINT_REG(tmpTInfo->exitIndex);
+	if(tmpTInfo->newObjs != NULL) {
+		struct RuntimeHash * nobjtbl = allocateRuntimeHash(5);
+		struct RuntimeIterator * iter = NULL;
+		while(0 == isEmpty(tmpTInfo->newObjs)) {
+			char * objtype = (char *)(getItem(tmpTInfo->newObjs));
+			if(RuntimeHashcontainskey(nobjtbl, (int)(objtype))) {
+				int num = 0;
+				RuntimeHashget(nobjtbl, (int)objtype, &num);
+				RuntimeHashremovekey(nobjtbl, (int)objtype);
+				num++;
+				RuntimeHashadd(nobjtbl, (int)objtype, num);
+			} else {
+				RuntimeHashadd(nobjtbl, (int)objtype, 1);
+			}
+		}
+
+		// ouput all new obj info
+		iter = RuntimeHashcreateiterator(nobjtbl);
+		while(RunhasNext(iter)) {
+			char * objtype = (char *)Runkey(iter);
+			int num = Runnext(iter);
+			int nameLen = strlen(objtype);
+			BAMBOO_DEBUGPRINT(0xddda);
+			for(j = 0; j < nameLen; j++) {
+				BAMBOO_DEBUGPRINT_REG(objtype[j]);
+			}
+			BAMBOO_DEBUGPRINT(0xdddb);
+			BAMBOO_DEBUGPRINT_REG(num);
+		}
+	}
+    BAMBOO_DEBUGPRINT(0xdddc);
+  }
+
+  if(taskInfoOverflow) {
+    BAMBOO_DEBUGPRINT(0xefee);
+  }
+
+  // output interrupt related info
+  /*for(i = 0; i < interruptInfoIndex; i++) {
+       InterruptInfo* tmpIInfo = interruptInfoArray[i];
+       BAMBOO_DEBUGPRINT(0xddde);
+       BAMBOO_DEBUGPRINT_REG(tmpIInfo->startTime);
+       BAMBOO_DEBUGPRINT_REG(tmpIInfo->endTime);
+       BAMBOO_DEBUGPRINT(0xdddf);
+     }
+
+     if(interruptInfoOverflow) {
+       BAMBOO_DEBUGPRINT(0xefef);
+     }*/
+
+  BAMBOO_DEBUGPRINT(0xeeee);
+#endif
+}
 #endif  // #ifdef PROFILE
 
 #endif // #ifdef TASK

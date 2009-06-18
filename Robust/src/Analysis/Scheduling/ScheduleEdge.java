@@ -28,7 +28,7 @@ public class ScheduleEdge extends Edge {
 
   private double probability;
   private int transTime;
-  private int listExeTime;
+  private long listExeTime;
 
   private FEdge fedge;
   private int newRate;
@@ -175,7 +175,7 @@ public class ScheduleEdge extends Edge {
   public int hashCode() {
     int hashcode = gid^uid^label.hashCode()^target.hashCode()^source.hashCode()^fstate.hashCode()^
                    sourceCNode.hashCode()^targetCNode.hashCode()^newRate^(int)probability^
-                   type^transTime^listExeTime;
+                   type^transTime^(int)listExeTime;
     if(targetFState != null) {
       hashcode ^= targetFState.hashCode();
     }
@@ -201,17 +201,17 @@ public class ScheduleEdge extends Edge {
     this.transTime = transTime;
   }
 
-  public int getListExeTime() {
+  public long getListExeTime() {
     if(listExeTime == -1) {
       // calculate the lisExeTime
       listExeTime = ((ScheduleNode) this.getTarget()).getExeTime() + this.getTransTime() * this.getNewRate();
       Iterator it_edges = this.getTarget().edges();
-      int temp = 0;
+      long temp = 0;
       if(it_edges.hasNext()) {
 	temp = ((ScheduleEdge)it_edges.next()).getListExeTime();
       }
       while(it_edges.hasNext()) {
-	int tetime = ((ScheduleEdge)it_edges.next()).getListExeTime();
+	long tetime = ((ScheduleEdge)it_edges.next()).getListExeTime();
 	if(temp < tetime) {
 	  temp = tetime;
 	}

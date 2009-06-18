@@ -544,6 +544,7 @@ fi #INTERRUPT version
 cp $ROBUSTROOT/Tilera/Runtime/$MAKEFILE ./Makefile
 cp $ROBUSTROOT/Tilera/Runtime/$SIMHVC ./sim.hvc
 cp $ROBUSTROOT/Tilera/Runtime/$PCIHVC ./pci.hvc
+cp $ROBUSTROOT/Tilera/Runtime/bamboo-vmlinux-pci.hvc ./bamboo-vmlinux-pci.hvc
 cp ../Runtime/multicoretask.c ./
 cp ../Runtime/multicoreruntime.c ./
 cp ../Runtime/Queue.c ./

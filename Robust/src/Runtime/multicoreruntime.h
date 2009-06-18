@@ -45,6 +45,20 @@ bool lockflag;
 // data structures for waiting objs
 struct Queue objqueue;
 
+// data structures for shared memory allocation
+bool smemflag;
+struct bamboo_shared_mem {
+	mspace msp;
+	struct bamboo_shared_mem * next;
+};
+struct bamboo_smem_list {
+	struct bamboo_shared_mem * head;
+	struct bamboo_shared_mem * tail;
+};
+struct bamboo_smem_list * bamboo_free_msps;
+mspace bamboo_cur_msp;
+int bamboo_smem_size;
+
 // data structures for profile mode
 #ifdef PROFILE
 
@@ -57,9 +71,9 @@ int totalexetime;
 
 typedef struct task_info {
   char* taskName;
-  int startTime;
-  int endTime;
-  int exitIndex;
+  unsigned long long startTime;
+  unsigned long long endTime;
+  unsigned long long exitIndex;
   struct Queue * newObjs; 
 } TaskInfo;
 
@@ -111,6 +125,7 @@ inline int receiveMsg(void) __attribute__((always_inline));
 #ifdef PROFILE
 inline void profileTaskStart(char * taskname) __attribute__((always_inline));
 inline void profileTaskEnd(void) __attribute__((always_inline));
+void outputProfileData();
 #endif  // #ifdef PROFILE
 ///////////////////////////////////////////////////////////
 

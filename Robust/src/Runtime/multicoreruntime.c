@@ -140,6 +140,13 @@ void CALL11(___System______exit____I,int ___status___, int ___status___) {
 #endif
 }
 
+//#ifdef D___Vector______removeElement_____AR_L___Object____I_I
+void CALL23(___Vector______removeElement_____AR_L___Object____I_I, int ___index___, int ___size___, struct ArrayObject * ___array___, int ___index___, int ___size___) {
+  char* offset=((char *)(&VAR(___array___)->___length___))+sizeof(unsigned int)+sizeof(void *)*___index___;
+  memmove(offset, offset+sizeof(void *),(___size___-___index___-1)*sizeof(void *));
+}
+//#endif
+
 void CALL11(___System______printI____I,int ___status___, int ___status___) {
 #ifdef MULTICORE
   BAMBOO_DEBUGPRINT(0x1111);
