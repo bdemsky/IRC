@@ -621,6 +621,8 @@ fi
 if $MLP
 then
 FILES="$FILES $ROBUSTROOT/Runtime/mlp_runtime.c"
+FILES="$FILES $ROBUSTROOT/Runtime/psemaphore.c"
+FILES="$FILES $ROBUSTROOT/Runtime/workschedule.c"
 fi
 
 if $RECOVERFLAG

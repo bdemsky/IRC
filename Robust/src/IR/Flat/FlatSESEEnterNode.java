@@ -1,5 +1,7 @@
 package IR.Flat;
 import Analysis.MLP.VariableSourceToken;
+import Analysis.MLP.SESEandAgePair;
+import IR.TypeDescriptor;
 import IR.Tree.SESENode;
 import java.util.*;
 
@@ -16,14 +18,17 @@ public class FlatSESEEnterNode extends FlatNode {
   protected Set<FlatSESEEnterNode> children;
   protected Set<TempDescriptor> inVars;
   protected Set<TempDescriptor> outVars;
+  protected Set<SESEandAgePair> needStaticNameInCode;
   protected FlatMethod enclosing;
 
   public FlatSESEEnterNode( SESENode sn ) {
-    this.id  = identifier++;
-    treeNode = sn;
-    children = new HashSet<FlatSESEEnterNode>();
-    inVars   = new HashSet<TempDescriptor>();
-    outVars  = new HashSet<TempDescriptor>();
+    this.id              = identifier++;
+    treeNode             = sn;
+    parent               = null;
+    children             = new HashSet<FlatSESEEnterNode>();
+    inVars               = new HashSet<TempDescriptor>();
+    outVars              = new HashSet<TempDescriptor>();
+    needStaticNameInCode = new HashSet<SESEandAgePair>();
   }
 
   public void rewriteUse() {
@@ -91,6 +96,25 @@ public class FlatSESEEnterNode extends FlatNode {
     return vecinVars.size();
   }
 
+  public String namespaceStructNameString() {
+    return "struct SESE_"+getPrettyIdentifier()+"_namespace";
+  }
+
+  public String namespaceStructDeclarationString() {
+    String s = "struct SESE_"+getPrettyIdentifier()+"_namespace {\n";
+    for( int i = 0; i < numParameters(); ++i ) {
+      TempDescriptor td   = getParameter( i );
+      TypeDescriptor type = td.getType();
+      s += "  "+type.toString()+" "+td+";\n";
+    }
+    s += "};\n";    
+    return s;
+  }
+
+  public String namespaceStructAccessString( TempDescriptor td ) {
+    return "SESE_"+getPrettyIdentifier()+"_namespace."+td;
+  }
+
   public Set<FlatNode> getNodeSet() {
     HashSet<FlatNode> tovisit=new HashSet<FlatNode>();
     HashSet<FlatNode> visited=new HashSet<FlatNode>();
@@ -113,6 +137,14 @@ public class FlatSESEEnterNode extends FlatNode {
 
   public Set<TempDescriptor> getOutVarSet() {
     return outVars;
+  }
+
+  public void addNeededStaticName( SESEandAgePair p ) {
+    needStaticNameInCode.add( p );
+  }
+
+  public Set<SESEandAgePair> getNeededStaticNames() {
+    return needStaticNameInCode;
   }
 
   public void setEnclosingFlatMeth( FlatMethod fm ) {

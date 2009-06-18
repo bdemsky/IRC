@@ -28,6 +28,7 @@ import Analysis.Locality.TypeAnalysis;
 import Analysis.MLP.MLPAnalysis;
 import Analysis.MLP.VariableSourceToken;
 import Analysis.MLP.CodePlan;
+import Analysis.MLP.SESEandAgePair;
 
 public class BuildCode {
   State state;
@@ -1547,12 +1548,13 @@ public class BuildCode {
                                             PrintWriter outmethod
                                             ) {
 
-    outmethodheader.println("void* invokeSESEmethod( void* vargs );");
-    outmethod.println(      "void* invokeSESEmethod( void* vargs ) {");
+    outmethodheader.println("void invokeSESEmethod( void* vargs );");
+    outmethod.println(      "void invokeSESEmethod( void* vargs ) {");
     outmethod.println(      "  int status;");
     outmethod.println(      "  char errmsg[128];");
     outmethod.println(      "  invokeSESEargs* args = (invokeSESEargs*) vargs;");
 
+    /*
     // wait on a condition variable that dispatcher will signal
     // then this SESE instance's dependencies are resolved
     outmethod.println(      "  status = pthread_mutex_lock( args->invokee->startCondVarLock );");
@@ -1561,6 +1563,7 @@ public class BuildCode {
     outmethod.println(      "    status = pthread_cond_wait( args->invokee->startCondVar, args->invokee->startCondVarLock );");
     outmethod.println(      "    "+mlperrstr);
     outmethod.println(      "  }");
+    */
 
     // generate a case for each SESE class that can be invoked
     outmethod.println(      "  switch( args->classID ) {");
@@ -1600,10 +1603,7 @@ public class BuildCode {
 
     // then invoke the sese's method
     output.print("      "+cn.getSafeSymbol()+bogusmd.getSafeSymbol()+"_"+bogusmd.getSafeMethodDescriptor());
-    output.print("(");
-
-    // why doesn't this work?
-    //output.print("("+cn.getSafeSymbol()+bogusmd.getSafeSymbol()+"_"+bogusmd.getSafeMethodDescriptor()+paramsprefix+")");
+    output.print("( args->invokee, ");
 
     // first argument is parameter structure
     output.print("(struct "+cn.getSafeSymbol()+bogusmd.getSafeSymbol()+"__params*)");
@@ -1614,60 +1614,11 @@ public class BuildCode {
       TempDescriptor td=objectparams.getPrimitive(i);
       TypeDescriptor type=td.getType();
       assert type.isPrimitive();
-      output.print(", args->invokee->vars["+i+"].sesetype_"+type.toString());
+      output.print( ", (("+fsen.namespaceStructNameString()+
+		       "*)args->invokee->namespace)->"+td );
     }
     
     output.println(");");
-  }
-
-  private void generateFlatMethodSESE(FlatMethod fm, 
-                                      ClassDescriptor cn, 
-                                      FlatSESEEnterNode seseEnter, 
-                                      FlatSESEExitNode  seseExit, 
-                                      PrintWriter output
-                                      ) {
-
-    MethodDescriptor md=fm.getMethod();
-    ParamsObject objectparams=(ParamsObject)paramstable.get(md);
-    generateHeader(fm, null, md, output);
-    TempObject objecttemp=(TempObject) tempstable.get(md);
-
-
-    if (GENERATEPRECISEGC) {
-      output.print("   struct "+cn.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_locals "+localsprefix+"={");
-      output.print(objecttemp.numPointers()+",");
-      output.print(paramsprefix);
-      for(int j=0; j<objecttemp.numPointers(); j++)
-	output.print(", NULL");
-      output.println("};");
-    }
-
-    for(int i=0; i<objecttemp.numPrimitives(); i++) {
-      TempDescriptor td=objecttemp.getPrimitive(i);
-      TypeDescriptor type=td.getType();
-      if (type.isNull())
-	output.println("   void * "+td.getSafeSymbol()+";");
-      else if (type.isClass()||type.isArray())
-	output.println("   struct "+type.getSafeSymbol()+" * "+td.getSafeSymbol()+";");
-      else
-	output.println("   "+type.getSafeSymbol()+" "+td.getSafeSymbol()+";");
-    }
-
-    
-    // Check to see if we need to do a GC if this is a
-    // multi-threaded program...    
-    if (GENERATEPRECISEGC) {
-      //Don't bother if we aren't in recursive methods...The loops case will catch it
-      if (callgraph.getAllMethods(md).contains(md)) {
-        output.println("if (needtocollect) checkcollect(&"+localsprefix+");");
-      }
-    }    
-
-
-    generateCode(seseEnter.getNext(0), fm, null, seseExit, output);
-
-    
-    output.println("}\n\n");
   }
 
   protected void generateMethodSESE(FlatSESEEnterNode fsen,
@@ -1725,9 +1676,11 @@ public class BuildCode {
       }
     }
     
+    // declare namespace struct
+    outputStructs.println(fsen.namespaceStructDeclarationString());
     
     //Generate code for parameters structure
-    generateMethodParam(cn, bogusmd, null, outputStructs); 
+    generateMethodParam(cn, bogusmd, null, outputStructs);
 
     //Generate code for locals structure
     outputStructs.println("struct "+cn.getSafeSymbol()+bogusmd.getSafeSymbol()+"_"+bogusmd.getSafeMethodDescriptor()+"_locals {");
@@ -1746,6 +1699,7 @@ public class BuildCode {
     // write method declaration to header file
     outputMethHead.print("void ");
     outputMethHead.print(cn.getSafeSymbol()+bogusmd.getSafeSymbol()+"_"+bogusmd.getSafeMethodDescriptor()+"(");
+    outputMethHead.print("SESErecord* currentSESE, ");
     boolean printcomma=false;
     if (GENERATEPRECISEGC) {
       outputMethHead.print("struct "+cn.getSafeSymbol()+
@@ -1770,6 +1724,63 @@ public class BuildCode {
     generateFlatMethodSESE(bogusfm, cn, fsen, fsen.getFlatExit(), outputMethods);
   }
 
+  private void generateFlatMethodSESE(FlatMethod fm, 
+                                      ClassDescriptor cn, 
+                                      FlatSESEEnterNode seseEnter, 
+                                      FlatSESEExitNode  seseExit, 
+                                      PrintWriter output
+                                      ) {
+
+    MethodDescriptor md=fm.getMethod();
+    ParamsObject objectparams=(ParamsObject)paramstable.get(md);
+    generateHeader(fm, null, md, output, true);
+    TempObject objecttemp=(TempObject) tempstable.get(md);
+
+
+    if (GENERATEPRECISEGC) {
+      output.print("   struct "+cn.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_locals "+localsprefix+"={");
+      output.print(objecttemp.numPointers()+",");
+      output.print(paramsprefix);
+      for(int j=0; j<objecttemp.numPointers(); j++)
+	output.print(", NULL");
+      output.println("};");
+    }
+
+    for(int i=0; i<objecttemp.numPrimitives(); i++) {
+      TempDescriptor td=objecttemp.getPrimitive(i);
+      TypeDescriptor type=td.getType();
+      if (type.isNull())
+	output.println("   void * "+td.getSafeSymbol()+";");
+      else if (type.isClass()||type.isArray())
+	output.println("   struct "+type.getSafeSymbol()+" * "+td.getSafeSymbol()+";");
+      else
+	output.println("   "+type.getSafeSymbol()+" "+td.getSafeSymbol()+";");
+    }
+
+
+    // declare variables for naming SESE's
+    Iterator<SESEandAgePair> pItr = seseEnter.getNeededStaticNames().iterator();
+    while( pItr.hasNext() ) {
+      SESEandAgePair p = pItr.next();
+      output.println("   SESErecord* "+p+";");
+    }
+    
+
+    // Check to see if we need to do a GC if this is a
+    // multi-threaded program...    
+    if (GENERATEPRECISEGC) {
+      //Don't bother if we aren't in recursive methods...The loops case will catch it
+      if (callgraph.getAllMethods(md).contains(md)) {
+        output.println("if (needtocollect) checkcollect(&"+localsprefix+");");
+      }
+    }    
+
+
+    generateCode(seseEnter.getNext(0), fm, null, seseExit, output);
+
+    
+    output.println("}\n\n");
+  }
 
   protected void generateCode(FlatNode first,
                               FlatMethod fm,
@@ -1782,12 +1793,12 @@ public class BuildCode {
     // of that method, whether it be a user-defined method
     // or a method representing the body of an SESE
     // TODO: only do this if we know the method actually
-    // contains an SESE issue, not currently an annotation
+    // contains an SESE issue, not currently an annotation    
     if( state.MLP ) {
       output.println("   SESErecord*     tempSESE;");
-      output.println("   SESErecord*     tempParentSESE;");    
       output.println("   invokeSESEargs* tempSESEargs;");
-    }
+    }    
+
 
     /* Assign labels to FlatNode's if necessary.*/
     Hashtable<FlatNode, Integer> nodetolabel=assignLabels(first, stop);
@@ -2341,27 +2352,29 @@ public class BuildCode {
     output.println("\n   /* SESE "+fsen.getPrettyIdentifier()+" issue */");
     output.println("   tempSESE = mlpCreateSESErecord( "+
                    fsen.getIdentifier()+", "+
-                   "0, "+
-                   "mlpGetCurrent(), "+
-                   fsen.numParameters()+", "+
+                   "malloc( sizeof( "+fsen.namespaceStructNameString()+") ), "+
                    "NULL );");
 
     for( int i = 0; i < fsen.numParameters(); ++i ) {
-      TempDescriptor td   = fsen.getParameter( i );
-      TypeDescriptor type = td.getType();
-      output.println("   tempSESE->vars["+i+"].sesetype_"+type.toString()+" = "+td+";");
+      TempDescriptor td = fsen.getParameter( i );
+      output.println("   (("+fsen.namespaceStructNameString()+
+                         "*)tempSESE->namespace)->"+td+" = "+td+";");
     }
 
     output.println("   mlpIssue( tempSESE );");
-    output.println("   tempSESE       = mlpSchedule();");
-    output.println("   tempParentSESE = mlpGetCurrent();");
+    output.println("   tempSESE = mlpSchedule();");
 
     // do a pthread_create wit invokeSESE as the argument
     // and pack all args into a single void*
-    output.println("   tempSESEargs = (invokeSESEargs*) malloc( sizeof( invokeSESEargs ) );");
+    output.println("   tempSESEargs = malloc( sizeof( invokeSESEargs ) );");
     output.println("   tempSESEargs->classID = "+fsen.getIdentifier()+";");
-    output.println("   tempSESEargs->invokee = tempSESE;");
-    output.println("   tempSESEargs->parent  = tempParentSESE;");
+    output.println("   tempSESEargs->invokee = mlpSchedule();");
+
+    if( fsen.getParent() == null ) {
+      output.println("   tempSESEargs->parent  = NULL;");
+    } else {
+      output.println("   tempSESEargs->parent  = currentSESE;");
+    }
 
     output.println("   invokeSESEmethod( (void*) tempSESEargs );");   
     output.println("\n");
@@ -3007,8 +3020,11 @@ public class BuildCode {
 
   /** This method generates header information for the method or
    * task referenced by the Descriptor des. */
-
   private void generateHeader(FlatMethod fm, LocalityBinding lb, Descriptor des, PrintWriter output) {
+    generateHeader(fm, lb, des, output, false);
+  }
+
+  private void generateHeader(FlatMethod fm, LocalityBinding lb, Descriptor des, PrintWriter output, boolean addSESErecord) {
     /* Print header */
     ParamsObject objectparams=(ParamsObject)paramstable.get(lb!=null ? lb : des);
     MethodDescriptor md=null;
@@ -3035,6 +3051,10 @@ public class BuildCode {
 	output.print(cn.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"(");
     } else
       output.print(task.getSafeSymbol()+"(");
+
+    if (addSESErecord) {
+      output.print("SESErecord* currentSESE, ");
+    }
 
     boolean printcomma=false;
     if (GENERATEPRECISEGC) {

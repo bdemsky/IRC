@@ -432,6 +432,27 @@ public class VarSrcTokTable {
   }
 
 
+  // get the set of variables that have exactly one source
+  // from the static perspective
+  public Set<VariableSourceToken> getStaticSet() {
+    
+    Set<VariableSourceToken> out = new HashSet<VariableSourceToken>();
+    
+    Iterator itr = var2vst.entrySet().iterator();
+    while( itr.hasNext() ) {
+      Map.Entry                    me  = (Map.Entry)                    itr.next();
+      TempDescriptor               var = (TempDescriptor)               me.getKey();
+      HashSet<VariableSourceToken> s1  = (HashSet<VariableSourceToken>) me.getValue();      
+    
+      if( s1.size() == 1 ) {
+	out.addAll( s1 );
+      }
+    }
+
+    return out;
+  }
+
+
   // given a table from a subsequent program point, decide
   // which variables are going from a static source to a
   // dynamic source and return them

@@ -855,6 +855,17 @@ public class MLPAnalysis {
     } // end switch
 
 
+    // identify sese-age pairs that are statically useful
+    // and should have an associated SESE variable in code
+    Set<VariableSourceToken> staticSet = vstTable.getStaticSet();
+    Iterator<VariableSourceToken> vstItr = staticSet.iterator();
+    while( vstItr.hasNext() ) {
+      VariableSourceToken vst = vstItr.next();
+      currentSESE.addNeededStaticName( 
+        new SESEandAgePair( vst.getSESE(), vst.getAge() ) 
+				     );
+    }
+
     // if any variable at this node has a static source (exactly one sese)
     // but goes to a dynamic source at a next node, write its dynamic addr      
     Set<VariableSourceToken> static2dynamicSet = new HashSet<VariableSourceToken>();

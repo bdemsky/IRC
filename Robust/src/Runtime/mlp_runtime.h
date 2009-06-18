@@ -4,6 +4,7 @@
 
 #include <pthread.h>
 #include "Queue.h"
+#include "psemaphore.h"
 
 
 // forward delcarations
@@ -34,17 +35,8 @@ typedef struct SESErecord_t {
   // are instances of one particular static code block
   int classID;
 
-  // pointers to SESEs directly above or below
-  // in the heirarchy
-  //struct SESErecord_t* parent;
-  //struct Queue*        childrenList;
-  // IMPLEMENT THIS LIKE STALLS--EVERY PARENTS EXIT MUST
-  // "STALL" on COMPLETETION OF ALL ISSUED CHILDREN, SO
-  // ALWAYS GIVE A CHILD A SEMAPHORE THAT IS ON YOUR LIST
-  // OF THINGS TO BLOCK ON AT EXIT
-
   // for state of vars after issue
-  SESEvar* vars;
+  void* namespace;
   
   // when this sese is ready to be invoked,
   // allocate and fill in this structure, and
@@ -52,17 +44,24 @@ typedef struct SESErecord_t {
   // above var array at the call site
   void* paramStruct;
 
+  /*
   // for signaling transition from issue 
   // to execute
   pthread_cond_t*  startCondVar;
   pthread_mutex_t* startCondVarLock;
   int startedExecuting;
+  */
+
+  // this will not be generally sufficient, but
+  // use a semaphore to let a child resume this
+  // parent when stall dependency is satisfied
+  psemaphore stallSem;
 
   // use a list of SESErecords and a lock to let
   // consumers tell this SESE who wants values
   // forwarded to it
-  pthread_mutex_t* forwardListLock;
-  struct Queue*    forwardList;
+  pthread_mutex_t forwardListLock;
+  struct Queue*   forwardList;
   int doneExecuting;
 
 } SESErecord;
@@ -77,11 +76,9 @@ typedef struct invokeSESEargs_t {
 
 // simple mechanical allocation and deallocation
 // of SESE records
-SESErecord* mlpCreateSESErecord( int         classID,
-                                 int         instanceID,
-                                 SESErecord* parent,
-                                 int         numVars,
-                                 void*       paramStruct
+SESErecord* mlpCreateSESErecord( int   classID,
+				 void* namespace,
+                                 void* paramStruct
                                  );
 
 void mlpDestroySESErecord( SESErecord* sese );
@@ -90,7 +87,7 @@ void mlpDestroySESErecord( SESErecord* sese );
 // main library functions
 void mlpInit();
 
-SESErecord* mlpGetCurrent();
+//SESErecord* mlpGetCurrent();
 SESErecord* mlpSchedule();
 
 void mlpIssue     ( SESErecord* sese );
