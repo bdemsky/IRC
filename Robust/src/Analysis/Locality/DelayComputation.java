@@ -17,12 +17,15 @@ public class DelayComputation {
   GlobalFieldType gft;
   DiscoverConflicts dcopts;
 
-  public DelayComputation(LocalityAnalysis locality, State state, TypeAnalysis typeanalysis, GlobalFieldType gft, DiscoverConflicts dcopts) {
+  public DelayComputation(LocalityAnalysis locality, State state, TypeAnalysis typeanalysis, GlobalFieldType gft) {
     this.locality=locality;
     this.state=state;
     this.typeanalysis=typeanalysis;
     this.gft=gft;
-    this.dcopts=dcopts;
+  }
+
+  public DiscoverConflicts getConflicts() {
+    return dcopts;
   }
 
   public void doAnalysis() {
@@ -282,6 +285,8 @@ public class DelayComputation {
     //I. You read a not ready temp
     //II. You read a field or element and both (A) you are not in the
     //cannot delay set and (B) you do a transactional access to object
+
+    dcopts=new DiscoverConflicts(locality, state, typeanalysis);
 
     MethodDescriptor md=lb.getMethod();
     FlatMethod fm=state.getMethodFlat(md);

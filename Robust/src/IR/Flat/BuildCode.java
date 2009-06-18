@@ -107,12 +107,14 @@ public class BuildCode {
       TypeAnalysis typeanalysis=new TypeAnalysis(locality, st, typeutil,callgraph);
       this.dc=new DiscoverConflicts(locality, st, typeanalysis);
       dc.doAnalysis();
-      if (state.SINGLETM&&state.DELAYCOMP) {
-	//TypeAnalysis typeanalysis=new TypeAnalysis(locality, st, typeutil,callgraph);
-	GlobalFieldType gft=new GlobalFieldType(callgraph, st, typeutil.getMain());
-	delaycomp=new DelayComputation(locality, st, typeanalysis, gft, dc);
-	delaycomp.doAnalysis();
-      }
+    }
+    if (state.SINGLETM&&state.DELAYCOMP) {
+      //TypeAnalysis typeanalysis=new TypeAnalysis(locality, st, typeutil,callgraph);
+      TypeAnalysis typeanalysis=new TypeAnalysis(locality, st, typeutil,callgraph);
+      GlobalFieldType gft=new GlobalFieldType(callgraph, st, typeutil.getMain());
+      delaycomp=new DelayComputation(locality, st, typeanalysis, gft);
+      delaycomp.doAnalysis();
+      dc=delaycomp.getConflicts();
     }
 
     if(state.MLP) {
