@@ -24,6 +24,8 @@ public class DiscoverConflicts {
   Hashtable<LocalityBinding, Set<FlatNode>> rightsrcmap;
   TypeAnalysis typeanalysis;
   HashSet<FlatNode>cannotdelay;
+  Hashtable<LocalityBinding, Hashtable<FlatNode, Hashtable<TempDescriptor, Set<TempFlatPair>>>> lbtofnmap;
+
 
   public DiscoverConflicts(LocalityAnalysis locality, State state, TypeAnalysis typeanalysis) {
     this.locality=locality;
@@ -36,6 +38,7 @@ public class DiscoverConflicts {
     srcmap=new Hashtable<LocalityBinding, Set<FlatNode>>();
     leftsrcmap=new Hashtable<LocalityBinding, Set<FlatNode>>();
     rightsrcmap=new Hashtable<LocalityBinding, Set<FlatNode>>();
+    lbtofnmap=new Hashtable<LocalityBinding, Hashtable<FlatNode, Hashtable<TempDescriptor, Set<TempFlatPair>>>>();
   }
 
   public DiscoverConflicts(LocalityAnalysis locality, State state, TypeAnalysis typeanalysis, HashSet<FlatNode> cannotdelay) {
@@ -50,6 +53,15 @@ public class DiscoverConflicts {
     srcmap=new Hashtable<LocalityBinding, Set<FlatNode>>();
     leftsrcmap=new Hashtable<LocalityBinding, Set<FlatNode>>();
     rightsrcmap=new Hashtable<LocalityBinding, Set<FlatNode>>();
+    lbtofnmap=new Hashtable<LocalityBinding, Hashtable<FlatNode, Hashtable<TempDescriptor, Set<TempFlatPair>>>>();
+  }
+
+  public Set<FieldDescriptor> getFields() {
+    return fields;
+  }
+
+  public Set<TypeDescriptor> getArrays() {
+    return arrays;
   }
   
   public void doAnalysis() {
@@ -129,10 +141,15 @@ public class DiscoverConflicts {
     return treadmap.get(lb).contains(fn);
   }
 
+  public Hashtable<FlatNode, Hashtable<TempDescriptor, Set<TempFlatPair>>> getMap(LocalityBinding lb) {
+    return lbtofnmap.get(lb);
+  }
+
   private void analyzeLocality(LocalityBinding lb) {
     MethodDescriptor md=lb.getMethod();
     FlatMethod fm=state.getMethodFlat(md);
     Hashtable<FlatNode, Hashtable<TempDescriptor, Set<TempFlatPair>>> fnmap=computeTempSets(lb);
+    lbtofnmap.put(lb,fnmap);
     HashSet<TempFlatPair> tfset=computeTranslationSet(lb, fm, fnmap);
     HashSet<FlatNode> srctrans=new HashSet<FlatNode>();
     HashSet<FlatNode> leftsrctrans=new HashSet<FlatNode>();

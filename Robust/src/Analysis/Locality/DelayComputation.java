@@ -261,14 +261,26 @@ public class DelayComputation {
       if (isatomic)
 	atomicset.add(fn);
     }
-    atomicset.removeAll(notreadyset);
-    atomicset.removeAll(cannotdelay);
-    System.out.println("-----------------------------------------------------");
-    System.out.println(md);
-    System.out.println("Cannot delay set:"+cannotdelay);
-    System.out.println("Not ready set:"+notreadyset);
-    System.out.println("Other:"+atomicset);
-    
+    if (!atomicset.isEmpty()) {
+      atomicset.removeAll(notreadyset);
+      atomicset.removeAll(cannotdelay);
+      System.out.println("-----------------------------------------------------");
+      System.out.println(md);
+      Hashtable map=new Hashtable();
+
+      for(Iterator it=atomicset.iterator();it.hasNext();) {
+	map.put(it.next(),"A");
+      }
+
+      for(Iterator it=notreadyset.iterator();it.hasNext();) {
+	map.put(it.next(),"2");
+      }
+
+      for(Iterator it=cannotdelay.iterator();it.hasNext();) {
+	map.put(it.next(),"1");
+      }
+      System.out.println(fm.printMethod(map));
+    }
 
     //We now have:
     //(1) Cannot delay set -- stuff that must be done before commit
@@ -283,11 +295,13 @@ public class DelayComputation {
   public HashSet<FlatNode> computeNotReadySet(LocalityBinding lb, HashSet<FlatNode> cannotdelay) {
     //You are in not ready set if:
     //I. You read a not ready temp
-    //II. You read a field or element and both (A) you are not in the
-    //cannot delay set and (B) you do a transactional access to object
+    //II. You access a field or element and
+    //(A). You are not in the cannot delay set
+    //(B). You read a field/element in the transactional set
+    //(C). The source didn't have a transactional read on it
 
     dcopts=new DiscoverConflicts(locality, state, typeanalysis);
-
+    dcopts.doAnalysis();
     MethodDescriptor md=lb.getMethod();
     FlatMethod fm=state.getMethodFlat(md);
     Hashtable<FlatNode, Integer> atomictable=locality.getAtomic(lb);
@@ -325,10 +339,89 @@ public class DelayComputation {
 	}
       }
 
-      if (!notready&&!cannotdelay.contains(fn)&&
-	  (fn.kind()==FKind.FlatFieldNode||fn.kind()==FKind.FlatElementNode)&&
-	  dcopts.getNeedTrans(lb, fn)) {
-	notready=true;
+      if (!notready&&!cannotdelay.contains(fn)) {
+	switch(fn.kind()) {
+	case FKind.FlatFieldNode: {
+	  FlatFieldNode ffn=(FlatFieldNode)fn;
+	  if (!dcopts.getFields().contains(ffn.getField())) {
+	    break;
+	  }
+	  TempDescriptor tmp=ffn.getSrc();
+	  Set<TempFlatPair> tfpset=dcopts.getMap(lb).get(fn).get(tmp);
+	  if (tfpset!=null) {
+	    for(Iterator<TempFlatPair> tfpit=tfpset.iterator();tfpit.hasNext();) {
+	      TempFlatPair tfp=tfpit.next();
+	      if (!dcopts.getNeedSrcTrans(lb, tfp.f)) {
+		//if a source didn't need a translation and we are
+		//accessing it, it did...so therefore we are note
+		//ready
+		notready=true;
+		break;
+	      }
+	    }
+	  }
+	  break;
+	}
+	case FKind.FlatSetFieldNode: {
+	  FlatSetFieldNode fsfn=(FlatSetFieldNode)fn;
+	  TempDescriptor tmp=fsfn.getDst();
+	  Hashtable<TempDescriptor, Set<TempFlatPair>> tmpmap=dcopts.getMap(lb).get(fn);
+	  Set<TempFlatPair> tfpset=tmpmap!=null?tmpmap.get(tmp):null;
+
+	  if (tfpset!=null) {
+	    for(Iterator<TempFlatPair> tfpit=tfpset.iterator();tfpit.hasNext();) {
+	      TempFlatPair tfp=tfpit.next();
+	      if (!dcopts.getNeedSrcTrans(lb, tfp.f)) {
+		//if a source didn't need a translation and we are
+		//accessing it, it did...so therefore we are note
+		//ready
+		notready=true;
+		break;
+	      }
+	    }
+	  }
+	  break;
+	}
+	case FKind.FlatElementNode: {
+	  FlatElementNode fen=(FlatElementNode)fn;
+	  if (!dcopts.getArrays().contains(fen.getSrc().getType())) {
+	    break;
+	  }
+	  TempDescriptor tmp=fen.getSrc();
+	  Set<TempFlatPair> tfpset=dcopts.getMap(lb).get(fn).get(tmp);
+	  if (tfpset!=null) {
+	    for(Iterator<TempFlatPair> tfpit=tfpset.iterator();tfpit.hasNext();) {
+	      TempFlatPair tfp=tfpit.next();
+	      if (!dcopts.getNeedSrcTrans(lb, tfp.f)) {
+		//if a source didn't need a translation and we are
+		//accessing it, it did...so therefore we are note
+		//ready
+		notready=true;
+		break;
+	      }
+	    }
+	  }
+	  break;
+	}
+	case FKind.FlatSetElementNode: {
+	  FlatSetElementNode fsen=(FlatSetElementNode)fn;
+	  TempDescriptor tmp=fsen.getDst();
+	  Set<TempFlatPair> tfpset=dcopts.getMap(lb).get(fn).get(tmp);
+	  if (tfpset!=null) {
+	    for(Iterator<TempFlatPair> tfpit=tfpset.iterator();tfpit.hasNext();) {
+	      TempFlatPair tfp=tfpit.next();
+	      if (!dcopts.getNeedSrcTrans(lb, tfp.f)) {
+		//if a source didn't need a translation and we are
+		//accessing it, it did...so therefore we are note
+		//ready
+		notready=true;
+		break;
+	      }
+	    }
+	  }
+	  break;
+	}
+	}
       }
 
       //Fix up things based on our status
