@@ -215,11 +215,9 @@ public class BitMap {
     bitmap_findClear (int startIndex)
     {
       int tmp_numBit = numBit;
-      int[] tmp_bits = bits;
-      //uint_t* bits = bitmapPtr.bits;
 
       for (int i = Math.imax(startIndex, 0); i < tmp_numBit; i++) {
-        int val = tmp_bits[i/NUM_BIT_PER_WORD] & (1 << (i % NUM_BIT_PER_WORD)); 
+        int val = bits[i/NUM_BIT_PER_WORD] & (1 << (i % NUM_BIT_PER_WORD)); 
         if(val == 0) {
           return i;
         }

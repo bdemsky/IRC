@@ -120,6 +120,7 @@ public class Vector_t {
     vector_sort ()
     {
       //qsort.sort(elements, 0, (elements.length - 1));
+      qsort.sort(elements);
       //qsort(elements, size, 4, compare);
     }
 

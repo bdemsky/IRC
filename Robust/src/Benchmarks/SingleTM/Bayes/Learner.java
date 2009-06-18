@@ -177,7 +177,6 @@ public class Learner {
     {
       Learner learnerPtr = new Learner();
 
-      //learnerPtr = (learner_t*)malloc(sizeof(learner_t));
       if (learnerPtr != null) {
         learnerPtr.adtreePtr = adtreePtr;
         learnerPtr.netPtr = Net.net_alloc(dataPtr.numVar);
@@ -1533,6 +1532,7 @@ public class Learner {
 
       int numTotalParent = 0;
       float logLikelihood = 0.0f;
+      //System.out.println("DEBUG: before logLikelihood= " + logLikelihood);
 
       for (int v = 0; v < numVar; v++) {
 
@@ -1554,6 +1554,7 @@ public class Learner {
         logLikelihood += localLogLikelihood;
       }
 
+      //System.out.println("DEBUG: after logLikelihood= " + logLikelihood);
       queryVectorPtr.vector_free();
       parentQueryVectorPtr.vector_free();
       queries = null;

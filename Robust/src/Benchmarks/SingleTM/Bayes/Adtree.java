@@ -221,7 +221,6 @@ public class Adtree {
 
       int numVar = dataPtr.numVar;
       for (int v = (index + 1); v < numVar; v++) {
-        //System.out.println("DEBUG: v= " +v+ " numVar= " + numVar+ " calling makeVary");
         AdtreeVary varyPtr =
           makeVary(parentIndex, v, start, numRecord, dataPtr);
         boolean status;
@@ -231,7 +230,6 @@ public class Adtree {
         }
       }
 
-      //System.out.println("DEBUG: End of makeNode");
       return nodePtr;
     }
 
