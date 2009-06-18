@@ -11,10 +11,16 @@ import java.io.*;
 public class CodePlan {
 
   private Set<VariableSourceToken> writeToDynamicSrc;
+
+  private Hashtable< SESEandAgePair, Set<TempDescriptor> > stall2copySet;
+
   
   public CodePlan() {
     writeToDynamicSrc = null;
+
+    stall2copySet = new Hashtable< SESEandAgePair, Set<TempDescriptor> >();
   }
+
 
   public void setWriteToDynamicSrc( 
 		Set<VariableSourceToken> writeToDynamicSrc 
@@ -25,6 +31,23 @@ public class CodePlan {
   public Set<VariableSourceToken> getWriteToDynamicSrc() {
     return writeToDynamicSrc;
   }
+
+
+  public void addStall2CopySet( SESEandAgePair      stallPair,
+				Set<TempDescriptor> copySet ) {
+
+    if( stall2copySet.containsKey( stallPair ) ) {
+      Set<TempDescriptor> priorCopySet = stall2copySet.get( stallPair );
+      priorCopySet.addAll( copySet );
+    } else {
+      stall2copySet.put( stallPair, copySet );
+    }
+  }
+
+  public Hashtable< SESEandAgePair, Set<TempDescriptor> > getStall2copySet() {
+    return stall2copySet;
+  }
+
 
   public boolean equals( Object o ) {
     if( o == null ) {
@@ -43,8 +66,10 @@ public class CodePlan {
     } else {
       dynamicSetEq = (writeToDynamicSrc.equals( cp.writeToDynamicSrc ));
     }
+
+    boolean copySetsEq = (stall2copySet.equals( cp.stall2copySet ));
         
-    return dynamicSetEq;
+    return dynamicSetEq && copySetsEq;
   }
 
   public int hashCode() {
@@ -53,7 +78,9 @@ public class CodePlan {
       dynamicSetHC = writeToDynamicSrc.hashCode();
     }
 
-    return dynamicSetHC;
+    int copySetsHC = stall2copySet.hashCode();
+
+    return dynamicSetHC ^ 3*copySetsHC;
   }
 
   public String toString() {
@@ -68,6 +95,21 @@ public class CodePlan {
 	s += ", "+vst;
       }
 
+      s += "]";
+    }
+
+    if( !stall2copySet.entrySet().isEmpty() ) {
+      s += "[STALLS:";
+    }
+    Iterator cpsItr = stall2copySet.entrySet().iterator();
+    while( cpsItr.hasNext() ) {
+      Map.Entry           me        = (Map.Entry)           cpsItr.next();
+      SESEandAgePair      stallPair = (SESEandAgePair)      me.getKey();
+      Set<TempDescriptor> copySet   = (Set<TempDescriptor>) me.getValue();
+
+      s += "("+stallPair+"->"+copySet+")";
+    }
+    if( !stall2copySet.entrySet().isEmpty() ) {
       s += "]";
     }
 

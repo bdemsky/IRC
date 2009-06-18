@@ -140,9 +140,9 @@ public class MLPAnalysis {
       System.out.println( "" );
       //System.out.println( "\nSESE Hierarchy\n--------------\n" ); printSESEHierarchy();
       //System.out.println( "\nSESE Liveness\n-------------\n" ); printSESELiveness();
-      //System.out.println( "\nLiveness Root View\n------------------\n"+fmMain.printMethod( livenessRootView ) );
-      //System.out.println( "\nVariable Results\n----------------\n"+fmMain.printMethod( variableResults ) );
-      //System.out.println( "\nNot Available Results\n---------------------\n"+fmMain.printMethod( notAvailableResults ) );
+      System.out.println( "\nLiveness Root View\n------------------\n"+fmMain.printMethod( livenessRootView ) );
+      System.out.println( "\nVariable Results\n----------------\n"+fmMain.printMethod( variableResults ) );
+      System.out.println( "\nNot Available Results\n---------------------\n"+fmMain.printMethod( notAvailableResults ) );
       System.out.println( "\nCode Plans\n----------\n"+fmMain.printMethod( codePlans ) );
     }
 
@@ -789,6 +789,12 @@ public class MLPAnalysis {
       // decide if we must stall for variables dereferenced at this node
       Set<VariableSourceToken> stallSet = vstTable.getStallSet( currentSESE );
 
+      // a node with no live set has nothing to stall for
+      Set<TempDescriptor> liveSet = livenessRootView.get( fn );
+      if( liveSet == null ) {
+	break;
+      }
+
       TempDescriptor[] readarray = fn.readsTemps();
       for( int i = 0; i < readarray.length; i++ ) {
         TempDescriptor readtmp = readarray[i];
@@ -799,56 +805,66 @@ public class MLPAnalysis {
 	  continue;
 	}
 
-        Set<VariableSourceToken> readSet = vstTable.get( readtmp );
+	// Two cases:
+        Set<VariableSourceToken> srcs = vstTable.get( readtmp );
+	assert !srcs.isEmpty();
 
-	//Two cases:
-
-	//1) Multiple token/age pairs or unknown age: Stall for
-	//dynamic name only.
-	
-
-
-	//2) Single token/age pair: Stall for token/age pair, and copy
-	//all live variables with same token/age pair at the same
-	//time.  This is the same stuff that the notavaialable analysis 
-	//marks as now available.
-
-	//VarSrcTokTable table = variableResults.get( fn );
-	//Set<VariableSourceToken> srcs = table.get( rTemp );
-
-	//XXXXXXXXXX: Note: We have to generate code to do these
-	//copies in the codeplan.  Note we should only copy the
-	//variables that are live!
-
-	/*
-	if( srcs.size() == 1 ) {
-	  VariableSourceToken vst = srcs.iterator().next();
+	// 1) Multiple token/age pairs or unknown age: Stall for
+	// dynamic name only.
+	if( srcs.size() > 1 || 
+	    srcs.iterator().next().getAge() == maxSESEage ) {
 	  
-	  Iterator<VariableSourceToken> availItr = table.get( vst.getSESE(), 
-							      vst.getAge()
-							    ).iterator();
+	  
+
+	// 2) Single token/age pair: Stall for token/age pair, and copy
+	// all live variables with same token/age pair at the same
+	// time.  This is the same stuff that the notavaialable analysis 
+	// marks as now available.	  
+	} else {	  
+	  VariableSourceToken vst = srcs.iterator().next();	 		  
+
+	  Iterator<VariableSourceToken> availItr = 
+	    vstTable.get( vst.getSESE(), 
+			  vst.getAge()
+			).iterator();
+
+	  System.out.println( "Considering a stall on "+vst+
+			      " and also getting\n    "+vstTable.get( vst.getSESE(), 
+			  vst.getAge()
+								      ) );
+
+	  // only grab additional stuff that is live
+	  Set<TempDescriptor> copySet = new HashSet<TempDescriptor>();
+
 	  while( availItr.hasNext() ) {
 	    VariableSourceToken vstAlsoAvail = availItr.next();
-	    notAvailSet.removeAll( vstAlsoAvail.getRefVars() );
+
+	    if( liveSet.contains( vstAlsoAvail.getAddrVar() ) ) {
+	      copySet.add( vstAlsoAvail.getAddrVar() );
+	    }
+
+	    /*
+	    Iterator<TempDescriptor> refVarItr = vstAlsoAvail.getRefVars().iterator();
+	    while( refVarItr.hasNext() ) {
+	      TempDescriptor refVar = refVarItr.next();
+	      if( liveSet.contains( refVar ) ) {
+		copySet.add( refVar );
+	      }
+	    }
+	    */
 	  }
+	  
+
+	  SESEandAgePair stallPair = new SESEandAgePair( vst.getSESE(), vst.getAge() );	  
+	  plan.addStall2CopySet( stallPair, copySet );
+	  System.out.println( "("+stallPair+"->"+copySet+")" );
 	}
-	*/
 
+	// assert that everything being stalled for is in the
+	// "not available" set coming into this flat node and
+	// that every VST identified is in the possible "stall set"
+	// that represents VST's from children SESE's
 
-	// assert notAvailSet.containsAll( writeSet );
-
-        /*
-        for( Iterator<VariableSourceToken> readit = readSet.iterator(); 
-             readit.hasNext(); ) {
-          VariableSourceToken vst = readit.next();
-          if( stallSet.contains( vst ) ) {
-            if( before == null ) {
-              before = "**STALL for:";
-            }
-            before += "("+vst+" "+readtmp+")";	    
-          }
-        }
-        */
       }      
     } break;
 

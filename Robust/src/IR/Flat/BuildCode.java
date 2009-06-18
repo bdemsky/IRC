@@ -270,6 +270,9 @@ public class BuildCode {
   private void outputMainMethod(PrintWriter outmethod) {
     outmethod.println("int main(int argc, const char *argv[]) {");
     outmethod.println("  int i;");
+    if (state.MLP) {
+      outmethod.println("  mlpInit( "+mlpa.getAllSESEs().size()+", "+mlpa.getMaxSESEage()+" );");
+    }
     if (state.DSM) {
       outmethod.println("#ifdef TRANSSTATS \n");
       outmethod.println("handle();\n");
@@ -2364,7 +2367,7 @@ public class BuildCode {
     }
 
     output.println("   mlpIssue( tempSESE );");
-    output.println("   tempSESE = mlpSchedule();");
+    //output.println("   tempSESE = mlpSchedule();");
 
     // do a pthread_create wit invokeSESE as the argument
     // and pack all args into a single void*
