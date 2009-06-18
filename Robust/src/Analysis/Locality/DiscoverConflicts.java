@@ -23,13 +23,28 @@ public class DiscoverConflicts {
   Hashtable<LocalityBinding, Set<FlatNode>> leftsrcmap;
   Hashtable<LocalityBinding, Set<FlatNode>> rightsrcmap;
   TypeAnalysis typeanalysis;
-  
+  HashSet<FlatNode>cannotdelay;
+
   public DiscoverConflicts(LocalityAnalysis locality, State state, TypeAnalysis typeanalysis) {
     this.locality=locality;
     this.fields=new HashSet<FieldDescriptor>();
     this.arrays=new HashSet<TypeDescriptor>();
     this.state=state;
     this.typeanalysis=typeanalysis;
+    transreadmap=new Hashtable<LocalityBinding, Set<TempFlatPair>>();
+    treadmap=new Hashtable<LocalityBinding, Set<FlatNode>>();
+    srcmap=new Hashtable<LocalityBinding, Set<FlatNode>>();
+    leftsrcmap=new Hashtable<LocalityBinding, Set<FlatNode>>();
+    rightsrcmap=new Hashtable<LocalityBinding, Set<FlatNode>>();
+  }
+
+  public DiscoverConflicts(LocalityAnalysis locality, State state, TypeAnalysis typeanalysis, HashSet<FlatNode> cannotdelay) {
+    this.locality=locality;
+    this.fields=new HashSet<FieldDescriptor>();
+    this.arrays=new HashSet<TypeDescriptor>();
+    this.state=state;
+    this.typeanalysis=typeanalysis;
+    this.cannotdelay=cannotdelay;
     transreadmap=new Hashtable<LocalityBinding, Set<TempFlatPair>>();
     treadmap=new Hashtable<LocalityBinding, Set<FlatNode>>();
     srcmap=new Hashtable<LocalityBinding, Set<FlatNode>>();
@@ -53,6 +68,8 @@ public class DiscoverConflicts {
       setNeedReadTrans(l);
     }
   }
+
+  //Change flatnode/temp pairs to just flatnodes that need transactional reads
 
   public void setNeedReadTrans(LocalityBinding lb) {
     HashSet<FlatNode> set=new HashSet<FlatNode>();
@@ -133,6 +150,9 @@ public class DiscoverConflicts {
       if (atomictable.get(fn).intValue()>0) {
 	Hashtable<TempDescriptor, Set<TempFlatPair>> tmap=fnmap.get(fn);
 	switch(fn.kind()) {
+
+	  //We might need to translate arguments to pointer comparison
+
 	case FKind.FlatOpNode: { 
 	  FlatOpNode fon=(FlatOpNode)fn;
 	  if (fon.getOp().getOp()==Operation.EQUAL||
@@ -145,7 +165,7 @@ public class DiscoverConflicts {
 	    if (lefttfpset!=null) {
 	      for(Iterator<TempFlatPair> tfpit=lefttfpset.iterator();tfpit.hasNext();) {
 		TempFlatPair tfp=tfpit.next();
-		if (tfset.contains(tfp)||ok(tfp)) {
+		if (tfset.contains(tfp)||outofscope(tfp)) {
 		  leftsrctrans.add(fon);
 		  break;
 		}
@@ -155,7 +175,7 @@ public class DiscoverConflicts {
 	    if (righttfpset!=null) {
 	      for(Iterator<TempFlatPair> tfpit=righttfpset.iterator();tfpit.hasNext();) {
 		TempFlatPair tfp=tfpit.next();
-		if (tfset.contains(tfp)||ok(tfp)) {
+		if (tfset.contains(tfp)||outofscope(tfp)) {
 		  rightsrctrans.add(fon);
 		  break;
 		}
@@ -164,8 +184,13 @@ public class DiscoverConflicts {
 	  }
 	  break;
 	}
+
 	case FKind.FlatSetFieldNode: { 
-	  //definitely need to translate these
+	  //need to translate these if the value we read from may be a
+	  //shadow...  check this by seeing if any of the values we
+	  //may read are in the transread set or came from our caller
+	  //or a method we called
+
 	  FlatSetFieldNode fsfn=(FlatSetFieldNode)fn;
 	  if (!fsfn.getField().getType().isPtr())
 	    break;
@@ -173,7 +198,7 @@ public class DiscoverConflicts {
 	  if (tfpset!=null) {
 	    for(Iterator<TempFlatPair> tfpit=tfpset.iterator();tfpit.hasNext();) {
 	      TempFlatPair tfp=tfpit.next();
-	      if (tfset.contains(tfp)||ok(tfp)) {
+	      if (tfset.contains(tfp)||outofscope(tfp)) {
 		srctrans.add(fsfn);
 		break;
 	      }
@@ -182,7 +207,11 @@ public class DiscoverConflicts {
 	  break;
 	}
 	case FKind.FlatSetElementNode: { 
-	  //definitely need to translate these
+	  //need to translate these if the value we read from may be a
+	  //shadow...  check this by seeing if any of the values we
+	  //may read are in the transread set or came from our caller
+	  //or a method we called
+
 	  FlatSetElementNode fsen=(FlatSetElementNode)fn;
 	  if (!fsen.getSrc().getType().isPtr())
 	    break;
@@ -190,7 +219,7 @@ public class DiscoverConflicts {
 	  if (tfpset!=null) {
 	    for(Iterator<TempFlatPair> tfpit=tfpset.iterator();tfpit.hasNext();) {
 	      TempFlatPair tfp=tfpit.next();
-	      if (tfset.contains(tfp)||ok(tfp)) {
+	      if (tfset.contains(tfp)||outofscope(tfp)) {
 		srctrans.add(fsen);
 		break;
 	      }
@@ -204,18 +233,29 @@ public class DiscoverConflicts {
     }
   }
 
-  public boolean ok(TempFlatPair tfp) {
+  public boolean outofscope(TempFlatPair tfp) {
     FlatNode fn=tfp.f;
     return fn.kind()==FKind.FlatCall||fn.kind()==FKind.FlatMethod;
   }
 
-  //compute set of nodes that need transread on their output
+
+  /** Need to figure out which nodes need a transread to make local
+  copies.  Transread conceptually tracks conflicts.  This depends on
+  what fields/elements are accessed We iterate over all flatnodes that
+  access fields...If these accesses could conflict, we mark the source
+  tempflat pair as needing a transread */
+
   HashSet<TempFlatPair> computeTranslationSet(LocalityBinding lb, FlatMethod fm, Hashtable<FlatNode, Hashtable<TempDescriptor, Set<TempFlatPair>>> fnmap) {
     HashSet<TempFlatPair> tfset=new HashSet<TempFlatPair>();
     
     for(Iterator<FlatNode> fnit=fm.getNodeSet().iterator();fnit.hasNext();) {
       FlatNode fn=fnit.next();
       Hashtable<FlatNode, Integer> atomictable=locality.getAtomic(lb);
+
+      //Check whether this node matters for delayed computation
+      if (cannotdelay!=null&&!cannotdelay.contains(fn))
+	continue;
+
       if (atomictable.get(fn).intValue()>0) {
 	Hashtable<TempDescriptor, Set<TempFlatPair>> tmap=fnmap.get(fn);
 	switch(fn.kind()) {
@@ -274,8 +314,12 @@ public class DiscoverConflicts {
     return tfset;
   }
 
-  //Map for each node from temps to the flatnode and (the temp) that
-  //first did a field/element read for this value
+
+  //This method generates as output for each node
+  //A map from from temps to a set of temp/flat pairs that the
+  //original temp points to
+  //A temp/flat pair gives the flatnode that the value was created at
+  //and the original temp
 
   Hashtable<FlatNode, Hashtable<TempDescriptor, Set<TempFlatPair>>> computeTempSets(LocalityBinding lb) {
     Hashtable<FlatNode, Hashtable<TempDescriptor, Set<TempFlatPair>>> tmptofnset=new Hashtable<FlatNode, Hashtable<TempDescriptor, Set<TempFlatPair>>>();
@@ -301,18 +345,8 @@ public class DiscoverConflicts {
       Hashtable<TempDescriptor, Set<TempFlatPair>> ttofn=null;
       if (atomictable.get(fn).intValue()!=0) {
 	if ((fn.numPrev()>0)&&atomictable.get(fn.getPrev(0)).intValue()==0) {
-	  //flatatomic enter node...  see what we really need to transread
-	  //Set<TempDescriptor> liveset=livetemps.get(fn);
+	  //atomic node, start with new set
 	  ttofn=new Hashtable<TempDescriptor, Set<TempFlatPair>>();
-	  /*
-	  for(Iterator<TempDescriptor> tmpit=liveset.iterator();tmpit.hasNext();) {
-	    TempDescriptor tmp=tmpit.next();
-	    if (tmp.getType().isPtr()) {
-	      HashSet<TempFlatPair> fnset=new HashSet<TempFlatPair>();
-	      fnset.add(new TempFlatPair(tmp, fn));
-	      ttofn.put(tmp, fnset);
-	    }
-	    }*/
 	} else {
 	  ttofn=doMerge(fn, tmptofnset);
 	  switch(fn.kind()) {

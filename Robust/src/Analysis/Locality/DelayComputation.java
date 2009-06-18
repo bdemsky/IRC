@@ -273,12 +273,16 @@ public class DelayComputation {
     //(3) everything else -- stuff that should be done before commit
   } //end of method
 
+  //Problems:
+  //1) we acquire locks too early to object we don't need to yet
+  //2) we don't realize that certain operations have side effects
+
   public HashSet<FlatNode> computeNotReadySet(LocalityBinding lb, HashSet<FlatNode> cannotdelay) {
     //You are in not ready set if:
     //I. You read a not ready temp
-
     //II. You read a field or element and both (A) you are not in the
     //cannot delay set and (B) you do a transactional access to object
+
     MethodDescriptor md=lb.getMethod();
     FlatMethod fm=state.getMethodFlat(md);
     Hashtable<FlatNode, Integer> atomictable=locality.getAtomic(lb);
