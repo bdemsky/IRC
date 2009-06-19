@@ -382,19 +382,14 @@ public class DelayComputation {
 	  toanalyze.add(fn.getPrev(i));
     }//end of while loop
     HashSet<FlatNode> notreadyset=computeNotReadySet(lb, cannotdelay);
-    HashSet<FlatNode> atomicset=new HashSet<FlatNode>();
-    for(Iterator<FlatNode> fnit=fm.getNodeSet().iterator();fnit.hasNext();) {
-      FlatNode fn=fnit.next();
-      boolean isatomic=atomictable.get(fn).intValue()>0;
-      if (isatomic)
-	atomicset.add(fn);
-    }
-    if (!atomicset.isEmpty()) {
-      atomicset.removeAll(notreadyset);
-      atomicset.removeAll(cannotdelay);
+    HashSet<FlatNode> otherset=new HashSet<FlatNode>();
+    otherset.addAll(fm.getNodeSet());
+    if (lb.getHasAtomic()) {
+      otherset.removeAll(notreadyset);
+      otherset.removeAll(cannotdelay);
       notreadymap.put(lb, notreadyset);
       cannotdelaymap.put(lb, cannotdelay);
-      othermap.put(lb, atomicset);
+      othermap.put(lb, otherset);
     }
 
     //We now have:

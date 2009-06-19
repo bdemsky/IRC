@@ -1538,7 +1538,7 @@ public class BuildCode {
       }
     }
 
-    generateCode(fm.getNext(0), fm, lb, null, output);
+    generateCode(fm.getNext(0), fm, lb, null, output, true);
 
     output.println("}\n\n");
   }
@@ -1781,7 +1781,7 @@ public class BuildCode {
     }    
 
 
-    generateCode(seseEnter.getNext(0), fm, null, seseExit, output);
+    generateCode(seseEnter.getNext(0), fm, null, seseExit, output, true);
 
     
     output.println("}\n\n");
@@ -1791,7 +1791,7 @@ public class BuildCode {
                               FlatMethod fm,
                               LocalityBinding lb,
                               FlatSESEExitNode stop,
-                              PrintWriter output) {
+                              PrintWriter output, boolean firstpass) {
 
     // for any method, allocate temps to use when
     // issuing a new SESE sometime during the execution
@@ -1804,10 +1804,23 @@ public class BuildCode {
       output.println("   invokeSESEargs* tempSESEargs;");
     }    
 
-
     /* Assign labels to FlatNode's if necessary.*/
     Hashtable<FlatNode, Integer> nodetolabel=assignLabels(first, stop);
 
+    Set<FlatNode> storeset=null;
+    HashSet<FlatNode> genset=null;
+
+    if (state.DELAYCOMP) {
+      storeset=delaycomp.livecode(lb);
+      genset=new HashSet<FlatNode>();
+      if (firstpass) {
+	genset.addAll(delaycomp.getCannotDelay(lb));
+	genset.addAll(delaycomp.getOther(lb));
+      } else {
+	genset.addAll(delaycomp.getNotReady(lb));
+      }
+    }
+    
     /* Do the actual code generation */
     FlatNode current_node=null;
     HashSet tovisit=new HashSet();
@@ -1843,6 +1856,28 @@ public class BuildCode {
 	  FlatSESEEnterNode fsen = (FlatSESEEnterNode)current_node;
 	  generateFlatNode(fm, lb, current_node, output);
 	  nextnode=fsen.getFlatExit().getNext(0);
+	} else if (state.DELAYCOMP) {
+	  if (genset.contains(current_node))
+	    generateFlatNode(fm, lb, current_node, output);
+	  if (storeset.contains(current_node)) {
+	    TempDescriptor wrtmp=current_node.writesTemps()[0];
+	    if (firstpass) {
+	      //need to store value written by previous node
+	      if (wrtmp.getType().isPtr()) {
+		output.println("STOREPTR("+generateTemp(fm, wrtmp,lb)+");");
+	      } else {
+		output.println("STORE"+wrtmp.getType().getSafeDescriptor()+"("+generateTemp(fm, wrtmp, lb)+");");
+	      }
+	    } else {
+	      //need to read value read by previous node
+	      if (wrtmp.getType().isPtr()) {
+		output.println("RESTOREPTR("+generateTemp(fm, wrtmp,lb)+");");
+	      } else {
+		output.println("RESTORE"+wrtmp.getType().getSafeDescriptor()+"("+generateTemp(fm, wrtmp, lb)+");");		
+	      }
+	    }
+	  }
+	  nextnode=current_node.getNext(0);
 	} else {
 	  output.print("   ");
 	  generateFlatNode(fm, lb, current_node, output);
@@ -1855,8 +1890,25 @@ public class BuildCode {
 	  current_node=nextnode;
       } else if (current_node.numNext()==2) {
 	/* Branch */
-	output.print("   ");  
-	generateFlatCondBranch(fm, lb, (FlatCondBranch)current_node, "L"+nodetolabel.get(current_node.getNext(1)), output);
+	if (state.DELAYCOMP) {
+	  if (firstpass) {
+	    //need to record which way it should go
+	    output.print("   ");  
+	    if (storeset.contains(current_node)) {
+	      //need to store which way branch goes
+	      generateStoreFlatCondBranch(fm, lb, (FlatCondBranch)current_node, "L"+nodetolabel.get(current_node.getNext(1)), output);
+	    } else
+	      generateFlatCondBranch(fm, lb, (FlatCondBranch)current_node, "L"+nodetolabel.get(current_node.getNext(1)), output);
+	  } else {
+	    if (storeset.contains(current_node)) {
+	      //need to do branch
+	      output.println("RESTOREANDBRANCH(L"+nodetolabel.get(current_node.getNext(1))+");");
+	    }
+	  }
+	} else {
+	  output.print("   ");  
+	  generateFlatCondBranch(fm, lb, (FlatCondBranch)current_node, "L"+nodetolabel.get(current_node.getNext(1)), output);
+	}
 	if (!visited.contains(current_node.getNext(1)))
 	  tovisit.add(current_node.getNext(1));
 	if (visited.contains(current_node.getNext(0))) {
@@ -1868,11 +1920,11 @@ public class BuildCode {
     }
   }
 
-
   /** This method assigns labels to FlatNodes */
   protected Hashtable<FlatNode, Integer> assignLabels(FlatNode first) {
     return assignLabels(first, null);
   }
+
   protected Hashtable<FlatNode, Integer> assignLabels(FlatNode first, FlatSESEExitNode last) {
     HashSet tovisit=new HashSet();
     HashSet visited=new HashSet();
@@ -1937,9 +1989,7 @@ public class BuildCode {
   }
 
   protected void generateFlatNode(FlatMethod fm, LocalityBinding lb, FlatNode fn, PrintWriter output) {
-
     switch(fn.kind()) {
-
     case FKind.FlatAtomicEnterNode:
       generateFlatAtomicEnterNode(fm, lb, (FlatAtomicEnterNode) fn, output);
       break;
@@ -3017,6 +3067,10 @@ public class BuildCode {
     } else {
       output.println("return;");
     }
+  }
+
+  protected void generateStoreFlatCondBranch(FlatMethod fm, LocalityBinding lb, FlatCondBranch fcb, String label, PrintWriter output) {
+    output.println("STOREANDBRANCH(!"+generateTemp(fm, fcb.getTest(),lb)+", "+label+");");
   }
 
   protected void generateFlatCondBranch(FlatMethod fm, LocalityBinding lb, FlatCondBranch fcb, String label, PrintWriter output) {
