@@ -1,5 +1,8 @@
 package IR.Flat;
 import java.util.Vector;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.Iterator;
 
 public class FlatNode {
   protected Vector next;
@@ -79,6 +82,25 @@ public class FlatNode {
   public void rewriteDef(TempMap t) {
     System.out.println(toString());
     throw new Error();
+  }
+
+  public Set<FlatNode> getReachableSet(Set<FlatNode> endset) {
+    HashSet<FlatNode> tovisit=new HashSet<FlatNode>();
+    HashSet<FlatNode> visited=new HashSet<FlatNode>();
+    tovisit.add(this);
+    while(!tovisit.isEmpty()) {
+      FlatNode fn=tovisit.iterator().next();
+      tovisit.remove(fn);
+      visited.add(fn);
+      if (endset!=null&&!endset.contains(fn)) {
+	for(int i=0; i<fn.numNext(); i++) {
+	  FlatNode nn=fn.getNext(i);
+	  if (!visited.contains(nn))
+	    tovisit.add(nn);
+	}
+      }
+    }
+    return visited;
   }
 
   public void replace(FlatNode fnnew) {

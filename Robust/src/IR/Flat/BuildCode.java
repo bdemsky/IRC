@@ -39,6 +39,8 @@ public class BuildCode {
   Hashtable flagorder;
   int tag=0;
   String localsprefix="___locals___";
+  String localsprefixaddr="&"+localsprefix;
+  String localsprefixderef=localsprefix+".";
   String fcrevert="___fcrevert___";
   String paramsprefix="___params___";
   String oidstr="___nextobject___";
@@ -1346,7 +1348,6 @@ public class BuildCode {
     }
   }
 
-
   private void generateMethod(ClassDescriptor cn, MethodDescriptor md, LocalityBinding lb, PrintWriter headersout, PrintWriter output) {
     FlatMethod fm=state.getMethodFlat(md);
     generateTempStructs(fm, lb);
@@ -1486,16 +1487,102 @@ public class BuildCode {
 
   /***** Generate code for FlatMethod fm. *****/
 
+  Hashtable<FlatAtomicEnterNode, AtomicRecord> atomicmethodmap;
+  static int atomicmethodcount=0;
+
   private void generateFlatMethod(FlatMethod fm, LocalityBinding lb, PrintWriter output) {
     if (State.PRINTFLAT)
       System.out.println(fm.printMethod());
     MethodDescriptor md=fm.getMethod();
-
     TaskDescriptor task=fm.getTask();
-
     ClassDescriptor cn=md!=null ? md.getClassDesc() : null;
-
     ParamsObject objectparams=(ParamsObject)paramstable.get(lb!=null ? lb : md!=null ? md : task);
+
+
+    if (state.DELAYCOMP&&!lb.isAtomic()&&lb.getHasAtomic()) {
+      //create map
+      if (atomicmethodmap==null)
+	atomicmethodmap=new Hashtable<FlatAtomicEnterNode, AtomicRecord>();
+
+      //fix these so we get right strings for local variables
+      localsprefixaddr=localsprefix;
+      localsprefixderef=localsprefix+"->";
+
+      //Generate commit methods here
+      for(Iterator<FlatNode> fnit=fm.getNodeSet().iterator();fnit.hasNext();) {
+	FlatNode fn=fnit.next();
+	if (fn.kind()==FKind.FlatAtomicEnterNode&&
+	    locality.getAtomic(lb).get(fn.getPrev(0)).intValue()==0) {
+	  //We have an atomic enter
+	  FlatAtomicEnterNode faen=(FlatAtomicEnterNode) fn;
+	  Set<FlatNode> exitset=faen.getExits();
+	  //generate header
+	  String methodname=md.getSymbol()+(atomicmethodcount++);
+	  AtomicRecord ar=new AtomicRecord();
+	  ar.name=methodname;
+
+	  atomicmethodmap.put(faen, ar);
+
+	  //build data structure declaration
+	  output.println("struct atomicprimitives_"+methodname+" {");
+
+	  Set<FlatNode> recordset=delaycomp.livecode(lb);
+	  Set<TempDescriptor> liveinto=delaycomp.liveinto(lb, faen, recordset);
+	  Set<TempDescriptor> liveout=delaycomp.liveout(lb, faen);
+	  ar.livein=liveinto;
+	  ar.liveout=liveout;
+
+	  for(Iterator<TempDescriptor> it=liveinto.iterator(); it.hasNext();) {
+	    TempDescriptor tmp=it.next();
+	    //remove the pointers
+	    if (tmp.getType().isPtr()) {
+	      it.remove();
+	    } else {
+	      //let's print it here
+	      output.println(tmp.getType().getSafeSymbol()+" "+tmp.getSafeSymbol()+";");
+	    }
+	  }
+	  for(Iterator<TempDescriptor> it=liveout.iterator(); it.hasNext();) {
+	    TempDescriptor tmp=it.next();
+	    //remove the pointers
+	    if (tmp.getType().isPtr()) {
+	      it.remove();
+	    } else if (!liveinto.contains(tmp)) {
+	      //let's print it here
+	      output.println(tmp.getType().getSafeSymbol()+" "+tmp.getSafeSymbol()+";");
+	    }
+	  }
+	  output.println("};");
+
+	  //print out method name
+	  output.println("void "+methodname+"(struct "+ cn.getSafeSymbol()+lb.getSignature()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_params * "+paramsprefix+", struct "+ cn.getSafeSymbol()+lb.getSignature()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_locals *"+localsprefix+", struct atomicprimitives_"+methodname+" * primitives) {");
+	  //build code for commit method
+	  
+	  //first define local primitives
+	  Set<TempDescriptor> alltemps=delaycomp.alltemps(lb, faen, recordset);
+	  for(Iterator<TempDescriptor> tmpit=alltemps.iterator();tmpit.hasNext();) {
+	    TempDescriptor tmp=tmpit.next();
+	    if (!tmp.getType().isPtr()) {
+	      if (liveinto.contains(tmp)) {
+		//read from live into set
+		output.println(tmp.getType().getSafeSymbol()+" "+tmp.getSafeSymbol()+"=primitives->"+tmp.getSafeSymbol()+";");
+	      } else {
+		//just define
+		output.println(tmp.getType().getSafeSymbol()+" "+tmp.getSafeSymbol()+";");
+	      }
+	    }
+	  }
+
+	  generateCode(faen, fm, lb, exitset, output, false);
+	  output.println("}\n\n");
+	}
+      }
+    }
+    //redefine these back to normal
+
+    localsprefixaddr="&"+localsprefix;
+    localsprefixderef=localsprefix+".";
+
     generateHeader(fm, lb, md!=null ? md : task,output);
     TempObject objecttemp=(TempObject) tempstable.get(lb!=null ? lb : md!=null ? md : task);
 
@@ -1532,9 +1619,9 @@ public class BuildCode {
       //Don't bother if we aren't in recursive methods...The loops case will catch it
       if (callgraph.getAllMethods(md).contains(md)) {
 	if (state.DSM&&lb.isAtomic())
-	  output.println("if (needtocollect) checkcollect2(&"+localsprefix+");");
+	  output.println("if (needtocollect) checkcollect2("+localsprefixaddr+");");
 	else
-	  output.println("if (needtocollect) checkcollect(&"+localsprefix+");");
+	  output.println("if (needtocollect) checkcollect("+localsprefixaddr+");");
       }
     }
 
@@ -1776,12 +1863,13 @@ public class BuildCode {
     if (GENERATEPRECISEGC) {
       //Don't bother if we aren't in recursive methods...The loops case will catch it
       if (callgraph.getAllMethods(md).contains(md)) {
-        output.println("if (needtocollect) checkcollect(&"+localsprefix+");");
+        output.println("if (needtocollect) checkcollect("+localsprefixaddr+");");
       }
     }    
 
-
-    generateCode(seseEnter.getNext(0), fm, null, seseExit, output, true);
+    HashSet<FlatNode> exitset=new HashSet<FlatNode>();
+    exitset.add(seseExit);
+    generateCode(seseEnter.getNext(0), fm, null, exitset, output, true);
 
     
     output.println("}\n\n");
@@ -1790,7 +1878,7 @@ public class BuildCode {
   protected void generateCode(FlatNode first,
                               FlatMethod fm,
                               LocalityBinding lb,
-                              FlatSESEExitNode stop,
+			      Set<FlatNode> stopset,
                               PrintWriter output, boolean firstpass) {
 
     // for any method, allocate temps to use when
@@ -1805,12 +1893,12 @@ public class BuildCode {
     }    
 
     /* Assign labels to FlatNode's if necessary.*/
-    Hashtable<FlatNode, Integer> nodetolabel=assignLabels(first, stop);
+    Hashtable<FlatNode, Integer> nodetolabel=assignLabels(first, stopset);
 
     Set<FlatNode> storeset=null;
     HashSet<FlatNode> genset=null;
 
-    if (state.DELAYCOMP) {
+    if (state.DELAYCOMP&&!lb.isAtomic()&&lb.getHasAtomic()) {
       storeset=delaycomp.livecode(lb);
       genset=new HashSet<FlatNode>();
       if (firstpass) {
@@ -1825,7 +1913,10 @@ public class BuildCode {
     FlatNode current_node=null;
     HashSet tovisit=new HashSet();
     HashSet visited=new HashSet();
-    tovisit.add(first);
+    if (!firstpass)
+      tovisit.add(first.getNext(0));
+    else
+      tovisit.add(first);
     while(current_node!=null||!tovisit.isEmpty()) {
       if (current_node==null) {
 	current_node=(FlatNode)tovisit.iterator().next();
@@ -1843,9 +1934,19 @@ public class BuildCode {
 	} else
 	  output.println("if ((--instructioncount)==0) injectinstructionfailure();");
       }
-      if (current_node.numNext()==0||current_node==stop) {
+      if (current_node.numNext()==0||stopset!=null&&stopset.contains(current_node)) {
 	output.print("   ");
-	generateFlatNode(fm, lb, current_node, output);
+	if (!state.DELAYCOMP||firstpass) {
+	  generateFlatNode(fm, lb, current_node, output);
+	} else {
+	  //store primitive variables in out set
+	  AtomicRecord ar=atomicmethodmap.get((FlatAtomicEnterNode)first);
+	  Set<TempDescriptor> liveout=ar.liveout;
+	  for(Iterator<TempDescriptor> tmpit=liveout.iterator();tmpit.hasNext();) {
+	    TempDescriptor tmp=tmpit.next();
+	    output.println("primitives->"+tmp.getSafeSymbol()+"="+tmp.getSafeSymbol()+";");
+	  }
+	}
 	if (current_node.kind()!=FKind.FlatReturnNode) {
 	  output.println("   return;");
 	}
@@ -1857,9 +1958,9 @@ public class BuildCode {
 	  generateFlatNode(fm, lb, current_node, output);
 	  nextnode=fsen.getFlatExit().getNext(0);
 	} else if (state.DELAYCOMP) {
-	  if (genset.contains(current_node))
+	  if (genset==null||genset.contains(current_node))
 	    generateFlatNode(fm, lb, current_node, output);
-	  if (storeset.contains(current_node)) {
+	  if (storeset!=null&&storeset.contains(current_node)) {
 	    TempDescriptor wrtmp=current_node.writesTemps()[0];
 	    if (firstpass) {
 	      //need to store value written by previous node
@@ -1894,7 +1995,7 @@ public class BuildCode {
 	  if (firstpass) {
 	    //need to record which way it should go
 	    output.print("   ");  
-	    if (storeset.contains(current_node)) {
+	    if (storeset!=null&&storeset.contains(current_node)) {
 	      //need to store which way branch goes
 	      generateStoreFlatCondBranch(fm, lb, (FlatCondBranch)current_node, "L"+nodetolabel.get(current_node.getNext(1)), output);
 	    } else
@@ -1925,7 +2026,7 @@ public class BuildCode {
     return assignLabels(first, null);
   }
 
-  protected Hashtable<FlatNode, Integer> assignLabels(FlatNode first, FlatSESEExitNode last) {
+  protected Hashtable<FlatNode, Integer> assignLabels(FlatNode first, Set<FlatNode> lastset) {
     HashSet tovisit=new HashSet();
     HashSet visited=new HashSet();
     int labelindex=0;
@@ -1941,7 +2042,7 @@ public class BuildCode {
       visited.add(fn);
 
 
-      if( fn.equals(last) ) {
+      if(lastset!=null&&lastset.contains(fn)) {
 	// if last is not null and matches, don't go 
 	// any further for assigning labels
 	continue;
@@ -1978,7 +2079,7 @@ public class BuildCode {
     }
 
     if (objecttemps.isLocalPtr(td)) {
-      return localsprefix+"."+td.getSafeSymbol();
+      return localsprefixderef+td.getSafeSymbol();
     }
 
     if (objecttemps.isParamPtr(td)) {
@@ -2069,9 +2170,9 @@ public class BuildCode {
     case FKind.FlatBackEdge:
       if ((state.THREAD||state.DSM||state.SINGLETM)&&GENERATEPRECISEGC) {
 	if(state.DSM&&locality.getAtomic(lb).get(fn).intValue()>0) {
-	  output.println("if (needtocollect) checkcollect2(&"+localsprefix+");");
+	  output.println("if (needtocollect) checkcollect2("+localsprefixaddr+");");
 	} else
-	  output.println("if (needtocollect) checkcollect(&"+localsprefix+");");
+	  output.println("if (needtocollect) checkcollect("+localsprefixaddr+");");
       } else
 	output.println("/* nop */");
       break;
@@ -2293,7 +2394,7 @@ public class BuildCode {
       } else {
 	if ((dc==null)||dc.getNeedTrans(lb, fgcn)) {
 	  //need to do translation
-	  output.println("TRANSREAD("+generateTemp(fm, fgcn.getSrc(),lb)+", "+generateTemp(fm, fgcn.getSrc(),lb)+", (void *)&("+localsprefix+"));");
+	  output.println("TRANSREAD("+generateTemp(fm, fgcn.getSrc(),lb)+", "+generateTemp(fm, fgcn.getSrc(),lb)+", (void *)("+localsprefixaddr+"));");
 	}
       }
     } else {
@@ -2382,7 +2483,19 @@ public class BuildCode {
       revertptr=generateTemp(fm, reverttable.get(lb),lb);
       output.println(revertptr+"=revertlist;");
     }
-    output.println("if (transCommit()) {");
+    if (state.DELAYCOMP) {
+      AtomicRecord ar=atomicmethodmap.get(faen.getAtomicEnter());
+      output.println("{");
+      output.println("struct atomicprimitives_"+ar.name+" primitives;");
+      //copy in
+      for(Iterator<TempDescriptor> tmpit=ar.livein.iterator();tmpit.hasNext();) {
+	TempDescriptor tmp=tmpit.next();
+	output.println("primitives."+tmp.getSafeSymbol()+"="+tmp.getSafeSymbol()+";");
+      }
+      //do call
+      output.println("if (transCommit(&"+ar.name+", &primitives, &"+localsprefix+", "+paramsprefix+")) {");
+    } else
+      output.println("if (transCommit()) {");
     /* Transaction aborts if it returns true */
     output.println("goto transretry"+faen.getAtomicEnter().getIdentifier()+";");
     if (state.DSM) {
@@ -2396,6 +2509,17 @@ public class BuildCode {
       output.println("}");
     }
     output.println("}");
+    if (state.DELAYCOMP) {
+      //copy out
+      AtomicRecord ar=atomicmethodmap.get(faen.getAtomicEnter());
+      output.println("else {");
+      for(Iterator<TempDescriptor> tmpit=ar.liveout.iterator();tmpit.hasNext();) {
+	TempDescriptor tmp=tmpit.next();
+	output.println(tmp.getSafeSymbol()+"=primitive."+tmp.getSafeSymbol()+";");
+	output.println("}");
+      }
+      output.println("}");
+    }
   }
 
   public void generateFlatSESEEnterNode(FlatMethod fm,  LocalityBinding lb, FlatSESEEnterNode fsen, PrintWriter output) {
@@ -2479,7 +2603,7 @@ public class BuildCode {
 	output.print("       struct "+cn.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_params __parameterlist__={");
 
       output.print(objectparams.numPointers());
-      output.print(", & "+localsprefix);
+      output.print(", "+localsprefixaddr);
       if (md.getThis()!=null) {
 	output.print(", ");
 	output.print("(struct "+md.getThis().getType().getSafeSymbol() +" *)"+ generateTemp(fm,fc.getThis(),lb));
@@ -2623,7 +2747,7 @@ public class BuildCode {
       if (ffn.getField().getType().isPtr()&&locality.getAtomic(lb).get(ffn).intValue()>0&&
           ((dc==null)||dc.getNeedTrans(lb, ffn))&&
           locality.getNodePreTempInfo(lb, ffn).get(ffn.getSrc())!=LocalityAnalysis.SCRATCH) {
-	output.println("TRANSREAD("+dst+", "+dst+", (void *) &(" + localsprefix + "));");
+	output.println("TRANSREAD("+dst+", "+dst+", (void *) (" + localsprefixaddr + "));");
       }
     } else if (state.DSM) {
       Integer status=locality.getNodePreTempInfo(lb,ffn).get(ffn.getSrc());
@@ -2734,7 +2858,7 @@ public class BuildCode {
 	String revertptr=generateTemp(fm, reverttable.get(lb),lb);
 	output.println(revertptr+"=revertlist;");
 	if (GENERATEPRECISEGC)
-	  output.println("COPY_OBJ((struct garbagelist *)&"+localsprefix+",(struct ___Object___ *)"+dst+");");
+	  output.println("COPY_OBJ((struct garbagelist *)"+localsprefixaddr+",(struct ___Object___ *)"+dst+");");
 	else
 	  output.println("COPY_OBJ("+dst+");");
 	output.println(dst+"->"+nextobjstr+"="+revertptr+";");
@@ -2762,7 +2886,7 @@ public class BuildCode {
 	output.println("if(!"+dst+"->"+localcopystr+") {");
 	/* Link object into list */
 	if (GENERATEPRECISEGC)
-	  output.println("COPY_OBJ((struct garbagelist *)&"+localsprefix+",(struct ___Object___ *)"+dst+");");
+	  output.println("COPY_OBJ((struct garbagelist *)"+localsprefixaddr+",(struct ___Object___ *)"+dst+");");
 	else
 	  output.println("COPY_OBJ("+dst+");");
 	output.println(dst+"->"+nextobjstr+"="+fcrevert+";");
@@ -2794,7 +2918,7 @@ public class BuildCode {
       if (elementtype.isPtr()&&locality.getAtomic(lb).get(fen).intValue()>0&&
           ((dc==null)||dc.getNeedTrans(lb, fen))&&
           locality.getNodePreTempInfo(lb, fen).get(fen.getSrc())!=LocalityAnalysis.SCRATCH) {
-	output.println("TRANSREAD("+dst+", "+dst+", (void *)&(" + localsprefix+"));");
+	output.println("TRANSREAD("+dst+", "+dst+", (void *)(" + localsprefixaddr+"));");
       }
     } else if (state.DSM) {
       Integer status=locality.getNodePreTempInfo(lb,fen).get(fen.getSrc());
@@ -2879,7 +3003,7 @@ public class BuildCode {
 	String revertptr=generateTemp(fm, reverttable.get(lb),lb);
 	output.println(revertptr+"=revertlist;");
 	if (GENERATEPRECISEGC)
-	  output.println("COPY_OBJ((struct garbagelist *)&"+localsprefix+",(struct ___Object___ *)"+dst+");");
+	  output.println("COPY_OBJ((struct garbagelist *)"+localsprefixaddr+",(struct ___Object___ *)"+dst+");");
 	else
 	  output.println("COPY_OBJ("+dst+");");
 	output.println(dst+"->"+nextobjstr+"="+revertptr+";");
@@ -2901,7 +3025,7 @@ public class BuildCode {
 	output.println("if(!"+dst+"->"+localcopystr+") {");
 	/* Link object into list */
 	if (GENERATEPRECISEGC)
-	  output.println("COPY_OBJ((struct garbagelist *)&"+localsprefix+",(struct ___Object___ *)"+dst+");");
+	  output.println("COPY_OBJ((struct garbagelist *)"+localsprefixaddr+",(struct ___Object___ *)"+dst+");");
 	else
 	  output.println("COPY_OBJ("+dst+");");
 	output.println(dst+"->"+nextobjstr+"="+fcrevert+";");
@@ -2923,18 +3047,18 @@ public class BuildCode {
 	int arrayid=state.getArrayNumber(fn.getType())+state.numClasses();
 	if (locality.getAtomic(lb).get(fn).intValue()>0) {
 	  //inside transaction
-	  output.println(generateTemp(fm,fn.getDst(),lb)+"=allocate_newarraytrans(&"+localsprefix+", "+arrayid+", "+generateTemp(fm, fn.getSize(),lb)+");");
+	  output.println(generateTemp(fm,fn.getDst(),lb)+"=allocate_newarraytrans("+localsprefixaddr+", "+arrayid+", "+generateTemp(fm, fn.getSize(),lb)+");");
 	} else {
 	  //outside transaction
-	  output.println(generateTemp(fm,fn.getDst(),lb)+"=allocate_newarray(&"+localsprefix+", "+arrayid+", "+generateTemp(fm, fn.getSize(),lb)+");");
+	  output.println(generateTemp(fm,fn.getDst(),lb)+"=allocate_newarray("+localsprefixaddr+", "+arrayid+", "+generateTemp(fm, fn.getSize(),lb)+");");
 	}
       } else {
 	if (locality.getAtomic(lb).get(fn).intValue()>0) {
 	  //inside transaction
-	  output.println(generateTemp(fm,fn.getDst(),lb)+"=allocate_newtrans(&"+localsprefix+", "+fn.getType().getClassDesc().getId()+");");
+	  output.println(generateTemp(fm,fn.getDst(),lb)+"=allocate_newtrans("+localsprefixaddr+", "+fn.getType().getClassDesc().getId()+");");
 	} else {
 	  //outside transaction
-	  output.println(generateTemp(fm,fn.getDst(),lb)+"=allocate_new(&"+localsprefix+", "+fn.getType().getClassDesc().getId()+");");
+	  output.println(generateTemp(fm,fn.getDst(),lb)+"=allocate_new("+localsprefixaddr+", "+fn.getType().getClassDesc().getId()+");");
 	}
       }
     } else if (fn.getType().isArray()) {
@@ -2942,7 +3066,7 @@ public class BuildCode {
       if (fn.isGlobal()&&(state.DSM||state.SINGLETM)) {
 	output.println(generateTemp(fm,fn.getDst(),lb)+"=allocate_newarrayglobal("+arrayid+", "+generateTemp(fm, fn.getSize(),lb)+");");
       } else if (GENERATEPRECISEGC) {
-	output.println(generateTemp(fm,fn.getDst(),lb)+"=allocate_newarray(&"+localsprefix+", "+arrayid+", "+generateTemp(fm, fn.getSize(),lb)+");");
+	output.println(generateTemp(fm,fn.getDst(),lb)+"=allocate_newarray("+localsprefixaddr+", "+arrayid+", "+generateTemp(fm, fn.getSize(),lb)+");");
       } else {
 	output.println(generateTemp(fm,fn.getDst(),lb)+"=allocate_newarray("+arrayid+", "+generateTemp(fm, fn.getSize(),lb)+");");
       }
@@ -2950,7 +3074,7 @@ public class BuildCode {
       if (fn.isGlobal()) {
 	output.println(generateTemp(fm,fn.getDst(),lb)+"=allocate_newglobal("+fn.getType().getClassDesc().getId()+");");
       } else if (GENERATEPRECISEGC) {
-	output.println(generateTemp(fm,fn.getDst(),lb)+"=allocate_new(&"+localsprefix+", "+fn.getType().getClassDesc().getId()+");");
+	output.println(generateTemp(fm,fn.getDst(),lb)+"=allocate_new("+localsprefixaddr+", "+fn.getType().getClassDesc().getId()+");");
       } else {
 	output.println(generateTemp(fm,fn.getDst(),lb)+"=allocate_new("+fn.getType().getClassDesc().getId()+");");
       }
@@ -2972,7 +3096,7 @@ public class BuildCode {
 
   private void generateFlatTagDeclaration(FlatMethod fm, LocalityBinding lb, FlatTagDeclaration fn, PrintWriter output) {
     if (GENERATEPRECISEGC) {
-      output.println(generateTemp(fm,fn.getDst(),lb)+"=allocate_tag(&"+localsprefix+", "+state.getTagId(fn.getType())+");");
+      output.println(generateTemp(fm,fn.getDst(),lb)+"=allocate_tag("+localsprefixaddr+", "+state.getTagId(fn.getType())+");");
     } else {
       output.println(generateTemp(fm,fn.getDst(),lb)+"=allocate_tag("+state.getTagId(fn.getType())+");");
     }
@@ -3035,7 +3159,7 @@ public class BuildCode {
 	  String revertptr=generateTemp(fm, reverttable.get(lb),lb);
 	  output.println(revertptr+"=revertlist;");
 	}
-	output.println(generateTemp(fm, fln.getDst(),lb)+"=NewString(&"+localsprefix+", \""+FlatLiteralNode.escapeString((String)fln.getValue())+"\","+((String)fln.getValue()).length()+");");
+	output.println(generateTemp(fm, fln.getDst(),lb)+"=NewString("+localsprefixaddr+", \""+FlatLiteralNode.escapeString((String)fln.getValue())+"\","+((String)fln.getValue()).length()+");");
 	if (state.DSM && locality.getAtomic(lb).get(fln).intValue()>0) {
 	  //Stash pointer in case of GC
 	  String revertptr=generateTemp(fm, reverttable.get(lb),lb);
@@ -3238,7 +3362,7 @@ public class BuildCode {
 	while(tagit.hasNext()) {
 	  TempDescriptor tagtmp=(TempDescriptor)tagit.next();
 	  if (GENERATEPRECISEGC)
-	    output.println("tagclear(&"+localsprefix+", (struct ___Object___ *)"+generateTemp(fm, temp,lb)+", "+generateTemp(fm,tagtmp,lb)+");");
+	    output.println("tagclear("+localsprefixaddr+", (struct ___Object___ *)"+generateTemp(fm, temp,lb)+", "+generateTemp(fm,tagtmp,lb)+");");
 	  else
 	    output.println("tagclear((struct ___Object___ *)"+generateTemp(fm, temp,lb)+", "+generateTemp(fm,tagtmp,lb)+");");
 	}
@@ -3250,7 +3374,7 @@ public class BuildCode {
 	while(tagit.hasNext()) {
 	  TempDescriptor tagtmp=(TempDescriptor)tagit.next();
 	  if (GENERATEPRECISEGC)
-	    output.println("tagset(&"+localsprefix+", (struct ___Object___ *)"+generateTemp(fm, temp,lb)+", "+generateTemp(fm,tagtmp,lb)+");");
+	    output.println("tagset("+localsprefixaddr+", (struct ___Object___ *)"+generateTemp(fm, temp,lb)+", "+generateTemp(fm,tagtmp,lb)+");");
 	  else
 	    output.println("tagset((struct ___Object___ *)"+generateTemp(fm, temp, lb)+", "+generateTemp(fm,tagtmp, lb)+");");
 	}

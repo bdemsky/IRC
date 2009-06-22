@@ -9,7 +9,7 @@ import IR.TypeUtil;
 import IR.MethodDescriptor;
 
 public class Inliner {
-  public static boolean inline(FlatCall fc, TypeUtil typeutil, State state) {
+  public static Set<FlatNode> inline(FlatCall fc, TypeUtil typeutil, State state) {
     MethodDescriptor md=fc.getMethod();
     /* Do we need to do virtual dispatch? */
     if (md.isStatic()||md.getReturnType()==null||singleCall(typeutil, fc.getThis().getType().getClassDesc(),md)) {
@@ -25,6 +25,8 @@ public class Inliner {
       Set<FlatNode> nodeset=fm.getNodeSet();
       nodeset.remove(fm);
 
+      HashSet<FlatNode> newnodes=new HashSet<FlatNode>();
+
       //Build the clones
       for(Iterator<FlatNode> fnit=nodeset.iterator();fnit.hasNext();) {
 	FlatNode fn=fnit.next();
@@ -39,21 +41,25 @@ public class Inliner {
 	  }
 	} else {
 	  FlatNode clone=fn.clone(clonemap);
+	  newnodes.add(clone);
 	  flatmap.put(fn,clone);
 	}
       }
       //Build the move chain
       FlatNode first=new FlatNop();;
+      newnodes.add(first);
       FlatNode last=first;
       {
 	int i=0;
 	if (fc.getThis()!=null) {
 	  FlatOpNode fon=new FlatOpNode(fm.getParameter(i++), fc.getThis(), null, new Operation(Operation.ASSIGN));
+	  newnodes.add(fon);
 	  last.addNext(fon);
 	  last=fon;
 	}
 	for(int j=0;j<fc.numArgs();i++,j++) {
 	  FlatOpNode fon=new FlatOpNode(fm.getParameter(i), fc.getArg(j), null, new Operation(Operation.ASSIGN));
+	  newnodes.add(fon);
 	  last.addNext(fon);
 	  last=fon;
 	}
@@ -89,8 +95,8 @@ public class Inliner {
 
       //Add in the edge from move chain to callee
       last.addNext(flatmap.get(fm.getNext(0)));
-      return true;
-    } else return false;
+      return newnodes;
+    } else return null;
   }
 
   private static boolean singleCall(TypeUtil typeutil, ClassDescriptor thiscd, MethodDescriptor md) {

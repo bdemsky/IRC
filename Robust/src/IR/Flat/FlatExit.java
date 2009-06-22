@@ -12,7 +12,7 @@ public class FlatExit extends FlatNode {
   public int kind() {
     return FKind.FlatExit;
   }
-  public FlatNode clone() {
+  public FlatNode clone(TempMap t) {
     return new FlatExit();
   }
   public void rewriteUse(TempMap t) {

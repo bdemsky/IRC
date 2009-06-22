@@ -5,6 +5,7 @@ public class FlatAtomicExitNode extends FlatNode {
   FlatAtomicEnterNode faen;
   public FlatAtomicExitNode(FlatAtomicEnterNode faen) {
     this.faen=faen;
+    faen.addExit(this);
   }
   public FlatAtomicEnterNode getAtomicEnter() {
     return faen;

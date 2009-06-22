@@ -1,4 +1,6 @@
 package Analysis.Locality;
+import Analysis.Liveness;
+import Analysis.ReachingDefs;
 import IR.State;
 import IR.MethodDescriptor;
 import IR.TypeDescriptor;
@@ -8,6 +10,8 @@ import Analysis.Loops.GlobalFieldType;
 import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Set;
+import java.util.List;
+import java.util.Arrays;
 import java.util.Stack;
 import java.util.Iterator;
 
@@ -54,6 +58,110 @@ public class DelayComputation {
     return othermap.get(lb);
   }
 
+  //This method computes which temps are live into the second part
+  public Set<TempDescriptor> alltemps(LocalityBinding lb, FlatAtomicEnterNode faen, Set<FlatNode> recordset) {
+    MethodDescriptor md=lb.getMethod();
+    FlatMethod fm=state.getMethodFlat(md);
+    Set<FlatNode> atomicnodes=faen.getReachableSet(faen.getExits());
+
+    //Compute second part set of nodes
+    Set<FlatNode> secondpart=new HashSet<FlatNode>();
+    secondpart.addAll(getNotReady(lb));
+    secondpart.addAll(recordset);
+
+    //make it just this transaction
+    secondpart.retainAll(atomicnodes);
+    
+    HashSet<TempDescriptor> tempset=new HashSet<TempDescriptor>();
+    
+    for(Iterator<FlatNode> fnit=secondpart.iterator();fnit.hasNext();) {
+      FlatNode fn=fnit.next();
+      List<TempDescriptor> writes=Arrays.asList(fn.writesTemps());
+      tempset.addAll(writes);
+      if (!recordset.contains(fn)) {
+	List<TempDescriptor> reads=Arrays.asList(fn.readsTemps());
+	tempset.addAll(reads);
+      }
+    }
+    
+    return tempset;
+  }
+
+  //This method computes which temps are live into the second part
+  public Set<TempDescriptor> liveinto(LocalityBinding lb, FlatAtomicEnterNode faen, Set<FlatNode> liveset) {
+    MethodDescriptor md=lb.getMethod();
+    FlatMethod fm=state.getMethodFlat(md);
+    Set<FlatNode> atomicnodes=faen.getReachableSet(faen.getExits());
+
+    //Compute second part set of nodes
+    Set<FlatNode> secondpart=new HashSet<FlatNode>();
+    secondpart.addAll(getNotReady(lb));
+    secondpart.addAll(liveset);
+
+    //make it just this transaction
+    secondpart.retainAll(atomicnodes);
+
+    Set<TempDescriptor> liveinto=new HashSet<TempDescriptor>();
+    Hashtable<FlatNode, Hashtable<TempDescriptor, Set<FlatNode>>> reachingdefs=ReachingDefs.computeReachingDefs(fm);
+    
+    for(Iterator<FlatNode> fnit=secondpart.iterator();fnit.hasNext();) {
+      FlatNode fn=fnit.next();
+      
+      TempDescriptor readset[]=fn.readsTemps();
+      for(int i=0;i<readset.length;i++) {
+	TempDescriptor rtmp=readset[i];
+	Set<FlatNode> fnset=reachingdefs.get(fn).get(rtmp);
+	for(Iterator<FlatNode> fnit2=fnset.iterator();fnit2.hasNext();) {
+	  FlatNode fn2=fnit2.next();
+	  if (secondpart.contains(fn2))
+	    continue;
+	  //otherwise we mark this as live in
+	  liveinto.add(rtmp);
+	  break;
+	}
+      }
+    }
+    return liveinto;
+  }
+
+
+  //This method computes which temps are live out of the second part
+  public Set<TempDescriptor> liveout(LocalityBinding lb, FlatAtomicEnterNode faen) {
+    MethodDescriptor md=lb.getMethod();
+    FlatMethod fm=state.getMethodFlat(md);
+    Set<FlatNode> exits=faen.getExits();
+    Hashtable<FlatNode, Set<TempDescriptor>> livemap=Liveness.computeLiveTemps(fm);
+    Hashtable<FlatNode, Hashtable<TempDescriptor, Set<FlatNode>>> reachingdefs=ReachingDefs.computeReachingDefs(fm);
+    
+    Set<FlatNode> atomicnodes=faen.getReachableSet(faen.getExits());
+
+    Set<FlatNode> secondpart=new HashSet<FlatNode>(getNotReady(lb));
+    secondpart.retainAll(atomicnodes);
+
+    Set<TempDescriptor> liveset=new HashSet<TempDescriptor>();
+    //Have list of all live temps
+
+    for(Iterator<FlatNode> fnit=exits.iterator();fnit.hasNext();) {
+      FlatNode fn=fnit.next();
+      Set<TempDescriptor> tempset=livemap.get(fn);
+      Hashtable<TempDescriptor, Set<FlatNode>> reachmap=reachingdefs.get(fn);
+      //Look for reaching defs for all live variables that are in the secondpart
+
+      for(Iterator<TempDescriptor> tmpit=tempset.iterator();tmpit.hasNext();) {
+	TempDescriptor tmp=tmpit.next();
+	Set<FlatNode> fnset=reachmap.get(tmp);
+	for(Iterator<FlatNode> fnit2=fnset.iterator();fnit2.hasNext();) {
+	  FlatNode fn2=fnit2.next();
+	  if (secondpart.contains(fn2)) {
+	    liveset.add(tmp);
+	    break;
+	  }
+	}
+      }
+    }
+    return liveset;
+  }
+
   //This method computes which nodes from the first part of the
   //transaction must store their output for the second part
   //Note that many nodes don't need to...
@@ -80,13 +188,13 @@ public class DelayComputation {
       for(int i=0;i<fn.numPrev();i++) {
 	FlatNode fnprev=fn.getPrev(i);
 	Hashtable<TempDescriptor, HashSet<FlatNode>> prevmap=map.get(fnprev);
-
-	for(Iterator<TempDescriptor> tmpit=prevmap.keySet().iterator();tmpit.hasNext();) {
-	  TempDescriptor tmp=tmpit.next();
-	  if (!tmptofn.containsKey(tmp))
-	    tmptofn.put(tmp, new HashSet<FlatNode>());
-	  tmptofn.get(tmp).addAll(prevmap.get(tmp));
-	}
+	if (prevmap!=null)
+	  for(Iterator<TempDescriptor> tmpit=prevmap.keySet().iterator();tmpit.hasNext();) {
+	    TempDescriptor tmp=tmpit.next();
+	    if (!tmptofn.containsKey(tmp))
+	      tmptofn.put(tmp, new HashSet<FlatNode>());
+	    tmptofn.get(tmp).addAll(prevmap.get(tmp));
+	  }
       }
 
       if (delayedset.contains(fn)) {
