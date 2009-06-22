@@ -163,7 +163,6 @@ public class Sort {
 
       int stkptr = 0;
 
-      start = 0;
       int lo = start;
       int hi = start + (width * (num - 1));
 
@@ -176,7 +175,6 @@ public class Sort {
       pv.hi = hi;
       pv.width = width;
       pv.n = n;
-      pv.offset = offset;
 
       int typeflag;
 
@@ -187,11 +185,11 @@ public class Sort {
         /**
          * debug
          **/
-        //System.out.println("DEBUG: lo= "+ pv.lo + " hi= " + pv.hi + " width= " + pv.width+ " offset= " + pv.offset + " n= " + pv.n + " size= " + size);
+        //System.out.println("DEBUG: lo= "+ pv.lo + " hi= " + pv.hi + " width= " + pv.width+ " offset= " + offset + " n= " + pv.n + " size= " + size);
 
         if (size <= CUTOFF) {
 
-          shortsort(base, pv.lo, pv.hi, pv.width, pv.n, pv.offset);
+          shortsort(base, pv.lo, pv.hi, pv.width, pv.n, offset);
 
         } else {
 
@@ -204,10 +202,10 @@ public class Sort {
           while(true) {
             do {
               pv.loguy += pv.width;
-            } while (pv.loguy <= pv.hi && cmp(base, pv.loguy, pv.lo, pv.n, pv.offset) <= 0);
+            } while (pv.loguy <= pv.hi && cmp(base, pv.loguy, pv.lo, pv.n, offset) <= 0);
             do {
               pv.higuy -= pv.width;
-            } while (pv.higuy > pv.lo && cmp(base, pv.higuy, pv.lo, pv.n, pv.offset) >= 0);
+            } while (pv.higuy > pv.lo && cmp(base, pv.higuy, pv.lo, pv.n, offset) >= 0);
             if (pv.higuy < pv.loguy) {
               break;
             }
@@ -280,7 +278,6 @@ public class ptrVal {
   int hi;
   int width;
   int n;
-  int offset;
   int loguy;
   int higuy;
   int max;
@@ -292,7 +289,6 @@ public class ptrVal {
     hi = 0;
     width = 0;
     n = 0;
-    offset = 0;
     loguy = 0;
     higuy = 0;
     max = 0;

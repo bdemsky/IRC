@@ -132,6 +132,12 @@ public class QuickSort {
       swap(i, j, a);
   }
 
+  /* ===========================================
+   * compareQuery
+   * -- Want smallest ID first
+   * -- For vector_sort
+   * ===========================================
+   */
   public boolean less(Object x, Object y) {
     Query aQueryPtr = (Query) x;
     Query bQueryPtr = (Query) y;

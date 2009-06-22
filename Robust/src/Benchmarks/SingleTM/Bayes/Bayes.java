@@ -337,15 +337,15 @@ public class Bayes extends Thread {
 
     boolean status = learnerPtr.netPtr.net_isCycle();
     if(status) {
-      System.out.println("System has an incorrect result");
+      System.out.println("Assert failed: system has an incorrect result");
       System.exit(0);
     }
 
 #ifndef SIMULATOR
     float learnScore = learnerPtr.learner_score();
-    System.out.println("Learn score= " + learnScore);
+    System.out.println("Learn score= " + (double)learnScore);
 #endif
-    System.out.println("Actual score= " + actualScore);
+    System.out.println("Actual score= " + (double)actualScore);
 
     /*
      * Clean up

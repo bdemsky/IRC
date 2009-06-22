@@ -225,7 +225,7 @@ public class Adtree {
           makeVary(parentIndex, v, start, numRecord, dataPtr);
         boolean status;
         if((status = varyVectorPtr.vector_pushBack(varyPtr)) != true) {
-          System.out.println("varyVectorPtr.vector_pushBack != true");
+          System.out.println("Assert failed: varyVectorPtr.vector_pushBack != true");
           System.exit(0);
         }
       }
@@ -242,7 +242,6 @@ public class Adtree {
   public void
     adtree_make (Data dataPtr)
     {
-      int numRecord = dataPtr.numRecord;
       numVar = dataPtr.numVar;
       numRecord = dataPtr.numRecord;
       dataPtr.data_sort(0, numRecord, 0);
@@ -261,15 +260,12 @@ public class Adtree {
         Vector_t queryVectorPtr,
         int lastQueryIndex)
     {
-      System.out.println("DEBUG: Starting getCount()");
       if (nodePtr == null) {
-        System.out.println("DEBUG: exiting  getCount() at point 1, count= 0");
         return 0;
       }
 
       int nodeIndex = nodePtr.index;
       if (nodeIndex >= lastQueryIndex) {
-        System.out.println("DEBUG: exiting  getCount() at point 2, count= "+ nodePtr.count);
         return nodePtr.count;
       }
 
@@ -278,12 +274,11 @@ public class Adtree {
       Query queryPtr = (Query)(queryVectorPtr.vector_at(q));
 
       if (queryPtr == null) {
-        System.out.println("DEBUG: exiting  getCount() at point 3, count= "+ nodePtr.count);
         return nodePtr.count;
       }
       int queryIndex = queryPtr.index;
       if(queryIndex > lastQueryIndex) {
-        System.out.println("Assert failed");
+        System.out.println("Assert failed: queryIndex > lastQueryIndex in getCount()");
         System.exit(0);
       }
 
@@ -309,7 +304,7 @@ public class Adtree {
                 queryVectorPtr.vector_at(qq));
           }
         }
-        System.out.println("DEBUG: Calling adtree_getCount, HERE1");
+
         int superCount = adtree_getCount(superQueryVectorPtr);
 
         superQueryVectorPtr.vector_free();
@@ -317,7 +312,6 @@ public class Adtree {
         int invertCount;
         if (queryValue == 0) {
           queryPtr.value = 1;
-          System.out.println("DEBUG: Calling adtree_getCount, HERE2");
           invertCount = getCount(nodePtr,
               i,
               q,
@@ -326,7 +320,6 @@ public class Adtree {
           queryPtr.value = 0;
         } else {
           queryPtr.value = 0;
-          System.out.println("DEBUG: Calling adtree_getCount, HERE3");
           invertCount = getCount(nodePtr,
               i,
               q,
@@ -339,27 +332,24 @@ public class Adtree {
       } else {
 
         if (queryValue == 0) {
-          System.out.println("DEBUG: Calling adtree_getCount, HERE4");
           count += getCount(varyPtr.zeroNodePtr,
               (i + 1),
               (q + 1),
               queryVectorPtr,
               lastQueryIndex);
         } else if (queryValue == 1) {
-          System.out.println("DEBUG: Calling adtree_getCount, HERE5");
           count += getCount(varyPtr.oneNodePtr,
               (i + 1),
               (q + 1),
               queryVectorPtr,
               lastQueryIndex);
         } else { /* QUERY_VALUE_WILDCARD */
-          System.out.println("Program shouldn't get here"); // catch bugs in learner
+          System.out.println("Adtree_getCount Program shouldn't get here"); // catch bugs in learner
           System.exit(0);
         }
 
       }
 
-      System.out.println("DEBUG: exiting  getCount() at point 4, count= "+ count);
       return count;
     }
 

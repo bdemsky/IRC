@@ -224,11 +224,11 @@ public class Learner {
       int parentCount = adtreePtr.adtree_getCount(parentQueryVectorPtr);
 
       if(parentCount < count || parentCount <= 0) {
-        System.out.println("Assert failed for computeSpecificLocalLogLikelihood()");
         System.exit(0);
       }
 
       float fval = (float)(probability * (Math.log((double)count/ (double)parentCount)));
+
       return fval;
     }
 
@@ -1532,13 +1532,11 @@ public class Learner {
 
       int numTotalParent = 0;
       float logLikelihood = 0.0f;
-      //System.out.println("DEBUG: before logLikelihood= " + logLikelihood);
 
       for (int v = 0; v < numVar; v++) {
 
         IntList parentIdListPtr = netPtr.net_getParentIdListPtr(v);
         numTotalParent += parentIdListPtr.list_getSize();
-
 
         populateQueryVectors(netPtr,
             v,
@@ -1554,7 +1552,6 @@ public class Learner {
         logLikelihood += localLogLikelihood;
       }
 
-      //System.out.println("DEBUG: after logLikelihood= " + logLikelihood);
       queryVectorPtr.vector_free();
       parentQueryVectorPtr.vector_free();
       queries = null;

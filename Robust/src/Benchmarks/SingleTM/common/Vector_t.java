@@ -60,7 +60,6 @@ public class Vector_t {
       int newCapacity = capacity * 2;
       Object[] newElements = new Object[newCapacity];
 
-      //void** newElements = (void**)malloc(newCapacity * sizeof(void*));
       if (newElements == null) {
         return false;
       }
@@ -119,9 +118,7 @@ public class Vector_t {
   public void
     vector_sort ()
     {
-      //qsort.sort(elements, 0, (elements.length - 1));
-      qsort.sort(elements);
-      //qsort(elements, size, 4, compare);
+      qsort.sort(elements, 0, size);
     }
 
   /* =============================================================================
