@@ -7,7 +7,8 @@
  * - Helper class for Learner.java
  **/
 public class LearnerTask {
-  Operation op;
+  //Operation op;
+  int op;
   int fromId;
   int toId;
   float score;

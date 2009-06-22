@@ -227,11 +227,14 @@ public class Bayes extends Thread {
    * parallel execution
    **/
   public void run() {
-    /*
     Barrier.enterBarrier();
-    Learner.learner_run(myId, numThread, learnerPtr);
+    Learner.createTaskList(myId, numThread, learnerPtr);
     Barrier.enterBarrier();
-    */
+
+    //Barrier.enterBarrier();
+    //Learner.learnStructure(myId, numThread, learnerPtr);
+    //Learner.learner_run(myId, numThread, learnerPtr);
+    //Barrier.enterBarrier();
   }
     
 
@@ -322,6 +325,14 @@ public class Bayes extends Thread {
       binit[i].start();
     }
 
+
+    Barrier.enterBarrier();
+    Learner.createTaskList(0, numThread, learnerPtr);
+    Barrier.enterBarrier();
+
+    //Barrier.enterBarrier();
+    //Learner.learnStructure(0, numThread, learnerPtr);
+    //Barrier.enterBarrier();
 
     /*
     Barrier.enterBarrier();

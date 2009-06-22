@@ -18,11 +18,12 @@ SRC=tmp${MAINCLASS}.java \
 	tmpQueue.java \
 	Random.java \
 	../common/Vector_t.java \
-	../common/ListNode.java \
-	../common/List.java \
+	ListNode.java \
+	tmpList.java \
 	../common/QuickSort.java \
 	IntVector.java \
-    ../../../ClassLibrary/JavaSTM/Barrier.java
+    ../../../ClassLibrary/JavaSTM/Barrier.java \
+    ../common/LocalStartStop.java
 
 FLAGS=-mainclass ${MAINCLASS} -thread -nooptimize -debug
 
@@ -35,6 +36,7 @@ default:
 	cpp Queue.java > tmp1Queue.java
 	cpp -DLEARNER_TRY_REMOVE -DLEARNER_TRY_REVERSE Learner.java > tmp1Learner.java
 	cpp -DLIST_NO_DUPLICATES IntList.java > tmp1IntList.java
+	cpp -DLIST_NO_DUPLICATES List.java > tmp1List.java
 	./extractLines
 	../../../buildscript ${FLAGS} -o ${MAINCLASS} ${SRC}
 
@@ -45,6 +47,8 @@ clean:
 	rm tmpLearner.java
 	rm tmp1IntList.java
 	rm tmpIntList.java
+	rm tmp1List.java
+	rm tmpList.java
 	rm tmp1Data.java
 	rm tmpData.java
 	rm tmp1Net.java

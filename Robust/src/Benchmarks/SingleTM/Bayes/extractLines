@@ -15,3 +15,5 @@ lines=$(grep -n "#" tmp1Learner.java | cut -d: -f1 | sed '1q')
 sed '/^#/d' tmp1Learner.java > tmpLearner.java
 lines=$(grep -n "#" tmp1IntList.java | cut -d: -f1 | sed '1q')
 sed '/^#/d' tmp1IntList.java > tmpIntList.java
+lines=$(grep -n "#" tmp1List.java | cut -d: -f1 | sed '1q')
+sed '/^#/d' tmp1List.java > tmpList.java

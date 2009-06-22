@@ -103,6 +103,9 @@
 
 #define CACHE_LINE_SIZE 64
 #define QUERY_VALUE_WILDCARD -1
+#define OPERATION_INSERT      0
+#define OPERATION_REMOVE      1
+#define OPERATION_REVERSE     2
 
 public class Learner {
   Adtree adtreePtr;
@@ -123,31 +126,6 @@ public class Learner {
     global_operationQualityFactor = 1.0F;
 #endif
   }
-
-  /* =============================================================================
-   * compareTask
-   * -- Want greatest score first
-   * -- For list
-   * =============================================================================
-   */
-  /*
-  static int
-    compareTask (const void* aPtr, const void* bPtr)
-    {
-      learner_task_t* aTaskPtr = (learner_task_t*)aPtr;
-      learner_task_t* bTaskPtr = (learner_task_t*)bPtr;
-      float aScore = aTaskPtr.score;
-      float bScore = bTaskPtr.score;
-
-      if (aScore < bScore) {
-        return 1;
-      } else if (aScore > bScore) {
-        return -1;
-      } else {
-        return (aTaskPtr.toId - bTaskPtr.toId);
-      }
-    }
-    */
 
 
   /* =============================================================================
@@ -237,128 +215,119 @@ public class Learner {
    * createPartition
    * =============================================================================
    */
-  /*
-  static void
-    createPartition (int min, int max, int id, int n,
-        int* startPtr, int* stopPtr)
+  public void
+    createPartition (int min, int max, int id, int n, LocalStartStop lss)
     {
       int range = max - min;
-      int chunk = MAX(1, ((range + n/2) / n)); // rounded 
+      int chunk = Math.imax(1, ((range + n/2) / n)); // rounded 
       int start = min + chunk * id;
       int stop;
       if (id == (n-1)) {
         stop = max;
       } else {
-        stop = MIN(max, (start + chunk));
+        stop = Math.imin(max, (start + chunk));
       }
 
-      *startPtr = start;
-      *stopPtr = stop;
+      lss.i_start = start;
+      lss.i_stop = stop;
     }
-    */
-
 
   /* =============================================================================
    * createTaskList
    * -- baseLogLikelihoods and taskListPtr are updated
    * =============================================================================
    */
-  /*
-  static void
-    createTaskList (void* argPtr)
+  public static void
+    createTaskList (int myId, int numThread, Learner learnerPtr)
     {
-      TM_THREAD_ENTER();
-
-      int myId = thread_getId();
-      int numThread = thread_getNumThread();
-
-      learner_t* learnerPtr = (learner_t*)argPtr;
-      list_t* taskListPtr = learnerPtr.taskListPtr;
-
       boolean status;
 
-      adtree_t* adtreePtr = learnerPtr.adtreePtr;
-      float* localBaseLogLikelihoods = learnerPtr.localBaseLogLikelihoods;
-      learner_task_t* tasks = learnerPtr.tasks;
+      Query[] queries = new Query[2];
+      queries[0] = new Query();
+      queries[1] = new Query();
 
-      query_t queries[2];
-      vector_t* queryVectorPtr = PVECTOR_ALLOC(2);
-      assert(queryVectorPtr);
-      status = vector_pushBack(queryVectorPtr, (void*)&queries[0]);
-      assert(status);
+      Vector_t queryVectorPtr = Vector_t.vector_alloc(2);
+      if(queryVectorPtr == null) {
+        System.out.println("Assert failed: cannot allocate vector");
+        System.exit(0);
+      }
 
-      query_t parentQuery;
-      vector_t* parentQueryVectorPtr = PVECTOR_ALLOC(1);
-      assert(parentQueryVectorPtr);
+      if((status = queryVectorPtr.vector_pushBack(queries[0])) == false) {
+        System.out.println("Assert failed: status = "+ status + "vector_pushBack failed in createTaskList()");
+        System.exit(0);
+      }
 
-      int numVar = adtreePtr.numVar;
-      int numRecord = adtreePtr.numRecord;
-      float baseLogLikelihood = 0.0;
-      float penalty = (float)(-0.5 * log((double)numRecord)); // only add 1 edge 
+      Query parentQuery = new Query();
+      Vector_t parentQueryVectorPtr = Vector_t.vector_alloc(1); 
 
-      int v;
+      if(parentQueryVectorPtr == null) {
+        System.out.println("Assert failed: for vector_alloc at createTaskList()");
+        System.exit(0);
+      }
 
-      int v_start;
-      int v_stop;
-      createPartition(0, numVar, myId, numThread, &v_start, &v_stop);
-      */
+      int numVar = learnerPtr.adtreePtr.numVar;
+      int numRecord = learnerPtr.adtreePtr.numRecord;
+      float baseLogLikelihood = 0.0f;
+      float penalty = (float)(-0.5f * Math.log((double)numRecord)); // only add 1 edge 
+
+      LocalStartStop lss = new LocalStartStop();
+      learnerPtr.createPartition(0, numVar, myId, numThread, lss);
 
       /*
        * Compute base log likelihood for each variable and total base loglikelihood
        */
 
-  /*
-      for (v = v_start; v < v_stop; v++) {
+      for (int v = lss.i_start; v < lss.i_stop; v++) {
 
-        float localBaseLogLikelihood = 0.0;
+        float localBaseLogLikelihood = 0.0f;
         queries[0].index = v;
 
         queries[0].value = 0;
         localBaseLogLikelihood +=
-          computeSpecificLocalLogLikelihood(adtreePtr,
+          learnerPtr.computeSpecificLocalLogLikelihood(learnerPtr.adtreePtr,
               queryVectorPtr,
               parentQueryVectorPtr);
 
         queries[0].value = 1;
         localBaseLogLikelihood +=
-          computeSpecificLocalLogLikelihood(adtreePtr,
+          learnerPtr.computeSpecificLocalLogLikelihood(learnerPtr.adtreePtr,
               queryVectorPtr,
               parentQueryVectorPtr);
 
-        localBaseLogLikelihoods[v] = localBaseLogLikelihood;
+        learnerPtr.localBaseLogLikelihoods[v] = localBaseLogLikelihood;
         baseLogLikelihood += localBaseLogLikelihood;
 
-      } // foreach variable 
+      } // for each variable 
 
-      TM_BEGIN();
-      float globalBaseLogLikelihood =
-        TM_SHARED_READ_F(learnerPtr.baseLogLikelihood);
-      TM_SHARED_WRITE_F(learnerPtr.baseLogLikelihood,
-          (baseLogLikelihood + globalBaseLogLikelihood));
-      TM_END();
-      */
+      atomic {
+        float globalBaseLogLikelihood =
+          learnerPtr.baseLogLikelihood;
+        learnerPtr.baseLogLikelihood = (baseLogLikelihood + globalBaseLogLikelihood);
+      }
 
       /*
        * For each variable, find if the addition of any edge _to_ it is better
        */
 
-  /*
-      status = PVECTOR_PUSHBACK(parentQueryVectorPtr, (void*)&parentQuery);
-      assert(status);
+      if((status = parentQueryVectorPtr.vector_pushBack(parentQuery)) == false) {
+        System.out.println("Assert failed: status = "+ status + " vector_pushBack failed in createPartition()");
+        System.exit(0);
+      }
 
-      for (v = v_start; v < v_stop; v++) {
+      for (int v = lss.i_start; v < lss.i_stop; v++) {
 
          //Compute base log likelihood for this variable
 
         queries[0].index = v;
         int bestLocalIndex = v;
-        float bestLocalLogLikelihood = localBaseLogLikelihoods[v];
+        float bestLocalLogLikelihood = learnerPtr.localBaseLogLikelihoods[v];
 
-        status = PVECTOR_PUSHBACK(queryVectorPtr, (void*)&queries[1]);
-        assert(status);
+        if((status = queryVectorPtr.vector_pushBack(queries[1])) == false) {
+          System.out.println("Assert failed: status = "+ status + " vector_pushBack failed in createPartition()");
+          System.exit(0);
+        }
 
-        int vv;
-        for (vv = 0; vv < numVar; vv++) {
+        for (int vv = 0; vv < numVar; vv++) {
 
           if (vv == v) {
             continue;
@@ -372,13 +341,13 @@ public class Learner {
             queries[1].index = v;
           }
 
-          float newLocalLogLikelihood = 0.0;
+          float newLocalLogLikelihood = 0.0f;
 
           queries[0].value = 0;
           queries[1].value = 0;
           parentQuery.value = 0;
           newLocalLogLikelihood +=
-            computeSpecificLocalLogLikelihood(adtreePtr,
+            learnerPtr.computeSpecificLocalLogLikelihood(learnerPtr.adtreePtr,
                 queryVectorPtr,
                 parentQueryVectorPtr);
 
@@ -386,7 +355,7 @@ public class Learner {
           queries[1].value = 1;
           parentQuery.value = ((vv < v) ? 0 : 1);
           newLocalLogLikelihood +=
-            computeSpecificLocalLogLikelihood(adtreePtr,
+            learnerPtr.computeSpecificLocalLogLikelihood(learnerPtr.adtreePtr,
                 queryVectorPtr,
                 parentQueryVectorPtr);
 
@@ -394,7 +363,7 @@ public class Learner {
           queries[1].value = 0;
           parentQuery.value = ((vv < v) ? 1 : 0);
           newLocalLogLikelihood +=
-            computeSpecificLocalLogLikelihood(adtreePtr,
+            learnerPtr.computeSpecificLocalLogLikelihood(learnerPtr.adtreePtr,
                 queryVectorPtr,
                 parentQueryVectorPtr);
 
@@ -402,7 +371,7 @@ public class Learner {
           queries[1].value = 1;
           parentQuery.value = 1;
           newLocalLogLikelihood +=
-            computeSpecificLocalLogLikelihood(adtreePtr,
+            learnerPtr.computeSpecificLocalLogLikelihood(learnerPtr.adtreePtr,
                 queryVectorPtr,
                 parentQueryVectorPtr);
 
@@ -413,42 +382,49 @@ public class Learner {
 
         } // foreach other variable 
 
-        PVECTOR_POPBACK(queryVectorPtr);
+        queryVectorPtr.vector_popBack();
 
         if (bestLocalIndex != v) {
           float logLikelihood = numRecord * (baseLogLikelihood +
               + bestLocalLogLikelihood
-              - localBaseLogLikelihoods[v]);
+              - learnerPtr.localBaseLogLikelihoods[v]);
           float score = penalty + logLikelihood;
-          learner_task_t* taskPtr = &tasks[v];
+
+          learnerPtr.tasks[v] = new LearnerTask();
+          LearnerTask taskPtr = learnerPtr.tasks[v];
           taskPtr.op = OPERATION_INSERT;
           taskPtr.fromId = bestLocalIndex;
           taskPtr.toId = v;
           taskPtr.score = score;
-          TM_BEGIN();
-          status = TMLIST_INSERT(taskListPtr, (void*)taskPtr);
-          TM_END();
-          assert(status);
+          atomic {
+            status = learnerPtr.taskListPtr.list_insert(taskPtr);
+          }
+
+          if(status == false) {
+            System.out.println("Assert failed: atomic list insert failed at createTaskList()");
+            System.exit(0);
+          }
         }
 
       } // for each variable 
 
-      PVECTOR_FREE(queryVectorPtr);
-      PVECTOR_FREE(parentQueryVectorPtr);
+
+      queryVectorPtr.vector_free();
+      parentQueryVectorPtr.vector_free();
 
 #ifdef TEST_LEARNER
-      list_iter_t it;
-      list_iter_reset(&it, taskListPtr);
-      while (list_iter_hasNext(&it, taskListPtr)) {
-        learner_task_t* taskPtr = (learner_task_t*)list_iter_next(&it, taskListPtr);
-        printf("[task] op=%i from=%li to=%li score=%lf\n",
-            taskPtr.op, taskPtr.fromId, taskPtr.toId, taskPtr.score);
+      ListNode it = learnerPtr.taskListPtr.head;
+      learnerPtr.taskListPtr.list_iter_reset(it);
+
+      while (learnerPtr.taskListPtr.list_iter_hasNext(it)) {
+        it = it.nextPtr;
+        LearnerTask taskPtr = learnerPtr.taskListPtr.list_iter_next(it);
+        System.out.println("[task] op= "+ taskPtr.op +" from= "+taskPtr.fromId+" to= " +taskPtr.toId+
+           " score= " + taskPtr.score);
       }
 #endif // TEST_LEARNER 
 
-      TM_THREAD_EXIT();
     }
-*/
 
   /* =============================================================================
    * TMpopTask
@@ -1488,11 +1464,11 @@ public class Learner {
    * -- Call adtree_make before this
    * =============================================================================
    */
+      /*
   public void
     learner_run (int myId, int numThread, Learner learnerPtr)
     //learner_run (learner_t* learnerPtr)
     {
-      /*
 #ifdef OTM
 #pragma omp parallel
       {
@@ -1506,8 +1482,8 @@ public class Learner {
       thread_start(&createTaskList, (void*)learnerPtr);
       thread_start(&learnStructure, (void*)learnerPtr);
 #endif
-*/
     }
+*/
 
   /* =============================================================================
    * learner_score
