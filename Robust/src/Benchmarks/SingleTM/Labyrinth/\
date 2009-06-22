@@ -1,0 +1,212 @@
+/* =============================================================================
+ *
+ * Router.java
+ *
+ * =============================================================================
+ *
+ * Copyright (C) Stanford University, 2006.  All Rights Reserved.
+ * Author: Chi Cao Minh
+ *
+ * =============================================================================
+ *
+ * For the license of bayes/sort.h and bayes/sort.c, please see the header
+ * of the files.
+ * 
+ * ------------------------------------------------------------------------
+ * 
+ * For the license of kmeans, please see kmeans/LICENSE.kmeans
+ * 
+ * ------------------------------------------------------------------------
+ * 
+ * For the license of ssca2, please see ssca2/COPYRIGHT
+ * 
+ * ------------------------------------------------------------------------
+ * 
+ * For the license of lib/mt19937ar.c and lib/mt19937ar.h, please see the
+ * header of the files.
+ * 
+ * ------------------------------------------------------------------------
+ * 
+ * For the license of lib/rbtree.h and lib/rbtree.c, please see
+ * lib/LEGALNOTICE.rbtree and lib/LICENSE.rbtree
+ * 
+ * ------------------------------------------------------------------------
+ * 
+ * Unless otherwise noted, the following license applies to STAMP files:
+ * 
+ * Copyright (c) 2007, Stanford University
+ * All rights reserved.
+ * 
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are
+ * met:
+ * 
+ *     * Redistributions of source code must retain the above copyright
+ *       notice, this list of conditions and the following disclaimer.
+ * 
+ *     * Redistributions in binary form must reproduce the above copyright
+ *       notice, this list of conditions and the following disclaimer in
+ *       the documentation and/or other materials provided with the
+ *       distribution.
+ * 
+ *     * Neither the name of Stanford University nor the names of its
+ *       contributors may be used to endorse or promote products derived
+ *       from this software without specific prior written permission.
+ * 
+ * THIS SOFTWARE IS PROVIDED BY STANFORD UNIVERSITY ``AS IS'' AND ANY
+ * EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+ * PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL STANFORD UNIVERSITY BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ * =============================================================================
+ */
+
+
+typedef struct router_solve_arg {
+    router_t* routerPtr;
+    maze_t* mazePtr;
+    list_t* pathVectorListPtr;
+} router_solve_arg_t;
+
+public class Router {
+    int xCost;
+    int yCost;
+    int zCost;
+    int bendCost;
+    
+    public class Solve_Arg {
+        Router routerPtr;
+        Maze mazePtr;
+        List_t pathVectorListPtr;
+    }
+
+    enum {
+        MOMENTUM_ZERO = 0,
+        MOMENTUM_POSX = 1,
+        MOMENTUM_POSY = 2,
+        MOMENTUM_POSZ = 3,
+        MOMENTUM_NEGX = 4,
+        MOMENTUM_NEGY = 5,
+        MOMENTUM_NEGZ = 6
+    } Momentum_t;
+
+    private class Point {
+        int x;
+        int y;
+        int z;
+        int value;
+        Momentum_t momentum;
+        
+        public Point(int x,int y, int z,int value, Momentum_t m) {
+            this.x = x;
+            this.y = y;
+            this.z = z;
+            this.value = value;
+            momentum = m;
+        }
+    }
+
+    Point MOVE_POSX = new Point(1,0,0,0,MOMENTUM_POSX);
+    Point MOVE_POSY = new Point(0,1,0,0,MOMENTUM_POSY);
+    Point MOVE_POSZ = new Point(0,0,1,0,MOMENTUM_POSZ);
+    Point MOVE_NEGX = new Point(-1,0,0,0,MOMENTUM_NEGX);
+    Point MOVE_NEGY = new Point(0,-1,0,0,MOMENTUM_NEGY);
+    Point MOVE_NEGZ = new Point(0,0,-1,0,MOMENTUM_NEGZ);
+
+
+/* =============================================================================
+ * router_alloc
+ * =============================================================================
+ * router_t* router_alloc (long xCost, long yCost, long zCost, long bendCost);
+ */
+    public static Router alloc(int xCost,int yCost,int zCost,int bendCost)
+    {
+        Router routerPtr = new Router();
+
+        if(routerPtr != null) {
+            routerPtr.xCost = xCost;
+            routerPtr.yCost = yCost;
+            routerPtr.zCost = zCost;
+            routerPtr.bendCost = bendCost;
+        }
+
+        return routerPtr;    
+    }
+
+
+
+
+/* =============================================================================
+ * router_free
+ * =============================================================================
+ * void router_free (router_t* routerPtr);
+ */
+    public static void free(Router routerPtr) 
+    {
+        routerPtr = null;
+    }
+
+
+    
+/* ============================================================================
+ * traceToNeighbor
+ * ============================================================================
+ */
+    private void traceToNeighbor(Grid myGridPtr,
+                                 Point currPtr,
+                                 Point movePtr,
+                                 boolean useMomentum,
+                                 int bendCost,
+                                 Point nextPtr)
+    {
+        int x = currPtr.x + movePtr.x;
+        int y = currPtr.y + movePtr.y;
+        int z = currPtr.z + movePtr.z;
+
+        if (myGridPtr.isPointValid(x,y,z) &&
+                !myGridPtr.isPointEmpty(x,y,z) &&
+                !myGridPtr.isPointFull(x,y,z))
+        {
+            int value = myGridPtr.getPoint(x,y,z);
+            int b = 0;
+            
+            if (useMomentum && (currPtr.momentum != movePtr.momentum)) {
+                b = bendCost;
+            }
+            if ((value + b) <= nextPtr.value) { /* '=' favors neighbors over current */
+                nextPtr.x = x;
+                nextPtr.y = y;
+                nextPtr.z = z;
+                nextPtr.value = value;
+                nextPtr.momentum = movePtr.momentum;
+            }
+        }
+    }
+
+    
+/* =============================================================================
+ * router_solve
+ * =============================================================================
+ * void router_solve (void* argPtr);
+ */
+    public void solve(Object argPtr) 
+    {
+        Barrior
+    }
+
+
+}
+
+/* =============================================================================
+ *
+ * End of router.h
+ *
+ * =============================================================================
+ */

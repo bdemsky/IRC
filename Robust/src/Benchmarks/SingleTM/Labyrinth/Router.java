@@ -1,0 +1,398 @@
+/* =============================================================================
+ *
+ * Router.java
+ *
+ * =============================================================================
+ *
+ * Copyright (C) Stanford University, 2006.  All Rights Reserved.
+ * Author: Chi Cao Minh
+ * 
+ * Ported to Java
+ * Author: Jihoon Lee
+ * University of California, Irvine
+ *
+ * =============================================================================
+ *
+ * For the license of bayes/sort.h and bayes/sort.c, please see the header
+ * of the files.
+ * 
+ * ------------------------------------------------------------------------
+ * 
+ * For the license of kmeans, please see kmeans/LICENSE.kmeans
+ * 
+ * ------------------------------------------------------------------------
+ * 
+ * For the license of ssca2, please see ssca2/COPYRIGHT
+ * 
+ * ------------------------------------------------------------------------
+ * 
+ * For the license of lib/mt19937ar.c and lib/mt19937ar.h, please see the
+ * header of the files.
+ * 
+ * ------------------------------------------------------------------------
+ * 
+ * For the license of lib/rbtree.h and lib/rbtree.c, please see
+ * lib/LEGALNOTICE.rbtree and lib/LICENSE.rbtree
+ * 
+ * ------------------------------------------------------------------------
+ * 
+ * Unless otherwise noted, the following license applies to STAMP files:
+ * 
+ * Copyright (c) 2007, Stanford University
+ * All rights reserved.
+ * 
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are
+ * met:
+ * 
+ *     * Redistributions of source code must retain the above copyright
+ *       notice, this list of conditions and the following disclaimer.
+ * 
+ *     * Redistributions in binary form must reproduce the above copyright
+ *       notice, this list of conditions and the following disclaimer in
+ *       the documentation and/or other materials provided with the
+ *       distribution.
+ * 
+ *     * Neither the name of Stanford University nor the names of its
+ *       contributors may be used to endorse or promote products derived
+ *       from this software without specific prior written permission.
+ * 
+ * THIS SOFTWARE IS PROVIDED BY STANFORD UNIVERSITY ``AS IS'' AND ANY
+ * EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+ * PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL STANFORD UNIVERSITY BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ * =============================================================================
+ */
+
+#define MOMENTUM_ZERO 0
+#define MOMENTUM_POSX 1
+#define MOMENTUM_POSY 2
+#define MOMENTUM_POSZ 3
+#define MOMENTUM_NEGX 4
+#define MOMENTUM_NEGY 5
+#define MOMENTUM_NEGZ 6
+
+
+public class Router {
+    int xCost;
+    int yCost;
+    int zCost;
+    int bendCost;
+  
+
+/* =============================================================================
+ * router_alloc
+ * =============================================================================
+ * router_t* router_alloc (long xCost, long yCost, long zCost, long bendCost);
+ */
+    public static Router alloc(int xCost,int yCost,int zCost,int bendCost)
+    {
+        Router routerPtr = new Router();
+
+
+        Point MOVE_POSX = new Point(1,0,0,0,MOMENTUM_POSX);
+        Point MOVE_POSY = new Point(0,1,0,0,MOMENTUM_POSY);
+        Point MOVE_POSZ = new Point(0,0,1,0,MOMENTUM_POSZ);
+        Point MOVE_NEGX = new Point(-1,0,0,0,MOMENTUM_NEGX);
+        Point MOVE_NEGY = new Point(0,-1,0,0,MOMENTUM_NEGY);
+        Point MOVE_NEGZ = new Point(0,0,-1,0,MOMENTUM_NEGZ);
+
+        if(routerPtr != null) {
+            routerPtr.xCost = xCost;
+            routerPtr.yCost = yCost;
+            routerPtr.zCost = zCost;
+            routerPtr.bendCost = bendCost;
+        }
+
+        return routerPtr;    
+    }
+
+
+
+
+/* =============================================================================
+ * router_free
+ * =============================================================================
+ * void router_free (router_t* routerPtr);
+ */
+    public static void free(Router routerPtr) 
+    {
+        routerPtr = null;
+    }
+
+/* ============================================================================
+ * PexpandToneighbor
+ * ============================================================================
+ */
+    private void PexpandToNeighbor(Grid myGridPtr, 
+                                    int x,int y,int z, int value,Queue queuePtr)
+    {
+        if (myGridPtr.isPointValid(x,y,z)) {
+            int neighborGridPointIndex = myGridPtr.getPointIndex(x,y,z);
+            int neighborValue = myGridPtr.getPoint(neighborGridPointIndex);
+            if (neighborValue == GRID_POINT_EMPTY) {
+                myGridPtr.setPoint(neighborGridPointIndex,value);
+                queuePtr.queue_push(neighborGridPointIndex);
+            } else if (neighborValue != GRID_POINT_FULL) {
+                
+                if (value < neighborValue) {
+                    myGridPtr.setPoint(neighborGridPointIndex,value);
+                    queuePtr.queue_push(neighborGridPointIndex);
+                }
+            }
+        }
+    }
+
+
+/* ============================================================================
+ * PdoExpansion
+ * ============================================================================
+ */
+    private boolean PdoExpansion (Router routerPtr,Grid myGridPtr,Queue queuePtr,
+                                  Coordinate srcPtr,Coordinate dstPtr)
+    {
+        int xCost = routerPtr.xCost;
+        int yCost = routerPtr.yCost;
+        int zCost = routerPtr.zCost;
+
+        /* 
+         * Potential Optimization: Make 'src' the one closet to edge.
+         * This will likely decrease the area of the emitted wave.
+         */
+
+        queuePtr.queue_clear();
+
+        int srcGridPointIndex = myGridPtr.getPointIndex(srcPtr.x,srcPtr.y,srcPtr.z);
+        queuePtr.queue_push(srcGridPointIndex);
+        myGridPtr.setPoint(srcPtr.x,srcPtr.y,srcPtr.z,0);
+        myGridPtr.setPoint(dstPtr.x,dstPtr.y,dstPtr.z,GRID_POINT_EMPTY);
+        int dstGridPointIndex = myGridPtr.getPointIndex(dstPtr.x,dstPtr.y,dstPtr.z);
+        boolean isPathFound = false;
+
+        while (queuePtr.queue_isEmpty()) {
+            int gridPointIndex = queuePtr.queue_pop();
+            if(gridPointIndex == dstGridPointIndex) {
+                isPathFound = true;
+                break;
+            }
+
+            int[] x = new int[1];
+            int[] y = new int[1];
+            int[] z = new int[1];
+                        
+            myGridPtr.getPointIndices(gridPointIndex,x,y,z);
+            int value = myGridPtr.getPoint(gridPointIndex);
+
+            /*
+             * Check 6 neighbors
+             *
+             * Potential Optimization: Only need to check 5 of these
+             */
+          PexpandToNeighbor(myGridPtr, x[0]+1, y[0],   z[0],   (value + xCost), queuePtr);
+          PexpandToNeighbor(myGridPtr, x[0]-1, y[0],   z[0],   (value + xCost), queuePtr);
+          PexpandToNeighbor(myGridPtr, x[0], y[0]+1,   z[0],   (value + xCost), queuePtr);
+          PexpandToNeighbor(myGridPtr, x[0], y[0]-1,   z[0],   (value + xCost), queuePtr);   
+          PexpandToNeighbor(myGridPtr, x[0], y[0],   z[0]+1,   (value + xCost), queuePtr);
+          PexpandToNeighbor(myGridPtr, x[0], y[0],   z[0]-1,   (value + xCost), queuePtr);
+
+        } /* iterate over work queue */
+
+        return isPathfound;
+    }
+            
+            
+/* ============================================================================
+ * traceToNeighbor
+ * ============================================================================
+ */
+    private void traceToNeighbor(Grid myGridPtr,
+                                 Point currPtr,
+                                 Point movePtr,
+                                 boolean useMomentum,
+                                 int bendCost,
+                                 Point nextPtr)
+    {
+        int x = currPtr.x + movePtr.x;
+        int y = currPtr.y + movePtr.y;
+        int z = currPtr.z + movePtr.z;
+
+        if (myGridPtr.isPointValid(x,y,z) &&
+                !myGridPtr.isPointEmpty(x,y,z) &&
+                !myGridPtr.isPointFull(x,y,z))
+        {
+            int value = myGridPtr.getPoint(x,y,z);
+            int b = 0;
+            
+            if (useMomentum && (currPtr.momentum != movePtr.momentum)) {
+                b = bendCost;
+            }
+            if ((value + b) <= nextPtr.value) { /* '=' favors neighbors over current */
+                nextPtr.x = x;
+                nextPtr.y = y;
+                nextPtr.z = z;
+                nextPtr.value = value;
+                nextPtr.momentum = movePtr.momentum;
+            }
+        }
+    }
+/* =============================================================================
+ * PdoTraceback
+ * =============================================================================
+ */
+
+    private Vector_t PdoTraceback(Grid gridPtr,Grid myGridPtr,
+                                  Coordinate dstPtr, int bendCost)
+    {
+        Vector_t pointVectorPtr = Vector.vector_alloc(1);
+
+        Point next = new Point();
+        next.x = dstPtr.x;
+        next.y = dstPtr.y;
+        next.z = dstPtr.z;
+        next.value = myGridPtr.getPoint(next.x,next.y,next.z);
+        next.momentum = MOMENTUM_ZERO;
+
+        while(true) {
+            int gridPointIndex = gridPtr.getPointIndex(next.x,next.y,next.z);
+            pointVectorPtr.vector_pushBack(gridPointIndex);
+            myGridPtr.setPoint(next.x,next.y,next.z,GRID_POINT_FULL);
+
+            /* Check if we are done */
+            if (next.value == 0) {
+                break;
+            }
+            Point curr = next;
+
+            /*
+             * Check 6 neibors
+             */
+
+            traceToNeighbor(myGridPtr,curr,MOVE_POSX,true, bendCost, next);
+            traceToNeighbor(myGridPtr,curr,MOVE_POSY,true, bendCost, next);   
+            traceToNeighbor(myGridPtr,curr,MOVE_POSZ,true, bendCost, next);
+            traceToNeighbor(myGridPtr,curr,MOVE_NEGX,true, bendCost, next);            
+            traceToNeighbor(myGridPtr,curr,MOVE_NEGY,true, bendCost, next);           
+            traceToNeighbor(myGridPtr,curr,MOVE_NEGZ,true, bendCost, next);          
+
+            /* 
+             * Because of bend costs, none of the neighbors may appear to be closer.
+             * In this case, pick a neighbor while ignoring momentum.
+             */
+            
+            if ((curr.x == next.y) &&
+                (curr.y == next.y) &&
+                (curr.z == next.z))
+            {
+                next.value = curr.value;
+                traceToNeighbor(myGridPtr,curr,MOVE_POSX,false, bendCost, next);   
+                traceToNeighbor(myGridPtr,curr,MOVE_POSY,false, bendCost, next);               
+                traceToNeighbor(myGridPtr,curr,MOVE_POSZ,false, bendCost, next);              
+                traceToNeighbor(myGridPtr,curr,MOVE_NEGX,false, bendCost, next);   
+                traceToNeighbor(myGridPtr,curr,MOVE_NEGY,false, bendCost, next);   
+                traceToNeighbor(myGridPtr,curr,MOVE_NEGZ,false, bendCost, next);   
+                
+                if ((curr.x == next.x) &&
+                    (curr.y == next.y) &&
+                    (curr.z == next.z))
+                {
+                    pointVectorPtr.vector_free();
+                    return null;
+                }
+            }
+        }
+
+        return pointVectorPtr;
+    }
+
+/* =============================================================================
+ * router_solve
+ * =============================================================================
+ * void router_solve (void* argPtr);
+ */
+    public static void solve(Object argPtr) 
+    {
+        // TM_THREAD_ENTER();
+        Solve_Arg routerArgPtr = (SolveArg) argPtr;
+        Router routerPtr = routerArgPtr.routerPtr;
+        Maze mazePtr = routerArgPtr.mazePtr;
+        Vector_t myPathVectorPtr = Vector.alloc(1);
+
+        Queue workQueuePtr = mazePtr.workqueuePtr;
+        Grid gridPtr = mazePtr.gridPtr;
+        Grid myGridPtr = Grid.alloc(gridPtr.width,gridPtr.height,gridPtr.depth);
+        int bendCost = routerPtr.bendCost;
+        Queue myExpansionQueuePtr = Queue.queue_alloc(-1);
+
+        /*
+         * Iterate over work list to route each path. This involves an
+         * 'expansion' and 'tracback' phase for each source/destination pair.
+         */
+        while(true) {
+            Pair coordinatePairPtr;
+            
+            // TM_BEGIN();
+            atomic {
+                if(workQueuePtr.queue_isEmpty()) {
+                    coordinatePairPtr = null;
+                } else {
+                    coordinatePairPtr = (Pair)workQueuePtr.queue_pop();
+                }
+            }
+            // TM_END();
+            //
+            
+            if (coordinatePairPtr = null) {
+                break;
+            }
+
+            Coordinate srcPtr = coordinatePairPtr.firstPtr;
+            Coordinate dstPtr = coordinatePairPtr.secondPtr;
+
+            boolean success = false;
+            Vector_t pointvectorPtr = null;
+
+            // TM_BEGIN();
+            atomic {
+                Grid.copy(myGridPtr, gridPtr); /* ok if not most up-to-date */
+                if (PdoExpansion(routerPtr, myGridPtr, myExpansionQueuePtr,
+                            srcPtr, dstPtr)) {
+                    pointVectorPtr = PdoTraceback(gridPtr,myGridPtr,dstPtr,bendCost);
+
+                    if (pointVectorPtr) {
+                        gridPtr.addPath(pointVectorPtr);
+                        success = true;
+                    }
+                }
+            }
+
+            if(success) {
+                boolean status = myPathVectorPtr.vector_pushBack(pointVectorPtr);
+            }
+        }
+
+        /*
+         * Add my paths to global list
+         */
+        List_t pathVectorListPtr = routerArgPtr.pathVectorListPtr;
+
+        atomic {
+            pathVectorListPtr.insert(myPathVectorPtr);
+        }
+        
+        // TM_THREAD_EXIT();
+    }
+}
+/* =============================================================================
+ *
+ * End of router.java
+ * 
+ * =============================================================================
+ */
