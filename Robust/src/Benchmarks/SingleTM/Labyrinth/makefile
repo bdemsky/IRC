@@ -1,14 +1,14 @@
 MAINCLASS=Labyrinth
 SRC=ttttmp${MAINCLASS}.java \
 	../common/Pair.java \
-	../common/Queue_t.java \
+	ttttmpQueue_t.java \
 	Vector_t.java \
-	../common/List_t.java \
-	../common/List_Node.java \
-	../common/List_Iter.java \
+	List_t.java \
+	List_Node.java \
+	List_Iter.java \
 	Coordinate.java \
 	ttttmpGrid.java \
-	Maze.java \
+	ttttmpMaze.java \
 	ttttmpRouter.java \
 	Point.java \
 	Solve_arg.java \
@@ -20,9 +20,13 @@ default:
 	cpp ${MAINCLASS}.java > tmp${MAINCLASS}.java
 	cpp Grid.java	> tmpGrid.java
 	cpp Router.java > tmpRouter.java
+	cpp Maze.java > tmpMaze.java
+	cpp Queue_t.java > tmpQueue_t.java
 	./extractLines tmp${MAINCLASS}.java
 	./extractLines tmpGrid.java
 	./extractLines tmpRouter.java
+	./extractLines tmpMaze.java
+	./extractLines tmpQueue_t.java
 	../../../buildscript ${FLAGS} -o ${MAINCLASS} ${SRC}
 	rm ttt*.java tmp*.java
 

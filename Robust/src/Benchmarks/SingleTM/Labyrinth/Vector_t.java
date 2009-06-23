@@ -2,10 +2,10 @@ public class Vector_t {
   int size;
   int capacity;
   Object[] elements;
-  QuickSort qsort;
+//  QuickSort qsort;
 
   public Vector_t() {
-    qsort = new QuickSort();
+//    qsort = new QuickSort();
   }
 
   /* =============================================================================

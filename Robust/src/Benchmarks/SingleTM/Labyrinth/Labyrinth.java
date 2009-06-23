@@ -81,7 +81,7 @@ public class Labyrinth extends Thread{
 
     // For threads
     int threadID;
-    Router.Arg routerArg;
+    Solve_Arg routerArg;
 
     private void setDefaultParams() {
 
@@ -102,7 +102,7 @@ public class Labyrinth extends Thread{
 
         setDefaultParams();
 
-        while (i < args.length && argv[i].startswith("-")) {
+        while (i < arg.length() && argv[i].charAt(0) == '-' ) {
             arg = argv[i++];
 
             // check options
@@ -128,14 +128,14 @@ public class Labyrinth extends Thread{
                 global_doPrint = true;
             }
             else {
-                System.err.println("Non-option argument: " + argv[i]);
+                System.out.println("Non-option argument: " + argv[i]);
                 opterr = true;
             }
         }
 
         if(opterr) {
             displayUsage();
-            System.out.exit(1);
+            System.exit(1);
         }
     }
 
@@ -145,7 +145,7 @@ public class Labyrinth extends Thread{
     }
 
 
-    public Labyrinth(int myID,Router.Arg rArg)
+    public Labyrinth(int myID,Solve_Arg rArg)
     {
         threadID = myID;
         routerArg = rArg;
@@ -159,6 +159,20 @@ public class Labyrinth extends Thread{
         }
     }
 
+    public void displayUsage() 
+    {
+        System.out.println("Usage: Labyrinth [options]");
+        System.out.println("Options:");
+        System.out.println("    b <INT>     bend cost");
+        System.out.println("    i <FILE>    input file name");
+        System.out.println("    p           print routed maze");
+        System.out.println("    t <INT>     Number of threads");
+        System.out.println("    x <INT>     x movement cost");
+        System.out.println("    y <INT>     y movement cost");
+        System.out.println("    z <INT>     z movement cost");
+    }
+        
+
     public static void main(String[] argv) 
     {
         /*
@@ -166,32 +180,30 @@ public class Labyrinth extends Thread{
          */
         Labyrinth labyrinth = new Labyrinth(argv);
         
-        Barrier.setBarrier(laybyrinth.numThread);
+        Barrier.setBarrier(labyrinth.numThread);
 
         Maze mazePtr = Maze.alloc();
 
-        int numPathToRoute =  mazePtr.read(global_inputFile);
+        int numPathToRoute =  mazePtr.readMaze(labyrinth.global_inputFile);
         
-        Router routerPtr = Router.alloc(laybyrinth.xCost,laybyrinth.yCost,
-                                        laybyrinth.zCost,laybyrinth.bendCost);
+        Router routerPtr = Router.alloc(labyrinth.xCost,labyrinth.yCost,
+                                        labyrinth.zCost,labyrinth.bendCost);
 
         List_t pathVectorListPtr = List_t.alloc(0);     // list_t.alloc(null)
-
         /*
          * Run transactions
          */
-        Solve_arg routerArg = new Solve_arg(routerPtr,mazePtr,pathVectorListPtr);
-
+        Solve_Arg routerArg = new Solve_Arg(routerPtr,mazePtr,pathVectorListPtr);
 
         /* Create and start thread */
-        Layrinth[] lb = new Labyrinth[numThread];
+        Labyrinth[] lb = new Labyrinth[labyrinth.numThread];
 
-        for(int i = 1; i<numThread;i++) {
+        for(int i = 1; i<labyrinth.numThread;i++) {
             lb[i] = new Labyrinth(i,routerArg);
         }
 
-        for(int i = 1; i<numThread;i++) {
-            ib[i].start();
+        for(int i = 1; i<labyrinth.numThread;i++) {
+            lb[i].start();
         }
 
         /* End of Solve */
@@ -202,12 +214,12 @@ public class Labyrinth extends Thread{
         it.reset(pathVectorListPtr);
         while(it.hasNext(pathVectorListPtr)) {
             Vector_t pathVectorPtr = (Vector_t)it.next(pathVectorListPtr);
-            numPathRouted += pathVectorPtr.getSize();
+            numPathRouted += pathVectorPtr.vector_getSize();
         }
 
-        System.out.println("Paths routed    = " + numPaathRouted);
+        System.out.println("Paths routed    = " + numPathRouted);
 
-        boolean stats = mazePtr.checkPaths(pathVectorListPtr,global_doPrint);
+        boolean stats = mazePtr.checkPaths(pathVectorListPtr,labyrinth.global_doPrint);
         if(!stats)
         {
             System.out.println("Verification not passed");

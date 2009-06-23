@@ -81,6 +81,7 @@ public class Grid {
     public int points_index;
     public int[][] points_unaligned;
 
+    public Grid() {}
 
     
 /* =============================================================================
@@ -94,7 +95,7 @@ public class Grid {
     public static Grid alloc(int width,int height,int depth) {
         Grid grid = new Grid();
 
-        if(grid) {
+        if(grid != null) {
 
             grid.width = width;
             grid.height = height;
@@ -110,7 +111,7 @@ public class Grid {
             grid.points_index = CACHE_LINE_SIZE;        // not sure it is right..
 
             for(int i=grid.points_index;i<n;i++) 
-                grid.points_unaligned[i] = GRID_POINT_EMPTY;            
+                grid.points_unaligned[i][0] = GRID_POINT_EMPTY;            
         }
                     
         return grid;         
@@ -155,7 +156,7 @@ public class Grid {
            (srcGridPtr.height == dstGridPtr.height) ||
            (srcGridPtr.depth == dstGridPtr.depth))
         {
-            System.err.println("Assert in Grid_Copy");
+            System.out.println("Assert in Grid_Copy");
             System.out.exit(1);
         }
 
@@ -164,7 +165,7 @@ public class Grid {
         int n = srcGridPtr.width * srcGridPtr.height * srcGridPtr.depth;
 
         for(int i=0;i<n;i++)
-            dstGridPtr.points_unaligned[points_index + i][0] = srcGridPtr.points_unaligned[points_index + i][0];   
+            dstGridPtr.points_unaligned[dstGridPtr.points_index + i][0] = srcGridPtr.points_unaligned[srcGridPtr.points_index + i][0];   
     }
 
 
@@ -208,12 +209,12 @@ long* grid_getPointRef (grid_t* gridPtr, long x, long y, long z);
  */
     public void getPointIndices(int gridPointIndex,int[] xPtr, int[] yPtr,int[] zPtr)
     {
-        int height = this.heigt;
+        int height = this.height;
         int width = this.width;
         int area = height * width;
         int index3d = (gridPointIndex - this.points_index);
         zPtr[0] = index3d / area;
-        long index2d = index3d % area;
+        int index2d = index3d % area;
         yPtr[0] = index2d / width;
         xPtr[0] = index2d % width;        
     }
@@ -242,7 +243,7 @@ long* grid_getPointRef (grid_t* gridPtr, long x, long y, long z);
  */
     public boolean isPointEmpty(int x,int y,int z)
     {
-        int value = getPoint(x,y,z)[0];
+        int value = getPoint(x,y,z);
         return ((value == GRID_POINT_EMPTY) ? true:false);
     }
 
@@ -255,7 +256,7 @@ long* grid_getPointRef (grid_t* gridPtr, long x, long y, long z);
  */
     public boolean isPointFull(int x,int y,int z)
     {
-        int value = getPoint(x,y,z)[0];
+        int value = getPoint(x,y,z);
         return ((value == GRID_POINT_FULL) ? true : false);
     }
 
@@ -285,7 +286,7 @@ void grid_addPath (grid_t* gridPtr, vector_t* pointVectorPtr);
     public void addPath(Vector_t pointVectorPtr)
     {
         int i;
-        int n = pointVectorPtr.getSize();
+        int n = pointVectorPtr.vector_getSize();
 
         for(i = 1; i < (n-1); i++) {
             Coordinate coordinatePtr = (Coordinate)pointVectorPtr.vector_at(i);
@@ -315,7 +316,7 @@ void grid_print (grid_t* gridPtr);
     {
         int z;
 
-        for(z=0;j<depth;z++) {
+        for(z = 0; z < depth; z++) {
             System.out.println("[z = " + z + "]");
             int x;
             for(x = 0; x < width; x++) {
@@ -323,9 +324,9 @@ void grid_print (grid_t* gridPtr);
                 for(y = 0; y < height; y++) {
                     System.out.println(points_unaligned[getPointIndex(x,y,z)]);
                 }
-                System.out.println();
+                System.out.println("");
             }
-            System.out.println();
+            System.out.println("");
         }
  
     }

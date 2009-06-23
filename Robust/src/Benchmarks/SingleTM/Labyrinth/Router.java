@@ -79,14 +79,22 @@
 #define MOMENTUM_NEGX 4
 #define MOMENTUM_NEGY 5
 #define MOMENTUM_NEGZ 6
-
+#define GRID_POINT_FULL -2
+#define GRID_POINT_EMPTY -1
 
 public class Router {
-    int xCost;
-    int yCost;
-    int zCost;
-    int bendCost;
-  
+    public int xCost;
+    public int yCost;
+    public int zCost;
+    public int bendCost;
+    public static Point MOVE_POSX;
+    public static Point MOVE_POSY;
+    public static Point MOVE_POSZ;
+    public static Point MOVE_NEGX;
+    public static Point MOVE_NEGY;
+    public static Point MOVE_NEGZ;
+
+    public Router() {}
 
 /* =============================================================================
  * router_alloc
@@ -98,12 +106,12 @@ public class Router {
         Router routerPtr = new Router();
 
 
-        Point MOVE_POSX = new Point(1,0,0,0,MOMENTUM_POSX);
-        Point MOVE_POSY = new Point(0,1,0,0,MOMENTUM_POSY);
-        Point MOVE_POSZ = new Point(0,0,1,0,MOMENTUM_POSZ);
-        Point MOVE_NEGX = new Point(-1,0,0,0,MOMENTUM_NEGX);
-        Point MOVE_NEGY = new Point(0,-1,0,0,MOMENTUM_NEGY);
-        Point MOVE_NEGZ = new Point(0,0,-1,0,MOMENTUM_NEGZ);
+        routerPtr.MOVE_POSX = new Point(1,0,0,0,MOMENTUM_POSX);
+        routerPtr.MOVE_POSY = new Point(0,1,0,0,MOMENTUM_POSY);
+        routerPtr.MOVE_POSZ = new Point(0,0,1,0,MOMENTUM_POSZ);
+        routerPtr.MOVE_NEGX = new Point(-1,0,0,0,MOMENTUM_NEGX);
+        routerPtr.MOVE_NEGY = new Point(0,-1,0,0,MOMENTUM_NEGY);
+        routerPtr.MOVE_NEGZ = new Point(0,0,-1,0,MOMENTUM_NEGZ);
 
         if(routerPtr != null) {
             routerPtr.xCost = xCost;
@@ -133,19 +141,19 @@ public class Router {
  * ============================================================================
  */
     private void PexpandToNeighbor(Grid myGridPtr, 
-                                    int x,int y,int z, int value,Queue queuePtr)
+                                    int x,int y,int z, int value,Queue_t queuePtr)
     {
         if (myGridPtr.isPointValid(x,y,z)) {
             int neighborGridPointIndex = myGridPtr.getPointIndex(x,y,z);
             int neighborValue = myGridPtr.getPoint(neighborGridPointIndex);
             if (neighborValue == GRID_POINT_EMPTY) {
                 myGridPtr.setPoint(neighborGridPointIndex,value);
-                queuePtr.queue_push(neighborGridPointIndex);
+                queuePtr.queue_push(new Integer(neighborGridPointIndex));
             } else if (neighborValue != GRID_POINT_FULL) {
                 
                 if (value < neighborValue) {
                     myGridPtr.setPoint(neighborGridPointIndex,value);
-                    queuePtr.queue_push(neighborGridPointIndex);
+                    queuePtr.queue_push(new Integer(neighborGridPointIndex));
                 }
             }
         }
@@ -156,12 +164,13 @@ public class Router {
  * PdoExpansion
  * ============================================================================
  */
-    private boolean PdoExpansion (Router routerPtr,Grid myGridPtr,Queue queuePtr,
+    public boolean PdoExpansion (Router routerPtr,Grid myGridPtr,Queue_t queuePtr,
                                   Coordinate srcPtr,Coordinate dstPtr)
     {
         int xCost = routerPtr.xCost;
         int yCost = routerPtr.yCost;
         int zCost = routerPtr.zCost;
+
 
         /* 
          * Potential Optimization: Make 'src' the one closet to edge.
@@ -171,14 +180,14 @@ public class Router {
         queuePtr.queue_clear();
 
         int srcGridPointIndex = myGridPtr.getPointIndex(srcPtr.x,srcPtr.y,srcPtr.z);
-        queuePtr.queue_push(srcGridPointIndex);
+        queuePtr.queue_push(new Integer(srcGridPointIndex));
         myGridPtr.setPoint(srcPtr.x,srcPtr.y,srcPtr.z,0);
         myGridPtr.setPoint(dstPtr.x,dstPtr.y,dstPtr.z,GRID_POINT_EMPTY);
         int dstGridPointIndex = myGridPtr.getPointIndex(dstPtr.x,dstPtr.y,dstPtr.z);
         boolean isPathFound = false;
 
         while (queuePtr.queue_isEmpty()) {
-            int gridPointIndex = queuePtr.queue_pop();
+            int gridPointIndex = ((Integer)queuePtr.queue_pop()).intValue();
             if(gridPointIndex == dstGridPointIndex) {
                 isPathFound = true;
                 break;
@@ -205,7 +214,7 @@ public class Router {
 
         } /* iterate over work queue */
 
-        return isPathfound;
+        return isPathFound;
     }
             
             
@@ -251,7 +260,7 @@ public class Router {
     private Vector_t PdoTraceback(Grid gridPtr,Grid myGridPtr,
                                   Coordinate dstPtr, int bendCost)
     {
-        Vector_t pointVectorPtr = Vector.vector_alloc(1);
+        Vector_t pointVectorPtr = Vector_t.vector_alloc(1);
 
         Point next = new Point();
         next.x = dstPtr.x;
@@ -262,7 +271,7 @@ public class Router {
 
         while(true) {
             int gridPointIndex = gridPtr.getPointIndex(next.x,next.y,next.z);
-            pointVectorPtr.vector_pushBack(gridPointIndex);
+            pointVectorPtr.vector_pushBack(new Integer(gridPointIndex));
             myGridPtr.setPoint(next.x,next.y,next.z,GRID_POINT_FULL);
 
             /* Check if we are done */
@@ -320,16 +329,16 @@ public class Router {
     public static void solve(Object argPtr) 
     {
         // TM_THREAD_ENTER();
-        Solve_Arg routerArgPtr = (SolveArg) argPtr;
+        Solve_Arg routerArgPtr = (Solve_Arg) argPtr;
         Router routerPtr = routerArgPtr.routerPtr;
         Maze mazePtr = routerArgPtr.mazePtr;
-        Vector_t myPathVectorPtr = Vector.alloc(1);
+        Vector_t myPathVectorPtr = Vector_t.vector_alloc(1);
 
-        Queue workQueuePtr = mazePtr.workqueuePtr;
+        Queue_t workQueuePtr = mazePtr.workQueuePtr;
         Grid gridPtr = mazePtr.gridPtr;
         Grid myGridPtr = Grid.alloc(gridPtr.width,gridPtr.height,gridPtr.depth);
         int bendCost = routerPtr.bendCost;
-        Queue myExpansionQueuePtr = Queue.queue_alloc(-1);
+        Queue_t myExpansionQueuePtr = Queue_t.queue_alloc(-1);
 
         /*
          * Iterate over work list to route each path. This involves an
@@ -349,24 +358,25 @@ public class Router {
             // TM_END();
             //
             
-            if (coordinatePairPtr = null) {
+            if (coordinatePairPtr == null) {
                 break;
             }
 
-            Coordinate srcPtr = coordinatePairPtr.firstPtr;
-            Coordinate dstPtr = coordinatePairPtr.secondPtr;
-
+            Coordinate srcPtr = (Coordinate)coordinatePairPtr.first;
+            Coordinate dstPtr = (Coordinate)coordinatePairPtr.second;
+            
             boolean success = false;
-            Vector_t pointvectorPtr = null;
+            Vector_t pointVectorPtr = null;
 
             // TM_BEGIN();
             atomic {
                 Grid.copy(myGridPtr, gridPtr); /* ok if not most up-to-date */
-                if (PdoExpansion(routerPtr, myGridPtr, myExpansionQueuePtr,
-                            srcPtr, dstPtr)) {
-                    pointVectorPtr = PdoTraceback(gridPtr,myGridPtr,dstPtr,bendCost);
+                               
+                boolean result = routerPtr.PdoExpansion(routerPtr,myGridPtr,myExpansionQueuePtr,srcPtr,dstPtr);
+                if(result) {
+                    pointVectorPtr = routerPtr.PdoTraceback(gridPtr,myGridPtr,dstPtr,bendCost);
 
-                    if (pointVectorPtr) {
+                    if (pointVectorPtr != null) {
                         gridPtr.addPath(pointVectorPtr);
                         success = true;
                     }
@@ -375,6 +385,10 @@ public class Router {
 
             if(success) {
                 boolean status = myPathVectorPtr.vector_pushBack(pointVectorPtr);
+                if(status) {
+                    System.out.println("Error in Router_Solve");
+                    System.exit(1);
+                }
             }
         }
 

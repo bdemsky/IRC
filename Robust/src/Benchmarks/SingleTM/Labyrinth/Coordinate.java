@@ -79,6 +79,8 @@ public class Coordinate {
     public int y;
     public int z;
 
+    public Coordinate() {}
+
 
     // coordiate_alloc will be constructor
     // coordinate_t* coordinate_alloc(long x, long y, long z)
@@ -117,8 +119,8 @@ public class Coordinate {
       *========================================================*/   
     private static double getPairDistance(Pair p)
     {
-        Coordinate a = (Coordinate)p.a;
-        Coordinate b = (Coordinate)p.b;
+        Coordinate a = (Coordinate)p.first;
+        Coordinate b = (Coordinate)p.second;
         int dx = a.x - b.x;
         int dy = a.y - b.y;
         int dz = a.z - b.z;
@@ -139,7 +141,7 @@ public class Coordinate {
     public static int comparePair(final Object a,final Object b) 
     {
         double aDistance = getPairDistance((Pair)a);
-        double bDistnace = getPairDistance((Pair)b);
+        double bDistance = getPairDistance((Pair)b);
 
         if(aDistance < bDistance) {
             return 1;

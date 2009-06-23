@@ -109,8 +109,11 @@ public class List_t {
  * -- Returns NULL on failure
  * =============================================================================
  * list_t* list_alloc (long (*compare)(const void*, const void*));
+ *
+ *
  */
-    public static List_t alloc(int flag) 
+
+    public static List_t alloc(int isCoordinate) 
     {
         List_t listPtr = new List_t();
 
@@ -119,10 +122,10 @@ public class List_t {
         }
 
         listPtr.head.dataPtr = null;
-        listPtr.nextPtr = null;
+        listPtr.head.nextPtr = null;
         listPtr.size = 0;
         
-        isCoordinate = (flag==1)?true:false;
+        listPtr.isCoordinate = (isCoordinate==1)?true:false;
 
         return listPtr;
     }
@@ -134,7 +137,7 @@ public class List_t {
  * =============================================================================
  * void list_free (list_t* listPtr);
  */
-    public static void free(List listPtr) 
+    public static void free(List_t listPtr) 
     {
         listPtr = null;
     }
@@ -172,7 +175,7 @@ public class List_t {
         List_Node prevPtr = head;
         List_Node nodePtr = prevPtr.nextPtr;
 
-        for(; nodePtr != null; noePtr = nodePtr.nextPtr) {
+        for(; nodePtr != null; nodePtr = nodePtr.nextPtr) {
             if (compare(nodePtr.dataPtr,dataPtr) >= 0) {
                 return prevPtr;
             }
@@ -224,7 +227,7 @@ public class List_t {
         List_Node currPtr;
 
         prevPtr = findPrevious(dataPtr);
-        currPtr = prePtr.nextPtr;
+        currPtr = prevPtr.nextPtr;
 
         nodePtr = allocNode(dataPtr);
         if (nodePtr == null) {
@@ -232,7 +235,7 @@ public class List_t {
         }
 
         nodePtr.nextPtr = currPtr;
-        prevPtr.nextPr = nodePtr;
+        prevPtr.nextPtr = nodePtr;
         size++;
 
         return true;
@@ -269,7 +272,7 @@ public class List_t {
     }
 
     int compareObject(Object obj1,Object obj2) {
-        return obj1 - obj2;
+        return 1;
     }
     
 
@@ -296,7 +299,7 @@ public class List_t {
  public static void main(String[] argv) {
      List_t listPtr;
      int[] data1 = new int[5];
-     int[] data2 = new int [6];
+     int[] data2 = new int[6];
 
      int i;
 
