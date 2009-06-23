@@ -59,4 +59,13 @@ extern __thread unsigned int c_threshold;
 extern __thread double c_loadfactor;
 extern __thread cliststruct_t *c_structs;
 
+#ifdef DELAYCOMP
+void dc_t_chashCreate(unsigned int size, double loadfactor);
+void dc_t_chashInsertOnce(void * key, void *val);
+void * dc_t_chashSearch(void * key);
+unsigned int dc_t_chashResize(unsigned int newsize);
+void dc_t_chashDelete();
+void dc_t_chashreset();
+#endif
+
 #endif

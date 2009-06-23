@@ -169,12 +169,19 @@ objheader_t *transCreateObj(void * ptr, unsigned int size);
 unsigned int getNewOID(void);
 void *objstrAlloc(unsigned int size);
 __attribute__((pure)) void *transRead(void *, void *);
+#ifdef DELAYCOMP
+int transCommit(void (*commitmethod)(void *, void *, void *), void * primitives, void * locals, void * params);
+int traverseCache(void (*commitmethod)(void *, void *, void *), void * primitives, void * locals, void * params);
+int alttraverseCache(void (*commitmethod)(void *, void *, void *), void * primitives, void * locals, void * params);
+void transCommitProcess(void **, int, void (*commitmethod)(void *, void *, void *), void * primitives, void * locals, void * params);
+#else
 int transCommit();
 int traverseCache();
 int alttraverseCache();
+void transCommitProcess(void **, int);
+#endif
 int altalttraverseCache();
 void transAbortProcess(void **, int);
-void transCommitProcess(void **, int);
 void randomdelay(int);
 #if defined(STMSTATS)||defined(SOFTABORT)
 int getTotalAbortCount(int, int, void *, void *, int);

@@ -291,15 +291,19 @@ void freelockedobjs() {
  * - a final response
  * ================================================================
  */
+#ifdef DELAYCOMP
+int transCommit(void (*commitmethod)(void *, void *, void *), void * primitives, void * locals, void * params) {
+#else
 int transCommit() {
+#endif
   int softaborted=0;
   do {
     /* Look through all the objects in the transaction hash table */
     int finalResponse;
     if (c_numelements<(c_size>>3))
-      finalResponse= alttraverseCache();
+      finalResponse= alttraverseCache(commitmethod, primitives, locals, params);
     else
-      finalResponse= traverseCache();
+      finalResponse= traverseCache(commitmethod, primitives, locals, params);
     if(finalResponse == TRANS_ABORT) {
 #ifdef TRANSSTATS
       numTransAbort++;
@@ -358,13 +362,32 @@ int transCommit() {
   } while (1);
 }
 
+#ifdef DELAYCOMP
+#define freearrays   if (c_numelements>=200) { \
+    free(oidrdlocked); \
+    free(oidrdversion); \
+  } \
+  if (t_numelements>=200) { \
+    free(oidwrlocked); \
+  }
+#else
+#define freearrays   if (c_numelements>=200) { \
+    free(oidrdlocked); \
+    free(oidrdversion); \
+    free(oidwrlocked); \
+  }
+#endif
 /* ==================================================
  * traverseCache
  * - goes through the transaction cache and
  * - decides if a transaction should commit or abort
  * ==================================================
  */
+#ifdef DELAYCOMP
+int traverseCache(void (*commitmethod)(void *, void *, void *), void * primitives, void * locals, void * params) {
+#else
 int traverseCache() {
+#endif
   /* Create info to keep track of objects that can be locked */
   int numoidrdlocked=0;
   int numoidwrlocked=0;
@@ -376,6 +399,22 @@ int traverseCache() {
   void ** oidrdlocked;
   void ** oidwrlocked;
   int * oidrdversion;
+#ifdef DELAYCOMP
+  int t_numelements=c_numelements+dc_c_numelements;
+  if (t_numelements<200) {
+    oidwrlocked=wrlocked;
+  } else {
+    oidwrlocked=malloc(t_numelements*sizeof(void *));
+  }
+  if (c_numelements<200) {
+    oidrdlocked=rdlocked;
+    oidrdversion=rdversion;
+  } else {
+    int size=c_numelements*sizeof(void*);
+    oidrdlocked=malloc(size);
+    oidrdversion=malloc(size);
+  }
+#else
   if (c_numelements<200) {
     oidrdlocked=rdlocked;
     oidrdversion=rdversion;
@@ -386,6 +425,7 @@ int traverseCache() {
     oidrdversion=malloc(size);
     oidwrlocked=malloc(size);
   }
+#endif
   chashlistnode_t *ptr = c_table;
   /* Represents number of bins in the chash table */
   unsigned int size = c_size;
@@ -416,11 +456,7 @@ int traverseCache() {
 #endif
 	    DEBUGSTM("WR Abort: rd: %u wr: %u tot: %u type: %u ver: %u\n", numoidrdlocked, numoidwrlocked, c_numelements, TYPE(header), header->version);
 	    DEBUGSTMSTAT("WR Abort: Access Count: %u AbortCount: %u type: %u ver: %u \n", header->accessCount, header->abortCount, TYPE(header), header->version);
-	    if (c_numelements>=200) {
-	      free(oidrdlocked);
-	      free(oidrdversion);
-	      free(oidwrlocked);
-	    }
+	    freearrays;
 	    if (softabort)
 	    return TRANS_SOFT_ABORT;
 	      else
@@ -442,11 +478,7 @@ int traverseCache() {
 #endif
 	  DEBUGSTM("WR Abort: rd: %u wr: %u tot: %u type: %u ver: %u\n", numoidrdlocked, numoidwrlocked, c_numelements, TYPE(header), header->version);
 	  DEBUGSTMSTAT("WR Abort: Access Count: %u AbortCount: %u type: %u ver: %u \n", header->accessCount, header->abortCount, TYPE(header), header->version);
-	  if (c_numelements>=200) {
-	    free(oidrdlocked);
-	    free(oidrdversion);
-	    free(oidwrlocked);
-	  }
+	  freearrays;
 	  if (softabort)
 	    return TRANS_SOFT_ABORT;
 	  else
@@ -459,6 +491,50 @@ int traverseCache() {
       curr = curr->next;
     }
   } //end of for
+
+#ifdef DELAYCOMP
+  //acquire other locks
+  chashlistnode_t *dc_curr = dc_c_list;
+  /* Inner loop to traverse the linked list of the cache lookupTable */
+  while(likely(dc_curr != NULL)) {
+    //if the first bin in hash table is empty
+    objheader_t * headeraddr=&((objheader_t *) dc_curr->val)[-1];
+    objheader_t *header=(objheader_t *)(((char *)dc_curr->key)-sizeof(objheader_t));
+    if(write_trylock(&header->lock)) { //can aquire write lock    
+      oidwrlocked[numoidwrlocked++] = header;
+    } else {
+      //maybe we already have lock
+      chashlistnode_t *node = &c_table[(((unsigned INTPTR)key) & c_mask)>>4];
+      
+      do {
+	if(node->key == key) {
+	  goto nextloop;
+	}
+	node = node->next;
+      } while(node != NULL);
+
+      //have to abort to avoid deadlock
+      transAbortProcess(oidwrlocked, numoidwrlocked);
+#ifdef STMSTATS
+      ABORTCOUNT(header);
+      (typesCausingAbort[TYPE(header)])++;
+#endif
+#if defined(STMSTATS)||defined(SOFTABORT)
+      if (getTotalAbortCount(i+1, size, (void *)(curr->next), NULL, 1))
+	softabort=0;
+#endif
+      DEBUGSTM("WR Abort: rd: %u wr: %u tot: %u type: %u ver: %u\n", numoidrdlocked, numoidwrlocked, c_numelements, TYPE(header), header->version);
+      DEBUGSTMSTAT("WR Abort: Access Count: %u AbortCount: %u type: %u ver: %u \n", header->accessCount, header->abortCount, TYPE(header), header->version);
+      freearrays;
+      if (softabort)
+	return TRANS_SOFT_ABORT;
+      else
+	return TRANS_ABORT;
+    }
+  nextloop:
+    dc_curr = dc_curr->lnext;
+  }
+#endif
 
   //THIS IS THE SERIALIZATION END POINT (START POINT IS END OF EXECUTION)*****
 
@@ -477,11 +553,7 @@ int traverseCache() {
 #endif
 	DEBUGSTM("RD Abort: rd: %u wr: %u tot: %u type: %u ver: %u\n", numoidrdlocked, numoidwrlocked, c_numelements, TYPE(header), header->version);
 	DEBUGSTMSTAT("RD Abort: Access Count: %u AbortCount: %u type: %u ver: %u \n", header->accessCount, header->abortCount, TYPE(header), header->version);
-	if (c_numelements>=200) {
-	  free(oidrdlocked);
-	  free(oidrdversion);
-	  free(oidwrlocked);
-	}
+	freearrays;
 	return TRANS_ABORT;
       }
     } else { /* cannot aquire lock */
@@ -500,11 +572,7 @@ int traverseCache() {
 #endif
       DEBUGSTM("RD Abort: rd: %u wr: %u tot: %u type: %u ver: %u\n", numoidrdlocked, numoidwrlocked, c_numelements, TYPE(header), header->version);
       DEBUGSTMSTAT("RD Abort: Access Count: %u AbortCount: %u type: %u ver: %u \n", header->accessCount, header->abortCount, TYPE(header), header->version);
-      if (c_numelements>=200) {
-	free(oidrdlocked);
-	free(oidrdversion);
-	free(oidwrlocked);
-      }
+      freearrays;
       if (softabort)
 	return TRANS_SOFT_ABORT;
       else
@@ -513,13 +581,13 @@ int traverseCache() {
   }
   
   /* Decide the final response */
+#ifdef DELAYCOMP
+  transCommitProcess(oidwrlocked, numoidwrlocked, commitmethod, primitives, locals, params);
+#else
   transCommitProcess(oidwrlocked, numoidwrlocked);
+#endif
   DEBUGSTM("Commit: rd: %u wr: %u tot: %u\n", numoidrdlocked, numoidwrlocked, c_numelements);
-  if (c_numelements>=200) {
-    free(oidrdlocked);
-    free(oidrdversion);
-    free(oidwrlocked);
-  }
+  freearrays;
   return TRANS_COMMIT;
 }
 
@@ -529,7 +597,12 @@ int traverseCache() {
  * - decides if a transaction should commit or abort
  * ==================================================
  */
+
+#ifdef DELAYCOMP
+int alttraverseCache(void (*commitmethod)(void *, void *, void *), void * primitives, void * locals, void * params) {
+#else
 int alttraverseCache() {
+#endif
   /* Create info to keep track of objects that can be locked */
   int numoidrdlocked=0;
   int numoidwrlocked=0;
@@ -541,6 +614,22 @@ int alttraverseCache() {
   void ** oidrdlocked;
   int * oidrdversion;
   void ** oidwrlocked;
+#ifdef DELAYCOMP
+  int t_numelements=c_numelements+dc_c_numelements;
+  if (t_numelements<200) {
+    oidwrlocked=wrlocked;
+  } else {
+    oidwrlocked=malloc(t_numelements*sizeof(void *));
+  }
+  if (c_numelements<200) {
+    oidrdlocked=rdlocked;
+    oidrdversion=rdversion;
+  } else {
+    int size=c_numelements*sizeof(void*);
+    oidrdlocked=malloc(size);
+    oidrdversion=malloc(size);
+  }
+#else
   if (c_numelements<200) {
     oidrdlocked=rdlocked;
     oidrdversion=rdversion;
@@ -551,6 +640,7 @@ int alttraverseCache() {
     oidrdversion=malloc(size);
     oidwrlocked=malloc(size);
   }
+#endif
   chashlistnode_t *curr = c_list;
   /* Inner loop to traverse the linked list of the cache lookupTable */
   while(likely(curr != NULL)) {
@@ -575,11 +665,7 @@ int alttraverseCache() {
 #endif
 	  DEBUGSTM("WR Abort: rd: %u wr: %u tot: %u type: %u ver: %u\n", numoidrdlocked, numoidwrlocked, c_numelements, TYPE(header), header->version);
 	  DEBUGSTMSTAT("WR Abort: Access Count: %u AbortCount: %u type: %u ver: %u \n", header->accessCount, header->abortCount, TYPE(header), header->version);
-	  if (c_numelements>=200) {
-	    free(oidrdlocked);
-	    free(oidrdversion);
-	    free(oidwrlocked);
-	  }
+	  freearrays;
 	  return TRANS_ABORT;
 	}
       } else { /* cannot aquire lock */
@@ -598,11 +684,7 @@ int alttraverseCache() {
 #endif
 	DEBUGSTM("WR Abort: rd: %u wr: %u tot: %u type: %u ver: %u\n", numoidrdlocked, numoidwrlocked, c_numelements, TYPE(header), header->version);
 	DEBUGSTMSTAT("WR Abort: Access Count: %u AbortCount: %u type: %u ver: %u \n", header->accessCount, header->abortCount, TYPE(header), header->version);
-	if (c_numelements>=200) {
-	  free(oidrdlocked);
-	  free(oidrdversion);
-	  free(oidwrlocked);
-	}
+	freearrays;
 	if (softabort)
 	  return TRANS_SOFT_ABORT;
 	else
@@ -616,6 +698,49 @@ int alttraverseCache() {
     curr = curr->lnext;
   }
 
+#ifdef DELAYCOMP
+  //acquire other locks
+  chashlistnode_t *dc_curr = dc_c_list;
+  /* Inner loop to traverse the linked list of the cache lookupTable */
+  while(likely(dc_curr != NULL)) {
+    //if the first bin in hash table is empty
+    objheader_t * headeraddr=&((objheader_t *) dc_curr->val)[-1];
+    objheader_t *header=(objheader_t *)(((char *)dc_curr->key)-sizeof(objheader_t));
+    if(write_trylock(&header->lock)) { //can aquire write lock    
+      oidwrlocked[numoidwrlocked++] = header;
+    } else {
+      //maybe we already have lock
+      chashlistnode_t *node = &c_table[(((unsigned INTPTR)key) & c_mask)>>4];
+      
+      do {
+	if(node->key == key) {
+	  goto nextloop;
+	}
+	node = node->next;
+      } while(node != NULL);
+
+      //have to abort to avoid deadlock
+      transAbortProcess(oidwrlocked, numoidwrlocked);
+#ifdef STMSTATS
+      ABORTCOUNT(header);
+      (typesCausingAbort[TYPE(header)])++;
+#endif
+#if defined(STMSTATS)||defined(SOFTABORT)
+      if (getTotalAbortCount(i+1, size, (void *)(curr->next), NULL, 1))
+	softabort=0;
+#endif
+      DEBUGSTM("WR Abort: rd: %u wr: %u tot: %u type: %u ver: %u\n", numoidrdlocked, numoidwrlocked, c_numelements, TYPE(header), header->version);
+      DEBUGSTMSTAT("WR Abort: Access Count: %u AbortCount: %u type: %u ver: %u \n", header->accessCount, header->abortCount, TYPE(header), header->version);
+      freearrays;
+      if (softabort)
+	return TRANS_SOFT_ABORT;
+      else
+	return TRANS_ABORT;
+    }
+  nextloop:
+    dc_curr = dc_curr->lnext;
+  }
+#endif
 
   //THIS IS THE SERIALIZATION END POINT (START POINT IS END OF EXECUTION)*****
 
@@ -632,11 +757,7 @@ int alttraverseCache() {
 #endif
 	DEBUGSTM("RD Abort: rd: %u wr: %u tot: %u type: %u ver: %u\n", numoidrdlocked, numoidwrlocked, c_numelements, TYPE(header), header->version);
 	DEBUGSTMSTAT("RD Abort: Access Count: %u AbortCount: %u type: %u ver: %u \n", header->accessCount, header->abortCount, TYPE(header), header->version);
-	if (c_numelements>=200) {
-	  free(oidrdlocked);
-	  free(oidrdversion);
-	  free(oidwrlocked);
-	}
+	freearrays;
 	return TRANS_ABORT;
       }
     } else { /* cannot aquire lock */
@@ -654,11 +775,7 @@ int alttraverseCache() {
 #endif
       DEBUGSTM("RD Abort: rd: %u wr: %u tot: %u type: %u ver: %u\n", numoidrdlocked, numoidwrlocked, c_numelements, TYPE(header), header->version);
       DEBUGSTMSTAT("RD Abort: Access Count: %u AbortCount: %u type: %u ver: %u \n", header->accessCount, header->abortCount, TYPE(header), header->version);
-      if (c_numelements>=200) {
-	free(oidrdlocked);
-	free(oidrdversion);
-	free(oidwrlocked);
-      }
+      freearrays;
       if (softabort)
 	return TRANS_SOFT_ABORT;
       else
@@ -667,13 +784,13 @@ int alttraverseCache() {
   }
 
   /* Decide the final response */
+#ifdef DELAYCOMP
+  transCommitProcess(oidwrlocked, numoidwrlocked, commitmethod, primitives, locals, params);
+#else
   transCommitProcess(oidwrlocked, numoidwrlocked);
+#endif
   DEBUGSTM("Commit: rd: %u wr: %u tot: %u\n", numoidrdlocked, numoidwrlocked, c_numelements);
-  if (c_numelements>=200) {
-    free(oidrdlocked);
-    free(oidrdversion);
-    free(oidwrlocked);
-  }
+  freearrays;
   return TRANS_COMMIT;
 }
 
@@ -871,7 +988,11 @@ void transAbortProcess(void **oidwrlocked, int numoidwrlocked) {
  *
  * =================================
  */
-void transCommitProcess(void ** oidwrlocked, int numoidwrlocked) {
+#ifdef DELAYCOMP
+ void transCommitProcess(void ** oidwrlocked, int numoidwrlocked, void (*commitmethod)(void *, void *, void *), void * primitives, void * locals, void * params) {
+#else
+   void transCommitProcess(void ** oidwrlocked, int numoidwrlocked) {
+#endif
   objheader_t *header;
   void *ptrcreate;
   int i;
@@ -900,6 +1021,11 @@ void transCommitProcess(void ** oidwrlocked, int numoidwrlocked) {
     header->version++;
   }
   __asm__ __volatile__("": : :"memory");
+
+#ifdef DELAYCOMP
+  //  call commit method
+  commitmethod(primitives, locals, params);
+#endif
 
   /* Release write locks */
   for(i=numoidwrlocked-1; i>=0; i--) {

@@ -26,7 +26,7 @@ extern __thread primitivelist primstack;
 
 #define RESTOREPTR(x) x=ptrstack.array[--ptrstack.count]
 
-#define STOREPTR(x) ptrstack.array[ptrstack.count++]=x
+#define STOREPTR(x) ptrstack.array[ptrstack.count++]=x; dc_t_chashInsertOnce(x);
 
 //Branches
 
