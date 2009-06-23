@@ -173,6 +173,9 @@ void initializethreads() {
   t_cache = objstrCreate(1048576);
   t_reserve=NULL;
   t_chashCreate(CHASH_SIZE, CLOADFACTOR);
+#ifdef DELAYCOMP
+  dc_t_chashCreate(CHASH_SIZE, CLOADFACTOR);
+#endif
 #ifdef STMSTATS
   trec=calloc(1, sizeof(threadrec_t));
   trec->blocked = 0;
@@ -234,6 +237,9 @@ void initthread(struct ___Thread___ * ___this___) {
   t_cache = objstrCreate(1048576);
   t_reserve=NULL;
   t_chashCreate(CHASH_SIZE, CLOADFACTOR);
+#ifdef DELAYCOMP
+  dc_t_chashCreate(CHASH_SIZE, CLOADFACTOR);
+#endif
  ___Thread____NNR____staticStart____L___Thread___((struct ___Thread____NNR____staticStart____L___Thread____params *)p);
  objstrDelete(t_cache);
  objstrDelete(t_reserve);

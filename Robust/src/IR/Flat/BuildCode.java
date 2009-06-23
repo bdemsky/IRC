@@ -1531,8 +1531,10 @@ public class BuildCode {
 	  Set<FlatNode> recordset=delaycomp.livecode(lb);
 	  Set<TempDescriptor> liveinto=delaycomp.liveinto(lb, faen, recordset);
 	  Set<TempDescriptor> liveout=delaycomp.liveout(lb, faen);
+	  Set<TempDescriptor> liveoutvirtualread=delaycomp.liveoutvirtualread(lb, faen);
 	  ar.livein=liveinto;
 	  ar.liveout=liveout;
+	  ar.liveoutvirtualread=liveoutvirtualread;
 
 	  for(Iterator<TempDescriptor> it=liveinto.iterator(); it.hasNext();) {
 	    TempDescriptor tmp=it.next();
@@ -1565,7 +1567,7 @@ public class BuildCode {
 	  for(Iterator<TempDescriptor> tmpit=alltemps.iterator();tmpit.hasNext();) {
 	    TempDescriptor tmp=tmpit.next();
 	    if (!tmp.getType().isPtr()) {
-	      if (liveinto.contains(tmp)) {
+	      if (liveinto.contains(tmp)||liveoutvirtualread.contains(tmp)) {
 		//read from live into set
 		output.println(tmp.getType().getSafeSymbol()+" "+tmp.getSafeSymbol()+"=primitives->"+tmp.getSafeSymbol()+";");
 	      } else {
@@ -2503,6 +2505,14 @@ public class BuildCode {
 	TempDescriptor tmp=tmpit.next();
 	output.println("primitives."+tmp.getSafeSymbol()+"="+tmp.getSafeSymbol()+";");
       }
+
+      //copy outs that depend on path
+      for(Iterator<TempDescriptor> tmpit=ar.liveoutvirtualread.iterator();tmpit.hasNext();) {
+	TempDescriptor tmp=tmpit.next();
+	if (!ar.livein.contains(tmp))
+	  output.println("primitives."+tmp.getSafeSymbol()+"="+tmp.getSafeSymbol()+";");
+      }
+
       //do call
       output.println("if (transCommit((void (*)(void *, void *, void *))&"+ar.name+", &primitives, &"+localsprefix+", "+paramsprefix+")) {");
     } else

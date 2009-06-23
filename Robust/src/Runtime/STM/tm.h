@@ -173,7 +173,7 @@ __attribute__((pure)) void *transRead(void *, void *);
 int transCommit(void (*commitmethod)(void *, void *, void *), void * primitives, void * locals, void * params);
 int traverseCache(void (*commitmethod)(void *, void *, void *), void * primitives, void * locals, void * params);
 int alttraverseCache(void (*commitmethod)(void *, void *, void *), void * primitives, void * locals, void * params);
-void transCommitProcess(void **, int, void (*commitmethod)(void *, void *, void *), void * primitives, void * locals, void * params);
+void transCommitProcess(void **, int, int, void (*commitmethod)(void *, void *, void *), void * primitives, void * locals, void * params);
 #else
 int transCommit();
 int traverseCache();

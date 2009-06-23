@@ -267,7 +267,7 @@ __attribute__((pure)) void *transRead(void * oid, void *gl) {
   /* Insert into cache's lookup table */
   STATUS(objcopy)=0;
   if (((unsigned int)oid)<((unsigned int ) curr_heapbase)|| ((unsigned int)oid) >((unsigned int) curr_heapptr))
-    printf("ERROR!\n");
+    printf("ERROR! Bad object address!\n");
   t_chashInsert(oid, &objcopy[1]);
   return &objcopy[1];
 }
@@ -515,6 +515,8 @@ int traverseCache() {
 
 #ifdef DELAYCOMP
   //acquire other locks
+  unsigned int numoidwrtotal=numoidwrlocked;
+
   chashlistnode_t *dc_curr = dc_c_list;
   /* Inner loop to traverse the linked list of the cache lookupTable */
   while(likely(dc_curr != NULL)) {
@@ -522,7 +524,7 @@ int traverseCache() {
     objheader_t * headeraddr=&((objheader_t *) dc_curr->val)[-1];
     objheader_t *header=(objheader_t *)(((char *)dc_curr->key)-sizeof(objheader_t));
     if(write_trylock(&header->lock)) { //can aquire write lock    
-      oidwrlocked[numoidwrlocked++] = header;
+      oidwrlocked[numoidwrtotal++] = header;
     } else {
       //maybe we already have lock
       void * key=dc_curr->key;
@@ -604,7 +606,7 @@ int traverseCache() {
   
   /* Decide the final response */
 #ifdef DELAYCOMP
-  transCommitProcess(oidwrlocked, numoidwrlocked, commitmethod, primitives, locals, params);
+  transCommitProcess(oidwrlocked, numoidwrlocked, numoidwrtotal, commitmethod, primitives, locals, params);
 #else
   transCommitProcess(oidwrlocked, numoidwrlocked);
 #endif
@@ -722,6 +724,7 @@ int alttraverseCache() {
 
 #ifdef DELAYCOMP
   //acquire other locks
+  unsigned int numoidwrtotal=numoidwrlocked;
   chashlistnode_t *dc_curr = dc_c_list;
   /* Inner loop to traverse the linked list of the cache lookupTable */
   while(likely(dc_curr != NULL)) {
@@ -729,7 +732,7 @@ int alttraverseCache() {
     objheader_t * headeraddr=&((objheader_t *) dc_curr->val)[-1];
     objheader_t *header=(objheader_t *)(((char *)dc_curr->key)-sizeof(objheader_t));
     if(write_trylock(&header->lock)) { //can aquire write lock    
-      oidwrlocked[numoidwrlocked++] = header;
+      oidwrlocked[numoidwrtotal++] = header;
     } else {
       //maybe we already have lock
       void * key=dc_curr->key;
@@ -808,7 +811,7 @@ int alttraverseCache() {
 
   /* Decide the final response */
 #ifdef DELAYCOMP
-  transCommitProcess(oidwrlocked, numoidwrlocked, commitmethod, primitives, locals, params);
+  transCommitProcess(oidwrlocked, numoidwrlocked, numoidwrtotal, commitmethod, primitives, locals, params);
 #else
   transCommitProcess(oidwrlocked, numoidwrlocked);
 #endif
@@ -1013,7 +1016,7 @@ void transAbortProcess(void **oidwrlocked, int numoidwrlocked) {
  * =================================
  */
 #ifdef DELAYCOMP
- void transCommitProcess(void ** oidwrlocked, int numoidwrlocked, void (*commitmethod)(void *, void *, void *), void * primitives, void * locals, void * params) {
+ void transCommitProcess(void ** oidwrlocked, int numoidwrlocked, int numoidwrtotal, void (*commitmethod)(void *, void *, void *), void * primitives, void * locals, void * params) {
 #else
    void transCommitProcess(void ** oidwrlocked, int numoidwrlocked) {
 #endif
@@ -1048,11 +1051,11 @@ void transAbortProcess(void **oidwrlocked, int numoidwrlocked) {
 
 #ifdef DELAYCOMP
   //  call commit method
-  commitmethod(primitives, locals, params);
+  commitmethod(params, locals, primitives);
 #endif
 
   /* Release write locks */
-  for(i=numoidwrlocked-1; i>=0; i--) {
+  for(i=numoidwrtotal-1; i>=0; i--) {
     header = (objheader_t *)oidwrlocked[i];
     write_unlock(&header->lock);
   }

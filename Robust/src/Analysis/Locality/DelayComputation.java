@@ -124,6 +124,50 @@ public class DelayComputation {
     return liveinto;
   }
 
+  //This method computes which temps are live out of the second part
+  public Set<TempDescriptor> liveoutvirtualread(LocalityBinding lb, FlatAtomicEnterNode faen) {
+    MethodDescriptor md=lb.getMethod();
+    FlatMethod fm=state.getMethodFlat(md);
+    Set<FlatNode> exits=faen.getExits();
+    Hashtable<FlatNode, Set<TempDescriptor>> livemap=Liveness.computeLiveTemps(fm);
+    Hashtable<FlatNode, Hashtable<TempDescriptor, Set<FlatNode>>> reachingdefs=ReachingDefs.computeReachingDefs(fm);
+    
+    Set<FlatNode> atomicnodes=faen.getReachableSet(faen.getExits());
+
+    Set<FlatNode> secondpart=new HashSet<FlatNode>(getNotReady(lb));
+    secondpart.retainAll(atomicnodes);
+
+    Set<TempDescriptor> liveset=new HashSet<TempDescriptor>();
+    //Have list of all live temps
+
+    for(Iterator<FlatNode> fnit=exits.iterator();fnit.hasNext();) {
+      FlatNode fn=fnit.next();
+      Set<TempDescriptor> tempset=livemap.get(fn);
+      Hashtable<TempDescriptor, Set<FlatNode>> reachmap=reachingdefs.get(fn);
+      //Look for reaching defs for all live variables that are in the secondpart
+
+      for(Iterator<TempDescriptor> tmpit=tempset.iterator();tmpit.hasNext();) {
+	TempDescriptor tmp=tmpit.next();
+	Set<FlatNode> fnset=reachmap.get(tmp);
+	boolean outsidenode=false;
+	boolean insidenode=false;
+
+	for(Iterator<FlatNode> fnit2=fnset.iterator();fnit2.hasNext();) {
+	  FlatNode fn2=fnit2.next();
+	  if (secondpart.contains(fn2)) {
+	    insidenode=true;
+	  } else {
+	    outsidenode=true;
+	  }
+	  if (outsidenode&&insidenode) {
+	    liveset.add(tmp);
+	    break;
+	  }
+	}
+      }
+    }
+    return liveset;
+  }
 
   //This method computes which temps are live out of the second part
   public Set<TempDescriptor> liveout(LocalityBinding lb, FlatAtomicEnterNode faen) {
