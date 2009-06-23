@@ -178,8 +178,9 @@ public class Labyrinth extends Thread{
         /*
          * Initailization
          */
+
         Labyrinth labyrinth = new Labyrinth(argv);
-        
+
         Barrier.setBarrier(labyrinth.numThread);
 
         Maze mazePtr = Maze.alloc();
