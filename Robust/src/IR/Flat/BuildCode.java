@@ -172,8 +172,10 @@ public class BuildCode {
     outmethodheader.println("#include \"structdefs.h\"");
     if (state.DSM)
       outmethodheader.println("#include \"dstm.h\"");
-    if (state.SINGLETM)
+    if (state.SINGLETM) {
       outmethodheader.println("#include \"tm.h\"");
+      outmethodheader.println("#include \"delaycomp.h\"");
+    }
     if (state.ABORTREADERS) {
       outmethodheader.println("#include \"abortreaders.h\"");
       outmethodheader.println("#include <setjmp.h>");
@@ -1958,9 +1960,18 @@ public class BuildCode {
 	  generateFlatNode(fm, lb, current_node, output);
 	  nextnode=fsen.getFlatExit().getNext(0);
 	} else if (state.DELAYCOMP) {
-	  if (genset==null||genset.contains(current_node))
+	  boolean specialprimitive=false;
+	  //skip literals...no need to add extra overhead
+	  if (storeset!=null&&storeset.contains(current_node)&&current_node.kind()==FKind.FlatLiteralNode) {
+	    TypeDescriptor typedesc=((FlatLiteralNode)current_node).getType();
+	    if (!typedesc.isClass()&&!typedesc.isArray()) {
+	      specialprimitive=true;
+	    }
+	  }
+
+	  if (genset==null||genset.contains(current_node)||specialprimitive)
 	    generateFlatNode(fm, lb, current_node, output);
-	  if (storeset!=null&&storeset.contains(current_node)) {
+	  if (storeset!=null&&storeset.contains(current_node)&&!specialprimitive) {
 	    TempDescriptor wrtmp=current_node.writesTemps()[0];
 	    if (firstpass) {
 	      //need to store value written by previous node
