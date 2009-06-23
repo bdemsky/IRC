@@ -19,20 +19,20 @@ struct primitivelist {
   int array[MAXVALUES];
 };
 
-extern __thread pointerlist ptrstack;
-extern __thread primitivelist primstack;
+extern __thread struct pointerlist ptrstack;
+extern __thread struct primitivelist primstack;
 
 //Pointers
 
 #define RESTOREPTR(x) x=ptrstack.array[--ptrstack.count]
 
-#define STOREPTR(x) ptrstack.array[ptrstack.count++]=x; dc_t_chashInsertOnce(x);
+#define STOREPTR(x) ptrstack.array[ptrstack.count++]=x; dc_t_chashInsertOnce(x,x);
 
 //Branches
 
 #define RESTOREANDBRANCH(loc) if (primstack.array[--primstack.count]) goto loc
 
-#define STOREANDBRANCH(cond, loc) if (primatack.array[primstack.count++]=cond) goto loc
+#define STOREANDBRANCH(cond, loc) if (primstack.array[primstack.count++]=cond) goto loc
 
 //Integers
 

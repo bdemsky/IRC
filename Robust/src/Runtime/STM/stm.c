@@ -18,6 +18,12 @@ __thread objstr_t *t_cache;
 __thread objstr_t *t_reserve;
 __thread struct objlist * newobjs;
 
+#ifdef DELAYCOMP
+#include "delaycomp.h"
+__thread struct pointerlist ptrstack;
+__thread struct primitivelist primstack;
+#endif
+
 #ifdef TRANSSTATS
 int numTransCommit = 0;
 int numTransAbort = 0;
@@ -55,6 +61,10 @@ void * A_memcpy (void * dest, const void * src, size_t count);
 #else
 #define A_memcpy memcpy
 #endif
+
+extern void * curr_heapbase;
+extern void * curr_heapptr;
+extern void * curr_heaptop;
 
 #ifdef STMSTATS
 /*** Global variables *****/
@@ -256,6 +266,8 @@ __attribute__((pure)) void *transRead(void * oid, void *gl) {
   A_memcpy(objcopy, header, size);
   /* Insert into cache's lookup table */
   STATUS(objcopy)=0;
+  if (((unsigned int)oid)<((unsigned int ) curr_heapbase)|| ((unsigned int)oid) >((unsigned int) curr_heapptr))
+    printf("ERROR!\n");
   t_chashInsert(oid, &objcopy[1]);
   return &objcopy[1];
 }
@@ -513,6 +525,7 @@ int traverseCache() {
       oidwrlocked[numoidwrlocked++] = header;
     } else {
       //maybe we already have lock
+      void * key=dc_curr->key;
       chashlistnode_t *node = &c_table[(((unsigned INTPTR)key) & c_mask)>>4];
       
       do {
@@ -719,6 +732,7 @@ int alttraverseCache() {
       oidwrlocked[numoidwrlocked++] = header;
     } else {
       //maybe we already have lock
+      void * key=dc_curr->key;
       chashlistnode_t *node = &c_table[(((unsigned INTPTR)key) & c_mask)>>4];
       
       do {
@@ -803,6 +817,7 @@ int alttraverseCache() {
   return TRANS_COMMIT;
 }
 
+#if 0
 int altalttraverseCache() {
   /* Create info to keep track of objects that can be locked */
   int numoidrdlocked=0;
@@ -958,7 +973,7 @@ int altalttraverseCache() {
   }
   return TRANS_COMMIT;
 }
-
+#endif
 
 /* ==================================
  * transAbortProcess

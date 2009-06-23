@@ -2504,7 +2504,7 @@ public class BuildCode {
 	output.println("primitives."+tmp.getSafeSymbol()+"="+tmp.getSafeSymbol()+";");
       }
       //do call
-      output.println("if (transCommit(&"+ar.name+", &primitives, &"+localsprefix+", "+paramsprefix+")) {");
+      output.println("if (transCommit((void (*)(void *, void *, void *))&"+ar.name+", &primitives, &"+localsprefix+", "+paramsprefix+")) {");
     } else
       output.println("if (transCommit()) {");
     /* Transaction aborts if it returns true */
@@ -2526,9 +2526,9 @@ public class BuildCode {
       output.println("else {");
       for(Iterator<TempDescriptor> tmpit=ar.liveout.iterator();tmpit.hasNext();) {
 	TempDescriptor tmp=tmpit.next();
-	output.println(tmp.getSafeSymbol()+"=primitive."+tmp.getSafeSymbol()+";");
-	output.println("}");
+	output.println(tmp.getSafeSymbol()+"=primitives."+tmp.getSafeSymbol()+";");
       }
+      output.println("}");
       output.println("}");
     }
   }

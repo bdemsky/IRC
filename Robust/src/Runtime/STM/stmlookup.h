@@ -60,6 +60,15 @@ extern __thread double c_loadfactor;
 extern __thread cliststruct_t *c_structs;
 
 #ifdef DELAYCOMP
+extern __thread chashlistnode_t *dc_c_table;
+extern __thread chashlistnode_t *dc_c_list;
+extern __thread unsigned int dc_c_size;
+extern __thread unsigned INTPTR dc_c_mask;
+extern __thread unsigned int dc_c_numelements;
+extern __thread unsigned int dc_c_threshold;
+extern __thread double dc_c_loadfactor;
+extern __thread cliststruct_t *dc_c_structs;
+
 void dc_t_chashCreate(unsigned int size, double loadfactor);
 void dc_t_chashInsertOnce(void * key, void *val);
 void * dc_t_chashSearch(void * key);
