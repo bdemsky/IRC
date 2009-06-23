@@ -288,7 +288,7 @@ void grid_addPath (grid_t* gridPtr, vector_t* pointVectorPtr);
         int i;
         int n = pointVectorPtr.vector_getSize();
 
-        for(i = 1; i < (n-1); i++) {
+        for(i = 0; i < n; i++) {
             Coordinate coordinatePtr = (Coordinate)pointVectorPtr.vector_at(i);
             int x = coordinatePtr.x;
             int y = coordinatePtr.y;
@@ -322,7 +322,7 @@ void grid_print (grid_t* gridPtr);
             for(x = 0; x < width; x++) {
                 int y;
                 for(y = 0; y < height; y++) {
-                    System.out.println(points_unaligned[getPointIndex(x,y,z)]);
+                    System.out.print(points_unaligned[getPointIndex(x,y,z)][0] + " ");
                 }
                 System.out.println("");
             }

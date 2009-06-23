@@ -152,7 +152,7 @@ public class Maze {
             boolean isParseError = false;
             List_t workListPtr = List_t.alloc(1); // List.alloc(Coordinate.comparePair);
             String line;
-            
+
             while((line = in.readLine()) != null) {
                 
                 String code;
@@ -166,16 +166,16 @@ public class Maze {
                 }
 
                 code = tok.nextToken();
-               
+
+                if(code.equals("#")) {
+                    /* comment line */
+                    continue;
+                }
                 for(int i=0;i<numToken-1;i++) {
                     xy[i] = Integer.parseInt(tok.nextToken());
-                }                
-                
-                if(code.equals("#")) 
-                 { /* comment */
-                   /* ignore line */
-                
-                 }else if(code.equals("d")) {
+                }
+
+                if(code.equals("d")) {
                       /* dimensions (format: d x y z) */
                      if(numToken != 4) {
                         isParseError = true;
@@ -188,6 +188,7 @@ public class Maze {
                             isParseError = true;
                      }
                  }else if(code.equals("p")) { /* paths (format: p x1 y1 z1 x2 y2 z2) */
+                     System.out.println("You there??");
                     if(numToken != 7) {
                         isParseError = true;
                     }
@@ -201,6 +202,8 @@ public class Maze {
                         else { 
                             Pair coordinatePairPtr = Pair.alloc(srcPtr,dstPtr);
                             boolean status = workListPtr.insert((Object)coordinatePairPtr);
+                            if(!status)
+                                System.out.println("LIST_INSERT????");
                         }
                     }
                 }else if(code.equals("w")) {
@@ -242,15 +245,14 @@ public class Maze {
             /*
              * Initialize work queue
              */
-            Queue_t workQueuePtr = workQueuePtr;
             List_Iter it = new List_Iter();
             it.reset(workListPtr);
 
             while(it.hasNext(workListPtr)) {
                 Pair coordinatePairPtr = (Pair)it.next(workListPtr);
+
                 workQueuePtr.queue_push((Object)coordinatePairPtr);
             }
-
             List_t.free(workListPtr);
 
             return srcVectorPtr.vector_getSize();

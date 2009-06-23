@@ -100,39 +100,42 @@ public class Labyrinth extends Thread{
         String arg;
         boolean opterr = false;
 
+
         setDefaultParams();
 
-        while (i < arg.length() && argv[i].charAt(0) == '-' ) {
-            arg = argv[i++];
+        while (i < argv.length) {
 
-            // check options
-            if(arg.equals("-b")) {
-                bendCost = Integer.parseInt(argv[i++]);
-            }
-            else if(arg.equals("-x")) {
-                xCost = Integer.parseInt(argv[i++]);
-            }
-            else if(arg.equals("-y")) {
-                yCost = Integer.parseInt(argv[i++]);
-            }
-            else if(arg.equals("-z")) {
-                zCost = Integer.parseInt(argv[i++]);
-            }
-            else if(arg.equals("-t")) {
-                numThread = Integer.parseInt(argv[i++]);
-            }
-            else if(arg.equals("-i")) {
-                global_inputFile = argv[i++];
-            }
-            else if(arg.equals("-p")) {
-                global_doPrint = true;
-            }
-            else {
-                System.out.println("Non-option argument: " + argv[i]);
-                opterr = true;
+            if(argv[i].charAt(0) == '-' ) {
+                arg = argv[i++];
+                // check options
+                if(arg.equals("-b")) {
+                    bendCost = Integer.parseInt(argv[i++]);
+                }
+                else if(arg.equals("-x")) {
+                    xCost = Integer.parseInt(argv[i++]);
+                    }
+                else if(arg.equals("-y")) {
+                    yCost = Integer.parseInt(argv[i++]);
+                    }
+                else if(arg.equals("-z")) {
+                    zCost = Integer.parseInt(argv[i++]);
+                    }
+                else if(arg.equals("-t")) {
+                        numThread = Integer.parseInt(argv[i++]);
+                }
+                else if(arg.equals("-i")) {
+                    global_inputFile = argv[i++];
+                    }
+                else if(arg.equals("-p")) {
+                        global_doPrint = true;
+                }
+                else {
+                    System.out.println("Non-option argument: " + argv[i]);
+                    opterr = true;
+                }   
+            
             }
         }
-
         if(opterr) {
             displayUsage();
             System.exit(1);
