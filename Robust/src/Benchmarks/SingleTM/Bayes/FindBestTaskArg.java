@@ -9,7 +9,7 @@
 public class FindBestTaskArg {
   int toId;
   Learner learnerPtr;
-  Query queries;
+  Query[] queries;
   Vector_t queryVectorPtr;
   Vector_t parentQueryVectorPtr;
   int numTotalParent;

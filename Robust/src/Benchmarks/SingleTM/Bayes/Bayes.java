@@ -231,10 +231,10 @@ public class Bayes extends Thread {
     Learner.createTaskList(myId, numThread, learnerPtr);
     Barrier.enterBarrier();
 
-    //Barrier.enterBarrier();
-    //Learner.learnStructure(myId, numThread, learnerPtr);
+    Barrier.enterBarrier();
+    Learner.learnStructure(myId, numThread, learnerPtr);
     //Learner.learner_run(myId, numThread, learnerPtr);
-    //Barrier.enterBarrier();
+    Barrier.enterBarrier();
   }
     
 
@@ -297,7 +297,7 @@ public class Bayes extends Thread {
 
     adtreePtr.adtree_make(dataPtr);
 
-    System.out.println("done.");
+    System.out.println("done.\n\n");
 
     /*
      * Score original network
@@ -326,13 +326,17 @@ public class Bayes extends Thread {
     }
 
 
+    /** 
+      * Parallel work by all threads
+      **/
+
     Barrier.enterBarrier();
     Learner.createTaskList(0, numThread, learnerPtr);
     Barrier.enterBarrier();
 
-    //Barrier.enterBarrier();
-    //Learner.learnStructure(0, numThread, learnerPtr);
-    //Barrier.enterBarrier();
+    Barrier.enterBarrier();
+    Learner.learnStructure(0, numThread, learnerPtr);
+    Barrier.enterBarrier();
 
     /*
     Barrier.enterBarrier();

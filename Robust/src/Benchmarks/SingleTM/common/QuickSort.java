@@ -139,17 +139,14 @@ public class QuickSort {
    * ===========================================
    */
   public boolean less(Object x, Object y) {
-    Query aQueryPtr = (Query) x;
-    Query bQueryPtr = (Query) y;
-    if(aQueryPtr.index < bQueryPtr.index)
+    if(x < y) //TODO cast it to the correct type of Object
       return true;
     return false;
   }
 
   public int diff(Object x, Object y) {
-    Query aQueryPtr = (Query) x;
-    Query bQueryPtr = (Query) y;
-    return (aQueryPtr.index - bQueryPtr.index);
+    //TODO cast it to the correct type of Object
+    return(x - y);
   }
 
   /**

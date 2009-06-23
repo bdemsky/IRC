@@ -20,7 +20,7 @@ SRC=tmp${MAINCLASS}.java \
 	../common/Vector_t.java \
 	ListNode.java \
 	tmpList.java \
-	../common/QuickSort.java \
+	QuickSort.java \
 	IntVector.java \
     ../../../ClassLibrary/JavaSTM/Barrier.java \
     ../common/LocalStartStop.java

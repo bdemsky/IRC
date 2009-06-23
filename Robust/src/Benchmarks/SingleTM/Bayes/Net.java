@@ -279,13 +279,13 @@ public class Net {
    * =============================================================================
    */
   public void
-    net_applyOperation (Operation op, int fromId, int toId)
+    net_applyOperation (int op, int fromId, int toId)
     {
-      if(op.insert == OPERATION_INSERT) {
+      if(op == OPERATION_INSERT) {
         insertEdge(fromId, toId);
-      } else if(op.remove == OPERATION_REMOVE) {
+      } else if(op == OPERATION_REMOVE) {
         removeEdge(fromId, toId);
-      } else if(op.reverse == OPERATION_REVERSE) {
+      } else if(op == OPERATION_REVERSE) {
         reverseEdge(fromId, toId);
       } else {
         System.out.println("Operation failed");
