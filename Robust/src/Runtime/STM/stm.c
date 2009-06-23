@@ -317,6 +317,9 @@ int transCommit() {
 #endif
       objstrReset();
       t_chashreset();
+#ifdef DELAYCOMP
+      dc_t_chashreset();
+#endif
       return TRANS_ABORT;
     }
     if(finalResponse == TRANS_COMMIT) {
@@ -332,6 +335,9 @@ int transCommit() {
 #endif
       objstrReset();
       t_chashreset();
+#ifdef DELAYCOMP
+      dc_t_chashreset();
+#endif
       return 0;
     }
     /* wait a random amount of time before retrying to commit transaction*/
@@ -352,6 +358,9 @@ int transCommit() {
 #endif
 	objstrReset();
 	t_chashreset();
+#ifdef DELAYCOMP
+	dc_t_chashreset();
+#endif
 	return TRANS_ABORT;
       }
       //randomdelay(softaborted);

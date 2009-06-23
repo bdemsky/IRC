@@ -264,6 +264,10 @@ JAVAOPTS="$JAVAOPTS -optimize"
 elif [[ $1 = '-dcopts' ]]
 then
 JAVAOPTS="$JAVAOPTS -dcopts"
+elif [[ $1 = '-delaycomp' ]]
+then
+JAVAOPTS="$JAVAOPTS -delaycomp"
+EXTRAOPTIONS="$EXTRAOPTIONS -DDELAYCOMP"
 elif [[ $1 = '-mlp' ]]
 then
 JAVAOPTS="$JAVAOPTS -mlp"
