@@ -312,10 +312,17 @@ int transCommit() {
   do {
     /* Look through all the objects in the transaction hash table */
     int finalResponse;
+#ifdef DELAYCOMP
     if (c_numelements<(c_size>>3))
       finalResponse= alttraverseCache(commitmethod, primitives, locals, params);
     else
       finalResponse= traverseCache(commitmethod, primitives, locals, params);
+#else
+    if (c_numelements<(c_size>>3))
+      finalResponse= alttraverseCache();
+    else
+      finalResponse= traverseCache();
+#endif
     if(finalResponse == TRANS_ABORT) {
 #ifdef TRANSSTATS
       numTransAbort++;
@@ -1063,7 +1070,11 @@ void transAbortProcess(void **oidwrlocked, int numoidwrlocked) {
 #endif
 
   /* Release write locks */
+#ifdef DELAYCOMP
   for(i=numoidwrtotal-1; i>=0; i--) {
+#else
+  for(i=numoidwrlocked-1; i>=0; i--) {
+#endif
     header = (objheader_t *)oidwrlocked[i];
     write_unlock(&header->lock);
   }
