@@ -551,7 +551,7 @@ int traverseCache() {
       } while(node != NULL);
 
       //have to abort to avoid deadlock
-      transAbortProcess(oidwrlocked, numoidwrlocked);
+      transAbortProcess(oidwrlocked, numoidwrtotal);
 #ifdef STMSTATS
       ABORTCOUNT(header);
       (typesCausingAbort[TYPE(header)])++;
@@ -582,7 +582,11 @@ int traverseCache() {
     if(header->lock>0) { //not write locked
       if(version != header->version) { /* versions do not match */
 	oidrdlocked[numoidrdlocked++] = header;
+#ifdef DELAYCOMP
+	transAbortProcess(oidwrlocked, numoidwrtotal);
+#else
 	transAbortProcess(oidwrlocked, numoidwrlocked);
+#endif
 #ifdef STMSTATS
 	ABORTCOUNT(header);
 	(typesCausingAbort[TYPE(header)])++;
@@ -598,7 +602,11 @@ int traverseCache() {
       if(version == header->version) {
 	softabort=1;
       }
+#ifdef DELAYCOMP
+      transAbortProcess(oidwrlocked, numoidwrtotal);
+#else
       transAbortProcess(oidwrlocked, numoidwrlocked);
+#endif
 #ifdef STMSTATS
       ABORTCOUNT(header);
       (typesCausingAbort[TYPE(header)])++;
@@ -759,7 +767,7 @@ int alttraverseCache() {
       } while(node != NULL);
 
       //have to abort to avoid deadlock
-      transAbortProcess(oidwrlocked, numoidwrlocked);
+      transAbortProcess(oidwrlocked, numoidwrtotal);
 #ifdef STMSTATS
       ABORTCOUNT(header);
       (typesCausingAbort[TYPE(header)])++;
@@ -788,7 +796,11 @@ int alttraverseCache() {
     unsigned int version=oidrdversion[i];
     if(header->lock>=0) {
       if(version != header->version) {
+#ifdef DELAYCOMP
+	transAbortProcess(oidwrlocked, numoidwrtotal);
+#else
 	transAbortProcess(oidwrlocked, numoidwrlocked);
+#endif
 #ifdef STMSTATS
 	ABORTCOUNT(header);
 	(typesCausingAbort[TYPE(header)])++;
@@ -803,7 +815,11 @@ int alttraverseCache() {
       if(version == header->version) {
 	softabort=1;
       }
+#ifdef DELAYCOMP
+      transAbortProcess(oidwrlocked, numoidwrtotal);
+#else
       transAbortProcess(oidwrlocked, numoidwrlocked);
+#endif
 #ifdef STMSTATS
       ABORTCOUNT(header);
       (typesCausingAbort[TYPE(header)])++;
