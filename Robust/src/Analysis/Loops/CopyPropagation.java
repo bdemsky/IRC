@@ -33,15 +33,18 @@ public class CopyPropagation {
 	HashSet<TempDescriptor> toremove=new HashSet<TempDescriptor>();
 	for(int i=1;i<fn.numPrev();i++) {
 	  Hashtable<TempDescriptor, TempDescriptor> tp=table.get(fn.getPrev(i));
-	  for(Iterator tmpit=tab.entrySet().iterator();tmpit.hasNext();) {
+	  for(Iterator tmpit=tp.entrySet().iterator();tmpit.hasNext();) {
 	    Map.Entry t=(Map.Entry)tmpit.next();
 	    TempDescriptor tmp=(TempDescriptor)t.getKey();
-	    if (tp!=null&&tp.containsKey(tmp)&&tp.get(tmp)!=tab.get(tmp)) {
-	      toremove.add(tmp);
+	    
+	    if (!tab.containsKey(tmp))
+	      tab.put(tmp, tp.get(tmp));
+	    else if (tab.get(tmp)!=tp.get(tmp)) {
+	      tab.put(tmp, bogustd);
 	    }
 	  }
 	}
-
+	
 	TempDescriptor[]writes=fn.writesTemps();
 	for(int i=0;i<writes.length;i++) {
 	  TempDescriptor tmp=writes[i];
