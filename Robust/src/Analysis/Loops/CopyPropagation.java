@@ -4,6 +4,7 @@ import IR.Operation;
 import java.util.Iterator;
 import java.util.Hashtable;
 import java.util.HashSet;
+import java.util.Set;
 import java.util.Map;
 
 public class CopyPropagation {
@@ -30,9 +31,10 @@ public class CopyPropagation {
 	  tab=new Hashtable<TempDescriptor, TempDescriptor>();
 	//Compute intersection
 
-	HashSet<TempDescriptor> toremove=new HashSet<TempDescriptor>();
 	for(int i=1;i<fn.numPrev();i++) {
 	  Hashtable<TempDescriptor, TempDescriptor> tp=table.get(fn.getPrev(i));
+	  if (tp==null)
+	    continue;
 	  for(Iterator tmpit=tp.entrySet().iterator();tmpit.hasNext();) {
 	    Map.Entry t=(Map.Entry)tmpit.next();
 	    TempDescriptor tmp=(TempDescriptor)t.getKey();
@@ -44,7 +46,8 @@ public class CopyPropagation {
 	    }
 	  }
 	}
-	
+
+	HashSet<TempDescriptor> toremove=new HashSet<TempDescriptor>();
 	TempDescriptor[]writes=fn.writesTemps();
 	for(int i=0;i<writes.length;i++) {
 	  TempDescriptor tmp=writes[i];
@@ -77,10 +80,30 @@ public class CopyPropagation {
 	}
       } //end of dataflow while loop
 
-      //do remapping step here
+      Set<FlatNode> nodeset=fm.getNodeSet();
+
       for(Iterator<FlatNode> it=fm.getNodeSet().iterator();it.hasNext();) {
 	FlatNode fn=it.next();
-	Hashtable<TempDescriptor, TempDescriptor> tab=table.get(fn);
+	if (fn.numPrev()==0)
+	  continue;
+
+	Hashtable<TempDescriptor, TempDescriptor> tab=new Hashtable<TempDescriptor, TempDescriptor>();
+	
+	for(int i=0;i<fn.numPrev();i++) {
+	  Hashtable<TempDescriptor, TempDescriptor> tp=table.get(fn.getPrev(i));
+
+	  for(Iterator tmpit=tp.entrySet().iterator();tmpit.hasNext();) {
+	    Map.Entry t=(Map.Entry)tmpit.next();
+	    TempDescriptor tmp=(TempDescriptor)t.getKey();
+	    
+	    if (!tab.containsKey(tmp))
+	      tab.put(tmp, tp.get(tmp));
+	    else if (tab.get(tmp)!=tp.get(tmp)) {
+	      tab.put(tmp, bogustd);
+	    }
+	  }
+	}
+
 	TempMap tmap=null;
 	TempDescriptor[]reads=fn.readsTemps();
 	for(int i=0;i<reads.length;i++) {
