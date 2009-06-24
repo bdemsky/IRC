@@ -14,7 +14,7 @@ SRC=ttttmp${MAINCLASS}.java \
 	Solve_arg.java \
 	../../../ClassLibrary/JavaSTM/Barrier.java 
 
-FLAGS=-mainclass ${MAINCLASS} -thread -nooptimize -debug
+FLAGS=-mainclass ${MAINCLASS} -singleTM -optimize -debug -dcopts -joptimize -fastmemcpy -profile
 
 default:
 	cpp ${MAINCLASS}.java > tmp${MAINCLASS}.java

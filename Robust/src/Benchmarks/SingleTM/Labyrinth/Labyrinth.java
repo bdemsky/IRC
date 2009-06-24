@@ -189,7 +189,7 @@ public class Labyrinth extends Thread{
         Maze mazePtr = Maze.alloc();
 
         int numPathToRoute =  mazePtr.readMaze(labyrinth.global_inputFile);
-        
+
         Router routerPtr = Router.alloc(labyrinth.xCost,labyrinth.yCost,
                                         labyrinth.zCost,labyrinth.bendCost);
 
@@ -200,17 +200,26 @@ public class Labyrinth extends Thread{
         Solve_Arg routerArg = new Solve_Arg(routerPtr,mazePtr,pathVectorListPtr);
 
         /* Create and start thread */
+
         Labyrinth[] lb = new Labyrinth[labyrinth.numThread];
 
         for(int i = 1; i<labyrinth.numThread;i++) {
             lb[i] = new Labyrinth(i,routerArg);
         }
 
+        long start = System.currentTimeMillis();
+
         for(int i = 1; i<labyrinth.numThread;i++) {
             lb[i].start();
         }
 
+        Barrier.enterBarrier();
+        Router.solve(routerArg);        
+        Barrier.enterBarrier();
+
         /* End of Solve */
+        long finish = System.currentTimeMillis();
+
 
         int numPathRouted = 0;
         List_Iter it = new List_Iter();
@@ -221,7 +230,10 @@ public class Labyrinth extends Thread{
             numPathRouted += pathVectorPtr.vector_getSize();
         }
 
+        float elapsed = ((float)finish-(float)start)/1000;
+
         System.out.println("Paths routed    = " + numPathRouted);
+        System.out.println("Elapsed time    = " + elapsed);
 
         boolean stats = mazePtr.checkPaths(pathVectorListPtr,labyrinth.global_doPrint);
         if(!stats)

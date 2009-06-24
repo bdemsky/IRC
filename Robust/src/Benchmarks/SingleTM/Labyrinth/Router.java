@@ -145,7 +145,7 @@ public class Router {
     {
         if (myGridPtr.isPointValid(x,y,z)) {
             int neighborGridPointIndex = myGridPtr.getPointIndex(x,y,z);
-            int neighborValue = myGridPtr.getPoint(neighborGridPointIndex);
+            int neighborValue = myGridPtr.points_unaligned[neighborGridPointIndex][0];
             if (neighborValue == GRID_POINT_EMPTY) {
                 myGridPtr.setPoint(neighborGridPointIndex,value);
                 queuePtr.queue_push(new Integer(neighborGridPointIndex));
@@ -171,7 +171,6 @@ public class Router {
         int yCost = routerPtr.yCost;
         int zCost = routerPtr.zCost;
 
-
         /* 
          * Potential Optimization: Make 'src' the one closet to edge.
          * This will likely decrease the area of the emitted wave.
@@ -180,14 +179,18 @@ public class Router {
         queuePtr.queue_clear();
 
         int srcGridPointIndex = myGridPtr.getPointIndex(srcPtr.x,srcPtr.y,srcPtr.z);
+
         queuePtr.queue_push(new Integer(srcGridPointIndex));
+ //       System.out.println("dstPtr :\tx = " + dstPtr.x + "\ty = " + dstPtr.y + "\tz = " + dstPtr.z); 
         myGridPtr.setPoint(srcPtr.x,srcPtr.y,srcPtr.z,0);
         myGridPtr.setPoint(dstPtr.x,dstPtr.y,dstPtr.z,GRID_POINT_EMPTY);
         int dstGridPointIndex = myGridPtr.getPointIndex(dstPtr.x,dstPtr.y,dstPtr.z);
         boolean isPathFound = false;
 
-        while (queuePtr.queue_isEmpty()) {
+        while (!queuePtr.queue_isEmpty()) {
             int gridPointIndex = ((Integer)queuePtr.queue_pop()).intValue();
+
+//            System.out.println("gridPointIndex = " +gridPointIndex);
             if(gridPointIndex == dstGridPointIndex) {
                 isPathFound = true;
                 break;
@@ -198,7 +201,7 @@ public class Router {
             int[] z = new int[1];
                         
             myGridPtr.getPointIndices(gridPointIndex,x,y,z);
-            int value = myGridPtr.getPoint(gridPointIndex);
+            int value = myGridPtr.points_unaligned[gridPointIndex][0];
 
             /*
              * Check 6 neighbors
@@ -207,10 +210,10 @@ public class Router {
              */
           PexpandToNeighbor(myGridPtr, x[0]+1, y[0],   z[0],   (value + xCost), queuePtr);
           PexpandToNeighbor(myGridPtr, x[0]-1, y[0],   z[0],   (value + xCost), queuePtr);
-          PexpandToNeighbor(myGridPtr, x[0], y[0]+1,   z[0],   (value + xCost), queuePtr);
-          PexpandToNeighbor(myGridPtr, x[0], y[0]-1,   z[0],   (value + xCost), queuePtr);   
-          PexpandToNeighbor(myGridPtr, x[0], y[0],   z[0]+1,   (value + xCost), queuePtr);
-          PexpandToNeighbor(myGridPtr, x[0], y[0],   z[0]-1,   (value + xCost), queuePtr);
+          PexpandToNeighbor(myGridPtr, x[0], y[0]+1,   z[0],   (value + yCost), queuePtr);
+          PexpandToNeighbor(myGridPtr, x[0], y[0]-1,   z[0],   (value + yCost), queuePtr);   
+          PexpandToNeighbor(myGridPtr, x[0], y[0],   z[0]+1,   (value + zCost), queuePtr);
+          PexpandToNeighbor(myGridPtr, x[0], y[0],   z[0]-1,   (value + zCost), queuePtr);
 
         } /* iterate over work queue */
 
@@ -278,7 +281,12 @@ public class Router {
             if (next.value == 0) {
                 break;
             }
-            Point curr = next;
+            Point curr = new Point();
+            curr.x = next.x;
+            curr.y = next.y;
+            curr.z = next.z;
+            curr.value = next.value;
+            curr.momentum = next.momentum;
 
             /*
              * Check 6 neibors
@@ -287,7 +295,7 @@ public class Router {
             traceToNeighbor(myGridPtr,curr,MOVE_POSX,true, bendCost, next);
             traceToNeighbor(myGridPtr,curr,MOVE_POSY,true, bendCost, next);   
             traceToNeighbor(myGridPtr,curr,MOVE_POSZ,true, bendCost, next);
-            traceToNeighbor(myGridPtr,curr,MOVE_NEGX,true, bendCost, next);            
+            traceToNeighbor(myGridPtr,curr,MOVE_NEGX,true, bendCost, next); 
             traceToNeighbor(myGridPtr,curr,MOVE_NEGY,true, bendCost, next);           
             traceToNeighbor(myGridPtr,curr,MOVE_NEGZ,true, bendCost, next);          
 
@@ -295,6 +303,8 @@ public class Router {
              * Because of bend costs, none of the neighbors may appear to be closer.
              * In this case, pick a neighbor while ignoring momentum.
              */
+
+//            System.out.println("next x = " + next.x + " y = " + next.y + " z = " + next.z);
             
             if ((curr.x == next.y) &&
                 (curr.y == next.y) &&
@@ -313,6 +323,7 @@ public class Router {
                     (curr.z == next.z))
                 {
                     pointVectorPtr.vector_free();
+                    System.out.println("Dead");
                     return null;
                 }
             }
@@ -329,6 +340,7 @@ public class Router {
     public static void solve(Object argPtr) 
     {
         // TM_THREAD_ENTER();
+        //
         Solve_Arg routerArgPtr = (Solve_Arg) argPtr;
         Router routerPtr = routerArgPtr.routerPtr;
         Maze mazePtr = routerArgPtr.mazePtr;
@@ -364,9 +376,12 @@ public class Router {
 
             Coordinate srcPtr = (Coordinate)coordinatePairPtr.first;
             Coordinate dstPtr = (Coordinate)coordinatePairPtr.second;
+
+//            System.out.println("SRC x = " + srcPtr.x + "  y = " + srcPtr.y + " z = " +srcPtr.z);
             
             boolean success = false;
             Vector_t pointVectorPtr = null;
+
 
             // TM_BEGIN();
             atomic {
@@ -377,16 +392,18 @@ public class Router {
                     pointVectorPtr = routerPtr.PdoTraceback(gridPtr,myGridPtr,dstPtr,bendCost);
 
                     if (pointVectorPtr != null) {
-                        gridPtr.addPath(pointVectorPtr);
+                        gridPtr.TM_addPath(pointVectorPtr);
                         success = true;
                     }
+
                 }
             }
 
             if(success) {
                 boolean status = myPathVectorPtr.vector_pushBack(pointVectorPtr);
-                if(status) {
-                    System.out.println("Error in Router_Solve");
+                
+                if(!status) {
+                    System.out.println("Assert in Router_Solve");
                     System.exit(1);
                 }
             }
@@ -400,6 +417,9 @@ public class Router {
         atomic {
             pathVectorListPtr.insert(myPathVectorPtr);
         }
+
+//        System.out.println("Final Grid: ");
+//        gridPtr.print();
         
         // TM_THREAD_EXIT();
     }

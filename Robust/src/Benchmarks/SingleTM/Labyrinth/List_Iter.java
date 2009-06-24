@@ -32,6 +32,7 @@ public class List_Iter {
      public Object next(List_t listPtr) 
      {
          itPtr = itPtr.nextPtr;
+         return itPtr.dataPtr; 
      }
 }
 

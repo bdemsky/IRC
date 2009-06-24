@@ -108,7 +108,7 @@ public class Grid {
             int[][] points_unaligned = new int[size][1];
 
             grid.points_unaligned = points_unaligned;
-            grid.points_index = CACHE_LINE_SIZE;        // not sure it is right..
+            grid.points_index = CACHE_LINE_SIZE-2;        // not sure it is right..
 
             for(int i=grid.points_index;i<n;i++) 
                 grid.points_unaligned[i][0] = GRID_POINT_EMPTY;            
@@ -156,16 +156,12 @@ public class Grid {
            (srcGridPtr.height == dstGridPtr.height) ||
            (srcGridPtr.depth == dstGridPtr.depth))
         {
-            System.out.println("Assert in Grid_Copy");
-            System.out.exit(1);
-        }
-
-        
-
         int n = srcGridPtr.width * srcGridPtr.height * srcGridPtr.depth;
 
         for(int i=0;i<n;i++)
-            dstGridPtr.points_unaligned[dstGridPtr.points_index + i][0] = srcGridPtr.points_unaligned[srcGridPtr.points_index + i][0];   
+            dstGridPtr.points_unaligned[dstGridPtr.points_index + i][0] = 
+                                                                srcGridPtr.points_unaligned[srcGridPtr.points_index + i][0];   
+        }
     }
 
 
@@ -293,10 +289,23 @@ void grid_addPath (grid_t* gridPtr, vector_t* pointVectorPtr);
             int x = coordinatePtr.x;
             int y = coordinatePtr.y;
             int z = coordinatePtr.z;
+
+//            System.out.println("x = " + x + " y = " + y + " z = " + z);
             setPoint(x,y,z,GRID_POINT_FULL);
         }
     }
-    
+
+    public void TM_addPath(Vector_t pointVectorPtr)
+    {
+        int i;
+        int n = pointVectorPtr.vector_getSize();
+
+        for(i = 0; i < n; i++) {
+            int gridPointIndex = ((Integer)(pointVectorPtr.vector_at(i))).intValue();
+                        
+            setPoint(gridPointIndex,GRID_POINT_FULL);
+        }
+    }
 
 /* =============================================================================
  * TMgrid_addPath

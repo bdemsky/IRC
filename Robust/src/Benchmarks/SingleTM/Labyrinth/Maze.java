@@ -188,22 +188,26 @@ public class Maze {
                             isParseError = true;
                      }
                  }else if(code.equals("p")) { /* paths (format: p x1 y1 z1 x2 y2 z2) */
-                     System.out.println("You there??");
                     if(numToken != 7) {
                         isParseError = true;
                     }
                     else {
                         Coordinate srcPtr = Coordinate.alloc(xy[0],xy[1],xy[2]);
                         Coordinate dstPtr = Coordinate.alloc(xy[3],xy[4],xy[5]);
-                        
+
                         if(Coordinate.isEqual(srcPtr,dstPtr)) {
                             isParseError = true;
                         }
                         else { 
                             Pair coordinatePairPtr = Pair.alloc(srcPtr,dstPtr);
-                            boolean status = workListPtr.insert((Object)coordinatePairPtr);
-                            if(!status)
+                            boolean status = workListPtr.insert(coordinatePairPtr);
+                            if(!status) {
                                 System.out.println("LIST_INSERT????");
+                                System.exit(1);
+                            }
+                            srcVectorPtr.vector_pushBack(srcPtr);
+                            dstVectorPtr.vector_pushBack(dstPtr);
+                            
                         }
                     }
                 }else if(code.equals("w")) {
@@ -247,12 +251,11 @@ public class Maze {
              */
             List_Iter it = new List_Iter();
             it.reset(workListPtr);
-
             while(it.hasNext(workListPtr)) {
                 Pair coordinatePairPtr = (Pair)it.next(workListPtr);
-
-                workQueuePtr.queue_push((Object)coordinatePairPtr);
+                workQueuePtr.queue_push(coordinatePairPtr);
             }
+
             List_t.free(workListPtr);
 
             return srcVectorPtr.vector_getSize();
@@ -274,6 +277,8 @@ public class Maze {
 
         /* Mark sources */
         int numSrc = srcVectorPtr.vector_getSize();
+//        System.out.println("numSrc = " +numSrc);
+//        System.exit(1);
         for(i = 0; i < numSrc; i++) {
             Coordinate srcPtr = (Coordinate)srcVectorPtr.vector_at(i);
             testGridPtr.setPoint(srcPtr.x,srcPtr.y,srcPtr.z,0);
@@ -285,6 +290,8 @@ public class Maze {
             Coordinate dstPtr = (Coordinate)dstVectorPtr.vector_at(i);
             testGridPtr.setPoint(dstPtr.x,dstPtr.y,dstPtr.z,0);
         }
+
+//        testGridPtr.print();
 
         /* Make sure path is contiguous and does not overlap */
         int id = 0;
@@ -303,6 +310,7 @@ public class Maze {
                 int[] y = new int[1];
                 int[] z = new int[1];
                 gridPtr.getPointIndices(prevGridPointIndex,x,y,z);
+
                 if(testGridPtr.getPoint(x[0],y[0],z[0]) != 0) {
                     Grid.free(testGridPtr);
                     return false;
@@ -316,8 +324,10 @@ public class Maze {
                 prevCoordinate.y = y[0];
                 prevCoordinate.z = z[0];
 
+                
                 int numPoint = pointVectorPtr.vector_getSize();
                 int j;
+
                 for(j = 1; j< (numPoint - 1) ;j++) { /* no need to check endpoints */
                     int currGridPointIndex = ((Integer)pointVectorPtr.vector_at(j)).intValue();
                     Coordinate currCoordinate = new Coordinate();
@@ -329,7 +339,8 @@ public class Maze {
                     currCoordinate.y = y[0];
                     currCoordinate.z = z[0];
 
-                    if(Coordinate.areAdjacent(currCoordinate,prevCoordinate)) {
+                    if(!Coordinate.areAdjacent(currCoordinate,prevCoordinate)) {
+                        System.out.println("you there?");
                         Grid.free(testGridPtr);
                         return false;
                     }
