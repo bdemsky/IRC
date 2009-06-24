@@ -12,7 +12,7 @@ public class FlatNop extends FlatNode {
   public int kind() {
     return FKind.FlatNop;
   }
-  public FlatNode clone() {
+  public FlatNode clone(TempMap t) {
     return new FlatNop();
   }
   public void rewriteUse(TempMap t) {

@@ -184,6 +184,7 @@ public class BuildFlat {
       for(int i=0; i<currmd.numParameters(); i++) {
 	fm.addParameterTemp(getTempforParam(currmd.getParameter(i)));
       }
+
       state.addFlatCode(currmd,fm);
     }
   }
@@ -951,6 +952,9 @@ public class BuildFlat {
 	true_np.getEnd().addNext(nopend);
     if (false_np.getEnd()!=null)
 	false_np.getEnd().addNext(nopend);
+    if (nopend.numPrev()==0)
+      return new NodePair(cond.getBegin(), null);
+
     return new NodePair(cond.getBegin(), nopend);
   }
 
