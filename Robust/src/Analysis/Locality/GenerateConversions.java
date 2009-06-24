@@ -89,7 +89,7 @@ public class GenerateConversions {
 	      TempNodePair tnp2=new TempNodePair(tnp.getTemp());
 	      tnp2.setNode(fn);
 	      tempset.add(tnp2);
-	      nodetoconvs2.get(fn).add(tnp.getTemp());  //have to hide cached copies from gc
+	      nodetoconvs2.get(fn).add(tnp.getTemp());  //have to hide cached copies from gc -- add unused converted temps
 	    } else
 	      tempset.add(tnp);
 	  } else
@@ -145,6 +145,7 @@ public class GenerateConversions {
 	for(Iterator<TempDescriptor> tempit=tempset.iterator(); tempit.hasNext();) {
 	  TempDescriptor tmpd=tempit.next();
 	  FlatGlobalConvNode fgcn=new FlatGlobalConvNode(tmpd, lb, false, nodetoconvs.get(fn).contains(tmpd));
+	  fgcn.setAtomicEnter(((FlatAtomicExitNode)fn).getAtomicEnter());
 	  atomictab.put(fgcn, atomictab.get(fn));
 	  temptab.put(fgcn, (Hashtable<TempDescriptor, Integer>)temptab.get(fn).clone());
 
@@ -232,6 +233,7 @@ public class GenerateConversions {
 	Set<TempDescriptor> tempset=nodetotranstemps.get(fn);
 	for(Iterator<TempDescriptor> tempit=tempset.iterator(); tempit.hasNext();) {
 	  FlatGlobalConvNode fgcn=new FlatGlobalConvNode(tempit.next(), lb, true);
+	  fgcn.setAtomicEnter((FlatAtomicEnterNode)fn);
 	  atomictab.put(fgcn, atomictab.get(fn));
 	  temptab.put(fgcn, (Hashtable<TempDescriptor, Integer>)temptab.get(fn).clone());
 	  fgcn.addNext(fn.getNext(0));

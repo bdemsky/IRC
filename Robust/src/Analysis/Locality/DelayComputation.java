@@ -227,7 +227,18 @@ public class DelayComputation {
       FlatNode fn=toanalyze.iterator().next();
       toanalyze.remove(fn);
       Hashtable<TempDescriptor, HashSet<FlatNode>> tmptofn=new Hashtable<TempDescriptor, HashSet<FlatNode>>();
-      
+
+      //Don't process non-atomic nodes
+      if (locality.getAtomic(lb).get(fn).intValue()==0) {
+	if (!map.containsKey(fn)) {
+	  map.put(fn, new Hashtable<TempDescriptor, HashSet<FlatNode>>());
+	  //enqueue next nodes
+	  for(int i=0;i<fn.numNext();i++)
+	    toanalyze.add(fn.getNext(i));
+	}
+	continue;
+      }
+
       //Do merge on incoming edges
       for(int i=0;i<fn.numPrev();i++) {
 	FlatNode fnprev=fn.getPrev(i);
@@ -262,8 +273,8 @@ public class DelayComputation {
 	for(int i=0;i<writeset.length;i++) {
 	  TempDescriptor tmp=writeset[i];
 	  HashSet<FlatNode> set=new HashSet<FlatNode>();
-	  set.add(fn);
 	  tmptofn.put(tmp,set);
+	  set.add(fn);
 	}
 	if (fn.numNext()>1) {
 	  //We have a conditional branch...need to handle this carefully
@@ -272,6 +283,9 @@ public class DelayComputation {
 	  if (!set0.equals(set1)||set0.size()>1) {
 	    //This branch is important--need to remember how it goes
 	    livenodes.add(fn);
+	  } else {
+	    System.out.println("Removing branch:"+fn);
+	    System.out.println("set0="+set0+" set1="+set1);
 	  }
 	}
       }

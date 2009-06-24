@@ -7,6 +7,7 @@ public class FlatGlobalConvNode extends FlatNode {
   LocalityBinding lb;
   boolean makePtr;
   boolean convert=true;
+  FlatAtomicEnterNode faen;
 
   public FlatGlobalConvNode(TempDescriptor src, LocalityBinding lb, boolean makePtr) {
     this.src=src;
@@ -19,6 +20,14 @@ public class FlatGlobalConvNode extends FlatNode {
     this.lb=lb;
     this.makePtr=makePtr;
     this.convert=doactualconvert;
+  }
+
+  public FlatAtomicEnterNode getAtomicEnter() {
+    return faen;
+  }
+
+  public void setAtomicEnter(FlatAtomicEnterNode faen) {
+    this.faen=faen;
   }
 
   boolean doConvert() {

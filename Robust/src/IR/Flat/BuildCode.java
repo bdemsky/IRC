@@ -1500,6 +1500,7 @@ public class BuildCode {
     ClassDescriptor cn=md!=null ? md.getClassDesc() : null;
     ParamsObject objectparams=(ParamsObject)paramstable.get(lb!=null ? lb : md!=null ? md : task);
 
+    HashSet<AtomicRecord> arset=null;
 
     if (state.DELAYCOMP&&!lb.isAtomic()&&lb.getHasAtomic()) {
       //create map
@@ -1509,7 +1510,8 @@ public class BuildCode {
       //fix these so we get right strings for local variables
       localsprefixaddr=localsprefix;
       localsprefixderef=localsprefix+"->";
-
+      arset=new HashSet<AtomicRecord>();
+      
       //Generate commit methods here
       for(Iterator<FlatNode> fnit=fm.getNodeSet().iterator();fnit.hasNext();) {
 	FlatNode fn=fnit.next();
@@ -1522,6 +1524,7 @@ public class BuildCode {
 	  String methodname=md.getSymbol()+(atomicmethodcount++);
 	  AtomicRecord ar=new AtomicRecord();
 	  ar.name=methodname;
+	  arset.add(ar);
 
 	  atomicmethodmap.put(faen, ar);
 
@@ -1533,6 +1536,7 @@ public class BuildCode {
 	  Set<TempDescriptor> liveout=delaycomp.liveout(lb, faen);
 	  Set<TempDescriptor> liveoutvirtualread=delaycomp.liveoutvirtualread(lb, faen);
 	  ar.livein=liveinto;
+	  ar.reallivein=new HashSet(liveinto);
 	  ar.liveout=liveout;
 	  ar.liveoutvirtualread=liveoutvirtualread;
 
@@ -1589,6 +1593,13 @@ public class BuildCode {
 
     generateHeader(fm, lb, md!=null ? md : task,output);
     TempObject objecttemp=(TempObject) tempstable.get(lb!=null ? lb : md!=null ? md : task);
+
+    if (state.DELAYCOMP&&!lb.isAtomic()&&lb.getHasAtomic()) {
+      for(Iterator<AtomicRecord> arit=arset.iterator();arit.hasNext();) {
+	AtomicRecord ar=arit.next();
+	output.println("struct atomicprimitives_"+ar.name+" primitives_"+ar.name+";");
+      }
+    }
 
     if (GENERATEPRECISEGC) {
       if (md!=null&&(state.DSM||state.SINGLETM))
@@ -2007,7 +2018,7 @@ public class BuildCode {
 	if (state.DELAYCOMP) {
 	  if (firstpass) {
 	    //need to record which way it should go
-	    output.print("   ");  
+	    output.print("   ");
 	    if (storeset!=null&&storeset.contains(current_node)) {
 	      //need to store which way branch goes
 	      generateStoreFlatCondBranch(fm, lb, (FlatCondBranch)current_node, "L"+nodetolabel.get(current_node.getNext(1)), output);
@@ -2412,10 +2423,12 @@ public class BuildCode {
       }
     } else {
       /* Need to convert to OID */
-      if (fgcn.doConvert()) {
-	output.println(generateTemp(fm, fgcn.getSrc(),lb)+"=(void *)COMPOID("+generateTemp(fm, fgcn.getSrc(),lb)+");");
-      } else {
-	output.println(generateTemp(fm, fgcn.getSrc(),lb)+"=NULL;");
+      if ((dc==null)||dc.getNeedSrcTrans(lb,fgcn)) {
+	if (fgcn.doConvert()||(delaycomp!=null&&atomicmethodmap.get(fgcn.getAtomicEnter()).reallivein.contains(fgcn.getSrc()))) {
+	  output.println(generateTemp(fm, fgcn.getSrc(),lb)+"=(void *)COMPOID("+generateTemp(fm, fgcn.getSrc(),lb)+");");
+	} else {
+	  output.println(generateTemp(fm, fgcn.getSrc(),lb)+"=NULL;");
+	}
       }
     }
   }
@@ -2443,6 +2456,24 @@ public class BuildCode {
 
     if (locality.getAtomic(lb).get(faen.getPrev(0)).intValue()>0)
       return;
+
+
+    if (state.DELAYCOMP) {
+      AtomicRecord ar=atomicmethodmap.get(faen);
+      //copy in
+      for(Iterator<TempDescriptor> tmpit=ar.livein.iterator();tmpit.hasNext();) {
+	TempDescriptor tmp=tmpit.next();
+	output.println("primitives_"+ar.name+"."+tmp.getSafeSymbol()+"="+tmp.getSafeSymbol()+";");
+      }
+
+      //copy outs that depend on path
+      for(Iterator<TempDescriptor> tmpit=ar.liveoutvirtualread.iterator();tmpit.hasNext();) {
+	TempDescriptor tmp=tmpit.next();
+	if (!ar.livein.contains(tmp))
+	  output.println("primitives_"+ar.name+"."+tmp.getSafeSymbol()+"="+tmp.getSafeSymbol()+";");
+      }
+    }
+
     /* Backup the temps. */
     for(Iterator<TempDescriptor> tmpit=locality.getTemps(lb).get(faen).iterator(); tmpit.hasNext();) {
       TempDescriptor tmp=tmpit.next();
@@ -2498,23 +2529,9 @@ public class BuildCode {
     }
     if (state.DELAYCOMP) {
       AtomicRecord ar=atomicmethodmap.get(faen.getAtomicEnter());
-      output.println("{");
-      output.println("struct atomicprimitives_"+ar.name+" primitives;");
-      //copy in
-      for(Iterator<TempDescriptor> tmpit=ar.livein.iterator();tmpit.hasNext();) {
-	TempDescriptor tmp=tmpit.next();
-	output.println("primitives."+tmp.getSafeSymbol()+"="+tmp.getSafeSymbol()+";");
-      }
-
-      //copy outs that depend on path
-      for(Iterator<TempDescriptor> tmpit=ar.liveoutvirtualread.iterator();tmpit.hasNext();) {
-	TempDescriptor tmp=tmpit.next();
-	if (!ar.livein.contains(tmp))
-	  output.println("primitives."+tmp.getSafeSymbol()+"="+tmp.getSafeSymbol()+";");
-      }
 
       //do call
-      output.println("if (transCommit((void (*)(void *, void *, void *))&"+ar.name+", &primitives, &"+localsprefix+", "+paramsprefix+")) {");
+      output.println("if (transCommit((void (*)(void *, void *, void *))&"+ar.name+", &primitives_"+ar.name+", &"+localsprefix+", "+paramsprefix+")) {");
     } else
       output.println("if (transCommit()) {");
     /* Transaction aborts if it returns true */
@@ -2536,9 +2553,8 @@ public class BuildCode {
       output.println("else {");
       for(Iterator<TempDescriptor> tmpit=ar.liveout.iterator();tmpit.hasNext();) {
 	TempDescriptor tmp=tmpit.next();
-	output.println(tmp.getSafeSymbol()+"=primitives."+tmp.getSafeSymbol()+";");
+	output.println(tmp.getSafeSymbol()+"=primitives_"+ar.name+"."+tmp.getSafeSymbol()+";");
       }
-      output.println("}");
       output.println("}");
     }
   }

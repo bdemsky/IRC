@@ -138,6 +138,8 @@ void threadhandler(int sig, struct sigcontext ctx) {
   threadexit();
 }
 
+struct primitivelist *pl;
+
 void initializethreads() {
   struct sigaction sig;
   threadcount=1;
@@ -175,6 +177,9 @@ void initializethreads() {
   t_chashCreate(CHASH_SIZE, CLOADFACTOR);
 #ifdef DELAYCOMP
   dc_t_chashCreate(CHASH_SIZE, CLOADFACTOR);
+  ptrstack.count=0;
+  primstack.count=0;
+  pl=&primstack;
 #endif
 #ifdef STMSTATS
   trec=calloc(1, sizeof(threadrec_t));
@@ -239,6 +244,8 @@ void initthread(struct ___Thread___ * ___this___) {
   t_chashCreate(CHASH_SIZE, CLOADFACTOR);
 #ifdef DELAYCOMP
   dc_t_chashCreate(CHASH_SIZE, CLOADFACTOR);
+  ptrstack.count=0;
+  primstack.count=0;
 #endif
  ___Thread____NNR____staticStart____L___Thread___((struct ___Thread____NNR____staticStart____L___Thread____params *)p);
  objstrDelete(t_cache);

@@ -169,7 +169,7 @@ public class DiscoverConflicts {
 	switch(fn.kind()) {
 
 	  //We might need to translate arguments to pointer comparison
-
+	  
 	case FKind.FlatOpNode: { 
 	  FlatOpNode fon=(FlatOpNode)fn;
 	  if (fon.getOp().getOp()==Operation.EQUAL||
@@ -196,6 +196,29 @@ public class DiscoverConflicts {
 		  rightsrctrans.add(fon);
 		  break;
 		}
+	      }
+	    }
+	  }
+	  break;
+	}
+
+	case FKind.FlatGlobalConvNode: { 
+	  //need to translate these if the value we read from may be a
+	  //shadow...  check this by seeing if any of the values we
+	  //may read are in the transread set or came from our caller
+	  //or a method we called
+
+	  FlatGlobalConvNode fgcn=(FlatGlobalConvNode)fn;
+	  if (fgcn.getLocality()!=lb)
+	    break;
+
+	  Set<TempFlatPair> tfpset=tmap.get(fgcn.getSrc());
+	  if (tfpset!=null) {
+	    for(Iterator<TempFlatPair> tfpit=tfpset.iterator();tfpit.hasNext();) {
+	      TempFlatPair tfp=tfpit.next();
+	      if (tfset.contains(tfp)||outofscope(tfp)) {
+		srctrans.add(fgcn);
+		break;
 	      }
 	    }
 	  }

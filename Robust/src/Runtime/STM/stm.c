@@ -331,6 +331,8 @@ int transCommit() {
       t_chashreset();
 #ifdef DELAYCOMP
       dc_t_chashreset();
+      ptrstack.count=0;
+      primstack.count=0;
 #endif
       return TRANS_ABORT;
     }
@@ -349,6 +351,8 @@ int transCommit() {
       t_chashreset();
 #ifdef DELAYCOMP
       dc_t_chashreset();
+      ptrstack.count=0;
+      primstack.count=0;
 #endif
       return 0;
     }
@@ -372,6 +376,8 @@ int transCommit() {
 	t_chashreset();
 #ifdef DELAYCOMP
 	dc_t_chashreset();
+	ptrstack.count=0;
+	primstack.count=0;
 #endif
 	return TRANS_ABORT;
       }
@@ -1051,6 +1057,8 @@ void transAbortProcess(void **oidwrlocked, int numoidwrlocked) {
 
 #ifdef DELAYCOMP
   //  call commit method
+  ptrstack.count=0;
+  primstack.count=0;
   commitmethod(params, locals, primitives);
 #endif
 
