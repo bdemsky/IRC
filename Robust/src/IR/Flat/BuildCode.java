@@ -1912,6 +1912,7 @@ public class BuildCode {
 
     Set<FlatNode> storeset=null;
     HashSet<FlatNode> genset=null;
+    Set<FlatNode> unionset=null;
 
     if (state.DELAYCOMP&&!lb.isAtomic()&&lb.getHasAtomic()) {
       storeset=delaycomp.livecode(lb);
@@ -1922,6 +1923,9 @@ public class BuildCode {
       } else {
 	genset.addAll(delaycomp.getNotReady(lb));
       }
+      unionset=new HashSet<FlatNode>();
+      unionset.addAll(storeset);
+      unionset.addAll(genset);
     }
     
     /* Do the actual code generation */
@@ -2016,31 +2020,62 @@ public class BuildCode {
       } else if (current_node.numNext()==2) {
 	/* Branch */
 	if (state.DELAYCOMP) {
+	  boolean computeside=false;
 	  if (firstpass) {
 	    //need to record which way it should go
-	    output.print("   ");
-	    if (storeset!=null&&storeset.contains(current_node)) {
-	      //need to store which way branch goes
-	      generateStoreFlatCondBranch(fm, lb, (FlatCondBranch)current_node, "L"+nodetolabel.get(current_node.getNext(1)), output);
-	    } else
-	      generateFlatCondBranch(fm, lb, (FlatCondBranch)current_node, "L"+nodetolabel.get(current_node.getNext(1)), output);
+	    if (genset==null||genset.contains(current_node)) {
+	      if (storeset!=null&&storeset.contains(current_node)) {
+		//need to store which way branch goes
+		generateStoreFlatCondBranch(fm, lb, (FlatCondBranch)current_node, "L"+nodetolabel.get(current_node.getNext(1)), output);
+	      } else
+		generateFlatCondBranch(fm, lb, (FlatCondBranch)current_node, "L"+nodetolabel.get(current_node.getNext(1)), output);
+	    } else {
+	      //which side to execute
+	      computeside=true;
+	    }
 	  } else {
-	    if (storeset.contains(current_node)) {
+	    if (genset.contains(current_node)) {
+	      generateFlatCondBranch(fm, lb, (FlatCondBranch)current_node, "L"+nodetolabel.get(current_node.getNext(1)), output);	      
+	    } else if (storeset.contains(current_node)) {
 	      //need to do branch
 	      output.println("RESTOREANDBRANCH(L"+nodetolabel.get(current_node.getNext(1))+");");
+	    } else {
+	      //which side to execute
+	      computeside=true;
 	    }
+	  }
+	  if (computeside) {
+	    Set<FlatNode> leftset=DelayComputation.getBranchNodes(current_node, 0, unionset);
+	    int branch=0;
+	    if (leftset.size()==0)
+	      branch=1;
+	    if (visited.contains(current_node.getNext(branch))) {
+	      //already visited -- build jump
+	      output.println("goto L"+nodetolabel.get(current_node.getNext(branch))+";");
+	      current_node=null;
+	    } else {
+	      current_node=current_node.getNext(branch);
+	    }
+	  } else {
+	    if (!visited.contains(current_node.getNext(1)))
+	      tovisit.add(current_node.getNext(1));
+	    if (visited.contains(current_node.getNext(0))) {
+	      output.println("goto L"+nodetolabel.get(current_node.getNext(0))+";");
+	      current_node=null;
+	    } else 
+	      current_node=current_node.getNext(0);
 	  }
 	} else {
 	  output.print("   ");  
 	  generateFlatCondBranch(fm, lb, (FlatCondBranch)current_node, "L"+nodetolabel.get(current_node.getNext(1)), output);
+	  if (!visited.contains(current_node.getNext(1)))
+	    tovisit.add(current_node.getNext(1));
+	  if (visited.contains(current_node.getNext(0))) {
+	    output.println("goto L"+nodetolabel.get(current_node.getNext(0))+";");
+	    current_node=null;
+	  } else 
+	    current_node=current_node.getNext(0);
 	}
-	if (!visited.contains(current_node.getNext(1)))
-	  tovisit.add(current_node.getNext(1));
-	if (visited.contains(current_node.getNext(0))) {
-	  output.println("goto L"+nodetolabel.get(current_node.getNext(0))+";");
-	  current_node=null;
-	} else 
-	  current_node=current_node.getNext(0);
       } else throw new Error();
     }
   }

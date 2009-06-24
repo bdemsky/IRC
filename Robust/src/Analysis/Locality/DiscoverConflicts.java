@@ -209,10 +209,12 @@ public class DiscoverConflicts {
 	  //or a method we called
 
 	  FlatGlobalConvNode fgcn=(FlatGlobalConvNode)fn;
-	  if (fgcn.getLocality()!=lb)
+	  if (fgcn.getLocality()!=lb||
+	      fgcn.getMakePtr())
 	    break;
 
 	  Set<TempFlatPair> tfpset=tmap.get(fgcn.getSrc());
+
 	  if (tfpset!=null) {
 	    for(Iterator<TempFlatPair> tfpit=tfpset.iterator();tfpit.hasNext();) {
 	      TempFlatPair tfp=tfpit.next();

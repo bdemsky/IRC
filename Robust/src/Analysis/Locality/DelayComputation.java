@@ -88,7 +88,7 @@ public class DelayComputation {
   }
 
   //This method computes which temps are live into the second part
-  public Set<TempDescriptor> liveinto(LocalityBinding lb, FlatAtomicEnterNode faen, Set<FlatNode> liveset) {
+  public Set<TempDescriptor> liveinto(LocalityBinding lb, FlatAtomicEnterNode faen, Set<FlatNode> recordset) {
     MethodDescriptor md=lb.getMethod();
     FlatMethod fm=state.getMethodFlat(md);
     Set<FlatNode> atomicnodes=faen.getReachableSet(faen.getExits());
@@ -96,7 +96,7 @@ public class DelayComputation {
     //Compute second part set of nodes
     Set<FlatNode> secondpart=new HashSet<FlatNode>();
     secondpart.addAll(getNotReady(lb));
-    secondpart.addAll(liveset);
+    secondpart.addAll(recordset);
 
     //make it just this transaction
     secondpart.retainAll(atomicnodes);
@@ -106,7 +106,8 @@ public class DelayComputation {
     
     for(Iterator<FlatNode> fnit=secondpart.iterator();fnit.hasNext();) {
       FlatNode fn=fnit.next();
-      
+      if (recordset.contains(fn))
+	continue;
       TempDescriptor readset[]=fn.readsTemps();
       for(int i=0;i<readset.length;i++) {
 	TempDescriptor rtmp=readset[i];
@@ -296,9 +297,38 @@ public class DelayComputation {
     return livenodes;
   }
   
-  //Returns null if more than one possible next
 
-  public static Set<FlatNode> getNext(FlatNode fn, int i, HashSet<FlatNode> delayset) {
+  public static Set<FlatNode> getBranchNodes(FlatNode fn, int i, Set<FlatNode> delayset) {
+    FlatNode fnnext=fn.getNext(i);
+    HashSet<FlatNode> reachable=new HashSet<FlatNode>();    
+    
+    if (delayset.contains(fnnext)) {
+      reachable.add(fnnext);
+      return reachable;
+    }
+
+    Stack<FlatNode> nodes=new Stack<FlatNode>();
+    HashSet<FlatNode> visited=new HashSet<FlatNode>();
+    nodes.push(fnnext);
+    visited.add(fn);//don't go back to the start node
+
+    while(!nodes.isEmpty()) {
+      FlatNode fn2=nodes.pop();
+      if (visited.contains(fn2)) 
+	continue;
+      visited.add(fn2);
+      for (int j=0;j<fn2.numNext();j++) {
+	FlatNode fn2next=fn2.getNext(j);
+	if (delayset.contains(fn2next)) {
+	  reachable.add(fn2next);
+	} else
+	  nodes.push(fn2next);
+      }
+    }
+    return reachable;
+  }
+
+  public static Set<FlatNode> getNext(FlatNode fn, int i, Set<FlatNode> delayset) {
     FlatNode fnnext=fn.getNext(i);
     HashSet<FlatNode> reachable=new HashSet<FlatNode>();    
 
@@ -409,9 +439,13 @@ public class DelayComputation {
 	nodelayarrayrdset.addAll(typeanalysis.expandSet(gft.getArraysRdAll(mdcall)));
       }
       
-      // Can't delay branches
+      //Delay branches if possible
       if (fn.kind()==FKind.FlatCondBranch) {
-	isnodelay=true;
+	Set<FlatNode> leftset=getBranchNodes(fn, 0, cannotdelay);
+	Set<FlatNode> rightset=getBranchNodes(fn, 1, cannotdelay);
+	if (leftset.size()>0&&rightset.size()>0&&
+	    !leftset.equals(rightset))
+	  isnodelay=true;
       }
 
       //Check for field conflicts

@@ -14,6 +14,7 @@ public class CopyPropagation {
     Hashtable<FlatNode, Hashtable<TempDescriptor, TempDescriptor>> table
       =new Hashtable<FlatNode, Hashtable<TempDescriptor, TempDescriptor>>();
     boolean changed=false;
+    TempDescriptor bogustd=new TempDescriptor("bogus");
     do {
       changed=false;
       HashSet tovisit=new HashSet();
