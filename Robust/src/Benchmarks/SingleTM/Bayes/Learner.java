@@ -106,6 +106,7 @@
 #define OPERATION_INSERT      0
 #define OPERATION_REMOVE      1
 #define OPERATION_REVERSE     2
+#define NUM_OPERATION         3
 
 public class Learner {
   Adtree adtreePtr;
@@ -127,31 +128,17 @@ public class Learner {
 #endif
   }
 
-
-  /* =============================================================================
-   * compareQuery
-   * -- Want smallest ID first
-   * -- For vector_sort
-   * =============================================================================
-   */
-  /*
-  static int
-    compareQuery (const void* aPtr, const void* bPtr)
-    {
-      query_t* aQueryPtr = (query_t*)(*(void**)aPtr);
-      query_t* bQueryPtr = (query_t*)(*(void**)bPtr);
-
-      return (aQueryPtr.index - bQueryPtr.index);
-    }
-    */
-
-
   /* =============================================================================
    * learner_alloc
    * =============================================================================
    */
   public static Learner
-    learner_alloc (Data dataPtr, Adtree adtreePtr, int numThread)
+    learner_alloc (Data dataPtr, 
+        Adtree adtreePtr, 
+        int numThread, 
+        int global_insertPenalty,
+        int global_maxNumEdgeLearned,
+        float global_operationQualityFactor)
     {
       Learner learnerPtr = new Learner();
 
@@ -163,6 +150,11 @@ public class Learner {
         learnerPtr.tasks = new LearnerTask[dataPtr.numVar];
         learnerPtr.taskListPtr = List.list_alloc();
         learnerPtr.numTotalParent = 0;
+#ifndef TEST_LEARNER
+        learnerPtr.global_insertPenalty = global_insertPenalty;
+        learnerPtr.global_maxNumEdgeLearned = global_maxNumEdgeLearned;
+        learnerPtr.global_operationQualityFactor = global_operationQualityFactor;
+#endif
       }
 
       return learnerPtr;
@@ -428,26 +420,27 @@ public class Learner {
 
   /* =============================================================================
    * TMpopTask
-   * -- Returns NULL is list is empty
+   * -- Returns null is list is empty
    * =============================================================================
    */
-/*
-  learner_task_t*
-    TMpopTask (TM_ARGDECL  list_t* taskListPtr)
+  public LearnerTask TMpopTask (List taskListPtr)
     {
-      learner_task_t* taskPtr = NULL;
+      LearnerTask taskPtr = null;
 
-      list_iter_t it;
-      TMLIST_ITER_RESET(&it, taskListPtr);
-      if (TMLIST_ITER_HASNEXT(&it, taskListPtr)) {
-        taskPtr = (learner_task_t*)TMLIST_ITER_NEXT(&it, taskListPtr);
-        boolean status = TMLIST_REMOVE(taskListPtr, (void*)taskPtr);
-        assert(status);
+      ListNode it = taskListPtr.head;
+      taskListPtr.list_iter_reset(it);
+      if (taskListPtr.list_iter_hasNext(it)) {
+        it = it.nextPtr;
+        taskPtr = taskListPtr.list_iter_next(it); 
+        boolean status = taskListPtr.list_remove(taskPtr);
+        if(status == false) {
+          System.out.println("Assert failed: when removing from a list in TMpopTask()");
+          System.exit(0);
+        }
       }
 
       return taskPtr;
     }
-    */
 
 
   /* =============================================================================
@@ -483,27 +476,28 @@ public class Learner {
    * -- Modifies contents of parentQueryVectorPtr
    * =============================================================================
    */
-  /*
-  static void
-    TMpopulateParentQueryVector (TM_ARGDECL
-        net_t* netPtr,
+  public void
+    TMpopulateParentQueryVector (Net netPtr,
         int id,
-        query_t* queries,
-        vector_t* parentQueryVectorPtr)
+        Query[] queries,
+        Vector_t parentQueryVectorPtr)
     {
-      vector_clear(parentQueryVectorPtr);
+      parentQueryVectorPtr.vector_clear();
 
-      list_t* parentIdListPtr = net_getParentIdListPtr(netPtr, id);
-      list_iter_t it;
-      TMLIST_ITER_RESET(&it, parentIdListPtr);
-      while (TMLIST_ITER_HASNEXT(&it, parentIdListPtr)) {
-        int parentId = (int)TMLIST_ITER_NEXT(&it, parentIdListPtr);
-        boolean status = PVECTOR_PUSHBACK(parentQueryVectorPtr,
-            (void*)&queries[parentId]);
-        assert(status);
+      IntList parentIdListPtr = netPtr.net_getParentIdListPtr(id);
+      IntListNode it = parentIdListPtr.head;
+      parentIdListPtr.list_iter_reset(it);
+
+      while (parentIdListPtr.list_iter_hasNext(it)) {
+        it = it.nextPtr;
+        int parentId = parentIdListPtr.list_iter_next(it);
+        boolean status = parentQueryVectorPtr.vector_pushBack(queries[parentId]);
+        if(status == false) {
+          System.out.println("Assert failed: unable to pushBack in queue in TMpopulateParentQueryVector()");
+          System.exit(0);
+        }
       }
     }
-    */
 
 
   /* =============================================================================
@@ -523,13 +517,13 @@ public class Learner {
       boolean status;
       status = Vector_t.vector_copy(queryVectorPtr, parentQueryVectorPtr);
       if(status == false ) {
-        System.out.println("Assert failed: whille vector copy in populateQueryVectors()");
+        System.out.println("Assert failed: while vector copy in populateQueryVectors()");
         System.exit(0);
       }
       
       status = queryVectorPtr.vector_pushBack(queries[id]);
       if(status == false ) {
-        System.out.println("Assert failed: whille vector pushBack in populateQueryVectors()");
+        System.out.println("Assert failed: while vector pushBack in populateQueryVectors()");
         System.exit(0);
       }
 
@@ -542,25 +536,29 @@ public class Learner {
    * -- Modifies contents of queryVectorPtr and parentQueryVectorPtr
    * =============================================================================
    */
-  /*
-  static void
-    TMpopulateQueryVectors (TM_ARGDECL
-        net_t* netPtr,
+  public void
+    TMpopulateQueryVectors (Net netPtr,
         int id,
-        query_t* queries,
-        vector_t* queryVectorPtr,
-        vector_t* parentQueryVectorPtr)
+        Query[] queries,
+        Vector_t queryVectorPtr,
+        Vector_t parentQueryVectorPtr)
     {
-      TMpopulateParentQueryVector(TM_ARG  netPtr, id, queries, parentQueryVectorPtr);
+      TMpopulateParentQueryVector(netPtr, id, queries, parentQueryVectorPtr);
 
       boolean status;
-      status = PVECTOR_COPY(queryVectorPtr, parentQueryVectorPtr);
-      assert(status);
-      status = PVECTOR_PUSHBACK(queryVectorPtr, (void*)&queries[id]);
-      assert(status);
-      PVECTOR_SORT(queryVectorPtr, &compareQuery);
+      status = Vector_t.vector_copy(queryVectorPtr, parentQueryVectorPtr);
+      if(status == false ) {
+        System.out.println("Assert failed: while vector copy in TMpopulateQueryVectors()");
+        System.exit(0);
+      }
+      status = queryVectorPtr.vector_pushBack(queries[id]);
+      if(status == false ) {
+        System.out.println("Assert failed: while vector pushBack in TMpopulateQueryVectors()");
+        System.exit(0);
+      }
+
+      queryVectorPtr.vector_sort();
     }
-*/
 
   /* =============================================================================
    * computeLocalLogLikelihoodHelper
@@ -650,92 +648,118 @@ public class Learner {
    * TMfindBestInsertTask
    * =============================================================================
    */
-  /*
-  static learner_task_t
-    TMfindBestInsertTask (TM_ARGDECL  findBestTaskArg_t* argPtr)
+  public LearnerTask
+    TMfindBestInsertTask (FindBestTaskArg argPtr)
     {
-      int       toId                     = argPtr.toId;
-      learner_t* learnerPtr               = argPtr.learnerPtr;
-      query_t*   queries                  = argPtr.queries;
-      vector_t*  queryVectorPtr           = argPtr.queryVectorPtr;
-      vector_t*  parentQueryVectorPtr     = argPtr.parentQueryVectorPtr;
-      int       numTotalParent           = argPtr.numTotalParent;
-      float      basePenalty              = argPtr.basePenalty;
-      float      baseLogLikelihood        = argPtr.baseLogLikelihood;
-      bitmap_t*  invalidBitmapPtr         = argPtr.bitmapPtr;
-      queue_t*   workQueuePtr             = argPtr.workQueuePtr;
-      vector_t*  baseParentQueryVectorPtr = argPtr.aQueryVectorPtr;
-      vector_t*  baseQueryVectorPtr       = argPtr.bQueryVectorPtr;
+      int       toId                      = argPtr.toId;
+      Learner   learnerPtr                = argPtr.learnerPtr;
+      Query[]   queries                   = argPtr.queries;
+      Vector_t  queryVectorPtr            = argPtr.queryVectorPtr;
+      Vector_t  parentQueryVectorPtr      = argPtr.parentQueryVectorPtr;
+      int       numTotalParent            = argPtr.numTotalParent;
+      float     basePenalty               = argPtr.basePenalty;
+      float     baseLogLikelihood         = argPtr.baseLogLikelihood;
+      BitMap    invalidBitmapPtr          = argPtr.bitmapPtr;
+      Queue     workQueuePtr              = argPtr.workQueuePtr;
+      Vector_t  baseParentQueryVectorPtr  = argPtr.aQueryVectorPtr;
+      Vector_t  baseQueryVectorPtr        = argPtr.bQueryVectorPtr;
 
       boolean status;
-      adtree_t* adtreePtr               = learnerPtr.adtreePtr;
-      net_t*    netPtr                  = learnerPtr.netPtr;
-      float*    localBaseLogLikelihoods = learnerPtr.localBaseLogLikelihoods;
+      Adtree adtreePtr               = learnerPtr.adtreePtr;
+      Net    netPtr                  = learnerPtr.netPtr;
 
-      TMpopulateParentQueryVector(TM_ARG  netPtr, toId, queries, parentQueryVectorPtr);
-      */
+      TMpopulateParentQueryVector(netPtr, toId, queries, parentQueryVectorPtr);
 
       /*
        * Create base query and parentQuery
        */
 
-  /*
-      status = PVECTOR_COPY(baseParentQueryVectorPtr, parentQueryVectorPtr);
-      assert(status);
+      status = Vector_t.vector_copy(baseParentQueryVectorPtr, parentQueryVectorPtr);
+      if(status == false) {
+        System.out.println("Assert failed: copying baseParentQuery vector in TMfindBestInsertTask");
+        System.exit(0);
+      }
 
-      status = PVECTOR_COPY(baseQueryVectorPtr, baseParentQueryVectorPtr);
-      assert(status);
-      status = PVECTOR_PUSHBACK(baseQueryVectorPtr, (void*)&queries[toId]);
-      assert(status);
-      PVECTOR_SORT(queryVectorPtr, &compareQuery);
-      */
+      status = Vector_t.vector_copy(baseQueryVectorPtr, baseParentQueryVectorPtr);
+      if(status == false) {
+        System.out.println("Assert failed: copying baseQuery vector in TMfindBestInsertTask");
+        System.exit(0);
+      }
+
+      status = baseQueryVectorPtr.vector_pushBack(queries[toId]);
+      if(status == false ) {
+        System.out.println("Assert failed: while vector pushBack in TMfindBestInsertTask()");
+        System.exit(0);
+      }
+
+      queryVectorPtr.vector_sort();
 
       /*
        * Search all possible valid operations for better local log likelihood
        */
 
-  /*
-      float bestFromId = toId; // flag for not found 
-      float oldLocalLogLikelihood =
-        (float)TM_SHARED_READ_F(localBaseLogLikelihoods[toId]);
+      int bestFromId = toId; // flag for not found 
+      float oldLocalLogLikelihood = learnerPtr.localBaseLogLikelihoods[toId];
       float bestLocalLogLikelihood = oldLocalLogLikelihood;
 
-      status = TMNET_FINDDESCENDANTS(netPtr, toId, invalidBitmapPtr, workQueuePtr);
-      assert(status);
+      status = netPtr.net_findDescendants(toId, invalidBitmapPtr, workQueuePtr);
+      if(status == false) {
+        System.out.println("Assert failed: while net_findDescendants in TMfindBestInsertTask()");
+        System.exit(0);
+      }
+
       int fromId = -1;
 
-      list_t* parentIdListPtr = net_getParentIdListPtr(netPtr, toId);
+      IntList parentIdListPtr = netPtr.net_getParentIdListPtr(toId);
 
       int maxNumEdgeLearned = global_maxNumEdgeLearned;
 
       if ((maxNumEdgeLearned < 0) ||
-          (TMLIST_GETSIZE(parentIdListPtr) <= maxNumEdgeLearned))
+          (parentIdListPtr.list_getSize() <= maxNumEdgeLearned))
       {
 
-        list_iter_t it;
-        TMLIST_ITER_RESET(&it, parentIdListPtr);
-        while (TMLIST_ITER_HASNEXT(&it, parentIdListPtr)) {
-          int parentId = (int)TMLIST_ITER_NEXT(&it, parentIdListPtr);
-          bitmap_set(invalidBitmapPtr, parentId); // invalid since already have edge 
+        IntListNode it = parentIdListPtr.head;
+        parentIdListPtr.list_iter_reset(it);
+
+        while( parentIdListPtr.list_iter_hasNext(it)) {
+          it = it.nextPtr;
+          int parentId = parentIdListPtr.list_iter_next(it);
+          invalidBitmapPtr.bitmap_set(parentId); // invalid since already have edge 
         }
 
-        while ((fromId = bitmap_findClear(invalidBitmapPtr, (fromId + 1))) >= 0) {
+        while ((fromId = invalidBitmapPtr.bitmap_findClear((fromId + 1))) >= 0) {
 
           if (fromId == toId) {
             continue;
           }
 
-          status = PVECTOR_COPY(queryVectorPtr, baseQueryVectorPtr);
-          assert(status);
-          status = PVECTOR_PUSHBACK(queryVectorPtr, (void*)&queries[fromId]);
-          assert(status);
-          PVECTOR_SORT(queryVectorPtr, &compareQuery);
+          status = Vector_t.vector_copy(queryVectorPtr, baseQueryVectorPtr);
+          if(status == false) {
+            System.out.println("Assert failed: copying query vector in TMfindBestInsertTask");
+            System.exit(0);
+          }
 
-          status = PVECTOR_COPY(parentQueryVectorPtr, baseParentQueryVectorPtr);
-          assert(status);
-          status = PVECTOR_PUSHBACK(parentQueryVectorPtr, (void*)&queries[fromId]);
-          assert(status);
-          PVECTOR_SORT(parentQueryVectorPtr, &compareQuery);
+          status = queryVectorPtr.vector_pushBack(queries[fromId]);
+          if(status == false) {
+            System.out.println("Assert failed: vector pushback for query in TMfindBestInsertTask");
+            System.exit(0);
+          }
+
+          queryVectorPtr.vector_sort();
+
+          status = Vector_t.vector_copy(parentQueryVectorPtr, baseParentQueryVectorPtr);
+          if(status == false) {
+            System.out.println("Assert failed: copying parentQuery vector in TMfindBestInsertTask");
+            System.exit(0);
+          }
+
+          status = parentQueryVectorPtr.vector_pushBack(queries[fromId]);
+          if(status == false) {
+            System.out.println("Assert failed: vector pushBack for parentQuery in TMfindBestInsertTask");
+            System.exit(0);
+          }
+
+          parentQueryVectorPtr.vector_sort();
 
           float newLocalLogLikelihood =
             computeLocalLogLikelihood(toId,
@@ -753,22 +777,20 @@ public class Learner {
         } // foreach valid parent 
 
       } // if have not exceeded max number of edges to learn 
-      */
 
       /*
        * Return best task; Note: if none is better, fromId will equal toId
        */
 
-  /*
-      learner_task_t bestTask;
+      LearnerTask bestTask = new LearnerTask();
       bestTask.op     = OPERATION_INSERT;
       bestTask.fromId = bestFromId;
       bestTask.toId   = toId;
-      bestTask.score  = 0.0;
+      bestTask.score  = 0.0f;
 
       if (bestFromId != toId) {
         int numRecord = adtreePtr.numRecord;
-        int numParent = TMLIST_GETSIZE(parentIdListPtr) + 1;
+        int numParent = parentIdListPtr.list_getSize() + 1;
         float penalty =
           (numTotalParent + numParent * global_insertPenalty) * basePenalty;
         float logLikelihood = numRecord * (baseLogLikelihood +
@@ -780,91 +802,86 @@ public class Learner {
 
       return bestTask;
     }
-    */
-
 
 #ifdef LEARNER_TRY_REMOVE
   /* =============================================================================
    * TMfindBestRemoveTask
    * =============================================================================
    */
-  /*
-  static learner_task_t
-    TMfindBestRemoveTask (TM_ARGDECL  findBestTaskArg_t* argPtr)
+  public LearnerTask
+    TMfindBestRemoveTask (FindBestTaskArg argPtr)
     {
       int       toId                     = argPtr.toId;
-      learner_t* learnerPtr               = argPtr.learnerPtr;
-      query_t*   queries                  = argPtr.queries;
-      vector_t*  queryVectorPtr           = argPtr.queryVectorPtr;
-      vector_t*  parentQueryVectorPtr     = argPtr.parentQueryVectorPtr;
+      Learner   learnerPtr               = argPtr.learnerPtr;
+      Query[]   queries                  = argPtr.queries;
+      Vector_t  queryVectorPtr           = argPtr.queryVectorPtr;
+      Vector_t  parentQueryVectorPtr     = argPtr.parentQueryVectorPtr;
       int       numTotalParent           = argPtr.numTotalParent;
-      float      basePenalty              = argPtr.basePenalty;
-      float      baseLogLikelihood        = argPtr.baseLogLikelihood;
-      vector_t*  origParentQueryVectorPtr = argPtr.aQueryVectorPtr;
+      float     basePenalty              = argPtr.basePenalty;
+      float     baseLogLikelihood        = argPtr.baseLogLikelihood;
+      Vector_t  origParentQueryVectorPtr = argPtr.aQueryVectorPtr;
 
       boolean status;
-      adtree_t* adtreePtr = learnerPtr.adtreePtr;
-      net_t* netPtr = learnerPtr.netPtr;
-      float* localBaseLogLikelihoods = learnerPtr.localBaseLogLikelihoods;
+      Adtree adtreePtr = learnerPtr.adtreePtr;
+      Net netPtr = learnerPtr.netPtr;
+      float[] localBaseLogLikelihoods = learnerPtr.localBaseLogLikelihoods;
 
-      TMpopulateParentQueryVector(TM_ARG
-          netPtr, toId, queries, origParentQueryVectorPtr);
-      int numParent = PVECTOR_GETSIZE(origParentQueryVectorPtr);
-      */
+      TMpopulateParentQueryVector(netPtr, toId, queries, origParentQueryVectorPtr);
+      int numParent = origParentQueryVectorPtr.vector_getSize();
 
       /*
        * Search all possible valid operations for better local log likelihood
        */
 
-  /*
-      float bestFromId = toId; // flag for not found 
-      float oldLocalLogLikelihood =
-        (float)TM_SHARED_READ_F(localBaseLogLikelihoods[toId]);
+      int bestFromId = toId; // flag for not found 
+      float oldLocalLogLikelihood = localBaseLogLikelihoods[toId];
       float bestLocalLogLikelihood = oldLocalLogLikelihood;
 
       int i;
       for (i = 0; i < numParent; i++) {
 
-        query_t* queryPtr = (query_t*)PVECTOR_AT(origParentQueryVectorPtr, i);
+        Query queryPtr = (Query) (origParentQueryVectorPtr.vector_at(i));
         int fromId = queryPtr.index;
-        */
 
         /*
          * Create parent query (subset of parents since remove an edge)
          */
 
-  /*
+        parentQueryVectorPtr.vector_clear();
 
-        PVECTOR_CLEAR(parentQueryVectorPtr);
-
-        int p;
-        for (p = 0; p < numParent; p++) {
+        for (int p = 0; p < numParent; p++) {
           if (p != fromId) {
-            query_t* queryPtr = PVECTOR_AT(origParentQueryVectorPtr, p);
-            status = PVECTOR_PUSHBACK(parentQueryVectorPtr,
-                (void*)&queries[queryPtr.index]);
-            assert(status);
+            Query tmpqueryPtr = (Query) (origParentQueryVectorPtr.vector_at(p));
+            status = parentQueryVectorPtr.vector_pushBack(queries[tmpqueryPtr.index]);
+            if(status == false) {
+              System.out.println("Assert failed: vector_pushBack to parentQuery in TMfindBestRemoveTask()");
+              System.exit(0);
+            }
           }
         } // create new parent query 
-        */
 
         /*
          * Create query
          */
-      /*
 
-        status = PVECTOR_COPY(queryVectorPtr, parentQueryVectorPtr);
-        assert(status);
-        status = PVECTOR_PUSHBACK(queryVectorPtr, (void*)&queries[toId]);
-        assert(status);
-        PVECTOR_SORT(queryVectorPtr, &compareQuery);
-        */
+        status = Vector_t.vector_copy(queryVectorPtr, parentQueryVectorPtr);
+        if(status == false) {
+          System.out.println("Assert failed: while vector copy to query in TMfindBestRemoveTask()");
+          System.exit(0);
+        }
+
+        status = queryVectorPtr.vector_pushBack(queries[toId]);
+        if(status == false) {
+          System.out.println("Assert failed: while vector_pushBack to query in TMfindBestRemoveTask()");
+          System.exit(0);
+        }
+
+        queryVectorPtr.vector_sort();
 
         /*
          * See if removing parent is better
          */
 
-  /*
         float newLocalLogLikelihood =
           computeLocalLogLikelihood(toId,
               adtreePtr,
@@ -879,18 +896,16 @@ public class Learner {
         }
 
       } // for each parent 
-  */
 
       /*
        * Return best task; Note: if none is better, fromId will equal toId
        */
 
-  /*
-      learner_task_t bestTask;
+      LearnerTask bestTask = new LearnerTask();
       bestTask.op     = OPERATION_REMOVE;
       bestTask.fromId = bestFromId;
       bestTask.toId   = toId;
-      bestTask.score  = 0.0;
+      bestTask.score  = 0.0f;
 
       if (bestFromId != toId) {
         int numRecord = adtreePtr.numRecord;
@@ -904,7 +919,6 @@ public class Learner {
 
       return bestTask;
     }
-    */
 #endif /* LEARNER_TRY_REMOVE */
 
 
@@ -913,96 +927,90 @@ public class Learner {
    * TMfindBestReverseTask
    * =============================================================================
    */
-  /*
-  static learner_task_t
-    TMfindBestReverseTask (TM_ARGDECL  findBestTaskArg_t* argPtr)
+  public LearnerTask
+    TMfindBestReverseTask (FindBestTaskArg argPtr)
     {
       int       toId                         = argPtr.toId;
-      learner_t* learnerPtr                   = argPtr.learnerPtr;
-      query_t*   queries                      = argPtr.queries;
-      vector_t*  queryVectorPtr               = argPtr.queryVectorPtr;
-      vector_t*  parentQueryVectorPtr         = argPtr.parentQueryVectorPtr;
+      Learner   learnerPtr                   = argPtr.learnerPtr;
+      Query[]   queries                      = argPtr.queries;
+      Vector_t  queryVectorPtr               = argPtr.queryVectorPtr;
+      Vector_t  parentQueryVectorPtr         = argPtr.parentQueryVectorPtr;
       int       numTotalParent               = argPtr.numTotalParent;
-      float      basePenalty                  = argPtr.basePenalty;
-      float      baseLogLikelihood            = argPtr.baseLogLikelihood;
-      bitmap_t*  visitedBitmapPtr             = argPtr.bitmapPtr;
-      queue_t*   workQueuePtr                 = argPtr.workQueuePtr;
-      vector_t*  toOrigParentQueryVectorPtr   = argPtr.aQueryVectorPtr;
-      vector_t*  fromOrigParentQueryVectorPtr = argPtr.bQueryVectorPtr;
+      float     basePenalty                  = argPtr.basePenalty;
+      float     baseLogLikelihood            = argPtr.baseLogLikelihood;
+      BitMap    visitedBitmapPtr             = argPtr.bitmapPtr;
+      Queue     workQueuePtr                 = argPtr.workQueuePtr;
+      Vector_t  toOrigParentQueryVectorPtr   = argPtr.aQueryVectorPtr;
+      Vector_t  fromOrigParentQueryVectorPtr = argPtr.bQueryVectorPtr;
 
       boolean status;
-      adtree_t* adtreePtr = learnerPtr.adtreePtr;
-      net_t* netPtr = learnerPtr.netPtr;
-      float* localBaseLogLikelihoods = learnerPtr.localBaseLogLikelihoods;
+      Adtree adtreePtr = learnerPtr.adtreePtr;
+      Net netPtr = learnerPtr.netPtr;
+      float[] localBaseLogLikelihoods = learnerPtr.localBaseLogLikelihoods;
 
-      TMpopulateParentQueryVector(TM_ARG
-          netPtr, toId, queries, toOrigParentQueryVectorPtr);
-      int numParent = PVECTOR_GETSIZE(toOrigParentQueryVectorPtr);
-      */
+      TMpopulateParentQueryVector(netPtr, toId, queries, toOrigParentQueryVectorPtr);
+      int numParent = toOrigParentQueryVectorPtr.vector_getSize();
 
       /*
        * Search all possible valid operations for better local log likelihood
        */
 
-  /*
       int bestFromId = toId; // flag for not found 
-      float oldLocalLogLikelihood =
-        (float)TM_SHARED_READ_F(localBaseLogLikelihoods[toId]);
+      float oldLocalLogLikelihood = localBaseLogLikelihoods[toId];
       float bestLocalLogLikelihood = oldLocalLogLikelihood;
       int fromId = 0;
 
-      int i;
-      for (i = 0; i < numParent; i++) {
+      for (int i = 0; i < numParent; i++) {
 
-        query_t* queryPtr = (query_t*)PVECTOR_AT(toOrigParentQueryVectorPtr, i);
+        Query queryPtr = (Query) (toOrigParentQueryVectorPtr.vector_at(i));
         fromId = queryPtr.index;
 
         bestLocalLogLikelihood =
-          oldLocalLogLikelihood +
-          (float)TM_SHARED_READ_F(localBaseLogLikelihoods[fromId]);
+          oldLocalLogLikelihood + localBaseLogLikelihoods[fromId];
 
-        TMpopulateParentQueryVector(TM_ARG
-            netPtr,
+        TMpopulateParentQueryVector(netPtr,
             fromId,
             queries,
             fromOrigParentQueryVectorPtr);
-            */
 
         /*
          * Create parent query (subset of parents since remove an edge)
          */
 
-  /*
+        parentQueryVectorPtr.vector_clear();
 
-        PVECTOR_CLEAR(parentQueryVectorPtr);
-
-        int p;
-        for (p = 0; p < numParent; p++) {
+        for (int p = 0; p < numParent; p++) {
           if (p != fromId) {
-            query_t* queryPtr = PVECTOR_AT(toOrigParentQueryVectorPtr, p);
-            status = PVECTOR_PUSHBACK(parentQueryVectorPtr,
-                (void*)&queries[queryPtr.index]);
-            assert(status);
+            Query tmpqueryPtr = (Query) (toOrigParentQueryVectorPtr.vector_at(p));
+            status = parentQueryVectorPtr.vector_pushBack(queries[tmpqueryPtr.index]);
+            if(status == false) {
+              System.out.println("Assert failed: while vector_pushBack parentQueryVectorPtr");
+              System.exit(0);
+            }
           }
         } // create new parent query 
-  */
 
         /*
          * Create query
          */
 
-  /*
-        status = PVECTOR_COPY(queryVectorPtr, parentQueryVectorPtr);
-        assert(status);
-        status = PVECTOR_PUSHBACK(queryVectorPtr, (void*)&queries[toId]);
-        assert(status);
-        PVECTOR_SORT(queryVectorPtr, &compareQuery);
-        */
+        status = Vector_t.vector_copy(queryVectorPtr, parentQueryVectorPtr);
+        if(status == false) {
+          System.out.println("Assert failed: while vector_copy in TMfindBestReverseTask()");
+          System.exit(0);
+        }
+
+        status = queryVectorPtr.vector_pushBack(queries[toId]);
+        if(status == false) {
+          System.out.println("Assert failed: while vector_pushBack in TMfindBestReverseTask()");
+          System.exit(0);
+        }
+
+        queryVectorPtr.vector_sort();
 
         /*
          * Get log likelihood for removing parent from toId
          */
-  /*
 
         float newLocalLogLikelihood =
           computeLocalLogLikelihood(toId,
@@ -1011,25 +1019,38 @@ public class Learner {
               queries,
               queryVectorPtr,
               parentQueryVectorPtr);
-              */
 
         /*
          * Get log likelihood for adding parent to fromId
          */
 
-  /*
+        status = Vector_t.vector_copy(parentQueryVectorPtr, fromOrigParentQueryVectorPtr);
+        if(status == false) {
+          System.out.println("Assert failed: while parentQuery vector_copy in TMfindBestReverseTask()");
+          System.exit(0);
+        }
 
-        status = PVECTOR_COPY(parentQueryVectorPtr, fromOrigParentQueryVectorPtr);
-        assert(status);
-        status = PVECTOR_PUSHBACK(parentQueryVectorPtr, (void*)&queries[toId]);
-        assert(status);
-        PVECTOR_SORT(parentQueryVectorPtr, &compareQuery);
+        status = parentQueryVectorPtr.vector_pushBack(queries[toId]);
+        if(status == false) {
+          System.out.println("Assert failed: while vector_pushBack into parentQuery on TMfindBestReverseTask()");
+          System.exit(0);
+        }
 
-        status = PVECTOR_COPY(queryVectorPtr, parentQueryVectorPtr);
-        assert(status);
-        status = PVECTOR_PUSHBACK(queryVectorPtr, (void*)&queries[fromId]);
-        assert(status);
-        PVECTOR_SORT(queryVectorPtr, &compareQuery);
+        parentQueryVectorPtr.vector_sort();
+
+        status = Vector_t.vector_copy(queryVectorPtr, parentQueryVectorPtr);
+        if(status == false) {
+          System.out.println("Assert failed: while vector_copy on TMfindBestReverseTask()");
+          System.exit(0);
+        }
+
+        status = queryVectorPtr.vector_pushBack(queries[fromId]);
+        if(status == false) {
+          System.out.println("Assert failed: while vector_pushBack on TMfindBestReverseTask()");
+          System.exit(0);
+        }
+
+        queryVectorPtr.vector_sort();
 
         newLocalLogLikelihood +=
           computeLocalLogLikelihood(fromId,
@@ -1038,57 +1059,50 @@ public class Learner {
               queries,
               queryVectorPtr,
               parentQueryVectorPtr);
-              */
 
         /*
          * Record best
          */
-  /*
+
         if (newLocalLogLikelihood > bestLocalLogLikelihood) {
           bestLocalLogLikelihood = newLocalLogLikelihood;
           bestFromId = fromId;
         }
 
       } // for each parent 
-      */
 
       /*
        * Check validity of best
        */
 
-  /*
       if (bestFromId != toId) {
-        boolean isTaskValid = TRUE;
-        TMNET_APPLYOPERATION(netPtr, OPERATION_REMOVE, bestFromId, toId);
-        if (TMNET_ISPATH(netPtr,
-              bestFromId,
+        boolean isTaskValid = true;
+        netPtr.net_applyOperation(OPERATION_REMOVE, bestFromId, toId);
+        if (netPtr.net_isPath(bestFromId,
               toId,
               visitedBitmapPtr,
               workQueuePtr))
         {
-          isTaskValid = FALSE;
+          isTaskValid = false;
         }
-        TMNET_APPLYOPERATION(netPtr, OPERATION_INSERT, bestFromId, toId);
+        netPtr.net_applyOperation(OPERATION_INSERT, bestFromId, toId);
         if (!isTaskValid) {
           bestFromId = toId;
         }
       }
-      */
 
       /*
        * Return best task; Note: if none is better, fromId will equal toId
        */
 
-  /*
-      learner_task_t bestTask;
+      LearnerTask bestTask = new LearnerTask();
       bestTask.op     = OPERATION_REVERSE;
       bestTask.fromId = bestFromId;
       bestTask.toId   = toId;
-      bestTask.score  = 0.0;
+      bestTask.score  = 0.0f;
 
       if (bestFromId != toId) {
-        float fromLocalLogLikelihood =
-          (float)TM_SHARED_READ_F(localBaseLogLikelihoods[bestFromId]);
+        float fromLocalLogLikelihood = localBaseLogLikelihoods[bestFromId];
         int numRecord = adtreePtr.numRecord;
         float penalty = numTotalParent * basePenalty;
         float logLikelihood = numRecord * (baseLogLikelihood +
@@ -1101,7 +1115,7 @@ public class Learner {
 
       return bestTask;
     }
-    */
+
 #endif /* LEARNER_TRY_REVERSE */
 
 
@@ -1113,47 +1127,68 @@ public class Learner {
    * threads.
    * =============================================================================
    */
-  /*
-  static void
-    learnStructure (void* argPtr)
+  public static void
+    learnStructure (int myId, int numThread, Learner learnerPtr)
     {
-      TM_THREAD_ENTER();
 
-      learner_t* learnerPtr = (learner_t*)argPtr;
-      net_t* netPtr = learnerPtr.netPtr;
-      adtree_t* adtreePtr = learnerPtr.adtreePtr;
-      int numRecord = adtreePtr.numRecord;
-      float* localBaseLogLikelihoods = learnerPtr.localBaseLogLikelihoods;
-      list_t* taskListPtr = learnerPtr.taskListPtr;
+      int numRecord = learnerPtr.adtreePtr.numRecord;
 
-      float operationQualityFactor = global_operationQualityFactor;
+      float operationQualityFactor = learnerPtr.global_operationQualityFactor;
 
-      bitmap_t* visitedBitmapPtr = PBITMAP_ALLOC(learnerPtr.adtreePtr.numVar);
-      assert(visitedBitmapPtr);
-      queue_t* workQueuePtr = PQUEUE_ALLOC(-1);
-      assert(workQueuePtr);
+      BitMap visitedBitmapPtr = BitMap.bitmap_alloc(learnerPtr.adtreePtr.numVar);
+      if(visitedBitmapPtr == null) {
+        System.out.println("Assert failed: for bitmap alloc in learnStructure()");
+        System.exit(0);
+      }
 
-      int numVar = adtreePtr.numVar;
-      query_t* queries = (query_t*)P_MALLOC(numVar * sizeof(query_t));
-      assert(queries);
-      int v;
-      for (v = 0; v < numVar; v++) {
+      Queue workQueuePtr = Queue.queue_alloc(-1);
+      if(workQueuePtr == null) {
+        System.out.println("Assert failed: for vector alloc in learnStructure()");
+        System.exit(0);
+      }
+
+      int numVar = learnerPtr.adtreePtr.numVar;
+      Query[] queries = new Query[numVar];
+
+      if(queries == null) {
+        System.out.println("Assert failed: for queries alloc in learnStructure()");
+        System.exit(0);
+      }
+
+      for (int v = 0; v < numVar; v++) {
+        queries[v] = new Query();
         queries[v].index = v;
         queries[v].value = QUERY_VALUE_WILDCARD;
       }
 
-      float basePenalty = (float)(-0.5 * log((double)numRecord));
+      float basePenalty = (float)(-0.5 * Math.log((double)numRecord));
 
-      vector_t* queryVectorPtr = PVECTOR_ALLOC(1);
-      assert(queryVectorPtr);
-      vector_t* parentQueryVectorPtr = PVECTOR_ALLOC(1);
-      assert(parentQueryVectorPtr);
-      vector_t* aQueryVectorPtr = PVECTOR_ALLOC(1);
-      assert(aQueryVectorPtr);
-      vector_t* bQueryVectorPtr = PVECTOR_ALLOC(1);
-      assert(bQueryVectorPtr);
+      Vector_t queryVectorPtr = Vector_t.vector_alloc(1);
+      if(queryVectorPtr == null) {
+        System.out.println("Assert failed: for vector_alloc in learnStructure()");
+        System.exit(0);
+      }
 
-      findBestTaskArg_t arg;
+      Vector_t parentQueryVectorPtr = Vector_t.vector_alloc(1);
+      if(parentQueryVectorPtr == null) {
+        System.out.println("Assert failed: for vector_alloc in learnStructure()");
+        System.exit(0);
+      }
+
+      Vector_t aQueryVectorPtr = Vector_t.vector_alloc(1);
+      if(aQueryVectorPtr == null) {
+        System.out.println("Assert failed: for vector_alloc in learnStructure()");
+        System.exit(0);
+      }
+
+      Vector_t bQueryVectorPtr = Vector_t.vector_alloc(1);
+      if(bQueryVectorPtr == null) {
+        System.out.println("Assert failed: for vector_alloc in learnStructure()");
+        System.exit(0);
+      }
+
+
+      FindBestTaskArg arg = new FindBestTaskArg();
       arg.learnerPtr           = learnerPtr;
       arg.queries              = queries;
       arg.queryVectorPtr       = queryVectorPtr;
@@ -1163,243 +1198,220 @@ public class Learner {
       arg.aQueryVectorPtr      = aQueryVectorPtr;
       arg.bQueryVectorPtr      = bQueryVectorPtr;
 
-      while (1) {
+      while (true) {
 
-        learner_task_t* taskPtr;
-        TM_BEGIN();
-        taskPtr = TMpopTask(TM_ARG  taskListPtr);
-        TM_END();
-        if (taskPtr == NULL) {
+        LearnerTask taskPtr;
+
+        atomic {
+          taskPtr = learnerPtr.TMpopTask(learnerPtr.taskListPtr);
+        }
+
+        if (taskPtr == null) {
           break;
         }
 
-        operation_t op = taskPtr.op;
+        int op = taskPtr.op;
         int fromId = taskPtr.fromId;
         int toId = taskPtr.toId;
 
         boolean isTaskValid;
 
-        TM_BEGIN();
-        */
+        atomic {
+          /*
+           * Check if task is still valid
+           */
 
-        /*
-         * Check if task is still valid
-         */
-  /*
-        isTaskValid = TRUE;
-        switch (op) {
-          case OPERATION_INSERT: {
-                                   if (TMNET_HASEDGE(netPtr, fromId, toId) ||
-                                       TMNET_ISPATH(netPtr,
-                                         toId,
-                                         fromId,
-                                         visitedBitmapPtr,
-                                         workQueuePtr))
-                                   {
-                                     isTaskValid = FALSE;
-                                   }
-                                   break;
-                                 }
-          case OPERATION_REMOVE: {
-                                   // Can never create cycle, so always valid 
-                                   break;
-                                 }
-          case OPERATION_REVERSE: {
-                                    // Temporarily remove edge for check 
-                                    TMNET_APPLYOPERATION(netPtr, OPERATION_REMOVE, fromId, toId);
-                                    if (TMNET_ISPATH(netPtr,
-                                          fromId,
-                                          toId,
-                                          visitedBitmapPtr,
-                                          workQueuePtr))
-                                    {
-                                      isTaskValid = FALSE;
-                                    }
-                                    TMNET_APPLYOPERATION(netPtr, OPERATION_INSERT, fromId, toId);
-                                    break;
-                                  }
-          default:
-                                  assert(0);
-        }
+          isTaskValid = true;
+          if(op == OPERATION_INSERT) {
+            if(learnerPtr.netPtr.net_hasEdge(fromId, toId) || 
+                learnerPtr.netPtr.net_isPath(toId,
+                  fromId,
+                  visitedBitmapPtr,
+                  workQueuePtr))
+            {
+              isTaskValid = false;
+            }
+          } else if (op == OPERATION_REMOVE) {
+            // Can never create cycle, so always valid
+            ;
+          } else if (op == OPERATION_REVERSE) {
+            // Temporarily remove edge for check
+            learnerPtr.netPtr.net_applyOperation(OPERATION_REMOVE, fromId, toId);
+            if(learnerPtr.netPtr.net_isPath(fromId,
+                  toId,
+                  visitedBitmapPtr,
+                  workQueuePtr))
+            {
+              isTaskValid = false;
+            }
+            learnerPtr.netPtr.net_applyOperation(OPERATION_INSERT, fromId, toId);
+          } else {
+            System.out.println("Assert failed: We shouldn't get here in learnStructure()");
+            System.exit(0);
+          }
+
 
 #ifdef TEST_LEARNER
-        printf("[task] op=%i from=%li to=%li score=%lf valid=%s\n",
-            taskPtr.op, taskPtr.fromId, taskPtr.toId, taskPtr.score,
-            (isTaskValid ? "yes" : "no"));
-        fflush(stdout);
+          System.out.println("[task] op= " + taskPtr.op + " from= " + taskPtr.fromId + " to= " + 
+              taskPtr.toId + " score= " + taskPtr.score + " valid= " + (isTaskValid ? "yes" : "no"));
 #endif
-*/
 
-        /*
-         * Perform task: update graph and probabilities
-         */
+          /*
+           * Perform task: update graph and probabilities
+           */
 
-  /*
-        if (isTaskValid) {
-          TMNET_APPLYOPERATION(netPtr, op, fromId, toId);
+          if (isTaskValid) {
+            learnerPtr.netPtr.net_applyOperation(op, fromId, toId);
+          }
+
         }
 
-        TM_END();
-
-        float deltaLogLikelihood = 0.0;
+        float deltaLogLikelihood = 0.0f;
 
         if (isTaskValid) {
+          float newBaseLogLikelihood;
+          if(op == OPERATION_INSERT) {
+            atomic {
+              learnerPtr.TMpopulateQueryVectors(learnerPtr.netPtr,
+                                                toId,
+                                                queries,
+                                                queryVectorPtr,
+                                                parentQueryVectorPtr);
+              newBaseLogLikelihood =
+                learnerPtr.computeLocalLogLikelihood(toId,
+                                                learnerPtr.adtreePtr,
+                                                learnerPtr.netPtr,
+                                                queries,
+                                                queryVectorPtr,
+                                                parentQueryVectorPtr);
+              float toLocalBaseLogLikelihood = learnerPtr.localBaseLogLikelihoods[toId];
+              deltaLogLikelihood +=
+                toLocalBaseLogLikelihood - newBaseLogLikelihood;
+              learnerPtr.localBaseLogLikelihoods[toId] = newBaseLogLikelihood;
+            }
 
-          switch (op) {
-            float newBaseLogLikelihood;
-            case OPERATION_INSERT: {
-                                     TM_BEGIN();
-                                     TMpopulateQueryVectors(TM_ARG
-                                         netPtr,
-                                         toId,
-                                         queries,
-                                         queryVectorPtr,
-                                         parentQueryVectorPtr);
-                                     newBaseLogLikelihood =
-                                       computeLocalLogLikelihood(toId,
-                                           adtreePtr,
-                                           netPtr,
-                                           queries,
-                                           queryVectorPtr,
-                                           parentQueryVectorPtr);
-                                     float toLocalBaseLogLikelihood =
-                                       (float)TM_SHARED_READ_F(localBaseLogLikelihoods[toId]);
-                                     deltaLogLikelihood +=
-                                       toLocalBaseLogLikelihood - newBaseLogLikelihood;
-                                     TM_SHARED_WRITE_F(localBaseLogLikelihoods[toId],
-                                         newBaseLogLikelihood);
-                                     TM_END();
-                                     TM_BEGIN();
-                                     int numTotalParent = (int)TM_SHARED_READ(learnerPtr.numTotalParent);
-                                     TM_SHARED_WRITE(learnerPtr.numTotalParent, (numTotalParent + 1));
-                                     TM_END();
-                                     break;
-                                   }
+            atomic {
+              int numTotalParent = learnerPtr.numTotalParent;
+              learnerPtr.numTotalParent = numTotalParent + 1;
+            }
+
 #ifdef LEARNER_TRY_REMOVE
-            case OPERATION_REMOVE: {
-                                     TM_BEGIN();
-                                     TMpopulateQueryVectors(TM_ARG
-                                         netPtr,
-                                         fromId,
-                                         queries,
-                                         queryVectorPtr,
-                                         parentQueryVectorPtr);
-                                     newBaseLogLikelihood =
-                                       computeLocalLogLikelihood(fromId,
-                                           adtreePtr,
-                                           netPtr,
-                                           queries,
-                                           queryVectorPtr,
-                                           parentQueryVectorPtr);
-                                     float fromLocalBaseLogLikelihood =
-                                       (float)TM_SHARED_READ_F(localBaseLogLikelihoods[fromId]);
-                                     deltaLogLikelihood +=
-                                       fromLocalBaseLogLikelihood - newBaseLogLikelihood;
-                                     TM_SHARED_WRITE_F(localBaseLogLikelihoods[fromId],
-                                         newBaseLogLikelihood);
-                                     TM_END();
-                                     TM_BEGIN();
-                                     int numTotalParent = (int)TM_SHARED_READ(learnerPtr.numTotalParent);
-                                     TM_SHARED_WRITE(learnerPtr.numTotalParent, (numTotalParent - 1));
-                                     TM_END();
-                                     break;
-                                   }
-#endif // LEARNER_TRY_REMOVE 
+          } else if(op == OPERATION_REMOVE) {
+            atomic {
+              learnerPtr.TMpopulateQueryVectors(learnerPtr.netPtr,
+                                                fromId,
+                                                queries,
+                                                queryVectorPtr,
+                                                parentQueryVectorPtr);
+              newBaseLogLikelihood =
+                learnerPtr. computeLocalLogLikelihood(fromId,
+                                              learnerPtr.adtreePtr,
+                                              learnerPtr.netPtr,
+                                              queries,
+                                              queryVectorPtr, 
+                                              parentQueryVectorPtr);
+              float fromLocalBaseLogLikelihood =
+                    learnerPtr.localBaseLogLikelihoods[fromId];
+              deltaLogLikelihood +=
+                    fromLocalBaseLogLikelihood - newBaseLogLikelihood;
+              learnerPtr.localBaseLogLikelihoods[fromId] = newBaseLogLikelihood;
+            }
+
+            atomic{ 
+              int numTotalParent = learnerPtr.numTotalParent;
+              learnerPtr.numTotalParent = numTotalParent - 1;
+            }
+
+#endif // LEARNER_TRY_REMOVE
 #ifdef LEARNER_TRY_REVERSE
-            case OPERATION_REVERSE: {
-                                      TM_BEGIN();
-                                      TMpopulateQueryVectors(TM_ARG
-                                          netPtr,
-                                          fromId,
-                                          queries,
-                                          queryVectorPtr,
-                                          parentQueryVectorPtr);
-                                      newBaseLogLikelihood =
-                                        computeLocalLogLikelihood(fromId,
-                                            adtreePtr,
-                                            netPtr,
-                                            queries,
-                                            queryVectorPtr,
-                                            parentQueryVectorPtr);
-                                      float fromLocalBaseLogLikelihood =
-                                        (float)TM_SHARED_READ_F(localBaseLogLikelihoods[fromId]);
-                                      deltaLogLikelihood +=
-                                        fromLocalBaseLogLikelihood - newBaseLogLikelihood;
-                                      TM_SHARED_WRITE_F(localBaseLogLikelihoods[fromId],
-                                          newBaseLogLikelihood);
-                                      TM_END();
+          } else if(op == OPERATION_REVERSE) {
+            atomic {
+              learnerPtr.TMpopulateQueryVectors(learnerPtr.netPtr,
+                                                fromId,
+                                                queries,
+                                                queryVectorPtr,
+                                                parentQueryVectorPtr);
+              newBaseLogLikelihood =
+                learnerPtr.computeLocalLogLikelihood(fromId,
+                                        learnerPtr.adtreePtr,
+                                        learnerPtr.netPtr,
+                                        queries,
+                                        queryVectorPtr,
+                                        parentQueryVectorPtr);
+              float fromLocalBaseLogLikelihood =
+                          learnerPtr.localBaseLogLikelihoods[fromId];
+              deltaLogLikelihood +=
+                fromLocalBaseLogLikelihood - newBaseLogLikelihood;
+              learnerPtr.localBaseLogLikelihoods[fromId] = newBaseLogLikelihood;
+            }
 
-                                      TM_BEGIN();
-                                      TMpopulateQueryVectors(TM_ARG
-                                          netPtr,
-                                          toId,
-                                          queries,
-                                          queryVectorPtr,
-                                          parentQueryVectorPtr);
-                                      newBaseLogLikelihood =
-                                        computeLocalLogLikelihood(toId,
-                                            adtreePtr,
-                                            netPtr,
-                                            queries,
-                                            queryVectorPtr,
-                                            parentQueryVectorPtr);
-                                      float toLocalBaseLogLikelihood =
-                                        (float)TM_SHARED_READ_F(localBaseLogLikelihoods[toId]);
-                                      deltaLogLikelihood +=
-                                        toLocalBaseLogLikelihood - newBaseLogLikelihood;
-                                      TM_SHARED_WRITE_F(localBaseLogLikelihoods[toId],
-                                          newBaseLogLikelihood);
-                                      TM_END();
-                                      break;
-                                    }
+            atomic {
+              learnerPtr.TMpopulateQueryVectors(learnerPtr.netPtr,
+                                                toId,
+                                                queries,
+                                                queryVectorPtr,
+                                                parentQueryVectorPtr);
+              newBaseLogLikelihood =
+                learnerPtr.computeLocalLogLikelihood(toId,
+                                        learnerPtr.adtreePtr,
+                                        learnerPtr.netPtr,
+                                        queries,
+                                        queryVectorPtr,
+                                        parentQueryVectorPtr);
+              float toLocalBaseLogLikelihood =
+                        learnerPtr.localBaseLogLikelihoods[toId];
+              deltaLogLikelihood +=
+                toLocalBaseLogLikelihood - newBaseLogLikelihood;
+              learnerPtr.localBaseLogLikelihoods[toId] = newBaseLogLikelihood;
+            }
+
 #endif // LEARNER_TRY_REVERSE 
-            default:
-                                    assert(0);
-          } // switch op 
+          } else {
+            System.out.println("Assert failed: We should not reach here in learnerPtr()");
+            System.exit(0);
+          } //switch op
 
-        } // if isTaskValid 
-*/
+        } //if isTaskValid
 
         /*
          * Update/read globals
          */
-  /*
+
         float baseLogLikelihood;
         int numTotalParent;
 
-        TM_BEGIN();
-        float oldBaseLogLikelihood =
-          (float)TM_SHARED_READ_F(learnerPtr.baseLogLikelihood);
-        float newBaseLogLikelihood = oldBaseLogLikelihood + deltaLogLikelihood;
-        TM_SHARED_WRITE_F(learnerPtr.baseLogLikelihood, newBaseLogLikelihood);
-        baseLogLikelihood = newBaseLogLikelihood;
-        numTotalParent = (int)TM_SHARED_READ(learnerPtr.numTotalParent);
-        TM_END();
-        */
+        atomic {
+          float oldBaseLogLikelihood = learnerPtr.baseLogLikelihood;
+          float newBaseLogLikelihood = oldBaseLogLikelihood + deltaLogLikelihood;
+          learnerPtr.baseLogLikelihood = newBaseLogLikelihood;
+          baseLogLikelihood = newBaseLogLikelihood;
+          numTotalParent = learnerPtr.numTotalParent;
+        }
 
         /*
          * Find next task
          */
-  /*
+
+
         float baseScore = ((float)numTotalParent * basePenalty)
           + (numRecord * baseLogLikelihood);
 
-        learner_task_t bestTask;
+        LearnerTask bestTask = new LearnerTask();
         bestTask.op     = NUM_OPERATION;
         bestTask.toId   = -1;
         bestTask.fromId = -1;
         bestTask.score  = baseScore;
 
-        learner_task_t newTask;
+        LearnerTask newTask = new LearnerTask();
 
         arg.toId              = toId;
         arg.numTotalParent    = numTotalParent;
         arg.basePenalty       = basePenalty;
         arg.baseLogLikelihood = baseLogLikelihood;
 
-        TM_BEGIN();
-        newTask = TMfindBestInsertTask(TM_ARG  &arg);
-        TM_END();
+        atomic {
+          newTask = learnerPtr.TMfindBestInsertTask(arg);
+        }
 
         if ((newTask.fromId != newTask.toId) &&
             (newTask.score > (bestTask.score / operationQualityFactor)))
@@ -1408,9 +1420,9 @@ public class Learner {
         }
 
 #ifdef LEARNER_TRY_REMOVE
-        TM_BEGIN();
-        newTask = TMfindBestRemoveTask(TM_ARG  &arg);
-        TM_END();
+        atomic {
+          newTask = learnerPtr.TMfindBestRemoveTask(arg);
+        }
 
         if ((newTask.fromId != newTask.toId) &&
             (newTask.score > (bestTask.score / operationQualityFactor)))
@@ -1420,9 +1432,9 @@ public class Learner {
 #endif // LEARNER_TRY_REMOVE 
 
 #ifdef LEARNER_TRY_REVERSE
-        TM_BEGIN();
-        newTask = TMfindBestReverseTask(TM_ARG  &arg);
-        TM_END();
+        atomic {
+          newTask = learnerPtr.TMfindBestReverseTask(arg);
+        }
 
         if ((newTask.fromId != newTask.toId) &&
             (newTask.score > (bestTask.score / operationQualityFactor)))
@@ -1432,31 +1444,27 @@ public class Learner {
 #endif // LEARNER_TRY_REVERSE 
 
         if (bestTask.toId != -1) {
-          learner_task_t* tasks = learnerPtr.tasks;
+          LearnerTask[] tasks = learnerPtr.tasks;
           tasks[toId] = bestTask;
-          TM_BEGIN();
-          TMLIST_INSERT(taskListPtr, (void*)&tasks[toId]);
-          TM_END();
+          atomic {
+            learnerPtr.taskListPtr.list_insert(tasks[toId]);
+          }
 #ifdef TEST_LEARNER
-          printf("[new]  op=%i from=%li to=%li score=%lf\n",
-              bestTask.op, bestTask.fromId, bestTask.toId, bestTask.score);
-          fflush(stdout);
+          System.out.println("[new]  op= " + bestTask.op + " from= "+ bestTask.fromId + " to= "+ bestTask.toId + 
+              " score= " + bestTask.score);
 #endif
         }
 
       } // while (tasks) 
 
-      PBITMAP_FREE(visitedBitmapPtr);
-      PQUEUE_FREE(workQueuePtr);
-      PVECTOR_FREE(bQueryVectorPtr);
-      PVECTOR_FREE(aQueryVectorPtr);
-      PVECTOR_FREE(queryVectorPtr);
-      PVECTOR_FREE(parentQueryVectorPtr);
-      P_FREE(queries);
-
-      TM_THREAD_EXIT();
+      visitedBitmapPtr.bitmap_free();
+      workQueuePtr.queue_free();
+      bQueryVectorPtr.vector_free();
+      aQueryVectorPtr.vector_free();
+      queryVectorPtr.vector_free();
+      parentQueryVectorPtr.vector_free();
+      queries = null;
     }
-*/
 
 
   /* =============================================================================
@@ -1464,26 +1472,17 @@ public class Learner {
    * -- Call adtree_make before this
    * =============================================================================
    */
-      /*
+  //Is not called anywhere now parallel code
   public void
     learner_run (int myId, int numThread, Learner learnerPtr)
-    //learner_run (learner_t* learnerPtr)
     {
-#ifdef OTM
-#pragma omp parallel
       {
-        createTaskList((void*)learnerPtr);
+        createTaskList(myId, numThread, learnerPtr);
       }
-#pragma omp parallel
       {
-        learnStructure((void*)learnerPtr);
+        learnStructure(myId, numThread, learnerPtr);
       }
-#else
-      thread_start(&createTaskList, (void*)learnerPtr);
-      thread_start(&learnStructure, (void*)learnerPtr);
-#endif
     }
-*/
 
   /* =============================================================================
    * learner_score

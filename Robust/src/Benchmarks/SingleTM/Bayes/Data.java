@@ -122,7 +122,7 @@ public class Data {
      * value instances
      */
 
-    int[][] thresholdsTable = new int[numVar][]; //TODO check if this is alright
+    int[][] thresholdsTable = new int[numVar][]; 
     int v;
     for (v = 0; v < numVar; v++) {
       IntList parentIdListPtr = netPtr.net_getParentIdListPtr(v);

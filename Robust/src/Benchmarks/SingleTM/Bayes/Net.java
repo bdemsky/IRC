@@ -176,30 +176,6 @@ public class Net {
 
 
   /* =============================================================================
-   * TMinsertEdge
-   * =============================================================================
-   */
-  /*
-  static void
-    TMinsertEdge (TM_ARGDECL  net_t* netPtr, int fromId, int toId)
-    {
-      vector_t* nodeVectorPtr = netPtr.nodeVectorPtr;
-      boolean status;
-
-      net_node_t* childNodePtr = (net_node_t*)vector_at(nodeVectorPtr, toId);
-      list_t* parentIdListPtr = childNodePtr.parentIdListPtr;
-      status = TMLIST_INSERT(parentIdListPtr, (void*)fromId);
-      assert(status);
-
-      net_node_t* parentNodePtr = (net_node_t*)vector_at(nodeVectorPtr, fromId);
-      list_t* childIdListPtr = parentNodePtr.childIdListPtr;
-      status = TMLIST_INSERT(childIdListPtr, (void*)toId);
-      assert(status);
-    }
-    */
-
-
-  /* =============================================================================
    * removeEdge
    * =============================================================================
    */
@@ -226,29 +202,6 @@ public class Net {
     }
 
   /* =============================================================================
-   * TMremoveEdge
-   * =============================================================================
-   */
-  /*
-  static void
-    TMremoveEdge (TM_ARGDECL  net_t* netPtr, int fromId, int toId)
-    {
-      vector_t* nodeVectorPtr = netPtr.nodeVectorPtr;
-      boolean status;
-
-      net_node_t* childNodePtr = (net_node_t*)vector_at(nodeVectorPtr, toId);
-      list_t* parentIdListPtr = childNodePtr.parentIdListPtr;
-      status = TMLIST_REMOVE(parentIdListPtr, (void*)fromId);
-      assert(status);
-
-      net_node_t* parentNodePtr = (net_node_t*)vector_at(nodeVectorPtr, fromId);
-      list_t* childIdListPtr = parentNodePtr.childIdListPtr;
-      status = TMLIST_REMOVE(childIdListPtr, (void*)toId);
-      assert(status);
-    }
-    */
-
-  /* =============================================================================
    * reverseEdge
    * =============================================================================
    */
@@ -258,20 +211,6 @@ public class Net {
       removeEdge(fromId, toId);
       insertEdge(toId, fromId);
     }
-
-
-  /* =============================================================================
-   * TMreverseEdge
-   * =============================================================================
-   */
-  /*
-  static void
-    TMreverseEdge (TM_ARGDECL  net_t* netPtr, int fromId, int toId)
-    {
-      TMremoveEdge(TM_ARG  netPtr, fromId, toId);
-      TMinsertEdge(TM_ARG  netPtr, toId, fromId);
-    }
-    */
 
 
   /* =============================================================================
@@ -288,31 +227,10 @@ public class Net {
       } else if(op == OPERATION_REVERSE) {
         reverseEdge(fromId, toId);
       } else {
-        System.out.println("Operation failed");
+        System.out.println("Assert failed: We shouldn't get here in net_applyOperation()");
         System.exit(0);
       }
     }
-
-
-  /* =============================================================================
-   * TMnet_applyOperation
-   * =============================================================================
-   */
-  /*
-  void
-    TMnet_applyOperation (TM_ARGDECL
-        net_t* netPtr, operation_t op, int fromId, int toId)
-    {
-      switch (op) {
-        case OPERATION_INSERT:  TMinsertEdge(TM_ARG   netPtr, fromId, toId); break;
-        case OPERATION_REMOVE:  TMremoveEdge(TM_ARG   netPtr, fromId, toId); break;
-        case OPERATION_REVERSE: TMreverseEdge(TM_ARG  netPtr, fromId, toId); break;
-        default:
-                                assert(0);
-      }
-    }
-
-    */
 
 
   /* =============================================================================
@@ -344,18 +262,18 @@ public class Net {
    * TMnet_hasEdge
    * =============================================================================
    */
-    /*
-  boolean
-    TMnet_hasEdge (TM_ARGDECL  net_t* netPtr, int fromId, int toId)
+  public boolean
+    TMnet_hasEdge (int fromId, int toId)
     {
-      vector_t* nodeVectorPtr = netPtr.nodeVectorPtr;
-      net_node_t* childNodePtr = (net_node_t*)vector_at(nodeVectorPtr, toId);
-      list_t* parentIdListPtr = childNodePtr.parentIdListPtr;
+      NetNode childNodePtr = (NetNode)(nodeVectorPtr.vector_at(toId));
 
-      list_iter_t it;
-      TMLIST_ITER_RESET(&it, parentIdListPtr);
-      while (TMLIST_ITER_HASNEXT(&it, parentIdListPtr)) {
-        int parentId = (int)TMLIST_ITER_NEXT(&it, parentIdListPtr);
+      IntList parentIdListPtr = childNodePtr.parentIdListPtr;
+      IntListNode it = parentIdListPtr.head;//initialize iterator
+      parentIdListPtr.list_iter_reset(it);
+
+      while (parentIdListPtr.list_iter_hasNext(it)) {
+        it = it.nextPtr;
+        int parentId = parentIdListPtr.list_iter_next(it);
         if (parentId == fromId) {
           return true;
         }
@@ -363,7 +281,6 @@ public class Net {
 
       return false;
     }
-    */
 
 
   /* =============================================================================
@@ -423,56 +340,6 @@ public class Net {
 
       return false;
     }
-
-
-  /* =============================================================================
-   * TMnet_isPath
-   * =============================================================================
-   */
-      /*
-  boolean
-    TMnet_isPath (TM_ARGDECL
-        net_t* netPtr,
-        int fromId,
-        int toId,
-        Bitmap* visitedBitmapPtr,
-        Queue* workQueuePtr)
-    {
-      boolean status;
-
-      vector_t* nodeVectorPtr = netPtr.nodeVectorPtr;
-      assert(visitedBitmapPtr.numBit == vector_getSize(nodeVectorPtr));
-
-      PBITMAP_CLEARALL(visitedBitmapPtr);
-      PQUEUE_CLEAR(workQueuePtr);
-
-      status = PQUEUE_PUSH(workQueuePtr, (void*)fromId);
-      assert(status);
-
-      while (!PQUEUE_ISEMPTY(workQueuePtr)) {
-        int id = (int)queue_pop(workQueuePtr);
-        if (id == toId) {
-          queue_clear(workQueuePtr);
-          return true;
-        }
-        status = PBITMAP_SET(visitedBitmapPtr, id);
-        assert(status);
-        net_node_t* nodePtr = (net_node_t*)vector_at(nodeVectorPtr, id);
-        list_t* childIdListPtr = nodePtr.childIdListPtr;
-        list_iter_t it;
-        TMLIST_ITER_RESET(&it, childIdListPtr);
-        while (TMLIST_ITER_HASNEXT(&it, childIdListPtr)) {
-          int childId = (int)TMLIST_ITER_NEXT(&it, childIdListPtr);
-          if (!PBITMAP_ISSET(visitedBitmapPtr, childId)) {
-            status = PQUEUE_PUSH(workQueuePtr, (void*)childId);
-            assert(status);
-          }
-        }
-      }
-
-      return false;
-    }
-    */
 
 
   /* =============================================================================
@@ -659,68 +526,6 @@ public class Net {
 
 
   /* =============================================================================
-   * TMnet_findAncestors
-   * -- Contents of bitmapPtr set to 1 if ancestor, else 0
-   * -- Returns false if id is not root node (i.e., has cycle back id)
-   * =============================================================================
-   */
-  /*
-  boolean
-    TMnet_findAncestors (TM_ARGDECL
-        net_t* netPtr,
-        int id,
-        Bitmap* ancestorBitmapPtr,
-        Queue* workQueuePtr)
-    {
-      boolean status;
-
-      vector_t* nodeVectorPtr = netPtr.nodeVectorPtr;
-      assert(ancestorBitmapPtr.numBit == vector_getSize(nodeVectorPtr));
-
-      PBITMAP_CLEARALL(ancestorBitmapPtr);
-      PQUEUE_CLEAR(workQueuePtr);
-
-      {
-        net_node_t* nodePtr = (net_node_t*)vector_at(nodeVectorPtr, id);
-        list_t* parentIdListPtr = nodePtr.parentIdListPtr;
-        list_iter_t it;
-        TMLIST_ITER_RESET(&it, parentIdListPtr);
-        while (TMLIST_ITER_HASNEXT(&it, parentIdListPtr)) {
-          int parentId = (int)TMLIST_ITER_NEXT(&it, parentIdListPtr);
-          status = PBITMAP_SET(ancestorBitmapPtr, parentId);
-          assert(status);
-          status = PQUEUE_PUSH(workQueuePtr, (void*)parentId);
-          assert(status);
-        }
-      }
-
-      while (!PQUEUE_ISEMPTY(workQueuePtr)) {
-        int parentId = (int)PQUEUE_POP(workQueuePtr);
-        if (parentId == id) {
-          PQUEUE_CLEAR(workQueuePtr);
-          return false;
-        }
-        net_node_t* nodePtr = (net_node_t*)vector_at(nodeVectorPtr, parentId);
-        list_t* grandParentIdListPtr = nodePtr.parentIdListPtr;
-        list_iter_t it;
-        TMLIST_ITER_RESET(&it, grandParentIdListPtr);
-        while (TMLIST_ITER_HASNEXT(&it, grandParentIdListPtr)) {
-          int grandParentId = (int)TMLIST_ITER_NEXT(&it, grandParentIdListPtr);
-          if (!PBITMAP_ISSET(ancestorBitmapPtr, grandParentId)) {
-            status = PBITMAP_SET(ancestorBitmapPtr, grandParentId);
-            assert(status);
-            status = PQUEUE_PUSH(workQueuePtr, (void*)grandParentId);
-            assert(status);
-          }
-        }
-      }
-
-      return true;
-    }
-    */
-
-
-  /* =============================================================================
    * net_findDescendants
    * -- Contents of bitmapPtr set to 1 if descendants, else 0
    * -- Returns false if id is not root node (i.e., has cycle back id)
@@ -733,12 +538,10 @@ public class Net {
     {
       boolean status;
 
-      //vector_t* nodeVectorPtr = netPtr.nodeVectorPtr;
-      if(descendantBitmapPtr.numBit == nodeVectorPtr.vector_getSize()) {
+      if(descendantBitmapPtr.numBit != nodeVectorPtr.vector_getSize()) {
         System.out.println("Assert failed: for descendantBitmapPtr.numbit in net_findDescendants()");
         System.exit(0);
       }
-      //assert(descendantBitmapPtr.numBit == vector_getSize(nodeVectorPtr));
 
       descendantBitmapPtr.bitmap_clearAll();
       workQueuePtr.queue_clear();
@@ -796,69 +599,6 @@ public class Net {
 
       return true;
     }
-
-
-  /* =============================================================================
-   * TMnet_findDescendants
-   * -- Contents of bitmapPtr set to 1 if descendants, else 0
-   * -- Returns false if id is not root node (i.e., has cycle back id)
-   * =============================================================================
-   */
-      /*
-  boolean
-    TMnet_findDescendants (TM_ARGDECL
-        net_t* netPtr,
-        int id,
-        Bitmap* descendantBitmapPtr,
-        Queue* workQueuePtr)
-    {
-      boolean status;
-
-      vector_t* nodeVectorPtr = netPtr.nodeVectorPtr;
-      assert(descendantBitmapPtr.numBit == vector_getSize(nodeVectorPtr));
-
-      PBITMAP_CLEARALL(descendantBitmapPtr);
-      PQUEUE_CLEAR(workQueuePtr);
-
-      {
-        net_node_t* nodePtr = (net_node_t*)vector_at(nodeVectorPtr, id);
-        list_t* childIdListPtr = nodePtr.childIdListPtr;
-        list_iter_t it;
-        TMLIST_ITER_RESET(&it, childIdListPtr);
-        while (TMLIST_ITER_HASNEXT(&it, childIdListPtr)) {
-          int childId = (int)TMLIST_ITER_NEXT(&it, childIdListPtr);
-          status = PBITMAP_SET(descendantBitmapPtr, childId);
-          assert(status);
-          status = PQUEUE_PUSH(workQueuePtr, (void*)childId);
-          assert(status);
-        }
-      }
-
-      while (!PQUEUE_ISEMPTY(workQueuePtr)) {
-        int childId = (int)PQUEUE_POP(workQueuePtr);
-        if (childId == id) {
-          queue_clear(workQueuePtr);
-          return false;
-        }
-        net_node_t* nodePtr = (net_node_t*)vector_at(nodeVectorPtr, childId);
-        list_t* grandChildIdListPtr = nodePtr.childIdListPtr;
-        list_iter_t it;
-        TMLIST_ITER_RESET(&it, grandChildIdListPtr);
-        while (TMLIST_ITER_HASNEXT(&it, grandChildIdListPtr)) {
-          int grandChildId = (int)TMLIST_ITER_NEXT(&it, grandChildIdListPtr);
-          if (!PBITMAP_ISSET(descendantBitmapPtr, grandChildId)) {
-            status = PBITMAP_SET(descendantBitmapPtr, grandChildId);
-            assert(status);
-            status = PQUEUE_PUSH(workQueuePtr, (void*)grandChildId);
-            assert(status);
-          }
-        }
-      }
-
-      return true;
-    }
-    */
-
 
   /* =============================================================================
    * net_generateRandomEdges

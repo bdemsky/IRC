@@ -208,7 +208,7 @@ public class Bayes extends Thread {
 
       Data dataPtr = Data.data_alloc(1, 1, null);
 
-      Learner learnerPtr = Learner.learner_alloc(dataPtr, adtreePtr, 1);
+      Learner learnerPtr = Learner.learner_alloc(dataPtr, adtreePtr, 1, global_insertPenalty, global_maxNumEdgeLearned, global_operationQualityFactor);
 
       Net tmpNetPtr = learnerPtr.netPtr;
       learnerPtr.netPtr = netPtr;
@@ -233,7 +233,6 @@ public class Bayes extends Thread {
 
     Barrier.enterBarrier();
     Learner.learnStructure(myId, numThread, learnerPtr);
-    //Learner.learner_run(myId, numThread, learnerPtr);
     Barrier.enterBarrier();
   }
     
@@ -263,6 +262,7 @@ public class Bayes extends Thread {
 
     Bayes[] binit = new Bayes[numThread];
 
+    System.out.println("Number of threads          " + numThread);
     System.out.println("Random seed                " + randomSeed);
     System.out.println("Number of vars             " + numVar);
     System.out.println("Number of records          " + numRecord);
@@ -297,7 +297,7 @@ public class Bayes extends Thread {
 
     adtreePtr.adtree_make(dataPtr);
 
-    System.out.println("done.\n\n");
+    System.out.println("done.");
 
     /*
      * Score original network
@@ -310,7 +310,7 @@ public class Bayes extends Thread {
      * Learn structure of Bayesian network
      */
 
-    Learner learnerPtr = Learner.learner_alloc(dataPtr, adtreePtr, numThread);
+    Learner learnerPtr = Learner.learner_alloc(dataPtr, adtreePtr, numThread, b.global_insertPenalty, b.global_maxNumEdgeLearned, b.global_operationQualityFactor);
 
     dataPtr.data_free(); /* save memory */
 
@@ -337,12 +337,6 @@ public class Bayes extends Thread {
     Barrier.enterBarrier();
     Learner.learnStructure(0, numThread, learnerPtr);
     Barrier.enterBarrier();
-
-    /*
-    Barrier.enterBarrier();
-    Learner.learner_run(0, numThread, learnerPtr);
-    Barrier.enterBarrier();
-    */
 
     System.out.println("done.");
 

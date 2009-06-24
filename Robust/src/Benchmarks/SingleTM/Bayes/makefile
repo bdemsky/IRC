@@ -9,7 +9,6 @@ SRC=tmp${MAINCLASS}.java \
 	LearnerTask.java \
 	tmpNet.java \
 	NetNode.java \
-	Operation.java \
 	Query.java \
 	tmpSort.java \
 	tmpBitMap.java \
@@ -25,7 +24,7 @@ SRC=tmp${MAINCLASS}.java \
     ../../../ClassLibrary/JavaSTM/Barrier.java \
     ../common/LocalStartStop.java
 
-FLAGS=-mainclass ${MAINCLASS} -thread -nooptimize -debug
+FLAGS=-mainclass ${MAINCLASS} -singleTM -optimize -debug -dcopts -stmstats -fastmemcpy -transstats -abcclose
 
 default:
 	cpp Bayes.java > tmp1Bayes.java
