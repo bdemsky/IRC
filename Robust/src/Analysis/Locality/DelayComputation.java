@@ -283,9 +283,6 @@ public class DelayComputation {
 	  if (!set0.equals(set1)||set0.size()>1) {
 	    //This branch is important--need to remember how it goes
 	    livenodes.add(fn);
-	  } else {
-	    System.out.println("Removing branch:"+fn);
-	    System.out.println("set0="+set0+" set1="+set1);
 	  }
 	}
       }
@@ -576,7 +573,7 @@ public class DelayComputation {
     //(B). You read a field/element in the transactional set
     //(C). The source didn't have a transactional read on it
 
-    dcopts=new DiscoverConflicts(locality, state, typeanalysis);
+    dcopts=new DiscoverConflicts(locality, state, typeanalysis, cannotdelay);
     dcopts.doAnalysis();
     MethodDescriptor md=lb.getMethod();
     FlatMethod fm=state.getMethodFlat(md);
