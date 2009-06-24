@@ -146,7 +146,7 @@ public class GenerateConversions {
 	  TempDescriptor tmpd=tempit.next();
 	  FlatGlobalConvNode fgcn=new FlatGlobalConvNode(tmpd, lb, false, nodetoconvs.get(fn).contains(tmpd));
 	  fgcn.setAtomicEnter(((FlatAtomicExitNode)fn).getAtomicEnter());
-	  atomictab.put(fgcn, atomictab.get(fn));
+	  atomictab.put(fgcn, new Integer(1));
 	  temptab.put(fgcn, (Hashtable<TempDescriptor, Integer>)temptab.get(fn).clone());
 
 	  FlatNode[] prevarray=new FlatNode[fn.numPrev()];
