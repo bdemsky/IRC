@@ -95,7 +95,7 @@ public class LoopOptimize {
 
       for(int j=0;j<writes.length;j++) {
 	if (writes[j]!=null) {
-	  TempDescriptor cp=writes[j].createNew("a");
+	  TempDescriptor cp=writes[j].createNew();
 	  t.addPair(writes[j],cp);
 	}
       }
@@ -176,7 +176,7 @@ public class LoopOptimize {
 	} else {
 	  TempDescriptor[] writes=nfn.writesTemps();
 	  TempDescriptor tmp=writes[0];
-	  TempDescriptor ntmp=tmp.createNew("b");
+	  TempDescriptor ntmp=tmp.createNew();
 	  temptable.put(nfn, ntmp);
 	  copyend=new FlatOpNode(ntmp, tmp, null, new Operation(Operation.ASSIGN));
 	  copy.addNext(copyend);
