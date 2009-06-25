@@ -12,6 +12,7 @@ public class CopyPropagation {
   }
 
   public void optimize(FlatMethod fm) {
+    
     Hashtable<FlatNode, Hashtable<TempDescriptor, TempDescriptor>> table
       =new Hashtable<FlatNode, Hashtable<TempDescriptor, TempDescriptor>>();
     boolean changed=false;
@@ -91,7 +92,6 @@ public class CopyPropagation {
 	
 	for(int i=0;i<fn.numPrev();i++) {
 	  Hashtable<TempDescriptor, TempDescriptor> tp=table.get(fn.getPrev(i));
-
 	  for(Iterator tmpit=tp.entrySet().iterator();tmpit.hasNext();) {
 	    Map.Entry t=(Map.Entry)tmpit.next();
 	    TempDescriptor tmp=(TempDescriptor)t.getKey();

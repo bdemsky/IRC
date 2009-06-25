@@ -271,8 +271,12 @@ public class Main {
 	  cp.optimize(fm);
 	  dc.optimize(fm);
 	  lo.optimize(fm);
+	  cp.optimize(fm);
+	  dc.optimize(fm);
 	  lcse.doAnalysis(fm);
 	  cse.doAnalysis(fm);
+	  cp.optimize(fm);
+	  dc.optimize(fm);
 	  cp.optimize(fm);
 	  dc.optimize(fm);
         }

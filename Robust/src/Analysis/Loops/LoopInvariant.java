@@ -88,7 +88,7 @@ public class LoopInvariant {
 	  FlatSetElementNode fsen=(FlatSetElementNode)fn;
 	  types.add(fsen.getDst().getType());
 	}
-      }   
+      }
     }
     
     HashSet dominatorset=unsafe?null:computeAlways(l);
@@ -104,13 +104,15 @@ public class LoopInvariant {
 	case FKind.FlatOpNode:
 	  int op=((FlatOpNode)fn).getOp().getOp();
 	  if (op==Operation.DIV||op==Operation.MOD||
-	      checkNode(fn,elements)) {
+	      checkNode(fn,elements)||
+	      !unsafe&&!dominatorset.contains(fn)) {
 	    continue nextfn;
 	  }
 	  break;
 
 	case FKind.FlatInstanceOfNode:
-	  if (checkNode(fn,elements)) {
+	  if (checkNode(fn,elements)||
+	      !unsafe&&!dominatorset.contains(fn)) {
 	    continue nextfn;
 	  }
 	  break;
