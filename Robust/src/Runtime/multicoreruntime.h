@@ -10,7 +10,8 @@ int msgdata[30];
 int msgtype;
 int msgdataindex;
 int msglength;
-int outmsgdata[30];
+#define BAMBOO_OUT_BUF_LENGTH 300
+int outmsgdata[BAMBOO_OUT_BUF_LENGTH];
 int outmsgindex;
 int outmsglast;
 int outmsgleft;
@@ -46,6 +47,12 @@ bool lockflag;
 struct Queue objqueue;
 
 // data structures for shared memory allocation
+#define BAMBOO_NUM_PAGES 1024 * 512
+#define BAMBOO_PAGE_SIZE 4096
+#define BAMBOO_SHARED_MEM_SIZE BAMBOO_PAGE_SIZE * BAMBOO_PAGE_SIZE
+#define BAMBOO_BASE_VA 0xd000000
+#define BAMBOO_SMEM_SIZE 16 * BAMBOO_PAGE_SIZE
+
 bool smemflag;
 struct bamboo_shared_mem {
 	mspace msp;

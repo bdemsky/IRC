@@ -192,7 +192,6 @@ void CALL01(___System______printString____L___String___,struct ___String___ * __
 void * allocate_new(void * ptr, int type) {
   struct ___Object___ * v=(struct ___Object___ *) mygcmalloc((struct garbagelist *) ptr, classsize[type]);
   v->type=type;
-  v->isolate = 1;
   v->version = 0;
   //v->numlocks = 0;
   v->lock = NULL;
@@ -209,7 +208,6 @@ void * allocate_new(void * ptr, int type) {
 struct ArrayObject * allocate_newarray(void * ptr, int type, int length) {
   struct ArrayObject * v=mygcmalloc((struct garbagelist *) ptr, sizeof(struct ArrayObject)+length*classsize[type]);
   v->type=type;
-  v->isolate = 1;
   v->version = 0;
   //v->numlocks = 0;
   v->lock = NULL;
@@ -232,7 +230,6 @@ struct ArrayObject * allocate_newarray(void * ptr, int type, int length) {
 void * allocate_new(int type) {
   struct ___Object___ * v=FREEMALLOC(classsize[type]);
   v->type=type;
-  v->isolate = 1;
   v->version = 0;
   //v->numlocks = 0;
   v->lock = NULL;
@@ -244,7 +241,6 @@ void * allocate_new(int type) {
 struct ArrayObject * allocate_newarray(int type, int length) {
   struct ArrayObject * v=FREEMALLOC(sizeof(struct ArrayObject)+length*classsize[type]);
   v->type=type;
-  v->isolate = 1;
   v->version = 0;
   //v->numlocks = 0;
   v->lock = NULL;

@@ -119,8 +119,7 @@ public class Schedule {
       this.allyCores.put(fstate, new Vector<Integer>());
     }
     if((this.coreNum != targetCore.intValue()) && (!this.allyCores.get(fstate).contains(targetCore))) {
-      this.allyCores.get(fstate).add(targetCore);       // there may have some duplicate items,
-                                                        // which reflects probabilities.
+      this.allyCores.get(fstate).add(targetCore); 
     }
   }
 
@@ -133,7 +132,7 @@ public class Schedule {
       this.td2fs.put(td, new Vector<FlagState>());
     }
     if(!this.td2fs.get(td).contains(fstate)) {
-      this.td2fs.get(td).add(fstate);
+      this.td2fs.get(td).addElement(fstate);
     }
   }
 

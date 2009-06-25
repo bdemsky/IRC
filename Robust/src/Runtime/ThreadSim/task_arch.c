@@ -424,9 +424,10 @@ int receiveObject() {
     int size=classsize[type];
     struct ___Object___ * newobj=RUNMALLOC(size);
     memcpy(newobj, tmpptr, size);
-    if(0 == newobj->isolate) {
+	// TODO no longer use isolate flag
+    /*if(0 == newobj->isolate) {
       newobj->original=tmpptr;
-    }
+    }*/
     RUNFREE(msgptr);
     tmpptr = NULL;
     int k = 0;
@@ -712,7 +713,8 @@ newtask:
       numparams=currtpd->task->numParameters;
       numtotal=currtpd->task->numTotal;
 
-      int isolateflags[numparams];
+      // TODO no longer use isolate flag
+	  int isolateflags[numparams];
 
 	 // clear the lockRedirectTbl (TODO, this table should be empty after all locks are released)
 	  // TODO: need modification according to added alias locks
@@ -724,6 +726,7 @@ newtask:
       for(i=0; i<numparams; i++) {
 	void * parameter=currtpd->parameterArray[i];
 	tmpparam = (struct ___Object___ *)parameter;
+	// TODO no longer use isolate flag
 	if(0 == tmpparam->isolate) {
 	  isolateflags[i] = 0;
 	  // shared object, need to flush with current value

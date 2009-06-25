@@ -447,7 +447,7 @@ objqueuebreak:
 									  }
 								  }
 #endif
-								  terminate(); // All done.
+								 terminate(); // All done.
 							  } // if-else of line 364: if(!waitconfirm)
 						  } else {
 							  // still some objects on the fly on the network
@@ -546,7 +546,6 @@ void createstartupobject(int argc, char ** argv) {
     ((void **)(((char *)&stringarray->___length___)+sizeof(int)))[i-1]=newstring;
   }
 
-  startupobject->isolate = 1;
   startupobject->version = 0;
   startupobject->lock = NULL;
 
@@ -1616,14 +1615,24 @@ msg:
 		  void * mem = mspace_calloc(cur_mem->msp, 1, msgdata[1]);
 		  struct bamboo_shared_mem * failmem = cur_mem;
 		  while(mem == NULL) {
-			  // move current head to the tail
-			  bamboo_free_msps->tail->next = cur_mem;
-			  bamboo_free_msps->tail = cur_mem;
-			  bamboo_free_msps->head = cur_mem->next;
-			  cur_mem->next = NULL;
-			  cur_mem = bamboo_free_msps->head;
-			  if(cur_mem == failmem) {
-				  BAMBOO_EXIT(0xa016);
+			  if(msgdata[1] > BAMBOO_SMEM_SIZE) {
+				  // move current head to the tail
+				  bamboo_free_msps->tail->next = cur_mem;
+				  bamboo_free_msps->tail = cur_mem;
+				  bamboo_free_msps->head = cur_mem->next;
+				  cur_mem->next = NULL;
+				  cur_mem = bamboo_free_msps->head;
+				  if(cur_mem == failmem) {
+					  BAMBOO_EXIT(0xa016);
+				  }
+			  } else {
+				  // remove the head
+				  bamboo_free_msps->head = cur_mem->next;
+				  RUNFREE(cur_mem);
+				  cur_mem = bamboo_free_msps->head;
+				  if(cur_mem == NULL) {
+					  BAMBOO_EXIT(0xa017);
+				  }
 			  }
 			  mem = mspace_calloc(cur_mem->msp, 1, msgdata[1]);
 		  }
@@ -1708,7 +1717,7 @@ int processlockrequest(int locktype, int lock, int obj, int requestcore, int roo
 	  BAMBOO_DEBUGPRINT_REG(lock);
 	  BAMBOO_DEBUGPRINT_REG(corenum);
 #endif
-	  BAMBOO_EXIT(0xa017);
+	  BAMBOO_EXIT(0xa018);
   }
   /*if((corenum == STARTUPCORE) && waitconfirm) {
 	  waitconfirm = false;
@@ -1831,7 +1840,7 @@ bool getreadlock(void * ptr) {
 #endif
 		} else {
 			// conflicts on lockresults
-			BAMBOO_EXIT(0xa018);
+			BAMBOO_EXIT(0xa019);
 		}
 	}
     return true;
@@ -1861,7 +1870,7 @@ void releasereadlock(void * ptr) {
     // reside on this core
     if(!RuntimeHashcontainskey(locktbl, reallock)) {
       // no locks for this object, something is wrong
-      BAMBOO_EXIT(0xa019);
+      BAMBOO_EXIT(0xa01a);
     } else {
       int rwlock_obj = 0;
 	  struct LockValue * lockvalue = NULL;
@@ -1917,7 +1926,7 @@ bool getreadlock_I_r(void * ptr, void * redirectlock, int core, bool cache) {
 #endif
 			} else {
 				// conflicts on lockresults
-				BAMBOO_EXIT(0xa01a);
+				BAMBOO_EXIT(0xa01b);
 			}
 			return true;
 		} else {
@@ -2001,7 +2010,7 @@ bool getwritelock(void * ptr) {
 #endif
 		} else {
 			// conflicts on lockresults
-			BAMBOO_EXIT(0xa01b);
+			BAMBOO_EXIT(0xa01c);
 		}
 	}
     return true;
@@ -2038,7 +2047,7 @@ void releasewritelock(void * ptr) {
     // reside on this core
     if(!RuntimeHashcontainskey(locktbl, reallock)) {
       // no locks for this object, something is wrong
-      BAMBOO_EXIT(0xa01c);
+      BAMBOO_EXIT(0xa01d);
     } else {
       int rwlock_obj = 0;
 	  struct LockValue * lockvalue = NULL;
@@ -2078,7 +2087,7 @@ void releasewritelock_r(void * lock, void * redirectlock) {
     // reside on this core
     if(!RuntimeHashcontainskey(locktbl, reallock)) {
       // no locks for this object, something is wrong
-      BAMBOO_EXIT(0xa01d);
+      BAMBOO_EXIT(0xa01e);
     } else {
       int rwlock_obj = 0;
 	  struct LockValue * lockvalue = NULL;
@@ -2155,7 +2164,7 @@ bool getwritelock_I(void * ptr) {
 #endif
 		} else {
 			// conflicts on lockresults
-			BAMBOO_EXIT(0xa01e);
+			BAMBOO_EXIT(0xa01f);
 		}
 		return true;
 	}
@@ -2213,7 +2222,7 @@ bool getwritelock_I_r(void * ptr, void * redirectlock, int core, bool cache) {
 #endif
 			} else {
 				// conflicts on lockresults
-				BAMBOO_EXIT(0xa01f);
+				BAMBOO_EXIT(0xa020);
 			}
 			return true;
 		} else {
@@ -2259,7 +2268,7 @@ void releasewritelock_I(void * ptr) {
     // reside on this core
     if(!RuntimeHashcontainskey(locktbl, reallock)) {
       // no locks for this object, something is wrong
-      BAMBOO_EXIT(0xa020);
+      BAMBOO_EXIT(0xa021);
     } else {
       int rwlock_obj = 0;
 	  struct LockValue * lockvalue = NULL;
@@ -2291,7 +2300,7 @@ void releasewritelock_I_r(void * lock, void * redirectlock) {
     // reside on this core
     if(!RuntimeHashcontainskey(locktbl, reallock)) {
       // no locks for this object, something is wrong
-      BAMBOO_EXIT(0xa021);
+      BAMBOO_EXIT(0xa022);
     } else {
       int rwlock_obj = 0;
 	  struct LockValue * lockvalue = NULL;
@@ -2878,7 +2887,7 @@ parameterpresent:
 	     reverse=NULL;
 #endif  // #if 0: for recovery
 	  BAMBOO_DEBUGPRINT_REG(x);
-	  BAMBOO_EXIT(0xa022);
+	  BAMBOO_EXIT(0xa023);
 	} else {
 #endif // #ifndef MULTICORE
 #if 0 
@@ -2969,6 +2978,7 @@ execute:
 #endif
 #ifdef DEBUG
 	  BAMBOO_DEBUGPRINT(0xe99a);
+	  //BAMBOO_DEBUGPRINT_REG(hashsize(activetasks));
 #endif
 #ifndef MULTICORE
 	} // line 2946: if (x=setjmp(error_handler))

@@ -1042,6 +1042,7 @@ public class BuildCodeMultiCore extends BuildCode {
 	  isolate = (this.currentSchedule.getAllyCoreTable().get(tmpFState) == null) ||
 	            (this.currentSchedule.getAllyCoreTable().get(tmpFState).size() == 0);
 	}
+	/* no longler use the isolate flag in object structure
 	if(!isolate) {
 	  // indentify this object as a shared object
 	  // isolate flag is initially set as 1, once this flag is set as 0, it is never reset to 1, i.e. once an object
@@ -1051,8 +1052,9 @@ public class BuildCodeMultiCore extends BuildCode {
 	  output.println("  " + super.generateTemp(fm, temp, lb) + "->original = (struct ___Object___ *)" + super.generateTemp(fm, temp, lb) + ";");
 	  output.println("}");
 	}
+	*/
 
-	//Vector<TranObjInfo> sendto = new Vector<TranObjInfo>();
+	Vector<Integer> sendto = new Vector<Integer>();
 	Queue<Integer> queue = null;
 	if(targetCoreTbl != null) {
 	  queue = targetCoreTbl.get(tmpFState);
@@ -1110,9 +1112,6 @@ public class BuildCodeMultiCore extends BuildCode {
 		} else {
 		  tmpinfo.fs = tmpFState;
 		}
-		// fixed 05/12/09, it's very likely to repeatedly send an object to the same core
-		// as sheduled
-		//if(!contains(sendto, tmpinfo)) {
 		  qinfo = outputtransqueues(tmpinfo.fs, targetcore, output);
 		  output.println("tmpObjInfo = RUNMALLOC(sizeof(struct transObjInfo));");
 		  output.println("tmpObjInfo->objptr = (void *)" + tmpinfo.name + ";");
@@ -1120,8 +1119,6 @@ public class BuildCodeMultiCore extends BuildCode {
 		  output.println("tmpObjInfo->queues = " + qinfo.qname + ";");
 		  output.println("tmpObjInfo->length = " + qinfo.length + ";");
 		  output.println("addNewItem(totransobjqueue, (void*)tmpObjInfo);");
-		  //sendto.add(tmpinfo);
-		//}
 		output.println("}");
 	      }
 	      output.println("break;");
@@ -1148,9 +1145,6 @@ public class BuildCodeMultiCore extends BuildCode {
 	    } else {
 	      tmpinfo.fs = tmpFState;
 	    }
-		// fixed 05/12/09, it's very likely to repeatedly send an object to the same core
-		// as sheduled
-	    //if(!contains(sendto, tmpinfo)) {
 	      qinfo = outputtransqueues(tmpinfo.fs, targetcore, output);
 	      output.println("tmpObjInfo = RUNMALLOC(sizeof(struct transObjInfo));");
 	      output.println("tmpObjInfo->objptr = (void *)" + tmpinfo.name + ";");
@@ -1158,8 +1152,6 @@ public class BuildCodeMultiCore extends BuildCode {
 	      output.println("tmpObjInfo->queues = " + qinfo.qname + ";");
 	      output.println("tmpObjInfo->length = " + qinfo.length + ";");
 	      output.println("addNewItem(totransobjqueue, (void*)tmpObjInfo);");
-	      //sendto.add(tmpinfo);
-	    //}
 	    output.println("}");
 	  }
 	  output.println("/* increase index*/");
@@ -1186,10 +1178,13 @@ public class BuildCodeMultiCore extends BuildCode {
 	  // need to be send to other cores
 	  Vector<Integer> targetcores = this.currentSchedule.getAllyCores(tmpFState);
 	  output.println("/* send the shared object to possible queues on other cores*/");
-	  for(int k = 0; k < targetcores.size(); ++k) {
+	  // TODO, temporary solution, send to mostly the first two 
+	  int upperbound = targetcores.size() > 2? 2: targetcores.size();
+	  for(int k = 0; k < upperbound; ++k) {
 	    // TODO
 	    // add the information of exactly which queue
-	    //if(!sendto.contains(targetcores.elementAt(i))) {
+	    int targetcore = targetcores.elementAt(k).intValue();
+	    if(!sendto.contains(targetcore)) {
 	    // previously not sended to this target core
 	    // enqueue this object and its destinations for later process
 	    output.println("{");
@@ -1197,27 +1192,23 @@ public class BuildCodeMultiCore extends BuildCode {
 	    QueueInfo qinfo = null;
 	    TranObjInfo tmpinfo = new TranObjInfo();
 	    tmpinfo.name = super.generateTemp(fm, temp, lb);
-	    tmpinfo.targetcore = targetcores.elementAt(i);
+	    tmpinfo.targetcore = targetcore;
 	    FlagState targetFS = this.currentSchedule.getTargetFState(tmpFState);
 	    if(targetFS != null) {
 	      tmpinfo.fs = targetFS;
 	    } else {
 	      tmpinfo.fs = tmpFState;
 	    }
-		// fixed 05/12/09, it's very likely to repeatedly send an object to the same core
-		// as sheduled
-	    //if(!contains(sendto, tmpinfo)) {
-	      qinfo = outputtransqueues(tmpinfo.fs, targetcores.elementAt(i), output);
+	      qinfo = outputtransqueues(tmpinfo.fs, targetcore, output);
 	      output.println("tmpObjInfo = RUNMALLOC(sizeof(struct transObjInfo));");
 	      output.println("tmpObjInfo->objptr = (void *)" + tmpinfo.name + ";");
-	      output.println("tmpObjInfo->targetcore = "+targetcores.elementAt(i).toString()+";");
+	      output.println("tmpObjInfo->targetcore = "+targetcore+";");
 	      output.println("tmpObjInfo->queues = " + qinfo.qname + ";");
 	      output.println("tmpObjInfo->length = " + qinfo.length + ";");
 	      output.println("addNewItem(totransobjqueue, (void*)tmpObjInfo);");
-	      //sendto.add(tmpinfo);
-	    //}
-	    output.println("}");
-	    //}
+	      output.println("}");
+	      sendto.addElement(targetcore);
+	    }
 	  }
 	}
       }
