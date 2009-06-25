@@ -19,6 +19,10 @@
 #ifdef STM
 #include "tm.h"
 #endif
+#ifdef DELAYCOMP
+#include "delaycomp.h"
+#endif
+
 
 #define NUMPTRS 100
 
@@ -290,6 +294,10 @@ void collect(struct garbagelist * stackptr) {
     }
     pthread_cond_wait(&gccond, &gclistlock);
   }
+#endif
+#ifdef DELAYCOMP
+  ptrstack.prev=stackptr;
+  stackptr=(struct garbagelist *) &ptrstack;
 #endif
 
 #ifdef GARBAGESTATS
@@ -625,6 +633,11 @@ void checkcollect2(void * ptr) {
 #endif
 
 void stopforgc(struct garbagelist * ptr) {
+#ifdef DELAYCOMP
+  //just append us to the list
+  ptrstack.prev=ptr;
+  ptr=(struct garbagelist *) &ptrstack;
+#endif
 #ifndef MAC
   litem.stackptr=ptr;
 #ifdef THREADS
