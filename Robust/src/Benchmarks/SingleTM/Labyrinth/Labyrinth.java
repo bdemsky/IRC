@@ -155,11 +155,9 @@ public class Labyrinth extends Thread{
     }
 
     public void run() {
-        while(true) {
-            Barrier.enterBarrier();
-            Router.solve(routerArg);
-            Barrier.enterBarrier();
-        }
+      Barrier.enterBarrier();
+      Router.solve(routerArg);
+      Barrier.enterBarrier();
     }
 
     public void displayUsage() 
