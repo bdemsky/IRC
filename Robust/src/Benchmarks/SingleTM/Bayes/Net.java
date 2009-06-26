@@ -244,11 +244,10 @@ public class Net {
 
       IntList parentIdListPtr = childNodePtr.parentIdListPtr;
       IntListNode it = parentIdListPtr.head; //intialize iterator
-      parentIdListPtr.list_iter_reset(it);
 
-      while (parentIdListPtr.list_iter_hasNext(it)) {
+      while (it.nextPtr!=null) {
         it = it.nextPtr;
-        int parentId = parentIdListPtr.list_iter_next(it);
+        int parentId = it.dataPtr;
         if (parentId == fromId) {
           return true;
         }
@@ -269,11 +268,10 @@ public class Net {
 
       IntList parentIdListPtr = childNodePtr.parentIdListPtr;
       IntListNode it = parentIdListPtr.head;//initialize iterator
-      parentIdListPtr.list_iter_reset(it);
 
-      while (parentIdListPtr.list_iter_hasNext(it)) {
+      while (it.nextPtr!=null) {
         it = it.nextPtr;
-        int parentId = parentIdListPtr.list_iter_next(it);
+        int parentId = it.dataPtr;
         if (parentId == fromId) {
           return true;
         }
@@ -323,11 +321,10 @@ public class Net {
         NetNode nodePtr = (NetNode) (nodeVectorPtr.vector_at(id));
         IntList childIdListPtr = nodePtr.childIdListPtr;
         IntListNode it = childIdListPtr.head;
-        childIdListPtr.list_iter_reset(it);
 
-        while (childIdListPtr.list_iter_hasNext(it)) {
+        while (it.nextPtr!=null) {
           it = it.nextPtr;
-          int childId = childIdListPtr.list_iter_next(it);
+          int childId = it.dataPtr;
           if (!visitedBitmapPtr.bitmap_isSet(childId)) {
             status = workQueuePtr.queue_push(childId);
             if(status == false) {
@@ -353,11 +350,10 @@ public class Net {
         nodePtr.mark = NET_NODE_MARK_TEST;
         IntList childIdListPtr = nodePtr.childIdListPtr;
         IntListNode it = childIdListPtr.head;
-        childIdListPtr.list_iter_reset(it);
 
-        while (childIdListPtr.list_iter_hasNext(it)) {
+        while (it.nextPtr!=null) {
           it = it.nextPtr;
-          int childId = childIdListPtr.list_iter_next(it);
+          int childId = it.dataPtr;
           NetNode childNodePtr = (NetNode)(nodeVectorPtr.vector_at(childId));
           if (isCycle(nodeVectorPtr, childNodePtr)) {
             return true;
@@ -475,11 +471,10 @@ public class Net {
         NetNode nodePtr = (NetNode)(nodeVectorPtr.vector_at(id));
         IntList parentIdListPtr = nodePtr.parentIdListPtr;
         IntListNode it = parentIdListPtr.head;
-        parentIdListPtr.list_iter_reset(it);
 
-        while (parentIdListPtr.list_iter_hasNext(it)) {
+        while (it.nextPtr!=null) {
           it = it.nextPtr;
-          int parentId = parentIdListPtr.list_iter_next(it);
+          int parentId = it.dataPtr;
           status = ancestorBitmapPtr.bitmap_set(parentId);
           if(status == false) {
             System.out.println("Assert failed: for bitmap_set in net_findAncestors()");
@@ -502,11 +497,10 @@ public class Net {
         NetNode nodePtr = (NetNode)(nodeVectorPtr.vector_at(parentId));
         IntList grandParentIdListPtr = nodePtr.parentIdListPtr;
         IntListNode it = grandParentIdListPtr.head;
-        grandParentIdListPtr.list_iter_reset(it);
 
-        while (grandParentIdListPtr.list_iter_hasNext(it)) {
+        while (it.nextPtr!=null) {
           it = it.nextPtr;
-          int grandParentId = grandParentIdListPtr.list_iter_next(it);
+          int grandParentId = it.dataPtr;
           if (!ancestorBitmapPtr.bitmap_isSet(grandParentId)) {
             if((status = ancestorBitmapPtr.bitmap_set(grandParentId)) == false) {
               System.out.println("Assert failed: for ancestorBitmapPtr bitmap_set in net_findAncestors()");
@@ -550,11 +544,10 @@ public class Net {
         NetNode nodePtr = (NetNode)(nodeVectorPtr.vector_at(id));
         IntList childIdListPtr = nodePtr.childIdListPtr;
         IntListNode it = childIdListPtr.head;
-        childIdListPtr.list_iter_reset(it);
 
-        while (childIdListPtr.list_iter_hasNext(it)) {
+        while (it.nextPtr!=null) {
           it = it.nextPtr;
-          int childId = childIdListPtr.list_iter_next(it);
+          int childId = it.dataPtr;
           if((status = descendantBitmapPtr.bitmap_set(childId)) == false) {
             System.out.println("Assert failed: for descendantBitmapPtr.bitmap_set in net_findDescendants()");
             System.exit(0);
@@ -578,11 +571,10 @@ public class Net {
         NetNode nodePtr = (NetNode)(nodeVectorPtr.vector_at(childId));
         IntList grandChildIdListPtr = nodePtr.childIdListPtr;
         IntListNode it = grandChildIdListPtr.head;
-        grandChildIdListPtr.list_iter_reset(it);
 
-        while (grandChildIdListPtr.list_iter_hasNext(it)) {
+        while (it.nextPtr!=null) {
           it = it.nextPtr;
-          int grandChildId = grandChildIdListPtr.list_iter_next(it);
+          int grandChildId = it.dataPtr;
           if (!descendantBitmapPtr.bitmap_isSet(grandChildId)) {
             if((status = descendantBitmapPtr.bitmap_set(grandChildId)) == false) {
               System.out.println("Assert failed: for descendantBitmapPtr.bitmap_set in net_findDescendants()");

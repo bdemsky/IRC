@@ -90,9 +90,9 @@ public class List {
    * =============================================================================
    */
   public void
-    list_iter_reset (ListNode itPtr)
+    list_iter_reset (ListIter itPtr)
     {
-      itPtr = head;
+      itPtr.ptr = head;
     }
 
   /* =============================================================================
@@ -100,9 +100,9 @@ public class List {
    * =============================================================================
    */
   public boolean
-    list_iter_hasNext (ListNode itPtr)
+    list_iter_hasNext (ListIter itPtr)
     {
-      return ((itPtr.nextPtr != null) ? true : false);
+      return itPtr.ptr.nextPtr != null;
     }
 
   /* =============================================================================
@@ -110,10 +110,11 @@ public class List {
    * =============================================================================
    */
   public LearnerTask
-    list_iter_next (ListNode itPtr)
+    list_iter_next (ListIter itPtr)
     {
-      //itPtr = itPtr.nextPtr;
-      return itPtr.dataPtr;
+      LearnerTask lt=itPtr.ptr.dataPtr;
+      itPtr.ptr=itPtr.ptr.nextPtr;
+      return lt;
     }
 
   /* =============================================================================

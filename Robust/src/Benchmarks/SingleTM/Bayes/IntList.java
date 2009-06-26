@@ -67,9 +67,9 @@ public class IntList {
    * =============================================================================
    */
   public void
-    list_iter_reset (IntListNode itPtr)
+    list_iter_reset (IntListIter itPtr)
     {
-      itPtr = head;
+      itPtr.ptr = head;
     }
 
   /* =============================================================================
@@ -77,9 +77,9 @@ public class IntList {
    * =============================================================================
    */
   public boolean
-    list_iter_hasNext (IntListNode itPtr)
+    list_iter_hasNext (IntListIter itPtr)
     {
-      return ((itPtr.nextPtr != null) ? true : false);
+      return (itPtr.ptr.nextPtr != null);
     }
 
 
@@ -88,9 +88,11 @@ public class IntList {
    * =============================================================================
    */
   public int
-    list_iter_next (IntListNode itPtr)
+    list_iter_next (IntListIter itPtr)
     {
-      return itPtr.dataPtr;
+      int val=itPtr.ptr.dataPtr;
+      itPtr.ptr=itPtr.ptr.nextPtr;
+      return val;
     }
 
   /* =============================================================================

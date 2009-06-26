@@ -185,11 +185,10 @@ public class Data {
 
           IntList parentIdListPtr = netPtr.net_getParentIdListPtr(id);
           IntListNode it = parentIdListPtr.head;
-          parentIdListPtr.list_iter_reset(it);
 
-          while (parentIdListPtr.list_iter_hasNext(it)) {
+          while (it.nextPtr!=null) {
             it = it.nextPtr;
-            int parentId = parentIdListPtr.list_iter_next(it);
+            int parentId = it.dataPtr;
             if((status = workQueuePtr.queue_push(parentId)) == false) {
               System.out.println("Assert failed: status= "+ status + "should be true");
               System.exit(0);
@@ -228,11 +227,10 @@ public class Data {
         IntList parentIdListPtr = netPtr.net_getParentIdListPtr(v);
         int index = 0;
         IntListNode it = parentIdListPtr.head;
-        parentIdListPtr.list_iter_reset(it);
 
-        while (parentIdListPtr.list_iter_hasNext(it)) {
+        while (it.nextPtr!=null) {
           it = it.nextPtr;
-          int parentId = parentIdListPtr.list_iter_next(it);
+          int parentId = it.dataPtr;
           int value = records[startindex + parentId];
           if(value == DATA_INIT) {
             System.out.println("Assert failed value should be != DATA_INIT");

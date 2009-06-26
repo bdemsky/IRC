@@ -406,11 +406,10 @@ public class Learner {
 
 #ifdef TEST_LEARNER
       ListNode it = learnerPtr.taskListPtr.head;
-      learnerPtr.taskListPtr.list_iter_reset(it);
 
-      while (learnerPtr.taskListPtr.list_iter_hasNext(it)) {
+     while (it.nextPtr!=null) {
         it = it.nextPtr;
-        LearnerTask taskPtr = learnerPtr.taskListPtr.list_iter_next(it);
+        LearnerTask taskPtr = it.dataPtr;
         System.out.println("[task] op= "+ taskPtr.op +" from= "+taskPtr.fromId+" to= " +taskPtr.toId+
            " score= " + taskPtr.score);
       }
@@ -428,10 +427,9 @@ public class Learner {
       LearnerTask taskPtr = null;
 
       ListNode it = taskListPtr.head;
-      taskListPtr.list_iter_reset(it);
-      if (taskListPtr.list_iter_hasNext(it)) {
+      if (it.nextPtr!=null) {
         it = it.nextPtr;
-        taskPtr = taskListPtr.list_iter_next(it); 
+        taskPtr = it.dataPtr;
         boolean status = taskListPtr.list_remove(taskPtr);
         if(status == false) {
           System.out.println("Assert failed: when removing from a list in TMpopTask()");
@@ -458,10 +456,9 @@ public class Learner {
 
       IntList parentIdListPtr = netPtr.net_getParentIdListPtr(id);
       IntListNode it = parentIdListPtr.head;
-      parentIdListPtr.list_iter_reset(it);
-      while (parentIdListPtr.list_iter_hasNext(it)) {
+      while (it.nextPtr!=null) {
         it = it.nextPtr;
-        int parentId = parentIdListPtr.list_iter_next(it);
+        int parentId = it.dataPtr;
         boolean status = parentQueryVectorPtr.vector_pushBack(queries[parentId]);
         if(status == false) {
           System.out.println("Assert failed: unable to pushBack in queue");
@@ -486,11 +483,10 @@ public class Learner {
 
       IntList parentIdListPtr = netPtr.net_getParentIdListPtr(id);
       IntListNode it = parentIdListPtr.head;
-      parentIdListPtr.list_iter_reset(it);
 
-      while (parentIdListPtr.list_iter_hasNext(it)) {
+      while (it.nextPtr!=null) {
         it = it.nextPtr;
-        int parentId = parentIdListPtr.list_iter_next(it);
+        int parentId = it.dataPtr;
         boolean status = parentQueryVectorPtr.vector_pushBack(queries[parentId]);
         if(status == false) {
           System.out.println("Assert failed: unable to pushBack in queue in TMpopulateParentQueryVector()");
@@ -719,11 +715,10 @@ public class Learner {
       {
 
         IntListNode it = parentIdListPtr.head;
-        parentIdListPtr.list_iter_reset(it);
 
-        while( parentIdListPtr.list_iter_hasNext(it)) {
+        while(it.nextPtr!=null) {
           it = it.nextPtr;
-          int parentId = parentIdListPtr.list_iter_next(it);
+          int parentId = it.dataPtr;
           invalidBitmapPtr.bitmap_set(parentId); // invalid since already have edge 
         }
 
