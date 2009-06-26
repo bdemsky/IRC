@@ -41,6 +41,9 @@ public class Inliner {
     //make depth 0 be depth infinity
     if (depth==0)
       depth=10000000;
+    if (atomicset.isEmpty())
+      return;
+    System.out.println("Inlining methods into "+fm.getMethod());
     recursive(state, typeutil, atomicset, depth, new Stack<MethodDescriptor>());
   }
   
@@ -67,7 +70,7 @@ public class Inliner {
   public static Set<FlatNode> inline(FlatCall fc, TypeUtil typeutil, State state) {
     MethodDescriptor md=fc.getMethod();
     if (md.getModifiers().isNative())
-      return;
+      return null;
 
     /* Do we need to do virtual dispatch? */
     if (md.isStatic()||md.getReturnType()==null||singleCall(typeutil, fc.getThis().getType().getClassDesc(),md)) {
@@ -77,6 +80,7 @@ public class Inliner {
       TempDescriptor rettmp=fc.getReturnTemp();
       FlatNode aftercallnode=fc.getNext(0);
       aftercallnode.removePrev(fc);
+      System.out.println("Inlining: "+md);
 
       FlatMethod fm=state.getMethodFlat(md);
       //Clone nodes
