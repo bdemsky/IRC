@@ -105,7 +105,7 @@ public class LocalityBinding {
       else if (isglobal[i].equals(LocalityAnalysis.CONFLICT))
 	st+="conflict ";
       else
-	st+="["+isglobalthis+"]";
+	st+="["+isglobal[i]+"]";
     return st;
   }
 
@@ -158,7 +158,7 @@ public class LocalityBinding {
       return b==null;
     } else if (b==null) {
       //a is not null
-      return false;
+      return a==null;
     } else return a.equals(b);
   }
 

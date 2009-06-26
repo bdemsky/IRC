@@ -1,5 +1,6 @@
 package Analysis.Locality;
 
+import Analysis.Liveness;
 import java.util.*;
 import Analysis.CallGraph.CallGraph;
 import IR.SymbolTable;
@@ -297,6 +298,7 @@ public class LocalityAnalysis {
     FlatMethod fm=state.getMethodFlat(md);
     HashSet<FlatNode> tovisit=new HashSet<FlatNode>();
     tovisit.add(fm.getNext(0));
+
     {
       // Build table for initial node
       Hashtable<TempDescriptor,Integer> table=new Hashtable<TempDescriptor,Integer>();
@@ -314,9 +316,12 @@ public class LocalityAnalysis {
       }
     }
 
+    Hashtable<FlatNode, Set<TempDescriptor>> livemap=Liveness.computeLiveTemps(fm);
+    
     while(!tovisit.isEmpty()) {
       FlatNode fn=tovisit.iterator().next();
       tovisit.remove(fn);
+      Set<TempDescriptor> liveset=livemap.get(fn);
       Hashtable<TempDescriptor, Integer> currtable=new Hashtable<TempDescriptor, Integer>();
       int atomicstate=0;
       for(int i=0; i<fn.numPrev(); i++) {
@@ -329,6 +334,8 @@ public class LocalityAnalysis {
 	Hashtable<TempDescriptor, Integer> prevtable=temptable.get(prevnode);
 	for(Iterator<TempDescriptor> tempit=prevtable.keySet().iterator(); tempit.hasNext();) {
 	  TempDescriptor temp=tempit.next();
+	  if (!liveset.contains(temp))
+	    continue;
 	  Integer tmpint=prevtable.get(temp);
 	  Integer oldint=currtable.containsKey(temp) ? currtable.get(temp) : STMEITHER;
 	  Integer newint=mergestm(tmpint, oldint);
@@ -512,6 +519,7 @@ public class LocalityAnalysis {
 
 	lb.setParent(currlb);
 	lbtovisit.add(lb);
+	System.out.println("New lb:"+lb);
 	discovered.put(lb, lb);
 	if (!classtolb.containsKey(lb.getMethod().getClassDesc()))
 	  classtolb.put(lb.getMethod().getClassDesc(), new HashSet<LocalityBinding>());
@@ -531,7 +539,7 @@ public class LocalityAnalysis {
 	calldep.put(currlb, new HashSet<LocalityBinding>());
       calldep.get(currlb).add(lb);
     }
-    if (fc.getReturnTemp()!=null) {
+    if (fc.getReturnTemp()!=null&&fc.getReturnTemp().getType().isPtr()) {
       currtable.put(fc.getReturnTemp(), currreturnval);
     }
   }
@@ -539,18 +547,15 @@ public class LocalityAnalysis {
   void processFieldNodeSTM(LocalityBinding lb, FlatFieldNode ffn, Hashtable<TempDescriptor, Integer> currtable) {
     Integer type=currtable.get(ffn.getSrc());
     TempDescriptor dst=ffn.getDst();
+    if (!ffn.getDst().getType().isPtr())
+      return;
+
     if (type.equals(SCRATCH)) {
       currtable.put(dst,SCRATCH);
     } else if (type.equals(NORMAL)) {
-      if (ffn.getField().getType().isPrimitive()&&!ffn.getField().getType().isArray())
-	currtable.put(dst, SCRATCH);         // primitives are local
-      else
-	currtable.put(dst, NORMAL);
+      currtable.put(dst, NORMAL);
     } else if (type.equals(STMEITHER)) {
-      if (ffn.getField().getType().isPrimitive()&&!ffn.getField().getType().isArray())
-	currtable.put(dst, SCRATCH);         // primitives are local
-      else
-	currtable.put(dst, STMEITHER);
+      currtable.put(dst, STMEITHER);
     } else if (type.equals(STMCONFLICT)) {
       throw new Error("Access to object that could be either normal or scratch in context:\n"+ffn+"  "+lb.getExplanation());
     }
