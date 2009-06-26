@@ -133,7 +133,8 @@ public class Inliner {
 	    fnclone.setNewNext(i, fnnextclone);
 	  }
 	} else {
-	  fnclone.addNext(aftercallnode);
+	  if (fnclone!=aftercallnode)
+	    fnclone.addNext(aftercallnode);
 	}
       }
 
