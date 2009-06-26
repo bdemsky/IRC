@@ -12,7 +12,7 @@ import IR.ClassDescriptor;
 
 public class LocalityAnalysis {
   State state;
-  Stack lbtovisit;
+  Set lbtovisit;
   Hashtable<LocalityBinding,LocalityBinding> discovered;
   Hashtable<LocalityBinding, Set<LocalityBinding>> dependence;
   Hashtable<LocalityBinding, Set<LocalityBinding>> calldep;
@@ -44,7 +44,7 @@ public class LocalityAnalysis {
     this.calldep=new Hashtable<LocalityBinding, Set<LocalityBinding>>();
     this.temptab=new Hashtable<LocalityBinding, Hashtable<FlatNode,Hashtable<TempDescriptor, Integer>>>();
     this.atomictab=new Hashtable<LocalityBinding, Hashtable<FlatNode, Integer>>();
-    this.lbtovisit=new Stack();
+    this.lbtovisit=new HashSet();
     this.callgraph=callgraph;
     this.tempstosave=new Hashtable<LocalityBinding, Hashtable<FlatAtomicEnterNode, Set<TempDescriptor>>>();
     this.classtolb=new Hashtable<ClassDescriptor, Set<LocalityBinding>>();
@@ -254,8 +254,12 @@ public class LocalityAnalysis {
       methodtolb.put(lbrun.getMethod(), new HashSet<LocalityBinding>());
     methodtolb.get(lbrun.getMethod()).add(lbrun);
 
-    while(!lbtovisit.empty()) {
-      LocalityBinding lb=(LocalityBinding) lbtovisit.pop();
+    while(!lbtovisit.isEmpty()) {
+      LocalityBinding lb=(LocalityBinding) lbtovisit.iterator().next();
+      lbtovisit.remove(lb);
+
+      System.out.println("Analyzing "+lb);
+
       Integer returnglobal=lb.getGlobalReturn();
       MethodDescriptor md=lb.getMethod();
       Hashtable<FlatNode,Hashtable<TempDescriptor, Integer>> temptable=new Hashtable<FlatNode,Hashtable<TempDescriptor, Integer>>();
@@ -271,7 +275,7 @@ public class LocalityAnalysis {
       temptab.put(lb, temptable);
       atomictab.put(lb, atomictable);
 
-      if (md.getReturnType()!=null&&!returnglobal.equals(lb.getGlobalReturn())) {
+      if (md.getReturnType()!=null&&md.getReturnType().isPtr()&&!returnglobal.equals(lb.getGlobalReturn())) {
 	//return type is more precise now
 	//rerun everything that call us
 	lbtovisit.addAll(dependence.get(lb));
@@ -305,6 +309,7 @@ public class LocalityAnalysis {
       for(int i=offset; i<fm.numParameters(); i++) {
 	TempDescriptor temp=fm.getParameter(i);
 	Integer b=lb.isGlobal(i-offset);
+	if (b!=null)
 	table.put(temp,b);
       }
     }
@@ -369,7 +374,7 @@ public class LocalityAnalysis {
 	break;
 
       case FKind.FlatOpNode:
-	processOpNodeSTM((FlatOpNode)fn, currtable);
+	processOpNodeSTM(lb, (FlatOpNode)fn, currtable);
 	break;
 
       case FKind.FlatCastNode:
@@ -478,7 +483,8 @@ public class LocalityAnalysis {
       if (runmethodset==null||!runmethodset.contains(md)) {
 	for(int i=0; i<fc.numArgs(); i++) {
 	  TempDescriptor arg=fc.getArg(i);
-	  lb.setGlobal(i,currtable.get(arg));
+	  if (currtable.containsKey(arg))
+	    lb.setGlobal(i,currtable.get(arg));
 	}
 	if (fc.getThis()!=null) {
 	  Integer thistype=currtable.get(fc.getThis());
@@ -499,9 +505,7 @@ public class LocalityAnalysis {
       //lb is built
       if (!discovered.containsKey(lb)) {
 	if (isnative) {
-	  if (nodemd.getReturnType()==null||!nodemd.getReturnType().isPtr())
-	    lb.setGlobalReturn(SCRATCH);
-	  else
+	  if (nodemd.getReturnType()!=null&&nodemd.getReturnType().isPtr())
 	    lb.setGlobalReturn(NORMAL);
 	} else
 	  lb.setGlobalReturn(STMEITHER);
@@ -556,17 +560,16 @@ public class LocalityAnalysis {
   void processSetFieldNodeSTM(LocalityBinding lb, FlatSetFieldNode fsfn, Hashtable<TempDescriptor, Integer> currtable) {
     Integer srctype=currtable.get(fsfn.getSrc());
     Integer dsttype=currtable.get(fsfn.getDst());
+    if (!fsfn.getSrc().getType().isPtr())
+      return;
+
     if (dsttype==null)
       System.out.println(fsfn);
     if (dsttype.equals(SCRATCH)) {
-      if (srctype.equals(SCRATCH) && fsfn.getField().getType().isPrimitive() && !fsfn.getField().getType().isArray())
-	return;
       if (!(srctype.equals(SCRATCH)||srctype.equals(STMEITHER)))
 	throw new Error("Writing possible normal reference to scratch object in context: \n"+lb.getExplanation());
     } else if (dsttype.equals(NORMAL)) {
       //okay to store primitives in global object
-      if (srctype.equals(SCRATCH) && fsfn.getField().getType().isPrimitive() && !fsfn.getField().getType().isArray())
-	return;
       if (!(srctype.equals(NORMAL)||srctype.equals(STMEITHER)))
 	throw new Error("Writing possible scratch reference to normal object in context:\n"+lb.getExplanation()+" for FlatFieldNode "+fsfn);
     } else if (dsttype.equals(STMEITHER)) {
@@ -580,13 +583,13 @@ public class LocalityAnalysis {
   void processSetElementNodeSTM(LocalityBinding lb, FlatSetElementNode fsen, Hashtable<TempDescriptor, Integer> currtable) {
     Integer srctype=currtable.get(fsen.getSrc());
     Integer dsttype=currtable.get(fsen.getDst());
+    if (!fsen.getSrc().getType().isPtr())
+      return;
 
     if (dsttype.equals(SCRATCH)) {
       if (!(srctype.equals(SCRATCH)||srctype.equals(STMEITHER)))
 	throw new Error("Writing possible normal reference to scratch object in context:\n"+lb.getExplanation()+fsen);
     } else if (dsttype.equals(NORMAL)) {
-      if (srctype.equals(SCRATCH) && fsen.getDst().getType().dereference().isPrimitive() && !fsen.getDst().getType().dereference().isArray())
-	return;
       if (!(srctype.equals(NORMAL)||srctype.equals(STMEITHER)))
 	throw new Error("Writing possible scratch reference to normal object in context:\n"+lb.getExplanation());
     } else if (dsttype.equals(STMEITHER)) {
@@ -597,25 +600,30 @@ public class LocalityAnalysis {
     }
   }
 
-  void processOpNodeSTM(FlatOpNode fon, Hashtable<TempDescriptor, Integer> currtable) {
+  void processOpNodeSTM(LocalityBinding lb, FlatOpNode fon, Hashtable<TempDescriptor, Integer> currtable) {
     /* Just propagate value */
+    if (!fon.getLeft().getType().isPtr())
+      return;
+
     Integer srcvalue=currtable.get(fon.getLeft());
     
     if (srcvalue==null) {
-      if (!fon.getLeft().getType().isPtr()) {
-	srcvalue=SCRATCH;
-      } else
-	throw new Error(fon.getLeft()+" is undefined!");
+      System.out.println(fon);
+      MethodDescriptor md=lb.getMethod();
+      FlatMethod fm=state.getMethodFlat(md);
+      System.out.println(fm.printMethod());
+      throw new Error(fon.getLeft()+" is undefined!");
     }
     currtable.put(fon.getDest(), srcvalue);
   }
   
-   void processCastNodeSTM(FlatCastNode fcn, Hashtable<TempDescriptor, Integer> currtable) {
-    currtable.put(fcn.getDst(), currtable.get(fcn.getSrc()));
+  void processCastNodeSTM(FlatCastNode fcn, Hashtable<TempDescriptor, Integer> currtable) {
+    if (currtable.containsKey(fcn.getSrc()))
+	currtable.put(fcn.getDst(), currtable.get(fcn.getSrc()));
   }
 
   void processReturnNodeSTM(LocalityBinding lb, FlatReturnNode frn, Hashtable<TempDescriptor, Integer> currtable) {
-    if(frn.getReturnTemp()!=null) {
+    if(frn.getReturnTemp()!=null&&frn.getReturnTemp().getType().isPtr()) {
       Integer returntype=currtable.get(frn.getReturnTemp());
       lb.setGlobalReturn(mergestm(returntype, lb.getGlobalReturn()));
     }
@@ -627,31 +635,26 @@ public class LocalityAnalysis {
        currtable.put(fln.getDst(), STMEITHER);
      else if (fln.getType().isPtr())
        currtable.put(fln.getDst(), NORMAL);
-     else
-       currtable.put(fln.getDst(), SCRATCH);
   }
 
   void processElementNodeSTM(LocalityBinding lb, FlatElementNode fen, Hashtable<TempDescriptor, Integer> currtable) {
     Integer type=currtable.get(fen.getSrc());
     TempDescriptor dst=fen.getDst();
+    if (!fen.getDst().getType().isPtr())
+      return;
 
     if (type==null) {
       System.out.println(fen +" in "+lb+" may access undefined variable");
+      MethodDescriptor md=lb.getMethod();
+      FlatMethod fm=state.getMethodFlat(md);
+      System.out.println(fm.printMethod());
       System.exit(-1);
     } else if (type.equals(SCRATCH)) {
       currtable.put(dst,SCRATCH);
     } else if (type.equals(NORMAL)) {
-      if(fen.getSrc().getType().dereference().isPrimitive()&&
-         !fen.getSrc().getType().dereference().isArray())
-	currtable.put(dst, SCRATCH);
-      else
-	currtable.put(dst, NORMAL);
+      currtable.put(dst, NORMAL);
     } else if (type.equals(STMEITHER)) {
-      if(fen.getSrc().getType().dereference().isPrimitive()&&
-         !fen.getSrc().getType().dereference().isArray())
-	currtable.put(dst, SCRATCH);
-      else
-	currtable.put(dst, STMEITHER);
+      currtable.put(dst, STMEITHER);
     } else if (type.equals(STMCONFLICT)) {
       throw new Error("Access to object that could be either global or local in context:\n"+lb.getExplanation());
     }
@@ -685,8 +688,9 @@ public class LocalityAnalysis {
       methodtolb.put(lbrun.getMethod(), new HashSet<LocalityBinding>());
     methodtolb.get(lbrun.getMethod()).add(lbrun);
 
-    while(!lbtovisit.empty()) {
-      LocalityBinding lb=(LocalityBinding) lbtovisit.pop();
+    while(!lbtovisit.isEmpty()) {
+      LocalityBinding lb=(LocalityBinding) lbtovisit.iterator().next();
+      lbtovisit.remove(lb);
       Integer returnglobal=lb.getGlobalReturn();
       MethodDescriptor md=lb.getMethod();
       Hashtable<FlatNode,Hashtable<TempDescriptor, Integer>> temptable=new Hashtable<FlatNode,Hashtable<TempDescriptor, Integer>>();
