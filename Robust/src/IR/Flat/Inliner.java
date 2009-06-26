@@ -66,6 +66,9 @@ public class Inliner {
 
   public static Set<FlatNode> inline(FlatCall fc, TypeUtil typeutil, State state) {
     MethodDescriptor md=fc.getMethod();
+    if (md.getModifiers().isNative())
+      return;
+
     /* Do we need to do virtual dispatch? */
     if (md.isStatic()||md.getReturnType()==null||singleCall(typeutil, fc.getThis().getType().getClassDesc(),md)) {
       //just reuse temps...makes problem with inlining recursion
