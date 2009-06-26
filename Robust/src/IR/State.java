@@ -85,7 +85,8 @@ public class State {
   public String structfile;
   public String main;
   public String outputdir = "/scratch/";
-
+  public boolean INLINEATOMIC=false;
+  public int inlineatomicdepth;
   public HashSet selfloops;
   public HashSet excprefetch;
   public Vector classpath;
