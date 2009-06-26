@@ -393,7 +393,6 @@ public class DelayComputation {
   public void analyzeMethod(LocalityBinding lb) {
     MethodDescriptor md=lb.getMethod();
     FlatMethod fm=state.getMethodFlat(md);
-    System.out.println("Analyzing "+md);
     HashSet<FlatNode> cannotdelay=new HashSet<FlatNode>();
     Hashtable<FlatNode, Integer> atomictable=locality.getAtomic(lb);
     if (lb.isAtomic()) {
@@ -616,9 +615,6 @@ public class DelayComputation {
     if (lb.getHasAtomic()) {
       cannotdelaymap.put(lb, cannotdelay);
     }
-
-
-
   } //end of method
 
   //Problems:

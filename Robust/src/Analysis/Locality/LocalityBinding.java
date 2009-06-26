@@ -157,7 +157,6 @@ public class LocalityBinding {
     if (a==null) {
       return b==null;
     } else if (b==null) {
-      //a is not null
       return a==null;
     } else return a.equals(b);
   }

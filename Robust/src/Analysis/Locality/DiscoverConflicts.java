@@ -289,13 +289,13 @@ public class DiscoverConflicts {
 
   HashSet<TempFlatPair> computeTranslationSet(LocalityBinding lb, FlatMethod fm, Hashtable<FlatNode, Hashtable<TempDescriptor, Set<TempFlatPair>>> fnmap) {
     HashSet<TempFlatPair> tfset=new HashSet<TempFlatPair>();
-    
+
     for(Iterator<FlatNode> fnit=fm.getNodeSet().iterator();fnit.hasNext();) {
       FlatNode fn=fnit.next();
       Hashtable<FlatNode, Integer> atomictable=locality.getAtomic(lb);
 
       //Check whether this node matters for delayed computation
-      if (cannotdelaymap!=null&&cannotdelaymap.contains(lb)&&!cannotdelaymap.get(lb).contains(fn))
+      if (cannotdelaymap!=null&&cannotdelaymap.containsKey(lb)&&!cannotdelaymap.get(lb).contains(fn))
 	continue;
 
       if (atomictable.get(fn).intValue()>0) {
