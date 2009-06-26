@@ -17,6 +17,7 @@ import IR.Tree.SemanticCheck;
 import IR.Flat.BuildCodeMultiCore;
 import IR.Flat.BuildFlat;
 import IR.Flat.BuildCode;
+import IR.Flat.Inliner;
 import IR.ClassDescriptor;
 import IR.State;
 import IR.TaskDescriptor;
@@ -80,7 +81,10 @@ public class Main {
 	state.excprefetch.add(args[++i]);
       else if (option.equals("-classlibrary"))
 	state.classpath.add(args[++i]);
-      else if(option.equals("-numcore")) {
+      else if (option.equals("-inlineatomic")) {
+	state.INLINEATOMIC=true;
+	state.inlineatomicdepth=Integer.parseInt(args[++i]);
+      } else if(option.equals("-numcore")) {
 	++i;
 	state.CORENUM = Integer.parseInt(args[i]);
       } else if (option.equals("-mainclass"))
@@ -251,6 +255,20 @@ public class Main {
     SafetyAnalysis sa=null;
     PrefetchAnalysis pa=null;
     MLPAnalysis mlpa=null;
+    if (state.INLINEATOMIC) {
+      Iterator classit=state.getClassSymbolTable().getDescriptorsIterator();
+      while(classit.hasNext()) {
+        ClassDescriptor cn=(ClassDescriptor)classit.next();
+        Iterator methodit=cn.getMethods();
+        while(methodit.hasNext()) {
+	  // do inlining
+          MethodDescriptor md=(MethodDescriptor)methodit.next();
+          FlatMethod fm=state.getMethodFlat(md);
+	  Inliner.inlineAtomic(state, tu, fm, state.inlineatomicdepth);
+	}
+      }
+    }
+
 
     if (state.OPTIMIZE) {
       CallGraph callgraph=new CallGraph(state);

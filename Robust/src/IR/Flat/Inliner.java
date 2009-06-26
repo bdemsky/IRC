@@ -1,6 +1,8 @@
 package IR.Flat;
 import java.util.Hashtable;
 import java.util.Set;
+import java.util.HashSet;
+import java.util.Stack;
 import java.util.Iterator;
 import IR.ClassDescriptor;
 import IR.Operation;
@@ -9,6 +11,59 @@ import IR.TypeUtil;
 import IR.MethodDescriptor;
 
 public class Inliner {
+  public static void inlineAtomic(State state, TypeUtil typeutil, FlatMethod fm, int depth) {
+    Stack<FlatNode> toprocess=new Stack<FlatNode>();
+    HashSet<FlatNode> visited=new HashSet<FlatNode>();
+    Hashtable<FlatNode, Integer> atomictable=new Hashtable<FlatNode, Integer>();
+    HashSet<FlatNode> atomicset=new HashSet<FlatNode>();
+
+    toprocess.push(fm);
+    visited.add(fm);
+    atomictable.put(fm, new Integer(0));
+    while(!toprocess.isEmpty()) {
+      FlatNode fn=toprocess.pop();
+      int atomicval=atomictable.get(fn).intValue();
+      if (fn.kind()==FKind.FlatAtomicEnterNode)
+	atomicval++;
+      else if(fn.kind()==FKind.FlatAtomicExitNode)
+	atomicval--;
+      for(int i=0;i<fn.numNext();i++) {
+	FlatNode fnext=fn.getNext(i);
+	if (!visited.contains(fnext)) {
+	  atomictable.put(fnext, new Integer(atomicval));
+	  if (atomicval>0)
+	    atomicset.add(fnext);
+	  visited.add(fnext);
+	  toprocess.push(fnext);
+	}
+      }
+    }
+    //make depth 0 be depth infinity
+    if (depth==0)
+      depth=10000000;
+    recursive(state, typeutil, atomicset, depth, new Stack<MethodDescriptor>());
+  }
+  
+
+  public static void recursive(State state, TypeUtil typeutil, Set<FlatNode> fnset, int depth, Stack<MethodDescriptor> toexclude) {
+    for(Iterator<FlatNode> fnit=fnset.iterator();fnit.hasNext();) {
+      FlatNode fn=fnit.next();
+      if (fn.kind()==FKind.FlatCall) {
+	FlatCall fc=(FlatCall)fn;
+	MethodDescriptor md=fc.getMethod();
+
+	if (toexclude.contains(md))
+	  continue;
+
+	Set<FlatNode> inlinefnset=inline(fc, typeutil, state);
+	toexclude.push(md);
+	if (depth>1)
+	  recursive(state, typeutil, inlinefnset, depth-1, toexclude);
+	toexclude.pop();
+      }
+    }
+  }
+
   public static Set<FlatNode> inline(FlatCall fc, TypeUtil typeutil, State state) {
     MethodDescriptor md=fc.getMethod();
     /* Do we need to do virtual dispatch? */

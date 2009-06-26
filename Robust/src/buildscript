@@ -46,6 +46,7 @@ echo -transstats generates transaction stats on commits and aborts
 echo -garbagestats Print garbage collection statistics
 echo -webinterface enable web interface
 echo -runtimedebug printout runtime debug messages
+echo -inlineatomic depth inline methods inside of transactions to specified depth
 echo "-thread use support for multiple threads"
 echo "-optimize call gcc with -O9 (optimize)"
 echo "-nooptimize call gcc with -O0 (do not optimize)"
@@ -183,6 +184,10 @@ JAVAOPTS="$JAVAOPTS -printflat"
 elif [[ $1 = '-trueprob' ]]
 then
 JAVAOPTS="$JAVAOPTS -trueprob $2"
+shift
+elif [[ $1 = '-inlineatomic' ]]
+then
+JAVAOPTS="$JAVAOPTS -inlineatomic $2"
 shift
 elif [[ $1 = '-mac' ]]
 then
