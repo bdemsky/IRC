@@ -64,6 +64,9 @@ public class FlatGlobalConvNode extends FlatNode {
   }
 
   public TempDescriptor [] readsTemps() {
-    return new TempDescriptor[] {src};
+    if (!makePtr&&!convert)
+      return new TempDescriptor[0];
+    else
+      return new TempDescriptor[] {src};
   }
 }

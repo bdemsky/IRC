@@ -10,7 +10,7 @@ public class ReachingDefs {
   /* This methods takes in a FlatMethod and returns a map from a
    * FlatNode to the set of live temps for that FlatNode.*/
 
-  public static Hashtable<FlatNode, Hashtable<TempDescriptor, Set<FlatNode>>> computeReachingDefs(FlatMethod fm) {
+  public static Hashtable<FlatNode, Hashtable<TempDescriptor, Set<FlatNode>>> computeReachingDefs(FlatMethod fm, Hashtable<FlatNode, Set<TempDescriptor>> livemap) {
     Hashtable<FlatNode, Hashtable<TempDescriptor, Set<FlatNode>>> nodetotemps=new Hashtable<FlatNode, Hashtable<TempDescriptor,Set<FlatNode>>>();
     
     Set<FlatNode> toprocess=fm.getNodeSet();
@@ -21,12 +21,16 @@ public class ReachingDefs {
       
       Hashtable<TempDescriptor, Set<FlatNode>> tempset=new Hashtable<TempDescriptor, Set<FlatNode>>();
 
+      Set<TempDescriptor> livetempset=livemap.get(fn);
+
       for(int i=0; i<fn.numPrev(); i++) {
 	FlatNode fnprev=fn.getPrev(i);
 	if (nodetotemps.containsKey(fnprev)) {
 	  Hashtable<TempDescriptor,Set<FlatNode>> prevtable=nodetotemps.get(fnprev);
 	  for(Iterator<TempDescriptor> tmpit=prevtable.keySet().iterator();tmpit.hasNext();) {
 	    TempDescriptor tmp=tmpit.next();
+	    if (!livetempset.contains(tmp))
+	      continue;
 	    if (!tempset.containsKey(tmp))
 	      tempset.put(tmp, new HashSet<FlatNode>());
 	    tempset.get(tmp).addAll(prevtable.get(tmp));

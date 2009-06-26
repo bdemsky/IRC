@@ -5,7 +5,7 @@ import java.util.Set;
 import java.util.Iterator;
 
 public class FlatNode {
-  protected Vector next;
+  public Vector next;
   protected Vector prev;
 
   public FlatNode() {
@@ -117,12 +117,14 @@ public class FlatNode {
     }
     for(int i=0;i<next.size();i++) {
       FlatNode nnext=(FlatNode)next.get(i);
-      fnnew.next.set(i,nnext);;
+      fnnew.next.set(i,nnext);
       for(int j=0;j<nnext.numPrev();j++) {
 	FlatNode n=nnext.getPrev(j);
 	if (n==this)
 	  nnext.prev.set(j, fnnew);
       }
     }
+    next=null;
+    prev=null;
   }
 }

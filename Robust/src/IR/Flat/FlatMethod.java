@@ -94,6 +94,22 @@ public class FlatMethod extends FlatNode {
     return flatExit;
   }
 
+  public void check() {
+    Set<FlatNode> set=getNodeSet();
+    for(Iterator<FlatNode> setit=set.iterator();setit.hasNext();) {
+      FlatNode fn=setit.next();
+      for(int i=0;i<fn.numPrev();i++) {
+	FlatNode fnprev=fn.getPrev(i);
+	if (!set.contains(fnprev)) {
+	  System.out.println(fn+" has unreachable parent:"+i+"  "+fnprev);
+	  System.out.println(printMethod());
+	  throw new Error();
+
+	}
+      }
+    }
+  }
+
   /** This method returns a set of the nodes in this flat representation */
 
   public Set<FlatNode> getNodeSet() {
@@ -106,6 +122,8 @@ public class FlatMethod extends FlatNode {
       visited.add(fn);
       for(int i=0; i<fn.numNext(); i++) {
 	FlatNode nn=fn.getNext(i);
+	if (nn==null)
+	  continue;
 	if (!visited.contains(nn))
 	  tovisit.add(nn);
       }

@@ -70,6 +70,8 @@ void dc_t_chashreset() {
 void dc_t_chashInsertOnce(void * key, void *val) {
   chashlistnode_t *ptr;
 
+  if (key==NULL)
+    return;
 
   if(dc_c_numelements > (dc_c_threshold)) {
     //Resize

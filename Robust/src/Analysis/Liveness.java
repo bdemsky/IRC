@@ -9,7 +9,7 @@ import java.util.Hashtable;
 
 public class Liveness {
   /* This methods takes in a FlatMethod and returns a map from a
-   * FlatNode to the set of live temps for that FlatNode.*/
+   * FlatNode to the set of temps that are live into the FlatNode.*/
 
   public static Hashtable<FlatNode, Set<TempDescriptor>> computeLiveTemps(FlatMethod fm) {
     Hashtable<FlatNode, Set<TempDescriptor>> nodetotemps=new Hashtable<FlatNode, Set<TempDescriptor>>();

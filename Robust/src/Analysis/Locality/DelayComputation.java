@@ -102,7 +102,8 @@ public class DelayComputation {
     secondpart.retainAll(atomicnodes);
 
     Set<TempDescriptor> liveinto=new HashSet<TempDescriptor>();
-    Hashtable<FlatNode, Hashtable<TempDescriptor, Set<FlatNode>>> reachingdefs=ReachingDefs.computeReachingDefs(fm);
+    
+    Hashtable<FlatNode, Hashtable<TempDescriptor, Set<FlatNode>>> reachingdefs=ReachingDefs.computeReachingDefs(fm, Liveness.computeLiveTemps(fm));
     
     for(Iterator<FlatNode> fnit=secondpart.iterator();fnit.hasNext();) {
       FlatNode fn=fnit.next();
@@ -131,8 +132,8 @@ public class DelayComputation {
     FlatMethod fm=state.getMethodFlat(md);
     Set<FlatNode> exits=faen.getExits();
     Hashtable<FlatNode, Set<TempDescriptor>> livemap=Liveness.computeLiveTemps(fm);
-    Hashtable<FlatNode, Hashtable<TempDescriptor, Set<FlatNode>>> reachingdefs=ReachingDefs.computeReachingDefs(fm);
-    
+    Hashtable<FlatNode, Hashtable<TempDescriptor, Set<FlatNode>>> reachingdefs=ReachingDefs.computeReachingDefs(fm, Liveness.computeLiveTemps(fm));    
+
     Set<FlatNode> atomicnodes=faen.getReachableSet(faen.getExits());
 
     Set<FlatNode> secondpart=new HashSet<FlatNode>(getNotReady(lb));
@@ -176,7 +177,7 @@ public class DelayComputation {
     FlatMethod fm=state.getMethodFlat(md);
     Set<FlatNode> exits=faen.getExits();
     Hashtable<FlatNode, Set<TempDescriptor>> livemap=Liveness.computeLiveTemps(fm);
-    Hashtable<FlatNode, Hashtable<TempDescriptor, Set<FlatNode>>> reachingdefs=ReachingDefs.computeReachingDefs(fm);
+    Hashtable<FlatNode, Hashtable<TempDescriptor, Set<FlatNode>>> reachingdefs=ReachingDefs.computeReachingDefs(fm, livemap);
     
     Set<FlatNode> atomicnodes=faen.getReachableSet(faen.getExits());
 
@@ -195,6 +196,10 @@ public class DelayComputation {
       for(Iterator<TempDescriptor> tmpit=tempset.iterator();tmpit.hasNext();) {
 	TempDescriptor tmp=tmpit.next();
 	Set<FlatNode> fnset=reachmap.get(tmp);
+	if (fnset==null) {
+	  System.out.println("null temp set for"+fn+" tmp="+tmp);
+	  System.out.println(fm.printMethod());
+	}
 	for(Iterator<FlatNode> fnit2=fnset.iterator();fnit2.hasNext();) {
 	  FlatNode fn2=fnit2.next();
 	  if (secondpart.contains(fn2)) {
