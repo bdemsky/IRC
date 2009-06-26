@@ -94,11 +94,11 @@ public class Sort {
    * =============================================================================
    */
   public static void
-    swap (char[] base, int a, int b, int width)
+    swap (byte[] base, int a, int b, int width)
     {
       if (a != b ) {
         while (width--) {
-          char tmp = base[a];
+          byte tmp = base[a];
           base[a++] = base[b];
           base[b++] = tmp;
         }
@@ -111,7 +111,7 @@ public class Sort {
    * =============================================================================
    */
 
-  public static void shortsort(char[] base,
+  public static void shortsort(byte[] base,
       int lo,
       int hi,
       int width,
@@ -134,21 +134,14 @@ public class Sort {
    * sort
    * =============================================================================
    */
-  public void
-    sort (char[] base,
+  public static void
+    sort (byte[] base,
         int start,
         int num,
         int width,
         int n,
         int offset)
     {
-      /**
-       * debug
-       **/
-      /*
-      for(int o = 0; o< (width * (num - 1)); o++)
-        System.out.println("base["+ o +"]=" + (int)base[o]);
-      */
       if (num < 2 || width == 0) {
         return;
       }
@@ -168,71 +161,65 @@ public class Sort {
 
       int size = 0;
 
-      boolean cont = true;
-
-      ptrVal pv = new ptrVal();
-      pv.lo = lo;
-      pv.hi = hi;
-      pv.width = width;
-      pv.n = n;
-
+      int pvlo = lo;
+      int pvhi = hi;
+      int pvwidth = width;
+      int pvn = n;
+      int pvmid;
+      int pvloguy;
+      int pvhiguy;
       int typeflag;
 
-      while(cont) {
+      while(true) {
 
-        size = (pv.hi - pv.lo) / pv.width + 1;
+        size = (pvhi - pvlo) / pvwidth + 1;
  
-        /**
-         * debug
-         **/
-        //System.out.println("DEBUG: lo= "+ pv.lo + " hi= " + pv.hi + " width= " + pv.width+ " offset= " + offset + " n= " + pv.n + " size= " + size);
-
         if (size <= CUTOFF) {
 
-          shortsort(base, pv.lo, pv.hi, pv.width, pv.n, offset);
+          shortsort(base, pvlo, pvhi, pvwidth, pvn, offset);
 
         } else {
 
-          pv.mid = pv.lo + (size / 2) * pv.width;
-          swap(base, pv.mid, pv.lo, pv.width);
+          pvmid = pvlo + (size / 2) * pvwidth;
+          swap(base, pvmid, pvlo, pvwidth);
 
-          pv.loguy = pv.lo;
-          pv.higuy = pv.hi + pv.width;
+          pvloguy = pvlo;
+          pvhiguy = pvhi + pvwidth;
 
           while(true) {
             do {
-              pv.loguy += pv.width;
-            } while (pv.loguy <= pv.hi && cmp(base, pv.loguy, pv.lo, pv.n, offset) <= 0);
+              pvloguy += pvwidth;
+            } while (pvloguy <= pvhi && cmp(base, pvloguy, pvlo, pvn, offset) <= 0);
             do {
-              pv.higuy -= pv.width;
-            } while (pv.higuy > pv.lo && cmp(base, pv.higuy, pv.lo, pv.n, offset) >= 0);
-            if (pv.higuy < pv.loguy) {
+              pvhiguy -= pvwidth;
+            } while (pvhiguy > pvlo && cmp(base, pvhiguy, pvlo, pvn, offset) >= 0);
+            if (pvhiguy < pvloguy) {
               break;
             }
-            swap(base, pv.loguy, pv.higuy, pv.width);
+            swap(base, pvloguy, pvhiguy, pvwidth);
           }
 
-          swap(base, pv.lo, pv.higuy, pv.width);
+          swap(base, pvlo, pvhiguy, pvwidth);
 
-          if ((pv.higuy - 1 - pv.lo) >= (pv.hi - pv.loguy)) {
-            if (pv.lo + pv.width < pv.higuy) {
-              lostk[stkptr] = pv.lo;
-              histk[stkptr] = pv.higuy - pv.width;
+          if ((pvhiguy - 1 - pvlo) >= (pvhi - pvloguy)) {
+            if (pvlo + pvwidth < pvhiguy) {
+              lostk[stkptr] = pvlo;
+              histk[stkptr] = pvhiguy - pvwidth;
               ++stkptr;
             }
 
-            if (pv.loguy < pv.hi) {
-              pv.lo = pv.loguy;
+            if (pvloguy < pvhi) {
+              pvlo = pvloguy;
               continue;
             }
           } else {
-            if (pv.loguy < pv.hi) {
-              lostk[stkptr] = pv.loguy;
-              histk[stkptr] = pv.hi;
+            if (pvloguy < pvhi) {
+              lostk[stkptr] = pvloguy;
+              histk[stkptr] = pvhi;
               ++stkptr;
             }
-            if (pv.lo + pv.width < pv.higuy) {
-              pv.hi = pv.higuy - pv.width;
+            if (pvlo + pvwidth < pvhiguy) {
+              pvhi = pvhiguy - pvwidth;
               continue;
             }
           }
@@ -240,11 +227,11 @@ public class Sort {
 
         --stkptr;
         if (stkptr >= 0) {
-          pv.lo = lostk[stkptr];
-          pv.hi = histk[stkptr];
+          pvlo = lostk[stkptr];
+          pvhi = histk[stkptr];
           continue;
         }
-        cont = false;
+	break;
       }
     }
 
@@ -254,15 +241,15 @@ public class Sort {
    */
 
   public static int
-    cmp(char[] base, int p1, int  p2, int n, int offset)
+    cmp(byte[] base, int p1, int  p2, int n, int offset)
     {
       int i = n - offset;
       int s1 = p1 + offset;
       int s2 = p2 + offset;
 
       while (i-- > 0) {
-        char u1 = base[s1];
-        char u2 = base[s2];
+        byte u1 = base[s1];
+        byte u2 = base[s2];
         if (u1 != u2) {
           return (u1 - u2); 
         }
@@ -273,29 +260,6 @@ public class Sort {
     }
 }
 
-public class ptrVal {
-  int lo;
-  int hi;
-  int width;
-  int n;
-  int loguy;
-  int higuy;
-  int max;
-  int p;
-  int mid;
-
-  public ptrVal() {
-    lo = 0;
-    hi = 0;
-    width = 0;
-    n = 0;
-    loguy = 0;
-    higuy = 0;
-    max = 0;
-    p = 0;
-    mid = 0;
-  }
-}
 
 /* =============================================================================
  *

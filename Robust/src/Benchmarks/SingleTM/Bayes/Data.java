@@ -58,7 +58,7 @@
 public class Data {
   int numVar;
   int numRecord;
-  char[] records; /* coordination of all records */
+  byte[] records; /* coordination of all records */
   Random randomPtr;
 
   public Data() {
@@ -74,9 +74,9 @@ public class Data {
 
     if (dataPtr != null) {
       int numDatum = numVar * numRecord;
-      dataPtr.records = new char[numDatum];
+      dataPtr.records = new byte[numDatum];
       for(int i = 0; i<numDatum; i++)
-        dataPtr.records[i] = (char)DATA_INIT;
+        dataPtr.records[i] = (byte)DATA_INIT;
 
       dataPtr.numVar = numVar;
       dataPtr.numRecord = numRecord;
@@ -241,7 +241,7 @@ public class Data {
         }
         int rnd = (int) (randomPtr.random_generate() % DATA_PRECISION);
         int threshold = thresholdsTable[v][index];
-        records[startindex + v] = (char) ((rnd < threshold) ? 1 : 0);
+        records[startindex + v] = (byte) ((rnd < threshold) ? 1 : 0);
       }
       startindex += numVar;
       if(startindex > numRecord * numVar) {
@@ -282,7 +282,7 @@ public class Data {
       int numSrcDatum = srcPtr.numVar * srcPtr.numRecord;
       if (numDstDatum != numSrcDatum) {
         dstPtr.records = null;
-        dstPtr.records = new char[numSrcDatum];
+        dstPtr.records = new byte[numSrcDatum];
         if (dstPtr.records == null) {
           return false;
         }
