@@ -23,7 +23,7 @@ public class DiscoverConflicts {
   Hashtable<LocalityBinding, Set<FlatNode>> leftsrcmap;
   Hashtable<LocalityBinding, Set<FlatNode>> rightsrcmap;
   TypeAnalysis typeanalysis;
-  HashSet<FlatNode>cannotdelay;
+  Hashtable<LocalityBinding, HashSet<FlatNode>>cannotdelaymap;
   Hashtable<LocalityBinding, Hashtable<FlatNode, Hashtable<TempDescriptor, Set<TempFlatPair>>>> lbtofnmap;
 
 
@@ -41,13 +41,13 @@ public class DiscoverConflicts {
     lbtofnmap=new Hashtable<LocalityBinding, Hashtable<FlatNode, Hashtable<TempDescriptor, Set<TempFlatPair>>>>();
   }
 
-  public DiscoverConflicts(LocalityAnalysis locality, State state, TypeAnalysis typeanalysis, HashSet<FlatNode> cannotdelay) {
+  public DiscoverConflicts(LocalityAnalysis locality, State state, TypeAnalysis typeanalysis, Hashtable<LocalityBinding, HashSet<FlatNode>> cannotdelaymap) {
     this.locality=locality;
     this.fields=new HashSet<FieldDescriptor>();
     this.arrays=new HashSet<TypeDescriptor>();
     this.state=state;
     this.typeanalysis=typeanalysis;
-    this.cannotdelay=cannotdelay;
+    this.cannotdelaymap=cannotdelaymap;
     transreadmap=new Hashtable<LocalityBinding, Set<TempFlatPair>>();
     treadmap=new Hashtable<LocalityBinding, Set<FlatNode>>();
     srcmap=new Hashtable<LocalityBinding, Set<FlatNode>>();
@@ -295,7 +295,7 @@ public class DiscoverConflicts {
       Hashtable<FlatNode, Integer> atomictable=locality.getAtomic(lb);
 
       //Check whether this node matters for delayed computation
-      if (cannotdelay!=null&&!cannotdelay.contains(fn))
+      if (cannotdelaymap!=null&&cannotdelaymap.contains(lb)&&!cannotdelaymap.get(lb).contains(fn))
 	continue;
 
       if (atomictable.get(fn).intValue()>0) {

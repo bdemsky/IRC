@@ -41,8 +41,37 @@ public class DelayComputation {
 
   public void doAnalysis() {
     Set<LocalityBinding> localityset=locality.getLocalityBindings();
-    for(Iterator<LocalityBinding> lb=localityset.iterator();lb.hasNext();) {
-      analyzeMethod(lb.next());
+    for(Iterator<LocalityBinding> lbit=localityset.iterator();lbit.hasNext();) {
+      analyzeMethod(lbit.next());
+    }
+
+    dcopts=new DiscoverConflicts(locality, state, typeanalysis, cannotdelaymap);
+    dcopts.doAnalysis();
+
+
+    for(Iterator<LocalityBinding> lbit=localityset.iterator();lbit.hasNext();) {
+      LocalityBinding lb=lbit.next();
+
+      MethodDescriptor md=lb.getMethod();
+      FlatMethod fm=state.getMethodFlat(md);
+      if (lb.isAtomic())
+	continue;
+      
+      if (lb.getHasAtomic()) {
+	HashSet<FlatNode> cannotdelay=cannotdelaymap.get(lb);
+	HashSet<FlatNode> notreadyset=computeNotReadySet(lb, cannotdelay);
+	HashSet<FlatNode> otherset=new HashSet<FlatNode>();
+	otherset.addAll(fm.getNodeSet());
+	otherset.removeAll(notreadyset);
+	otherset.removeAll(cannotdelay);
+	notreadymap.put(lb, notreadyset);
+	othermap.put(lb, otherset);
+      }
+      
+      //We now have:
+      //(1) Cannot delay set -- stuff that must be done before commit
+      //(2) Not ready set -- stuff that must wait until commit
+      //(3) everything else -- stuff that should be done before commit
     }
   }
 
@@ -583,21 +612,13 @@ public class DelayComputation {
 	for(int i=0;i<fn.numPrev();i++)
 	  toanalyze.add(fn.getPrev(i));
     }//end of while loop
-    HashSet<FlatNode> notreadyset=computeNotReadySet(lb, cannotdelay);
-    HashSet<FlatNode> otherset=new HashSet<FlatNode>();
-    otherset.addAll(fm.getNodeSet());
+
     if (lb.getHasAtomic()) {
-      otherset.removeAll(notreadyset);
-      otherset.removeAll(cannotdelay);
-      notreadymap.put(lb, notreadyset);
       cannotdelaymap.put(lb, cannotdelay);
-      othermap.put(lb, otherset);
     }
 
-    //We now have:
-    //(1) Cannot delay set -- stuff that must be done before commit
-    //(2) Not ready set -- stuff that must wait until commit
-    //(3) everything else -- stuff that should be done before commit
+
+
   } //end of method
 
   //Problems:
@@ -612,8 +633,6 @@ public class DelayComputation {
     //(B). You read a field/element in the transactional set
     //(C). The source didn't have a transactional read on it
 
-    dcopts=new DiscoverConflicts(locality, state, typeanalysis, cannotdelay);
-    dcopts.doAnalysis();
     MethodDescriptor md=lb.getMethod();
     FlatMethod fm=state.getMethodFlat(md);
     Hashtable<FlatNode, Integer> atomictable=locality.getAtomic(lb);
