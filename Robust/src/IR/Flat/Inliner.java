@@ -130,7 +130,7 @@ public class Inliner {
 	  for(int i=0;i<fn.numNext();i++) {
 	    FlatNode fnnext=fn.getNext(i);
 	    FlatNode fnnextclone=flatmap.get(fnnext);
-	    fnclone.addNext(fnnextclone);
+	    fnclone.setNewNext(i, fnnextclone);
 	  }
 	} else {
 	  fnclone.addNext(aftercallnode);
@@ -142,6 +142,8 @@ public class Inliner {
 	FlatNode fnprev=fc.getPrev(i);
 	for(int j=0;j<fnprev.numNext();j++) {
 	  if (fnprev.getNext(j)==fc) {
+	    //doing setnewnext to avoid changing the node we are
+	    //iterating over
 	    fnprev.setNewNext(j, first);
 	    break;
 	  }
