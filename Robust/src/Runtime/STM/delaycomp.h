@@ -5,8 +5,8 @@
 //them for now..probably a real implementation would page protect the
 //page after...then default to something simpler
 
-#define MAXPOINTERS 1024*1024*4
-#define MAXVALUES 1024*1024*4
+#define MAXPOINTERS 1024*1024*1
+#define MAXVALUES 1024*1024*1
 
 struct pointerlist {
   int count;

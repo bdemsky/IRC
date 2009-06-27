@@ -266,7 +266,7 @@ __attribute__((pure)) void *transRead(void * oid, void *gl) {
   A_memcpy(objcopy, header, size);
   /* Insert into cache's lookup table */
   STATUS(objcopy)=0;
-  if (((unsigned int)oid)<((unsigned int ) curr_heapbase)|| ((unsigned int)oid) >((unsigned int) curr_heapptr))
+  if (((unsigned INTPTR)oid)<((unsigned INTPTR ) curr_heapbase)|| ((unsigned INTPTR)oid) >((unsigned INTPTR) curr_heapptr))
     printf("ERROR! Bad object address!\n");
   t_chashInsert(oid, &objcopy[1]);
   return &objcopy[1];

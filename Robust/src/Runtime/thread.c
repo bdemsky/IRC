@@ -125,7 +125,12 @@ void threadhandler(int sig, struct sigcontext ctx) {
   printf("signal\n");
   printf("To get stack trace, set breakpoint in threadhandler in gdb\n");
   nptrs = backtrace(buffer, 100);
+#ifdef BIT64
+  buffer[1]=(void *)ctx.rip;
+#else
   buffer[1]=(void *)ctx.eip;
+#endif
+
   strings = backtrace_symbols(buffer, nptrs);
   if (strings == NULL) {
     perror("backtrace_symbols");
@@ -381,7 +386,9 @@ void CALL01(___Thread______nativeCreate____, struct ___Thread___ * ___this___) {
   pthread_mutex_unlock(&gclistlock);
   pthread_attr_init(&nattr);
   pthread_attr_setdetachstate(&nattr, PTHREAD_CREATE_DETACHED);
-
+  INTPTR stacksize;
+  pthread_attr_getstacksize(&nattr, &stacksize);
+  printf("STACKSIZE=%u\n",stacksize);
   do {
     retval=pthread_create(&thread, &nattr, (void * (*)(void *)) &initthread, VAR(___this___));
     if (retval!=0)
