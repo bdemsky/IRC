@@ -313,8 +313,8 @@ public class DelayComputation {
 	}
 	if (fn.numNext()>1) {
 	  //We have a conditional branch...need to handle this carefully
-	  Set<FlatNode> set0=getNext(fn, 0, delayedset);
-	  Set<FlatNode> set1=getNext(fn, 1, delayedset);
+	  Set<FlatNode> set0=getNext(fn, 0, delayedset, lb, locality);
+	  Set<FlatNode> set1=getNext(fn, 1, delayedset, lb, locality);
 	  if (!set0.equals(set1)||set0.size()>1) {
 	    //This branch is important--need to remember how it goes
 	    livenodes.add(fn);
@@ -332,11 +332,13 @@ public class DelayComputation {
   }
   
 
-  public static Set<FlatNode> getBranchNodes(FlatNode fn, int i, Set<FlatNode> delayset) {
+  public static Set<FlatNode> getBranchNodes(FlatNode fn, int i, Set<FlatNode> delayset, LocalityBinding lb, LocalityAnalysis locality) {
     FlatNode fnnext=fn.getNext(i);
+    Hashtable<FlatNode, Integer> atomictable=locality.getAtomic(lb);
+
     HashSet<FlatNode> reachable=new HashSet<FlatNode>();    
     
-    if (delayset.contains(fnnext)) {
+    if (delayset.contains(fnnext)||atomictable.get(fnnext).intValue()==0) {
       reachable.add(fnnext);
       return reachable;
     }
@@ -353,7 +355,7 @@ public class DelayComputation {
       visited.add(fn2);
       for (int j=0;j<fn2.numNext();j++) {
 	FlatNode fn2next=fn2.getNext(j);
-	if (delayset.contains(fn2next)) {
+	if (delayset.contains(fn2next)||atomictable.get(fn2next).intValue()==0) {
 	  reachable.add(fn2next);
 	} else
 	  nodes.push(fn2next);
@@ -362,11 +364,12 @@ public class DelayComputation {
     return reachable;
   }
 
-  public static Set<FlatNode> getNext(FlatNode fn, int i, Set<FlatNode> delayset) {
+  public static Set<FlatNode> getNext(FlatNode fn, int i, Set<FlatNode> delayset, LocalityBinding lb, LocalityAnalysis locality) {
+    Hashtable<FlatNode, Integer> atomictable=locality.getAtomic(lb);
     FlatNode fnnext=fn.getNext(i);
     HashSet<FlatNode> reachable=new HashSet<FlatNode>();    
 
-    if (delayset.contains(fnnext)) {
+    if (delayset.contains(fnnext)||atomictable.get(fnnext).intValue()==0) {
       reachable.add(fnnext);
       return reachable;
     }
@@ -376,12 +379,12 @@ public class DelayComputation {
 
     while(!nodes.isEmpty()) {
       FlatNode fn2=nodes.pop();
-      if (visited.contains(fn2)) 
+      if (visited.contains(fn2))
 	continue;
       visited.add(fn2);
       for (int j=0;j<fn2.numNext();j++) {
 	FlatNode fn2next=fn2.getNext(j);
-	if (delayset.contains(fn2next)) {
+	if (delayset.contains(fn2next)||atomictable.get(fn2next).intValue()==0) {
 	  reachable.add(fn2next);
 	} else
 	  nodes.push(fn2next);
@@ -474,10 +477,10 @@ public class DelayComputation {
       
       //Delay branches if possible
       if (fn.kind()==FKind.FlatCondBranch) {
-	Set<FlatNode> leftset=getBranchNodes(fn, 0, cannotdelay);
-	Set<FlatNode> rightset=getBranchNodes(fn, 1, cannotdelay);
+	Set<FlatNode> leftset=getBranchNodes(fn, 0, cannotdelay, lb, locality);
+	Set<FlatNode> rightset=getBranchNodes(fn, 1, cannotdelay, lb, locality);
 	if (leftset.size()>0&&rightset.size()>0&&
-	    !leftset.equals(rightset))
+	    !leftset.equals(rightset)||leftset.size()>1)
 	  isnodelay=true;
       }
 

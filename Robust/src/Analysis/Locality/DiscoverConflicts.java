@@ -292,11 +292,12 @@ public class DiscoverConflicts {
 
     for(Iterator<FlatNode> fnit=fm.getNodeSet().iterator();fnit.hasNext();) {
       FlatNode fn=fnit.next();
-      Hashtable<FlatNode, Integer> atomictable=locality.getAtomic(lb);
 
       //Check whether this node matters for delayed computation
       if (cannotdelaymap!=null&&cannotdelaymap.containsKey(lb)&&!cannotdelaymap.get(lb).contains(fn))
 	continue;
+
+      Hashtable<FlatNode, Integer> atomictable=locality.getAtomic(lb);
 
       if (atomictable.get(fn).intValue()>0) {
 	Hashtable<TempDescriptor, Set<TempFlatPair>> tmap=fnmap.get(fn);
