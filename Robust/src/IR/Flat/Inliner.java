@@ -59,6 +59,9 @@ public class Inliner {
 	  continue;
 
 	Set<FlatNode> inlinefnset=inline(fc, typeutil, state);
+	if (inlinefnset==null)
+	  continue;
+	
 	toexclude.push(md);
 	if (depth>1)
 	  recursive(state, typeutil, inlinefnset, depth-1, toexclude);
