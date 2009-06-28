@@ -155,7 +155,7 @@ public class DelayComputation {
     return liveinto;
   }
 
-  //This method computes which temps are live out of the second part
+  //This method computes which temps are live out of the second part 
   public Set<TempDescriptor> liveoutvirtualread(LocalityBinding lb, FlatAtomicEnterNode faen) {
     MethodDescriptor md=lb.getMethod();
     FlatMethod fm=state.getMethodFlat(md);
@@ -187,7 +187,7 @@ public class DelayComputation {
 	  FlatNode fn2=fnit2.next();
 	  if (secondpart.contains(fn2)) {
 	    insidenode=true;
-	  } else {
+	  } else if (!atomicnodes.contains(fn2)) {
 	    outsidenode=true;
 	  }
 	  if (outsidenode&&insidenode) {
@@ -248,15 +248,57 @@ public class DelayComputation {
   public Set<FlatNode> livecode(LocalityBinding lb) {
     if (!othermap.containsKey(lb))
       return null;
-    HashSet<FlatNode> delayedset=notreadymap.get(lb);
     MethodDescriptor md=lb.getMethod();
     FlatMethod fm=state.getMethodFlat(md);
+
+    HashSet<FlatNode> delayedset=notreadymap.get(lb);
+    HashSet<FlatNode> otherset=othermap.get(lb);
+    HashSet<FlatNode> cannotdelayset=cannotdelaymap.get(lb);
+    Hashtable<FlatNode,Set<TempDescriptor>> livemap=Liveness.computeLiveTemps(fm);
+    Hashtable<FlatNode, Hashtable<TempDescriptor, Set<FlatNode>>> reachingdefsmap=ReachingDefs.computeReachingDefs(fm, livemap);
+    HashSet<FlatNode> unionset=new HashSet<FlatNode>(delayedset);
+
     Hashtable<FlatNode, Hashtable<TempDescriptor, HashSet<FlatNode>>> map=new Hashtable<FlatNode, Hashtable<TempDescriptor, HashSet<FlatNode>>>();
+
+    HashSet<FlatNode> livenodes=new HashSet<FlatNode>();
+
+    for(Iterator<FlatNode> fnit=fm.getNodeSet().iterator();fnit.hasNext();) {
+      FlatNode fn=fnit.next();
+      if (fn.kind()==FKind.FlatAtomicExitNode) {
+	Set<TempDescriptor> livetemps=livemap.get(fn);
+	Hashtable<TempDescriptor, Set<FlatNode>> tempmap=reachingdefsmap.get(fn);
+	for(Iterator<TempDescriptor> tmpit=livetemps.iterator();tmpit.hasNext();) {
+	  TempDescriptor tmp=tmpit.next();
+	  Set<FlatNode> fnset=tempmap.get(tmp);
+	  boolean inpart1=false;
+	  boolean inpart2=false;
+	  for(Iterator<FlatNode> fnit2=fnset.iterator();fnit2.hasNext();) {
+	    FlatNode fn2=fnit2.next();
+	    if (delayedset.contains(fn2)) {
+	      inpart2=true;
+	      if (inpart1)
+		break;
+	    } else if (otherset.contains(fn2)||cannotdelayset.contains(fn2)) {
+	      inpart1=true;
+	      if (inpart2)
+		break;
+	    }
+	  }
+	  if (inpart1&&inpart2) {
+	    for(Iterator<FlatNode> fnit2=fnset.iterator();fnit2.hasNext();) {
+	      FlatNode fn2=fnit2.next();
+	      if (otherset.contains(fn2)||cannotdelayset.contains(fn2)) {	      
+		unionset.add(fn2);
+		livenodes.add(fn2);
+	      }
+	    }
+	  }
+	}
+      }
+    }
 
     HashSet<FlatNode> toanalyze=new HashSet<FlatNode>();
     toanalyze.add(fm);
-    
-    HashSet<FlatNode> livenodes=new HashSet<FlatNode>();
 
     while(!toanalyze.isEmpty()) {
       FlatNode fn=toanalyze.iterator().next();
@@ -292,8 +334,10 @@ public class DelayComputation {
 	TempDescriptor readset[]=fn.readsTemps();
 	for(int i=0;i<readset.length;i++) {
 	  TempDescriptor tmp=readset[i];
-	  if (tmptofn.containsKey(tmp))
+	  if (tmptofn.containsKey(tmp)) {
 	    livenodes.addAll(tmptofn.get(tmp)); // add live nodes
+	    unionset.addAll(tmptofn.get(tmp));
+	  }
 	}
 
 	//Do kills
@@ -313,11 +357,12 @@ public class DelayComputation {
 	}
 	if (fn.numNext()>1) {
 	  //We have a conditional branch...need to handle this carefully
-	  Set<FlatNode> set0=getNext(fn, 0, delayedset, lb, locality);
-	  Set<FlatNode> set1=getNext(fn, 1, delayedset, lb, locality);
+	  Set<FlatNode> set0=getNext(fn, 0, unionset, lb, locality, false);
+	  Set<FlatNode> set1=getNext(fn, 1, unionset, lb, locality, false);
 	  if (!set0.equals(set1)||set0.size()>1) {
 	    //This branch is important--need to remember how it goes
 	    livenodes.add(fn);
+	    unionset.add(fn);
 	  }
 	}
       }
@@ -330,41 +375,8 @@ public class DelayComputation {
     }
     return livenodes;
   }
-  
 
-  public static Set<FlatNode> getBranchNodes(FlatNode fn, int i, Set<FlatNode> delayset, LocalityBinding lb, LocalityAnalysis locality) {
-    FlatNode fnnext=fn.getNext(i);
-    Hashtable<FlatNode, Integer> atomictable=locality.getAtomic(lb);
-
-    HashSet<FlatNode> reachable=new HashSet<FlatNode>();    
-    
-    if (delayset.contains(fnnext)||atomictable.get(fnnext).intValue()==0) {
-      reachable.add(fnnext);
-      return reachable;
-    }
-
-    Stack<FlatNode> nodes=new Stack<FlatNode>();
-    HashSet<FlatNode> visited=new HashSet<FlatNode>();
-    nodes.push(fnnext);
-    visited.add(fn);//don't go back to the start node
-
-    while(!nodes.isEmpty()) {
-      FlatNode fn2=nodes.pop();
-      if (visited.contains(fn2)) 
-	continue;
-      visited.add(fn2);
-      for (int j=0;j<fn2.numNext();j++) {
-	FlatNode fn2next=fn2.getNext(j);
-	if (delayset.contains(fn2next)||atomictable.get(fn2next).intValue()==0) {
-	  reachable.add(fn2next);
-	} else
-	  nodes.push(fn2next);
-      }
-    }
-    return reachable;
-  }
-
-  public static Set<FlatNode> getNext(FlatNode fn, int i, Set<FlatNode> delayset, LocalityBinding lb, LocalityAnalysis locality) {
+  public static Set<FlatNode> getNext(FlatNode fn, int i, Set<FlatNode> delayset, LocalityBinding lb, LocalityAnalysis locality, boolean contpastnode) {
     Hashtable<FlatNode, Integer> atomictable=locality.getAtomic(lb);
     FlatNode fnnext=fn.getNext(i);
     HashSet<FlatNode> reachable=new HashSet<FlatNode>();    
@@ -376,6 +388,8 @@ public class DelayComputation {
     Stack<FlatNode> nodes=new Stack<FlatNode>();
     HashSet<FlatNode> visited=new HashSet<FlatNode>();
     nodes.push(fnnext);
+    if (contpastnode)
+      visited.add(fn);
 
     while(!nodes.isEmpty()) {
       FlatNode fn2=nodes.pop();
@@ -477,8 +491,8 @@ public class DelayComputation {
       
       //Delay branches if possible
       if (fn.kind()==FKind.FlatCondBranch) {
-	Set<FlatNode> leftset=getBranchNodes(fn, 0, cannotdelay, lb, locality);
-	Set<FlatNode> rightset=getBranchNodes(fn, 1, cannotdelay, lb, locality);
+	Set<FlatNode> leftset=getNext(fn, 0, cannotdelay, lb, locality,true);
+	Set<FlatNode> rightset=getNext(fn, 1, cannotdelay, lb, locality,true);
 	if (leftset.size()>0&&rightset.size()>0&&
 	    !leftset.equals(rightset)||leftset.size()>1)
 	  isnodelay=true;

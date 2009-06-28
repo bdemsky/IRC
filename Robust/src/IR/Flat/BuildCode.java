@@ -2043,7 +2043,7 @@ public class BuildCode {
 	    }
 	  }
 	  if (computeside) {
-	    Set<FlatNode> leftset=DelayComputation.getBranchNodes(current_node, 0, unionset, lb,locality);
+	    Set<FlatNode> leftset=DelayComputation.getNext(current_node, 0, unionset, lb,locality, true);
 	    int branch=0;
 	    if (leftset.size()==0)
 	      branch=1;
