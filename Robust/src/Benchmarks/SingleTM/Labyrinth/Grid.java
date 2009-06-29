@@ -70,7 +70,6 @@
 
 import java.lang.Long;
 
-#define CACHE_LINE_SIZE 8
 #define GRID_POINT_FULL -2
 #define GRID_POINT_EMPTY -1
 
@@ -78,7 +77,6 @@ public class Grid {
     public int width;
     public int height;
     public int depth;
-    public int points_index;
     public int[][] points_unaligned;
 
     public Grid() {}
@@ -104,13 +102,11 @@ public class Grid {
             int n = width * height * depth;
 
             // long* points_unaligned = (long*) malloc(n*sizeof(long) + CACHE_LINE_SIZE);
-            int size = n + CACHE_LINE_SIZE;
-            int[][] points_unaligned = new int[size][1];
+            int[][] points_unaligned = new int[n][1];
 
             grid.points_unaligned = points_unaligned;
-            grid.points_index = CACHE_LINE_SIZE-2;        // not sure it is right..
 
-            for(int i=grid.points_index;i<n;i++) 
+            for(int i=0;i<n;i++) 
                 grid.points_unaligned[i][0] = GRID_POINT_EMPTY;            
         }
                     
@@ -131,10 +127,9 @@ public class Grid {
  * =============================================================================
     void grid_free (grid_t* gridPtr);
 */
-    public static free(Grid gridPtr)
-    {
-        gridPtr = null;
-    }
+  public static free(Grid gridPtr) {
+    gridPtr = null;
+  }
 
 
 /* =============================================================================
@@ -159,8 +154,8 @@ public class Grid {
         int n = srcGridPtr.width * srcGridPtr.height * srcGridPtr.depth;
 
         for(int i=0;i<n;i++)
-            dstGridPtr.points_unaligned[dstGridPtr.points_index + i][0] = 
-                                                                srcGridPtr.points_unaligned[srcGridPtr.points_index + i][0];   
+            dstGridPtr.points_unaligned[i][0] = 
+	      srcGridPtr.points_unaligned[i][0];
         }
     }
 
@@ -193,7 +188,7 @@ long* grid_getPointRef (grid_t* gridPtr, long x, long y, long z);
 */
     public int getPointIndex(int x,int y,int z)
     {
-        return points_index + (((z * height) + y) * width + x);
+        return ((z * height) + y) * width + x;
     }
 
 
@@ -208,7 +203,7 @@ long* grid_getPointRef (grid_t* gridPtr, long x, long y, long z);
         int height = this.height;
         int width = this.width;
         int area = height * width;
-        int index3d = (gridPointIndex - this.points_index);
+        int index3d = (gridPointIndex);
         zPtr[0] = index3d / area;
         int index2d = index3d % area;
         yPtr[0] = index2d / width;
