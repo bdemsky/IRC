@@ -102,9 +102,7 @@ public class GenScalData {
       }
 
       for (int i = 0; i < glb.TOT_VERTICES; i++) {
-        int t1 = (int) (randomPtr.random_generate());
-        if(t1 < 0) 
-          t1*=(-1);
+        int t1 = (int) (randomPtr.posrandom_generate());
         int t = i + t1 % (glb.TOT_VERTICES - i);
         if (t != i) {
           int t2 = permV[t];
@@ -129,9 +127,7 @@ public class GenScalData {
 
       /* Generate random clique sizes. */
       for (int i = 0; i < estTotCliques; i++) {
-        cliqueSizes[i] = (int) (1 + (randomPtr.random_generate() % glb.MAX_CLIQUE_SIZE));
-        if(cliqueSizes[i] < 0) 
-          cliqueSizes[i] *= -1; //TODO fix the long->int casting error that creates negative numbers for randomPtr
+        cliqueSizes[i] = (int) (1 + (randomPtr.posrandom_generate() % glb.MAX_CLIQUE_SIZE));
       }
 
       int totCliques = 0;
@@ -221,11 +217,9 @@ public class GenScalData {
        * Partial edgeLists
        */
 
-      int[] startV;
-      int[] endV;
       int numByte = estTotEdges;
-      startV = new int[numByte];
-      endV = new int[numByte];
+      int[] startV= new int[numByte];
+      int[] endV=new int[numByte];
 
       /*
        * Tmp array to keep track of the no. of parallel edges in each direction
@@ -250,10 +244,8 @@ public class GenScalData {
 
         for (int i = 0; i < i_cliqueSize; i++) {
           for (int j = 0; j < i; j++) {
-
-            float r = (float)( randomPtr.random_generate() % 1000) / (float)1000;
+            float r = (float)( randomPtr.posrandom_generate() % 1000) / (float)1000;
             if (r >= p) {
-
               startV[i_edgePtr] = i + i_firstVsInClique;
               endV[i_edgePtr] = j + i_firstVsInClique;
               i_edgePtr++;
@@ -263,43 +255,32 @@ public class GenScalData {
               endV[i_edgePtr] = i + i_firstVsInClique;
               i_edgePtr++;
               tmpEdgeCounter[j][i] = 1;
-
             } else  if (r >= 0.5) {
-
               startV[i_edgePtr] = i + i_firstVsInClique;
               endV[i_edgePtr] = j + i_firstVsInClique;
               i_edgePtr++;
               tmpEdgeCounter[i][j] = 1;
               tmpEdgeCounter[j][i] = 0;
-
             } else {
-
               startV[i_edgePtr] = j + i_firstVsInClique;
               endV[i_edgePtr] = i + i_firstVsInClique;
               i_edgePtr++;
               tmpEdgeCounter[j][i] = 1;
               tmpEdgeCounter[i][j] = 0;
-
             }
 
           } /* for j */
         } /* for i */
 
         if (i_cliqueSize != 1) {
-          int randNumEdges = (int)(randomPtr.random_generate()
+          int randNumEdges = (int)(randomPtr.posrandom_generate()
               % (2*i_cliqueSize*glb.MAX_PARAL_EDGES));
-          if(randNumEdges < 0)
-            randNumEdges *= -1; //TODO fix the long->int casting error that creates negative numbers for randomPtr
 
           for (int i_paralEdge = 0; i_paralEdge < randNumEdges; i_paralEdge++) {
-            int i = (int) (randomPtr.random_generate() % i_cliqueSize);
-            if(i < 0)
-              i *= -1; //TODO fix the long->int casting error that creates negative numbers for randomPtr
-            int j = (int) (randomPtr.random_generate() % i_cliqueSize);
-            if(j < 0)
-              j *= -1; //TODO fix the long->int casting error that creates negative numbers for randomPtr
+            int i = (int) (randomPtr.posrandom_generate() % i_cliqueSize);
+            int j = (int) (randomPtr.posrandom_generate() % i_cliqueSize);
             if ((i != j) && (tmpEdgeCounter[i][j] < glb.MAX_PARAL_EDGES)) {
-              float r = (float)(randomPtr.random_generate() % 1000) / (float)1000;
+              float r = (float)(randomPtr.posrandom_generate() % 1000) / (float)1000;
               if (r >= p) {
                 /* Copy to edge structure. */
                 startV[i_edgePtr] = i + i_firstVsInClique;
@@ -393,7 +374,7 @@ public class GenScalData {
         p = glb.PROB_INTERCL_EDGES;
         for (int d = 1; d < glb.TOT_VERTICES; d *= 2, p /= 2) {
 
-          float r = (float)(randomPtr.random_generate() % 1000) / (float)1000;
+          float r = (float)(randomPtr.posrandom_generate() % 1000) / (float)1000;
 
           if (r <= p) {
 
@@ -432,9 +413,7 @@ public class GenScalData {
 
             if (t1 != t2) {
               int randNumEdges =
-                (int) (randomPtr.random_generate() % glb.MAX_PARAL_EDGES + 1);
-              if(randNumEdges < 0)
-                randNumEdges *= -1; //TODO fix the long->int casting error that creates negative numbers for randomPtr
+                (int) (randomPtr.posrandom_generate() % glb.MAX_PARAL_EDGES + 1);
 
               for (int j = 0; j < randNumEdges; j++) {
                 startV[i_edgePtr] = tempVertex1;
@@ -445,7 +424,7 @@ public class GenScalData {
 
           } /* r <= p */
 
-          float r0 = (float)(randomPtr.random_generate() % 1000) / (float)1000;
+          float r0 = (float)(randomPtr.posrandom_generate() % 1000) / (float)1000;
 
           if ((r0 <= p) && (i-d>=0)) {
 
@@ -483,9 +462,7 @@ public class GenScalData {
             int t2 = firstVsInCliques[t];
 
             if (t1 != t2) {
-              int randNumEdges = (int) (randomPtr.random_generate() % glb.MAX_PARAL_EDGES + 1);
-              if(randNumEdges < 0)
-                randNumEdges *= -1; //TODO fix the long->int casting error that creates negative numbers for randomPtr
+              int randNumEdges = (int) (randomPtr.posrandom_generate() % glb.MAX_PARAL_EDGES + 1);
 
               int j;
               for (j = 0; j < randNumEdges; j++) {
@@ -534,12 +511,10 @@ public class GenScalData {
       int numStrWtEdges  = 0;
 
       for (int i = 0; i < numEdgesPlaced; i++) {
-        float r = (float)(randomPtr.random_generate() % 1000) / (float)1000;
+        float r = (float)(randomPtr.posrandom_generate() % 1000) / (float)1000;
         if (r <= p) {
           SDGdataPtr.intWeight[i] =
-            (int) (1 + (randomPtr.random_generate() % (glb.MAX_INT_WEIGHT-1)));
-          if(SDGdataPtr.intWeight[i] < 0)
-            SDGdataPtr.intWeight[i] *= -1; //TODO fix the long->int casting error that creates negative numbers for randomPtr
+            (int) (1 + (randomPtr.posrandom_generate() % (glb.MAX_INT_WEIGHT-1)));
         } else {
           SDGdataPtr.intWeight[i] = -1;
           numStrWtEdges++;
@@ -562,7 +537,7 @@ public class GenScalData {
         if (SDGdataPtr.intWeight[i] <= 0) {
           for (int j = 0; j < glb.MAX_STRLEN; j++) {
             SDGdataPtr.strWeight[(-SDGdataPtr.intWeight[i])*glb.MAX_STRLEN+j] =
-              (char) (1 + randomPtr.random_generate() % 127);
+              (char) (1 + randomPtr.posrandom_generate() % 127);
           }
         }
       }
@@ -576,7 +551,7 @@ public class GenScalData {
       }
 
       {
-        int t = (int) (randomPtr.random_generate() % numStrWtEdges);
+        int t = (int) (randomPtr.posrandom_generate() % numStrWtEdges);
         for (int j = 0; j < glb.MAX_STRLEN; j++) {
           glb.SOUGHT_STRING[j] =
             SDGdataPtr.strWeight[(t*glb.MAX_STRLEN+j)];
@@ -747,9 +722,7 @@ public class GenScalData {
       Barrier.enterBarrier();
 
       for (int i = lss.i_start; i < lss.i_stop; i++) {
-        int t1 = (int) (randomPtr.random_generate());
-        if(t1 < 0) 
-          t1*=(-1);
+        int t1 = (int) (randomPtr.posrandom_generate());
         int t = i + t1 % (glb.TOT_VERTICES - i);
         if (t != i) {
           atomic {
@@ -785,9 +758,7 @@ public class GenScalData {
 
       /* Generate random clique sizes. */
       for (int i = lss.i_start; i < lss.i_stop; i++) {
-        cliqueSizes[i] = (int) ( 1 + (randomPtr.random_generate() % glb.MAX_CLIQUE_SIZE));
-        if(cliqueSizes[i] < 0) 
-          cliqueSizes[i] *= -1; //TODO fix the long->int casting error that creates negative numbers for randomPtr
+        cliqueSizes[i] = (int) ( 1 + (randomPtr.posrandom_generate() % glb.MAX_CLIQUE_SIZE));
       }
 
       Barrier.enterBarrier();
@@ -934,7 +905,7 @@ Barrier.enterBarrier();
 
         for (int i = 0; i < i_cliqueSize; i++) {
           for (int j = 0; j < i; j++) {
-            float r = (float)(randomPtr.random_generate() % 1000) / (float)1000;
+            float r = (float)(randomPtr.posrandom_generate() % 1000) / (float)1000;
             if (r >= p) {
 
               startV[i_edgePtr] = i + i_firstVsInClique;
@@ -969,19 +940,13 @@ Barrier.enterBarrier();
         } /* for i */
 
         if (i_cliqueSize != 1) {
-          int randNumEdges = (int) (randomPtr.random_generate() % (2*i_cliqueSize*glb.MAX_PARAL_EDGES));
-          if(randNumEdges < 0)
-            randNumEdges *= -1; //TODO fix the long->int casting error that creates negative numbers for randomPtr
+          int randNumEdges = (int) (randomPtr.posrandom_generate() % (2*i_cliqueSize*glb.MAX_PARAL_EDGES));
 
           for (int i_paralEdge = 0; i_paralEdge < randNumEdges; i_paralEdge++) {
-            int i = (int) (randomPtr.random_generate() % i_cliqueSize);
-            if(i < 0)
-              i *= -1; //TODO fix the long->int casting error that creates negative numbers for randomPtr
-            int j = (int) (randomPtr.random_generate() % i_cliqueSize);
-            if(j < 0)
-              j *= -1; //TODO fix the long->int casting error that creates negative numbers for randomPtr
+            int i = (int) (randomPtr.posrandom_generate() % i_cliqueSize);
+            int j = (int) (randomPtr.posrandom_generate() % i_cliqueSize);
             if ((i != j) && (tmpEdgeCounter[i][j] < glb.MAX_PARAL_EDGES)) {
-              float r = (float)(randomPtr.random_generate() % 1000) / (float)1000;
+              float r = (float)(randomPtr.posrandom_generate() % 1000) / (float)1000;
               if (r >= p) {
                 /* Copy to edge structure. */
                 startV[i_edgePtr] = i + i_firstVsInClique;
@@ -1121,7 +1086,7 @@ Barrier.enterBarrier();
         p = glb.PROB_INTERCL_EDGES;
         for (int d = 1; d < glb.TOT_VERTICES; d *= 2, p /= 2) {
 
-          float r = (float)(randomPtr.random_generate() % 1000) / (float)1000;
+          float r = (float)(randomPtr.posrandom_generate() % 1000) / (float)1000;
 
           if (r <= p) {
 
@@ -1160,9 +1125,7 @@ Barrier.enterBarrier();
 
             if (t1 != t2) {
               int randNumEdges =
-                (int) (randomPtr.random_generate() % glb.MAX_PARAL_EDGES + 1);
-              if(randNumEdges < 0)
-                randNumEdges *= -1; //TODO fix the long->int casting error that creates negative numbers for randomPtr
+                (int) (randomPtr.posrandom_generate() % glb.MAX_PARAL_EDGES + 1);
               for (int j = 0; j < randNumEdges; j++) {
                 startV[i_edgePtr] = tempVertex1;
                 endV[i_edgePtr] = tempVertex2;
@@ -1172,7 +1135,7 @@ Barrier.enterBarrier();
 
           } /* r <= p */
 
-          float r0 = (float)(randomPtr.random_generate() % 1000) / (float)1000;
+          float r0 = (float)(randomPtr.posrandom_generate() % 1000) / (float)1000;
 
           if ((r0 <= p) && (i-d>=0)) {
             int tempVertex2 = (i - d) % glb.TOT_VERTICES;
@@ -1210,9 +1173,7 @@ Barrier.enterBarrier();
 
             if (t1 != t2) {
               int randNumEdges =
-                (int) (randomPtr.random_generate() % glb.MAX_PARAL_EDGES + 1);
-              if(randNumEdges < 0) 
-                randNumEdges *= -1; //TODO fix the long->int casting error that creates negative numbers for randomPtr
+                (int) (randomPtr.posrandom_generate() % glb.MAX_PARAL_EDGES + 1);
               for (int j = 0; j <  randNumEdges; j++) {
                 startV[i_edgePtr] = tempVertex1;
                 endV[i_edgePtr] = tempVertex2;
@@ -1288,12 +1249,10 @@ Barrier.enterBarrier();
       CreatePartition.createPartition(0, numEdgesPlaced, myId, numThread, lss);
 
       for (int i = lss.i_start; i < lss.i_stop; i++) {
-        float r = (float)(randomPtr.random_generate() % 1000) / (float)1000;
+        float r = (float)(randomPtr.posrandom_generate() % 1000) / (float)1000;
         if (r <= p) {
           SDGdataPtr.intWeight[i] =
-            (int) (1 + (randomPtr.random_generate() % (glb.MAX_INT_WEIGHT-1)));
-          if(SDGdataPtr.intWeight[i] < 0)
-            SDGdataPtr.intWeight[i] *= -1; //TODO fix the long->int casting error that creates negative numbers for randomPtr
+            (int) (1 + (randomPtr.posrandom_generate() % (glb.MAX_INT_WEIGHT-1)));
         } else {
           SDGdataPtr.intWeight[i] = -1;
           numStrWtEdges++;
@@ -1333,7 +1292,7 @@ Barrier.enterBarrier();
           for (int j = 0; j < glb.MAX_STRLEN; j++) {
             SDGdataPtr.strWeight[(-SDGdataPtr.intWeight[i])*glb.MAX_STRLEN+j] =
               //FIXME if needed
-              (char) (1 + (randomPtr.random_generate() % 127));
+              (char) (1 + (randomPtr.posrandom_generate() % 127));
           }
         }
       }
@@ -1348,9 +1307,7 @@ Barrier.enterBarrier();
           glb.SOUGHT_STRING = new char[glb.MAX_STRLEN];
         }
 
-        int t = (int) (randomPtr.random_generate() % numStrWtEdges);
-        if (t < 0) 
-          t *= -1; //TODO fix the long->int casting error that creates negative numbers for randomPtr
+        int t = (int) (randomPtr.posrandom_generate() % numStrWtEdges);
         for (int j = 0; j < glb.MAX_STRLEN; j++) {
           glb.SOUGHT_STRING[j] =
             SDGdataPtr.strWeight[(t*glb.MAX_STRLEN+j)];
