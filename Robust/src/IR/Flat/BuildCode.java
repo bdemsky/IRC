@@ -1578,8 +1578,11 @@ public class BuildCode {
 	      }
 	    }
 	  }
-
+	  //turn off write barrier generation
+	  wb.turnoff();
 	  generateCode(faen, fm, lb, exitset, output, false);
+	  //turn on write barrier generation
+	  wb.turnon();
 	  output.println("}\n\n");
 	}
       }
