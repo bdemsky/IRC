@@ -52,6 +52,14 @@ public class Random {
     return genrand_int32();
   }
 
+  public int posrandom_generate() {
+    int r=genrand_int32();
+    if (r>0)
+      return r;
+    else 
+      return -r;
+  }
+
   public int genrand_int32() {
     int y;
     int mti = this.mti;
