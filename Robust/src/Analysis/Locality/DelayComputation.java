@@ -1,6 +1,7 @@
 package Analysis.Locality;
 import Analysis.Liveness;
 import Analysis.ReachingDefs;
+import Analysis.Loops.DomTree;
 import IR.State;
 import IR.MethodDescriptor;
 import IR.TypeDescriptor;
@@ -428,6 +429,7 @@ public class DelayComputation {
     Hashtable<FlatNode, HashSet<FieldDescriptor>> nodelayfieldsrd=new Hashtable<FlatNode, HashSet<FieldDescriptor>>();
     Hashtable<FlatNode, HashSet<TypeDescriptor>> nodelayarraysrd=new Hashtable<FlatNode, HashSet<TypeDescriptor>>();
     
+    Hashtable<FlatNode, Set<FlatCondBranch>> branchmap=getBranchSet(lb);
     //Effect of adding something to nodelay set is to move it up past everything in delay set
     //Have to make sure we can do this commute
 
@@ -543,6 +545,14 @@ public class DelayComputation {
 	}
 	cannotdelay.add(fn);
 
+	if (branchmap.containsKey(fn)) {
+	  Set<FlatCondBranch> fcbset=branchmap.get(fn);
+	  for(Iterator<FlatCondBranch> fcbit=fcbset.iterator();fcbit.hasNext();) {
+	    FlatCondBranch fcb=fcbit.next();
+	    cannotdelay.add(fcb);
+	    nodelaytempset.add(fcb.getTest());
+	  }
+	}
 	/* Do we write to fields */
 	if (fn.kind()==FKind.FlatSetFieldNode) {
 	  nodelayfieldwrset.add(((FlatSetFieldNode)fn).getField());
@@ -551,7 +561,6 @@ public class DelayComputation {
 	if (fn.kind()==FKind.FlatFieldNode) {
 	  nodelayfieldrdset.add(((FlatFieldNode)fn).getField());
 	}
-
 	/* Do we write to arrays */
 	if (fn.kind()==FKind.FlatSetElementNode) {
 	  //have to do expansion
@@ -565,6 +574,7 @@ public class DelayComputation {
       } else {
 	//Need to know which objects to lock on
 	switch(fn.kind()) {
+	  //TODO: Can improve by only locking if there is a field that requires a lock
 	case FKind.FlatSetFieldNode: {
 	  FlatSetFieldNode fsfn=(FlatSetFieldNode)fn;
 	  nodelaytempset.add(fsfn.getDst());
@@ -649,12 +659,14 @@ public class DelayComputation {
     MethodDescriptor md=lb.getMethod();
     FlatMethod fm=state.getMethodFlat(md);
     Hashtable<FlatNode, Integer> atomictable=locality.getAtomic(lb);
-
     HashSet<FlatNode> notreadynodes=new HashSet<FlatNode>();
     HashSet<FlatNode> toanalyze=new HashSet<FlatNode>();
     toanalyze.addAll(fm.getNodeSet());
     Hashtable<FlatNode, HashSet<TempDescriptor>> notreadymap=new Hashtable<FlatNode, HashSet<TempDescriptor>>();
-    
+
+    Hashtable<FlatCondBranch, Set<FlatNode>> revbranchmap=revGetBranchSet(lb);
+    Hashtable<FlatNode, Set<FlatCondBranch>> branchmap=getBranchSet(lb);
+
     while(!toanalyze.isEmpty()) {
       FlatNode fn=toanalyze.iterator().next();
       toanalyze.remove(fn);
@@ -768,10 +780,31 @@ public class DelayComputation {
 	}
       }
 
+      if (!notready) {
+	//See if we depend on a conditional branch that is not ready
+	Set<FlatCondBranch> branchset=branchmap.get(fn);
+	for(Iterator<FlatCondBranch> branchit=branchset.iterator();branchit.hasNext();) {
+	  FlatCondBranch fcb=branchit.next();
+	  if (notreadynodes.contains(fcb)) {
+	    //if we depend on a branch that isn't ready, we aren't ready
+	    notready=true;
+	    break;
+	  }
+	}
+      }
+
+
       //Fix up things based on our status
       if (notready) {
+	if (fn.kind()==FKind.FlatCondBranch&&!notreadynodes.contains(fn)) {
+	  //enqueue everything in our dependence set
+	  Set<FlatNode> branchdepset=revbranchmap.get((FlatCondBranch)fn);
+	  toanalyze.addAll(branchdepset);
+	}
+
 	//add us to the list
 	notreadynodes.add(fn);
+
 	//Add our writes
 	TempDescriptor writeset[]=fn.writesTemps();
 	for(int i=0;i<writeset.length;i++) {
@@ -797,4 +830,79 @@ public class DelayComputation {
     } //end of while
     return notreadynodes;
   } //end of computeNotReadySet
+
+  public Hashtable<FlatCondBranch, Set<FlatNode>> revGetBranchSet(LocalityBinding lb) {
+    MethodDescriptor md=lb.getMethod();
+    FlatMethod fm=state.getMethodFlat(md);
+    Hashtable<FlatCondBranch, Set<FlatNode>> condmap=new Hashtable<FlatCondBranch, Set<FlatNode>>();
+    DomTree postdt=new DomTree(fm, true);
+    for(Iterator<FlatNode> fnit=fm.getNodeSet().iterator();fnit.hasNext();) {
+      FlatNode fn=fnit.next();
+      if (fn.kind()!=FKind.FlatCondBranch)
+	continue;
+      FlatCondBranch fcb=(FlatCondBranch)fn;
+      //only worry about fcb inside of transactions
+      if (locality.getAtomic(lb).get(fcb).intValue()==0)
+	continue;
+      FlatNode postdom=postdt.idom(fcb);
+
+      //Reverse the mapping
+      Set<FlatNode> fnset=computeBranchSet(lb, fcb, postdom);
+      condmap.put(fcb, fnset);
+    }
+    return condmap;
+  }
+
+  public Hashtable<FlatNode, Set<FlatCondBranch>> getBranchSet(LocalityBinding lb) {
+    MethodDescriptor md=lb.getMethod();
+    FlatMethod fm=state.getMethodFlat(md);
+    Hashtable<FlatNode, Set<FlatCondBranch>> condmap=new Hashtable<FlatNode, Set<FlatCondBranch>>();
+    DomTree postdt=new DomTree(fm, true);
+    for(Iterator<FlatNode> fnit=fm.getNodeSet().iterator();fnit.hasNext();) {
+      FlatNode fn=fnit.next();
+      if (fn.kind()!=FKind.FlatCondBranch)
+	continue;
+      FlatCondBranch fcb=(FlatCondBranch)fn;
+      //only worry about fcb inside of transactions
+      if (locality.getAtomic(lb).get(fcb).intValue()==0)
+	continue;
+      FlatNode postdom=postdt.idom(fcb);
+
+      //Reverse the mapping
+      Set<FlatNode> fnset=computeBranchSet(lb, fcb, postdom);
+      for(Iterator<FlatNode>fnit2=fnset.iterator();fnit2.hasNext();) {
+	FlatNode fn2=fnit2.next();
+	if (!condmap.containsKey(fn2))
+	  condmap.put(fn2,new HashSet<FlatCondBranch>());
+	condmap.get(fn2).add(fcb);
+      }
+    }
+    return condmap;
+  }
+
+  public Set<FlatNode> computeBranchSet(LocalityBinding lb, FlatNode first, FlatNode last) {
+    HashSet<FlatNode> toanalyze=new HashSet<FlatNode>();
+    HashSet<FlatNode> visited=new HashSet<FlatNode>();
+    toanalyze.add(first);
+
+    while(!toanalyze.isEmpty()) {
+      FlatNode fn=toanalyze.iterator().next();
+      toanalyze.remove(fn);
+
+      //already examined or exit node
+      if (visited.contains(fn)||fn==last)
+	continue;
+
+      //out of transaction
+      if (locality.getAtomic(lb).get(fn).intValue()==0)
+	continue;
+      
+      visited.add(fn);      
+      for(int i=0;i<fn.numNext();i++) {
+	FlatNode fnext=fn.getNext(i);
+	toanalyze.add(fnext);
+      }
+    }
+    return visited;
+  } //end of computeBranchSet
 } //end of class
