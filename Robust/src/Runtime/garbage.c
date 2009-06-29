@@ -26,8 +26,8 @@
 
 #define NUMPTRS 100
 
-#define INITIALHEAPSIZE 128*1024*1024
-#define GCPOINT(x) ((int)((x)*0.95))
+#define INITIALHEAPSIZE 256*1024*1024
+#define GCPOINT(x) ((int)((x)*0.99))
 /* This define takes in how full the heap is initially and returns a new heap size to use */
 #define HEAPSIZE(x,y) ((int)(x+y))*2
 
@@ -65,7 +65,7 @@ __thread struct listitem litem;
     if (orig>=curr_heapbase&&orig<curr_heaptop) { \
       void *copy; \
       if (gc_createcopy(orig,&copy)) \
-	enqueue(orig);\
+	enqueue(copy);\
       dst=copy; \
     } \
   }
@@ -74,14 +74,14 @@ __thread struct listitem litem;
   if (orig>=curr_heapbase&&orig<curr_heaptop) { \
     void *copy; \
     if (gc_createcopy(orig,&copy)) \
-      enqueue(orig);\
+      enqueue(copy);\
     dst=copy; \
   }
 #define SENQUEUE(orig, dst) \
   { \
     void *copy; \
     if (gc_createcopy(orig,&copy)) \
-      enqueue(orig);\
+      enqueue(copy);\
     dst=copy; \
   }
 #elif defined(FASTCHECK)
@@ -89,13 +89,13 @@ __thread struct listitem litem;
   if (((unsigned int)orig)!=1) { \
     void *copy; \
     if (gc_createcopy(orig,&copy)) \
-      enqueue(orig);\
+      enqueue(copy);\
     dst=copy; }
 #else
 #define ENQUEUE(orig, dst) \
   void *copy; \
   if (gc_createcopy(orig,&copy)) \
-    enqueue(orig);\
+    enqueue(copy);\
   dst=copy
 #endif
 
@@ -486,7 +486,7 @@ void collect(struct garbagelist * stackptr) {
 
   while(moreItems()) {
     void * ptr=dequeue();
-    void *cpy=((void **)ptr)[1];
+    void *cpy=ptr;
     int type=((int *)cpy)[0];
     unsigned INTPTR * pointer;
 #ifdef TASK
@@ -688,7 +688,7 @@ void * helper(struct garbagelist *, int);
 void * mygcmalloc(struct garbagelist * stackptr, int size) {
   if ((size&7)!=0)
     size=(size&~7)+8;
-  if (memorybase==NULL||(memorybase+size)>memorytop) {
+  if (memorybase==NULL||size>(memorytop-memorybase)) {
     int toallocate=(size>MEMORYBLOCK)?size:MEMORYBLOCK;
     memorybase=helper(stackptr, toallocate);
     memorytop=memorybase+toallocate;
@@ -713,7 +713,7 @@ void * mygcmalloc(struct garbagelist * stackptr, int size) {
   if ((size&7)!=0)
     size=(size&~7)+8;
   curr_heapptr+=size;
-  if (curr_heapptr>curr_heapgcpoint) {
+  if (curr_heapptr>curr_heapgcpoint||curr_heapptr<curr_heapbase) {
     if (curr_heapbase==0) {
       /* Need to allocate base heap */
       curr_heapbase=malloc(INITIALHEAPSIZE);
