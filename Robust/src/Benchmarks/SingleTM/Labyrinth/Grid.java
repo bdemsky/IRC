@@ -267,11 +267,6 @@ long* grid_getPointRef (grid_t* gridPtr, long x, long y, long z);
         points_unaligned[getPointIndex(x,y,z)][0] = value;
     }
 
-    public void setPoint(int index,int value)
-    {
-        points_unaligned[index][0] = value;
-    }
-
 
 /* =============================================================================
  * grid_addPath
@@ -302,8 +297,7 @@ void grid_addPath (grid_t* gridPtr, vector_t* pointVectorPtr);
 
         for(i = 0; i < n; i++) {
             int gridPointIndex = ((Integer)(pointVectorPtr.vector_at(i))).intValue();
-                        
-            setPoint(gridPointIndex,GRID_POINT_FULL);
+            points_unaligned[gridPointIndex][0] = GRID_POINT_FULL;            
         }
     }
 

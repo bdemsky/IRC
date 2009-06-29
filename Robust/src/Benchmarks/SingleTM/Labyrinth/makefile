@@ -2,6 +2,7 @@ MAINCLASS=Labyrinth
 SRC=ttttmp${MAINCLASS}.java \
 	../common/Pair.java \
 	ttttmpQueue_t.java \
+	ttttmpQueue_Int.java \
 	Vector_t.java \
 	List_t.java \
 	List_Node.java \
@@ -22,11 +23,13 @@ default:
 	cpp Router.java > tmpRouter.java
 	cpp Maze.java > tmpMaze.java
 	cpp Queue_t.java > tmpQueue_t.java
+	cpp Queue_Int.java > tmpQueue_Int.java
 	./extractLines tmp${MAINCLASS}.java
 	./extractLines tmpGrid.java
 	./extractLines tmpRouter.java
 	./extractLines tmpMaze.java
 	./extractLines tmpQueue_t.java
+	./extractLines tmpQueue_Int.java
 	../../../buildscript ${FLAGS} -o ${MAINCLASS} ${SRC}
 	rm ttt*.java tmp*.java
 
@@ -40,11 +43,13 @@ test:
 	cpp Router.java > tmpRouter.java
 	cpp Maze.java > tmpMaze.java
 	cpp Queue_t.java > tmpQueue_t.java
+	cpp Queue_Int.java > tmpQueue_Int.java
 	./extractLines tmp${MAINCLASS}.java
 	./extractLines tmpGrid.java
 	./extractLines tmpRouter.java
 	./extractLines tmpMaze.java
 	./extractLines tmpQueue_t.java
+	./extractLines tmpQueue_Int.java
 	../../../buildscript ${FLAGS} -o ${MAINCLASS} ${SRC}
 	rm ttt*.java tmp*.java
 	./Labyrinth.bin -i inputs/random-x32-y32-z3-n64.txt
