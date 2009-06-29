@@ -12,12 +12,25 @@ public class WriteBarrier {
   /* This computes whether we actually need a write barrier. */
   LocalityAnalysis la;
   State state;
+  boolean turnoff;
+
   public WriteBarrier(LocalityAnalysis la, State state) {
     this.la=la;
     this.state=state;
+    turnoff=false;
+  }
+
+  public void turnoff() {
+    turnoff=true;
+  }
+
+  public void turnon() {
+    turnoff=false;
   }
   
   public boolean needBarrier(FlatNode fn) {
+    if (turnoff)
+      return false;
     HashSet<TempDescriptor> nb=computeIntersection(fn);
     switch(fn.kind()) {
     case FKind.FlatSetElementNode:
