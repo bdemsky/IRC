@@ -783,14 +783,15 @@ public class DelayComputation {
       if (!notready) {
 	//See if we depend on a conditional branch that is not ready
 	Set<FlatCondBranch> branchset=branchmap.get(fn);
-	for(Iterator<FlatCondBranch> branchit=branchset.iterator();branchit.hasNext();) {
-	  FlatCondBranch fcb=branchit.next();
-	  if (notreadynodes.contains(fcb)) {
-	    //if we depend on a branch that isn't ready, we aren't ready
-	    notready=true;
-	    break;
+	if (branchset!=null)
+	  for(Iterator<FlatCondBranch> branchit=branchset.iterator();branchit.hasNext();) {
+	    FlatCondBranch fcb=branchit.next();
+	    if (notreadynodes.contains(fcb)) {
+	      //if we depend on a branch that isn't ready, we aren't ready
+	      notready=true;
+	      break;
+	    }
 	  }
-	}
       }
 
 
