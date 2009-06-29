@@ -14,6 +14,7 @@ echo -mac distributed shared memory mac support
 echo -check generate check code
 echo -dmalloc link in dmalloc
 echo -64bit compile for 64 bit machine
+echo -32bit compile for 32 bit machine
 echo -joptimize java compiler optimizations
 echo -dcopts conflict optimizations for transactional memory
 echo -recover compile task code
@@ -132,6 +133,9 @@ EXTRAOPTIONS="$EXTRAOPTIONS -DGARBAGESTATS"
 elif [[ $1 = '-64bit' ]]
 then
 EXTRAOPTIONS="$EXTRAOPTIONS -DBIT64"
+elif [[ $1 = '-32bit' ]]
+then
+EXTRAOPTIONS="$EXTRAOPTIONS -m32"
 elif [[ $1 = '-fastcheck' ]]
 then
 EXTRAOPTIONS="$EXTRAOPTIONS -DFASTCHECK"
@@ -393,7 +397,7 @@ else
 #if ! ${ROBUSTROOT}/ourjava -Xms5m -Xmx100m $JAVAFORWARDOPTS -classpath $ROBUSTROOT/../cup/:$ROBUSTROOT Main.Main -classlibrary \
 if ! $NOJAVA
 then
-if ! ${ROBUSTROOT}/ourjava -Xms50m -Xmx600m $JAVAFORWARDOPTS -classpath $ROBUSTROOT/../cup/:$ROBUSTROOT Main.Main -classlibrary \
+if ! ${ROBUSTROOT}/ourjava -Xms50m -Xmx1500m $JAVAFORWARDOPTS -classpath $ROBUSTROOT/../cup/:$ROBUSTROOT Main.Main -classlibrary \
 $ROBUSTROOT/ClassLibrary/ -classlibrary $ROBUSTROOT/ClassLibrary/gnu/ -dir $BUILDDIR -precise \
 $JAVAOPTS $SRCFILES
 then exit $?
