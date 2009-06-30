@@ -599,6 +599,24 @@ int traverseCache() {
 	freearrays;
 	return TRANS_ABORT;
       }
+#if DELAYCOMP
+    } else if (dc_t_chashSearch(((char *)header)+sizeof(objheader_t))!=NULL) {
+      //couldn't get lock because we already have it
+      //check if it is the right version number
+      if (version!=header->version) {
+	oidrdlocked[numoidrdlocked++] = header;
+	transAbortProcess(oidwrlocked, numoidwrtotal);
+#ifdef STMSTATS
+	ABORTCOUNT(header);
+	(typesCausingAbort[TYPE(header)])++;
+	getReadAbortCount(i+1, numoidrdlocked, oidrdlocked, oidrdversion);
+#endif
+	DEBUGSTM("RD Abort: rd: %u wr: %u tot: %u type: %u ver: %u\n", numoidrdlocked, numoidwrlocked, c_numelements, TYPE(header), header->version);
+	DEBUGSTMSTAT("RD Abort: Access Count: %u AbortCount: %u type: %u ver: %u \n", header->accessCount, header->abortCount, TYPE(header), header->version);
+	freearrays;
+	return TRANS_ABORT;
+      }
+#endif
     } else { /* cannot aquire lock */
       //do increment as we didn't get lock
       if(version == header->version) {
@@ -919,7 +937,9 @@ void transAbortProcess(void **oidwrlocked, int numoidwrlocked) {
     dst->___cachedHash___=src->___cachedHash___;
     A_memcpy(&dst[1], &src[1], tmpsize-sizeof(struct ___Object___));
     __asm__ __volatile__("": : :"memory");
+#ifndef DELAYCOMP
     header->version++;
+#endif
   }
   __asm__ __volatile__("": : :"memory");
 
@@ -937,6 +957,9 @@ void transAbortProcess(void **oidwrlocked, int numoidwrlocked) {
   for(i=numoidwrlocked-1; i>=0; i--) {
 #endif
     header = (objheader_t *)oidwrlocked[i];
+#ifdef DELAYCOMP
+    header->version++;
+#endif
     write_unlock(&header->lock);
   }
 
