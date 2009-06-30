@@ -332,17 +332,15 @@ public class String {
   }
 
   public int compareTo(String s) {
-    int lenDiff = this.length() - s.length();
-    if( lenDiff != 0 ) {
-      return lenDiff;
-    }
-    for( int i = 0; i < this.length(); ++i ) {
+    int smallerlength=count<s.count?count:s.count;
+
+    for( int i = 0; i < smallerlength; i++ ) {
       int valDiff = this.charAt(i) - s.charAt(i);
       if( valDiff != 0 ) {
 	return valDiff;
       }
     }
-    return 0;
+    return count-s.count;
   }
 
   public int hashCode() {

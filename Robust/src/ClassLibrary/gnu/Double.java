@@ -59,52 +59,6 @@ public final class Double extends Number //implements Comparable<Double>
   /**
    * Compatible with JDK 1.0+.
    */
-  //private static final long serialVersionUID = -9172774392245257468L;
-
-  /**
-   * The maximum positive value a <code>double</code> may represent
-   * is 1.7976931348623157e+308.
-   */
-  public /*static*/ final double _MAX_VALUE;// = 1.7976931348623157e+308;
-  public double MAX_VALUE() { return _MAX_VALUE; }
-  /**
-   * The minimum positive value a <code>double</code> may represent
-   * is 5e-324.
-   */
-  public /*static*/ final double _MIN_VALUE;// = 5e-324;
-  public double MIN_VALUE() { return _MIN_VALUE; }
-
-
-  /**
-   * The value of a double representation -1.0/0.0, negative
-   * infinity.
-   */
-  //public /*static*/ final double NEGATIVE_INFINITY = -1.0 / 0.0;
-
-  /**
-   * The value of a double representing 1.0/0.0, positive infinity.
-   */
-  //public /*static*/ final double POSITIVE_INFINITY = 1.0 / 0.0;
-
-  /**
-   * All IEEE 754 values of NaN have the same value in Java.
-   */
-  //public /*static*/ final double NaN = 0.0 / 0.0;
-
-  /**
-   * The number of bits needed to represent a <code>double</code>.
-   * @since 1.5
-   */
-  public /*static*/ final int _SIZE;
-  public int SIZE() { return _SIZE; }
-
- /**
-   * The primitive type <code>double</code> is represented by this
-   * <code>Class</code> object.
-   * @since 1.1
-   */
-  //public /*static*/ final Class<Double> TYPE = (Class<Double>) VMClassLoader.getPrimitiveClass('D');
-
   /**
    * The immutable value of this Double.
    *
@@ -118,15 +72,7 @@ public final class Double extends Number //implements Comparable<Double>
    *
    * @param value the <code>double</code> argument
    */
-  public Double(double value)
-  {
-    _MAX_VALUE = 1.7976931348623157e+308;
-    _MIN_VALUE = 5e-324;
-    //NEGATIVE_INFINITY = -1.0 / 0.0;
-    //POSITIVE_INFINITY = 1.0 / 0.0;
-    //NaN = 0.0 / 0.0;
-    _SIZE = 64;
-
+  public Double(double value) {
     this.value = value;
   }
 
@@ -140,8 +86,7 @@ public final class Double extends Number //implements Comparable<Double>
    * @throws NullPointerException if <code>s</code> is null
    * @see #parseDouble(String)
    */
-  public Double(String s)
-  {
+  public Double(String s) {
     value = parseDouble(s);
   }
 
@@ -179,10 +124,8 @@ public final class Double extends Number //implements Comparable<Double>
    * @param d the <code>double</code> to convert
    * @return the <code>String</code> representing the <code>double</code>
    */
-  public static String toString(double d)
-  {
-    //return VMDouble.toString(d, false);
-    return "0.0";
+  public static String toString(double d)  {
+    return String.valueOf(d);
   }
 
   /**
@@ -204,8 +147,7 @@ public final class Double extends Number //implements Comparable<Double>
    * @return the hexadecimal string representation
    * @since 1.5
    */
-  public static String toHexString(double d)
-  {
+  public static String toHexString(double d) {
     /*
     if (isNaN(d))
       return "NaN";
@@ -272,8 +214,7 @@ public final class Double extends Number //implements Comparable<Double>
    * @return the <code>Double</code>
    * @since 1.5
    */
-  public static Double valueOf(double val)
-  {
+  public static Double valueOf(double val) {
     // We don't actually cache, but we could.
     return new Double(val);
   }
@@ -288,8 +229,7 @@ public final class Double extends Number //implements Comparable<Double>
    * @throws NullPointerException if <code>s</code> is null.
    * @see #parseDouble(String)
    */
-  public static Double valueOf(String s)
-  {
+  public static Double valueOf(String s) {
     return new Double(parseDouble(s));
   }
 
@@ -342,11 +282,12 @@ public final class Double extends Number //implements Comparable<Double>
    * @see #NEGATIVE_INFINITY
    * @since 1.2
    */
-  public static double parseDouble(String str)
-  {
-    //return VMDouble.parseDouble(str);
-    return 0.0;
+  public static double parseDouble(String str) {
+    return nativeparsedouble(str);
   }
+
+  public static native double nativeparsedouble(String str);
+
 
   /**
    * Return <code>true</code> if the <code>double</code> has the same
@@ -355,8 +296,7 @@ public final class Double extends Number //implements Comparable<Double>
    * @param v the <code>double</code> to compare
    * @return whether the argument is <code>NaN</code>.
    */
-  public static boolean isNaN(double v)
-  {
+  public static boolean isNaN(double v) {
     // This works since NaN != NaN is the only reflexive inequality
     // comparison which returns true.
     return v != v;
@@ -370,9 +310,7 @@ public final class Double extends Number //implements Comparable<Double>
    * @param v the <code>double</code> to compare
    * @return whether the argument is (-/+) infinity.
    */
-  public static boolean isInfinite(double v)
-  {
-    //return v == POSITIVE_INFINITY || v == NEGATIVE_INFINITY;
+  public static boolean isInfinite(double v) {
     return false;
   }
 
