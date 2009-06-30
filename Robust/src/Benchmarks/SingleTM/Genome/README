@@ -1,6 +1,5 @@
 Introduction
 ------------
-
 This benchmark implements a gene sequencing program that reconstructs the gene
 sequence from segments of a larger gene.
 
