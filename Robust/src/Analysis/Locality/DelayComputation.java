@@ -65,6 +65,7 @@ public class DelayComputation {
 	otherset.addAll(fm.getNodeSet());
 	otherset.removeAll(notreadyset);
 	otherset.removeAll(cannotdelay);
+
 	notreadymap.put(lb, notreadyset);
 	othermap.put(lb, otherset);
       }
@@ -133,7 +134,7 @@ public class DelayComputation {
 
     Set<TempDescriptor> liveinto=new HashSet<TempDescriptor>();
     
-    Hashtable<FlatNode, Hashtable<TempDescriptor, Set<FlatNode>>> reachingdefs=ReachingDefs.computeReachingDefs(fm, Liveness.computeLiveTemps(fm));
+    Hashtable<FlatNode, Hashtable<TempDescriptor, Set<FlatNode>>> reachingdefs=ReachingDefs.computeReachingDefs(fm, Liveness.computeLiveTemps(fm), true);
     
     for(Iterator<FlatNode> fnit=secondpart.iterator();fnit.hasNext();) {
       FlatNode fn=fnit.next();
@@ -162,7 +163,7 @@ public class DelayComputation {
     FlatMethod fm=state.getMethodFlat(md);
     Set<FlatNode> exits=faen.getExits();
     Hashtable<FlatNode, Set<TempDescriptor>> livemap=Liveness.computeLiveTemps(fm);
-    Hashtable<FlatNode, Hashtable<TempDescriptor, Set<FlatNode>>> reachingdefs=ReachingDefs.computeReachingDefs(fm, Liveness.computeLiveTemps(fm));    
+    Hashtable<FlatNode, Hashtable<TempDescriptor, Set<FlatNode>>> reachingdefs=ReachingDefs.computeReachingDefs(fm, Liveness.computeLiveTemps(fm), true);
 
     Set<FlatNode> atomicnodes=faen.getReachableSet(faen.getExits());
 
@@ -207,7 +208,7 @@ public class DelayComputation {
     FlatMethod fm=state.getMethodFlat(md);
     Set<FlatNode> exits=faen.getExits();
     Hashtable<FlatNode, Set<TempDescriptor>> livemap=Liveness.computeLiveTemps(fm);
-    Hashtable<FlatNode, Hashtable<TempDescriptor, Set<FlatNode>>> reachingdefs=ReachingDefs.computeReachingDefs(fm, livemap);
+    Hashtable<FlatNode, Hashtable<TempDescriptor, Set<FlatNode>>> reachingdefs=ReachingDefs.computeReachingDefs(fm, livemap, true);
     
     Set<FlatNode> atomicnodes=faen.getReachableSet(faen.getExits());
 
@@ -256,11 +257,9 @@ public class DelayComputation {
     HashSet<FlatNode> otherset=othermap.get(lb);
     HashSet<FlatNode> cannotdelayset=cannotdelaymap.get(lb);
     Hashtable<FlatNode,Set<TempDescriptor>> livemap=Liveness.computeLiveTemps(fm);
-    Hashtable<FlatNode, Hashtable<TempDescriptor, Set<FlatNode>>> reachingdefsmap=ReachingDefs.computeReachingDefs(fm, livemap);
+    Hashtable<FlatNode, Hashtable<TempDescriptor, Set<FlatNode>>> reachingdefsmap=ReachingDefs.computeReachingDefs(fm, livemap, true);
     HashSet<FlatNode> unionset=new HashSet<FlatNode>(delayedset);
-
     Hashtable<FlatNode, Hashtable<TempDescriptor, HashSet<FlatNode>>> map=new Hashtable<FlatNode, Hashtable<TempDescriptor, HashSet<FlatNode>>>();
-
     HashSet<FlatNode> livenodes=new HashSet<FlatNode>();
 
     for(Iterator<FlatNode> fnit=fm.getNodeSet().iterator();fnit.hasNext();) {
@@ -268,11 +267,15 @@ public class DelayComputation {
       if (fn.kind()==FKind.FlatAtomicExitNode) {
 	Set<TempDescriptor> livetemps=livemap.get(fn);
 	Hashtable<TempDescriptor, Set<FlatNode>> tempmap=reachingdefsmap.get(fn);
+
+	//Iterate over the temps that are live into this node
 	for(Iterator<TempDescriptor> tmpit=livetemps.iterator();tmpit.hasNext();) {
 	  TempDescriptor tmp=tmpit.next();
 	  Set<FlatNode> fnset=tempmap.get(tmp);
 	  boolean inpart1=false;
 	  boolean inpart2=false;
+
+	  //iterate over the reaching definitions for the temp
 	  for(Iterator<FlatNode> fnit2=fnset.iterator();fnit2.hasNext();) {
 	    FlatNode fn2=fnit2.next();
 	    if (delayedset.contains(fn2)) {
@@ -460,8 +463,8 @@ public class DelayComputation {
 	//do read sets
 	if (nodelayfieldsrd.containsKey(fn.getNext(i)))
 	  nodelayfieldrdset.addAll(nodelayfieldsrd.get(fn.getNext(i)));	  
-	if (nodelayarrayswr.containsKey(fn.getNext(i)))
-	  nodelayarraywrset.addAll(nodelayarrayswr.get(fn.getNext(i)));	  
+	if (nodelayarraysrd.containsKey(fn.getNext(i)))
+	  nodelayarrayrdset.addAll(nodelayarraysrd.get(fn.getNext(i)));	  
       }
       
       /* Check our temp write set */
@@ -517,7 +520,6 @@ public class DelayComputation {
 	if (nodelayfieldwrset.contains(fd))
 	  isnodelay=true;
       }
-
       //Check for array conflicts
       if (fn.kind()==FKind.FlatSetElementNode) {
 	TypeDescriptor td=((FlatSetElementNode)fn).getDst().getType();
@@ -569,7 +571,7 @@ public class DelayComputation {
 	/* Do we read from arrays */
 	if (fn.kind()==FKind.FlatElementNode) {
 	  //have to do expansion
-	  nodelayarrayrdset.addAll(typeanalysis.expand(((FlatElementNode)fn).getSrc().getType()));	  
+	  nodelayarrayrdset.addAll(typeanalysis.expand(((FlatElementNode)fn).getSrc().getType()));
 	}
       } else {
 	//Need to know which objects to lock on

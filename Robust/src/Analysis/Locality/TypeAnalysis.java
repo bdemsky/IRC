@@ -89,14 +89,19 @@ public class TypeAnalysis {
   }
   
   public Set<TypeDescriptor> expand(TypeDescriptor td) {
-    return namemap.get(td);
+    Set<TypeDescriptor> expandset=namemap.get(td);
+    return expandset;
   }
 
   public Set<TypeDescriptor> expandSet(Set<TypeDescriptor> tdset) {
     HashSet<TypeDescriptor> expandedSet=new HashSet<TypeDescriptor>();
     for(Iterator<TypeDescriptor> it=tdset.iterator();it.hasNext();) {
       TypeDescriptor td=it.next();
-      expandedSet.addAll(expand(td));
+      Set<TypeDescriptor> etdset=expand(td);
+      if (etdset==null)
+	expandedSet.add(td);
+      else
+	expandedSet.addAll(etdset);
     }
     return expandedSet;
   }

@@ -11,6 +11,7 @@ import IR.Operation;
 import IR.TypeDescriptor;
 import IR.MethodDescriptor;
 import IR.FieldDescriptor;
+import Analysis.Liveness;
 
 public class DiscoverConflicts {
   Set<FieldDescriptor> fields;
@@ -371,7 +372,7 @@ public class DiscoverConflicts {
     MethodDescriptor md=lb.getMethod();
     FlatMethod fm=state.getMethodFlat(md);
     Hashtable<FlatNode, Integer> atomictable=locality.getAtomic(lb);
-    Hashtable<FlatNode, Set<TempDescriptor>> livetemps=locality.computeLiveTemps(fm);
+    Hashtable<FlatNode, Set<TempDescriptor>> livetemps=Liveness.computeLiveTemps(fm);
     tovisit.add(fm);
     discovered.add(fm);
     
@@ -500,7 +501,7 @@ public class DiscoverConflicts {
     MethodDescriptor md=lb.getMethod();
     FlatMethod fm=state.getMethodFlat(md);
     Hashtable<FlatNode, Integer> atomictable=locality.getAtomic(lb);
-    Hashtable<FlatNode, Set<TempDescriptor>> livetemps=locality.computeLiveTemps(fm);
+    Hashtable<FlatNode, Set<TempDescriptor>> livetemps=Liveness.computeLiveTemps(fm);
     tovisit.add(fm);
     discovered.add(fm);
     
