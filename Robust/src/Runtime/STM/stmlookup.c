@@ -200,6 +200,22 @@ void dc_t_chashDelete() {
   dc_c_structs=NULL;
   dc_c_list=NULL;
 }
+
+// Search for an address for a given oid
+INLINE void * dc_t_chashSearch(void * key) {
+  //REMOVE HASH FUNCTION CALL TO MAKE SURE IT IS INLINED HERE
+  chashlistnode_t *node = &dc_c_table[(((unsigned INTPTR)key) & dc_c_mask)>>4];
+  
+  do {
+    if(node->key == key) {
+      return node->val;
+    }
+    node = node->next;
+  } while(node != NULL);
+
+  return NULL;
+}
+
 #endif
 
 void t_chashCreate(unsigned int size, double loadfactor) {

@@ -498,6 +498,9 @@ int traverseCache() {
           
 	  }
 	} else {
+#ifdef DELAYCOMP
+      //TODO: check to see if we already have lock
+#endif
 	  if(version == header->version) {
 	    /* versions match */
 	    softabort=1;
@@ -547,7 +550,11 @@ int traverseCache() {
       
       do {
 	if(node->key == key) {
-	  goto nextloop;
+	  objheader_t * headeraddr=&((objheader_t *) node->val)[-1];	  
+	  if(STATUS(headeraddr) & DIRTY) {
+	    goto nextloop;
+	  } else
+	    break;
 	}
 	node = node->next;
       } while(node != NULL);
@@ -583,7 +590,6 @@ int traverseCache() {
     unsigned int version=oidrdversion[i];
     if(header->lock>0) { //not write locked
       if(version != header->version) { /* versions do not match */
-	oidrdlocked[numoidrdlocked++] = header;
 #ifdef DELAYCOMP
 	transAbortProcess(oidwrlocked, numoidwrtotal);
 #else
@@ -604,7 +610,6 @@ int traverseCache() {
       //couldn't get lock because we already have it
       //check if it is the right version number
       if (version!=header->version) {
-	oidrdlocked[numoidrdlocked++] = header;
 	transAbortProcess(oidwrlocked, numoidwrtotal);
 #ifdef STMSTATS
 	ABORTCOUNT(header);
@@ -782,7 +787,10 @@ int alttraverseCache() {
       
       do {
 	if(node->key == key) {
-	  goto nextloop;
+	  objheader_t * headeraddr=&((objheader_t *) node->val)[-1];	  
+	  if(STATUS(headeraddr) & DIRTY) {
+	    goto nextloop;
+	  }
 	}
 	node = node->next;
       } while(node != NULL);
@@ -832,6 +840,9 @@ int alttraverseCache() {
 	freearrays;
 	return TRANS_ABORT;
       }
+#ifdef DELAYCOMP
+      //TODO: check to see if we already have lock
+#endif
     } else { /* cannot aquire lock */
       if(version == header->version) {
 	softabort=1;
