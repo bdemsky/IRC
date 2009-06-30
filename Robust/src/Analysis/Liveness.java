@@ -4,6 +4,7 @@ import IR.Flat.*;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Hashtable;
 
@@ -41,4 +42,18 @@ public class Liveness {
     return nodetotemps;
   }
   
+  public static Hashtable<FlatNode, Set<TempDescriptor>> computeLiveOut(FlatMethod fm) {
+    Hashtable<FlatNode, Set<TempDescriptor>> liveinmap=computeLiveTemps(fm);
+    Hashtable<FlatNode, Set<TempDescriptor>> liveoutmap=new Hashtable<FlatNode, Set<TempDescriptor>>();
+    
+    for(Iterator<FlatNode> fnit=fm.getNodeSet().iterator(); fnit.hasNext();) {
+      FlatNode fn=fnit.next();
+      liveoutmap.put(fn, new HashSet<TempDescriptor>());
+      for(int i=0;i<fn.numNext();i++) {
+	FlatNode fn2=fn.getNext(i);
+	liveoutmap.get(fn).addAll(liveinmap.get(fn2));
+      }
+    }
+    return liveoutmap;
+  }
 }
