@@ -65,6 +65,10 @@ public class DelayComputation {
 	otherset.addAll(fm.getNodeSet());
 	otherset.removeAll(notreadyset);
 	otherset.removeAll(cannotdelay);
+	if (state.MINIMIZE) {
+	  notreadyset.addAll(otherset);
+	  otherset=new HashSet<FlatNode>();
+	}
 
 	notreadymap.put(lb, notreadyset);
 	othermap.put(lb, otherset);

@@ -48,6 +48,7 @@ public class State {
   /** Boolean flag which indicates whether compiler is compiling a task-based
    * program. */
   public boolean WEBINTERFACE=false;
+  public boolean MINIMIZE=false;
   public boolean TASK=false;
   public boolean FASTCHECK=false;
   public boolean DSM=false;

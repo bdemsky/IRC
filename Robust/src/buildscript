@@ -277,6 +277,9 @@ elif [[ $1 = '-delaycomp' ]]
 then
 JAVAOPTS="$JAVAOPTS -delaycomp"
 EXTRAOPTIONS="$EXTRAOPTIONS -DDELAYCOMP"
+elif [[ $1 = '-minimize' ]]
+then
+JAVAOPTS="$JAVAOPTS -minimize"
 elif [[ $1 = '-mlp' ]]
 then
 JAVAOPTS="$JAVAOPTS -mlp"

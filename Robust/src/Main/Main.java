@@ -95,6 +95,8 @@ public class Main {
 	State.PRINTFLAT=true;
       else if (option.equals("-printscheduling"))
 	State.PRINTSCHEDULING=true;
+      else if (option.equals("-minimize"))
+	state.MINIMIZE=true;
       else if (option.equals("-printschedulesim"))
 	State.PRINTSCHEDULESIM=true;
       else if (option.equals("-printcriticalpath"))
