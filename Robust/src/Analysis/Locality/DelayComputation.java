@@ -265,6 +265,11 @@ public class DelayComputation {
     HashSet<FlatNode> unionset=new HashSet<FlatNode>(delayedset);
     Hashtable<FlatNode, Hashtable<TempDescriptor, HashSet<FlatNode>>> map=new Hashtable<FlatNode, Hashtable<TempDescriptor, HashSet<FlatNode>>>();
     HashSet<FlatNode> livenodes=new HashSet<FlatNode>();
+    Hashtable<FlatCondBranch, Set<FlatNode>> branchmap=revGetBranchSet(lb);
+
+    //Here we check for temps that are live out on the transaction...
+    //If both parts can contribute to the temp, then we need to do
+    //reads to make sure that liveout set has the right values
 
     for(Iterator<FlatNode> fnit=fm.getNodeSet().iterator();fnit.hasNext();) {
       FlatNode fn=fnit.next();
@@ -295,8 +300,9 @@ public class DelayComputation {
 	  if (inpart1&&inpart2) {
 	    for(Iterator<FlatNode> fnit2=fnset.iterator();fnit2.hasNext();) {
 	      FlatNode fn2=fnit2.next();
-	      if (otherset.contains(fn2)||cannotdelayset.contains(fn2)) {	      
+	      if (otherset.contains(fn2)||cannotdelayset.contains(fn2)) {
 		unionset.add(fn2);
+		System.out.println("ADDA"+fn2);
 		livenodes.add(fn2);
 	      }
 	    }
@@ -338,16 +344,17 @@ public class DelayComputation {
       }
 
       if (delayedset.contains(fn)) {
-	//Check our readset
+	//If the node is in the second set, check our readset
 	TempDescriptor readset[]=fn.readsTemps();
 	for(int i=0;i<readset.length;i++) {
 	  TempDescriptor tmp=readset[i];
 	  if (tmptofn.containsKey(tmp)) {
-	    livenodes.addAll(tmptofn.get(tmp)); // add live nodes
+	    System.out.println("ADDB"+tmptofn.get(tmp));
+	    livenodes.addAll(tmptofn.get(tmp)); //Add live nodes
 	    unionset.addAll(tmptofn.get(tmp));
 	  }
 	}
-
+	
 	//Do kills
 	TempDescriptor writeset[]=fn.writesTemps();
 	for(int i=0;i<writeset.length;i++) {
@@ -355,6 +362,7 @@ public class DelayComputation {
 	  tmptofn.remove(tmp);
 	}
       } else {
+	//If the node is in the first set, search over what we write
 	//We write -- our reads are done
 	TempDescriptor writeset[]=fn.writesTemps();
 	for(int i=0;i<writeset.length;i++) {
@@ -364,13 +372,15 @@ public class DelayComputation {
 	  set.add(fn);
 	}
 	if (fn.numNext()>1) {
-	  //We have a conditional branch...need to handle this carefully
-	  Set<FlatNode> set0=getNext(fn, 0, unionset, lb, locality, false);
-	  Set<FlatNode> set1=getNext(fn, 1, unionset, lb, locality, false);
-	  if (!set0.equals(set1)||set0.size()>1) {
-	    //This branch is important--need to remember how it goes
-	    livenodes.add(fn);
-	    unionset.add(fn);
+	  Set<FlatNode> branchset=branchmap.get((FlatCondBranch)fn);
+	  for(Iterator<FlatNode> brit=branchset.iterator();brit.hasNext();) {
+	    FlatNode brfn=brit.next();
+	    if (unionset.contains(brfn)) {
+	      //This branch is important--need to remember how it goes
+	      System.out.println("ADDC"+fn);
+	      livenodes.add(fn);
+	      unionset.add(fn);	      
+	    }
 	  }
 	}
       }
