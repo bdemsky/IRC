@@ -1,0 +1,5 @@
+default: prep
+	../../../buildscript ${FLAGSLOCK} -o LOCK${MAINCLASS} ${SRC}
+	../../../buildscript ${FLAGSSTM} -o STM${MAINCLASS} ${SRC}
+	../../../buildscript ${FLAGSOPTSTM} -o OPTSTM${MAINCLASS} ${SRC}
+	../../../buildscript ${FLAGSFISSION} -o FIS${MAINCLASS} ${SRC}
