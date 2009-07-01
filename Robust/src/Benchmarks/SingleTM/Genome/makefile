@@ -1,4 +1,6 @@
 MAINCLASS=Genome
+include ../common/Makefile.flags
+
 SRC=${MAINCLASS}.java \
 	../common/Random.java \
 	Bitmap.java \
@@ -10,10 +12,10 @@ SRC=${MAINCLASS}.java \
 	Sequencer.java \
 	Table.java \
 	Hashtable.java
-FLAGS=-mainclass ${MAINCLASS} -singleTM -optimize -debug -fastmemcpy -abcclose -dcopts -joptimize
 
-default:
-	../../../buildscript ${FLAGS} -o ${MAINCLASS} ${SRC}
+include ../common/Makefile.builds
+
+prep:
 
 clean:
 	rm -rf tmpbuilddirectory

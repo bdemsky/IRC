@@ -15,13 +15,11 @@ SRC=ttttmp${MAINCLASS}.java \
 	Solve_arg.java \
 	../../../ClassLibrary/JavaSTM/Barrier.java 
 
-FLAGS=-mainclass ${MAINCLASS} -singleTM -optimize -debug -delaycomp -joptimize -fastmemcpy -profile -32bit -inlineatomic 2
+include ../common/Makefile.flags
 
-FLAGS2=-mainclass ${MAINCLASS} -thread -optimize -debug -joptimize -32bit
+include ../common/Makefile.builds
 
-FLAGS3=-mainclass ${MAINCLASS} -singleTM -nooptimize -debug -32bit
-
-default:
+prep:
 	cpp ${MAINCLASS}.java > tmp${MAINCLASS}.java
 	cpp Grid.java	> tmpGrid.java
 	cpp Router.java > tmpRouter.java
@@ -34,9 +32,7 @@ default:
 	./extractLines tmpMaze.java
 	./extractLines tmpQueue_t.java
 	./extractLines tmpQueue_Int.java
-#	../../../buildscript ${FLAGS} -o ${MAINCLASS} ${SRC}
-	../../../buildscript ${FLAGS3} -o STM${MAINCLASS} ${SRC}
-#	../../../buildscript ${FLAGS2} -o LOCK${MAINCLASS} ${SRC}
+
 
 clean:
 	rm -rf tmpbuilddirectory

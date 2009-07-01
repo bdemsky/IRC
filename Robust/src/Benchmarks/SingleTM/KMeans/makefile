@@ -6,13 +6,12 @@ SRC=${MAINCLASS}.java \
     Common.java \
     GlobalArgs.java \
     ../../../ClassLibrary/JavaSTM/Barrier.java
-FLAGS=-mainclass ${MAINCLASS} -singleTM -optimize -debug -dcopts -joptimize -stmstats -fastmemcpy
-FLAGS2=-mainclass ${MAINCLASS} -singleTM -optimize -debug -joptimize -fastmemcpy -abcclose -dcopts
-FLAGS3=-mainclass ${MAINCLASS} -optimize -debug -joptimize -thread
 
+include ../common/Makefile.flags
 
-default:
-	../../../buildscript ${FLAGS2} -o GEN${MAINCLASS} ${SRC}
+include ../common/Makefile.builds
+
+prep:
 
 clean:
 	rm -rf tmpbuilddirectory

@@ -14,19 +14,18 @@ SRC=tmp${MAINCLASS}.java \
 	VList.java \
 	../common/Random.java \
     ../../../ClassLibrary/JavaSTM/Barrier.java
-FLAGS=-mainclass ${MAINCLASS} -singleTM -optimize -debug -dcopts -stmstats -fastmemcpy -transstats -joptimize -abcclose
-# -joptimize
 
-default:
+include ../common/Makefile.flags
+
+include ../common/Makefile.builds
+
+prep:
 #	cpp -DUSE_PARALLEL_DATA_GENERATION ${MAINCLASS}.java > tmp1${MAINCLASS}.java
 #	./extractLines
 #	../../../buildscript ${FLAGS} -o ${MAINCLASS} ${SRC}
 	cpp -DENABLE_KERNEL1 ${MAINCLASS}.java > tmp1${MAINCLASS}.java
 	./extractLines
-	../../../buildscript ${FLAGS} -o ${MAINCLASS} ${SRC}
-#	cpp -DENABLE_KERNEL2 -DENABLE_KERNEL3 ${MAINCLASS}.java > tmp1${MAINCLASS}.java
-#	./extractLines
-#	../../../buildscript ${FLAGS} -o ${MAINCLASS} ${SRC}
+
 
 clean:
 	rm tmp1SSCA2.java

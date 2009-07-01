@@ -1,0 +1,53 @@
+#/bin/bash
+function run {
+dir="$1"
+command="$2"
+shift
+shift
+args="$@"
+cd $dir
+echo ============================================================
+echo Running Fission $command $@
+time ./FIS$command $args
+echo
+echo
+echo Running STM $command $@
+time ./STM$command $args
+echo
+echo
+echo Running Optimized STM $command $@
+time ./OPTSTM$command $args
+echo
+echo
+echo Running Lock $command $@
+time ./LOCK$command $args
+echo
+echo
+cd ..
+}
+#get plenty of stack space
+ulimit -s 40000
+
+#Kmeans
+run KMeans KMeans.bin -m 15 -n 15 -t 0.00001 -i inputs/random-n65536-d32-c16.txt -nthreads 1
+run KMeans KMeans.bin -m 15 -n 15 -t 0.00001 -i inputs/random-n65536-d32-c16.txt -nthreads 2
+run KMeans KMeans.bin -m 15 -n 15 -t 0.00001 -i inputs/random-n65536-d32-c16.txt -nthreads 4
+run KMeans KMeans.bin -m 15 -n 15 -t 0.00001 -i inputs/random-n65536-d32-c16.txt -nthreads 8
+
+#SSCA2
+run SSCA2 SSCA2.bin -s 20 -i 1.0 -u 1.0 -l 3 -p 3 -t 1
+run SSCA2 SSCA2.bin -s 20 -i 1.0 -u 1.0 -l 3 -p 3 -t 2
+run SSCA2 SSCA2.bin -s 20 -i 1.0 -u 1.0 -l 3 -p 3 -t 4
+run SSCA2 SSCA2.bin -s 20 -i 1.0 -u 1.0 -l 3 -p 3 -t 8
+
+#Labrynth
+run Labyrinth Labyrinth.bin -i inputs/random-x512-y512-z7-n512.txt -t 1
+run Labyrinth Labyrinth.bin -i inputs/random-x512-y512-z7-n512.txt -t 2
+run Labyrinth Labyrinth.bin -i inputs/random-x512-y512-z7-n512.txt -t 4
+run Labyrinth Labyrinth.bin -i inputs/random-x512-y512-z7-n512.txt -t 8
+
+#Genome
+run Genome Genome.bin -g 8192 -s 32 -n 167721 -t 1
+run Genome Genome.bin -g 8192 -s 32 -n 167721 -t 2
+run Genome Genome.bin -g 8192 -s 32 -n 167721 -t 4
+run Genome Genome.bin -g 8192 -s 32 -n 167721 -t 8

@@ -1,0 +1,16 @@
+#!/bin/bash
+cd KMeans
+make &
+cd ..
+
+cd SSCA2
+make &
+cd ..
+
+cd Labyrinth
+make &
+cd ..
+
+cd Genome
+make &
+cd ..
