@@ -52,4 +52,6 @@ public class System {
 
   public static native void rangePrefetch(Object o, short[] offsets);
 
+  public static native void deepArrayCopy(Object dst, Object src);
+
 }

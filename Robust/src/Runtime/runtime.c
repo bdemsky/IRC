@@ -140,6 +140,45 @@ int CALL12(___String______convertdoubletochar____D__AR_C, double ___val___, doub
   return num;
 }
 #endif
+#ifdef D___System______deepArrayCopy____L___Object____L___Object___
+void deepArrayCopy(struct ___Object___ * dst, struct ___Object___ * src) {
+  int dsttype=((int *)dst)[0];
+  int srctype=((int *)src)[0];
+  if (dsttype<NUMCLASSES||srctype<NUMCLASSES||srctype!=dsttype)
+    return;
+  struct ArrayObject *aodst=(struct ArrayObject *)dst;
+  struct ArrayObject *aosrc=(struct ArrayObject *)src;
+  int dstlength=aodst->___length___;
+  int srclength=aosrc->___length___;
+  if (dstlength!=srclength)
+    return;
+  unsigned INTPTR *pointer=pointerarray[srctype];
+  if (pointer==0) {
+    int elementsize=classsize[srctype];
+    int size=srclength*elementsize;
+    //primitives
+    memcpy(((char *)&aodst->___length___)+sizeof(int) , ((char *)&aosrc->___length___)+sizeof(int), size);
+  } else {
+    //objects
+    int i;
+    for(i=0;i<srclength;i++) {
+      struct ___Object___ * ptr=((struct ___Object___**)(((char*) &aosrc->___length___)+sizeof(int)))[i];
+      int ptrtype=((int *)ptr)[0];
+      if (ptrtype>=NUMCLASSES) {
+	struct ___Object___ * dstptr=((struct ___Object___**)(((char*) &aodst->___length___)+sizeof(int)))[i];
+	deepArrayCopy(dstptr,ptr);
+      } else {
+	//hit an object
+	((struct ___Object___ **)(((char*) &aodst->___length___)+sizeof(int)))[i]=ptr;
+      }
+    }
+  }
+}
+
+void CALL02(___System______deepArrayCopy____L___Object____L___Object___, struct ___Object___ * ___dst___, struct ___Object___ * ___src___) {
+  deepArrayCopy(VAR(___dst___), VAR(___src___));
+}
+#endif
 
 void CALL11(___System______exit____I,int ___status___, int ___status___) {
 #ifdef TRANSSTATS
