@@ -66,10 +66,19 @@ public class DelayComputation {
 	otherset.removeAll(notreadyset);
 	otherset.removeAll(cannotdelay);
 	if (state.MINIMIZE) {
-	  notreadyset.addAll(otherset);
-	  otherset=new HashSet<FlatNode>();
+	  Hashtable<FlatNode, Integer> atomicmap=locality.getAtomic(lb);
+	  for(Iterator<FlatNode> fnit=otherset.iterator();fnit.hasNext();) {
+	    FlatNode fn=fnit.next();
+	    if (atomicmap.get(fn).intValue()>0&&
+		fn.kind()!=FKind.FlatAtomicEnterNode&&
+		fn.kind()!=FKind.FlatGlobalConvNode) {
+	      //remove non-atomic flatnodes
+	      fnit.remove();
+	      notreadyset.add(fn);
+	    }
+	  }
 	}
-
+	
 	notreadymap.put(lb, notreadyset);
 	othermap.put(lb, otherset);
       }
@@ -302,7 +311,6 @@ public class DelayComputation {
 	      FlatNode fn2=fnit2.next();
 	      if (otherset.contains(fn2)||cannotdelayset.contains(fn2)) {
 		unionset.add(fn2);
-		System.out.println("ADDA"+fn2);
 		livenodes.add(fn2);
 	      }
 	    }
@@ -349,7 +357,6 @@ public class DelayComputation {
 	for(int i=0;i<readset.length;i++) {
 	  TempDescriptor tmp=readset[i];
 	  if (tmptofn.containsKey(tmp)) {
-	    System.out.println("ADDB"+tmptofn.get(tmp));
 	    livenodes.addAll(tmptofn.get(tmp)); //Add live nodes
 	    unionset.addAll(tmptofn.get(tmp));
 	  }
@@ -377,7 +384,6 @@ public class DelayComputation {
 	    FlatNode brfn=brit.next();
 	    if (unionset.contains(brfn)) {
 	      //This branch is important--need to remember how it goes
-	      System.out.println("ADDC"+fn);
 	      livenodes.add(fn);
 	      unionset.add(fn);	      
 	    }
