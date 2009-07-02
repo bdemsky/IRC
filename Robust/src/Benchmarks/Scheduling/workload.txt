@@ -1,0 +1,105 @@
+JGFSeries:
+	Single:
+		task t1(StartupObject s{initialstate}) {
+		    //System.printString("task t1\n");
+    
+		    int datasize = 62*2000;
+	            int threadnum = 62;
+		    ...
+		}
+
+	Double:
+		task t1(StartupObject s{initialstate}) {
+		    //System.printString("task t1\n");
+    
+		    int datasize = 62*2000 *2;
+	            int threadnum = 62 * 2;
+		    ...
+		}
+
+
+FilterBank:
+	Single:
+		task t1(StartupObject s{initialstate}) {
+			//System.printString("task t1\n");
+
+			int N_sim=1200 * 6;
+			int N_samp=8;
+			int N_ch=62; 
+			int N_col=128 * 6;
+		        ...
+		}
+
+
+	Double:
+		task t1(StartupObject s{initialstate}) {
+			//System.printString("task t1\n");
+
+			int N_sim=1200 * 6;
+			int N_samp=8;
+			int N_ch=62 * 2; 
+			int N_col=128 * 6;
+		        ...
+		}
+
+
+Fractal:
+	Single:
+		task t1(StartupObject s{initialstate}) {
+ 		   //System.printString("task t1\n");
+    
+		    int width = 62 * 15; 
+    		    int height = 62 * 17;
+		    int group = 62;
+		    ...
+		}
+
+	Double:
+		task t1(StartupObject s{initialstate}) {
+ 		   //System.printString("task t1\n");
+    
+		    int width = 62 * 15 * 2; 
+    		    int height = 62 * 17;
+		    int group = 62 * 2;
+		    ...
+		}
+ 
+
+JGFMonteCarlo:
+	Single:
+		task t1(StartupObject s{initialstate}) {
+		    //System.printString("task t1\n");
+    
+		    int datasize = 1000;  //should be times of 2
+		    int nruns = 62 * 7 ; 
+		    int group = 62; 
+		    ...
+		}
+		
+		in RatePath.java
+		private void readRatesFile(){
+			//
+			// Now create an array to store the rates data.
+			...
+			int nLines = 1000; 
+		        ...
+		}
+
+	Double:
+		task t1(StartupObject s{initialstate}) {
+		    //System.printString("task t1\n");
+    
+		    int datasize = 1000;  //should be times of 2
+		    int nruns = 62 * 14 ; 
+		    int group = 62 * 2; 
+		    ...
+		}
+		
+		in RatePath.java
+		private void readRatesFile(){
+			//
+			// Now create an array to store the rates data.
+			...
+			int nLines = 1000; 
+		        ...
+		}

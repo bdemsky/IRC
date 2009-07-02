@@ -38,46 +38,53 @@ public class SeriesRunner {
     flag finish;
 
     int id;
+	int range;
 
-    public SeriesRunner(int id){
+    public SeriesRunner(int id, int range){
 	this.id=id;
+	this.range = range;
     }
 
     public void run() {
-	float pair[] = new float[2];
+	float pair[][] = new float[2][range];
 	// Calculate the fourier series. Begin by calculating A[0].
 	if (id==0) {
-	    pair[0] = TrapezoidIntegrate((float)0.0, //Lower bound.
+	    pair[0][0] = TrapezoidIntegrate((float)0.0, //Lower bound.
 		                         (float)2.0, // Upper bound.
 		                         1000,        // # of steps.
 		                         (float)0.0, // No omega*n needed.
 		                         0) / (float)2.0; // 0 = term A[0].
-	    pair[1] = 0;
-	} else {
-	    // Calculate the fundamental frequency.
-	    // ( 2 * pi ) / period...and since the period
-	    // is 2, omega is simply pi.
-	    float omega = (float) 3.1415926535897932; // Fundamental frequency.
+	    pair[1][0] = 0;
+	} 
+	// Calculate the fundamental frequency.
+	// ( 2 * pi ) / period...and since the period
+	// is 2, omega is simply pi.
+	float omega = (float) 3.1415926535897932; // Fundamental frequency.
 
+	int ilow = id*range;
+	if(id==0) ilow += 1;
+	int iupper = (id+1)*range;
+	for(int i = ilow; i < iupper; i++) {
+		int j = i-id*range;
 	    // Calculate A[i] terms. Note, once again, that we
 	    // can ignore the 2/period term outside the integral
 	    // since the period is 2 and the term cancels itself
 	    // out.
-	    pair[0] = TrapezoidIntegrate((float)0.0,
+	    pair[0][j] = TrapezoidIntegrate((float)0.0,
 		                         (float)2.0,
 		                         1000,
-		                         omega * (float)id, 
+		                         omega * (float)i, 
 		                         1);                       // 1 = cosine term.
 	    // Calculate the B[i] terms.
-	    pair[1] = TrapezoidIntegrate((float)0.0,
+	    pair[1][j] = TrapezoidIntegrate((float)0.0,
 		                         (float)2.0,
 		                         1000,
-		                         omega * (float)id,
+		                         omega * (float)i,
 		                         2);                       // 2 = sine term.
 	}
 
 	// validate
-	if(id < 4) {
+	if(id == 0) {
 	    float ref[][] = new float[4][2];
 	    ref[0][0] = (float)2.87290112;
 	    ref[0][1] = (float)0.0;
@@ -87,19 +94,21 @@ public class SeriesRunner {
 	    ref[2][1] = (float)-1.16458096;
 	    ref[3][0] = (float)0.15222694;
 	    ref[3][1] = (float)-0.81435320;
-	    for (int j = 0; j < 2; j++){
-		float error = Math.abs(pair[j] - ref[id][j]);
-		if (error > 1.0e-7 ){
-			//System.printI(0xa7);
-		    //System.printString("Validation failed for coefficient " + j + "," + id + "\n");
-		    //System.printString("Computed value = " + (int)(pair[j]*100000000) + "\n");
-		    //System.printString("Reference value = " + (int)(ref[id][j]*100000000) + "\n");
-			//System.printI((int)(pair[j]*10000));
-			//System.printI((int)(ref[id][j]*10000));
+		for(int i = 0; i < 4; i++) {
+			for (int j = 0; j < 2; j++){
+				float error = Math.abs(pair[j][i] - ref[i][j]);
+				if (error > 1.0e-7 ){
+					//System.printI(0xa7);
+					//System.printString("Validation failed for coefficient " + j + "," + id + "\n");
+					//System.printString("Computed value = " + (int)(pair[j]*100000000) + "\n");
+					//System.printString("Reference value = " + (int)(ref[id][j]*100000000) + "\n");
+					//System.printI((int)(pair[j]*10000));
+					//System.printI((int)(ref[id][j]*10000));
+				}
+			}
 		}
-	    }
-	}
     }
+	}
 
     /*
      * TrapezoidIntegrate

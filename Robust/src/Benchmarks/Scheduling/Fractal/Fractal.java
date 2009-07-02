@@ -3,16 +3,24 @@
 task t1(StartupObject s{initialstate}) {
     //System.printString("task t1\n");
     
-    int width = 160; 
-    int height = 160;
-    int group = 16;
+    int width = 62 * 15 * 2; 
+    int height = 62 * 16;
+    int group = 62 * 2;
 
-    int h = height / group;
+    //int h = height / group;
+	//Random rnd = new Random();
+	//int maxint = (~0x1) + 1;
+	int red   = 255;  //(int)(((float)rnd.nextInt()/maxint)*255);
+	int green = 237;  //(int)(((float)rnd.nextInt()/maxint)*255);
+	int blue  = 100;  //(int)(((float)rnd.nextInt()/maxint)*255);
     for(int i = 0; i < group; i++) {
 	Fractal fratal = new Fractal(i,
 		                     group,
 		                     width,
-		                     height){run};
+		                     height,
+							 red,
+							 green,
+							 blue){run};
     }
     Image image = new Image(group){!finish};
     
@@ -62,7 +70,10 @@ public class Fractal {
     public Fractal(int index,
 	           int group,
 	           int width, 
-	           int height) {
+	           int height,
+			   int red,
+			   int green,
+			   int blue) {
 	this.id = index;
 	this.group = group;
 	this.AppletWidth = width;
@@ -74,9 +85,9 @@ public class Fractal {
 	this.alen = (float)3.0;//this.amax - this.amin;
 	this.blen = (float)3.0;//this.bmax - this.bmin;
 	this.alpha = 0xff;
-	this.red = 0xff;
-	this.green = 0xff;
-	this.blue = 0xff;
+	this.red = red;
+	this.green = green;
+	this.blue = blue;
 	this.times = 255;
 	int length = this.AppletWidth * this.AppletHeight / this.group;
 	this.pixels = new int[length];
@@ -85,11 +96,6 @@ public class Fractal {
 	while (incr < length) {
 	    ps[incr++] = this.alpha<<24 | 0x00<<16 | 0x00<<8 | 0xff;
 	}
-	Random rnd = new Random();
-	int maxint = (1<<32) - 1;
-	red   = (int)(((float)rnd.nextInt()/maxint)*255);
-	green = (int)(((float)rnd.nextInt()/maxint)*255);
-	blue  = (int)(((float)rnd.nextInt()/maxint)*255);
     }
 
     public void run () {
@@ -136,10 +142,10 @@ public class Fractal {
 		if(iteration<=times & iteration>0) {
 		    scaleda=(int)((a - amin)*appletWidth/(amax - amin));
 		    scaledb=(int)((b - bmin)*appletHeight/(bmax - bmin));
-		    int index = (scaledb * appletWidth + scaleda - id) / group;
-		    if(index < length) {
+		    int index = ((scaledb - id) / group) * appletWidth + scaleda;  //(scaledb * appletWidth + scaleda - id) / group;
+		    //if(index < length) {
 			ps[index] = alpha<<24 | red<<16 | iteration<<8 | blue;
-		    }
+		    //}
 		}
 	    }
 	}

@@ -30,7 +30,7 @@
  * </ol>
  *
  * @author H W Yau
- * @version $Revision: 1.2 $ $Date: 2009/02/13 21:37:19 $
+ * @version $Revision: 1.3 $ $Date: 2009/07/02 23:35:24 $
  */
 public class RatePath extends PathId {
 
@@ -365,7 +365,7 @@ public class RatePath extends PathId {
 	// Now create an array to store the rates data.
 	int minimumdate = MINIMUMDATE;
 	float epsilon = EPSILON;
-	int nLines = 200;
+	int nLines = 1000; //200;
 	int year = 88;
 	int month = 10;
 	int day = 3;
@@ -389,8 +389,8 @@ public class RatePath extends PathId {
 	/*for(int di = 0; di < 9; di++) {
 	    aDate = aDate * 10 + (int)date[di];
 	}*/
-	for(int k = 0; k < 40; k++ ) {
-	    for(int j = 0; j < 5; j++) {
+	for(int k = 0; k < 20; /*40;*/ k++ ) {
+	    for(int j = 0; j < 50; /*5;*/ j++) {
 		/*String date = "19"+String.valueOf(year);
 		if(month < 10) {
 		    date += "0";

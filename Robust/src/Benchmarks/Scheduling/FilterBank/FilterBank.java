@@ -1,10 +1,10 @@
 task t1(StartupObject s{initialstate}) {
 	//System.printString("task t1\n");
 
-	int N_sim=1200;
+	int N_sim=1200 * 6;
 	int N_samp=8;
-	int N_ch=16;
-	int N_col=128;
+	int N_ch=62 * 2; //16;
+	int N_col=128 * 6;
 	int i,j;
 	
 	for(j = 0; j < N_ch; j++) {
