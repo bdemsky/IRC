@@ -1182,7 +1182,7 @@ public class ScheduleAnalysis {
 		CombinationUtil.CombineGenerator cGen = 
 		    CombinationUtil.allocateCombineGenerator(rootNodes, 
 			                                     nodes2combine);
-		while((gid <= this.scheduleThreshold) && cGen.nextGen()) {
+		while((gid <= this.scheduleThreshold) && cGen.nextGen()) {      
 		    if(Math.abs(rand.nextInt()) % 100 > generateThreshold) {
 			Vector<Vector<CombinationUtil.Combine>> combine = cGen.getCombine();
 			Vector<ScheduleNode> sNodes = 

@@ -586,6 +586,8 @@ cp ../Tilera/lib/* ./
 cp ../tmpbuilddirectory/*.c ./
 cp ../tmpbuilddirectory/*.h ./
 
+make
+
 else #!RAWFLAG && !TILERAFLAG
 cd $CURDIR 
 
@@ -634,7 +636,7 @@ then
 FILES="$FILES $ROBUSTROOT/Runtime/localobjects.c"
 fi
 
-if $MLP
+if $MLPFLAG
 then
 FILES="$FILES $ROBUSTROOT/Runtime/mlp_runtime.c"
 FILES="$FILES $ROBUSTROOT/Runtime/psemaphore.c"

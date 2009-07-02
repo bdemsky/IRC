@@ -15,7 +15,7 @@ public class CoreSimulator {
   Hashtable<FlagState, Vector<Integer>> allyCSimulator;
   Hashtable<FlagState, FlagState> targetFState;
   int coreNum;
-  int activeTime;
+  long activeTime;
 
   public CoreSimulator(RuntimeSchedule schedule, 
 	               int coreNum) {
@@ -92,7 +92,7 @@ public class CoreSimulator {
     this.targetFState = targetFState;
   }
 
-  public int getActiveTime() {
+  public long getActiveTime() {
     return activeTime;
   }
 
@@ -160,7 +160,7 @@ public class CoreSimulator {
 	Vector<Integer> allycores = this.getAllyCores(obj.getCurrentFS());
 	if(allycores != null) {
 	  obj.setShared(true);
-	  for(int k = 0; k < allycores.size(); ++k) {
+	  //for(int k = 0; k < allycores.size(); ++k) {
 	    //Integer allyCore = allycores.elementAt(k);
 	    if(transObjs == null) {
 	      transObjs = new Vector<ObjectSimulator>();
@@ -169,7 +169,7 @@ public class CoreSimulator {
 	      transObjs.add(obj);
 	    }
 	    remove = false;
-	  }
+	  //}
 	  allycores = null;
 	}
 	// check if need to transfer to other cores
@@ -195,7 +195,7 @@ public class CoreSimulator {
     return transObjs;
   }
 
-  public void updateTask(int time) {
+  public void updateTask(long time) {
     this.activeTime += time;
     this.rtask.updateFinishTime(time);
   }

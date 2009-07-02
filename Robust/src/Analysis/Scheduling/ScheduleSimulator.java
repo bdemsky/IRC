@@ -21,7 +21,7 @@ public class ScheduleSimulator {
   private Vector<Schedule> scheduling;
   private Vector<CoreSimulator> cores;
   private Vector<TaskSimulator> tasks;
-  private int processTime;
+  private long processTime;
   private int invoketime;
 
   State state;
@@ -59,10 +59,10 @@ public class ScheduleSimulator {
     applyScheduling();
   }
   
-  public int simulate(Vector<Vector<Schedule>> schedulings,
+  public long simulate(Vector<Vector<Schedule>> schedulings,
 	              Vector<Integer> selectedScheduling,
 	              Vector<Vector<SimExecutionEdge>> selectedSimExeGraphs) {      
-      int processTime = Integer.MAX_VALUE;
+      long processTime = Long.MAX_VALUE;
       /*if(schedulings.size() > 1500) {
 	  int index = 0;
 	  int upperbound = schedulings.size();
@@ -101,7 +101,7 @@ public class ScheduleSimulator {
 	      this.setScheduling(scheduling);
 	      Vector<SimExecutionEdge> simexegraph = new Vector<SimExecutionEdge>();
 	      Vector<CheckPoint> checkpoints = new Vector<CheckPoint>();
-	      int tmpTime = process(checkpoints, simexegraph);
+	      long tmpTime = process(checkpoints, simexegraph);
 	      if(tmpTime < processTime) {
 		  selectedScheduling.clear();
 		  selectedScheduling.add(index);
@@ -152,7 +152,7 @@ public class ScheduleSimulator {
   }
 
   public int getUtility(int index) {
-    return (this.cores.elementAt(index).getActiveTime() * 100) / this.processTime;
+    return (int)(this.cores.elementAt(index).getActiveTime() * 100) / (int)this.processTime;
   }
 
   public Vector<Schedule> getScheduling() {
@@ -206,8 +206,8 @@ public class ScheduleSimulator {
     return tasks;
   }
 
-  public int process(Vector<CheckPoint> checkpoints,
-	             Vector<SimExecutionEdge> simexegraph) {
+  public long process(Vector<CheckPoint> checkpoints,
+	              Vector<SimExecutionEdge> simexegraph) {
     assert(this.scheduling != null);
 
     this.invoketime++;
@@ -217,12 +217,12 @@ public class ScheduleSimulator {
     Hashtable<SimExecutionNode, Action> senode2action = 
 	    new Hashtable<SimExecutionNode, Action>();
     SimExecutionNode[] lastseNodes = new SimExecutionNode[this.cores.size()];
-    Hashtable<Action, Integer> action2exetime = 
-	    new Hashtable<Action, Integer>();
+    Hashtable<Action, Long> action2exetime = 
+	    new Hashtable<Action, Long>();
     Hashtable<TransTaskSimulator, SimExecutionNode> tttask2senode = 
 	    new Hashtable<TransTaskSimulator, SimExecutionNode>();
-    Hashtable<Integer, Integer> obj2transtime = 
-	    new Hashtable<Integer, Integer>();
+    Hashtable<Integer, Long> obj2transtime = 
+	    new Hashtable<Integer, Long>();
     Hashtable<Integer, SimExecutionEdge> obj2lastseedge = 
 	    new Hashtable<Integer, SimExecutionEdge>();
 
@@ -252,7 +252,7 @@ public class ScheduleSimulator {
 	  SimExecutionNode seNode = new SimExecutionNode(coreid, this.processTime);
 	  seNode.setSpareCores(cp.getSpareCores());
 	  senode2action.put(seNode, action);
-	  action2exetime.put(action, -1);
+	  action2exetime.put(action, (long)-1);
 	  lastseNodes[coreid] = seNode;
       }
     }
@@ -266,12 +266,12 @@ public class ScheduleSimulator {
 
       // for each task in todo queue, decide the execution path of this time
       // according to statistic information
-      int finishTime = Integer.MAX_VALUE;
+      long finishTime = Long.MAX_VALUE;
       Vector<TaskSimulator> finishTasks = new Vector<TaskSimulator>();
       for(i = 0; i < this.tasks.size(); i++) {
 	TaskSimulator task = this.tasks.elementAt(i);
 	task.process();
-	int tempTime = task.getCurrentRun().getFinishTime();
+	long tempTime = task.getCurrentRun().getFinishTime();
 	if(tempTime < finishTime) {
 	  finishTime = tempTime;
 	  finishTasks.clear();
@@ -368,7 +368,7 @@ public class ScheduleSimulator {
 	// create edges between previous senode on this core to this node
 	if(lastsenode != null) {
 	    Action tmpaction = senode2action.get(lastsenode);
-	    int weight = tmpaction != null? action2exetime.get(tmpaction) : 0;  // TODO ????
+	    long weight = tmpaction != null? action2exetime.get(tmpaction) : 0;  // TODO ????
 	    SimExecutionEdge seEdge = new SimExecutionEdge(seNode,
 		                                           lastsenode.getCoreNum(),
 		                                           tmpaction != null? tmpaction.getTd():null, 
@@ -386,7 +386,7 @@ public class ScheduleSimulator {
 			if(lastedge.getCoreNum() != seEdge.getCoreNum()) {
 			    // the obj is transferred from another core
 			    // create an seEdge for this transfer
-			    int transweight = obj2transtime.get(tparam);
+			    long transweight = obj2transtime.get(tparam);
 			    SimExecutionEdge transseEdge = new SimExecutionEdge((SimExecutionNode)seEdge.getSource(),
 				                                                lastedge.getCoreNum(),
 				                                                null, // TODO: not sure if this is enough
@@ -449,9 +449,9 @@ public class ScheduleSimulator {
 	                                Vector<SimExecutionEdge> simexegraph,
 	                                Hashtable<SimExecutionNode, Action> senode2action,
 	                                SimExecutionNode[] lastseNodes,
-	                                Hashtable<Action, Integer> action2exetime,
+	                                Hashtable<Action, Long> action2exetime,
 	                                Hashtable<TransTaskSimulator, SimExecutionNode> tttask2senode,
-	                                Hashtable<Integer, Integer> obj2transtime) {
+	                                Hashtable<Integer, Long> obj2transtime) {
       TransTaskSimulator tmptask = (TransTaskSimulator)task;
       // add ADDOBJ task to targetCore
       int targetCoreNum = tmptask.getTargetCoreNum();
@@ -485,7 +485,7 @@ public class ScheduleSimulator {
 		  SimExecutionNode seNode = new SimExecutionNode(targetCoreNum, this.processTime);
 		  seNode.setSpareCores(cp.getSpareCores());
 		  senode2action.put(seNode, action);
-		  action2exetime.put(action, -1);
+		  action2exetime.put(action, (long)-1);
 
 		  SimExecutionNode lastsenode = lastseNodes[targetCoreNum];
 		  // create edges between previous senode on this core to this node
@@ -499,7 +499,7 @@ public class ScheduleSimulator {
 				                        0,
 				                        null);
 		      } else {
-			  int weight =  action2exetime.get(tmpaction);
+			  long weight =  action2exetime.get(tmpaction);
 			  seEdge = new SimExecutionEdge(seNode,
 				                        lastsenode.getCoreNum(),
 				                        tmpaction.getTd(),
@@ -520,7 +520,7 @@ public class ScheduleSimulator {
                                                    Vector<TransTaskSimulator> tttasks,
                                                    Hashtable<SimExecutionNode, Action> senode2action,
                                                    SimExecutionNode[] lastseNodes,
-                                                   Hashtable<Action, Integer> action2exetime) {
+                                                   Hashtable<Action, Long> action2exetime) {
       Vector<ObjectSimulator> totransObjs = new Vector<ObjectSimulator>();
       CoreSimulator cs = task.getCs();
       int corenum = cs.getCoreNum();
@@ -580,7 +580,9 @@ public class ScheduleSimulator {
 	      Vector<Integer> allycores = cs.getAllyCores(nobj.getCurrentFS());
 	      if(allycores != null) {
 		  nobj.setShared(true);
-		  for(int k = 0; k < allycores.size(); ++k) {
+		  // TODO, temporarily send to at most 2 cores
+		  int numtosend = allycores.size() > 2 ? 2 : allycores.size();
+		  for(int k = 0; k < numtosend; ++k) {
 		      Integer allyCore = allycores.elementAt(k);
 		      if(allyCore == corenum) {
 			  cs.addObject(nobj);
@@ -635,7 +637,9 @@ public class ScheduleSimulator {
 	      Vector<Integer> allycores = cs.getAllyCores(tobj.getCurrentFS());
 	      if(allycores != null) {
 		  tobj.setShared(true);
-		  for(int k = 0; k < allycores.size(); ++k) {
+		  // TODO, temporarily send to at most 2 cores
+		  int numtosend = allycores.size() > 2 ? 2 : allycores.size();
+		  for(int k = 0; k < numtosend; ++k) {
 		      Integer allyCore = allycores.elementAt(k);
 		      if(allyCore == corenum) {
 			  cs.addObject(tobj);
@@ -682,9 +686,9 @@ public class ScheduleSimulator {
 	                       Vector<SimExecutionEdge> simexegraph,
 	                       Hashtable<SimExecutionNode, Action> senode2action,
 	                       SimExecutionNode[] lastseNodes,
-	                       Hashtable<Action, Integer> action2exetime,
+	                       Hashtable<Action, Long> action2exetime,
 	                       Hashtable<TransTaskSimulator, SimExecutionNode> tttask2senode,
-	                       Hashtable<Integer, Integer> obj2transtime,
+	                       Hashtable<Integer, Long> obj2transtime,
 	                       Hashtable<Integer, SimExecutionEdge> obj2lastseedge) {
       TaskSimulator newTask = cs.process();
       int corenum = cs.getCoreNum();
@@ -701,12 +705,12 @@ public class ScheduleSimulator {
 	      SimExecutionNode seNode = new SimExecutionNode(corenum, this.processTime);
 	      seNode.setSpareCores(cp.getSpareCores());
 	      senode2action.put(seNode, action);
-	      action2exetime.put(action, -1);		
+	      action2exetime.put(action, (long)-1);		
 	      SimExecutionNode lastsenode = lastseNodes[corenum];
 	      // create edges between previous senode on this core to this node
 	      if(lastsenode != null) {
 		  Action tmpaction = senode2action.get(lastsenode);
-		  int weight = tmpaction != null? action2exetime.get(tmpaction):0;
+		  long weight = tmpaction != null? action2exetime.get(tmpaction):0;
 		  seEdge = new SimExecutionEdge(seNode,
 			                        lastsenode.getCoreNum(),
 			                        tmpaction!= null?tmpaction.getTd():null,
@@ -727,7 +731,7 @@ public class ScheduleSimulator {
 	  // create edges between previous senode on this core to this node
 	  if(lastsenode != null) {
 	      Action tmpaction = senode2action.get(lastsenode);
-	      int weight = action2exetime.get(tmpaction);
+	      long weight = action2exetime.get(tmpaction);
 	      seEdge = new SimExecutionEdge(seNode,
 		                            lastsenode.getCoreNum(),
 		                            tmpaction.getTd(),
@@ -751,7 +755,7 @@ public class ScheduleSimulator {
 		      if(lastedge.getCoreNum() != seEdge.getCoreNum()) {
 			  // the obj is transferred from another core
 			  // create an seEdge for this transfer
-			  int weight = obj2transtime.get(tparam);
+			  long weight = obj2transtime.get(tparam);
 			  SimExecutionEdge transseEdge = new SimExecutionEdge((SimExecutionNode)seEdge.getSource(),
 				                                              lastedge.getCoreNum(),
 				                                              null, // TODO: not sure if this is enough
@@ -791,7 +795,7 @@ public class ScheduleSimulator {
 	                          CheckPoint cp,
 	                          Hashtable<SimExecutionNode, Action> senode2action,
 	                          SimExecutionNode[] lastseNodes,
-	                          Hashtable<Action, Integer> action2exetime,
+	                          Hashtable<Action, Long> action2exetime,
 	                          int type) {
       Action action = new Action(cs.getCoreNum(), 
 	                         type,
@@ -812,11 +816,11 @@ public class ScheduleSimulator {
   }
   
   public class CheckPoint {
-    private int timepoint;
+    private long timepoint;
     private Vector<Action> actions;
     private Vector<Integer> spareCores;
 
-    public CheckPoint(int timepoint, 
+    public CheckPoint(long timepoint, 
 	              int corenum) {
       super();
       this.timepoint = timepoint;
@@ -847,7 +851,7 @@ public class ScheduleSimulator {
 	}
     }
 
-    public int getTimepoint() {
+    public long getTimepoint() {
       return timepoint;
     }
 

@@ -23,7 +23,7 @@ public class TaskSimulator {
   boolean finish;
 
   public class ExeResult {
-    int finishTime;
+    long finishTime;
     Vector<ObjectSimulator> newObjs;
     int exetype;     // 0--normal executing
                      // 1--abort due to fail on grabbing locks
@@ -34,11 +34,11 @@ public class TaskSimulator {
       newObjs = null;
     }
 
-    public int getFinishTime() {
+    public long getFinishTime() {
       return finishTime;
     }
 
-    public void setFinishTime(int finishTime) {
+    public void setFinishTime(long finishTime) {
       this.finishTime = finishTime;
     }
 
@@ -204,7 +204,7 @@ public class TaskSimulator {
       this.currentRun.init();
     }
 
-    int finishTime = 0;
+    long finishTime = 0;
     // According to runtime statistic information, decide the execution path of this task this time.
     // Mainly following things:
     //    1.the result, i.e. the result FlagState reached by each parameter.
@@ -304,7 +304,7 @@ public class TaskSimulator {
     this.currentRun.setExetype(0);
   }
 
-  public void updateFinishTime(int time) {
+  public void updateFinishTime(long time) {
     this.currentRun.setFinishTime(this.currentRun.finishTime - time);
     finish = false;
   }

@@ -147,7 +147,7 @@ public class MCImplSynthesis {
 	it_tasks = null;
 
 	int tryindex = 1;
-	int bestexetime = Integer.MAX_VALUE;
+	long bestexetime = Long.MAX_VALUE;
 	Random rand = new Random();
 	// simulate the generated schedulings and try to optimize it
 	do {
@@ -185,7 +185,7 @@ public class MCImplSynthesis {
 		selectedSimExeGraphs.elementAt(i).clear();
 	    }
 	    selectedSimExeGraphs.clear();
-	    int tmpexetime = this.scheduleSimulator.simulate(schedulings, 
+	    long tmpexetime = this.scheduleSimulator.simulate(schedulings, 
 		                                             selectedSchedulings, 
 		                                             selectedSimExeGraphs);
 	    boolean remove = false;
@@ -310,7 +310,8 @@ public class MCImplSynthesis {
 	System.setOut(stdout);
 
 	if(false) {
-	    this.scheduleAnalysis.setScheduleThreshold(100000);
+      // Generate all possible schedulings
+	    this.scheduleAnalysis.setScheduleThreshold(Integer.MAX_VALUE);
 	    this.scheduleAnalysis.schedule(-1);
 
 	    Vector<Vector<ScheduleNode>> totestscheduleGraphs = 
@@ -361,11 +362,12 @@ public class MCImplSynthesis {
 		    selectedSimExeGraphs.elementAt(i).clear();
 		}
 		selectedSimExeGraphs.clear();
-		int tmpexetime = this.scheduleSimulator.simulate(schedulings, 
+		long tmpexetime = this.scheduleSimulator.simulate(schedulings, 
 			selectedSchedulings, 
 			selectedSimExeGraphs);
 		output.println(((float)tmpexetime/1000000));
 	    }
+        
 	} else {
 	    // generate multiple schedulings
 	    this.scheduleThreshold = 20;
@@ -413,7 +415,7 @@ public class MCImplSynthesis {
 		    new Vector<Vector<ScheduleNode>>();
 		newscheduleGraphs.add(totestscheduleGraphs.elementAt(ii));
 		int tryindex = 1;
-		int bestexetime = Integer.MAX_VALUE;
+		long bestexetime = Long.MAX_VALUE;
 		int gid = 1;
 		Vector<Schedule> scheduling = null;
 		Vector<ScheduleNode> schedulinggraph = null;
@@ -462,7 +464,7 @@ public class MCImplSynthesis {
 			tmpgraph.clear();
 		    }
 		    selectedSimExeGraphs.clear();
-		    int tmpexetime = this.scheduleSimulator.simulate(schedulings, 
+		    long tmpexetime = this.scheduleSimulator.simulate(schedulings, 
 			    selectedSchedulings, 
 			    selectedSimExeGraphs);
 		    if(isfirst) {
@@ -625,8 +627,8 @@ public class MCImplSynthesis {
     // TODO: currently only get one critical path. It's possible that there are
     // multiple critical paths and some of them can not be optimized while others
     // can. Need to fix up for this situation.
-    private int getCriticalPath(SimExecutionNode senode, 
-	                        Vector<SimExecutionEdge> criticalPath) {
+    private long getCriticalPath(SimExecutionNode senode, 
+	                         Vector<SimExecutionEdge> criticalPath) {
 	Vector<SimExecutionEdge> edges = (Vector<SimExecutionEdge>)senode.getEdgeVector();
 	if((edges == null) || (edges.size() == 0)) {
 	    edges = null;
@@ -634,7 +636,7 @@ public class MCImplSynthesis {
 	}
 	Vector<SimExecutionEdge> subcriticalpath = new Vector<SimExecutionEdge>();
 	SimExecutionEdge edge = edges.elementAt(0);
-	int sum = edge.getWeight() + getCriticalPath((SimExecutionNode)edge.getTarget(),
+	long sum = edge.getWeight() + getCriticalPath((SimExecutionNode)edge.getTarget(),
 		                                      subcriticalpath);
 	criticalPath.clear();
 	criticalPath.add(edge);
@@ -642,7 +644,7 @@ public class MCImplSynthesis {
 	for(int i = 1; i < edges.size(); i++) {
 	    edge = edges.elementAt(i);
 	    subcriticalpath.clear();
-	    int tmpsum = edge.getWeight() 
+	    long tmpsum = edge.getWeight() 
 	               + getCriticalPath((SimExecutionNode)edge.getTarget(),
                                          subcriticalpath);
 	    if(tmpsum > sum) {
@@ -666,11 +668,11 @@ public class MCImplSynthesis {
 	    Vector<SimExecutionEdge> predicates = seedge.getPredicates();
 	    if(predicates != null) {
 		// have predicates
-		int starttime = 0;
+		long starttime = 0;
 		// check the latest finish time of all the predicates
 		for(int j = 0; j < predicates.size(); j++) {
 		    SimExecutionEdge predicate = predicates.elementAt(j);
-		    int tmptime = predicate.getBestStartPoint() + predicate.getWeight();
+		    long tmptime = predicate.getBestStartPoint() + predicate.getWeight();
 		    if(tmptime > starttime) {
 			starttime = tmptime;
 			seedge.setLastpredicateEdge(predicate);
@@ -685,7 +687,7 @@ public class MCImplSynthesis {
 		seedge.setBestStartPoint(starttime);
 	    } else if(seedge.getSource().getInedgeVector().size() > 0) {
 		// should have only one in edge
-		int starttime = ((SimExecutionNode)seedge.getSource()).getTimepoint();
+		long starttime = ((SimExecutionNode)seedge.getSource()).getTimepoint();
 		seedge.setBestStartPoint(starttime);
 	    } else {
 		// no predicates
@@ -711,15 +713,15 @@ public class MCImplSynthesis {
 	
 	// first check all seedges whose real start point is late than predicted
 	// earliest start time and group them
-	int opcheckpoint = Integer.MAX_VALUE;
+	long opcheckpoint = Long.MAX_VALUE;
 	Vector<Integer> sparecores = null;
 	// group according to core index
-	Hashtable<Integer, Hashtable<Integer, Vector<SimExecutionEdge>>> toselects = 
-	    new Hashtable<Integer, Hashtable<Integer, Vector<SimExecutionEdge>>>();
+	Hashtable<Long, Hashtable<Integer, Vector<SimExecutionEdge>>> toselects = 
+	    new Hashtable<Long, Hashtable<Integer, Vector<SimExecutionEdge>>>();
 	Random rand = new Random();
 	for(int i = 0; i < criticalPath.size(); i++) {
 	    SimExecutionEdge seedge = criticalPath.elementAt(i);
-	    int starttime = seedge.getBestStartPoint();
+	    long starttime = seedge.getBestStartPoint();
 	    if(starttime < ((SimExecutionNode)seedge.getSource()).getTimepoint()) {
 		// no restrictions due to data dependencies
 		// have potential to be parallelled and start execution earlier
@@ -744,21 +746,21 @@ public class MCImplSynthesis {
 	
 	// Randomly choose the tasks to optimize(previously only 
 	// consider the tasks with smallest best start time)
-	Vector<Integer> keys = new Vector<Integer>(toselects.keySet());
+	Vector<Long> keys = new Vector<Long>(toselects.keySet());
 	do{
 	    int length = keys.size();
 	    if(length == 0) {
 		return optimizeschedulegraphs;
 	    }
 	    int tochoose = Math.abs(rand.nextInt()) % length;
-	    opcheckpoint = (keys.elementAt(tochoose)).intValue();
+	    opcheckpoint = (keys.elementAt(tochoose)).longValue();
 	    keys.removeElementAt(tochoose);
 	    Hashtable<Integer, Vector<SimExecutionEdge>> tooptimize = 
 		toselects.get(opcheckpoint);
 	    SimExecutionEdge seedge = tooptimize.values().iterator().next().elementAt(0);
 	    SimExecutionNode lastpredicatenode = seedge.getLastpredicateNode();
 	    SimExecutionEdge lastpredicateedge = seedge.getLastpredicateEdge();
-	    int timepoint = lastpredicatenode.getTimepoint();
+	    long timepoint = lastpredicatenode.getTimepoint();
 	    if(lastpredicateedge.getTd() == null) {
 		// transfer edge
 		timepoint += lastpredicateedge.getWeight();

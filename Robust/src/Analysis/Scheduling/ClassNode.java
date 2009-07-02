@@ -23,7 +23,7 @@ public class ClassNode extends GraphNode implements Cloneable {
   private boolean sorted = false;
   private boolean clone = false;
 
-  private int transTime;
+  private long transTime;
 
   /** Class constructor
    *	@param cd ClassDescriptor
@@ -51,11 +51,11 @@ public class ClassNode extends GraphNode implements Cloneable {
     this.transTime = 0;
   }
 
-  public int getTransTime() {
+  public long getTransTime() {
     return this.transTime;
   }
 
-  public void setTransTime(int transTime) {
+  public void setTransTime(long transTime) {
     this.transTime = transTime;
   }
 
@@ -135,7 +135,7 @@ public class ClassNode extends GraphNode implements Cloneable {
 
   public int hashCode() {
     return cd.hashCode()^uid^cid^Boolean.toString(sorted).hashCode()^
-           Boolean.toString(clone).hashCode()^transTime^flagStates.hashCode();
+           Boolean.toString(clone).hashCode()^(int)transTime^flagStates.hashCode();
   }
 
   public String getLabel() {

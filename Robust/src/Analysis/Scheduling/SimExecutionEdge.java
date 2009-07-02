@@ -13,9 +13,9 @@ public class SimExecutionEdge extends Edge {
     private int coreNum;
     private TaskDescriptor td;
     private Vector<Integer> taskparams;
-    private int weight;
+    private long weight;
     
-    private int bestStartPoint;
+    private long bestStartPoint;
     private SimExecutionNode lastpredicatenode;
     private SimExecutionEdge lastpredicateedge;
     private Vector<SimExecutionEdge> predicates;
@@ -24,7 +24,7 @@ public class SimExecutionEdge extends Edge {
     public SimExecutionEdge(SimExecutionNode target,
 	                    int corenum,
 	                    TaskDescriptor td,
-	                    int weight,
+	                    long weight,
                             Vector<Integer> taskparams) {
 	super(target);
 	this.eid = SimExecutionEdge.nodeID++;
@@ -39,15 +39,15 @@ public class SimExecutionEdge extends Edge {
 	this.isFixedTime = true;
     }
     
-    public int getBestStartPoint() {
+    public long getBestStartPoint() {
 	if(this.bestStartPoint == -1) {
 	    if(this.predicates.size() > 0) {
 		// have predicates
-		int starttime = 0;
+		long starttime = 0;
 		// check the latest finish time of all the predicates
 		for(int j = 0; j < this.predicates.size(); j++) {
 		    SimExecutionEdge predicate = this.predicates.elementAt(j);
-		    int tmptime = predicate.getBestStartPoint() + predicate.getWeight();
+		    long tmptime = predicate.getBestStartPoint() + predicate.getWeight();
 		    if(tmptime > starttime) {
 			starttime = tmptime;
 			this.lastpredicateedge = predicate;
@@ -68,7 +68,7 @@ public class SimExecutionEdge extends Edge {
         return bestStartPoint;
     }
 
-    public void setBestStartPoint(int bestStartPoint) {
+    public void setBestStartPoint(long bestStartPoint) {
         this.bestStartPoint = bestStartPoint;
     }
     
@@ -93,7 +93,7 @@ public class SimExecutionEdge extends Edge {
         return td;
     }
 
-    public int getWeight() {
+    public long getWeight() {
         return weight;
     }
 

@@ -471,7 +471,7 @@ public class SchedulingUtil {
   }
 
   public static void printSimulationResult(String path, 
-	                                   int time, 
+	                                   long time, 
 	                                   int coreNum, 
 	                                   Vector<CheckPoint> checkpoints) {
     try {
@@ -758,13 +758,13 @@ public class SchedulingUtil {
       }
       output.print("\t");
       output.print("\t");
-      int prev = Integer.parseInt(timeNodes.elementAt(0));
-      int next = 0;
-      int max = 0;
-      int max2 = 0;
+      long prev = Long.parseLong(timeNodes.elementAt(0));
+      long next = 0;
+      long max = 0;
+      long max2 = 0;
       for(j = 1; j < timeNodes.size(); j++) {
-	next = Integer.parseInt(timeNodes.elementAt(j));
-	int delta = next - prev;
+	next = Long.parseLong(timeNodes.elementAt(j));
+	long delta = next - prev;
 	if(max < delta) {
 	  max2 = max;
 	  max = delta;
@@ -779,10 +779,10 @@ public class SchedulingUtil {
 	max2 = max/100;
       }
       output.println("\"Time\"->" + timeNodes.elementAt(0) + "[style=invis];");
-      prev = Integer.parseInt(timeNodes.elementAt(0));
+      prev = Long.parseLong(timeNodes.elementAt(0));
       next = 0;
       for(j = 1; j < timeNodes.size(); j++) {
-	next = Integer.parseInt(timeNodes.elementAt(j));
+	next = Long.parseLong(timeNodes.elementAt(j));
 	if(next - prev > max2) {
 	  do {
 	    output.print(prev + "->");

@@ -10,11 +10,11 @@ public class SimExecutionNode extends GraphNode {
     private static int nodeID=0;
     
     private int coreNum;
-    private int timepoint;
+    private long timepoint;
     public Vector<Integer> spareCores;
     
     public SimExecutionNode(int corenum,
-	                    int timepoint) {
+	                    long timepoint) {
 	this.nid = SimExecutionNode.nodeID++;
 	this.coreNum = corenum;
 	this.timepoint = timepoint;
@@ -25,7 +25,7 @@ public class SimExecutionNode extends GraphNode {
         return nid;
     }
 
-    public int getTimepoint() {
+    public long getTimepoint() {
         return timepoint;
     }
 
