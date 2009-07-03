@@ -28,6 +28,12 @@ extern __thread struct primitivelist primstack;
 
 #define STOREPTR(x) {void * y=COMPOID(x); ptrstack.array[ptrstack.count++]=y; dc_t_chashInsertOnce(y,y);}
 
+#define STOREPTRNOLOCK(x) {void * y=COMPOID(x); ptrstack.array[ptrstack.count++]=y; }
+
+#define STOREPTRNOTRANS(x) {void * y=x; ptrstack.array[ptrstack.count++]=y; dc_t_chashInsertOnce(y,y);}
+
+#define STOREPTRNOLOCKNOTRANS(x) {void * y=x; ptrstack.array[ptrstack.count++]=y; }
+
 //Branches
 
 #define RESTOREANDBRANCH(loc) if (primstack.array[primstack.count++]) goto loc
