@@ -309,7 +309,8 @@ public class DelayComputation {
 	  if (inpart1&&inpart2) {
 	    for(Iterator<FlatNode> fnit2=fnset.iterator();fnit2.hasNext();) {
 	      FlatNode fn2=fnit2.next();
-	      if (otherset.contains(fn2)||cannotdelayset.contains(fn2)) {
+	      if ((otherset.contains(fn2)||cannotdelayset.contains(fn2))&&
+		  locality.getAtomic(lb).get(fn2).intValue()>0) {
 		unionset.add(fn2);
 		livenodes.add(fn2);
 	      }
@@ -318,7 +319,7 @@ public class DelayComputation {
 	}
       }
     }
-
+    
     HashSet<FlatNode> toanalyze=new HashSet<FlatNode>();
     toanalyze.add(fm);
 
