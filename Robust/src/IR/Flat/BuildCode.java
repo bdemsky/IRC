@@ -69,6 +69,7 @@ public class BuildCode {
   boolean nonSESEpass=true;
   WriteBarrier wb;
   DiscoverConflicts dc;
+  DiscoverConflicts recorddc;
   DelayComputation delaycomp;
   CallGraph callgraph;
 
@@ -117,6 +118,7 @@ public class BuildCode {
       delaycomp=new DelayComputation(locality, st, typeanalysis, gft);
       delaycomp.doAnalysis();
       dc=delaycomp.getConflicts();
+      recorddc=new DiscoverConflicts(locality, st, typeanalysis, delaycomp.getCannotDelayMap(), true, true);
     }
 
     if(state.MLP) {
@@ -1994,7 +1996,12 @@ public class BuildCode {
 	    if (firstpass) {
 	      //need to store value written by previous node
 	      if (wrtmp.getType().isPtr()) {
-		output.println("STOREPTR("+generateTemp(fm, wrtmp,lb)+");");
+		//only lock the objects that may actually need locking
+		if (recorddc.getNeedTrans(lb, current_node)) {
+		  output.println("STOREPTR("+generateTemp(fm, wrtmp,lb)+");");
+		} else {
+		  output.println("STOREPTRNOTRANS("+generateTemp(fm, wrtmp,lb)+");");
+		}
 	      } else {
 		output.println("STORE"+wrtmp.getType().getSafeDescriptor()+"("+generateTemp(fm, wrtmp, lb)+");");
 	      }

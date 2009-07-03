@@ -26,7 +26,8 @@ public class DiscoverConflicts {
   TypeAnalysis typeanalysis;
   Hashtable<LocalityBinding, HashSet<FlatNode>>cannotdelaymap;
   Hashtable<LocalityBinding, Hashtable<FlatNode, Hashtable<TempDescriptor, Set<TempFlatPair>>>> lbtofnmap;
-
+  boolean inclusive=false;
+  boolean normalassign=false;
 
   public DiscoverConflicts(LocalityAnalysis locality, State state, TypeAnalysis typeanalysis) {
     this.locality=locality;
@@ -42,7 +43,7 @@ public class DiscoverConflicts {
     lbtofnmap=new Hashtable<LocalityBinding, Hashtable<FlatNode, Hashtable<TempDescriptor, Set<TempFlatPair>>>>();
   }
 
-  public DiscoverConflicts(LocalityAnalysis locality, State state, TypeAnalysis typeanalysis, Hashtable<LocalityBinding, HashSet<FlatNode>> cannotdelaymap) {
+  public DiscoverConflicts(LocalityAnalysis locality, State state, TypeAnalysis typeanalysis, Hashtable<LocalityBinding, HashSet<FlatNode>> cannotdelaymap, boolean inclusive, boolean normalassign) {
     this.locality=locality;
     this.fields=new HashSet<FieldDescriptor>();
     this.arrays=new HashSet<TypeDescriptor>();
@@ -55,6 +56,8 @@ public class DiscoverConflicts {
     leftsrcmap=new Hashtable<LocalityBinding, Set<FlatNode>>();
     rightsrcmap=new Hashtable<LocalityBinding, Set<FlatNode>>();
     lbtofnmap=new Hashtable<LocalityBinding, Hashtable<FlatNode, Hashtable<TempDescriptor, Set<TempFlatPair>>>>();
+    this.inclusive=inclusive;
+    this.normalassign=normalassign;
   }
 
   public Set<FieldDescriptor> getFields() {
@@ -294,8 +297,8 @@ public class DiscoverConflicts {
     for(Iterator<FlatNode> fnit=fm.getNodeSet().iterator();fnit.hasNext();) {
       FlatNode fn=fnit.next();
 
-      //Check whether this node matters for delayed computation
-      if (cannotdelaymap!=null&&cannotdelaymap.containsKey(lb)&&!cannotdelaymap.get(lb).contains(fn))
+      //Check whether this node matters for cannot delayed computation
+      if (cannotdelaymap!=null&&cannotdelaymap.containsKey(lb)&&cannotdelaymap.get(lb).contains(fn)==inclusive)
 	continue;
 
       Hashtable<FlatNode, Integer> atomictable=locality.getAtomic(lb);
@@ -432,9 +435,13 @@ public class DiscoverConflicts {
 	  }
 	  case FKind.FlatOpNode: {
 	    FlatOpNode fon=(FlatOpNode)fn;
-	    if (fon.getOp().getOp()==Operation.ASSIGN&&fon.getDest().getType().isPtr()&&
-		ttofn.containsKey(fon.getLeft())) {
-	      ttofn.put(fon.getDest(), new HashSet<TempFlatPair>(ttofn.get(fon.getLeft())));
+	    if (fon.getOp().getOp()==Operation.ASSIGN&&fon.getDest().getType().isPtr()) {
+	      HashSet<TempFlatPair> set=new HashSet<TempFlatPair>();
+	      if (ttofn.containsKey(fon.getLeft()))
+		set.addAll(ttofn.get(fon.getLeft()));
+	      if (normalassign)
+		set.add(new TempFlatPair(fon.getDest(), fn));
+	      ttofn.put(fon.getDest(), set);
 	      break;
 	    }
 	  }

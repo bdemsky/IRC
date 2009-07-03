@@ -40,13 +40,18 @@ public class DelayComputation {
     return dcopts;
   }
 
+  public Hashtable<LocalityBinding, HashSet<FlatNode>> getCannotDelayMap() {
+    return cannotdelaymap;
+  }
+
   public void doAnalysis() {
     Set<LocalityBinding> localityset=locality.getLocalityBindings();
     for(Iterator<LocalityBinding> lbit=localityset.iterator();lbit.hasNext();) {
       analyzeMethod(lbit.next());
     }
 
-    dcopts=new DiscoverConflicts(locality, state, typeanalysis, cannotdelaymap);
+    //ignore things that aren't in the map
+    dcopts=new DiscoverConflicts(locality, state, typeanalysis, cannotdelaymap, false, false);
     dcopts.doAnalysis();
 
 
