@@ -5,5 +5,7 @@
 public class Decoded {
     int flowId;
     String data;
+
+    public Decoded() {}
 }
 

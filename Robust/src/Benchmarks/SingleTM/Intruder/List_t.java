@@ -74,8 +74,8 @@
 
 public class List_t {
 
-    public List_Node head;
-    int flag;
+    List_Node head;
+    int chk;
     int size;
 
     public List_t() {
@@ -113,7 +113,7 @@ public class List_t {
  *
  */
 
-    public static List_t alloc(int flag) 
+    public static List_t alloc(int chk) 
     {
         List_t listPtr = new List_t();
 
@@ -125,7 +125,7 @@ public class List_t {
         listPtr.head.nextPtr = null;
         listPtr.size = 0;
         
-        listPtr.flag = flag;
+        listPtr.chk = chk;
 
         return listPtr;
     }
@@ -207,9 +207,9 @@ public class List_t {
 
     public int compare(Object obj1,Object obj2) 
     {
-        if(flag == 1)
+        if(chk == 1)
         {
-            return Packet.compareFragmentID(obj1,obj2);
+            return Packet.compareFragmentID((Packet)obj1,(Packet)obj2);
         }
         else 
             return compareObject(obj1,obj2);
@@ -294,19 +294,6 @@ public class List_t {
  * =============================================================================
  */
 
- /* Test list */
-
- public static void main(String[] argv) {
-     List_t listPtr;
-     int[] data1 = new int[5];
-     int[] data2 = new int[6];
-
-     int i;
-
-     System.out.println("Starting...");
-        }
-
-}
 
 
-     
+} 

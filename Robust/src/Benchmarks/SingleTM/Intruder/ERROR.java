@@ -68,15 +68,27 @@
  * =============================================================================
  */
 
-public class ERROR {
-    int NONE = 0;
-    int SHORT = 1;
-    int FLOWID = 2;
-    int FRAGMENTID = 3;
-    int LENGTH = 4;
-    int NUMFRAGMENT = 5;
-    int INCOMPLETE = 6;
-    int SIGNATURE = 7;
+public static class ERROR {
+    static int NONE;
+    static int SHORT;
+    static int FLOWID;
+    static int FRAGMENTID;
+    static int LENGTH;
+    static int NUMFRAGMENT;
+    static int INCOMPLETE;
+    static int SIGNATURE;
+
+    public ERROR() {
+
+        NONE = 0;
+        SHORT = 1;
+        FLOWID = 2;
+        FRAGMENTID = 3;
+        LENGTH = 4;
+        NUMFRAGMENT = 5;
+        INCOMPLETE = 6;
+        SIGNATURE = 7;   
+    }
 }
 
 

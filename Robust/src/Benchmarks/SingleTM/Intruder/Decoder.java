@@ -72,10 +72,9 @@
 #define MAP_T                       RBTree
 #define MAP_ALLOC(hash, cmp)        RBTree.alloc(cmp)
 #define MAP_INSERT(map, key, data)  map.insert(key, data)
-#define MAP_CONTAINS(map, key)      map.contains(key);
-#define MAP_FIND(map,key)           map.get(key);
-#define MAP_INSERT(map,key,data)    map.insert(key,data);
-#define MAP_REMOVE(map,key)         map.deleteNode(key);
+#define MAP_CONTAINS(map, key)      map.contains(key)
+#define MAP_FIND(map,key)           map.get(key)
+#define MAP_REMOVE(map,key)         map.deleteNode(key)
 
 public class Decoder {
 
@@ -93,23 +92,25 @@ public class Decoder {
         Decoder decoderPtr;
 
         decoderPtr = new Decoder();
-        if(decoderPtr) {
-            decoderPtr.fragementedMapPtr = MAP_ALLOC(0,0);
+        if(decoderPtr != null) {
+            decoderPtr.fragmentedMapPtr = MAP_ALLOC(0,0);
 
-            if(decoderPtr.fragementedMapPtr == null)
+            if(decoderPtr.fragmentedMapPtr == null)
             {
                 System.out.println("Assert in Decoder.alloc");
                 System.exit(1);
             }
             
-            decoderPtr.decodedQueuePtr = Queue_t.alloc(1024);
+            decoderPtr.decodedQueuePtr = Queue_t.queue_alloc(1024);
             if(decoderPtr.decodedQueuePtr == null)
             {
                 System.out.println("Assert in Decoder.alloc");
                 System.exit(1);
             }
 
-            return decoderPtr;            
+        }
+
+        return decoderPtr;
     }
 
 
@@ -118,28 +119,24 @@ public class Decoder {
  * =============================================================================
  void decoder_free (decoder_t* decoderPtr);
  */
-    public free(Decoder decoderPtr) {
-        fragmentedMapPtr = null;
-        decodedQueuePtr = null;
-        decoderPtr = null;
-    }
 
 
 /* =============================================================================
  * decoder_process
  * =============================================================================
- error_t decoder_process (decoder_t* decoderPtr, char* bytes, long numByte);
+ er_t decoder_process (decoder_t* decoderPtr, char* bytes, long numByte);
  */
     public int process(Packet bytes,int numByte)
     {
         boolean status;
+        ERROR er;
 
         /*
-         * Basic error checing
+         * Basic er checing
          */
 
-        if (numByte < PACKET_HEADER_LENGTH) {
-            return ERROR.SHORT;
+        if (numByte < 0) {
+            return er.SHORT;
         }
 
         /* need to look into it later */
@@ -150,16 +147,17 @@ public class Decoder {
         int length = packetPtr.length;
 
         if (flowId < 0) {
-            return ERROR.FLOWID;
+            return er.FLOWID;
         }
 
-        if ((fragmentedId < 0) || (fragmentId >= numFragment)) {
-            return ERROR.FRAGMENTID;
+        if ((fragmentId < 0) || (fragmentId >= numFragment)) {
+            return er.FRAGMENTID;
         }
 
         if (length < 0) {
-            return ERROR.LENGTH;
+            return er.LENGTH;
         }
+
     
         /*
          * Add to fragmented map for reassembling
@@ -178,16 +176,15 @@ public class Decoder {
                 }
 
                 status = MAP_INSERT(fragmentedMapPtr,flowId,fragmentListPtr);
-                if(status == null) {
+                if(status) {
                     System.out.println("Assertion in process");
                     System.exit(1);                                
                 }
             } else {
-
                 List_Iter it;
                 it.reset(fragmentListPtr);
                 
-                if(it.hasNext(fragmentListPtr) == null) {
+                if(it.hasNext(fragmentListPtr)) {
                     System.out.println("Assertion in process");
                     System.exit(1);
                 }
@@ -197,13 +194,13 @@ public class Decoder {
 
                 if (numFragment != expectedNumFragment) {
                     status = MAP_REMOVE(fragmentedMapPtr,flowId);
-                    if(status == null) {
+                    if(status) {
                         System.out.println("Assertion in process");
                         System.exit(1);
                     }
 
                     status = fragmentListPtr.insert(packetPtr);
-                    if(status == null) {
+                    if(status) {
                         System.out.println("Assertion in process");
                         System.exit(1);
                     }
@@ -214,7 +211,8 @@ public class Decoder {
 
                     if(fragmentListPtr.getSize() ==  numFragment) {
 
-                        int numByte = 0;
+
+                        int numBytes = 0;
                         int i = 0;
                         it.reset(fragmentListPtr);
 
@@ -222,37 +220,37 @@ public class Decoder {
                             Packet fragmentPtr = (Packet)it.next(fragmentListPtr);
 
                             if(fragmentPtr.fragmentId != i) {
-                                status = MAP_REMOVE(fragmentedMapPtr,(flowId);
+                                status = MAP_REMOVE(fragmentedMapPtr,flowId);
                                 
-                                if(status == null) {
+                                if(status) {
                                     System.out.println("Assertion in process");
                                     System.exit(1);
                                 }
-                                    return ERROR.INCOMPLETE; /* should be sequential */
+                               return er.INCOMPLETE; /* should be sequential */
                             }
-                                numByte += fragmentPtr.length;
+                                numBytes += fragmentPtr.length;
                                 i++;
                         }
 
-                        char[] data = new char[numByte+1];
+                        char[] data = new char[numBytes+1];
                         if(data == null) {
                              System.out.println("Assertion in process");
                              System.exit(1);
                         }
 
-                        data[numByte] = '\0';
+                        data[numBytes] = '\0';
                         int dst = 0;            // index of data
-                        int i;
                         it.reset(fragmentListPtr);
-                        while(it.hasNext(fragmentLIstPtr)) {
+                        while(it.hasNext(fragmentListPtr)) {
                             Packet fragmentPtr = (Packet)it.next(fragmentListPtr);
 
-                            for(i=0;i<fragmentPtr.length;i++)
-                                data[dst++] = fragmentPtr.data[i];
+                            for(i=0;i<fragmentPtr.length;i++) {                      
+                                data[dst++] = fragmentPtr.data.charAt(i);
+                            }
                         }
-
-                        if(dst != data + numByte) {
-                            System.out.println("Assertion in process");                           
+                        
+                        if(dst != (numBytes)) {
+                            System.out.println("Assertion in process");                         
                             System.exit(1);
                         }
 
@@ -263,31 +261,33 @@ public class Decoder {
                         }
 
                         decodedPtr.flowId = flowId;
-                        decodedPtr.data = String.copyValueOf(data);
+                        decodedPtr.data = new String(data);
 
-                        status = decodededQueuePtr.queue_push(decodedPtr);
+                        status = decodedQueuePtr.queue_push(decodedPtr);
 
-                        if(status == null) {
-                            System.out.println("Assertion in process");                           
+                        if(status) {
+                            System.out.println("Assertion in process");  
                             System.exit(1);
                         }
 
                         status = MAP_REMOVE(fragmentedMapPtr,flowId);
 
-                        if(status == null) {
-                            System.out.println("Assertion in process");                           
+                        if(status) {
+                            System.out.println("Assertion in process");                         
                             System.exit(1);
                         }
-                    }
-                }
-            } else {
+                    }                
+                } 
+            }
+
+        }else {
 
                 /*
                  * This is the only fragment, so it is ready
                  */
 
                 if (fragmentId != 0) {
-                    return ERROR.FRAGMENTID;
+                    return er.FRAGMENTID;
                 }
 
                 String data = new String();
@@ -297,8 +297,9 @@ public class Decoder {
                 }
 
                 data.concat(packetPtr.data);
-                
-                Decoded decodedPtr = new Decoded();
+
+               Decoded decodedPtr = new Decoded();
+
                 if(decodedPtr == null) {
                     System.out.println("Assertion in process");                           
                     System.exit(1);
@@ -309,22 +310,24 @@ public class Decoder {
 
                 status = decodedQueuePtr.queue_push(decodedPtr);
                 
-                if(status == null) {
+                if(status) {
                     System.out.println("Assertion in process");                           
                     System.exit(1);
                 }
-
-                return ERROR.NONE;
-
             }
 
+    
+        return er.NONE;
 
+            
+        
+    }
 
 
 /* =============================================================================
  * TMdecoder_process
  * =============================================================================
- error_t TMdecoder_process (TM_ARGDECL  decoder_t* decoderPtr, char* bytes, long numByte);
+ er_t TMdecoder_process (TM_ARGDECL  decoder_t* decoderPtr, char* bytes, long numByte);
  */
 
 
@@ -337,19 +340,19 @@ public class Decoder {
         String data;
         Decoded decodedPtr = (Decoded)decodedQueuePtr.queue_pop();
 
-        if(decodedPtr) {
+        if(decodedPtr != null) {
             decodedFlowId[0] = decodedPtr.flowId;
             data = decodedPtr.data;
             decodedPtr = null;
         } else {
-            decodedFlowId = -1;
+            decodedFlowId[0] = -1;
             data= null;
         }
 
         return data;
     }
 
-
+}
 
 /* =============================================================================
  * TMdecoder_getComplete
@@ -357,7 +360,7 @@ public class Decoder {
  * =============================================================================
  char* TMdecoder_getComplete (TM_ARGDECL  decoder_t* decoderPtr, long* decodedFlowIdPtr);
  */
-}
+
 
 /* =============================================================================
  *

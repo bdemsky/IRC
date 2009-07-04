@@ -5,7 +5,7 @@ public class convertURNHex extends Preprocessor
     public convertURNHex() {
         super();
     }
-    public void process(String str)
+    public static void process(String str)
     {
       char[] str_char = str.toCharArray();
       int src = 0;
@@ -15,8 +15,8 @@ public class convertURNHex extends Preprocessor
       while((c = str_char[src]) != '\0') {
           if (c == '%') {
               char[] hex = new char[3];
-              hex[0] = Character.toLowerCase((str_char[src+1]));
-              hex[1] = Character.toLowerCase((str_char[src+2]));
+              hex[0] = toLowerCase((int)str_char[src+1]);
+              hex[1] = toLowerCase((int)str_char[src+2]);
               hex[2] = '\0';
                          
               String a = String.valueOf(hex);
@@ -30,6 +30,17 @@ public class convertURNHex extends Preprocessor
       }
       str_char[dst] = '\0';
       
-      str = String.valueOf(str_char);
+      str = new String(str_char);
+    }
+
+    private static char toLowerCase(int a) {
+        
+        if(a >= 65 && a <= 90)
+        {
+            return (char)(a + 32);  // difference 'a'(97) - 'A'(65) = 32
+        }
+        else return (char)a;
+
+
     }
 }
