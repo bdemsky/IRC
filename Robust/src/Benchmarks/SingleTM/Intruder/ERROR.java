@@ -69,14 +69,14 @@
  */
 
 public static class ERROR {
-    static int NONE;
-    static int SHORT;
-    static int FLOWID;
-    static int FRAGMENTID;
-    static int LENGTH;
-    static int NUMFRAGMENT;
-    static int INCOMPLETE;
-    static int SIGNATURE;
+    int NONE;
+    int SHORT;
+    int FLOWID;
+    int FRAGMENTID;
+    int LENGTH;
+    int NUMFRAGMENT;
+    int INCOMPLETE;
+    int SIGNATURE;
 
     public ERROR() {
 
