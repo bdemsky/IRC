@@ -67,289 +67,331 @@
  *
  * =============================================================================
  */
+#define PARAM_ATTACK 'a'
+#define PARAM_LENGTH 'l'
+#define PARAM_NUM    'n'
+#define PARAM_SEED   's'
+#define PARAM_THREAD 't'
 
-#define PARAM_ATTACK  97
-#define PARAM_LENGTH  108
-#define PARAM_NUM     110
-#define PARAM_THREAD  116
-
-#define PARAM_DEFAULT_ATTACK  10
-#define PARAM_DEFAULT_LENGTH  16
-#define PARAM_DEFAULT_NUM     (1 << 20)
-#define PARAM_DEFAULT_SEED    1
-#define PARAM_DEFAULT_THREAD  1
-
+#define PARAM_DEFAULT_ATTACK 10
+#define PARAM_DEFAULT_LENGTH 16
+#define PARAM_DEFAULT_NUM (1 << 20)
+#define PARAM_DEFAULT_SEED 1
+#define PARAM_DEFAULT_THREAD 1
 
 public class Intruder extends Thread {
-  long global_params[256];  /* 256 = ascii limit */
+
+    int percentAttack;
+    int maxDataLength;
+    int numFlow;
+    int randomSeed;
+    int numThread;
+
+    int threadID;
+    Arg argument;
 
 
+    public Intruder(String[] argv) 
+    {
+        parseArg(argv);
+    }
 
-  public Intruder() {
-    global_params[PARAM_ATTACK] = PARAM_DEFAULT_ATTACK;
-    global_params[PARAM_LENGTH] = PARAM_DEFAULT_LENGTH;
-    global_params[PARAM_NUM]    = PARAM_DEFAULT_NUM;
-    global_params[PARAM_SEED]   = PARAM_DEFAULT_SEED;
-    global_params[PARAM_THREAD] = PARAM_DEFAULT_THREAD;
-  }
-}
+    public Intruder(int myID,Arg a)
+    {
+        argument = a;
+        threadID = myID;
+    }
 
-typedef struct arg {
-  /* input: */
-    stream_t* streamPtr;
-    decoder_t* decoderPtr;
-  /* output: */
-    vector_t** errorVectors;
-} arg_t;
+    private setDefaultParams() 
+    {
+        percentAttack = PARAM_DEFAULT_ATTACK;
+        maxDataLength = PARAM_DEFAULT_LENGTH;
+        numFlow       = PARAM_DEFAULT_NUM;
+        randomSeed    = PARAM_DEFAULT_SEED;
+        numThread     = PARAM_DEFAULT_THREAD;
+    }
 
 
 /* =============================================================================
  * displayUsage
  * =============================================================================
  */
-static void
-displayUsage (const char* appName)
-{
-    printf("Usage: %s [options]\n", appName);
-    puts("\nOptions:                            (defaults)\n");
-    printf("    a <UINT>   Percent [a]ttack     (%i)\n", PARAM_DEFAULT_ATTACK);
-    printf("    l <UINT>   Max data [l]ength    (%i)\n", PARAM_DEFAULT_LENGTH);
-    printf("    n <UINT>   [n]umber of flows    (%i)\n", PARAM_DEFAULT_NUM);
-    printf("    s <UINT>   Random [s]eed        (%i)\n", PARAM_DEFAULT_SEED);
-    printf("    t <UINT>   Number of [t]hreads  (%i)\n", PARAM_DEFAULT_THREAD);
-    exit(1);
-}
+    private void displayUsage()
+    {   
+        System.out.print  ("Usage: Intruder [options]\n");
+        System.out.println("\nOptions:                            (defaults)\n");
+        System.out.print  ("    a <UINT>   Percent [a]ttack     ");
+        System.out.print  ("    l <UINT>   Max data [l]ength    ");
+        System.out.print  ("    n <UINT>   [n]umber of flows    ");
+        System.out.print  ("    s <UINT>   Random [s]eed        ");
+        System.out.print  ("    t <UINT>   Number of [t]hreads  ");
+        System.exit(1);
+    }
 
 
 /* =============================================================================
  * parseArgs
  * =============================================================================
  */
-static void
-parseArgs (long argc, char* const argv[])
-{
-    long i;
-    long opt;
+    private void parseArg(String[] argv) 
+    {
+        int i=0;
+        String arg;
+        boolean opterr = false;
 
-    opterr = 0;
+        setDefaultParams();
 
-    while ((opt = getopt(argc, argv, "a:l:n:s:t:")) != -1) {
-        switch (opt) {
-            case 'a':
-            case 'l':
-            case 'n':
-            case 's':
-            case 't':
-                global_params[(unsigned char)opt] = atol(optarg);
-                break;
-            case '?':
-            default:
-                opterr++;
-                break;
+        while ( i< argv.length) {
+
+            if(argv[i].charAt(0) == '-') {
+                arg = argv[i++];
+                //check options
+                if(arg.equals("-a")) {
+                    percentAttack = Integer.parseInt(argv[i++]);
+                }
+                else if(arg.equals("-l")) {
+                    maxDataLength = Integer.parseInt(argv[i++]);
+                } 
+                else if(arg.equals("-n")) {
+                    numFlow = Integer.parseInt(argv[i++]);
+                }
+                else if(arg.equals("-s")) {
+                    randomSeed = Integer.parseInt(argv[i++]);
+                }
+                else if(arg.equals("-t")) {
+                    numThread = Integer.parseInt(argv[i++]);
+                }
+                else {
+                    System.out.println("Non-option argument: " + argv[i]);
+                    opterr = true;
+                }
+            }
+        }
+        if(opterr) {
+            displayUsage();
         }
     }
 
-    for (i = optind; i < argc; i++) {
-        fprintf(stderr, "Non-option argument: %s\n", argv[i]);
-        opterr++;
-    }
-
-    if (opterr) {
-        displayUsage(argv[0]);
-    }
-}
+    
 
 
 /* =============================================================================
  * processPackets
  * =============================================================================
  */
-void
-processPackets (void* argPtr)
-{
-    TM_THREAD_ENTER();
+    public void processPackets(Arg argPtr)
+    {
+        // TM_THREAD_ENTER();
+        
+        Stream streamPtr = argPtr.streamPtr;
+        Decoder decoderPtr = argPtr.decoderPtr;
+        Vector_t[] errorVectors = argPtr.errorVectors;
+      
 
-    long threadId = thread_getId();
-
-    stream_t*   streamPtr    = ((arg_t*)argPtr)->streamPtr;
-    decoder_t*  decoderPtr   = ((arg_t*)argPtr)->decoderPtr;
-    vector_t**  errorVectors = ((arg_t*)argPtr)->errorVectors;
-
-    detector_t* detectorPtr = PDETECTOR_ALLOC();
-    assert(detectorPtr);
-    PDETECTOR_ADDPREPROCESSOR(detectorPtr, &preprocessor_toLower);
-
-    vector_t* errorVectorPtr = errorVectors[threadId];
-
-    while (1) {
-
-        char* bytes;
-        TM_BEGIN();
-        bytes = TMSTREAM_GETPACKET(streamPtr);
-        TM_END();
-        if (!bytes) {
-            break;
+        Detector detectorPtr = Detector.alloc();
+        if(detectorPtr == null)
+        {
+            System.out.println("Assertion in processPackets");
+            System.exit(1);
         }
+        
+        detectorPtr.addPreprocessor(2);
 
-        packet_t* packetPtr = (packet_t*)bytes;
-        long flowId = packetPtr->flowId;
+        Vector_t errorVectorPtr = errorVectors[threadID];
+        int cnt =0;
 
-        error_t error;
-        TM_BEGIN();
-        error = TMDECODER_PROCESS(decoderPtr,
-                                  bytes,
-                                  (PACKET_HEADER_LENGTH + packetPtr->length));
-        TM_END();
-        if (error) {
-            /*
-             * Currently, stream_generate() does not create these errors.
-             */
-            assert(0);
-            bool_t status = PVECTOR_PUSHBACK(errorVectorPtr, (void*)flowId);
-            assert(status);
-        }
+        while(true) {
+            Packet packetPtr;
+            // TM_BEGIN();
+            atomic {
+                packetPtr = streamPtr.getPacket();
+            }
+            // TM_END();
+            //
 
-        char* data;
-        long decodedFlowId;
-        TM_BEGIN();
-        data = TMDECODER_GETCOMPLETE(decoderPtr, &decodedFlowId);
-        TM_END();
-        if (data) {
-            error_t error = PDETECTOR_PROCESS(detectorPtr, data);
-            P_FREE(data);
-            if (error) {
-                bool_t status = PVECTOR_PUSHBACK(errorVectorPtr,
-                                                 (void*)decodedFlowId);
-                assert(status);
+            if(packetPtr == null) {
+                break;
+            }
+            int flowId = packetPtr.flowId;
+            int error;
+            // TM_BEGIN();
+            atomic {
+                error = decoderPtr.process(packetPtr,(packetPtr.length));
+            }
+            // TM_END();
+            //
+            
+            if (error != 0) {
+                /*
+                 * Currently, stream_generate() does not create these errors.
+                 */
+                System.out.println("Here?");
+                System.exit(1);
+            }
+            String data;
+            int[] decodedFlowId = new int[1];
+            
+            cnt++;
+            // TM_BEGIN();
+            atomic {
+                data = decoderPtr.getComplete(decodedFlowId);
+            }
+            // TM_END();
+            if(data != null) {
+                int err = detectorPtr.process(data);
+                
+                if(err != 0) {
+                    boolean status = errorVectorPtr.vector_pushBack(new Integer(decodedFlowId[0]));
+                    if(!status) {
+                        System.out.println("Assertion in Intruder.processPacket");
+                        System.exit(1);
+                    }
+                }
             }
         }
 
+        // TM_THREAD_EXIT();
+    
     }
 
-    PDETECTOR_FREE(detectorPtr);
-
-    TM_THREAD_EXIT();
-}
-
-
+    public void run()
+    {
+        Barrier.enterBarrier();
+        processPackets(argument);
+        Barrier.enterBarrier();
+    }
+        
 /* =============================================================================
  * main
  * =============================================================================
  */
-MAIN(argc, argv)
-{
-    GOTO_REAL();
 
-    /*
-     * Initialization
-     */
-
-    parseArgs(argc, (char** const)argv);
-    long numThread = global_params[PARAM_THREAD];
-    SIM_GET_NUM_CPU(numThread);
-    TM_STARTUP(numThread);
-    P_MEMORY_STARTUP(numThread);
-    thread_startup(numThread);
-
-    long percentAttack = global_params[PARAM_ATTACK];
-    long maxDataLength = global_params[PARAM_LENGTH];
-    long numFlow       = global_params[PARAM_NUM];
-    long randomSeed    = global_params[PARAM_SEED];
-    printf("Percent attack  = %li\n", percentAttack);
-    printf("Max data length = %li\n", maxDataLength);
-    printf("Num flow        = %li\n", numFlow);
-    printf("Random seed     = %li\n", randomSeed);
-
-    dictionary_t* dictionaryPtr = dictionary_alloc();
-    assert(dictionaryPtr);
-    stream_t* streamPtr = stream_alloc(percentAttack);
-    assert(streamPtr);
-    long numAttack = stream_generate(streamPtr,
-                                     dictionaryPtr,
-                                     numFlow,
-                                     randomSeed,
-                                     maxDataLength);
-    printf("Num attack      = %li\n", numAttack);
-
-    decoder_t* decoderPtr = decoder_alloc();
-    assert(decoderPtr);
-
-    vector_t** errorVectors = (vector_t**)malloc(numThread * sizeof(vector_t*));
-    assert(errorVectors);
-    long i;
-    for (i = 0; i < numThread; i++) {
-        vector_t* errorVectorPtr = vector_alloc(numFlow);
-        assert(errorVectorPtr);
-        errorVectors[i] = errorVectorPtr;
-    }
-
-    arg_t arg;
-    arg.streamPtr    = streamPtr;
-    arg.decoderPtr   = decoderPtr;
-    arg.errorVectors = errorVectors;
-
-    /*
-     * Run transactions
-     */
-
-    TIMER_T startTime;
-    TIMER_READ(startTime);
-    GOTO_SIM();
-#ifdef OTM
-#pragma omp parallel
+    public static void main(String[] argv)
     {
-        processPackets((void*)&arg);
-    }
-    
-#else
-    thread_start(processPackets, (void*)&arg);
-#endif
-    GOTO_REAL();
-    TIMER_T stopTime;
-    TIMER_READ(stopTime);
-    printf("Elapsed time    = %f seconds\n", TIMER_DIFF_SECONDS(startTime, stopTime));
+        
+        /*
+         * Initialization
+         */
 
-    /*
-     * Check solution
-     */
+        ERROR er = new ERROR();
 
-    long numFound = 0;
-    for (i = 0; i < numThread; i++) {
-        vector_t* errorVectorPtr = errorVectors[i];
-        long e;
-        long numError = vector_getSize(errorVectorPtr);
-        numFound += numError;
-        for (e = 0; e < numError; e++) {
-            long flowId = (long)vector_at(errorVectorPtr, e);
-            bool_t status = stream_isAttack(streamPtr, flowId);
-            assert(status);
+        
+        Intruder in = new Intruder(argv);   // parsing argv
+
+        Barrier.setBarrier(in.numThread);
+
+        System.out.println("Percent attack  =   " + in.percentAttack);
+        System.out.println("Max data length =   " + in.maxDataLength);
+        System.out.println("Num flow        =   " + in.numFlow);
+        System.out.println("Random seed     =   " + in.randomSeed);
+
+        Dictionary dictionaryPtr = new Dictionary();
+
+        if(dictionaryPtr == null) {
+            System.out.println("Assertion in main");
+            System.exit(1);
         }
+
+        Stream streamPtr = Stream.alloc(in.percentAttack);
+        
+        if(streamPtr == null) {
+            System.out.println("Assertion in main");
+            System.exit(1);
+        }
+
+        int numAttack = streamPtr.generate(dictionaryPtr,in.numFlow,in.randomSeed,in.maxDataLength);
+
+        System.out.println("Num Attack      =   " + numAttack);
+
+        Decoder decoderPtr = Decoder.alloc();
+        if(decoderPtr == null) {
+            System.out.println("Assertion in main");
+            System.exit(1);
+        }
+
+        Vector_t[] errorVectors = new Vector_t[in.numThread];
+
+        if(errorVectors ==  null) {
+            System.out.println("Assertion in main");
+            System.exit(1);
+        }
+
+        int i;
+
+        for(i =0;i< in.numThread;i++) {
+            errorVectors[i] = Vector_t.vector_alloc(in.numFlow);
+            if(errorVectors[i] == null) {
+                System.out.println("Assertion in main");
+                System.exit(1);
+            }
+        }
+
+        Arg arg = new Arg();
+
+        arg.streamPtr = streamPtr;
+        arg.decoderPtr = decoderPtr;
+        arg.errorVectors = errorVectors;
+
+        in.argument = arg;
+
+        // Run transactions
+
+        Intruder[] intruders = new Intruder[in.numThread];
+
+        for(i=1; i<in.numThread;i++) {
+            intruders[i] = new Intruder(i,arg);
+        }
+        in.threadID = 0;
+
+        long start = System.currentTimeMillis();
+
+        for(i = 1; i< in.numThread;i++) {
+            intruders[i].start();
+        }
+
+        Barrier.enterBarrier();
+        in.processPackets(in.argument);
+        Barrier.enterBarrier();
+
+
+        long finish = System.currentTimeMillis();
+        long elapsed = finish - start;
+
+        System.out.println("Elapsed time        = " + (float)(elapsed)/1000);
+
+        // finish
+        //
+        // Check solution
+
+        int numFound = 0;
+
+        for(i =0;i<in.numThread;i++) {
+            Vector_t errorVectorPtr = errorVectors[i];
+            int e;
+            int numError = errorVectorPtr.vector_getSize();
+            numFound += numError;
+            for (e = 0; e< numError; e++) {
+                int flowId = ((Integer)errorVectorPtr.vector_at(e)).intValue();
+                boolean status = streamPtr.isAttack(flowId);
+                
+                if(status == false) {
+                    System.out.println("Assertion in check solution");
+                    System.exit(1);
+                }
+            }
+        }
+
+        System.out.println("Num found       = " + numFound);
+
+        if(numFound != numAttack) {
+            System.out.println("Assertion in check solution");
+            System.exit(1);
+        }
+        
+        System.out.println("Finished");
     }
-    printf("Num found       = %li\n", numFound);
-    assert(numFound == numAttack);
 
-    /*
-     * Clean up
-     */
-
-    for (i = 0; i < numThread; i++) {
-        vector_free(errorVectors[i]);
-    }
-    free(errorVectors);
-    decoder_free(decoderPtr);
-    stream_free(streamPtr);
-    dictionary_free(dictionaryPtr);
-
-    TM_SHUTDOWN();
-    P_MEMORY_SHUTDOWN();
-
-    GOTO_SIM();
-
-    thread_shutdown();
-
-    MAIN_RETURN(0);
 }
-
 
 /* =============================================================================
  *
