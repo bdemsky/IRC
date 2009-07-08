@@ -245,12 +245,12 @@ public class Decoder {
 
                     String data = new String();
 
+                    Packet fragmentPtr = null;
                     it.reset(fragmentListPtr);
                     while(it.hasNext(fragmentListPtr)) {
 
-                        Packet fragmentPtr = (Packet)it.next(fragmentListPtr);
-                        
-                        data = (new String(fragmentPtr.data));
+                        fragmentPtr = (Packet)it.next(fragmentListPtr);
+                        data +=(fragmentPtr.data);
                     }
                         
                     Decoded decodedPtr = new Decoded();

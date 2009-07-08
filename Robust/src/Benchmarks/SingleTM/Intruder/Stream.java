@@ -96,10 +96,9 @@ public class Stream {
     bytes.fragmentId = p;
     bytes.numFragment = numPacket;
     bytes.length = str.length();
-    
     endIndex = numByte -1;
-    String tmpstr = str.subString(beginIndex, endIndex);
-    bytes.data = new String(str);
+    String tmpstr = str.subString(beginIndex);
+    bytes.data = new String(tmpstr);
     status = packetQueuePtr.queue_push(bytes);
     if (status == false) {
       System.out.printString("Error: Queue push failed\n");
