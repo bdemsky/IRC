@@ -151,7 +151,6 @@ public class Stream {
       } else {
         /* Create random string */
         int length = (randomPtr.random_generate() % maxLength) + 1;
-        status = allocVectorPtr.vector_pushBack(str);
         
         if (!status) {
           System.out.printString("Assert failed: status is null\n");
@@ -165,6 +164,7 @@ public class Stream {
         c[l] = '\0';
         str = new String(c);
         String str2 = new String(c);
+        status = allocVectorPtr.vector_pushBack(str);
         int err = detectorPtr.process(str2);
         if (err == error.SIGNATURE) {
           status = MAP_INSERT(attackMapPtr, f, str);

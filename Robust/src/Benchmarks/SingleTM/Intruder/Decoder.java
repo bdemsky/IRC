@@ -243,14 +243,14 @@ public class Decoder {
                             i++;
                     }
 
-                    String data;
+                    String data = new String();
 
                     it.reset(fragmentListPtr);
                     while(it.hasNext(fragmentListPtr)) {
 
                         Packet fragmentPtr = (Packet)it.next(fragmentListPtr);
                         
-                        data = new String(fragmentPtr.data);
+                        data = (new String(fragmentPtr.data));
                     }
                         
                     Decoded decodedPtr = new Decoded();
