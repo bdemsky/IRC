@@ -7,16 +7,16 @@ public class Packet {
 
   public Packet(int numDataBytes) 
   {
-    char c[] = new char[numDataByte];
+    char c[] = new char[numDataBytes];
     data = new String(c);
   }
 
-  public long packet_compareFlowID(Packet aPtr, Packet bPtr) 
+  public static int compareFlowID(Packet aPtr, Packet bPtr) 
   {
     return aPtr.flowId - bPtr.flowId;
   }
 
-  public long packet_compareFragmentID(Packet aPtr, Packet bPtr)
+  public static int compareFragmentID(Packet aPtr, Packet bPtr)
   {
     return aPtr.fragmentId - bPtr.fragmentId;
   }
