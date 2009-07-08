@@ -6,7 +6,8 @@
 //page after...then default to something simpler
 
 #define MAXPOINTERS 1024*1024*1
-#define MAXVALUES 1024*1024*1
+#define MAXVALUES 1024*1024*2
+#define MAXBRANCHES 1024*1024*4
 
 struct pointerlist {
   int count;
@@ -19,8 +20,14 @@ struct primitivelist {
   int array[MAXVALUES];
 };
 
+struct branchlist {
+  int count;
+  char array[MAXBRANCHES];
+};
+
 extern __thread struct pointerlist ptrstack;
 extern __thread struct primitivelist primstack;
+extern __thread struct branchlist branchstack;
 
 //Pointers
 
@@ -36,9 +43,9 @@ extern __thread struct primitivelist primstack;
 
 //Branches
 
-#define RESTOREANDBRANCH(loc) if (primstack.array[primstack.count++]) goto loc
+#define RESTOREANDBRANCH(loc) if (branchstack.array[branchstack.count++]) goto loc
 
-#define STOREANDBRANCH(cond, loc) if (primstack.array[primstack.count++]=cond) goto loc
+#define STOREANDBRANCH(cond, loc) if (branchstack.array[branchstack.count++]=cond) goto loc
 
 //Integers
 

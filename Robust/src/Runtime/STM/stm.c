@@ -22,6 +22,10 @@ __thread struct objlist * newobjs;
 #include "delaycomp.h"
 __thread struct pointerlist ptrstack;
 __thread struct primitivelist primstack;
+__thread struct branchlist branchstack;
+struct pointerlist *c_ptrstack;
+struct primitivelist *c_primstack;
+struct branchlist *c_branchstack;
 #endif
 
 #ifdef TRANSSTATS
@@ -151,6 +155,11 @@ void objstrDelete(objstr_t *store) {
  */
 void transStart() {
   //Transaction start is currently free...commit and aborting is not
+#ifdef DELAYCOMP
+  c_ptrstack=&ptrstack;
+  c_primstack=&primstack;
+  c_branchstack=&branchstack;
+#endif
 }
 
 /* =======================================================
@@ -246,7 +255,7 @@ void *objstrAlloc(unsigned int size) {
  * -copies the object into the transaction cache
  * =============================================================
  */
-__attribute__((pure)) void *transRead(void * oid, void *gl) {
+__attribute__ ((pure)) void *transRead(void * oid, void *gl) {
   objheader_t *tmp, *objheader;
   objheader_t *objcopy;
   int size;
@@ -340,6 +349,7 @@ int transCommit() {
       dc_t_chashreset();
       ptrstack.count=0;
       primstack.count=0;
+      branchstack.count=0;
 #endif
       return TRANS_ABORT;
     }
@@ -360,6 +370,7 @@ int transCommit() {
       dc_t_chashreset();
       ptrstack.count=0;
       primstack.count=0;
+      branchstack.count=0;
 #endif
       return 0;
     }
@@ -385,6 +396,7 @@ int transCommit() {
 	dc_t_chashreset();
 	ptrstack.count=0;
 	primstack.count=0;
+	branchstack.count=0;
 #endif
 	return TRANS_ABORT;
       }
@@ -958,6 +970,7 @@ void transAbortProcess(void **oidwrlocked, int numoidwrlocked) {
   //  call commit method
   ptrstack.count=0;
   primstack.count=0;
+  branchstack.count=0;
   commitmethod(params, locals, primitives);
 #endif
 
