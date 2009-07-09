@@ -71,7 +71,7 @@ public class GlobalArgs {
   /**
     *
   **/
-  public long global_i;
+  public int global_i;
 
   public float global_delta;
 

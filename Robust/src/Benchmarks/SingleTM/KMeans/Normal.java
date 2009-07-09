@@ -111,7 +111,7 @@ public class Normal {
 
     start = myId * CHUNK;
 
-    //System.out.println("myId= " + myId + " start= " + start + " npoints= " + npoints);
+    //    System.out.println("myId= " + myId + " start= " + start + " npoints= " + npoints);
     while (start < npoints) {
       stop = (((start + CHUNK) < npoints) ? (start + CHUNK) : npoints);
 
@@ -144,7 +144,7 @@ public class Normal {
       /* Update task queue */
       if (start + CHUNK < npoints) {
 	atomic {
-          start = (int) args.global_i;
+          start = args.global_i;
           args.global_i = start + CHUNK;
         }
       } else {
