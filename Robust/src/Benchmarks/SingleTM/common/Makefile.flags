@@ -1,4 +1,6 @@
-FLAGSLOCK=-mainclass ${MAINCLASS} -thread -optimize -joptimize -abcclose -64bit -debug
-FLAGSSTM=-mainclass ${MAINCLASS} -singleTM -optimize -joptimize -64bit -debug -abcclose
-FLAGSOPTSTM=-mainclass ${MAINCLASS} -singleTM -optimize -joptimize -64bit -debug -abcclose -dcopts
-FLAGSFISSION=-mainclass ${MAINCLASS} -singleTM -delaycomp -optimize -joptimize -abcclose -64bit -debug
+FLAGSLOCK=-mainclass ${MAINCLASS} -thread -optimize -abcclose -64bit -debug -joptimize
+FLAGSLOCKNOJ=-mainclass ${MAINCLASS} -thread -optimize -abcclose -64bit -debug
+FLAGSSTMNOJ=-mainclass ${MAINCLASS} -singleTM -optimize -64bit -debug -abcclose -transstats
+FLAGSSTM=-mainclass ${MAINCLASS} -singleTM -optimize -joptimize -64bit -debug -abcclose -transstats
+FLAGSOPTSTM=-mainclass ${MAINCLASS} -singleTM -optimize -joptimize -64bit -debug -abcclose -dcopts -transstats
+FLAGSFISSION=-mainclass ${MAINCLASS} -singleTM -delaycomp -optimize -joptimize -abcclose -64bit -debug -transstats -inlineatomic 2 -minimize
