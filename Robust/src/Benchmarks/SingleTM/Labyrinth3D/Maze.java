@@ -372,7 +372,7 @@ public class Maze {
 
         if(doPrintPaths) {
             System.out.println("\nRouted Maze:");
-	    //            testGridPtr.print();
+	    testGridPtr.print();
         }
 
 

@@ -240,8 +240,23 @@ void grid_addPath (grid_t* gridPtr, vector_t* pointVectorPtr);
     return ((z * height) + y) * width + x;
   }
 
+  
+  public void print() {
+    int width  = this.width;
+    int height = this.height;
+    int depth  = this.depth;
 
-
+    for (int z = 0; z < depth; z++) {
+      System.out.println("[z ="+z+"]");
+      for (int x = 0; x < width; x++) {
+	for (int y = 0; y < height; y++) {
+	  System.out.print(points_unaligned[x][y][z]);
+	}
+	System.out.println("");
+      }
+      System.out.println("");
+    }
+  }
 }
 
 
