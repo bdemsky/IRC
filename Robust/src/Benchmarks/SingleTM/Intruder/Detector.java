@@ -152,7 +152,6 @@ public class Detector {
         for(p = 0; p < numPreprocessor; p++) {
             Integer preprocessor = (Integer)preprocessorVectorPtr.vector_at(p);
             if(preprocessor.intValue() == 1) {
-                convertURNHex.process(str);
                 System.out.println("NOOOOOOOOOOOOO");
             }
             else if(preprocessor.intValue() == 2) {

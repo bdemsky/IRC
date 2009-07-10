@@ -102,7 +102,7 @@ public class Intruder extends Thread {
         threadID = myID;
     }
 
-    private setDefaultParams() 
+    private void setDefaultParams() 
     {
         percentAttack = PARAM_DEFAULT_ATTACK;
         maxDataLength = PARAM_DEFAULT_LENGTH;
@@ -389,6 +389,7 @@ public class Intruder extends Thread {
         }
         
         System.out.println("Finished");
+        System.exit(0);
     }
 
 }

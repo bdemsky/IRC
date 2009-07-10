@@ -1,9 +1,9 @@
 #define MAP_T                       RBTree
 #define MAP_ALLOC(hash, cmp)        RBTree.alloc(cmp)
 #define MAP_INSERT(map, key, data)  map.insert(key, data)
-#define MAP_CONTAINS(map, key)      map.contains(key);
-#define MAP_FIND(map,key)           map.get(key);
-#define MAP_REMOVE(map,key)         map.deleteNode(key);
+#define MAP_CONTAINS(map, key)      map.contains(key)
+#define MAP_FIND(map,key)           map.get(key)
+#define MAP_REMOVE(map,key)         map.deleteNode(key)
 
 public class Stream {
   int percentAttack;
@@ -151,10 +151,6 @@ public class Stream {
         /* Create random string */
         int length = (randomPtr.random_generate() % maxLength) + 1;
         
-        if (!status) {
-          System.out.printString("Assert failed: status is null\n");
-          System.exit(0);
-        }
         int l;
         char c[] = new char[length+1];
         for (l = 0; l < length; l++) {
@@ -164,6 +160,13 @@ public class Stream {
         str = new String(c);
         String str2 = new String(c);
         status = allocVectorPtr.vector_pushBack(str);
+
+        if(!status) {
+            System.out.println("Assert faiiled status is null.");
+            System.exit(0);
+        }
+
+
         int err = detectorPtr.process(str2);
         if (err == error.SIGNATURE) {
           status = MAP_INSERT(attackMapPtr, f, str);

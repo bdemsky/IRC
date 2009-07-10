@@ -139,6 +139,7 @@ public class Decoder {
             return er.SHORT;
         }
 
+
         int flowId = packetPtr.flowId;
         int fragmentId = packetPtr.fragmentId;
         int numFragment = packetPtr.numFragment;
@@ -190,14 +191,16 @@ public class Decoder {
 
                 List_Iter it = new List_Iter();
                 it.reset(fragmentListPtr);
-                
+
                 if(!it.hasNext(fragmentListPtr)) {
                     System.out.println("Assertion in Decoder2.process");
                     System.exit(1);
                 }
 
                 Packet firstFragmentPtr = (Packet)it.next(fragmentListPtr);
+
                 int expectedNumFragment = firstFragmentPtr.numFragment;
+
 
                 if (numFragment != expectedNumFragment) {
                     status = MAP_REMOVE(fragmentedMapPtr,flowId);
@@ -245,11 +248,10 @@ public class Decoder {
 
                     String data = new String();
 
-                    Packet fragmentPtr = null;
                     it.reset(fragmentListPtr);
-                    while(it.hasNext(fragmentListPtr)) {
 
-                        fragmentPtr = (Packet)it.next(fragmentListPtr);
+                    while(it.hasNext(fragmentListPtr)) {
+                        Packet fragmentPtr = (Packet)it.next(fragmentListPtr);
                         data +=(fragmentPtr.data);
                     }
                         

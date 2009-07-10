@@ -6,8 +6,6 @@ SRC=ttttmp${MAINCLASS}.java \
 	ttttmpRBTree.java  \
 	Preprocessor.java \
 	Detector.java	\
-	convertURNHex.java  \
-	toLower.java	\
 	Decoded.java  \
 	ERROR.java  \
 	Dictionary.java \
