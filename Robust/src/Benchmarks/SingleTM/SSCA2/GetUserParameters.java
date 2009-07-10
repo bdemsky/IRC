@@ -197,7 +197,7 @@ public class GetUserParameters {
       glb.MAX_INT_WEIGHT      = (1<<glb.SCALE);      /* Max int value in edge weight */
       glb.MAX_STRLEN          = glb.SCALE;
 
-      glb.SOUGHT_STRING       = new char[1];              /* Kernel 2: Character string sought:  */
+      glb.SOUGHT_STRING       = new byte[1];              /* Kernel 2: Character string sought:  */
       /* specify here, else it is picked     */
       /* picked from randomly selected entry */
       /* in genScalData.c                    */

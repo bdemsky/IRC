@@ -57,9 +57,8 @@ public class Alg_Radix_Smp {
     global_lTemp2  = null;
   }
 
-  public int BITS(int x, int k, int j) {
-    int retval = ((x>>k) & ~(~0<<j));
-    return retval;
+  public static int BITS(int x, int k, int j) {
+    return  ((x>>k) & ~(~0<<j));
   }
 
   /* =============================================================================
@@ -192,7 +191,7 @@ public class Alg_Radix_Smp {
       for (int k = 0; k <  q; k++) {
         int j = BITS(lKey[k], bitOff, m);
         lSorted[myHisto[j]] = lKey[k];
-        auxSorted[myHisto[j]] = lKey[k];
+        auxSorted[myHisto[j]] = auxKey[k];
         myHisto[j]++;
 
         //
@@ -201,9 +200,6 @@ public class Alg_Radix_Smp {
         //mhp[j]++;
         
       }
-
-      psHisto = null;
-      myHisto = null;
     }
 
 
@@ -381,18 +377,12 @@ public class Alg_Radix_Smp {
         int[] auxKey,
         int[] auxSorted)
     {
-      int[] lTemp  = null;
-      int[] lTemp2 = null;
-
-      lTemp = new int[ q];
-      lTemp2 = new int[ q];
+      int[] lTemp  = new int[q];
+      int[] lTemp2 = new int[q];
 
       all_countsort_node_aux_seq(q, lKeys, lSorted, auxKey, auxSorted, (1<<11),  0, 11);
       all_countsort_node_aux_seq(q, lSorted, lTemp, auxSorted, lTemp2, (1<<11), 11, 11);
       all_countsort_node_aux_seq(q, lTemp, lSorted, lTemp2, auxSorted, (1<<10), 22, 10);
-
-      lTemp = null;
-      lTemp2 = null;
     }
 
 
@@ -433,10 +423,6 @@ public class Alg_Radix_Smp {
 
       Barrier.enterBarrier();
 
-      if(myId == 0) {
-        lTemp = null;
-        lTemp2 = null;
-      }
     }
 }
 

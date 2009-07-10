@@ -19,7 +19,7 @@ public class Graph {
   public int[] inVertexList;
 
   public int[]  intWeight;
-  public char[] strWeight;
+  public byte[] strWeight;
 
   public Graph() {
 

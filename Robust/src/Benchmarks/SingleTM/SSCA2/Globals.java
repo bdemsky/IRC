@@ -53,7 +53,7 @@ public class Globals {
   public int MAX_CLIQUE_SIZE;
   public int MAX_PARAL_EDGES;
   public int MAX_INT_WEIGHT;
-  public char[] SOUGHT_STRING;
+  public byte[] SOUGHT_STRING;
   public int MAX_STRLEN;
   public float PERC_INT_WEIGHTS;
   public float PROB_UNIDIRECTIONAL;

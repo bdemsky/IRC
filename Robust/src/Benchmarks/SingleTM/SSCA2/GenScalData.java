@@ -531,13 +531,13 @@ public class GenScalData {
         }
       }
 
-      SDGdataPtr.strWeight = new char[numStrWtEdges * glb.MAX_STRLEN];
+      SDGdataPtr.strWeight = new byte[numStrWtEdges * glb.MAX_STRLEN];
 
       for (int i = 0; i < numEdgesPlaced; i++) {
         if (SDGdataPtr.intWeight[i] <= 0) {
           for (int j = 0; j < glb.MAX_STRLEN; j++) {
             SDGdataPtr.strWeight[(-SDGdataPtr.intWeight[i])*glb.MAX_STRLEN+j] =
-              (char) (1 + randomPtr.posrandom_generate() % 127);
+              (byte) (1 + randomPtr.posrandom_generate() % 127);
           }
         }
       }
@@ -547,7 +547,7 @@ public class GenScalData {
        */
 
       if (glb.SOUGHT_STRING.length != glb.MAX_STRLEN) {
-        glb.SOUGHT_STRING = new char[glb.MAX_STRLEN];
+        glb.SOUGHT_STRING = new byte[glb.MAX_STRLEN];
       }
 
       {
@@ -1280,7 +1280,7 @@ Barrier.enterBarrier();
       numStrWtEdges = gsd.global_numStrWtEdges;
 
       if (myId == 0) {
-        SDGdataPtr.strWeight = new char[numStrWtEdges * glb.MAX_STRLEN];
+        SDGdataPtr.strWeight = new byte[numStrWtEdges * glb.MAX_STRLEN];
       }
 
       Barrier.enterBarrier();
@@ -1292,7 +1292,7 @@ Barrier.enterBarrier();
           for (int j = 0; j < glb.MAX_STRLEN; j++) {
             SDGdataPtr.strWeight[(-SDGdataPtr.intWeight[i])*glb.MAX_STRLEN+j] =
               //FIXME if needed
-              (char) (1 + (randomPtr.posrandom_generate() % 127));
+              (byte) (1 + (randomPtr.posrandom_generate() % 127));
           }
         }
       }
@@ -1304,7 +1304,7 @@ Barrier.enterBarrier();
       if (myId == 0) {
 
         if (glb.SOUGHT_STRING.length != glb.MAX_STRLEN) {
-          glb.SOUGHT_STRING = new char[glb.MAX_STRLEN];
+          glb.SOUGHT_STRING = new byte[glb.MAX_STRLEN];
         }
 
         int t = (int) (randomPtr.posrandom_generate() % numStrWtEdges);

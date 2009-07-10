@@ -7,7 +7,7 @@ public class GraphSDG {
    * in the int Weight array. A negative value because we need to sort on
    * the intWeights in Kernel 2. Hence the int int
    */
-  public char[] strWeight;
+  public byte[] strWeight;
   public int numEdgesPlaced;
 
   public GraphSDG() {

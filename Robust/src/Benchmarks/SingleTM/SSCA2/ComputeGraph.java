@@ -118,10 +118,6 @@ public class ComputeGraph {
       }
 
       Barrier.enterBarrier();
-
-      if (myId == 0) {
-        p = null;
-      }
     }
 
   /* =============================================================================
@@ -142,7 +138,6 @@ public class ComputeGraph {
        */
       LocalStartStop lss = new LocalStartStop();
       CreatePartition.createPartition(0, numEdgesPlaced, myId, numThread, lss);
-
       for (int i = lss.i_start; i < lss.i_stop; i++) {
         if (computeGraphArgs.SDGdataPtr.startVertex[i] > maxNumVertices) {
           maxNumVertices = computeGraphArgs.SDGdataPtr.startVertex[i];
@@ -481,10 +476,6 @@ public class ComputeGraph {
 
       Barrier.enterBarrier();
 
-      if (myId == 0) {
-        impliedEdgeList = null;
-      }
-
       for (int i = lss.i_start; i < lss.i_stop; i++) {
         if (computeGraphArgs.GPtr.inDegree[i] > glb.MAX_CLUSTER_SIZE) {
           auxArr[i] = null;
@@ -492,10 +483,6 @@ public class ComputeGraph {
       }
 
       Barrier.enterBarrier();
-
-      if (myId == 0) {
-        auxArr = null;
-      }
 
     }
 }

@@ -142,6 +142,8 @@ public class SSCA2 extends Thread {
      * The Global arguments
      */
     ComputeGraph computeGraphArgs = new ComputeGraph();
+    long starttime;
+    long stoptime;
 
     computeGraphArgs.GPtr       = G;
     computeGraphArgs.SDGdataPtr = SDGdata;
@@ -192,8 +194,9 @@ public class SSCA2 extends Thread {
     for(int i = 1; i<nthreads; i++) {
       ssca[i].start();
     }
-
     System.out.println("\nScalable Data Generator - genScalData() beginning execution...\n");
+    starttime=System.currentTimeMillis();
+
 #ifdef USE_PARALLEL_DATA_GENERATION
 
     /*
@@ -206,7 +209,10 @@ public class SSCA2 extends Thread {
     GenScalData.genScalData_seq(glb, SDGdata, gsd, radixsort);
 
 #endif
+
+    stoptime=System.currentTimeMillis();
     System.out.println("\n\tgenScalData() completed execution.");
+    System.out.println("Time="+(stoptime-starttime));
 
 #ifdef ENABLE_KERNEL1
 
@@ -217,9 +223,11 @@ public class SSCA2 extends Thread {
      * -------------------------------------------------------------------------
      */
     System.out.println("\nKernel 1 - computeGraph() beginning execution...");
+    starttime=System.currentTimeMillis();
     parallel_work_computeGraph(nthreads, glb, computeGraphArgs);
+    stoptime=System.currentTimeMillis();
     System.out.println("\n\tcomputeGraph() completed execution.\n");
-
+    System.out.println("Time="+(stoptime-starttime));
 #endif
 
 #ifdef ENABLE_KERNEL2
