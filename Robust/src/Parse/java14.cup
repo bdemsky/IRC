@@ -1730,9 +1730,9 @@ cast_expression ::=
 if (dims.intValue()==0)
 		pn.addChild("type").addChild(type);
 else {
-		ParseNode arrayt=pn.addChild("type").addChild("array");
-		pn.addChild("basetype").addChild(type);
-		pn.addChild("dims").setLiteral(dims);
+		ParseNode arrayt=pn.addChild("type").addChild("type").addChild("array");
+		arrayt.addChild("basetype").addChild(type);
+		arrayt.addChild("dims").setLiteral(dims);
 }
 		pn.addChild("exp").addChild(exp);
 		RESULT=pn;

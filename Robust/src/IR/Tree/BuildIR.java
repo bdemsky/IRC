@@ -306,6 +306,7 @@ public class BuildIR {
 	td=td.makeArray(state);
       return td;
     } else {
+      System.out.println(pn.PPrint(2, true));
       throw new Error();
     }
   }
@@ -479,7 +480,13 @@ public class BuildIR {
       ExpressionNode index=parseExpression(pn.getChild("index").getFirstChild());
       return new ArrayAccessNode(en,index);
     } else if (isNode(pn,"cast1")) {
-      return new CastNode(parseTypeDescriptor(pn.getChild("type")),parseExpression(pn.getChild("exp").getFirstChild()));
+      try {
+	return new CastNode(parseTypeDescriptor(pn.getChild("type")),parseExpression(pn.getChild("exp").getFirstChild()));
+      } catch (Exception e) {
+	System.out.println(pn.PPrint(1,true));
+	e.printStackTrace();
+	throw new Error();
+      }
     } else if (isNode(pn,"cast2")) {
       return new CastNode(parseExpression(pn.getChild("type").getFirstChild()),parseExpression(pn.getChild("exp").getFirstChild()));
     } else if (isNode(pn, "getoffset")) {
