@@ -690,7 +690,7 @@ public class SemanticCheck {
     }
 
     if (!postinc&&!typeutil.isSuperorType(an.getDest().getType(),an.getSrc().getType())) {
-      throw new Error("Type of rside ("+an.getSrc().getType()+") not compatible with type of lside ("+an.getDest().getType()+")"+an.printNode(0));
+      throw new Error("Type of rside ("+an.getSrc().getType().toPrettyString()+") not compatible with type of lside ("+an.getDest().getType().toPrettyString()+")"+an.printNode(0));
     }
   }
 
