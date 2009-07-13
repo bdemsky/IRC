@@ -26,10 +26,10 @@
 
 #define NUMPTRS 100
 
-#define INITIALHEAPSIZE 256*1024*1024
-#define GCPOINT(x) ((int)((x)*0.99))
+#define INITIALHEAPSIZE 1024*1024*1024L
+#define GCPOINT(x) ((INTPTR)((x)*0.99))
 /* This define takes in how full the heap is initially and returns a new heap size to use */
-#define HEAPSIZE(x,y) ((int)(x+y))*2
+#define HEAPSIZE(x,y) ((INTPTR)(x+y))*2
 
 #ifdef TASK
 extern struct genhashtable * activetasks;
@@ -742,9 +742,9 @@ void * mygcmalloc(struct garbagelist * stackptr, int size) {
 
     /* Grow the to heap if necessary */
     {
-      int curr_heapsize=curr_heaptop-curr_heapbase;
-      int to_heapsize=to_heaptop-to_heapbase;
-      int last_heapsize=0;
+      INTPTR curr_heapsize=curr_heaptop-curr_heapbase;
+      INTPTR to_heapsize=to_heaptop-to_heapbase;
+      INTPTR last_heapsize=0;
       if (lastgcsize>0) {
 	last_heapsize=HEAPSIZE(lastgcsize, size);
 	if ((last_heapsize&7)!=0)

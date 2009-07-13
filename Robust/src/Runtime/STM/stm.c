@@ -249,6 +249,7 @@ void *objstrAlloc(unsigned int size) {
   }
 }
 
+
 /* =============================================================
  * transRead
  * -finds the objects either in main heap
@@ -345,6 +346,9 @@ int transCommit() {
 #endif
       objstrReset();
       t_chashreset();
+#ifdef READSET
+      rd_t_chashreset();
+#endif
 #ifdef DELAYCOMP
       dc_t_chashreset();
       ptrstack.count=0;
@@ -366,6 +370,9 @@ int transCommit() {
 #endif
       objstrReset();
       t_chashreset();
+#ifdef READSET
+      rd_t_chashreset();
+#endif
 #ifdef DELAYCOMP
       dc_t_chashreset();
       ptrstack.count=0;
@@ -374,6 +381,7 @@ int transCommit() {
 #endif
       return 0;
     }
+
     /* wait a random amount of time before retrying to commit transaction*/
     if(finalResponse == TRANS_SOFT_ABORT) {
 #ifdef TRANSSTATS
@@ -392,6 +400,9 @@ int transCommit() {
 #endif
 	objstrReset();
 	t_chashreset();
+#ifdef READSET
+	rd_t_chashreset();
+#endif
 #ifdef DELAYCOMP
 	dc_t_chashreset();
 	ptrstack.count=0;
@@ -423,6 +434,38 @@ int transCommit() {
     free(oidwrlocked); \
   }
 #endif
+
+#ifdef DELAYCOMP
+#define allocarrays int t_numelements=c_numelements+dc_c_numelements; \
+  if (t_numelements<200) { \
+    oidwrlocked=wrlocked; \
+  } else { \
+    oidwrlocked=malloc(t_numelements*sizeof(void *)); \
+  } \
+  if (c_numelements<200) { \
+    oidrdlocked=rdlocked; \
+    oidrdversion=rdversion; \
+  } else { \
+    int size=c_numelements*sizeof(void*); \
+    oidrdlocked=malloc(size); \
+    oidrdversion=malloc(size); \
+  }
+#else
+#define allocarrays if (c_numelements<200) { \
+    oidrdlocked=rdlocked; \
+    oidrdversion=rdversion; \
+    oidwrlocked=wrlocked; \
+  } else { \
+    int size=c_numelements*sizeof(void*); \
+    oidrdlocked=malloc(size); \
+    oidrdversion=malloc(size); \
+    oidwrlocked=malloc(size); \
+  }
+#endif
+
+
+
+
 /* ==================================================
  * traverseCache
  * - goes through the transaction cache and
@@ -445,33 +488,8 @@ int traverseCache() {
   void ** oidrdlocked;
   void ** oidwrlocked;
   int * oidrdversion;
-#ifdef DELAYCOMP
-  int t_numelements=c_numelements+dc_c_numelements;
-  if (t_numelements<200) {
-    oidwrlocked=wrlocked;
-  } else {
-    oidwrlocked=malloc(t_numelements*sizeof(void *));
-  }
-  if (c_numelements<200) {
-    oidrdlocked=rdlocked;
-    oidrdversion=rdversion;
-  } else {
-    int size=c_numelements*sizeof(void*);
-    oidrdlocked=malloc(size);
-    oidrdversion=malloc(size);
-  }
-#else
-  if (c_numelements<200) {
-    oidrdlocked=rdlocked;
-    oidrdversion=rdversion;
-    oidwrlocked=wrlocked;
-  } else {
-    int size=c_numelements*sizeof(void*);
-    oidrdlocked=malloc(size);
-    oidrdversion=malloc(size);
-    oidwrlocked=malloc(size);
-  }
-#endif
+  allocarrays;
+
   chashlistnode_t *ptr = c_table;
   /* Represents number of bins in the chash table */
   unsigned int size = c_size;
@@ -507,12 +525,8 @@ int traverseCache() {
 	    return TRANS_SOFT_ABORT;
 	      else 
 	    return TRANS_ABORT;
-          
 	  }
 	} else {
-#ifdef DELAYCOMP
-      //TODO: check to see if we already have lock
-#endif
 	  if(version == header->version) {
 	    /* versions match */
 	    softabort=1;
@@ -544,7 +558,7 @@ int traverseCache() {
   } //end of for
 
 #ifdef DELAYCOMP
-  //acquire other locks
+  //acquire access set locks
   unsigned int numoidwrtotal=numoidwrlocked;
 
   chashlistnode_t *dc_curr = dc_c_list;
@@ -659,9 +673,97 @@ int traverseCache() {
 	return TRANS_SOFT_ABORT;
       else 
 	return TRANS_ABORT;
-      
     }
   }
+
+#ifdef READSET
+  //need to validate auxilary readset
+  rdchashlistnode_t *rd_curr = rd_c_list;
+  /* Inner loop to traverse the linked list of the cache lookupTable */
+  while(likely(rd_curr != NULL)) {
+    //if the first bin in hash table is empty
+    unsigned int version=rd_curr->version;
+    objheader_t *header=(objheader_t *)(((char *)rd_curr->key)-sizeof(objheader_t));
+    if(header->lock>0) { //object is not locked
+      if (version!=header->version) {
+	//have to abort
+#ifdef DELAYCOMP
+	transAbortProcess(oidwrlocked, numoidwrtotal);
+#else
+	transAbortProcess(oidwrlocked, numoidwrlocked);
+#endif
+#ifdef STMSTATS
+	ABORTCOUNT(header);
+	(typesCausingAbort[TYPE(header)])++;
+#endif
+#if defined(STMSTATS)||defined(SOFTABORT)
+	if(getTotalAbortCount2((void *) curr->next, numoidrdlocked, oidrdlocked, oidrdversion))
+	  softabort=0;
+#endif
+	DEBUGSTM("WR Abort: rd: %u wr: %u tot: %u type: %u ver: %u\n", numoidrdlocked, numoidwrlocked, c_numelements, TYPE(header), header->version);
+	DEBUGSTMSTAT("WR Abort: Access Count: %u AbortCount: %u type: %u ver: %u \n", header->accessCount, header->abortCount, TYPE(header), header->version);
+	freearrays;
+	if (softabort)
+	  return TRANS_SOFT_ABORT;
+	else
+	  return TRANS_ABORT;	
+      }
+    } else {
+      //maybe we already have lock
+      if (version==header->version) {
+	void * key=rd_curr->key;
+#ifdef DELAYCOMP
+	//check to see if it is in the delaycomp table
+	{
+	  chashlistnode_t *node = &dc_c_table[(((unsigned INTPTR)key) & dc_c_mask)>>4];
+	  do {
+	    if(node->key == key)
+	      goto nextloopread;
+	    node = node->next;
+	  } while(node != NULL);
+	}
+#endif
+	//check normal table
+	{
+	  chashlistnode_t *node = &c_table[(((unsigned INTPTR)key) & c_mask)>>4];
+	  do {
+	    if(node->key == key) {
+	      objheader_t * headeraddr=&((objheader_t *) node->val)[-1];	  
+	      if(STATUS(headeraddr) & DIRTY) {
+		goto nextloopread;
+	      }
+	    }
+	    node = node->next;
+	  } while(node != NULL);
+	}
+      }
+#ifdef DELAYCOMP
+      //have to abort to avoid deadlock
+      transAbortProcess(oidwrlocked, numoidwrtotal);
+#else
+      transAbortProcess(oidwrlocked, numoidwrlocked);
+#endif
+
+#ifdef STMSTATS
+      ABORTCOUNT(header);
+      (typesCausingAbort[TYPE(header)])++;
+#endif
+#if defined(STMSTATS)||defined(SOFTABORT)
+      if(getTotalAbortCount2((void *) curr->next, numoidrdlocked, oidrdlocked, oidrdversion))
+	softabort=0;
+#endif
+      DEBUGSTM("WR Abort: rd: %u wr: %u tot: %u type: %u ver: %u\n", numoidrdlocked, numoidwrlocked, c_numelements, TYPE(header), header->version);
+      DEBUGSTMSTAT("WR Abort: Access Count: %u AbortCount: %u type: %u ver: %u \n", header->accessCount, header->abortCount, TYPE(header), header->version);
+      freearrays;
+      if (softabort)
+	return TRANS_SOFT_ABORT;
+      else
+	return TRANS_ABORT;
+    }
+  nextloopread:
+    rd_curr = rd_curr->lnext;
+  }
+#endif
   
   /* Decide the final response */
 #ifdef DELAYCOMP
@@ -697,33 +799,8 @@ int alttraverseCache() {
   void ** oidrdlocked;
   int * oidrdversion;
   void ** oidwrlocked;
-#ifdef DELAYCOMP
-  int t_numelements=c_numelements+dc_c_numelements;
-  if (t_numelements<200) {
-    oidwrlocked=wrlocked;
-  } else {
-    oidwrlocked=malloc(t_numelements*sizeof(void *));
-  }
-  if (c_numelements<200) {
-    oidrdlocked=rdlocked;
-    oidrdversion=rdversion;
-  } else {
-    int size=c_numelements*sizeof(void*);
-    oidrdlocked=malloc(size);
-    oidrdversion=malloc(size);
-  }
-#else
-  if (c_numelements<200) {
-    oidrdlocked=rdlocked;
-    oidrdversion=rdversion;
-    oidwrlocked=wrlocked;
-  } else {
-    int size=c_numelements*sizeof(void*);
-    oidrdlocked=malloc(size);
-    oidrdversion=malloc(size);
-    oidwrlocked=malloc(size);
-  }
-#endif
+  allocarrays;
+
   chashlistnode_t *curr = c_list;
   /* Inner loop to traverse the linked list of the cache lookupTable */
   while(likely(curr != NULL)) {
@@ -790,7 +867,7 @@ int alttraverseCache() {
     //if the first bin in hash table is empty
     objheader_t * headeraddr=&((objheader_t *) dc_curr->val)[-1];
     objheader_t *header=(objheader_t *)(((char *)dc_curr->key)-sizeof(objheader_t));
-    if(write_trylock(&header->lock)) { //can aquire write lock    
+    if(write_trylock(&header->lock)) { //can aquire write lock
       oidwrlocked[numoidwrtotal++] = header;
     } else {
       //maybe we already have lock
@@ -799,7 +876,7 @@ int alttraverseCache() {
       
       do {
 	if(node->key == key) {
-	  objheader_t * headeraddr=&((objheader_t *) node->val)[-1];	  
+	  objheader_t * headeraddr=&((objheader_t *) node->val)[-1];
 	  if(STATUS(headeraddr) & DIRTY) {
 	    goto nextloop;
 	  }
@@ -853,7 +930,21 @@ int alttraverseCache() {
 	return TRANS_ABORT;
       }
 #ifdef DELAYCOMP
-      //TODO: check to see if we already have lock
+    } else if (dc_t_chashSearch(((char *)header)+sizeof(objheader_t))!=NULL) {
+      //couldn't get lock because we already have it
+      //check if it is the right version number
+      if (version!=header->version) {
+	transAbortProcess(oidwrlocked, numoidwrtotal);
+#ifdef STMSTATS
+	ABORTCOUNT(header);
+	(typesCausingAbort[TYPE(header)])++;
+	getReadAbortCount(i+1, numoidrdlocked, oidrdlocked, oidrdversion);
+#endif
+	DEBUGSTM("RD Abort: rd: %u wr: %u tot: %u type: %u ver: %u\n", numoidrdlocked, numoidwrlocked, c_numelements, TYPE(header), header->version);
+	DEBUGSTMSTAT("RD Abort: Access Count: %u AbortCount: %u type: %u ver: %u \n", header->accessCount, header->abortCount, TYPE(header), header->version);
+	freearrays;
+	return TRANS_ABORT;
+      }
 #endif
     } else { /* cannot aquire lock */
       if(version == header->version) {
@@ -881,6 +972,93 @@ int alttraverseCache() {
 	return TRANS_ABORT;
     }
   }
+
+#ifdef READSET
+  //need to validate auxilary readset
+  rdchashlistnode_t *rd_curr = rd_c_list;
+  /* Inner loop to traverse the linked list of the cache lookupTable */
+  while(likely(rd_curr != NULL)) {
+    //if the first bin in hash table is empty
+    int version=rd_curr->version;
+    objheader_t *header=(objheader_t *)(((char *)rd_curr->key)-sizeof(objheader_t));
+    if(header->lock>0) { //object is not locked
+      if (version!=header->version) {
+	//have to abort
+#ifdef DELAYCOMP
+	transAbortProcess(oidwrlocked, numoidwrtotal);
+#else
+	transAbortProcess(oidwrlocked, numoidwrlocked);
+#endif
+#ifdef STMSTATS
+	ABORTCOUNT(header);
+	(typesCausingAbort[TYPE(header)])++;
+#endif
+#if defined(STMSTATS)||defined(SOFTABORT)
+	if(getTotalAbortCount2((void *) curr->next, numoidrdlocked, oidrdlocked, oidrdversion))
+	  softabort=0;
+#endif
+	DEBUGSTM("WR Abort: rd: %u wr: %u tot: %u type: %u ver: %u\n", numoidrdlocked, numoidwrlocked, c_numelements, TYPE(header), header->version);
+	DEBUGSTMSTAT("WR Abort: Access Count: %u AbortCount: %u type: %u ver: %u \n", header->accessCount, header->abortCount, TYPE(header), header->version);
+	freearrays;
+	if (softabort)
+	  return TRANS_SOFT_ABORT;
+	else
+	  return TRANS_ABORT;	
+      }
+    } else {
+      if (version==header->version) {
+	void * key=rd_curr->key;
+#ifdef DELAYCOMP
+	//check to see if it is in the delaycomp table
+	{
+	  chashlistnode_t *node = &dc_c_table[(((unsigned INTPTR)key) & dc_c_mask)>>4];
+	  do {
+	    if(node->key == key)
+	      goto nextloopread;
+	    node = node->next;
+	  } while(node != NULL);
+	}
+#endif
+	//check normal table
+	{
+	  chashlistnode_t *node = &c_table[(((unsigned INTPTR)key) & c_mask)>>4];
+	  do {
+	    if(node->key == key) {
+	      objheader_t * headeraddr=&((objheader_t *) node->val)[-1];	  
+	      if(STATUS(headeraddr) & DIRTY) {
+		goto nextloopread;
+	      }
+	    }
+	    node = node->next;
+	  } while(node != NULL);
+	}
+      }
+#ifdef DELAYCOMP
+	//have to abort to avoid deadlock
+	transAbortProcess(oidwrlocked, numoidwrtotal);
+#else
+	transAbortProcess(oidwrlocked, numoidwrlocked);
+#endif
+#ifdef STMSTATS
+      ABORTCOUNT(header);
+      (typesCausingAbort[TYPE(header)])++;
+#endif
+#if defined(STMSTATS)||defined(SOFTABORT)
+      if(getTotalAbortCount2((void *) curr->next, numoidrdlocked, oidrdlocked, oidrdversion))
+	softabort=0;
+#endif
+      DEBUGSTM("WR Abort: rd: %u wr: %u tot: %u type: %u ver: %u\n", numoidrdlocked, numoidwrlocked, c_numelements, TYPE(header), header->version);
+      DEBUGSTMSTAT("WR Abort: Access Count: %u AbortCount: %u type: %u ver: %u \n", header->accessCount, header->abortCount, TYPE(header), header->version);
+      freearrays;
+      if (softabort)
+	return TRANS_SOFT_ABORT;
+      else
+	return TRANS_ABORT;
+    }
+  nextloopread:
+    rd_curr = rd_curr->lnext;
+  }
+#endif
 
   /* Decide the final response */
 #ifdef DELAYCOMP

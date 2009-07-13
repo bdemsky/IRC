@@ -58,10 +58,10 @@ void movehead(int size) {
 void * gettail() {
   while(tailoffset==headoffset) {
     //Sleep
-    pthread_mutex_lock(&qlock);
-    if (tailoffset==headoffset)
-      pthread_cond_wait(&qcond, &qlock);
-    pthread_mutex_unlock(&qlock);
+    //    pthread_mutex_lock(&qlock);
+    //    if (tailoffset==headoffset)
+    //      pthread_cond_wait(&qcond, &qlock);
+    //    pthread_mutex_unlock(&qlock);
   }
   if (*((int *)(memory+tailoffset))==-1) {
     tailoffset=0; //do loop

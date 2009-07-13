@@ -157,6 +157,8 @@ public class Main {
 	state.DSM=true;
       else if (option.equals("-singleTM"))
 	state.SINGLETM=true;
+      else if (option.equals("-readset"))
+	state.READSET=true;
       else if (option.equals("-webinterface"))
 	state.WEBINTERFACE=true;
       else if (option.equals("-instructionfailures"))

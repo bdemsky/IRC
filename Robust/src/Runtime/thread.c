@@ -180,6 +180,9 @@ void initializethreads() {
   t_cache = objstrCreate(1048576);
   t_reserve=NULL;
   t_chashCreate(CHASH_SIZE, CLOADFACTOR);
+#ifdef READSET
+  rd_t_chashCreate(CHASH_SIZE, CLOADFACTOR);
+#endif
 #ifdef DELAYCOMP
   dc_t_chashCreate(CHASH_SIZE, CLOADFACTOR);
   ptrstack.count=0;
@@ -247,6 +250,9 @@ void initthread(struct ___Thread___ * ___this___) {
   t_cache = objstrCreate(1048576);
   t_reserve=NULL;
   t_chashCreate(CHASH_SIZE, CLOADFACTOR);
+#ifdef READSET
+  rd_t_chashCreate(CHASH_SIZE, CLOADFACTOR);
+#endif
 #ifdef DELAYCOMP
   dc_t_chashCreate(CHASH_SIZE, CLOADFACTOR);
   ptrstack.count=0;
