@@ -51,7 +51,7 @@ public class DelayComputation {
     }
 
     //ignore things that aren't in the map
-    dcopts=new DiscoverConflicts(locality, state, typeanalysis, cannotdelaymap, false, false);
+    dcopts=new DiscoverConflicts(locality, state, typeanalysis, cannotdelaymap, false, false, state.READSET?gft:null);
     dcopts.doAnalysis();
 
 

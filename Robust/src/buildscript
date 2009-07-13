@@ -4,6 +4,7 @@ printhelp() {
 echo -robustroot set up the ROBUSTROOT to directory other than default one
 echo -dsm distributed shared memory
 echo -singleTM single machine committing transactions
+echo -readset turn on readset
 echo -stmdebug STM debug
 echo "-stmstats prints single machine commit (stm) statistics for the benchmark"
 echo -fastmemcpy use fast memcpy
@@ -60,6 +61,7 @@ echo -profile build with profile options
 echo "-useio use standard io to output profiling data (should be used together with -raw and -profile), it only works with single core version"
 echo "-enable-assertions execute assert statements during compilation"
 echo -justanalyze exit after compiler analyses complete
+echo -assembly generate assembly
 echo -help help
 }
 
@@ -99,6 +101,7 @@ JAVAFORWARDOPTS=''
 JAVAOPTS=''
 OPTIONALFLAG=false
 EXITAFTERANALYSIS=false
+ASSEMBLY=false
 
 if [[ -z $1 ]]
 then
@@ -115,6 +118,9 @@ exit
 elif [[ $1 = '-justanalyze' ]]
 then
 EXITAFTERANALYSIS=true
+elif [[ $1 = '-assembly' ]]
+then
+ASSEMBLY=true
 elif [[ $1 = '-abortreaders' ]]
 then
 ABORTREADERS=true
@@ -170,6 +176,10 @@ then
 JAVAOPTS="$JAVAOPTS -singleTM"
 EXTRAOPTIONS="$EXTRAOPTIONS -DSTM"
 SINGLETM=true
+elif [[ $1 = '-readset' ]]
+then
+JAVAOPTS="$JAVAOPTS -readset"
+EXTRAOPTIONS="$EXTRAOPTIONS -DREADSET"
 elif [[ $1 = '-stmdebug' ]]
 then
 EXTRAOPTIONS="$EXTRAOPTIONS -DSTMDEBUG"
@@ -684,6 +694,12 @@ then
 EXTRAOPTIONS="$EXTRAOPTIONS -ldmalloc -DDMALLOC"
 fi
 
+if $ASSEMBLY
+then
+gcc -S $INCLUDES $EXTRAOPTIONS -DPRECISE_GC \
+-c tmpbuilddirectory/methods.c -lm
+fi
+
 if $MULTICOREFLAG
 then
 gcc $INCLUDES $EXTRAOPTIONS \
@@ -692,6 +708,7 @@ else
 gcc $INCLUDES $EXTRAOPTIONS -DPRECISE_GC \
 tmpbuilddirectory/methods.c $FILES -lm -o $MAINFILE.bin
 fi
+
 
 fi #!RAWFLAG
 

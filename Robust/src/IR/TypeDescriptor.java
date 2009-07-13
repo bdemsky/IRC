@@ -68,7 +68,7 @@ public class TypeDescriptor extends Descriptor {
 	    name.equals("charwrapper")||
 	    name.equals("floatwrapper")||
 	    name.equals("doublewrapper")||
-	    name.equals("objectwrapper"));
+	    name.equals("Objectwrapper"));
   }
 
   public TypeDescriptor makeArray(State state) {

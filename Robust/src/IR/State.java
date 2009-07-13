@@ -82,6 +82,7 @@ public class State {
   public static boolean PRINTCRITICALPATH=false;
   public static boolean ABORTREADERS=false;
   public static boolean SINGLETM=false;
+  public static boolean READSET=false;
   public int CORENUM = 1;
   public String structfile;
   public String main;
