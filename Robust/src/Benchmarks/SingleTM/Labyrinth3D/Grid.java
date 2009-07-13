@@ -214,6 +214,7 @@ void grid_addPath (grid_t* gridPtr, vector_t* pointVectorPtr);
     int height = this.height;
     int width = this.width;
     int area = height * width;
+    boolean dowrites=true;
     for(i = 1; i < (n-1); i++) {
       int gridPointIndex = ((Integer)(pointVectorPtr.vector_at(i))).intValue();
       int z = gridPointIndex / area;
@@ -221,7 +222,7 @@ void grid_addPath (grid_t* gridPtr, vector_t* pointVectorPtr);
       int y = index2d / width;
       int x = index2d % width;        
       if (points_unaligned[x][y][z] != GRID_POINT_EMPTY) {
-	return true;
+	dowrites=false;
       }
     }
 
@@ -231,9 +232,10 @@ void grid_addPath (grid_t* gridPtr, vector_t* pointVectorPtr);
       int index2d = gridPointIndex % area;
       int y = index2d / width;
       int x = index2d % width;
-      points_unaligned[x][y][z] = GRID_POINT_FULL;
+      int[] array=points_unaligned[x][y];
+      if (dowrites) array[z] = GRID_POINT_FULL;
     }
-    return false;
+    return !dowrites;
   }
 
   public int getPointIndex(int x,int y,int z) {
@@ -250,7 +252,10 @@ void grid_addPath (grid_t* gridPtr, vector_t* pointVectorPtr);
       System.out.println("[z ="+z+"]");
       for (int x = 0; x < width; x++) {
 	for (int y = 0; y < height; y++) {
-	  System.out.print(points_unaligned[x][y][z]);
+	  String str=String.valueOf(points_unaligned[x][y][z]);
+	  for(int sp=0; sp<(4-str.length());sp++)
+	    System.out.print(" ");
+	  System.out.print(str);
 	}
 	System.out.println("");
       }

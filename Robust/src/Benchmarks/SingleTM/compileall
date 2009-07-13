@@ -7,10 +7,14 @@ cd SSCA2
 make &
 cd ..
 
-cd Labyrinth
+cd Labyrinth3D
 make &
 cd ..
 
 cd Genome
+make &
+cd ..
+
+cd Intruder
 make &
 cd ..
