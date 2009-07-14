@@ -68,6 +68,7 @@ public class State {
   public boolean OPTIONAL=false;
   public boolean ARRAYBOUNDARYCHECK=true;
   public boolean RAW=false;
+  public boolean ARRAYPAD=false;
   public boolean SCHEDULING=false;
   public boolean USEPROFILE=false;
   public boolean THREAD=false;

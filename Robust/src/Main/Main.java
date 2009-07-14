@@ -141,6 +141,8 @@ public class Main {
 	state.OPTIMIZE=true;
       else if (option.equals("-dcopts"))
 	state.DCOPTS=true;
+      else if (option.equals("-arraypad"))
+	state.ARRAYPAD=true;
       else if (option.equals("-delaycomp"))
 	state.DELAYCOMP=true;
       else if (option.equals("-raw"))

@@ -586,6 +586,9 @@ public class BuildCode {
     }
     printClassStruct(typeutil.getClass(TypeUtil.ObjectClass), outclassdefs);
 
+    if (state.ARRAYPAD)
+      outclassdefs.println("  int paddingforarray;");
+
     outclassdefs.println("  int ___length___;");
     outclassdefs.println("};\n");
     outclassdefs.println("extern int classsize[];");
@@ -1208,21 +1211,10 @@ public class BuildCode {
     if (!fieldorder.containsKey(cn)) {
       Vector fields=new Vector();
       fieldorder.put(cn,fields);
-      if (sp==null&&!state.TASK) {
-	fields.add(cn.getFieldTable().get("cachedCode"));
-      }
-      Iterator fieldit=cn.getFields();
-      while(fieldit.hasNext()) {
-	FieldDescriptor fd=(FieldDescriptor)fieldit.next();
-	if ((sp==null||!sp.getFieldTable().contains(fd.getSymbol()))&&!fd.getType().isPtr()&&
-	    (!fd.getSymbol().equals("cachedCode")||state.TASK))
-	  fields.add(fd);
-      }
-      fieldit=cn.getFields();
-      while(fieldit.hasNext()) {
-	FieldDescriptor fd=(FieldDescriptor)fieldit.next();
-	if ((sp==null||!sp.getFieldTable().contains(fd.getSymbol()))&&fd.getType().isPtr()&&
-	    (!fd.getSymbol().equals("cachedCode")||state.TASK))
+      Vector fieldvec=cn.getFieldVec();
+      for(int i=0;i<fieldvec.size();i++) {
+	FieldDescriptor fd=(FieldDescriptor)fieldvec.get(i);
+	if ((sp==null||!sp.getFieldTable().contains(fd.getSymbol())))
 	  fields.add(fd);
       }
     }

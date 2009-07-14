@@ -53,11 +53,7 @@ public class Random {
   }
 
   public int posrandom_generate() {
-    int r=genrand_int32();
-    if (r>0)
-      return r;
-    else 
-      return -r;
+    return 0x7fffffff&genrand_int32();
   }
 
   public int genrand_int32() {

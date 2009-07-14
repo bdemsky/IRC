@@ -13,6 +13,7 @@ public class ClassDescriptor extends Descriptor {
   Modifiers modifiers;
 
   SymbolTable fields;
+  Vector fieldvec;
   SymbolTable flags;
   SymbolTable methods;
 
@@ -25,6 +26,7 @@ public class ClassDescriptor extends Descriptor {
     superclass=null;
     flags=new SymbolTable();
     fields=new SymbolTable();
+    fieldvec=new Vector();
     methods=new SymbolTable();
     classid=UIDCount++;
     this.packagename=packagename;
@@ -48,6 +50,10 @@ public class ClassDescriptor extends Descriptor {
 
   public SymbolTable getFieldTable() {
     return fields;
+  }
+
+  public Vector getFieldVec() {
+    return fieldvec;
   }
 
   public SymbolTable getFlagTable() {
@@ -114,6 +120,7 @@ public class ClassDescriptor extends Descriptor {
     if (fields.contains(fd.getSymbol()))
       throw new Error(fd.getSymbol()+" already defined");
     fields.add(fd);
+    fieldvec.add(fd);
   }
 
   public void addMethod(MethodDescriptor md) {

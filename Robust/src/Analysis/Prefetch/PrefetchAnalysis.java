@@ -109,6 +109,7 @@ public class PrefetchAnalysis {
       case FKind.FlatFlagActionNode:
       case FKind.FlatGlobalConvNode:
       case FKind.FlatNop:
+      case FKind.FlatExit:
       case FKind.FlatNew:
       case FKind.FlatCastNode:
       case FKind.FlatTagDeclaration:

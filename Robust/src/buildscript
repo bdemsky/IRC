@@ -163,6 +163,9 @@ elif [[ $1 = '-excprefetch' ]]
 then
 JAVAOPTS="$JAVAOPTS -excprefetch $2"
 shift
+elif [[ $1 = '-arraypad' ]]
+then
+JAVAOPTS="$JAVAOPTS -arraypad"
 elif [[ $1 = '-dsm' ]]
 then
 JAVAOPTS="$JAVAOPTS -dsm"
