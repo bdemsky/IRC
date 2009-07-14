@@ -1214,7 +1214,14 @@ public class BuildCode {
       Iterator fieldit=cn.getFields();
       while(fieldit.hasNext()) {
 	FieldDescriptor fd=(FieldDescriptor)fieldit.next();
-	if ((sp==null||!sp.getFieldTable().contains(fd.getSymbol()))&&
+	if ((sp==null||!sp.getFieldTable().contains(fd.getSymbol()))&&!fd.getType().isPtr()&&
+	    (!fd.getSymbol().equals("cachedCode")||state.TASK))
+	  fields.add(fd);
+      }
+      fieldit=cn.getFields();
+      while(fieldit.hasNext()) {
+	FieldDescriptor fd=(FieldDescriptor)fieldit.next();
+	if ((sp==null||!sp.getFieldTable().contains(fd.getSymbol()))&&fd.getType().isPtr()&&
 	    (!fd.getSymbol().equals("cachedCode")||state.TASK))
 	  fields.add(fd);
       }
