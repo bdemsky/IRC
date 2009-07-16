@@ -292,7 +292,7 @@ public class Vacation {
     System.out.println("Running clients... ");
     start=System.currentTimeMillis();
 
-    //    Barrier.setBarrier(numThread);
+    Barrier.setBarrier(numThread);
 
     for(int i=1;i<numThread;i++) {
       clients[i].start();

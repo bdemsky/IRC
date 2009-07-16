@@ -161,8 +161,7 @@ public class Client extends Thread {
 	  ids[n] = (randomPtr.random_generate() % queryRange) + 1;
 	}
 	boolean isFound = false;
-	//atomic 
-	{
+	atomic {
 	  for (n = 0; n < numQuery; n++) {
 	    int t = types[n];
 	    int id = ids[n];
@@ -210,8 +209,7 @@ public class Client extends Thread {
 
       case ACTION_DELETE_CUSTOMER: {
 	int customerId = randomPtr.posrandom_generate() % queryRange + 1;
-	//atomic 
-	{
+	atomic {
 	  int bill = managerPtr.manager_queryCustomerBill(customerId);
 	  if (bill >= 0) {
 	    managerPtr.manager_deleteCustomer(customerId);
@@ -231,8 +229,7 @@ public class Client extends Thread {
 	    prices[n] = ((randomPtr.posrandom_generate() % 5) * 10) + 50;
 	  }
 	}
-	//atomic 
-	{
+	atomic {
 	  for (n = 0; n < numUpdate; n++) {
 	    int t = types[n];
 	    int id = ids[n];
@@ -276,8 +273,8 @@ public class Client extends Thread {
 	//assert(0);
       } /* switch (action) */
     } /* for i */
+    Barrier.enterBarrier();
   }
-  Barrier.enterBarrier();
 }
 
 /* =============================================================================
