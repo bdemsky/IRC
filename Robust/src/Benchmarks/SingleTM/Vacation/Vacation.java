@@ -129,17 +129,17 @@ public class Vacation {
     for(int i=0;i<argv.length;i++) {
       String arg=argv[i];
       if (arg.equals("-c"))
-	CLIENTS=Integer.parseInt(argv[i++]);
+	CLIENTS=Integer.parseInt(argv[++i]);
       else if (arg.equals("-n"))
-	NUMBER=Integer.parseInt(argv[i++]);
+	NUMBER=Integer.parseInt(argv[++i]);
       else if (arg.equals("-q"))
-	QUERIES=Integer.parseInt(argv[i++]);
+	QUERIES=Integer.parseInt(argv[++i]);
       else if (arg.equals("-r"))
-	RELATIONS=Integer.parseInt(argv[i++]);
+	RELATIONS=Integer.parseInt(argv[++i]);
       else if (arg.equals("-t"))
-	TRANSACTIONS=Integer.parseInt(argv[i++]);
+	TRANSACTIONS=Integer.parseInt(argv[++i]);
       else if (arg.equals("-u"))
-	USER=Integer.parseInt(argv[i++]);
+	USER=Integer.parseInt(argv[++i]);
       else 
 	opterr++;
     }
@@ -216,6 +216,7 @@ public class Vacation {
     } /* for t */
     
     System.out.println("done.");
+    return managerPtr;
   }
 
 
@@ -298,7 +299,7 @@ public class Vacation {
     }
     clients[0].run();
 
-    thread_start(client_run, clients);
+    //    thread_start(client_run, clients);
     
     stop=System.currentTimeMillis();
 

@@ -106,9 +106,7 @@ public class Customer {
  * =============================================================================
  */
   boolean customer_addReservationInfo (int type, int id, int price) {
-    Reservation reservationInfoPtr;
-    
-    reservationInfoPtr = new Reservation(type, id, price);
+    Reservation_Info reservationInfoPtr= new Reservation_Info(type, id, price);
     //    assert(reservationInfoPtr != NULL);
     
     return reservationInfoListPtr.insert(reservationInfoPtr);
