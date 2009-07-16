@@ -196,7 +196,7 @@ public class Client extends Thread {
 	  if (maxIds[RESERVATION_ROOM] > 0) {
 	    managerPtr.manager_reserveRoom(customerId, maxIds[RESERVATION_ROOM]);
 	  }
-	}
+	}//end atomic
       } else if (action==ACTION_DELETE_CUSTOMER) {
 	int customerId = randomPtr.posrandom_generate() % queryRange + 1;
 	atomic {

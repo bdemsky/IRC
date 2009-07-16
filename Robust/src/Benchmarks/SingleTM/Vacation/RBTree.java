@@ -604,15 +604,14 @@ public class RBTree {
  * =============================================================================
  * bool_t rbtree_insert (rbtree_t* r, void* key, void* val);
  */
-    public boolean insert(int key,Object val)
-    {
-        Node node = new Node();
-        Node ex = insert(key,val,node);
-        if ( ex != null) {
-            node = null;
-        }
-        return ((ex == null) ? true : false);
+  public boolean insert(int key,Object val) {
+    Node node = new Node();
+    Node ex = insert(key,val,node);
+    if ( ex != null) {
+      node = null;
     }
+    return ex == null;
+  }
 
 
 /* =============================================================================

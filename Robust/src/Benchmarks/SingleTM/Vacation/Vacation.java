@@ -303,7 +303,7 @@ public class Vacation {
     System.out.print("done.");
     long diff=stop-start;
     System.out.println("Time = "+diff);
-    //checkTables(managerPtr);
+    vac.checkTables(managerPtr);
     
     /* Clean up */
     System.out.println("Deallocating memory... ");
@@ -312,6 +312,72 @@ public class Vacation {
      */
     System.out.println("done.");
   }
+  
+  void checkTables (Manager managerPtr) {
+    int i;
+    int numRelation = RELATIONS;
+    RBTree customerTablePtr = managerPtr.customerTablePtr;
+    RBTree tables[]=new RBTree[3];
+    tables[0]=managerPtr.carTablePtr;
+    tables[1]=managerPtr.flightTablePtr;
+    tables[2]=managerPtr.roomTablePtr;
+    int numTable = 3;
+
+    int t;
+
+    System.out.println("Checking tables... ");
+
+    /* Check for unique customer IDs */
+    int percentQuery = QUERIES;
+    int queryRange = (int)((double)percentQuery / 100.0 * (double)numRelation + 0.5);
+    int maxCustomerId = queryRange + 1;
+    for (i = 1; i <= maxCustomerId; i++) {
+      if (customerTablePtr.find(i)!=null) {
+	if (customerTablePtr.remove(i)) {
+	  if (customerTablePtr.find(i)!=null) {
+	    System.out.println("ERROR");
+	    System.exit(-1);
+	  }
+	}
+      }
+    }
+
+    /* Check reservation tables for consistency and unique ids */
+    for (t = 0; t < numTable; t++) {
+      RBTree tablePtr = tables[t];
+      for (i = 1; i <= numRelation; i++) {
+	if (tablePtr.find(i)!=null) {
+	  if (t==0) {
+	    if (!managerPtr.manager_addCar(i,0,0)) {
+	      System.out.println("ERROR3");
+	      System.exit(-1);
+	    }
+	  } else if (t==1) {
+	    if (!managerPtr.manager_addFlight(i, 0, 0)) {
+	      System.out.println("ERROR3");
+	      System.exit(-1);
+	    }
+	  } else if (t==2) {
+	    if (!managerPtr.manager_addRoom(i,0,0)) {
+	      System.out.println("ERROR3");
+	      System.exit(-1);
+	    }
+	  }
+
+	  if (tablePtr.remove(i)) {
+	    if (tablePtr.remove(i)) {
+	      System.out.println("ERROR2");
+	      System.exit(-1);
+	    }
+	  }
+	}
+      }
+    }
+
+    System.out.println("done.");
+  }
+
+
 }  
   
   /* =============================================================================
