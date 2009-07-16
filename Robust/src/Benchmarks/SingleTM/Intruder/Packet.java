@@ -3,12 +3,11 @@ public class Packet {
   int fragmentId;
   int numFragment;
   int length;
-  String data;
+  byte[] data;
 
   public Packet(int numDataBytes) 
   {
-    char c[] = new char[numDataBytes];
-    data = new String(c);
+    data = new byte[numDataBytes];
   }
 
   public static int compareFlowID(Packet aPtr, Packet bPtr) 

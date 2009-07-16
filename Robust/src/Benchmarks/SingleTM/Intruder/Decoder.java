@@ -80,6 +80,7 @@ public class Decoder {
 
     MAP_T fragmentedMapPtr;     /* contains list of packet_t* */
     Queue_t decodedQueuePtr;    /* contains decoded_t*  */
+    int cnt;
 
     public Decoder() {}
 
@@ -107,6 +108,8 @@ public class Decoder {
                 System.out.println("Assert in Decoder.alloc");
                 System.exit(1);
             }
+
+            decoderPtr.cnt = 0;
 
         }
 
@@ -197,7 +200,9 @@ public class Decoder {
                     System.exit(1);
                 }
 
+                System.out.print("");
                 Packet firstFragmentPtr = (Packet)it.next(fragmentListPtr);
+
 
                 int expectedNumFragment = firstFragmentPtr.numFragment;
 
@@ -218,7 +223,7 @@ public class Decoder {
                     System.exit(1);
                 }
 
-                   
+                
 
                 /*
                  * If we have all thefragments we can reassemble them
@@ -242,18 +247,24 @@ public class Decoder {
                              }
                             return er.INCOMPLETE; /* should be sequential */
                         }
-                            numBytes += fragmentPtr.length;
-                            i++;
+                        numBytes = numBytes + fragmentPtr.length;
+                        i++;
+
                     }
 
-                    String data = new String();
+                    byte[] data = new byte[numBytes];
 
                     it.reset(fragmentListPtr);
+                    int index=0;
 
                     while(it.hasNext(fragmentListPtr)) {
                         Packet fragmentPtr = (Packet)it.next(fragmentListPtr);
-                        data +=(fragmentPtr.data);
+
+                        for(i=0;i<fragmentPtr.length;i++) {
+                            data[index++] = fragmentPtr.data[i];
+                        }
                     }
+
                         
                     Decoded decodedPtr = new Decoded();
                     if(decodedPtr == null) {
@@ -262,7 +273,7 @@ public class Decoder {
                     }
 
                     decodedPtr.flowId = flowId;
-                    decodedPtr.data = new String(data);
+                    decodedPtr.data = data;
 
                     status = decodedQueuePtr.queue_push(decodedPtr);
 
@@ -281,6 +292,7 @@ public class Decoder {
             }
         }else {
 
+
                 /*
                  * This is the only fragment, so it is ready
                  */
@@ -289,7 +301,8 @@ public class Decoder {
                     return er.FRAGMENTID;
                 }
 
-                String data = new String(packetPtr.data);
+                byte[] data = packetPtr.data;
+
                 if(data == null) {
                     System.out.println("Assertion in proces9");                           
                     System.exit(1);
@@ -313,6 +326,9 @@ public class Decoder {
                 }
             }
 
+//        cnt++;
+//        System.out.println("method call Count = " + cnt);
+
         return er.NONE;
 
             
@@ -332,17 +348,19 @@ public class Decoder {
  * -- If none, returns NULL
  * =============================================================================
  char* decoder_getComplete (decoder_t* decoderPtr, long* decodedFlowIdPtr); */
-    public String getComplete(int[] decodedFlowId) {
-        String data;
+    public byte[] getComplete(int[] decodedFlowId) {
+        byte[] data;
         Decoded decodedPtr = (Decoded)decodedQueuePtr.queue_pop();
 
         if(decodedPtr != null) {
             decodedFlowId[0] = decodedPtr.flowId;
             data = decodedPtr.data;
+
         } else {
             decodedFlowId[0] = -1;
             data= null;
         }
+
 
         return data;
     }

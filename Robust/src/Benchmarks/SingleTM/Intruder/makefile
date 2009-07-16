@@ -4,7 +4,6 @@ SRC=ttttmp${MAINCLASS}.java \
 	ttttmpStream.java  \
 	ttttmpDecoder.java  \
 	ttttmpRBTree.java  \
-	Preprocessor.java \
 	Detector.java	\
 	Decoded.java  \
 	ERROR.java  \
@@ -38,6 +37,5 @@ clean:
 	rm tmp*.java
 	rm ttt*.java
 	rm -rf tmpbuilddirectory
-	rm *.bin
 
 

@@ -4,7 +4,7 @@
 
 public class Decoded {
     int flowId;
-    String data;
+    byte[] data;
 
     public Decoded() {}
 }

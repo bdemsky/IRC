@@ -198,14 +198,18 @@ public class Intruder extends Thread {
         detectorPtr.addPreprocessor(2);
 
         Vector_t errorVectorPtr = errorVectors[threadID];
-        int cnt =0;
 
         while(true) {
             Packet packetPtr;
+
+            System.out.println("Before atomic Brace");
             // TM_BEGIN();
             atomic {
+                System.out.println("In the atomic");
                 packetPtr = streamPtr.getPacket();
             }
+
+            System.out.println("After atomic");
             // TM_END();
             //
 
@@ -220,6 +224,7 @@ public class Intruder extends Thread {
             }
             // TM_END();
             //
+            //
             
             if (error != 0) {
                 /*
@@ -228,14 +233,14 @@ public class Intruder extends Thread {
                 System.out.println("Here?");
                 System.exit(1);
             }
-            String data;
+            byte[] data;
             int[] decodedFlowId = new int[1];
             
-            cnt++;
             // TM_BEGIN();
             atomic {
                 data = decoderPtr.getComplete(decodedFlowId);
             }
+
             // TM_END();
             if(data != null) {
                 int err = detectorPtr.process(data);
@@ -369,6 +374,7 @@ public class Intruder extends Thread {
             Vector_t errorVectorPtr = errorVectors[i];
             int e;
             int numError = errorVectorPtr.vector_getSize();
+            System.out.println("numError = " + numError);
             numFound += numError;
             for (e = 0; e< numError; e++) {
                 int flowId = ((Integer)errorVectorPtr.vector_at(e)).intValue();

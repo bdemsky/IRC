@@ -141,7 +141,7 @@ public class Detector {
  * =============================================================================
  * error_t detector_process (detector_t* detectorPtr, char* str);
  */
-    public int process(String str) 
+    public int process(byte[] str) 
     {
         /*
          * Apply preprocessors
@@ -149,13 +149,22 @@ public class Detector {
 
         int p;
         int numPreprocessor = preprocessorVectorPtr.vector_getSize();
+        int i;
         for(p = 0; p < numPreprocessor; p++) {
             Integer preprocessor = (Integer)preprocessorVectorPtr.vector_at(p);
             if(preprocessor.intValue() == 1) {
                 System.out.println("NOOOOOOOOOOOOO");
             }
             else if(preprocessor.intValue() == 2) {
-                str = str.toLowerCase();
+                for(i=0;i<str.length;i++)
+                {
+                    if(str[i] >'A' && str[i] < 'Z')
+                    {
+                        str[i] = (byte)(str[i] + (byte)32);
+                    }
+                }
+
+
             }
             else {
                 System.out.println("NOOOOOOOOOOOOO");
@@ -168,7 +177,7 @@ public class Detector {
 
         ERROR err = new ERROR();
 //        System.out.print("str = \"" + str+ "\"");
-        String signature = dictionaryPtr.match(str);
+        String signature = dictionaryPtr.match(new String(str));
 //      System.out.println("\tSign = \"" + signature+ "\"");
         if(signature != null) {
             return err.SIGNATURE;
