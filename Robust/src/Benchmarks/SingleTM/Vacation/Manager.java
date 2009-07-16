@@ -118,7 +118,7 @@ public class Manager {
       if (reservationPtr.numTotal == 0) {
 	boolean status = tablePtr.remove(id);
 	if (!status) {
-	  System.out.println("TMRESTART");
+	  System.out.println("TMRESTART7");
 	  System.exit(-1);
 	}
       } else {
@@ -241,7 +241,7 @@ public class Manager {
     //  assert(customerPtr != null);
     status = customerTablePtr.insert(customerId, customerPtr);
     if (!status) {
-      System.out.println("TMRESTART");
+      System.out.println("TMRESTART8");
       System.exit(-1);
     }
     
@@ -282,20 +282,20 @@ public class Manager {
       reservationInfoPtr =(Reservation_Info)it.dataPtr;
       reservationPtr = (Reservation)reservationTables[reservationInfoPtr.type].find(reservationInfoPtr.id);
       if (reservationPtr == null) {
-	System.out.println("TMRESTART");
+	System.out.println("TMRESTART9");
 	System.exit(-1);
       }
       status = reservationPtr.reservation_cancel();
 
       if (!status) {
-	System.out.println("TMRESTART");
+	System.out.println("TMRESTART10");
 	System.exit(-1);
       }
     }
     
     status = customerTablePtr.remove(customerId);
     if (!status) {
-      System.out.println("TMRESTART");
+      System.out.println("TMRESTART11");
       System.exit(-1);
     }
     return true;
@@ -464,7 +464,7 @@ public class Manager {
       /* Undo previous successful reservation */
       boolean status = reservationPtr.reservation_cancel();
       if (!status) {
-	System.out.println("TMRESTART");
+	System.out.println("TMRESTART12");
 	System.exit(-1);
       }
       return false;
@@ -548,7 +548,7 @@ public class Manager {
         /* Undo previous successful cancellation */
       boolean status = reservationPtr.reservation_make();
       if (!status) {
-	System.out.println("TMRESTART");
+	System.out.println("TMRESTART13");
 	System.exit(-1);
       }
       return false;

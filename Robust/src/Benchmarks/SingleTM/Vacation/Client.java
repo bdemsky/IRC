@@ -143,8 +143,7 @@ public class Client extends Thread {
       int r = randomPtr.posrandom_generate() % 100;
       int action = selectAction(r, percentUser);
 
-      switch (action) {
-      case ACTION_MAKE_RESERVATION: {
+      if(action==ACTION_MAKE_RESERVATION) {
 	int maxPrices[]=new int[NUM_RESERVATION_TYPE];
 	int maxIds[]=new int[NUM_RESERVATION_TYPE];
 	maxPrices[0]=-1;
@@ -166,24 +165,18 @@ public class Client extends Thread {
 	    int t = types[n];
 	    int id = ids[n];
 	    int price = -1;
-	    switch (t) {
-	    case RESERVATION_CAR:
+	    if (t==RESERVATION_CAR) {
 	      if (managerPtr.manager_queryCar(id) >= 0) {
 		price = managerPtr.manager_queryCarPrice(id);
 	      }
-	      break;
-	    case RESERVATION_FLIGHT:
+	    } else if (t==RESERVATION_FLIGHT) {
 	      if (managerPtr.manager_queryFlight(id) >= 0) {
 		price = managerPtr.manager_queryFlightPrice(id);
 	      }
-	      break;
-	    case RESERVATION_ROOM:
+	    } else if (t==RESERVATION_ROOM) {
 	      if (managerPtr.manager_queryRoom(id) >= 0) {
 		price = managerPtr.manager_queryRoomPrice(id);
 	      }
-	      break;
-	    default:
-	      //assert(0);
 	    }
 	    if (price > maxPrices[t]) {
 	      maxPrices[t] = price;
@@ -204,10 +197,7 @@ public class Client extends Thread {
 	    managerPtr.manager_reserveRoom(customerId, maxIds[RESERVATION_ROOM]);
 	  }
 	}
-	break;
-      }
-
-      case ACTION_DELETE_CUSTOMER: {
+      } else if (action==ACTION_DELETE_CUSTOMER) {
 	int customerId = randomPtr.posrandom_generate() % queryRange + 1;
 	atomic {
 	  int bill = managerPtr.manager_queryCustomerBill(customerId);
@@ -215,10 +205,7 @@ public class Client extends Thread {
 	    managerPtr.manager_deleteCustomer(customerId);
 	  }
 	}
-	break;
-      }
-
-      case ACTION_UPDATE_TABLES: {
+      } else if (action==ACTION_UPDATE_TABLES) {
 	int numUpdate = randomPtr.posrandom_generate() % numQueryPerTransaction + 1;
 	int n;
 	for (n = 0; n < numUpdate; n++) {
@@ -236,42 +223,25 @@ public class Client extends Thread {
 	    int doAdd = ops[n];
 	    if (doAdd==1) {
 	      int newPrice = prices[n];
-	      switch (t) {
-	      case RESERVATION_CAR:
+	      if (t==RESERVATION_CAR) {
 		managerPtr.manager_addCar(id, 100, newPrice);
-		break;
-	      case RESERVATION_FLIGHT:
+	      } else if (t==RESERVATION_FLIGHT) {
 		managerPtr.manager_addFlight(id, 100, newPrice);
-		break;
-	      case RESERVATION_ROOM:
+	      } else if (t==RESERVATION_ROOM) {
 		managerPtr.manager_addRoom(id, 100, newPrice);
-		break;
-	      default:
-		//assert(0);
 	      }
 	    } else { /* do delete */
-	      switch (t) {
-	      case RESERVATION_CAR:
+	      if (t==RESERVATION_CAR) {
 		managerPtr.manager_deleteCar(id, 100);
-		break;
-	      case RESERVATION_FLIGHT:
+	      } else if (t==RESERVATION_FLIGHT) {
 		managerPtr.manager_deleteFlight(id);
-		break;
-	      case RESERVATION_ROOM:
+	      } else if (t==RESERVATION_ROOM) {
 		managerPtr.manager_deleteRoom(id, 100);
-		break;
-	      default:
-		//assert(0);
 	      }
 	    }
 	  }
 	}
-	break;
       }
-	
-      default:
-	//assert(0);
-      } /* switch (action) */
     } /* for i */
     Barrier.enterBarrier();
   }

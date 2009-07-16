@@ -76,6 +76,8 @@ public class Vacation {
  * displayUsage
  * =============================================================================
  */
+  public Vacation() {
+  }
 
   public static void displayUsage (String appName) {
     System.out.println("Usage: %s [options]\n"+ appName);
@@ -196,19 +198,14 @@ public class Vacation {
             int id = ids[i];
             int num = ((randomPtr.posrandom_generate() % 5) + 1) * 100;
             int price = ((randomPtr.posrandom_generate() % 5) * 10) + 50;
-	    switch(t) {
-	    case 0:
+	    if (t==0) {
 	      status=managerPtr.manager_addCar(id, num, price);
-	      break;
-	    case 1:
+	    } else if (t==1) {
 	      status=managerPtr.manager_addFlight(id, num, price);
-	      break;
-	    case 2:
+	    } else if (t==2) {
 	      status=managerPtr.manager_addRoom(id, num, price);
-	      break;
-	    case 3:
+	    } else if (t==3) {
 	      status=managerPtr.manager_addCustomer(id);
-	      break;
 	    }
             //assert(status);
         }

@@ -129,7 +129,7 @@ public class Customer {
 
     boolean status = reservationInfoListPtr.remove(findReservationInfo);
     if (!status) {
-	System.out.println("TMRESTART");
+	System.out.println("TMRESTART15");
 	System.exit(-1);
     }
 

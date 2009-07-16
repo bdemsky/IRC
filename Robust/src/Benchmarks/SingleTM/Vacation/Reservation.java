@@ -76,6 +76,7 @@ public class Reservation {
     this.numFree=numTotal;
     this.numTotal=numTotal;
     this.price=price;
+    checkReservation();
   }
 
   int id;
@@ -92,30 +93,30 @@ public class Reservation {
   public void checkReservation() {
     int numUsed = this.numUsed;
     if (numUsed < 0) {
-	System.out.println("TMRESTART");
+	System.out.println("TMRESTART1");
 	System.exit(-1);
     }
     
     int numFree = this.numFree;
     if (numFree < 0) {
-	System.out.println("TMRESTART");
+	System.out.println("TMRESTART2");
 	System.exit(-1);
     }
 
     int numTotal = this.numTotal;
     if (numTotal < 0) {
-	System.out.println("TMRESTART");
+	System.out.println("TMRESTART3");
 	System.exit(-1);
     }
 
     if ((numUsed + numFree) != numTotal) {
-	System.out.println("TMRESTART");
+	System.out.println("TMRESTART4");
 	System.exit(-1);
     }
 
     int price = this.price;
     if (price < 0) {
-	System.out.println("TMRESTART");
+	System.out.println("TMRESTART5");
 	System.exit(-1);
     }
   }
@@ -134,6 +135,7 @@ public class Reservation {
     
     numFree+=num;
     numTotal+=num;
+    checkReservation();
     return true;
   }
   
@@ -149,6 +151,7 @@ public class Reservation {
     }
     numUsed++;
     numFree--;
+    checkReservation();
     return true;
   }
   
@@ -164,7 +167,8 @@ public class Reservation {
     }
     numUsed--;
     numFree++;
-    return false;
+    checkReservation();
+    return true;
   }
 
   
@@ -180,6 +184,7 @@ public class Reservation {
     }
     
     this.price=newPrice;
+    checkReservation();
     return true;
   }
 

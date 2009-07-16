@@ -1,6 +1,6 @@
 MAINCLASS=Vacation
 SRC=tmpVacation.java tmpClient.java tmpManager.java tmpRBTree.java	\
-../../../ClassLibrary/JavaSTM/Barrier.java
+../../../ClassLibrary/JavaSTM/Barrier.java ../common/Random.java
 
 include ../common/Makefile.flags
 
