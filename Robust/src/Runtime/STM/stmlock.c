@@ -18,6 +18,6 @@ int write_trylock(volatile unsigned int *lock) {
 */
 
 void write_unlock(volatile unsigned int *lock) {
-  __asm __volatile__("movl $1, %0" : "+m" (*__xg(lock))::"memory");
+  __asm __volatile__("movl $1, %0" : "+m" (*lock)::"memory");
 }
 

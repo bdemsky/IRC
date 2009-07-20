@@ -509,15 +509,11 @@ public class DelayComputation {
       
       //See if flatnode is definitely no delay
       if (fn.kind()==FKind.FlatCall) {
-	isnodelay=true;
-	//Have to deal with fields/arrays
 	FlatCall fcall=(FlatCall)fn;
 	MethodDescriptor mdcall=fcall.getMethod();
-	nodelayfieldwrset.addAll(gft.getFieldsAll(mdcall));
-	nodelayarraywrset.addAll(typeanalysis.expandSet(gft.getArraysAll(mdcall)));
-	//Have to deal with field/array reads
-	nodelayfieldrdset.addAll(gft.getFieldsRdAll(mdcall));
-	nodelayarrayrdset.addAll(typeanalysis.expandSet(gft.getArraysRdAll(mdcall)));
+	if (!mdcall.getClassDesc().getSymbol().equals("System")||
+	    (!mdcall.getSymbol().equals("println")&&!mdcall.getSymbol().equals("printString")))
+	  isnodelay=true;
       }
       
       //Delay branches if possible
@@ -598,6 +594,18 @@ public class DelayComputation {
 	if (fn.kind()==FKind.FlatElementNode) {
 	  //have to do expansion
 	  nodelayarrayrdset.addAll(typeanalysis.expand(((FlatElementNode)fn).getSrc().getType()));
+	}
+
+	//See if flatnode is definitely no delay
+	if (fn.kind()==FKind.FlatCall) {
+	  //Have to deal with fields/arrays
+	  FlatCall fcall=(FlatCall)fn;
+	  MethodDescriptor mdcall=fcall.getMethod();
+	  nodelayfieldwrset.addAll(gft.getFieldsAll(mdcall));
+	  nodelayarraywrset.addAll(typeanalysis.expandSet(gft.getArraysAll(mdcall)));
+	  //Have to deal with field/array reads
+	  nodelayfieldrdset.addAll(gft.getFieldsRdAll(mdcall));
+	  nodelayarrayrdset.addAll(typeanalysis.expandSet(gft.getArraysRdAll(mdcall)));
 	}
       } else {
 	//Need to know which objects to lock on

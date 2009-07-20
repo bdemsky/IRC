@@ -3,6 +3,7 @@
 
 #define RW_LOCK_BIAS                 1
 #define LOCK_UNLOCKED          { LOCK_BIAS }
+#define CFENCE   asm volatile("":::"memory");
 
 struct __xchg_dummy {
 	unsigned long a[100];
@@ -23,7 +24,7 @@ static inline int write_trylock(volatile unsigned int *lock) {
   int retval=0;
   __asm__ __volatile__("xchgl %0,%1"
 		       : "=r"(retval)
-		       : "m"(*__xg(lock)), "0"(retval)
+		       : "m"(*lock), "0"(retval)
 		       : "memory");
   return retval;
 }

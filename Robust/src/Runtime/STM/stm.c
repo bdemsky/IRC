@@ -60,11 +60,32 @@ int typesCausingAbort[TOTALNUMCLASSANDARRAY];
 #define DEBUGSTM(x...)
 #endif
 
-#ifdef FASTMEMCPY
-void * A_memcpy (void * dest, const void * src, size_t count);
-#else
-#define A_memcpy memcpy
-#endif
+//#ifdef FASTMEMCPY
+//void * A_memcpy (void * dest, const void * src, size_t count);
+//#else
+//#define A_memcpy memcpy
+//#endif
+
+void * A_memcpy (void * dest, const void * src, size_t count) {
+  int off=0;
+  INTPTR *desti=(INTPTR *)dest;
+  INTPTR *srci=(INTPTR *)src;
+
+  //word copy
+  while(count>=sizeof(INTPTR)) {
+    desti[off]=srci[off];
+    off+=1;
+    count-=sizeof(INTPTR);
+  }
+  off*=sizeof(INTPTR);
+  //byte copy
+  while(count>0) {
+    ((char *)dest)[off]=((char *)src)[off];
+    off++;
+    count--;
+  }
+}
+
 
 extern void * curr_heapbase;
 extern void * curr_heapptr;
@@ -256,7 +277,8 @@ void *objstrAlloc(unsigned int size) {
  * -copies the object into the transaction cache
  * =============================================================
  */
-__attribute__ ((pure)) void *transRead(void * oid, void *gl) {
+//__attribute__ ((pure)) 
+void *transRead(void * oid, void *gl) {
   objheader_t *tmp, *objheader;
   objheader_t *objcopy;
   int size;
@@ -274,6 +296,7 @@ __attribute__ ((pure)) void *transRead(void * oid, void *gl) {
   }
 #endif
   A_memcpy(objcopy, header, size);
+
   /* Insert into cache's lookup table */
   STATUS(objcopy)=0;
   if (((unsigned INTPTR)oid)<((unsigned INTPTR ) curr_heapbase)|| ((unsigned INTPTR)oid) >((unsigned INTPTR) curr_heapptr))
@@ -615,6 +638,7 @@ int traverseCache() {
     objheader_t *header=oidrdlocked[i];
     unsigned int version=oidrdversion[i];
     if(header->lock>0) { //not write locked
+      CFENCE;
       if(version != header->version) { /* versions do not match */
 #ifdef DELAYCOMP
 	transAbortProcess(oidwrlocked, numoidwrtotal);
@@ -912,7 +936,8 @@ int alttraverseCache() {
   for(i=0; i<numoidrdlocked; i++) {
     objheader_t * header=oidrdlocked[i];
     unsigned int version=oidrdversion[i];
-    if(header->lock>=0) {
+    if(header->lock>0) {
+      CFENCE;
       if(version != header->version) {
 #ifdef DELAYCOMP
 	transAbortProcess(oidwrlocked, numoidwrtotal);
@@ -1137,12 +1162,8 @@ void transAbortProcess(void **oidwrlocked, int numoidwrlocked) {
     dst->___cachedCode___=src->___cachedCode___;
     dst->___cachedHash___=src->___cachedHash___;
     A_memcpy(&dst[1], &src[1], tmpsize-sizeof(struct ___Object___));
-    __asm__ __volatile__("": : :"memory");
-#ifndef DELAYCOMP
-    header->version++;
-#endif
   }
-  __asm__ __volatile__("": : :"memory");
+  CFENCE;
 
 #ifdef DELAYCOMP
   //  call commit method
@@ -1159,9 +1180,7 @@ void transAbortProcess(void **oidwrlocked, int numoidwrlocked) {
   for(i=numoidwrlocked-1; i>=0; i--) {
 #endif
     header = (objheader_t *)oidwrlocked[i];
-#ifdef DELAYCOMP
     header->version++;
-#endif
     write_unlock(&header->lock);
   }
 
@@ -1328,7 +1347,7 @@ objheader_t * needLock(objheader_t *header, void *gl) {
   } else { //failed to get lock
     trec->blocked=1;
     //memory barrier
-    __asm__ __volatile__("":::"memory");
+    CFENCE;
     //see if other thread is blocked
     if(ptr->blocked == 1) {
       //it might be block, so ignore lock and clear our blocked flag

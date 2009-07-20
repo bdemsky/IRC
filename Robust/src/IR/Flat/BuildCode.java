@@ -2676,11 +2676,11 @@ public class BuildCode {
 
   private void generateFlatCall(FlatMethod fm, LocalityBinding lb, FlatCall fc, PrintWriter output) {
     MethodDescriptor md=fc.getMethod();
-    ParamsObject objectparams=(ParamsObject)paramstable.get(state.DSM||state.SINGLETM ? locality.getBinding(lb, fc) : md);
+    ParamsObject objectparams=(ParamsObject)paramstable.get(lb!=null ? locality.getBinding(lb, fc) : md);
     ClassDescriptor cn=md.getClassDesc();
     output.println("{");
     if (GENERATEPRECISEGC) {
-      if (state.DSM||state.SINGLETM) {
+      if (lb!=null) {
 	LocalityBinding fclb=locality.getBinding(lb, fc);
 	output.print("       struct "+cn.getSafeSymbol()+fclb.getSignature()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_params __parameterlist__={");
       } else
@@ -2722,7 +2722,7 @@ public class BuildCode {
     /* Do we need to do virtual dispatch? */
     if (md.isStatic()||md.getReturnType()==null||singleCall(fc.getThis().getType().getClassDesc(),md)) {
       //no
-      if (state.DSM||state.SINGLETM) {
+      if (lb!=null) {
 	LocalityBinding fclb=locality.getBinding(lb, fc);
 	output.print(cn.getSafeSymbol()+fclb.getSignature()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor());
       } else {
@@ -2739,7 +2739,7 @@ public class BuildCode {
 
       boolean printcomma=false;
       if (GENERATEPRECISEGC) {
-	if (state.DSM||state.SINGLETM) {
+	if (lb!=null) {
 	  LocalityBinding fclb=locality.getBinding(lb, fc);
 	  output.print("struct "+cn.getSafeSymbol()+fclb.getSignature()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_params * ");
 	} else
@@ -2759,7 +2759,7 @@ public class BuildCode {
       }
 
 
-      if (state.DSM||state.SINGLETM) {
+      if (lb!=null) {
 	LocalityBinding fclb=locality.getBinding(lb, fc);
 	output.print("))virtualtable["+generateTemp(fm,fc.getThis(),lb)+"->type*"+maxcount+"+"+virtualcalls.getLocalityNumber(fclb)+"])");
       } else
@@ -2900,6 +2900,7 @@ public class BuildCode {
       boolean srcptr=fsfn.getSrc().getType().isPtr();
       String src=generateTemp(fm,fsfn.getSrc(),lb);
       String dst=generateTemp(fm,fsfn.getDst(),lb);
+      output.println("//"+srcptr+" "+fsfn.getSrc().getType().isNull());
       if (srcptr&&!fsfn.getSrc().getType().isNull()) {
 	output.println("{");
 	if ((dc==null)||dc.getNeedSrcTrans(lb, fsfn)&&

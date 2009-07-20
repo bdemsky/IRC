@@ -504,8 +504,8 @@ public class LocalityAnalysis {
 	}
       } else {
 	Integer thistype=currtable.get(fc.getThis());
-	if (!thistype.equals(NORMAL)) {
-	  throw new Error("Called start on possible scratch object");
+	if (!thistype.equals(NORMAL)&&!thistype.equals(STMEITHER)) {
+	  throw new Error("Called start on possible scratch object"+thistype);
 	}
 	lb.setGlobal(0,currtable.get(fc.getThis()));
       }
