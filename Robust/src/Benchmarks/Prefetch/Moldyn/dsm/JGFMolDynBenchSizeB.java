@@ -30,7 +30,7 @@ public class JGFMolDynBenchSizeB {
     }
 
     JGFInstrumentor instr = new JGFInstrumentor();
-    JGFInstrumentor.printHeader(3,0,nthreads);
+    JGFInstrumentor.printHeader(3,1,nthreads);
 
     JGFMolDynBench mold;
     atomic {

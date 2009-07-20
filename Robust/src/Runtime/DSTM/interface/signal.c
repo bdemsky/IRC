@@ -14,10 +14,13 @@ extern int bytesSent;
 extern int bytesRecv;
 extern int totalObjSize;
 extern unsigned int myIpAddr;
+extern int getResponse;
+extern int sendRemoteReq;
 
 void handle();
 extern pfcstats_t *evalPrefetch;
 
+/*
 void transStatsHandler(int sig, siginfo_t* info, void *context) {
 #ifdef TRANSSTATS
   FILE *fp;
@@ -39,6 +42,28 @@ void transStatsHandler(int sig, siginfo_t* info, void *context) {
   fprintf(fp, "**********************************\n");
   fflush(fp);
   fclose(fp);
+  exit(0);
+#endif
+}
+*/
+
+void transStatsHandler(int sig, siginfo_t* info, void *context) {
+#ifdef TRANSSTATS
+  printf("******  Transaction Stats   ******\n");
+  printf("myIpAddr = %x\n", myIpAddr);
+  printf("numTransAbort = %d\n", numTransAbort);
+  printf("numTransCommit = %d\n", numTransCommit);
+  printf("nchashSearch = %d\n", nchashSearch);
+  printf("nmhashSearch = %d\n", nmhashSearch);
+  printf("nprehashSearch = %d\n", nprehashSearch);
+  printf("nRemoteReadSend = %d\n", nRemoteSend);
+  printf("nSoftAbort = %d\n", nSoftAbort);
+  printf("bytesSent = %d\n", bytesSent);
+  printf("bytesRecv = %d\n", bytesRecv);
+  printf("totalObjSize= %d\n", totalObjSize);
+  printf("sendRemoteReq= %d\n", sendRemoteReq);
+  printf("getResponse= %d\n", getResponse);
+  printf("**********************************\n");
   exit(0);
 #endif
 }

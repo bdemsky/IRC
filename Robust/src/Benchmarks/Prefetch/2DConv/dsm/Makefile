@@ -13,7 +13,7 @@ default:
 #	../../../../buildscript ${FLAGS} ${SRC1} -o ${MAINCLASS}N
 	../../../../buildscript ${FLAGS1} ${SRC2} -o ${MAINCLASS}NPNC
 	../../../../buildscript ${FLAGS2} ${SRC2} -o ${MAINCLASS}NPC
-#	../../../../buildscript ${FLAGS} ${SRC2} -o ${MAINCLASS}N
+	../../../../buildscript ${FLAGS} ${SRC2} -o ${MAINCLASS}N
 
 clean:
 	rm -rf tmpbuilddirectory

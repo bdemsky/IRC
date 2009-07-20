@@ -57,7 +57,7 @@
 //#define RETRYINTERVAL  20 //N (For Em3d, SOR, Moldyn benchmarks)
 //#define SHUTDOWNINTERVAL  3  //M
 #define RETRYINTERVAL  100 //N  (For MatrixMultiply, 2DFFT benchmarks)
-#define SHUTDOWNINTERVAL  1  //M
+#define SHUTDOWNINTERVAL 1  //M
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -94,6 +94,17 @@
 
 /*******Global statistics *********/
 extern int numprefetchsites;
+
+/***********************************
+ * Global Variables for statistics
+ **********************************/
+#ifdef TRANSSTATS
+extern int numTransCommit;
+extern int numTransAbort;
+extern int nSoftAbort;
+extern int nSoftAbortAbort;
+extern int nSoftAbortCommit;
+#endif
 
 double idForTimeDelay;           /* TODO Remove, necessary to get time delay for starting transRequest for this id */
 int transCount;                  /* TODO Remove, necessary to the transaction id */

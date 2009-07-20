@@ -19,7 +19,7 @@ default:
 	./extractLines
 	../../../../buildscript ${FLAGS1} -o ${MAINCLASS}NPNC ${SRC}
 	../../../../buildscript ${FLAGS2} -o ${MAINCLASS}NPC ${SRC}
-#	../../../../buildscript ${FLAGS3} -o ${MAINCLASS}N ${SRC}
+	../../../../buildscript ${FLAGS3} -o ${MAINCLASS}N ${SRC}
 
 clean:
 	rm tmp1RainForest.java

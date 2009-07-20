@@ -72,6 +72,8 @@ int nSoftAbort = 0;
 int bytesSent = 0;
 int bytesRecv = 0;
 int totalObjSize = 0;
+int sendRemoteReq = 0;
+int getResponse = 0;
 
 void printhex(unsigned char *, int);
 plistnode_t *createPiles();
@@ -1469,6 +1471,9 @@ void sendPrefetchReq(prefetchpile_t *mcpilenode, int sd) {
     *((int*)buf) = tmp->numoffset;
     buf+=sizeof(int);
     *((unsigned int *)buf) = tmp->oid;
+#ifdef TRANSSTATS
+    sendRemoteReq++;
+#endif
     buf+=sizeof(unsigned int);
     *((unsigned int *)buf) = myIpAddr;
     buf += sizeof(unsigned int);
@@ -1493,7 +1498,9 @@ int getPrefetchResponse(int sd) {
   recv_data((int)sd, &length, sizeof(int));
   size = length - sizeof(int);
   char recvbuffer[size];
-
+#ifdef TRANSSTATS
+    getResponse++;
+#endif
   recv_data((int)sd, recvbuffer, size);
   control = *((char *) recvbuffer);
   if(control == OBJECT_FOUND) {
