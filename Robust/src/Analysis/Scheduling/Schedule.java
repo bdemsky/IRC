@@ -14,6 +14,7 @@ public class Schedule {
   private int gid;
   private int coreNum;
   private Vector<TaskDescriptor> tasks;
+  private Hashtable<TaskDescriptor, Integer> td2num;
   private Hashtable<FlagState, Queue<Integer>> targetCores;
   private Hashtable<FlagState, FlagState> targetFState;   // only affected by transimit edges
   private Hashtable<FlagState, Vector<Integer>> allyCores;
@@ -24,6 +25,7 @@ public class Schedule {
     this.gid = gid;
     this.coreNum = coreNum;
     this.tasks = null;
+    this.td2num = null;
     this.targetCores = null;
     this.targetFState = null;
     this.allyCores = null;
@@ -143,9 +145,17 @@ public class Schedule {
   public void addTask(TaskDescriptor task) {
     if(this.tasks == null) {
       this.tasks = new Vector<TaskDescriptor>();
+      this.td2num = new Hashtable<TaskDescriptor, Integer>();
     }
     if(!this.tasks.contains(task)) {
       this.tasks.add(task);
+      this.td2num.put(task, 1);
+    } else {
+      this.td2num.put(task, this.td2num.get(task).intValue()+1);
     }
+  }
+  
+  public int getTaskNum(TaskDescriptor task) {
+    return this.td2num.get(task);
   }
 }

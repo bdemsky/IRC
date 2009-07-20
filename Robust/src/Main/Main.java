@@ -62,6 +62,8 @@ public class Main {
 
     String outputdir = null;
     boolean isDistributeInfo = false;
+    boolean isDisAll = false;
+    int startnum = 0;
 
     for(int i=0; i<args.length; i++) {
       String option=args[i];
@@ -151,8 +153,14 @@ public class Main {
 	state.SCHEDULING=true;
       else if (option.equals("-distributioninfo"))
 	isDistributeInfo=true;
-      else if (option.equals("-useprofile"))
+      else if (option.equals("-disall"))
+        isDisAll=true;
+      else if (option.equals("-disstart"))
+        startnum = Integer.parseInt(args[++i]);
+      else if (option.equals("-useprofile")) {
 	state.USEPROFILE=true;
+    state.profilename = args[++i];
+      }
       else if (option.equals("-thread"))
 	state.THREAD=true;
       else if (option.equals("-dsm"))
@@ -386,17 +394,18 @@ public class Main {
 		                                              ta,
 		                                              oa);
 	if(isDistributeInfo) {
-	    mcImplSynthesis.distribution();
+	    mcImplSynthesis.distribution(isDisAll, startnum);
 	} else {
-	    //double timeStartAnalysis = (double) System.nanoTime();
+	    double timeStartAnalysis = (double) System.nanoTime();
 	    mcImplSynthesis.setScheduleThreshold(20);
 	    mcImplSynthesis.setProbThreshold(0);
 	    mcImplSynthesis.setGenerateThreshold(30);
 	    Vector<Schedule> scheduling = mcImplSynthesis.synthesis();
 	    
-	    //double timeEndAnalysis = (double) System.nanoTime();
-	    //double dt = (timeEndAnalysis - timeStartAnalysis)/(Math.pow( 10.0, 9.0 ) );
-	    //System.err.println("The analysis took" + dt +  "sec.");
+	    double timeEndAnalysis = (double) System.nanoTime();
+	    double dt = (timeEndAnalysis - timeStartAnalysis)/(Math.pow( 10.0, 9.0 ) );
+	    System.err.println("The analysis took" + dt +  "sec.");
+        System.exit(0);
 
 	    // generate multicore codes
 	    if(state.MULTICORE) {

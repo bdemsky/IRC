@@ -58,9 +58,13 @@ echo -o binary
 echo -nojava do not run bristlecone compiler
 echo -instructionfailures inject code for instructionfailures
 echo -profile build with profile options
+echo -accurateprofile build with accurate profile information including pre/post task processing info
 echo "-useio use standard io to output profiling data (should be used together with -raw and -profile), it only works with single core version"
 echo "-enable-assertions execute assert statements during compilation"
 echo -justanalyze exit after compiler analyses complete
+echo "-distributioninfo  execute to collect distribution info for simulated annealing in multi-core version"
+echo "-disall  execute to collect whole distribution"
+echo "-disstart specify the start number of distribution information collection"
 echo -assembly generate assembly
 echo -help help
 }
@@ -87,6 +91,7 @@ RAWCONFIG=''
 DEBUGFLAG=false
 RAWPATHFLAG=false
 PROFILEFLAG=false
+ACCURATEPROFILEFLAG=false
 USEIOFLAG=false
 INTERRUPTFLAG=false
 THREADSIMULATEFLAG=false;
@@ -213,6 +218,9 @@ elif [[ $1 = '-profile' ]]
 then
 PROFILEFLAG=true
 EXTRAOPTIONS="$EXTRAOPTIONS -pg"
+elif [[ $1 = '-accurateprofile' ]]
+then
+ACCURATEPROFILEFLAG=true
 elif [[ $1 = '-useio' ]]
 then
 USEIOFLAG=true
@@ -273,7 +281,8 @@ RECOVERFLAG=true
 JAVAOPTS="$JAVAOPTS -task"
 elif [[ $1 = '-useprofile' ]]
 then
-JAVAOPTS="$JAVAOPTS -useprofile"
+JAVAOPTS="$JAVAOPTS -useprofile $2"
+shift
 elif [[ $1 = '-webinterface' ]]
 then
 JAVAOPTS="$JAVAOPTS -webinterface"
@@ -344,6 +353,16 @@ THREADFLAG=true
 elif [[ $1 = '-distributioninfo' ]]
 then
 JAVAOPTS="$JAVAOPTS -distributioninfo"
+elif [[ $1 = '-disall' ]]
+then
+JAVAOPTS="$JAVAOPTS -disall"
+elif [[ $1 = '-disstart' ]]
+then
+JAVAOPTS="$JAVAOPTS -disstart $2"
+shift
+elif [[ $1 = '-noc' ]]
+then
+CCOMPILEFLAG=false
 elif [[ $1 = '-curdir' ]]
 then
 CURDIR=$2
@@ -404,7 +423,7 @@ fi
 
 if $MULTICOREFLAG
 then
-if ! ${ROBUSTROOT}/ourjava -Xms50m -Xmx800m $JAVAFORWARDOPTS -classpath $ROBUSTROOT/../cup/:$ROBUSTROOT Main.Main -classlibrary \
+if ! ${ROBUSTROOT}/ourjava -Xms50m -Xmx1500m $JAVAFORWARDOPTS -classpath $ROBUSTROOT/../cup/:$ROBUSTROOT Main.Main -classlibrary \
 $ROBUSTROOT/ClassLibrary/ -classlibrary $ROBUSTROOT/ClassLibrary/gnu/ \
 -dir $BUILDDIR $JAVAOPTS $SRCFILES
 then exit $?
@@ -495,6 +514,11 @@ then # profile version
 RAWRGCCFLAGS="${RAWRGCCFLAGS} -DPROFILE"
 fi
 
+if $ACCURATEPROFILEFLAG
+then # accurateprofile version
+RAWRGCCFLAGS="${RAWRGCCFLAGS} -DACCURATEPROFILE"
+fi
+
 if $USEIOFLAG
 then # useio version
 RAWRGCCFLAGS="${RAWRGCCFLAGS} -DUSEIO"
@@ -558,6 +582,11 @@ fi
 if $PROFILEFLAG
 then # profile version
 TILERACFLAGS="${TILERACFLAGS} -DPROFILE"
+fi
+
+if $ACCURATEPROFILEFLAG
+then # accurateprofile version
+TILERACFLAGS="${TILERACFLAGS} -DACCURATEPROFILE"
 fi
 
 if $USEIOFLAG

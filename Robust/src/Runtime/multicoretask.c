@@ -78,6 +78,8 @@ inline void run(void * arg) {
       profilestatus[i] = 1;
     }  
 #endif
+	// TODO for test
+	total_num_t6 = 0;
   }
   busystatus = true;
   self_numsendobjs = 0;
@@ -127,8 +129,8 @@ inline void run(void * arg) {
   //isInterrupt = true;
   totalexetime = -1;
   taskInfoIndex = 0;
-  /*interruptInfoIndex = 0;
   taskInfoOverflow = false;
+  /*interruptInfoIndex = 0;
   interruptInfoOverflow = false;*/
 #endif
 
@@ -203,12 +205,14 @@ inline void run(void * arg) {
 		  // check if there are some pending objects, if yes, enqueue them and executetasks again
 		  tocontinue = false;
 #ifdef PROFILE
+#ifdef ACCURATEPROFILE
 		  {
 			  bool isChecking = false;
 			  if(!isEmpty(&objqueue)) {
 				  profileTaskStart("objqueue checking");
 				  isChecking = true;
 			  }
+#endif
 #endif
 		  while(!isEmpty(&objqueue)) {
 			  void * obj = NULL;
@@ -310,10 +314,12 @@ objqueuebreak:
 #endif
 		  }
 #ifdef PROFILE
+#ifdef ACCURATEPROFILE
 		      if(isChecking) {
 				  profileTaskEnd();
 			  }
 		  }
+#endif
 #endif
 #ifdef DEBUG
 		  BAMBOO_DEBUGPRINT(0xee02);
@@ -399,6 +405,7 @@ objqueuebreak:
 								  totalexetime = BAMBOO_GET_EXE_TIME();
 #else
 								  BAMBOO_DEBUGPRINT(BAMBOO_GET_EXE_TIME());
+								  BAMBOO_DEBUGPRINT_REG(total_num_t6); // TODO for test
 								  BAMBOO_DEBUGPRINT(0xbbbbbbbb);
 #endif
 								  // profile mode, send msgs to other cores to request pouring
@@ -1611,30 +1618,10 @@ msg:
 		  BAMBOO_DEBUGPRINT(0xe88a);
 #endif
 #endif
-		  struct bamboo_shared_mem * cur_mem = bamboo_free_msps->head;
-		  void * mem = mspace_calloc(cur_mem->msp, 1, msgdata[1]);
-		  struct bamboo_shared_mem * failmem = cur_mem;
-		  while(mem == NULL) {
-			  if(msgdata[1] > BAMBOO_SMEM_SIZE) {
-				  // move current head to the tail
-				  bamboo_free_msps->tail->next = cur_mem;
-				  bamboo_free_msps->tail = cur_mem;
-				  bamboo_free_msps->head = cur_mem->next;
-				  cur_mem->next = NULL;
-				  cur_mem = bamboo_free_msps->head;
-				  if(cur_mem == failmem) {
-					  BAMBOO_EXIT(0xa016);
-				  }
-			  } else {
-				  // remove the head
-				  bamboo_free_msps->head = cur_mem->next;
-				  RUNFREE(cur_mem);
-				  cur_mem = bamboo_free_msps->head;
-				  if(cur_mem == NULL) {
-					  BAMBOO_EXIT(0xa017);
-				  }
-			  }
-			  mem = mspace_calloc(cur_mem->msp, 1, msgdata[1]);
+		  void * mem = mspace_calloc(bamboo_free_msp, 1, msgdata[1]);
+		  if(mem == NULL) {
+			  BAMBOO_DEBUGPRINT(0xa016);
+			  BAMBOO_EXIT(0xa016);
 		  }
 		  // send the start_va to request core
 		 if(isMsgSending) {
@@ -1717,7 +1704,7 @@ int processlockrequest(int locktype, int lock, int obj, int requestcore, int roo
 	  BAMBOO_DEBUGPRINT_REG(lock);
 	  BAMBOO_DEBUGPRINT_REG(corenum);
 #endif
-	  BAMBOO_EXIT(0xa018);
+	  BAMBOO_EXIT(0xa017);
   }
   /*if((corenum == STARTUPCORE) && waitconfirm) {
 	  waitconfirm = false;
@@ -1840,7 +1827,7 @@ bool getreadlock(void * ptr) {
 #endif
 		} else {
 			// conflicts on lockresults
-			BAMBOO_EXIT(0xa019);
+			BAMBOO_EXIT(0xa018);
 		}
 	}
     return true;
@@ -1870,7 +1857,7 @@ void releasereadlock(void * ptr) {
     // reside on this core
     if(!RuntimeHashcontainskey(locktbl, reallock)) {
       // no locks for this object, something is wrong
-      BAMBOO_EXIT(0xa01a);
+      BAMBOO_EXIT(0xa019);
     } else {
       int rwlock_obj = 0;
 	  struct LockValue * lockvalue = NULL;
@@ -1926,7 +1913,7 @@ bool getreadlock_I_r(void * ptr, void * redirectlock, int core, bool cache) {
 #endif
 			} else {
 				// conflicts on lockresults
-				BAMBOO_EXIT(0xa01b);
+				BAMBOO_EXIT(0xa01a);
 			}
 			return true;
 		} else {
@@ -2010,7 +1997,7 @@ bool getwritelock(void * ptr) {
 #endif
 		} else {
 			// conflicts on lockresults
-			BAMBOO_EXIT(0xa01c);
+			BAMBOO_EXIT(0xa01b);
 		}
 	}
     return true;
@@ -2047,7 +2034,7 @@ void releasewritelock(void * ptr) {
     // reside on this core
     if(!RuntimeHashcontainskey(locktbl, reallock)) {
       // no locks for this object, something is wrong
-      BAMBOO_EXIT(0xa01d);
+      BAMBOO_EXIT(0xa01c);
     } else {
       int rwlock_obj = 0;
 	  struct LockValue * lockvalue = NULL;
@@ -2087,7 +2074,7 @@ void releasewritelock_r(void * lock, void * redirectlock) {
     // reside on this core
     if(!RuntimeHashcontainskey(locktbl, reallock)) {
       // no locks for this object, something is wrong
-      BAMBOO_EXIT(0xa01e);
+      BAMBOO_EXIT(0xa01d);
     } else {
       int rwlock_obj = 0;
 	  struct LockValue * lockvalue = NULL;
@@ -2164,7 +2151,7 @@ bool getwritelock_I(void * ptr) {
 #endif
 		} else {
 			// conflicts on lockresults
-			BAMBOO_EXIT(0xa01f);
+			BAMBOO_EXIT(0xa01e);
 		}
 		return true;
 	}
@@ -2222,7 +2209,7 @@ bool getwritelock_I_r(void * ptr, void * redirectlock, int core, bool cache) {
 #endif
 			} else {
 				// conflicts on lockresults
-				BAMBOO_EXIT(0xa020);
+				BAMBOO_EXIT(0xa01f);
 			}
 			return true;
 		} else {
@@ -2268,7 +2255,7 @@ void releasewritelock_I(void * ptr) {
     // reside on this core
     if(!RuntimeHashcontainskey(locktbl, reallock)) {
       // no locks for this object, something is wrong
-      BAMBOO_EXIT(0xa021);
+      BAMBOO_EXIT(0xa020);
     } else {
       int rwlock_obj = 0;
 	  struct LockValue * lockvalue = NULL;
@@ -2300,7 +2287,7 @@ void releasewritelock_I_r(void * lock, void * redirectlock) {
     // reside on this core
     if(!RuntimeHashcontainskey(locktbl, reallock)) {
       // no locks for this object, something is wrong
-      BAMBOO_EXIT(0xa022);
+      BAMBOO_EXIT(0xa021);
     } else {
       int rwlock_obj = 0;
 	  struct LockValue * lockvalue = NULL;
@@ -2617,7 +2604,9 @@ newtask:
     if (hashsize(activetasks)>0) {
       int i;
 #ifdef PROFILE
+#ifdef ACCURATEPROFILE
 	  profileTaskStart("tpd checking");
+#endif
 #endif
 	  busystatus = true;
       currtpd=(struct taskparamdescriptor *) getfirstkey(activetasks);
@@ -2735,8 +2724,10 @@ newtask:
 				  }
 			  }
 #ifdef PROFILE
+#ifdef ACCURATEPROFILE
 			  // fail, set the end of the checkTaskInfo
 			  profileTaskEnd();
+#endif
 #endif
 			  goto newtask;
 		  } // line 2794: if(grount == 0)
@@ -2821,8 +2812,10 @@ newtask:
 	    RUNFREE(currtpd->parameterArray);
 	    RUNFREE(currtpd);
 #ifdef PROFILE
+#ifdef ACCURATEPROFILE
 	    // fail, set the end of the checkTaskInfo
 		profileTaskEnd();
+#endif
 #endif
 	    goto newtask;
 	  } // line 2878: if (!ismet)
@@ -2887,7 +2880,7 @@ parameterpresent:
 	     reverse=NULL;
 #endif  // #if 0: for recovery
 	  BAMBOO_DEBUGPRINT_REG(x);
-	  BAMBOO_EXIT(0xa023);
+	  BAMBOO_EXIT(0xa022);
 	} else {
 #endif // #ifndef MULTICORE
 #if 0 
@@ -2907,8 +2900,10 @@ parameterpresent:
 #endif  // #if 0: for garbage collection
 execute:
 #ifdef PROFILE
+#ifdef ACCURATEPROFILE
 	  // check finish, set the end of the checkTaskInfo
 	  profileTaskEnd();
+#endif
 	  profileTaskStart(currtpd->task->name);
 #endif
 
@@ -2927,10 +2922,12 @@ execute:
 	    ((void(*) (void **))currtpd->task->taskptr)(taskpointerarray);
 	  } // line 2990: if(debugtask)
 #ifdef PROFILE
+#ifdef ACCURATEPROFILE
 	  // task finish, set the end of the checkTaskInfo
 	  profileTaskEnd();
 	  // new a PostTaskInfo for the post-task execution
 	  profileTaskStart("post task execution");
+#endif
 #endif
 #ifdef DEBUG
 	  BAMBOO_DEBUGPRINT(0xe998);

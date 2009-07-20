@@ -54,22 +54,17 @@ struct Queue objqueue;
 #define BAMBOO_SMEM_SIZE 16 * BAMBOO_PAGE_SIZE
 
 bool smemflag;
-struct bamboo_shared_mem {
-	mspace msp;
-	struct bamboo_shared_mem * next;
-};
-struct bamboo_smem_list {
-	struct bamboo_shared_mem * head;
-	struct bamboo_shared_mem * tail;
-};
-struct bamboo_smem_list * bamboo_free_msps;
+mspace bamboo_free_msp;
 mspace bamboo_cur_msp;
 int bamboo_smem_size;
+
+// for test TODO
+int total_num_t6;
 
 // data structures for profile mode
 #ifdef PROFILE
 
-#define TASKINFOLENGTH 10000
+#define TASKINFOLENGTH 30000
 //#define INTERRUPTINFOLENGTH 500
 
 bool stall;
@@ -146,6 +141,7 @@ void outputProfileData();
 //  BAMBOO_DEBUGPRINT_REG(x): print out value of variable x                        //
 //  BAMBOO_LOCAL_MEM_CALLOC(x, y): allocate an array of x elements each of whose   //
 //                                 size in bytes is y on local memory              //
+//  BAMBOO_LOCAL_MEM_FREE(x): free space with ptr x on local memory                //
 //  BAMBOO_SHARE_MEM_CALLOC(x, y): allocate an array of x elements each of whose   //
 //                                 size in bytes is y on shared memory             //
 //  BAMBOO_START_CRITICAL_SECTION_OBJ_QUEUE()                                      //

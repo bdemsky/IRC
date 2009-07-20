@@ -61,7 +61,7 @@ public class ScheduleSimulator {
   
   public long simulate(Vector<Vector<Schedule>> schedulings,
 	              Vector<Integer> selectedScheduling,
-	              Vector<Vector<SimExecutionEdge>> selectedSimExeGraphs) {      
+	              Vector<SimExecutionNode> selectedSimExeGraphs) {      
       long processTime = Long.MAX_VALUE;
       /*if(schedulings.size() > 1500) {
 	  int index = 0;
@@ -99,19 +99,19 @@ public class ScheduleSimulator {
 		  (Vector<Schedule>)it_scheduling.next();
 	      System.out.println("Scheduling index:" + scheduling.elementAt(0).getGid());
 	      this.setScheduling(scheduling);
-	      Vector<SimExecutionEdge> simexegraph = new Vector<SimExecutionEdge>();
+	      Vector<SimExecutionNode> simexegraph = new Vector<SimExecutionNode>();
 	      Vector<CheckPoint> checkpoints = new Vector<CheckPoint>();
 	      long tmpTime = process(checkpoints, simexegraph);
 	      if(tmpTime < processTime) {
 		  selectedScheduling.clear();
 		  selectedScheduling.add(index);
 		  selectedSimExeGraphs.clear();
-		  selectedSimExeGraphs.add(simexegraph);
+		  selectedSimExeGraphs.add(simexegraph.elementAt(0));
 		  processTime = tmpTime;
 	      } else if(tmpTime == processTime) {
 		  if(!selectedScheduling.contains(index)) {
 		      selectedScheduling.add(index);
-		      selectedSimExeGraphs.add(simexegraph);
+		      selectedSimExeGraphs.add(simexegraph.elementAt(0));
 		  }
 	      }
 	      scheduling = null;
@@ -207,7 +207,7 @@ public class ScheduleSimulator {
   }
 
   public long process(Vector<CheckPoint> checkpoints,
-	              Vector<SimExecutionEdge> simexegraph) {
+	              Vector<SimExecutionNode> simexegraph) {
     assert(this.scheduling != null);
 
     this.invoketime++;
@@ -303,7 +303,6 @@ public class ScheduleSimulator {
 	    // handle TransTaskSimulator task's completion
 	    finishTransTaskSimulator(task,
                                      cp,
-                                     simexegraph,
                                      senode2action,
                                      lastseNodes,
                                      action2exetime,
@@ -345,7 +344,6 @@ public class ScheduleSimulator {
 		          cp,
 		          transObjs,
 		          tttasks,
-		          simexegraph,
 		          senode2action,
 		          lastseNodes,
 		          action2exetime,
@@ -363,6 +361,7 @@ public class ScheduleSimulator {
       
     // add the end node into the SimExecutionGraph
     SimExecutionNode seNode = new SimExecutionNode(this.coreNum, this.processTime);
+    simexegraph.addElement(seNode);
     for(int j = 0; j < lastseNodes.length; j++) {
 	SimExecutionNode lastsenode = lastseNodes[j];
 	// create edges between previous senode on this core to this node
@@ -398,7 +397,6 @@ public class ScheduleSimulator {
 				System.exit(-1);
 			    }
 			    lastedge.getTarget().addEdge(transseEdge);
-			    simexegraph.add(transseEdge);
 			    transseEdge.addPredicate(lastedge);
 			    seEdge.addPredicate(transseEdge);
 			} else {
@@ -410,7 +408,6 @@ public class ScheduleSimulator {
 		}
 	    }
 	    taskparams = null;
-	    simexegraph.add(seEdge); // add the seEdge afger all corresponding transfer edges
 	}	  
 	lastseNodes[j] = null;
     }
@@ -446,7 +443,6 @@ public class ScheduleSimulator {
   
   private void finishTransTaskSimulator(TaskSimulator task,
 	                                CheckPoint cp,
-	                                Vector<SimExecutionEdge> simexegraph,
 	                                Hashtable<SimExecutionNode, Action> senode2action,
 	                                SimExecutionNode[] lastseNodes,
 	                                Hashtable<Action, Long> action2exetime,
@@ -507,7 +503,6 @@ public class ScheduleSimulator {
 				                        tmpaction.getTaskParams());
 		      }
 		      lastsenode.addEdge(seEdge);
-		      simexegraph.add(seEdge);
 		  }
 		  lastseNodes[targetCoreNum] = seNode;	      
 	      }
@@ -683,7 +678,6 @@ public class ScheduleSimulator {
 	                       CheckPoint cp,
 	                       Vector<ObjectSimulator> nobjs,
 	                       Vector<TransTaskSimulator> tttasks,
-	                       Vector<SimExecutionEdge> simexegraph,
 	                       Hashtable<SimExecutionNode, Action> senode2action,
 	                       SimExecutionNode[] lastseNodes,
 	                       Hashtable<Action, Long> action2exetime,
@@ -767,7 +761,6 @@ public class ScheduleSimulator {
 			      System.exit(-1);
 			  }
 			  lastedge.getTarget().addEdge(transseEdge);
-			  simexegraph.add(transseEdge);
 			  transseEdge.addPredicate(lastedge);
 			  seEdge.addPredicate(transseEdge);
 		      } else {
@@ -779,7 +772,6 @@ public class ScheduleSimulator {
 	      }
 	  }
 	  taskparams = null;
-	  simexegraph.add(seEdge); // add the seEdge afger all corresponding transfer edges
 	  
 	  // set seEdge as the last execution edge for all newly created objs
 	  if(nobjs != null) {

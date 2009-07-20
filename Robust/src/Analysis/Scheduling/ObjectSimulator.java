@@ -14,6 +14,9 @@ public class ObjectSimulator {
   boolean shared;
   boolean hold;
   int version;
+  
+  // TODO, crack for KMeans
+  int counter;
 
   public ObjectSimulator(ClassDescriptor cd, 
 	                 FlagState currentFS) {
@@ -25,12 +28,25 @@ public class ObjectSimulator {
     this.shared = false;
     this.hold = false;
     this.version = 0;
+    if(this.cd.getSymbol().equals("Cluster")) {
+      this.counter = 83 * 2 + 1; //102 * 2 + 1; //83 * 2 + 1;
+    } else {
+      this.counter = -1;
+    }
   }
 
   public void applyEdge(FEdge fedge) {
     if(!currentFS.equals((FlagState)fedge.getTarget())) {
       this.changed = true;
       currentFS = (FlagState)fedge.getTarget();
+      if(this.counter > 0) {
+        //System.err.println(this.counter);
+        this.counter--;
+      }
+      if((this.cd.getSymbol().equals("Cluster")) && (this.counter == 0)) {
+        // go to end state
+        this.currentFS = new FlagState(this.cd);
+      }
     } else {
       this.changed = false;
     }

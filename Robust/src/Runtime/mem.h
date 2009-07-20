@@ -30,7 +30,7 @@ void myfree(void * ptr);
 #define FREEMALLOC(x) mycalloc_share(1,x)
 #define RUNMALLOC(x) mycalloc(1,x) // handle interruption inside
 #define RUNMALLOC_I(x) mycalloc_i(1,x) // with interruption blocked beforehand
-#define RUNFREE(x) myfree(x);
+#define RUNFREE(x) myfree(x)
 //#define PTR(x) (32+(x-1)&~31)
 #endif  // #ifdef THREADSIMULATE
 #endif  // #ifdef MULTICORE

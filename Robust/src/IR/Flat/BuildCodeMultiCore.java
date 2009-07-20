@@ -964,9 +964,9 @@ public class BuildCodeMultiCore extends BuildCode {
   }
 
   protected void generateObjectDistribute(FlatFlagActionNode ffan, 
-	                                  FlatMethod fm, 
-	                                  LocalityBinding lb, 
-	                                  TempDescriptor temp,
+	                                      FlatMethod fm, 
+	                                      LocalityBinding lb, 
+	                                      TempDescriptor temp,
                                           PrintWriter output) {
     ClassDescriptor cd = temp.getType().getClassDesc();
     Vector<FlagState> initfstates = null;
@@ -1085,19 +1085,19 @@ public class BuildCodeMultiCore extends BuildCode {
 		  output.println("enqueueObject("+super.generateTemp(fm, temp, lb)+", " + qinfo.qname +
 		                 ", " + qinfo.length + ");");
 		  output.println("}");
-		} else {
+		} /*else {
 		  // TODO
 		  // really needed?
-		  output.println("/* possibly needed by multi-parameter tasks on this core*/");
+		  output.println("/* possibly needed by multi-parameter tasks on this core*//*");
 		  output.println("enqueueObject("+super.generateTemp(fm, temp, lb)+", NULL, 0);");
-		}
+		}*/  // deleted 09/07/06, multi-param tasks are pinned to one core now
 	      } else {
-		if(!isolate) {
+		/*if(!isolate) {
 		  // TODO
 		  // Is it possible to decide the actual queues?
-		  output.println("/* possibly needed by multi-parameter tasks on this core*/");
+		  output.println("/* possibly needed by multi-parameter tasks on this core*//*");
 		  output.println("enqueueObject("+super.generateTemp(fm, temp, lb)+", NULL, 0);");
-		}
+		}*/ // deleted 09/07/06, multi-param tasks are pinned to one core now
 		output.println("/* transfer to core " + targetcore.toString() + "*/");
 		output.println("{");
 		// enqueue this object and its destinations for later process
@@ -1125,12 +1125,12 @@ public class BuildCodeMultiCore extends BuildCode {
 	    }
 	    output.println("}");
 	  } else {
-	    if(!isolate) {
+	    /*if(!isolate) {
 	      // TODO
 	      // Is it possible to decide the actual queues?
-	      output.println("/* possibly needed by multi-parameter tasks on this core*/");
+	      output.println("/* possibly needed by multi-parameter tasks on this core*//*");
 	      output.println("enqueueObject("+super.generateTemp(fm, temp, lb)+", NULL, 0);");
-	    }
+	    }*/ // deleted 09/07/06, multi-param tasks are pinned to one core now
 	    output.println("/* transfer to core " + targetcore.toString() + "*/");
 	    output.println("{");
 	    // enqueue this object and its destinations for later process
@@ -1165,11 +1165,11 @@ public class BuildCodeMultiCore extends BuildCode {
 	    output.println("enqueueObject("+super.generateTemp(fm, temp, lb)+", " + qinfo.qname +
 	                   ", " + qinfo.length + ");");
 	    output.println("}");
-	  } else {
+	  } /*else {
 	    // TODO
 	    // really needed?
 	    output.println("enqueueObject("+super.generateTemp(fm, temp, lb)+", NULL, 0);");
-	  }
+	  }*/ // deleted 09/07/06, multi-param tasks are pinned to one core now
 	}
 
 	// codes for multi-params tasks

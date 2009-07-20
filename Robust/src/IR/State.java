@@ -71,6 +71,7 @@ public class State {
   public boolean ARRAYPAD=false;
   public boolean SCHEDULING=false;
   public boolean USEPROFILE=false;
+  public String profilename = null;
   public boolean THREAD=false;
   public boolean CONSCHECK=false;
   public boolean INSTRUCTIONFAILURE=false;
