@@ -26,7 +26,7 @@
 
 #define NUMPTRS 100
 
-#define INITIALHEAPSIZE 1024*1024*1024L
+#define INITIALHEAPSIZE 256*1024*1024L
 #define GCPOINT(x) ((INTPTR)((x)*0.99))
 /* This define takes in how full the heap is initially and returns a new heap size to use */
 #define HEAPSIZE(x,y) ((INTPTR)(x+y))*2
@@ -718,7 +718,7 @@ void * mygcmalloc(struct garbagelist * stackptr, int size) {
       /* Need to allocate base heap */
       curr_heapbase=malloc(INITIALHEAPSIZE);
       if (curr_heapbase==NULL) {
-	printf("malloc failed\n");
+	printf("malloc failed.  Garbage collector couldn't get enough memory.  Try changing heap size.\n");
 	exit(-1);
       }
       bzero(curr_heapbase, INITIALHEAPSIZE);
@@ -728,7 +728,7 @@ void * mygcmalloc(struct garbagelist * stackptr, int size) {
 
       to_heapbase=malloc(INITIALHEAPSIZE);
       if (to_heapbase==NULL) {
-	printf("malloc failed\n");
+	printf("malloc failed.  Garbage collector couldn't get enough memory.  Try changing heap size.\n");
 	exit(-1);
       }
       to_heaptop=to_heapbase+INITIALHEAPSIZE;
