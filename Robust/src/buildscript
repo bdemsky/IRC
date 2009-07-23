@@ -305,12 +305,12 @@ JAVAOPTS="$JAVAOPTS -minimize"
 elif [[ $1 = '-mlp' ]]
 then
 MLPFLAG=true
-EXTRAOPTIONS="$EXTRAOPTIONS -lpthread"
+EXTRAOPTIONS="$EXTRAOPTIONS -precise -lpthread"
 elif [[ $1 = '-mlpdebug' ]]
 then
 JAVAOPTS="$JAVAOPTS -mlpdebug"
 MLPFLAG=true
-EXTRAOPTIONS="$EXTRAOPTIONS -lpthread"
+EXTRAOPTIONS="$EXTRAOPTIONS -precise -lpthread"
 elif [[ $1 = '-check' ]]
 then
 CHECKFLAG=true

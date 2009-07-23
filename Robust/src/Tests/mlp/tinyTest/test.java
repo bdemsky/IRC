@@ -7,9 +7,9 @@ public class Test {
 
     sese fi {
       //if( true ) {
-        x = y + 2;
-        y = 3;	
-	//}      
+      x = y + 2;
+      y = 3;	
+      //}      
     }
 
 
@@ -44,7 +44,8 @@ public class Test {
     System.out.println( "x="+x+", y="+y );
     //}
 
-
+    float xyz = 2.0f;
+    float jjj = Math.abs( xyz );
 
 
 
