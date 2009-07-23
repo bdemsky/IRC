@@ -5,3 +5,4 @@ default: prep
 	../../../buildscript ${FLAGSSTM} -o STM${MAINCLASS} ${SRC}
 	../../../buildscript ${FLAGSOPTSTM} -o OPTSTM${MAINCLASS} ${SRC}
 	../../../buildscript ${FLAGSFISSION} -o FIS${MAINCLASS} ${SRC}
+	../../../buildscript ${FLAGSSTATS} -o STATS${MAINCLASS} ${SRC}

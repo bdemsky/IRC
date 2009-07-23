@@ -40,6 +40,7 @@ int nSoftAbortAbort = 0;
 /* Thread variable for locking/unlocking */
 __thread threadrec_t *trec;
 __thread struct objlist * lockedobjs;
+__thread int t_objnumcount=0;
 /** Global lock **/
 int typesCausingAbort[TOTALNUMCLASSANDARRAY];
 /******Keep track of objects and types causing aborts******/
@@ -155,6 +156,9 @@ void objstrReset() {
     t_cache=next;
   }
   t_cache->top=t_cache+1;
+#ifdef STMSTATS
+  t_objnumcount=0;
+#endif
 }
 
 //free entire list, starting at store
@@ -296,6 +300,11 @@ void *transRead(void * oid, void *gl) {
   }
 #endif
   A_memcpy(objcopy, header, size);
+#ifdef STMSTATS
+  /* keep track of the object's access sequence in a transaction */
+  objheader_t *tmpheader = objcopy;
+  tmpheader->accessCount = ++t_objnumcount;
+#endif
 
   /* Insert into cache's lookup table */
   STATUS(objcopy)=0;
@@ -510,8 +519,10 @@ int traverseCache() {
   int i;
   void ** oidrdlocked;
   void ** oidwrlocked;
+  int * oidrdage;
   int * oidrdversion;
   allocarrays;
+  int ObjSeqId;
 
   chashlistnode_t *ptr = c_table;
   /* Represents number of bins in the chash table */
@@ -523,8 +534,8 @@ int traverseCache() {
       //if the first bin in hash table is empty
       if(curr->key == NULL)
 	break;
-      objheader_t * headeraddr=&((objheader_t *) curr->val)[-1];
-      objheader_t *header=(objheader_t *)(((char *)curr->key)-sizeof(objheader_t));
+      objheader_t * headeraddr=&((objheader_t *) curr->val)[-1]; //cached object
+      objheader_t *header=(objheader_t *)(((char *)curr->key)-sizeof(objheader_t)); //real object
       unsigned int version = headeraddr->version;
 
       if(STATUS(headeraddr) & DIRTY) {
@@ -537,9 +548,10 @@ int traverseCache() {
 	    oidwrlocked[numoidwrlocked++] = header;
 	    transAbortProcess(oidwrlocked, numoidwrlocked);
 #ifdef STMSTATS
-	    ABORTCOUNT(header);
+	    //ABORTCOUNT(header);
+        ObjSeqId = headeraddr->accessCount;
 	    (typesCausingAbort[TYPE(header)])++;
-        getTotalAbortCount(i+1, size, (void *)(curr->next), numoidrdlocked, oidrdlocked, oidrdversion);
+        getTotalAbortCount(i+1, size, (void *)(curr->next), numoidrdlocked, oidrdlocked, oidrdversion, oidrdage, ObjSeqId);
 #endif
 	    DEBUGSTM("WR Abort: rd: %u wr: %u tot: %u type: %u ver: %u\n", numoidrdlocked, numoidwrlocked, c_numelements, TYPE(header), header->version);
 	    DEBUGSTMSTAT("WR Abort: Access Count: %u AbortCount: %u type: %u ver: %u \n", header->accessCount, header->abortCount, TYPE(header), header->version);
@@ -556,11 +568,12 @@ int traverseCache() {
 	  }
 	  transAbortProcess(oidwrlocked, numoidwrlocked);
 #ifdef STMSTATS
-	  ABORTCOUNT(header);
+      ObjSeqId = headeraddr->accessCount;
+	  //ABORTCOUNT(header);
 	  (typesCausingAbort[TYPE(header)])++;
 #endif
 #if defined(STMSTATS)||defined(SOFTABORT)
-      if(getTotalAbortCount(i+1, size, (void *)(curr->next), numoidrdlocked, oidrdlocked, oidrdversion))
+      if(getTotalAbortCount(i+1, size, (void *)(curr->next), numoidrdlocked, oidrdlocked, oidrdversion, oidrdage, ObjSeqId))
 	    softabort=0;
 #endif
 	  DEBUGSTM("WR Abort: rd: %u wr: %u tot: %u type: %u ver: %u\n", numoidrdlocked, numoidwrlocked, c_numelements, TYPE(header), header->version);
@@ -573,8 +586,14 @@ int traverseCache() {
       
 	}
       } else {
+#ifdef STMSTATS
 	oidrdversion[numoidrdlocked]=version;
-	oidrdlocked[numoidrdlocked++] = header;
+	oidrdlocked[numoidrdlocked]=header;
+    oidrdage[numoidrdlocked++]=headeraddr->accessCount;
+#else
+    oidrdversion[numoidrdlocked]=version;
+    oidrdlocked[numoidrdlocked++]=header;
+#endif
       }
       curr = curr->next;
     }
@@ -611,11 +630,12 @@ int traverseCache() {
       //have to abort to avoid deadlock
       transAbortProcess(oidwrlocked, numoidwrtotal);
 #ifdef STMSTATS
-      ABORTCOUNT(header);
+      ObjSeqId = headeraddr->accessCount;
+      //ABORTCOUNT(header);
       (typesCausingAbort[TYPE(header)])++;
 #endif
 #if defined(STMSTATS)||defined(SOFTABORT)
-      if(getTotalAbortCount(i+1, size, (void *)(curr->next), numoidrdlocked, oidrdlocked, oidrdversion))
+      if(getTotalAbortCount(i+1, size, (void *)(curr->next), numoidrdlocked, oidrdlocked, oidrdversion, oidrdage, ObjSeqId))
 	softabort=0;
 #endif
       DEBUGSTM("WR Abort: rd: %u wr: %u tot: %u type: %u ver: %u\n", numoidrdlocked, numoidwrlocked, c_numelements, TYPE(header), header->version);
@@ -646,7 +666,7 @@ int traverseCache() {
 	transAbortProcess(oidwrlocked, numoidwrlocked);
 #endif
 #ifdef STMSTATS
-	ABORTCOUNT(header);
+	//ABORTCOUNT(header);
 	(typesCausingAbort[TYPE(header)])++;
 	getReadAbortCount(i+1, numoidrdlocked, oidrdlocked, oidrdversion);
 #endif
@@ -662,7 +682,7 @@ int traverseCache() {
       if (version!=header->version) {
 	transAbortProcess(oidwrlocked, numoidwrtotal);
 #ifdef STMSTATS
-	ABORTCOUNT(header);
+	//ABORTCOUNT(header);
 	(typesCausingAbort[TYPE(header)])++;
 	getReadAbortCount(i+1, numoidrdlocked, oidrdlocked, oidrdversion);
 #endif
@@ -683,7 +703,7 @@ int traverseCache() {
       transAbortProcess(oidwrlocked, numoidwrlocked);
 #endif
 #ifdef STMSTATS
-      ABORTCOUNT(header);
+      //ABORTCOUNT(header);
       (typesCausingAbort[TYPE(header)])++;
 #endif
 #if defined(STMSTATS)||defined(SOFTABORT)
@@ -717,7 +737,7 @@ int traverseCache() {
 	transAbortProcess(oidwrlocked, numoidwrlocked);
 #endif
 #ifdef STMSTATS
-	ABORTCOUNT(header);
+	//ABORTCOUNT(header);
 	(typesCausingAbort[TYPE(header)])++;
 #endif
 #if defined(STMSTATS)||defined(SOFTABORT)
@@ -769,7 +789,7 @@ int traverseCache() {
 #endif
 
 #ifdef STMSTATS
-      ABORTCOUNT(header);
+      //ABORTCOUNT(header);
       (typesCausingAbort[TYPE(header)])++;
 #endif
 #if defined(STMSTATS)||defined(SOFTABORT)
@@ -843,7 +863,7 @@ int alttraverseCache() {
 	  oidwrlocked[numoidwrlocked++] = header;
 	  transAbortProcess(oidwrlocked, numoidwrlocked);
 #ifdef STMSTATS
-	  ABORTCOUNT(header);
+	  //ABORTCOUNT(header);
 	  (typesCausingAbort[TYPE(header)])++;
       getTotalAbortCount2((void *) curr->next, numoidrdlocked, oidrdlocked, oidrdversion);
 #endif
@@ -859,7 +879,7 @@ int alttraverseCache() {
 	}
 	transAbortProcess(oidwrlocked, numoidwrlocked);
 #ifdef STMSTATS
-	ABORTCOUNT(header);
+	//ABORTCOUNT(header);
 	(typesCausingAbort[TYPE(header)])++;
 #endif
 #if defined(STMSTATS)||defined(SOFTABORT)
@@ -911,7 +931,7 @@ int alttraverseCache() {
       //have to abort to avoid deadlock
       transAbortProcess(oidwrlocked, numoidwrtotal);
 #ifdef STMSTATS
-      ABORTCOUNT(header);
+      //ABORTCOUNT(header);
       (typesCausingAbort[TYPE(header)])++;
 #endif
 #if defined(STMSTATS)||defined(SOFTABORT)
@@ -945,7 +965,7 @@ int alttraverseCache() {
 	transAbortProcess(oidwrlocked, numoidwrlocked);
 #endif
 #ifdef STMSTATS
-	ABORTCOUNT(header);
+	//ABORTCOUNT(header);
 	(typesCausingAbort[TYPE(header)])++;
 	getReadAbortCount(i+1, numoidrdlocked, oidrdlocked, oidrdversion);
 #endif
@@ -961,7 +981,7 @@ int alttraverseCache() {
       if (version!=header->version) {
 	transAbortProcess(oidwrlocked, numoidwrtotal);
 #ifdef STMSTATS
-	ABORTCOUNT(header);
+	//ABORTCOUNT(header);
 	(typesCausingAbort[TYPE(header)])++;
 	getReadAbortCount(i+1, numoidrdlocked, oidrdlocked, oidrdversion);
 #endif
@@ -981,7 +1001,7 @@ int alttraverseCache() {
       transAbortProcess(oidwrlocked, numoidwrlocked);
 #endif
 #ifdef STMSTATS
-      ABORTCOUNT(header);
+      //ABORTCOUNT(header);
       (typesCausingAbort[TYPE(header)])++;
 #endif
 #if defined(STMSTATS)||defined(SOFTABORT)
@@ -1015,7 +1035,7 @@ int alttraverseCache() {
 	transAbortProcess(oidwrlocked, numoidwrlocked);
 #endif
 #ifdef STMSTATS
-	ABORTCOUNT(header);
+	//ABORTCOUNT(header);
 	(typesCausingAbort[TYPE(header)])++;
 #endif
 #if defined(STMSTATS)||defined(SOFTABORT)
@@ -1065,7 +1085,7 @@ int alttraverseCache() {
 	transAbortProcess(oidwrlocked, numoidwrlocked);
 #endif
 #ifdef STMSTATS
-      ABORTCOUNT(header);
+      //ABORTCOUNT(header);
       (typesCausingAbort[TYPE(header)])++;
 #endif
 #if defined(STMSTATS)||defined(SOFTABORT)
@@ -1210,10 +1230,12 @@ void transAbortProcess(void **oidwrlocked, int numoidwrlocked) {
  *        : oidrdversion : array of versions of object read
  * =========================================================================================
  **/
-int getTotalAbortCount(int start, int stop, void *startptr, int numoidrdlocked, void *oidrdlocked, int *oidrdversion) {
+int getTotalAbortCount(int start, int stop, void *startptr, int numoidrdlocked, 
+    void *oidrdlocked, int *oidrdversion, int *oidrdage, int ObjSeqId) {
   int i;
   int hardabort=0;
   int isFirstTime=0;
+  objheader_t *ObjToBeLocked=NULL;
   chashlistnode_t *curr = (chashlistnode_t *) startptr;
   chashlistnode_t *ptr = c_table;
   /* First go through all objects left in the cache that have not been covered yet */
@@ -1230,7 +1252,11 @@ int getTotalAbortCount(int start, int stop, void *startptr, int numoidrdlocked, 
       /* versions do not match */
       if(version != header->version) {
 #ifdef STMSTATS
-        ABORTCOUNT(header);
+        if(ObjSeqId > headeraddr->accessCount) {
+          ObjSeqId = headeraddr->accessCount;
+          ObjToBeLocked = header;
+        }
+        //ABORTCOUNT(header);
         (typesCausingAbort[TYPE(header)])++;
 #endif
         hardabort=1;
@@ -1243,17 +1269,26 @@ int getTotalAbortCount(int start, int stop, void *startptr, int numoidrdlocked, 
   /* Then go through all objects that are read and are currently present in the readLockedArray */
   if(numoidrdlocked>0) {
     for(i=0; i<numoidrdlocked; i++) {
-      objheader_t *header = ((void **)oidrdlocked)[i];
+      objheader_t *header = ((void **) oidrdlocked)[i];
+      int OidAge = oidrdage[i];
       unsigned int version = oidrdversion[i];
       if(version != header->version) { /* versions do not match */
 #ifdef STMSTATS
-        ABORTCOUNT(header);
+        if(ObjSeqId > OidAge) {
+          ObjSeqId = OidAge;
+          ObjToBeLocked = header;
+        }
+        //ABORTCOUNT(header);
         (typesCausingAbort[TYPE(header)])++;
 #endif
         hardabort=1;
       }
     }
   }
+
+  /* Acquire lock on the oldest object accessed in the transaction cache */
+  if(ObjToBeLocked != NULL)
+    ABORTCOUNT(ObjToBeLocked);
 
   return hardabort;
 }
@@ -1277,7 +1312,7 @@ int getTotalAbortCount2(void *startptr, int numoidrdlocked, void *oidrdlocked, i
     /* versions do not match */
     if(version != header->version) {
 #ifdef STMSTATS
-      ABORTCOUNT(header);
+      //ABORTCOUNT(header);
       (typesCausingAbort[TYPE(header)])++;
 #endif
       hardabort=1;
@@ -1293,7 +1328,7 @@ int getTotalAbortCount2(void *startptr, int numoidrdlocked, void *oidrdlocked, i
       unsigned int version = oidrdversion[i];
       if(version != header->version) { /* versions do not match */
 #ifdef STMSTATS
-        ABORTCOUNT(header);
+        //ABORTCOUNT(header);
         (typesCausingAbort[TYPE(header)])++;
 #endif
         hardabort=1;
@@ -1320,7 +1355,7 @@ int getReadAbortCount(int start, int stop, void *oidrdlocked, int *oidrdversion)
     unsigned int version = oidrdversion[i];
     if(version != header->version) { /* versions do not match */
 #ifdef STMSTATS
-      ABORTCOUNT(header);
+      //ABORTCOUNT(header);
       (typesCausingAbort[TYPE(header)])++;
 #endif
       hardabort=1;
