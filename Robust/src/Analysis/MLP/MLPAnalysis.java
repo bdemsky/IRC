@@ -27,7 +27,7 @@ public class MLPAnalysis {
   private Hashtable< FlatNode, Set<TempDescriptor>      > notAvailableResults;
   private Hashtable< FlatNode, CodePlan                 > codePlans;
 
-  private static final int maxSESEage = 2;
+  private static int maxSESEage = -1;
 
 
   // use these methods in BuildCode to have access to analysis results
@@ -62,6 +62,7 @@ public class MLPAnalysis {
     this.typeUtil    = tu;
     this.callGraph   = callGraph;
     this.ownAnalysis = ownAnalysis;
+    this.maxSESEage  = state.MLP_MAXSESEAGE;
 
     // initialize analysis data structures
     allSESEs = new HashSet<FlatSESEEnterNode>();

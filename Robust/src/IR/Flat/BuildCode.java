@@ -277,9 +277,6 @@ public class BuildCode {
   private void outputMainMethod(PrintWriter outmethod) {
     outmethod.println("int main(int argc, const char *argv[]) {");
     outmethod.println("  int i;");
-    if (state.MLP) {
-      outmethod.println("  mlpInit( "+mlpa.getAllSESEs().size()+", "+mlpa.getMaxSESEage()+" );");
-    }
     if (state.DSM) {
       outmethod.println("#ifdef TRANSSTATS \n");
       outmethod.println("handle();\n");
@@ -379,6 +376,14 @@ public class BuildCode {
 
     if (state.THREAD||state.SINGLETM)
       outmethod.println("pthread_exit(NULL);");
+
+    if (state.MLP) {
+      outmethod.println("  mlpInit( "+state.MLP_NUMCORES+", "+
+			"invokeSESEmethod, "+
+			"argc, "+
+			"argv, "+
+			state.MLP_MAXSESEAGE+" );");
+    }
 
     outmethod.println("}");
   }
@@ -1660,25 +1665,14 @@ public class BuildCode {
                                             PrintWriter outmethod
                                             ) {
 
-    outmethodheader.println("void invokeSESEmethod( void* vargs );");
-    outmethod.println(      "void invokeSESEmethod( void* vargs ) {");
+    outmethodheader.println("void invokeSESEmethod( void* seseRecord );");
+    outmethod.println(      "void invokeSESEmethod( void* seseRecord ) {");
     outmethod.println(      "  int status;");
     outmethod.println(      "  char errmsg[128];");
-    outmethod.println(      "  invokeSESEargs* args = (invokeSESEargs*) vargs;");
-
-    /*
-    // wait on a condition variable that dispatcher will signal
-    // then this SESE instance's dependencies are resolved
-    outmethod.println(      "  status = pthread_mutex_lock( args->invokee->startCondVarLock );");
-    outmethod.println(      "  "+mlperrstr);
-    outmethod.println(      "  while( !(args->invokee->startedExecuting) ){");
-    outmethod.println(      "    status = pthread_cond_wait( args->invokee->startCondVar, args->invokee->startCondVarLock );");
-    outmethod.println(      "    "+mlperrstr);
-    outmethod.println(      "  }");
-    */
+    outmethod.println(      "  SESErecord* rec = (SESErecord*) seseRecord;");
 
     // generate a case for each SESE class that can be invoked
-    outmethod.println(      "  switch( args->classID ) {");
+    outmethod.println(      "  switch( rec->classID ) {");
     outmethod.println(      "    ");
     for(Iterator<FlatSESEEnterNode> seseit=mlpa.getAllSESEs().iterator();seseit.hasNext();) {
       FlatSESEEnterNode fsen = seseit.next();
@@ -1701,7 +1695,7 @@ public class BuildCode {
   private void generateSESEinvocation(FlatSESEEnterNode fsen,
                                       PrintWriter output
                                       ) {
-
+    /*
     FlatMethod       fm = fsen.getEnclosingFlatMeth();
     MethodDescriptor md = fm.getMethod();
     ClassDescriptor  cn = md.getClassDesc();
@@ -1731,6 +1725,7 @@ public class BuildCode {
     }
     
     output.println(");");
+    */
   }
 
   protected void generateMethodSESE(FlatSESEEnterNode fsen,
@@ -1740,7 +1735,7 @@ public class BuildCode {
                                     PrintWriter outputMethods
                                     ) {
 
-
+    /*
     FlatMethod       fm = fsen.getEnclosingFlatMeth();
     MethodDescriptor md = fm.getMethod();
     ClassDescriptor  cn = md.getClassDesc();
@@ -1834,6 +1829,7 @@ public class BuildCode {
 
 
     generateFlatMethodSESE(bogusfm, cn, fsen, fsen.getFlatExit(), outputMethods);
+    */
   }
 
   private void generateFlatMethodSESE(FlatMethod fm, 
@@ -1908,8 +1904,10 @@ public class BuildCode {
     // TODO: only do this if we know the method actually
     // contains an SESE issue, not currently an annotation    
     if( state.MLP ) {
+      /*
       output.println("   SESErecord*     tempSESE;");
       output.println("   invokeSESEargs* tempSESEargs;");
+      */
     }    
 
     /* Assign labels to FlatNode's if necessary.*/
@@ -2267,7 +2265,7 @@ public class BuildCode {
     }
 
     if( state.MLP ) {
-
+      /*
       CodePlan cp = mlpa.getCodePlan( fn );
       if( cp != null ) {     
 
@@ -2276,6 +2274,7 @@ public class BuildCode {
 	  
 	}
       }
+      */
     }
   }
 
@@ -2611,9 +2610,11 @@ public class BuildCode {
       // SESE nodes can be parsed for normal compilation, just skip over them
       return;
     }
-    
-    output.println("\n   /* SESE "+fsen.getPrettyIdentifier()+" issue */");
-    output.println("   tempSESE = mlpCreateSESErecord( "+
+   
+    //    output.println("\n   /* SESE "+fsen.getPrettyIdentifier()+" issue */");
+   
+    /*
+ output.println("   tempSESE = mlpCreateSESErecord( "+
                    fsen.getIdentifier()+", "+
                    "malloc( sizeof( "+fsen.namespaceStructNameString()+") ), "+
                    "NULL );");
@@ -2641,6 +2642,7 @@ public class BuildCode {
 
     output.println("   invokeSESEmethod( (void*) tempSESEargs );");   
     output.println("\n");
+    */
   }
 
   public void generateFlatSESEExitNode(FlatMethod fm,  LocalityBinding lb, FlatSESEExitNode fsen, PrintWriter output) {

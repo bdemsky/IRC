@@ -80,7 +80,7 @@ SINGLETM=false
 NOJAVA=false
 CHECKFLAG=false
 RECOVERFLAG=false
-MLPFLAG=false
+MLP_ON=false
 MLPDEBUG=false
 MULTICOREFLAG=false
 RAWFLAG=false
@@ -302,15 +302,19 @@ EXTRAOPTIONS="$EXTRAOPTIONS -DDELAYCOMP"
 elif [[ $1 = '-minimize' ]]
 then
 JAVAOPTS="$JAVAOPTS -minimize"
+
 elif [[ $1 = '-mlp' ]]
 then
-MLPFLAG=true
-EXTRAOPTIONS="$EXTRAOPTIONS -precise -lpthread"
+MLP_ON=true
+EXTRAOPTIONS="$EXTRAOPTIONS -DPRECISE_GC -lpthread"
+JAVAOPTS="$JAVAOPTS -mlp $2 $3"
+shift
+shift
+
 elif [[ $1 = '-mlpdebug' ]]
 then
 JAVAOPTS="$JAVAOPTS -mlpdebug"
-MLPFLAG=true
-EXTRAOPTIONS="$EXTRAOPTIONS -precise -lpthread"
+
 elif [[ $1 = '-check' ]]
 then
 CHECKFLAG=true
@@ -679,7 +683,7 @@ then
 FILES="$FILES $ROBUSTROOT/Runtime/localobjects.c"
 fi
 
-if $MLPFLAG
+if $MLP_ON
 then
 FILES="$FILES $ROBUSTROOT/Runtime/mlp_runtime.c"
 FILES="$FILES $ROBUSTROOT/Runtime/psemaphore.c"

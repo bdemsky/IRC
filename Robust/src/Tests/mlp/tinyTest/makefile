@@ -3,9 +3,9 @@ PROGRAM=test
 SOURCE_FILES=$(PROGRAM).java
 
 BUILDSCRIPT=~/research/Robust/src/buildscript
-BSFLAGS= -mlpdebug -nooptimize -debug -mainclass Test -ownership -ownallocdepth 1 -ownwritedots final -enable-assertions -flatirusermethods -ownaliasfile aliases.txt
-#BSFLAGS= -mainclass Test -ownership -ownallocdepth 1 -ownwritedots final -enable-assertions -flatirusermethods -ownaliasfile aliases.txt
 
+USEMLP= #-mlp 1 2 # -mlpdebug # use to turn mlp on and off and make sure rest of build not broken
+BSFLAGS= $(USEMLP) -nooptimize -debug -garbagestats -mainclass Test -ownership -ownallocdepth 1 -ownwritedots final -enable-assertions -flatirusermethods -ownaliasfile aliases.txt
 
 all: $(PROGRAM).bin
 

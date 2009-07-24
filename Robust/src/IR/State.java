@@ -77,6 +77,8 @@ public class State {
   public boolean INSTRUCTIONFAILURE=false;
   public boolean MLP=false;
   public boolean MLPDEBUG=false;
+  public int MLP_NUMCORES=0;
+  public int MLP_MAXSESEAGE=0;
   public static double TRUEPROB=0.8;
   public static boolean PRINTFLAT=false;
   public static boolean PRINTSCHEDULING=false;

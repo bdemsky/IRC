@@ -1,6 +1,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <pthread.h>
+
+#include "mem.h"
 #include "Queue.h"
 #include "workschedule.h"
 
@@ -127,7 +129,7 @@ void workScheduleInit( int numProcessors,
   workFunc   = func;
 
   // allocate space for worker data
-  workerDataArray = malloc( sizeof( workerData ) * numWorkers );
+  workerDataArray = RUNMALLOC( sizeof( workerData ) * numWorkers );
   for( i = 0; i < numWorkers; ++i ) {    
 
     // the deque

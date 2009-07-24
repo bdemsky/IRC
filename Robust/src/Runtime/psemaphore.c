@@ -26,5 +26,3 @@ int psem_give( psemaphore* sem ) {
   if( pthread_mutex_unlock( &(sem->lock) ) == -1 ) { return -1; }
 
 }
-
-

@@ -4,51 +4,34 @@
 #include <stdio.h>
 #include <assert.h>
 
-#include "mlp_runtime.h"
+#include "mem.h"
 #include "Queue.h"
+#include "mlp_runtime.h"
+#include "workschedule.h"
 
 
 #define FALSE 0
 #define TRUE  1
 
 
-// the root sese is accessible globally so
-// buildcode can generate references to it
-//SESErecord* rootsese;
-
-
-// the issuedQ, in this simple version, spits
-// out SESErecord's in the order they were issued
-static struct Queue* issuedQ;
-
-
-
 SESErecord* mlpCreateSESErecord( int   classID,
-                                 void* namespace,
-                                 void* paramStruct
+				 void* inSetObjs,
+				 void* outSetObjsNotInInSet,
+				 void* inSetPrims,
+				 void* outSetPrimsNotInInSet
 			       ) {
 
-  SESErecord* newrec = malloc( sizeof( SESErecord ) );
+  SESErecord* newrec = RUNMALLOC( sizeof( SESErecord ) );
 
-  //newrec->parent           = parent;
-  //newrec->childrenList     = createQueue();
-  //newrec->vars             = malloc( sizeof( SESEvar ) * numVars );
+  newrec->classID               = classID;
+  newrec->inSetObjs             = inSetObjs;
+  newrec->outSetObjsNotInInSet  = outSetObjsNotInInSet;
+  newrec->inSetPrims            = inSetPrims;
+  newrec->outSetPrimsNotInInSet = outSetPrimsNotInInSet;
 
-  newrec->classID          = classID;
-  newrec->namespace        = namespace;
-  newrec->paramStruct      = paramStruct;
-
-  newrec->forwardList      = createQueue();
-  newrec->doneExecuting    = FALSE;
-  //newrec->startedExecuting = FALSE;
-
-  psem_init         ( &(newrec->stallSem)            );
-
-  /*
-  pthread_cond_init ( newrec->startCondVar,     NULL );
-  pthread_mutex_init( newrec->startCondVarLock, NULL );
-  pthread_mutex_init( newrec->forwardListLock,  NULL );
-  */
+  pthread_mutex_init( &(newrec->lock),  NULL );
+  newrec->forwardList   = createQueue();
+  newrec->doneExecuting = FALSE;
 
   return newrec;
 }
@@ -56,62 +39,54 @@ SESErecord* mlpCreateSESErecord( int   classID,
 
 void mlpDestroySESErecord( SESErecord* sese ) {
 
-  /*
-  pthread_cond_destroy ( sese->startCondVar     );
-  pthread_mutex_destroy( sese->startCondVarLock );
-  pthread_mutex_destroy( sese->forwardListLock  );
-  */
+  pthread_mutex_destroy( &(sese->lock) );
+  freeQueue( sese->forwardList );
 
-  /*
-  free     ( sese->startCondVar     );
-  free     ( sese->startCondVarLock );
-  free     ( sese->forwardListLock  );
-  freeQueue( sese->forwardList      );
-  //freeQueue( sese->childrenList     );
-  free     ( sese->vars             );
-  */
-  free     ( sese->namespace        );
-  free     ( sese                   );
+  RUNFREE( sese->inSetObjs             );
+  RUNFREE( sese->outSetObjsNotInInSet  );
+  RUNFREE( sese->inSetPrims            );
+  RUNFREE( sese->outSetPrimsNotInInSet );
+  RUNFREE( sese                        );
 }
 
 
-void mlpInit( int totalNumSESEs, int maxSESEage ) {  
+struct rootSESEinSetObjs  { char** argv; };
+struct rootSESEinSetPrims { int argc;    };
 
-  issuedQ = createQueue();
+void mlpInit( int numProcessors, 
+	      void(*workFunc)(void*),
+	      int argc, char** argv,
+	      int maxSESEage ) {  
 
-  /*
-  class_age2instance = (SESErecord**) malloc( sizeof( SESErecord* ) *
-                                              maxSESEage            *
-                                              totalNumSESEs
-                                            );
-  */
-  //current = rootsese;
-  //current = NULL;
+  SESErecord* rootSESE;
+  
+  struct rootSESEinSetObjs*  inObjs  = RUNMALLOC( sizeof( struct rootSESEinSetObjs ) );
+  struct rootSESEinSetPrims* inPrims = RUNMALLOC( sizeof( struct rootSESEinSetPrims ) );
+
+  // first initialize the work scheduler
+  workScheduleInit( numProcessors, workFunc );
+
+  // the prepare the root SESE
+  inObjs->argv  = argv;
+  inPrims->argc = argc;
+  rootSESE = mlpCreateSESErecord( 0, inObjs, NULL, inPrims, NULL );
+
+  // skip the issue step because the root SESE will
+  // never have outstanding dependencies
+  workScheduleSubmit( (void*) rootSESE );
+
+  // now the work scheduler is initialized and work is
+  // in the hopper, so begin processing.  This call 
+  // will not return
+  workScheduleBegin();
 }
 
-
-/*
-SESErecord* mlpGetCurrent() {
-  return current;
-}
-*/
 
 void mlpIssue( SESErecord* sese ) {
-  addNewItem( issuedQ, (void*) sese );
-}
 
-
-SESErecord* mlpSchedule() {
-  assert( !isEmpty( issuedQ ) );
-  return (SESErecord*) getItem( issuedQ );  
 }
 
 
 void mlpStall( SESErecord* sese ) {
-  
-}
-
-
-void mlpNotifyExit( SESErecord* sese ) {
   
 }

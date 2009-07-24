@@ -9,9 +9,10 @@
 
 // forward delcarations
 struct SESErecord_t;
-struct invokeSESEargs_t;
 
 
+
+/*
 typedef struct SESEvar_t {
   // the value when it is known will be placed
   // in this location, which can be accessed
@@ -28,74 +29,49 @@ typedef struct SESEvar_t {
     void*     sesetype_object;
   };  
 } SESEvar;
-
+*/
 
 typedef struct SESErecord_t {  
   // the identifier for the class of sese's that
   // are instances of one particular static code block
   int classID;
 
-  // for state of vars after issue
-  void* namespace;
-  
-  // when this sese is ready to be invoked,
-  // allocate and fill in this structure, and
-  // the primitives will be passed out of the
-  // above var array at the call site
-  void* paramStruct;
+  // The following fields have this structure:
+  // [INTPTR numPtrs][void* next][ptr0][ptr1]...
+  void* inSetObjs;
+  void* outSetObjsNotInInSet;
 
-  /*
-  // for signaling transition from issue 
-  // to execute
-  pthread_cond_t*  startCondVar;
-  pthread_mutex_t* startCondVarLock;
-  int startedExecuting;
-  */
+  // The following fields point to compile-time
+  // generated structures that have named 
+  // primitive fields
+  void* inSetPrims;
+  void* outSetPrimsNotInInSet;
 
-  // this will not be generally sufficient, but
-  // use a semaphore to let a child resume this
-  // parent when stall dependency is satisfied
-  psemaphore stallSem;
-
-  // use a list of SESErecords and a lock to let
-  // consumers tell this SESE who wants values
-  // forwarded to it
-  pthread_mutex_t forwardListLock;
+  // the lock guards the following data SESE's
+  // use to coordinate with one another
+  pthread_mutex_t lock;
   struct Queue*   forwardList;
-  int doneExecuting;
+  int             doneExecuting;
 
 } SESErecord;
-
-
-typedef struct invokeSESEargs_t {
-  int classID;
-  SESErecord* invokee;
-  SESErecord* parent;
-} invokeSESEargs;
 
 
 // simple mechanical allocation and deallocation
 // of SESE records
 SESErecord* mlpCreateSESErecord( int   classID,
-				 void* namespace,
-                                 void* paramStruct
-                                 );
+				 void* inSetObjs,
+				 void* outSetObjsNotInInSet,
+				 void* inSetPrims,
+				 void* outSetPrimsNotInInSet
+                               );
 
 void mlpDestroySESErecord( SESErecord* sese );
 
 
 // main library functions
 void mlpInit();
-
-//SESErecord* mlpGetCurrent();
-SESErecord* mlpSchedule();
-
-void mlpIssue     ( SESErecord* sese );
-void mlpStall     ( SESErecord* sese );
-void mlpNotifyExit( SESErecord* sese );
-
-
-extern SESErecord* rootsese;
+void mlpIssue( SESErecord* sese );
+void mlpStall( SESErecord* sese );
 
 
 #endif /* __MLP_RUNTIME__ */
