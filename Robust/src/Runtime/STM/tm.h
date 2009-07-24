@@ -201,8 +201,8 @@ void transAbortProcess(void **, int);
 void randomdelay(int);
 #if defined(STMSTATS)||defined(SOFTABORT)
 int getTotalAbortCount(int, int, void *, int, void*, int*, int*, int);
-int getTotalAbortCount2(void *, int, void *, int *);
-int getReadAbortCount(int, int, void*, int*);
+int getTotalAbortCount2(void *, int, void *, int *, int*, int);
+int getReadAbortCount(int, int, void*, int*, int*, int);
 #endif
 #ifdef STMSTATS
 objheader_t * needLock(objheader_t *, void *);
