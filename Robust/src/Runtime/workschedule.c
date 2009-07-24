@@ -86,7 +86,8 @@ void* workerMain( void* arg ) {
 
 	if( isEmpty( workerDataArray[j].dequeWorkUnits ) ) {
 	  pthread_mutex_unlock( &(workerDataArray[j].dequeLock) );
-	  // no work here, keep looking
+	  // no work here, yield and then keep looking
+	  if( sched_yield() == -1 ) { printf( "Error thread trying to yield.\n" ); exit( -1 ); }
 	  continue;
 	}
 

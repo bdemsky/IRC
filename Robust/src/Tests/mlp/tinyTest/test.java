@@ -44,9 +44,10 @@ public class Test {
     System.out.println( "x="+x+", y="+y );
     //}
 
+    /*
     float xyz = 2.0f;
     float jjj = Math.abs( xyz );
-
+    */
 
 
     //Integer i;

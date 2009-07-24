@@ -1734,14 +1734,13 @@ public class BuildCode {
                                     PrintWriter outputMethHead,
                                     PrintWriter outputMethods
                                     ) {
-
-    /*
+    
     FlatMethod       fm = fsen.getEnclosingFlatMeth();
     MethodDescriptor md = fm.getMethod();
     ClassDescriptor  cn = md.getClassDesc();
     
         
-    //Creates bogus method descriptor to index into tables
+    // Creates bogus method descriptor to index into tables
     Modifiers bogusmod=new Modifiers();
     MethodDescriptor bogusmd=new MethodDescriptor(bogusmod, 
                                                   new TypeDescriptor(TypeDescriptor.VOID), 
@@ -1751,7 +1750,7 @@ public class BuildCode {
     sese2bogusFlatMeth.put(fsen, bogusfm);
 
 
-    //Build paramsobj for bogus method descriptor
+    // Build paramsobj for bogus method descriptor
     ParamsObject objectparams=new ParamsObject(bogusmd, tag++);
     paramstable.put(bogusmd, objectparams);
     
@@ -1766,7 +1765,7 @@ public class BuildCode {
     }
     
     
-    //Build normal temp object for bogus method descriptor
+    // Build normal temp object for bogus method descriptor
     TempObject objecttemps=new TempObject(objectparams,bogusmd,tag++);
     tempstable.put(bogusmd, objecttemps);
     
@@ -1786,10 +1785,10 @@ public class BuildCode {
     // declare namespace struct
     outputStructs.println(fsen.namespaceStructDeclarationString());
     
-    //Generate code for parameters structure
+    // Generate code for parameters structure
     generateMethodParam(cn, bogusmd, null, outputStructs);
 
-    //Generate code for locals structure
+    // Generate code for locals structure
     outputStructs.println("struct "+cn.getSafeSymbol()+bogusmd.getSafeSymbol()+"_"+bogusmd.getSafeMethodDescriptor()+"_locals {");
     outputStructs.println("  INTPTR size;");
     outputStructs.println("  void * next;");
@@ -1829,7 +1828,6 @@ public class BuildCode {
 
 
     generateFlatMethodSESE(bogusfm, cn, fsen, fsen.getFlatExit(), outputMethods);
-    */
   }
 
   private void generateFlatMethodSESE(FlatMethod fm, 
