@@ -7,22 +7,23 @@ public class Test {
 
   public static void main( String args[] ) {
     
-    int x = 1;
-    int y = 1;
+    int x = Integer.parseInt( args[0] );
+    int y = Integer.parseInt( args[1] );
 
     //Foo f;
-
+    /*
     sese fi {
       //if( true ) {
-      x = y + 2;
-      y = 3;	
-      
+
       System.out.println( "fi: x="+x+", y="+y );
+
+      x = y + 2;
+      y = 3;	     
 
       //f = new Foo();
       //}      
     }
-
+    */
 
     // just for testing root's ability to
     // realize a single exit after all returns

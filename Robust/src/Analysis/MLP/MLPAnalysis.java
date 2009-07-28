@@ -75,7 +75,10 @@ public class MLPAnalysis {
 
     FlatMethod fmMain = state.getMethodFlat( tu.getMain() );
 
-    rootSESE = (FlatSESEEnterNode) fmMain.getNext(0);
+    rootSESE = (FlatSESEEnterNode) fmMain.getNext(0);    
+    rootSESE.setfmEnclosing( fmMain );
+    rootSESE.setmdEnclosing( fmMain.getMethod() );
+    rootSESE.setcdEnclosing( fmMain.getMethod().getClassDesc() );
 
 
     // 1st pass
@@ -140,11 +143,11 @@ public class MLPAnalysis {
     if( state.MLPDEBUG ) {      
       System.out.println( "" );
       //System.out.println( "\nSESE Hierarchy\n--------------\n" ); printSESEHierarchy();
-      //System.out.println( "\nSESE Liveness\n-------------\n" ); printSESELiveness();
-      System.out.println( "\nLiveness Root View\n------------------\n"+fmMain.printMethod( livenessRootView ) );
-      System.out.println( "\nVariable Results\n----------------\n"+fmMain.printMethod( variableResults ) );
-      System.out.println( "\nNot Available Results\n---------------------\n"+fmMain.printMethod( notAvailableResults ) );
-      System.out.println( "\nCode Plans\n----------\n"+fmMain.printMethod( codePlans ) );
+      System.out.println( "\nSESE Liveness\n-------------\n" ); printSESELiveness();
+      //System.out.println( "\nLiveness Root View\n------------------\n"+fmMain.printMethod( livenessRootView ) );
+      //System.out.println( "\nVariable Results\n----------------\n"+fmMain.printMethod( variableResults ) );
+      //System.out.println( "\nNot Available Results\n---------------------\n"+fmMain.printMethod( notAvailableResults ) );
+      //System.out.println( "\nCode Plans\n----------\n"+fmMain.printMethod( codePlans ) );
     }
 
 

@@ -208,6 +208,9 @@ public class FlatSESEEnterNode extends FlatNode {
   public MethodDescriptor getmdBogus() { return mdBogus; }
 
   public String getSESEmethodName() {
+    assert cdEnclosing != null;
+    assert mdBogus != null;
+
     return 
       cdEnclosing.getSafeSymbol()+
       mdBogus.getSafeSymbol()+
@@ -216,6 +219,9 @@ public class FlatSESEEnterNode extends FlatNode {
   }
 
   public String getSESErecordName() {
+    assert cdEnclosing != null;
+    assert mdBogus != null;
+
     return
       "struct "+
       cdEnclosing.getSafeSymbol()+

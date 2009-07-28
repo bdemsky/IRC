@@ -14,36 +14,34 @@
 #define TRUE  1
 
 
-/*
-SESErecord* mlpCreateSESErecord( int   classID,
-				 void* inSetOutSetObjs,
-				 void* inSetOutSetPrims
-			       ) {
 
-  SESErecord* newrec = RUNMALLOC( sizeof( SESErecord ) );
+void* mlpAllocSESErecord( int size ) {
 
-  newrec->classID          = classID;
-  newrec->inSetOutSetObjs  = inSetOutSetObjs;
-  newrec->inSetOutSetPrims = inSetOutSetPrims;
-
+  void* newrec = RUNMALLOC( size );
+  
+  /*
+  SESErecord* commonView = (SESErecord*) newrec;
+  commonView->classID = classID;
   pthread_mutex_init( &(newrec->lock),  NULL );
   newrec->forwardList   = createQueue();
   newrec->doneExecuting = FALSE;
+  */
 
   return newrec;
 }
 
 
-void mlpDestroySESErecord( SESErecord* sese ) {
+void mlpFreeSESErecord( void* seseRecord ) {
 
-  pthread_mutex_destroy( &(sese->lock) );
-  freeQueue( sese->forwardList );
+  /*
+  SESErecord* commonView = (SESErecord*) seseRecord;
+  pthread_mutex_destroy( &(commonView->lock) );
+  freeQueue( commonView->forwardList );
+  */
 
-  RUNFREE( sese->inSetOutSetObjs  );
-  RUNFREE( sese->inSetOutSetPrims );
-  RUNFREE( sese                   );
+  RUNFREE( seseRecord );
 }
-*/
+
 
 /*
 struct rootSESEinSetObjs  { char** argv; };
