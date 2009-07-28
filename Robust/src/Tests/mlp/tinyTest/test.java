@@ -1,3 +1,8 @@
+public class Foo {
+  public Foo() {}
+}
+
+
 public class Test {
 
   public static void main( String args[] ) {
@@ -5,10 +10,16 @@ public class Test {
     int x = 1;
     int y = 1;
 
+    //Foo f;
+
     sese fi {
       //if( true ) {
       x = y + 2;
       y = 3;	
+      
+      System.out.println( "fi: x="+x+", y="+y );
+
+      //f = new Foo();
       //}      
     }
 
@@ -41,7 +52,7 @@ public class Test {
     // forwarded to this sibling
     //sese fo {
     // expecting x=5, y=4
-    System.out.println( "x="+x+", y="+y );
+    System.out.println( "root: x="+x+", y="+y );
     //}
 
     /*

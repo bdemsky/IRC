@@ -14,20 +14,17 @@
 #define TRUE  1
 
 
+/*
 SESErecord* mlpCreateSESErecord( int   classID,
-				 void* inSetObjs,
-				 void* outSetObjsNotInInSet,
-				 void* inSetPrims,
-				 void* outSetPrimsNotInInSet
+				 void* inSetOutSetObjs,
+				 void* inSetOutSetPrims
 			       ) {
 
   SESErecord* newrec = RUNMALLOC( sizeof( SESErecord ) );
 
-  newrec->classID               = classID;
-  newrec->inSetObjs             = inSetObjs;
-  newrec->outSetObjsNotInInSet  = outSetObjsNotInInSet;
-  newrec->inSetPrims            = inSetPrims;
-  newrec->outSetPrimsNotInInSet = outSetPrimsNotInInSet;
+  newrec->classID          = classID;
+  newrec->inSetOutSetObjs  = inSetOutSetObjs;
+  newrec->inSetOutSetPrims = inSetOutSetPrims;
 
   pthread_mutex_init( &(newrec->lock),  NULL );
   newrec->forwardList   = createQueue();
@@ -42,38 +39,38 @@ void mlpDestroySESErecord( SESErecord* sese ) {
   pthread_mutex_destroy( &(sese->lock) );
   freeQueue( sese->forwardList );
 
-  RUNFREE( sese->inSetObjs             );
-  RUNFREE( sese->outSetObjsNotInInSet  );
-  RUNFREE( sese->inSetPrims            );
-  RUNFREE( sese->outSetPrimsNotInInSet );
-  RUNFREE( sese                        );
+  RUNFREE( sese->inSetOutSetObjs  );
+  RUNFREE( sese->inSetOutSetPrims );
+  RUNFREE( sese                   );
 }
+*/
 
-
+/*
 struct rootSESEinSetObjs  { char** argv; };
 struct rootSESEinSetPrims { int argc;    };
+*/
 
 void mlpInit( int numProcessors, 
 	      void(*workFunc)(void*),
 	      int argc, char** argv,
 	      int maxSESEage ) {  
 
-  SESErecord* rootSESE;
+  //SESErecord* rootSESE;
   
-  struct rootSESEinSetObjs*  inObjs  = RUNMALLOC( sizeof( struct rootSESEinSetObjs ) );
-  struct rootSESEinSetPrims* inPrims = RUNMALLOC( sizeof( struct rootSESEinSetPrims ) );
+  //struct rootSESEinSetObjs*  inObjs  = RUNMALLOC( sizeof( struct rootSESEinSetObjs ) );
+  //struct rootSESEinSetPrims* inPrims = RUNMALLOC( sizeof( struct rootSESEinSetPrims ) );
 
   // first initialize the work scheduler
   workScheduleInit( numProcessors, workFunc );
 
   // the prepare the root SESE
-  inObjs->argv  = argv;
-  inPrims->argc = argc;
-  rootSESE = mlpCreateSESErecord( 0, inObjs, NULL, inPrims, NULL );
+  //inObjs->argv  = argv;
+  //inPrims->argc = argc;
+  //rootSESE = mlpCreateSESErecord( 0, inObjs, NULL, inPrims, NULL );
 
   // skip the issue step because the root SESE will
   // never have outstanding dependencies
-  workScheduleSubmit( (void*) rootSESE );
+  //workScheduleSubmit( (void*) rootSESE );
 
   // now the work scheduler is initialized and work is
   // in the hopper, so begin processing.  This call 
@@ -82,11 +79,11 @@ void mlpInit( int numProcessors,
 }
 
 
-void mlpIssue( SESErecord* sese ) {
+void mlpIssue( void* seseRecord ) {
 
 }
 
 
-void mlpStall( SESErecord* sese ) {
+void mlpStall( void* seseRecord ) {
   
 }

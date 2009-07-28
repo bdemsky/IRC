@@ -65,7 +65,6 @@ public class BuildCode {
   String mlperrstr = "if(status != 0) { "+
     "sprintf(errmsg, \"MLP error at %s:%d\", __FILE__, __LINE__); "+
     "perror(errmsg); exit(-1); }";
-  Hashtable<FlatSESEEnterNode, FlatMethod> sese2bogusFlatMeth;
   boolean nonSESEpass=true;
   WriteBarrier wb;
   DiscoverConflicts dc;
@@ -120,10 +119,6 @@ public class BuildCode {
       dc=delaycomp.getConflicts();
       recorddc=new DiscoverConflicts(locality, st, typeanalysis, delaycomp.getCannotDelayMap(), true, true, null);
       recorddc.doAnalysis();
-    }
-
-    if(state.MLP) {
-      sese2bogusFlatMeth = new Hashtable<FlatSESEEnterNode, FlatMethod>();
     }
   }
 
@@ -378,11 +373,9 @@ public class BuildCode {
       outmethod.println("pthread_exit(NULL);");
 
     if (state.MLP) {
-      outmethod.println("  mlpInit( "+state.MLP_NUMCORES+", "+
-			"invokeSESEmethod, "+
-			"argc, "+
-			"argv, "+
-			state.MLP_MAXSESEAGE+" );");
+      outmethod.println("  workScheduleInit( "+state.MLP_NUMCORES+", invokeSESEmethod );");
+      // issue root SESE
+      outmethod.println("  workScheduleBegin();");
     }
 
     outmethod.println("}");
@@ -1655,78 +1648,6 @@ public class BuildCode {
     output.println("}\n\n");
   }
 
-  // when a new mlp thread is created for an issued SESE, it is started
-  // by running this method which blocks on a cond variable until
-  // it is allowed to transition to execute.  Then a case statement
-  // allows it to invoke the method with the proper SESE body, and after
-  // exiting the SESE method, executes proper SESE exit code before the
-  // thread can be destroyed
-  private void generateSESEinvocationMethod(PrintWriter outmethodheader,
-                                            PrintWriter outmethod
-                                            ) {
-
-    outmethodheader.println("void invokeSESEmethod( void* seseRecord );");
-    outmethod.println(      "void invokeSESEmethod( void* seseRecord ) {");
-    outmethod.println(      "  int status;");
-    outmethod.println(      "  char errmsg[128];");
-    outmethod.println(      "  SESErecord* rec = (SESErecord*) seseRecord;");
-
-    // generate a case for each SESE class that can be invoked
-    outmethod.println(      "  switch( rec->classID ) {");
-    outmethod.println(      "    ");
-    for(Iterator<FlatSESEEnterNode> seseit=mlpa.getAllSESEs().iterator();seseit.hasNext();) {
-      FlatSESEEnterNode fsen = seseit.next();
-      outmethod.println(    "    /* "+fsen.getPrettyIdentifier()+" */");
-      outmethod.println(    "    case "+fsen.getIdentifier()+":");
-      generateSESEinvocation(fsen, outmethod);
-      outmethod.println(    "      break;");
-      outmethod.println(    "");
-    }
-
-    // default case should never be taken, error out
-    outmethod.println(      "    default:");
-    outmethod.println(      "      printf(\"Error: unknown SESE class ID in invoke method.\\n\");");
-    outmethod.println(      "      exit(-30);");
-    outmethod.println(      "      break;");
-    outmethod.println(      "  }");
-    outmethod.println(      "}\n\n");
-  }
-
-  private void generateSESEinvocation(FlatSESEEnterNode fsen,
-                                      PrintWriter output
-                                      ) {
-    /*
-    FlatMethod       fm = fsen.getEnclosingFlatMeth();
-    MethodDescriptor md = fm.getMethod();
-    ClassDescriptor  cn = md.getClassDesc();
-
-    FlatMethod       bogusfm  = sese2bogusFlatMeth.get(fsen);
-    MethodDescriptor bogusmd  = bogusfm.getMethod();
-    ParamsObject objectparams = (ParamsObject)paramstable.get(bogusmd);
-
-    // first copy SESE record into param structure
-
-
-    // then invoke the sese's method
-    output.print("      "+cn.getSafeSymbol()+bogusmd.getSafeSymbol()+"_"+bogusmd.getSafeMethodDescriptor());
-    output.print("( args->invokee, ");
-
-    // first argument is parameter structure
-    output.print("(struct "+cn.getSafeSymbol()+bogusmd.getSafeSymbol()+"__params*)");
-    output.print("&(args->invokee->paramStruct)");
-
-    // other arguments are primitive parameters
-    for(int i=0; i<objectparams.numPrimitives(); i++) {
-      TempDescriptor td=objectparams.getPrimitive(i);
-      TypeDescriptor type=td.getType();
-      assert type.isPrimitive();
-      output.print( ", (("+fsen.namespaceStructNameString()+
-		       "*)args->invokee->namespace)->"+td );
-    }
-    
-    output.println(");");
-    */
-  }
 
   protected void generateMethodSESE(FlatSESEEnterNode fsen,
                                     LocalityBinding lb,
@@ -1734,40 +1655,51 @@ public class BuildCode {
                                     PrintWriter outputMethHead,
                                     PrintWriter outputMethods
                                     ) {
-    
-    FlatMethod       fm = fsen.getEnclosingFlatMeth();
+
+    FlatMethod       fm = fsen.getfmEnclosing();
     MethodDescriptor md = fm.getMethod();
     ClassDescriptor  cn = md.getClassDesc();
     
         
     // Creates bogus method descriptor to index into tables
-    Modifiers bogusmod=new Modifiers();
-    MethodDescriptor bogusmd=new MethodDescriptor(bogusmod, 
-                                                  new TypeDescriptor(TypeDescriptor.VOID), 
-                                                  "sese_"+fsen.getPrettyIdentifier()+fsen.getIdentifier());
-    bogusmd.setClassDesc(cn);
-    FlatMethod bogusfm=new FlatMethod(bogusmd, null);
-    sese2bogusFlatMeth.put(fsen, bogusfm);
+    Modifiers modBogus = new Modifiers();
+    MethodDescriptor mdBogus = 
+      new MethodDescriptor( modBogus, 
+			    new TypeDescriptor( TypeDescriptor.VOID ), 
+			    "sese_"+fsen.getPrettyIdentifier()+fsen.getIdentifier()
+			    );
+    
+    mdBogus.setClassDesc( fsen.getcdEnclosing() );
+    FlatMethod fmBogus = new FlatMethod( mdBogus, null );
+    fsen.setfmBogus( fmBogus );
+    fsen.setmdBogus( mdBogus );
 
 
     // Build paramsobj for bogus method descriptor
-    ParamsObject objectparams=new ParamsObject(bogusmd, tag++);
-    paramstable.put(bogusmd, objectparams);
+    ParamsObject objectparams = new ParamsObject( mdBogus, tag++ );
+    paramstable.put( mdBogus, objectparams );
     
-    for(int i=0; i<fsen.numParameters(); i++) {
-      TempDescriptor temp=fsen.getParameter(i);
-      TypeDescriptor type=temp.getType();
-      if (type.isPtr()&&GENERATEPRECISEGC) {
-	objectparams.addPtr(temp);
+    Set<TempDescriptor> inSetAndOutSet = new HashSet<TempDescriptor>();
+    inSetAndOutSet.addAll( fsen.getInVarSet() );
+    inSetAndOutSet.addAll( fsen.getOutVarSet() );
+
+    Set<TempDescriptor> inSetAndOutSetPrims = new HashSet<TempDescriptor>();
+
+    Iterator<TempDescriptor> itr = inSetAndOutSet.iterator();
+    while( itr.hasNext() ) {
+      TempDescriptor temp = itr.next();
+      TypeDescriptor type = temp.getType();
+      if( type.isPtr() ) {
+	objectparams.addPtr( temp );
       } else {
-	objectparams.addPrim(temp);
+	inSetAndOutSetPrims.add( temp );
       }
     }
     
     
     // Build normal temp object for bogus method descriptor
-    TempObject objecttemps=new TempObject(objectparams,bogusmd,tag++);
-    tempstable.put(bogusmd, objecttemps);
+    TempObject objecttemps = new TempObject( objectparams, mdBogus, tag++ );
+    tempstable.put( mdBogus, objecttemps );
     
     for(Iterator nodeit=fsen.getNodeSet().iterator(); nodeit.hasNext();) {
       FlatNode fn=(FlatNode)nodeit.next();
@@ -1782,14 +1714,36 @@ public class BuildCode {
       }
     }
     
-    // declare namespace struct
-    outputStructs.println(fsen.namespaceStructDeclarationString());
+    // generate the SESE record structure
+    outputStructs.println(fsen.getSESErecordName()+" {");
     
-    // Generate code for parameters structure
-    generateMethodParam(cn, bogusmd, null, outputStructs);
+    // class ID comes first
+    outputStructs.println("  int classID;");
 
-    // Generate code for locals structure
-    outputStructs.println("struct "+cn.getSafeSymbol()+bogusmd.getSafeSymbol()+"_"+bogusmd.getSafeMethodDescriptor()+"_locals {");
+    // then garbage list stuff
+    outputStructs.println("  INTPTR size;");
+    outputStructs.println("  void * next;");
+
+    for(int i=0; i<objectparams.numPointers(); i++) {
+      TempDescriptor temp=objectparams.getPointer(i);
+      if (temp.getType().isNull())
+        outputStructs.println("  void * "+temp.getSafeSymbol()+";");
+      else
+        outputStructs.println("  struct "+temp.getType().getSafeSymbol()+" * "+temp.getSafeSymbol()+";");
+    }
+    
+    // then other SESE runtime data
+    Iterator<TempDescriptor> itrPrims = inSetAndOutSetPrims.iterator();
+    while( itrPrims.hasNext() ) {
+      TempDescriptor temp = itrPrims.next();
+      TypeDescriptor type = temp.getType();
+      outputStructs.println("  "+temp.getType().getSafeSymbol()+" "+temp.getSafeSymbol()+";");
+    }
+
+    outputStructs.println("};\n");
+
+    // generate locals structure
+    outputStructs.println("struct "+cn.getSafeSymbol()+mdBogus.getSafeSymbol()+"_"+mdBogus.getSafeMethodDescriptor()+"_locals {");
     outputStructs.println("  INTPTR size;");
     outputStructs.println("  void * next;");
     for(int i=0; i<objecttemps.numPointers(); i++) {
@@ -1804,8 +1758,10 @@ public class BuildCode {
 
     // write method declaration to header file
     outputMethHead.print("void ");
-    outputMethHead.print(cn.getSafeSymbol()+bogusmd.getSafeSymbol()+"_"+bogusmd.getSafeMethodDescriptor()+"(");
-    outputMethHead.print("SESErecord* currentSESE, ");
+    outputMethHead.print(fsen.getSESEmethodName()+"(");
+    outputMethHead.print(fsen.getSESErecordName()+"* currentSESE ");
+
+    /*
     boolean printcomma=false;
     if (GENERATEPRECISEGC) {
       outputMethHead.print("struct "+cn.getSafeSymbol()+
@@ -1824,29 +1780,35 @@ public class BuildCode {
       else
 	outputMethHead.print(temp.getType().getSafeSymbol()+" "+temp.getSafeSymbol());
     }
+    */
+
     outputMethHead.println(");\n");
 
-
-    generateFlatMethodSESE(bogusfm, cn, fsen, fsen.getFlatExit(), outputMethods);
+    generateFlatMethodSESE(fmBogus, cn, fsen, fsen.getFlatExit(), outputMethods);
   }
 
   private void generateFlatMethodSESE(FlatMethod fm, 
                                       ClassDescriptor cn, 
-                                      FlatSESEEnterNode seseEnter, 
+                                      FlatSESEEnterNode fsen, 
                                       FlatSESEExitNode  seseExit, 
                                       PrintWriter output
                                       ) {
 
     MethodDescriptor md=fm.getMethod();
-    ParamsObject objectparams=(ParamsObject)paramstable.get(md);
-    generateHeader(fm, null, md, output, true);
-    TempObject objecttemp=(TempObject) tempstable.get(md);
 
+    //generateHeader(fm, null, md, output, true);
+
+    output.print("void ");
+    output.print(fsen.getSESEmethodName()+"(");
+    output.print(fsen.getSESErecordName()+"* currentSESE ");
+    output.println("){\n");
+
+    TempObject objecttemp=(TempObject) tempstable.get(md);
 
     if (GENERATEPRECISEGC) {
       output.print("   struct "+cn.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_locals "+localsprefix+"={");
       output.print(objecttemp.numPointers()+",");
-      output.print(paramsprefix);
+      output.print("(void*) &(currentSESE->size)");
       for(int j=0; j<objecttemp.numPointers(); j++)
 	output.print(", NULL");
       output.println("};");
@@ -1865,12 +1827,13 @@ public class BuildCode {
 
 
     // declare variables for naming SESE's
-    Iterator<SESEandAgePair> pItr = seseEnter.getNeededStaticNames().iterator();
+    /*
+    Iterator<SESEandAgePair> pItr = fsen.getNeededStaticNames().iterator();
     while( pItr.hasNext() ) {
       SESEandAgePair p = pItr.next();
       output.println("   SESErecord* "+p+";");
     }
-    
+    */
 
     // Check to see if we need to do a GC if this is a
     // multi-threaded program...    
@@ -1883,11 +1846,51 @@ public class BuildCode {
 
     HashSet<FlatNode> exitset=new HashSet<FlatNode>();
     exitset.add(seseExit);
-    generateCode(seseEnter.getNext(0), fm, null, exitset, output, true);
+    generateCode(fsen.getNext(0), fm, null, exitset, output, true);
 
     
     output.println("}\n\n");
   }
+
+
+  // when a new mlp thread is created for an issued SESE, it is started
+  // by running this method which blocks on a cond variable until
+  // it is allowed to transition to execute.  Then a case statement
+  // allows it to invoke the method with the proper SESE body, and after
+  // exiting the SESE method, executes proper SESE exit code before the
+  // thread can be destroyed
+  private void generateSESEinvocationMethod(PrintWriter outmethodheader,
+                                            PrintWriter outmethod
+                                            ) {
+
+    outmethodheader.println("void* invokeSESEmethod( void* seseRecord );");
+    outmethod.println(      "void* invokeSESEmethod( void* seseRecord ) {");
+    outmethod.println(      "  int status;");
+    outmethod.println(      "  char errmsg[128];");
+
+    // generate a case for each SESE class that can be invoked
+    outmethod.println(      "  switch( *((int*)seseRecord) ) {");
+    outmethod.println(      "    ");
+    for(Iterator<FlatSESEEnterNode> seseit=mlpa.getAllSESEs().iterator();seseit.hasNext();) {
+      FlatSESEEnterNode fsen = seseit.next();
+
+      outmethod.println(    "    /* "+fsen.getPrettyIdentifier()+" */");
+      outmethod.println(    "    case "+fsen.getIdentifier()+":");
+      outmethod.println(    "      "+fsen.getSESEmethodName()+"( seseRecord );");  
+      outmethod.println(    "      break;");
+      outmethod.println(    "");
+    }
+
+    // default case should never be taken, error out
+    outmethod.println(      "    default:");
+    outmethod.println(      "      printf(\"Error: unknown SESE class ID in invoke method.\\n\");");
+    outmethod.println(      "      exit(-30);");
+    outmethod.println(      "      break;");
+    outmethod.println(      "  }");
+    outmethod.println(      "  return NULL;");
+    outmethod.println(      "}\n\n");
+  }
+
 
   protected void generateCode(FlatNode first,
                               FlatMethod fm,
@@ -2608,39 +2611,17 @@ public class BuildCode {
       // SESE nodes can be parsed for normal compilation, just skip over them
       return;
     }
-   
-    //    output.println("\n   /* SESE "+fsen.getPrettyIdentifier()+" issue */");
-   
-    /*
- output.println("   tempSESE = mlpCreateSESErecord( "+
-                   fsen.getIdentifier()+", "+
-                   "malloc( sizeof( "+fsen.namespaceStructNameString()+") ), "+
-                   "NULL );");
+    
+    output.println( "   {" );
 
-    for( int i = 0; i < fsen.numParameters(); ++i ) {
-      TempDescriptor td = fsen.getParameter( i );
-      output.println("   (("+fsen.namespaceStructNameString()+
-                         "*)tempSESE->namespace)->"+td+" = "+td+";");
-    }
+    output.println( "     ");
+    output.println( "     ");
+    output.println( "     ");
+    output.println( "     ");
 
-    output.println("   mlpIssue( tempSESE );");
-    //output.println("   tempSESE = mlpSchedule();");
+    output.println( "     ");
 
-    // do a pthread_create wit invokeSESE as the argument
-    // and pack all args into a single void*
-    output.println("   tempSESEargs = malloc( sizeof( invokeSESEargs ) );");
-    output.println("   tempSESEargs->classID = "+fsen.getIdentifier()+";");
-    output.println("   tempSESEargs->invokee = mlpSchedule();");
-
-    if( fsen.getParent() == null ) {
-      output.println("   tempSESEargs->parent  = NULL;");
-    } else {
-      output.println("   tempSESEargs->parent  = currentSESE;");
-    }
-
-    output.println("   invokeSESEmethod( (void*) tempSESEargs );");   
-    output.println("\n");
-    */
+    output.println( "   }" );
   }
 
   public void generateFlatSESEExitNode(FlatMethod fm,  LocalityBinding lb, FlatSESEExitNode fsen, PrintWriter output) {
@@ -3326,7 +3307,7 @@ public class BuildCode {
 	output.print(cn.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"(");
     } else
       output.print(task.getSafeSymbol()+"(");
-
+    
     if (addSESErecord) {
       output.print("SESErecord* currentSESE, ");
     }

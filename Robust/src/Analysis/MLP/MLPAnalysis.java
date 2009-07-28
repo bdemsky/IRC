@@ -202,7 +202,9 @@ public class MLPAnalysis {
       FlatSESEEnterNode fsen = (FlatSESEEnterNode) fn;
 
       allSESEs.add( fsen );
-      fsen.setEnclosingFlatMeth( fm );
+      fsen.setfmEnclosing( fm );
+      fsen.setmdEnclosing( fm.getMethod() );
+      fsen.setcdEnclosing( fm.getMethod().getClassDesc() );
 
       if( !seseStack.empty() ) {
 	seseStack.peek().addChild( fsen );
