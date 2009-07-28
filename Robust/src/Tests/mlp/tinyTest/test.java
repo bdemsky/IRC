@@ -11,7 +11,7 @@ public class Test {
     int y = Integer.parseInt( args[1] );
 
     //Foo f;
-    /*
+
     sese fi {
       //if( true ) {
 
@@ -23,7 +23,7 @@ public class Test {
       //f = new Foo();
       //}      
     }
-    */
+
 
     // just for testing root's ability to
     // realize a single exit after all returns

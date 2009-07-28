@@ -1883,16 +1883,10 @@ public class BuildCode {
       TempDescriptor temp = itrInSet.next();
       TypeDescriptor type = temp.getType();
 
-      String sizeofStr = "";
-      if( type.isPtr() ) {
-	sizeofStr = "struct ";
-      }
-      sizeofStr += type.getSafeSymbol();
-
       output.println("   memcpy( "+
 	"(void*) &("+paramsprefix+"->"+temp.getSafeSymbol()+"), "+         // to
 	"(void*) ("+paramsprefix+"->"+temp.getSafeSymbol()+"__srcAddr_),"+ // from
-	" sizeof( "+sizeofStr+" ) );");                       // size
+	" sizeof( "+paramsprefix+"->"+temp.getSafeSymbol()+" ) );");       // size
       
       // make a deep copy of objects
       //if( type.isPtr() ) {
@@ -2676,9 +2670,16 @@ public class BuildCode {
     Iterator<TempDescriptor> itr = fsen.getInVarSet().iterator();
     while( itr.hasNext() ) {
       TempDescriptor temp = itr.next();
-      output.println("     seseToIssue->"+temp.getSafeSymbol()+
-		     "__srcAddr_ = (INTPTR) &("+paramsprefix+"->"+
-		     temp.getSafeSymbol()+");");
+      output.print("     seseToIssue->"+temp.getSafeSymbol()+"__srcAddr_ = ");
+
+      if( fsen.getParent() == null ||
+	  fsen.getParent().getInVarSet().contains( temp ) ||
+	  fsen.getParent().getOutVarSet().contains( temp ) 
+	) {
+	output.println("(INTPTR) &("+paramsprefix+"->"+temp.getSafeSymbol()+");");
+      } else {
+	output.println("(INTPTR) &("+temp.getSafeSymbol()+");");	
+      }
     }
     
     output.println("     workScheduleSubmit( (void*) seseToIssue );");
