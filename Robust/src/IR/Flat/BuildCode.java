@@ -363,8 +363,8 @@ public class BuildCode {
     if (state.DSM||state.SINGLETM) {
       outmethod.println("#ifdef TRANSSTATS \n");
       outmethod.println("printf(\"******  Transaction Stats   ******\\n\");");
-      outmethod.println("printf(\"numTransAbort= %d\\n\", numTransAbort);");
       outmethod.println("printf(\"numTransCommit= %d\\n\", numTransCommit);");
+      outmethod.println("printf(\"numTransAbort= %d\\n\", numTransAbort);");
       outmethod.println("printf(\"nSoftAbort= %d\\n\", nSoftAbort);");
       if (state.DSM) {
 	outmethod.println("printf(\"nchashSearch= %d\\n\", nchashSearch);");
@@ -378,7 +378,7 @@ public class BuildCode {
 	outmethod.println("printf(\"nSoftAbortCommit= %d\\n\", nSoftAbortCommit);");
 	outmethod.println("#ifdef STMSTATS\n");
 	outmethod.println("for(i=0; i<TOTALNUMCLASSANDARRAY; i++) {\n");
-	outmethod.println("  printf(\"typesCausingAbort[%d]= %d\\n\", i, typesCausingAbort[i]);\n");
+	outmethod.println("  printf(\"typesCausingAbort[%2d] numaccess= %5d numabort= %3d\\n\", i, typesCausingAbort[i].numaccess, typesCausingAbort[i].numabort);\n");
 	outmethod.println("}\n");
 	outmethod.println("#endif\n");
 	outmethod.println("fflush(stdout);");
@@ -900,7 +900,7 @@ public class BuildCode {
       outclassdefs.println("extern int nSoftAbortAbort;");
       outclassdefs.println("extern int nSoftAbortCommit;");
       outclassdefs.println("#ifdef STMSTATS\n");
-      outclassdefs.println("extern int typesCausingAbort[];");
+      outclassdefs.println("extern objtypestat_t typesCausingAbort[];");
       outclassdefs.println("#endif\n");
     }
     outclassdefs.print("#endif\n");

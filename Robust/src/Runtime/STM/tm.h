@@ -150,6 +150,15 @@ extern __thread threadrec_t *trec;
 extern __thread struct objlist * lockedobjs;
 extern objlockstate_t *objlockscope;
 pthread_mutex_t lockedobjstore;
+
+typedef struct objtypestat {
+  int numabort;
+  int numaccess;
+} objtypestat_t;
+
+/* Variables for probability model */
+#define PERCENT_ALLOWED_ABORT 10
+#define FACTOR 1
 #endif
 
 
@@ -165,7 +174,7 @@ extern int nSoftAbortCommit;
 #endif
 
 #ifdef STMSTATS
-extern int typesCausingAbort[];
+extern objtypestat_t typesCausingAbort[];
 #endif
 
 
@@ -200,9 +209,9 @@ int altalttraverseCache();
 void transAbortProcess(void **, int);
 void randomdelay(int);
 #if defined(STMSTATS)||defined(SOFTABORT)
-int getTotalAbortCount(int, int, void *, int, void*, int*, int*, int);
-int getTotalAbortCount2(void *, int, void *, int *, int*, int);
-int getReadAbortCount(int, int, void*, int*, int*, int);
+int getTotalAbortCount(int, int, void *, int, void*, int*, int*, int, objheader_t*, int*);
+int getTotalAbortCount2(void *, int, void *, int *, int*, int, objheader_t*, int*);
+int getReadAbortCount(int, int, void*, int*, int*, int, objheader_t*, int*);
 #endif
 #ifdef STMSTATS
 objheader_t * needLock(objheader_t *, void *);

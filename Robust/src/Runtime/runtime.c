@@ -191,7 +191,7 @@ void CALL11(___System______exit____I,int ___status___, int ___status___) {
 #ifdef STMSTATS
   int i;
   for(i=0; i<TOTALNUMCLASSANDARRAY; i++) {
-    printf("typesCausingAbort[%d]= %d\n", i, typesCausingAbort[i]);
+    printf("typesCausingAbort[%2d] numaccess= %5d numabort= %3d\n", i, typesCausingAbort[i].numaccess, typesCausingAbort[i].numabort);
   }
 #endif
 #endif

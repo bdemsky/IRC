@@ -51,8 +51,8 @@ void transStatsHandler(int sig, siginfo_t* info, void *context) {
 #ifdef TRANSSTATS
   printf("******  Transaction Stats   ******\n");
   printf("myIpAddr = %x\n", myIpAddr);
-  printf("numTransAbort = %d\n", numTransAbort);
   printf("numTransCommit = %d\n", numTransCommit);
+  printf("numTransAbort = %d\n", numTransAbort);
   printf("nchashSearch = %d\n", nchashSearch);
   printf("nmhashSearch = %d\n", nmhashSearch);
   printf("nprehashSearch = %d\n", nprehashSearch);

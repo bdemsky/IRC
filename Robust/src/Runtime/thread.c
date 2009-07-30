@@ -198,7 +198,8 @@ void initializethreads() {
   { 
     int i;
     for(i=0; i<TOTALNUMCLASSANDARRAY; i++) {
-      typesCausingAbort[i] = 0;
+      typesCausingAbort[i].numabort = 0;
+      typesCausingAbort[i].numaccess = 0;
     }
   }
 #endif
