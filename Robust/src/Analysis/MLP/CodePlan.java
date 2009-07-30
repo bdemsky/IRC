@@ -30,9 +30,8 @@ public class CodePlan {
 
   public Set<VariableSourceToken> getWriteToDynamicSrc() {
     return writeToDynamicSrc;
-  }
-
-
+  }  
+  
   public void addStall2CopySet( SESEandAgePair      stallPair,
 				Set<TempDescriptor> copySet ) {
 
@@ -44,8 +43,12 @@ public class CodePlan {
     }
   }
 
-  public Hashtable< SESEandAgePair, Set<TempDescriptor> > getStall2copySet() {
-    return stall2copySet;
+  public Set<SESEandAgePair> getStallPairs() {
+    return stall2copySet.keySet();
+  }
+
+  public Set<TempDescriptor> getCopySet( SESEandAgePair stallPair ) {
+    return stall2copySet.get( stallPair );
   }
 
 

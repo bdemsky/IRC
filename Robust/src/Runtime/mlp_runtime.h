@@ -20,6 +20,10 @@ typedef struct SESErecord_t {
   // are instances of one particular static code block
   int classID;
 
+  // a parent waits on this semaphore when stalling on
+  // this child, the child gives it at its SESE exit
+  psemaphore stallSem;
+
   // the lock guards the following data SESE's
   // use to coordinate with one another
   pthread_mutex_t lock;
@@ -30,9 +34,12 @@ typedef struct SESErecord_t {
 
 
 /*
+// a parent remembers an SESE instance, say class ID=2
+// and age=0, by declaring an SESEvarSrc seseID2_age0
+// and keeping the fields up-to-date
 typedef struct SESEvarSrc_t {
-  void* seseRecord;
-  int         offset;
+  void*  sese;
+  INTPTR addr;
 } SESEvarSrc;
 */
 

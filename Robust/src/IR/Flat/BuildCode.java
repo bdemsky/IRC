@@ -183,6 +183,7 @@ public class BuildCode {
       outmethodheader.println("#include <stdio.h>");
       outmethodheader.println("#include <string.h>");
       outmethodheader.println("#include \"mlp_runtime.h\"");
+      outmethodheader.println("#include \"psemaphore.h\"");
     }
 
     /* Output Structures */
@@ -459,6 +460,7 @@ public class BuildCode {
       outmethod.println("#include <stdlib.h>");
       outmethod.println("#include <stdio.h>");
       outmethod.println("#include \"mlp_runtime.h\"");
+      outmethod.println("#include \"psemaphore.h\"");
     }
 
 
@@ -510,6 +512,9 @@ public class BuildCode {
     outstructs.println("#define INTPTR int");
     outstructs.println("#endif");
     outstructs.println("#endif");
+    if( state.MLP ) {
+      outstructs.println("#include \"psemaphore.h\"");
+    }
 
     /* Output #defines that the runtime uses to determine type
      * numbers for various objects it needs */
@@ -1748,8 +1753,12 @@ public class BuildCode {
     // generate the SESE record structure
     outputStructs.println(fsen.getSESErecordName()+" {");
     
-    // class ID comes first
+    // SESE's static class ID
     outputStructs.println("  int classID;");
+
+    // child is issued with this locked, and it
+    // unlocks it when it completes
+    outputStructs.println("  psemaphore stallSem;");
 
     // then garbage list stuff
     outputStructs.println("  INTPTR size;");
@@ -1869,13 +1878,11 @@ public class BuildCode {
 
 
     // declare variables for naming SESE's
-    /*
     Iterator<SESEandAgePair> pItr = fsen.getNeededStaticNames().iterator();
     while( pItr.hasNext() ) {
       SESEandAgePair p = pItr.next();
-      output.println("   SESErecord* "+p+";");
+      output.println("   void* "+p+";");
     }
-    */
 
     // copy in-set into place
     Iterator<TempDescriptor> itrInSet = fsen.getInVarSet().iterator();
@@ -2205,6 +2212,27 @@ public class BuildCode {
   }
 
   protected void generateFlatNode(FlatMethod fm, LocalityBinding lb, FlatNode fn, PrintWriter output) {
+
+    // insert pre-node actions from the code plan
+    if( state.MLP ) {
+      
+      CodePlan cp = mlpa.getCodePlan( fn );
+      if( cp != null ) {     		
+	
+	// for each sese and age pair that this parent statement
+	// must stall on, take that child's stall semaphore, the
+	// copying of values comes after the statement
+	Iterator<SESEandAgePair> pItr = cp.getStallPairs().iterator();
+	while( pItr.hasNext() ) {
+	  SESEandAgePair p = pItr.next();
+	  output.println("   {");
+	  output.println("     SESErecord* child = (SESErecord*) "+p+";");
+	  output.println("     psem_take( &(child->stallSem) );");
+	  output.println("   }");
+	}
+      }     
+    }
+
     switch(fn.kind()) {
     case FKind.FlatAtomicEnterNode:
       generateFlatAtomicEnterNode(fm, lb, (FlatAtomicEnterNode) fn, output);
@@ -2312,18 +2340,22 @@ public class BuildCode {
       throw new Error();
     }
 
+    // insert post-node actions from the code-plan
+    /*
     if( state.MLP ) {
-      /*
       CodePlan cp = mlpa.getCodePlan( fn );
       if( cp != null ) {     
-
 	Set<VariableSourceToken> writeDynamic = cp.getWriteToDynamicSrc();      
 	if( writeDynamic != null ) {
-	  
+	  Iterator<VariableSourceToken> vstItr = writeDynamic.iterator();
+	  while( vstItr.hasNext() ) {
+	    VariableSourceToken vst = vstItr.next();
+	    
+	  }
 	}
       }
-      */
     }
+    */
   }
 
   public void generateFlatOffsetNode(FlatMethod fm, LocalityBinding lb, FlatOffsetNode fofn, PrintWriter output) {
@@ -2663,6 +2695,7 @@ public class BuildCode {
 		           fsen.getSESErecordName()+"*) mlpAllocSESErecord( sizeof( "+
 		           fsen.getSESErecordName()+" ) );");
     output.println("     seseToIssue->classID = "+fsen.getIdentifier()+";");
+    output.println("     psem_init( &(seseToIssue->stallSem) );");
 
     // give pointers to in-set variables, when this SESE is ready to
     // execute it should copy values from the pointers because they
@@ -2681,15 +2714,28 @@ public class BuildCode {
 	output.println("(INTPTR) &("+temp.getSafeSymbol()+");");	
       }
     }
+
+    // for finding dynamic SESE instances from static names
+    if( fsen != mlpa.getRootSESE() ) {
+      SESEandAgePair p = new SESEandAgePair( fsen, 0 );
+      output.println("     "+p+" = seseToIssue;");
+    }
     
+    // submit the SESE as work
     output.println("     workScheduleSubmit( (void*) seseToIssue );");
     output.println("   }");
   }
 
-  public void generateFlatSESEExitNode(FlatMethod fm,  LocalityBinding lb, FlatSESEExitNode fsen, PrintWriter output) {
+  public void generateFlatSESEExitNode(FlatMethod fm,  LocalityBinding lb, FlatSESEExitNode fsexn, PrintWriter output) {
     if( !state.MLP ) {
       // SESE nodes can be parsed for normal compilation, just skip over them
       return;
+    }
+
+    if( fsexn.getFlatEnter() != mlpa.getRootSESE() ) {
+      output.println("   {");
+      output.println("     psem_give( &("+paramsprefix+"->stallSem) );");
+      output.println("   }");
     }
   }
 
