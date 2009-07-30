@@ -7,14 +7,11 @@
 #include "psemaphore.h"
 
 
-// forward delcarations
-//struct SESErecord_t;
-
-
-// note that this record is never used other than
-// to cast a customized record and have easy access
-// the common fields listed here
-typedef struct SESErecord_t {  
+// these fields are common to any SESE, and casting the
+// generated SESE record to this can be used, because
+// the common structure is always the first item in a
+// customized SESE record
+typedef struct SESEcommon_t {  
 
   // the identifier for the class of sese's that
   // are instances of one particular static code block
@@ -30,7 +27,7 @@ typedef struct SESErecord_t {
   struct Queue*   forwardList;
   int             doneExecuting;
 
-} SESErecord;
+} SESEcommon;
 
 
 /*

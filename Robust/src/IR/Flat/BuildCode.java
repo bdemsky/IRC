@@ -513,6 +513,7 @@ public class BuildCode {
     outstructs.println("#endif");
     outstructs.println("#endif");
     if( state.MLP ) {
+      outstructs.println("#include \"mlp_runtime.h\"");
       outstructs.println("#include \"psemaphore.h\"");
     }
 
@@ -1753,12 +1754,10 @@ public class BuildCode {
     // generate the SESE record structure
     outputStructs.println(fsen.getSESErecordName()+" {");
     
-    // SESE's static class ID
-    outputStructs.println("  int classID;");
-
-    // child is issued with this locked, and it
-    // unlocks it when it completes
-    outputStructs.println("  psemaphore stallSem;");
+    // data common to any SESE, and it must be placed first so
+    // a module that doesn't know what kind of SESE record this
+    // is can cast the pointer to a common struct
+    outputStructs.println("  SESEcommon common;");
 
     // then garbage list stuff
     outputStructs.println("  INTPTR size;");
@@ -2226,7 +2225,7 @@ public class BuildCode {
 	while( pItr.hasNext() ) {
 	  SESEandAgePair p = pItr.next();
 	  output.println("   {");
-	  output.println("     SESErecord* child = (SESErecord*) "+p+";");
+	  output.println("     SESEcommon* child = (SESEcommon*) "+p+";");
 	  output.println("     psem_take( &(child->stallSem) );");
 	  output.println("   }");
 	}
@@ -2694,8 +2693,8 @@ public class BuildCode {
     output.println("     "+fsen.getSESErecordName()+"* seseToIssue = ("+
 		           fsen.getSESErecordName()+"*) mlpAllocSESErecord( sizeof( "+
 		           fsen.getSESErecordName()+" ) );");
-    output.println("     seseToIssue->classID = "+fsen.getIdentifier()+";");
-    output.println("     psem_init( &(seseToIssue->stallSem) );");
+    output.println("     seseToIssue->common.classID = "+fsen.getIdentifier()+";");
+    output.println("     psem_init( &(seseToIssue->common.stallSem) );");
 
     // give pointers to in-set variables, when this SESE is ready to
     // execute it should copy values from the pointers because they
@@ -2734,7 +2733,7 @@ public class BuildCode {
 
     if( fsexn.getFlatEnter() != mlpa.getRootSESE() ) {
       output.println("   {");
-      output.println("     psem_give( &("+paramsprefix+"->stallSem) );");
+      output.println("     psem_give( &("+paramsprefix+"->common.stallSem) );");
       output.println("   }");
     }
   }

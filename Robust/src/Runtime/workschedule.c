@@ -231,7 +231,7 @@ void workScheduleInit( int numProcessors,
                        void(*func)(void*) ) {
   int i, status;
 
-  numWorkers = numProcessors;
+  numWorkers = numProcessors*5;
   workFunc   = func;
 
   dequeWorkUnits = createQueue();
