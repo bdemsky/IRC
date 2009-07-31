@@ -3,6 +3,14 @@
 #include "multicoreruntime.h"
 #include "runtime_arch.h"
 
+// data structures for locking
+struct RuntimeHash locktable;
+static struct RuntimeHash* locktbl = &locktable;
+struct LockValue {
+	int redirectlock;
+	int value;
+};
+
 __attribute__((always_inline)) inline void initialization() {
 } // initialization()
 
@@ -721,6 +729,660 @@ __attribute__((always_inline)) inline int receiveMsg() {
   BAMBOO_DEBUGPRINT(0xffff);
 #endif
   return msgdataindex;
+}
+
+bool getreadlock(void * ptr) {
+  int targetcore = 0;
+  lockobj = (int)ptr;
+  if(((struct ___Object___ *)ptr)->lock == NULL) {
+	lock2require = lockobj;
+  } else {
+	lock2require = (int)(((struct ___Object___ *)ptr)->lock);
+  }
+  targetcore = (lock2require >> 5) % BAMBOO_TOTALCORE;
+  lockflag = false;
+#ifndef INTERRUPT
+  reside = false;
+#endif
+  lockresult = 0;
+
+  if(targetcore == BAMBOO_NUM_OF_CORE) {
+    // reside on this core
+    int deny = 0;
+	BAMBOO_START_CRITICAL_SECTION_LOCK();
+#ifdef DEBUG
+	BAMBOO_DEBUGPRINT(0xf001);
+#endif
+	deny = processlockrequest(0, lock2require, (int)ptr, BAMBOO_NUM_OF_CORE, BAMBOO_NUM_OF_CORE, false);
+	BAMBOO_CLOSE_CRITICAL_SECTION_LOCK();
+#ifdef DEBUG
+	BAMBOO_DEBUGPRINT(0xf000);
+#endif
+    if(deny == -1) {
+		// redirected
+		return true;
+	} else {
+		if(lockobj == (int)ptr) {
+			if(deny) {
+				lockresult = 0;
+			} else {
+				lockresult = 1;
+			}
+			lockflag = true;
+#ifndef INTERRUPT
+			reside = true;
+#endif
+		} else {
+			// conflicts on lockresults
+			BAMBOO_EXIT(0xa018);
+		}
+	}
+    return true;
+  } else {
+	  // send lock request msg
+	  // for 32 bit machine, the size is always 5 words
+	  send_msg_5(false, targetcore, 2, 0, (int)ptr, lock2require, BAMBOO_NUM_OF_CORE);
+  }
+  return true;
+}
+
+void releasewritelock_r(void * lock, void * redirectlock);
+bool getreadlock_I_r(void * ptr, void * redirectlock, int core, bool cache);
+
+bool getwritelock_I_r(void* lock, void* redirectlock, int core, bool cache);
+
+void releasereadlock(void * ptr) {
+  int targetcore = 0;
+  int reallock = 0;
+  if(((struct ___Object___ *)ptr)->lock == NULL) {
+	reallock = (int)ptr;
+  } else {
+	reallock = (int)(((struct ___Object___ *)ptr)->lock);
+  }
+  targetcore = (reallock >> 5) % BAMBOO_TOTALCORE;
+
+  if(targetcore == BAMBOO_NUM_OF_CORE) {
+	BAMBOO_START_CRITICAL_SECTION_LOCK();
+#ifdef DEBUG
+	BAMBOO_DEBUGPRINT(0xf001);
+#endif
+    // reside on this core
+    if(!RuntimeHashcontainskey(locktbl, reallock)) {
+      // no locks for this object, something is wrong
+      BAMBOO_EXIT(0xa019);
+    } else {
+      int rwlock_obj = 0;
+	  struct LockValue * lockvalue = NULL;
+      RuntimeHashget(locktbl, reallock, &rwlock_obj);
+	  lockvalue = (struct LockValue *)rwlock_obj;
+      lockvalue->value--;
+    }
+	BAMBOO_CLOSE_CRITICAL_SECTION_LOCK();
+#ifdef DEBUG
+	BAMBOO_DEBUGPRINT(0xf000);
+#endif
+    return;
+  } else {
+	// send lock release msg
+	// for 32 bit machine, the size is always 4 words
+	send_msg_4(false, targetcore, 5, 0, (int)ptr, reallock);
+  }
+}
+
+// redirected lock request
+bool getreadlock_I_r(void * ptr, void * redirectlock, int core, bool cache) {
+  int targetcore = 0;
+  
+  if(core == BAMBOO_NUM_OF_CORE) {
+	  lockobj = (int)ptr;
+	  lock2require = (int)redirectlock;
+	  lockflag = false;
+#ifndef INTERRUPT
+	  reside = false;
+#endif
+	  lockresult = 0;
+  }  
+  targetcore = ((int)redirectlock >> 5) % BAMBOO_TOTALCORE;
+  
+  if(targetcore == BAMBOO_NUM_OF_CORE) {
+    // reside on this core
+    int deny = processlockrequest(0, (int)redirectlock, (int)ptr, BAMBOO_NUM_OF_CORE, core, cache);
+	if(deny == -1) {
+		// redirected
+		return true;
+	} else {
+		if(core == BAMBOO_NUM_OF_CORE) {
+			if(lockobj == (int)ptr) {
+				if(deny) {
+					lockresult = 0;
+				} else {
+					lockresult = 1;
+					RuntimeHashadd_I(objRedirectLockTbl, (int)ptr, (int)redirectlock);
+				}
+				lockflag = true;
+#ifndef INTERRUPT
+				reside = true;
+#endif
+			} else {
+				// conflicts on lockresults
+				BAMBOO_EXIT(0xa01a);
+			}
+			return true;
+		} else {
+			// send lock grant/deny request to the root requiring core
+			// check if there is still some msg on sending
+			if((!cache) || (cache && !isMsgSending)) {
+				send_msg_4(false, core, deny==1?0xa:9, 0, (int)ptr, (int)redirectlock);
+			} else {
+				cache_msg_4(false, core, deny==1?0xa:9, 0, (int)ptr, (int)redirectlock);
+			}
+		}
+	}
+  } else {
+	// redirect the lock request
+	// for 32 bit machine, the size is always 6 words
+	if((!cache) || (cache && !isMsgSending)) {
+		send_msg_6(false, targetcore, 8, 0, (int)ptr, lock2require, core, BAMBOO_NUM_OF_CORE);
+	} else {
+		cache_msg_6(false, targetcore, 8, 0, (int)ptr, lock2require, core, BAMBOO_NUM_OF_CORE);
+	}
+  }
+  return true;
+}
+
+// not reentrant
+bool getwritelock(void * ptr) {
+  int targetcore = 0;
+
+  // for 32 bit machine, the size is always 5 words
+  //int msgsize = 5;
+
+  lockobj = (int)ptr;
+  if(((struct ___Object___ *)ptr)->lock == NULL) {
+	lock2require = lockobj;
+  } else {
+	lock2require = (int)(((struct ___Object___ *)ptr)->lock);
+  }
+  targetcore = (lock2require >> 5) % BAMBOO_TOTALCORE;
+  lockflag = false;
+#ifndef INTERRUPT
+  reside = false;
+#endif
+  lockresult = 0;
+
+#ifdef DEBUG
+  BAMBOO_DEBUGPRINT(0xe551);
+  BAMBOO_DEBUGPRINT_REG(lockobj);
+  BAMBOO_DEBUGPRINT_REG(lock2require);
+  BAMBOO_DEBUGPRINT_REG(targetcore);
+#endif
+
+  if(targetcore == BAMBOO_NUM_OF_CORE) {
+    // reside on this core
+    int deny = 0;
+	BAMBOO_START_CRITICAL_SECTION_LOCK();
+#ifdef DEBUG
+	BAMBOO_DEBUGPRINT(0xf001);
+#endif
+	deny = processlockrequest(1, lock2require, (int)ptr, BAMBOO_NUM_OF_CORE, BAMBOO_NUM_OF_CORE, false);
+	BAMBOO_CLOSE_CRITICAL_SECTION_LOCK();
+#ifdef DEBUG
+	BAMBOO_DEBUGPRINT(0xf000);
+#endif
+#ifdef DEBUG
+    BAMBOO_DEBUGPRINT(0xe555);
+    BAMBOO_DEBUGPRINT_REG(lockresult);
+#endif
+    if(deny == -1) {
+		// redirected
+		return true;
+	} else {
+		if(lockobj == (int)ptr) {
+			if(deny) {
+				lockresult = 0;
+			} else {
+				lockresult = 1;
+			}
+			lockflag = true;
+#ifndef INTERRUPT
+			reside = true;
+#endif
+		} else {
+			// conflicts on lockresults
+			BAMBOO_EXIT(0xa01b);
+		}
+	}
+    return true;
+  } else {
+	  // send lock request msg
+	  // for 32 bit machine, the size is always 5 words
+	  send_msg_5(false, targetcore, 2, 1, (int)ptr, lock2require, BAMBOO_NUM_OF_CORE);
+  }
+  return true;
+}
+
+void releasewritelock(void * ptr) {
+  int targetcore = 0;
+  int reallock = 0;
+  if(((struct ___Object___ *)ptr)->lock == NULL) {
+	reallock = (int)ptr;
+  } else {
+	reallock = (int)(((struct ___Object___ *)ptr)->lock);
+  }
+  targetcore = (reallock >> 5) % BAMBOO_TOTALCORE;
+
+#ifdef DEBUG
+  BAMBOO_DEBUGPRINT(0xe661);
+  BAMBOO_DEBUGPRINT_REG((int)ptr);
+  BAMBOO_DEBUGPRINT_REG(reallock);
+  BAMBOO_DEBUGPRINT_REG(targetcore);
+#endif
+
+  if(targetcore == BAMBOO_NUM_OF_CORE) {
+	BAMBOO_START_CRITICAL_SECTION_LOCK();
+#ifdef DEBUG
+	BAMBOO_DEBUGPRINT(0xf001);
+#endif
+    // reside on this core
+    if(!RuntimeHashcontainskey(locktbl, reallock)) {
+      // no locks for this object, something is wrong
+      BAMBOO_EXIT(0xa01c);
+    } else {
+      int rwlock_obj = 0;
+	  struct LockValue * lockvalue = NULL;
+      RuntimeHashget(locktbl, reallock, &rwlock_obj);
+	  lockvalue = (struct LockValue *)rwlock_obj;
+      lockvalue->value++;
+    }
+	BAMBOO_CLOSE_CRITICAL_SECTION_LOCK();
+#ifdef DEBUG
+	BAMBOO_DEBUGPRINT(0xf000);
+#endif
+    return;
+  } else {
+	// send lock release msg
+	// for 32 bit machine, the size is always 4 words
+	send_msg_4(false,targetcore, 5, 1, (int)ptr, reallock);
+  }
+}
+
+void releasewritelock_r(void * lock, void * redirectlock) {
+  int targetcore = 0;
+  int reallock = (int)lock;
+  targetcore = (reallock >> 5) % BAMBOO_TOTALCORE;
+
+#ifdef DEBUG
+  BAMBOO_DEBUGPRINT(0xe671);
+  BAMBOO_DEBUGPRINT_REG((int)lock);
+  BAMBOO_DEBUGPRINT_REG(reallock);
+  BAMBOO_DEBUGPRINT_REG(targetcore);
+#endif
+
+  if(targetcore == BAMBOO_NUM_OF_CORE) {
+	BAMBOO_START_CRITICAL_SECTION_LOCK();
+#ifdef DEBUG
+	BAMBOO_DEBUGPRINT(0xf001);
+#endif
+    // reside on this core
+    if(!RuntimeHashcontainskey(locktbl, reallock)) {
+      // no locks for this object, something is wrong
+      BAMBOO_EXIT(0xa01d);
+    } else {
+      int rwlock_obj = 0;
+	  struct LockValue * lockvalue = NULL;
+#ifdef DEBUG
+      BAMBOO_DEBUGPRINT(0xe672);
+#endif
+      RuntimeHashget(locktbl, reallock, &rwlock_obj);
+	  lockvalue = (struct LockValue *)rwlock_obj;
+#ifdef DEBUG
+      BAMBOO_DEBUGPRINT_REG(lockvalue->value);
+#endif
+      lockvalue->value++;
+	  lockvalue->redirectlock = (int)redirectlock;
+#ifdef DEBUG
+      BAMBOO_DEBUGPRINT_REG(lockvalue->value);
+#endif
+    }
+	BAMBOO_CLOSE_CRITICAL_SECTION_LOCK();
+#ifdef DEBUG
+	BAMBOO_DEBUGPRINT(0xf000);
+#endif
+    return;
+  } else {
+	  // send lock release with redirect info msg
+	  // for 32 bit machine, the size is always 4 words
+	  send_msg_4(false, targetcore, 0xb, 1, (int)lock, (int)redirectlock);
+  }
+}
+
+bool getwritelock_I(void * ptr) {
+  int targetcore = 0;
+  lockobj = (int)ptr;
+  if(((struct ___Object___ *)ptr)->lock == NULL) {
+	lock2require = lockobj;
+  } else {
+	lock2require = (int)(((struct ___Object___ *)ptr)->lock);
+  }
+  targetcore = (lock2require >> 5) % BAMBOO_TOTALCORE;
+  lockflag = false;
+#ifndef INTERRUPT
+  reside = false;
+#endif
+  lockresult = 0;
+
+#ifdef DEBUG
+  BAMBOO_DEBUGPRINT(0xe561);
+  BAMBOO_DEBUGPRINT_REG(lockobj);
+  BAMBOO_DEBUGPRINT_REG(lock2require);
+  BAMBOO_DEBUGPRINT_REG(targetcore);
+#endif
+
+  if(targetcore == BAMBOO_NUM_OF_CORE) {
+    // reside on this core
+	int deny = processlockrequest(1, (int)lock2require, (int)ptr, BAMBOO_NUM_OF_CORE, BAMBOO_NUM_OF_CORE, false);
+	if(deny == -1) {
+		// redirected
+		return true;
+	} else {
+		if(lockobj == (int)ptr) {
+			if(deny) {
+				lockresult = 0;
+#ifdef DEBUG
+				BAMBOO_DEBUGPRINT(0);
+#endif
+			} else {
+				lockresult = 1;
+#ifdef DEBUG
+				BAMBOO_DEBUGPRINT(1);
+#endif
+			}
+			lockflag = true;
+#ifndef INTERRUPT
+			reside = true;
+#endif
+		} else {
+			// conflicts on lockresults
+			BAMBOO_EXIT(0xa01e);
+		}
+		return true;
+	}
+  } else {
+	  // send lock request msg
+	  // for 32 bit machine, the size is always 5 words
+	  send_msg_5(false, targetcore, 2, 1, (int)ptr, lock2require, BAMBOO_NUM_OF_CORE);
+  }
+  return true;
+}
+
+// redirected lock request
+bool getwritelock_I_r(void * ptr, void * redirectlock, int core, bool cache) {
+  int targetcore = 0;
+
+  if(core == BAMBOO_NUM_OF_CORE) {
+	  lockobj = (int)ptr;
+	  lock2require = (int)redirectlock;
+	  lockflag = false;
+#ifndef INTERRUPT
+	  reside = false;
+#endif
+	  lockresult = 0;
+  }
+  targetcore = ((int)redirectlock >> 5) % BAMBOO_TOTALCORE;
+
+#ifdef DEBUG
+  BAMBOO_DEBUGPRINT(0xe571);
+  BAMBOO_DEBUGPRINT_REG((int)ptr);
+  BAMBOO_DEBUGPRINT_REG((int)redirectlock);
+  BAMBOO_DEBUGPRINT_REG(core);
+  BAMBOO_DEBUGPRINT_REG((int)cache);
+  BAMBOO_DEBUGPRINT_REG(targetcore);
+#endif
+
+
+  if(targetcore == BAMBOO_NUM_OF_CORE) {
+    // reside on this core
+	int deny = processlockrequest(1, (int)redirectlock, (int)ptr, BAMBOO_NUM_OF_CORE, core, cache);
+	if(deny == -1) {
+		// redirected
+		return true;
+	} else {
+		if(core == BAMBOO_NUM_OF_CORE) {
+			if(lockobj == (int)ptr) {
+				if(deny) {
+					lockresult = 0;
+				} else {
+					lockresult = 1;
+					RuntimeHashadd_I(objRedirectLockTbl, (int)ptr, (int)redirectlock);
+				}
+				lockflag = true;
+#ifndef INTERRUPT
+				reside = true;
+#endif
+			} else {
+				// conflicts on lockresults
+				BAMBOO_EXIT(0xa01f);
+			}
+			return true;
+		} else {
+			// send lock grant/deny request to the root requiring core
+			// check if there is still some msg on sending
+			if((!cache) || (cache && !isMsgSending)) {
+				send_msg_4(false, core, deny==1?0xa:9, 1, (int)ptr, (int)redirectlock);
+			} else {
+				cache_msg_4(false, core, deny==1?0xa:9, 1, (int)ptr, (int)redirectlock);
+			}
+		}
+	}
+  } else {
+	// redirect the lock request
+	// for 32 bit machine, the size is always 6 words
+	if((!cache) || (cache && !isMsgSending)) {
+		send_msg_6(false, targetcore, 8, 1, (int)ptr, (int)redirectlock, core, BAMBOO_NUM_OF_CORE);
+	} else {
+		cache_msg_6(false, targetcore, 8, 1, (int)ptr, (int)redirectlock, core, BAMBOO_NUM_OF_CORE);
+	}
+  }
+  return true;
+}
+
+void releasewritelock_I(void * ptr) {
+  int targetcore = 0;
+  int reallock = 0;
+  if(((struct ___Object___ *)ptr)->lock == NULL) {
+	reallock = (int)ptr;
+  } else {
+	reallock = (int)(((struct ___Object___ *)ptr)->lock);
+  }
+  targetcore = (reallock >> 5) % BAMBOO_TOTALCORE;
+
+#ifdef DEBUG
+  BAMBOO_DEBUGPRINT(0xe681);
+  BAMBOO_DEBUGPRINT_REG((int)ptr);
+  BAMBOO_DEBUGPRINT_REG(reallock);
+  BAMBOO_DEBUGPRINT_REG(targetcore);
+#endif
+
+  if(targetcore == BAMBOO_NUM_OF_CORE) {
+    // reside on this core
+    if(!RuntimeHashcontainskey(locktbl, reallock)) {
+      // no locks for this object, something is wrong
+      BAMBOO_EXIT(0xa020);
+    } else {
+      int rwlock_obj = 0;
+	  struct LockValue * lockvalue = NULL;
+      RuntimeHashget(locktbl, reallock, &rwlock_obj);
+	  lockvalue = (struct LockValue *)rwlock_obj;
+      lockvalue->value++;
+    }
+    return;
+  } else {
+	// send lock release msg
+	// for 32 bit machine, the size is always 4 words
+	send_msg_4(false, targetcore, 5, 1, (int)ptr, reallock);
+  }
+}
+
+void releasewritelock_I_r(void * lock, void * redirectlock) {
+  int targetcore = 0;
+  int reallock = (int)lock;
+  targetcore = (reallock >> 5) % BAMBOO_TOTALCORE;
+
+#ifdef DEBUG
+  BAMBOO_DEBUGPRINT(0xe691);
+  BAMBOO_DEBUGPRINT_REG((int)lock);
+  BAMBOO_DEBUGPRINT_REG(reallock);
+  BAMBOO_DEBUGPRINT_REG(targetcore);
+#endif
+
+  if(targetcore == BAMBOO_NUM_OF_CORE) {
+    // reside on this core
+    if(!RuntimeHashcontainskey(locktbl, reallock)) {
+      // no locks for this object, something is wrong
+      BAMBOO_EXIT(0xa021);
+    } else {
+      int rwlock_obj = 0;
+	  struct LockValue * lockvalue = NULL;
+#ifdef DEBUG
+      BAMBOO_DEBUGPRINT(0xe692);
+#endif
+      RuntimeHashget(locktbl, reallock, &rwlock_obj);
+	  lockvalue = (struct LockValue *)rwlock_obj;
+#ifdef DEBUG
+      BAMBOO_DEBUGPRINT_REG(lockvalue->value);
+#endif
+      lockvalue->value++;
+	  lockvalue->redirectlock = (int)redirectlock;
+#ifdef DEBUG
+      BAMBOO_DEBUGPRINT_REG(lockvalue->value);
+#endif
+    }
+    return;
+  } else {
+	// send lock release msg
+	// for 32 bit machine, the size is always 4 words
+	send_msg_4(false, targetcore, 0xb, 1, (int)lock, (int)redirectlock);
+  }
+}
+
+/* this function is to process lock requests. 
+ * can only be invoked in receiveObject() */
+// if return -1: the lock request is redirected
+//            0: the lock request is approved
+//            1: the lock request is denied
+__attribute__((always_inline)) int processlockrequest(int locktype, int lock, int obj, int requestcore, int rootrequestcore, bool cache) {
+  int deny = 0;
+  if( ((lock >> 5) % BAMBOO_TOTALCORE) != BAMBOO_NUM_OF_CORE ) {
+	  // the lock should not be on this core
+#ifndef TILERA
+	  BAMBOO_DEBUGPRINT_REG(requestcore);
+	  BAMBOO_DEBUGPRINT_REG(lock);
+	  BAMBOO_DEBUGPRINT_REG(BAMBOO_NUM_OF_CORE);
+#endif
+	  BAMBOO_EXIT(0xa017);
+  }
+  if(!RuntimeHashcontainskey(locktbl, lock)) {
+	  // no locks for this object
+	  // first time to operate on this shared object
+	  // create a lock for it
+	  // the lock is an integer: 0 -- stall, >0 -- read lock, -1 -- write lock
+	  struct LockValue * lockvalue = (struct LockValue *)(RUNMALLOC_I(sizeof(struct LockValue)));
+	  lockvalue->redirectlock = 0;
+#ifdef DEBUG
+#ifndef TILERA
+	  BAMBOO_DEBUGPRINT(0xe110);
+#endif
+#endif
+	  if(locktype == 0) {
+		  lockvalue->value = 1;
+	  } else {
+		  lockvalue->value = -1;
+	  }
+	  RuntimeHashadd_I(locktbl, lock, (int)lockvalue);
+  } else {
+	  int rwlock_obj = 0;
+	  struct LockValue * lockvalue = NULL;
+#ifdef DEBUG
+#ifndef TILERA
+	  BAMBOO_DEBUGPRINT(0xe111);
+#endif
+#endif
+	  RuntimeHashget(locktbl, lock, &rwlock_obj);
+	  lockvalue = (struct LockValue *)(rwlock_obj);
+#ifdef DEBUG
+#ifndef TILERA
+	  BAMBOO_DEBUGPRINT_REG(lockvalue->redirectlock);
+#endif
+#endif
+	  if(lockvalue->redirectlock != 0) {
+		  // this lock is redirected
+#ifdef DEBUG
+#ifndef TILERA
+		  BAMBOO_DEBUGPRINT(0xe112);
+#endif
+#endif
+		  if(locktype == 0) {
+			  getreadlock_I_r((void *)obj, (void *)lockvalue->redirectlock, rootrequestcore, cache);
+		  } else {
+			  getwritelock_I_r((void *)obj, (void *)lockvalue->redirectlock, rootrequestcore, cache);
+		  }
+		  return -1;  // redirected
+	  } else {
+#ifdef DEBUG
+#ifndef TILERA
+		  BAMBOO_DEBUGPRINT_REG(lockvalue->value);
+#endif
+#endif
+		  if(0 == lockvalue->value) {
+			  if(locktype == 0) {
+				  lockvalue->value = 1;
+			  } else {
+				  lockvalue->value = -1;
+			  }
+		  } else if((lockvalue->value > 0) && (locktype == 0)) {
+			  // read lock request and there are only read locks
+			  lockvalue->value++;
+		  } else {
+			  deny = 1;
+		  }
+#ifdef DEBUG
+#ifndef TILERA
+		  BAMBOO_DEBUGPRINT_REG(lockvalue->value);
+#endif
+#endif
+	  }
+  }
+  return deny;
+}
+
+__attribute__((always_inline)) void processlockrelease(int locktype, int lock, int redirectlock, bool isredirect) {
+	if(!RuntimeHashcontainskey(locktbl, lock)) {
+    // no locks for this object, something is wrong
+#ifdef DEBUG
+		BAMBOO_DEBUGPRINT_REG(lock);
+#endif
+		BAMBOO_EXIT(0xa00b);
+	} else {
+		int rwlock_obj = 0;
+		struct LockValue * lockvalue = NULL;
+		RuntimeHashget(locktbl, lock, &rwlock_obj);
+		lockvalue = (struct LockValue*)(rwlock_obj);
+#ifdef DEBUG
+		BAMBOO_DEBUGPRINT(0xe884);
+		BAMBOO_DEBUGPRINT_REG(lockvalue->value);
+#endif
+		if(locktype == 0) {
+			lockvalue->value--;
+		} else {
+			lockvalue->value++;
+		}
+#ifdef DEBUG
+		BAMBOO_DEBUGPRINT_REG(lockvalue->value);
+#endif
+		if(isredirect) {
+			lockvalue->redirectlock = redirectlock;
+		}
+	}
 }
 
 #ifdef PROFILE

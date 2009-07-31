@@ -592,10 +592,13 @@ public class BuildCode {
       if(!state.MULTICORE) {
 	outclassdefs.println("  void * flagptr;");
       } else {
-	outclassdefs.println("  int version;");
-	outclassdefs.println("  struct ___Object___ * original;");
-	//outclassdefs.println("  int numlocks;");        // array for locks
-	outclassdefs.println("  int * lock;");
+        if(state.MULTICOREGC) {
+          outclassdefs.println("  int marked;");
+        }
+        outclassdefs.println("  int version;");
+        outclassdefs.println("  int * lock;");  // lock entry for this obj
+        outclassdefs.println("  void * mutex;");  
+        outclassdefs.println("  int lockcount;");
       }
       if(state.OPTIONAL) {
 	outclassdefs.println("  int numfses;");
@@ -1300,10 +1303,13 @@ public class BuildCode {
       if((!state.MULTICORE) || (cn.getSymbol().equals("TagDescriptor"))) {
 	classdefout.println("  void * flagptr;");
       } else if (state.MULTICORE) {
+        if(state.MULTICOREGC) {
+          classdefout.println("  int marked;");
+        }
 	classdefout.println("  int version;");
-	classdefout.println("  struct ___Object___ * original;");
-	//classdefout.println("  int numlocks;");        // array for locks
-	classdefout.println("  int * lock;");
+    classdefout.println("  int * lock;");  // lock entry for this obj
+    classdefout.println("  void * mutex;");  
+    classdefout.println("  int lockcount;");
       }
       if (state.OPTIONAL) {
 	classdefout.println("  int numfses;");

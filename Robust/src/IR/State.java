@@ -60,6 +60,7 @@ public class State {
   public boolean FLATIRGRAPHUSERMETHODS=false;
   public boolean FLATIRGRAPHLIBMETHODS=false;
   public boolean MULTICORE=false;
+	public boolean MULTICOREGC=false;
   public boolean OWNERSHIP=false;
   public int OWNERSHIPALLOCDEPTH=3;
   public boolean OWNERSHIPWRITEDOTS=false;

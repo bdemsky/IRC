@@ -3,6 +3,7 @@
 #include "multicoreruntime.h"
 #include "runtime_arch.h"
 #include "GenericHashtable.h"
+#if 0
 /*
    extern int injectfailures;
    extern float failurechance;
@@ -13,7 +14,6 @@ extern int instaccum;
 void * curr_heapbase=0;
 void * curr_heaptop=0;
 
-#if 0
 #ifdef CONSCHECK
 #include "instrument.h"
 #endif
@@ -21,26 +21,16 @@ void * curr_heaptop=0;
 
 //  data structures for task invocation
 struct genhashtable * activetasks;
-struct genhashtable * failedtasks;
+//struct genhashtable * failedtasks;  // for recovery
 struct taskparamdescriptor * currtpd;
 #if 0
 struct RuntimeHash * forward;
 struct RuntimeHash * reverse;
 #endif // if 0: for recovery
 
-bool getreadlock(void* ptr);
-void releasereadlock(void* ptr);
-bool getwritelock(void* ptr);
-void releasewritelock(void* ptr);
-void releasewritelock_r(void * lock, void * redirectlock);
-
 // specific functions used inside critical sections
 void enqueueObject_I(void * ptr, struct parameterwrapper ** queues, int length);
 int enqueuetasks_I(struct parameterwrapper *parameter, struct parameterwrapper *prevptr, struct ___Object___ *ptr, int * enterflags, int numenterflags);
-bool getreadlock_I_r(void * ptr, void * redirectlock, int core, bool cache);
-bool getwritelock_I(void* ptr);
-bool getwritelock_I_r(void* lock, void* redirectlock, int core, bool cache);
-void releasewritelock_I(void * ptr);
 
 // main function for each core
 inline void run(void * arg) {
@@ -63,7 +53,7 @@ inline void run(void * arg) {
 #endif
 
   // initialize the arrays
-  if(STARTUPCORE == corenum) {
+  if(STARTUPCORE == BAMBOO_NUM_OF_CORE) {
     // startup core to initialize corestatus[]
     for(i = 0; i < NUMCORES; ++i) {
       corestatus[i] = 1;
@@ -151,9 +141,9 @@ inline void run(void * arg) {
   initializeexithandler();
 
   // main process of the execution module
-  if(corenum > NUMCORES - 1) {
+  if(BAMBOO_NUM_OF_CORE > NUMCORES - 1) {
 	// non-executing cores, only processing communications
-    failedtasks = NULL;
+    //failedtasks = NULL;
     activetasks = NULL;
 /*#ifdef PROFILE
         BAMBOO_DEBUGPRINT(0xee01);
@@ -172,7 +162,6 @@ inline void run(void * arg) {
 	  failedtasks=genallocatehashtable((unsigned int (*)(void *)) &hashCodetpd,
                                        (int (*)(void *,void *)) &comparetpd);
 #endif // #if 0: for recovery
-	  failedtasks = NULL;
 	  /* Create queue of active tasks */
 	  activetasks=genallocatehashtable((unsigned int(*) (void *)) &hashCodetpd,
                                        (int(*) (void *,void *)) &comparetpd);
@@ -180,7 +169,7 @@ inline void run(void * arg) {
 	  /* Process task information */
 	  processtasks();
 	  
-	  if(STARTUPCORE == corenum) {
+	  if(STARTUPCORE == BAMBOO_NUM_OF_CORE) {
 		  /* Create startup object */
 		  createstartupobject(argc, argv);
 	  }
@@ -263,12 +252,12 @@ inline void run(void * arg) {
 				  for(k = 0; k < objInfo->length; ++k) {
 					  int taskindex = objInfo->queues[2 * k];
 					  int paramindex = objInfo->queues[2 * k + 1];
-					  struct parameterwrapper ** queues = &(paramqueues[corenum][taskindex][paramindex]);
+					  struct parameterwrapper ** queues = &(paramqueues[BAMBOO_NUM_OF_CORE][taskindex][paramindex]);
 #ifdef DEBUG
 					  BAMBOO_DEBUGPRINT_REG(taskindex);
 					  BAMBOO_DEBUGPRINT_REG(paramindex);
 					  struct ___Object___ * tmpptr = (struct ___Object___ *)obj;
-					  tprintf("Process %x(%d): receive obj %x(%lld), ptrflag %x\n", corenum, corenum, (int)obj, (long)obj, tmpptr->flag);
+					  tprintf("Process %x(%d): receive obj %x(%lld), ptrflag %x\n", BAMBOO_NUM_OF_CORE, BAMBOO_NUM_OF_CORE, (int)obj, (long)obj, tmpptr->flag);
 #endif
 					  enqueueObject_I(obj, queues, 1);
 #ifdef DEBUG				 
@@ -327,7 +316,7 @@ objqueuebreak:
 
 		  if(!tocontinue) {
 			  // check if stop
-			  if(STARTUPCORE == corenum) {
+			  if(STARTUPCORE == BAMBOO_NUM_OF_CORE) {
 				  if(isfirst) {
 #ifdef DEBUG
 					  BAMBOO_DEBUGPRINT(0xee03);
@@ -344,9 +333,9 @@ objqueuebreak:
 #ifdef DEBUG
 					  BAMBOO_DEBUGPRINT(0xf001);
 #endif
-					  corestatus[corenum] = 0;
-					  numsendobjs[corenum] = self_numsendobjs;
-					  numreceiveobjs[corenum] = self_numreceiveobjs;
+					  corestatus[BAMBOO_NUM_OF_CORE] = 0;
+					  numsendobjs[BAMBOO_NUM_OF_CORE] = self_numsendobjs;
+					  numreceiveobjs[BAMBOO_NUM_OF_CORE] = self_numreceiveobjs;
 					  // check the status of all cores
 					  allStall = true;
 #ifdef DEBUG
@@ -385,11 +374,11 @@ objqueuebreak:
 #ifdef DEBUG
 								  BAMBOO_DEBUGPRINT(0xee05);
 #endif
-								  corestatus[corenum] = 1;
+								  corestatus[BAMBOO_NUM_OF_CORE] = 1;
 								  for(i = 1; i < NUMCORES; ++i) {	
 									  corestatus[i] = 1;
 									  // send status confirm msg to core i
-									  send_msg_1(i, 0xc);
+									  send_msg_1(false, i, 0xc);
 								  }
 								  waitconfirm = true;
 								  numconfirm = NUMCORES - 1;
@@ -417,7 +406,7 @@ objqueuebreak:
 #endif
 								  for(i = 1; i < NUMCORES; ++i) {
 									  // send profile request msg to core i
-									  send_msg_2(i, 6, totalexetime);
+									  send_msg_2(false, i, 6, totalexetime);
 								  }
 								  // pour profiling data on startup core
 								  outputProfileData();
@@ -426,7 +415,7 @@ objqueuebreak:
 #ifdef DEBUG
 									  BAMBOO_DEBUGPRINT(0xf001);
 #endif
-									  profilestatus[corenum] = 0;
+									  profilestatus[BAMBOO_NUM_OF_CORE] = 0;
 									  // check the status of all cores
 									  allStall = true;
 #ifdef DEBUG
@@ -501,7 +490,7 @@ objqueuebreak:
 							  BAMBOO_DEBUGPRINT(0xee0b);
 #endif
 							  // send stall msg
-							  send_msg_4(STARTUPCORE, 1, corenum, self_numsendobjs, self_numreceiveobjs);
+							  send_msg_4(false, STARTUPCORE, 1, BAMBOO_NUM_OF_CORE, self_numsendobjs, self_numreceiveobjs);
 							  sendStall = true;
 							  isfirst = true;
 							  busystatus = false;
@@ -516,10 +505,10 @@ objqueuebreak:
 					  BAMBOO_DEBUGPRINT(0xee0c);
 #endif
 				  } // if-else of line 464: if(!sendStall)
-			  } // if-else of line 313: if(STARTUPCORE == corenum) 
+			  } // if-else of line 313: if(STARTUPCORE == BAMBOO_NUM_OF_CORE) 
 		  } // if-else of line 311: if(!tocontinue)
 	  } // line 193:  while(true) 
-  } // right-bracket for if-else of line 153: if(corenum > NUMCORES - 1)
+  } // right-bracket for if-else of line 153: if(BAMBOO_NUM_OF_CORE > NUMCORES - 1)
 
 } // run()
 
@@ -849,7 +838,7 @@ void flagbody(struct ___Object___ *ptr, int flag, struct parameterwrapper ** vqu
   int UNUSED, UNUSED2;
   int * enterflags = NULL;
   if((!isnew) && (queues == NULL)) {
-    if(corenum < NUMCORES) {
+    if(BAMBOO_NUM_OF_CORE < NUMCORES) {
 		queues = objectqueues[BAMBOO_NUM_OF_CORE][ptr->type];
 		length = numqueues[BAMBOO_NUM_OF_CORE][ptr->type];
 	} else {
@@ -880,7 +869,7 @@ void enqueueObject(void * vptr, struct parameterwrapper ** vqueues, int vlength)
 		struct ___Object___ *tagptr=NULL;
 		struct parameterwrapper ** queues = vqueues;
 		int length = vlength;
-		if(corenum > NUMCORES - 1) {
+		if(BAMBOO_NUM_OF_CORE > NUMCORES - 1) {
 			return;
 		}
 		if(queues == NULL) {
@@ -950,7 +939,7 @@ void enqueueObject_I(void * vptr, struct parameterwrapper ** vqueues, int vlengt
 		struct ___Object___ *tagptr=NULL;
 		struct parameterwrapper ** queues = vqueues;
 		int length = vlength;
-		if(corenum > NUMCORES - 1) {
+		if(BAMBOO_NUM_OF_CORE > NUMCORES - 1) {
 			return;
 		}
 		if(queues == NULL) {
@@ -1113,6 +1102,21 @@ inline void addNewObjInfo(void * nobj) {
  *       e -- terminate
  *       f -- requiring for new memory
  *      10 -- response for new memory request
+ *      11 -- GC start
+ *      12 -- compact phase start
+ *      13 -- flush phase start
+ *      14 -- mark phase finish
+ *      15 -- compact phase finish
+ *      16 -- flush phase finish
+ *      17 -- GC finish
+ *      18 -- marked phase finish confirm request
+ *      19 -- marked phase finish confirm response
+ *      1a -- markedObj msg
+ *      1b -- start moving objs msg
+ *      1c -- ask for mapping info of a markedObj
+ *      1d -- mapping info of a markedObj
+ *      1e -- large objs info request
+ *      1f -- large objs info response
  *
  * ObjMsg: 0 + size of msg + obj's address + (task index + param index)+
  * StallMsg: 1 + corenum + sendobjs + receiveobjs (size is always 4 * sizeof(int))
@@ -1130,14 +1134,23 @@ inline void addNewObjInfo(void * nobj) {
  * TerminateMsg: e (size is always 1 * sizeof(int)
  * MemoryMsg: f + size + corenum (size is always 3 * sizeof(int))
  *           10 + base_va + size (size is always 3 * sizeof(int))
+ * GCMsg: 11 (size is always 1 * sizeof(int))
+ *        12 + size of msg + (num of objs to move + (start address + end address + dst core + start dst)+)? + (num of incoming objs + (start dst + orig core)+)? + (num of large obj lists + (start address + lenght + start dst)+)?
+ *        13 (size is always 1 * sizeof(int))
+ *        14 + corenum + gcsendobjs + gcreceiveobjs (size if always 4 * sizeof(int))
+ *        15/16 + corenum (size is always 2 * sizeof(int))
+ *        17 (size is always 1 * sizeof(int))
+ *        18 (size if always 1 * sizeof(int))
+ *        19 + size of msg + corenum + gcsendobjs + gcreceiveobjs (size is always 5 * sizeof(int))
+ *        1a + obj's address (size is always 2 * sizeof(int))
+ *        1b + corenum ( size is always 2 * sizeof(int))
+ *        1c + obj's address + corenum (size is always 3 * sizeof(int))
+ *        1d + obj's address + dst address (size if always 3 * sizeof(int))
+ *        1e (size is always 1 * sizeof(int))
+ *        1f + size of msg + corenum + (num of large obj lists + (start address + length)+)?
+ *
+ * NOTE: for Tilera, all GCMsgs except the GC start msg should be processed with a different net/port with other msgs
  */
-
-/* this function is to process lock requests. 
- * can only be invoked in receiveObject() */
-// if return -1: the lock request is redirected
-//            0: the lock request is approved
-//            1: the lock request is denied
-int processlockrequest(int locktype, int lock, int obj, int requestcore, int rootrequestcore, bool cache);
 
 // receive object transferred from other cores
 // or the terminate message from other cores
@@ -1155,7 +1168,6 @@ int processlockrequest(int locktype, int lock, int obj, int requestcore, int roo
 //                            otherwise -- received msg type
 int receiveObject() {
   int deny = 0;
-  //int targetcore = 0;
   
 msg:
   if(receiveMsg() == -1) {
@@ -1177,15 +1189,12 @@ msg:
 	  BAMBOO_DEBUGPRINT(0xe880);
 #endif
 #endif
-      if(corenum > NUMCORES - 1) {
+      if(BAMBOO_NUM_OF_CORE > NUMCORES - 1) {
 #ifndef TILERA
 		  BAMBOO_DEBUGPRINT_REG(msgdata[2]);
 #endif
 		  BAMBOO_EXIT(0xa005);
-      } /*else if((corenum == STARTUPCORE) && waitconfirm) {
-		  waitconfirm = false;
-		  numconfirm = 0;
-	  }*/
+      } 
       // store the object and its corresponding queue info, enqueue it later
       transObj->objptr = (void *)msgdata[2];                                           // data1 is now size of the msg
       transObj->length = (msglength - 3) / 2;
@@ -1231,17 +1240,14 @@ msg:
 
     case 1: {
       // receive a stall msg
-      if(corenum != STARTUPCORE) {
+      if(BAMBOO_NUM_OF_CORE != STARTUPCORE) {
 		  // non startup core can not receive stall msg
 		  // return -1
 #ifndef TILERA
 		  BAMBOO_DEBUGPRINT_REG(data1);
 #endif
 		  BAMBOO_EXIT(0xa006);
-      } /*else if(waitconfirm) {
-		  waitconfirm = false;
-		  numconfirm = 0;
-	  }*/
+      } 
       if(data1 < NUMCORES) {
 #ifdef DEBUG
 #ifndef TILERA
@@ -1257,7 +1263,7 @@ msg:
 
     case 2: {
       // receive lock request msg, handle it right now
-      // check to see if there is a lock exist in locktbl for the required obj
+      // check to see if there is a lock exist for the required obj
 	  // data1 -> lock type
 	  int data2 = msgdata[2]; // obj pointer
       int data3 = msgdata[3]; // lock
@@ -1271,9 +1277,9 @@ msg:
 		  // for 32 bit machine, the size is always 4 words
 		  int tmp = deny==1?4:3;
 		  if(isMsgSending) {
-			  cache_msg_4(data4, tmp, data1, data2, data3);
+			  cache_msg_4(false, data4, tmp, data1, data2, data3);
 		  } else {
-			  send_msg_4(data4, tmp, data1, data2, data3);
+			  send_msg_4(false, data4, tmp, data1, data2, data3);
 		  }
 	  }
       break;
@@ -1281,15 +1287,12 @@ msg:
 
     case 3: {
       // receive lock grount msg
-      if(corenum > NUMCORES - 1) {
+      if(BAMBOO_NUM_OF_CORE > NUMCORES - 1) {
 #ifndef TILERA
 		  BAMBOO_DEBUGPRINT_REG(msgdata[2]);
 #endif
 		  BAMBOO_EXIT(0xa007);
-      } /*else if((corenum == STARTUPCORE) && waitconfirm) {
-		  waitconfirm = false;
-		  numconfirm = 0;
-	  }*/
+      } 
       if((lockobj == msgdata[2]) && (lock2require == msgdata[3])) {
 #ifdef DEBUG
 #ifndef TILERA
@@ -1312,16 +1315,13 @@ msg:
     }
 
     case 4: {
-      // receive lock grount/deny msg
-      if(corenum > NUMCORES - 1) {
+      // receive lock deny msg
+      if(BAMBOO_NUM_OF_CORE > NUMCORES - 1) {
 #ifndef TILERA
 		  BAMBOO_DEBUGPRINT_REG(msgdata[2]);
 #endif
 		  BAMBOO_EXIT(0xa009);
-      } /*else if((corenum == STARTUPCORE) && waitconfirm) {
-		  waitconfirm = false;
-		  numconfirm = 0;
-	  }*/
+      } 
       if((lockobj == msgdata[2]) && (lock2require == msgdata[3])) {
 #ifdef DEBUG
 #ifndef TILERA
@@ -1345,45 +1345,14 @@ msg:
 
     case 5: {
       // receive lock release msg
-	  /*if((corenum == STARTUPCORE) && waitconfirm) {
-		  waitconfirm = false;
-		  numconfirm = 0;
-	  }*/
-      if(!RuntimeHashcontainskey(locktbl, msgdata[3])) {
-		  // no locks for this object, something is wrong
-#ifndef TILERA
-		  BAMBOO_DEBUGPRINT_REG(msgdata[3]);
-#endif
-		  BAMBOO_EXIT(0xa00b);
-      } else {
-		  int rwlock_obj = 0;
-		  struct LockValue * lockvalue = NULL;
-		  RuntimeHashget(locktbl, msgdata[3], &rwlock_obj);
-		  lockvalue = (struct LockValue*)(rwlock_obj);
-#ifdef DEBUG
-#ifndef TILERA
-		  BAMBOO_DEBUGPRINT(0xe884);
-		  BAMBOO_DEBUGPRINT_REG(lockvalue->value);
-#endif
-#endif
-		  if(data1 == 0) {
-			  lockvalue->value--;
-		  } else {
-			  lockvalue->value++;
-		  }
-#ifdef DEBUG
-#ifndef TILERA
-		  BAMBOO_DEBUGPRINT_REG(lockvalue->value);
-#endif
-#endif
-      }
+			processlockrelease(data1, msgdata[2], 0, false);
       break;
     }
 
 #ifdef PROFILE
     case 6: {
       // receive an output profile data request msg
-      if(corenum == STARTUPCORE) {
+      if(BAMBOO_NUM_OF_CORE == STARTUPCORE) {
 		  // startup core can not receive profile output finish msg
 		  BAMBOO_EXIT(0xa00c);
       }
@@ -1396,16 +1365,16 @@ msg:
 	  totalexetime = data1;
 	  outputProfileData();
 	  if(isMsgSending) {
-		  cache_msg_2(STARTUPCORE, 7, corenum);
+		  cache_msg_2(false, STARTUPCORE, 7, BAMBOO_NUM_OF_CORE);
 	  } else {
-		  send_msg_2(STARTUPCORE, 7, corenum);
+		  send_msg_2(false, STARTUPCORE, 7, BAMBOO_NUM_OF_CORE);
 	  }
       break;
     }
 
     case 7: {
       // receive a profile output finish msg
-      if(corenum != STARTUPCORE) {
+      if(BAMBOO_NUM_OF_CORE != STARTUPCORE) {
 		  // non startup core can not receive profile output finish msg
 #ifndef TILERA
 		  BAMBOO_DEBUGPRINT_REG(data1);
@@ -1424,7 +1393,7 @@ msg:
 
 	case 8: {
 	  // receive a redirect lock request msg, handle it right now
-      // check to see if there is a lock exist in locktbl for the required obj
+      // check to see if there is a lock exist for the required obj
 	  // data1 -> lock type
 	  int data2 = msgdata[2]; // obj pointer
       int data3 = msgdata[3]; // redirect lock
@@ -1438,9 +1407,9 @@ msg:
 		  // send response msg
 		  // for 32 bit machine, the size is always 4 words
 		  if(isMsgSending) {
-			  cache_msg_4(data4, deny==1?0xa:9, data1, data2, data3);
+			  cache_msg_4(false, data4, deny==1?0xa:9, data1, data2, data3);
 		  } else {
-			  send_msg_4(data4, deny==1?0xa:9, data1, data2, data3);
+			  send_msg_4(false, data4, deny==1?0xa:9, data1, data2, data3);
 		  }
 	  }
 	  break;
@@ -1448,15 +1417,12 @@ msg:
 
 	case 9: {
 		// receive a lock grant msg with redirect info
-		if(corenum > NUMCORES - 1) {
+		if(BAMBOO_NUM_OF_CORE > NUMCORES - 1) {
 #ifndef TILERA
 			BAMBOO_DEBUGPRINT_REG(msgdata[2]);
 #endif
 			BAMBOO_EXIT(0xa00e);
-		}/* else if((corenum == STARTUPCORE) && waitconfirm) {
-		  waitconfirm = false;
-		  numconfirm = 0;
-	  }*/
+		}
       if(lockobj == msgdata[2]) {
 #ifdef DEBUG
 #ifndef TILERA
@@ -1481,15 +1447,12 @@ msg:
 	
 	case 0xa: {
 	  // receive a lock deny msg with redirect info
-	  if(corenum > NUMCORES - 1) {
+	  if(BAMBOO_NUM_OF_CORE > NUMCORES - 1) {
 #ifndef TILERA
 		  BAMBOO_DEBUGPRINT_REG(msgdata[2]);
 #endif
 		  BAMBOO_EXIT(0xa010);
-	  }/* else if((corenum == STARTUPCORE) && waitconfirm) {
-		  waitconfirm = false;
-		  numconfirm = 0;
-	  }*/
+	  }
       if(lockobj == msgdata[2]) {
 #ifdef DEBUG
 #ifndef TILERA
@@ -1498,7 +1461,6 @@ msg:
 #endif
 		  lockresult = 0;
 		  lockflag = true;
-		  //RuntimeHashadd_I(objRedirectLockTbl, lockobj, msgdata[3]);
 #ifndef INTERRUPT
 		  reside = false;
 #endif
@@ -1514,45 +1476,13 @@ msg:
 
 	case 0xb: {
 	  // receive a lock release msg with redirect info
-	  /*if((corenum == STARTUPCORE) && waitconfirm) {
-		  waitconfirm = false;
-		  numconfirm = 0;
-	  }*/
-	  if(!RuntimeHashcontainskey(locktbl, msgdata[2])) {
-		  // no locks for this object, something is wrong
-#ifndef TILERA
-		  BAMBOO_DEBUGPRINT_REG(msgdata[2]);
-#endif
-		  BAMBOO_EXIT(0xa012);
-      } else {
-		  int rwlock_obj = 0;
-		  struct LockValue * lockvalue = NULL;
-		  RuntimeHashget(locktbl, msgdata[2], &rwlock_obj);
-		  lockvalue = (struct LockValue*)(rwlock_obj);
-#ifdef DEBUG
-#ifndef TILERA
-		  BAMBOO_DEBUGPRINT(0xe893);
-		  BAMBOO_DEBUGPRINT_REG(lockvalue->value);
-#endif
-#endif
-		  if(data1 == 0) {
-			  lockvalue->value--;
-		  } else {
-			  lockvalue->value++;
-		  }
-#ifdef DEBUG
-#ifndef TILERA
-		  BAMBOO_DEBUGPRINT_REG(lockvalue->value);
-#endif
-#endif
-		  lockvalue->redirectlock = msgdata[3];
-	  }
-	  break;
+		processlockrelease(data1, msgdata[2], msgdata[3], true);
+		break;
 	}
 	
 	case 0xc: {
       // receive a status confirm info
-	  if((corenum == STARTUPCORE) || (corenum > NUMCORES - 1)) {
+	  if((BAMBOO_NUM_OF_CORE == STARTUPCORE) || (BAMBOO_NUM_OF_CORE > NUMCORES - 1)) {
 		  // wrong core to receive such msg
 		  BAMBOO_EXIT(0xa013);
       } else {
@@ -1563,9 +1493,9 @@ msg:
 #endif
 #endif
 		  if(isMsgSending) {
-			  cache_msg_3(STARTUPCORE, 0xd, busystatus?1:0, corenum);
+			  cache_msg_3(false, STARTUPCORE, 0xd, busystatus?1:0, BAMBOO_NUM_OF_CORE);
 		  } else {
-			  send_msg_3(STARTUPCORE, 0xd, busystatus?1:0, corenum);
+			  send_msg_3(false, STARTUPCORE, 0xd, busystatus?1:0, BAMBOO_NUM_OF_CORE);
 		  }
       }
 	  break;
@@ -1573,7 +1503,7 @@ msg:
 
 	case 0xd: {
 	  // receive a status confirm info
-	  if(corenum != STARTUPCORE) {
+	  if(BAMBOO_NUM_OF_CORE != STARTUPCORE) {
 		  // wrong core to receive such msg
 #ifndef TILERA
 		  BAMBOO_DEBUGPRINT_REG(msgdata[2]);
@@ -1606,7 +1536,7 @@ msg:
 
 	case 0xf: {
 	  // receive a shared memory request msg
-	  if(corenum != STARTUPCORE) {
+	  if(BAMBOO_NUM_OF_CORE != STARTUPCORE) {
 		  // wrong core to receive such msg
 #ifndef TILERA
 		  BAMBOO_DEBUGPRINT_REG(msgdata[2]);
@@ -1618,6 +1548,7 @@ msg:
 		  BAMBOO_DEBUGPRINT(0xe88a);
 #endif
 #endif
+		  // TODO change for GC
 		  void * mem = mspace_calloc(bamboo_free_msp, 1, msgdata[1]);
 		  if(mem == NULL) {
 			  BAMBOO_DEBUGPRINT(0xa016);
@@ -1625,9 +1556,9 @@ msg:
 		  }
 		  // send the start_va to request core
 		 if(isMsgSending) {
-			  cache_msg_3(msgdata[2], 0x10, mem, msgdata[1]);
+			  cache_msg_3(false, msgdata[2], 0x10, mem, msgdata[1]);
 		  } else {
-			  send_msg_3(msgdata[2], 0x10, mem, msgdata[1]);
+			  send_msg_3(false, msgdata[2], 0x10, mem, msgdata[1]);
 		  } 
       }
 	  break;
@@ -1650,6 +1581,17 @@ msg:
 	  smemflag = true;
 	  break;
     }
+
+	case 0x11: {
+      // receive a start GC msg
+#ifdef DEBUG
+#ifndef TILERA
+	  BAMBOO_DEBUGPRINT(0xe88c);
+#endif
+#endif
+	  collect();
+	  break;
+    }
 	
     default:
       break;
@@ -1661,7 +1603,7 @@ msg:
     msglength = 30;
 #ifdef DEBUG
 #ifndef TILERA
-    BAMBOO_DEBUGPRINT(0xe88c);
+    BAMBOO_DEBUGPRINT(0xe88d);
 #endif
 #endif
 
@@ -1678,7 +1620,7 @@ msg:
     // not a whole msg
 #ifdef DEBUG
 #ifndef TILERA
-    BAMBOO_DEBUGPRINT(0xe88d);
+    BAMBOO_DEBUGPRINT(0xe88e);
 #endif
 #endif
 #ifdef PROFILE
@@ -1690,630 +1632,8 @@ msg:
   }
 }
 
-/* this function is to process lock requests. 
- * can only be invoked in receiveObject() */
-// if return -1: the lock request is redirected
-//            0: the lock request is approved
-//            1: the lock request is denied
-int processlockrequest(int locktype, int lock, int obj, int requestcore, int rootrequestcore, bool cache) {
-  int deny = 0;
-  if( ((lock >> 5) % BAMBOO_TOTALCORE) != corenum ) {
-	  // the lock should not be on this core
-#ifndef TILERA
-	  BAMBOO_DEBUGPRINT_REG(requestcore);
-	  BAMBOO_DEBUGPRINT_REG(lock);
-	  BAMBOO_DEBUGPRINT_REG(corenum);
-#endif
-	  BAMBOO_EXIT(0xa017);
-  }
-  /*if((corenum == STARTUPCORE) && waitconfirm) {
-	  waitconfirm = false;
-	  numconfirm = 0;
-  }*/
-  if(!RuntimeHashcontainskey(locktbl, lock)) {
-	  // no locks for this object
-	  // first time to operate on this shared object
-	  // create a lock for it
-	  // the lock is an integer: 0 -- stall, >0 -- read lock, -1 -- write lock
-	  struct LockValue * lockvalue = (struct LockValue *)(RUNMALLOC_I(sizeof(struct LockValue)));
-	  lockvalue->redirectlock = 0;
-#ifdef DEBUG
-#ifndef TILERA
-	  BAMBOO_DEBUGPRINT(0xe110);
-#endif
-#endif
-	  if(locktype == 0) {
-		  lockvalue->value = 1;
-	  } else {
-		  lockvalue->value = -1;
-	  }
-	  RuntimeHashadd_I(locktbl, lock, (int)lockvalue);
-  } else {
-	  int rwlock_obj = 0;
-	  struct LockValue * lockvalue = NULL;
-#ifdef DEBUG
-#ifndef TILERA
-	  BAMBOO_DEBUGPRINT(0xe111);
-#endif
-#endif
-	  RuntimeHashget(locktbl, lock, &rwlock_obj);
-	  lockvalue = (struct LockValue *)(rwlock_obj);
-#ifdef DEBUG
-#ifndef TILERA
-	  BAMBOO_DEBUGPRINT_REG(lockvalue->redirectlock);
-#endif
-#endif
-	  if(lockvalue->redirectlock != 0) {
-		  // this lock is redirected
-#ifdef DEBUG
-#ifndef TILERA
-		  BAMBOO_DEBUGPRINT(0xe112);
-#endif
-#endif
-		  if(locktype == 0) {
-			  getreadlock_I_r((void *)obj, (void *)lockvalue->redirectlock, rootrequestcore, cache);
-		  } else {
-			  getwritelock_I_r((void *)obj, (void *)lockvalue->redirectlock, rootrequestcore, cache);
-		  }
-		  return -1;  // redirected
-	  } else {
-#ifdef DEBUG
-#ifndef TILERA
-		  BAMBOO_DEBUGPRINT_REG(lockvalue->value);
-#endif
-#endif
-		  if(0 == lockvalue->value) {
-			  if(locktype == 0) {
-				  lockvalue->value = 1;
-			  } else {
-				  lockvalue->value = -1;
-			  }
-		  } else if((lockvalue->value > 0) && (locktype == 0)) {
-			  // read lock request and there are only read locks
-			  lockvalue->value++;
-		  } else {
-			  deny = 1;
-		  }
-#ifdef DEBUG
-#ifndef TILERA
-		  BAMBOO_DEBUGPRINT_REG(lockvalue->value);
-#endif
-#endif
-	  }
-  }
-  return deny;
-}
 
-bool getreadlock(void * ptr) {
-  int targetcore = 0;
-  lockobj = (int)ptr;
-  if(((struct ___Object___ *)ptr)->lock == NULL) {
-	lock2require = lockobj;
-  } else {
-	lock2require = (int)(((struct ___Object___ *)ptr)->lock);
-  }
-  targetcore = (lock2require >> 5) % BAMBOO_TOTALCORE;
-  lockflag = false;
-#ifndef INTERRUPT
-  reside = false;
-#endif
-  lockresult = 0;
-
-  if(targetcore == corenum) {
-    // reside on this core
-    int deny = 0;
-	BAMBOO_START_CRITICAL_SECTION_LOCK();
-#ifdef DEBUG
-	BAMBOO_DEBUGPRINT(0xf001);
-#endif
-	deny = processlockrequest(0, lock2require, (int)ptr, corenum, corenum, false);
-	BAMBOO_CLOSE_CRITICAL_SECTION_LOCK();
-#ifdef DEBUG
-	BAMBOO_DEBUGPRINT(0xf000);
-#endif
-    if(deny == -1) {
-		// redirected
-		return true;
-	} else {
-		if(lockobj == (int)ptr) {
-			if(deny) {
-				lockresult = 0;
-			} else {
-				lockresult = 1;
-			}
-			lockflag = true;
-#ifndef INTERRUPT
-			reside = true;
-#endif
-		} else {
-			// conflicts on lockresults
-			BAMBOO_EXIT(0xa018);
-		}
-	}
-    return true;
-  } else {
-	  // send lock request msg
-	  // for 32 bit machine, the size is always 5 words
-	  send_msg_5(targetcore, 2, 0, (int)ptr, lock2require, corenum);
-  }
-  return true;
-}
-
-void releasereadlock(void * ptr) {
-  int targetcore = 0;
-  int reallock = 0;
-  if(((struct ___Object___ *)ptr)->lock == NULL) {
-	reallock = (int)ptr;
-  } else {
-	reallock = (int)(((struct ___Object___ *)ptr)->lock);
-  }
-  targetcore = (reallock >> 5) % BAMBOO_TOTALCORE;
-
-  if(targetcore == corenum) {
-	BAMBOO_START_CRITICAL_SECTION_LOCK();
-#ifdef DEBUG
-	BAMBOO_DEBUGPRINT(0xf001);
-#endif
-    // reside on this core
-    if(!RuntimeHashcontainskey(locktbl, reallock)) {
-      // no locks for this object, something is wrong
-      BAMBOO_EXIT(0xa019);
-    } else {
-      int rwlock_obj = 0;
-	  struct LockValue * lockvalue = NULL;
-      RuntimeHashget(locktbl, reallock, &rwlock_obj);
-	  lockvalue = (struct LockValue *)rwlock_obj;
-      lockvalue->value--;
-    }
-	BAMBOO_CLOSE_CRITICAL_SECTION_LOCK();
-#ifdef DEBUG
-	BAMBOO_DEBUGPRINT(0xf000);
-#endif
-    return;
-  } else {
-	// send lock release msg
-	// for 32 bit machine, the size is always 4 words
-	send_msg_4(targetcore, 5, 0, (int)ptr, reallock);
-  }
-}
-
-// redirected lock request
-bool getreadlock_I_r(void * ptr, void * redirectlock, int core, bool cache) {
-  int targetcore = 0;
-  
-  if(core == corenum) {
-	  lockobj = (int)ptr;
-	  lock2require = (int)redirectlock;
-	  lockflag = false;
-#ifndef INTERRUPT
-	  reside = false;
-#endif
-	  lockresult = 0;
-  }  
-  targetcore = ((int)redirectlock >> 5) % BAMBOO_TOTALCORE;
-  
-  if(targetcore == corenum) {
-    // reside on this core
-    int deny = processlockrequest(0, (int)redirectlock, (int)ptr, corenum, core, cache);
-	if(deny == -1) {
-		// redirected
-		return true;
-	} else {
-		if(core == corenum) {
-			if(lockobj == (int)ptr) {
-				if(deny) {
-					lockresult = 0;
-				} else {
-					lockresult = 1;
-					RuntimeHashadd_I(objRedirectLockTbl, (int)ptr, (int)redirectlock);
-				}
-				lockflag = true;
-#ifndef INTERRUPT
-				reside = true;
-#endif
-			} else {
-				// conflicts on lockresults
-				BAMBOO_EXIT(0xa01a);
-			}
-			return true;
-		} else {
-			// send lock grant/deny request to the root requiring core
-			// check if there is still some msg on sending
-			if((!cache) || (cache && !isMsgSending)) {
-				send_msg_4(core, deny==1?0xa:9, 0, (int)ptr, (int)redirectlock);
-			} else {
-				cache_msg_4(core, deny==1?0xa:9, 0, (int)ptr, (int)redirectlock);
-			}
-		}
-	}
-  } else {
-	// redirect the lock request
-	// for 32 bit machine, the size is always 6 words
-	if((!cache) || (cache && !isMsgSending)) {
-		send_msg_6(targetcore, 8, 0, (int)ptr, lock2require, core, corenum);
-	} else {
-		cache_msg_6(targetcore, 8, 0, (int)ptr, lock2require, core, corenum);
-	}
-  }
-  return true;
-}
-
-// not reentrant
-bool getwritelock(void * ptr) {
-  int targetcore = 0;
-
-  // for 32 bit machine, the size is always 5 words
-  //int msgsize = 5;
-
-  lockobj = (int)ptr;
-  if(((struct ___Object___ *)ptr)->lock == NULL) {
-	lock2require = lockobj;
-  } else {
-	lock2require = (int)(((struct ___Object___ *)ptr)->lock);
-  }
-  targetcore = (lock2require >> 5) % BAMBOO_TOTALCORE;
-  lockflag = false;
-#ifndef INTERRUPT
-  reside = false;
-#endif
-  lockresult = 0;
-
-#ifdef DEBUG
-  BAMBOO_DEBUGPRINT(0xe551);
-  BAMBOO_DEBUGPRINT_REG(lockobj);
-  BAMBOO_DEBUGPRINT_REG(lock2require);
-  BAMBOO_DEBUGPRINT_REG(targetcore);
-#endif
-
-  if(targetcore == corenum) {
-    // reside on this core
-    int deny = 0;
-	BAMBOO_START_CRITICAL_SECTION_LOCK();
-#ifdef DEBUG
-	BAMBOO_DEBUGPRINT(0xf001);
-#endif
-	deny = processlockrequest(1, lock2require, (int)ptr, corenum, corenum, false);
-	BAMBOO_CLOSE_CRITICAL_SECTION_LOCK();
-#ifdef DEBUG
-	BAMBOO_DEBUGPRINT(0xf000);
-#endif
-#ifdef DEBUG
-    BAMBOO_DEBUGPRINT(0xe555);
-    BAMBOO_DEBUGPRINT_REG(lockresult);
-#endif
-    if(deny == -1) {
-		// redirected
-		return true;
-	} else {
-		if(lockobj == (int)ptr) {
-			if(deny) {
-				lockresult = 0;
-			} else {
-				lockresult = 1;
-			}
-			lockflag = true;
-#ifndef INTERRUPT
-			reside = true;
-#endif
-		} else {
-			// conflicts on lockresults
-			BAMBOO_EXIT(0xa01b);
-		}
-	}
-    return true;
-  } else {
-	  // send lock request msg
-	  // for 32 bit machine, the size is always 5 words
-	  send_msg_5(targetcore, 2, 1, (int)ptr, lock2require, corenum);
-  }
-  return true;
-}
-
-void releasewritelock(void * ptr) {
-  int targetcore = 0;
-  int reallock = 0;
-  if(((struct ___Object___ *)ptr)->lock == NULL) {
-	reallock = (int)ptr;
-  } else {
-	reallock = (int)(((struct ___Object___ *)ptr)->lock);
-  }
-  targetcore = (reallock >> 5) % BAMBOO_TOTALCORE;
-
-#ifdef DEBUG
-  BAMBOO_DEBUGPRINT(0xe661);
-  BAMBOO_DEBUGPRINT_REG((int)ptr);
-  BAMBOO_DEBUGPRINT_REG(reallock);
-  BAMBOO_DEBUGPRINT_REG(targetcore);
-#endif
-
-  if(targetcore == corenum) {
-	BAMBOO_START_CRITICAL_SECTION_LOCK();
-#ifdef DEBUG
-	BAMBOO_DEBUGPRINT(0xf001);
-#endif
-    // reside on this core
-    if(!RuntimeHashcontainskey(locktbl, reallock)) {
-      // no locks for this object, something is wrong
-      BAMBOO_EXIT(0xa01c);
-    } else {
-      int rwlock_obj = 0;
-	  struct LockValue * lockvalue = NULL;
-      RuntimeHashget(locktbl, reallock, &rwlock_obj);
-	  lockvalue = (struct LockValue *)rwlock_obj;
-      lockvalue->value++;
-    }
-	BAMBOO_CLOSE_CRITICAL_SECTION_LOCK();
-#ifdef DEBUG
-	BAMBOO_DEBUGPRINT(0xf000);
-#endif
-    return;
-  } else {
-	// send lock release msg
-	// for 32 bit machine, the size is always 4 words
-	send_msg_4(targetcore, 5, 1, (int)ptr, reallock);
-  }
-}
-
-void releasewritelock_r(void * lock, void * redirectlock) {
-  int targetcore = 0;
-  int reallock = (int)lock;
-  targetcore = (reallock >> 5) % BAMBOO_TOTALCORE;
-
-#ifdef DEBUG
-  BAMBOO_DEBUGPRINT(0xe671);
-  BAMBOO_DEBUGPRINT_REG((int)lock);
-  BAMBOO_DEBUGPRINT_REG(reallock);
-  BAMBOO_DEBUGPRINT_REG(targetcore);
-#endif
-
-  if(targetcore == corenum) {
-	BAMBOO_START_CRITICAL_SECTION_LOCK();
-#ifdef DEBUG
-	BAMBOO_DEBUGPRINT(0xf001);
-#endif
-    // reside on this core
-    if(!RuntimeHashcontainskey(locktbl, reallock)) {
-      // no locks for this object, something is wrong
-      BAMBOO_EXIT(0xa01d);
-    } else {
-      int rwlock_obj = 0;
-	  struct LockValue * lockvalue = NULL;
-#ifdef DEBUG
-      BAMBOO_DEBUGPRINT(0xe672);
-#endif
-      RuntimeHashget(locktbl, reallock, &rwlock_obj);
-	  lockvalue = (struct LockValue *)rwlock_obj;
-#ifdef DEBUG
-      BAMBOO_DEBUGPRINT_REG(lockvalue->value);
-#endif
-      lockvalue->value++;
-	  lockvalue->redirectlock = (int)redirectlock;
-#ifdef DEBUG
-      BAMBOO_DEBUGPRINT_REG(lockvalue->value);
-#endif
-    }
-	BAMBOO_CLOSE_CRITICAL_SECTION_LOCK();
-#ifdef DEBUG
-	BAMBOO_DEBUGPRINT(0xf000);
-#endif
-    return;
-  } else {
-	  // send lock release with redirect info msg
-	  // for 32 bit machine, the size is always 4 words
-	  send_msg_4(targetcore, 0xb, 1, (int)lock, (int)redirectlock);
-  }
-}
-
-bool getwritelock_I(void * ptr) {
-  int targetcore = 0;
-  lockobj = (int)ptr;
-  if(((struct ___Object___ *)ptr)->lock == NULL) {
-	lock2require = lockobj;
-  } else {
-	lock2require = (int)(((struct ___Object___ *)ptr)->lock);
-  }
-  targetcore = (lock2require >> 5) % BAMBOO_TOTALCORE;
-  lockflag = false;
-#ifndef INTERRUPT
-  reside = false;
-#endif
-  lockresult = 0;
-
-#ifdef DEBUG
-  BAMBOO_DEBUGPRINT(0xe561);
-  BAMBOO_DEBUGPRINT_REG(lockobj);
-  BAMBOO_DEBUGPRINT_REG(lock2require);
-  BAMBOO_DEBUGPRINT_REG(targetcore);
-#endif
-
-  if(targetcore == corenum) {
-    // reside on this core
-	int deny = processlockrequest(1, (int)lock2require, (int)ptr, corenum, corenum, false);
-	if(deny == -1) {
-		// redirected
-		return true;
-	} else {
-		if(lockobj == (int)ptr) {
-			if(deny) {
-				lockresult = 0;
-#ifdef DEBUG
-				BAMBOO_DEBUGPRINT(0);
-#endif
-			} else {
-				lockresult = 1;
-#ifdef DEBUG
-				BAMBOO_DEBUGPRINT(1);
-#endif
-			}
-			lockflag = true;
-#ifndef INTERRUPT
-			reside = true;
-#endif
-		} else {
-			// conflicts on lockresults
-			BAMBOO_EXIT(0xa01e);
-		}
-		return true;
-	}
-  } else {
-	  // send lock request msg
-	  // for 32 bit machine, the size is always 5 words
-	  send_msg_5(targetcore, 2, 1, (int)ptr, lock2require, corenum);
-  }
-  return true;
-}
-
-// redirected lock request
-bool getwritelock_I_r(void * ptr, void * redirectlock, int core, bool cache) {
-  int targetcore = 0;
-
-  if(core == corenum) {
-	  lockobj = (int)ptr;
-	  lock2require = (int)redirectlock;
-	  lockflag = false;
-#ifndef INTERRUPT
-	  reside = false;
-#endif
-	  lockresult = 0;
-  }
-  targetcore = ((int)redirectlock >> 5) % BAMBOO_TOTALCORE;
-
-#ifdef DEBUG
-  BAMBOO_DEBUGPRINT(0xe571);
-  BAMBOO_DEBUGPRINT_REG((int)ptr);
-  BAMBOO_DEBUGPRINT_REG((int)redirectlock);
-  BAMBOO_DEBUGPRINT_REG(core);
-  BAMBOO_DEBUGPRINT_REG((int)cache);
-  BAMBOO_DEBUGPRINT_REG(targetcore);
-#endif
-
-
-  if(targetcore == corenum) {
-    // reside on this core
-	int deny = processlockrequest(1, (int)redirectlock, (int)ptr, corenum, core, cache);
-	if(deny == -1) {
-		// redirected
-		return true;
-	} else {
-		if(core == corenum) {
-			if(lockobj == (int)ptr) {
-				if(deny) {
-					lockresult = 0;
-				} else {
-					lockresult = 1;
-					RuntimeHashadd_I(objRedirectLockTbl, (int)ptr, (int)redirectlock);
-				}
-				lockflag = true;
-#ifndef INTERRUPT
-				reside = true;
-#endif
-			} else {
-				// conflicts on lockresults
-				BAMBOO_EXIT(0xa01f);
-			}
-			return true;
-		} else {
-			// send lock grant/deny request to the root requiring core
-			// check if there is still some msg on sending
-			if((!cache) || (cache && !isMsgSending)) {
-				send_msg_4(core, deny==1?0xa:9, 1, (int)ptr, (int)redirectlock);
-			} else {
-				cache_msg_4(core, deny==1?0xa:9, 1, (int)ptr, (int)redirectlock);
-			}
-		}
-	}
-  } else {
-	// redirect the lock request
-	// for 32 bit machine, the size is always 6 words
-	if((!cache) || (cache && !isMsgSending)) {
-		send_msg_6(targetcore, 8, 1, (int)ptr, (int)redirectlock, core, corenum);
-	} else {
-		cache_msg_6(targetcore, 8, 1, (int)ptr, (int)redirectlock, core, corenum);
-	}
-  }
-  return true;
-}
-
-void releasewritelock_I(void * ptr) {
-  int targetcore = 0;
-  int reallock = 0;
-  if(((struct ___Object___ *)ptr)->lock == NULL) {
-	reallock = (int)ptr;
-  } else {
-	reallock = (int)(((struct ___Object___ *)ptr)->lock);
-  }
-  targetcore = (reallock >> 5) % BAMBOO_TOTALCORE;
-
-#ifdef DEBUG
-  BAMBOO_DEBUGPRINT(0xe681);
-  BAMBOO_DEBUGPRINT_REG((int)ptr);
-  BAMBOO_DEBUGPRINT_REG(reallock);
-  BAMBOO_DEBUGPRINT_REG(targetcore);
-#endif
-
-  if(targetcore == corenum) {
-    // reside on this core
-    if(!RuntimeHashcontainskey(locktbl, reallock)) {
-      // no locks for this object, something is wrong
-      BAMBOO_EXIT(0xa020);
-    } else {
-      int rwlock_obj = 0;
-	  struct LockValue * lockvalue = NULL;
-      RuntimeHashget(locktbl, reallock, &rwlock_obj);
-	  lockvalue = (struct LockValue *)rwlock_obj;
-      lockvalue->value++;
-    }
-    return;
-  } else {
-	// send lock release msg
-	// for 32 bit machine, the size is always 4 words
-	send_msg_4(targetcore, 5, 1, (int)ptr, reallock);
-  }
-}
-
-void releasewritelock_I_r(void * lock, void * redirectlock) {
-  int targetcore = 0;
-  int reallock = (int)lock;
-  targetcore = (reallock >> 5) % BAMBOO_TOTALCORE;
-
-#ifdef DEBUG
-  BAMBOO_DEBUGPRINT(0xe691);
-  BAMBOO_DEBUGPRINT_REG((int)lock);
-  BAMBOO_DEBUGPRINT_REG(reallock);
-  BAMBOO_DEBUGPRINT_REG(targetcore);
-#endif
-
-  if(targetcore == corenum) {
-    // reside on this core
-    if(!RuntimeHashcontainskey(locktbl, reallock)) {
-      // no locks for this object, something is wrong
-      BAMBOO_EXIT(0xa021);
-    } else {
-      int rwlock_obj = 0;
-	  struct LockValue * lockvalue = NULL;
-#ifdef DEBUG
-      BAMBOO_DEBUGPRINT(0xe692);
-#endif
-      RuntimeHashget(locktbl, reallock, &rwlock_obj);
-	  lockvalue = (struct LockValue *)rwlock_obj;
-#ifdef DEBUG
-      BAMBOO_DEBUGPRINT_REG(lockvalue->value);
-#endif
-      lockvalue->value++;
-	  lockvalue->redirectlock = (int)redirectlock;
-#ifdef DEBUG
-      BAMBOO_DEBUGPRINT_REG(lockvalue->value);
-#endif
-    }
-    return;
-  } else {
-	// send lock release msg
-	// for 32 bit machine, the size is always 4 words
-	send_msg_4(targetcore, 0xb, 1, (int)lock, (int)redirectlock);
-  }
-}
-
-int enqueuetasks(struct parameterwrapper *parameter, struct parameterwrapper *prevptr, struct ___Object___ *ptr, int * enterflags, int numenterflags) {
+ent enqueuetasks(struct parameterwrapper *parameter, struct parameterwrapper *prevptr, struct ___Object___ *ptr, int * enterflags, int numenterflags) {
   void * taskpointerarray[MAXTASKPARAMS];
   int j;
   //int numparams=parameter->task->numParameters;
@@ -3096,10 +2416,10 @@ loopstart:
 void printdebug() {
   int i;
   int j;
-  if(corenum > NUMCORES - 1) {
+  if(BAMBOO_NUM_OF_CORE > NUMCORES - 1) {
     return;
   }
-  for(i=0; i<numtasks[corenum]; i++) {
+  for(i=0; i<numtasks[BAMBOO_NUM_OF_CORE]; i++) {
     struct taskdescriptor * task=taskarray[BAMBOO_NUM_OF_CORE][i];
 #ifndef MULTICORE
 	printf("%s\n", task->name);
@@ -3153,10 +2473,10 @@ void printdebug() {
 
 void processtasks() {
   int i;
-  if(corenum > NUMCORES - 1) {
+  if(BAMBOO_NUM_OF_CORE > NUMCORES - 1) {
     return;
   }
-  for(i=0; i<numtasks[corenum]; i++) {
+  for(i=0; i<numtasks[BAMBOO_NUM_OF_CORE]; i++) {
     struct taskdescriptor * task=taskarray[BAMBOO_NUM_OF_CORE][i];
     int j;
 

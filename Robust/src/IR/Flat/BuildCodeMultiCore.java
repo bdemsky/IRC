@@ -391,10 +391,10 @@ public class BuildCodeMultiCore extends BuildCode {
   /* This method outputs code for each task. */
 
   private void outputTaskCode(PrintWriter outtaskdefs, 
-	                      PrintWriter outmethod, 
-	                      PrintWriter outtask, 
-	                      Iterator[] taskits, 
-	                      int[] numtasks,
+	                          PrintWriter outmethod, 
+	                          PrintWriter outtask, 
+	                          Iterator[] taskits, 
+	                          int[] numtasks,
                               int[][] numqueues) {
     /* Compile task based program */
     outtaskdefs.println("#include \"task.h\"");
@@ -577,8 +577,8 @@ public class BuildCodeMultiCore extends BuildCode {
   }
 
   private void generateTaskMethod(FlatMethod fm, 
-	                          LocalityBinding lb, 
-	                          PrintWriter output) {
+	                              LocalityBinding lb, 
+	                              PrintWriter output) {
     /*if (State.PRINTFLAT)
         System.out.println(fm.printMethod());*/
     TaskDescriptor task=fm.getTask();
@@ -1042,17 +1042,6 @@ public class BuildCodeMultiCore extends BuildCode {
 	  isolate = (this.currentSchedule.getAllyCoreTable().get(tmpFState) == null) ||
 	            (this.currentSchedule.getAllyCoreTable().get(tmpFState).size() == 0);
 	}
-	/* no longler use the isolate flag in object structure
-	if(!isolate) {
-	  // indentify this object as a shared object
-	  // isolate flag is initially set as 1, once this flag is set as 0, it is never reset to 1, i.e. once an object
-	  // is shared, it maybe shared all the time afterwards
-	  output.println("if(" + super.generateTemp(fm, temp, lb) + "->isolate == 1) {");
-	  output.println("  " + super.generateTemp(fm, temp, lb) + "->isolate = 0;");
-	  output.println("  " + super.generateTemp(fm, temp, lb) + "->original = (struct ___Object___ *)" + super.generateTemp(fm, temp, lb) + ";");
-	  output.println("}");
-	}
-	*/
 
 	Vector<Integer> sendto = new Vector<Integer>();
 	Queue<Integer> queue = null;
@@ -1332,8 +1321,8 @@ public class BuildCodeMultiCore extends BuildCode {
   }
 
   protected void outputAliasLockCode(FlatMethod fm, 
-	                             LocalityBinding lb, 
-	                             PrintWriter output) {
+	                                 LocalityBinding lb, 
+	                                 PrintWriter output) {
     if(this.m_oa == null) {
       return;
     }

@@ -31,12 +31,6 @@ int self_numsendobjs;
 int self_numreceiveobjs;
 
 // data structures for locking
-struct RuntimeHash locktable;
-static struct RuntimeHash* locktbl = &locktable;
-struct LockValue {
-	int redirectlock;
-	int value;
-};
 struct RuntimeHash * objRedirectLockTbl;
 int lockobj;
 int lock2require;
@@ -47,6 +41,9 @@ bool lockflag;
 struct Queue objqueue;
 
 // data structures for shared memory allocation
+#ifdef MULTICORE_GC
+#include "multicoregarbage.h"
+#else
 #define BAMBOO_NUM_PAGES 1024 * 512
 #define BAMBOO_PAGE_SIZE 4096
 #define BAMBOO_SHARED_MEM_SIZE BAMBOO_PAGE_SIZE * BAMBOO_PAGE_SIZE
@@ -57,6 +54,7 @@ bool smemflag;
 mspace bamboo_free_msp;
 mspace bamboo_cur_msp;
 int bamboo_smem_size;
+#endif
 
 // for test TODO
 int total_num_t6;
@@ -111,6 +109,22 @@ inline void initCommunication(void) __attribute__((always_inline));
 inline void fakeExecution(void) __attribute__((always_inline));
 inline void terminate(void) __attribute__((always_inline));
 
+// lock related functions
+bool getreadlock(void* ptr);
+void releasereadlock(void* ptr);
+bool getwritelock(void* ptr);
+void releasewritelock(void* ptr);
+bool getwritelock_I(void* ptr);
+void releasewritelock_I(void * ptr);
+/* this function is to process lock requests. 
+ * can only be invoked in receiveObject() */
+// if return -1: the lock request is redirected
+//            0: the lock request is approved
+//            1: the lock request is denied
+inline int processlockrequest(int locktype, int lock, int obj, int requestcore, int rootrequestcore, bool cache) __attribute_((always_inline));
+inline void processlockrelease(int locktype, int lock, int redirectlock, bool isredirect) __attribute_((always_inline));
+
+// msg related functions
 inline void send_msg_1(int targetcore, unsigned long n0) __attribute__((always_inline));
 inline void send_msg_2(int targetcore, unsigned long n0, unsigned long n1) __attribute__((always_inline));
 inline void send_msg_3(int targetcore, unsigned long n0, unsigned long n1, unsigned long n2) __attribute__((always_inline));
@@ -120,9 +134,11 @@ inline void send_msg_6(int targetcore, unsigned long n0, unsigned long n1, unsig
 inline void cache_msg_2(int targetcore, unsigned long n0, unsigned long n1) __attribute__((always_inline));
 inline void cache_msg_3(int targetcore, unsigned long n0, unsigned long n1, unsigned long n2) __attribute__((always_inline));
 inline void cache_msg_4(int targetcore, unsigned long n0, unsigned long n1, unsigned long n2, unsigned long n3) __attribute__((always_inline));
+inline void cache_msg_5(int targetcore, unsigned long n0, unsigned long n1, unsigned long n2, unsigned long n3, unsigned long n4) __attribute__((always_inline));
 inline void cache_msg_6(int targetcore, unsigned long n0, unsigned long n1, unsigned long n2, unsigned long n3, unsigned long n4, unsigned long n5) __attribute__((always_inline));
 inline void transferObject(struct transObjInfo * transObj);
 inline int receiveMsg(void) __attribute__((always_inline));
+inline int receiveGCMsg(void) __attribute__((always_inline));
 
 #ifdef PROFILE
 inline void profileTaskStart(char * taskname) __attribute__((always_inline));
@@ -168,6 +184,7 @@ void outputProfileData();
 //  BAMBOO_CACHE_FLUSH_ALL(): flush the whole cache of a core if necessary         //
 //  BAMBOO_EXIT(x): exit routine                                                   //
 //  BAMBOO_MSG_AVAIL(): checking if there are msgs coming in                       //
+//  BAMBOO_GCMSG_AVAIL(): checking if there are gcmsgs coming in                   //
 //  BAMBOO_GET_EXE_TIME(): rountine to get current clock cycle number              //
 /////////////////////////////////////////////////////////////////////////////////////
 

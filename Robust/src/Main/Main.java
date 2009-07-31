@@ -126,6 +126,8 @@ public class Main {
 	state.FLATIRGRAPHLIBMETHODS=true;
       } else if (option.equals("-multicore"))
 	state.MULTICORE=true;
+      else if (option.equals("-multicoregc"))
+        state.MULTICOREGC=true;
       else if (option.equals("-ownership"))
 	state.OWNERSHIP=true;
       else if (option.equals("-ownallocdepth")) {
