@@ -5,7 +5,7 @@ SOURCE_FILES=$(PROGRAM).java
 BUILDSCRIPT=~/research/Robust/src/buildscript
 
 USEMLP= -mlp 1 2 -mlpdebug # use to turn mlp on and off and make sure rest of build not broken
-BSFLAGS= $(USEMLP) -nooptimize -debug -garbagestats -mainclass Test -ownership -ownallocdepth 1 -ownwritedots final -enable-assertions -flatirusermethods -ownaliasfile aliases.txt
+BSFLAGS= -nooptimize -debug -garbagestats -mainclass Test -ownership -ownallocdepth 1 -ownwritedots final -enable-assertions -flatirusermethods -ownaliasfile aliases.txt
 
 all: $(PROGRAM).bin
 
@@ -18,6 +18,9 @@ PNGs: DOTs
 DOTs: $(PROGRAM).bin
 
 $(PROGRAM).bin: $(SOURCE_FILES)
+	$(BUILDSCRIPT) $(USEMLP) $(BSFLAGS) -o $(PROGRAM) $(SOURCE_FILES)
+
+nomlp: $(SOURCE_FILES)
 	$(BUILDSCRIPT) $(BSFLAGS) -o $(PROGRAM) $(SOURCE_FILES)
 
 clean:

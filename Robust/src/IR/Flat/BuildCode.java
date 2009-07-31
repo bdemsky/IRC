@@ -1812,28 +1812,6 @@ public class BuildCode {
     outputMethHead.print("void ");
     outputMethHead.print(fsen.getSESEmethodName()+"(");
     outputMethHead.print(fsen.getSESErecordName()+"* "+paramsprefix);
-
-    /*
-    boolean printcomma=false;
-    if (GENERATEPRECISEGC) {
-      outputMethHead.print("struct "+cn.getSafeSymbol()+
-                           bogusmd.getSafeSymbol()+"_"+
-                           bogusmd.getSafeMethodDescriptor()+"_params * "+paramsprefix);
-      printcomma=true;
-    }
-    //  Output parameter list
-    for(int i=0; i<objectparams.numPrimitives(); i++) {
-      TempDescriptor temp=objectparams.getPrimitive(i);
-      if (printcomma)
-	outputMethHead.print(", ");
-      printcomma=true;
-      if (temp.getType().isClass()||temp.getType().isArray())
-	outputMethHead.print("struct " + temp.getType().getSafeSymbol()+" * "+temp.getSafeSymbol());
-      else
-	outputMethHead.print(temp.getType().getSafeSymbol()+" "+temp.getSafeSymbol());
-    }
-    */
-
     outputMethHead.println(");\n");
 
     generateFlatMethodSESE( fsen.getfmBogus(), 
@@ -1851,8 +1829,6 @@ public class BuildCode {
                                       ) {
 
     MethodDescriptor md=fm.getMethod();
-
-    //generateHeader(fm, null, md, output, true);
 
     output.print("void ");
     output.print(fsen.getSESEmethodName()+"(");
@@ -1895,10 +1871,17 @@ public class BuildCode {
       TempDescriptor temp = itrInSet.next();
       TypeDescriptor type = temp.getType();
 
-      output.println("   memcpy( "+
-	"(void*) &("+paramsprefix+"->"+temp.getSafeSymbol()+"), "+         // to
-	"(void*) ("+paramsprefix+"->"+temp.getSafeSymbol()+"__srcAddr_),"+ // from
-	" sizeof( "+paramsprefix+"->"+temp.getSafeSymbol()+" ) );");       // size
+      if( type.isPtr() ) {
+	output.println("   memcpy( "+
+		       "(void*) &("+paramsprefix+"->"+temp.getSafeSymbol()+"), "+         // to
+		       "(void*) ("+paramsprefix+"->"+temp.getSafeSymbol()+"__srcAddr_),"+ // from
+		       " sizeof( "+paramsprefix+"->"+temp.getSafeSymbol()+" ) );");       // size
+      } else {
+	output.println("   memcpy( "+
+		       "(void*) &("+temp.getSafeSymbol()+"), "+                           // to
+		       "(void*) ("+paramsprefix+"->"+temp.getSafeSymbol()+"__srcAddr_),"+ // from
+		       " sizeof( "+paramsprefix+"->"+temp.getSafeSymbol()+" ) );");       // size
+      }
       
       // make a deep copy of objects
       //if( type.isPtr() ) {
@@ -2227,12 +2210,29 @@ public class BuildCode {
 	// for each sese and age pair that this parent statement
 	// must stall on, take that child's stall semaphore, the
 	// copying of values comes after the statement
-	Iterator<SESEandAgePair> pItr = cp.getStallPairs().iterator();
-	while( pItr.hasNext() ) {
-	  SESEandAgePair p = pItr.next();
+	Iterator<VariableSourceToken> vstItr = cp.getStallTokens().iterator();
+	while( vstItr.hasNext() ) {
+	  VariableSourceToken vst = vstItr.next();
+
+	  SESEandAgePair p = new SESEandAgePair( vst.getSESE(), vst.getAge() );
+
 	  output.println("   {");
-	  output.println("     SESEcommon* child = (SESEcommon*) "+p+";");
-	  output.println("     psem_take( &(child->stallSem) );");
+	  output.println("     SESEcommon* common = (SESEcommon*) "+p+";");
+	  output.println("     psem_take( &(common->stallSem) );");
+
+	  // copy things we might have stalled for	  
+	  output.println("     "+p.getSESE().getSESErecordName()+"* child = ("+
+ 			         p.getSESE().getSESErecordName()+"*) "+p+";");
+	  
+	  Iterator<TempDescriptor> tdItr = cp.getCopySet( vst ).iterator();
+	  while( tdItr.hasNext() ) {
+	    TempDescriptor td = tdItr.next();
+	    output.println("       "+td.getSafeSymbol()+" = child->"+
+			             vst.getAddrVar().getSafeSymbol()+";");
+	    output.println("printf(\"copied %d into "+td.getSafeSymbol()+" from "+vst.getAddrVar().getSafeSymbol()+
+			   "\\n\", "+td.getSafeSymbol()+" );");
+	  }
+
 	  output.println("   }");
 	}
       }     
@@ -2345,11 +2345,13 @@ public class BuildCode {
       throw new Error();
     }
 
-    // insert post-node actions from the code-plan
-    /*
+    // insert post-node actions from the code-plan    
     if( state.MLP ) {
       CodePlan cp = mlpa.getCodePlan( fn );
+
       if( cp != null ) {     
+
+	/*
 	Set<VariableSourceToken> writeDynamic = cp.getWriteToDynamicSrc();      
 	if( writeDynamic != null ) {
 	  Iterator<VariableSourceToken> vstItr = writeDynamic.iterator();
@@ -2358,9 +2360,9 @@ public class BuildCode {
 	    
 	  }
 	}
+	*/
       }
-    }
-    */
+    }    
   }
 
   public void generateFlatOffsetNode(FlatMethod fm, LocalityBinding lb, FlatOffsetNode fofn, PrintWriter output) {
@@ -2737,6 +2739,17 @@ public class BuildCode {
       return;
     }
 
+    // copy out-set from local temps into the sese record
+    Iterator<TempDescriptor> itr = fsexn.getFlatEnter().getOutVarSet().iterator();
+    while( itr.hasNext() ) {
+      TempDescriptor temp = itr.next();
+      
+      output.println("     "+paramsprefix+"->"+temp.getSafeSymbol()+" = "+temp.getSafeSymbol()+";" );
+
+      output.println("     printf(\" putting "+temp.getSafeSymbol()+" in out with val=%d\\n\", "+temp.getSafeSymbol()+");");
+    }    
+    
+    // if parent is stalling on you, let them know you're done
     if( fsexn.getFlatEnter() != mlpa.getRootSESE() ) {
       output.println("   {");
       output.println("     psem_give( &("+paramsprefix+"->common.stallSem) );");

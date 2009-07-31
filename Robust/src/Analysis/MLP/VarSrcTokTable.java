@@ -419,7 +419,7 @@ public class VarSrcTokTable {
 
   
   // get the set of VST's that come from a child
-  public Set<VariableSourceToken> getStallSet( FlatSESEEnterNode curr ) {
+  public Set<VariableSourceToken> getChildrenVSTs( FlatSESEEnterNode curr ) {
     
     Set<VariableSourceToken> out = new HashSet<VariableSourceToken>();
     

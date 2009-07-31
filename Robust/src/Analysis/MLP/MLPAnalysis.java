@@ -792,8 +792,10 @@ public class MLPAnalysis {
     // note that FlatOpNode's that aren't ASSIGN
     // fall through to this default case
     default: {          
+
       // decide if we must stall for variables dereferenced at this node
-      Set<VariableSourceToken> stallSet = vstTable.getStallSet( currentSESE );
+      Set<VariableSourceToken> potentialStallSet = 
+	vstTable.getChildrenVSTs( currentSESE );
 
       // a node with no live set has nothing to stall for
       Set<TempDescriptor> liveSet = livenessRootView.get( fn );
@@ -819,6 +821,14 @@ public class MLPAnalysis {
 	// dynamic name only.
 	if( srcs.size() > 1 || 
 	    srcs.iterator().next().getAge() == maxSESEage ) {
+
+	  // identify that this is a stall, and allocate an integer
+	  // pointer in the generated code that keeps a pointer to
+	  // the source SESE and the address of where to get this thing
+	  // --then the stall is just wait for that, and copy the
+	  // one thing because we're not sure if we can copy other stuff
+
+	  // NEEDS WORK!
 	  
 	  
 
@@ -830,26 +840,32 @@ public class MLPAnalysis {
 	  VariableSourceToken vst = srcs.iterator().next();	 		  
 
 	  Iterator<VariableSourceToken> availItr = 
-	    vstTable.get( vst.getSESE(), 
-			  vst.getAge()
-			).iterator();
+	    vstTable.get( vst.getSESE(), vst.getAge() ).iterator();
 
+	  /*
 	  System.out.println( "Considering a stall on "+vst+
 			      " and also getting\n    "+vstTable.get( vst.getSESE(), 
 			  vst.getAge()
-								      ) );
+			  ) );*/
 
 	  // only grab additional stuff that is live
 	  Set<TempDescriptor> copySet = new HashSet<TempDescriptor>();
 
+	  //System.out.println( "*** live in = "+liveSet+" @node "+fn );
+
 	  while( availItr.hasNext() ) {
 	    VariableSourceToken vstAlsoAvail = availItr.next();
 
+	    /*
+	    Iterator<TempDescriptor> refVarItr = 
+	      vstAlsoAvail.getRefVars().iterator();
+	    
+	    
 	    if( liveSet.contains( vstAlsoAvail.getAddrVar() ) ) {
 	      copySet.add( vstAlsoAvail.getAddrVar() );
 	    }
+	    */
 
-	    /*
 	    Iterator<TempDescriptor> refVarItr = vstAlsoAvail.getRefVars().iterator();
 	    while( refVarItr.hasNext() ) {
 	      TempDescriptor refVar = refVarItr.next();
@@ -857,13 +873,11 @@ public class MLPAnalysis {
 		copySet.add( refVar );
 	      }
 	    }
-	    */
-	  }
-	  
 
-	  SESEandAgePair stallPair = new SESEandAgePair( vst.getSESE(), vst.getAge() );	  
-	  plan.addStall2CopySet( stallPair, copySet );
-	  System.out.println( "("+stallPair+"->"+copySet+")" );
+	    //System.out.println( vstAlsoAvail+" is available, copySet = "+copySet );
+	  }
+	  	  	  
+	  plan.addStall2CopySet( vst, copySet );
 	}
 
 	// assert that everything being stalled for is in the

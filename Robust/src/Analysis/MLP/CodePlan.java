@@ -11,14 +11,14 @@ import java.io.*;
 public class CodePlan {
 
   private Set<VariableSourceToken> writeToDynamicSrc;
-
-  private Hashtable< SESEandAgePair, Set<TempDescriptor> > stall2copySet;
+    
+  private Hashtable< VariableSourceToken, Set<TempDescriptor> > stall2copySet;
 
   
   public CodePlan() {
     writeToDynamicSrc = null;
 
-    stall2copySet = new Hashtable< SESEandAgePair, Set<TempDescriptor> >();
+    stall2copySet = new Hashtable< VariableSourceToken, Set<TempDescriptor> >();
   }
 
 
@@ -32,23 +32,23 @@ public class CodePlan {
     return writeToDynamicSrc;
   }  
   
-  public void addStall2CopySet( SESEandAgePair      stallPair,
+  public void addStall2CopySet( VariableSourceToken stallToken,
 				Set<TempDescriptor> copySet ) {
 
-    if( stall2copySet.containsKey( stallPair ) ) {
-      Set<TempDescriptor> priorCopySet = stall2copySet.get( stallPair );
+    if( stall2copySet.containsKey( stallToken ) ) {
+      Set<TempDescriptor> priorCopySet = stall2copySet.get( stallToken );
       priorCopySet.addAll( copySet );
     } else {
-      stall2copySet.put( stallPair, copySet );
+      stall2copySet.put( stallToken, copySet );
     }
   }
 
-  public Set<SESEandAgePair> getStallPairs() {
+  public Set<VariableSourceToken> getStallTokens() {
     return stall2copySet.keySet();
   }
 
-  public Set<TempDescriptor> getCopySet( SESEandAgePair stallPair ) {
-    return stall2copySet.get( stallPair );
+  public Set<TempDescriptor> getCopySet( VariableSourceToken stallToken ) {
+    return stall2copySet.get( stallToken );
   }
 
 
@@ -87,7 +87,7 @@ public class CodePlan {
   }
 
   public String toString() {
-    String s = "";
+    String s = " PLAN: ";
 
     if( writeToDynamicSrc != null ) {
       s += "[WRITE DYN";
@@ -106,11 +106,11 @@ public class CodePlan {
     }
     Iterator cpsItr = stall2copySet.entrySet().iterator();
     while( cpsItr.hasNext() ) {
-      Map.Entry           me        = (Map.Entry)           cpsItr.next();
-      SESEandAgePair      stallPair = (SESEandAgePair)      me.getKey();
-      Set<TempDescriptor> copySet   = (Set<TempDescriptor>) me.getValue();
+      Map.Entry           me         = (Map.Entry)           cpsItr.next();
+      VariableSourceToken stallToken = (VariableSourceToken) me.getKey();
+      Set<TempDescriptor> copySet    = (Set<TempDescriptor>) me.getValue();
 
-      s += "("+stallPair+"->"+copySet+")";
+      s += "("+stallToken+"->"+copySet+")";
     }
     if( !stall2copySet.entrySet().isEmpty() ) {
       s += "]";
