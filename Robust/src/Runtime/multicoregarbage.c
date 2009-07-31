@@ -134,7 +134,7 @@ void gc() {
 		gcphase = 0;
 		for(i = 1; i < NUMCORES - 1; i++) {
 			// send GC start messages to all cores
-			send_msg_1(true, i, 0x11);
+			send_msg_1(i, 0x11);
 		}
 		bool isfirst = true;
 		lObjList.head = NULL;
@@ -186,7 +186,7 @@ void gc() {
 							for(i = 1; i < NUMCORES; ++i) {	
 								gccorestatus[i] = 1;
 								// send mark phase finish confirm request msg to core i
-								send_msg_1(true, i, 0x18);
+								send_msg_1(i, 0x18);
 							}
 						} else {
 							// all the core status info are the latest
@@ -204,7 +204,7 @@ void gc() {
 		// send msgs to all cores requiring large objs info
 		gcnumconfirm = NUMCORES - 1;
 		for(i = 1; i < NUMCORES; ++i) {
-			send_msg_1(true, i, 0x1e);
+			send_msg_1(i, 0x1e);
 		}	
 		while(gcnumconfirm != 0) {} // wait for responses
 		// TODO compute load balance
@@ -238,7 +238,7 @@ void gc() {
 		gcphase = 2;
 		for(i = 1; i < NUMCORES; ++i) {
 			// send start flush messages to all cores
-			send_msg_1(true, i, 0x13);
+			send_msg_1(i, 0x13);
 		}
 
 		// flush phase
@@ -261,7 +261,7 @@ void gc() {
 		gcphase = 3;
 		for(i = 1; i < NUMCORES; ++i) {
 			// send gc finish messages to all cores
-			send_msg_1(true, i, 0x17);
+			send_msg_1(i, 0x17);
 		}
 
 		// change to UDN0
@@ -378,7 +378,7 @@ void mark(bool isfirst) {
 						addNewItem(gctomark, objptr);  
 					} else {
 						// send a msg to host informing that objptr is active
-						send_msg_2(true, host, 0x1a, objptr);
+						send_msg_2(host, 0x1a, objptr);
 						gcself_numsendobjs++;
 					}
 				}
@@ -394,7 +394,7 @@ void mark(bool isfirst) {
 						addNewItem(gctomark, objptr);  
 					} else {
 						// send a msg to host informing that objptr is active
-						send_msg_2(true, host, 0x1a, objptr);
+						send_msg_2(host, 0x1a, objptr);
 						gcself_numsendobjs++;
 					}
 				}
@@ -402,7 +402,7 @@ void mark(bool isfirst) {
 		} // while(!isEmpty(gctomark))
 		gcbusystatus = false;
 		// send mark finish msg to core coordinator
-		send_msg_4(true, STARTUPCORE, 0x14, BAMBOO_NUM_OF_CORE, gcself_numsendobjs, gcself_numreceiveobjs); 
+		send_msg_4(STARTUPCORE, 0x14, BAMBOO_NUM_OF_CORE, gcself_numsendobjs, gcself_numreceiveobjs); 
 
 		if(BAMBOO_NUM_OF_CORE == 0) {
 			return;
@@ -457,7 +457,7 @@ void compact() {
 		if(cinstruction->incomingobjs != NULL) {
 			for(int j = 0; j < cinstruction->incomingobjs->length; j++) {
 				// send messages to corresponding cores to start moving
-				send_msg_2(true, cinstruction->incomingobjs->dsts[j], 0x1b, BAMBOO_NUM_OF_CORE);
+				send_msg_2(cinstruction->incomingobjs->dsts[j], 0x1b, BAMBOO_NUM_OF_CORE);
 			}
 		}
 	} else {
@@ -521,7 +521,7 @@ void compact() {
 		}while(cinstruction->largeobjs != NULL);
 	}
 	// send compact finish message to core coordinator
-	send_msg_2(true, STARTUPCORE, 0x15, BAMBOO_NUM_OF_CORE);
+	send_msg_2(STARTUPCORE, 0x15, BAMBOO_NUM_OF_CORE);
 	
 } // compact()
 
@@ -550,7 +550,7 @@ void flush() {
 					obj2map = (int)objptr;
 					ismapped = false;
 					mappedobj = NULL;
-					send_msg_3(true, hostcore(objptr), 0x1c, (int)objptr, BAMBOO_NUM_OF_CORE);
+					send_msg_3(hostcore(objptr), 0x1c, (int)objptr, BAMBOO_NUM_OF_CORE);
 					while(!ismapped) {}
 					dstptr = mappedobj;
 				}
@@ -569,7 +569,7 @@ void flush() {
 					obj2map = (int)objptr;
 					ismapped = false;
 					mappedobj = NULL;
-					send_msg_3(true, hostcore(objptr), 0x1c, (int)objptr, BAMBOO_NUM_OF_CORE);
+					send_msg_3(hostcore(objptr), 0x1c, (int)objptr, BAMBOO_NUM_OF_CORE);
 					while(!ismapped) {}
 					dstptr = mappedobj;
 				}
@@ -579,7 +579,7 @@ void flush() {
 		moi = moi->next;
 	} // while(moi != NULL)
 	// send flush finish message to core coordinator
-	send_msg_2(true, STARTUPCORE, 0x16, BAMBOO_NUM_OF_CORE);
+	send_msg_2(STARTUPCORE, 0x16, BAMBOO_NUM_OF_CORE);
 	
 } // flush()
 
@@ -822,9 +822,9 @@ gcmsg:
       } else {
 		  // send response msg
 		  if(gcisMsgSending) {
-			  cache_msg_5(true, STARTUPCORE, 0x19, BAMBOO_NUM_OF_CORE, gcbusystatus, gcself_numsendobjs, gcself_numreceiveobjs);
+			  cache_msg_5(STARTUPCORE, 0x19, BAMBOO_NUM_OF_CORE, gcbusystatus, gcself_numsendobjs, gcself_numreceiveobjs);
 		  } else {
-			  send_msg_5(true, STARTUPCORE, 0x19, BAMBOO_NUM_OF_CORE, gcbusystatus, gcself_numsendobjs, gcself_numreceiveobjs);
+			  send_msg_5(STARTUPCORE, 0x19, BAMBOO_NUM_OF_CORE, gcbusystatus, gcself_numsendobjs, gcself_numreceiveobjs);
 		  }
       }
 	  break;
@@ -873,9 +873,9 @@ gcmsg:
 		} else {
 			// send back the mapping info
 			if(gcisMsgSending) {
-				cache_msg_3(true, gcmsgdata[2], 0x1d, data1, dstptr);
+				cache_msg_3(gcmsgdata[2], 0x1d, data1, dstptr);
 			} else {
-				send_msg_3(true, gcmsgdata[2], 0x1d, data1, dstptr);
+				send_msg_3(gcmsgdata[2], 0x1d, data1, dstptr);
 			}
 		}
 		break;

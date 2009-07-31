@@ -378,7 +378,7 @@ objqueuebreak:
 								  for(i = 1; i < NUMCORES; ++i) {	
 									  corestatus[i] = 1;
 									  // send status confirm msg to core i
-									  send_msg_1(false, i, 0xc);
+									  send_msg_1(i, 0xc);
 								  }
 								  waitconfirm = true;
 								  numconfirm = NUMCORES - 1;
@@ -406,7 +406,7 @@ objqueuebreak:
 #endif
 								  for(i = 1; i < NUMCORES; ++i) {
 									  // send profile request msg to core i
-									  send_msg_2(false, i, 6, totalexetime);
+									  send_msg_2(i, 6, totalexetime);
 								  }
 								  // pour profiling data on startup core
 								  outputProfileData();
@@ -490,7 +490,7 @@ objqueuebreak:
 							  BAMBOO_DEBUGPRINT(0xee0b);
 #endif
 							  // send stall msg
-							  send_msg_4(false, STARTUPCORE, 1, BAMBOO_NUM_OF_CORE, self_numsendobjs, self_numreceiveobjs);
+							  send_msg_4(STARTUPCORE, 1, BAMBOO_NUM_OF_CORE, self_numsendobjs, self_numreceiveobjs);
 							  sendStall = true;
 							  isfirst = true;
 							  busystatus = false;
@@ -1277,9 +1277,9 @@ msg:
 		  // for 32 bit machine, the size is always 4 words
 		  int tmp = deny==1?4:3;
 		  if(isMsgSending) {
-			  cache_msg_4(false, data4, tmp, data1, data2, data3);
+			  cache_msg_4(data4, tmp, data1, data2, data3);
 		  } else {
-			  send_msg_4(false, data4, tmp, data1, data2, data3);
+			  send_msg_4(data4, tmp, data1, data2, data3);
 		  }
 	  }
       break;
@@ -1365,9 +1365,9 @@ msg:
 	  totalexetime = data1;
 	  outputProfileData();
 	  if(isMsgSending) {
-		  cache_msg_2(false, STARTUPCORE, 7, BAMBOO_NUM_OF_CORE);
+		  cache_msg_2(STARTUPCORE, 7, BAMBOO_NUM_OF_CORE);
 	  } else {
-		  send_msg_2(false, STARTUPCORE, 7, BAMBOO_NUM_OF_CORE);
+		  send_msg_2(STARTUPCORE, 7, BAMBOO_NUM_OF_CORE);
 	  }
       break;
     }
@@ -1407,9 +1407,9 @@ msg:
 		  // send response msg
 		  // for 32 bit machine, the size is always 4 words
 		  if(isMsgSending) {
-			  cache_msg_4(false, data4, deny==1?0xa:9, data1, data2, data3);
+			  cache_msg_4(data4, deny==1?0xa:9, data1, data2, data3);
 		  } else {
-			  send_msg_4(false, data4, deny==1?0xa:9, data1, data2, data3);
+			  send_msg_4(data4, deny==1?0xa:9, data1, data2, data3);
 		  }
 	  }
 	  break;
@@ -1493,9 +1493,9 @@ msg:
 #endif
 #endif
 		  if(isMsgSending) {
-			  cache_msg_3(false, STARTUPCORE, 0xd, busystatus?1:0, BAMBOO_NUM_OF_CORE);
+			  cache_msg_3(STARTUPCORE, 0xd, busystatus?1:0, BAMBOO_NUM_OF_CORE);
 		  } else {
-			  send_msg_3(false, STARTUPCORE, 0xd, busystatus?1:0, BAMBOO_NUM_OF_CORE);
+			  send_msg_3(STARTUPCORE, 0xd, busystatus?1:0, BAMBOO_NUM_OF_CORE);
 		  }
       }
 	  break;
@@ -1556,9 +1556,9 @@ msg:
 		  }
 		  // send the start_va to request core
 		 if(isMsgSending) {
-			  cache_msg_3(false, msgdata[2], 0x10, mem, msgdata[1]);
+			  cache_msg_3(msgdata[2], 0x10, mem, msgdata[1]);
 		  } else {
-			  send_msg_3(false, msgdata[2], 0x10, mem, msgdata[1]);
+			  send_msg_3( msgdata[2], 0x10, mem, msgdata[1]);
 		  } 
       }
 	  break;
