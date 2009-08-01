@@ -378,7 +378,7 @@ objqueuebreak:
 								  for(i = 1; i < NUMCORES; ++i) {	
 									  corestatus[i] = 1;
 									  // send status confirm msg to core i
-									  send_msg_1(i, 0xc);
+									  send_msg_1(i, STATUSCONFIRM);
 								  }
 								  waitconfirm = true;
 								  numconfirm = NUMCORES - 1;
@@ -406,7 +406,7 @@ objqueuebreak:
 #endif
 								  for(i = 1; i < NUMCORES; ++i) {
 									  // send profile request msg to core i
-									  send_msg_2(i, 6, totalexetime);
+									  send_msg_2(i, PROFILEOUTPUT, totalexetime);
 								  }
 								  // pour profiling data on startup core
 								  outputProfileData();
@@ -1081,77 +1081,6 @@ inline void addNewObjInfo(void * nobj) {
 }
 #endif
 
-/* Message format:
- *      type + Msgbody
- * type: 0 -- transfer object
- *       1 -- transfer stall msg
- *       2 -- lock request
- *       3 -- lock grount
- *       4 -- lock deny
- *       5 -- lock release
- *       // add for profile info
- *       6 -- transfer profile output msg
- *       7 -- transfer profile output finish msg
- *       // add for alias lock strategy
- *       8 -- redirect lock request
- *       9 -- lock grant with redirect info
- *       a -- lock deny with redirect info
- *       b -- lock release with redirect info
- *       c -- status confirm request
- *       d -- status report msg
- *       e -- terminate
- *       f -- requiring for new memory
- *      10 -- response for new memory request
- *      11 -- GC start
- *      12 -- compact phase start
- *      13 -- flush phase start
- *      14 -- mark phase finish
- *      15 -- compact phase finish
- *      16 -- flush phase finish
- *      17 -- GC finish
- *      18 -- marked phase finish confirm request
- *      19 -- marked phase finish confirm response
- *      1a -- markedObj msg
- *      1b -- start moving objs msg
- *      1c -- ask for mapping info of a markedObj
- *      1d -- mapping info of a markedObj
- *      1e -- large objs info request
- *      1f -- large objs info response
- *
- * ObjMsg: 0 + size of msg + obj's address + (task index + param index)+
- * StallMsg: 1 + corenum + sendobjs + receiveobjs (size is always 4 * sizeof(int))
- * LockMsg: 2 + lock type + obj pointer + lock + request core (size is always 5 * sizeof(int))
- *          3/4/5 + lock type + obj pointer + lock (size is always 4 * sizeof(int))
- *          8 + lock type + obj pointer +  redirect lock + root request core + request core (size is always 6 * sizeof(int))
- *          9/a + lock type + obj pointer + redirect lock (size is always 4 * sizeof(int))
- *          b + lock type + lock + redirect lock (size is always 4 * sizeof(int))
- *          lock type: 0 -- read; 1 -- write
- * ProfileMsg: 6 + totalexetime (size is always 2 * sizeof(int))
- *             7 + corenum (size is always 2 * sizeof(int))
- * StatusMsg: c (size is always 1 * sizeof(int))
- *            d + status + corenum (size is always 3 * sizeof(int))
- *            status: 0 -- stall; 1 -- busy
- * TerminateMsg: e (size is always 1 * sizeof(int)
- * MemoryMsg: f + size + corenum (size is always 3 * sizeof(int))
- *           10 + base_va + size (size is always 3 * sizeof(int))
- * GCMsg: 11 (size is always 1 * sizeof(int))
- *        12 + size of msg + (num of objs to move + (start address + end address + dst core + start dst)+)? + (num of incoming objs + (start dst + orig core)+)? + (num of large obj lists + (start address + lenght + start dst)+)?
- *        13 (size is always 1 * sizeof(int))
- *        14 + corenum + gcsendobjs + gcreceiveobjs (size if always 4 * sizeof(int))
- *        15/16 + corenum (size is always 2 * sizeof(int))
- *        17 (size is always 1 * sizeof(int))
- *        18 (size if always 1 * sizeof(int))
- *        19 + size of msg + corenum + gcsendobjs + gcreceiveobjs (size is always 5 * sizeof(int))
- *        1a + obj's address (size is always 2 * sizeof(int))
- *        1b + corenum ( size is always 2 * sizeof(int))
- *        1c + obj's address + corenum (size is always 3 * sizeof(int))
- *        1d + obj's address + dst address (size if always 3 * sizeof(int))
- *        1e (size is always 1 * sizeof(int))
- *        1f + size of msg + corenum + (num of large obj lists + (start address + length)+)?
- *
- * NOTE: for Tilera, all GCMsgs except the GC start msg should be processed with a different net/port with other msgs
- */
-
 // receive object transferred from other cores
 // or the terminate message from other cores
 // Should be invoked in critical sections!!
@@ -1176,227 +1105,228 @@ msg:
 
   if(msgdataindex == msglength) {
     // received a whole msg
-    int type, data1;             // will receive at least 2 words including type
+    MSGTYPE type; 
+		int data1;             // will receive at least 2 words including type
     type = msgdata[0];
     data1 = msgdata[1];
     switch(type) {
-    case 0: {
+    case TRANSOBJ: {
       // receive a object transfer msg
       struct transObjInfo * transObj = RUNMALLOC_I(sizeof(struct transObjInfo));
       int k = 0;
 #ifdef DEBUG
 #ifndef TILERA
-	  BAMBOO_DEBUGPRINT(0xe880);
+			BAMBOO_DEBUGPRINT(0xe880);
 #endif
 #endif
       if(BAMBOO_NUM_OF_CORE > NUMCORES - 1) {
 #ifndef TILERA
-		  BAMBOO_DEBUGPRINT_REG(msgdata[2]);
+				BAMBOO_DEBUGPRINT_REG(msgdata[2]);
 #endif
-		  BAMBOO_EXIT(0xa005);
-      } 
+				BAMBOO_EXIT(0xa005);
+			} 
       // store the object and its corresponding queue info, enqueue it later
-      transObj->objptr = (void *)msgdata[2];                                           // data1 is now size of the msg
+      transObj->objptr = (void *)msgdata[2];   // data1 is now size of the msg
       transObj->length = (msglength - 3) / 2;
       transObj->queues = RUNMALLOC_I(sizeof(int)*(msglength - 3));
       for(k = 0; k < transObj->length; ++k) {
-		  transObj->queues[2*k] = msgdata[3+2*k];
+				transObj->queues[2*k] = msgdata[3+2*k];
 #ifdef DEBUG
 #ifndef TILERA
-		  BAMBOO_DEBUGPRINT_REG(transObj->queues[2*k]);
+				BAMBOO_DEBUGPRINT_REG(transObj->queues[2*k]);
 #endif
 #endif
-		  transObj->queues[2*k+1] = msgdata[3+2*k+1];
+				transObj->queues[2*k+1] = msgdata[3+2*k+1];
 #ifdef DEBUG
 #ifndef TILERA
-		  BAMBOO_DEBUGPRINT_REG(transObj->queues[2*k+1]);
+				BAMBOO_DEBUGPRINT_REG(transObj->queues[2*k+1]);
 #endif
 #endif
-      }
+			}
       // check if there is an existing duplicate item
       {
-		  struct QueueItem * qitem = getHead(&objqueue);
-		  struct QueueItem * prev = NULL;
-		  while(qitem != NULL) {
-			  struct transObjInfo * tmpinfo = (struct transObjInfo *)(qitem->objectptr);
-			  if(tmpinfo->objptr == transObj->objptr) {
-				  // the same object, remove outdate one
-				  removeItem(&objqueue, qitem);
-				  //break;
-			  } else {
-				  prev = qitem;
-			  }
-			  if(prev == NULL) {
-				  qitem = getHead(&objqueue);
-			  } else {
-				  qitem = getNextQueueItem(prev);
-			  }
-		  }
-		  addNewItem_I(&objqueue, (void *)transObj);
-	  }
+				struct QueueItem * qitem = getHead(&objqueue);
+				struct QueueItem * prev = NULL;
+				while(qitem != NULL) {
+					struct transObjInfo * tmpinfo = 
+						(struct transObjInfo *)(qitem->objectptr);
+					if(tmpinfo->objptr == transObj->objptr) {
+						// the same object, remove outdate one
+						removeItem(&objqueue, qitem);
+						//break;
+					} else {
+						prev = qitem;
+					}
+					if(prev == NULL) {
+						qitem = getHead(&objqueue);
+					} else {
+						qitem = getNextQueueItem(prev);
+					}
+				}
+				addNewItem_I(&objqueue, (void *)transObj);
+			}
       ++(self_numreceiveobjs);
       break;
     }
 
-    case 1: {
+    case TRANSTALL: {
       // receive a stall msg
       if(BAMBOO_NUM_OF_CORE != STARTUPCORE) {
 		  // non startup core can not receive stall msg
-		  // return -1
 #ifndef TILERA
-		  BAMBOO_DEBUGPRINT_REG(data1);
+				BAMBOO_DEBUGPRINT_REG(data1);
 #endif
-		  BAMBOO_EXIT(0xa006);
+				BAMBOO_EXIT(0xa006);
       } 
       if(data1 < NUMCORES) {
 #ifdef DEBUG
 #ifndef TILERA
-		  BAMBOO_DEBUGPRINT(0xe881);
+				BAMBOO_DEBUGPRINT(0xe881);
 #endif
 #endif
-		  corestatus[data1] = 0;
-		  numsendobjs[data1] = msgdata[2];
-		  numreceiveobjs[data1] = msgdata[3];
+				corestatus[data1] = 0;
+				numsendobjs[data1] = msgdata[2];
+				numreceiveobjs[data1] = msgdata[3];
       }
       break;
     }
 
-    case 2: {
+    case LOCKREQUEST: {
       // receive lock request msg, handle it right now
       // check to see if there is a lock exist for the required obj
-	  // data1 -> lock type
-	  int data2 = msgdata[2]; // obj pointer
+			// data1 -> lock type
+			int data2 = msgdata[2]; // obj pointer
       int data3 = msgdata[3]; // lock
-	  int data4 = msgdata[4]; // request core
+			int data4 = msgdata[4]; // request core
       deny = processlockrequest(data1, data3, data2, data4, data4, true);  // -1: redirected, 0: approved, 1: denied
-	  if(deny == -1) {
-		  // this lock request is redirected
-		  break;
-	  } else {
-		  // send response msg
-		  // for 32 bit machine, the size is always 4 words
-		  int tmp = deny==1?4:3;
-		  if(isMsgSending) {
-			  cache_msg_4(data4, tmp, data1, data2, data3);
-		  } else {
-			  send_msg_4(data4, tmp, data1, data2, data3);
-		  }
-	  }
+			if(deny == -1) {
+				// this lock request is redirected
+				break;
+			} else {
+				// send response msg
+				// for 32 bit machine, the size is always 4 words
+				int tmp = deny==1?LOCKDENY:LOCKGROUNT;
+				if(isMsgSending) {
+					cache_msg_4(data4, tmp, data1, data2, data3);
+				} else {
+					send_msg_4(data4, tmp, data1, data2, data3);
+				}
+			}
       break;
     }
 
-    case 3: {
+    case LOCKGROUNT: {
       // receive lock grount msg
       if(BAMBOO_NUM_OF_CORE > NUMCORES - 1) {
 #ifndef TILERA
-		  BAMBOO_DEBUGPRINT_REG(msgdata[2]);
+				BAMBOO_DEBUGPRINT_REG(msgdata[2]);
 #endif
-		  BAMBOO_EXIT(0xa007);
+				BAMBOO_EXIT(0xa007);
       } 
       if((lockobj == msgdata[2]) && (lock2require == msgdata[3])) {
 #ifdef DEBUG
 #ifndef TILERA
-		  BAMBOO_DEBUGPRINT(0xe882);
+				BAMBOO_DEBUGPRINT(0xe882);
 #endif
 #endif
-		  lockresult = 1;
-		  lockflag = true;
+				lockresult = 1;
+				lockflag = true;
 #ifndef INTERRUPT
-		  reside = false;
+				reside = false;
 #endif
-	  } else {
-		  // conflicts on lockresults
+			} else {
+				// conflicts on lockresults
 #ifndef TILERA
-		  BAMBOO_DEBUGPRINT_REG(msgdata[2]);
+				BAMBOO_DEBUGPRINT_REG(msgdata[2]);
 #endif
-		  BAMBOO_EXIT(0xa008);
+				BAMBOO_EXIT(0xa008);
       }
       break;
     }
 
-    case 4: {
+    case LOCKDENY: {
       // receive lock deny msg
       if(BAMBOO_NUM_OF_CORE > NUMCORES - 1) {
 #ifndef TILERA
-		  BAMBOO_DEBUGPRINT_REG(msgdata[2]);
+				BAMBOO_DEBUGPRINT_REG(msgdata[2]);
 #endif
-		  BAMBOO_EXIT(0xa009);
+				BAMBOO_EXIT(0xa009);
       } 
       if((lockobj == msgdata[2]) && (lock2require == msgdata[3])) {
 #ifdef DEBUG
 #ifndef TILERA
-		  BAMBOO_DEBUGPRINT(0xe883);
+				BAMBOO_DEBUGPRINT(0xe883);
 #endif
 #endif
-		  lockresult = 0;
-		  lockflag = true;
+				lockresult = 0;
+				lockflag = true;
 #ifndef INTERRUPT
-		  reside = false;
+				reside = false;
 #endif
-      } else {
-		  // conflicts on lockresults
+				} else {
+				// conflicts on lockresults
 #ifndef TILERA
-		  BAMBOO_DEBUGPRINT_REG(msgdata[2]);
+				BAMBOO_DEBUGPRINT_REG(msgdata[2]);
 #endif
-		  BAMBOO_EXIT(0xa00a);
+				BAMBOO_EXIT(0xa00a);
       }
       break;
     }
 
-    case 5: {
+    case LOCKRELEASE: {
       // receive lock release msg
 			processlockrelease(data1, msgdata[2], 0, false);
       break;
     }
 
 #ifdef PROFILE
-    case 6: {
+    case PROFILEOUTPUT: {
       // receive an output profile data request msg
       if(BAMBOO_NUM_OF_CORE == STARTUPCORE) {
-		  // startup core can not receive profile output finish msg
-		  BAMBOO_EXIT(0xa00c);
+				// startup core can not receive profile output finish msg
+				BAMBOO_EXIT(0xa00c);
       }
 #ifdef DEBUG
 #ifndef TILEAR
-	  BAMBOO_DEBUGPRINT(0xe885);
+			BAMBOO_DEBUGPRINT(0xe885);
 #endif
 #endif
-	  stall = true;
-	  totalexetime = data1;
-	  outputProfileData();
-	  if(isMsgSending) {
-		  cache_msg_2(STARTUPCORE, 7, BAMBOO_NUM_OF_CORE);
-	  } else {
-		  send_msg_2(STARTUPCORE, 7, BAMBOO_NUM_OF_CORE);
-	  }
+			stall = true;
+			totalexetime = data1;
+			outputProfileData();
+			if(isMsgSending) {
+				cache_msg_2(STARTUPCORE, PROFILEFINISH, BAMBOO_NUM_OF_CORE);
+			} else {
+				send_msg_2(STARTUPCORE, PROFILEFINISH, BAMBOO_NUM_OF_CORE);
+			}
       break;
     }
 
-    case 7: {
+    case PROFILEFINISH: {
       // receive a profile output finish msg
       if(BAMBOO_NUM_OF_CORE != STARTUPCORE) {
-		  // non startup core can not receive profile output finish msg
+				// non startup core can not receive profile output finish msg
 #ifndef TILERA
-		  BAMBOO_DEBUGPRINT_REG(data1);
+				BAMBOO_DEBUGPRINT_REG(data1);
 #endif
-		  BAMBOO_EXIT(0xa00d);
+				BAMBOO_EXIT(0xa00d);
       }
 #ifdef DEBUG
 #ifndef TILERA
-	  BAMBOO_DEBUGPRINT(0xe886);
+			BAMBOO_DEBUGPRINT(0xe886);
 #endif
 #endif
-      profilestatus[data1] = 0;
+			profilestatus[data1] = 0;
       break;
     }
 #endif
 
-	case 8: {
+	case REDIRECTLOCK: {
 	  // receive a redirect lock request msg, handle it right now
-      // check to see if there is a lock exist for the required obj
+		// check to see if there is a lock exist for the required obj
 	  // data1 -> lock type
 	  int data2 = msgdata[2]; // obj pointer
-      int data3 = msgdata[3]; // redirect lock
+		int data3 = msgdata[3]; // redirect lock
 	  int data4 = msgdata[4]; // root request core
 	  int data5 = msgdata[5]; // request core
 	  deny = processlockrequest(data1, data3, data2, data5, data4, true);
@@ -1407,15 +1337,17 @@ msg:
 		  // send response msg
 		  // for 32 bit machine, the size is always 4 words
 		  if(isMsgSending) {
-			  cache_msg_4(data4, deny==1?0xa:9, data1, data2, data3);
+			  cache_msg_4(data4, deny==1?REDIRECTDENY:REDIRECTGROUNT, 
+						        data1, data2, data3);
 		  } else {
-			  send_msg_4(data4, deny==1?0xa:9, data1, data2, data3);
+			  send_msg_4(data4, deny==1?REDIRECTDENY:REDIRECTGROUNT, 
+						       data1, data2, data3);
 		  }
 	  }
 	  break;
 	}
 
-	case 9: {
+	case REDIRECTGROUNT: {
 		// receive a lock grant msg with redirect info
 		if(BAMBOO_NUM_OF_CORE > NUMCORES - 1) {
 #ifndef TILERA
@@ -1423,7 +1355,7 @@ msg:
 #endif
 			BAMBOO_EXIT(0xa00e);
 		}
-      if(lockobj == msgdata[2]) {
+		if(lockobj == msgdata[2]) {
 #ifdef DEBUG
 #ifndef TILERA
 		  BAMBOO_DEBUGPRINT(0xe891);
@@ -1435,17 +1367,17 @@ msg:
 #ifndef INTERRUPT
 		  reside = false;
 #endif
-      } else {
+		} else {
 		  // conflicts on lockresults
 #ifndef TILERA
 		  BAMBOO_DEBUGPRINT_REG(msgdata[2]);
 #endif
 		  BAMBOO_EXIT(0xa00f);
-      }
+		}
 		break;
 	}
 	
-	case 0xa: {
+	case REDIRECTDENY: {
 	  // receive a lock deny msg with redirect info
 	  if(BAMBOO_NUM_OF_CORE > NUMCORES - 1) {
 #ifndef TILERA
@@ -1453,7 +1385,7 @@ msg:
 #endif
 		  BAMBOO_EXIT(0xa010);
 	  }
-      if(lockobj == msgdata[2]) {
+		if(lockobj == msgdata[2]) {
 #ifdef DEBUG
 #ifndef TILERA
 		  BAMBOO_DEBUGPRINT(0xe892);
@@ -1464,28 +1396,29 @@ msg:
 #ifndef INTERRUPT
 		  reside = false;
 #endif
-      } else {
+		} else {
 		  // conflicts on lockresults
 #ifndef TILERA
 		  BAMBOO_DEBUGPRINT_REG(msgdata[2]);
 #endif
 		  BAMBOO_EXIT(0xa011);
-      }
+		}
 		break;
 	}
 
-	case 0xb: {
+	case REDIRECTRELEASE: {
 	  // receive a lock release msg with redirect info
 		processlockrelease(data1, msgdata[2], msgdata[3], true);
 		break;
 	}
 	
-	case 0xc: {
+	case STATUSCONFIRM: {
       // receive a status confirm info
-	  if((BAMBOO_NUM_OF_CORE == STARTUPCORE) || (BAMBOO_NUM_OF_CORE > NUMCORES - 1)) {
+	  if((BAMBOO_NUM_OF_CORE == STARTUPCORE) 
+				|| (BAMBOO_NUM_OF_CORE > NUMCORES - 1)) {
 		  // wrong core to receive such msg
 		  BAMBOO_EXIT(0xa013);
-      } else {
+		} else {
 		  // send response msg
 #ifdef DEBUG
 #ifndef TILERA
@@ -1493,15 +1426,17 @@ msg:
 #endif
 #endif
 		  if(isMsgSending) {
-			  cache_msg_3(STARTUPCORE, 0xd, busystatus?1:0, BAMBOO_NUM_OF_CORE);
+			  cache_msg_3(STARTUPCORE, STATUSREPORT, 
+						        busystatus?1:0, BAMBOO_NUM_OF_CORE);
 		  } else {
-			  send_msg_3(STARTUPCORE, 0xd, busystatus?1:0, BAMBOO_NUM_OF_CORE);
+			  send_msg_3(STARTUPCORE, STATUSREPORT, 
+						       busystatus?1:0, BAMBOO_NUM_OF_CORE);
 		  }
-      }
+		}
 	  break;
 	}
 
-	case 0xd: {
+	case STATUSREPORT: {
 	  // receive a status confirm info
 	  if(BAMBOO_NUM_OF_CORE != STARTUPCORE) {
 		  // wrong core to receive such msg
@@ -1509,7 +1444,7 @@ msg:
 		  BAMBOO_DEBUGPRINT_REG(msgdata[2]);
 #endif
 		  BAMBOO_EXIT(0xa014);
-      } else {
+		} else {
 #ifdef DEBUG
 #ifndef TILERA
 		  BAMBOO_DEBUGPRINT(0xe888);
@@ -1519,22 +1454,22 @@ msg:
 			  numconfirm--;
 		  }
 		  corestatus[msgdata[2]] = msgdata[1];
-      }
+		}
 	  break;
 	}
 
-	case 0xe: {
+	case TERMINATE: {
 	  // receive a terminate msg
 #ifdef DEBUG
 #ifndef TILERA
-				  BAMBOO_DEBUGPRINT(0xe889);
+		BAMBOO_DEBUGPRINT(0xe889);
 #endif
 #endif
-				  BAMBOO_EXIT(0);
+		BAMBOO_EXIT(0);
 	  break;
 	}
 
-	case 0xf: {
+	case MEMREQUEST: {
 	  // receive a shared memory request msg
 	  if(BAMBOO_NUM_OF_CORE != STARTUPCORE) {
 		  // wrong core to receive such msg
@@ -1542,7 +1477,7 @@ msg:
 		  BAMBOO_DEBUGPRINT_REG(msgdata[2]);
 #endif
 		  BAMBOO_EXIT(0xa015);
-      } else {
+		} else {
 #ifdef DEBUG
 #ifndef TILERA
 		  BAMBOO_DEBUGPRINT(0xe88a);
@@ -1555,17 +1490,17 @@ msg:
 			  BAMBOO_EXIT(0xa016);
 		  }
 		  // send the start_va to request core
-		 if(isMsgSending) {
-			  cache_msg_3(msgdata[2], 0x10, mem, msgdata[1]);
-		  } else {
-			  send_msg_3( msgdata[2], 0x10, mem, msgdata[1]);
-		  } 
-      }
+			if(isMsgSending) {
+				cache_msg_3(msgdata[2], MEMRESPONSE, mem, msgdata[1]);
+			} else {
+				send_msg_3( msgdata[2], MEMRESPONSE, mem, msgdata[1]);
+			} 
+		}
 	  break;
 	}
 
-	case 0x10: {
-      // receive a shared memory response msg
+	case MEMRESPONSE: {
+		// receive a shared memory response msg
 #ifdef DEBUG
 #ifndef TILERA
 	  BAMBOO_DEBUGPRINT(0xe88b);
@@ -1580,53 +1515,299 @@ msg:
 	  }
 	  smemflag = true;
 	  break;
-    }
+	}
 
-	case 0x11: {
-      // receive a start GC msg
+#ifdef MULTICORE_GC
+	// GC msgs
+	case GCSTART: {
+		// receive a start GC msg
 #ifdef DEBUG
 #ifndef TILERA
 	  BAMBOO_DEBUGPRINT(0xe88c);
 #endif
 #endif
-	  collect();
+	  // set the GC flag
+		gcflag = true;
 	  break;
-    }
+	}
+
+	case GCSTARTCOMPACT: {
+		// a compact phase start msg
+		if(cinstruction == NULL) {
+			cinstruction = 
+				(struct compactInstr *)RUNMALLOC(sizeof(struct compactInstr));
+		} else {
+			// clean up out of data info
+			if(cinstruction->tomoveobjs != NULL) {
+				RUNFREE(cinstruction->tomoveobjs->starts);
+				RUNFREE(cinstruction->tomoveobjs->ends);
+				RUNFREE(cinstruction->tomoveobjs->dststarts);
+				RUNFREE(cinstruction->tomoveobjs->dsts);
+				RUNFREE(cinstruction->tomoveobjs);
+				cinstruction->tomoveobjs = NULL;
+			}
+			if(cinstruction->incomingobjs != NULL) {
+				RUNFREE();
+				RUNFREE(cinstruction->incomingobjs->starts);
+				RUNFREE(cinstruction->incomingobjs->dsts);
+				RUNFREE(cinstruction->incomingobjs);
+				cinstruction->incomingobjs = NULL;
+			}
+			// largeobj items should have been freed when processed
+			if(cinstruction->largeobjs != NULL) {
+				BAMBOO_EXIT(0xb005);
+			}
+		}
+		if(data1 > 2) {
+			// have objs to move etc.
+			int startindex = 2;
+			// process objs to move
+			int num = msgdata[startindex++];
+			if(num > 0) {
+				cinstruction->tomoveobjs = 
+					(struct moveObj *)RUNMALLOC(sizeof(struct moveObj));
+				cinstruction->tomoveobjs->length = num;
+				cinstruction->tomoveobjs->starts = 
+					(INTPTR *)RUNMALLOC(num * sizeof(INTPTR));
+				cinstruction->tomoveobjs->ends = 
+					(INTPTR *)RUNMALLOC(num * sizeof(INTPTR));
+				cinstruction->tomoveobjs->dststarts = 
+					(INTPTR *)RUNMALLOC(num * sizeof(INTPTR));
+				cinstruction->tomoveobjs->dsts = 
+					(INTPTR *)RUNMALLOC(num * sizeof(INTPTR));
+				for(i = 0; i < num; i++) {
+					cinstruction->tomoveobjs->starts[i] = msgdata[startindex++];
+					cinstruction->tomoveobjs->ends[i] = msgdata[startindex++];
+					cinstruction->tomoveobjs->dsts[i] = msgdata[startindex++];
+					cinstruction->tomoveobjs->dststarts[i] = msgdata[startindex++];
+				}
+			}
+			// process incoming objs
+			num = msgdata[startindex++];
+			if(num > 0) {
+				cinstruction->incomingobjs = 
+					(struct moveObj *)RUNMALLOC(sizeof(struct moveObj));
+				cinstruction->incomingobjs->length = num;
+				cinstruction->incomingobjs->starts = 
+					(INTPTR *)RUNMALLOC(num * sizeof(INTPTR));
+				cinstruction->incomingobjs->dsts = 
+					(INTPTR *)RUNMALLOC(num * sizeof(INTPTR));
+				for(i = 0; i < num; i++) {
+					cinstruction->incomingobjs->starts[i] = msgdata[startindex++];
+					cinstruction->incomingobjs->dsts[i] = msgdata[startindex++];
+				}
+			}
+			// process large objs
+			num = msgdata[startindex++];
+			for(i = 0; i < num; i++) {
+				struct largeObjItem * loi = 
+					(struct largeObjItem *)RUNMALLOC(sizeof(struct largeObjItem ));
+				loi->orig = msgdata[startindex++];
+				loi->length = msgdata[startindex++];
+				loi->dst = msgdata[startindex++];
+				loi->next = NULL;
+				if(i > 0) {
+					cinstruction->largeobjs->next = loi;
+				}
+				cinstruction->largeobjs = loi;
+			}
+		}
+		gcphase = COMPACTPHASE;
+		break;
+	}
+
+	case GCSTARTFLUSH: {
+		// received a flush phase start msg
+		gcphase = FLUSHPHASE;
+		break;
+	}
+
+	case GCFINISHMARK: {
+		// received a mark phase finish msg
+		if(BAMBOO_NUM_OF_CORE != STARTUPCORE) {
+		  // non startup core can not receive this msg
+#ifndef TILERA
+		  BAMBOO_DEBUGPRINT_REG(data1);
+#endif
+		  BAMBOO_EXIT(0xb006);
+		} 
+		if(data1 < NUMCORES) {
+			gccorestatus[data1] = 0;
+			gcnumsendobjs[data1] = gcmsgdata[2];
+			gcnumreceiveobjs[data1] = gcmsgdata[3];
+		}
+	  break;
+	}
 	
-    default:
-      break;
-    }
-    for(msgdataindex--; msgdataindex > 0; --msgdataindex) {
-      msgdata[msgdataindex] = -1;
-    }
-    msgtype = -1;
-    msglength = 30;
+	case GCFINISHCOMPACT: {
+		// received a compact phase finish msg
+		if(BAMBOO_NUM_OF_CORE != STARTUPCORE) {
+		  // non startup core can not receive this msg
+		  // return -1
+#ifndef TILERA
+		  BAMBOO_DEBUGPRINT_REG(data1);
+#endif
+		  BAMBOO_EXIT(0xb006);
+		} 
+		if(data1 < NUMCORES) {
+		  gccorestatus[data1] = 0;
+		}
+	  break;
+	}
+
+	case GCFINISHFLUSH: {
+		// received a flush phase finish msg
+		if(BAMBOO_NUM_OF_CORE != STARTUPCORE) {
+		  // non startup core can not receive this msg
+		  // return -1
+#ifndef TILERA
+		  BAMBOO_DEBUGPRINT_REG(data1);
+#endif
+		  BAMBOO_EXIT(0xb006);
+		} 
+		if(data1 < NUMCORES) {
+		  gccorestatus[data1] = 0;
+		}
+	  break;
+	}
+
+	case GCFINISH: {
+		// received a GC finish msg
+		gcphase = FINISHPHASE;
+		break;
+	}
+
+	case GCMARKCONFIRM: {
+		// received a marked phase finish confirm request msg
+		if((BAMBOO_NUM_OF_CORE == STARTUPCORE) 
+				|| (BAMBOO_NUM_OF_CORE > NUMCORES - 1)) {
+		  // wrong core to receive such msg
+		  BAMBOO_EXIT(0xa013);
+		} else {
+		  // send response msg
+		  if(isMsgSending) {
+			  cache_msg_5(STARTUPCORE, GCMARKREPORT, BAMBOO_NUM_OF_CORE, 
+						        gcbusystatus, gcself_numsendobjs, gcself_numreceiveobjs);
+		  } else {
+			  send_msg_5(STARTUPCORE, GCMARKREPORT, BAMBOO_NUM_OF_CORE, 
+						       gcbusystatus, gcself_numsendobjs, gcself_numreceiveobjs);
+		  }
+		}
+	  break;
+	}
+
+	case GCMARKREPORT: {
+		// received a marked phase finish confirm response msg
+		if(BAMBOO_NUM_OF_CORE != STARTUPCORE) {
+		  // wrong core to receive such msg
+#ifndef TILERA
+		  BAMBOO_DEBUGPRINT_REG(msgdata[2]);
+#endif
+		  BAMBOO_EXIT(0xb014);
+		} else {
+		  if(gcwaitconfirm) {
+			  gcnumconfirm--;
+		  }
+		  gccorestatus[data1] = gcmsgdata[2];
+		  gcnumsendobjs[data1] = gcmsgdata[3];
+		  gcnumreceiveobjs[data1] = gcmsgdata[4];
+		}
+	  break;
+	}
+
+	case GCMARKEDOBJ: {
+		// received a markedObj msg
+		addNewItem(gctomark, data1);
+		gcself_numreceiveobjs++;
+		gcbusystatus = true;
+		break;
+	}
+
+	case GCMOVESTART: {
+		// received a start moving objs msg
+		addNewItem_I(gcdsts, data1);
+		tomove = true;
+		break;
+	}
+	
+	case GCMAPREQUEST: {
+		// received a mapping info request msg
+		void * dstptr = gengettable(pointertbl, data1);
+		if(NULL == dstptr) {
+			// no such pointer in this core, something is wrong
+			BAMBOO_EXIT(0xb008);
+		} else {
+			// send back the mapping info
+			if(isMsgSending) {
+				cache_msg_3(msgdata[2], GCMAPINFO, data1, dstptr);
+			} else {
+				send_msg_3(msgdata[2], GCMAPINFO,data1, dstptr);
+			}
+		}
+		break;
+	}
+
+	case GCMAPINFO: {
+		// received a mapping info response msg
+		if(data1 != obj2map) {
+			// obj not matched, something is wrong
+			BAMBOO_EXIT(0xb009);
+		} else {
+			mappedobj = msgdata[2];
+			genputtable(pointertbl, obj2map, mappedobj);
+		}
+		ismapped = true;
+		break;
+	}
+
+	case GCLOBJREQUEST: {
+		// received a large objs info request msg
+		transferMarkResults();
+		break;
+	}
+
+	case GCLOBJINFO: {
+		// received a large objs info response msg
+		// TODO
+		gcwaitconfirm--;
+		break;
+	}
+#endif
+
+	default:
+		break;
+	}
+	for(msgdataindex--; msgdataindex > 0; --msgdataindex) {
+		msgdata[msgdataindex] = -1;
+	}
+	msgtype = -1;
+	msglength = 30;
 #ifdef DEBUG
 #ifndef TILERA
-    BAMBOO_DEBUGPRINT(0xe88d);
+	BAMBOO_DEBUGPRINT(0xe88d);
 #endif
 #endif
 
-    if(BAMBOO_MSG_AVAIL() != 0) {
-      goto msg;
-    }
+	if(BAMBOO_MSG_AVAIL() != 0) {
+		goto msg;
+	}
 #ifdef PROFILE
-	/*if(isInterrupt) {
-	    profileTaskEnd();
-    }*/
+/*if(isInterrupt) {
+		profileTaskEnd();
+	}*/
 #endif
-    return type;
-  } else {
-    // not a whole msg
+	return type;
+} else {
+	// not a whole msg
 #ifdef DEBUG
 #ifndef TILERA
-    BAMBOO_DEBUGPRINT(0xe88e);
+	BAMBOO_DEBUGPRINT(0xe88e);
 #endif
 #endif
 #ifdef PROFILE
-/*    if(isInterrupt) {
-          profileTaskEnd();
-      }*/
+/*  if(isInterrupt) {
+		  profileTaskEnd();
+		}*/
 #endif
     return -2;
   }

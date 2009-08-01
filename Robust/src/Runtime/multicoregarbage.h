@@ -11,19 +11,6 @@
 #define BAMBOO_SMEM_SIZE_L 512 * BAMBOO_PAGE_SIZE
 #define BAMBOO_LARGE_SMEM_BOUND BAMBOO_SMEM_SIZE_L * NUMCORES // NUMCORES = 62
 
-// for GC msgs
-int gcmsgdata[100];
-int gcmsgtype;
-int gcmsgdataindex;
-int gcmsglength;
-#define BAMBOO_OUT_BUF_LENGTH_GC 100
-int gcoutmsgdata[BAMBOO_OUT_BUF_LENGTH_GC];
-int gcoutmsgindex;
-int gcoutmsglast;
-int gcoutmsgleft;
-bool gcisMsgHanging;
-volatile bool gcisMsgSending;
-
 struct markedObjItem {
 	INTPTR orig;
 	INTPTR dst;
@@ -51,7 +38,15 @@ struct compactInstr {
 	struct largeObjItem * largeobjs;
 };
 
-int gcphase; // indicating GC phase
+enum GCPHASETYPE {
+	MARKPHASE = 0x0,   // 0x0
+	COMPACTPHASE,      // 0x1
+	FLUSHPHASE,        // 0x2
+	FINISHPHASE        // 0x3
+};
+
+volatile bool gcflag;
+GCPHASETYPE gcphase; // indicating GC phase
 bool gctomove; // flag indicating if can start moving objects to other cores
 struct Queue * gcdsts;
 struct Queue gctomark; // global queue of objects to mark
@@ -108,8 +103,8 @@ bool ismapped;
 	}
 
 void gc(); // core coordinator routine
-void collect(); // core collector routine
-int gc_msghandler(); // interruption handler for GC msgs
+void gc_collect(); // core collector routine
+void transferMarkResults(); 
 
 #endif
 

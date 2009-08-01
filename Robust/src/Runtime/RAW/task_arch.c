@@ -146,7 +146,8 @@ inline void transferObject(struct transObjInfo * transObj) {//  __attribute__((a
   }
 }
 
-__attribute__((always_inline)) inline void send_msg_1 (int targetcore, int n0) {
+__attribute__((always_inline)) inline void send_msg_1 (int targetcore, 
+		                                                   int n0) {
   // send this msg
   unsigned msgHdr;
   int self_y, self_x, target_y, target_x;
@@ -214,7 +215,9 @@ __attribute__((always_inline)) inline void send_msg_1 (int targetcore, int n0) {
   }
 }
 
-__attribute__((always_inline)) inline void send_msg_2 (int targetcore, int n0, int n1) {
+__attribute__((always_inline)) inline void send_msg_2 (int targetcore, 
+		                                                   int n0, 
+																											 int n1) {
   // send this msg
   unsigned msgHdr;
   int self_y, self_x, target_y, target_x;
@@ -286,7 +289,10 @@ __attribute__((always_inline)) inline void send_msg_2 (int targetcore, int n0, i
   }
 }
 
-__attribute__((always_inline)) inline void send_msg_3 (int targetcore, int n0, int n1, int n2) {
+__attribute__((always_inline)) inline void send_msg_3 (int targetcore, 
+		                                                   int n0, 
+																											 int n1, 
+																											 int n2) {
   // send this msg
   unsigned msgHdr;
   int self_y, self_x, target_y, target_x;
@@ -362,7 +368,11 @@ __attribute__((always_inline)) inline void send_msg_3 (int targetcore, int n0, i
   }
 }
 
-__attribute__((always_inline)) inline void send_msg_4 (int targetcore, int n0, int n1, int n2, int n3) {
+__attribute__((always_inline)) inline void send_msg_4 (int targetcore, 
+		                                                   int n0, 
+																											 int n1, 
+																											 int n2, 
+																											 int n3) {
   // send this msg
   unsigned msgHdr;
   int self_y, self_x, target_y, target_x;
@@ -442,7 +452,12 @@ __attribute__((always_inline)) inline void send_msg_4 (int targetcore, int n0, i
   }
 }
 
-__attribute__((always_inline)) inline void send_msg_5 (int targetcore, int n0, int n1, int n2, int n3, int n4) {
+__attribute__((always_inline)) inline void send_msg_5 (int targetcore, 
+		                                                   int n0, 
+																											 int n1, 
+																											 int n2, 
+																											 int n3, 
+																											 int n4) {
   // send this msg
   unsigned msgHdr;
   int self_y, self_x, target_y, target_x;
@@ -526,7 +541,13 @@ __attribute__((always_inline)) inline void send_msg_5 (int targetcore, int n0, i
   }
 }
 
-__attribute__((always_inline)) inline void send_msg_6 (int targetcore, int n0, int n1, int n2, int n3, int n4, int n5) {
+__attribute__((always_inline)) inline void send_msg_6 (int targetcore, 
+		                                                   int n0, 
+																											 int n1, 
+																											 int n2, 
+																											 int n3, 
+																											 int n4, 
+																											 int n5) {
   // send this msg
   unsigned msgHdr;
   int self_y, self_x, target_y, target_x;
@@ -614,7 +635,9 @@ __attribute__((always_inline)) inline void send_msg_6 (int targetcore, int n0, i
   }
 }
 
-__attribute__((always_inline)) inline void cache_msg_2 (int targetcore, int n0, int n1) {
+__attribute__((always_inline)) inline void cache_msg_2 (int targetcore, 
+		                                                    int n0, 
+																												int n1) {
   // cache this msg
 #ifdef DEBUG
   BAMBOO_DEBUGPRINT(0xdede);
@@ -628,7 +651,10 @@ __attribute__((always_inline)) inline void cache_msg_2 (int targetcore, int n0, 
   outmsgdata[outmsglast++] = n1;
 }
 
-__attribute__((always_inline)) inline void cache_msg_3 (int targetcore, int n0, int n1, int n2) {
+__attribute__((always_inline)) inline void cache_msg_3 (int targetcore, 
+		                                                    int n0, 
+																												int n1, 
+																												int n2) {
   // cache this msg
 #ifdef DEBUG
   BAMBOO_DEBUGPRINT(0xdede);
@@ -643,7 +669,11 @@ __attribute__((always_inline)) inline void cache_msg_3 (int targetcore, int n0, 
   outmsgdata[outmsglast++] = n2;
 }
 
-__attribute__((always_inline)) inline void cache_msg_4 (int targetcore, int n0, int n1, int n2, int n3) {
+__attribute__((always_inline)) inline void cache_msg_4 (int targetcore, 
+		                                                    int n0, 
+																												int n1, 
+																												int n2, 
+																												int n3) {
   // cache this msg
 #ifdef DEBUG
   BAMBOO_DEBUGPRINT(0xdede);
@@ -659,7 +689,36 @@ __attribute__((always_inline)) inline void cache_msg_4 (int targetcore, int n0, 
   outmsgdata[outmsglast++] = n3;
 }
 
-__attribute__((always_inline)) inline void cache_msg_6 (int targetcore, int n0, int n1, int n2, int n3, int n4, int n5) {
+__attribute__((always_inline)) inline void cache_msg_5 (int targetcore, 
+		                                                    int n0, 
+																												int n1, 
+																												int n2, 
+																												int n3, 
+																												int n4) {
+  // cache this msg
+#ifdef DEBUG
+  BAMBOO_DEBUGPRINT(0xdede);
+#endif
+  isMsgHanging = true;
+  // cache the msg in outmsgdata and send it later
+  // msglength + target core + msg
+  outmsgdata[outmsglast++] = 5;
+  outmsgdata[outmsglast++] = targetcore;
+  outmsgdata[outmsglast++] = n0;
+  outmsgdata[outmsglast++] = n1;
+  outmsgdata[outmsglast++] = n2;
+  outmsgdata[outmsglast++] = n3;
+  outmsgdata[outmsglast++] = n4;
+}
+
+
+__attribute__((always_inline)) inline void cache_msg_6 (int targetcore, 
+		                                                    int n0, 
+																												int n1, 
+																												int n2, 
+																												int n3, 
+																												int n4, 
+																												int n5) {
   // cache this msg
 #ifdef DEBUG
   BAMBOO_DEBUGPRINT(0xdede);
@@ -781,7 +840,8 @@ bool getreadlock(void * ptr) {
   } else {
 	  // send lock request msg
 	  // for 32 bit machine, the size is always 5 words
-	  send_msg_5(false, targetcore, 2, 0, (int)ptr, lock2require, BAMBOO_NUM_OF_CORE);
+	  send_msg_5(targetcore, LOCKREQUEST, 0, (int)ptr, 
+				       lock2require, BAMBOO_NUM_OF_CORE);
   }
   return true;
 }
@@ -825,7 +885,7 @@ void releasereadlock(void * ptr) {
   } else {
 	// send lock release msg
 	// for 32 bit machine, the size is always 4 words
-	send_msg_4(false, targetcore, 5, 0, (int)ptr, reallock);
+	send_msg_4(targetcore, LOCKRELEASE, 0, (int)ptr, reallock);
   }
 }
 
@@ -872,9 +932,11 @@ bool getreadlock_I_r(void * ptr, void * redirectlock, int core, bool cache) {
 			// send lock grant/deny request to the root requiring core
 			// check if there is still some msg on sending
 			if((!cache) || (cache && !isMsgSending)) {
-				send_msg_4(false, core, deny==1?0xa:9, 0, (int)ptr, (int)redirectlock);
+				send_msg_4(core, deny==1?REDIRECTDENY:REDIRECTGROUNT, 0, 
+						       (int)ptr, (int)redirectlock);
 			} else {
-				cache_msg_4(false, core, deny==1?0xa:9, 0, (int)ptr, (int)redirectlock);
+				cache_msg_4(core, deny==1?REDIRECTDENY:REDIRECTGROUNT, 0, 
+						        (int)ptr, (int)redirectlock);
 			}
 		}
 	}
@@ -882,9 +944,11 @@ bool getreadlock_I_r(void * ptr, void * redirectlock, int core, bool cache) {
 	// redirect the lock request
 	// for 32 bit machine, the size is always 6 words
 	if((!cache) || (cache && !isMsgSending)) {
-		send_msg_6(false, targetcore, 8, 0, (int)ptr, lock2require, core, BAMBOO_NUM_OF_CORE);
+		send_msg_6(targetcore, REDIRECTLOCK, 0, (int)ptr, lock2require, 
+				       core, BAMBOO_NUM_OF_CORE);
 	} else {
-		cache_msg_6(false, targetcore, 8, 0, (int)ptr, lock2require, core, BAMBOO_NUM_OF_CORE);
+		cache_msg_6(targetcore, REDIRECTLOCK, 0, (int)ptr, lock2require, 
+				        core, BAMBOO_NUM_OF_CORE);
 	}
   }
   return true;
@@ -956,7 +1020,8 @@ bool getwritelock(void * ptr) {
   } else {
 	  // send lock request msg
 	  // for 32 bit machine, the size is always 5 words
-	  send_msg_5(false, targetcore, 2, 1, (int)ptr, lock2require, BAMBOO_NUM_OF_CORE);
+	  send_msg_5(targetcore, LOCKREQUEST, 1, (int)ptr, lock2require, 
+				       BAMBOO_NUM_OF_CORE);
   }
   return true;
 }
@@ -1002,7 +1067,7 @@ void releasewritelock(void * ptr) {
   } else {
 	// send lock release msg
 	// for 32 bit machine, the size is always 4 words
-	send_msg_4(false,targetcore, 5, 1, (int)ptr, reallock);
+	send_msg_4(targetcore, LOCKRELEASE, 1, (int)ptr, reallock);
   }
 }
 
@@ -1052,7 +1117,7 @@ void releasewritelock_r(void * lock, void * redirectlock) {
   } else {
 	  // send lock release with redirect info msg
 	  // for 32 bit machine, the size is always 4 words
-	  send_msg_4(false, targetcore, 0xb, 1, (int)lock, (int)redirectlock);
+	  send_msg_4(targetcore, REDIRECTRELEASE, 1, (int)lock, (int)redirectlock);
   }
 }
 
@@ -1110,7 +1175,8 @@ bool getwritelock_I(void * ptr) {
   } else {
 	  // send lock request msg
 	  // for 32 bit machine, the size is always 5 words
-	  send_msg_5(false, targetcore, 2, 1, (int)ptr, lock2require, BAMBOO_NUM_OF_CORE);
+	  send_msg_5(targetcore, LOCKREQUEST, 1, (int)ptr, lock2require, 
+				       BAMBOO_NUM_OF_CORE);
   }
   return true;
 }
@@ -1168,9 +1234,11 @@ bool getwritelock_I_r(void * ptr, void * redirectlock, int core, bool cache) {
 			// send lock grant/deny request to the root requiring core
 			// check if there is still some msg on sending
 			if((!cache) || (cache && !isMsgSending)) {
-				send_msg_4(false, core, deny==1?0xa:9, 1, (int)ptr, (int)redirectlock);
+				send_msg_4(core, deny==1?REDIRECTDENY:REDIRECTGROUNT, 1, 
+							     (int)ptr, (int)redirectlock);
 			} else {
-				cache_msg_4(false, core, deny==1?0xa:9, 1, (int)ptr, (int)redirectlock);
+				cache_msg_4(core, deny==1?REDIRECTDENY:REDIRECTGROUNT, 1, 
+						        (int)ptr, (int)redirectlock);
 			}
 		}
 	}
@@ -1178,9 +1246,11 @@ bool getwritelock_I_r(void * ptr, void * redirectlock, int core, bool cache) {
 	// redirect the lock request
 	// for 32 bit machine, the size is always 6 words
 	if((!cache) || (cache && !isMsgSending)) {
-		send_msg_6(false, targetcore, 8, 1, (int)ptr, (int)redirectlock, core, BAMBOO_NUM_OF_CORE);
+		send_msg_6(targetcore, REDIRECTLOCK, 1, (int)ptr, (int)redirectlock, 
+				       core, BAMBOO_NUM_OF_CORE);
 	} else {
-		cache_msg_6(false, targetcore, 8, 1, (int)ptr, (int)redirectlock, core, BAMBOO_NUM_OF_CORE);
+		cache_msg_6(targetcore, REDIRECTLOCK, 1, (int)ptr, (int)redirectlock, 
+				        core, BAMBOO_NUM_OF_CORE);
 	}
   }
   return true;
@@ -1219,7 +1289,7 @@ void releasewritelock_I(void * ptr) {
   } else {
 	// send lock release msg
 	// for 32 bit machine, the size is always 4 words
-	send_msg_4(false, targetcore, 5, 1, (int)ptr, reallock);
+	send_msg_4(targetcore, LOCKRELEASE, 1, (int)ptr, reallock);
   }
 }
 
@@ -1261,7 +1331,7 @@ void releasewritelock_I_r(void * lock, void * redirectlock) {
   } else {
 	// send lock release msg
 	// for 32 bit machine, the size is always 4 words
-	send_msg_4(false, targetcore, 0xb, 1, (int)lock, (int)redirectlock);
+	send_msg_4(targetcore, REDIRECTRELEASE, 1, (int)lock, (int)redirectlock);
   }
 }
 

@@ -592,13 +592,13 @@ public class BuildCode {
       if(!state.MULTICORE) {
 	outclassdefs.println("  void * flagptr;");
       } else {
-        if(state.MULTICOREGC) {
-          outclassdefs.println("  int marked;");
-        }
         outclassdefs.println("  int version;");
         outclassdefs.println("  int * lock;");  // lock entry for this obj
         outclassdefs.println("  void * mutex;");  
         outclassdefs.println("  int lockcount;");
+        if(state.MULTICOREGC) {
+          outclassdefs.println("  int marked;");
+        }
       }
       if(state.OPTIONAL) {
 	outclassdefs.println("  int numfses;");
