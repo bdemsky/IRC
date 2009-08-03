@@ -144,8 +144,8 @@ public class MLPAnalysis {
       System.out.println( "" );
       //System.out.println( "\nSESE Hierarchy\n--------------\n" ); printSESEHierarchy();
       //System.out.println( "\nSESE Liveness\n-------------\n" ); printSESELiveness();
-      //System.out.println( "\nLiveness Root View\n------------------\n"+fmMain.printMethod( livenessRootView ) );
-      //System.out.println( "\nVariable Results\n----------------\n"+fmMain.printMethod( variableResults ) );
+      System.out.println( "\nLiveness Root View\n------------------\n"+fmMain.printMethod( livenessRootView ) );
+      System.out.println( "\nVariable Results\n----------------\n"+fmMain.printMethod( variableResults ) );
       //System.out.println( "\nNot Available Results\n---------------------\n"+fmMain.printMethod( notAvailableResults ) );
       System.out.println( "\nCode Plans\n----------\n"+fmMain.printMethod( codePlans ) );
     }
@@ -842,29 +842,11 @@ public class MLPAnalysis {
 	  Iterator<VariableSourceToken> availItr = 
 	    vstTable.get( vst.getSESE(), vst.getAge() ).iterator();
 
-	  /*
-	  System.out.println( "Considering a stall on "+vst+
-			      " and also getting\n    "+vstTable.get( vst.getSESE(), 
-			  vst.getAge()
-			  ) );*/
-
-	  // only grab additional stuff that is live
-	  Set<TempDescriptor> copySet = new HashSet<TempDescriptor>();
-
-	  //System.out.println( "*** live in = "+liveSet+" @node "+fn );
-
 	  while( availItr.hasNext() ) {
 	    VariableSourceToken vstAlsoAvail = availItr.next();
 
-	    /*
-	    Iterator<TempDescriptor> refVarItr = 
-	      vstAlsoAvail.getRefVars().iterator();
-	    
-	    
-	    if( liveSet.contains( vstAlsoAvail.getAddrVar() ) ) {
-	      copySet.add( vstAlsoAvail.getAddrVar() );
-	    }
-	    */
+	    // only grab additional stuff that is live
+	    Set<TempDescriptor> copySet = new HashSet<TempDescriptor>();
 
 	    Iterator<TempDescriptor> refVarItr = vstAlsoAvail.getRefVars().iterator();
 	    while( refVarItr.hasNext() ) {
@@ -874,10 +856,10 @@ public class MLPAnalysis {
 	      }
 	    }
 
-	    //System.out.println( vstAlsoAvail+" is available, copySet = "+copySet );
-	  }
-	  	  	  
-	  plan.addStall2CopySet( vst, copySet );
+	    if( !copySet.isEmpty() ) {
+	      plan.addStall2CopySet( vstAlsoAvail, copySet );
+	    }
+	  }	  	  	 
 	}
 
 	// assert that everything being stalled for is in the

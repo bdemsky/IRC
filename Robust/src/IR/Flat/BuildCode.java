@@ -2227,10 +2227,11 @@ public class BuildCode {
 	  Iterator<TempDescriptor> tdItr = cp.getCopySet( vst ).iterator();
 	  while( tdItr.hasNext() ) {
 	    TempDescriptor td = tdItr.next();
+
 	    output.println("       "+td.getSafeSymbol()+" = child->"+
 			             vst.getAddrVar().getSafeSymbol()+";");
-	    output.println("printf(\"copied %d into "+td.getSafeSymbol()+" from "+vst.getAddrVar().getSafeSymbol()+
-			   "\\n\", "+td.getSafeSymbol()+" );");
+	    //output.println("printf(\"copied %d into "+td.getSafeSymbol()+" from "+vst.getAddrVar().getSafeSymbol()+
+	    //"\\n\", "+td.getSafeSymbol()+" );");
 	  }
 
 	  output.println("   }");
@@ -2746,7 +2747,7 @@ public class BuildCode {
       
       output.println("     "+paramsprefix+"->"+temp.getSafeSymbol()+" = "+temp.getSafeSymbol()+";" );
 
-      output.println("     printf(\" putting "+temp.getSafeSymbol()+" in out with val=%d\\n\", "+temp.getSafeSymbol()+");");
+      //output.println("     printf(\" putting "+temp.getSafeSymbol()+" in out with val=%d\\n\", "+temp.getSafeSymbol()+");");
     }    
     
     // if parent is stalling on you, let them know you're done

@@ -134,11 +134,11 @@ public class VarSrcTokTable {
     return s;
   }
 
-  public Set<VariableSourceToken> get( TempDescriptor var ) {
-    Set<VariableSourceToken> s = var2vst.get( var );
+  public Set<VariableSourceToken> get( TempDescriptor refVar ) {
+    Set<VariableSourceToken> s = var2vst.get( refVar );
     if( s == null ) {
       s = new HashSet<VariableSourceToken>();
-      var2vst.put( var, s );
+      var2vst.put( refVar, s );
     }
     return s;
   }
