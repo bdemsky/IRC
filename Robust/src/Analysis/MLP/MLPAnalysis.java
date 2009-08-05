@@ -27,7 +27,7 @@ public class MLPAnalysis {
   private Hashtable< FlatNode, Set<TempDescriptor>      > notAvailableResults;
   private Hashtable< FlatNode, CodePlan                 > codePlans;
 
-  private static int maxSESEage = -1;
+  public static int maxSESEage = -1;
 
 
   // use these methods in BuildCode to have access to analysis results
@@ -144,10 +144,10 @@ public class MLPAnalysis {
       System.out.println( "" );
       //System.out.println( "\nSESE Hierarchy\n--------------\n" ); printSESEHierarchy();
       //System.out.println( "\nSESE Liveness\n-------------\n" ); printSESELiveness();
-      System.out.println( "\nLiveness Root View\n------------------\n"+fmMain.printMethod( livenessRootView ) );
-      System.out.println( "\nVariable Results\n----------------\n"+fmMain.printMethod( variableResults ) );
+      //System.out.println( "\nLiveness Root View\n------------------\n"+fmMain.printMethod( livenessRootView ) );
+      //System.out.println( "\nVariable Results\n----------------\n"+fmMain.printMethod( variableResults ) );
       //System.out.println( "\nNot Available Results\n---------------------\n"+fmMain.printMethod( notAvailableResults ) );
-      System.out.println( "\nCode Plans\n----------\n"+fmMain.printMethod( codePlans ) );
+      //System.out.println( "\nCode Plans\n----------\n"+fmMain.printMethod( codePlans ) );
     }
 
 
@@ -770,6 +770,36 @@ public class MLPAnalysis {
 
     case FKind.FlatSESEEnterNode: {
       FlatSESEEnterNode fsen = (FlatSESEEnterNode) fn;
+
+      // don't bother for the root SESE, there are no
+      // tokens for its in-set
+      if( fsen == rootSESE ) {
+	break;
+      }
+      
+      // track the source types of the in-var set so generated
+      // code at this SESE issue can compute the number of
+      // dependencies properly
+      Iterator<TempDescriptor> inVarItr = fsen.getInVarSet().iterator();
+      while( inVarItr.hasNext() ) {
+	TempDescriptor inVar = inVarItr.next();
+	Integer srcType = vstTable.getRefVarSrcType( inVar, currentSESE );
+
+	if( srcType.equals( VarSrcTokTable.SrcType_DYNAMIC ) ) {
+	  //fsen.addDynamicInVar( inVar );
+
+	} else if( srcType.equals( VarSrcTokTable.SrcType_STATIC ) ) {
+	  VariableSourceToken vst = vstTable.get( inVar ).iterator().next();
+	  fsen.addStaticInVarSrc( new SESEandAgePair( vst.getSESE(), 
+						      vst.getAge() 
+						    ) 
+				);
+
+	} else {
+	  assert srcType.equals( VarSrcTokTable.SrcType_READY );
+	}	
+      }
+
     } break;
 
     case FKind.FlatSESEExitNode: {
@@ -813,31 +843,28 @@ public class MLPAnalysis {
 	  continue;
 	}
 
-	// Two cases:
-        Set<VariableSourceToken> srcs = vstTable.get( readtmp );
-	assert !srcs.isEmpty();
+	// check the source type of this variable
+	Integer srcType = vstTable.getRefVarSrcType( readtmp, 
+						     currentSESE.getParent() );
 
-	// 1) Multiple token/age pairs or unknown age: Stall for
-	// dynamic name only.
-	if( srcs.size() > 1 || 
-	    srcs.iterator().next().getAge() == maxSESEage ) {
-
+	if( srcType.equals( VarSrcTokTable.SrcType_DYNAMIC ) ) {
 	  // identify that this is a stall, and allocate an integer
 	  // pointer in the generated code that keeps a pointer to
 	  // the source SESE and the address of where to get this thing
 	  // --then the stall is just wait for that, and copy the
 	  // one thing because we're not sure if we can copy other stuff
-
+	  
 	  // NEEDS WORK!
 	  
 	  
+	} else if( srcType.equals( VarSrcTokTable.SrcType_STATIC ) ) {
+	  
+	  // 2) Single token/age pair: Stall for token/age pair, and copy
+	  // all live variables with same token/age pair at the same
+	  // time.  This is the same stuff that the notavaialable analysis 
+	  // marks as now available.	  
 
-	// 2) Single token/age pair: Stall for token/age pair, and copy
-	// all live variables with same token/age pair at the same
-	// time.  This is the same stuff that the notavaialable analysis 
-	// marks as now available.	  
-	} else {	  
-	  VariableSourceToken vst = srcs.iterator().next();	 		  
+	  VariableSourceToken vst = vstTable.get( readtmp ).iterator().next();
 
 	  Iterator<VariableSourceToken> availItr = 
 	    vstTable.get( vst.getSESE(), vst.getAge() ).iterator();
@@ -860,6 +887,12 @@ public class MLPAnalysis {
 	      plan.addStall2CopySet( vstAlsoAvail, copySet );
 	    }
 	  }	  	  	 
+
+	} else {
+	  // the other case for srcs is READY from a parent, however
+	  // since we are only examining variables that come from
+	  // children tokens, this should never occur
+	  assert false;
 	}
 
 	// assert that everything being stalled for is in the

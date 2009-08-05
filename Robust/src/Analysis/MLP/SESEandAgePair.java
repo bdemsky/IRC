@@ -45,6 +45,10 @@ public class SESEandAgePair {
 
 
   public String toString() {
-    return "SESE_"+sese.getPrettyIdentifier()+"_"+age;
+    return "SESE_"+
+      sese.getPrettyIdentifier()+
+      sese.getIdentifier()+
+      "_"+
+      age;
   }
 }

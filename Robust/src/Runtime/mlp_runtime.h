@@ -7,6 +7,15 @@
 #include "psemaphore.h"
 
 
+#ifndef FALSE
+#define FALSE 0
+#endif
+
+#ifndef TRUE
+#define TRUE 1
+#endif
+
+
 // these fields are common to any SESE, and casting the
 // generated SESE record to this can be used, because
 // the common structure is always the first item in a
@@ -25,6 +34,7 @@ typedef struct SESEcommon_t {
   // use to coordinate with one another
   pthread_mutex_t lock;
   struct Queue*   forwardList;
+  int             unresolvedDependencies;
   int             doneExecuting;
 
 } SESEcommon;
@@ -43,14 +53,15 @@ typedef struct SESEvarSrc_t {
 
 // simple mechanical allocation and 
 // deallocation of SESE records
-void* mlpCreateSESErecord( int classID, int size );
+void* mlpCreateSESErecord( int size );
 void  mlpDestroySESErecord( void* seseRecord );
 
 
 // main library functions
+/*
 void mlpInit();
-void mlpIssue( void* seseRecord );
+void mlpCommonIssueActions( void* seseRecord );
 void mlpStall( void* seseRecord );
-
+*/
 
 #endif /* __MLP_RUNTIME__ */

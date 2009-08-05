@@ -1709,6 +1709,8 @@ public class BuildCode {
       TypeDescriptor type = temp.getType();
       if( type.isPtr() ) {
 	objectparams.addPtr( temp );
+      } else {
+	objectparams.addPrim( temp );
       }
     }
         
@@ -1865,11 +1867,23 @@ public class BuildCode {
       output.println("   void* "+p+";");
     }
 
-    // copy in-set into place
+    // declare local temps for in-set primitives
     Iterator<TempDescriptor> itrInSet = fsen.getInVarSet().iterator();
     while( itrInSet.hasNext() ) {
       TempDescriptor temp = itrInSet.next();
       TypeDescriptor type = temp.getType();
+      if( !type.isPtr() ) {
+	output.println("   "+type+" "+temp+";");
+      }
+    }    
+
+    // copy in-set into place
+    itrInSet = fsen.getInVarSet().iterator();
+    while( itrInSet.hasNext() ) {
+      TempDescriptor temp = itrInSet.next();
+      TypeDescriptor type = temp.getType();
+
+      // TODO !! make a deep copy of objects !
 
       if( type.isPtr() ) {
 	output.println("   memcpy( "+
@@ -1881,14 +1895,7 @@ public class BuildCode {
 		       "(void*) &("+temp.getSafeSymbol()+"), "+                           // to
 		       "(void*) ("+paramsprefix+"->"+temp.getSafeSymbol()+"__srcAddr_),"+ // from
 		       " sizeof( "+paramsprefix+"->"+temp.getSafeSymbol()+" ) );");       // size
-      }
-      
-      // make a deep copy of objects
-      //if( type.isPtr() ) {
-	// deep copy
-      //} else {
-	// shallow copy
-      //}
+      }      
     }
 
     // Check to see if we need to do a GC if this is a
@@ -1902,6 +1909,9 @@ public class BuildCode {
 
     HashSet<FlatNode> exitset=new HashSet<FlatNode>();
     exitset.add(seseExit);
+
+
+
     generateCode(fsen.getNext(0), fm, null, exitset, output, true);
     
     output.println("}\n\n");
@@ -2693,15 +2703,24 @@ public class BuildCode {
     }
   }
 
-  public void generateFlatSESEEnterNode(FlatMethod fm,  LocalityBinding lb, FlatSESEEnterNode fsen, PrintWriter output) {
+  public void generateFlatSESEEnterNode( FlatMethod fm,  
+					 LocalityBinding lb, 
+					 FlatSESEEnterNode fsen, 
+					 PrintWriter output 
+				       ) {
     if( !state.MLP ) {
       // SESE nodes can be parsed for normal compilation, just skip over them
       return;
     }    
+
     output.println("   {");
+
+    // just allocate the space for this record
     output.println("     "+fsen.getSESErecordName()+"* seseToIssue = ("+
 		           fsen.getSESErecordName()+"*) mlpAllocSESErecord( sizeof( "+
 		           fsen.getSESErecordName()+" ) );");
+
+    // fill in common data
     output.println("     seseToIssue->common.classID = "+fsen.getIdentifier()+";");
     output.println("     psem_init( &(seseToIssue->common.stallSem) );");
 
@@ -2713,6 +2732,9 @@ public class BuildCode {
       TempDescriptor temp = itr.next();
       output.print("     seseToIssue->"+temp.getSafeSymbol()+"__srcAddr_ = ");
 
+      // if we are root (no parent) or the temp is in the in or out
+      // out set, we know it is in the params structure, otherwise its
+      // a method local variable
       if( fsen.getParent() == null ||
 	  fsen.getParent().getInVarSet().contains( temp ) ||
 	  fsen.getParent().getOutVarSet().contains( temp ) 
@@ -2723,41 +2745,97 @@ public class BuildCode {
       }
     }
 
-    // for finding dynamic SESE instances from static names
+    // before potentially adding this SESE to other forwarding lists,
+    //  create it's lock and take it immediately
+    output.println("     pthread_mutex_init( &(seseToIssue->common.lock), NULL );");
+    output.println("     pthread_mutex_lock( &(seseToIssue->common.lock) );");
+
+    output.println("     seseToIssue->common.forwardList = createQueue();");
+    output.println("     seseToIssue->common.unresolvedDependencies = 0;");
+    output.println("     seseToIssue->common.doneExecuting = FALSE;");    
+
     if( fsen != mlpa.getRootSESE() ) {
+
+      // count up outstanding dependencies, static first, then dynamic
+      Iterator<SESEandAgePair> staticSrcsItr = fsen.getStaticInVarSrcs().iterator();
+      while( staticSrcsItr.hasNext() ) {
+	SESEandAgePair srcPair = staticSrcsItr.next();
+	output.println("     {");
+	output.println("       SESEcommon* src = (SESEcommon*)"+srcPair+";");
+	output.println("       pthread_mutex_lock( &(src->lock) );");
+	output.println("       if( seseToIssue == peekItem( src->forwardList ) ) {");
+	output.println("         printf( \"This shouldnt already be here\\n\");");
+	output.println("         exit( -1 );");
+	output.println("       }");
+	output.println("       addNewItem( src->forwardList, seseToIssue );");
+	output.println("       ++(seseToIssue->common.unresolvedDependencies);");
+	output.println("       pthread_mutex_unlock( &(src->lock) );");
+	output.println("     }");
+      }
+
+      /*
+      // maintain pointers for for finding dynamic SESE 
+      // instances from static names
       SESEandAgePair p = new SESEandAgePair( fsen, 0 );
       output.println("     "+p+" = seseToIssue;");
+      */
     }
-    
-    // submit the SESE as work
-    output.println("     workScheduleSubmit( (void*) seseToIssue );");
+
+    // if there were no outstanding dependencies, issue here
+    output.println("     if( seseToIssue->common.unresolvedDependencies == 0 ) {");
+    output.println("       workScheduleSubmit( (void*)seseToIssue );");
+    output.println("     }");
+
+    // release this SESE for siblings to update its dependencies or,
+    // eventually, for it to mark itself finished
+    output.println("     pthread_mutex_unlock( &(seseToIssue->common.lock) );");
     output.println("   }");
+
   }
 
-  public void generateFlatSESEExitNode(FlatMethod fm,  LocalityBinding lb, FlatSESEExitNode fsexn, PrintWriter output) {
+  public void generateFlatSESEExitNode( FlatMethod fm,  
+					LocalityBinding lb, 
+					FlatSESEExitNode fsexn, 
+					PrintWriter output
+				      ) {
     if( !state.MLP ) {
       // SESE nodes can be parsed for normal compilation, just skip over them
       return;
     }
 
+    String com = paramsprefix+"->common";
+
     // copy out-set from local temps into the sese record
     Iterator<TempDescriptor> itr = fsexn.getFlatEnter().getOutVarSet().iterator();
     while( itr.hasNext() ) {
-      TempDescriptor temp = itr.next();
-      
-      output.println("     "+paramsprefix+"->"+temp.getSafeSymbol()+" = "+temp.getSafeSymbol()+";" );
-
-      //output.println("     printf(\" putting "+temp.getSafeSymbol()+" in out with val=%d\\n\", "+temp.getSafeSymbol()+");");
+      TempDescriptor temp = itr.next();      
+      output.println("   "+paramsprefix+
+		     "->"+temp.getSafeSymbol()+
+		     " = "+temp.getSafeSymbol()+";" );
     }    
+    
+    // mark yourself done, your SESE data is now read-only
+    output.println("   pthread_mutex_lock( &("+com+".lock) );");
+    output.println("   "+com+".doneExecuting = TRUE;");
+    output.println("   pthread_mutex_unlock( &("+com+".lock) );");
+
+    // decrement dependency count for all SESE's on your forwarding list
+    output.println("   while( !isEmpty( "+com+".forwardList ) ) {");
+    output.println("     SESEcommon* consumer = (SESEcommon*) getItem( "+com+".forwardList );");
+    output.println("     pthread_mutex_lock( &(consumer->lock) );");
+    output.println("     --(consumer->unresolvedDependencies);");
+    output.println("     if( consumer->unresolvedDependencies == 0 ) {");
+    output.println("       workScheduleSubmit( (void*)consumer );");
+    output.println("     }");
+    output.println("     pthread_mutex_unlock( &(consumer->lock) );");
+    output.println("   }");
     
     // if parent is stalling on you, let them know you're done
     if( fsexn.getFlatEnter() != mlpa.getRootSESE() ) {
-      output.println("   {");
       output.println("     psem_give( &("+paramsprefix+"->common.stallSem) );");
-      output.println("   }");
     }
   }
-
+  
   private void generateFlatCheckNode(FlatMethod fm,  LocalityBinding lb, FlatCheckNode fcn, PrintWriter output) {
     if (state.CONSCHECK) {
       String specname=fcn.getSpec();

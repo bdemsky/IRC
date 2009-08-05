@@ -10,10 +10,6 @@
 #include "workschedule.h"
 
 
-#define FALSE 0
-#define TRUE  1
-
-
 
 void* mlpAllocSESErecord( int size ) {
   void* newrec = RUNMALLOC( size );  
@@ -25,7 +21,7 @@ void mlpFreeSESErecord( void* seseRecord ) {
   RUNFREE( seseRecord );
 }
 
-
+/*
 void mlpInit( int numProcessors, 
 	      void(*workFunc)(void*),
 	      int argc, char** argv,
@@ -36,13 +32,14 @@ void mlpInit( int numProcessors,
 
   //workScheduleBegin();
 }
-
-
-void mlpIssue( void* seseRecord ) {
-
+*/
+/*
+void mlpCommonIssueActions( void* seseRecord ) {
+  
 }
 
 
 void mlpStall( void* seseRecord ) {
   
 }
+*/

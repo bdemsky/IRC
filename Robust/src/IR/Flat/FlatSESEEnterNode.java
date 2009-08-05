@@ -1,5 +1,6 @@
 package IR.Flat;
 import Analysis.MLP.VariableSourceToken;
+import Analysis.MLP.VarSrcTokTable;
 import Analysis.MLP.SESEandAgePair;
 import IR.MethodDescriptor;
 import IR.ClassDescriptor;
@@ -13,14 +14,18 @@ public class FlatSESEEnterNode extends FlatNode {
   // sequentially from 0 to 1-(total # SESE's)
   private static int identifier=0;
 
-  private int id;
-  protected FlatSESEExitNode exit;
-  protected SESENode treeNode;
+  private   int               id;
+  protected FlatSESEExitNode  exit;
+  protected SESENode          treeNode;
   protected FlatSESEEnterNode parent;
+
   protected Set<FlatSESEEnterNode> children;
-  protected Set<TempDescriptor> inVars;
-  protected Set<TempDescriptor> outVars;
-  protected Set<SESEandAgePair> needStaticNameInCode;
+  protected Set<TempDescriptor>    inVars;
+  protected Set<TempDescriptor>    outVars;
+  protected Set<SESEandAgePair>    needStaticNameInCode;
+  protected Set<SESEandAgePair>    staticInVarSrcs;
+  protected Set<TempDescriptor>    dynamicInVars;
+
 
   // scope info for this SESE
   protected FlatMethod       fmEnclosing;
@@ -41,6 +46,8 @@ public class FlatSESEEnterNode extends FlatNode {
     inVars               = new HashSet<TempDescriptor>();
     outVars              = new HashSet<TempDescriptor>();
     needStaticNameInCode = new HashSet<SESEandAgePair>();
+    staticInVarSrcs      = new HashSet<SESEandAgePair>();
+    dynamicInVars        = new HashSet<TempDescriptor>();
   }
 
   public void rewriteUse() {
@@ -139,27 +146,6 @@ public class FlatSESEEnterNode extends FlatNode {
     return vecinVars.size();
   }
 
-  /*
-  public String namespaceStructNameString() {
-    return "struct SESE_"+getPrettyIdentifier()+"_namespace";
-  }
-
-  public String namespaceStructDeclarationString() {
-    String s = "struct SESE_"+getPrettyIdentifier()+"_namespace {\n";
-    for( int i = 0; i < numParameters(); ++i ) {
-      TempDescriptor td   = getParameter( i );
-      TypeDescriptor type = td.getType();
-      s += "  "+type.toString()+" "+td+";\n";
-    }
-    s += "};\n";    
-    return s;
-  }
-
-  public String namespaceStructAccessString( TempDescriptor td ) {
-    return "SESE_"+getPrettyIdentifier()+"_namespace."+td;
-  }
-  */
-
   public Set<FlatNode> getNodeSet() {
     HashSet<FlatNode> tovisit=new HashSet<FlatNode>();
     HashSet<FlatNode> visited=new HashSet<FlatNode>();
@@ -191,6 +177,24 @@ public class FlatSESEEnterNode extends FlatNode {
   public Set<SESEandAgePair> getNeededStaticNames() {
     return needStaticNameInCode;
   }
+
+  public void addStaticInVarSrc( SESEandAgePair p ) {
+    staticInVarSrcs.add( p );
+  }
+
+  public Set<SESEandAgePair> getStaticInVarSrcs() {
+    return staticInVarSrcs;
+  }
+
+  /*
+  public void addDynamicInVar( TempDescriptor td ) {
+    dynamicInVars.add( td );
+  }
+
+  public Set<TempDescriptor> getDynamicInVarSet() {
+    return dynamicInVars;
+  }
+  */
 
   public void setfmEnclosing( FlatMethod fm ) { fmEnclosing = fm; }
   public FlatMethod getfmEnclosing() { return fmEnclosing; }

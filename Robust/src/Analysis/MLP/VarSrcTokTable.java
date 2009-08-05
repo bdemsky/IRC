@@ -28,7 +28,11 @@ public class VarSrcTokTable {
   private Hashtable< SVKey,             Set<VariableSourceToken> >   sv2vst;
 
   // maximum age from aging operation
-  private Integer MAX_AGE = new Integer( 2 );
+  private static final Integer MAX_AGE = new Integer( 2 );
+  
+  public static final Integer SrcType_READY   = new Integer( 34 );
+  public static final Integer SrcType_STATIC  = new Integer( 35 );
+  public static final Integer SrcType_DYNAMIC = new Integer( 36 );
 
 
   public VarSrcTokTable() {
@@ -482,6 +486,34 @@ public class VarSrcTokTable {
   }
 
 
+  // for some reference variable, return the type of source
+  // it might have in this table, which might be:
+  // 1. Ready -- this variable comes from your parent and is
+  //      definitely available when you are issued.
+  // 2. Static -- there is definitely one SESE that will
+  //      produce the value for this variable
+  // 3. Dynamic -- we don't know where the value will come
+  //      from, so we'll track it dynamically
+  public Integer getRefVarSrcType( TempDescriptor    refVar,
+				   FlatSESEEnterNode parent ) {
+    assert refVar != null;
+    
+    Set<VariableSourceToken> srcs = get( refVar );
+    assert !srcs.isEmpty();
+
+    if( srcs.size() > 1 || 
+	srcs.iterator().next().getAge() == MLPAnalysis.maxSESEage ) {
+      return SrcType_DYNAMIC;
+    } 
+
+    if( srcs.iterator().next().getSESE() == parent ) {
+      return SrcType_READY;
+    }
+    
+    return SrcType_STATIC;
+  }
+
+
   // use as an aid for debugging, where true-set is checked
   // against the alternate mappings: assert that nothing is
   // missing or extra in the alternates
@@ -616,7 +648,6 @@ public class VarSrcTokTable {
   }
 
   public String toString() {
-    //return "trueSet ="+trueSet.toString();
     return toStringPretty();
   }
 
