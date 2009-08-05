@@ -299,13 +299,13 @@ public class BuildCode {
     }
     if (state.DSM) {
       outmethod.println("if (dstmStartup(argv[1])) {");
-      if (GENERATEPRECISEGC) {
+      if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
 	outmethod.println("  struct ArrayObject * stringarray=allocate_newarray(NULL, STRINGARRAYTYPE, argc-2);");
       } else {
 	outmethod.println("  struct ArrayObject * stringarray=allocate_newarray(STRINGARRAYTYPE, argc-2);");
       }
     } else {
-      if (GENERATEPRECISEGC) {
+      if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
 	outmethod.println("  struct ArrayObject * stringarray=allocate_newarray(NULL, STRINGARRAYTYPE, argc-1);");
       } else {
 	outmethod.println("  struct ArrayObject * stringarray=allocate_newarray(STRINGARRAYTYPE, argc-1);");
@@ -316,7 +316,7 @@ public class BuildCode {
     } else
       outmethod.println("  for(i=1;i<argc;i++) {");
     outmethod.println("    int length=strlen(argv[i]);");
-    if (GENERATEPRECISEGC) {
+    if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
       outmethod.println("    struct ___String___ *newstring=NewString(NULL, argv[i], length);");
     } else {
       outmethod.println("    struct ___String___ *newstring=NewString(argv[i], length);");
@@ -331,7 +331,7 @@ public class BuildCode {
     ClassDescriptor cd=typeutil.getMainClass();
 
     outmethod.println("   {");
-    if (GENERATEPRECISEGC) {
+    if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
       if (state.DSM||state.SINGLETM) {
 	outmethod.print("       struct "+cd.getSafeSymbol()+locality.getMain().getSignature()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_params __parameterlist__={");
       } else
@@ -1067,7 +1067,7 @@ public class BuildCode {
     for(int i=0; i<fm.numParameters(); i++) {
       TempDescriptor temp=fm.getParameter(i);
       TypeDescriptor type=temp.getType();
-      if (type.isPtr()&&GENERATEPRECISEGC)
+      if (type.isPtr()&&((GENERATEPRECISEGC) || (this.state.MULTICOREGC)))
 	objectparams.addPtr(temp);
       else
 	objectparams.addPrim(temp);
@@ -1078,7 +1078,7 @@ public class BuildCode {
 
     for(int i=0; i<fm.numTags(); i++) {
       TempDescriptor temp=fm.getTag(i);
-      if (GENERATEPRECISEGC)
+      if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC))
 	objectparams.addPtr(temp);
       else
 	objectparams.addPrim(temp);
@@ -1098,7 +1098,7 @@ public class BuildCode {
       for(int i=0; i<writes.length; i++) {
 	TempDescriptor temp=writes[i];
 	TypeDescriptor type=temp.getType();
-	if (type.isPtr()&&GENERATEPRECISEGC)
+	if (type.isPtr()&&((GENERATEPRECISEGC) || (this.state.MULTICOREGC)))
 	  objecttemps.addPtr(temp);
 	else
 	  objecttemps.addPrim(temp);
@@ -1113,7 +1113,7 @@ public class BuildCode {
       for(Iterator<TempDescriptor> tmpit=backuptable.get(lb).values().iterator(); tmpit.hasNext();) {
 	TempDescriptor tmp=tmpit.next();
 	TypeDescriptor type=tmp.getType();
-	if (type.isPtr()&&GENERATEPRECISEGC)
+	if (type.isPtr()&&((GENERATEPRECISEGC) || (this.state.MULTICOREGC)))
 	  objecttemps.addPtr(tmp);
 	else
 	  objecttemps.addPrim(tmp);
@@ -1121,7 +1121,7 @@ public class BuildCode {
       /* Create temp to hold revert table */
       if (state.DSM&&(lb.getHasAtomic()||lb.isAtomic())) {
 	TempDescriptor reverttmp=new TempDescriptor("revertlist", typeutil.getClass(TypeUtil.ObjectClass));
-	if (GENERATEPRECISEGC)
+	if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC))
 	  objecttemps.addPtr(reverttmp);
 	else
 	  objecttemps.addPrim(reverttmp);
@@ -1358,7 +1358,7 @@ public class BuildCode {
 
   private void generateMethodParam(ClassDescriptor cn, MethodDescriptor md, LocalityBinding lb, PrintWriter output) {
     /* Output parameter structure */
-    if (GENERATEPRECISEGC) {
+    if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
       ParamsObject objectparams=(ParamsObject) paramstable.get(lb!=null ? lb : md);
       if ((state.DSM||state.SINGLETM)&&lb!=null)
 	output.println("struct "+cn.getSafeSymbol()+lb.getSignature()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_params {");
@@ -1384,7 +1384,7 @@ public class BuildCode {
     generateMethodParam(cn, md, lb, output);
 
     /* Output temp structure */
-    if (GENERATEPRECISEGC) {
+    if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
       if (state.DSM||state.SINGLETM)
 	output.println("struct "+cn.getSafeSymbol()+lb.getSignature()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_locals {");
       else
@@ -1424,7 +1424,7 @@ public class BuildCode {
       headersout.print(cn.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"(");
     }
     boolean printcomma=false;
-    if (GENERATEPRECISEGC) {
+    if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
       if (state.DSM||state.SINGLETM) {
 	headersout.print("struct "+cn.getSafeSymbol()+lb.getSignature()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_params * "+paramsprefix);
       } else
@@ -1465,7 +1465,7 @@ public class BuildCode {
       TempObject objecttemps=(TempObject) tempstable.get(task);
 
       /* Output parameter structure */
-      if (GENERATEPRECISEGC) {
+      if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
 	output.println("struct "+task.getSafeSymbol()+"_params {");
 
 	output.println("  INTPTR size;");
@@ -1482,7 +1482,7 @@ public class BuildCode {
       }
 
       /* Output temp structure */
-      if (GENERATEPRECISEGC) {
+      if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
 	output.println("struct "+task.getSafeSymbol()+"_locals {");
 	output.println("  INTPTR size;");
 	output.println("  void * next;");
@@ -1503,7 +1503,7 @@ public class BuildCode {
       headersout.print("void " + task.getSafeSymbol()+"(");
 
       boolean printcomma=false;
-      if (GENERATEPRECISEGC) {
+      if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
 	headersout.print("struct "+task.getSafeSymbol()+"_params * "+paramsprefix);
       } else
 	headersout.print("void * parameterarray[]");
@@ -1630,7 +1630,7 @@ public class BuildCode {
       }
     }
 
-    if (GENERATEPRECISEGC) {
+    if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
       if (md!=null&&(state.DSM||state.SINGLETM))
 	output.print("   struct "+cn.getSafeSymbol()+lb.getSignature()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_locals "+localsprefix+"={");
       else if (md!=null&&!(state.DSM||state.SINGLETM))
@@ -1659,12 +1659,15 @@ public class BuildCode {
     /* Check to see if we need to do a GC if this is a
      * multi-threaded program...*/
 
-    if ((state.THREAD||state.DSM||state.SINGLETM)&&GENERATEPRECISEGC) {
+    if (((state.THREAD||state.DSM||state.SINGLETM)&&GENERATEPRECISEGC) 
+        || this.state.MULTICOREGC) {
       //Don't bother if we aren't in recursive methods...The loops case will catch it
       if (callgraph.getAllMethods(md).contains(md)) {
 	if (state.DSM&&lb.isAtomic())
 	  output.println("if (needtocollect) checkcollect2("+localsprefixaddr+");");
-	else
+	else if (this.state.MULTICOREGC) {
+      output.println("if(gcflag) gc("+localsprefixaddr+");");
+    } else
 	  output.println("if (needtocollect) checkcollect("+localsprefixaddr+");");
       }
     }
@@ -1839,7 +1842,7 @@ public class BuildCode {
 
     TempObject objecttemp=(TempObject) tempstable.get(md);
 
-    if (GENERATEPRECISEGC) {
+    if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
       output.print("   struct "+cn.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_locals "+localsprefix+"={");
       output.print(objecttemp.numPointers()+",");
       output.print("(void*) &("+paramsprefix+"->size)");
@@ -1900,10 +1903,14 @@ public class BuildCode {
 
     // Check to see if we need to do a GC if this is a
     // multi-threaded program...    
-    if (GENERATEPRECISEGC) {
+    if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
       //Don't bother if we aren't in recursive methods...The loops case will catch it
       if (callgraph.getAllMethods(md).contains(md)) {
-        output.println("if (needtocollect) checkcollect("+localsprefixaddr+");");
+        if(this.state.MULTICOREGC) {
+          output.println("if(gcflag) gc("+localsprefixaddr+");");
+        } else {
+          output.println("if (needtocollect) checkcollect("+localsprefixaddr+");");
+        }
       }
     }    
 
@@ -2327,10 +2334,13 @@ public class BuildCode {
       break;
 
     case FKind.FlatBackEdge:
-      if ((state.THREAD||state.DSM||state.SINGLETM)&&GENERATEPRECISEGC) {
+      if (((state.THREAD||state.DSM||state.SINGLETM)&&GENERATEPRECISEGC)
+          || (this.state.MULTICOREGC)) {
 	if(state.DSM&&locality.getAtomic(lb).get(fn).intValue()>0) {
 	  output.println("if (needtocollect) checkcollect2("+localsprefixaddr+");");
-	} else
+	} else if(this.state.MULTICOREGC) {
+      output.println("if (gcflag) gc("+localsprefixaddr+");");
+    } else
 	  output.println("if (needtocollect) checkcollect("+localsprefixaddr+");");
       } else
 	output.println("/* nop */");
@@ -2865,7 +2875,7 @@ public class BuildCode {
     ParamsObject objectparams=(ParamsObject)paramstable.get(lb!=null ? locality.getBinding(lb, fc) : md);
     ClassDescriptor cn=md.getClassDesc();
     output.println("{");
-    if (GENERATEPRECISEGC) {
+    if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC) {
       if (lb!=null) {
 	LocalityBinding fclb=locality.getBinding(lb, fc);
 	output.print("       struct "+cn.getSafeSymbol()+fclb.getSignature()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_params __parameterlist__={");
@@ -2924,7 +2934,7 @@ public class BuildCode {
       output.print("(*)(");
 
       boolean printcomma=false;
-      if (GENERATEPRECISEGC) {
+      if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
 	if (lb!=null) {
 	  LocalityBinding fclb=locality.getBinding(lb, fc);
 	  output.print("struct "+cn.getSafeSymbol()+fclb.getSignature()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_params * ");
@@ -2954,7 +2964,7 @@ public class BuildCode {
 
     output.print("(");
     boolean needcomma=false;
-    if (GENERATEPRECISEGC) {
+    if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
       output.print("&__parameterlist__");
       needcomma=true;
     }
@@ -3280,8 +3290,8 @@ public class BuildCode {
 	/* Link object into list */
 	String revertptr=generateTemp(fm, reverttable.get(lb),lb);
 	output.println(revertptr+"=revertlist;");
-	if (GENERATEPRECISEGC)
-	  output.println("COPY_OBJ((struct garbagelist *)"+localsprefixaddr+",(struct ___Object___ *)"+dst+");");
+	if ((GENERATEPRECISEGC))
+        output.println("COPY_OBJ((struct garbagelist *)"+localsprefixaddr+",(struct ___Object___ *)"+dst+");");
 	else
 	  output.println("COPY_OBJ("+dst+");");
 	output.println(dst+"->"+nextobjstr+"="+revertptr+";");
@@ -3343,7 +3353,7 @@ public class BuildCode {
       int arrayid=state.getArrayNumber(fn.getType())+state.numClasses();
       if (fn.isGlobal()&&(state.DSM||state.SINGLETM)) {
 	output.println(generateTemp(fm,fn.getDst(),lb)+"=allocate_newarrayglobal("+arrayid+", "+generateTemp(fm, fn.getSize(),lb)+");");
-      } else if (GENERATEPRECISEGC) {
+      } else if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
 	output.println(generateTemp(fm,fn.getDst(),lb)+"=allocate_newarray("+localsprefixaddr+", "+arrayid+", "+generateTemp(fm, fn.getSize(),lb)+");");
       } else {
 	output.println(generateTemp(fm,fn.getDst(),lb)+"=allocate_newarray("+arrayid+", "+generateTemp(fm, fn.getSize(),lb)+");");
@@ -3351,7 +3361,7 @@ public class BuildCode {
     } else {
       if (fn.isGlobal()&&(state.DSM||state.SINGLETM)) {
 	output.println(generateTemp(fm,fn.getDst(),lb)+"=allocate_newglobal("+fn.getType().getClassDesc().getId()+");");
-      } else if (GENERATEPRECISEGC) {
+      } else if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
 	output.println(generateTemp(fm,fn.getDst(),lb)+"=allocate_new("+localsprefixaddr+", "+fn.getType().getClassDesc().getId()+");");
       } else {
 	output.println(generateTemp(fm,fn.getDst(),lb)+"=allocate_new("+fn.getType().getClassDesc().getId()+");");
@@ -3373,7 +3383,7 @@ public class BuildCode {
   }
 
   private void generateFlatTagDeclaration(FlatMethod fm, LocalityBinding lb, FlatTagDeclaration fn, PrintWriter output) {
-    if (GENERATEPRECISEGC) {
+    if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
       output.println(generateTemp(fm,fn.getDst(),lb)+"=allocate_tag("+localsprefixaddr+", "+state.getTagId(fn.getType())+");");
     } else {
       output.println(generateTemp(fm,fn.getDst(),lb)+"=allocate_tag("+state.getTagId(fn.getType())+");");
@@ -3431,7 +3441,7 @@ public class BuildCode {
     if (fln.getValue()==null)
       output.println(generateTemp(fm, fln.getDst(),lb)+"=0;");
     else if (fln.getType().getSymbol().equals(TypeUtil.StringClass)) {
-      if (GENERATEPRECISEGC) {
+      if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
 	if (state.DSM && locality.getAtomic(lb).get(fln).intValue()>0) {
 	  //Stash pointer in case of GC
 	  String revertptr=generateTemp(fm, reverttable.get(lb),lb);
@@ -3520,7 +3530,7 @@ public class BuildCode {
     */
 
     boolean printcomma=false;
-    if (GENERATEPRECISEGC) {
+    if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
       if (md!=null) {
 	if (state.DSM||state.SINGLETM) {
 	  output.print("struct "+cn.getSafeSymbol()+lb.getSignature()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_params * "+paramsprefix);
@@ -3641,7 +3651,7 @@ public class BuildCode {
 	Iterator tagit=tagtmps.iterator();
 	while(tagit.hasNext()) {
 	  TempDescriptor tagtmp=(TempDescriptor)tagit.next();
-	  if (GENERATEPRECISEGC)
+	  if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC))
 	    output.println("tagclear("+localsprefixaddr+", (struct ___Object___ *)"+generateTemp(fm, temp,lb)+", "+generateTemp(fm,tagtmp,lb)+");");
 	  else
 	    output.println("tagclear((struct ___Object___ *)"+generateTemp(fm, temp,lb)+", "+generateTemp(fm,tagtmp,lb)+");");
@@ -3653,7 +3663,7 @@ public class BuildCode {
 	Iterator tagit=tagtmps.iterator();
 	while(tagit.hasNext()) {
 	  TempDescriptor tagtmp=(TempDescriptor)tagit.next();
-	  if (GENERATEPRECISEGC)
+	  if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC))
 	    output.println("tagset("+localsprefixaddr+", (struct ___Object___ *)"+generateTemp(fm, temp,lb)+", "+generateTemp(fm,tagtmp,lb)+");");
 	  else
 	    output.println("tagset((struct ___Object___ *)"+generateTemp(fm, temp, lb)+", "+generateTemp(fm,tagtmp, lb)+");");

@@ -342,7 +342,7 @@ public class BuildCodeMultiCore extends BuildCode {
 	TempObject objecttemps=(TempObject) tempstable.get(task);
 
 	/* Output parameter structure */
-	if (GENERATEPRECISEGC) {
+	if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
 	  output.println("struct "+task.getCoreSafeSymbol(num)+"_params {");
 	  output.println("  int size;");
 	  output.println("  void * next;");
@@ -358,7 +358,7 @@ public class BuildCodeMultiCore extends BuildCode {
 	}
 
 	/* Output temp structure */
-	if (GENERATEPRECISEGC) {
+	if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
 	  output.println("struct "+task.getCoreSafeSymbol(num)+"_locals {");
 	  output.println("  int size;");
 	  output.println("  void * next;");
@@ -378,7 +378,7 @@ public class BuildCodeMultiCore extends BuildCode {
 	/* Output task declaration */
 	headersout.print("void " + task.getCoreSafeSymbol(num)+"(");
 
-	if (GENERATEPRECISEGC) {
+	if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
 	  headersout.print("struct "+task.getCoreSafeSymbol(num)+"_params * "+paramsprefix);
 	} else
 	  headersout.print("void * parameterarray[]");
@@ -587,12 +587,18 @@ public class BuildCodeMultiCore extends BuildCode {
 
     //ParamsObject objectparams=(ParamsObject)paramstable.get(lb!=null?lb:task);
     generateTaskHeader(fm, lb, task,output);
+    // output code to check if need to do gc
+    if(state.MULTICOREGC) {
+      output.println("#ifdef MULTICORE_GC");
+      output.println("gc();");
+      output.println("#endif");
+    }
     TempObject objecttemp=(TempObject) tempstable.get(lb!=null ? lb : task);
     /*if (state.DSM&&lb.getHasAtomic()) {
         output.println("transrecord_t * trans;");
        }*/
 
-    if (GENERATEPRECISEGC) {
+    if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
       output.print("   struct "+task.getCoreSafeSymbol(num)+"_locals "+localsprefix+"={");
 
       output.print(objecttemp.numPointers()+",");
@@ -901,7 +907,7 @@ public class BuildCodeMultiCore extends BuildCode {
     output.print(task.getCoreSafeSymbol(num)+"(");
 
     boolean printcomma=false;
-    if (GENERATEPRECISEGC) {
+    if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
       output.print("struct "+task.getCoreSafeSymbol(num)+"_params * "+paramsprefix);
       printcomma=true;
     }
@@ -1636,7 +1642,7 @@ public class BuildCodeMultiCore extends BuildCode {
 	output.println(super.generateTemp(fm, fn.getDst(), lb)
 	               + "=allocate_newarrayglobal(trans, " + arrayid + ", "
 	               + super.generateTemp(fm, fn.getSize(), lb) + ");");
-      } else if (GENERATEPRECISEGC) {
+      } else if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
 	output.println(super.generateTemp(fm, fn.getDst(), lb)
 	               + "=allocate_newarray(&" + localsprefix + ", "
 	               + arrayid + ", " + super.generateTemp(fm, fn.getSize(), lb)
@@ -1651,7 +1657,7 @@ public class BuildCodeMultiCore extends BuildCode {
 	output.println(super.generateTemp(fm, fn.getDst(), lb)
 	               + "=allocate_newglobal(trans, "
 	               + fn.getType().getClassDesc().getId() + ");");
-      } else if (GENERATEPRECISEGC) {
+      } else if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
 	output.println(super.generateTemp(fm, fn.getDst(), lb)
 	               + "=allocate_new(&" + localsprefix + ", "
 	               + fn.getType().getClassDesc().getId() + ");");

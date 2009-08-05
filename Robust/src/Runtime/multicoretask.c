@@ -90,7 +90,7 @@ inline void run(void * arg) {
   isMsgHanging = false;
   isMsgSending = false;
 
-  smemflag = false;
+  smemflag = true;
   bamboo_cur_msp = NULL;
   bamboo_smem_size = 0;
 
@@ -179,6 +179,11 @@ inline void run(void * arg) {
 #endif
 
 	  while(true) {
+#ifdef MULTICORE_GC
+			// check if need to do GC
+			gc(NULL);
+#endif
+
 		  // check if there are new active tasks can be executed
 		  executetasks();
 
@@ -516,29 +521,22 @@ void createstartupobject(int argc, char ** argv) {
   int i;
 
   /* Allocate startup object     */
-#if 0
-#ifdef PRECISE_GC
+#ifdef MULTICORE_GC
   struct ___StartupObject___ *startupobject=(struct ___StartupObject___*) allocate_new(NULL, STARTUPTYPE);
   struct ArrayObject * stringarray=allocate_newarray(NULL, STRINGARRAYTYPE, argc-1);
 #else
   struct ___StartupObject___ *startupobject=(struct ___StartupObject___*) allocate_new(STARTUPTYPE);
   struct ArrayObject * stringarray=allocate_newarray(STRINGARRAYTYPE, argc-1);
 #endif
-#endif // #if 0: for garbage collection
-  struct ___StartupObject___ *startupobject=(struct ___StartupObject___*) allocate_new(STARTUPTYPE);
-  struct ArrayObject * stringarray=allocate_newarray(STRINGARRAYTYPE, argc-1);
   /* Build array of strings */
   startupobject->___parameters___=stringarray;
   for(i=1; i<argc; i++) {
     int length=strlen(argv[i]);
-#if 0
-#ifdef PRECISE_GC
+#ifdef MULTICORE_GC
     struct ___String___ *newstring=NewString(NULL, argv[i],length);
 #else
     struct ___String___ *newstring=NewString(argv[i],length);
 #endif
-#endif // #if 0: for garbage collection
-	struct ___String___ *newstring=NewString(argv[i],length);
     ((void **)(((char *)&stringarray->___length___)+sizeof(int)))[i-1]=newstring;
   }
 
@@ -573,14 +571,11 @@ int comparetpd(struct taskparamdescriptor *ftd1, struct taskparamdescriptor *ftd
 }
 
 /* This function sets a tag. */
-#if 0
-#ifdef PRECISE_GC
+#ifdef MULTICORE_GC
 void tagset(void *ptr, struct ___Object___ * obj, struct ___TagDescriptor___ * tagd) {
 #else
 void tagset(struct ___Object___ * obj, struct ___TagDescriptor___ * tagd) {
 #endif
-#endif // #if 0: for garbage collection
-void tagset(struct ___Object___ * obj, struct ___TagDescriptor___ * tagd) {
   struct ArrayObject * ao=NULL;
   struct ___Object___ * tagptr=obj->___tags___;
   if (tagptr==NULL) {
@@ -592,8 +587,7 @@ void tagset(struct ___Object___ * obj, struct ___TagDescriptor___ * tagd) {
       if (td==tagd) {
 	return;
       }
-#if 0
-#ifdef PRECISE_GC
+#ifdef MULTICORE_GC
       int ptrarray[]={2, (int) ptr, (int) obj, (int)tagd};
       struct ArrayObject * ao=allocate_newarray(&ptrarray,TAGARRAYTYPE,TAGARRAYINTERVAL);
       obj=(struct ___Object___ *)ptrarray[2];
@@ -602,8 +596,6 @@ void tagset(struct ___Object___ * obj, struct ___TagDescriptor___ * tagd) {
 #else
       ao=allocate_newarray(TAGARRAYTYPE,TAGARRAYINTERVAL);
 #endif
-#endif // #if 0: for garbage collection
-	  ao=allocate_newarray(TAGARRAYTYPE,TAGARRAYINTERVAL);
 
       ARRAYSET(ao, struct ___TagDescriptor___ *, 0, td);
       ARRAYSET(ao, struct ___TagDescriptor___ *, 1, tagd);
@@ -623,8 +615,7 @@ void tagset(struct ___Object___ * obj, struct ___TagDescriptor___ * tagd) {
 	ARRAYSET(ao, struct ___TagDescriptor___ *, ao->___cachedCode___, tagd);
 	ao->___cachedCode___++;
       } else {
-#if 0
-#ifdef PRECISE_GC
+#ifdef MULTICORE_GC
 	int ptrarray[]={2,(int) ptr, (int) obj, (int) tagd};
 	struct ArrayObject * aonew=allocate_newarray(&ptrarray,TAGARRAYTYPE,TAGARRAYINTERVAL+ao->___length___);
 	obj=(struct ___Object___ *)ptrarray[2];
@@ -633,8 +624,6 @@ void tagset(struct ___Object___ * obj, struct ___TagDescriptor___ * tagd) {
 #else
 	struct ArrayObject * aonew=allocate_newarray(TAGARRAYTYPE,TAGARRAYINTERVAL+ao->___length___);
 #endif
-#endif // #if 0: for garbage collection
-	struct ArrayObject * aonew=allocate_newarray(TAGARRAYTYPE,TAGARRAYINTERVAL+ao->___length___);
 
 	aonew->___cachedCode___=ao->___length___+1;
 	for(i=0; i<ao->___length___; i++) {
@@ -650,8 +639,7 @@ void tagset(struct ___Object___ * obj, struct ___TagDescriptor___ * tagd) {
     if(tagset==NULL) {
       tagd->flagptr=obj;
     } else if (tagset->type!=OBJECTARRAYTYPE) {
-#if 0
-#ifdef PRECISE_GC
+#ifdef MULTICORE_GC
       int ptrarray[]={2, (int) ptr, (int) obj, (int)tagd};
       struct ArrayObject * ao=allocate_newarray(&ptrarray,OBJECTARRAYTYPE,OBJECTARRAYINTERVAL);
       obj=(struct ___Object___ *)ptrarray[2];
@@ -659,8 +647,6 @@ void tagset(struct ___Object___ * obj, struct ___TagDescriptor___ * tagd) {
 #else
       struct ArrayObject * ao=allocate_newarray(OBJECTARRAYTYPE,OBJECTARRAYINTERVAL);
 #endif
-#endif // #if 0: for garbage collection
-	  struct ArrayObject * ao=allocate_newarray(OBJECTARRAYTYPE,OBJECTARRAYINTERVAL);
       ARRAYSET(ao, struct ___Object___ *, 0, tagd->flagptr);
       ARRAYSET(ao, struct ___Object___ *, 1, obj);
       ao->___cachedCode___=2;
@@ -671,8 +657,7 @@ void tagset(struct ___Object___ * obj, struct ___TagDescriptor___ * tagd) {
 	ARRAYSET(ao, struct ___Object___*, ao->___cachedCode___++, obj);
       } else {
 	int i;
-#if 0
-#ifdef PRECISE_GC
+#ifdef MULTICORE_GC
 	int ptrarray[]={2, (int) ptr, (int) obj, (int)tagd};
 	struct ArrayObject * aonew=allocate_newarray(&ptrarray,OBJECTARRAYTYPE,OBJECTARRAYINTERVAL+ao->___length___);
 	obj=(struct ___Object___ *)ptrarray[2];
@@ -681,8 +666,6 @@ void tagset(struct ___Object___ * obj, struct ___TagDescriptor___ * tagd) {
 #else
 	struct ArrayObject * aonew=allocate_newarray(OBJECTARRAYTYPE,OBJECTARRAYINTERVAL);
 #endif
-#endif // #if 0: for garbage collection
-	struct ArrayObject * aonew=allocate_newarray(OBJECTARRAYTYPE,OBJECTARRAYINTERVAL);
 	aonew->___cachedCode___=ao->___cachedCode___+1;
 	for(i=0; i<ao->___length___; i++) {
 	  ARRAYSET(aonew, struct ___Object___*, i, ARRAYGET(ao, struct ___Object___*, i));
@@ -695,14 +678,11 @@ void tagset(struct ___Object___ * obj, struct ___TagDescriptor___ * tagd) {
 }
 
 /* This function clears a tag. */
-#if 0
-#ifdef PRECISE_GC
+#ifdef MULTICORE_GC
 void tagclear(void *ptr, struct ___Object___ * obj, struct ___TagDescriptor___ * tagd) {
 #else
 void tagclear(struct ___Object___ * obj, struct ___TagDescriptor___ * tagd) {
 #endif
-#endif // #if 0: for garbage collection
-void tagclear(struct ___Object___ * obj, struct ___TagDescriptor___ * tagd) {
   /* We'll assume that tag is alway there.
      Need to statically check for this of course. */
   struct ___Object___ * tagptr=obj->___tags___;
@@ -771,17 +751,14 @@ ENDCLEAR:
   return;
 }
 
-#if 0
 /* This function allocates a new tag. */
-#ifdef PRECISE_GC
+#ifdef MULTICORE_GC
 struct ___TagDescriptor___ * allocate_tag(void *ptr, int index) {
-  struct ___TagDescriptor___ * v=(struct ___TagDescriptor___ *) mygcmalloc((struct garbagelist *) ptr, classsize[TAGTYPE]);
+  struct ___TagDescriptor___ * v=(struct ___TagDescriptor___ *) FREEMALLOC((struct garbagelist *) ptr, classsize[TAGTYPE]);
 #else
 struct ___TagDescriptor___ * allocate_tag(int index) {
   struct ___TagDescriptor___ * v=FREEMALLOC(classsize[TAGTYPE]);
 #endif
-#endif // #if 0: for garbage collection
-struct ___TagDescriptor___ * allocate_tag(int index) {
   struct ___TagDescriptor___ * v=FREEMALLOC(classsize[TAGTYPE]);
   v->type=TAGTYPE;
   v->flag=index;
@@ -1191,6 +1168,8 @@ msg:
       break;
     }
 
+// GC version have no lock msgs
+#ifndef MULTICORE_GC
     case LOCKREQUEST: {
       // receive lock request msg, handle it right now
       // check to see if there is a lock exist for the required obj
@@ -1278,6 +1257,7 @@ msg:
 			processlockrelease(data1, msgdata[2], 0, false);
       break;
     }
+#endif
 
 #ifdef PROFILE
     case PROFILEOUTPUT: {
@@ -1321,6 +1301,8 @@ msg:
     }
 #endif
 
+// GC version has no lock msgs
+#ifndef MULTICORE_GC
 	case REDIRECTLOCK: {
 	  // receive a redirect lock request msg, handle it right now
 		// check to see if there is a lock exist for the required obj
@@ -1411,6 +1393,7 @@ msg:
 		processlockrelease(data1, msgdata[2], msgdata[3], true);
 		break;
 	}
+#endif
 	
 	case STATUSCONFIRM: {
       // receive a status confirm info
@@ -1426,11 +1409,13 @@ msg:
 #endif
 #endif
 		  if(isMsgSending) {
-			  cache_msg_3(STARTUPCORE, STATUSREPORT, 
-						        busystatus?1:0, BAMBOO_NUM_OF_CORE);
+			  cache_msg_5(STARTUPCORE, STATUSREPORT, 
+						        busystatus?1:0, BAMBOO_NUM_OF_CORE,
+										self_numsendobjs, self_numreceiveobjs);
 		  } else {
-			  send_msg_3(STARTUPCORE, STATUSREPORT, 
-						       busystatus?1:0, BAMBOO_NUM_OF_CORE);
+			  send_msg_5(STARTUPCORE, STATUSREPORT, 
+						       busystatus?1:0, BAMBOO_NUM_OF_CORE,
+									 self_numsendobjs, self_numreceiveobjs);
 		  }
 		}
 	  break;
@@ -1454,6 +1439,8 @@ msg:
 			  numconfirm--;
 		  }
 		  corestatus[msgdata[2]] = msgdata[1];
+			numsendobjs[data1] = msgdata[2];
+			numreceiveobjs[data1] = msgdata[3];
 		}
 	  break;
 	}
@@ -1483,11 +1470,22 @@ msg:
 		  BAMBOO_DEBUGPRINT(0xe88a);
 #endif
 #endif
-		  // TODO change for GC
+#ifdef MULTICORE_GC
+			if(gcprocess) {
+				// is currently doing gc, dump this msg
+				break;
+			}
+#endif
 		  void * mem = mspace_calloc(bamboo_free_msp, 1, msgdata[1]);
 		  if(mem == NULL) {
+				// no enough shared global memory
+#ifdef MULTICORE_GC
+				gcflag = true;
+				break;
+#else
 			  BAMBOO_DEBUGPRINT(0xa016);
 			  BAMBOO_EXIT(0xa016);
+#endif
 		  }
 		  // send the start_va to request core
 			if(isMsgSending) {
@@ -1505,6 +1503,12 @@ msg:
 #ifndef TILERA
 	  BAMBOO_DEBUGPRINT(0xe88b);
 #endif
+#endif
+#ifdef MULTICORE_GC
+			if(gcprocess) {
+				// is currently doing gc, dump this msg
+				break;
+			}
 #endif
 	  if(msgdata[2] == 0) {
 		  bamboo_smem_size = 0;
@@ -1528,6 +1532,14 @@ msg:
 #endif
 	  // set the GC flag
 		gcflag = true;
+		gcphase = MARKPHASE;
+		if(!smemflag) {
+			// is waiting for response of mem request
+			// let it return NULL and start gc
+			bamboo_smem_size = 0;
+			bamboo_cur_msp = NULL;
+			smemflag = true;
+		}
 	  break;
 	}
 
@@ -1705,8 +1717,8 @@ msg:
 #endif
 		  BAMBOO_EXIT(0xb014);
 		} else {
-		  if(gcwaitconfirm) {
-			  gcnumconfirm--;
+		  if(waitconfirm) {
+			  numconfirm--;
 		  }
 		  gccorestatus[data1] = gcmsgdata[2];
 		  gcnumsendobjs[data1] = gcmsgdata[3];
@@ -1717,7 +1729,7 @@ msg:
 
 	case GCMARKEDOBJ: {
 		// received a markedObj msg
-		addNewItem(gctomark, data1);
+		gc_enqueue(data1);
 		gcself_numreceiveobjs++;
 		gcbusystatus = true;
 		break;
@@ -2009,7 +2021,7 @@ void removereadfd(int fd) {
 }
 #endif
 
-#ifdef PRECISE_GC
+#ifdef MULTICORE_GC
 #define OFFSET 2
 #else
 #define OFFSET 0
@@ -2067,6 +2079,9 @@ void executetasks() {
 newtask:
 #ifdef MULTICORE
   while(hashsize(activetasks)>0) {
+#ifdef MULTICORE_GC
+		gc(NULL);
+#endif
 #else
   while((hashsize(activetasks)>0)||(maxreadfd>0)) {
 #endif
@@ -2393,12 +2408,10 @@ parameterpresent:
 	     }
 #endif  // #if 0: for recovery
 	  /* Actually call task */
-#if 0
-#ifdef PRECISE_GC
+#ifdef MULTICORE_GC
 	  ((int *)taskpointerarray)[0]=currtpd->numParameters;
 	  taskpointerarray[1]=NULL;
 #endif
-#endif  // #if 0: for garbage collection
 execute:
 #ifdef PROFILE
 #ifdef ACCURATEPROFILE

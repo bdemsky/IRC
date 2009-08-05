@@ -66,7 +66,7 @@ volatile bool isMsgSending;
  * ProfileMsg: 6 + totalexetime (size is always 2 * sizeof(int))
  *             7 + corenum (size is always 2 * sizeof(int))
  * StatusMsg: c (size is always 1 * sizeof(int))
- *            d + status + corenum (size is always 3 * sizeof(int))
+ *            d + status + corenum + sendobjs + receiveobjs (size is always 5 * sizeof(int))
  *            status: 0 -- stall; 1 -- busy
  * TerminateMsg: e (size is always 1 * sizeof(int)
  * MemoryMsg: f + size + corenum (size is always 3 * sizeof(int))
@@ -84,7 +84,7 @@ volatile bool isMsgSending;
  *        1c + obj's address + corenum (size is always 3 * sizeof(int))
  *        1d + obj's address + dst address (size if always 3 * sizeof(int))
  *        1e (size is always 1 * sizeof(int))
- *        1f + size of msg + corenum + (num of large obj lists + (start address + length)+)?
+ *        1f + size of msg + corenum + current heap size + (num of large obj lists + (start address + length)+)?
  */
 enum MSGTYPE {
 	TRANSOBJ = 0x0,  // 0x0
@@ -136,12 +136,15 @@ bool busystatus;
 int self_numsendobjs;
 int self_numreceiveobjs;
 
+// get rid of lock msgs for GC version
+#ifndef MULTICORE_GC
 // data structures for locking
 struct RuntimeHash * objRedirectLockTbl;
 int lockobj;
 int lock2require;
 int lockresult;
 bool lockflag;
+#endif
 
 // data structures for waiting objs
 struct Queue objqueue;

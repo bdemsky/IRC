@@ -188,41 +188,26 @@ void CALL01(___System______printString____L___String___,struct ___String___ * __
 
 /* Object allocation function */
 
-#ifdef PRECISE_GC
+#ifdef MULTICORE_GC
 void * allocate_new(void * ptr, int type) {
-  struct ___Object___ * v=(struct ___Object___ *) mygcmalloc((struct garbagelist *) ptr, classsize[type]);
+  struct ___Object___ * v=(struct ___Object___ *)FREEMALLOC((struct garbagelist *) ptr, classsize[type]);
   v->type=type;
   v->version = 0;
-  //v->numlocks = 0;
   v->lock = NULL;
-#ifdef THREADS
-  v->tid=0;
-  v->lockentry=0;
-  v->lockcount=0;
-#endif
   return v;
 }
 
 /* Array allocation function */
 
 struct ArrayObject * allocate_newarray(void * ptr, int type, int length) {
-  struct ArrayObject * v=mygcmalloc((struct garbagelist *) ptr, sizeof(struct ArrayObject)+length*classsize[type]);
+  struct ArrayObject * v=(struct ArrayObject *)FREEMALLOC((struct garbagelist *) ptr, sizeof(struct ArrayObject)+length*classsize[type]);
   v->type=type;
   v->version = 0;
-  //v->numlocks = 0;
   v->lock = NULL;
   if (length<0) {
-#ifndef MULTICORE
-    printf("ERROR: negative array\n");
-#endif
     return NULL;
   }
   v->___length___=length;
-#ifdef THREADS
-  v->tid=0;
-  v->lockentry=0;
-  v->lockcount=0;
-#endif
   return v;
 }
 
@@ -251,13 +236,13 @@ struct ArrayObject * allocate_newarray(int type, int length) {
 
 
 /* Converts C character arrays into Java strings */
-#ifdef PRECISE_GC
+#ifdef MULTICORE_GC
 struct ___String___ * NewString(void * ptr, const char *str,int length) {
 #else
 struct ___String___ * NewString(const char *str,int length) {
 #endif
   int i;
-#ifdef PRECISE_GC
+#ifdef MULTICORE_GC
   struct ArrayObject * chararray=allocate_newarray((struct garbagelist *)ptr, CHARARRAYTYPE, length);
   int ptrarray[]={1, (int) ptr, (int) chararray};
   struct ___String___ * strobj=allocate_new((struct garbagelist *) &ptrarray, STRINGTYPE);
