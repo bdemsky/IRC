@@ -1,0 +1,24 @@
+SingleObjectMod.java:
+----------------------
+ Completes two transactions on single object type inside one loop iteration. The first transaction reads from the 
+ object while the second transaction randomly generates an index and writes into the object.
+ 
+ The contention is controlled by decreasing and increasing the size of the shared object array. Also
+ we get high contention by increasing the number of loop iterations to regulate the number of 
+ transactions that will commit.
+
+ Compiling and Running
+ ----------------------
+
+  To build: 
+  make stmlock
+  e.g. ~/research/Robust/src/Benchmarks/SingleTM/MicroBenchmarks$ make clean && make stmlock
+
+  To run:
+  ./STATSSingleObjectMod.bin -t <num threads>
+                             -size <array size>
+                             -l <loopsize>
+  
+  low contention:  -t 8 -size 5000 -l 100
+  high contention: -t 8 -size 5 -l 500000
+
