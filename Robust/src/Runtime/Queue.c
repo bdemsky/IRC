@@ -73,6 +73,18 @@ struct QueueItem * addNewItem_I(struct Queue * queue, void * ptr) {
 }
 #endif
 
+struct QueueItem * getTail(struct Queue * queue) {
+  return queue->tail;
+}
+
+struct QueueItem * getHead(struct Queue * queue) {
+  return queue->head;
+}
+
+struct QueueItem * getNextQueueItem(struct QueueItem * qi) {
+  return qi->next;
+}
+
 struct QueueItem * findItem(struct Queue * queue, void *ptr) {
   struct QueueItem * item=queue->head;
   while(item!=NULL) {
@@ -95,18 +107,6 @@ void removeItem(struct Queue * queue, struct QueueItem * item) {
   else
     next->prev=prev;
   RUNFREE(item);
-}
-
-struct QueueItem * getTail(struct Queue * queue) {
-  return queue->tail;
-}
-
-struct QueueItem * getHead(struct Queue * queue) {
-  return queue->head;
-}
-
-struct QueueItem * getNextQueueItem(struct QueueItem * qi) {
-  return qi->next;
 }
 
 void * getItem(struct Queue * queue) {
@@ -135,6 +135,18 @@ void * getItemBack(struct Queue * queue) {
   }
   queue->tail=q->prev;
   RUNFREE(q);
+  return ptr;
+}
+
+void * peekItem(struct Queue * queue) {
+  struct QueueItem * q=queue->head;
+  void * ptr=q->objectptr;
+  return ptr;
+}
+
+void * peekItemBack(struct Queue * queue) {
+  struct QueueItem * q=queue->tail;
+  void * ptr=q->objectptr;
   return ptr;
 }
 

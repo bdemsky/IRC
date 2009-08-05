@@ -15,22 +15,28 @@ struct QueueItem {
 
 #define isEmpty(x) ((x)->head==NULL)
 
-void * getItem(struct Queue * queue);
-void freeQueue(struct Queue * q);
 struct Queue * createQueue();
+void freeQueue(struct Queue * q);
+
 struct QueueItem * addNewItem(struct Queue * queue, void * ptr);
+struct QueueItem * addNewItemBack(struct Queue * queue, void * ptr);
 #ifdef MULTICORE
 struct QueueItem * addNewItem_I(struct Queue * queue, void * ptr);
 #endif
-struct QueueItem * findItem(struct Queue * queue, void * ptr);
-void removeItem(struct Queue * queue, struct QueueItem * item);
+
 struct QueueItem * getTail(struct Queue * queue);
 struct QueueItem * getHead(struct Queue * queue);
 struct QueueItem * getNextQueueItem(struct QueueItem * qi);
 
-// to implement a double-ended queue
+struct QueueItem * findItem(struct Queue * queue, void * ptr);
+
+void removeItem(struct Queue * queue, struct QueueItem * item);
+
+void * getItem(struct Queue * queue);
 void * getItemBack(struct Queue * queue);
-struct QueueItem * addNewItemBack(struct Queue * queue, void * ptr);
+
+void * peekItem(struct Queue * queue);
+void * peekItemBack(struct Queue * queue);
 
 
 // for debugging, only included if macro is defined
