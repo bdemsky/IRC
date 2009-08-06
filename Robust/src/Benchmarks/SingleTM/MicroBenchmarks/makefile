@@ -3,7 +3,7 @@ SRC=${MAINCLASS}.java \
     ../KMeans/Random.java \
     ../../../ClassLibrary/intwrapper.java
 
-FLAGSSTATS=-mainclass ${MAINCLASS} -singleTM -optimize -debug -joptimize -64bit -abcclose -dcopts -transstats -arraypad
+FLAGSSTATS=-stmstats -mainclass ${MAINCLASS} -singleTM -optimize -debug -joptimize -64bit -abcclose -dcopts -transstats -arraypad
 
 stmlock:
 	../../../buildscript ${FLAGSSTATS} ${SRC} -o STATS${MAINCLASS}

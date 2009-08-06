@@ -18,6 +18,8 @@ SingleObjectMod.java:
   ./STATSSingleObjectMod.bin -t <num threads>
                              -size <array size>
                              -l <loopsize>
+                             -l1 <loopsize1>
+                             -l2 <loopsize2>
   
   low contention:  -t 8 -size 5000 -l 100
   high contention: -t 8 -size 5 -l 500000
