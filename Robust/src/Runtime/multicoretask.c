@@ -1514,8 +1514,12 @@ msg:
 		  bamboo_smem_size = 0;
 		  bamboo_cur_msp = NULL;
 	  } else {
-		  bamboo_smem_size = msgdata[2];
-		  bamboo_cur_msp = create_mspace_with_base((void*)msgdata[1], msgdata[2], 0);
+			// fill header to store the size of this mem block
+			(*((int*)msgdata[1])) = msgdata[2];
+		  bamboo_smem_size = msgdata[2] - BAMBOO_CACHE_LINE_SIZE;
+		  bamboo_cur_msp = create_mspace_with_base((void*)(msgdata[1]+BAMBOO_CACHE_LINE_SIZE),
+						                                   msgdata[2] - BAMBOO_CACHE_LINE_SIZE, 
+																							 0);
 	  }
 	  smemflag = true;
 	  break;
@@ -1548,68 +1552,24 @@ msg:
 		if(cinstruction == NULL) {
 			cinstruction = 
 				(struct compactInstr *)RUNMALLOC(sizeof(struct compactInstr));
+			cinstruction->size2move = (int *)RUNMALLOC(sizeof(int) * 2);
+			cinstruction->dsts = (int*)RUNMALLOC(sizeof(int) * 2);
 		} else {
-			// clean up out of data info
-			if(cinstruction->tomoveobjs != NULL) {
-				RUNFREE(cinstruction->tomoveobjs->starts);
-				RUNFREE(cinstruction->tomoveobjs->ends);
-				RUNFREE(cinstruction->tomoveobjs->dststarts);
-				RUNFREE(cinstruction->tomoveobjs->dsts);
-				RUNFREE(cinstruction->tomoveobjs);
-				cinstruction->tomoveobjs = NULL;
-			}
-			if(cinstruction->incomingobjs != NULL) {
-				RUNFREE();
-				RUNFREE(cinstruction->incomingobjs->starts);
-				RUNFREE(cinstruction->incomingobjs->dsts);
-				RUNFREE(cinstruction->incomingobjs);
-				cinstruction->incomingobjs = NULL;
-			}
-			// largeobj items should have been freed when processed
-			if(cinstruction->largeobjs != NULL) {
-				BAMBOO_EXIT(0xb005);
-			}
+			// clean up out of date info
+			cinstruction->movenum = 0;
 		}
-		if(data1 > 2) {
+		cinstruction->loads = msgdata[2];
+		if(data1 > 3) {
 			// have objs to move etc.
-			int startindex = 2;
+			int startindex = 3;
 			// process objs to move
-			int num = msgdata[startindex++];
-			if(num > 0) {
-				cinstruction->tomoveobjs = 
-					(struct moveObj *)RUNMALLOC(sizeof(struct moveObj));
-				cinstruction->tomoveobjs->length = num;
-				cinstruction->tomoveobjs->starts = 
-					(INTPTR *)RUNMALLOC(num * sizeof(INTPTR));
-				cinstruction->tomoveobjs->ends = 
-					(INTPTR *)RUNMALLOC(num * sizeof(INTPTR));
-				cinstruction->tomoveobjs->dststarts = 
-					(INTPTR *)RUNMALLOC(num * sizeof(INTPTR));
-				cinstruction->tomoveobjs->dsts = 
-					(INTPTR *)RUNMALLOC(num * sizeof(INTPTR));
-				for(i = 0; i < num; i++) {
-					cinstruction->tomoveobjs->starts[i] = msgdata[startindex++];
-					cinstruction->tomoveobjs->ends[i] = msgdata[startindex++];
-					cinstruction->tomoveobjs->dsts[i] = msgdata[startindex++];
-					cinstruction->tomoveobjs->dststarts[i] = msgdata[startindex++];
-				}
+			cinstruction->movenum = msgdata[startindex++];
+			cinstruction->ismove = msgdata[startindex++];
+			for(i = 0; i < cinstruction->movenum; i++) {
+				cinstruction->size2move[i] = msgdata[startindex++];
+				cinstruction->dsts[i] = msgdata[startindex++];
 			}
-			// process incoming objs
-			num = msgdata[startindex++];
-			if(num > 0) {
-				cinstruction->incomingobjs = 
-					(struct moveObj *)RUNMALLOC(sizeof(struct moveObj));
-				cinstruction->incomingobjs->length = num;
-				cinstruction->incomingobjs->starts = 
-					(INTPTR *)RUNMALLOC(num * sizeof(INTPTR));
-				cinstruction->incomingobjs->dsts = 
-					(INTPTR *)RUNMALLOC(num * sizeof(INTPTR));
-				for(i = 0; i < num; i++) {
-					cinstruction->incomingobjs->starts[i] = msgdata[startindex++];
-					cinstruction->incomingobjs->dsts[i] = msgdata[startindex++];
-				}
-			}
-			// process large objs
+			/*// process large objs
 			num = msgdata[startindex++];
 			for(i = 0; i < num; i++) {
 				struct largeObjItem * loi = 
@@ -1622,7 +1582,7 @@ msg:
 					cinstruction->largeobjs->next = loi;
 				}
 				cinstruction->largeobjs = loi;
-			}
+			}*/
 		}
 		gcphase = COMPACTPHASE;
 		break;

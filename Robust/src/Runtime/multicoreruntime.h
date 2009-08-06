@@ -247,7 +247,6 @@ inline void cache_msg_5(int targetcore, unsigned long n0, unsigned long n1, unsi
 inline void cache_msg_6(int targetcore, unsigned long n0, unsigned long n1, unsigned long n2, unsigned long n3, unsigned long n4, unsigned long n5) __attribute__((always_inline));
 inline void transferObject(struct transObjInfo * transObj);
 inline int receiveMsg(void) __attribute__((always_inline));
-inline int receiveGCMsg(void) __attribute__((always_inline));
 
 #ifdef PROFILE
 inline void profileTaskStart(char * taskname) __attribute__((always_inline));

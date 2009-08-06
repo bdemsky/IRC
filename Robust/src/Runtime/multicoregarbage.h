@@ -9,7 +9,7 @@
 #define BAMBOO_BASE_VA 0xd000000
 #define BAMBOO_SMEM_SIZE 16 * BAMBOO_PAGE_SIZE
 #define BAMBOO_SMEM_SIZE_L 512 * BAMBOO_PAGE_SIZE
-#define BAMBOO_LARGE_SMEM_BOUND BAMBOO_SMEM_SIZE_L * NUMCORES // NUMCORES = 62
+#define BAMBOO_LARGE_SMEM_BOUND BAMBOO_SMEM_SIZE_L*NUMCORES // NUMCORES = 62
 
 struct garbagelist {
   int size;
@@ -50,13 +50,16 @@ struct moveObj {
 	int * dsts;
 	int length;
 };
-
+*/
 struct compactInstr {
-	struct moveObj * tomoveobjs;
-	struct moveObj * incomingobjs;
+	int loads;
+	int ismove;
+	int movenum;
+	int * size2move;
+	int * dsts;
 	struct largeObjItem * largeobjs;
 };
-*/
+
 enum GCPHASETYPE {
 	MARKPHASE = 0x0,   // 0x0
 	COMPACTPHASE,      // 0x1
@@ -84,6 +87,7 @@ int gcdeltal[NUMCORES];
 int gcdeltar[NUMCORES];
 
 // compact instruction
+INTPTR markedptrbound;
 struct compactInstr * cinstruction;
 // mapping of old address to new address
 struct genhashtable * pointertbl;
@@ -91,11 +95,15 @@ int obj2map;
 int mappedobj;
 bool ismapped;
 
+#define ALIGNSIZE(s, as) \
+	(*((int*)as)) = s & (~BAMBOO_CACHE_LINE_MASK) + BAMBOO_CACHE_LINE_SIZE;
+
 #define BLOCKINDEX(p, b) \
-	if((p) < BAMBOO_LARGE_SMEM_BOUND) { \
-		(*((int*)b)) = (p) / BAMBOO_SMEM_SIZE_L; \
+	int t = (p) - BAMBOO_BASE_VA; \
+	if(t < BAMBOO_LARGE_SMEM_BOUND) { \
+		(*((int*)b)) = t / BAMBOO_SMEM_SIZE_L; \
 	} else { \
-		(*((int*)b)) = NUMCORES + ((p) - BAMBOO_LARGE_SMEM_BOUND) / BAMBOO_SMEM_SIZE; \
+		(*((int*)b)) = NUMCORES + (t - BAMBOO_LARGE_SMEM_BOUND) / BAMBOO_SMEM_SIZE; \
 	}
 
 #define RESIDECORE(p, x, y) \
@@ -132,6 +140,13 @@ bool ismapped;
 		(*((int*)n)) = 1 + (s - BAMBOO_SMEM_SIZE_L) / BAMBOO_SMEM_SIZE; \
 	}
 
+#define OFFSET(s, o) \
+	if(s < BAMBOO_SMEM_SIZE_L) { \
+		(*((int*)o)) = s; \
+	} else { \
+		(*((int*)o)) = (s - BAMBOO_SMEM_SIZE_L) % BAMBOO_SMEM_SIZE; \
+	}
+
 #define BASEPTR(c, n, p) \
 	int x; \
   int y; \
@@ -161,9 +176,9 @@ bool ismapped;
 		b += NUMCORES * n; \
 	} \
 	if(b < NUMCORES) { \
-		(*((int*)p)) = b * BAMBOO_SMEM_SIZE_L; \
+		(*((int*)p)) = BAMBOO_BASE_VA + b * BAMBOO_SMEM_SIZE_L; \
 	} else { \
-		(*((int*)p)) = BAMBOO_LARGE_SMEM_BOUND + (b - NUMCORES) * BAMBOO_SMEM_SIZE; \
+		(*((int*)p)) = BAMBOO_BASE_VA + BAMBOO_LARGE_SMEM_BOUND + (b - NUMCORES) * BAMBOO_SMEM_SIZE; \
 	} 
 
 #define LEFTNEIGHBOUR(n, c) \
@@ -205,6 +220,7 @@ bool ismapped;
 void gc(struct garbagelist * stackptr); // core coordinator routine
 void gc_collect(struct garbagelist * stackptr); // core collector routine
 void transferMarkResults();
+void transferCompactStart(int corenum);
 void gc_enqueue(void *ptr);
 
 #endif

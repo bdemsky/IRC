@@ -33,7 +33,10 @@ memalloc:
 		goto memalloc;
   }
   BAMBOO_CLOSE_CRITICAL_SECTION_MEM();
-  return (void *)(BAMBOO_CACHE_LINE_SIZE+((int)p-1)&(~BAMBOO_CACHE_LINE_MASK));
+	void * alignedp = (void *)(BAMBOO_CACHE_LINE_SIZE+((int)p-1)&(~BAMBOO_CACHE_LINE_MASK));
+	memset(p, -2, (alignedp - p));
+  memset(alignedp + size, -2, p + isize - alignedp - size);
+	return alignedp;
 }
 #else
 void * mycalloc_share(int m, int size) {
