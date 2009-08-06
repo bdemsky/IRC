@@ -771,25 +771,21 @@ public class MLPAnalysis {
     case FKind.FlatSESEEnterNode: {
       FlatSESEEnterNode fsen = (FlatSESEEnterNode) fn;
 
-      // don't bother for the root SESE, there are no
-      // tokens for its in-set
-      if( fsen == rootSESE ) {
-	break;
-      }
-      
       // track the source types of the in-var set so generated
       // code at this SESE issue can compute the number of
       // dependencies properly
       Iterator<TempDescriptor> inVarItr = fsen.getInVarSet().iterator();
       while( inVarItr.hasNext() ) {
 	TempDescriptor inVar = inVarItr.next();
-	Integer srcType = vstTable.getRefVarSrcType( inVar, currentSESE );
+	Integer srcType = vstTable.getRefVarSrcType( inVar, fsen.getParent() );
 
 	if( srcType.equals( VarSrcTokTable.SrcType_DYNAMIC ) ) {
-	  //fsen.addDynamicInVar( inVar );
+	  fsen.addDynamicInVar( inVar );
 
 	} else if( srcType.equals( VarSrcTokTable.SrcType_STATIC ) ) {
+	  fsen.addStaticInVar( inVar );
 	  VariableSourceToken vst = vstTable.get( inVar ).iterator().next();
+	  fsen.putStaticInVar2src( inVar, vst );
 	  fsen.addStaticInVarSrc( new SESEandAgePair( vst.getSESE(), 
 						      vst.getAge() 
 						    ) 
@@ -797,6 +793,7 @@ public class MLPAnalysis {
 
 	} else {
 	  assert srcType.equals( VarSrcTokTable.SrcType_READY );
+	  fsen.addReadyInVar( inVar );
 	}	
       }
 
@@ -915,6 +912,7 @@ public class MLPAnalysis {
       currentSESE.addNeededStaticName( 
         new SESEandAgePair( vst.getSESE(), vst.getAge() ) 
 				     );
+      currentSESE.mustTrackAtLeastAge( vst.getAge() );
     }
 
     // if any variable at this node has a static source (exactly one sese)

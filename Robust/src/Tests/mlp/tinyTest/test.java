@@ -10,6 +10,8 @@ public class Test {
     int x = Integer.parseInt( args[0] );
     int y = Integer.parseInt( args[1] );
 
+    System.out.println( "root: x="+x+", y="+y );
+
     //Foo f;
 
     sese fi {
@@ -37,7 +39,7 @@ public class Test {
     // see that values from sese fi are
     // forwarded to this sibling
     sese fo {
-      System.out.println( "root: x="+x+", y="+y );
+      System.out.println( "fo: x="+x+", y="+y );
     }
 
     /*

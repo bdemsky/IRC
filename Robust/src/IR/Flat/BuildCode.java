@@ -1774,14 +1774,16 @@ public class BuildCode {
     outputStructs.println("  INTPTR size;");
     outputStructs.println("  void * next;");
 
-    // in-set source pointers
-    Iterator<TempDescriptor> itrInSet = fsen.getInVarSet().iterator();
-    while( itrInSet.hasNext() ) {
-      TempDescriptor temp = itrInSet.next();
-      outputStructs.println("  INTPTR "+temp.getSafeSymbol()+"__srcAddr_;");
+    // in-set source tracking
+    // in-vars that are READY come from parent, don't need anything
+    // stuff STATIC needs a custom SESE pointer for each age pair
+    Iterator<SESEandAgePair> itrStaticInVarSrcs = fsen.getStaticInVarSrcs().iterator();
+    while( itrStaticInVarSrcs.hasNext() ) {
+      SESEandAgePair srcPair = itrStaticInVarSrcs.next();
+      outputStructs.println("  "+srcPair.getSESE().getSESErecordName()+"* "+srcPair+";");
     }    
 
-    // all in and out set primitives
+    // space for all in and out set primitives
     Iterator<TempDescriptor> itrPrims = inSetAndOutSetPrims.iterator();
     while( itrPrims.hasNext() ) {
       TempDescriptor temp = itrPrims.next();
@@ -1870,36 +1872,51 @@ public class BuildCode {
       output.println("   void* "+p+";");
     }
 
-    // declare local temps for in-set primitives
+    // declare local temps for in-set primitives, and if it is
+    // a ready-source variable, get the value from the record
     Iterator<TempDescriptor> itrInSet = fsen.getInVarSet().iterator();
     while( itrInSet.hasNext() ) {
       TempDescriptor temp = itrInSet.next();
       TypeDescriptor type = temp.getType();
       if( !type.isPtr() ) {
-	output.println("   "+type+" "+temp+";");
+	if( fsen.getReadyInVarSet().contains( temp ) ) {
+	  output.println("   "+type+" "+temp+" = "+paramsprefix+"->"+temp+";");
+	} else {
+	  output.println("   "+type+" "+temp+";");
+	}
       }
     }    
 
-    // copy in-set into place
-    itrInSet = fsen.getInVarSet().iterator();
-    while( itrInSet.hasNext() ) {
-      TempDescriptor temp = itrInSet.next();
-      TypeDescriptor type = temp.getType();
+    // copy in-set into place, ready vars were already 
+    // copied when the SESE was issued
+    Iterator<TempDescriptor> tempItr;
 
-      // TODO !! make a deep copy of objects !
+    // static vars are from a known SESE
+    tempItr = fsen.getStaticInVarSet().iterator();
+    while( tempItr.hasNext() ) {
+      TempDescriptor      temp = tempItr.next();
+      TypeDescriptor      type = temp.getType();
+      VariableSourceToken vst  = fsen.getStaticInVarSrc( temp );
 
+      String to;
+      String size;
       if( type.isPtr() ) {
-	output.println("   memcpy( "+
-		       "(void*) &("+paramsprefix+"->"+temp.getSafeSymbol()+"), "+         // to
-		       "(void*) ("+paramsprefix+"->"+temp.getSafeSymbol()+"__srcAddr_),"+ // from
-		       " sizeof( "+paramsprefix+"->"+temp.getSafeSymbol()+" ) );");       // size
+	to = "(void*) ";
+	size = "sizeof ";
       } else {
-	output.println("   memcpy( "+
-		       "(void*) &("+temp.getSafeSymbol()+"), "+                           // to
-		       "(void*) ("+paramsprefix+"->"+temp.getSafeSymbol()+"__srcAddr_),"+ // from
-		       " sizeof( "+paramsprefix+"->"+temp.getSafeSymbol()+" ) );");       // size
-      }      
+	//to = "(void*) &("+temp.getSafeSymbol()+")";
+	to = temp.getSafeSymbol();
+	size = "sizeof( "+temp.getSafeSymbol()+" )";
+      }
+
+      SESEandAgePair srcPair = new SESEandAgePair( vst.getSESE(), vst.getAge() );
+      //String from = "(void*) &("+paramsprefix+"->"+srcPair+"->"+vst.getAddrVar()+")";
+      String from = paramsprefix+"->"+srcPair+"->"+vst.getAddrVar();
+      
+      //output.println("     memcpy( "+to+", "+from+", "+size+" );");
+      output.println("     "+to+" = "+from+";");
     }
+
 
     // Check to see if we need to do a GC if this is a
     // multi-threaded program...    
@@ -1916,7 +1933,6 @@ public class BuildCode {
 
     HashSet<FlatNode> exitset=new HashSet<FlatNode>();
     exitset.add(seseExit);
-
 
 
     generateCode(fsen.getNext(0), fm, null, exitset, output, true);
@@ -2734,27 +2750,6 @@ public class BuildCode {
     output.println("     seseToIssue->common.classID = "+fsen.getIdentifier()+";");
     output.println("     psem_init( &(seseToIssue->common.stallSem) );");
 
-    // give pointers to in-set variables, when this SESE is ready to
-    // execute it should copy values from the pointers because they
-    // will be guaranteed to be ready for consumption then
-    Iterator<TempDescriptor> itr = fsen.getInVarSet().iterator();
-    while( itr.hasNext() ) {
-      TempDescriptor temp = itr.next();
-      output.print("     seseToIssue->"+temp.getSafeSymbol()+"__srcAddr_ = ");
-
-      // if we are root (no parent) or the temp is in the in or out
-      // out set, we know it is in the params structure, otherwise its
-      // a method local variable
-      if( fsen.getParent() == null ||
-	  fsen.getParent().getInVarSet().contains( temp ) ||
-	  fsen.getParent().getOutVarSet().contains( temp ) 
-	) {
-	output.println("(INTPTR) &("+paramsprefix+"->"+temp.getSafeSymbol()+");");
-      } else {
-	output.println("(INTPTR) &("+temp.getSafeSymbol()+");");	
-      }
-    }
-
     // before potentially adding this SESE to other forwarding lists,
     //  create it's lock and take it immediately
     output.println("     pthread_mutex_init( &(seseToIssue->common.lock), NULL );");
@@ -2763,6 +2758,34 @@ public class BuildCode {
     output.println("     seseToIssue->common.forwardList = createQueue();");
     output.println("     seseToIssue->common.unresolvedDependencies = 0;");
     output.println("     seseToIssue->common.doneExecuting = FALSE;");    
+
+    // all READY in-vars should be copied now and be done with it
+    Iterator<TempDescriptor> tempItr = fsen.getReadyInVarSet().iterator();
+    while( tempItr.hasNext() ) {
+      TempDescriptor temp = tempItr.next();
+      TypeDescriptor type = temp.getType();
+
+      // if we are root (no parent) or the source of the in-var is in 
+      // the in or out set, we know it is in the params structure, 
+      // otherwise its a method-local variable
+      String from;
+      if( fsen.getParent() == null ||
+	  fsen.getParent().getInVarSet().contains( temp ) ||
+	  fsen.getParent().getOutVarSet().contains( temp ) 
+	) {
+	//from = "(void*) &("+paramsprefix+"->"+temp.getSafeSymbol()+")";
+	from = paramsprefix+"->"+temp.getSafeSymbol();
+      } else {
+	from = temp.getSafeSymbol();
+      }
+   
+      //String to   = "(void*) &(seseToIssue->"+temp.getSafeSymbol()+")";
+      String to   = "seseToIssue->"+temp.getSafeSymbol();
+      String size = "sizeof( seseToIssue->"+temp.getSafeSymbol()+" )";
+      
+      //output.println("     memcpy( "+to+", "+from+", "+size+" );");
+      output.println("     "+to+" = "+from+";");
+    }
 
     if( fsen != mlpa.getRootSESE() ) {
 
@@ -2773,7 +2796,8 @@ public class BuildCode {
 	output.println("     {");
 	output.println("       SESEcommon* src = (SESEcommon*)"+srcPair+";");
 	output.println("       pthread_mutex_lock( &(src->lock) );");
-	output.println("       if( seseToIssue == peekItem( src->forwardList ) ) {");
+	output.println("       if( !isEmpty( src->forwardList ) &&");
+	output.println("           seseToIssue == peekItem( src->forwardList ) ) {");
 	output.println("         printf( \"This shouldnt already be here\\n\");");
 	output.println("         exit( -1 );");
 	output.println("       }");
@@ -2781,14 +2805,21 @@ public class BuildCode {
 	output.println("       ++(seseToIssue->common.unresolvedDependencies);");
 	output.println("       pthread_mutex_unlock( &(src->lock) );");
 	output.println("     }");
-      }
 
-      /*
+	// whether or not it is an outstanding dependency, make sure
+	// to pass the static name to the child's record
+	output.println("     seseToIssue->"+srcPair+" = "+srcPair+";");
+      }
+      
       // maintain pointers for for finding dynamic SESE 
       // instances from static names
+      for( int i = fsen.getOldestAgeToTrack(); i > 0; --i ) {
+	SESEandAgePair p1 = new SESEandAgePair( fsen, i   );
+	SESEandAgePair p2 = new SESEandAgePair( fsen, i-1 );
+	output.println("     "+p1+" = "+p2+";");
+      }
       SESEandAgePair p = new SESEandAgePair( fsen, 0 );
       output.println("     "+p+" = seseToIssue;");
-      */
     }
 
     // if there were no outstanding dependencies, issue here
@@ -2875,7 +2906,7 @@ public class BuildCode {
     ParamsObject objectparams=(ParamsObject)paramstable.get(lb!=null ? locality.getBinding(lb, fc) : md);
     ClassDescriptor cn=md.getClassDesc();
     output.println("{");
-    if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC) {
+    if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
       if (lb!=null) {
 	LocalityBinding fclb=locality.getBinding(lb, fc);
 	output.print("       struct "+cn.getSafeSymbol()+fclb.getSignature()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_params __parameterlist__={");

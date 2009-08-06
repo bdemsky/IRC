@@ -18,14 +18,22 @@ public class FlatSESEEnterNode extends FlatNode {
   protected FlatSESEExitNode  exit;
   protected SESENode          treeNode;
   protected FlatSESEEnterNode parent;
+  protected Integer           oldestAgeToTrack;
 
   protected Set<FlatSESEEnterNode> children;
   protected Set<TempDescriptor>    inVars;
   protected Set<TempDescriptor>    outVars;
-  protected Set<SESEandAgePair>    needStaticNameInCode;
-  protected Set<SESEandAgePair>    staticInVarSrcs;
-  protected Set<TempDescriptor>    dynamicInVars;
 
+  protected Set<SESEandAgePair>    needStaticNameInCode;
+
+  protected Set<SESEandAgePair>    staticInVarSrcs;
+
+  protected Set<TempDescriptor>    readyInVars;
+  protected Set<TempDescriptor>    staticInVars;
+  protected Set<TempDescriptor>    dynamicInVars;  
+
+  protected Hashtable<TempDescriptor, VariableSourceToken> staticInVar2src;
+  
 
   // scope info for this SESE
   protected FlatMethod       fmEnclosing;
@@ -42,12 +50,18 @@ public class FlatSESEEnterNode extends FlatNode {
     this.id              = identifier++;
     treeNode             = sn;
     parent               = null;
+    oldestAgeToTrack     = new Integer( 0 );
+
     children             = new HashSet<FlatSESEEnterNode>();
     inVars               = new HashSet<TempDescriptor>();
     outVars              = new HashSet<TempDescriptor>();
     needStaticNameInCode = new HashSet<SESEandAgePair>();
     staticInVarSrcs      = new HashSet<SESEandAgePair>();
+    readyInVars          = new HashSet<TempDescriptor>();
+    staticInVars         = new HashSet<TempDescriptor>();
     dynamicInVars        = new HashSet<TempDescriptor>();
+
+    staticInVar2src = new Hashtable<TempDescriptor, VariableSourceToken>();
   }
 
   public void rewriteUse() {
@@ -186,7 +200,31 @@ public class FlatSESEEnterNode extends FlatNode {
     return staticInVarSrcs;
   }
 
-  /*
+  public void addReadyInVar( TempDescriptor td ) {
+    readyInVars.add( td );
+  }
+
+  public Set<TempDescriptor> getReadyInVarSet() {
+    return readyInVars;
+  }
+
+  public void addStaticInVar( TempDescriptor td ) {
+    staticInVars.add( td );
+  }
+
+  public Set<TempDescriptor> getStaticInVarSet() {
+    return staticInVars;
+  }
+
+  public void putStaticInVar2src( TempDescriptor staticInVar,
+				  VariableSourceToken vst ) {
+    staticInVar2src.put( staticInVar, vst );
+  }
+
+  public VariableSourceToken getStaticInVarSrc( TempDescriptor staticInVar ) {
+    return staticInVar2src.get( staticInVar );
+  }
+
   public void addDynamicInVar( TempDescriptor td ) {
     dynamicInVars.add( td );
   }
@@ -194,7 +232,16 @@ public class FlatSESEEnterNode extends FlatNode {
   public Set<TempDescriptor> getDynamicInVarSet() {
     return dynamicInVars;
   }
-  */
+
+  public void mustTrackAtLeastAge( Integer age ) {
+    if( age > oldestAgeToTrack ) {
+      oldestAgeToTrack = new Integer( age );
+    }    
+  }
+
+  public Integer getOldestAgeToTrack() {
+    return oldestAgeToTrack;
+  }
 
   public void setfmEnclosing( FlatMethod fm ) { fmEnclosing = fm; }
   public FlatMethod getfmEnclosing() { return fmEnclosing; }

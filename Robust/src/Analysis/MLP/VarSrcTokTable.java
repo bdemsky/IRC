@@ -498,6 +498,10 @@ public class VarSrcTokTable {
 				   FlatSESEEnterNode parent ) {
     assert refVar != null;
     
+    if( parent == null ) {
+      return SrcType_READY;
+    }
+
     Set<VariableSourceToken> srcs = get( refVar );
     assert !srcs.isEmpty();
 
