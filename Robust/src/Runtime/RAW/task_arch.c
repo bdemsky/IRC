@@ -3,14 +3,6 @@
 #include "multicoreruntime.h"
 #include "runtime_arch.h"
 
-// data structures for locking
-struct RuntimeHash locktable;
-static struct RuntimeHash* locktbl = &locktable;
-struct LockValue {
-	int redirectlock;
-	int value;
-};
-
 __attribute__((always_inline)) inline void initialization() {
 } // initialization()
 

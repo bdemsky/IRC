@@ -42,21 +42,16 @@ struct largeObjItem {
 	int length;
 	struct largeObjItem * next;
 };
-/*
-struct moveObj {
-	INTPTR * starts;
-	INTPTR * ends;
-	INTPTR * dststarts;
-	int * dsts;
-	int length;
-};
-*/
+
 struct compactInstr {
 	int loads;
 	int ismove;
 	int movenum;
-	int * size2move;
-	int * dsts;
+	int size2move[2];
+	int dsts[2];
+	int moveflag[2];
+	INTPTR startaddrs[2];
+	INTPTR endaddrs[2];
 	struct largeObjItem * largeobjs;
 };
 
@@ -70,8 +65,7 @@ enum GCPHASETYPE {
 volatile bool gcflag;
 volatile bool gcprocessing;
 GCPHASETYPE gcphase; // indicating GC phase
-bool gctomove; // flag indicating if can start moving objects to other cores
-struct Queue * gcdsts;
+
 // for mark phase termination
 int gccorestatus[NUMCORES]; // records status of each core
                             // 1: running gc
@@ -80,6 +74,7 @@ int gcnumsendobjs[NUMCORES]; // records how many objects a core has sent out
 int gcnumreceiveobjs[NUMCORES]; // records how many objects a core has received
 int gcself_numsendobjs;
 int gcself_numreceiveobjs;
+
 // for load balancing
 int gcloads[NUMCORES];
 int gcreloads[NUMCORES];
@@ -89,8 +84,10 @@ int gcdeltar[NUMCORES];
 // compact instruction
 INTPTR markedptrbound;
 struct compactInstr * cinstruction;
+bool gctomove; // flag indicating if can start moving objects to other cores
+
 // mapping of old address to new address
-struct genhashtable * pointertbl;
+struct RuntimeHash * pointertbl;
 int obj2map;
 int mappedobj;
 bool ismapped;

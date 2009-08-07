@@ -7,7 +7,8 @@
 
 // data structures for msgs
 #define BAMBOO_OUT_BUF_LENGTH 300
-int msgdata[30];
+#define BAMBOO_MSG_BUF_LENGTH 30
+int msgdata[BAMBOO_MSG_BUF_LENGTH];
 int msgtype;
 int msgdataindex;
 int msglength;
@@ -139,6 +140,12 @@ int self_numreceiveobjs;
 // get rid of lock msgs for GC version
 #ifndef MULTICORE_GC
 // data structures for locking
+struct RuntimeHash locktable;
+static struct RuntimeHash* locktbl = &locktable;
+struct LockValue {
+	int redirectlock;
+	int value;
+};
 struct RuntimeHash * objRedirectLockTbl;
 int lockobj;
 int lock2require;
@@ -234,6 +241,7 @@ inline int processlockrequest(int locktype, int lock, int obj, int requestcore, 
 inline void processlockrelease(int locktype, int lock, int redirectlock, bool isredirect) __attribute_((always_inline));
 
 // msg related functions
+inline void send_hanging_msg() __attribute__((always_inline));
 inline void send_msg_1(int targetcore, unsigned long n0) __attribute__((always_inline));
 inline void send_msg_2(int targetcore, unsigned long n0, unsigned long n1) __attribute__((always_inline));
 inline void send_msg_3(int targetcore, unsigned long n0, unsigned long n1, unsigned long n2) __attribute__((always_inline));
