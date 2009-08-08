@@ -121,7 +121,6 @@ struct transObjInfo {
   int * queues;
   int length;
 };
-struct RuntimeHash * lockRedirectTbl;
 #endif
 
 #ifdef FASTCHECK
@@ -140,6 +139,7 @@ inline void addNewObjInfo(void * nobj);
 #endif
 int * getAliasLock(void ** ptrs, int length, struct RuntimeHash * tbl);
 void addAliasLock(void * ptr, int lock);
+void * smemalloc(int size, int * allocsize);
 #else
 void flagorand(void * ptr, int ormask, int andmask);
 void flagorandinit(void * ptr, int ormask, int andmask);

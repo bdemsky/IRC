@@ -9,8 +9,14 @@ struct genhashtable * activetasks;
 struct taskparamdescriptor * currtpd;
 
 // specific functions used inside critical sections
-void enqueueObject_I(void * ptr, struct parameterwrapper ** queues, int length);
-int enqueuetasks_I(struct parameterwrapper *parameter, struct parameterwrapper *prevptr, struct ___Object___ *ptr, int * enterflags, int numenterflags);
+void enqueueObject_I(void * ptr, 
+		                 struct parameterwrapper ** queues, 
+										 int length);
+int enqueuetasks_I(struct parameterwrapper *parameter, 
+		               struct parameterwrapper *prevptr, 
+									 struct ___Object___ *ptr, 
+									 int * enterflags, 
+									 int numenterflags);
 
 inline void initruntimedata() {
 	// initialize the arrays
@@ -18,7 +24,7 @@ inline void initruntimedata() {
     // startup core to initialize corestatus[]
     for(i = 0; i < NUMCORES; ++i) {
       corestatus[i] = 1;
-      numsendobjs[i] = 0;                   // assume all variables are local variables! MAY BE WRONG!!!
+      numsendobjs[i] = 0; 
       numreceiveobjs[i] = 0;
 #ifdef PROFILE
 			// initialize the profile data arrays
@@ -80,7 +86,8 @@ inline void initruntimedata() {
 #else
 	// create the lock table, lockresult table and obj queue
   locktable.size = 20;
-  locktable.bucket = (struct RuntimeNode **) RUNMALLOC_I(sizeof(struct RuntimeNode *)*20);
+  locktable.bucket = 
+		(struct RuntimeNode **) RUNMALLOC_I(sizeof(struct RuntimeNode *)*20);
   /* Set allocation blocks*/
   locktable.listhead=NULL;
   locktable.listtail=NULL;
@@ -179,18 +186,22 @@ bool checkObjQueue(void * sendStall) {
 				// flush the object
 #ifdef CACHEFLUSH
 				BAMBOO_CACHE_FLUSH_RANGE((int)obj,sizeof(int));
-				BAMBOO_CACHE_FLUSH_RANGE((int)obj, classsize[((struct ___Object___ *)obj)->type]);
+				BAMBOO_CACHE_FLUSH_RANGE((int)obj, 
+						classsize[((struct ___Object___ *)obj)->type]);
 #endif
 				// enqueue the object
 				for(k = 0; k < objInfo->length; ++k) {
 					int taskindex = objInfo->queues[2 * k];
 					int paramindex = objInfo->queues[2 * k + 1];
-					struct parameterwrapper ** queues = &(paramqueues[BAMBOO_NUM_OF_CORE][taskindex][paramindex]);
+					struct parameterwrapper ** queues = 
+						&(paramqueues[BAMBOO_NUM_OF_CORE][taskindex][paramindex]);
 #ifdef DEBUG
 					BAMBOO_DEBUGPRINT_REG(taskindex);
 					BAMBOO_DEBUGPRINT_REG(paramindex);
 					struct ___Object___ * tmpptr = (struct ___Object___ *)obj;
-					tprintf("Process %x(%d): receive obj %x(%lld), ptrflag %x\n", BAMBOO_NUM_OF_CORE, BAMBOO_NUM_OF_CORE, (int)obj, (long)obj, tmpptr->flag);
+					tprintf("Process %x(%d): receive obj %x(%lld), ptrflag %x\n", 
+							    BAMBOO_NUM_OF_CORE, BAMBOO_NUM_OF_CORE, (int)obj, 
+									(long)obj, tmpptr->flag);
 #endif
 					enqueueObject_I(obj, queues, 1);
 #ifdef DEBUG				 
@@ -206,7 +217,8 @@ bool checkObjQueue(void * sendStall) {
 				struct QueueItem * qitem = getHead(&objqueue);
 				struct QueueItem * prev = NULL;
 				while(qitem != NULL) {
-					struct transObjInfo * tmpinfo = (struct transObjInfo *)(qitem->objectptr);
+					struct transObjInfo * tmpinfo = 
+						(struct transObjInfo *)(qitem->objectptr);
 					if(tmpinfo->objptr == obj) {
 						// the same object in the queue, which should be enqueued
 						// recently. Current one is outdate, do not re-enqueue it
@@ -442,8 +454,9 @@ inline void run(void * arg) {
 	fakeExecution();
   } else {
 	  /* Create queue of active tasks */
-	  activetasks=genallocatehashtable((unsigned int(*) (void *)) &hashCodetpd,
-                                       (int(*) (void *,void *)) &comparetpd);
+	  activetasks=
+			genallocatehashtable((unsigned int(*) (void *)) &hashCodetpd,
+                           (int(*) (void *,void *)) &comparetpd);
 	  
 	  /* Process task information */
 	  processtasks();
@@ -475,7 +488,8 @@ inline void run(void * arg) {
 		  BAMBOO_DEBUGPRINT(0xee01);
 #endif  
 		  
-		  // check if there are some pending objects, if yes, enqueue them and executetasks again
+		  // check if there are some pending objects, 
+			// if yes, enqueue them and executetasks again
 		  tocontinue = checkObjQueue();
 
 		  if(!tocontinue) {
@@ -511,7 +525,8 @@ inline void run(void * arg) {
 							  BAMBOO_DEBUGPRINT(0xee0b);
 #endif
 							  // send stall msg
-							  send_msg_4(STARTUPCORE, 1, BAMBOO_NUM_OF_CORE, self_numsendobjs, self_numreceiveobjs);
+							  send_msg_4(STARTUPCORE, 1, BAMBOO_NUM_OF_CORE, 
+										       self_numsendobjs, self_numreceiveobjs);
 							  sendStall = true;
 							  isfirst = true;
 							  busystatus = false;
@@ -533,16 +548,21 @@ inline void run(void * arg) {
 
 } // run()
 
-void createstartupobject(int argc, char ** argv) {
+void createstartupobject(int argc, 
+		                     char ** argv) {
   int i;
 
   /* Allocate startup object     */
 #ifdef MULTICORE_GC
-  struct ___StartupObject___ *startupobject=(struct ___StartupObject___*) allocate_new(NULL, STARTUPTYPE);
-  struct ArrayObject * stringarray=allocate_newarray(NULL, STRINGARRAYTYPE, argc-1);
+  struct ___StartupObject___ *startupobject=
+		(struct ___StartupObject___*) allocate_new(NULL, STARTUPTYPE);
+  struct ArrayObject * stringarray=
+		allocate_newarray(NULL, STRINGARRAYTYPE, argc-1);
 #else
-  struct ___StartupObject___ *startupobject=(struct ___StartupObject___*) allocate_new(STARTUPTYPE);
-  struct ArrayObject * stringarray=allocate_newarray(STRINGARRAYTYPE, argc-1);
+  struct ___StartupObject___ *startupobject=
+		(struct ___StartupObject___*) allocate_new(STARTUPTYPE);
+  struct ArrayObject * stringarray=
+		allocate_newarray(STRINGARRAYTYPE, argc-1);
 #endif
   /* Build array of strings */
   startupobject->___parameters___=stringarray;
@@ -553,7 +573,8 @@ void createstartupobject(int argc, char ** argv) {
 #else
     struct ___String___ *newstring=NewString(argv[i],length);
 #endif
-    ((void **)(((char *)&stringarray->___length___)+sizeof(int)))[i-1]=newstring;
+    ((void **)(((char *)&stringarray->___length___)+sizeof(int)))[i-1]=
+			newstring;
   }
 
   startupobject->version = 0;
@@ -576,7 +597,8 @@ int hashCodetpd(struct taskparamdescriptor *ftd) {
   return hash;
 }
 
-int comparetpd(struct taskparamdescriptor *ftd1, struct taskparamdescriptor *ftd2) {
+int comparetpd(struct taskparamdescriptor *ftd1, 
+		           struct taskparamdescriptor *ftd2) {
   int i;
   if (ftd1->task!=ftd2->task)
     return 0;
@@ -588,9 +610,12 @@ int comparetpd(struct taskparamdescriptor *ftd1, struct taskparamdescriptor *ftd
 
 /* This function sets a tag. */
 #ifdef MULTICORE_GC
-void tagset(void *ptr, struct ___Object___ * obj, struct ___TagDescriptor___ * tagd) {
+void tagset(void *ptr, 
+		        struct ___Object___ * obj, 
+						struct ___TagDescriptor___ * tagd) {
 #else
-void tagset(struct ___Object___ * obj, struct ___TagDescriptor___ * tagd) {
+void tagset(struct ___Object___ * obj, 
+		        struct ___TagDescriptor___ * tagd) {
 #endif
   struct ArrayObject * ao=NULL;
   struct ___Object___ * tagptr=obj->___tags___;
@@ -605,7 +630,8 @@ void tagset(struct ___Object___ * obj, struct ___TagDescriptor___ * tagd) {
       }
 #ifdef MULTICORE_GC
       int ptrarray[]={2, (int) ptr, (int) obj, (int)tagd};
-      struct ArrayObject * ao=allocate_newarray(&ptrarray,TAGARRAYTYPE,TAGARRAYINTERVAL);
+      struct ArrayObject * ao=
+				allocate_newarray(&ptrarray,TAGARRAYTYPE,TAGARRAYINTERVAL);
       obj=(struct ___Object___ *)ptrarray[2];
       tagd=(struct ___TagDescriptor___ *)ptrarray[3];
       td=(struct ___TagDescriptor___ *) obj->___tags___;
@@ -622,7 +648,8 @@ void tagset(struct ___Object___ * obj, struct ___TagDescriptor___ * tagd) {
       int i;
       struct ArrayObject *ao=(struct ArrayObject *) tagptr;
       for(i=0; i<ao->___cachedCode___; i++) {
-	struct ___TagDescriptor___ * td=ARRAYGET(ao, struct ___TagDescriptor___*, i);
+	struct ___TagDescriptor___ * td=
+		ARRAYGET(ao, struct ___TagDescriptor___*, i);
 	if (td==tagd) {
 	  return;
 	}
@@ -633,17 +660,21 @@ void tagset(struct ___Object___ * obj, struct ___TagDescriptor___ * tagd) {
       } else {
 #ifdef MULTICORE_GC
 	int ptrarray[]={2,(int) ptr, (int) obj, (int) tagd};
-	struct ArrayObject * aonew=allocate_newarray(&ptrarray,TAGARRAYTYPE,TAGARRAYINTERVAL+ao->___length___);
+	struct ArrayObject * aonew=
+		allocate_newarray(&ptrarray,TAGARRAYTYPE,
+				              TAGARRAYINTERVAL+ao->___length___);
 	obj=(struct ___Object___ *)ptrarray[2];
 	tagd=(struct ___TagDescriptor___ *) ptrarray[3];
 	ao=(struct ArrayObject *)obj->___tags___;
 #else
-	struct ArrayObject * aonew=allocate_newarray(TAGARRAYTYPE,TAGARRAYINTERVAL+ao->___length___);
+	struct ArrayObject * aonew=
+		allocate_newarray(TAGARRAYTYPE,TAGARRAYINTERVAL+ao->___length___);
 #endif
 
 	aonew->___cachedCode___=ao->___length___+1;
 	for(i=0; i<ao->___length___; i++) {
-	  ARRAYSET(aonew, struct ___TagDescriptor___*, i, ARRAYGET(ao, struct ___TagDescriptor___*, i));
+	  ARRAYSET(aonew, struct ___TagDescriptor___*, i, 
+				     ARRAYGET(ao, struct ___TagDescriptor___*, i));
 	}
 	ARRAYSET(aonew, struct ___TagDescriptor___ *, ao->___length___, tagd);
       }
@@ -657,11 +688,13 @@ void tagset(struct ___Object___ * obj, struct ___TagDescriptor___ * tagd) {
     } else if (tagset->type!=OBJECTARRAYTYPE) {
 #ifdef MULTICORE_GC
       int ptrarray[]={2, (int) ptr, (int) obj, (int)tagd};
-      struct ArrayObject * ao=allocate_newarray(&ptrarray,OBJECTARRAYTYPE,OBJECTARRAYINTERVAL);
+      struct ArrayObject * ao=
+				allocate_newarray(&ptrarray,OBJECTARRAYTYPE,OBJECTARRAYINTERVAL);
       obj=(struct ___Object___ *)ptrarray[2];
       tagd=(struct ___TagDescriptor___ *)ptrarray[3];
 #else
-      struct ArrayObject * ao=allocate_newarray(OBJECTARRAYTYPE,OBJECTARRAYINTERVAL);
+      struct ArrayObject * ao=
+				allocate_newarray(OBJECTARRAYTYPE,OBJECTARRAYINTERVAL);
 #endif
       ARRAYSET(ao, struct ___Object___ *, 0, tagd->flagptr);
       ARRAYSET(ao, struct ___Object___ *, 1, obj);
@@ -675,16 +708,20 @@ void tagset(struct ___Object___ * obj, struct ___TagDescriptor___ * tagd) {
 	int i;
 #ifdef MULTICORE_GC
 	int ptrarray[]={2, (int) ptr, (int) obj, (int)tagd};
-	struct ArrayObject * aonew=allocate_newarray(&ptrarray,OBJECTARRAYTYPE,OBJECTARRAYINTERVAL+ao->___length___);
+	struct ArrayObject * aonew=
+		allocate_newarray(&ptrarray,OBJECTARRAYTYPE,
+				              OBJECTARRAYINTERVAL+ao->___length___);
 	obj=(struct ___Object___ *)ptrarray[2];
 	tagd=(struct ___TagDescriptor___ *)ptrarray[3];
 	ao=(struct ArrayObject *)tagd->flagptr;
 #else
-	struct ArrayObject * aonew=allocate_newarray(OBJECTARRAYTYPE,OBJECTARRAYINTERVAL);
+	struct ArrayObject * aonew=
+		allocate_newarray(OBJECTARRAYTYPE,OBJECTARRAYINTERVAL);
 #endif
 	aonew->___cachedCode___=ao->___cachedCode___+1;
 	for(i=0; i<ao->___length___; i++) {
-	  ARRAYSET(aonew, struct ___Object___*, i, ARRAYGET(ao, struct ___Object___*, i));
+	  ARRAYSET(aonew, struct ___Object___*, i, 
+				     ARRAYGET(ao, struct ___Object___*, i));
 	}
 	ARRAYSET(aonew, struct ___Object___ *, ao->___cachedCode___, obj);
 	tagd->flagptr=(struct ___Object___ *) aonew;
@@ -695,9 +732,12 @@ void tagset(struct ___Object___ * obj, struct ___TagDescriptor___ * tagd) {
 
 /* This function clears a tag. */
 #ifdef MULTICORE_GC
-void tagclear(void *ptr, struct ___Object___ * obj, struct ___TagDescriptor___ * tagd) {
+void tagclear(void *ptr, 
+		          struct ___Object___ * obj, 
+							struct ___TagDescriptor___ * tagd) {
 #else
-void tagclear(struct ___Object___ * obj, struct ___TagDescriptor___ * tagd) {
+void tagclear(struct ___Object___ * obj, 
+		          struct ___TagDescriptor___ * tagd) {
 #endif
   /* We'll assume that tag is alway there.
      Need to statically check for this of course. */
@@ -706,30 +746,23 @@ void tagclear(struct ___Object___ * obj, struct ___TagDescriptor___ * tagd) {
   if (tagptr->type==TAGTYPE) {
     if ((struct ___TagDescriptor___ *)tagptr==tagd)
       obj->___tags___=NULL;
-    else
-#ifndef MULTICORE
-      printf("ERROR 1 in tagclear\n");
-#else
-	  ;
-#endif
   } else {
     struct ArrayObject *ao=(struct ArrayObject *) tagptr;
     int i;
     for(i=0; i<ao->___cachedCode___; i++) {
-      struct ___TagDescriptor___ * td=ARRAYGET(ao, struct ___TagDescriptor___ *, i);
+      struct ___TagDescriptor___ * td=
+				ARRAYGET(ao, struct ___TagDescriptor___ *, i);
       if (td==tagd) {
 	ao->___cachedCode___--;
 	if (i<ao->___cachedCode___)
-	  ARRAYSET(ao, struct ___TagDescriptor___ *, i, ARRAYGET(ao, struct ___TagDescriptor___ *, ao->___cachedCode___));
+	  ARRAYSET(ao, struct ___TagDescriptor___ *, i, 
+				ARRAYGET(ao, struct ___TagDescriptor___ *, ao->___cachedCode___));
 	ARRAYSET(ao, struct ___TagDescriptor___ *, ao->___cachedCode___, NULL);
 	if (ao->___cachedCode___==0)
 	  obj->___tags___=NULL;
 	goto PROCESSCLEAR;
       }
     }
-#ifndef MULTICORE
-    printf("ERROR 2 in tagclear\n");
-#endif
   }
 PROCESSCLEAR:
   {
@@ -737,12 +770,6 @@ PROCESSCLEAR:
     if (tagset->type!=OBJECTARRAYTYPE) {
       if (tagset==obj)
 	tagd->flagptr=NULL;
-      else
-#ifndef MULTICORE
-	printf("ERROR 3 in tagclear\n");
-#else
-	  ;
-#endif
     } else {
       struct ArrayObject *ao=(struct ArrayObject *) tagset;
       int i;
@@ -751,16 +778,14 @@ PROCESSCLEAR:
 	if (tobj==obj) {
 	  ao->___cachedCode___--;
 	  if (i<ao->___cachedCode___)
-	    ARRAYSET(ao, struct ___Object___ *, i, ARRAYGET(ao, struct ___Object___ *, ao->___cachedCode___));
+	    ARRAYSET(ao, struct ___Object___ *, i, 
+					ARRAYGET(ao, struct ___Object___ *, ao->___cachedCode___));
 	  ARRAYSET(ao, struct ___Object___ *, ao->___cachedCode___, NULL);
 	  if (ao->___cachedCode___==0)
 	    tagd->flagptr=NULL;
 	  goto ENDCLEAR;
 	}
       }
-#ifndef MULTICORE
-      printf("ERROR 4 in tagclear\n");
-#endif
     }
   }
 ENDCLEAR:
@@ -769,8 +794,11 @@ ENDCLEAR:
 
 /* This function allocates a new tag. */
 #ifdef MULTICORE_GC
-struct ___TagDescriptor___ * allocate_tag(void *ptr, int index) {
-  struct ___TagDescriptor___ * v=(struct ___TagDescriptor___ *) FREEMALLOC((struct garbagelist *) ptr, classsize[TAGTYPE]);
+struct ___TagDescriptor___ * allocate_tag(void *ptr, 
+		                                      int index) {
+  struct ___TagDescriptor___ * v=
+		(struct ___TagDescriptor___ *) FREEMALLOC((struct garbagelist *) ptr, 
+				                                      classsize[TAGTYPE]);
 #else
 struct ___TagDescriptor___ * allocate_tag(int index) {
   struct ___TagDescriptor___ * v=FREEMALLOC(classsize[TAGTYPE]);
@@ -786,13 +814,21 @@ struct ___TagDescriptor___ * allocate_tag(int index) {
 /* This function updates the flag for object ptr.  It or's the flag
    with the or mask and and's it with the andmask. */
 
-void flagbody(struct ___Object___ *ptr, int flag, struct parameterwrapper ** queues, int length, bool isnew);
+void flagbody(struct ___Object___ *ptr, 
+		          int flag, 
+							struct parameterwrapper ** queues, 
+							int length, 
+							bool isnew);
 
 int flagcomp(const int *val1, const int *val2) {
   return (*val1)-(*val2);
 }
 
-void flagorand(void * ptr, int ormask, int andmask, struct parameterwrapper ** queues, int length) {
+void flagorand(void * ptr, 
+		           int ormask, 
+							 int andmask, 
+							 struct parameterwrapper ** queues, 
+							 int length) {
   {
     int oldflag=((int *)ptr)[1];
     int flag=ormask|oldflag;
@@ -801,7 +837,9 @@ void flagorand(void * ptr, int ormask, int andmask, struct parameterwrapper ** q
   }
 }
 
-bool intflagorand(void * ptr, int ormask, int andmask) {
+bool intflagorand(void * ptr, 
+		              int ormask, 
+									int andmask) {
   {
     int oldflag=((int *)ptr)[1];
     int flag=ormask|oldflag;
@@ -815,14 +853,20 @@ bool intflagorand(void * ptr, int ormask, int andmask) {
   }
 }
 
-void flagorandinit(void * ptr, int ormask, int andmask) {
+void flagorandinit(void * ptr, 
+		               int ormask, 
+									 int andmask) {
   int oldflag=((int *)ptr)[1];
   int flag=ormask|oldflag;
   flag&=andmask;
   flagbody(ptr,flag,NULL,0,true);
 }
 
-void flagbody(struct ___Object___ *ptr, int flag, struct parameterwrapper ** vqueues, int vlength, bool isnew) {
+void flagbody(struct ___Object___ *ptr, 
+		          int flag, 
+							struct parameterwrapper ** vqueues, 
+							int vlength, 
+							bool isnew) {
   struct parameterwrapper * flagptr = NULL;
   int i = 0;
   struct parameterwrapper ** queues = vqueues;
@@ -843,14 +887,17 @@ void flagbody(struct ___Object___ *ptr, int flag, struct parameterwrapper ** vqu
   /*Remove object from all queues */
   for(i = 0; i < length; ++i) {
     flagptr = queues[i];
-    ObjectHashget(flagptr->objectset, (int) ptr, (int *) &next, (int *) &enterflags, &UNUSED, &UNUSED2);
+    ObjectHashget(flagptr->objectset, (int) ptr, (int *) &next, 
+				          (int *) &enterflags, &UNUSED, &UNUSED2);
     ObjectHashremove(flagptr->objectset, (int)ptr);
     if (enterflags!=NULL)
       RUNFREE(enterflags);
   }
 }
 
-void enqueueObject(void * vptr, struct parameterwrapper ** vqueues, int vlength) {
+void enqueueObject(void * vptr, 
+		               struct parameterwrapper ** vqueues, 
+									 int vlength) {
 	struct ___Object___ *ptr = (struct ___Object___ *)vptr;
 	
 	{
@@ -878,9 +925,11 @@ void enqueueObject(void * vptr, struct parameterwrapper ** vqueues, int vlength)
 			/* Check tags */
 			if (parameter->numbertags>0) {
 				if (tagptr==NULL)
-					goto nextloop; //that means the object has no tag but that param needs tag
+					goto nextloop; //that means the object has no tag 
+				                 //but that param needs tag
 				else if(tagptr->type==TAGTYPE) { //one tag
-					//struct ___TagDescriptor___ * tag=(struct ___TagDescriptor___*) tagptr;	 
+					//struct ___TagDescriptor___ * tag=
+					//(struct ___TagDescriptor___*) tagptr;	 
 					for(i=0; i<parameter->numbertags; i++) {
 						//slotid is parameter->tagarray[2*i];
 						int tagid=parameter->tagarray[2*i+1];
@@ -920,7 +969,9 @@ nextloop:
 	}
 }
 
-void enqueueObject_I(void * vptr, struct parameterwrapper ** vqueues, int vlength) {
+void enqueueObject_I(void * vptr, 
+		                 struct parameterwrapper ** vqueues, 
+										 int vlength) {
 	struct ___Object___ *ptr = (struct ___Object___ *)vptr;
 	
 	{
@@ -948,7 +999,8 @@ void enqueueObject_I(void * vptr, struct parameterwrapper ** vqueues, int vlengt
 			/* Check tags */
 			if (parameter->numbertags>0) {
 				if (tagptr==NULL)
-					goto nextloop; //that means the object has no tag but that param needs tag
+					goto nextloop; //that means the object has no tag 
+				                 //but that param needs tag
 				else if(tagptr->type==TAGTYPE) { //one tag
 					//struct ___TagDescriptor___ * tag=(struct ___TagDescriptor___*) tagptr;	 
 					for(i=0; i<parameter->numbertags; i++) {
@@ -991,7 +1043,9 @@ nextloop:
 }
 
 
-int * getAliasLock(void ** ptrs, int length, struct RuntimeHash * tbl) {
+int * getAliasLock(void ** ptrs, 
+		               int length, 
+									 struct RuntimeHash * tbl) {
 	if(length == 0) {
 		return (int*)(RUNMALLOC(sizeof(int)));
 	} else {
@@ -1052,7 +1106,8 @@ int * getAliasLock(void ** ptrs, int length, struct RuntimeHash * tbl) {
 	}
 }
 
-void addAliasLock(void * ptr, int lock) {
+void addAliasLock(void * ptr, 
+		              int lock) {
   struct ___Object___ * obj = (struct ___Object___ *)ptr;
   if(((int)ptr != lock) && (obj->lock != (int*)lock)) {
     // originally no alias lock associated or have a different alias lock
@@ -1073,6 +1128,69 @@ inline void addNewObjInfo(void * nobj) {
 	addNewItem(taskInfoArray[taskInfoIndex]->newObjs, nobj);
 }
 #endif
+
+void * smemalloc(int size, 
+		             int * allocsize) {
+	// TODO can not handle large obj which is bigger than a block
+#ifdef MULTICORE_GC
+	// go through free mem list for suitable blocks
+	struct freeMemItem * freemem = bamboo_free_mem_list->head;
+	struct freeMemItem * prev = NULL;
+	do {
+smemsearch:
+		if(freemem->size > size) {
+			// found one
+			break;
+		}
+		prev = freemem;
+		freemem = freemem->next;
+	} while(freemem != NULL);
+	if(freemem != NULL) {
+		void * mem = (void *)(freemem->ptr);
+		int b = 0;
+		BLOCKINDEX(mem, &b);
+		// check the remaining space in this block
+		int remain = BAMBOO_SMEM_SIZE_L+b*BAMBOO_SMEM_SIZE-(mem-BAMBOO_BASE_VA);
+		// TODO how about large objs?
+		if(remain < size) {
+			// not enough space in this block
+			struct freeMemItem * tmp = 
+				(struct freeMemItem*)RUNMALLOC(sizeof(struct freeMemItem));
+			tmp->ptr = mem;
+			tmp->size = remain;
+			tmp->next = freemem;
+			if(bamboo_free_mem_list->head == freemem) {
+				bamboo_free_mem_list->head = tmp;
+			} else {
+				prev->next = tmp;
+			}
+			freemem->ptr += size;
+			freemem->size -= size;
+			// continue checking
+			goto smemsearch;
+		} else {
+			*allocsize = size;
+			freemem->ptr += size;
+			freemem->size -= size;
+		}
+	} else {
+#else
+	void * mem = mspace_calloc(bamboo_free_msp, 1, size);
+	*allocsize = size;
+	if(mem == NULL) {
+#endif
+		// no enough shared global memory
+		*allocsize = 0;
+#ifdef MULTICORE_GC
+		gcflag = true;
+		return NULL;
+#else
+		BAMBOO_DEBUGPRINT(0xa016);
+		BAMBOO_EXIT(0xa016);
+#endif
+	}
+	return mem;
+}
 
 // receive object transferred from other cores
 // or the terminate message from other cores
@@ -1105,7 +1223,8 @@ msg:
     switch(type) {
     case TRANSOBJ: {
       // receive a object transfer msg
-      struct transObjInfo * transObj = RUNMALLOC_I(sizeof(struct transObjInfo));
+      struct transObjInfo * transObj = 
+				RUNMALLOC_I(sizeof(struct transObjInfo));
       int k = 0;
 #ifdef DEBUG
 #ifndef TILERA
@@ -1119,7 +1238,7 @@ msg:
 				BAMBOO_EXIT(0xa005);
 			} 
       // store the object and its corresponding queue info, enqueue it later
-      transObj->objptr = (void *)msgdata[2];   // data1 is now size of the msg
+      transObj->objptr = (void *)msgdata[2]; // data1 is now size of the msg
       transObj->length = (msglength - 3) / 2;
       transObj->queues = RUNMALLOC_I(sizeof(int)*(msglength - 3));
       for(k = 0; k < transObj->length; ++k) {
@@ -1193,7 +1312,8 @@ msg:
 			int data2 = msgdata[2]; // obj pointer
       int data3 = msgdata[3]; // lock
 			int data4 = msgdata[4]; // request core
-      deny = processlockrequest(data1, data3, data2, data4, data4, true);  // -1: redirected, 0: approved, 1: denied
+			// -1: redirected, 0: approved, 1: denied
+      deny = processlockrequest(data1, data3, data2, data4, data4, true);  
 			if(deny == -1) {
 				// this lock request is redirected
 				break;
@@ -1493,22 +1613,16 @@ msg:
 				break;
 			}
 #endif
-		  void * mem = mspace_calloc(bamboo_free_msp, 1, msgdata[1]);
-		  if(mem == NULL) {
-				// no enough shared global memory
-#ifdef MULTICORE_GC
-				gcflag = true;
+			int allocsize = 0;
+		  void * mem = smemalloc(msgdata[1], &allocsize);
+			if(mem == NULL) {
 				break;
-#else
-			  BAMBOO_DEBUGPRINT(0xa016);
-			  BAMBOO_EXIT(0xa016);
-#endif
-		  }
-		  // send the start_va to request core
+			}
+			// send the start_va to request core
 			if(isMsgSending) {
-				cache_msg_3(msgdata[2], MEMRESPONSE, mem, msgdata[1]);
+				cache_msg_3(msgdata[2], MEMRESPONSE, mem, allocsize);
 			} else {
-				send_msg_3( msgdata[2], MEMRESPONSE, mem, msgdata[1]);
+				send_msg_3( msgdata[2], MEMRESPONSE, mem, allocsize);
 			} 
 		}
 	  break;
@@ -1529,14 +1643,18 @@ msg:
 #endif
 	  if(msgdata[2] == 0) {
 		  bamboo_smem_size = 0;
-		  bamboo_cur_msp = NULL;
+		  bamboo_cur_msp = 0;
 	  } else {
 			// fill header to store the size of this mem block
 			(*((int*)msgdata[1])) = msgdata[2];
 		  bamboo_smem_size = msgdata[2] - BAMBOO_CACHE_LINE_SIZE;
-		  bamboo_cur_msp = create_mspace_with_base((void*)(msgdata[1]+BAMBOO_CACHE_LINE_SIZE),
-						                                   msgdata[2] - BAMBOO_CACHE_LINE_SIZE, 
-																							 0);
+#ifdef MULTICORE_GC
+			bamboo_cur_msp = msgdata[1] + BAMBOO_CACHE_LINE_SIZE;
+#else
+		  bamboo_cur_msp = 
+				create_mspace_with_base((void*)(msgdata[1]+BAMBOO_CACHE_LINE_SIZE),
+				                         msgdata[2]-BAMBOO_CACHE_LINE_SIZE, 
+																 0);
 	  }
 	  smemflag = true;
 	  break;
@@ -1679,7 +1797,8 @@ msg:
 		  // send response msg
 		  if(isMsgSending) {
 			  cache_msg_5(STARTUPCORE, GCMARKREPORT, BAMBOO_NUM_OF_CORE, 
-						        gcbusystatus, gcself_numsendobjs, gcself_numreceiveobjs);
+						        gcbusystatus, gcself_numsendobjs, 
+										gcself_numreceiveobjs);
 		  } else {
 			  send_msg_5(STARTUPCORE, GCMARKREPORT, BAMBOO_NUM_OF_CORE, 
 						       gcbusystatus, gcself_numsendobjs, gcself_numreceiveobjs);
@@ -1772,8 +1891,18 @@ msg:
 
 	case GCLOBJINFO: {
 		// received a large objs info response msg
-		// TODO
 		gcwaitconfirm--;
+
+		if(BAMBOO_NUM_OF_CORE > NUMCORES - 1) {
+#ifndef TILERA
+			BAMBOO_DEBUGPRINT_REG(msgdata[2]);
+#endif
+			BAMBOO_EXIT(0xa005);
+		} 
+		// store the mark result info 
+		int cnum = msgdata[2];
+		gcloads[cnum] = msgdata[3];
+		// TODO large obj info here
 		break;
 	}
 #endif
@@ -1818,7 +1947,11 @@ msg:
 }
 
 
-ent enqueuetasks(struct parameterwrapper *parameter, struct parameterwrapper *prevptr, struct ___Object___ *ptr, int * enterflags, int numenterflags) {
+int enqueuetasks(struct parameterwrapper *parameter, 
+		             struct parameterwrapper *prevptr, 
+								 struct ___Object___ *ptr, 
+								 int * enterflags, 
+								 int numenterflags) {
   void * taskpointerarray[MAXTASKPARAMS];
   int j;
   //int numparams=parameter->task->numParameters;
@@ -1828,7 +1961,8 @@ ent enqueuetasks(struct parameterwrapper *parameter, struct parameterwrapper *pr
   struct taskdescriptor * task=parameter->task;
 
    //this add the object to parameterwrapper
-   ObjectHashadd(parameter->objectset, (int) ptr, 0, (int) enterflags, numenterflags, enterflags==NULL);
+   ObjectHashadd(parameter->objectset, (int) ptr, 0, (int) enterflags, 
+			           numenterflags, enterflags==NULL);
 
   /* Add enqueued object to parameter vector */
   taskpointerarray[parameter->slot]=ptr;
@@ -1841,7 +1975,7 @@ ent enqueuetasks(struct parameterwrapper *parameter, struct parameterwrapper *pr
   /* Find initial state */
   for(j=0; j<numiterators; j++) {
 backtrackinit:
-    if(toiHasNext(&parameter->iterators[j], taskpointerarray OPTARG(failed)))
+    if(toiHasNext(&parameter->iterators[j],taskpointerarray OPTARG(failed)))
       toiNext(&parameter->iterators[j], taskpointerarray OPTARG(failed));
     else if (j>0) {
       /* Need to backtrack */
@@ -1857,16 +1991,19 @@ backtrackinit:
   while(1) {
     /* Enqueue current state */
     //int launch = 0;
-    struct taskparamdescriptor *tpd=RUNMALLOC(sizeof(struct taskparamdescriptor));
+    struct taskparamdescriptor *tpd=
+			RUNMALLOC(sizeof(struct taskparamdescriptor));
     tpd->task=task;
     tpd->numParameters=numiterators+1;
     tpd->parameterArray=RUNMALLOC(sizeof(void *)*(numiterators+1));
 
     for(j=0; j<=numiterators; j++) {
-      tpd->parameterArray[j]=taskpointerarray[j]; //store the actual parameters
+			//store the actual parameters
+      tpd->parameterArray[j]=taskpointerarray[j]; 
     }
     /* Enqueue task */
-    if ((/*!gencontains(failedtasks, tpd)&&*/ !gencontains(activetasks,tpd))) {
+    if ((/*!gencontains(failedtasks, tpd)&&*/ 
+					!gencontains(activetasks,tpd))) {
 		genputtable(activetasks, tpd, tpd);
     } else {
       RUNFREE(tpd->parameterArray);
@@ -1879,7 +2016,7 @@ backtrackinit:
 
     for(j=numiterators-1; j<numiterators; j++) {
 backtrackinc:
-      if(toiHasNext(&parameter->iterators[j], taskpointerarray OPTARG(failed)))
+      if(toiHasNext(&parameter->iterators[j],taskpointerarray OPTARG(failed)))
 	toiNext(&parameter->iterators[j], taskpointerarray OPTARG(failed));
       else if (j>0) {
 	/* Need to backtrack */
@@ -1895,7 +2032,11 @@ backtrackinc:
   return retval;
 }
 
-int enqueuetasks_I(struct parameterwrapper *parameter, struct parameterwrapper *prevptr, struct ___Object___ *ptr, int * enterflags, int numenterflags) {
+int enqueuetasks_I(struct parameterwrapper *parameter, 
+		               struct parameterwrapper *prevptr, 
+									 struct ___Object___ *ptr, 
+									 int * enterflags, 
+									 int numenterflags) {
   void * taskpointerarray[MAXTASKPARAMS];
   int j;
   //int numparams=parameter->task->numParameters;
@@ -1907,7 +2048,8 @@ int enqueuetasks_I(struct parameterwrapper *parameter, struct parameterwrapper *
   struct taskdescriptor * task=parameter->task;
 
    //this add the object to parameterwrapper
-   ObjectHashadd_I(parameter->objectset, (int) ptr, 0, (int) enterflags, numenterflags, enterflags==NULL);  
+   ObjectHashadd_I(parameter->objectset, (int) ptr, 0, (int) enterflags, 
+			             numenterflags, enterflags==NULL);  
 
   /* Add enqueued object to parameter vector */
   taskpointerarray[parameter->slot]=ptr;
@@ -1920,7 +2062,7 @@ int enqueuetasks_I(struct parameterwrapper *parameter, struct parameterwrapper *
   /* Find initial state */
   for(j=0; j<numiterators; j++) {
 backtrackinit:
-    if(toiHasNext(&parameter->iterators[j], taskpointerarray OPTARG(failed)))
+    if(toiHasNext(&parameter->iterators[j],taskpointerarray OPTARG(failed)))
       toiNext(&parameter->iterators[j], taskpointerarray OPTARG(failed));
     else if (j>0) {
       /* Need to backtrack */
@@ -1936,16 +2078,19 @@ backtrackinit:
   while(1) {
     /* Enqueue current state */
     //int launch = 0;
-    struct taskparamdescriptor *tpd=RUNMALLOC_I(sizeof(struct taskparamdescriptor));
+    struct taskparamdescriptor *tpd=
+			RUNMALLOC_I(sizeof(struct taskparamdescriptor));
     tpd->task=task;
     tpd->numParameters=numiterators+1;
     tpd->parameterArray=RUNMALLOC_I(sizeof(void *)*(numiterators+1));
 
     for(j=0; j<=numiterators; j++) {
-      tpd->parameterArray[j]=taskpointerarray[j]; //store the actual parameters
+			//store the actual parameters
+      tpd->parameterArray[j]=taskpointerarray[j]; 
     }
     /* Enqueue task */
-    if ((/*!gencontains(failedtasks, tpd)&&*/ !gencontains(activetasks,tpd))) {
+    if ((/*!gencontains(failedtasks, tpd)&&*/ 
+					!gencontains(activetasks,tpd))) {
 		genputtable_I(activetasks, tpd, tpd);
     } else {
       RUNFREE(tpd->parameterArray);
@@ -1974,50 +2119,14 @@ backtrackinc:
   return retval;
 }
 
-/* Handler for signals. The signals catch null pointer errors and
-   arithmatic errors. */
-#ifndef MULTICORE
-void myhandler(int sig, siginfo_t *info, void *uap) {
-  sigset_t toclear;
-#ifdef DEBUG
-  printf("sig=%d\n",sig);
-  printf("signal\n");
-#endif
-  sigemptyset(&toclear);
-  sigaddset(&toclear, sig);
-  sigprocmask(SIG_UNBLOCK, &toclear,NULL);
-  longjmp(error_handler,1);
-}
-#endif
-
-#ifndef MULTICORE
-fd_set readfds;
-int maxreadfd;
-struct RuntimeHash *fdtoobject;
-
-void addreadfd(int fd) {
-  if (fd>=maxreadfd)
-    maxreadfd=fd+1;
-  FD_SET(fd, &readfds);
-}
-
-void removereadfd(int fd) {
-  FD_CLR(fd, &readfds);
-  if (maxreadfd==(fd+1)) {
-    maxreadfd--;
-    while(maxreadfd>0&&!FD_ISSET(maxreadfd-1, &readfds))
-      maxreadfd--;
-  }
-}
-#endif
-
 #ifdef MULTICORE_GC
 #define OFFSET 2
 #else
 #define OFFSET 0
 #endif
 
-int containstag(struct ___Object___ *ptr, struct ___TagDescriptor___ *tag);
+int containstag(struct ___Object___ *ptr, 
+		            struct ___TagDescriptor___ *tag);
 
 void executetasks() {
   void * taskpointerarray[MAXTASKPARAMS+OFFSET];
@@ -2061,7 +2170,8 @@ newtask:
       numparams=currtpd->task->numParameters;
       numtotal=currtpd->task->numTotal;
 
-	  // clear the lockRedirectTbl (TODO, this table should be empty after all locks are released)
+	  // clear the lockRedirectTbl 
+		// (TODO, this table should be empty after all locks are released)
 	  // reset all locks
 	  for(j = 0; j < MAXTASKPARAMS; j++) {
 		  locks[j].redirectlock = 0;
@@ -2188,7 +2298,8 @@ newtask:
 
 	// flush the object
 #ifdef CACHEFLUSH
-	BAMBOO_CACHE_FLUSH_RANGE((int)parameter, classsize[((struct ___Object___ *)parameter)->type]);
+	BAMBOO_CACHE_FLUSH_RANGE((int)parameter, 
+			classsize[((struct ___Object___ *)parameter)->type]);
 #endif
 	tmpparam = (struct ___Object___ *)parameter;
 	pd=currtpd->task->descriptorarray[i];
@@ -2230,7 +2341,8 @@ newtask:
 #ifdef DEBUG
 	    BAMBOO_DEBUGPRINT(0xe995);
 #endif
-	    ObjectHashget(pw->objectset, (int) parameter, (int *) &next, (int *) &enterflags, &UNUSED, &UNUSED2);
+	    ObjectHashget(pw->objectset, (int) parameter, (int *) &next, 
+					          (int *) &enterflags, &UNUSED, &UNUSED2);
 	    ObjectHashremove(pw->objectset, (int)parameter);
 	    if (enterflags!=NULL)
 	      RUNFREE(enterflags);
@@ -2296,20 +2408,10 @@ execute:
 	  profileTaskStart(currtpd->task->name);
 #endif
 
-	  if(debugtask) {
-#ifndef MULTICORE
-        printf("ENTER %s count=%d\n",currtpd->task->name, (instaccum-instructioncount));
-#endif
-	    ((void(*) (void **))currtpd->task->taskptr)(taskpointerarray);
-#ifndef MULTICORE
-	    printf("EXIT %s count=%d\n",currtpd->task->name, (instaccum-instructioncount));
-#endif
-	  } else {
 #ifdef DEBUG
-		  BAMBOO_DEBUGPRINT(0xe997);
+		BAMBOO_DEBUGPRINT(0xe997);
 #endif
-	    ((void(*) (void **))currtpd->task->taskptr)(taskpointerarray);
-	  } // line 2990: if(debugtask)
+		((void(*) (void **))currtpd->task->taskptr)(taskpointerarray);
 #ifdef PROFILE
 #ifdef ACCURATEPROFILE
 	  // task finish, set the end of the checkTaskInfo
@@ -2365,7 +2467,12 @@ execute:
 }
 
 /* This function processes an objects tags */
-void processtags(struct parameterdescriptor *pd, int index, struct parameterwrapper *parameter, int * iteratorcount, int *statusarray, int numparams) {
+void processtags(struct parameterdescriptor *pd, 
+		             int index, 
+								 struct parameterwrapper *parameter, 
+								 int * iteratorcount, 
+								 int *statusarray, 
+								 int numparams) {
   int i;
 
   for(i=0; i<pd->numbertags; i++) {
@@ -2384,10 +2491,16 @@ void processtags(struct parameterdescriptor *pd, int index, struct parameterwrap
 }
 
 
-void processobject(struct parameterwrapper *parameter, int index, struct parameterdescriptor *pd, int *iteratorcount, int * statusarray, int numparams) {
+void processobject(struct parameterwrapper *parameter, 
+		               int index, 
+									 struct parameterdescriptor *pd, 
+									 int *iteratorcount, 
+									 int * statusarray, 
+									 int numparams) {
   int i;
   int tagcount=0;
-  struct ObjectHash * objectset=((struct parameterwrapper *)pd->queue)->objectset;
+  struct ObjectHash * objectset=
+		((struct parameterwrapper *)pd->queue)->objectset;
 
   parameter->iterators[*iteratorcount].istag=0;
   parameter->iterators[*iteratorcount].slot=index;
@@ -2399,7 +2512,8 @@ void processobject(struct parameterwrapper *parameter, int index, struct paramet
     //int tagid=pd->tagarray[2*i+1];
     if (statusarray[slotid+numparams]!=0) {
       /* This tag has already been enqueued, use it to narrow search */
-      parameter->iterators[*iteratorcount].tagbindings[tagcount]=slotid+numparams;
+      parameter->iterators[*iteratorcount].tagbindings[tagcount]=
+				slotid+numparams;
       tagcount++;
     }
   }
@@ -2410,7 +2524,9 @@ void processobject(struct parameterwrapper *parameter, int index, struct paramet
 
 /* This function builds the iterators for a task & parameter */
 
-void builditerators(struct taskdescriptor * task, int index, struct parameterwrapper * parameter) {
+void builditerators(struct taskdescriptor * task, 
+		                int index, 
+										struct parameterwrapper * parameter) {
   int statusarray[MAXTASKPARAMS];
   int i;
   int numparams=task->numParameters;
@@ -2420,7 +2536,8 @@ void builditerators(struct taskdescriptor * task, int index, struct parameterwra
   statusarray[index]=1; /* Initial parameter */
   /* Process tags for initial iterator */
 
-  processtags(task->descriptorarray[index], index, parameter, &iteratorcount, statusarray, numparams);
+  processtags(task->descriptorarray[index], index, parameter, 
+			        &iteratorcount, statusarray, numparams);
 
   while(1) {
 loopstart:
@@ -2432,7 +2549,8 @@ loopstart:
 	for(j=0; j<pd->numbertags; j++) {
 	  int slotid=pd->tagarray[2*j];
 	  if(statusarray[slotid+numparams]!=0) {
-	    processobject(parameter, i, pd, &iteratorcount, statusarray, numparams);
+	    processobject(parameter, i, pd, &iteratorcount, statusarray, 
+					          numparams);
 	    processtags(pd, i, parameter, &iteratorcount, statusarray, numparams);
 	    goto loopstart;
 	  }
@@ -2477,7 +2595,7 @@ void printdebug() {
   }
   for(i=0; i<numtasks[BAMBOO_NUM_OF_CORE]; i++) {
     struct taskdescriptor * task=taskarray[BAMBOO_NUM_OF_CORE][i];
-#ifndef MULTICORE
+#ifndef RAW 
 	printf("%s\n", task->name);
 #endif
     for(j=0; j<task->numParameters; j++) {
@@ -2485,7 +2603,7 @@ void printdebug() {
       struct parameterwrapper *parameter=param->queue;
       struct ObjectHash * set=parameter->objectset;
       struct ObjectIterator objit;
-#ifndef MULTICORE
+#ifndef RAW
 	  printf("  Parameter %d\n", j);
 #endif
       ObjectHashiterator(set, &objit);
@@ -2496,13 +2614,13 @@ void printdebug() {
 	int numflags=Objdata3(&objit);
 	int flags=Objdata2(&objit);
 	Objnext(&objit);
-#ifndef MULTICORE
+#ifndef RAW
 	printf("    Contains %lx\n", obj);
 	printf("      flag=%d\n", obj->flag);
 #endif
 	if (tagptr==NULL) {
 	} else if (tagptr->type==TAGTYPE) {
-#ifndef MULTICORE
+#ifndef RAW
 	  printf("      tag=%lx\n",tagptr);
 #else
 	  ;
@@ -2511,8 +2629,9 @@ void printdebug() {
 	  int tagindex=0;
 	  struct ArrayObject *ao=(struct ArrayObject *)tagptr;
 	  for(; tagindex<ao->___cachedCode___; tagindex++) {
-#ifndef MULTICORE
-		  printf("      tag=%lx\n",ARRAYGET(ao, struct ___TagDescriptor___*, tagindex));
+#ifndef RAW
+		  printf("      tag=%lx\n",ARRAYGET(ao, struct ___TagDescriptor___*, 
+						 tagindex));
 #else
 		  ;
 #endif
@@ -2563,7 +2682,8 @@ void toiReset(struct tagobjectiterator * it) {
   }
 }
 
-int toiHasNext(struct tagobjectiterator *it, void ** objectarray OPTARG(int * failed)) {
+int toiHasNext(struct tagobjectiterator *it, 
+		           void ** objectarray OPTARG(int * failed)) {
   if (it->istag) {
     /* Iterate tag */
     /* Get object with tags */
@@ -2579,7 +2699,8 @@ int toiHasNext(struct tagobjectiterator *it, void ** objectarray OPTARG(int * fa
       struct ArrayObject *ao=(struct ArrayObject *) tagptr;
       int tagindex=it->tagobjindex;
       for(; tagindex<ao->___cachedCode___; tagindex++) {
-	struct ___TagDescriptor___ *td=ARRAYGET(ao, struct ___TagDescriptor___ *, tagindex);
+	struct ___TagDescriptor___ *td=
+		ARRAYGET(ao, struct ___TagDescriptor___ *, tagindex);
 	if (td->flag==it->tagid) {
 	  it->tagobjindex=tagindex; /* Found right type of tag */
 	  return 1;
@@ -2607,7 +2728,7 @@ int toiHasNext(struct tagobjectiterator *it, void ** objectarray OPTARG(int * fa
       struct ArrayObject *ao=(struct ArrayObject *) objptr;
       int tagindex;
       int i;
-      for(tagindex=it->tagobjindex; tagindex<ao->___cachedCode___; tagindex++) {
+      for(tagindex=it->tagobjindex;tagindex<ao->___cachedCode___;tagindex++) {
 	struct ___Object___ *objptr=ARRAYGET(ao, struct ___Object___*, tagindex);
 	if (!ObjectHashcontainskey(it->objectset, (int) objptr))
 	  continue;
@@ -2629,7 +2750,8 @@ nexttag:
   }
 }
 
-int containstag(struct ___Object___ *ptr, struct ___TagDescriptor___ *tag) {
+int containstag(struct ___Object___ *ptr, 
+		            struct ___TagDescriptor___ *tag) {
   int j;
   struct ___Object___ * objptr=tag->flagptr;
   if (objptr->type==OBJECTARRAYTYPE) {
@@ -2643,7 +2765,8 @@ int containstag(struct ___Object___ *ptr, struct ___TagDescriptor___ *tag) {
     return objptr==ptr;
 }
 
-void toiNext(struct tagobjectiterator *it, void ** objectarray OPTARG(int * failed)) {
+void toiNext(struct tagobjectiterator *it, 
+		         void ** objectarray OPTARG(int * failed)) {
   /* hasNext has all of the intelligence */
   if(it->istag) {
     /* Iterate tag */
@@ -2655,7 +2778,8 @@ void toiNext(struct tagobjectiterator *it, void ** objectarray OPTARG(int * fail
       objectarray[it->slot]=tagptr;
     } else {
       struct ArrayObject *ao=(struct ArrayObject *) tagptr;
-      objectarray[it->slot]=ARRAYGET(ao, struct ___TagDescriptor___ *, it->tagobjindex++);
+      objectarray[it->slot]=
+				ARRAYGET(ao, struct ___TagDescriptor___ *, it->tagobjindex++);
     }
   } else if (it->numtags>0) {
     /* Use tags to locate appropriate objects */
@@ -2666,7 +2790,8 @@ void toiNext(struct tagobjectiterator *it, void ** objectarray OPTARG(int * fail
       objectarray[it->slot]=objptr;
     } else {
       struct ArrayObject *ao=(struct ArrayObject *) objptr;
-      objectarray[it->slot]=ARRAYGET(ao, struct ___Object___ *, it->tagobjindex++);
+      objectarray[it->slot]=
+				ARRAYGET(ao, struct ___Object___ *, it->tagobjindex++);
     }
   } else {
     /* Iterate object */

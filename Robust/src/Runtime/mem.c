@@ -4,7 +4,8 @@
 #include "runtime.h"
 #include "runtime_arch.h"
 
-void * mycalloc(int m, int size) {
+void * mycalloc(int m, 
+		            int size) {
   void * p = NULL;
   int isize = size; 
   BAMBOO_START_CRITICAL_SECTION_MEM();
@@ -17,7 +18,9 @@ void * mycalloc(int m, int size) {
 }
 
 #ifdef MULTICORE_GC
-void * mycalloc_share(struct garbagelist * stackptr, int m, int size) {
+void * mycalloc_share(struct garbagelist * stackptr, 
+		                  int m, 
+											int size) {
 	void * p = NULL;
   int isize = 2*BAMBOO_CACHE_LINE_SIZE-4+(size-1)&(~BAMBOO_CACHE_LINE_MASK);
 memalloc:
@@ -33,13 +36,15 @@ memalloc:
 		goto memalloc;
   }
   BAMBOO_CLOSE_CRITICAL_SECTION_MEM();
-	void * alignedp = (void *)(BAMBOO_CACHE_LINE_SIZE+((int)p-1)&(~BAMBOO_CACHE_LINE_MASK));
+	void * alignedp = 
+		(void *)(BAMBOO_CACHE_LINE_SIZE+((int)p-1)&(~BAMBOO_CACHE_LINE_MASK));
 	memset(p, -2, (alignedp - p));
   memset(alignedp + size, -2, p + isize - alignedp - size);
 	return alignedp;
 }
 #else
-void * mycalloc_share(int m, int size) {
+void * mycalloc_share(int m, 
+		                  int size) {
   void * p = NULL;
   int isize = 2*BAMBOO_CACHE_LINE_SIZE-4+(size-1)&(~BAMBOO_CACHE_LINE_MASK);
   BAMBOO_START_CRITICAL_SECTION_MEM();
@@ -49,11 +54,13 @@ void * mycalloc_share(int m, int size) {
 		BAMBOO_EXIT(0xa025);
   }
   BAMBOO_CLOSE_CRITICAL_SECTION_MEM();
-  return (void *)(BAMBOO_CACHE_LINE_SIZE+((int)p-1)&(~BAMBOO_CACHE_LINE_MASK));
+  return 
+		(void *)(BAMBOO_CACHE_LINE_SIZE+((int)p-1)&(~BAMBOO_CACHE_LINE_MASK));
 }
 #endif
 
-void * mycalloc_i(int m, int size) {
+void * mycalloc_i(int m, 
+		              int size) {
   void * p = NULL;
   int isize = size; 
   p = BAMBOO_LOCAL_MEM_CALLOC(m, isize); // calloc(m, isize);

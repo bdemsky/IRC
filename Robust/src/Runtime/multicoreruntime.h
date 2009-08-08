@@ -57,35 +57,59 @@ volatile bool isMsgSending;
  *      1f -- large objs info response
  *
  * ObjMsg: 0 + size of msg + obj's address + (task index + param index)+
- * StallMsg: 1 + corenum + sendobjs + receiveobjs (size is always 4 * sizeof(int))
- * LockMsg: 2 + lock type + obj pointer + lock + request core (size is always 5 * sizeof(int))
- *          3/4/5 + lock type + obj pointer + lock (size is always 4 * sizeof(int))
- *          8 + lock type + obj pointer +  redirect lock + root request core + request core (size is always 6 * sizeof(int))
- *          9/a + lock type + obj pointer + redirect lock (size is always 4 * sizeof(int))
- *          b + lock type + lock + redirect lock (size is always 4 * sizeof(int))
+ * StallMsg: 1 + corenum + sendobjs + receiveobjs 
+ *             (size is always 4 * sizeof(int))
+ * LockMsg: 2 + lock type + obj pointer + lock + request core 
+ *            (size is always 5 * sizeof(int))
+ *          3/4/5 + lock type + obj pointer + lock 
+ *            (size is always 4 * sizeof(int))
+ *          8 + lock type + obj pointer +  redirect lock + root request core 
+ *            + request core 
+ *            (size is always 6 * sizeof(int))
+ *          9/a + lock type + obj pointer + redirect lock 
+ *              (size is always 4 * sizeof(int))
+ *          b + lock type + lock + redirect lock 
+ *            (size is always 4 * sizeof(int))
  *          lock type: 0 -- read; 1 -- write
- * ProfileMsg: 6 + totalexetime (size is always 2 * sizeof(int))
- *             7 + corenum (size is always 2 * sizeof(int))
+ * ProfileMsg: 6 + totalexetime 
+ *               (size is always 2 * sizeof(int))
+ *             7 + corenum 
+ *               (size is always 2 * sizeof(int))
  * StatusMsg: c (size is always 1 * sizeof(int))
- *            d + status + corenum + sendobjs + receiveobjs (size is always 5 * sizeof(int))
+ *            d + status + corenum + sendobjs + receiveobjs 
+ *              (size is always 5 * sizeof(int))
  *            status: 0 -- stall; 1 -- busy
  * TerminateMsg: e (size is always 1 * sizeof(int)
- * MemoryMsg: f + size + corenum (size is always 3 * sizeof(int))
- *           10 + base_va + size (size is always 3 * sizeof(int))
+ * MemoryMsg: f + size + corenum 
+ *              (size is always 3 * sizeof(int))
+ *           10 + base_va + size 
+ *              (size is always 3 * sizeof(int))
  * GCMsg: 11 (size is always 1 * sizeof(int))
- *        12 + size of msg + (num of objs to move + (start address + end address + dst core + start dst)+)? + (num of incoming objs + (start dst + orig core)+)? + (num of large obj lists + (start address + lenght + start dst)+)?
+ *        12 + size of msg + (num of objs to move + (start address 
+ *           + end address + dst core + start dst)+)? 
+ *           + (num of incoming objs + (start dst + orig core)+)? 
+ *           + (num of large obj lists + (start address + lenght 
+ *           + start dst)+)?
  *        13 (size is always 1 * sizeof(int))
- *        14 + corenum + gcsendobjs + gcreceiveobjs (size if always 4 * sizeof(int))
- *        15/16 + corenum (size is always 2 * sizeof(int))
+ *        14 + corenum + gcsendobjs + gcreceiveobjs 	
+ *           (size if always 4 * sizeof(int))
+ *        15/16 + corenum 
+ *              (size is always 2 * sizeof(int))
  *        17 (size is always 1 * sizeof(int))
  *        18 (size if always 1 * sizeof(int))
- *        19 + size of msg + corenum + gcsendobjs + gcreceiveobjs (size is always 5 * sizeof(int))
- *        1a + obj's address (size is always 2 * sizeof(int))
- *        1b + corenum ( size is always 2 * sizeof(int))
- *        1c + obj's address + corenum (size is always 3 * sizeof(int))
- *        1d + obj's address + dst address (size if always 3 * sizeof(int))
+ *        19 + size of msg + corenum + gcsendobjs + gcreceiveobjs 
+ *           (size is always 5 * sizeof(int))
+ *        1a + obj's address 
+ *           (size is always 2 * sizeof(int))
+ *        1b + corenum 
+ *           ( size is always 2 * sizeof(int))
+ *        1c + obj's address + corenum 
+ *           (size is always 3 * sizeof(int))
+ *        1d + obj's address + dst address 
+ *           (size if always 3 * sizeof(int))
  *        1e (size is always 1 * sizeof(int))
- *        1f + size of msg + corenum + current heap size + (num of large obj lists + (start address + length)+)?
+ *        1f + size of msg + corenum + current heap size 
+ *           + (num of large obj lists + (start address + length)+)?
  */
 enum MSGTYPE {
 	TRANSOBJ = 0x0,  // 0x0
@@ -146,6 +170,7 @@ struct LockValue {
 	int redirectlock;
 	int value;
 };
+struct RuntimeHash * lockRedirectTbl;
 struct RuntimeHash * objRedirectLockTbl;
 int lockobj;
 int lock2require;
@@ -159,6 +184,22 @@ struct Queue objqueue;
 // data structures for shared memory allocation
 #ifdef MULTICORE_GC
 #include "multicoregarbage.h"
+
+struct freeMemItem {
+	INTPTR ptr;
+	int size;
+	struct freeMemItem * next;
+};
+
+struct freeMemList {
+	struct freeMemItem * head;
+	struct freeMemItem * tail;
+};
+
+bool smemflag;
+struct freeMemList * bamboo_free_mem_list;
+INTPTR bamboo_cur_msp;
+int bamboo_smem_size;
 #else
 #define BAMBOO_NUM_PAGES 1024 * 512
 #define BAMBOO_PAGE_SIZE 4096
@@ -237,22 +278,71 @@ void releasewritelock_I(void * ptr);
 // if return -1: the lock request is redirected
 //            0: the lock request is approved
 //            1: the lock request is denied
-inline int processlockrequest(int locktype, int lock, int obj, int requestcore, int rootrequestcore, bool cache) __attribute_((always_inline));
-inline void processlockrelease(int locktype, int lock, int redirectlock, bool isredirect) __attribute_((always_inline));
+inline int processlockrequest(int locktype, 
+		                          int lock, 
+															int obj, 
+															int requestcore, 
+															int rootrequestcore, 
+															bool cache) __attribute_((always_inline));
+inline void processlockrelease(int locktype, 
+		                           int lock, 
+															 int redirectlock, 
+															 bool isredirect) __attribute_((always_inline));
 
 // msg related functions
 inline void send_hanging_msg() __attribute__((always_inline));
-inline void send_msg_1(int targetcore, unsigned long n0) __attribute__((always_inline));
-inline void send_msg_2(int targetcore, unsigned long n0, unsigned long n1) __attribute__((always_inline));
-inline void send_msg_3(int targetcore, unsigned long n0, unsigned long n1, unsigned long n2) __attribute__((always_inline));
-inline void send_msg_4(int targetcore, unsigned long n0, unsigned long n1, unsigned long n2, unsigned long n3) __attribute__((always_inline));
-inline void send_msg_5(int targetcore, unsigned long n0, unsigned long n1, unsigned long n2, unsigned long n3, unsigned long n4) __attribute__((always_inline));
-inline void send_msg_6(int targetcore, unsigned long n0, unsigned long n1, unsigned long n2, unsigned long n3, unsigned long n4, unsigned long n5) __attribute__((always_inline));
-inline void cache_msg_2(int targetcore, unsigned long n0, unsigned long n1) __attribute__((always_inline));
-inline void cache_msg_3(int targetcore, unsigned long n0, unsigned long n1, unsigned long n2) __attribute__((always_inline));
-inline void cache_msg_4(int targetcore, unsigned long n0, unsigned long n1, unsigned long n2, unsigned long n3) __attribute__((always_inline));
-inline void cache_msg_5(int targetcore, unsigned long n0, unsigned long n1, unsigned long n2, unsigned long n3, unsigned long n4) __attribute__((always_inline));
-inline void cache_msg_6(int targetcore, unsigned long n0, unsigned long n1, unsigned long n2, unsigned long n3, unsigned long n4, unsigned long n5) __attribute__((always_inline));
+inline void send_msg_1(int targetcore, 
+		                   unsigned long n0) __attribute__((always_inline));
+inline void send_msg_2(int targetcore, 
+		                   unsigned long n0, 
+											 unsigned long n1) __attribute__((always_inline));
+inline void send_msg_3(int targetcore, 
+		                   unsigned long n0, 
+											 unsigned long n1, 
+											 unsigned long n2) __attribute__((always_inline));
+inline void send_msg_4(int targetcore, 
+		                   unsigned long n0, 
+											 unsigned long n1, 
+											 unsigned long n2, 
+											 unsigned long n3) __attribute__((always_inline));
+inline void send_msg_5(int targetcore, 
+		                   unsigned long n0, 
+											 unsigned long n1, 
+											 unsigned long n2, 
+											 unsigned long n3, 
+											 unsigned long n4) __attribute__((always_inline));
+inline void send_msg_6(int targetcore, 
+		                   unsigned long n0, 
+											 unsigned long n1, 
+											 unsigned long n2, 
+											 unsigned long n3, 
+											 unsigned long n4, 
+											 unsigned long n5) __attribute__((always_inline));
+inline void cache_msg_2(int targetcore, 
+		                    unsigned long n0, 
+												unsigned long n1) __attribute__((always_inline));
+inline void cache_msg_3(int targetcore, 
+		                    unsigned long n0, 
+												unsigned long n1, 
+												unsigned long n2) __attribute__((always_inline));
+inline void cache_msg_4(int targetcore, 
+		                    unsigned long n0, 
+												unsigned long n1, 
+												unsigned long n2, 
+												unsigned long n3) __attribute__((always_inline));
+inline void cache_msg_5(int targetcore, 
+		                    unsigned long n0, 
+												unsigned long n1, 
+												unsigned long n2, 
+												unsigned long n3, 
+												unsigned long n4) __attribute__((always_inline));
+inline void cache_msg_6(int targetcore, 
+		                    unsigned long n0, 
+												unsigned long n1, 
+												unsigned long n2, 
+												unsigned long n3, 
+												unsigned long n4, 
+												unsigned long n5) __attribute__((always_inline));
 inline void transferObject(struct transObjInfo * transObj);
 inline int receiveMsg(void) __attribute__((always_inline));
 
@@ -263,46 +353,48 @@ void outputProfileData();
 #endif  // #ifdef PROFILE
 ///////////////////////////////////////////////////////////
 
-//////////////////////////////////////////////////////////////////////////////////////
-//  For each version of BAMBOO runtime, there should be a header file named        //
-//  runtim_arch.h defining following MARCOS:                                       //
-//  BAMBOO_TOTALCORE: the total # of cores available in the processor              //
-//  BAMBOO_NUM_OF_CORE: the # of current residing core                             //
-//  BAMBOO_GET_NUM_OF_CORE(): compute the # of current residing core               //
-//  BAMBOO_DEBUGPRINT(x): print out integer x                                      //
-//  BAMBOO_DEBUGPRINT_REG(x): print out value of variable x                        //
-//  BAMBOO_LOCAL_MEM_CALLOC(x, y): allocate an array of x elements each of whose   //
-//                                 size in bytes is y on local memory              //
-//  BAMBOO_LOCAL_MEM_FREE(x): free space with ptr x on local memory                //
-//  BAMBOO_SHARE_MEM_CALLOC(x, y): allocate an array of x elements each of whose   //
-//                                 size in bytes is y on shared memory             //
-//  BAMBOO_START_CRITICAL_SECTION_OBJ_QUEUE()                                      //
-//  BAMBOO_CLOSE_CRITICAL_SECTION_OBJ_QUEUE(): locks for global data structures    //
-//                                             related to obj queue                //
-//  BAMBOO_START_CRITICAL_SECTION_STATUS()                                         //
-//  BAMBOO_CLOSE_CRITICAL_SECTION_STATUS(): locks for global data structures       //
-//                                          related to status data                 //
-//  BAMBOO_START_CRITICAL_SECTION_MSG()                                            //
-//  BAMBOO_CLOSE_CRITICAL_SECTION_MSG(): locks for global data structures related  //
-//                                       to msg data                               //
-//  BAMBOO_START_CRITICAL_SECTION_LOCK()                                           //
-//  BAMBOO_CLOSE_CRITICAL_SECTION_LOCK(): locks for global data structures related //
-//                                        to lock table                            //
-//  BAMBOO_START_CRITICAL_SECTION_MEM()                                            //
-//  BAMBOO_CLOSE_CRITICAL_SECTION_MEM(): locks for allocating memory               //
-//  BAMBOO_START_CRITICAL_SECTION()                                                //
-//  BAMBOO_CLOSE_CRITICAL_SECTION(): locks for all global data structures          //
-//  BAMBOO_WAITING_FOR_LOCK(): routine executed while waiting for lock request     //
-//                             response                                            //
-//  BAMBOO_CACHE_LINE_SIZE: the cache line size                                    //
-//  BAMBOO_CACHE_LINE_MASK: mask for a cache line                                  //
-//  BAMBOO_CACHE_FLUSH_RANGE(x, y): flush cache lines started at x with length y   //
-//  BAMBOO_CACHE_FLUSH_ALL(): flush the whole cache of a core if necessary         //
-//  BAMBOO_EXIT(x): exit routine                                                   //
-//  BAMBOO_MSG_AVAIL(): checking if there are msgs coming in                       //
-//  BAMBOO_GCMSG_AVAIL(): checking if there are gcmsgs coming in                   //
-//  BAMBOO_GET_EXE_TIME(): rountine to get current clock cycle number              //
-/////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////
+// For each version of BAMBOO runtime, there should be a header file named //
+// runtim_arch.h defining following MARCOS:                                //
+// BAMBOO_TOTALCORE: the total # of cores available in the processor       //
+// BAMBOO_NUM_OF_CORE: the # of current residing core                      //
+// BAMBOO_GET_NUM_OF_CORE(): compute the # of current residing core        //
+// BAMBOO_DEBUGPRINT(x): print out integer x                               //
+// BAMBOO_DEBUGPRINT_REG(x): print out value of variable x                 //
+// BAMBOO_LOCAL_MEM_CALLOC(x, y): allocate an array of x elements each of  //
+//                                whose size in bytes is y on local memory //
+// BAMBOO_LOCAL_MEM_FREE(x): free space with ptr x on local memory         //
+// BAMBOO_SHARE_MEM_CALLOC(x, y): allocate an array of x elements each of  //
+//                                whose size in bytes is y on shared memory//
+// BAMBOO_START_CRITICAL_SECTION_OBJ_QUEUE()                               //
+// BAMBOO_CLOSE_CRITICAL_SECTION_OBJ_QUEUE(): locks for global data        //
+//                                            structures related to obj    //
+//                                            queue                        //
+// BAMBOO_START_CRITICAL_SECTION_STATUS()                                  //
+// BAMBOO_CLOSE_CRITICAL_SECTION_STATUS(): locks for global data structures//
+//                                         related to status data          //
+// BAMBOO_START_CRITICAL_SECTION_MSG()                                     //
+// BAMBOO_CLOSE_CRITICAL_SECTION_MSG(): locks for global data structures   //
+//                                      related to msg data                //
+// BAMBOO_START_CRITICAL_SECTION_LOCK()                                    //
+// BAMBOO_CLOSE_CRITICAL_SECTION_LOCK(): locks for global data structures  //
+//                                       related to lock table             //
+// BAMBOO_START_CRITICAL_SECTION_MEM()                                     //
+// BAMBOO_CLOSE_CRITICAL_SECTION_MEM(): locks for allocating memory        //
+// BAMBOO_START_CRITICAL_SECTION()                                         //
+// BAMBOO_CLOSE_CRITICAL_SECTION(): locks for all global data structures   //
+// BAMBOO_WAITING_FOR_LOCK(): routine executed while waiting for lock      //
+//                            request response                             //
+// BAMBOO_CACHE_LINE_SIZE: the cache line size                             //
+// BAMBOO_CACHE_LINE_MASK: mask for a cache line                           //
+// BAMBOO_CACHE_FLUSH_RANGE(x, y): flush cache lines started at x with     //
+//                                 length y                                //
+// BAMBOO_CACHE_FLUSH_ALL(): flush the whole cache of a core if necessary  //
+// BAMBOO_EXIT(x): exit routine                                            //
+// BAMBOO_MSG_AVAIL(): checking if there are msgs coming in                //
+// BAMBOO_GCMSG_AVAIL(): checking if there are gcmsgs coming in            //
+// BAMBOO_GET_EXE_TIME(): rountine to get current clock cycle number       //
+/////////////////////////////////////////////////////////////////////////////
 
 #endif  // #ifdef MULTICORE
 #endif  // #ifdef TASK

@@ -9,7 +9,7 @@
 #define BAMBOO_BASE_VA 0xd000000
 #define BAMBOO_SMEM_SIZE 16 * BAMBOO_PAGE_SIZE
 #define BAMBOO_SMEM_SIZE_L 512 * BAMBOO_PAGE_SIZE
-#define BAMBOO_LARGE_SMEM_BOUND BAMBOO_SMEM_SIZE_L*NUMCORES // NUMCORES = 62
+#define BAMBOO_LARGE_SMEM_BOUND BAMBOO_SMEM_SIZE_L*NUMCORES // NUMCORES=62
 
 struct garbagelist {
   int size;
@@ -70,8 +70,8 @@ GCPHASETYPE gcphase; // indicating GC phase
 int gccorestatus[NUMCORES]; // records status of each core
                             // 1: running gc
                             // 0: stall
-int gcnumsendobjs[NUMCORES]; // records how many objects a core has sent out
-int gcnumreceiveobjs[NUMCORES]; // records how many objects a core has received
+int gcnumsendobjs[NUMCORES]; // records how many objects sent out
+int gcnumreceiveobjs[NUMCORES]; // records how many objects received
 int gcself_numsendobjs;
 int gcself_numreceiveobjs;
 
@@ -100,7 +100,7 @@ bool ismapped;
 	if(t < BAMBOO_LARGE_SMEM_BOUND) { \
 		(*((int*)b)) = t / BAMBOO_SMEM_SIZE_L; \
 	} else { \
-		(*((int*)b)) = NUMCORES + (t - BAMBOO_LARGE_SMEM_BOUND) / BAMBOO_SMEM_SIZE; \
+		(*((int*)b)) = NUMCORES+(t-BAMBOO_LARGE_SMEM_BOUND)/BAMBOO_SMEM_SIZE;\
 	}
 
 #define RESIDECORE(p, x, y) \
