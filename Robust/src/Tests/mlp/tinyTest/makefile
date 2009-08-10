@@ -4,7 +4,7 @@ SOURCE_FILES=$(PROGRAM).java
 
 BUILDSCRIPT=~/research/Robust/src/buildscript
 
-USEMLP= -mlp 1 2 -mlpdebug # use to turn mlp on and off and make sure rest of build not broken
+#USEMLP= -mlp 1 2 -mlpdebug # use to turn mlp on and off and make sure rest of build not broken
 BSFLAGS= -nooptimize -debug -garbagestats -mainclass Test -ownership -ownallocdepth 1 -ownwritedots final -enable-assertions -flatirusermethods -ownaliasfile aliases.txt
 
 all: $(PROGRAM).bin

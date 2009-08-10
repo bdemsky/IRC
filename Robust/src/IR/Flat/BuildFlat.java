@@ -1178,6 +1178,7 @@ public class BuildFlat {
     FlatSESEEnterNode fsen=sn.getStart().getFlatEnter();
     fsexn.setFlatEnter(fsen);    
     sn.getStart().getFlatEnter().setFlatExit( fsexn );
+    
     return new NodePair(fsexn, fsexn);
   }
 

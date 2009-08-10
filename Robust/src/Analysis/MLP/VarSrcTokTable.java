@@ -461,23 +461,29 @@ public class VarSrcTokTable {
   // given a table from a subsequent program point, decide
   // which variables are going from a static source to a
   // dynamic source and return them
-  public Set<VariableSourceToken> getStatic2DynamicSet( VarSrcTokTable next ) {
+  public Hashtable<TempDescriptor, VariableSourceToken> getStatic2DynamicSet( VarSrcTokTable next ) {
     
-    Set<VariableSourceToken> out = new HashSet<VariableSourceToken>();
+    Hashtable<TempDescriptor, VariableSourceToken> out = 
+      new Hashtable<TempDescriptor, VariableSourceToken>();
     
     Iterator itr = var2vst.entrySet().iterator();
     while( itr.hasNext() ) {
       Map.Entry                    me  = (Map.Entry)                    itr.next();
       TempDescriptor               var = (TempDescriptor)               me.getKey();
       HashSet<VariableSourceToken> s1  = (HashSet<VariableSourceToken>) me.getValue();      
-    
+
+      // this is a variable with a static source if it
+      // currently has one vst
       if( s1.size() == 1 ) {
-        // this is a variable with a static source
         Set<VariableSourceToken> s2 = next.get( var );
-        
+
+	// and if in the next table, it is dynamic, then
+	// this is a transition point, so
         if( s2.size() > 1 ) {
-          // and in the next table, it is dynamic
-          out.addAll( s1 );
+
+	  // remember the variable and the only source
+	  // it had before crossing the transition
+	  out.put( var, s1.iterator().next() );
         }
       }
     }
@@ -495,25 +501,35 @@ public class VarSrcTokTable {
   // 3. Dynamic -- we don't know where the value will come
   //      from, so we'll track it dynamically
   public Integer getRefVarSrcType( TempDescriptor    refVar,
+				   FlatSESEEnterNode current,
 				   FlatSESEEnterNode parent ) {
     assert refVar != null;
     
-    if( parent == null ) {
+    // if you have no parent (root) and the variable in
+    // question is in your in-set, it's a command line
+    // argument and it is definitely available
+    if( parent == null && 
+	current.getInVarSet().contains( refVar ) ) {
       return SrcType_READY;
     }
 
     Set<VariableSourceToken> srcs = get( refVar );
     assert !srcs.isEmpty();
 
+    // if the variable may have more than one source, or that
+    // source is at the summary age, it must be tracked dynamically
     if( srcs.size() > 1 || 
 	srcs.iterator().next().getAge() == MLPAnalysis.maxSESEage ) {
       return SrcType_DYNAMIC;
     } 
 
+    // if it has one source that comes from the parent, it's ready
     if( srcs.iterator().next().getSESE() == parent ) {
       return SrcType_READY;
     }
     
+    // otherwise it comes from one source not the parent (sibling)
+    // and we know exactly which static SESE/age it will come from
     return SrcType_STATIC;
   }
 

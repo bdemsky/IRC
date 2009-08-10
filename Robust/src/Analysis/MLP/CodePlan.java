@@ -9,28 +9,16 @@ import java.io.*;
 // a code plan contains information based on analysis results
 // for injecting code before and/or after a flat node
 public class CodePlan {
-
-  private Set<VariableSourceToken> writeToDynamicSrc;
     
   private Hashtable< VariableSourceToken, Set<TempDescriptor> > stall2copySet;
+  private Set<TempDescriptor> dynamicStallSet;
 
   
   public CodePlan() {
-    writeToDynamicSrc = null;
-
     stall2copySet = new Hashtable< VariableSourceToken, Set<TempDescriptor> >();
+    dynamicStallSet = new HashSet<TempDescriptor>();
   }
 
-
-  public void setWriteToDynamicSrc( 
-		Set<VariableSourceToken> writeToDynamicSrc 
-				  ) {
-    this.writeToDynamicSrc = writeToDynamicSrc;
-  }
-
-  public Set<VariableSourceToken> getWriteToDynamicSrc() {
-    return writeToDynamicSrc;
-  }  
   
   public void addStall2CopySet( VariableSourceToken stallToken,
 				Set<TempDescriptor> copySet ) {
@@ -52,6 +40,15 @@ public class CodePlan {
   }
 
 
+  public void addDynamicStall( TempDescriptor var ) {
+    dynamicStallSet.add( var );
+  }
+
+  public Set<TempDescriptor> getDynamicStallSet() {
+    return dynamicStallSet;
+  }
+
+
   public boolean equals( Object o ) {
     if( o == null ) {
       return false;
@@ -63,46 +60,30 @@ public class CodePlan {
 
     CodePlan cp = (CodePlan) o;
 
-    boolean dynamicSetEq;
-    if( writeToDynamicSrc == null ) {
-      dynamicSetEq = (cp.writeToDynamicSrc == null);
-    } else {
-      dynamicSetEq = (writeToDynamicSrc.equals( cp.writeToDynamicSrc ));
-    }
-
     boolean copySetsEq = (stall2copySet.equals( cp.stall2copySet ));
+
+    boolean dynStallSetEq = (dynamicStallSet.equals( cp.dynamicStallSet ));
         
-    return dynamicSetEq && copySetsEq;
+    return copySetsEq && dynStallSetEq;
   }
 
   public int hashCode() {
-    int dynamicSetHC = 1;
-    if( writeToDynamicSrc != null  ) {
-      dynamicSetHC = writeToDynamicSrc.hashCode();
-    }
 
     int copySetsHC = stall2copySet.hashCode();
 
-    return dynamicSetHC ^ 3*copySetsHC;
+    int dynStallSetHC = dynamicStallSet.hashCode();
+
+    int hash = 7;
+    hash = 31*hash + copySetsHC;
+    hash = 31*hash + dynStallSetHC;
+    return hash;
   }
 
   public String toString() {
     String s = " PLAN: ";
 
-    if( writeToDynamicSrc != null ) {
-      s += "[WRITE DYN";
-
-      Iterator<VariableSourceToken> vstItr = writeToDynamicSrc.iterator();
-      while( vstItr.hasNext() ) {
-	VariableSourceToken vst = vstItr.next();
-	s += ", "+vst;
-      }
-
-      s += "]";
-    }
-
     if( !stall2copySet.entrySet().isEmpty() ) {
-      s += "[STALLS:";
+      s += "[STATIC STALLS:";
     }
     Iterator cpsItr = stall2copySet.entrySet().iterator();
     while( cpsItr.hasNext() ) {
@@ -114,6 +95,10 @@ public class CodePlan {
     }
     if( !stall2copySet.entrySet().isEmpty() ) {
       s += "]";
+    }
+
+    if( !dynamicStallSet.isEmpty() ) {
+      s += "[DYN STALLS:"+dynamicStallSet+"]";
     }
 
     return s;

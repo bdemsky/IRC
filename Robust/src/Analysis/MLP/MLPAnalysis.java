@@ -27,6 +27,8 @@ public class MLPAnalysis {
   private Hashtable< FlatNode, Set<TempDescriptor>      > notAvailableResults;
   private Hashtable< FlatNode, CodePlan                 > codePlans;
 
+  private Hashtable<FlatEdge, FlatWriteDynamicVarNode> wdvNodesToSpliceIn;
+
   public static int maxSESEage = -1;
 
 
@@ -73,6 +75,9 @@ public class MLPAnalysis {
     notAvailableResults  = new Hashtable< FlatNode, Set<TempDescriptor>      >();
     codePlans            = new Hashtable< FlatNode, CodePlan                 >();
 
+    wdvNodesToSpliceIn = new Hashtable<FlatEdge, FlatWriteDynamicVarNode>();
+
+
     FlatMethod fmMain = state.getMethodFlat( tu.getMain() );
 
     rootSESE = (FlatSESEEnterNode) fmMain.getNext(0);    
@@ -80,6 +85,9 @@ public class MLPAnalysis {
     rootSESE.setmdEnclosing( fmMain.getMethod() );
     rootSESE.setcdEnclosing( fmMain.getMethod().getClassDesc() );
 
+    if( state.MLPDEBUG ) {      
+      System.out.println( "" );
+    }
 
     // 1st pass
     // run analysis on each method that is actually called
@@ -92,6 +100,9 @@ public class MLPAnalysis {
       // find every SESE from methods that may be called
       // and organize them into roots and children
       buildForestForward( fm );
+    }
+    if( state.MLPDEBUG ) {      
+      //System.out.println( "\nSESE Hierarchy\n--------------\n" ); printSESEHierarchy();
     }
 
 
@@ -110,11 +121,18 @@ public class MLPAnalysis {
       // variable analysis for refinement and stalls
       variableAnalysisForward( fm );
     }
+    if( state.MLPDEBUG ) {      
+      System.out.println( "\nVariable Results\n----------------\n"+fmMain.printMethod( variableResults ) );
+    }
 
 
     // 4th pass, compute liveness contribution from
     // virtual reads discovered in variable pass
     livenessAnalysisBackward( rootSESE, true, null, fmMain.getFlatExit() );        
+    if( state.MLPDEBUG ) {      
+      //System.out.println( "\nSESE Liveness\n-------------\n" ); printSESELiveness();
+      //System.out.println( "\nLiveness Root View\n------------------\n"+fmMain.printMethod( livenessRootView ) );
+    }
 
 
     // 5th pass
@@ -127,6 +145,9 @@ public class MLPAnalysis {
       // point, in a forward fixed-point pass
       notAvailableForward( fm );
     }
+    if( state.MLPDEBUG ) {      
+      System.out.println( "\nNot Available Results\n---------------------\n"+fmMain.printMethod( notAvailableResults ) );
+    }
 
 
     // 5th pass
@@ -138,16 +159,18 @@ public class MLPAnalysis {
       // compute a plan for code injections
       computeStallsForward( fm );
     }
+    if( state.MLPDEBUG ) {
+      System.out.println( "\nCode Plans\n----------\n"+fmMain.printMethod( codePlans ) );
+    }
 
 
-    if( state.MLPDEBUG ) {      
-      System.out.println( "" );
-      //System.out.println( "\nSESE Hierarchy\n--------------\n" ); printSESEHierarchy();
-      //System.out.println( "\nSESE Liveness\n-------------\n" ); printSESELiveness();
-      //System.out.println( "\nLiveness Root View\n------------------\n"+fmMain.printMethod( livenessRootView ) );
-      //System.out.println( "\nVariable Results\n----------------\n"+fmMain.printMethod( variableResults ) );
-      //System.out.println( "\nNot Available Results\n---------------------\n"+fmMain.printMethod( notAvailableResults ) );
-      //System.out.println( "\nCode Plans\n----------\n"+fmMain.printMethod( codePlans ) );
+    // splice new IR nodes into graph after all
+    // analysis passes are complete
+    Iterator spliceItr = wdvNodesToSpliceIn.entrySet().iterator();
+    while( spliceItr.hasNext() ) {
+      Map.Entry               me    = (Map.Entry)               spliceItr.next();
+      FlatWriteDynamicVarNode fwdvn = (FlatWriteDynamicVarNode) me.getValue();
+      fwdvn.spliceIntoIR();
     }
 
 
@@ -777,7 +800,10 @@ public class MLPAnalysis {
       Iterator<TempDescriptor> inVarItr = fsen.getInVarSet().iterator();
       while( inVarItr.hasNext() ) {
 	TempDescriptor inVar = inVarItr.next();
-	Integer srcType = vstTable.getRefVarSrcType( inVar, fsen.getParent() );
+	Integer srcType = 
+	  vstTable.getRefVarSrcType( inVar, 
+				     fsen,
+				     fsen.getParent() );
 
 	if( srcType.equals( VarSrcTokTable.SrcType_DYNAMIC ) ) {
 	  fsen.addDynamicInVar( inVar );
@@ -820,10 +846,6 @@ public class MLPAnalysis {
     // fall through to this default case
     default: {          
 
-      // decide if we must stall for variables dereferenced at this node
-      Set<VariableSourceToken> potentialStallSet = 
-	vstTable.getChildrenVSTs( currentSESE );
-
       // a node with no live set has nothing to stall for
       Set<TempDescriptor> liveSet = livenessRootView.get( fn );
       if( liveSet == null ) {
@@ -841,21 +863,24 @@ public class MLPAnalysis {
 	}
 
 	// check the source type of this variable
-	Integer srcType = vstTable.getRefVarSrcType( readtmp, 
-						     currentSESE.getParent() );
+	Integer srcType 
+	  = vstTable.getRefVarSrcType( readtmp,
+				       currentSESE,
+				       currentSESE.getParent() );
+
+
+	System.out.println( "considering stall on "+readtmp+" for "+currentSESE );
 
 	if( srcType.equals( VarSrcTokTable.SrcType_DYNAMIC ) ) {
-	  // identify that this is a stall, and allocate an integer
-	  // pointer in the generated code that keeps a pointer to
-	  // the source SESE and the address of where to get this thing
-	  // --then the stall is just wait for that, and copy the
-	  // one thing because we're not sure if we can copy other stuff
+	  // 1) It is not clear statically where this variable will
+	  // come from statically, so dynamically we must keep track
+	  // along various control paths, and therefore when we stall,
+	  // just stall for the exact thing we need and move on
+	  plan.addDynamicStall( readtmp );
+	  currentSESE.addDynamicStallVar( readtmp );
+	  System.out.println( "ADDING "+readtmp+" TO "+currentSESE+" DYNSTALLSET" );
 	  
-	  // NEEDS WORK!
-	  
-	  
-	} else if( srcType.equals( VarSrcTokTable.SrcType_STATIC ) ) {
-	  
+	} else if( srcType.equals( VarSrcTokTable.SrcType_STATIC ) ) {	  
 	  // 2) Single token/age pair: Stall for token/age pair, and copy
 	  // all live variables with same token/age pair at the same
 	  // time.  This is the same stuff that the notavaialable analysis 
@@ -915,23 +940,39 @@ public class MLPAnalysis {
       currentSESE.mustTrackAtLeastAge( vst.getAge() );
     }
 
-    // if any variable at this node has a static source (exactly one sese)
-    // but goes to a dynamic source at a next node, write its dynamic addr      
-    Set<VariableSourceToken> static2dynamicSet = new HashSet<VariableSourceToken>();
+
+    codePlans.put( fn, plan );
+
+
+    // if any variables at this node have a static source (exactly one vst)
+    // but go to a dynamic source at a next node, create a new IR graph
+    // node on that edge to track the sources dynamically
     for( int i = 0; i < fn.numNext(); i++ ) {
       FlatNode nn = fn.getNext( i );
       VarSrcTokTable nextVstTable = variableResults.get( nn );
+
       // the table can be null if it is one of the few IR nodes
       // completely outside of the root SESE scope
       if( nextVstTable != null ) {
-	static2dynamicSet.addAll( vstTable.getStatic2DynamicSet( nextVstTable ) );
+
+	Hashtable<TempDescriptor, VariableSourceToken> static2dynamicSet = 
+	  vstTable.getStatic2DynamicSet( nextVstTable );
+	
+	if( !static2dynamicSet.isEmpty() ) {
+
+	  // either add these results to partial fixed-point result
+	  // or make a new one if we haven't made any here yet
+	  FlatEdge fe = new FlatEdge( fn, nn );
+	  FlatWriteDynamicVarNode fwdvn = wdvNodesToSpliceIn.get( fe );
+
+	  if( fwdvn == null ) {
+	    fwdvn = new FlatWriteDynamicVarNode( fn, nn, static2dynamicSet );
+	    wdvNodesToSpliceIn.put( fe, fwdvn );
+	  } else {
+	    fwdvn.addMoreVar2Src( static2dynamicSet );
+	  }
+	}
       }
     }
-
-    if( !static2dynamicSet.isEmpty() ) {
-      plan.setWriteToDynamicSrc( static2dynamicSet );
-    }
-
-    codePlans.put( fn, plan );
   }
 }

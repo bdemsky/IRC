@@ -1865,12 +1865,28 @@ public class BuildCode {
     }
 
 
-    // declare variables for naming SESE's
+    // declare variables for naming static SESE's
     Iterator<SESEandAgePair> pItr = fsen.getNeededStaticNames().iterator();
     while( pItr.hasNext() ) {
       SESEandAgePair p = pItr.next();
       output.println("   void* "+p+";");
     }
+
+    // declare variables for tracking dynamic sources
+    Set<TempDescriptor> dynSrcVars = new HashSet<TempDescriptor>();
+    dynSrcVars.addAll( fsen.getDynamicStallVarSet() );
+    Iterator<FlatSESEEnterNode> childItr = fsen.getChildren().iterator();
+    while( childItr.hasNext() ) {
+      FlatSESEEnterNode child = childItr.next();
+      dynSrcVars.addAll( child.getDynamicInVarSet() );
+    }
+    Iterator<TempDescriptor> dynItr = dynSrcVars.iterator();
+    while( dynItr.hasNext() ) {
+      TempDescriptor dynVar = dynItr.next();
+      output.println("   void*  "+dynVar+"_srcSESE;");
+      output.println("   INTPTR "+dynVar+"_srcAddr;");
+    }
+    
 
     // declare local temps for in-set primitives, and if it is
     // a ready-source variable, get the value from the record
@@ -1904,16 +1920,13 @@ public class BuildCode {
 	to = "(void*) ";
 	size = "sizeof ";
       } else {
-	//to = "(void*) &("+temp.getSafeSymbol()+")";
 	to = temp.getSafeSymbol();
 	size = "sizeof( "+temp.getSafeSymbol()+" )";
       }
 
       SESEandAgePair srcPair = new SESEandAgePair( vst.getSESE(), vst.getAge() );
-      //String from = "(void*) &("+paramsprefix+"->"+srcPair+"->"+vst.getAddrVar()+")";
       String from = paramsprefix+"->"+srcPair+"->"+vst.getAddrVar();
       
-      //output.println("     memcpy( "+to+", "+from+", "+size+" );");
       output.println("     "+to+" = "+from+";");
     }
 
@@ -2263,11 +2276,18 @@ public class BuildCode {
 
 	    output.println("       "+td.getSafeSymbol()+" = child->"+
 			             vst.getAddrVar().getSafeSymbol()+";");
-	    //output.println("printf(\"copied %d into "+td.getSafeSymbol()+" from "+vst.getAddrVar().getSafeSymbol()+
-	    //"\\n\", "+td.getSafeSymbol()+" );");
 	  }
 
 	  output.println("   }");
+	}
+
+	
+	// for each variable with a dynamic source, stall just
+	// for that variable
+	Iterator<TempDescriptor> dynItr = cp.getDynamicStallSet().iterator();
+	while( dynItr.hasNext() ) {
+	  TempDescriptor dynVar = dynItr.next();
+
 	}
       }     
     }
@@ -2291,6 +2311,10 @@ public class BuildCode {
 
     case FKind.FlatSESEExitNode:
       generateFlatSESEExitNode(fm, lb, (FlatSESEExitNode)fn, output);
+      break;
+      
+    case FKind.FlatWriteDynamicVarNode:
+      generateFlatWriteDynamicVarNode(fm, lb, (FlatWriteDynamicVarNode)fn, output);
       break;
 
     case FKind.FlatGlobalConvNode:
@@ -2387,17 +2411,6 @@ public class BuildCode {
       CodePlan cp = mlpa.getCodePlan( fn );
 
       if( cp != null ) {     
-
-	/*
-	Set<VariableSourceToken> writeDynamic = cp.getWriteToDynamicSrc();      
-	if( writeDynamic != null ) {
-	  Iterator<VariableSourceToken> vstItr = writeDynamic.iterator();
-	  while( vstItr.hasNext() ) {
-	    VariableSourceToken vst = vstItr.next();
-	    
-	  }
-	}
-	*/
       }
     }    
   }
@@ -2876,6 +2889,43 @@ public class BuildCode {
       output.println("     psem_give( &("+paramsprefix+"->common.stallSem) );");
     }
   }
+
+  public void generateFlatWriteDynamicVarNode( FlatMethod fm,  
+					       LocalityBinding lb, 
+					       FlatWriteDynamicVarNode fwdvn,
+					       PrintWriter output
+					     ) {
+    if( !state.MLP ) {
+      // should node should not be in an IR graph if the
+      // MLP flag is not set
+      throw new Error("Unexpected presence of FlatWriteDynamicVarNode");
+    }
+    	
+    Hashtable<TempDescriptor, VariableSourceToken> writeDynamic = 
+      fwdvn.getVar2src();
+
+    assert writeDynamic != null;
+
+    Iterator wdItr = writeDynamic.entrySet().iterator();
+    while( wdItr.hasNext() ) {
+      Map.Entry           me  = (Map.Entry)           wdItr.next();
+      TempDescriptor      var = (TempDescriptor)      me.getKey();
+      VariableSourceToken vst = (VariableSourceToken) me.getValue();
+      
+      SESEandAgePair instance = new SESEandAgePair( vst.getSESE(), vst.getAge() );
+      
+      output.println("   {");
+      output.println("     "+var+"_srcSESE = "+instance+";");
+      
+      output.println("     "+vst.getSESE().getSESErecordName()+"* rec = ("+
+		     vst.getSESE().getSESErecordName()+") "+
+		     instance+";");
+      
+      output.println("     "+var+"_srcAddr = (INTPTR) &(rec->"+vst.getAddrVar()+");");
+      output.println("   }");
+    }	
+  }
+
   
   private void generateFlatCheckNode(FlatMethod fm,  LocalityBinding lb, FlatCheckNode fcn, PrintWriter output) {
     if (state.CONSCHECK) {

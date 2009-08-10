@@ -21,16 +21,19 @@ public class FlatSESEEnterNode extends FlatNode {
   protected Integer           oldestAgeToTrack;
 
   protected Set<FlatSESEEnterNode> children;
-  protected Set<TempDescriptor>    inVars;
-  protected Set<TempDescriptor>    outVars;
 
-  protected Set<SESEandAgePair>    needStaticNameInCode;
+  protected Set<TempDescriptor> inVars;
+  protected Set<TempDescriptor> outVars;
 
-  protected Set<SESEandAgePair>    staticInVarSrcs;
+  protected Set<SESEandAgePair> needStaticNameInCode;
 
-  protected Set<TempDescriptor>    readyInVars;
-  protected Set<TempDescriptor>    staticInVars;
-  protected Set<TempDescriptor>    dynamicInVars;  
+  protected Set<SESEandAgePair> staticInVarSrcs;
+
+  protected Set<TempDescriptor> readyInVars;
+  protected Set<TempDescriptor> staticInVars;
+  protected Set<TempDescriptor> dynamicInVars;  
+
+  protected Set<TempDescriptor> dynamicStallVars;
 
   protected Hashtable<TempDescriptor, VariableSourceToken> staticInVar2src;
   
@@ -60,6 +63,7 @@ public class FlatSESEEnterNode extends FlatNode {
     readyInVars          = new HashSet<TempDescriptor>();
     staticInVars         = new HashSet<TempDescriptor>();
     dynamicInVars        = new HashSet<TempDescriptor>();
+    dynamicStallVars     = new HashSet<TempDescriptor>();
 
     staticInVar2src = new Hashtable<TempDescriptor, VariableSourceToken>();
   }
@@ -231,6 +235,14 @@ public class FlatSESEEnterNode extends FlatNode {
 
   public Set<TempDescriptor> getDynamicInVarSet() {
     return dynamicInVars;
+  }
+
+  public void addDynamicStallVar( TempDescriptor td ) {
+    dynamicStallVars.add( td );
+  }
+
+  public Set<TempDescriptor> getDynamicStallVarSet() {
+    return dynamicStallVars;
   }
 
   public void mustTrackAtLeastAge( Integer age ) {

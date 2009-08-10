@@ -3,44 +3,30 @@ public class Foo {
 }
 
 
+// TODO
+// -dynamic variables
+// -objects
+
+
 public class Test {
 
   public static void main( String args[] ) {
     
     int x = Integer.parseInt( args[0] );
     int y = Integer.parseInt( args[1] );
-
     System.out.println( "root: x="+x+", y="+y );
 
-    //Foo f;
-
-    sese fi {
-      //if( true ) {
-
-      System.out.println( "fi: x="+x+", y="+y );
-
-      x = y + 2;
-      y = 3;	     
-
-      //f = new Foo();
-      //}      
+    if( x > 3 ) {
+      sese fi {
+	y = y + 10;
+      }
     }
-
-
-    // just for testing root's ability to
-    // realize a single exit after all returns
-    // DOESN'T WORK!
-    /*
-    if( false ) {
-      return;
-    }
-    */
-       
+    
     // see that values from sese fi are
     // forwarded to this sibling
-    sese fo {
-      System.out.println( "fo: x="+x+", y="+y );
-    }
+    //sese fo {
+    System.out.println( "fo: x="+x+", y="+y );
+    //}
 
     /*
     float xyz = 2.0f;
@@ -48,13 +34,11 @@ public class Test {
     */
 
 
-    //Integer i;
-    //afunc( i );
+    // just for testing root's ability to
+    // realize a single exit after all returns
+    // DOESN'T WORK!
+    //if( false ) {
+    //  return;
+    //}
   }
-
-  /*
-  public static void afunc( Integer i ) {
-    i = null;
-  }
-  */
 }

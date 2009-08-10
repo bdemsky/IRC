@@ -320,13 +320,6 @@ public class Main {
       }
     }
     
-    if (state.FLATIRGRAPH) {
-      FlatIRGraph firg = new FlatIRGraph(state,
-                                         state.FLATIRGRAPHTASKS,
-                                         state.FLATIRGRAPHUSERMETHODS,
-                                         state.FLATIRGRAPHLIBMETHODS);
-    }
-
     if (state.OWNERSHIP && !state.MLP) {
       CallGraph callGraph = new CallGraph(state);
       OwnershipAnalysis oa = new OwnershipAnalysis(state,
@@ -352,6 +345,13 @@ public class Main {
                              callGraph,
                              oa);
     }    
+
+    if (state.FLATIRGRAPH) {
+      FlatIRGraph firg = new FlatIRGraph(state,
+                                         state.FLATIRGRAPHTASKS,
+                                         state.FLATIRGRAPHUSERMETHODS,
+                                         state.FLATIRGRAPHLIBMETHODS);
+    }
 
     if (state.TAGSTATE) {
       CallGraph callgraph=new CallGraph(state);
