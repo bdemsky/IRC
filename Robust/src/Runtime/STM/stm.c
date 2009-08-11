@@ -59,8 +59,10 @@ objtypestat_t typesCausingAbort[TOTALNUMCLASSANDARRAY];
  **/
 INLINE void getTransSize(objheader_t *header , int *isObjTypeTraverse) {
   (typesCausingAbort[TYPE(header)]).numabort++;
-  if(isObjTypeTraverse[TYPE(header)] != 1)
+  if(isObjTypeTraverse[TYPE(header)] != 1) {
     (typesCausingAbort[TYPE(header)]).numaccess+=c_numelements;
+    (typesCausingAbort[TYPE(header)]).numtrans+=1; //should this count be kept per object
+  }
   isObjTypeTraverse[TYPE(header)]=1;
 }
 #define DEBUGSTMSTAT(args...)
@@ -114,11 +116,13 @@ objlockstate_t *objlockscope;
  * Increments the abort count for each object
  **/
 void ABORTCOUNT(objheader_t * x) {
-  float transAbortProb = (PERCENT_ALLOWED_ABORT*FACTOR)/(float)typesCausingAbort[TYPE(x)].numaccess;
+  int avgTransSize = typesCausingAbort[TYPE(x)].numaccess / typesCausingAbort[TYPE(x)].numtrans; 
+  float transAbortProbForObj = (PERCENT_ALLOWED_ABORT*FACTOR)/(float) avgTransSize;
   float ObjAbortProb = x->abortCount/(float) (x->accessCount);
-  DEBUGSTM("ABORTSTATS: oid= %x, transAbortProb= %3.2f, ObjAbortProb= %3.2f, numaccess= %3d, type= %2d, abortCount= %3d, accessCount= %3d\n", OID(x), transAbortProb, ObjAbortProb, typesCausingAbort[TYPE(x)].numaccess, TYPE(x), x->abortCount, x->accessCount);
+  DEBUGSTM("ABORTSTATS: oid= %x, type= %2d, transAbortProb= %2.2f, ObjAbortProb= %2.2f, Typenumaccess= %3d, avgtranssize = %2d, ObjabortCount= %2d, ObjaccessCount= %3d\n", OID(x), TYPE(x), transAbortProbForObj, ObjAbortProb, typesCausingAbort[TYPE(x)].numaccess, avgTransSize, x->abortCount, x->accessCount);
   /* Condition for locking objects */
-  if ((ObjAbortProb > transAbortProb) && (x->riskyflag != 1)) {	 
+  if (((ObjAbortProb*100) >= transAbortProbForObj) && (x->riskyflag != 1)) {	 
+    DEBUGSTM("AFTER LOCK ABORTSTATS: oid= %x, type= %2d, transAbortProb= %2.2f, ObjAbortProb= %2.2f, Typenumaccess= %3d, avgtranssize = %2d, ObjabortCount= %2d, ObjaccessCount= %3d\n", OID(x), TYPE(x), transAbortProbForObj, ObjAbortProb, typesCausingAbort[TYPE(x)].numaccess, avgTransSize, x->abortCount, x->accessCount);
     //makes riskflag sticky
     pthread_mutex_lock(&lockedobjstore); 
     if (objlockscope->offset<MAXOBJLIST) { 
@@ -579,6 +583,7 @@ int traverseCache() {
         ObjSeqId = headeraddr->accessCount;
 	    (typesCausingAbort[TYPE(header)]).numabort++;
 	    (typesCausingAbort[TYPE(header)]).numaccess+=c_numelements;
+        (typesCausingAbort[TYPE(header)]).numtrans+=1; 
         objtypetraverse[TYPE(header)]=1;
         getTotalAbortCount(i+1, size, (void *)(curr->next), numoidrdlocked, oidrdlocked, oidrdversion, oidrdage, ObjSeqId, header, objtypetraverse);
 #endif
@@ -601,6 +606,7 @@ int traverseCache() {
       ObjSeqId = headeraddr->accessCount;
       (typesCausingAbort[TYPE(header)]).numabort++;
       (typesCausingAbort[TYPE(header)]).numaccess+=c_numelements;
+      (typesCausingAbort[TYPE(header)]).numtrans+=1; 
       objtypetraverse[TYPE(header)]=1;
 	  //(typesCausingAbort[TYPE(header)])++;
 #endif
@@ -666,6 +672,7 @@ int traverseCache() {
       header->abortCount++;
       (typesCausingAbort[TYPE(header)]).numabort++;
       (typesCausingAbort[TYPE(header)]).numaccess+=c_numelements;
+      (typesCausingAbort[TYPE(header)]).numtrans+=1; 
       objtypetraverse[TYPE(header)]=1;
 #endif
 #if defined(STMSTATS)||defined(SOFTABORT)
@@ -704,10 +711,11 @@ int traverseCache() {
     header->abortCount++;
     (typesCausingAbort[TYPE(header)]).numabort++;
     (typesCausingAbort[TYPE(header)]).numaccess+=c_numelements;
+    (typesCausingAbort[TYPE(header)]).numtrans+=1; 
     objtypetraverse[TYPE(header)]=1;
 	getReadAbortCount(i+1, numoidrdlocked, oidrdlocked, oidrdversion, oidrdage, ObjSeqId, header, objtypetraverse);
 #endif
-	DEBUGSTM("RD Abort: rd: %u wr: %u tot: %u type: %u ver: %u\n", numoidrdlocked, numoidwrlocked, c_numelements, TYPE(header), header->version);
+	DEBUGSTM("RD Abort: rd: %u wr: %u tot: %u type: %u ver: %u oid: %x\n", numoidrdlocked, numoidwrlocked, c_numelements, TYPE(header), header->version, OID(header));
 	DEBUGSTMSTAT("RD Abort: Access Count: %u AbortCount: %u type: %u ver: %u \n", header->accessCount, header->abortCount, TYPE(header), header->version);
 	freearrays;
 	return TRANS_ABORT;
@@ -723,10 +731,11 @@ int traverseCache() {
     header->abortCount++;
     (typesCausingAbort[TYPE(header)]).numabort++;
     (typesCausingAbort[TYPE(header)]).numaccess+=c_numelements;
+    (typesCausingAbort[TYPE(header)]).numtrans+=1; 
     objtypetraverse[TYPE(header)]=1;
 	getReadAbortCount(i+1, numoidrdlocked, oidrdlocked, oidrdversion, oidrdage, ObjSeqId, header, objtypetraverse);
 #endif
-	DEBUGSTM("RD Abort: rd: %u wr: %u tot: %u type: %u ver: %u\n", numoidrdlocked, numoidwrlocked, c_numelements, TYPE(header), header->version);
+	DEBUGSTM("RD Abort: rd: %u wr: %u tot: %u type: %u ver: %u, oid: %x\n", numoidrdlocked, numoidwrlocked, c_numelements, TYPE(header), header->version, OID(header));
 	DEBUGSTMSTAT("RD Abort: Access Count: %u AbortCount: %u type: %u ver: %u \n", header->accessCount, header->abortCount, TYPE(header), header->version);
 	freearrays;
 	return TRANS_ABORT;
@@ -747,13 +756,14 @@ int traverseCache() {
       header->abortCount++;
       (typesCausingAbort[TYPE(header)]).numabort++;
       (typesCausingAbort[TYPE(header)]).numaccess+=c_numelements;
+      (typesCausingAbort[TYPE(header)]).numtrans+=1; 
       objtypetraverse[TYPE(header)]=1;
 #endif
 #if defined(STMSTATS)||defined(SOFTABORT)
       if(getReadAbortCount(i+1, numoidrdlocked, oidrdlocked, oidrdversion, oidrdage, ObjSeqId, header, objtypetraverse))
 	softabort=0;
 #endif
-      DEBUGSTM("RD Abort: rd: %u wr: %u tot: %u type: %u ver: %u\n", numoidrdlocked, numoidwrlocked, c_numelements, TYPE(header), header->version);
+      DEBUGSTM("RD Abort: rd: %u wr: %u tot: %u type: %u ver: %u oid: %x\n", numoidrdlocked, numoidwrlocked, c_numelements, TYPE(header), header->version, OID(header));
       DEBUGSTMSTAT("RD Abort: Access Count: %u AbortCount: %u type: %u ver: %u \n", header->accessCount, header->abortCount, TYPE(header), header->version);
       freearrays;
       if (softabort)
@@ -787,7 +797,7 @@ int traverseCache() {
 	//if(getTotalAbortCount2((void *) curr->next, numoidrdlocked, oidrdlocked, oidrdversion))
 	//  softabort=0;
 #endif
-	DEBUGSTM("WR Abort: rd: %u wr: %u tot: %u type: %u ver: %u\n", numoidrdlocked, numoidwrlocked, c_numelements, TYPE(header), header->version);
+	DEBUGSTM("WR Abort: rd: %u wr: %u tot: %u type: %u ver: %u oid: %x\n", numoidrdlocked, numoidwrlocked, c_numelements, TYPE(header), header->version, OID(header));
 	DEBUGSTMSTAT("WR Abort: Access Count: %u AbortCount: %u type: %u ver: %u \n", header->accessCount, header->abortCount, TYPE(header), header->version);
 	freearrays;
 	if (softabort)
@@ -839,7 +849,7 @@ int traverseCache() {
       //if(getTotalAbortCount2((void *) curr->next, numoidrdlocked, oidrdlocked, oidrdversion))
 	//softabort=0;
 #endif
-      DEBUGSTM("WR Abort: rd: %u wr: %u tot: %u type: %u ver: %u\n", numoidrdlocked, numoidwrlocked, c_numelements, TYPE(header), header->version);
+      DEBUGSTM("WR Abort: rd: %u wr: %u tot: %u type: %u ver: %u oid: %x\n", numoidrdlocked, numoidwrlocked, c_numelements, TYPE(header), header->version, OID(header));
       DEBUGSTMSTAT("WR Abort: Access Count: %u AbortCount: %u type: %u ver: %u \n", header->accessCount, header->abortCount, TYPE(header), header->version);
       freearrays;
       if (softabort)
@@ -916,10 +926,11 @@ int alttraverseCache() {
       ObjSeqId = headeraddr->accessCount; 
       (typesCausingAbort[TYPE(header)]).numabort++;
       (typesCausingAbort[TYPE(header)]).numaccess+=c_numelements;
+      (typesCausingAbort[TYPE(header)]).numtrans+=1; 
       objtypetraverse[TYPE(header)]=1;
       getTotalAbortCount2((void *) curr->next, numoidrdlocked, oidrdlocked, oidrdversion, oidrdage, ObjSeqId, header, objtypetraverse);
 #endif
-	  DEBUGSTM("WR Abort: rd: %u wr: %u tot: %u type: %u ver: %u\n", numoidrdlocked, numoidwrlocked, c_numelements, TYPE(header), header->version);
+	  DEBUGSTM("WR Abort: rd: %u wr: %u tot: %u type: %u ver: %u oid: %x\n", numoidrdlocked, numoidwrlocked, c_numelements, TYPE(header), header->version, OID(header));
 	  DEBUGSTMSTAT("WR Abort: Access Count: %u AbortCount: %u type: %u ver: %u \n", header->accessCount, header->abortCount, TYPE(header), header->version);
 	  freearrays;
 	  return TRANS_ABORT;
@@ -935,13 +946,14 @@ int alttraverseCache() {
     ObjSeqId = headeraddr->accessCount; 
     (typesCausingAbort[TYPE(header)]).numabort++;
     (typesCausingAbort[TYPE(header)]).numaccess+=c_numelements;
+    (typesCausingAbort[TYPE(header)]).numtrans+=1; 
     objtypetraverse[TYPE(header)]=1;
 #endif
 #if defined(STMSTATS)||defined(SOFTABORT)
     if(getTotalAbortCount2((void *) curr->next, numoidrdlocked, oidrdlocked, oidrdversion, oidrdage, ObjSeqId, header, objtypetraverse))
 	  softabort=0;
 #endif
-	DEBUGSTM("WR Abort: rd: %u wr: %u tot: %u type: %u ver: %u\n", numoidrdlocked, numoidwrlocked, c_numelements, TYPE(header), header->version);
+	DEBUGSTM("WR Abort: rd: %u wr: %u tot: %u type: %u ver: %u oid: %x\n", numoidrdlocked, numoidwrlocked, c_numelements, TYPE(header), header->version, OID(header));
 	DEBUGSTMSTAT("WR Abort: Access Count: %u AbortCount: %u type: %u ver: %u \n", header->accessCount, header->abortCount, TYPE(header), header->version);
 	freearrays;
 	if (softabort)
@@ -990,13 +1002,14 @@ int alttraverseCache() {
       ObjSeqId = headeraddr->accessCount; 
       (typesCausingAbort[TYPE(header)]).numabort++;
       (typesCausingAbort[TYPE(header)]).numaccess+=c_numelements;
+      (typesCausingAbort[TYPE(header)]).numtrans+=1; 
       objtypetraverse[TYPE(header)]=1;
 #endif
 #if defined(STMSTATS)||defined(SOFTABORT)
       if(getTotalAbortCount2((void *) curr->next, numoidrdlocked, oidrdlocked, oidrdversion, oidrdage, ObjSeqId, header, objtypetraverse))
 	softabort=0;
 #endif
-      DEBUGSTM("WR Abort: rd: %u wr: %u tot: %u type: %u ver: %u\n", numoidrdlocked, numoidwrlocked, c_numelements, TYPE(header), header->version);
+      DEBUGSTM("WR Abort: rd: %u wr: %u tot: %u type: %u ver: %u oid: %x\n", numoidrdlocked, numoidwrlocked, c_numelements, TYPE(header), header->version, OID(header));
       DEBUGSTMSTAT("WR Abort: Access Count: %u AbortCount: %u type: %u ver: %u \n", header->accessCount, header->abortCount, TYPE(header), header->version);
       freearrays;
       if (softabort)
@@ -1027,10 +1040,11 @@ int alttraverseCache() {
     header->abortCount++;
     (typesCausingAbort[TYPE(header)]).numabort++;
     (typesCausingAbort[TYPE(header)]).numaccess+=c_numelements;
+    (typesCausingAbort[TYPE(header)]).numtrans+=1; 
     objtypetraverse[TYPE(header)]=1;
 	getReadAbortCount(i+1, numoidrdlocked, oidrdlocked, oidrdversion, oidrdage, ObjSeqId, header, objtypetraverse);
 #endif
-	DEBUGSTM("RD Abort: rd: %u wr: %u tot: %u type: %u ver: %u\n", numoidrdlocked, numoidwrlocked, c_numelements, TYPE(header), header->version);
+	DEBUGSTM("RD Abort: rd: %u wr: %u tot: %u type: %u ver: %u oid: %x\n", numoidrdlocked, numoidwrlocked, c_numelements, TYPE(header), header->version, OID(header));
 	DEBUGSTMSTAT("RD Abort: Access Count: %u AbortCount: %u type: %u ver: %u \n", header->accessCount, header->abortCount, TYPE(header), header->version);
 	freearrays;
 	return TRANS_ABORT;
@@ -1046,7 +1060,7 @@ int alttraverseCache() {
     header->abortCount++;
 	getReadAbortCount(i+1, numoidrdlocked, oidrdlocked, oidrdversion, oidrdage, ObjSeqId, header, objtypetraverse);
 #endif
-	DEBUGSTM("RD Abort: rd: %u wr: %u tot: %u type: %u ver: %u\n", numoidrdlocked, numoidwrlocked, c_numelements, TYPE(header), header->version);
+	DEBUGSTM("RD Abort: rd: %u wr: %u tot: %u type: %u ver: %u oid: %x\n", numoidrdlocked, numoidwrlocked, c_numelements, TYPE(header), header->version, OID(header));
 	DEBUGSTMSTAT("RD Abort: Access Count: %u AbortCount: %u type: %u ver: %u \n", header->accessCount, header->abortCount, TYPE(header), header->version);
 	freearrays;
 	return TRANS_ABORT;
@@ -1066,6 +1080,7 @@ int alttraverseCache() {
       header->abortCount++;
       (typesCausingAbort[TYPE(header)]).numabort++;
       (typesCausingAbort[TYPE(header)]).numaccess+=c_numelements;
+      (typesCausingAbort[TYPE(header)]).numtrans+=1; 
       objtypetraverse[TYPE(header)]=1;
 #endif
 #if defined(STMSTATS)||defined(SOFTABORT)

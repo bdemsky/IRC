@@ -200,6 +200,7 @@ void initializethreads() {
     for(i=0; i<TOTALNUMCLASSANDARRAY; i++) {
       typesCausingAbort[i].numabort = 0;
       typesCausingAbort[i].numaccess = 0;
+      typesCausingAbort[i].numtrans = 0;
     }
   }
 #endif

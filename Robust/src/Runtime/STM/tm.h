@@ -152,13 +152,14 @@ extern objlockstate_t *objlockscope;
 pthread_mutex_t lockedobjstore;
 
 typedef struct objtypestat {
-  int numabort;
+  int numabort;         
   int numaccess;
+  int numtrans;    //num of transactions that accessed this object type and aborted
 } objtypestat_t;
 
 /* Variables for probability model */
-#define PERCENT_ALLOWED_ABORT 10
-#define FACTOR 1
+#define PERCENT_ALLOWED_ABORT 60
+#define FACTOR 3
 #endif
 
 

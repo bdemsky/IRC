@@ -74,7 +74,7 @@ public class SingleObjectMod extends Thread {
         index = (int)(rand.random_generate() % arrysize);
         // Do computation 1
         for(int j = 0; j<lsize1; j++) {
-          count += j*j;
+          count+=j*j;
         }
         // Only read values from an object
         val = mainobj[index];

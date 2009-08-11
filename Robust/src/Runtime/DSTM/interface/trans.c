@@ -657,7 +657,6 @@ plistnode_t *createPiles() {
 int transCommit() {
   unsigned int tot_bytes_mod, *listmid;
   plistnode_t *pile, *pile_ptr;
-  int trecvcount;
   char treplyretry; /* keeps track of the common response that needs to be sent */
   int firsttime=1;
   trans_commit_data_t transinfo; /* keeps track of objs locked during transaction */
@@ -678,7 +677,6 @@ int transCommit() {
 
 
   do {
-    trecvcount = 0;
     treplyretry = 0;
 
     /* Look through all the objects in the transaction record and make piles
