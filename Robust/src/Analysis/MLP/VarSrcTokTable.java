@@ -330,6 +330,29 @@ public class VarSrcTokTable {
     assertConsistency();
   }
 
+
+  // at an SESE enter node, all ref vars in the SESE's in-set will
+  // be copied into the SESE's local scope, change source to itself
+  public void ownInSet( FlatSESEEnterNode curr ) {
+    Iterator<TempDescriptor> inVarItr = curr.getInVarSet().iterator();
+    while( inVarItr.hasNext() ) {
+      TempDescriptor inVar = inVarItr.next();
+
+      remove( inVar );
+      assertConsistency();
+
+      Set<TempDescriptor> refVars = new HashSet<TempDescriptor>();
+      refVars.add( inVar );
+      add( new VariableSourceToken( refVars,
+				    curr,
+				    new Integer( 0 ),
+				    inVar
+				    )
+	   );
+      assertConsistency();
+    }
+  }
+
   
   // for the given SESE, change child tokens into this parent
   public void remapChildTokens( FlatSESEEnterNode curr ) {

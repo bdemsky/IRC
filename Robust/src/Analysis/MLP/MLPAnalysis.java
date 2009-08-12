@@ -143,7 +143,7 @@ public class MLPAnalysis {
       pruneVariableResultsWithLiveness( fm );
     }
     if( state.MLPDEBUG ) {      
-      //System.out.println( "\nVariable Results-Out\n----------------\n"+fmMain.printMethod( variableResults ) );
+      System.out.println( "\nVariable Results-Out\n----------------\n"+fmMain.printMethod( variableResults ) );
     }
     
 
@@ -494,7 +494,11 @@ public class MLPAnalysis {
     case FKind.FlatSESEEnterNode: {
       FlatSESEEnterNode fsen = (FlatSESEEnterNode) fn;
       assert fsen.equals( currentSESE );
+
       vstTable.age( currentSESE );
+      vstTable.assertConsistency();
+
+      vstTable.ownInSet( currentSESE );
       vstTable.assertConsistency();
     } break;
 
@@ -738,8 +742,8 @@ public class MLPAnalysis {
         TempDescriptor rTemp = readTemps[i];
         notAvailSet.remove( rTemp );
 
-	// if this variable has exactly one source, mark everything
-	// else from that source as available as well
+	// if this variable has exactly one source, potentially
+	// get other things from this source as well
 	VarSrcTokTable vstTable = variableResults.get( fn );
 
 	Integer srcType = 
@@ -754,9 +758,25 @@ public class MLPAnalysis {
 	  Iterator<VariableSourceToken> availItr = vstTable.get( vst.getSESE(),
 								 vst.getAge()
 								 ).iterator();
+
+	  // look through things that are also available from same source
 	  while( availItr.hasNext() ) {
 	    VariableSourceToken vstAlsoAvail = availItr.next();
-	    notAvailSet.removeAll( vstAlsoAvail.getRefVars() );
+	  
+	    Iterator<TempDescriptor> refVarItr = vstAlsoAvail.getRefVars().iterator();
+	    while( refVarItr.hasNext() ) {
+	      TempDescriptor refVarAlso = refVarItr.next();
+
+	      // if a variable is available from the same source, AND it ALSO
+	      // only comes from one statically known source, mark it available
+	      Integer srcTypeAlso = 
+		vstTable.getRefVarSrcType( refVarAlso, 
+					   currentSESE,
+					   currentSESE.getParent() );
+	      if( srcTypeAlso.equals( VarSrcTokTable.SrcType_STATIC ) ) {
+		notAvailSet.remove( refVarAlso );
+	      }
+	    }
 	  }
 	}
       }
@@ -903,9 +923,6 @@ public class MLPAnalysis {
 				       currentSESE,
 				       currentSESE.getParent() );
 
-
-	System.out.println( "considering stall on "+readtmp+" for "+currentSESE );
-
 	if( srcType.equals( VarSrcTokTable.SrcType_DYNAMIC ) ) {
 	  // 1) It is not clear statically where this variable will
 	  // come from statically, so dynamically we must keep track
@@ -913,7 +930,6 @@ public class MLPAnalysis {
 	  // just stall for the exact thing we need and move on
 	  plan.addDynamicStall( readtmp );
 	  currentSESE.addDynamicStallVar( readtmp );
-	  System.out.println( "ADDING "+readtmp+" TO "+currentSESE+" DYNSTALLSET" );
 	  
 	} else if( srcType.equals( VarSrcTokTable.SrcType_STATIC ) ) {	  
 	  // 2) Single token/age pair: Stall for token/age pair, and copy
