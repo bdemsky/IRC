@@ -534,6 +534,33 @@ public class VarSrcTokTable {
   }
 
 
+  // any reference variables that are not live can be pruned
+  // from the table, and if any VSTs are then no longer 
+  // referenced, they can be dropped as well
+  /* THIS CAUSES INCONSISTENCY, FIX LATER, NOT REQUIRED
+  public void pruneByLiveness( Set<TempDescriptor> rootLiveSet ) {
+    
+    // the set of reference variables in the table minus the
+    // live set gives the set of reference variables to remove
+    Set<TempDescriptor> deadRefVars = new HashSet<TempDescriptor>();
+    deadRefVars.addAll( var2vst.keySet() );
+
+    if( rootLiveSet != null ) {
+      deadRefVars.removeAll( rootLiveSet );
+    }
+
+    // just use the remove operation to prune the table now
+    Iterator<TempDescriptor> deadItr = deadRefVars.iterator();
+    while( deadItr.hasNext() ) {
+      TempDescriptor dead = deadItr.next();
+      removePrivate( dead );
+    }
+
+    assertConsistency();
+  }
+  */
+
+
   // use as an aid for debugging, where true-set is checked
   // against the alternate mappings: assert that nothing is
   // missing or extra in the alternates

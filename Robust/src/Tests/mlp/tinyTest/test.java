@@ -12,11 +12,13 @@ public class Test {
 
   public static void main( String args[] ) {
     
-    int x = Integer.parseInt( args[0] );
-    int y = Integer.parseInt( args[1] );
-    System.out.println( "root: x="+x+", y="+y );
+    //int x = Integer.parseInt( args[0] );
+    //int y = Integer.parseInt( args[1] );
+    //System.out.println( "root: x="+x+", y="+y );
+    int y = 2;
 
-    if( x > 3 ) {
+    //if( x > 3 ) {
+    if( true ) {
       sese fi {
 	y = y + 10;
       }
@@ -25,7 +27,8 @@ public class Test {
     // see that values from sese fi are
     // forwarded to this sibling
     //sese fo {
-    System.out.println( "fo: x="+x+", y="+y );
+    //System.out.println( "fo: x="+x+", y="+y );
+    System.out.println( "y="+y );
     //}
 
     /*

@@ -121,21 +121,33 @@ public class MLPAnalysis {
       // variable analysis for refinement and stalls
       variableAnalysisForward( fm );
     }
-    if( state.MLPDEBUG ) {      
-      System.out.println( "\nVariable Results\n----------------\n"+fmMain.printMethod( variableResults ) );
-    }
 
 
     // 4th pass, compute liveness contribution from
     // virtual reads discovered in variable pass
     livenessAnalysisBackward( rootSESE, true, null, fmMain.getFlatExit() );        
     if( state.MLPDEBUG ) {      
-      //System.out.println( "\nSESE Liveness\n-------------\n" ); printSESELiveness();
-      //System.out.println( "\nLiveness Root View\n------------------\n"+fmMain.printMethod( livenessRootView ) );
+      //System.out.println( "\nLive-In, SESE View\n-------------\n" ); printSESELiveness();
+      //System.out.println( "\nLive-In, Root View\n------------------\n"+fmMain.printMethod( livenessRootView ) );
     }
 
 
     // 5th pass
+    methItr = ownAnalysis.descriptorsToAnalyze.iterator();
+    while( methItr.hasNext() ) {
+      Descriptor d  = methItr.next();      
+      FlatMethod fm = state.getMethodFlat( d );
+
+      // prune variable results in one traversal
+      // by removing reference variables that are not live
+      pruneVariableResultsWithLiveness( fm );
+    }
+    if( state.MLPDEBUG ) {      
+      //System.out.println( "\nVariable Results-Out\n----------------\n"+fmMain.printMethod( variableResults ) );
+    }
+    
+
+    // 6th pass
     methItr = ownAnalysis.descriptorsToAnalyze.iterator();
     while( methItr.hasNext() ) {
       Descriptor d  = methItr.next();      
@@ -146,11 +158,11 @@ public class MLPAnalysis {
       notAvailableForward( fm );
     }
     if( state.MLPDEBUG ) {      
-      System.out.println( "\nNot Available Results\n---------------------\n"+fmMain.printMethod( notAvailableResults ) );
+      System.out.println( "\nNot Available Results-Out\n---------------------\n"+fmMain.printMethod( notAvailableResults ) );
     }
 
 
-    // 5th pass
+    // 7th pass
     methItr = ownAnalysis.descriptorsToAnalyze.iterator();
     while( methItr.hasNext() ) {
       Descriptor d  = methItr.next();      
@@ -500,6 +512,25 @@ public class MLPAnalysis {
       }
       livenessVirtualReads.put( fn, virLiveIn );
       vstTable.assertConsistency();
+
+      // then all child out-set tokens are guaranteed
+      // to be filled in, so clobber those entries with
+      // the latest, clean sources
+      Iterator<TempDescriptor> outVarItr = fsen.getOutVarSet().iterator();
+      while( outVarItr.hasNext() ) {
+        TempDescriptor outVar = outVarItr.next();
+        HashSet<TempDescriptor> ts = new HashSet<TempDescriptor>();
+        ts.add( outVar );
+        VariableSourceToken vst = new VariableSourceToken( ts,
+                                                           fsen,
+                                                           new Integer( 0 ),
+                                                           outVar
+                                                           );
+        vstTable.remove( outVar );
+        vstTable.add( vst );
+      }
+      vstTable.assertConsistency();
+
     } break;
 
     case FKind.FlatOpNode: {
@@ -507,7 +538,7 @@ public class MLPAnalysis {
 
       if( fon.getOp().getOp() == Operation.ASSIGN ) {
 	TempDescriptor lhs = fon.getDest();
-	TempDescriptor rhs = fon.getLeft();
+	TempDescriptor rhs = fon.getLeft();        
 
 	vstTable.remove( lhs );
 
@@ -520,25 +551,12 @@ public class MLPAnalysis {
           HashSet<TempDescriptor> ts = new HashSet<TempDescriptor>();
           ts.add( lhs );
 
-          // if this is from a child, keep the source information
-          if( currentSESE.getChildren().contains( vst.getSESE() ) ) {	  
-            forAddition.add( new VariableSourceToken( ts,
-                                                      vst.getSESE(),
-                                                      vst.getAge(),
-                                                      vst.getAddrVar()
-                                                      )
-                             );
-
-          // otherwise, it's our or an ancestor's token so we
-          // can assume we have everything we need
-          } else {
-            forAddition.add( new VariableSourceToken( ts,
-                                                      currentSESE,
-                                                      new Integer( 0 ),
-                                                      lhs
-                                                      )
-                             );
-          }
+          forAddition.add( new VariableSourceToken( ts,
+                                                    vst.getSESE(),
+                                                    vst.getAge(),
+                                                    vst.getAddrVar()
+                                                    )
+                           );
 	}
 
         vstTable.addAll( forAddition );
@@ -588,6 +606,39 @@ public class MLPAnalysis {
   }
 
 
+  private void pruneVariableResultsWithLiveness( FlatMethod fm ) {
+    
+    // start from flat method top, visit every node in
+    // method exactly once
+    Set<FlatNode> flatNodesToVisit = new HashSet<FlatNode>();
+    flatNodesToVisit.add( fm );
+
+    Set<FlatNode> visited = new HashSet<FlatNode>();    
+
+    while( !flatNodesToVisit.isEmpty() ) {
+      Iterator<FlatNode> fnItr = flatNodesToVisit.iterator();
+      FlatNode fn = fnItr.next();
+
+      flatNodesToVisit.remove( fn );
+      visited.add( fn );      
+
+      Set<TempDescriptor> rootLiveSet = livenessRootView.get( fn );
+      VarSrcTokTable      vstTable    = variableResults.get( fn );
+      
+      // fix later, not working, only wanted it to make tables easier to read
+      //vstTable.pruneByLiveness( rootLiveSet );
+      
+      for( int i = 0; i < fn.numNext(); i++ ) {
+	FlatNode nn = fn.getNext( i );
+
+	if( !visited.contains( nn ) ) {
+	  flatNodesToVisit.add( nn );
+	}
+      }
+    }
+  }
+
+
   private void notAvailableForward( FlatMethod fm ) {
 
     Set<FlatNode> flatNodesToVisit = new HashSet<FlatNode>();
@@ -610,7 +661,7 @@ public class MLPAnalysis {
           curr.addAll( notAvailIn );
         }
       }
-
+      
       if( !seseStack.empty() ) {
 	notAvailable_nodeActions( fn, curr, seseStack.peek() );     
       }
@@ -651,28 +702,7 @@ public class MLPAnalysis {
       Set<TempDescriptor> liveTemps = livenessRootView.get( fn );
       assert liveTemps != null;
 
-      VarSrcTokTable vstTable = variableResults.get( fn );
-      assert vstTable != null;
-
-      Set<TempDescriptor> notAvailAtEnter = notAvailableResults.get( fsen );
-      assert notAvailAtEnter != null;
-
-      Iterator<TempDescriptor> tdItr = liveTemps.iterator();
-      while( tdItr.hasNext() ) {
-	TempDescriptor td = tdItr.next();
-
-	if( vstTable.get( fsen, td ).size() > 0 ) {
-	  // there is at least one child token for this variable
-	  notAvailSet.add( td );
-	  continue;
-	}
-
-	if( notAvailAtEnter.contains( td ) ) {
-	  // wasn't available at enter, not available now
-	  notAvailSet.add( td );
-	  continue;
-	}
-      }
+      notAvailSet.addAll( liveTemps );
     } break;
 
     case FKind.FlatOpNode: {
@@ -710,15 +740,20 @@ public class MLPAnalysis {
 
 	// if this variable has exactly one source, mark everything
 	// else from that source as available as well
-	VarSrcTokTable table = variableResults.get( fn );
-	Set<VariableSourceToken> srcs = table.get( rTemp );
+	VarSrcTokTable vstTable = variableResults.get( fn );
 
-	if( srcs.size() == 1 ) {
-	  VariableSourceToken vst = srcs.iterator().next();
-	  
-	  Iterator<VariableSourceToken> availItr = table.get( vst.getSESE(), 
-							      vst.getAge()
-							    ).iterator();
+	Integer srcType = 
+	  vstTable.getRefVarSrcType( rTemp, 
+				     currentSESE,
+				     currentSESE.getParent() );
+
+	if( srcType.equals( VarSrcTokTable.SrcType_STATIC ) ) {
+
+	  VariableSourceToken vst = vstTable.get( rTemp ).iterator().next();
+
+	  Iterator<VariableSourceToken> availItr = vstTable.get( vst.getSESE(),
+								 vst.getAge()
+								 ).iterator();
 	  while( availItr.hasNext() ) {
 	    VariableSourceToken vstAlsoAvail = availItr.next();
 	    notAvailSet.removeAll( vstAlsoAvail.getRefVars() );
