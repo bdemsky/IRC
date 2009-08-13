@@ -15,14 +15,18 @@ public class FlatWriteDynamicVarNode extends FlatNode {
   
   protected Hashtable<TempDescriptor, VariableSourceToken> var2src;
 
+  protected FlatSESEEnterNode enclosingSESE;
+
 
   public FlatWriteDynamicVarNode( FlatNode t,
 				  FlatNode h,
-				  Hashtable<TempDescriptor, VariableSourceToken> v2s
+				  Hashtable<TempDescriptor, VariableSourceToken> v2s,
+				  FlatSESEEnterNode c
 				) {
-    tailNode = t;
-    headNode = h;
-    var2src  = v2s;
+    tailNode      = t;
+    headNode      = h;
+    var2src       = v2s;
+    enclosingSESE = c;
   }
 
   public void spliceIntoIR() {
@@ -41,6 +45,10 @@ public class FlatWriteDynamicVarNode extends FlatNode {
     return var2src;
   }
 
+  public FlatSESEEnterNode getEnclosingSESE() {
+    return enclosingSESE;
+  }
+
   public String toString() {
     return "writeDynVars "+var2src.keySet();
   }
@@ -50,7 +58,11 @@ public class FlatWriteDynamicVarNode extends FlatNode {
   }
 
   public FlatNode clone(TempMap t) {
-    return new FlatWriteDynamicVarNode( tailNode, headNode, var2src );
+    return new FlatWriteDynamicVarNode( tailNode, 
+					headNode, 
+					var2src, 
+					enclosingSESE 
+					);
   }
   public void rewriteUse(TempMap t) {
   }

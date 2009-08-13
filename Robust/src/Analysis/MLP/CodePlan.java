@@ -11,12 +11,13 @@ import java.io.*;
 public class CodePlan {
     
   private Hashtable< VariableSourceToken, Set<TempDescriptor> > stall2copySet;
-  private Set<TempDescriptor> dynamicStallSet;
-
+  private Set<TempDescriptor>                                   dynamicStallSet;
+  private Hashtable<TempDescriptor, TempDescriptor>             dynAssign_lhs2rhs;
   
   public CodePlan() {
-    stall2copySet = new Hashtable< VariableSourceToken, Set<TempDescriptor> >();
-    dynamicStallSet = new HashSet<TempDescriptor>();
+    stall2copySet     = new Hashtable< VariableSourceToken, Set<TempDescriptor> >();
+    dynamicStallSet   = new HashSet<TempDescriptor>();
+    dynAssign_lhs2rhs = new Hashtable<TempDescriptor, TempDescriptor>();
   }
 
   
@@ -48,6 +49,14 @@ public class CodePlan {
     return dynamicStallSet;
   }
 
+  public void addDynAssign( TempDescriptor lhs,
+			    TempDescriptor rhs ) {
+    dynAssign_lhs2rhs.put( lhs, rhs );
+  }
+
+  public Hashtable<TempDescriptor, TempDescriptor> getDynAssigns() {
+    return dynAssign_lhs2rhs;
+  }
 
   public boolean equals( Object o ) {
     if( o == null ) {
@@ -63,8 +72,10 @@ public class CodePlan {
     boolean copySetsEq = (stall2copySet.equals( cp.stall2copySet ));
 
     boolean dynStallSetEq = (dynamicStallSet.equals( cp.dynamicStallSet ));
+
+    boolean dynAssignEq = (dynAssign_lhs2rhs.equals( cp.dynAssign_lhs2rhs ));
         
-    return copySetsEq && dynStallSetEq;
+    return copySetsEq && dynStallSetEq && dynAssignEq;
   }
 
   public int hashCode() {
@@ -73,9 +84,12 @@ public class CodePlan {
 
     int dynStallSetHC = dynamicStallSet.hashCode();
 
+    int dynAssignHC = dynAssign_lhs2rhs.hashCode();
+
     int hash = 7;
     hash = 31*hash + copySetsHC;
     hash = 31*hash + dynStallSetHC;
+    hash = 31*hash + dynAssignHC;
     return hash;
   }
 
@@ -99,6 +113,10 @@ public class CodePlan {
 
     if( !dynamicStallSet.isEmpty() ) {
       s += "[DYN STALLS:"+dynamicStallSet+"]";
+    }
+
+    if( !dynAssign_lhs2rhs.isEmpty() ) {
+      s += "[DYN ASSIGNS:"+dynAssign_lhs2rhs+"]";
     }
 
     return s;

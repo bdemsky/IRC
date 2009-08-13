@@ -33,7 +33,7 @@ public class FlatSESEEnterNode extends FlatNode {
   protected Set<TempDescriptor> staticInVars;
   protected Set<TempDescriptor> dynamicInVars;  
 
-  protected Set<TempDescriptor> dynamicStallVars;
+  protected Set<TempDescriptor> dynamicVars;
 
   protected Hashtable<TempDescriptor, VariableSourceToken> staticInVar2src;
   
@@ -63,7 +63,7 @@ public class FlatSESEEnterNode extends FlatNode {
     readyInVars          = new HashSet<TempDescriptor>();
     staticInVars         = new HashSet<TempDescriptor>();
     dynamicInVars        = new HashSet<TempDescriptor>();
-    dynamicStallVars     = new HashSet<TempDescriptor>();
+    dynamicVars          = new HashSet<TempDescriptor>();
 
     staticInVar2src = new Hashtable<TempDescriptor, VariableSourceToken>();
   }
@@ -237,12 +237,12 @@ public class FlatSESEEnterNode extends FlatNode {
     return dynamicInVars;
   }
 
-  public void addDynamicStallVar( TempDescriptor td ) {
-    dynamicStallVars.add( td );
+  public void addDynamicVar( TempDescriptor td ) {
+    dynamicVars.add( td );
   }
 
-  public Set<TempDescriptor> getDynamicStallVarSet() {
-    return dynamicStallVars;
+  public Set<TempDescriptor> getDynamicVarSet() {
+    return dynamicVars;
   }
 
   public void mustTrackAtLeastAge( Integer age ) {

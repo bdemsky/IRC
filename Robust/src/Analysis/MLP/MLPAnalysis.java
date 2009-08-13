@@ -143,7 +143,7 @@ public class MLPAnalysis {
       pruneVariableResultsWithLiveness( fm );
     }
     if( state.MLPDEBUG ) {      
-      System.out.println( "\nVariable Results-Out\n----------------\n"+fmMain.printMethod( variableResults ) );
+      //System.out.println( "\nVariable Results-Out\n----------------\n"+fmMain.printMethod( variableResults ) );
     }
     
 
@@ -158,7 +158,7 @@ public class MLPAnalysis {
       notAvailableForward( fm );
     }
     if( state.MLPDEBUG ) {      
-      System.out.println( "\nNot Available Results-Out\n---------------------\n"+fmMain.printMethod( notAvailableResults ) );
+      //System.out.println( "\nNot Available Results-Out\n---------------------\n"+fmMain.printMethod( notAvailableResults ) );
     }
 
 
@@ -823,8 +823,15 @@ public class MLPAnalysis {
         }
       }
 
+      Set<TempDescriptor> dotSTlive = livenessRootView.get( fn );
+
       if( !seseStack.empty() ) {
-	computeStalls_nodeActions( fn, dotSTtable, dotSTnotAvailSet, seseStack.peek() );
+	computeStalls_nodeActions( fn, 
+				   dotSTlive,
+				   dotSTtable,
+				   dotSTnotAvailSet,
+				   seseStack.peek()
+				   );
       }
 
       for( int i = 0; i < fn.numNext(); i++ ) {
@@ -838,8 +845,9 @@ public class MLPAnalysis {
   }
 
   private void computeStalls_nodeActions( FlatNode fn,
-                                          VarSrcTokTable vstTable,
-					  Set<TempDescriptor> notAvailSet,
+					  Set<TempDescriptor> liveSetIn,
+                                          VarSrcTokTable vstTableIn,
+					  Set<TempDescriptor> notAvailSetIn,
                                           FlatSESEEnterNode currentSESE ) {
     CodePlan plan = new CodePlan();
 
@@ -856,7 +864,7 @@ public class MLPAnalysis {
       while( inVarItr.hasNext() ) {
 	TempDescriptor inVar = inVarItr.next();
 	Integer srcType = 
-	  vstTable.getRefVarSrcType( inVar, 
+	  vstTableIn.getRefVarSrcType( inVar, 
 				     fsen,
 				     fsen.getParent() );
 
@@ -865,7 +873,7 @@ public class MLPAnalysis {
 
 	} else if( srcType.equals( VarSrcTokTable.SrcType_STATIC ) ) {
 	  fsen.addStaticInVar( inVar );
-	  VariableSourceToken vst = vstTable.get( inVar ).iterator().next();
+	  VariableSourceToken vst = vstTableIn.get( inVar ).iterator().next();
 	  fsen.putStaticInVar2src( inVar, vst );
 	  fsen.addStaticInVarSrc( new SESEandAgePair( vst.getSESE(), 
 						      vst.getAge() 
@@ -888,8 +896,25 @@ public class MLPAnalysis {
       FlatOpNode fon = (FlatOpNode) fn;
 
       if( fon.getOp().getOp() == Operation.ASSIGN ) {
+	TempDescriptor lhs = fon.getDest();
+	TempDescriptor rhs = fon.getLeft();        
+
 	// if this is an op node, don't stall, copy
 	// source and delay until we need to use value
+
+	// but check the source type of rhs variable
+	// and if dynamic, lhs becomes dynamic, too,
+	// and we need to keep dynamic sources during
+	Integer srcType 
+	  = vstTableIn.getRefVarSrcType( rhs,
+					 currentSESE,
+					 currentSESE.getParent() );
+
+	if( srcType.equals( VarSrcTokTable.SrcType_DYNAMIC ) ) {
+	  plan.addDynAssign( lhs, rhs );
+	  currentSESE.addDynamicVar( lhs );
+	  currentSESE.addDynamicVar( rhs );
+	}
 
 	// only break if this is an ASSIGN op node,
 	// otherwise fall through to default case
@@ -902,8 +927,7 @@ public class MLPAnalysis {
     default: {          
 
       // a node with no live set has nothing to stall for
-      Set<TempDescriptor> liveSet = livenessRootView.get( fn );
-      if( liveSet == null ) {
+      if( liveSetIn == null ) {
 	break;
       }
 
@@ -913,13 +937,13 @@ public class MLPAnalysis {
 
 	// ignore temps that are definitely available 
 	// when considering to stall on it
-	if( !notAvailSet.contains( readtmp ) ) {
+	if( !notAvailSetIn.contains( readtmp ) ) {
 	  continue;
 	}
 
 	// check the source type of this variable
 	Integer srcType 
-	  = vstTable.getRefVarSrcType( readtmp,
+	  = vstTableIn.getRefVarSrcType( readtmp,
 				       currentSESE,
 				       currentSESE.getParent() );
 
@@ -929,7 +953,7 @@ public class MLPAnalysis {
 	  // along various control paths, and therefore when we stall,
 	  // just stall for the exact thing we need and move on
 	  plan.addDynamicStall( readtmp );
-	  currentSESE.addDynamicStallVar( readtmp );
+	  currentSESE.addDynamicVar( readtmp );
 	  
 	} else if( srcType.equals( VarSrcTokTable.SrcType_STATIC ) ) {	  
 	  // 2) Single token/age pair: Stall for token/age pair, and copy
@@ -937,10 +961,10 @@ public class MLPAnalysis {
 	  // time.  This is the same stuff that the notavaialable analysis 
 	  // marks as now available.	  
 
-	  VariableSourceToken vst = vstTable.get( readtmp ).iterator().next();
+	  VariableSourceToken vst = vstTableIn.get( readtmp ).iterator().next();
 
 	  Iterator<VariableSourceToken> availItr = 
-	    vstTable.get( vst.getSESE(), vst.getAge() ).iterator();
+	    vstTableIn.get( vst.getSESE(), vst.getAge() ).iterator();
 
 	  while( availItr.hasNext() ) {
 	    VariableSourceToken vstAlsoAvail = availItr.next();
@@ -951,7 +975,7 @@ public class MLPAnalysis {
 	    Iterator<TempDescriptor> refVarItr = vstAlsoAvail.getRefVars().iterator();
 	    while( refVarItr.hasNext() ) {
 	      TempDescriptor refVar = refVarItr.next();
-	      if( liveSet.contains( refVar ) ) {
+	      if( liveSetIn.contains( refVar ) ) {
 		copySet.add( refVar );
 	      }
 	    }
@@ -975,13 +999,13 @@ public class MLPAnalysis {
 
       }      
     } break;
-
+      
     } // end switch
 
 
     // identify sese-age pairs that are statically useful
     // and should have an associated SESE variable in code
-    Set<VariableSourceToken> staticSet = vstTable.getStaticSet();
+    Set<VariableSourceToken> staticSet = vstTableIn.getStaticSet();
     Iterator<VariableSourceToken> vstItr = staticSet.iterator();
     while( vstItr.hasNext() ) {
       VariableSourceToken vst = vstItr.next();
@@ -995,19 +1019,21 @@ public class MLPAnalysis {
     codePlans.put( fn, plan );
 
 
-    // if any variables at this node have a static source (exactly one vst)
-    // but go to a dynamic source at a next node, create a new IR graph
+    // if any variables at this-node-*dot* have a static source (exactly one vst)
+    // but go to a dynamic source at next-node-*dot*, create a new IR graph
     // node on that edge to track the sources dynamically
+    VarSrcTokTable thisVstTable = variableResults.get( fn );
     for( int i = 0; i < fn.numNext(); i++ ) {
-      FlatNode nn = fn.getNext( i );
-      VarSrcTokTable nextVstTable = variableResults.get( nn );
+      FlatNode            nn           = fn.getNext( i );
+      VarSrcTokTable      nextVstTable = variableResults.get( nn );
+      Set<TempDescriptor> nextLiveIn   = livenessRootView.get( nn );
 
       // the table can be null if it is one of the few IR nodes
       // completely outside of the root SESE scope
-      if( nextVstTable != null ) {
+      if( nextVstTable != null && nextLiveIn != null ) {
 
 	Hashtable<TempDescriptor, VariableSourceToken> static2dynamicSet = 
-	  vstTable.getStatic2DynamicSet( nextVstTable );
+	  thisVstTable.getStatic2DynamicSet( nextVstTable, nextLiveIn );
 	
 	if( !static2dynamicSet.isEmpty() ) {
 
@@ -1017,7 +1043,11 @@ public class MLPAnalysis {
 	  FlatWriteDynamicVarNode fwdvn = wdvNodesToSpliceIn.get( fe );
 
 	  if( fwdvn == null ) {
-	    fwdvn = new FlatWriteDynamicVarNode( fn, nn, static2dynamicSet );
+	    fwdvn = new FlatWriteDynamicVarNode( fn, 
+						 nn,
+						 static2dynamicSet,
+						 currentSESE
+						 );
 	    wdvNodesToSpliceIn.put( fe, fwdvn );
 	  } else {
 	    fwdvn.addMoreVar2Src( static2dynamicSet );

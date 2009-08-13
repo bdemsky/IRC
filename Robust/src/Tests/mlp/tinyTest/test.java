@@ -12,13 +12,11 @@ public class Test {
 
   public static void main( String args[] ) {
     
-    //int x = Integer.parseInt( args[0] );
-    //int y = Integer.parseInt( args[1] );
-    //System.out.println( "root: x="+x+", y="+y );
-    int y = 2;
+    int x = Integer.parseInt( args[0] );
+    int y = Integer.parseInt( args[1] );
+    System.out.println( "root: x="+x+", y="+y );
 
-    //if( x > 3 ) {
-    if( true ) {
+    if( x > 3 ) {
       sese fi {
 	y = y + 10;
       }

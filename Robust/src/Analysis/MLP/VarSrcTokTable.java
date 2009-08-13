@@ -484,7 +484,9 @@ public class VarSrcTokTable {
   // given a table from a subsequent program point, decide
   // which variables are going from a static source to a
   // dynamic source and return them
-  public Hashtable<TempDescriptor, VariableSourceToken> getStatic2DynamicSet( VarSrcTokTable next ) {
+  public Hashtable<TempDescriptor, VariableSourceToken> 
+    getStatic2DynamicSet( VarSrcTokTable nextTable,
+			  Set<TempDescriptor> nextLiveIn ) {
     
     Hashtable<TempDescriptor, VariableSourceToken> out = 
       new Hashtable<TempDescriptor, VariableSourceToken>();
@@ -495,19 +497,23 @@ public class VarSrcTokTable {
       TempDescriptor               var = (TempDescriptor)               me.getKey();
       HashSet<VariableSourceToken> s1  = (HashSet<VariableSourceToken>) me.getValue();      
 
-      // this is a variable with a static source if it
-      // currently has one vst
-      if( s1.size() == 1 ) {
-        Set<VariableSourceToken> s2 = next.get( var );
+      // only worth tracking if live
+      if( nextLiveIn.contains( var ) ) {
 
-	// and if in the next table, it is dynamic, then
-	// this is a transition point, so
-        if( s2.size() > 1 ) {
+	// this is a variable with a static source if it
+	// currently has one vst
+	if( s1.size() == 1 ) {
+	  Set<VariableSourceToken> s2 = nextTable.get( var );	 
 
-	  // remember the variable and the only source
-	  // it had before crossing the transition
-	  out.put( var, s1.iterator().next() );
-        }
+	  // and if in the next table, it is dynamic, then
+	  // this is a transition point, so
+	  if( s2.size() > 1 ) {	   
+
+	    // remember the variable and the only source
+	    // it had before crossing the transition
+	    out.put( var, s1.iterator().next() );
+	  }
+	}
       }
     }
 

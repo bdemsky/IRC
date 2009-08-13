@@ -1873,20 +1873,12 @@ public class BuildCode {
     }
 
     // declare variables for tracking dynamic sources
-    Set<TempDescriptor> dynSrcVars = new HashSet<TempDescriptor>();
-    dynSrcVars.addAll( fsen.getDynamicStallVarSet() );
-    Iterator<FlatSESEEnterNode> childItr = fsen.getChildren().iterator();
-    while( childItr.hasNext() ) {
-      FlatSESEEnterNode child = childItr.next();
-      dynSrcVars.addAll( child.getDynamicInVarSet() );
-    }
-    Iterator<TempDescriptor> dynItr = dynSrcVars.iterator();
-    while( dynItr.hasNext() ) {
-      TempDescriptor dynVar = dynItr.next();
-      output.println("   void*  "+dynVar+"_srcSESE;");
-      output.println("   INTPTR "+dynVar+"_srcAddr;");
-    }
-    
+    Iterator<TempDescriptor> dynSrcItr = fsen.getDynamicVarSet().iterator();
+    while( dynSrcItr.hasNext() ) {
+      TempDescriptor dynSrcVar = dynSrcItr.next();
+      output.println("   void* "+dynSrcVar+"_srcSESE;");
+      output.println("   int   "+dynSrcVar+"_srcOffset;");
+    }    
 
     // declare local temps for in-set primitives, and if it is
     // a ready-source variable, get the value from the record
@@ -2280,14 +2272,33 @@ public class BuildCode {
 
 	  output.println("   }");
 	}
-
 	
-	// for each variable with a dynamic source, stall just
-	// for that variable
+	// for each variable with a dynamic source, stall just for that variable
 	Iterator<TempDescriptor> dynItr = cp.getDynamicStallSet().iterator();
 	while( dynItr.hasNext() ) {
 	  TempDescriptor dynVar = dynItr.next();
 
+	  // only stall if the dynamic source is not yourself, denoted by src==NULL
+	  // otherwise the dynamic write nodes will have the local var up-to-date
+	  output.println("   {");
+	  output.println("     if( "+dynVar+"_srcSESE != NULL ) {");
+	  output.println("       SESEcommon* common = (SESEcommon*) "+dynVar+"_srcSESE;");
+	  output.println("       psem_take( &(common->stallSem) );");
+	  output.println("       "+dynVar+" = *(("+dynVar.getType()+"*) ("+
+			                        dynVar+"_srcSESE + "+dynVar+"_srcOffset));");
+	  output.println("     }");
+	  output.println("   }");
+	}
+
+	// for each assignment of a variable to rhs that has a dynamic source,
+	// copy the dynamic sources
+	Iterator dynAssignItr = cp.getDynAssigns().entrySet().iterator();
+	while( dynAssignItr.hasNext() ) {
+	  Map.Entry      me  = (Map.Entry)      dynAssignItr.next();
+	  TempDescriptor lhs = (TempDescriptor) me.getKey();
+	  TempDescriptor rhs = (TempDescriptor) me.getValue();
+	  output.println("   "+lhs+"_srcSESE   = "+rhs+"_srcSESE;");
+	  output.println("   "+lhs+"_srcOffset = "+rhs+"_srcOffset;");
 	}
       }     
     }
@@ -2908,20 +2919,27 @@ public class BuildCode {
 
     Iterator wdItr = writeDynamic.entrySet().iterator();
     while( wdItr.hasNext() ) {
-      Map.Entry           me  = (Map.Entry)           wdItr.next();
-      TempDescriptor      var = (TempDescriptor)      me.getKey();
-      VariableSourceToken vst = (VariableSourceToken) me.getValue();
+      Map.Entry           me     = (Map.Entry)           wdItr.next();
+      TempDescriptor      refVar = (TempDescriptor)      me.getKey();
+      VariableSourceToken vst    = (VariableSourceToken) me.getValue();
       
       SESEandAgePair instance = new SESEandAgePair( vst.getSESE(), vst.getAge() );
       
       output.println("   {");
-      output.println("     "+var+"_srcSESE = "+instance+";");
-      
-      output.println("     "+vst.getSESE().getSESErecordName()+"* rec = ("+
-		     vst.getSESE().getSESErecordName()+") "+
-		     instance+";");
-      
-      output.println("     "+var+"_srcAddr = (INTPTR) &(rec->"+vst.getAddrVar()+");");
+
+      if( fwdvn.getEnclosingSESE().equals( vst.getSESE() ) ) {
+	// if the src comes from this SESE, it's a method local variable,
+	// mark src pointer NULL to signify that the var is up-to-date
+	output.println("     "+vst.getAddrVar()+"_srcSESE = NULL;");
+	output.println("     "+refVar+" = "+vst.getAddrVar()+";");
+
+      } else {
+	// otherwise we track where it will come from
+	output.println("     "+vst.getAddrVar()+"_srcSESE = "+instance+";");    
+	output.println("     "+vst.getAddrVar()+"_srcOffset = (int) &((("+
+		       vst.getSESE().getSESErecordName()+"*)0)->"+vst.getAddrVar()+");");
+      }
+
       output.println("   }");
     }	
   }
