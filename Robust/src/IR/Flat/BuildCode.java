@@ -2765,6 +2765,13 @@ public class BuildCode {
 
     output.println("   {");
 
+    // before doing anything, lock your own record and increment the running children
+    if( fsen != mlpa.getRootSESE() ) {
+      output.println("     pthread_mutex_lock( &("+paramsprefix+"->common.lock) );");
+      output.println("     ++("+paramsprefix+"->common.numRunningChildren);");
+      output.println("     pthread_mutex_unlock( &("+paramsprefix+"->common.lock) );");
+    }
+
     // just allocate the space for this record
     output.println("     "+fsen.getSESErecordName()+"* seseToIssue = ("+
 		           fsen.getSESErecordName()+"*) mlpAllocSESErecord( sizeof( "+
@@ -2782,6 +2789,14 @@ public class BuildCode {
     output.println("     seseToIssue->common.forwardList = createQueue();");
     output.println("     seseToIssue->common.unresolvedDependencies = 0;");
     output.println("     seseToIssue->common.doneExecuting = FALSE;");    
+    output.println("     pthread_cond_init( &(seseToIssue->common.runningChildrenCond), NULL );");
+    output.println("     seseToIssue->common.numRunningChildren = 0;");
+
+    if( fsen != mlpa.getRootSESE() ) {
+      output.println("     seseToIssue->common.parent = (SESEcommon*) "+paramsprefix+";");
+    } else {
+      output.println("     seseToIssue->common.parent = NULL;");
+    }
 
     // all READY in-vars should be copied now and be done with it
     Iterator<TempDescriptor> tempItr = fsen.getReadyInVarSet().iterator();
@@ -2797,22 +2812,18 @@ public class BuildCode {
 	  fsen.getParent().getInVarSet().contains( temp ) ||
 	  fsen.getParent().getOutVarSet().contains( temp ) 
 	) {
-	//from = "(void*) &("+paramsprefix+"->"+temp.getSafeSymbol()+")";
 	from = paramsprefix+"->"+temp.getSafeSymbol();
       } else {
 	from = temp.getSafeSymbol();
       }
    
-      //String to   = "(void*) &(seseToIssue->"+temp.getSafeSymbol()+")";
       String to   = "seseToIssue->"+temp.getSafeSymbol();
       String size = "sizeof( seseToIssue->"+temp.getSafeSymbol()+" )";
-      
-      //output.println("     memcpy( "+to+", "+from+", "+size+" );");
+
       output.println("     "+to+" = "+from+";");
     }
 
     if( fsen != mlpa.getRootSESE() ) {
-
       // count up outstanding dependencies, static first, then dynamic
       Iterator<SESEandAgePair> staticSrcsItr = fsen.getStaticInVarSrcs().iterator();
       while( staticSrcsItr.hasNext() ) {
@@ -2870,6 +2881,15 @@ public class BuildCode {
 
     String com = paramsprefix+"->common";
 
+    // this SESE cannot be done until all of its children are done
+    // so grab your own lock with the condition variable for watching
+    // that the number of your running children is greater than zero
+    output.println("   pthread_mutex_lock( &("+com+".lock) );");
+    output.println("   while( "+com+".numRunningChildren > 0 ) {");
+    output.println("     pthread_cond_wait( &("+com+".runningChildrenCond), &("+com+".lock) );");
+    output.println("   }");
+    output.println("   pthread_mutex_unlock( &("+com+".lock) );");    
+
     // copy out-set from local temps into the sese record
     Iterator<TempDescriptor> itr = fsexn.getFlatEnter().getOutVarSet().iterator();
     while( itr.hasNext() ) {
@@ -2899,6 +2919,14 @@ public class BuildCode {
     if( fsexn.getFlatEnter() != mlpa.getRootSESE() ) {
       output.println("     psem_give( &("+paramsprefix+"->common.stallSem) );");
     }
+
+    // last of all, decrement your parent's number of running children
+    output.println("     if( "+paramsprefix+"->common.parent != NULL ) {");
+    output.println("       pthread_mutex_lock( &("+paramsprefix+"->common.parent->lock) );");
+    output.println("       --("+paramsprefix+"->common.parent->numRunningChildren);");
+    output.println("       pthread_cond_signal( &("+paramsprefix+"->common.parent->runningChildrenCond) );");
+    output.println("       pthread_mutex_lock( &("+paramsprefix+"->common.parent->lock) );");
+    output.println("     }");
   }
 
   public void generateFlatWriteDynamicVarNode( FlatMethod fm,  

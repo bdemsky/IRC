@@ -4,7 +4,6 @@ public class Foo {
 
 
 // TODO
-// -dynamic variables
 // -objects
 
 
@@ -17,22 +16,26 @@ public class Test {
     System.out.println( "root: x="+x+", y="+y );
 
     if( x > 3 ) {
-      sese fi {
+      sese fee {
 	y = y + 10;
       }
     }
-    
+
+    /*
+    sese fie {
+      float xyz = -2.0f;
+    }
+    float jjj = Math.abs( xyz );
+    */
+
     // see that values from sese fi are
     // forwarded to this sibling
-    //sese fo {
+    //sese foe {
     //System.out.println( "fo: x="+x+", y="+y );
+    //System.out.println( "y="+y+" xyz="+xyz );
     System.out.println( "y="+y );
     //}
 
-    /*
-    float xyz = 2.0f;
-    float jjj = Math.abs( xyz );
-    */
 
 
     // just for testing root's ability to

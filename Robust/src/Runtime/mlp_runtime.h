@@ -15,6 +15,8 @@
 #define TRUE 1
 #endif
 
+// forward declaration of pointer type
+typedef struct SESEcommon_t* SESEcommon_p;
 
 // these fields are common to any SESE, and casting the
 // generated SESE record to this can be used, because
@@ -30,25 +32,20 @@ typedef struct SESEcommon_t {
   // this child, the child gives it at its SESE exit
   psemaphore stallSem;
 
+  
   // the lock guards the following data SESE's
   // use to coordinate with one another
   pthread_mutex_t lock;
+
   struct Queue*   forwardList;
   int             unresolvedDependencies;
   int             doneExecuting;
 
+  pthread_cond_t  runningChildrenCond;
+  int             numRunningChildren;
+  SESEcommon_p    parent;
+
 } SESEcommon;
-
-
-/*
-// a parent remembers an SESE instance, say class ID=2
-// and age=0, by declaring an SESEvarSrc seseID2_age0
-// and keeping the fields up-to-date
-typedef struct SESEvarSrc_t {
-  void*  sese;
-  INTPTR addr;
-} SESEvarSrc;
-*/
 
 
 // simple mechanical allocation and 
@@ -56,12 +53,5 @@ typedef struct SESEvarSrc_t {
 void* mlpCreateSESErecord( int size );
 void  mlpDestroySESErecord( void* seseRecord );
 
-
-// main library functions
-/*
-void mlpInit();
-void mlpCommonIssueActions( void* seseRecord );
-void mlpStall( void* seseRecord );
-*/
 
 #endif /* __MLP_RUNTIME__ */
