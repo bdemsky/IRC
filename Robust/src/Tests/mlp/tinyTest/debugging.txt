@@ -1,3 +1,2 @@
-break garbage.c:721
-break garbage.c:731
+break methods.c:6664
 run

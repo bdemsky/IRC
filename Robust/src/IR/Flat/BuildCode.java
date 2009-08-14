@@ -1783,6 +1783,14 @@ public class BuildCode {
       outputStructs.println("  "+srcPair.getSESE().getSESErecordName()+"* "+srcPair+";");
     }    
 
+    // DYNAMIC stuff needs a source SESE ptr and offset
+    Iterator<TempDescriptor> itrDynInVars = fsen.getDynamicInVarSet().iterator();
+    while( itrDynInVars.hasNext() ) {
+      TempDescriptor dynInVar = itrDynInVars.next();
+      outputStructs.println("  void* "+dynInVar+"_srcSESE;");
+      outputStructs.println("  int   "+dynInVar+"_srcOffset;");
+    }    
+
     // space for all in and out set primitives
     Iterator<TempDescriptor> itrPrims = inSetAndOutSetPrims.iterator();
     while( itrPrims.hasNext() ) {
@@ -1902,26 +1910,29 @@ public class BuildCode {
     // static vars are from a known SESE
     tempItr = fsen.getStaticInVarSet().iterator();
     while( tempItr.hasNext() ) {
-      TempDescriptor      temp = tempItr.next();
-      TypeDescriptor      type = temp.getType();
-      VariableSourceToken vst  = fsen.getStaticInVarSrc( temp );
-
-      String to;
-      String size;
-      if( type.isPtr() ) {
-	to = "(void*) ";
-	size = "sizeof ";
-      } else {
-	to = temp.getSafeSymbol();
-	size = "sizeof( "+temp.getSafeSymbol()+" )";
-      }
-
+      TempDescriptor temp = tempItr.next();
+      VariableSourceToken vst = fsen.getStaticInVarSrc( temp );
       SESEandAgePair srcPair = new SESEandAgePair( vst.getSESE(), vst.getAge() );
-      String from = paramsprefix+"->"+srcPair+"->"+vst.getAddrVar();
-      
-      output.println("     "+to+" = "+from+";");
+      String from = paramsprefix+"->"+srcPair+"->"+vst.getAddrVar();      
+      output.println("     "+temp+" = "+from+";");
     }
 
+    // dynamic vars come from an SESE and src
+    tempItr = fsen.getDynamicInVarSet().iterator();
+    while( tempItr.hasNext() ) {
+      TempDescriptor temp = tempItr.next();
+
+      // go grab it from the SESE source
+      output.println("     if( "+paramsprefix+"->"+temp+"_srcSESE != NULL ) {");
+      output.println("       "+temp+" = *(("+temp.getType()+"*) ("+
+		             paramsprefix+"->"+temp+"_srcSESE + "+
+		             paramsprefix+"->"+temp+"_srcOffset));");
+
+      // or if the source was our parent, its in the record to grab
+      output.println("     } else {");
+      output.println("       "+temp+" = "+paramsprefix+"->"+temp+";");
+      output.println("     }");
+    }
 
     // Check to see if we need to do a GC if this is a
     // multi-threaded program...    
@@ -2767,9 +2778,11 @@ public class BuildCode {
 
     // before doing anything, lock your own record and increment the running children
     if( fsen != mlpa.getRootSESE() ) {
+      /*
       output.println("     pthread_mutex_lock( &("+paramsprefix+"->common.lock) );");
       output.println("     ++("+paramsprefix+"->common.numRunningChildren);");
       output.println("     pthread_mutex_unlock( &("+paramsprefix+"->common.lock) );");
+      */
     }
 
     // just allocate the space for this record
@@ -2817,8 +2830,7 @@ public class BuildCode {
 	from = temp.getSafeSymbol();
       }
    
-      String to   = "seseToIssue->"+temp.getSafeSymbol();
-      String size = "sizeof( seseToIssue->"+temp.getSafeSymbol()+" )";
+      String to = "seseToIssue->"+temp.getSafeSymbol();
 
       output.println("     "+to+" = "+from+";");
     }
@@ -2844,6 +2856,36 @@ public class BuildCode {
 	// whether or not it is an outstanding dependency, make sure
 	// to pass the static name to the child's record
 	output.println("     seseToIssue->"+srcPair+" = "+srcPair+";");
+      }
+
+      // dynamic sources might already be accounted for in the static list,
+      // so only add them to forwarding lists if they're not already there
+      Iterator<TempDescriptor> dynVarsItr = fsen.getDynamicInVarSet().iterator();
+      while( dynVarsItr.hasNext() ) {
+	TempDescriptor dynInVar = dynVarsItr.next();
+	output.println("     {");
+	output.println("       SESEcommon* src = (SESEcommon*)"+dynInVar+"_srcSESE;");
+
+	// the dynamic source is NULL if it comes from your own space--you can't pass
+	// the address off to the new child, because you're not done executing and
+	// might change the variable, so copy it right now
+	output.println("       if( src != NULL ) {");
+	output.println("         pthread_mutex_lock( &(src->lock) );");
+	output.println("         if( isEmpty( src->forwardList ) ||");
+	output.println("             seseToIssue != peekItem( src->forwardList ) ) {");
+	output.println("           addNewItem( src->forwardList, seseToIssue );");
+	output.println("           ++(seseToIssue->common.unresolvedDependencies);");
+	output.println("         }");
+	output.println("         pthread_mutex_unlock( &(src->lock) );");	
+	output.println("         seseToIssue->"+dynInVar+"_srcOffset = "+dynInVar+"_srcOffset;");
+	output.println("       } else {");
+	output.println("         seseToIssue->"+dynInVar+" = "+dynInVar+";");
+	output.println("       }");
+	output.println("     }");
+	
+	// even if the value is already copied, make sure your NULL source
+	// gets passed so child knows it already has the dynamic value
+	output.println("     seseToIssue->"+dynInVar+"_srcSESE = "+dynInVar+"_srcSESE;");
       }
       
       // maintain pointers for for finding dynamic SESE 
@@ -2884,11 +2926,13 @@ public class BuildCode {
     // this SESE cannot be done until all of its children are done
     // so grab your own lock with the condition variable for watching
     // that the number of your running children is greater than zero
+    /*
     output.println("   pthread_mutex_lock( &("+com+".lock) );");
     output.println("   while( "+com+".numRunningChildren > 0 ) {");
     output.println("     pthread_cond_wait( &("+com+".runningChildrenCond), &("+com+".lock) );");
     output.println("   }");
     output.println("   pthread_mutex_unlock( &("+com+".lock) );");    
+    */
 
     // copy out-set from local temps into the sese record
     Iterator<TempDescriptor> itr = fsexn.getFlatEnter().getOutVarSet().iterator();
@@ -2921,12 +2965,14 @@ public class BuildCode {
     }
 
     // last of all, decrement your parent's number of running children
+    /*
     output.println("     if( "+paramsprefix+"->common.parent != NULL ) {");
     output.println("       pthread_mutex_lock( &("+paramsprefix+"->common.parent->lock) );");
     output.println("       --("+paramsprefix+"->common.parent->numRunningChildren);");
     output.println("       pthread_cond_signal( &("+paramsprefix+"->common.parent->runningChildrenCond) );");
     output.println("       pthread_mutex_lock( &("+paramsprefix+"->common.parent->lock) );");
     output.println("     }");
+    */
   }
 
   public void generateFlatWriteDynamicVarNode( FlatMethod fm,  

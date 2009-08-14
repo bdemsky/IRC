@@ -865,11 +865,14 @@ public class MLPAnalysis {
 	TempDescriptor inVar = inVarItr.next();
 	Integer srcType = 
 	  vstTableIn.getRefVarSrcType( inVar, 
-				     fsen,
-				     fsen.getParent() );
+				       fsen,
+				       fsen.getParent() );
 
+	// the current SESE needs a local space to track the dynamic
+	// variable and the child needs space in its SESE record
 	if( srcType.equals( VarSrcTokTable.SrcType_DYNAMIC ) ) {
 	  fsen.addDynamicInVar( inVar );
+	  fsen.getParent().addDynamicVar( inVar );
 
 	} else if( srcType.equals( VarSrcTokTable.SrcType_STATIC ) ) {
 	  fsen.addStaticInVar( inVar );
