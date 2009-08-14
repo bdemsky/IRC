@@ -2777,12 +2777,10 @@ public class BuildCode {
     output.println("   {");
 
     // before doing anything, lock your own record and increment the running children
-    if( fsen != mlpa.getRootSESE() ) {
-      /*
+    if( fsen != mlpa.getRootSESE() ) {      
       output.println("     pthread_mutex_lock( &("+paramsprefix+"->common.lock) );");
       output.println("     ++("+paramsprefix+"->common.numRunningChildren);");
-      output.println("     pthread_mutex_unlock( &("+paramsprefix+"->common.lock) );");
-      */
+      output.println("     pthread_mutex_unlock( &("+paramsprefix+"->common.lock) );");      
     }
 
     // just allocate the space for this record
@@ -2925,14 +2923,12 @@ public class BuildCode {
 
     // this SESE cannot be done until all of its children are done
     // so grab your own lock with the condition variable for watching
-    // that the number of your running children is greater than zero
-    /*
+    // that the number of your running children is greater than zero    
     output.println("   pthread_mutex_lock( &("+com+".lock) );");
     output.println("   while( "+com+".numRunningChildren > 0 ) {");
     output.println("     pthread_cond_wait( &("+com+".runningChildrenCond), &("+com+".lock) );");
     output.println("   }");
     output.println("   pthread_mutex_unlock( &("+com+".lock) );");    
-    */
 
     // copy out-set from local temps into the sese record
     Iterator<TempDescriptor> itr = fsexn.getFlatEnter().getOutVarSet().iterator();
@@ -2964,15 +2960,13 @@ public class BuildCode {
       output.println("     psem_give( &("+paramsprefix+"->common.stallSem) );");
     }
 
-    // last of all, decrement your parent's number of running children
-    /*
+    // last of all, decrement your parent's number of running children    
     output.println("     if( "+paramsprefix+"->common.parent != NULL ) {");
     output.println("       pthread_mutex_lock( &("+paramsprefix+"->common.parent->lock) );");
     output.println("       --("+paramsprefix+"->common.parent->numRunningChildren);");
     output.println("       pthread_cond_signal( &("+paramsprefix+"->common.parent->runningChildrenCond) );");
-    output.println("       pthread_mutex_lock( &("+paramsprefix+"->common.parent->lock) );");
-    output.println("     }");
-    */
+    output.println("       pthread_mutex_unlock( &("+paramsprefix+"->common.parent->lock) );");
+    output.println("     }");    
   }
 
   public void generateFlatWriteDynamicVarNode( FlatMethod fm,  
