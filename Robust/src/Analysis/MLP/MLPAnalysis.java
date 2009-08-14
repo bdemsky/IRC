@@ -172,7 +172,7 @@ public class MLPAnalysis {
       computeStallsForward( fm );
     }
     if( state.MLPDEBUG ) {
-      System.out.println( "\nCode Plans\n----------\n"+fmMain.printMethod( codePlans ) );
+      //System.out.println( "\nCode Plans\n----------\n"+fmMain.printMethod( codePlans ) );
     }
 
 
@@ -849,8 +849,8 @@ public class MLPAnalysis {
                                           VarSrcTokTable vstTableIn,
 					  Set<TempDescriptor> notAvailSetIn,
                                           FlatSESEEnterNode currentSESE ) {
-    CodePlan plan = new CodePlan();
 
+    CodePlan plan = new CodePlan( currentSESE);
 
     switch( fn.kind() ) {
 

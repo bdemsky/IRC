@@ -13,13 +13,18 @@ public class CodePlan {
   private Hashtable< VariableSourceToken, Set<TempDescriptor> > stall2copySet;
   private Set<TempDescriptor>                                   dynamicStallSet;
   private Hashtable<TempDescriptor, TempDescriptor>             dynAssign_lhs2rhs;
+  private FlatSESEEnterNode                                     currentSESE;
   
-  public CodePlan() {
+  public CodePlan( FlatSESEEnterNode fsen ) {
     stall2copySet     = new Hashtable< VariableSourceToken, Set<TempDescriptor> >();
     dynamicStallSet   = new HashSet<TempDescriptor>();
     dynAssign_lhs2rhs = new Hashtable<TempDescriptor, TempDescriptor>();
+    currentSESE       = fsen;
   }
 
+  public FlatSESEEnterNode getCurrentSESE() {
+    return currentSESE;
+  }
   
   public void addStall2CopySet( VariableSourceToken stallToken,
 				Set<TempDescriptor> copySet ) {

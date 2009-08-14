@@ -1,10 +1,7 @@
 public class Foo {
+  int f;
   public Foo() {}
 }
-
-
-// TODO
-// -objects
 
 
 public class Test {
@@ -15,6 +12,18 @@ public class Test {
     int y = Integer.parseInt( args[1] );
     //System.out.println( "root: x="+x+", y="+y );
 
+
+    Foo foo = new Foo();
+    foo.f = x;
+
+    sese jumbo {
+      foo.f = y;
+    }
+
+    System.out.println( "f="+foo.f );
+
+
+    /*
     if( x > 3 ) {
       sese fee {
 	y = y + 10;
@@ -22,21 +31,26 @@ public class Test {
       }
     }
 
-    /*
+    System.out.println( "yo" );
+
     sese fie {
-      float xyz = -2.0f;
+      double xyz = -2.0;
     }
-    float jjj = Math.abs( xyz );
-    */
+
+    System.out.println( "go" );
+
+    double jjj = Math.abs( xyz );
+
+
 
     // see that values from sese fi are
     // forwarded to this sibling
     sese foe {
-    //System.out.println( "fo: x="+x+", y="+y );
-    //System.out.println( "y="+y+" xyz="+xyz );
-      System.out.println( "foe: y="+y );
+      //System.out.println( "fo: x="+x+", y="+y );
+      System.out.println( "foe: y="+y+" jjj="+jjj );
+      //System.out.println( "foe: y="+y );
     }
-
+    */
 
 
     // just for testing root's ability to

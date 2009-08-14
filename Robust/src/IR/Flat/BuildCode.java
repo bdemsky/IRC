@@ -1727,10 +1727,11 @@ public class BuildCode {
       for(int i=0; i<writes.length; i++) {
 	TempDescriptor temp=writes[i];
 	TypeDescriptor type=temp.getType();
-	if (type.isPtr()&&GENERATEPRECISEGC)
+	if (type.isPtr()&&GENERATEPRECISEGC) {
 	  objecttemps.addPtr(temp);
-	else
+	} else {
 	  objecttemps.addPrim(temp);
+	}
       }
     }
   }
@@ -1743,24 +1744,22 @@ public class BuildCode {
                                     ) {
 
     ParamsObject objectparams = (ParamsObject) paramstable.get( fsen.getmdBogus() );
-    
-    Set<TempDescriptor> inSetAndOutSet = new HashSet<TempDescriptor>();
-    inSetAndOutSet.addAll( fsen.getInVarSet() );
-    inSetAndOutSet.addAll( fsen.getOutVarSet() );
-
-    Set<TempDescriptor> inSetAndOutSetPrims = new HashSet<TempDescriptor>();
-
-    Iterator<TempDescriptor> itr = inSetAndOutSet.iterator();
-    while( itr.hasNext() ) {
-      TempDescriptor temp = itr.next();
-      TypeDescriptor type = temp.getType();
-      if( !type.isPtr() ) {
-	inSetAndOutSetPrims.add( temp );
-      }
-    }
-            
+                
     TempObject objecttemps = (TempObject) tempstable.get( fsen.getmdBogus() );
     
+    // generate locals structure
+    outputStructs.println("struct "+fsen.getcdEnclosing().getSafeSymbol()+fsen.getmdBogus().getSafeSymbol()+"_"+fsen.getmdBogus().getSafeMethodDescriptor()+"_locals {");
+    outputStructs.println("  INTPTR size;");
+    outputStructs.println("  void * next;");
+    for(int i=0; i<objecttemps.numPointers(); i++) {
+      TempDescriptor temp=objecttemps.getPointer(i);
+      if (temp.getType().isNull())
+        outputStructs.println("  void * "+temp.getSafeSymbol()+";");
+      else
+        outputStructs.println("  struct "+temp.getType().getSafeSymbol()+" * "+temp.getSafeSymbol()+";");
+    }
+    outputStructs.println("};\n");
+
     
     // generate the SESE record structure
     outputStructs.println(fsen.getSESErecordName()+" {");
@@ -1792,6 +1791,21 @@ public class BuildCode {
     }    
 
     // space for all in and out set primitives
+    Set<TempDescriptor> inSetAndOutSet = new HashSet<TempDescriptor>();
+    inSetAndOutSet.addAll( fsen.getInVarSet() );
+    inSetAndOutSet.addAll( fsen.getOutVarSet() );
+
+    Set<TempDescriptor> inSetAndOutSetPrims = new HashSet<TempDescriptor>();
+
+    Iterator<TempDescriptor> itr = inSetAndOutSet.iterator();
+    while( itr.hasNext() ) {
+      TempDescriptor temp = itr.next();
+      TypeDescriptor type = temp.getType();
+      if( !type.isPtr() ) {
+	inSetAndOutSetPrims.add( temp );
+      }
+    }
+
     Iterator<TempDescriptor> itrPrims = inSetAndOutSetPrims.iterator();
     while( itrPrims.hasNext() ) {
       TempDescriptor temp = itrPrims.next();
@@ -1809,25 +1823,13 @@ public class BuildCode {
     
     outputStructs.println("};\n");
 
-    // generate locals structure
-    outputStructs.println("struct "+fsen.getcdEnclosing().getSafeSymbol()+fsen.getmdBogus().getSafeSymbol()+"_"+fsen.getmdBogus().getSafeMethodDescriptor()+"_locals {");
-    outputStructs.println("  INTPTR size;");
-    outputStructs.println("  void * next;");
-    for(int i=0; i<objecttemps.numPointers(); i++) {
-      TempDescriptor temp=objecttemps.getPointer(i);
-      if (temp.getType().isNull())
-        outputStructs.println("  void * "+temp.getSafeSymbol()+";");
-      else
-        outputStructs.println("  struct "+temp.getType().getSafeSymbol()+" * "+temp.getSafeSymbol()+";");
-    }
-    outputStructs.println("};\n");
     
-
     // write method declaration to header file
     outputMethHead.print("void ");
     outputMethHead.print(fsen.getSESEmethodName()+"(");
     outputMethHead.print(fsen.getSESErecordName()+"* "+paramsprefix);
     outputMethHead.println(");\n");
+
 
     generateFlatMethodSESE( fsen.getfmBogus(), 
 			    fsen.getcdEnclosing(), 
@@ -1903,6 +1905,17 @@ public class BuildCode {
       }
     }    
 
+    // declare local temps for out-set primitives if its not already
+    // in the in-set, and it's value will get written so no problem
+    Iterator<TempDescriptor> itrOutSet = fsen.getOutVarSet().iterator();
+    while( itrOutSet.hasNext() ) {
+      TempDescriptor temp = itrOutSet.next();
+      TypeDescriptor type = temp.getType();
+      if( !type.isPtr() && !fsen.getReadyInVarSet().contains( temp ) ) {
+	output.println("   "+type+" "+temp+";");       
+      }
+    }    
+
     // copy in-set into place, ready vars were already 
     // copied when the SESE was issued
     Iterator<TempDescriptor> tempItr;
@@ -1913,8 +1926,8 @@ public class BuildCode {
       TempDescriptor temp = tempItr.next();
       VariableSourceToken vst = fsen.getStaticInVarSrc( temp );
       SESEandAgePair srcPair = new SESEandAgePair( vst.getSESE(), vst.getAge() );
-      String from = paramsprefix+"->"+srcPair+"->"+vst.getAddrVar();      
-      output.println("     "+temp+" = "+from+";");
+      output.println("     "+generateTemp( fsen.getfmBogus(), temp, null )+
+		     " = "+paramsprefix+"->"+srcPair+"->"+vst.getAddrVar()+";");
     }
 
     // dynamic vars come from an SESE and src
@@ -1924,13 +1937,15 @@ public class BuildCode {
 
       // go grab it from the SESE source
       output.println("     if( "+paramsprefix+"->"+temp+"_srcSESE != NULL ) {");
-      output.println("       "+temp+" = *(("+temp.getType()+"*) ("+
+      output.println("       "+generateTemp( fsen.getfmBogus(), temp, null )+
+		             " = *(("+temp.getType()+"*) ("+
 		             paramsprefix+"->"+temp+"_srcSESE + "+
 		             paramsprefix+"->"+temp+"_srcOffset));");
 
       // or if the source was our parent, its in the record to grab
       output.println("     } else {");
-      output.println("       "+temp+" = "+paramsprefix+"->"+temp+";");
+      output.println("       "+generateTemp( fsen.getfmBogus(), temp, null )+
+		             " = "+paramsprefix+"->"+temp+";");
       output.println("     }");
     }
 
@@ -2256,6 +2271,8 @@ public class BuildCode {
       CodePlan cp = mlpa.getCodePlan( fn );
       if( cp != null ) {     		
 	
+	FlatSESEEnterNode currentSESE = cp.getCurrentSESE();
+	
 	// for each sese and age pair that this parent statement
 	// must stall on, take that child's stall semaphore, the
 	// copying of values comes after the statement
@@ -2276,9 +2293,8 @@ public class BuildCode {
 	  Iterator<TempDescriptor> tdItr = cp.getCopySet( vst ).iterator();
 	  while( tdItr.hasNext() ) {
 	    TempDescriptor td = tdItr.next();
-
-	    output.println("       "+td.getSafeSymbol()+" = child->"+
-			             vst.getAddrVar().getSafeSymbol()+";");
+	    output.println("       "+generateTemp( currentSESE.getfmBogus(), td, null )+
+			   " = child->"+vst.getAddrVar().getSafeSymbol()+";");
 	  }
 
 	  output.println("   }");
@@ -2295,8 +2311,9 @@ public class BuildCode {
 	  output.println("     if( "+dynVar+"_srcSESE != NULL ) {");
 	  output.println("       SESEcommon* common = (SESEcommon*) "+dynVar+"_srcSESE;");
 	  output.println("       psem_take( &(common->stallSem) );");
-	  output.println("       "+dynVar+" = *(("+dynVar.getType()+"*) ("+
-			                        dynVar+"_srcSESE + "+dynVar+"_srcOffset));");
+	  output.println("       "+generateTemp( currentSESE.getfmBogus(), dynVar, null )+
+			          " = *(("+dynVar.getType()+"*) ("+
+			          dynVar+"_srcSESE + "+dynVar+"_srcOffset));");
 	  output.println("     }");
 	  output.println("   }");
 	}
@@ -2813,24 +2830,13 @@ public class BuildCode {
     Iterator<TempDescriptor> tempItr = fsen.getReadyInVarSet().iterator();
     while( tempItr.hasNext() ) {
       TempDescriptor temp = tempItr.next();
-      TypeDescriptor type = temp.getType();
-
-      // if we are root (no parent) or the source of the in-var is in 
-      // the in or out set, we know it is in the params structure, 
-      // otherwise its a method-local variable
-      String from;
-      if( fsen.getParent() == null ||
-	  fsen.getParent().getInVarSet().contains( temp ) ||
-	  fsen.getParent().getOutVarSet().contains( temp ) 
-	) {
-	from = paramsprefix+"->"+temp.getSafeSymbol();
+      if( fsen != mlpa.getRootSESE() ) {
+	output.println("     seseToIssue->"+temp+" = "+
+		       generateTemp( fsen.getParent().getfmBogus(), temp, null )+";");
       } else {
-	from = temp.getSafeSymbol();
+	output.println("     seseToIssue->"+temp+" = "+
+		       paramsprefix+"->"+temp+";");
       }
-   
-      String to = "seseToIssue->"+temp.getSafeSymbol();
-
-      output.println("     "+to+" = "+from+";");
     }
 
     if( fsen != mlpa.getRootSESE() ) {
