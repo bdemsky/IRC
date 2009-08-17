@@ -305,28 +305,45 @@ public class VarSrcTokTable {
   // any curr tokens increase age by 1
   public void age( FlatSESEEnterNode curr ) {
 
+    Set<VariableSourceToken> forRemoval =
+      new HashSet<VariableSourceToken>();
+
+    Set<VariableSourceToken> forAddition =
+      new HashSet<VariableSourceToken>();
+
     Iterator<VariableSourceToken> itr = trueSet.iterator();
     while( itr.hasNext() ) {
       VariableSourceToken vst = itr.next();
 
       if( vst.getSESE().equals( curr ) ) {
 
-	Integer newAge = vst.getAge()+1;
-	if( newAge > MAX_AGE ) {
-	  newAge = MAX_AGE;
-	}
+	// only age if the token isn't already the maximum age
+	if( vst.getAge() < MAX_AGE ) {
 	
-	remove( vst );
+	  forRemoval.add( vst );
 
-        add( new VariableSourceToken( vst.getRefVars(), 
-				      curr,                                           
-				      newAge,
-				      vst.getAddrVar()
-				      )
-	     );
+	  forAddition.add( new VariableSourceToken( vst.getRefVars(), 
+						    curr,                                           
+						    vst.getAge() + 1,
+						    vst.getAddrVar()
+						    )
+			   );
+	}
       }	
     }
     
+    itr = forRemoval.iterator();
+    while( itr.hasNext() ) {
+      VariableSourceToken vst = itr.next();
+      remove( vst );
+    }
+    
+    itr = forRemoval.iterator();
+    while( itr.hasNext() ) {
+      VariableSourceToken vst = itr.next();
+      add( vst );
+    }
+
     assertConsistency();
   }
 

@@ -1863,6 +1863,7 @@ public class BuildCode {
       output.println("};");
     }
 
+    output.println("   /* regular local primitives */");
     for(int i=0; i<objecttemp.numPrimitives(); i++) {
       TempDescriptor td=objecttemp.getPrimitive(i);
       TypeDescriptor type=td.getType();
@@ -1876,6 +1877,7 @@ public class BuildCode {
 
 
     // declare variables for naming static SESE's
+    output.println("   /* static SESE names */");
     Iterator<SESEandAgePair> pItr = fsen.getNeededStaticNames().iterator();
     while( pItr.hasNext() ) {
       SESEandAgePair p = pItr.next();
@@ -1883,6 +1885,7 @@ public class BuildCode {
     }
 
     // declare variables for tracking dynamic sources
+    output.println("   /* dynamic variable sources */");
     Iterator<TempDescriptor> dynSrcItr = fsen.getDynamicVarSet().iterator();
     while( dynSrcItr.hasNext() ) {
       TempDescriptor dynSrcVar = dynSrcItr.next();
@@ -1892,6 +1895,7 @@ public class BuildCode {
 
     // declare local temps for in-set primitives, and if it is
     // a ready-source variable, get the value from the record
+    output.println("   /* local temps for in-set primitives */");
     Iterator<TempDescriptor> itrInSet = fsen.getInVarSet().iterator();
     while( itrInSet.hasNext() ) {
       TempDescriptor temp = itrInSet.next();
@@ -1907,11 +1911,12 @@ public class BuildCode {
 
     // declare local temps for out-set primitives if its not already
     // in the in-set, and it's value will get written so no problem
+    output.println("   /* local temp for out-set prim, not already in the in-set */");
     Iterator<TempDescriptor> itrOutSet = fsen.getOutVarSet().iterator();
     while( itrOutSet.hasNext() ) {
       TempDescriptor temp = itrOutSet.next();
       TypeDescriptor type = temp.getType();
-      if( !type.isPtr() && !fsen.getReadyInVarSet().contains( temp ) ) {
+      if( !type.isPtr() && !fsen.getInVarSet().contains( temp ) ) {
 	output.println("   "+type+" "+temp+";");       
       }
     }    
@@ -1936,17 +1941,17 @@ public class BuildCode {
       TempDescriptor temp = tempItr.next();
 
       // go grab it from the SESE source
-      output.println("     if( "+paramsprefix+"->"+temp+"_srcSESE != NULL ) {");
-      output.println("       "+generateTemp( fsen.getfmBogus(), temp, null )+
-		             " = *(("+temp.getType()+"*) ("+
+      output.println("   if( "+paramsprefix+"->"+temp+"_srcSESE != NULL ) {");
+      output.println("     "+generateTemp( fsen.getfmBogus(), temp, null )+
+		             " = *(("+temp.getType().toPrettyString()+"*) ("+
 		             paramsprefix+"->"+temp+"_srcSESE + "+
 		             paramsprefix+"->"+temp+"_srcOffset));");
 
       // or if the source was our parent, its in the record to grab
-      output.println("     } else {");
-      output.println("       "+generateTemp( fsen.getfmBogus(), temp, null )+
-		             " = "+paramsprefix+"->"+temp+";");
-      output.println("     }");
+      output.println("   } else {");
+      output.println("     "+generateTemp( fsen.getfmBogus(), temp, null )+
+		           " = "+paramsprefix+"->"+temp+";");
+      output.println("   }");
     }
 
     // Check to see if we need to do a GC if this is a
@@ -2963,16 +2968,16 @@ public class BuildCode {
     
     // if parent is stalling on you, let them know you're done
     if( fsexn.getFlatEnter() != mlpa.getRootSESE() ) {
-      output.println("     psem_give( &("+paramsprefix+"->common.stallSem) );");
+      output.println("   psem_give( &("+paramsprefix+"->common.stallSem) );");
     }
 
     // last of all, decrement your parent's number of running children    
-    output.println("     if( "+paramsprefix+"->common.parent != NULL ) {");
-    output.println("       pthread_mutex_lock( &("+paramsprefix+"->common.parent->lock) );");
-    output.println("       --("+paramsprefix+"->common.parent->numRunningChildren);");
-    output.println("       pthread_cond_signal( &("+paramsprefix+"->common.parent->runningChildrenCond) );");
-    output.println("       pthread_mutex_unlock( &("+paramsprefix+"->common.parent->lock) );");
-    output.println("     }");    
+    output.println("   if( "+paramsprefix+"->common.parent != NULL ) {");
+    output.println("     pthread_mutex_lock( &("+paramsprefix+"->common.parent->lock) );");
+    output.println("     --("+paramsprefix+"->common.parent->numRunningChildren);");
+    output.println("     pthread_cond_signal( &("+paramsprefix+"->common.parent->runningChildrenCond) );");
+    output.println("     pthread_mutex_unlock( &("+paramsprefix+"->common.parent->lock) );");
+    output.println("   }");    
   }
 
   public void generateFlatWriteDynamicVarNode( FlatMethod fm,  
@@ -2999,13 +3004,14 @@ public class BuildCode {
       
       SESEandAgePair instance = new SESEandAgePair( vst.getSESE(), vst.getAge() );
       
+      FlatSESEEnterNode current = fwdvn.getEnclosingSESE();
+
       output.println("   {");
 
-      if( fwdvn.getEnclosingSESE().equals( vst.getSESE() ) ) {
+      if( current.equals( vst.getSESE() ) ) {
 	// if the src comes from this SESE, it's a method local variable,
 	// mark src pointer NULL to signify that the var is up-to-date
 	output.println("     "+vst.getAddrVar()+"_srcSESE = NULL;");
-	output.println("     "+refVar+" = "+vst.getAddrVar()+";");
 
       } else {
 	// otherwise we track where it will come from
