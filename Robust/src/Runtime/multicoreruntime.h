@@ -19,6 +19,19 @@ int outmsgleft;
 bool isMsgHanging;
 volatile bool isMsgSending;
 
+#define OUTMSG_INDEXINC() \
+	outmsgindex = (outmsgindex + 1) % BAMBOO_OUT_BUF_LENGTH;
+
+#define OUTMSG_LASTINDEXINC() \
+	outmsglast = (outmsglast + 1) % BAMBOO_OUT_BUF_LENGTH; \
+	if(outmsglast == outmsgindex) { \
+		BAMBOO_EXIT(0xb003); \
+	} 
+
+#define OUTMSG_CACHE(n) \
+	outmsgdata[outmsglast] = (n); \
+  OUTMSG_LASTINDEXINC(); 
+
 /* Message format:
  *      type + Msgbody
  * type: 0 -- transfer object
@@ -55,6 +68,7 @@ volatile bool isMsgSending;
  *      1d -- mapping info of a markedObj
  *      1e -- large objs info request
  *      1f -- large objs info response
+ *      20 -- large objs mapping info
  *
  * ObjMsg: 0 + size of msg + obj's address + (task index + param index)+
  * StallMsg: 1 + corenum + sendobjs + receiveobjs 
@@ -93,7 +107,10 @@ volatile bool isMsgSending;
  *        13 (size is always 1 * sizeof(int))
  *        14 + corenum + gcsendobjs + gcreceiveobjs 	
  *           (size if always 4 * sizeof(int))
- *        15/16 + corenum 
+ *        15 + corenum + fulfilled blocks num + (finish compact(1) + current
+ *           heap top)/(need mem(0) + mem need) 
+ *           size is always 5 * sizeof(int))
+ *        16 + corenum 
  *              (size is always 2 * sizeof(int))
  *        17 (size is always 1 * sizeof(int))
  *        18 (size if always 1 * sizeof(int))
@@ -101,8 +118,8 @@ volatile bool isMsgSending;
  *           (size is always 5 * sizeof(int))
  *        1a + obj's address 
  *           (size is always 2 * sizeof(int))
- *        1b + corenum 
- *           ( size is always 2 * sizeof(int))
+ *        1b + corenum + start addr + end addr
+ *           (size if always 4 * sizeof(int))
  *        1c + obj's address + corenum 
  *           (size is always 3 * sizeof(int))
  *        1d + obj's address + dst address 
@@ -110,6 +127,8 @@ volatile bool isMsgSending;
  *        1e (size is always 1 * sizeof(int))
  *        1f + size of msg + corenum + current heap size 
  *           + (num of large obj lists + (start address + length)+)?
+ *        20 + orig large obj ptr + new large obj ptr 
+*            (size is always 3 * sizeof(int))
  */
 enum MSGTYPE {
 	TRANSOBJ = 0x0,  // 0x0
@@ -145,6 +164,7 @@ enum MSGTYPE {
 	GCMAPINFO,       // 0x1d
 	GCLOBJREQUEST,   // 0x1e
 	GCLOBJINFO,      // 0x1f
+	GCLOBJMAPPING,   // 0x20
 #endif
 	MSGEND
 };
