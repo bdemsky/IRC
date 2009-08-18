@@ -1,2 +1,11 @@
-break methods.c:6664
-run
+break methods.c:6605
+break methods.c:6606
+break methods.c:6644
+break methods.c:6657
+break methods.c:6755
+break methods.c:6782
+break methods.c:6789
+break methods.c:6793
+break methods.c:6805
+break methods.c:6808
+run 2

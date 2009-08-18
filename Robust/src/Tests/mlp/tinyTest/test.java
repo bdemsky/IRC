@@ -8,7 +8,7 @@ public class Test {
 
   public static void main( String args[] ) {
     
-    //int x = Integer.parseInt( args[0] );
+    int x = Integer.parseInt( args[0] );
     //int y = Integer.parseInt( args[1] );
     //System.out.println( "root: x="+x+", y="+y );
 
@@ -28,13 +28,15 @@ public class Test {
 
     
     int total = 0;
-    for( int i = 0; i < 5; ++i ) {
+    for( int i = 0; i < x; ++i ) {
 
       System.out.println( "i="+i );
 
       sese sum {
 	total = total + i;
       }
+
+      System.out.println( "pi="+i );
     }
     
 

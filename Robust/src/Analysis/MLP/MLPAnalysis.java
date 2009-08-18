@@ -143,7 +143,7 @@ public class MLPAnalysis {
       pruneVariableResultsWithLiveness( fm );
     }
     if( state.MLPDEBUG ) {      
-      System.out.println( "\nVariable Results-Out\n----------------\n"+fmMain.printMethod( variableResults ) );
+      //System.out.println( "\nVariable Results-Out\n----------------\n"+fmMain.printMethod( variableResults ) );
     }
     
 

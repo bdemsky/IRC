@@ -2022,6 +2022,12 @@ public class BuildCode {
       outmethod.println(    "    /* "+fsen.getPrettyIdentifier()+" */");
       outmethod.println(    "    case "+fsen.getIdentifier()+":");
       outmethod.println(    "      "+fsen.getSESEmethodName()+"( seseRecord );");  
+
+      if( fsen.equals( mlpa.getRootSESE() ) ) {
+	outmethod.println(  "      /* work scheduler works forever, explicitly exit */");
+	outmethod.println(  "      exit( 0 );");
+      }
+
       outmethod.println(    "      break;");
       outmethod.println(    "");
     }
