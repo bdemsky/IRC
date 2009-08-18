@@ -8,8 +8,8 @@ public class Test {
 
   public static void main( String args[] ) {
     
-    int x = Integer.parseInt( args[0] );
-    int y = Integer.parseInt( args[1] );
+    //int x = Integer.parseInt( args[0] );
+    //int y = Integer.parseInt( args[1] );
     //System.out.println( "root: x="+x+", y="+y );
 
     /*
@@ -26,15 +26,31 @@ public class Test {
     }
     */
 
+    
     int total = 0;
-    for( int i = 0; i < x; ++i ) {
+    for( int i = 0; i < 5; ++i ) {
+
+      System.out.println( "i="+i );
+
       sese sum {
 	total = total + i;
       }
     }
-
+    
 
     //setTo3( foo );
+
+
+
+    /*
+    int total = 0;
+    sese kemper {
+      for( int i = 0; i < 5; ++i ) {
+	total = total + i;
+      }
+    }
+    */
+
 
     System.out.println( "total="+total );
 

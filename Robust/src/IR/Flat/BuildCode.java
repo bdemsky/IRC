@@ -1931,8 +1931,20 @@ public class BuildCode {
       TempDescriptor temp = tempItr.next();
       VariableSourceToken vst = fsen.getStaticInVarSrc( temp );
       SESEandAgePair srcPair = new SESEandAgePair( vst.getSESE(), vst.getAge() );
+      
+      // can't grab something from this source until it is done
+      output.println("   {");
+      output.println("     SESEcommon* com = (SESEcommon*)"+paramsprefix+"->"+srcPair+";" );
+      output.println("     pthread_mutex_lock( &(com->lock) );");
+      output.println("     while( com->doneExecuting == FALSE ) {");
+      output.println("       pthread_cond_wait( &(com->doneCond), &(com->lock) );");
+      output.println("     }");
+      output.println("     pthread_mutex_unlock( &(com->lock) );");
+
       output.println("     "+generateTemp( fsen.getfmBogus(), temp, null )+
 		     " = "+paramsprefix+"->"+srcPair+"->"+vst.getAddrVar()+";");
+
+      output.println("   }");
     }
 
     // dynamic vars come from an SESE and src
@@ -1942,6 +1954,15 @@ public class BuildCode {
 
       // go grab it from the SESE source
       output.println("   if( "+paramsprefix+"->"+temp+"_srcSESE != NULL ) {");
+
+      // gotta wait until the source is done
+      output.println("     SESEcommon* com = (SESEcommon*)"+paramsprefix+"->"+temp+"_srcSESE;" );
+      output.println("     pthread_mutex_lock( &(com->lock) );");
+      output.println("     while( com->doneExecuting == FALSE ) {");
+      output.println("       pthread_cond_wait( &(com->doneCond), &(com->lock) );");
+      output.println("     }");
+      output.println("     pthread_mutex_unlock( &(com->lock) );");
+
       output.println("     "+generateTemp( fsen.getfmBogus(), temp, null )+
 		             " = *(("+temp.getType().toPrettyString()+"*) ("+
 		             paramsprefix+"->"+temp+"_srcSESE + "+
@@ -2289,7 +2310,14 @@ public class BuildCode {
 
 	  output.println("   {");
 	  output.println("     SESEcommon* common = (SESEcommon*) "+p+";");
-	  output.println("     psem_take( &(common->stallSem) );");
+
+	  output.println("     pthread_mutex_lock( &(common->lock) );");
+	  output.println("     while( common->doneExecuting == FALSE ) {");
+	  output.println("       pthread_cond_wait( &(common->doneCond), &(common->lock) );");
+	  output.println("     }");
+	  output.println("     pthread_mutex_unlock( &(common->lock) );");
+	  	  
+	  //output.println("     psem_take( &(common->stallSem) );");
 
 	  // copy things we might have stalled for	  
 	  output.println("     "+p.getSESE().getSESErecordName()+"* child = ("+
@@ -2814,13 +2842,9 @@ public class BuildCode {
     output.println("     seseToIssue->common.classID = "+fsen.getIdentifier()+";");
     output.println("     psem_init( &(seseToIssue->common.stallSem) );");
 
-    // before potentially adding this SESE to other forwarding lists,
-    //  create it's lock and take it immediately
-    output.println("     pthread_mutex_init( &(seseToIssue->common.lock), NULL );");
-    output.println("     pthread_mutex_lock( &(seseToIssue->common.lock) );");
-
     output.println("     seseToIssue->common.forwardList = createQueue();");
     output.println("     seseToIssue->common.unresolvedDependencies = 0;");
+    output.println("     pthread_cond_init( &(seseToIssue->common.doneCond), NULL );");
     output.println("     seseToIssue->common.doneExecuting = FALSE;");    
     output.println("     pthread_cond_init( &(seseToIssue->common.runningChildrenCond), NULL );");
     output.println("     seseToIssue->common.numRunningChildren = 0;");
@@ -2844,6 +2868,11 @@ public class BuildCode {
       }
     }
 
+    // before potentially adding this SESE to other forwarding lists,
+    //  create it's lock and take it immediately
+    output.println("     pthread_mutex_init( &(seseToIssue->common.lock), NULL );");
+    output.println("     pthread_mutex_lock( &(seseToIssue->common.lock) );");
+
     if( fsen != mlpa.getRootSESE() ) {
       // count up outstanding dependencies, static first, then dynamic
       Iterator<SESEandAgePair> staticSrcsItr = fsen.getStaticInVarSrcs().iterator();
@@ -2857,8 +2886,10 @@ public class BuildCode {
 	output.println("         printf( \"This shouldnt already be here\\n\");");
 	output.println("         exit( -1 );");
 	output.println("       }");
-	output.println("       addNewItem( src->forwardList, seseToIssue );");
-	output.println("       ++(seseToIssue->common.unresolvedDependencies);");
+	output.println("       if( !src->doneExecuting ) {");
+	output.println("         addNewItem( src->forwardList, seseToIssue );");
+	output.println("         ++(seseToIssue->common.unresolvedDependencies);");
+	output.println("       }");
 	output.println("       pthread_mutex_unlock( &(src->lock) );");
 	output.println("     }");
 
@@ -2882,8 +2913,10 @@ public class BuildCode {
 	output.println("         pthread_mutex_lock( &(src->lock) );");
 	output.println("         if( isEmpty( src->forwardList ) ||");
 	output.println("             seseToIssue != peekItem( src->forwardList ) ) {");
-	output.println("           addNewItem( src->forwardList, seseToIssue );");
-	output.println("           ++(seseToIssue->common.unresolvedDependencies);");
+	output.println("           if( !src->doneExecuting ) {");
+	output.println("             addNewItem( src->forwardList, seseToIssue );");
+	output.println("             ++(seseToIssue->common.unresolvedDependencies);");
+	output.println("           }");
 	output.println("         }");
 	output.println("         pthread_mutex_unlock( &(src->lock) );");	
 	output.println("         seseToIssue->"+dynInVar+"_srcOffset = "+dynInVar+"_srcOffset;");
@@ -2939,7 +2972,7 @@ public class BuildCode {
     output.println("   while( "+com+".numRunningChildren > 0 ) {");
     output.println("     pthread_cond_wait( &("+com+".runningChildrenCond), &("+com+".lock) );");
     output.println("   }");
-    output.println("   pthread_mutex_unlock( &("+com+".lock) );");    
+    //output.println("   pthread_mutex_unlock( &("+com+".lock) );");    
 
     // copy out-set from local temps into the sese record
     Iterator<TempDescriptor> itr = fsexn.getFlatEnter().getOutVarSet().iterator();
@@ -2951,8 +2984,9 @@ public class BuildCode {
     }    
     
     // mark yourself done, your SESE data is now read-only
-    output.println("   pthread_mutex_lock( &("+com+".lock) );");
+    //output.println("   pthread_mutex_lock( &("+com+".lock) );");
     output.println("   "+com+".doneExecuting = TRUE;");
+    output.println("   pthread_cond_signal( &("+com+".doneCond) );");
     output.println("   pthread_mutex_unlock( &("+com+".lock) );");
 
     // decrement dependency count for all SESE's on your forwarding list
@@ -3002,9 +3036,15 @@ public class BuildCode {
       TempDescriptor      refVar = (TempDescriptor)      me.getKey();
       VariableSourceToken vst    = (VariableSourceToken) me.getValue();
       
-      SESEandAgePair instance = new SESEandAgePair( vst.getSESE(), vst.getAge() );
-      
       FlatSESEEnterNode current = fwdvn.getEnclosingSESE();
+
+      // only do this if the variable in question should be tracked,
+      // meaning that it was explicitly added to the dynamic var set
+      if( !current.getDynamicVarSet().contains( vst.getAddrVar() ) ) {
+	continue;
+      }
+
+      SESEandAgePair instance = new SESEandAgePair( vst.getSESE(), vst.getAge() );      
 
       output.println("   {");
 

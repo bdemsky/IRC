@@ -39,10 +39,13 @@ typedef struct SESEcommon_t {
 
   struct Queue*   forwardList;
   int             unresolvedDependencies;
+
+  pthread_cond_t  doneCond;
   int             doneExecuting;
 
   pthread_cond_t  runningChildrenCond;
   int             numRunningChildren;
+
   SESEcommon_p    parent;
 
 } SESEcommon;

@@ -143,7 +143,7 @@ public class MLPAnalysis {
       pruneVariableResultsWithLiveness( fm );
     }
     if( state.MLPDEBUG ) {      
-      //System.out.println( "\nVariable Results-Out\n----------------\n"+fmMain.printMethod( variableResults ) );
+      System.out.println( "\nVariable Results-Out\n----------------\n"+fmMain.printMethod( variableResults ) );
     }
     
 
@@ -175,7 +175,6 @@ public class MLPAnalysis {
       //System.out.println( "\nCode Plans\n----------\n"+fmMain.printMethod( codePlans ) );
     }
 
-
     // splice new IR nodes into graph after all
     // analysis passes are complete
     Iterator spliceItr = wdvNodesToSpliceIn.entrySet().iterator();
@@ -185,6 +184,10 @@ public class MLPAnalysis {
       fwdvn.spliceIntoIR();
     }
 
+    // detailed per-SESE information
+    if( state.MLPDEBUG ) {
+      System.out.println( "\nSESE info\n-------------\n" ); printSESEInfo();
+    }
 
     double timeEndAnalysis = (double) System.nanoTime();
     double dt = (timeEndAnalysis - timeStartAnalysis)/(Math.pow( 10.0, 9.0 ) );
@@ -444,6 +447,49 @@ public class MLPAnalysis {
     while( childItr.hasNext() ) {
       FlatSESEEnterNode fsenChild = childItr.next();
       printSESELivenessTree( fsenChild );
+    }
+  }
+
+  private void printSESEInfo() {
+    printSESEInfoTree( rootSESE );
+    System.out.println( "" );
+  }
+
+  private void printSESEInfoTree( FlatSESEEnterNode fsen ) {
+
+    System.out.println( "SESE "+fsen.getPrettyIdentifier()+" {" );
+
+    System.out.println( "  in-set: "+fsen.getInVarSet() );
+    Iterator<TempDescriptor> tItr = fsen.getInVarSet().iterator();
+    while( tItr.hasNext() ) {
+      TempDescriptor inVar = tItr.next();
+      if( fsen.getReadyInVarSet().contains( inVar ) ) {
+	System.out.println( "    (ready)  "+inVar );
+      }
+      if( fsen.getStaticInVarSet().contains( inVar ) ) {
+	System.out.println( "    (static) "+inVar );
+      } 
+      if( fsen.getDynamicInVarSet().contains( inVar ) ) {
+	System.out.println( "    (dynamic)"+inVar );
+      }
+    }
+
+    System.out.println( "  out-set: "+fsen.getOutVarSet() );
+
+    /*
+    System.out.println( "  static names to track:" );
+    tItr = fsen.getOutVarSet().iterator();
+    while( tItr.hasNext() ) {
+      System.out.println( "    "+tItr.next() );
+    }
+    */
+
+    System.out.println( "}" );
+
+    Iterator<FlatSESEEnterNode> childItr = fsen.getChildren().iterator();
+    while( childItr.hasNext() ) {
+      FlatSESEEnterNode fsenChild = childItr.next();
+      printSESEInfoTree( fsenChild );
     }
   }
 
@@ -957,7 +1003,7 @@ public class MLPAnalysis {
 	  // just stall for the exact thing we need and move on
 	  plan.addDynamicStall( readtmp );
 	  currentSESE.addDynamicVar( readtmp );
-	  
+
 	} else if( srcType.equals( VarSrcTokTable.SrcType_STATIC ) ) {	  
 	  // 2) Single token/age pair: Stall for token/age pair, and copy
 	  // all live variables with same token/age pair at the same
