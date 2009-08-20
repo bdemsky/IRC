@@ -838,9 +838,7 @@ bool getreadlock(void * ptr) {
   return true;
 }
 
-void releasewritelock_r(void * lock, void * redirectlock);
 bool getreadlock_I_r(void * ptr, void * redirectlock, int core, bool cache);
-
 bool getwritelock_I_r(void* lock, void* redirectlock, int core, bool cache);
 
 void releasereadlock(void * ptr) {
@@ -1060,56 +1058,6 @@ void releasewritelock(void * ptr) {
 	// send lock release msg
 	// for 32 bit machine, the size is always 4 words
 	send_msg_4(targetcore, LOCKRELEASE, 1, (int)ptr, reallock);
-  }
-}
-
-void releasewritelock_r(void * lock, void * redirectlock) {
-  int targetcore = 0;
-  int reallock = (int)lock;
-  targetcore = (reallock >> 5) % BAMBOO_TOTALCORE;
-
-#ifdef DEBUG
-  BAMBOO_DEBUGPRINT(0xe671);
-  BAMBOO_DEBUGPRINT_REG((int)lock);
-  BAMBOO_DEBUGPRINT_REG(reallock);
-  BAMBOO_DEBUGPRINT_REG(targetcore);
-#endif
-
-  if(targetcore == BAMBOO_NUM_OF_CORE) {
-	BAMBOO_START_CRITICAL_SECTION_LOCK();
-#ifdef DEBUG
-	BAMBOO_DEBUGPRINT(0xf001);
-#endif
-    // reside on this core
-    if(!RuntimeHashcontainskey(locktbl, reallock)) {
-      // no locks for this object, something is wrong
-      BAMBOO_EXIT(0xa01d);
-    } else {
-      int rwlock_obj = 0;
-	  struct LockValue * lockvalue = NULL;
-#ifdef DEBUG
-      BAMBOO_DEBUGPRINT(0xe672);
-#endif
-      RuntimeHashget(locktbl, reallock, &rwlock_obj);
-	  lockvalue = (struct LockValue *)rwlock_obj;
-#ifdef DEBUG
-      BAMBOO_DEBUGPRINT_REG(lockvalue->value);
-#endif
-      lockvalue->value++;
-	  lockvalue->redirectlock = (int)redirectlock;
-#ifdef DEBUG
-      BAMBOO_DEBUGPRINT_REG(lockvalue->value);
-#endif
-    }
-	BAMBOO_CLOSE_CRITICAL_SECTION_LOCK();
-#ifdef DEBUG
-	BAMBOO_DEBUGPRINT(0xf000);
-#endif
-    return;
-  } else {
-	  // send lock release with redirect info msg
-	  // for 32 bit machine, the size is always 4 words
-	  send_msg_4(targetcore, REDIRECTRELEASE, 1, (int)lock, (int)redirectlock);
   }
 }
 

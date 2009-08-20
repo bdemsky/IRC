@@ -3,12 +3,7 @@
 #include "Queue.h"
 
 // data structures for GC
-#define BAMBOO_NUM_PAGES 1024 * 512
-#define BAMBOO_PAGE_SIZE 4096
-#define BAMBOO_SHARED_MEM_SIZE BAMBOO_PAGE_SIZE * BAMBOO_NUM_PAGES
-#define BAMBOO_BASE_VA 0xd000000
-#define BAMBOO_SMEM_SIZE 16 * BAMBOO_PAGE_SIZE
-#define BAMBOO_SMEM_SIZE_L 512 * BAMBOO_PAGE_SIZE
+#define BAMBOO_SMEM_SIZE_L 32 * BAMBOO_SMEM_SIZE
 #define BAMBOO_LARGE_SMEM_BOUND BAMBOO_SMEM_SIZE_L*NUMCORES // NUMCORES=62
 
 #define NUMPTRS 100
@@ -58,12 +53,13 @@ int gclobjtailindex2=0;
 struct lobjpointerblock *gclobjspare=NULL;
 int gcnumlobjs = 0;
 
-enum GCPHASETYPE {
+typedef enum {
 	MARKPHASE = 0x0,   // 0x0
 	COMPACTPHASE,      // 0x1
-	FLUSHPHASE,        // 0x2
-	FINISHPHASE        // 0x3
-};
+	SUBTLECOMPACTPHASE,// 0x2
+	FLUSHPHASE,        // 0x3
+	FINISHPHASE        // 0x4
+} GCPHASETYPE;
 
 volatile bool gcflag;
 volatile bool gcprocessing;
@@ -86,11 +82,15 @@ bool gcheapdirection; // 0: decrease; 1: increase
 
 // compact instruction
 INTPTR gcmarkedptrbound;
-int gcstopblock; // indicate when to stop compact phase
-int gcnumblocks[NUMCORES]; // indicate how many blocks have been fulfilled
+int gcblock2fill;
+int gcstopblock[NUMCORES]; // indicate when to stop compact phase
+int gcfilledblocks[NUMCORES]; //indicate how many blocks have been fulfilled
 // move instruction;
 INTPTR gcmovestartaddr;
+int gcdstcore;
 bool gctomove;
+int gcrequiredmems[NUMCORES]; //record pending mem requests
+int gcmovepending;
 
 // mapping of old address to new address
 struct RuntimeHash * gcpointertbl;

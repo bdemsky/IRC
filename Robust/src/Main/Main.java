@@ -401,16 +401,16 @@ public class Main {
 	if(isDistributeInfo) {
 	    mcImplSynthesis.distribution(isDisAll, startnum);
 	} else {
-	    double timeStartAnalysis = (double) System.nanoTime();
+	    //double timeStartAnalysis = (double) System.nanoTime();
 	    mcImplSynthesis.setScheduleThreshold(20);
 	    mcImplSynthesis.setProbThreshold(0);
 	    mcImplSynthesis.setGenerateThreshold(30);
 	    Vector<Schedule> scheduling = mcImplSynthesis.synthesis();
 	    
-	    double timeEndAnalysis = (double) System.nanoTime();
-	    double dt = (timeEndAnalysis - timeStartAnalysis)/(Math.pow( 10.0, 9.0 ) );
-	    System.err.println("The analysis took" + dt +  "sec.");
-        System.exit(0);
+	    //double timeEndAnalysis = (double) System.nanoTime();
+	    //double dt = (timeEndAnalysis - timeStartAnalysis)/(Math.pow( 10.0, 9.0 ) );
+	    //System.err.println("The analysis took" + dt +  "sec.");
+        //System.exit(0);
 
 	    // generate multicore codes
 	    if(state.MULTICORE) {

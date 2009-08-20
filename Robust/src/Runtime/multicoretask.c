@@ -19,6 +19,7 @@ int enqueuetasks_I(struct parameterwrapper *parameter,
 									 int numenterflags);
 
 inline void initruntimedata() {
+	int i;
 	// initialize the arrays
   if(STARTUPCORE == BAMBOO_NUM_OF_CORE) {
     // startup core to initialize corestatus[]
@@ -35,6 +36,8 @@ inline void initruntimedata() {
 			gcnumsendobjs[i] = 0; 
       gcnumreceiveobjs[i] = 0;
 			gcloads[i] = 0;
+			gcrequiredmems[i] = 0;
+			gcstopblock[i] = 0;
 #endif
     } // for(i = 0; i < NUMCORES; ++i)
 		numconfirm = 0;
@@ -82,27 +85,20 @@ inline void initruntimedata() {
 	gcheaptop = 0;
 	gctopcore = 0;
 	gcheapdirection = 1;
-	gcstopblock = 0;
 	gcreservedsb = 0;
 	gcmovestartaddr = 0;
 	gctomove = false;
 	gcstopblock = 0;
-
-	// initialize queue
-	if (gchead==NULL) {
-		gcheadindex=0;
-		gctailindex=0;
-		gctailindex2 = 0;
-		gchead=gctail=gctail2=malloc(sizeof(struct pointerblock));
-	}
-	// initialize the large obj queues
-	if (gclobjhead==NULL) {
-		gclobjheadindex=0;
-		gclobjtailindex=0;
-		gclobjtailindex2 = 0;
-		gclobjhead=gclobjtail=gclobjtail2=
-			malloc(sizeof(struct lobjpointerblock));
-	}
+	gchead = gctail = gctail2 = NULL;
+	gclobjhead = gclobjtail = gclobjtail2 = NULL;
+	gcheadindex=0;
+	gctailindex=0;
+	gctailindex2 = 0;
+	gclobjheadindex=0;
+	gclobjtailindex=0;
+	gclobjtailindex2 = 0;
+	gcmovepending = 0;
+	gcblocks2fill = 0;
 #else
 	// create the lock table, lockresult table and obj queue
   locktable.size = 20;
@@ -282,7 +278,7 @@ objqueuebreak:
 	return rflag;
 }
 
-inline void checkCoreStatue() {
+inline void checkCoreStatus() {
 	bool allStall = false;
 	int i = 0;
 	int sumsendobj = 0;
@@ -824,7 +820,6 @@ struct ___TagDescriptor___ * allocate_tag(void *ptr,
 struct ___TagDescriptor___ * allocate_tag(int index) {
   struct ___TagDescriptor___ * v=FREEMALLOC(classsize[TAGTYPE]);
 #endif
-  struct ___TagDescriptor___ * v=FREEMALLOC(classsize[TAGTYPE]);
   v->type=TAGTYPE;
   v->flag=index;
   return v;
@@ -1167,7 +1162,7 @@ void * smemalloc(int size,
 	if(freemem != NULL) {
 		void * mem = (void *)(freemem->ptr);
 		*allocsize = size;
-		freemem->ptr += size;
+		freemem->ptr = ((void*)freemem->ptr) + size;
 		freemem->size -= size;
 		// check how many blocks it acrosses
 		int b = 0;
@@ -1700,7 +1695,7 @@ msg:
 
 	case GCSTARTCOMPACT: {
 		// a compact phase start msg
-		gcstopblock = msgdata[1];
+		gcblocks2fill = msgdata[1];
 		gcphase = COMPACTPHASE;
 		break;
 	}
@@ -1737,23 +1732,57 @@ msg:
 		  BAMBOO_DEBUGPRINT_REG(msgdata[1]);
 #endif
 		  BAMBOO_EXIT(0xb006);
-		} 
-		if(msgdata[1] < NUMCORES) {
-			gcnumblocks[msgdata[1]] = msgdata[2];
-			if(msgdata[3] == 0) {
+		}
+		int cnum = msgdata[1];
+		int filledblocks = msgdata[2];
+		int heaptop = msgdata[3];
+		int data4 = msgdata[4];
+		if(cnum < NUMCORES) {
+			if(COMPACTPHASE == gcphase) {
+				gcfilledblocks[cnum] = filledblocks;
+				gcloads[cnum] = heaptop;
+			}
+			if(data4 > 0) {
 				// ask for more mem
 				int startaddr = 0;
 				int tomove = 0;
-				if(findSpareMem(&startaddr, &tomove, msgdata[2])) {
-					send_msg_4(msgdata[1], GCMOVESTART, k, startaddr, tomove);
-				} else {
-					// TODO if not success
+				int dstcore = 0;
+				if(findSpareMem(&startaddr, &tomove, &dstcore, data4, cnum)) {
+					send_msg_4(cnum, GCMOVESTART, dstcore, startaddr, tomove);
 				}
 			} else {
-				gccorestatus[msgdata[1]] = 0;
-				gcloads[msgdata[1]] = msgdata[4];
-			}
-		}
+				gccorestatus[cnum] = 0;
+				// check if there is pending move request
+				if(gcmovepending > 0) {
+					int j;
+					for(j = 0; j < NUMCORES; j++) {
+						if(gcrequiredmems[j]>0) {
+							break;
+						}
+					}
+					if(j < NUMCORES) {
+						// find match
+						int tomove = 0;
+						int startaddr = 0;
+						gcrequiredmems[j] = assignSpareMem(cnum, 
+																							 gcrequiredmems[j], 
+																							 &tomove, 
+																							 &startaddr);
+						if(STARTUPCORE == j) {
+							gcdstcore = cnum;
+							gctomove = true;
+							gcmovestartaddr = startaddr;
+							gcblock2fill = tomove;
+						} else {
+							send_msg_4(j, GCMOVESTART, cnum, startaddr, tomove);
+						} // if(STARTUPCORE == j)
+						if(gcrequiredmems[j] == 0) {
+							gcmovepending--;
+						}
+					} // if(j < NUMCORES)
+				} // if(gcmovepending > 0)
+			} // if(flag == 0)
+		} // if(cnum < NUMCORES)
 	  break;
 	}
 
@@ -1829,8 +1858,9 @@ msg:
 	case GCMOVESTART: {
 		// received a start moving objs msg
 		gctomove = true;
+		gcdstcore = msgdata[1];
 		gcmovestartaddr = msgdata[2];
-		gcstopblock = msgdata[3];
+		gcblock2fill = msgdata[3];
 		break;
 	}
 	
@@ -2121,6 +2151,58 @@ backtrackinc:
 
 int containstag(struct ___Object___ *ptr, 
 		            struct ___TagDescriptor___ *tag);
+
+#ifndef MULTICORE_GC
+void releasewritelock_r(void * lock, void * redirectlock) {
+  int targetcore = 0;
+  int reallock = (int)lock;
+  targetcore = (reallock >> 5) % BAMBOO_TOTALCORE;
+
+#ifdef DEBUG
+  BAMBOO_DEBUGPRINT(0xe671);
+  BAMBOO_DEBUGPRINT_REG((int)lock);
+  BAMBOO_DEBUGPRINT_REG(reallock);
+  BAMBOO_DEBUGPRINT_REG(targetcore);
+#endif
+
+  if(targetcore == BAMBOO_NUM_OF_CORE) {
+	BAMBOO_START_CRITICAL_SECTION_LOCK();
+#ifdef DEBUG
+	BAMBOO_DEBUGPRINT(0xf001);
+#endif
+    // reside on this core
+    if(!RuntimeHashcontainskey(locktbl, reallock)) {
+      // no locks for this object, something is wrong
+      BAMBOO_EXIT(0xa01d);
+    } else {
+      int rwlock_obj = 0;
+	  struct LockValue * lockvalue = NULL;
+#ifdef DEBUG
+      BAMBOO_DEBUGPRINT(0xe672);
+#endif
+      RuntimeHashget(locktbl, reallock, &rwlock_obj);
+	  lockvalue = (struct LockValue *)rwlock_obj;
+#ifdef DEBUG
+      BAMBOO_DEBUGPRINT_REG(lockvalue->value);
+#endif
+      lockvalue->value++;
+	  lockvalue->redirectlock = (int)redirectlock;
+#ifdef DEBUG
+      BAMBOO_DEBUGPRINT_REG(lockvalue->value);
+#endif
+    }
+	BAMBOO_CLOSE_CRITICAL_SECTION_LOCK();
+#ifdef DEBUG
+	BAMBOO_DEBUGPRINT(0xf000);
+#endif
+    return;
+  } else {
+	  // send lock release with redirect info msg
+	  // for 32 bit machine, the size is always 4 words
+	  send_msg_4(targetcore, REDIRECTRELEASE, 1, (int)lock, (int)redirectlock);
+  }
+}
+#endif
 
 void executetasks() {
   void * taskpointerarray[MAXTASKPARAMS+OFFSET];
@@ -2424,18 +2506,22 @@ execute:
 		  BAMBOO_DEBUGPRINT(0xe999);
 #endif
 	    for(i = 0; i < locklen; ++i) {
-		  void * ptr = (void *)(locks[i].redirectlock);
+				void * ptr = (void *)(locks[i].redirectlock);
 	      int * lock = (int *)(locks[i].value);
 #ifdef DEBUG
 		  BAMBOO_DEBUGPRINT_REG((int)ptr);
 		  BAMBOO_DEBUGPRINT_REG((int)lock);
 #endif
+#ifndef MULTICORE_GC
 		  if(RuntimeHashcontainskey(lockRedirectTbl, (int)lock)) {
 			  int redirectlock;
 			  RuntimeHashget(lockRedirectTbl, (int)lock, &redirectlock);
 			  RuntimeHashremovekey(lockRedirectTbl, (int)lock);
 			  releasewritelock_r(lock, (int *)redirectlock);
 		  } else {
+#else
+				{
+#endif
 		releasewritelock(ptr);
 		  }
 	    }

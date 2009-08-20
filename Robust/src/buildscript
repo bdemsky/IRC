@@ -40,6 +40,7 @@ echo "-tilera generate tilera version binary (should be used together with -mult
 echo "-tileraconfig config tilera simulator/pci as nxm (should be used together with -tilera)"
 echo "-raw generate raw version binary (should be used together with -multicore)"
 echo "-rawconfig config raw simulator as 4xn (should be used together with -raw)"
+echo "-multcoregc enable garbage collection in multicore version"
 echo -threadsimulate generate multi-thread simulate version binary
 echo -optional enable optional
 echo -debug generate debug symbols
@@ -83,6 +84,7 @@ RECOVERFLAG=false
 MLP_ON=false
 MLPDEBUG=false
 MULTICOREFLAG=false
+MULTICOREGCFLAG=false
 RAWFLAG=false
 TILERAFLAG=false
 TILERACONFIG=''
@@ -237,6 +239,10 @@ elif [[ $1 = '-multicore' ]]
 then
 MULTICOREFLAG=true
 JAVAOPTS="$JAVAOPTS -multicore"
+elif [[ $1 = '-multicoregc' ]]
+then
+MULTICOREGCFLAG=true
+JAVAOPTS="$JAVAOPTS -multicoregc"
 elif [[ $1 = '-numcore' ]]
 then
 JAVAOPTS="$JAVAOPTS -numcore $2"
@@ -604,10 +610,18 @@ then #INTERRUPT version
 TILERACFLAGS="${TILERACFLAGS} -DINTERRUPT"
 fi #INTERRUPT version
 
+if $MULTICOREGCFLAG
+then #MULTICORE_GC version
+TILERACFLAGS="${TILERACFLAGS} -DMULTICORE_GC"
+fi #MULTICORE_GC version
+
 cp $ROBUSTROOT/Tilera/Runtime/$MAKEFILE ./Makefile
 cp $ROBUSTROOT/Tilera/Runtime/$SIMHVC ./sim.hvc
 cp $ROBUSTROOT/Tilera/Runtime/$PCIHVC ./pci.hvc
 cp $ROBUSTROOT/Tilera/Runtime/bamboo-vmlinux-pci.hvc ./bamboo-vmlinux-pci.hvc
+cp ../Tilera/Runtime/*.c ./
+cp ../Tilera/Runtime/*.h ./
+cp ../Tilera/lib/* ./
 cp ../Runtime/multicoretask.c ./
 cp ../Runtime/multicoreruntime.c ./
 cp ../Runtime/Queue.c ./
@@ -619,6 +633,7 @@ cp ../Runtime/SimpleHash.c ./
 cp ../Runtime/ObjectHash.c ./
 cp ../Runtime/socket.c ./
 cp ../Runtime/mem.c ./
+cp ../Runtime/multicoregarbage.c ./
 cp ../Runtime/GenericHashtable.h ./
 cp ../Runtime/mem.h ./
 cp ../Runtime/multicoreruntime.h ./
@@ -627,9 +642,7 @@ cp ../Runtime/ObjectHash.h ./
 cp ../Runtime/Queue.h ./
 cp ../Runtime/runtime.h ./
 cp ../Runtime/SimpleHash.h ./
-cp ../Tilera/Runtime/*.c ./
-cp ../Tilera/Runtime/*.h ./
-cp ../Tilera/lib/* ./
+cp ../Runtime/multicoregarbage.h ./
 cp ../tmpbuilddirectory/*.c ./
 cp ../tmpbuilddirectory/*.h ./
 

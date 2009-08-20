@@ -250,7 +250,18 @@ inline void transferMarkResults() {
 		BAMBOO_DEBUGPRINT(0xffff);
 #endif
 	} // if(isMsgSending)
-} // void transferMarkResults() 
+} // void transferMarkResults()
+
+inline bool gc_checkCoreStatus() {
+	bool allStall = true;
+	for(int i = 0; i < NUMCORES; ++i) {
+		if(gccorestatus[i] != 0) {
+			allStall = false;
+			break;
+		} // if(gccorestatus[i] != 0)
+	} // for(i = 0; i < NUMCORES; ++i)
+	return allStall;
+}
 
 inline void checkMarkStatue() {
 	if((!waitconfirm) || 
@@ -260,13 +271,7 @@ inline void checkMarkStatue() {
 		gcnumsendobjs[BAMBOO_NUM_OF_CORE] = gcself_numsendobjs;
 		gcnumreceiveobjs[BAMBOO_NUM_OF_CORE] = gcself_numreceiveobjs;
 		// check the status of all cores
-		bool allStall = true;
-		for(i = 0; i < NUMCORES; ++i) {
-			if(gccorestatus[i] != 0) {
-				allStall = false;
-				break;
-			} // if(gccorestatus[i] != 0)
-		} // for(i = 0; i < NUMCORES; ++i)
+		bool allStall = gc_checkCoreStatus();
 		if(allStall) {
 			// check if the sum of send objs and receive obj are the same
 			// yes->check if the info is the latest; no->go on executing
@@ -344,14 +349,58 @@ inline bool preGC() {
 	} // if((!waitconfirm) || 
 } // bool preGC()
 
+inline void initGC() {
+	for(i = 0; i < NUMCORES; ++i) {
+		gccorestatus[i] = 1;
+		gcnumsendobjs[i] = 0; 
+		gcnumreceiveobjs[i] = 0;
+		gcloads[i] = 0;
+		gcrequiredmems[i] = 0;
+		gcfilledblocks[i] = 0;
+		gcstopblock[i] = 0;
+	} // for(i = 0; i < NUMCORES; ++i)
+	gcself_numsendobjs = 0;
+	gcself_numreceiveobjs = 0;
+	gcmarkedptrbound = 0;
+	gcobj2map = 0;
+	gcmappedobj = 0;
+	gcismapped = false;
+	gcnumlobjs = 0;
+	gcheaptop = 0;
+	gctopcore = 0;
+	gcheapdirection = 1;
+	gcreservedsb = 0;
+	gcmovestartaddr = 0;
+	gctomove = false;
+	gcblock2fill = 0;
+	gcmovepending = 0;
+
+	// initialize queue
+	if (gchead==NULL) {
+		gcheadindex=0;
+		gctailindex=0;
+		gctailindex2 = 0;
+		gchead=gctail=gctail2=malloc(sizeof(struct pointerblock));
+	}
+	// initialize the large obj queues
+	if (gclobjhead==NULL) {
+		gclobjheadindex=0;
+		gclobjtailindex=0;
+		gclobjtailindex2 = 0;
+		gclobjhead=gclobjtail=gclobjtail2=
+			malloc(sizeof(struct lobjpointerblock));
+	}
+} // void initGC()
+
 // compute load balance for all cores
 inline int loadbalance(int heaptop) {
 	// compute load balance
 	int i;
 
 	// get the total loads
-	gcloads[0]+=BAMBOO_SMEM_SIZE*gcreservedsb;//reserved sblocks for sbstartbl
-	int tloads = gcloads[0];
+	gcloads[STARTUPCORE]+=
+		BAMBOO_SMEM_SIZE*gcreservedsb;//reserved sblocks for sbstartbl
+	int tloads = gcloads[STARTUPCORE];
 	for(i = 1; i < NUMCORES; i++) {
 		tloads += gcloads[i];
 	}
@@ -409,8 +458,22 @@ inline bool cacheLObjs() {
 
 inline void moveLObjs() {
 	// find current heap top
+	// flush all gcloads to indicate the real heap top on one core
+	// previous it represents the next available ptr on a core
+	if((gcloads[0] > BAMBOO_BASE_VA+BAMBOO_SMEM_SIZE_L) 
+			&& (gcloads[0] % BAMBOO_SMEM_SIZE == 0)) {
+		// edge of a block, check if this is exactly the heaptop
+		BASEPTR(0, gcfilledblocks[0]-1, &gcloads[0]);
+		gcloads[0]+=(gcfilledblocks[0]>1?BAMBOO_SMEM_SIZE:BAMBOO_SMEM_SIZE_L);
+	}
 	int tmpheaptop = gcloads[0];
 	for(int i = 1; i < NUMCORES; i++) {
+		if((gcloads[i] > BAMBOO_BASE_VA+BAMBOO_SMEM_SIZE_L) 
+				&& (gcloads[i] % BAMBOO_SMEM_SIZE == 0)) {
+			// edge of a block, check if this is exactly the heaptop
+			BASEPTR(0, gcfilledblocks[i]-1, &gcloads[i]);
+			gcloads[i]+=(gcfilledblocks[i]>1?BAMBOO_SMEM_SIZE:BAMBOO_SMEM_SIZE_L);
+		}
 		if(tmpheaptop < gcloads[i]) {
 			tmpheaptop = gcloads[i];
 		}
@@ -470,7 +533,7 @@ inline void moveLObjs() {
 
 inline void updateFreeMemList() {
 	int i = 0;
-	int tmptop = gcloads[0];
+	int tmptop = gcloads[0]; 
 	struct freeMemItem * tochange = bamboo_free_mem_list->head;
 	if(tochange == NULL) {
 		bamboo_free_mem_list->head = tochange = 
@@ -506,137 +569,6 @@ inline void updateFreeMemList() {
 	memset(tochange->ptr, '\0', tochange->size);
 	bamboo_free_mem_list->tail = tochange;
 } // void updateFreeMemList()
-
-inline void gc(struct garbagelist * stackptr) {
-	// check if do gc
-	if(!gcflag) {
-		return;
-	}
-
-	// core coordinator routine
-	if(0 == BAMBOO_NUM_OF_CORE) {
-		if(!preGC()) {
-			// not ready to do gc
-			gcflag = true;
-			return;
-		}
-
-		gcprocessing = true;
-		int i = 0;
-		waitconfirm = false;
-		waitconfirm = 0;
-		gcphase = MARKPHASE;
-		for(i = 1; i < NUMCORES - 1; i++) {
-			// send GC start messages to all cores
-			send_msg_1(i, GCSTART);
-		}
-		bool isfirst = true;
-		bool allStall = false;
-
-		// mark phase
-		while(MARKPHASE == gcphase) {
-			mark(isfirst, stackptr);
-			if(isfirst) {
-				isfirst = false;
-			}
-
-			// check gcstatus
-			checkMarkStatue(); 
-		}  // while(MARKPHASE == gcphase)
-		// send msgs to all cores requiring large objs info
-		numconfirm = NUMCORES - 1;
-		for(i = 1; i < NUMCORES; ++i) {
-			send_msg_1(i, GCLOBJREQUEST);
-		}	
-		while(numconfirm != 0) {} // wait for responses
-		if(!cacheLObjs()) {
-			// no enough space to cache large objs
-			BAMBOO_EXIT(0xd001);
-		}
-		int numpbc = loadbalance();
-
-		if((gcheapdirection) && (0 <= gctopcore)
-				|| ((!gcheapdirection) && (0 == gctopcore))) {
-			gcstopblock = numpbc + 1;
-		} else {
-			gcstopblock = numpbc;
-		}
-		for(i = 1; i < NUMCORES; ++i) {
-			//send start compact messages to all cores
-			if((gcheapdirection) && (i <= gctopcore)
-					|| ((!gcheapdirection) && (i >= gctopcore))) {
-					send_msg_2(i, GCSTARTCOMPACT, numpbc+1); 
-			} else {
-					send_msg_2(i, GCSTARTCOMPACT, numpbc);
-			}
-		}
-
-		// compact phase
-		compact();
-		gccorestatus[BAMBOO_NUM_OF_CORE] = 0;
-		while(COMPACTPHASE == gcphase) {
-			// check the status of all cores
-			allStall = true;
-			for(i = 0; i < NUMCORES; ++i) {
-				if(gccorestatus[i] != 0) {
-					allStall = false;
-					break;
-				}
-			}	
-			if(allStall) {
-				// restore the gcstatus of all cores
-				for(i = 0; i < NUMCORES; ++i) {
-					gccorestatus[i] = 1;
-				}
-				break;
-			}
-		} // while(COMPACTPHASE == gcphase)
-		// move largeObjs
-		moveLObjs();
-
-		gcphase = FLUSHPHASE;
-		for(i = 1; i < NUMCORES; ++i) {
-			// send start flush messages to all cores
-			send_msg_1(i, GCSTARTFLUSH);
-		}
-
-		// flush phase
-		flush();
-		gccorestatus[BAMBOO_NUM_OF_CORE] = 0;
-		while(FLUSHPHASE == gcphase) {
-			// check the status of all cores
-			allStall = true;
-			for(i = 0; i < NUMCORES; ++i) {
-				if(gccorestatus[i] != 0) {
-					allStall = false;
-					break;
-				}
-			}	
-			if(allStall) {
-				break;
-			}
-		} // while(FLUSHPHASE == gcphase)
-		gcphase = FINISHPHASE;
-		for(i = 1; i < NUMCORES; ++i) {
-			// send gc finish messages to all cores
-			send_msg_1(i, GCFINISH);
-		}
-
-		// need to create free memory list  
-		updateFreeMemList();
-	} else {
-		gcprocessing = true;
-		gc_collect(stackptr);
-	}
-
-	// invalidate all shared mem pointers
-	bamboo_cur_msp = NULL;
-	bamboo_smem_size = 0;
-
-	gcflag = false;
-	gcprocessing = false;
-
-} // void gc(struct garbagelist * stackptr)
 
 // enqueue root objs
 inline void tomark(struct garbagelist * stackptr) {
@@ -789,6 +721,126 @@ inline void mark(bool isfirst,
 		}
 	} // while(MARKPHASE == gcphase)
 } // mark()
+
+inline void compact2Heaptop() {
+	// no cores with spare mem and some cores are blocked with pending move
+	// find the current heap top and make them move to the heap top
+	int p;
+	if(gcheapdirection) {
+		gctopcore++;
+	} else {
+		gctopcore--;
+	}
+	int numblocks = gcfilledblocks[gctopcore];
+	BASEPTR(gctopcore, numblocks, &p);
+	int b;
+	BLOCKINDEX(p, &b);
+	int remain = b<NUMCORES ? BAMBOO_SMEM_SIZE_L : BAMBOO_SMEM_SIZE;
+	for(int i = 0; i < NUMCORES; i++) {
+		if((gccorestatus[i] != 0) && (gcrequiredmems[i] > 0)) {
+			int memneed = gcrequiredmems[i] + BAMBOO_CACHE_LINE_SIZE;
+			if(STARTUPCORE == i) {
+				gctomove = true;
+				gcmovestartaddr = p;
+				gcdstcore = gctopcore;
+				gcblock2fill = numblocks + 1;
+			} else {
+				send_msg_4(i, GCMOVESTART, gctopcore, p, numblocks + 1);
+			}
+			if(memneed < remain) {
+				p += memneed;
+				gcrequiredmems[i] = 0;
+				gcmovepending--;
+				gcloads[gctopcore] += memneed;
+			} else {
+				// next available block
+				p += remain;
+				gcfilledblocks[gctopcore] += 1;
+				int newbase = 0;
+				BASEPTR(gctopcore, gcfilledblocks[gctopcore], &newbase);
+				gcloads[gctopcore] = newbase;
+				gcrequiredmems[i] -= remain - BAMBOO_CACHE_LINE_SIZE;
+				gcstopblock[gctopcore]++;
+				if(gcheapdirection) {
+					gctopcore++;
+				} else {
+					gctopcore--;
+				}
+				numblocks = gcstopblock[gctopcore];
+				BASEPTR(gctopcore, numblocks, &p);
+				BLOCKINDEX(p, &p);
+				remain = b<NUMCORES ? BAMBOO_SMEM_SIZE_L : BAMBOO_SMEM_SIZE;
+			} // if(memneed < remain)
+		} // if((gccorestatus[i] != 0) && (gcrequiredmems[i] > 0))
+	} // for(i = 0; i < NUMCORES; i++)
+} // void compact2Heaptop()
+
+inline void resolvePendingMoveRequest() {
+	int i;
+	int j;
+	bool nosparemem = true;
+	bool haspending = false;
+	bool hasrunning = false;
+	bool noblock = false;
+	int dstcore = 0;
+	int sourcecore = 0;
+	for(i = j = 0; (i < NUMCORES) && (j < NUMCORES);) {
+		if(nosparemem) {
+			// check if there are cores with spare mem
+			if(gccorestatus[i] == 0) {
+				// finished working, check if it still have spare mem
+				if(gcfilledblocks[i] < gcstopblock[i]) {
+					// still have spare mem
+					nosparemem = false;
+					dstcore = i;
+				} else {
+					i++;
+				} // if(gcfilledblocks[i] < gcstopblock[i]) else ...
+			}
+		} // if(nosparemem)
+		if(!haspending) {
+			if(gccorestatus[j] != 0) {
+				// not finished, check if it has pending move requests
+				if((gcfilledblocks[j]==gcstopblock[j])&&(gcrequiredmems[j]>0)) {
+					sourcecore = j;
+					haspending = true;
+				} else {
+					j++;
+					hasrunning = true;
+				} // if((gcfilledblocks[i] == gcstopblock[i])...) else ...
+			} // if(gccorestatus[i] == 0) else ...
+		} // if(!haspending)
+		if(!nosparemem && haspending) {
+			// find match
+			int tomove = 0;
+			int startaddr = 0;
+			gcrequiredmems[dstcore] = assignSpareMem(sourcecore, 
+					                                     gcrequiredmems[dstcore], 
+																							 &tomove, 
+																							 &startaddr);
+			if(STARTUPCORE == dstcore) {
+				gcdstcore = sourcecore;
+				gctomove = true;
+				gcmovestartaddr = startaddr;
+				gcblock2fill = tomove;
+			} else {
+				send_msg_4(dstcore, GCMOVESTART, sourcecore, startaddr, tomove);
+			}
+			if(gcrequiredmems[dstcore] == 0) {
+				gcmovepending--;
+			}
+			nosparemem = true;
+			haspending = false;
+			noblock = true;
+		} 
+	} // for(i = 0; i < NUMCORES; i++)
+
+	if(!hasrunning && !noblock) {
+		gcphase = SUBTLECOMPACTPHASE;
+		compact2Heaptop();
+	}
+
+} // void resovePendingMoveRequest()
 
 struct moveHelper {
 	int numblocks; // block num for heap
@@ -951,99 +1003,110 @@ innermoveobj:
 	return false;
 } //bool moveobj(struct moveHelper* orig,struct moveHelper* to,int* endaddr)
 
+inline int assignSpareMem(int sourcecore,
+        		               int * requiredmem,
+													 int * tomove,
+													 int * startaddr) {
+	int b = 0;
+	BLOCKINDEX(gcloads[sourcecore], &b);
+	int boundptr = b<NUMCORES?(b+1)*BAMBOO_SMEM_SIZE_L
+		:BAMBOO_LARGE_SMEM_BOUND+(b-NUMCORES+1)*BAMBOO_SMEM_SIZE;
+	int remain = boundptr - gcloads[sourcecore];
+	int memneed = requiredmem + BAMBOO_CACHE_LINE_SIZE;
+	*startaddr = gcloads[sourcecore];
+	*tomove = gcfilledblocks[sourcecore] + 1;
+	if(memneed < remain) {
+		gcloads[sourcecore] += memneed;
+		return 0;
+	} else {
+		// next available block
+		gcfilledblocks[sourcecore] += 1;
+		int newbase = 0;
+		BASEPTR(sourcecore, gcfilledblocks[sourcecore], &newbase);
+		gcloads[sourcecore] = newbase;
+		return requiredmem-remain;
+	}
+}
+
 inline bool findSpareMem(int * startaddr,
 		                     int * tomove,
-												 int requiredmem) {
+												 int * dstcore,
+												 int requiredmem,
+												 int requiredcore) {
 	for(int k = 0; k < NUMCORES; k++) {
-		if((gccorestatus[k] == 0) && (gcnumblocks[k] < gcstopblock)) {
+		if((gccorestatus[k] == 0) && (gcfilledblocks[k] < gcstopblock[k])) {
 			// check if this stopped core has enough mem
-			int b = 0;
-			BLOCKINDEX(gcloads[k], &b);
-			int boundptr = b<NUMCORES?(b+1)*BAMBOO_SMEM_SIZE_L
-				:BAMBOO_LARGE_SMEM_BOUND+(b-NUMCORES+1)*BAMBOO_SMEM_SIZE;
-			int remain = boundptr - gcloads[k];
-			*tomove = requiredmem + BAMBOO_CACHE_LINE_SIZE;
-			*startaddr = gcloads[k];
-			if(*tomove < remain) {
-				gcloads[k] += *tomove;
-			} else {
-				// next available block
-				gcnumblocks[k] += 1;
-				int newbase = 0;
-				BASEPTR(k, gcnumblocks[k], &newbase);
-				gcloads[k] = newbase;
-				*tomove = remain;
-			}
+			assignSpareMem(k, requiredmem, tomove, startaddr);
+			*dstcore = k;
 			return true;
 		}
 	}
-	// TODO if can not find spare mem right now, hold the request
+	// if can not find spare mem right now, hold the request
+	gcrequiredmems[requiredcore] = requiredmem;
+	gcmovepending++;
 	return false;
-}
+} //bool findSpareMem(int* startaddr,int* tomove,int mem,int core)
 
-inline void compact() {
-	if(COMPACTPHASE != gcphase) {
-		BAMBOO_EXIT(0xb003);
-	}
-
-	INTPTR heaptopptr = 0;
-
-	// initialize pointers for comapcting
-	struct moveHelper * orig = 
-		(struct moveHelper *)RUNMALLOC(sizeof(struct moveHelper));
-	struct moveHelper * to = 
-		(struct moveHelper *)RUNMALLOC(sizeof(struct moveHelper));
-	initOrig_Dst(orig, to);
-	
+inline bool compacthelper(struct moveHelper * orig,
+		                      struct moveHelper * to,
+													int * filledblocks,
+													int * heaptopptr,
+													bool * localcompact) {
 	// scan over all objs in this block, compact the marked objs 
 	// loop stop when finishing either scanning all active objs or 
 	// fulfilled the gcstopblock
 innercompact:
 	do {
-		bool stop = moveobj(orig, to, gcstopblock);
+		bool stop = moveobj(orig, to, gcblock2fill);
 		if(stop) {
 			break;
 		}
 	} while(orig->ptr < gcmarkedptrbound); 
 	// fill the header of this block
 	(*((int*)(to->base))) = to->offset;
-	heaptopptr = to->ptr;
+	if(*localcompact) {
+		*heaptopptr = to->ptr;
+		*filledblocks = to->numblocks;
+	}
 
 	// send msgs to core coordinator indicating that the compact is finishing
 	// send compact finish message to core coordinator
 	if(STARTUPCORE == BAMBOO_NUM_OF_CORE) {
-		gcnumblocks[0] = to->numblocks;
+		gcfilledblocks[BAMBOO_NUM_OF_CORE] = *filledblocks;
+		gcloads[BAMBOO_NUM_OF_CORE] = *heaptopptr;
 		if(orig->ptr < gcmarkedptrbound) {
 			// ask for more mem
 			gctomove = false;
-			if(findSpareMem(&gcmovestartaddr, &gcstopblock, curr_heaptop)) {
+			if(findSpareMem(&gcmovestartaddr, &gcblock2fill, &gcdstcore, 
+						          curr_heaptop, BAMBOO_NUM_OF_CORE)) {
 				gctomove = true;
 			} else {
-				// TODO hold the request
+				return false; 
 			}
 		} else {
 			gccorestatus[BAMBOO_NUM_OF_CORE] = 0;
-			gcloads[BAMBOO_NUM_OF_CORE] = to->ptr;
+			return true;
 		}
 	} else {
 		if(orig->ptr < gcmarkedptrbound) {
 			// ask for more mem
 			gctomove = false;
 			send_msg_5(STARTUPCORE, GCFINISHCOMPACT, BAMBOO_NUM_OF_CORE, 
-					       to->numblocks, 0, curr_heaptop);
+					       *filledblocks, *heaptopptr, curr_heaptop);
 		} else {
 			// finish compacting
 			send_msg_5(STARTUPCORE, GCFINISHCOMPACT, BAMBOO_NUM_OF_CORE,
-					       to->numblocks, 1, to->ptr);
+					       *filledblocks, *heaptopptr, 0);
 		}
 	} // if(STARTUPCORE == BAMBOO_NUM_OF_CORE)
 
 	if(orig->ptr < gcmarkedptrbound) {
 		// still have unpacked obj
 		while(!gctomove) {};
+		gctomove = false;
 
 		to->ptr = gcmovestartaddr;
-		to->numblocks = gcstopblock - 1;
+		to->numblocks = gcblock2fill - 1;
 		to->bound = (to->numblocks==0)?
 			BAMBOO_SMEM_SIZE_L:
 			BAMBOO_SMEM_SIZE_L+BAMBOO_SMEM_SIZE*to->numblocks;
@@ -1055,9 +1118,33 @@ innercompact:
 		to->offset = BAMBOO_CACHE_LINE_SIZE;
 		to->ptr += to->offset; // for header
 		to->top += to->offset;
+		if(gcdstcore == BAMBOO_NUM_OF_CORE) {
+			*localcompact = true;
+		} else {
+			*localcompact = false;
+		}
 		goto innercompact;
 	}
-	// TODO finish?
+	return true;
+} // void compacthelper()
+
+inline void compact() {
+	if(COMPACTPHASE != gcphase) {
+		BAMBOO_EXIT(0xb003);
+	}
+
+	// initialize pointers for comapcting
+	struct moveHelper * orig = 
+		(struct moveHelper *)RUNMALLOC(sizeof(struct moveHelper));
+	struct moveHelper * to = 
+		(struct moveHelper *)RUNMALLOC(sizeof(struct moveHelper));
+
+	initOrig_Dst(orig, to);
+	
+	int filledblocks = 0;
+	INTPTR heaptopptr = 0;
+	bool localcompact = true;
+	compacthelper(orig, to, &filledblocks, &heaptopptr, &localcompact);
 
 	RUNFREE(orig);
 	RUNFREE(to);
@@ -1134,5 +1221,184 @@ inline void gc_collect(struct garbagelist * stackptr) {
 
 	while(FINISHPHASE != gcphase) {}
 } // void gc_collect(struct garbagelist * stackptr)
+
+inline void gc(struct garbagelist * stackptr) {
+	// check if do gc
+	if(!gcflag) {
+		return;
+	}
+
+	// core coordinator routine
+	if(0 == BAMBOO_NUM_OF_CORE) {
+		if(!preGC()) {
+			// not ready to do gc
+			gcflag = true;
+			return;
+		}
+
+		initGC();
+
+		gcprocessing = true;
+		int i = 0;
+		waitconfirm = false;
+		waitconfirm = 0;
+		gcphase = MARKPHASE;
+		for(i = 1; i < NUMCORES - 1; i++) {
+			// send GC start messages to all cores
+			send_msg_1(i, GCSTART);
+		}
+		bool isfirst = true;
+		bool allStall = false;
+
+		// mark phase
+		while(MARKPHASE == gcphase) {
+			mark(isfirst, stackptr);
+			if(isfirst) {
+				isfirst = false;
+			}
+
+			// check gcstatus
+			checkMarkStatue(); 
+		}  // while(MARKPHASE == gcphase)
+		// send msgs to all cores requiring large objs info
+		numconfirm = NUMCORES - 1;
+		for(i = 1; i < NUMCORES; ++i) {
+			send_msg_1(i, GCLOBJREQUEST);
+		}	
+		while(numconfirm != 0) {} // wait for responses
+		// cache all large objs
+		if(!cacheLObjs()) {
+			// no enough space to cache large objs
+			BAMBOO_EXIT(0xd001);
+		}
+		// predict number of blocks to fill for each core
+		int numpbc = loadbalance();
+		for(i = 0; i < NUMCORES; ++i) {
+			//send start compact messages to all cores
+			if((gcheapdirection) && (i < gctopcore)
+					|| ((!gcheapdirection) && (i > gctopcore))) {
+				gcstopblock[i] =numpbc + 1;
+				if(i != STARTUPCORE) {
+					send_msg_2(i, GCSTARTCOMPACT, numpbc+1); 
+				}
+			} else {
+				gcstopblock[i] = numpbc;
+				if(i != STARTUPCORE) {
+					send_msg_2(i, GCSTARTCOMPACT, numpbc);
+				}
+			}
+			// init some data strutures for compact phase
+			gcloads[i] = 0;
+			gcfilledblocks[i] = 0;
+			gcrequiredmems[i] = 0;
+		}
+
+		// compact phase
+		bool finalcompact = false;
+		// initialize pointers for comapcting
+		struct moveHelper * orig = 
+			(struct moveHelper *)RUNMALLOC(sizeof(struct moveHelper));
+		struct moveHelper * to = 
+			(struct moveHelper *)RUNMALLOC(sizeof(struct moveHelper));
+		initOrig_Dst(orig, to);
+		int filledblocks = 0;
+		INTPTR heaptopptr = 0;
+		bool finishcompact = false;
+		bool iscontinue = true;
+		while((COMPACTPHASE == gcphase) || (SUBTLECOMPACTPHASE == gcphase)) {
+			if((!finishcompact) && iscontinue) {
+				finishcompact = compacthelper(orig, to, &filledblocks, 
+						                          &heaptopptr, &localcompact);
+			}
+
+			if(gc_checkCoreStatus()) {
+				// all cores have finished compacting
+				// restore the gcstatus of all cores
+				for(i = 0; i < NUMCORES; ++i) {
+					gccorestatus[i] = 1;
+				}
+				break;
+			} else {
+				// check if there are spare mem for pending move requires
+				if(COMPACTPHASE == gcphase) {
+					resolvePendingMoveRequest();
+				} else {
+					compact2Heaptop();
+				}
+			} // if(gc_checkCoreStatus()) else ...
+
+			if(gctomove) {
+				to->ptr = gcmovestartaddr;
+				to->numblocks = gcblock2fill - 1;
+				to->bound = (to->numblocks==0)?
+					BAMBOO_SMEM_SIZE_L:
+					BAMBOO_SMEM_SIZE_L+BAMBOO_SMEM_SIZE*to->numblocks;
+				BASEPTR(BAMBOO_NUM_OF_CORE, to->numblocks, &(to->base));
+				to->offset = to->ptr - to->base;
+				to->top = (to->numblocks==0)?
+					(to->offset):(to->bound-BAMBOO_SMEM_SIZE+to->offset);
+				to->base = to->ptr;
+				to->offset = BAMBOO_CACHE_LINE_SIZE;
+				to->ptr += to->offset; // for header
+				to->top += to->offset;
+				if(gcdstcore == BAMBOO_NUM_OF_CORE) {
+					*localcompact = true;
+				} else {
+					*localcompact = false;
+				}
+				gctomove = false;
+				iscontinue = true;
+			} else if(!finishcompact) {
+				// still pending
+				iscontinue = false;
+			} // if(gctomove)
+
+		} // while(COMPACTPHASE == gcphase) 
+		// move largeObjs
+		moveLObjs();
+
+		gcphase = FLUSHPHASE;
+		for(i = 1; i < NUMCORES; ++i) {
+			// send start flush messages to all cores
+			send_msg_1(i, GCSTARTFLUSH);
+		}
+
+		// flush phase
+		flush();
+		gccorestatus[BAMBOO_NUM_OF_CORE] = 0;
+		while(FLUSHPHASE == gcphase) {
+			// check the status of all cores
+			allStall = true;
+			for(i = 0; i < NUMCORES; ++i) {
+				if(gccorestatus[i] != 0) {
+					allStall = false;
+					break;
+				}
+			}	
+			if(allStall) {
+				break;
+			}
+		} // while(FLUSHPHASE == gcphase)
+		gcphase = FINISHPHASE;
+		for(i = 1; i < NUMCORES; ++i) {
+			// send gc finish messages to all cores
+			send_msg_1(i, GCFINISH);
+		}
+
+		// need to create free memory list  
+		updateFreeMemList();
+	} else {
+		gcprocessing = true;
+		gc_collect(stackptr);
+	}
+
+	// invalidate all shared mem pointers
+	bamboo_cur_msp = NULL;
+	bamboo_smem_size = 0;
+
+	gcflag = false;
+	gcprocessing = false;
+
+} // void gc(struct garbagelist * stackptr)
 
 #endif

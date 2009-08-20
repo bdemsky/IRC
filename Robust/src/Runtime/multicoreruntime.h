@@ -130,7 +130,7 @@ volatile bool isMsgSending;
  *        20 + orig large obj ptr + new large obj ptr 
 *            (size is always 3 * sizeof(int))
  */
-enum MSGTYPE {
+typedef enum {
 	TRANSOBJ = 0x0,  // 0x0
 	TRANSTALL,       // 0x1
 	LOCKREQUEST,     // 0x2
@@ -167,7 +167,7 @@ enum MSGTYPE {
 	GCLOBJMAPPING,   // 0x20
 #endif
 	MSGEND
-};
+} MSGTYPE;
 
 // data structures of status for termination
 int corestatus[NUMCORES]; // records status of each core
@@ -202,6 +202,12 @@ bool lockflag;
 struct Queue objqueue;
 
 // data structures for shared memory allocation
+#define BAMBOO_NUM_PAGES 1024 * 512
+#define BAMBOO_PAGE_SIZE 4096
+#define BAMBOO_SHARED_MEM_SIZE BAMBOO_PAGE_SIZE * BAMBOO_NUM_PAGES
+#define BAMBOO_BASE_VA 0xd000000
+#define BAMBOO_SMEM_SIZE 16 * BAMBOO_PAGE_SIZE
+
 #ifdef MULTICORE_GC
 #include "multicoregarbage.h"
 
@@ -221,15 +227,9 @@ struct freeMemList * bamboo_free_mem_list;
 INTPTR bamboo_cur_msp;
 int bamboo_smem_size;
 #else
-#define BAMBOO_NUM_PAGES 1024 * 512
-#define BAMBOO_PAGE_SIZE 4096
-#define BAMBOO_SHARED_MEM_SIZE BAMBOO_PAGE_SIZE * BAMBOO_PAGE_SIZE
-#define BAMBOO_BASE_VA 0xd000000
-#define BAMBOO_SMEM_SIZE 16 * BAMBOO_PAGE_SIZE
-
 bool smemflag;
 mspace bamboo_free_msp;
-mspace bamboo_cur_msp;
+INTPTR bamboo_cur_msp;
 int bamboo_smem_size;
 #endif
 
@@ -285,6 +285,7 @@ inline void initialization(void) __attribute__((always_inline));
 inline void initCommunication(void) __attribute__((always_inline));
 inline void fakeExecution(void) __attribute__((always_inline));
 inline void terminate(void) __attribute__((always_inline));
+inline void initlock(struct ___Object___ * v) __attribute__((always_inline));
 
 // lock related functions
 bool getreadlock(void* ptr);
@@ -293,6 +294,9 @@ bool getwritelock(void* ptr);
 void releasewritelock(void* ptr);
 bool getwritelock_I(void* ptr);
 void releasewritelock_I(void * ptr);
+#ifndef MULTICORE_GC
+void releasewritelock_r(void * lock, void * redirectlock);
+#endif
 /* this function is to process lock requests. 
  * can only be invoked in receiveObject() */
 // if return -1: the lock request is redirected
@@ -303,11 +307,11 @@ inline int processlockrequest(int locktype,
 															int obj, 
 															int requestcore, 
 															int rootrequestcore, 
-															bool cache) __attribute_((always_inline));
+															bool cache) __attribute__((always_inline));
 inline void processlockrelease(int locktype, 
 		                           int lock, 
 															 int redirectlock, 
-															 bool isredirect) __attribute_((always_inline));
+															 bool isredirect) __attribute__((always_inline));
 
 // msg related functions
 inline void send_hanging_msg() __attribute__((always_inline));

@@ -194,6 +194,7 @@ void * allocate_new(void * ptr, int type) {
   v->type=type;
   v->version = 0;
   v->lock = NULL;
+	initlock(v);
   return v;
 }
 
@@ -208,6 +209,7 @@ struct ArrayObject * allocate_newarray(void * ptr, int type, int length) {
     return NULL;
   }
   v->___length___=length;
+	initlock(v);
   return v;
 }
 
@@ -218,6 +220,7 @@ void * allocate_new(int type) {
   v->version = 0;
   //v->numlocks = 0;
   v->lock = NULL;
+	initlock(v);
   return v;
 }
 
@@ -230,6 +233,7 @@ struct ArrayObject * allocate_newarray(int type, int length) {
   //v->numlocks = 0;
   v->lock = NULL;
   v->___length___=length;
+	initlock(v);
   return v;
 }
 #endif

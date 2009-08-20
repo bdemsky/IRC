@@ -594,7 +594,7 @@ public class BuildCode {
       } else {
         outclassdefs.println("  int version;");
         outclassdefs.println("  int * lock;");  // lock entry for this obj
-        outclassdefs.println("  void * mutex;");  
+        outclassdefs.println("  int mutex;");  
         outclassdefs.println("  int lockcount;");
         if(state.MULTICOREGC) {
           outclassdefs.println("  int marked;");
@@ -1303,13 +1303,13 @@ public class BuildCode {
       if((!state.MULTICORE) || (cn.getSymbol().equals("TagDescriptor"))) {
 	classdefout.println("  void * flagptr;");
       } else if (state.MULTICORE) {
-        if(state.MULTICOREGC) {
-          classdefout.println("  int marked;");
-        }
 	classdefout.println("  int version;");
     classdefout.println("  int * lock;");  // lock entry for this obj
-    classdefout.println("  void * mutex;");  
+    classdefout.println("  int mutex;");  
     classdefout.println("  int lockcount;");
+    if(state.MULTICOREGC) {
+      classdefout.println("  int marked;");
+    }
       }
       if (state.OPTIONAL) {
 	classdefout.println("  int numfses;");
