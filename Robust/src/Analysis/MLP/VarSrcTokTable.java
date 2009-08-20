@@ -219,10 +219,20 @@ public class VarSrcTokTable {
       TempDescriptor refVar = refVarItr.next();
 
       s = get( refVar );
-      if( s != null ) { s.remove( vst ); }
+      if( s != null ) { 
+	s.remove( vst );
+	if( s.isEmpty() ) {
+	  var2vst.remove( refVar );
+	}
+      }
       
       s = get( vst.getSESE(), refVar );
-      if( s != null ) { s.remove( vst ); }
+      if( s != null ) { 
+	s.remove( vst );
+	if( s.isEmpty() ) {
+	  sv2vst.remove( new SVKey( vst.getSESE(), refVar ) );
+	}
+      }
     }
   }
 
@@ -285,10 +295,12 @@ public class VarSrcTokTable {
         removePrivate( vst );
       }
 
-      refVars.remove( refVar );
+      sv2vst.remove( new SVKey( vst.getSESE(), refVar ) );
+
+      refVars.remove( refVar );      
     }
 
-    var2vst.remove( refVar );
+    var2vst.remove( refVar );    
   }
 
 
@@ -559,8 +571,13 @@ public class VarSrcTokTable {
       return SrcType_READY;
     }
 
+    // if there appear to be no sources, it means this variable
+    // comes from outside of any statically-known SESE scope,
+    // which means the system guarantees its READY
     Set<VariableSourceToken> srcs = get( refVar );
-    assert !srcs.isEmpty();
+    if( srcs.isEmpty() ) {
+      return SrcType_READY;
+    }
 
     // if the variable may have more than one source, or that
     // source is at the summary age, it must be tracked dynamically
@@ -583,7 +600,7 @@ public class VarSrcTokTable {
   // any reference variables that are not live can be pruned
   // from the table, and if any VSTs are then no longer 
   // referenced, they can be dropped as well
-  /* THIS CAUSES INCONSISTENCY, FIX LATER, NOT REQUIRED
+  // THIS CAUSES INCONSISTENCY, FIX LATER, NOT REQUIRED
   public void pruneByLiveness( Set<TempDescriptor> rootLiveSet ) {
     
     // the set of reference variables in the table minus the
@@ -604,7 +621,7 @@ public class VarSrcTokTable {
 
     assertConsistency();
   }
-  */
+ 
 
 
   // use as an aid for debugging, where true-set is checked

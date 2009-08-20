@@ -1951,7 +1951,8 @@ public class BuildCode {
     tempItr = fsen.getDynamicInVarSet().iterator();
     while( tempItr.hasNext() ) {
       TempDescriptor temp = tempItr.next();
-
+      TypeDescriptor type = temp.getType();
+      
       // go grab it from the SESE source
       output.println("   if( "+paramsprefix+"->"+temp+"_srcSESE != NULL ) {");
 
@@ -1963,10 +1964,19 @@ public class BuildCode {
       output.println("     }");
       output.println("     pthread_mutex_unlock( &(com->lock) );");
 
+      String typeStr;
+      if( type.isNull() ) {
+	typeStr = "void*";
+      } else if( type.isClass() || type.isArray() ) {
+	typeStr = "struct "+type.getSafeSymbol()+"*";
+      } else {
+	typeStr = type.getSafeSymbol();
+      }
+      
       output.println("     "+generateTemp( fsen.getfmBogus(), temp, null )+
-		             " = *(("+temp.getType().toPrettyString()+"*) ("+
-		             paramsprefix+"->"+temp+"_srcSESE + "+
-		             paramsprefix+"->"+temp+"_srcOffset));");
+		     " = *(("+typeStr+"*) ("+
+		     paramsprefix+"->"+temp+"_srcSESE + "+
+		     paramsprefix+"->"+temp+"_srcOffset));");
 
       // or if the source was our parent, its in the record to grab
       output.println("   } else {");
@@ -2022,8 +2032,8 @@ public class BuildCode {
       outmethod.println(    "    /* "+fsen.getPrettyIdentifier()+" */");
       outmethod.println(    "    case "+fsen.getIdentifier()+":");
       outmethod.println(    "      "+fsen.getSESEmethodName()+"( seseRecord );");  
-
-      if( fsen.equals( mlpa.getRootSESE() ) ) {
+      
+      if( fsen.equals( mlpa.getMainSESE() ) ) {
 	outmethod.println(  "      /* work scheduler works forever, explicitly exit */");
 	outmethod.println(  "      exit( 0 );");
       }
@@ -2833,7 +2843,7 @@ public class BuildCode {
     output.println("   {");
 
     // before doing anything, lock your own record and increment the running children
-    if( fsen != mlpa.getRootSESE() ) {      
+    if( fsen != mlpa.getMainSESE() ) {      
       output.println("     pthread_mutex_lock( &("+paramsprefix+"->common.lock) );");
       output.println("     ++("+paramsprefix+"->common.numRunningChildren);");
       output.println("     pthread_mutex_unlock( &("+paramsprefix+"->common.lock) );");      
@@ -2855,7 +2865,7 @@ public class BuildCode {
     output.println("     pthread_cond_init( &(seseToIssue->common.runningChildrenCond), NULL );");
     output.println("     seseToIssue->common.numRunningChildren = 0;");
 
-    if( fsen != mlpa.getRootSESE() ) {
+    if( fsen != mlpa.getMainSESE() ) {
       output.println("     seseToIssue->common.parent = (SESEcommon*) "+paramsprefix+";");
     } else {
       output.println("     seseToIssue->common.parent = NULL;");
@@ -2865,12 +2875,12 @@ public class BuildCode {
     Iterator<TempDescriptor> tempItr = fsen.getReadyInVarSet().iterator();
     while( tempItr.hasNext() ) {
       TempDescriptor temp = tempItr.next();
-      if( fsen != mlpa.getRootSESE() ) {
+      if( fsen != mlpa.getMainSESE() ) {
 	output.println("     seseToIssue->"+temp+" = "+
 		       generateTemp( fsen.getParent().getfmBogus(), temp, null )+";");
       } else {
 	output.println("     seseToIssue->"+temp+" = "+
-		       paramsprefix+"->"+temp+";");
+		       generateTemp( state.getMethodFlat( typeutil.getMain() ), temp, null )+";");
       }
     }
 
@@ -2879,7 +2889,7 @@ public class BuildCode {
     output.println("     pthread_mutex_init( &(seseToIssue->common.lock), NULL );");
     output.println("     pthread_mutex_lock( &(seseToIssue->common.lock) );");
 
-    if( fsen != mlpa.getRootSESE() ) {
+    if( fsen != mlpa.getMainSESE() ) {
       // count up outstanding dependencies, static first, then dynamic
       Iterator<SESEandAgePair> staticSrcsItr = fsen.getStaticInVarSrcs().iterator();
       while( staticSrcsItr.hasNext() ) {
@@ -2927,7 +2937,8 @@ public class BuildCode {
 	output.println("         pthread_mutex_unlock( &(src->lock) );");	
 	output.println("         seseToIssue->"+dynInVar+"_srcOffset = "+dynInVar+"_srcOffset;");
 	output.println("       } else {");
-	output.println("         seseToIssue->"+dynInVar+" = "+dynInVar+";");
+	output.println("         seseToIssue->"+dynInVar+" = "+
+		       generateTemp( fsen.getParent().getfmBogus(), dynInVar, null )+";");
 	output.println("       }");
 	output.println("     }");
 	
@@ -2938,13 +2949,15 @@ public class BuildCode {
       
       // maintain pointers for for finding dynamic SESE 
       // instances from static names
-      for( int i = fsen.getOldestAgeToTrack(); i > 0; --i ) {
-	SESEandAgePair p1 = new SESEandAgePair( fsen, i   );
-	SESEandAgePair p2 = new SESEandAgePair( fsen, i-1 );
-	output.println("     "+p1+" = "+p2+";");
-      }
       SESEandAgePair p = new SESEandAgePair( fsen, 0 );
-      output.println("     "+p+" = seseToIssue;");
+      if( fsen.getParent().getNeededStaticNames().contains( p ) ) {
+	for( int i = fsen.getOldestAgeToTrack(); i > 0; --i ) {
+	  SESEandAgePair p1 = new SESEandAgePair( fsen, i   );
+	  SESEandAgePair p2 = new SESEandAgePair( fsen, i-1 );
+	  output.println("     "+p1+" = "+p2+";");
+	}      
+	output.println("     "+p+" = seseToIssue;");
+      }
     }
 
     // if there were no outstanding dependencies, issue here
@@ -3007,7 +3020,7 @@ public class BuildCode {
     output.println("   }");
     
     // if parent is stalling on you, let them know you're done
-    if( fsexn.getFlatEnter() != mlpa.getRootSESE() ) {
+    if( fsexn.getFlatEnter() != mlpa.getMainSESE() ) {
       output.println("   psem_give( &("+paramsprefix+"->common.stallSem) );");
     }
 

@@ -118,15 +118,15 @@ public class BuildFlat {
     Iterator methodit=cn.getMethods();
     while(methodit.hasNext()) {     
       currmd=(MethodDescriptor)methodit.next();
-
-      FlatSESEEnterNode rootSESE = null;
-      FlatSESEExitNode  rootExit = null;
+           
+      FlatSESEEnterNode mainSESE = null;
+      FlatSESEExitNode  mainExit = null;
       if (state.MLP && currmd.equals(typeutil.getMain())) {
-	SESENode rootTree = new SESENode( "root" );
-	rootSESE = new FlatSESEEnterNode( rootTree );
-	rootExit = new FlatSESEExitNode ( rootTree );
-	rootSESE.setFlatExit ( rootExit );
-	rootExit.setFlatEnter( rootSESE );
+	SESENode mainTree = new SESENode( "main" );
+	mainSESE = new FlatSESEEnterNode( mainTree );
+	mainExit = new FlatSESEExitNode ( mainTree );
+	mainSESE.setFlatExit ( mainExit );
+	mainExit.setFlatEnter( mainSESE );
       }
 
       fe=new FlatExit();
@@ -162,14 +162,15 @@ public class BuildFlat {
 	  FlatReturnNode rnflat=new FlatReturnNode(null);
 	  aen.addNext(rnflat);
 	  rnflat.addNext(fe);
-	}
-      } else if (state.MLP && rootSESE != null) {
-	rootSESE.addNext(fn);
-	fn=rootSESE;
+	}	
+	
+      } else if (state.MLP && mainSESE != null) {
+	mainSESE.addNext(fn);
+	fn=mainSESE;
 	FlatReturnNode rnflat=new FlatReturnNode(null);
-	np.getEnd().addNext(rootExit);
-	rootExit.addNext(rnflat);
-	rnflat.addNext(fe);
+	np.getEnd().addNext(mainExit);
+	mainExit.addNext(rnflat);
+	rnflat.addNext(fe);	
 
       } else if (np.getEnd()!=null&&np.getEnd().kind()!=FKind.FlatReturnNode) {
 	FlatReturnNode rnflat=new FlatReturnNode(null);

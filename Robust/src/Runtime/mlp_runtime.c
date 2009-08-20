@@ -10,6 +10,9 @@
 #include "workschedule.h"
 
 
+__thread struct Queue* seseCallStack;
+
+
 void* mlpAllocSESErecord( int size ) {
   void* newrec = RUNMALLOC( size );  
   return newrec;

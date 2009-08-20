@@ -51,6 +51,11 @@ typedef struct SESEcommon_t {
 } SESEcommon;
 
 
+// a thread-local stack of SESE's that have called a
+// new method context
+extern __thread struct Queue* seseCallStack;
+
+
 // simple mechanical allocation and 
 // deallocation of SESE records
 void* mlpCreateSESErecord( int size );

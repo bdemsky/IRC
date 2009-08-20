@@ -66,6 +66,10 @@ public class FlatSESEEnterNode extends FlatNode {
     dynamicVars          = new HashSet<TempDescriptor>();
 
     staticInVar2src = new Hashtable<TempDescriptor, VariableSourceToken>();
+
+    fmEnclosing = null;
+    mdEnclosing = null;
+    cdEnclosing = null;
   }
 
   public void rewriteUse() {

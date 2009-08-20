@@ -10,51 +10,22 @@ public class Test {
     
     int x = Integer.parseInt( args[0] );
     //int y = Integer.parseInt( args[1] );
-    //System.out.println( "root: x="+x+", y="+y );
 
-    /*
-    Foo foo = new Foo();
-    foo.f = x;
-    */
-
-    /*
-    int[] a = new int[x];
-    for( int i = 0; i < x; ++i ) {
-      sese fill {
-	a[i] = i;
-      }
-    }
-    */
-
-    
-    int total = 0;
     for( int i = 0; i < x; ++i ) {
 
-      System.out.println( "i="+i );
-
-      sese sum {
-	total = total + i;
+      sese calc {
+	int sum = 0;
+	for( int j = 0; j <= i; ++j ) {
+	  sum = sum + j;
+	}
       }
 
-      System.out.println( "pi="+i );
-    }
-    
-
-    //setTo3( foo );
-
-
-
-    /*
-    int total = 0;
-    sese kemper {
-      for( int i = 0; i < 5; ++i ) {
-	total = total + i;
+      sese prnt {
+	mightPrint( x, i, sum );
       }
+
     }
-    */
 
-
-    System.out.println( "total="+total );
 
     // just for testing root's ability to
     // realize a single exit after all returns
@@ -62,6 +33,17 @@ public class Test {
     //if( false ) {
     //  return;
     //}
+
+    
+    //Foo foo = new Foo();
+    //foo.f = x;
+    //setTo3( foo );
+  }
+
+  public static void mightPrint( int x, int i, int sum ) {
+    if( i == x - 1 ) {
+      System.out.println( "sum of integers 0-"+i+" is "+sum );
+    }
   }
 
   /*
