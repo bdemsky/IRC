@@ -23,6 +23,21 @@ public class Test {
 	}
       }
 
+      if( i % 2 == 0 ) {
+	sese change {
+	  for( int k = 0; k < i*2; ++k ) {
+	    sum = sum + 1;	    
+	  }
+	  sum = sum + 1;
+	}	
+
+	sese changeAgain {
+	  for( int l = 0; l < 3; ++l ) {
+	    sum = sum / 2;
+	  }
+	}
+      }
+
       sese prnt {
 	mightPrint( x, i, sum );
       }

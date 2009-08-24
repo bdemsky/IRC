@@ -11,10 +11,10 @@ BSFLAGS= -nooptimize -debug -garbagestats -mainclass Test -ownership -ownallocde
 all: $(PROGRAM1).bin $(PROGRAM2).bin
 
 $(PROGRAM1).bin: $(SOURCE_FILES)
-	$(BUILDSCRIPT) $(USEMLP) $(BSFLAGS) -o $(PROGRAM1) $(SOURCE_FILES)
+	$(BUILDSCRIPT)           $(BSFLAGS) -o $(PROGRAM1) $(SOURCE_FILES)
 
 $(PROGRAM2).bin: $(SOURCE_FILES)
-	$(BUILDSCRIPT)           $(BSFLAGS) -o $(PROGRAM2) $(SOURCE_FILES)
+	$(BUILDSCRIPT) $(USEMLP) $(BSFLAGS) -o $(PROGRAM2) $(SOURCE_FILES)
 
 clean:
 	rm -f  $(PROGRAM1).bin
