@@ -30,6 +30,7 @@ void myfree(void * ptr);
 #define RUNMALLOC_I(x) mycalloc_i(1,x) //with interruption blocked beforehand
 #define RUNFREE(x) myfree(x)
 #ifdef MULTICORE_GC
+#include "multicoregc.h"
 void * mycalloc_share(struct garbagelist * stackptr, int m, int size);
 #define FREEMALLOC(s, x) mycalloc_share((s),1,(x))
 #else

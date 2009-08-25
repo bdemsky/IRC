@@ -75,7 +75,7 @@ int CALL01(___Object______MonitorExit____, struct ___Object___ * ___this___) {
     pthread_mutex_unlock(&objlock);
   } else {
 #ifdef MULTICORE
-    BAMBOO_EXIT(-1);
+    BAMBOO_EXIT(0xf201);
 #else
     printf("ERROR...UNLOCKING LOCK WE DON'T HAVE\n");
     exit(-1);

@@ -52,6 +52,11 @@ __attribute__((malloc)) void * allocate_new(void *, int type);
 __attribute__((malloc)) struct ArrayObject * allocate_newarray(void *, int type, int length);
 __attribute__((malloc)) struct ___String___ * NewString(void *, const char *str,int length);
 __attribute__((malloc)) struct ___TagDescriptor___ * allocate_tag(void *ptr, int index);
+#elif defined MULTICORE_GC
+__attribute__((malloc)) void * allocate_new(void *, int type);
+__attribute__((malloc)) struct ArrayObject * allocate_newarray(void *, int type, int length);
+__attribute__((malloc)) struct ___String___ * NewString(void *, const char *str,int length);
+__attribute__((malloc)) struct ___TagDescriptor___ * allocate_tag(void *ptr, int index);
 #else
 __attribute__((malloc)) void * allocate_new(int type);
 __attribute__((malloc)) struct ArrayObject * allocate_newarray(int type, int length);

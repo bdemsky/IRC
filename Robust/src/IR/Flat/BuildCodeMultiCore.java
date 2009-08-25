@@ -587,12 +587,7 @@ public class BuildCodeMultiCore extends BuildCode {
 
     //ParamsObject objectparams=(ParamsObject)paramstable.get(lb!=null?lb:task);
     generateTaskHeader(fm, lb, task,output);
-    // output code to check if need to do gc
-    if(state.MULTICOREGC) {
-      output.println("#ifdef MULTICORE_GC");
-      output.println("gc();");
-      output.println("#endif");
-    }
+
     TempObject objecttemp=(TempObject) tempstable.get(lb!=null ? lb : task);
     /*if (state.DSM&&lb.getHasAtomic()) {
         output.println("transrecord_t * trans;");
@@ -631,6 +626,9 @@ public class BuildCodeMultiCore extends BuildCode {
 
     /* Check to see if we need to do a GC if this is a
      * multi-threaded program...*/
+    if(this.state.MULTICOREGC) {
+      output.println("if(gcflag) gc("+localsprefixaddr+");");
+    }
 
     /*if ((state.THREAD||state.DSM)&&GENERATEPRECISEGC) {
         if (state.DSM&&lb.isAtomic())
@@ -919,7 +917,7 @@ public class BuildCodeMultiCore extends BuildCode {
         printcomma=true;
        }*/
 
-    if (!GENERATEPRECISEGC) {
+    if (!GENERATEPRECISEGC && !this.state.MULTICOREGC) {
       /* Imprecise Task */
       output.println("void * parameterarray[]) {");
       /* Unpack variables */

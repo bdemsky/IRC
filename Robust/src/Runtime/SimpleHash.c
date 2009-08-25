@@ -25,7 +25,7 @@ struct RuntimeHash * allocateRuntimeHash(int size) {
   struct RuntimeHash *thisvar;  //=(struct RuntimeHash *)RUNMALLOC(sizeof(struct RuntimeHash));
   if (size <= 0) {
 #ifdef MULTICORE
-    BAMBOO_EXIT(0xb001);
+    BAMBOO_EXIT(0xf101);
 #else
     printf("Negative Hashtable size Exception\n");
     exit(-1);

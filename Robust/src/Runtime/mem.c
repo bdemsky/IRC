@@ -11,7 +11,7 @@ void * mycalloc(int m,
   BAMBOO_START_CRITICAL_SECTION_MEM();
   p = BAMBOO_LOCAL_MEM_CALLOC(m, isize); // calloc(m, isize);
   if(p == NULL) {
-	  BAMBOO_EXIT(0xa024);
+	  BAMBOO_EXIT(0xc001);
   }
   BAMBOO_CLOSE_CRITICAL_SECTION_MEM();
   return p;
@@ -26,6 +26,9 @@ void * mycalloc_share(struct garbagelist * stackptr,
 memalloc:
   BAMBOO_START_CRITICAL_SECTION_MEM();
   p = BAMBOO_SHARE_MEM_CALLOC_I(m, isize); // calloc(m, isize);
+#ifdef GC_DEBUG
+	tprintf("new obj in shared mem: %x, %x \n", p, isize);
+#endif
   if(p == NULL) {
 		// no more global shared memory
 		BAMBOO_CLOSE_CRITICAL_SECTION_MEM();
@@ -51,7 +54,7 @@ void * mycalloc_share(int m,
   p = BAMBOO_SHARE_MEM_CALLOC_I(m, isize); // calloc(m, isize);
   if(p == NULL) {
 		// no more global shared memory
-		BAMBOO_EXIT(0xa025);
+		BAMBOO_EXIT(0xc002);
   }
   BAMBOO_CLOSE_CRITICAL_SECTION_MEM();
   return 
@@ -65,7 +68,7 @@ void * mycalloc_i(int m,
   int isize = size; 
   p = BAMBOO_LOCAL_MEM_CALLOC(m, isize); // calloc(m, isize);
   if(p == NULL) {
-	  BAMBOO_EXIT(0xa026);
+	  BAMBOO_EXIT(0xc003);
   }
   return p;
 }

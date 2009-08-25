@@ -3207,7 +3207,7 @@ public class BuildCode {
       needcomma=true;
     }
 
-    if (!GENERATEPRECISEGC) {
+    if (!GENERATEPRECISEGC && !this.state.MULTICOREGC) {
       if (fc.getThis()!=null) {
 	TypeDescriptor ptd=md.getThis().getType();
 	if (needcomma)
@@ -3380,7 +3380,7 @@ public class BuildCode {
 	/* Link object into list */
 	String revertptr=generateTemp(fm, reverttable.get(lb),lb);
 	output.println(revertptr+"=revertlist;");
-	if (GENERATEPRECISEGC)
+	if (GENERATEPRECISEGC || this.state.MULTICOREGC)
 	  output.println("COPY_OBJ((struct garbagelist *)"+localsprefixaddr+",(struct ___Object___ *)"+dst+");");
 	else
 	  output.println("COPY_OBJ("+dst+");");
@@ -3408,7 +3408,7 @@ public class BuildCode {
 	String dst=generateTemp(fm, fsfn.getDst(),lb);
 	output.println("if(!"+dst+"->"+localcopystr+") {");
 	/* Link object into list */
-	if (GENERATEPRECISEGC)
+	if (GENERATEPRECISEGC || this.state.MULTICOREGC)
 	  output.println("COPY_OBJ((struct garbagelist *)"+localsprefixaddr+",(struct ___Object___ *)"+dst+");");
 	else
 	  output.println("COPY_OBJ("+dst+");");
@@ -3528,7 +3528,7 @@ public class BuildCode {
 	/* Link object into list */
 	String revertptr=generateTemp(fm, reverttable.get(lb),lb);
 	output.println(revertptr+"=revertlist;");
-	if ((GENERATEPRECISEGC))
+	if ((GENERATEPRECISEGC) || this.state.MULTICOREGC)
         output.println("COPY_OBJ((struct garbagelist *)"+localsprefixaddr+",(struct ___Object___ *)"+dst+");");
 	else
 	  output.println("COPY_OBJ("+dst+");");
@@ -3550,7 +3550,7 @@ public class BuildCode {
 	String dst=generateTemp(fm, fsen.getDst(),lb);
 	output.println("if(!"+dst+"->"+localcopystr+") {");
 	/* Link object into list */
-	if (GENERATEPRECISEGC)
+	if (GENERATEPRECISEGC || this.state.MULTICOREGC)
 	  output.println("COPY_OBJ((struct garbagelist *)"+localsprefixaddr+",(struct ___Object___ *)"+dst+");");
 	else
 	  output.println("COPY_OBJ("+dst+");");
@@ -3792,7 +3792,7 @@ public class BuildCode {
 	  output.print(temp.getType().getSafeSymbol()+" "+temp.getSafeSymbol());
       }
       output.println(") {");
-    } else if (!GENERATEPRECISEGC) {
+    } else if (!GENERATEPRECISEGC && !this.state.MULTICOREGC) {
       /* Imprecise Task */
       output.println("void * parameterarray[]) {");
       /* Unpack variables */

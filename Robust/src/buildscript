@@ -642,6 +642,7 @@ cp ../Runtime/ObjectHash.h ./
 cp ../Runtime/Queue.h ./
 cp ../Runtime/runtime.h ./
 cp ../Runtime/SimpleHash.h ./
+cp ../Runtime/multicoregc.h ./
 cp ../Runtime/multicoregarbage.h ./
 cp ../tmpbuilddirectory/*.c ./
 cp ../tmpbuilddirectory/*.h ./

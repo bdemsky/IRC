@@ -20,12 +20,12 @@ bool isMsgHanging;
 volatile bool isMsgSending;
 
 #define OUTMSG_INDEXINC() \
-	outmsgindex = (outmsgindex + 1) % BAMBOO_OUT_BUF_LENGTH;
+	outmsgindex = (outmsgindex + 1) % (BAMBOO_OUT_BUF_LENGTH)
 
 #define OUTMSG_LASTINDEXINC() \
-	outmsglast = (outmsglast + 1) % BAMBOO_OUT_BUF_LENGTH; \
+	outmsglast = (outmsglast + 1) % (BAMBOO_OUT_BUF_LENGTH); \
 	if(outmsglast == outmsgindex) { \
-		BAMBOO_EXIT(0xb003); \
+		BAMBOO_EXIT(0xd001); \
 	} 
 
 #define OUTMSG_CACHE(n) \
@@ -186,27 +186,33 @@ int self_numreceiveobjs;
 // data structures for locking
 struct RuntimeHash locktable;
 static struct RuntimeHash* locktbl = &locktable;
+struct RuntimeHash * lockRedirectTbl;
+struct RuntimeHash * objRedirectLockTbl;
+#endif
 struct LockValue {
 	int redirectlock;
 	int value;
 };
-struct RuntimeHash * lockRedirectTbl;
-struct RuntimeHash * objRedirectLockTbl;
 int lockobj;
 int lock2require;
 int lockresult;
 bool lockflag;
-#endif
 
 // data structures for waiting objs
 struct Queue objqueue;
 
 // data structures for shared memory allocation
-#define BAMBOO_NUM_PAGES 1024 * 512
-#define BAMBOO_PAGE_SIZE 4096
-#define BAMBOO_SHARED_MEM_SIZE BAMBOO_PAGE_SIZE * BAMBOO_NUM_PAGES
 #define BAMBOO_BASE_VA 0xd000000
-#define BAMBOO_SMEM_SIZE 16 * BAMBOO_PAGE_SIZE
+#ifdef GC_DEBUG
+#define BAMBOO_NUM_PAGES (1*(2+1))
+#define BAMBOO_PAGE_SIZE (16 * 16)
+#define BAMBOO_SMEM_SIZE (BAMBOO_PAGE_SIZE)
+#else
+#define BAMBOO_NUM_PAGES (1024 * 512)
+#define BAMBOO_PAGE_SIZE (4096)
+#define BAMBOO_SMEM_SIZE (16 * BAMBOO_PAGE_SIZE)
+#endif
+#define BAMBOO_SHARED_MEM_SIZE (BAMBOO_PAGE_SIZE * BAMBOO_NUM_PAGES)
 
 #ifdef MULTICORE_GC
 #include "multicoregarbage.h"
@@ -369,6 +375,10 @@ inline void cache_msg_6(int targetcore,
 												unsigned long n5) __attribute__((always_inline));
 inline void transferObject(struct transObjInfo * transObj);
 inline int receiveMsg(void) __attribute__((always_inline));
+
+#ifdef MULTICORE_GC
+inline void transferMarkResults() __attribute__((always_inline));
+#endif
 
 #ifdef PROFILE
 inline void profileTaskStart(char * taskname) __attribute__((always_inline));
