@@ -41,14 +41,13 @@ public class MLPAnalysis {
   // there is an empty stack it means all variables are available.
   private Hashtable< FlatNode, Stack<FlatSESEEnterNode> > seseStacks;
 
-
   private Hashtable< FlatNode, Set<TempDescriptor>      > livenessRootView;
   private Hashtable< FlatNode, Set<TempDescriptor>      > livenessVirtualReads;
   private Hashtable< FlatNode, VarSrcTokTable           > variableResults;
   private Hashtable< FlatNode, Set<TempDescriptor>      > notAvailableResults;
   private Hashtable< FlatNode, CodePlan                 > codePlans;
 
-  private Hashtable<FlatEdge, FlatWriteDynamicVarNode> wdvNodesToSpliceIn;
+  private Hashtable< FlatEdge, FlatWriteDynamicVarNode  > wdvNodesToSpliceIn;
 
   public static int maxSESEage = -1;
 

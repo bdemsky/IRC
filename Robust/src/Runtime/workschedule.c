@@ -5,7 +5,7 @@
 #include "mem.h"
 #include "Queue.h"
 #include "workschedule.h"
-
+#include "mlp_runtime.h"
 
 
 // NOTE: Converting this from a work-stealing strategy
@@ -154,6 +154,9 @@ void* workerMain( void* arg ) {
   
   void* workUnit;
 
+  // make sure init mlp once-per-thread stuff
+  pthread_once( &mlpOnceObj, mlpInitOncePerThread );
+
   // all workers wait until system is ready
   pthread_mutex_lock  ( &systemLock );
   while( !systemStarted ) {
@@ -161,6 +164,7 @@ void* workerMain( void* arg ) {
   }
   pthread_mutex_unlock( &systemLock );
 
+  // then continue to process work
   while( 1 ) {
 
     pthread_mutex_lock( &systemLock );

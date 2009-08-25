@@ -40,9 +40,11 @@ public class Test {
     //setTo3( foo );
   }
 
-  public static void mightPrint( int x, int i, int sum ) {
+  public static void mightPrint( int x, int i, int sum ) {    
     if( i == x - 1 ) {
-      System.out.println( "sum of integers 0-"+i+" is "+sum );
+      sese output {
+	System.out.println( "sum of integers 0-"+i+" is "+sum );
+      }
     }
   }
 

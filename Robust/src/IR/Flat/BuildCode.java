@@ -286,6 +286,7 @@ public class BuildCode {
     outmethod.println("  int i;");
 
     if (state.MLP) {
+      outmethod.println("  pthread_once( &mlpOnceObj, mlpInitOncePerThread );");
       outmethod.println("  workScheduleInit( "+state.MLP_NUMCORES+", invokeSESEmethod );");
     }
 
@@ -2842,17 +2843,29 @@ public class BuildCode {
 
     output.println("   {");
 
+    // set up the parent
+    if( fsen == mlpa.getMainSESE() ) {
+      output.println("     SESEcommon* parentCommon = NULL;");
+    } else if( fsen.getParent() != null ) {
+      output.println("     SESEcommon* parentCommon = &("+paramsprefix+"->common);");
+    } else {
+      output.println("     SESEcommon* parentCommon = (SESEcommon*) peekItem( seseCallStack );");
+    }
+
     // before doing anything, lock your own record and increment the running children
     if( fsen != mlpa.getMainSESE() ) {      
-      output.println("     pthread_mutex_lock( &("+paramsprefix+"->common.lock) );");
-      output.println("     ++("+paramsprefix+"->common.numRunningChildren);");
-      output.println("     pthread_mutex_unlock( &("+paramsprefix+"->common.lock) );");      
+      output.println("     pthread_mutex_lock( &(parentCommon->lock) );");
+      output.println("     ++(parentCommon->numRunningChildren);");
+      output.println("     pthread_mutex_unlock( &(parentCommon->lock) );");      
     }
 
     // just allocate the space for this record
     output.println("     "+fsen.getSESErecordName()+"* seseToIssue = ("+
 		           fsen.getSESErecordName()+"*) mlpAllocSESErecord( sizeof( "+
 		           fsen.getSESErecordName()+" ) );");
+
+    // and keep the thread-local sese stack up to date
+    output.println("     addNewItem( seseCallStack, (void*) seseToIssue);");
 
     // fill in common data
     output.println("     seseToIssue->common.classID = "+fsen.getIdentifier()+";");
@@ -2864,23 +2877,19 @@ public class BuildCode {
     output.println("     seseToIssue->common.doneExecuting = FALSE;");    
     output.println("     pthread_cond_init( &(seseToIssue->common.runningChildrenCond), NULL );");
     output.println("     seseToIssue->common.numRunningChildren = 0;");
-
-    if( fsen != mlpa.getMainSESE() ) {
-      output.println("     seseToIssue->common.parent = (SESEcommon*) "+paramsprefix+";");
-    } else {
-      output.println("     seseToIssue->common.parent = NULL;");
-    }
+    output.println("     seseToIssue->common.parent = parentCommon;");
 
     // all READY in-vars should be copied now and be done with it
     Iterator<TempDescriptor> tempItr = fsen.getReadyInVarSet().iterator();
     while( tempItr.hasNext() ) {
       TempDescriptor temp = tempItr.next();
-      if( fsen != mlpa.getMainSESE() ) {
+      if( fsen != mlpa.getMainSESE() && 
+	  fsen.getParent() != null ) {
 	output.println("     seseToIssue->"+temp+" = "+
 		       generateTemp( fsen.getParent().getfmBogus(), temp, null )+";");
       } else {
 	output.println("     seseToIssue->"+temp+" = "+
-		       generateTemp( state.getMethodFlat( typeutil.getMain() ), temp, null )+";");
+		       generateTemp( fsen.getfmEnclosing(), temp, null )+";");
       }
     }
 
@@ -2937,8 +2946,13 @@ public class BuildCode {
 	output.println("         pthread_mutex_unlock( &(src->lock) );");	
 	output.println("         seseToIssue->"+dynInVar+"_srcOffset = "+dynInVar+"_srcOffset;");
 	output.println("       } else {");
-	output.println("         seseToIssue->"+dynInVar+" = "+
-		       generateTemp( fsen.getParent().getfmBogus(), dynInVar, null )+";");
+	if( fsen.getParent() != null ) {
+	  output.println("         seseToIssue->"+dynInVar+" = "+
+			 generateTemp( fsen.getParent().getfmBogus(), dynInVar, null )+";");
+	} else {
+	  output.println("         seseToIssue->"+dynInVar+" = "+
+			 generateTemp( fsen.getfmEnclosing(), dynInVar, null )+";");
+	}
 	output.println("       }");
 	output.println("     }");
 	
@@ -2948,9 +2962,11 @@ public class BuildCode {
       }
       
       // maintain pointers for for finding dynamic SESE 
-      // instances from static names
+      // instances from static names      
       SESEandAgePair p = new SESEandAgePair( fsen, 0 );
-      if( fsen.getParent().getNeededStaticNames().contains( p ) ) {
+      if( fsen.getParent() != null && 
+	  fsen.getParent().getNeededStaticNames().contains( p ) ) {       
+
 	for( int i = fsen.getOldestAgeToTrack(); i > 0; --i ) {
 	  SESEandAgePair p1 = new SESEandAgePair( fsen, i   );
 	  SESEandAgePair p2 = new SESEandAgePair( fsen, i-1 );
@@ -2982,7 +2998,19 @@ public class BuildCode {
       return;
     }
 
+    output.println("   /* SESE exiting */");
+
     String com = paramsprefix+"->common";
+
+    // take yourself off the thread-local sese call stack
+    output.println("   if( isEmpty( seseCallStack ) ) {");
+    output.println("     printf( \"Error, sese call stack is empty.\\n\" );");
+    output.println("     exit( -1 );");
+    output.println("   }");
+    output.println("   if( (void*)"+paramsprefix+" != getItem( seseCallStack ) ) {");
+    output.println("     printf( \"Error, sese call stack mismatch.\\n\" );");
+    output.println("     exit( -1 );");
+    output.println("   }");
 
     // this SESE cannot be done until all of its children are done
     // so grab your own lock with the condition variable for watching
@@ -2991,7 +3019,6 @@ public class BuildCode {
     output.println("   while( "+com+".numRunningChildren > 0 ) {");
     output.println("     pthread_cond_wait( &("+com+".runningChildrenCond), &("+com+".lock) );");
     output.println("   }");
-    //output.println("   pthread_mutex_unlock( &("+com+".lock) );");    
 
     // copy out-set from local temps into the sese record
     Iterator<TempDescriptor> itr = fsexn.getFlatEnter().getOutVarSet().iterator();
@@ -3003,7 +3030,6 @@ public class BuildCode {
     }    
     
     // mark yourself done, your SESE data is now read-only
-    //output.println("   pthread_mutex_lock( &("+com+".lock) );");
     output.println("   "+com+".doneExecuting = TRUE;");
     output.println("   pthread_cond_signal( &("+com+".doneCond) );");
     output.println("   pthread_mutex_unlock( &("+com+".lock) );");
@@ -3761,12 +3787,6 @@ public class BuildCode {
     } else
       output.print(task.getSafeSymbol()+"(");
     
-    /*
-    if (addSESErecord) {
-      output.print("SESErecord* currentSESE, ");
-    }
-    */
-
     boolean printcomma=false;
     if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
       if (md!=null) {
