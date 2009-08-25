@@ -10,12 +10,14 @@
 #include "workschedule.h"
 
 
-
+/*
 __thread struct Queue* seseCallStack;
 __thread pthread_once_t mlpOnceObj = PTHREAD_ONCE_INIT;
 void mlpInitOncePerThread() {
   seseCallStack = createQueue();
 }
+*/
+__thread SESEcommon_p seseCaller;
 
 
 void* mlpAllocSESErecord( int size ) {

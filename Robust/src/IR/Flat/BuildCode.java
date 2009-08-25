@@ -286,7 +286,7 @@ public class BuildCode {
     outmethod.println("  int i;");
 
     if (state.MLP) {
-      outmethod.println("  pthread_once( &mlpOnceObj, mlpInitOncePerThread );");
+      //outmethod.println("  pthread_once( &mlpOnceObj, mlpInitOncePerThread );");
       outmethod.println("  workScheduleInit( "+state.MLP_NUMCORES+", invokeSESEmethod );");
     }
 
@@ -2849,7 +2849,8 @@ public class BuildCode {
     } else if( fsen.getParent() != null ) {
       output.println("     SESEcommon* parentCommon = &("+paramsprefix+"->common);");
     } else {
-      output.println("     SESEcommon* parentCommon = (SESEcommon*) peekItem( seseCallStack );");
+      //output.println("     SESEcommon* parentCommon = (SESEcommon*) peekItem( seseCallStack );");
+      output.println("     SESEcommon* parentCommon = seseCaller;");
     }
 
     // before doing anything, lock your own record and increment the running children
@@ -2865,7 +2866,7 @@ public class BuildCode {
 		           fsen.getSESErecordName()+" ) );");
 
     // and keep the thread-local sese stack up to date
-    output.println("     addNewItem( seseCallStack, (void*) seseToIssue);");
+    //output.println("     addNewItem( seseCallStack, (void*) seseToIssue);");
 
     // fill in common data
     output.println("     seseToIssue->common.classID = "+fsen.getIdentifier()+";");
@@ -3002,6 +3003,7 @@ public class BuildCode {
 
     String com = paramsprefix+"->common";
 
+    /*
     // take yourself off the thread-local sese call stack
     output.println("   if( isEmpty( seseCallStack ) ) {");
     output.println("     printf( \"Error, sese call stack is empty.\\n\" );");
@@ -3011,6 +3013,7 @@ public class BuildCode {
     output.println("     printf( \"Error, sese call stack mismatch.\\n\" );");
     output.println("     exit( -1 );");
     output.println("   }");
+    */
 
     // this SESE cannot be done until all of its children are done
     // so grab your own lock with the condition variable for watching
@@ -3135,6 +3138,11 @@ public class BuildCode {
   }
 
   private void generateFlatCall(FlatMethod fm, LocalityBinding lb, FlatCall fc, PrintWriter output) {
+
+    if( state.MLP ) {
+      output.println("     seseCaller = (SESEcommon*)"+paramsprefix+";");
+    }
+
     MethodDescriptor md=fc.getMethod();
     ParamsObject objectparams=(ParamsObject)paramstable.get(lb!=null ? locality.getBinding(lb, fc) : md);
     ClassDescriptor cn=md.getClassDesc();

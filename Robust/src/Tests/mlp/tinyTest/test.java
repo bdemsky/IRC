@@ -11,21 +11,7 @@ public class Test {
     int x = Integer.parseInt( args[0] );
     //int y = Integer.parseInt( args[1] );
 
-    for( int i = 0; i < x; ++i ) {
-
-      sese calc {
-	int sum = 0;
-	for( int j = 0; j <= i; ++j ) {
-	  sum = sum + j;
-	}
-      }
-
-      sese prnt {
-	mightPrint( x, i, sum );
-      }
-
-    }
-
+    doTheTest( x );
 
     // just for testing root's ability to
     // realize a single exit after all returns
@@ -38,6 +24,27 @@ public class Test {
     //Foo foo = new Foo();
     //foo.f = x;
     //setTo3( foo );
+  }
+
+  public static void doTheTest( int x ) {
+    
+    sese wrapper {
+
+      for( int i = 0; i < x; ++i ) {
+	sese calc {
+	  int sum = 0;
+	  for( int j = 0; j <= i; ++j ) {
+	    sum = sum + j;
+	  }
+	}
+	
+	sese prnt {
+	  mightPrint( x, i, sum );
+	}
+      }
+      
+    }
+
   }
 
   public static void mightPrint( int x, int i, int sum ) {    

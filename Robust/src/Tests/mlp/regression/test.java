@@ -1,8 +1,3 @@
-public class Foo {
-  int f;
-  public Foo() {}
-}
-
 
 public class Test {
 
@@ -10,45 +5,52 @@ public class Test {
         
     int x = Integer.parseInt( args[0] );
 
+    doSomeWork( x );
+  }
 
 
-    //int y = Integer.parseInt( args[1] );
-
+  public static void doSomeWork( int x ) {
     for( int i = 0; i < x; ++i ) {
-
       sese calc {
 	int sum = 0;
 	for( int j = 0; j <= i; ++j ) {
-	  sum = sum + j;
+	  sum = calculateStuff( sum, 1, 0 );
 	}
       }
-
       if( i % 2 == 0 ) {
 	sese change {
 	  for( int k = 0; k < i*2; ++k ) {
-	    sum = sum + 1;	    
+	    sum = calculateStuff( sum, k, 1 );
 	  }
 	  sum = sum + 1;
 	}	
-
-	sese changeAgain {
-	  for( int l = 0; l < 3; ++l ) {
-	    sum = sum / 2;
-	  }
+	
+	for( int l = 0; l < 3; ++l ) {
+	  sum = calculateStuff( sum, 2, 2 );
 	}
       }
-
       sese prnt {
 	mightPrint( x, i, sum );
       }
-
     }
+  }
 
-
-    
-    //Foo foo = new Foo();
-    //foo.f = x;
-    //setTo3( foo );
+  public static int calculateStuff( int sum, int num, int mode ) {
+    int answer;
+    if( mode == 0 ) {
+      sese mode1 {
+	answer = sum + num;
+      }
+    } else if( mode == 1 ) {
+      sese mode2 {
+	answer = sum + (num/2);
+      }
+    } else {
+      sese mode3 {
+	answer = sum / num;
+      }
+    }
+    return answer;
   }
 
   public static void mightPrint( int x, int i, int sum ) {
@@ -56,12 +58,4 @@ public class Test {
       System.out.println( "sum of integers 0-"+i+" is "+sum );
     }
   }
-
-  /*
-  public static void setTo3( Foo foo ) {
-    sese func {
-      foo.f = 3;
-    }   
-  }
-  */
 }

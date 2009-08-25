@@ -155,7 +155,7 @@ void* workerMain( void* arg ) {
   void* workUnit;
 
   // make sure init mlp once-per-thread stuff
-  pthread_once( &mlpOnceObj, mlpInitOncePerThread );
+  //pthread_once( &mlpOnceObj, mlpInitOncePerThread );
 
   // all workers wait until system is ready
   pthread_mutex_lock  ( &systemLock );

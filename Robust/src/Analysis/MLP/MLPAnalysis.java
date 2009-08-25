@@ -812,6 +812,22 @@ public class MLPAnalysis {
       notAvailSet.addAll( liveTemps );
     } break;
 
+    case FKind.FlatMethod: {
+      notAvailSet.clear();
+    }
+
+      /*
+    case FKind.FlatCall: {
+      FlatCall         fc = (FlatCall) fn;
+      MethodDescriptor md = fc.getMethod();
+      FlatMethod       fm = state.getMethodFlat( md );
+      for( int i = 0; i < fm.numParameters(); ++i ) {
+	TempDescriptor param = fm.getParameter( i );
+	notAvailSet.remove( param );
+      }
+    } break;
+      */
+
     case FKind.FlatOpNode: {
       FlatOpNode fon = (FlatOpNode) fn;
 
@@ -1092,10 +1108,7 @@ public class MLPAnalysis {
 	  }	  	  	 
 
 	} else {
-	  // the other case for srcs is READY from a parent, however
-	  // since we are only examining variables that come from
-	  // children tokens, this should never occur
-	  assert false;
+	  // the other case for srcs is READY, so do nothing
 	}
 
 	// assert that everything being stalled for is in the

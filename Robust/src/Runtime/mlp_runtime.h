@@ -53,9 +53,12 @@ typedef struct SESEcommon_t {
 
 // a thread-local stack of SESEs and function to
 // ensure it is initialized once per thread
+/*
 extern __thread struct Queue* seseCallStack;
 extern __thread pthread_once_t mlpOnceObj;
 void mlpInitOncePerThread();
+*/
+extern __thread SESEcommon_p seseCaller;
 
 
 // simple mechanical allocation and 
