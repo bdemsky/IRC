@@ -23,6 +23,7 @@ void * mycalloc_share(struct garbagelist * stackptr,
 											int size) {
 	void * p = NULL;
   int isize = 2*BAMBOO_CACHE_LINE_SIZE-4+(size-1)&(~BAMBOO_CACHE_LINE_MASK);
+	bool hasgc = false;
 memalloc:
   BAMBOO_START_CRITICAL_SECTION_MEM();
   p = BAMBOO_SHARE_MEM_CALLOC_I(m, isize); // calloc(m, isize);
@@ -32,8 +33,14 @@ memalloc:
   if(p == NULL) {
 		// no more global shared memory
 		BAMBOO_CLOSE_CRITICAL_SECTION_MEM();
-		// start gc
-		gc(stackptr);
+		if(!hasgc) {
+			// start gc
+			gc(stackptr);
+			hasgc = true;
+		} else {
+			// no more global shared memory
+			BAMBOO_EXIT(0xc002);
+		}
 
 		// try to malloc again
 		goto memalloc;
@@ -54,7 +61,7 @@ void * mycalloc_share(int m,
   p = BAMBOO_SHARE_MEM_CALLOC_I(m, isize); // calloc(m, isize);
   if(p == NULL) {
 		// no more global shared memory
-		BAMBOO_EXIT(0xc002);
+		BAMBOO_EXIT(0xc003);
   }
   BAMBOO_CLOSE_CRITICAL_SECTION_MEM();
   return 
@@ -68,7 +75,7 @@ void * mycalloc_i(int m,
   int isize = size; 
   p = BAMBOO_LOCAL_MEM_CALLOC(m, isize); // calloc(m, isize);
   if(p == NULL) {
-	  BAMBOO_EXIT(0xc003);
+	  BAMBOO_EXIT(0xc004);
   }
   return p;
 }

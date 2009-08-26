@@ -119,6 +119,8 @@ void initruntimedata() {
   objqueue.head = NULL;
   objqueue.tail = NULL;
 
+	currtpd = NULL;
+
 #ifdef PROFILE
   stall = false;
   //isInterrupt = true;
@@ -140,7 +142,11 @@ void disruntimedata() {
 	RUNFREE(locktable.bucket);
 #endif
 	genfreehashtable(activetasks);
-	RUNFREE(currtpd);
+	if(currtpd != NULL) {
+		RUNFREE(currtpd->parameterArray);
+		RUNFREE(currtpd);
+		currtpd = NULL;
+	}
 }
 
 inline __attribute__((always_inline))
@@ -1161,12 +1167,13 @@ inline void addNewObjInfo(void * nobj) {
 void * smemalloc(int size, 
 		             int * allocsize) {
 	void * mem = NULL;
+	int isize = size;
 #ifdef MULTICORE_GC
 	// go through free mem list for suitable blocks
 	struct freeMemItem * freemem = bamboo_free_mem_list->head;
 	struct freeMemItem * prev = NULL;
 	do {
-		if(freemem->size >= size) {
+		if(freemem->size >= isize) {
 			// found one
 			break;
 		}
@@ -1175,32 +1182,36 @@ void * smemalloc(int size,
 	} while(freemem != NULL);
 	if(freemem != NULL) {
 		mem = (void *)(freemem->ptr);
-		*allocsize = size;
-		freemem->ptr = ((void*)freemem->ptr) + size;
-		freemem->size -= size;
-		// check how many blocks it acrosses
-		int b = 0;
-		BLOCKINDEX(mem, &b);
 		// check the remaining space in this block
-		int remain = (b < NUMCORES? (b+1)*BAMBOO_SMEM_SIZE_L  
-				        : BAMBOO_LARGE_SMEM_BOUND+(b-NUMCORES+1)*BAMBOO_SMEM_SIZE)
-			          -((int)mem-BAMBOO_BASE_VA);
-		if(remain < size) {
+		int remain = (int)(mem-(BAMBOO_BASE_VA));
+		int bound = (BAMBOO_SMEM_SIZE);
+		if(remain < BAMBOO_LARGE_SMEM_BOUND) {
+			bound = (BAMBOO_SMEM_SIZE_L);
+		}
+		remain = bound - remain%bound;
+		if(remain < isize) {
 			// this object acrosses blocks
-			int tmpsbs = 1+(size-remain-1)/BAMBOO_SMEM_SIZE;
+			// try to align the block if required a block
+			if((isize == BAMBOO_SMEM_SIZE) && (freemem->size >= isize + remain)) {
+				isize += remain;
+			}
+			/*int tmpsbs = 1+(isize-remain-1)/BAMBOO_SMEM_SIZE;
 			for(int k = 0; k < tmpsbs-1; k++) {
 				gcsbstarttbl[k+b] = (INTPTR)(-1);
 			}
-			if((size-remain)%BAMBOO_SMEM_SIZE == 0) {
+			if((isize-remain)%BAMBOO_SMEM_SIZE == 0) {
 				gcsbstarttbl[b+tmpsbs-1] = (INTPTR)(-1);
 			} else {
-				gcsbstarttbl[b+tmpsbs-1] = (INTPTR)(mem+size);
-			}
+				gcsbstarttbl[b+tmpsbs-1] = (INTPTR)(mem+isize);
+			}*/
 		}
+		*allocsize = isize;
+		freemem->ptr = ((void*)freemem->ptr) + isize;
+		freemem->size -= isize;
 	} else {
 #else
-	mem = mspace_calloc(bamboo_free_msp, 1, size);
-	*allocsize = size;
+	mem = mspace_calloc(bamboo_free_msp, 1, isize);
+	*allocsize = isize;
 	if(mem == NULL) {
 #endif
 		// no enough shared global memory
@@ -1933,6 +1944,7 @@ msg:
 		// large obj info here
 	  for(int k = 5; k < msgdata[1];) {
 			gc_lobjenqueue(msgdata[k++], msgdata[k++], cnum);
+			gcnumlobjs++;
 		} // for(int k = 5; k < msgdata[1];)
 		break;
 	}
@@ -2406,6 +2418,7 @@ newtask:
 	    }
 	    RUNFREE(currtpd->parameterArray);
 	    RUNFREE(currtpd);
+			currtpd = NULL;
 	    goto newtask;
 	  }
 	} // line2865
@@ -2442,6 +2455,7 @@ newtask:
 	    }
 	    RUNFREE(currtpd->parameterArray);
 	    RUNFREE(currtpd);
+			currtpd = NULL;
 #ifdef PROFILE
 #ifdef ACCURATEPROFILE
 	    // fail, set the end of the checkTaskInfo
@@ -2471,6 +2485,7 @@ parameterpresent:
 		}
 	    RUNFREE(currtpd->parameterArray);
 	    RUNFREE(currtpd);
+			currtpd = NULL;
 	    goto newtask;
 	  } // line2911: if (!containstag(parameter, tagd))
 	} // line 2808: for(j=0; j<pd->numbertags; j++)
@@ -2483,12 +2498,12 @@ parameterpresent:
       }
 
       {
+execute:
 	  /* Actually call task */
 #ifdef MULTICORE_GC
 	  ((int *)taskpointerarray)[0]=currtpd->numParameters;
 	  taskpointerarray[1]=NULL;
 #endif
-execute:
 #ifdef PROFILE
 #ifdef ACCURATEPROFILE
 	  // check finish, set the end of the checkTaskInfo
@@ -2548,6 +2563,7 @@ execute:
 	  // Free up task parameter descriptor
 	  RUNFREE(currtpd->parameterArray);
 	  RUNFREE(currtpd);
+		currtpd = NULL;
 #ifdef DEBUG
 	  BAMBOO_DEBUGPRINT(0xe99a);
 #endif

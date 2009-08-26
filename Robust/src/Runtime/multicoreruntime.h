@@ -204,7 +204,8 @@ struct Queue objqueue;
 // data structures for shared memory allocation
 #define BAMBOO_BASE_VA 0xd000000
 #ifdef GC_DEBUG
-#define BAMBOO_NUM_PAGES (1*(2+1))
+#include "structdefs.h"
+#define BAMBOO_NUM_PAGES (NUMCORES*(2+1))
 #define BAMBOO_PAGE_SIZE (16 * 16)
 #define BAMBOO_SMEM_SIZE (BAMBOO_PAGE_SIZE)
 #else
