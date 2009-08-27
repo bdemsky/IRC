@@ -27,7 +27,7 @@ void * mycalloc_share(struct garbagelist * stackptr,
 memalloc:
   BAMBOO_START_CRITICAL_SECTION_MEM();
   p = BAMBOO_SHARE_MEM_CALLOC_I(m, isize); // calloc(m, isize);
-#ifdef GC_DEBUG
+#ifdef DEBUG
 	tprintf("new obj in shared mem: %x, %x \n", p, isize);
 #endif
   if(p == NULL) {

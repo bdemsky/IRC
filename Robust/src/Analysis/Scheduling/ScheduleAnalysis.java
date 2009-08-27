@@ -394,7 +394,8 @@ public class ScheduleAnalysis {
                       (cdname.equals("Grid")) ||
                       (cdname.equals("Fractal")) ||
                       (cdname.equals("KMeans")) || 
-                      (cdname.equals("ZTransform"))) {
+                      (cdname.equals("ZTransform")) ||
+											(cdname.equals("TestRunner"))) {
                     newRate = this.coreNum;
                   } else if(cdname.equals("SentenceParser")) {
                     newRate = 4;

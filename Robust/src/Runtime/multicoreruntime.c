@@ -191,7 +191,7 @@ void CALL01(___System______printString____L___String___,struct ___String___ * __
 #ifdef MULTICORE_GC
 void * allocate_new(void * ptr, int type) {
   struct ___Object___ * v=(struct ___Object___ *)FREEMALLOC((struct garbagelist *) ptr, classsize[type]);
-#ifdef GC_DEBUG
+#ifdef DEBUG
 	tprintf("new object: %x \n", v);
 #endif
   v->type=type;
@@ -205,7 +205,7 @@ void * allocate_new(void * ptr, int type) {
 
 struct ArrayObject * allocate_newarray(void * ptr, int type, int length) {
   struct ArrayObject * v=(struct ArrayObject *)FREEMALLOC((struct garbagelist *) ptr, sizeof(struct ArrayObject)+length*classsize[type]);
-#ifdef GC_DEBUG
+#ifdef DEBUG
 	tprintf("new array object: %x \n", v);
 #endif
   v->type=type;

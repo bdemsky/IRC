@@ -73,6 +73,7 @@ bool gcismapped;
 //          moved or garbage collected.
 INTPTR * gcsbstarttbl;
 int gcreservedsb;  // number of reserved sblock for sbstarttbl
+int gcreservedb; // number of reserved block for sbstarttbl in this core
 
 #define ISSHAREDOBJ(p) \
 	(((p)>(BAMBOO_BASE_VA))&&((p)<((BAMBOO_BASE_VA)+(BAMBOO_SHARED_MEM_SIZE))))

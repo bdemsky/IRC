@@ -1195,15 +1195,6 @@ void * smemalloc(int size,
 			if((isize == BAMBOO_SMEM_SIZE) && (freemem->size >= isize + remain)) {
 				isize += remain;
 			}
-			/*int tmpsbs = 1+(isize-remain-1)/BAMBOO_SMEM_SIZE;
-			for(int k = 0; k < tmpsbs-1; k++) {
-				gcsbstarttbl[k+b] = (INTPTR)(-1);
-			}
-			if((isize-remain)%BAMBOO_SMEM_SIZE == 0) {
-				gcsbstarttbl[b+tmpsbs-1] = (INTPTR)(-1);
-			} else {
-				gcsbstarttbl[b+tmpsbs-1] = (INTPTR)(mem+isize);
-			}*/
 		}
 		*allocsize = isize;
 		freemem->ptr = ((void*)freemem->ptr) + isize;
@@ -1913,7 +1904,7 @@ msg:
 			BAMBOO_EXIT(0xb007);
 		} else {
 			gcmappedobj = msgdata[2];
-			RuntimeHashadd(gcpointertbl, gcobj2map, gcmappedobj);
+			RuntimeHashadd_I(gcpointertbl, gcobj2map, gcmappedobj);
 		}
 		gcismapped = true;
 		break;
@@ -1951,7 +1942,7 @@ msg:
 	
 	case GCLOBJMAPPING: {
 		// received a large obj mapping info msg
-		RuntimeHashadd(gcpointertbl, msgdata[1], msgdata[2]);
+		RuntimeHashadd_I(gcpointertbl, msgdata[1], msgdata[2]);
 		break;
 	}
 
