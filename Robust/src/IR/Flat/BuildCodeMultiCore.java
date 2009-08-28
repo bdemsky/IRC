@@ -638,7 +638,8 @@ public class BuildCodeMultiCore extends BuildCode {
        }*/
 
     /* Create queues to store objects need to be transferred to other cores and their destination*/
-    output.println("   struct Queue * totransobjqueue = createQueue();");
+    //output.println("   struct Queue * totransobjqueue = createQueue();");
+    output.println("   clearQueue(totransobjqueue);");
     output.println("   struct transObjInfo * tmpObjInfo = NULL;");
 
     this.m_aliasSets = null;
@@ -1321,7 +1322,7 @@ public class BuildCodeMultiCore extends BuildCode {
     output.println("   RUNFREE(totransobj->queues);");
     output.println("   RUNFREE(totransobj);");
     output.println("}");
-    output.println("freeQueue(totransobjqueue);");
+    //output.println("freeQueue(totransobjqueue);");
   }
 
   protected void outputAliasLockCode(FlatMethod fm, 

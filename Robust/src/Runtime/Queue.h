@@ -38,6 +38,8 @@ void * getItemBack(struct Queue * queue);
 void * peekItem(struct Queue * queue);
 void * peekItemBack(struct Queue * queue);
 
+void clearQueue(struct Queue * queue);
+
 
 // for debugging, only included if macro is defined
 #ifdef DEBUG_QUEUE

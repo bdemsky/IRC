@@ -53,22 +53,24 @@ volatile bool isMsgSending;
  *       e -- terminate
  *       f -- requiring for new memory
  *      10 -- response for new memory request
- *      11 -- GC start
- *      12 -- compact phase start
- *      13 -- flush phase start
- *      14 -- mark phase finish
- *      15 -- compact phase finish
- *      16 -- flush phase finish
- *      17 -- GC finish
- *      18 -- marked phase finish confirm request
- *      19 -- marked phase finish confirm response
- *      1a -- markedObj msg
- *      1b -- start moving objs msg
- *      1c -- ask for mapping info of a markedObj
- *      1d -- mapping info of a markedObj
- *      1e -- large objs info request
- *      1f -- large objs info response
- *      20 -- large objs mapping info
+ *      11 -- GC init phase start
+ *      12 -- GC start
+ *      13 -- compact phase start
+ *      14 -- flush phase start
+ *      15 -- init phase finish
+ *      16 -- mark phase finish
+ *      17 -- compact phase finish
+ *      18 -- flush phase finish
+ *      19 -- GC finish
+ *      1a -- marked phase finish confirm request
+ *      1b -- marked phase finish confirm response
+ *      1c -- markedObj msg
+ *      1d -- start moving objs msg
+ *      1e -- ask for mapping info of a markedObj
+ *      1f -- mapping info of a markedObj
+ *      20 -- large objs info request
+ *      21 -- large objs info response
+ *      22 -- large objs mapping info
  *
  * ObjMsg: 0 + size of msg + obj's address + (task index + param index)+
  * StallMsg: 1 + corenum + sendobjs + receiveobjs 
@@ -98,37 +100,39 @@ volatile bool isMsgSending;
  *              (size is always 3 * sizeof(int))
  *           10 + base_va + size 
  *              (size is always 3 * sizeof(int))
- * GCMsg: 11 (size is always 1 * sizeof(int))
- *        12 + size of msg + (num of objs to move + (start address 
+ * GCMsg: 11/12 (size is always 1 * sizeof(int))
+ *        13 + size of msg + (num of objs to move + (start address 
  *           + end address + dst core + start dst)+)? 
  *           + (num of incoming objs + (start dst + orig core)+)? 
  *           + (num of large obj lists + (start address + lenght 
  *           + start dst)+)?
- *        13 (size is always 1 * sizeof(int))
- *        14 + corenum + gcsendobjs + gcreceiveobjs 	
+ *        14 (size is always 1 * sizeof(int))
+ *        15 + corenum 
+ *           (size is always 2 * sizeof(int))
+ *        16 + corenum + gcsendobjs + gcreceiveobjs 	
  *           (size if always 4 * sizeof(int))
- *        15 + corenum + fulfilled blocks num + (finish compact(1) + current
+ *        17 + corenum + fulfilled blocks num + (finish compact(1) + current
  *           heap top)/(need mem(0) + mem need) 
  *           size is always 5 * sizeof(int))
- *        16 + corenum 
+ *        18 + corenum 
  *              (size is always 2 * sizeof(int))
- *        17 (size is always 1 * sizeof(int))
- *        18 (size if always 1 * sizeof(int))
- *        19 + size of msg + corenum + gcsendobjs + gcreceiveobjs 
+ *        19 (size is always 1 * sizeof(int))
+ *        1a (size if always 1 * sizeof(int))
+ *        1b + size of msg + corenum + gcsendobjs + gcreceiveobjs 
  *           (size is always 5 * sizeof(int))
- *        1a + obj's address 
+ *        1c + obj's address 
  *           (size is always 2 * sizeof(int))
- *        1b + corenum + start addr + end addr
+ *        1d + corenum + start addr + end addr
  *           (size if always 4 * sizeof(int))
- *        1c + obj's address + corenum 
+ *        1e + obj's address + corenum 
  *           (size is always 3 * sizeof(int))
- *        1d + obj's address + dst address 
+ *        1f + obj's address + dst address 
  *           (size if always 3 * sizeof(int))
- *        1e (size is always 1 * sizeof(int))
- *        1f + size of msg + corenum + current heap size 
+ *        20 (size is always 1 * sizeof(int))
+ *        21 + size of msg + corenum + current heap size 
  *           + (num of large obj lists + (start address + length)+)?
- *        20 + orig large obj ptr + new large obj ptr 
-*            (size is always 3 * sizeof(int))
+ *        22 + orig large obj ptr + new large obj ptr 
+ *            (size is always 3 * sizeof(int))
  */
 typedef enum {
 	TRANSOBJ = 0x0,  // 0x0
@@ -149,22 +153,24 @@ typedef enum {
 	MEMREQUEST,      // 0xf
 	MEMRESPONSE,     // 0x10
 #ifdef MULTICORE_GC
-	GCSTART,         // 0x11
-	GCSTARTCOMPACT,  // 0x12
-	GCSTARTFLUSH,    // 0x13
-	GCFINISHMARK,    // 0x14
-	GCFINISHCOMPACT, // 0x15
-	GCFINISHFLUSH,   // 0x16
-	GCFINISH,        // 0x17
-	GCMARKCONFIRM,   // 0x18
-	GCMARKREPORT,    // 0x19
-	GCMARKEDOBJ,     // 0x1a
-	GCMOVESTART,     // 0x1b
-	GCMAPREQUEST,    // 0x1c
-	GCMAPINFO,       // 0x1d
-	GCLOBJREQUEST,   // 0x1e
-	GCLOBJINFO,      // 0x1f
-	GCLOBJMAPPING,   // 0x20
+	GCSTARTINIT,     // 0x11
+	GCSTART,         // 0x12
+	GCSTARTCOMPACT,  // 0x13
+	GCSTARTFLUSH,    // 0x14
+	GCFINISHINIT,    // 0x15
+	GCFINISHMARK,    // 0x16
+	GCFINISHCOMPACT, // 0x17
+	GCFINISHFLUSH,   // 0x18
+	GCFINISH,        // 0x19
+	GCMARKCONFIRM,   // 0x1a
+	GCMARKREPORT,    // 0x1b
+	GCMARKEDOBJ,     // 0x1c
+	GCMOVESTART,     // 0x1d
+	GCMAPREQUEST,    // 0x1e
+	GCMAPINFO,       // 0x1f
+	GCLOBJREQUEST,   // 0x20
+	GCLOBJINFO,      // 0x21
+	GCLOBJMAPPING,   // 0x22
 #endif
 	MSGEND
 } MSGTYPE;
@@ -200,12 +206,14 @@ bool lockflag;
 
 // data structures for waiting objs
 struct Queue objqueue;
+struct Queue * totransobjqueue; // queue to hold objs to be transferred
+                                // should be cleared whenever enter a task
 
 // data structures for shared memory allocation
 #define BAMBOO_BASE_VA 0xd000000
 #ifdef GC_DEBUG
 #include "structdefs.h"
-#define BAMBOO_NUM_PAGES (NUMCORES*(2+1))
+#define BAMBOO_NUM_PAGES (NUMCORES*(1+1))
 #define BAMBOO_PAGE_SIZE (16 * 16)
 #define BAMBOO_SMEM_SIZE (BAMBOO_PAGE_SIZE)
 #else
@@ -318,7 +326,7 @@ inline int processlockrequest(int locktype,
 inline void processlockrelease(int locktype, 
 		                           int lock, 
 															 int redirectlock, 
-															 bool isredirect) __attribute__((always_inline));
+															 bool redirect)__attribute__((always_inline));
 
 // msg related functions
 inline void send_hanging_msg() __attribute__((always_inline));

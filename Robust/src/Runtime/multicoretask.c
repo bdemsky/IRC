@@ -71,6 +71,7 @@ void initruntimedata() {
   smemflag = true;
   bamboo_cur_msp = NULL;
   bamboo_smem_size = 0;
+	totransobjqueue = createQueue();
 
 #ifdef MULTICORE_GC
 	gcflag = false;
@@ -1688,6 +1689,18 @@ msg:
 
 #ifdef MULTICORE_GC
 	// GC msgs
+	case GCSTARTINIT: {
+		gcflag = true;
+		if(!smemflag) {
+			// is waiting for response of mem request
+			// let it return NULL and start gc
+			bamboo_smem_size = 0;
+			bamboo_cur_msp = NULL;
+			smemflag = true;
+		}
+	  break;
+	}
+
 	case GCSTART: {
 		// receive a start GC msg
 #ifdef DEBUG
@@ -1696,15 +1709,7 @@ msg:
 #endif
 #endif
 	  // set the GC flag
-		gcflag = true;
 		gcphase = MARKPHASE;
-		if(!smemflag) {
-			// is waiting for response of mem request
-			// let it return NULL and start gc
-			bamboo_smem_size = 0;
-			bamboo_cur_msp = NULL;
-			smemflag = true;
-		}
 	  break;
 	}
 
@@ -1720,6 +1725,20 @@ msg:
 		gcphase = FLUSHPHASE;
 		break;
 	}
+	
+	case GCFINISHINIT: {
+		// received a init phase finish msg
+		if(BAMBOO_NUM_OF_CORE != STARTUPCORE) {
+		  // non startup core can not receive this msg
+#ifndef TILERA
+		  BAMBOO_DEBUGPRINT_REG(msgdata[1]);
+#endif
+		  BAMBOO_EXIT(0xb001);
+		} 
+		if(msgdata[1] < NUMCORES) {
+			gccorestatus[msgdata[1]] = 0;
+		}
+	}
 
 	case GCFINISHMARK: {
 		// received a mark phase finish msg
@@ -1728,7 +1747,7 @@ msg:
 #ifndef TILERA
 		  BAMBOO_DEBUGPRINT_REG(msgdata[1]);
 #endif
-		  BAMBOO_EXIT(0xb001);
+		  BAMBOO_EXIT(0xb002);
 		} 
 		if(msgdata[1] < NUMCORES) {
 			gccorestatus[msgdata[1]] = 0;
@@ -1746,7 +1765,7 @@ msg:
 #ifndef TILERA
 		  BAMBOO_DEBUGPRINT_REG(msgdata[1]);
 #endif
-		  BAMBOO_EXIT(0xb002);
+		  BAMBOO_EXIT(0xb003);
 		}
 		int cnum = msgdata[1];
 		int filledblocks = msgdata[2];
@@ -1762,8 +1781,12 @@ msg:
 				int startaddr = 0;
 				int tomove = 0;
 				int dstcore = 0;
-				if(gcfindSpareMem(&startaddr, &tomove, &dstcore, data4, cnum)) {
-					send_msg_4(cnum, GCMOVESTART, dstcore, startaddr, tomove);
+				if(gcfindSpareMem_I(&startaddr, &tomove, &dstcore, data4, cnum)) {
+					if(isMsgSending) {
+						cache_msg_4(cnum, GCMOVESTART, dstcore, startaddr, tomove);
+					} else {
+						send_msg_4(cnum, GCMOVESTART, dstcore, startaddr, tomove);
+					}
 				}
 			} else {
 				gccorestatus[cnum] = 0;
@@ -1779,17 +1802,21 @@ msg:
 						// find match
 						int tomove = 0;
 						int startaddr = 0;
-						gcrequiredmems[j] = assignSpareMem(cnum, 
-																							 gcrequiredmems[j], 
-																							 &tomove, 
-																							 &startaddr);
+						gcrequiredmems[j] = assignSpareMem_I(cnum, 
+																							   gcrequiredmems[j], 
+																							   &tomove, 
+																							   &startaddr);
 						if(STARTUPCORE == j) {
 							gcdstcore = cnum;
 							gctomove = true;
 							gcmovestartaddr = startaddr;
 							gcblock2fill = tomove;
 						} else {
-							send_msg_4(j, GCMOVESTART, cnum, startaddr, tomove);
+							if(isMsgSending) {
+								cache_msg_4(j, GCMOVESTART, cnum, startaddr, tomove);
+							} else {
+								send_msg_4(j, GCMOVESTART, cnum, startaddr, tomove);
+							}
 						} // if(STARTUPCORE == j)
 						if(gcrequiredmems[j] == 0) {
 							gcmovepending--;
@@ -1809,7 +1836,7 @@ msg:
 #ifndef TILERA
 		  BAMBOO_DEBUGPRINT_REG(msgdata[1]);
 #endif
-		  BAMBOO_EXIT(0xb003);
+		  BAMBOO_EXIT(0xb004);
 		} 
 		if(msgdata[1] < NUMCORES) {
 		  gccorestatus[msgdata[1]] = 0;
@@ -1828,7 +1855,7 @@ msg:
 		if((BAMBOO_NUM_OF_CORE == STARTUPCORE) 
 				|| (BAMBOO_NUM_OF_CORE > NUMCORES - 1)) {
 		  // wrong core to receive such msg
-		  BAMBOO_EXIT(0xb004);
+		  BAMBOO_EXIT(0xb005);
 		} else {
 		  // send response msg
 		  if(isMsgSending) {
@@ -1850,7 +1877,7 @@ msg:
 #ifndef TILERA
 		  BAMBOO_DEBUGPRINT_REG(msgdata[2]);
 #endif
-		  BAMBOO_EXIT(0xb005);
+		  BAMBOO_EXIT(0xb006);
 		} else {
 		  if(waitconfirm) {
 			  numconfirm--;
@@ -1864,7 +1891,7 @@ msg:
 
 	case GCMARKEDOBJ: {
 		// received a markedObj msg
-		gc_enqueue(msgdata[1]);
+		gc_enqueue_I(msgdata[1]);
 		gcself_numreceiveobjs++;
 		gcbusystatus = true;
 		break;
@@ -1885,7 +1912,7 @@ msg:
 		RuntimeHashget(gcpointertbl, msgdata[1], &dstptr);
 		if(NULL == dstptr) {
 			// no such pointer in this core, something is wrong
-			BAMBOO_EXIT(0xb006);
+			BAMBOO_EXIT(0xb007);
 		} else {
 			// send back the mapping info
 			if(isMsgSending) {
@@ -1901,7 +1928,7 @@ msg:
 		// received a mapping info response msg
 		if(msgdata[1] != gcobj2map) {
 			// obj not matched, something is wrong
-			BAMBOO_EXIT(0xb007);
+			BAMBOO_EXIT(0xb008);
 		} else {
 			gcmappedobj = msgdata[2];
 			RuntimeHashadd_I(gcpointertbl, gcobj2map, gcmappedobj);
@@ -1912,7 +1939,7 @@ msg:
 
 	case GCLOBJREQUEST: {
 		// received a large objs info request msg
-		transferMarkResults();
+		transferMarkResults_I();
 		break;
 	}
 
@@ -1924,7 +1951,7 @@ msg:
 #ifndef TILERA
 			BAMBOO_DEBUGPRINT_REG(msgdata[2]);
 #endif
-			BAMBOO_EXIT(0xb008);
+			BAMBOO_EXIT(0xb009);
 		} 
 		// store the mark result info 
 		int cnum = msgdata[2];
@@ -1934,7 +1961,7 @@ msg:
 		}
 		// large obj info here
 	  for(int k = 5; k < msgdata[1];) {
-			gc_lobjenqueue(msgdata[k++], msgdata[k++], cnum);
+			gc_lobjenqueue_I(msgdata[k++], msgdata[k++], cnum);
 			gcnumlobjs++;
 		} // for(int k = 5; k < msgdata[1];)
 		break;

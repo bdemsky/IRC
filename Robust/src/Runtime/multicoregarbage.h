@@ -9,7 +9,7 @@
 
 // data structures for GC
 #ifdef GC_DEBUG
-#define BAMBOO_SMEM_SIZE_L (2 * BAMBOO_SMEM_SIZE)
+#define BAMBOO_SMEM_SIZE_L (BAMBOO_SMEM_SIZE)
 #else
 #define BAMBOO_SMEM_SIZE_L (32 * BAMBOO_SMEM_SIZE)
 #endif
@@ -73,17 +73,17 @@ bool gcismapped;
 //          moved or garbage collected.
 INTPTR * gcsbstarttbl;
 int gcreservedsb;  // number of reserved sblock for sbstarttbl
-int gcreservedb; // number of reserved block for sbstarttbl in this core
+int gcbaseva; // base va for shared memory without reserved sblocks
 
 #define ISSHAREDOBJ(p) \
-	(((p)>(BAMBOO_BASE_VA))&&((p)<((BAMBOO_BASE_VA)+(BAMBOO_SHARED_MEM_SIZE))))
+	(((p)>gcbaseva)&&((p)<(gcbaseva+(BAMBOO_SHARED_MEM_SIZE))))
 
 #define ALIGNSIZE(s, as) \
 	(*((int*)as)) = (((s) & (~(BAMBOO_CACHE_LINE_MASK))) + (BAMBOO_CACHE_LINE_SIZE))
 
 #define BLOCKINDEX(p, b) \
   { \
-		int t = (p) - (BAMBOO_BASE_VA); \
+		int t = (p) - gcbaseva; \
 		if(t < (BAMBOO_LARGE_SMEM_BOUND)) { \
 			(*((int*)b)) = t / (BAMBOO_SMEM_SIZE_L); \
 		} else { \
@@ -109,7 +109,7 @@ int gcreservedb; // number of reserved block for sbstarttbl in this core
 						l += 2; \
 					} \
 				} \
-				(*((int*)y)) = bamboo_width - 1 - l / bamboo_width; \
+				(*((int*)y)) = bamboo_height - 1 - (l / bamboo_width); \
 			} else { \
 				if(62 == (NUMCORES)) {\
 					if(l > 54) { \
@@ -120,18 +120,10 @@ int gcreservedb; // number of reserved block for sbstarttbl in this core
 				} \
 				(*((int*)y)) = l / bamboo_width; \
 			} \
-			if((NUMCORES) % 2) { \
-				if((l/bamboo_width)%2) { \
-					(*((int*)x)) = l % bamboo_width; \
-				} else { \
-					(*((int*)x)) = bamboo_width - 1 - l % bamboo_width; \
-				} \
-			} else {\
-				if((l/bamboo_width)%2) { \
-					(*((int*)x)) = bamboo_width - 1 - l % bamboo_width; \
-				} else { \
-					(*((int*)x)) = l % bamboo_width; \
-				} \
+			if(((!reverse)&&(*((int*)y))%2) || ((reverse)&&((*((int*)y))%2==0))){ \
+				(*((int*)x)) = bamboo_width - 1 - (l % bamboo_width); \
+			} else { \
+				(*((int*)x)) = (l % bamboo_width); \
 			} \
 		} \
 	}
@@ -199,18 +191,18 @@ int gcreservedb; // number of reserved block for sbstarttbl in this core
 		int b; \
 		BLOCKINDEX2(c, n, &b); \
 		if(b < (NUMCORES)) { \
-			(*((int*)p)) = (BAMBOO_BASE_VA) + b * (BAMBOO_SMEM_SIZE_L); \
+			(*((int*)p)) = gcbaseva + b * (BAMBOO_SMEM_SIZE_L); \
 		} else { \
-			(*((int*)p)) = (BAMBOO_BASE_VA)+(BAMBOO_LARGE_SMEM_BOUND)+(b-(NUMCORES))*(BAMBOO_SMEM_SIZE); \
+			(*((int*)p)) = gcbaseva+(BAMBOO_LARGE_SMEM_BOUND)+(b-(NUMCORES))*(BAMBOO_SMEM_SIZE); \
 		} \
 	}
 
 inline void gc(struct garbagelist * stackptr); // core coordinator routine
 inline void gc_collect(struct garbagelist* stackptr);//core collector routine
-inline void transferMarkResults();
-inline void gc_enqueue(void *ptr);
-inline void gc_lobjenqueue(void *ptr, int length, int host);
-inline bool gcfindSpareMem(int * startaddr, 
+inline void transferMarkResults_I();
+inline void gc_enqueue_I(void *ptr);
+inline void gc_lobjenqueue_I(void *ptr, int length, int host);
+inline bool gcfindSpareMem_I(int * startaddr, 
 		                       int * tomove,
 								  				 int * dstcore,
 									  			 int requiredmem,

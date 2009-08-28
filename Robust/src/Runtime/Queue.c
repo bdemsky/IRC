@@ -150,6 +150,17 @@ void * peekItemBack(struct Queue * queue) {
   return ptr;
 }
 
+void clearQueue(struct Queue * queue) {
+	struct QueueItem * item=queue->head;
+  while(item!=NULL) {
+		struct QueueItem * next=item->next;
+		RUNFREE(item);
+    item=next;
+  }
+	queue->head=queue->tail=NULL;
+  return NULL;
+}
+
 #ifdef DEBUG_QUEUE
 int assertQueue(struct Queue * queue) {
 
