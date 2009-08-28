@@ -24,3 +24,5 @@ clean:
 	rm -f  *.dot
 	rm -f  *.png
 	rm -f  aliases.txt
+	rm -f  mlpReport*txt
+	rm -f  results*txt

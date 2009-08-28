@@ -18,7 +18,6 @@ public class MLPAnalysis {
   private OwnershipAnalysis ownAnalysis;
 
 
-
   // an implicit SESE is automatically spliced into
   // the IR graph around the C main before this analysis--it
   // is nothing special except that we can make assumptions
@@ -31,7 +30,8 @@ public class MLPAnalysis {
   // will fit into the runtime tree of SESEs
   private Set<FlatSESEEnterNode> rootSESEs;
 
-  // simply a set of every reachable SESE in the program
+  // simply a set of every reachable SESE in the program, not
+  // including caller placeholder SESEs
   private Set<FlatSESEEnterNode> allSESEs;
 
 
@@ -102,17 +102,13 @@ public class MLPAnalysis {
     wdvNodesToSpliceIn   = new Hashtable< FlatEdge, FlatWriteDynamicVarNode  >();
 
 
-    FlatMethod fmMain = state.getMethodFlat( tu.getMain() );
+    FlatMethod fmMain = state.getMethodFlat( typeUtil.getMain() );
 
     mainSESE = (FlatSESEEnterNode) fmMain.getNext(0);    
     mainSESE.setfmEnclosing( fmMain );
     mainSESE.setmdEnclosing( fmMain.getMethod() );
     mainSESE.setcdEnclosing( fmMain.getMethod().getClassDesc() );
 
-
-    if( state.MLPDEBUG ) {      
-      System.out.println( "" );
-    }
 
     // 1st pass
     // run analysis on each method that is actually called
@@ -126,9 +122,6 @@ public class MLPAnalysis {
       // and organize them into roots and children
       buildForestForward( fm );
     }
-    if( state.MLPDEBUG ) {      
-      System.out.println( "\nSESE Hierarchy\n--------------\n" ); printSESEHierarchy();
-    }
 
 
     // 2nd pass, results are saved in FlatSESEEnterNode, so
@@ -138,8 +131,7 @@ public class MLPAnalysis {
       FlatSESEEnterNode root = rootItr.next();
       livenessAnalysisBackward( root, 
                                 true, 
-                                null, 
-                                root.getfmEnclosing().getFlatExit() );
+                                null );
     }
 
 
@@ -162,12 +154,7 @@ public class MLPAnalysis {
       FlatSESEEnterNode root = rootItr.next();
       livenessAnalysisBackward( root, 
                                 true, 
-                                null, 
-                                root.getfmEnclosing().getFlatExit() );
-    }
-    if( state.MLPDEBUG ) {      
-      //System.out.println( "\nLive-In, SESE View\n-------------\n" ); printSESELiveness();
-      //System.out.println( "\nLive-In, Root View\n------------------\n"+fmMain.printMethod( livenessRootView ) );
+                                null );
     }
 
 
@@ -181,9 +168,6 @@ public class MLPAnalysis {
       // by removing reference variables that are not live
       pruneVariableResultsWithLiveness( fm );
     }
-    if( state.MLPDEBUG ) {      
-      System.out.println( "\nVariable Results-Out\n----------------\n"+fmMain.printMethod( variableResults ) );
-    }
     
 
     // 6th pass
@@ -196,9 +180,6 @@ public class MLPAnalysis {
       // point, in a forward fixed-point pass
       notAvailableForward( fm );
     }
-    if( state.MLPDEBUG ) {      
-      //System.out.println( "\nNot Available Results-Out\n---------------------\n"+fmMain.printMethod( notAvailableResults ) );
-    }
 
 
     // 7th pass
@@ -210,9 +191,7 @@ public class MLPAnalysis {
       // compute a plan for code injections
       codePlansForward( fm );
     }
-    if( state.MLPDEBUG ) {
-      System.out.println( "\nCode Plans\n----------\n"+fmMain.printMethod( codePlans ) );
-    }
+
 
     // splice new IR nodes into graph after all
     // analysis passes are complete
@@ -223,15 +202,17 @@ public class MLPAnalysis {
       fwdvn.spliceIntoIR();
     }
 
-    // detailed per-SESE information
-    if( state.MLPDEBUG ) {
-      System.out.println( "\nSESE info\n-------------\n" ); printSESEInfo();
-    }
 
     double timeEndAnalysis = (double) System.nanoTime();
     double dt = (timeEndAnalysis - timeStartAnalysis)/(Math.pow( 10.0, 9.0 ) );
     String treport = String.format( "The mlp analysis took %.3f sec.", dt );
     System.out.println( treport );
+
+    if( state.MLPDEBUG ) {      
+      try {
+	writeReports( treport );
+      } catch( IOException e ) {}
+    }
   }
 
 
@@ -281,7 +262,10 @@ public class MLPAnalysis {
     case FKind.FlatSESEEnterNode: {
       FlatSESEEnterNode fsen = (FlatSESEEnterNode) fn;
 
-      allSESEs.add( fsen );
+      if( !fsen.getIsCallerSESEplaceholder() ) {
+	allSESEs.add( fsen );
+      }
+
       fsen.setfmEnclosing( fm );
       fsen.setmdEnclosing( fm.getMethod() );
       fsen.setcdEnclosing( fm.getMethod().getClassDesc() );
@@ -305,7 +289,9 @@ public class MLPAnalysis {
 
     case FKind.FlatReturnNode: {
       FlatReturnNode frn = (FlatReturnNode) fn;
-      if( !seseStack.empty() ) {
+      if( !seseStack.empty() &&
+	  !seseStack.peek().getIsCallerSESEplaceholder() 
+	) {
 	throw new Error( "Error: return statement enclosed within SESE "+
 			 seseStack.peek().getPrettyIdentifier() );
       }
@@ -314,33 +300,10 @@ public class MLPAnalysis {
     }
   }
 
-  private void printSESEHierarchy() {
-    Iterator<FlatSESEEnterNode> rootItr = rootSESEs.iterator();
-    while( rootItr.hasNext() ) {
-      FlatSESEEnterNode root = rootItr.next();
-      printSESEHierarchyTree( root, 0 );
-    }
-    System.out.println( "" );
-  }
-
-  private void printSESEHierarchyTree( FlatSESEEnterNode fsen, int depth ) {
-    for( int i = 0; i < depth; ++i ) {
-      System.out.print( "  " );
-    }
-    System.out.println( "- "+fsen.getPrettyIdentifier() );
-
-    Iterator<FlatSESEEnterNode> childItr = fsen.getChildren().iterator();
-    while( childItr.hasNext() ) {
-      FlatSESEEnterNode fsenChild = childItr.next();
-      printSESEHierarchyTree( fsenChild, depth + 1 );
-    }
-  }
-
 
   private void livenessAnalysisBackward( FlatSESEEnterNode fsen, 
                                          boolean toplevel, 
-                                         Hashtable< FlatSESEExitNode, Set<TempDescriptor> > liveout, 
-                                         FlatExit fexit ) {
+                                         Hashtable< FlatSESEExitNode, Set<TempDescriptor> > liveout ) {
 
     // start from an SESE exit, visit nodes in reverse up to
     // SESE enter in a fixed-point scheme, where children SESEs
@@ -348,17 +311,19 @@ public class MLPAnalysis {
     // because child SESE enter node has all necessary info
     Set<FlatNode> flatNodesToVisit = new HashSet<FlatNode>();
 
-    FlatSESEExitNode fsexn = fsen.getFlatExit();
-    if (toplevel) {
-	//handle root SESE
-	flatNodesToVisit.add( fexit );
-    } else
-	flatNodesToVisit.add( fsexn );
-    Hashtable<FlatNode, Set<TempDescriptor>> livenessResults=new Hashtable<FlatNode, Set<TempDescriptor>>();
+    if( toplevel ) {
+      flatNodesToVisit.add( fsen.getfmEnclosing().getFlatExit() );
+    } else {
+      flatNodesToVisit.add( fsen.getFlatExit() );
+    }
 
-    if (toplevel==true)
-	liveout=new Hashtable<FlatSESEExitNode, Set<TempDescriptor>>();
-    
+    Hashtable<FlatNode, Set<TempDescriptor>> livenessResults = 
+      new Hashtable< FlatNode, Set<TempDescriptor> >();
+
+    if( toplevel ) {
+      liveout = new Hashtable< FlatSESEExitNode, Set<TempDescriptor> >();
+    }
+
     while( !flatNodesToVisit.isEmpty() ) {
       FlatNode fn = (FlatNode) flatNodesToVisit.iterator().next();
       flatNodesToVisit.remove( fn );      
@@ -398,7 +363,7 @@ public class MLPAnalysis {
     
     // remember liveness per node from the root view as the
     // global liveness of variables for later passes to use
-    if( toplevel == true ) {
+    if( toplevel ) {
       livenessRootView.putAll( livenessResults );
     }
 
@@ -406,7 +371,7 @@ public class MLPAnalysis {
     Iterator<FlatSESEEnterNode> childItr = fsen.getChildren().iterator();
     while( childItr.hasNext() ) {
       FlatSESEEnterNode fsenChild = childItr.next();
-      livenessAnalysisBackward( fsenChild, false, liveout, null );
+      livenessAnalysisBackward( fsenChild, false, liveout );
     }
   }
 
@@ -414,17 +379,17 @@ public class MLPAnalysis {
                                                     Set<TempDescriptor> liveIn,
                                                     FlatSESEEnterNode currentSESE,
 						    boolean toplevel,
-						    Hashtable< FlatSESEExitNode, Set<TempDescriptor> > liveout ) {
-
+						    Hashtable< FlatSESEExitNode, Set<TempDescriptor> > liveout 
+						  ) {
     switch( fn.kind() ) {
-
+      
     case FKind.FlatSESEExitNode:
-      if (toplevel==true) {
-	  FlatSESEExitNode exitn=(FlatSESEExitNode) fn;
-	//update liveout set for FlatSESEExitNode
-	  if (!liveout.containsKey(exitn))
-	    liveout.put(exitn, new HashSet<TempDescriptor>());
-	  liveout.get(exitn).addAll(liveIn);
+      if( toplevel ) {
+	FlatSESEExitNode fsexn = (FlatSESEExitNode) fn;
+	if( !liveout.containsKey( fsexn ) ) {
+	  liveout.put( fsexn, new HashSet<TempDescriptor>() );
+	}
+	liveout.get( fsexn ).addAll( liveIn );
       }
       // no break, sese exits should also execute default actions
       
@@ -433,15 +398,16 @@ public class MLPAnalysis {
       TempDescriptor [] writeTemps = fn.writesTemps();
       for( int i = 0; i < writeTemps.length; ++i ) {
 	liveIn.remove( writeTemps[i] );
-
-	if (!toplevel) {
-          FlatSESEExitNode exitnode=currentSESE.getFlatExit();
-          Set<TempDescriptor> livetemps=liveout.get(exitnode);
-          if (livetemps.contains(writeTemps[i])) {
-            //write to a live out temp...
-            //need to put in SESE liveout set
-            currentSESE.addOutVar(writeTemps[i]);
-          }
+	
+	if( !toplevel ) {
+	  FlatSESEExitNode fsexn = currentSESE.getFlatExit();
+	  Set<TempDescriptor> livetemps = liveout.get( fsexn );
+	  if( livetemps != null &&
+	      livetemps.contains( writeTemps[i] ) ) {
+	    // write to a live out temp...
+	    // need to put in SESE liveout set
+	    currentSESE.addOutVar( writeTemps[i] );
+	  }	
 	}
       }
 
@@ -449,15 +415,12 @@ public class MLPAnalysis {
       for( int i = 0; i < readTemps.length; ++i ) {
 	liveIn.add( readTemps[i] );
       }
-
+      
       Set<TempDescriptor> virtualReadTemps = livenessVirtualReads.get( fn );
       if( virtualReadTemps != null ) {
-	Iterator<TempDescriptor> vrItr = virtualReadTemps.iterator();
-	while( vrItr.hasNext() ) {
-          TempDescriptor vrt = vrItr.next();
-	  liveIn.add( vrt );
-	}
-      }
+	liveIn.addAll( virtualReadTemps );
+      }     
+      
     } break;
 
     } // end switch
@@ -465,87 +428,9 @@ public class MLPAnalysis {
     return liveIn;
   }
 
-  private void printSESELiveness() {
-    Iterator<FlatSESEEnterNode> rootItr = rootSESEs.iterator();
-    while( rootItr.hasNext() ) {
-      FlatSESEEnterNode root = rootItr.next();
-      printSESELivenessTree( root );
-    }
-    System.out.println( "" );
-  }
-
-  private void printSESELivenessTree( FlatSESEEnterNode fsen ) {
-
-    System.out.println( "SESE "+fsen.getPrettyIdentifier()+" has in-set:" );
-    Iterator<TempDescriptor> tItr = fsen.getInVarSet().iterator();
-    while( tItr.hasNext() ) {
-      System.out.println( "  "+tItr.next() );
-    }
-    System.out.println( "and out-set:" );
-    tItr = fsen.getOutVarSet().iterator();
-    while( tItr.hasNext() ) {
-      System.out.println( "  "+tItr.next() );
-    }
-    System.out.println( "" );
-
-
-    Iterator<FlatSESEEnterNode> childItr = fsen.getChildren().iterator();
-    while( childItr.hasNext() ) {
-      FlatSESEEnterNode fsenChild = childItr.next();
-      printSESELivenessTree( fsenChild );
-    }
-  }
-  
-  private void printSESEInfo() {
-    Iterator<FlatSESEEnterNode> rootItr = rootSESEs.iterator();
-    while( rootItr.hasNext() ) {
-      FlatSESEEnterNode root = rootItr.next();
-      printSESEInfoTree( root );
-    }
-    System.out.println( "" );
-  }
-
-  private void printSESEInfoTree( FlatSESEEnterNode fsen ) {
-
-    System.out.println( "SESE "+fsen.getPrettyIdentifier()+" {" );
-
-    System.out.println( "  in-set: "+fsen.getInVarSet() );
-    Iterator<TempDescriptor> tItr = fsen.getInVarSet().iterator();
-    while( tItr.hasNext() ) {
-      TempDescriptor inVar = tItr.next();
-      if( fsen.getReadyInVarSet().contains( inVar ) ) {
-	System.out.println( "    (ready)  "+inVar );
-      }
-      if( fsen.getStaticInVarSet().contains( inVar ) ) {
-	System.out.println( "    (static) "+inVar );
-      } 
-      if( fsen.getDynamicInVarSet().contains( inVar ) ) {
-	System.out.println( "    (dynamic)"+inVar );
-      }
-    }
-
-    System.out.println( "  out-set: "+fsen.getOutVarSet() );
-
-    /*
-    System.out.println( "  static names to track:" );
-    tItr = fsen.getOutVarSet().iterator();
-    while( tItr.hasNext() ) {
-      System.out.println( "    "+tItr.next() );
-    }
-    */
-
-    System.out.println( "}" );
-
-    Iterator<FlatSESEEnterNode> childItr = fsen.getChildren().iterator();
-    while( childItr.hasNext() ) {
-      FlatSESEEnterNode fsenChild = childItr.next();
-      printSESEInfoTree( fsenChild );
-    }
-  }
-
 
   private void variableAnalysisForward( FlatMethod fm ) {
-
+    
     Set<FlatNode> flatNodesToVisit = new HashSet<FlatNode>();
     flatNodesToVisit.add( fm );	 
 
@@ -593,9 +478,6 @@ public class MLPAnalysis {
 
       vstTable.age( currentSESE );
       vstTable.assertConsistency();
-
-      //vstTable.ownInSet( currentSESE );
-      //vstTable.assertConsistency();
     } break;
 
     case FKind.FlatSESEExitNode: {
@@ -605,18 +487,17 @@ public class MLPAnalysis {
 
       vstTable.remapChildTokens( fsen );
       
-      // liveness virtual reads are things written by an SESE
-      // that, if not already, should be added to the in-set
-      Set<TempDescriptor> liveIn       = currentSESE.getInVarSet();
-      Set<TempDescriptor> virLiveIn    = vstTable.removeParentAndSiblingTokens( fsen, liveIn );
-      virLiveIn.addAll( fsen.getOutVarSet() );
-      Set<TempDescriptor> virLiveInOld = livenessVirtualReads.get( fn );
-      if( virLiveInOld != null ) {
-        virLiveIn.addAll( virLiveInOld );
+      // liveness virtual reads are things that might be 
+      // written by an SESE and should be added to the in-set
+      // anything virtually read by this SESE should be pruned
+      // of parent or sibling sources
+      Set<TempDescriptor> liveVars         = livenessRootView.get( fn );
+      Set<TempDescriptor> fsenVirtReads    = vstTable.calcVirtReadsAndPruneParentAndSiblingTokens( fsen, liveVars );
+      Set<TempDescriptor> fsenVirtReadsOld = livenessVirtualReads.get( fn );
+      if( fsenVirtReadsOld != null ) {
+        fsenVirtReads.addAll( fsenVirtReadsOld );
       }
-      livenessVirtualReads.put( fn, virLiveIn );
-      
-      vstTable.assertConsistency();      
+      livenessVirtualReads.put( fn, fsenVirtReads );
 
 
       // then all child out-set tokens are guaranteed
@@ -658,12 +539,23 @@ public class MLPAnalysis {
           HashSet<TempDescriptor> ts = new HashSet<TempDescriptor>();
           ts.add( lhs );
 
-          forAddition.add( new VariableSourceToken( ts,
-                                                    vst.getSESE(),
-                                                    vst.getAge(),
-                                                    vst.getAddrVar()
-                                                    )
-                           );
+	  if( currentSESE.getChildren().contains( vst.getSESE() ) ) {
+	    // if the source comes from a child, copy it over
+	    forAddition.add( new VariableSourceToken( ts,
+						      vst.getSESE(),
+						      vst.getAge(),
+						      vst.getAddrVar()
+						      )
+			     );
+	  } else {
+	    // otherwise, stamp it as us as the source
+	    forAddition.add( new VariableSourceToken( ts,
+						      currentSESE,
+						      new Integer( 0 ),
+						      lhs
+						      )
+			     );
+	  }
 	}
 
         vstTable.addAll( forAddition );
@@ -691,7 +583,6 @@ public class MLPAnalysis {
                  fn.kind() == FKind.FlatMethod;
           break;
         }
-
 
 	vstTable.remove( writeTemps[0] );
 
@@ -805,28 +696,12 @@ public class MLPAnalysis {
       FlatSESEExitNode  fsexn = (FlatSESEExitNode)  fn;
       FlatSESEEnterNode fsen  = fsexn.getFlatEnter();
       assert currentSESE.getChildren().contains( fsen );
-
-      Set<TempDescriptor> liveTemps = livenessRootView.get( fn );
-      assert liveTemps != null;
-
-      notAvailSet.addAll( liveTemps );
+      notAvailSet.addAll( fsen.getOutVarSet() );
     } break;
 
     case FKind.FlatMethod: {
       notAvailSet.clear();
     }
-
-      /*
-    case FKind.FlatCall: {
-      FlatCall         fc = (FlatCall) fn;
-      MethodDescriptor md = fc.getMethod();
-      FlatMethod       fm = state.getMethodFlat( md );
-      for( int i = 0; i < fm.numParameters(); ++i ) {
-	TempDescriptor param = fm.getParameter( i );
-	notAvailSet.remove( param );
-      }
-    } break;
-      */
 
     case FKind.FlatOpNode: {
       FlatOpNode fon = (FlatOpNode) fn;
@@ -1066,8 +941,8 @@ public class MLPAnalysis {
 	// check the source type of this variable
 	Integer srcType 
 	  = vstTableIn.getRefVarSrcType( readtmp,
-				       currentSESE,
-				       currentSESE.getParent() );
+					 currentSESE,
+					 currentSESE.getParent() );
 
 	if( srcType.equals( VarSrcTokTable.SrcType_DYNAMIC ) ) {
 	  // 1) It is not clear statically where this variable will
@@ -1130,14 +1005,20 @@ public class MLPAnalysis {
     Iterator<VariableSourceToken> vstItr = staticSet.iterator();
     while( vstItr.hasNext() ) {
       VariableSourceToken vst = vstItr.next();
-      
+
+      // placeholder source tokens are useful results, but
+      // the placeholder static name is never needed
+      if( vst.getSESE().getIsCallerSESEplaceholder() ) {
+	continue;
+      }
+
       FlatSESEEnterNode sese = currentSESE;
       while( sese != null ) {
 	sese.addNeededStaticName( 
 				 new SESEandAgePair( vst.getSESE(), vst.getAge() ) 
 				  );
 	sese.mustTrackAtLeastAge( vst.getAge() );
-	
+      	
 	sese = sese.getParent();
       }
     }
@@ -1160,7 +1041,11 @@ public class MLPAnalysis {
       if( nextVstTable != null && nextLiveIn != null ) {
 
 	Hashtable<TempDescriptor, VariableSourceToken> static2dynamicSet = 
-	  thisVstTable.getStatic2DynamicSet( nextVstTable, nextLiveIn );
+	  thisVstTable.getStatic2DynamicSet( nextVstTable, 
+					     nextLiveIn,
+					     currentSESE,
+					     currentSESE.getParent() 
+					   );
 	
 	if( !static2dynamicSet.isEmpty() ) {
 
@@ -1181,6 +1066,114 @@ public class MLPAnalysis {
 	  }
 	}
       }
+    }
+  }
+
+
+  public void writeReports( String timeReport ) throws java.io.IOException {
+
+    BufferedWriter bw = new BufferedWriter( new FileWriter( "mlpReport_summary.txt" ) );
+    bw.write( "MLP Analysis Results\n\n" );
+    bw.write( timeReport+"\n\n" );
+    printSESEHierarchy( bw );
+    bw.write( "\n" );
+    printSESEInfo( bw );
+    bw.close();
+
+    Iterator<Descriptor> methItr = ownAnalysis.descriptorsToAnalyze.iterator();
+    while( methItr.hasNext() ) {
+      MethodDescriptor md = (MethodDescriptor) methItr.next();      
+      FlatMethod       fm = state.getMethodFlat( md );
+      bw = new BufferedWriter( new FileWriter( "mlpReport_"+
+					       md.getClassMethodName()+
+					       md.getSafeMethodDescriptor()+
+					       ".txt" ) );
+      bw.write( "MLP Results for "+md+"\n-------------------\n");
+      bw.write( "\n\nLive-In, Root View\n------------------\n"          +fm.printMethod( livenessRootView ) );
+      bw.write( "\n\nVariable Results-Out\n----------------\n"          +fm.printMethod( variableResults ) );
+      bw.write( "\n\nNot Available Results-Out\n---------------------\n"+fm.printMethod( notAvailableResults ) );
+      bw.write( "\n\nCode Plans\n----------\n"                          +fm.printMethod( codePlans ) );
+      bw.close();
+    }
+  }
+
+  private void printSESEHierarchy( BufferedWriter bw ) throws java.io.IOException {
+    bw.write( "SESE Hierarchy\n--------------\n" ); 
+    Iterator<FlatSESEEnterNode> rootItr = rootSESEs.iterator();
+    while( rootItr.hasNext() ) {
+      FlatSESEEnterNode root = rootItr.next();
+      if( root.getIsCallerSESEplaceholder() ) {
+	if( !root.getChildren().isEmpty() ) {
+	  printSESEHierarchyTree( bw, root, 0 );
+	}
+      } else {
+	printSESEHierarchyTree( bw, root, 0 );
+      }
+    }
+  }
+
+  private void printSESEHierarchyTree( BufferedWriter bw,
+				       FlatSESEEnterNode fsen,
+				       int depth 
+				     ) throws java.io.IOException {
+    for( int i = 0; i < depth; ++i ) {
+      bw.write( "  " );
+    }
+    bw.write( "- "+fsen.getPrettyIdentifier()+"\n" );
+
+    Iterator<FlatSESEEnterNode> childItr = fsen.getChildren().iterator();
+    while( childItr.hasNext() ) {
+      FlatSESEEnterNode fsenChild = childItr.next();
+      printSESEHierarchyTree( bw, fsenChild, depth + 1 );
+    }
+  }
+
+  
+  private void printSESEInfo( BufferedWriter bw ) throws java.io.IOException {
+    bw.write("\nSESE info\n-------------\n" ); 
+    Iterator<FlatSESEEnterNode> rootItr = rootSESEs.iterator();
+    while( rootItr.hasNext() ) {
+      FlatSESEEnterNode root = rootItr.next();
+      if( root.getIsCallerSESEplaceholder() ) {
+	if( !root.getChildren().isEmpty() ) {
+	  printSESEInfoTree( bw, root );
+	}
+      } else {
+	printSESEInfoTree( bw, root );
+      }
+    }
+  }
+
+  private void printSESEInfoTree( BufferedWriter bw,
+				  FlatSESEEnterNode fsen 
+				) throws java.io.IOException {
+
+    if( !fsen.getIsCallerSESEplaceholder() ) {
+      bw.write( "SESE "+fsen.getPrettyIdentifier()+" {\n" );
+
+      bw.write( "  in-set: "+fsen.getInVarSet()+"\n" );
+      Iterator<TempDescriptor> tItr = fsen.getInVarSet().iterator();
+      while( tItr.hasNext() ) {
+	TempDescriptor inVar = tItr.next();
+	if( fsen.getReadyInVarSet().contains( inVar ) ) {
+	  bw.write( "    (ready)  "+inVar+"\n" );
+	}
+	if( fsen.getStaticInVarSet().contains( inVar ) ) {
+	  bw.write( "    (static) "+inVar+"\n" );
+	} 
+	if( fsen.getDynamicInVarSet().contains( inVar ) ) {
+	  bw.write( "    (dynamic)"+inVar+"\n" );
+	}
+      }
+      
+      bw.write( "  out-set: "+fsen.getOutVarSet()+"\n" );
+      bw.write( "}\n" );
+    }
+
+    Iterator<FlatSESEEnterNode> childItr = fsen.getChildren().iterator();
+    while( childItr.hasNext() ) {
+      FlatSESEEnterNode fsenChild = childItr.next();
+      printSESEInfoTree( bw, fsenChild );
     }
   }
 }

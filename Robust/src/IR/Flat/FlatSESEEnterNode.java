@@ -19,6 +19,7 @@ public class FlatSESEEnterNode extends FlatNode {
   protected SESENode          treeNode;
   protected FlatSESEEnterNode parent;
   protected Integer           oldestAgeToTrack;
+  protected boolean           isCallerSESEplaceholder;
 
   protected Set<FlatSESEEnterNode> children;
 
@@ -70,6 +71,8 @@ public class FlatSESEEnterNode extends FlatNode {
     fmEnclosing = null;
     mdEnclosing = null;
     cdEnclosing = null;
+
+    isCallerSESEplaceholder = false;
   }
 
   public void rewriteUse() {
@@ -296,5 +299,31 @@ public class FlatSESEEnterNode extends FlatNode {
       "_"+
       mdBogus.getSafeMethodDescriptor()+
       "_SESErec";
+  }
+
+  public void setCallerSESEplaceholder() {
+    isCallerSESEplaceholder = true;
+  }
+
+  public boolean getIsCallerSESEplaceholder() {
+    return isCallerSESEplaceholder;
+  }
+
+
+  public boolean equals( Object o ) {
+    if( o == null ) {
+      return false;
+    }
+
+    if( !(o instanceof FlatSESEEnterNode) ) {
+      return false;
+    }
+
+    FlatSESEEnterNode fsen = (FlatSESEEnterNode) o;
+    return id == fsen.id;
+  }
+
+  public int hashCode() {
+    return 31*id;
   }
 }

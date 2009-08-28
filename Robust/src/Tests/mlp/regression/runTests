@@ -1,16 +1,20 @@
-echo 'Each single/multi output line pairs should be identical'
+echo 'Each single/multi output line pair should be identical'
+
+echo '' > resultsSingle.txt
+echo '' > resultsMulti.txt
 
 for i in $(seq 5)
 do
-
-echo ''
-./testSingle.bin 25
-./testMulti.bin  25
-echo ''
-./testSingle.bin 125
-./testMulti.bin  125
-echo ''
-./testSingle.bin 1255
-./testMulti.bin  1255
-
+echo 'running...'
+./testSingle.bin 10 >> resultsSingle.txt
+./testMulti.bin  10 >> resultsMulti.txt
+./testSingle.bin 25 >> resultsSingle.txt
+./testMulti.bin  25 >> resultsMulti.txt
+./testSingle.bin 125 >> resultsSingle.txt
+./testMulti.bin  125 >> resultsMulti.txt
+./testSingle.bin 1255 >> resultsSingle.txt
+./testMulti.bin  1255 >> resultsMulti.txt
 done
+
+echo 'Diffing results'
+diff resultsSingle.txt resultsMulti.txt

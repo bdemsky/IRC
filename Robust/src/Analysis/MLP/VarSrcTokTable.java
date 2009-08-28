@@ -409,57 +409,82 @@ public class VarSrcTokTable {
   }   
   
 
-  // if we can get a value from the current SESE and the parent
-  // or a sibling, just getting from the current SESE suffices now
-  // return a set of temps that are virtually read
-  public Set<TempDescriptor> removeParentAndSiblingTokens( FlatSESEEnterNode curr,
-							   Set<TempDescriptor> liveIn ) {
-    
-    HashSet<TempDescriptor> virtualLiveIn = new HashSet<TempDescriptor>();
-    
-    FlatSESEEnterNode parent = curr.getParent();
-    if( parent == null ) {
-      // have no parent or siblings
-      return virtualLiveIn;
-    }      
-    
-    remove_A_if_B( parent, curr, liveIn, virtualLiveIn );
+  // this method is called at the SESE exit of SESE 'curr'
+  // if the sources for a variable written by curr can also
+  // come from curr's parent or curr's siblings then we're not
+  // sure that curr will actually modify the variable.  There are
+  // many ways to handle this, but for now, mark the variable as
+  // virtually read so curr insists on having ownership of it
+  // whether it ends up writing to it or not.  It will always, then,
+  // appear in curr's out-set.
+  public Set<TempDescriptor>
+    calcVirtReadsAndPruneParentAndSiblingTokens( FlatSESEEnterNode exiter,
+						 Set<TempDescriptor> liveVars ) {
 
+    Set<TempDescriptor> virtReadSet = new HashSet<TempDescriptor>();
+
+    FlatSESEEnterNode parent = exiter.getParent();
+    if( parent == null ) {
+      // having no parent means no siblings, too
+      return virtReadSet;
+    }
+
+    Set<FlatSESEEnterNode> alternateSESEs = new HashSet<FlatSESEEnterNode>();
+    alternateSESEs.add( parent );
     Iterator<FlatSESEEnterNode> childItr = parent.getChildren().iterator();
-    if( childItr.hasNext() ) {
-      FlatSESEEnterNode child = childItr.next();
-      
-      if( !child.equals( curr ) ) {
-        remove_A_if_B( child, curr, liveIn, virtualLiveIn );
+    while( childItr.hasNext() ) {
+      FlatSESEEnterNode sibling = childItr.next();      
+      if( !sibling.equals( exiter ) ) {
+        alternateSESEs.add( sibling );
       }
     }
     
-    assertConsistency();
-    return virtualLiveIn;
-  }
-  
-  // if B is also a source for some variable, remove all entries
-  // of A as a source for that variable: s is virtual reads
-  protected void remove_A_if_B( FlatSESEEnterNode a, 
-				FlatSESEEnterNode b,
-				Set<TempDescriptor> liveInCurrentSESE,
-				Set<TempDescriptor> virtualLiveIn ) {
-
+    // VSTs to remove if they are alternate sources for exiter VSTs
+    // whose variables will become virtual reads
     Set<VariableSourceToken> forRemoval = new HashSet<VariableSourceToken>();
 
-    Iterator<VariableSourceToken> vstItr = get( a ).iterator();
+    // look at all of this SESE's VSTs at exit...
+    Iterator<VariableSourceToken> vstItr = get( exiter ).iterator();
     while( vstItr.hasNext() ) {
-      VariableSourceToken      vst       = vstItr.next();
-      Iterator<TempDescriptor> refVarItr = vst.getRefVars().iterator();
-      while( refVarItr.hasNext() ) {
-        TempDescriptor           refVar = refVarItr.next();
-        Set<VariableSourceToken> bSet   = get( b, refVar );
-      
-	if( !bSet.isEmpty() ) {
-          forRemoval.add( vst );
+      VariableSourceToken vstExiterSrc = vstItr.next();
 
-	  // mark this variable as a virtual read as well
-	  virtualLiveIn.add( refVar );
+      // only interested in tokens that come from our current instance
+      if( vstExiterSrc.getAge() != 0 ) {
+	continue;
+      }
+
+      // for each variable that might come from those sources...
+      Iterator<TempDescriptor> refVarItr = vstExiterSrc.getRefVars().iterator();
+      while( refVarItr.hasNext() ) {
+        TempDescriptor refVar = refVarItr.next();
+
+	// only matters for live variables at SESE exit program point
+	if( !liveVars.contains( refVar ) ) {
+	  continue;
+	}
+
+	// examine other sources for a variable...
+	Iterator<VariableSourceToken> srcItr = get( refVar ).iterator();
+	while( srcItr.hasNext() ) {
+	  VariableSourceToken vstPossibleOtherSrc = srcItr.next();
+
+	  if( vstPossibleOtherSrc.getSESE().equals( exiter ) &&
+	      vstPossibleOtherSrc.getAge() > 0 
+	    ) {
+	    // this is an alternate source if its 
+	    // an older instance of this SESE	  	    
+	    virtReadSet.add( refVar );
+	    forRemoval.add( vstPossibleOtherSrc );
+	    
+	  } else if( alternateSESEs.contains( vstPossibleOtherSrc.getSESE() ) ) {
+	    // this is an alternate source from parent or sibling
+	    virtReadSet.add( refVar );
+	    forRemoval.add( vstPossibleOtherSrc );  
+
+	  } else {
+	    assert vstPossibleOtherSrc.getSESE().equals( exiter );
+	    assert vstPossibleOtherSrc.getAge().equals( 0 );
+	  }
 	}
       }
     }
@@ -469,10 +494,11 @@ public class VarSrcTokTable {
       VariableSourceToken vst = vstItr.next();
       remove( vst );
     }
-
     assertConsistency();
+    
+    return virtReadSet;
   }
-
+  
   
   // get the set of VST's that come from a child
   public Set<VariableSourceToken> getChildrenVSTs( FlatSESEEnterNode curr ) {
@@ -489,9 +515,10 @@ public class VarSrcTokTable {
   }
 
 
-  // get the set of variables that have exactly one source
-  // from the static perspective
-  public Set<VariableSourceToken> getStaticSet() {
+  // get a sufficient set of VariableSourceTokens to cover all static sources
+  public Set<VariableSourceToken> getStaticSet( FlatSESEEnterNode current,
+						FlatSESEEnterNode parent 
+					      ) {
     
     Set<VariableSourceToken> out = new HashSet<VariableSourceToken>();
     
@@ -501,8 +528,8 @@ public class VarSrcTokTable {
       TempDescriptor               var = (TempDescriptor)               me.getKey();
       HashSet<VariableSourceToken> s1  = (HashSet<VariableSourceToken>) me.getValue();      
     
-      if( s1.size() == 1 ) {
-	out.addAll( s1 );
+      if( getRefVarSrcType( var, current, parent ) == SrcType_STATIC ) {
+	out.add( s1.iterator().next() );
       }
     }
 
@@ -515,7 +542,10 @@ public class VarSrcTokTable {
   // dynamic source and return them
   public Hashtable<TempDescriptor, VariableSourceToken> 
     getStatic2DynamicSet( VarSrcTokTable nextTable,
-			  Set<TempDescriptor> nextLiveIn ) {
+			  Set<TempDescriptor> nextLiveIn,
+			  FlatSESEEnterNode current,
+			  FlatSESEEnterNode parent
+			) {
     
     Hashtable<TempDescriptor, VariableSourceToken> out = 
       new Hashtable<TempDescriptor, VariableSourceToken>();
@@ -529,19 +559,12 @@ public class VarSrcTokTable {
       // only worth tracking if live
       if( nextLiveIn.contains( var ) ) {
 
-	// this is a variable with a static source if it
-	// currently has one vst
-	if( s1.size() == 1 ) {
-	  Set<VariableSourceToken> s2 = nextTable.get( var );	 
-
-	  // and if in the next table, it is dynamic, then
-	  // this is a transition point, so
-	  if( s2.size() > 1 ) {	   
-
-	    // remember the variable and the only source
-	    // it had before crossing the transition
-	    out.put( var, s1.iterator().next() );
-	  }
+	if(      this.getRefVarSrcType( var, current, parent ) == SrcType_STATIC  &&
+	    nextTable.getRefVarSrcType( var, current, parent ) == SrcType_DYNAMIC
+	  ) {
+	  // remember the variable and a static source
+	  // it had before crossing the transition
+	  out.put( var, s1.iterator().next() );	  
 	}
       }
     }
@@ -579,18 +602,45 @@ public class VarSrcTokTable {
       return SrcType_READY;
     }
 
-    // if the variable may have more than one source, or that
-    // source is at the summary age, it must be tracked dynamically
-    if( srcs.size() > 1 || 
-	srcs.iterator().next().getAge() == MLPAnalysis.maxSESEage ) {
+    // if the variable may have more than one source it might be
+    // dynamic, unless all sources are from a placeholder
+    if( srcs.size() > 1 ) {
+      Iterator<VariableSourceToken> itrSrcs = srcs.iterator();
+      VariableSourceToken oneSrc = itrSrcs.next();
+      while( itrSrcs.hasNext() ) {
+	VariableSourceToken anotherSrc = itrSrcs.next();
+	if( !oneSrc.getSESE().equals( anotherSrc.getSESE() ) ||
+	    !oneSrc.getAge( ).equals( anotherSrc.getAge( ) ) 
+	  ) {
+	  return SrcType_DYNAMIC;
+	}
+      }
+      
+      // all sources were same SESE and age, BUT, make sure it's
+      // not a placeholder SESE, who's vars are always ready
+      if( oneSrc.getSESE().getIsCallerSESEplaceholder() ) {
+	return SrcType_READY;
+      }
+
+      return SrcType_DYNAMIC;
+    }
+
+    VariableSourceToken singleSrc = srcs.iterator().next();
+    // if the one source is max age, track it dynamically
+    if( singleSrc.getAge() == MLPAnalysis.maxSESEage ) {
       return SrcType_DYNAMIC;
     } 
 
     // if it has one source that comes from the parent, it's ready
-    if( srcs.iterator().next().getSESE() == parent ) {
+    if( singleSrc.getSESE() == parent ) {
       return SrcType_READY;
     }
     
+    // if the one source is a placeholder SESE then it's ready
+    if( singleSrc.getSESE().getIsCallerSESEplaceholder() ) {
+      return SrcType_READY;
+    }
+
     // otherwise it comes from one source not the parent (sibling)
     // and we know exactly which static SESE/age it will come from
     return SrcType_STATIC;
