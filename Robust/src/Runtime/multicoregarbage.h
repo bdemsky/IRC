@@ -92,7 +92,7 @@ int gcbaseva; // base va for shared memory without reserved sblocks
 	}
 
 #define RESIDECORE(p, x, y) \
-  { \
+	{ \
 		if(1 == (NUMCORES)) { \
 			(*((int*)x)) = 0; \
 			(*((int*)y)) = 0; \
@@ -101,6 +101,9 @@ int gcbaseva; // base va for shared memory without reserved sblocks
 			BLOCKINDEX((p), &b); \
 			bool reverse = (b / (NUMCORES)) % 2; \
 			int l = b % (NUMCORES); \
+			BAMBOO_DEBUGPRINT_REG(b); \
+			BAMBOO_DEBUGPRINT_REG(l); \
+			BAMBOO_DEBUGPRINT_REG(reverse); \
 			if(reverse) { \
 				if(62 == (NUMCORES)) { \
 					if(l < 14) { \
@@ -109,7 +112,9 @@ int gcbaseva; // base va for shared memory without reserved sblocks
 						l += 2; \
 					} \
 				} \
+				BAMBOO_DEBUGPRINT_REG(l); \
 				(*((int*)y)) = bamboo_height - 1 - (l / bamboo_width); \
+				BAMBOO_DEBUGPRINT_REG(*((int*)y)); \
 			} else { \
 				if(62 == (NUMCORES)) {\
 					if(l > 54) { \
@@ -120,7 +125,8 @@ int gcbaseva; // base va for shared memory without reserved sblocks
 				} \
 				(*((int*)y)) = l / bamboo_width; \
 			} \
-			if(((!reverse)&&(*((int*)y))%2) || ((reverse)&&((*((int*)y))%2==0))){ \
+			BAMBOO_DEBUGPRINT_REG(*((int*)y)); \
+		if(((!reverse)&&(*((int*)y))%2) || ((reverse)&&((*((int*)y))%2==0))){ \
 				(*((int*)x)) = bamboo_width - 1 - (l % bamboo_width); \
 			} else { \
 				(*((int*)x)) = (l % bamboo_width); \
@@ -153,18 +159,10 @@ int gcbaseva; // base va for shared memory without reserved sblocks
 		x = cc / bamboo_height; \
 		y = cc % bamboo_height; \
 		if((n) % 2) { \
-			if((NUMCORES) % 2) { \
-				if(y % 2) { \
-					t = x + (bamboo_width - 1 - y) * bamboo_width; \
-				} else { \
-					t = bamboo_width - 1 - x + (bamboo_width - 1 - y) * bamboo_width; \
-				} \
+			if(y % 2) { \
+				t = x + (bamboo_width - 1 - y) * bamboo_width; \
 			} else { \
-				if(y % 2) { \
-					t = bamboo_width - 1 - x + (bamboo_width - 1 - y) * bamboo_width; \
-				} else { \
-					t = x + (bamboo_width - 1 - y) * bamboo_width; \
-				} \
+				t = bamboo_width - 1 - x + (bamboo_width - 1 - y) * bamboo_width; \
 			} \
 			if(62 == (NUMCORES)) {\
 				if(y>5) { \
@@ -179,9 +177,15 @@ int gcbaseva; // base va for shared memory without reserved sblocks
 			} else { \
 				t = x + y * bamboo_width; \
 			} \
-			if((62 == NUMCORES) && (y > 5)) t--; \
+			if(62 == (NUMCORES)) { \
+				if(y > 6) { \
+					t -= 2; \
+				} else if(y > 5) { \
+					t--; \
+				} \
+			} \
 		} \
-		t += NUMCORES * (n); \
+		t += (NUMCORES) * (n); \
 		(*((int*)b)) = t; \
 	}
 

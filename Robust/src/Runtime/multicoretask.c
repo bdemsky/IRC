@@ -91,12 +91,9 @@ void initruntimedata() {
 	gcheapdirection = 1;
 	gcmovestartaddr = 0;
 	gctomove = false;
-	//gchead = gctail = gctail2 = NULL;
-	//gclobjhead = gclobjtail = gclobjtail2 = NULL;
-	//gcheadindex=gctailindex=gctailindex2 = 0;
-	//gclobjheadindex=gclobjtailindex=gclobjtailindex2 = 0;
 	gcmovepending = 0;
 	gcblock2fill = 0;
+	gcsbstarttbl = BAMBOO_BASE_VA;
 #else
 	// create the lock table, lockresult table and obj queue
   locktable.size = 20;
@@ -1791,7 +1788,7 @@ msg:
 			} else {
 				gccorestatus[cnum] = 0;
 				// check if there is pending move request
-				if(gcmovepending > 0) {
+				/*if(gcmovepending > 0) {
 					int j;
 					for(j = 0; j < NUMCORES; j++) {
 						if(gcrequiredmems[j]>0) {
@@ -1822,8 +1819,8 @@ msg:
 							gcmovepending--;
 						}
 					} // if(j < NUMCORES)
-				} // if(gcmovepending > 0)
-			} // if(flag == 0)
+				} // if(gcmovepending > 0) */
+			} // if(data4>0)
 		} // if(cnum < NUMCORES)
 	  break;
 	}
@@ -1945,7 +1942,7 @@ msg:
 
 	case GCLOBJINFO: {
 		// received a large objs info response msg
-		waitconfirm--;
+		numconfirm--;
 
 		if(BAMBOO_NUM_OF_CORE > NUMCORES - 1) {
 #ifndef TILERA
