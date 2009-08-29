@@ -14,7 +14,7 @@ include ../common/Makefile.builds
 FLAGSSTATS=-mainclass ${MAINCLASS} -singleTM -optimize -debug -joptimize -32bit -abcclose -dcopts -transstats -arraypad -stmstats
 
 stmlock:
-	../../../buildscript ${FLAGSSTATS} -o STATS${MAINCLASS} ${SRC}
+	../../../buildscript ${FLAGSSTATS} -abrt 0 -o STATS${MAINCLASS} ${SRC}
 
 prep:
 

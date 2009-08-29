@@ -5,6 +5,10 @@ public class System {
   }
 
   public static native long currentTimeMillis();
+  
+  public static native long microTimes();
+
+  public static native long getticks();
 
   public static native void printString(String s);
 
@@ -24,6 +28,10 @@ public class System {
     System.printString(""+o+"\n");
   }
 
+  public static void println(long o) {
+    System.printString(""+o+"\n");
+  }
+
   public static void print(String s) {
     System.printString(s);
   }
@@ -37,6 +45,10 @@ public class System {
   }
 
   public static void print(double o) {
+    System.printString(""+o);
+  }
+
+  public static void print(long o) {
     System.printString(""+o);
   }
 

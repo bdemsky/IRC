@@ -41,6 +41,7 @@ int failurecount;
 float instfailurechance=0;
 int numfailures;
 int instaccum=0;
+typedef unsigned long long ticks;
 #ifdef DMALLOC
 #include "dmalloc.h"
 #endif
@@ -217,6 +218,23 @@ long long CALL00(___System______currentTimeMillis____) {
   retval*=1000; /* milliseconds */
   retval+= (tv.tv_usec/1000); /* adjust milliseconds & add them in */
   return retval;
+}
+
+long long CALL00(___System______microTimes____) {
+  struct timeval tv; 
+  long long retval;
+  gettimeofday(&tv, NULL);
+  retval = tv.tv_sec; /* seconds */
+  retval*=1000000; /* microsecs */
+  retval+= (tv.tv_usec); /* adjust microseconds & add them in */
+  return retval;
+}
+
+long long CALL00(___System______getticks____) {
+  unsigned a, d;
+  asm("cpuid");
+  asm volatile("rdtsc" : "=a" (a), "=d" (d));
+  return (((ticks)a) | (((ticks)d) << 32));
 }
 
 void CALL01(___System______printString____L___String___,struct ___String___ * ___s___) {

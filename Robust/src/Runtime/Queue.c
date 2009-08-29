@@ -158,7 +158,7 @@ void clearQueue(struct Queue * queue) {
     item=next;
   }
 	queue->head=queue->tail=NULL;
-  return NULL;
+  return;
 }
 
 #ifdef DEBUG_QUEUE

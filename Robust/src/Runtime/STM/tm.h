@@ -158,7 +158,6 @@ typedef struct objtypestat {
 } objtypestat_t;
 
 /* Variables for probability model */
-#define PERCENT_ALLOWED_ABORT 60
 #define FACTOR 3
 #endif
 

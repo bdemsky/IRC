@@ -37,6 +37,16 @@ int nSoftAbortAbort = 0;
 #endif
 
 #ifdef STMSTATS
+int timeInMS ()
+{
+  struct timeval t;
+
+  gettimeofday(&t, NULL);
+  return (
+      (int)t.tv_sec * 1000000 +
+      (int)t.tv_usec
+      );
+}
 /* Thread variable for locking/unlocking */
 __thread threadrec_t *trec;
 __thread struct objlist * lockedobjs;
@@ -73,7 +83,13 @@ INLINE void getTransSize(objheader_t *header , int *isObjTypeTraverse) {
 #ifdef STMDEBUG
 #define DEBUGSTM(x...) printf(x);
 #else
-#define DEBUGSTM(x...)
+#define DEBUGSTM(x...);
+#endif
+
+#ifdef STATDEBUG
+#define DEBUGSTATS(x...) printf(x);
+#else
+#define DEBUGSTATS(x...);
 #endif
 
 //#ifdef FASTMEMCPY
@@ -122,7 +138,7 @@ void ABORTCOUNT(objheader_t * x) {
   DEBUGSTM("ABORTSTATS: oid= %x, type= %2d, transAbortProb= %2.2f, ObjAbortProb= %2.2f, Typenumaccess= %3d, avgtranssize = %2d, ObjabortCount= %2d, ObjaccessCount= %3d\n", OID(x), TYPE(x), transAbortProbForObj, ObjAbortProb, typesCausingAbort[TYPE(x)].numaccess, avgTransSize, x->abortCount, x->accessCount);
   /* Condition for locking objects */
   if (((ObjAbortProb*100) >= transAbortProbForObj) && (x->riskyflag != 1)) {	 
-    DEBUGSTM("AFTER LOCK ABORTSTATS: oid= %x, type= %2d, transAbortProb= %2.2f, ObjAbortProb= %2.2f, Typenumaccess= %3d, avgtranssize = %2d, ObjabortCount= %2d, ObjaccessCount= %3d\n", OID(x), TYPE(x), transAbortProbForObj, ObjAbortProb, typesCausingAbort[TYPE(x)].numaccess, avgTransSize, x->abortCount, x->accessCount);
+    DEBUGSTATS("AFTER LOCK ABORTSTATS: oid= %x, type= %2d, transAbortProb= %2.2f, ObjAbortProb= %2.2f, Typenumaccess= %3d, avgtranssize = %2d, ObjabortCount= %2d, ObjaccessCount= %3d\n", OID(x), TYPE(x), transAbortProbForObj, ObjAbortProb, typesCausingAbort[TYPE(x)].numaccess, avgTransSize, x->abortCount, x->accessCount);
     //makes riskflag sticky
     pthread_mutex_lock(&lockedobjstore); 
     if (objlockscope->offset<MAXOBJLIST) { 
@@ -370,6 +386,9 @@ int transCommit(void (*commitmethod)(void *, void *, void *), void * primitives,
 #else
 int transCommit() {
 #endif
+#ifdef TRANSSTATS
+  numTransCommit++;
+#endif
   int softaborted=0;
   do {
     /* Look through all the objects in the transaction hash table */
@@ -411,7 +430,7 @@ int transCommit() {
     }
     if(finalResponse == TRANS_COMMIT) {
 #ifdef TRANSSTATS
-      numTransCommit++;
+      //numTransCommit++;
       if (softaborted) {
 	nSoftAbortCommit++;
       }
@@ -1478,6 +1497,7 @@ int getReadAbortCount(int start, int stop, void *oidrdlocked, int *oidrdversion,
 
   return hardabort;
 }
+
 
 /**
  * needLock

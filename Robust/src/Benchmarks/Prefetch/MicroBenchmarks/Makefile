@@ -25,6 +25,9 @@ FLAGS6 = -dsm -dsmcaching -optimize -mainclass ${MAINCLASS3}
 FLAGS7 = -dsm -prefetch -dsmcaching -optimize -mainclass ${MAINCLASS4}
 FLAGS8 = -dsm -dsmcaching -optimize -mainclass ${MAINCLASS4}
 
+simple:
+	../../../buildscript -dsm -dsmcaching -optimize -mainclass Simple -o Simple Simple.java
+
 default:
 	../../../buildscript ${FLAGS2} -o ${NAME1}NP ${SRC1}
 	cp ${NAME1}NP.bin ${NAME1}1NP.bin

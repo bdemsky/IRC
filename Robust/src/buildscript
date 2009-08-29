@@ -193,6 +193,9 @@ EXTRAOPTIONS="$EXTRAOPTIONS -DREADSET"
 elif [[ $1 = '-stmdebug' ]]
 then
 EXTRAOPTIONS="$EXTRAOPTIONS -DSTMDEBUG"
+elif [[ $1 = '-statdebug' ]]
+then
+EXTRAOPTIONS="$EXTRAOPTIONS -DSTATDEBUG"
 elif [[ $1 = '-stmstats' ]]
 then
 EXTRAOPTIONS="$EXTRAOPTIONS -DSTMSTATS"
@@ -381,6 +384,11 @@ shift
 elif [[ $1 = '-outputdir' ]]
 then
 JAVAOPTS="$JAVAOPTS -outputdir $2"
+shift
+elif [[ $1 = '-abrt' ]]
+then
+ABRT="PERCENT_ALLOWED_ABORT=$2"
+EXTRAOPTIONS="$EXTRAOPTIONS -D$ABRT"
 shift
 else
 SRCFILES="$SRCFILES $1"
