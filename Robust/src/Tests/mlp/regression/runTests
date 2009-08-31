@@ -3,17 +3,15 @@ echo 'Each single/multi output line pair should be identical'
 echo '' > resultsSingle.txt
 echo '' > resultsMulti.txt
 
-for i in $(seq 5)
+for i in $(seq 20)
 do
 echo 'running...'
-./testSingle.bin 10 >> resultsSingle.txt
-./testMulti.bin  10 >> resultsMulti.txt
-./testSingle.bin 25 >> resultsSingle.txt
-./testMulti.bin  25 >> resultsMulti.txt
-./testSingle.bin 125 >> resultsSingle.txt
-./testMulti.bin  125 >> resultsMulti.txt
-./testSingle.bin 1255 >> resultsSingle.txt
-./testMulti.bin  1255 >> resultsMulti.txt
+./testSingle.bin $[ i      ] >> resultsSingle.txt
+./testMulti.bin  $[ i      ] >> resultsMulti.txt
+./testSingle.bin $[ i*7    ] >> resultsSingle.txt
+./testMulti.bin  $[ i*7    ] >> resultsMulti.txt
+./testSingle.bin $[ 50+i*7 ] >> resultsSingle.txt
+./testMulti.bin  $[ 50+i*7 ] >> resultsMulti.txt
 done
 
 echo 'Diffing results'

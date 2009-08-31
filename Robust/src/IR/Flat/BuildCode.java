@@ -2889,10 +2889,17 @@ public class BuildCode {
 					 FlatSESEEnterNode fsen, 
 					 PrintWriter output 
 				       ) {
+
+    // if MLP flag is off, okay that SESE nodes are in IR graph, 
+    // just skip over them and code generates exactly the same
     if( !state.MLP ) {
-      // SESE nodes can be parsed for normal compilation, just skip over them
       return;
     }    
+
+    // there may be an SESE in an unreachable method, skip over
+    if( !mlpa.getAllSESEs().contains( fsen ) ) {
+      return;
+    }
 
     // also, if we have encountered a placeholder, just skip it
     if( fsen.getIsCallerSESEplaceholder() ) {
@@ -3081,8 +3088,15 @@ public class BuildCode {
 					FlatSESEExitNode fsexn, 
 					PrintWriter output
 				      ) {
+
+    // if MLP flag is off, okay that SESE nodes are in IR graph, 
+    // just skip over them and code generates exactly the same 
     if( !state.MLP ) {
-      // SESE nodes can be parsed for normal compilation, just skip over them
+      return;
+    }
+
+    // there may be an SESE in an unreachable method, skip over
+    if( !mlpa.getAllSESEs().contains( fsexn.getFlatEnter() ) ) {
       return;
     }
 
@@ -3094,18 +3108,6 @@ public class BuildCode {
     output.println("   /* SESE exiting */");
 
     String com = paramsprefix+"->common";
-
-    /*
-    // take yourself off the thread-local sese call stack
-    output.println("   if( isEmpty( seseCallStack ) ) {");
-    output.println("     printf( \"Error, sese call stack is empty.\\n\" );");
-    output.println("     exit( -1 );");
-    output.println("   }");
-    output.println("   if( (void*)"+paramsprefix+" != getItem( seseCallStack ) ) {");
-    output.println("     printf( \"Error, sese call stack mismatch.\\n\" );");
-    output.println("     exit( -1 );");
-    output.println("   }");
-    */
 
     // this SESE cannot be done until all of its children are done
     // so grab your own lock with the condition variable for watching

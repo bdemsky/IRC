@@ -40,6 +40,10 @@ public class Test {
 
   public static int calculateStuff( int sum, int num, int mode ) {
     int answer = sum;    
+    sese makePlaceholderStallAfter {
+      sum = sum + 1;
+    }
+    sum = sum + 1;
     if( mode == 0 ) {
       sese mode1 {
 	answer = sum + num;

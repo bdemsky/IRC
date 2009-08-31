@@ -146,7 +146,6 @@ public class MLPAnalysis {
       variableAnalysisForward( fm );
     }
 
-
     // 4th pass, compute liveness contribution from
     // virtual reads discovered in variable pass
     rootItr = rootSESEs.iterator();
@@ -158,6 +157,9 @@ public class MLPAnalysis {
     }
 
 
+    /*
+      SOMETHING IS WRONG WITH THIS, DON'T USE IT UNTIL IT CAN BE FIXED
+
     // 5th pass
     methItr = ownAnalysis.descriptorsToAnalyze.iterator();
     while( methItr.hasNext() ) {
@@ -168,7 +170,8 @@ public class MLPAnalysis {
       // by removing reference variables that are not live
       pruneVariableResultsWithLiveness( fm );
     }
-    
+    */
+
 
     // 6th pass
     methItr = ownAnalysis.descriptorsToAnalyze.iterator();
@@ -623,7 +626,6 @@ public class MLPAnalysis {
       Set<TempDescriptor> rootLiveSet = livenessRootView.get( fn );
       VarSrcTokTable      vstTable    = variableResults.get( fn );
       
-      // fix later, not working, only wanted it to make tables easier to read
       vstTable.pruneByLiveness( rootLiveSet );
       
       for( int i = 0; i < fn.numNext(); i++ ) {
@@ -950,7 +952,7 @@ public class MLPAnalysis {
 	  // along various control paths, and therefore when we stall,
 	  // just stall for the exact thing we need and move on
 	  plan.addDynamicStall( readtmp );
-	  currentSESE.addDynamicVar( readtmp );
+	  currentSESE.addDynamicVar( readtmp );	 
 
 	} else if( srcType.equals( VarSrcTokTable.SrcType_STATIC ) ) {	  
 	  // 2) Single token/age pair: Stall for token/age pair, and copy
